@@ -22,6 +22,7 @@
 ## Improvements
 ##
 
+- Tuning Database: Updated hashcat.hctune with new models and refreshed vector width values
 - Bitcoin Wallet: Be more user friendly by allowing a larger data range for ckey and public_key
 
 ##

@@ -51,210 +51,222 @@
 #Device                                         Alias
 #Name                                           Name
 
-Tesla_C2050                                     ALIAS_nv_use_simd
-Tesla_C2050/C2070                               ALIAS_nv_use_simd
-Tesla_C2070                                     ALIAS_nv_use_simd
-Tesla_C2075                                     ALIAS_nv_use_simd
-Tesla_K10                                       ALIAS_nv_use_simd
-Tesla_K20                                       ALIAS_nv_use_simd
-Tesla_K40                                       ALIAS_nv_use_simd
-Tesla_K80                                       ALIAS_nv_use_simd
-Tesla_M20xx                                     ALIAS_nv_use_simd
+Tesla_C2050                                     ALIAS_nv_real_simd
+Tesla_C2050/C2070                               ALIAS_nv_real_simd
+Tesla_C2070                                     ALIAS_nv_real_simd
+Tesla_C2075                                     ALIAS_nv_real_simd
+Tesla_K10                                       ALIAS_nv_real_simd
+Tesla_K20                                       ALIAS_nv_real_simd
+Tesla_K40                                       ALIAS_nv_real_simd
+Tesla_K80                                       ALIAS_nv_real_simd
+Tesla_M20xx                                     ALIAS_nv_real_simd
 
-Quadro_410                                      ALIAS_nv_use_simd
-Quadro_K2000                                    ALIAS_nv_use_simd
-Quadro_K2000D                                   ALIAS_nv_use_simd
-Quadro_K4000                                    ALIAS_nv_use_simd
-Quadro_K4200                                    ALIAS_nv_use_simd
-Quadro_K420                                     ALIAS_nv_use_simd
-Quadro_K5000                                    ALIAS_nv_use_simd
-Quadro_K5200                                    ALIAS_nv_use_simd
-Quadro_K6000                                    ALIAS_nv_use_simd
-Quadro_K600                                     ALIAS_nv_use_simd
-Quadro_Plex_7000                                ALIAS_nv_use_simd
+Quadro_410                                      ALIAS_nv_real_simd
+Quadro_K2000                                    ALIAS_nv_real_simd
+Quadro_K2000D                                   ALIAS_nv_real_simd
+Quadro_K4000                                    ALIAS_nv_real_simd
+Quadro_K4200                                    ALIAS_nv_real_simd
+Quadro_K420                                     ALIAS_nv_real_simd
+Quadro_K5000                                    ALIAS_nv_real_simd
+Quadro_K5200                                    ALIAS_nv_real_simd
+Quadro_K6000                                    ALIAS_nv_real_simd
+Quadro_K600                                     ALIAS_nv_real_simd
+Quadro_Plex_7000                                ALIAS_nv_real_simd
 
-NVIDIA_NVS_310                                  ALIAS_nv_use_simd
-NVIDIA_NVS_315                                  ALIAS_nv_use_simd
-NVIDIA_NVS_510                                  ALIAS_nv_use_simd
-NVS_310                                         ALIAS_nv_use_simd
-NVS_315                                         ALIAS_nv_use_simd
-NVS_4200M                                       ALIAS_nv_use_simd
-NVS_510                                         ALIAS_nv_use_simd
-NVS_5200M                                       ALIAS_nv_use_simd
-NVS_5400M                                       ALIAS_nv_use_simd
+NVIDIA_NVS_310                                  ALIAS_nv_real_simd
+NVIDIA_NVS_315                                  ALIAS_nv_real_simd
+NVIDIA_NVS_510                                  ALIAS_nv_real_simd
+NVS_310                                         ALIAS_nv_real_simd
+NVS_315                                         ALIAS_nv_real_simd
+NVS_4200M                                       ALIAS_nv_real_simd
+NVS_510                                         ALIAS_nv_real_simd
+NVS_5200M                                       ALIAS_nv_real_simd
+NVS_5400M                                       ALIAS_nv_real_simd
 
-GeForce_410M                                    ALIAS_nv_use_simd
-GeForce_610M                                    ALIAS_nv_use_simd
-GeForce_705M                                    ALIAS_nv_use_simd
-GeForce_710M                                    ALIAS_nv_use_simd
-GeForce_800M                                    ALIAS_nv_use_simd
-GeForce_820M                                    ALIAS_nv_use_simd
-GeForce_920M                                    ALIAS_nv_use_simd
-GeForce_GT_410M                                 ALIAS_nv_use_simd
-GeForce_GT_415M                                 ALIAS_nv_use_simd
-GeForce_GT_420M                                 ALIAS_nv_use_simd
-GeForce_GT_430                                  ALIAS_nv_use_simd
-GeForce_GT_435M                                 ALIAS_nv_use_simd
-GeForce_GT_440                                  ALIAS_nv_use_simd
-GeForce_GT_445M                                 ALIAS_nv_use_simd
-GeForce_GT_520                                  ALIAS_nv_use_simd
-GeForce_GT_520M                                 ALIAS_nv_use_simd
-GeForce_GT_520MX                                ALIAS_nv_use_simd
-GeForce_GT_525M                                 ALIAS_nv_use_simd
-GeForce_GT_540M                                 ALIAS_nv_use_simd
-GeForce_GT_550M                                 ALIAS_nv_use_simd
-GeForce_GT_555M                                 ALIAS_nv_use_simd
-GeForce_GT_610                                  ALIAS_nv_use_simd
-GeForce_GT_620                                  ALIAS_nv_use_simd
-GeForce_GT_620M                                 ALIAS_nv_use_simd
-GeForce_GT_625M                                 ALIAS_nv_use_simd
-GeForce_GT_630                                  ALIAS_nv_use_simd
-GeForce_GT_630M                                 ALIAS_nv_use_simd
-GeForce_GT_635M                                 ALIAS_nv_use_simd
-GeForce_GT_640                                  ALIAS_nv_use_simd
-GeForce_GT_640M                                 ALIAS_nv_use_simd
-GeForce_GT_640M_LE                              ALIAS_nv_use_simd
-GeForce_GT_645M                                 ALIAS_nv_use_simd
-GeForce_GT_650M                                 ALIAS_nv_use_simd
-GeForce_GT_705                                  ALIAS_nv_use_simd
-GeForce_GT_720                                  ALIAS_nv_use_simd
-GeForce_GT_720M                                 ALIAS_nv_use_simd
-GeForce_GT_730                                  ALIAS_nv_use_simd
-GeForce_GT_730M                                 ALIAS_nv_use_simd
-GeForce_GT_735M                                 ALIAS_nv_use_simd
-GeForce_GT_740                                  ALIAS_nv_use_simd
-GeForce_GT_740M                                 ALIAS_nv_use_simd
-GeForce_GT_745M                                 ALIAS_nv_use_simd
-GeForce_GT_750M                                 ALIAS_nv_use_simd
-GeForce_GTS_450                                 ALIAS_nv_use_simd
-GeForce_GTX_460                                 ALIAS_nv_use_simd
-GeForce_GTX_460M                                ALIAS_nv_use_simd
-GeForce_GTX_465                                 ALIAS_nv_use_simd
-GeForce_GTX_470                                 ALIAS_nv_use_simd
-GeForce_GTX_470M                                ALIAS_nv_use_simd
-GeForce_GTX_480                                 ALIAS_nv_use_simd
-GeForce_GTX_480M                                ALIAS_nv_use_simd
-GeForce_GTX_485M                                ALIAS_nv_use_simd
-GeForce_GTX_550_Ti                              ALIAS_nv_use_simd
-GeForce_GTX_560M                                ALIAS_nv_use_simd
-GeForce_GTX_560_Ti                              ALIAS_nv_use_simd
-GeForce_GTX_570                                 ALIAS_nv_use_simd
-GeForce_GTX_570M                                ALIAS_nv_use_simd
-GeForce_GTX_580                                 ALIAS_nv_use_simd
-GeForce_GTX_580M                                ALIAS_nv_use_simd
-GeForce_GTX_590                                 ALIAS_nv_use_simd
-GeForce_GTX_610M                                ALIAS_nv_use_simd
-GeForce_GTX_650                                 ALIAS_nv_use_simd
-GeForce_GTX_650_Ti                              ALIAS_nv_use_simd
-GeForce_GTX_650_Ti_BOOST                        ALIAS_nv_use_simd
-GeForce_GTX_660                                 ALIAS_nv_use_simd
-GeForce_GTX_660M                                ALIAS_nv_use_simd
-GeForce_GTX_660_Ti                              ALIAS_nv_use_simd
-GeForce_GTX_670                                 ALIAS_nv_use_simd
-GeForce_GTX_670M                                ALIAS_nv_use_simd
-GeForce_GTX_670MX                               ALIAS_nv_use_simd
-GeForce_GTX_675M                                ALIAS_nv_use_simd
-GeForce_GTX_675MX                               ALIAS_nv_use_simd
-GeForce_GTX_680                                 ALIAS_nv_use_simd
-GeForce_GTX_680M                                ALIAS_nv_use_simd
-GeForce_GTX_680MX                               ALIAS_nv_use_simd
-GeForce_GTX_690                                 ALIAS_nv_use_simd
-GeForce_GTX_705M                                ALIAS_nv_use_simd
-GeForce_GTX_710M                                ALIAS_nv_use_simd
-GeForce_GTX_760                                 ALIAS_nv_use_simd
-GeForce_GTX_760M                                ALIAS_nv_use_simd
-GeForce_GTX_765M                                ALIAS_nv_use_simd
-GeForce_GTX_770                                 ALIAS_nv_use_simd
-GeForce_GTX_770M                                ALIAS_nv_use_simd
-GeForce_GTX_780                                 ALIAS_nv_use_simd
-GeForce_GTX_780M                                ALIAS_nv_use_simd
-GeForce_GTX_780_Ti                              ALIAS_nv_use_simd
-GeForce_GTX_800M                                ALIAS_nv_use_simd
-GeForce_GTX_820M                                ALIAS_nv_use_simd
-GeForce_GTX_860M                                ALIAS_nv_use_simd
-GeForce_GTX_870M                                ALIAS_nv_use_simd
-GeForce_GTX_880M                                ALIAS_nv_use_simd
-GeForce_GTX_920M                                ALIAS_nv_use_simd
-#GeForce_GTX_TITAN                              ALIAS_nv_use_simd
-GeForce_GTX_TITAN_Black                         ALIAS_nv_use_simd
-GeForce_GTX_TITAN_Z                             ALIAS_nv_use_simd
-
-##
-## Maxwell sm_50 cards
-##
-
-Quadro_K1200                                    ALIAS_nv_sm50
-Quadro_K2200                                    ALIAS_nv_sm50
-Quadro_K2200M                                   ALIAS_nv_sm50
-Quadro_K620                                     ALIAS_nv_sm50
-Quadro_K620M                                    ALIAS_nv_sm50
-Quadro_M1000M                                   ALIAS_nv_sm50
-Quadro_M2000M                                   ALIAS_nv_sm50
-Quadro_M3000M                                   ALIAS_nv_sm50
-Quadro_M4000M                                   ALIAS_nv_sm50
-Quadro_M5000M                                   ALIAS_nv_sm50
-Quadro_M500M                                    ALIAS_nv_sm50
-Quadro_M5500M                                   ALIAS_nv_sm50
-Quadro_M600M                                    ALIAS_nv_sm50
-
-NVIDIA_NVS_810                                  ALIAS_nv_sm50
-
-GeForce_830M                                    ALIAS_nv_sm50
-GeForce_830M                                    ALIAS_nv_sm50
-GeForce_840M                                    ALIAS_nv_sm50
-GeForce_840M                                    ALIAS_nv_sm50
-GeForce_930M                                    ALIAS_nv_sm50
-GeForce_940M                                    ALIAS_nv_sm50
-GeForce_GTX_750                                 ALIAS_nv_sm50
-GeForce_GTX_750_Ti                              ALIAS_nv_sm50
-GeForce_GTX_850M                                ALIAS_nv_sm50
-GeForce_GTX_930M                                ALIAS_nv_sm50
-GeForce_GTX_940M                                ALIAS_nv_sm50
-GeForce_GTX_950M                                ALIAS_nv_sm50
-GeForce_GTX_960M                                ALIAS_nv_sm50
+GeForce_410M                                    ALIAS_nv_real_simd
+GeForce_610M                                    ALIAS_nv_real_simd
+GeForce_705M                                    ALIAS_nv_real_simd
+GeForce_710M                                    ALIAS_nv_real_simd
+GeForce_800M                                    ALIAS_nv_real_simd
+GeForce_820M                                    ALIAS_nv_real_simd
+GeForce_920M                                    ALIAS_nv_real_simd
+GeForce_GT_410M                                 ALIAS_nv_real_simd
+GeForce_GT_415M                                 ALIAS_nv_real_simd
+GeForce_GT_420M                                 ALIAS_nv_real_simd
+GeForce_GT_430                                  ALIAS_nv_real_simd
+GeForce_GT_435M                                 ALIAS_nv_real_simd
+GeForce_GT_440                                  ALIAS_nv_real_simd
+GeForce_GT_445M                                 ALIAS_nv_real_simd
+GeForce_GT_520                                  ALIAS_nv_real_simd
+GeForce_GT_520M                                 ALIAS_nv_real_simd
+GeForce_GT_520MX                                ALIAS_nv_real_simd
+GeForce_GT_525M                                 ALIAS_nv_real_simd
+GeForce_GT_540M                                 ALIAS_nv_real_simd
+GeForce_GT_550M                                 ALIAS_nv_real_simd
+GeForce_GT_555M                                 ALIAS_nv_real_simd
+GeForce_GT_610                                  ALIAS_nv_real_simd
+GeForce_GT_620                                  ALIAS_nv_real_simd
+GeForce_GT_620M                                 ALIAS_nv_real_simd
+GeForce_GT_625M                                 ALIAS_nv_real_simd
+GeForce_GT_630                                  ALIAS_nv_real_simd
+GeForce_GT_630M                                 ALIAS_nv_real_simd
+GeForce_GT_635M                                 ALIAS_nv_real_simd
+GeForce_GT_640                                  ALIAS_nv_real_simd
+GeForce_GT_640M                                 ALIAS_nv_real_simd
+GeForce_GT_640M_LE                              ALIAS_nv_real_simd
+GeForce_GT_645M                                 ALIAS_nv_real_simd
+GeForce_GT_650M                                 ALIAS_nv_real_simd
+GeForce_GT_705                                  ALIAS_nv_real_simd
+GeForce_GT_720                                  ALIAS_nv_real_simd
+GeForce_GT_720M                                 ALIAS_nv_real_simd
+GeForce_GT_730                                  ALIAS_nv_real_simd
+GeForce_GT_730M                                 ALIAS_nv_real_simd
+GeForce_GT_735M                                 ALIAS_nv_real_simd
+GeForce_GT_740                                  ALIAS_nv_real_simd
+GeForce_GT_740M                                 ALIAS_nv_real_simd
+GeForce_GT_745M                                 ALIAS_nv_real_simd
+GeForce_GT_750M                                 ALIAS_nv_real_simd
+GeForce_GTS_450                                 ALIAS_nv_real_simd
+GeForce_GTX_460                                 ALIAS_nv_real_simd
+GeForce_GTX_460M                                ALIAS_nv_real_simd
+GeForce_GTX_465                                 ALIAS_nv_real_simd
+GeForce_GTX_470                                 ALIAS_nv_real_simd
+GeForce_GTX_470M                                ALIAS_nv_real_simd
+GeForce_GTX_480                                 ALIAS_nv_real_simd
+GeForce_GTX_480M                                ALIAS_nv_real_simd
+GeForce_GTX_485M                                ALIAS_nv_real_simd
+GeForce_GTX_550_Ti                              ALIAS_nv_real_simd
+GeForce_GTX_560M                                ALIAS_nv_real_simd
+GeForce_GTX_560_Ti                              ALIAS_nv_real_simd
+GeForce_GTX_570                                 ALIAS_nv_real_simd
+GeForce_GTX_570M                                ALIAS_nv_real_simd
+GeForce_GTX_580                                 ALIAS_nv_real_simd
+GeForce_GTX_580M                                ALIAS_nv_real_simd
+GeForce_GTX_590                                 ALIAS_nv_real_simd
+GeForce_GTX_610M                                ALIAS_nv_real_simd
+GeForce_GTX_650                                 ALIAS_nv_real_simd
+GeForce_GTX_650_Ti                              ALIAS_nv_real_simd
+GeForce_GTX_650_Ti_BOOST                        ALIAS_nv_real_simd
+GeForce_GTX_660                                 ALIAS_nv_real_simd
+GeForce_GTX_660M                                ALIAS_nv_real_simd
+GeForce_GTX_660_Ti                              ALIAS_nv_real_simd
+GeForce_GTX_670                                 ALIAS_nv_real_simd
+GeForce_GTX_670M                                ALIAS_nv_real_simd
+GeForce_GTX_670MX                               ALIAS_nv_real_simd
+GeForce_GTX_675M                                ALIAS_nv_real_simd
+GeForce_GTX_675MX                               ALIAS_nv_real_simd
+GeForce_GTX_680                                 ALIAS_nv_real_simd
+GeForce_GTX_680M                                ALIAS_nv_real_simd
+GeForce_GTX_680MX                               ALIAS_nv_real_simd
+GeForce_GTX_690                                 ALIAS_nv_real_simd
+GeForce_GTX_705M                                ALIAS_nv_real_simd
+GeForce_GTX_710M                                ALIAS_nv_real_simd
+GeForce_GTX_760                                 ALIAS_nv_real_simd
+GeForce_GTX_760M                                ALIAS_nv_real_simd
+GeForce_GTX_765M                                ALIAS_nv_real_simd
+GeForce_GTX_770                                 ALIAS_nv_real_simd
+GeForce_GTX_770M                                ALIAS_nv_real_simd
+GeForce_GTX_780                                 ALIAS_nv_real_simd
+GeForce_GTX_780M                                ALIAS_nv_real_simd
+GeForce_GTX_780_Ti                              ALIAS_nv_real_simd
+GeForce_GTX_800M                                ALIAS_nv_real_simd
+GeForce_GTX_820M                                ALIAS_nv_real_simd
+GeForce_GTX_860M                                ALIAS_nv_real_simd
+GeForce_GTX_870M                                ALIAS_nv_real_simd
+GeForce_GTX_880M                                ALIAS_nv_real_simd
+GeForce_GTX_920M                                ALIAS_nv_real_simd
+#GeForce_GTX_TITAN                              ALIAS_nv_real_simd
+GeForce_GTX_TITAN_Black                         ALIAS_nv_real_simd
+GeForce_GTX_TITAN_Z                             ALIAS_nv_real_simd
 
 ##
-## Maxwell sm_52 cards or higher
+## Maxwell sm_50 cards or higher
 ##
 
-Tesla_M4                                        ALIAS_nv_sm52_or_higher
-Tesla_M6                                        ALIAS_nv_sm52_or_higher
-Tesla_M10                                       ALIAS_nv_sm52_or_higher
-Tesla_M40                                       ALIAS_nv_sm52_or_higher
-Tesla_M60                                       ALIAS_nv_sm52_or_higher
-Tesla_P4                                        ALIAS_nv_sm52_or_higher
-Tesla_P40                                       ALIAS_nv_sm52_or_higher
-Tesla_P100                                      ALIAS_nv_sm52_or_higher
-Tesla_V100                                      ALIAS_nv_sm52_or_higher
+Quadro_K1200                                    ALIAS_nv_sm50_or_higher
+Quadro_K2200                                    ALIAS_nv_sm50_or_higher
+Quadro_K2200M                                   ALIAS_nv_sm50_or_higher
+Quadro_K620                                     ALIAS_nv_sm50_or_higher
+Quadro_K620M                                    ALIAS_nv_sm50_or_higher
+Quadro_M1000M                                   ALIAS_nv_sm50_or_higher
+Quadro_M2000M                                   ALIAS_nv_sm50_or_higher
+Quadro_M3000M                                   ALIAS_nv_sm50_or_higher
+Quadro_M4000M                                   ALIAS_nv_sm50_or_higher
+Quadro_M5000M                                   ALIAS_nv_sm50_or_higher
+Quadro_M500M                                    ALIAS_nv_sm50_or_higher
+Quadro_M5500M                                   ALIAS_nv_sm50_or_higher
+Quadro_M600M                                    ALIAS_nv_sm50_or_higher
 
-Quadro_M2000                                    ALIAS_nv_sm52_or_higher
-Quadro_M4000                                    ALIAS_nv_sm52_or_higher
-Quadro_M5000                                    ALIAS_nv_sm52_or_higher
-Quadro_M6000                                    ALIAS_nv_sm52_or_higher
+NVIDIA_NVS_810                                  ALIAS_nv_sm50_or_higher
 
-GeForce_GTX_950                                 ALIAS_nv_sm52_or_higher
-GeForce_GTX_960                                 ALIAS_nv_sm52_or_higher
-GeForce_GTX_970                                 ALIAS_nv_sm52_or_higher
-GeForce_GTX_980                                 ALIAS_nv_sm52_or_higher
-GeForce_GTX_980_Ti                              ALIAS_nv_sm52_or_higher
-GeForce_GTX_1070                                ALIAS_nv_sm52_or_higher
-GeForce_GTX_1070_Ti                             ALIAS_nv_sm52_or_higher
-GeForce_GTX_1080                                ALIAS_nv_sm52_or_higher
-GeForce_GTX_1080_Ti                             ALIAS_nv_sm52_or_higher
-GeForce_RTX_2080                                ALIAS_nv_sm52_or_higher
-GeForce_RTX_2080_Ti                             ALIAS_nv_sm52_or_higher
+GeForce_GTX_750                                 ALIAS_nv_sm50_or_higher
+GeForce_GTX_750_Ti                              ALIAS_nv_sm50_or_higher
 
-TITAN_X                                         ALIAS_nv_sm52_or_higher
-TITAN_Xp                                        ALIAS_nv_sm52_or_higher
-TITAN_V                                         ALIAS_nv_sm52_or_higher
+GeForce_830M                                    ALIAS_nv_sm50_or_higher
+GeForce_830M                                    ALIAS_nv_sm50_or_higher
+GeForce_840M                                    ALIAS_nv_sm50_or_higher
+GeForce_840M                                    ALIAS_nv_sm50_or_higher
+GeForce_GTX_850M                                ALIAS_nv_sm50_or_higher
 
-GeForce_910M                                    ALIAS_nv_sm52_or_higher
-GeForce_GTX_910M                                ALIAS_nv_sm52_or_higher
-GeForce_GTX_965M                                ALIAS_nv_sm52_or_higher
-GeForce_GTX_970M                                ALIAS_nv_sm52_or_higher
-GeForce_GTX_980M                                ALIAS_nv_sm52_or_higher
+Tesla_M4                                        ALIAS_nv_sm50_or_higher
+Tesla_M6                                        ALIAS_nv_sm50_or_higher
+Tesla_M10                                       ALIAS_nv_sm50_or_higher
+Tesla_M40                                       ALIAS_nv_sm50_or_higher
+Tesla_M60                                       ALIAS_nv_sm50_or_higher
+Tesla_P4                                        ALIAS_nv_sm50_or_higher
+Tesla_P40                                       ALIAS_nv_sm50_or_higher
+Tesla_P100                                      ALIAS_nv_sm50_or_higher
+Tesla_V100                                      ALIAS_nv_sm50_or_higher
 
-Tegra_X1                                        ALIAS_nv_sm52_or_higher
+Quadro_M2000                                    ALIAS_nv_sm50_or_higher
+Quadro_M4000                                    ALIAS_nv_sm50_or_higher
+Quadro_M5000                                    ALIAS_nv_sm50_or_higher
+Quadro_M6000                                    ALIAS_nv_sm50_or_higher
+
+TITAN_X                                         ALIAS_nv_sm50_or_higher
+TITAN_Xp                                        ALIAS_nv_sm50_or_higher
+TITAN_V                                         ALIAS_nv_sm50_or_higher
+TITAN_RTX                                       ALIAS_nv_sm50_or_higher
+
+Tegra_X1                                        ALIAS_nv_sm50_or_higher
+
+GeForce_910M                                    ALIAS_nv_sm50_or_higher
+GeForce_920M                                    ALIAS_nv_sm50_or_higher
+GeForce_920MX                                   ALIAS_nv_sm50_or_higher
+GeForce_930M                                    ALIAS_nv_sm50_or_higher
+GeForce_930MX                                   ALIAS_nv_sm50_or_higher
+GeForce_940M                                    ALIAS_nv_sm50_or_higher
+GeForce_940MX                                   ALIAS_nv_sm50_or_higher
+GeForce_945M                                    ALIAS_nv_sm50_or_higher
+GeForce_GT_945A                                 ALIAS_nv_sm50_or_higher
+GeForce_GTX_950                                 ALIAS_nv_sm50_or_higher
+GeForce_GTX_950M                                ALIAS_nv_sm50_or_higher
+GeForce_GTX_960                                 ALIAS_nv_sm50_or_higher
+GeForce_GTX_960M                                ALIAS_nv_sm50_or_higher
+GeForce_GTX_965M                                ALIAS_nv_sm50_or_higher
+GeForce_GTX_970                                 ALIAS_nv_sm50_or_higher
+GeForce_GTX_970M                                ALIAS_nv_sm50_or_higher
+GeForce_GTX_980                                 ALIAS_nv_sm50_or_higher
+GeForce_GTX_980M                                ALIAS_nv_sm50_or_higher
+GeForce_GTX_980_Ti                              ALIAS_nv_sm50_or_higher
+
+GeForce_GT_1030                                 ALIAS_nv_sm50_or_higher
+GeForce_GTX_1050                                ALIAS_nv_sm50_or_higher
+GeForce_GTX_1050_Ti                             ALIAS_nv_sm50_or_higher
+GeForce_GTX_1060                                ALIAS_nv_sm50_or_higher
+GeForce_GTX_1060_Ti                             ALIAS_nv_sm50_or_higher
+GeForce_GTX_1070                                ALIAS_nv_sm50_or_higher
+GeForce_GTX_1070_Ti                             ALIAS_nv_sm50_or_higher
+GeForce_GTX_1080                                ALIAS_nv_sm50_or_higher
+GeForce_GTX_1080_Ti                             ALIAS_nv_sm50_or_higher
+GeForce_MX110                                   ALIAS_nv_sm50_or_higher
+GeForce_MX130                                   ALIAS_nv_sm50_or_higher
+GeForce_MX150                                   ALIAS_nv_sm50_or_higher
+
+GeForce_RTX_2060                                ALIAS_nv_sm50_or_higher
+GeForce_RTX_2070                                ALIAS_nv_sm50_or_higher
+GeForce_RTX_2080                                ALIAS_nv_sm50_or_higher
+GeForce_RTX_2080_Ti                             ALIAS_nv_sm50_or_higher
 
 #############
 ## ENTRIES ##
@@ -267,125 +279,63 @@ DEVICE_TYPE_CPU                                 *       6900    1       A       
 #Device                                         Attack  Hash    Vector  Kernel  Kernel
 #Name                                           Mode    Type    Width   Accel   Loops
 
-ALIAS_nv_use_simd                               3       0       2       A       A
-ALIAS_nv_use_simd                               3       10      2       A       A
-ALIAS_nv_use_simd                               3       11      2       A       A
-ALIAS_nv_use_simd                               3       12      2       A       A
-ALIAS_nv_use_simd                               3       20      2       A       A
-ALIAS_nv_use_simd                               3       21      2       A       A
-ALIAS_nv_use_simd                               3       22      2       A       A
-ALIAS_nv_use_simd                               3       23      2       A       A
-ALIAS_nv_use_simd                               3       100     4       A       A
-ALIAS_nv_use_simd                               3       110     4       A       A
-ALIAS_nv_use_simd                               3       111     4       A       A
-ALIAS_nv_use_simd                               3       112     4       A       A
-ALIAS_nv_use_simd                               3       130     4       A       A
-ALIAS_nv_use_simd                               3       131     4       A       A
-ALIAS_nv_use_simd                               3       132     4       A       A
-ALIAS_nv_use_simd                               3       133     4       A       A
-ALIAS_nv_use_simd                               3       200     2       A       A
-ALIAS_nv_use_simd                               3       400     2       A       A
-ALIAS_nv_use_simd                               3       900     4       A       A
-ALIAS_nv_use_simd                               3       1000    4       A       A
-ALIAS_nv_use_simd                               3       1100    4       A       A
-ALIAS_nv_use_simd                               3       2400    2       A       A
-ALIAS_nv_use_simd                               3       2410    2       A       A
-ALIAS_nv_use_simd                               3       2600    4       A       A
-ALIAS_nv_use_simd                               3       2611    4       A       A
-ALIAS_nv_use_simd                               3       2612    4       A       A
-ALIAS_nv_use_simd                               3       2711    4       A       A
-ALIAS_nv_use_simd                               3       2811    4       A       A
-ALIAS_nv_use_simd                               3       3711    2       A       A
-ALIAS_nv_use_simd                               3       5100    2       A       A
-ALIAS_nv_use_simd                               3       5300    2       A       A
-ALIAS_nv_use_simd                               3       5500    4       A       A
-ALIAS_nv_use_simd                               3       5600    2       A       A
-ALIAS_nv_use_simd                               3       8700    4       A       A
-ALIAS_nv_use_simd                               3       9900    2       A       A
-ALIAS_nv_use_simd                               3       11000   4       A       A
-ALIAS_nv_use_simd                               3       11100   2       A       A
-ALIAS_nv_use_simd                               3       11900   2       A       A
-ALIAS_nv_use_simd                               3       13300   4       A       A
-ALIAS_nv_use_simd                               3       18700   8       A       A
+ALIAS_nv_real_simd                              3       0       2       A       A
+ALIAS_nv_real_simd                              3       10      2       A       A
+ALIAS_nv_real_simd                              3       11      2       A       A
+ALIAS_nv_real_simd                              3       12      2       A       A
+ALIAS_nv_real_simd                              3       20      2       A       A
+ALIAS_nv_real_simd                              3       21      2       A       A
+ALIAS_nv_real_simd                              3       22      2       A       A
+ALIAS_nv_real_simd                              3       23      2       A       A
+ALIAS_nv_real_simd                              3       200     2       A       A
+ALIAS_nv_real_simd                              3       400     2       A       A
+ALIAS_nv_real_simd                              3       900     4       A       A
+ALIAS_nv_real_simd                              3       1000    4       A       A
+ALIAS_nv_real_simd                              3       1100    4       A       A
+ALIAS_nv_real_simd                              3       2400    2       A       A
+ALIAS_nv_real_simd                              3       2410    2       A       A
+ALIAS_nv_real_simd                              3       2600    4       A       A
+ALIAS_nv_real_simd                              3       2611    4       A       A
+ALIAS_nv_real_simd                              3       2612    4       A       A
+ALIAS_nv_real_simd                              3       2711    4       A       A
+ALIAS_nv_real_simd                              3       2811    4       A       A
+ALIAS_nv_real_simd                              3       3711    2       A       A
+ALIAS_nv_real_simd                              3       5100    2       A       A
+ALIAS_nv_real_simd                              3       5300    2       A       A
+ALIAS_nv_real_simd                              3       5500    4       A       A
+ALIAS_nv_real_simd                              3       5600    2       A       A
+ALIAS_nv_real_simd                              3       8700    4       A       A
+ALIAS_nv_real_simd                              3       9900    2       A       A
+ALIAS_nv_real_simd                              3       11000   4       A       A
+ALIAS_nv_real_simd                              3       11100   2       A       A
+ALIAS_nv_real_simd                              3       11900   2       A       A
+ALIAS_nv_real_simd                              3       13300   4       A       A
+ALIAS_nv_real_simd                              3       18700   8       A       A
 
-ALIAS_nv_sm50                                   3       0       4       A       A
-ALIAS_nv_sm50                                   3       10      4       A       A
-ALIAS_nv_sm50                                   3       11      4       A       A
-ALIAS_nv_sm50                                   3       12      4       A       A
-ALIAS_nv_sm50                                   3       20      2       A       A
-ALIAS_nv_sm50                                   3       21      2       A       A
-ALIAS_nv_sm50                                   3       22      2       A       A
-ALIAS_nv_sm50                                   3       23      2       A       A
-ALIAS_nv_sm50                                   3       30      4       A       A
-ALIAS_nv_sm50                                   3       40      2       A       A
-ALIAS_nv_sm50                                   3       200     4       A       A
-ALIAS_nv_sm50                                   3       400     2       A       A
-ALIAS_nv_sm50                                   3       900     4       A       A
-ALIAS_nv_sm50                                   3       1000    4       A       A
-ALIAS_nv_sm50                                   3       1100    4       A       A
-ALIAS_nv_sm50                                   3       2400    2       A       A
-ALIAS_nv_sm50                                   3       2410    4       A       A
-ALIAS_nv_sm50                                   3       2600    2       A       A
-ALIAS_nv_sm50                                   3       2611    2       A       A
-ALIAS_nv_sm50                                   3       2612    2       A       A
-ALIAS_nv_sm50                                   3       2711    2       A       A
-ALIAS_nv_sm50                                   3       2811    2       A       A
-ALIAS_nv_sm50                                   3       3711    2       A       A
-ALIAS_nv_sm50                                   3       5100    2       A       A
-ALIAS_nv_sm50                                   3       5300    4       A       A
-ALIAS_nv_sm50                                   3       5500    2       A       A
-ALIAS_nv_sm50                                   3       5600    4       A       A
-ALIAS_nv_sm50                                   3       6900    2       A       A
-ALIAS_nv_sm50                                   3       8600    2       A       A
-ALIAS_nv_sm50                                   3       9900    4       A       A
-ALIAS_nv_sm50                                   3       10100   2       A       A
-ALIAS_nv_sm50                                   3       11000   2       A       A
-ALIAS_nv_sm50                                   3       11100   2       A       A
-ALIAS_nv_sm50                                   3       11900   2       A       A
-ALIAS_nv_sm50                                   3       18700   8       A       A
-
-ALIAS_nv_sm52_or_higher                         3       0       4       A       A
-ALIAS_nv_sm52_or_higher                         3       10      4       A       A
-ALIAS_nv_sm52_or_higher                         3       11      4       A       A
-ALIAS_nv_sm52_or_higher                         3       12      4       A       A
-ALIAS_nv_sm52_or_higher                         3       20      4       A       A
-ALIAS_nv_sm52_or_higher                         3       21      4       A       A
-ALIAS_nv_sm52_or_higher                         3       22      4       A       A
-ALIAS_nv_sm52_or_higher                         3       23      4       A       A
-ALIAS_nv_sm52_or_higher                         3       30      4       A       A
-ALIAS_nv_sm52_or_higher                         3       40      4       A       A
-ALIAS_nv_sm52_or_higher                         3       100     2       A       A
-ALIAS_nv_sm52_or_higher                         3       101     2       A       A
-ALIAS_nv_sm52_or_higher                         3       110     2       A       A
-ALIAS_nv_sm52_or_higher                         3       111     2       A       A
-ALIAS_nv_sm52_or_higher                         3       112     2       A       A
-ALIAS_nv_sm52_or_higher                         3       120     4       A       A
-ALIAS_nv_sm52_or_higher                         3       121     4       A       A
-ALIAS_nv_sm52_or_higher                         3       122     4       A       A
-ALIAS_nv_sm52_or_higher                         3       124     4       A       A
-ALIAS_nv_sm52_or_higher                         3       125     4       A       A
-ALIAS_nv_sm52_or_higher                         3       140     4       A       A
-ALIAS_nv_sm52_or_higher                         3       141     4       A       A
-ALIAS_nv_sm52_or_higher                         3       200     4       A       A
-ALIAS_nv_sm52_or_higher                         3       900     4       A       A
-ALIAS_nv_sm52_or_higher                         3       1000    2       A       A
-ALIAS_nv_sm52_or_higher                         3       1100    4       A       A
-ALIAS_nv_sm52_or_higher                         3       2400    4       A       A
-ALIAS_nv_sm52_or_higher                         3       2410    4       A       A
-ALIAS_nv_sm52_or_higher                         3       3800    4       A       A
-ALIAS_nv_sm52_or_higher                         3       4010    4       A       A
-ALIAS_nv_sm52_or_higher                         3       4110    4       A       A
-ALIAS_nv_sm52_or_higher                         3       4520    2       A       A
-ALIAS_nv_sm52_or_higher                         3       4521    2       A       A
-ALIAS_nv_sm52_or_higher                         3       4522    2       A       A
-ALIAS_nv_sm52_or_higher                         3       4800    4       A       A
-ALIAS_nv_sm52_or_higher                         3       4900    4       A       A
-ALIAS_nv_sm52_or_higher                         3       5100    4       A       A
-ALIAS_nv_sm52_or_higher                         3       9900    4       A       A
-ALIAS_nv_sm52_or_higher                         3       13300   4       A       A
-ALIAS_nv_sm52_or_higher                         3       13800   2       A       A
-ALIAS_nv_sm52_or_higher                         3       16400   4       A       A
-ALIAS_nv_sm52_or_higher                         3       18700   8       A       A
+ALIAS_nv_sm50_or_higher                         3       0       4       A       A
+ALIAS_nv_sm50_or_higher                         3       10      4       A       A
+ALIAS_nv_sm50_or_higher                         3       11      4       A       A
+ALIAS_nv_sm50_or_higher                         3       12      4       A       A
+ALIAS_nv_sm50_or_higher                         3       20      4       A       A
+ALIAS_nv_sm50_or_higher                         3       21      4       A       A
+ALIAS_nv_sm50_or_higher                         3       22      4       A       A
+ALIAS_nv_sm50_or_higher                         3       23      4       A       A
+ALIAS_nv_sm50_or_higher                         3       30      4       A       A
+ALIAS_nv_sm50_or_higher                         3       40      4       A       A
+ALIAS_nv_sm50_or_higher                         3       200     8       A       A
+ALIAS_nv_sm50_or_higher                         3       900     4       A       A
+ALIAS_nv_sm50_or_higher                         3       1000    4       A       A
+ALIAS_nv_sm50_or_higher                         3       1100    2       A       A
+ALIAS_nv_sm50_or_higher                         3       2400    4       A       A
+ALIAS_nv_sm50_or_higher                         3       2410    4       A       A
+ALIAS_nv_sm50_or_higher                         3       3800    4       A       A
+ALIAS_nv_sm50_or_higher                         3       4800    4       A       A
+ALIAS_nv_sm50_or_higher                         3       5500    4       A       A
+ALIAS_nv_sm50_or_higher                         3       7300    2       A       A
+ALIAS_nv_sm50_or_higher                         3       8000    2       A       A
+ALIAS_nv_sm50_or_higher                         3       9900    4       A       A
+ALIAS_nv_sm50_or_higher                         3       16400   4       A       A
+ALIAS_nv_sm50_or_higher                         3       18700   8       A       A
 
 ##
 ## The following cards were manually tuned, as example
@@ -399,24 +349,13 @@ GeForce_GTX_TITAN                               3       22      1       A       
 GeForce_GTX_TITAN                               3       23      1       A       A
 GeForce_GTX_TITAN                               3       30      4       A       A
 GeForce_GTX_TITAN                               3       200     2       A       A
-GeForce_GTX_TITAN                               3       400     1       A       A
 GeForce_GTX_TITAN                               3       900     4       A       A
 GeForce_GTX_TITAN                               3       1000    4       A       A
 GeForce_GTX_TITAN                               3       1100    4       A       A
 GeForce_GTX_TITAN                               3       2400    4       A       A
 GeForce_GTX_TITAN                               3       2410    2       A       A
-GeForce_GTX_TITAN                               3       2600    2       A       A
-GeForce_GTX_TITAN                               3       2611    2       A       A
-GeForce_GTX_TITAN                               3       2612    2       A       A
-GeForce_GTX_TITAN                               3       2711    2       A       A
-GeForce_GTX_TITAN                               3       2811    2       A       A
-GeForce_GTX_TITAN                               3       3711    1       A       A
-GeForce_GTX_TITAN                               3       5100    2       A       A
 GeForce_GTX_TITAN                               3       5500    1       A       A
 GeForce_GTX_TITAN                               3       9900    2       A       A
-GeForce_GTX_TITAN                               3       10100   2       A       A
-GeForce_GTX_TITAN                               3       11000   2       A       A
-GeForce_GTX_TITAN                               3       11100   2       A       A
 
 #######################
 ## EXTREME SLOW ALGOS #
