@@ -1,0 +1,165 @@
+/**
+ * Author......: See docs/credits.txt
+ * License.....: MIT
+ */
+
+//#define NEW_SIMD_CODE
+
+#include "inc_vendor.cl"
+#include "inc_hash_constants.h"
+#include "inc_hash_functions.cl"
+#include "inc_types.cl"
+#include "inc_common.cl"
+#include "inc_rp_optimized.h"
+#include "inc_rp_optimized.cl"
+#include "inc_simd.cl"
+
+__kernel void m18700_m04 (KERN_ATTR_RULES ())
+{
+  /**
+   * modifier
+   */
+
+  const u64 lid = get_local_id (0);
+
+  /**
+   * base
+   */
+
+  const u64 gid = get_global_id (0);
+
+  if (gid >= gid_max) return;
+
+  u32 pw_buf0[4];
+  u32 pw_buf1[4];
+
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
+
+  const u32 pw_len = pws[gid].pw_len & 63;
+
+  /**
+   * loop
+   */
+
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  {
+    u32x w[16] = { 0 };
+
+    const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w + 0, w + 4);
+
+    u32x hash = 0;
+
+    for (u32 i = 0; i < pw_len; i++)
+    {
+      const u32 c32 = w[i / 4];
+
+      const u32 c = (c32 >> ((i & 3) * 8)) & 0xff;
+
+      hash *= 31;
+      hash += c;
+    }
+
+    const u32x r0 = hash;
+    const u32x r1 = 0;
+    const u32x r2 = 0;
+    const u32x r3 = 0;
+
+    COMPARE_M_SIMD (r0, r1, r2, r3);
+  }
+}
+
+__kernel void m18700_m08 (KERN_ATTR_RULES ())
+{
+}
+
+__kernel void m18700_m16 (KERN_ATTR_RULES ())
+{
+}
+
+__kernel void m18700_s04 (KERN_ATTR_RULES ())
+{
+  /**
+   * modifier
+   */
+
+  const u64 lid = get_local_id (0);
+
+  /**
+   * base
+   */
+
+  const u64 gid = get_global_id (0);
+
+  if (gid >= gid_max) return;
+
+  u32 pw_buf0[4];
+  u32 pw_buf1[4];
+
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
+
+  const u32 pw_len = pws[gid].pw_len & 63;
+
+  /**
+   * digest
+   */
+
+  const u32 search[4] =
+  {
+    digests_buf[digests_offset].digest_buf[DGST_R0],
+    0,
+    0,
+    0
+  };
+
+  /**
+   * loop
+   */
+
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  {
+    u32x w[16] = { 0 };
+
+    const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w + 0, w + 4);
+
+    u32x hash = 0;
+
+    for (u32 i = 0; i < pw_len; i++)
+    {
+      const u32 c32 = w[i / 4];
+
+      const u32 c = (c32 >> ((i & 3) * 8)) & 0xff;
+
+      hash *= 31;
+      hash += c;
+    }
+
+    const u32x r0 = hash;
+    const u32x r1 = 0;
+    const u32x r2 = 0;
+    const u32x r3 = 0;
+
+    COMPARE_S_SIMD (r0, r1, r2, r3);
+  }
+}
+
+__kernel void m18700_s08 (KERN_ATTR_RULES ())
+{
+}
+
+__kernel void m18700_s16 (KERN_ATTR_RULES ())
+{
+}

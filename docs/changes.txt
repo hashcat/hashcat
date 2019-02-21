@@ -7,6 +7,7 @@
 - Added hash-mode 18400 (Open Document Format (ODF) 1.2 (SHA-256, AES))
 - Added hash-mode 18500 sha1(md5(md5($pass)))
 - Added hash-mode 18600 (Open Document Format (ODF) 1.1 (SHA-1, Blowfish))
+- Added hash-mode 18700 DJB 32
 
 ##
 ## Bugs

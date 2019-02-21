@@ -306,6 +306,7 @@ ALIAS_nv_use_simd                               3       11000   4       A       
 ALIAS_nv_use_simd                               3       11100   2       A       A
 ALIAS_nv_use_simd                               3       11900   2       A       A
 ALIAS_nv_use_simd                               3       13300   4       A       A
+ALIAS_nv_use_simd                               3       18700   8       A       A
 
 ALIAS_nv_sm50                                   3       0       4       A       A
 ALIAS_nv_sm50                                   3       10      4       A       A
@@ -341,6 +342,7 @@ ALIAS_nv_sm50                                   3       10100   2       A       
 ALIAS_nv_sm50                                   3       11000   2       A       A
 ALIAS_nv_sm50                                   3       11100   2       A       A
 ALIAS_nv_sm50                                   3       11900   2       A       A
+ALIAS_nv_sm50                                   3       18700   8       A       A
 
 ALIAS_nv_sm52_or_higher                         3       0       4       A       A
 ALIAS_nv_sm52_or_higher                         3       10      4       A       A
@@ -383,6 +385,7 @@ ALIAS_nv_sm52_or_higher                         3       9900    4       A       
 ALIAS_nv_sm52_or_higher                         3       13300   4       A       A
 ALIAS_nv_sm52_or_higher                         3       13800   2       A       A
 ALIAS_nv_sm52_or_higher                         3       16400   4       A       A
+ALIAS_nv_sm52_or_higher                         3       18700   8       A       A
 
 ##
 ## The following cards were manually tuned, as example
