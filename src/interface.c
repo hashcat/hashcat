@@ -193,12 +193,12 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   // check for missing pointer assignements
 
-  #define CHECK_DEFINED(func)                                                       \
-    if (func == NULL)                                                               \
-    {                                                                               \
-      event_log_error (hashcat_ctx, "Missing symbol definitions. Old template?'");  \
-                                                                                    \
-      return -1;                                                                    \
+  #define CHECK_DEFINED(func)                                                     \
+    if (func == NULL)                                                             \
+    {                                                                             \
+      event_log_error (hashcat_ctx, "Missing symbol definitions. Old template?"); \
+                                                                                  \
+      return -1;                                                                  \
     }
 
   CHECK_DEFINED (module_ctx->module_attack_exec);
@@ -267,12 +267,12 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   // mandatory functions check
 
-  #define CHECK_MANDATORY(func)                                                 \
-    if (func == MODULE_DEFAULT)                                                 \
-    {                                                                           \
-      event_log_error (hashcat_ctx, "Missing mandatory symbol definitions.'");  \
-                                                                                \
-      return -1;                                                                \
+  #define CHECK_MANDATORY(func)                                               \
+    if (func == MODULE_DEFAULT)                                               \
+    {                                                                         \
+      event_log_error (hashcat_ctx, "Missing mandatory symbol definitions");  \
+                                                                              \
+      return -1;                                                              \
     }
 
   CHECK_MANDATORY (module_ctx->module_attack_exec);
@@ -282,7 +282,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_MANDATORY (module_ctx->module_dgst_pos3);
   CHECK_MANDATORY (module_ctx->module_dgst_size);
   CHECK_MANDATORY (module_ctx->module_hash_decode);
-  if ((hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE) == 0) CHECK_MANDATORY (module_ctx->module_hash_encode);
+  // CHECK_MANDATORY (module_ctx->module_hash_encode); we do that one later
   CHECK_MANDATORY (module_ctx->module_hash_category);
   CHECK_MANDATORY (module_ctx->module_hash_name);
   CHECK_MANDATORY (module_ctx->module_kern_type);
@@ -291,8 +291,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_MANDATORY (module_ctx->module_salt_type);
   CHECK_MANDATORY (module_ctx->module_st_hash);
   CHECK_MANDATORY (module_ctx->module_st_pass);
-
-  #undef CHECK_MANDATORY
 
   hashconfig->attack_exec   = module_ctx->module_attack_exec    (hashconfig, user_options, user_options_extra);
   hashconfig->dgst_pos0     = module_ctx->module_dgst_pos0      (hashconfig, user_options, user_options_extra);
@@ -308,6 +306,13 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   hashconfig->salt_type     = module_ctx->module_salt_type      (hashconfig, user_options, user_options_extra);
   hashconfig->st_hash       = module_ctx->module_st_hash        (hashconfig, user_options, user_options_extra);
   hashconfig->st_pass       = module_ctx->module_st_pass        (hashconfig, user_options, user_options_extra);
+
+  if ((hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE) == 0)
+  {
+    CHECK_MANDATORY (module_ctx->module_hash_encode);
+  }
+
+  #undef CHECK_MANDATORY
 
   if (module_ctx->module_benchmark_mask           != MODULE_DEFAULT) hashconfig->benchmark_mask          = module_ctx->module_benchmark_mask           (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_dictstat_disable         != MODULE_DEFAULT) hashconfig->dictstat_disable        = module_ctx->module_dictstat_disable         (hashconfig, user_options, user_options_extra);
