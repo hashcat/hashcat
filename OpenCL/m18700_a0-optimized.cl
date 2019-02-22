@@ -14,6 +14,30 @@
 #include "inc_rp_optimized.cl"
 #include "inc_simd.cl"
 
+DECLSPEC u32 hashCode (const u32 init, const u32 *w, const u32 pw_len)
+{
+  u32 hash = init;
+
+  for (u32 i = 0; i < pw_len; i += 4)
+  {
+    u32 tmp = w[i / 4];
+
+    const u32 left = pw_len - i;
+
+    const u32 c = (left > 4) ? 4 : left;
+
+    switch (c)
+    {
+      case 4: hash *= 31; hash += tmp & 0xff; tmp >>= 8;
+      case 3: hash *= 31; hash += tmp & 0xff; tmp >>= 8;
+      case 2: hash *= 31; hash += tmp & 0xff; tmp >>= 8;
+      case 1: hash *= 31; hash += tmp & 0xff;
+    }
+  }
+
+  return hash;
+}
+
 __kernel void m18700_m04 (KERN_ATTR_RULES ())
 {
   /**
@@ -54,17 +78,7 @@ __kernel void m18700_m04 (KERN_ATTR_RULES ())
 
     const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w + 0, w + 4);
 
-    u32x hash = 0;
-
-    for (u32 i = 0; i < pw_len; i++)
-    {
-      const u32 c32 = w[i / 4];
-
-      const u32 c = (c32 >> ((i & 3) * 8)) & 0xff;
-
-      hash *= 31;
-      hash += c;
-    }
+    u32x hash = hashCode (0, w, out_len);
 
     const u32x r0 = hash;
     const u32x r1 = 0;
@@ -135,17 +149,7 @@ __kernel void m18700_s04 (KERN_ATTR_RULES ())
 
     const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w + 0, w + 4);
 
-    u32x hash = 0;
-
-    for (u32 i = 0; i < pw_len; i++)
-    {
-      const u32 c32 = w[i / 4];
-
-      const u32 c = (c32 >> ((i & 3) * 8)) & 0xff;
-
-      hash *= 31;
-      hash += c;
-    }
+    u32x hash = hashCode (0, w, out_len);
 
     const u32x r0 = hash;
     const u32x r1 = 0;

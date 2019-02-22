@@ -13,7 +13,49 @@
 #include "inc_simd.cl"
 #include "inc_hash_md5.cl"
 
-DECLSPEC void m18700m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC u32x hashCode_w0 (const u32x init, const u32x w0, const u32 *w, const u32 pw_len)
+{
+  u32x hash = init;
+
+  u32x tmp0 = w0;
+
+  const u32 c0 = (pw_len > 4) ? 4 : pw_len;
+
+  switch (c0)
+  {
+    case 1: hash += tmp0 & 0xff; tmp0 >>= 8; break;
+    case 2: hash += tmp0 & 0xff; tmp0 >>= 8; hash *= 31;
+            hash += tmp0 & 0xff; tmp0 >>= 8; break;
+    case 3: hash += tmp0 & 0xff; tmp0 >>= 8; hash *= 31;
+            hash += tmp0 & 0xff; tmp0 >>= 8; hash *= 31;
+            hash += tmp0 & 0xff; tmp0 >>= 8; break;
+    case 4: hash += tmp0 & 0xff; tmp0 >>= 8; hash *= 31;
+            hash += tmp0 & 0xff; tmp0 >>= 8; hash *= 31;
+            hash += tmp0 & 0xff; tmp0 >>= 8; hash *= 31;
+            hash += tmp0 & 0xff; tmp0 >>= 8; break;
+  }
+
+  for (u32 i = 4; i < pw_len; i += 4)
+  {
+    u32 tmp = w[i / 4];
+
+    const u32 left = pw_len - i;
+
+    const u32 c = (left > 4) ? 4 : left;
+
+    switch (c)
+    {
+      case 4: hash *= 31; hash += tmp & 0xff; tmp >>= 8;
+      case 3: hash *= 31; hash += tmp & 0xff; tmp >>= 8;
+      case 2: hash *= 31; hash += tmp & 0xff; tmp >>= 8;
+      case 1: hash *= 31; hash += tmp & 0xff;
+    }
+  }
+
+  return hash;
+}
+
+DECLSPEC void m18700m (const u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -34,27 +76,7 @@ DECLSPEC void m18700m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 
     const u32x w0 = w0l | w0r;
 
-    u32x hash = 0;
-
-    for (u32 i = 0; i < 4; i++)
-    {
-      if (i == pw_len) break;
-
-      const u32x c = (w0 >> ((i & 3) * 8)) & 0xff;
-
-      hash *= 31;
-      hash += c;
-    }
-
-    for (u32 i = 4; i < pw_len; i++)
-    {
-      const u32 c32 = w[i / 4];
-
-      const u32 c = (c32 >> ((i & 3) * 8)) & 0xff;
-
-      hash *= 31;
-      hash += c;
-    }
+    const u32x hash = hashCode_w0 (0, w0, w, pw_len);
 
     const u32x r0 = hash;
     const u32x r1 = 0;
@@ -65,7 +87,7 @@ DECLSPEC void m18700m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
   }
 }
 
-DECLSPEC void m18700s (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC void m18700s (const u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -98,27 +120,7 @@ DECLSPEC void m18700s (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 
     const u32x w0 = w0l | w0r;
 
-    u32x hash = 0;
-
-    for (u32 i = 0; i < 4; i++)
-    {
-      if (i == pw_len) break;
-
-      const u32x c = (w0 >> ((i & 3) * 8)) & 0xff;
-
-      hash *= 31;
-      hash += c;
-    }
-
-    for (u32 i = 4; i < pw_len; i++)
-    {
-      const u32 c32 = w[i / 4];
-
-      const u32 c = (c32 >> ((i & 3) * 8)) & 0xff;
-
-      hash *= 31;
-      hash += c;
-    }
+    const u32x hash = hashCode_w0 (0, w0, w, pw_len);
 
     const u32x r0 = hash;
     const u32x r1 = 0;

@@ -15,6 +15,30 @@
 #include "inc_scalar.cl"
 #include "inc_hash_md5.cl"
 
+DECLSPEC u32 hashCode (const u32 init, const u32 *w, const u32 pw_len)
+{
+  u32 hash = init;
+
+  for (u32 i = 0; i < pw_len; i += 4)
+  {
+    u32 tmp = w[i / 4];
+
+    const u32 left = pw_len - i;
+
+    const u32 c = (left > 4) ? 4 : left;
+
+    switch (c)
+    {
+      case 4: hash *= 31; hash += tmp & 0xff; tmp >>= 8;
+      case 3: hash *= 31; hash += tmp & 0xff; tmp >>= 8;
+      case 2: hash *= 31; hash += tmp & 0xff; tmp >>= 8;
+      case 1: hash *= 31; hash += tmp & 0xff;
+    }
+  }
+
+  return hash;
+}
+
 __kernel void m18700_mxx (KERN_ATTR_RULES ())
 {
   /**
@@ -42,17 +66,7 @@ __kernel void m18700_mxx (KERN_ATTR_RULES ())
 
     tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
 
-    u32 hash = 0;
-
-    for (u32 i = 0; i < tmp.pw_len; i++)
-    {
-      const u32 c32 = tmp.i[i / 4];
-
-      const u32 c = (c32 >> ((i & 3) * 8)) & 0xff;
-
-      hash *= 31;
-      hash += c;
-    }
+    const u32 hash = hashCode (0, tmp.i, tmp.pw_len);
 
     const u32 r0 = hash;
     const u32 r1 = 0;
@@ -102,17 +116,7 @@ __kernel void m18700_sxx (KERN_ATTR_RULES ())
 
     tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
 
-    u32 hash = 0;
-
-    for (u32 i = 0; i < tmp.pw_len; i++)
-    {
-      const u32 c32 = tmp.i[i / 4];
-
-      const u32 c = (c32 >> ((i & 3) * 8)) & 0xff;
-
-      hash *= 31;
-      hash += c;
-    }
+    const u32 hash = hashCode (0, tmp.i, tmp.pw_len);
 
     const u32 r0 = hash;
     const u32 r1 = 0;
