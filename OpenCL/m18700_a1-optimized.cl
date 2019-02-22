@@ -54,15 +54,24 @@ __kernel void m18700_m04 (KERN_ATTR_BASIC ())
 
   if (gid >= gid_max) return;
 
-  const u32 base = hashCode_g (0, pws[gid].i, pws[gid].pw_len);
-
   /**
    * loop
    */
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    const u32 hash = hashCode_g (base, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    u32 hash = 0;
+
+    if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
+    {
+      hash = hashCode_g (hash, pws[gid].i,          pws[gid].pw_len);
+      hash = hashCode_g (hash, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      hash = hashCode_g (hash, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+      hash = hashCode_g (hash, pws[gid].i,          pws[gid].pw_len);
+    }
 
     const u32x r0 = hash;
     const u32x r1 = 0;
@@ -97,8 +106,6 @@ __kernel void m18700_s04 (KERN_ATTR_BASIC ())
 
   if (gid >= gid_max) return;
 
-  const u32 base = hashCode_g (0, pws[gid].i, pws[gid].pw_len);
-
   /**
    * digest
    */
@@ -117,7 +124,18 @@ __kernel void m18700_s04 (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    const u32 hash = hashCode_g (base, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    u32 hash = 0;
+
+    if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
+    {
+      hash = hashCode_g (hash, pws[gid].i,          pws[gid].pw_len);
+      hash = hashCode_g (hash, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      hash = hashCode_g (hash, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+      hash = hashCode_g (hash, pws[gid].i,          pws[gid].pw_len);
+    }
 
     const u32x r0 = hash;
     const u32x r1 = 0;
