@@ -33,7 +33,7 @@ int ascii_digest (const hashconfig_t *hashconfig, const hashes_t *hashes, const 
   const u64 esalt_size        = hashconfig->esalt_size;
   const u64 hook_salt_size    = hashconfig->hook_salt_size;
 
-  if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
+  if (module_ctx->module_hash_encode == MODULE_DEFAULT)
   {
     return snprintf (out_buf, out_size, "%s", hashfile);
   }
@@ -282,7 +282,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_MANDATORY (module_ctx->module_dgst_pos3);
   CHECK_MANDATORY (module_ctx->module_dgst_size);
   CHECK_MANDATORY (module_ctx->module_hash_decode);
-  CHECK_MANDATORY (module_ctx->module_hash_encode);
+  if ((hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE) == 0) CHECK_MANDATORY (module_ctx->module_hash_encode);
   CHECK_MANDATORY (module_ctx->module_hash_category);
   CHECK_MANDATORY (module_ctx->module_hash_name);
   CHECK_MANDATORY (module_ctx->module_kern_type);
