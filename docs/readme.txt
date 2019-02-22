@@ -61,7 +61,7 @@ NVIDIA GPUs require "NVIDIA Driver" (367.x or later)
 - GOST R 34.11-94
 - GOST R 34.11-2012 (Streebog) 256-bit
 - GOST R 34.11-2012 (Streebog) 512-bit
-- DJB 32
+- Java Object hashCode()
 - md5($pass.$salt)
 - md5($salt.$pass)
 - md5(utf16le($pass).$salt)

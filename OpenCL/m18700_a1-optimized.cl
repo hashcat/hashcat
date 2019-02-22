@@ -115,7 +115,7 @@ __kernel void m18700_m04 (KERN_ATTR_BASIC ())
     w[15] = wordl3[3] | wordr3[3];
 
     /**
-     * djb
+     * hashCode()
      */
 
     u32x hash = 0;
@@ -260,7 +260,7 @@ __kernel void m18700_s04 (KERN_ATTR_BASIC ())
     w[15] = wordl3[3] | wordr3[3];
 
     /**
-     * djb
+     * hashCode()
      */
 
     u32x hash = 0;

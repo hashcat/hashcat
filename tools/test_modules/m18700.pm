@@ -10,8 +10,10 @@ use warnings;
 
 sub module_constraints { [[0, 255], [-1, -1], [0, 55], [-1, -1], [-1, -1]] }
 
-sub djb32
+sub hashCode
 {
+  use integer;
+
   my $word = shift;
 
   my @chars = unpack ("C*", $word);
@@ -20,18 +22,17 @@ sub djb32
 
   while (my $c = shift @chars)
   {
-    $hash = ($hash * 31) & 0xffffffff;
-    $hash = ($hash + $c) & 0xffffffff;
+    $hash = ($hash * 31) + $c;
   }
 
-  return $hash;
+  return $hash & 0xffffffff;
 }
 
 sub module_generate_hash
 {
   my $word = shift;
 
-  my $digest = djb32 ($word);
+  my $digest = hashCode ($word);
 
   my $hash = sprintf ("%08x", $digest);
 
