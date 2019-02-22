@@ -229,6 +229,7 @@ NVIDIA GPUs require "NVIDIA Driver" (367.x or later)
 - WinZip
 - iTunes backup < 10.0
 - iTunes backup >= 10.0
+- Android Backup
 - TrueCrypt
 - Android FDE <= 4.3
 - Android FDE (Samsung DEK)
