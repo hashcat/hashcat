@@ -13,8 +13,8 @@ rm -rf $OUT.7z
 
 mkdir -p $OUT
 
-cp    $IN/hashcat??.exe                 $OUT/
-cp    $IN/hashcat??.bin                 $OUT/
+cp    $IN/hashcat.exe                   $OUT/
+cp    $IN/hashcat.bin                   $OUT/
 cp    $IN/hashcat.hctune                $OUT/
 cp    $IN/hashcat.hcstat2               $OUT/
 
@@ -35,7 +35,7 @@ cp -r $IN/OpenCL                        $OUT/
 
 for example in example[0123456789]*.sh; do
 
-  sed 's!./hashcat !./hashcat64.bin !' $IN/${example} > $OUT/${example}
+  sed 's!./hashcat !./hashcat.bin !' $IN/${example} > $OUT/${example}
 
 done
 

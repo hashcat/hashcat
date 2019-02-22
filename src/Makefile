@@ -128,8 +128,7 @@ endif
 ## Then patch the makefile with the patches from tools/win-iconv-*.diff and run make install
 ##
 
-WIN_ICONV_32            := /opt/win-iconv-32
-WIN_ICONV_64            := /opt/win-iconv-64
+WIN_ICONV               := /opt/win-iconv-64
 
 ##
 ## Filenames for library and frontend
@@ -156,11 +155,8 @@ endif # MSYS2
 ## Cross compiler paths
 ##
 
-CC_LINUX_32             := gcc
-CC_LINUX_64             := gcc
-
-CC_WIN_32               := i686-w64-mingw32-gcc
-CC_WIN_64               := x86_64-w64-mingw32-gcc
+CC_LINUX                := gcc
+CC_WIN                  := x86_64-w64-mingw32-gcc
 
 ##
 ## Misc stuff
@@ -299,48 +295,25 @@ endif # MSYS2
 ## Cross compilation targets
 ##
 
-CFLAGS_CROSS_LINUX32    := $(CFLAGS)
-CFLAGS_CROSS_LINUX32    += -fPIC
-CFLAGS_CROSS_LINUX32    += -I$(OPENCL_HEADERS_KHRONOS)/
-CFLAGS_CROSS_LINUX32    += -m32
-CFLAGS_CROSS_LINUX32    += -DWITH_HWMON
-CFLAGS_CROSS_LINUX64    := $(CFLAGS)
-CFLAGS_CROSS_LINUX64    += -fPIC
-CFLAGS_CROSS_LINUX64    += -I$(OPENCL_HEADERS_KHRONOS)/
-CFLAGS_CROSS_LINUX64    += -m64
-CFLAGS_CROSS_LINUX64    += -DWITH_HWMON
-CFLAGS_CROSS_WIN32      := $(CFLAGS)
-CFLAGS_CROSS_WIN32      += -fPIC
-CFLAGS_CROSS_WIN32      += -D__MINGW_USE_VC2005_COMPAT #hack to get 64-bit time_t
-CFLAGS_CROSS_WIN32      += -I$(OPENCL_HEADERS_KHRONOS)/
-CFLAGS_CROSS_WIN32      += -I$(WIN_ICONV_32)/include/
-CFLAGS_CROSS_WIN32      += -m32
-CFLAGS_CROSS_WIN32      += -DWITH_HWMON
-CFLAGS_CROSS_WIN64      := $(CFLAGS)
-CFLAGS_CROSS_WIN64      += -fPIC
-CFLAGS_CROSS_WIN64      += -I$(OPENCL_HEADERS_KHRONOS)/
-CFLAGS_CROSS_WIN64      += -I$(WIN_ICONV_64)/include/
-CFLAGS_CROSS_WIN64      += -m64
-CFLAGS_CROSS_WIN64      += -DWITH_HWMON
+CFLAGS_CROSS_LINUX      := $(CFLAGS)
+CFLAGS_CROSS_LINUX      += -fPIC
+CFLAGS_CROSS_LINUX      += -I$(OPENCL_HEADERS_KHRONOS)/
+CFLAGS_CROSS_LINUX      += -DWITH_HWMON
+CFLAGS_CROSS_WIN        := $(CFLAGS)
+CFLAGS_CROSS_WIN        += -fPIC
+CFLAGS_CROSS_WIN        += -I$(OPENCL_HEADERS_KHRONOS)/
+CFLAGS_CROSS_WIN        += -I$(WIN_ICONV)/include/
+CFLAGS_CROSS_WIN        += -DWITH_HWMON
 
-LFLAGS_CROSS_LINUX32    := $(LFLAGS)
-LFLAGS_CROSS_LINUX32    += -lpthread
-LFLAGS_CROSS_LINUX32    += -ldl
-LFLAGS_CROSS_LINUX32    += -lm
-LFLAGS_CROSS_LINUX64    := $(LFLAGS)
-LFLAGS_CROSS_LINUX64    += -lpthread
-LFLAGS_CROSS_LINUX64    += -ldl
-LFLAGS_CROSS_LINUX64    += -lm
-LFLAGS_CROSS_WIN32      := $(LFLAGS)
-LFLAGS_CROSS_WIN32      += -Wl,--dynamicbase
-LFLAGS_CROSS_WIN32      += -Wl,--nxcompat
-LFLAGS_CROSS_WIN32      += -lpsapi
-LFLAGS_CROSS_WIN32      += -lws2_32
-LFLAGS_CROSS_WIN64      := $(LFLAGS)
-LFLAGS_CROSS_WIN64      += -Wl,--dynamicbase
-LFLAGS_CROSS_WIN64      += -Wl,--nxcompat
-LFLAGS_CROSS_WIN64      += -lpsapi
-LFLAGS_CROSS_WIN64      += -lws2_32
+LFLAGS_CROSS_LINUX      := $(LFLAGS)
+LFLAGS_CROSS_LINUX      += -lpthread
+LFLAGS_CROSS_LINUX      += -ldl
+LFLAGS_CROSS_LINUX      += -lm
+LFLAGS_CROSS_WIN        := $(LFLAGS)
+LFLAGS_CROSS_WIN        += -Wl,--dynamicbase
+LFLAGS_CROSS_WIN        += -Wl,--nxcompat
+LFLAGS_CROSS_WIN        += -lpsapi
+LFLAGS_CROSS_WIN        += -lws2_32
 
 ##
 ## Objects
@@ -355,11 +328,8 @@ endif
 NATIVE_STATIC_OBJS      := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).NATIVE.STATIC.o)
 NATIVE_SHARED_OBJS      := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).NATIVE.SHARED.o)
 
-LINUX_32_OBJS           := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).LINUX.32.o)
-LINUX_64_OBJS           := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).LINUX.64.o)
-
-WIN_32_OBJS             := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).WIN.32.o)
-WIN_64_OBJS             := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).WIN.64.o)
+LINUX_OBJS              := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).LINUX.o)
+WIN_OBJS                := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).WIN.o)
 
 ifeq ($(USE_SYSTEM_LZMA),0)
 OBJS_LZMA               := Alloc Lzma2Dec LzmaDec
@@ -367,11 +337,8 @@ OBJS_LZMA               := Alloc Lzma2Dec LzmaDec
 NATIVE_STATIC_OBJS      += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).NATIVE.STATIC.o)
 NATIVE_SHARED_OBJS      += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).NATIVE.SHARED.o)
 
-LINUX_32_OBJS           += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).LINUX.32.o)
-LINUX_64_OBJS           += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).LINUX.64.o)
-
-WIN_32_OBJS             += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).WIN.32.o)
-WIN_64_OBJS             += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).WIN.64.o)
+LINUX_OBJS              += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).LINUX.o)
+WIN_OBJS                += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).WIN.o)
 endif
 
 ifeq ($(USE_SYSTEM_XXHASH),0)
@@ -381,11 +348,8 @@ OBJS_XXHASH             := xxhash
 NATIVE_STATIC_OBJS      += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).NATIVE.STATIC.o)
 NATIVE_SHARED_OBJS      += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).NATIVE.SHARED.o)
 
-LINUX_32_OBJS           += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).LINUX.32.o)
-LINUX_64_OBJS           += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).LINUX.64.o)
-
-WIN_32_OBJS             += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).WIN.32.o)
-WIN_64_OBJS             += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).WIN.64.o)
+LINUX_OBJS              += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).LINUX.o)
+WIN_OBJS                += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).WIN.o)
 endif
 endif
 
@@ -398,11 +362,8 @@ endif
 MODULE_NATIVE_STATIC_OBJS       := $(foreach OBJ,$(MODULE_OBJS_ALL),obj/$(OBJ).NATIVE.STATIC.o)
 MODULE_NATIVE_SHARED_OBJS       := $(foreach OBJ,$(MODULE_OBJS_ALL),obj/$(OBJ).NATIVE.SHARED.o)
 
-MODULE_LINUX_32_OBJS            := $(foreach OBJ,$(MODULE_OBJS_ALL),obj/$(OBJ).LINUX.32.o)
-MODULE_LINUX_64_OBJS            := $(foreach OBJ,$(MODULE_OBJS_ALL),obj/$(OBJ).LINUX.64.o)
-
-MODULE_WIN_32_OBJS              := $(foreach OBJ,$(MODULE_OBJS_ALL),obj/$(OBJ).WIN.32.o)
-MODULE_WIN_64_OBJS              := $(foreach OBJ,$(MODULE_OBJS_ALL),obj/$(OBJ).WIN.64.o)
+MODULE_LINUX_OBJS               := $(foreach OBJ,$(MODULE_OBJS_ALL),obj/$(OBJ).LINUX.o)
+MODULE_WIN_OBJS                 := $(foreach OBJ,$(MODULE_OBJS_ALL),obj/$(OBJ).WIN.o)
 
 ##
 ## Targets: Native Compilation
@@ -434,17 +395,13 @@ distclean: clean
 ## Targets: Cross Compilation (for binary release version)
 ##
 
-binaries: linux32 linux64 win32 win64
+binaries: linux win
 
-host_linux32: hashcat32.bin
-host_linux64: hashcat64.bin
-host_win32:   hashcat32.exe
-host_win64:   hashcat64.exe
+host_linux: hashcat.bin
+host_win:   hashcat.exe
 
-linux32: host_linux32 modules_linux32
-linux64: host_linux64 modules_linux64
-win32:   host_win32   modules_win32
-win64:   host_win64   modules_win64
+linux: host_linux modules_linux
+win:   host_win   modules_win
 
 ##
 ## Targets: Linux install
@@ -616,88 +573,51 @@ modules: $(MODULES_LIB)
 ## cross compiled modules
 ##
 
-MODULES_LIB_LINUX32   := $(patsubst src/modules/module_%.c, modules/module32_%.so,  $(MODULES_SRC))
-MODULES_LIB_LINUX64   := $(patsubst src/modules/module_%.c, modules/module64_%.so,  $(MODULES_SRC))
-MODULES_LIB_WIN32     := $(patsubst src/modules/module_%.c, modules/module32_%.dll, $(MODULES_SRC))
-MODULES_LIB_WIN64     := $(patsubst src/modules/module_%.c, modules/module64_%.dll, $(MODULES_SRC))
+MODULES_LIB_LINUX   := $(patsubst src/modules/module_%.c, modules/module_%.so,  $(MODULES_SRC))
+MODULES_LIB_WIN     := $(patsubst src/modules/module_%.c, modules/module_%.dll, $(MODULES_SRC))
 
-modules_linux32: $(MODULES_LIB_LINUX32)
-modules_linux64: $(MODULES_LIB_LINUX64)
-modules_win32:   $(MODULES_LIB_WIN32)
-modules_win64:   $(MODULES_LIB_WIN64)
+modules_linux: $(MODULES_LIB_LINUX)
+modules_win:   $(MODULES_LIB_WIN)
 
-modules/module32_%.so:  src/modules/module_%.c $(MODULE_LINUX_32_OBJS)
-	$(CC_LINUX_32)  $(CFLAGS_CROSS_LINUX32) $^ -o $@ $(LFLAGS_CROSS_LINUX32) -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
+modules/module_%.so:  src/modules/module_%.c $(MODULE_LINUX_OBJS)
+	$(CC_LINUX)  $(CFLAGS_CROSS_LINUX) $^ -o $@ $(LFLAGS_CROSS_LINUX) -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
 
-modules/module64_%.so:  src/modules/module_%.c $(MODULE_LINUX_64_OBJS)
-	$(CC_LINUX_64)  $(CFLAGS_CROSS_LINUX64) $^ -o $@ $(LFLAGS_CROSS_LINUX64) -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
-
-modules/module32_%.dll: src/modules/module_%.c $(MODULE_WIN_32_OBJS)
-	$(CC_WIN_32)    $(CFLAGS_CROSS_WIN32)   $^ -o $@ $(LFLAGS_CROSS_WIN32)   -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
-
-modules/module64_%.dll: src/modules/module_%.c $(MODULE_WIN_64_OBJS)
-	$(CC_WIN_64)    $(CFLAGS_CROSS_WIN64)   $^ -o $@ $(LFLAGS_CROSS_WIN64)   -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
+modules/module_%.dll: src/modules/module_%.c $(MODULE_WIN_OBJS)
+	$(CC_WIN)    $(CFLAGS_CROSS_WIN)   $^ -o $@ $(LFLAGS_CROSS_WIN)   -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
 
 ##
 ## cross compiled hashcat
 ##
 
-obj/%.LINUX.32.o: src/%.c
-	$(CC_LINUX_32) $(CFLAGS_CROSS_LINUX32) -c -o $@ $<
+obj/%.LINUX.o: src/%.c
+	$(CC_LINUX) $(CFLAGS_CROSS_LINUX) -c -o $@ $<
 
-obj/%.LINUX.64.o: src/%.c
-	$(CC_LINUX_64) $(CFLAGS_CROSS_LINUX64) -c -o $@ $<
-
-obj/%.WIN.32.o:   src/%.c
-	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN32)   -c -o $@ $<
-
-obj/%.WIN.64.o:   src/%.c
-	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64)   -c -o $@ $<
+obj/%.WIN.o:   src/%.c
+	$(CC_WIN)   $(CFLAGS_CROSS_WIN)   -c -o $@ $<
 
 ifeq ($(USE_SYSTEM_LZMA),0)
-obj/%.LINUX.32.o: $(DEPS_LZMA_PATH)/%.c
-	$(CC_LINUX_32) $(CFLAGS_CROSS_LINUX32) -c -o $@ $<
+obj/%.LINUX.o: $(DEPS_LZMA_PATH)/%.c
+	$(CC_LINUX) $(CFLAGS_CROSS_LINUX) -c -o $@ $<
 
-obj/%.LINUX.64.o: $(DEPS_LZMA_PATH)/%.c
-	$(CC_LINUX_64) $(CFLAGS_CROSS_LINUX64) -c -o $@ $<
-
-obj/%.WIN.32.o:   $(DEPS_LZMA_PATH)/%.c
-	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN32)   -c -o $@ $<
-
-obj/%.WIN.64.o:   $(DEPS_LZMA_PATH)/%.c
-	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64)   -c -o $@ $<
+obj/%.WIN.o:   $(DEPS_LZMA_PATH)/%.c
+	$(CC_WIN)   $(CFLAGS_CROSS_WIN)   -c -o $@ $<
 endif
 
 ifeq ($(USE_SYSTEM_XXHASH),0)
 ifeq ($(ENABLE_BRAIN),1)
-obj/%.LINUX.32.o: $(DEPS_XXHASH_PATH)/%.c
-	$(CC_LINUX_32) $(CFLAGS_CROSS_LINUX32) -c -o $@ $<
+obj/%.LINUX.o: $(DEPS_XXHASH_PATH)/%.c
+	$(CC_LINUX) $(CFLAGS_CROSS_LINUX) -c -o $@ $<
 
-obj/%.LINUX.64.o: $(DEPS_XXHASH_PATH)/%.c
-	$(CC_LINUX_64) $(CFLAGS_CROSS_LINUX64) -c -o $@ $<
-
-obj/%.WIN.32.o:   $(DEPS_XXHASH_PATH)/%.c
-	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN32)   -c -o $@ $<
-
-obj/%.WIN.64.o:   $(DEPS_XXHASH_PATH)/%.c
-	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64)   -c -o $@ $<
+obj/%.WIN.o:   $(DEPS_XXHASH_PATH)/%.c
+	$(CC_WIN)   $(CFLAGS_CROSS_WIN)   -c -o $@ $<
 endif
 endif
 
-hashcat32.bin: src/main.c $(LINUX_32_OBJS)
-	$(CC_LINUX_32) $(CFLAGS_CROSS_LINUX32)    -o $@ $^ $(LFLAGS_CROSS_LINUX32) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
+hashcat.bin: src/main.c $(LINUX_OBJS)
+	$(CC_LINUX) $(CFLAGS_CROSS_LINUX)    -o $@ $^ $(LFLAGS_CROSS_LINUX) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 
-hashcat64.bin: src/main.c $(LINUX_64_OBJS)
-	$(CC_LINUX_64) $(CFLAGS_CROSS_LINUX64)    -o $@ $^ $(LFLAGS_CROSS_LINUX64) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
+hashcat.exe: src/main.c $(WIN_OBJS) $(WIN_ICONV)/lib/libiconv.a
+	$(CC_WIN)   $(CFLAGS_CROSS_WIN)      -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\"
 
-hashcat32.exe: src/main.c $(WIN_32_OBJS) $(WIN_ICONV_32)/lib/libiconv.a
-	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN32)      -o $@ $^ $(LFLAGS_CROSS_WIN32)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\"
-
-hashcat64.exe: src/main.c $(WIN_64_OBJS) $(WIN_ICONV_64)/lib/libiconv.a
-	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64)      -o $@ $^ $(LFLAGS_CROSS_WIN64)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\"
-
-hashcat32.dll: src/main.c $(WIN_32_OBJS) $(WIN_ICONV_32)/lib/libiconv.a
-	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN32)      -o $@ $^ $(LFLAGS_CROSS_WIN32)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -shared
-
-hashcat64.dll: src/main.c $(WIN_64_OBJS) $(WIN_ICONV_64)/lib/libiconv.a
-	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64)      -o $@ $^ $(LFLAGS_CROSS_WIN64)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -shared
+hashcat.dll: src/main.c $(WIN_OBJS) $(WIN_ICONV)/lib/libiconv.a
+	$(CC_WIN)   $(CFLAGS_CROSS_WIN)      -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -shared

@@ -65,23 +65,6 @@ int ascii_digest (const hashconfig_t *hashconfig, const hashes_t *hashes, const 
 
 int module_filename (const folder_config_t *folder_config, const int hash_mode, char *out_buf, const size_t out_size)
 {
-  // cross compiled
-  #if defined (__x86_64__)
-  #if defined (_WIN)
-  const int out_len = snprintf (out_buf, out_size, "%s/modules/module64_%05d.dll", folder_config->shared_dir, hash_mode);
-  #else
-  const int out_len = snprintf (out_buf, out_size, "%s/modules/module64_%05d.so", folder_config->shared_dir, hash_mode);
-  #endif
-  #else
-  #if defined (_WIN)
-  const int out_len = snprintf (out_buf, out_size, "%s/modules/module32_%05d.dll", folder_config->shared_dir, hash_mode);
-  #else
-  const int out_len = snprintf (out_buf, out_size, "%s/modules/module32_%05d.so", folder_config->shared_dir, hash_mode);
-  #endif
-  #endif
-
-  if (hc_path_exist (out_buf) == true) return out_len;
-
   // native compiled
   #if defined (_WIN)
   return snprintf (out_buf, out_size, "%s/modules/module_%05d.dll", folder_config->shared_dir, hash_mode);
