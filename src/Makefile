@@ -123,13 +123,6 @@ else
 DEPS_XXHASH_PATH        := $(LIBRARY_DEV_ROOT_FOLDER)/
 endif
 
-## To compile win-iconv with mingw clone from here: https://github.com/win-iconv/win-iconv
-##
-## Then patch the makefile with the patches from tools/win-iconv-*.diff and run make install
-##
-
-WIN_ICONV               := /opt/win-iconv-64
-
 ##
 ## Filenames for library and frontend
 ##
@@ -150,13 +143,6 @@ ifeq ($(UNAME),MSYS2)
 HASHCAT_FRONTEND        := hashcat.exe
 HASHCAT_LIBRARY         := hashcat.dll
 endif # MSYS2
-
-##
-## Cross compiler paths
-##
-
-CC_LINUX                := gcc
-CC_WIN                  := x86_64-w64-mingw32-gcc
 
 ##
 ## Misc stuff
@@ -292,30 +278,6 @@ LFLAGS_NATIVE           += -lws2_32
 endif # MSYS2
 
 ##
-## Cross compilation targets
-##
-
-CFLAGS_CROSS_LINUX      := $(CFLAGS)
-CFLAGS_CROSS_LINUX      += -fPIC
-CFLAGS_CROSS_LINUX      += -I$(OPENCL_HEADERS_KHRONOS)/
-CFLAGS_CROSS_LINUX      += -DWITH_HWMON
-CFLAGS_CROSS_WIN        := $(CFLAGS)
-CFLAGS_CROSS_WIN        += -fPIC
-CFLAGS_CROSS_WIN        += -I$(OPENCL_HEADERS_KHRONOS)/
-CFLAGS_CROSS_WIN        += -I$(WIN_ICONV)/include/
-CFLAGS_CROSS_WIN        += -DWITH_HWMON
-
-LFLAGS_CROSS_LINUX      := $(LFLAGS)
-LFLAGS_CROSS_LINUX      += -lpthread
-LFLAGS_CROSS_LINUX      += -ldl
-LFLAGS_CROSS_LINUX      += -lm
-LFLAGS_CROSS_WIN        := $(LFLAGS)
-LFLAGS_CROSS_WIN        += -Wl,--dynamicbase
-LFLAGS_CROSS_WIN        += -Wl,--nxcompat
-LFLAGS_CROSS_WIN        += -lpsapi
-LFLAGS_CROSS_WIN        += -lws2_32
-
-##
 ## Objects
 ##
 
@@ -390,18 +352,6 @@ clean:
 
 distclean: clean
 	$(RM) -f *.restore *.pot *.out *.log
-
-##
-## Targets: Cross Compilation (for binary release version)
-##
-
-binaries: linux win
-
-host_linux: hashcat.bin
-host_win:   hashcat.exe
-
-linux: host_linux modules_linux
-win:   host_win   modules_win
 
 ##
 ## Targets: Linux install
@@ -570,6 +520,62 @@ modules/module_%.$(MODULE_SUFFIX): src/modules/module_%.c $(MODULE_NATIVE_SHARED
 modules: $(MODULES_LIB)
 
 ##
+## Cross Compilation (binary release version)
+##
+
+ifeq ($(UNAME),Linux)
+
+##
+## Compiler paths
+##
+
+CC_LINUX                := gcc
+CC_WIN                  := x86_64-w64-mingw32-gcc
+
+## To compile win-iconv with mingw clone from here: https://github.com/win-iconv/win-iconv
+##
+## Then patch the makefile with the patches from tools/win-iconv-64.diff and run make install
+##
+
+WIN_ICONV               := /opt/win-iconv-64
+
+##
+## Compiler options
+##
+
+CFLAGS_CROSS_LINUX      := $(CFLAGS)
+CFLAGS_CROSS_LINUX      += -fPIC
+CFLAGS_CROSS_LINUX      += -I$(OPENCL_HEADERS_KHRONOS)/
+CFLAGS_CROSS_LINUX      += -DWITH_HWMON
+CFLAGS_CROSS_WIN        := $(CFLAGS)
+CFLAGS_CROSS_WIN        += -fPIC
+CFLAGS_CROSS_WIN        += -I$(OPENCL_HEADERS_KHRONOS)/
+CFLAGS_CROSS_WIN        += -I$(WIN_ICONV)/include/
+CFLAGS_CROSS_WIN        += -DWITH_HWMON
+
+LFLAGS_CROSS_LINUX      := $(LFLAGS)
+LFLAGS_CROSS_LINUX      += -lpthread
+LFLAGS_CROSS_LINUX      += -ldl
+LFLAGS_CROSS_LINUX      += -lm
+LFLAGS_CROSS_WIN        := $(LFLAGS)
+LFLAGS_CROSS_WIN        += -Wl,--dynamicbase
+LFLAGS_CROSS_WIN        += -Wl,--nxcompat
+LFLAGS_CROSS_WIN        += -lpsapi
+LFLAGS_CROSS_WIN        += -lws2_32
+
+##
+## Targets
+##
+
+binaries: linux win
+
+host_linux: hashcat.bin
+host_win:   hashcat.exe
+
+linux: host_linux modules_linux
+win:   host_win   modules_win
+
+##
 ## cross compiled modules
 ##
 
@@ -621,3 +627,5 @@ hashcat.exe: src/main.c $(WIN_OBJS) $(WIN_ICONV)/lib/libiconv.a
 
 hashcat.dll: src/main.c $(WIN_OBJS) $(WIN_ICONV)/lib/libiconv.a
 	$(CC_WIN)   $(CFLAGS_CROSS_WIN)      -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -shared
+
+endif

@@ -30,7 +30,7 @@
 ## Technical
 ##
 
-- Binary Distribution: Removed 32 bit binary executeables
+- Binary Distribution: Removed 32 bit binary executables
 
 * changes v5.0.0 -> v5.1.0
 
