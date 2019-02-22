@@ -42,15 +42,15 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
-typedef struct pbkdf2_sha1_tmp
+typedef struct android_backup_tmp
 {
   u32  ipad[5];
   u32  opad[5];
 
-  u32  dgst[8];
-  u32  out[8];
+  u32  dgst[10];
+  u32  out[10];
 
-} pbkdf2_sha1_tmp_t;
+} android_backup_tmp_t;
 
 typedef struct android_backup
 {
@@ -68,7 +68,7 @@ static const char *SIGNATURE_ANDROID_BACKUP = "$ab$";
 
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u64 tmp_size = (const u64) sizeof (pbkdf2_sha1_tmp_t);
+  const u64 tmp_size = (const u64) sizeof (android_backup_tmp_t);
 
   return tmp_size;
 }

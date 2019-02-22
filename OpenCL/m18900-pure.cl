@@ -17,6 +17,16 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct android_backup_tmp
+{
+  u32  ipad[5];
+  u32  opad[5];
+
+  u32  dgst[10];
+  u32  out[10];
+
+} android_backup_tmp_t;
+
 typedef struct android_backup
 {
   u32 version;
@@ -65,7 +75,7 @@ DECLSPEC void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipa
   sha1_transform_vector (w0, w1, w2, w3, digest);
 }
 
-__kernel void m18900_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, android_backup_t))
+__kernel void m18900_init (KERN_ATTR_TMPS_ESALT (android_backup_tmp_t, android_backup_t))
 {
   /**
    * base
@@ -137,7 +147,7 @@ __kernel void m18900_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, android_back
   }
 }
 
-__kernel void m18900_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, android_backup_t))
+__kernel void m18900_loop (KERN_ATTR_TMPS_ESALT (android_backup_tmp_t, android_backup_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -222,7 +232,7 @@ __kernel void m18900_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, android_back
   }
 }
 
-__kernel void m18900_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, android_backup_t))
+__kernel void m18900_comp (KERN_ATTR_TMPS_ESALT (android_backup_tmp_t, android_backup_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
