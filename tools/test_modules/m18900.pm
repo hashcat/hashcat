@@ -35,8 +35,6 @@ sub module_generate_hash
 
   my $key_bin = $kdf->PBKDF2 ($user_salt_bin, $word);
 
-print unpack ("H*", $key_bin), "\n";
-
   my $iv_bin = pack ("H*", $user_iv);
 
   my $cipher = Crypt::CBC->new ({

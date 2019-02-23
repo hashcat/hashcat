@@ -30,14 +30,10 @@ sub module_generate_hash
 
   my $digest = sha256 ($UUID . $word);
 
-print unpack ("H*", $digest). "\n";
-
   for (my $i = 0; $i < $iter - 1; $i++)
   {
     $digest = sha256 ($digest);
   }
-
-print unpack ("H*", $digest). "\n";
 
   my $data = "bs:" . $digest . $salt . pack ("L<", $iter);
 
