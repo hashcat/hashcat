@@ -21,28 +21,14 @@ LUKS_MODE="14600"
 # missing hash types: 5200
 
 HASH_TYPES=$(ls ${TDIR}/test_modules/*.pm | sed 's/.*m0*\([0-9]\+\)\.pm/\1/')
-
 HASH_TYPES="${HASH_TYPES} ${TC_MODES} ${VC_MODES} ${LUKS_MODE}"
-
 HASH_TYPES="$(echo -n ${HASH_TYPES} | tr ' ' '\n' | sort -u -n | tr '\n' ' ')"
 
 VECTOR_WIDTHS="1 2 4 8 16"
 
-MATCH_PASS_ONLY="2500 5300 5400 6600 6800 8200"
-
-HASHFILE_ONLY="2500"
-
-NEVER_CRACK="11600 14900 18100"
-
-SLOW_ALGOS="    400   500   501  1600  1800  2100  2500  3200  5200  5800  6211\
-   6212  6213  6221  6222  6223  6231  6232  6233  6241  6242  6243  6300  6400\
-   6500  6600  6700  6800  7100  7200  7400  7900  8200  8800  8900  9000  9100\
-   9200  9300  9400  9500  9600 10000 10300 10500 10700 10900 11300 11600 11900\
-  12000 12001 12100 12200 12300 12400 12500 12700 12800 12900 13000 13200 13400\
-  13600 13711 13712 13713 13721 13722 13723 13731 13732 13733 13751 13752 13753\
-  13771 13772 13773 14600 14611 14612 14613 14621 14622 14623 14631 14632 14633\
-  14641 14642 14643 14700 14800 15100 15200 15300 15600 15700 15900 16000 16200\
-  16300 16800 16900 18400 18600 18900"
+HASHFILE_ONLY=$(ls ${TDIR}/test_modules/*.pm | sed 's/.*m\([0-9]\+\)\.pm/src\/modules\/module_\1.c/' | xargs grep -l OPTS_TYPE_BINARY_HASHFILE | sed 's/.*module_0*\([0-9]\+\)\.c/\1/' | tr '\n' ' ')
+NEVER_CRACK=$(ls ${TDIR}/test_modules/*.pm | sed 's/.*m\([0-9]\+\)\.pm/src\/modules\/module_\1.c/' | xargs grep -l OPTS_TYPE_PT_NEVERCRACK | sed 's/.*module_0*\([0-9]\+\)\.c/\1/' | tr '\n' ' ')
+SLOW_ALGOS=$(ls ${TDIR}/test_modules/*.pm | sed 's/.*m\([0-9]\+\)\.pm/src\/modules\/module_\1.c/' | xargs grep -l ATTACK_EXEC_OUTSIDE_KERNEL | sed 's/.*module_0*\([0-9]\+\)\.c/\1/' | tr '\n' ' ')
 
 OUTD="test_$(date +%s)"
 
@@ -2778,7 +2764,7 @@ if [ "${PACKAGE}" -eq 0 -o -z "${PACKAGE_FOLDER}" ]; then
   rm -rf ${OUTD}/logfull.txt && touch ${OUTD}/logfull.txt
 
   # populate array of hash types where we only should check if pass is in output (not both hash:pass)
-  IFS=';' read -ra PASS_ONLY <<< "${MATCH_PASS_ONLY}"
+  IFS=';' read -ra PASS_ONLY <<< "${HASHFILE_ONLY}"
   IFS=';' read -ra TIMEOUT_ALGOS <<< "${SLOW_ALGOS}"
 
   IFS=';' read -ra NEVER_CRACK_ALGOS <<< "${NEVER_CRACK}"
