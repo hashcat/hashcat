@@ -27,6 +27,7 @@
 
 - Tuning Database: Updated hashcat.hctune with new models and refreshed vector width values
 - Bitcoin Wallet: Be more user friendly by allowing a larger data range for ckey and public_key
+- OpenCL Runtime: Improve ROCM detection and make sure to not confuse with recent AMDGPU drivers
 
 ##
 ## Technical

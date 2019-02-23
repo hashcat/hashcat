@@ -3701,29 +3701,6 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           device_param->pcie_bus      = amdtopo.pcie.bus;
           device_param->pcie_device   = amdtopo.pcie.device;
           device_param->pcie_function = amdtopo.pcie.function;
-
-          #if defined (__linux__)
-
-          // check for AMD ROCm driver (only available on linux)
-
-          const char *t1 = strstr (device_param->driver_version, "HSA");
-          const char *t2 = strstr (device_param->driver_version, "LC");
-          const char *t3 = strstr (device_param->driver_version, "PAL");
-
-          if ((t1 == NULL) && (t2 == NULL) && (t3 == NULL))
-          {
-            device_param->is_rocm = false;
-          }
-          else
-          {
-            device_param->is_rocm = true;
-          }
-
-          #else
-
-          device_param->is_rocm = false;
-
-          #endif
         }
 
         if ((device_param->platform_vendor_id == VENDOR_ID_NV) && (device_param->device_vendor_id == VENDOR_ID_NV))
@@ -4612,6 +4589,38 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     CL_rc = hc_clCreateCommandQueue (hashcat_ctx, device_param->context, device_param->device, CL_QUEUE_PROFILING_ENABLE, &device_param->command_queue);
 
     if (CL_rc == -1) return -1;
+
+    if ((device_param->device_type & CL_DEVICE_TYPE_GPU) && (device_param->platform_vendor_id == VENDOR_ID_AMD))
+    {
+      char *kernel_buf = "__kernel void test (__global int *p) { __asm__ (\"DS_NOP\"); }";
+
+      const size_t kernel_len = strlen (kernel_buf);
+
+      cl_program program;
+
+      CL_rc = hc_clCreateProgramWithSource (hashcat_ctx, device_param->context, 1, &kernel_buf, &kernel_len, &program);
+
+      if (CL_rc == -1) return -1;
+
+      opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+      OCL_PTR *ocl = opencl_ctx->ocl;
+
+      CL_rc = ocl->clBuildProgram (program, 1, &device_param->device, NULL, NULL, NULL);
+
+      if (CL_rc == CL_SUCCESS)
+      {
+        device_param->is_rocm = true;
+      }
+      else
+      {
+        device_param->is_rocm = false;
+      }
+
+      CL_rc = hc_clReleaseProgram (hashcat_ctx, program);
+
+      if (CL_rc == -1) return -1;
+    }
 
     // device_available_mem
 
