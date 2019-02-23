@@ -179,9 +179,9 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   char tmp_buf[64];
 
-  base64_encode (int_to_lotus64, (const u8 *) buf, 36, (u8 *) tmp_buf);
+  const int tmp_len = base64_encode (int_to_lotus64, (const u8 *) buf, 36, (u8 *) tmp_buf);
 
-  tmp_buf[49] = 0;
+  tmp_buf[tmp_len] = 0;
 
   const int line_len = snprintf (line_buf, line_size, "(H%s)", tmp_buf);
 
