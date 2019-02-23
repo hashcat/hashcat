@@ -2325,6 +2325,16 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
   device_param->outerloop_pos   = 0;
   device_param->outerloop_left  = pws_cnt;
 
+  // we ignore the time to copy data over pci bus in this case
+
+  if (user_options->speed_only == true)
+  {
+    choose_kernel (hashcat_ctx, device_param, highest_pw_len, pws_cnt, 0, 0);
+    choose_kernel (hashcat_ctx, device_param, highest_pw_len, pws_cnt, 0, 0);
+
+    hc_timer_set (&device_param->timer_speed);
+  }
+
   // loop start: most outer loop = salt iteration, then innerloops (if multi)
 
   for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
@@ -2845,6 +2855,8 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
     }
 
     device_param->outerloop_msec = total_msec * hashes->salts_cnt * device_param->outerloop_multi;
+
+    device_param->speed_only_finish = true;
   }
 
   return 0;
