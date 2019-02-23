@@ -26,9 +26,9 @@ HASH_TYPES="$(echo -n ${HASH_TYPES} | tr ' ' '\n' | sort -u -n | tr '\n' ' ')"
 
 VECTOR_WIDTHS="1 2 4 8 16"
 
-HASHFILE_ONLY=$(ls ${TDIR}/test_modules/*.pm | sed 's/.*m\([0-9]\+\)\.pm/src\/modules\/module_\1.c/' | xargs grep -l OPTS_TYPE_BINARY_HASHFILE | sed 's/.*module_0*\([0-9]\+\)\.c/\1/' | tr '\n' ' ')
-NEVER_CRACK=$(ls ${TDIR}/test_modules/*.pm | sed 's/.*m\([0-9]\+\)\.pm/src\/modules\/module_\1.c/' | xargs grep -l OPTS_TYPE_PT_NEVERCRACK | sed 's/.*module_0*\([0-9]\+\)\.c/\1/' | tr '\n' ' ')
-SLOW_ALGOS=$(ls ${TDIR}/test_modules/*.pm | sed 's/.*m\([0-9]\+\)\.pm/src\/modules\/module_\1.c/' | xargs grep -l ATTACK_EXEC_OUTSIDE_KERNEL | sed 's/.*module_0*\([0-9]\+\)\.c/\1/' | tr '\n' ' ')
+HASHFILE_ONLY=$(grep -l OPTS_TYPE_BINARY_HASHFILE ${TDIR}/../src/modules/module_*.c | sed 's/.*module_0*\([0-9]\+\)\.c/\1/' | tr '\n' ' ')
+NEVER_CRACK=$(grep -l OPTS_TYPE_PT_NEVERCRACK ${TDIR}/../src/modules/module_*.c | sed 's/.*module_0*\([0-9]\+\)\.c/\1/' | tr '\n' ' ')
+SLOW_ALGOS=$(grep -l ATTACK_EXEC_OUTSIDE_KERNEL ${TDIR}/../src/modules/module_*.c | sed 's/.*module_0*\([0-9]\+\)\.c/\1/' | tr '\n' ' ')
 
 OUTD="test_$(date +%s)"
 
