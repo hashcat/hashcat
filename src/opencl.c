@@ -2354,9 +2354,6 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
   if (user_options->speed_only == true)
   {
-    choose_kernel (hashcat_ctx, device_param, highest_pw_len, pws_cnt, 0, 0);
-    choose_kernel (hashcat_ctx, device_param, highest_pw_len, pws_cnt, 0, 0);
-
     hc_timer_set (&device_param->timer_speed);
   }
 
