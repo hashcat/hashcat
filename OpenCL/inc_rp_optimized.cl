@@ -786,7 +786,7 @@ void append_block8 (const u32 offset, u32 *buf0, u32 *buf1, const u32 *src_l0, c
   const int offset_switch = offset / 4;
   #endif
 
-  #if (defined IS_AMD && AMD_GCN < 3) || defined IS_GENERIC
+  #if (defined IS_AMD && HAS_VPERM == 0) || defined IS_GENERIC
   const u32 src_r00 = swap32_S (src_r0[0]);
   const u32 src_r01 = swap32_S (src_r0[1]);
   const u32 src_r02 = swap32_S (src_r0[2]);
@@ -898,7 +898,7 @@ void append_block8 (const u32 offset, u32 *buf0, u32 *buf1, const u32 *src_l0, c
   s7 = swap32_S (s7);
   #endif
 
-  #if (defined IS_AMD && AMD_GCN >= 3) || defined IS_NV
+  #if (defined IS_AMD && HAS_VPERM == 1) || defined IS_NV
 
   const int offset_mod_4 = offset & 3;
 

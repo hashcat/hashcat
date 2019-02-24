@@ -1258,7 +1258,8 @@ typedef struct hc_device_param
   char   *driver_version;
   char   *device_opencl_version;
 
-  bool    is_rocm;
+  bool    has_vperm;
+  bool    has_vadd3;
 
   double  spin_damp;
 

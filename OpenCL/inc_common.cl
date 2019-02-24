@@ -417,7 +417,7 @@ DECLSPEC void make_utf16be (const u32x *in, u32x *out1, u32x *out2)
   out1[1] = hc_byte_perm (in[0], 0, 0x3727);
   out1[0] = hc_byte_perm (in[0], 0, 0x1707);
 
-  #elif defined IS_AMD && AMD_GCN >= 3
+  #elif defined IS_AMD && HAS_VPERM
 
   out2[3] = hc_byte_perm (in[3], 0, 0x03070207);
   out2[2] = hc_byte_perm (in[3], 0, 0x01070007);
@@ -455,7 +455,7 @@ DECLSPEC void make_utf16beN (const u32x *in, u32x *out1, u32x *out2)
   out1[1] = hc_byte_perm (in[0], 0, 0x1707);
   out1[0] = hc_byte_perm (in[0], 0, 0x3727);
 
-  #elif defined IS_AMD && AMD_GCN >= 3
+  #elif defined IS_AMD && HAS_VPERM
 
   out2[3] = hc_byte_perm (in[3], 0, 0x01070007);
   out2[2] = hc_byte_perm (in[3], 0, 0x03070207);
@@ -493,7 +493,7 @@ DECLSPEC void make_utf16le (const u32x *in, u32x *out1, u32x *out2)
   out1[1] = hc_byte_perm (in[0], 0, 0x7372);
   out1[0] = hc_byte_perm (in[0], 0, 0x7170);
 
-  #elif defined IS_AMD && AMD_GCN >= 3
+  #elif defined IS_AMD && HAS_VPERM
 
   out2[3] = hc_byte_perm (in[3], 0, 0x07030702);
   out2[2] = hc_byte_perm (in[3], 0, 0x07010700);
@@ -531,7 +531,7 @@ DECLSPEC void make_utf16leN (const u32x *in, u32x *out1, u32x *out2)
   out1[1] = hc_byte_perm (in[0], 0, 0x7170);
   out1[0] = hc_byte_perm (in[0], 0, 0x7372);
 
-  #elif defined IS_AMD && AMD_GCN >= 3
+  #elif defined IS_AMD && HAS_VPERM
 
   out2[3] = hc_byte_perm (in[3], 0, 0x07010700);
   out2[2] = hc_byte_perm (in[3], 0, 0x07030702);
@@ -565,7 +565,7 @@ DECLSPEC void undo_utf16be (const u32x *in1, const u32x *in2, u32x *out)
   out[2] = hc_byte_perm (in2[0], in2[1], 0x4602);
   out[3] = hc_byte_perm (in2[2], in2[3], 0x4602);
 
-  #elif defined IS_AMD && AMD_GCN >= 3
+  #elif defined IS_AMD && HAS_VPERM
 
   out[0] = hc_byte_perm (in1[0], in1[1], 0x04060002);
   out[1] = hc_byte_perm (in1[2], in1[3], 0x04060002);
@@ -595,7 +595,7 @@ DECLSPEC void undo_utf16le (const u32x *in1, const u32x *in2, u32x *out)
   out[2] = hc_byte_perm (in2[0], in2[1], 0x6420);
   out[3] = hc_byte_perm (in2[2], in2[3], 0x6420);
 
-  #elif defined IS_AMD && AMD_GCN >= 3
+  #elif defined IS_AMD && HAS_VPERM
 
   out[0] = hc_byte_perm (in1[0], in1[1], 0x06040200);
   out[1] = hc_byte_perm (in1[2], in1[3], 0x06040200);
@@ -723,7 +723,7 @@ DECLSPEC void switch_buffer_by_offset_le (u32x *w0, u32x *w1, u32x *w2, u32x *w3
 
   const int offset_switch = offset / 4;
 
-  #if (defined IS_AMD && AMD_GCN < 3) || defined IS_GENERIC
+  #if (defined IS_AMD && HAS_VPERM == 0) || defined IS_GENERIC
   w0[0] = swap32 (w0[0]);
   w0[1] = swap32 (w0[1]);
   w0[2] = swap32 (w0[2]);
@@ -1082,7 +1082,7 @@ DECLSPEC void switch_buffer_by_offset_le (u32x *w0, u32x *w1, u32x *w2, u32x *w3
   w3[3] = swap32 (w3[3]);
   #endif
 
-  #if (defined IS_AMD && AMD_GCN >= 3) || defined IS_NV
+  #if (defined IS_AMD && HAS_VPERM == 1) || defined IS_NV
 
   #if defined IS_NV
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
@@ -2740,7 +2740,7 @@ DECLSPEC void switch_buffer_by_offset_be (u32x *w0, u32x *w1, u32x *w2, u32x *w3
 {
   const int offset_switch = offset / 4;
 
-  #if (defined IS_AMD && AMD_GCN < 3) || defined IS_GENERIC
+  #if (defined IS_AMD && HAS_VPERM == 0) || defined IS_GENERIC
 
   switch (offset_switch)
   {
@@ -3067,7 +3067,7 @@ DECLSPEC void switch_buffer_by_offset_be (u32x *w0, u32x *w1, u32x *w2, u32x *w3
 
   #endif
 
-  #if (defined IS_AMD && AMD_GCN >= 3) || defined IS_NV
+  #if (defined IS_AMD && HAS_VPERM == 1) || defined IS_NV
 
   #if defined IS_NV
   const int selector = (0x76543210 >> ((offset & 3) * 4)) & 0xffff;
@@ -3407,7 +3407,7 @@ DECLSPEC void switch_buffer_by_offset_carry_be (u32x *w0, u32x *w1, u32x *w2, u3
 {
   const int offset_switch = offset / 4;
 
-  #if (defined IS_AMD && AMD_GCN < 3) || defined IS_GENERIC
+  #if (defined IS_AMD && HAS_VPERM == 0) || defined IS_GENERIC
   switch (offset_switch)
   {
     case  0:
@@ -3868,7 +3868,7 @@ DECLSPEC void switch_buffer_by_offset_carry_be (u32x *w0, u32x *w1, u32x *w2, u3
   }
   #endif
 
-  #if (defined IS_AMD && AMD_GCN >= 3) || defined IS_NV
+  #if (defined IS_AMD && HAS_VPERM == 1) || defined IS_NV
 
   #if defined IS_NV
   const int selector = (0x76543210 >> ((offset & 3) * 4)) & 0xffff;
@@ -4347,7 +4347,7 @@ DECLSPEC void switch_buffer_by_offset_8x4_le (u32x *w0, u32x *w1, u32x *w2, u32x
 
   const int offset_switch = offset / 4;
 
-  #if (defined IS_AMD && AMD_GCN < 3) || defined IS_GENERIC
+  #if (defined IS_AMD && HAS_VPERM == 0) || defined IS_GENERIC
   w0[0] = swap32 (w0[0]);
   w0[1] = swap32 (w0[1]);
   w0[2] = swap32 (w0[2]);
@@ -5570,7 +5570,7 @@ DECLSPEC void switch_buffer_by_offset_8x4_le (u32x *w0, u32x *w1, u32x *w2, u32x
   w7[3] = swap32 (w7[3]);
   #endif
 
-  #if (defined IS_AMD && AMD_GCN >= 3) || defined IS_NV
+  #if (defined IS_AMD && HAS_VPERM == 1) || defined IS_NV
 
   #if defined IS_NV
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
@@ -6149,7 +6149,7 @@ DECLSPEC void switch_buffer_by_offset_8x4_be (u32x *w0, u32x *w1, u32x *w2, u32x
 {
   const int offset_switch = offset / 4;
 
-  #if (defined IS_AMD && AMD_GCN < 3) || defined IS_GENERIC
+  #if (defined IS_AMD && HAS_VPERM == 0) || defined IS_GENERIC
   switch (offset_switch)
   {
     case  0:
@@ -7306,7 +7306,7 @@ DECLSPEC void switch_buffer_by_offset_8x4_be (u32x *w0, u32x *w1, u32x *w2, u32x
   }
   #endif
 
-  #if (defined IS_AMD && AMD_GCN >= 3) || defined IS_NV
+  #if (defined IS_AMD && HAS_VPERM == 1) || defined IS_NV
 
   #if defined IS_NV
   const int selector = (0x76543210 >> ((offset & 3) * 4)) & 0xffff;
@@ -8477,7 +8477,7 @@ DECLSPEC void switch_buffer_by_offset_8x4_carry_be (u32x *w0, u32x *w1, u32x *w2
 {
   const int offset_switch = offset / 4;
 
-  #if (defined IS_AMD && AMD_GCN < 3) || defined IS_GENERIC
+  #if (defined IS_AMD && HAS_VPERM == 0) || defined IS_GENERIC
   switch (offset_switch)
   {
     case  0:
@@ -10162,7 +10162,7 @@ DECLSPEC void switch_buffer_by_offset_8x4_carry_be (u32x *w0, u32x *w1, u32x *w2
   }
   #endif
 
-  #if (defined IS_AMD && AMD_GCN >= 3) || defined IS_NV
+  #if (defined IS_AMD && HAS_VPERM == 1) || defined IS_NV
 
   #if defined IS_NV
   const int selector = (0x76543210 >> ((offset & 3) * 4)) & 0xffff;
@@ -11865,7 +11865,7 @@ DECLSPEC void switch_buffer_by_offset_1x64_le (u32x *w, const u32 offset)
 
   const int offset_switch = offset / 4;
 
-  #if (defined IS_AMD && AMD_GCN < 3) || defined IS_GENERIC
+  #if (defined IS_AMD && HAS_VPERM == 0) || defined IS_GENERIC
 
   #pragma unroll
   for (int i = 0; i < 64; i++) w[i] = swap32 (w[i]);
@@ -16230,7 +16230,7 @@ DECLSPEC void switch_buffer_by_offset_1x64_le (u32x *w, const u32 offset)
 
   #endif
 
-  #if (defined IS_AMD && AMD_GCN >= 3) || defined IS_NV
+  #if (defined IS_AMD && HAS_VPERM == 1) || defined IS_NV
 
   #if defined IS_NV
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
@@ -20601,7 +20601,7 @@ DECLSPEC void switch_buffer_by_offset_1x64_be (u32x *w, const u32 offset)
 {
   const int offset_switch = offset / 4;
 
-  #if (defined IS_AMD && AMD_GCN < 3) || defined IS_GENERIC
+  #if (defined IS_AMD && HAS_VPERM == 0) || defined IS_GENERIC
   switch (offset_switch)
   {
     case  0:
@@ -24958,7 +24958,7 @@ DECLSPEC void switch_buffer_by_offset_1x64_be (u32x *w, const u32 offset)
   }
   #endif
 
-  #if (defined IS_AMD && AMD_GCN >= 3) || defined IS_NV
+  #if (defined IS_AMD && HAS_VPERM == 1) || defined IS_NV
 
   #if defined IS_NV
   const int selector = (0x76543210 >> ((offset & 3) * 4)) & 0xffff;
@@ -31297,7 +31297,7 @@ DECLSPEC void make_utf16be_S (const u32 *in, u32 *out1, u32 *out2)
   out1[1] = hc_byte_perm_S (in[0], 0, 0x3727);
   out1[0] = hc_byte_perm_S (in[0], 0, 0x1707);
 
-  #elif defined IS_AMD && AMD_GCN >= 3
+  #elif defined IS_AMD && HAS_VPERM
 
   out2[3] = hc_byte_perm_S (in[3], 0, 0x03070207);
   out2[2] = hc_byte_perm_S (in[3], 0, 0x01070007);
@@ -31335,7 +31335,7 @@ DECLSPEC void make_utf16le_S (const u32 *in, u32 *out1, u32 *out2)
   out1[1] = hc_byte_perm_S (in[0], 0, 0x7372);
   out1[0] = hc_byte_perm_S (in[0], 0, 0x7170);
 
-  #elif defined IS_AMD && AMD_GCN >= 3
+  #elif defined IS_AMD && HAS_VPERM
 
   out2[3] = hc_byte_perm_S (in[3], 0, 0x07030702);
   out2[2] = hc_byte_perm_S (in[3], 0, 0x07010700);
@@ -31369,7 +31369,7 @@ DECLSPEC void undo_utf16be_S (const u32 *in1, const u32 *in2, u32 *out)
   out[2] = hc_byte_perm_S (in2[0], in2[1], 0x4602);
   out[3] = hc_byte_perm_S (in2[2], in2[3], 0x4602);
 
-  #elif defined IS_AMD && AMD_GCN >= 3
+  #elif defined IS_AMD && HAS_VPERM
 
   out[0] = hc_byte_perm_S (in1[0], in1[1], 0x04060002);
   out[1] = hc_byte_perm_S (in1[2], in1[3], 0x04060002);
@@ -31399,7 +31399,7 @@ DECLSPEC void undo_utf16le_S (const u32 *in1, const u32 *in2, u32 *out)
   out[2] = hc_byte_perm_S (in2[0], in2[1], 0x6420);
   out[3] = hc_byte_perm_S (in2[2], in2[3], 0x6420);
 
-  #elif defined IS_AMD && AMD_GCN >= 3
+  #elif defined IS_AMD && HAS_VPERM
 
   out[0] = hc_byte_perm_S (in1[0], in1[1], 0x06040200);
   out[1] = hc_byte_perm_S (in1[2], in1[3], 0x06040200);
@@ -31428,7 +31428,7 @@ DECLSPEC void switch_buffer_by_offset_le_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, 
 
   const int offset_switch = offset / 4;
 
-  #if (defined IS_AMD && AMD_GCN < 3) || defined IS_GENERIC
+  #if (defined IS_AMD && HAS_VPERM == 0) || defined IS_GENERIC
   w0[0] = swap32_S (w0[0]);
   w0[1] = swap32_S (w0[1]);
   w0[2] = swap32_S (w0[2]);
@@ -31787,7 +31787,7 @@ DECLSPEC void switch_buffer_by_offset_le_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, 
   w3[3] = swap32_S (w3[3]);
   #endif
 
-  #if (defined IS_AMD && AMD_GCN >= 3) || defined IS_NV
+  #if (defined IS_AMD && HAS_VPERM == 1) || defined IS_NV
 
   #if defined IS_NV
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
@@ -33444,7 +33444,7 @@ DECLSPEC void switch_buffer_by_offset_be_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, 
 {
   const int offset_switch = offset / 4;
 
-  #if (defined IS_AMD && AMD_GCN < 3) || defined IS_GENERIC
+  #if (defined IS_AMD && HAS_VPERM == 0) || defined IS_GENERIC
   switch (offset_switch)
   {
     case  0:
@@ -33769,7 +33769,7 @@ DECLSPEC void switch_buffer_by_offset_be_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, 
   }
   #endif
 
-  #if (defined IS_AMD && AMD_GCN >= 3) || defined IS_NV
+  #if (defined IS_AMD && HAS_VPERM == 1) || defined IS_NV
 
   #if defined IS_NV
   const int selector = (0x76543210 >> ((offset & 3) * 4)) & 0xffff;
@@ -34108,7 +34108,7 @@ DECLSPEC void switch_buffer_by_offset_carry_be_S (u32 *w0, u32 *w1, u32 *w2, u32
 {
   const int offset_switch = offset / 4;
 
-  #if (defined IS_AMD && AMD_GCN < 3) || defined IS_GENERIC
+  #if (defined IS_AMD && HAS_VPERM == 0) || defined IS_GENERIC
   switch (offset_switch)
   {
     case  0:
@@ -34569,7 +34569,7 @@ DECLSPEC void switch_buffer_by_offset_carry_be_S (u32 *w0, u32 *w1, u32 *w2, u32
   }
   #endif
 
-  #if (defined IS_AMD && AMD_GCN >= 3) || defined IS_NV
+  #if (defined IS_AMD && HAS_VPERM == 1) || defined IS_NV
 
   #if defined IS_NV
   const int selector = (0x76543210 >> ((offset & 3) * 4)) & 0xffff;
@@ -35048,7 +35048,7 @@ DECLSPEC void switch_buffer_by_offset_8x4_le_S (u32 *w0, u32 *w1, u32 *w2, u32 *
 
   const int offset_switch = offset / 4;
 
-  #if (defined IS_AMD && AMD_GCN < 3) || defined IS_GENERIC
+  #if (defined IS_AMD && HAS_VPERM == 0) || defined IS_GENERIC
   w0[0] = swap32_S (w0[0]);
   w0[1] = swap32_S (w0[1]);
   w0[2] = swap32_S (w0[2]);
@@ -36271,7 +36271,7 @@ DECLSPEC void switch_buffer_by_offset_8x4_le_S (u32 *w0, u32 *w1, u32 *w2, u32 *
   w7[3] = swap32_S (w7[3]);
   #endif
 
-  #if (defined IS_AMD && AMD_GCN >= 3) || defined IS_NV
+  #if (defined IS_AMD && HAS_VPERM == 1) || defined IS_NV
 
   #if defined IS_NV
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
@@ -36850,7 +36850,7 @@ DECLSPEC void switch_buffer_by_offset_8x4_be_S (u32 *w0, u32 *w1, u32 *w2, u32 *
 {
   const int offset_switch = offset / 4;
 
-  #if (defined IS_AMD && AMD_GCN < 3) || defined IS_GENERIC
+  #if (defined IS_AMD && HAS_VPERM == 0) || defined IS_GENERIC
   switch (offset_switch)
   {
     case  0:
@@ -38007,7 +38007,7 @@ DECLSPEC void switch_buffer_by_offset_8x4_be_S (u32 *w0, u32 *w1, u32 *w2, u32 *
   }
   #endif
 
-  #if (defined IS_AMD && AMD_GCN >= 3) || defined IS_NV
+  #if (defined IS_AMD && HAS_VPERM == 1) || defined IS_NV
 
   #if defined IS_NV
   const int selector = (0x76543210 >> ((offset & 3) * 4)) & 0xffff;
@@ -39178,7 +39178,7 @@ DECLSPEC void switch_buffer_by_offset_8x4_carry_be_S (u32 *w0, u32 *w1, u32 *w2,
 {
   const int offset_switch = offset / 4;
 
-  #if (defined IS_AMD && AMD_GCN < 3) || defined IS_GENERIC
+  #if (defined IS_AMD && HAS_VPERM == 0) || defined IS_GENERIC
   switch (offset_switch)
   {
     case  0:
@@ -40863,7 +40863,7 @@ DECLSPEC void switch_buffer_by_offset_8x4_carry_be_S (u32 *w0, u32 *w1, u32 *w2,
   }
   #endif
 
-  #if (defined IS_AMD && AMD_GCN >= 3) || defined IS_NV
+  #if (defined IS_AMD && HAS_VPERM == 1) || defined IS_NV
 
   #if defined IS_NV
   const int selector = (0x76543210 >> ((offset & 3) * 4)) & 0xffff;
@@ -42566,7 +42566,7 @@ DECLSPEC void switch_buffer_by_offset_1x64_le_S (u32 *w, const u32 offset)
 
   const int offset_switch = offset / 4;
 
-  #if (defined IS_AMD && AMD_GCN < 3) || defined IS_GENERIC
+  #if (defined IS_AMD && HAS_VPERM == 0) || defined IS_GENERIC
 
   #pragma unroll
   for (int i = 0; i < 64; i++) w[i] = swap32_S (w[i]);
@@ -46931,7 +46931,7 @@ DECLSPEC void switch_buffer_by_offset_1x64_le_S (u32 *w, const u32 offset)
 
   #endif
 
-  #if (defined IS_AMD && AMD_GCN >= 3) || defined IS_NV
+  #if (defined IS_AMD && HAS_VPERM == 1) || defined IS_NV
 
   #if defined IS_NV
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
@@ -51302,7 +51302,7 @@ DECLSPEC void switch_buffer_by_offset_1x64_be_S (u32 *w, const u32 offset)
 {
   const int offset_switch = offset / 4;
 
-  #if (defined IS_AMD && AMD_GCN < 3) || defined IS_GENERIC
+  #if (defined IS_AMD && HAS_VPERM == 0) || defined IS_GENERIC
   switch (offset_switch)
   {
     case  0:
@@ -55659,7 +55659,7 @@ DECLSPEC void switch_buffer_by_offset_1x64_be_S (u32 *w, const u32 offset)
   }
   #endif
 
-  #if (defined IS_AMD && AMD_GCN >= 3) || defined IS_NV
+  #if (defined IS_AMD && HAS_VPERM == 1) || defined IS_NV
 
   #if defined IS_NV
   const int selector = (0x76543210 >> ((offset & 3) * 4)) & 0xffff;

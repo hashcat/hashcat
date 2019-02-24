@@ -25,26 +25,6 @@
 
 #if   VENDOR_ID == (1 << 0)
 #define IS_AMD
-#define AMD_GCN 0
-#if AMD_ROCM == 1
-#if defined __gfx600__ || defined __gfx601__
-#undef  AMD_GCN
-#define AMD_GCN 1
-#endif
-#if defined __gfx700__ || defined __gfx701__ || defined __gfx702__ || defined __gfx703__
-#undef  AMD_GCN
-#define AMD_GCN 2
-#endif
-#if defined __gfx800__ || defined __gfx801__ || defined __gfx802__ || defined __gfx803__ || defined __gfx804__ || defined __gfx810__
-#undef  AMD_GCN
-#define AMD_GCN 3
-// According to AMD docs, GCN 3 and 4 are the same
-#endif
-#if defined __gfx900__ || defined __gfx901__ || defined __gfx902__ || defined __gfx903__
-#undef  AMD_GCN
-#define AMD_GCN 5
-#endif
-#endif
 #elif VENDOR_ID == (1 << 1)
 #define IS_APPLE
 #define IS_GENERIC
@@ -95,7 +75,9 @@
 #define DECLSPEC
 #endif
 
-#if (defined IS_AMD && AMD_GCN < 3)
+// HAS_VPERM indicated ROCM
+
+#if (defined IS_AMD && HAS_VPERM == 0)
 #define MAYBE_VOLATILE volatile
 #else
 #define MAYBE_VOLATILE

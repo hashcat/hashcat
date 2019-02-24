@@ -175,7 +175,7 @@ DECLSPEC u64x hl32_to_64 (const u32x a, const u32x b)
 
 #ifdef IS_AMD
 
-#if AMD_GCN >= 3
+#if HAS_VPERM
 DECLSPEC u32 swap32_S (const u32 v)
 {
   u32 r;
@@ -240,7 +240,7 @@ DECLSPEC u64 rotl64_S (const u64 a, const u32 n)
   return rotr64_S (a, 64 - n);
 }
 
-#if AMD_GCN >= 3
+#if HAS_VPERM
 DECLSPEC u32x swap32 (const u32x v)
 {
   return bitselect (rotate (v, 24u), rotate (v, 8u), 0x00ff00ffu);
@@ -371,7 +371,7 @@ DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const u32 c)
   return amd_bytealign (a, b, c);
 }
 
-#if AMD_GCN >= 3
+#if HAS_VPERM
 DECLSPEC u32x hc_byte_perm (const u32x a, const u32x b, const u32x c)
 {
   u32x r;
@@ -435,7 +435,7 @@ DECLSPEC u32 hc_byte_perm_S (const u32 a, const u32 b, const u32 c)
 }
 #endif
 
-#if AMD_GCN >= 5
+#if HAS_VADD3
 DECLSPEC u32x hc_add3 (const u32x a, const u32x b, const u32x c)
 {
   u32x r;

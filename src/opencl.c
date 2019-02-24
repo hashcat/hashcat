@@ -333,6 +333,31 @@ static bool write_kernel_binary (hashcat_ctx_t *hashcat_ctx, char *kernel_file, 
   return true;
 }
 
+static bool test_instruction (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const char *kernel_buf)
+{
+  int CL_rc;
+
+  cl_program program;
+
+  CL_rc = hc_clCreateProgramWithSource (hashcat_ctx, device_param->context, 1, &kernel_buf, NULL, &program);
+
+  if (CL_rc == -1) return false;
+
+  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  OCL_PTR *ocl = opencl_ctx->ocl;
+
+  CL_rc = ocl->clBuildProgram (program, 1, &device_param->device, NULL, NULL, NULL); // do not use the wrapper to avoid the error message
+
+  const bool r = (CL_rc == CL_SUCCESS) ? true : false;
+
+  CL_rc = hc_clReleaseProgram (hashcat_ctx, program);
+
+  if (CL_rc == -1) return false;
+
+  return r;
+}
+
 void generate_source_kernel_filename (const bool slow_candidates, const u32 attack_exec, const u32 attack_kern, const u32 kern_type, const u32 opti_type, char *shared_dir, char *source_file)
 {
   if (opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
@@ -859,7 +884,7 @@ int hc_clCreateBuffer (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_mem_fl
   return 0;
 }
 
-int hc_clCreateProgramWithSource (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_uint count, char **strings, const size_t *lengths, cl_program *program)
+int hc_clCreateProgramWithSource (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_uint count, const char **strings, const size_t *lengths, cl_program *program)
 {
   opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
 
@@ -867,7 +892,7 @@ int hc_clCreateProgramWithSource (hashcat_ctx_t *hashcat_ctx, cl_context context
 
   cl_int CL_err;
 
-  *program = ocl->clCreateProgramWithSource (context, count, (const char **) strings, lengths, &CL_err);
+  *program = ocl->clCreateProgramWithSource (context, count, strings, lengths, &CL_err);
 
   if (CL_err != CL_SUCCESS)
   {
@@ -3811,25 +3836,15 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
               bool amd_warn = true;
 
               #if defined (__linux__)
-              if (device_param->is_rocm == false)
-              {
-                // ROCm is so much better, we should give the user some hint and remove this block
-
-                // AMDGPU-PRO Driver 16.40 and higher
-                if (strtoul (device_param->driver_version, NULL, 10) >= 2117) amd_warn = false;
-                // AMDGPU-PRO Driver 16.50 is known to be broken
-                if (strtoul (device_param->driver_version, NULL, 10) == 2236) amd_warn = true;
-                // AMDGPU-PRO Driver 16.60 is known to be broken
-                if (strtoul (device_param->driver_version, NULL, 10) == 2264) amd_warn = true;
-                // AMDGPU-PRO Driver 17.10 is known to be broken
-                if (strtoul (device_param->driver_version, NULL, 10) == 2348) amd_warn = true;
-                // AMDGPU-PRO Driver 17.20 (2416) is fine, doesn't need check will match >= 2117
-              }
-              else
-              {
-                // Support for ROCm platform
-                if (strtof (device_param->driver_version, NULL) >= 1.1f) amd_warn = false;
-              }
+              // AMDGPU-PRO Driver 16.40 and higher
+              if (strtoul (device_param->driver_version, NULL, 10) >= 2117) amd_warn = false;
+              // AMDGPU-PRO Driver 16.50 is known to be broken
+              if (strtoul (device_param->driver_version, NULL, 10) == 2236) amd_warn = true;
+              // AMDGPU-PRO Driver 16.60 is known to be broken
+              if (strtoul (device_param->driver_version, NULL, 10) == 2264) amd_warn = true;
+              // AMDGPU-PRO Driver 17.10 is known to be broken
+              if (strtoul (device_param->driver_version, NULL, 10) == 2348) amd_warn = true;
+              // AMDGPU-PRO Driver 17.20 (2416) is fine, doesn't need check will match >= 2117
               #elif defined (_WIN)
               // AMD Radeon Software 14.9 and higher, should be updated to 15.12
               if (strtoul (device_param->driver_version, NULL, 10) >= 1573) amd_warn = false;
@@ -4592,34 +4607,13 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if ((device_param->device_type & CL_DEVICE_TYPE_GPU) && (device_param->platform_vendor_id == VENDOR_ID_AMD))
     {
-      char *kernel_buf = "__kernel void test (__global int *p) { __asm__ (\"DS_NOP\"); }";
+      const bool has_vperm = test_instruction (hashcat_ctx, device_param, "__kernel void test () { uint r; __asm__ (\"V_PERM_B32 %0, 0, 0, 0;\" : \"=v\"(r)); }");
 
-      const size_t kernel_len = strlen (kernel_buf);
+      device_param->has_vperm = has_vperm;
 
-      cl_program program;
+      const bool has_vadd3 = test_instruction (hashcat_ctx, device_param, "__kernel void test () { uint r; __asm__ (\"V_ADD3_U32 %0, 0, 0, 0;\" : \"=v\"(r)); }");
 
-      CL_rc = hc_clCreateProgramWithSource (hashcat_ctx, device_param->context, 1, &kernel_buf, &kernel_len, &program);
-
-      if (CL_rc == -1) return -1;
-
-      opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
-
-      OCL_PTR *ocl = opencl_ctx->ocl;
-
-      CL_rc = ocl->clBuildProgram (program, 1, &device_param->device, NULL, NULL, NULL);
-
-      if (CL_rc == CL_SUCCESS)
-      {
-        device_param->is_rocm = true;
-      }
-      else
-      {
-        device_param->is_rocm = false;
-      }
-
-      CL_rc = hc_clReleaseProgram (hashcat_ctx, program);
-
-      if (CL_rc == -1) return -1;
+      device_param->has_vadd3 = has_vadd3;
     }
 
     // device_available_mem
@@ -4629,7 +4623,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     device_param->device_available_mem = device_param->device_global_mem - MAX_ALLOC_CHECKS_SIZE;
 
-    if ((device_param->device_type & CL_DEVICE_TYPE_GPU) && ((device_param->platform_vendor_id == VENDOR_ID_NV) || ((device_param->platform_vendor_id == VENDOR_ID_AMD) && (device_param->is_rocm == false))))
+    if ((device_param->device_type & CL_DEVICE_TYPE_GPU) && ((device_param->platform_vendor_id == VENDOR_ID_NV) || (device_param->platform_vendor_id == VENDOR_ID_AMD)))
     {
       // OK, so the problem here is the following:
       // There's just CL_DEVICE_GLOBAL_MEM_SIZE to ask OpenCL about the total memory on the device,
@@ -4875,9 +4869,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     char build_opts[2048] = { 0 };
 
     #if defined (DEBUG)
-    snprintf (build_opts, sizeof (build_opts), "%s -D LOCAL_MEM_TYPE=%u -D VENDOR_ID=%u -D CUDA_ARCH=%u -D AMD_ROCM=%u -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll", build_opts_base, device_param->device_local_mem_type, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->is_rocm, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, kern_type);
+    snprintf (build_opts, sizeof (build_opts), "%s -D LOCAL_MEM_TYPE=%u -D VENDOR_ID=%u -D CUDA_ARCH=%u -D HAS_VPERM=%u -D HAS_VADD3=%u -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll", build_opts_base, device_param->device_local_mem_type, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->has_vperm, device_param->has_vadd3, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, kern_type);
     #else
-    snprintf (build_opts, sizeof (build_opts), "%s -D LOCAL_MEM_TYPE=%u -D VENDOR_ID=%u -D CUDA_ARCH=%u -D AMD_ROCM=%u -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -w", build_opts_base, device_param->device_local_mem_type, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->is_rocm, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, kern_type);
+    snprintf (build_opts, sizeof (build_opts), "%s -D LOCAL_MEM_TYPE=%u -D VENDOR_ID=%u -D CUDA_ARCH=%u -D HAS_VPERM=%u -D HAS_VADD3=%u -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -w", build_opts_base, device_param->device_local_mem_type, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->has_vperm, device_param->has_vadd3, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, kern_type);
     #endif
 
     /*
@@ -4986,7 +4980,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (rc_read_kernel == false) return -1;
 
-          CL_rc = hc_clCreateProgramWithSource (hashcat_ctx, device_param->context, 1, kernel_sources, NULL, &device_param->program);
+          CL_rc = hc_clCreateProgramWithSource (hashcat_ctx, device_param->context, 1, (const char **) kernel_sources, NULL, &device_param->program);
 
           if (CL_rc == -1) return -1;
 
@@ -5065,7 +5059,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (rc_read_kernel == false) return -1;
 
-        CL_rc = hc_clCreateProgramWithSource (hashcat_ctx, device_param->context, 1, kernel_sources, NULL, &device_param->program);
+        CL_rc = hc_clCreateProgramWithSource (hashcat_ctx, device_param->context, 1, (const char **) kernel_sources, NULL, &device_param->program);
 
         if (CL_rc == -1) return -1;
 
@@ -5194,7 +5188,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (rc_read_kernel == false) return -1;
 
-          CL_rc = hc_clCreateProgramWithSource (hashcat_ctx, device_param->context, 1, kernel_sources, NULL, &device_param->program_mp);
+          CL_rc = hc_clCreateProgramWithSource (hashcat_ctx, device_param->context, 1, (const char **) kernel_sources, NULL, &device_param->program_mp);
 
           if (CL_rc == -1) return -1;
 
@@ -5341,7 +5335,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (rc_read_kernel == false) return -1;
 
-          CL_rc = hc_clCreateProgramWithSource (hashcat_ctx, device_param->context, 1, kernel_sources, NULL, &device_param->program_amp);
+          CL_rc = hc_clCreateProgramWithSource (hashcat_ctx, device_param->context, 1, (const char **) kernel_sources, NULL, &device_param->program_amp);
 
           if (CL_rc == -1) return -1;
 
