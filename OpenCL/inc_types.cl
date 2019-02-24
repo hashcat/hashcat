@@ -509,6 +509,16 @@ DECLSPEC u32 hc_add3_S (const u32 a, const u32 b, const u32 c)
 }
 #endif
 
+DECLSPEC u32x hc_lop_0x96 (const u32x a, const u32x b, const u32x c)
+{
+  return a ^ b ^ c;
+}
+
+DECLSPEC u32 hc_lop_0x96_S (const u32 a, const u32 b, const u32 c)
+{
+  return a ^ b ^ c;
+}
+
 #endif
 
 #ifdef IS_NV
@@ -916,6 +926,70 @@ DECLSPEC u32 hc_add3_S (const u32 a, const u32 b, const u32 c)
   return a + b + c;
 }
 
+DECLSPEC u32x hc_lop_0x96 (const u32x a, const u32x b, const u32x c)
+{
+  u32x r;
+
+  #if CUDA_ARCH >= 500
+
+  #if VECT_SIZE == 1
+  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r): "r"(a), "r"(b), "r"(c));
+  #endif
+
+  #if VECT_SIZE >= 2
+  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s0): "r"(a.s0), "r"(b.s0), "r"(c.s0));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s1): "r"(a.s1), "r"(b.s1), "r"(c.s1));
+  #endif
+
+  #if VECT_SIZE >= 4
+  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s2): "r"(a.s2), "r"(b.s2), "r"(c.s2));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s3): "r"(a.s3), "r"(b.s3), "r"(c.s3));
+  #endif
+
+  #if VECT_SIZE >= 8
+  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s4): "r"(a.s4), "r"(b.s4), "r"(c.s4));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s5): "r"(a.s5), "r"(b.s5), "r"(c.s5));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s6): "r"(a.s6), "r"(b.s6), "r"(c.s6));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s7): "r"(a.s7), "r"(b.s7), "r"(c.s7));
+  #endif
+
+  #if VECT_SIZE >= 16
+  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s8): "r"(a.s8), "r"(b.s8), "r"(c.s8));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s9): "r"(a.s9), "r"(b.s9), "r"(c.s9));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.sa): "r"(a.sa), "r"(b.sa), "r"(c.sa));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.sb): "r"(a.sb), "r"(b.sb), "r"(c.sb));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.sc): "r"(a.sc), "r"(b.sc), "r"(c.sc));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.sd): "r"(a.sd), "r"(b.sd), "r"(c.sd));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.se): "r"(a.se), "r"(b.se), "r"(c.se));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.sf): "r"(a.sf), "r"(b.sf), "r"(c.sf));
+  #endif
+
+  #else
+
+  r = a ^ b ^ c;
+
+  #endif
+
+  return r;
+}
+
+DECLSPEC u32 hc_lop_0x96_S (const u32 a, const u32 b, const u32 c)
+{
+  u32 r;
+
+  #if CUDA_ARCH >= 500
+
+  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r): "r"(a), "r"(b), "r"(c));
+
+  #else
+
+  r = a ^ b ^ c;
+
+  #endif
+
+  return r;
+}
+
 #endif
 
 #ifdef IS_GENERIC
@@ -1063,6 +1137,16 @@ DECLSPEC u32x hc_add3 (const u32x a, const u32x b, const u32x c)
 DECLSPEC u32 hc_add3_S (const u32 a, const u32 b, const u32 c)
 {
   return a + b + c;
+}
+
+DECLSPEC u32x hc_lop_0x96 (const u32x a, const u32x b, const u32x c)
+{
+  return a ^ b ^ c;
+}
+
+DECLSPEC u32 hc_lop_0x96_S (const u32 a, const u32 b, const u32 c)
+{
+  return a ^ b ^ c;
 }
 
 #endif
