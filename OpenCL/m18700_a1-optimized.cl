@@ -28,10 +28,24 @@ DECLSPEC u32 hashCode_g (const u32 init, __global u32 * restrict w, const u32 pw
 
     switch (c)
     {
-      case 4: hash *= 31; hash += tmp & 0xff; tmp >>= 8;
-      case 3: hash *= 31; hash += tmp & 0xff; tmp >>= 8;
-      case 2: hash *= 31; hash += tmp & 0xff; tmp >>= 8;
-      case 1: hash *= 31; hash += tmp & 0xff;
+      case 1:
+        hash *= 31; hash += (tmp >>  0) & 0xff;
+        break;
+      case 2:
+        hash *= 31; hash += (tmp >>  0) & 0xff;
+        hash *= 31; hash += (tmp >>  8) & 0xff;
+        break;
+      case 3:
+        hash *= 31; hash += (tmp >>  0) & 0xff;
+        hash *= 31; hash += (tmp >>  8) & 0xff;
+        hash *= 31; hash += (tmp >> 16) & 0xff;
+        break;
+      case 4:
+        hash *= 31; hash += (tmp >>  0) & 0xff;
+        hash *= 31; hash += (tmp >>  8) & 0xff;
+        hash *= 31; hash += (tmp >> 16) & 0xff;
+        hash *= 31; hash += (tmp >> 24) & 0xff;
+        break;
     }
   }
 
