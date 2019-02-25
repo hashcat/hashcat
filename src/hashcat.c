@@ -473,7 +473,9 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * generate hashlist filename for later use
    */
 
-  hashes_init_filename (hashcat_ctx);
+  const int rc_hashes_init_filename = hashes_init_filename (hashcat_ctx);
+
+  if (rc_hashes_init_filename == -1) return -1;
 
   /**
    * load hashes, stage 1
@@ -574,7 +576,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   if (status_ctx->devices_status == STATUS_CRACKED)
   {
-    if ((user_options->remove == true) && (hashes->hashlist_mode == HL_MODE_FILE))
+    if ((user_options->remove == true) && ((hashes->hashlist_mode == HL_MODE_FILE_PLAIN) || (hashes->hashlist_mode == HL_MODE_FILE_BINARY)))
     {
       if (hashes->digests_saved != hashes->digests_done)
       {

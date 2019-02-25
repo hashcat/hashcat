@@ -483,45 +483,44 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
   return 0;
 }
 
-void hashes_init_filename (hashcat_ctx_t *hashcat_ctx)
+int hashes_init_filename (hashcat_ctx_t *hashcat_ctx)
 {
   hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
   hashes_t             *hashes             = hashcat_ctx->hashes;
   user_options_t       *user_options       = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
-  char *hash_or_file = user_options_extra->hc_hash;
-
   /**
    * load hashes, part I: find input mode, count hashes
    */
 
-  if ((user_options->benchmark == false) && (user_options->stdout_flag == false) && (user_options->keyspace == false))
+  if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
   {
-    if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
+    hashes->hashlist_mode = HL_MODE_FILE_BINARY;
+
+    if ((user_options->benchmark == false) && (user_options->keyspace == false))
     {
-      hashes->hashlist_mode = HL_MODE_ARG;
-
-      hashes->hashfile = hash_or_file;
-
-      hc_asprintf (&hashes->hashfile_hcdmp, "%s.hcdmp", hashes->hashfile);
-    }
-    else
-    {
-      hashes->hashlist_mode = (hc_path_exist (hash_or_file) == true) ? HL_MODE_FILE : HL_MODE_ARG;
-
-      if (hashes->hashlist_mode == HL_MODE_FILE)
+      if (hc_path_read (user_options_extra->hc_hash) == false)
       {
-        hashes->hashfile = hash_or_file;
+        event_log_error (hashcat_ctx, "%s: %s", user_options_extra->hc_hash, strerror (errno));
 
-        hc_asprintf (&hashes->hashfile_hcdmp, "%s.hcdmp", hashes->hashfile);
+        return -1;
       }
+
+      hashes->hashfile = user_options_extra->hc_hash;
     }
   }
   else
   {
-    hashes->hashlist_mode = HL_MODE_ARG;
+    hashes->hashlist_mode = (hc_path_exist (user_options_extra->hc_hash) == true) ? HL_MODE_FILE_PLAIN : HL_MODE_ARG;
+
+    if (hashes->hashlist_mode == HL_MODE_FILE_PLAIN)
+    {
+      hashes->hashfile = user_options_extra->hc_hash;
+    }
   }
+
+  return 0;
 }
 
 int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
@@ -547,43 +546,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
   {
     if (hashlist_mode == HL_MODE_ARG)
     {
-      // binary files are listed here as a result of a hack
-
-      if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
-      {
-        struct stat st;
-
-        if (stat (hashes->hashfile, &st) == -1)
-        {
-          event_log_error (hashcat_ctx, "%s: %s", hashes->hashfile, strerror (errno));
-
-          return -1;
-        }
-
-        if (module_ctx->module_hash_binary_count != MODULE_DEFAULT)
-        {
-          const int binary_count = module_ctx->module_hash_binary_count (hashes);
-
-          if (binary_count == -1)
-          {
-            event_log_error (hashcat_ctx, "%s: %s", hashes->hashfile, strerror (errno));
-
-            return -1;
-          }
-
-          hashes_avail = binary_count;
-        }
-        else
-        {
-          hashes_avail = 1;
-        }
-      }
-      else
-      {
-        hashes_avail = 1;
-      }
+      hashes_avail = 1;
     }
-    else if (hashlist_mode == HL_MODE_FILE)
+    else if (hashlist_mode == HL_MODE_FILE_PLAIN)
     {
       FILE *fp = NULL;
 
@@ -623,6 +588,35 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       }
 
       fclose (fp);
+    }
+    else if (hashlist_mode == HL_MODE_FILE_BINARY)
+    {
+      struct stat st;
+
+      if (stat (hashes->hashfile, &st) == -1)
+      {
+        event_log_error (hashcat_ctx, "%s: %s", hashes->hashfile, strerror (errno));
+
+        return -1;
+      }
+
+      if (module_ctx->module_hash_binary_count != MODULE_DEFAULT)
+      {
+        const int binary_count = module_ctx->module_hash_binary_count (hashes);
+
+        if (binary_count == -1)
+        {
+          event_log_error (hashcat_ctx, "%s: %s", hashes->hashfile, strerror (errno));
+
+          return -1;
+        }
+
+        hashes_avail = binary_count;
+      }
+      else
+      {
+        hashes_avail = 1;
+      }
     }
   }
   else
@@ -749,11 +743,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
-    if (hashes_avail == 0)
-    {
-      // ???
-    }
-    else if (hashlist_mode == HL_MODE_ARG)
+    if (hashlist_mode == HL_MODE_ARG)
     {
       char *input_buf = user_options_extra->hc_hash;
 
@@ -858,38 +848,22 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         }
         else
         {
-          if (module_ctx->module_hash_binary_parse != MODULE_DEFAULT)
-          {
-            const int hashes_parsed = module_ctx->module_hash_binary_parse (hashconfig, user_options, user_options_extra, hashes);
+          hash_t *hash = &hashes_buf[hashes_cnt];
 
-            if (hashes_parsed > 0)
-            {
-              hashes_cnt = hashes_parsed;
-            }
-            else
-            {
-              event_log_warning (hashcat_ctx, "Hashfile '%s': %s", hashes->hashfile, strerror (errno));
-            }
+          parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, hash_buf, hash_len);
+
+          if (parser_status == PARSER_OK)
+          {
+            hashes_cnt++;
           }
           else
           {
-            hash_t *hash = &hashes_buf[hashes_cnt];
-
-            parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, hash_buf, hash_len);
-
-            if (parser_status == PARSER_OK)
-            {
-              hashes_cnt++;
-            }
-            else
-            {
-              event_log_warning (hashcat_ctx, "Hash '%s': %s", input_buf, strparser (parser_status));
-            }
+            event_log_warning (hashcat_ctx, "Hash '%s': %s", input_buf, strparser (parser_status));
           }
         }
       }
     }
-    else if (hashlist_mode == HL_MODE_FILE)
+    else if (hashlist_mode == HL_MODE_FILE_PLAIN)
     {
       FILE *fp;
 
@@ -1133,6 +1107,63 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       hcfree (line_buf);
 
       fclose (fp);
+    }
+    else if (hashlist_mode == HL_MODE_FILE_BINARY)
+    {
+      char *input_buf = user_options_extra->hc_hash;
+
+      size_t input_len = strlen (input_buf);
+
+      if (hashconfig->opts_type & OPTS_TYPE_HASH_COPY)
+      {
+        hashinfo_t *hash_info_tmp = hashes_buf[hashes_cnt].hash_info;
+
+        hash_info_tmp->orighash = hcstrdup (input_buf);
+      }
+
+      if (hashconfig->is_salted == true)
+      {
+        memset (hashes_buf[0].salt, 0, sizeof (salt_t));
+      }
+
+      if (hashconfig->esalt_size > 0)
+      {
+        memset (hashes_buf[0].esalt, 0, hashconfig->esalt_size);
+      }
+
+      if (hashconfig->hook_salt_size > 0)
+      {
+        memset (hashes_buf[0].hook_salt, 0, hashconfig->hook_salt_size);
+      }
+
+      if (module_ctx->module_hash_binary_parse != MODULE_DEFAULT)
+      {
+        const int hashes_parsed = module_ctx->module_hash_binary_parse (hashconfig, user_options, user_options_extra, hashes);
+
+        if (hashes_parsed > 0)
+        {
+          hashes_cnt = hashes_parsed;
+        }
+        else
+        {
+          event_log_warning (hashcat_ctx, "Hashfile '%s': %s", hashes->hashfile, strerror (errno));
+        }
+      }
+      else
+      {
+        hash_t *hash = &hashes_buf[hashes_cnt];
+
+        int parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, input_buf, input_len);
+
+        if (parser_status == PARSER_OK)
+        {
+          hashes_cnt++;
+        }
+        else
+        {
+          event_log_warning (hashcat_ctx, "Hash '%s': %s", input_buf, strparser (parser_status));
+        }
+      }
     }
   }
 
@@ -1801,8 +1832,6 @@ void hashes_destroy (hashcat_ctx_t *hashcat_ctx)
   hcfree (hashes->st_salts_buf);
   hcfree (hashes->st_esalts_buf);
   hcfree (hashes->st_hook_salts_buf);
-
-  hcfree (hashes->hashfile_hcdmp);
 
   memset (hashes, 0, sizeof (hashes_t));
 }

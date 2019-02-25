@@ -205,8 +205,9 @@ typedef enum wl_mode
 
 typedef enum hl_mode
 {
-  HL_MODE_FILE  = 4,
-  HL_MODE_ARG   = 5
+  HL_MODE_ARG         = 2,
+  HL_MODE_FILE_PLAIN  = 5,
+  HL_MODE_FILE_BINARY = 6,
 
 } hl_mode_t;
 
@@ -860,7 +861,6 @@ typedef struct logfile_ctx
 typedef struct hashes
 {
   const char  *hashfile;
-  char        *hashfile_hcdmp;
 
   u32          hashlist_mode;
   u32          hashlist_format;

@@ -72,7 +72,7 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
     restore_check = true;
   }
 
-  if ((user_options->remove == true) && (hashes->hashlist_mode == HL_MODE_FILE))
+  if ((user_options->remove == true) && ((hashes->hashlist_mode == HL_MODE_FILE_PLAIN) || (hashes->hashlist_mode == HL_MODE_FILE_BINARY)))
   {
     remove_check = true;
   }
