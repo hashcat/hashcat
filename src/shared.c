@@ -800,10 +800,6 @@ float get_entropy (const u8 *buf, const int len)
   return entropy;
 }
 
-#if defined (_WIN)
-
-#else
-
 int select_read_timeout (int sockfd, const int sec)
 {
   struct timeval tv;
@@ -833,8 +829,6 @@ int select_write_timeout (int sockfd, const int sec)
 
   return select (sockfd + 1, NULL, &fds, NULL, &tv);
 }
-
-#endif
 
 #if defined (_WIN)
 
