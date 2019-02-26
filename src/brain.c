@@ -148,6 +148,7 @@ u32 brain_compute_session (hashcat_ctx_t *hashcat_ctx)
 u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
 {
   const combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
+  const hashconfig_t     *hashconfig     = hashcat_ctx->hashconfig;
   const mask_ctx_t       *mask_ctx       = hashcat_ctx->mask_ctx;
   const straight_ctx_t   *straight_ctx   = hashcat_ctx->straight_ctx;
   const user_options_t   *user_options   = hashcat_ctx->user_options;
