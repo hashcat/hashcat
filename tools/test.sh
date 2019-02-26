@@ -2980,10 +2980,16 @@ if [ "${PACKAGE}" -eq 1 ]; then
     HT_PACKAGED=${HT_MIN}-${HT_MAX}
   fi
 
-  HASH_TYPES_PACKAGED=$(echo ${HASH_TYPES} | tr '\n' ' ' | sed 's/ $//')
+  HASH_TYPES_PACKAGED=$(   echo ${HASH_TYPES}    | tr '\n' ' ' | sed 's/ $//')
+  HASHFILE_ONLY_PACKAGED=$(echo ${HASHFILE_ONLY} | tr '\n' ' ' | sed 's/ $//')
+  NEVER_CRACK_PACKAGED=$(  echo ${NEVER_CRACK}   | tr '\n' ' ' | sed 's/ $//')
+  SLOW_ALGOS_PACKAGED=$(   echo ${SLOW_ALGOS}    | tr '\n' ' ' | sed 's/ $//')
 
   sed "${SED_IN_PLACE}" -e 's/^\(PACKAGE_FOLDER\)=""/\1="$( echo "${BASH_SOURCE[0]}" | sed \"s!test.sh\\$!!\" )"/' \
     -e "s/^\(HASH_TYPES\)=\$(.*/\1=\"${HASH_TYPES_PACKAGED}\"/" \
+    -e "s/^\(HASHFILE_ONLY\)=\$(.*/\1=\"${HASHFILE_ONLY_PACKAGED}\"/" \
+    -e "s/^\(NEVER_CRACK\)=\$(.*/\1=\"${NEVER_CRACK_PACKAGED}\"/" \
+    -e "s/^\(SLOW_ALGOS\)=\$(.*/\1=\"${SLOW_ALGOS_PACKAGED}\"/" \
     -e "s/^\(HT\)=0/\1=${HT_PACKAGED}/" \
     -e "s/^\(MODE\)=0/\1=${MODE}/" \
     -e "s/^\(ATTACK\)=0/\1=${ATTACK}/" \
