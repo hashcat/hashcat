@@ -35,7 +35,7 @@ __kernel void m01600_init (KERN_ATTR_TMPS (md5crypt_tmp_t))
    * init
    */
 
-  const u32 pw_len = pws[gid].pw_len & 255;
+  const u32 pw_len = pws[gid].pw_len;
 
   u32 w[64] = { 0 };
 
@@ -142,7 +142,7 @@ __kernel void m01600_loop (KERN_ATTR_TMPS (md5crypt_tmp_t))
    * init
    */
 
-  const u32 pw_len = pws[gid].pw_len & 255;
+  const u32 pw_len = pws[gid].pw_len;
 
   u32 w[64] = { 0 };
 

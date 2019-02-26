@@ -16,7 +16,7 @@ use List::Util 'shuffle';
 # allows require by filename
 use lib "$FindBin::Bin/test_modules";
 
-my $IS_OPTIMIZED = 1;
+my $IS_OPTIMIZED = 0;
 
 my $TYPES = [ 'single', 'passthrough', 'verify' ];
 
@@ -36,7 +36,7 @@ exists &{module_generate_hash} or die "Module function 'module_generate_hash' no
 exists &{module_verify_hash}   or die "Module function 'module_verify_hash' not found\n";
 
 my $giveup_at      = 1000000;
-my $single_outputs = 8;
+my $single_outputs = 300;
 
 my $constraints = get_module_constraints ();
 

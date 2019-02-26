@@ -10,7 +10,7 @@ use warnings;
 
 use Digest::SHA qw (sha1_hex);
 
-sub module_constraints { [[0, 255], [12, 12], [0, 55], [12, 12], [-1, -1]] }
+sub module_constraints { [[0, 256], [12, 12], [0, 55], [12, 12], [-1, -1]] }
 
 sub module_generate_hash
 {

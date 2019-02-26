@@ -2468,7 +2468,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
                 line_len = convert_from_hex (hashcat_ctx, line_buf, line_len);
 
-                if (line_len >= PW_MAX) continue;
+                if (line_len > PW_MAX) continue;
 
                 char *line_buf_new = line_buf;
 
@@ -2509,7 +2509,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
                   line_len     = HCBUFSIZ_TINY - iconv_sz;
                 }
 
-                line_len = MIN (line_len, PW_MAX - 1);
+                line_len = MIN (line_len, PW_MAX);
 
                 u8 *ptr = (u8 *) device_param->combs_buf[i].i;
 
@@ -2605,7 +2605,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
                 line_len = convert_from_hex (hashcat_ctx, line_buf, line_len);
 
-                if (line_len >= PW_MAX) continue;
+                if (line_len > PW_MAX) continue;
 
                 char *line_buf_new = line_buf;
 
@@ -2646,7 +2646,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
                   line_len     = HCBUFSIZ_TINY - iconv_sz;
                 }
 
-                line_len = MIN (line_len, PW_MAX - 1);
+                line_len = MIN (line_len, PW_MAX);
 
                 u8 *ptr = (u8 *) device_param->combs_buf[i].i;
 

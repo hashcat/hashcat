@@ -27,7 +27,7 @@ __kernel void m10300_init (KERN_ATTR_TMPS (saph_sha1_tmp_t))
 
   sha1_init (&ctx);
 
-  sha1_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len & 255);
+  sha1_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
   sha1_update_global_swap (&ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
 
@@ -58,7 +58,7 @@ __kernel void m10300_loop (KERN_ATTR_TMPS (saph_sha1_tmp_t))
 
   sha1_init (&ctx);
 
-  sha1_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len & 255);
+  sha1_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
   /**
    * load

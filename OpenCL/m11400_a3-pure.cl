@@ -58,7 +58,7 @@ __kernel void m11400_mxx (KERN_ATTR_VECTOR_ESALT (sip_t))
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len & 255;
+  const u32 pw_len = pws[gid].pw_len;
 
   u32x w[64] = { 0 };
 
@@ -190,7 +190,7 @@ __kernel void m11400_sxx (KERN_ATTR_VECTOR_ESALT (sip_t))
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len & 255;
+  const u32 pw_len = pws[gid].pw_len;
 
   u32x w[64] = { 0 };
 

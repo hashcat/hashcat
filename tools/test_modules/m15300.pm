@@ -13,7 +13,7 @@ use Digest::MD4 qw (md4);
 use Digest::SHA qw (sha1 hmac_sha1);
 use Encode;
 
-sub module_constraints { [[0, 255], [-1, -1], [-1, -1], [-1, -1], [-1, -1]] }
+sub module_constraints { [[0, 256], [-1, -1], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub get_random_dpapimk_salt
 {

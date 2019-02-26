@@ -403,7 +403,7 @@ __kernel void m12500_comp (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
     pw_buf[3] = pws[gid].i[3];
     pw_buf[4] = pws[gid].i[4];
 
-    //const u32 pw_len = pws[gid].pw_len & 255;
+    //const u32 pw_len = pws[gid].pw_len;
 
     u32 salt_buf[2];
 

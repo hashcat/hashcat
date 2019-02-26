@@ -12,7 +12,7 @@ use Crypt::PBKDF2;
 use Digest::MD4 qw (md4_hex);
 use Encode;
 
-sub module_constraints { [[0, 255], [20, 20], [-1, -1], [-1, -1], [-1, -1]] }
+sub module_constraints { [[0, 256], [20, 20], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub module_generate_hash
 {

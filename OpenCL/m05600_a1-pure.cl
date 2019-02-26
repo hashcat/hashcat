@@ -33,7 +33,7 @@ __kernel void m05600_mxx (KERN_ATTR_ESALT (netntlm_t))
 
   md4_init (&ctx10);
 
-  md4_update_global_utf16le (&ctx10, pws[gid].i, pws[gid].pw_len & 255);
+  md4_update_global_utf16le (&ctx10, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
@@ -43,7 +43,7 @@ __kernel void m05600_mxx (KERN_ATTR_ESALT (netntlm_t))
   {
     md4_ctx_t ctx1 = ctx10;
 
-    md4_update_global_utf16le (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
+    md4_update_global_utf16le (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
     md4_final (&ctx1);
 
@@ -142,7 +142,7 @@ __kernel void m05600_sxx (KERN_ATTR_ESALT (netntlm_t))
 
   md4_init (&ctx10);
 
-  md4_update_global_utf16le (&ctx10, pws[gid].i, pws[gid].pw_len & 255);
+  md4_update_global_utf16le (&ctx10, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
@@ -152,7 +152,7 @@ __kernel void m05600_sxx (KERN_ATTR_ESALT (netntlm_t))
   {
     md4_ctx_t ctx1 = ctx10;
 
-    md4_update_global_utf16le (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
+    md4_update_global_utf16le (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
     md4_final (&ctx1);
 

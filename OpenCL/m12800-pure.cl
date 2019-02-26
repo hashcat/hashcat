@@ -96,7 +96,7 @@ __kernel void m12800_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sha
 
   md4_init (&md4_ctx);
 
-  md4_update_global_utf16le (&md4_ctx, pws[gid].i, pws[gid].pw_len & 255);
+  md4_update_global_utf16le (&md4_ctx, pws[gid].i, pws[gid].pw_len);
 
   md4_final (&md4_ctx);
 

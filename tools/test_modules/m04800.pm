@@ -10,7 +10,7 @@ use warnings;
 
 use Digest::MD5 qw (md5_hex);
 
-sub module_constraints { [[0, 255], [-1, -1], [0, 38], [-1, -1], [-1, -1]] } # 38 = 55 - 16 - 1
+sub module_constraints { [[0, 256], [-1, -1], [0, 38], [-1, -1], [-1, -1]] } # 38 = 55 - 16 - 1
 
 sub get_random_md5chap_salt
 {

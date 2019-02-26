@@ -218,7 +218,7 @@ void get_next_word (hashcat_ctx_t *hashcat_ctx, FILE *fd, char **out_buf, u32 *o
       if (rule_len_out < 0) continue;
     }
 
-    if (len >= PW_MAX) continue;
+    if (len > PW_MAX) continue;
 
     *out_buf = ptr;
     *out_len = (u32) len;
@@ -477,7 +477,7 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
 
       cnt2++;
 
-      if (len >= PW_MAX) continue;
+      if (len > PW_MAX) continue;
 
       d.cnt++;
 

@@ -57,7 +57,7 @@ __kernel void m11860_mxx (KERN_ATTR_BASIC ())
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len & 255;
+  const u32 pw_len = pws[gid].pw_len;
 
   u32 w[64] = { 0 };
 
@@ -178,7 +178,7 @@ __kernel void m11860_sxx (KERN_ATTR_BASIC ())
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len & 255;
+  const u32 pw_len = pws[gid].pw_len;
 
   u32 w[64] = { 0 };
 

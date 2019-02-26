@@ -71,7 +71,7 @@ __kernel void m03710_mxx (KERN_ATTR_BASIC ())
 
   md5_init (&ctx0);
 
-  md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len & 255);
+  md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
@@ -81,7 +81,7 @@ __kernel void m03710_mxx (KERN_ATTR_BASIC ())
   {
     md5_ctx_t ctx1 = ctx0;
 
-    md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
+    md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
     md5_final (&ctx1);
 
@@ -197,7 +197,7 @@ __kernel void m03710_sxx (KERN_ATTR_BASIC ())
 
   md5_init (&ctx0);
 
-  md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len & 255);
+  md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
@@ -207,7 +207,7 @@ __kernel void m03710_sxx (KERN_ATTR_BASIC ())
   {
     md5_ctx_t ctx1 = ctx0;
 
-    md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
+    md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
     md5_final (&ctx1);
 

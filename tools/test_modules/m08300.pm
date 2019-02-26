@@ -11,7 +11,7 @@ use warnings;
 use Net::DNS::RR::NSEC3;
 use Net::DNS::SEC;
 
-sub module_constraints { [[1, 255], [-1, -1], [1, 55], [-1, -1], [-1, -1]] }
+sub module_constraints { [[1, 256], [-1, -1], [1, 55], [-1, -1], [-1, -1]] }
 
 sub get_random_dnssec_salt
 {

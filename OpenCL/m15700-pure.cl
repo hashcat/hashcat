@@ -348,7 +348,7 @@ __kernel void __attribute__((reqd_work_group_size(1, 1, 1))) m15700_init (KERN_A
 
   sha256_hmac_ctx_t sha256_hmac_ctx;
 
-  sha256_hmac_init_global_swap (&sha256_hmac_ctx, pws[gid].i, pws[gid].pw_len & 255);
+  sha256_hmac_init_global_swap (&sha256_hmac_ctx, pws[gid].i, pws[gid].pw_len);
 
   sha256_hmac_update_global_swap (&sha256_hmac_ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
 
@@ -461,7 +461,7 @@ __kernel void __attribute__((reqd_work_group_size(1, 1, 1))) m15700_comp (KERN_A
 
   sha256_hmac_ctx_t ctx;
 
-  sha256_hmac_init_global_swap (&ctx, pws[gid].i, pws[gid].pw_len & 255);
+  sha256_hmac_init_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
   for (u32 l = 0; l < SCRYPT_CNT4; l += 4)
   {

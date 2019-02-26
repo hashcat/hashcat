@@ -10,7 +10,7 @@ use warnings;
 
 use Crypt::ScryptKDF qw (scrypt_b64);
 
-sub module_constraints { [[0, 255], [14, 14], [-1, -1], [-1, -1], [-1, -1]] }
+sub module_constraints { [[0, 256], [14, 14], [-1, -1], [-1, -1], [-1, -1]] }
 
 my $CISCO_BASE64_MAPPING =
 {

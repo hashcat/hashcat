@@ -12,7 +12,7 @@ use Crypt::CBC;
 use Crypt::PBKDF2;
 
 # we need to make sure the salts are unique, otherwise this module will fail
-sub module_constraints { [[0, 255], [10, 15], [-1, -1], [-1, -1], [-1, -1]] }
+sub module_constraints { [[0, 256], [10, 15], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub module_generate_hash
 {

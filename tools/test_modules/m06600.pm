@@ -11,7 +11,7 @@ use warnings;
 use Crypt::CBC;
 use Crypt::PBKDF2;
 
-sub module_constraints { [[0, 255], [-1, -1], [-1, -1], [-1, -1], [-1, -1]] }
+sub module_constraints { [[0, 256], [-1, -1], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub get_random_agilekeychain_salt
 {

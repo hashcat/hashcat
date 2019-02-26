@@ -64,7 +64,7 @@ __kernel void m11400_mxx (KERN_ATTR_ESALT (sip_t))
 
   md5_update_global (&ctx0, esalt_bufs[digests_offset].salt_buf, esalt_bufs[digests_offset].salt_len);
 
-  md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len & 255);
+  md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
@@ -74,7 +74,7 @@ __kernel void m11400_mxx (KERN_ATTR_ESALT (sip_t))
   {
     md5_ctx_t ctx1 = ctx0;
 
-    md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
+    md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
     md5_final (&ctx1);
 
@@ -170,7 +170,7 @@ __kernel void m11400_sxx (KERN_ATTR_ESALT (sip_t))
 
   md5_update_global (&ctx0, esalt_bufs[digests_offset].salt_buf, esalt_bufs[digests_offset].salt_len);
 
-  md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len & 255);
+  md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
@@ -180,7 +180,7 @@ __kernel void m11400_sxx (KERN_ATTR_ESALT (sip_t))
   {
     md5_ctx_t ctx1 = ctx0;
 
-    md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
+    md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
     md5_final (&ctx1);
 

@@ -62,7 +62,7 @@ __kernel void m11900_init (KERN_ATTR_TMPS_ESALT (pbkdf2_md5_tmp_t, pbkdf2_md5_t)
 
   md5_hmac_ctx_t md5_hmac_ctx;
 
-  md5_hmac_init_global (&md5_hmac_ctx, pws[gid].i, pws[gid].pw_len & 255);
+  md5_hmac_init_global (&md5_hmac_ctx, pws[gid].i, pws[gid].pw_len);
 
   tmps[gid].ipad[0] = md5_hmac_ctx.ipad.h[0];
   tmps[gid].ipad[1] = md5_hmac_ctx.ipad.h[1];

@@ -62,12 +62,10 @@
 #ifdef REAL_SHM
 #define COPY_PW(x)              \
   __local pw_t s_pws[64];       \
-  s_pws[get_local_id(0)] = (x); \
-  s_pws[get_local_id(0)].pw_len &= 255;
+  s_pws[get_local_id(0)] = (x);
 #else
 #define COPY_PW(x)              \
-  pw_t pw = (x);                \
-  pw.pw_len &= 255;
+  pw_t pw = (x);
 #endif
 
 #ifdef REAL_SHM

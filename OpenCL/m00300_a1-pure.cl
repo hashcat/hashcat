@@ -32,7 +32,7 @@ __kernel void m00300_mxx (KERN_ATTR_BASIC ())
 
   sha1_init (&ctx0);
 
-  sha1_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len & 255);
+  sha1_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
@@ -42,7 +42,7 @@ __kernel void m00300_mxx (KERN_ATTR_BASIC ())
   {
     sha1_ctx_t ctx1 = ctx0;
 
-    sha1_update_global_swap (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
+    sha1_update_global_swap (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
     sha1_final (&ctx1);
 
@@ -109,7 +109,7 @@ __kernel void m00300_sxx (KERN_ATTR_BASIC ())
 
   sha1_init (&ctx0);
 
-  sha1_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len & 255);
+  sha1_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
@@ -119,7 +119,7 @@ __kernel void m00300_sxx (KERN_ATTR_BASIC ())
   {
     sha1_ctx_t ctx1 = ctx0;
 
-    sha1_update_global_swap (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
+    sha1_update_global_swap (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
     sha1_final (&ctx1);
 

@@ -12,7 +12,7 @@ use Crypt::CBC;
 use Crypt::PBKDF2;
 use Digest::Keccak qw (keccak_256_hex);
 
-sub module_constraints { [[0, 255], [40, 40], [-1, -1], [-1, -1], [-1, -1]] }
+sub module_constraints { [[0, 256], [40, 40], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub module_generate_hash
 {

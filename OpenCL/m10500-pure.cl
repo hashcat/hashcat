@@ -176,7 +176,7 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m10500_init (KERN_
   w1[2] = pws[gid].i[ 6];
   w1[3] = pws[gid].i[ 7];
 
-  const u32 pw_len = pws[gid].pw_len & 255;
+  const u32 pw_len = pws[gid].pw_len;
 
   /**
    * shared

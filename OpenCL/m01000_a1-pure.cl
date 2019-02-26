@@ -32,7 +32,7 @@ __kernel void m01000_mxx (KERN_ATTR_BASIC ())
 
   md4_init (&ctx0);
 
-  md4_update_global_utf16le (&ctx0, pws[gid].i, pws[gid].pw_len & 255);
+  md4_update_global_utf16le (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
@@ -42,7 +42,7 @@ __kernel void m01000_mxx (KERN_ATTR_BASIC ())
   {
     md4_ctx_t ctx = ctx0;
 
-    md4_update_global_utf16le (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
+    md4_update_global_utf16le (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
     md4_final (&ctx);
 
@@ -86,7 +86,7 @@ __kernel void m01000_sxx (KERN_ATTR_BASIC ())
 
   md4_init (&ctx0);
 
-  md4_update_global_utf16le (&ctx0, pws[gid].i, pws[gid].pw_len & 255);
+  md4_update_global_utf16le (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
@@ -96,7 +96,7 @@ __kernel void m01000_sxx (KERN_ATTR_BASIC ())
   {
     md4_ctx_t ctx = ctx0;
 
-    md4_update_global_utf16le (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
+    md4_update_global_utf16le (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
     md4_final (&ctx);
 

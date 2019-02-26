@@ -63,7 +63,7 @@ __kernel void m06100_mxx (KERN_ATTR_BASIC ())
 
   whirlpool_init (&ctx0, s_Ch, s_Cl);
 
-  whirlpool_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len & 255);
+  whirlpool_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
@@ -73,7 +73,7 @@ __kernel void m06100_mxx (KERN_ATTR_BASIC ())
   {
     whirlpool_ctx_t ctx = ctx0;
 
-    whirlpool_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
+    whirlpool_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
     whirlpool_final (&ctx);
 
@@ -148,7 +148,7 @@ __kernel void m06100_sxx (KERN_ATTR_BASIC ())
 
   whirlpool_init (&ctx0, s_Ch, s_Cl);
 
-  whirlpool_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len & 255);
+  whirlpool_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
@@ -158,7 +158,7 @@ __kernel void m06100_sxx (KERN_ATTR_BASIC ())
   {
     whirlpool_ctx_t ctx = ctx0;
 
-    whirlpool_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
+    whirlpool_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
     whirlpool_final (&ctx);
 

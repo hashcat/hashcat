@@ -598,7 +598,7 @@ __kernel void m14100_mxx (KERN_ATTR_RULES ())
   pw_buf1[2] = 0;
   pw_buf1[3] = 0;
 
-  const u32 pw_len = pws[gid].pw_len & 255;
+  const u32 pw_len = pws[gid].pw_len;
 
   /**
    * salt
@@ -733,7 +733,7 @@ __kernel void m14100_sxx (KERN_ATTR_RULES ())
   pw_buf1[2] = 0;
   pw_buf1[3] = 0;
 
-  const u32 pw_len = pws[gid].pw_len & 255;
+  const u32 pw_len = pws[gid].pw_len;
 
   /**
    * salt

@@ -2086,7 +2086,7 @@ __kernel void m05800_init (KERN_ATTR_TMPS (androidpin_tmp_t))
 
   sha1_update_64 (&ctx, w0, w1, w2, w3, 1);
 
-  sha1_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len & 255);
+  sha1_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
   sha1_update_global_swap (&ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
 
@@ -2130,7 +2130,7 @@ __kernel void m05800_loop (KERN_ATTR_TMPS (androidpin_tmp_t))
    * init
    */
 
-  const u32 pw_len = pws[gid].pw_len & 255;
+  const u32 pw_len = pws[gid].pw_len;
 
   u32 w[64] = { 0 };
 

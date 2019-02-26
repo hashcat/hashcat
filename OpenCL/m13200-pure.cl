@@ -29,7 +29,7 @@ __kernel void m13200_init (KERN_ATTR_TMPS (axcrypt_tmp_t))
 
   sha1_init (&ctx);
 
-  sha1_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len & 255);
+  sha1_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
   sha1_final (&ctx);
 

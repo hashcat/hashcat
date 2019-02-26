@@ -32,7 +32,7 @@ sub get_random_kerberos5_salt
   return $salt_buf;
 }
 
-sub module_constraints { [[0, 255], [16, 16], [0, 27], [16, 16], [-1, -1]] }
+sub module_constraints { [[0, 256], [16, 16], [0, 27], [16, 16], [-1, -1]] }
 
 sub module_generate_hash
 {

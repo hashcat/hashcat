@@ -245,7 +245,7 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
         line_len = (size_t) rule_len_out;
       }
 
-      if (line_len >= PW_MAX) continue;
+      if (line_len > PW_MAX) continue;
 
       // hmm that's always the case, or?
 

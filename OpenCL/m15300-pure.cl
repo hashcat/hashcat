@@ -602,7 +602,7 @@ __kernel void m15300_init (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
 
     sha1_init (&ctx);
 
-    sha1_update_global_utf16le_swap (&ctx, pws[gid].i, pws[gid].pw_len & 255);
+    sha1_update_global_utf16le_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
     sha1_final (&ctx);
 
@@ -620,7 +620,7 @@ __kernel void m15300_init (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
 
     md4_init (&ctx);
 
-    md4_update_global_utf16le (&ctx, pws[gid].i, pws[gid].pw_len & 255);
+    md4_update_global_utf16le (&ctx, pws[gid].i, pws[gid].pw_len);
 
     md4_final (&ctx);
 

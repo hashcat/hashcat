@@ -11,7 +11,7 @@ use warnings;
 use Digest::SHA qw (sha1_hex);
 use Encode;
 
-sub module_constraints { [[0, 255], [-1, -1], [0, 16], [-1, -1], [-1, -1]] }
+sub module_constraints { [[0, 256], [-1, -1], [0, 16], [-1, -1], [-1, -1]] }
 
 sub get_pstoken_salt
 {

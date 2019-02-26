@@ -86,7 +86,7 @@ __kernel void m12300_init (KERN_ATTR_TMPS (oraclet_tmp_t))
 
   sha512_hmac_ctx_t sha512_hmac_ctx;
 
-  sha512_hmac_init_global_swap (&sha512_hmac_ctx, pws[gid].i, pws[gid].pw_len & 255);
+  sha512_hmac_init_global_swap (&sha512_hmac_ctx, pws[gid].i, pws[gid].pw_len);
 
   tmps[gid].ipad[0] = sha512_hmac_ctx.ipad.h[0];
   tmps[gid].ipad[1] = sha512_hmac_ctx.ipad.h[1];

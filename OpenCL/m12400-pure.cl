@@ -535,7 +535,7 @@ __kernel void m12400_init (KERN_ATTR_TMPS (bsdicrypt_tmp_t))
    * word
    */
 
-  const u32 pw_len = pws[gid].pw_len & 255;
+  const u32 pw_len = pws[gid].pw_len;
 
   u32 w[64] = { 0 };
 

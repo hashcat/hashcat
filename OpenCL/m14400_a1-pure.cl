@@ -139,9 +139,9 @@ __kernel void m14400_mxx (KERN_ATTR_BASIC ())
 
     sha1_update_64 (&ctx1, d20, d21, d22, d23, 2);
 
-    sha1_update_global_swap (&ctx1, pws[gid].i, pws[gid].pw_len & 255);
+    sha1_update_global_swap (&ctx1, pws[gid].i, pws[gid].pw_len);
 
-    sha1_update_global_swap (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
+    sha1_update_global_swap (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
     d40[0] = 0x2d2d2d2d;
     d40[1] = 0;
@@ -229,9 +229,9 @@ __kernel void m14400_mxx (KERN_ATTR_BASIC ())
 
       sha1_update_64 (&ctx, d20, d21, d22, d23, 2);
 
-      sha1_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len & 255);
+      sha1_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
-      sha1_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
+      sha1_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
       d40[0] = 0x2d2d2d2d;
       d40[1] = 0;
@@ -396,9 +396,9 @@ __kernel void m14400_sxx (KERN_ATTR_BASIC ())
 
     sha1_update_64 (&ctx1, d20, d21, d22, d23, 2);
 
-    sha1_update_global_swap (&ctx1, pws[gid].i, pws[gid].pw_len & 255);
+    sha1_update_global_swap (&ctx1, pws[gid].i, pws[gid].pw_len);
 
-    sha1_update_global_swap (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
+    sha1_update_global_swap (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
     d40[0] = 0x2d2d2d2d;
     d40[1] = 0;
@@ -486,9 +486,9 @@ __kernel void m14400_sxx (KERN_ATTR_BASIC ())
 
       sha1_update_64 (&ctx, d20, d21, d22, d23, 2);
 
-      sha1_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len & 255);
+      sha1_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
-      sha1_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
+      sha1_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
       d40[0] = 0x2d2d2d2d;
       d40[1] = 0;

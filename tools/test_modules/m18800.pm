@@ -12,7 +12,7 @@ use Digest::CRC  qw (crc32);
 use Digest::SHA  qw (sha256);
 use MIME::Base64 qw (encode_base64 decode_base64);
 
-sub module_constraints { [[0, 255], [16, 16], [-1, -1], [-1, -1], [-1, -1]] }
+sub module_constraints { [[0, 256], [16, 16], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub module_generate_hash
 {

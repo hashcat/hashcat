@@ -359,7 +359,7 @@ __kernel void __attribute__((reqd_work_group_size(8, 1, 1))) m03200_init (KERN_A
 
   if (gid >= gid_max) return;
 
-  const u32 pw_len = pws[gid].pw_len & 255;
+  const u32 pw_len = pws[gid].pw_len;
 
   u32 w[18];
 

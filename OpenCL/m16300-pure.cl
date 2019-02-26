@@ -202,7 +202,7 @@ __kernel void m16300_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, ethereum_p
 
   sha256_hmac_ctx_t sha256_hmac_ctx;
 
-  sha256_hmac_init_global_swap (&sha256_hmac_ctx, pws[gid].i, pws[gid].pw_len & 255);
+  sha256_hmac_init_global_swap (&sha256_hmac_ctx, pws[gid].i, pws[gid].pw_len);
 
   tmps[gid].ipad[0] = sha256_hmac_ctx.ipad.h[0];
   tmps[gid].ipad[1] = sha256_hmac_ctx.ipad.h[1];
@@ -222,7 +222,7 @@ __kernel void m16300_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, ethereum_p
   tmps[gid].opad[6] = sha256_hmac_ctx.opad.h[6];
   tmps[gid].opad[7] = sha256_hmac_ctx.opad.h[7];
 
-  sha256_hmac_update_global_swap (&sha256_hmac_ctx, pws[gid].i, pws[gid].pw_len & 255);
+  sha256_hmac_update_global_swap (&sha256_hmac_ctx, pws[gid].i, pws[gid].pw_len);
 
   for (u32 i = 0, j = 1; i < 8; i += 8, j += 1)
   {

@@ -34,7 +34,7 @@ __kernel void m00120_mxx (KERN_ATTR_BASIC ())
 
   sha1_update_global_swap (&ctx0, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
 
-  sha1_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len & 255);
+  sha1_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
@@ -44,7 +44,7 @@ __kernel void m00120_mxx (KERN_ATTR_BASIC ())
   {
     sha1_ctx_t ctx = ctx0;
 
-    sha1_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
+    sha1_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
     sha1_final (&ctx);
 
@@ -90,7 +90,7 @@ __kernel void m00120_sxx (KERN_ATTR_BASIC ())
 
   sha1_update_global_swap (&ctx0, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
 
-  sha1_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len & 255);
+  sha1_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
@@ -100,7 +100,7 @@ __kernel void m00120_sxx (KERN_ATTR_BASIC ())
   {
     sha1_ctx_t ctx = ctx0;
 
-    sha1_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
+    sha1_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
     sha1_final (&ctx);
 

@@ -85,7 +85,7 @@ __kernel void m16600_mxx (KERN_ATTR_ESALT (electrum_wallet_t))
 
   sha256_init (&ctx0);
 
-  sha256_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len & 255);
+  sha256_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
@@ -95,7 +95,7 @@ __kernel void m16600_mxx (KERN_ATTR_ESALT (electrum_wallet_t))
   {
     sha256_ctx_t ctx = ctx0;
 
-    sha256_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
+    sha256_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
     sha256_final (&ctx);
 
@@ -274,7 +274,7 @@ __kernel void m16600_sxx (KERN_ATTR_ESALT (electrum_wallet_t))
 
   sha256_init (&ctx0);
 
-  sha256_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len & 255);
+  sha256_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
@@ -284,7 +284,7 @@ __kernel void m16600_sxx (KERN_ATTR_ESALT (electrum_wallet_t))
   {
     sha256_ctx_t ctx = ctx0;
 
-    sha256_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
+    sha256_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
     sha256_final (&ctx);
 

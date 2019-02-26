@@ -28,7 +28,7 @@ __kernel void m16513_mxx (KERN_ATTR_VECTOR_ESALT (jwt_t))
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len & 255;
+  const u32 pw_len = pws[gid].pw_len;
 
   u32x w[64] = { 0 };
 
@@ -95,7 +95,7 @@ __kernel void m16513_sxx (KERN_ATTR_VECTOR_ESALT (jwt_t))
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len & 255;
+  const u32 pw_len = pws[gid].pw_len;
 
   u32x w[64] = { 0 };
 

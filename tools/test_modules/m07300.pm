@@ -11,7 +11,7 @@ use warnings;
 use Digest::HMAC qw (hmac_hex);
 use Digest::SHA  qw (sha1);
 
-sub module_constraints { [[0, 255], [32, 255], [0, 55], [32, 32], [-1, -1]] }
+sub module_constraints { [[0, 256], [32, 256], [0, 55], [32, 32], [-1, -1]] }
 
 sub module_generate_hash
 {

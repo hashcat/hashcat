@@ -11,7 +11,7 @@ use warnings;
 use Digest::SHA  qw (sha256);
 use Crypt::CBC;
 
-sub module_constraints { [[0, 255], [-1, -1], [0, 55], [-1, -1], [-1, -1]] }
+sub module_constraints { [[0, 256], [-1, -1], [0, 55], [-1, -1], [-1, -1]] }
 
 sub module_generate_hash
 {

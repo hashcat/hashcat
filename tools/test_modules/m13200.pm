@@ -11,7 +11,7 @@ use warnings;
 use Crypt::Mode::ECB;
 use Digest::SHA qw (sha1);
 
-sub module_constraints { [[0, 255], [-1, -1], [-1, -1], [-1, -1], [-1, -1]] }
+sub module_constraints { [[0, 256], [-1, -1], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub get_random_axcrypt_salt
 {

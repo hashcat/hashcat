@@ -15,7 +15,7 @@ use Digest::MD4      qw (md4);
 use Digest::MD5      qw (md5_hex);
 use POSIX            qw (strftime);
 
-sub module_constraints { [[0, 255], [16, 16], [0, 27], [16, 16], [-1, -1]] }
+sub module_constraints { [[0, 256], [16, 16], [0, 27], [16, 16], [-1, -1]] }
 
 sub module_generate_hash
 {

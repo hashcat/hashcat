@@ -58,7 +58,7 @@ __kernel void m02610_mxx (KERN_ATTR_VECTOR ())
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len & 255;
+  const u32 pw_len = pws[gid].pw_len;
 
   u32x w[64] = { 0 };
 
@@ -184,7 +184,7 @@ __kernel void m02610_sxx (KERN_ATTR_VECTOR ())
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len & 255;
+  const u32 pw_len = pws[gid].pw_len;
 
   u32x w[64] = { 0 };
 

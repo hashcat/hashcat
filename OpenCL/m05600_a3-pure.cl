@@ -29,7 +29,7 @@ __kernel void m05600_mxx (KERN_ATTR_VECTOR_ESALT (netntlm_t))
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len & 255;
+  const u32 pw_len = pws[gid].pw_len;
 
   u32 w[64] = { 0 };
 
@@ -151,7 +151,7 @@ __kernel void m05600_sxx (KERN_ATTR_VECTOR_ESALT (netntlm_t))
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len & 255;
+  const u32 pw_len = pws[gid].pw_len;
 
   u32 w[64] = { 0 };
 
