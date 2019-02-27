@@ -66,7 +66,7 @@ int ascii_digest (const hashconfig_t *hashconfig, const hashes_t *hashes, const 
 int module_filename (const folder_config_t *folder_config, const int hash_mode, char *out_buf, const size_t out_size)
 {
   // native compiled
-  #if defined (_WIN)
+  #if defined (_WIN) || defined (__CYGWIN__)
   return snprintf (out_buf, out_size, "%s/modules/module_%05d.dll", folder_config->shared_dir, hash_mode);
   #else
   return snprintf (out_buf, out_size, "%s/modules/module_%05d.so", folder_config->shared_dir, hash_mode);
