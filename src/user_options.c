@@ -12,6 +12,7 @@
 #include "shared.h"
 #include "usage.h"
 #include "outfile.h"
+#include "opencl.h"
 #include "user_options.h"
 
 #ifdef WITH_BRAIN
@@ -2523,6 +2524,55 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       }
     }
   }
+
+  // single kernel and module existence check to detect "7z e" errors
+
+  char *modulefile = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+  module_filename (folder_config, 0, modulefile, HCBUFSIZ_TINY);
+
+  if (hc_path_exist (modulefile) == false)
+  {
+    event_log_error (hashcat_ctx, "%s: %s", modulefile, strerror (errno));
+
+    event_log_warning (hashcat_ctx, "If you are using the hashcat binary package this error typically indicates a problem during extraction.");
+    event_log_warning (hashcat_ctx, "For example, using \"7z e\" instead of using \"7z x\".");
+    event_log_warning (hashcat_ctx, NULL);
+
+    return -1;
+  }
+
+  const int rc = hashconfig_init (hashcat_ctx);
+
+  if (rc == -1)
+  {
+    event_log_error (hashcat_ctx, "%s: module initialization failed", modulefile);
+
+    return -1;
+  }
+
+  hashconfig_destroy (hashcat_ctx);
+
+  hcfree (modulefile);
+
+  // same check but for an OpenCL kernel
+
+  char *kernelfile = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+  generate_source_kernel_filename (false, ATTACK_EXEC_OUTSIDE_KERNEL, ATTACK_KERN_STRAIGHT, 400, 0, folder_config->shared_dir, kernelfile);
+
+  if (hc_path_read (kernelfile) == false)
+  {
+    event_log_error (hashcat_ctx, "%s: %s", kernelfile, strerror (errno));
+
+    event_log_warning (hashcat_ctx, "If you are using the hashcat binary package this error typically indicates a problem during extraction.");
+    event_log_warning (hashcat_ctx, "For example, using \"7z e\" instead of using \"7z x\".");
+    event_log_warning (hashcat_ctx, NULL);
+
+    return -1;
+  }
+
+  hcfree (kernelfile);
 
   // loopback - can't check at this point
 
