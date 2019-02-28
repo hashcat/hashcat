@@ -13,6 +13,7 @@
 - Added hash-mode 19000 QNX /etc/shadow (MD5)
 - Added hash-mode 19100 QNX /etc/shadow (SHA256)
 - Added hash-mode 19200 QNX /etc/shadow (SHA512)
+- Added hash-mode 19300 sha1($salt1.$pass.$salt2)
 
 ##
 ## Bugs
