@@ -18,7 +18,7 @@ DECLSPEC void whirlpool_transform_transport_vector (const u32x *w, u32x *digest,
   whirlpool_transform_vector (w + 0, w + 4, w + 8, w + 12, digest, s_Ch, s_Cl);
 }
 
-__kernel void m06100_m04 (KERN_ATTR_ESALT (netntlm_t))
+__kernel void m06100_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -207,7 +207,7 @@ __kernel void m06100_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m06100_s04 (KERN_ATTR_ESALT (netntlm_t))
+__kernel void m06100_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
