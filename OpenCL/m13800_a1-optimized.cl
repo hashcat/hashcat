@@ -43,23 +43,23 @@ DECLSPEC void memcat64c_be (u32x *block, const u32 offset, u32x *carry)
   u32x tmp16;
 
   #if defined IS_AMD || defined IS_GENERIC
-  tmp00 = hc_bytealign (        0, carry[ 0], offset);
-  tmp01 = hc_bytealign (carry[ 0], carry[ 1], offset);
-  tmp02 = hc_bytealign (carry[ 1], carry[ 2], offset);
-  tmp03 = hc_bytealign (carry[ 2], carry[ 3], offset);
-  tmp04 = hc_bytealign (carry[ 3], carry[ 4], offset);
-  tmp05 = hc_bytealign (carry[ 4], carry[ 5], offset);
-  tmp06 = hc_bytealign (carry[ 5], carry[ 6], offset);
-  tmp07 = hc_bytealign (carry[ 6], carry[ 7], offset);
-  tmp08 = hc_bytealign (carry[ 7], carry[ 8], offset);
-  tmp09 = hc_bytealign (carry[ 8], carry[ 9], offset);
-  tmp10 = hc_bytealign (carry[ 9], carry[10], offset);
-  tmp11 = hc_bytealign (carry[10], carry[11], offset);
-  tmp12 = hc_bytealign (carry[11], carry[12], offset);
-  tmp13 = hc_bytealign (carry[12], carry[13], offset);
-  tmp14 = hc_bytealign (carry[13], carry[14], offset);
-  tmp15 = hc_bytealign (carry[14], carry[15], offset);
-  tmp16 = hc_bytealign (carry[15],         0, offset);
+  tmp00 = hc_bytealign_be (        0, carry[ 0], offset);
+  tmp01 = hc_bytealign_be (carry[ 0], carry[ 1], offset);
+  tmp02 = hc_bytealign_be (carry[ 1], carry[ 2], offset);
+  tmp03 = hc_bytealign_be (carry[ 2], carry[ 3], offset);
+  tmp04 = hc_bytealign_be (carry[ 3], carry[ 4], offset);
+  tmp05 = hc_bytealign_be (carry[ 4], carry[ 5], offset);
+  tmp06 = hc_bytealign_be (carry[ 5], carry[ 6], offset);
+  tmp07 = hc_bytealign_be (carry[ 6], carry[ 7], offset);
+  tmp08 = hc_bytealign_be (carry[ 7], carry[ 8], offset);
+  tmp09 = hc_bytealign_be (carry[ 8], carry[ 9], offset);
+  tmp10 = hc_bytealign_be (carry[ 9], carry[10], offset);
+  tmp11 = hc_bytealign_be (carry[10], carry[11], offset);
+  tmp12 = hc_bytealign_be (carry[11], carry[12], offset);
+  tmp13 = hc_bytealign_be (carry[12], carry[13], offset);
+  tmp14 = hc_bytealign_be (carry[13], carry[14], offset);
+  tmp15 = hc_bytealign_be (carry[14], carry[15], offset);
+  tmp16 = hc_bytealign_be (carry[15],         0, offset);
   #endif
 
   #ifdef IS_NV

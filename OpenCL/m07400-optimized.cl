@@ -97,22 +97,16 @@ DECLSPEC u32 memcat16 (u32 *block, const u32 offset, const u32 *append, const u3
   const int offset_minus_4 = 4 - offset_mod_4;
 
   #if defined IS_AMD || defined IS_GENERIC
-  u32 in0 = swap32_S (append[0]);
-  u32 in1 = swap32_S (append[1]);
-  u32 in2 = swap32_S (append[2]);
-  u32 in3 = swap32_S (append[3]);
+  u32 in0 = append[0];
+  u32 in1 = append[1];
+  u32 in2 = append[2];
+  u32 in3 = append[3];
 
   tmp0 = hc_bytealign (  0, in0, offset);
   tmp1 = hc_bytealign (in0, in1, offset);
   tmp2 = hc_bytealign (in1, in2, offset);
   tmp3 = hc_bytealign (in2, in3, offset);
   tmp4 = hc_bytealign (in3,   0, offset);
-
-  tmp0 = swap32_S (tmp0);
-  tmp1 = swap32_S (tmp1);
-  tmp2 = swap32_S (tmp2);
-  tmp3 = swap32_S (tmp3);
-  tmp4 = swap32_S (tmp4);
   #endif
 
   #ifdef IS_NV
@@ -238,22 +232,16 @@ DECLSPEC u32 memcat16c (u32 *block, const u32 offset, const u32 *append, const u
   const int offset_minus_4 = 4 - offset_mod_4;
 
   #if defined IS_AMD || defined IS_GENERIC
-  u32 in0 = swap32_S (append[0]);
-  u32 in1 = swap32_S (append[1]);
-  u32 in2 = swap32_S (append[2]);
-  u32 in3 = swap32_S (append[3]);
+  u32 in0 = append[0];
+  u32 in1 = append[1];
+  u32 in2 = append[2];
+  u32 in3 = append[3];
 
   tmp0 = hc_bytealign (  0, in0, offset);
   tmp1 = hc_bytealign (in0, in1, offset);
   tmp2 = hc_bytealign (in1, in2, offset);
   tmp3 = hc_bytealign (in2, in3, offset);
   tmp4 = hc_bytealign (in3,   0, offset);
-
-  tmp0 = swap32_S (tmp0);
-  tmp1 = swap32_S (tmp1);
-  tmp2 = swap32_S (tmp2);
-  tmp3 = swap32_S (tmp3);
-  tmp4 = swap32_S (tmp4);
   #endif
 
   #ifdef IS_NV
@@ -405,22 +393,16 @@ DECLSPEC u32 memcat20 (u32 *block, const u32 offset, const u32 *append, const u3
   const int offset_minus_4 = 4 - offset_mod_4;
 
   #if defined IS_AMD || defined IS_GENERIC
-  u32 in0 = swap32_S (append[0]);
-  u32 in1 = swap32_S (append[1]);
-  u32 in2 = swap32_S (append[2]);
-  u32 in3 = swap32_S (append[3]);
+  u32 in0 = append[0];
+  u32 in1 = append[1];
+  u32 in2 = append[2];
+  u32 in3 = append[3];
 
   tmp0 = hc_bytealign (  0, in0, offset);
   tmp1 = hc_bytealign (in0, in1, offset);
   tmp2 = hc_bytealign (in1, in2, offset);
   tmp3 = hc_bytealign (in2, in3, offset);
   tmp4 = hc_bytealign (in3,   0, offset);
-
-  tmp0 = swap32_S (tmp0);
-  tmp1 = swap32_S (tmp1);
-  tmp2 = swap32_S (tmp2);
-  tmp3 = swap32_S (tmp3);
-  tmp4 = swap32_S (tmp4);
   #endif
 
   #ifdef IS_NV
@@ -554,23 +536,17 @@ DECLSPEC u32 memcat20_x80 (u32 *block, const u32 offset, const u32 *append, cons
   const int offset_minus_4 = 4 - offset_mod_4;
 
   #if defined IS_AMD || defined IS_GENERIC
-  u32 in0 = swap32_S (append[0]);
-  u32 in1 = swap32_S (append[1]);
-  u32 in2 = swap32_S (append[2]);
-  u32 in3 = swap32_S (append[3]);
-  u32 in4 = 0x80000000;
+  u32 in0 = append[0];
+  u32 in1 = append[1];
+  u32 in2 = append[2];
+  u32 in3 = append[3];
+  u32 in4 = 0x80;
 
   tmp0 = hc_bytealign (  0, in0, offset);
   tmp1 = hc_bytealign (in0, in1, offset);
   tmp2 = hc_bytealign (in1, in2, offset);
   tmp3 = hc_bytealign (in2, in3, offset);
   tmp4 = hc_bytealign (in3, in4, offset);
-
-  tmp0 = swap32_S (tmp0);
-  tmp1 = swap32_S (tmp1);
-  tmp2 = swap32_S (tmp2);
-  tmp3 = swap32_S (tmp3);
-  tmp4 = swap32_S (tmp4);
   #endif
 
   #ifdef IS_NV

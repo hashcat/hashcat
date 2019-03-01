@@ -200,11 +200,11 @@ DECLSPEC void make_sc (u32 *sc, const u32 *pw, const u32 pw_len, const u32 *bl, 
     #if defined IS_AMD || defined IS_GENERIC
     for (i = 0; i < pd; i++) sc[idx++] = pw[i];
                              sc[idx++] = pw[i]
-                                       | hc_bytealign (bl[0],         0, pm4);
-    for (i = 1; i < bd; i++) sc[idx++] = hc_bytealign (bl[i], bl[i - 1], pm4);
-                             sc[idx++] = hc_bytealign (sc[0], bl[i - 1], pm4);
-    for (i = 1; i <  4; i++) sc[idx++] = hc_bytealign (sc[i], sc[i - 1], pm4);
-                             sc[idx++] = hc_bytealign (    0, sc[i - 1], pm4);
+                                       | hc_bytealign_be (bl[0],         0, pm4);
+    for (i = 1; i < bd; i++) sc[idx++] = hc_bytealign_be (bl[i], bl[i - 1], pm4);
+                             sc[idx++] = hc_bytealign_be (sc[0], bl[i - 1], pm4);
+    for (i = 1; i <  4; i++) sc[idx++] = hc_bytealign_be (sc[i], sc[i - 1], pm4);
+                             sc[idx++] = hc_bytealign_be (    0, sc[i - 1], pm4);
     #endif
 
     #ifdef IS_NV
@@ -229,10 +229,10 @@ DECLSPEC void make_pt_with_offset (u32 *pt, const u32 offset, const u32 *sc, con
   const u32 od = m / 4;
 
   #if defined IS_AMD || defined IS_GENERIC
-  pt[0] = hc_bytealign (sc[od + 1], sc[od + 0], om);
-  pt[1] = hc_bytealign (sc[od + 2], sc[od + 1], om);
-  pt[2] = hc_bytealign (sc[od + 3], sc[od + 2], om);
-  pt[3] = hc_bytealign (sc[od + 4], sc[od + 3], om);
+  pt[0] = hc_bytealign_be (sc[od + 1], sc[od + 0], om);
+  pt[1] = hc_bytealign_be (sc[od + 2], sc[od + 1], om);
+  pt[2] = hc_bytealign_be (sc[od + 3], sc[od + 2], om);
+  pt[3] = hc_bytealign_be (sc[od + 4], sc[od + 3], om);
   #endif
 
   #ifdef IS_NV

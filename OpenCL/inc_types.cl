@@ -361,14 +361,44 @@ DECLSPEC u32 hc_bfe_S (const u32 a, const u32 b, const u32 c)
   return amd_bfe (a, b, c);
 }
 
-DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const u32x c)
+DECLSPEC u32x hc_bytealign_be (const u32x a, const u32x b, const u32 c)
 {
   return amd_bytealign (a, b, c);
 }
 
-DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const u32 c)
+DECLSPEC u32 hc_bytealign_be_S (const u32 a, const u32 b, const u32 c)
 {
   return amd_bytealign (a, b, c);
+}
+
+DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const u32 c)
+{
+  u32x r;
+
+  switch (c & 3)
+  {
+    case 0: r =              b;        break;
+    case 1: r = (a >> 24) | (b <<  8); break;
+    case 2: r = (a >> 16) | (b << 16); break;
+    case 3: r = (a >>  8) | (b << 24); break;
+  }
+
+  return r;
+}
+
+DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const u32 c)
+{
+  u32 r;
+
+  switch (c & 3)
+  {
+    case 0: r =              b;        break;
+    case 1: r = (a >> 24) | (b <<  8); break;
+    case 2: r = (a >> 16) | (b << 16); break;
+    case 3: r = (a >>  8) | (b << 24); break;
+  }
+
+  return r;
 }
 
 #if HAS_VPERM
@@ -1089,44 +1119,64 @@ DECLSPEC u32 hc_bfe_S (const u32 a, const u32 b, const u32 c)
   #undef BFE
 }
 
+DECLSPEC u32x hc_bytealign_be (const u32x a, const u32x b, const u32 c)
+{
+  u32x r;
+
+  switch (c & 3)
+  {
+    case 0: r =              b;        break;
+    case 1: r = (a << 24) | (b >>  8); break;
+    case 2: r = (a << 16) | (b >> 16); break;
+    case 3: r = (a <<  8) | (b >> 24); break;
+  }
+
+  return r;
+}
+
+DECLSPEC u32 hc_bytealign_be_S (const u32 a, const u32 b, const u32 c)
+{
+  u32 r;
+
+  switch (c & 3)
+  {
+    case 0: r =              b;        break;
+    case 1: r = (a << 24) | (b >>  8); break;
+    case 2: r = (a << 16) | (b >> 16); break;
+    case 3: r = (a <<  8) | (b >> 24); break;
+  }
+
+  return r;
+}
+
 DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const u32 c)
 {
-  #if VECT_SIZE == 1
-  const u64x tmp = ((((u64x) (a)) << 32) | ((u64x) (b))) >> ((c & 3) * 8);
+  u32x r;
 
-  return (u32x) (tmp);
-  #endif
+  switch (c & 3)
+  {
+    case 0: r =              b;        break;
+    case 1: r = (a >> 24) | (b <<  8); break;
+    case 2: r = (a >> 16) | (b << 16); break;
+    case 3: r = (a >>  8) | (b << 24); break;
+  }
 
-  #if VECT_SIZE == 2
-  const u64x tmp = ((((u64x) (a.s0, a.s1)) << 32) | ((u64x) (b.s0, b.s1))) >> ((c & 3) * 8);
-
-  return (u32x) (tmp.s0, tmp.s1);
-  #endif
-
-  #if VECT_SIZE == 4
-  const u64x tmp = ((((u64x) (a.s0, a.s1, a.s2, a.s3)) << 32) | ((u64x) (b.s0, b.s1, b.s2, b.s3))) >> ((c & 3) * 8);
-
-  return (u32x) (tmp.s0, tmp.s1, tmp.s2, tmp.s3);
-  #endif
-
-  #if VECT_SIZE == 8
-  const u64x tmp = ((((u64x) (a.s0, a.s1, a.s2, a.s3, a.s4, a.s5, a.s6, a.s7)) << 32) | ((u64x) (b.s0, b.s1, b.s2, b.s3, b.s4, b.s5, b.s6, b.s7))) >> ((c & 3) * 8);
-
-  return (u32x) (tmp.s0, tmp.s1, tmp.s2, tmp.s3, tmp.s4, tmp.s5, tmp.s6, tmp.s7);
-  #endif
-
-  #if VECT_SIZE == 16
-  const u64x tmp = ((((u64x) (a.s0, a.s1, a.s2, a.s3, a.s4, a.s5, a.s6, a.s7, a.s8, a.s9, a.sa, a.sb, a.sc, a.sd, a.se, a.sf)) << 32) | ((u64x) (b.s0, b.s1, b.s2, b.s3, b.s4, b.s5, b.s6, b.s7, b.s8, b.s9, b.sa, b.sb, b.sc, b.sd, b.se, b.sf))) >> ((c & 3) * 8);
-
-  return (u32x) (tmp.s0, tmp.s1, tmp.s2, tmp.s3, tmp.s4, tmp.s5, tmp.s6, tmp.s7, tmp.s8, tmp.s9, tmp.sa, tmp.sb, tmp.sc, tmp.sd, tmp.se, tmp.sf);
-  #endif
+  return r;
 }
 
 DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const u32 c)
 {
-  const u64 tmp = ((((u64) a) << 32) | ((u64) b)) >> ((c & 3) * 8);
+  u32 r;
 
-  return (u32) (tmp);
+  switch (c & 3)
+  {
+    case 0: r =              b;        break;
+    case 1: r = (a >> 24) | (b <<  8); break;
+    case 2: r = (a >> 16) | (b << 16); break;
+    case 3: r = (a >>  8) | (b << 24); break;
+  }
+
+  return r;
 }
 
 DECLSPEC u32x hc_add3 (const u32x a, const u32x b, const u32x c)
