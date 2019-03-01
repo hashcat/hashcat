@@ -353,22 +353,58 @@ DECLSPEC u64x rotl64 (const u64x a, const u32 n)
 
 DECLSPEC u32x hc_bfe (const u32x a, const u32x b, const u32x c)
 {
-  return amd_bfe (a, b, c);
+  #define BIT(x)      ((u32x) (1u) << (x))
+  #define BIT_MASK(x) (BIT (x) - 1)
+  #define BFE(x,y,z)  (((x) >> (y)) & BIT_MASK (z))
+
+  return BFE (a, b, c);
+
+  #undef BIT
+  #undef BIT_MASK
+  #undef BFE
 }
 
 DECLSPEC u32 hc_bfe_S (const u32 a, const u32 b, const u32 c)
 {
-  return amd_bfe (a, b, c);
+  #define BIT(x)      (1u << (x))
+  #define BIT_MASK(x) (BIT (x) - 1)
+  #define BFE(x,y,z)  (((x) >> (y)) & BIT_MASK (z))
+
+  return BFE (a, b, c);
+
+  #undef BIT
+  #undef BIT_MASK
+  #undef BFE
 }
 
 DECLSPEC u32x hc_bytealign_be (const u32x a, const u32x b, const u32 c)
 {
-  return amd_bytealign (a, b, c);
+  u32x r;
+
+  switch (c & 3)
+  {
+    case 0: r =              b;        break;
+    case 1: r = (a << 24) | (b >>  8); break;
+    case 2: r = (a << 16) | (b >> 16); break;
+    case 3: r = (a <<  8) | (b >> 24); break;
+  }
+
+  return r;
 }
 
 DECLSPEC u32 hc_bytealign_be_S (const u32 a, const u32 b, const u32 c)
 {
-  return amd_bytealign (a, b, c);
+  u32 r;
+
+  switch (c & 3)
+  {
+    case 0: r =              b;        break;
+    case 1: r = (a << 24) | (b >>  8); break;
+    case 2: r = (a << 16) | (b >> 16); break;
+    case 3: r = (a <<  8) | (b >> 24); break;
+  }
+
+  return r;
 }
 
 DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const u32 c)

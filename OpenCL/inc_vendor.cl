@@ -78,7 +78,9 @@
 // HAS_VPERM indicated ROCM
 
 #if (defined IS_AMD && HAS_VPERM == 0)
-#define MAYBE_VOLATILE volatile
+//#define MAYBE_VOLATILE volatile
+//testrun for hashcat 6.0.0
+#define MAYBE_VOLATILE
 #else
 #define MAYBE_VOLATILE
 #endif
