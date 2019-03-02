@@ -4366,18 +4366,23 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     EVENT_DATA (EVENT_OPENCL_DEVICE_INIT_PRE, &device_id, sizeof (u32));
 
-    const bool unstable_warning = hashconfig->unstable_warning;
+    /**
+     * module depending checks
+     */
 
-    if ((unstable_warning == true) && (user_options->force == false))
+    if (module_ctx->module_unstable_warning != MODULE_DEFAULT)
     {
-      event_log_warning (hashcat_ctx, "* Device #%u: Skipping unstable hash-mode %u for this device.", device_id + 1, hashconfig->hash_mode);
-      event_log_warning (hashcat_ctx, "             You can use --force to override, but do not report related errors.");
+      const bool unstable_warning = module_ctx->module_unstable_warning (hashconfig, user_options, user_options_extra, device_param);
 
-      device_param->skipped = true;
+      if ((unstable_warning == true) && (user_options->force == false))
+      {
+        event_log_warning (hashcat_ctx, "* Device #%u: Skipping unstable hash-mode %u for this device.", device_id + 1, hashconfig->hash_mode);
+        event_log_warning (hashcat_ctx, "             You can use --force to override, but do not report related errors.");
 
-      device_param->unstable_warning = true;
+        device_param->skipped = true;
 
-      continue;
+        continue;
+      }
     }
 
     // vector_width
@@ -4853,22 +4858,24 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     // built options
 
-    char build_opts_base[1024] = { 0 };
+    const size_t build_options_sz = 4096;
+
+    char *build_options_buf = (char *) hcmalloc (build_options_sz);
+
+    int build_options_len = 0;
 
     #if defined (_WIN)
-    snprintf (build_opts_base, sizeof (build_opts_base), "-cl-std=CL1.2 -I OpenCL -I \"%s\"", folder_config->cpath_real);
+    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-cl-std=CL1.2 -I OpenCL -I \"%s\" ", folder_config->cpath_real);
     #else
-    snprintf (build_opts_base, sizeof (build_opts_base), "-cl-std=CL1.2 -I OpenCL -I %s", folder_config->cpath_real);
+    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-cl-std=CL1.2 -I OpenCL -I %s ", folder_config->cpath_real);
     #endif
 
     // we don't have sm_* on vendors not NV but it doesn't matter
 
-    char build_opts[2048] = { 0 };
-
     #if defined (DEBUG)
-    snprintf (build_opts, sizeof (build_opts), "%s -D LOCAL_MEM_TYPE=%u -D VENDOR_ID=%u -D CUDA_ARCH=%u -D HAS_VPERM=%u -D HAS_VADD3=%u -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll", build_opts_base, device_param->device_local_mem_type, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->has_vperm, device_param->has_vadd3, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, kern_type);
+    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D LOCAL_MEM_TYPE=%u -D VENDOR_ID=%u -D CUDA_ARCH=%u -D HAS_VPERM=%u -D HAS_VADD3=%u -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll ", device_param->device_local_mem_type, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->has_vperm, device_param->has_vadd3, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, kern_type);
     #else
-    snprintf (build_opts, sizeof (build_opts), "%s -D LOCAL_MEM_TYPE=%u -D VENDOR_ID=%u -D CUDA_ARCH=%u -D HAS_VPERM=%u -D HAS_VADD3=%u -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -w", build_opts_base, device_param->device_local_mem_type, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->has_vperm, device_param->has_vadd3, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, kern_type);
+    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D LOCAL_MEM_TYPE=%u -D VENDOR_ID=%u -D CUDA_ARCH=%u -D HAS_VPERM=%u -D HAS_VADD3=%u -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -w ", device_param->device_local_mem_type, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->has_vperm, device_param->has_vadd3, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, kern_type);
     #endif
 
     /*
@@ -4876,13 +4883,30 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     {
       if (device_param->platform_vendor_id == VENDOR_ID_INTEL_SDK)
       {
-        strncat (build_opts, " -cl-opt-disable", 16);
+        strncat (build_options_buf, " -cl-opt-disable", 16);
       }
     }
     */
 
+    char *build_options_module_buf = (char *) hcmalloc (build_options_sz);
+
+    int build_options_module_len = 0;
+
+    build_options_module_len += snprintf (build_options_module_buf + build_options_module_len, build_options_sz - build_options_module_len, "%s ", build_options_buf);
+
+    if (module_ctx->module_jit_build_options != MODULE_DEFAULT)
+    {
+      char *jit_build_options = module_ctx->module_jit_build_options (hashconfig, user_options, user_options_extra, hashes, device_param);
+
+      if (jit_build_options != NULL)
+      {
+        build_options_module_len += snprintf (build_options_module_buf + build_options_module_len, build_options_sz - build_options_module_len, "%s", jit_build_options);
+      }
+    }
+
     #if defined (DEBUG)
-    if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: build_opts '%s'", device_id + 1, build_opts);
+    if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: build_options '%s'", device_id + 1, build_options_buf);
+    if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: build_options_module '%s'", device_id + 1, build_options_module_buf);
     #endif
 
     /**
@@ -4965,7 +4989,14 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       char **kernel_sources = &kernel_sources_buf;
 
-      if (module_ctx->module_jit_build_options == MODULE_DEFAULT)
+      bool cache_disable = false;
+
+      if (module_ctx->module_jit_cache_disable != MODULE_DEFAULT)
+      {
+        cache_disable = module_ctx->module_jit_cache_disable (hashconfig, user_options, user_options_extra, hashes, device_param);
+      }
+
+      if (cache_disable == false)
       {
         if (cached == false)
         {
@@ -4981,7 +5012,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (CL_rc == -1) return -1;
 
-          CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program, 1, &device_param->device, build_opts, NULL, NULL);
+          CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program, 1, &device_param->device, build_options_module_buf, NULL, NULL);
 
           //if (CL_rc == -1) return -1;
 
@@ -5045,7 +5076,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (CL_rc == -1) return -1;
 
-          CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program, 1, &device_param->device, build_opts, NULL, NULL);
+          CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program, 1, &device_param->device, build_options_module_buf, NULL, NULL);
 
           if (CL_rc == -1) return -1;
         }
@@ -5060,24 +5091,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (CL_rc == -1) return -1;
 
-        char *build_opts_update;
-
-        char *jit_build_options = module_ctx->module_jit_build_options (hashconfig, user_options, user_options_extra, hashes, device_param);
-
-        if (jit_build_options != NULL)
-        {
-          hc_asprintf (&build_opts_update, "%s %s", build_opts, jit_build_options);
-
-          hcfree (jit_build_options);
-        }
-        else
-        {
-          build_opts_update = hcstrdup (build_opts);
-        }
-
-        CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program, 1, &device_param->device, build_opts_update, NULL, NULL);
-
-        free (build_opts_update);
+        CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program, 1, &device_param->device, build_options_module_buf, NULL, NULL);
 
         //if (CL_rc == -1) return -1;
 
@@ -5116,6 +5130,8 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       hcfree (kernel_sources[0]);
     }
+
+    hcfree (build_options_module_buf);
 
     /**
      * word generator kernel
@@ -5189,7 +5205,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (CL_rc == -1) return -1;
 
-          CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program_mp, 1, &device_param->device, build_opts, NULL, NULL);
+          CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program_mp, 1, &device_param->device, build_options_buf, NULL, NULL);
 
           //if (CL_rc == -1) return -1;
 
@@ -5251,7 +5267,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (CL_rc == -1) return -1;
 
-          CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program_mp, 1, &device_param->device, build_opts, NULL, NULL);
+          CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program_mp, 1, &device_param->device, build_options_buf, NULL, NULL);
 
           if (CL_rc == -1) return -1;
         }
@@ -5336,7 +5352,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (CL_rc == -1) return -1;
 
-          CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program_amp, 1, &device_param->device, build_opts, NULL, NULL);
+          CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program_amp, 1, &device_param->device, build_options_buf, NULL, NULL);
 
           //if (CL_rc == -1) return -1;
 
@@ -5398,12 +5414,14 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (CL_rc == -1) return -1;
 
-          CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program_amp, 1, &device_param->device, build_opts, NULL, NULL);
+          CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program_amp, 1, &device_param->device, build_options_buf, NULL, NULL);
 
           if (CL_rc == -1) return -1;
         }
 
         hcfree (kernel_sources[0]);
+
+        hcfree (build_options_buf);
       }
     }
 
@@ -6765,16 +6783,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
   // Prevent exit from benchmark mode if all devices are skipped due to unstable hash-modes (macOS)
 
-  bool has_unstable_warning = false;
-
-  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-  {
-    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
-
-    if (device_param->unstable_warning == true) has_unstable_warning = true;
-  }
-
-  if ((hardware_power_all == 0) && (has_unstable_warning == false)) return -1;
+  if (hardware_power_all == 0) return -1;
 
   opencl_ctx->hardware_power_all = hardware_power_all;
 
@@ -6790,15 +6799,6 @@ void opencl_session_destroy (hashcat_ctx_t *hashcat_ctx)
   for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
-
-    if (device_param->unstable_warning == true)
-    {
-      device_param->unstable_warning = false;
-
-      device_param->skipped = false;
-
-      continue;
-    }
 
     if (device_param->skipped == true) continue;
 

@@ -149,7 +149,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   hashconfig->pwdump_column           = default_pwdump_column           (hashconfig, user_options, user_options_extra);
   hashconfig->separator               = default_separator               (hashconfig, user_options, user_options_extra);
   hashconfig->tmp_size                = default_tmp_size                (hashconfig, user_options, user_options_extra);
-  hashconfig->unstable_warning        = default_unstable_warning        (hashconfig, user_options, user_options_extra);
   hashconfig->warmup_disable          = default_warmup_disable          (hashconfig, user_options, user_options_extra);
 
   // finally, the real stuff
@@ -240,6 +239,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_DEFINED (module_ctx->module_extra_buffer_size);
   CHECK_DEFINED (module_ctx->module_extra_tmp_size);
   CHECK_DEFINED (module_ctx->module_jit_build_options);
+  CHECK_DEFINED (module_ctx->module_jit_cache_disable);
   CHECK_DEFINED (module_ctx->module_deep_comp_kernel);
   CHECK_DEFINED (module_ctx->module_hash_init_selftest);
   CHECK_DEFINED (module_ctx->module_hook12);
@@ -318,7 +318,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   if (module_ctx->module_pwdump_column            != MODULE_DEFAULT) hashconfig->pwdump_column           = module_ctx->module_pwdump_column            (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_separator                != MODULE_DEFAULT) hashconfig->separator               = module_ctx->module_separator                (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_tmp_size                 != MODULE_DEFAULT) hashconfig->tmp_size                = module_ctx->module_tmp_size                 (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_unstable_warning         != MODULE_DEFAULT) hashconfig->unstable_warning        = module_ctx->module_unstable_warning         (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_warmup_disable           != MODULE_DEFAULT) hashconfig->warmup_disable          = module_ctx->module_warmup_disable           (hashconfig, user_options, user_options_extra);
 
   if (user_options->keyboard_layout_mapping)
@@ -620,13 +619,6 @@ bool default_potfile_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
   const bool potfile_disable = false;
 
   return potfile_disable;
-}
-
-bool default_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const bool unstable_warning = false;
-
-  return unstable_warning;
 }
 
 u32 default_pw_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)

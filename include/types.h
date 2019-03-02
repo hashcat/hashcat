@@ -962,7 +962,6 @@ struct hashconfig
   bool dictstat_disable;
   bool hlfmt_disable;
   bool warmup_disable;
-  bool unstable_warning;
   bool outfile_check_disable;
   bool outfile_check_nocomp;
   bool potfile_disable;
@@ -1052,7 +1051,6 @@ typedef struct hc_device_param
   u32     platform_devices_id;   // for mapping with hms devices
 
   bool    skipped;
-  bool    unstable_warning;
 
   st_status_t st_status;
 
@@ -2310,7 +2308,6 @@ typedef struct module_ctx
   const char *(*module_st_hash)                 (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_st_pass)                 (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_tmp_size)                (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  bool        (*module_unstable_warning)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   bool        (*module_warmup_disable)          (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
 
   int         (*module_hash_binary_count)       (const hashes_t *);
@@ -2327,6 +2324,7 @@ typedef struct module_ctx
   u64         (*module_extra_buffer_size)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const hashes_t *, const hc_device_param_t *);
   u64         (*module_extra_tmp_size)          (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const hashes_t *);
   char       *(*module_jit_build_options)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const hashes_t *, const hc_device_param_t *);
+  bool        (*module_jit_cache_disable)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const hashes_t *, const hc_device_param_t *);
   u32         (*module_deep_comp_kernel)        (const hashes_t *, const u32, const u32);
   int         (*module_hash_init_selftest)      (const hashconfig_t *, hash_t *);
 
@@ -2334,6 +2332,8 @@ typedef struct module_ctx
   void        (*module_hook23)                  (hc_device_param_t *, const void *, const u32, const u64);
 
   int         (*module_build_plain_postprocess) (const hashconfig_t *, const hashes_t *, const u32 *, const size_t, const int, u32 *, const size_t);
+
+  bool        (*module_unstable_warning)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const hc_device_param_t *);
 
 } module_ctx_t;
 

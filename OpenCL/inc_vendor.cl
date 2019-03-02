@@ -75,12 +75,10 @@
 #define DECLSPEC
 #endif
 
-// HAS_VPERM indicated ROCM
+// some kernels under special conditions need treatment
 
-#if (defined IS_AMD && HAS_VPERM == 0)
-//#define MAYBE_VOLATILE volatile
-//testrun for hashcat 6.0.0
-#define MAYBE_VOLATILE
+#if defined MAYBE_VOLATILE
+// take the one given by the user
 #else
 #define MAYBE_VOLATILE
 #endif
