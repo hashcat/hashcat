@@ -28,6 +28,8 @@ __kernel void m08100_mxx (KERN_ATTR_BASIC ())
    * base
    */
 
+  u32 z[16] = { 0 };
+
   sha1_ctx_t ctx0;
 
   sha1_init (&ctx0);
@@ -44,7 +46,9 @@ __kernel void m08100_mxx (KERN_ATTR_BASIC ())
   {
     sha1_ctx_t ctx = ctx0;
 
-    sha1_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len + 1);
+    sha1_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+    sha1_update (&ctx, z, 1);
 
     sha1_final (&ctx);
 
@@ -56,6 +60,7 @@ __kernel void m08100_mxx (KERN_ATTR_BASIC ())
     COMPARE_M_SCALAR (r0, r1, r2, r3);
   }
 }
+
 
 __kernel void m08100_sxx (KERN_ATTR_BASIC ())
 {
@@ -84,6 +89,8 @@ __kernel void m08100_sxx (KERN_ATTR_BASIC ())
    * base
    */
 
+  u32 z[16] = { 0 };
+
   sha1_ctx_t ctx0;
 
   sha1_init (&ctx0);
@@ -100,7 +107,9 @@ __kernel void m08100_sxx (KERN_ATTR_BASIC ())
   {
     sha1_ctx_t ctx = ctx0;
 
-    sha1_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len + 1);
+    sha1_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+    sha1_update (&ctx, z, 1);
 
     sha1_final (&ctx);
 

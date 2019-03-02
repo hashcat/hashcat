@@ -30,6 +30,8 @@ __kernel void m08100_mxx (KERN_ATTR_RULES ())
    * base
    */
 
+  u32 z[16] = { 0 };
+
   COPY_PW (pws[gid]);
 
   sha1_ctx_t ctx0;
@@ -50,7 +52,9 @@ __kernel void m08100_mxx (KERN_ATTR_RULES ())
 
     sha1_ctx_t ctx = ctx0;
 
-    sha1_update_swap (&ctx, tmp.i, tmp.pw_len + 1);
+    sha1_update_swap (&ctx, tmp.i, tmp.pw_len);
+
+    sha1_update (&ctx, z, 1);
 
     sha1_final (&ctx);
 
@@ -90,6 +94,8 @@ __kernel void m08100_sxx (KERN_ATTR_RULES ())
    * base
    */
 
+  u32 z[16] = { 0 };
+
   COPY_PW (pws[gid]);
 
   sha1_ctx_t ctx0;
@@ -110,7 +116,9 @@ __kernel void m08100_sxx (KERN_ATTR_RULES ())
 
     sha1_ctx_t ctx = ctx0;
 
-    sha1_update_swap (&ctx, tmp.i, tmp.pw_len + 1);
+    sha1_update_swap (&ctx, tmp.i, tmp.pw_len);
+
+    sha1_update (&ctx, z, 1);
 
     sha1_final (&ctx);
 

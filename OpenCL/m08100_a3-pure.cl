@@ -28,6 +28,8 @@ __kernel void m08100_mxx (KERN_ATTR_VECTOR ())
    * base
    */
 
+  u32x z[16] = { 0 };
+
   const u32 pw_len = pws[gid].pw_len;
 
   u32x w[64] = { 0 };
@@ -61,7 +63,9 @@ __kernel void m08100_mxx (KERN_ATTR_VECTOR ())
 
     sha1_init_vector_from_scalar (&ctx, &ctx0);
 
-    sha1_update_vector (&ctx, w, pw_len + 1);
+    sha1_update_vector (&ctx, w, pw_len);
+
+    sha1_update_vector (&ctx, z, 1);
 
     sha1_final_vector (&ctx);
 
@@ -101,6 +105,8 @@ __kernel void m08100_sxx (KERN_ATTR_VECTOR ())
    * base
    */
 
+  u32x z[16] = { 0 };
+
   const u32 pw_len = pws[gid].pw_len;
 
   u32x w[64] = { 0 };
@@ -134,7 +140,9 @@ __kernel void m08100_sxx (KERN_ATTR_VECTOR ())
 
     sha1_init_vector_from_scalar (&ctx, &ctx0);
 
-    sha1_update_vector (&ctx, w, pw_len + 1);
+    sha1_update_vector (&ctx, w, pw_len);
+
+    sha1_update_vector (&ctx, z, 1);
 
     sha1_final_vector (&ctx);
 
