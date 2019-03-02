@@ -37,6 +37,7 @@
 - OpenCL Runtime: Workaround JiT compiler error on AMDGPU driver compiling WPA-EAPOL-PBKDF2 OpenCL kernel
 - OpenCL Runtime: Improve ROCM detection and make sure to not confuse with recent AMDGPU drivers
 - OpenCL Runtime: Not using amd_bytealign (amd_bitalign is fine) on AMDGPU driver drastically reduces JiT segfaults
+- My Wallet: Added additional plaintext pattern used in newer versions
 
 ##
 ## Technical
