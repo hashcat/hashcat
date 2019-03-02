@@ -290,7 +290,14 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
     if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0)
     {
       hc_asprintf (&jit_build_options, "-cl-opt-disable");
-//      hc_asprintf (&jit_build_options, "-D MAYBE_VOLATILE=volatile");
+    }
+  }
+
+  if ((device_param->device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == true))
+  {
+    if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0)
+    {
+      hc_asprintf (&jit_build_options, "-D MAYBE_VOLATILE=volatile");
     }
   }
 

@@ -5,7 +5,7 @@
 ## License.....: MIT
 ##
 
-OPTS="--quiet --force --potfile-disable --runtime 400 --hwmon-disable -O"
+OPTS="--quiet --force --potfile-disable --runtime 400 --hwmon-disable"
 
 TDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 

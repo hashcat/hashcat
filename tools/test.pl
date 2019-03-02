@@ -16,7 +16,7 @@ use List::Util 'shuffle';
 # allows require by filename
 use lib "$FindBin::Bin/test_modules";
 
-my $IS_OPTIMIZED = 1;
+my $IS_OPTIMIZED = 0;
 
 my $TYPES = [ 'single', 'passthrough', 'verify' ];
 
