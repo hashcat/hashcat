@@ -2601,6 +2601,71 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
+  /**
+   * default building options
+   */
+
+  if (chdir (folder_config->cpath_real) == -1)
+  {
+    event_log_error (hashcat_ctx, "%s: %s", folder_config->cpath_real, strerror (errno));
+
+    return -1;
+  }
+
+  // include check
+  // this test needs to be done manually because of macOS opencl runtime
+  // if there's a problem with permission, its not reporting back and erroring out silently
+
+  #define files_cnt 16
+
+  const char *files_names[files_cnt] =
+  {
+    "inc_cipher_aes.cl",
+    "inc_cipher_serpent.cl",
+    "inc_cipher_twofish.cl",
+    "inc_common.cl",
+    "inc_comp_multi_bs.cl",
+    "inc_comp_multi.cl",
+    "inc_comp_single_bs.cl",
+    "inc_comp_single.cl",
+    "inc_hash_constants.h",
+    "inc_hash_functions.cl",
+    "inc_rp_optimized.cl",
+    "inc_rp_optimized.h",
+    "inc_simd.cl",
+    "inc_scalar.cl",
+    "inc_types.cl",
+    "inc_vendor.cl",
+  };
+
+  for (int i = 0; i < files_cnt; i++)
+  {
+    if (hc_path_read (files_names[i]) == false)
+    {
+      event_log_error (hashcat_ctx, "%s: %s", files_names[i], strerror (errno));
+
+      return -1;
+    }
+  }
+
+  // return back to the folder we came from initially (workaround)
+
+  #if defined (_WIN)
+  if (chdir ("..") == -1)
+  {
+    event_log_error (hashcat_ctx, "%s: %s", "..", strerror (errno));
+
+    return -1;
+  }
+  #else
+  if (chdir (folder_config->cwd) == -1)
+  {
+    event_log_error (hashcat_ctx, "%s: %s", folder_config->cwd, strerror (errno));
+
+    return -1;
+  }
+  #endif
+
   return 0;
 }
 

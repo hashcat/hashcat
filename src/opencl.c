@@ -333,13 +333,13 @@ static bool write_kernel_binary (hashcat_ctx_t *hashcat_ctx, char *kernel_file, 
   return true;
 }
 
-static bool test_instruction (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const char *kernel_buf)
+static bool test_instruction (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_device_id device, const char *kernel_buf)
 {
   int CL_rc;
 
   cl_program program;
 
-  CL_rc = hc_clCreateProgramWithSource (hashcat_ctx, device_param->context, 1, &kernel_buf, NULL, &program);
+  CL_rc = hc_clCreateProgramWithSource (hashcat_ctx, context, 1, &kernel_buf, NULL, &program);
 
   if (CL_rc == -1) return false;
 
@@ -347,7 +347,7 @@ static bool test_instruction (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *dev
 
   OCL_PTR *ocl = opencl_ctx->ocl;
 
-  CL_rc = ocl->clBuildProgram (program, 1, &device_param->device, NULL, NULL, NULL); // do not use the wrapper to avoid the error message
+  CL_rc = ocl->clBuildProgram (program, 1, &device, NULL, NULL, NULL); // do not use the wrapper to avoid the error message
 
   const bool r = (CL_rc == CL_SUCCESS) ? true : false;
 
@@ -3919,6 +3919,129 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         devices_active++;
       }
 
+      /**
+       * create context for each device
+       */
+
+      cl_context context;
+
+      cl_context_properties properties[3];
+
+      properties[0] = CL_CONTEXT_PLATFORM;
+      properties[1] = (cl_context_properties) device_param->platform;
+      properties[2] = 0;
+
+      CL_rc = hc_clCreateContext (hashcat_ctx, properties, 1, &device_param->device, NULL, NULL, &context);
+
+      if (CL_rc == -1) return -1;
+
+      /**
+       * create command-queue
+       */
+
+      cl_command_queue command_queue;
+
+      CL_rc = hc_clCreateCommandQueue (hashcat_ctx, context, device_param->device, 0, &command_queue);
+
+      if (CL_rc == -1) return -1;
+
+      if ((device_param->device_type & CL_DEVICE_TYPE_GPU) && (device_param->platform_vendor_id == VENDOR_ID_AMD))
+      {
+        const bool has_vperm = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { uint r; __asm__ (\"V_PERM_B32 %0, 0, 0, 0;\" : \"=v\"(r)); }");
+
+        device_param->has_vperm = has_vperm;
+
+        const bool has_vadd3 = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { uint r; __asm__ (\"V_ADD3_U32 %0, 0, 0, 0;\" : \"=v\"(r)); }");
+
+        device_param->has_vadd3 = has_vadd3;
+      }
+
+      // device_available_mem
+
+      #define MAX_ALLOC_CHECKS_CNT  8192
+      #define MAX_ALLOC_CHECKS_SIZE (64 * 1024 * 1024)
+
+      device_param->device_available_mem = device_param->device_global_mem - MAX_ALLOC_CHECKS_SIZE;
+
+      if (device_param->device_type & CL_DEVICE_TYPE_GPU)
+      {
+        // OK, so the problem here is the following:
+        // There's just CL_DEVICE_GLOBAL_MEM_SIZE to ask OpenCL about the total memory on the device,
+        // but there's no way to ask for available memory on the device.
+        // In combination, most OpenCL runtimes implementation of clCreateBuffer()
+        // are doing so called lazy memory allocation on the device.
+        // Now, if the user has X11 (or a game or anything that takes a lot of GPU memory)
+        // running on the host we end up with an error type of this:
+        // clEnqueueNDRangeKernel(): CL_MEM_OBJECT_ALLOCATION_FAILURE
+        // The clEnqueueNDRangeKernel() is because of the lazy allocation
+        // The best way to workaround this problem is if we would be able to ask for available memory,
+        // The idea here is to try to evaluate available memory by allocating it till it errors
+
+        cl_mem *tmp_device = (cl_mem *) hccalloc (MAX_ALLOC_CHECKS_CNT, sizeof (cl_mem));
+
+        u64 c;
+
+        for (c = 0; c < MAX_ALLOC_CHECKS_CNT; c++)
+        {
+          if (((c + 1 + 1) * MAX_ALLOC_CHECKS_SIZE) >= device_param->device_global_mem) break;
+
+          cl_int CL_err;
+
+          OCL_PTR *ocl = opencl_ctx->ocl;
+
+          tmp_device[c] = ocl->clCreateBuffer (context, CL_MEM_READ_WRITE, MAX_ALLOC_CHECKS_SIZE, NULL, &CL_err);
+
+          if (CL_err != CL_SUCCESS)
+          {
+            c--;
+
+            break;
+          }
+
+          // transfer only a few byte should be enough to force the runtime to actually allocate the memory
+
+          u8 tmp_host[8];
+
+          CL_err = ocl->clEnqueueReadBuffer  (command_queue, tmp_device[c], CL_TRUE, 0, sizeof (tmp_host), tmp_host, 0, NULL, NULL);
+
+          if (CL_err != CL_SUCCESS) break;
+
+          CL_err = ocl->clEnqueueWriteBuffer (command_queue, tmp_device[c], CL_TRUE, 0, sizeof (tmp_host), tmp_host, 0, NULL, NULL);
+
+          if (CL_err != CL_SUCCESS) break;
+
+          CL_err = ocl->clEnqueueReadBuffer  (command_queue, tmp_device[c], CL_TRUE, MAX_ALLOC_CHECKS_SIZE - sizeof (tmp_host), sizeof (tmp_host), tmp_host, 0, NULL, NULL);
+
+          if (CL_err != CL_SUCCESS) break;
+
+          CL_err = ocl->clEnqueueWriteBuffer (command_queue, tmp_device[c], CL_TRUE, MAX_ALLOC_CHECKS_SIZE - sizeof (tmp_host), sizeof (tmp_host), tmp_host, 0, NULL, NULL);
+
+          if (CL_err != CL_SUCCESS) break;
+        }
+
+        device_param->device_available_mem = c * MAX_ALLOC_CHECKS_SIZE;
+
+        // clean up
+
+        for (c = 0; c < MAX_ALLOC_CHECKS_CNT; c++)
+        {
+          if (((c + 1 + 1) * MAX_ALLOC_CHECKS_SIZE) >= device_param->device_global_mem) break;
+
+          if (tmp_device[c] != NULL)
+          {
+            CL_rc = hc_clReleaseMemObject (hashcat_ctx, tmp_device[c]);
+
+            if (CL_rc == -1) return -1;
+          }
+        }
+
+        hcfree (tmp_device);
+      }
+
+      hc_clReleaseCommandQueue (hashcat_ctx, command_queue);
+
+      hc_clReleaseContext (hashcat_ctx, context);
+
       // next please
 
       devices_cnt++;
@@ -4607,99 +4730,6 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (CL_rc == -1) return -1;
 
-    if ((device_param->device_type & CL_DEVICE_TYPE_GPU) && (device_param->platform_vendor_id == VENDOR_ID_AMD))
-    {
-      const bool has_vperm = test_instruction (hashcat_ctx, device_param, "__kernel void test () { uint r; __asm__ (\"V_PERM_B32 %0, 0, 0, 0;\" : \"=v\"(r)); }");
-
-      device_param->has_vperm = has_vperm;
-
-      const bool has_vadd3 = test_instruction (hashcat_ctx, device_param, "__kernel void test () { uint r; __asm__ (\"V_ADD3_U32 %0, 0, 0, 0;\" : \"=v\"(r)); }");
-
-      device_param->has_vadd3 = has_vadd3;
-    }
-
-    // device_available_mem
-
-    #define MAX_ALLOC_CHECKS_CNT  8192
-    #define MAX_ALLOC_CHECKS_SIZE (64 * 1024 * 1024)
-
-    device_param->device_available_mem = device_param->device_global_mem - MAX_ALLOC_CHECKS_SIZE;
-
-    if ((device_param->device_type & CL_DEVICE_TYPE_GPU) && ((device_param->platform_vendor_id == VENDOR_ID_NV) || (device_param->platform_vendor_id == VENDOR_ID_AMD)))
-    {
-      // OK, so the problem here is the following:
-      // There's just CL_DEVICE_GLOBAL_MEM_SIZE to ask OpenCL about the total memory on the device,
-      // but there's no way to ask for available memory on the device.
-      // In combination, most OpenCL runtimes implementation of clCreateBuffer()
-      // are doing so called lazy memory allocation on the device.
-      // Now, if the user has X11 (or a game or anything that takes a lot of GPU memory)
-      // running on the host we end up with an error type of this:
-      // clEnqueueNDRangeKernel(): CL_MEM_OBJECT_ALLOCATION_FAILURE
-      // The clEnqueueNDRangeKernel() is because of the lazy allocation
-      // The best way to workaround this problem is if we would be able to ask for available memory,
-      // The idea here is to try to evaluate available memory by allocating it till it errors
-
-      cl_mem *tmp_device = (cl_mem *) hccalloc (MAX_ALLOC_CHECKS_CNT, sizeof (cl_mem));
-
-      u64 c;
-
-      for (c = 0; c < MAX_ALLOC_CHECKS_CNT; c++)
-      {
-        if (((c + 1 + 1) * MAX_ALLOC_CHECKS_SIZE) >= device_param->device_global_mem) break;
-
-        cl_int CL_err;
-
-        OCL_PTR *ocl = opencl_ctx->ocl;
-
-        tmp_device[c] = ocl->clCreateBuffer (device_param->context, CL_MEM_READ_WRITE, MAX_ALLOC_CHECKS_SIZE, NULL, &CL_err);
-
-        if (CL_err != CL_SUCCESS)
-        {
-          c--;
-
-          break;
-        }
-
-        // transfer only a few byte should be enough to force the runtime to actually allocate the memory
-
-        u8 tmp_host[8];
-
-        CL_err = ocl->clEnqueueReadBuffer  (device_param->command_queue, tmp_device[c], CL_TRUE, 0, sizeof (tmp_host), tmp_host, 0, NULL, NULL);
-
-        if (CL_err != CL_SUCCESS) break;
-
-        CL_err = ocl->clEnqueueWriteBuffer (device_param->command_queue, tmp_device[c], CL_TRUE, 0, sizeof (tmp_host), tmp_host, 0, NULL, NULL);
-
-        if (CL_err != CL_SUCCESS) break;
-
-        CL_err = ocl->clEnqueueReadBuffer  (device_param->command_queue, tmp_device[c], CL_TRUE, MAX_ALLOC_CHECKS_SIZE - sizeof (tmp_host), sizeof (tmp_host), tmp_host, 0, NULL, NULL);
-
-        if (CL_err != CL_SUCCESS) break;
-
-        CL_err = ocl->clEnqueueWriteBuffer (device_param->command_queue, tmp_device[c], CL_TRUE, MAX_ALLOC_CHECKS_SIZE - sizeof (tmp_host), sizeof (tmp_host), tmp_host, 0, NULL, NULL);
-
-        if (CL_err != CL_SUCCESS) break;
-      }
-
-      device_param->device_available_mem = c * MAX_ALLOC_CHECKS_SIZE;
-
-      // clean up
-
-      for (c = 0; c < MAX_ALLOC_CHECKS_CNT; c++)
-      {
-        if (((c + 1 + 1) * MAX_ALLOC_CHECKS_SIZE) >= device_param->device_global_mem) break;
-
-        if (tmp_device[c] != NULL)
-        {
-          CL_rc = hc_clReleaseMemObject (hashcat_ctx, tmp_device[c]);
-
-          if (CL_rc == -1) return -1;
-        }
-      }
-
-      hcfree (tmp_device);
-    }
-
     /**
      * create input buffers on device : calculate size of fixed memory buffers
      */
@@ -4765,71 +4795,6 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       size_extra_buffer = extra_buffer_size;
     }
-
-    /**
-     * default building options
-     */
-
-    if (chdir (folder_config->cpath_real) == -1)
-    {
-      event_log_error (hashcat_ctx, "%s: %s", folder_config->cpath_real, strerror (errno));
-
-      return -1;
-    }
-
-    // include check
-    // this test needs to be done manually because of macOS opencl runtime
-    // if there's a problem with permission, its not reporting back and erroring out silently
-
-    #define files_cnt 16
-
-    const char *files_names[files_cnt] =
-    {
-      "inc_cipher_aes.cl",
-      "inc_cipher_serpent.cl",
-      "inc_cipher_twofish.cl",
-      "inc_common.cl",
-      "inc_comp_multi_bs.cl",
-      "inc_comp_multi.cl",
-      "inc_comp_single_bs.cl",
-      "inc_comp_single.cl",
-      "inc_hash_constants.h",
-      "inc_hash_functions.cl",
-      "inc_rp_optimized.cl",
-      "inc_rp_optimized.h",
-      "inc_simd.cl",
-      "inc_scalar.cl",
-      "inc_types.cl",
-      "inc_vendor.cl",
-    };
-
-    for (int i = 0; i < files_cnt; i++)
-    {
-      if (hc_path_read (files_names[i]) == false)
-      {
-        event_log_error (hashcat_ctx, "%s: %s", files_names[i], strerror (errno));
-
-        return -1;
-      }
-    }
-
-    // return back to the folder we came from initially (workaround)
-
-    #if defined (_WIN)
-    if (chdir ("..") == -1)
-    {
-      event_log_error (hashcat_ctx, "%s: %s", "..", strerror (errno));
-
-      return -1;
-    }
-    #else
-    if (chdir (folder_config->cwd) == -1)
-    {
-      event_log_error (hashcat_ctx, "%s: %s", folder_config->cwd, strerror (errno));
-
-      return -1;
-    }
-    #endif
 
     // kern type
 
