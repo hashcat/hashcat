@@ -268,12 +268,36 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
   char *jit_build_options = NULL;
 
-  hc_asprintf (&jit_build_options, "-DSCRYPT_N=%u -DSCRYPT_R=%u -DSCRYPT_P=%u -DSCRYPT_TMTO=%" PRIu64 " -DSCRYPT_TMP_ELEM=%" PRIu64,
-    hashes->salts_buf[0].scrypt_N,
-    hashes->salts_buf[0].scrypt_r,
-    hashes->salts_buf[0].scrypt_p,
-    scrypt_tmto_final,
-    tmp_size / 16);
+  if ((device_param->device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
+  {
+    if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0)
+    {
+      hc_asprintf (&jit_build_options, "-D MAYBE_VOLATILE=volatile -DSCRYPT_N=%u -DSCRYPT_R=%u -DSCRYPT_P=%u -DSCRYPT_TMTO=%" PRIu64 " -DSCRYPT_TMP_ELEM=%" PRIu64,
+        hashes->salts_buf[0].scrypt_N,
+        hashes->salts_buf[0].scrypt_r,
+        hashes->salts_buf[0].scrypt_p,
+        scrypt_tmto_final,
+        tmp_size / 16);
+    }
+    else
+    {
+      hc_asprintf (&jit_build_options, "-DSCRYPT_N=%u -DSCRYPT_R=%u -DSCRYPT_P=%u -DSCRYPT_TMTO=%" PRIu64 " -DSCRYPT_TMP_ELEM=%" PRIu64,
+        hashes->salts_buf[0].scrypt_N,
+        hashes->salts_buf[0].scrypt_r,
+        hashes->salts_buf[0].scrypt_p,
+        scrypt_tmto_final,
+        tmp_size / 16);
+    }
+  }
+  else
+  {
+    hc_asprintf (&jit_build_options, "-DSCRYPT_N=%u -DSCRYPT_R=%u -DSCRYPT_P=%u -DSCRYPT_TMTO=%" PRIu64 " -DSCRYPT_TMP_ELEM=%" PRIu64,
+      hashes->salts_buf[0].scrypt_N,
+      hashes->salts_buf[0].scrypt_r,
+      hashes->salts_buf[0].scrypt_p,
+      scrypt_tmto_final,
+      tmp_size / 16);
+  }
 
   return jit_build_options;
 }
