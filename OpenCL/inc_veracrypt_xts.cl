@@ -119,7 +119,7 @@ DECLSPEC int verify_header_camellia (__global const tc_t *esalt_bufs, const u32 
 
   // seek to byte 256
 
-  for (volatile int i = 4; i < 64 - 16; i += 4)
+  for (int i = 4; i < 64 - 16; i += 4)
   {
     xts_mul2 (T_camellia, T_camellia);
   }
@@ -128,7 +128,7 @@ DECLSPEC int verify_header_camellia (__global const tc_t *esalt_bufs, const u32 
 
   u32 crc32 = ~0;
 
-  for (volatile int i = 64 - 16; i < 128 - 16; i += 4)
+  for (int i = 64 - 16; i < 128 - 16; i += 4)
   {
     data[0] = esalt_bufs[0].data_buf[i + 0];
     data[1] = esalt_bufs[0].data_buf[i + 1];
@@ -175,7 +175,7 @@ DECLSPEC int verify_header_kuznyechik (__global const tc_t *esalt_bufs, const u3
 
   // seek to byte 256
 
-  for (volatile int i = 4; i < 64 - 16; i += 4)
+  for (int i = 4; i < 64 - 16; i += 4)
   {
     xts_mul2 (T_kuznyechik, T_kuznyechik);
   }
@@ -184,7 +184,7 @@ DECLSPEC int verify_header_kuznyechik (__global const tc_t *esalt_bufs, const u3
 
   u32 crc32 = ~0;
 
-  for (volatile int i = 64 - 16; i < 128 - 16; i += 4)
+  for (int i = 64 - 16; i < 128 - 16; i += 4)
   {
     data[0] = esalt_bufs[0].data_buf[i + 0];
     data[1] = esalt_bufs[0].data_buf[i + 1];
@@ -236,7 +236,7 @@ DECLSPEC int verify_header_camellia_kuznyechik (__global const tc_t *esalt_bufs,
 
   // seek to byte 256
 
-  for (volatile int i = 4; i < 64 - 16; i += 4)
+  for (int i = 4; i < 64 - 16; i += 4)
   {
     xts_mul2 (T_camellia,   T_camellia);
     xts_mul2 (T_kuznyechik, T_kuznyechik);
@@ -246,7 +246,7 @@ DECLSPEC int verify_header_camellia_kuznyechik (__global const tc_t *esalt_bufs,
 
   u32 crc32 = ~0;
 
-  for (volatile int i = 64 - 16; i < 128 - 16; i += 4)
+  for (int i = 64 - 16; i < 128 - 16; i += 4)
   {
     data[0] = esalt_bufs[0].data_buf[i + 0];
     data[1] = esalt_bufs[0].data_buf[i + 1];
@@ -297,7 +297,7 @@ DECLSPEC int verify_header_camellia_serpent (__global const tc_t *esalt_bufs, co
 
   // seek to byte 256
 
-  for (volatile int i = 4; i < 64 - 16; i += 4)
+  for (int i = 4; i < 64 - 16; i += 4)
   {
     xts_mul2 (T_camellia, T_camellia);
     xts_mul2 (T_serpent,  T_serpent);
@@ -307,7 +307,7 @@ DECLSPEC int verify_header_camellia_serpent (__global const tc_t *esalt_bufs, co
 
   u32 crc32 = ~0;
 
-  for (volatile int i = 64 - 16; i < 128 - 16; i += 4)
+  for (int i = 64 - 16; i < 128 - 16; i += 4)
   {
     data[0] = esalt_bufs[0].data_buf[i + 0];
     data[1] = esalt_bufs[0].data_buf[i + 1];
@@ -358,7 +358,7 @@ DECLSPEC int verify_header_kuznyechik_aes (__global const tc_t *esalt_bufs, cons
 
   // seek to byte 256
 
-  for (volatile int i = 4; i < 64 - 16; i += 4)
+  for (int i = 4; i < 64 - 16; i += 4)
   {
     xts_mul2 (T_kuznyechik, T_kuznyechik);
     xts_mul2 (T_aes,        T_aes);
@@ -368,7 +368,7 @@ DECLSPEC int verify_header_kuznyechik_aes (__global const tc_t *esalt_bufs, cons
 
   u32 crc32 = ~0;
 
-  for (volatile int i = 64 - 16; i < 128 - 16; i += 4)
+  for (int i = 64 - 16; i < 128 - 16; i += 4)
   {
     data[0] = esalt_bufs[0].data_buf[i + 0];
     data[1] = esalt_bufs[0].data_buf[i + 1];
@@ -421,7 +421,7 @@ DECLSPEC int verify_header_kuznyechik_twofish (__global const tc_t *esalt_bufs, 
 
   // seek to byte 256
 
-  for (volatile int i = 4; i < 64 - 16; i += 4)
+  for (int i = 4; i < 64 - 16; i += 4)
   {
     xts_mul2 (T_kuznyechik, T_kuznyechik);
     xts_mul2 (T_twofish,    T_twofish);
@@ -431,7 +431,7 @@ DECLSPEC int verify_header_kuznyechik_twofish (__global const tc_t *esalt_bufs, 
 
   u32 crc32 = ~0;
 
-  for (volatile int i = 64 - 16; i < 128 - 16; i += 4)
+  for (int i = 64 - 16; i < 128 - 16; i += 4)
   {
     data[0] = esalt_bufs[0].data_buf[i + 0];
     data[1] = esalt_bufs[0].data_buf[i + 1];
@@ -487,7 +487,7 @@ DECLSPEC int verify_header_kuznyechik_serpent_camellia (__global const tc_t *esa
 
   // seek to byte 256
 
-  for (volatile int i = 4; i < 64 - 16; i += 4)
+  for (int i = 4; i < 64 - 16; i += 4)
   {
     xts_mul2 (T_kuznyechik, T_kuznyechik);
     xts_mul2 (T_serpent, T_serpent);
@@ -498,7 +498,7 @@ DECLSPEC int verify_header_kuznyechik_serpent_camellia (__global const tc_t *esa
 
   u32 crc32 = ~0;
 
-  for (volatile int i = 64 - 16; i < 128 - 16; i += 4)
+  for (int i = 64 - 16; i < 128 - 16; i += 4)
   {
     data[0] = esalt_bufs[0].data_buf[i + 0];
     data[1] = esalt_bufs[0].data_buf[i + 1];
