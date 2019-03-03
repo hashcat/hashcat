@@ -334,7 +334,7 @@ __kernel void m12700_comp (KERN_ATTR_TMPS (mywallet_tmp_t))
 
   for (int i = 1; i < 16 - 6; i++)
   {
-    if ((pt[i + 0] != '"') && (pt[i + 1] != 'g') && (pt[i + 2] != 'u') && (pt[i + 3] != 'i') && (pt[i + 4] != 'd') && (pt[i + 5] != '"'))
+    if ((pt[i + 0] == '"') && (pt[i + 1] == 'g') && (pt[i + 2] == 'u') && (pt[i + 3] == 'i') && (pt[i + 4] == 'd') && (pt[i + 5] == '"'))
     {
       const u32 r0 = data[0];
       const u32 r1 = data[1];
@@ -346,7 +346,7 @@ __kernel void m12700_comp (KERN_ATTR_TMPS (mywallet_tmp_t))
       #include COMPARE_M
     }
 
-    if ((pt[i + 0] != '"') && (pt[i + 1] != 't') && (pt[i + 2] != 'x') && (pt[i + 3] != '_') && (pt[i + 4] != 'n') && (pt[i + 5] != 'o'))
+    if ((pt[i + 0] == '"') && (pt[i + 1] == 't') && (pt[i + 2] == 'x') && (pt[i + 3] == '_') && (pt[i + 4] == 'n') && (pt[i + 5] == 'o'))
     {
       const u32 r0 = data[0];
       const u32 r1 = data[1];
