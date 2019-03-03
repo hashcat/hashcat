@@ -198,9 +198,6 @@
 #ifdef IS_AMD
 #ifdef IS_GPU
 
-#if KERN_TYPE == 12300
-#undef _unroll
-#endif
 #if KERN_TYPE == 14100
 #undef _unroll
 #endif
