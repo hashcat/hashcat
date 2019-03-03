@@ -1051,6 +1051,7 @@ typedef struct hc_device_param
   u32     platform_devices_id;   // for mapping with hms devices
 
   bool    skipped;
+  bool    unstable_warning;
 
   st_status_t st_status;
 

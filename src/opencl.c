@@ -4504,6 +4504,8 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         device_param->skipped = true;
 
+        device_param->unstable_warning = true;
+
         continue;
       }
     }
@@ -6748,7 +6750,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
   // Prevent exit from benchmark mode if all devices are skipped due to unstable hash-modes (macOS)
 
-  if (hardware_power_all == 0) return -1;
+//  if (hardware_power_all == 0) return -1;
 
   opencl_ctx->hardware_power_all = hardware_power_all;
 
@@ -6926,7 +6928,15 @@ void opencl_session_reset (hashcat_ctx_t *hashcat_ctx)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
-    if (device_param->skipped == true) continue;
+    if (device_param->skipped == true)
+    {
+      if (device_param->unstable_warning == true)
+      {
+        device_param->skipped = false;
+      }
+
+      continue;
+    }
 
     device_param->speed_pos = 0;
 
