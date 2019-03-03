@@ -768,7 +768,7 @@ __kernel void m02501_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
   __local u32 s_te3[256];
   __local u32 s_te4[256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_td0[i] = td0[i];
     s_td1[i] = td1[i];

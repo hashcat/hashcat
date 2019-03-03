@@ -75,14 +75,6 @@
 #define DECLSPEC
 #endif
 
-// some kernels under special conditions need treatment
-
-#if defined MAYBE_VOLATILE
-// take the one given by the user
-#else
-#define MAYBE_VOLATILE
-#endif
-
 /**
  * AMD specific
  */

@@ -41,7 +41,7 @@ __kernel void m16600_m04 (KERN_ATTR_ESALT (electrum_wallet_t))
   __local u32 s_te3[256];
   __local u32 s_te4[256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_td0[i] = td0[i];
     s_td1[i] = td1[i];
@@ -484,7 +484,7 @@ __kernel void m16600_s04 (KERN_ATTR_ESALT (electrum_wallet_t))
   __local u32 s_te3[256];
   __local u32 s_te4[256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_td0[i] = td0[i];
     s_td1[i] = td1[i];

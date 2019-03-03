@@ -2296,7 +2296,7 @@ __kernel void m05800_loop (KERN_ATTR_TMPS (androidpin_tmp_t))
   __local u32 s_pc_dec[1024];
   __local u32 s_pc_len[1024];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 1024; i += lsz)
+  for (u32 i = lid; i < 1024; i += lsz)
   {
     s_pc_dec[i] = c_pc_dec[i];
     s_pc_len[i] = c_pc_len[i];

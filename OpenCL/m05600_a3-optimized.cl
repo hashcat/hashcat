@@ -539,14 +539,14 @@ __kernel void m05600_m04 (KERN_ATTR_ESALT (netntlm_t))
 
   __local u32 s_userdomain_buf[64];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 64; i += lsz)
+  for (u32 i = lid; i < 64; i += lsz)
   {
     s_userdomain_buf[i] = esalt_bufs[digests_offset].userdomain_buf[i];
   }
 
   __local u32 s_chall_buf[256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_chall_buf[i] = esalt_bufs[digests_offset].chall_buf[i];
   }
@@ -612,14 +612,14 @@ __kernel void m05600_m08 (KERN_ATTR_ESALT (netntlm_t))
 
   __local u32 s_userdomain_buf[64];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 64; i += lsz)
+  for (u32 i = lid; i < 64; i += lsz)
   {
     s_userdomain_buf[i] = esalt_bufs[digests_offset].userdomain_buf[i];
   }
 
   __local u32 s_chall_buf[256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_chall_buf[i] = esalt_bufs[digests_offset].chall_buf[i];
   }
@@ -685,14 +685,14 @@ __kernel void m05600_m16 (KERN_ATTR_ESALT (netntlm_t))
 
   __local u32 s_userdomain_buf[64];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 64; i += lsz)
+  for (u32 i = lid; i < 64; i += lsz)
   {
     s_userdomain_buf[i] = esalt_bufs[digests_offset].userdomain_buf[i];
   }
 
   __local u32 s_chall_buf[256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_chall_buf[i] = esalt_bufs[digests_offset].chall_buf[i];
   }
@@ -758,14 +758,14 @@ __kernel void m05600_s04 (KERN_ATTR_ESALT (netntlm_t))
 
   __local u32 s_userdomain_buf[64];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 64; i += lsz)
+  for (u32 i = lid; i < 64; i += lsz)
   {
     s_userdomain_buf[i] = esalt_bufs[digests_offset].userdomain_buf[i];
   }
 
   __local u32 s_chall_buf[256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_chall_buf[i] = esalt_bufs[digests_offset].chall_buf[i];
   }
@@ -831,14 +831,14 @@ __kernel void m05600_s08 (KERN_ATTR_ESALT (netntlm_t))
 
   __local u32 s_userdomain_buf[64];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 64; i += lsz)
+  for (u32 i = lid; i < 64; i += lsz)
   {
     s_userdomain_buf[i] = esalt_bufs[digests_offset].userdomain_buf[i];
   }
 
   __local u32 s_chall_buf[256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_chall_buf[i] = esalt_bufs[digests_offset].chall_buf[i];
   }
@@ -904,14 +904,14 @@ __kernel void m05600_s16 (KERN_ATTR_ESALT (netntlm_t))
 
   __local u32 s_userdomain_buf[64];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 64; i += lsz)
+  for (u32 i = lid; i < 64; i += lsz)
   {
     s_userdomain_buf[i] = esalt_bufs[digests_offset].userdomain_buf[i];
   }
 
   __local u32 s_chall_buf[256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_chall_buf[i] = esalt_bufs[digests_offset].chall_buf[i];
   }

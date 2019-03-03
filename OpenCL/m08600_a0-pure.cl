@@ -245,7 +245,7 @@ __kernel void m08600_mxx (KERN_ATTR_RULES ())
 
   __local u32 s_lotus_magic_table[256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_lotus_magic_table[i] = lotus_magic_table[i];
   }
@@ -309,7 +309,7 @@ __kernel void m08600_sxx (KERN_ATTR_RULES ())
 
   __local u32 s_lotus_magic_table[256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_lotus_magic_table[i] = lotus_magic_table[i];
   }

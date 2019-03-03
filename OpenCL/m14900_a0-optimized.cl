@@ -120,7 +120,7 @@ __kernel void m14900_m04 (KERN_ATTR_RULES ())
 
   __local u8 s_ftable[256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_ftable[i] = c_ftable[i];
   }
@@ -211,7 +211,7 @@ __kernel void m14900_s04 (KERN_ATTR_RULES ())
 
   __local u8 s_ftable[256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_ftable[i] = c_ftable[i];
   }

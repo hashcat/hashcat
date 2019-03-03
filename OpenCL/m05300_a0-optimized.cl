@@ -116,14 +116,14 @@ __kernel void m05300_m04 (KERN_ATTR_RULES_ESALT (ikepsk_t))
 
   __local u32 s_nr_buf[16];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 16; i += lsz)
+  for (u32 i = lid; i < 16; i += lsz)
   {
     s_nr_buf[i] = esalt_bufs[digests_offset].nr_buf[i];
   }
 
   __local u32 s_msg_buf[128];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 128; i += lsz)
+  for (u32 i = lid; i < 128; i += lsz)
   {
     s_msg_buf[i] = esalt_bufs[digests_offset].msg_buf[i];
   }
@@ -291,14 +291,14 @@ __kernel void m05300_s04 (KERN_ATTR_RULES_ESALT (ikepsk_t))
 
   __local u32 s_nr_buf[16];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 16; i += lsz)
+  for (u32 i = lid; i < 16; i += lsz)
   {
     s_nr_buf[i] = esalt_bufs[digests_offset].nr_buf[i];
   }
 
   __local u32 s_msg_buf[128];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 128; i += lsz)
+  for (u32 i = lid; i < 128; i += lsz)
   {
     s_msg_buf[i] = esalt_bufs[digests_offset].msg_buf[i];
   }

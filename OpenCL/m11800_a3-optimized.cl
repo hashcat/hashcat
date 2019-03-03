@@ -2484,7 +2484,7 @@ __kernel void m11800_m04 (KERN_ATTR_BASIC ())
 
   __local u64 s_sbob_sl64[8][256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_sbob_sl64[0][i] = sbob_sl64[0][i];
     s_sbob_sl64[1][i] = sbob_sl64[1][i];
@@ -2548,7 +2548,7 @@ __kernel void m11800_m08 (KERN_ATTR_BASIC ())
 
   __local u64 s_sbob_sl64[8][256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_sbob_sl64[0][i] = sbob_sl64[0][i];
     s_sbob_sl64[1][i] = sbob_sl64[1][i];
@@ -2612,7 +2612,7 @@ __kernel void m11800_m16 (KERN_ATTR_BASIC ())
 
   __local u64 s_sbob_sl64[8][256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_sbob_sl64[0][i] = sbob_sl64[0][i];
     s_sbob_sl64[1][i] = sbob_sl64[1][i];
@@ -2676,7 +2676,7 @@ __kernel void m11800_s04 (KERN_ATTR_BASIC ())
 
   __local u64 s_sbob_sl64[8][256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_sbob_sl64[0][i] = sbob_sl64[0][i];
     s_sbob_sl64[1][i] = sbob_sl64[1][i];
@@ -2740,7 +2740,7 @@ __kernel void m11800_s08 (KERN_ATTR_BASIC ())
 
   __local u64 s_sbob_sl64[8][256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_sbob_sl64[0][i] = sbob_sl64[0][i];
     s_sbob_sl64[1][i] = sbob_sl64[1][i];
@@ -2804,7 +2804,7 @@ __kernel void m11800_s16 (KERN_ATTR_BASIC ())
 
   __local u64 s_sbob_sl64[8][256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_sbob_sl64[0][i] = sbob_sl64[0][i];
     s_sbob_sl64[1][i] = sbob_sl64[1][i];

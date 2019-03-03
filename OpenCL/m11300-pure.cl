@@ -235,7 +235,7 @@ __kernel void m11300_comp (KERN_ATTR_TMPS_ESALT (bitcoin_wallet_tmp_t, bitcoin_w
   __local u32 s_te3[256];
   __local u32 s_te4[256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_td0[i] = td0[i];
     s_td1[i] = td1[i];

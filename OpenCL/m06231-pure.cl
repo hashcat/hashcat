@@ -134,7 +134,7 @@ __kernel void m06231_init (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
 
   __local keyboard_layout_mapping_t s_keyboard_layout_mapping_buf[256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_keyboard_layout_mapping_buf[i] = esalt_bufs[digests_offset].keyboard_layout_mapping_buf[i];
   }
@@ -142,7 +142,7 @@ __kernel void m06231_init (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
   __local u32 s_Ch[8][256];
   __local u32 s_Cl[8][256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_Ch[0][i] = Ch[0][i];
     s_Ch[1][i] = Ch[1][i];
@@ -349,7 +349,7 @@ __kernel void m06231_loop (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
   __local u32 s_Ch[8][256];
   __local u32 s_Cl[8][256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_Ch[0][i] = Ch[0][i];
     s_Ch[1][i] = Ch[1][i];
@@ -554,7 +554,7 @@ __kernel void m06231_comp (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
   __local u32 s_te3[256];
   __local u32 s_te4[256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_td0[i] = td0[i];
     s_td1[i] = td1[i];

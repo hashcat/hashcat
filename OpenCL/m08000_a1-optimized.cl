@@ -252,7 +252,7 @@ __kernel void m08000_m04 (KERN_ATTR_BASIC ())
   __local u32 w_s1[64];
   __local u32 w_s2[64];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 64; i += lsz)
+  for (u32 i = lid; i < 64; i += lsz)
   {
     w_s1[i] = 0;
     w_s2[i] = 0;
@@ -477,7 +477,7 @@ __kernel void m08000_s04 (KERN_ATTR_BASIC ())
   __local u32 w_s1[64];
   __local u32 w_s2[64];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 64; i += lsz)
+  for (u32 i = lid; i < 64; i += lsz)
   {
     w_s1[i] = 0;
     w_s2[i] = 0;

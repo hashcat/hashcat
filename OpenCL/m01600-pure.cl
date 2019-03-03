@@ -258,8 +258,8 @@ __kernel void m01600_loop (KERN_ATTR_TMPS (md5crypt_tmp_t))
 
     if (j1)
     {
-      MAYBE_VOLATILE const u32 off = wpc_len[pc] / 4;
-      MAYBE_VOLATILE const u32 mod = wpc_len[pc] % 4;
+      const u32 off = wpc_len[pc] / 4;
+      const u32 mod = wpc_len[pc] % 4;
 
       u32 *ptr = wpc[pc] + off - 4;
 

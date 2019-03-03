@@ -565,7 +565,7 @@ __kernel void m10700_loop (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
   __local u32 s_te3[256];
   __local u32 s_te4[256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_te0[i] = te0[i];
     s_te1[i] = te1[i];

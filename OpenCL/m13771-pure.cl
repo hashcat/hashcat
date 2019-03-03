@@ -119,7 +119,7 @@ __kernel void m13771_init (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, tc_t))
 
   __local keyboard_layout_mapping_t s_keyboard_layout_mapping_buf[256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_keyboard_layout_mapping_buf[i] = esalt_bufs[digests_offset].keyboard_layout_mapping_buf[i];
   }
@@ -128,7 +128,7 @@ __kernel void m13771_init (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, tc_t))
 
   __local u64a s_sbob_sl64[8][256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_sbob_sl64[0][i] = sbob_sl64[0][i];
     s_sbob_sl64[1][i] = sbob_sl64[1][i];
@@ -315,7 +315,7 @@ __kernel void m13771_loop (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, tc_t))
 
   __local u64a s_sbob_sl64[8][256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_sbob_sl64[0][i] = sbob_sl64[0][i];
     s_sbob_sl64[1][i] = sbob_sl64[1][i];
@@ -482,7 +482,7 @@ __kernel void m13771_comp (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, tc_t))
   __local u32 s_te3[256];
   __local u32 s_te4[256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_td0[i] = td0[i];
     s_td1[i] = td1[i];

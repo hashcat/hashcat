@@ -430,7 +430,7 @@ __kernel void m13800_m04 (KERN_ATTR_RULES_ESALT (win8phone_t))
 
   __local u32 s_esalt[32];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 32; i += lsz)
+  for (u32 i = lid; i < 32; i += lsz)
   {
     s_esalt[i] = esalt_bufs[digests_offset].salt_buf[i];
   }
@@ -626,7 +626,7 @@ __kernel void m13800_s04 (KERN_ATTR_RULES_ESALT (win8phone_t))
 
   __local u32 s_esalt[32];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 32; i += lsz)
+  for (u32 i = lid; i < 32; i += lsz)
   {
     s_esalt[i] = esalt_bufs[digests_offset].salt_buf[i];
   }

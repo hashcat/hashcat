@@ -1071,7 +1071,7 @@ __kernel void m06900_m04 (KERN_ATTR_BASIC ())
 
   __local u32 s_tables[4][256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_tables[0][i] = c_tables[0][i];
     s_tables[1][i] = c_tables[1][i];
@@ -1140,7 +1140,7 @@ __kernel void m06900_m08 (KERN_ATTR_BASIC ())
 
   __local u32 s_tables[4][256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_tables[0][i] = c_tables[0][i];
     s_tables[1][i] = c_tables[1][i];
@@ -1213,7 +1213,7 @@ __kernel void m06900_s04 (KERN_ATTR_BASIC ())
 
   __local u32 s_tables[4][256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_tables[0][i] = c_tables[0][i];
     s_tables[1][i] = c_tables[1][i];
@@ -1282,7 +1282,7 @@ __kernel void m06900_s08 (KERN_ATTR_BASIC ())
 
   __local u32 s_tables[4][256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_tables[0][i] = c_tables[0][i];
     s_tables[1][i] = c_tables[1][i];

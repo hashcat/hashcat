@@ -31,7 +31,7 @@ __kernel void m11760_mxx (KERN_ATTR_BASIC ())
 
   __local u64a s_sbob_sl64[8][256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_sbob_sl64[0][i] = sbob_sl64[0][i];
     s_sbob_sl64[1][i] = sbob_sl64[1][i];
@@ -140,7 +140,7 @@ __kernel void m11760_sxx (KERN_ATTR_BASIC ())
 
   __local u64a s_sbob_sl64[8][256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_sbob_sl64[0][i] = sbob_sl64[0][i];
     s_sbob_sl64[1][i] = sbob_sl64[1][i];

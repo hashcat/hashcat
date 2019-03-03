@@ -245,6 +245,17 @@ u64 module_extra_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UN
   return tmp_size;
 }
 
+bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *hc_device_param)
+{
+  // amdgpu-pro-18.50-708488-ubuntu-18.04: Segmentation fault
+  if ((hc_device_param->device_vendor_id == VENDOR_ID_AMD) && (hc_device_param->has_vperm == false))
+  {
+    return true;
+  }
+
+  return false;
+}
+
 bool module_jit_cache_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
   return true;
@@ -268,36 +279,12 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
   char *jit_build_options = NULL;
 
-  if ((device_param->device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
-  {
-    if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0)
-    {
-      hc_asprintf (&jit_build_options, "-D MAYBE_VOLATILE=volatile -DSCRYPT_N=%u -DSCRYPT_R=%u -DSCRYPT_P=%u -DSCRYPT_TMTO=%" PRIu64 " -DSCRYPT_TMP_ELEM=%" PRIu64,
-        hashes->salts_buf[0].scrypt_N,
-        hashes->salts_buf[0].scrypt_r,
-        hashes->salts_buf[0].scrypt_p,
-        scrypt_tmto_final,
-        tmp_size / 16);
-    }
-    else
-    {
-      hc_asprintf (&jit_build_options, "-DSCRYPT_N=%u -DSCRYPT_R=%u -DSCRYPT_P=%u -DSCRYPT_TMTO=%" PRIu64 " -DSCRYPT_TMP_ELEM=%" PRIu64,
-        hashes->salts_buf[0].scrypt_N,
-        hashes->salts_buf[0].scrypt_r,
-        hashes->salts_buf[0].scrypt_p,
-        scrypt_tmto_final,
-        tmp_size / 16);
-    }
-  }
-  else
-  {
-    hc_asprintf (&jit_build_options, "-DSCRYPT_N=%u -DSCRYPT_R=%u -DSCRYPT_P=%u -DSCRYPT_TMTO=%" PRIu64 " -DSCRYPT_TMP_ELEM=%" PRIu64,
-      hashes->salts_buf[0].scrypt_N,
-      hashes->salts_buf[0].scrypt_r,
-      hashes->salts_buf[0].scrypt_p,
-      scrypt_tmto_final,
-      tmp_size / 16);
-  }
+  hc_asprintf (&jit_build_options, "-DSCRYPT_N=%u -DSCRYPT_R=%u -DSCRYPT_P=%u -DSCRYPT_TMTO=%" PRIu64 " -DSCRYPT_TMP_ELEM=%" PRIu64,
+    hashes->salts_buf[0].scrypt_N,
+    hashes->salts_buf[0].scrypt_r,
+    hashes->salts_buf[0].scrypt_p,
+    scrypt_tmto_final,
+    tmp_size / 16);
 
   return jit_build_options;
 }
@@ -530,6 +517,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_hash                  = module_st_hash;
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
-  module_ctx->module_unstable_warning         = MODULE_DEFAULT;
+  module_ctx->module_unstable_warning         = module_unstable_warning;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }
