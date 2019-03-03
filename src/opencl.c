@@ -4346,7 +4346,7 @@ static u32 get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param
 
   if (device_param->device_type & CL_DEVICE_TYPE_CPU)
   {
-    if ((kernel_threads_min >= 1) && (kernel_threads_max <= 1))
+    if ((1 >= kernel_threads_min) && (1 <= kernel_threads_max))
     {
       kernel_threads_min = 1;
       kernel_threads_max = 1;
