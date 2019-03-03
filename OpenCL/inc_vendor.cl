@@ -105,6 +105,10 @@
 // generic vendors: those algos have shown that they produce better results on both amd and nv when not unrolled
 // so we can assume they will produce better results on other vendors as well
 
+#ifdef NO_UNROLL
+#undef _unroll
+#endif
+
 #if KERN_TYPE == 1420
 #undef _unroll
 #endif
@@ -194,9 +198,6 @@
 #ifdef IS_AMD
 #ifdef IS_GPU
 
-#if KERN_TYPE == 8000
-#undef _unroll
-#endif
 #if KERN_TYPE == 8200
 #undef _unroll
 #endif
