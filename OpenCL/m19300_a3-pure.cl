@@ -50,8 +50,8 @@ __kernel void m19300_mxx (KERN_ATTR_VECTOR_ESALT (sha1_double_salt_t))
   const int salt1_len = esalt_bufs[digests_offset].salt1_len;
   const int salt2_len = esalt_bufs[digests_offset].salt2_len;
 
-  u32 s1[64] = { 0 };
-  u32 s2[64] = { 0 };
+  u32x s1[64] = { 0 };
+  u32x s2[64] = { 0 };
 
   for (int i = 0, idx = 0; i < salt1_len; i += 4, idx += 1)
   {
@@ -137,8 +137,8 @@ __kernel void m19300_sxx (KERN_ATTR_VECTOR_ESALT (sha1_double_salt_t))
   const int salt1_len = esalt_bufs[digests_offset].salt1_len;
   const int salt2_len = esalt_bufs[digests_offset].salt2_len;
 
-  u32 s1[64] = { 0 };
-  u32 s2[64] = { 0 };
+  u32x s1[64] = { 0 };
+  u32x s2[64] = { 0 };
 
   for (int i = 0, idx = 0; i < salt1_len; i += 4, idx += 1)
   {
