@@ -334,6 +334,7 @@ __kernel void m12700_comp (KERN_ATTR_TMPS (mywallet_tmp_t))
 
   for (int i = 1; i < 16 - 6; i++)
   {
+    // "guid"
     if ((pt[i + 0] == '"') && (pt[i + 1] == 'g') && (pt[i + 2] == 'u') && (pt[i + 3] == 'i') && (pt[i + 4] == 'd') && (pt[i + 5] == '"'))
     {
       const u32 r0 = data[0];
@@ -346,7 +347,60 @@ __kernel void m12700_comp (KERN_ATTR_TMPS (mywallet_tmp_t))
       #include COMPARE_M
     }
 
+    // "tx_no
     if ((pt[i + 0] == '"') && (pt[i + 1] == 't') && (pt[i + 2] == 'x') && (pt[i + 3] == '_') && (pt[i + 4] == 'n') && (pt[i + 5] == 'o'))
+    {
+      const u32 r0 = data[0];
+      const u32 r1 = data[1];
+      const u32 r2 = data[2];
+      const u32 r3 = data[3];
+
+      #define il_pos 0
+
+      #include COMPARE_M
+    }
+
+    // "share
+    if ((pt[i + 0] == '"') && (pt[i + 1] == 's') && (pt[i + 2] == 'h') && (pt[i + 3] == 'a') && (pt[i + 4] == 'r') && (pt[i + 5] == 'e'))
+    {
+      const u32 r0 = data[0];
+      const u32 r1 = data[1];
+      const u32 r2 = data[2];
+      const u32 r3 = data[3];
+
+      #define il_pos 0
+
+      #include COMPARE_M
+    }
+
+    // "doubl
+    if ((pt[i + 0] == '"') && (pt[i + 1] == 'd') && (pt[i + 2] == 'o') && (pt[i + 3] == 'u') && (pt[i + 4] == 'b') && (pt[i + 5] == 'l'))
+    {
+      const u32 r0 = data[0];
+      const u32 r1 = data[1];
+      const u32 r2 = data[2];
+      const u32 r3 = data[3];
+
+      #define il_pos 0
+
+      #include COMPARE_M
+    }
+
+    // "addre
+    if ((pt[i + 0] == '"') && (pt[i + 1] == 'a') && (pt[i + 2] == 'd') && (pt[i + 3] == 'd') && (pt[i + 4] == 'r') && (pt[i + 5] == 'a'))
+    {
+      const u32 r0 = data[0];
+      const u32 r1 = data[1];
+      const u32 r2 = data[2];
+      const u32 r3 = data[3];
+
+      #define il_pos 0
+
+      #include COMPARE_M
+    }
+
+    // "keys"
+    if ((pt[i + 0] == '"') && (pt[i + 1] == 'k') && (pt[i + 2] == 'e') && (pt[i + 3] == 'y') && (pt[i + 4] == 's') && (pt[i + 5] == '"'))
     {
       const u32 r0 = data[0];
       const u32 r1 = data[1];
