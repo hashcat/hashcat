@@ -579,6 +579,8 @@ HC_API_CALL void *thread_selftest (void *p)
 
   if (device_param->skipped == true) return NULL;
 
+  if (device_param->skipped_warning == true) return NULL;
+
   const int rc_selftest = selftest (hashcat_ctx, device_param);
 
   if (user_options->benchmark == true)

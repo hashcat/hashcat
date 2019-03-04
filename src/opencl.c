@@ -4155,11 +4155,15 @@ void opencl_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param_src->skipped == true) continue;
 
+    if (device_param_src->skipped_warning == true) continue;
+
     for (u32 device_id_dst = device_id_src; device_id_dst < opencl_ctx->devices_cnt; device_id_dst++)
     {
       hc_device_param_t *device_param_dst = &opencl_ctx->devices_param[device_id_dst];
 
       if (device_param_dst->skipped == true) continue;
+
+      if (device_param_dst->skipped_warning == true) continue;
 
       if (is_same_device_type (device_param_src, device_param_dst) == false) continue;
 
@@ -4194,6 +4198,8 @@ void opencl_ctx_devices_update_power (hashcat_ctx_t *hashcat_ctx)
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
     if (device_param->skipped == true) continue;
+
+    if (device_param->skipped_warning == true) continue;
 
     kernel_power_all += device_param->kernel_power;
   }
@@ -4238,6 +4244,8 @@ void opencl_ctx_devices_kernel_loops (hashcat_ctx_t *hashcat_ctx)
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
     if (device_param->skipped == true) continue;
+
+    if (device_param->skipped_warning == true) continue;
 
     device_param->kernel_loops_min = device_param->kernel_loops_min_sav;
     device_param->kernel_loops_max = device_param->kernel_loops_max_sav;
@@ -4493,6 +4501,8 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
      * module depending checks
      */
 
+    device_param->skipped_warning = false;
+
     if (module_ctx->module_unstable_warning != MODULE_DEFAULT)
     {
       const bool unstable_warning = module_ctx->module_unstable_warning (hashconfig, user_options, user_options_extra, device_param);
@@ -4502,9 +4512,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         event_log_warning (hashcat_ctx, "* Device #%u: Skipping unstable hash-mode %u for this device.", device_id + 1, hashconfig->hash_mode);
         event_log_warning (hashcat_ctx, "             You can use --force to override, but do not report related errors.");
 
-        device_param->skipped = true;
-
-        device_param->unstable_warning = true;
+        device_param->skipped_warning = true;
 
         continue;
       }
@@ -5008,7 +5016,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (CL_rc == -1)
           {
-            device_param->skipped = true;
+            device_param->skipped_warning = true;
 
             event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed - proceeding without this device.", device_id + 1, source_file);
 
@@ -5087,7 +5095,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (CL_rc == -1)
         {
-          device_param->skipped = true;
+          device_param->skipped_warning = true;
 
           event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed - proceeding without this device.", device_id + 1, source_file);
 
@@ -5201,7 +5209,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (CL_rc == -1)
           {
-            device_param->skipped = true;
+            device_param->skipped_warning = true;
 
             event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed - proceeding without this device.", device_id + 1, source_file);
 
@@ -5348,7 +5356,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (CL_rc == -1)
           {
-            device_param->skipped = true;
+            device_param->skipped_warning = true;
 
             event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed - proceeding without this device.", device_id + 1, source_file);
 
@@ -6749,8 +6757,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
   }
 
   // Prevent exit from benchmark mode if all devices are skipped due to unstable hash-modes (macOS)
-
-//  if (hardware_power_all == 0) return -1;
+  //  if (hardware_power_all == 0) return -1;
 
   opencl_ctx->hardware_power_all = hardware_power_all;
 
@@ -6928,15 +6935,7 @@ void opencl_session_reset (hashcat_ctx_t *hashcat_ctx)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
-    if (device_param->skipped == true)
-    {
-      if (device_param->unstable_warning == true)
-      {
-        device_param->skipped = false;
-      }
-
-      continue;
-    }
+    if (device_param->skipped == true) continue;
 
     device_param->speed_pos = 0;
 
@@ -6990,6 +6989,8 @@ int opencl_session_update_combinator (hashcat_ctx_t *hashcat_ctx)
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
     if (device_param->skipped == true) continue;
+
+    if (device_param->skipped_warning == true) continue;
 
     // kernel_params
 
@@ -7048,6 +7049,8 @@ int opencl_session_update_mp (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->skipped == true) continue;
 
+    if (device_param->skipped_warning == true) continue;
+
     device_param->kernel_params_mp_buf64[3] = 0;
     device_param->kernel_params_mp_buf32[4] = mask_ctx->css_cnt;
 
@@ -7078,6 +7081,8 @@ int opencl_session_update_mp_rl (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_l
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
     if (device_param->skipped == true) continue;
+
+    if (device_param->skipped_warning == true) continue;
 
     device_param->kernel_params_mp_l_buf64[3] = 0;
     device_param->kernel_params_mp_l_buf32[4] = css_cnt_l;

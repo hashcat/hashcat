@@ -20,6 +20,7 @@ void format_speed_display_1k (double val,    char *buf, size_t len);
 int         status_get_device_info_cnt                (const hashcat_ctx_t *hashcat_ctx);
 int         status_get_device_info_active             (const hashcat_ctx_t *hashcat_ctx);
 bool        status_get_skipped_dev                    (const hashcat_ctx_t *hashcat_ctx, const int device_id);
+bool        status_get_skipped_warning_dev            (const hashcat_ctx_t *hashcat_ctx, const int device_id);
 char       *status_get_session                        (const hashcat_ctx_t *hashcat_ctx);
 const char *status_get_status_string                  (const hashcat_ctx_t *hashcat_ctx);
 int         status_get_status_number                  (const hashcat_ctx_t *hashcat_ctx);

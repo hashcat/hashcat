@@ -1048,10 +1048,10 @@ typedef struct hc_device_param
   cl_device_type  device_type;
 
   u32     device_id;
-  u32     platform_devices_id;   // for mapping with hms devices
+  u32     platform_devices_id;  // for mapping with hms devices
 
-  bool    skipped;
-  bool    unstable_warning;
+  bool    skipped;              // permanent
+  bool    skipped_warning;      // iteration
 
   st_status_t st_status;
 
@@ -2020,6 +2020,7 @@ typedef struct cpt_ctx
 typedef struct device_info
 {
   bool    skipped_dev;
+  bool    skipped_warning_dev;
   double  hashes_msec_dev;
   double  hashes_msec_dev_benchmark;
   double  exec_msec_dev;

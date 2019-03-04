@@ -292,6 +292,8 @@ HC_API_CALL void *thread_autotune (void *p)
 
   if (device_param->skipped == true) return NULL;
 
+  if (device_param->skipped_warning == true) return NULL;
+
   const int rc_autotune = autotune (hashcat_ctx, device_param);
 
   if (rc_autotune == -1)

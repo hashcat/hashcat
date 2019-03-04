@@ -140,6 +140,8 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
         if (device_param->skipped == true) continue;
 
+        if (device_param->skipped_warning == true) continue;
+
         const int rc_throttle = hm_get_throttle_with_device_id (hashcat_ctx, device_id);
 
         if (rc_throttle == -1) continue;
@@ -237,6 +239,8 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
         hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
         if (device_param->skipped == true) continue;
+
+        if (device_param->skipped_warning == true) continue;
 
         exec_cnt++;
 
