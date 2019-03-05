@@ -22,6 +22,7 @@
 - Fixed output of IKE PSK (mode 5300 and 5400) hashes to have separators at right position
 - Fixed the validation of the --brain-client-features command line argument (only values 1, 2 or 3 are allowed)
 - Fixed cracking of Cisco-PIX and Cisco-ASA MD5 passwords in mask-attack mode if mask > length 16
+- Fixed cracking of NetNTLMv1 passwords in mask-attack mode if mask > length 16 (optimized kernels only)
 - Fixed the 7-Zip parser to allow the entire supported range of encrypted and decrypted data lengths
 - Fixed incorrect progress-only result in a special race condition
 - Fixed maximum password length limit which was announced as 256 but actually was 255
