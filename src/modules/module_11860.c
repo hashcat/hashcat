@@ -46,7 +46,10 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
   // amdgpu-pro-18.50-708488-ubuntu-18.04: CL_OUT_OF_RESOURCES
   if ((hc_device_param->device_vendor_id == VENDOR_ID_AMD) && (hc_device_param->has_vperm == false))
   {
-    return true;
+    if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 1)
+    {
+      return true;
+    }
   }
 
   return false;
