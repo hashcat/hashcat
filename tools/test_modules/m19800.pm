@@ -16,8 +16,7 @@ sub module_generate_hash
 {
   my $word = shift;
 
-  # my $digest = sha256_hex (sha256_hex ($word));
-  my $digest = sha256_hex ($word);
+  my $digest = sha256_hex (sha256_hex ($word));
 
   my $hash = sprintf ("%s", $digest);
 
