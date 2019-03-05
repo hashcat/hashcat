@@ -9,21 +9,25 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
-#include "cpu_md5.h"
-#include "memory.h"
+#include "inc_hash_constants.h"
 
-static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
+static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
-static const u32   DGST_POS1      = 1;
+static const u32   DGST_POS1      = 3;
 static const u32   DGST_POS2      = 2;
-static const u32   DGST_POS3      = 3;
-static const u32   DGST_SIZE      = DGST_SIZE_8_8;
-static const u32   HASH_CATEGORY  = HASH_CATEGORY_NETWORK_SERVER;
-static const char *HASH_NAME      = "AuthMe - SHA256(SHA256($pass) + $salt)";
-static const u64   KERN_TYPE      = 1470;
-static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
-static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
+static const u32   DGST_POS3      = 1;
+static const u32   DGST_SIZE      = DGST_SIZE_4_4;
+static const u32   HASH_CATEGORY  = HASH_CATEGORY_FORUM_SOFTWARE;
+static const char *HASH_NAME      = "AuthMe - sha256(sha256($pass) + $salt)";
+static const u64   KERN_TYPE      = 19810;
+static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
+                                  | OPTI_TYPE_PRECOMPUTE_INIT
+                                  | OPTI_TYPE_EARLY_SKIP;
+static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_PT_ADD80
+                                  | OPTS_TYPE_PT_ADDBITS14
+                                  | OPTS_TYPE_ST_ADD80;
+static const u32   SALT_TYPE      = SALT_TYPE_GENERIC;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$SHA$7218532375810603$bfede293ecf6539211a7305ea218b9f3f608953130405cda9eaba6fb6250f824";
 
@@ -42,81 +46,57 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
-u32 module_salt_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u32 salt_min = 16;
-
-  return salt_min;
-}
-
-u32 module_salt_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u32 salt_max = 16;
-
-  return salt_max;
-}
-
-u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u32 pw_max = 32;
-
-  return pw_max;
-}
-
-static const char *SIGNATURE_AUTHME = "$SHA$";
-
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
   u32 *digest = (u32 *) digest_buf;
 
   token_t token;
 
-  token.token_cnt  = 3;
+  token.token_cnt  = 2;
 
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_AUTHME;
-
-  token.len[0]     = 5;
-  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.sep[1]     = '$';
-  token.len_min[1] = 16;
-  token.len_max[1] = 16;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.sep[2]     = '$';
-  token.len_min[2] = 64;
-  token.len_max[2] = 64;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.sep[0]     = hashconfig->separator;
+  token.len_min[0] = 32;
+  token.len_max[0] = 32;
+  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
+
+  token.len_min[1] = SALT_MIN;
+  token.len_max[1] = SALT_MAX;
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+  if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
+  {
+    token.len_min[1] *= 2;
+    token.len_max[1] *= 2;
+
+    token.attr[1] |= TOKEN_ATTR_VERIFY_HEX;
+  }
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  // salt
-
-  const u8 *salt_pos = token.buf[1];
-  const int salt_len = token.len[1];
-
-  memcpy ((u8 *) salt->salt_buf, salt_pos, salt_len);
-
-  salt->salt_len = salt_len;
-
-  // hash
-
-  const u8 *hash_pos = token.buf[2];
+  const u8 *hash_pos = token.buf[0];
 
   digest[0] = hex_to_u32 (hash_pos +  0);
   digest[1] = hex_to_u32 (hash_pos +  8);
   digest[2] = hex_to_u32 (hash_pos + 16);
   digest[3] = hex_to_u32 (hash_pos + 24);
-  digest[4] = hex_to_u32 (hash_pos + 32);
-  digest[5] = hex_to_u32 (hash_pos + 40);
-  digest[6] = hex_to_u32 (hash_pos + 48);
-  digest[7] = hex_to_u32 (hash_pos + 56);
+
+  if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+  {
+    digest[0] -= MD5M_A;
+    digest[1] -= MD5M_B;
+    digest[2] -= MD5M_C;
+    digest[3] -= MD5M_D;
+  }
+
+  const u8 *salt_pos = token.buf[1];
+  const int salt_len = token.len[1];
+
+  const bool parse_rc = generic_salt_decode (hashconfig, salt_pos, salt_len, (u8 *) salt->salt_buf, (int *) &salt->salt_len);
+
+  if (parse_rc == false) return (PARSER_SALT_LENGTH);
 
   return (PARSER_OK);
 }
@@ -125,38 +105,40 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u32 *digest = (const u32 *) digest_buf;
 
-  int line_len = 0;
+  // we can not change anything in the original buffer, otherwise destroying sorting
+  // therefore create some local buffer
 
-  // signature
+  u32 tmp[4];
 
-  line_buf[line_len++] = '$';
-  line_buf[line_len++] = 'S';
-  line_buf[line_len++] = 'H';
-  line_buf[line_len++] = 'A';
-  line_buf[line_len++] = '$';
+  tmp[0] = digest[0];
+  tmp[1] = digest[1];
+  tmp[2] = digest[2];
+  tmp[3] = digest[3];
 
-  // salt
+  if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+  {
+    tmp[0] += MD5M_A;
+    tmp[1] += MD5M_B;
+    tmp[2] += MD5M_C;
+    tmp[3] += MD5M_D;
+  }
 
-  memcpy (line_buf + line_len, salt->salt_buf, salt->salt_len);
+  u8 *out_buf = (u8 *) line_buf;
 
-  line_len += salt->salt_len;
+  int out_len = 0;
 
-  line_buf[line_len++] = '$';
+  u32_to_hex (tmp[0], out_buf + out_len); out_len += 8;
+  u32_to_hex (tmp[1], out_buf + out_len); out_len += 8;
+  u32_to_hex (tmp[2], out_buf + out_len); out_len += 8;
+  u32_to_hex (tmp[3], out_buf + out_len); out_len += 8;
 
-  // digest
+  out_buf[out_len] = hashconfig->separator;
 
-  u32_to_hex (digest[0], (u8 *) line_buf + line_len); line_len += 8;
-  u32_to_hex (digest[1], (u8 *) line_buf + line_len); line_len += 8;
-  u32_to_hex (digest[2], (u8 *) line_buf + line_len); line_len += 8;
-  u32_to_hex (digest[3], (u8 *) line_buf + line_len); line_len += 8;
-  u32_to_hex (digest[4], (u8 *) line_buf + line_len); line_len += 8;
-  u32_to_hex (digest[5], (u8 *) line_buf + line_len); line_len += 8;
-  u32_to_hex (digest[6], (u8 *) line_buf + line_len); line_len += 8;
-  u32_to_hex (digest[7], (u8 *) line_buf + line_len); line_len += 8;
+  out_len += 1;
 
-  line_buf[line_len] = 0;
+  out_len += generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, (const int) salt->salt_len, out_buf + out_len);
 
-  return line_len;
+  return out_len;
 }
 
 void module_init (module_ctx_t *module_ctx)
@@ -215,10 +197,10 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_potfile_disable          = MODULE_DEFAULT;
   module_ctx->module_potfile_keep_all_hashes  = MODULE_DEFAULT;
   module_ctx->module_pwdump_column            = MODULE_DEFAULT;
-  module_ctx->module_pw_max                   = module_pw_max;
+  module_ctx->module_pw_max                   = MODULE_DEFAULT;
   module_ctx->module_pw_min                   = MODULE_DEFAULT;
-  module_ctx->module_salt_max                 = module_salt_max;
-  module_ctx->module_salt_min                 = module_salt_min;
+  module_ctx->module_salt_max                 = MODULE_DEFAULT;
+  module_ctx->module_salt_min                 = MODULE_DEFAULT;
   module_ctx->module_salt_type                = module_salt_type;
   module_ctx->module_separator                = MODULE_DEFAULT;
   module_ctx->module_st_hash                  = module_st_hash;
