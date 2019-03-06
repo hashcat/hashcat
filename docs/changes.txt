@@ -14,6 +14,7 @@
 - Added hash-mode 19100 QNX /etc/shadow (SHA256)
 - Added hash-mode 19200 QNX /etc/shadow (SHA512)
 - Added hash-mode 19300 sha1($salt1.$pass.$salt2)
+- Added hash-mode 19500 Ruby on Rails Restful-Authentication
 
 ##
 ## Bugs
