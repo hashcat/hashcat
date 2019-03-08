@@ -16,6 +16,25 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct pbkdf2_sha256_tmp
+{
+  u32  ipad[8];
+  u32  opad[8];
+
+  u32  dgst[32];
+  u32  out[32];
+
+} pbkdf2_sha256_tmp_t;
+
+typedef struct ansible_vault
+{
+  u32 cipher;
+  u32 version;
+  u32 ct_data_buf[4096];
+  u32 ct_data_len;
+
+} ansible_vault_t;
+
 DECLSPEC void hmac_sha256_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
 {
   digest[0] = ipad[0];

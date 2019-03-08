@@ -13,6 +13,23 @@
 #include "inc_simd.cl"
 #include "inc_hash_sha256.cl"
 
+typedef struct pbkdf2_sha256_tmp
+{
+  u32  ipad[8];
+  u32  opad[8];
+
+  u32  dgst[32];
+  u32  out[32];
+
+} pbkdf2_sha256_tmp_t;
+
+typedef struct ethereum_pbkdf2
+{
+  u32 salt_buf[16];
+  u32 ciphertext[8];
+
+} ethereum_pbkdf2_t;
+
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 

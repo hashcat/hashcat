@@ -13,6 +13,23 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct
+{
+  #ifndef SCRYPT_TMP_ELEM
+  #define SCRYPT_TMP_ELEM 1
+  #endif
+
+  uint4 P[SCRYPT_TMP_ELEM];
+
+} scrypt_tmp_t;
+
+typedef struct ethereum_scrypt
+{
+  u32 salt_buf[16];
+  u32 ciphertext[8];
+
+} ethereum_scrypt_t;
+
 DECLSPEC uint4 swap32_4 (uint4 v)
 {
   return (rotate ((v & 0x00FF00FF), 24u) | rotate ((v & 0xFF00FF00),  8u));

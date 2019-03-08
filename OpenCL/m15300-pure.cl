@@ -17,6 +17,37 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct dpapimk
+{
+  u32 context;
+
+  u32 SID[32];
+  u32 SID_len;
+  u32 SID_offset;
+
+  /* here only for possible
+     forward compatibiliy
+  */
+  // u8 cipher_algo[16];
+  // u8 hash_algo[16];
+
+  u32 iv[4];
+  u32 contents_len;
+  u32 contents[128];
+
+} dpapimk_t;
+
+typedef struct dpapimk_tmp_v1
+{
+  u32 ipad[5];
+  u32 opad[5];
+  u32 dgst[10];
+  u32 out[10];
+
+  u32 userKey[5];
+
+} dpapimk_tmp_v1_t;
+
 #define PERM_OP(a,b,tt,n,m) \
 {                           \
   tt = a >> n;              \

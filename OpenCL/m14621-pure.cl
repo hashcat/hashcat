@@ -25,6 +25,37 @@
 
 #define MAX_ENTROPY 7.0
 
+#define LUKS_STRIPES 4000
+
+typedef struct luks
+{
+  int hash_type;    // hc_luks_hash_type_t
+  int key_size;     // hc_luks_key_size_t
+  int cipher_type;  // hc_luks_cipher_type_t
+  int cipher_mode;  // hc_luks_cipher_mode_t
+
+  u32 ct_buf[128];
+
+  u32 af_src_buf[((HC_LUKS_KEY_SIZE_512 / 8) * LUKS_STRIPES) / 4];
+
+} luks_t;
+
+typedef struct luks_tmp
+{
+  u32 ipad32[8];
+  u64 ipad64[8];
+
+  u32 opad32[8];
+  u64 opad64[8];
+
+  u32 dgst32[32];
+  u64 dgst64[16];
+
+  u32 out32[32];
+  u64 out64[16];
+
+} luks_tmp_t;
+
 DECLSPEC void hmac_sha256_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
 {
   digest[0] = ipad[0];

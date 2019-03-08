@@ -13,6 +13,15 @@
 #include "inc_simd.cl"
 #include "inc_hash_sha384.cl"
 
+typedef struct jwt
+{
+  u32 salt_buf[1024];
+  u32 salt_len;
+
+  u32 signature_len;
+
+} jwt_t;
+
 __kernel void m16512_mxx (KERN_ATTR_VECTOR_ESALT (jwt_t))
 {
   /**
