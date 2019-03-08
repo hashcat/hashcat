@@ -19,6 +19,12 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct wpa_pmk_tmp
+{
+  u32 out[8];
+
+} wpa_pmk_tmp_t;
+
 typedef struct wpa_eapol
 {
   u32  pke[32];
@@ -41,16 +47,6 @@ typedef struct wpa_eapol
   int  detected_be;
 
 } wpa_eapol_t;
-
-typedef struct wpa_pbkdf2_tmp
-{
-  u32 ipad[5];
-  u32 opad[5];
-
-  u32 dgst[10];
-  u32 out[10];
-
-} wpa_pbkdf2_tmp_t;
 
 DECLSPEC u8 hex_convert (const u8 c)
 {
