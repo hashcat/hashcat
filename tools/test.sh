@@ -2542,6 +2542,7 @@ TYPE="null"
 VECTOR="default"
 HT=0
 PACKAGE=0
+OPTIMIZED=1
 
 while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:" opt; do
 
@@ -2668,6 +2669,7 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:" opt; do
 
     "P")
         OPTS="$(echo "${OPTS}" | sed 's/ -O$//' | sed 's/^-O //' | sed 's/ -O //')"
+        OPTIMIZED=0
       ;;
 
     \?)
@@ -2680,6 +2682,8 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:" opt; do
   esac
 
 done
+
+export IS_OPTIMIZED=${OPTIMIZED}
 
 if [ "${TYPE}" == "null" ]; then
    OPTS="${OPTS} -D 2"
