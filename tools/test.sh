@@ -2487,11 +2487,11 @@ OPTIONS:
   -m    Select hash type :
         'all'       => all hash type supported
         (int)       => hash type integer code (default : 0)
+        (int)-(int) => hash type integer range
 
   -a    Select attack mode :
         'all'       => all attack modes
         (int)       => attack mode integer code (default : 0)
-        (int)-(int) => attack mode integer range
 
   -x    Select cpu architecture :
         '32'        => 32 bit architecture
