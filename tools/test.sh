@@ -2668,7 +2668,7 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:" opt; do
       ;;
 
     "P")
-        OPTS="$(echo "${OPTS}" | sed 's/ -O$//' | sed 's/^-O //' | sed 's/ -O //')"
+        OPTS="$(echo "${OPTS}" | sed 's/ -O$/ /' | sed 's/^-O / /' | sed 's/ -O / /')"
         OPTIMIZED=0
       ;;
 
