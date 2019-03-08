@@ -19,11 +19,6 @@
 #include "inc_cipher_camellia.cl"
 #include "inc_cipher_kuznyechik.cl"
 
-#include "inc_truecrypt_keyfile.cl"
-#include "inc_truecrypt_crc32.cl"
-#include "inc_truecrypt_xts.cl"
-#include "inc_veracrypt_xts.cl"
-
 typedef struct tc
 {
   u32 salt_buf[32];
@@ -35,6 +30,11 @@ typedef struct tc
   int                       keyboard_layout_mapping_cnt;
 
 } tc_t;
+
+#include "inc_truecrypt_keyfile.cl"
+#include "inc_truecrypt_crc32.cl"
+#include "inc_truecrypt_xts.cl"
+#include "inc_veracrypt_xts.cl"
 
 typedef struct vc64_sbog_tmp
 {
