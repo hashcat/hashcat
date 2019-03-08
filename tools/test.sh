@@ -5,7 +5,7 @@
 ## License.....: MIT
 ##
 
-OPTS="--quiet --potfile-disable --runtime 400 --hwmon-disable -O"
+OPTS="--quiet --potfile-disable --runtime 400 --hwmon-disable"
 
 TDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -2668,7 +2668,6 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:" opt; do
       ;;
 
     "P")
-        OPTS="$(echo "${OPTS}" | sed 's/ -O$//' | sed 's/^-O //' | sed 's/ -O //')"
         OPTIMIZED=0
       ;;
 
@@ -2685,9 +2684,13 @@ done
 
 export IS_OPTIMIZED=${OPTIMIZED}
 
+if [ "${OPTIMIZED}" -eq 1 ]; then
+  OPTS="${OPTS} -O"
+fi
+
 if [ "${TYPE}" == "null" ]; then
-   OPTS="${OPTS} -D 2"
-   TYPE="Gpu"
+  OPTS="${OPTS} -D 2"
+  TYPE="Gpu"
 fi
 
 if [ -n "${ARCHITECTURE}" ]; then
