@@ -28,6 +28,7 @@
 - Fixed maximum password length limit which was announced as 256 but actually was 255
 - Fixed cracking raw Streebog-HMAC 256 and 512 hashes with password of length >= 64
 - Fixed cracking raw Whirlpool hashes cracking with password of length >= 32
+- Fixed cracking of Electrum Wallet Salt-Type 2 hashes
 
 ##
 ## Improvements
@@ -289,7 +290,7 @@
 - Added hash-mode 16300 = Ethereum Pre-Sale Wallet, PBKDF2-SHA256
 - Added hash-mode 16400 = CRAM-MD5 Dovecot
 - Added hash-mode 16500 = JWT (JSON Web Token)
-- Added hash-mode 16600 = Electrum Wallet (Salt-Type 1)
+- Added hash-mode 16600 = Electrum Wallet (Salt-Type 1-2)
 
 ##
 ## Bugs
