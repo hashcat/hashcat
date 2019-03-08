@@ -16,6 +16,16 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct sha256aix_tmp
+{
+  u32 ipad[8];
+  u32 opad[8];
+
+  u32 dgst[8];
+  u32 out[8];
+
+} sha256aix_tmp_t;
+
 DECLSPEC void hmac_sha256_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
 {
   digest[0] = ipad[0];

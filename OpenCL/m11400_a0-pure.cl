@@ -15,6 +15,16 @@
 #include "inc_scalar.cl"
 #include "inc_hash_md5.cl"
 
+typedef struct sip
+{
+  u32 salt_buf[32];
+  u32 salt_len;
+
+  u32 esalt_buf[256];
+  u32 esalt_len;
+
+} sip_t;
+
 #if   VECT_SIZE == 1
 #define uint_to_hex_lower8(i) (u32x) (l_bin2asc[(i)])
 #elif VECT_SIZE == 2

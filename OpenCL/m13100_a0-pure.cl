@@ -16,6 +16,15 @@
 #include "inc_hash_md4.cl"
 #include "inc_hash_md5.cl"
 
+typedef struct krb5tgs
+{
+  u32 account_info[512];
+  u32 checksum[4];
+  u32 edata2[5120];
+  u32 edata2_len;
+
+} krb5tgs_t;
+
 typedef struct
 {
   u8 S[256];

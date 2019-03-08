@@ -25,6 +25,34 @@ __constant u32a padding[8] =
   0x7a695364
 };
 
+typedef struct pdf
+{
+  int  V;
+  int  R;
+  int  P;
+
+  int  enc_md;
+
+  u32  id_buf[8];
+  u32  u_buf[32];
+  u32  o_buf[32];
+
+  int  id_len;
+  int  o_len;
+  int  u_len;
+
+  u32  rc4key[2];
+  u32  rc4data[2];
+
+} pdf_t;
+
+typedef struct pdf14_tmp
+{
+  u32 digest[4];
+  u32 out[4];
+
+} pdf14_tmp_t;
+
 typedef struct
 {
   u8 S[256];

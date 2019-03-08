@@ -24,6 +24,31 @@
 #include "inc_truecrypt_xts.cl"
 #include "inc_veracrypt_xts.cl"
 
+typedef struct tc
+{
+  u32 salt_buf[32];
+  u32 data_buf[112];
+  u32 keyfile_buf[16];
+  u32 signature;
+
+  keyboard_layout_mapping_t keyboard_layout_mapping_buf[256];
+  int                       keyboard_layout_mapping_cnt;
+
+} tc_t;
+
+typedef struct vc64_sbog_tmp
+{
+  u64  ipad_raw[8];
+  u64  opad_raw[8];
+
+  u64  ipad_hash[8];
+  u64  opad_hash[8];
+
+  u64  dgst[32];
+  u64  out[32];
+
+} vc64_sbog_tmp_t;
+
 DECLSPEC void hmac_streebog512_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u64x *ipad_hash, u64x *opad_hash, u64x *ipad_raw, u64x *opad_raw, u64x *digest, SHM_TYPE u64a (*s_sbob_sl64)[256])
 {
   const u64x nullbuf[8] = { 0 };

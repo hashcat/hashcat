@@ -15,6 +15,16 @@
 #include "inc_hash_md4.cl"
 #include "inc_hash_md5.cl"
 
+typedef struct krb5pa
+{
+  u32 user[16];
+  u32 realm[16];
+  u32 salt[32];
+  u32 timestamp[16];
+  u32 checksum[4];
+
+} krb5pa_t;
+
 typedef struct
 {
   u8 S[256];

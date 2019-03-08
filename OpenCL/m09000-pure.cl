@@ -12,6 +12,19 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct pwsafe2_tmp
+{
+  u32 digest[2];
+
+  u32 P[18];
+
+  u32 S0[256];
+  u32 S1[256];
+  u32 S2[256];
+  u32 S3[256];
+
+} pwsafe2_tmp_t;
+
 // http://www.schneier.com/code/constants.txt
 
 __constant u32a c_sbox0[256] =

@@ -1329,3 +1329,12 @@ typedef struct plain
   u32  hash_pos;
 
 } plain_t;
+
+typedef struct keyboard_layout_mapping
+{
+  u32 src_char;
+  int src_len;
+  u32 dst_char;
+  int dst_len;
+
+} keyboard_layout_mapping_t;

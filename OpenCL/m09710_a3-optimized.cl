@@ -14,6 +14,15 @@
 #include "inc_simd.cl"
 #include "inc_hash_md5.cl"
 
+typedef struct oldoffice01
+{
+  u32 version;
+  u32 encryptedVerifier[4];
+  u32 encryptedVerifierHash[4];
+  u32 rc4key[2];
+
+} oldoffice01_t;
+
 typedef struct
 {
   u8 S[256];

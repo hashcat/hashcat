@@ -13,6 +13,12 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct saph_sha1_tmp
+{
+  u32 digest_buf[5];
+
+} saph_sha1_tmp_t;
+
 __kernel void m10300_init (KERN_ATTR_TMPS (saph_sha1_tmp_t))
 {
   /**
