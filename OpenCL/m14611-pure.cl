@@ -14,18 +14,17 @@
 #include "inc_hash_sha1.cl"
 #include "inc_cipher_aes.cl"
 
-#include "inc_luks_af.cl"
-#include "inc_luks_essiv.cl"
-#include "inc_luks_xts.cl"
-
-#include "inc_luks_aes.cl"
-
-#define COMPARE_S "inc_comp_single.cl"
-#define COMPARE_M "inc_comp_multi.cl"
-
-#define MAX_ENTROPY 7.0
-
 #define LUKS_STRIPES 4000
+
+typedef enum hc_luks_hash_type
+{
+  HC_LUKS_HASH_TYPE_SHA1      = 1,
+  HC_LUKS_HASH_TYPE_SHA256    = 2,
+  HC_LUKS_HASH_TYPE_SHA512    = 3,
+  HC_LUKS_HASH_TYPE_RIPEMD160 = 4,
+  HC_LUKS_HASH_TYPE_WHIRLPOOL = 5,
+
+} hc_luks_hash_type_t;
 
 typedef enum hc_luks_key_size
 {
@@ -34,6 +33,22 @@ typedef enum hc_luks_key_size
   HC_LUKS_KEY_SIZE_512 = 512,
 
 } hc_luks_key_size_t;
+
+typedef enum hc_luks_cipher_type
+{
+  HC_LUKS_CIPHER_TYPE_AES     = 1,
+  HC_LUKS_CIPHER_TYPE_SERPENT = 2,
+  HC_LUKS_CIPHER_TYPE_TWOFISH = 3,
+
+} hc_luks_cipher_type_t;
+
+typedef enum hc_luks_cipher_mode
+{
+  HC_LUKS_CIPHER_MODE_CBC_ESSIV = 1,
+  HC_LUKS_CIPHER_MODE_CBC_PLAIN = 2,
+  HC_LUKS_CIPHER_MODE_XTS_PLAIN = 3,
+
+} hc_luks_cipher_mode_t;
 
 typedef struct luks
 {
@@ -63,6 +78,17 @@ typedef struct luks_tmp
   u64 out64[16];
 
 } luks_tmp_t;
+
+#include "inc_luks_af.cl"
+#include "inc_luks_essiv.cl"
+#include "inc_luks_xts.cl"
+
+#include "inc_luks_aes.cl"
+
+#define COMPARE_S "inc_comp_single.cl"
+#define COMPARE_M "inc_comp_multi.cl"
+
+#define MAX_ENTROPY 7.0
 
 DECLSPEC void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
 {
