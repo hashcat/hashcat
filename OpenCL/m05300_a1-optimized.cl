@@ -13,6 +13,16 @@
 #include "inc_simd.cl"
 #include "inc_hash_md5.cl"
 
+typedef struct ikepsk
+{
+  u32 nr_buf[16];
+  u32 nr_len;
+
+  u32 msg_buf[128];
+  u32 msg_len[6];
+
+} ikepsk_t;
+
 DECLSPEC void hmac_md5_pad (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad)
 {
   w0[0] = w0[0] ^ 0x36363636;

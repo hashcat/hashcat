@@ -13,6 +13,12 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct md5crypt_tmp
+{
+  u32 digest_buf[4];
+
+} md5crypt_tmp_t;
+
 #define md5apr1_magic0 0x72706124u
 #define md5apr1_magic1 0x00002431u
 

@@ -16,6 +16,20 @@
 #define PUTCHAR64_BE(a,p,c) ((u8 *)(a))[(p) ^ 7] = (u8) (c)
 #define GETCHAR64_BE(a,p)   ((u8 *)(a))[(p) ^ 7]
 
+typedef struct sha512crypt_tmp
+{
+  u64 l_alt_result[8];
+  u64 l_p_bytes[2];
+  u64 l_s_bytes[2];
+
+  // pure version
+
+  u32 alt_result[16];
+  u32 p_bytes[64];
+  u32 s_bytes[64];
+
+} sha512crypt_tmp_t;
+
 typedef struct
 {
   u64 state[8];

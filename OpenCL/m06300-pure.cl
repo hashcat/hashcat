@@ -18,6 +18,12 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct md5crypt_tmp
+{
+  u32 digest_buf[4];
+
+} md5crypt_tmp_t;
+
 __kernel void m06300_init (KERN_ATTR_TMPS (md5crypt_tmp_t))
 {
   /**
