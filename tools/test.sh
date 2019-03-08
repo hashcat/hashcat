@@ -2479,11 +2479,6 @@ OPTIONS:
         '8'         => vector-width 8
         'all'       => test sequentially vector-width ${VECTOR_WIDTHS}
 
-  -T    OpenCL device-types to use :
-        'gpu'       => gpu devices (default)
-        'cpu'       => cpu devices
-        'all'       => gpu and cpu devices
-
   -t    Select test mode :
         'single'    => single hash (default)
         'multi'     => multi hash
@@ -2507,11 +2502,29 @@ OPTIONS:
         'linux'     => Linux operating system (use .bin file extension)
         'macos'     => macOS operating system (use .app file extension)
 
+  -d    Select the OpenCL device :
+        (int)[,int] => comma separated list of devices (default : 1)
+
+  -D    Select the OpenCL device types :
+        '1'         => CPU
+        '2'         => GPU (default)
+        '3'         => FPGA, DSP, Co-Processor
+        (int)[,int] => multiple comma separated device types from the list above
+
+  -O    Use optimized kernels (default : -O)
+
+  -P    Use pure kernels instead of optimized kernels (default : -O)
+
+  -s    Use this session name instead of the default one (default : "hashcat")
+
   -c    Disables markov-chains
 
   -p    Package the tests into a .7z file
 
-  -d    Use this folder as input/output folder for packaged tests
+  -F    Use this folder as test folder instead of the default one
+        (string)    => path to folder
+
+  -I    Use this folder as input/output folder for packaged tests
         (string)    => path to folder
 
   -h    Show this help
@@ -2530,7 +2543,7 @@ VECTOR="default"
 HT=0
 PACKAGE=0
 
-while getopts "V:T:t:m:a:b:hcpd:x:o:" opt; do
+while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:" opt; do
 
   case ${opt} in
     "V")
@@ -2546,21 +2559,6 @@ while getopts "V:T:t:m:a:b:hcpd:x:o:" opt; do
         VECTOR=16
       elif [ ${OPTARG} == "all" ]; then
         VECTOR="all"
-      else
-        usage
-      fi
-      ;;
-
-    "T")
-      if [ ${OPTARG} == "gpu" ]; then
-        OPTS="${OPTS} --opencl-device-types 2"
-        TYPE="Gpu"
-      elif [ ${OPTARG} == "cpu" ]; then
-        OPTS="${OPTS} --opencl-device-types 1"
-        TYPE="Cpu"
-      elif [ ${OPTARG} == "all" ]; then
-        OPTS="${OPTS} --opencl-device-types 1,2"
-        TYPE="Cpu + Gpu"
       else
         usage
       fi
@@ -2609,8 +2607,12 @@ while getopts "V:T:t:m:a:b:hcpd:x:o:" opt; do
       MARKOV="disabled"
       ;;
 
-    "d")
+    "I")
       PACKAGE_FOLDER=$( echo ${OPTARG} | sed 's!/$!!g' )
+      ;;
+
+    "s")
+      OPTS="${OPTS} --session \"${OPTARG}\""
       ;;
 
     "p")
@@ -2639,6 +2641,35 @@ while getopts "V:T:t:m:a:b:hcpd:x:o:" opt; do
       fi
       ;;
 
+    "O")
+        # optimized is already default, ignore it
+      ;;
+
+    "d")
+        OPTS="${OPTS} -d ${OPTARG}"
+      ;;
+
+    "D")
+      if [ ${OPTARG} == "1" ]; then
+        OPTS="${OPTS} -D 1"
+        TYPE="Cpu"
+      elif [ ${OPTARG} == "2" ]; then
+        OPTS="${OPTS} -D 2"
+        TYPE="Gpu"
+      else
+        OPTS="${OPTS} -D ${OPTARG}"
+        TYPE="Cpu + Gpu"
+      fi
+      ;;
+
+    "F")
+        OUTD=$( echo ${OPTARG} | sed 's!/$!!g' )
+      ;;
+
+    "P")
+        OPTS="$(echo "${OPTS}" | sed 's/ -O$//' | sed 's/^-O //' | sed 's/ -O //')"
+      ;;
+
     \?)
       usage
       ;;
@@ -2651,8 +2682,8 @@ while getopts "V:T:t:m:a:b:hcpd:x:o:" opt; do
 done
 
 if [ "${TYPE}" == "null" ]; then
+   OPTS="${OPTS} -D 2"
    TYPE="Gpu"
-   OPTS="${OPTS} --opencl-device-types 2"
 fi
 
 if [ -n "${ARCHITECTURE}" ]; then
