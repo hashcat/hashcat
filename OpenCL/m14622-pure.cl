@@ -27,6 +27,14 @@
 
 #define LUKS_STRIPES 4000
 
+typedef enum hc_luks_key_size
+{
+  HC_LUKS_KEY_SIZE_128 = 128,
+  HC_LUKS_KEY_SIZE_256 = 256,
+  HC_LUKS_KEY_SIZE_512 = 512,
+
+} hc_luks_key_size_t;
+
 typedef struct luks
 {
   int hash_type;    // hc_luks_hash_type_t
