@@ -433,9 +433,6 @@ __kernel void m15300_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
   u32 w2[4];
   u32 w3[4];
 
-  u32 ipad[5];
-  u32 opad[5];
-
   u32 key[6];
 
   key[0] = swap32_S (tmps[gid].out[0]);

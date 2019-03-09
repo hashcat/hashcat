@@ -39,6 +39,7 @@ typedef VTYPE(uint,   VECT_SIZE) u32x;
 typedef VTYPE(ulong,  VECT_SIZE) u64x;
 #endif
 
+DECLSPEC u32 l32_from_64_S (u64 a);
 DECLSPEC u32 l32_from_64_S (u64 a)
 {
   const u32 r = (u32) (a);
@@ -46,6 +47,7 @@ DECLSPEC u32 l32_from_64_S (u64 a)
   return r;
 }
 
+DECLSPEC u32 h32_from_64_S (u64 a);
 DECLSPEC u32 h32_from_64_S (u64 a)
 {
   a >>= 32;
@@ -55,11 +57,13 @@ DECLSPEC u32 h32_from_64_S (u64 a)
   return r;
 }
 
+DECLSPEC u64 hl32_to_64_S (const u32 a, const u32 b);
 DECLSPEC u64 hl32_to_64_S (const u32 a, const u32 b)
 {
   return as_ulong ((uint2) (b, a));
 }
 
+DECLSPEC u32x l32_from_64 (u64x a);
 DECLSPEC u32x l32_from_64 (u64x a)
 {
   u32x r;
@@ -99,6 +103,7 @@ DECLSPEC u32x l32_from_64 (u64x a)
   return r;
 }
 
+DECLSPEC u32x h32_from_64 (u64x a);
 DECLSPEC u32x h32_from_64 (u64x a)
 {
   a >>= 32;
@@ -140,6 +145,7 @@ DECLSPEC u32x h32_from_64 (u64x a)
   return r;
 }
 
+DECLSPEC u64x hl32_to_64 (const u32x a, const u32x b);
 DECLSPEC u64x hl32_to_64 (const u32x a, const u32x b)
 {
   u64x r;
@@ -182,6 +188,7 @@ DECLSPEC u64x hl32_to_64 (const u32x a, const u32x b)
 #ifdef IS_AMD
 
 #if HAS_VPERM
+DECLSPEC u32 swap32_S (const u32 v);
 DECLSPEC u32 swap32_S (const u32 v)
 {
   u32 r;
@@ -191,6 +198,7 @@ DECLSPEC u32 swap32_S (const u32 v)
   return r;
 }
 
+DECLSPEC u64 swap64_S (const u64 v);
 DECLSPEC u64 swap64_S (const u64 v)
 {
   const u32 v0 = h32_from_64_S (v);
@@ -207,27 +215,32 @@ DECLSPEC u64 swap64_S (const u64 v)
   return r;
 }
 #else
+DECLSPEC u32 swap32_S (const u32 v);
 DECLSPEC u32 swap32_S (const u32 v)
 {
   return as_uint (as_uchar4 (v).s3210);
 }
 
+DECLSPEC u64 swap64_S (const u64 v);
 DECLSPEC u64 swap64_S (const u64 v)
 {
   return (as_ulong (as_uchar8 (v).s76543210));
 }
 #endif
 
+DECLSPEC u32 rotr32_S (const u32 a, const u32 n);
 DECLSPEC u32 rotr32_S (const u32 a, const u32 n)
 {
   return rotate (a, (32 - n));
 }
 
+DECLSPEC u32 rotl32_S (const u32 a, const u32 n);
 DECLSPEC u32 rotl32_S (const u32 a, const u32 n)
 {
   return rotate (a, n);
 }
 
+DECLSPEC u64 rotr64_S (const u64 a, const u32 n);
 DECLSPEC u64 rotr64_S (const u64 a, const u32 n)
 {
   const u32 a0 = h32_from_64_S (a);
@@ -241,17 +254,20 @@ DECLSPEC u64 rotr64_S (const u64 a, const u32 n)
   return r;
 }
 
+DECLSPEC u64 rotl64_S (const u64 a, const u32 n);
 DECLSPEC u64 rotl64_S (const u64 a, const u32 n)
 {
   return rotr64_S (a, 64 - n);
 }
 
 #if HAS_VPERM
+DECLSPEC u32x swap32 (const u32x v);
 DECLSPEC u32x swap32 (const u32x v)
 {
   return bitselect (rotate (v, 24u), rotate (v, 8u), 0x00ff00ffu);
 }
 
+DECLSPEC u64x swap64 (const u64x v);
 DECLSPEC u64x swap64 (const u64x v)
 {
   const u32x a0 = h32_from_64 (v);
@@ -314,11 +330,13 @@ DECLSPEC u64x swap64 (const u64x v)
   return r;
 }
 #else
+DECLSPEC u32x swap32 (const u32x v);
 DECLSPEC u32x swap32 (const u32x v)
 {
   return bitselect (rotate (v, 24u), rotate (v, 8u), 0x00ff00ffu);
 }
 
+DECLSPEC u64x swap64 (const u64x v);
 DECLSPEC u64x swap64 (const u64x v)
 {
   return bitselect (bitselect (rotate (v, 24ul),
@@ -329,16 +347,19 @@ DECLSPEC u64x swap64 (const u64x v)
 }
 #endif
 
+DECLSPEC u32x rotr32 (const u32x a, const u32 n);
 DECLSPEC u32x rotr32 (const u32x a, const u32 n)
 {
   return rotate (a, (32 - n));
 }
 
+DECLSPEC u32x rotl32 (const u32x a, const u32 n);
 DECLSPEC u32x rotl32 (const u32x a, const u32 n)
 {
   return rotate (a, n);
 }
 
+DECLSPEC u64x rotr64 (const u64x a, const u32 n);
 DECLSPEC u64x rotr64 (const u64x a, const u32 n)
 {
   const u32x a0 = h32_from_64 (a);
@@ -352,11 +373,13 @@ DECLSPEC u64x rotr64 (const u64x a, const u32 n)
   return r;
 }
 
+DECLSPEC u64x rotl64 (const u64x a, const u32 n);
 DECLSPEC u64x rotl64 (const u64x a, const u32 n)
 {
   return rotr64 (a, 64 - n);
 }
 
+DECLSPEC u32x hc_bfe (const u32x a, const u32x b, const u32x c);
 DECLSPEC u32x hc_bfe (const u32x a, const u32x b, const u32x c)
 {
   #define BIT(x)      ((u32x) (1u) << (x))
@@ -370,6 +393,7 @@ DECLSPEC u32x hc_bfe (const u32x a, const u32x b, const u32x c)
   #undef BFE
 }
 
+DECLSPEC u32 hc_bfe_S (const u32 a, const u32 b, const u32 c);
 DECLSPEC u32 hc_bfe_S (const u32 a, const u32 b, const u32 c)
 {
   #define BIT(x)      (1u << (x))
@@ -383,6 +407,7 @@ DECLSPEC u32 hc_bfe_S (const u32 a, const u32 b, const u32 c)
   #undef BFE
 }
 
+DECLSPEC u32x hc_bytealign_be (const u32x a, const u32x b, const u32 c);
 DECLSPEC u32x hc_bytealign_be (const u32x a, const u32x b, const u32 c)
 {
   u32x r;
@@ -398,6 +423,7 @@ DECLSPEC u32x hc_bytealign_be (const u32x a, const u32x b, const u32 c)
   return r;
 }
 
+DECLSPEC u32 hc_bytealign_be_S (const u32 a, const u32 b, const u32 c);
 DECLSPEC u32 hc_bytealign_be_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
@@ -413,6 +439,7 @@ DECLSPEC u32 hc_bytealign_be_S (const u32 a, const u32 b, const u32 c)
   return r;
 }
 
+DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const u32 c);
 DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const u32 c)
 {
   u32x r;
@@ -428,6 +455,7 @@ DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const u32 c)
   return r;
 }
 
+DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const u32 c);
 DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
@@ -444,6 +472,7 @@ DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const u32 c)
 }
 
 #if HAS_VPERM
+DECLSPEC u32x hc_byte_perm (const u32x a, const u32x b, const u32x c);
 DECLSPEC u32x hc_byte_perm (const u32x a, const u32x b, const u32x c)
 {
   u32x r;
@@ -497,6 +526,7 @@ DECLSPEC u32x hc_byte_perm (const u32x a, const u32x b, const u32x c)
   return r;
 }
 
+DECLSPEC u32 hc_byte_perm_S (const u32 a, const u32 b, const u32 c);
 DECLSPEC u32 hc_byte_perm_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
@@ -508,6 +538,7 @@ DECLSPEC u32 hc_byte_perm_S (const u32 a, const u32 b, const u32 c)
 #endif
 
 #if HAS_VADD3
+DECLSPEC u32x hc_add3 (const u32x a, const u32x b, const u32x c);
 DECLSPEC u32x hc_add3 (const u32x a, const u32x b, const u32x c)
 {
   u32x r;
@@ -561,6 +592,7 @@ DECLSPEC u32x hc_add3 (const u32x a, const u32x b, const u32x c)
   return r;
 }
 
+DECLSPEC u32 hc_add3_S (const u32 a, const u32 b, const u32 c);
 DECLSPEC u32 hc_add3_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
@@ -570,22 +602,26 @@ DECLSPEC u32 hc_add3_S (const u32 a, const u32 b, const u32 c)
   return r;
 }
 #else
+DECLSPEC u32x hc_add3 (const u32x a, const u32x b, const u32x c);
 DECLSPEC u32x hc_add3 (const u32x a, const u32x b, const u32x c)
 {
   return a + b + c;
 }
 
+DECLSPEC u32 hc_add3_S (const u32 a, const u32 b, const u32 c);
 DECLSPEC u32 hc_add3_S (const u32 a, const u32 b, const u32 c)
 {
   return a + b + c;
 }
 #endif
 
+DECLSPEC u32x hc_lop_0x96 (const u32x a, const u32x b, const u32x c);
 DECLSPEC u32x hc_lop_0x96 (const u32x a, const u32x b, const u32x c)
 {
   return a ^ b ^ c;
 }
 
+DECLSPEC u32 hc_lop_0x96_S (const u32 a, const u32 b, const u32 c);
 DECLSPEC u32 hc_lop_0x96_S (const u32 a, const u32 b, const u32 c)
 {
   return a ^ b ^ c;
@@ -594,6 +630,7 @@ DECLSPEC u32 hc_lop_0x96_S (const u32 a, const u32 b, const u32 c)
 #endif
 
 #ifdef IS_NV
+DECLSPEC u32 swap32_S (const u32 v);
 DECLSPEC u32 swap32_S (const u32 v)
 {
   u32 r;
@@ -603,6 +640,7 @@ DECLSPEC u32 swap32_S (const u32 v)
   return r;
 }
 
+DECLSPEC u64 swap64_S (const u64 v);
 DECLSPEC u64 swap64_S (const u64 v)
 {
   u32 il;
@@ -623,26 +661,31 @@ DECLSPEC u64 swap64_S (const u64 v)
   return r;
 }
 
+DECLSPEC u32 rotr32_S (const u32 a, const u32 n);
 DECLSPEC u32 rotr32_S (const u32 a, const u32 n)
 {
   return rotate (a, (32 - n));
 }
 
+DECLSPEC u32 rotl32_S (const u32 a, const u32 n);
 DECLSPEC u32 rotl32_S (const u32 a, const u32 n)
 {
   return rotate (a, n);
 }
 
+DECLSPEC u64 rotr64_S (const u64 a, const u32 n);
 DECLSPEC u64 rotr64_S (const u64 a, const u32 n)
 {
   return rotate (a, (u64) (64 - n));
 }
 
+DECLSPEC u64 rotl64_S (const u64 a, const u32 n);
 DECLSPEC u64 rotl64_S (const u64 a, const u32 n)
 {
   return rotate (a, (u64) n);
 }
 
+DECLSPEC u32x swap32 (const u32x v);
 DECLSPEC u32x swap32 (const u32x v)
 {
   u32x r;
@@ -682,6 +725,7 @@ DECLSPEC u32x swap32 (const u32x v)
   return r;
 }
 
+DECLSPEC u64x swap64 (const u64x v);
 DECLSPEC u64x swap64 (const u64x v)
 {
   u32x il;
@@ -808,26 +852,31 @@ DECLSPEC u64x swap64 (const u64x v)
   return r;
 }
 
+DECLSPEC u32x rotr32 (const u32x a, const u32 n);
 DECLSPEC u32x rotr32 (const u32x a, const u32 n)
 {
   return rotate (a, (32 - n));
 }
 
+DECLSPEC u32x rotl32 (const u32x a, const u32 n);
 DECLSPEC u32x rotl32 (const u32x a, const u32 n)
 {
   return rotate (a, n);
 }
 
+DECLSPEC u64x rotr64 (const u64x a, const u32 n);
 DECLSPEC u64x rotr64 (const u64x a, const u32 n)
 {
   return rotate (a, (u64x) (64 - n));
 }
 
+DECLSPEC u64x rotl64 (const u64x a, const u32 n);
 DECLSPEC u64x rotl64 (const u64x a, const u32 n)
 {
   return rotate (a, (u64x) n);
 }
 
+DECLSPEC u32x hc_byte_perm (const u32x a, const u32x b, const u32x c);
 DECLSPEC u32x hc_byte_perm (const u32x a, const u32x b, const u32x c)
 {
   u32x r;
@@ -867,6 +916,7 @@ DECLSPEC u32x hc_byte_perm (const u32x a, const u32x b, const u32x c)
   return r;
 }
 
+DECLSPEC u32 hc_byte_perm_S (const u32 a, const u32 b, const u32 c);
 DECLSPEC u32 hc_byte_perm_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
@@ -876,6 +926,7 @@ DECLSPEC u32 hc_byte_perm_S (const u32 a, const u32 b, const u32 c)
   return r;
 }
 
+DECLSPEC u32x hc_bfe (const u32x a, const u32x b, const u32x c);
 DECLSPEC u32x hc_bfe (const u32x a, const u32x b, const u32x c)
 {
   u32x r;
@@ -915,6 +966,7 @@ DECLSPEC u32x hc_bfe (const u32x a, const u32x b, const u32x c)
   return r;
 }
 
+DECLSPEC u32 hc_bfe_S (const u32 a, const u32 b, const u32 c);
 DECLSPEC u32 hc_bfe_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
@@ -924,6 +976,7 @@ DECLSPEC u32 hc_bfe_S (const u32 a, const u32 b, const u32 c)
   return r;
 }
 
+DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const u32x c);
 DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const u32x c)
 {
   u32x r;
@@ -971,6 +1024,7 @@ DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const u32x c)
   return r;
 }
 
+DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const u32 c);
 DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
@@ -988,16 +1042,19 @@ DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const u32 c)
   return r;
 }
 
+DECLSPEC u32x hc_add3 (const u32x a, const u32x b, const u32x c);
 DECLSPEC u32x hc_add3 (const u32x a, const u32x b, const u32x c)
 {
   return a + b + c;
 }
 
+DECLSPEC u32 hc_add3_S (const u32 a, const u32 b, const u32 c);
 DECLSPEC u32 hc_add3_S (const u32 a, const u32 b, const u32 c)
 {
   return a + b + c;
 }
 
+DECLSPEC u32x hc_lop_0x96 (const u32x a, const u32x b, const u32x c);
 DECLSPEC u32x hc_lop_0x96 (const u32x a, const u32x b, const u32x c)
 {
   u32x r;
@@ -1045,6 +1102,7 @@ DECLSPEC u32x hc_lop_0x96 (const u32x a, const u32x b, const u32x c)
   return r;
 }
 
+DECLSPEC u32 hc_lop_0x96_S (const u32 a, const u32 b, const u32 c);
 DECLSPEC u32 hc_lop_0x96_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
@@ -1065,36 +1123,43 @@ DECLSPEC u32 hc_lop_0x96_S (const u32 a, const u32 b, const u32 c)
 #endif
 
 #ifdef IS_GENERIC
+DECLSPEC u32 swap32_S (const u32 v);
 DECLSPEC u32 swap32_S (const u32 v)
 {
   return (as_uint (as_uchar4 (v).s3210));
 }
 
+DECLSPEC u64 swap64_S (const u64 v);
 DECLSPEC u64 swap64_S (const u64 v)
 {
   return (as_ulong (as_uchar8 (v).s76543210));
 }
 
+DECLSPEC u32 rotr32_S (const u32 a, const u32 n);
 DECLSPEC u32 rotr32_S (const u32 a, const u32 n)
 {
   return rotate (a, (32 - n));
 }
 
+DECLSPEC u32 rotl32_S (const u32 a, const u32 n);
 DECLSPEC u32 rotl32_S (const u32 a, const u32 n)
 {
   return rotate (a, n);
 }
 
+DECLSPEC u64 rotr64_S (const u64 a, const u32 n);
 DECLSPEC u64 rotr64_S (const u64 a, const u32 n)
 {
   return rotate (a, (u64) (64 - n));
 }
 
+DECLSPEC u64 rotl64_S (const u64 a, const u32 n);
 DECLSPEC u64 rotl64_S (const u64 a, const u32 n)
 {
   return rotate (a, (u64) n);
 }
 
+DECLSPEC u32x swap32 (const u32x v);
 DECLSPEC u32x swap32 (const u32x v)
 {
   return ((v >> 24) & 0x000000ff)
@@ -1103,6 +1168,7 @@ DECLSPEC u32x swap32 (const u32x v)
        | ((v << 24) & 0xff000000);
 }
 
+DECLSPEC u64x swap64 (const u64x v);
 DECLSPEC u64x swap64 (const u64x v)
 {
   return ((v >> 56) & 0x00000000000000ff)
@@ -1115,26 +1181,31 @@ DECLSPEC u64x swap64 (const u64x v)
        | ((v << 56) & 0xff00000000000000);
 }
 
+DECLSPEC u32x rotr32 (const u32x a, const u32 n);
 DECLSPEC u32x rotr32 (const u32x a, const u32 n)
 {
   return rotate (a, (32 - n));
 }
 
+DECLSPEC u32x rotl32 (const u32x a, const u32 n);
 DECLSPEC u32x rotl32 (const u32x a, const u32 n)
 {
   return rotate (a, n);
 }
 
+DECLSPEC u64x rotr64 (const u64x a, const u32 n);
 DECLSPEC u64x rotr64 (const u64x a, const u32 n)
 {
   return rotate (a, (u64x) (64 - n));
 }
 
+DECLSPEC u64x rotl64 (const u64x a, const u32 n);
 DECLSPEC u64x rotl64 (const u64x a, const u32 n)
 {
   return rotate (a, (u64x) n);
 }
 
+DECLSPEC u32x hc_bfe (const u32x a, const u32x b, const u32x c);
 DECLSPEC u32x hc_bfe (const u32x a, const u32x b, const u32x c)
 {
   #define BIT(x)      ((u32x) (1u) << (x))
@@ -1148,6 +1219,7 @@ DECLSPEC u32x hc_bfe (const u32x a, const u32x b, const u32x c)
   #undef BFE
 }
 
+DECLSPEC u32 hc_bfe_S (const u32 a, const u32 b, const u32 c);
 DECLSPEC u32 hc_bfe_S (const u32 a, const u32 b, const u32 c)
 {
   #define BIT(x)      (1u << (x))
@@ -1161,6 +1233,7 @@ DECLSPEC u32 hc_bfe_S (const u32 a, const u32 b, const u32 c)
   #undef BFE
 }
 
+DECLSPEC u32x hc_bytealign_be (const u32x a, const u32x b, const u32 c);
 DECLSPEC u32x hc_bytealign_be (const u32x a, const u32x b, const u32 c)
 {
   u32x r;
@@ -1176,6 +1249,7 @@ DECLSPEC u32x hc_bytealign_be (const u32x a, const u32x b, const u32 c)
   return r;
 }
 
+DECLSPEC u32 hc_bytealign_be_S (const u32 a, const u32 b, const u32 c);
 DECLSPEC u32 hc_bytealign_be_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
@@ -1191,6 +1265,7 @@ DECLSPEC u32 hc_bytealign_be_S (const u32 a, const u32 b, const u32 c)
   return r;
 }
 
+DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const u32 c);
 DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const u32 c)
 {
   u32x r;
@@ -1206,6 +1281,7 @@ DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const u32 c)
   return r;
 }
 
+DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const u32 c);
 DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
@@ -1221,21 +1297,25 @@ DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const u32 c)
   return r;
 }
 
+DECLSPEC u32x hc_add3 (const u32x a, const u32x b, const u32x c);
 DECLSPEC u32x hc_add3 (const u32x a, const u32x b, const u32x c)
 {
   return a + b + c;
 }
 
+DECLSPEC u32 hc_add3_S (const u32 a, const u32 b, const u32 c);
 DECLSPEC u32 hc_add3_S (const u32 a, const u32 b, const u32 c)
 {
   return a + b + c;
 }
 
+DECLSPEC u32x hc_lop_0x96 (const u32x a, const u32x b, const u32x c);
 DECLSPEC u32x hc_lop_0x96 (const u32x a, const u32x b, const u32x c)
 {
   return a ^ b ^ c;
 }
 
+DECLSPEC u32 hc_lop_0x96_S (const u32 a, const u32 b, const u32 c);
 DECLSPEC u32 hc_lop_0x96_S (const u32 a, const u32 b, const u32 c)
 {
   return a ^ b ^ c;
