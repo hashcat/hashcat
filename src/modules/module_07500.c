@@ -76,14 +76,26 @@ u32 module_kernel_threads_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   return kernel_threads_max;
 }
 
-bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *hc_device_param)
+bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
   // amdgpu-pro-18.50-708488-ubuntu-18.04: CL_OUT_OF_RESOURCES
-  if ((hc_device_param->device_vendor_id == VENDOR_ID_AMD) && (hc_device_param->has_vperm == false))
+  if ((device_param->device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
   {
     if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0)
     {
       return true;
+    }
+  }
+
+  // CL_INVALID_WORK_GROUP_SIZE
+  if (device_param->platform_vendor_id == VENDOR_ID_APPLE)
+  {
+    if (device_param->device_type & CL_DEVICE_TYPE_CPU)
+    {
+      if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 1)
+      {
+        return true;
+      }
     }
   }
 
