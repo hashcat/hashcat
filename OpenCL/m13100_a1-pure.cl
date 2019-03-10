@@ -384,7 +384,7 @@ DECLSPEC void kerb_prepare (const u32 *K, const u32 *checksum, u32 *digest, u32 
   K2[3] = ctx1.opad.h[3];
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m13100_mxx (KERN_ATTR_ESALT (krb5tgs_t))
+__kernel void m13100_mxx (KERN_ATTR_ESALT (krb5tgs_t))
 {
   /**
    * modifier
@@ -444,7 +444,7 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m13100_mxx (KERN_A
   }
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m13100_sxx (KERN_ATTR_ESALT (krb5tgs_t))
+__kernel void m13100_sxx (KERN_ATTR_ESALT (krb5tgs_t))
 {
   /**
    * modifier

@@ -353,7 +353,7 @@ DECLSPEC void keccak_transform_S (u64 *st)
   }
 }
 
-__kernel void __attribute__((reqd_work_group_size(1, 1, 1))) m15700_init (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, ethereum_scrypt_t))
+__kernel void m15700_init (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, ethereum_scrypt_t))
 {
   /**
    * base
@@ -418,7 +418,7 @@ __kernel void __attribute__((reqd_work_group_size(1, 1, 1))) m15700_init (KERN_A
   }
 }
 
-__kernel void __attribute__((reqd_work_group_size(1, 1, 1))) m15700_loop (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, ethereum_scrypt_t))
+__kernel void m15700_loop (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, ethereum_scrypt_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -456,7 +456,7 @@ __kernel void __attribute__((reqd_work_group_size(1, 1, 1))) m15700_loop (KERN_A
   #endif
 }
 
-__kernel void __attribute__((reqd_work_group_size(1, 1, 1))) m15700_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, ethereum_scrypt_t))
+__kernel void m15700_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, ethereum_scrypt_t))
 {
   /**
    * base

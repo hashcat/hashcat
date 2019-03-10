@@ -278,7 +278,7 @@ DECLSPEC void kerb_prepare (const u32 *K, const u32 *checksum, u32 *digest)
   digest[3] = ctx.opad.h[3];
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m07500_mxx (KERN_ATTR_RULES_ESALT (krb5pa_t))
+__kernel void m07500_mxx (KERN_ATTR_RULES_ESALT (krb5pa_t))
 {
   /**
    * modifier
@@ -349,7 +349,7 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m07500_mxx (KERN_A
   }
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m07500_sxx (KERN_ATTR_RULES_ESALT (krb5pa_t))
+__kernel void m07500_sxx (KERN_ATTR_RULES_ESALT (krb5pa_t))
 {
   /**
    * modifier

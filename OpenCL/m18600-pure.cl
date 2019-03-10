@@ -582,7 +582,7 @@ __kernel void m18600_loop (KERN_ATTR_TMPS_ESALT (odf11_tmp_t, odf11_t))
   }
 }
 
-__kernel void __attribute__((reqd_work_group_size(8, 1, 1))) m18600_comp (KERN_ATTR_TMPS_ESALT (odf11_tmp_t, odf11_t))
+__kernel void m18600_comp (KERN_ATTR_TMPS_ESALT (odf11_tmp_t, odf11_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);

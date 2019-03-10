@@ -512,7 +512,7 @@ DECLSPEC void sha1_transform (const u32 *w0, const u32 *w1, const u32 *w2, const
   digest[4] += E;
 }
 
-__kernel void __attribute__((reqd_work_group_size(8, 1, 1))) m09000_init (KERN_ATTR_TMPS (pwsafe2_tmp_t))
+__kernel void m09000_init (KERN_ATTR_TMPS (pwsafe2_tmp_t))
 {
   /**
    * base
@@ -731,7 +731,7 @@ __kernel void __attribute__((reqd_work_group_size(8, 1, 1))) m09000_init (KERN_A
   }
 }
 
-__kernel void __attribute__((reqd_work_group_size(8, 1, 1))) m09000_loop (KERN_ATTR_TMPS (pwsafe2_tmp_t))
+__kernel void m09000_loop (KERN_ATTR_TMPS (pwsafe2_tmp_t))
 {
   /**
    * base
@@ -793,7 +793,7 @@ __kernel void __attribute__((reqd_work_group_size(8, 1, 1))) m09000_loop (KERN_A
   tmps[gid].digest[1] = R0;
 }
 
-__kernel void __attribute__((reqd_work_group_size(8, 1, 1))) m09000_comp (KERN_ATTR_TMPS (pwsafe2_tmp_t))
+__kernel void m09000_comp (KERN_ATTR_TMPS (pwsafe2_tmp_t))
 {
   /**
    * base

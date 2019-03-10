@@ -361,7 +361,7 @@ DECLSPEC void expand_key (u32 *E, u32 *W, const int len)
   }
 }
 
-__kernel void __attribute__((reqd_work_group_size(8, 1, 1))) m03200_init (KERN_ATTR_TMPS (bcrypt_tmp_t))
+__kernel void m03200_init (KERN_ATTR_TMPS (bcrypt_tmp_t))
 {
   /**
    * base
@@ -580,7 +580,7 @@ __kernel void __attribute__((reqd_work_group_size(8, 1, 1))) m03200_init (KERN_A
   }
 }
 
-__kernel void __attribute__((reqd_work_group_size(8, 1, 1))) m03200_loop (KERN_ATTR_TMPS (bcrypt_tmp_t))
+__kernel void m03200_loop (KERN_ATTR_TMPS (bcrypt_tmp_t))
 {
   /**
    * base
@@ -778,7 +778,7 @@ __kernel void __attribute__((reqd_work_group_size(8, 1, 1))) m03200_loop (KERN_A
   }
 }
 
-__kernel void __attribute__((reqd_work_group_size(8, 1, 1))) m03200_comp (KERN_ATTR_TMPS (bcrypt_tmp_t))
+__kernel void m03200_comp (KERN_ATTR_TMPS (bcrypt_tmp_t))
 {
   /**
    * base

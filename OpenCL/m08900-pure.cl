@@ -215,8 +215,6 @@ DECLSPEC void scrypt_smix (uint4 *X, uint4 *T, __global uint4 * restrict V0, __g
   }
 }
 
-// there can be no __attribute__((reqd_work_group_size(16, 1, 1))) because kernel is used by both -m 8900 and -m 9300
-
 __kernel void m08900_init (KERN_ATTR_TMPS (scrypt_tmp_t))
 {
   /**

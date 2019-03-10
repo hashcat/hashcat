@@ -148,7 +148,7 @@ DECLSPEC u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, const u32 *in, u3
   return j;
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m09710_m04 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
+__kernel void m09710_m04 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
 {
   /**
    * modifier
@@ -280,15 +280,15 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m09710_m04 (KERN_A
   }
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m09710_m08 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
+__kernel void m09710_m08 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
 {
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m09710_m16 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
+__kernel void m09710_m16 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
 {
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m09710_s04 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
+__kernel void m09710_s04 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
 {
   /**
    * modifier
@@ -432,10 +432,10 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m09710_s04 (KERN_A
   }
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m09710_s08 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
+__kernel void m09710_s08 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
 {
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m09710_s16 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
+__kernel void m09710_s16 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
 {
 }

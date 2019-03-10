@@ -572,7 +572,7 @@ DECLSPEC void kerb_prepare (const u32 *w0, const u32 *w1, const u32 pw_len, cons
   hmac_md5_run (w0_t, w1_t, w2_t, w3_t, ipad, opad, digest);
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m18200_m04 (KERN_ATTR_RULES_ESALT (krb5asrep_t))
+__kernel void m18200_m04 (KERN_ATTR_RULES_ESALT (krb5asrep_t))
 {
   /**
    * modifier
@@ -662,15 +662,15 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m18200_m04 (KERN_A
   }
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m18200_m08 (KERN_ATTR_RULES_ESALT (krb5asrep_t))
+__kernel void m18200_m08 (KERN_ATTR_RULES_ESALT (krb5asrep_t))
 {
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m18200_m16 (KERN_ATTR_RULES_ESALT (krb5asrep_t))
+__kernel void m18200_m16 (KERN_ATTR_RULES_ESALT (krb5asrep_t))
 {
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m18200_s04 (KERN_ATTR_RULES_ESALT (krb5asrep_t))
+__kernel void m18200_s04 (KERN_ATTR_RULES_ESALT (krb5asrep_t))
 {
   /**
    * modifier
@@ -760,10 +760,10 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m18200_s04 (KERN_A
   }
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m18200_s08 (KERN_ATTR_RULES_ESALT (krb5asrep_t))
+__kernel void m18200_s08 (KERN_ATTR_RULES_ESALT (krb5asrep_t))
 {
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m18200_s16 (KERN_ATTR_RULES_ESALT (krb5asrep_t))
+__kernel void m18200_s16 (KERN_ATTR_RULES_ESALT (krb5asrep_t))
 {
 }
