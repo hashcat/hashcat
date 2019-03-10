@@ -305,7 +305,7 @@ __constant u32a c_skb[8][64] =
 
 #define PERM_OP(a,b,n,m) \
 {                        \
-  u32 t;                 \
+  u32x t;                \
   t = a >> n;            \
   t = t ^ b;             \
   t = t & m;             \
@@ -316,7 +316,7 @@ __constant u32a c_skb[8][64] =
 
 #define HPERM_OP(a,n,m)  \
 {                        \
-  u32 t;                 \
+  u32x t;                \
   t = a << (16 + n);     \
   t = t ^ a;             \
   t = t & m;             \
@@ -355,27 +355,27 @@ __constant u32a c_skb[8][64] =
 #define DES_BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3], (S)[(n)][(i).s4], (S)[(n)][(i).s5], (S)[(n)][(i).s6], (S)[(n)][(i).s7], (S)[(n)][(i).s8], (S)[(n)][(i).s9], (S)[(n)][(i).sa], (S)[(n)][(i).sb], (S)[(n)][(i).sc], (S)[(n)][(i).sd], (S)[(n)][(i).se], (S)[(n)][(i).sf])
 #endif
 
-DECLSPEC void _des_crypt_encrypt (u32 *iv, u32 *data, u32 *Kc, u32 *Kd, SHM_TYPE u32 (*s_SPtrans)[64]);
-DECLSPEC void _des_crypt_encrypt (u32 *iv, u32 *data, u32 *Kc, u32 *Kd, SHM_TYPE u32 (*s_SPtrans)[64])
+DECLSPEC void _des_crypt_encrypt (u32x *iv, u32x *data, u32x *Kc, u32x *Kd, SHM_TYPE u32 (*s_SPtrans)[64]);
+DECLSPEC void _des_crypt_encrypt (u32x *iv, u32x *data, u32x *Kc, u32x *Kd, SHM_TYPE u32 (*s_SPtrans)[64])
 {
-  u32 r = data[0];
-  u32 l = data[1];
+  u32x r = data[0];
+  u32x l = data[1];
 
   DES_IP (r, l);
 
-  r = rotl32_S (r, 3u);
-  l = rotl32_S (l, 3u);
+  r = rotl32 (r, 3u);
+  l = rotl32 (l, 3u);
 
   #ifdef _unroll
   #pragma unroll
   #endif
   for (u32 i = 0; i < 16; i += 2)
   {
-    u32 u;
-    u32 t;
+    u32x u;
+    u32x t;
 
     u = Kc[i + 0] ^ r;
-    t = Kd[i + 0] ^ rotl32_S (r, 28u);
+    t = Kd[i + 0] ^ rotl32 (r, 28u);
 
     l ^= DES_BOX (((u >>  2) & 0x3f), 0, s_SPtrans)
        | DES_BOX (((u >> 10) & 0x3f), 2, s_SPtrans)
@@ -387,7 +387,7 @@ DECLSPEC void _des_crypt_encrypt (u32 *iv, u32 *data, u32 *Kc, u32 *Kd, SHM_TYPE
        | DES_BOX (((t >> 26) & 0x3f), 7, s_SPtrans);
 
     u = Kc[i + 1] ^ l;
-    t = Kd[i + 1] ^ rotl32_S (l, 28u);
+    t = Kd[i + 1] ^ rotl32 (l, 28u);
 
     r ^= DES_BOX (((u >>  2) & 0x3f), 0, s_SPtrans)
        | DES_BOX (((u >> 10) & 0x3f), 2, s_SPtrans)
@@ -399,8 +399,8 @@ DECLSPEC void _des_crypt_encrypt (u32 *iv, u32 *data, u32 *Kc, u32 *Kd, SHM_TYPE
        | DES_BOX (((t >> 26) & 0x3f), 7, s_SPtrans);
   }
 
-  l = rotl32_S (l, 29u);
-  r = rotl32_S (r, 29u);
+  l = rotl32 (l, 29u);
+  r = rotl32 (r, 29u);
 
   DES_FP (r, l);
 
@@ -408,27 +408,27 @@ DECLSPEC void _des_crypt_encrypt (u32 *iv, u32 *data, u32 *Kc, u32 *Kd, SHM_TYPE
   iv[1] = r;
 }
 
-DECLSPEC void _des_crypt_decrypt (u32 *iv, u32 *data, u32 *Kc, u32 *Kd, SHM_TYPE u32 (*s_SPtrans)[64]);
-DECLSPEC void _des_crypt_decrypt (u32 *iv, u32 *data, u32 *Kc, u32 *Kd, SHM_TYPE u32 (*s_SPtrans)[64])
+DECLSPEC void _des_crypt_decrypt (u32x *iv, u32x *data, u32x *Kc, u32x *Kd, SHM_TYPE u32 (*s_SPtrans)[64]);
+DECLSPEC void _des_crypt_decrypt (u32x *iv, u32x *data, u32x *Kc, u32x *Kd, SHM_TYPE u32 (*s_SPtrans)[64])
 {
-  u32 r = data[0];
-  u32 l = data[1];
+  u32x r = data[0];
+  u32x l = data[1];
 
   DES_IP (r, l);
 
-  r = rotl32_S (r, 3u);
-  l = rotl32_S (l, 3u);
+  r = rotl32 (r, 3u);
+  l = rotl32 (l, 3u);
 
   #ifdef _unroll
   #pragma unroll
   #endif
   for (u32 i = 16; i > 0; i -= 2)
   {
-    u32 u;
-    u32 t;
+    u32x u;
+    u32x t;
 
     u = Kc[i - 1] ^ r;
-    t = Kd[i - 1] ^ rotl32_S (r, 28u);
+    t = Kd[i - 1] ^ rotl32 (r, 28u);
 
     l ^= DES_BOX (((u >>  2) & 0x3f), 0, s_SPtrans)
        | DES_BOX (((u >> 10) & 0x3f), 2, s_SPtrans)
@@ -440,7 +440,7 @@ DECLSPEC void _des_crypt_decrypt (u32 *iv, u32 *data, u32 *Kc, u32 *Kd, SHM_TYPE
        | DES_BOX (((t >> 26) & 0x3f), 7, s_SPtrans);
 
     u = Kc[i - 2] ^ l;
-    t = Kd[i - 2] ^ rotl32_S (l, 28u);
+    t = Kd[i - 2] ^ rotl32 (l, 28u);
 
     r ^= DES_BOX (((u >>  2) & 0x3f), 0, s_SPtrans)
        | DES_BOX (((u >> 10) & 0x3f), 2, s_SPtrans)
@@ -452,8 +452,8 @@ DECLSPEC void _des_crypt_decrypt (u32 *iv, u32 *data, u32 *Kc, u32 *Kd, SHM_TYPE
        | DES_BOX (((t >> 26) & 0x3f), 7, s_SPtrans);
   }
 
-  l = rotl32_S (l, 29u);
-  r = rotl32_S (r, 29u);
+  l = rotl32 (l, 29u);
+  r = rotl32 (r, 29u);
 
   DES_FP (r, l);
 
@@ -461,8 +461,8 @@ DECLSPEC void _des_crypt_decrypt (u32 *iv, u32 *data, u32 *Kc, u32 *Kd, SHM_TYPE
   iv[1] = r;
 }
 
-DECLSPEC void _des_crypt_keysetup (u32 c, u32 d, u32 *Kc, u32 *Kd, SHM_TYPE u32 (*s_skb)[64]);
-DECLSPEC void _des_crypt_keysetup (u32 c, u32 d, u32 *Kc, u32 *Kd, SHM_TYPE u32 (*s_skb)[64])
+DECLSPEC void _des_crypt_keysetup (u32x c, u32x d, u32x *Kc, u32x *Kd, SHM_TYPE u32 (*s_skb)[64]);
+DECLSPEC void _des_crypt_keysetup (u32x c, u32x d, u32x *Kc, u32x *Kd, SHM_TYPE u32 (*s_skb)[64])
 {
   PERM_OP  (d, c, 4, 0x0f0f0f0f);
   HPERM_OP (c,    2, 0xcccc0000);
@@ -497,37 +497,37 @@ DECLSPEC void _des_crypt_keysetup (u32 c, u32 d, u32 *Kc, u32 *Kd, SHM_TYPE u32 
     c = c & 0x0fffffff;
     d = d & 0x0fffffff;
 
-    const u32 c00 = (c >>  0) & 0x0000003f;
-    const u32 c06 = (c >>  6) & 0x00383003;
-    const u32 c07 = (c >>  7) & 0x0000003c;
-    const u32 c13 = (c >> 13) & 0x0000060f;
-    const u32 c20 = (c >> 20) & 0x00000001;
+    const u32x c00 = (c >>  0) & 0x0000003f;
+    const u32x c06 = (c >>  6) & 0x00383003;
+    const u32x c07 = (c >>  7) & 0x0000003c;
+    const u32x c13 = (c >> 13) & 0x0000060f;
+    const u32x c20 = (c >> 20) & 0x00000001;
 
-    u32 s = DES_BOX (((c00 >>  0) & 0xff), 0, s_skb)
-          | DES_BOX (((c06 >>  0) & 0xff)
-                    |((c07 >>  0) & 0xff), 1, s_skb)
-          | DES_BOX (((c13 >>  0) & 0xff)
-                    |((c06 >>  8) & 0xff), 2, s_skb)
-          | DES_BOX (((c20 >>  0) & 0xff)
-                    |((c13 >>  8) & 0xff)
-                    |((c06 >> 16) & 0xff), 3, s_skb);
+    u32x s = DES_BOX (((c00 >>  0) & 0xff), 0, s_skb)
+           | DES_BOX (((c06 >>  0) & 0xff)
+                     |((c07 >>  0) & 0xff), 1, s_skb)
+           | DES_BOX (((c13 >>  0) & 0xff)
+                     |((c06 >>  8) & 0xff), 2, s_skb)
+           | DES_BOX (((c20 >>  0) & 0xff)
+                     |((c13 >>  8) & 0xff)
+                     |((c06 >> 16) & 0xff), 3, s_skb);
 
-    const u32 d00 = (d >>  0) & 0x00003c3f;
-    const u32 d07 = (d >>  7) & 0x00003f03;
-    const u32 d21 = (d >> 21) & 0x0000000f;
-    const u32 d22 = (d >> 22) & 0x00000030;
+    const u32x d00 = (d >>  0) & 0x00003c3f;
+    const u32x d07 = (d >>  7) & 0x00003f03;
+    const u32x d21 = (d >> 21) & 0x0000000f;
+    const u32x d22 = (d >> 22) & 0x00000030;
 
-    u32 t = DES_BOX (((d00 >>  0) & 0xff), 4, s_skb)
-          | DES_BOX (((d07 >>  0) & 0xff)
-                    |((d00 >>  8) & 0xff), 5, s_skb)
-          | DES_BOX (((d07 >>  8) & 0xff), 6, s_skb)
-          | DES_BOX (((d21 >>  0) & 0xff)
-                    |((d22 >>  0) & 0xff), 7, s_skb);
+    u32x t = DES_BOX (((d00 >>  0) & 0xff), 4, s_skb)
+           | DES_BOX (((d07 >>  0) & 0xff)
+                     |((d00 >>  8) & 0xff), 5, s_skb)
+           | DES_BOX (((d07 >>  8) & 0xff), 6, s_skb)
+           | DES_BOX (((d21 >>  0) & 0xff)
+                     |((d22 >>  0) & 0xff), 7, s_skb);
 
     Kc[i] = ((t << 16) | (s & 0x0000ffff));
     Kd[i] = ((s >> 16) | (t & 0xffff0000));
 
-    Kc[i] = rotl32_S (Kc[i], 2u);
-    Kd[i] = rotl32_S (Kd[i], 2u);
+    Kc[i] = rotl32 (Kc[i], 2u);
+    Kd[i] = rotl32 (Kd[i], 2u);
   }
 }
