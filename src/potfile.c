@@ -373,10 +373,13 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
   const hashes_t       *hashes       = hashcat_ctx->hashes;
   const module_ctx_t   *module_ctx   = hashcat_ctx->module_ctx;
   const potfile_ctx_t  *potfile_ctx  = hashcat_ctx->potfile_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
 
   if (potfile_ctx->enabled == false) return 0;
 
   if (hashconfig->potfile_disable == true) return 0;
+  
+  if (user_options->keep_guessing == true) return 0;
 
   // if no potfile exists yet we don't need to do anything here
 
