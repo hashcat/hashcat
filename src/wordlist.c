@@ -218,7 +218,7 @@ void get_next_word (hashcat_ctx_t *hashcat_ctx, FILE *fd, char **out_buf, u32 *o
       if (rule_len_out < 0) continue;
     }
 
-    if (len >= PW_MAX) continue;
+    if (len > PW_MAX) continue;
 
     *out_buf = ptr;
     *out_len = (u32) len;
@@ -360,8 +360,8 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
   memset (d.encoding_from, 0, sizeof (d.encoding_from));
   memset (d.encoding_to,   0, sizeof (d.encoding_to));
 
-  strncpy (d.encoding_from, user_options->encoding_from, sizeof (d.encoding_from));
-  strncpy (d.encoding_to,   user_options->encoding_to,   sizeof (d.encoding_to));
+  strncpy (d.encoding_from, user_options->encoding_from, sizeof (d.encoding_from) - 1);
+  strncpy (d.encoding_to,   user_options->encoding_to,   sizeof (d.encoding_to)   - 1);
 
   if (d.stat.st_size == 0)
   {
@@ -477,7 +477,7 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
 
       cnt2++;
 
-      if (len >= PW_MAX) continue;
+      if (len > PW_MAX) continue;
 
       d.cnt++;
 
@@ -584,7 +584,7 @@ int wl_data_init (hashcat_ctx_t *hashcat_ctx)
     wl_data->func = get_next_word_uc;
   }
 
-  if (hashconfig->hash_mode == 3000) // yes that's fine that way
+  if (hashconfig->opts_type & OPTS_TYPE_PT_LM)
   {
     wl_data->func = get_next_word_lm;
   }

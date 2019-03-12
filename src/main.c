@@ -21,6 +21,10 @@
 #include "shared.h"
 #include "event.h"
 
+#ifdef WITH_BRAIN
+#include "brain.h"
+#endif
+
 #if defined (__MINGW64__) || defined (__MINGW32__)
 int _dowildcard = -1;
 #endif
@@ -205,6 +209,14 @@ static void main_outerloop_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MA
   hashcat_user_t *hashcat_user = hashcat_ctx->hashcat_user;
   status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
 
+  // we should never stop hashcat with STATUS_INIT:
+  // keypress thread blocks on STATUS_INIT forever!
+
+  if (status_ctx->devices_status == STATUS_INIT)
+  {
+    status_ctx->devices_status = STATUS_ERROR;
+  }
+
   // wait for outer threads
 
   status_ctx->shutdown_outer = true;
@@ -295,6 +307,10 @@ static void main_cracker_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
     }
   }
   else if (user_options->machine_readable == true)
+  {
+    status_display (hashcat_ctx);
+  }
+  else if (user_options->status == true)
   {
     status_display (hashcat_ctx);
   }
@@ -436,15 +452,13 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
   {
     if (user_options->machine_readable == false)
     {
-      const char *hash_type = strhashtype (hashconfig->hash_mode); // not a bug
-
       if ((hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL) && (hashconfig->is_salted == true))
       {
-        event_log_info (hashcat_ctx, "Hashmode: %d - %s (Iterations: %d)", hashconfig->hash_mode, hash_type, hashes[0].salts_buf[0].salt_iter);
+        event_log_info (hashcat_ctx, "Hashmode: %d - %s (Iterations: %d)", hashconfig->hash_mode, hashconfig->hash_name, hashes[0].salts_buf[0].salt_iter);
       }
       else
       {
-        event_log_info (hashcat_ctx, "Hashmode: %d - %s", hashconfig->hash_mode, hash_type);
+        event_log_info (hashcat_ctx, "Hashmode: %d - %s", hashconfig->hash_mode, hashconfig->hash_name);
       }
 
       event_log_info (hashcat_ctx, NULL);
@@ -515,9 +529,9 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
     event_log_info (hashcat_ctx, "Watchdog: Hardware monitoring interface not found on your system.");
   }
 
-  if (hwmon_ctx->enabled == true && user_options->gpu_temp_abort > 0)
+  if (hwmon_ctx->enabled == true && user_options->hwmon_temp_abort > 0)
   {
-    event_log_info (hashcat_ctx, "Watchdog: Temperature abort trigger set to %uc", user_options->gpu_temp_abort);
+    event_log_info (hashcat_ctx, "Watchdog: Temperature abort trigger set to %uc", user_options->hwmon_temp_abort);
   }
   else
   {
@@ -525,7 +539,6 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
   }
 
   event_log_info (hashcat_ctx, NULL);
-
 }
 
 static void main_opencl_session_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -546,6 +559,28 @@ static void main_opencl_session_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, M
   event_log_info_nn (hashcat_ctx, "Initialized device kernels and memory...");
 }
 
+static void main_opencl_device_init_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  const u32 *device_id = (const u32 *) buf;
+
+  event_log_info_nn (hashcat_ctx, "Initializing OpenCL runtime for device #%u...", *device_id + 1);
+}
+
+static void main_opencl_device_init_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  const u32 *device_id = (const u32 *) buf;
+
+  event_log_info_nn (hashcat_ctx, "Initialized OpenCL runtime for device #%u...", *device_id + 1);
+}
+
 static void main_bitmap_init_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
@@ -562,6 +597,20 @@ static void main_bitmap_init_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
   if (user_options->quiet == true) return;
 
   event_log_info_nn (hashcat_ctx, "Generated bitmap tables...");
+}
+
+static void main_bitmap_final_overflow (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  event_log_advice (hashcat_ctx, "Bitmap table overflowed at %d bits.", user_options->bitmap_max);
+  event_log_advice (hashcat_ctx, "This typically happens with too many hashes and reduces your performance.");
+  event_log_advice (hashcat_ctx, "You can increase the bitmap table size with --bitmap-max, but");
+  event_log_advice (hashcat_ctx, "this creates a trade-off between L2-cache and bitmap efficiency.");
+  event_log_advice (hashcat_ctx, "It is therefore not guaranteed to restore full performance.");
+  event_log_advice (hashcat_ctx, NULL);
 }
 
 static void main_set_kernel_power_final (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -690,6 +739,24 @@ static void main_monitor_performance_hint (MAYBE_UNUSED hashcat_ctx_t *hashcat_c
   {
     send_prompt (hashcat_ctx);
   }
+}
+
+static void main_monitor_noinput_hint (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  event_log_advice (hashcat_ctx, "ATTENTION! Read timeout in stdin mode. The password candidates input is too slow:");
+  event_log_advice (hashcat_ctx, "* Are you sure that you are using the correct attack mode (--attack-mode or -a)?");
+  event_log_advice (hashcat_ctx, "* Are you sure that you want to use input from standard input (stdin)?");
+  event_log_advice (hashcat_ctx, "* If so, are you sure that the input from stdin (the pipe) is working correctly and is fast enough?");
+  event_log_advice (hashcat_ctx, NULL);
+}
+
+static void main_monitor_noinput_abort (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  event_log_error (hashcat_ctx, "No password candidates received in stdin mode, aborting...");
 }
 
 static void main_monitor_temp_abort (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -920,6 +987,7 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
   {
     case EVENT_BITMAP_INIT_POST:          main_bitmap_init_post          (hashcat_ctx, buf, len); break;
     case EVENT_BITMAP_INIT_PRE:           main_bitmap_init_pre           (hashcat_ctx, buf, len); break;
+    case EVENT_BITMAP_FINAL_OVERFLOW:     main_bitmap_final_overflow     (hashcat_ctx, buf, len); break;
     case EVENT_CALCULATED_WORDS_BASE:     main_calculated_words_base     (hashcat_ctx, buf, len); break;
     case EVENT_CRACKER_FINISHED:          main_cracker_finished          (hashcat_ctx, buf, len); break;
     case EVENT_CRACKER_HASH_CRACKED:      main_cracker_hash_cracked      (hashcat_ctx, buf, len); break;
@@ -944,8 +1012,12 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
     case EVENT_MONITOR_THROTTLE2:         main_monitor_throttle2         (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_THROTTLE3:         main_monitor_throttle3         (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_PERFORMANCE_HINT:  main_monitor_performance_hint  (hashcat_ctx, buf, len); break;
+    case EVENT_MONITOR_NOINPUT_HINT:      main_monitor_noinput_hint      (hashcat_ctx, buf, len); break;
+    case EVENT_MONITOR_NOINPUT_ABORT:     main_monitor_noinput_abort     (hashcat_ctx, buf, len); break;
     case EVENT_OPENCL_SESSION_POST:       main_opencl_session_post       (hashcat_ctx, buf, len); break;
     case EVENT_OPENCL_SESSION_PRE:        main_opencl_session_pre        (hashcat_ctx, buf, len); break;
+    case EVENT_OPENCL_DEVICE_INIT_POST:   main_opencl_device_init_post   (hashcat_ctx, buf, len); break;
+    case EVENT_OPENCL_DEVICE_INIT_PRE:    main_opencl_device_init_pre    (hashcat_ctx, buf, len); break;
     case EVENT_OUTERLOOP_FINISHED:        main_outerloop_finished        (hashcat_ctx, buf, len); break;
     case EVENT_OUTERLOOP_MAINSCREEN:      main_outerloop_mainscreen      (hashcat_ctx, buf, len); break;
     case EVENT_OUTERLOOP_STARTING:        main_outerloop_starting        (hashcat_ctx, buf, len); break;
@@ -1010,23 +1082,18 @@ int main (int argc, char **argv)
 
   user_options_t *user_options = hashcat_ctx->user_options;
 
+  #ifdef WITH_BRAIN
+  if (user_options->brain_server == true)
+  {
+    const int rc = brain_server (user_options->brain_host, user_options->brain_port, user_options->brain_password, user_options->brain_session_whitelist);
+
+    return rc;
+  }
+  #endif
+
   if (user_options->version == true)
   {
     printf ("%s\n", VERSION_TAG);
-
-    return 0;
-  }
-
-  if (user_options->usage == true)
-  {
-    usage_big_print (PROGNAME);
-
-    return 0;
-  }
-
-  if (user_options->example_hashes == true)
-  {
-    example_hashes (hashcat_ctx);
 
     return 0;
   }
@@ -1041,7 +1108,19 @@ int main (int argc, char **argv)
 
   if (rc_session_init == 0)
   {
-    if (user_options->opencl_info == true)
+    if (user_options->usage == true)
+    {
+      usage_big_print (hashcat_ctx);
+
+      rc_final = 0;
+    }
+    else if (user_options->example_hashes == true)
+    {
+      example_hashes (hashcat_ctx);
+
+      rc_final = 0;
+    }
+    else if (user_options->opencl_info == true)
     {
       // if this is just opencl_info, no need to execute some real cracking session
 

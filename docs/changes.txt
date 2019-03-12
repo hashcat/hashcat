@@ -1,25 +1,206 @@
-* changes v4.2.1 -> xxx
+* changes v5.1.0 -> v5.x.x
 
 ##
-## Features
+## Algorithms
 ##
 
-- Add new option --slow-candidates which allows hashcat to generate passwords on-host
+- Added hash-mode 18400 (Open Document Format (ODF) 1.2 (SHA-256, AES))
+- Added hash-mode 18500 sha1(md5(md5($pass)))
+- Added hash-mode 18600 (Open Document Format (ODF) 1.1 (SHA-1, Blowfish))
+- Added hash-mode 18700 Java Object hashCode()
+- Added hash-mode 18800 Blockchain, My Wallet, Second Password (SHA256)
+- Added hash-mode 18900 Android Backup
+- Added hash-mode 19000 QNX /etc/shadow (MD5)
+- Added hash-mode 19100 QNX /etc/shadow (SHA256)
+- Added hash-mode 19200 QNX /etc/shadow (SHA512)
+- Added hash-mode 19300 sha1($salt1.$pass.$salt2)
+
+##
+## Bugs
+##
+
+- Fixed output of IKE PSK (mode 5300 and 5400) hashes to have separators at right position
+- Fixed the validation of the --brain-client-features command line argument (only values 1, 2 or 3 are allowed)
+- Fixed cracking of Cisco-PIX and Cisco-ASA MD5 passwords in mask-attack mode if mask > length 16
+- Fixed cracking of NetNTLMv1 passwords in mask-attack mode if mask > length 16 (optimized kernels only)
+- Fixed the 7-Zip parser to allow the entire supported range of encrypted and decrypted data lengths
+- Fixed incorrect progress-only result in a special race condition
+- Fixed maximum password length limit which was announced as 256 but actually was 255
+- Fixed cracking raw Streebog-HMAC 256 and 512 hashes with password of length >= 64
+- Fixed cracking raw Whirlpool hashes cracking with password of length >= 32
+- Fixed cracking of Electrum Wallet Salt-Type 2 hashes
 
 ##
 ## Improvements
 ##
 
-- Workaround some AMD OpenCL runtime segmentation faults
-- Allow bitcoin master key length not be exactly 96 byte a multiple of 16
-- Getting rid of OPTS_TYPE_HASH_COPY for Ansible Vault
-- Add a tracker for salts, amplifier and iterations to status screen
-- Add option --markov-hcstat2 to make it clear that the new hcstat2 format (compressed hcstat2gen output) must be used
-- Do not allocate memory segments for bitmap tables if we dont need it, for example in benchmark mode
-- Removed duplicate words in the dictionary file example.dict
-- Improved the speed of the outfile folder scan when using lots of hashes/salts
+- Building: Updated BUILD.md
+- Tuning Database: Updated hashcat.hctune with new models and refreshed vector width values
+- Bitcoin Wallet: Be more user friendly by allowing a larger data range for ckey and public_key
+- OpenCL Runtime: Workaround JiT compiler error on AMDGPU driver compiling WPA-EAPOL-PBKDF2 OpenCL kernel
+- OpenCL Runtime: Disable OpenCL kernel cache on Apple for Intel CPU (throws CL_BUILD_PROGRAM_FAILURE for no reason)
+- OpenCL Runtime: Improve ROCM detection and make sure to not confuse with recent AMDGPU drivers
+- OpenCL Runtime: Not using amd_bytealign (amd_bitalign is fine) on AMDGPU driver drastically reduces JiT segfaults
+- My Wallet: Added additional plaintext pattern used in newer versions
+
+##
+## Technical
+##
+
+- Binary Distribution: Removed 32 bit binary executables
+
+* changes v5.0.0 -> v5.1.0
+
+##
+## Features
+##
+
+- Added support for using --stdout in brain-client mode
+- Added new option --stdin-timeout-abort, to set how long hashcat should wait for stdin input before aborting
+- Added new option --kernel-threads to manually override the automatically-calculated number of threads
+- Added new option --keyboard-layout-mapping to map users keyboard layout, required to crack TC/VC system boot volumes
+
+##
+## Algorithms
+##
+
+- Added pure kernels for hash-mode 11700 (Streebog-256)
+- Added pure kernels for hash-mode 11800 (Streebog-512)
+- Added hash-mode 11750 (HMAC-Streebog-256 (key = $pass), big-endian)
+- Added hash-mode 11760 (HMAC-Streebog-256 (key = $salt), big-endian)
+- Added hash-mode 11850 (HMAC-Streebog-512 (key = $pass), big-endian)
+- Added hash-mode 11860 (HMAC-Streebog-512 (key = $salt), big-endian)
+- Added hash-mode 13771 (VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 512 bit)
+- Added hash-mode 13772 (VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 1024 bit)
+- Added hash-mode 13773 (VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 1536 bit)
+- Added hash-mode 18200 (Kerberos 5 AS-REP etype 23)
+- Added hash-mode 18300 (Apple File System (APFS))
+- Added Kuznyechik cipher and cascades support for VeraCrypt kernels
+- Added Camellia cipher and cascades support for VeraCrypt kernels
+
+##
+## Improvements
+##
+
+- OpenCL Devices: Add support for up to 64 OpenCL devices per system
+- OpenCL Platforms: Add support for up to 64 OpenCL platforms per system
+- OpenCL Runtime: Use our own yielding technique for synchronizing rather than vendor specific
+- Startup: Show OpenCL runtime initialization message (per device)
+- xxHash: Added support for using the version provided by the OS/distribution
+
+##
+## Bugs
+##
+
+- Fixed automated calculation of brain-session when not using all hashes in the hashlist
+- Fixed calculation of brain-attack if a given wordlist has zero size
+- Fixed checking the length of the last token in a hash if it was given the attribute TOKEN_ATTR_FIXED_LENGTH
+- Fixed endianness and invalid separator character in outfile format for hash-mode 16801 (WPA-PMKID-PMK)
+- Fixed ignoring --brain-client-features configuration when brain server has attack-position information from a previous run
+- Fixed invalid hardware monitor detection in benchmark mode
+- Fixed invalid warnings about throttling when --hwmon-disable was used
+- Fixed missing call to WSACleanup() to cleanly shutdown windows sockets system
+- Fixed missing call to WSAStartup() and client indexing in order to start the brain server on Windows
+- Fixed out-of-boundary read in DPAPI masterkey file v2 OpenCL kernel
+- Fixed out-of-bounds write in short-term memory of the brain server
+- Fixed output of --speed-only and --progress-only when fast hashes are used in combination with --slow-candidates
+- Fixed selection of OpenCL devices (-d) if there's more than 32 OpenCL devices installed
+- Fixed status output of progress value when -S and -l are used in combination
+- Fixed thread count maximum for pure kernels in straight attack mode
+
+##
+## Technical
+##
+
+- Brain: Set --brain-client-features default from 3 to 2
+- Dependencies: Added xxHash and OpenCL-Headers to deps/ in order to allow building hashcat from GitHub source release package
+- Dependencies: Removed gitmodules xxHash and OpenCL-Headers
+- Keymaps: Added hashcat keyboard mapping us.hckmap (can be used as template)
+- Keymaps: Added hashcat keyboard mapping de.hckmap
+- Hardware Monitor: Renamed --gpu-temp-abort to --hwmon-temp-abort
+- Hardware Monitor: Renamed --gpu-temp-disable to --hwmon-disable
+- Memory: Limit maximum host memory allocation depending on bitness
+- Memory: Reduced default maximum bitmap size from 24 to 18 and give a notice to use --bitmap-max to restore
+- Parameter: Rename --nvidia-spin-damp to --spin-damp (now accessible for all devices)
+- Pidfile: Treat a corrupted pidfile like a not existing pidfile
+- OpenCL Device: Do a real query on OpenCL local memory type instead of just assuming it
+- OpenCL Runtime: Disable auto-vectorization for Intel OpenCL runtime to workaround hanging JiT since version 18.1.0.013
+- Tests: Added hash-mode 11700 (Streebog-256)
+- Tests: Added hash-mode 11750 (HMAC-Streebog-256 (key = $pass), big-endian)
+- Tests: Added hash-mode 11760 (HMAC-Streebog-256 (key = $salt), big-endian)
+- Tests: Added hash-mode 11800 (Streebog-512)
+- Tests: Added hash-mode 11850 (HMAC-Streebog-512 (key = $pass), big-endian)
+- Tests: Added hash-mode 11860 (HMAC-Streebog-512 (key = $salt), big-endian)
+- Tests: Added hash-mode 13711 (VeraCrypt PBKDF2-HMAC-RIPEMD160 + XTS 512 bit)
+- Tests: Added hash-mode 13712 (VeraCrypt PBKDF2-HMAC-RIPEMD160 + XTS 1024 bit)
+- Tests: Added hash-mode 13713 (VeraCrypt PBKDF2-HMAC-RIPEMD160 + XTS 1536 bit)
+- Tests: Added hash-mode 13721 (VeraCrypt PBKDF2-HMAC-SHA512 + XTS 512 bit)
+- Tests: Added hash-mode 13722 (VeraCrypt PBKDF2-HMAC-SHA512 + XTS 1024 bit)
+- Tests: Added hash-mode 13723 (VeraCrypt PBKDF2-HMAC-SHA512 + XTS 1536 bit)
+- Tests: Added hash-mode 13731 (VeraCrypt PBKDF2-HMAC-Whirlpool + XTS 512 bit)
+- Tests: Added hash-mode 13732 (VeraCrypt PBKDF2-HMAC-Whirlpool + XTS 1024 bit)
+- Tests: Added hash-mode 13733 (VeraCrypt PBKDF2-HMAC-Whirlpool + XTS 1536 bit)
+- Tests: Added hash-mode 13751 (VeraCrypt PBKDF2-HMAC-SHA256 + XTS 512 bit)
+- Tests: Added hash-mode 13752 (VeraCrypt PBKDF2-HMAC-SHA256 + XTS 1024 bit)
+- Tests: Added hash-mode 13753 (VeraCrypt PBKDF2-HMAC-SHA256 + XTS 1536 bit)
+- Tests: Added hash-mode 13771 (VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 512 bit)
+- Tests: Added hash-mode 13772 (VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 1024 bit)
+- Tests: Added hash-mode 13773 (VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 1536 bit)
+- Tests: Added VeraCrypt containers for Kuznyechik cipher and cascades
+- Tests: Added VeraCrypt containers for Camellia cipher and cascades
+
+* changes v4.2.1 -> v5.0.0
+
+##
+## Features
+##
+
+- Added new option --slow-candidates which allows hashcat to generate passwords on-host
+- Added new option --brain-server to start a hashcat brain server
+- Added new option --brain-client to start a hashcat brain client, automatically activates --slow-candidates
+- Added new option --brain-host and --brain-port to specify ip and port of brain server, both listening and connecting
+- Added new option --brain-session to override automatically calculated brain session ID
+- Added new option --brain-session-whitelist to allow only explicit written session ID on brain server
+- Added new option --brain-password to specify the brain server authentication password
+- Added new option --brain-client-features which allows enable and disable certain features of the hashcat brain
+
+##
+## Algorithms
+##
+
+- Added hash-mode 17300 = SHA3-224
+- Added hash-mode 17400 = SHA3-256
+- Added hash-mode 17500 = SHA3-384
+- Added hash-mode 17600 = SHA3-512
+- Added hash-mode 17700 = Keccak-224
+- Added hash-mode 17800 = Keccak-256
+- Added hash-mode 17900 = Keccak-384
+- Added hash-mode 18000 = Keccak-512
+- Added hash-mode 18100 = TOTP (HMAC-SHA1)
+- Removed hash-mode 5000 = SHA-3 (Keccak)
+
+##
+## Improvements
+##
+
 - Added additional hybrid "passthrough" rules, to enable variable-length append/prepend attacks
+- Added a periodic check for read timeouts in stdin/pipe mode, and abort if no input was provided
+- Added a tracker for salts, amplifier and iterations to the status screen
+- Added option --markov-hcstat2 to make it clear that the new hcstat2 format (compressed hcstat2gen output) must be used
+- Allow bitcoin master key lengths other than 96 bytes (but they must be always multiples of 16)
+- Allow hashfile for -m 16800 to be used with -m 16801
+- Allow keepass iteration count to be larger than 999999
+- Changed algorithms using colon as separators in the hash to not use the hashconfig separator on parsing
+- Do not allocate memory segments for bitmap tables if we don't need it - for example, in benchmark mode
+- Got rid of OPTS_TYPE_HASH_COPY for Ansible Vault
+- Improved the speed of the outfile folder scan when using many hashes/salts
 - Increased the maximum size of edata2 in Kerberos 5 TGS-REP etype 23
+- Make the masks parser more restrictive by rejecting a single '?' at the end of the mask (use ?? instead)
+- Override --quiet and show final status screen in case --status is used
+- Removed duplicate words in the dictionary file example.dict
+- Updated Intel OpenCL runtime version check
+- Work around some AMD OpenCL runtime segmentation faults
+- Work around some padding issues with host compilers and OpenCL JiT on 32 and 64-bit systems
 
 ##
 ## Bugs
@@ -27,11 +208,14 @@
 
 - Fixed a invalid scalar datatype return value in hc_bytealign() where it should be a vector datatype return value
 - Fixed a problem with attack mode -a 7 together with stdout mode where the mask bytes were missing in the output
-- Fixed a problem with tab completion where --self-test-disable did incorrecly expect a further parameter/value
-- Fixed the ciphertext max length in Ansible Vault parser
+- Fixed a problem with tab completion where --self-test-disable incorrectly expected a further parameter/value
+- Fixed a race condition in status view that lead to out-of-bound reads
 - Fixed detection of unique ESSID in WPA-PMKID-* parser
+- Fixed missing wordlist encoding in combinator mode
 - Fixed speed/delay problem when quitting while the outfile folder is being scanned
-- Fixed a race condition in status view leading to out-of-bound reads
+- Fixed the ciphertext max length in Ansible Vault parser
+- Fixed the tokenizer configuration in Postgres hash parser
+- Fixed the byte order of digest output for hash-mode 11800 (Streebog-512)
 
 * changes v4.2.0 -> v4.2.1
 
@@ -107,7 +291,7 @@
 - Added hash-mode 16300 = Ethereum Pre-Sale Wallet, PBKDF2-SHA256
 - Added hash-mode 16400 = CRAM-MD5 Dovecot
 - Added hash-mode 16500 = JWT (JSON Web Token)
-- Added hash-mode 16600 = Electrum Wallet (Salt-Type 1-3)
+- Added hash-mode 16600 = Electrum Wallet (Salt-Type 1-2)
 
 ##
 ## Bugs

@@ -692,6 +692,7 @@ __constant u32a rcon[10] =
 
 // 128 bit key
 
+DECLSPEC void aes128_ExpandKey (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4);
 DECLSPEC void aes128_ExpandKey (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   ks[0] = ukey[0];
@@ -699,7 +700,10 @@ DECLSPEC void aes128_ExpandKey (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, S
   ks[2] = ukey[2];
   ks[3] = ukey[3];
 
-  for (volatile int i = 0, j = 0; i < 10; i += 1, j += 4)
+  #ifdef _unroll
+  #pragma unroll
+  #endif
+  for (int i = 0, j = 0; i < 10; i += 1, j += 4)
   {
     u32 temp = ks[j + 3];
 
@@ -718,46 +722,81 @@ DECLSPEC void aes128_ExpandKey (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, S
   }
 }
 
+DECLSPEC void aes128_InvertKey (u32 *ks, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4);
 DECLSPEC void aes128_InvertKey (u32 *ks, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
-  for (volatile int i = 0, j = 40; i < j; i += 4, j -= 4)
-  {
-    u32 temp;
+  u32 temp;
 
-    temp = ks[i + 0]; ks[i + 0] = ks[j + 0]; ks[j + 0] = temp;
-    temp = ks[i + 1]; ks[i + 1] = ks[j + 1]; ks[j + 1] = temp;
-    temp = ks[i + 2]; ks[i + 2] = ks[j + 2]; ks[j + 2] = temp;
-    temp = ks[i + 3]; ks[i + 3] = ks[j + 3]; ks[j + 3] = temp;
-  }
+  temp = ks[ 0]; ks[ 0] = ks[40]; ks[40] = temp;
+  temp = ks[ 1]; ks[ 1] = ks[41]; ks[41] = temp;
+  temp = ks[ 2]; ks[ 2] = ks[42]; ks[42] = temp;
+  temp = ks[ 3]; ks[ 3] = ks[43]; ks[43] = temp;
+  temp = ks[ 4]; ks[ 4] = ks[36]; ks[36] = temp;
+  temp = ks[ 5]; ks[ 5] = ks[37]; ks[37] = temp;
+  temp = ks[ 6]; ks[ 6] = ks[38]; ks[38] = temp;
+  temp = ks[ 7]; ks[ 7] = ks[39]; ks[39] = temp;
+  temp = ks[ 8]; ks[ 8] = ks[32]; ks[32] = temp;
+  temp = ks[ 9]; ks[ 9] = ks[33]; ks[33] = temp;
+  temp = ks[10]; ks[10] = ks[34]; ks[34] = temp;
+  temp = ks[11]; ks[11] = ks[35]; ks[35] = temp;
+  temp = ks[12]; ks[12] = ks[28]; ks[28] = temp;
+  temp = ks[13]; ks[13] = ks[29]; ks[29] = temp;
+  temp = ks[14]; ks[14] = ks[30]; ks[30] = temp;
+  temp = ks[15]; ks[15] = ks[31]; ks[31] = temp;
+  temp = ks[16]; ks[16] = ks[24]; ks[24] = temp;
+  temp = ks[17]; ks[17] = ks[25]; ks[25] = temp;
+  temp = ks[18]; ks[18] = ks[26]; ks[26] = temp;
+  temp = ks[19]; ks[19] = ks[27]; ks[27] = temp;
 
-  for (volatile int i = 1, j = 4; i < 10; i += 1, j += 4)
+  #ifdef _unroll
+  #pragma unroll
+  #endif
+  for (int i = 1, j = 4; i < 10; i += 1, j += 4)
   {
+    const u32 x0s0 = (ks[j + 0] >>  0) & 0xff;
+    const u32 x0s1 = (ks[j + 0] >>  8) & 0xff;
+    const u32 x0s2 = (ks[j + 0] >> 16) & 0xff;
+    const u32 x0s3 = (ks[j + 0] >> 24) & 0xff;
+    const u32 x1s0 = (ks[j + 1] >>  0) & 0xff;
+    const u32 x1s1 = (ks[j + 1] >>  8) & 0xff;
+    const u32 x1s2 = (ks[j + 1] >> 16) & 0xff;
+    const u32 x1s3 = (ks[j + 1] >> 24) & 0xff;
+    const u32 x2s0 = (ks[j + 2] >>  0) & 0xff;
+    const u32 x2s1 = (ks[j + 2] >>  8) & 0xff;
+    const u32 x2s2 = (ks[j + 2] >> 16) & 0xff;
+    const u32 x2s3 = (ks[j + 2] >> 24) & 0xff;
+    const u32 x3s0 = (ks[j + 3] >>  0) & 0xff;
+    const u32 x3s1 = (ks[j + 3] >>  8) & 0xff;
+    const u32 x3s2 = (ks[j + 3] >> 16) & 0xff;
+    const u32 x3s3 = (ks[j + 3] >> 24) & 0xff;
+
     ks[j + 0] =
-      s_td0[s_te1[(ks[j + 0] >> 24) & 0xff] & 0xff] ^
-      s_td1[s_te1[(ks[j + 0] >> 16) & 0xff] & 0xff] ^
-      s_td2[s_te1[(ks[j + 0] >>  8) & 0xff] & 0xff] ^
-      s_td3[s_te1[(ks[j + 0] >>  0) & 0xff] & 0xff];
+      s_td0[s_te1[x0s3] & 0xff] ^
+      s_td1[s_te1[x0s2] & 0xff] ^
+      s_td2[s_te1[x0s1] & 0xff] ^
+      s_td3[s_te1[x0s0] & 0xff];
 
     ks[j + 1] =
-      s_td0[s_te1[(ks[j + 1] >> 24) & 0xff] & 0xff] ^
-      s_td1[s_te1[(ks[j + 1] >> 16) & 0xff] & 0xff] ^
-      s_td2[s_te1[(ks[j + 1] >>  8) & 0xff] & 0xff] ^
-      s_td3[s_te1[(ks[j + 1] >>  0) & 0xff] & 0xff];
+      s_td0[s_te1[x1s3] & 0xff] ^
+      s_td1[s_te1[x1s2] & 0xff] ^
+      s_td2[s_te1[x1s1] & 0xff] ^
+      s_td3[s_te1[x1s0] & 0xff];
 
     ks[j + 2] =
-      s_td0[s_te1[(ks[j + 2] >> 24) & 0xff] & 0xff] ^
-      s_td1[s_te1[(ks[j + 2] >> 16) & 0xff] & 0xff] ^
-      s_td2[s_te1[(ks[j + 2] >>  8) & 0xff] & 0xff] ^
-      s_td3[s_te1[(ks[j + 2] >>  0) & 0xff] & 0xff];
+      s_td0[s_te1[x2s3] & 0xff] ^
+      s_td1[s_te1[x2s2] & 0xff] ^
+      s_td2[s_te1[x2s1] & 0xff] ^
+      s_td3[s_te1[x2s0] & 0xff];
 
     ks[j + 3] =
-      s_td0[s_te1[(ks[j + 3] >> 24) & 0xff] & 0xff] ^
-      s_td1[s_te1[(ks[j + 3] >> 16) & 0xff] & 0xff] ^
-      s_td2[s_te1[(ks[j + 3] >>  8) & 0xff] & 0xff] ^
-      s_td3[s_te1[(ks[j + 3] >>  0) & 0xff] & 0xff];
+      s_td0[s_te1[x3s3] & 0xff] ^
+      s_td1[s_te1[x3s2] & 0xff] ^
+      s_td2[s_te1[x3s1] & 0xff] ^
+      s_td3[s_te1[x3s0] & 0xff];
   }
 }
 
+DECLSPEC void aes128_set_encrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4);
 DECLSPEC void aes128_set_encrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 ukey_s[4];
@@ -770,6 +809,7 @@ DECLSPEC void aes128_set_encrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_
   aes128_ExpandKey (ks, ukey_s, s_te0, s_te1, s_te2, s_te3, s_te4);
 }
 
+DECLSPEC void aes128_set_decrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4);
 DECLSPEC void aes128_set_decrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 ukey_s[4];
@@ -784,6 +824,7 @@ DECLSPEC void aes128_set_decrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_
   aes128_InvertKey (ks, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
 }
 
+DECLSPEC void aes128_encrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4);
 DECLSPEC void aes128_encrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   const u32 in_s0 = swap32_S (in[0]);
@@ -799,46 +840,70 @@ DECLSPEC void aes128_encrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u
   #ifdef _unroll
   #pragma unroll
   #endif
-  for (volatile int i = 4; i < 40; i += 4)
+  for (int i = 4; i < 40; i += 4)
   {
-    const uchar4 x0 = as_uchar4 (t0);
-    const uchar4 x1 = as_uchar4 (t1);
-    const uchar4 x2 = as_uchar4 (t2);
-    const uchar4 x3 = as_uchar4 (t3);
+    const u32 x0s0 = (t0 >>  0) & 0xff;
+    const u32 x0s1 = (t0 >>  8) & 0xff;
+    const u32 x0s2 = (t0 >> 16) & 0xff;
+    const u32 x0s3 = (t0 >> 24) & 0xff;
+    const u32 x1s0 = (t1 >>  0) & 0xff;
+    const u32 x1s1 = (t1 >>  8) & 0xff;
+    const u32 x1s2 = (t1 >> 16) & 0xff;
+    const u32 x1s3 = (t1 >> 24) & 0xff;
+    const u32 x2s0 = (t2 >>  0) & 0xff;
+    const u32 x2s1 = (t2 >>  8) & 0xff;
+    const u32 x2s2 = (t2 >> 16) & 0xff;
+    const u32 x2s3 = (t2 >> 24) & 0xff;
+    const u32 x3s0 = (t3 >>  0) & 0xff;
+    const u32 x3s1 = (t3 >>  8) & 0xff;
+    const u32 x3s2 = (t3 >> 16) & 0xff;
+    const u32 x3s3 = (t3 >> 24) & 0xff;
 
-    t0 = s_te0[x0.s3] ^ s_te1[x1.s2] ^ s_te2[x2.s1] ^ s_te3[x3.s0] ^ ks[i + 0];
-    t1 = s_te0[x1.s3] ^ s_te1[x2.s2] ^ s_te2[x3.s1] ^ s_te3[x0.s0] ^ ks[i + 1];
-    t2 = s_te0[x2.s3] ^ s_te1[x3.s2] ^ s_te2[x0.s1] ^ s_te3[x1.s0] ^ ks[i + 2];
-    t3 = s_te0[x3.s3] ^ s_te1[x0.s2] ^ s_te2[x1.s1] ^ s_te3[x2.s0] ^ ks[i + 3];
+    t0 = s_te0[x0s3] ^ s_te1[x1s2] ^ s_te2[x2s1] ^ s_te3[x3s0] ^ ks[i + 0];
+    t1 = s_te0[x1s3] ^ s_te1[x2s2] ^ s_te2[x3s1] ^ s_te3[x0s0] ^ ks[i + 1];
+    t2 = s_te0[x2s3] ^ s_te1[x3s2] ^ s_te2[x0s1] ^ s_te3[x1s0] ^ ks[i + 2];
+    t3 = s_te0[x3s3] ^ s_te1[x0s2] ^ s_te2[x1s1] ^ s_te3[x2s0] ^ ks[i + 3];
   }
 
-  const uchar4 x0 = as_uchar4 (t0);
-  const uchar4 x1 = as_uchar4 (t1);
-  const uchar4 x2 = as_uchar4 (t2);
-  const uchar4 x3 = as_uchar4 (t3);
+  const u32 x0s0 = (t0 >>  0) & 0xff;
+  const u32 x0s1 = (t0 >>  8) & 0xff;
+  const u32 x0s2 = (t0 >> 16) & 0xff;
+  const u32 x0s3 = (t0 >> 24) & 0xff;
+  const u32 x1s0 = (t1 >>  0) & 0xff;
+  const u32 x1s1 = (t1 >>  8) & 0xff;
+  const u32 x1s2 = (t1 >> 16) & 0xff;
+  const u32 x1s3 = (t1 >> 24) & 0xff;
+  const u32 x2s0 = (t2 >>  0) & 0xff;
+  const u32 x2s1 = (t2 >>  8) & 0xff;
+  const u32 x2s2 = (t2 >> 16) & 0xff;
+  const u32 x2s3 = (t2 >> 24) & 0xff;
+  const u32 x3s0 = (t3 >>  0) & 0xff;
+  const u32 x3s1 = (t3 >>  8) & 0xff;
+  const u32 x3s2 = (t3 >> 16) & 0xff;
+  const u32 x3s3 = (t3 >> 24) & 0xff;
 
-  out[0] = (s_te4[x0.s3] & 0xff000000)
-         ^ (s_te4[x1.s2] & 0x00ff0000)
-         ^ (s_te4[x2.s1] & 0x0000ff00)
-         ^ (s_te4[x3.s0] & 0x000000ff)
+  out[0] = (s_te4[x0s3] & 0xff000000)
+         ^ (s_te4[x1s2] & 0x00ff0000)
+         ^ (s_te4[x2s1] & 0x0000ff00)
+         ^ (s_te4[x3s0] & 0x000000ff)
          ^ ks[40];
 
-  out[1] = (s_te4[x1.s3] & 0xff000000)
-         ^ (s_te4[x2.s2] & 0x00ff0000)
-         ^ (s_te4[x3.s1] & 0x0000ff00)
-         ^ (s_te4[x0.s0] & 0x000000ff)
+  out[1] = (s_te4[x1s3] & 0xff000000)
+         ^ (s_te4[x2s2] & 0x00ff0000)
+         ^ (s_te4[x3s1] & 0x0000ff00)
+         ^ (s_te4[x0s0] & 0x000000ff)
          ^ ks[41];
 
-  out[2] = (s_te4[x2.s3] & 0xff000000)
-         ^ (s_te4[x3.s2] & 0x00ff0000)
-         ^ (s_te4[x0.s1] & 0x0000ff00)
-         ^ (s_te4[x1.s0] & 0x000000ff)
+  out[2] = (s_te4[x2s3] & 0xff000000)
+         ^ (s_te4[x3s2] & 0x00ff0000)
+         ^ (s_te4[x0s1] & 0x0000ff00)
+         ^ (s_te4[x1s0] & 0x000000ff)
          ^ ks[42];
 
-  out[3] = (s_te4[x3.s3] & 0xff000000)
-         ^ (s_te4[x0.s2] & 0x00ff0000)
-         ^ (s_te4[x1.s1] & 0x0000ff00)
-         ^ (s_te4[x2.s0] & 0x000000ff)
+  out[3] = (s_te4[x3s3] & 0xff000000)
+         ^ (s_te4[x0s2] & 0x00ff0000)
+         ^ (s_te4[x1s1] & 0x0000ff00)
+         ^ (s_te4[x2s0] & 0x000000ff)
          ^ ks[43];
 
   out[0] = swap32_S (out[0]);
@@ -847,6 +912,7 @@ DECLSPEC void aes128_encrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u
   out[3] = swap32_S (out[3]);
 }
 
+DECLSPEC void aes128_decrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4);
 DECLSPEC void aes128_decrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   const u32 in_s0 = swap32_S (in[0]);
@@ -862,46 +928,70 @@ DECLSPEC void aes128_decrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u
   #ifdef _unroll
   #pragma unroll
   #endif
-  for (volatile int i = 4; i < 40; i += 4)
+  for (int i = 4; i < 40; i += 4)
   {
-    const uchar4 x0 = as_uchar4 (t0);
-    const uchar4 x1 = as_uchar4 (t1);
-    const uchar4 x2 = as_uchar4 (t2);
-    const uchar4 x3 = as_uchar4 (t3);
+    const u32 x0s0 = (t0 >>  0) & 0xff;
+    const u32 x0s1 = (t0 >>  8) & 0xff;
+    const u32 x0s2 = (t0 >> 16) & 0xff;
+    const u32 x0s3 = (t0 >> 24) & 0xff;
+    const u32 x1s0 = (t1 >>  0) & 0xff;
+    const u32 x1s1 = (t1 >>  8) & 0xff;
+    const u32 x1s2 = (t1 >> 16) & 0xff;
+    const u32 x1s3 = (t1 >> 24) & 0xff;
+    const u32 x2s0 = (t2 >>  0) & 0xff;
+    const u32 x2s1 = (t2 >>  8) & 0xff;
+    const u32 x2s2 = (t2 >> 16) & 0xff;
+    const u32 x2s3 = (t2 >> 24) & 0xff;
+    const u32 x3s0 = (t3 >>  0) & 0xff;
+    const u32 x3s1 = (t3 >>  8) & 0xff;
+    const u32 x3s2 = (t3 >> 16) & 0xff;
+    const u32 x3s3 = (t3 >> 24) & 0xff;
 
-    t0 = s_td0[x0.s3] ^ s_td1[x3.s2] ^ s_td2[x2.s1] ^ s_td3[x1.s0] ^ ks[i + 0];
-    t1 = s_td0[x1.s3] ^ s_td1[x0.s2] ^ s_td2[x3.s1] ^ s_td3[x2.s0] ^ ks[i + 1];
-    t2 = s_td0[x2.s3] ^ s_td1[x1.s2] ^ s_td2[x0.s1] ^ s_td3[x3.s0] ^ ks[i + 2];
-    t3 = s_td0[x3.s3] ^ s_td1[x2.s2] ^ s_td2[x1.s1] ^ s_td3[x0.s0] ^ ks[i + 3];
+    t0 = s_td0[x0s3] ^ s_td1[x3s2] ^ s_td2[x2s1] ^ s_td3[x1s0] ^ ks[i + 0];
+    t1 = s_td0[x1s3] ^ s_td1[x0s2] ^ s_td2[x3s1] ^ s_td3[x2s0] ^ ks[i + 1];
+    t2 = s_td0[x2s3] ^ s_td1[x1s2] ^ s_td2[x0s1] ^ s_td3[x3s0] ^ ks[i + 2];
+    t3 = s_td0[x3s3] ^ s_td1[x2s2] ^ s_td2[x1s1] ^ s_td3[x0s0] ^ ks[i + 3];
   }
 
-  const uchar4 x0 = as_uchar4 (t0);
-  const uchar4 x1 = as_uchar4 (t1);
-  const uchar4 x2 = as_uchar4 (t2);
-  const uchar4 x3 = as_uchar4 (t3);
+  const u32 x0s0 = (t0 >>  0) & 0xff;
+  const u32 x0s1 = (t0 >>  8) & 0xff;
+  const u32 x0s2 = (t0 >> 16) & 0xff;
+  const u32 x0s3 = (t0 >> 24) & 0xff;
+  const u32 x1s0 = (t1 >>  0) & 0xff;
+  const u32 x1s1 = (t1 >>  8) & 0xff;
+  const u32 x1s2 = (t1 >> 16) & 0xff;
+  const u32 x1s3 = (t1 >> 24) & 0xff;
+  const u32 x2s0 = (t2 >>  0) & 0xff;
+  const u32 x2s1 = (t2 >>  8) & 0xff;
+  const u32 x2s2 = (t2 >> 16) & 0xff;
+  const u32 x2s3 = (t2 >> 24) & 0xff;
+  const u32 x3s0 = (t3 >>  0) & 0xff;
+  const u32 x3s1 = (t3 >>  8) & 0xff;
+  const u32 x3s2 = (t3 >> 16) & 0xff;
+  const u32 x3s3 = (t3 >> 24) & 0xff;
 
-  out[0] = (s_td4[x0.s3] & 0xff000000)
-         ^ (s_td4[x3.s2] & 0x00ff0000)
-         ^ (s_td4[x2.s1] & 0x0000ff00)
-         ^ (s_td4[x1.s0] & 0x000000ff)
+  out[0] = (s_td4[x0s3] & 0xff000000)
+         ^ (s_td4[x3s2] & 0x00ff0000)
+         ^ (s_td4[x2s1] & 0x0000ff00)
+         ^ (s_td4[x1s0] & 0x000000ff)
          ^ ks[40];
 
-  out[1] = (s_td4[x1.s3] & 0xff000000)
-         ^ (s_td4[x0.s2] & 0x00ff0000)
-         ^ (s_td4[x3.s1] & 0x0000ff00)
-         ^ (s_td4[x2.s0] & 0x000000ff)
+  out[1] = (s_td4[x1s3] & 0xff000000)
+         ^ (s_td4[x0s2] & 0x00ff0000)
+         ^ (s_td4[x3s1] & 0x0000ff00)
+         ^ (s_td4[x2s0] & 0x000000ff)
          ^ ks[41];
 
-  out[2] = (s_td4[x2.s3] & 0xff000000)
-         ^ (s_td4[x1.s2] & 0x00ff0000)
-         ^ (s_td4[x0.s1] & 0x0000ff00)
-         ^ (s_td4[x3.s0] & 0x000000ff)
+  out[2] = (s_td4[x2s3] & 0xff000000)
+         ^ (s_td4[x1s2] & 0x00ff0000)
+         ^ (s_td4[x0s1] & 0x0000ff00)
+         ^ (s_td4[x3s0] & 0x000000ff)
          ^ ks[42];
 
-  out[3] = (s_td4[x3.s3] & 0xff000000)
-         ^ (s_td4[x2.s2] & 0x00ff0000)
-         ^ (s_td4[x1.s1] & 0x0000ff00)
-         ^ (s_td4[x0.s0] & 0x000000ff)
+  out[3] = (s_td4[x3s3] & 0xff000000)
+         ^ (s_td4[x2s2] & 0x00ff0000)
+         ^ (s_td4[x1s1] & 0x0000ff00)
+         ^ (s_td4[x0s0] & 0x000000ff)
          ^ ks[43];
 
   out[0] = swap32_S (out[0]);
@@ -912,6 +1002,7 @@ DECLSPEC void aes128_decrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u
 
 // 256 bit key
 
+DECLSPEC void aes256_ExpandKey (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4);
 DECLSPEC void aes256_ExpandKey (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   ks[0] = ukey[0];
@@ -926,7 +1017,10 @@ DECLSPEC void aes256_ExpandKey (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, S
   int i;
   int j;
 
-  for (volatile int i = 0, j = 0; i < 7; i += 1, j += 8)
+  #ifdef _unroll
+  #pragma unroll
+  #endif
+  for (int i = 0, j = 0; i < 7; i += 1, j += 8)
   {
     const u32 temp1 = ks[j + 7];
 
@@ -957,46 +1051,89 @@ DECLSPEC void aes256_ExpandKey (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, S
   }
 }
 
+DECLSPEC void aes256_InvertKey (u32 *ks, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4);
 DECLSPEC void aes256_InvertKey (u32 *ks, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
-  for (volatile int i = 0, j = 56; i < j; i += 4, j -= 4)
-  {
-    u32 temp;
+  u32 temp;
 
-    temp = ks[i + 0]; ks[i + 0] = ks[j + 0]; ks[j + 0] = temp;
-    temp = ks[i + 1]; ks[i + 1] = ks[j + 1]; ks[j + 1] = temp;
-    temp = ks[i + 2]; ks[i + 2] = ks[j + 2]; ks[j + 2] = temp;
-    temp = ks[i + 3]; ks[i + 3] = ks[j + 3]; ks[j + 3] = temp;
-  }
+  temp = ks[ 0]; ks[ 0] = ks[56]; ks[56] = temp;
+  temp = ks[ 1]; ks[ 1] = ks[57]; ks[57] = temp;
+  temp = ks[ 2]; ks[ 2] = ks[58]; ks[58] = temp;
+  temp = ks[ 3]; ks[ 3] = ks[59]; ks[59] = temp;
+  temp = ks[ 4]; ks[ 4] = ks[52]; ks[52] = temp;
+  temp = ks[ 5]; ks[ 5] = ks[53]; ks[53] = temp;
+  temp = ks[ 6]; ks[ 6] = ks[54]; ks[54] = temp;
+  temp = ks[ 7]; ks[ 7] = ks[55]; ks[55] = temp;
+  temp = ks[ 8]; ks[ 8] = ks[48]; ks[48] = temp;
+  temp = ks[ 9]; ks[ 9] = ks[49]; ks[49] = temp;
+  temp = ks[10]; ks[10] = ks[50]; ks[50] = temp;
+  temp = ks[11]; ks[11] = ks[51]; ks[51] = temp;
+  temp = ks[12]; ks[12] = ks[44]; ks[44] = temp;
+  temp = ks[13]; ks[13] = ks[45]; ks[45] = temp;
+  temp = ks[14]; ks[14] = ks[46]; ks[46] = temp;
+  temp = ks[15]; ks[15] = ks[47]; ks[47] = temp;
+  temp = ks[16]; ks[16] = ks[40]; ks[40] = temp;
+  temp = ks[17]; ks[17] = ks[41]; ks[41] = temp;
+  temp = ks[18]; ks[18] = ks[42]; ks[42] = temp;
+  temp = ks[19]; ks[19] = ks[43]; ks[43] = temp;
+  temp = ks[20]; ks[20] = ks[36]; ks[36] = temp;
+  temp = ks[21]; ks[21] = ks[37]; ks[37] = temp;
+  temp = ks[22]; ks[22] = ks[38]; ks[38] = temp;
+  temp = ks[23]; ks[23] = ks[39]; ks[39] = temp;
+  temp = ks[24]; ks[24] = ks[32]; ks[32] = temp;
+  temp = ks[25]; ks[25] = ks[33]; ks[33] = temp;
+  temp = ks[26]; ks[26] = ks[34]; ks[34] = temp;
+  temp = ks[27]; ks[27] = ks[35]; ks[35] = temp;
 
-  for (volatile int i = 1, j = 4; i < 14; i += 1, j += 4)
+  #ifdef _unroll
+  #pragma unroll
+  #endif
+  for (int i = 1, j = 4; i < 14; i += 1, j += 4)
   {
+    const u32 x0s0 = (ks[j + 0] >>  0) & 0xff;
+    const u32 x0s1 = (ks[j + 0] >>  8) & 0xff;
+    const u32 x0s2 = (ks[j + 0] >> 16) & 0xff;
+    const u32 x0s3 = (ks[j + 0] >> 24) & 0xff;
+    const u32 x1s0 = (ks[j + 1] >>  0) & 0xff;
+    const u32 x1s1 = (ks[j + 1] >>  8) & 0xff;
+    const u32 x1s2 = (ks[j + 1] >> 16) & 0xff;
+    const u32 x1s3 = (ks[j + 1] >> 24) & 0xff;
+    const u32 x2s0 = (ks[j + 2] >>  0) & 0xff;
+    const u32 x2s1 = (ks[j + 2] >>  8) & 0xff;
+    const u32 x2s2 = (ks[j + 2] >> 16) & 0xff;
+    const u32 x2s3 = (ks[j + 2] >> 24) & 0xff;
+    const u32 x3s0 = (ks[j + 3] >>  0) & 0xff;
+    const u32 x3s1 = (ks[j + 3] >>  8) & 0xff;
+    const u32 x3s2 = (ks[j + 3] >> 16) & 0xff;
+    const u32 x3s3 = (ks[j + 3] >> 24) & 0xff;
+
     ks[j + 0] =
-      s_td0[s_te1[(ks[j + 0] >> 24) & 0xff] & 0xff] ^
-      s_td1[s_te1[(ks[j + 0] >> 16) & 0xff] & 0xff] ^
-      s_td2[s_te1[(ks[j + 0] >>  8) & 0xff] & 0xff] ^
-      s_td3[s_te1[(ks[j + 0] >>  0) & 0xff] & 0xff];
+      s_td0[s_te1[x0s3] & 0xff] ^
+      s_td1[s_te1[x0s2] & 0xff] ^
+      s_td2[s_te1[x0s1] & 0xff] ^
+      s_td3[s_te1[x0s0] & 0xff];
 
     ks[j + 1] =
-      s_td0[s_te1[(ks[j + 1] >> 24) & 0xff] & 0xff] ^
-      s_td1[s_te1[(ks[j + 1] >> 16) & 0xff] & 0xff] ^
-      s_td2[s_te1[(ks[j + 1] >>  8) & 0xff] & 0xff] ^
-      s_td3[s_te1[(ks[j + 1] >>  0) & 0xff] & 0xff];
+      s_td0[s_te1[x1s3] & 0xff] ^
+      s_td1[s_te1[x1s2] & 0xff] ^
+      s_td2[s_te1[x1s1] & 0xff] ^
+      s_td3[s_te1[x1s0] & 0xff];
 
     ks[j + 2] =
-      s_td0[s_te1[(ks[j + 2] >> 24) & 0xff] & 0xff] ^
-      s_td1[s_te1[(ks[j + 2] >> 16) & 0xff] & 0xff] ^
-      s_td2[s_te1[(ks[j + 2] >>  8) & 0xff] & 0xff] ^
-      s_td3[s_te1[(ks[j + 2] >>  0) & 0xff] & 0xff];
+      s_td0[s_te1[x2s3] & 0xff] ^
+      s_td1[s_te1[x2s2] & 0xff] ^
+      s_td2[s_te1[x2s1] & 0xff] ^
+      s_td3[s_te1[x2s0] & 0xff];
 
     ks[j + 3] =
-      s_td0[s_te1[(ks[j + 3] >> 24) & 0xff] & 0xff] ^
-      s_td1[s_te1[(ks[j + 3] >> 16) & 0xff] & 0xff] ^
-      s_td2[s_te1[(ks[j + 3] >>  8) & 0xff] & 0xff] ^
-      s_td3[s_te1[(ks[j + 3] >>  0) & 0xff] & 0xff];
+      s_td0[s_te1[x3s3] & 0xff] ^
+      s_td1[s_te1[x3s2] & 0xff] ^
+      s_td2[s_te1[x3s1] & 0xff] ^
+      s_td3[s_te1[x3s0] & 0xff];
   }
 }
 
+DECLSPEC void aes256_set_encrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4);
 DECLSPEC void aes256_set_encrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 ukey_s[8];
@@ -1013,6 +1150,7 @@ DECLSPEC void aes256_set_encrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_
   aes256_ExpandKey (ks, ukey_s, s_te0, s_te1, s_te2, s_te3, s_te4);
 }
 
+DECLSPEC void aes256_set_decrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4);
 DECLSPEC void aes256_set_decrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 ukey_s[8];
@@ -1031,6 +1169,7 @@ DECLSPEC void aes256_set_decrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_
   aes256_InvertKey (ks, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
 }
 
+DECLSPEC void aes256_encrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4);
 DECLSPEC void aes256_encrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   const u32 in_s0 = swap32_S (in[0]);
@@ -1046,46 +1185,70 @@ DECLSPEC void aes256_encrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u
   #ifdef _unroll
   #pragma unroll
   #endif
-  for (volatile int i = 4; i < 56; i += 4)
+  for (int i = 4; i < 56; i += 4)
   {
-    const uchar4 x0 = as_uchar4 (t0);
-    const uchar4 x1 = as_uchar4 (t1);
-    const uchar4 x2 = as_uchar4 (t2);
-    const uchar4 x3 = as_uchar4 (t3);
+    const u32 x0s0 = (t0 >>  0) & 0xff;
+    const u32 x0s1 = (t0 >>  8) & 0xff;
+    const u32 x0s2 = (t0 >> 16) & 0xff;
+    const u32 x0s3 = (t0 >> 24) & 0xff;
+    const u32 x1s0 = (t1 >>  0) & 0xff;
+    const u32 x1s1 = (t1 >>  8) & 0xff;
+    const u32 x1s2 = (t1 >> 16) & 0xff;
+    const u32 x1s3 = (t1 >> 24) & 0xff;
+    const u32 x2s0 = (t2 >>  0) & 0xff;
+    const u32 x2s1 = (t2 >>  8) & 0xff;
+    const u32 x2s2 = (t2 >> 16) & 0xff;
+    const u32 x2s3 = (t2 >> 24) & 0xff;
+    const u32 x3s0 = (t3 >>  0) & 0xff;
+    const u32 x3s1 = (t3 >>  8) & 0xff;
+    const u32 x3s2 = (t3 >> 16) & 0xff;
+    const u32 x3s3 = (t3 >> 24) & 0xff;
 
-    t0 = s_te0[x0.s3] ^ s_te1[x1.s2] ^ s_te2[x2.s1] ^ s_te3[x3.s0] ^ ks[i + 0];
-    t1 = s_te0[x1.s3] ^ s_te1[x2.s2] ^ s_te2[x3.s1] ^ s_te3[x0.s0] ^ ks[i + 1];
-    t2 = s_te0[x2.s3] ^ s_te1[x3.s2] ^ s_te2[x0.s1] ^ s_te3[x1.s0] ^ ks[i + 2];
-    t3 = s_te0[x3.s3] ^ s_te1[x0.s2] ^ s_te2[x1.s1] ^ s_te3[x2.s0] ^ ks[i + 3];
+    t0 = s_te0[x0s3] ^ s_te1[x1s2] ^ s_te2[x2s1] ^ s_te3[x3s0] ^ ks[i + 0];
+    t1 = s_te0[x1s3] ^ s_te1[x2s2] ^ s_te2[x3s1] ^ s_te3[x0s0] ^ ks[i + 1];
+    t2 = s_te0[x2s3] ^ s_te1[x3s2] ^ s_te2[x0s1] ^ s_te3[x1s0] ^ ks[i + 2];
+    t3 = s_te0[x3s3] ^ s_te1[x0s2] ^ s_te2[x1s1] ^ s_te3[x2s0] ^ ks[i + 3];
   }
 
-  const uchar4 x0 = as_uchar4 (t0);
-  const uchar4 x1 = as_uchar4 (t1);
-  const uchar4 x2 = as_uchar4 (t2);
-  const uchar4 x3 = as_uchar4 (t3);
+  const u32 x0s0 = (t0 >>  0) & 0xff;
+  const u32 x0s1 = (t0 >>  8) & 0xff;
+  const u32 x0s2 = (t0 >> 16) & 0xff;
+  const u32 x0s3 = (t0 >> 24) & 0xff;
+  const u32 x1s0 = (t1 >>  0) & 0xff;
+  const u32 x1s1 = (t1 >>  8) & 0xff;
+  const u32 x1s2 = (t1 >> 16) & 0xff;
+  const u32 x1s3 = (t1 >> 24) & 0xff;
+  const u32 x2s0 = (t2 >>  0) & 0xff;
+  const u32 x2s1 = (t2 >>  8) & 0xff;
+  const u32 x2s2 = (t2 >> 16) & 0xff;
+  const u32 x2s3 = (t2 >> 24) & 0xff;
+  const u32 x3s0 = (t3 >>  0) & 0xff;
+  const u32 x3s1 = (t3 >>  8) & 0xff;
+  const u32 x3s2 = (t3 >> 16) & 0xff;
+  const u32 x3s3 = (t3 >> 24) & 0xff;
 
-  out[0] = (s_te4[x0.s3] & 0xff000000)
-         ^ (s_te4[x1.s2] & 0x00ff0000)
-         ^ (s_te4[x2.s1] & 0x0000ff00)
-         ^ (s_te4[x3.s0] & 0x000000ff)
+  out[0] = (s_te4[x0s3] & 0xff000000)
+         ^ (s_te4[x1s2] & 0x00ff0000)
+         ^ (s_te4[x2s1] & 0x0000ff00)
+         ^ (s_te4[x3s0] & 0x000000ff)
          ^ ks[56];
 
-  out[1] = (s_te4[x1.s3] & 0xff000000)
-         ^ (s_te4[x2.s2] & 0x00ff0000)
-         ^ (s_te4[x3.s1] & 0x0000ff00)
-         ^ (s_te4[x0.s0] & 0x000000ff)
+  out[1] = (s_te4[x1s3] & 0xff000000)
+         ^ (s_te4[x2s2] & 0x00ff0000)
+         ^ (s_te4[x3s1] & 0x0000ff00)
+         ^ (s_te4[x0s0] & 0x000000ff)
          ^ ks[57];
 
-  out[2] = (s_te4[x2.s3] & 0xff000000)
-         ^ (s_te4[x3.s2] & 0x00ff0000)
-         ^ (s_te4[x0.s1] & 0x0000ff00)
-         ^ (s_te4[x1.s0] & 0x000000ff)
+  out[2] = (s_te4[x2s3] & 0xff000000)
+         ^ (s_te4[x3s2] & 0x00ff0000)
+         ^ (s_te4[x0s1] & 0x0000ff00)
+         ^ (s_te4[x1s0] & 0x000000ff)
          ^ ks[58];
 
-  out[3] = (s_te4[x3.s3] & 0xff000000)
-         ^ (s_te4[x0.s2] & 0x00ff0000)
-         ^ (s_te4[x1.s1] & 0x0000ff00)
-         ^ (s_te4[x2.s0] & 0x000000ff)
+  out[3] = (s_te4[x3s3] & 0xff000000)
+         ^ (s_te4[x0s2] & 0x00ff0000)
+         ^ (s_te4[x1s1] & 0x0000ff00)
+         ^ (s_te4[x2s0] & 0x000000ff)
          ^ ks[59];
 
   out[0] = swap32_S (out[0]);
@@ -1094,6 +1257,7 @@ DECLSPEC void aes256_encrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u
   out[3] = swap32_S (out[3]);
 }
 
+DECLSPEC void aes256_decrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4);
 DECLSPEC void aes256_decrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   const u32 in_s0 = swap32_S (in[0]);
@@ -1109,46 +1273,70 @@ DECLSPEC void aes256_decrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u
   #ifdef _unroll
   #pragma unroll
   #endif
-  for (volatile int i = 4; i < 56; i += 4)
+  for (int i = 4; i < 56; i += 4)
   {
-    const uchar4 x0 = as_uchar4 (t0);
-    const uchar4 x1 = as_uchar4 (t1);
-    const uchar4 x2 = as_uchar4 (t2);
-    const uchar4 x3 = as_uchar4 (t3);
+    const u32 x0s0 = (t0 >>  0) & 0xff;
+    const u32 x0s1 = (t0 >>  8) & 0xff;
+    const u32 x0s2 = (t0 >> 16) & 0xff;
+    const u32 x0s3 = (t0 >> 24) & 0xff;
+    const u32 x1s0 = (t1 >>  0) & 0xff;
+    const u32 x1s1 = (t1 >>  8) & 0xff;
+    const u32 x1s2 = (t1 >> 16) & 0xff;
+    const u32 x1s3 = (t1 >> 24) & 0xff;
+    const u32 x2s0 = (t2 >>  0) & 0xff;
+    const u32 x2s1 = (t2 >>  8) & 0xff;
+    const u32 x2s2 = (t2 >> 16) & 0xff;
+    const u32 x2s3 = (t2 >> 24) & 0xff;
+    const u32 x3s0 = (t3 >>  0) & 0xff;
+    const u32 x3s1 = (t3 >>  8) & 0xff;
+    const u32 x3s2 = (t3 >> 16) & 0xff;
+    const u32 x3s3 = (t3 >> 24) & 0xff;
 
-    t0 = s_td0[x0.s3] ^ s_td1[x3.s2] ^ s_td2[x2.s1] ^ s_td3[x1.s0] ^ ks[i + 0];
-    t1 = s_td0[x1.s3] ^ s_td1[x0.s2] ^ s_td2[x3.s1] ^ s_td3[x2.s0] ^ ks[i + 1];
-    t2 = s_td0[x2.s3] ^ s_td1[x1.s2] ^ s_td2[x0.s1] ^ s_td3[x3.s0] ^ ks[i + 2];
-    t3 = s_td0[x3.s3] ^ s_td1[x2.s2] ^ s_td2[x1.s1] ^ s_td3[x0.s0] ^ ks[i + 3];
+    t0 = s_td0[x0s3] ^ s_td1[x3s2] ^ s_td2[x2s1] ^ s_td3[x1s0] ^ ks[i + 0];
+    t1 = s_td0[x1s3] ^ s_td1[x0s2] ^ s_td2[x3s1] ^ s_td3[x2s0] ^ ks[i + 1];
+    t2 = s_td0[x2s3] ^ s_td1[x1s2] ^ s_td2[x0s1] ^ s_td3[x3s0] ^ ks[i + 2];
+    t3 = s_td0[x3s3] ^ s_td1[x2s2] ^ s_td2[x1s1] ^ s_td3[x0s0] ^ ks[i + 3];
   }
 
-  const uchar4 x0 = as_uchar4 (t0);
-  const uchar4 x1 = as_uchar4 (t1);
-  const uchar4 x2 = as_uchar4 (t2);
-  const uchar4 x3 = as_uchar4 (t3);
+  const u32 x0s0 = (t0 >>  0) & 0xff;
+  const u32 x0s1 = (t0 >>  8) & 0xff;
+  const u32 x0s2 = (t0 >> 16) & 0xff;
+  const u32 x0s3 = (t0 >> 24) & 0xff;
+  const u32 x1s0 = (t1 >>  0) & 0xff;
+  const u32 x1s1 = (t1 >>  8) & 0xff;
+  const u32 x1s2 = (t1 >> 16) & 0xff;
+  const u32 x1s3 = (t1 >> 24) & 0xff;
+  const u32 x2s0 = (t2 >>  0) & 0xff;
+  const u32 x2s1 = (t2 >>  8) & 0xff;
+  const u32 x2s2 = (t2 >> 16) & 0xff;
+  const u32 x2s3 = (t2 >> 24) & 0xff;
+  const u32 x3s0 = (t3 >>  0) & 0xff;
+  const u32 x3s1 = (t3 >>  8) & 0xff;
+  const u32 x3s2 = (t3 >> 16) & 0xff;
+  const u32 x3s3 = (t3 >> 24) & 0xff;
 
-  out[0] = (s_td4[x0.s3] & 0xff000000)
-         ^ (s_td4[x3.s2] & 0x00ff0000)
-         ^ (s_td4[x2.s1] & 0x0000ff00)
-         ^ (s_td4[x1.s0] & 0x000000ff)
+  out[0] = (s_td4[x0s3] & 0xff000000)
+         ^ (s_td4[x3s2] & 0x00ff0000)
+         ^ (s_td4[x2s1] & 0x0000ff00)
+         ^ (s_td4[x1s0] & 0x000000ff)
          ^ ks[56];
 
-  out[1] = (s_td4[x1.s3] & 0xff000000)
-         ^ (s_td4[x0.s2] & 0x00ff0000)
-         ^ (s_td4[x3.s1] & 0x0000ff00)
-         ^ (s_td4[x2.s0] & 0x000000ff)
+  out[1] = (s_td4[x1s3] & 0xff000000)
+         ^ (s_td4[x0s2] & 0x00ff0000)
+         ^ (s_td4[x3s1] & 0x0000ff00)
+         ^ (s_td4[x2s0] & 0x000000ff)
          ^ ks[57];
 
-  out[2] = (s_td4[x2.s3] & 0xff000000)
-         ^ (s_td4[x1.s2] & 0x00ff0000)
-         ^ (s_td4[x0.s1] & 0x0000ff00)
-         ^ (s_td4[x3.s0] & 0x000000ff)
+  out[2] = (s_td4[x2s3] & 0xff000000)
+         ^ (s_td4[x1s2] & 0x00ff0000)
+         ^ (s_td4[x0s1] & 0x0000ff00)
+         ^ (s_td4[x3s0] & 0x000000ff)
          ^ ks[58];
 
-  out[3] = (s_td4[x3.s3] & 0xff000000)
-         ^ (s_td4[x2.s2] & 0x00ff0000)
-         ^ (s_td4[x1.s1] & 0x0000ff00)
-         ^ (s_td4[x0.s0] & 0x000000ff)
+  out[3] = (s_td4[x3s3] & 0xff000000)
+         ^ (s_td4[x2s2] & 0x00ff0000)
+         ^ (s_td4[x1s1] & 0x0000ff00)
+         ^ (s_td4[x0s0] & 0x000000ff)
          ^ ks[59];
 
   out[0] = swap32_S (out[0]);
@@ -1159,6 +1347,7 @@ DECLSPEC void aes256_decrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u
 
 // wrapper to avoid swap32_S() confusion in the kernel code
 
+DECLSPEC void AES128_set_encrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4);
 DECLSPEC void AES128_set_encrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 ukey_s[4];
@@ -1171,6 +1360,7 @@ DECLSPEC void AES128_set_encrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_
   aes128_set_encrypt_key (ks, ukey_s, s_te0, s_te1, s_te2, s_te3, s_te4);
 }
 
+DECLSPEC void AES128_set_decrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4);
 DECLSPEC void AES128_set_decrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 ukey_s[4];
@@ -1183,6 +1373,7 @@ DECLSPEC void AES128_set_decrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_
   aes128_set_decrypt_key (ks, ukey_s, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
 }
 
+DECLSPEC void AES128_encrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4);
 DECLSPEC void AES128_encrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 in_s[4];
@@ -1202,6 +1393,7 @@ DECLSPEC void AES128_encrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u
   out[3] = swap32_S (out_s[3]);
 }
 
+DECLSPEC void AES128_decrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4);
 DECLSPEC void AES128_decrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 in_s[4];
@@ -1221,6 +1413,7 @@ DECLSPEC void AES128_decrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u
   out[3] = swap32_S (out_s[3]);
 }
 
+DECLSPEC void AES256_set_encrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4);
 DECLSPEC void AES256_set_encrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 ukey_s[8];
@@ -1237,6 +1430,7 @@ DECLSPEC void AES256_set_encrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_
   aes256_set_encrypt_key (ks, ukey_s, s_te0, s_te1, s_te2, s_te3, s_te4);
 }
 
+DECLSPEC void AES256_set_decrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4);
 DECLSPEC void AES256_set_decrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 ukey_s[8];
@@ -1253,6 +1447,7 @@ DECLSPEC void AES256_set_decrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_
   aes256_set_decrypt_key (ks, ukey_s, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
 }
 
+DECLSPEC void AES256_encrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4);
 DECLSPEC void AES256_encrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 in_s[4];
@@ -1272,6 +1467,7 @@ DECLSPEC void AES256_encrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u
   out[3] = swap32_S (out_s[3]);
 }
 
+DECLSPEC void AES256_decrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4);
 DECLSPEC void AES256_decrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 in_s[4];

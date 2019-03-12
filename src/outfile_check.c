@@ -8,7 +8,7 @@
 #include "memory.h"
 #include "event.h"
 #include "outfile_check.h"
-
+#include "filehandling.h"
 #include "convert.h"
 #include "folder.h"
 #include "hashes.h"
@@ -17,12 +17,18 @@
 #include "thread.h"
 #include "bitops.h"
 
+static int sort_by_salt_buf (const void *v1, const void *v2, MAYBE_UNUSED void * v3)
+{
+  return sort_by_salt (v1, v2);
+}
+
 static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 {
   // some hash-dependent constants
 
   hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   hashes_t       *hashes       = hashcat_ctx->hashes;
+  module_ctx_t   *module_ctx   = hashcat_ctx->module_ctx;
   outcheck_ctx_t *outcheck_ctx = hashcat_ctx->outcheck_ctx;
   status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
@@ -31,7 +37,6 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
   bool   is_salted      = hashconfig->is_salted;
   size_t esalt_size     = hashconfig->esalt_size;
   size_t hook_salt_size = hashconfig->hook_salt_size;
-  u32    hash_mode      = hashconfig->hash_mode;
   char   separator      = hashconfig->separator;
 
   salt_t    *salts_buf   = hashes->salts_buf;
@@ -43,13 +48,31 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
   u32   outfile_check_timer = user_options->outfile_check_timer;
 
   // buffers
-  hash_t hash_buf = { 0, 0, 0, 0, 0, 0, NULL, 0 };
+  hash_t hash_buf;
 
-  hash_buf.digest = hcmalloc (dgst_size);
+  hash_buf.digest    = hcmalloc (dgst_size);
+  hash_buf.salt      = NULL;
+  hash_buf.esalt     = NULL;
+  hash_buf.hook_salt = NULL;
+  hash_buf.cracked   = 0;
+  hash_buf.hash_info = NULL;
+  hash_buf.pw_buf    = NULL;
+  hash_buf.pw_len    = 0;
 
-  if (is_salted == true)  hash_buf.salt      = (salt_t *) hcmalloc (sizeof (salt_t));
-  if (esalt_size > 0)     hash_buf.esalt     = hcmalloc (esalt_size);
-  if (hook_salt_size > 0) hash_buf.hook_salt = hcmalloc (hook_salt_size);
+  if (hashconfig->is_salted == true)
+  {
+    hash_buf.salt = (salt_t *) hcmalloc (sizeof (salt_t));
+  }
+
+  if (hashconfig->esalt_size > 0)
+  {
+    hash_buf.esalt = hcmalloc (hashconfig->esalt_size);
+  }
+
+  if (hashconfig->hook_salt_size > 0)
+  {
+    hash_buf.hook_salt = hcmalloc (hashconfig->hook_salt_size);
+  }
 
   outfile_data_t *out_info = NULL;
 
@@ -162,75 +185,68 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
       char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
+      // large portion of the following code is the same as in potfile_remove_parse
+      // maybe subject of a future optimization
+
       while (!feof (fp))
       {
-        char *ptr = fgets (line_buf, HCBUFSIZ_LARGE - 1, fp);
-
-        if (ptr == NULL) break;
-
-        size_t line_len = strlen (line_buf);
+        size_t line_len = fgetl (fp, line_buf);
 
         if (line_len == 0) continue;
 
-        size_t cut_tries = 5;
+        // this fake separator is used to enable loading outfiles without password
 
-        for (size_t i = line_len - 1; i && cut_tries; i--, line_len--)
+        line_buf[line_len] = separator;
+
+        line_len++;
+
+        for (int tries = 0; tries < PW_MAX; tries++)
         {
-          if (line_buf[i] != separator) continue;
+          char *last_separator = strrchr (line_buf, separator);
 
-          cut_tries--;
+          if (last_separator == NULL) break;
 
-          if (is_salted == true) memset (hash_buf.salt, 0, sizeof (salt_t)); // needed ? (let's play it safe!)
+          char *line_pw_buf = last_separator + 1;
+
+          size_t line_pw_len = line_buf + line_len - line_pw_buf;
+
+          char *line_hash_buf = line_buf;
+
+          int line_hash_len = last_separator - line_buf;
+
+          line_hash_buf[line_hash_len] = 0;
+
+          if (line_hash_len == 0) continue;
+
+          if (hashconfig->is_salted == true)
+          {
+            memset (hash_buf.salt, 0, sizeof (salt_t));
+          }
+
+          if (hashconfig->esalt_size > 0)
+          {
+            memset (hash_buf.esalt, 0, hashconfig->esalt_size);
+          }
+
+          if (hashconfig->hook_salt_size > 0)
+          {
+            memset (hash_buf.hook_salt, 0, hashconfig->hook_salt_size);
+          }
 
           int parser_status = PARSER_HASH_LENGTH;
 
-          if ((hash_mode == 2500) || (hash_mode == 2501)) // special case WPA/WPA2
+          if (module_ctx->module_hash_decode_outfile != MODULE_DEFAULT)
           {
-            // fake the parsing of the salt
-
-            u32 identifier_len = 32 + 1 + 12 + 1 + 12 + 1; // format is [ID_MD5]:[MAC1]:[MAC2]:$salt:$pass
-
-            if ((line_len - 1) < identifier_len) continue;
-
-            hash_buf.salt->salt_len = line_len - 1 - identifier_len;
-
-            memcpy (hash_buf.salt->salt_buf, line_buf + identifier_len, hash_buf.salt->salt_len);
-
-            // fake the parsing of the digest
-
-            if (is_valid_hex_string ((u8 *) line_buf, 32) == false) break;
-
-            u32 *digest = (u32 *) hash_buf.digest;
-
-            digest[0] = hex_to_u32 ((u8 *) line_buf +  0);
-            digest[1] = hex_to_u32 ((u8 *) line_buf +  8);
-            digest[2] = hex_to_u32 ((u8 *) line_buf + 16);
-            digest[3] = hex_to_u32 ((u8 *) line_buf + 24);
-
-            digest[0] = byte_swap_32 (digest[0]);
-            digest[1] = byte_swap_32 (digest[1]);
-            digest[2] = byte_swap_32 (digest[2]);
-            digest[3] = byte_swap_32 (digest[3]);
-
-            parser_status = PARSER_OK;
+            parser_status = module_ctx->module_hash_decode_outfile (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, hash_buf.hook_salt, hash_buf.hash_info, line_buf, line_len - 1);
           }
-          else if (hash_mode == 6800) // special case LastPass (only email address in outfile/potfile)
+          else
           {
-            // fake the parsing of the hash/salt
+            // "normal" case: hash in the outfile is the same as the hash in the original hash file
 
-            hash_buf.salt->salt_len = line_len - 1;
-
-            memcpy (hash_buf.salt->salt_buf, line_buf, line_len - 1);
-
-            parser_status = PARSER_OK;
-          }
-          else // "normal" case: hash in the outfile is the same as the hash in the original hash file
-          {
-            parser_status = hashconfig->parse_func ((u8 *) line_buf, (u32) line_len - 1, &hash_buf, hashconfig);
+            parser_status = module_ctx->module_hash_decode (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, hash_buf.hook_salt, hash_buf.hash_info, line_buf, line_len - 1);
           }
 
           if (parser_status != PARSER_OK) continue;
-
 
           salt_t *salt_buf = salts_buf;
 
@@ -241,7 +257,7 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
           if (salt_buf == NULL) continue;
 
-          u32 salt_pos = salt_buf - salts_buf; // the offset from the start of the array (unit: sizeof (salt_t))
+          const u32 salt_pos = salt_buf - salts_buf; // the offset from the start of the array (unit: sizeof (salt_t))
 
           if (hashes->salts_shown[salt_pos] == 1) break; // already marked as cracked (no action needed)
 
@@ -249,11 +265,8 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
           bool cracked = false;
 
-          if (hash_mode == 6800)
+          if (hashconfig->outfile_check_nocomp == true)
           {
-            // the comparison with only matching salt is a bit inaccurate
-            // call it a bug, but it's good enough for a special case used in a special case
-
             cracked = true;
           }
           else
@@ -295,8 +308,6 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
           if (status_ctx->shutdown_inner == true) break;
         }
-
-        if (status_ctx->shutdown_inner == true) break;
       }
 
       hcfree (line_buf);
@@ -325,9 +336,16 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-void *thread_outfile_remove (void *p)
+HC_API_CALL void *thread_outfile_remove (void *p)
 {
   hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) p;
+
+  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  const outcheck_ctx_t *outcheck_ctx = hashcat_ctx->outcheck_ctx;
+
+  if (hashconfig->outfile_check_disable == true) return NULL;
+
+  if (outcheck_ctx->enabled == false) return NULL;
 
   const int rc = outfile_remove (hashcat_ctx);
 
@@ -338,9 +356,10 @@ void *thread_outfile_remove (void *p)
 
 int outcheck_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
-  folder_config_t *folder_config = hashcat_ctx->folder_config;
-  outcheck_ctx_t  *outcheck_ctx  = hashcat_ctx->outcheck_ctx;
-  user_options_t  *user_options  = hashcat_ctx->user_options;
+  const folder_config_t *folder_config = hashcat_ctx->folder_config;
+  const hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
+        outcheck_ctx_t  *outcheck_ctx  = hashcat_ctx->outcheck_ctx;
+  const user_options_t  *user_options  = hashcat_ctx->user_options;
 
   outcheck_ctx->enabled = false;
 
@@ -351,13 +370,9 @@ int outcheck_ctx_init (hashcat_ctx_t *hashcat_ctx)
   if (user_options->progress_only  == true) return 0;
   if (user_options->opencl_info    == true) return 0;
 
-  if (user_options->outfile_check_timer == 0) return 0;
+  if (hashconfig->outfile_check_disable == true) return 0;
 
-  if ((user_options->hash_mode ==  5200) ||
-     ((user_options->hash_mode >=  6200) && (user_options->hash_mode <=  6299)) ||
-      (user_options->hash_mode ==  9000) ||
-     ((user_options->hash_mode >= 13700) && (user_options->hash_mode <= 13799)) ||
-      (user_options->hash_mode == 14600)) return 0;
+  if (user_options->outfile_check_timer == 0) return 0;
 
   if (user_options->outfile_check_dir == NULL)
   {
@@ -385,10 +400,13 @@ int outcheck_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
 void outcheck_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 {
+  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   outcheck_ctx_t *outcheck_ctx = hashcat_ctx->outcheck_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
 
   if (outcheck_ctx->enabled == false) return;
+
+  if (hashconfig->outfile_check_disable == true) return;
 
   if (rmdir (outcheck_ctx->root_directory) == -1)
   {

@@ -35,6 +35,7 @@ static const char *drm_card0_driver_path = "/sys/class/drm/card0/device/driver";
 #endif
 
 static const u32 full01 = 0x01010101;
+static const u32 full06 = 0x06060606;
 static const u32 full80 = 0x80808080;
 
 static double TARGET_MSEC_PROFILE[4] = { 2, 12, 96, 480 };
@@ -107,15 +108,15 @@ static int ocl_check_dri (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-static int setup_opencl_platforms_filter (hashcat_ctx_t *hashcat_ctx, const char *opencl_platforms, u32 *out)
+static bool setup_opencl_platforms_filter (hashcat_ctx_t *hashcat_ctx, const char *opencl_platforms, u64 *out)
 {
-  u32 opencl_platforms_filter = 0;
+  u64 opencl_platforms_filter = 0;
 
   if (opencl_platforms)
   {
     char *platforms = hcstrdup (opencl_platforms);
 
-    if (platforms == NULL) return -1;
+    if (platforms == NULL) return false;
 
     char *saveptr = NULL;
 
@@ -123,18 +124,18 @@ static int setup_opencl_platforms_filter (hashcat_ctx_t *hashcat_ctx, const char
 
     do
     {
-      int platform = (int) strtol (next, NULL, 10);
+      const int platform = (const int) strtol (next, NULL, 10);
 
-      if (platform < 1 || platform > 32)
+      if (platform <= 0 || platform >= 64)
       {
         event_log_error (hashcat_ctx, "Invalid OpenCL platform %d specified.", platform);
 
         hcfree (platforms);
 
-        return -1;
+        return false;
       }
 
-      opencl_platforms_filter |= 1u << (platform - 1);
+      opencl_platforms_filter |= 1ULL << (platform - 1);
 
     } while ((next = strtok_r ((char *) NULL, ",", &saveptr)) != NULL);
 
@@ -142,23 +143,23 @@ static int setup_opencl_platforms_filter (hashcat_ctx_t *hashcat_ctx, const char
   }
   else
   {
-    opencl_platforms_filter = -1u;
+    opencl_platforms_filter = -1ULL;
   }
 
   *out = opencl_platforms_filter;
 
-  return 0;
+  return true;
 }
 
-static int setup_devices_filter (hashcat_ctx_t *hashcat_ctx, const char *opencl_devices, u32 *out)
+static bool setup_devices_filter (hashcat_ctx_t *hashcat_ctx, const char *opencl_devices, u64 *out)
 {
-  u32 devices_filter = 0;
+  u64 devices_filter = 0;
 
   if (opencl_devices)
   {
     char *devices = hcstrdup (opencl_devices);
 
-    if (devices == NULL) return -1;
+    if (devices == NULL) return false;
 
     char *saveptr = NULL;
 
@@ -166,18 +167,18 @@ static int setup_devices_filter (hashcat_ctx_t *hashcat_ctx, const char *opencl_
 
     do
     {
-      int device_id = (int) strtol (next, NULL, 10);
+      const int device_id = (const int) strtol (next, NULL, 10);
 
-      if (device_id < 1 || device_id > 32)
+      if ((device_id <= 0) || (device_id >= 64))
       {
         event_log_error (hashcat_ctx, "Invalid device_id %d specified.", device_id);
 
         hcfree (devices);
 
-        return -1;
+        return false;
       }
 
-      devices_filter |= 1u << (device_id - 1);
+      devices_filter |= 1ULL << (device_id - 1);
 
     } while ((next = strtok_r ((char *) NULL, ",", &saveptr)) != NULL);
 
@@ -185,15 +186,15 @@ static int setup_devices_filter (hashcat_ctx_t *hashcat_ctx, const char *opencl_
   }
   else
   {
-    devices_filter = -1u;
+    devices_filter = -1ULL;
   }
 
   *out = devices_filter;
 
-  return 0;
+  return true;
 }
 
-static int setup_device_types_filter (hashcat_ctx_t *hashcat_ctx, const char *opencl_device_types, cl_device_type *out)
+static bool setup_device_types_filter (hashcat_ctx_t *hashcat_ctx, const char *opencl_device_types, cl_device_type *out)
 {
   cl_device_type device_types_filter = 0;
 
@@ -201,7 +202,7 @@ static int setup_device_types_filter (hashcat_ctx_t *hashcat_ctx, const char *op
   {
     char *device_types = hcstrdup (opencl_device_types);
 
-    if (device_types == NULL) return -1;
+    if (device_types == NULL) return false;
 
     char *saveptr = NULL;
 
@@ -209,7 +210,7 @@ static int setup_device_types_filter (hashcat_ctx_t *hashcat_ctx, const char *op
 
     do
     {
-      int device_type = (int) strtol (next, NULL, 10);
+      const int device_type = (const int) strtol (next, NULL, 10);
 
       if (device_type < 1 || device_type > 3)
       {
@@ -217,7 +218,7 @@ static int setup_device_types_filter (hashcat_ctx_t *hashcat_ctx, const char *op
 
         hcfree (device_types);
 
-        return -1;
+        return false;
       }
 
       device_types_filter |= 1u << device_type;
@@ -236,10 +237,10 @@ static int setup_device_types_filter (hashcat_ctx_t *hashcat_ctx, const char *op
 
   *out = device_types_filter;
 
-  return 0;
+  return true;
 }
 
-static int read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_file, size_t *kernel_lengths, char **kernel_sources, const bool force_recompile)
+static bool read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_file, size_t *kernel_lengths, char **kernel_sources, const bool force_recompile)
 {
   FILE *fp = fopen (kernel_file, "rb");
 
@@ -251,7 +252,7 @@ static int read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_fi
     {
       fclose (fp);
 
-      return -1;
+      return false;
     }
 
     #define EXTRASZ 100
@@ -268,7 +269,7 @@ static int read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_fi
 
       hcfree (buf);
 
-      return -1;
+      return false;
     }
 
     buf[st.st_size] = 0;
@@ -294,13 +295,13 @@ static int read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_fi
   {
     event_log_error (hashcat_ctx, "%s: %s", kernel_file, strerror (errno));
 
-    return -1;
+    return false;
   }
 
-  return 0;
+  return true;
 }
 
-static int write_kernel_binary (hashcat_ctx_t *hashcat_ctx, char *kernel_file, char *binary, size_t binary_size)
+static bool write_kernel_binary (hashcat_ctx_t *hashcat_ctx, char *kernel_file, char *binary, size_t binary_size)
 {
   if (binary_size > 0)
   {
@@ -310,7 +311,7 @@ static int write_kernel_binary (hashcat_ctx_t *hashcat_ctx, char *kernel_file, c
     {
       event_log_error (hashcat_ctx, "%s: %s", kernel_file, strerror (errno));
 
-      return -1;
+      return false;
     }
 
     if (lock_file (fp) == -1)
@@ -319,7 +320,7 @@ static int write_kernel_binary (hashcat_ctx_t *hashcat_ctx, char *kernel_file, c
 
       event_log_error (hashcat_ctx, "%s: %s", kernel_file, strerror (errno));
 
-      return -1;
+      return false;
     }
 
     hc_fwrite (binary, sizeof (char), binary_size, fp);
@@ -329,7 +330,32 @@ static int write_kernel_binary (hashcat_ctx_t *hashcat_ctx, char *kernel_file, c
     fclose (fp);
   }
 
-  return 0;
+  return true;
+}
+
+static bool test_instruction (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_device_id device, const char *kernel_buf)
+{
+  int CL_rc;
+
+  cl_program program;
+
+  CL_rc = hc_clCreateProgramWithSource (hashcat_ctx, context, 1, &kernel_buf, NULL, &program);
+
+  if (CL_rc == -1) return false;
+
+  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  OCL_PTR *ocl = opencl_ctx->ocl;
+
+  CL_rc = ocl->clBuildProgram (program, 1, &device, NULL, NULL, NULL); // do not use the wrapper to avoid the error message
+
+  const bool r = (CL_rc == CL_SUCCESS) ? true : false;
+
+  CL_rc = hc_clReleaseProgram (hashcat_ctx, program);
+
+  if (CL_rc == -1) return false;
+
+  return r;
 }
 
 void generate_source_kernel_filename (const bool slow_candidates, const u32 attack_exec, const u32 attack_kern, const u32 kern_type, const u32 opti_type, char *shared_dir, char *source_file)
@@ -485,15 +511,15 @@ int ocl_init (hashcat_ctx_t *hashcat_ctx)
   #if   defined (_WIN)
   ocl->lib = hc_dlopen ("OpenCL");
   #elif defined (__APPLE__)
-  ocl->lib = hc_dlopen ("/System/Library/Frameworks/OpenCL.framework/OpenCL", RTLD_NOW);
+  ocl->lib = hc_dlopen ("/System/Library/Frameworks/OpenCL.framework/OpenCL");
   #elif defined (__CYGWIN__)
-  ocl->lib = hc_dlopen ("opencl.dll", RTLD_NOW);
+  ocl->lib = hc_dlopen ("opencl.dll");
 
-  if (ocl->lib == NULL) ocl->lib = hc_dlopen ("cygOpenCL-1.dll", RTLD_NOW);
+  if (ocl->lib == NULL) ocl->lib = hc_dlopen ("cygOpenCL-1.dll");
   #else
-  ocl->lib = hc_dlopen ("libOpenCL.so", RTLD_NOW);
+  ocl->lib = hc_dlopen ("libOpenCL.so");
 
-  if (ocl->lib == NULL) ocl->lib = hc_dlopen ("libOpenCL.so.1", RTLD_NOW);
+  if (ocl->lib == NULL) ocl->lib = hc_dlopen ("libOpenCL.so.1");
   #endif
 
   if (ocl->lib == NULL)
@@ -858,7 +884,7 @@ int hc_clCreateBuffer (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_mem_fl
   return 0;
 }
 
-int hc_clCreateProgramWithSource (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_uint count, char **strings, const size_t *lengths, cl_program *program)
+int hc_clCreateProgramWithSource (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_uint count, const char **strings, const size_t *lengths, cl_program *program)
 {
   opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
 
@@ -866,7 +892,7 @@ int hc_clCreateProgramWithSource (hashcat_ctx_t *hashcat_ctx, cl_context context
 
   cl_int CL_err;
 
-  *program = ocl->clCreateProgramWithSource (context, count, (const char **) strings, lengths, &CL_err);
+  *program = ocl->clCreateProgramWithSource (context, count, strings, lengths, &CL_err);
 
   if (CL_err != CL_SUCCESS)
   {
@@ -1207,10 +1233,11 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 {
   hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   hashes_t       *hashes       = hashcat_ctx->hashes;
+  module_ctx_t   *module_ctx   = hashcat_ctx->module_ctx;
   status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
 
-  if (hashconfig->hash_mode == 2000)
+  if (user_options->stdout_flag == true)
   {
     return process_stdout (hashcat_ctx, device_param, pws_cnt);
   }
@@ -1309,7 +1336,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
         if (CL_rc == -1) return -1;
 
-        // do something with data
+        module_ctx->module_hook12 (device_param, hashes->hook_salts_buf, salt_pos, pws_cnt);
 
         CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
 
@@ -1381,19 +1408,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
         if (CL_rc == -1) return -1;
 
-        /*
-         * The following section depends on the hash mode
-         */
-
-        switch (hashconfig->hash_mode)
-        {
-          // for 7z we only need device_param->hooks_buf, but other hooks could use any info from device_param. All of them should/must update hooks_buf
-          case 11600: seven_zip_hook_func (device_param, hashes->hook_salts_buf, salt_pos, pws_cnt); break;
-        }
-
-        /*
-         * END of hash mode specific hook operations
-         */
+        module_ctx->module_hook23 (device_param, hashes->hook_salts_buf, salt_pos, pws_cnt);
 
         CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
 
@@ -1443,7 +1458,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
     if (run_comp == true)
     {
-      if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
+      if (hashconfig->opts_type & OPTS_TYPE_DEEP_COMP_KERNEL)
       {
         const u32 loops_cnt = hashes->salts_buf[salt_pos].digests_cnt;
 
@@ -1452,44 +1467,9 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
           device_param->kernel_params_buf32[28] = loops_pos;
           device_param->kernel_params_buf32[29] = loops_cnt;
 
-          const u32 digests_offset = hashes->salts_buf[salt_pos].digests_offset;
+          const u32 deep_comp_kernel = module_ctx->module_deep_comp_kernel (hashes, salt_pos, loops_pos);
 
-          wpa_eapol_t *wpa_eapols = (wpa_eapol_t *) hashes->esalts_buf;
-
-          wpa_eapol_t *wpa_eapol = &wpa_eapols[digests_offset + loops_pos];
-
-          if (wpa_eapol->keyver == 1)
-          {
-            CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX1, pws_cnt, false, 0);
-
-            if (CL_rc == -1) return -1;
-          }
-          else if (wpa_eapol->keyver == 2)
-          {
-            CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX2, pws_cnt, false, 0);
-
-            if (CL_rc == -1) return -1;
-          }
-          else if (wpa_eapol->keyver == 3)
-          {
-            CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX3, pws_cnt, false, 0);
-
-            if (CL_rc == -1) return -1;
-          }
-
-          if (status_ctx->run_thread_level2 == false) break;
-        }
-      }
-      else if ((hashconfig->hash_mode == 16800) || (hashconfig->hash_mode == 16801))
-      {
-        const u32 loops_cnt = hashes->salts_buf[salt_pos].digests_cnt;
-
-        for (u32 loops_pos = 0; loops_pos < loops_cnt; loops_pos++)
-        {
-          device_param->kernel_params_buf32[28] = loops_pos;
-          device_param->kernel_params_buf32[29] = loops_cnt;
-
-          CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX1, pws_cnt, false, 0);
+          CL_rc = run_kernel (hashcat_ctx, device_param, deep_comp_kernel, pws_cnt, false, 0);
 
           if (CL_rc == -1) return -1;
 
@@ -1705,26 +1685,54 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
   if (CL_rc == -1) return -1;
 
-  if (device_param->nvidia_spin_damp > 0)
+  // spin damper section
+
+  const u32 iterationm = iteration % EXPECTED_ITERATIONS;
+
+  cl_int event_status;
+
+  size_t param_value_size_ret;
+
+  CL_rc = hc_clGetEventInfo (hashcat_ctx, event, CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof (event_status), &event_status, &param_value_size_ret);
+
+  if (CL_rc == -1) return -1;
+
+  if (device_param->spin_damp > 0)
   {
-    if (status_ctx->devices_status == STATUS_RUNNING)
+    double spin_total = device_param->spin_damp;
+
+    while (event_status != CL_COMPLETE)
     {
-      if (iteration < EXPECTED_ITERATIONS)
+      if (status_ctx->devices_status == STATUS_RUNNING)
       {
         switch (kern_run)
         {
-          case KERN_RUN_1:      if (device_param->exec_us_prev1[iteration]      > 0) usleep ((useconds_t)(device_param->exec_us_prev1[iteration]      * device_param->nvidia_spin_damp)); break;
-          case KERN_RUN_2:      if (device_param->exec_us_prev2[iteration]      > 0) usleep ((useconds_t)(device_param->exec_us_prev2[iteration]      * device_param->nvidia_spin_damp)); break;
-          case KERN_RUN_3:      if (device_param->exec_us_prev3[iteration]      > 0) usleep ((useconds_t)(device_param->exec_us_prev3[iteration]      * device_param->nvidia_spin_damp)); break;
-          case KERN_RUN_4:      if (device_param->exec_us_prev4[iteration]      > 0) usleep ((useconds_t)(device_param->exec_us_prev4[iteration]      * device_param->nvidia_spin_damp)); break;
-          case KERN_RUN_INIT2:  if (device_param->exec_us_prev_init2[iteration] > 0) usleep ((useconds_t)(device_param->exec_us_prev_init2[iteration] * device_param->nvidia_spin_damp)); break;
-          case KERN_RUN_LOOP2:  if (device_param->exec_us_prev_loop2[iteration] > 0) usleep ((useconds_t)(device_param->exec_us_prev_loop2[iteration] * device_param->nvidia_spin_damp)); break;
-          case KERN_RUN_AUX1:   if (device_param->exec_us_prev_aux1[iteration]  > 0) usleep ((useconds_t)(device_param->exec_us_prev_aux1[iteration]  * device_param->nvidia_spin_damp)); break;
-          case KERN_RUN_AUX2:   if (device_param->exec_us_prev_aux2[iteration]  > 0) usleep ((useconds_t)(device_param->exec_us_prev_aux2[iteration]  * device_param->nvidia_spin_damp)); break;
-          case KERN_RUN_AUX3:   if (device_param->exec_us_prev_aux3[iteration]  > 0) usleep ((useconds_t)(device_param->exec_us_prev_aux3[iteration]  * device_param->nvidia_spin_damp)); break;
-          case KERN_RUN_AUX4:   if (device_param->exec_us_prev_aux4[iteration]  > 0) usleep ((useconds_t)(device_param->exec_us_prev_aux4[iteration]  * device_param->nvidia_spin_damp)); break;
+          case KERN_RUN_1:      if (device_param->exec_us_prev1[iterationm]      > 0) usleep ((useconds_t) (device_param->exec_us_prev1[iterationm]      * device_param->spin_damp)); break;
+          case KERN_RUN_2:      if (device_param->exec_us_prev2[iterationm]      > 0) usleep ((useconds_t) (device_param->exec_us_prev2[iterationm]      * device_param->spin_damp)); break;
+          case KERN_RUN_3:      if (device_param->exec_us_prev3[iterationm]      > 0) usleep ((useconds_t) (device_param->exec_us_prev3[iterationm]      * device_param->spin_damp)); break;
+          case KERN_RUN_4:      if (device_param->exec_us_prev4[iterationm]      > 0) usleep ((useconds_t) (device_param->exec_us_prev4[iterationm]      * device_param->spin_damp)); break;
+          case KERN_RUN_INIT2:  if (device_param->exec_us_prev_init2[iterationm] > 0) usleep ((useconds_t) (device_param->exec_us_prev_init2[iterationm] * device_param->spin_damp)); break;
+          case KERN_RUN_LOOP2:  if (device_param->exec_us_prev_loop2[iterationm] > 0) usleep ((useconds_t) (device_param->exec_us_prev_loop2[iterationm] * device_param->spin_damp)); break;
+          case KERN_RUN_AUX1:   if (device_param->exec_us_prev_aux1[iterationm]  > 0) usleep ((useconds_t) (device_param->exec_us_prev_aux1[iterationm]  * device_param->spin_damp)); break;
+          case KERN_RUN_AUX2:   if (device_param->exec_us_prev_aux2[iterationm]  > 0) usleep ((useconds_t) (device_param->exec_us_prev_aux2[iterationm]  * device_param->spin_damp)); break;
+          case KERN_RUN_AUX3:   if (device_param->exec_us_prev_aux3[iterationm]  > 0) usleep ((useconds_t) (device_param->exec_us_prev_aux3[iterationm]  * device_param->spin_damp)); break;
+          case KERN_RUN_AUX4:   if (device_param->exec_us_prev_aux4[iterationm]  > 0) usleep ((useconds_t) (device_param->exec_us_prev_aux4[iterationm]  * device_param->spin_damp)); break;
         }
       }
+      else
+      {
+        // we were told to be nice
+
+        sleep (0);
+      }
+
+      CL_rc = hc_clGetEventInfo (hashcat_ctx, event, CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof (event_status), &event_status, &param_value_size_ret);
+
+      if (CL_rc == -1) return -1;
+
+      spin_total += device_param->spin_damp;
+
+      if (spin_total > 1) break;
     }
   }
 
@@ -1740,22 +1748,22 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
   const double exec_us = (double) (time_end - time_start) / 1000;
 
-  if (status_ctx->devices_status == STATUS_RUNNING)
+  if (device_param->spin_damp > 0)
   {
-    if (iteration < EXPECTED_ITERATIONS)
+    if (status_ctx->devices_status == STATUS_RUNNING)
     {
       switch (kern_run)
       {
-        case KERN_RUN_1:      device_param->exec_us_prev1[iteration]      = exec_us; break;
-        case KERN_RUN_2:      device_param->exec_us_prev2[iteration]      = exec_us; break;
-        case KERN_RUN_3:      device_param->exec_us_prev3[iteration]      = exec_us; break;
-        case KERN_RUN_4:      device_param->exec_us_prev4[iteration]      = exec_us; break;
-        case KERN_RUN_INIT2:  device_param->exec_us_prev_init2[iteration] = exec_us; break;
-        case KERN_RUN_LOOP2:  device_param->exec_us_prev_loop2[iteration] = exec_us; break;
-        case KERN_RUN_AUX1:   device_param->exec_us_prev_aux1[iteration]  = exec_us; break;
-        case KERN_RUN_AUX2:   device_param->exec_us_prev_aux2[iteration]  = exec_us; break;
-        case KERN_RUN_AUX3:   device_param->exec_us_prev_aux3[iteration]  = exec_us; break;
-        case KERN_RUN_AUX4:   device_param->exec_us_prev_aux4[iteration]  = exec_us; break;
+        case KERN_RUN_1:      device_param->exec_us_prev1[iterationm]      = exec_us; break;
+        case KERN_RUN_2:      device_param->exec_us_prev2[iterationm]      = exec_us; break;
+        case KERN_RUN_3:      device_param->exec_us_prev3[iterationm]      = exec_us; break;
+        case KERN_RUN_4:      device_param->exec_us_prev4[iterationm]      = exec_us; break;
+        case KERN_RUN_INIT2:  device_param->exec_us_prev_init2[iterationm] = exec_us; break;
+        case KERN_RUN_LOOP2:  device_param->exec_us_prev_loop2[iterationm] = exec_us; break;
+        case KERN_RUN_AUX1:   device_param->exec_us_prev_aux1[iterationm]  = exec_us; break;
+        case KERN_RUN_AUX2:   device_param->exec_us_prev_aux2[iterationm]  = exec_us; break;
+        case KERN_RUN_AUX3:   device_param->exec_us_prev_aux3[iterationm]  = exec_us; break;
+        case KERN_RUN_AUX4:   device_param->exec_us_prev_aux4[iterationm]  = exec_us; break;
       }
     }
   }
@@ -2153,6 +2161,10 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
             {
               rebuild_pws_compressed_append (device_param, pws_cnt, 0x01);
             }
+            else if (hashconfig->opts_type & OPTS_TYPE_PT_ADD06)
+            {
+              rebuild_pws_compressed_append (device_param, pws_cnt, 0x06);
+            }
             else if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)
             {
               rebuild_pws_compressed_append (device_param, pws_cnt, 0x80);
@@ -2164,6 +2176,10 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
           if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)
           {
             rebuild_pws_compressed_append (device_param, pws_cnt, 0x01);
+          }
+          else if (hashconfig->opts_type & OPTS_TYPE_PT_ADD06)
+          {
+            rebuild_pws_compressed_append (device_param, pws_cnt, 0x06);
           }
           else if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)
           {
@@ -2278,6 +2294,25 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
   user_options_t        *user_options       = hashcat_ctx->user_options;
   user_options_extra_t  *user_options_extra = hashcat_ctx->user_options_extra;
 
+  // do the on-the-fly combinator mode encoding
+
+  bool iconv_enabled = false;
+
+  iconv_t iconv_ctx = NULL;
+
+  char *iconv_tmp = NULL;
+
+  if (strcmp (user_options->encoding_from, user_options->encoding_to) != 0)
+  {
+    iconv_enabled = true;
+
+    iconv_ctx = iconv_open (user_options->encoding_to, user_options->encoding_from);
+
+    if (iconv_ctx == (iconv_t) -1) return -1;
+
+    iconv_tmp = (char *) hcmalloc (HCBUFSIZ_TINY);
+  }
+
   // find higest password length, this is for optimization stuff
 
   u32 highest_pw_len = 0;
@@ -2314,6 +2349,13 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
   device_param->outerloop_msec  = 0;
   device_param->outerloop_pos   = 0;
   device_param->outerloop_left  = pws_cnt;
+
+  // we ignore the time to copy data over pci bus in this case
+
+  if (user_options->speed_only == true)
+  {
+    hc_timer_set (&device_param->timer_speed);
+  }
 
   // loop start: most outer loop = salt iteration, then innerloops (if multi)
 
@@ -2426,7 +2468,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
                 line_len = convert_from_hex (hashcat_ctx, line_buf, line_len);
 
-                if (line_len >= PW_MAX) continue;
+                if (line_len > PW_MAX) continue;
 
                 char *line_buf_new = line_buf;
 
@@ -2452,7 +2494,22 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
                   line_buf_new = rule_buf_out;
                 }
 
-                line_len = MIN (line_len, PW_MAX - 1);
+                // do the on-the-fly encoding
+
+                if (iconv_enabled == true)
+                {
+                  char  *iconv_ptr = iconv_tmp;
+                  size_t iconv_sz  = HCBUFSIZ_TINY;
+
+                  const size_t iconv_rc = iconv (iconv_ctx, &line_buf_new, &line_len, &iconv_ptr, &iconv_sz);
+
+                  if (iconv_rc == (size_t) -1) continue;
+
+                  line_buf_new = iconv_tmp;
+                  line_len     = HCBUFSIZ_TINY - iconv_sz;
+                }
+
+                line_len = MIN (line_len, PW_MAX);
 
                 u8 *ptr = (u8 *) device_param->combs_buf[i].i;
 
@@ -2470,6 +2527,11 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
                   if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)
                   {
                     ptr[line_len] = 0x80;
+                  }
+
+                  if (hashconfig->opts_type & OPTS_TYPE_PT_ADD06)
+                  {
+                    ptr[line_len] = 0x06;
                   }
 
                   if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)
@@ -2543,7 +2605,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
                 line_len = convert_from_hex (hashcat_ctx, line_buf, line_len);
 
-                if (line_len >= PW_MAX) continue;
+                if (line_len > PW_MAX) continue;
 
                 char *line_buf_new = line_buf;
 
@@ -2569,7 +2631,22 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
                   line_buf_new = rule_buf_out;
                 }
 
-                line_len = MIN (line_len, PW_MAX - 1);
+                // do the on-the-fly encoding
+
+                if (iconv_enabled == true)
+                {
+                  char  *iconv_ptr = iconv_tmp;
+                  size_t iconv_sz  = HCBUFSIZ_TINY;
+
+                  const size_t iconv_rc = iconv (iconv_ctx, &line_buf_new, &line_len, &iconv_ptr, &iconv_sz);
+
+                  if (iconv_rc == (size_t) -1) continue;
+
+                  line_buf_new = iconv_tmp;
+                  line_len     = HCBUFSIZ_TINY - iconv_sz;
+                }
+
+                line_len = MIN (line_len, PW_MAX);
 
                 u8 *ptr = (u8 *) device_param->combs_buf[i].i;
 
@@ -2588,6 +2665,11 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
                   if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)
                   {
                     ptr[line_len] = 0x80;
+                  }
+
+                  if (hashconfig->opts_type & OPTS_TYPE_PT_ADD06)
+                  {
+                    ptr[line_len] = 0x06;
                   }
 
                   if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)
@@ -2719,20 +2801,42 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
         }
         else
         {
-          double total = device_param->speed_msec[0];
+          double total_msec = device_param->speed_msec[0];
 
           for (u32 speed_pos = 1; speed_pos < device_param->speed_pos; speed_pos++)
           {
-            total += device_param->speed_msec[speed_pos];
+            total_msec += device_param->speed_msec[speed_pos];
           }
 
-          // it's unclear if 4s is enough to turn on boost mode for all opencl device
-
-          if ((total > 4000) || (device_param->speed_pos == SPEED_CACHE - 1))
+          if (user_options->slow_candidates == true)
           {
-            device_param->speed_only_finish = true;
+            if ((total_msec > 4000) || (device_param->speed_pos == SPEED_CACHE - 1))
+            {
+              const u32 speed_pos = device_param->speed_pos;
 
-            break;
+              if (speed_pos)
+              {
+                device_param->speed_cnt[0]  = device_param->speed_cnt[speed_pos - 1];
+                device_param->speed_msec[0] = device_param->speed_msec[speed_pos - 1];
+              }
+
+              device_param->speed_pos = 0;
+
+              device_param->speed_only_finish = true;
+
+              break;
+            }
+          }
+          else
+          {
+            // it's unclear if 4s is enough to turn on boost mode for all opencl device
+
+            if ((total_msec > 4000) || (device_param->speed_pos == SPEED_CACHE - 1))
+            {
+              device_param->speed_only_finish = true;
+
+              break;
+            }
           }
         }
       }
@@ -2765,14 +2869,16 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
   if (user_options->speed_only == true)
   {
-    double total = device_param->speed_msec[0];
+    double total_msec = device_param->speed_msec[0];
 
     for (u32 speed_pos = 1; speed_pos < device_param->speed_pos; speed_pos++)
     {
-      total += device_param->speed_msec[speed_pos];
+      total_msec += device_param->speed_msec[speed_pos];
     }
 
-    device_param->outerloop_msec = total * hashes->salts_cnt * device_param->outerloop_multi;
+    device_param->outerloop_msec = total_msec * hashes->salts_cnt * device_param->outerloop_multi;
+
+    device_param->speed_only_finish = true;
   }
 
   return 0;
@@ -2820,11 +2926,11 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
    * OpenCL platform selection
    */
 
-  u32 opencl_platforms_filter;
+  u64 opencl_platforms_filter;
 
-  const int rc_platforms_filter = setup_opencl_platforms_filter (hashcat_ctx, user_options->opencl_platforms, &opencl_platforms_filter);
+  const bool rc_platforms_filter = setup_opencl_platforms_filter (hashcat_ctx, user_options->opencl_platforms, &opencl_platforms_filter);
 
-  if (rc_platforms_filter == -1) return -1;
+  if (rc_platforms_filter == false) return -1;
 
   opencl_ctx->opencl_platforms_filter = opencl_platforms_filter;
 
@@ -2832,11 +2938,11 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
    * OpenCL device selection
    */
 
-  u32 devices_filter;
+  u64 devices_filter;
 
-  const int rc_devices_filter = setup_devices_filter (hashcat_ctx, user_options->opencl_devices, &devices_filter);
+  const bool rc_devices_filter = setup_devices_filter (hashcat_ctx, user_options->opencl_devices, &devices_filter);
 
-  if (rc_devices_filter == -1) return -1;
+  if (rc_devices_filter == false) return -1;
 
   opencl_ctx->devices_filter = devices_filter;
 
@@ -2846,9 +2952,9 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   cl_device_type device_types_filter;
 
-  const int rc_device_types_filter = setup_device_types_filter (hashcat_ctx, user_options->opencl_device_types, &device_types_filter);
+  const bool rc_device_types_filter = setup_device_types_filter (hashcat_ctx, user_options->opencl_device_types, &device_types_filter);
 
-  if (rc_device_types_filter == -1) return -1;
+  if (rc_device_types_filter == false) return -1;
 
   opencl_ctx->device_types_filter = device_types_filter;
 
@@ -2919,9 +3025,9 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  if (opencl_platforms_filter != (u32) -1)
+  if (opencl_platforms_filter != (u64) -1)
   {
-    u32 platform_cnt_mask = ~(((u32) -1 >> platforms_cnt) << platforms_cnt);
+    u64 platform_cnt_mask = ~(((u64) -1 >> platforms_cnt) << platforms_cnt);
 
     if (opencl_platforms_filter > platform_cnt_mask)
     {
@@ -2945,7 +3051,7 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     for (u32 platform_id = 0; platform_id < platforms_cnt; platform_id++)
     {
-      if ((opencl_platforms_filter & (1u << platform_id)) == 0) continue;
+      if ((opencl_platforms_filter & (1ULL << platform_id)) == 0) continue;
 
       cl_platform_id platform = platforms[platform_id];
 
@@ -3149,7 +3255,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       platform_vendor_id = VENDOR_ID_GENERIC;
     }
 
-    bool platform_skipped = ((opencl_ctx->opencl_platforms_filter & (1u << platform_id)) == 0);
+    bool platform_skipped = ((opencl_ctx->opencl_platforms_filter & (1ULL << platform_id)) == 0);
 
     CL_rc = hc_clGetDeviceIDs (hashcat_ctx, platform, CL_DEVICE_TYPE_ALL, DEVICES_MAX, platform_devices, &platform_devices_cnt);
 
@@ -3269,6 +3375,10 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       else if (strcmp (device_vendor, CL_VENDOR_APPLE_USE_NV) == 0)
       {
         device_vendor_id = VENDOR_ID_NV;
+      }
+      else if (strcmp (device_vendor, CL_VENDOR_APPLE_USE_INTEL) == 0)
+      {
+        device_vendor_id = VENDOR_ID_INTEL_SDK;
       }
       else if (strcmp (device_vendor, CL_VENDOR_INTEL_BEIGNET) == 0)
       {
@@ -3503,6 +3613,16 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       device_param->device_local_mem_size = device_local_mem_size;
 
+      // device_local_mem_type
+
+      cl_device_local_mem_type device_local_mem_type;
+
+      CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_LOCAL_MEM_TYPE, sizeof (device_local_mem_type), &device_local_mem_type, NULL);
+
+      if (CL_rc == -1) return -1;
+
+      device_param->device_local_mem_type = device_local_mem_type;
+
       // If there's both an Intel CPU and an AMD OpenCL runtime it's a tricky situation
       // Both platforms support CPU device types and therefore both will try to use 100% of the physical resources
       // This results in both utilizing it for 50%
@@ -3547,7 +3667,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       // skipped
 
-      if ((opencl_ctx->devices_filter & (1u << device_id)) == 0)
+      if ((opencl_ctx->devices_filter & (1ULL << device_id)) == 0)
       {
         device_param->skipped = true;
       }
@@ -3607,29 +3727,6 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           device_param->pcie_bus      = amdtopo.pcie.bus;
           device_param->pcie_device   = amdtopo.pcie.device;
           device_param->pcie_function = amdtopo.pcie.function;
-
-          #if defined (__linux__)
-
-          // check for AMD ROCm driver (only available on linux)
-
-          const char *t1 = strstr (device_param->driver_version, "HSA");
-          const char *t2 = strstr (device_param->driver_version, "LC");
-          const char *t3 = strstr (device_param->driver_version, "PAL");
-
-          if ((t1 == NULL) && (t2 == NULL) && (t3 == NULL))
-          {
-            device_param->is_rocm = false;
-          }
-          else
-          {
-            device_param->is_rocm = true;
-          }
-
-          #else
-
-          device_param->is_rocm = false;
-
-          #endif
         }
 
         if ((device_param->platform_vendor_id == VENDOR_ID_NV) && (device_param->device_vendor_id == VENDOR_ID_NV))
@@ -3673,26 +3770,9 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
           // CPU burning loop damper
           // Value is given as number between 0-100
-          // By default 100%
+          // By default 8%
 
-          device_param->nvidia_spin_damp = (double) user_options->nvidia_spin_damp;
-
-          if (user_options->nvidia_spin_damp_chgd == false)
-          {
-            if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
-            {
-              /**
-               * the workaround is not a friend of rule based attacks
-               * the words from the wordlist combined with fast and slow rules cause
-               * fluctuations which cause inaccurate wait time estimations
-               * using a reduced damping percentage almost compensates this
-               */
-
-              device_param->nvidia_spin_damp = 64;
-            }
-          }
-
-          device_param->nvidia_spin_damp /= 100;
+          device_param->spin_damp = (double) user_options->spin_damp / 100;
         }
       }
 
@@ -3708,15 +3788,32 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
             {
               bool intel_warn = false;
 
-              float opencl_version = 0;
-              int   opencl_build   = 0;
+              // Intel OpenCL runtime 18
 
-              int res = sscanf (device_param->device_version, "OpenCL %f (Build %d)", &opencl_version, &opencl_build);
+              int opencl_driver1 = 0;
+              int opencl_driver2 = 0;
+              int opencl_driver3 = 0;
+              int opencl_driver4 = 0;
 
-              if (res == 2)
+              const int res18 = sscanf (device_param->driver_version, "%u.%u.%u.%u", &opencl_driver1, &opencl_driver2, &opencl_driver3, &opencl_driver4);
+
+              if (res18 == 4)
               {
-                // Intel OpenCL runtime 16.1.1
-                if (opencl_build < 25) intel_warn = true;
+                // so far all versions 18 are ok
+              }
+              else
+              {
+                // Intel OpenCL runtime 16
+
+                float opencl_version = 0;
+                int   opencl_build   = 0;
+
+                const int res16 = sscanf (device_param->device_version, "OpenCL %f (Build %d)", &opencl_version, &opencl_build);
+
+                if (res16 == 2)
+                {
+                  if (opencl_build < 25) intel_warn = true;
+                }
               }
 
               if (intel_warn == true)
@@ -3740,25 +3837,15 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
               bool amd_warn = true;
 
               #if defined (__linux__)
-              if (device_param->is_rocm == false)
-              {
-                // ROCm is so much better, we should give the user some hint and remove this block
-
-                // AMDGPU-PRO Driver 16.40 and higher
-                if (strtoul (device_param->driver_version, NULL, 10) >= 2117) amd_warn = false;
-                // AMDGPU-PRO Driver 16.50 is known to be broken
-                if (strtoul (device_param->driver_version, NULL, 10) == 2236) amd_warn = true;
-                // AMDGPU-PRO Driver 16.60 is known to be broken
-                if (strtoul (device_param->driver_version, NULL, 10) == 2264) amd_warn = true;
-                // AMDGPU-PRO Driver 17.10 is known to be broken
-                if (strtoul (device_param->driver_version, NULL, 10) == 2348) amd_warn = true;
-                // AMDGPU-PRO Driver 17.20 (2416) is fine, doesn't need check will match >= 2117
-              }
-              else
-              {
-                // Support for ROCm platform
-                if (strtof (device_param->driver_version, NULL) >= 1.1f) amd_warn = false;
-              }
+              // AMDGPU-PRO Driver 16.40 and higher
+              if (strtoul (device_param->driver_version, NULL, 10) >= 2117) amd_warn = false;
+              // AMDGPU-PRO Driver 16.50 is known to be broken
+              if (strtoul (device_param->driver_version, NULL, 10) == 2236) amd_warn = true;
+              // AMDGPU-PRO Driver 16.60 is known to be broken
+              if (strtoul (device_param->driver_version, NULL, 10) == 2264) amd_warn = true;
+              // AMDGPU-PRO Driver 17.10 is known to be broken
+              if (strtoul (device_param->driver_version, NULL, 10) == 2348) amd_warn = true;
+              // AMDGPU-PRO Driver 17.20 (2416) is fine, doesn't need check will match >= 2117
               #elif defined (_WIN)
               // AMD Radeon Software 14.9 and higher, should be updated to 15.12
               if (strtoul (device_param->driver_version, NULL, 10) >= 1573) amd_warn = false;
@@ -3836,6 +3923,129 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         devices_active++;
       }
 
+      /**
+       * create context for each device
+       */
+
+      cl_context context;
+
+      cl_context_properties properties[3];
+
+      properties[0] = CL_CONTEXT_PLATFORM;
+      properties[1] = (cl_context_properties) device_param->platform;
+      properties[2] = 0;
+
+      CL_rc = hc_clCreateContext (hashcat_ctx, properties, 1, &device_param->device, NULL, NULL, &context);
+
+      if (CL_rc == -1) return -1;
+
+      /**
+       * create command-queue
+       */
+
+      cl_command_queue command_queue;
+
+      CL_rc = hc_clCreateCommandQueue (hashcat_ctx, context, device_param->device, 0, &command_queue);
+
+      if (CL_rc == -1) return -1;
+
+      if ((device_param->device_type & CL_DEVICE_TYPE_GPU) && (device_param->platform_vendor_id == VENDOR_ID_AMD))
+      {
+        const bool has_vperm = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { uint r; __asm__ (\"V_PERM_B32 %0, 0, 0, 0;\" : \"=v\"(r)); }");
+
+        device_param->has_vperm = has_vperm;
+
+        const bool has_vadd3 = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { uint r; __asm__ (\"V_ADD3_U32 %0, 0, 0, 0;\" : \"=v\"(r)); }");
+
+        device_param->has_vadd3 = has_vadd3;
+      }
+
+      // device_available_mem
+
+      #define MAX_ALLOC_CHECKS_CNT  8192
+      #define MAX_ALLOC_CHECKS_SIZE (64 * 1024 * 1024)
+
+      device_param->device_available_mem = device_param->device_global_mem - MAX_ALLOC_CHECKS_SIZE;
+
+      if (device_param->device_type & CL_DEVICE_TYPE_GPU)
+      {
+        // OK, so the problem here is the following:
+        // There's just CL_DEVICE_GLOBAL_MEM_SIZE to ask OpenCL about the total memory on the device,
+        // but there's no way to ask for available memory on the device.
+        // In combination, most OpenCL runtimes implementation of clCreateBuffer()
+        // are doing so called lazy memory allocation on the device.
+        // Now, if the user has X11 (or a game or anything that takes a lot of GPU memory)
+        // running on the host we end up with an error type of this:
+        // clEnqueueNDRangeKernel(): CL_MEM_OBJECT_ALLOCATION_FAILURE
+        // The clEnqueueNDRangeKernel() is because of the lazy allocation
+        // The best way to workaround this problem is if we would be able to ask for available memory,
+        // The idea here is to try to evaluate available memory by allocating it till it errors
+
+        cl_mem *tmp_device = (cl_mem *) hccalloc (MAX_ALLOC_CHECKS_CNT, sizeof (cl_mem));
+
+        u64 c;
+
+        for (c = 0; c < MAX_ALLOC_CHECKS_CNT; c++)
+        {
+          if (((c + 1 + 1) * MAX_ALLOC_CHECKS_SIZE) >= device_param->device_global_mem) break;
+
+          cl_int CL_err;
+
+          OCL_PTR *ocl = opencl_ctx->ocl;
+
+          tmp_device[c] = ocl->clCreateBuffer (context, CL_MEM_READ_WRITE, MAX_ALLOC_CHECKS_SIZE, NULL, &CL_err);
+
+          if (CL_err != CL_SUCCESS)
+          {
+            c--;
+
+            break;
+          }
+
+          // transfer only a few byte should be enough to force the runtime to actually allocate the memory
+
+          u8 tmp_host[8];
+
+          CL_err = ocl->clEnqueueReadBuffer  (command_queue, tmp_device[c], CL_TRUE, 0, sizeof (tmp_host), tmp_host, 0, NULL, NULL);
+
+          if (CL_err != CL_SUCCESS) break;
+
+          CL_err = ocl->clEnqueueWriteBuffer (command_queue, tmp_device[c], CL_TRUE, 0, sizeof (tmp_host), tmp_host, 0, NULL, NULL);
+
+          if (CL_err != CL_SUCCESS) break;
+
+          CL_err = ocl->clEnqueueReadBuffer  (command_queue, tmp_device[c], CL_TRUE, MAX_ALLOC_CHECKS_SIZE - sizeof (tmp_host), sizeof (tmp_host), tmp_host, 0, NULL, NULL);
+
+          if (CL_err != CL_SUCCESS) break;
+
+          CL_err = ocl->clEnqueueWriteBuffer (command_queue, tmp_device[c], CL_TRUE, MAX_ALLOC_CHECKS_SIZE - sizeof (tmp_host), sizeof (tmp_host), tmp_host, 0, NULL, NULL);
+
+          if (CL_err != CL_SUCCESS) break;
+        }
+
+        device_param->device_available_mem = c * MAX_ALLOC_CHECKS_SIZE;
+
+        // clean up
+
+        for (c = 0; c < MAX_ALLOC_CHECKS_CNT; c++)
+        {
+          if (((c + 1 + 1) * MAX_ALLOC_CHECKS_SIZE) >= device_param->device_global_mem) break;
+
+          if (tmp_device[c] != NULL)
+          {
+            CL_rc = hc_clReleaseMemObject (hashcat_ctx, tmp_device[c]);
+
+            if (CL_rc == -1) return -1;
+          }
+        }
+
+        hcfree (tmp_device);
+      }
+
+      hc_clReleaseCommandQueue (hashcat_ctx, command_queue);
+
+      hc_clReleaseContext (hashcat_ctx, context);
+
       // next please
 
       devices_cnt++;
@@ -3851,9 +4061,9 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
   // additional check to see if the user has chosen a device that is not within the range of available devices (i.e. larger than devices_cnt)
 
-  if (opencl_ctx->devices_filter != (u32) -1)
+  if (opencl_ctx->devices_filter != (u64) -1)
   {
-    const u32 devices_cnt_mask = ~(((u32) -1 >> devices_cnt) << devices_cnt);
+    const u64 devices_cnt_mask = ~(((u64) -1 >> devices_cnt) << devices_cnt);
 
     if (opencl_ctx->devices_filter > devices_cnt_mask)
     {
@@ -3949,16 +4159,25 @@ void opencl_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param_src->skipped == true) continue;
 
+    if (device_param_src->skipped_warning == true) continue;
+
     for (u32 device_id_dst = device_id_src; device_id_dst < opencl_ctx->devices_cnt; device_id_dst++)
     {
       hc_device_param_t *device_param_dst = &opencl_ctx->devices_param[device_id_dst];
 
       if (device_param_dst->skipped == true) continue;
 
+      if (device_param_dst->skipped_warning == true) continue;
+
       if (is_same_device_type (device_param_src, device_param_dst) == false) continue;
 
-      device_param_dst->kernel_accel = device_param_src->kernel_accel;
-      device_param_dst->kernel_loops = device_param_src->kernel_loops;
+      device_param_dst->kernel_accel   = device_param_src->kernel_accel;
+      device_param_dst->kernel_loops   = device_param_src->kernel_loops;
+      device_param_dst->kernel_threads = device_param_src->kernel_threads;
+
+      const u32 hardware_power = device_param_dst->device_processors * device_param_dst->kernel_threads;
+
+      device_param_dst->hardware_power = hardware_power;
 
       const u32 kernel_power = device_param_dst->hardware_power * device_param_dst->kernel_accel;
 
@@ -3983,6 +4202,8 @@ void opencl_ctx_devices_update_power (hashcat_ctx_t *hashcat_ctx)
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
     if (device_param->skipped == true) continue;
+
+    if (device_param->skipped_warning == true) continue;
 
     kernel_power_all += device_param->kernel_power;
   }
@@ -4027,6 +4248,8 @@ void opencl_ctx_devices_kernel_loops (hashcat_ctx_t *hashcat_ctx)
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
     if (device_param->skipped == true) continue;
+
+    if (device_param->skipped_warning == true) continue;
 
     device_param->kernel_loops_min = device_param->kernel_loops_min_sav;
     device_param->kernel_loops_max = device_param->kernel_loops_max_sav;
@@ -4122,41 +4345,145 @@ static int get_kernel_local_mem_size (hashcat_ctx_t *hashcat_ctx, hc_device_para
   return 0;
 }
 
+static u32 get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param)
+{
+  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+
+  // a module can force a fixed value
+
+  u32 kernel_threads_min = device_param->kernel_threads_min;
+  u32 kernel_threads_max = device_param->kernel_threads_max;
+
+  // for CPU we just do 1 ...
+
+  if (device_param->device_type & CL_DEVICE_TYPE_CPU)
+  {
+    if ((1 >= kernel_threads_min) && (1 <= kernel_threads_max))
+    {
+      kernel_threads_min = 1;
+      kernel_threads_max = 1;
+    }
+  }
+
+  // this is an upper limit, a good start, since our strategy is to reduce thread counts only
+
+  const u32 device_maxworkgroup_size = (u32) device_param->device_maxworkgroup_size;
+
+  if (device_maxworkgroup_size < kernel_threads_max)
+  {
+    kernel_threads_max = device_maxworkgroup_size;
+  }
+
+  // complicated kernel tend to confuse OpenCL runtime suggestions for maximum thread size
+  // let's workaround that by sticking to their device specific preferred thread size
+
+  if (hashconfig->opts_type & OPTS_TYPE_PREFERED_THREAD)
+  {
+    if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+    {
+      if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+      {
+        if (device_param->kernel_preferred_wgs_multiple1)
+        {
+          const u32 kernel_preferred_wgs_multiple1 = device_param->kernel_preferred_wgs_multiple1;
+
+          if ((kernel_preferred_wgs_multiple1 >= kernel_threads_min) && (kernel_preferred_wgs_multiple1 <= kernel_threads_max))
+          {
+            kernel_threads_min = kernel_preferred_wgs_multiple1;
+            kernel_threads_max = kernel_preferred_wgs_multiple1;
+          }
+        }
+      }
+      else
+      {
+        if (device_param->kernel_preferred_wgs_multiple4)
+        {
+          const u32 kernel_preferred_wgs_multiple4 = device_param->kernel_preferred_wgs_multiple4;
+
+          if ((kernel_preferred_wgs_multiple4 >= kernel_threads_min) && (kernel_preferred_wgs_multiple4 <= kernel_threads_max))
+          {
+            kernel_threads_min = kernel_preferred_wgs_multiple4;
+            kernel_threads_max = kernel_preferred_wgs_multiple4;
+          }
+        }
+      }
+    }
+    else
+    {
+      if (device_param->kernel_preferred_wgs_multiple2)
+      {
+        const u32 kernel_preferred_wgs_multiple2 = device_param->kernel_preferred_wgs_multiple2;
+
+        if ((kernel_preferred_wgs_multiple2 >= kernel_threads_min) && (kernel_preferred_wgs_multiple2 <= kernel_threads_max))
+        {
+          kernel_threads_min = kernel_preferred_wgs_multiple2;
+          kernel_threads_max = kernel_preferred_wgs_multiple2;
+        }
+      }
+    }
+  }
+  else
+  {
+    if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+    {
+      if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+      {
+        if (device_param->kernel_preferred_wgs_multiple1)
+        {
+          const u32 kernel_preferred_wgs_multiple1 = device_param->kernel_preferred_wgs_multiple1;
+
+          if ((kernel_preferred_wgs_multiple1 >= kernel_threads_min) && (kernel_preferred_wgs_multiple1 <= kernel_threads_max))
+          {
+            kernel_threads_min = kernel_preferred_wgs_multiple1;
+            kernel_threads_max = kernel_preferred_wgs_multiple1;
+          }
+        }
+      }
+      else
+      {
+        if (device_param->kernel_preferred_wgs_multiple4)
+        {
+          const u32 kernel_preferred_wgs_multiple4 = device_param->kernel_preferred_wgs_multiple4;
+
+          if ((kernel_preferred_wgs_multiple4 >= kernel_threads_min) && (kernel_preferred_wgs_multiple4 <= kernel_threads_max))
+          {
+            kernel_threads_min = kernel_preferred_wgs_multiple4;
+            kernel_threads_max = kernel_preferred_wgs_multiple4;
+          }
+        }
+      }
+    }
+    else
+    {
+      if (device_param->kernel_preferred_wgs_multiple2)
+      {
+        const u32 kernel_preferred_wgs_multiple2 = device_param->kernel_preferred_wgs_multiple2;
+
+        if ((kernel_preferred_wgs_multiple2 >= kernel_threads_min) && (kernel_preferred_wgs_multiple2 <= kernel_threads_max))
+        {
+          kernel_threads_min = kernel_preferred_wgs_multiple2;
+          kernel_threads_max = kernel_preferred_wgs_multiple2;
+        }
+      }
+    }
+  }
+
+  return kernel_threads_max;
+}
+
 int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 {
-  bitmap_ctx_t         *bitmap_ctx          = hashcat_ctx->bitmap_ctx;
-  folder_config_t      *folder_config       = hashcat_ctx->folder_config;
-  hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
-  hashes_t             *hashes              = hashcat_ctx->hashes;
-  opencl_ctx_t         *opencl_ctx          = hashcat_ctx->opencl_ctx;
-  straight_ctx_t       *straight_ctx        = hashcat_ctx->straight_ctx;
-  user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
-  user_options_t       *user_options        = hashcat_ctx->user_options;
+  const bitmap_ctx_t         *bitmap_ctx          = hashcat_ctx->bitmap_ctx;
+  const folder_config_t      *folder_config       = hashcat_ctx->folder_config;
+  const hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
+  const hashes_t             *hashes              = hashcat_ctx->hashes;
+  const module_ctx_t         *module_ctx          = hashcat_ctx->module_ctx;
+        opencl_ctx_t         *opencl_ctx          = hashcat_ctx->opencl_ctx;
+  const straight_ctx_t       *straight_ctx        = hashcat_ctx->straight_ctx;
+  const user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
+  const user_options_t       *user_options        = hashcat_ctx->user_options;
 
   if (opencl_ctx->enabled == false) return 0;
-
-  /**
-   * Some algorithm, like descrypt, can benefit from JIT compilation
-   */
-
-  opencl_ctx->force_jit_compilation = -1;
-
-  if (hashconfig->hash_mode == 8900)
-  {
-    opencl_ctx->force_jit_compilation = 8900;
-  }
-  else if (hashconfig->hash_mode == 9300)
-  {
-    opencl_ctx->force_jit_compilation = 8900;
-  }
-  else if (hashconfig->hash_mode == 15700)
-  {
-    opencl_ctx->force_jit_compilation = 15700;
-  }
-  else if (hashconfig->hash_mode == 1500 && user_options->attack_mode == ATTACK_MODE_BF && hashes->salts_cnt == 1 && user_options->slow_candidates == false)
-  {
-    opencl_ctx->force_jit_compilation = 1500;
-  }
 
   u32 hardware_power_all = 0;
 
@@ -4172,41 +4499,27 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->skipped == true) continue;
 
-    bool skipped_temp = false;
-
-    #if defined (__APPLE__)
+    EVENT_DATA (EVENT_OPENCL_DEVICE_INIT_PRE, &device_id, sizeof (u32));
 
     /**
-     * If '--force' is not set, we proceed to excluding unstable hash-modes,
-     * too high kernel runtime, even on -u1 -n1, therefore likely to run into trap 6
+     * module depending checks
      */
 
-    if ((user_options->hash_mode ==  1500)
-     || (user_options->hash_mode ==  3000)
-     || (user_options->hash_mode ==  3200)
-     || (user_options->hash_mode ==  8900)
-     || (user_options->hash_mode ==  9300)
-     || (user_options->hash_mode ==  9800)
-     || (user_options->hash_mode == 12500)
-     || (user_options->hash_mode == 14000)
-     || (user_options->hash_mode == 14100)
-     || (user_options->hash_mode == 15700))
+    device_param->skipped_warning = false;
+
+    if (module_ctx->module_unstable_warning != MODULE_DEFAULT)
     {
-      skipped_temp = true;
-    }
+      const bool unstable_warning = module_ctx->module_unstable_warning (hashconfig, user_options, user_options_extra, device_param);
 
-    #endif // __APPLE__
+      if ((unstable_warning == true) && (user_options->force == false))
+      {
+        event_log_warning (hashcat_ctx, "* Device #%u: Skipping hash-mode %u - known OpenCL/Driver issue (not a hashcat issue)", device_id + 1, hashconfig->hash_mode);
+        event_log_warning (hashcat_ctx, "             You can use --force to override, but do not report related errors.");
 
-    if ((skipped_temp == true) && (user_options->force == false))
-    {
-      event_log_warning (hashcat_ctx, "* Device #%u: Skipping unstable hash-mode %u for this device.", device_id + 1, user_options->hash_mode);
-      event_log_warning (hashcat_ctx, "             You can use --force to override, but do not report related errors.");
+        device_param->skipped_warning = true;
 
-      device_param->skipped = true;
-
-      device_param->skipped_temp = true;
-
-      continue;
+        continue;
+      }
     }
 
     // vector_width
@@ -4273,13 +4586,14 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
      * kernel accel and loops tuning db adjustment
      */
 
-    device_param->kernel_accel_min = 1;
-    device_param->kernel_accel_max = 1024;
+    device_param->kernel_accel_min   = hashconfig->kernel_accel_min;
+    device_param->kernel_accel_max   = hashconfig->kernel_accel_max;
+    device_param->kernel_loops_min   = hashconfig->kernel_loops_min;
+    device_param->kernel_loops_max   = hashconfig->kernel_loops_max;
+    device_param->kernel_threads_min = hashconfig->kernel_threads_min;
+    device_param->kernel_threads_max = hashconfig->kernel_threads_max;
 
-    device_param->kernel_loops_min = 1;
-    device_param->kernel_loops_max = 1024;
-
-    tuning_db_entry_t *tuningdb_entry;
+    tuning_db_entry_t *tuningdb_entry = NULL;
 
     if (user_options->slow_candidates == true)
     {
@@ -4290,56 +4604,83 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       tuningdb_entry = tuning_db_search (hashcat_ctx, device_param->device_name, device_param->device_type, user_options->attack_mode, hashconfig->hash_mode);
     }
 
-    if (tuningdb_entry != NULL)
-    {
-      u32 _kernel_accel = tuningdb_entry->kernel_accel;
-      u32 _kernel_loops = tuningdb_entry->kernel_loops;
+    // user commandline option override tuning db
+    // but both have to stay inside the boundaries of the module
 
-      if (_kernel_accel)
+    if (user_options->kernel_accel_chgd == true)
+    {
+      const u32 _kernel_accel = user_options->kernel_accel;
+
+      if ((_kernel_accel >= device_param->kernel_accel_min) && (_kernel_accel <= device_param->kernel_accel_max))
       {
         device_param->kernel_accel_min = _kernel_accel;
         device_param->kernel_accel_max = _kernel_accel;
       }
-
-      if (_kernel_loops)
-      {
-        if (user_options->workload_profile == 1)
-        {
-          _kernel_loops = (_kernel_loops > 8) ? _kernel_loops / 8 : 1;
-        }
-        else if (user_options->workload_profile == 2)
-        {
-          _kernel_loops = (_kernel_loops > 4) ? _kernel_loops / 4 : 1;
-        }
-
-        device_param->kernel_loops_min = _kernel_loops;
-        device_param->kernel_loops_max = _kernel_loops;
-      }
     }
-
-    // commandline parameters overwrite tuningdb entries
-
-    if (user_options->kernel_accel_chgd == true)
+    else
     {
-      device_param->kernel_accel_min = user_options->kernel_accel;
-      device_param->kernel_accel_max = user_options->kernel_accel;
+      if (tuningdb_entry != NULL)
+      {
+        const u32 _kernel_accel = tuningdb_entry->kernel_accel;
+
+        if (_kernel_accel)
+        {
+          if ((_kernel_accel >= device_param->kernel_accel_min) && (_kernel_accel <= device_param->kernel_accel_max))
+          {
+            device_param->kernel_accel_min = _kernel_accel;
+            device_param->kernel_accel_max = _kernel_accel;
+          }
+        }
+      }
     }
 
     if (user_options->kernel_loops_chgd == true)
     {
-      device_param->kernel_loops_min = user_options->kernel_loops;
-      device_param->kernel_loops_max = user_options->kernel_loops;
+      const u32 _kernel_loops = user_options->kernel_loops;
+
+      if ((_kernel_loops >= device_param->kernel_loops_min) && (_kernel_loops <= device_param->kernel_loops_max))
+      {
+        device_param->kernel_loops_min = _kernel_loops;
+        device_param->kernel_loops_max = _kernel_loops;
+      }
+    }
+    else
+    {
+      if (tuningdb_entry != NULL)
+      {
+        u32 _kernel_loops = tuningdb_entry->kernel_loops;
+
+        if (_kernel_loops)
+        {
+          if (user_options->workload_profile == 1)
+          {
+            _kernel_loops = (_kernel_loops > 8) ? _kernel_loops / 8 : 1;
+          }
+          else if (user_options->workload_profile == 2)
+          {
+            _kernel_loops = (_kernel_loops > 4) ? _kernel_loops / 4 : 1;
+          }
+
+          if ((_kernel_loops >= device_param->kernel_loops_min) && (_kernel_loops <= device_param->kernel_loops_max))
+          {
+            device_param->kernel_loops_min = _kernel_loops;
+            device_param->kernel_loops_max = _kernel_loops;
+          }
+        }
+      }
     }
 
-    // limit scrypt accel otherwise we hurt ourself when calculating the scrypt tmto
+    // there's not thread column in tuning db, stick to commandline if defined
 
-    #define SCRYPT_MAX_ACCEL 16
-
-    if ((hashconfig->hash_mode == 8900) || (hashconfig->hash_mode == 9300) || (hashconfig->hash_mode == 15700))
+    if (user_options->kernel_threads_chgd == true)
     {
-      // 16 is actually a bit low, we may need to change this depending on user response
+      const u32 _kernel_threads = user_options->kernel_threads;
 
-      device_param->kernel_accel_max = MIN (device_param->kernel_accel_max, SCRYPT_MAX_ACCEL);
+      if ((_kernel_threads >= device_param->kernel_threads_min) && (_kernel_threads <= device_param->kernel_threads_max))
+      {
+        device_param->kernel_threads_min = _kernel_threads;
+        device_param->kernel_threads_max = _kernel_threads;
+      }
     }
 
     if (user_options->slow_candidates == true)
@@ -4368,6 +4709,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         }
       }
     }
+
+    device_param->kernel_loops_min_sav = device_param->kernel_loops_min;
+    device_param->kernel_loops_max_sav = device_param->kernel_loops_max;
 
     /**
      * device properties
@@ -4400,378 +4744,117 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (CL_rc == -1) return -1;
 
-    // device_available_mem
-
-    #define MAX_ALLOC_CHECKS_CNT  8192
-    #define MAX_ALLOC_CHECKS_SIZE (64 * 1024 * 1024)
-
-    device_param->device_available_mem = device_param->device_global_mem - MAX_ALLOC_CHECKS_SIZE;
-
-    if ((device_param->device_type & CL_DEVICE_TYPE_GPU) && ((device_param->platform_vendor_id == VENDOR_ID_NV) || ((device_param->platform_vendor_id == VENDOR_ID_AMD) && (device_param->is_rocm == false))))
-    {
-      // OK, so the problem here is the following:
-      // There's just CL_DEVICE_GLOBAL_MEM_SIZE to ask OpenCL about the total memory on the device,
-      // but there's no way to ask for available memory on the device.
-      // In combination, most OpenCL runtimes implementation of clCreateBuffer()
-      // are doing so called lazy memory allocation on the device.
-      // Now, if the user has X11 (or a game or anything that takes a lot of GPU memory)
-      // running on the host we end up with an error type of this:
-      // clEnqueueNDRangeKernel(): CL_MEM_OBJECT_ALLOCATION_FAILURE
-      // The clEnqueueNDRangeKernel() is because of the lazy allocation
-      // The best way to workaround this problem is if we would be able to ask for available memory,
-      // The idea here is to try to evaluate available memory by allocating it till it errors
-
-      cl_mem *tmp_device = (cl_mem *) hccalloc (MAX_ALLOC_CHECKS_CNT, sizeof (cl_mem));
-
-      u64 c;
-
-      for (c = 0; c < MAX_ALLOC_CHECKS_CNT; c++)
-      {
-        if (((c + 1 + 1) * MAX_ALLOC_CHECKS_SIZE) >= device_param->device_global_mem) break;
-
-        cl_int CL_err;
-
-        OCL_PTR *ocl = opencl_ctx->ocl;
-
-        tmp_device[c] = ocl->clCreateBuffer (device_param->context, CL_MEM_READ_WRITE, MAX_ALLOC_CHECKS_SIZE, NULL, &CL_err);
-
-        if (CL_err != CL_SUCCESS)
-        {
-          c--;
-
-          break;
-        }
-
-        // transfer only a few byte should be enough to force the runtime to actually allocate the memory
-
-        u8 tmp_host[8];
-
-        CL_err = ocl->clEnqueueReadBuffer  (device_param->command_queue, tmp_device[c], CL_TRUE, 0, sizeof (tmp_host), tmp_host, 0, NULL, NULL);
-
-        if (CL_err != CL_SUCCESS) break;
-
-        CL_err = ocl->clEnqueueWriteBuffer (device_param->command_queue, tmp_device[c], CL_TRUE, 0, sizeof (tmp_host), tmp_host, 0, NULL, NULL);
-
-        if (CL_err != CL_SUCCESS) break;
-
-        CL_err = ocl->clEnqueueReadBuffer  (device_param->command_queue, tmp_device[c], CL_TRUE, MAX_ALLOC_CHECKS_SIZE - sizeof (tmp_host), sizeof (tmp_host), tmp_host, 0, NULL, NULL);
-
-        if (CL_err != CL_SUCCESS) break;
-
-        CL_err = ocl->clEnqueueWriteBuffer (device_param->command_queue, tmp_device[c], CL_TRUE, MAX_ALLOC_CHECKS_SIZE - sizeof (tmp_host), sizeof (tmp_host), tmp_host, 0, NULL, NULL);
-
-        if (CL_err != CL_SUCCESS) break;
-      }
-
-      device_param->device_available_mem = c * MAX_ALLOC_CHECKS_SIZE;
-
-      // clean up
-
-      for (c = 0; c < MAX_ALLOC_CHECKS_CNT; c++)
-      {
-        if (((c + 1 + 1) * MAX_ALLOC_CHECKS_SIZE) >= device_param->device_global_mem) break;
-
-        if (tmp_device[c] != NULL)
-        {
-          CL_rc = hc_clReleaseMemObject (hashcat_ctx, tmp_device[c]);
-
-          if (CL_rc == -1) return -1;
-        }
-      }
-
-      hcfree (tmp_device);
-    }
-
     /**
      * create input buffers on device : calculate size of fixed memory buffers
      */
 
-    size_t size_root_css   = SP_PW_MAX *           sizeof (cs_t);
-    size_t size_markov_css = SP_PW_MAX * CHARSIZ * sizeof (cs_t);
+    u64 size_root_css   = SP_PW_MAX *           sizeof (cs_t);
+    u64 size_markov_css = SP_PW_MAX * CHARSIZ * sizeof (cs_t);
 
     device_param->size_root_css   = size_root_css;
     device_param->size_markov_css = size_markov_css;
 
-    size_t size_results = sizeof (u32);
+    u64 size_results = sizeof (u32);
 
     device_param->size_results = size_results;
 
-    size_t size_rules   = (size_t) straight_ctx->kernel_rules_cnt * sizeof (kernel_rule_t);
-    size_t size_rules_c = (size_t) KERNEL_RULES                   * sizeof (kernel_rule_t);
+    u64 size_rules   = (u64) straight_ctx->kernel_rules_cnt * sizeof (kernel_rule_t);
+    u64 size_rules_c = (u64) KERNEL_RULES                   * sizeof (kernel_rule_t);
 
-    size_t size_plains  = (size_t) hashes->digests_cnt * sizeof (plain_t);
-    size_t size_salts   = (size_t) hashes->salts_cnt   * sizeof (salt_t);
-    size_t size_esalts  = (size_t) hashes->digests_cnt * (size_t) hashconfig->esalt_size;
-    size_t size_shown   = (size_t) hashes->digests_cnt * sizeof (u32);
-    size_t size_digests = (size_t) hashes->digests_cnt * (size_t) hashconfig->dgst_size;
+    device_param->size_rules    = size_rules;
+    device_param->size_rules_c  = size_rules_c;
+
+    u64 size_plains  = (u64) hashes->digests_cnt * sizeof (plain_t);
+    u64 size_salts   = (u64) hashes->salts_cnt   * sizeof (salt_t);
+    u64 size_esalts  = (u64) hashes->digests_cnt * (u64) hashconfig->esalt_size;
+    u64 size_shown   = (u64) hashes->digests_cnt * sizeof (u32);
+    u64 size_digests = (u64) hashes->digests_cnt * (u64) hashconfig->dgst_size;
 
     device_param->size_plains   = size_plains;
     device_param->size_digests  = size_digests;
     device_param->size_shown    = size_shown;
     device_param->size_salts    = size_salts;
+    device_param->size_esalts   = size_esalts;
 
-    size_t size_combs = KERNEL_COMBS * sizeof (pw_t);
-    size_t size_bfs   = KERNEL_BFS   * sizeof (bf_t);
-    size_t size_tm    = 32           * sizeof (bs_word_t);
+    u64 size_combs = KERNEL_COMBS * sizeof (pw_t);
+    u64 size_bfs   = KERNEL_BFS   * sizeof (bf_t);
+    u64 size_tm    = 32           * sizeof (bs_word_t);
 
-    size_t size_st_digests = 1 * hashconfig->dgst_size;
-    size_t size_st_salts   = 1 * sizeof (salt_t);
-    size_t size_st_esalts  = 1 * hashconfig->esalt_size;
+    device_param->size_bfs      = size_bfs;
+    device_param->size_combs    = size_combs;
+    device_param->size_tm       = size_tm;
+
+    u64 size_st_digests = 1 * hashconfig->dgst_size;
+    u64 size_st_salts   = 1 * sizeof (salt_t);
+    u64 size_st_esalts  = 1 * hashconfig->esalt_size;
 
     device_param->size_st_digests = size_st_digests;
     device_param->size_st_salts   = size_st_salts;
     device_param->size_st_esalts  = size_st_esalts;
 
-    /**
-     * some algorithms need a fixed kernel-loops count
-     */
+    u64 size_extra_buffer = 4;
 
-    const u32 kernel_loops_fixed = hashconfig_get_kernel_loops (hashcat_ctx);
-
-    if (kernel_loops_fixed != 0)
+    if (module_ctx->module_extra_buffer_size != MODULE_DEFAULT)
     {
-      device_param->kernel_loops_min = kernel_loops_fixed;
-      device_param->kernel_loops_max = kernel_loops_fixed;
-    }
+      const u64 extra_buffer_size = module_ctx->module_extra_buffer_size (hashconfig, user_options, user_options_extra, hashes, device_param);
 
-    device_param->kernel_loops_min_sav = device_param->kernel_loops_min;
-    device_param->kernel_loops_max_sav = device_param->kernel_loops_max;
-
-    device_param->size_bfs      = size_bfs;
-    device_param->size_combs    = size_combs;
-    device_param->size_rules    = size_rules;
-    device_param->size_rules_c  = size_rules_c;
-
-    // scryptV stuff
-
-    size_t scrypt_tmp_size   = 0;
-    size_t scrypt_tmto_final = 0;
-
-    size_t size_scrypt = 4;
-
-    if ((hashconfig->hash_mode == 8900) || (hashconfig->hash_mode == 9300) || (hashconfig->hash_mode == 15700))
-    {
-      // we need to check that all hashes have the same scrypt settings
-
-      const u32 scrypt_N = hashes->salts_buf[0].scrypt_N;
-      const u32 scrypt_r = hashes->salts_buf[0].scrypt_r;
-      const u32 scrypt_p = hashes->salts_buf[0].scrypt_p;
-
-      for (u32 i = 1; i < hashes->salts_cnt; i++)
+      if (extra_buffer_size == (u64) -1)
       {
-        if ((hashes->salts_buf[i].scrypt_N != scrypt_N)
-         || (hashes->salts_buf[i].scrypt_r != scrypt_r)
-         || (hashes->salts_buf[i].scrypt_p != scrypt_p))
-        {
-          event_log_error (hashcat_ctx, "Mixed scrypt settings are not supported.");
-
-          return -1;
-        }
-      }
-
-      scrypt_tmp_size = (128 * scrypt_r * scrypt_p);
-
-      hashconfig->tmp_size = scrypt_tmp_size;
-
-      u32 tmto_start = 1;
-      u32 tmto_stop  = 6;
-
-      if (user_options->scrypt_tmto)
-      {
-        tmto_start = user_options->scrypt_tmto;
-        tmto_stop  = user_options->scrypt_tmto;
-      }
-
-      const u32 scrypt_threads = hashconfig_forced_kernel_threads (hashcat_ctx);
-
-      const size_t kernel_power_max = SCRYPT_MAX_ACCEL * device_processors * scrypt_threads;
-
-      // size_pws
-
-      const size_t size_pws = kernel_power_max * sizeof (pw_t);
-
-      const size_t size_pws_amp = size_pws;
-
-      // size_pws_comp
-
-      const size_t size_pws_comp = kernel_power_max * (sizeof (u32) * 64);
-
-      // size_pws_idx
-
-      const size_t size_pws_idx = (kernel_power_max + 1) * sizeof (pw_idx_t);
-
-      // size_tmps
-
-      const size_t size_tmps = kernel_power_max * hashconfig->tmp_size;
-
-      // size_hooks
-
-      const size_t size_hooks = kernel_power_max * hashconfig->hook_size;
-
-      const u64 scrypt_extra_space
-        = bitmap_ctx->bitmap_size
-        + bitmap_ctx->bitmap_size
-        + bitmap_ctx->bitmap_size
-        + bitmap_ctx->bitmap_size
-        + bitmap_ctx->bitmap_size
-        + bitmap_ctx->bitmap_size
-        + bitmap_ctx->bitmap_size
-        + bitmap_ctx->bitmap_size
-        + size_bfs
-        + size_combs
-        + size_digests
-        + size_esalts
-        + size_hooks
-        + size_markov_css
-        + size_plains
-        + size_pws
-        + size_pws_amp
-        + size_pws_comp
-        + size_pws_idx
-        + size_results
-        + size_root_css
-        + size_rules
-        + size_rules_c
-        + size_salts
-        + size_shown
-        + size_tm
-        + size_tmps
-        + size_st_digests
-        + size_st_salts
-        + size_st_esalts;
-
-      bool not_enough_memory = true;
-
-      u32 tmto;
-
-      for (tmto = tmto_start; tmto <= tmto_stop; tmto++)
-      {
-        size_scrypt = (128 * scrypt_r) * scrypt_N;
-
-        size_scrypt /= 1u << tmto;
-
-        size_scrypt *= kernel_power_max;
-
-        if ((size_scrypt / 4) > device_param->device_maxmem_alloc)
-        {
-          if (user_options->quiet == false) event_log_warning (hashcat_ctx, "Increasing single-block device memory allocatable for --scrypt-tmto %u.", tmto);
-
-          continue;
-        }
-
-        if ((size_scrypt + scrypt_extra_space) > device_param->device_available_mem)
-        {
-          if (user_options->quiet == false) event_log_warning (hashcat_ctx, "Increasing total device memory allocatable for --scrypt-tmto %u.", tmto);
-
-          continue;
-        }
-
-        for (u32 salts_pos = 0; salts_pos < hashes->salts_cnt; salts_pos++)
-        {
-          scrypt_tmto_final = tmto;
-        }
-
-        not_enough_memory = false;
-
-        break;
-      }
-
-      if (not_enough_memory == true)
-      {
-        event_log_error (hashcat_ctx, "Cannot allocate enough device memory. Perhaps retry with -n 1.");
+        event_log_error (hashcat_ctx, "Invalid extra buffer size.");
 
         return -1;
       }
 
-      #if defined (DEBUG)
-      if (user_options->quiet == false) event_log_warning (hashcat_ctx, "SCRYPT tmto optimizer value set to: %lu, mem: %lu", scrypt_tmto_final, size_scrypt);
-      if (user_options->quiet == false) event_log_warning (hashcat_ctx, NULL);
-      #endif
+      device_param->extra_buffer_size = extra_buffer_size;
+
+      size_extra_buffer = extra_buffer_size;
     }
 
-    size_t size_scrypt4 = size_scrypt / 4;
+    // kern type
 
-    /**
-     * default building options
-     */
+    u32 kern_type = (u32) hashconfig->kern_type;
 
-    if (chdir (folder_config->cpath_real) == -1)
+    if (module_ctx->module_kern_type_dynamic != MODULE_DEFAULT)
     {
-      event_log_error (hashcat_ctx, "%s: %s", folder_config->cpath_real, strerror (errno));
-
-      return -1;
-    }
-
-    // include check
-    // this test needs to be done manually because of macOS opencl runtime
-    // if there's a problem with permission, its not reporting back and erroring out silently
-
-    #define files_cnt 16
-
-    const char *files_names[files_cnt] =
-    {
-      "inc_cipher_aes.cl",
-      "inc_cipher_serpent.cl",
-      "inc_cipher_twofish.cl",
-      "inc_common.cl",
-      "inc_comp_multi_bs.cl",
-      "inc_comp_multi.cl",
-      "inc_comp_single_bs.cl",
-      "inc_comp_single.cl",
-      "inc_hash_constants.h",
-      "inc_hash_functions.cl",
-      "inc_rp_optimized.cl",
-      "inc_rp_optimized.h",
-      "inc_simd.cl",
-      "inc_scalar.cl",
-      "inc_types.cl",
-      "inc_vendor.cl",
-    };
-
-    for (int i = 0; i < files_cnt; i++)
-    {
-      if (hc_path_read (files_names[i]) == false)
+      if (user_options->benchmark == true)
       {
-        event_log_error (hashcat_ctx, "%s: %s", files_names[i], strerror (errno));
+      }
+      else
+      {
+        void        *digests_buf    = hashes->digests_buf;
+        salt_t      *salts_buf      = hashes->salts_buf;
+        void        *esalts_buf     = hashes->esalts_buf;
+        void        *hook_salts_buf = hashes->hook_salts_buf;
+        hashinfo_t **hash_info      = hashes->hash_info;
 
-        return -1;
+        hashinfo_t *hash_info_ptr = NULL;
+
+        if (hash_info) hash_info_ptr = hash_info[0];
+
+        kern_type = (u32) module_ctx->module_kern_type_dynamic (hashconfig, digests_buf, salts_buf, esalts_buf, hook_salts_buf, hash_info_ptr);
       }
     }
 
-    // return back to the folder we came from initially (workaround)
+    // built options
+
+    const size_t build_options_sz = 4096;
+
+    char *build_options_buf = (char *) hcmalloc (build_options_sz);
+
+    int build_options_len = 0;
 
     #if defined (_WIN)
-    if (chdir ("..") == -1)
-    {
-      event_log_error (hashcat_ctx, "%s: %s", "..", strerror (errno));
-
-      return -1;
-    }
+    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-cl-std=CL1.2 -I OpenCL -I \"%s\" ", folder_config->cpath_real);
     #else
-    if (chdir (folder_config->cwd) == -1)
-    {
-      event_log_error (hashcat_ctx, "%s: %s", folder_config->cwd, strerror (errno));
-
-      return -1;
-    }
-    #endif
-
-    char build_opts_base[1024] = { 0 };
-
-    #if defined (_WIN)
-    snprintf (build_opts_base, sizeof (build_opts_base) - 1, "-cl-std=CL1.2 -I OpenCL -I \"%s\"", folder_config->cpath_real);
-    #else
-    snprintf (build_opts_base, sizeof (build_opts_base) - 1, "-cl-std=CL1.2 -I OpenCL -I %s", folder_config->cpath_real);
+    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-cl-std=CL1.2 -I OpenCL -I %s ", folder_config->cpath_real);
     #endif
 
     // we don't have sm_* on vendors not NV but it doesn't matter
 
-    char build_opts[2048] = { 0 };
-
     #if defined (DEBUG)
-    snprintf (build_opts, sizeof (build_opts) - 1, "%s -D VENDOR_ID=%u -D CUDA_ARCH=%u -D AMD_ROCM=%u -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll", build_opts_base, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->is_rocm, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, hashconfig->kern_type);
+    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D LOCAL_MEM_TYPE=%u -D VENDOR_ID=%u -D CUDA_ARCH=%u -D HAS_VPERM=%u -D HAS_VADD3=%u -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll ", device_param->device_local_mem_type, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->has_vperm, device_param->has_vadd3, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, kern_type);
     #else
-    snprintf (build_opts, sizeof (build_opts) - 1, "%s -D VENDOR_ID=%u -D CUDA_ARCH=%u -D AMD_ROCM=%u -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -w", build_opts_base, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->is_rocm, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, hashconfig->kern_type);
+    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D LOCAL_MEM_TYPE=%u -D VENDOR_ID=%u -D CUDA_ARCH=%u -D HAS_VPERM=%u -D HAS_VADD3=%u -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -w ", device_param->device_local_mem_type, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->has_vperm, device_param->has_vadd3, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, kern_type);
     #endif
 
     /*
@@ -4779,13 +4862,30 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     {
       if (device_param->platform_vendor_id == VENDOR_ID_INTEL_SDK)
       {
-        strncat (build_opts, " -cl-opt-disable", 16);
+        strncat (build_options_buf, " -cl-opt-disable", 16);
       }
     }
     */
 
+    char *build_options_module_buf = (char *) hcmalloc (build_options_sz);
+
+    int build_options_module_len = 0;
+
+    build_options_module_len += snprintf (build_options_module_buf + build_options_module_len, build_options_sz - build_options_module_len, "%s ", build_options_buf);
+
+    if (module_ctx->module_jit_build_options != MODULE_DEFAULT)
+    {
+      char *jit_build_options = module_ctx->module_jit_build_options (hashconfig, user_options, user_options_extra, hashes, device_param);
+
+      if (jit_build_options != NULL)
+      {
+        build_options_module_len += snprintf (build_options_module_buf + build_options_module_len, build_options_sz - build_options_module_len, "%s", jit_build_options);
+      }
+    }
+
     #if defined (DEBUG)
-    if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: build_opts '%s'", device_id + 1, build_opts);
+    if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: build_options '%s'", device_id + 1, build_options_buf);
+    if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: build_options_module '%s'", device_id + 1, build_options_module_buf);
     #endif
 
     /**
@@ -4795,13 +4895,8 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     char *device_name_chksum        = (char *) hcmalloc (HCBUFSIZ_TINY);
     char *device_name_chksum_amp_mp = (char *) hcmalloc (HCBUFSIZ_TINY);
 
-    #if defined (__x86_64__)
-    const size_t dnclen        = snprintf (device_name_chksum,        HCBUFSIZ_TINY - 1, "%d-%u-%u-%s-%s-%s-%d-%u-%u", 64, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, opencl_ctx->comptime, user_options->opencl_vector_width, user_options->hash_mode);
-    const size_t dnclen_amp_mp = snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY - 1, "%d-%u-%s-%s-%s-%d",          64, device_param->platform_vendor_id,                             device_param->device_name, device_param->device_version, device_param->driver_version, opencl_ctx->comptime);
-    #else
-    const size_t dnclen        = snprintf (device_name_chksum,        HCBUFSIZ_TINY - 1, "%d-%u-%u-%s-%s-%s-%d-%u-%u", 32, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, opencl_ctx->comptime, user_options->opencl_vector_width, user_options->hash_mode);
-    const size_t dnclen_amp_mp = snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY - 1, "%d-%u-%s-%s-%s-%d",          32, device_param->platform_vendor_id,                             device_param->device_name, device_param->device_version, device_param->driver_version, opencl_ctx->comptime);
-    #endif
+    const size_t dnclen        = snprintf (device_name_chksum,        HCBUFSIZ_TINY, "%u-%u-%s-%s-%s-%d-%u-%u", device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, opencl_ctx->comptime, user_options->opencl_vector_width, hashconfig->hash_mode);
+    const size_t dnclen_amp_mp = snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%u-%s-%s-%s-%d",          device_param->platform_vendor_id,                             device_param->device_name, device_param->device_version, device_param->driver_version, opencl_ctx->comptime);
 
     u32 device_name_digest[4] = { 0 };
 
@@ -4810,7 +4905,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       md5_64 ((u32 *) (device_name_chksum + i), device_name_digest);
     }
 
-    snprintf (device_name_chksum, HCBUFSIZ_TINY - 1, "%08x", device_name_digest[0]);
+    snprintf (device_name_chksum, HCBUFSIZ_TINY, "%08x", device_name_digest[0]);
 
     u32 device_name_digest_amp_mp[4] = { 0 };
 
@@ -4819,7 +4914,29 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       md5_64 ((u32 *) (device_name_chksum_amp_mp + i), device_name_digest_amp_mp);
     }
 
-    snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY - 1, "%08x", device_name_digest_amp_mp[0]);
+    snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%08x", device_name_digest_amp_mp[0]);
+
+    /**
+     * kernel cache
+     */
+
+    bool cache_disable = false;
+
+    // Seems to be completely broken on Apple + (Intel?) CPU
+    // To reproduce set cache_disable to false and run benchmark -b
+
+    if (device_param->platform_vendor_id == VENDOR_ID_APPLE)
+    {
+      if (device_param->device_type & CL_DEVICE_TYPE_CPU)
+      {
+        cache_disable = true;
+      }
+    }
+
+    if (module_ctx->module_jit_cache_disable != MODULE_DEFAULT)
+    {
+      cache_disable = module_ctx->module_jit_cache_disable (hashconfig, user_options, user_options_extra, hashes, device_param);
+    }
 
     /**
      * main kernel
@@ -4832,7 +4949,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       char source_file[256] = { 0 };
 
-      generate_source_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, hashconfig->opti_type, folder_config->shared_dir, source_file);
+      generate_source_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, user_options_extra->attack_kern, kern_type, hashconfig->opti_type, folder_config->shared_dir, source_file);
 
       if (hc_path_read (source_file) == false)
       {
@@ -4847,9 +4964,14 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       char cached_file[256] = { 0 };
 
-      generate_cached_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, hashconfig->opti_type, folder_config->profile_dir, device_name_chksum, cached_file);
+      generate_cached_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, user_options_extra->attack_kern, kern_type, hashconfig->opti_type, folder_config->profile_dir, device_name_chksum, cached_file);
 
       bool cached = true;
+
+      if (cache_disable == true)
+      {
+        cached = false;
+      }
 
       if (hc_path_read (cached_file) == false)
       {
@@ -4873,119 +4995,21 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       char **kernel_sources = &kernel_sources_buf;
 
-      if (opencl_ctx->force_jit_compilation == -1)
+      if (cached == false)
       {
-        if (cached == false)
-        {
-          #if defined (DEBUG)
-          if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
-          #endif
+        #if defined (DEBUG)
+        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
+        #endif
 
-          const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources, true);
+        const bool rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources, true);
 
-          if (rc_read_kernel == -1) return -1;
+        if (rc_read_kernel == false) return -1;
 
-          CL_rc = hc_clCreateProgramWithSource (hashcat_ctx, device_param->context, 1, kernel_sources, NULL, &device_param->program);
-
-          if (CL_rc == -1) return -1;
-
-          CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program, 1, &device_param->device, build_opts, NULL, NULL);
-
-          //if (CL_rc == -1) return -1;
-
-          size_t build_log_size = 0;
-
-          hc_clGetProgramBuildInfo (hashcat_ctx, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
-
-          //if (CL_rc == -1) return -1;
-
-          #if defined (DEBUG)
-          if ((build_log_size > 1) || (CL_rc == -1))
-          #else
-          if (CL_rc == -1)
-          #endif
-          {
-            char *build_log = (char *) hcmalloc (build_log_size + 1);
-
-            int CL_rc_build = hc_clGetProgramBuildInfo (hashcat_ctx, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
-
-            if (CL_rc_build == -1) return -1;
-
-            puts (build_log);
-
-            hcfree (build_log);
-          }
-
-          if (CL_rc == -1)
-          {
-            device_param->skipped = true;
-
-            event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed - proceeding without this device.", device_id + 1, source_file);
-
-            continue;
-          }
-
-          size_t binary_size;
-
-          CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->program, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
-
-          if (CL_rc == -1) return -1;
-
-          char *binary = (char *) hcmalloc (binary_size);
-
-          CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->program, CL_PROGRAM_BINARIES, sizeof (char *), &binary, NULL);
-
-          if (CL_rc == -1) return -1;
-
-          const int rc_write = write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size);
-
-          if (rc_write == -1) return -1;
-
-          hcfree (binary);
-        }
-        else
-        {
-          const int rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, kernel_lengths, kernel_sources, false);
-
-          if (rc_read_kernel == -1) return -1;
-
-          CL_rc = hc_clCreateProgramWithBinary (hashcat_ctx, device_param->context, 1, &device_param->device, kernel_lengths, (unsigned char **) kernel_sources, NULL, &device_param->program);
-
-          if (CL_rc == -1) return -1;
-
-          CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program, 1, &device_param->device, build_opts, NULL, NULL);
-
-          if (CL_rc == -1) return -1;
-        }
-      }
-      else
-      {
-        const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources, true);
-
-        if (rc_read_kernel == -1) return -1;
-
-        CL_rc = hc_clCreateProgramWithSource (hashcat_ctx, device_param->context, 1, kernel_sources, NULL, &device_param->program);
+        CL_rc = hc_clCreateProgramWithSource (hashcat_ctx, device_param->context, 1, (const char **) kernel_sources, NULL, &device_param->program);
 
         if (CL_rc == -1) return -1;
 
-        char *build_opts_update;
-
-        if (opencl_ctx->force_jit_compilation == 1500)
-        {
-          hc_asprintf (&build_opts_update, "%s -DDESCRYPT_SALT=%u", build_opts, hashes->salts_buf[0].salt_buf[0]);
-        }
-        else if ((opencl_ctx->force_jit_compilation == 8900) || (opencl_ctx->force_jit_compilation == 15700))
-        {
-          hc_asprintf (&build_opts_update,"%s -DSCRYPT_N=%u -DSCRYPT_R=%u -DSCRYPT_P=%u -DSCRYPT_TMTO=%u -DSCRYPT_TMP_ELEM=%" PRIu64, build_opts, hashes->salts_buf[0].scrypt_N, hashes->salts_buf[0].scrypt_r, hashes->salts_buf[0].scrypt_p, 1u << scrypt_tmto_final, (u64) scrypt_tmp_size / 16);
-        }
-        else
-        {
-          hc_asprintf (&build_opts_update, "%s", build_opts);
-        }
-
-        CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program, 1, &device_param->device, build_opts_update, NULL, NULL);
-
-        free (build_opts_update);
+        CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program, 1, &device_param->device, build_options_module_buf, NULL, NULL);
 
         //if (CL_rc == -1) return -1;
 
@@ -5014,16 +5038,53 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (CL_rc == -1)
         {
-          device_param->skipped = true;
+          device_param->skipped_warning = true;
 
           event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed - proceeding without this device.", device_id + 1, source_file);
 
           continue;
         }
+
+        if (cache_disable == false)
+        {
+          size_t binary_size;
+
+          CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->program, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
+
+          if (CL_rc == -1) return -1;
+
+          char *binary = (char *) hcmalloc (binary_size);
+
+          CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->program, CL_PROGRAM_BINARIES, sizeof (char *), &binary, NULL);
+
+          if (CL_rc == -1) return -1;
+
+          const bool rc_write = write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size);
+
+          if (rc_write == false) return -1;
+
+          hcfree (binary);
+        }
+      }
+      else
+      {
+        const bool rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, kernel_lengths, kernel_sources, false);
+
+        if (rc_read_kernel == false) return -1;
+
+        CL_rc = hc_clCreateProgramWithBinary (hashcat_ctx, device_param->context, 1, &device_param->device, kernel_lengths, (unsigned char **) kernel_sources, NULL, &device_param->program);
+
+        if (CL_rc == -1) return -1;
+
+        CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program, 1, &device_param->device, build_options_module_buf, NULL, NULL);
+
+        if (CL_rc == -1) return -1;
       }
 
       hcfree (kernel_sources[0]);
     }
+
+    hcfree (build_options_module_buf);
 
     /**
      * word generator kernel
@@ -5061,6 +5122,11 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         bool cached = true;
 
+        if (cache_disable == true)
+        {
+          cached = false;
+        }
+
         if (hc_path_read (cached_file) == false)
         {
           cached = false;
@@ -5089,15 +5155,15 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
           if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
           #endif
 
-          const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources, true);
+          const bool rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources, true);
 
-          if (rc_read_kernel == -1) return -1;
+          if (rc_read_kernel == false) return -1;
 
-          CL_rc = hc_clCreateProgramWithSource (hashcat_ctx, device_param->context, 1, kernel_sources, NULL, &device_param->program_mp);
+          CL_rc = hc_clCreateProgramWithSource (hashcat_ctx, device_param->context, 1, (const char **) kernel_sources, NULL, &device_param->program_mp);
 
           if (CL_rc == -1) return -1;
 
-          CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program_mp, 1, &device_param->device, build_opts, NULL, NULL);
+          CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program_mp, 1, &device_param->device, build_options_buf, NULL, NULL);
 
           //if (CL_rc == -1) return -1;
 
@@ -5126,40 +5192,43 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (CL_rc == -1)
           {
-            device_param->skipped = true;
+            device_param->skipped_warning = true;
 
             event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed - proceeding without this device.", device_id + 1, source_file);
 
             continue;
           }
 
-          size_t binary_size;
+          if (cache_disable == false)
+          {
+            size_t binary_size;
 
-          CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->program_mp, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
+            CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->program_mp, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
 
-          if (CL_rc == -1) return -1;
+            if (CL_rc == -1) return -1;
 
-          char *binary = (char *) hcmalloc (binary_size);
+            char *binary = (char *) hcmalloc (binary_size);
 
-          CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->program_mp, CL_PROGRAM_BINARIES, sizeof (char *), &binary, NULL);
+            CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->program_mp, CL_PROGRAM_BINARIES, sizeof (char *), &binary, NULL);
 
-          if (CL_rc == -1) return -1;
+            if (CL_rc == -1) return -1;
 
-          write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size);
+            write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size);
 
-          hcfree (binary);
+            hcfree (binary);
+          }
         }
         else
         {
-          const int rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, kernel_lengths, kernel_sources, false);
+          const bool rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, kernel_lengths, kernel_sources, false);
 
-          if (rc_read_kernel == -1) return -1;
+          if (rc_read_kernel == false) return -1;
 
           CL_rc = hc_clCreateProgramWithBinary (hashcat_ctx, device_param->context, 1, &device_param->device, kernel_lengths, (unsigned char **) kernel_sources, NULL, &device_param->program_mp);
 
           if (CL_rc == -1) return -1;
 
-          CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program_mp, 1, &device_param->device, build_opts, NULL, NULL);
+          CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program_mp, 1, &device_param->device, build_options_buf, NULL, NULL);
 
           if (CL_rc == -1) return -1;
         }
@@ -5208,6 +5277,11 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         bool cached = true;
 
+        if (cache_disable == true)
+        {
+          cached = false;
+        }
+
         if (hc_path_read (cached_file) == false)
         {
           cached = false;
@@ -5236,15 +5310,15 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
           if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
           #endif
 
-          const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources, true);
+          const bool rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources, true);
 
-          if (rc_read_kernel == -1) return -1;
+          if (rc_read_kernel == false) return -1;
 
-          CL_rc = hc_clCreateProgramWithSource (hashcat_ctx, device_param->context, 1, kernel_sources, NULL, &device_param->program_amp);
+          CL_rc = hc_clCreateProgramWithSource (hashcat_ctx, device_param->context, 1, (const char **) kernel_sources, NULL, &device_param->program_amp);
 
           if (CL_rc == -1) return -1;
 
-          CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program_amp, 1, &device_param->device, build_opts, NULL, NULL);
+          CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program_amp, 1, &device_param->device, build_options_buf, NULL, NULL);
 
           //if (CL_rc == -1) return -1;
 
@@ -5273,45 +5347,50 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (CL_rc == -1)
           {
-            device_param->skipped = true;
+            device_param->skipped_warning = true;
 
             event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed - proceeding without this device.", device_id + 1, source_file);
 
             continue;
           }
 
-          size_t binary_size;
+          if (cache_disable == false)
+          {
+            size_t binary_size;
 
-          CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->program_amp, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
+            CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->program_amp, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
 
-          if (CL_rc == -1) return -1;
+            if (CL_rc == -1) return -1;
 
-          char *binary = (char *) hcmalloc (binary_size);
+            char *binary = (char *) hcmalloc (binary_size);
 
-          CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->program_amp, CL_PROGRAM_BINARIES, sizeof (char *), &binary, NULL);
+            CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->program_amp, CL_PROGRAM_BINARIES, sizeof (char *), &binary, NULL);
 
-          if (CL_rc == -1) return -1;
+            if (CL_rc == -1) return -1;
 
-          write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size);
+            write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size);
 
-          hcfree (binary);
+            hcfree (binary);
+          }
         }
         else
         {
-          const int rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, kernel_lengths, kernel_sources, false);
+          const bool rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, kernel_lengths, kernel_sources, false);
 
-          if (rc_read_kernel == -1) return -1;
+          if (rc_read_kernel == false) return -1;
 
           CL_rc = hc_clCreateProgramWithBinary (hashcat_ctx, device_param->context, 1, &device_param->device, kernel_lengths, (unsigned char **) kernel_sources, NULL, &device_param->program_amp);
 
           if (CL_rc == -1) return -1;
 
-          CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program_amp, 1, &device_param->device, build_opts, NULL, NULL);
+          CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program_amp, 1, &device_param->device, build_options_buf, NULL, NULL);
 
           if (CL_rc == -1) return -1;
         }
 
         hcfree (kernel_sources[0]);
+
+        hcfree (build_options_buf);
       }
     }
 
@@ -5345,10 +5424,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->context, CL_MEM_READ_WRITE,  size_shown,              NULL, &device_param->d_digests_shown);  if (CL_rc == -1) return -1;
     CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->context, CL_MEM_READ_ONLY,   size_salts,              NULL, &device_param->d_salt_bufs);      if (CL_rc == -1) return -1;
     CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->context, CL_MEM_READ_WRITE,  size_results,            NULL, &device_param->d_result);         if (CL_rc == -1) return -1;
-    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->context, CL_MEM_READ_WRITE,  size_scrypt4,            NULL, &device_param->d_scryptV0_buf);   if (CL_rc == -1) return -1;
-    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->context, CL_MEM_READ_WRITE,  size_scrypt4,            NULL, &device_param->d_scryptV1_buf);   if (CL_rc == -1) return -1;
-    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->context, CL_MEM_READ_WRITE,  size_scrypt4,            NULL, &device_param->d_scryptV2_buf);   if (CL_rc == -1) return -1;
-    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->context, CL_MEM_READ_WRITE,  size_scrypt4,            NULL, &device_param->d_scryptV3_buf);   if (CL_rc == -1) return -1;
+    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->context, CL_MEM_READ_WRITE,  size_extra_buffer / 4,   NULL, &device_param->d_extra0_buf);     if (CL_rc == -1) return -1;
+    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->context, CL_MEM_READ_WRITE,  size_extra_buffer / 4,   NULL, &device_param->d_extra1_buf);     if (CL_rc == -1) return -1;
+    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->context, CL_MEM_READ_WRITE,  size_extra_buffer / 4,   NULL, &device_param->d_extra2_buf);     if (CL_rc == -1) return -1;
+    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->context, CL_MEM_READ_WRITE,  size_extra_buffer / 4,   NULL, &device_param->d_extra3_buf);     if (CL_rc == -1) return -1;
     CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->context, CL_MEM_READ_ONLY,   size_st_digests,         NULL, &device_param->d_st_digests_buf); if (CL_rc == -1) return -1;
     CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->context, CL_MEM_READ_ONLY,   size_st_salts,           NULL, &device_param->d_st_salts_buf);   if (CL_rc == -1) return -1;
 
@@ -5461,10 +5540,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_params[17] = &device_param->d_salt_bufs;
     device_param->kernel_params[18] = &device_param->d_esalt_bufs;
     device_param->kernel_params[19] = &device_param->d_result;
-    device_param->kernel_params[20] = &device_param->d_scryptV0_buf;
-    device_param->kernel_params[21] = &device_param->d_scryptV1_buf;
-    device_param->kernel_params[22] = &device_param->d_scryptV2_buf;
-    device_param->kernel_params[23] = &device_param->d_scryptV3_buf;
+    device_param->kernel_params[20] = &device_param->d_extra0_buf;
+    device_param->kernel_params[21] = &device_param->d_extra1_buf;
+    device_param->kernel_params[22] = &device_param->d_extra2_buf;
+    device_param->kernel_params[23] = &device_param->d_extra3_buf;
     device_param->kernel_params[24] = &device_param->kernel_params_buf32[24];
     device_param->kernel_params[25] = &device_param->kernel_params_buf32[25];
     device_param->kernel_params[26] = &device_param->kernel_params_buf32[26];
@@ -5604,7 +5683,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         {
           // kernel1
 
-          snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_s%02d", hashconfig->kern_type, 4);
+          snprintf (kernel_name, sizeof (kernel_name), "m%05u_s%02d", kern_type, 4);
 
           CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel1);
 
@@ -5624,7 +5703,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           // kernel2
 
-          snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_s%02d", hashconfig->kern_type, 8);
+          snprintf (kernel_name, sizeof (kernel_name), "m%05u_s%02d", kern_type, 8);
 
           CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel2);
 
@@ -5644,7 +5723,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           // kernel3
 
-          snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_s%02d", hashconfig->kern_type, 16);
+          snprintf (kernel_name, sizeof (kernel_name), "m%05u_s%02d", kern_type, 16);
 
           CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel3);
 
@@ -5664,7 +5743,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         }
         else
         {
-          snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_sxx", hashconfig->kern_type);
+          snprintf (kernel_name, sizeof (kernel_name), "m%05u_sxx", kern_type);
 
           CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel4);
 
@@ -5689,7 +5768,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         {
           // kernel1
 
-          snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_m%02d", hashconfig->kern_type, 4);
+          snprintf (kernel_name, sizeof (kernel_name), "m%05u_m%02d", kern_type, 4);
 
           CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel1);
 
@@ -5709,7 +5788,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           // kernel2
 
-          snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_m%02d", hashconfig->kern_type, 8);
+          snprintf (kernel_name, sizeof (kernel_name), "m%05u_m%02d", kern_type, 8);
 
           CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel2);
 
@@ -5729,7 +5808,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           // kernel3
 
-          snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_m%02d", hashconfig->kern_type, 16);
+          snprintf (kernel_name, sizeof (kernel_name), "m%05u_m%02d", kern_type, 16);
 
           CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel3);
 
@@ -5749,7 +5828,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         }
         else
         {
-          snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_mxx", hashconfig->kern_type);
+          snprintf (kernel_name, sizeof (kernel_name), "m%05u_mxx", kern_type);
 
           CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel4);
 
@@ -5778,7 +5857,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         {
           if (hashconfig->opts_type & OPTS_TYPE_PT_BITSLICE)
           {
-            snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_tm", hashconfig->kern_type);
+            snprintf (kernel_name, sizeof (kernel_name), "m%05u_tm", kern_type);
 
             CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel_tm);
 
@@ -5803,7 +5882,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     {
       // kernel1
 
-      snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_init", hashconfig->kern_type);
+      snprintf (kernel_name, sizeof (kernel_name), "m%05u_init", kern_type);
 
       CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel1);
 
@@ -5823,7 +5902,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       // kernel2
 
-      snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_loop", hashconfig->kern_type);
+      snprintf (kernel_name, sizeof (kernel_name), "m%05u_loop", kern_type);
 
       CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel2);
 
@@ -5843,7 +5922,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       // kernel3
 
-      snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_comp", hashconfig->kern_type);
+      snprintf (kernel_name, sizeof (kernel_name), "m%05u_comp", kern_type);
 
       CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel3);
 
@@ -5865,7 +5944,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (hashconfig->opts_type & OPTS_TYPE_HOOK12)
       {
-        snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_hook12", hashconfig->kern_type);
+        snprintf (kernel_name, sizeof (kernel_name), "m%05u_hook12", kern_type);
 
         CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel12);
 
@@ -5888,7 +5967,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (hashconfig->opts_type & OPTS_TYPE_HOOK23)
       {
-        snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_hook23", hashconfig->kern_type);
+        snprintf (kernel_name, sizeof (kernel_name), "m%05u_hook23", kern_type);
 
         CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel23);
 
@@ -5911,7 +5990,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (hashconfig->opts_type & OPTS_TYPE_INIT2)
       {
-        snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_init2", hashconfig->kern_type);
+        snprintf (kernel_name, sizeof (kernel_name), "m%05u_init2", kern_type);
 
         CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel_init2);
 
@@ -5934,7 +6013,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (hashconfig->opts_type & OPTS_TYPE_LOOP2)
       {
-        snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_loop2", hashconfig->kern_type);
+        snprintf (kernel_name, sizeof (kernel_name), "m%05u_loop2", kern_type);
 
         CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel_loop2);
 
@@ -5957,7 +6036,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (hashconfig->opts_type & OPTS_TYPE_AUX1)
       {
-        snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_aux1", hashconfig->kern_type);
+        snprintf (kernel_name, sizeof (kernel_name), "m%05u_aux1", kern_type);
 
         CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel_aux1);
 
@@ -5980,7 +6059,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (hashconfig->opts_type & OPTS_TYPE_AUX2)
       {
-        snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_aux2", hashconfig->kern_type);
+        snprintf (kernel_name, sizeof (kernel_name), "m%05u_aux2", kern_type);
 
         CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel_aux2);
 
@@ -6003,7 +6082,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (hashconfig->opts_type & OPTS_TYPE_AUX3)
       {
-        snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_aux3", hashconfig->kern_type);
+        snprintf (kernel_name, sizeof (kernel_name), "m%05u_aux3", kern_type);
 
         CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel_aux3);
 
@@ -6026,7 +6105,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (hashconfig->opts_type & OPTS_TYPE_AUX4)
       {
-        snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_aux4", hashconfig->kern_type);
+        snprintf (kernel_name, sizeof (kernel_name), "m%05u_aux4", kern_type);
 
         CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel_aux4);
 
@@ -6313,6 +6392,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
           device_param->kernel_params_mp_buf32[7] = 0;
 
           if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)     device_param->kernel_params_mp_buf32[5] = full01;
+          if (hashconfig->opts_type & OPTS_TYPE_PT_ADD06)     device_param->kernel_params_mp_buf32[5] = full06;
           if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)     device_param->kernel_params_mp_buf32[5] = full80;
           if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS14) device_param->kernel_params_mp_buf32[6] = 1;
           if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS15) device_param->kernel_params_mp_buf32[7] = 1;
@@ -6337,6 +6417,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         device_param->kernel_params_mp_l_buf32[8] = 0;
 
         if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)     device_param->kernel_params_mp_l_buf32[6] = full01;
+        if (hashconfig->opts_type & OPTS_TYPE_PT_ADD06)     device_param->kernel_params_mp_l_buf32[6] = full06;
         if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)     device_param->kernel_params_mp_l_buf32[6] = full80;
         if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS14) device_param->kernel_params_mp_l_buf32[7] = 1;
         if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS15) device_param->kernel_params_mp_l_buf32[8] = 1;
@@ -6350,7 +6431,22 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
      * now everything that depends on threads and accel, basically dynamic workload
      */
 
-    const u32 kernel_threads = hashconfig_get_kernel_threads (hashcat_ctx, device_param);
+    u32 kernel_threads = get_kernel_threads (hashcat_ctx, device_param);
+
+    // this is required because inside the kernels there is this:
+    // __local pw_t s_pws[64];
+
+    if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+    {
+      if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+      {
+        // not required
+      }
+      else
+      {
+        kernel_threads = MIN (kernel_threads, 64);
+      }
+    }
 
     device_param->kernel_threads = kernel_threads;
 
@@ -6361,14 +6457,18 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     // find out if we would request too much memory on memory blocks which are based on kernel_accel
 
-    size_t size_pws      = 4;
-    size_t size_pws_amp  = 4;
-    size_t size_pws_comp = 4;
-    size_t size_pws_idx  = 4;
-    size_t size_pws_pre  = 4;
-    size_t size_pws_base = 4;
-    size_t size_tmps     = 4;
-    size_t size_hooks    = 4;
+    u64 size_pws      = 4;
+    u64 size_pws_amp  = 4;
+    u64 size_pws_comp = 4;
+    u64 size_pws_idx  = 4;
+    u64 size_pws_pre  = 4;
+    u64 size_pws_base = 4;
+    u64 size_tmps     = 4;
+    u64 size_hooks    = 4;
+    #ifdef WITH_BRAIN
+    u64 size_brain_link_in  = 4;
+    u64 size_brain_link_out = 4;
+    #endif
 
     // instead of a thread limit we can also use a memory limit.
     // this value should represent a reasonable amount of memory a host system has per GPU.
@@ -6387,35 +6487,42 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       // size_pws
 
-      size_pws = (size_t) kernel_power_max * sizeof (pw_t);
+      size_pws = (u64) kernel_power_max * sizeof (pw_t);
 
       size_pws_amp = (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL) ? 1 : size_pws;
 
       // size_pws_comp
 
-      size_pws_comp = (size_t) kernel_power_max * (sizeof (u32) * 64);
+      size_pws_comp = (u64) kernel_power_max * (sizeof (u32) * 64);
 
       // size_pws_idx
 
-      size_pws_idx = (size_t) (kernel_power_max + 1) * sizeof (pw_idx_t);
+      size_pws_idx = (u64) (kernel_power_max + 1) * sizeof (pw_idx_t);
 
       // size_tmps
 
-      size_tmps = (size_t) kernel_power_max * hashconfig->tmp_size;
+      size_tmps = (u64) kernel_power_max * (hashconfig->tmp_size + hashconfig->extra_tmp_size);
 
       // size_hooks
 
-      size_hooks = (size_t) kernel_power_max * hashconfig->hook_size;
+      size_hooks = (u64) kernel_power_max * hashconfig->hook_size;
+
+      #ifdef WITH_BRAIN
+      // size_brains
+
+      size_brain_link_in  = (u64) kernel_power_max * 1;
+      size_brain_link_out = (u64) kernel_power_max * 8;
+      #endif
 
       if (user_options->slow_candidates == true)
       {
         // size_pws_pre
 
-        size_pws_pre = (size_t) kernel_power_max * sizeof (pw_pre_t);
+        size_pws_pre = (u64) kernel_power_max * sizeof (pw_pre_t);
 
         // size_pws_base
 
-        size_pws_base = (size_t) kernel_power_max * sizeof (pw_pre_t);
+        size_pws_base = (u64) kernel_power_max * sizeof (pw_pre_t);
       }
 
       // now check if all device-memory sizes which depend on the kernel_accel_max amplifier are within its boundaries
@@ -6429,7 +6536,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       if ((size_tmps  + EXTRA_SPACE) > device_param->device_maxmem_alloc) memory_limit_hit = 1;
       if ((size_hooks + EXTRA_SPACE) > device_param->device_maxmem_alloc) memory_limit_hit = 1;
 
-      const size_t size_total
+      const u64 size_total
         = bitmap_ctx->bitmap_size
         + bitmap_ctx->bitmap_size
         + bitmap_ctx->bitmap_size
@@ -6454,10 +6561,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         + size_rules
         + size_rules_c
         + size_salts
-        + size_scrypt4
-        + size_scrypt4
-        + size_scrypt4
-        + size_scrypt4
+        + size_extra_buffer
         + size_shown
         + size_tm
         + size_tmps
@@ -6467,14 +6571,27 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if ((size_total + EXTRA_SPACE) > device_param->device_available_mem) memory_limit_hit = 1;
 
-      const size_t size_total_host
+      const u64 size_total_host
         = size_pws_comp
         + size_pws_idx
         + size_hooks
+        #ifdef WITH_BRAIN
+        + size_brain_link_in
+        + size_brain_link_out
+        #endif
         + size_pws_pre
         + size_pws_base;
 
       if ((size_total_host + EXTRA_SPACE) > device_param->device_maxmem_alloc) memory_limit_hit = 1;
+
+      #if defined (__x86_x64__)
+      const u64 MAX_HOST_MEMORY = 16ull * 1024ull * 1024ull * 1024ull; // don't be too memory hungry
+      #else
+      const u64 MAX_HOST_MEMORY =  2ull * 1024ull * 1024ull * 1024ull; // windows 7 starter limits to 2gb instead of 4gb
+      #endif
+
+      // we assume all devices have the same specs here, which is wrong, it's a start
+      if ((size_total_host * opencl_ctx->devices_cnt) > MAX_HOST_MEMORY) memory_limit_hit = 1;
 
       if (memory_limit_hit == 1)
       {
@@ -6504,6 +6621,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->size_pws_base = size_pws_base;
     device_param->size_tmps     = size_tmps;
     device_param->size_hooks    = size_hooks;
+    #ifdef WITH_BRAIN
+    device_param->size_brain_link_in  = size_brain_link_in;
+    device_param->size_brain_link_out = size_brain_link_out;
+    #endif
 
     CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->context, CL_MEM_READ_WRITE,  size_pws,      NULL, &device_param->d_pws_buf);      if (CL_rc == -1) return -1;
     CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->context, CL_MEM_READ_WRITE,  size_pws_amp,  NULL, &device_param->d_pws_amp_buf);  if (CL_rc == -1) return -1;
@@ -6542,6 +6663,17 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     char *scratch_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
     device_param->scratch_buf = scratch_buf;
+
+    #ifdef WITH_BRAIN
+
+    u8 *brain_link_in_buf = (u8 *) hcmalloc (size_brain_link_in);
+
+    device_param->brain_link_in_buf = brain_link_in_buf;
+
+    u32 *brain_link_out_buf = (u32 *) hcmalloc (size_brain_link_out);
+
+    device_param->brain_link_out_buf = brain_link_out_buf;
+    #endif
 
     pw_pre_t *pws_pre_buf = (pw_pre_t *) hcmalloc (size_pws_pre);
 
@@ -6614,20 +6746,12 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_decompress, 2, sizeof (cl_mem), device_param->kernel_params_decompress[2]); if (CL_rc == -1) return -1;
 
     hardware_power_all += device_param->hardware_power;
+
+    EVENT_DATA (EVENT_OPENCL_DEVICE_INIT_POST, &device_id, sizeof (u32));
   }
 
   // Prevent exit from benchmark mode if all devices are skipped due to unstable hash-modes (macOS)
-
-  bool has_skipped_temp = false;
-
-  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-  {
-    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
-
-    if (device_param->skipped_temp == true) has_skipped_temp = true;
-  }
-
-  if ((hardware_power_all == 0) && (has_skipped_temp == false)) return -1;
+  //  if (hardware_power_all == 0) return -1;
 
   opencl_ctx->hardware_power_all = hardware_power_all;
 
@@ -6644,15 +6768,6 @@ void opencl_session_destroy (hashcat_ctx_t *hashcat_ctx)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
-    if (device_param->skipped_temp == true)
-    {
-      device_param->skipped_temp = false;
-
-      device_param->skipped = false;
-
-      continue;
-    }
-
     if (device_param->skipped == true) continue;
 
     hcfree (device_param->pws_comp);
@@ -6662,6 +6777,10 @@ void opencl_session_destroy (hashcat_ctx_t *hashcat_ctx)
     hcfree (device_param->combs_buf);
     hcfree (device_param->hooks_buf);
     hcfree (device_param->scratch_buf);
+    #ifdef WITH_BRAIN
+    hcfree (device_param->brain_link_in_buf);
+    hcfree (device_param->brain_link_out_buf);
+    #endif
 
     if (device_param->d_pws_buf)        hc_clReleaseMemObject (hashcat_ctx, device_param->d_pws_buf);
     if (device_param->d_pws_amp_buf)    hc_clReleaseMemObject (hashcat_ctx, device_param->d_pws_amp_buf);
@@ -6689,10 +6808,10 @@ void opencl_session_destroy (hashcat_ctx_t *hashcat_ctx)
     if (device_param->d_tmps)           hc_clReleaseMemObject (hashcat_ctx, device_param->d_tmps);
     if (device_param->d_hooks)          hc_clReleaseMemObject (hashcat_ctx, device_param->d_hooks);
     if (device_param->d_result)         hc_clReleaseMemObject (hashcat_ctx, device_param->d_result);
-    if (device_param->d_scryptV0_buf)   hc_clReleaseMemObject (hashcat_ctx, device_param->d_scryptV0_buf);
-    if (device_param->d_scryptV1_buf)   hc_clReleaseMemObject (hashcat_ctx, device_param->d_scryptV1_buf);
-    if (device_param->d_scryptV2_buf)   hc_clReleaseMemObject (hashcat_ctx, device_param->d_scryptV2_buf);
-    if (device_param->d_scryptV3_buf)   hc_clReleaseMemObject (hashcat_ctx, device_param->d_scryptV3_buf);
+    if (device_param->d_extra0_buf)     hc_clReleaseMemObject (hashcat_ctx, device_param->d_extra0_buf);
+    if (device_param->d_extra1_buf)     hc_clReleaseMemObject (hashcat_ctx, device_param->d_extra1_buf);
+    if (device_param->d_extra2_buf)     hc_clReleaseMemObject (hashcat_ctx, device_param->d_extra2_buf);
+    if (device_param->d_extra3_buf)     hc_clReleaseMemObject (hashcat_ctx, device_param->d_extra3_buf);
     if (device_param->d_root_css_buf)   hc_clReleaseMemObject (hashcat_ctx, device_param->d_root_css_buf);
     if (device_param->d_markov_css_buf) hc_clReleaseMemObject (hashcat_ctx, device_param->d_markov_css_buf);
     if (device_param->d_tm_c)           hc_clReleaseMemObject (hashcat_ctx, device_param->d_tm_c);
@@ -6729,74 +6848,79 @@ void opencl_session_destroy (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->context)          hc_clReleaseContext (hashcat_ctx, device_param->context);
 
-    device_param->pws_comp          = NULL;
-    device_param->pws_idx           = NULL;
-    device_param->pws_pre_buf       = NULL;
-    device_param->pws_base_buf      = NULL;
-    device_param->combs_buf         = NULL;
-    device_param->hooks_buf         = NULL;
+    device_param->pws_comp            = NULL;
+    device_param->pws_idx             = NULL;
+    device_param->pws_pre_buf         = NULL;
+    device_param->pws_base_buf        = NULL;
+    device_param->combs_buf           = NULL;
+    device_param->hooks_buf           = NULL;
+    device_param->scratch_buf         = NULL;
+    #ifdef WITH_BRAIN
+    device_param->brain_link_in_buf   = NULL;
+    device_param->brain_link_out_buf  = NULL;
+    #endif
 
-    device_param->d_pws_buf         = NULL;
-    device_param->d_pws_amp_buf     = NULL;
-    device_param->d_pws_comp_buf    = NULL;
-    device_param->d_pws_idx         = NULL;
-    device_param->d_rules           = NULL;
-    device_param->d_rules_c         = NULL;
-    device_param->d_combs           = NULL;
-    device_param->d_combs_c         = NULL;
-    device_param->d_bfs             = NULL;
-    device_param->d_bfs_c           = NULL;
-    device_param->d_bitmap_s1_a     = NULL;
-    device_param->d_bitmap_s1_b     = NULL;
-    device_param->d_bitmap_s1_c     = NULL;
-    device_param->d_bitmap_s1_d     = NULL;
-    device_param->d_bitmap_s2_a     = NULL;
-    device_param->d_bitmap_s2_b     = NULL;
-    device_param->d_bitmap_s2_c     = NULL;
-    device_param->d_bitmap_s2_d     = NULL;
-    device_param->d_plain_bufs      = NULL;
-    device_param->d_digests_buf     = NULL;
-    device_param->d_digests_shown   = NULL;
-    device_param->d_salt_bufs       = NULL;
-    device_param->d_esalt_bufs      = NULL;
-    device_param->d_tmps            = NULL;
-    device_param->d_hooks           = NULL;
-    device_param->d_result          = NULL;
-    device_param->d_scryptV0_buf    = NULL;
-    device_param->d_scryptV1_buf    = NULL;
-    device_param->d_scryptV2_buf    = NULL;
-    device_param->d_scryptV3_buf    = NULL;
-    device_param->d_root_css_buf    = NULL;
-    device_param->d_markov_css_buf  = NULL;
-    device_param->d_tm_c            = NULL;
-    device_param->d_st_digests_buf  = NULL;
-    device_param->d_st_salts_buf    = NULL;
-    device_param->d_st_esalts_buf   = NULL;
-    device_param->kernel1           = NULL;
-    device_param->kernel12          = NULL;
-    device_param->kernel2           = NULL;
-    device_param->kernel23          = NULL;
-    device_param->kernel3           = NULL;
-    device_param->kernel4           = NULL;
-    device_param->kernel_init2      = NULL;
-    device_param->kernel_loop2      = NULL;
-    device_param->kernel_mp         = NULL;
-    device_param->kernel_mp_l       = NULL;
-    device_param->kernel_mp_r       = NULL;
-    device_param->kernel_tm         = NULL;
-    device_param->kernel_amp        = NULL;
-    device_param->kernel_memset     = NULL;
-    device_param->kernel_atinit     = NULL;
-    device_param->kernel_decompress = NULL;
-    device_param->kernel_aux1       = NULL;
-    device_param->kernel_aux2       = NULL;
-    device_param->kernel_aux3       = NULL;
-    device_param->kernel_aux4       = NULL;
-    device_param->program           = NULL;
-    device_param->program_mp        = NULL;
-    device_param->program_amp       = NULL;
-    device_param->command_queue     = NULL;
-    device_param->context           = NULL;
+    device_param->d_pws_buf           = NULL;
+    device_param->d_pws_amp_buf       = NULL;
+    device_param->d_pws_comp_buf      = NULL;
+    device_param->d_pws_idx           = NULL;
+    device_param->d_rules             = NULL;
+    device_param->d_rules_c           = NULL;
+    device_param->d_combs             = NULL;
+    device_param->d_combs_c           = NULL;
+    device_param->d_bfs               = NULL;
+    device_param->d_bfs_c             = NULL;
+    device_param->d_bitmap_s1_a       = NULL;
+    device_param->d_bitmap_s1_b       = NULL;
+    device_param->d_bitmap_s1_c       = NULL;
+    device_param->d_bitmap_s1_d       = NULL;
+    device_param->d_bitmap_s2_a       = NULL;
+    device_param->d_bitmap_s2_b       = NULL;
+    device_param->d_bitmap_s2_c       = NULL;
+    device_param->d_bitmap_s2_d       = NULL;
+    device_param->d_plain_bufs        = NULL;
+    device_param->d_digests_buf       = NULL;
+    device_param->d_digests_shown     = NULL;
+    device_param->d_salt_bufs         = NULL;
+    device_param->d_esalt_bufs        = NULL;
+    device_param->d_tmps              = NULL;
+    device_param->d_hooks             = NULL;
+    device_param->d_result            = NULL;
+    device_param->d_extra0_buf        = NULL;
+    device_param->d_extra1_buf        = NULL;
+    device_param->d_extra2_buf        = NULL;
+    device_param->d_extra3_buf        = NULL;
+    device_param->d_root_css_buf      = NULL;
+    device_param->d_markov_css_buf    = NULL;
+    device_param->d_tm_c              = NULL;
+    device_param->d_st_digests_buf    = NULL;
+    device_param->d_st_salts_buf      = NULL;
+    device_param->d_st_esalts_buf     = NULL;
+    device_param->kernel1             = NULL;
+    device_param->kernel12            = NULL;
+    device_param->kernel2             = NULL;
+    device_param->kernel23            = NULL;
+    device_param->kernel3             = NULL;
+    device_param->kernel4             = NULL;
+    device_param->kernel_init2        = NULL;
+    device_param->kernel_loop2        = NULL;
+    device_param->kernel_mp           = NULL;
+    device_param->kernel_mp_l         = NULL;
+    device_param->kernel_mp_r         = NULL;
+    device_param->kernel_tm           = NULL;
+    device_param->kernel_amp          = NULL;
+    device_param->kernel_memset       = NULL;
+    device_param->kernel_atinit       = NULL;
+    device_param->kernel_decompress   = NULL;
+    device_param->kernel_aux1         = NULL;
+    device_param->kernel_aux2         = NULL;
+    device_param->kernel_aux3         = NULL;
+    device_param->kernel_aux4         = NULL;
+    device_param->program             = NULL;
+    device_param->program_mp          = NULL;
+    device_param->program_amp         = NULL;
+    device_param->command_queue       = NULL;
+    device_param->context             = NULL;
   }
 }
 
@@ -6865,6 +6989,8 @@ int opencl_session_update_combinator (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->skipped == true) continue;
 
+    if (device_param->skipped_warning == true) continue;
+
     // kernel_params
 
     device_param->kernel_params_buf32[33] = combinator_ctx->combs_mode;
@@ -6922,6 +7048,8 @@ int opencl_session_update_mp (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->skipped == true) continue;
 
+    if (device_param->skipped_warning == true) continue;
+
     device_param->kernel_params_mp_buf64[3] = 0;
     device_param->kernel_params_mp_buf32[4] = mask_ctx->css_cnt;
 
@@ -6952,6 +7080,8 @@ int opencl_session_update_mp_rl (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_l
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
     if (device_param->skipped == true) continue;
+
+    if (device_param->skipped_warning == true) continue;
 
     device_param->kernel_params_mp_l_buf64[3] = 0;
     device_param->kernel_params_mp_l_buf32[4] = css_cnt_l;

@@ -7,6 +7,8 @@
 #include "types.h"
 #include "interface.h"
 #include "benchmark.h"
+#include "memory.h"
+#include "shared.h"
 
 static const int DEFAULT_BENCHMARK_ALGORITHMS_BUF[] =
 {
@@ -40,7 +42,9 @@ static const int DEFAULT_BENCHMARK_ALGORITHMS_BUF[] =
 
 int benchmark_next (hashcat_ctx_t *hashcat_ctx)
 {
-  const user_options_t *user_options = hashcat_ctx->user_options;
+  const folder_config_t *folder_config = hashcat_ctx->folder_config;
+  const module_ctx_t    *module_ctx    = hashcat_ctx->module_ctx;
+  const user_options_t  *user_options  = hashcat_ctx->user_options;
 
   static int cur = 0;
 
@@ -56,11 +60,13 @@ int benchmark_next (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
-    for (int i = cur; i < 99999; i++)
-    {
-      const char *name = strhashtype (i);
+    char *modulefile = (char *) hcmalloc (HCBUFSIZ_TINY);
 
-      if (name)
+    for (int i = cur; i < MODULE_HASH_MODES_MAXIMUM; i++)
+    {
+      module_filename (folder_config, i, modulefile, HCBUFSIZ_TINY);
+
+      if (hc_path_exist (modulefile) == true)
       {
         const int hash_mode = i;
 
@@ -69,6 +75,8 @@ int benchmark_next (hashcat_ctx_t *hashcat_ctx)
         return hash_mode;
       }
     }
+
+    hcfree (modulefile);
   }
 
   return -1;

@@ -282,15 +282,9 @@ typedef int (ADL_API_CALL *ADL_OVERDRIVE6_CAPABILITIES_GET) (int, ADLOD6Capabili
 typedef int (ADL_API_CALL *ADL_OVERDRIVE6_TARGETTEMPERATUREDATA_GET) (int, int *, int *);
 typedef int (ADL_API_CALL *ADL_OVERDRIVE6_TARGETTEMPERATURERANGEINFO_GET) (int, ADLOD6ParameterRange *);
 
-#if defined (_POSIX)
-typedef void *ADL_LIB;
-#else
-typedef HINSTANCE ADL_LIB;
-#endif
-
 typedef struct hm_adl_lib
 {
-  ADL_LIB lib;
+  hc_dynlib_t lib;
 
   ADL_MAIN_CONTROL_DESTROY ADL_Main_Control_Destroy;
   ADL_MAIN_CONTROL_CREATE ADL_Main_Control_Create;

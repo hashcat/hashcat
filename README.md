@@ -4,7 +4,7 @@
 
 ### License ###
 
-**hashcat** is licensed under the MIT license. Refer to [docs/license.txt](docs/license.txt) for more information. 
+**hashcat** is licensed under the MIT license. Refer to [docs/license.txt](docs/license.txt) for more information.
 
 ### Installation ###
 
@@ -12,13 +12,13 @@ Download the [latest release](https://hashcat.net/hashcat/) and unpack it in the
 
 ### Usage/Help ###
 
-Please refer to the [Hashcat Wiki](https://hashcat.net/wiki/) and the output of `--help` for usage information and general help. A list of frequently asked questions may also be found [here](https://hashcat.net/wiki/doku.php?id=frequently_asked_questions). The [Hashcat Forums](https://hashcat.net/forum/) also contain a plethora of information. 
+Please refer to the [Hashcat Wiki](https://hashcat.net/wiki/) and the output of `--help` for usage information and general help. A list of frequently asked questions may also be found [here](https://hashcat.net/wiki/doku.php?id=frequently_asked_questions). The [Hashcat Forum](https://hashcat.net/forum/) also contains a plethora of information.
 
 ### Building ###
 
 Refer to [BUILD.md](BUILD.md) for instructions on how to build **hashcat** from source.
 
-Tests:  
+Tests:
 
 Travis | Appveyor | Coverity
 ------ | -------- | --------
@@ -28,12 +28,12 @@ Travis | Appveyor | Coverity
 
 Contributions are welcome and encouraged, provided your code is of sufficient quality. Before submitting a pull request, please ensure your code adheres to the following requirements:
 
-1. Licensed under MIT license, or dedicated to public domain (BSD, GPL, etc. code is incompatible)
+1. Licensed under MIT license, or dedicated to the public domain (BSD, GPL, etc. code is incompatible)
 2. Adheres to gnu99 standard
 3. Compiles cleanly with no warnings when compiled with `-W -Wall -std=gnu99`
-4. Uses [Allman-style](https://en.wikipedia.org/wiki/Indent_style#Allman_style) code blocks & indentation 
-5. Uses 2-spaces as indentation or a tab if it's required (for example: Makefiles)
-6. Uses lower-case function and variable names 
+4. Uses [Allman-style](https://en.wikipedia.org/wiki/Indent_style#Allman_style) code blocks & indentation
+5. Uses 2-spaces as the indentation or a tab if it's required (for example: Makefiles)
+6. Uses lower-case function and variable names
 7. Avoids the use of `!` and uses positive conditionals wherever possible (e.g., `if (foo == 0)` instead of `if (!foo)`, and `if (foo)` instead of `if (foo != 0)`)
 8. Use code like array[index + 0] if you also need to do array[index + 1], to keep it aligned
 
@@ -47,7 +47,7 @@ Your pull request should fully describe the functionality you are adding/removin
 
 Solve only one problem in each pull request. If you're fixing a bug and adding a new feature, you need to make two separate pull requests. If you're fixing three bugs, you need to make three separate pull requests. If you're adding four new features, you need to make four separate pull requests. So on, and so forth.
 
-If your patch fixes a bug, please be sure there is an [issue](https://github.com/hashcat/hashcat/issues) open for the bug before submitting a pull request. If your patch aims to improve performance or optimizes an algorithm, be sure to quantify your optimizations and document the trade-offs, and back up your claims with benchmarks and metrics.
+If your patch fixes a bug, please be sure there is an [issue](https://github.com/hashcat/hashcat/issues) open for the bug before submitting a pull request. If your patch aims to improve performance or optimize an algorithm, be sure to quantify your optimizations and document the trade-offs, and back up your claims with benchmarks and metrics.
 
 In order to maintain the quality and integrity of the **hashcat** source tree, all pull requests must be reviewed and signed off by at least two [board members](https://github.com/orgs/hashcat/people) before being merged. The [project lead](https://github.com/jsteube) has the ultimate authority in deciding whether to accept or reject a pull request. Do not be discouraged if your pull request is rejected!
 

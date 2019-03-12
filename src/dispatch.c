@@ -16,7 +16,34 @@
 #include "rp.h"
 #include "rp_cpu.h"
 #include "slow_candidates.h"
+#include "user_options.h"
 #include "dispatch.h"
+
+#ifdef WITH_BRAIN
+#include "brain.h"
+#endif
+
+static u64 get_highest_words_done (const hashcat_ctx_t *hashcat_ctx)
+{
+  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  u64 words_cur = 0;
+
+  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  {
+    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+    if (device_param->skipped == true) continue;
+
+    if (device_param->skipped_warning == true) continue;
+
+    const u64 words_done = device_param->words_done;
+
+    if (words_done > words_cur) words_cur = words_done;
+  }
+
+  return words_cur;
+}
 
 static u64 get_lowest_words_done (const hashcat_ctx_t *hashcat_ctx)
 {
@@ -29,6 +56,8 @@ static u64 get_lowest_words_done (const hashcat_ctx_t *hashcat_ctx)
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
     if (device_param->skipped == true) continue;
+
+    if (device_param->skipped_warning == true) continue;
 
     const u64 words_done = device_param->words_done;
 
@@ -146,314 +175,146 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
     iconv_tmp = (char *) hcmalloc (HCBUFSIZ_TINY);
   }
 
-  if (user_options->slow_candidates == true)
+  while (status_ctx->run_thread_level1 == true)
   {
-    while (status_ctx->run_thread_level1 == true)
+    hc_thread_mutex_lock (status_ctx->mux_dispatcher);
+
+    if (feof (stdin) != 0)
     {
-      hc_thread_mutex_lock (status_ctx->mux_dispatcher);
+      hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
 
-      if (feof (stdin) != 0)
+      break;
+    }
+
+    u64 words_extra_total = 0;
+
+    memset (device_param->pws_comp, 0, device_param->size_pws_comp);
+    memset (device_param->pws_idx,  0, device_param->size_pws_idx);
+
+    while (device_param->pws_cnt < device_param->kernel_power)
+    {
+      const int rc_select = select_read_timeout_console (1);
+
+      if (rc_select == -1) break;
+
+      if (rc_select == 0)
       {
-        hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
+        if (status_ctx->run_thread_level1 == false) break;
 
-        break;
+        status_ctx->stdin_read_timeout_cnt++;
+
+        continue;
       }
 
-      u64 words_extra_total = 0;
+      status_ctx->stdin_read_timeout_cnt = 0;
 
-      memset (device_param->pws_comp,     0, device_param->size_pws_comp);
-      memset (device_param->pws_idx,      0, device_param->size_pws_idx);
-      memset (device_param->pws_pre_buf,  0, device_param->size_pws_pre);
-      memset (device_param->pws_base_buf, 0, device_param->size_pws_base);
+      char *line_buf = fgets (buf, HCBUFSIZ_LARGE - 1, stdin);
 
-      device_param->pws_pre_cnt  = 0;
-      device_param->pws_base_cnt = 0;
+      if (line_buf == NULL) break;
 
-      while (device_param->pws_pre_cnt < device_param->kernel_power)
+      size_t line_len = in_superchop (line_buf);
+
+      line_len = convert_from_hex (hashcat_ctx, line_buf, (u32) line_len);
+
+      // do the on-the-fly encoding
+
+      if (iconv_enabled == true)
       {
-        const int rc_select = select_read_timeout (fileno (stdin), 1);
+        char  *iconv_ptr = iconv_tmp;
+        size_t iconv_sz  = HCBUFSIZ_TINY;
 
-        if (rc_select == -1) break;
+        const size_t iconv_rc = iconv (iconv_ctx, &line_buf, &line_len, &iconv_ptr, &iconv_sz);
 
-        if (rc_select == 0)
+        if (iconv_rc == (size_t) -1) continue;
+
+        line_buf = iconv_tmp;
+        line_len = HCBUFSIZ_TINY - iconv_sz;
+      }
+
+      // post-process rule engine
+
+      char rule_buf_out[RP_PASSWORD_SIZE];
+
+      if (run_rule_engine ((int) user_options_extra->rule_len_l, user_options->rule_buf_l))
+      {
+        if (line_len >= RP_PASSWORD_SIZE) continue;
+
+        memset (rule_buf_out, 0, sizeof (rule_buf_out));
+
+        const int rule_len_out = _old_apply_rule (user_options->rule_buf_l, (int) user_options_extra->rule_len_l, line_buf, (int) line_len, rule_buf_out);
+
+        if (rule_len_out < 0) continue;
+
+        line_buf = rule_buf_out;
+        line_len = (size_t) rule_len_out;
+      }
+
+      if (line_len > PW_MAX) continue;
+
+      // hmm that's always the case, or?
+
+      const u32 attack_kern = user_options_extra->attack_kern;
+
+      if (attack_kern == ATTACK_KERN_STRAIGHT)
+      {
+        if ((line_len < hashconfig->pw_min) || (line_len > hashconfig->pw_max))
         {
-          if (status_ctx->run_thread_level1 == false) break;
+          words_extra_total++;
 
           continue;
         }
-
-        char *line_buf = fgets (buf, HCBUFSIZ_LARGE - 1, stdin);
-
-        if (line_buf == NULL) break;
-
-        size_t line_len = in_superchop (line_buf);
-
-        line_len = convert_from_hex (hashcat_ctx, line_buf, (u32) line_len);
-
-        // do the on-the-fly encoding
-
-        if (iconv_enabled == true)
-        {
-          char  *iconv_ptr = iconv_tmp;
-          size_t iconv_sz  = HCBUFSIZ_TINY;
-
-          const size_t iconv_rc = iconv (iconv_ctx, &line_buf, &line_len, &iconv_ptr, &iconv_sz);
-
-          if (iconv_rc == (size_t) -1) continue;
-
-          line_buf = iconv_tmp;
-          line_len = HCBUFSIZ_TINY - iconv_sz;
-        }
-
-        // post-process rule engine
-
-        char rule_buf_out[RP_PASSWORD_SIZE];
-
-        if (run_rule_engine ((int) user_options_extra->rule_len_l, user_options->rule_buf_l))
-        {
-          if (line_len >= RP_PASSWORD_SIZE) continue;
-
-          memset (rule_buf_out, 0, sizeof (rule_buf_out));
-
-          const int rule_len_out = _old_apply_rule (user_options->rule_buf_l, (int) user_options_extra->rule_len_l, line_buf, (int) line_len, rule_buf_out);
-
-          if (rule_len_out < 0) continue;
-
-          line_buf = rule_buf_out;
-          line_len = (size_t) rule_len_out;
-        }
-
-        if (line_len >= PW_MAX) continue;
-
-        // hmm that's always the case, or?
-
-        const u32 attack_kern = user_options_extra->attack_kern;
-
-        if (attack_kern == ATTACK_KERN_STRAIGHT)
-        {
-          if ((line_len < hashconfig->pw_min) || (line_len > hashconfig->pw_max))
-          {
-            words_extra_total++;
-
-            continue;
-          }
-        }
-
-        pw_pre_add (device_param, (u8 *) line_buf, (int) line_len, NULL, 0, 0);
-
-        if (status_ctx->run_thread_level1 == false) break;
       }
 
-      hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
-
-      u64 pre_rejects = 0;
-
-      if (0)
-      {
-      }
-      else
-      {
-        u64 pws_pre_cnt = device_param->pws_pre_cnt;
-
-        for (u64 pws_pre_idx = 0; pws_pre_idx < pws_pre_cnt; pws_pre_idx++)
-        {
-          pw_pre_t *pw_pre = device_param->pws_pre_buf + pws_pre_idx;
-
-          pw_base_add (device_param, pw_pre);
-
-          pw_add (device_param, (const u8 *) pw_pre->pw_buf, (const int) pw_pre->pw_len);
-        }
-      }
-
-      words_extra_total += pre_rejects;
-
-      if (words_extra_total > 0)
-      {
-        hc_thread_mutex_lock (status_ctx->mux_counter);
-
-        for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
-        {
-          status_ctx->words_progress_rejected[salt_pos] += words_extra_total * straight_ctx->kernel_rules_cnt;
-        }
-
-        hc_thread_mutex_unlock (status_ctx->mux_counter);
-      }
+      pw_add (device_param, (const u8 *) line_buf, (const int) line_len);
 
       if (status_ctx->run_thread_level1 == false) break;
-
-      if (device_param->pws_cnt)
-      {
-        // flush
-
-        int CL_rc;
-
-        CL_rc = run_copy (hashcat_ctx, device_param, device_param->pws_cnt);
-
-        if (CL_rc == -1)
-        {
-          hcfree (buf);
-
-          return -1;
-        }
-
-        CL_rc = run_cracker (hashcat_ctx, device_param, device_param->pws_cnt);
-
-        if (CL_rc == -1)
-        {
-          hcfree (buf);
-
-          return -1;
-        }
-
-        device_param->pws_cnt = 0;
-
-        device_param->pws_base_cnt = 0;
-      }
-
-      if (status_ctx->run_thread_level1 == false) break;
-
-      if (device_param->speed_only_finish == true) break;
     }
-  }
-  else
-  {
-    while (status_ctx->run_thread_level1 == true)
+
+    hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
+
+    if (words_extra_total > 0)
     {
-      hc_thread_mutex_lock (status_ctx->mux_dispatcher);
+      hc_thread_mutex_lock (status_ctx->mux_counter);
 
-      if (feof (stdin) != 0)
+      for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
       {
-        hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
-
-        break;
+        status_ctx->words_progress_rejected[salt_pos] += words_extra_total * straight_ctx->kernel_rules_cnt;
       }
 
-      u64 words_extra_total = 0;
-
-      memset (device_param->pws_comp, 0, device_param->size_pws_comp);
-      memset (device_param->pws_idx,  0, device_param->size_pws_idx);
-
-      while (device_param->pws_cnt < device_param->kernel_power)
-      {
-        const int rc_select = select_read_timeout (fileno (stdin), 1);
-
-        if (rc_select == -1) break;
-
-        if (rc_select == 0)
-        {
-          if (status_ctx->run_thread_level1 == false) break;
-
-          continue;
-        }
-
-        char *line_buf = fgets (buf, HCBUFSIZ_LARGE - 1, stdin);
-
-        if (line_buf == NULL) break;
-
-        size_t line_len = in_superchop (line_buf);
-
-        line_len = convert_from_hex (hashcat_ctx, line_buf, (u32) line_len);
-
-        // do the on-the-fly encoding
-
-        if (iconv_enabled == true)
-        {
-          char  *iconv_ptr = iconv_tmp;
-          size_t iconv_sz  = HCBUFSIZ_TINY;
-
-          const size_t iconv_rc = iconv (iconv_ctx, &line_buf, &line_len, &iconv_ptr, &iconv_sz);
-
-          if (iconv_rc == (size_t) -1) continue;
-
-          line_buf = iconv_tmp;
-          line_len = HCBUFSIZ_TINY - iconv_sz;
-        }
-
-        // post-process rule engine
-
-        char rule_buf_out[RP_PASSWORD_SIZE];
-
-        if (run_rule_engine ((int) user_options_extra->rule_len_l, user_options->rule_buf_l))
-        {
-          if (line_len >= RP_PASSWORD_SIZE) continue;
-
-          memset (rule_buf_out, 0, sizeof (rule_buf_out));
-
-          const int rule_len_out = _old_apply_rule (user_options->rule_buf_l, (int) user_options_extra->rule_len_l, line_buf, (int) line_len, rule_buf_out);
-
-          if (rule_len_out < 0) continue;
-
-          line_buf = rule_buf_out;
-          line_len = (size_t) rule_len_out;
-        }
-
-        if (line_len >= PW_MAX) continue;
-
-        // hmm that's always the case, or?
-
-        const u32 attack_kern = user_options_extra->attack_kern;
-
-        if (attack_kern == ATTACK_KERN_STRAIGHT)
-        {
-          if ((line_len < hashconfig->pw_min) || (line_len > hashconfig->pw_max))
-          {
-            words_extra_total++;
-
-            continue;
-          }
-        }
-
-        pw_add (device_param, (const u8 *) line_buf, (const int) line_len);
-
-        if (status_ctx->run_thread_level1 == false) break;
-      }
-
-      hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
-
-      if (words_extra_total > 0)
-      {
-        hc_thread_mutex_lock (status_ctx->mux_counter);
-
-        for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
-        {
-          status_ctx->words_progress_rejected[salt_pos] += words_extra_total * straight_ctx->kernel_rules_cnt;
-        }
-
-        hc_thread_mutex_unlock (status_ctx->mux_counter);
-      }
-
-      if (status_ctx->run_thread_level1 == false) break;
-
-      if (device_param->pws_cnt == 0) break;
-
-      // flush
-
-      int CL_rc;
-
-      CL_rc = run_copy (hashcat_ctx, device_param, device_param->pws_cnt);
-
-      if (CL_rc == -1)
-      {
-        hcfree (buf);
-
-        return -1;
-      }
-
-      CL_rc = run_cracker (hashcat_ctx, device_param, device_param->pws_cnt);
-
-      if (CL_rc == -1)
-      {
-        hcfree (buf);
-
-        return -1;
-      }
-
-      device_param->pws_cnt = 0;
-
-      if (status_ctx->run_thread_level1 == false) break;
-
-      if (device_param->speed_only_finish == true) break;
+      hc_thread_mutex_unlock (status_ctx->mux_counter);
     }
+
+    if (status_ctx->run_thread_level1 == false) break;
+
+    if (device_param->pws_cnt == 0) break;
+
+    // flush
+
+    int CL_rc;
+
+    CL_rc = run_copy (hashcat_ctx, device_param, device_param->pws_cnt);
+
+    if (CL_rc == -1)
+    {
+      hcfree (buf);
+
+      return -1;
+    }
+
+    CL_rc = run_cracker (hashcat_ctx, device_param, device_param->pws_cnt);
+
+    if (CL_rc == -1)
+    {
+      hcfree (buf);
+
+      return -1;
+    }
+
+    device_param->pws_cnt = 0;
+
+    if (status_ctx->run_thread_level1 == false) break;
+
+    if (device_param->speed_only_finish == true) break;
   }
 
   device_param->kernel_accel_prev = device_param->kernel_accel;
@@ -474,7 +335,7 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
   return 0;
 }
 
-void *thread_calc_stdin (void *p)
+HC_API_CALL void *thread_calc_stdin (void *p)
 {
   thread_param_t *thread_param = (thread_param_t *) p;
 
@@ -487,6 +348,8 @@ void *thread_calc_stdin (void *p)
   hc_device_param_t *device_param = opencl_ctx->devices_param + thread_param->tid;
 
   if (device_param->skipped) return NULL;
+
+  if (device_param->skipped_warning == true) return NULL;
 
   const int rc_calc = calc_stdin (hashcat_ctx, device_param);
 
@@ -509,6 +372,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
   straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
   combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
+  opencl_ctx_t         *opencl_ctx         = hashcat_ctx->opencl_ctx;
   status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
 
   const u32 attack_mode = user_options->attack_mode;
@@ -516,15 +380,81 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
   if (user_options->slow_candidates == true)
   {
+    #ifdef WITH_BRAIN
+    const u32 brain_session = user_options->brain_session;
+    const u32 brain_attack  = user_options->brain_attack;
+
+    u64 highest = 0;
+
+    brain_client_disconnect (device_param);
+
+    if (user_options->brain_client == true)
+    {
+      const i64 passwords_max = device_param->hardware_power * device_param->kernel_accel;
+
+      if (brain_client_connect (device_param, status_ctx, user_options->brain_host, user_options->brain_port, user_options->brain_password, brain_session, brain_attack, passwords_max, &highest) == false)
+      {
+        brain_client_disconnect (device_param);
+      }
+
+      if (user_options->brain_client_features & BRAIN_CLIENT_FEATURE_ATTACKS)
+      {
+        hc_thread_mutex_lock (status_ctx->mux_dispatcher);
+
+        if (status_ctx->words_off == 0)
+        {
+          status_ctx->words_off = highest;
+
+          for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
+          {
+            status_ctx->words_progress_rejected[salt_pos] = status_ctx->words_off;
+          }
+        }
+
+        hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
+      }
+    }
+    #endif
+
     // attack modes from here
 
-    if (attack_mode == ATTACK_MODE_BF)
+    if (attack_mode == ATTACK_MODE_STRAIGHT)
     {
-      extra_info_mask_t extra_info_mask;
+      char *dictfile = straight_ctx->dict;
 
-      memset (&extra_info_mask, 0, sizeof (extra_info_mask));
+      FILE *fp = fopen (dictfile, "rb");
 
-      extra_info_mask.out_len = mask_ctx->css_cnt;
+      if (fp == NULL)
+      {
+        event_log_error (hashcat_ctx, "%s: %s", dictfile, strerror (errno));
+
+        return -1;
+      }
+
+      extra_info_straight_t extra_info_straight;
+
+      memset (&extra_info_straight, 0, sizeof (extra_info_straight));
+
+      extra_info_straight.fp = fp;
+
+      hashcat_ctx_t *hashcat_ctx_tmp = (hashcat_ctx_t *) hcmalloc (sizeof (hashcat_ctx_t));
+
+      memcpy (hashcat_ctx_tmp, hashcat_ctx, sizeof (hashcat_ctx_t)); // yes we actually want to copy these pointers
+
+      hashcat_ctx_tmp->wl_data = (wl_data_t *) hcmalloc (sizeof (wl_data_t));
+
+      const int rc_wl_data_init = wl_data_init (hashcat_ctx_tmp);
+
+      if (rc_wl_data_init == -1)
+      {
+        fclose (fp);
+
+        hcfree (hashcat_ctx_tmp->wl_data);
+
+        hcfree (hashcat_ctx_tmp);
+
+        return -1;
+      }
 
       u64 words_cur = 0;
 
@@ -532,12 +462,17 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       {
         u64 words_fin = 0;
 
-        memset (device_param->pws_comp, 0, device_param->size_pws_comp);
-        memset (device_param->pws_idx,  0, device_param->size_pws_idx);
+        memset (device_param->pws_comp,     0, device_param->size_pws_comp);
+        memset (device_param->pws_idx,      0, device_param->size_pws_idx);
+        memset (device_param->pws_base_buf, 0, device_param->size_pws_base);
 
-        u64 pre_rejects = -1u;
+        u64 pre_rejects = -1;
 
-        while (pre_rejects)
+        // this greatly reduces spam on hashcat console
+
+        const u64 pre_rejects_ignore = get_power (opencl_ctx, device_param) / 2;
+
+        while (pre_rejects > pre_rejects_ignore)
         {
           u64 words_extra_total = 0;
 
@@ -551,25 +486,81 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
           while (words_extra)
           {
-            const u64 work = get_work (hashcat_ctx, device_param, words_extra);
+            u64 work = get_work (hashcat_ctx, device_param, words_extra);
 
             if (work == 0) break;
 
-            words_extra = 0;
-
             u64 words_off = device_param->words_off;
 
+            #ifdef WITH_BRAIN
+            if (user_options->brain_client == true)
+            {
+              if (device_param->brain_link_client_fd == -1)
+              {
+                const i64 passwords_max = device_param->hardware_power * device_param->kernel_accel;
+
+                if (brain_client_connect (device_param, status_ctx, user_options->brain_host, user_options->brain_port, user_options->brain_password, user_options->brain_session, user_options->brain_attack, passwords_max, &highest) == false)
+                {
+                  brain_client_disconnect (device_param);
+                }
+              }
+
+              if (user_options->brain_client_features & BRAIN_CLIENT_FEATURE_ATTACKS)
+              {
+                u64 overlap = 0;
+
+                if (brain_client_reserve (device_param, status_ctx, words_off, work, &overlap) == false)
+                {
+                  brain_client_disconnect (device_param);
+                }
+
+                words_extra = overlap;
+
+                words_extra_total += overlap;
+
+                words_off += overlap;
+
+                work -= overlap;
+              }
+            }
+            #endif
+
             words_fin = words_off + work;
+
+            words_extra = 0;
+
+            slow_candidates_seek (hashcat_ctx_tmp, &extra_info_straight, words_cur, words_off);
 
             words_cur = words_off;
 
             for (u64 i = words_cur; i < words_fin; i++)
             {
-              extra_info_mask.pos = i;
+              extra_info_straight.pos = i;
 
-              slow_candidates_next (hashcat_ctx, &extra_info_mask);
+              slow_candidates_next (hashcat_ctx_tmp, &extra_info_straight);
 
-              pw_pre_add (device_param, extra_info_mask.out_buf, extra_info_mask.out_len, NULL, 0, 0);
+              if ((extra_info_straight.out_len < hashconfig->pw_min) || (extra_info_straight.out_len > hashconfig->pw_max))
+              {
+                pre_rejects++;
+
+                continue;
+              }
+
+              #ifdef WITH_BRAIN
+              if (user_options->brain_client == true)
+              {
+                u32 hash[2];
+
+                brain_client_generate_hash ((u64 *) hash, (const char *) extra_info_straight.out_buf, extra_info_straight.out_len);
+
+                u32 *ptr = (u32 *) device_param->brain_link_out_buf;
+
+                ptr[(device_param->pws_pre_cnt * 2) + 0] = hash[0];
+                ptr[(device_param->pws_pre_cnt * 2) + 1] = hash[1];
+              }
+              #endif
+
+              pw_pre_add (device_param, extra_info_straight.out_buf, extra_info_straight.out_len, extra_info_straight.base_buf, extra_info_straight.base_len, extra_info_straight.rule_pos_prev);
 
               if (status_ctx->run_thread_level1 == false) break;
             }
@@ -581,8 +572,34 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
             if (status_ctx->run_thread_level1 == false) break;
           }
 
-          if (0)
+          #ifdef WITH_BRAIN
+          if (user_options->brain_client == true)
           {
+            if (user_options->brain_client_features & BRAIN_CLIENT_FEATURE_HASHES)
+            {
+              if (brain_client_lookup (device_param, status_ctx) == false)
+              {
+                brain_client_disconnect (device_param);
+              }
+            }
+
+            u64 pws_pre_cnt = device_param->pws_pre_cnt;
+
+            for (u64 pws_pre_idx = 0; pws_pre_idx < pws_pre_cnt; pws_pre_idx++)
+            {
+              if (device_param->brain_link_in_buf[pws_pre_idx] == 1)
+              {
+                pre_rejects++;
+              }
+              else
+              {
+                pw_pre_t *pw_pre = device_param->pws_pre_buf + pws_pre_idx;
+
+                pw_base_add (device_param, pw_pre);
+
+                pw_add (device_param, (const u8 *) pw_pre->pw_buf, (const int) pw_pre->pw_len);
+              }
+            }
           }
           else
           {
@@ -592,9 +609,23 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
             {
               pw_pre_t *pw_pre = device_param->pws_pre_buf + pws_pre_idx;
 
+              pw_base_add (device_param, pw_pre);
+
               pw_add (device_param, (const u8 *) pw_pre->pw_buf, (const int) pw_pre->pw_len);
             }
           }
+          #else
+          u64 pws_pre_cnt = device_param->pws_pre_cnt;
+
+          for (u64 pws_pre_idx = 0; pws_pre_idx < pws_pre_cnt; pws_pre_idx++)
+          {
+            pw_pre_t *pw_pre = device_param->pws_pre_buf + pws_pre_idx;
+
+            pw_base_add (device_param, pw_pre);
+
+            pw_add (device_param, (const u8 *) pw_pre->pw_buf, (const int) pw_pre->pw_len);
+          }
+          #endif
 
           words_extra_total += pre_rejects;
 
@@ -627,6 +658,12 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
           if (CL_rc == -1)
           {
+            fclose (fp);
+
+            hcfree (hashcat_ctx_tmp->wl_data);
+
+            hcfree (hashcat_ctx_tmp);
+
             return -1;
           }
 
@@ -634,25 +671,58 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
           if (CL_rc == -1)
           {
+            fclose (fp);
+
+            hcfree (hashcat_ctx_tmp->wl_data);
+
+            hcfree (hashcat_ctx_tmp);
+
             return -1;
           }
 
+          #ifdef WITH_BRAIN
+          if (user_options->brain_client == true)
+          {
+            if ((status_ctx->devices_status != STATUS_ABORTED)
+             && (status_ctx->devices_status != STATUS_ABORTED_RUNTIME)
+             && (status_ctx->devices_status != STATUS_QUIT)
+             && (status_ctx->devices_status != STATUS_BYPASS)
+             && (status_ctx->devices_status != STATUS_ERROR))
+            {
+              if (brain_client_commit (device_param, status_ctx) == false)
+              {
+                brain_client_disconnect (device_param);
+              }
+            }
+          }
+          #endif
+
           device_param->pws_cnt = 0;
+
+          device_param->pws_base_cnt = 0;
         }
 
         if (device_param->speed_only_finish == true) break;
 
         if (status_ctx->run_thread_level2 == true)
         {
-          device_param->words_done = words_fin;
+          device_param->words_done = MAX (device_param->words_done, words_fin);
 
-          status_ctx->words_cur = get_lowest_words_done (hashcat_ctx);
+          status_ctx->words_cur = get_highest_words_done (hashcat_ctx);
         }
 
         if (status_ctx->run_thread_level1 == false) break;
 
         if (words_fin == 0) break;
       }
+
+      fclose (fp);
+
+      wl_data_destroy (hashcat_ctx_tmp);
+
+      hcfree (hashcat_ctx_tmp->wl_data);
+
+      hcfree (hashcat_ctx_tmp);
     }
     else if (attack_mode == ATTACK_MODE_COMBI)
     {
@@ -729,9 +799,13 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         memset (device_param->pws_idx,      0, device_param->size_pws_idx);
         memset (device_param->pws_base_buf, 0, device_param->size_pws_base);
 
-        u64 pre_rejects = -1u;
+        u64 pre_rejects = -1;
 
-        while (pre_rejects)
+        // this greatly reduces spam on hashcat console
+
+        const u64 pre_rejects_ignore = get_power (opencl_ctx, device_param) / 2;
+
+        while (pre_rejects > pre_rejects_ignore)
         {
           u64 words_extra_total = 0;
 
@@ -745,13 +819,46 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
           while (words_extra)
           {
-            const u64 work = get_work (hashcat_ctx, device_param, words_extra);
+            u64 work = get_work (hashcat_ctx, device_param, words_extra);
 
             if (work == 0) break;
 
             words_extra = 0;
 
             u64 words_off = device_param->words_off;
+
+            #ifdef WITH_BRAIN
+            if (user_options->brain_client == true)
+            {
+              if (device_param->brain_link_client_fd == -1)
+              {
+                const i64 passwords_max = device_param->hardware_power * device_param->kernel_accel;
+
+                if (brain_client_connect (device_param, status_ctx, user_options->brain_host, user_options->brain_port, user_options->brain_password, user_options->brain_session, user_options->brain_attack, passwords_max, &highest) == false)
+                {
+                  brain_client_disconnect (device_param);
+                }
+              }
+
+              if (user_options->brain_client_features & BRAIN_CLIENT_FEATURE_ATTACKS)
+              {
+                u64 overlap = 0;
+
+                if (brain_client_reserve (device_param, status_ctx, words_off, work, &overlap) == false)
+                {
+                  brain_client_disconnect (device_param);
+                }
+
+                words_extra = overlap;
+
+                words_extra_total += overlap;
+
+                words_off += overlap;
+
+                work -= overlap;
+              }
+            }
+            #endif
 
             words_fin = words_off + work;
 
@@ -761,14 +868,30 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
             for (u64 i = words_cur; i < words_fin; i++)
             {
+              extra_info_combi.pos = i;
+
               slow_candidates_next (hashcat_ctx_tmp, &extra_info_combi);
 
               if ((extra_info_combi.out_len < hashconfig->pw_min) || (extra_info_combi.out_len > hashconfig->pw_max))
               {
-                words_extra++;
+                pre_rejects++;
 
                 continue;
               }
+
+              #ifdef WITH_BRAIN
+              if (user_options->brain_client == true)
+              {
+                u32 hash[2];
+
+                brain_client_generate_hash ((u64 *) hash, (const char *) extra_info_combi.out_buf, extra_info_combi.out_len);
+
+                u32 *ptr = (u32 *) device_param->brain_link_out_buf;
+
+                ptr[(device_param->pws_pre_cnt * 2) + 0] = hash[0];
+                ptr[(device_param->pws_pre_cnt * 2) + 1] = hash[1];
+              }
+              #endif
 
               pw_pre_add (device_param, extra_info_combi.out_buf, extra_info_combi.out_len, NULL, 0, 0);
 
@@ -782,8 +905,34 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
             if (status_ctx->run_thread_level1 == false) break;
           }
 
-          if (0)
+          #ifdef WITH_BRAIN
+          if (user_options->brain_client == true)
           {
+            if (user_options->brain_client_features & BRAIN_CLIENT_FEATURE_HASHES)
+            {
+              if (brain_client_lookup (device_param, status_ctx) == false)
+              {
+                brain_client_disconnect (device_param);
+              }
+            }
+
+            u64 pws_pre_cnt = device_param->pws_pre_cnt;
+
+            for (u64 pws_pre_idx = 0; pws_pre_idx < pws_pre_cnt; pws_pre_idx++)
+            {
+              if (device_param->brain_link_in_buf[pws_pre_idx] == 1)
+              {
+                pre_rejects++;
+              }
+              else
+              {
+                pw_pre_t *pw_pre = device_param->pws_pre_buf + pws_pre_idx;
+
+                pw_base_add (device_param, pw_pre);
+
+                pw_add (device_param, (const u8 *) pw_pre->pw_buf, (const int) pw_pre->pw_len);
+              }
+            }
           }
           else
           {
@@ -798,6 +947,18 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
               pw_add (device_param, (const u8 *) pw_pre->pw_buf, (const int) pw_pre->pw_len);
             }
           }
+          #else
+          u64 pws_pre_cnt = device_param->pws_pre_cnt;
+
+          for (u64 pws_pre_idx = 0; pws_pre_idx < pws_pre_cnt; pws_pre_idx++)
+          {
+            pw_pre_t *pw_pre = device_param->pws_pre_buf + pws_pre_idx;
+
+            pw_base_add (device_param, pw_pre);
+
+            pw_add (device_param, (const u8 *) pw_pre->pw_buf, (const int) pw_pre->pw_len);
+          }
+          #endif
 
           words_extra_total += pre_rejects;
 
@@ -856,6 +1017,23 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
             return -1;
           }
 
+          #ifdef WITH_BRAIN
+          if (user_options->brain_client == true)
+          {
+            if ((status_ctx->devices_status != STATUS_ABORTED)
+             && (status_ctx->devices_status != STATUS_ABORTED_RUNTIME)
+             && (status_ctx->devices_status != STATUS_QUIT)
+             && (status_ctx->devices_status != STATUS_BYPASS)
+             && (status_ctx->devices_status != STATUS_ERROR))
+            {
+              if (brain_client_commit (device_param, status_ctx) == false)
+              {
+                brain_client_disconnect (device_param);
+              }
+            }
+          }
+          #endif
+
           device_param->pws_cnt = 0;
 
           device_param->pws_base_cnt = 0;
@@ -865,9 +1043,9 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
         if (status_ctx->run_thread_level2 == true)
         {
-          device_param->words_done = words_fin;
+          device_param->words_done = MAX (device_param->words_done, words_fin);
 
-          status_ctx->words_cur = get_lowest_words_done (hashcat_ctx);
+          status_ctx->words_cur = get_highest_words_done (hashcat_ctx);
         }
 
         if (status_ctx->run_thread_level1 == false) break;
@@ -885,43 +1063,13 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       hcfree (hashcat_ctx_tmp);
     }
-    else if (attack_mode == ATTACK_MODE_STRAIGHT)
+    else if (attack_mode == ATTACK_MODE_BF)
     {
-      char *dictfile = straight_ctx->dict;
+      extra_info_mask_t extra_info_mask;
 
-      FILE *fp = fopen (dictfile, "rb");
+      memset (&extra_info_mask, 0, sizeof (extra_info_mask));
 
-      if (fp == NULL)
-      {
-        event_log_error (hashcat_ctx, "%s: %s", dictfile, strerror (errno));
-
-        return -1;
-      }
-
-      extra_info_straight_t extra_info_straight;
-
-      memset (&extra_info_straight, 0, sizeof (extra_info_straight));
-
-      extra_info_straight.fp = fp;
-
-      hashcat_ctx_t *hashcat_ctx_tmp = (hashcat_ctx_t *) hcmalloc (sizeof (hashcat_ctx_t));
-
-      memcpy (hashcat_ctx_tmp, hashcat_ctx, sizeof (hashcat_ctx_t)); // yes we actually want to copy these pointers
-
-      hashcat_ctx_tmp->wl_data = (wl_data_t *) hcmalloc (sizeof (wl_data_t));
-
-      const int rc_wl_data_init = wl_data_init (hashcat_ctx_tmp);
-
-      if (rc_wl_data_init == -1)
-      {
-        fclose (fp);
-
-        hcfree (hashcat_ctx_tmp->wl_data);
-
-        hcfree (hashcat_ctx_tmp);
-
-        return -1;
-      }
+      extra_info_mask.out_len = mask_ctx->css_cnt;
 
       u64 words_cur = 0;
 
@@ -929,13 +1077,16 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       {
         u64 words_fin = 0;
 
-        memset (device_param->pws_comp,     0, device_param->size_pws_comp);
-        memset (device_param->pws_idx,      0, device_param->size_pws_idx);
-        memset (device_param->pws_base_buf, 0, device_param->size_pws_base);
+        memset (device_param->pws_comp, 0, device_param->size_pws_comp);
+        memset (device_param->pws_idx,  0, device_param->size_pws_idx);
 
-        u64 pre_rejects = -1u;
+        u64 pre_rejects = -1;
 
-        while (pre_rejects)
+        // this greatly reduces spam on hashcat console
+
+        const u64 pre_rejects_ignore = get_power (opencl_ctx, device_param) / 2;
+
+        while (pre_rejects > pre_rejects_ignore)
         {
           u64 words_extra_total = 0;
 
@@ -949,7 +1100,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
           while (words_extra)
           {
-            const u64 work = get_work (hashcat_ctx, device_param, words_extra);
+            u64 work = get_work (hashcat_ctx, device_param, words_extra);
 
             if (work == 0) break;
 
@@ -957,24 +1108,64 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
             u64 words_off = device_param->words_off;
 
-            words_fin = words_off + work;
+            #ifdef WITH_BRAIN
+            if (user_options->brain_client == true)
+            {
+              if (device_param->brain_link_client_fd == -1)
+              {
+                const i64 passwords_max = device_param->hardware_power * device_param->kernel_accel;
 
-            slow_candidates_seek (hashcat_ctx_tmp, &extra_info_straight, words_cur, words_off);
+                if (brain_client_connect (device_param, status_ctx, user_options->brain_host, user_options->brain_port, user_options->brain_password, user_options->brain_session, user_options->brain_attack, passwords_max, &highest) == false)
+                {
+                  brain_client_disconnect (device_param);
+                }
+              }
+
+              if (user_options->brain_client_features & BRAIN_CLIENT_FEATURE_ATTACKS)
+              {
+                u64 overlap = 0;
+
+                if (brain_client_reserve (device_param, status_ctx, words_off, work, &overlap) == false)
+                {
+                  brain_client_disconnect (device_param);
+                }
+
+                words_extra = overlap;
+
+                words_extra_total += overlap;
+
+                words_off += overlap;
+
+                work -= overlap;
+              }
+            }
+            #endif
+
+            words_fin = words_off + work;
 
             words_cur = words_off;
 
             for (u64 i = words_cur; i < words_fin; i++)
             {
-              slow_candidates_next (hashcat_ctx_tmp, &extra_info_straight);
+              extra_info_mask.pos = i;
 
-              if ((extra_info_straight.out_len < hashconfig->pw_min) || (extra_info_straight.out_len > hashconfig->pw_max))
+              slow_candidates_next (hashcat_ctx, &extra_info_mask);
+
+              #ifdef WITH_BRAIN
+              if (user_options->brain_client == true)
               {
-                words_extra++;
+                u32 hash[2];
 
-                continue;
+                brain_client_generate_hash ((u64 *) hash, (const char *) extra_info_mask.out_buf, extra_info_mask.out_len);
+
+                u32 *ptr = (u32 *) device_param->brain_link_out_buf;
+
+                ptr[(device_param->pws_pre_cnt * 2) + 0] = hash[0];
+                ptr[(device_param->pws_pre_cnt * 2) + 1] = hash[1];
               }
+              #endif
 
-              pw_pre_add (device_param, extra_info_straight.out_buf, extra_info_straight.out_len, extra_info_straight.base_buf, extra_info_straight.base_len, extra_info_straight.rule_pos_prev);
+              pw_pre_add (device_param, extra_info_mask.out_buf, extra_info_mask.out_len, NULL, 0, 0);
 
               if (status_ctx->run_thread_level1 == false) break;
             }
@@ -986,8 +1177,32 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
             if (status_ctx->run_thread_level1 == false) break;
           }
 
-          if (0)
+          #ifdef WITH_BRAIN
+          if (user_options->brain_client == true)
           {
+            if (user_options->brain_client_features & BRAIN_CLIENT_FEATURE_HASHES)
+            {
+              if (brain_client_lookup (device_param, status_ctx) == false)
+              {
+                brain_client_disconnect (device_param);
+              }
+            }
+
+            u64 pws_pre_cnt = device_param->pws_pre_cnt;
+
+            for (u64 pws_pre_idx = 0; pws_pre_idx < pws_pre_cnt; pws_pre_idx++)
+            {
+              if (device_param->brain_link_in_buf[pws_pre_idx] == 1)
+              {
+                pre_rejects++;
+              }
+              else
+              {
+                pw_pre_t *pw_pre = device_param->pws_pre_buf + pws_pre_idx;
+
+                pw_add (device_param, (const u8 *) pw_pre->pw_buf, (const int) pw_pre->pw_len);
+              }
+            }
           }
           else
           {
@@ -997,11 +1212,19 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
             {
               pw_pre_t *pw_pre = device_param->pws_pre_buf + pws_pre_idx;
 
-              pw_base_add (device_param, pw_pre);
-
               pw_add (device_param, (const u8 *) pw_pre->pw_buf, (const int) pw_pre->pw_len);
             }
           }
+          #else
+          u64 pws_pre_cnt = device_param->pws_pre_cnt;
+
+          for (u64 pws_pre_idx = 0; pws_pre_idx < pws_pre_cnt; pws_pre_idx++)
+          {
+            pw_pre_t *pw_pre = device_param->pws_pre_buf + pws_pre_idx;
+
+            pw_add (device_param, (const u8 *) pw_pre->pw_buf, (const int) pw_pre->pw_len);
+          }
+          #endif
 
           words_extra_total += pre_rejects;
 
@@ -1034,12 +1257,6 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
           if (CL_rc == -1)
           {
-            fclose (fp);
-
-            hcfree (hashcat_ctx_tmp->wl_data);
-
-            hcfree (hashcat_ctx_tmp);
-
             return -1;
           }
 
@@ -1047,42 +1264,50 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
           if (CL_rc == -1)
           {
-            fclose (fp);
-
-            hcfree (hashcat_ctx_tmp->wl_data);
-
-            hcfree (hashcat_ctx_tmp);
-
             return -1;
           }
 
-          device_param->pws_cnt = 0;
+          #ifdef WITH_BRAIN
+          if (user_options->brain_client == true)
+          {
+            if ((status_ctx->devices_status != STATUS_ABORTED)
+             && (status_ctx->devices_status != STATUS_ABORTED_RUNTIME)
+             && (status_ctx->devices_status != STATUS_QUIT)
+             && (status_ctx->devices_status != STATUS_BYPASS)
+             && (status_ctx->devices_status != STATUS_ERROR))
+            {
+              if (brain_client_commit (device_param, status_ctx) == false)
+              {
+                brain_client_disconnect (device_param);
+              }
+            }
+          }
+          #endif
 
-          device_param->pws_base_cnt = 0;
+          device_param->pws_cnt = 0;
         }
 
         if (device_param->speed_only_finish == true) break;
 
         if (status_ctx->run_thread_level2 == true)
         {
-          device_param->words_done = words_fin;
+          device_param->words_done = MAX (device_param->words_done, words_fin);
 
-          status_ctx->words_cur = get_lowest_words_done (hashcat_ctx);
+          status_ctx->words_cur = get_highest_words_done (hashcat_ctx);
         }
 
         if (status_ctx->run_thread_level1 == false) break;
 
         if (words_fin == 0) break;
       }
-
-      fclose (fp);
-
-      wl_data_destroy (hashcat_ctx_tmp);
-
-      hcfree (hashcat_ctx_tmp->wl_data);
-
-      hcfree (hashcat_ctx_tmp);
     }
+
+    #ifdef WITH_BRAIN
+    if (user_options->brain_client == true)
+    {
+      brain_client_disconnect (device_param);
+    }
+    #endif
   }
   else
   {
@@ -1131,7 +1356,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
         if (status_ctx->run_thread_level2 == true)
         {
-          device_param->words_done = words_fin;
+          device_param->words_done = MAX (device_param->words_done, words_fin);
 
           status_ctx->words_cur = get_lowest_words_done (hashcat_ctx);
         }
@@ -1398,7 +1623,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
         if (status_ctx->run_thread_level2 == true)
         {
-          device_param->words_done = words_fin;
+          device_param->words_done = MAX (device_param->words_done, words_fin);
 
           status_ctx->words_cur = get_lowest_words_done (hashcat_ctx);
         }
@@ -1429,7 +1654,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   return 0;
 }
 
-void *thread_calc (void *p)
+HC_API_CALL void *thread_calc (void *p)
 {
   thread_param_t *thread_param = (thread_param_t *) p;
 
@@ -1442,6 +1667,8 @@ void *thread_calc (void *p)
   hc_device_param_t *device_param = opencl_ctx->devices_param + thread_param->tid;
 
   if (device_param->skipped) return NULL;
+
+  if (device_param->skipped_warning == true) return NULL;
 
   const int rc_calc = calc (hashcat_ctx, device_param);
 

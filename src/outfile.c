@@ -21,12 +21,13 @@
 
 int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain, u32 *plain_buf, int *out_len)
 {
-  const combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
-  const hashconfig_t     *hashconfig     = hashcat_ctx->hashconfig;
-  const hashes_t         *hashes         = hashcat_ctx->hashes;
-  const mask_ctx_t       *mask_ctx       = hashcat_ctx->mask_ctx;
-  const straight_ctx_t   *straight_ctx   = hashcat_ctx->straight_ctx;
-  const user_options_t   *user_options   = hashcat_ctx->user_options;
+  const combinator_ctx_t     *combinator_ctx      = hashcat_ctx->combinator_ctx;
+  const hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
+  const hashes_t             *hashes              = hashcat_ctx->hashes;
+  const mask_ctx_t           *mask_ctx            = hashcat_ctx->mask_ctx;
+  const straight_ctx_t       *straight_ctx        = hashcat_ctx->straight_ctx;
+  const user_options_t       *user_options        = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
 
   const u64 gidvid = plain->gidvid;
   const u32 il_pos = plain->il_pos;
@@ -237,9 +238,9 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
     }
   }
 
-  const u32 pw_max = hashconfig_get_pw_max (hashcat_ctx, false);
+  const int pw_max = (const int) hashconfig->pw_max;
 
-  if (plain_len > (int) hashconfig->pw_max) plain_len = MIN (plain_len, (int) pw_max);
+  if (plain_len > pw_max) plain_len = MIN (plain_len, pw_max);
 
   plain_ptr[plain_len] = 0;
 
@@ -425,11 +426,13 @@ void outfile_write_close (hashcat_ctx_t *hashcat_ctx)
   fclose (outfile_ctx->fp);
 }
 
-int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsigned char *plain_ptr, const u32 plain_len, const u64 crackpos, const unsigned char *username, const u32 user_len, char tmp_buf[HCBUFSIZ_LARGE])
+int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const int out_len, const unsigned char *plain_ptr, const u32 plain_len, const u64 crackpos, const unsigned char *username, const u32 user_len, char tmp_buf[HCBUFSIZ_LARGE])
 {
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const outfile_ctx_t  *outfile_ctx  = hashcat_ctx->outfile_ctx;
   const user_options_t *user_options = hashcat_ctx->user_options;
+
+  const u32 outfile_format = (hashconfig->opts_type & OPTS_TYPE_PT_ALWAYS_HEXIFY) ? 5 : outfile_ctx->outfile_format;
 
   int tmp_len = 0;
 
@@ -441,7 +444,7 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsign
 
       tmp_len += user_len;
 
-      if (outfile_ctx->outfile_format & (OUTFILE_FMT_HASH | OUTFILE_FMT_PLAIN | OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
+      if (outfile_format & (OUTFILE_FMT_HASH | OUTFILE_FMT_PLAIN | OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
       {
         tmp_buf[tmp_len] = hashconfig->separator;
 
@@ -450,15 +453,13 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsign
     }
   }
 
-  if (outfile_ctx->outfile_format & OUTFILE_FMT_HASH)
+  if (outfile_format & OUTFILE_FMT_HASH)
   {
-    const size_t out_len = strlen (out_buf);
-
     memcpy (tmp_buf + tmp_len, out_buf, out_len);
 
     tmp_len += out_len;
 
-    if (outfile_ctx->outfile_format & (OUTFILE_FMT_PLAIN | OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
+    if (outfile_format & (OUTFILE_FMT_PLAIN | OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
     {
       tmp_buf[tmp_len] = hashconfig->separator;
 
@@ -466,7 +467,7 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsign
     }
   }
 
-  if (outfile_ctx->outfile_format & OUTFILE_FMT_PLAIN)
+  if (outfile_format & OUTFILE_FMT_PLAIN)
   {
     bool convert_to_hex = false;
 
@@ -474,7 +475,7 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsign
     {
       if (user_options->outfile_autohex == true)
       {
-        const bool always_ascii = (hashconfig->hash_type & OPTS_TYPE_PT_ALWAYS_ASCII) ? true : false;
+        const bool always_ascii = (hashconfig->opts_type & OPTS_TYPE_PT_ALWAYS_ASCII) ? true : false;
 
         convert_to_hex = need_hexify (plain_ptr, plain_len, hashconfig->separator, always_ascii);
       }
@@ -501,7 +502,7 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsign
       tmp_len += plain_len;
     }
 
-    if (outfile_ctx->outfile_format & (OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
+    if (outfile_format & (OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
     {
       tmp_buf[tmp_len] = hashconfig->separator;
 
@@ -509,13 +510,13 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsign
     }
   }
 
-  if (outfile_ctx->outfile_format & OUTFILE_FMT_HEXPLAIN)
+  if (outfile_format & OUTFILE_FMT_HEXPLAIN)
   {
     exec_hexify (plain_ptr, plain_len, (u8 *) tmp_buf + tmp_len);
 
     tmp_len += plain_len * 2;
 
-    if (outfile_ctx->outfile_format & (OUTFILE_FMT_CRACKPOS))
+    if (outfile_format & (OUTFILE_FMT_CRACKPOS))
     {
       tmp_buf[tmp_len] = hashconfig->separator;
 
@@ -523,7 +524,7 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsign
     }
   }
 
-  if (outfile_ctx->outfile_format & OUTFILE_FMT_CRACKPOS)
+  if (outfile_format & OUTFILE_FMT_CRACKPOS)
   {
     tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_LARGE - tmp_len, "%" PRIu64, crackpos);
   }

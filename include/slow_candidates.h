@@ -8,6 +8,8 @@
 
 typedef struct extra_info_straight
 {
+  u64 pos;
+
   FILE *fp;
 
   u64 rule_pos_prev;
@@ -23,6 +25,8 @@ typedef struct extra_info_straight
 
 typedef struct extra_info_combi
 {
+  u64 pos;
+
   FILE *base_fp;
   FILE *combs_fp;
 

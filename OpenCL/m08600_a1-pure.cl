@@ -227,7 +227,7 @@ DECLSPEC void domino_big_md (const u32 *saved_key, const u32 size, u32x *state, 
   mdtransform_norecalc (state, checksum, s_lotus_magic_table);
 }
 
-__kernel void m08600_mxx (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m08600_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * base
@@ -243,7 +243,7 @@ __kernel void m08600_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   __local u32 s_lotus_magic_table[256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_lotus_magic_table[i] = lotus_magic_table[i];
   }
@@ -268,7 +268,7 @@ __kernel void m08600_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
   pw_buf1[2] = pws[gid].i[6];
   pw_buf1[3] = pws[gid].i[7];
 
-  const u32 pw_l_len = pws[gid].pw_len;
+  const u32 pw_l_len = pws[gid].pw_len & 63;
 
   /**
    * loop
@@ -276,9 +276,9 @@ __kernel void m08600_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    const u32 pw_r_len = pwlenx_create_combt (combs_buf, il_pos);
+    const u32 pw_r_len = pwlenx_create_combt (combs_buf, il_pos) & 63;
 
-    const u32 pw_len = pw_l_len + pw_r_len;
+    const u32 pw_len = (pw_l_len + pw_r_len) & 63;
 
     /**
      * concat password candidate
@@ -351,7 +351,7 @@ __kernel void m08600_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
   }
 }
 
-__kernel void m08600_sxx (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m08600_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * base
@@ -367,7 +367,7 @@ __kernel void m08600_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   __local u32 s_lotus_magic_table[256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_lotus_magic_table[i] = lotus_magic_table[i];
   }
@@ -392,7 +392,7 @@ __kernel void m08600_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
   pw_buf1[2] = pws[gid].i[6];
   pw_buf1[3] = pws[gid].i[7];
 
-  const u32 pw_l_len = pws[gid].pw_len;
+  const u32 pw_l_len = pws[gid].pw_len & 63;
 
   /**
    * digest
@@ -412,9 +412,9 @@ __kernel void m08600_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    const u32 pw_r_len = pwlenx_create_combt (combs_buf, il_pos);
+    const u32 pw_r_len = pwlenx_create_combt (combs_buf, il_pos) & 63;
 
-    const u32 pw_len = pw_l_len + pw_r_len;
+    const u32 pw_len = (pw_l_len + pw_r_len) & 63;
 
     /**
      * concat password candidate

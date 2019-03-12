@@ -19,6 +19,39 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct wpa_eapol
+{
+  u32  pke[32];
+  u32  eapol[64 + 16];
+  u16  eapol_len;
+  u8   message_pair;
+  int  message_pair_chgd;
+  u8   keyver;
+  u8   orig_mac_ap[6];
+  u8   orig_mac_sta[6];
+  u8   orig_nonce_ap[32];
+  u8   orig_nonce_sta[32];
+  u8   essid_len;
+  u8   essid[32];
+  u32  keymic[4];
+  u32  hash[4];
+  int  nonce_compare;
+  int  nonce_error_corrections;
+  int  detected_le;
+  int  detected_be;
+
+} wpa_eapol_t;
+
+typedef struct wpa_pbkdf2_tmp
+{
+  u32 ipad[5];
+  u32 opad[5];
+
+  u32 dgst[10];
+  u32 out[10];
+
+} wpa_pbkdf2_tmp_t;
+
 DECLSPEC void make_kn (u32 *k)
 {
   u32 kl[4];
@@ -85,7 +118,7 @@ DECLSPEC void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipa
   sha1_transform_vector (w0, w1, w2, w3, digest);
 }
 
-__kernel void m02500_init (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global wpa_pbkdf2_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const wpa_eapol_t *wpa_eapol_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m02500_init (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_eapol_t))
 {
   /**
    * base
@@ -157,7 +190,7 @@ __kernel void m02500_init (__global pw_t *pws, __global const kernel_rule_t *rul
   }
 }
 
-__kernel void m02500_loop (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global wpa_pbkdf2_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const wpa_eapol_t *wpa_eapol_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m02500_loop (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_eapol_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -242,12 +275,12 @@ __kernel void m02500_loop (__global pw_t *pws, __global const kernel_rule_t *rul
   }
 }
 
-__kernel void m02500_comp (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global wpa_pbkdf2_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const wpa_eapol_t *wpa_eapol_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m02500_comp (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_eapol_t))
 {
   // not in use here, special case...
 }
 
-__kernel void m02500_aux1 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global wpa_pbkdf2_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const wpa_eapol_t *wpa_eapol_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m02500_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_eapol_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -269,7 +302,7 @@ __kernel void m02500_aux1 (__global pw_t *pws, __global const kernel_rule_t *rul
 
   const u32 digest_cur = digests_offset + digest_pos;
 
-  __global const wpa_eapol_t *wpa_eapol = &wpa_eapol_bufs[digest_cur];
+  __global const wpa_eapol_t *wpa_eapol = &esalt_bufs[digest_cur];
 
   u32 pke[32];
 
@@ -374,43 +407,7 @@ __kernel void m02500_aux1 (__global pw_t *pws, __global const kernel_rule_t *rul
 
       sha1_hmac_init_64 (&ctx1, w0, w1, w2, w3);
 
-      ctx1.ipad.w0[0] = pke[ 0];
-      ctx1.ipad.w0[1] = pke[ 1];
-      ctx1.ipad.w0[2] = pke[ 2];
-      ctx1.ipad.w0[3] = pke[ 3];
-      ctx1.ipad.w1[0] = pke[ 4];
-      ctx1.ipad.w1[1] = pke[ 5];
-      ctx1.ipad.w1[2] = pke[ 6];
-      ctx1.ipad.w1[3] = pke[ 7];
-      ctx1.ipad.w2[0] = pke[ 8];
-      ctx1.ipad.w2[1] = pke[ 9];
-      ctx1.ipad.w2[2] = pke[10];
-      ctx1.ipad.w2[3] = pke[11];
-      ctx1.ipad.w3[0] = pke[12];
-      ctx1.ipad.w3[1] = pke[13];
-      ctx1.ipad.w3[2] = pke[14];
-      ctx1.ipad.w3[3] = pke[15];
-
-      sha1_transform (ctx1.ipad.w0, ctx1.ipad.w1, ctx1.ipad.w2, ctx1.ipad.w3, ctx1.ipad.h);
-
-      ctx1.ipad.w0[0] = pke[16];
-      ctx1.ipad.w0[1] = pke[17];
-      ctx1.ipad.w0[2] = pke[18];
-      ctx1.ipad.w0[3] = pke[19];
-      ctx1.ipad.w1[0] = pke[20];
-      ctx1.ipad.w1[1] = pke[21];
-      ctx1.ipad.w1[2] = pke[22];
-      ctx1.ipad.w1[3] = pke[23];
-      ctx1.ipad.w2[0] = pke[24];
-      ctx1.ipad.w2[1] = pke[25];
-      ctx1.ipad.w2[2] = pke[26];
-      ctx1.ipad.w2[3] = pke[27];
-      ctx1.ipad.w3[0] = pke[28];
-      ctx1.ipad.w3[1] = pke[29];
-      ctx1.ipad.w3[2] = pke[30];
-      ctx1.ipad.w3[3] = pke[31];
-
-      ctx1.ipad.len += 100;
+      sha1_hmac_update (&ctx1, pke, 100);
 
       sha1_hmac_final (&ctx1);
 
@@ -530,43 +527,7 @@ __kernel void m02500_aux1 (__global pw_t *pws, __global const kernel_rule_t *rul
 
       sha1_hmac_init_64 (&ctx1, w0, w1, w2, w3);
 
-      ctx1.ipad.w0[0] = pke[ 0];
-      ctx1.ipad.w0[1] = pke[ 1];
-      ctx1.ipad.w0[2] = pke[ 2];
-      ctx1.ipad.w0[3] = pke[ 3];
-      ctx1.ipad.w1[0] = pke[ 4];
-      ctx1.ipad.w1[1] = pke[ 5];
-      ctx1.ipad.w1[2] = pke[ 6];
-      ctx1.ipad.w1[3] = pke[ 7];
-      ctx1.ipad.w2[0] = pke[ 8];
-      ctx1.ipad.w2[1] = pke[ 9];
-      ctx1.ipad.w2[2] = pke[10];
-      ctx1.ipad.w2[3] = pke[11];
-      ctx1.ipad.w3[0] = pke[12];
-      ctx1.ipad.w3[1] = pke[13];
-      ctx1.ipad.w3[2] = pke[14];
-      ctx1.ipad.w3[3] = pke[15];
-
-      sha1_transform (ctx1.ipad.w0, ctx1.ipad.w1, ctx1.ipad.w2, ctx1.ipad.w3, ctx1.ipad.h);
-
-      ctx1.ipad.w0[0] = pke[16];
-      ctx1.ipad.w0[1] = pke[17];
-      ctx1.ipad.w0[2] = pke[18];
-      ctx1.ipad.w0[3] = pke[19];
-      ctx1.ipad.w1[0] = pke[20];
-      ctx1.ipad.w1[1] = pke[21];
-      ctx1.ipad.w1[2] = pke[22];
-      ctx1.ipad.w1[3] = pke[23];
-      ctx1.ipad.w2[0] = pke[24];
-      ctx1.ipad.w2[1] = pke[25];
-      ctx1.ipad.w2[2] = pke[26];
-      ctx1.ipad.w2[3] = pke[27];
-      ctx1.ipad.w3[0] = pke[28];
-      ctx1.ipad.w3[1] = pke[29];
-      ctx1.ipad.w3[2] = pke[30];
-      ctx1.ipad.w3[3] = pke[31];
-
-      ctx1.ipad.len += 100;
+      sha1_hmac_update (&ctx1, pke, 100);
 
       sha1_hmac_final (&ctx1);
 
@@ -630,7 +591,7 @@ __kernel void m02500_aux1 (__global pw_t *pws, __global const kernel_rule_t *rul
   }
 }
 
-__kernel void m02500_aux2 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global wpa_pbkdf2_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const wpa_eapol_t *wpa_eapol_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m02500_aux2 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_eapol_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -652,7 +613,7 @@ __kernel void m02500_aux2 (__global pw_t *pws, __global const kernel_rule_t *rul
 
   const u32 digest_cur = digests_offset + digest_pos;
 
-  __global const wpa_eapol_t *wpa_eapol = &wpa_eapol_bufs[digest_cur];
+  __global const wpa_eapol_t *wpa_eapol = &esalt_bufs[digest_cur];
 
   u32 pke[32];
 
@@ -757,43 +718,7 @@ __kernel void m02500_aux2 (__global pw_t *pws, __global const kernel_rule_t *rul
 
       sha1_hmac_init_64 (&ctx1, w0, w1, w2, w3);
 
-      ctx1.ipad.w0[0] = pke[ 0];
-      ctx1.ipad.w0[1] = pke[ 1];
-      ctx1.ipad.w0[2] = pke[ 2];
-      ctx1.ipad.w0[3] = pke[ 3];
-      ctx1.ipad.w1[0] = pke[ 4];
-      ctx1.ipad.w1[1] = pke[ 5];
-      ctx1.ipad.w1[2] = pke[ 6];
-      ctx1.ipad.w1[3] = pke[ 7];
-      ctx1.ipad.w2[0] = pke[ 8];
-      ctx1.ipad.w2[1] = pke[ 9];
-      ctx1.ipad.w2[2] = pke[10];
-      ctx1.ipad.w2[3] = pke[11];
-      ctx1.ipad.w3[0] = pke[12];
-      ctx1.ipad.w3[1] = pke[13];
-      ctx1.ipad.w3[2] = pke[14];
-      ctx1.ipad.w3[3] = pke[15];
-
-      sha1_transform (ctx1.ipad.w0, ctx1.ipad.w1, ctx1.ipad.w2, ctx1.ipad.w3, ctx1.ipad.h);
-
-      ctx1.ipad.w0[0] = pke[16];
-      ctx1.ipad.w0[1] = pke[17];
-      ctx1.ipad.w0[2] = pke[18];
-      ctx1.ipad.w0[3] = pke[19];
-      ctx1.ipad.w1[0] = pke[20];
-      ctx1.ipad.w1[1] = pke[21];
-      ctx1.ipad.w1[2] = pke[22];
-      ctx1.ipad.w1[3] = pke[23];
-      ctx1.ipad.w2[0] = pke[24];
-      ctx1.ipad.w2[1] = pke[25];
-      ctx1.ipad.w2[2] = pke[26];
-      ctx1.ipad.w2[3] = pke[27];
-      ctx1.ipad.w3[0] = pke[28];
-      ctx1.ipad.w3[1] = pke[29];
-      ctx1.ipad.w3[2] = pke[30];
-      ctx1.ipad.w3[3] = pke[31];
-
-      ctx1.ipad.len += 100;
+      sha1_hmac_update (&ctx1, pke, 100);
 
       sha1_hmac_final (&ctx1);
 
@@ -913,43 +838,7 @@ __kernel void m02500_aux2 (__global pw_t *pws, __global const kernel_rule_t *rul
 
       sha1_hmac_init_64 (&ctx1, w0, w1, w2, w3);
 
-      ctx1.ipad.w0[0] = pke[ 0];
-      ctx1.ipad.w0[1] = pke[ 1];
-      ctx1.ipad.w0[2] = pke[ 2];
-      ctx1.ipad.w0[3] = pke[ 3];
-      ctx1.ipad.w1[0] = pke[ 4];
-      ctx1.ipad.w1[1] = pke[ 5];
-      ctx1.ipad.w1[2] = pke[ 6];
-      ctx1.ipad.w1[3] = pke[ 7];
-      ctx1.ipad.w2[0] = pke[ 8];
-      ctx1.ipad.w2[1] = pke[ 9];
-      ctx1.ipad.w2[2] = pke[10];
-      ctx1.ipad.w2[3] = pke[11];
-      ctx1.ipad.w3[0] = pke[12];
-      ctx1.ipad.w3[1] = pke[13];
-      ctx1.ipad.w3[2] = pke[14];
-      ctx1.ipad.w3[3] = pke[15];
-
-      sha1_transform (ctx1.ipad.w0, ctx1.ipad.w1, ctx1.ipad.w2, ctx1.ipad.w3, ctx1.ipad.h);
-
-      ctx1.ipad.w0[0] = pke[16];
-      ctx1.ipad.w0[1] = pke[17];
-      ctx1.ipad.w0[2] = pke[18];
-      ctx1.ipad.w0[3] = pke[19];
-      ctx1.ipad.w1[0] = pke[20];
-      ctx1.ipad.w1[1] = pke[21];
-      ctx1.ipad.w1[2] = pke[22];
-      ctx1.ipad.w1[3] = pke[23];
-      ctx1.ipad.w2[0] = pke[24];
-      ctx1.ipad.w2[1] = pke[25];
-      ctx1.ipad.w2[2] = pke[26];
-      ctx1.ipad.w2[3] = pke[27];
-      ctx1.ipad.w3[0] = pke[28];
-      ctx1.ipad.w3[1] = pke[29];
-      ctx1.ipad.w3[2] = pke[30];
-      ctx1.ipad.w3[3] = pke[31];
-
-      ctx1.ipad.len += 100;
+      sha1_hmac_update (&ctx1, pke, 100);
 
       sha1_hmac_final (&ctx1);
 
@@ -1013,7 +902,7 @@ __kernel void m02500_aux2 (__global pw_t *pws, __global const kernel_rule_t *rul
   }
 }
 
-__kernel void m02500_aux3 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global wpa_pbkdf2_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const wpa_eapol_t *wpa_eapol_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m02500_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_eapol_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -1037,7 +926,7 @@ __kernel void m02500_aux3 (__global pw_t *pws, __global const kernel_rule_t *rul
   __local u32 s_te3[256];
   __local u32 s_te4[256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_td0[i] = td0[i];
     s_td1[i] = td1[i];
@@ -1087,7 +976,7 @@ __kernel void m02500_aux3 (__global pw_t *pws, __global const kernel_rule_t *rul
 
   const u32 digest_cur = digests_offset + digest_pos;
 
-  __global const wpa_eapol_t *wpa_eapol = &wpa_eapol_bufs[digest_cur];
+  __global const wpa_eapol_t *wpa_eapol = &esalt_bufs[digest_cur];
 
   u32 pke[32];
 
@@ -1192,43 +1081,7 @@ __kernel void m02500_aux3 (__global pw_t *pws, __global const kernel_rule_t *rul
 
       sha256_hmac_init_64 (&ctx1, w0, w1, w2, w3);
 
-      ctx1.ipad.w0[0] = pke[ 0];
-      ctx1.ipad.w0[1] = pke[ 1];
-      ctx1.ipad.w0[2] = pke[ 2];
-      ctx1.ipad.w0[3] = pke[ 3];
-      ctx1.ipad.w1[0] = pke[ 4];
-      ctx1.ipad.w1[1] = pke[ 5];
-      ctx1.ipad.w1[2] = pke[ 6];
-      ctx1.ipad.w1[3] = pke[ 7];
-      ctx1.ipad.w2[0] = pke[ 8];
-      ctx1.ipad.w2[1] = pke[ 9];
-      ctx1.ipad.w2[2] = pke[10];
-      ctx1.ipad.w2[3] = pke[11];
-      ctx1.ipad.w3[0] = pke[12];
-      ctx1.ipad.w3[1] = pke[13];
-      ctx1.ipad.w3[2] = pke[14];
-      ctx1.ipad.w3[3] = pke[15];
-
-      sha256_transform (ctx1.ipad.w0, ctx1.ipad.w1, ctx1.ipad.w2, ctx1.ipad.w3, ctx1.ipad.h);
-
-      ctx1.ipad.w0[0] = pke[16];
-      ctx1.ipad.w0[1] = pke[17];
-      ctx1.ipad.w0[2] = pke[18];
-      ctx1.ipad.w0[3] = pke[19];
-      ctx1.ipad.w1[0] = pke[20];
-      ctx1.ipad.w1[1] = pke[21];
-      ctx1.ipad.w1[2] = pke[22];
-      ctx1.ipad.w1[3] = pke[23];
-      ctx1.ipad.w2[0] = pke[24];
-      ctx1.ipad.w2[1] = pke[25];
-      ctx1.ipad.w2[2] = pke[26];
-      ctx1.ipad.w2[3] = pke[27];
-      ctx1.ipad.w3[0] = pke[28];
-      ctx1.ipad.w3[1] = pke[29];
-      ctx1.ipad.w3[2] = pke[30];
-      ctx1.ipad.w3[3] = pke[31];
-
-      ctx1.ipad.len += 102;
+      sha256_hmac_update (&ctx1, pke, 102);
 
       sha256_hmac_final (&ctx1);
 
@@ -1379,43 +1232,7 @@ __kernel void m02500_aux3 (__global pw_t *pws, __global const kernel_rule_t *rul
 
       sha256_hmac_init_64 (&ctx1, w0, w1, w2, w3);
 
-      ctx1.ipad.w0[0] = pke[ 0];
-      ctx1.ipad.w0[1] = pke[ 1];
-      ctx1.ipad.w0[2] = pke[ 2];
-      ctx1.ipad.w0[3] = pke[ 3];
-      ctx1.ipad.w1[0] = pke[ 4];
-      ctx1.ipad.w1[1] = pke[ 5];
-      ctx1.ipad.w1[2] = pke[ 6];
-      ctx1.ipad.w1[3] = pke[ 7];
-      ctx1.ipad.w2[0] = pke[ 8];
-      ctx1.ipad.w2[1] = pke[ 9];
-      ctx1.ipad.w2[2] = pke[10];
-      ctx1.ipad.w2[3] = pke[11];
-      ctx1.ipad.w3[0] = pke[12];
-      ctx1.ipad.w3[1] = pke[13];
-      ctx1.ipad.w3[2] = pke[14];
-      ctx1.ipad.w3[3] = pke[15];
-
-      sha256_transform (ctx1.ipad.w0, ctx1.ipad.w1, ctx1.ipad.w2, ctx1.ipad.w3, ctx1.ipad.h);
-
-      ctx1.ipad.w0[0] = pke[16];
-      ctx1.ipad.w0[1] = pke[17];
-      ctx1.ipad.w0[2] = pke[18];
-      ctx1.ipad.w0[3] = pke[19];
-      ctx1.ipad.w1[0] = pke[20];
-      ctx1.ipad.w1[1] = pke[21];
-      ctx1.ipad.w1[2] = pke[22];
-      ctx1.ipad.w1[3] = pke[23];
-      ctx1.ipad.w2[0] = pke[24];
-      ctx1.ipad.w2[1] = pke[25];
-      ctx1.ipad.w2[2] = pke[26];
-      ctx1.ipad.w2[3] = pke[27];
-      ctx1.ipad.w3[0] = pke[28];
-      ctx1.ipad.w3[1] = pke[29];
-      ctx1.ipad.w3[2] = pke[30];
-      ctx1.ipad.w3[3] = pke[31];
-
-      ctx1.ipad.len += 102;
+      sha256_hmac_update (&ctx1, pke, 102);
 
       sha256_hmac_final (&ctx1);
 

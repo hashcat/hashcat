@@ -1,4 +1,4 @@
-hashcat v4.2.1
+hashcat v5.1.0
 ==============
 
 AMD GPUs on Linux require "RadeonOpenCompute (ROCm)" Software Platform (1.6.180 or later)
@@ -21,6 +21,7 @@ NVIDIA GPUs require "NVIDIA Driver" (367.x or later)
 - Multi-Hash (Cracking multiple hashes at the same time)
 - Multi-Devices (Utilizing multiple devices in same system)
 - Multi-Device-Types (Utilizing mixed device types in same system)
+- Supports password candidate brain functionality
 - Supports distributed cracking networks (using overlay)
 - Supports interactive pause / resume
 - Supports sessions
@@ -41,11 +42,18 @@ NVIDIA GPUs require "NVIDIA Driver" (367.x or later)
 - MD5
 - Half MD5
 - SHA1
-- SHA-224
-- SHA-256
-- SHA-384
-- SHA-512
-- SHA-3 (Keccak)
+- SHA2-224
+- SHA2-256
+- SHA2-384
+- SHA2-512
+- SHA3-224
+- SHA3-256
+- SHA3-384
+- SHA3-512
+- Keccak-224
+- Keccak-256
+- Keccak-384
+- Keccak-512
 - BLAKE2b-512
 - SipHash
 - RIPEMD-160
@@ -53,6 +61,7 @@ NVIDIA GPUs require "NVIDIA Driver" (367.x or later)
 - GOST R 34.11-94
 - GOST R 34.11-2012 (Streebog) 256-bit
 - GOST R 34.11-2012 (Streebog) 512-bit
+- Java Object hashCode()
 - md5($pass.$salt)
 - md5($salt.$pass)
 - md5(utf16le($pass).$salt)
@@ -72,6 +81,7 @@ NVIDIA GPUs require "NVIDIA Driver" (367.x or later)
 - sha1(sha1($pass))
 - sha1($salt.sha1($pass))
 - sha1(md5($pass))
+- sha1(md5(md5($pass)))
 - sha1($salt.$pass.$salt)
 - sha1(CX)
 - sha256($pass.$salt)
@@ -219,6 +229,7 @@ NVIDIA GPUs require "NVIDIA Driver" (367.x or later)
 - WinZip
 - iTunes backup < 10.0
 - iTunes backup >= 10.0
+- Android Backup
 - TrueCrypt
 - Android FDE <= 4.3
 - Android FDE (Samsung DEK)
@@ -226,6 +237,7 @@ NVIDIA GPUs require "NVIDIA Driver" (367.x or later)
 - VeraCrypt
 - LUKS
 - FileVault 2
+- Apple File System (APFS)
 - MS Office <= 2003
 - MS Office 2007
 - MS Office 2010
@@ -235,6 +247,8 @@ NVIDIA GPUs require "NVIDIA Driver" (367.x or later)
 - PDF 1.7 Level 3 (Acrobat 9)
 - PDF 1.7 Level 8 (Acrobat 10 - 11)
 - Apple Secure Notes
+- Open Document Format (ODF) 1.1 (SHA-1, Blowfish)
+- Open Document Format (ODF) 1.2 (SHA-256, AES)
 - Password Safe v2
 - Password Safe v3
 - LastPass + LastPass sniffed
@@ -243,13 +257,15 @@ NVIDIA GPUs require "NVIDIA Driver" (367.x or later)
 - Bitcoin/Litecoin wallet.dat
 - Blockchain, My Wallet
 - Blockchain, My Wallet, V2
-- Electrum Wallet (Salt-Type 1-3)
+- Blockchain, My Wallet, Second Password (SHA256)
+- Electrum Wallet (Salt-Type 1-2)
 - KeePass 1 (AES/Twofish) and KeePass 2 (AES)
 - JKS Java Key Store Private Keys (SHA1)
 - Ethereum Wallet, PBKDF2-HMAC-SHA256
 - Ethereum Wallet, SCRYPT
 - Ethereum Pre-Sale Wallet, PBKDF2-HMAC-SHA256
 - Ansible Vault
+- Kerberos 5 AS-REP etype 23
 - Plaintext
 
 ##

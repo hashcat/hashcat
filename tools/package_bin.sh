@@ -6,21 +6,23 @@
 ##
 
 export IN=$HOME/hashcat
-export OUT=$HOME/xy/hashcat-4.2.1
+export OUT=$HOME/xy/hashcat-5.1.0
 
 rm -rf $OUT
 rm -rf $OUT.7z
 
 mkdir -p $OUT
 
-cp    $IN/hashcat??.exe                 $OUT/
-cp    $IN/hashcat??.bin                 $OUT/
+cp    $IN/hashcat.exe                   $OUT/
+cp    $IN/hashcat.bin                   $OUT/
 cp    $IN/hashcat.hctune                $OUT/
 cp    $IN/hashcat.hcstat2               $OUT/
 
 cp -r $IN/docs                          $OUT/
 cp -r $IN/charsets                      $OUT/
+cp -r $IN/layouts                       $OUT/
 cp -r $IN/masks                         $OUT/
+cp -r $IN/modules                       $OUT/
 cp -r $IN/rules                         $OUT/
 cp -r $IN/extra                         $OUT/
 cp    $IN/example.dict                  $OUT/
@@ -33,16 +35,18 @@ cp -r $IN/OpenCL                        $OUT/
 
 for example in example[0123456789]*.sh; do
 
-  sed 's!./hashcat !./hashcat64.bin !' $IN/${example} > $OUT/${example}
+  sed 's!./hashcat !./hashcat.bin !' $IN/${example} > $OUT/${example}
 
 done
 
+dos2unix $OUT/layouts/*.hckmap
 dos2unix $OUT/masks/*.hcmask
 dos2unix $OUT/rules/*.rule
 dos2unix $OUT/rules/hybrid/*.rule
 dos2unix $OUT/docs/*
 dos2unix $OUT/example*
 
+unix2dos $OUT/layouts/*.hckmap
 unix2dos $OUT/masks/*.hcmask
 unix2dos $OUT/rules/*.rule
 unix2dos $OUT/rules/hybrid/*.rule
@@ -58,8 +62,12 @@ chmod 755 $OUT/docs
 chmod 644 $OUT/docs/*
 chmod 755 $OUT/charsets
 chmod 755 $OUT/charsets/*
+chmod 755 $OUT/layouts
+chmod 644 $OUT/layouts/*
 chmod 755 $OUT/masks
 chmod 644 $OUT/masks/*
+chmod 755 $OUT/modules
+chmod 644 $OUT/modules/*
 chmod 644 $OUT/example*
 chmod 755 $OUT/example*.sh
 chmod 755 $OUT/extra

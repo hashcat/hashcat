@@ -43,8 +43,8 @@ static int sort_by_tuning_db_entry (const void *v1, const void *v2)
 
   if (res2 != 0) return (res2);
 
-  const int res3 = t1->hash_type
-                 - t2->hash_type;
+  const int res3 = t1->hash_mode
+                 - t2->hash_mode;
 
   if (res3 != 0) return (res3);
 
@@ -174,13 +174,13 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
       char *device_name = token_ptr[0];
 
       int attack_mode      = -1;
-      int hash_type        = -1;
+      int hash_mode        = -1;
       int vector_width     = -1;
       int kernel_accel     = -1;
       int kernel_loops     = -1;
 
       if (token_ptr[1][0] != '*') attack_mode   = (int) strtol (token_ptr[1], NULL, 10);
-      if (token_ptr[2][0] != '*') hash_type     = (int) strtol (token_ptr[2], NULL, 10);
+      if (token_ptr[2][0] != '*') hash_mode     = (int) strtol (token_ptr[2], NULL, 10);
       if (token_ptr[3][0] != 'N') vector_width  = (int) strtol (token_ptr[3], NULL, 10);
 
       if (token_ptr[4][0] == 'A')
@@ -259,7 +259,7 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 
       entry->device_name  = hcstrdup (device_name);
       entry->attack_mode  = attack_mode;
-      entry->hash_type    = hash_type;
+      entry->hash_mode    = hash_mode;
       entry->vector_width = vector_width;
       entry->kernel_accel = kernel_accel;
       entry->kernel_loops = kernel_loops;
@@ -317,7 +317,7 @@ void tuning_db_destroy (hashcat_ctx_t *hashcat_ctx)
   memset (tuning_db, 0, sizeof (tuning_db_t));
 }
 
-tuning_db_entry_t *tuning_db_search (hashcat_ctx_t *hashcat_ctx, const char *device_name, const cl_device_type device_type, int attack_mode, const int hash_type)
+tuning_db_entry_t *tuning_db_search (hashcat_ctx_t *hashcat_ctx, const char *device_name, const cl_device_type device_type, int attack_mode, const int hash_mode)
 {
   tuning_db_t *tuning_db = hashcat_ctx->tuning_db;
 
@@ -366,7 +366,7 @@ tuning_db_entry_t *tuning_db_search (hashcat_ctx_t *hashcat_ctx, const char *dev
 
   s.device_name = device_name_nospace;
   s.attack_mode = attack_mode;
-  s.hash_type   = hash_type;
+  s.hash_mode   = hash_mode;
 
   tuning_db_entry_t *entry = NULL;
 
@@ -376,7 +376,7 @@ tuning_db_entry_t *tuning_db_search (hashcat_ctx_t *hashcat_ctx, const char *dev
   {
     s.device_name = (i & 1) ? "*" : device_name_nospace;
     s.attack_mode = (i & 2) ?  -1 : attack_mode;
-    s.hash_type   = (i & 4) ?  -1 : hash_type;
+    s.hash_mode   = (i & 4) ?  -1 : hash_mode;
 
     entry = bsearch (&s, tuning_db->entry_buf, tuning_db->entry_cnt, sizeof (tuning_db_entry_t), sort_by_tuning_db_entry);
 

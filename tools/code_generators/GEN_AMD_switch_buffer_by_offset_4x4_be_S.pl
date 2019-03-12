@@ -19,11 +19,11 @@ for (my $i = 0, my $s = 0; $i < 16; $i++, $s++)
 
     if ((($j - $s - 1) >= 0) && (($j - $s - 0) >= 0))
     {
-      printf ("      w%d[%d] = amd_bytealign_S (w%d[%d], w%d[%d], offset);\n", $jd4, $jm4, $js1d4, $js1m4, $js0d4, $js0m4);
+      printf ("      w%d[%d] = hc_bytealign_S (w%d[%d], w%d[%d], offset);\n", $jd4, $jm4, $js1d4, $js1m4, $js0d4, $js0m4);
     }
     elsif (($j - $s - 0) >= 0)
     {
-      printf ("      w%d[%d] = amd_bytealign_S (    0, w%d[%d], offset);\n", $jd4, $jm4, $js0d4, $js0m4);
+      printf ("      w%d[%d] = hc_bytealign_S (    0, w%d[%d], offset);\n", $jd4, $jm4, $js0d4, $js0m4);
     }
     else
     {

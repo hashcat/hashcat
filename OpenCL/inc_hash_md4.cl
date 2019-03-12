@@ -17,6 +17,7 @@ typedef struct md4_ctx
 
 } md4_ctx_t;
 
+DECLSPEC void md4_transform (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest);
 DECLSPEC void md4_transform (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest)
 {
   u32 a = digest[0];
@@ -81,6 +82,7 @@ DECLSPEC void md4_transform (const u32 *w0, const u32 *w1, const u32 *w2, const 
   digest[3] += d;
 }
 
+DECLSPEC void md4_init (md4_ctx_t *ctx);
 DECLSPEC void md4_init (md4_ctx_t *ctx)
 {
   ctx->h[0] = MD4M_A;
@@ -108,9 +110,10 @@ DECLSPEC void md4_init (md4_ctx_t *ctx)
   ctx->len = 0;
 }
 
+DECLSPEC void md4_update_64 (md4_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len);
 DECLSPEC void md4_update_64 (md4_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len)
 {
-  MAYBE_VOLATILE const int pos = ctx->len & 63;
+  const int pos = ctx->len & 63;
 
   ctx->len += len;
 
@@ -182,6 +185,7 @@ DECLSPEC void md4_update_64 (md4_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3,
   }
 }
 
+DECLSPEC void md4_update (md4_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void md4_update (md4_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
@@ -234,6 +238,7 @@ DECLSPEC void md4_update (md4_ctx_t *ctx, const u32 *w, const int len)
   md4_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
+DECLSPEC void md4_update_swap (md4_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void md4_update_swap (md4_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
@@ -320,6 +325,7 @@ DECLSPEC void md4_update_swap (md4_ctx_t *ctx, const u32 *w, const int len)
   md4_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
+DECLSPEC void md4_update_utf16le (md4_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void md4_update_utf16le (md4_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
@@ -362,6 +368,7 @@ DECLSPEC void md4_update_utf16le (md4_ctx_t *ctx, const u32 *w, const int len)
   md4_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
+DECLSPEC void md4_update_utf16le_swap (md4_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void md4_update_utf16le_swap (md4_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
@@ -438,6 +445,7 @@ DECLSPEC void md4_update_utf16le_swap (md4_ctx_t *ctx, const u32 *w, const int l
   md4_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
+DECLSPEC void md4_update_global (md4_ctx_t *ctx, const __global u32 *w, const int len);
 DECLSPEC void md4_update_global (md4_ctx_t *ctx, const __global u32 *w, const int len)
 {
   u32 w0[4];
@@ -490,6 +498,7 @@ DECLSPEC void md4_update_global (md4_ctx_t *ctx, const __global u32 *w, const in
   md4_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
+DECLSPEC void md4_update_global_swap (md4_ctx_t *ctx, const __global u32 *w, const int len);
 DECLSPEC void md4_update_global_swap (md4_ctx_t *ctx, const __global u32 *w, const int len)
 {
   u32 w0[4];
@@ -576,6 +585,7 @@ DECLSPEC void md4_update_global_swap (md4_ctx_t *ctx, const __global u32 *w, con
   md4_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
+DECLSPEC void md4_update_global_utf16le (md4_ctx_t *ctx, const __global u32 *w, const int len);
 DECLSPEC void md4_update_global_utf16le (md4_ctx_t *ctx, const __global u32 *w, const int len)
 {
   u32 w0[4];
@@ -618,6 +628,7 @@ DECLSPEC void md4_update_global_utf16le (md4_ctx_t *ctx, const __global u32 *w, 
   md4_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
+DECLSPEC void md4_update_global_utf16le_swap (md4_ctx_t *ctx, const __global u32 *w, const int len);
 DECLSPEC void md4_update_global_utf16le_swap (md4_ctx_t *ctx, const __global u32 *w, const int len)
 {
   u32 w0[4];
@@ -694,9 +705,10 @@ DECLSPEC void md4_update_global_utf16le_swap (md4_ctx_t *ctx, const __global u32
   md4_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
+DECLSPEC void md4_final (md4_ctx_t *ctx);
 DECLSPEC void md4_final (md4_ctx_t *ctx)
 {
-  MAYBE_VOLATILE const int pos = ctx->len & 63;
+  const int pos = ctx->len & 63;
 
   append_0x80_4x4_S (ctx->w0, ctx->w1, ctx->w2, ctx->w3, pos);
 
@@ -737,6 +749,7 @@ typedef struct md4_hmac_ctx
 
 } md4_hmac_ctx_t;
 
+DECLSPEC void md4_hmac_init_64 (md4_hmac_ctx_t *ctx, const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3);
 DECLSPEC void md4_hmac_init_64 (md4_hmac_ctx_t *ctx, const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3)
 {
   u32 t0[4];
@@ -791,6 +804,7 @@ DECLSPEC void md4_hmac_init_64 (md4_hmac_ctx_t *ctx, const u32 *w0, const u32 *w
   md4_update_64 (&ctx->opad, t0, t1, t2, t3, 64);
 }
 
+DECLSPEC void md4_hmac_init (md4_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void md4_hmac_init (md4_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
@@ -848,6 +862,7 @@ DECLSPEC void md4_hmac_init (md4_hmac_ctx_t *ctx, const u32 *w, const int len)
   md4_hmac_init_64 (ctx, w0, w1, w2, w3);
 }
 
+DECLSPEC void md4_hmac_init_swap (md4_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void md4_hmac_init_swap (md4_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
@@ -905,6 +920,7 @@ DECLSPEC void md4_hmac_init_swap (md4_hmac_ctx_t *ctx, const u32 *w, const int l
   md4_hmac_init_64 (ctx, w0, w1, w2, w3);
 }
 
+DECLSPEC void md4_hmac_init_global (md4_hmac_ctx_t *ctx, __global const u32 *w, const int len);
 DECLSPEC void md4_hmac_init_global (md4_hmac_ctx_t *ctx, __global const u32 *w, const int len)
 {
   u32 w0[4];
@@ -962,6 +978,7 @@ DECLSPEC void md4_hmac_init_global (md4_hmac_ctx_t *ctx, __global const u32 *w, 
   md4_hmac_init_64 (ctx, w0, w1, w2, w3);
 }
 
+DECLSPEC void md4_hmac_init_global_swap (md4_hmac_ctx_t *ctx, __global const u32 *w, const int len);
 DECLSPEC void md4_hmac_init_global_swap (md4_hmac_ctx_t *ctx, __global const u32 *w, const int len)
 {
   u32 w0[4];
@@ -1019,51 +1036,61 @@ DECLSPEC void md4_hmac_init_global_swap (md4_hmac_ctx_t *ctx, __global const u32
   md4_hmac_init_64 (ctx, w0, w1, w2, w3);
 }
 
+DECLSPEC void md4_hmac_update_64 (md4_hmac_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len);
 DECLSPEC void md4_hmac_update_64 (md4_hmac_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len)
 {
   md4_update_64 (&ctx->ipad, w0, w1, w2, w3, len);
 }
 
+DECLSPEC void md4_hmac_update (md4_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void md4_hmac_update (md4_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   md4_update (&ctx->ipad, w, len);
 }
 
+DECLSPEC void md4_hmac_update_swap (md4_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void md4_hmac_update_swap (md4_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   md4_update_swap (&ctx->ipad, w, len);
 }
 
+DECLSPEC void md4_hmac_update_utf16le (md4_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void md4_hmac_update_utf16le (md4_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   md4_update_utf16le (&ctx->ipad, w, len);
 }
 
+DECLSPEC void md4_hmac_update_utf16le_swap (md4_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void md4_hmac_update_utf16le_swap (md4_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   md4_update_utf16le_swap (&ctx->ipad, w, len);
 }
 
+DECLSPEC void md4_hmac_update_global (md4_hmac_ctx_t *ctx, const __global u32 *w, const int len);
 DECLSPEC void md4_hmac_update_global (md4_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   md4_update_global (&ctx->ipad, w, len);
 }
 
+DECLSPEC void md4_hmac_update_global_swap (md4_hmac_ctx_t *ctx, const __global u32 *w, const int len);
 DECLSPEC void md4_hmac_update_global_swap (md4_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   md4_update_global_swap (&ctx->ipad, w, len);
 }
 
+DECLSPEC void md4_hmac_update_global_utf16le (md4_hmac_ctx_t *ctx, const __global u32 *w, const int len);
 DECLSPEC void md4_hmac_update_global_utf16le (md4_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   md4_update_global_utf16le (&ctx->ipad, w, len);
 }
 
+DECLSPEC void md4_hmac_update_global_utf16le_swap (md4_hmac_ctx_t *ctx, const __global u32 *w, const int len);
 DECLSPEC void md4_hmac_update_global_utf16le_swap (md4_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   md4_update_global_utf16le_swap (&ctx->ipad, w, len);
 }
 
+DECLSPEC void md4_hmac_final (md4_hmac_ctx_t *ctx);
 DECLSPEC void md4_hmac_final (md4_hmac_ctx_t *ctx)
 {
   md4_final (&ctx->ipad);
@@ -1110,6 +1137,7 @@ typedef struct md4_ctx_vector
 
 } md4_ctx_vector_t;
 
+DECLSPEC void md4_transform_vector (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u32x *digest);
 DECLSPEC void md4_transform_vector (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u32x *digest)
 {
   u32x a = digest[0];
@@ -1174,6 +1202,7 @@ DECLSPEC void md4_transform_vector (const u32x *w0, const u32x *w1, const u32x *
   digest[3] += d;
 }
 
+DECLSPEC void md4_init_vector (md4_ctx_vector_t *ctx);
 DECLSPEC void md4_init_vector (md4_ctx_vector_t *ctx)
 {
   ctx->h[0] = MD4M_A;
@@ -1201,6 +1230,7 @@ DECLSPEC void md4_init_vector (md4_ctx_vector_t *ctx)
   ctx->len = 0;
 }
 
+DECLSPEC void md4_init_vector_from_scalar (md4_ctx_vector_t *ctx, md4_ctx_t *ctx0);
 DECLSPEC void md4_init_vector_from_scalar (md4_ctx_vector_t *ctx, md4_ctx_t *ctx0)
 {
   ctx->h[0] = ctx0->h[0];
@@ -1228,9 +1258,10 @@ DECLSPEC void md4_init_vector_from_scalar (md4_ctx_vector_t *ctx, md4_ctx_t *ctx
   ctx->len = ctx0->len;
 }
 
+DECLSPEC void md4_update_vector_64 (md4_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, const int len);
 DECLSPEC void md4_update_vector_64 (md4_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, const int len)
 {
-  MAYBE_VOLATILE const int pos = ctx->len & 63;
+  const int pos = ctx->len & 63;
 
   ctx->len += len;
 
@@ -1302,6 +1333,7 @@ DECLSPEC void md4_update_vector_64 (md4_ctx_vector_t *ctx, u32x *w0, u32x *w1, u
   }
 }
 
+DECLSPEC void md4_update_vector (md4_ctx_vector_t *ctx, const u32x *w, const int len);
 DECLSPEC void md4_update_vector (md4_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
@@ -1354,6 +1386,7 @@ DECLSPEC void md4_update_vector (md4_ctx_vector_t *ctx, const u32x *w, const int
   md4_update_vector_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
+DECLSPEC void md4_update_vector_swap (md4_ctx_vector_t *ctx, const u32x *w, const int len);
 DECLSPEC void md4_update_vector_swap (md4_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
@@ -1440,6 +1473,7 @@ DECLSPEC void md4_update_vector_swap (md4_ctx_vector_t *ctx, const u32x *w, cons
   md4_update_vector_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
+DECLSPEC void md4_update_vector_utf16le (md4_ctx_vector_t *ctx, const u32x *w, const int len);
 DECLSPEC void md4_update_vector_utf16le (md4_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
@@ -1482,6 +1516,7 @@ DECLSPEC void md4_update_vector_utf16le (md4_ctx_vector_t *ctx, const u32x *w, c
   md4_update_vector_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
+DECLSPEC void md4_update_vector_utf16le_swap (md4_ctx_vector_t *ctx, const u32x *w, const int len);
 DECLSPEC void md4_update_vector_utf16le_swap (md4_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
@@ -1558,9 +1593,10 @@ DECLSPEC void md4_update_vector_utf16le_swap (md4_ctx_vector_t *ctx, const u32x 
   md4_update_vector_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
+DECLSPEC void md4_final_vector (md4_ctx_vector_t *ctx);
 DECLSPEC void md4_final_vector (md4_ctx_vector_t *ctx)
 {
-  MAYBE_VOLATILE const int pos = ctx->len & 63;
+  const int pos = ctx->len & 63;
 
   append_0x80_4x4 (ctx->w0, ctx->w1, ctx->w2, ctx->w3, pos);
 
@@ -1601,6 +1637,7 @@ typedef struct md4_hmac_ctx_vector
 
 } md4_hmac_ctx_vector_t;
 
+DECLSPEC void md4_hmac_init_vector_64 (md4_hmac_ctx_vector_t *ctx, const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3);
 DECLSPEC void md4_hmac_init_vector_64 (md4_hmac_ctx_vector_t *ctx, const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3)
 {
   u32x t0[4];
@@ -1655,6 +1692,7 @@ DECLSPEC void md4_hmac_init_vector_64 (md4_hmac_ctx_vector_t *ctx, const u32x *w
   md4_update_vector_64 (&ctx->opad, t0, t1, t2, t3, 64);
 }
 
+DECLSPEC void md4_hmac_init_vector (md4_hmac_ctx_vector_t *ctx, const u32x *w, const int len);
 DECLSPEC void md4_hmac_init_vector (md4_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
@@ -1712,16 +1750,19 @@ DECLSPEC void md4_hmac_init_vector (md4_hmac_ctx_vector_t *ctx, const u32x *w, c
   md4_hmac_init_vector_64 (ctx, w0, w1, w2, w3);
 }
 
+DECLSPEC void md4_hmac_update_vector_64 (md4_hmac_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, const int len);
 DECLSPEC void md4_hmac_update_vector_64 (md4_hmac_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, const int len)
 {
   md4_update_vector_64 (&ctx->ipad, w0, w1, w2, w3, len);
 }
 
+DECLSPEC void md4_hmac_update_vector (md4_hmac_ctx_vector_t *ctx, const u32x *w, const int len);
 DECLSPEC void md4_hmac_update_vector (md4_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   md4_update_vector (&ctx->ipad, w, len);
 }
 
+DECLSPEC void md4_hmac_final_vector (md4_hmac_ctx_vector_t *ctx);
 DECLSPEC void md4_hmac_final_vector (md4_hmac_ctx_vector_t *ctx)
 {
   md4_final_vector (&ctx->ipad);

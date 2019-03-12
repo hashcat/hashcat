@@ -403,12 +403,13 @@
 
 // 128 bit key
 
+DECLSPEC void serpent128_set_key (u32 *ks, const u32 *ukey);
 DECLSPEC void serpent128_set_key (u32 *ks, const u32 *ukey)
 {
   #ifdef _unroll
   #pragma unroll
   #endif
-  for (volatile int i = 0; i < 4; i++)
+  for (int i = 0; i < 4; i++)
   {
     ks[i] = ukey[i];
   }
@@ -416,7 +417,7 @@ DECLSPEC void serpent128_set_key (u32 *ks, const u32 *ukey)
   #ifdef _unroll
   #pragma unroll
   #endif
-  for (volatile int i = 4; i < 8; i++)
+  for (int i = 4; i < 8; i++)
   {
     ks[i] = 0;
   }
@@ -426,7 +427,7 @@ DECLSPEC void serpent128_set_key (u32 *ks, const u32 *ukey)
   #ifdef _unroll
   #pragma unroll
   #endif
-  for (volatile int i = 0; i < 132; i++)
+  for (int i = 0; i < 132; i++)
   {
     ks[i + 8] = rotl32_S (ks[i + 7] ^ ks[i + 5] ^ ks[i + 3] ^ ks[i + 0] ^ 0x9e3779b9 ^ i, 11);
   }
@@ -469,6 +470,7 @@ DECLSPEC void serpent128_set_key (u32 *ks, const u32 *ukey)
   k_set(32,a,b,c,d); sb3(a,b,c,d,e,f,g,h); k_get(32,e,f,g,h);
 }
 
+DECLSPEC void serpent128_encrypt (const u32 *ks, const u32 *in, u32 *out);
 DECLSPEC void serpent128_encrypt (const u32 *ks, const u32 *in, u32 *out)
 {
   u32  a,b,c,d,e,f,g,h;
@@ -519,6 +521,7 @@ DECLSPEC void serpent128_encrypt (const u32 *ks, const u32 *in, u32 *out)
   out[3] = d;
 }
 
+DECLSPEC void serpent128_decrypt (const u32 *ks, const u32 *in, u32 *out);
 DECLSPEC void serpent128_decrypt (const u32 *ks, const u32 *in, u32 *out)
 {
   u32  a,b,c,d,e,f,g,h;
@@ -571,12 +574,13 @@ DECLSPEC void serpent128_decrypt (const u32 *ks, const u32 *in, u32 *out)
 
 // 256 bit key
 
+DECLSPEC void serpent256_set_key (u32 *ks, const u32 *ukey);
 DECLSPEC void serpent256_set_key (u32 *ks, const u32 *ukey)
 {
   #ifdef _unroll
   #pragma unroll
   #endif
-  for (volatile int i = 0; i < 8; i++)
+  for (int i = 0; i < 8; i++)
   {
     ks[i] = ukey[i];
   }
@@ -584,7 +588,7 @@ DECLSPEC void serpent256_set_key (u32 *ks, const u32 *ukey)
   #ifdef _unroll
   #pragma unroll
   #endif
-  for (volatile int i = 0; i < 132; i++)
+  for (int i = 0; i < 132; i++)
   {
     ks[i + 8] = rotl32_S (ks[i + 7] ^ ks[i + 5] ^ ks[i + 3] ^ ks[i + 0] ^ 0x9e3779b9 ^ i, 11);
   }
@@ -627,6 +631,7 @@ DECLSPEC void serpent256_set_key (u32 *ks, const u32 *ukey)
   k_set(32,a,b,c,d); sb3(a,b,c,d,e,f,g,h); k_get(32,e,f,g,h);
 }
 
+DECLSPEC void serpent256_encrypt (const u32 *ks, const u32 *in, u32 *out);
 DECLSPEC void serpent256_encrypt (const u32 *ks, const u32 *in, u32 *out)
 {
   u32  a,b,c,d,e,f,g,h;
@@ -677,6 +682,7 @@ DECLSPEC void serpent256_encrypt (const u32 *ks, const u32 *in, u32 *out)
   out[3] = d;
 }
 
+DECLSPEC void serpent256_decrypt (const u32 *ks, const u32 *in, u32 *out);
 DECLSPEC void serpent256_decrypt (const u32 *ks, const u32 *in, u32 *out)
 {
   u32  a,b,c,d,e,f,g,h;
@@ -726,3 +732,25 @@ DECLSPEC void serpent256_decrypt (const u32 *ks, const u32 *in, u32 *out)
   out[2] = c;
   out[3] = d;
 }
+
+#undef sb0
+#undef sb1
+#undef sb2
+#undef sb3
+#undef sb4
+#undef sb5
+#undef sb6
+#undef sb7
+#undef ib0
+#undef ib1
+#undef ib2
+#undef ib3
+#undef ib4
+#undef ib5
+#undef ib6
+#undef ib7
+#undef k_xor
+#undef k_set
+#undef k_get
+#undef rot
+#undef irot

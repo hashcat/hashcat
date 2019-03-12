@@ -13,6 +13,12 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct androidpin_tmp
+{
+  u32 digest_buf[5];
+
+} androidpin_tmp_t;
+
 __constant u32a c_pc_dec[1024] =
 {
   0x00000030,
@@ -2069,135 +2075,7 @@ __constant u32a c_pc_len[1024] =
   4
 };
 
-DECLSPEC void append_word (u32 *w0, u32 *w1, const u32 *append, const u32 offset)
-{
-  switch (offset)
-  {
-    case 1:
-      w0[0] = w0[0]           | append[0] <<  8;
-      w0[1] = append[0] >> 24 | append[1] <<  8;
-      w0[2] = append[1] >> 24 | append[2] <<  8;
-      w0[3] = append[2] >> 24 | append[3] <<  8;
-      break;
-
-    case 2:
-      w0[0] = w0[0]           | append[0] << 16;
-      w0[1] = append[0] >> 16 | append[1] << 16;
-      w0[2] = append[1] >> 16 | append[2] << 16;
-      w0[3] = append[2] >> 16 | append[3] << 16;
-      break;
-
-    case 3:
-      w0[0] = w0[0]           | append[0] << 24;
-      w0[1] = append[0] >>  8 | append[1] << 24;
-      w0[2] = append[1] >>  8 | append[2] << 24;
-      w0[3] = append[2] >>  8 | append[3] << 24;
-      break;
-
-    case 4:
-      w0[1] = append[0];
-      w0[2] = append[1];
-      w0[3] = append[2];
-      w1[0] = append[3];
-      break;
-  }
-}
-
-DECLSPEC void append_salt (u32 *w0, u32 *w1, u32 *w2, const u32 *append, const u32 offset)
-{
-  u32 tmp0;
-  u32 tmp1;
-  u32 tmp2;
-  u32 tmp3;
-  u32 tmp4;
-  u32 tmp5;
-
-  const int offset_mod_4 = offset & 3;
-
-  const int offset_minus_4 = 4 - offset_mod_4;
-
-  #if defined IS_AMD || defined IS_GENERIC
-  u32 in0 = swap32_S (append[0]);
-  u32 in1 = swap32_S (append[1]);
-  u32 in2 = swap32_S (append[2]);
-  u32 in3 = swap32_S (append[3]);
-  u32 in4 = swap32_S (append[4]);
-
-  tmp0 = hc_bytealign (  0, in0, offset);
-  tmp1 = hc_bytealign (in0, in1, offset);
-  tmp2 = hc_bytealign (in1, in2, offset);
-  tmp3 = hc_bytealign (in2, in3, offset);
-  tmp4 = hc_bytealign (in3, in4, offset);
-  tmp5 = hc_bytealign (in4,   0, offset);
-
-  tmp0 = swap32_S (tmp0);
-  tmp1 = swap32_S (tmp1);
-  tmp2 = swap32_S (tmp2);
-  tmp3 = swap32_S (tmp3);
-  tmp4 = swap32_S (tmp4);
-  tmp5 = swap32_S (tmp5);
-  #endif
-
-  #ifdef IS_NV
-  const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
-
-  u32 in0 = append[0];
-  u32 in1 = append[1];
-  u32 in2 = append[2];
-  u32 in3 = append[3];
-  u32 in4 = append[4];
-
-  tmp0 = hc_byte_perm (  0, in0, selector);
-  tmp1 = hc_byte_perm (in0, in1, selector);
-  tmp2 = hc_byte_perm (in1, in2, selector);
-  tmp3 = hc_byte_perm (in2, in3, selector);
-  tmp3 = hc_byte_perm (in3, in4, selector);
-  tmp4 = hc_byte_perm (in4,   0, selector);
-  #endif
-
-  const u32 div = offset / 4;
-
-  switch (div)
-  {
-    case  0:  w0[0] |= tmp0;
-              w0[1]  = tmp1;
-              w0[2]  = tmp2;
-              w0[3]  = tmp3;
-              w1[0]  = tmp4;
-              w1[1]  = tmp5;
-              break;
-    case  1:  w0[1] |= tmp0;
-              w0[2]  = tmp1;
-              w0[3]  = tmp2;
-              w1[0]  = tmp3;
-              w1[1]  = tmp4;
-              w1[2]  = tmp5;
-              break;
-    case  2:  w0[2] |= tmp0;
-              w0[3]  = tmp1;
-              w1[0]  = tmp2;
-              w1[1]  = tmp3;
-              w1[2]  = tmp4;
-              w1[3]  = tmp5;
-              break;
-    case  3:  w0[3] |= tmp0;
-              w1[0]  = tmp1;
-              w1[1]  = tmp2;
-              w1[2]  = tmp3;
-              w1[3]  = tmp4;
-              w2[0]  = tmp5;
-              break;
-    case  4:  w1[0] |= tmp0;
-              w1[1]  = tmp1;
-              w1[2]  = tmp2;
-              w1[3]  = tmp3;
-              w2[0]  = tmp4;
-              w2[1]  = tmp5;
-              break;
-  }
-}
-
-__kernel void m05800_init (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global androidpin_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m05800_init (KERN_ATTR_TMPS (androidpin_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -2227,7 +2105,7 @@ __kernel void m05800_init (__global pw_t *pws, __global const kernel_rule_t *rul
   tmps[gid].digest_buf[4] = ctx.h[4];
 }
 
-__kernel void m05800_loop (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global androidpin_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m05800_loop (KERN_ATTR_TMPS (androidpin_tmp_t))
 {
   /**
    * base
@@ -2244,7 +2122,7 @@ __kernel void m05800_loop (__global pw_t *pws, __global const kernel_rule_t *rul
   __local u32 s_pc_dec[1024];
   __local u32 s_pc_len[1024];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 1024; i += lsz)
+  for (u32 i = lid; i < 1024; i += lsz)
   {
     s_pc_dec[i] = c_pc_dec[i];
     s_pc_len[i] = c_pc_len[i];
@@ -2326,7 +2204,7 @@ __kernel void m05800_loop (__global pw_t *pws, __global const kernel_rule_t *rul
   tmps[gid].digest_buf[4] = digest[4];
 }
 
-__kernel void m05800_comp (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global androidpin_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m05800_comp (KERN_ATTR_TMPS (androidpin_tmp_t))
 {
   /**
    * modifier

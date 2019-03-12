@@ -7,6 +7,7 @@
 #include "types.h"
 #include "memory.h"
 #include "bitmap.h"
+#include "event.h"
 
 static void selftest_to_bitmap (const u32 dgst_shifts, char *digests_buf_ptr, const u32 dgst_pos0, const u32 dgst_pos1, const u32 dgst_pos2, const u32 dgst_pos3, const u32 bitmap_mask, u32 *bitmap_a, u32 *bitmap_b, u32 *bitmap_c, u32 *bitmap_d)
 {
@@ -126,6 +127,11 @@ int bitmap_ctx_init (hashcat_ctx_t *hashcat_ctx)
     if (generate_bitmaps (hashes->digests_cnt, hashconfig->dgst_size, bitmap_shift2, (char *) hashes->digests_buf, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, bitmap_mask, bitmap_size, bitmap_s1_a, bitmap_s1_b, bitmap_s1_c, bitmap_s1_d, hashes->digests_cnt / 2) == true) continue;
 
     break;
+  }
+
+  if (bitmap_bits == bitmap_max)
+  {
+    EVENT_DATA (EVENT_BITMAP_FINAL_OVERFLOW, NULL, 0);
   }
 
   bitmap_nums = 1u << bitmap_bits;

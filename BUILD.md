@@ -1,22 +1,16 @@
 hashcat build documentation
 =
 # Revision:
-* 1.3
+* 1.4
 
 # Author: see docs/credits.txt
 
-# Building hashcat for Linux and macOS
+# Building hashcat for Linux, macOS and Windows (using Cygwin or MSYS2)
 
 Get a copy of the **hashcat** repository
 
 ```sh
 $ git clone https://github.com/hashcat/hashcat.git
-```
-
-Get a copy of the **OpenCL Headers** repository
-
-```sh
-$ git submodule update --init
 ```
 
 Run "make"
@@ -35,10 +29,10 @@ $ make install
 
 If you install it, cached kernels, session files, restore- and pot-files etc. will go to $HOME/.hashcat/
 
-# Building hashcat for Windows
+# Building hashcat for Windows from Linux
 
 ```sh
-$ make win32 win64
+$ make win
 ```
 
 =

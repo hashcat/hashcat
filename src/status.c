@@ -55,10 +55,10 @@ static char *status_get_rules_file (const hashcat_ctx_t *hashcat_ctx)
 
     for (i = 0; i < user_options->rp_files_cnt - 1; i++)
     {
-      tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_TINY - tmp_len - 1, "%s, ", user_options->rp_files[i]);
+      tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_TINY - tmp_len, "%s, ", user_options->rp_files[i]);
     }
 
-    tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_TINY - tmp_len - 1, "%s", user_options->rp_files[i]);
+    tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_TINY - tmp_len, "%s", user_options->rp_files[i]);
 
     tmp_buf[tmp_len] = 0;
 
@@ -78,34 +78,34 @@ void format_timer_display (struct tm *tm, char *buf, size_t len)
     const char *time_entity1 = ((tm->tm_year - 70) == 1) ? time_entities_s[0] : time_entities_m[0];
     const char *time_entity2 = ( tm->tm_yday       == 1) ? time_entities_s[1] : time_entities_m[1];
 
-    snprintf (buf, len - 1, "%d %s, %d %s", tm->tm_year - 70, time_entity1, tm->tm_yday, time_entity2);
+    snprintf (buf, len, "%d %s, %d %s", tm->tm_year - 70, time_entity1, tm->tm_yday, time_entity2);
   }
   else if (tm->tm_yday)
   {
     const char *time_entity1 = (tm->tm_yday == 1) ? time_entities_s[1] : time_entities_m[1];
     const char *time_entity2 = (tm->tm_hour == 1) ? time_entities_s[2] : time_entities_m[2];
 
-    snprintf (buf, len - 1, "%d %s, %d %s", tm->tm_yday, time_entity1, tm->tm_hour, time_entity2);
+    snprintf (buf, len, "%d %s, %d %s", tm->tm_yday, time_entity1, tm->tm_hour, time_entity2);
   }
   else if (tm->tm_hour)
   {
     const char *time_entity1 = (tm->tm_hour == 1) ? time_entities_s[2] : time_entities_m[2];
     const char *time_entity2 = (tm->tm_min  == 1) ? time_entities_s[3] : time_entities_m[3];
 
-    snprintf (buf, len - 1, "%d %s, %d %s", tm->tm_hour, time_entity1, tm->tm_min, time_entity2);
+    snprintf (buf, len, "%d %s, %d %s", tm->tm_hour, time_entity1, tm->tm_min, time_entity2);
   }
   else if (tm->tm_min)
   {
     const char *time_entity1 = (tm->tm_min == 1) ? time_entities_s[3] : time_entities_m[3];
     const char *time_entity2 = (tm->tm_sec == 1) ? time_entities_s[4] : time_entities_m[4];
 
-    snprintf (buf, len - 1, "%d %s, %d %s", tm->tm_min, time_entity1, tm->tm_sec, time_entity2);
+    snprintf (buf, len, "%d %s, %d %s", tm->tm_min, time_entity1, tm->tm_sec, time_entity2);
   }
   else
   {
     const char *time_entity1 = (tm->tm_sec == 1) ? time_entities_s[4] : time_entities_m[4];
 
-    snprintf (buf, len - 1, "%d %s", tm->tm_sec, time_entity1);
+    snprintf (buf, len, "%d %s", tm->tm_sec, time_entity1);
   }
 }
 
@@ -133,11 +133,11 @@ void format_speed_display (double val, char *buf, size_t len)
 
   if (level == 0)
   {
-    snprintf (buf, len - 1, "%.0f ", val);
+    snprintf (buf, len, "%.0f ", val);
   }
   else
   {
-    snprintf (buf, len - 1, "%.1f %c", val, UNITS[level]);
+    snprintf (buf, len, "%.1f %c", val, UNITS[level]);
   }
 }
 
@@ -165,11 +165,11 @@ void format_speed_display_1k (double val, char *buf, size_t len)
 
   if (level == 0)
   {
-    snprintf (buf, len - 1, "%.0f ", val);
+    snprintf (buf, len, "%.0f ", val);
   }
   else
   {
-    snprintf (buf, len - 1, "%.1f %c", val, UNITS[level]);
+    snprintf (buf, len, "%.1f %c", val, UNITS[level]);
   }
 }
 
@@ -223,12 +223,37 @@ bool status_get_skipped_dev (const hashcat_ctx_t *hashcat_ctx, const int device_
   return device_param->skipped;
 }
 
+bool status_get_skipped_warning_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
+{
+  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+  return device_param->skipped_warning;
+}
+
 char *status_get_session (const hashcat_ctx_t *hashcat_ctx)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   return strdup (user_options->session);
 }
+
+#ifdef WITH_BRAIN
+int status_get_brain_session (const hashcat_ctx_t *hashcat_ctx)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  return user_options->brain_session;
+}
+
+int status_get_brain_attack (const hashcat_ctx_t *hashcat_ctx)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  return user_options->brain_attack;
+}
+#endif
 
 const char *status_get_status_string (const hashcat_ctx_t *hashcat_ctx)
 {
@@ -273,96 +298,64 @@ int status_get_status_number (const hashcat_ctx_t *hashcat_ctx)
   return status_ctx->devices_status;
 }
 
-const char *status_get_hash_type (const hashcat_ctx_t *hashcat_ctx)
+char *status_get_hash_name (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
-  return strhashtype (hashconfig->hash_mode);
+  return hcstrdup (hashconfig->hash_name);
 }
 
-const char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
+char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
   const hashes_t     *hashes     = hashcat_ctx->hashes;
+  const module_ctx_t *module_ctx = hashcat_ctx->module_ctx;
 
   if (hashes->digests_cnt == 1)
   {
-    if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
-    {
-      char *tmp_buf;
-
-      wpa_eapol_t *wpa_eapol = (wpa_eapol_t *) hashes->esalts_buf;
-
-      hc_asprintf (&tmp_buf, "%s (AP:%02x:%02x:%02x:%02x:%02x:%02x STA:%02x:%02x:%02x:%02x:%02x:%02x)",
-        (char *) hashes->salts_buf[0].salt_buf,
-        wpa_eapol->orig_mac_ap[0],
-        wpa_eapol->orig_mac_ap[1],
-        wpa_eapol->orig_mac_ap[2],
-        wpa_eapol->orig_mac_ap[3],
-        wpa_eapol->orig_mac_ap[4],
-        wpa_eapol->orig_mac_ap[5],
-        wpa_eapol->orig_mac_sta[0],
-        wpa_eapol->orig_mac_sta[1],
-        wpa_eapol->orig_mac_sta[2],
-        wpa_eapol->orig_mac_sta[3],
-        wpa_eapol->orig_mac_sta[4],
-        wpa_eapol->orig_mac_sta[5]);
-
-      return tmp_buf;
-    }
-    else if (hashconfig->hash_mode == 5200)
-    {
-      return hashes->hashfile;
-    }
-    else if (hashconfig->hash_mode == 9000)
-    {
-      return hashes->hashfile;
-    }
-    else if ((hashconfig->hash_mode >= 6200) && (hashconfig->hash_mode <= 6299))
-    {
-      return hashes->hashfile;
-    }
-    else if ((hashconfig->hash_mode >= 13700) && (hashconfig->hash_mode <= 13799))
-    {
-      return hashes->hashfile;
-    }
-    else
+    if (module_ctx->module_hash_encode_status != MODULE_DEFAULT)
     {
       char *tmp_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
-      tmp_buf[0] = 0;
+      const int tmp_len = module_ctx->module_hash_encode_status (hashconfig, hashes->digests_buf, hashes->salts_buf, hashes->esalts_buf, hashes->hook_salts_buf, NULL, tmp_buf, HCBUFSIZ_LARGE);
 
-      ascii_digest ((hashcat_ctx_t *) hashcat_ctx, tmp_buf, HCBUFSIZ_LARGE, 0, 0);
+      char *tmp_buf2 = (char *) hcmalloc (tmp_len + 1);
 
-      compress_terminal_line_length (tmp_buf, 19, 6); // 19 = strlen ("Hash.Target......: ")
+      memcpy (tmp_buf2, tmp_buf, tmp_len);
 
-      char *tmp_buf2 = strdup (tmp_buf);
+      tmp_buf2[tmp_len] = 0;
 
       free (tmp_buf);
 
       return tmp_buf2;
     }
+    else
+    {
+      if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
+      {
+        return hcstrdup (hashes->hashfile);
+      }
+      else
+      {
+        char *tmp_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
+
+        const int tmp_len = ascii_digest (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, tmp_buf, HCBUFSIZ_LARGE, 0, 0);
+
+        tmp_buf[tmp_len] = 0;
+
+        compress_terminal_line_length (tmp_buf, 19, 6); // 19 = strlen ("Hash.Target......: ")
+
+        char *tmp_buf2 = strdup (tmp_buf);
+
+        free (tmp_buf);
+
+        return tmp_buf2;
+      }
+    }
   }
   else
   {
-    if (hashconfig->hash_mode == 3000)
-    {
-      char *tmp_buf;
-
-      char out_buf1[64] = { 0 };
-      char out_buf2[64] = { 0 };
-
-      ascii_digest ((hashcat_ctx_t *) hashcat_ctx, out_buf1, sizeof (out_buf1), 0, 0);
-      ascii_digest ((hashcat_ctx_t *) hashcat_ctx, out_buf2, sizeof (out_buf2), 0, 1);
-
-      hc_asprintf (&tmp_buf, "%s, %s", out_buf1, out_buf2);
-
-      return tmp_buf;
-    }
-    else
-    {
-      return hashes->hashfile;
-    }
+    return hcstrdup (hashes->hashfile);
   }
 }
 
@@ -855,16 +848,21 @@ char *status_get_guess_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const i
 
   char *display = (char *) hcmalloc (HCBUFSIZ_TINY);
 
+  if ((device_param->skipped == true) || (device_param->skipped_warning == true))
+  {
+    snprintf (display, HCBUFSIZ_TINY, "[Skipped]");
+
+    return display;
+  }
+
   if (user_options_extra->attack_kern == ATTACK_KERN_BF)
   {
-    snprintf (display, HCBUFSIZ_TINY - 1, "[Generating]");
+    snprintf (display, HCBUFSIZ_TINY, "[Generating]");
   }
   else
   {
-    snprintf (display, HCBUFSIZ_TINY - 1, "[Copying]");
+    snprintf (display, HCBUFSIZ_TINY, "[Copying]");
   }
-
-  if (device_param->skipped == true) return display;
 
   if ((device_param->outerloop_left == 0) || (device_param->innerloop_left == 0)) return display;
 
@@ -874,8 +872,8 @@ char *status_get_guess_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const i
   const u32 innerloop_first = 0;
   const u32 innerloop_last  = device_param->innerloop_left - 1;
 
-  plain_t plain1 = { 0, 0, 0, outerloop_first, innerloop_first };
-  plain_t plain2 = { 0, 0, 0, outerloop_last,  innerloop_last  };
+  plain_t plain1 = { outerloop_first, innerloop_first, 0, 0, 0 };
+  plain_t plain2 = { outerloop_last,  innerloop_last,  0, 0, 0 };
 
   u32 plain_buf1[(64 * 2) + 2] = { 0 };
   u32 plain_buf2[(64 * 2) + 2] = { 0 };
@@ -889,7 +887,7 @@ char *status_get_guess_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const i
   build_plain ((hashcat_ctx_t *) hashcat_ctx, device_param, &plain1, plain_buf1, &plain_len1);
   build_plain ((hashcat_ctx_t *) hashcat_ctx, device_param, &plain2, plain_buf2, &plain_len2);
 
-  const bool always_ascii = (hashconfig->hash_type & OPTS_TYPE_PT_ALWAYS_ASCII) ? true : false;
+  const bool always_ascii = (hashconfig->opts_type & OPTS_TYPE_PT_ALWAYS_ASCII) ? true : false;
 
   const bool need_hex1 = need_hexify (plain_ptr1, plain_len1, 0, always_ascii);
   const bool need_hex2 = need_hexify (plain_ptr2, plain_len2, 0, always_ascii);
@@ -902,14 +900,14 @@ char *status_get_guess_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const i
     plain_ptr1[plain_len1 * 2] = 0;
     plain_ptr2[plain_len2 * 2] = 0;
 
-    snprintf (display, HCBUFSIZ_TINY - 1, "$HEX[%s] -> $HEX[%s]", plain_ptr1, plain_ptr2);
+    snprintf (display, HCBUFSIZ_TINY, "$HEX[%s] -> $HEX[%s]", plain_ptr1, plain_ptr2);
   }
   else
   {
     plain_ptr1[plain_len1] = 0;
     plain_ptr2[plain_len2] = 0;
 
-    snprintf (display, HCBUFSIZ_TINY - 1, "%s -> %s", plain_ptr1, plain_ptr2);
+    snprintf (display, HCBUFSIZ_TINY, "%s -> %s", plain_ptr1, plain_ptr2);
   }
 
   return display;
@@ -1144,13 +1142,13 @@ char *status_get_time_estimated_relative (const hashcat_ctx_t *hashcat_ctx)
 
       format_timer_display (tmp_left, display_left, HCBUFSIZ_TINY);
 
-      snprintf (display, HCBUFSIZ_TINY - 1, "%s; Runtime limited: %s", tmp_display, display_left);
+      snprintf (display, HCBUFSIZ_TINY, "%s; Runtime limited: %s", tmp_display, display_left);
 
       free (display_left);
     }
     else
     {
-      snprintf (display, HCBUFSIZ_TINY - 1, "%s; Runtime limit exceeded", tmp_display);
+      snprintf (display, HCBUFSIZ_TINY, "%s; Runtime limit exceeded", tmp_display);
     }
 
     free (tmp_display);
@@ -1335,9 +1333,16 @@ u64 status_get_progress_end (const hashcat_ctx_t *hashcat_ctx)
 
     progress_end = MIN (user_options->limit, status_ctx->words_base) * hashes->salts_cnt;
 
-    if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) progress_end  *= straight_ctx->kernel_rules_cnt;
-    else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)    progress_end  *= combinator_ctx->combs_cnt;
-    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)       progress_end  *= mask_ctx->bfs_cnt;
+    if (user_options->slow_candidates == true)
+    {
+      // nothing to do
+    }
+    else
+    {
+      if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) progress_end  *= straight_ctx->kernel_rules_cnt;
+      else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)    progress_end  *= combinator_ctx->combs_cnt;
+      else if (user_options_extra->attack_kern == ATTACK_KERN_BF)       progress_end  *= mask_ctx->bfs_cnt;
+    }
   }
 
   return progress_end;
@@ -1360,9 +1365,16 @@ u64 status_get_progress_skip (const hashcat_ctx_t *hashcat_ctx)
 
     progress_skip = MIN (user_options->skip, status_ctx->words_base) * hashes->salts_cnt;
 
-    if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) progress_skip *= straight_ctx->kernel_rules_cnt;
-    else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)    progress_skip *= combinator_ctx->combs_cnt;
-    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)       progress_skip *= mask_ctx->bfs_cnt;
+    if (user_options->slow_candidates == true)
+    {
+      // nothing to do
+    }
+    else
+    {
+      if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) progress_skip *= straight_ctx->kernel_rules_cnt;
+      else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)    progress_skip *= combinator_ctx->combs_cnt;
+      else if (user_options_extra->attack_kern == ATTACK_KERN_BF)       progress_skip *= mask_ctx->bfs_cnt;
+    }
   }
 
   return progress_skip;
@@ -1421,7 +1433,7 @@ double status_get_hashes_msec_dev (const hashcat_ctx_t *hashcat_ctx, const int d
 
   hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
-  if (device_param->skipped == false)
+  if ((device_param->skipped == false) && (device_param->skipped_warning == false))
   {
     const u32 speed_pos = MAX (device_param->speed_pos, 1);
 
@@ -1456,7 +1468,7 @@ double status_get_hashes_msec_dev_benchmark (const hashcat_ctx_t *hashcat_ctx, c
 
   hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
-  if (device_param->skipped == false)
+  if ((device_param->skipped == false) && (device_param->skipped_warning == false))
   {
     const u32 speed_pos = MAX (device_param->speed_pos, 1);
 
@@ -1496,7 +1508,7 @@ double status_get_exec_msec_dev (const hashcat_ctx_t *hashcat_ctx, const int dev
 
   double exec_dev_msec = 0;
 
-  if (device_param->skipped == false)
+  if ((device_param->skipped == false) && (device_param->skipped_warning == false))
   {
     exec_dev_msec = get_avg_exec_time (device_param, EXEC_CACHE);
   }
@@ -1696,7 +1708,7 @@ int status_get_salt_pos_dev (const hashcat_ctx_t *hashcat_ctx, const int device_
 
   int salt_pos = 0;
 
-  if (device_param->skipped == false)
+  if ((device_param->skipped == false) && (device_param->skipped_warning == false))
   {
     salt_pos = (int) device_param->kernel_params_buf32[27];
   }
@@ -1712,7 +1724,7 @@ int status_get_innerloop_pos_dev (const hashcat_ctx_t *hashcat_ctx, const int de
 
   int innerloop_pos = 0;
 
-  if (device_param->skipped == false)
+  if ((device_param->skipped == false) && (device_param->skipped_warning == false))
   {
     innerloop_pos = (int) device_param->innerloop_pos;
   }
@@ -1728,7 +1740,7 @@ int status_get_innerloop_left_dev (const hashcat_ctx_t *hashcat_ctx, const int d
 
   int innerloop_left = 0;
 
-  if (device_param->skipped == false)
+  if ((device_param->skipped == false) && (device_param->skipped_warning == false))
   {
     innerloop_left = (int) device_param->innerloop_left;
   }
@@ -1744,7 +1756,7 @@ int status_get_iteration_pos_dev (const hashcat_ctx_t *hashcat_ctx, const int de
 
   int iteration_pos = 0;
 
-  if (device_param->skipped == false)
+  if ((device_param->skipped == false) && (device_param->skipped_warning == false))
   {
     iteration_pos = (int) device_param->kernel_params_buf32[28];
   }
@@ -1760,13 +1772,143 @@ int status_get_iteration_left_dev (const hashcat_ctx_t *hashcat_ctx, const int d
 
   int iteration_left = 0;
 
-  if (device_param->skipped == false)
+  if ((device_param->skipped == false) && (device_param->skipped_warning == false))
   {
     iteration_left = (int) device_param->kernel_params_buf32[29];
   }
 
   return iteration_left;
 }
+
+#ifdef WITH_BRAIN
+int status_get_brain_link_client_id_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
+{
+  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+  int brain_client_id = -1;
+
+  if ((device_param->skipped == false) && (device_param->skipped_warning == false))
+  {
+    brain_client_id = device_param->brain_link_client_fd;
+  }
+
+  return brain_client_id;
+}
+
+int status_get_brain_link_status_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
+{
+  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+  int brain_link_status_dev = 0;
+
+  if ((device_param->skipped == false) && (device_param->skipped_warning == false))
+  {
+    if (device_param->brain_link_client_fd   != -1)   brain_link_status_dev = BRAIN_LINK_STATUS_CONNECTED;
+    if (device_param->brain_link_recv_active == true) brain_link_status_dev = BRAIN_LINK_STATUS_RECEIVING;
+    if (device_param->brain_link_send_active == true) brain_link_status_dev = BRAIN_LINK_STATUS_SENDING;
+  }
+
+  return brain_link_status_dev;
+}
+
+char *status_get_brain_link_recv_bytes_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
+{
+  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+  u64 brain_link_recv_bytes = 0;
+
+  if ((device_param->skipped == false) && (device_param->skipped_warning == false))
+  {
+    brain_link_recv_bytes = device_param->brain_link_recv_bytes;
+  }
+
+  char *display = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+  format_speed_display_1k (brain_link_recv_bytes, display, HCBUFSIZ_TINY);
+
+  return display;
+}
+
+char *status_get_brain_link_send_bytes_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
+{
+  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+  u64 brain_link_send_bytes = 0;
+
+  if ((device_param->skipped == false) && (device_param->skipped_warning == false))
+  {
+    brain_link_send_bytes = device_param->brain_link_send_bytes;
+  }
+
+  char *display = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+  format_speed_display_1k (brain_link_send_bytes, display, HCBUFSIZ_TINY);
+
+  return display;
+}
+
+char *status_get_brain_link_recv_bytes_sec_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
+{
+  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+  u64 brain_link_recv_bytes = 0;
+
+  if ((device_param->skipped == false) && (device_param->skipped_warning == false))
+  {
+    for (int idx = 0; idx < LINK_SPEED_COUNT; idx++)
+    {
+      double ms = hc_timer_get (device_param->brain_link_recv_speed.timer[idx]);
+
+      if (ms >= 1000) continue;
+
+      brain_link_recv_bytes += device_param->brain_link_recv_speed.bytes[idx];
+    }
+  }
+
+  char *display = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+  snprintf (display, HCBUFSIZ_TINY, "%.2f M", (double) (brain_link_recv_bytes * 8) / 1024 / 1024);
+
+  return display;
+}
+
+char *status_get_brain_link_send_bytes_sec_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
+{
+  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+  u64 brain_link_send_bytes = 0;
+
+  if ((device_param->skipped == false) && (device_param->skipped_warning == false))
+  {
+    for (int idx = 0; idx < LINK_SPEED_COUNT; idx++)
+    {
+      double ms = hc_timer_get (device_param->brain_link_send_speed.timer[idx]);
+
+      if (ms >= 1000) continue;
+
+      brain_link_send_bytes += device_param->brain_link_send_speed.bytes[idx];
+    }
+  }
+
+  char *display = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+ snprintf (display, HCBUFSIZ_TINY, "%.2f M", (double) (brain_link_send_bytes * 8) / 1024 / 1024);
+
+  return display;
+}
+#endif
 
 char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
@@ -1776,9 +1918,11 @@ char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int device_i
 
   char *output_buf = (char *) hcmalloc (HCBUFSIZ_TINY);
 
-  snprintf (output_buf, HCBUFSIZ_TINY - 1, "N/A");
+  snprintf (output_buf, HCBUFSIZ_TINY, "N/A");
 
   if (device_param->skipped == true) return output_buf;
+
+  if (device_param->skipped_warning == true) return output_buf;
 
   status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
@@ -1831,7 +1975,7 @@ char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int device_i
   }
   else
   {
-    snprintf (output_buf, HCBUFSIZ_TINY - 1, "N/A");
+    snprintf (output_buf, HCBUFSIZ_TINY, "N/A");
   }
 
   hc_thread_mutex_unlock (status_ctx->mux_hwmon);
@@ -1846,6 +1990,8 @@ int status_get_corespeed_dev (const hashcat_ctx_t *hashcat_ctx, const int device
   hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
   if (device_param->skipped == true) return -1;
+
+  if (device_param->skipped_warning == true) return -1;
 
   status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
@@ -1866,6 +2012,8 @@ int status_get_memoryspeed_dev (const hashcat_ctx_t *hashcat_ctx, const int devi
 
   if (device_param->skipped == true) return -1;
 
+  if (device_param->skipped_warning == true) return -1;
+
   status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
   hc_thread_mutex_lock (status_ctx->mux_hwmon);
@@ -1885,6 +2033,8 @@ u64 status_get_progress_dev (const hashcat_ctx_t *hashcat_ctx, const int device_
 
   if (device_param->skipped == true) return 0;
 
+  if (device_param->skipped_warning == true) return 0;
+
   return device_param->outerloop_left;
 }
 
@@ -1896,6 +2046,8 @@ double status_get_runtime_msec_dev (const hashcat_ctx_t *hashcat_ctx, const int 
 
   if (device_param->skipped == true) return 0;
 
+  if (device_param->skipped_warning == true) return 0;
+
   return device_param->outerloop_msec;
 }
 
@@ -1906,6 +2058,8 @@ int status_get_kernel_accel_dev (const hashcat_ctx_t *hashcat_ctx, const int dev
   hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
   if (device_param->skipped == true) return 0;
+
+  if (device_param->skipped_warning == true) return 0;
 
   if (device_param->kernel_accel_prev) return device_param->kernel_accel_prev;
 
@@ -1920,6 +2074,8 @@ int status_get_kernel_loops_dev (const hashcat_ctx_t *hashcat_ctx, const int dev
 
   if (device_param->skipped == true) return 0;
 
+  if (device_param->skipped_warning == true) return 0;
+
   if (device_param->kernel_loops_prev) return device_param->kernel_loops_prev;
 
   return device_param->kernel_loops;
@@ -1933,6 +2089,8 @@ int status_get_kernel_threads_dev (const hashcat_ctx_t *hashcat_ctx, const int d
 
   if (device_param->skipped == true) return 0;
 
+  if (device_param->skipped_warning == true) return 0;
+
   return device_param->kernel_threads;
 }
 
@@ -1943,6 +2101,8 @@ int status_get_vector_width_dev (const hashcat_ctx_t *hashcat_ctx, const int dev
   hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
   if (device_param->skipped == true) return 0;
+
+  if (device_param->skipped_warning == true) return 0;
 
   return device_param->vector_width;
 }
@@ -2031,6 +2191,8 @@ void status_status_destroy (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashca
 
   if (status_ctx->accessible == false) return;
 
+  hcfree (hashcat_status->hash_target);
+  hcfree (hashcat_status->hash_name);
   hcfree (hashcat_status->session);
   hcfree (hashcat_status->time_estimated_absolute);
   hcfree (hashcat_status->time_estimated_relative);
@@ -2042,6 +2204,8 @@ void status_status_destroy (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashca
   hcfree (hashcat_status->guess_charset);
   hcfree (hashcat_status->cpt);
 
+  hashcat_status->hash_target             = NULL;
+  hashcat_status->hash_name               = NULL;
   hashcat_status->session                 = NULL;
   hashcat_status->time_estimated_absolute = NULL;
   hashcat_status->time_estimated_relative = NULL;
@@ -2060,9 +2224,21 @@ void status_status_destroy (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashca
     hcfree (device_info->speed_sec_dev);
     hcfree (device_info->guess_candidates_dev);
     hcfree (device_info->hwmon_dev);
+    #ifdef WITH_BRAIN
+    hcfree (device_info->brain_link_recv_bytes_dev);
+    hcfree (device_info->brain_link_send_bytes_dev);
+    hcfree (device_info->brain_link_recv_bytes_sec_dev);
+    hcfree (device_info->brain_link_send_bytes_sec_dev);
+    #endif
 
     device_info->speed_sec_dev                  = NULL;
     device_info->guess_candidates_dev           = NULL;
     device_info->hwmon_dev                      = NULL;
+    #ifdef WITH_BRAIN
+    device_info->brain_link_recv_bytes_dev      = NULL;
+    device_info->brain_link_send_bytes_dev      = NULL;
+    device_info->brain_link_recv_bytes_sec_dev  = NULL;
+    device_info->brain_link_send_bytes_sec_dev  = NULL;
+    #endif
   }
 }

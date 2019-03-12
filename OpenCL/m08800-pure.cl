@@ -15,6 +15,22 @@
 #include "inc_hash_sha256.cl"
 #include "inc_cipher_aes.cl"
 
+typedef struct androidfde_tmp
+{
+  u32 ipad[5];
+  u32 opad[5];
+
+  u32 dgst[10];
+  u32 out[10];
+
+} androidfde_tmp_t;
+
+typedef struct androidfde
+{
+  u32 data[384];
+
+} androidfde_t;
+
 DECLSPEC void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
 {
   digest[0] = ipad[0];
@@ -51,7 +67,7 @@ DECLSPEC void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipa
   sha1_transform_vector (w0, w1, w2, w3, digest);
 }
 
-__kernel void m08800_init (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global androidfde_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const androidfde_t *androidfde_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m08800_init (KERN_ATTR_TMPS_ESALT (androidfde_tmp_t, androidfde_t))
 {
   /**
    * base
@@ -123,7 +139,7 @@ __kernel void m08800_init (__global pw_t *pws, __global const kernel_rule_t *rul
   }
 }
 
-__kernel void m08800_loop (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global androidfde_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const androidfde_t *androidfde_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m08800_loop (KERN_ATTR_TMPS_ESALT (androidfde_tmp_t, androidfde_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -208,7 +224,7 @@ __kernel void m08800_loop (__global pw_t *pws, __global const kernel_rule_t *rul
   }
 }
 
-__kernel void m08800_comp (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global androidfde_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const androidfde_t *androidfde_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m08800_comp (KERN_ATTR_TMPS_ESALT (androidfde_tmp_t, androidfde_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -232,7 +248,7 @@ __kernel void m08800_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   __local u32 s_te3[256];
   __local u32 s_te4[256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_td0[i] = td0[i];
     s_td1[i] = td1[i];
@@ -366,10 +382,10 @@ __kernel void m08800_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
     // 3. decrypt real data, xor essiv afterwards
 
-    data[0] = androidfde_bufs[digests_offset].data[0];
-    data[1] = androidfde_bufs[digests_offset].data[1];
-    data[2] = androidfde_bufs[digests_offset].data[2];
-    data[3] = androidfde_bufs[digests_offset].data[3];
+    data[0] = esalt_bufs[digests_offset].data[0];
+    data[1] = esalt_bufs[digests_offset].data[1];
+    data[2] = esalt_bufs[digests_offset].data[2];
+    data[3] = esalt_bufs[digests_offset].data[3];
 
     iv[0] = essiv[0];
     iv[1] = essiv[1];
@@ -428,15 +444,15 @@ __kernel void m08800_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
     for (u32 i = 4; i < 16; i += 4)
     {
-      data[0] = androidfde_bufs[digests_offset].data[256 + i + 0];
-      data[1] = androidfde_bufs[digests_offset].data[256 + i + 1];
-      data[2] = androidfde_bufs[digests_offset].data[256 + i + 2];
-      data[3] = androidfde_bufs[digests_offset].data[256 + i + 3];
+      data[0] = esalt_bufs[digests_offset].data[256 + i + 0];
+      data[1] = esalt_bufs[digests_offset].data[256 + i + 1];
+      data[2] = esalt_bufs[digests_offset].data[256 + i + 2];
+      data[3] = esalt_bufs[digests_offset].data[256 + i + 3];
 
-      iv[0] = androidfde_bufs[digests_offset].data[256 + i + 0 - 4];
-      iv[1] = androidfde_bufs[digests_offset].data[256 + i + 1 - 4];
-      iv[2] = androidfde_bufs[digests_offset].data[256 + i + 2 - 4];
-      iv[3] = androidfde_bufs[digests_offset].data[256 + i + 3 - 4];
+      iv[0] = esalt_bufs[digests_offset].data[256 + i + 0 - 4];
+      iv[1] = esalt_bufs[digests_offset].data[256 + i + 1 - 4];
+      iv[2] = esalt_bufs[digests_offset].data[256 + i + 2 - 4];
+      iv[3] = esalt_bufs[digests_offset].data[256 + i + 3 - 4];
 
       AES128_decrypt (ks, data, out, s_td0, s_td1, s_td2, s_td3, s_td4);
 

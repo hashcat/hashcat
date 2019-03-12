@@ -14,6 +14,15 @@
 #include "inc_rp_optimized.cl"
 #include "inc_simd.cl"
 
+typedef struct chacha20
+{
+  u32 iv[2];
+  u32 plain[2];
+  u32 position[2];
+  u32 offset;
+
+} chacha20_t;
+
 #define CHACHA_CONST_00 0x61707865
 #define CHACHA_CONST_01 0x3320646e
 #define CHACHA_CONST_02 0x79622d32
@@ -38,12 +47,12 @@ DECLSPEC void chacha20_transform (const u32x *w0, const u32x *w1, const u32 *pos
    */
 
   u32x ctx[16];
-  
+
   ctx[ 0] = CHACHA_CONST_00;
   ctx[ 1] = CHACHA_CONST_01;
   ctx[ 2] = CHACHA_CONST_02;
   ctx[ 3] = CHACHA_CONST_03;
-  ctx[ 4] = w0[0]; 
+  ctx[ 4] = w0[0];
   ctx[ 5] = w0[1];
   ctx[ 6] = w0[2];
   ctx[ 7] = w0[3];
@@ -80,7 +89,7 @@ DECLSPEC void chacha20_transform (const u32x *w0, const u32x *w1, const u32 *pos
   x[15] = ctx[15];
 
   #pragma unroll
-  for (u8 i = 0; i < 10; i++) 
+  for (u8 i = 0; i < 10; i++)
   {
     /* Column round */
     QR(0, 4, 8,  12);
@@ -115,11 +124,11 @@ DECLSPEC void chacha20_transform (const u32x *w0, const u32x *w1, const u32 *pos
   if (offset > 56)
   {
     /**
-     * Generate a second 64 byte keystream 
+     * Generate a second 64 byte keystream
      */
- 
+
     ctx[12]++;
-    
+
     if (all(ctx[12] == 0)) ctx[13]++;
 
     x[16] = ctx[ 0];
@@ -189,17 +198,17 @@ DECLSPEC void chacha20_transform (const u32x *w0, const u32x *w1, const u32 *pos
     digest[1] ^= x[index + 1] << (32 - remain * 8);
 
     digest[0] ^= x[index + 1] >> ( 0 + remain * 8);
-    digest[0] ^= x[index + 2] << (32 - remain * 8); 
+    digest[0] ^= x[index + 2] << (32 - remain * 8);
   }
   else
   {
     digest[1] ^= x[index + 0];
-    digest[0] ^= x[index + 1];    
+    digest[0] ^= x[index + 1];
   }
-}  
+}
 
-__kernel void m15400_m04 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const chacha20_t *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
-{ 
+__kernel void m15400_m04 (KERN_ATTR_ESALT (chacha20_t))
+{
   /**
    * modifier
    */
@@ -219,17 +228,17 @@ __kernel void m15400_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
   pw_buf1[2] = pws[gid].i[6];
   pw_buf1[3] = pws[gid].i[7];
 
-  const u32 pw_l_len = pws[gid].pw_len;
+  const u32 pw_l_len = pws[gid].pw_len & 63;
 
   /**
-   * Salt prep       
+   * Salt prep
    */
 
   u32 iv[2]       = { 0 };
   u32 plain[2]    = { 0 };
-  u32 position[2] = { 0 }; 
+  u32 position[2] = { 0 };
   u32 offset      = 0;
-  
+
   position[0] = esalt_bufs[digests_offset].position[0];
   position[1] = esalt_bufs[digests_offset].position[1];
 
@@ -247,7 +256,7 @@ __kernel void m15400_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos);
+    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos) & 63;
 
     const u32x out_len = pw_l_len + pw_r_len;
 
@@ -317,16 +326,16 @@ __kernel void m15400_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
   }
 }
 
-__kernel void m15400_m08 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const chacha20_t *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m15400_m08 (KERN_ATTR_ESALT (chacha20_t))
 {
 }
 
-__kernel void m15400_m16 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const chacha20_t *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m15400_m16 (KERN_ATTR_ESALT (chacha20_t))
 {
 }
 
-__kernel void m15400_s04 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const chacha20_t *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
-{ 
+__kernel void m15400_s04 (KERN_ATTR_ESALT (chacha20_t))
+{
   /**
    * modifier
    */
@@ -349,17 +358,17 @@ __kernel void m15400_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
   pw_buf1[2] = pws[gid].i[6];
   pw_buf1[3] = pws[gid].i[7];
 
-  const u32 pw_l_len = pws[gid].pw_len;
+  const u32 pw_l_len = pws[gid].pw_len & 63;
 
   /**
-   * Salt prep       
+   * Salt prep
    */
 
   u32 iv[2]       = { 0 };
   u32 plain[2]    = { 0 };
   u32 position[2] = { 0 };
   u32 offset      = 0;
- 
+
   position[0] = esalt_bufs[digests_offset].position[0];
   position[1] = esalt_bufs[digests_offset].position[1];
 
@@ -382,14 +391,14 @@ __kernel void m15400_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
     digests_buf[digests_offset].digest_buf[DGST_R2],
     digests_buf[digests_offset].digest_buf[DGST_R3]
   };
- 
+
   /**
    * loop
    */
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos);
+    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos) & 63;
 
     const u32x out_len = pw_l_len + pw_r_len;
 
@@ -456,13 +465,13 @@ __kernel void m15400_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
     const u32x r3 = digest[3];
 
     COMPARE_S_SIMD(r0, r1, r2, r3);
-  } 
+  }
 }
 
-__kernel void m15400_s08 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const chacha20_t *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m15400_s08 (KERN_ATTR_ESALT (chacha20_t))
 {
 }
 
-__kernel void m15400_s16 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const chacha20_t *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m15400_s16 (KERN_ATTR_ESALT (chacha20_t))
 {
 }

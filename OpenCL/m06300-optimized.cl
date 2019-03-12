@@ -13,6 +13,12 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct md5crypt_tmp
+{
+  u32 digest_buf[4];
+
+} md5crypt_tmp_t;
+
 DECLSPEC void memcat16 (u32 *block0, u32 *block1, u32 *block2, u32 *block3, const u32 offset, const u32 *append)
 {
   u32 tmp0;
@@ -26,22 +32,16 @@ DECLSPEC void memcat16 (u32 *block0, u32 *block1, u32 *block2, u32 *block3, cons
   const int offset_minus_4 = 4 - offset_mod_4;
 
   #if defined IS_AMD || defined IS_GENERIC
-  u32 in0 = swap32_S (append[0]);
-  u32 in1 = swap32_S (append[1]);
-  u32 in2 = swap32_S (append[2]);
-  u32 in3 = swap32_S (append[3]);
+  u32 in0 = append[0];
+  u32 in1 = append[1];
+  u32 in2 = append[2];
+  u32 in3 = append[3];
 
   tmp0 = hc_bytealign (  0, in0, offset);
   tmp1 = hc_bytealign (in0, in1, offset);
   tmp2 = hc_bytealign (in1, in2, offset);
   tmp3 = hc_bytealign (in2, in3, offset);
   tmp4 = hc_bytealign (in3,   0, offset);
-
-  tmp0 = swap32_S (tmp0);
-  tmp1 = swap32_S (tmp1);
-  tmp2 = swap32_S (tmp2);
-  tmp3 = swap32_S (tmp3);
-  tmp4 = swap32_S (tmp4);
   #endif
 
   #ifdef IS_NV
@@ -139,23 +139,17 @@ DECLSPEC void memcat16_x80 (u32 *block0, u32 *block1, u32 *block2, u32 *block3, 
   const int offset_minus_4 = 4 - offset_mod_4;
 
   #if defined IS_AMD || defined IS_GENERIC
-  u32 in0 = swap32_S (append[0]);
-  u32 in1 = swap32_S (append[1]);
-  u32 in2 = swap32_S (append[2]);
-  u32 in3 = swap32_S (append[3]);
-  u32 in4 = 0x80000000;
+  u32 in0 = append[0];
+  u32 in1 = append[1];
+  u32 in2 = append[2];
+  u32 in3 = append[3];
+  u32 in4 = 0x80;
 
   tmp0 = hc_bytealign (  0, in0, offset);
   tmp1 = hc_bytealign (in0, in1, offset);
   tmp2 = hc_bytealign (in1, in2, offset);
   tmp3 = hc_bytealign (in2, in3, offset);
   tmp4 = hc_bytealign (in3, in4, offset);
-
-  tmp0 = swap32_S (tmp0);
-  tmp1 = swap32_S (tmp1);
-  tmp2 = swap32_S (tmp2);
-  tmp3 = swap32_S (tmp3);
-  tmp4 = swap32_S (tmp4);
   #endif
 
   #ifdef IS_NV
@@ -252,16 +246,12 @@ DECLSPEC void memcat8 (u32 *block0, u32 *block1, u32 *block2, u32 *block3, const
   const int offset_minus_4 = 4 - offset_mod_4;
 
   #if defined IS_AMD || defined IS_GENERIC
-  u32 in0 = swap32_S (append[0]);
-  u32 in1 = swap32_S (append[1]);
+  u32 in0 = append[0];
+  u32 in1 = append[1];
 
   tmp0 = hc_bytealign (  0, in0, offset);
   tmp1 = hc_bytealign (in0, in1, offset);
   tmp2 = hc_bytealign (in1,   0, offset);
-
-  tmp0 = swap32_S (tmp0);
-  tmp1 = swap32_S (tmp1);
-  tmp2 = swap32_S (tmp2);
   #endif
 
   #ifdef IS_NV
@@ -564,7 +554,7 @@ DECLSPEC void append_1st (u32 *block0, u32 *block1, u32 *block2, u32 *block3, co
   }
 }
 
-__kernel void m06300_init (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global md5crypt_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m06300_init (KERN_ATTR_TMPS (md5crypt_tmp_t))
 {
   /**
    * base
@@ -581,7 +571,7 @@ __kernel void m06300_init (__global pw_t *pws, __global const kernel_rule_t *rul
   w0[2] = pws[gid].i[2];
   w0[3] = pws[gid].i[3];
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * salt
@@ -722,7 +712,7 @@ __kernel void m06300_init (__global pw_t *pws, __global const kernel_rule_t *rul
   tmps[gid].digest_buf[3] = digest[3];
 }
 
-__kernel void m06300_loop (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global md5crypt_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m06300_loop (KERN_ATTR_TMPS (md5crypt_tmp_t))
 {
   /**
    * base
@@ -739,7 +729,7 @@ __kernel void m06300_loop (__global pw_t *pws, __global const kernel_rule_t *rul
   w0[2] = pws[gid].i[2];
   w0[3] = pws[gid].i[3];
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   u32 w0_x80[4];
 
@@ -910,7 +900,7 @@ __kernel void m06300_loop (__global pw_t *pws, __global const kernel_rule_t *rul
   tmps[gid].digest_buf[3] = digest[3];
 }
 
-__kernel void m06300_comp (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global md5crypt_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m06300_comp (KERN_ATTR_TMPS (md5crypt_tmp_t))
 {
   /**
    * modifier

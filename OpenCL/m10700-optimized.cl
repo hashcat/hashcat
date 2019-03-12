@@ -16,6 +16,40 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct pdf
+{
+  int  V;
+  int  R;
+  int  P;
+
+  int  enc_md;
+
+  u32  id_buf[8];
+  u32  u_buf[32];
+  u32  o_buf[32];
+
+  int  id_len;
+  int  o_len;
+  int  u_len;
+
+  u32  rc4key[2];
+  u32  rc4data[2];
+
+} pdf_t;
+
+typedef struct pdf17l8_tmp
+{
+  union
+  {
+    u32 dgst32[16];
+    u64 dgst64[8];
+  };
+
+  u32 dgst_len;
+  u32 W_len;
+
+} pdf17l8_tmp_t;
+
 typedef struct
 {
   union
@@ -200,11 +234,11 @@ DECLSPEC void make_sc (u32 *sc, const u32 *pw, const u32 pw_len, const u32 *bl, 
     #if defined IS_AMD || defined IS_GENERIC
     for (i = 0; i < pd; i++) sc[idx++] = pw[i];
                              sc[idx++] = pw[i]
-                                       | hc_bytealign (bl[0],         0, pm4);
-    for (i = 1; i < bd; i++) sc[idx++] = hc_bytealign (bl[i], bl[i - 1], pm4);
-                             sc[idx++] = hc_bytealign (sc[0], bl[i - 1], pm4);
-    for (i = 1; i <  4; i++) sc[idx++] = hc_bytealign (sc[i], sc[i - 1], pm4);
-                             sc[idx++] = hc_bytealign (    0, sc[i - 1], pm4);
+                                       | hc_bytealign_be (bl[0],         0, pm4);
+    for (i = 1; i < bd; i++) sc[idx++] = hc_bytealign_be (bl[i], bl[i - 1], pm4);
+                             sc[idx++] = hc_bytealign_be (sc[0], bl[i - 1], pm4);
+    for (i = 1; i <  4; i++) sc[idx++] = hc_bytealign_be (sc[i], sc[i - 1], pm4);
+                             sc[idx++] = hc_bytealign_be (    0, sc[i - 1], pm4);
     #endif
 
     #ifdef IS_NV
@@ -229,10 +263,10 @@ DECLSPEC void make_pt_with_offset (u32 *pt, const u32 offset, const u32 *sc, con
   const u32 od = m / 4;
 
   #if defined IS_AMD || defined IS_GENERIC
-  pt[0] = hc_bytealign (sc[od + 1], sc[od + 0], om);
-  pt[1] = hc_bytealign (sc[od + 2], sc[od + 1], om);
-  pt[2] = hc_bytealign (sc[od + 3], sc[od + 2], om);
-  pt[3] = hc_bytealign (sc[od + 4], sc[od + 3], om);
+  pt[0] = hc_bytealign_be (sc[od + 1], sc[od + 0], om);
+  pt[1] = hc_bytealign_be (sc[od + 2], sc[od + 1], om);
+  pt[2] = hc_bytealign_be (sc[od + 3], sc[od + 2], om);
+  pt[3] = hc_bytealign_be (sc[od + 4], sc[od + 3], om);
   #endif
 
   #ifdef IS_NV
@@ -515,7 +549,7 @@ DECLSPEC u32 do_round (const u32 *pw, const u32 pw_len, ctx_t *ctx, SHM_TYPE u32
   return ex;
 }
 
-__kernel void m10700_init (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global pdf17l8_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const pdf_t *pdf_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m10700_init (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
 {
   /**
    * base
@@ -547,7 +581,7 @@ __kernel void m10700_init (__global pw_t *pws, __global const kernel_rule_t *rul
   tmps[gid].W_len     = WORDSZ256;
 }
 
-__kernel void m10700_loop (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global pdf17l8_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const pdf_t *pdf_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m10700_loop (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -565,7 +599,7 @@ __kernel void m10700_loop (__global pw_t *pws, __global const kernel_rule_t *rul
   __local u32 s_te3[256];
   __local u32 s_te4[256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_te0[i] = te0[i];
     s_te1[i] = te1[i];
@@ -599,7 +633,7 @@ __kernel void m10700_loop (__global pw_t *pws, __global const kernel_rule_t *rul
   w0[2] = pws[gid].i[2];
   w0[3] = pws[gid].i[3];
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   if (pw_len == 0) return;
 
@@ -647,7 +681,7 @@ __kernel void m10700_loop (__global pw_t *pws, __global const kernel_rule_t *rul
   tmps[gid].W_len     = ctx.W_len;
 }
 
-__kernel void m10700_comp (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global pdf17l8_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const pdf_t *pdf_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m10700_comp (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
 {
   /**
    * modifier

@@ -21,6 +21,10 @@ static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
   const u32 kernel_power_try = device_param->hardware_power * kernel_accel;
 
+  float spin_damp_sav = device_param->spin_damp;
+
+  device_param->spin_damp = 0;
+
   if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
     if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
@@ -36,6 +40,8 @@ static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
   {
     run_kernel (hashcat_ctx, device_param, KERN_RUN_2, kernel_power_try, true, 0);
   }
+
+  device_param->spin_damp = spin_damp_sav;
 
   const double exec_msec_prev = get_avg_exec_time (device_param, 1);
 
@@ -73,7 +79,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     #else
 
-    if (hashconfig->hash_mode != 2000)
+    if (hashconfig->warmup_disable == false)
     {
       try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops);
       try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops);
@@ -272,7 +278,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   return 0;
 }
 
-void *thread_autotune (void *p)
+HC_API_CALL void *thread_autotune (void *p)
 {
   thread_param_t *thread_param = (thread_param_t *) p;
 
@@ -285,6 +291,8 @@ void *thread_autotune (void *p)
   hc_device_param_t *device_param = opencl_ctx->devices_param + thread_param->tid;
 
   if (device_param->skipped == true) return NULL;
+
+  if (device_param->skipped_warning == true) return NULL;
 
   const int rc_autotune = autotune (hashcat_ctx, device_param);
 

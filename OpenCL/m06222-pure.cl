@@ -16,34 +16,35 @@
 #include "inc_cipher_aes.cl"
 #include "inc_cipher_twofish.cl"
 #include "inc_cipher_serpent.cl"
+#include "inc_cipher_camellia.cl"
+#include "inc_cipher_kuznyechik.cl"
 
+typedef struct tc
+{
+  u32 salt_buf[32];
+  u32 data_buf[112];
+  u32 keyfile_buf[16];
+  u32 signature;
+
+  keyboard_layout_mapping_t keyboard_layout_mapping_buf[256];
+  int                       keyboard_layout_mapping_cnt;
+
+} tc_t;
+
+#include "inc_truecrypt_keyfile.cl"
 #include "inc_truecrypt_crc32.cl"
 #include "inc_truecrypt_xts.cl"
+#include "inc_veracrypt_xts.cl"
 
-DECLSPEC u32 u8add (const u32 a, const u32 b)
+typedef struct tc64_tmp
 {
-  const u32 a1 = (a >>  0) & 0xff;
-  const u32 a2 = (a >>  8) & 0xff;
-  const u32 a3 = (a >> 16) & 0xff;
-  const u32 a4 = (a >> 24) & 0xff;
+  u64  ipad[8];
+  u64  opad[8];
 
-  const u32 b1 = (b >>  0) & 0xff;
-  const u32 b2 = (b >>  8) & 0xff;
-  const u32 b3 = (b >> 16) & 0xff;
-  const u32 b4 = (b >> 24) & 0xff;
+  u64  dgst[32];
+  u64  out[32];
 
-  const u32 r1 = (a1 + b1) & 0xff;
-  const u32 r2 = (a2 + b2) & 0xff;
-  const u32 r3 = (a3 + b3) & 0xff;
-  const u32 r4 = (a4 + b4) & 0xff;
-
-  const u32 r = r1 <<  0
-              | r2 <<  8
-              | r3 << 16
-              | r4 << 24;
-
-  return r;
-}
+} tc64_tmp_t;
 
 DECLSPEC void hmac_sha512_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, u64x *ipad, u64x *opad, u64x *digest)
 {
@@ -103,15 +104,32 @@ DECLSPEC void hmac_sha512_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w
   sha512_transform_vector (w0, w1, w2, w3, w4, w5, w6, w7, digest);
 }
 
-__kernel void m06222_init (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global tc64_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const tc_t *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m06222_init (KERN_ATTR_TMPS_ESALT (tc64_tmp_t, tc_t))
 {
+  const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
+
+  /**
+   * keyboard layout shared
+   */
+
+  const int keyboard_layout_mapping_cnt = esalt_bufs[digests_offset].keyboard_layout_mapping_cnt;
+
+  __local keyboard_layout_mapping_t s_keyboard_layout_mapping_buf[256];
+
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    s_keyboard_layout_mapping_buf[i] = esalt_bufs[digests_offset].keyboard_layout_mapping_buf[i];
+  }
+
+  barrier (CLK_LOCAL_MEM_FENCE);
+
+  if (gid >= gid_max) return;
+
   /**
    * base
    */
-
-  const u64 gid = get_global_id (0);
-
-  if (gid >= gid_max) return;
 
   u32 w0[4];
   u32 w1[4];
@@ -154,6 +172,10 @@ __kernel void m06222_init (__global pw_t *pws, __global const kernel_rule_t *rul
   w7[1] = pws[gid].i[29];
   w7[2] = pws[gid].i[30];
   w7[3] = pws[gid].i[31];
+
+  const u32 pw_len = pws[gid].pw_len;
+
+  execute_keyboard_layout_mapping (w0, w1, w2, w3, pw_len, s_keyboard_layout_mapping_buf, keyboard_layout_mapping_cnt);
 
   w0[0] = u8add (w0[0], esalt_bufs[digests_offset].keyfile_buf[ 0]);
   w0[1] = u8add (w0[1], esalt_bufs[digests_offset].keyfile_buf[ 1]);
@@ -290,7 +312,7 @@ __kernel void m06222_init (__global pw_t *pws, __global const kernel_rule_t *rul
   }
 }
 
-__kernel void m06222_loop (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global tc64_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const tc_t *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m06222_loop (KERN_ATTR_TMPS_ESALT (tc64_tmp_t, tc_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -416,7 +438,7 @@ __kernel void m06222_loop (__global pw_t *pws, __global const kernel_rule_t *rul
   }
 }
 
-__kernel void m06222_comp (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global tc64_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const tc_t *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m06222_comp (KERN_ATTR_TMPS_ESALT (tc64_tmp_t, tc_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -440,7 +462,7 @@ __kernel void m06222_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   __local u32 s_te3[256];
   __local u32 s_te4[256];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 256; i += lsz)
   {
     s_td0[i] = td0[i];
     s_td1[i] = td1[i];
@@ -521,6 +543,22 @@ __kernel void m06222_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     }
   }
 
+  if (verify_header_camellia (esalt_bufs, ukey1, ukey2) == 1)
+  {
+    if (atomic_inc (&hashes_shown[0]) == 0)
+    {
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+    }
+  }
+
+  if (verify_header_kuznyechik (esalt_bufs, ukey1, ukey2) == 1)
+  {
+    if (atomic_inc (&hashes_shown[0]) == 0)
+    {
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+    }
+  }
+
   u32 ukey3[8];
 
   ukey3[0] = swap32_S (h32_from_64_S (tmps[gid].out[ 8]));
@@ -560,6 +598,38 @@ __kernel void m06222_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   }
 
   if (verify_header_twofish_serpent (esalt_bufs, ukey1, ukey2, ukey3, ukey4) == 1)
+  {
+    if (atomic_inc (&hashes_shown[0]) == 0)
+    {
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+    }
+  }
+
+  if (verify_header_camellia_kuznyechik (esalt_bufs, ukey1, ukey2, ukey3, ukey4) == 1)
+  {
+    if (atomic_inc (&hashes_shown[0]) == 0)
+    {
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+    }
+  }
+
+  if (verify_header_camellia_serpent (esalt_bufs, ukey1, ukey2, ukey3, ukey4) == 1)
+  {
+    if (atomic_inc (&hashes_shown[0]) == 0)
+    {
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+    }
+  }
+
+  if (verify_header_kuznyechik_aes (esalt_bufs, ukey1, ukey2, ukey3, ukey4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
+  {
+    if (atomic_inc (&hashes_shown[0]) == 0)
+    {
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+    }
+  }
+
+  if (verify_header_kuznyechik_twofish (esalt_bufs, ukey1, ukey2, ukey3, ukey4) == 1)
   {
     if (atomic_inc (&hashes_shown[0]) == 0)
     {

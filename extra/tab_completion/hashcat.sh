@@ -174,9 +174,8 @@ _hashcat_contains ()
 
 _hashcat ()
 {
-  local VERSION=4.2.1
+  local VERSION=5.1.0
 
-  local HASH_MODES="0 10 11 12 20 21 22 23 30 40 50 60 100 101 110 111 112 120 121 122 124 130 131 132 133 140 141 150 160 200 300 400 500 501 600 900 1000 1100 1400 1410 1411 1420 1421 1430 1440 1441 1450 1460 1500 1600 1700 1710 1711 1720 1722 1730 1731 1740 1750 1760 1800 2100 2400 2410 2500 2501 2600 2611 2612 2711 2811 3000 3100 3200 3710 3711 3800 3910 4010 4110 4300 4400 4500 4520 4521 4522 4700 4800 4900 5000 5100 5200 5300 5400 5500 5600 5700 5800 6000 6100 6211 6212 6213 6221 6222 6223 6231 6232 6233 6241 6242 6243 6300 6400 6500 6600 6700 6800 6900 7000 7100 7200 7300 7400 7500 7700 7800 7900 8000 8100 8200 8300 8400 8500 8600 8700 8800 8900 9000 9100 9200 9300 9400 9500 9600 9700 9710 9720 9800 9810 9820 9900 10000 10100 10200 10300 10400 10410 10420 10500 10600 10700 10800 10900 11000 11100 11200 11300 11400 11500 11600 11700 11800 11900 12000 12001 12100 12200 12300 12400 12500 12600 12700 12800 12900 13000 13100 13200 13300 13400 13500 13600 13800 13900 14000 14100 14700 14800 14900 15000 15100 15200 15300 15400 15500 15600 15700 15900 16000 16100 16200 16300 16400 16500 16600 16700 16800 16801 16900"
   local ATTACK_MODES="0 1 3 6 7"
   local HCCAPX_MESSAGE_PAIRS="0 1 2 3 4 5"
   local OUTFILE_FORMATS="1 2 3 4 5 6 7 8 9 10 11 12 13 14 15"
@@ -184,13 +183,14 @@ _hashcat ()
   local OPENCL_VECTOR_WIDTH="1 2 4 8 16"
   local DEBUG_MODE="1 2 3 4"
   local WORKLOAD_PROFILE="1 2 3 4"
+  local BRAIN_CLIENT_FEATURES="1 2 3"
   local HIDDEN_FILES="exe|bin|potfile|hcstat2|dictstat2|sh|cmd|bat|restore"
   local HIDDEN_FILES_AGGRESIVE="${HIDDEN_FILES}|hcmask|hcchr"
   local BUILD_IN_CHARSETS='?l ?u ?d ?a ?b ?s ?h ?H'
 
   local SHORT_OPTS="-m -a -V -v -h -b -t -o -p -c -d -w -n -u -j -k -r -g -1 -2 -3 -4 -i -I -s -l -O -S -z"
-  local LONG_OPTS="--hash-type --attack-mode --version --help --quiet --benchmark --benchmark-all --hex-salt --hex-wordlist --hex-charset --force --status --status-timer --machine-readable --loopback --markov-hcstat2 --markov-disable --markov-classic --markov-threshold --runtime --session --speed-only --progress-only --restore --restore-file-path --restore-disable --outfile --outfile-format --outfile-autohex-disable --outfile-check-timer --outfile-check-dir --wordlist-autohex-disable --separator --show --left --username --remove --remove-timer --potfile-disable --potfile-path --debug-mode --debug-file --induction-dir --segment-size --bitmap-min --bitmap-max --cpu-affinity --example-hashes --opencl-info --opencl-devices --opencl-platforms --opencl-device-types --opencl-vector-width --workload-profile --kernel-accel --kernel-loops --nvidia-spin-damp --gpu-temp-disable --gpu-temp-abort --skip --limit --keyspace --rule-left --rule-right --rules-file --generate-rules --generate-rules-func-min --generate-rules-func-max --generate-rules-seed --custom-charset1 --custom-charset2 --custom-charset3 --custom-charset4 --increment --increment-min --increment-max --logfile-disable --scrypt-tmto --truecrypt-keyfiles --veracrypt-keyfiles --veracrypt-pim --stdout --keep-guessing --hccapx-message-pair --nonce-error-corrections --encoding-from --encoding-to --optimized-kernel-enable --self-test-disable --slow-candidates"
-  local OPTIONS="-m -a -t -o -p -c -d -w -n -u -j -k -r -g -1 -2 -3 -4 -s -l --hash-type --attack-mode --status-timer --markov-hcstat2 --markov-threshold --runtime --session --timer --outfile --outfile-format --outfile-check-timer --outfile-check-dir --separator --remove-timer --potfile-path --restore-file-path --debug-mode --debug-file --induction-dir --segment-size --bitmap-min --bitmap-max --cpu-affinity --opencl-devices --opencl-platforms --opencl-device-types --opencl-vector-width --workload-profile --kernel-accel --kernel-loops --nvidia-spin-damp --gpu-temp-abort --skip --limit --rule-left --rule-right --rules-file --generate-rules --generate-rules-func-min --generate-rules-func-max --generate-rules-seed --custom-charset1 --custom-charset2 --custom-charset3 --custom-charset4 --increment-min --increment-max --scrypt-tmto --truecrypt-keyfiles --veracrypt-keyfiles --veracrypt-pim --hccapx-message-pair --nonce-error-corrections --encoding-from --encoding-to"
+  local LONG_OPTS="--hash-type --attack-mode --version --help --quiet --benchmark --benchmark-all --hex-salt --hex-wordlist --hex-charset --force --status --status-timer --machine-readable --loopback --markov-hcstat2 --markov-disable --markov-classic --markov-threshold --runtime --session --speed-only --progress-only --restore --restore-file-path --restore-disable --outfile --outfile-format --outfile-autohex-disable --outfile-check-timer --outfile-check-dir --wordlist-autohex-disable --separator --show --left --username --remove --remove-timer --potfile-disable --potfile-path --debug-mode --debug-file --induction-dir --segment-size --bitmap-min --bitmap-max --cpu-affinity --example-hashes --opencl-info --opencl-devices --opencl-platforms --opencl-device-types --opencl-vector-width --workload-profile --kernel-accel --kernel-loops --kernel-threads --spin-damp --hwmon-disable --hwmon-temp-abort --skip --limit --keyspace --rule-left --rule-right --rules-file --generate-rules --generate-rules-func-min --generate-rules-func-max --generate-rules-seed --custom-charset1 --custom-charset2 --custom-charset3 --custom-charset4 --increment --increment-min --increment-max --logfile-disable --scrypt-tmto --keyboard-layout-mapping --truecrypt-keyfiles --veracrypt-keyfiles --veracrypt-pim --stdout --keep-guessing --hccapx-message-pair --nonce-error-corrections --encoding-from --encoding-to --optimized-kernel-enable --self-test-disable  --slow-candidates --brain-server --brain-client --brain-client-features --brain-host --brain-port --brain-session --brain-session-whitelist --brain-password"
+  local OPTIONS="-m -a -t -o -p -c -d -w -n -u -j -k -r -g -1 -2 -3 -4 -s -l --hash-type --attack-mode --status-timer --markov-hcstat2 --markov-threshold --runtime --session --timer --outfile --outfile-format --outfile-check-timer --outfile-check-dir --separator --remove-timer --potfile-path --restore-file-path --debug-mode --debug-file --induction-dir --segment-size --bitmap-min --bitmap-max --cpu-affinity --opencl-devices --opencl-platforms --opencl-device-types --opencl-vector-width --workload-profile --kernel-accel --kernel-loops --kernel-threads --spin-damp --hwmon-temp-abort --skip --limit --rule-left --rule-right --rules-file --generate-rules --generate-rules-func-min --generate-rules-func-max --generate-rules-seed --custom-charset1 --custom-charset2 --custom-charset3 --custom-charset4 --increment-min --increment-max --scrypt-tmto --keyboard-layout-mapping --truecrypt-keyfiles --veracrypt-keyfiles --veracrypt-pim --hccapx-message-pair --nonce-error-corrections --encoding-from --encoding-to --brain-client-features --brain-host --brain-password --brain-port --brain-session --brain-whitelist-session --stdin-timeout-abort"
 
   COMPREPLY=()
   local cur="${COMP_WORDS[COMP_CWORD]}"
@@ -213,11 +213,6 @@ _hashcat ()
 
   case "${prev}" in
 
-    -m|--hash-type)
-      COMPREPLY=($(compgen -W "${HASH_MODES}" -- ${cur}))
-      return 0
-      ;;
-
     -a|--attack-mode)
       COMPREPLY=($(compgen -W "${ATTACK_MODES}" -- ${cur}))
       return 0
@@ -235,6 +230,11 @@ _hashcat ()
 
     -w|--workload-profile)
       COMPREPLY=($(compgen -W "${WORKLOAD_PROFILE}" -- ${cur}))
+      return 0
+      ;;
+
+    --brain-client-features)
+      COMPREPLY=($(compgen -W "${BRAIN_CLIENT_FEATURES}" -- ${cur}))
       return 0
       ;;
 
@@ -308,6 +308,12 @@ _hashcat ()
       return 0
       ;;
 
+    --keyboard-layout-mapping)
+      local files=$(ls -d ${cur}* 2> /dev/null | grep '.*\.hckmap$' 2> /dev/null)
+      COMPREPLY=($(compgen -W "${files}" -- ${cur})) # or $(compgen -f -X '*.+('${HIDDEN_FILES_AGGRESIVE}')' -- ${cur})
+      return 0
+      ;;
+
     -1|-2|-3|-4|--custom-charset1|--custom-charset2|--custom-charset3|--custom-charset4)
       local mask=${BUILD_IN_CHARSETS}
 
@@ -361,9 +367,53 @@ _hashcat ()
 
     -t|-p|-c|-j|-k|-g| \
       --status-timer|--markov-threshold|--runtime|--session|--separator|--segment-size|--rule-left|--rule-right| \
-      --nvidia-spin-damp|--gpu-temp-abort|--generate-rules|--generate-rules-func-min|--generate-rules-func-max| \
+      --spin-damp|--hwmon-temp-abort|--generate-rules|--generate-rules-func-min|--generate-rules-func-max| \
       --increment-min|--increment-max|--remove-timer|--bitmap-min|--bitmap-max|--skip|--limit|--generate-rules-seed| \
-      --outfile-check-timer|--outfile-check-dir|--induction-dir|--scrypt-tmto|--encoding-from|--encoding-to|--optimized-kernel-enable)
+      --outfile-check-timer|--outfile-check-dir|--induction-dir|--scrypt-tmto|--encoding-from|--encoding-to|--optimized-kernel-enable|--brain-host|--brain-port|--brain-password|--stdin-timeout-abort)
+      return 0
+      ;;
+
+    --brain-session)
+      local cur_session=$(echo "${cur}" | grep -Eo '^0x[0-9a-fA-F]*' | sed 's/^0x//')
+
+      local session_var="0x${cur_session}"
+
+      if [ "${#cur_session}" -lt 8 ]
+      then
+        session_var="${session_var}0 ${session_var}1 ${session_var}2 ${session_var}3 ${session_var}4
+                     ${session_var}5 ${session_var}6 ${session_var}7 ${session_var}8 ${session_var}9
+                     ${session_var}a ${session_var}b ${session_var}c ${session_var}d ${session_var}e
+                     ${session_var}f"
+      fi
+
+      COMPREPLY=($(compgen -W "${session_var}" -- ${cur}))
+
+      return 0
+      ;;
+
+    --brain-session-whitelist)
+      local session_list=$(echo "${cur}" | grep -Eo '^0x[0-9a-fA-F,x]*' | sed 's/^0x//')
+
+      local cur_session=$(echo "${session_list}" | sed 's/^.*0x//')
+
+      local session_var="0x${session_list}"
+
+      if [ "${#cur_session}" -eq 8 ]
+      then
+        cur_session=""
+        session_var="${session_var},0x"
+      fi
+
+      if [ "${#cur_session}" -lt 8 ]
+      then
+        session_var="${session_var}0 ${session_var}1 ${session_var}2 ${session_var}3 ${session_var}4
+                     ${session_var}5 ${session_var}6 ${session_var}7 ${session_var}8 ${session_var}9
+                     ${session_var}a ${session_var}b ${session_var}c ${session_var}d ${session_var}e
+                     ${session_var}f"
+      fi
+
+      COMPREPLY=($(compgen -W "${session_var}" -- ${cur}))
+
       return 0
       ;;
 
@@ -393,12 +443,6 @@ _hashcat ()
   # we could use compgen -P prefix, but for some reason it doesn't seem to work always
 
   case "$cur" in
-
-    -m*)
-      local hash_modes_var="$(echo -n "-m ${HASH_MODES}" | sed 's/ / -m/g')"
-      COMPREPLY=($(compgen -W "${hash_modes_var}" -- ${cur}))
-      return 0
-      ;;
 
     -a*)
       local attack_modes_var="$(echo -n "-a ${ATTACK_MODES}" | sed 's/ / -a/g')"

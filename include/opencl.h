@@ -9,17 +9,18 @@
 #include <stdio.h>
 #include <errno.h>
 
-static const char CL_VENDOR_AMD1[]          = "Advanced Micro Devices, Inc.";
-static const char CL_VENDOR_AMD2[]          = "AuthenticAMD";
-static const char CL_VENDOR_AMD_USE_INTEL[] = "GenuineIntel";
-static const char CL_VENDOR_APPLE[]         = "Apple";
-static const char CL_VENDOR_APPLE_USE_AMD[] = "AMD";
-static const char CL_VENDOR_APPLE_USE_NV[]  = "NVIDIA";
-static const char CL_VENDOR_INTEL_BEIGNET[] = "Intel";
-static const char CL_VENDOR_INTEL_SDK[]     = "Intel(R) Corporation";
-static const char CL_VENDOR_MESA[]          = "Mesa";
-static const char CL_VENDOR_NV[]            = "NVIDIA Corporation";
-static const char CL_VENDOR_POCL[]          = "The pocl project";
+static const char CL_VENDOR_AMD1[]            = "Advanced Micro Devices, Inc.";
+static const char CL_VENDOR_AMD2[]            = "AuthenticAMD";
+static const char CL_VENDOR_AMD_USE_INTEL[]   = "GenuineIntel";
+static const char CL_VENDOR_APPLE[]           = "Apple";
+static const char CL_VENDOR_APPLE_USE_AMD[]   = "AMD";
+static const char CL_VENDOR_APPLE_USE_NV[]    = "NVIDIA";
+static const char CL_VENDOR_APPLE_USE_INTEL[] = "Intel Inc.";
+static const char CL_VENDOR_INTEL_BEIGNET[]   = "Intel";
+static const char CL_VENDOR_INTEL_SDK[]       = "Intel(R) Corporation";
+static const char CL_VENDOR_MESA[]            = "Mesa";
+static const char CL_VENDOR_NV[]              = "NVIDIA Corporation";
+static const char CL_VENDOR_POCL[]            = "The pocl project";
 
 int  ocl_init  (hashcat_ctx_t *hashcat_ctx);
 void ocl_close (hashcat_ctx_t *hashcat_ctx);
@@ -30,7 +31,7 @@ int hc_clCreateCommandQueue      (hashcat_ctx_t *hashcat_ctx, cl_context context
 int hc_clCreateContext           (hashcat_ctx_t *hashcat_ctx, cl_context_properties *properties, cl_uint num_devices, const cl_device_id *devices, void (CL_CALLBACK *pfn_notify) (const char *, const void *, size_t, void *), void *user_data, cl_context *context);
 int hc_clCreateKernel            (hashcat_ctx_t *hashcat_ctx, cl_program program, const char *kernel_name, cl_kernel *kernel);
 int hc_clCreateProgramWithBinary (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_uint num_devices, const cl_device_id *device_list, const size_t *lengths, unsigned char **binaries, cl_int *binary_status, cl_program *program);
-int hc_clCreateProgramWithSource (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_uint count, char **strings, const size_t *lengths, cl_program *program);
+int hc_clCreateProgramWithSource (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_uint count, const char **strings, const size_t *lengths, cl_program *program);
 int hc_clEnqueueCopyBuffer       (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue, cl_mem src_buffer, cl_mem dst_buffer, size_t src_offset, size_t dst_offset, size_t cb, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event);
 int hc_clEnqueueMapBuffer        (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue, cl_mem buffer, cl_bool blocking_map, cl_map_flags map_flags, size_t offset, size_t cb, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event, void **buf);
 int hc_clEnqueueNDRangeKernel    (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue, cl_kernel kernel, cl_uint work_dim, const size_t *global_work_offset, const size_t *global_work_size, const size_t *local_work_size, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event);

@@ -192,15 +192,9 @@ typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_SET_COMPUTEMODE) (nvmlDevice_t,
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_SET_OPERATIONMODE) (nvmlDevice_t, nvmlGpuOperationMode_t);
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_PCIINFO) (nvmlDevice_t, nvmlPciInfo_t *);
 
-#if defined (_POSIX)
-typedef void *NVML_LIB;
-#else
-typedef HINSTANCE NVML_LIB;
-#endif
-
 typedef struct hm_nvml_lib
 {
-  NVML_LIB lib;
+  hc_dynlib_t lib;
 
   NVML_ERROR_STRING nvmlErrorString;
   NVML_INIT nvmlInit;

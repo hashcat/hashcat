@@ -12,6 +12,15 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct bsdicrypt_tmp
+{
+  u32 Kc[16];
+  u32 Kd[16];
+
+  u32 iv[2];
+
+} bsdicrypt_tmp_t;
+
 #define PERM_OP(a,b,tt,n,m) \
 {                           \
   tt = a >> n;              \
@@ -489,7 +498,7 @@ DECLSPEC void _des_crypt_encrypt (u32 *iv, u32 mask, u32 rounds, u32 *Kc, u32 *K
   iv[1] = l;
 }
 
-__kernel void m12400_init (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global bsdicrypt_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m12400_init (KERN_ATTR_TMPS (bsdicrypt_tmp_t))
 {
   /**
    * base
@@ -506,7 +515,7 @@ __kernel void m12400_init (__global pw_t *pws, __global const kernel_rule_t *rul
   __local u32 s_SPtrans[8][64];
   __local u32 s_skb[8][64];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 64; i += lsz)
+  for (u32 i = lid; i < 64; i += lsz)
   {
     s_SPtrans[0][i] = c_SPtrans[0][i];
     s_SPtrans[1][i] = c_SPtrans[1][i];
@@ -625,7 +634,7 @@ __kernel void m12400_init (__global pw_t *pws, __global const kernel_rule_t *rul
   tmps[gid].iv[1] = 0;
 }
 
-__kernel void m12400_loop (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global bsdicrypt_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m12400_loop (KERN_ATTR_TMPS (bsdicrypt_tmp_t))
 {
   /**
    * base
@@ -642,7 +651,7 @@ __kernel void m12400_loop (__global pw_t *pws, __global const kernel_rule_t *rul
   __local u32 s_SPtrans[8][64];
   __local u32 s_skb[8][64];
 
-  for (MAYBE_VOLATILE u32 i = lid; i < 64; i += lsz)
+  for (u32 i = lid; i < 64; i += lsz)
   {
     s_SPtrans[0][i] = c_SPtrans[0][i];
     s_SPtrans[1][i] = c_SPtrans[1][i];
@@ -756,7 +765,7 @@ __kernel void m12400_loop (__global pw_t *pws, __global const kernel_rule_t *rul
   tmps[gid].iv[1] = iv[1];
 }
 
-__kernel void m12400_comp (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global bsdicrypt_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m12400_comp (KERN_ATTR_TMPS (bsdicrypt_tmp_t))
 {
   /**
    * base
