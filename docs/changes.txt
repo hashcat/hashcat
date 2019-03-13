@@ -48,6 +48,7 @@
 ##
 
 - Binary Distribution: Removed 32 bit binary executables
+- Keep Guessing: No longer automatically activate --keep-guessing for modes 9720, 9820, 14900 and 18100
 
 * changes v5.0.0 -> v5.1.0
 

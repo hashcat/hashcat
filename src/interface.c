@@ -348,6 +348,18 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   {
     hashconfig->opts_type |= OPTS_TYPE_PT_NEVERCRACK;
   }
+  else
+  {
+    if ((hashconfig->opti_type & OPTS_TYPE_SUGGEST_KG) == 0)
+    {
+      if (user_options->quiet == false)
+      {
+        event_log_warning (hashcat_ctx, "This hash-mode is known to emit multiple valid password candidates for the same hash.");
+        event_log_warning (hashcat_ctx, "Use --keep-guessing to prevent hashcat from shutdown after the hash has been cracked.");
+        event_log_warning (hashcat_ctx, NULL);
+      }
+    }
+  }
 
   hashconfig->has_optimized_kernel  = false;
   hashconfig->has_pure_kernel       = false;

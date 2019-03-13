@@ -410,6 +410,7 @@ typedef enum opts_type
   OPTS_TYPE_PT_ADD06          = (1ULL << 40),
   OPTS_TYPE_KEYBOARD_MAPPING  = (1ULL << 41),
   OPTS_TYPE_DEEP_COMP_KERNEL  = (1ULL << 42), // if we have to iterate through each hash inside the comp kernel, for example if each hash has to be decrypted separately
+  OPTS_TYPE_SUGGEST_KG        = (1ULL << 43), // suggest keep guessing for modules the user maybe wants to use --keep-guessing
 
 } opts_type_t;
 
