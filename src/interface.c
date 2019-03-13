@@ -350,7 +350,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
-    if ((hashconfig->opti_type & OPTS_TYPE_SUGGEST_KG) == 0)
+    if ((hashconfig->opti_type & OPTS_TYPE_SUGGEST_KG) == 1)
     {
       if (user_options->quiet == false)
       {
