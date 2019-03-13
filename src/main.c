@@ -523,9 +523,10 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
   
   if (user_options->keep_guessing == true)
   {
-    event_log_advice (hashcat_ctx, "ATTENTION! Keep-guessing is enabled.");
-    event_log_advice (hashcat_ctx, "This tells Hashcat to continue guessing against all target hashes until attack exhaustion.");
-    event_log_advice (hashcat_ctx, "Hashcat will NOT check for or remove targets present in the potfile and will add ALL plains/collisions found, including duplicates, to the potfile.");
+    event_log_advice (hashcat_ctx, "ATTENTION! --keep-guessing mode is enabled.");
+    event_log_advice (hashcat_ctx, "This tells hashcat to continue attacking all target hashes until exhaustion.");
+    event_log_advice (hashcat_ctx, "hashcat will NOT check for or remove targets present in the potfile, and");
+    event_log_advice (hashcat_ctx, "will add ALL plains/collisions found, even duplicates, to the potfile.");
     event_log_advice (hashcat_ctx, NULL);
   }
   /**
