@@ -379,7 +379,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
   if (hashconfig->potfile_disable == true) return 0;
   
-  if (user_options->keep_guessing == true) return 0;
+  if (hashconfig->opts_type & OPTS_TYPE_PT_NEVERCRACK) return 0;
 
   // if no potfile exists yet we don't need to do anything here
 
