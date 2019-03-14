@@ -59,8 +59,6 @@ sub module_generate_hash
 
   my $b_seed = $pbkdf2->PBKDF2 ($mysalt, $word);
 
-  printf "seed: %s\n", byte2hex($b_seed);
-
   # we can precompute this
   my $b_kerberos_nfolded = hex2byte('6b65726265726f737b9b5b2b93132b93');
 
@@ -68,13 +66,10 @@ sub module_generate_hash
 
   # 'key_bytes' will be the AES key used to generate 'ki' (for final hmac-sha1)
   # and 'ke' (AES key to decrypt/encrypt the ticket)
-  my $cbc       = Crypt::Mode::CBC->new ('AES', 0);
-
+  my $cbc         = Crypt::Mode::CBC->new ('AES', 0);
   my $b_key_bytes = $cbc->encrypt ($b_kerberos_nfolded, $b_seed, $b_iv);
 
   $b_key_bytes = $b_key_bytes . $cbc->encrypt ($b_key_bytes, $b_seed, $b_iv);
-
-  printf "key_bytes: %s\n", byte2hex($b_key_bytes);
 
   # precomputed stuff
   my $b_nfolded1 = hex2byte('62dc6e371a63a80958ac562b15404ac5');
@@ -87,9 +82,6 @@ sub module_generate_hash
   my $b_ke = $cbc->encrypt ($b_nfolded2, $b_key_bytes, $b_iv);
 
   $b_ke = $b_ke . $cbc->encrypt ($b_ke, $b_key_bytes, $b_iv);
-
-  printf "ki: %s\n", byte2hex($b_ki);
-  printf "ke: %s\n", byte2hex($b_ke);
 
   my $cleartext_ticket = '6381b03081ada00703050050a00000a11b3019a003020117a1'.
     '12041058e0d77776e8b8e03991f2966939222aa2171b154d594b5242544553542e434f4e5'.
