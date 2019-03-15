@@ -728,8 +728,9 @@ typedef enum user_options_map
   IDX_STDIN_TIMEOUT_ABORT       = 0xff42,
   IDX_TRUECRYPT_KEYFILES        = 0xff43,
   IDX_USERNAME                  = 0xff44,
-  IDX_VERACRYPT_KEYFILES        = 0xff46,
-  IDX_VERACRYPT_PIM             = 0xff47,
+  IDX_VERACRYPT_KEYFILES        = 0xff45,
+  IDX_VERACRYPT_PIM_START       = 0xff46,
+  IDX_VERACRYPT_PIM_STOP        = 0xff47,
   IDX_VERSION_LOWER             = 'v',
   IDX_VERSION                   = 'V',
   IDX_WORDLIST_AUTOHEX_DISABLE  = 0xff48,
@@ -1028,6 +1029,8 @@ typedef struct plain
   u32  salt_pos;
   u32  digest_pos;
   u32  hash_pos;
+  u32  extra1;
+  u32  extra2;
 
 } plain_t;
 
@@ -1872,7 +1875,8 @@ typedef struct user_options
   u32          segment_size;
   u32          status_timer;
   u32          stdin_timeout_abort;
-  u32          veracrypt_pim;
+  u32          veracrypt_pim_start;
+  u32          veracrypt_pim_stop;
   u32          workload_profile;
   u64          limit;
   u64          skip;
@@ -2334,7 +2338,7 @@ typedef struct module_ctx
   void        (*module_hook12)                  (hc_device_param_t *, const void *, const u32, const u64);
   void        (*module_hook23)                  (hc_device_param_t *, const void *, const u32, const u64);
 
-  int         (*module_build_plain_postprocess) (const hashconfig_t *, const hashes_t *, const u32 *, const size_t, const int, u32 *, const size_t);
+  int         (*module_build_plain_postprocess) (const hashconfig_t *, const hashes_t *, const plain_t *, const u32 *, const size_t, const int, u32 *, const size_t);
 
   bool        (*module_unstable_warning)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const hc_device_param_t *);
 

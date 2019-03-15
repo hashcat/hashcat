@@ -181,9 +181,13 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
 
   XXH64_update (state, &nonce_error_corrections, sizeof (nonce_error_corrections));
 
-  const int veracrypt_pim = user_options->veracrypt_pim;
+  const int veracrypt_pim_start = user_options->veracrypt_pim_start;
 
-  XXH64_update (state, &veracrypt_pim, sizeof (veracrypt_pim));
+  XXH64_update (state, &veracrypt_pim_start, sizeof (veracrypt_pim_start));
+
+  const int veracrypt_pim_stop = user_options->veracrypt_pim_stop;
+
+  XXH64_update (state, &veracrypt_pim_stop, sizeof (veracrypt_pim_stop));
 
   if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
   {

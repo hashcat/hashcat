@@ -404,7 +404,7 @@ __kernel void m14632_comp (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
   {
     if (atomic_inc (&hashes_shown[digests_offset]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0, 0, 0);
     }
   }
 }

@@ -416,7 +416,7 @@ __kernel void m08800_comp (KERN_ATTR_TMPS_ESALT (androidfde_tmp_t, androidfde_t)
     {
       if (atomic_inc (&hashes_shown[digests_offset]) == 0)
       {
-        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, 0);
+        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, 0, 0, 0);
       }
     }
   }
@@ -475,7 +475,7 @@ __kernel void m08800_comp (KERN_ATTR_TMPS_ESALT (androidfde_tmp_t, androidfde_t)
     {
       if (atomic_inc (&hashes_shown[digests_offset]) == 0)
       {
-        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, 0);
+        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, 0, 0, 0);
       }
     }
   }

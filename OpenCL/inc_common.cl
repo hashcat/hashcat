@@ -160,8 +160,8 @@ DECLSPEC u32 check (const u32 *digest, __global const u32 *bitmap_s1_a, __global
   return (1);
 }
 
-DECLSPEC void mark_hash (__global plain_t *plains_buf, __global u32 *d_result, const u32 salt_pos, const u32 digests_cnt, const u32 digest_pos, const u32 hash_pos, const u64 gid, const u32 il_pos);
-DECLSPEC void mark_hash (__global plain_t *plains_buf, __global u32 *d_result, const u32 salt_pos, const u32 digests_cnt, const u32 digest_pos, const u32 hash_pos, const u64 gid, const u32 il_pos)
+DECLSPEC void mark_hash (__global plain_t *plains_buf, __global u32 *d_result, const u32 salt_pos, const u32 digests_cnt, const u32 digest_pos, const u32 hash_pos, const u64 gid, const u32 il_pos, const u32 extra1, const u32 extra2);
+DECLSPEC void mark_hash (__global plain_t *plains_buf, __global u32 *d_result, const u32 salt_pos, const u32 digests_cnt, const u32 digest_pos, const u32 hash_pos, const u64 gid, const u32 il_pos, const u32 extra1, const u32 extra2)
 {
   const u32 idx = atomic_inc (d_result);
 
@@ -175,11 +175,13 @@ DECLSPEC void mark_hash (__global plain_t *plains_buf, __global u32 *d_result, c
     return;
   }
 
-  plains_buf[idx].salt_pos    = salt_pos;
-  plains_buf[idx].digest_pos  = digest_pos; // relative
-  plains_buf[idx].hash_pos    = hash_pos;   // absolute
-  plains_buf[idx].gidvid      = gid;
-  plains_buf[idx].il_pos      = il_pos;
+  plains_buf[idx].salt_pos   = salt_pos;
+  plains_buf[idx].digest_pos = digest_pos;  // relative
+  plains_buf[idx].hash_pos   = hash_pos;    // absolute
+  plains_buf[idx].gidvid     = gid;
+  plains_buf[idx].il_pos     = il_pos;
+  plains_buf[idx].extra1     = extra1;      // for example, used as veracrypt pim storage
+  plains_buf[idx].extra2     = extra2;      // unused so far
 }
 
 DECLSPEC int count_char (const u32 *buf, const int elems, const u32 c);

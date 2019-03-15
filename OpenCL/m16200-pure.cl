@@ -395,7 +395,7 @@ __kernel void m16200_comp (KERN_ATTR_TMPS_ESALT (apple_secure_notes_tmp_t, apple
   {
     if (atomic_inc (&hashes_shown[digests_offset]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, 0);
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, 0, 0, 0);
     }
   }
 }

@@ -999,7 +999,7 @@ __kernel void m19600_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_17_tmp_t, krb5tgs_17_t)
         if (atomic_inc (&hashes_shown[digests_offset]) == 0)
         {
           #define il_pos 0
-          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos, 0, 0);
         }
       }
     }

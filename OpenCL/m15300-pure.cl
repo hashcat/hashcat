@@ -624,7 +624,7 @@ __kernel void m15300_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
   {
     if (atomic_inc (&hashes_shown[digests_offset]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos, 0, 0);
     }
   }
 }

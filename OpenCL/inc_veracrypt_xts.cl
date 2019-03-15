@@ -96,8 +96,8 @@ DECLSPEC void kuznyechik_decrypt_xts_next (const u32 *in, u32 *out, u32 *T, u32 
 
 // 512 bit
 
-DECLSPEC int verify_header_camellia (__global const tc_t *esalt_bufs, const u32 *ukey1, const u32 *ukey2);
-DECLSPEC int verify_header_camellia (__global const tc_t *esalt_bufs, const u32 *ukey1, const u32 *ukey2)
+DECLSPEC int verify_header_camellia (__global const u32 *data_buf, const u32 signature, const u32 *ukey1, const u32 *ukey2);
+DECLSPEC int verify_header_camellia (__global const u32 *data_buf, const u32 signature, const u32 *ukey1, const u32 *ukey2)
 {
   u32 ks_camellia[68];
 
@@ -107,16 +107,14 @@ DECLSPEC int verify_header_camellia (__global const tc_t *esalt_bufs, const u32 
 
   u32 data[4];
 
-  data[0] = esalt_bufs[0].data_buf[0];
-  data[1] = esalt_bufs[0].data_buf[1];
-  data[2] = esalt_bufs[0].data_buf[2];
-  data[3] = esalt_bufs[0].data_buf[3];
+  data[0] = data_buf[0];
+  data[1] = data_buf[1];
+  data[2] = data_buf[2];
+  data[3] = data_buf[3];
 
   u32 tmp[4];
 
   camellia256_decrypt_xts_first (ukey1, ukey2, data, tmp, S, T_camellia, ks_camellia);
-
-  const u32 signature = esalt_bufs[0].signature;
 
   if (tmp[0] != signature) return 0;
 
@@ -135,10 +133,10 @@ DECLSPEC int verify_header_camellia (__global const tc_t *esalt_bufs, const u32 
 
   for (int i = 64 - 16; i < 128 - 16; i += 4)
   {
-    data[0] = esalt_bufs[0].data_buf[i + 0];
-    data[1] = esalt_bufs[0].data_buf[i + 1];
-    data[2] = esalt_bufs[0].data_buf[i + 2];
-    data[3] = esalt_bufs[0].data_buf[i + 3];
+    data[0] = data_buf[i + 0];
+    data[1] = data_buf[i + 1];
+    data[2] = data_buf[i + 2];
+    data[3] = data_buf[i + 3];
 
     camellia256_decrypt_xts_next (data, tmp, T_camellia, ks_camellia);
 
@@ -153,8 +151,8 @@ DECLSPEC int verify_header_camellia (__global const tc_t *esalt_bufs, const u32 
   return 1;
 }
 
-DECLSPEC int verify_header_kuznyechik (__global const tc_t *esalt_bufs, const u32 *ukey1, const u32 *ukey2);
-DECLSPEC int verify_header_kuznyechik (__global const tc_t *esalt_bufs, const u32 *ukey1, const u32 *ukey2)
+DECLSPEC int verify_header_kuznyechik (__global const u32 *data_buf, const u32 signature, const u32 *ukey1, const u32 *ukey2);
+DECLSPEC int verify_header_kuznyechik (__global const u32 *data_buf, const u32 signature, const u32 *ukey1, const u32 *ukey2)
 {
   u32 ks_kuznyechik[40];
 
@@ -164,16 +162,14 @@ DECLSPEC int verify_header_kuznyechik (__global const tc_t *esalt_bufs, const u3
 
   u32 data[4];
 
-  data[0] = esalt_bufs[0].data_buf[0];
-  data[1] = esalt_bufs[0].data_buf[1];
-  data[2] = esalt_bufs[0].data_buf[2];
-  data[3] = esalt_bufs[0].data_buf[3];
+  data[0] = data_buf[0];
+  data[1] = data_buf[1];
+  data[2] = data_buf[2];
+  data[3] = data_buf[3];
 
   u32 tmp[4];
 
   kuznyechik_decrypt_xts_first (ukey1, ukey2, data, tmp, S, T_kuznyechik, ks_kuznyechik);
-
-  const u32 signature = esalt_bufs[0].signature;
 
   if (tmp[0] != signature) return 0;
 
@@ -192,10 +188,10 @@ DECLSPEC int verify_header_kuznyechik (__global const tc_t *esalt_bufs, const u3
 
   for (int i = 64 - 16; i < 128 - 16; i += 4)
   {
-    data[0] = esalt_bufs[0].data_buf[i + 0];
-    data[1] = esalt_bufs[0].data_buf[i + 1];
-    data[2] = esalt_bufs[0].data_buf[i + 2];
-    data[3] = esalt_bufs[0].data_buf[i + 3];
+    data[0] = data_buf[i + 0];
+    data[1] = data_buf[i + 1];
+    data[2] = data_buf[i + 2];
+    data[3] = data_buf[i + 3];
 
     kuznyechik_decrypt_xts_next (data, tmp, T_kuznyechik, ks_kuznyechik);
 
@@ -212,8 +208,8 @@ DECLSPEC int verify_header_kuznyechik (__global const tc_t *esalt_bufs, const u3
 
 // 1024 bit
 
-DECLSPEC int verify_header_camellia_kuznyechik (__global const tc_t *esalt_bufs, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4);
-DECLSPEC int verify_header_camellia_kuznyechik (__global const tc_t *esalt_bufs, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4)
+DECLSPEC int verify_header_camellia_kuznyechik (__global const u32 *data_buf, const u32 signature, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4);
+DECLSPEC int verify_header_camellia_kuznyechik (__global const u32 *data_buf, const u32 signature, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4)
 {
   u32 ks_camellia[68];
   u32 ks_kuznyechik[40];
@@ -225,17 +221,15 @@ DECLSPEC int verify_header_camellia_kuznyechik (__global const tc_t *esalt_bufs,
 
   u32 data[4];
 
-  data[0] = esalt_bufs[0].data_buf[0];
-  data[1] = esalt_bufs[0].data_buf[1];
-  data[2] = esalt_bufs[0].data_buf[2];
-  data[3] = esalt_bufs[0].data_buf[3];
+  data[0] = data_buf[0];
+  data[1] = data_buf[1];
+  data[2] = data_buf[2];
+  data[3] = data_buf[3];
 
   u32 tmp[4];
 
   camellia256_decrypt_xts_first (ukey2, ukey4, data, tmp, S, T_camellia,   ks_camellia);
   kuznyechik_decrypt_xts_first  (ukey1, ukey3, tmp,  tmp, S, T_kuznyechik, ks_kuznyechik);
-
-  const u32 signature = esalt_bufs[0].signature;
 
   if (tmp[0] != signature) return 0;
 
@@ -255,10 +249,10 @@ DECLSPEC int verify_header_camellia_kuznyechik (__global const tc_t *esalt_bufs,
 
   for (int i = 64 - 16; i < 128 - 16; i += 4)
   {
-    data[0] = esalt_bufs[0].data_buf[i + 0];
-    data[1] = esalt_bufs[0].data_buf[i + 1];
-    data[2] = esalt_bufs[0].data_buf[i + 2];
-    data[3] = esalt_bufs[0].data_buf[i + 3];
+    data[0] = data_buf[i + 0];
+    data[1] = data_buf[i + 1];
+    data[2] = data_buf[i + 2];
+    data[3] = data_buf[i + 3];
 
     camellia256_decrypt_xts_next (data, tmp, T_camellia,   ks_camellia);
     kuznyechik_decrypt_xts_next  (tmp,  tmp, T_kuznyechik, ks_kuznyechik);
@@ -274,8 +268,8 @@ DECLSPEC int verify_header_camellia_kuznyechik (__global const tc_t *esalt_bufs,
   return 1;
 }
 
-DECLSPEC int verify_header_camellia_serpent (__global const tc_t *esalt_bufs, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4);
-DECLSPEC int verify_header_camellia_serpent (__global const tc_t *esalt_bufs, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4)
+DECLSPEC int verify_header_camellia_serpent (__global const u32 *data_buf, const u32 signature, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4);
+DECLSPEC int verify_header_camellia_serpent (__global const u32 *data_buf, const u32 signature, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4)
 {
   u32 ks_camellia[68];
   u32 ks_serpent[140];
@@ -287,17 +281,15 @@ DECLSPEC int verify_header_camellia_serpent (__global const tc_t *esalt_bufs, co
 
   u32 data[4];
 
-  data[0] = esalt_bufs[0].data_buf[0];
-  data[1] = esalt_bufs[0].data_buf[1];
-  data[2] = esalt_bufs[0].data_buf[2];
-  data[3] = esalt_bufs[0].data_buf[3];
+  data[0] = data_buf[0];
+  data[1] = data_buf[1];
+  data[2] = data_buf[2];
+  data[3] = data_buf[3];
 
   u32 tmp[4];
 
   camellia256_decrypt_xts_first (ukey2, ukey4, data, tmp, S, T_camellia, ks_camellia);
   serpent256_decrypt_xts_first  (ukey1, ukey3, tmp,  tmp, S, T_serpent,  ks_serpent);
-
-  const u32 signature = esalt_bufs[0].signature;
 
   if (tmp[0] != signature) return 0;
 
@@ -317,10 +309,10 @@ DECLSPEC int verify_header_camellia_serpent (__global const tc_t *esalt_bufs, co
 
   for (int i = 64 - 16; i < 128 - 16; i += 4)
   {
-    data[0] = esalt_bufs[0].data_buf[i + 0];
-    data[1] = esalt_bufs[0].data_buf[i + 1];
-    data[2] = esalt_bufs[0].data_buf[i + 2];
-    data[3] = esalt_bufs[0].data_buf[i + 3];
+    data[0] = data_buf[i + 0];
+    data[1] = data_buf[i + 1];
+    data[2] = data_buf[i + 2];
+    data[3] = data_buf[i + 3];
 
     camellia256_decrypt_xts_next (data, tmp, T_camellia, ks_camellia);
     serpent256_decrypt_xts_next  (tmp,  tmp, T_serpent,  ks_serpent);
@@ -336,8 +328,8 @@ DECLSPEC int verify_header_camellia_serpent (__global const tc_t *esalt_bufs, co
   return 1;
 }
 
-DECLSPEC int verify_header_kuznyechik_aes (__global const tc_t *esalt_bufs, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4);
-DECLSPEC int verify_header_kuznyechik_aes (__global const tc_t *esalt_bufs, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC int verify_header_kuznyechik_aes (__global const u32 *data_buf, const u32 signature, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4);
+DECLSPEC int verify_header_kuznyechik_aes (__global const u32 *data_buf, const u32 signature, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 ks_kuznyechik[40];
   u32 ks_aes[60];
@@ -349,17 +341,15 @@ DECLSPEC int verify_header_kuznyechik_aes (__global const tc_t *esalt_bufs, cons
 
   u32 data[4];
 
-  data[0] = esalt_bufs[0].data_buf[0];
-  data[1] = esalt_bufs[0].data_buf[1];
-  data[2] = esalt_bufs[0].data_buf[2];
-  data[3] = esalt_bufs[0].data_buf[3];
+  data[0] = data_buf[0];
+  data[1] = data_buf[1];
+  data[2] = data_buf[2];
+  data[3] = data_buf[3];
 
   u32 tmp[4];
 
   kuznyechik_decrypt_xts_first (ukey2, ukey4, data, tmp, S, T_kuznyechik, ks_kuznyechik);
   aes256_decrypt_xts_first     (ukey1, ukey3, tmp,  tmp, S, T_aes,     ks_aes, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
-
-  const u32 signature = esalt_bufs[0].signature;
 
   if (tmp[0] != signature) return 0;
 
@@ -379,10 +369,10 @@ DECLSPEC int verify_header_kuznyechik_aes (__global const tc_t *esalt_bufs, cons
 
   for (int i = 64 - 16; i < 128 - 16; i += 4)
   {
-    data[0] = esalt_bufs[0].data_buf[i + 0];
-    data[1] = esalt_bufs[0].data_buf[i + 1];
-    data[2] = esalt_bufs[0].data_buf[i + 2];
-    data[3] = esalt_bufs[0].data_buf[i + 3];
+    data[0] = data_buf[i + 0];
+    data[1] = data_buf[i + 1];
+    data[2] = data_buf[i + 2];
+    data[3] = data_buf[i + 3];
 
     kuznyechik_decrypt_xts_next (data, tmp, T_kuznyechik, ks_kuznyechik);
     aes256_decrypt_xts_next     (tmp,  tmp, T_aes,     ks_aes, s_td0, s_td1, s_td2, s_td3, s_td4);
@@ -398,8 +388,8 @@ DECLSPEC int verify_header_kuznyechik_aes (__global const tc_t *esalt_bufs, cons
   return 1;
 }
 
-DECLSPEC int verify_header_kuznyechik_twofish (__global const tc_t *esalt_bufs, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4);
-DECLSPEC int verify_header_kuznyechik_twofish (__global const tc_t *esalt_bufs, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4)
+DECLSPEC int verify_header_kuznyechik_twofish (__global const u32 *data_buf, const u32 signature, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4);
+DECLSPEC int verify_header_kuznyechik_twofish (__global const u32 *data_buf, const u32 signature, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4)
 {
   u32 ks_kuznyechik[40];
 
@@ -413,17 +403,15 @@ DECLSPEC int verify_header_kuznyechik_twofish (__global const tc_t *esalt_bufs, 
 
   u32 data[4];
 
-  data[0] = esalt_bufs[0].data_buf[0];
-  data[1] = esalt_bufs[0].data_buf[1];
-  data[2] = esalt_bufs[0].data_buf[2];
-  data[3] = esalt_bufs[0].data_buf[3];
+  data[0] = data_buf[0];
+  data[1] = data_buf[1];
+  data[2] = data_buf[2];
+  data[3] = data_buf[3];
 
   u32 tmp[4];
 
   kuznyechik_decrypt_xts_first (ukey2, ukey4, data, tmp, S, T_kuznyechik, ks_kuznyechik);
   twofish256_decrypt_xts_first (ukey1, ukey3,  tmp, tmp, S, T_twofish, sk_twofish, lk_twofish);
-
-  const u32 signature = esalt_bufs[0].signature;
 
   if (tmp[0] != signature) return 0;
 
@@ -443,10 +431,10 @@ DECLSPEC int verify_header_kuznyechik_twofish (__global const tc_t *esalt_bufs, 
 
   for (int i = 64 - 16; i < 128 - 16; i += 4)
   {
-    data[0] = esalt_bufs[0].data_buf[i + 0];
-    data[1] = esalt_bufs[0].data_buf[i + 1];
-    data[2] = esalt_bufs[0].data_buf[i + 2];
-    data[3] = esalt_bufs[0].data_buf[i + 3];
+    data[0] = data_buf[i + 0];
+    data[1] = data_buf[i + 1];
+    data[2] = data_buf[i + 2];
+    data[3] = data_buf[i + 3];
 
     kuznyechik_decrypt_xts_next (data, tmp, T_kuznyechik, ks_kuznyechik);
     twofish256_decrypt_xts_next (tmp,  tmp, T_twofish, sk_twofish, lk_twofish);
@@ -464,8 +452,8 @@ DECLSPEC int verify_header_kuznyechik_twofish (__global const tc_t *esalt_bufs, 
 
 // 1536 bit
 
-DECLSPEC int verify_header_kuznyechik_serpent_camellia (__global const tc_t *esalt_bufs, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4, const u32 *ukey5, const u32 *ukey6);
-DECLSPEC int verify_header_kuznyechik_serpent_camellia (__global const tc_t *esalt_bufs, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4, const u32 *ukey5, const u32 *ukey6)
+DECLSPEC int verify_header_kuznyechik_serpent_camellia (__global const u32 *data_buf, const u32 signature, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4, const u32 *ukey5, const u32 *ukey6);
+DECLSPEC int verify_header_kuznyechik_serpent_camellia (__global const u32 *data_buf, const u32 signature, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4, const u32 *ukey5, const u32 *ukey6)
 {
   u32 ks_kuznyechik[40];
   u32 ks_serpent[140];
@@ -479,18 +467,16 @@ DECLSPEC int verify_header_kuznyechik_serpent_camellia (__global const tc_t *esa
 
   u32 data[4];
 
-  data[0] = esalt_bufs[0].data_buf[0];
-  data[1] = esalt_bufs[0].data_buf[1];
-  data[2] = esalt_bufs[0].data_buf[2];
-  data[3] = esalt_bufs[0].data_buf[3];
+  data[0] = data_buf[0];
+  data[1] = data_buf[1];
+  data[2] = data_buf[2];
+  data[3] = data_buf[3];
 
   u32 tmp[4];
 
   kuznyechik_decrypt_xts_first  (ukey3, ukey6, data, tmp, S, T_kuznyechik, ks_kuznyechik);
   serpent256_decrypt_xts_first  (ukey2, ukey5, tmp,  tmp, S, T_serpent,    ks_serpent);
   camellia256_decrypt_xts_first (ukey1, ukey4, tmp,  tmp, S, T_camellia,   ks_camellia);
-
-  const u32 signature = esalt_bufs[0].signature;
 
   if (tmp[0] != signature) return 0;
 
@@ -511,10 +497,10 @@ DECLSPEC int verify_header_kuznyechik_serpent_camellia (__global const tc_t *esa
 
   for (int i = 64 - 16; i < 128 - 16; i += 4)
   {
-    data[0] = esalt_bufs[0].data_buf[i + 0];
-    data[1] = esalt_bufs[0].data_buf[i + 1];
-    data[2] = esalt_bufs[0].data_buf[i + 2];
-    data[3] = esalt_bufs[0].data_buf[i + 3];
+    data[0] = data_buf[i + 0];
+    data[1] = data_buf[i + 1];
+    data[2] = data_buf[i + 2];
+    data[3] = data_buf[i + 3];
 
     kuznyechik_decrypt_xts_next  (data, tmp, T_kuznyechik, ks_kuznyechik);
     serpent256_decrypt_xts_next  (tmp,  tmp, T_serpent,    ks_serpent);

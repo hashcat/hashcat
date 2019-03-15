@@ -625,7 +625,7 @@ DECLSPEC void m13100 (__local RC4_KEY *rc4_key, u32 *w0, u32 *w1, u32 *w2, u32 *
     {
       if (atomic_inc (&hashes_shown[digests_offset]) == 0)
       {
-        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos, 0, 0);
       }
     }
   }
