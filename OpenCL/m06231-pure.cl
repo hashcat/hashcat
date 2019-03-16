@@ -194,8 +194,8 @@ __kernel void m06231_init (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
 
   #else
 
-  __constant u32a *s_Ch = Ch;
-  __constant u32a *s_Cl = Cl;
+  __constant u32a (*s_Ch)[256] = Ch;
+  __constant u32a (*s_Cl)[256] = Cl;
 
   #endif
 
@@ -406,8 +406,8 @@ __kernel void m06231_loop (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
 
   #else
 
-  __constant u32a *s_Ch = Ch;
-  __constant u32a *s_Cl = Cl;
+  __constant u32a (*s_Ch)[256] = Ch;
+  __constant u32a (*s_Cl)[256] = Cl;
 
   #endif
 
@@ -660,8 +660,8 @@ __kernel void m06231_comp (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
 
   #else
 
-  __constant u32a *s_Ch = Ch;
-  __constant u32a *s_Cl = Cl;
+  __constant u32a (*s_Ch)[256] = Ch;
+  __constant u32a (*s_Cl)[256] = Cl;
 
   #endif
 

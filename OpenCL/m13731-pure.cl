@@ -5,8 +5,8 @@
 
 //#define NEW_SIMD_CODE
 
-#undef  LOCAL_MEM_TYPE
-#define LOCAL_MEM_TYPE LOCAL_MEM_TYPE_GLOBAL
+//#undef  LOCAL_MEM_TYPE
+//#define LOCAL_MEM_TYPE LOCAL_MEM_TYPE_GLOBAL
 
 #include "inc_vendor.cl"
 #include "inc_hash_constants.h"
@@ -238,8 +238,8 @@ __kernel void m13731_init (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 
   #else
 
-  __constant u32a *s_Ch = Ch;
-  __constant u32a *s_Cl = Cl;
+  __constant u32a (*s_Ch)[256] = Ch;
+  __constant u32a (*s_Cl)[256] = Cl;
 
   #endif
 
@@ -501,8 +501,8 @@ __kernel void m13731_loop (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 
   #else
 
-  __constant u32a *s_Ch = Ch;
-  __constant u32a *s_Cl = Cl;
+  __constant u32a (*s_Ch)[256] = Ch;
+  __constant u32a (*s_Cl)[256] = Cl;
 
   #endif
 
@@ -812,8 +812,8 @@ __kernel void m13731_comp (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 
   #else
 
-  __constant u32a *s_Ch = Ch;
-  __constant u32a *s_Cl = Cl;
+  __constant u32a (*s_Ch)[256] = Ch;
+  __constant u32a (*s_Cl)[256] = Cl;
 
   #endif
 

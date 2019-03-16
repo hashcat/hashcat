@@ -62,8 +62,8 @@ __kernel void m06100_m04 (KERN_ATTR_BASIC ())
 
   #else
 
-  __constant u32a *s_Ch = Ch;
-  __constant u32a *s_Cl = Cl;
+  __constant u32a (*s_Ch)[256] = Ch;
+  __constant u32a (*s_Cl)[256] = Cl;
 
   #endif
 
@@ -260,8 +260,8 @@ __kernel void m06100_s04 (KERN_ATTR_BASIC ())
 
   #else
 
-  __constant u32a *s_Ch = Ch;
-  __constant u32a *s_Cl = Cl;
+  __constant u32a (*s_Ch)[256] = Ch;
+  __constant u32a (*s_Cl)[256] = Cl;
 
   #endif
 
