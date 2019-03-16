@@ -366,9 +366,6 @@ DECLSPEC void _des_crypt_encrypt (u32x *iv, u32x *data, u32x *Kc, u32x *Kd, SHM_
   r = rotl32 (r, 3u);
   l = rotl32 (l, 3u);
 
-  #ifdef _unroll
-  #pragma unroll
-  #endif
   for (u32 i = 0; i < 16; i += 2)
   {
     u32x u;
@@ -419,9 +416,6 @@ DECLSPEC void _des_crypt_decrypt (u32x *iv, u32x *data, u32x *Kc, u32x *Kd, SHM_
   r = rotl32 (r, 3u);
   l = rotl32 (l, 3u);
 
-  #ifdef _unroll
-  #pragma unroll
-  #endif
   for (u32 i = 16; i > 0; i -= 2)
   {
     u32x u;
@@ -478,9 +472,6 @@ DECLSPEC void _des_crypt_keysetup (u32x c, u32x d, u32x *Kc, u32x *Kd, SHM_TYPE 
 
   c = c & 0x0fffffff;
 
-  #ifdef _unroll
-  #pragma unroll
-  #endif
   for (u32 i = 0; i < 16; i++)
   {
     if ((i < 2) || (i == 8) || (i == 15))
