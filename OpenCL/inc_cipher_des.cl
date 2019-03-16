@@ -1,53 +1,8 @@
-/**
- * Author......: See docs/credits.txt
- * License.....: MIT
- */
-
-#define NEW_SIMD_CODE
-
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
-#include "inc_common.cl"
-#include "inc_simd.cl"
-#include "inc_hash_md4.cl"
-
-typedef struct netntlm
-{
-  u32 user_len;
-  u32 domain_len;
-  u32 srvchall_len;
-  u32 clichall_len;
-
-  u32 userdomain_buf[64];
-  u32 chall_buf[256];
-
-} netntlm_t;
-
-#define PERM_OP(a,b,tt,n,m) \
-{                           \
-  tt = a >> n;              \
-  tt = tt ^ b;              \
-  tt = tt & m;              \
-  b = b ^ tt;               \
-  tt = tt << n;             \
-  a = a ^ tt;               \
-}
-
-#define HPERM_OP(a,tt,n,m)  \
-{                           \
-  tt = a << (16 + n);       \
-  tt = tt ^ a;              \
-  tt = tt & m;              \
-  a  = a ^ tt;              \
-  tt = tt >> (16 + n);      \
-  a  = a ^ tt;              \
-}
 
 __constant u32a c_SPtrans[8][64] =
 {
   {
+    /* nibble 0 */
     0x02080800, 0x00080000, 0x02000002, 0x02080802,
     0x02000000, 0x00080802, 0x00080002, 0x02000002,
     0x00080802, 0x02080800, 0x02080000, 0x00000802,
@@ -66,6 +21,7 @@ __constant u32a c_SPtrans[8][64] =
     0x00000002, 0x02080002, 0x00000800, 0x00080802,
   },
   {
+    /* nibble 1 */
     0x40108010, 0x00000000, 0x00108000, 0x40100000,
     0x40000010, 0x00008010, 0x40008000, 0x00108000,
     0x00008000, 0x40100010, 0x00000010, 0x40008000,
@@ -84,6 +40,7 @@ __constant u32a c_SPtrans[8][64] =
     0x40008010, 0x00000010, 0x40100000, 0x00108000,
   },
   {
+    /* nibble 2 */
     0x04000001, 0x04040100, 0x00000100, 0x04000101,
     0x00040001, 0x04000000, 0x04000101, 0x00040100,
     0x04000100, 0x00040000, 0x04040000, 0x00000001,
@@ -102,6 +59,7 @@ __constant u32a c_SPtrans[8][64] =
     0x04000001, 0x00040101, 0x00000100, 0x04040000,
   },
   {
+    /* nibble 3 */
     0x00401008, 0x10001000, 0x00000008, 0x10401008,
     0x00000000, 0x10400000, 0x10001008, 0x00400008,
     0x10401000, 0x10000008, 0x10000000, 0x00001008,
@@ -120,6 +78,7 @@ __constant u32a c_SPtrans[8][64] =
     0x00001008, 0x10000000, 0x10000008, 0x10401000,
   },
   {
+    /* nibble 4 */
     0x08000000, 0x00010000, 0x00000400, 0x08010420,
     0x08010020, 0x08000400, 0x00010420, 0x08010000,
     0x00010000, 0x00000020, 0x08000020, 0x00010400,
@@ -138,6 +97,7 @@ __constant u32a c_SPtrans[8][64] =
     0x00000020, 0x00010420, 0x08010000, 0x08000020,
   },
   {
+    /* nibble 5 */
     0x80000040, 0x00200040, 0x00000000, 0x80202000,
     0x00200040, 0x00002000, 0x80002040, 0x00200000,
     0x00002040, 0x80202040, 0x00202000, 0x80000000,
@@ -156,6 +116,7 @@ __constant u32a c_SPtrans[8][64] =
     0x80200000, 0x00002040, 0x00000040, 0x80200040,
   },
   {
+    /* nibble 6 */
     0x00004000, 0x00000200, 0x01000200, 0x01000004,
     0x01004204, 0x00004004, 0x00004200, 0x00000000,
     0x01000000, 0x01000204, 0x00000204, 0x01004000,
@@ -174,6 +135,7 @@ __constant u32a c_SPtrans[8][64] =
     0x01000004, 0x01004200, 0x01004000, 0x00004004,
   },
   {
+    /* nibble 7 */
     0x20800080, 0x20820000, 0x00020080, 0x00000000,
     0x20020000, 0x00800080, 0x20800000, 0x20820080,
     0x00000080, 0x20000000, 0x00820000, 0x00020080,
@@ -190,7 +152,7 @@ __constant u32a c_SPtrans[8][64] =
     0x00820000, 0x00020080, 0x20020080, 0x20800000,
     0x00000080, 0x20820000, 0x00820080, 0x00000000,
     0x20000000, 0x20800080, 0x00020000, 0x00820080,
-  }
+  },
 };
 
 __constant u32a c_skb[8][64] =
@@ -341,22 +303,68 @@ __constant u32a c_skb[8][64] =
   }
 };
 
+#define PERM_OP(a,b,n,m) \
+{                        \
+  u32x t;                \
+  t = a >> n;            \
+  t = t ^ b;             \
+  t = t & m;             \
+  b = b ^ t;             \
+  t = t << n;            \
+  a = a ^ t;             \
+}
+
+#define HPERM_OP(a,n,m)  \
+{                        \
+  u32x t;                \
+  t = a << (16 + n);     \
+  t = t ^ a;             \
+  t = t & m;             \
+  a  = a ^ t;            \
+  t = t >> (16 + n);     \
+  a  = a ^ t;            \
+}
+
+#define DES_IP(l,r)                \
+{                                  \
+  PERM_OP (r, l,  4, 0x0f0f0f0f);  \
+  PERM_OP (l, r, 16, 0x0000ffff);  \
+  PERM_OP (r, l,  2, 0x33333333);  \
+  PERM_OP (l, r,  8, 0x00ff00ff);  \
+  PERM_OP (r, l,  1, 0x55555555);  \
+}
+
+#define DES_FP(l,r)                \
+{                                  \
+  PERM_OP (l, r,  1, 0x55555555);  \
+  PERM_OP (r, l,  8, 0x00ff00ff);  \
+  PERM_OP (l, r,  2, 0x33333333);  \
+  PERM_OP (r, l, 16, 0x0000ffff);  \
+  PERM_OP (l, r,  4, 0x0f0f0f0f);  \
+}
+
 #if   VECT_SIZE == 1
-#define BOX(i,n,S) (S)[(n)][(i)]
+#define DES_BOX(i,n,S) (S)[(n)][(i)]
 #elif VECT_SIZE == 2
-#define BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1])
+#define DES_BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1])
 #elif VECT_SIZE == 4
-#define BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3])
+#define DES_BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3])
 #elif VECT_SIZE == 8
-#define BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3], (S)[(n)][(i).s4], (S)[(n)][(i).s5], (S)[(n)][(i).s6], (S)[(n)][(i).s7])
+#define DES_BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3], (S)[(n)][(i).s4], (S)[(n)][(i).s5], (S)[(n)][(i).s6], (S)[(n)][(i).s7])
 #elif VECT_SIZE == 16
-#define BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3], (S)[(n)][(i).s4], (S)[(n)][(i).s5], (S)[(n)][(i).s6], (S)[(n)][(i).s7], (S)[(n)][(i).s8], (S)[(n)][(i).s9], (S)[(n)][(i).sa], (S)[(n)][(i).sb], (S)[(n)][(i).sc], (S)[(n)][(i).sd], (S)[(n)][(i).se], (S)[(n)][(i).sf])
+#define DES_BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3], (S)[(n)][(i).s4], (S)[(n)][(i).s5], (S)[(n)][(i).s6], (S)[(n)][(i).s7], (S)[(n)][(i).s8], (S)[(n)][(i).s9], (S)[(n)][(i).sa], (S)[(n)][(i).sb], (S)[(n)][(i).sc], (S)[(n)][(i).sd], (S)[(n)][(i).se], (S)[(n)][(i).sf])
 #endif
 
-DECLSPEC void _des_crypt_encrypt (u32x *iv, u32x *data, u32x *Kc, u32x *Kd, __local u32 (*s_SPtrans)[64])
+DECLSPEC void _des_crypt_encrypt (u32x *iv, u32x *data, u32x *Kc, u32x *Kd, SHM_TYPE u32 (*s_SPtrans)[64]);
+DECLSPEC void _des_crypt_encrypt (u32x *iv, u32x *data, u32x *Kc, u32x *Kd, SHM_TYPE u32 (*s_SPtrans)[64])
 {
   u32x r = data[0];
   u32x l = data[1];
+
+  DES_IP (r, l);
+
+  r = rotl32 (r, 3u);
+  l = rotl32 (l, 3u);
 
   #ifdef _unroll
   #pragma unroll
@@ -366,45 +374,102 @@ DECLSPEC void _des_crypt_encrypt (u32x *iv, u32x *data, u32x *Kc, u32x *Kd, __lo
     u32x u;
     u32x t;
 
-    u = Kc[i + 0] ^ rotl32 (r, 30u);
-    t = Kd[i + 0] ^ rotl32 (r, 26u);
+    u = Kc[i + 0] ^ r;
+    t = Kd[i + 0] ^ rotl32 (r, 28u);
 
-    l ^= BOX (((u >>  0) & 0x3f), 0, s_SPtrans)
-       | BOX (((u >>  8) & 0x3f), 2, s_SPtrans)
-       | BOX (((u >> 16) & 0x3f), 4, s_SPtrans)
-       | BOX (((u >> 24) & 0x3f), 6, s_SPtrans)
-       | BOX (((t >>  0) & 0x3f), 1, s_SPtrans)
-       | BOX (((t >>  8) & 0x3f), 3, s_SPtrans)
-       | BOX (((t >> 16) & 0x3f), 5, s_SPtrans)
-       | BOX (((t >> 24) & 0x3f), 7, s_SPtrans);
+    l ^= DES_BOX (((u >>  2) & 0x3f), 0, s_SPtrans)
+       | DES_BOX (((u >> 10) & 0x3f), 2, s_SPtrans)
+       | DES_BOX (((u >> 18) & 0x3f), 4, s_SPtrans)
+       | DES_BOX (((u >> 26) & 0x3f), 6, s_SPtrans)
+       | DES_BOX (((t >>  2) & 0x3f), 1, s_SPtrans)
+       | DES_BOX (((t >> 10) & 0x3f), 3, s_SPtrans)
+       | DES_BOX (((t >> 18) & 0x3f), 5, s_SPtrans)
+       | DES_BOX (((t >> 26) & 0x3f), 7, s_SPtrans);
 
-    u = Kc[i + 1] ^ rotl32 (l, 30u);
-    t = Kd[i + 1] ^ rotl32 (l, 26u);
+    u = Kc[i + 1] ^ l;
+    t = Kd[i + 1] ^ rotl32 (l, 28u);
 
-    r ^= BOX (((u >>  0) & 0x3f), 0, s_SPtrans)
-       | BOX (((u >>  8) & 0x3f), 2, s_SPtrans)
-       | BOX (((u >> 16) & 0x3f), 4, s_SPtrans)
-       | BOX (((u >> 24) & 0x3f), 6, s_SPtrans)
-       | BOX (((t >>  0) & 0x3f), 1, s_SPtrans)
-       | BOX (((t >>  8) & 0x3f), 3, s_SPtrans)
-       | BOX (((t >> 16) & 0x3f), 5, s_SPtrans)
-       | BOX (((t >> 24) & 0x3f), 7, s_SPtrans);
+    r ^= DES_BOX (((u >>  2) & 0x3f), 0, s_SPtrans)
+       | DES_BOX (((u >> 10) & 0x3f), 2, s_SPtrans)
+       | DES_BOX (((u >> 18) & 0x3f), 4, s_SPtrans)
+       | DES_BOX (((u >> 26) & 0x3f), 6, s_SPtrans)
+       | DES_BOX (((t >>  2) & 0x3f), 1, s_SPtrans)
+       | DES_BOX (((t >> 10) & 0x3f), 3, s_SPtrans)
+       | DES_BOX (((t >> 18) & 0x3f), 5, s_SPtrans)
+       | DES_BOX (((t >> 26) & 0x3f), 7, s_SPtrans);
   }
+
+  l = rotl32 (l, 29u);
+  r = rotl32 (r, 29u);
+
+  DES_FP (r, l);
 
   iv[0] = l;
   iv[1] = r;
 }
 
-DECLSPEC void _des_crypt_keysetup (u32x c, u32x d, u32x *Kc, u32x *Kd, __local u32 (*s_skb)[64])
+DECLSPEC void _des_crypt_decrypt (u32x *iv, u32x *data, u32x *Kc, u32x *Kd, SHM_TYPE u32 (*s_SPtrans)[64]);
+DECLSPEC void _des_crypt_decrypt (u32x *iv, u32x *data, u32x *Kc, u32x *Kd, SHM_TYPE u32 (*s_SPtrans)[64])
 {
-  u32x tt;
+  u32x r = data[0];
+  u32x l = data[1];
 
-  PERM_OP  (d, c, tt, 4, 0x0f0f0f0f);
-  HPERM_OP (c,    tt, 2, 0xcccc0000);
-  HPERM_OP (d,    tt, 2, 0xcccc0000);
-  PERM_OP  (d, c, tt, 1, 0x55555555);
-  PERM_OP  (c, d, tt, 8, 0x00ff00ff);
-  PERM_OP  (d, c, tt, 1, 0x55555555);
+  DES_IP (r, l);
+
+  r = rotl32 (r, 3u);
+  l = rotl32 (l, 3u);
+
+  #ifdef _unroll
+  #pragma unroll
+  #endif
+  for (u32 i = 16; i > 0; i -= 2)
+  {
+    u32x u;
+    u32x t;
+
+    u = Kc[i - 1] ^ r;
+    t = Kd[i - 1] ^ rotl32 (r, 28u);
+
+    l ^= DES_BOX (((u >>  2) & 0x3f), 0, s_SPtrans)
+       | DES_BOX (((u >> 10) & 0x3f), 2, s_SPtrans)
+       | DES_BOX (((u >> 18) & 0x3f), 4, s_SPtrans)
+       | DES_BOX (((u >> 26) & 0x3f), 6, s_SPtrans)
+       | DES_BOX (((t >>  2) & 0x3f), 1, s_SPtrans)
+       | DES_BOX (((t >> 10) & 0x3f), 3, s_SPtrans)
+       | DES_BOX (((t >> 18) & 0x3f), 5, s_SPtrans)
+       | DES_BOX (((t >> 26) & 0x3f), 7, s_SPtrans);
+
+    u = Kc[i - 2] ^ l;
+    t = Kd[i - 2] ^ rotl32 (l, 28u);
+
+    r ^= DES_BOX (((u >>  2) & 0x3f), 0, s_SPtrans)
+       | DES_BOX (((u >> 10) & 0x3f), 2, s_SPtrans)
+       | DES_BOX (((u >> 18) & 0x3f), 4, s_SPtrans)
+       | DES_BOX (((u >> 26) & 0x3f), 6, s_SPtrans)
+       | DES_BOX (((t >>  2) & 0x3f), 1, s_SPtrans)
+       | DES_BOX (((t >> 10) & 0x3f), 3, s_SPtrans)
+       | DES_BOX (((t >> 18) & 0x3f), 5, s_SPtrans)
+       | DES_BOX (((t >> 26) & 0x3f), 7, s_SPtrans);
+  }
+
+  l = rotl32 (l, 29u);
+  r = rotl32 (r, 29u);
+
+  DES_FP (r, l);
+
+  iv[0] = l;
+  iv[1] = r;
+}
+
+DECLSPEC void _des_crypt_keysetup (u32x c, u32x d, u32x *Kc, u32x *Kd, SHM_TYPE u32 (*s_skb)[64]);
+DECLSPEC void _des_crypt_keysetup (u32x c, u32x d, u32x *Kc, u32x *Kd, SHM_TYPE u32 (*s_skb)[64])
+{
+  PERM_OP  (d, c, 4, 0x0f0f0f0f);
+  HPERM_OP (c,    2, 0xcccc0000);
+  HPERM_OP (d,    2, 0xcccc0000);
+  PERM_OP  (d, c, 1, 0x55555555);
+  PERM_OP  (c, d, 8, 0x00ff00ff);
+  PERM_OP  (d, c, 1, 0x55555555);
 
   d = ((d & 0x000000ff) << 16)
     | ((d & 0x0000ff00) <<  0)
@@ -438,347 +503,31 @@ DECLSPEC void _des_crypt_keysetup (u32x c, u32x d, u32x *Kc, u32x *Kd, __local u
     const u32x c13 = (c >> 13) & 0x0000060f;
     const u32x c20 = (c >> 20) & 0x00000001;
 
-    u32x s = BOX (((c00 >>  0) & 0xff), 0, s_skb)
-           | BOX (((c06 >>  0) & 0xff)
-                 |((c07 >>  0) & 0xff), 1, s_skb)
-           | BOX (((c13 >>  0) & 0xff)
-                 |((c06 >>  8) & 0xff), 2, s_skb)
-           | BOX (((c20 >>  0) & 0xff)
-                 |((c13 >>  8) & 0xff)
-                 |((c06 >> 16) & 0xff), 3, s_skb);
+    u32x s = DES_BOX (((c00 >>  0) & 0xff), 0, s_skb)
+           | DES_BOX (((c06 >>  0) & 0xff)
+                     |((c07 >>  0) & 0xff), 1, s_skb)
+           | DES_BOX (((c13 >>  0) & 0xff)
+                     |((c06 >>  8) & 0xff), 2, s_skb)
+           | DES_BOX (((c20 >>  0) & 0xff)
+                     |((c13 >>  8) & 0xff)
+                     |((c06 >> 16) & 0xff), 3, s_skb);
 
     const u32x d00 = (d >>  0) & 0x00003c3f;
     const u32x d07 = (d >>  7) & 0x00003f03;
     const u32x d21 = (d >> 21) & 0x0000000f;
     const u32x d22 = (d >> 22) & 0x00000030;
 
-    u32x t = BOX (((d00 >>  0) & 0xff), 4, s_skb)
-           | BOX (((d07 >>  0) & 0xff)
-                 |((d00 >>  8) & 0xff), 5, s_skb)
-           | BOX (((d07 >>  8) & 0xff), 6, s_skb)
-           | BOX (((d21 >>  0) & 0xff)
-                 |((d22 >>  0) & 0xff), 7, s_skb);
+    u32x t = DES_BOX (((d00 >>  0) & 0xff), 4, s_skb)
+           | DES_BOX (((d07 >>  0) & 0xff)
+                     |((d00 >>  8) & 0xff), 5, s_skb)
+           | DES_BOX (((d07 >>  8) & 0xff), 6, s_skb)
+           | DES_BOX (((d21 >>  0) & 0xff)
+                     |((d22 >>  0) & 0xff), 7, s_skb);
 
     Kc[i] = ((t << 16) | (s & 0x0000ffff));
     Kd[i] = ((s >> 16) | (t & 0xffff0000));
-  }
-}
 
-DECLSPEC void transform_netntlmv1_key (const u32x w0, const u32x w1, u32x *out)
-{
-  u32x t[8];
-
-  t[0] = (w0 >>  0) & 0xff;
-  t[1] = (w0 >>  8) & 0xff;
-  t[2] = (w0 >> 16) & 0xff;
-  t[3] = (w0 >> 24) & 0xff;
-  t[4] = (w1 >>  0) & 0xff;
-  t[5] = (w1 >>  8) & 0xff;
-  t[6] = (w1 >> 16) & 0xff;
-  t[7] = (w1 >> 24) & 0xff;
-
-  u32x k[8];
-
-  k[0] =               (t[0] >> 0);
-  k[1] = (t[0] << 7) | (t[1] >> 1);
-  k[2] = (t[1] << 6) | (t[2] >> 2);
-  k[3] = (t[2] << 5) | (t[3] >> 3);
-  k[4] = (t[3] << 4) | (t[4] >> 4);
-  k[5] = (t[4] << 3) | (t[5] >> 5);
-  k[6] = (t[5] << 2) | (t[6] >> 6);
-  k[7] = (t[6] << 1);
-
-  out[0] = ((k[0] & 0xff) <<  0)
-         | ((k[1] & 0xff) <<  8)
-         | ((k[2] & 0xff) << 16)
-         | ((k[3] & 0xff) << 24);
-
-  out[1] = ((k[4] & 0xff) <<  0)
-         | ((k[5] & 0xff) <<  8)
-         | ((k[6] & 0xff) << 16)
-         | ((k[7] & 0xff) << 24);
-}
-
-__kernel void m05500_mxx (KERN_ATTR_VECTOR ())
-{
-  /**
-   * modifier
-   */
-
-  const u64 gid = get_global_id (0);
-  const u64 lid = get_local_id (0);
-  const u64 lsz = get_local_size (0);
-
-  /**
-   * sbox, kbox
-   */
-
-  __local u32 s_SPtrans[8][64];
-  __local u32 s_skb[8][64];
-
-  for (u32 i = lid; i < 64; i += lsz)
-  {
-    s_SPtrans[0][i] = c_SPtrans[0][i];
-    s_SPtrans[1][i] = c_SPtrans[1][i];
-    s_SPtrans[2][i] = c_SPtrans[2][i];
-    s_SPtrans[3][i] = c_SPtrans[3][i];
-    s_SPtrans[4][i] = c_SPtrans[4][i];
-    s_SPtrans[5][i] = c_SPtrans[5][i];
-    s_SPtrans[6][i] = c_SPtrans[6][i];
-    s_SPtrans[7][i] = c_SPtrans[7][i];
-
-    s_skb[0][i] = c_skb[0][i];
-    s_skb[1][i] = c_skb[1][i];
-    s_skb[2][i] = c_skb[2][i];
-    s_skb[3][i] = c_skb[3][i];
-    s_skb[4][i] = c_skb[4][i];
-    s_skb[5][i] = c_skb[5][i];
-    s_skb[6][i] = c_skb[6][i];
-    s_skb[7][i] = c_skb[7][i];
-  }
-
-  barrier (CLK_LOCAL_MEM_FENCE);
-
-  if (gid >= gid_max) return;
-
-  /**
-   * salt
-   */
-
-  const u32 s0 = salt_bufs[salt_pos].salt_buf[0];
-  const u32 s1 = salt_bufs[salt_pos].salt_buf[1];
-  const u32 s2 = salt_bufs[salt_pos].salt_buf[2];
-
-  /**
-   * base
-   */
-
-  const u32 pw_len = pws[gid].pw_len;
-
-  u32x w[64] = { 0 };
-
-  for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
-  {
-    w[idx] = pws[gid].i[idx];
-  }
-
-  /**
-   * loop
-   */
-
-  u32x w0l = w[0];
-
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
-  {
-    const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
-
-    const u32x w0 = w0l | w0r;
-
-    w[0] = w0;
-
-    md4_ctx_vector_t ctx;
-
-    md4_init_vector (&ctx);
-
-    md4_update_vector_utf16le (&ctx, w, pw_len);
-
-    md4_final_vector (&ctx);
-
-    const u32x a = ctx.h[0];
-    const u32x b = ctx.h[1];
-    const u32x c = ctx.h[2];
-    const u32x d = ctx.h[3];
-
-    if (MATCHES_NONE_VS ((d >> 16), s2)) continue;
-
-    /**
-     * DES1
-     */
-
-    u32x key[2];
-
-    transform_netntlmv1_key (a, b, key);
-
-    u32x Kc[16];
-    u32x Kd[16];
-
-    _des_crypt_keysetup (key[0], key[1], Kc, Kd, s_skb);
-
-    u32x data[2];
-
-    data[0] = s0;
-    data[1] = s1;
-
-    u32x out1[2];
-
-    _des_crypt_encrypt (out1, data, Kc, Kd, s_SPtrans);
-
-    /**
-     * DES2
-     */
-
-    transform_netntlmv1_key (((b >> 24) | (c << 8)), ((c >> 24) | (d << 8)), key);
-
-    _des_crypt_keysetup (key[0], key[1], Kc, Kd, s_skb);
-
-    u32x out2[2];
-
-    _des_crypt_encrypt (out2, data, Kc, Kd, s_SPtrans);
-
-    const u32x r0 = out1[0];
-    const u32x r1 = out1[1];
-    const u32x r2 = out2[0];
-    const u32x r3 = out2[1];
-
-    COMPARE_M_SIMD (r0, r1, r2, r3);
-  }
-}
-
-__kernel void m05500_sxx (KERN_ATTR_VECTOR ())
-{
-  /**
-   * modifier
-   */
-
-  const u64 gid = get_global_id (0);
-  const u64 lid = get_local_id (0);
-  const u64 lsz = get_local_size (0);
-
-  /**
-   * sbox, kbox
-   */
-
-  __local u32 s_SPtrans[8][64];
-  __local u32 s_skb[8][64];
-
-  for (u32 i = lid; i < 64; i += lsz)
-  {
-    s_SPtrans[0][i] = c_SPtrans[0][i];
-    s_SPtrans[1][i] = c_SPtrans[1][i];
-    s_SPtrans[2][i] = c_SPtrans[2][i];
-    s_SPtrans[3][i] = c_SPtrans[3][i];
-    s_SPtrans[4][i] = c_SPtrans[4][i];
-    s_SPtrans[5][i] = c_SPtrans[5][i];
-    s_SPtrans[6][i] = c_SPtrans[6][i];
-    s_SPtrans[7][i] = c_SPtrans[7][i];
-
-    s_skb[0][i] = c_skb[0][i];
-    s_skb[1][i] = c_skb[1][i];
-    s_skb[2][i] = c_skb[2][i];
-    s_skb[3][i] = c_skb[3][i];
-    s_skb[4][i] = c_skb[4][i];
-    s_skb[5][i] = c_skb[5][i];
-    s_skb[6][i] = c_skb[6][i];
-    s_skb[7][i] = c_skb[7][i];
-  }
-
-  barrier (CLK_LOCAL_MEM_FENCE);
-
-  if (gid >= gid_max) return;
-
-  /**
-   * digest
-   */
-
-  const u32 search[4] =
-  {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
-  };
-
-  /**
-   * salt
-   */
-
-  const u32 s0 = salt_bufs[salt_pos].salt_buf[0];
-  const u32 s1 = salt_bufs[salt_pos].salt_buf[1];
-  const u32 s2 = salt_bufs[salt_pos].salt_buf[2];
-
-  /**
-   * base
-   */
-
-  const u32 pw_len = pws[gid].pw_len;
-
-  u32x w[64] = { 0 };
-
-  for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
-  {
-    w[idx] = pws[gid].i[idx];
-  }
-
-  /**
-   * loop
-   */
-
-  u32x w0l = w[0];
-
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
-  {
-    const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
-
-    const u32x w0 = w0l | w0r;
-
-    w[0] = w0;
-
-    md4_ctx_vector_t ctx;
-
-    md4_init_vector (&ctx);
-
-    md4_update_vector_utf16le (&ctx, w, pw_len);
-
-    md4_final_vector (&ctx);
-
-    const u32x a = ctx.h[0];
-    const u32x b = ctx.h[1];
-    const u32x c = ctx.h[2];
-    const u32x d = ctx.h[3];
-
-    if (MATCHES_NONE_VS ((d >> 16), s2)) continue;
-
-    /**
-     * DES1
-     */
-
-    u32x key[2];
-
-    transform_netntlmv1_key (a, b, key);
-
-    u32x Kc[16];
-    u32x Kd[16];
-
-    _des_crypt_keysetup (key[0], key[1], Kc, Kd, s_skb);
-
-    u32x data[2];
-
-    data[0] = s0;
-    data[1] = s1;
-
-    u32x out1[2];
-
-    _des_crypt_encrypt (out1, data, Kc, Kd, s_SPtrans);
-
-    /**
-     * DES2
-     */
-
-    /*
-    transform_netntlmv1_key (((b >> 24) | (c << 8)), ((c >> 24) | (d << 8)), key);
-
-    _des_crypt_keysetup (key[0], key[1], Kc, Kd, s_skb);
-
-    u32x out2[2];
-
-    _des_crypt_encrypt (out2, data, Kc, Kd, s_SPtrans);
-    */
-
-    const u32x r0 = out1[0];
-    const u32x r1 = out1[1];
-    const u32x r2 = search[2];
-    const u32x r3 = search[3];
-
-    COMPARE_S_SIMD (r0, r1, r2, r3);
+    Kc[i] = rotl32 (Kc[i], 2u);
+    Kd[i] = rotl32 (Kd[i], 2u);
   }
 }

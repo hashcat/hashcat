@@ -13,6 +13,16 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct sha256crypt_tmp
+{
+  // pure version
+
+  u32 alt_result[8];
+  u32 p_bytes[64];
+  u32 s_bytes[64];
+
+} sha256crypt_tmp_t;
+
 DECLSPEC void sha256_transform_transport (const u32 *w, u32 *digest)
 {
   u32 w0[4];

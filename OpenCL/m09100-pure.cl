@@ -16,6 +16,16 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct lotus8_tmp
+{
+  u32 ipad[5];
+  u32 opad[5];
+
+  u32 dgst[5];
+  u32 out[5];
+
+} lotus8_tmp_t;
+
 __constant u32 lotus64_table[64] =
 {
   '0', '1', '2', '3', '4', '5', '6', '7',

@@ -17,6 +17,15 @@
 #include "inc_hash_md4.cl"
 #include "inc_hash_md5.cl"
 
+typedef struct krb5tgs
+{
+  u32 account_info[512];
+  u32 checksum[4];
+  u32 edata2[5120];
+  u32 edata2_len;
+
+} krb5tgs_t;
+
 typedef struct
 {
   u8 S[256];
@@ -565,7 +574,7 @@ DECLSPEC void kerb_prepare (const u32 *w0, const u32 *w1, const u32 pw_len, cons
   hmac_md5_run (w0_t, w1_t, w2_t, w3_t, ipad, opad, digest);
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m13100_m04 (KERN_ATTR_RULES_ESALT (krb5tgs_t))
+__kernel void m13100_m04 (KERN_ATTR_RULES_ESALT (krb5tgs_t))
 {
   /**
    * modifier
@@ -655,15 +664,15 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m13100_m04 (KERN_A
   }
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m13100_m08 (KERN_ATTR_RULES_ESALT (krb5tgs_t))
+__kernel void m13100_m08 (KERN_ATTR_RULES_ESALT (krb5tgs_t))
 {
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m13100_m16 (KERN_ATTR_RULES_ESALT (krb5tgs_t))
+__kernel void m13100_m16 (KERN_ATTR_RULES_ESALT (krb5tgs_t))
 {
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m13100_s04 (KERN_ATTR_RULES_ESALT (krb5tgs_t))
+__kernel void m13100_s04 (KERN_ATTR_RULES_ESALT (krb5tgs_t))
 {
   /**
    * modifier
@@ -753,10 +762,10 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m13100_s04 (KERN_A
   }
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m13100_s08 (KERN_ATTR_RULES_ESALT (krb5tgs_t))
+__kernel void m13100_s08 (KERN_ATTR_RULES_ESALT (krb5tgs_t))
 {
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m13100_s16 (KERN_ATTR_RULES_ESALT (krb5tgs_t))
+__kernel void m13100_s16 (KERN_ATTR_RULES_ESALT (krb5tgs_t))
 {
 }

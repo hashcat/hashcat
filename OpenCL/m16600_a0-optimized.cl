@@ -15,6 +15,14 @@
 #include "inc_simd.cl"
 #include "inc_cipher_aes.cl"
 
+typedef struct electrum_wallet
+{
+  u32 salt_type;
+  u32 iv[4];
+  u32 encrypted[4];
+
+} electrum_wallet_t;
+
 __kernel void m16600_m04 (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
 {
   /**

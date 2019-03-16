@@ -19,10 +19,32 @@
 #include "inc_cipher_camellia.cl"
 #include "inc_cipher_kuznyechik.cl"
 
+typedef struct tc
+{
+  u32 salt_buf[32];
+  u32 data_buf[112];
+  u32 keyfile_buf[16];
+  u32 signature;
+
+  keyboard_layout_mapping_t keyboard_layout_mapping_buf[256];
+  int                       keyboard_layout_mapping_cnt;
+
+} tc_t;
+
 #include "inc_truecrypt_keyfile.cl"
 #include "inc_truecrypt_crc32.cl"
 #include "inc_truecrypt_xts.cl"
 #include "inc_veracrypt_xts.cl"
+
+typedef struct tc_tmp
+{
+  u32 ipad[16];
+  u32 opad[16];
+
+  u32 dgst[64];
+  u32 out[64];
+
+} tc_tmp_t;
 
 DECLSPEC void hmac_ripemd160_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
 {

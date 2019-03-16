@@ -9,17 +9,18 @@
 #include <stdio.h>
 #include <errno.h>
 
-static const char CL_VENDOR_AMD1[]          = "Advanced Micro Devices, Inc.";
-static const char CL_VENDOR_AMD2[]          = "AuthenticAMD";
-static const char CL_VENDOR_AMD_USE_INTEL[] = "GenuineIntel";
-static const char CL_VENDOR_APPLE[]         = "Apple";
-static const char CL_VENDOR_APPLE_USE_AMD[] = "AMD";
-static const char CL_VENDOR_APPLE_USE_NV[]  = "NVIDIA";
-static const char CL_VENDOR_INTEL_BEIGNET[] = "Intel";
-static const char CL_VENDOR_INTEL_SDK[]     = "Intel(R) Corporation";
-static const char CL_VENDOR_MESA[]          = "Mesa";
-static const char CL_VENDOR_NV[]            = "NVIDIA Corporation";
-static const char CL_VENDOR_POCL[]          = "The pocl project";
+static const char CL_VENDOR_AMD1[]            = "Advanced Micro Devices, Inc.";
+static const char CL_VENDOR_AMD2[]            = "AuthenticAMD";
+static const char CL_VENDOR_AMD_USE_INTEL[]   = "GenuineIntel";
+static const char CL_VENDOR_APPLE[]           = "Apple";
+static const char CL_VENDOR_APPLE_USE_AMD[]   = "AMD";
+static const char CL_VENDOR_APPLE_USE_NV[]    = "NVIDIA";
+static const char CL_VENDOR_APPLE_USE_INTEL[] = "Intel Inc.";
+static const char CL_VENDOR_INTEL_BEIGNET[]   = "Intel";
+static const char CL_VENDOR_INTEL_SDK[]       = "Intel(R) Corporation";
+static const char CL_VENDOR_MESA[]            = "Mesa";
+static const char CL_VENDOR_NV[]              = "NVIDIA Corporation";
+static const char CL_VENDOR_POCL[]            = "The pocl project";
 
 int  ocl_init  (hashcat_ctx_t *hashcat_ctx);
 void ocl_close (hashcat_ctx_t *hashcat_ctx);

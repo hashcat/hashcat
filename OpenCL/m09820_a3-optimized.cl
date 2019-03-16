@@ -13,6 +13,15 @@
 #include "inc_simd.cl"
 #include "inc_hash_sha1.cl"
 
+typedef struct oldoffice34
+{
+  u32 version;
+  u32 encryptedVerifier[4];
+  u32 encryptedVerifierHash[5];
+  u32 rc4key[2];
+
+} oldoffice34_t;
+
 DECLSPEC void m09820m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_ESALT (oldoffice34_t))
 {
   /**

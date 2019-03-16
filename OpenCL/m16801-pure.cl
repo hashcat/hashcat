@@ -16,6 +16,23 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct wpa_pmk_tmp
+{
+  u32 out[8];
+
+} wpa_pmk_tmp_t;
+
+typedef struct wpa_pmkid
+{
+  u32  pmkid[4];
+  u32  pmkid_data[16];
+  u8   orig_mac_ap[6];
+  u8   orig_mac_sta[6];
+  u8   essid_len;
+  u32  essid_buf[16];
+
+} wpa_pmkid_t;
+
 DECLSPEC u8 hex_convert (const u8 c)
 {
   return (c & 15) + (c >> 6) * 9;

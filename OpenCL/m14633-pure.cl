@@ -14,6 +14,71 @@
 #include "inc_hash_sha512.cl"
 #include "inc_cipher_twofish.cl"
 
+#define LUKS_STRIPES 4000
+
+typedef enum hc_luks_hash_type
+{
+  HC_LUKS_HASH_TYPE_SHA1      = 1,
+  HC_LUKS_HASH_TYPE_SHA256    = 2,
+  HC_LUKS_HASH_TYPE_SHA512    = 3,
+  HC_LUKS_HASH_TYPE_RIPEMD160 = 4,
+  HC_LUKS_HASH_TYPE_WHIRLPOOL = 5,
+
+} hc_luks_hash_type_t;
+
+typedef enum hc_luks_key_size
+{
+  HC_LUKS_KEY_SIZE_128 = 128,
+  HC_LUKS_KEY_SIZE_256 = 256,
+  HC_LUKS_KEY_SIZE_512 = 512,
+
+} hc_luks_key_size_t;
+
+typedef enum hc_luks_cipher_type
+{
+  HC_LUKS_CIPHER_TYPE_AES     = 1,
+  HC_LUKS_CIPHER_TYPE_SERPENT = 2,
+  HC_LUKS_CIPHER_TYPE_TWOFISH = 3,
+
+} hc_luks_cipher_type_t;
+
+typedef enum hc_luks_cipher_mode
+{
+  HC_LUKS_CIPHER_MODE_CBC_ESSIV = 1,
+  HC_LUKS_CIPHER_MODE_CBC_PLAIN = 2,
+  HC_LUKS_CIPHER_MODE_XTS_PLAIN = 3,
+
+} hc_luks_cipher_mode_t;
+
+typedef struct luks
+{
+  int hash_type;    // hc_luks_hash_type_t
+  int key_size;     // hc_luks_key_size_t
+  int cipher_type;  // hc_luks_cipher_type_t
+  int cipher_mode;  // hc_luks_cipher_mode_t
+
+  u32 ct_buf[128];
+
+  u32 af_src_buf[((HC_LUKS_KEY_SIZE_512 / 8) * LUKS_STRIPES) / 4];
+
+} luks_t;
+
+typedef struct luks_tmp
+{
+  u32 ipad32[8];
+  u64 ipad64[8];
+
+  u32 opad32[8];
+  u64 opad64[8];
+
+  u32 dgst32[32];
+  u64 dgst64[16];
+
+  u32 out32[32];
+  u64 out64[16];
+
+} luks_tmp_t;
+
 #include "inc_luks_af.cl"
 #include "inc_luks_essiv.cl"
 #include "inc_luks_xts.cl"

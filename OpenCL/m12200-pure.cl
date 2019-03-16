@@ -16,6 +16,12 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct ecryptfs_tmp
+{
+  u64  out[8];
+
+} ecryptfs_tmp_t;
+
 __kernel void m12200_init (KERN_ATTR_TMPS (ecryptfs_tmp_t))
 {
   /**

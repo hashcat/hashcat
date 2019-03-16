@@ -17,6 +17,16 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct mywallet_tmp
+{
+  u32 ipad[5];
+  u32 opad[5];
+
+  u32 dgst[10];
+  u32 out[10];
+
+} mywallet_tmp_t;
+
 DECLSPEC void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
 {
   digest[0] = ipad[0];

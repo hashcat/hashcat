@@ -15,6 +15,16 @@
 #include "inc_rp_optimized.cl"
 #include "inc_simd.cl"
 
+typedef struct pstoken
+{
+  u32 salt_buf[128];
+  u32 salt_len;
+
+  u32 pc_digest[5];
+  u32 pc_offset;
+
+} pstoken_t;
+
 __kernel void m13500_m04 (KERN_ATTR_RULES_ESALT (pstoken_t))
 {
   /**

@@ -22,11 +22,13 @@
 - Fixed output of IKE PSK (mode 5300 and 5400) hashes to have separators at right position
 - Fixed the validation of the --brain-client-features command line argument (only values 1, 2 or 3 are allowed)
 - Fixed cracking of Cisco-PIX and Cisco-ASA MD5 passwords in mask-attack mode if mask > length 16
+- Fixed cracking of NetNTLMv1 passwords in mask-attack mode if mask > length 16 (optimized kernels only)
 - Fixed the 7-Zip parser to allow the entire supported range of encrypted and decrypted data lengths
 - Fixed incorrect progress-only result in a special race condition
 - Fixed maximum password length limit which was announced as 256 but actually was 255
 - Fixed cracking raw Streebog-HMAC 256 and 512 hashes with password of length >= 64
 - Fixed cracking raw Whirlpool hashes cracking with password of length >= 32
+- Fixed cracking of Electrum Wallet Salt-Type 2 hashes
 
 ##
 ## Improvements
@@ -36,6 +38,7 @@
 - Tuning Database: Updated hashcat.hctune with new models and refreshed vector width values
 - Bitcoin Wallet: Be more user friendly by allowing a larger data range for ckey and public_key
 - OpenCL Runtime: Workaround JiT compiler error on AMDGPU driver compiling WPA-EAPOL-PBKDF2 OpenCL kernel
+- OpenCL Runtime: Disable OpenCL kernel cache on Apple for Intel CPU (throws CL_BUILD_PROGRAM_FAILURE for no reason)
 - OpenCL Runtime: Improve ROCM detection and make sure to not confuse with recent AMDGPU drivers
 - OpenCL Runtime: Not using amd_bytealign (amd_bitalign is fine) on AMDGPU driver drastically reduces JiT segfaults
 - My Wallet: Added additional plaintext pattern used in newer versions
@@ -288,7 +291,7 @@
 - Added hash-mode 16300 = Ethereum Pre-Sale Wallet, PBKDF2-SHA256
 - Added hash-mode 16400 = CRAM-MD5 Dovecot
 - Added hash-mode 16500 = JWT (JSON Web Token)
-- Added hash-mode 16600 = Electrum Wallet (Salt-Type 1)
+- Added hash-mode 16600 = Electrum Wallet (Salt-Type 1-2)
 
 ##
 ## Bugs

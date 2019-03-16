@@ -12,6 +12,17 @@
 #include "inc_common.cl"
 #include "inc_simd.cl"
 
+typedef struct tacacs_plus
+{
+  u32 session_buf[16];
+
+  u32 ct_data_buf[64];
+  u32 ct_data_len;
+
+  u32 sequence_buf[16];
+
+} tacacs_plus_t;
+
 DECLSPEC void m16100m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_ESALT (tacacs_plus_t))
 {
   /**

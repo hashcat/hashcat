@@ -18,6 +18,11 @@ use lib "$FindBin::Bin/test_modules";
 
 my $IS_OPTIMIZED = 1;
 
+if (exists $ENV{"IS_OPTIMIZED"} && defined $ENV{"IS_OPTIMIZED"})
+{
+  $IS_OPTIMIZED = $ENV{"IS_OPTIMIZED"};
+}
+
 my $TYPES = [ 'single', 'passthrough', 'verify' ];
 
 my $TYPE = shift @ARGV;

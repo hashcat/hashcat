@@ -45,6 +45,7 @@ __constant u64a AF_k_sha512[80] =
   SHA512C4c, SHA512C4d, SHA512C4e, SHA512C4f,
 };
 
+DECLSPEC void AF_sha1_transform_S (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest);
 DECLSPEC void AF_sha1_transform_S (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest)
 {
   u32 A = digest[0];
@@ -173,6 +174,7 @@ DECLSPEC void AF_sha1_transform_S (const u32 *w0, const u32 *w1, const u32 *w2, 
   digest[4] += E;
 }
 
+DECLSPEC void AF_sha256_transform_S (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest);
 DECLSPEC void AF_sha256_transform_S (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest)
 {
   u32 a = digest[0];
@@ -261,6 +263,7 @@ DECLSPEC void AF_sha256_transform_S (const u32 *w0, const u32 *w1, const u32 *w2
   digest[7] += h;
 }
 
+DECLSPEC void AF_sha512_transform_S (const u64 *w0, const u64 *w1, const u64 *w2, const u64 *w3, u64 *digest);
 DECLSPEC void AF_sha512_transform_S (const u64 *w0, const u64 *w1, const u64 *w2, const u64 *w3, u64 *digest)
 {
   u64 a = digest[0];
@@ -349,6 +352,7 @@ DECLSPEC void AF_sha512_transform_S (const u64 *w0, const u64 *w1, const u64 *w2
   digest[7] += h;
 }
 
+DECLSPEC void AF_ripemd160_transform_S (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest);
 DECLSPEC void AF_ripemd160_transform_S (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest)
 {
   u32 w0_t = w0[0];
@@ -565,6 +569,7 @@ DECLSPEC void AF_ripemd160_transform_S (const u32 *w0, const u32 *w1, const u32 
 
 // diffuse functions
 
+DECLSPEC void AF_sha1_diffuse16 (u32 *out);
 DECLSPEC void AF_sha1_diffuse16 (u32 *out)
 {
   u32 w0[4];
@@ -607,6 +612,7 @@ DECLSPEC void AF_sha1_diffuse16 (u32 *out)
   out[3] = swap32_S (digest[3]);
 }
 
+DECLSPEC void AF_sha1_diffuse32 (u32 *out);
 DECLSPEC void AF_sha1_diffuse32 (u32 *out)
 {
   u32 w0[4];
@@ -681,6 +687,7 @@ DECLSPEC void AF_sha1_diffuse32 (u32 *out)
   out[7] = swap32_S (digest[2]);
 }
 
+DECLSPEC void AF_sha1_diffuse64 (u32 *out);
 DECLSPEC void AF_sha1_diffuse64 (u32 *out)
 {
   u32 w0[4];
@@ -819,6 +826,7 @@ DECLSPEC void AF_sha1_diffuse64 (u32 *out)
   out[15] = swap32_S (digest[0]);
 }
 
+DECLSPEC void AF_sha256_diffuse16 (u32 *out);
 DECLSPEC void AF_sha256_diffuse16 (u32 *out)
 {
   u32 w0[4];
@@ -864,6 +872,7 @@ DECLSPEC void AF_sha256_diffuse16 (u32 *out)
   out[3] = swap32_S (digest[3]);
 }
 
+DECLSPEC void AF_sha256_diffuse32 (u32 *out);
 DECLSPEC void AF_sha256_diffuse32 (u32 *out)
 {
   u32 w0[4];
@@ -913,6 +922,7 @@ DECLSPEC void AF_sha256_diffuse32 (u32 *out)
   out[7] = swap32_S (digest[7]);
 }
 
+DECLSPEC void AF_sha256_diffuse64 (u32 *out);
 DECLSPEC void AF_sha256_diffuse64 (u32 *out)
 {
   u32 w0[4];
@@ -1001,6 +1011,7 @@ DECLSPEC void AF_sha256_diffuse64 (u32 *out)
   out[15] = swap32_S (digest[7]);
 }
 
+DECLSPEC void AF_sha512_diffuse16 (u32 *out);
 DECLSPEC void AF_sha512_diffuse16 (u32 *out)
 {
   u64 w0[4];
@@ -1046,6 +1057,7 @@ DECLSPEC void AF_sha512_diffuse16 (u32 *out)
   out[3] = swap32_S (l32_from_64_S (digest[1]));
 }
 
+DECLSPEC void AF_sha512_diffuse32 (u32 *out);
 DECLSPEC void AF_sha512_diffuse32 (u32 *out)
 {
   u64 w0[4];
@@ -1095,6 +1107,7 @@ DECLSPEC void AF_sha512_diffuse32 (u32 *out)
   out[7] = swap32_S (l32_from_64_S (digest[3]));
 }
 
+DECLSPEC void AF_sha512_diffuse64 (u32 *out);
 DECLSPEC void AF_sha512_diffuse64 (u32 *out)
 {
   u64 w0[4];
@@ -1152,6 +1165,7 @@ DECLSPEC void AF_sha512_diffuse64 (u32 *out)
   out[15] = swap32_S (l32_from_64_S (digest[7]));
 }
 
+DECLSPEC void AF_ripemd160_diffuse16 (u32 *out);
 DECLSPEC void AF_ripemd160_diffuse16 (u32 *out)
 {
   u32 w0[4];
@@ -1194,6 +1208,7 @@ DECLSPEC void AF_ripemd160_diffuse16 (u32 *out)
   out[3] = digest[3];
 }
 
+DECLSPEC void AF_ripemd160_diffuse32 (u32 *out);
 DECLSPEC void AF_ripemd160_diffuse32 (u32 *out)
 {
   u32 w0[4];
@@ -1268,6 +1283,7 @@ DECLSPEC void AF_ripemd160_diffuse32 (u32 *out)
   out[7] = digest[2];
 }
 
+DECLSPEC void AF_ripemd160_diffuse64 (u32 *out);
 DECLSPEC void AF_ripemd160_diffuse64 (u32 *out)
 {
   u32 w0[4];

@@ -1048,6 +1048,7 @@
 
 // attack-mode 0
 
+DECLSPEC u32x ix_create_bft (__global const bf_t *bfs_buf, const u32 il_pos);
 DECLSPEC u32x ix_create_bft (__global const bf_t *bfs_buf, const u32 il_pos)
 {
   #if   VECT_SIZE == 1
@@ -1067,6 +1068,7 @@ DECLSPEC u32x ix_create_bft (__global const bf_t *bfs_buf, const u32 il_pos)
 
 // attack-mode 1
 
+DECLSPEC u32x pwlenx_create_combt (__global const pw_t *combs_buf, const u32 il_pos);
 DECLSPEC u32x pwlenx_create_combt (__global const pw_t *combs_buf, const u32 il_pos)
 {
   #if   VECT_SIZE == 1
@@ -1084,6 +1086,7 @@ DECLSPEC u32x pwlenx_create_combt (__global const pw_t *combs_buf, const u32 il_
   return pw_lenx;
 }
 
+DECLSPEC u32x ix_create_combt (__global const pw_t *combs_buf, const u32 il_pos, const int idx);
 DECLSPEC u32x ix_create_combt (__global const pw_t *combs_buf, const u32 il_pos, const int idx)
 {
   #if   VECT_SIZE == 1

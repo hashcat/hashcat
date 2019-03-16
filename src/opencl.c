@@ -3376,6 +3376,10 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       {
         device_vendor_id = VENDOR_ID_NV;
       }
+      else if (strcmp (device_vendor, CL_VENDOR_APPLE_USE_INTEL) == 0)
+      {
+        device_vendor_id = VENDOR_ID_INTEL_SDK;
+      }
       else if (strcmp (device_vendor, CL_VENDOR_INTEL_BEIGNET) == 0)
       {
         device_vendor_id = VENDOR_ID_INTEL_BEIGNET;
@@ -4509,7 +4513,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if ((unstable_warning == true) && (user_options->force == false))
       {
-        event_log_warning (hashcat_ctx, "* Device #%u: Skipping unstable hash-mode %u for this device.", device_id + 1, hashconfig->hash_mode);
+        event_log_warning (hashcat_ctx, "* Device #%u: Skipping hash-mode %u - known OpenCL/Driver issue (not a hashcat issue)", device_id + 1, hashconfig->hash_mode);
         event_log_warning (hashcat_ctx, "             You can use --force to override, but do not report related errors.");
 
         device_param->skipped_warning = true;
@@ -4913,6 +4917,28 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%08x", device_name_digest_amp_mp[0]);
 
     /**
+     * kernel cache
+     */
+
+    bool cache_disable = false;
+
+    // Seems to be completely broken on Apple + (Intel?) CPU
+    // To reproduce set cache_disable to false and run benchmark -b
+
+    if (device_param->platform_vendor_id == VENDOR_ID_APPLE)
+    {
+      if (device_param->device_type & CL_DEVICE_TYPE_CPU)
+      {
+        cache_disable = true;
+      }
+    }
+
+    if (module_ctx->module_jit_cache_disable != MODULE_DEFAULT)
+    {
+      cache_disable = module_ctx->module_jit_cache_disable (hashconfig, user_options, user_options_extra, hashes, device_param);
+    }
+
+    /**
      * main kernel
      */
 
@@ -4942,6 +4968,11 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       bool cached = true;
 
+      if (cache_disable == true)
+      {
+        cached = false;
+      }
+
       if (hc_path_read (cached_file) == false)
       {
         cached = false;
@@ -4964,100 +4995,12 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       char **kernel_sources = &kernel_sources_buf;
 
-      bool cache_disable = false;
-
-      if (module_ctx->module_jit_cache_disable != MODULE_DEFAULT)
+      if (cached == false)
       {
-        cache_disable = module_ctx->module_jit_cache_disable (hashconfig, user_options, user_options_extra, hashes, device_param);
-      }
+        #if defined (DEBUG)
+        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
+        #endif
 
-      if (cache_disable == false)
-      {
-        if (cached == false)
-        {
-          #if defined (DEBUG)
-          if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
-          #endif
-
-          const bool rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources, true);
-
-          if (rc_read_kernel == false) return -1;
-
-          CL_rc = hc_clCreateProgramWithSource (hashcat_ctx, device_param->context, 1, (const char **) kernel_sources, NULL, &device_param->program);
-
-          if (CL_rc == -1) return -1;
-
-          CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program, 1, &device_param->device, build_options_module_buf, NULL, NULL);
-
-          //if (CL_rc == -1) return -1;
-
-          size_t build_log_size = 0;
-
-          hc_clGetProgramBuildInfo (hashcat_ctx, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
-
-          //if (CL_rc == -1) return -1;
-
-          #if defined (DEBUG)
-          if ((build_log_size > 1) || (CL_rc == -1))
-          #else
-          if (CL_rc == -1)
-          #endif
-          {
-            char *build_log = (char *) hcmalloc (build_log_size + 1);
-
-            int CL_rc_build = hc_clGetProgramBuildInfo (hashcat_ctx, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
-
-            if (CL_rc_build == -1) return -1;
-
-            puts (build_log);
-
-            hcfree (build_log);
-          }
-
-          if (CL_rc == -1)
-          {
-            device_param->skipped_warning = true;
-
-            event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed - proceeding without this device.", device_id + 1, source_file);
-
-            continue;
-          }
-
-          size_t binary_size;
-
-          CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->program, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
-
-          if (CL_rc == -1) return -1;
-
-          char *binary = (char *) hcmalloc (binary_size);
-
-          CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->program, CL_PROGRAM_BINARIES, sizeof (char *), &binary, NULL);
-
-          if (CL_rc == -1) return -1;
-
-          const bool rc_write = write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size);
-
-          if (rc_write == false) return -1;
-
-          hcfree (binary);
-        }
-        else
-        {
-          const bool rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, kernel_lengths, kernel_sources, false);
-
-          if (rc_read_kernel == false) return -1;
-
-          CL_rc = hc_clCreateProgramWithBinary (hashcat_ctx, device_param->context, 1, &device_param->device, kernel_lengths, (unsigned char **) kernel_sources, NULL, &device_param->program);
-
-          if (CL_rc == -1) return -1;
-
-          CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program, 1, &device_param->device, build_options_module_buf, NULL, NULL);
-
-          if (CL_rc == -1) return -1;
-        }
-      }
-      else
-      {
         const bool rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources, true);
 
         if (rc_read_kernel == false) return -1;
@@ -5101,6 +5044,41 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           continue;
         }
+
+        if (cache_disable == false)
+        {
+          size_t binary_size;
+
+          CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->program, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
+
+          if (CL_rc == -1) return -1;
+
+          char *binary = (char *) hcmalloc (binary_size);
+
+          CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->program, CL_PROGRAM_BINARIES, sizeof (char *), &binary, NULL);
+
+          if (CL_rc == -1) return -1;
+
+          const bool rc_write = write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size);
+
+          if (rc_write == false) return -1;
+
+          hcfree (binary);
+        }
+      }
+      else
+      {
+        const bool rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, kernel_lengths, kernel_sources, false);
+
+        if (rc_read_kernel == false) return -1;
+
+        CL_rc = hc_clCreateProgramWithBinary (hashcat_ctx, device_param->context, 1, &device_param->device, kernel_lengths, (unsigned char **) kernel_sources, NULL, &device_param->program);
+
+        if (CL_rc == -1) return -1;
+
+        CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program, 1, &device_param->device, build_options_module_buf, NULL, NULL);
+
+        if (CL_rc == -1) return -1;
       }
 
       hcfree (kernel_sources[0]);
@@ -5143,6 +5121,11 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         generate_cached_kernel_mp_filename (hashconfig->opti_type, hashconfig->opts_type, folder_config->profile_dir, device_name_chksum_amp_mp, cached_file);
 
         bool cached = true;
+
+        if (cache_disable == true)
+        {
+          cached = false;
+        }
 
         if (hc_path_read (cached_file) == false)
         {
@@ -5216,21 +5199,24 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
             continue;
           }
 
-          size_t binary_size;
+          if (cache_disable == false)
+          {
+            size_t binary_size;
 
-          CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->program_mp, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
+            CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->program_mp, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
 
-          if (CL_rc == -1) return -1;
+            if (CL_rc == -1) return -1;
 
-          char *binary = (char *) hcmalloc (binary_size);
+            char *binary = (char *) hcmalloc (binary_size);
 
-          CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->program_mp, CL_PROGRAM_BINARIES, sizeof (char *), &binary, NULL);
+            CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->program_mp, CL_PROGRAM_BINARIES, sizeof (char *), &binary, NULL);
 
-          if (CL_rc == -1) return -1;
+            if (CL_rc == -1) return -1;
 
-          write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size);
+            write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size);
 
-          hcfree (binary);
+            hcfree (binary);
+          }
         }
         else
         {
@@ -5290,6 +5276,11 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         generate_cached_kernel_amp_filename (user_options_extra->attack_kern, folder_config->profile_dir, device_name_chksum_amp_mp, cached_file);
 
         bool cached = true;
+
+        if (cache_disable == true)
+        {
+          cached = false;
+        }
 
         if (hc_path_read (cached_file) == false)
         {
@@ -5363,21 +5354,24 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
             continue;
           }
 
-          size_t binary_size;
+          if (cache_disable == false)
+          {
+            size_t binary_size;
 
-          CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->program_amp, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
+            CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->program_amp, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
 
-          if (CL_rc == -1) return -1;
+            if (CL_rc == -1) return -1;
 
-          char *binary = (char *) hcmalloc (binary_size);
+            char *binary = (char *) hcmalloc (binary_size);
 
-          CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->program_amp, CL_PROGRAM_BINARIES, sizeof (char *), &binary, NULL);
+            CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->program_amp, CL_PROGRAM_BINARIES, sizeof (char *), &binary, NULL);
 
-          if (CL_rc == -1) return -1;
+            if (CL_rc == -1) return -1;
 
-          write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size);
+            write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size);
 
-          hcfree (binary);
+            hcfree (binary);
+          }
         }
         else
         {

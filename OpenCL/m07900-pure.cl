@@ -13,6 +13,12 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct drupal7_tmp
+{
+  u64  digest_buf[8];
+
+} drupal7_tmp_t;
+
 __kernel void m07900_init (KERN_ATTR_TMPS (drupal7_tmp_t))
 {
   /**

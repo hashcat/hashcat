@@ -12,6 +12,19 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct bcrypt_tmp
+{
+  u32 E[18];
+
+  u32 P[18];
+
+  u32 S0[256];
+  u32 S1[256];
+  u32 S2[256];
+  u32 S3[256];
+
+} bcrypt_tmp_t;
+
 // http://www.schneier.com/code/constants.txt
 
 __constant u32a c_sbox0[256] =
@@ -348,7 +361,7 @@ DECLSPEC void expand_key (u32 *E, u32 *W, const int len)
   }
 }
 
-__kernel void __attribute__((reqd_work_group_size(8, 1, 1))) m03200_init (KERN_ATTR_TMPS (bcrypt_tmp_t))
+__kernel void m03200_init (KERN_ATTR_TMPS (bcrypt_tmp_t))
 {
   /**
    * base
@@ -567,7 +580,7 @@ __kernel void __attribute__((reqd_work_group_size(8, 1, 1))) m03200_init (KERN_A
   }
 }
 
-__kernel void __attribute__((reqd_work_group_size(8, 1, 1))) m03200_loop (KERN_ATTR_TMPS (bcrypt_tmp_t))
+__kernel void m03200_loop (KERN_ATTR_TMPS (bcrypt_tmp_t))
 {
   /**
    * base
@@ -765,7 +778,7 @@ __kernel void __attribute__((reqd_work_group_size(8, 1, 1))) m03200_loop (KERN_A
   }
 }
 
-__kernel void __attribute__((reqd_work_group_size(8, 1, 1))) m03200_comp (KERN_ATTR_TMPS (bcrypt_tmp_t))
+__kernel void m03200_comp (KERN_ATTR_TMPS (bcrypt_tmp_t))
 {
   /**
    * base

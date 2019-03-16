@@ -17,6 +17,25 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct apple_secure_notes_tmp
+{
+  u32 ipad[8];
+  u32 opad[8];
+
+  u32 dgst[8];
+  u32 out[8];
+
+} apple_secure_notes_tmp_t;
+
+typedef struct apple_secure_notes
+{
+  u32 Z_PK;
+  u32 ZCRYPTOITERATIONCOUNT;
+  u32 ZCRYPTOSALT[16];
+  u32 ZCRYPTOWRAPPEDKEY[16];
+
+} apple_secure_notes_t;
+
 DECLSPEC void hmac_sha256_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
 {
   digest[0] = ipad[0];

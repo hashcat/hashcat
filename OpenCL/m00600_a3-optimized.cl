@@ -12,6 +12,16 @@
 #include "inc_common.cl"
 #include "inc_simd.cl"
 
+typedef struct blake2
+{
+  u64 h[8];
+  u64 t[2];
+  u64 f[2];
+  u32 buflen;
+  u32 outlen;
+
+} blake2_t;
+
 #define BLAKE2B_FINAL   1
 #define BLAKE2B_UPDATE  0
 

@@ -13,6 +13,12 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct androidpin_tmp
+{
+  u32 digest_buf[5];
+
+} androidpin_tmp_t;
+
 __constant u32a c_pc_dec[1024] =
 {
   0x00000030,

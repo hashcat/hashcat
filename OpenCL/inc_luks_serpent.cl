@@ -1,6 +1,7 @@
 
 // cbc-essiv
 
+DECLSPEC void serpent128_decrypt_cbc (const u32 *ks1, const u32 *in, u32 *out, u32 *essiv);
 DECLSPEC void serpent128_decrypt_cbc (const u32 *ks1, const u32 *in, u32 *out, u32 *essiv)
 {
   serpent128_decrypt (ks1, in, out);
@@ -16,6 +17,7 @@ DECLSPEC void serpent128_decrypt_cbc (const u32 *ks1, const u32 *in, u32 *out, u
   essiv[3] = in[3];
 }
 
+DECLSPEC void serpent256_decrypt_cbc (const u32 *ks1, const u32 *in, u32 *out, u32 *essiv);
 DECLSPEC void serpent256_decrypt_cbc (const u32 *ks1, const u32 *in, u32 *out, u32 *essiv)
 {
   serpent256_decrypt (ks1, in, out);
@@ -31,6 +33,7 @@ DECLSPEC void serpent256_decrypt_cbc (const u32 *ks1, const u32 *in, u32 *out, u
   essiv[3] = in[3];
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv128 (__global const u32 *in, u32 *out, const u32 *ks1, const u32 *ks2, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv128 (__global const u32 *in, u32 *out, const u32 *ks1, const u32 *ks2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -65,6 +68,7 @@ DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv128 (__global const u32 *in, 
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv128_mk_sha1 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv128_mk_sha1 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -102,6 +106,7 @@ DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv128_mk_sha1 (__global const u
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv128_mk_sha1_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv128_mk_sha1_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -162,6 +167,7 @@ DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv128_mk_sha1_final (__global c
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv128_mk_sha256 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv128_mk_sha256 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -199,6 +205,7 @@ DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv128_mk_sha256 (__global const
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv128_mk_sha256_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv128_mk_sha256_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -259,6 +266,7 @@ DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv128_mk_sha256_final (__global
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv128_mk_sha512 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv128_mk_sha512 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -296,6 +304,7 @@ DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv128_mk_sha512 (__global const
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv128_mk_sha512_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv128_mk_sha512_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -356,6 +365,7 @@ DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv128_mk_sha512_final (__global
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv128_mk_ripemd160 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv128_mk_ripemd160 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -393,6 +403,7 @@ DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv128_mk_ripemd160 (__global co
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv128_mk_ripemd160_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv128_mk_ripemd160_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -453,6 +464,7 @@ DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv128_mk_ripemd160_final (__glo
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv256 (__global const u32 *in, u32 *out, const u32 *ks1, const u32 *ks2, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv256 (__global const u32 *in, u32 *out, const u32 *ks1, const u32 *ks2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -487,6 +499,7 @@ DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv256 (__global const u32 *in, 
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv256_mk_sha1 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv256_mk_sha1 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -524,6 +537,7 @@ DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv256_mk_sha1 (__global const u
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv256_mk_sha1_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv256_mk_sha1_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -584,6 +598,7 @@ DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv256_mk_sha1_final (__global c
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv256_mk_sha256 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv256_mk_sha256 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -621,6 +636,7 @@ DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv256_mk_sha256 (__global const
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv256_mk_sha256_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv256_mk_sha256_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -681,6 +697,7 @@ DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv256_mk_sha256_final (__global
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv256_mk_sha512 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv256_mk_sha512 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -718,6 +735,7 @@ DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv256_mk_sha512 (__global const
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv256_mk_sha512_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv256_mk_sha512_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -778,6 +796,7 @@ DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv256_mk_sha512_final (__global
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv256_mk_ripemd160 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv256_mk_ripemd160 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -815,6 +834,7 @@ DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv256_mk_ripemd160 (__global co
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv256_mk_ripemd160_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv256_mk_ripemd160_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -877,6 +897,7 @@ DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv256_mk_ripemd160_final (__glo
 
 // cbc-plain
 
+DECLSPEC void luks_decrypt_sector_serpent_cbc_plain128 (__global const u32 *in, u32 *out, const u32 *ks1, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_plain128 (__global const u32 *in, u32 *out, const u32 *ks1, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -907,6 +928,7 @@ DECLSPEC void luks_decrypt_sector_serpent_cbc_plain128 (__global const u32 *in, 
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_cbc_plain128_mk_sha1 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_plain128_mk_sha1 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -940,6 +962,7 @@ DECLSPEC void luks_decrypt_sector_serpent_cbc_plain128_mk_sha1 (__global const u
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_cbc_plain128_mk_sha1_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_plain128_mk_sha1_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -996,6 +1019,7 @@ DECLSPEC void luks_decrypt_sector_serpent_cbc_plain128_mk_sha1_final (__global c
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_cbc_plain128_mk_sha256 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_plain128_mk_sha256 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -1029,6 +1053,7 @@ DECLSPEC void luks_decrypt_sector_serpent_cbc_plain128_mk_sha256 (__global const
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_cbc_plain128_mk_sha256_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_plain128_mk_sha256_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -1085,6 +1110,7 @@ DECLSPEC void luks_decrypt_sector_serpent_cbc_plain128_mk_sha256_final (__global
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_cbc_plain128_mk_sha512 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_plain128_mk_sha512 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -1118,6 +1144,7 @@ DECLSPEC void luks_decrypt_sector_serpent_cbc_plain128_mk_sha512 (__global const
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_cbc_plain128_mk_sha512_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_plain128_mk_sha512_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -1174,6 +1201,7 @@ DECLSPEC void luks_decrypt_sector_serpent_cbc_plain128_mk_sha512_final (__global
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_cbc_plain128_mk_ripemd160 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_plain128_mk_ripemd160 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -1207,6 +1235,7 @@ DECLSPEC void luks_decrypt_sector_serpent_cbc_plain128_mk_ripemd160 (__global co
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_cbc_plain128_mk_ripemd160_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_plain128_mk_ripemd160_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -1263,6 +1292,7 @@ DECLSPEC void luks_decrypt_sector_serpent_cbc_plain128_mk_ripemd160_final (__glo
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_cbc_plain256 (__global const u32 *in, u32 *out, const u32 *ks1, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_plain256 (__global const u32 *in, u32 *out, const u32 *ks1, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -1293,6 +1323,7 @@ DECLSPEC void luks_decrypt_sector_serpent_cbc_plain256 (__global const u32 *in, 
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_cbc_plain256_mk_sha1 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_plain256_mk_sha1 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -1326,6 +1357,7 @@ DECLSPEC void luks_decrypt_sector_serpent_cbc_plain256_mk_sha1 (__global const u
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_cbc_plain256_mk_sha1_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_plain256_mk_sha1_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -1382,6 +1414,7 @@ DECLSPEC void luks_decrypt_sector_serpent_cbc_plain256_mk_sha1_final (__global c
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_cbc_plain256_mk_sha256 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_plain256_mk_sha256 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -1415,6 +1448,7 @@ DECLSPEC void luks_decrypt_sector_serpent_cbc_plain256_mk_sha256 (__global const
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_cbc_plain256_mk_sha256_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_plain256_mk_sha256_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -1471,6 +1505,7 @@ DECLSPEC void luks_decrypt_sector_serpent_cbc_plain256_mk_sha256_final (__global
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_cbc_plain256_mk_sha512 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_plain256_mk_sha512 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -1504,6 +1539,7 @@ DECLSPEC void luks_decrypt_sector_serpent_cbc_plain256_mk_sha512 (__global const
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_cbc_plain256_mk_sha512_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_plain256_mk_sha512_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -1560,6 +1596,7 @@ DECLSPEC void luks_decrypt_sector_serpent_cbc_plain256_mk_sha512_final (__global
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_cbc_plain256_mk_ripemd160 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_plain256_mk_ripemd160 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -1593,6 +1630,7 @@ DECLSPEC void luks_decrypt_sector_serpent_cbc_plain256_mk_ripemd160 (__global co
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_cbc_plain256_mk_ripemd160_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_plain256_mk_ripemd160_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -1651,6 +1689,7 @@ DECLSPEC void luks_decrypt_sector_serpent_cbc_plain256_mk_ripemd160_final (__glo
 
 // xts-plain
 
+DECLSPEC void serpent128_decrypt_xts (const u32 *ks1, const u32 *in, u32 *out, u32 *T);
 DECLSPEC void serpent128_decrypt_xts (const u32 *ks1, const u32 *in, u32 *out, u32 *T)
 {
   out[0] = in[0];
@@ -1673,6 +1712,7 @@ DECLSPEC void serpent128_decrypt_xts (const u32 *ks1, const u32 *in, u32 *out, u
   xts_mul2 (T, T);
 }
 
+DECLSPEC void serpent256_decrypt_xts (const u32 *ks1, const u32 *in, u32 *out, u32 *T);
 DECLSPEC void serpent256_decrypt_xts (const u32 *ks1, const u32 *in, u32 *out, u32 *T)
 {
   out[0] = in[0];
@@ -1695,6 +1735,7 @@ DECLSPEC void serpent256_decrypt_xts (const u32 *ks1, const u32 *in, u32 *out, u
   xts_mul2 (T, T);
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_xts_plain256 (__global const u32 *in, u32 *out, const u32 *ks1, const u32 *ks2, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_xts_plain256 (__global const u32 *in, u32 *out, const u32 *ks1, const u32 *ks2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -1729,6 +1770,7 @@ DECLSPEC void luks_decrypt_sector_serpent_xts_plain256 (__global const u32 *in, 
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_xts_plain256_mk_sha1 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_xts_plain256_mk_sha1 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -1766,6 +1808,7 @@ DECLSPEC void luks_decrypt_sector_serpent_xts_plain256_mk_sha1 (__global const u
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_xts_plain256_mk_sha1_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_xts_plain256_mk_sha1_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -1826,6 +1869,7 @@ DECLSPEC void luks_decrypt_sector_serpent_xts_plain256_mk_sha1_final (__global c
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_xts_plain256_mk_sha256 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_xts_plain256_mk_sha256 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -1863,6 +1907,7 @@ DECLSPEC void luks_decrypt_sector_serpent_xts_plain256_mk_sha256 (__global const
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_xts_plain256_mk_sha256_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_xts_plain256_mk_sha256_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -1923,6 +1968,7 @@ DECLSPEC void luks_decrypt_sector_serpent_xts_plain256_mk_sha256_final (__global
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_xts_plain256_mk_sha512 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_xts_plain256_mk_sha512 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -1960,6 +2006,7 @@ DECLSPEC void luks_decrypt_sector_serpent_xts_plain256_mk_sha512 (__global const
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_xts_plain256_mk_sha512_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_xts_plain256_mk_sha512_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -2020,6 +2067,7 @@ DECLSPEC void luks_decrypt_sector_serpent_xts_plain256_mk_sha512_final (__global
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_xts_plain256_mk_ripemd160 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_xts_plain256_mk_ripemd160 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -2057,6 +2105,7 @@ DECLSPEC void luks_decrypt_sector_serpent_xts_plain256_mk_ripemd160 (__global co
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_xts_plain256_mk_ripemd160_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_xts_plain256_mk_ripemd160_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -2117,6 +2166,7 @@ DECLSPEC void luks_decrypt_sector_serpent_xts_plain256_mk_ripemd160_final (__glo
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_xts_plain512 (__global const u32 *in, u32 *out, const u32 *ks1, const u32 *ks2, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_xts_plain512 (__global const u32 *in, u32 *out, const u32 *ks1, const u32 *ks2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -2151,6 +2201,7 @@ DECLSPEC void luks_decrypt_sector_serpent_xts_plain512 (__global const u32 *in, 
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_xts_plain512_mk_sha1 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_xts_plain512_mk_sha1 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -2188,6 +2239,7 @@ DECLSPEC void luks_decrypt_sector_serpent_xts_plain512_mk_sha1 (__global const u
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_xts_plain512_mk_sha1_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_xts_plain512_mk_sha1_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -2248,6 +2300,7 @@ DECLSPEC void luks_decrypt_sector_serpent_xts_plain512_mk_sha1_final (__global c
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_xts_plain512_mk_sha256 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_xts_plain512_mk_sha256 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -2285,6 +2338,7 @@ DECLSPEC void luks_decrypt_sector_serpent_xts_plain512_mk_sha256 (__global const
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_xts_plain512_mk_sha256_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_xts_plain512_mk_sha256_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -2345,6 +2399,7 @@ DECLSPEC void luks_decrypt_sector_serpent_xts_plain512_mk_sha256_final (__global
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_xts_plain512_mk_sha512 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_xts_plain512_mk_sha512 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -2382,6 +2437,7 @@ DECLSPEC void luks_decrypt_sector_serpent_xts_plain512_mk_sha512 (__global const
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_xts_plain512_mk_sha512_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_xts_plain512_mk_sha512_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -2442,6 +2498,7 @@ DECLSPEC void luks_decrypt_sector_serpent_xts_plain512_mk_sha512_final (__global
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_xts_plain512_mk_ripemd160 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_xts_plain512_mk_ripemd160 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -2479,6 +2536,7 @@ DECLSPEC void luks_decrypt_sector_serpent_xts_plain512_mk_ripemd160 (__global co
   }
 }
 
+DECLSPEC void luks_decrypt_sector_serpent_xts_plain512_mk_ripemd160_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector);
 DECLSPEC void luks_decrypt_sector_serpent_xts_plain512_mk_ripemd160_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
@@ -2541,6 +2599,7 @@ DECLSPEC void luks_decrypt_sector_serpent_xts_plain512_mk_ripemd160_final (__glo
 
 // luks helper
 
+DECLSPEC void luks_af_sha1_then_serpent_decrypt (__global const luks_t *luks_bufs, __global luks_tmp_t *tmps, u32 *pt_buf);
 DECLSPEC void luks_af_sha1_then_serpent_decrypt (__global const luks_t *luks_bufs, __global luks_tmp_t *tmps, u32 *pt_buf)
 {
   const u32 key_size    = luks_bufs->key_size;
@@ -2900,6 +2959,7 @@ DECLSPEC void luks_af_sha1_then_serpent_decrypt (__global const luks_t *luks_buf
   }
 }
 
+DECLSPEC void luks_af_sha256_then_serpent_decrypt (__global const luks_t *luks_bufs, __global luks_tmp_t *tmps, u32 *pt_buf);
 DECLSPEC void luks_af_sha256_then_serpent_decrypt (__global const luks_t *luks_bufs, __global luks_tmp_t *tmps, u32 *pt_buf)
 {
   const u32 key_size    = luks_bufs->key_size;
@@ -3259,6 +3319,7 @@ DECLSPEC void luks_af_sha256_then_serpent_decrypt (__global const luks_t *luks_b
   }
 }
 
+DECLSPEC void luks_af_sha512_then_serpent_decrypt (__global const luks_t *luks_bufs, __global luks_tmp_t *tmps, u32 *pt_buf);
 DECLSPEC void luks_af_sha512_then_serpent_decrypt (__global const luks_t *luks_bufs, __global luks_tmp_t *tmps, u32 *pt_buf)
 {
   const u32 key_size    = luks_bufs->key_size;
@@ -3637,6 +3698,7 @@ DECLSPEC void luks_af_sha512_then_serpent_decrypt (__global const luks_t *luks_b
   }
 }
 
+DECLSPEC void luks_af_ripemd160_then_serpent_decrypt (__global const luks_t *luks_bufs, __global luks_tmp_t *tmps, u32 *pt_buf);
 DECLSPEC void luks_af_ripemd160_then_serpent_decrypt (__global const luks_t *luks_bufs, __global luks_tmp_t *tmps, u32 *pt_buf)
 {
   const u32 key_size    = luks_bufs->key_size;

@@ -8,10 +8,16 @@ typedef ushort u16;
 typedef uint   u32;
 typedef ulong  u64;
 
-typedef u8  u8a  __attribute__ ((aligned (8)));
-typedef u16 u16a __attribute__ ((aligned (8)));
-typedef u32 u32a __attribute__ ((aligned (8)));
-typedef u64 u64a __attribute__ ((aligned (8)));
+//testwise disabled
+//typedef u8  u8a  __attribute__ ((aligned (8)));
+//typedef u16 u16a __attribute__ ((aligned (8)));
+//typedef u32 u32a __attribute__ ((aligned (8)));
+//typedef u64 u64a __attribute__ ((aligned (8)));
+
+typedef u8  u8a;
+typedef u16 u16a;
+typedef u32 u32a;
+typedef u64 u64a;
 
 #ifndef NEW_SIMD_CODE
 #undef  VECT_SIZE
@@ -33,6 +39,7 @@ typedef VTYPE(uint,   VECT_SIZE) u32x;
 typedef VTYPE(ulong,  VECT_SIZE) u64x;
 #endif
 
+DECLSPEC u32 l32_from_64_S (u64 a);
 DECLSPEC u32 l32_from_64_S (u64 a)
 {
   const u32 r = (u32) (a);
@@ -40,6 +47,7 @@ DECLSPEC u32 l32_from_64_S (u64 a)
   return r;
 }
 
+DECLSPEC u32 h32_from_64_S (u64 a);
 DECLSPEC u32 h32_from_64_S (u64 a)
 {
   a >>= 32;
@@ -49,11 +57,13 @@ DECLSPEC u32 h32_from_64_S (u64 a)
   return r;
 }
 
+DECLSPEC u64 hl32_to_64_S (const u32 a, const u32 b);
 DECLSPEC u64 hl32_to_64_S (const u32 a, const u32 b)
 {
   return as_ulong ((uint2) (b, a));
 }
 
+DECLSPEC u32x l32_from_64 (u64x a);
 DECLSPEC u32x l32_from_64 (u64x a)
 {
   u32x r;
@@ -93,6 +103,7 @@ DECLSPEC u32x l32_from_64 (u64x a)
   return r;
 }
 
+DECLSPEC u32x h32_from_64 (u64x a);
 DECLSPEC u32x h32_from_64 (u64x a)
 {
   a >>= 32;
@@ -134,6 +145,7 @@ DECLSPEC u32x h32_from_64 (u64x a)
   return r;
 }
 
+DECLSPEC u64x hl32_to_64 (const u32x a, const u32x b);
 DECLSPEC u64x hl32_to_64 (const u32x a, const u32x b)
 {
   u64x r;
@@ -176,6 +188,7 @@ DECLSPEC u64x hl32_to_64 (const u32x a, const u32x b)
 #ifdef IS_AMD
 
 #if HAS_VPERM
+DECLSPEC u32 swap32_S (const u32 v);
 DECLSPEC u32 swap32_S (const u32 v)
 {
   u32 r;
@@ -185,6 +198,7 @@ DECLSPEC u32 swap32_S (const u32 v)
   return r;
 }
 
+DECLSPEC u64 swap64_S (const u64 v);
 DECLSPEC u64 swap64_S (const u64 v)
 {
   const u32 v0 = h32_from_64_S (v);
@@ -201,27 +215,32 @@ DECLSPEC u64 swap64_S (const u64 v)
   return r;
 }
 #else
+DECLSPEC u32 swap32_S (const u32 v);
 DECLSPEC u32 swap32_S (const u32 v)
 {
   return as_uint (as_uchar4 (v).s3210);
 }
 
+DECLSPEC u64 swap64_S (const u64 v);
 DECLSPEC u64 swap64_S (const u64 v)
 {
   return (as_ulong (as_uchar8 (v).s76543210));
 }
 #endif
 
+DECLSPEC u32 rotr32_S (const u32 a, const u32 n);
 DECLSPEC u32 rotr32_S (const u32 a, const u32 n)
 {
   return rotate (a, (32 - n));
 }
 
+DECLSPEC u32 rotl32_S (const u32 a, const u32 n);
 DECLSPEC u32 rotl32_S (const u32 a, const u32 n)
 {
   return rotate (a, n);
 }
 
+DECLSPEC u64 rotr64_S (const u64 a, const u32 n);
 DECLSPEC u64 rotr64_S (const u64 a, const u32 n)
 {
   const u32 a0 = h32_from_64_S (a);
@@ -235,17 +254,20 @@ DECLSPEC u64 rotr64_S (const u64 a, const u32 n)
   return r;
 }
 
+DECLSPEC u64 rotl64_S (const u64 a, const u32 n);
 DECLSPEC u64 rotl64_S (const u64 a, const u32 n)
 {
   return rotr64_S (a, 64 - n);
 }
 
 #if HAS_VPERM
+DECLSPEC u32x swap32 (const u32x v);
 DECLSPEC u32x swap32 (const u32x v)
 {
   return bitselect (rotate (v, 24u), rotate (v, 8u), 0x00ff00ffu);
 }
 
+DECLSPEC u64x swap64 (const u64x v);
 DECLSPEC u64x swap64 (const u64x v)
 {
   const u32x a0 = h32_from_64 (v);
@@ -308,11 +330,13 @@ DECLSPEC u64x swap64 (const u64x v)
   return r;
 }
 #else
+DECLSPEC u32x swap32 (const u32x v);
 DECLSPEC u32x swap32 (const u32x v)
 {
   return bitselect (rotate (v, 24u), rotate (v, 8u), 0x00ff00ffu);
 }
 
+DECLSPEC u64x swap64 (const u64x v);
 DECLSPEC u64x swap64 (const u64x v)
 {
   return bitselect (bitselect (rotate (v, 24ul),
@@ -323,16 +347,19 @@ DECLSPEC u64x swap64 (const u64x v)
 }
 #endif
 
+DECLSPEC u32x rotr32 (const u32x a, const u32 n);
 DECLSPEC u32x rotr32 (const u32x a, const u32 n)
 {
   return rotate (a, (32 - n));
 }
 
+DECLSPEC u32x rotl32 (const u32x a, const u32 n);
 DECLSPEC u32x rotl32 (const u32x a, const u32 n)
 {
   return rotate (a, n);
 }
 
+DECLSPEC u64x rotr64 (const u64x a, const u32 n);
 DECLSPEC u64x rotr64 (const u64x a, const u32 n)
 {
   const u32x a0 = h32_from_64 (a);
@@ -346,11 +373,13 @@ DECLSPEC u64x rotr64 (const u64x a, const u32 n)
   return r;
 }
 
+DECLSPEC u64x rotl64 (const u64x a, const u32 n);
 DECLSPEC u64x rotl64 (const u64x a, const u32 n)
 {
   return rotr64 (a, 64 - n);
 }
 
+DECLSPEC u32x hc_bfe (const u32x a, const u32x b, const u32x c);
 DECLSPEC u32x hc_bfe (const u32x a, const u32x b, const u32x c)
 {
   #define BIT(x)      ((u32x) (1u) << (x))
@@ -364,6 +393,7 @@ DECLSPEC u32x hc_bfe (const u32x a, const u32x b, const u32x c)
   #undef BFE
 }
 
+DECLSPEC u32 hc_bfe_S (const u32 a, const u32 b, const u32 c);
 DECLSPEC u32 hc_bfe_S (const u32 a, const u32 b, const u32 c)
 {
   #define BIT(x)      (1u << (x))
@@ -377,6 +407,7 @@ DECLSPEC u32 hc_bfe_S (const u32 a, const u32 b, const u32 c)
   #undef BFE
 }
 
+DECLSPEC u32x hc_bytealign_be (const u32x a, const u32x b, const u32 c);
 DECLSPEC u32x hc_bytealign_be (const u32x a, const u32x b, const u32 c)
 {
   u32x r;
@@ -392,6 +423,7 @@ DECLSPEC u32x hc_bytealign_be (const u32x a, const u32x b, const u32 c)
   return r;
 }
 
+DECLSPEC u32 hc_bytealign_be_S (const u32 a, const u32 b, const u32 c);
 DECLSPEC u32 hc_bytealign_be_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
@@ -407,6 +439,7 @@ DECLSPEC u32 hc_bytealign_be_S (const u32 a, const u32 b, const u32 c)
   return r;
 }
 
+DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const u32 c);
 DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const u32 c)
 {
   u32x r;
@@ -422,6 +455,7 @@ DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const u32 c)
   return r;
 }
 
+DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const u32 c);
 DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
@@ -438,6 +472,7 @@ DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const u32 c)
 }
 
 #if HAS_VPERM
+DECLSPEC u32x hc_byte_perm (const u32x a, const u32x b, const u32x c);
 DECLSPEC u32x hc_byte_perm (const u32x a, const u32x b, const u32x c)
 {
   u32x r;
@@ -491,6 +526,7 @@ DECLSPEC u32x hc_byte_perm (const u32x a, const u32x b, const u32x c)
   return r;
 }
 
+DECLSPEC u32 hc_byte_perm_S (const u32 a, const u32 b, const u32 c);
 DECLSPEC u32 hc_byte_perm_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
@@ -502,6 +538,7 @@ DECLSPEC u32 hc_byte_perm_S (const u32 a, const u32 b, const u32 c)
 #endif
 
 #if HAS_VADD3
+DECLSPEC u32x hc_add3 (const u32x a, const u32x b, const u32x c);
 DECLSPEC u32x hc_add3 (const u32x a, const u32x b, const u32x c)
 {
   u32x r;
@@ -555,6 +592,7 @@ DECLSPEC u32x hc_add3 (const u32x a, const u32x b, const u32x c)
   return r;
 }
 
+DECLSPEC u32 hc_add3_S (const u32 a, const u32 b, const u32 c);
 DECLSPEC u32 hc_add3_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
@@ -564,22 +602,26 @@ DECLSPEC u32 hc_add3_S (const u32 a, const u32 b, const u32 c)
   return r;
 }
 #else
+DECLSPEC u32x hc_add3 (const u32x a, const u32x b, const u32x c);
 DECLSPEC u32x hc_add3 (const u32x a, const u32x b, const u32x c)
 {
   return a + b + c;
 }
 
+DECLSPEC u32 hc_add3_S (const u32 a, const u32 b, const u32 c);
 DECLSPEC u32 hc_add3_S (const u32 a, const u32 b, const u32 c)
 {
   return a + b + c;
 }
 #endif
 
+DECLSPEC u32x hc_lop_0x96 (const u32x a, const u32x b, const u32x c);
 DECLSPEC u32x hc_lop_0x96 (const u32x a, const u32x b, const u32x c)
 {
   return a ^ b ^ c;
 }
 
+DECLSPEC u32 hc_lop_0x96_S (const u32 a, const u32 b, const u32 c);
 DECLSPEC u32 hc_lop_0x96_S (const u32 a, const u32 b, const u32 c)
 {
   return a ^ b ^ c;
@@ -588,6 +630,7 @@ DECLSPEC u32 hc_lop_0x96_S (const u32 a, const u32 b, const u32 c)
 #endif
 
 #ifdef IS_NV
+DECLSPEC u32 swap32_S (const u32 v);
 DECLSPEC u32 swap32_S (const u32 v)
 {
   u32 r;
@@ -597,6 +640,7 @@ DECLSPEC u32 swap32_S (const u32 v)
   return r;
 }
 
+DECLSPEC u64 swap64_S (const u64 v);
 DECLSPEC u64 swap64_S (const u64 v)
 {
   u32 il;
@@ -617,26 +661,31 @@ DECLSPEC u64 swap64_S (const u64 v)
   return r;
 }
 
+DECLSPEC u32 rotr32_S (const u32 a, const u32 n);
 DECLSPEC u32 rotr32_S (const u32 a, const u32 n)
 {
   return rotate (a, (32 - n));
 }
 
+DECLSPEC u32 rotl32_S (const u32 a, const u32 n);
 DECLSPEC u32 rotl32_S (const u32 a, const u32 n)
 {
   return rotate (a, n);
 }
 
+DECLSPEC u64 rotr64_S (const u64 a, const u32 n);
 DECLSPEC u64 rotr64_S (const u64 a, const u32 n)
 {
   return rotate (a, (u64) (64 - n));
 }
 
+DECLSPEC u64 rotl64_S (const u64 a, const u32 n);
 DECLSPEC u64 rotl64_S (const u64 a, const u32 n)
 {
   return rotate (a, (u64) n);
 }
 
+DECLSPEC u32x swap32 (const u32x v);
 DECLSPEC u32x swap32 (const u32x v)
 {
   u32x r;
@@ -676,6 +725,7 @@ DECLSPEC u32x swap32 (const u32x v)
   return r;
 }
 
+DECLSPEC u64x swap64 (const u64x v);
 DECLSPEC u64x swap64 (const u64x v)
 {
   u32x il;
@@ -802,26 +852,31 @@ DECLSPEC u64x swap64 (const u64x v)
   return r;
 }
 
+DECLSPEC u32x rotr32 (const u32x a, const u32 n);
 DECLSPEC u32x rotr32 (const u32x a, const u32 n)
 {
   return rotate (a, (32 - n));
 }
 
+DECLSPEC u32x rotl32 (const u32x a, const u32 n);
 DECLSPEC u32x rotl32 (const u32x a, const u32 n)
 {
   return rotate (a, n);
 }
 
+DECLSPEC u64x rotr64 (const u64x a, const u32 n);
 DECLSPEC u64x rotr64 (const u64x a, const u32 n)
 {
   return rotate (a, (u64x) (64 - n));
 }
 
+DECLSPEC u64x rotl64 (const u64x a, const u32 n);
 DECLSPEC u64x rotl64 (const u64x a, const u32 n)
 {
   return rotate (a, (u64x) n);
 }
 
+DECLSPEC u32x hc_byte_perm (const u32x a, const u32x b, const u32x c);
 DECLSPEC u32x hc_byte_perm (const u32x a, const u32x b, const u32x c)
 {
   u32x r;
@@ -861,6 +916,7 @@ DECLSPEC u32x hc_byte_perm (const u32x a, const u32x b, const u32x c)
   return r;
 }
 
+DECLSPEC u32 hc_byte_perm_S (const u32 a, const u32 b, const u32 c);
 DECLSPEC u32 hc_byte_perm_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
@@ -870,6 +926,7 @@ DECLSPEC u32 hc_byte_perm_S (const u32 a, const u32 b, const u32 c)
   return r;
 }
 
+DECLSPEC u32x hc_bfe (const u32x a, const u32x b, const u32x c);
 DECLSPEC u32x hc_bfe (const u32x a, const u32x b, const u32x c)
 {
   u32x r;
@@ -909,6 +966,7 @@ DECLSPEC u32x hc_bfe (const u32x a, const u32x b, const u32x c)
   return r;
 }
 
+DECLSPEC u32 hc_bfe_S (const u32 a, const u32 b, const u32 c);
 DECLSPEC u32 hc_bfe_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
@@ -918,6 +976,7 @@ DECLSPEC u32 hc_bfe_S (const u32 a, const u32 b, const u32 c)
   return r;
 }
 
+DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const u32x c);
 DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const u32x c)
 {
   u32x r;
@@ -965,6 +1024,7 @@ DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const u32x c)
   return r;
 }
 
+DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const u32 c);
 DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
@@ -982,16 +1042,19 @@ DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const u32 c)
   return r;
 }
 
+DECLSPEC u32x hc_add3 (const u32x a, const u32x b, const u32x c);
 DECLSPEC u32x hc_add3 (const u32x a, const u32x b, const u32x c)
 {
   return a + b + c;
 }
 
+DECLSPEC u32 hc_add3_S (const u32 a, const u32 b, const u32 c);
 DECLSPEC u32 hc_add3_S (const u32 a, const u32 b, const u32 c)
 {
   return a + b + c;
 }
 
+DECLSPEC u32x hc_lop_0x96 (const u32x a, const u32x b, const u32x c);
 DECLSPEC u32x hc_lop_0x96 (const u32x a, const u32x b, const u32x c)
 {
   u32x r;
@@ -1039,6 +1102,7 @@ DECLSPEC u32x hc_lop_0x96 (const u32x a, const u32x b, const u32x c)
   return r;
 }
 
+DECLSPEC u32 hc_lop_0x96_S (const u32 a, const u32 b, const u32 c);
 DECLSPEC u32 hc_lop_0x96_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
@@ -1059,36 +1123,43 @@ DECLSPEC u32 hc_lop_0x96_S (const u32 a, const u32 b, const u32 c)
 #endif
 
 #ifdef IS_GENERIC
+DECLSPEC u32 swap32_S (const u32 v);
 DECLSPEC u32 swap32_S (const u32 v)
 {
   return (as_uint (as_uchar4 (v).s3210));
 }
 
+DECLSPEC u64 swap64_S (const u64 v);
 DECLSPEC u64 swap64_S (const u64 v)
 {
   return (as_ulong (as_uchar8 (v).s76543210));
 }
 
+DECLSPEC u32 rotr32_S (const u32 a, const u32 n);
 DECLSPEC u32 rotr32_S (const u32 a, const u32 n)
 {
   return rotate (a, (32 - n));
 }
 
+DECLSPEC u32 rotl32_S (const u32 a, const u32 n);
 DECLSPEC u32 rotl32_S (const u32 a, const u32 n)
 {
   return rotate (a, n);
 }
 
+DECLSPEC u64 rotr64_S (const u64 a, const u32 n);
 DECLSPEC u64 rotr64_S (const u64 a, const u32 n)
 {
   return rotate (a, (u64) (64 - n));
 }
 
+DECLSPEC u64 rotl64_S (const u64 a, const u32 n);
 DECLSPEC u64 rotl64_S (const u64 a, const u32 n)
 {
   return rotate (a, (u64) n);
 }
 
+DECLSPEC u32x swap32 (const u32x v);
 DECLSPEC u32x swap32 (const u32x v)
 {
   return ((v >> 24) & 0x000000ff)
@@ -1097,6 +1168,7 @@ DECLSPEC u32x swap32 (const u32x v)
        | ((v << 24) & 0xff000000);
 }
 
+DECLSPEC u64x swap64 (const u64x v);
 DECLSPEC u64x swap64 (const u64x v)
 {
   return ((v >> 56) & 0x00000000000000ff)
@@ -1109,26 +1181,31 @@ DECLSPEC u64x swap64 (const u64x v)
        | ((v << 56) & 0xff00000000000000);
 }
 
+DECLSPEC u32x rotr32 (const u32x a, const u32 n);
 DECLSPEC u32x rotr32 (const u32x a, const u32 n)
 {
   return rotate (a, (32 - n));
 }
 
+DECLSPEC u32x rotl32 (const u32x a, const u32 n);
 DECLSPEC u32x rotl32 (const u32x a, const u32 n)
 {
   return rotate (a, n);
 }
 
+DECLSPEC u64x rotr64 (const u64x a, const u32 n);
 DECLSPEC u64x rotr64 (const u64x a, const u32 n)
 {
   return rotate (a, (u64x) (64 - n));
 }
 
+DECLSPEC u64x rotl64 (const u64x a, const u32 n);
 DECLSPEC u64x rotl64 (const u64x a, const u32 n)
 {
   return rotate (a, (u64x) n);
 }
 
+DECLSPEC u32x hc_bfe (const u32x a, const u32x b, const u32x c);
 DECLSPEC u32x hc_bfe (const u32x a, const u32x b, const u32x c)
 {
   #define BIT(x)      ((u32x) (1u) << (x))
@@ -1142,6 +1219,7 @@ DECLSPEC u32x hc_bfe (const u32x a, const u32x b, const u32x c)
   #undef BFE
 }
 
+DECLSPEC u32 hc_bfe_S (const u32 a, const u32 b, const u32 c);
 DECLSPEC u32 hc_bfe_S (const u32 a, const u32 b, const u32 c)
 {
   #define BIT(x)      (1u << (x))
@@ -1155,6 +1233,7 @@ DECLSPEC u32 hc_bfe_S (const u32 a, const u32 b, const u32 c)
   #undef BFE
 }
 
+DECLSPEC u32x hc_bytealign_be (const u32x a, const u32x b, const u32 c);
 DECLSPEC u32x hc_bytealign_be (const u32x a, const u32x b, const u32 c)
 {
   u32x r;
@@ -1170,6 +1249,7 @@ DECLSPEC u32x hc_bytealign_be (const u32x a, const u32x b, const u32 c)
   return r;
 }
 
+DECLSPEC u32 hc_bytealign_be_S (const u32 a, const u32 b, const u32 c);
 DECLSPEC u32 hc_bytealign_be_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
@@ -1185,6 +1265,7 @@ DECLSPEC u32 hc_bytealign_be_S (const u32 a, const u32 b, const u32 c)
   return r;
 }
 
+DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const u32 c);
 DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const u32 c)
 {
   u32x r;
@@ -1200,6 +1281,7 @@ DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const u32 c)
   return r;
 }
 
+DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const u32 c);
 DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
@@ -1215,27 +1297,38 @@ DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const u32 c)
   return r;
 }
 
+DECLSPEC u32x hc_add3 (const u32x a, const u32x b, const u32x c);
 DECLSPEC u32x hc_add3 (const u32x a, const u32x b, const u32x c)
 {
   return a + b + c;
 }
 
+DECLSPEC u32 hc_add3_S (const u32 a, const u32 b, const u32 c);
 DECLSPEC u32 hc_add3_S (const u32 a, const u32 b, const u32 c)
 {
   return a + b + c;
 }
 
+DECLSPEC u32x hc_lop_0x96 (const u32x a, const u32x b, const u32x c);
 DECLSPEC u32x hc_lop_0x96 (const u32x a, const u32x b, const u32x c)
 {
   return a ^ b ^ c;
 }
 
+DECLSPEC u32 hc_lop_0x96_S (const u32 a, const u32 b, const u32 c);
 DECLSPEC u32 hc_lop_0x96_S (const u32 a, const u32 b, const u32 c)
 {
   return a ^ b ^ c;
 }
 
 #endif
+
+typedef enum combinator_mode
+{
+  COMBINATOR_MODE_BASE_LEFT  = 10001,
+  COMBINATOR_MODE_BASE_RIGHT = 10002
+
+} combinator_mode_t;
 
 typedef struct digest
 {
@@ -1264,940 +1357,6 @@ typedef struct salt
   u32 scrypt_p;
 
 } salt_t;
-
-#define LUKS_STRIPES 4000
-
-typedef enum hc_luks_hash_type
-{
-  HC_LUKS_HASH_TYPE_SHA1      = 1,
-  HC_LUKS_HASH_TYPE_SHA256    = 2,
-  HC_LUKS_HASH_TYPE_SHA512    = 3,
-  HC_LUKS_HASH_TYPE_RIPEMD160 = 4,
-  HC_LUKS_HASH_TYPE_WHIRLPOOL = 5,
-
-} hc_luks_hash_type_t;
-
-typedef enum hc_luks_key_size
-{
-  HC_LUKS_KEY_SIZE_128 = 128,
-  HC_LUKS_KEY_SIZE_256 = 256,
-  HC_LUKS_KEY_SIZE_512 = 512,
-
-} hc_luks_key_size_t;
-
-typedef enum hc_luks_cipher_type
-{
-  HC_LUKS_CIPHER_TYPE_AES     = 1,
-  HC_LUKS_CIPHER_TYPE_SERPENT = 2,
-  HC_LUKS_CIPHER_TYPE_TWOFISH = 3,
-
-} hc_luks_cipher_type_t;
-
-typedef enum hc_luks_cipher_mode
-{
-  HC_LUKS_CIPHER_MODE_CBC_ESSIV = 1,
-  HC_LUKS_CIPHER_MODE_CBC_PLAIN = 2,
-  HC_LUKS_CIPHER_MODE_XTS_PLAIN = 3,
-
-} hc_luks_cipher_mode_t;
-
-typedef struct luks
-{
-  int hash_type;    // hc_luks_hash_type_t
-  int key_size;     // hc_luks_key_size_t
-  int cipher_type;  // hc_luks_cipher_type_t
-  int cipher_mode;  // hc_luks_cipher_mode_t
-
-  u32 ct_buf[128];
-
-  u32 af_src_buf[((HC_LUKS_KEY_SIZE_512 / 8) * LUKS_STRIPES) / 4];
-
-} luks_t;
-
-typedef struct itunes_backup
-{
-  u32 wpky[10];
-  u32 dpsl[5];
-
-} itunes_backup_t;
-
-typedef struct blake2
-{
-  u64 h[8];
-  u64 t[2];
-  u64 f[2];
-  u32 buflen;
-  u32 outlen;
-
-} blake2_t;
-
-typedef struct chacha20
-{
-  u32 iv[2];
-  u32 plain[2];
-  u32 position[2];
-  u32 offset;
-
-} chacha20_t;
-
-typedef struct pdf
-{
-  int  V;
-  int  R;
-  int  P;
-
-  int  enc_md;
-
-  u32  id_buf[8];
-  u32  u_buf[32];
-  u32  o_buf[32];
-
-  int  id_len;
-  int  o_len;
-  int  u_len;
-
-  u32  rc4key[2];
-  u32  rc4data[2];
-
-} pdf_t;
-
-typedef struct wpa_eapol
-{
-  u32  pke[32];
-  u32  eapol[64 + 16];
-  u16  eapol_len;
-  u8   message_pair;
-  int  message_pair_chgd;
-  u8   keyver;
-  u8   orig_mac_ap[6];
-  u8   orig_mac_sta[6];
-  u8   orig_nonce_ap[32];
-  u8   orig_nonce_sta[32];
-  u8   essid_len;
-  u8   essid[32];
-  u32  keymic[4];
-  u32  hash[4];
-  int  nonce_compare;
-  int  nonce_error_corrections;
-  int  detected_le;
-  int  detected_be;
-
-} wpa_eapol_t;
-
-typedef struct wpa_pmkid
-{
-  u32  pmkid[4];
-  u32  pmkid_data[16];
-  u8   orig_mac_ap[6];
-  u8   orig_mac_sta[6];
-  u8   essid_len;
-  u32  essid_buf[16];
-
-} wpa_pmkid_t;
-
-typedef struct bitcoin_wallet
-{
-  u32 cry_master_buf[64];
-  u32 cry_master_len;
-
-} bitcoin_wallet_t;
-
-typedef struct sip
-{
-  u32 salt_buf[32];
-  u32 salt_len;
-
-  u32 esalt_buf[256];
-  u32 esalt_len;
-
-} sip_t;
-
-typedef struct androidfde
-{
-  u32 data[384];
-
-} androidfde_t;
-
-typedef struct ikepsk
-{
-  u32 nr_buf[16];
-  u32 nr_len;
-
-  u32 msg_buf[128];
-  u32 msg_len[6];
-
-} ikepsk_t;
-
-typedef struct netntlm
-{
-  u32 user_len;
-  u32 domain_len;
-  u32 srvchall_len;
-  u32 clichall_len;
-
-  u32 userdomain_buf[64];
-  u32 chall_buf[256];
-
-} netntlm_t;
-
-typedef struct krb5pa
-{
-  u32 user[16];
-  u32 realm[16];
-  u32 salt[32];
-  u32 timestamp[16];
-  u32 checksum[4];
-
-} krb5pa_t;
-
-typedef struct krb5tgs
-{
-  u32 account_info[512];
-  u32 checksum[4];
-  u32 edata2[5120];
-  u32 edata2_len;
-
-} krb5tgs_t;
-
-typedef struct krb5asrep
-{
-  u32 account_info[512];
-  u32 checksum[4];
-  u32 edata2[5120];
-  u32 edata2_len;
-
-} krb5asrep_t;
-
-typedef struct keyboard_layout_mapping
-{
-  u32 src_char;
-  int src_len;
-  u32 dst_char;
-  int dst_len;
-
-} keyboard_layout_mapping_t;
-
-typedef struct tc
-{
-  u32 salt_buf[32];
-  u32 data_buf[112];
-  u32 keyfile_buf[16];
-  u32 signature;
-
-  keyboard_layout_mapping_t keyboard_layout_mapping_buf[256];
-  int                       keyboard_layout_mapping_cnt;
-
-} tc_t;
-
-typedef struct pbkdf2_md5
-{
-  u32 salt_buf[64];
-
-} pbkdf2_md5_t;
-
-typedef struct pbkdf2_sha1
-{
-  u32 salt_buf[64];
-
-} pbkdf2_sha1_t;
-
-typedef struct pbkdf2_sha256
-{
-  u32 salt_buf[64];
-
-} pbkdf2_sha256_t;
-
-typedef struct pbkdf2_sha512
-{
-  u32 salt_buf[64];
-
-} pbkdf2_sha512_t;
-
-typedef struct rakp
-{
-  u32 salt_buf[128];
-  u32 salt_len;
-
-} rakp_t;
-
-typedef struct cloudkey
-{
-  u32 data_len;
-  u32 data_buf[512];
-
-} cloudkey_t;
-
-typedef struct office2007
-{
-  u32 encryptedVerifier[4];
-  u32 encryptedVerifierHash[5];
-
-  u32 keySize;
-
-} office2007_t;
-
-typedef struct office2010
-{
-  u32 encryptedVerifier[4];
-  u32 encryptedVerifierHash[8];
-
-} office2010_t;
-
-typedef struct office2013
-{
-  u32 encryptedVerifier[4];
-  u32 encryptedVerifierHash[8];
-
-} office2013_t;
-
-typedef struct oldoffice01
-{
-  u32 version;
-  u32 encryptedVerifier[4];
-  u32 encryptedVerifierHash[4];
-  u32 rc4key[2];
-
-} oldoffice01_t;
-
-typedef struct oldoffice34
-{
-  u32 version;
-  u32 encryptedVerifier[4];
-  u32 encryptedVerifierHash[5];
-  u32 rc4key[2];
-
-} oldoffice34_t;
-
-typedef struct odf11_tmp
-{
-  u32  ipad[5];
-  u32  opad[5];
-
-  u32  dgst[5];
-  u32  out[5];
-
-} odf11_tmp_t;
-
-typedef struct odf11
-{
-  u32 iterations;
-  u32 iv[2];
-  u32 checksum[5];
-  u32 encrypted_data[256];
-
-} odf11_t;
-
-typedef struct odf12_tmp
-{
-  u32  ipad[5];
-  u32  opad[5];
-
-  u32  dgst[10];
-  u32  out[10];
-
-} odf12_tmp_t;
-
-typedef struct odf12
-{
-  u32 iterations;
-  u32 iv[4];
-  u32 checksum[8];
-  u32 encrypted_data[256];
-
-} odf12_t;
-
-typedef struct pstoken
-{
-  u32 salt_buf[128];
-  u32 salt_len;
-
-  u32 pc_digest[5];
-  u32 pc_offset;
-
-} pstoken_t;
-
-typedef struct zip2
-{
-  u32 type;
-  u32 mode;
-  u32 magic;
-  u32 salt_len;
-  u32 salt_buf[4];
-  u32 verify_bytes;
-  u32 compress_length;
-  u32 data_len;
-  u32 data_buf[2048];
-  u32 auth_len;
-  u32 auth_buf[4];
-
-} zip2_t;
-
-typedef struct win8phone
-{
-  u32 salt_buf[32];
-
-} win8phone_t;
-
-typedef struct keepass
-{
-  u32 version;
-  u32 algorithm;
-
-  /* key-file handling */
-  u32 keyfile_len;
-  u32 keyfile[8];
-
-  u32 final_random_seed[8];
-  u32 transf_random_seed[8];
-  u32 enc_iv[4];
-  u32 contents_hash[8];
-
-  /* specific to version 1 */
-  u32 contents_len;
-  u32 contents[75000];
-
-  /* specific to version 2 */
-  u32 expected_bytes[8];
-
-} keepass_t;
-
-typedef struct dpapimk
-{
-  u32 context;
-
-  u32 SID[32];
-  u32 SID_len;
-  u32 SID_offset;
-
-  /* here only for possible
-     forward compatibiliy
-  */
-  // u8 cipher_algo[16];
-  // u8 hash_algo[16];
-
-  u32 iv[4];
-  u32 contents_len;
-  u32 contents[128];
-
-} dpapimk_t;
-
-typedef struct jks_sha1
-{
-  u32 checksum[5];
-  u32 iv[5];
-  u32 enc_key_buf[4096];
-  u32 enc_key_len;
-  u32 der[5];
-  u32 alias[16];
-
-} jks_sha1_t;
-
-typedef struct ethereum_pbkdf2
-{
-  u32 salt_buf[16];
-  u32 ciphertext[8];
-
-} ethereum_pbkdf2_t;
-
-typedef struct ethereum_scrypt
-{
-  u32 salt_buf[16];
-  u32 ciphertext[8];
-
-} ethereum_scrypt_t;
-
-typedef struct ethereum_presale
-{
-  u32 iv[4];
-  u32 enc_seed[152];
-  u32 enc_seed_len;
-
-} ethereum_presale_t;
-
-typedef struct tacacs_plus
-{
-  u32 session_buf[16];
-
-  u32 ct_data_buf[64];
-  u32 ct_data_len;
-
-  u32 sequence_buf[16];
-
-} tacacs_plus_t;
-
-typedef struct apple_secure_notes
-{
-  u32 Z_PK;
-  u32 ZCRYPTOITERATIONCOUNT;
-  u32 ZCRYPTOSALT[16];
-  u32 ZCRYPTOWRAPPEDKEY[16];
-
-} apple_secure_notes_t;
-
-typedef struct jwt
-{
-  u32 salt_buf[1024];
-  u32 salt_len;
-
-  u32 signature_len;
-
-} jwt_t;
-
-typedef struct electrum_wallet
-{
-  u32 salt_type;
-  u32 iv[4];
-  u32 encrypted[4];
-
-} electrum_wallet_t;
-
-typedef struct ansible_vault
-{
-  u32 cipher;
-  u32 version;
-  u32 ct_data_buf[4096];
-  u32 ct_data_len;
-} ansible_vault_t;
-
-typedef struct pdf14_tmp
-{
-  u32 digest[4];
-  u32 out[4];
-
-} pdf14_tmp_t;
-
-typedef struct luks_tmp
-{
-  u32 ipad32[8];
-  u64 ipad64[8];
-
-  u32 opad32[8];
-  u64 opad64[8];
-
-  u32 dgst32[32];
-  u64 dgst64[16];
-
-  u32 out32[32];
-  u64 out64[16];
-
-} luks_tmp_t;
-
-typedef struct pdf17l8_tmp
-{
-  union
-  {
-    u32 dgst32[16];
-    u64 dgst64[8];
-  };
-
-  u32 dgst_len;
-  u32 W_len;
-
-} pdf17l8_tmp_t;
-
-typedef struct phpass_tmp
-{
-  u32 digest_buf[4];
-
-} phpass_tmp_t;
-
-typedef struct md5crypt_tmp
-{
-  u32 digest_buf[4];
-
-} md5crypt_tmp_t;
-
-typedef struct sha256crypt_tmp
-{
-  // pure version
-
-  u32 alt_result[8];
-  u32 p_bytes[64];
-  u32 s_bytes[64];
-
-} sha256crypt_tmp_t;
-
-typedef struct sha512crypt_tmp
-{
-  u64 l_alt_result[8];
-  u64 l_p_bytes[2];
-  u64 l_s_bytes[2];
-
-  // pure version
-
-  u32 alt_result[16];
-  u32 p_bytes[64];
-  u32 s_bytes[64];
-
-} sha512crypt_tmp_t;
-
-typedef struct wpa_pbkdf2_tmp
-{
-  u32 ipad[5];
-  u32 opad[5];
-
-  u32 dgst[10];
-  u32 out[10];
-
-} wpa_pbkdf2_tmp_t;
-
-typedef struct wpa_pmk_tmp
-{
-  u32 out[8];
-
-} wpa_pmk_tmp_t;
-
-typedef struct bitcoin_wallet_tmp
-{
-  u64  dgst[8];
-
-} bitcoin_wallet_tmp_t;
-
-typedef struct dcc2_tmp
-{
-  u32 ipad[5];
-  u32 opad[5];
-
-  u32 dgst[5];
-  u32 out[4];
-
-} dcc2_tmp_t;
-
-typedef struct bcrypt_tmp
-{
-  u32 E[18];
-
-  u32 P[18];
-
-  u32 S0[256];
-  u32 S1[256];
-  u32 S2[256];
-  u32 S3[256];
-
-} bcrypt_tmp_t;
-
-typedef struct pwsafe2_tmp
-{
-  u32 digest[2];
-
-  u32 P[18];
-
-  u32 S0[256];
-  u32 S1[256];
-  u32 S2[256];
-  u32 S3[256];
-
-} pwsafe2_tmp_t;
-
-typedef struct pwsafe3_tmp
-{
-  u32 digest_buf[8];
-
-} pwsafe3_tmp_t;
-
-typedef struct androidpin_tmp
-{
-  u32 digest_buf[5];
-
-} androidpin_tmp_t;
-
-typedef struct androidfde_tmp
-{
-  u32 ipad[5];
-  u32 opad[5];
-
-  u32 dgst[10];
-  u32 out[10];
-
-} androidfde_tmp_t;
-
-typedef struct tc_tmp
-{
-  u32 ipad[16];
-  u32 opad[16];
-
-  u32 dgst[64];
-  u32 out[64];
-
-} tc_tmp_t;
-
-typedef struct tc64_tmp
-{
-  u64  ipad[8];
-  u64  opad[8];
-
-  u64  dgst[32];
-  u64  out[32];
-
-} tc64_tmp_t;
-
-typedef struct vc64_sbog_tmp
-{
-  u64  ipad_raw[8];
-  u64  opad_raw[8];
-
-  u64  ipad_hash[8];
-  u64  opad_hash[8];
-
-  u64  dgst[32];
-  u64  out[32];
-
-} vc64_sbog_tmp_t;
-
-typedef struct pbkdf1_sha1_tmp
-{
-  // pbkdf1-sha1 is limited to 160 bits
-
-  u32  ipad[5];
-  u32  opad[5];
-
-  u32  out[5];
-
-} pbkdf1_sha1_tmp_t;
-
-typedef struct pbkdf2_md5_tmp
-{
-  u32  ipad[4];
-  u32  opad[4];
-
-  u32  dgst[32];
-  u32  out[32];
-
-} pbkdf2_md5_tmp_t;
-
-typedef struct pbkdf2_sha1_tmp
-{
-  u32  ipad[5];
-  u32  opad[5];
-
-  u32  dgst[32];
-  u32  out[32];
-
-} pbkdf2_sha1_tmp_t;
-
-typedef struct pbkdf2_sha256_tmp
-{
-  u32  ipad[8];
-  u32  opad[8];
-
-  u32  dgst[32];
-  u32  out[32];
-
-} pbkdf2_sha256_tmp_t;
-
-typedef struct pbkdf2_sha512_tmp
-{
-  u64  ipad[8];
-  u64  opad[8];
-
-  u64  dgst[16];
-  u64  out[16];
-
-} pbkdf2_sha512_tmp_t;
-
-typedef struct ecryptfs_tmp
-{
-  u64  out[8];
-
-} ecryptfs_tmp_t;
-
-typedef struct oraclet_tmp
-{
-  u64  ipad[8];
-  u64  opad[8];
-
-  u64  dgst[16];
-  u64  out[16];
-
-} oraclet_tmp_t;
-
-typedef struct agilekey_tmp
-{
-  u32 ipad[5];
-  u32 opad[5];
-
-  u32 dgst[5];
-  u32 out[5];
-
-} agilekey_tmp_t;
-
-typedef struct mywallet_tmp
-{
-  u32 ipad[5];
-  u32 opad[5];
-
-  u32 dgst[10];
-  u32 out[10];
-
-} mywallet_tmp_t;
-
-typedef struct sha1aix_tmp
-{
-  u32 ipad[5];
-  u32 opad[5];
-
-  u32 dgst[5];
-  u32 out[5];
-
-} sha1aix_tmp_t;
-
-typedef struct sha256aix_tmp
-{
-  u32 ipad[8];
-  u32 opad[8];
-
-  u32 dgst[8];
-  u32 out[8];
-
-} sha256aix_tmp_t;
-
-typedef struct sha512aix_tmp
-{
-  u64  ipad[8];
-  u64  opad[8];
-
-  u64  dgst[8];
-  u64  out[8];
-
-} sha512aix_tmp_t;
-
-typedef struct lastpass_tmp
-{
-  u32 ipad[8];
-  u32 opad[8];
-
-  u32 dgst[8];
-  u32 out[8];
-
-} lastpass_tmp_t;
-
-typedef struct drupal7_tmp
-{
-  u64  digest_buf[8];
-
-} drupal7_tmp_t;
-
-typedef struct lotus8_tmp
-{
-  u32 ipad[5];
-  u32 opad[5];
-
-  u32 dgst[5];
-  u32 out[5];
-
-} lotus8_tmp_t;
-
-typedef struct office2007_tmp
-{
-  u32 out[5];
-
-} office2007_tmp_t;
-
-typedef struct office2010_tmp
-{
-  u32 out[5];
-
-} office2010_tmp_t;
-
-typedef struct office2013_tmp
-{
-  u64  out[8];
-
-} office2013_tmp_t;
-
-typedef struct saph_sha1_tmp
-{
-  u32 digest_buf[5];
-
-} saph_sha1_tmp_t;
-
-typedef struct seven_zip_tmp
-{
-  u32 h[8];
-
-  u32 w0[4];
-  u32 w1[4];
-  u32 w2[4];
-  u32 w3[4];
-
-  int len;
-
-} seven_zip_tmp_t;
-
-typedef struct axcrypt_tmp
-{
-  u32 KEK[4];
-  u32 lsb[4];
-  u32 cipher[4];
-
-} axcrypt_tmp_t;
-
-typedef struct keepass_tmp
-{
-  u32 tmp_digest[8];
-
-} keepass_tmp_t;
-
-typedef struct dpapimk_tmp_v1
-{
-  u32 ipad[5];
-  u32 opad[5];
-  u32 dgst[10];
-  u32 out[10];
-
-  u32 userKey[5];
-
-} dpapimk_tmp_v1_t;
-
-typedef struct dpapimk_tmp_v2
-{
-  u64 ipad64[8];
-  u64 opad64[8];
-  u64 dgst64[16];
-  u64 out64[16];
-
-  u32 userKey[8];
-
-} dpapimk_tmp_v2_t;
-
-typedef struct apple_secure_notes_tmp
-{
-  u32 ipad[8];
-  u32 opad[8];
-
-  u32 dgst[8];
-  u32 out[8];
-
-} apple_secure_notes_tmp_t;
-
-typedef struct bsdicrypt_tmp
-{
-  u32 Kc[16];
-  u32 Kd[16];
-
-  u32 iv[2];
-
-} bsdicrypt_tmp_t;
-
-typedef struct rar3_tmp
-{
-  u32 dgst[17][5];
-
-} rar3_tmp_t;
-
-typedef struct
-{
-  u32 ukey[8];
-
-  u32 hook_success;
-
-} seven_zip_hook_t;
-
-typedef struct cram_md5
-{
-  u32 user[16];
-
-} cram_md5_t;
 
 typedef struct
 {
@@ -2257,19 +1416,11 @@ typedef struct plain
 
 } plain_t;
 
-typedef struct
+typedef struct keyboard_layout_mapping
 {
-  #ifndef SCRYPT_TMP_ELEM
-  #define SCRYPT_TMP_ELEM 1
-  #endif
+  u32 src_char;
+  int src_len;
+  u32 dst_char;
+  int dst_len;
 
-  uint4 P[SCRYPT_TMP_ELEM];
-
-} scrypt_tmp_t;
-
-typedef enum combinator_mode
-{
-  COMBINATOR_MODE_BASE_LEFT  = 10001,
-  COMBINATOR_MODE_BASE_RIGHT = 10002
-
-} combinator_mode_t;
+} keyboard_layout_mapping_t;

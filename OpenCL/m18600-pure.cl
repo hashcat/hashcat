@@ -16,6 +16,25 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct odf11_tmp
+{
+  u32  ipad[5];
+  u32  opad[5];
+
+  u32  dgst[5];
+  u32  out[5];
+
+} odf11_tmp_t;
+
+typedef struct odf11
+{
+  u32 iterations;
+  u32 iv[2];
+  u32 checksum[5];
+  u32 encrypted_data[256];
+
+} odf11_t;
+
 // http://www.schneier.com/code/constants.txt
 
 __constant u32a c_sbox0[256] =
@@ -563,7 +582,7 @@ __kernel void m18600_loop (KERN_ATTR_TMPS_ESALT (odf11_tmp_t, odf11_t))
   }
 }
 
-__kernel void __attribute__((reqd_work_group_size(8, 1, 1))) m18600_comp (KERN_ATTR_TMPS_ESALT (odf11_tmp_t, odf11_t))
+__kernel void m18600_comp (KERN_ATTR_TMPS_ESALT (odf11_tmp_t, odf11_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
