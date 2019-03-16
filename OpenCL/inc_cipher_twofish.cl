@@ -271,26 +271,29 @@ DECLSPEC u32 mds_rem (u32 p0, u32 p1)
 {
   #define G_MOD 0x14d
 
-  for (int i = 0; i < 8; i++)
-  {
-    u32 t = p1 >> 24;
-
-    p1 = (p1 << 8) | (p0 >> 24);
-
-    p0 <<= 8;
-
-    u32 u = (t << 1);
-
-    if (t & 0x80) u ^= G_MOD;
-
-    p1 ^= t ^ (u << 16);
-
-    u ^= (t >> 1);
-
-    if (t & 0x01) u ^= G_MOD >> 1;
-
-    p1 ^= (u << 24) | (u << 8);
+  #define MDS_REM_ROUND()           \
+  {                                 \
+    u32 t = p1 >> 24;               \
+    p1 = (p1 << 8) | (p0 >> 24);    \
+    p0 <<= 8;                       \
+    u32 u = (t << 1);               \
+    if (t & 0x80) u ^= G_MOD;       \
+    p1 ^= t ^ (u << 16);            \
+    u ^= (t >> 1);                  \
+    if (t & 0x01) u ^= G_MOD >> 1;  \
+    p1 ^= (u << 24) | (u << 8);     \
   }
+
+  MDS_REM_ROUND();
+  MDS_REM_ROUND();
+  MDS_REM_ROUND();
+  MDS_REM_ROUND();
+  MDS_REM_ROUND();
+  MDS_REM_ROUND();
+  MDS_REM_ROUND();
+  MDS_REM_ROUND();
+
+  #undef MDS_REM_ROUND
 
   return p1;
 }
