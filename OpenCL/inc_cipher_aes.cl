@@ -683,13 +683,6 @@ __constant u32a td4[256] =
   0x55555555, 0x21212121, 0x0c0c0c0c, 0x7d7d7d7d,
 };
 
-__constant u32a rcon[10] =
-{
-  0x01000000, 0x02000000, 0x04000000, 0x08000000,
-  0x10000000, 0x20000000, 0x40000000, 0x80000000,
-  0x1b000000, 0x36000000,
-};
-
 // 128 bit key
 
 DECLSPEC void aes128_ExpandKey (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4);
