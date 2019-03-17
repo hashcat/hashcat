@@ -442,7 +442,7 @@ __kernel void m13100_mxx (KERN_ATTR_RULES_ESALT (krb5tgs_t))
     {
       if (atomic_inc (&hashes_shown[digests_offset]) == 0)
       {
-        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos, 0, 0);
       }
     }
   }
@@ -504,7 +504,7 @@ __kernel void m13100_sxx (KERN_ATTR_RULES_ESALT (krb5tgs_t))
     {
       if (atomic_inc (&hashes_shown[digests_offset]) == 0)
       {
-        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos, 0, 0);
       }
     }
   }

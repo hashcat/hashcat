@@ -16,8 +16,6 @@
 #include "inc_cipher_aes.cl"
 #include "inc_cipher_twofish.cl"
 #include "inc_cipher_serpent.cl"
-#include "inc_cipher_camellia.cl"
-#include "inc_cipher_kuznyechik.cl"
 
 typedef struct tc
 {
@@ -34,7 +32,6 @@ typedef struct tc
 #include "inc_truecrypt_keyfile.cl"
 #include "inc_truecrypt_crc32.cl"
 #include "inc_truecrypt_xts.cl"
-#include "inc_veracrypt_xts.cl"
 
 typedef struct tc_tmp
 {
@@ -46,7 +43,7 @@ typedef struct tc_tmp
 
 } tc_tmp_t;
 
-DECLSPEC void hmac_whirlpool_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest, __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
+DECLSPEC void hmac_whirlpool_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
 {
   digest[ 0] = ipad[ 0];
   digest[ 1] = ipad[ 1];
@@ -161,6 +158,14 @@ __kernel void m06233_init (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
     s_keyboard_layout_mapping_buf[i] = esalt_bufs[digests_offset].keyboard_layout_mapping_buf[i];
   }
 
+  barrier (CLK_LOCAL_MEM_FENCE);
+
+  /**
+   * Whirlpool shared
+   */
+
+  #ifdef REAL_SHM
+
   __local u32 s_Ch[8][256];
   __local u32 s_Cl[8][256];
 
@@ -186,6 +191,13 @@ __kernel void m06233_init (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
+
+  #else
+
+  __constant u32a (*s_Ch)[256] = Ch;
+  __constant u32a (*s_Cl)[256] = Cl;
+
+  #endif
 
   if (gid >= gid_max) return;
 
@@ -357,16 +369,14 @@ __kernel void m06233_init (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
 __kernel void m06233_loop (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
 {
   /**
-   * modifier
+   * Whirlpool shared
    */
 
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
   const u64 lsz = get_local_size (0);
 
-  /**
-   * shared
-   */
+  #ifdef REAL_SHM
 
   __local u32 s_Ch[8][256];
   __local u32 s_Cl[8][256];
@@ -393,6 +403,13 @@ __kernel void m06233_loop (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
+
+  #else
+
+  __constant u32a (*s_Ch)[256] = Ch;
+  __constant u32a (*s_Cl)[256] = Cl;
+
+  #endif
 
   if ((gid * VECT_SIZE) >= gid_max) return;
 
@@ -609,6 +626,45 @@ __kernel void m06233_comp (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
 
   #endif
 
+  /**
+   * Whirlpool shared
+   */
+
+  #ifdef REAL_SHM
+
+  __local u32 s_Ch[8][256];
+  __local u32 s_Cl[8][256];
+
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    s_Ch[0][i] = Ch[0][i];
+    s_Ch[1][i] = Ch[1][i];
+    s_Ch[2][i] = Ch[2][i];
+    s_Ch[3][i] = Ch[3][i];
+    s_Ch[4][i] = Ch[4][i];
+    s_Ch[5][i] = Ch[5][i];
+    s_Ch[6][i] = Ch[6][i];
+    s_Ch[7][i] = Ch[7][i];
+
+    s_Cl[0][i] = Cl[0][i];
+    s_Cl[1][i] = Cl[1][i];
+    s_Cl[2][i] = Cl[2][i];
+    s_Cl[3][i] = Cl[3][i];
+    s_Cl[4][i] = Cl[4][i];
+    s_Cl[5][i] = Cl[5][i];
+    s_Cl[6][i] = Cl[6][i];
+    s_Cl[7][i] = Cl[7][i];
+  }
+
+  barrier (CLK_LOCAL_MEM_FENCE);
+
+  #else
+
+  __constant u32a (*s_Ch)[256] = Ch;
+  __constant u32a (*s_Cl)[256] = Cl;
+
+  #endif
+
   if (gid >= gid_max) return;
 
   u32 ukey1[8];
@@ -633,43 +689,27 @@ __kernel void m06233_comp (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
   ukey2[6] = swap32_S (tmps[gid].out[14]);
   ukey2[7] = swap32_S (tmps[gid].out[15]);
 
-  if (verify_header_aes (esalt_bufs, ukey1, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
+  if (verify_header_aes (esalt_bufs[0].data_buf, esalt_bufs[0].signature, ukey1, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
   {
     if (atomic_inc (&hashes_shown[0]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0, 0, 0);
     }
   }
 
-  if (verify_header_serpent (esalt_bufs, ukey1, ukey2) == 1)
+  if (verify_header_serpent (esalt_bufs[0].data_buf, esalt_bufs[0].signature, ukey1, ukey2) == 1)
   {
     if (atomic_inc (&hashes_shown[0]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0, 0, 0);
     }
   }
 
-  if (verify_header_twofish (esalt_bufs, ukey1, ukey2) == 1)
+  if (verify_header_twofish (esalt_bufs[0].data_buf, esalt_bufs[0].signature, ukey1, ukey2) == 1)
   {
     if (atomic_inc (&hashes_shown[0]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
-    }
-  }
-
-  if (verify_header_camellia (esalt_bufs, ukey1, ukey2) == 1)
-  {
-    if (atomic_inc (&hashes_shown[0]) == 0)
-    {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
-    }
-  }
-
-  if (verify_header_kuznyechik (esalt_bufs, ukey1, ukey2) == 1)
-  {
-    if (atomic_inc (&hashes_shown[0]) == 0)
-    {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0, 0, 0);
     }
   }
 
@@ -695,59 +735,27 @@ __kernel void m06233_comp (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
   ukey4[6] = swap32_S (tmps[gid].out[30]);
   ukey4[7] = swap32_S (tmps[gid].out[31]);
 
-  if (verify_header_aes_twofish (esalt_bufs, ukey1, ukey2, ukey3, ukey4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
+  if (verify_header_aes_twofish (esalt_bufs[0].data_buf, esalt_bufs[0].signature, ukey1, ukey2, ukey3, ukey4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
   {
     if (atomic_inc (&hashes_shown[0]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0, 0, 0);
     }
   }
 
-  if (verify_header_serpent_aes (esalt_bufs, ukey1, ukey2, ukey3, ukey4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
+  if (verify_header_serpent_aes (esalt_bufs[0].data_buf, esalt_bufs[0].signature, ukey1, ukey2, ukey3, ukey4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
   {
     if (atomic_inc (&hashes_shown[0]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0, 0, 0);
     }
   }
 
-  if (verify_header_twofish_serpent (esalt_bufs, ukey1, ukey2, ukey3, ukey4) == 1)
+  if (verify_header_twofish_serpent (esalt_bufs[0].data_buf, esalt_bufs[0].signature, ukey1, ukey2, ukey3, ukey4) == 1)
   {
     if (atomic_inc (&hashes_shown[0]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
-    }
-  }
-
-  if (verify_header_camellia_kuznyechik (esalt_bufs, ukey1, ukey2, ukey3, ukey4) == 1)
-  {
-    if (atomic_inc (&hashes_shown[0]) == 0)
-    {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
-    }
-  }
-
-  if (verify_header_camellia_serpent (esalt_bufs, ukey1, ukey2, ukey3, ukey4) == 1)
-  {
-    if (atomic_inc (&hashes_shown[0]) == 0)
-    {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
-    }
-  }
-
-  if (verify_header_kuznyechik_aes (esalt_bufs, ukey1, ukey2, ukey3, ukey4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
-  {
-    if (atomic_inc (&hashes_shown[0]) == 0)
-    {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
-    }
-  }
-
-  if (verify_header_kuznyechik_twofish (esalt_bufs, ukey1, ukey2, ukey3, ukey4) == 1)
-  {
-    if (atomic_inc (&hashes_shown[0]) == 0)
-    {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0, 0, 0);
     }
   }
 
@@ -773,27 +781,19 @@ __kernel void m06233_comp (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
   ukey6[6] = swap32_S (tmps[gid].out[46]);
   ukey6[7] = swap32_S (tmps[gid].out[47]);
 
-  if (verify_header_aes_twofish_serpent (esalt_bufs, ukey1, ukey2, ukey3, ukey4, ukey5, ukey6, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
+  if (verify_header_aes_twofish_serpent (esalt_bufs[0].data_buf, esalt_bufs[0].signature, ukey1, ukey2, ukey3, ukey4, ukey5, ukey6, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
   {
     if (atomic_inc (&hashes_shown[0]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0, 0, 0);
     }
   }
 
-  if (verify_header_serpent_twofish_aes (esalt_bufs, ukey1, ukey2, ukey3, ukey4, ukey5, ukey6, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
+  if (verify_header_serpent_twofish_aes (esalt_bufs[0].data_buf, esalt_bufs[0].signature, ukey1, ukey2, ukey3, ukey4, ukey5, ukey6, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
   {
     if (atomic_inc (&hashes_shown[0]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
-    }
-  }
-
-  if (verify_header_kuznyechik_serpent_camellia (esalt_bufs, ukey1, ukey2, ukey3, ukey4, ukey5, ukey6) == 1)
-  {
-    if (atomic_inc (&hashes_shown[0]) == 0)
-    {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0, 0, 0);
     }
   }
 }

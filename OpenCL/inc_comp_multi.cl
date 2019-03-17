@@ -26,7 +26,7 @@ if (check (digest_tp,
 
     if (atomic_inc (&hashes_shown[final_hash_pos]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, digest_pos, final_hash_pos, gid, il_pos);
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, digest_pos, final_hash_pos, gid, il_pos, 0, 0);
     }
   }
 }

@@ -335,7 +335,7 @@ __kernel void m02501_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
       {
         if (atomic_inc (&hashes_shown[digest_cur]) == 0)
         {
-          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, digest_pos, digest_cur, gid, 0);
+          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
         }
       }
     }
@@ -455,7 +455,7 @@ __kernel void m02501_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
       {
         if (atomic_inc (&hashes_shown[digest_cur]) == 0)
         {
-          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, digest_pos, digest_cur, gid, 0);
+          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
         }
       }
     }
@@ -646,7 +646,7 @@ __kernel void m02501_aux2 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
       {
         if (atomic_inc (&hashes_shown[digest_cur]) == 0)
         {
-          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, digest_pos, digest_cur, gid, 0);
+          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
         }
       }
     }
@@ -766,7 +766,7 @@ __kernel void m02501_aux2 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
       {
         if (atomic_inc (&hashes_shown[digest_cur]) == 0)
         {
-          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, digest_pos, digest_cur, gid, 0);
+          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
         }
       }
     }
@@ -1040,7 +1040,7 @@ __kernel void m02501_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
       {
         if (atomic_inc (&hashes_shown[digest_cur]) == 0)
         {
-          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, digest_pos, digest_cur, gid, 0);
+          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
         }
       }
     }
@@ -1191,7 +1191,7 @@ __kernel void m02501_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
       {
         if (atomic_inc (&hashes_shown[digest_cur]) == 0)
         {
-          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, digest_pos, digest_cur, gid, 0);
+          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
         }
       }
     }

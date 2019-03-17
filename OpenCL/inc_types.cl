@@ -1413,6 +1413,8 @@ typedef struct plain
   u32  salt_pos;
   u32  digest_pos;
   u32  hash_pos;
+  u32  extra1;
+  u32  extra2;
 
 } plain_t;
 

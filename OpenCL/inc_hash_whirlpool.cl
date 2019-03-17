@@ -1125,13 +1125,13 @@ typedef struct whirlpool_ctx
 
   int len;
 
-  __local u32 (*s_Ch)[256];
-  __local u32 (*s_Cl)[256];
+  SHM_TYPE u32 (*s_Ch)[256];
+  SHM_TYPE u32 (*s_Cl)[256];
 
 } whirlpool_ctx_t;
 
-DECLSPEC void whirlpool_transform (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest, __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256]);
-DECLSPEC void whirlpool_transform (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest, __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
+DECLSPEC void whirlpool_transform (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256]);
+DECLSPEC void whirlpool_transform (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
 {
   u32 Kh[8];
   u32 Kl[8];
@@ -1301,8 +1301,8 @@ DECLSPEC void whirlpool_transform (const u32 *w0, const u32 *w1, const u32 *w2, 
   digest[15] ^= statel[7] ^ w3[3];
 }
 
-DECLSPEC void whirlpool_init (whirlpool_ctx_t *ctx, __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256]);
-DECLSPEC void whirlpool_init (whirlpool_ctx_t *ctx, __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
+DECLSPEC void whirlpool_init (whirlpool_ctx_t *ctx, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256]);
+DECLSPEC void whirlpool_init (whirlpool_ctx_t *ctx, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
 {
   ctx->h[ 0] = 0;
   ctx->h[ 1] = 0;
@@ -1983,8 +1983,8 @@ typedef struct whirlpool_hmac_ctx
 
 } whirlpool_hmac_ctx_t;
 
-DECLSPEC void whirlpool_hmac_init_64 (whirlpool_hmac_ctx_t *ctx, const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256]);
-DECLSPEC void whirlpool_hmac_init_64 (whirlpool_hmac_ctx_t *ctx, const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
+DECLSPEC void whirlpool_hmac_init_64 (whirlpool_hmac_ctx_t *ctx, const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256]);
+DECLSPEC void whirlpool_hmac_init_64 (whirlpool_hmac_ctx_t *ctx, const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
 {
   u32 t0[4];
   u32 t1[4];
@@ -2038,8 +2038,8 @@ DECLSPEC void whirlpool_hmac_init_64 (whirlpool_hmac_ctx_t *ctx, const u32 *w0, 
   whirlpool_update_64 (&ctx->opad, t0, t1, t2, t3, 64);
 }
 
-DECLSPEC void whirlpool_hmac_init (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len, __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256]);
-DECLSPEC void whirlpool_hmac_init (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len, __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
+DECLSPEC void whirlpool_hmac_init (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256]);
+DECLSPEC void whirlpool_hmac_init (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
 {
   u32 w0[4];
   u32 w1[4];
@@ -2096,8 +2096,8 @@ DECLSPEC void whirlpool_hmac_init (whirlpool_hmac_ctx_t *ctx, const u32 *w, cons
   whirlpool_hmac_init_64 (ctx, w0, w1, w2, w3, s_Ch, s_Cl);
 }
 
-DECLSPEC void whirlpool_hmac_init_swap (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len, __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256]);
-DECLSPEC void whirlpool_hmac_init_swap (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len, __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
+DECLSPEC void whirlpool_hmac_init_swap (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256]);
+DECLSPEC void whirlpool_hmac_init_swap (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
 {
   u32 w0[4];
   u32 w1[4];
@@ -2154,8 +2154,8 @@ DECLSPEC void whirlpool_hmac_init_swap (whirlpool_hmac_ctx_t *ctx, const u32 *w,
   whirlpool_hmac_init_64 (ctx, w0, w1, w2, w3, s_Ch, s_Cl);
 }
 
-DECLSPEC void whirlpool_hmac_init_global (whirlpool_hmac_ctx_t *ctx, __global const u32 *w, const int len, __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256]);
-DECLSPEC void whirlpool_hmac_init_global (whirlpool_hmac_ctx_t *ctx, __global const u32 *w, const int len, __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
+DECLSPEC void whirlpool_hmac_init_global (whirlpool_hmac_ctx_t *ctx, __global const u32 *w, const int len, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256]);
+DECLSPEC void whirlpool_hmac_init_global (whirlpool_hmac_ctx_t *ctx, __global const u32 *w, const int len, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
 {
   u32 w0[4];
   u32 w1[4];
@@ -2212,8 +2212,8 @@ DECLSPEC void whirlpool_hmac_init_global (whirlpool_hmac_ctx_t *ctx, __global co
   whirlpool_hmac_init_64 (ctx, w0, w1, w2, w3, s_Ch, s_Cl);
 }
 
-DECLSPEC void whirlpool_hmac_init_global_swap (whirlpool_hmac_ctx_t *ctx, __global const u32 *w, const int len, __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256]);
-DECLSPEC void whirlpool_hmac_init_global_swap (whirlpool_hmac_ctx_t *ctx, __global const u32 *w, const int len, __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
+DECLSPEC void whirlpool_hmac_init_global_swap (whirlpool_hmac_ctx_t *ctx, __global const u32 *w, const int len, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256]);
+DECLSPEC void whirlpool_hmac_init_global_swap (whirlpool_hmac_ctx_t *ctx, __global const u32 *w, const int len, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
 {
   u32 w0[4];
   u32 w1[4];
@@ -2369,13 +2369,13 @@ typedef struct whirlpool_ctx_vector
 
   int  len;
 
-  __local u32 (*s_Ch)[256];
-  __local u32 (*s_Cl)[256];
+  SHM_TYPE u32 (*s_Ch)[256];
+  SHM_TYPE u32 (*s_Cl)[256];
 
 } whirlpool_ctx_vector_t;
 
-DECLSPEC void whirlpool_transform_vector (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u32x *digest, __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256]);
-DECLSPEC void whirlpool_transform_vector (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u32x *digest, __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
+DECLSPEC void whirlpool_transform_vector (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u32x *digest, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256]);
+DECLSPEC void whirlpool_transform_vector (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u32x *digest, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
 {
   u32x Kh[8];
   u32x Kl[8];
@@ -2545,8 +2545,8 @@ DECLSPEC void whirlpool_transform_vector (const u32x *w0, const u32x *w1, const 
   digest[15] ^= statel[7] ^ w3[3];
 }
 
-DECLSPEC void whirlpool_init_vector (whirlpool_ctx_vector_t *ctx, __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256]);
-DECLSPEC void whirlpool_init_vector (whirlpool_ctx_vector_t *ctx, __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
+DECLSPEC void whirlpool_init_vector (whirlpool_ctx_vector_t *ctx, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256]);
+DECLSPEC void whirlpool_init_vector (whirlpool_ctx_vector_t *ctx, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
 {
   ctx->h[ 0] = 0;
   ctx->h[ 1] = 0;
@@ -3010,8 +3010,8 @@ typedef struct whirlpool_hmac_ctx_vector
 
 } whirlpool_hmac_ctx_vector_t;
 
-DECLSPEC void whirlpool_hmac_init_vector_64 (whirlpool_hmac_ctx_vector_t *ctx, const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256]);
-DECLSPEC void whirlpool_hmac_init_vector_64 (whirlpool_hmac_ctx_vector_t *ctx, const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
+DECLSPEC void whirlpool_hmac_init_vector_64 (whirlpool_hmac_ctx_vector_t *ctx, const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256]);
+DECLSPEC void whirlpool_hmac_init_vector_64 (whirlpool_hmac_ctx_vector_t *ctx, const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
 {
   u32x t0[4];
   u32x t1[4];
@@ -3065,8 +3065,8 @@ DECLSPEC void whirlpool_hmac_init_vector_64 (whirlpool_hmac_ctx_vector_t *ctx, c
   whirlpool_update_vector_64 (&ctx->opad, t0, t1, t2, t3, 64);
 }
 
-DECLSPEC void whirlpool_hmac_init_vector (whirlpool_hmac_ctx_vector_t *ctx, const u32x *w, const int len, __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256]);
-DECLSPEC void whirlpool_hmac_init_vector (whirlpool_hmac_ctx_vector_t *ctx, const u32x *w, const int len, __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
+DECLSPEC void whirlpool_hmac_init_vector (whirlpool_hmac_ctx_vector_t *ctx, const u32x *w, const int len, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256]);
+DECLSPEC void whirlpool_hmac_init_vector (whirlpool_hmac_ctx_vector_t *ctx, const u32x *w, const int len, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
 {
   u32x w0[4];
   u32x w1[4];

@@ -9,6 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "memory.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -62,6 +63,17 @@ typedef struct pbkdf2_sha256_tmp
 } pbkdf2_sha256_tmp_t;
 
 static const char *SIGNATURE_ITUNES_BACKUP = "$itunes_backup$";
+
+salt_t *module_benchmark_salt (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  salt_t *salt = (salt_t *) hcmalloc (sizeof (salt_t));
+
+  salt->salt_iter  = 10000000 - 1;
+  salt->salt_iter2 = 10000 - 1;
+  salt->salt_len   = 16;
+
+  return salt;
+}
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -364,7 +376,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
   module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
   module_ctx->module_benchmark_mask           = MODULE_DEFAULT;
-  module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
+  module_ctx->module_benchmark_salt           = module_benchmark_salt;
   module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
   module_ctx->module_deep_comp_kernel         = MODULE_DEFAULT;
   module_ctx->module_dgst_pos0                = module_dgst_pos0;

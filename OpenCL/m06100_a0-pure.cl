@@ -26,8 +26,10 @@ __kernel void m06100_mxx (KERN_ATTR_RULES ())
   const u64 lsz = get_local_size (0);
 
   /**
-   * shared
+   * Whirlpool shared
    */
+
+  #ifdef REAL_SHM
 
   __local u32 s_Ch[8][256];
   __local u32 s_Cl[8][256];
@@ -54,6 +56,13 @@ __kernel void m06100_mxx (KERN_ATTR_RULES ())
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
+
+  #else
+
+  __constant u32a (*s_Ch)[256] = Ch;
+  __constant u32a (*s_Cl)[256] = Cl;
+
+  #endif
 
   if (gid >= gid_max) return;
 
@@ -101,8 +110,10 @@ __kernel void m06100_sxx (KERN_ATTR_RULES ())
   const u64 lsz = get_local_size (0);
 
   /**
-   * shared
+   * Whirlpool shared
    */
+
+  #ifdef REAL_SHM
 
   __local u32 s_Ch[8][256];
   __local u32 s_Cl[8][256];
@@ -129,6 +140,13 @@ __kernel void m06100_sxx (KERN_ATTR_RULES ())
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
+
+  #else
+
+  __constant u32a (*s_Ch)[256] = Ch;
+  __constant u32a (*s_Cl)[256] = Cl;
+
+  #endif
 
   if (gid >= gid_max) return;
 

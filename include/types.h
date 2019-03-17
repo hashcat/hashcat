@@ -75,6 +75,60 @@ typedef pthread_mutex_t     hc_thread_mutex_t;
 typedef sem_t               hc_thread_semaphore_t;
 #endif
 
+// unions
+
+typedef union vconv32
+{
+  u64 v32;
+
+  struct
+  {
+    u16 v16a;
+    u16 v16b;
+  };
+
+  struct
+  {
+    u8 v8a;
+    u8 v8b;
+    u8 v8c;
+    u8 v8d;
+  };
+
+} vconv32_t;
+
+typedef union vconv64
+{
+  u64 v64;
+
+  struct
+  {
+    u32 v32a;
+    u32 v32b;
+  };
+
+  struct
+  {
+    u16 v16a;
+    u16 v16b;
+    u16 v16c;
+    u16 v16d;
+  };
+
+  struct
+  {
+    u8 v8a;
+    u8 v8b;
+    u8 v8c;
+    u8 v8d;
+    u8 v8e;
+    u8 v8f;
+    u8 v8g;
+    u8 v8h;
+  };
+
+} vconv64_t;
+
 // enums
 
 typedef enum loglevel
@@ -410,6 +464,7 @@ typedef enum opts_type
   OPTS_TYPE_PT_ADD06          = (1ULL << 40),
   OPTS_TYPE_KEYBOARD_MAPPING  = (1ULL << 41),
   OPTS_TYPE_DEEP_COMP_KERNEL  = (1ULL << 42), // if we have to iterate through each hash inside the comp kernel, for example if each hash has to be decrypted separately
+  OPTS_TYPE_SUGGEST_KG        = (1ULL << 43), // suggest keep guessing for modules the user maybe wants to use --keep-guessing
 
 } opts_type_t;
 
@@ -727,8 +782,9 @@ typedef enum user_options_map
   IDX_STDIN_TIMEOUT_ABORT       = 0xff42,
   IDX_TRUECRYPT_KEYFILES        = 0xff43,
   IDX_USERNAME                  = 0xff44,
-  IDX_VERACRYPT_KEYFILES        = 0xff46,
-  IDX_VERACRYPT_PIM             = 0xff47,
+  IDX_VERACRYPT_KEYFILES        = 0xff45,
+  IDX_VERACRYPT_PIM_START       = 0xff46,
+  IDX_VERACRYPT_PIM_STOP        = 0xff47,
   IDX_VERSION_LOWER             = 'v',
   IDX_VERSION                   = 'V',
   IDX_WORDLIST_AUTOHEX_DISABLE  = 0xff48,
@@ -1027,6 +1083,8 @@ typedef struct plain
   u32  salt_pos;
   u32  digest_pos;
   u32  hash_pos;
+  u32  extra1;
+  u32  extra2;
 
 } plain_t;
 
@@ -1871,7 +1929,8 @@ typedef struct user_options
   u32          segment_size;
   u32          status_timer;
   u32          stdin_timeout_abort;
-  u32          veracrypt_pim;
+  u32          veracrypt_pim_start;
+  u32          veracrypt_pim_stop;
   u32          workload_profile;
   u64          limit;
   u64          skip;
@@ -2333,7 +2392,7 @@ typedef struct module_ctx
   void        (*module_hook12)                  (hc_device_param_t *, const void *, const u32, const u64);
   void        (*module_hook23)                  (hc_device_param_t *, const void *, const u32, const u64);
 
-  int         (*module_build_plain_postprocess) (const hashconfig_t *, const hashes_t *, const u32 *, const size_t, const int, u32 *, const size_t);
+  int         (*module_build_plain_postprocess) (const hashconfig_t *, const hashes_t *, const plain_t *, const u32 *, const size_t, const int, u32 *, const size_t);
 
   bool        (*module_unstable_warning)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const hc_device_param_t *);
 
