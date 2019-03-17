@@ -299,16 +299,21 @@ __constant u32a c_sbox3[256] =
   0xb74e6132, 0xce77e25b, 0x578fdfe3, 0x3ac372e6
 };
 
-#define BF_ROUND(L,R,N)             \
-{                                   \
-  u32 tmp;                          \
-                                  \
-  tmp  = S0[hc_bfe_S ((L), 24, 8)]; \
-  tmp += S1[hc_bfe_S ((L), 16, 8)]; \
-  tmp ^= S2[hc_bfe_S ((L),  8, 8)]; \
-  tmp += S3[hc_bfe_S ((L),  0, 8)]; \
-                                  \
-  (R) ^= tmp ^ P[(N)];              \
+#define BF_ROUND(L,R,N)                 \
+{                                       \
+  u32 tmp;                              \
+                                        \
+  const u32 r0 = hc_bfe_S ((L), 24, 8); \
+  const u32 r1 = hc_bfe_S ((L), 16, 8); \
+  const u32 r2 = hc_bfe_S ((L),  8, 8); \
+  const u32 r3 = hc_bfe_S ((L),  0, 8); \
+                                        \
+  tmp  = S0[r0];                        \
+  tmp += S1[r1];                        \
+  tmp ^= S2[r2];                        \
+  tmp += S3[r3];                        \
+                                        \
+  (R) ^= tmp ^ P[(N)];                  \
 }
 
 #define BF_ENCRYPT(L,R) \
@@ -361,7 +366,7 @@ DECLSPEC void expand_key (u32 *E, u32 *W, const int len)
   }
 }
 
-__kernel void m03200_init (KERN_ATTR_TMPS (bcrypt_tmp_t))
+__kernel void __attribute__((reqd_work_group_size(FIXED_LOCAL_SIZE, 1, 1))) m03200_init (KERN_ATTR_TMPS (bcrypt_tmp_t))
 {
   /**
    * base
@@ -438,10 +443,10 @@ __kernel void m03200_init (KERN_ATTR_TMPS (bcrypt_tmp_t))
    * do the key setup
    */
 
-  __local u32 S0_all[8][256];
-  __local u32 S1_all[8][256];
-  __local u32 S2_all[8][256];
-  __local u32 S3_all[8][256];
+  __local u32 S0_all[FIXED_LOCAL_SIZE][256];
+  __local u32 S1_all[FIXED_LOCAL_SIZE][256];
+  __local u32 S2_all[FIXED_LOCAL_SIZE][256];
+  __local u32 S3_all[FIXED_LOCAL_SIZE][256];
 
   __local u32 *S0 = S0_all[lid];
   __local u32 *S1 = S1_all[lid];
@@ -580,7 +585,7 @@ __kernel void m03200_init (KERN_ATTR_TMPS (bcrypt_tmp_t))
   }
 }
 
-__kernel void m03200_loop (KERN_ATTR_TMPS (bcrypt_tmp_t))
+__kernel void __attribute__((reqd_work_group_size(FIXED_LOCAL_SIZE, 1, 1))) m03200_loop (KERN_ATTR_TMPS (bcrypt_tmp_t))
 {
   /**
    * base
@@ -607,10 +612,10 @@ __kernel void m03200_loop (KERN_ATTR_TMPS (bcrypt_tmp_t))
     P[i] = tmps[gid].P[i];
   }
 
-  __local u32 S0_all[8][256];
-  __local u32 S1_all[8][256];
-  __local u32 S2_all[8][256];
-  __local u32 S3_all[8][256];
+  __local u32 S0_all[FIXED_LOCAL_SIZE][256];
+  __local u32 S1_all[FIXED_LOCAL_SIZE][256];
+  __local u32 S2_all[FIXED_LOCAL_SIZE][256];
+  __local u32 S3_all[FIXED_LOCAL_SIZE][256];
 
   __local u32 *S0 = S0_all[lid];
   __local u32 *S1 = S1_all[lid];
@@ -778,7 +783,7 @@ __kernel void m03200_loop (KERN_ATTR_TMPS (bcrypt_tmp_t))
   }
 }
 
-__kernel void m03200_comp (KERN_ATTR_TMPS (bcrypt_tmp_t))
+__kernel void __attribute__((reqd_work_group_size(FIXED_LOCAL_SIZE, 1, 1))) m03200_comp (KERN_ATTR_TMPS (bcrypt_tmp_t))
 {
   /**
    * base
@@ -798,10 +803,10 @@ __kernel void m03200_comp (KERN_ATTR_TMPS (bcrypt_tmp_t))
     P[i] = tmps[gid].P[i];
   }
 
-  __local u32 S0_all[8][256];
-  __local u32 S1_all[8][256];
-  __local u32 S2_all[8][256];
-  __local u32 S3_all[8][256];
+  __local u32 S0_all[FIXED_LOCAL_SIZE][256];
+  __local u32 S1_all[FIXED_LOCAL_SIZE][256];
+  __local u32 S2_all[FIXED_LOCAL_SIZE][256];
+  __local u32 S3_all[FIXED_LOCAL_SIZE][256];
 
   __local u32 *S0 = S0_all[lid];
   __local u32 *S1 = S1_all[lid];

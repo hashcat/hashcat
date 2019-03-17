@@ -43,6 +43,7 @@
 ## Improvements
 ##
 
+- Cracking bcrypt: Use a feedback from the OpenCL runtime to dynamically find out optimal thread count
 - Bitcoin Wallet: Be more user friendly by allowing a larger data range for ckey and public_key
 - Building: Updated BUILD.md
 - My Wallet: Added additional plaintext pattern used in newer versions
