@@ -604,6 +604,13 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       {
         const int binary_count = module_ctx->module_hash_binary_count (hashes);
 
+        if (binary_count == 0)
+        {
+          event_log_error (hashcat_ctx, "No hashes loaded.");
+
+          return -1;
+        }
+
         if (binary_count == -1)
         {
           event_log_error (hashcat_ctx, "%s: %s", hashes->hashfile, strerror (errno));
