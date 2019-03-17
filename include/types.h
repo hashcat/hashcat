@@ -75,6 +75,60 @@ typedef pthread_mutex_t     hc_thread_mutex_t;
 typedef sem_t               hc_thread_semaphore_t;
 #endif
 
+// unions
+
+typedef union vconv32
+{
+  u64 v32;
+
+  struct
+  {
+    u16 v16a;
+    u16 v16b;
+  };
+
+  struct
+  {
+    u8 v8a;
+    u8 v8b;
+    u8 v8c;
+    u8 v8d;
+  };
+
+} vconv32_t;
+
+typedef union vconv64
+{
+  u64 v64;
+
+  struct
+  {
+    u32 v32a;
+    u32 v32b;
+  };
+
+  struct
+  {
+    u16 v16a;
+    u16 v16b;
+    u16 v16c;
+    u16 v16d;
+  };
+
+  struct
+  {
+    u8 v8a;
+    u8 v8b;
+    u8 v8c;
+    u8 v8d;
+    u8 v8e;
+    u8 v8f;
+    u8 v8g;
+    u8 v8h;
+  };
+
+} vconv64_t;
+
 // enums
 
 typedef enum loglevel
