@@ -84,7 +84,7 @@ __kernel void m19500_mxx (KERN_ATTR_VECTOR_ESALT (devise_hash_t))
   u32 s[64] = { 0 };
   u32 k[64] = { 0 };
 
-  const u32 glue[16] = {0x2d2d0000};
+  const u32 glue[16] = { 0x2d2d0000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
   for (int i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
@@ -95,6 +95,17 @@ __kernel void m19500_mxx (KERN_ATTR_VECTOR_ESALT (devise_hash_t))
   {
     k[idx] = swap32_S (esalt_bufs[salt_pos].site_key_buf[idx]);
   }
+
+  // precompute some stuff
+
+  sha1_ctx_t ctx0;
+
+  sha1_init (&ctx0);
+
+  sha1_update (&ctx0, k, site_key_len);
+  sha1_update (&ctx0, glue, 2);
+  sha1_update (&ctx0, s, salt_len);
+  sha1_update (&ctx0, glue, 2);
 
   /**
    * loop
@@ -110,28 +121,21 @@ __kernel void m19500_mxx (KERN_ATTR_VECTOR_ESALT (devise_hash_t))
 
     w[0] = w0;
 
-    sha1_ctx_t ctx0;
-    sha1_ctx_t ctx;
+    sha1_ctx_t ctx = ctx0;
 
-    sha1_init (&ctx0);
+    sha1_update (&ctx, w, pw_len);
+    sha1_update (&ctx, glue, 2);
+    sha1_update (&ctx, k, site_key_len);
 
-    sha1_update_vector (&ctx0, k, site_key_len);
-    sha1_update_vector (&ctx0, glue, 2);
-    sha1_update_vector (&ctx0, s, salt_len);
-    sha1_update_vector (&ctx0, glue, 2);
-    sha1_update_vector (&ctx0, w, pw_len);
-    sha1_update_vector (&ctx0, glue, 2);
-    sha1_update_vector (&ctx0, k, site_key_len);
-
-    sha1_final (&ctx0);
+    sha1_final (&ctx);
 
     for (u32 iter = 0; iter < 9; iter++)
     {
-      const u32 a = ctx0.h[0];
-      const u32 b = ctx0.h[1];
-      const u32 c = ctx0.h[2];
-      const u32 d = ctx0.h[3];
-      const u32 e = ctx0.h[4];
+      const u32 a = ctx.h[0];
+      const u32 b = ctx.h[1];
+      const u32 c = ctx.h[2];
+      const u32 d = ctx.h[3];
+      const u32 e = ctx.h[4];
 
       sha1_init (&ctx);
 
@@ -155,10 +159,10 @@ __kernel void m19500_mxx (KERN_ATTR_VECTOR_ESALT (devise_hash_t))
                 | uint_to_hex_lower8_le ((e >> 24) & 255) << 16;
       ctx.w2[1] = uint_to_hex_lower8_le ((e >>  0) & 255) <<  0
                 | uint_to_hex_lower8_le ((e >>  8) & 255) << 16;
+      ctx.w2[2] = glue[0];
 
-      ctx.len = 40;
+      ctx.len = 40 + 2;
 
-      sha1_update_vector (&ctx, glue, 2);
       sha1_update_vector (&ctx, s, salt_len);
       sha1_update_vector (&ctx, glue, 2);
       sha1_update_vector (&ctx, w, pw_len);
@@ -166,12 +170,6 @@ __kernel void m19500_mxx (KERN_ATTR_VECTOR_ESALT (devise_hash_t))
       sha1_update_vector (&ctx, k, site_key_len);
 
       sha1_final (&ctx);
-
-      ctx0.h[0] = ctx.h[0];
-      ctx0.h[1] = ctx.h[1];
-      ctx0.h[2] = ctx.h[2];
-      ctx0.h[3] = ctx.h[3];
-      ctx0.h[4] = ctx.h[4];
     }
 
     const u32 r0 = ctx.h[DGST_R0];
@@ -244,7 +242,7 @@ __kernel void m19500_sxx (KERN_ATTR_VECTOR_ESALT (devise_hash_t))
   u32 s[64] = { 0 };
   u32 k[64] = { 0 };
 
-  const u32 glue[16] = {0x2d2d0000};
+  const u32 glue[16] = { 0x2d2d0000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
   for (int i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
@@ -255,6 +253,17 @@ __kernel void m19500_sxx (KERN_ATTR_VECTOR_ESALT (devise_hash_t))
   {
     k[idx] = swap32_S (esalt_bufs[salt_pos].site_key_buf[idx]);
   }
+
+  // precompute some stuff
+
+  sha1_ctx_t ctx0;
+
+  sha1_init (&ctx0);
+
+  sha1_update (&ctx0, k, site_key_len);
+  sha1_update (&ctx0, glue, 2);
+  sha1_update (&ctx0, s, salt_len);
+  sha1_update (&ctx0, glue, 2);
 
   /**
    * loop
@@ -270,28 +279,21 @@ __kernel void m19500_sxx (KERN_ATTR_VECTOR_ESALT (devise_hash_t))
 
     w[0] = w0;
 
-    sha1_ctx_t ctx0;
-    sha1_ctx_t ctx;
+    sha1_ctx_t ctx = ctx0;
 
-    sha1_init (&ctx0);
+    sha1_update (&ctx, w, pw_len);
+    sha1_update (&ctx, glue, 2);
+    sha1_update (&ctx, k, site_key_len);
 
-    sha1_update_vector (&ctx0, k, site_key_len);
-    sha1_update_vector (&ctx0, glue, 2);
-    sha1_update_vector (&ctx0, s, salt_len);
-    sha1_update_vector (&ctx0, glue, 2);
-    sha1_update_vector (&ctx0, w, pw_len);
-    sha1_update_vector (&ctx0, glue, 2);
-    sha1_update_vector (&ctx0, k, site_key_len);
-
-    sha1_final (&ctx0);
+    sha1_final (&ctx);
 
     for (u32 iter = 0; iter < 9; iter++)
     {
-      const u32 a = ctx0.h[0];
-      const u32 b = ctx0.h[1];
-      const u32 c = ctx0.h[2];
-      const u32 d = ctx0.h[3];
-      const u32 e = ctx0.h[4];
+      const u32 a = ctx.h[0];
+      const u32 b = ctx.h[1];
+      const u32 c = ctx.h[2];
+      const u32 d = ctx.h[3];
+      const u32 e = ctx.h[4];
 
       sha1_init (&ctx);
 
@@ -315,23 +317,17 @@ __kernel void m19500_sxx (KERN_ATTR_VECTOR_ESALT (devise_hash_t))
                 | uint_to_hex_lower8_le ((e >> 24) & 255) << 16;
       ctx.w2[1] = uint_to_hex_lower8_le ((e >>  0) & 255) <<  0
                 | uint_to_hex_lower8_le ((e >>  8) & 255) << 16;
+      ctx.w2[2] = glue[0];
 
-      ctx.len = 40;
+      ctx.len = 40 + 2;
 
-      sha1_update_vector (&ctx, glue, 2);
-      sha1_update_vector (&ctx, s, salt_len);
-      sha1_update_vector (&ctx, glue, 2);
-      sha1_update_vector (&ctx, w, pw_len);
-      sha1_update_vector (&ctx, glue, 2);
-      sha1_update_vector (&ctx, k, site_key_len);
+      sha1_update (&ctx, s, salt_len);
+      sha1_update (&ctx, glue, 2);
+      sha1_update (&ctx, w, pw_len);
+      sha1_update (&ctx, glue, 2);
+      sha1_update (&ctx, k, site_key_len);
 
       sha1_final (&ctx);
-
-      ctx0.h[0] = ctx.h[0];
-      ctx0.h[1] = ctx.h[1];
-      ctx0.h[2] = ctx.h[2];
-      ctx0.h[3] = ctx.h[3];
-      ctx0.h[4] = ctx.h[4];
     }
 
     const u32 r0 = ctx.h[DGST_R0];
