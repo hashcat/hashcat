@@ -6750,8 +6750,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     EVENT_DATA (EVENT_OPENCL_DEVICE_INIT_POST, &device_id, sizeof (u32));
   }
 
-  // Prevent exit from benchmark mode if all devices are skipped due to unstable hash-modes (macOS)
-  //  if (hardware_power_all == 0) return -1;
+  if (user_options->benchmark == false)
+  {
+    if (hardware_power_all == 0) return -1;
+  }
 
   opencl_ctx->hardware_power_all = hardware_power_all;
 
