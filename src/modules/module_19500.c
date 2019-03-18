@@ -132,7 +132,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   salt->salt_buf[0] = devise_double_salt->salt_buf[0];
   salt->salt_buf[1] = devise_double_salt->salt_buf[1];
 
-  salt->salt_len = devise_double_salt->salt_len;
+  salt->salt_len = 8;
 
   return (PARSER_OK);
 }
