@@ -18,7 +18,7 @@ DECLSPEC void ripemd160_transform_transport_vector (const u32x *w, u32x *dgst)
   ripemd160_transform_vector (w + 0, w + 4, w + 8, w + 12, dgst);
 }
 
-__kernel void m06000_m04 (KERN_ATTR_ESALT (netntlm_t))
+__kernel void m06000_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -166,7 +166,7 @@ __kernel void m06000_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m06000_s04 (KERN_ATTR_ESALT (netntlm_t))
+__kernel void m06000_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier

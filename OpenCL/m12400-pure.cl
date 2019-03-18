@@ -12,6 +12,15 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct bsdicrypt_tmp
+{
+  u32 Kc[16];
+  u32 Kd[16];
+
+  u32 iv[2];
+
+} bsdicrypt_tmp_t;
+
 #define PERM_OP(a,b,tt,n,m) \
 {                           \
   tt = a >> n;              \

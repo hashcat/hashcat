@@ -17,6 +17,16 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct lastpass_tmp
+{
+  u32 ipad[8];
+  u32 opad[8];
+
+  u32 dgst[8];
+  u32 out[8];
+
+} lastpass_tmp_t;
+
 DECLSPEC void hmac_sha256_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
 {
   digest[0] = ipad[0];
@@ -365,7 +375,7 @@ __kernel void m06800_comp (KERN_ATTR_TMPS (lastpass_tmp_t))
     {
       if (atomic_inc (&hashes_shown[digests_offset]) == 0)
       {
-        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, 0);
+        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, 0, 0, 0);
       }
     }
   }

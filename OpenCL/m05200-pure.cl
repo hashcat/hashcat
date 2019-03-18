@@ -16,6 +16,12 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct pwsafe3_tmp
+{
+  u32 digest_buf[8];
+
+} pwsafe3_tmp_t;
+
 __kernel void m05200_init (KERN_ATTR_TMPS (pwsafe3_tmp_t))
 {
   /**

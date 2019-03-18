@@ -13,6 +13,12 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct md5crypt_tmp
+{
+  u32 digest_buf[4];
+
+} md5crypt_tmp_t;
+
 DECLSPEC void memcat16 (u32 *block0, u32 *block1, u32 *block2, u32 *block3, const u32 offset, const u32 *append)
 {
   u32 tmp0;

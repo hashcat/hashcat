@@ -13,6 +13,14 @@
 #include "inc_simd.cl"
 #include "inc_cipher_aes.cl"
 
+typedef struct electrum_wallet
+{
+  u32 salt_type;
+  u32 iv[4];
+  u32 encrypted[4];
+
+} electrum_wallet_t;
+
 __kernel void m16600_m04 (KERN_ATTR_ESALT (electrum_wallet_t))
 {
   /**
@@ -426,7 +434,7 @@ __kernel void m16600_m04 (KERN_ATTR_ESALT (electrum_wallet_t))
 
       if (atomic_inc (&hashes_shown[digests_offset]) == 0)
       {
-        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos, 0, 0);
       }
     }
 
@@ -442,7 +450,7 @@ __kernel void m16600_m04 (KERN_ATTR_ESALT (electrum_wallet_t))
 
       if (atomic_inc (&hashes_shown[digests_offset]) == 0)
       {
-        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos, 0, 0);
       }
     }
   }
@@ -869,7 +877,7 @@ __kernel void m16600_s04 (KERN_ATTR_ESALT (electrum_wallet_t))
 
       if (atomic_inc (&hashes_shown[digests_offset]) == 0)
       {
-        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos, 0, 0);
       }
     }
 
@@ -885,7 +893,7 @@ __kernel void m16600_s04 (KERN_ATTR_ESALT (electrum_wallet_t))
 
       if (atomic_inc (&hashes_shown[digests_offset]) == 0)
       {
-        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos, 0, 0);
       }
     }
   }

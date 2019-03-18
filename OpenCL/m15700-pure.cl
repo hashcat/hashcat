@@ -13,6 +13,23 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct
+{
+  #ifndef SCRYPT_TMP_ELEM
+  #define SCRYPT_TMP_ELEM 1
+  #endif
+
+  uint4 P[SCRYPT_TMP_ELEM];
+
+} scrypt_tmp_t;
+
+typedef struct ethereum_scrypt
+{
+  u32 salt_buf[16];
+  u32 ciphertext[8];
+
+} ethereum_scrypt_t;
+
 DECLSPEC uint4 swap32_4 (uint4 v)
 {
   return (rotate ((v & 0x00FF00FF), 24u) | rotate ((v & 0xFF00FF00),  8u));
@@ -336,7 +353,7 @@ DECLSPEC void keccak_transform_S (u64 *st)
   }
 }
 
-__kernel void __attribute__((reqd_work_group_size(1, 1, 1))) m15700_init (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, ethereum_scrypt_t))
+__kernel void m15700_init (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, ethereum_scrypt_t))
 {
   /**
    * base
@@ -401,7 +418,7 @@ __kernel void __attribute__((reqd_work_group_size(1, 1, 1))) m15700_init (KERN_A
   }
 }
 
-__kernel void __attribute__((reqd_work_group_size(1, 1, 1))) m15700_loop (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, ethereum_scrypt_t))
+__kernel void m15700_loop (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, ethereum_scrypt_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -439,7 +456,7 @@ __kernel void __attribute__((reqd_work_group_size(1, 1, 1))) m15700_loop (KERN_A
   #endif
 }
 
-__kernel void __attribute__((reqd_work_group_size(1, 1, 1))) m15700_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, ethereum_scrypt_t))
+__kernel void m15700_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, ethereum_scrypt_t))
 {
   /**
    * base

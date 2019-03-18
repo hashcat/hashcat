@@ -13,6 +13,16 @@
 #include "inc_common.cl"
 #include "inc_simd.cl"
 
+typedef struct pstoken
+{
+  u32 salt_buf[128];
+  u32 salt_len;
+
+  u32 pc_digest[5];
+  u32 pc_offset;
+
+} pstoken_t;
+
 DECLSPEC void m13500m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_ESALT (pstoken_t))
 {
   /**

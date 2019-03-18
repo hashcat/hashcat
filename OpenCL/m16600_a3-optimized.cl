@@ -13,6 +13,14 @@
 #include "inc_simd.cl"
 #include "inc_cipher_aes.cl"
 
+typedef struct electrum_wallet
+{
+  u32 salt_type;
+  u32 iv[4];
+  u32 encrypted[4];
+
+} electrum_wallet_t;
+
 DECLSPEC void m16600 (SHM_TYPE u32a *s_te0, SHM_TYPE u32a *s_te1, SHM_TYPE u32a *s_te2, SHM_TYPE u32a *s_te3, SHM_TYPE u32a *s_te4, SHM_TYPE u32a *s_td0, SHM_TYPE u32a *s_td1, SHM_TYPE u32a *s_td2, SHM_TYPE u32a *s_td3, SHM_TYPE u32a *s_td4, u32 *w, const u32 pw_len, KERN_ATTR_ESALT (electrum_wallet_t))
 {
   /**
@@ -288,7 +296,7 @@ DECLSPEC void m16600 (SHM_TYPE u32a *s_te0, SHM_TYPE u32a *s_te1, SHM_TYPE u32a 
 
       if (atomic_inc (&hashes_shown[digests_offset]) == 0)
       {
-        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos, 0, 0);
       }
     }
 
@@ -304,7 +312,7 @@ DECLSPEC void m16600 (SHM_TYPE u32a *s_te0, SHM_TYPE u32a *s_te1, SHM_TYPE u32a 
 
       if (atomic_inc (&hashes_shown[digests_offset]) == 0)
       {
-        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos, 0, 0);
       }
     }
   }

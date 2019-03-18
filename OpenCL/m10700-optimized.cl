@@ -16,6 +16,40 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct pdf
+{
+  int  V;
+  int  R;
+  int  P;
+
+  int  enc_md;
+
+  u32  id_buf[8];
+  u32  u_buf[32];
+  u32  o_buf[32];
+
+  int  id_len;
+  int  o_len;
+  int  u_len;
+
+  u32  rc4key[2];
+  u32  rc4data[2];
+
+} pdf_t;
+
+typedef struct pdf17l8_tmp
+{
+  union
+  {
+    u32 dgst32[16];
+    u64 dgst64[8];
+  };
+
+  u32 dgst_len;
+  u32 W_len;
+
+} pdf17l8_tmp_t;
+
 typedef struct
 {
   union

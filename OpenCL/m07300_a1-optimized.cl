@@ -13,6 +13,13 @@
 #include "inc_simd.cl"
 #include "inc_hash_sha1.cl"
 
+typedef struct rakp
+{
+  u32 salt_buf[128];
+  u32 salt_len;
+
+} rakp_t;
+
 DECLSPEC void hmac_sha1_pad (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad)
 {
   w0[0] = w0[0] ^ 0x36363636;

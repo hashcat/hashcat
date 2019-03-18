@@ -16,6 +16,18 @@
 #include "inc_hash_md4.cl"
 #include "inc_hash_md5.cl"
 
+typedef struct netntlm
+{
+  u32 user_len;
+  u32 domain_len;
+  u32 srvchall_len;
+  u32 clichall_len;
+
+  u32 userdomain_buf[64];
+  u32 chall_buf[256];
+
+} netntlm_t;
+
 DECLSPEC void hmac_md5_pad (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad)
 {
   w0[0] = w0[0] ^ 0x36363636;

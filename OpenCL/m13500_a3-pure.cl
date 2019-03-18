@@ -13,6 +13,16 @@
 #include "inc_simd.cl"
 #include "inc_hash_sha1.cl"
 
+typedef struct pstoken
+{
+  u32 salt_buf[128];
+  u32 salt_len;
+
+  u32 pc_digest[5];
+  u32 pc_offset;
+
+} pstoken_t;
+
 __kernel void m13500_mxx (KERN_ATTR_VECTOR_ESALT (pstoken_t))
 {
   /**

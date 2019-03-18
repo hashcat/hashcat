@@ -16,13 +16,32 @@
 #include "inc_cipher_aes.cl"
 #include "inc_cipher_twofish.cl"
 #include "inc_cipher_serpent.cl"
-#include "inc_cipher_camellia.cl"
-#include "inc_cipher_kuznyechik.cl"
+
+typedef struct tc
+{
+  u32 salt_buf[32];
+  u32 data_buf[112];
+  u32 keyfile_buf[16];
+  u32 signature;
+
+  keyboard_layout_mapping_t keyboard_layout_mapping_buf[256];
+  int                       keyboard_layout_mapping_cnt;
+
+} tc_t;
 
 #include "inc_truecrypt_keyfile.cl"
 #include "inc_truecrypt_crc32.cl"
 #include "inc_truecrypt_xts.cl"
-#include "inc_veracrypt_xts.cl"
+
+typedef struct tc64_tmp
+{
+  u64  ipad[8];
+  u64  opad[8];
+
+  u64  dgst[32];
+  u64  out[32];
+
+} tc64_tmp_t;
 
 DECLSPEC void hmac_sha512_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, u64x *ipad, u64x *opad, u64x *digest)
 {
@@ -497,43 +516,27 @@ __kernel void m06221_comp (KERN_ATTR_TMPS_ESALT (tc64_tmp_t, tc_t))
   ukey2[6] = swap32_S (h32_from_64_S (tmps[gid].out[7]));
   ukey2[7] = swap32_S (l32_from_64_S (tmps[gid].out[7]));
 
-  if (verify_header_aes (esalt_bufs, ukey1, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
+  if (verify_header_aes (esalt_bufs[0].data_buf, esalt_bufs[0].signature, ukey1, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
   {
     if (atomic_inc (&hashes_shown[0]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0, 0, 0);
     }
   }
 
-  if (verify_header_serpent (esalt_bufs, ukey1, ukey2) == 1)
+  if (verify_header_serpent (esalt_bufs[0].data_buf, esalt_bufs[0].signature, ukey1, ukey2) == 1)
   {
     if (atomic_inc (&hashes_shown[0]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0, 0, 0);
     }
   }
 
-  if (verify_header_twofish (esalt_bufs, ukey1, ukey2) == 1)
+  if (verify_header_twofish (esalt_bufs[0].data_buf, esalt_bufs[0].signature, ukey1, ukey2) == 1)
   {
     if (atomic_inc (&hashes_shown[0]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
-    }
-  }
-
-  if (verify_header_camellia (esalt_bufs, ukey1, ukey2) == 1)
-  {
-    if (atomic_inc (&hashes_shown[0]) == 0)
-    {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
-    }
-  }
-
-  if (verify_header_kuznyechik (esalt_bufs, ukey1, ukey2) == 1)
-  {
-    if (atomic_inc (&hashes_shown[0]) == 0)
-    {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0, 0, 0);
     }
   }
 }

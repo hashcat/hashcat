@@ -13,6 +13,16 @@
 #include "inc_scalar.cl"
 #include "inc_hash_sha1.cl"
 
+typedef struct ikepsk
+{
+  u32 nr_buf[16];
+  u32 nr_len;
+
+  u32 msg_buf[128];
+  u32 msg_len[6];
+
+} ikepsk_t;
+
 __kernel void m05400_mxx (KERN_ATTR_VECTOR_ESALT (ikepsk_t))
 {
   /**

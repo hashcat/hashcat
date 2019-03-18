@@ -13,6 +13,12 @@
 #include "inc_simd.cl"
 #include "inc_hash_sha256.cl"
 
+typedef struct win8phone
+{
+  u32 salt_buf[32];
+
+} win8phone_t;
+
 __kernel void m13800_mxx (KERN_ATTR_VECTOR_ESALT (win8phone_t))
 {
   /**

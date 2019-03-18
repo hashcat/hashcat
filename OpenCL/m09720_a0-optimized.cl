@@ -15,6 +15,15 @@
 #include "inc_simd.cl"
 #include "inc_hash_md5.cl"
 
+typedef struct oldoffice01
+{
+  u32 version;
+  u32 encryptedVerifier[4];
+  u32 encryptedVerifierHash[4];
+  u32 rc4key[2];
+
+} oldoffice01_t;
+
 DECLSPEC void gen336 (u32x *digest_pre, u32 *salt_buf, u32x *digest)
 {
   u32x digest_t0[2];

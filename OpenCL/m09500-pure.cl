@@ -17,6 +17,19 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct office2010
+{
+  u32 encryptedVerifier[4];
+  u32 encryptedVerifierHash[8];
+
+} office2010_t;
+
+typedef struct office2010_tmp
+{
+  u32 out[5];
+
+} office2010_tmp_t;
+
 __kernel void m09500_init (KERN_ATTR_TMPS_ESALT (office2010_tmp_t, office2010_t))
 {
   /**

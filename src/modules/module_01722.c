@@ -50,6 +50,23 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
+char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
+{
+  char *jit_build_options = NULL;
+
+  if (device_param->device_vendor_id == VENDOR_ID_NV)
+  {
+    hc_asprintf (&jit_build_options, "-D NO_UNROLL");
+  }
+
+  if ((device_param->device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
+  {
+    hc_asprintf (&jit_build_options, "-D NO_UNROLL");
+  }
+
+  return jit_build_options;
+}
+
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
   u64 *digest = (u64 *) digest_buf;
@@ -139,8 +156,6 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     tmp[7] += SHA512M_H;
   }
 
-  u32 *ptr = (u32 *) tmp;
-
   char tmp_salt[SALT_MAX * 2];
 
   const int salt_len = generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, (const int) salt->salt_len, (u8 *) tmp_salt);
@@ -149,14 +164,14 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const int line_len = snprintf (line_buf, line_size, "%s%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
     tmp_salt,
-    ptr[ 1], ptr[ 0],
-    ptr[ 3], ptr[ 2],
-    ptr[ 5], ptr[ 4],
-    ptr[ 7], ptr[ 6],
-    ptr[ 9], ptr[ 8],
-    ptr[11], ptr[10],
-    ptr[13], ptr[12],
-    ptr[15], ptr[14]);
+    v32b_from_v64 (tmp[0]), v32a_from_v64 (tmp[0]),
+    v32b_from_v64 (tmp[1]), v32a_from_v64 (tmp[1]),
+    v32b_from_v64 (tmp[2]), v32a_from_v64 (tmp[2]),
+    v32b_from_v64 (tmp[3]), v32a_from_v64 (tmp[3]),
+    v32b_from_v64 (tmp[4]), v32a_from_v64 (tmp[4]),
+    v32b_from_v64 (tmp[5]), v32a_from_v64 (tmp[5]),
+    v32b_from_v64 (tmp[6]), v32a_from_v64 (tmp[6]),
+    v32b_from_v64 (tmp[7]), v32a_from_v64 (tmp[7]));
 
   return line_len;
 }
@@ -200,7 +215,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hook23                   = MODULE_DEFAULT;
   module_ctx->module_hook_salt_size           = MODULE_DEFAULT;
   module_ctx->module_hook_size                = MODULE_DEFAULT;
-  module_ctx->module_jit_build_options        = MODULE_DEFAULT;
+  module_ctx->module_jit_build_options        = module_jit_build_options;
   module_ctx->module_jit_cache_disable        = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_max         = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_min         = MODULE_DEFAULT;

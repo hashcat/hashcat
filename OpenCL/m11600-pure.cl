@@ -10,6 +10,27 @@
 #include "inc_common.cl"
 #include "inc_hash_sha256.cl"
 
+typedef struct seven_zip_tmp
+{
+  u32 h[8];
+
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  int len;
+
+} seven_zip_tmp_t;
+
+typedef struct
+{
+  u32 ukey[8];
+
+  u32 hook_success;
+
+} seven_zip_hook_t;
+
 DECLSPEC void memcat8c_be (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 len, const u32 append, u32 *digest)
 {
   const u32 func_len = len & 63;
@@ -325,7 +346,7 @@ __kernel void m11600_comp (KERN_ATTR_TMPS_HOOKS (seven_zip_tmp_t, seven_zip_hook
   {
     if (atomic_inc (&hashes_shown[digests_offset]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, 0);
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, 0, 0, 0);
     }
 
     return;

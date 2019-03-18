@@ -14,6 +14,12 @@
 #include "inc_simd.cl"
 #include "inc_hash_sha256.cl"
 
+typedef struct win8phone
+{
+  u32 salt_buf[32];
+
+} win8phone_t;
+
 DECLSPEC void sha256_transform_transport_vector (const u32x *w, u32x *digest)
 {
   sha256_transform_vector (w + 0, w + 4, w + 8, w + 12, digest);

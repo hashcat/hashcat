@@ -11,6 +11,14 @@
 #include "inc_hash_sha1.cl"
 #include "inc_cipher_aes.cl"
 
+typedef struct axcrypt_tmp
+{
+  u32 KEK[4];
+  u32 lsb[4];
+  u32 cipher[4];
+
+} axcrypt_tmp_t;
+
 __kernel void m13200_init (KERN_ATTR_TMPS (axcrypt_tmp_t))
 {
   /**
@@ -220,7 +228,7 @@ __kernel void m13200_comp (KERN_ATTR_TMPS (axcrypt_tmp_t))
   {
     if (atomic_inc (&hashes_shown[digests_offset]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos, 0, 0);
     }
   }
 }

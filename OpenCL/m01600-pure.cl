@@ -18,6 +18,12 @@
 #define PUTCHAR_LE(a,p,c) ((u8 *)(a))[(p)] = (u8) (c)
 #define GETCHAR_LE(a,p)   ((u8 *)(a))[(p)]
 
+typedef struct md5crypt_tmp
+{
+  u32 digest_buf[4];
+
+} md5crypt_tmp_t;
+
 #define md5apr1_magic0 0x72706124u
 #define md5apr1_magic1 0x00002431u
 

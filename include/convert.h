@@ -58,4 +58,12 @@ size_t base64_encode (u8 (*f) (const u8), const u8 *in_buf, const size_t in_len,
 void lowercase (u8 *buf, const size_t len);
 void uppercase (u8 *buf, const size_t len);
 
+u16 v16a_from_v32 (const u32 v32);
+u16 v16b_from_v32 (const u32 v32);
+u32 v32_from_v16ab (const u16 v16a, const u16 v16b);
+
+u32 v32a_from_v64 (const u64 v64);
+u32 v32b_from_v64 (const u64 v64);
+u64 v64_from_v32ab (const u32 v32a, const u32 v32b);
+
 #endif // _CONVERT_H

@@ -19,6 +19,37 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct dpapimk_tmp_v2
+{
+  u64 ipad64[8];
+  u64 opad64[8];
+  u64 dgst64[16];
+  u64 out64[16];
+
+  u32 userKey[8];
+
+} dpapimk_tmp_v2_t;
+
+typedef struct dpapimk
+{
+  u32 context;
+
+  u32 SID[32];
+  u32 SID_len;
+  u32 SID_offset;
+
+  /* here only for possible
+     forward compatibiliy
+  */
+  // u8 cipher_algo[16];
+  // u8 hash_algo[16];
+
+  u32 iv[4];
+  u32 contents_len;
+  u32 contents[128];
+
+} dpapimk_t;
+
 DECLSPEC void hmac_sha512_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, u64x *ipad, u64x *opad, u64x *digest)
 {
   digest[0] = ipad[0];
@@ -775,7 +806,7 @@ __kernel void m15900_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v2_t, dpapimk_t))
   {
     if (atomic_inc (&hashes_shown[digests_offset]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos, 0, 0);
     }
   }
 }
