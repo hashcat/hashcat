@@ -39,6 +39,60 @@ typedef VTYPE(uint,   VECT_SIZE) u32x;
 typedef VTYPE(ulong,  VECT_SIZE) u64x;
 #endif
 
+// unions
+
+typedef union vconv32
+{
+  u64 v32;
+
+  struct
+  {
+    u16 v16a;
+    u16 v16b;
+  };
+
+  struct
+  {
+    u8 v8a;
+    u8 v8b;
+    u8 v8c;
+    u8 v8d;
+  };
+
+} vconv32_t;
+
+typedef union vconv64
+{
+  u64 v64;
+
+  struct
+  {
+    u32 v32a;
+    u32 v32b;
+  };
+
+  struct
+  {
+    u16 v16a;
+    u16 v16b;
+    u16 v16c;
+    u16 v16d;
+  };
+
+  struct
+  {
+    u8 v8a;
+    u8 v8b;
+    u8 v8c;
+    u8 v8d;
+    u8 v8e;
+    u8 v8f;
+    u8 v8g;
+    u8 v8h;
+  };
+
+} vconv64_t;
+
 DECLSPEC u32 l32_from_64_S (u64 a);
 DECLSPEC u32 l32_from_64_S (u64 a)
 {
@@ -1426,3 +1480,189 @@ typedef struct keyboard_layout_mapping
   int dst_len;
 
 } keyboard_layout_mapping_t;
+
+// functions
+
+DECLSPEC u8 v8a_from_v32_S (const u32 v32);
+DECLSPEC u8 v8a_from_v32_S (const u32 v32)
+{
+  vconv32_t v;
+
+  v.v32 = v32;
+
+  return v.v8a;
+}
+
+DECLSPEC u8 v8b_from_v32_S (const u32 v32);
+DECLSPEC u8 v8b_from_v32_S (const u32 v32)
+{
+  vconv32_t v;
+
+  v.v32 = v32;
+
+  return v.v8b;
+}
+
+DECLSPEC u8 v8c_from_v32_S (const u32 v32);
+DECLSPEC u8 v8c_from_v32_S (const u32 v32)
+{
+  vconv32_t v;
+
+  v.v32 = v32;
+
+  return v.v8c;
+}
+
+DECLSPEC u8 v8d_from_v32_S (const u32 v32);
+DECLSPEC u8 v8d_from_v32_S (const u32 v32)
+{
+  vconv32_t v;
+
+  v.v32 = v32;
+
+  return v.v8d;
+}
+
+DECLSPEC u16 v16a_from_v32_S (const u32 v32);
+DECLSPEC u16 v16a_from_v32_S (const u32 v32)
+{
+  vconv32_t v;
+
+  v.v32 = v32;
+
+  return v.v16a;
+}
+
+DECLSPEC u16 v16b_from_v32_S (const u32 v32);
+DECLSPEC u16 v16b_from_v32_S (const u32 v32)
+{
+  vconv32_t v;
+
+  v.v32 = v32;
+
+  return v.v16b;
+}
+
+DECLSPEC u32 v32_from_v16ab_S (const u16 v16a, const u16 v16b);
+DECLSPEC u32 v32_from_v16ab_S (const u16 v16a, const u16 v16b)
+{
+  vconv32_t v;
+
+  v.v16a = v16a;
+  v.v16b = v16b;
+
+  return v.v32;
+}
+
+DECLSPEC u32 v32a_from_v64_S (const u64 v64);
+DECLSPEC u32 v32a_from_v64_S (const u64 v64)
+{
+  vconv64_t v;
+
+  v.v64 = v64;
+
+  return v.v32a;
+}
+
+DECLSPEC u32 v32b_from_v64_S (const u64 v64);
+DECLSPEC u32 v32b_from_v64_S (const u64 v64)
+{
+  vconv64_t v;
+
+  v.v64 = v64;
+
+  return v.v32b;
+}
+
+DECLSPEC u64 v64_from_v32ab_S (const u32 v32a, const u32 v32b);
+DECLSPEC u64 v64_from_v32ab_S (const u32 v32a, const u32 v32b)
+{
+  vconv64_t v;
+
+  v.v32a = v32a;
+  v.v32b = v32b;
+
+  return v.v64;
+}
+
+// unpack function are similar, but always return u32
+
+DECLSPEC u32 unpack_v8a_from_v32_S (const u32 v32);
+DECLSPEC u32 unpack_v8a_from_v32_S (const u32 v32)
+{
+  u32 r;
+
+  #if defined IS_NV
+  asm ("bfe.u32 %0, %1, 0, 8;" : "=r"(r) : "r"(v32));
+  #elif defined IS_AMD
+    #ifdef HAS_VBFE
+    __asm__ ("V_BFE_U32 %0, %1, 0, 8;" : "=v"(r) : "v"(v32));
+    #else
+    r = (v32 >> 0) & 0xff;
+    #endif
+  #else
+  r = (v32 >> 0) & 0xff;
+  #endif
+
+  return r;
+}
+
+DECLSPEC u32 unpack_v8b_from_v32_S (const u32 v32);
+DECLSPEC u32 unpack_v8b_from_v32_S (const u32 v32)
+{
+  u32 r;
+
+  #if defined IS_NV
+  asm ("bfe.u32 %0, %1, 8, 8;" : "=r"(r) : "r"(v32));
+  #elif defined IS_AMD
+    #ifdef HAS_VBFE
+    __asm__ ("V_BFE_U32 %0, %1, 8, 8;" : "=v"(r) : "v"(v32));
+    #else
+    r = (v32 >> 8) & 0xff;
+    #endif
+  #else
+  r = (v32 >> 8) & 0xff;
+  #endif
+
+  return r;
+}
+
+DECLSPEC u32 unpack_v8c_from_v32_S (const u32 v32);
+DECLSPEC u32 unpack_v8c_from_v32_S (const u32 v32)
+{
+  u32 r;
+
+  #if defined IS_NV
+  asm ("bfe.u32 %0, %1, 16, 8;" : "=r"(r) : "r"(v32));
+  #elif defined IS_AMD
+    #ifdef HAS_VBFE
+    __asm__ ("V_BFE_U32 %0, %1, 16, 8;" : "=v"(r) : "v"(v32));
+    #else
+    r = (v32 >> 16) & 0xff;
+    #endif
+  #else
+  r = (v32 >> 16) & 0xff;
+  #endif
+
+  return r;
+}
+
+DECLSPEC u32 unpack_v8d_from_v32_S (const u32 v32);
+DECLSPEC u32 unpack_v8d_from_v32_S (const u32 v32)
+{
+  u32 r;
+
+  #if defined IS_NV
+  asm ("bfe.u32 %0, %1, 24, 8;" : "=r"(r) : "r"(v32));
+  #elif defined IS_AMD
+    #ifdef HAS_VBFE
+    __asm__ ("V_BFE_U32 %0, %1, 24, 8;" : "=v"(r) : "v"(v32));
+    #else
+    r = (v32 >> 24) & 0xff;
+    #endif
+  #else
+  r = (v32 >> 24) & 0xff;
+  #endif
+
+  return r;
+}

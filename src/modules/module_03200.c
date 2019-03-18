@@ -80,11 +80,6 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
   // based on the device_local_mem_size the reqd_work_group_size in the kernel is set to some value
   // which is then is read from the opencl host in the kernel_preferred_wgs_multiple1/2/3 result.
   // therefore we do not need to set module_kernel_threads_min/max except for CPU, where the threads are set to fixed 1.
-  // note we need to use device_param->device_local_mem_size - 4 because opencl jit returns with:
-  // Entry function '...' uses too much shared data (0xc004 bytes, 0xc000 max)
-  // on my development system. no clue where the 4 bytes are spent.
-  // I did some research on this and it seems to be related with the datatype.
-  // For example, if i used u8 instead, there's only 1 byte wasted.
 
   u32 fixed_local_size = 0;
 
@@ -94,7 +89,20 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
   }
   else
   {
-    fixed_local_size = (device_param->device_local_mem_size - 4) / 4096;
+    u32 overhead = 0;
+
+    if (device_param->device_vendor_id == VENDOR_ID_NV)
+    {
+    // note we need to use device_param->device_local_mem_size - 4 because opencl jit returns with:
+    // Entry function '...' uses too much shared data (0xc004 bytes, 0xc000 max)
+    // on my development system. no clue where the 4 bytes are spent.
+    // I did some research on this and it seems to be related with the datatype.
+    // For example, if i used u8 instead, there's only 1 byte wasted.
+
+      overhead = 4;
+    }
+
+    fixed_local_size = (device_param->device_local_mem_size - overhead) / 4096;
   }
 
   hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u", fixed_local_size);

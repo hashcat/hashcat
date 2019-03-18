@@ -299,21 +299,21 @@ __constant u32a c_sbox3[256] =
   0xb74e6132, 0xce77e25b, 0x578fdfe3, 0x3ac372e6
 };
 
-#define BF_ROUND(L,R,N)                 \
-{                                       \
-  u32 tmp;                              \
-                                        \
-  const u32 r0 = hc_bfe_S ((L), 24, 8); \
-  const u32 r1 = hc_bfe_S ((L), 16, 8); \
-  const u32 r2 = hc_bfe_S ((L),  8, 8); \
-  const u32 r3 = hc_bfe_S ((L),  0, 8); \
-                                        \
-  tmp  = S0[r0];                        \
-  tmp += S1[r1];                        \
-  tmp ^= S2[r2];                        \
-  tmp += S3[r3];                        \
-                                        \
-  (R) ^= tmp ^ P[(N)];                  \
+#define BF_ROUND(L,R,N)                       \
+{                                             \
+  u32 tmp;                                    \
+                                              \
+  const u32 r0 = unpack_v8d_from_v32_S ((L)); \
+  const u32 r1 = unpack_v8c_from_v32_S ((L)); \
+  const u32 r2 = unpack_v8b_from_v32_S ((L)); \
+  const u32 r3 = unpack_v8a_from_v32_S ((L)); \
+                                              \
+  tmp  = S0[r0];                              \
+  tmp += S1[r1];                              \
+  tmp ^= S2[r2];                              \
+  tmp += S3[r3];                              \
+                                              \
+  (R) ^= tmp ^ P[(N)];                        \
 }
 
 #define BF_ENCRYPT(L,R) \
@@ -658,9 +658,6 @@ __kernel void __attribute__((reqd_work_group_size(FIXED_LOCAL_SIZE, 1, 1))) m032
     L0 = 0;
     R0 = 0;
 
-    #ifdef _unroll
-    #pragma unroll
-    #endif
     for (u32 i = 0; i < 9; i++)
     {
       BF_ENCRYPT (L0, R0);
@@ -723,9 +720,6 @@ __kernel void __attribute__((reqd_work_group_size(FIXED_LOCAL_SIZE, 1, 1))) m032
     L0 = 0;
     R0 = 0;
 
-    #ifdef _unroll
-    #pragma unroll
-    #endif
     for (u32 i = 0; i < 9; i++)
     {
       BF_ENCRYPT (L0, R0);

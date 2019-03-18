@@ -318,18 +318,21 @@ __constant u32a c_pbox[18] =
   0x9216d5d9, 0x8979fb1b
 };
 
-#define BF_ROUND(L,R,N)       \
-{                             \
-  uchar4 c = as_uchar4 ((L)); \
-                              \
-  u32 tmp;                    \
-                              \
-  tmp  = S0[c.s3];            \
-  tmp += S1[c.s2];            \
-  tmp ^= S2[c.s1];            \
-  tmp += S3[c.s0];            \
-                              \
-  (R) ^= tmp ^ P[(N)];        \
+#define BF_ROUND(L,R,N)                       \
+{                                             \
+  u32 tmp;                                    \
+                                              \
+  const u32 r0 = unpack_v8d_from_v32_S ((L)); \
+  const u32 r1 = unpack_v8c_from_v32_S ((L)); \
+  const u32 r2 = unpack_v8b_from_v32_S ((L)); \
+  const u32 r3 = unpack_v8a_from_v32_S ((L)); \
+                                              \
+  tmp  = S0[r0];                              \
+  tmp += S1[r1];                              \
+  tmp ^= S2[r2];                              \
+  tmp += S3[r3];                              \
+                                              \
+  (R) ^= tmp ^ P[(N)];                        \
 }
 
 #define BF_ENCRYPT(L,R) \
@@ -582,7 +585,7 @@ __kernel void m18600_loop (KERN_ATTR_TMPS_ESALT (odf11_tmp_t, odf11_t))
   }
 }
 
-__kernel void m18600_comp (KERN_ATTR_TMPS_ESALT (odf11_tmp_t, odf11_t))
+__kernel void __attribute__((reqd_work_group_size(FIXED_LOCAL_SIZE, 1, 1))) m18600_comp (KERN_ATTR_TMPS_ESALT (odf11_tmp_t, odf11_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -612,10 +615,10 @@ __kernel void m18600_comp (KERN_ATTR_TMPS_ESALT (odf11_tmp_t, odf11_t))
     P[i] = c_pbox[i] ^ ukey[i % 4];
   }
 
-  __local u32 S0_all[8][256];
-  __local u32 S1_all[8][256];
-  __local u32 S2_all[8][256];
-  __local u32 S3_all[8][256];
+  __local u32 S0_all[FIXED_LOCAL_SIZE][256];
+  __local u32 S1_all[FIXED_LOCAL_SIZE][256];
+  __local u32 S2_all[FIXED_LOCAL_SIZE][256];
+  __local u32 S3_all[FIXED_LOCAL_SIZE][256];
 
   __local u32 *S0 = S0_all[lid];
   __local u32 *S1 = S1_all[lid];

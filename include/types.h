@@ -1317,6 +1317,7 @@ typedef struct hc_device_param
 
   bool    has_vperm;
   bool    has_vadd3;
+  bool    has_vbfe;
 
   double  spin_damp;
 
