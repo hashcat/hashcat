@@ -1595,7 +1595,7 @@ DECLSPEC u32 unpack_v8a_from_v32_S (const u32 v32)
   #if defined IS_NV
   asm ("bfe.u32 %0, %1, 0, 8;" : "=r"(r) : "r"(v32));
   #elif defined IS_AMD
-    #ifdef HAS_VBFE
+    #if HAS_VBFE
     __asm__ ("V_BFE_U32 %0, %1, 0, 8;" : "=v"(r) : "v"(v32));
     #else
     r = (v32 >> 0) & 0xff;
@@ -1615,7 +1615,7 @@ DECLSPEC u32 unpack_v8b_from_v32_S (const u32 v32)
   #if defined IS_NV
   asm ("bfe.u32 %0, %1, 8, 8;" : "=r"(r) : "r"(v32));
   #elif defined IS_AMD
-    #ifdef HAS_VBFE
+    #if HAS_VBFE
     __asm__ ("V_BFE_U32 %0, %1, 8, 8;" : "=v"(r) : "v"(v32));
     #else
     r = (v32 >> 8) & 0xff;
@@ -1635,7 +1635,7 @@ DECLSPEC u32 unpack_v8c_from_v32_S (const u32 v32)
   #if defined IS_NV
   asm ("bfe.u32 %0, %1, 16, 8;" : "=r"(r) : "r"(v32));
   #elif defined IS_AMD
-    #ifdef HAS_VBFE
+    #if HAS_VBFE
     __asm__ ("V_BFE_U32 %0, %1, 16, 8;" : "=v"(r) : "v"(v32));
     #else
     r = (v32 >> 16) & 0xff;
@@ -1655,7 +1655,7 @@ DECLSPEC u32 unpack_v8d_from_v32_S (const u32 v32)
   #if defined IS_NV
   asm ("bfe.u32 %0, %1, 24, 8;" : "=r"(r) : "r"(v32));
   #elif defined IS_AMD
-    #ifdef HAS_VBFE
+    #if HAS_VBFE
     __asm__ ("V_BFE_U32 %0, %1, 24, 8;" : "=v"(r) : "v"(v32));
     #else
     r = (v32 >> 24) & 0xff;
