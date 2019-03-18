@@ -15,6 +15,17 @@
 #include "inc_scalar.cl"
 #include "inc_hash_md5.cl"
 
+typedef struct tacacs_plus
+{
+  u32 session_buf[16];
+
+  u32 ct_data_buf[64];
+  u32 ct_data_len;
+
+  u32 sequence_buf[16];
+
+} tacacs_plus_t;
+
 __kernel void m16100_mxx (KERN_ATTR_RULES_ESALT (tacacs_plus_t))
 {
   /**
@@ -133,7 +144,7 @@ __kernel void m16100_mxx (KERN_ATTR_RULES_ESALT (tacacs_plus_t))
       {
         if (atomic_inc (&hashes_shown[digests_offset]) == 0)
         {
-          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos, 0, 0);
         }
       }
     }
@@ -151,7 +162,7 @@ __kernel void m16100_mxx (KERN_ATTR_RULES_ESALT (tacacs_plus_t))
       {
         if (atomic_inc (&hashes_shown[digests_offset]) == 0)
         {
-          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos, 0, 0);
         }
       }
     }
@@ -170,7 +181,7 @@ __kernel void m16100_mxx (KERN_ATTR_RULES_ESALT (tacacs_plus_t))
       {
         if (atomic_inc (&hashes_shown[digests_offset]) == 0)
         {
-          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos, 0, 0);
         }
       }
     }
@@ -295,7 +306,7 @@ __kernel void m16100_sxx (KERN_ATTR_RULES_ESALT (tacacs_plus_t))
       {
         if (atomic_inc (&hashes_shown[digests_offset]) == 0)
         {
-          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos, 0, 0);
         }
       }
     }
@@ -313,7 +324,7 @@ __kernel void m16100_sxx (KERN_ATTR_RULES_ESALT (tacacs_plus_t))
       {
         if (atomic_inc (&hashes_shown[digests_offset]) == 0)
         {
-          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos, 0, 0);
         }
       }
     }
@@ -332,7 +343,7 @@ __kernel void m16100_sxx (KERN_ATTR_RULES_ESALT (tacacs_plus_t))
       {
         if (atomic_inc (&hashes_shown[digests_offset]) == 0)
         {
-          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos, 0, 0);
         }
       }
     }

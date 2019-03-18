@@ -14,6 +14,15 @@
 #include "inc_simd.cl"
 #include "inc_hash_md5.cl"
 
+typedef struct oldoffice01
+{
+  u32 version;
+  u32 encryptedVerifier[4];
+  u32 encryptedVerifierHash[4];
+  u32 rc4key[2];
+
+} oldoffice01_t;
+
 typedef struct
 {
   u8 S[256];
@@ -481,7 +490,7 @@ DECLSPEC void gen336 (u32 *digest_pre, u32 *salt_buf, u32 *digest)
   md5_transform (w0_t, w1_t, w2_t, w3_t, digest);
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m09700_m04 (KERN_ATTR_ESALT (oldoffice01_t))
+__kernel void m09700_m04 (KERN_ATTR_ESALT (oldoffice01_t))
 {
   /**
    * modifier
@@ -720,15 +729,15 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m09700_m04 (KERN_A
   }
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m09700_m08 (KERN_ATTR_ESALT (oldoffice01_t))
+__kernel void m09700_m08 (KERN_ATTR_ESALT (oldoffice01_t))
 {
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m09700_m16 (KERN_ATTR_ESALT (oldoffice01_t))
+__kernel void m09700_m16 (KERN_ATTR_ESALT (oldoffice01_t))
 {
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m09700_s04 (KERN_ATTR_ESALT (oldoffice01_t))
+__kernel void m09700_s04 (KERN_ATTR_ESALT (oldoffice01_t))
 {
   /**
    * modifier
@@ -979,10 +988,10 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m09700_s04 (KERN_A
   }
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m09700_s08 (KERN_ATTR_ESALT (oldoffice01_t))
+__kernel void m09700_s08 (KERN_ATTR_ESALT (oldoffice01_t))
 {
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m09700_s16 (KERN_ATTR_ESALT (oldoffice01_t))
+__kernel void m09700_s16 (KERN_ATTR_ESALT (oldoffice01_t))
 {
 }

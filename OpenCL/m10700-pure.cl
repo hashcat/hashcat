@@ -22,6 +22,40 @@
 #define PUTCHAR_BE(a,p,c) ((u8 *)(a))[(p) ^ 3] = (u8) (c)
 #define GETCHAR_BE(a,p)   ((u8 *)(a))[(p) ^ 3]
 
+typedef struct pdf
+{
+  int  V;
+  int  R;
+  int  P;
+
+  int  enc_md;
+
+  u32  id_buf[8];
+  u32  u_buf[32];
+  u32  o_buf[32];
+
+  int  id_len;
+  int  o_len;
+  int  u_len;
+
+  u32  rc4key[2];
+  u32  rc4data[2];
+
+} pdf_t;
+
+typedef struct pdf17l8_tmp
+{
+  union
+  {
+    u32 dgst32[16];
+    u64 dgst64[8];
+  };
+
+  u32 dgst_len;
+  u32 W_len;
+
+} pdf17l8_tmp_t;
+
 DECLSPEC void aes128_encrypt_cbc (const u32 *aes_ks, u32 *aes_iv, const u32 *in, u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 data[4];

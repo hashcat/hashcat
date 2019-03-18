@@ -12,6 +12,15 @@
 #include "inc_common.cl"
 #include "inc_simd.cl"
 
+typedef struct chacha20
+{
+  u32 iv[2];
+  u32 plain[2];
+  u32 position[2];
+  u32 offset;
+
+} chacha20_t;
+
 #define CHACHA_CONST_00 0x61707865
 #define CHACHA_CONST_01 0x3320646e
 #define CHACHA_CONST_02 0x79622d32

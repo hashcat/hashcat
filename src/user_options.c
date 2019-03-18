@@ -118,7 +118,8 @@ static const struct option long_options[] =
   {"truecrypt-keyfiles",        required_argument, NULL, IDX_TRUECRYPT_KEYFILES},
   {"username",                  no_argument,       NULL, IDX_USERNAME},
   {"veracrypt-keyfiles",        required_argument, NULL, IDX_VERACRYPT_KEYFILES},
-  {"veracrypt-pim",             required_argument, NULL, IDX_VERACRYPT_PIM},
+  {"veracrypt-pim-start",       required_argument, NULL, IDX_VERACRYPT_PIM_START},
+  {"veracrypt-pim-stop",        required_argument, NULL, IDX_VERACRYPT_PIM_STOP},
   {"version",                   no_argument,       NULL, IDX_VERSION},
   {"wordlist-autohex-disable",  no_argument,       NULL, IDX_WORDLIST_AUTOHEX_DISABLE},
   {"workload-profile",          required_argument, NULL, IDX_WORKLOAD_PROFILE},
@@ -248,7 +249,8 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->usage                     = USAGE;
   user_options->username                  = USERNAME;
   user_options->veracrypt_keyfiles        = NULL;
-  user_options->veracrypt_pim             = 0;
+  user_options->veracrypt_pim_start       = 0;
+  user_options->veracrypt_pim_stop        = 0;
   user_options->version                   = VERSION;
   user_options->wordlist_autohex_disable  = WORDLIST_AUTOHEX_DISABLE;
   user_options->workload_profile          = WORKLOAD_PROFILE;
@@ -312,7 +314,8 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_HWMON_TEMP_ABORT:
       case IDX_HCCAPX_MESSAGE_PAIR:
       case IDX_NONCE_ERROR_CORRECTIONS:
-      case IDX_VERACRYPT_PIM:
+      case IDX_VERACRYPT_PIM_START:
+      case IDX_VERACRYPT_PIM_STOP:
       case IDX_SEGMENT_SIZE:
       case IDX_SCRYPT_TMTO:
       case IDX_BITMAP_MIN:
@@ -447,7 +450,8 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_KEYBOARD_LAYOUT_MAPPING:   user_options->keyboard_layout_mapping   = optarg;                          break;
       case IDX_TRUECRYPT_KEYFILES:        user_options->truecrypt_keyfiles        = optarg;                          break;
       case IDX_VERACRYPT_KEYFILES:        user_options->veracrypt_keyfiles        = optarg;                          break;
-      case IDX_VERACRYPT_PIM:             user_options->veracrypt_pim             = hc_strtoul (optarg, NULL, 10);   break;
+      case IDX_VERACRYPT_PIM_START:       user_options->veracrypt_pim_start       = hc_strtoul (optarg, NULL, 10);   break;
+      case IDX_VERACRYPT_PIM_STOP:        user_options->veracrypt_pim_stop        = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_SEGMENT_SIZE:              user_options->segment_size              = hc_strtoul (optarg, NULL, 10);
                                           user_options->segment_size_chgd         = true;                            break;
       case IDX_SCRYPT_TMTO:               user_options->scrypt_tmto               = hc_strtoul (optarg, NULL, 10);   break;
@@ -665,6 +669,27 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   if (user_options->increment_max > INCREMENT_MAX)
   {
     event_log_error (hashcat_ctx, "Invalid --increment-max value specified.");
+
+    return -1;
+  }
+
+  if ((user_options->veracrypt_pim_start != 0) && (user_options->veracrypt_pim_stop == 0))
+  {
+    event_log_error (hashcat_ctx, "If --veracrypt-pim-start is specified then --veracrypt-pim-stop needs to be specified, too.");
+
+    return -1;
+  }
+
+  if ((user_options->veracrypt_pim_start == 0) && (user_options->veracrypt_pim_stop != 0))
+  {
+    event_log_error (hashcat_ctx, "If --veracrypt-pim-stop is specified then --veracrypt-pim-start needs to be specified, too.");
+
+    return -1;
+  }
+
+  if (user_options->veracrypt_pim_start > user_options->veracrypt_pim_stop)
+  {
+    event_log_error (hashcat_ctx, "Invalid --veracrypt-pim-start value specified.");
 
     return -1;
   }
@@ -2769,7 +2794,8 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->stdout_flag);
   logfile_top_uint   (user_options->usage);
   logfile_top_uint   (user_options->username);
-  logfile_top_uint   (user_options->veracrypt_pim);
+  logfile_top_uint   (user_options->veracrypt_pim_start);
+  logfile_top_uint   (user_options->veracrypt_pim_stop);
   logfile_top_uint   (user_options->version);
   logfile_top_uint   (user_options->workload_profile);
   #ifdef WITH_BRAIN

@@ -16,6 +16,15 @@
 #include "inc_hash_md4.cl"
 #include "inc_hash_md5.cl"
 
+typedef struct krb5tgs
+{
+  u32 account_info[512];
+  u32 checksum[4];
+  u32 edata2[5120];
+  u32 edata2_len;
+
+} krb5tgs_t;
+
 typedef struct
 {
   u8 S[256];
@@ -377,7 +386,7 @@ DECLSPEC void kerb_prepare (const u32 *K, const u32 *checksum, u32 *digest, u32 
   K2[3] = ctx1.opad.h[3];
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m13100_mxx (KERN_ATTR_RULES_ESALT (krb5tgs_t))
+__kernel void m13100_mxx (KERN_ATTR_RULES_ESALT (krb5tgs_t))
 {
   /**
    * modifier
@@ -433,13 +442,13 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m13100_mxx (KERN_A
     {
       if (atomic_inc (&hashes_shown[digests_offset]) == 0)
       {
-        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos, 0, 0);
       }
     }
   }
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m13100_sxx (KERN_ATTR_RULES_ESALT (krb5tgs_t))
+__kernel void m13100_sxx (KERN_ATTR_RULES_ESALT (krb5tgs_t))
 {
   /**
    * modifier
@@ -495,7 +504,7 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m13100_sxx (KERN_A
     {
       if (atomic_inc (&hashes_shown[digests_offset]) == 0)
       {
-        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos, 0, 0);
       }
     }
   }

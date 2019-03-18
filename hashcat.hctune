@@ -361,8 +361,8 @@ GeForce_GTX_TITAN                               3       9900    2       A       
 ## EXTREME SLOW ALGOS #
 #######################
 
-DEVICE_TYPE_GPU                                 *       14600   1       2       M
-DEVICE_TYPE_GPU                                 *       14800   1       2       250
+#DEVICE_TYPE_GPU                                 *       14600   1       2       M
+#DEVICE_TYPE_GPU                                 *       14800   1       2       250
 
 ###########
 ## SCRYPT #

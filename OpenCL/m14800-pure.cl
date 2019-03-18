@@ -15,6 +15,23 @@
 #include "inc_hash_sha256.cl"
 #include "inc_cipher_aes.cl"
 
+typedef struct itunes_backup
+{
+  u32 wpky[10];
+  u32 dpsl[5];
+
+} itunes_backup_t;
+
+typedef struct pbkdf2_sha256_tmp
+{
+  u32  ipad[8];
+  u32  opad[8];
+
+  u32  dgst[32];
+  u32  out[32];
+
+} pbkdf2_sha256_tmp_t;
+
 DECLSPEC void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
 {
   digest[0] = ipad[0];
@@ -627,7 +644,7 @@ __kernel void m14800_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, itunes_bac
   {
     if (atomic_inc (&hashes_shown[digests_offset]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, 0);
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, 0, 0, 0);
     }
 
     return;

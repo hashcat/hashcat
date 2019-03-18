@@ -15,6 +15,13 @@
 #include "inc_scalar.cl"
 #include "inc_hash_sha1.cl"
 
+typedef struct rakp
+{
+  u32 salt_buf[128];
+  u32 salt_len;
+
+} rakp_t;
+
 __kernel void m07300_mxx (KERN_ATTR_RULES_ESALT (rakp_t))
 {
   /**

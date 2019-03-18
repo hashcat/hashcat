@@ -16,6 +16,16 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct pbkdf2_sha256_tmp
+{
+  u32  ipad[8];
+  u32  opad[8];
+
+  u32  dgst[32];
+  u32  out[32];
+
+} pbkdf2_sha256_tmp_t;
+
 DECLSPEC void hmac_sha256_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
 {
   digest[0] = ipad[0];
@@ -58,7 +68,7 @@ DECLSPEC void hmac_sha256_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *i
   sha256_transform_vector (w0, w1, w2, w3, digest);
 }
 
-__kernel void m13000_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sha256_t))
+__kernel void m13000_init (KERN_ATTR_TMPS (pbkdf2_sha256_tmp_t))
 {
   /**
    * base
@@ -142,7 +152,7 @@ __kernel void m13000_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sha
   }
 }
 
-__kernel void m13000_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sha256_t))
+__kernel void m13000_loop (KERN_ATTR_TMPS (pbkdf2_sha256_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -248,7 +258,7 @@ __kernel void m13000_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sha
   }
 }
 
-__kernel void m13000_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sha256_t))
+__kernel void m13000_comp (KERN_ATTR_TMPS (pbkdf2_sha256_tmp_t))
 {
   /**
    * base

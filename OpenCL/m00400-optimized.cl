@@ -16,6 +16,12 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct phpass_tmp
+{
+  u32 digest_buf[4];
+
+} phpass_tmp_t;
+
 __kernel void m00400_init (KERN_ATTR_TMPS (phpass_tmp_t))
 {
   /**

@@ -17,6 +17,21 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct office2007_tmp
+{
+  u32 out[5];
+
+} office2007_tmp_t;
+
+typedef struct office2007
+{
+  u32 encryptedVerifier[4];
+  u32 encryptedVerifierHash[5];
+
+  u32 keySize;
+
+} office2007_t;
+
 __kernel void m09400_init (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t))
 {
   /**

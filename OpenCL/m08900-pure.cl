@@ -13,6 +13,16 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct
+{
+  #ifndef SCRYPT_TMP_ELEM
+  #define SCRYPT_TMP_ELEM 1
+  #endif
+
+  uint4 P[SCRYPT_TMP_ELEM];
+
+} scrypt_tmp_t;
+
 DECLSPEC uint4 swap32_4 (uint4 v)
 {
   return (rotate ((v & 0x00FF00FF), 24u) | rotate ((v & 0xFF00FF00),  8u));
@@ -204,8 +214,6 @@ DECLSPEC void scrypt_smix (uint4 *X, uint4 *T, __global uint4 * restrict V0, __g
     X[i + 3] = T[3];
   }
 }
-
-// there can be no __attribute__((reqd_work_group_size(16, 1, 1))) because kernel is used by both -m 8900 and -m 9300
 
 __kernel void m08900_init (KERN_ATTR_TMPS (scrypt_tmp_t))
 {

@@ -285,7 +285,7 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
   {
     u32 temp_buf[64] = { 0 };
 
-    const int temp_len = module_ctx->module_build_plain_postprocess (hashcat_ctx->hashconfig, hashcat_ctx->hashes, plain_buf, sizeof (plain_buf), plain_len, temp_buf, sizeof (temp_buf));
+    const int temp_len = module_ctx->module_build_plain_postprocess (hashcat_ctx->hashconfig, hashcat_ctx->hashes, plain, plain_buf, sizeof (plain_buf), plain_len, temp_buf, sizeof (temp_buf));
 
     if (temp_len < (int) sizeof (plain_buf))
     {
@@ -603,6 +603,13 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       if (module_ctx->module_hash_binary_count != MODULE_DEFAULT)
       {
         const int binary_count = module_ctx->module_hash_binary_count (hashes);
+
+        if (binary_count == 0)
+        {
+          event_log_error (hashcat_ctx, "No hashes loaded.");
+
+          return -1;
+        }
 
         if (binary_count == -1)
         {

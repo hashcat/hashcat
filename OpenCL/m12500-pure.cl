@@ -23,6 +23,18 @@
 
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 
+typedef struct pbkdf2_sha1
+{
+  u32 salt_buf[64];
+
+} pbkdf2_sha1_t;
+
+typedef struct rar3_tmp
+{
+  u32 dgst[17][5];
+
+} rar3_tmp_t;
+
 DECLSPEC void sha1_transform (const u32 *w, u32 *digest)
 {
   u32 A = digest[0];

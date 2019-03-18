@@ -431,12 +431,41 @@ u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
   return pw_max;
 }
 
-bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *hc_device_param)
+char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
+{
+  char *jit_build_options = NULL;
+
+  if (device_param->device_vendor_id == VENDOR_ID_NV)
+  {
+    hc_asprintf (&jit_build_options, "-D NO_UNROLL");
+  }
+
+  if ((device_param->device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
+  {
+    hc_asprintf (&jit_build_options, "-D NO_UNROLL");
+  }
+
+  return jit_build_options;
+}
+
+bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
   // amdgpu-pro-18.50-708488-ubuntu-18.04: self-test failed
-  if ((hc_device_param->device_vendor_id == VENDOR_ID_AMD) && (hc_device_param->has_vperm == false))
+  if ((device_param->device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
   {
     return true;
+  }
+
+  if (device_param->platform_vendor_id == VENDOR_ID_APPLE)
+  {
+    // trap 6
+    if ((device_param->device_vendor_id == VENDOR_ID_INTEL_SDK) && (device_param->device_type & CL_DEVICE_TYPE_GPU))
+    {
+      if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0)
+      {
+        return true;
+      }
+    }
   }
 
   return false;
@@ -557,7 +586,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hook23                   = MODULE_DEFAULT;
   module_ctx->module_hook_salt_size           = MODULE_DEFAULT;
   module_ctx->module_hook_size                = MODULE_DEFAULT;
-  module_ctx->module_jit_build_options        = MODULE_DEFAULT;
+  module_ctx->module_jit_build_options        = module_jit_build_options;
   module_ctx->module_jit_cache_disable        = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_max         = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_min         = MODULE_DEFAULT;

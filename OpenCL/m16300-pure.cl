@@ -17,6 +17,24 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+typedef struct ethereum_presale
+{
+  u32 iv[4];
+  u32 enc_seed[152];
+  u32 enc_seed_len;
+
+} ethereum_presale_t;
+
+typedef struct pbkdf2_sha256_tmp
+{
+  u32  ipad[8];
+  u32  opad[8];
+
+  u32  dgst[32];
+  u32  out[32];
+
+} pbkdf2_sha256_tmp_t;
+
 __constant u64a keccakf_rndc[24] =
 {
   0x0000000000000001, 0x0000000000008082, 0x800000000000808a,

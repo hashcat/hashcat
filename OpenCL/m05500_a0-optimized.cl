@@ -14,6 +14,18 @@
 #include "inc_rp_optimized.cl"
 #include "inc_simd.cl"
 
+typedef struct netntlm
+{
+  u32 user_len;
+  u32 domain_len;
+  u32 srvchall_len;
+  u32 clichall_len;
+
+  u32 userdomain_buf[64];
+  u32 chall_buf[256];
+
+} netntlm_t;
+
 #define PERM_OP(a,b,tt,n,m) \
 {                           \
   tt = a >> n;              \
