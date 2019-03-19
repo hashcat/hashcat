@@ -23,6 +23,7 @@
 - Added hash-mode: Kerberos 5 TGS-REP etype 18 (AES256-CTS-HMAC-SHA1-96)
 - Added hash-mode: sha1(md5(md5($pass)))
 - Added hash-mode: sha1($salt1.$pass.$salt2)
+- Added hash-mode: Ruby on Rails Restful-Authentication
 
 ##
 ## Bugs
