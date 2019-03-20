@@ -247,7 +247,7 @@ DECLSPEC u32 swap32_S (const u32 v)
 {
   u32 r;
 
-  __asm__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r) : "v"(v), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r) : "v"(v), "v"(0x00010203));
 
   return r;
 }
@@ -261,8 +261,8 @@ DECLSPEC u64 swap64_S (const u64 v)
   u32 t0;
   u32 t1;
 
-  __asm__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(t0) : "v"(v0), "v"(0x00010203));
-  __asm__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(t1) : "v"(v1), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(t0) : "v"(v0), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(t1) : "v"(v1), "v"(0x00010203));
 
   const u64 r = hl32_to_64_S (t1, t0);
 
@@ -331,52 +331,52 @@ DECLSPEC u64x swap64 (const u64x v)
   u32x t1;
 
   #if VECT_SIZE == 1
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0) : "v"(0), "v"(a0), "v"(0x00010203));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1) : "v"(0), "v"(a1), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0) : "v"(0), "v"(a0), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1) : "v"(0), "v"(a1), "v"(0x00010203));
   #endif
 
   #if VECT_SIZE >= 2
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s0) : "v"(0), "v"(a0.s0), "v"(0x00010203));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s0) : "v"(0), "v"(a1.s0), "v"(0x00010203));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s1) : "v"(0), "v"(a0.s1), "v"(0x00010203));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s1) : "v"(0), "v"(a1.s1), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s0) : "v"(0), "v"(a0.s0), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s0) : "v"(0), "v"(a1.s0), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s1) : "v"(0), "v"(a0.s1), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s1) : "v"(0), "v"(a1.s1), "v"(0x00010203));
   #endif
 
   #if VECT_SIZE >= 4
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s2) : "v"(0), "v"(a0.s2), "v"(0x00010203));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s2) : "v"(0), "v"(a1.s2), "v"(0x00010203));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s3) : "v"(0), "v"(a0.s3), "v"(0x00010203));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s3) : "v"(0), "v"(a1.s3), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s2) : "v"(0), "v"(a0.s2), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s2) : "v"(0), "v"(a1.s2), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s3) : "v"(0), "v"(a0.s3), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s3) : "v"(0), "v"(a1.s3), "v"(0x00010203));
   #endif
 
   #if VECT_SIZE >= 8
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s4) : "v"(0), "v"(a0.s4), "v"(0x00010203));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s4) : "v"(0), "v"(a1.s4), "v"(0x00010203));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s5) : "v"(0), "v"(a0.s5), "v"(0x00010203));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s5) : "v"(0), "v"(a1.s5), "v"(0x00010203));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s6) : "v"(0), "v"(a0.s6), "v"(0x00010203));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s6) : "v"(0), "v"(a1.s6), "v"(0x00010203));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s7) : "v"(0), "v"(a0.s7), "v"(0x00010203));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s7) : "v"(0), "v"(a1.s7), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s4) : "v"(0), "v"(a0.s4), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s4) : "v"(0), "v"(a1.s4), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s5) : "v"(0), "v"(a0.s5), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s5) : "v"(0), "v"(a1.s5), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s6) : "v"(0), "v"(a0.s6), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s6) : "v"(0), "v"(a1.s6), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s7) : "v"(0), "v"(a0.s7), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s7) : "v"(0), "v"(a1.s7), "v"(0x00010203));
   #endif
 
   #if VECT_SIZE >= 16
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s8) : "v"(0), "v"(a0.s8), "v"(0x00010203));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s8) : "v"(0), "v"(a1.s8), "v"(0x00010203));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s9) : "v"(0), "v"(a0.s9), "v"(0x00010203));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s9) : "v"(0), "v"(a1.s9), "v"(0x00010203));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.sa) : "v"(0), "v"(a0.sa), "v"(0x00010203));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.sa) : "v"(0), "v"(a1.sa), "v"(0x00010203));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.sb) : "v"(0), "v"(a0.sb), "v"(0x00010203));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.sb) : "v"(0), "v"(a1.sb), "v"(0x00010203));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.sc) : "v"(0), "v"(a0.sc), "v"(0x00010203));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.sc) : "v"(0), "v"(a1.sc), "v"(0x00010203));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.sd) : "v"(0), "v"(a0.sd), "v"(0x00010203));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.sd) : "v"(0), "v"(a1.sd), "v"(0x00010203));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.se) : "v"(0), "v"(a0.se), "v"(0x00010203));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.se) : "v"(0), "v"(a1.se), "v"(0x00010203));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.sf) : "v"(0), "v"(a0.sf), "v"(0x00010203));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.sf) : "v"(0), "v"(a1.sf), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s8) : "v"(0), "v"(a0.s8), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s8) : "v"(0), "v"(a1.s8), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s9) : "v"(0), "v"(a0.s9), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s9) : "v"(0), "v"(a1.s9), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.sa) : "v"(0), "v"(a0.sa), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.sa) : "v"(0), "v"(a1.sa), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.sb) : "v"(0), "v"(a0.sb), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.sb) : "v"(0), "v"(a1.sb), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.sc) : "v"(0), "v"(a0.sc), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.sc) : "v"(0), "v"(a1.sc), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.sd) : "v"(0), "v"(a0.sd), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.sd) : "v"(0), "v"(a1.sd), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.se) : "v"(0), "v"(a0.se), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.se) : "v"(0), "v"(a1.se), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.sf) : "v"(0), "v"(a0.sf), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.sf) : "v"(0), "v"(a1.sf), "v"(0x00010203));
   #endif
 
   const u64x r = hl32_to_64 (t1, t0);
@@ -532,49 +532,49 @@ DECLSPEC u32x hc_byte_perm (const u32x a, const u32x b, const u32x c)
   u32x r;
 
   #if VECT_SIZE == 1
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r) : "v"(b), "v"(a), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r) : "v"(b), "v"(a), "v"(c));
   #endif
 
   #if VECT_SIZE >= 2
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s0) : "v"(b.s0), "v"(a.s0), "v"(c.s0));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s1) : "v"(b.s1), "v"(a.s1), "v"(c.s1));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s0) : "v"(b.s0), "v"(a.s0), "v"(c.s0));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s1) : "v"(b.s1), "v"(a.s1), "v"(c.s1));
   #endif
 
   #if VECT_SIZE >= 4
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s0) : "v"(b.s0), "v"(a.s0), "v"(c.s0));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s1) : "v"(b.s1), "v"(a.s1), "v"(c.s1));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s2) : "v"(b.s2), "v"(a.s2), "v"(c.s2));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s3) : "v"(b.s3), "v"(a.s3), "v"(c.s3));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s0) : "v"(b.s0), "v"(a.s0), "v"(c.s0));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s1) : "v"(b.s1), "v"(a.s1), "v"(c.s1));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s2) : "v"(b.s2), "v"(a.s2), "v"(c.s2));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s3) : "v"(b.s3), "v"(a.s3), "v"(c.s3));
   #endif
 
   #if VECT_SIZE >= 8
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s0) : "v"(b.s0), "v"(a.s0), "v"(c.s0));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s1) : "v"(b.s1), "v"(a.s1), "v"(c.s1));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s2) : "v"(b.s2), "v"(a.s2), "v"(c.s2));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s3) : "v"(b.s3), "v"(a.s3), "v"(c.s3));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s4) : "v"(b.s4), "v"(a.s4), "v"(c.s4));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s5) : "v"(b.s5), "v"(a.s5), "v"(c.s5));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s6) : "v"(b.s6), "v"(a.s6), "v"(c.s6));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s7) : "v"(b.s7), "v"(a.s7), "v"(c.s7));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s0) : "v"(b.s0), "v"(a.s0), "v"(c.s0));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s1) : "v"(b.s1), "v"(a.s1), "v"(c.s1));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s2) : "v"(b.s2), "v"(a.s2), "v"(c.s2));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s3) : "v"(b.s3), "v"(a.s3), "v"(c.s3));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s4) : "v"(b.s4), "v"(a.s4), "v"(c.s4));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s5) : "v"(b.s5), "v"(a.s5), "v"(c.s5));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s6) : "v"(b.s6), "v"(a.s6), "v"(c.s6));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s7) : "v"(b.s7), "v"(a.s7), "v"(c.s7));
   #endif
 
   #if VECT_SIZE >= 16
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s0) : "v"(b.s0), "v"(a.s0), "v"(c.s0));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s1) : "v"(b.s1), "v"(a.s1), "v"(c.s1));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s2) : "v"(b.s2), "v"(a.s2), "v"(c.s2));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s3) : "v"(b.s3), "v"(a.s3), "v"(c.s3));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s4) : "v"(b.s4), "v"(a.s4), "v"(c.s4));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s5) : "v"(b.s5), "v"(a.s5), "v"(c.s5));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s6) : "v"(b.s6), "v"(a.s6), "v"(c.s6));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s7) : "v"(b.s7), "v"(a.s7), "v"(c.s7));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s8) : "v"(b.s8), "v"(a.s8), "v"(c.s8));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s9) : "v"(b.s9), "v"(a.s9), "v"(c.s9));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.sa) : "v"(b.sa), "v"(a.sa), "v"(c.sa));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.sb) : "v"(b.sb), "v"(a.sb), "v"(c.sb));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.sc) : "v"(b.sc), "v"(a.sc), "v"(c.sc));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.sd) : "v"(b.sd), "v"(a.sd), "v"(c.sd));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.se) : "v"(b.se), "v"(a.se), "v"(c.se));
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.sf) : "v"(b.sf), "v"(a.sf), "v"(c.sf));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s0) : "v"(b.s0), "v"(a.s0), "v"(c.s0));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s1) : "v"(b.s1), "v"(a.s1), "v"(c.s1));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s2) : "v"(b.s2), "v"(a.s2), "v"(c.s2));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s3) : "v"(b.s3), "v"(a.s3), "v"(c.s3));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s4) : "v"(b.s4), "v"(a.s4), "v"(c.s4));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s5) : "v"(b.s5), "v"(a.s5), "v"(c.s5));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s6) : "v"(b.s6), "v"(a.s6), "v"(c.s6));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s7) : "v"(b.s7), "v"(a.s7), "v"(c.s7));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s8) : "v"(b.s8), "v"(a.s8), "v"(c.s8));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s9) : "v"(b.s9), "v"(a.s9), "v"(c.s9));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.sa) : "v"(b.sa), "v"(a.sa), "v"(c.sa));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.sb) : "v"(b.sb), "v"(a.sb), "v"(c.sb));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.sc) : "v"(b.sc), "v"(a.sc), "v"(c.sc));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.sd) : "v"(b.sd), "v"(a.sd), "v"(c.sd));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.se) : "v"(b.se), "v"(a.se), "v"(c.se));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.sf) : "v"(b.sf), "v"(a.sf), "v"(c.sf));
   #endif
 
   return r;
@@ -585,7 +585,7 @@ DECLSPEC u32 hc_byte_perm_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
 
-  __asm__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r) : "v"(b), "v"(a), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r) : "v"(b), "v"(a), "v"(c));
 
   return r;
 }
@@ -598,49 +598,49 @@ DECLSPEC u32x hc_add3 (const u32x a, const u32x b, const u32x c)
   u32x r;
 
   #if VECT_SIZE == 1
-  __asm__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r) : "v"(b), "v"(a), "v"(c));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r) : "v"(b), "v"(a), "v"(c));
   #endif
 
   #if VECT_SIZE >= 2
-  __asm__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s0) : "v"(b.s0), "v"(a.s0), "v"(c.s0));
-  __asm__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s1) : "v"(b.s1), "v"(a.s1), "v"(c.s1));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s0) : "v"(b.s0), "v"(a.s0), "v"(c.s0));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s1) : "v"(b.s1), "v"(a.s1), "v"(c.s1));
   #endif
 
   #if VECT_SIZE >= 4
-  __asm__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s0) : "v"(b.s0), "v"(a.s0), "v"(c.s0));
-  __asm__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s1) : "v"(b.s1), "v"(a.s1), "v"(c.s1));
-  __asm__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s2) : "v"(b.s2), "v"(a.s2), "v"(c.s2));
-  __asm__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s3) : "v"(b.s3), "v"(a.s3), "v"(c.s3));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s0) : "v"(b.s0), "v"(a.s0), "v"(c.s0));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s1) : "v"(b.s1), "v"(a.s1), "v"(c.s1));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s2) : "v"(b.s2), "v"(a.s2), "v"(c.s2));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s3) : "v"(b.s3), "v"(a.s3), "v"(c.s3));
   #endif
 
   #if VECT_SIZE >= 8
-  __asm__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s0) : "v"(b.s0), "v"(a.s0), "v"(c.s0));
-  __asm__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s1) : "v"(b.s1), "v"(a.s1), "v"(c.s1));
-  __asm__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s2) : "v"(b.s2), "v"(a.s2), "v"(c.s2));
-  __asm__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s3) : "v"(b.s3), "v"(a.s3), "v"(c.s3));
-  __asm__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s4) : "v"(b.s4), "v"(a.s4), "v"(c.s4));
-  __asm__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s5) : "v"(b.s5), "v"(a.s5), "v"(c.s5));
-  __asm__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s6) : "v"(b.s6), "v"(a.s6), "v"(c.s6));
-  __asm__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s7) : "v"(b.s7), "v"(a.s7), "v"(c.s7));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s0) : "v"(b.s0), "v"(a.s0), "v"(c.s0));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s1) : "v"(b.s1), "v"(a.s1), "v"(c.s1));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s2) : "v"(b.s2), "v"(a.s2), "v"(c.s2));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s3) : "v"(b.s3), "v"(a.s3), "v"(c.s3));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s4) : "v"(b.s4), "v"(a.s4), "v"(c.s4));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s5) : "v"(b.s5), "v"(a.s5), "v"(c.s5));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s6) : "v"(b.s6), "v"(a.s6), "v"(c.s6));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s7) : "v"(b.s7), "v"(a.s7), "v"(c.s7));
   #endif
 
   #if VECT_SIZE >= 16
-  __asm__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s0) : "v"(b.s0), "v"(a.s0), "v"(c.s0));
-  __asm__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s1) : "v"(b.s1), "v"(a.s1), "v"(c.s1));
-  __asm__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s2) : "v"(b.s2), "v"(a.s2), "v"(c.s2));
-  __asm__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s3) : "v"(b.s3), "v"(a.s3), "v"(c.s3));
-  __asm__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s4) : "v"(b.s4), "v"(a.s4), "v"(c.s4));
-  __asm__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s5) : "v"(b.s5), "v"(a.s5), "v"(c.s5));
-  __asm__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s6) : "v"(b.s6), "v"(a.s6), "v"(c.s6));
-  __asm__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s7) : "v"(b.s7), "v"(a.s7), "v"(c.s7));
-  __asm__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s8) : "v"(b.s8), "v"(a.s8), "v"(c.s8));
-  __asm__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s9) : "v"(b.s9), "v"(a.s9), "v"(c.s9));
-  __asm__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.sa) : "v"(b.sa), "v"(a.sa), "v"(c.sa));
-  __asm__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.sb) : "v"(b.sb), "v"(a.sb), "v"(c.sb));
-  __asm__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.sc) : "v"(b.sc), "v"(a.sc), "v"(c.sc));
-  __asm__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.sd) : "v"(b.sd), "v"(a.sd), "v"(c.sd));
-  __asm__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.se) : "v"(b.se), "v"(a.se), "v"(c.se));
-  __asm__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.sf) : "v"(b.sf), "v"(a.sf), "v"(c.sf));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s0) : "v"(b.s0), "v"(a.s0), "v"(c.s0));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s1) : "v"(b.s1), "v"(a.s1), "v"(c.s1));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s2) : "v"(b.s2), "v"(a.s2), "v"(c.s2));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s3) : "v"(b.s3), "v"(a.s3), "v"(c.s3));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s4) : "v"(b.s4), "v"(a.s4), "v"(c.s4));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s5) : "v"(b.s5), "v"(a.s5), "v"(c.s5));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s6) : "v"(b.s6), "v"(a.s6), "v"(c.s6));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s7) : "v"(b.s7), "v"(a.s7), "v"(c.s7));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s8) : "v"(b.s8), "v"(a.s8), "v"(c.s8));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s9) : "v"(b.s9), "v"(a.s9), "v"(c.s9));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.sa) : "v"(b.sa), "v"(a.sa), "v"(c.sa));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.sb) : "v"(b.sb), "v"(a.sb), "v"(c.sb));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.sc) : "v"(b.sc), "v"(a.sc), "v"(c.sc));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.sd) : "v"(b.sd), "v"(a.sd), "v"(c.sd));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.se) : "v"(b.se), "v"(a.se), "v"(c.se));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.sf) : "v"(b.sf), "v"(a.sf), "v"(c.sf));
   #endif
 
   return r;
@@ -651,7 +651,7 @@ DECLSPEC u32 hc_add3_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
 
-  __asm__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r) : "v"(b), "v"(a), "v"(c));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r) : "v"(b), "v"(a), "v"(c));
 
   return r;
 }
@@ -689,7 +689,7 @@ DECLSPEC u32 swap32_S (const u32 v)
 {
   u32 r;
 
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r) : "r"(v));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r) : "r"(v));
 
   return r;
 }
@@ -700,17 +700,17 @@ DECLSPEC u64 swap64_S (const u64 v)
   u32 il;
   u32 ir;
 
-  asm ("mov.b64 {%0, %1}, %2;" : "=r"(il), "=r"(ir) : "l"(v));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il), "=r"(ir) : "l"(v));
 
   u32 tl;
   u32 tr;
 
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl) : "r"(il));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr) : "r"(ir));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl) : "r"(il));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr) : "r"(ir));
 
   u64 r;
 
-  asm ("mov.b64 %0, {%1, %2};" : "=l"(r) : "r"(tr), "r"(tl));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r) : "r"(tr), "r"(tl));
 
   return r;
 }
@@ -745,35 +745,35 @@ DECLSPEC u32x swap32 (const u32x v)
   u32x r;
 
   #if VECT_SIZE == 1
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r) : "r"(v));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r) : "r"(v));
   #endif
 
   #if VECT_SIZE >= 2
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s0) : "r"(v.s0));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s1) : "r"(v.s1));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s0) : "r"(v.s0));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s1) : "r"(v.s1));
   #endif
 
   #if VECT_SIZE >= 4
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s2) : "r"(v.s2));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s3) : "r"(v.s3));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s2) : "r"(v.s2));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s3) : "r"(v.s3));
   #endif
 
   #if VECT_SIZE >= 8
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s4) : "r"(v.s4));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s5) : "r"(v.s5));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s6) : "r"(v.s6));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s7) : "r"(v.s7));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s4) : "r"(v.s4));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s5) : "r"(v.s5));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s6) : "r"(v.s6));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s7) : "r"(v.s7));
   #endif
 
   #if VECT_SIZE >= 16
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s8) : "r"(v.s8));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s9) : "r"(v.s9));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.sa) : "r"(v.sa));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.sb) : "r"(v.sb));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.sc) : "r"(v.sc));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.sd) : "r"(v.sd));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.se) : "r"(v.se));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.sf) : "r"(v.sf));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s8) : "r"(v.s8));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s9) : "r"(v.s9));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.sa) : "r"(v.sa));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.sb) : "r"(v.sb));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.sc) : "r"(v.sc));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.sd) : "r"(v.sd));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.se) : "r"(v.se));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.sf) : "r"(v.sf));
   #endif
 
   return r;
@@ -786,121 +786,121 @@ DECLSPEC u64x swap64 (const u64x v)
   u32x ir;
 
   #if VECT_SIZE == 1
-  asm ("mov.b64 {%0, %1}, %2;" : "=r"(il), "=r"(ir) : "l"(v));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il), "=r"(ir) : "l"(v));
   #endif
 
   #if VECT_SIZE >= 2
-  asm ("mov.b64 {%0, %1}, %2;" : "=r"(il.s0), "=r"(ir.s0) : "l"(v.s0));
-  asm ("mov.b64 {%0, %1}, %2;" : "=r"(il.s1), "=r"(ir.s1) : "l"(v.s1));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s0), "=r"(ir.s0) : "l"(v.s0));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s1), "=r"(ir.s1) : "l"(v.s1));
   #endif
 
   #if VECT_SIZE >= 4
-  asm ("mov.b64 {%0, %1}, %2;" : "=r"(il.s2), "=r"(ir.s2) : "l"(v.s2));
-  asm ("mov.b64 {%0, %1}, %2;" : "=r"(il.s3), "=r"(ir.s3) : "l"(v.s3));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s2), "=r"(ir.s2) : "l"(v.s2));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s3), "=r"(ir.s3) : "l"(v.s3));
   #endif
 
   #if VECT_SIZE >= 8
-  asm ("mov.b64 {%0, %1}, %2;" : "=r"(il.s4), "=r"(ir.s4) : "l"(v.s4));
-  asm ("mov.b64 {%0, %1}, %2;" : "=r"(il.s5), "=r"(ir.s5) : "l"(v.s5));
-  asm ("mov.b64 {%0, %1}, %2;" : "=r"(il.s6), "=r"(ir.s6) : "l"(v.s6));
-  asm ("mov.b64 {%0, %1}, %2;" : "=r"(il.s7), "=r"(ir.s7) : "l"(v.s7));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s4), "=r"(ir.s4) : "l"(v.s4));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s5), "=r"(ir.s5) : "l"(v.s5));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s6), "=r"(ir.s6) : "l"(v.s6));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s7), "=r"(ir.s7) : "l"(v.s7));
   #endif
 
   #if VECT_SIZE >= 16
-  asm ("mov.b64 {%0, %1}, %2;" : "=r"(il.s8), "=r"(ir.s8) : "l"(v.s8));
-  asm ("mov.b64 {%0, %1}, %2;" : "=r"(il.s9), "=r"(ir.s9) : "l"(v.s9));
-  asm ("mov.b64 {%0, %1}, %2;" : "=r"(il.sa), "=r"(ir.sa) : "l"(v.sa));
-  asm ("mov.b64 {%0, %1}, %2;" : "=r"(il.sb), "=r"(ir.sb) : "l"(v.sb));
-  asm ("mov.b64 {%0, %1}, %2;" : "=r"(il.sc), "=r"(ir.sc) : "l"(v.sc));
-  asm ("mov.b64 {%0, %1}, %2;" : "=r"(il.sd), "=r"(ir.sd) : "l"(v.sd));
-  asm ("mov.b64 {%0, %1}, %2;" : "=r"(il.se), "=r"(ir.se) : "l"(v.se));
-  asm ("mov.b64 {%0, %1}, %2;" : "=r"(il.sf), "=r"(ir.sf) : "l"(v.sf));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s8), "=r"(ir.s8) : "l"(v.s8));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s9), "=r"(ir.s9) : "l"(v.s9));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.sa), "=r"(ir.sa) : "l"(v.sa));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.sb), "=r"(ir.sb) : "l"(v.sb));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.sc), "=r"(ir.sc) : "l"(v.sc));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.sd), "=r"(ir.sd) : "l"(v.sd));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.se), "=r"(ir.se) : "l"(v.se));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.sf), "=r"(ir.sf) : "l"(v.sf));
   #endif
 
   u32x tl;
   u32x tr;
 
   #if VECT_SIZE == 1
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl) : "r"(il));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr) : "r"(ir));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl) : "r"(il));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr) : "r"(ir));
   #endif
 
   #if VECT_SIZE >= 2
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s0) : "r"(il.s0));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s0) : "r"(ir.s0));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s1) : "r"(il.s1));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s1) : "r"(ir.s1));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s0) : "r"(il.s0));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s0) : "r"(ir.s0));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s1) : "r"(il.s1));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s1) : "r"(ir.s1));
   #endif
 
   #if VECT_SIZE >= 4
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s2) : "r"(il.s2));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s2) : "r"(ir.s2));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s3) : "r"(il.s3));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s3) : "r"(ir.s3));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s2) : "r"(il.s2));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s2) : "r"(ir.s2));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s3) : "r"(il.s3));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s3) : "r"(ir.s3));
   #endif
 
   #if VECT_SIZE >= 8
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s4) : "r"(il.s4));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s4) : "r"(ir.s4));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s5) : "r"(il.s5));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s5) : "r"(ir.s5));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s6) : "r"(il.s6));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s6) : "r"(ir.s6));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s7) : "r"(il.s7));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s7) : "r"(ir.s7));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s4) : "r"(il.s4));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s4) : "r"(ir.s4));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s5) : "r"(il.s5));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s5) : "r"(ir.s5));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s6) : "r"(il.s6));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s6) : "r"(ir.s6));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s7) : "r"(il.s7));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s7) : "r"(ir.s7));
   #endif
 
   #if VECT_SIZE >= 16
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s8) : "r"(il.s8));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s8) : "r"(ir.s8));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s9) : "r"(il.s9));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s9) : "r"(ir.s9));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.sa) : "r"(il.sa));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.sa) : "r"(ir.sa));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.sb) : "r"(il.sb));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.sb) : "r"(ir.sb));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.sc) : "r"(il.sc));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.sc) : "r"(ir.sc));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.sd) : "r"(il.sd));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.sd) : "r"(ir.sd));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.se) : "r"(il.se));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.se) : "r"(ir.se));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.sf) : "r"(il.sf));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.sf) : "r"(ir.sf));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s8) : "r"(il.s8));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s8) : "r"(ir.s8));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s9) : "r"(il.s9));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s9) : "r"(ir.s9));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.sa) : "r"(il.sa));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.sa) : "r"(ir.sa));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.sb) : "r"(il.sb));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.sb) : "r"(ir.sb));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.sc) : "r"(il.sc));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.sc) : "r"(ir.sc));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.sd) : "r"(il.sd));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.sd) : "r"(ir.sd));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.se) : "r"(il.se));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.se) : "r"(ir.se));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.sf) : "r"(il.sf));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.sf) : "r"(ir.sf));
   #endif
 
   u64x r;
 
   #if VECT_SIZE == 1
-  asm ("mov.b64 %0, {%1, %2};" : "=l"(r) : "r"(tr), "r"(tl));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r) : "r"(tr), "r"(tl));
   #endif
 
   #if VECT_SIZE >= 2
-  asm ("mov.b64 %0, {%1, %2};" : "=l"(r.s0) : "r"(tr.s0), "r"(tl.s0));
-  asm ("mov.b64 %0, {%1, %2};" : "=l"(r.s1) : "r"(tr.s1), "r"(tl.s1));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s0) : "r"(tr.s0), "r"(tl.s0));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s1) : "r"(tr.s1), "r"(tl.s1));
   #endif
 
   #if VECT_SIZE >= 4
-  asm ("mov.b64 %0, {%1, %2};" : "=l"(r.s2) : "r"(tr.s2), "r"(tl.s2));
-  asm ("mov.b64 %0, {%1, %2};" : "=l"(r.s3) : "r"(tr.s3), "r"(tl.s3));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s2) : "r"(tr.s2), "r"(tl.s2));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s3) : "r"(tr.s3), "r"(tl.s3));
   #endif
 
   #if VECT_SIZE >= 8
-  asm ("mov.b64 %0, {%1, %2};" : "=l"(r.s4) : "r"(tr.s4), "r"(tl.s4));
-  asm ("mov.b64 %0, {%1, %2};" : "=l"(r.s5) : "r"(tr.s5), "r"(tl.s5));
-  asm ("mov.b64 %0, {%1, %2};" : "=l"(r.s6) : "r"(tr.s6), "r"(tl.s6));
-  asm ("mov.b64 %0, {%1, %2};" : "=l"(r.s7) : "r"(tr.s7), "r"(tl.s7));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s4) : "r"(tr.s4), "r"(tl.s4));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s5) : "r"(tr.s5), "r"(tl.s5));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s6) : "r"(tr.s6), "r"(tl.s6));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s7) : "r"(tr.s7), "r"(tl.s7));
   #endif
 
   #if VECT_SIZE >= 16
-  asm ("mov.b64 %0, {%1, %2};" : "=l"(r.s8) : "r"(tr.s8), "r"(tl.s8));
-  asm ("mov.b64 %0, {%1, %2};" : "=l"(r.s9) : "r"(tr.s9), "r"(tl.s9));
-  asm ("mov.b64 %0, {%1, %2};" : "=l"(r.sa) : "r"(tr.sa), "r"(tl.sa));
-  asm ("mov.b64 %0, {%1, %2};" : "=l"(r.sb) : "r"(tr.sb), "r"(tl.sb));
-  asm ("mov.b64 %0, {%1, %2};" : "=l"(r.sc) : "r"(tr.sc), "r"(tl.sc));
-  asm ("mov.b64 %0, {%1, %2};" : "=l"(r.sd) : "r"(tr.sd), "r"(tl.sd));
-  asm ("mov.b64 %0, {%1, %2};" : "=l"(r.se) : "r"(tr.se), "r"(tl.se));
-  asm ("mov.b64 %0, {%1, %2};" : "=l"(r.sf) : "r"(tr.sf), "r"(tl.sf));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s8) : "r"(tr.s8), "r"(tl.s8));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s9) : "r"(tr.s9), "r"(tl.s9));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.sa) : "r"(tr.sa), "r"(tl.sa));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.sb) : "r"(tr.sb), "r"(tl.sb));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.sc) : "r"(tr.sc), "r"(tl.sc));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.sd) : "r"(tr.sd), "r"(tl.sd));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.se) : "r"(tr.se), "r"(tl.se));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.sf) : "r"(tr.sf), "r"(tl.sf));
   #endif
 
   return r;
@@ -936,35 +936,35 @@ DECLSPEC u32x hc_byte_perm (const u32x a, const u32x b, const u32x c)
   u32x r;
 
   #if VECT_SIZE == 1
-  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r)    : "r"(a),    "r"(b),    "r"(c)   );
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r)    : "r"(a),    "r"(b),    "r"(c)   );
   #endif
 
   #if VECT_SIZE >= 2
-  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s0) : "r"(a.s0), "r"(b.s0), "r"(c.s0));
-  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s1) : "r"(a.s1), "r"(b.s1), "r"(c.s1));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s0) : "r"(a.s0), "r"(b.s0), "r"(c.s0));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s1) : "r"(a.s1), "r"(b.s1), "r"(c.s1));
   #endif
 
   #if VECT_SIZE >= 4
-  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s2) : "r"(a.s2), "r"(b.s2), "r"(c.s2));
-  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s3) : "r"(a.s3), "r"(b.s3), "r"(c.s3));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s2) : "r"(a.s2), "r"(b.s2), "r"(c.s2));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s3) : "r"(a.s3), "r"(b.s3), "r"(c.s3));
   #endif
 
   #if VECT_SIZE >= 8
-  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s4) : "r"(a.s4), "r"(b.s4), "r"(c.s4));
-  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s5) : "r"(a.s5), "r"(b.s5), "r"(c.s5));
-  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s6) : "r"(a.s6), "r"(b.s6), "r"(c.s6));
-  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s7) : "r"(a.s7), "r"(b.s7), "r"(c.s7));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s4) : "r"(a.s4), "r"(b.s4), "r"(c.s4));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s5) : "r"(a.s5), "r"(b.s5), "r"(c.s5));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s6) : "r"(a.s6), "r"(b.s6), "r"(c.s6));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s7) : "r"(a.s7), "r"(b.s7), "r"(c.s7));
   #endif
 
   #if VECT_SIZE >= 16
-  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s8) : "r"(a.s8), "r"(b.s8), "r"(c.s8));
-  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s9) : "r"(a.s9), "r"(b.s9), "r"(c.s9));
-  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.sa) : "r"(a.sa), "r"(b.sa), "r"(c.sa));
-  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.sb) : "r"(a.sb), "r"(b.sb), "r"(c.sb));
-  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.sc) : "r"(a.sc), "r"(b.sc), "r"(c.sc));
-  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.sd) : "r"(a.sd), "r"(b.sd), "r"(c.sd));
-  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.se) : "r"(a.se), "r"(b.se), "r"(c.se));
-  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.sf) : "r"(a.sf), "r"(b.sf), "r"(c.sf));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s8) : "r"(a.s8), "r"(b.s8), "r"(c.s8));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s9) : "r"(a.s9), "r"(b.s9), "r"(c.s9));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.sa) : "r"(a.sa), "r"(b.sa), "r"(c.sa));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.sb) : "r"(a.sb), "r"(b.sb), "r"(c.sb));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.sc) : "r"(a.sc), "r"(b.sc), "r"(c.sc));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.sd) : "r"(a.sd), "r"(b.sd), "r"(c.sd));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.se) : "r"(a.se), "r"(b.se), "r"(c.se));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.sf) : "r"(a.sf), "r"(b.sf), "r"(c.sf));
   #endif
 
   return r;
@@ -975,7 +975,7 @@ DECLSPEC u32 hc_byte_perm_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
 
-  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r) : "r"(a), "r"(b), "r"(c));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r) : "r"(a), "r"(b), "r"(c));
 
   return r;
 }
@@ -986,35 +986,35 @@ DECLSPEC u32x hc_bfe (const u32x a, const u32x b, const u32x c)
   u32x r;
 
   #if VECT_SIZE == 1
-  asm ("bfe.u32 %0, %1, %2, %3;" : "=r"(r)    : "r"(a),    "r"(b),    "r"(c));
+  asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r)    : "r"(a),    "r"(b),    "r"(c));
   #endif
 
   #if VECT_SIZE >= 2
-  asm ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s0) : "r"(a.s0), "r"(b.s0), "r"(c.s0));
-  asm ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s1) : "r"(a.s1), "r"(b.s1), "r"(c.s1));
+  asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s0) : "r"(a.s0), "r"(b.s0), "r"(c.s0));
+  asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s1) : "r"(a.s1), "r"(b.s1), "r"(c.s1));
   #endif
 
   #if VECT_SIZE >= 4
-  asm ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s2) : "r"(a.s2), "r"(b.s2), "r"(c.s2));
-  asm ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s3) : "r"(a.s3), "r"(b.s3), "r"(c.s3));
+  asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s2) : "r"(a.s2), "r"(b.s2), "r"(c.s2));
+  asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s3) : "r"(a.s3), "r"(b.s3), "r"(c.s3));
   #endif
 
   #if VECT_SIZE >= 8
-  asm ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s4) : "r"(a.s4), "r"(b.s4), "r"(c.s4));
-  asm ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s5) : "r"(a.s5), "r"(b.s5), "r"(c.s5));
-  asm ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s6) : "r"(a.s6), "r"(b.s6), "r"(c.s6));
-  asm ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s7) : "r"(a.s7), "r"(b.s7), "r"(c.s7));
+  asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s4) : "r"(a.s4), "r"(b.s4), "r"(c.s4));
+  asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s5) : "r"(a.s5), "r"(b.s5), "r"(c.s5));
+  asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s6) : "r"(a.s6), "r"(b.s6), "r"(c.s6));
+  asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s7) : "r"(a.s7), "r"(b.s7), "r"(c.s7));
   #endif
 
   #if VECT_SIZE >= 16
-  asm ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s8) : "r"(a.s8), "r"(b.s8), "r"(c.s8));
-  asm ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s9) : "r"(a.s9), "r"(b.s9), "r"(c.s9));
-  asm ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.sa) : "r"(a.sa), "r"(b.sa), "r"(c.sa));
-  asm ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.sb) : "r"(a.sb), "r"(b.sb), "r"(c.sb));
-  asm ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.sc) : "r"(a.sc), "r"(b.sc), "r"(c.sc));
-  asm ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.sd) : "r"(a.sd), "r"(b.sd), "r"(c.sd));
-  asm ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.se) : "r"(a.se), "r"(b.se), "r"(c.se));
-  asm ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.sf) : "r"(a.sf), "r"(b.sf), "r"(c.sf));
+  asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s8) : "r"(a.s8), "r"(b.s8), "r"(c.s8));
+  asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s9) : "r"(a.s9), "r"(b.s9), "r"(c.s9));
+  asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.sa) : "r"(a.sa), "r"(b.sa), "r"(c.sa));
+  asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.sb) : "r"(a.sb), "r"(b.sb), "r"(c.sb));
+  asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.sc) : "r"(a.sc), "r"(b.sc), "r"(c.sc));
+  asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.sd) : "r"(a.sd), "r"(b.sd), "r"(c.sd));
+  asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.se) : "r"(a.se), "r"(b.se), "r"(c.se));
+  asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.sf) : "r"(a.sf), "r"(b.sf), "r"(c.sf));
   #endif
 
   return r;
@@ -1025,7 +1025,7 @@ DECLSPEC u32 hc_bfe_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
 
-  asm ("bfe.u32 %0, %1, %2, %3;" : "=r"(r) : "r"(a), "r"(b), "r"(c));
+  asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r) : "r"(a), "r"(b), "r"(c));
 
   return r;
 }
@@ -1038,35 +1038,35 @@ DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const u32x c)
   #if CUDA_ARCH >= 350
 
   #if VECT_SIZE == 1
-  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r)    : "r"(b),    "r"(a),    "r"((c & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r)    : "r"(b),    "r"(a),    "r"((c & 3) * 8));
   #endif
 
   #if VECT_SIZE >= 2
-  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s0) : "r"(b.s0), "r"(a.s0), "r"((c.s0 & 3) * 8));
-  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s1) : "r"(b.s1), "r"(a.s1), "r"((c.s1 & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s0) : "r"(b.s0), "r"(a.s0), "r"((c.s0 & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s1) : "r"(b.s1), "r"(a.s1), "r"((c.s1 & 3) * 8));
   #endif
 
   #if VECT_SIZE >= 4
-  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s2) : "r"(b.s2), "r"(a.s2), "r"((c.s2 & 3) * 8));
-  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s3) : "r"(b.s3), "r"(a.s3), "r"((c.s3 & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s2) : "r"(b.s2), "r"(a.s2), "r"((c.s2 & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s3) : "r"(b.s3), "r"(a.s3), "r"((c.s3 & 3) * 8));
   #endif
 
   #if VECT_SIZE >= 8
-  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s4) : "r"(b.s4), "r"(a.s4), "r"((c.s4 & 3) * 8));
-  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s5) : "r"(b.s5), "r"(a.s5), "r"((c.s5 & 3) * 8));
-  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s6) : "r"(b.s6), "r"(a.s6), "r"((c.s6 & 3) * 8));
-  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s7) : "r"(b.s7), "r"(a.s7), "r"((c.s7 & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s4) : "r"(b.s4), "r"(a.s4), "r"((c.s4 & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s5) : "r"(b.s5), "r"(a.s5), "r"((c.s5 & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s6) : "r"(b.s6), "r"(a.s6), "r"((c.s6 & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s7) : "r"(b.s7), "r"(a.s7), "r"((c.s7 & 3) * 8));
   #endif
 
   #if VECT_SIZE >= 16
-  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s8) : "r"(b.s8), "r"(a.s8), "r"((c.s8 & 3) * 8));
-  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s9) : "r"(b.s9), "r"(a.s9), "r"((c.s9 & 3) * 8));
-  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sa) : "r"(b.sa), "r"(a.sa), "r"((c.sa & 3) * 8));
-  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sb) : "r"(b.sb), "r"(a.sb), "r"((c.sb & 3) * 8));
-  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sc) : "r"(b.sc), "r"(a.sc), "r"((c.sc & 3) * 8));
-  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sd) : "r"(b.sd), "r"(a.sd), "r"((c.sd & 3) * 8));
-  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.se) : "r"(b.se), "r"(a.se), "r"((c.se & 3) * 8));
-  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sf) : "r"(b.sf), "r"(a.sf), "r"((c.sf & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s8) : "r"(b.s8), "r"(a.s8), "r"((c.s8 & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s9) : "r"(b.s9), "r"(a.s9), "r"((c.s9 & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sa) : "r"(b.sa), "r"(a.sa), "r"((c.sa & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sb) : "r"(b.sb), "r"(a.sb), "r"((c.sb & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sc) : "r"(b.sc), "r"(a.sc), "r"((c.sc & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sd) : "r"(b.sd), "r"(a.sd), "r"((c.sd & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.se) : "r"(b.se), "r"(a.se), "r"((c.se & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sf) : "r"(b.sf), "r"(a.sf), "r"((c.sf & 3) * 8));
   #endif
 
   #else
@@ -1085,7 +1085,7 @@ DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const u32 c)
 
   #if CUDA_ARCH >= 350
 
-  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r) : "r"(b), "r"(a), "r"((c & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r) : "r"(b), "r"(a), "r"((c & 3) * 8));
 
   #else
 
@@ -1116,35 +1116,35 @@ DECLSPEC u32x hc_lop_0x96 (const u32x a, const u32x b, const u32x c)
   #if CUDA_ARCH >= 500
 
   #if VECT_SIZE == 1
-  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r): "r"(a), "r"(b), "r"(c));
+  asm volatile ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r): "r"(a), "r"(b), "r"(c));
   #endif
 
   #if VECT_SIZE >= 2
-  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s0): "r"(a.s0), "r"(b.s0), "r"(c.s0));
-  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s1): "r"(a.s1), "r"(b.s1), "r"(c.s1));
+  asm volatile ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s0): "r"(a.s0), "r"(b.s0), "r"(c.s0));
+  asm volatile ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s1): "r"(a.s1), "r"(b.s1), "r"(c.s1));
   #endif
 
   #if VECT_SIZE >= 4
-  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s2): "r"(a.s2), "r"(b.s2), "r"(c.s2));
-  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s3): "r"(a.s3), "r"(b.s3), "r"(c.s3));
+  asm volatile ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s2): "r"(a.s2), "r"(b.s2), "r"(c.s2));
+  asm volatile ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s3): "r"(a.s3), "r"(b.s3), "r"(c.s3));
   #endif
 
   #if VECT_SIZE >= 8
-  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s4): "r"(a.s4), "r"(b.s4), "r"(c.s4));
-  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s5): "r"(a.s5), "r"(b.s5), "r"(c.s5));
-  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s6): "r"(a.s6), "r"(b.s6), "r"(c.s6));
-  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s7): "r"(a.s7), "r"(b.s7), "r"(c.s7));
+  asm volatile ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s4): "r"(a.s4), "r"(b.s4), "r"(c.s4));
+  asm volatile ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s5): "r"(a.s5), "r"(b.s5), "r"(c.s5));
+  asm volatile ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s6): "r"(a.s6), "r"(b.s6), "r"(c.s6));
+  asm volatile ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s7): "r"(a.s7), "r"(b.s7), "r"(c.s7));
   #endif
 
   #if VECT_SIZE >= 16
-  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s8): "r"(a.s8), "r"(b.s8), "r"(c.s8));
-  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s9): "r"(a.s9), "r"(b.s9), "r"(c.s9));
-  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.sa): "r"(a.sa), "r"(b.sa), "r"(c.sa));
-  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.sb): "r"(a.sb), "r"(b.sb), "r"(c.sb));
-  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.sc): "r"(a.sc), "r"(b.sc), "r"(c.sc));
-  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.sd): "r"(a.sd), "r"(b.sd), "r"(c.sd));
-  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.se): "r"(a.se), "r"(b.se), "r"(c.se));
-  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.sf): "r"(a.sf), "r"(b.sf), "r"(c.sf));
+  asm volatile ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s8): "r"(a.s8), "r"(b.s8), "r"(c.s8));
+  asm volatile ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s9): "r"(a.s9), "r"(b.s9), "r"(c.s9));
+  asm volatile ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.sa): "r"(a.sa), "r"(b.sa), "r"(c.sa));
+  asm volatile ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.sb): "r"(a.sb), "r"(b.sb), "r"(c.sb));
+  asm volatile ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.sc): "r"(a.sc), "r"(b.sc), "r"(c.sc));
+  asm volatile ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.sd): "r"(a.sd), "r"(b.sd), "r"(c.sd));
+  asm volatile ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.se): "r"(a.se), "r"(b.se), "r"(c.se));
+  asm volatile ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.sf): "r"(a.sf), "r"(b.sf), "r"(c.sf));
   #endif
 
   #else
@@ -1163,7 +1163,7 @@ DECLSPEC u32 hc_lop_0x96_S (const u32 a, const u32 b, const u32 c)
 
   #if CUDA_ARCH >= 500
 
-  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r): "r"(a), "r"(b), "r"(c));
+  asm volatile ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r): "r"(a), "r"(b), "r"(c));
 
   #else
 
@@ -1593,10 +1593,10 @@ DECLSPEC u32 unpack_v8a_from_v32_S (const u32 v32)
   u32 r;
 
   #if defined IS_NV
-  asm ("bfe.u32 %0, %1, 0, 8;" : "=r"(r) : "r"(v32));
+  asm volatile ("bfe.u32 %0, %1, 0, 8;" : "=r"(r) : "r"(v32));
   #elif defined IS_AMD
     #if HAS_VBFE
-    __asm__ ("V_BFE_U32 %0, %1, 0, 8;" : "=v"(r) : "v"(v32));
+    __asm__ __volatile__ ("V_BFE_U32 %0, %1, 0, 8;" : "=v"(r) : "v"(v32));
     #else
     r = (v32 >> 0) & 0xff;
     #endif
@@ -1613,10 +1613,10 @@ DECLSPEC u32 unpack_v8b_from_v32_S (const u32 v32)
   u32 r;
 
   #if defined IS_NV
-  asm ("bfe.u32 %0, %1, 8, 8;" : "=r"(r) : "r"(v32));
+  asm volatile ("bfe.u32 %0, %1, 8, 8;" : "=r"(r) : "r"(v32));
   #elif defined IS_AMD
     #if HAS_VBFE
-    __asm__ ("V_BFE_U32 %0, %1, 8, 8;" : "=v"(r) : "v"(v32));
+    __asm__ __volatile__ ("V_BFE_U32 %0, %1, 8, 8;" : "=v"(r) : "v"(v32));
     #else
     r = (v32 >> 8) & 0xff;
     #endif
@@ -1633,10 +1633,10 @@ DECLSPEC u32 unpack_v8c_from_v32_S (const u32 v32)
   u32 r;
 
   #if defined IS_NV
-  asm ("bfe.u32 %0, %1, 16, 8;" : "=r"(r) : "r"(v32));
+  asm volatile ("bfe.u32 %0, %1, 16, 8;" : "=r"(r) : "r"(v32));
   #elif defined IS_AMD
     #if HAS_VBFE
-    __asm__ ("V_BFE_U32 %0, %1, 16, 8;" : "=v"(r) : "v"(v32));
+    __asm__ __volatile__ ("V_BFE_U32 %0, %1, 16, 8;" : "=v"(r) : "v"(v32));
     #else
     r = (v32 >> 16) & 0xff;
     #endif
@@ -1653,10 +1653,10 @@ DECLSPEC u32 unpack_v8d_from_v32_S (const u32 v32)
   u32 r;
 
   #if defined IS_NV
-  asm ("bfe.u32 %0, %1, 24, 8;" : "=r"(r) : "r"(v32));
+  asm volatile ("bfe.u32 %0, %1, 24, 8;" : "=r"(r) : "r"(v32));
   #elif defined IS_AMD
     #if HAS_VBFE
-    __asm__ ("V_BFE_U32 %0, %1, 24, 8;" : "=v"(r) : "v"(v32));
+    __asm__ __volatile__ ("V_BFE_U32 %0, %1, 24, 8;" : "=v"(r) : "v"(v32));
     #else
     r = (v32 >> 24) & 0xff;
     #endif
