@@ -82,14 +82,21 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
   }
   else
   {
-    u32 overhead = 0;
-
-    if (device_param->device_vendor_id == VENDOR_ID_NV)
+    if (user_options->kernel_threads_chgd == true)
     {
-      overhead = 4;
+      fixed_local_size = user_options->kernel_threads;
     }
+    else
+    {
+      u32 overhead = 0;
 
-    fixed_local_size = (device_param->device_local_mem_size - overhead) / 4096;
+      if (device_param->device_vendor_id == VENDOR_ID_NV)
+      {
+        overhead = 4;
+      }
+
+      fixed_local_size = (device_param->device_local_mem_size - overhead) / 4096;
+    }
   }
 
   hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u", fixed_local_size);
