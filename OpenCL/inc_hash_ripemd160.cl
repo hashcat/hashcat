@@ -4,6 +4,78 @@
 // input buf needs to be in algorithm native byte order (ripemd160 = LE, sha1 = BE, etc)
 // input buf needs to be 64 byte aligned when using ripemd160_update()
 
+#ifdef IS_NV
+#define RIPEMD160_F(x,y,z)    ((x) ^ (y) ^ (z))
+#define RIPEMD160_G(x,y,z)    ((z) ^ ((x) & ((y) ^ (z)))) /* x ? y : z */
+#define RIPEMD160_H(x,y,z)    (((x) | ~(y)) ^ (z))
+#define RIPEMD160_I(x,y,z)    ((y) ^ ((z) & ((x) ^ (y)))) /* z ? x : y */
+#define RIPEMD160_J(x,y,z)    ((x) ^ ((y) | ~(z)))
+#define RIPEMD160_Go(x,y,z)   (bitselect ((z), (y), (x)))
+#define RIPEMD160_Io(x,y,z)   (bitselect ((y), (x), (z)))
+#endif
+
+#ifdef IS_AMD
+#define RIPEMD160_F(x,y,z)    ((x) ^ (y) ^ (z))
+#define RIPEMD160_G(x,y,z)    ((z) ^ ((x) & ((y) ^ (z)))) /* x ? y : z */
+#define RIPEMD160_H(x,y,z)    (((x) | ~(y)) ^ (z))
+#define RIPEMD160_I(x,y,z)    ((y) ^ ((z) & ((x) ^ (y)))) /* z ? x : y */
+#define RIPEMD160_J(x,y,z)    ((x) ^ ((y) | ~(z)))
+#define RIPEMD160_Go(x,y,z)   (bitselect ((z), (y), (x)))
+#define RIPEMD160_Io(x,y,z)   (bitselect ((y), (x), (z)))
+#endif
+
+#ifdef IS_GENERIC
+#define RIPEMD160_F(x,y,z)    ((x) ^ (y) ^ (z))
+#define RIPEMD160_G(x,y,z)    ((z) ^ ((x) & ((y) ^ (z)))) /* x ? y : z */
+#define RIPEMD160_H(x,y,z)    (((x) | ~(y)) ^ (z))
+#define RIPEMD160_I(x,y,z)    ((y) ^ ((z) & ((x) ^ (y)))) /* z ? x : y */
+#define RIPEMD160_J(x,y,z)    ((x) ^ ((y) | ~(z)))
+#define RIPEMD160_Go(x,y,z)   (RIPEMD160_G ((x), (y), (z)))
+#define RIPEMD160_Io(x,y,z)   (RIPEMD160_I ((x), (y), (z)))
+#endif
+
+#define RIPEMD160_STEP_S(f,a,b,c,d,e,x,K,s) \
+{                                           \
+  a += K;                                   \
+  a += x;                                   \
+  a += f (b, c, d);                         \
+  a  = rotl32_S (a, s);                     \
+  a += e;                                   \
+  c  = rotl32_S (c, 10u);                   \
+}
+
+#define RIPEMD160_STEP(f,a,b,c,d,e,x,K,s) \
+{                                         \
+  a += K;                                 \
+  a += x;                                 \
+  a += f (b, c, d);                       \
+  a  = rotl32 (a, s);                     \
+  a += e;                                 \
+  c  = rotl32 (c, 10u);                   \
+}
+
+#define ROTATE_LEFT_WORKAROUND_BUG(a,n) ((a << n) | (a >> (32 - n)))
+
+#define RIPEMD160_STEP_S_WORKAROUND_BUG(f,a,b,c,d,e,x,K,s)  \
+{                                           \
+  a += K;                                   \
+  a += x;                                   \
+  a += f (b, c, d);                         \
+  a  = ROTATE_LEFT_WORKAROUND_BUG (a, s);   \
+  a += e;                                   \
+  c  = rotl32_S (c, 10u);                   \
+}
+
+#define RIPEMD160_STEP_WORKAROUND_BUG(f,a,b,c,d,e,x,K,s)  \
+{                                         \
+  a += K;                                 \
+  a += x;                                 \
+  a += f (b, c, d);                       \
+  a  = ROTATE_LEFT_WORKAROUND_BUG (a, s); \
+  a += e;                                 \
+  c  = rotl32 (c, 10u);                   \
+}
+
 typedef struct ripemd160_ctx
 {
   u32 h[5];
@@ -17,7 +89,6 @@ typedef struct ripemd160_ctx
 
 } ripemd160_ctx_t;
 
-DECLSPEC void ripemd160_transform (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest);
 DECLSPEC void ripemd160_transform (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest)
 {
   u32 a1 = digest[0];
@@ -215,7 +286,6 @@ DECLSPEC void ripemd160_transform (const u32 *w0, const u32 *w1, const u32 *w2, 
   digest[4] = e;
 }
 
-DECLSPEC void ripemd160_init (ripemd160_ctx_t *ctx);
 DECLSPEC void ripemd160_init (ripemd160_ctx_t *ctx)
 {
   ctx->h[0] = RIPEMD160M_A;
@@ -244,7 +314,6 @@ DECLSPEC void ripemd160_init (ripemd160_ctx_t *ctx)
   ctx->len = 0;
 }
 
-DECLSPEC void ripemd160_update_64 (ripemd160_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len);
 DECLSPEC void ripemd160_update_64 (ripemd160_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len)
 {
   const int pos = ctx->len & 63;
@@ -319,7 +388,6 @@ DECLSPEC void ripemd160_update_64 (ripemd160_ctx_t *ctx, u32 *w0, u32 *w1, u32 *
   }
 }
 
-DECLSPEC void ripemd160_update (ripemd160_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void ripemd160_update (ripemd160_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
@@ -372,7 +440,6 @@ DECLSPEC void ripemd160_update (ripemd160_ctx_t *ctx, const u32 *w, const int le
   ripemd160_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-DECLSPEC void ripemd160_update_swap (ripemd160_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void ripemd160_update_swap (ripemd160_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
@@ -459,7 +526,6 @@ DECLSPEC void ripemd160_update_swap (ripemd160_ctx_t *ctx, const u32 *w, const i
   ripemd160_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-DECLSPEC void ripemd160_update_utf16le (ripemd160_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void ripemd160_update_utf16le (ripemd160_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
@@ -502,7 +568,6 @@ DECLSPEC void ripemd160_update_utf16le (ripemd160_ctx_t *ctx, const u32 *w, cons
   ripemd160_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-DECLSPEC void ripemd160_update_utf16le_swap (ripemd160_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void ripemd160_update_utf16le_swap (ripemd160_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
@@ -579,7 +644,6 @@ DECLSPEC void ripemd160_update_utf16le_swap (ripemd160_ctx_t *ctx, const u32 *w,
   ripemd160_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-DECLSPEC void ripemd160_update_global (ripemd160_ctx_t *ctx, const __global u32 *w, const int len);
 DECLSPEC void ripemd160_update_global (ripemd160_ctx_t *ctx, const __global u32 *w, const int len)
 {
   u32 w0[4];
@@ -632,7 +696,6 @@ DECLSPEC void ripemd160_update_global (ripemd160_ctx_t *ctx, const __global u32 
   ripemd160_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-DECLSPEC void ripemd160_update_global_swap (ripemd160_ctx_t *ctx, const __global u32 *w, const int len);
 DECLSPEC void ripemd160_update_global_swap (ripemd160_ctx_t *ctx, const __global u32 *w, const int len)
 {
   u32 w0[4];
@@ -719,7 +782,6 @@ DECLSPEC void ripemd160_update_global_swap (ripemd160_ctx_t *ctx, const __global
   ripemd160_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-DECLSPEC void ripemd160_update_global_utf16le (ripemd160_ctx_t *ctx, const __global u32 *w, const int len);
 DECLSPEC void ripemd160_update_global_utf16le (ripemd160_ctx_t *ctx, const __global u32 *w, const int len)
 {
   u32 w0[4];
@@ -762,7 +824,6 @@ DECLSPEC void ripemd160_update_global_utf16le (ripemd160_ctx_t *ctx, const __glo
   ripemd160_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-DECLSPEC void ripemd160_update_global_utf16le_swap (ripemd160_ctx_t *ctx, const __global u32 *w, const int len);
 DECLSPEC void ripemd160_update_global_utf16le_swap (ripemd160_ctx_t *ctx, const __global u32 *w, const int len)
 {
   u32 w0[4];
@@ -839,7 +900,6 @@ DECLSPEC void ripemd160_update_global_utf16le_swap (ripemd160_ctx_t *ctx, const 
   ripemd160_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-DECLSPEC void ripemd160_final (ripemd160_ctx_t *ctx);
 DECLSPEC void ripemd160_final (ripemd160_ctx_t *ctx)
 {
   const int pos = ctx->len & 63;
@@ -883,7 +943,6 @@ typedef struct ripemd160_hmac_ctx
 
 } ripemd160_hmac_ctx_t;
 
-DECLSPEC void ripemd160_hmac_init_64 (ripemd160_hmac_ctx_t *ctx, const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3);
 DECLSPEC void ripemd160_hmac_init_64 (ripemd160_hmac_ctx_t *ctx, const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3)
 {
   u32 t0[4];
@@ -938,7 +997,6 @@ DECLSPEC void ripemd160_hmac_init_64 (ripemd160_hmac_ctx_t *ctx, const u32 *w0, 
   ripemd160_update_64 (&ctx->opad, t0, t1, t2, t3, 64);
 }
 
-DECLSPEC void ripemd160_hmac_init (ripemd160_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void ripemd160_hmac_init (ripemd160_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
@@ -996,7 +1054,6 @@ DECLSPEC void ripemd160_hmac_init (ripemd160_hmac_ctx_t *ctx, const u32 *w, cons
   ripemd160_hmac_init_64 (ctx, w0, w1, w2, w3);
 }
 
-DECLSPEC void ripemd160_hmac_init_swap (ripemd160_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void ripemd160_hmac_init_swap (ripemd160_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
@@ -1054,7 +1111,6 @@ DECLSPEC void ripemd160_hmac_init_swap (ripemd160_hmac_ctx_t *ctx, const u32 *w,
   ripemd160_hmac_init_64 (ctx, w0, w1, w2, w3);
 }
 
-DECLSPEC void ripemd160_hmac_init_global (ripemd160_hmac_ctx_t *ctx, __global const u32 *w, const int len);
 DECLSPEC void ripemd160_hmac_init_global (ripemd160_hmac_ctx_t *ctx, __global const u32 *w, const int len)
 {
   u32 w0[4];
@@ -1112,7 +1168,6 @@ DECLSPEC void ripemd160_hmac_init_global (ripemd160_hmac_ctx_t *ctx, __global co
   ripemd160_hmac_init_64 (ctx, w0, w1, w2, w3);
 }
 
-DECLSPEC void ripemd160_hmac_init_global_swap (ripemd160_hmac_ctx_t *ctx, __global const u32 *w, const int len);
 DECLSPEC void ripemd160_hmac_init_global_swap (ripemd160_hmac_ctx_t *ctx, __global const u32 *w, const int len)
 {
   u32 w0[4];
@@ -1170,61 +1225,51 @@ DECLSPEC void ripemd160_hmac_init_global_swap (ripemd160_hmac_ctx_t *ctx, __glob
   ripemd160_hmac_init_64 (ctx, w0, w1, w2, w3);
 }
 
-DECLSPEC void ripemd160_hmac_update_64 (ripemd160_hmac_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len);
 DECLSPEC void ripemd160_hmac_update_64 (ripemd160_hmac_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len)
 {
   ripemd160_update_64 (&ctx->ipad, w0, w1, w2, w3, len);
 }
 
-DECLSPEC void ripemd160_hmac_update (ripemd160_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void ripemd160_hmac_update (ripemd160_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   ripemd160_update (&ctx->ipad, w, len);
 }
 
-DECLSPEC void ripemd160_hmac_update_swap (ripemd160_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void ripemd160_hmac_update_swap (ripemd160_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   ripemd160_update_swap (&ctx->ipad, w, len);
 }
 
-DECLSPEC void ripemd160_hmac_update_utf16le (ripemd160_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void ripemd160_hmac_update_utf16le (ripemd160_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   ripemd160_update_utf16le (&ctx->ipad, w, len);
 }
 
-DECLSPEC void ripemd160_hmac_update_utf16le_swap (ripemd160_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void ripemd160_hmac_update_utf16le_swap (ripemd160_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   ripemd160_update_utf16le_swap (&ctx->ipad, w, len);
 }
 
-DECLSPEC void ripemd160_hmac_update_global (ripemd160_hmac_ctx_t *ctx, const __global u32 *w, const int len);
 DECLSPEC void ripemd160_hmac_update_global (ripemd160_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   ripemd160_update_global (&ctx->ipad, w, len);
 }
 
-DECLSPEC void ripemd160_hmac_update_global_swap (ripemd160_hmac_ctx_t *ctx, const __global u32 *w, const int len);
 DECLSPEC void ripemd160_hmac_update_global_swap (ripemd160_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   ripemd160_update_global_swap (&ctx->ipad, w, len);
 }
 
-DECLSPEC void ripemd160_hmac_update_global_utf16le (ripemd160_hmac_ctx_t *ctx, const __global u32 *w, const int len);
 DECLSPEC void ripemd160_hmac_update_global_utf16le (ripemd160_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   ripemd160_update_global_utf16le (&ctx->ipad, w, len);
 }
 
-DECLSPEC void ripemd160_hmac_update_global_utf16le_swap (ripemd160_hmac_ctx_t *ctx, const __global u32 *w, const int len);
 DECLSPEC void ripemd160_hmac_update_global_utf16le_swap (ripemd160_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   ripemd160_update_global_utf16le_swap (&ctx->ipad, w, len);
 }
 
-DECLSPEC void ripemd160_hmac_final (ripemd160_hmac_ctx_t *ctx);
 DECLSPEC void ripemd160_hmac_final (ripemd160_hmac_ctx_t *ctx)
 {
   ripemd160_final (&ctx->ipad);
@@ -1271,7 +1316,6 @@ typedef struct ripemd160_ctx_vector
 
 } ripemd160_ctx_vector_t;
 
-DECLSPEC void ripemd160_transform_vector (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u32x *digest);
 DECLSPEC void ripemd160_transform_vector (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u32x *digest)
 {
   u32x a1 = digest[0];
@@ -1469,7 +1513,6 @@ DECLSPEC void ripemd160_transform_vector (const u32x *w0, const u32x *w1, const 
   digest[4] = e;
 }
 
-DECLSPEC void ripemd160_init_vector (ripemd160_ctx_vector_t *ctx);
 DECLSPEC void ripemd160_init_vector (ripemd160_ctx_vector_t *ctx)
 {
   ctx->h[0] = RIPEMD160M_A;
@@ -1498,7 +1541,6 @@ DECLSPEC void ripemd160_init_vector (ripemd160_ctx_vector_t *ctx)
   ctx->len = 0;
 }
 
-DECLSPEC void ripemd160_init_vector_from_scalar (ripemd160_ctx_vector_t *ctx, ripemd160_ctx_t *ctx0);
 DECLSPEC void ripemd160_init_vector_from_scalar (ripemd160_ctx_vector_t *ctx, ripemd160_ctx_t *ctx0)
 {
   ctx->h[0] = ctx0->h[0];
@@ -1527,7 +1569,6 @@ DECLSPEC void ripemd160_init_vector_from_scalar (ripemd160_ctx_vector_t *ctx, ri
   ctx->len = ctx0->len;
 }
 
-DECLSPEC void ripemd160_update_vector_64 (ripemd160_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, const int len);
 DECLSPEC void ripemd160_update_vector_64 (ripemd160_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, const int len)
 {
   const int pos = ctx->len & 63;
@@ -1602,7 +1643,6 @@ DECLSPEC void ripemd160_update_vector_64 (ripemd160_ctx_vector_t *ctx, u32x *w0,
   }
 }
 
-DECLSPEC void ripemd160_update_vector (ripemd160_ctx_vector_t *ctx, const u32x *w, const int len);
 DECLSPEC void ripemd160_update_vector (ripemd160_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
@@ -1655,7 +1695,6 @@ DECLSPEC void ripemd160_update_vector (ripemd160_ctx_vector_t *ctx, const u32x *
   ripemd160_update_vector_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-DECLSPEC void ripemd160_update_vector_swap (ripemd160_ctx_vector_t *ctx, const u32x *w, const int len);
 DECLSPEC void ripemd160_update_vector_swap (ripemd160_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
@@ -1742,7 +1781,6 @@ DECLSPEC void ripemd160_update_vector_swap (ripemd160_ctx_vector_t *ctx, const u
   ripemd160_update_vector_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-DECLSPEC void ripemd160_update_vector_utf16le (ripemd160_ctx_vector_t *ctx, const u32x *w, const int len);
 DECLSPEC void ripemd160_update_vector_utf16le (ripemd160_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
@@ -1785,7 +1823,6 @@ DECLSPEC void ripemd160_update_vector_utf16le (ripemd160_ctx_vector_t *ctx, cons
   ripemd160_update_vector_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-DECLSPEC void ripemd160_update_vector_utf16le_swap (ripemd160_ctx_vector_t *ctx, const u32x *w, const int len);
 DECLSPEC void ripemd160_update_vector_utf16le_swap (ripemd160_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
@@ -1862,7 +1899,6 @@ DECLSPEC void ripemd160_update_vector_utf16le_swap (ripemd160_ctx_vector_t *ctx,
   ripemd160_update_vector_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-DECLSPEC void ripemd160_final_vector (ripemd160_ctx_vector_t *ctx);
 DECLSPEC void ripemd160_final_vector (ripemd160_ctx_vector_t *ctx)
 {
   const int pos = ctx->len & 63;
@@ -1906,7 +1942,6 @@ typedef struct ripemd160_hmac_ctx_vector
 
 } ripemd160_hmac_ctx_vector_t;
 
-DECLSPEC void ripemd160_hmac_init_vector_64 (ripemd160_hmac_ctx_vector_t *ctx, const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3);
 DECLSPEC void ripemd160_hmac_init_vector_64 (ripemd160_hmac_ctx_vector_t *ctx, const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3)
 {
   u32x t0[4];
@@ -1961,7 +1996,6 @@ DECLSPEC void ripemd160_hmac_init_vector_64 (ripemd160_hmac_ctx_vector_t *ctx, c
   ripemd160_update_vector_64 (&ctx->opad, t0, t1, t2, t3, 64);
 }
 
-DECLSPEC void ripemd160_hmac_init_vector (ripemd160_hmac_ctx_vector_t *ctx, const u32x *w, const int len);
 DECLSPEC void ripemd160_hmac_init_vector (ripemd160_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
@@ -2019,19 +2053,16 @@ DECLSPEC void ripemd160_hmac_init_vector (ripemd160_hmac_ctx_vector_t *ctx, cons
   ripemd160_hmac_init_vector_64 (ctx, w0, w1, w2, w3);
 }
 
-DECLSPEC void ripemd160_hmac_update_vector_64 (ripemd160_hmac_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, const int len);
 DECLSPEC void ripemd160_hmac_update_vector_64 (ripemd160_hmac_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, const int len)
 {
   ripemd160_update_vector_64 (&ctx->ipad, w0, w1, w2, w3, len);
 }
 
-DECLSPEC void ripemd160_hmac_update_vector (ripemd160_hmac_ctx_vector_t *ctx, const u32x *w, const int len);
 DECLSPEC void ripemd160_hmac_update_vector (ripemd160_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   ripemd160_update_vector (&ctx->ipad, w, len);
 }
 
-DECLSPEC void ripemd160_hmac_final_vector (ripemd160_hmac_ctx_vector_t *ctx);
 DECLSPEC void ripemd160_hmac_final_vector (ripemd160_hmac_ctx_vector_t *ctx)
 {
   ripemd160_final_vector (&ctx->ipad);

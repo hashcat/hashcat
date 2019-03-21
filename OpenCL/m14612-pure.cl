@@ -5,13 +5,14 @@
 
 #define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha1.cl"
+#include "inc_hash_sha256.cl"
+#include "inc_hash_sha512.cl"
+#include "inc_hash_ripemd160.cl"
 #include "inc_cipher_serpent.cl"
 
 #define LUKS_STRIPES 4000

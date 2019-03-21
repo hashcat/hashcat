@@ -11,7 +11,6 @@
 #include "shared.h"
 #include "cpu_des.h"
 #include "cpu_md5.h"
-#include "inc_hash_constants.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -287,17 +286,15 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   /* precompute netntlmv1 exploit stop */
 
-  u32 tt;
-
-  IP (digest[0], digest[1], tt);
-  IP (digest[2], digest[3], tt);
+  DES_IP (digest[0], digest[1]);
+  DES_IP (digest[2], digest[3]);
 
   digest[0] = rotr32 (digest[0], 29);
   digest[1] = rotr32 (digest[1], 29);
   digest[2] = rotr32 (digest[2], 29);
   digest[3] = rotr32 (digest[3], 29);
 
-  IP (salt->salt_buf[0], salt->salt_buf[1], tt);
+  DES_IP (salt->salt_buf[0], salt->salt_buf[1]);
 
   salt->salt_buf[0] = rotl32 (salt->salt_buf[0], 3);
   salt->salt_buf[1] = rotl32 (salt->salt_buf[1], 3);
@@ -321,15 +318,13 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   tmp[2] = digest[2];
   tmp[3] = digest[3];
 
-  u32 tt;
-
   tmp[0] = rotl32 (tmp[0], 29);
   tmp[1] = rotl32 (tmp[1], 29);
   tmp[2] = rotl32 (tmp[2], 29);
   tmp[3] = rotl32 (tmp[3], 29);
 
-  FP (tmp[1], tmp[0], tt);
-  FP (tmp[3], tmp[2], tt);
+  DES_FP (tmp[1], tmp[0]);
+  DES_FP (tmp[3], tmp[2]);
 
   u8 *out_buf = (u8 *) line_buf;
 

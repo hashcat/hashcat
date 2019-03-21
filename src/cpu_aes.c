@@ -3,14 +3,9 @@
  * License.....: MIT
  */
 
-#define IS_GENERIC
-
 #include "common.h"
 #include "types.h"
 #include "bitops.h"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "cpu_aes.h"
 
 static const u32 te0[256] =
 {

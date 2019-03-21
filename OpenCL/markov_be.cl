@@ -3,13 +3,12 @@
  * License.....: MIT
  */
 
-#include "inc_vendor.cl"
+#include "inc_vendor.h"
 
 #define CHARSIZ 256
 
-#include "inc_types.cl"
+#include "inc_types.h"
 
-DECLSPEC void generate_pw (u32 *pw_buf, __global const cs_t *root_css_buf, __global const cs_t *markov_css_buf, const u32 pw_l_len, const u32 pw_r_len, const u32 mask80, const u32 bits14, const u32 bits15, u64 val);
 DECLSPEC void generate_pw (u32 *pw_buf, __global const cs_t *root_css_buf, __global const cs_t *markov_css_buf, const u32 pw_l_len, const u32 pw_r_len, const u32 mask80, const u32 bits14, const u32 bits15, u64 val)
 {
   __global const cs_t *cs = &root_css_buf[pw_r_len];

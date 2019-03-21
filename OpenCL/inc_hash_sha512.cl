@@ -4,6 +4,62 @@
 // input buf needs to be in algorithm native byte order (md5 = LE, sha1 = BE, etc)
 // input buf needs to be 128 byte aligned when using sha512_update()
 
+#define SHIFT_RIGHT_64(x,n) ((x) >> (n))
+
+#define SHA512_S0_S(x) (rotr64_S ((x), 28) ^ rotr64_S ((x), 34) ^ rotr64_S ((x), 39))
+#define SHA512_S1_S(x) (rotr64_S ((x), 14) ^ rotr64_S ((x), 18) ^ rotr64_S ((x), 41))
+#define SHA512_S2_S(x) (rotr64_S ((x),  1) ^ rotr64_S ((x),  8) ^ SHIFT_RIGHT_64 ((x), 7))
+#define SHA512_S3_S(x) (rotr64_S ((x), 19) ^ rotr64_S ((x), 61) ^ SHIFT_RIGHT_64 ((x), 6))
+
+#define SHA512_S0(x) (rotr64 ((x), 28) ^ rotr64 ((x), 34) ^ rotr64 ((x), 39))
+#define SHA512_S1(x) (rotr64 ((x), 14) ^ rotr64 ((x), 18) ^ rotr64 ((x), 41))
+#define SHA512_S2(x) (rotr64 ((x),  1) ^ rotr64 ((x),  8) ^ SHIFT_RIGHT_64 ((x), 7))
+#define SHA512_S3(x) (rotr64 ((x), 19) ^ rotr64 ((x), 61) ^ SHIFT_RIGHT_64 ((x), 6))
+
+#define SHA512_F0(x,y,z) ((z) ^ ((x) & ((y) ^ (z))))
+#define SHA512_F1(x,y,z) (((x) & (y)) | ((z) & ((x) ^ (y))))
+
+#ifdef IS_NV
+#define SHA512_F0o(x,y,z) (bitselect ((z), (y), (x)))
+#define SHA512_F1o(x,y,z) (bitselect ((x), (y), ((x) ^ (z))))
+#endif
+
+#ifdef IS_AMD
+#define SHA512_F0o(x,y,z) (bitselect ((z), (y), (x)))
+#define SHA512_F1o(x,y,z) (bitselect ((x), (y), ((x) ^ (z))))
+#endif
+
+#ifdef IS_GENERIC
+#define SHA512_F0o(x,y,z) (SHA512_F0 ((x), (y), (z)))
+#define SHA512_F1o(x,y,z) (SHA512_F1 ((x), (y), (z)))
+#endif
+
+#define SHA512_STEP_S(F0,F1,a,b,c,d,e,f,g,h,x,K)  \
+{                                                 \
+  h += K;                                         \
+  h += x;                                         \
+  h += SHA512_S1_S (e);                           \
+  h += F0 (e, f, g);                              \
+  d += h;                                         \
+  h += SHA512_S0_S (a);                           \
+  h += F1 (a, b, c);                              \
+}
+
+#define SHA512_EXPAND_S(x,y,z,w) (SHA512_S3_S (x) + y + SHA512_S2_S (z) + w)
+
+#define SHA512_STEP(F0,F1,a,b,c,d,e,f,g,h,x,K)  \
+{                                               \
+  h += K;                                       \
+  h += x;                                       \
+  h += SHA512_S1 (e);                           \
+  h += F0 (e, f, g);                            \
+  d += h;                                       \
+  h += SHA512_S0 (a);                           \
+  h += F1 (a, b, c);                            \
+}
+
+#define SHA512_EXPAND(x,y,z,w) (SHA512_S3 (x) + y + SHA512_S2 (z) + w)
+
 __constant u64a k_sha512[80] =
 {
   SHA512C00, SHA512C01, SHA512C02, SHA512C03,
@@ -45,7 +101,6 @@ typedef struct sha512_ctx
 
 } sha512_ctx_t;
 
-DECLSPEC void sha512_transform (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, const u32 *w4, const u32 *w5, const u32 *w6, const u32 *w7, u64 *digest);
 DECLSPEC void sha512_transform (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, const u32 *w4, const u32 *w5, const u32 *w6, const u32 *w7, u64 *digest)
 {
   u64 a = digest[0];
@@ -137,7 +192,6 @@ DECLSPEC void sha512_transform (const u32 *w0, const u32 *w1, const u32 *w2, con
   digest[7] += h;
 }
 
-DECLSPEC void sha512_init (sha512_ctx_t *ctx);
 DECLSPEC void sha512_init (sha512_ctx_t *ctx)
 {
   ctx->h[0] = SHA512M_A;
@@ -185,7 +239,6 @@ DECLSPEC void sha512_init (sha512_ctx_t *ctx)
   ctx->len = 0;
 }
 
-DECLSPEC void sha512_update_128 (sha512_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const int len);
 DECLSPEC void sha512_update_128 (sha512_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const int len)
 {
   const int pos = ctx->len & 127;
@@ -312,7 +365,6 @@ DECLSPEC void sha512_update_128 (sha512_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u
   }
 }
 
-DECLSPEC void sha512_update (sha512_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void sha512_update (sha512_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
@@ -401,7 +453,6 @@ DECLSPEC void sha512_update (sha512_ctx_t *ctx, const u32 *w, const int len)
   sha512_update_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, len - pos1);
 }
 
-DECLSPEC void sha512_update_swap (sha512_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void sha512_update_swap (sha512_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
@@ -556,7 +607,6 @@ DECLSPEC void sha512_update_swap (sha512_ctx_t *ctx, const u32 *w, const int len
   sha512_update_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, len - pos1);
 }
 
-DECLSPEC void sha512_update_utf16le (sha512_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void sha512_update_utf16le (sha512_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
@@ -623,7 +673,6 @@ DECLSPEC void sha512_update_utf16le (sha512_ctx_t *ctx, const u32 *w, const int 
   sha512_update_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, (len - pos1) * 2);
 }
 
-DECLSPEC void sha512_update_utf16le_swap (sha512_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void sha512_update_utf16le_swap (sha512_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
@@ -756,7 +805,6 @@ DECLSPEC void sha512_update_utf16le_swap (sha512_ctx_t *ctx, const u32 *w, const
   sha512_update_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, (len - pos1) * 2);
 }
 
-DECLSPEC void sha512_update_global (sha512_ctx_t *ctx, const __global u32 *w, const int len);
 DECLSPEC void sha512_update_global (sha512_ctx_t *ctx, const __global u32 *w, const int len)
 {
   u32 w0[4];
@@ -845,7 +893,6 @@ DECLSPEC void sha512_update_global (sha512_ctx_t *ctx, const __global u32 *w, co
   sha512_update_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, len - pos1);
 }
 
-DECLSPEC void sha512_update_global_swap (sha512_ctx_t *ctx, const __global u32 *w, const int len);
 DECLSPEC void sha512_update_global_swap (sha512_ctx_t *ctx, const __global u32 *w, const int len)
 {
   u32 w0[4];
@@ -1000,7 +1047,6 @@ DECLSPEC void sha512_update_global_swap (sha512_ctx_t *ctx, const __global u32 *
   sha512_update_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, len - pos1);
 }
 
-DECLSPEC void sha512_update_global_utf16le (sha512_ctx_t *ctx, const __global u32 *w, const int len);
 DECLSPEC void sha512_update_global_utf16le (sha512_ctx_t *ctx, const __global u32 *w, const int len)
 {
   u32 w0[4];
@@ -1067,7 +1113,6 @@ DECLSPEC void sha512_update_global_utf16le (sha512_ctx_t *ctx, const __global u3
   sha512_update_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, (len - pos1) * 2);
 }
 
-DECLSPEC void sha512_update_global_utf16le_swap (sha512_ctx_t *ctx, const __global u32 *w, const int len);
 DECLSPEC void sha512_update_global_utf16le_swap (sha512_ctx_t *ctx, const __global u32 *w, const int len)
 {
   u32 w0[4];
@@ -1200,7 +1245,6 @@ DECLSPEC void sha512_update_global_utf16le_swap (sha512_ctx_t *ctx, const __glob
   sha512_update_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, (len - pos1) * 2);
 }
 
-DECLSPEC void sha512_final (sha512_ctx_t *ctx);
 DECLSPEC void sha512_final (sha512_ctx_t *ctx)
 {
   const int pos = ctx->len & 127;
@@ -1260,7 +1304,6 @@ typedef struct sha512_hmac_ctx
 
 } sha512_hmac_ctx_t;
 
-DECLSPEC void sha512_hmac_init_128 (sha512_hmac_ctx_t *ctx, const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, const u32 *w4, const u32 *w5, const u32 *w6, const u32 *w7);
 DECLSPEC void sha512_hmac_init_128 (sha512_hmac_ctx_t *ctx, const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, const u32 *w4, const u32 *w5, const u32 *w6, const u32 *w7)
 {
   u32 t0[4];
@@ -1351,7 +1394,6 @@ DECLSPEC void sha512_hmac_init_128 (sha512_hmac_ctx_t *ctx, const u32 *w0, const
   sha512_update_128 (&ctx->opad, t0, t1, t2, t3, t4, t5, t6, t7, 128);
 }
 
-DECLSPEC void sha512_hmac_init (sha512_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void sha512_hmac_init (sha512_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
@@ -1445,7 +1487,6 @@ DECLSPEC void sha512_hmac_init (sha512_hmac_ctx_t *ctx, const u32 *w, const int 
   sha512_hmac_init_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7);
 }
 
-DECLSPEC void sha512_hmac_init_swap (sha512_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void sha512_hmac_init_swap (sha512_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
@@ -1539,7 +1580,6 @@ DECLSPEC void sha512_hmac_init_swap (sha512_hmac_ctx_t *ctx, const u32 *w, const
   sha512_hmac_init_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7);
 }
 
-DECLSPEC void sha512_hmac_init_global (sha512_hmac_ctx_t *ctx, __global const u32 *w, const int len);
 DECLSPEC void sha512_hmac_init_global (sha512_hmac_ctx_t *ctx, __global const u32 *w, const int len)
 {
   u32 w0[4];
@@ -1633,7 +1673,6 @@ DECLSPEC void sha512_hmac_init_global (sha512_hmac_ctx_t *ctx, __global const u3
   sha512_hmac_init_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7);
 }
 
-DECLSPEC void sha512_hmac_init_global_swap (sha512_hmac_ctx_t *ctx, __global const u32 *w, const int len);
 DECLSPEC void sha512_hmac_init_global_swap (sha512_hmac_ctx_t *ctx, __global const u32 *w, const int len)
 {
   u32 w0[4];
@@ -1727,61 +1766,51 @@ DECLSPEC void sha512_hmac_init_global_swap (sha512_hmac_ctx_t *ctx, __global con
   sha512_hmac_init_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7);
 }
 
-DECLSPEC void sha512_hmac_update_128 (sha512_hmac_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const int len);
 DECLSPEC void sha512_hmac_update_128 (sha512_hmac_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const int len)
 {
   sha512_update_128 (&ctx->ipad, w0, w1, w2, w3, w4, w5, w6, w7, len);
 }
 
-DECLSPEC void sha512_hmac_update (sha512_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void sha512_hmac_update (sha512_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   sha512_update (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha512_hmac_update_swap (sha512_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void sha512_hmac_update_swap (sha512_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   sha512_update_swap (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha512_hmac_update_utf16le (sha512_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void sha512_hmac_update_utf16le (sha512_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   sha512_update_utf16le (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha512_hmac_update_utf16le_swap (sha512_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void sha512_hmac_update_utf16le_swap (sha512_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   sha512_update_utf16le_swap (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha512_hmac_update_global (sha512_hmac_ctx_t *ctx, const __global u32 *w, const int len);
 DECLSPEC void sha512_hmac_update_global (sha512_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   sha512_update_global (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha512_hmac_update_global_swap (sha512_hmac_ctx_t *ctx, const __global u32 *w, const int len);
 DECLSPEC void sha512_hmac_update_global_swap (sha512_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   sha512_update_global_swap (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha512_hmac_update_global_utf16le (sha512_hmac_ctx_t *ctx, const __global u32 *w, const int len);
 DECLSPEC void sha512_hmac_update_global_utf16le (sha512_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   sha512_update_global_utf16le (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha512_hmac_update_global_utf16le_swap (sha512_hmac_ctx_t *ctx, const __global u32 *w, const int len);
 DECLSPEC void sha512_hmac_update_global_utf16le_swap (sha512_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   sha512_update_global_utf16le_swap (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha512_hmac_final (sha512_hmac_ctx_t *ctx);
 DECLSPEC void sha512_hmac_final (sha512_hmac_ctx_t *ctx)
 {
   sha512_final (&ctx->ipad);
@@ -1852,7 +1881,6 @@ typedef struct sha512_ctx_vector
 
 } sha512_ctx_vector_t;
 
-DECLSPEC void sha512_transform_vector (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, const u32x *w4, const u32x *w5, const u32x *w6, const u32x *w7, u64x *digest);
 DECLSPEC void sha512_transform_vector (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, const u32x *w4, const u32x *w5, const u32x *w6, const u32x *w7, u64x *digest)
 {
   u64x a = digest[0];
@@ -1944,7 +1972,6 @@ DECLSPEC void sha512_transform_vector (const u32x *w0, const u32x *w1, const u32
   digest[7] += h;
 }
 
-DECLSPEC void sha512_init_vector (sha512_ctx_vector_t *ctx);
 DECLSPEC void sha512_init_vector (sha512_ctx_vector_t *ctx)
 {
   ctx->h[0] = SHA512M_A;
@@ -1992,7 +2019,6 @@ DECLSPEC void sha512_init_vector (sha512_ctx_vector_t *ctx)
   ctx->len = 0;
 }
 
-DECLSPEC void sha512_init_vector_from_scalar (sha512_ctx_vector_t *ctx, sha512_ctx_t *ctx0);
 DECLSPEC void sha512_init_vector_from_scalar (sha512_ctx_vector_t *ctx, sha512_ctx_t *ctx0)
 {
   ctx->h[0] = ctx0->h[0];
@@ -2040,7 +2066,6 @@ DECLSPEC void sha512_init_vector_from_scalar (sha512_ctx_vector_t *ctx, sha512_c
   ctx->len = ctx0->len;
 }
 
-DECLSPEC void sha512_update_vector_128 (sha512_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, const int len);
 DECLSPEC void sha512_update_vector_128 (sha512_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, const int len)
 {
   const int pos = ctx->len & 127;
@@ -2167,7 +2192,6 @@ DECLSPEC void sha512_update_vector_128 (sha512_ctx_vector_t *ctx, u32x *w0, u32x
   }
 }
 
-DECLSPEC void sha512_update_vector (sha512_ctx_vector_t *ctx, const u32x *w, const int len);
 DECLSPEC void sha512_update_vector (sha512_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
@@ -2256,7 +2280,6 @@ DECLSPEC void sha512_update_vector (sha512_ctx_vector_t *ctx, const u32x *w, con
   sha512_update_vector_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, len - pos1);
 }
 
-DECLSPEC void sha512_update_vector_swap (sha512_ctx_vector_t *ctx, const u32x *w, const int len);
 DECLSPEC void sha512_update_vector_swap (sha512_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
@@ -2411,7 +2434,6 @@ DECLSPEC void sha512_update_vector_swap (sha512_ctx_vector_t *ctx, const u32x *w
   sha512_update_vector_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, len - pos1);
 }
 
-DECLSPEC void sha512_update_vector_utf16le (sha512_ctx_vector_t *ctx, const u32x *w, const int len);
 DECLSPEC void sha512_update_vector_utf16le (sha512_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
@@ -2478,7 +2500,6 @@ DECLSPEC void sha512_update_vector_utf16le (sha512_ctx_vector_t *ctx, const u32x
   sha512_update_vector_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, (len - pos1) * 2);
 }
 
-DECLSPEC void sha512_update_vector_utf16le_swap (sha512_ctx_vector_t *ctx, const u32x *w, const int len);
 DECLSPEC void sha512_update_vector_utf16le_swap (sha512_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
@@ -2611,7 +2632,6 @@ DECLSPEC void sha512_update_vector_utf16le_swap (sha512_ctx_vector_t *ctx, const
   sha512_update_vector_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, (len - pos1) * 2);
 }
 
-DECLSPEC void sha512_update_vector_utf16beN (sha512_ctx_vector_t *ctx, const u32x *w, const int len);
 DECLSPEC void sha512_update_vector_utf16beN (sha512_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
@@ -2678,7 +2698,6 @@ DECLSPEC void sha512_update_vector_utf16beN (sha512_ctx_vector_t *ctx, const u32
   sha512_update_vector_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, (len - pos1) * 2);
 }
 
-DECLSPEC void sha512_final_vector (sha512_ctx_vector_t *ctx);
 DECLSPEC void sha512_final_vector (sha512_ctx_vector_t *ctx)
 {
   const int pos = ctx->len & 127;
@@ -2738,7 +2757,6 @@ typedef struct sha512_hmac_ctx_vector
 
 } sha512_hmac_ctx_vector_t;
 
-DECLSPEC void sha512_hmac_init_vector_128 (sha512_hmac_ctx_vector_t *ctx, const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, const u32x *w4, const u32x *w5, const u32x *w6, const u32x *w7);
 DECLSPEC void sha512_hmac_init_vector_128 (sha512_hmac_ctx_vector_t *ctx, const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, const u32x *w4, const u32x *w5, const u32x *w6, const u32x *w7)
 {
   u32x t0[4];
@@ -2829,7 +2847,6 @@ DECLSPEC void sha512_hmac_init_vector_128 (sha512_hmac_ctx_vector_t *ctx, const 
   sha512_update_vector_128 (&ctx->opad, t0, t1, t2, t3, t4, t5, t6, t7, 128);
 }
 
-DECLSPEC void sha512_hmac_init_vector (sha512_hmac_ctx_vector_t *ctx, const u32x *w, const int len);
 DECLSPEC void sha512_hmac_init_vector (sha512_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
@@ -2923,19 +2940,16 @@ DECLSPEC void sha512_hmac_init_vector (sha512_hmac_ctx_vector_t *ctx, const u32x
   sha512_hmac_init_vector_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7);
 }
 
-DECLSPEC void sha512_hmac_update_vector_128 (sha512_hmac_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, const int len);
 DECLSPEC void sha512_hmac_update_vector_128 (sha512_hmac_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, const int len)
 {
   sha512_update_vector_128 (&ctx->ipad, w0, w1, w2, w3, w4, w5, w6, w7, len);
 }
 
-DECLSPEC void sha512_hmac_update_vector (sha512_hmac_ctx_vector_t *ctx, const u32x *w, const int len);
 DECLSPEC void sha512_hmac_update_vector (sha512_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   sha512_update_vector (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha512_hmac_final_vector (sha512_hmac_ctx_vector_t *ctx);
 DECLSPEC void sha512_hmac_final_vector (sha512_hmac_ctx_vector_t *ctx)
 {
   sha512_final_vector (&ctx->ipad);

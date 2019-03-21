@@ -3,11 +3,10 @@
  * License.....: MIT
  */
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
+#include "inc_hash_sha1.cl"
 #include "inc_cipher_aes.cl"
 
 #define COMPARE_S "inc_comp_single.cl"
@@ -35,7 +34,7 @@ typedef struct rar3_tmp
 
 } rar3_tmp_t;
 
-DECLSPEC void sha1_transform (const u32 *w, u32 *digest)
+DECLSPEC void sha1_transform_intern (const u32 *w, u32 *digest)
 {
   u32 A = digest[0];
   u32 B = digest[1];
@@ -266,7 +265,7 @@ __kernel void m12500_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
       {
         const u32 j16 = j * 16;
 
-        sha1_transform (&largeblock[j16], dgst);
+        sha1_transform_intern (&largeblock[j16], dgst);
       }
     }
   }
@@ -374,7 +373,7 @@ __kernel void m12500_comp (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
   dgst[3] = tmps[gid].dgst[16][3];
   dgst[4] = tmps[gid].dgst[16][4];
 
-  sha1_transform (w_buf, dgst);
+  sha1_transform_intern (w_buf, dgst);
 
   u32 ukey[4];
 
@@ -475,7 +474,7 @@ __kernel void m12500_comp (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
     dgst[3] = tmps[gid].dgst[i][3];
     dgst[4] = tmps[gid].dgst[i][4];
 
-    sha1_transform (w, dgst);
+    sha1_transform_intern (w, dgst);
 
     PUTCHAR (iv, i, dgst[4] & 0xff);
   }

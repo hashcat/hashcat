@@ -5,14 +5,13 @@
 
 #define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_rp_optimized.h"
 #include "inc_rp_optimized.cl"
 #include "inc_simd.cl"
+#include "inc_hash_sha1.cl"
 
 __kernel void m00110_m04 (KERN_ATTR_RULES ())
 {

@@ -3,9 +3,8 @@
  * License.....: MIT
  */
 
-#include "inc_hash_constants.h"
-#include "inc_vendor.cl"
-#include "inc_types.cl"
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_rp.h"
 #include "inc_rp.cl"
 

@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#include "inc_vendor.cl"
-#include "inc_types.cl"
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 
 __kernel void m02000_mxx (KERN_ATTR_BASIC ())

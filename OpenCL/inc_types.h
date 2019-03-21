@@ -3,6 +3,101 @@
  * License.....: MIT
  */
 
+typedef uchar  u8;
+typedef ushort u16;
+typedef uint   u32;
+typedef ulong  u64;
+
+//testwise disabled
+//typedef u8  u8a  __attribute__ ((aligned (8)));
+//typedef u16 u16a __attribute__ ((aligned (8)));
+//typedef u32 u32a __attribute__ ((aligned (8)));
+//typedef u64 u64a __attribute__ ((aligned (8)));
+
+typedef u8  u8a;
+typedef u16 u16a;
+typedef u32 u32a;
+typedef u64 u64a;
+
+#ifndef NEW_SIMD_CODE
+#undef  VECT_SIZE
+#define VECT_SIZE 1
+#endif
+
+#define CONCAT(a, b)       a##b
+#define VTYPE(type, width) CONCAT(type, width)
+
+#if VECT_SIZE == 1
+typedef uchar   u8x;
+typedef ushort  u16x;
+typedef uint    u32x;
+typedef ulong   u64x;
+#else
+typedef VTYPE(uchar,  VECT_SIZE)  u8x;
+typedef VTYPE(ushort, VECT_SIZE) u16x;
+typedef VTYPE(uint,   VECT_SIZE) u32x;
+typedef VTYPE(ulong,  VECT_SIZE) u64x;
+#endif
+
+// unions
+
+typedef union vconv32
+{
+  u64 v32;
+
+  struct
+  {
+    u16 v16a;
+    u16 v16b;
+  };
+
+  struct
+  {
+    u8 v8a;
+    u8 v8b;
+    u8 v8c;
+    u8 v8d;
+  };
+
+} vconv32_t;
+
+typedef union vconv64
+{
+  u64 v64;
+
+  struct
+  {
+    u32 v32a;
+    u32 v32b;
+  };
+
+  struct
+  {
+    u16 v16a;
+    u16 v16b;
+    u16 v16c;
+    u16 v16d;
+  };
+
+  struct
+  {
+    u8 v8a;
+    u8 v8b;
+    u8 v8c;
+    u8 v8d;
+    u8 v8e;
+    u8 v8f;
+    u8 v8g;
+    u8 v8h;
+  };
+
+} vconv64_t;
+
+/**
+ * Author......: See docs/credits.txt
+ * License.....: MIT
+ */
+
 typedef enum siphash_constants
 {
   SIPHASHM_0=0x736f6d6570736575,
@@ -652,3 +747,106 @@ typedef enum blake2b_constants
 
 } blake2b_constants_t;
 
+typedef enum combinator_mode
+{
+  COMBINATOR_MODE_BASE_LEFT  = 10001,
+  COMBINATOR_MODE_BASE_RIGHT = 10002
+
+} combinator_mode_t;
+
+typedef struct digest
+{
+  u32 digest_buf[DGST_ELEM];
+
+} digest_t;
+
+typedef struct salt
+{
+  u32 salt_buf[64];
+  u32 salt_buf_pc[64];
+
+  u32 salt_len;
+  u32 salt_len_pc;
+  u32 salt_iter;
+  u32 salt_iter2;
+  u32 salt_sign[2];
+
+  u32 digests_cnt;
+  u32 digests_done;
+
+  u32 digests_offset;
+
+  u32 scrypt_N;
+  u32 scrypt_r;
+  u32 scrypt_p;
+
+} salt_t;
+
+typedef struct
+{
+  u32 key;
+  u64 val;
+
+} hcstat_table_t;
+
+typedef struct
+{
+  u32 cs_buf[0x100];
+  u32 cs_len;
+
+} cs_t;
+
+typedef struct
+{
+  u32 cmds[32];
+
+} kernel_rule_t;
+
+typedef struct pw
+{
+  u32 i[64];
+
+  u32 pw_len;
+
+} pw_t;
+
+typedef struct pw_idx
+{
+  u32 off;
+  u32 cnt;
+  u32 len;
+
+} pw_idx_t;
+
+typedef struct bf
+{
+  u32  i;
+
+} bf_t;
+
+typedef struct bs_word
+{
+  u32  b[32];
+
+} bs_word_t;
+
+typedef struct plain
+{
+  u64  gidvid;
+  u32  il_pos;
+  u32  salt_pos;
+  u32  digest_pos;
+  u32  hash_pos;
+  u32  extra1;
+  u32  extra2;
+
+} plain_t;
+
+typedef struct keyboard_layout_mapping
+{
+  u32 src_char;
+  int src_len;
+  u32 dst_char;
+  int dst_len;
+
+} keyboard_layout_mapping_t;

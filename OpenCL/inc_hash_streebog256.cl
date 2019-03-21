@@ -634,7 +634,6 @@ typedef struct streebog256_ctx
 
 } streebog256_ctx_t;
 
-DECLSPEC void streebog256_init (streebog256_ctx_t *ctx, SHM_TYPE u64a (*s_sbob_sl64)[256]);
 DECLSPEC void streebog256_init (streebog256_ctx_t *ctx, SHM_TYPE u64a (*s_sbob_sl64)[256])
 {
   ctx->h[0] = 0x0101010101010101;
@@ -689,7 +688,6 @@ DECLSPEC void streebog256_init (streebog256_ctx_t *ctx, SHM_TYPE u64a (*s_sbob_s
   ctx->s_sbob_sl64 = s_sbob_sl64;
 }
 
-DECLSPEC void streebog256_add (u64 *x, const u64 *y);
 DECLSPEC void streebog256_add (u64 *x, const u64 *y)
 {
   u64 carry = 0;
@@ -709,7 +707,6 @@ DECLSPEC void streebog256_add (u64 *x, const u64 *y)
   }
 }
 
-DECLSPEC void streebog256_g (u64 *h, const u64 *n, const u64 *m, SHM_TYPE u64a (*s_sbob_sl64)[256]);
 DECLSPEC void streebog256_g (u64 *h, const u64 *n, const u64 *m, SHM_TYPE u64a (*s_sbob_sl64)[256])
 {
   u64 k[8];
@@ -778,7 +775,6 @@ DECLSPEC void streebog256_g (u64 *h, const u64 *n, const u64 *m, SHM_TYPE u64a (
   }
 }
 
-DECLSPEC void streebog256_transform (streebog256_ctx_t *ctx, const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3);
 DECLSPEC void streebog256_transform (streebog256_ctx_t *ctx, const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3)
 {
   u64 m[8];
@@ -801,7 +797,6 @@ DECLSPEC void streebog256_transform (streebog256_ctx_t *ctx, const u32 *w0, cons
   streebog256_add (ctx->s, m);
 }
 
-DECLSPEC void streebog256_update_64 (streebog256_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len);
 DECLSPEC void streebog256_update_64 (streebog256_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len)
 {
   const int pos = ctx->len;
@@ -878,7 +873,6 @@ DECLSPEC void streebog256_update_64 (streebog256_ctx_t *ctx, u32 *w0, u32 *w1, u
   }
 }
 
-DECLSPEC void streebog256_update (streebog256_ctx_t *ctx, const u32 *w, int len);
 DECLSPEC void streebog256_update (streebog256_ctx_t *ctx, const u32 *w, int len)
 {
   u32 w0[4];
@@ -936,7 +930,6 @@ DECLSPEC void streebog256_update (streebog256_ctx_t *ctx, const u32 *w, int len)
   }
 }
 
-DECLSPEC void streebog256_update_swap (streebog256_ctx_t *ctx, const u32 *w, int len);
 DECLSPEC void streebog256_update_swap (streebog256_ctx_t *ctx, const u32 *w, int len)
 {
   u32 w0[4];
@@ -994,7 +987,6 @@ DECLSPEC void streebog256_update_swap (streebog256_ctx_t *ctx, const u32 *w, int
   }
 }
 
-DECLSPEC void streebog256_update_global_swap (streebog256_ctx_t *ctx, const __global u32 *w, int len);
 DECLSPEC void streebog256_update_global_swap (streebog256_ctx_t *ctx, const __global u32 *w, int len)
 {
   u32 w0[4];
@@ -1052,7 +1044,6 @@ DECLSPEC void streebog256_update_global_swap (streebog256_ctx_t *ctx, const __gl
   }
 }
 
-DECLSPEC void streebog256_final (streebog256_ctx_t *ctx);
 DECLSPEC void streebog256_final (streebog256_ctx_t *ctx)
 {
   const int pos = ctx->len & 63;
@@ -1093,7 +1084,6 @@ typedef struct streebog256_hmac_ctx
 
 } streebog256_hmac_ctx_t;
 
-DECLSPEC void streebog256_hmac_init_64 (streebog256_hmac_ctx_t *ctx, const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, SHM_TYPE u64a (*s_sbob_sl64)[256]);
 DECLSPEC void streebog256_hmac_init_64 (streebog256_hmac_ctx_t *ctx, const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, SHM_TYPE u64a (*s_sbob_sl64)[256])
 {
   u32 t0[4];
@@ -1148,7 +1138,6 @@ DECLSPEC void streebog256_hmac_init_64 (streebog256_hmac_ctx_t *ctx, const u32 *
   streebog256_update_64 (&ctx->opad, t0, t1, t2, t3, 64);
 }
 
-DECLSPEC void streebog256_hmac_init (streebog256_hmac_ctx_t *ctx, const u32 *w, const int len, SHM_TYPE u64a (*s_sbob_sl64)[256]);
 DECLSPEC void streebog256_hmac_init (streebog256_hmac_ctx_t *ctx, const u32 *w, const int len, SHM_TYPE u64a (*s_sbob_sl64)[256])
 {
   u32 w0[4];
@@ -1206,7 +1195,6 @@ DECLSPEC void streebog256_hmac_init (streebog256_hmac_ctx_t *ctx, const u32 *w, 
   streebog256_hmac_init_64 (ctx, w0, w1, w2, w3, s_sbob_sl64);
 }
 
-DECLSPEC void streebog256_hmac_init_swap (streebog256_hmac_ctx_t *ctx, const u32 *w, const int len, SHM_TYPE u64a (*s_sbob_sl64)[256]);
 DECLSPEC void streebog256_hmac_init_swap (streebog256_hmac_ctx_t *ctx, const u32 *w, const int len, SHM_TYPE u64a (*s_sbob_sl64)[256])
 {
   u32 w0[4];
@@ -1264,31 +1252,26 @@ DECLSPEC void streebog256_hmac_init_swap (streebog256_hmac_ctx_t *ctx, const u32
   streebog256_hmac_init_64 (ctx, w0, w1, w2, w3, s_sbob_sl64);
 }
 
-DECLSPEC void streebog256_hmac_update_64 (streebog256_hmac_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len);
 DECLSPEC void streebog256_hmac_update_64 (streebog256_hmac_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len)
 {
   streebog256_update_64 (&ctx->ipad, w0, w1, w2, w3, len);
 }
 
-DECLSPEC void streebog256_hmac_update (streebog256_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void streebog256_hmac_update (streebog256_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   streebog256_update (&ctx->ipad, w, len);
 }
 
-DECLSPEC void streebog256_hmac_update_swap (streebog256_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void streebog256_hmac_update_swap (streebog256_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   streebog256_update_swap (&ctx->ipad, w, len);
 }
 
-DECLSPEC void streebog256_hmac_update_global_swap (streebog256_hmac_ctx_t *ctx, const __global u32 *w, const int len);
 DECLSPEC void streebog256_hmac_update_global_swap (streebog256_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   streebog256_update_global_swap (&ctx->ipad, w, len);
 }
 
-DECLSPEC void streebog256_hmac_final (streebog256_hmac_ctx_t *ctx);
 DECLSPEC void streebog256_hmac_final (streebog256_hmac_ctx_t *ctx)
 {
   streebog256_final (&ctx->ipad);
@@ -1339,7 +1322,6 @@ typedef struct streebog256_ctx_vector
 
 } streebog256_ctx_vector_t;
 
-DECLSPEC void streebog256_init_vector (streebog256_ctx_vector_t *ctx, SHM_TYPE u64a (*s_sbob_sl64)[256]);
 DECLSPEC void streebog256_init_vector (streebog256_ctx_vector_t *ctx, SHM_TYPE u64a (*s_sbob_sl64)[256])
 {
   ctx->h[0] = 0x0101010101010101;
@@ -1394,7 +1376,6 @@ DECLSPEC void streebog256_init_vector (streebog256_ctx_vector_t *ctx, SHM_TYPE u
   ctx->s_sbob_sl64 = s_sbob_sl64;
 }
 
-DECLSPEC void streebog256_add_vector (u64x *x, const u64x *y);
 DECLSPEC void streebog256_add_vector (u64x *x, const u64x *y)
 {
   u64x carry = 0;
@@ -1414,7 +1395,6 @@ DECLSPEC void streebog256_add_vector (u64x *x, const u64x *y)
   }
 }
 
-DECLSPEC void streebog256_g_vector (u64x *h, const u64x *n, const u64x *m, SHM_TYPE u64a (*s_sbob_sl64)[256]);
 DECLSPEC void streebog256_g_vector (u64x *h, const u64x *n, const u64x *m, SHM_TYPE u64a (*s_sbob_sl64)[256])
 {
   u64x k[8];
@@ -1483,7 +1463,6 @@ DECLSPEC void streebog256_g_vector (u64x *h, const u64x *n, const u64x *m, SHM_T
   }
 }
 
-DECLSPEC void streebog256_transform_vector (streebog256_ctx_vector_t *ctx, const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3);
 DECLSPEC void streebog256_transform_vector (streebog256_ctx_vector_t *ctx, const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3)
 {
   u64x m[8];
@@ -1506,7 +1485,6 @@ DECLSPEC void streebog256_transform_vector (streebog256_ctx_vector_t *ctx, const
   streebog256_add_vector (ctx->s, m);
 }
 
-DECLSPEC void streebog256_update_vector_64 (streebog256_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, const int len);
 DECLSPEC void streebog256_update_vector_64 (streebog256_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, const int len)
 {
   const int pos = ctx->len;
@@ -1583,7 +1561,6 @@ DECLSPEC void streebog256_update_vector_64 (streebog256_ctx_vector_t *ctx, u32x 
   }
 }
 
-DECLSPEC void streebog256_update_vector (streebog256_ctx_vector_t *ctx, const u32x *w, int len);
 DECLSPEC void streebog256_update_vector (streebog256_ctx_vector_t *ctx, const u32x *w, int len)
 {
   u32x w0[4];
@@ -1641,7 +1618,6 @@ DECLSPEC void streebog256_update_vector (streebog256_ctx_vector_t *ctx, const u3
   }
 }
 
-DECLSPEC void streebog256_update_vector_swap (streebog256_ctx_vector_t *ctx, const u32x *w, int len);
 DECLSPEC void streebog256_update_vector_swap (streebog256_ctx_vector_t *ctx, const u32x *w, int len)
 {
   u32x w0[4];
@@ -1699,7 +1675,6 @@ DECLSPEC void streebog256_update_vector_swap (streebog256_ctx_vector_t *ctx, con
   }
 }
 
-DECLSPEC void streebog256_final_vector (streebog256_ctx_vector_t *ctx);
 DECLSPEC void streebog256_final_vector (streebog256_ctx_vector_t *ctx)
 {
   const int pos = ctx->len & 63;
@@ -1740,7 +1715,6 @@ typedef struct streebog256_hmac_ctx_vector
 
 } streebog256_hmac_ctx_vector_t;
 
-DECLSPEC void streebog256_hmac_init_vector_64 (streebog256_hmac_ctx_vector_t *ctx, const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, SHM_TYPE u64a (*s_sbob_sl64)[256]);
 DECLSPEC void streebog256_hmac_init_vector_64 (streebog256_hmac_ctx_vector_t *ctx, const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, SHM_TYPE u64a (*s_sbob_sl64)[256])
 {
   u32x t0[4];
@@ -1795,7 +1769,6 @@ DECLSPEC void streebog256_hmac_init_vector_64 (streebog256_hmac_ctx_vector_t *ct
   streebog256_update_vector_64 (&ctx->opad, t0, t1, t2, t3, 64);
 }
 
-DECLSPEC void streebog256_hmac_init_vector (streebog256_hmac_ctx_vector_t *ctx, const u32x *w, const int len, SHM_TYPE u64a (*s_sbob_sl64)[256]);
 DECLSPEC void streebog256_hmac_init_vector (streebog256_hmac_ctx_vector_t *ctx, const u32x *w, const int len, SHM_TYPE u64a (*s_sbob_sl64)[256])
 {
   u32x w0[4];
@@ -1853,7 +1826,6 @@ DECLSPEC void streebog256_hmac_init_vector (streebog256_hmac_ctx_vector_t *ctx, 
   streebog256_hmac_init_vector_64 (ctx, w0, w1, w2, w3, s_sbob_sl64);
 }
 
-DECLSPEC void streebog256_hmac_init_vector_swap (streebog256_hmac_ctx_vector_t *ctx, const u32x *w, const int len, SHM_TYPE u64a (*s_sbob_sl64)[256]);
 DECLSPEC void streebog256_hmac_init_vector_swap (streebog256_hmac_ctx_vector_t *ctx, const u32x *w, const int len, SHM_TYPE u64a (*s_sbob_sl64)[256])
 {
   u32x w0[4];
@@ -1911,19 +1883,16 @@ DECLSPEC void streebog256_hmac_init_vector_swap (streebog256_hmac_ctx_vector_t *
   streebog256_hmac_init_vector_64 (ctx, w0, w1, w2, w3, s_sbob_sl64);
 }
 
-DECLSPEC void streebog256_hmac_update_vector (streebog256_hmac_ctx_vector_t *ctx, const u32x *w, const int len);
 DECLSPEC void streebog256_hmac_update_vector (streebog256_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   streebog256_update_vector (&ctx->ipad, w, len);
 }
 
-DECLSPEC void streebog256_hmac_update_vector_swap (streebog256_hmac_ctx_vector_t *ctx, const u32x *w, const int len);
 DECLSPEC void streebog256_hmac_update_vector_swap (streebog256_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   streebog256_update_vector_swap (&ctx->ipad, w, len);
 }
 
-DECLSPEC void streebog256_hmac_final_vector (streebog256_hmac_ctx_vector_t *ctx);
 DECLSPEC void streebog256_hmac_final_vector (streebog256_hmac_ctx_vector_t *ctx)
 {
   streebog256_final_vector (&ctx->ipad);

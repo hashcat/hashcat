@@ -2,7 +2,60 @@
 // important notes on this:
 // input buf unused bytes needs to be set to zero
 // input buf needs to be in algorithm native byte order (md5 = LE, sha256 = BE, etc)
-// input buf needs to be 64 byte aligned when using md5_update()
+// input buf needs to be 64 byte aligned when using sha384_update()
+
+#define SHIFT_RIGHT_32(x,n) ((x) >> (n))
+
+#define SHA256_S0_S(x) (rotl32_S ((x), 25u) ^ rotl32_S ((x), 14u) ^ SHIFT_RIGHT_32 ((x),  3u))
+#define SHA256_S1_S(x) (rotl32_S ((x), 15u) ^ rotl32_S ((x), 13u) ^ SHIFT_RIGHT_32 ((x), 10u))
+#define SHA256_S2_S(x) (rotl32_S ((x), 30u) ^ rotl32_S ((x), 19u) ^ rotl32_S ((x), 10u))
+#define SHA256_S3_S(x) (rotl32_S ((x), 26u) ^ rotl32_S ((x), 21u) ^ rotl32_S ((x),  7u))
+
+#define SHA256_S0(x) (rotl32 ((x), 25u) ^ rotl32 ((x), 14u) ^ SHIFT_RIGHT_32 ((x),  3u))
+#define SHA256_S1(x) (rotl32 ((x), 15u) ^ rotl32 ((x), 13u) ^ SHIFT_RIGHT_32 ((x), 10u))
+#define SHA256_S2(x) (rotl32 ((x), 30u) ^ rotl32 ((x), 19u) ^ rotl32 ((x), 10u))
+#define SHA256_S3(x) (rotl32 ((x), 26u) ^ rotl32 ((x), 21u) ^ rotl32 ((x),  7u))
+
+#ifdef IS_NV
+#define SHA256_F0(x,y,z)  (((x) & (y)) | ((z) & ((x) ^ (y))))
+#define SHA256_F1(x,y,z)  ((z) ^ ((x) & ((y) ^ (z))))
+#define SHA256_F0o(x,y,z) (bitselect ((x), (y), ((x) ^ (z))))
+#define SHA256_F1o(x,y,z) (bitselect ((z), (y), (x)))
+#endif
+
+#ifdef IS_AMD
+#define SHA256_F0(x,y,z)  (((x) & (y)) | ((z) & ((x) ^ (y))))
+#define SHA256_F1(x,y,z)  ((z) ^ ((x) & ((y) ^ (z))))
+#define SHA256_F0o(x,y,z) (bitselect ((x), (y), ((x) ^ (z))))
+#define SHA256_F1o(x,y,z) (bitselect ((z), (y), (x)))
+#endif
+
+#ifdef IS_GENERIC
+#define SHA256_F0(x,y,z)  (((x) & (y)) | ((z) & ((x) ^ (y))))
+#define SHA256_F1(x,y,z)  ((z) ^ ((x) & ((y) ^ (z))))
+#define SHA256_F0o(x,y,z) (SHA256_F0 ((x), (y), (z)))
+#define SHA256_F1o(x,y,z) (SHA256_F1 ((x), (y), (z)))
+#endif
+
+#define SHA256_STEP_S(F0,F1,a,b,c,d,e,f,g,h,x,K)  \
+{                                                 \
+  h = hc_add3_S (h, K, x);                        \
+  h = hc_add3_S (h, SHA256_S3_S (e), F1 (e,f,g)); \
+  d += h;                                         \
+  h = hc_add3_S (h, SHA256_S2_S (a), F0 (a,b,c)); \
+}
+
+#define SHA256_EXPAND_S(x,y,z,w) (SHA256_S1_S (x) + y + SHA256_S0_S (z) + w)
+
+#define SHA256_STEP(F0,F1,a,b,c,d,e,f,g,h,x,K)    \
+{                                                 \
+  h = hc_add3 (h, K, x);                          \
+  h = hc_add3 (h, SHA256_S3 (e), F1 (e,f,g));     \
+  d += h;                                         \
+  h = hc_add3 (h, SHA256_S2 (a), F0 (a,b,c));     \
+}
+
+#define SHA256_EXPAND(x,y,z,w) (SHA256_S1 (x) + y + SHA256_S0 (z) + w)
 
 __constant u32a k_sha256[64] =
 {
@@ -37,7 +90,6 @@ typedef struct sha256_ctx
 
 } sha256_ctx_t;
 
-DECLSPEC void sha256_transform (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest);
 DECLSPEC void sha256_transform (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest)
 {
   u32 a = digest[0];
@@ -129,7 +181,6 @@ DECLSPEC void sha256_transform (const u32 *w0, const u32 *w1, const u32 *w2, con
   digest[7] += h;
 }
 
-DECLSPEC void sha256_init (sha256_ctx_t *ctx);
 DECLSPEC void sha256_init (sha256_ctx_t *ctx)
 {
   ctx->h[0] = SHA256M_A;
@@ -161,7 +212,6 @@ DECLSPEC void sha256_init (sha256_ctx_t *ctx)
   ctx->len = 0;
 }
 
-DECLSPEC void sha256_update_64 (sha256_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len);
 DECLSPEC void sha256_update_64 (sha256_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len)
 {
   const int pos = ctx->len & 63;
@@ -236,7 +286,6 @@ DECLSPEC void sha256_update_64 (sha256_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u3
   }
 }
 
-DECLSPEC void sha256_update (sha256_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void sha256_update (sha256_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
@@ -289,7 +338,6 @@ DECLSPEC void sha256_update (sha256_ctx_t *ctx, const u32 *w, const int len)
   sha256_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-DECLSPEC void sha256_update_swap (sha256_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void sha256_update_swap (sha256_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
@@ -376,7 +424,6 @@ DECLSPEC void sha256_update_swap (sha256_ctx_t *ctx, const u32 *w, const int len
   sha256_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-DECLSPEC void sha256_update_utf16le (sha256_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void sha256_update_utf16le (sha256_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
@@ -419,7 +466,6 @@ DECLSPEC void sha256_update_utf16le (sha256_ctx_t *ctx, const u32 *w, const int 
   sha256_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-DECLSPEC void sha256_update_utf16le_swap (sha256_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void sha256_update_utf16le_swap (sha256_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
@@ -496,7 +542,6 @@ DECLSPEC void sha256_update_utf16le_swap (sha256_ctx_t *ctx, const u32 *w, const
   sha256_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-DECLSPEC void sha256_update_global (sha256_ctx_t *ctx, const __global u32 *w, const int len);
 DECLSPEC void sha256_update_global (sha256_ctx_t *ctx, const __global u32 *w, const int len)
 {
   u32 w0[4];
@@ -549,7 +594,6 @@ DECLSPEC void sha256_update_global (sha256_ctx_t *ctx, const __global u32 *w, co
   sha256_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-DECLSPEC void sha256_update_global_swap (sha256_ctx_t *ctx, const __global u32 *w, const int len);
 DECLSPEC void sha256_update_global_swap (sha256_ctx_t *ctx, const __global u32 *w, const int len)
 {
   u32 w0[4];
@@ -636,7 +680,6 @@ DECLSPEC void sha256_update_global_swap (sha256_ctx_t *ctx, const __global u32 *
   sha256_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-DECLSPEC void sha256_update_global_utf16le (sha256_ctx_t *ctx, const __global u32 *w, const int len);
 DECLSPEC void sha256_update_global_utf16le (sha256_ctx_t *ctx, const __global u32 *w, const int len)
 {
   u32 w0[4];
@@ -679,7 +722,6 @@ DECLSPEC void sha256_update_global_utf16le (sha256_ctx_t *ctx, const __global u3
   sha256_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-DECLSPEC void sha256_update_global_utf16le_swap (sha256_ctx_t *ctx, const __global u32 *w, const int len);
 DECLSPEC void sha256_update_global_utf16le_swap (sha256_ctx_t *ctx, const __global u32 *w, const int len)
 {
   u32 w0[4];
@@ -756,7 +798,6 @@ DECLSPEC void sha256_update_global_utf16le_swap (sha256_ctx_t *ctx, const __glob
   sha256_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-DECLSPEC void sha256_final (sha256_ctx_t *ctx);
 DECLSPEC void sha256_final (sha256_ctx_t *ctx)
 {
   const int pos = ctx->len & 63;
@@ -800,7 +841,6 @@ typedef struct sha256_hmac_ctx
 
 } sha256_hmac_ctx_t;
 
-DECLSPEC void sha256_hmac_init_64 (sha256_hmac_ctx_t *ctx, const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3);
 DECLSPEC void sha256_hmac_init_64 (sha256_hmac_ctx_t *ctx, const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3)
 {
   u32 t0[4];
@@ -855,7 +895,6 @@ DECLSPEC void sha256_hmac_init_64 (sha256_hmac_ctx_t *ctx, const u32 *w0, const 
   sha256_update_64 (&ctx->opad, t0, t1, t2, t3, 64);
 }
 
-DECLSPEC void sha256_hmac_init (sha256_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void sha256_hmac_init (sha256_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
@@ -913,7 +952,6 @@ DECLSPEC void sha256_hmac_init (sha256_hmac_ctx_t *ctx, const u32 *w, const int 
   sha256_hmac_init_64 (ctx, w0, w1, w2, w3);
 }
 
-DECLSPEC void sha256_hmac_init_swap (sha256_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void sha256_hmac_init_swap (sha256_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
@@ -971,7 +1009,6 @@ DECLSPEC void sha256_hmac_init_swap (sha256_hmac_ctx_t *ctx, const u32 *w, const
   sha256_hmac_init_64 (ctx, w0, w1, w2, w3);
 }
 
-DECLSPEC void sha256_hmac_init_global (sha256_hmac_ctx_t *ctx, __global const u32 *w, const int len);
 DECLSPEC void sha256_hmac_init_global (sha256_hmac_ctx_t *ctx, __global const u32 *w, const int len)
 {
   u32 w0[4];
@@ -1029,7 +1066,6 @@ DECLSPEC void sha256_hmac_init_global (sha256_hmac_ctx_t *ctx, __global const u3
   sha256_hmac_init_64 (ctx, w0, w1, w2, w3);
 }
 
-DECLSPEC void sha256_hmac_init_global_swap (sha256_hmac_ctx_t *ctx, __global const u32 *w, const int len);
 DECLSPEC void sha256_hmac_init_global_swap (sha256_hmac_ctx_t *ctx, __global const u32 *w, const int len)
 {
   u32 w0[4];
@@ -1087,61 +1123,51 @@ DECLSPEC void sha256_hmac_init_global_swap (sha256_hmac_ctx_t *ctx, __global con
   sha256_hmac_init_64 (ctx, w0, w1, w2, w3);
 }
 
-DECLSPEC void sha256_hmac_update_64 (sha256_hmac_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len);
 DECLSPEC void sha256_hmac_update_64 (sha256_hmac_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len)
 {
   sha256_update_64 (&ctx->ipad, w0, w1, w2, w3, len);
 }
 
-DECLSPEC void sha256_hmac_update (sha256_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void sha256_hmac_update (sha256_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   sha256_update (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha256_hmac_update_swap (sha256_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void sha256_hmac_update_swap (sha256_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   sha256_update_swap (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha256_hmac_update_utf16le (sha256_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void sha256_hmac_update_utf16le (sha256_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   sha256_update_utf16le (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha256_hmac_update_utf16le_swap (sha256_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void sha256_hmac_update_utf16le_swap (sha256_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   sha256_update_utf16le_swap (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha256_hmac_update_global (sha256_hmac_ctx_t *ctx, const __global u32 *w, const int len);
 DECLSPEC void sha256_hmac_update_global (sha256_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   sha256_update_global (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha256_hmac_update_global_swap (sha256_hmac_ctx_t *ctx, const __global u32 *w, const int len);
 DECLSPEC void sha256_hmac_update_global_swap (sha256_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   sha256_update_global_swap (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha256_hmac_update_global_utf16le (sha256_hmac_ctx_t *ctx, const __global u32 *w, const int len);
 DECLSPEC void sha256_hmac_update_global_utf16le (sha256_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   sha256_update_global_utf16le (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha256_hmac_update_global_utf16le_swap (sha256_hmac_ctx_t *ctx, const __global u32 *w, const int len);
 DECLSPEC void sha256_hmac_update_global_utf16le_swap (sha256_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   sha256_update_global_utf16le_swap (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha256_hmac_final (sha256_hmac_ctx_t *ctx);
 DECLSPEC void sha256_hmac_final (sha256_hmac_ctx_t *ctx)
 {
   sha256_final (&ctx->ipad);
@@ -1188,7 +1214,6 @@ typedef struct sha256_ctx_vector
 
 } sha256_ctx_vector_t;
 
-DECLSPEC void sha256_transform_vector (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u32x *digest);
 DECLSPEC void sha256_transform_vector (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u32x *digest)
 {
   u32x a = digest[0];
@@ -1280,7 +1305,6 @@ DECLSPEC void sha256_transform_vector (const u32x *w0, const u32x *w1, const u32
   digest[7] += h;
 }
 
-DECLSPEC void sha256_init_vector (sha256_ctx_vector_t *ctx);
 DECLSPEC void sha256_init_vector (sha256_ctx_vector_t *ctx)
 {
   ctx->h[0] = SHA256M_A;
@@ -1312,7 +1336,6 @@ DECLSPEC void sha256_init_vector (sha256_ctx_vector_t *ctx)
   ctx->len = 0;
 }
 
-DECLSPEC void sha256_init_vector_from_scalar (sha256_ctx_vector_t *ctx, sha256_ctx_t *ctx0);
 DECLSPEC void sha256_init_vector_from_scalar (sha256_ctx_vector_t *ctx, sha256_ctx_t *ctx0)
 {
   ctx->h[0] = ctx0->h[0];
@@ -1344,7 +1367,6 @@ DECLSPEC void sha256_init_vector_from_scalar (sha256_ctx_vector_t *ctx, sha256_c
   ctx->len = ctx0->len;
 }
 
-DECLSPEC void sha256_update_vector_64 (sha256_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, const int len);
 DECLSPEC void sha256_update_vector_64 (sha256_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, const int len)
 {
   const int pos = ctx->len & 63;
@@ -1419,7 +1441,6 @@ DECLSPEC void sha256_update_vector_64 (sha256_ctx_vector_t *ctx, u32x *w0, u32x 
   }
 }
 
-DECLSPEC void sha256_update_vector (sha256_ctx_vector_t *ctx, const u32x *w, const int len);
 DECLSPEC void sha256_update_vector (sha256_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
@@ -1472,7 +1493,6 @@ DECLSPEC void sha256_update_vector (sha256_ctx_vector_t *ctx, const u32x *w, con
   sha256_update_vector_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-DECLSPEC void sha256_update_vector_swap (sha256_ctx_vector_t *ctx, const u32x *w, const int len);
 DECLSPEC void sha256_update_vector_swap (sha256_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
@@ -1559,7 +1579,6 @@ DECLSPEC void sha256_update_vector_swap (sha256_ctx_vector_t *ctx, const u32x *w
   sha256_update_vector_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-DECLSPEC void sha256_update_vector_utf16le (sha256_ctx_vector_t *ctx, const u32x *w, const int len);
 DECLSPEC void sha256_update_vector_utf16le (sha256_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
@@ -1602,7 +1621,6 @@ DECLSPEC void sha256_update_vector_utf16le (sha256_ctx_vector_t *ctx, const u32x
   sha256_update_vector_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-DECLSPEC void sha256_update_vector_utf16le_swap (sha256_ctx_vector_t *ctx, const u32x *w, const int len);
 DECLSPEC void sha256_update_vector_utf16le_swap (sha256_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
@@ -1679,7 +1697,6 @@ DECLSPEC void sha256_update_vector_utf16le_swap (sha256_ctx_vector_t *ctx, const
   sha256_update_vector_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-DECLSPEC void sha256_update_vector_utf16beN (sha256_ctx_vector_t *ctx, const u32x *w, const int len);
 DECLSPEC void sha256_update_vector_utf16beN (sha256_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
@@ -1722,7 +1739,6 @@ DECLSPEC void sha256_update_vector_utf16beN (sha256_ctx_vector_t *ctx, const u32
   sha256_update_vector_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-DECLSPEC void sha256_final_vector (sha256_ctx_vector_t *ctx);
 DECLSPEC void sha256_final_vector (sha256_ctx_vector_t *ctx)
 {
   const int pos = ctx->len & 63;
@@ -1766,7 +1782,6 @@ typedef struct sha256_hmac_ctx_vector
 
 } sha256_hmac_ctx_vector_t;
 
-DECLSPEC void sha256_hmac_init_vector_64 (sha256_hmac_ctx_vector_t *ctx, const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3);
 DECLSPEC void sha256_hmac_init_vector_64 (sha256_hmac_ctx_vector_t *ctx, const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3)
 {
   u32x t0[4];
@@ -1821,7 +1836,6 @@ DECLSPEC void sha256_hmac_init_vector_64 (sha256_hmac_ctx_vector_t *ctx, const u
   sha256_update_vector_64 (&ctx->opad, t0, t1, t2, t3, 64);
 }
 
-DECLSPEC void sha256_hmac_init_vector (sha256_hmac_ctx_vector_t *ctx, const u32x *w, const int len);
 DECLSPEC void sha256_hmac_init_vector (sha256_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
@@ -1879,19 +1893,16 @@ DECLSPEC void sha256_hmac_init_vector (sha256_hmac_ctx_vector_t *ctx, const u32x
   sha256_hmac_init_vector_64 (ctx, w0, w1, w2, w3);
 }
 
-DECLSPEC void sha256_hmac_update_vector_64 (sha256_hmac_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, const int len);
 DECLSPEC void sha256_hmac_update_vector_64 (sha256_hmac_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, const int len)
 {
   sha256_update_vector_64 (&ctx->ipad, w0, w1, w2, w3, len);
 }
 
-DECLSPEC void sha256_hmac_update_vector (sha256_hmac_ctx_vector_t *ctx, const u32x *w, const int len);
 DECLSPEC void sha256_hmac_update_vector (sha256_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   sha256_update_vector (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha256_hmac_final_vector (sha256_hmac_ctx_vector_t *ctx);
 DECLSPEC void sha256_hmac_final_vector (sha256_hmac_ctx_vector_t *ctx)
 {
   sha256_final_vector (&ctx->ipad);

@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#include "inc_vendor.cl"
-#include "inc_types.cl"
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 
 __kernel void amp (__global pw_t * restrict pws, __global pw_t * restrict pws_amp, __global const kernel_rule_t * restrict rules_buf, __global const pw_t * restrict combs_buf, __global const bf_t * restrict bfs_buf, const u32 combs_mode, const u64 gid_max)

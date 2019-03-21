@@ -195,7 +195,7 @@ endif
 endif
 endif
 
-CFLAGS                  += -pipe -std=gnu99 -Iinclude/ -IOpenCL/
+CFLAGS                  += -pipe -std=gnu99 -Iinclude/
 
 # LZMA
 CFLAGS                  += -I$(DEPS_LZMA_PATH)

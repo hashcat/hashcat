@@ -154,9 +154,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[2] = 0;
   digest[3] = 0;
 
-  u32 tt;
-
-  IP (digest[0], digest[1], tt);
+  DES_IP (digest[0], digest[1]);
 
   return (PARSER_OK);
 }
@@ -175,9 +173,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   tmp[2] = 0;
   tmp[3] = 0;
 
-  u32 tt;
-
-  FP (tmp[1], tmp[0], tt);
+  DES_FP (tmp[1], tmp[0]);
 
   u8 ptr_plain[20] = { 0 };
 

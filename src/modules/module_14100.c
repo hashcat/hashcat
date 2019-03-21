@@ -155,9 +155,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   salt->salt_buf_pc[0] = salt->salt_buf[0];
   salt->salt_buf_pc[1] = salt->salt_buf[1];
 
-  u32 tt;
-
-  IP (salt->salt_buf_pc[0], salt->salt_buf_pc[1], tt);
+  DES_IP (salt->salt_buf_pc[0], salt->salt_buf_pc[1]);
 
   // hash
 
@@ -168,7 +166,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[2] = 0;
   digest[3] = 0;
 
-  IP (digest[0], digest[1], tt);
+  DES_IP (digest[0], digest[1]);
 
   return (PARSER_OK);
 }
@@ -187,9 +185,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   tmp[2] = 0;
   tmp[3] = 0;
 
-  u32 tt;
-
-  FP (tmp[1], tmp[0], tt);
+  DES_FP (tmp[1], tmp[0]);
 
   u8 *out_buf = (u8 *) line_buf;
 

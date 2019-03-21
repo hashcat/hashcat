@@ -5,12 +5,11 @@
 
 #define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
+#include "inc_hash_md4.cl"
 
 DECLSPEC void m01100m (__local salt_t *s_salt_buf, u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {

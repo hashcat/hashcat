@@ -3,14 +3,35 @@
  * License.....: MIT
  */
 
-#define IS_GENERIC
-
 #include "common.h"
 #include "types.h"
 #include "bitops.h"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "cpu_md4.h"
+
+#define MD4_F(x,y,z)    (((x) & (y)) | ((~(x)) & (z)))
+#define MD4_G(x,y,z)    (((x) & (y)) | ((x) & (z)) | ((y) & (z)))
+#define MD4_H(x,y,z)    ((x) ^ (y) ^ (z))
+#define MD4_Fo(x,y,z)   (MD4_F((x), (y), (z)))
+#define MD4_Go(x,y,z)   (MD4_G((x), (y), (z)))
+
+#define MD4_STEP_S(f,a,b,c,d,x,K,s)   \
+{                                     \
+  a += K;                             \
+  a  = hc_add3_S (a, x, f (b, c, d)); \
+  a  = rotl32_S (a, s);               \
+}
+
+#define MD4_STEP(f,a,b,c,d,x,K,s)     \
+{                                     \
+  a += K;                             \
+  a  = hc_add3 (a, x, f (b, c, d));   \
+  a  = rotl32 (a, s);                 \
+}
+
+#define MD4_STEP0(f,a,b,c,d,K,s)      \
+{                                     \
+  a  = hc_add3 (a, K, f (b, c, d));   \
+  a  = rotl32 (a, s);                 \
+}
 
 void md4_64 (const u32 block[16], u32 digest[4])
 {

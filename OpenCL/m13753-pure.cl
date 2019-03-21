@@ -8,10 +8,8 @@
 #undef  LOCAL_MEM_TYPE
 #define LOCAL_MEM_TYPE LOCAL_MEM_TYPE_GLOBAL
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha256.cl"
