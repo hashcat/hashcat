@@ -684,7 +684,7 @@ __kernel void m17220_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       infstream.opaque    = Z_NULL;
       infstream.avail_in  = esalt_bufs[digests_offset].hashes[idx].data_length - 12; // size of input
       infstream.next_in   = (Bytef *)compressed; // input char array
-      infstream.avail_out = 2048; // size of output
+      infstream.avail_out = MAX_UNCOMPRESSED_LENGTH; // size of output
       infstream.next_out  = (Bytef *)inflated; // output char array
 
       // inflateinit2 is needed because otherwise it checks for headers by default
@@ -979,7 +979,7 @@ __kernel void m17220_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       infstream.opaque    = Z_NULL;
       infstream.avail_in  = esalt_bufs[digests_offset].hashes[idx].data_length - 12; // size of input
       infstream.next_in   = (Bytef *)compressed; // input char array
-      infstream.avail_out = 2048; // size of output
+      infstream.avail_out = MAX_UNCOMPRESSED_LENGTH; // size of output
       infstream.next_out  = (Bytef *)inflated; // output char array
 
       // inflateinit2 is needed because otherwise it checks for headers by default
