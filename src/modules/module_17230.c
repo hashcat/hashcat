@@ -1,0 +1,404 @@
+/*
+
+PKZIP Kernels for Hashcat (c) 2018, European Union
+
+PKZIP Kernels for Hashcat has been developed by the Joint Research Centre of the European Commission.
+It is released as open source software under the MIT License.
+
+PKZIP Kernels for Hashcat makes use of two primary external components, which continue to be subject
+to the terms and conditions stipulated in the respective licences they have been released under. These
+external components include, but are not necessarily limited to, the following:
+
+-----
+
+1. Hashcat: MIT License
+
+Copyright (c) 2015-2018 Jens Steube
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial
+portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+-----
+
+2. Miniz: MIT License
+
+Copyright 2013-2014 RAD Game Tools and Valve Software
+Copyright 2010-2014 Rich Geldreich and Tenacious Software LLC
+
+All Rights Reserved.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the Software without restriction, including without
+limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial
+portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+-----
+
+The European Union disclaims all liability related to or arising out of the use made by third parties of
+any external components and dependencies which may be included with PKZIP Kernels for Hashcat.
+
+-----
+
+The MIT License
+
+Copyright (c) 2018, EUROPEAN UNION
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the Software without restriction, including without
+limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial
+portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+Author: Sein Coray
+
+*/
+
+#include "common.h"
+#include "types.h"
+#include "modules.h"
+#include "bitops.h"
+#include "convert.h"
+#include "shared.h"
+#include "inc_hash_constants.h"
+
+static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
+static const u32   DGST_POS0      = 1;
+static const u32   DGST_POS1      = 2;
+static const u32   DGST_POS2      = 3;
+static const u32   DGST_POS3      = 4;
+static const u32   DGST_SIZE      = DGST_SIZE_4_4;
+static const u32   HASH_CATEGORY  = HASH_CATEGORY_ARCHIVE;
+static const char *HASH_NAME      = "PKZIP (Compressed Multi-File Checksum-Only)";
+static const u64   KERN_TYPE      = 17230;
+static const u32   OPTI_TYPE      = 0;
+static const u64   OPTS_TYPE      = 0;
+static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
+static const char *ST_PASS        = "hashcat";
+static const char *ST_HASH        = "$pkzip2$8*1*1*0*8*24*a425*8827*3bd479d541019c2f32395046b8fbca7e1dca218b9b5414975be49942c3536298e9cc939e*1*0*8*24*2a74*882a*537af57c30fd9fd4b3eefa9ce55b6bff3bbfada237a7c1dace8ebf3bb0de107426211da3*1*0*8*24*2a74*882a*5f406b4858d3489fd4a6a6788798ac9b924b5d0ca8b8e5a6371739c9edcfd28c82f75316*1*0*8*24*2a74*882a*1843aca546b2ea68bd844d1e99d4f74d86417248eb48dd5e956270e42a331c18ea13f5ed*1*0*8*24*2a74*882a*aca3d16543bbfb2e5d2659f63802e0fa5b33e0a1f8ae47334019b4f0b6045d3d8eda3af1*1*0*8*24*2a74*882a*fbe0efc9e10ae1fc9b169bd060470bf3e39f09f8d83bebecd5216de02b81e35fe7e7b2f2*1*0*8*24*2a74*882a*537886dbabffbb7cac77deb01dc84760894524e6966183b4478a4ef56f0c657375a235a1*1*0*8*24*eda7*5096*40eb30ef1ddd9b77b894ed46abf199b480f1e5614fde510855f92ae7b8026a11f80e4d5f*$/pkzip2$";
+
+static const char *SIGNATURE_PKZIP_V1 = "$pkzip$";
+static const char *SIGNATURE_PKZIP_V2 = "$pkzip2$";
+
+#define MAX_COMPRESSED_LENGTH 2048
+
+u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
+u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
+u32         module_dgst_pos1      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS1;       }
+u32         module_dgst_pos2      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS2;       }
+u32         module_dgst_pos3      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS3;       }
+u32         module_dgst_size      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_SIZE;       }
+u32         module_hash_category  (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_CATEGORY;   }
+const char *module_hash_name      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_NAME;       }
+u64         module_kern_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return KERN_TYPE;       }
+u32         module_opti_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTI_TYPE;       }
+u64         module_opts_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTS_TYPE;       }
+u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return SALT_TYPE;       }
+const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
+const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
+
+typedef struct pkzip_hash
+{
+  u8  data_type_enum;
+  u8  magic_type_enum;
+  u32 compressed_length;
+  u32 uncompressed_length;
+  u32 crc32;
+  u8  offset;
+  u8  additional_offset;
+  u8  compression_type;
+  u32 data_length;
+  u16 checksum_from_crc;
+  u16 checksum_from_timestamp;
+  u8  data[MAX_COMPRESSED_LENGTH];
+} pkzip_hash_t;
+
+typedef struct pkzip
+{
+  u8 hash_count;
+  u8 checksum_size;
+  u8 version;
+  pkzip_hash_t hashes[8];
+} pkzip_t;
+
+u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u64 esalt_size = (const u64) sizeof (pkzip_t);
+
+  return esalt_size;
+}
+
+void hex_to_binary (const char *source, int len, char* out)
+{
+  const char *pos = source;
+  for (size_t count = 0; count < (size_t) len/2; count++) {
+    sscanf(pos, "%2hhx", &out[count]);
+    pos += 2;
+  }
+}
+
+int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
+{
+  pkzip_t *pkzip = (pkzip_t *) esalt_buf;
+
+  u32 *digest = (u32 *) digest_buf;
+
+  char input[line_len + 1];
+  input[line_len] = '\0';
+  memcpy(&input, line_buf, line_len);
+
+  char *p = strtok(input, "*");
+  if (p == NULL) return PARSER_HASH_LENGTH;
+  if (strncmp(p, SIGNATURE_PKZIP_V1, 7) != 0 && strncmp(p, SIGNATURE_PKZIP_V2, 8) != 0) return PARSER_HASH_LENGTH;
+
+  pkzip->version = 1;
+  if(strlen(p) == 9) pkzip->version = 2;
+
+  char sub[2];
+  sub[0] = p[strlen(p) - 1];
+  sub[1] = '\0';
+  pkzip->hash_count = atoi(sub);
+
+  // check here that the hash_count is valid for the attack type
+  if(pkzip->hash_count > 8) return PARSER_HASH_VALUE;
+  if(pkzip->hash_count < 3) return PARSER_HASH_VALUE;
+
+  p = strtok(NULL, "*");
+  if (p == NULL) return PARSER_HASH_LENGTH;
+  pkzip->checksum_size = atoi(p);
+  if (pkzip->checksum_size != 1 && pkzip->checksum_size != 2) return PARSER_HASH_LENGTH;
+
+  for(int i = 0; i < pkzip->hash_count; i++)
+  {
+    p = strtok(NULL, "*");
+    if (p == NULL) return PARSER_HASH_LENGTH;
+    pkzip->hashes[i].data_type_enum = atoi(p);
+    if (pkzip->hashes[i].data_type_enum > 3) return PARSER_HASH_LENGTH;
+
+    p = strtok(NULL, "*");
+    if (p == NULL) return PARSER_HASH_LENGTH;
+    pkzip->hashes[i].magic_type_enum = atoi(p);
+
+    if(pkzip->hashes[i].data_type_enum > 1)
+    {
+      p = strtok(NULL, "*");
+      if (p == NULL) return PARSER_HASH_LENGTH;
+      pkzip->hashes[i].compressed_length = strtoul(p, NULL, 16);
+
+      p = strtok(NULL, "*");
+      if (p == NULL) return PARSER_HASH_LENGTH;
+      pkzip->hashes[i].uncompressed_length = strtoul(p, NULL, 16);
+      if (pkzip->hashes[i].compressed_length > MAX_COMPRESSED_LENGTH)
+      {
+        return PARSER_TOKEN_LENGTH;
+      }
+
+      p = strtok(NULL, "*");
+      if (p == NULL) return PARSER_HASH_LENGTH;
+      sscanf(p, "%x", &(pkzip->hashes[i].crc32));
+
+      p = strtok(NULL, "*");
+      if (p == NULL) return PARSER_HASH_LENGTH;
+      pkzip->hashes[i].offset = strtoul(p, NULL, 16);
+
+      p = strtok(NULL, "*");
+      if (p == NULL) return PARSER_HASH_LENGTH;
+      pkzip->hashes[i].additional_offset = strtoul(p, NULL, 16);
+    }
+
+    p = strtok(NULL, "*");
+    if (p == NULL) return PARSER_HASH_LENGTH;
+    pkzip->hashes[i].compression_type = atoi(p);
+    if (pkzip->hashes[i].compression_type != 8) return PARSER_HASH_VALUE;
+
+    p = strtok(NULL, "*");
+    if (p == NULL) return PARSER_HASH_LENGTH;
+    pkzip->hashes[i].data_length = strtoul(p, NULL, 16);
+
+    p = strtok(NULL, "*");
+    if (p == NULL) return PARSER_HASH_LENGTH;
+    sscanf(p, "%hx", &(pkzip->hashes[i].checksum_from_crc));
+    if(pkzip->version == 2)
+    {
+      p = strtok(NULL, "*");
+      if (p == NULL) return PARSER_HASH_LENGTH;
+      sscanf(p, "%hx", &(pkzip->hashes[i].checksum_from_timestamp));
+    }
+    else
+    {
+      pkzip->hashes[i].checksum_from_timestamp = pkzip->hashes[i].checksum_from_crc;
+    }
+
+    p = strtok(NULL, "*");
+    if (p == NULL) return PARSER_HASH_LENGTH;
+
+    hex_to_binary(p, strlen(p) * 2, (char *) &(pkzip->hashes[i].data));
+
+    // fake salt
+    salt->salt_buf[0] ^= pkzip->hashes[i].data[ 3] << 24 | pkzip->hashes[i].data[ 2] << 16 | pkzip->hashes[i].data[ 1] << 8 | pkzip->hashes[i].data[ 0];
+    salt->salt_buf[1] ^= pkzip->hashes[i].data[ 7] << 24 | pkzip->hashes[i].data[ 6] << 16 | pkzip->hashes[i].data[ 5] << 8 | pkzip->hashes[i].data[ 4];
+    salt->salt_buf[2] ^= pkzip->hashes[i].data[11] << 24 | pkzip->hashes[i].data[10] << 16 | pkzip->hashes[i].data[ 9] << 8 | pkzip->hashes[i].data[ 8];
+    salt->salt_buf[3] ^= pkzip->hashes[i].data[15] << 24 | pkzip->hashes[i].data[14] << 16 | pkzip->hashes[i].data[13] << 8 | pkzip->hashes[i].data[ 12];
+
+    salt->salt_len = 16;
+
+    // fake hash
+    digest[0] ^= pkzip->hashes[i].data[ 0] << 24 | pkzip->hashes[i].data[ 1] << 16 | pkzip->hashes[i].data[ 2] << 8 | pkzip->hashes[i].data[ 3];
+    digest[1] ^= pkzip->hashes[i].data[ 4] << 24 | pkzip->hashes[i].data[ 5] << 16 | pkzip->hashes[i].data[ 6] << 8 | pkzip->hashes[i].data[ 7];
+    digest[2] ^= pkzip->hashes[i].data[ 8] << 24 | pkzip->hashes[i].data[ 9] << 16 | pkzip->hashes[i].data[10] << 8 | pkzip->hashes[i].data[11];
+    digest[3] ^= pkzip->hashes[i].data[12] << 24 | pkzip->hashes[i].data[13] << 16 | pkzip->hashes[i].data[14] << 8 | pkzip->hashes[i].data[15];
+  }
+
+  return (PARSER_OK);
+}
+
+int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
+{
+  const u32 *digest = (const u32 *) digest_buf;
+
+  const pkzip_t *pkzip = (const pkzip_t *) esalt_buf;
+
+  int out_len = 0;
+
+  if (pkzip->version == 1)
+  {
+    sprintf (line_buf, "%s", SIGNATURE_PKZIP_V1);
+    out_len += 7;
+  }
+  else
+  {
+    sprintf (line_buf, "%s", SIGNATURE_PKZIP_V2);
+    out_len += 8;
+  }
+  out_len += sprintf (line_buf + out_len, "%i*%i*", pkzip->hash_count, pkzip->checksum_size);
+
+  for (int cnt = 0; cnt < pkzip->hash_count; cnt++)
+  {
+    out_len += sprintf (line_buf + out_len, "%i*%i*", pkzip->hashes[cnt].data_type_enum, pkzip->hashes[cnt].magic_type_enum);
+    if (pkzip->hashes[cnt].data_type_enum > 1)
+    {
+      out_len += sprintf (line_buf + out_len, "%x*%x*%x*%x*%x*", pkzip->hashes[cnt].compressed_length, pkzip->hashes[cnt].uncompressed_length, pkzip->hashes[cnt].crc32, pkzip->hashes[cnt].offset, pkzip->hashes[cnt].additional_offset);
+    }
+
+    out_len += sprintf (line_buf + out_len, "%i*%x*%x*", pkzip->hashes[cnt].compression_type, pkzip->hashes[cnt].data_length, pkzip->hashes[cnt].checksum_from_crc);
+    if (pkzip->version == 2)
+    {
+      out_len += sprintf (line_buf + out_len, "%x*", pkzip->hashes[cnt].checksum_from_timestamp);
+    }
+
+    for (u32 i = 0; i < pkzip->hashes[cnt].data_length; i++)
+    {
+      out_len += sprintf (line_buf + out_len, "%02x", pkzip->hashes[cnt].data[i]);
+    }
+  }
+
+  if (pkzip->version == 1)
+  {
+    out_len += sprintf (line_buf + out_len, "*$/pkzip$");
+  }
+  else
+  {
+    out_len += sprintf (line_buf + out_len, "*$/pkzip2$");
+  }
+
+  return out_len;
+}
+
+void module_init (module_ctx_t *module_ctx)
+{
+  module_ctx->module_context_size             = MODULE_CONTEXT_SIZE_CURRENT;
+  module_ctx->module_interface_version        = MODULE_INTERFACE_VERSION_CURRENT;
+
+  module_ctx->module_attack_exec              = module_attack_exec;
+  module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
+  module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
+  module_ctx->module_benchmark_mask           = MODULE_DEFAULT;
+  module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
+  module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
+  module_ctx->module_deep_comp_kernel         = MODULE_DEFAULT;
+  module_ctx->module_dgst_pos0                = module_dgst_pos0;
+  module_ctx->module_dgst_pos1                = module_dgst_pos1;
+  module_ctx->module_dgst_pos2                = module_dgst_pos2;
+  module_ctx->module_dgst_pos3                = module_dgst_pos3;
+  module_ctx->module_dgst_size                = module_dgst_size;
+  module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
+  module_ctx->module_esalt_size               = module_esalt_size;
+  module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
+  module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
+  module_ctx->module_forced_outfile_format    = MODULE_DEFAULT;
+  module_ctx->module_hash_binary_count        = MODULE_DEFAULT;
+  module_ctx->module_hash_binary_parse        = MODULE_DEFAULT;
+  module_ctx->module_hash_binary_save         = MODULE_DEFAULT;
+  module_ctx->module_hash_decode_outfile      = MODULE_DEFAULT;
+  module_ctx->module_hash_decode_zero_hash    = MODULE_DEFAULT;
+  module_ctx->module_hash_decode              = module_hash_decode;
+  module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
+  module_ctx->module_hash_encode              = module_hash_encode;
+  module_ctx->module_hash_init_selftest       = MODULE_DEFAULT;
+  module_ctx->module_hash_mode                = MODULE_DEFAULT;
+  module_ctx->module_hash_category            = module_hash_category;
+  module_ctx->module_hash_name                = module_hash_name;
+  module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;
+  module_ctx->module_hook12                   = MODULE_DEFAULT;
+  module_ctx->module_hook23                   = MODULE_DEFAULT;
+  module_ctx->module_hook_salt_size           = MODULE_DEFAULT;
+  module_ctx->module_hook_size                = MODULE_DEFAULT;
+  module_ctx->module_jit_build_options        = MODULE_DEFAULT;
+  module_ctx->module_jit_cache_disable        = MODULE_DEFAULT;
+  module_ctx->module_kernel_accel_max         = MODULE_DEFAULT;
+  module_ctx->module_kernel_accel_min         = MODULE_DEFAULT;
+  module_ctx->module_kernel_loops_max         = MODULE_DEFAULT;
+  module_ctx->module_kernel_loops_min         = MODULE_DEFAULT;
+  module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
+  module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
+  module_ctx->module_kern_type                = module_kern_type;
+  module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
+  module_ctx->module_opti_type                = module_opti_type;
+  module_ctx->module_opts_type                = module_opts_type;
+  module_ctx->module_outfile_check_disable    = MODULE_DEFAULT;
+  module_ctx->module_outfile_check_nocomp     = MODULE_DEFAULT;
+  module_ctx->module_potfile_disable          = MODULE_DEFAULT;
+  module_ctx->module_potfile_keep_all_hashes  = MODULE_DEFAULT;
+  module_ctx->module_pwdump_column            = MODULE_DEFAULT;
+  module_ctx->module_pw_max                   = MODULE_DEFAULT;
+  module_ctx->module_pw_min                   = MODULE_DEFAULT;
+  module_ctx->module_salt_max                 = MODULE_DEFAULT;
+  module_ctx->module_salt_min                 = MODULE_DEFAULT;
+  module_ctx->module_salt_type                = module_salt_type;
+  module_ctx->module_separator                = MODULE_DEFAULT;
+  module_ctx->module_st_hash                  = module_st_hash;
+  module_ctx->module_st_pass                  = module_st_pass;
+  module_ctx->module_tmp_size                 = MODULE_DEFAULT;
+  module_ctx->module_unstable_warning         = MODULE_DEFAULT;
+  module_ctx->module_warmup_disable           = MODULE_DEFAULT;
+}
