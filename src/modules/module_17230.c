@@ -262,7 +262,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     p = strtok(NULL, "*");
     if (p == NULL) return PARSER_HASH_LENGTH;
 
-    hex_to_binary(p, strlen(p) * 2, (char *) &(pkzip->hashes[i].data));
+    hex_to_binary(p, strlen(p), (char *) &(pkzip->hashes[i].data));
 
     // fake salt
     salt->salt_buf[0] ^= pkzip->hashes[i].data[ 3] << 24 | pkzip->hashes[i].data[ 2] << 16 | pkzip->hashes[i].data[ 1] << 8 | pkzip->hashes[i].data[ 0];
