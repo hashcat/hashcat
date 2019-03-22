@@ -3,10 +3,12 @@
  * License.....: MIT
  */
 
+#ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_hash_sha256.cl"
+#endif
 
 typedef struct seven_zip_tmp
 {

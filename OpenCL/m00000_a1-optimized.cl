@@ -5,12 +5,14 @@
 
 #define NEW_SIMD_CODE
 
+#ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_scalar.cl"
 #include "inc_simd.cl"
 #include "inc_hash_md5.cl"
+#endif
 
 __kernel void m00000_m04 (KERN_ATTR_BASIC ())
 {

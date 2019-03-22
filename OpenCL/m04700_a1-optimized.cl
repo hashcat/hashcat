@@ -5,12 +5,14 @@
 
 #define NEW_SIMD_CODE
 
+#ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_md5.cl"
 #include "inc_hash_sha1.cl"
+#endif
 
 #if   VECT_SIZE == 1
 #define uint_to_hex_lower8_le(i) (u32x) (l_bin2asc[(i)])

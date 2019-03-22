@@ -3,12 +3,14 @@
  * License.....: MIT
  */
 
+#ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_hash_sha256.cl"
 #include "inc_cipher_aes.cl"
 #include "inc_cipher_twofish.cl"
+#endif
 
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
@@ -696,5 +698,7 @@ __kernel void m13400_comp (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
 
   #define il_pos 0
 
+  #ifdef KERNEL_STATIC
   #include COMPARE_M
+  #endif
 }

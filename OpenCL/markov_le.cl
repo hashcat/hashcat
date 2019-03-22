@@ -3,8 +3,10 @@
  * License.....: MIT
  */
 
+#ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#endif
 
 #define CHARSIZ 256
 

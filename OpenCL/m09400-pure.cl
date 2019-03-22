@@ -5,12 +5,14 @@
 
 #define NEW_SIMD_CODE
 
+#ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha1.cl"
 #include "inc_cipher_aes.cl"
+#endif
 
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
@@ -329,7 +331,9 @@ __kernel void m09400_comp (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t)
     const u32 r2 = out[2];
     const u32 r3 = out[3];
 
+    #ifdef KERNEL_STATIC
     #define il_pos 0
+    #endif
 
     #include COMPARE_M
   }
@@ -427,6 +431,8 @@ __kernel void m09400_comp (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t)
 
     #define il_pos 0
 
+    #ifdef KERNEL_STATIC
     #include COMPARE_M
+    #endif
   }
 }

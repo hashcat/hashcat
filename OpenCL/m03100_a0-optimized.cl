@@ -6,6 +6,7 @@
 //incompatible
 //#define NEW_SIMD_CODE
 
+#ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
 #include "inc_common.cl"
@@ -13,6 +14,7 @@
 #include "inc_rp_optimized.cl"
 #include "inc_simd.cl"
 #include "inc_cipher_des.cl"
+#endif
 
 __kernel void m03100_m04 (KERN_ATTR_RULES ())
 {

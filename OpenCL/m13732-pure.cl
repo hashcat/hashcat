@@ -8,6 +8,7 @@
 //#undef  LOCAL_MEM_TYPE
 //#define LOCAL_MEM_TYPE LOCAL_MEM_TYPE_GLOBAL
 
+#ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
 #include "inc_common.cl"
@@ -18,6 +19,7 @@
 #include "inc_cipher_serpent.cl"
 #include "inc_cipher_camellia.cl"
 #include "inc_cipher_kuznyechik.cl"
+#endif
 
 typedef struct vc
 {
@@ -35,10 +37,12 @@ typedef struct vc
 
 } vc_t;
 
+#ifdef KERNEL_STATIC
 #include "inc_truecrypt_keyfile.cl"
 #include "inc_truecrypt_crc32.cl"
 #include "inc_truecrypt_xts.cl"
 #include "inc_veracrypt_xts.cl"
+#endif
 
 typedef struct vc_tmp
 {

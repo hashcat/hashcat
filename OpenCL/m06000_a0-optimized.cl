@@ -5,6 +5,7 @@
 
 #define NEW_SIMD_CODE
 
+#ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
 #include "inc_common.cl"
@@ -12,6 +13,7 @@
 #include "inc_rp_optimized.cl"
 #include "inc_simd.cl"
 #include "inc_hash_ripemd160.cl"
+#endif
 
 DECLSPEC void ripemd160_transform_transport_vector (const u32x *w, u32x *dgst)
 {

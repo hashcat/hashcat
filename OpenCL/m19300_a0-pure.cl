@@ -5,6 +5,7 @@
 
 //#define NEW_SIMD_CODE
 
+#ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
 #include "inc_common.cl"
@@ -12,6 +13,7 @@
 #include "inc_rp.cl"
 #include "inc_scalar.cl"
 #include "inc_hash_sha1.cl"
+#endif
 
 typedef struct sha1_double_salt
 {

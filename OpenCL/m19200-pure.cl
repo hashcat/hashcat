@@ -5,11 +5,13 @@
 
 //#define NEW_SIMD_CODE
 
+#ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha512.cl"
+#endif
 
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
@@ -431,7 +433,9 @@ __kernel void m19200_comp (KERN_ATTR_TMPS (qnx_sha512_tmp_t))
 
   #define il_pos 0
 
+  #ifdef KERNEL_STATIC
   #include COMPARE_M
+  #endif
 
   // we should also handle the buggy qnx sha512 implementation
   // see https://github.com/magnumripper/JohnTheRipper/blob/bleeding-jumbo/src/sha2.c#L578-L595
@@ -448,6 +452,8 @@ __kernel void m19200_comp (KERN_ATTR_TMPS (qnx_sha512_tmp_t))
     const u32 r2 = l32_from_64_S (swap64_S (sha512_ctx2.h[1]));
     const u32 r3 = h32_from_64_S (swap64_S (sha512_ctx2.h[1]));
 
+    #ifdef KERNEL_STATIC
     #include COMPARE_M
+    #endif
   }
 }

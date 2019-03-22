@@ -5,6 +5,7 @@
 
 #define NEW_SIMD_CODE
 
+#ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
 #include "inc_common.cl"
@@ -13,6 +14,7 @@
 #include "inc_cipher_aes.cl"
 #include "inc_cipher_twofish.cl"
 #include "inc_cipher_serpent.cl"
+#endif
 
 typedef struct tc
 {
@@ -26,9 +28,11 @@ typedef struct tc
 
 } tc_t;
 
+#ifdef KERNEL_STATIC
 #include "inc_truecrypt_keyfile.cl"
 #include "inc_truecrypt_crc32.cl"
 #include "inc_truecrypt_xts.cl"
+#endif
 
 typedef struct tc64_tmp
 {

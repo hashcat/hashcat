@@ -6,10 +6,12 @@
 //incompatible because of branches
 //#define NEW_SIMD_CODE
 
+#ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
+#endif
 
 __constant u32a crc32tab[0x100] =
 {

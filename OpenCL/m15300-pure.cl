@@ -11,6 +11,7 @@
 #undef  LOCAL_MEM_TYPE
 #define LOCAL_MEM_TYPE LOCAL_MEM_TYPE_GLOBAL
 
+#ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
 #include "inc_common.cl"
@@ -18,6 +19,7 @@
 #include "inc_hash_md4.cl"
 #include "inc_hash_sha1.cl"
 #include "inc_cipher_des.cl"
+#endif
 
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"

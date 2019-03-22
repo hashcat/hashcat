@@ -5,12 +5,14 @@
 
 //#define NEW_SIMD_CODE
 
+#ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_rp_optimized.h"
 #include "inc_rp_optimized.cl"
 #include "inc_simd.cl"
+#endif
 
 DECLSPEC u32 hashCode (const u32 init, const u32 *w, const u32 pw_len)
 {

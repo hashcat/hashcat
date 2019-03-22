@@ -5,12 +5,14 @@
 
 #define NEW_SIMD_CODE
 
+#ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha1.cl"
 #include "inc_cipher_aes.cl"
+#endif
 
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
@@ -350,7 +352,9 @@ __kernel void m12700_comp (KERN_ATTR_TMPS (mywallet_tmp_t))
       const u32 r2 = data[2];
       const u32 r3 = data[3];
 
+      #ifdef KERNEL_STATIC
       #define il_pos 0
+      #endif
 
       #include COMPARE_M
     }
@@ -365,7 +369,9 @@ __kernel void m12700_comp (KERN_ATTR_TMPS (mywallet_tmp_t))
 
       #define il_pos 0
 
+      #ifdef KERNEL_STATIC
       #include COMPARE_M
+      #endif
     }
 
     // "share
@@ -376,7 +382,9 @@ __kernel void m12700_comp (KERN_ATTR_TMPS (mywallet_tmp_t))
       const u32 r2 = data[2];
       const u32 r3 = data[3];
 
+      #ifdef KERNEL_STATIC
       #define il_pos 0
+      #endif
 
       #include COMPARE_M
     }
@@ -391,7 +399,9 @@ __kernel void m12700_comp (KERN_ATTR_TMPS (mywallet_tmp_t))
 
       #define il_pos 0
 
+      #ifdef KERNEL_STATIC
       #include COMPARE_M
+      #endif
     }
 
     // "addre
@@ -404,7 +414,9 @@ __kernel void m12700_comp (KERN_ATTR_TMPS (mywallet_tmp_t))
 
       #define il_pos 0
 
+      #ifdef KERNEL_STATIC
       #include COMPARE_M
+      #endif
     }
 
     // "keys"
@@ -417,7 +429,9 @@ __kernel void m12700_comp (KERN_ATTR_TMPS (mywallet_tmp_t))
 
       #define il_pos 0
 
+      #ifdef KERNEL_STATIC
       #include COMPARE_M
+      #endif
     }
   }
 }

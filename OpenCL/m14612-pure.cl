@@ -5,6 +5,7 @@
 
 #define NEW_SIMD_CODE
 
+#ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
 #include "inc_common.cl"
@@ -14,6 +15,7 @@
 #include "inc_hash_sha512.cl"
 #include "inc_hash_ripemd160.cl"
 #include "inc_cipher_serpent.cl"
+#endif
 
 #define LUKS_STRIPES 4000
 
@@ -80,10 +82,12 @@ typedef struct luks_tmp
 
 } luks_tmp_t;
 
+#ifdef KERNEL_STATIC
 #include "inc_luks_af.cl"
 #include "inc_luks_essiv.cl"
 #include "inc_luks_xts.cl"
 #include "inc_luks_serpent.cl"
+#endif
 
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"

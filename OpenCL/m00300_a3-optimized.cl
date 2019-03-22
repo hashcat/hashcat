@@ -5,11 +5,13 @@
 
 #define NEW_SIMD_CODE
 
+#ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha1.cl"
+#endif
 
 DECLSPEC void m00300m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {

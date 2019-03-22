@@ -4848,9 +4848,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     int build_options_len = 0;
 
     #if defined (_WIN)
-    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-cl-std=CL1.2 -I OpenCL -I \"%s\" ", folder_config->cpath_real);
+    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D KERNEL_STATIC -cl-std=CL1.2 -I OpenCL -I \"%s\" ", folder_config->cpath_real);
     #else
-    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-cl-std=CL1.2 -I OpenCL -I %s ", folder_config->cpath_real);
+    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D KERNEL_STATIC -cl-std=CL1.2 -I OpenCL -I %s ", folder_config->cpath_real);
     #endif
 
     // we don't have sm_* on vendors not NV but it doesn't matter

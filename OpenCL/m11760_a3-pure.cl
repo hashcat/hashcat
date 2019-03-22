@@ -5,11 +5,13 @@
 
 //#define NEW_SIMD_CODE
 
+#ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_streebog256.cl"
+#endif
 
 __kernel void m11760_mxx (KERN_ATTR_VECTOR ())
 {

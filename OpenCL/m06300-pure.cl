@@ -5,10 +5,12 @@
 
 //#define NEW_SIMD_CODE
 
+#ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_hash_md5.cl"
+#endif
 
 #define PUTCHAR_LE(a,p,c) ((u8 *)(a))[(p)] = (u8) (c)
 #define GETCHAR_LE(a,p)   ((u8 *)(a))[(p)]
@@ -342,5 +344,7 @@ __kernel void m06300_comp (KERN_ATTR_TMPS (md5crypt_tmp_t))
 
   #define il_pos 0
 
+  #ifdef KERNEL_STATIC
   #include COMPARE_M
+  #endif
 }
