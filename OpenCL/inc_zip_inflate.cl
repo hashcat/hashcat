@@ -177,11 +177,6 @@ enum
     TINFL_FAST_LOOKUP_SIZE = 1 << TINFL_FAST_LOOKUP_BITS
 };
 
-typedef void *(*mz_alloc_func)(void *opaque, size_t items, size_t size);
-typedef void (*mz_free_func)(void *opaque, void *address);
-typedef void *(*mz_realloc_func)(void *opaque, void *address, size_t items, size_t size);
-
-
 typedef unsigned char mz_uint8;
 typedef signed short mz_int16;
 typedef unsigned short mz_uint16;
@@ -438,8 +433,6 @@ typedef struct mz_stream_s
     char *msg;                       /* error msg (unused) */
     struct inflate_state *state; /* internal state, allocated by zalloc/zfree */
 
-    mz_alloc_func zalloc; /* optional heap allocation function (defaults to malloc) */
-    mz_free_func zfree;   /* optional heap free function (defaults to free) */
     void *opaque;         /* heap alloc function user pointer */
 
     int data_type;     /* data_type (unused) */

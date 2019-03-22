@@ -659,8 +659,6 @@ __kernel void m17200_sxx (KERN_ATTR_RULES_ESALT (pkzip_t))
     unsigned char inflated[MAX_UNCOMPRESSED_LENGTH];
     mz_stream infstream;
     inflate_state pStream;
-    infstream.zalloc    = Z_NULL;
-    infstream.zfree     = Z_NULL;
     infstream.opaque    = Z_NULL;
     infstream.avail_in  = esalt_bufs[digests_offset].hash.data_length - 12; // size of input
     infstream.next_in   = (Bytef *) compressed; // input char array
@@ -931,8 +929,6 @@ __kernel void m17200_mxx (KERN_ATTR_RULES_ESALT (pkzip_t))
     unsigned char inflated[MAX_UNCOMPRESSED_LENGTH];
     mz_stream infstream;
     inflate_state pStream;
-    infstream.zalloc    = Z_NULL;
-    infstream.zfree     = Z_NULL;
     infstream.opaque    = Z_NULL;
     infstream.avail_in  = esalt_bufs[digests_offset].hash.data_length - 12; // size of input
     infstream.next_in   = (Bytef *) compressed; // input char array
