@@ -400,7 +400,7 @@ DECLSPEC void memcat64c_be (u32x *block, const u32 offset, u32x *carry)
   }
 }
 
-__kernel void m13800_m04 (KERN_ATTR_ESALT (win8phone_t))
+KERNEL_FQ void m13800_m04 (KERN_ATTR_ESALT (win8phone_t))
 {
   /**
    * modifier
@@ -432,7 +432,7 @@ __kernel void m13800_m04 (KERN_ATTR_ESALT (win8phone_t))
    * shared
    */
 
-  __local u32 s_esalt[32];
+  LOCAL_AS u32 s_esalt[32];
 
   for (u32 i = lid; i < 32; i += lsz)
   {
@@ -644,15 +644,15 @@ __kernel void m13800_m04 (KERN_ATTR_ESALT (win8phone_t))
   }
 }
 
-__kernel void m13800_m08 (KERN_ATTR_ESALT (win8phone_t))
+KERNEL_FQ void m13800_m08 (KERN_ATTR_ESALT (win8phone_t))
 {
 }
 
-__kernel void m13800_m16 (KERN_ATTR_ESALT (win8phone_t))
+KERNEL_FQ void m13800_m16 (KERN_ATTR_ESALT (win8phone_t))
 {
 }
 
-__kernel void m13800_s04 (KERN_ATTR_ESALT (win8phone_t))
+KERNEL_FQ void m13800_s04 (KERN_ATTR_ESALT (win8phone_t))
 {
   /**
    * modifier
@@ -684,7 +684,7 @@ __kernel void m13800_s04 (KERN_ATTR_ESALT (win8phone_t))
    * shared
    */
 
-  __local u32 s_esalt[32];
+  LOCAL_AS u32 s_esalt[32];
 
   for (u32 i = lid; i < 32; i += lsz)
   {
@@ -908,10 +908,10 @@ __kernel void m13800_s04 (KERN_ATTR_ESALT (win8phone_t))
   }
 }
 
-__kernel void m13800_s08 (KERN_ATTR_ESALT (win8phone_t))
+KERNEL_FQ void m13800_s08 (KERN_ATTR_ESALT (win8phone_t))
 {
 }
 
-__kernel void m13800_s16 (KERN_ATTR_ESALT (win8phone_t))
+KERNEL_FQ void m13800_s16 (KERN_ATTR_ESALT (win8phone_t))
 {
 }

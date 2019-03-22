@@ -13,7 +13,7 @@
 #include "inc_hash_sha1.cl"
 #endif
 
-__kernel void m08300_mxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m08300_mxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -131,7 +131,7 @@ __kernel void m08300_mxx (KERN_ATTR_VECTOR ())
   }
 }
 
-__kernel void m08300_sxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m08300_sxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier

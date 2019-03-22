@@ -28,7 +28,7 @@ typedef struct netntlm
 
 } netntlm_t;
 
-__kernel void m05600_mxx (KERN_ATTR_RULES_ESALT (netntlm_t))
+KERNEL_FQ void m05600_mxx (KERN_ATTR_RULES_ESALT (netntlm_t))
 {
   /**
    * modifier
@@ -127,7 +127,7 @@ __kernel void m05600_mxx (KERN_ATTR_RULES_ESALT (netntlm_t))
   }
 }
 
-__kernel void m05600_sxx (KERN_ATTR_RULES_ESALT (netntlm_t))
+KERNEL_FQ void m05600_sxx (KERN_ATTR_RULES_ESALT (netntlm_t))
 {
   /**
    * modifier

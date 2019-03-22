@@ -109,7 +109,7 @@ DECLSPEC void hmac_sha1_run (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad,
   sha1_transform_vector (w0, w1, w2, w3, digest);
 }
 
-__kernel void m07300_m04 (KERN_ATTR_ESALT (rakp_t))
+KERNEL_FQ void m07300_m04 (KERN_ATTR_ESALT (rakp_t))
 {
   /**
    * modifier
@@ -296,15 +296,15 @@ __kernel void m07300_m04 (KERN_ATTR_ESALT (rakp_t))
   }
 }
 
-__kernel void m07300_m08 (KERN_ATTR_ESALT (rakp_t))
+KERNEL_FQ void m07300_m08 (KERN_ATTR_ESALT (rakp_t))
 {
 }
 
-__kernel void m07300_m16 (KERN_ATTR_ESALT (rakp_t))
+KERNEL_FQ void m07300_m16 (KERN_ATTR_ESALT (rakp_t))
 {
 }
 
-__kernel void m07300_s04 (KERN_ATTR_ESALT (rakp_t))
+KERNEL_FQ void m07300_s04 (KERN_ATTR_ESALT (rakp_t))
 {
   /**
    * modifier
@@ -503,10 +503,10 @@ __kernel void m07300_s04 (KERN_ATTR_ESALT (rakp_t))
   }
 }
 
-__kernel void m07300_s08 (KERN_ATTR_ESALT (rakp_t))
+KERNEL_FQ void m07300_s08 (KERN_ATTR_ESALT (rakp_t))
 {
 }
 
-__kernel void m07300_s16 (KERN_ATTR_ESALT (rakp_t))
+KERNEL_FQ void m07300_s16 (KERN_ATTR_ESALT (rakp_t))
 {
 }

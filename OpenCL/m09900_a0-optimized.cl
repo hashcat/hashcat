@@ -15,7 +15,7 @@
 #include "inc_hash_md5.cl"
 #endif
 
-__kernel void m09900_m04 (KERN_ATTR_RULES ())
+KERNEL_FQ void m09900_m04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -241,15 +241,15 @@ __kernel void m09900_m04 (KERN_ATTR_RULES ())
   }
 }
 
-__kernel void m09900_m08 (KERN_ATTR_RULES ())
+KERNEL_FQ void m09900_m08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m09900_m16 (KERN_ATTR_RULES ())
+KERNEL_FQ void m09900_m16 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m09900_s04 (KERN_ATTR_RULES ())
+KERNEL_FQ void m09900_s04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -490,10 +490,10 @@ __kernel void m09900_s04 (KERN_ATTR_RULES ())
   }
 }
 
-__kernel void m09900_s08 (KERN_ATTR_RULES ())
+KERNEL_FQ void m09900_s08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m09900_s16 (KERN_ATTR_RULES ())
+KERNEL_FQ void m09900_s16 (KERN_ATTR_RULES ())
 {
 }

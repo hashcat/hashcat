@@ -78,7 +78,7 @@ DECLSPEC void hmac_sha256_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *i
   sha256_transform_vector (w0, w1, w2, w3, digest);
 }
 
-__kernel void m18300_init (KERN_ATTR_TMPS_ESALT (apple_secure_notes_tmp_t, apple_secure_notes_t))
+KERNEL_FQ void m18300_init (KERN_ATTR_TMPS_ESALT (apple_secure_notes_tmp_t, apple_secure_notes_t))
 {
   /**
    * base
@@ -162,7 +162,7 @@ __kernel void m18300_init (KERN_ATTR_TMPS_ESALT (apple_secure_notes_tmp_t, apple
   }
 }
 
-__kernel void m18300_loop (KERN_ATTR_TMPS_ESALT (apple_secure_notes_tmp_t, apple_secure_notes_t))
+KERNEL_FQ void m18300_loop (KERN_ATTR_TMPS_ESALT (apple_secure_notes_tmp_t, apple_secure_notes_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -268,7 +268,7 @@ __kernel void m18300_loop (KERN_ATTR_TMPS_ESALT (apple_secure_notes_tmp_t, apple
   }
 }
 
-__kernel void m18300_comp (KERN_ATTR_TMPS_ESALT (apple_secure_notes_tmp_t, apple_secure_notes_t))
+KERNEL_FQ void m18300_comp (KERN_ATTR_TMPS_ESALT (apple_secure_notes_tmp_t, apple_secure_notes_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -280,17 +280,17 @@ __kernel void m18300_comp (KERN_ATTR_TMPS_ESALT (apple_secure_notes_tmp_t, apple
 
   #ifdef REAL_SHM
 
-  __local u32 s_td0[256];
-  __local u32 s_td1[256];
-  __local u32 s_td2[256];
-  __local u32 s_td3[256];
-  __local u32 s_td4[256];
+  LOCAL_AS u32 s_td0[256];
+  LOCAL_AS u32 s_td1[256];
+  LOCAL_AS u32 s_td2[256];
+  LOCAL_AS u32 s_td3[256];
+  LOCAL_AS u32 s_td4[256];
 
-  __local u32 s_te0[256];
-  __local u32 s_te1[256];
-  __local u32 s_te2[256];
-  __local u32 s_te3[256];
-  __local u32 s_te4[256];
+  LOCAL_AS u32 s_te0[256];
+  LOCAL_AS u32 s_te1[256];
+  LOCAL_AS u32 s_te2[256];
+  LOCAL_AS u32 s_te3[256];
+  LOCAL_AS u32 s_te4[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -311,17 +311,17 @@ __kernel void m18300_comp (KERN_ATTR_TMPS_ESALT (apple_secure_notes_tmp_t, apple
 
   #else
 
-  __constant u32a *s_td0 = td0;
-  __constant u32a *s_td1 = td1;
-  __constant u32a *s_td2 = td2;
-  __constant u32a *s_td3 = td3;
-  __constant u32a *s_td4 = td4;
+  CONSTANT_AS u32a *s_td0 = td0;
+  CONSTANT_AS u32a *s_td1 = td1;
+  CONSTANT_AS u32a *s_td2 = td2;
+  CONSTANT_AS u32a *s_td3 = td3;
+  CONSTANT_AS u32a *s_td4 = td4;
 
-  __constant u32a *s_te0 = te0;
-  __constant u32a *s_te1 = te1;
-  __constant u32a *s_te2 = te2;
-  __constant u32a *s_te3 = te3;
-  __constant u32a *s_te4 = te4;
+  CONSTANT_AS u32a *s_te0 = te0;
+  CONSTANT_AS u32a *s_te1 = te1;
+  CONSTANT_AS u32a *s_te2 = te2;
+  CONSTANT_AS u32a *s_te3 = te3;
+  CONSTANT_AS u32a *s_te4 = te4;
 
   #endif
 

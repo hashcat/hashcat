@@ -33,7 +33,7 @@ typedef struct ethereum_pbkdf2
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
-__constant u64a keccakf_rndc[24] =
+CONSTANT_AS u64a keccakf_rndc[24] =
 {
   0x0000000000000001, 0x0000000000008082, 0x800000000000808a,
   0x8000000080008000, 0x000000000000808b, 0x0000000080000001,
@@ -206,7 +206,7 @@ DECLSPEC void hmac_sha256_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *i
   sha256_transform_vector (w0, w1, w2, w3, digest);
 }
 
-__kernel void m15600_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, ethereum_pbkdf2_t))
+KERNEL_FQ void m15600_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, ethereum_pbkdf2_t))
 {
   /**
    * base
@@ -290,7 +290,7 @@ __kernel void m15600_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, ethereum_p
   }
 }
 
-__kernel void m15600_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, ethereum_pbkdf2_t))
+KERNEL_FQ void m15600_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, ethereum_pbkdf2_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -396,7 +396,7 @@ __kernel void m15600_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, ethereum_p
   }
 }
 
-__kernel void m15600_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, ethereum_pbkdf2_t))
+KERNEL_FQ void m15600_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, ethereum_pbkdf2_t))
 {
   /**
    * base

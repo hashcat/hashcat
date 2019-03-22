@@ -25,7 +25,7 @@ typedef struct pstoken
 
 } pstoken_t;
 
-__kernel void m13500_mxx (KERN_ATTR_RULES_ESALT (pstoken_t))
+KERNEL_FQ void m13500_mxx (KERN_ATTR_RULES_ESALT (pstoken_t))
 {
   /**
    * modifier
@@ -100,7 +100,7 @@ __kernel void m13500_mxx (KERN_ATTR_RULES_ESALT (pstoken_t))
   }
 }
 
-__kernel void m13500_sxx (KERN_ATTR_RULES_ESALT (pstoken_t))
+KERNEL_FQ void m13500_sxx (KERN_ATTR_RULES_ESALT (pstoken_t))
 {
   /**
    * modifier

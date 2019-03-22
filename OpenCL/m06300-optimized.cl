@@ -554,7 +554,7 @@ DECLSPEC void append_1st (u32 *block0, u32 *block1, u32 *block2, u32 *block3, co
   }
 }
 
-__kernel void m06300_init (KERN_ATTR_TMPS (md5crypt_tmp_t))
+KERNEL_FQ void m06300_init (KERN_ATTR_TMPS (md5crypt_tmp_t))
 {
   /**
    * base
@@ -712,7 +712,7 @@ __kernel void m06300_init (KERN_ATTR_TMPS (md5crypt_tmp_t))
   tmps[gid].digest_buf[3] = digest[3];
 }
 
-__kernel void m06300_loop (KERN_ATTR_TMPS (md5crypt_tmp_t))
+KERNEL_FQ void m06300_loop (KERN_ATTR_TMPS (md5crypt_tmp_t))
 {
   /**
    * base
@@ -900,7 +900,7 @@ __kernel void m06300_loop (KERN_ATTR_TMPS (md5crypt_tmp_t))
   tmps[gid].digest_buf[3] = digest[3];
 }
 
-__kernel void m06300_comp (KERN_ATTR_TMPS (md5crypt_tmp_t))
+KERNEL_FQ void m06300_comp (KERN_ATTR_TMPS (md5crypt_tmp_t))
 {
   /**
    * modifier

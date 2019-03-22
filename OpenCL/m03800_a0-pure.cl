@@ -15,7 +15,7 @@
 #include "inc_hash_md5.cl"
 #endif
 
-__kernel void m03800_mxx (KERN_ATTR_RULES ())
+KERNEL_FQ void m03800_mxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -74,7 +74,7 @@ __kernel void m03800_mxx (KERN_ATTR_RULES ())
   }
 }
 
-__kernel void m03800_sxx (KERN_ATTR_RULES ())
+KERNEL_FQ void m03800_sxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier

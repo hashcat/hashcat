@@ -19,7 +19,7 @@ typedef struct androidpin_tmp
 
 } androidpin_tmp_t;
 
-__constant u32a c_pc_dec[1024] =
+CONSTANT_AS u32a c_pc_dec[1024] =
 {
   0x00000030,
   0x00000031,
@@ -1047,7 +1047,7 @@ __constant u32a c_pc_dec[1024] =
   0x33323031,
 };
 
-__constant u32a c_pc_len[1024] =
+CONSTANT_AS u32a c_pc_len[1024] =
 {
   1,
   1,
@@ -2196,7 +2196,7 @@ DECLSPEC void append_salt (u32 *w0, u32 *w1, u32 *w2, const u32 *append, const u
   }
 }
 
-__kernel void m05800_init (KERN_ATTR_TMPS (androidpin_tmp_t))
+KERNEL_FQ void m05800_init (KERN_ATTR_TMPS (androidpin_tmp_t))
 {
   /**
    * base
@@ -2285,7 +2285,7 @@ __kernel void m05800_init (KERN_ATTR_TMPS (androidpin_tmp_t))
   tmps[gid].digest_buf[4] = digest[4];
 }
 
-__kernel void m05800_loop (KERN_ATTR_TMPS (androidpin_tmp_t))
+KERNEL_FQ void m05800_loop (KERN_ATTR_TMPS (androidpin_tmp_t))
 {
   /**
    * base
@@ -2299,8 +2299,8 @@ __kernel void m05800_loop (KERN_ATTR_TMPS (androidpin_tmp_t))
    * cache precomputed conversion table in shared memory
    */
 
-  __local u32 s_pc_dec[1024];
-  __local u32 s_pc_len[1024];
+  LOCAL_AS u32 s_pc_dec[1024];
+  LOCAL_AS u32 s_pc_len[1024];
 
   for (u32 i = lid; i < 1024; i += lsz)
   {
@@ -2404,7 +2404,7 @@ __kernel void m05800_loop (KERN_ATTR_TMPS (androidpin_tmp_t))
   tmps[gid].digest_buf[4] = digest[4];
 }
 
-__kernel void m05800_comp (KERN_ATTR_TMPS (androidpin_tmp_t))
+KERNEL_FQ void m05800_comp (KERN_ATTR_TMPS (androidpin_tmp_t))
 {
   /**
    * modifier

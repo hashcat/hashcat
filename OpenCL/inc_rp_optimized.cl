@@ -2352,7 +2352,7 @@ DECLSPEC u32 apply_rule (const u32 name, const u32 p0, const u32 p1, u32 *buf0, 
   return out_len;
 }
 
-DECLSPEC u32 apply_rules (__constant const u32 *cmds, u32 *buf0, u32 *buf1, const u32 len)
+DECLSPEC u32 apply_rules (CONSTANT_AS const u32 *cmds, u32 *buf0, u32 *buf1, const u32 len)
 {
   u32 out_len = len;
 
@@ -2370,7 +2370,7 @@ DECLSPEC u32 apply_rules (__constant const u32 *cmds, u32 *buf0, u32 *buf1, cons
   return out_len;
 }
 
-DECLSPEC u32x apply_rules_vect (const u32 *pw_buf0, const u32 *pw_buf1, const u32 pw_len, __constant const kernel_rule_t *rules_buf, const u32 il_pos, u32x *buf0, u32x *buf1)
+DECLSPEC u32x apply_rules_vect (const u32 *pw_buf0, const u32 *pw_buf1, const u32 pw_len, CONSTANT_AS const kernel_rule_t *rules_buf, const u32 il_pos, u32x *buf0, u32x *buf1)
 {
   #if VECT_SIZE == 1
 

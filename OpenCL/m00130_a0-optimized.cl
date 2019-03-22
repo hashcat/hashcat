@@ -15,7 +15,7 @@
 #include "inc_hash_sha1.cl"
 #endif
 
-__kernel void m00130_m04 (KERN_ATTR_RULES ())
+KERNEL_FQ void m00130_m04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -265,15 +265,15 @@ __kernel void m00130_m04 (KERN_ATTR_RULES ())
   }
 }
 
-__kernel void m00130_m08 (KERN_ATTR_RULES ())
+KERNEL_FQ void m00130_m08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m00130_m16 (KERN_ATTR_RULES ())
+KERNEL_FQ void m00130_m16 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m00130_s04 (KERN_ATTR_RULES ())
+KERNEL_FQ void m00130_s04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -544,10 +544,10 @@ __kernel void m00130_s04 (KERN_ATTR_RULES ())
   }
 }
 
-__kernel void m00130_s08 (KERN_ATTR_RULES ())
+KERNEL_FQ void m00130_s08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m00130_s16 (KERN_ATTR_RULES ())
+KERNEL_FQ void m00130_s16 (KERN_ATTR_RULES ())
 {
 }

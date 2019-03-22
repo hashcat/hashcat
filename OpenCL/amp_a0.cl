@@ -11,7 +11,7 @@
 #include "inc_rp.cl"
 #endif
 
-__kernel void amp (__global pw_t * restrict pws, __global pw_t * restrict pws_amp, __constant const kernel_rule_t * restrict rules_buf, __global const pw_t * restrict combs_buf, __global const bf_t * restrict bfs_buf, const u32 combs_mode, const u64 gid_max)
+KERNEL_FQ void amp (GLOBAL_AS pw_t * restrict pws, GLOBAL_AS pw_t * restrict pws_amp, CONSTANT_AS const kernel_rule_t * restrict rules_buf, GLOBAL_AS const pw_t * restrict combs_buf, GLOBAL_AS const bf_t * restrict bfs_buf, const u32 combs_mode, const u64 gid_max)
 {
   const u64 gid = get_global_id (0);
 

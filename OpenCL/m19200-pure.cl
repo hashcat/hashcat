@@ -154,7 +154,7 @@ DECLSPEC u32 sha512_update_128_qnxbug (sha512_ctx_t *ctx, u32 *w0, u32 *w1, u32 
   return sav;
 }
 
-DECLSPEC u32 sha512_update_global_swap_qnxbug (sha512_ctx_t *ctx, const __global u32 *w, const int len, u32 sav)
+DECLSPEC u32 sha512_update_global_swap_qnxbug (sha512_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len, u32 sav)
 {
   u32 w0[4];
   u32 w1[4];
@@ -363,7 +363,7 @@ DECLSPEC void sha512_final_qnxbug (sha512_ctx_t *ctx, u32 sav)
   sha512_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->w4, ctx->w5, ctx->w6, ctx->w7, ctx->h);
 }
 
-__kernel void m19200_init (KERN_ATTR_TMPS (qnx_sha512_tmp_t))
+KERNEL_FQ void m19200_init (KERN_ATTR_TMPS (qnx_sha512_tmp_t))
 {
   /**
    * base
@@ -389,7 +389,7 @@ __kernel void m19200_init (KERN_ATTR_TMPS (qnx_sha512_tmp_t))
   tmps[gid].sav = 0;
 }
 
-__kernel void m19200_loop (KERN_ATTR_TMPS (qnx_sha512_tmp_t))
+KERNEL_FQ void m19200_loop (KERN_ATTR_TMPS (qnx_sha512_tmp_t))
 {
   /**
    * base
@@ -411,7 +411,7 @@ __kernel void m19200_loop (KERN_ATTR_TMPS (qnx_sha512_tmp_t))
   tmps[gid].sav = sav;
 }
 
-__kernel void m19200_comp (KERN_ATTR_TMPS (qnx_sha512_tmp_t))
+KERNEL_FQ void m19200_comp (KERN_ATTR_TMPS (qnx_sha512_tmp_t))
 {
   /**
    * modifier

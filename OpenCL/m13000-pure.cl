@@ -68,7 +68,7 @@ DECLSPEC void hmac_sha256_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *i
   sha256_transform_vector (w0, w1, w2, w3, digest);
 }
 
-__kernel void m13000_init (KERN_ATTR_TMPS (pbkdf2_sha256_tmp_t))
+KERNEL_FQ void m13000_init (KERN_ATTR_TMPS (pbkdf2_sha256_tmp_t))
 {
   /**
    * base
@@ -152,7 +152,7 @@ __kernel void m13000_init (KERN_ATTR_TMPS (pbkdf2_sha256_tmp_t))
   }
 }
 
-__kernel void m13000_loop (KERN_ATTR_TMPS (pbkdf2_sha256_tmp_t))
+KERNEL_FQ void m13000_loop (KERN_ATTR_TMPS (pbkdf2_sha256_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -258,7 +258,7 @@ __kernel void m13000_loop (KERN_ATTR_TMPS (pbkdf2_sha256_tmp_t))
   }
 }
 
-__kernel void m13000_comp (KERN_ATTR_TMPS (pbkdf2_sha256_tmp_t))
+KERNEL_FQ void m13000_comp (KERN_ATTR_TMPS (pbkdf2_sha256_tmp_t))
 {
   /**
    * base

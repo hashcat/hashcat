@@ -75,7 +75,7 @@ DECLSPEC void hmac_sha256_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *i
   sha256_transform_vector (w0, w1, w2, w3, digest);
 }
 
-__kernel void m12800_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sha256_t))
+KERNEL_FQ void m12800_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sha256_t))
 {
   /**
    * base
@@ -89,7 +89,7 @@ __kernel void m12800_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sha
    * lookup ascii table
    */
 
-  __local u32 l_bin2asc[256];
+  LOCAL_AS u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -242,7 +242,7 @@ __kernel void m12800_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sha
   }
 }
 
-__kernel void m12800_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sha256_t))
+KERNEL_FQ void m12800_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sha256_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -348,7 +348,7 @@ __kernel void m12800_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sha
   }
 }
 
-__kernel void m12800_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sha256_t))
+KERNEL_FQ void m12800_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sha256_t))
 {
   /**
    * base

@@ -13,7 +13,7 @@
 #include "inc_simd.cl"
 #endif
 
-__constant u32a crc32tab[0x100] =
+CONSTANT_AS u32a crc32tab[0x100] =
 {
   0x00000000, 0x77073096, 0xee0e612c, 0x990951ba,
   0x076dc419, 0x706af48f, 0xe963a535, 0x9e6495a3,
@@ -124,7 +124,7 @@ DECLSPEC u32x crc32 (const u32x *w, const u32 pw_len, const u32 iv)
   return ~a;
 }
 
-__kernel void m11500_m04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m11500_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -264,15 +264,15 @@ __kernel void m11500_m04 (KERN_ATTR_BASIC ())
   }
 }
 
-__kernel void m11500_m08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m11500_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m11500_m16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m11500_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m11500_s04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m11500_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -424,10 +424,10 @@ __kernel void m11500_s04 (KERN_ATTR_BASIC ())
   }
 }
 
-__kernel void m11500_s08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m11500_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m11500_s16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m11500_s16 (KERN_ATTR_BASIC ())
 {
 }

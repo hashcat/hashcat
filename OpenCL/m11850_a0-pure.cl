@@ -15,7 +15,7 @@
 #include "inc_hash_streebog512.cl"
 #endif
 
-__kernel void m11850_mxx (KERN_ATTR_RULES ())
+KERNEL_FQ void m11850_mxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -31,7 +31,7 @@ __kernel void m11850_mxx (KERN_ATTR_RULES ())
 
   #ifdef REAL_SHM
 
-  __local u64a s_sbob_sl64[8][256];
+  LOCAL_AS u64a s_sbob_sl64[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -49,7 +49,7 @@ __kernel void m11850_mxx (KERN_ATTR_RULES ())
 
   #else
 
-  __constant u64a (*s_sbob_sl64)[256] = sbob_sl64;
+  CONSTANT_AS u64a (*s_sbob_sl64)[256] = sbob_sl64;
 
   #endif
 
@@ -97,7 +97,7 @@ __kernel void m11850_mxx (KERN_ATTR_RULES ())
   }
 }
 
-__kernel void m11850_sxx (KERN_ATTR_RULES ())
+KERNEL_FQ void m11850_sxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -113,7 +113,7 @@ __kernel void m11850_sxx (KERN_ATTR_RULES ())
 
   #ifdef REAL_SHM
 
-  __local u64a s_sbob_sl64[8][256];
+  LOCAL_AS u64a s_sbob_sl64[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -131,7 +131,7 @@ __kernel void m11850_sxx (KERN_ATTR_RULES ())
 
   #else
 
-  __constant u64a (*s_sbob_sl64)[256] = sbob_sl64;
+  CONSTANT_AS u64a (*s_sbob_sl64)[256] = sbob_sl64;
 
   #endif
 

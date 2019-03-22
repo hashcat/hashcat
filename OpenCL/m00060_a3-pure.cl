@@ -13,7 +13,7 @@
 #include "inc_hash_md5.cl"
 #endif
 
-__kernel void m00060_mxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m00060_mxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -79,7 +79,7 @@ __kernel void m00060_mxx (KERN_ATTR_VECTOR ())
   }
 }
 
-__kernel void m00060_sxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m00060_sxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier

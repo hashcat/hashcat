@@ -129,7 +129,7 @@ DECLSPEC void blake2b_transform (u64x *h, u64x *t, u64x *f, u64x *m, u64x *v, co
   h[7] = h[7] ^ v[7] ^ v[15];
 }
 
-__kernel void m00600_m04 (KERN_ATTR_VECTOR_ESALT (blake2_t))
+KERNEL_FQ void m00600_m04 (KERN_ATTR_VECTOR_ESALT (blake2_t))
 {
   /**
    * modifier
@@ -233,7 +233,7 @@ __kernel void m00600_m04 (KERN_ATTR_VECTOR_ESALT (blake2_t))
   }
 }
 
-__kernel void m00600_m08 (KERN_ATTR_VECTOR_ESALT (blake2_t))
+KERNEL_FQ void m00600_m08 (KERN_ATTR_VECTOR_ESALT (blake2_t))
 {
   /**
    * modifier
@@ -337,7 +337,7 @@ __kernel void m00600_m08 (KERN_ATTR_VECTOR_ESALT (blake2_t))
   }
 }
 
-__kernel void m00600_m16 (KERN_ATTR_VECTOR_ESALT (blake2_t))
+KERNEL_FQ void m00600_m16 (KERN_ATTR_VECTOR_ESALT (blake2_t))
 {
   /**
    * modifier
@@ -441,7 +441,7 @@ __kernel void m00600_m16 (KERN_ATTR_VECTOR_ESALT (blake2_t))
   }
 }
 
-__kernel void m00600_s04 (KERN_ATTR_VECTOR_ESALT (blake2_t))
+KERNEL_FQ void m00600_s04 (KERN_ATTR_VECTOR_ESALT (blake2_t))
 {
   /**
    * modifier
@@ -557,7 +557,7 @@ __kernel void m00600_s04 (KERN_ATTR_VECTOR_ESALT (blake2_t))
   }
 }
 
-__kernel void m00600_s08 (KERN_ATTR_VECTOR_ESALT (blake2_t))
+KERNEL_FQ void m00600_s08 (KERN_ATTR_VECTOR_ESALT (blake2_t))
 {
   /**
    * modifier
@@ -673,7 +673,7 @@ __kernel void m00600_s08 (KERN_ATTR_VECTOR_ESALT (blake2_t))
   }
 }
 
-__kernel void m00600_s16 (KERN_ATTR_VECTOR_ESALT (blake2_t))
+KERNEL_FQ void m00600_s16 (KERN_ATTR_VECTOR_ESALT (blake2_t))
 {
   /**
    * modifier

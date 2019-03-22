@@ -20,7 +20,7 @@ typedef struct rakp
 
 } rakp_t;
 
-__kernel void m07300_mxx (KERN_ATTR_ESALT (rakp_t))
+KERNEL_FQ void m07300_mxx (KERN_ATTR_ESALT (rakp_t))
 {
   /**
    * modifier
@@ -89,7 +89,7 @@ __kernel void m07300_mxx (KERN_ATTR_ESALT (rakp_t))
   }
 }
 
-__kernel void m07300_sxx (KERN_ATTR_ESALT (rakp_t))
+KERNEL_FQ void m07300_sxx (KERN_ATTR_ESALT (rakp_t))
 {
   /**
    * modifier

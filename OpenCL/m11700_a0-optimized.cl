@@ -18,7 +18,7 @@
 
 #define INITVAL 0x0101010101010101
 
-DECLSPEC void streebog_g (u64x *h, const u64x *m, __local u64 (*s_sbob_sl64)[256])
+DECLSPEC void streebog_g (u64x *h, const u64x *m, LOCAL_AS u64 (*s_sbob_sl64)[256])
 {
   u64x k[8];
   u64x s[8];
@@ -86,7 +86,7 @@ DECLSPEC void streebog_g (u64x *h, const u64x *m, __local u64 (*s_sbob_sl64)[256
   }
 }
 
-__kernel void m11700_m04 (KERN_ATTR_RULES ())
+KERNEL_FQ void m11700_m04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -100,7 +100,7 @@ __kernel void m11700_m04 (KERN_ATTR_RULES ())
    * shared lookup table
    */
 
-  __local u64 s_sbob_sl64[8][256];
+  LOCAL_AS u64 s_sbob_sl64[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -236,15 +236,15 @@ __kernel void m11700_m04 (KERN_ATTR_RULES ())
   }
 }
 
-__kernel void m11700_m08 (KERN_ATTR_RULES ())
+KERNEL_FQ void m11700_m08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m11700_m16 (KERN_ATTR_RULES ())
+KERNEL_FQ void m11700_m16 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m11700_s04 (KERN_ATTR_RULES ())
+KERNEL_FQ void m11700_s04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -258,7 +258,7 @@ __kernel void m11700_s04 (KERN_ATTR_RULES ())
    * shared lookup table
    */
 
-  __local u64 s_sbob_sl64[8][256];
+  LOCAL_AS u64 s_sbob_sl64[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -406,10 +406,10 @@ __kernel void m11700_s04 (KERN_ATTR_RULES ())
   }
 }
 
-__kernel void m11700_s08 (KERN_ATTR_RULES ())
+KERNEL_FQ void m11700_s08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m11700_s16 (KERN_ATTR_RULES ())
+KERNEL_FQ void m11700_s16 (KERN_ATTR_RULES ())
 {
 }

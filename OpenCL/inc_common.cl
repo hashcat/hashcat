@@ -9,12 +9,12 @@
  * There are four variables where major differences occur:
  *
  *   -  P2: Adress space of kernel_rules_t struct.
- *          If the kernel uses rules_buf, it will be stored in __constant.
- *          If it does not, cheaper __global space is used.
+ *          If the kernel uses rules_buf, it will be stored in CONSTANT_AS.
+ *          If it does not, cheaper GLOBAL_AS space is used.
  *
  *   -  P4: Innerloop word buffer:
- *          Most kernels use a bf_t structure in __global address space (_BASIC).
- *          Some use u32x pointer to a vector in __constant address space (_VECTOR).
+ *          Most kernels use a bf_t structure in GLOBAL_AS address space (_BASIC).
+ *          Some use u32x pointer to a vector in CONSTANT_AS address space (_VECTOR).
  *          A few use a specific bs_word_t struct (_BITSLICE).
  *
  *   -  P5: Type of the tmps structure with additional data, or void.
@@ -23,31 +23,31 @@
  *   - P19: Type of the esalt_bufs structure with additional data, or void.
  */
 
-#define KERN_ATTR(p2,p4,p5,p6,p19)                           \
-  __global       pw_t          * restrict pws,               \
-  p2       const kernel_rule_t * restrict rules_buf,         \
-  __global const pw_t          * restrict combs_buf,         \
-  p4,                                                        \
-  __global p5                  * restrict tmps,              \
-  __global p6                  * restrict hooks,             \
-  __global const u32           * restrict bitmaps_buf_s1_a,  \
-  __global const u32           * restrict bitmaps_buf_s1_b,  \
-  __global const u32           * restrict bitmaps_buf_s1_c,  \
-  __global const u32           * restrict bitmaps_buf_s1_d,  \
-  __global const u32           * restrict bitmaps_buf_s2_a,  \
-  __global const u32           * restrict bitmaps_buf_s2_b,  \
-  __global const u32           * restrict bitmaps_buf_s2_c,  \
-  __global const u32           * restrict bitmaps_buf_s2_d,  \
-  __global       plain_t       * restrict plains_buf,        \
-  __global const digest_t      * restrict digests_buf,       \
-  __global       u32           * restrict hashes_shown,      \
-  __global const salt_t        * restrict salt_bufs,         \
-  __global const p19           * restrict esalt_bufs,        \
-  __global       u32           * restrict d_return_buf,      \
-  __global       void          * restrict d_extra0_buf,      \
-  __global       void          * restrict d_extra1_buf,      \
-  __global       void          * restrict d_extra2_buf,      \
-  __global       void          * restrict d_extra3_buf,      \
+#define KERN_ATTR(p2,p4,p5,p6,p19)                            \
+  GLOBAL_AS       pw_t          * restrict pws,               \
+  p2        const kernel_rule_t * restrict rules_buf,         \
+  GLOBAL_AS const pw_t          * restrict combs_buf,         \
+  p4,                                                         \
+  GLOBAL_AS p5                  * restrict tmps,              \
+  GLOBAL_AS p6                  * restrict hooks,             \
+  GLOBAL_AS const u32           * restrict bitmaps_buf_s1_a,  \
+  GLOBAL_AS const u32           * restrict bitmaps_buf_s1_b,  \
+  GLOBAL_AS const u32           * restrict bitmaps_buf_s1_c,  \
+  GLOBAL_AS const u32           * restrict bitmaps_buf_s1_d,  \
+  GLOBAL_AS const u32           * restrict bitmaps_buf_s2_a,  \
+  GLOBAL_AS const u32           * restrict bitmaps_buf_s2_b,  \
+  GLOBAL_AS const u32           * restrict bitmaps_buf_s2_c,  \
+  GLOBAL_AS const u32           * restrict bitmaps_buf_s2_d,  \
+  GLOBAL_AS       plain_t       * restrict plains_buf,        \
+  GLOBAL_AS const digest_t      * restrict digests_buf,       \
+  GLOBAL_AS       u32           * restrict hashes_shown,      \
+  GLOBAL_AS const salt_t        * restrict salt_bufs,         \
+  GLOBAL_AS const p19           * restrict esalt_bufs,        \
+  GLOBAL_AS       u32           * restrict d_return_buf,      \
+  GLOBAL_AS       void          * restrict d_extra0_buf,      \
+  GLOBAL_AS       void          * restrict d_extra1_buf,      \
+  GLOBAL_AS       void          * restrict d_extra2_buf,      \
+  GLOBAL_AS       void          * restrict d_extra3_buf,      \
   const u32 bitmap_mask,    \
   const u32 bitmap_shift1,  \
   const u32 bitmap_shift2,  \
@@ -68,18 +68,190 @@
  * do not use rules or tmps, etc.
  */
 
-#define KERN_ATTR_BASIC()         KERN_ATTR (__global,   __global   const bf_t      * restrict bfs_buf,     void, void, void)
-#define KERN_ATTR_BITSLICE()      KERN_ATTR (__global,   __constant const bs_word_t * restrict words_buf_r, void, void, void)
-#define KERN_ATTR_ESALT(e)        KERN_ATTR (__global,   __global   const bf_t      * restrict bfs_buf,     void, void, e)
-#define KERN_ATTR_RULES()         KERN_ATTR (__constant, __global   const bf_t      * restrict bfs_buf,     void, void, void)
-#define KERN_ATTR_RULES_ESALT(e)  KERN_ATTR (__constant, __global   const bf_t      * restrict bfs_buf,     void, void, e)
-#define KERN_ATTR_TMPS(t)         KERN_ATTR (__global,   __global   const bf_t      * restrict bfs_buf,     t,    void, void)
-#define KERN_ATTR_TMPS_ESALT(t,e) KERN_ATTR (__global,   __global   const bf_t      * restrict bfs_buf,     t,    void, e)
-#define KERN_ATTR_TMPS_HOOKS(t,h) KERN_ATTR (__global,   __global   const bf_t      * restrict bfs_buf,     t,    h,    void)
-#define KERN_ATTR_VECTOR()        KERN_ATTR (__global,   __constant const u32x      * restrict words_buf_r, void, void, void)
-#define KERN_ATTR_VECTOR_ESALT(e) KERN_ATTR (__global,   __constant const u32x      * restrict words_buf_r, void, void, e)
+#define KERN_ATTR_BASIC()         KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      * restrict bfs_buf,     void, void, void)
+#define KERN_ATTR_BITSLICE()      KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bs_word_t * restrict words_buf_r, void, void, void)
+#define KERN_ATTR_ESALT(e)        KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      * restrict bfs_buf,     void, void, e)
+#define KERN_ATTR_RULES()         KERN_ATTR (CONSTANT_AS, GLOBAL_AS   const bf_t      * restrict bfs_buf,     void, void, void)
+#define KERN_ATTR_RULES_ESALT(e)  KERN_ATTR (CONSTANT_AS, GLOBAL_AS   const bf_t      * restrict bfs_buf,     void, void, e)
+#define KERN_ATTR_TMPS(t)         KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      * restrict bfs_buf,     t,    void, void)
+#define KERN_ATTR_TMPS_ESALT(t,e) KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      * restrict bfs_buf,     t,    void, e)
+#define KERN_ATTR_TMPS_HOOKS(t,h) KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      * restrict bfs_buf,     t,    h,    void)
+#define KERN_ATTR_VECTOR()        KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const u32x      * restrict words_buf_r, void, void, void)
+#define KERN_ATTR_VECTOR_ESALT(e) KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const u32x      * restrict words_buf_r, void, void, e)
 
-// moved from inc_types.cl
+/**
+ * vendor specific (or generic) functions
+ */
+
+DECLSPEC u8 v8a_from_v32_S (const u32 v32)
+{
+  vconv32_t v;
+
+  v.v32 = v32;
+
+  return v.v8a;
+}
+
+DECLSPEC u8 v8b_from_v32_S (const u32 v32)
+{
+  vconv32_t v;
+
+  v.v32 = v32;
+
+  return v.v8b;
+}
+
+DECLSPEC u8 v8c_from_v32_S (const u32 v32)
+{
+  vconv32_t v;
+
+  v.v32 = v32;
+
+  return v.v8c;
+}
+
+DECLSPEC u8 v8d_from_v32_S (const u32 v32)
+{
+  vconv32_t v;
+
+  v.v32 = v32;
+
+  return v.v8d;
+}
+
+DECLSPEC u16 v16a_from_v32_S (const u32 v32)
+{
+  vconv32_t v;
+
+  v.v32 = v32;
+
+  return v.v16a;
+}
+
+DECLSPEC u16 v16b_from_v32_S (const u32 v32)
+{
+  vconv32_t v;
+
+  v.v32 = v32;
+
+  return v.v16b;
+}
+
+DECLSPEC u32 v32_from_v16ab_S (const u16 v16a, const u16 v16b)
+{
+  vconv32_t v;
+
+  v.v16a = v16a;
+  v.v16b = v16b;
+
+  return v.v32;
+}
+
+DECLSPEC u32 v32a_from_v64_S (const u64 v64)
+{
+  vconv64_t v;
+
+  v.v64 = v64;
+
+  return v.v32a;
+}
+
+DECLSPEC u32 v32b_from_v64_S (const u64 v64)
+{
+  vconv64_t v;
+
+  v.v64 = v64;
+
+  return v.v32b;
+}
+
+DECLSPEC u64 v64_from_v32ab_S (const u32 v32a, const u32 v32b)
+{
+  vconv64_t v;
+
+  v.v32a = v32a;
+  v.v32b = v32b;
+
+  return v.v64;
+}
+
+// unpack function are similar, but always return u32
+
+DECLSPEC u32 unpack_v8a_from_v32_S (const u32 v32)
+{
+  u32 r;
+
+  #if defined IS_NV
+  asm volatile ("bfe.u32 %0, %1, 0, 8;" : "=r"(r) : "r"(v32));
+  #elif defined IS_AMD
+    #if HAS_VBFE
+    __asm__ __volatile__ ("V_BFE_U32 %0, %1, 0, 8;" : "=v"(r) : "v"(v32));
+    #else
+    r = (v32 >> 0) & 0xff;
+    #endif
+  #else
+  r = (v32 >> 0) & 0xff;
+  #endif
+
+  return r;
+}
+
+DECLSPEC u32 unpack_v8b_from_v32_S (const u32 v32)
+{
+  u32 r;
+
+  #if defined IS_NV
+  asm volatile ("bfe.u32 %0, %1, 8, 8;" : "=r"(r) : "r"(v32));
+  #elif defined IS_AMD
+    #if HAS_VBFE
+    __asm__ __volatile__ ("V_BFE_U32 %0, %1, 8, 8;" : "=v"(r) : "v"(v32));
+    #else
+    r = (v32 >> 8) & 0xff;
+    #endif
+  #else
+  r = (v32 >> 8) & 0xff;
+  #endif
+
+  return r;
+}
+
+DECLSPEC u32 unpack_v8c_from_v32_S (const u32 v32)
+{
+  u32 r;
+
+  #if defined IS_NV
+  asm volatile ("bfe.u32 %0, %1, 16, 8;" : "=r"(r) : "r"(v32));
+  #elif defined IS_AMD
+    #if HAS_VBFE
+    __asm__ __volatile__ ("V_BFE_U32 %0, %1, 16, 8;" : "=v"(r) : "v"(v32));
+    #else
+    r = (v32 >> 16) & 0xff;
+    #endif
+  #else
+  r = (v32 >> 16) & 0xff;
+  #endif
+
+  return r;
+}
+
+DECLSPEC u32 unpack_v8d_from_v32_S (const u32 v32)
+{
+  u32 r;
+
+  #if defined IS_NV
+  asm volatile ("bfe.u32 %0, %1, 24, 8;" : "=r"(r) : "r"(v32));
+  #elif defined IS_AMD
+    #if HAS_VBFE
+    __asm__ __volatile__ ("V_BFE_U32 %0, %1, 24, 8;" : "=v"(r) : "v"(v32));
+    #else
+    r = (v32 >> 24) & 0xff;
+    #endif
+  #else
+  r = (v32 >> 24) & 0xff;
+  #endif
+
+  return r;
+}
 
 DECLSPEC u32 l32_from_64_S (u64 a)
 {
@@ -99,7 +271,7 @@ DECLSPEC u32 h32_from_64_S (u64 a)
 
 DECLSPEC u64 hl32_to_64_S (const u32 a, const u32 b)
 {
-  return as_ulong ((uint2) (b, a));
+  return v64_from_v32ab_S (b, a);
 }
 
 DECLSPEC u32x l32_from_64 (u64x a)
@@ -187,35 +359,35 @@ DECLSPEC u64x hl32_to_64 (const u32x a, const u32x b)
   u64x r;
 
   #if VECT_SIZE == 1
-  r    = as_ulong ((uint2) (b,    a));
+  r    = v64_from_v32ab_S  (b   , a);
   #endif
 
   #if VECT_SIZE >= 2
-  r.s0 = as_ulong ((uint2) (b.s0, a.s0));
-  r.s1 = as_ulong ((uint2) (b.s1, a.s1));
+  r.s0 = v64_from_v32ab_S  (b.s0, a.s0);
+  r.s1 = v64_from_v32ab_S  (b.s1, a.s1);
   #endif
 
   #if VECT_SIZE >= 4
-  r.s2 = as_ulong ((uint2) (b.s2, a.s2));
-  r.s3 = as_ulong ((uint2) (b.s3, a.s3));
+  r.s2 = v64_from_v32ab_S  (b.s2, a.s2);
+  r.s3 = v64_from_v32ab_S  (b.s3, a.s3);
   #endif
 
   #if VECT_SIZE >= 8
-  r.s4 = as_ulong ((uint2) (b.s4, a.s4));
-  r.s5 = as_ulong ((uint2) (b.s5, a.s5));
-  r.s6 = as_ulong ((uint2) (b.s6, a.s6));
-  r.s7 = as_ulong ((uint2) (b.s7, a.s7));
+  r.s4 = v64_from_v32ab_S  (b.s4, a.s4);
+  r.s5 = v64_from_v32ab_S  (b.s5, a.s5);
+  r.s6 = v64_from_v32ab_S  (b.s6, a.s6);
+  r.s7 = v64_from_v32ab_S  (b.s7, a.s7);
   #endif
 
   #if VECT_SIZE >= 16
-  r.s8 = as_ulong ((uint2) (b.s8, a.s8));
-  r.s9 = as_ulong ((uint2) (b.s9, a.s9));
-  r.sa = as_ulong ((uint2) (b.sa, a.sa));
-  r.sb = as_ulong ((uint2) (b.sb, a.sb));
-  r.sc = as_ulong ((uint2) (b.sc, a.sc));
-  r.sd = as_ulong ((uint2) (b.sd, a.sd));
-  r.se = as_ulong ((uint2) (b.se, a.se));
-  r.sf = as_ulong ((uint2) (b.sf, a.sf));
+  r.s8 = v64_from_v32ab_S  (b.s8, a.s8);
+  r.s9 = v64_from_v32ab_S  (b.s9, a.s9);
+  r.sa = v64_from_v32ab_S  (b.sa, a.sa);
+  r.sb = v64_from_v32ab_S  (b.sb, a.sb);
+  r.sc = v64_from_v32ab_S  (b.sc, a.sc);
+  r.sd = v64_from_v32ab_S  (b.sd, a.sd);
+  r.se = v64_from_v32ab_S  (b.se, a.se);
+  r.sf = v64_from_v32ab_S  (b.sf, a.sf);
   #endif
 
   return r;
@@ -1109,32 +1281,56 @@ DECLSPEC u32 hc_lop_0x96_S (const u32 a, const u32 b, const u32 c)
 #ifdef IS_GENERIC
 DECLSPEC u32 swap32_S (const u32 v)
 {
+  #ifdef _CPU_OPENCL_EMU_H
+  return emu_byte_swap_32 (v);
+  #else
   return (as_uint (as_uchar4 (v).s3210));
+  #endif
 }
 
 DECLSPEC u64 swap64_S (const u64 v)
 {
+  #ifdef _CPU_OPENCL_EMU_H
+  return emu_byte_swap_64 (v);
+  #else
   return (as_ulong (as_uchar8 (v).s76543210));
+  #endif
 }
 
 DECLSPEC u32 rotr32_S (const u32 a, const u32 n)
 {
+  #ifdef _CPU_OPENCL_EMU_H
+  return emu_rotate_32 (a, (32 - n));
+  #else
   return rotate (a, (32 - n));
+  #endif
 }
 
 DECLSPEC u32 rotl32_S (const u32 a, const u32 n)
 {
+  #ifdef _CPU_OPENCL_EMU_H
+  return emu_rotate_32 (a, n);
+  #else
   return rotate (a, n);
+  #endif
 }
 
 DECLSPEC u64 rotr64_S (const u64 a, const u32 n)
 {
+  #ifdef _CPU_OPENCL_EMU_H
+  return emu_rotate_64 (a, (u64) (64 - n));
+  #else
   return rotate (a, (u64) (64 - n));
+  #endif
 }
 
 DECLSPEC u64 rotl64_S (const u64 a, const u32 n)
 {
+  #ifdef _CPU_OPENCL_EMU_H
+  return emu_rotate_64 (a, (u64) n);
+  #else
   return rotate (a, (u64) n);
+  #endif
 }
 
 DECLSPEC u32x swap32 (const u32x v)
@@ -1157,24 +1353,43 @@ DECLSPEC u64x swap64 (const u64x v)
        | ((v << 56) & 0xff00000000000000);
 }
 
+// For _CPU_OPENCL_EMU_H we dont need to care about vector functions
+// The VECT_SIZE is guaranteed to be set to 1 from cpu_opencl_emu.h
+
 DECLSPEC u32x rotr32 (const u32x a, const u32 n)
 {
+  #ifdef _CPU_OPENCL_EMU_H
+  return emu_rotate_32 (a, (32 - n));
+  #else
   return rotate (a, (32 - n));
+  #endif
 }
 
 DECLSPEC u32x rotl32 (const u32x a, const u32 n)
 {
+  #ifdef _CPU_OPENCL_EMU_H
+  return emu_rotate_32 (a, n);
+  #else
   return rotate (a, n);
+  #endif
 }
 
 DECLSPEC u64x rotr64 (const u64x a, const u32 n)
 {
+  #ifdef _CPU_OPENCL_EMU_H
+  return emu_rotate_64 (a, (u64x) (64 - n));
+  #else
   return rotate (a, (u64x) (64 - n));
+  #endif
 }
 
 DECLSPEC u64x rotl64 (const u64x a, const u32 n)
 {
+  #ifdef _CPU_OPENCL_EMU_H
+  return emu_rotate_64 (a, (u64x) n);
+  #else
   return rotate (a, (u64x) n);
+  #endif
 }
 
 DECLSPEC u32x hc_bfe (const u32x a, const u32x b, const u32x c)
@@ -1285,178 +1500,6 @@ DECLSPEC u32 hc_lop_0x96_S (const u32 a, const u32 b, const u32 c)
 
 #endif
 
-// functions
-
-DECLSPEC u8 v8a_from_v32_S (const u32 v32)
-{
-  vconv32_t v;
-
-  v.v32 = v32;
-
-  return v.v8a;
-}
-
-DECLSPEC u8 v8b_from_v32_S (const u32 v32)
-{
-  vconv32_t v;
-
-  v.v32 = v32;
-
-  return v.v8b;
-}
-
-DECLSPEC u8 v8c_from_v32_S (const u32 v32)
-{
-  vconv32_t v;
-
-  v.v32 = v32;
-
-  return v.v8c;
-}
-
-DECLSPEC u8 v8d_from_v32_S (const u32 v32)
-{
-  vconv32_t v;
-
-  v.v32 = v32;
-
-  return v.v8d;
-}
-
-DECLSPEC u16 v16a_from_v32_S (const u32 v32)
-{
-  vconv32_t v;
-
-  v.v32 = v32;
-
-  return v.v16a;
-}
-
-DECLSPEC u16 v16b_from_v32_S (const u32 v32)
-{
-  vconv32_t v;
-
-  v.v32 = v32;
-
-  return v.v16b;
-}
-
-DECLSPEC u32 v32_from_v16ab_S (const u16 v16a, const u16 v16b)
-{
-  vconv32_t v;
-
-  v.v16a = v16a;
-  v.v16b = v16b;
-
-  return v.v32;
-}
-
-DECLSPEC u32 v32a_from_v64_S (const u64 v64)
-{
-  vconv64_t v;
-
-  v.v64 = v64;
-
-  return v.v32a;
-}
-
-DECLSPEC u32 v32b_from_v64_S (const u64 v64)
-{
-  vconv64_t v;
-
-  v.v64 = v64;
-
-  return v.v32b;
-}
-
-DECLSPEC u64 v64_from_v32ab_S (const u32 v32a, const u32 v32b)
-{
-  vconv64_t v;
-
-  v.v32a = v32a;
-  v.v32b = v32b;
-
-  return v.v64;
-}
-
-// unpack function are similar, but always return u32
-
-DECLSPEC u32 unpack_v8a_from_v32_S (const u32 v32)
-{
-  u32 r;
-
-  #if defined IS_NV
-  asm volatile ("bfe.u32 %0, %1, 0, 8;" : "=r"(r) : "r"(v32));
-  #elif defined IS_AMD
-    #if HAS_VBFE
-    __asm__ __volatile__ ("V_BFE_U32 %0, %1, 0, 8;" : "=v"(r) : "v"(v32));
-    #else
-    r = (v32 >> 0) & 0xff;
-    #endif
-  #else
-  r = (v32 >> 0) & 0xff;
-  #endif
-
-  return r;
-}
-
-DECLSPEC u32 unpack_v8b_from_v32_S (const u32 v32)
-{
-  u32 r;
-
-  #if defined IS_NV
-  asm volatile ("bfe.u32 %0, %1, 8, 8;" : "=r"(r) : "r"(v32));
-  #elif defined IS_AMD
-    #if HAS_VBFE
-    __asm__ __volatile__ ("V_BFE_U32 %0, %1, 8, 8;" : "=v"(r) : "v"(v32));
-    #else
-    r = (v32 >> 8) & 0xff;
-    #endif
-  #else
-  r = (v32 >> 8) & 0xff;
-  #endif
-
-  return r;
-}
-
-DECLSPEC u32 unpack_v8c_from_v32_S (const u32 v32)
-{
-  u32 r;
-
-  #if defined IS_NV
-  asm volatile ("bfe.u32 %0, %1, 16, 8;" : "=r"(r) : "r"(v32));
-  #elif defined IS_AMD
-    #if HAS_VBFE
-    __asm__ __volatile__ ("V_BFE_U32 %0, %1, 16, 8;" : "=v"(r) : "v"(v32));
-    #else
-    r = (v32 >> 16) & 0xff;
-    #endif
-  #else
-  r = (v32 >> 16) & 0xff;
-  #endif
-
-  return r;
-}
-
-DECLSPEC u32 unpack_v8d_from_v32_S (const u32 v32)
-{
-  u32 r;
-
-  #if defined IS_NV
-  asm volatile ("bfe.u32 %0, %1, 24, 8;" : "=r"(r) : "r"(v32));
-  #elif defined IS_AMD
-    #if HAS_VBFE
-    __asm__ __volatile__ ("V_BFE_U32 %0, %1, 24, 8;" : "=v"(r) : "v"(v32));
-    #else
-    r = (v32 >> 24) & 0xff;
-    #endif
-  #else
-  r = (v32 >> 24) & 0xff;
-  #endif
-
-  return r;
-}
-
 /**
  * pure scalar functions
  */
@@ -1476,7 +1519,7 @@ DECLSPEC int ffz (const u32 v)
   return -1;
 }
 
-DECLSPEC int hash_comp (const u32 *d1, __global const u32 *d2)
+DECLSPEC int hash_comp (const u32 *d1, GLOBAL_AS const u32 *d2)
 {
   if (d1[3] > d2[DGST_R3]) return ( 1);
   if (d1[3] < d2[DGST_R3]) return (-1);
@@ -1490,7 +1533,7 @@ DECLSPEC int hash_comp (const u32 *d1, __global const u32 *d2)
   return (0);
 }
 
-DECLSPEC int find_hash (const u32 *digest, const u32 digests_cnt, __global const digest_t *digests_buf)
+DECLSPEC int find_hash (const u32 *digest, const u32 digests_cnt, GLOBAL_AS const digest_t *digests_buf)
 {
   for (u32 l = 0, r = digests_cnt; r; r >>= 1)
   {
@@ -1513,12 +1556,12 @@ DECLSPEC int find_hash (const u32 *digest, const u32 digests_cnt, __global const
   return (-1);
 }
 
-DECLSPEC u32 check_bitmap (__global const u32 *bitmap, const u32 bitmap_mask, const u32 bitmap_shift, const u32 digest)
+DECLSPEC u32 check_bitmap (GLOBAL_AS const u32 *bitmap, const u32 bitmap_mask, const u32 bitmap_shift, const u32 digest)
 {
   return (bitmap[(digest >> bitmap_shift) & bitmap_mask] & (1 << (digest & 0x1f)));
 }
 
-DECLSPEC u32 check (const u32 *digest, __global const u32 *bitmap_s1_a, __global const u32 *bitmap_s1_b, __global const u32 *bitmap_s1_c, __global const u32 *bitmap_s1_d, __global const u32 *bitmap_s2_a, __global const u32 *bitmap_s2_b, __global const u32 *bitmap_s2_c, __global const u32 *bitmap_s2_d, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2)
+DECLSPEC u32 check (const u32 *digest, GLOBAL_AS const u32 *bitmap_s1_a, GLOBAL_AS const u32 *bitmap_s1_b, GLOBAL_AS const u32 *bitmap_s1_c, GLOBAL_AS const u32 *bitmap_s1_d, GLOBAL_AS const u32 *bitmap_s2_a, GLOBAL_AS const u32 *bitmap_s2_b, GLOBAL_AS const u32 *bitmap_s2_c, GLOBAL_AS const u32 *bitmap_s2_d, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2)
 {
   if (check_bitmap (bitmap_s1_a, bitmap_mask, bitmap_shift1, digest[0]) == 0) return (0);
   if (check_bitmap (bitmap_s1_b, bitmap_mask, bitmap_shift1, digest[1]) == 0) return (0);
@@ -1533,7 +1576,7 @@ DECLSPEC u32 check (const u32 *digest, __global const u32 *bitmap_s1_a, __global
   return (1);
 }
 
-DECLSPEC void mark_hash (__global plain_t *plains_buf, __global u32 *d_result, const u32 salt_pos, const u32 digests_cnt, const u32 digest_pos, const u32 hash_pos, const u64 gid, const u32 il_pos, const u32 extra1, const u32 extra2)
+DECLSPEC void mark_hash (GLOBAL_AS plain_t *plains_buf, GLOBAL_AS u32 *d_result, const u32 salt_pos, const u32 digests_cnt, const u32 digest_pos, const u32 hash_pos, const u64 gid, const u32 il_pos, const u32 extra1, const u32 extra2)
 {
   const u32 idx = atomic_inc (d_result);
 
@@ -1636,7 +1679,7 @@ DECLSPEC int is_valid_base58_32 (const u32 v)
   return 1;
 }
 
-DECLSPEC int find_keyboard_layout_map (const u32 search, const int search_len, __local keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt)
+DECLSPEC int find_keyboard_layout_map (const u32 search, const int search_len, LOCAL_AS keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt)
 {
   for (int idx = 0; idx < keyboard_layout_mapping_cnt; idx++)
   {
@@ -1654,7 +1697,7 @@ DECLSPEC int find_keyboard_layout_map (const u32 search, const int search_len, _
   return -1;
 }
 
-DECLSPEC int execute_keyboard_layout_mapping (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int pw_len, __local keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt)
+DECLSPEC int execute_keyboard_layout_mapping (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int pw_len, LOCAL_AS keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt)
 {
   u32 out_buf[16] = { 0 };
 
@@ -61686,7 +61729,7 @@ DECLSPEC void append_0x80_4x4_VV (u32x *w0, u32x *w1, u32x *w2, u32x *w3, const 
   #endif
 }
 
-DECLSPEC void gpu_decompress_entry (__global pw_idx_t *pws_idx, __global u32 *pws_comp, pw_t *pw, const u64 gid)
+DECLSPEC void gpu_decompress_entry (GLOBAL_AS pw_idx_t *pws_idx, GLOBAL_AS u32 *pws_comp, pw_t *pw, const u64 gid)
 {
   const u32 off = pws_idx[gid].off;
   const u32 cnt = pws_idx[gid].cnt;
@@ -61706,7 +61749,7 @@ DECLSPEC void gpu_decompress_entry (__global pw_idx_t *pws_idx, __global u32 *pw
   pw->pw_len = len;
 }
 
-__kernel void gpu_decompress (__global pw_idx_t * restrict pws_idx, __global u32 * restrict pws_comp, __global pw_t * restrict pws_buf, const u64 gid_max)
+KERNEL_FQ void gpu_decompress (GLOBAL_AS pw_idx_t * restrict pws_idx, GLOBAL_AS u32 * restrict pws_comp, GLOBAL_AS pw_t * restrict pws_buf, const u64 gid_max)
 {
   const u64 gid = get_global_id (0);
 
@@ -61719,7 +61762,7 @@ __kernel void gpu_decompress (__global pw_idx_t * restrict pws_idx, __global u32
   pws_buf[gid] = pw;
 }
 
-__kernel void gpu_memset (__global uint4 * restrict buf, const u32 value, const u64 gid_max)
+KERNEL_FQ void gpu_memset (GLOBAL_AS uint4 * restrict buf, const u32 value, const u64 gid_max)
 {
   const u64 gid = get_global_id (0);
 
@@ -61728,7 +61771,7 @@ __kernel void gpu_memset (__global uint4 * restrict buf, const u32 value, const 
   buf[gid] = (uint4) (value);
 }
 
-__kernel void gpu_atinit (__global pw_t * restrict buf, const u64 gid_max)
+KERNEL_FQ void gpu_atinit (GLOBAL_AS pw_t * restrict buf, const u64 gid_max)
 {
   const u64 gid = get_global_id (0);
 

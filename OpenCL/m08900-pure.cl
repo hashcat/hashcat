@@ -135,7 +135,7 @@ DECLSPEC void salsa_r (uint4 *TI)
   }
 }
 
-DECLSPEC void scrypt_smix (uint4 *X, uint4 *T, __global uint4 * restrict V0, __global uint4 * restrict V1, __global uint4 * restrict V2, __global uint4 * restrict V3)
+DECLSPEC void scrypt_smix (uint4 *X, uint4 *T, GLOBAL_AS uint4 * restrict V0, GLOBAL_AS uint4 * restrict V1, GLOBAL_AS uint4 * restrict V2, GLOBAL_AS uint4 * restrict V3)
 {
   #define Coord(xd4,y,z) (((xd4) * ySIZE * zSIZE) + ((y) * zSIZE) + (z))
   #define CO Coord(xd4,y,z)
@@ -148,7 +148,7 @@ DECLSPEC void scrypt_smix (uint4 *X, uint4 *T, __global uint4 * restrict V0, __g
   const u32 xd4 = x / 4;
   const u32 xm4 = x & 3;
 
-  __global uint4 * restrict V;
+  GLOBAL_AS uint4 * restrict V;
 
   switch (xm4)
   {
@@ -215,7 +215,7 @@ DECLSPEC void scrypt_smix (uint4 *X, uint4 *T, __global uint4 * restrict V0, __g
   }
 }
 
-__kernel void m08900_init (KERN_ATTR_TMPS (scrypt_tmp_t))
+KERNEL_FQ void m08900_init (KERN_ATTR_TMPS (scrypt_tmp_t))
 {
   /**
    * base
@@ -280,16 +280,16 @@ __kernel void m08900_init (KERN_ATTR_TMPS (scrypt_tmp_t))
   }
 }
 
-__kernel void m08900_loop (KERN_ATTR_TMPS (scrypt_tmp_t))
+KERNEL_FQ void m08900_loop (KERN_ATTR_TMPS (scrypt_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
   if (gid >= gid_max) return;
 
-  __global uint4 * restrict d_scrypt0_buf = d_extra0_buf;
-  __global uint4 * restrict d_scrypt1_buf = d_extra1_buf;
-  __global uint4 * restrict d_scrypt2_buf = d_extra2_buf;
-  __global uint4 * restrict d_scrypt3_buf = d_extra3_buf;
+  GLOBAL_AS uint4 * restrict d_scrypt0_buf = d_extra0_buf;
+  GLOBAL_AS uint4 * restrict d_scrypt1_buf = d_extra1_buf;
+  GLOBAL_AS uint4 * restrict d_scrypt2_buf = d_extra2_buf;
+  GLOBAL_AS uint4 * restrict d_scrypt3_buf = d_extra3_buf;
 
   uint4 X[STATE_CNT4];
   uint4 T[STATE_CNT4];
@@ -318,7 +318,7 @@ __kernel void m08900_loop (KERN_ATTR_TMPS (scrypt_tmp_t))
   #endif
 }
 
-__kernel void m08900_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
+KERNEL_FQ void m08900_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
 {
   /**
    * base

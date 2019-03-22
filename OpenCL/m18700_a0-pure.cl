@@ -53,7 +53,7 @@ DECLSPEC u32 hashCode (const u32 init, const u32 *w, const u32 pw_len)
   return hash;
 }
 
-__kernel void m18700_mxx (KERN_ATTR_RULES ())
+KERNEL_FQ void m18700_mxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -91,7 +91,7 @@ __kernel void m18700_mxx (KERN_ATTR_RULES ())
   }
 }
 
-__kernel void m18700_sxx (KERN_ATTR_RULES ())
+KERNEL_FQ void m18700_sxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier

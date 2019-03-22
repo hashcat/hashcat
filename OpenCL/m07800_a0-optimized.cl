@@ -16,7 +16,7 @@
 #include "inc_hash_sha1.cl"
 #endif
 
-__constant u32a theMagicArray[64] =
+CONSTANT_AS u32a theMagicArray[64] =
 {
   0x91ac5114, 0x9f675443, 0x24e73be0, 0x28747bc2, 0x863313eb, 0x5a4fcb5c, 0x080a7337, 0x0e5d1c2f,
   0x338fe6e5, 0xf89baedd, 0x16f24b8d, 0x2ce1d4dc, 0xb0cbdf9d, 0xd4706d17, 0xf94d423f, 0x9b1b1194,
@@ -28,7 +28,7 @@ __constant u32a theMagicArray[64] =
   0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
 };
 
-DECLSPEC u32 GETSHIFTEDINT_CONST (__constant u32 *a, const int n)
+DECLSPEC u32 GETSHIFTEDINT_CONST (CONSTANT_AS u32 *a, const int n)
 {
   const int d = n / 4;
   const int m = n & 3;
@@ -53,7 +53,7 @@ DECLSPEC void SETSHIFTEDINT (u32 *a, const int n, const u32 v)
   a[d + 1]  = l32_from_64_S (tmp);
 }
 
-__kernel void m07800_m04 (KERN_ATTR_RULES ())
+KERNEL_FQ void m07800_m04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -293,15 +293,15 @@ __kernel void m07800_m04 (KERN_ATTR_RULES ())
   }
 }
 
-__kernel void m07800_m08 (KERN_ATTR_RULES ())
+KERNEL_FQ void m07800_m08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m07800_m16 (KERN_ATTR_RULES ())
+KERNEL_FQ void m07800_m16 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m07800_s04 (KERN_ATTR_RULES ())
+KERNEL_FQ void m07800_s04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -553,10 +553,10 @@ __kernel void m07800_s04 (KERN_ATTR_RULES ())
   }
 }
 
-__kernel void m07800_s08 (KERN_ATTR_RULES ())
+KERNEL_FQ void m07800_s08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m07800_s16 (KERN_ATTR_RULES ())
+KERNEL_FQ void m07800_s16 (KERN_ATTR_RULES ())
 {
 }

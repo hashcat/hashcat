@@ -27,7 +27,7 @@ typedef struct sha512crypt_tmp
 
 } sha512crypt_tmp_t;
 
-__kernel void m01800_init (KERN_ATTR_TMPS (sha512crypt_tmp_t))
+KERNEL_FQ void m01800_init (KERN_ATTR_TMPS (sha512crypt_tmp_t))
 {
   /**
    * base
@@ -312,7 +312,7 @@ __kernel void m01800_init (KERN_ATTR_TMPS (sha512crypt_tmp_t))
   for (int i = 0; i < 64; i++) tmps[gid].s_bytes[i] = s_final[i];
 }
 
-__kernel void m01800_loop (KERN_ATTR_TMPS (sha512crypt_tmp_t))
+KERNEL_FQ void m01800_loop (KERN_ATTR_TMPS (sha512crypt_tmp_t))
 {
   /**
    * base
@@ -396,7 +396,7 @@ __kernel void m01800_loop (KERN_ATTR_TMPS (sha512crypt_tmp_t))
   for (int i = 0; i < 16; i++) tmps[gid].alt_result[i] = alt_result[i];
 }
 
-__kernel void m01800_comp (KERN_ATTR_TMPS (sha512crypt_tmp_t))
+KERNEL_FQ void m01800_comp (KERN_ATTR_TMPS (sha512crypt_tmp_t))
 {
   /**
    * base

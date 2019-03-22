@@ -1885,7 +1885,7 @@ DECLSPEC void transpose32c (u32 *data)
 // transpose bitslice mod : attention race conditions, need different buffers for *in and *out
 //
 
-__kernel void m01500_tm (__global u32 * restrict mod, __global bs_word_t * restrict words_buf_r)
+KERNEL_FQ void m01500_tm (GLOBAL_AS u32 * restrict mod, GLOBAL_AS bs_word_t * restrict words_buf_r)
 {
   const u64 gid = get_global_id (0);
 
@@ -1911,7 +1911,7 @@ __kernel void m01500_tm (__global u32 * restrict mod, __global bs_word_t * restr
   }
 }
 
-__kernel void m01500_mxx (KERN_ATTR_BITSLICE ())
+KERNEL_FQ void m01500_mxx (KERN_ATTR_BITSLICE ())
 {
   /**
    * base
@@ -2287,7 +2287,7 @@ __kernel void m01500_mxx (KERN_ATTR_BITSLICE ())
   }
 }
 
-__kernel void m01500_sxx (KERN_ATTR_BITSLICE ())
+KERNEL_FQ void m01500_sxx (KERN_ATTR_BITSLICE ())
 {
   /**
    * base

@@ -93,7 +93,7 @@ DECLSPEC void make_kn (u32 *k)
   k[3] ^= c * 0x87000000;
 }
 
-__kernel void m02501_init (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
+KERNEL_FQ void m02501_init (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -139,19 +139,19 @@ __kernel void m02501_init (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
   tmps[gid].out[7] = swap32_S (out[7]);
 }
 
-__kernel void m02501_loop (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
+KERNEL_FQ void m02501_loop (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
 {
   const u64 gid = get_global_id (0);
 
   if (gid >= gid_max) return;
 }
 
-__kernel void m02501_comp (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
+KERNEL_FQ void m02501_comp (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
 {
   // not in use here, special case...
 }
 
-__kernel void m02501_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
+KERNEL_FQ void m02501_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -173,7 +173,7 @@ __kernel void m02501_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
 
   const u32 digest_cur = digests_offset + digest_pos;
 
-  __global const wpa_eapol_t *wpa_eapol = &esalt_bufs[digest_cur];
+  GLOBAL_AS const wpa_eapol_t *wpa_eapol = &esalt_bufs[digest_cur];
 
   u32 pke[32];
 
@@ -462,7 +462,7 @@ __kernel void m02501_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
   }
 }
 
-__kernel void m02501_aux2 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
+KERNEL_FQ void m02501_aux2 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -484,7 +484,7 @@ __kernel void m02501_aux2 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
 
   const u32 digest_cur = digests_offset + digest_pos;
 
-  __global const wpa_eapol_t *wpa_eapol = &esalt_bufs[digest_cur];
+  GLOBAL_AS const wpa_eapol_t *wpa_eapol = &esalt_bufs[digest_cur];
 
   u32 pke[32];
 
@@ -773,7 +773,7 @@ __kernel void m02501_aux2 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
   }
 }
 
-__kernel void m02501_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
+KERNEL_FQ void m02501_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -785,17 +785,17 @@ __kernel void m02501_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
 
   #ifdef REAL_SHM
 
-  __local u32 s_td0[256];
-  __local u32 s_td1[256];
-  __local u32 s_td2[256];
-  __local u32 s_td3[256];
-  __local u32 s_td4[256];
+  LOCAL_AS u32 s_td0[256];
+  LOCAL_AS u32 s_td1[256];
+  LOCAL_AS u32 s_td2[256];
+  LOCAL_AS u32 s_td3[256];
+  LOCAL_AS u32 s_td4[256];
 
-  __local u32 s_te0[256];
-  __local u32 s_te1[256];
-  __local u32 s_te2[256];
-  __local u32 s_te3[256];
-  __local u32 s_te4[256];
+  LOCAL_AS u32 s_te0[256];
+  LOCAL_AS u32 s_te1[256];
+  LOCAL_AS u32 s_te2[256];
+  LOCAL_AS u32 s_te3[256];
+  LOCAL_AS u32 s_te4[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -816,17 +816,17 @@ __kernel void m02501_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
 
   #else
 
-  __constant u32a *s_td0 = td0;
-  __constant u32a *s_td1 = td1;
-  __constant u32a *s_td2 = td2;
-  __constant u32a *s_td3 = td3;
-  __constant u32a *s_td4 = td4;
+  CONSTANT_AS u32a *s_td0 = td0;
+  CONSTANT_AS u32a *s_td1 = td1;
+  CONSTANT_AS u32a *s_td2 = td2;
+  CONSTANT_AS u32a *s_td3 = td3;
+  CONSTANT_AS u32a *s_td4 = td4;
 
-  __constant u32a *s_te0 = te0;
-  __constant u32a *s_te1 = te1;
-  __constant u32a *s_te2 = te2;
-  __constant u32a *s_te3 = te3;
-  __constant u32a *s_te4 = te4;
+  CONSTANT_AS u32a *s_te0 = te0;
+  CONSTANT_AS u32a *s_te1 = te1;
+  CONSTANT_AS u32a *s_te2 = te2;
+  CONSTANT_AS u32a *s_te3 = te3;
+  CONSTANT_AS u32a *s_te4 = te4;
 
   #endif
 
@@ -847,7 +847,7 @@ __kernel void m02501_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
 
   const u32 digest_cur = digests_offset + digest_pos;
 
-  __global const wpa_eapol_t *wpa_eapol = &esalt_bufs[digest_cur];
+  GLOBAL_AS const wpa_eapol_t *wpa_eapol = &esalt_bufs[digest_cur];
 
   u32 pke[32];
 

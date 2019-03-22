@@ -48,7 +48,7 @@ DECLSPEC u8 hex_to_u8 (const u8 *hex)
   return (v);
 }
 
-__kernel void m16801_init (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_pmkid_t))
+KERNEL_FQ void m16801_init (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_pmkid_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -94,19 +94,19 @@ __kernel void m16801_init (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_pmkid_t))
   tmps[gid].out[7] = swap32_S (out[7]);
 }
 
-__kernel void m16801_loop (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_pmkid_t))
+KERNEL_FQ void m16801_loop (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_pmkid_t))
 {
   const u64 gid = get_global_id (0);
 
   if (gid >= gid_max) return;
 }
 
-__kernel void m16801_comp (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_pmkid_t))
+KERNEL_FQ void m16801_comp (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_pmkid_t))
 {
   // not in use here, special case...
 }
 
-__kernel void m16801_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_pmkid_t))
+KERNEL_FQ void m16801_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_pmkid_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -136,7 +136,7 @@ __kernel void m16801_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_pmkid_t))
 
   const u32 digest_cur = digests_offset + digest_pos;
 
-  __global const wpa_pmkid_t *wpa_pmkid = &esalt_bufs[digest_cur];
+  GLOBAL_AS const wpa_pmkid_t *wpa_pmkid = &esalt_bufs[digest_cur];
 
   sha1_hmac_ctx_t sha1_hmac_ctx;
 

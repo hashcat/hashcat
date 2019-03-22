@@ -1,7 +1,7 @@
 
 // basically normal XXX_transform() but with a different name to avoid collisions with function nameing
 
-__constant u32a AF_k_sha256[64] =
+CONSTANT_AS u32a AF_k_sha256[64] =
 {
   SHA256C00, SHA256C01, SHA256C02, SHA256C03,
   SHA256C04, SHA256C05, SHA256C06, SHA256C07,
@@ -21,7 +21,7 @@ __constant u32a AF_k_sha256[64] =
   SHA256C3c, SHA256C3d, SHA256C3e, SHA256C3f,
 };
 
-__constant u64a AF_k_sha512[80] =
+CONSTANT_AS u64a AF_k_sha512[80] =
 {
   SHA512C00, SHA512C01, SHA512C02, SHA512C03,
   SHA512C04, SHA512C05, SHA512C06, SHA512C07,

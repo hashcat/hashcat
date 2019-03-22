@@ -164,7 +164,7 @@ DECLSPEC void sha1_transform_intern (const u32 *w, u32 *digest)
   digest[4] += E;
 }
 
-__kernel void m12500_init (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
+KERNEL_FQ void m12500_init (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
 {
   /**
    * base
@@ -181,7 +181,7 @@ __kernel void m12500_init (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
   tmps[gid].dgst[0][4] = SHA1M_E;
 }
 
-__kernel void m12500_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
+KERNEL_FQ void m12500_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -279,7 +279,7 @@ __kernel void m12500_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
   tmps[gid].dgst[init_pos + 1][4] = dgst[4];
 }
 
-__kernel void m12500_comp (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
+KERNEL_FQ void m12500_comp (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -291,17 +291,17 @@ __kernel void m12500_comp (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
 
   #ifdef REAL_SHM
 
-  __local u32 s_td0[256];
-  __local u32 s_td1[256];
-  __local u32 s_td2[256];
-  __local u32 s_td3[256];
-  __local u32 s_td4[256];
+  LOCAL_AS u32 s_td0[256];
+  LOCAL_AS u32 s_td1[256];
+  LOCAL_AS u32 s_td2[256];
+  LOCAL_AS u32 s_td3[256];
+  LOCAL_AS u32 s_td4[256];
 
-  __local u32 s_te0[256];
-  __local u32 s_te1[256];
-  __local u32 s_te2[256];
-  __local u32 s_te3[256];
-  __local u32 s_te4[256];
+  LOCAL_AS u32 s_te0[256];
+  LOCAL_AS u32 s_te1[256];
+  LOCAL_AS u32 s_te2[256];
+  LOCAL_AS u32 s_te3[256];
+  LOCAL_AS u32 s_te4[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -322,17 +322,17 @@ __kernel void m12500_comp (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
 
   #else
 
-  __constant u32a *s_td0 = td0;
-  __constant u32a *s_td1 = td1;
-  __constant u32a *s_td2 = td2;
-  __constant u32a *s_td3 = td3;
-  __constant u32a *s_td4 = td4;
+  CONSTANT_AS u32a *s_td0 = td0;
+  CONSTANT_AS u32a *s_td1 = td1;
+  CONSTANT_AS u32a *s_td2 = td2;
+  CONSTANT_AS u32a *s_td3 = td3;
+  CONSTANT_AS u32a *s_td4 = td4;
 
-  __constant u32a *s_te0 = te0;
-  __constant u32a *s_te1 = te1;
-  __constant u32a *s_te2 = te2;
-  __constant u32a *s_te3 = te3;
-  __constant u32a *s_te4 = te4;
+  CONSTANT_AS u32a *s_te0 = te0;
+  CONSTANT_AS u32a *s_te1 = te1;
+  CONSTANT_AS u32a *s_te2 = te2;
+  CONSTANT_AS u32a *s_te3 = te3;
+  CONSTANT_AS u32a *s_te4 = te4;
 
   #endif
 

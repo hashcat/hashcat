@@ -14,7 +14,7 @@
 #include "inc_hash_md5.cl"
 #endif
 
-__kernel void m00000_m04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m00000_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -200,15 +200,15 @@ __kernel void m00000_m04 (KERN_ATTR_BASIC ())
   }
 }
 
-__kernel void m00000_m08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m00000_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m00000_m16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m00000_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m00000_s04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m00000_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -409,10 +409,10 @@ __kernel void m00000_s04 (KERN_ATTR_BASIC ())
   }
 }
 
-__kernel void m00000_s08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m00000_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m00000_s16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m00000_s16 (KERN_ATTR_BASIC ())
 {
 }

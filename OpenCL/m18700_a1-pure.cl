@@ -13,7 +13,7 @@
 #include "inc_hash_md5.cl"
 #endif
 
-DECLSPEC u32 hashCode_g (const u32 init, __global u32 * restrict w, const u32 pw_len)
+DECLSPEC u32 hashCode_g (const u32 init, GLOBAL_AS u32 * restrict w, const u32 pw_len)
 {
   u32 hash = init;
 
@@ -51,7 +51,7 @@ DECLSPEC u32 hashCode_g (const u32 init, __global u32 * restrict w, const u32 pw
   return hash;
 }
 
-__kernel void m18700_mxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void m18700_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -90,7 +90,7 @@ __kernel void m18700_mxx (KERN_ATTR_BASIC ())
   }
 }
 
-__kernel void m18700_sxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void m18700_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier

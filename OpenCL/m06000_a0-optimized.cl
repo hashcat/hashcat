@@ -20,7 +20,7 @@ DECLSPEC void ripemd160_transform_transport_vector (const u32x *w, u32x *dgst)
   ripemd160_transform_vector (w + 0, w + 4, w + 8, w + 12, dgst);
 }
 
-__kernel void m06000_m04 (KERN_ATTR_RULES ())
+KERNEL_FQ void m06000_m04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -102,15 +102,15 @@ __kernel void m06000_m04 (KERN_ATTR_RULES ())
   }
 }
 
-__kernel void m06000_m08 (KERN_ATTR_RULES ())
+KERNEL_FQ void m06000_m08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m06000_m16 (KERN_ATTR_RULES ())
+KERNEL_FQ void m06000_m16 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m06000_s04 (KERN_ATTR_RULES ())
+KERNEL_FQ void m06000_s04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -204,10 +204,10 @@ __kernel void m06000_s04 (KERN_ATTR_RULES ())
   }
 }
 
-__kernel void m06000_s08 (KERN_ATTR_RULES ())
+KERNEL_FQ void m06000_s08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m06000_s16 (KERN_ATTR_RULES ())
+KERNEL_FQ void m06000_s16 (KERN_ATTR_RULES ())
 {
 }

@@ -14,7 +14,7 @@
 #include "inc_hash_sha1.cl"
 #endif
 
-__constant u32a theMagicArray[64] =
+CONSTANT_AS u32a theMagicArray[64] =
 {
   0x91ac5114, 0x9f675443, 0x24e73be0, 0x28747bc2, 0x863313eb, 0x5a4fcb5c, 0x080a7337, 0x0e5d1c2f,
   0x338fe6e5, 0xf89baedd, 0x16f24b8d, 0x2ce1d4dc, 0xb0cbdf9d, 0xd4706d17, 0xf94d423f, 0x9b1b1194,
@@ -26,7 +26,7 @@ __constant u32a theMagicArray[64] =
   0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
 };
 
-DECLSPEC u32 GETSHIFTEDINT_CONST (__constant u32 *a, const int n)
+DECLSPEC u32 GETSHIFTEDINT_CONST (CONSTANT_AS u32 *a, const int n)
 {
   const int d = n / 4;
   const int m = n & 3;
@@ -495,7 +495,7 @@ DECLSPEC void m07800s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
   }
 }
 
-__kernel void m07800_m04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m07800_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * base
@@ -548,7 +548,7 @@ __kernel void m07800_m04 (KERN_ATTR_BASIC ())
   m07800m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }
 
-__kernel void m07800_m08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m07800_m08 (KERN_ATTR_BASIC ())
 {
   /**
    * base
@@ -601,11 +601,11 @@ __kernel void m07800_m08 (KERN_ATTR_BASIC ())
   m07800m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }
 
-__kernel void m07800_m16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m07800_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m07800_s04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m07800_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * base
@@ -658,7 +658,7 @@ __kernel void m07800_s04 (KERN_ATTR_BASIC ())
   m07800s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }
 
-__kernel void m07800_s08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m07800_s08 (KERN_ATTR_BASIC ())
 {
   /**
    * base
@@ -711,6 +711,6 @@ __kernel void m07800_s08 (KERN_ATTR_BASIC ())
   m07800s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }
 
-__kernel void m07800_s16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m07800_s16 (KERN_ATTR_BASIC ())
 {
 }

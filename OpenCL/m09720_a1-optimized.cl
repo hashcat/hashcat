@@ -366,7 +366,7 @@ DECLSPEC void gen336 (u32x *digest_pre, u32 *salt_buf, u32x *digest)
   md5_transform_vector (w0_t, w1_t, w2_t, w3_t, digest);
 }
 
-__kernel void m09720_m04 (KERN_ATTR_ESALT (oldoffice01_t))
+KERNEL_FQ void m09720_m04 (KERN_ATTR_ESALT (oldoffice01_t))
 {
   /**
    * modifier
@@ -514,15 +514,15 @@ __kernel void m09720_m04 (KERN_ATTR_ESALT (oldoffice01_t))
   }
 }
 
-__kernel void m09720_m08 (KERN_ATTR_ESALT (oldoffice01_t))
+KERNEL_FQ void m09720_m08 (KERN_ATTR_ESALT (oldoffice01_t))
 {
 }
 
-__kernel void m09720_m16 (KERN_ATTR_ESALT (oldoffice01_t))
+KERNEL_FQ void m09720_m16 (KERN_ATTR_ESALT (oldoffice01_t))
 {
 }
 
-__kernel void m09720_s04 (KERN_ATTR_ESALT (oldoffice01_t))
+KERNEL_FQ void m09720_s04 (KERN_ATTR_ESALT (oldoffice01_t))
 {
   /**
    * modifier
@@ -682,10 +682,10 @@ __kernel void m09720_s04 (KERN_ATTR_ESALT (oldoffice01_t))
   }
 }
 
-__kernel void m09720_s08 (KERN_ATTR_ESALT (oldoffice01_t))
+KERNEL_FQ void m09720_s08 (KERN_ATTR_ESALT (oldoffice01_t))
 {
 }
 
-__kernel void m09720_s16 (KERN_ATTR_ESALT (oldoffice01_t))
+KERNEL_FQ void m09720_s16 (KERN_ATTR_ESALT (oldoffice01_t))
 {
 }

@@ -15,7 +15,7 @@
 #include "inc_hash_sha512.cl"
 #endif
 
-__kernel void m01730_mxx (KERN_ATTR_RULES ())
+KERNEL_FQ void m01730_mxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -70,7 +70,7 @@ __kernel void m01730_mxx (KERN_ATTR_RULES ())
   }
 }
 
-__kernel void m01730_sxx (KERN_ATTR_RULES ())
+KERNEL_FQ void m01730_sxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier

@@ -56,7 +56,7 @@
 }
 
 #define SHA256_EXPAND(x,y,z,w) (SHA256_S1 (x) + y + SHA256_S0 (z) + w)
-__constant u32a k_sha224[64] =
+CONSTANT_AS u32a k_sha224[64] =
 {
   SHA256C00, SHA256C01, SHA256C02, SHA256C03,
   SHA256C04, SHA256C05, SHA256C06, SHA256C07,
@@ -541,7 +541,7 @@ DECLSPEC void sha224_update_utf16le_swap (sha224_ctx_t *ctx, const u32 *w, const
   sha224_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-DECLSPEC void sha224_update_global (sha224_ctx_t *ctx, const __global u32 *w, const int len)
+DECLSPEC void sha224_update_global (sha224_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -593,7 +593,7 @@ DECLSPEC void sha224_update_global (sha224_ctx_t *ctx, const __global u32 *w, co
   sha224_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-DECLSPEC void sha224_update_global_swap (sha224_ctx_t *ctx, const __global u32 *w, const int len)
+DECLSPEC void sha224_update_global_swap (sha224_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -679,7 +679,7 @@ DECLSPEC void sha224_update_global_swap (sha224_ctx_t *ctx, const __global u32 *
   sha224_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-DECLSPEC void sha224_update_global_utf16le (sha224_ctx_t *ctx, const __global u32 *w, const int len)
+DECLSPEC void sha224_update_global_utf16le (sha224_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -721,7 +721,7 @@ DECLSPEC void sha224_update_global_utf16le (sha224_ctx_t *ctx, const __global u3
   sha224_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-DECLSPEC void sha224_update_global_utf16le_swap (sha224_ctx_t *ctx, const __global u32 *w, const int len)
+DECLSPEC void sha224_update_global_utf16le_swap (sha224_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1008,7 +1008,7 @@ DECLSPEC void sha224_hmac_init_swap (sha224_hmac_ctx_t *ctx, const u32 *w, const
   sha224_hmac_init_64 (ctx, w0, w1, w2, w3);
 }
 
-DECLSPEC void sha224_hmac_init_global (sha224_hmac_ctx_t *ctx, __global const u32 *w, const int len)
+DECLSPEC void sha224_hmac_init_global (sha224_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1065,7 +1065,7 @@ DECLSPEC void sha224_hmac_init_global (sha224_hmac_ctx_t *ctx, __global const u3
   sha224_hmac_init_64 (ctx, w0, w1, w2, w3);
 }
 
-DECLSPEC void sha224_hmac_init_global_swap (sha224_hmac_ctx_t *ctx, __global const u32 *w, const int len)
+DECLSPEC void sha224_hmac_init_global_swap (sha224_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1147,22 +1147,22 @@ DECLSPEC void sha224_hmac_update_utf16le_swap (sha224_hmac_ctx_t *ctx, const u32
   sha224_update_utf16le_swap (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha224_hmac_update_global (sha224_hmac_ctx_t *ctx, const __global u32 *w, const int len)
+DECLSPEC void sha224_hmac_update_global (sha224_hmac_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len)
 {
   sha224_update_global (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha224_hmac_update_global_swap (sha224_hmac_ctx_t *ctx, const __global u32 *w, const int len)
+DECLSPEC void sha224_hmac_update_global_swap (sha224_hmac_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len)
 {
   sha224_update_global_swap (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha224_hmac_update_global_utf16le (sha224_hmac_ctx_t *ctx, const __global u32 *w, const int len)
+DECLSPEC void sha224_hmac_update_global_utf16le (sha224_hmac_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len)
 {
   sha224_update_global_utf16le (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha224_hmac_update_global_utf16le_swap (sha224_hmac_ctx_t *ctx, const __global u32 *w, const int len)
+DECLSPEC void sha224_hmac_update_global_utf16le_swap (sha224_hmac_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len)
 {
   sha224_update_global_utf16le_swap (&ctx->ipad, w, len);
 }

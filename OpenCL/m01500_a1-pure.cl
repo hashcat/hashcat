@@ -32,7 +32,7 @@
   a  = a ^ tt;              \
 }
 
-__constant u32a c_SPtrans[8][64] =
+CONSTANT_AS u32a c_SPtrans[8][64] =
 {
   {
     0x00820200, 0x00020000, 0x80800000, 0x80820200,
@@ -180,7 +180,7 @@ __constant u32a c_SPtrans[8][64] =
   },
 };
 
-__constant u32a c_skb[8][64] =
+CONSTANT_AS u32a c_skb[8][64] =
 {
   {
     0x00000000, 0x00000010, 0x20000000, 0x20000010,
@@ -340,7 +340,7 @@ __constant u32a c_skb[8][64] =
 #define BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3], (S)[(n)][(i).s4], (S)[(n)][(i).s5], (S)[(n)][(i).s6], (S)[(n)][(i).s7], (S)[(n)][(i).s8], (S)[(n)][(i).s9], (S)[(n)][(i).sa], (S)[(n)][(i).sb], (S)[(n)][(i).sc], (S)[(n)][(i).sd], (S)[(n)][(i).se], (S)[(n)][(i).sf])
 #endif
 
-DECLSPEC void _des_crypt_keysetup (u32 c, u32x d, u32x *Kc, u32x *Kd, __local u32 (*s_skb)[64])
+DECLSPEC void _des_crypt_keysetup (u32 c, u32x d, u32x *Kc, u32x *Kd, LOCAL_AS u32 (*s_skb)[64])
 {
   u32 tt;
 
@@ -409,7 +409,7 @@ DECLSPEC void _des_crypt_keysetup (u32 c, u32x d, u32x *Kc, u32x *Kd, __local u3
   }
 }
 
-DECLSPEC void _des_crypt_encrypt (u32 *iv, u32 mask, u32x *Kc, u32x *Kd, __local u32 (*s_SPtrans)[64])
+DECLSPEC void _des_crypt_encrypt (u32 *iv, u32 mask, u32x *Kc, u32x *Kd, LOCAL_AS u32 (*s_SPtrans)[64])
 {
   const u32 E1 = (mask >> 2) & 0x3f0;
   const u32 E0 = mask & 0x3f;
@@ -479,7 +479,7 @@ DECLSPEC void _des_crypt_encrypt (u32 *iv, u32 mask, u32x *Kc, u32x *Kd, __local
   iv[1] = rotl32 (l, 31);
 }
 
-__kernel void m01500_mxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void m01500_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -493,8 +493,8 @@ __kernel void m01500_mxx (KERN_ATTR_BASIC ())
    * sbox, kbox
    */
 
-  __local u32 s_SPtrans[8][64];
-  __local u32 s_skb[8][64];
+  LOCAL_AS u32 s_SPtrans[8][64];
+  LOCAL_AS u32 s_skb[8][64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
@@ -642,7 +642,7 @@ __kernel void m01500_mxx (KERN_ATTR_BASIC ())
   }
 }
 
-__kernel void m01500_sxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void m01500_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -656,8 +656,8 @@ __kernel void m01500_sxx (KERN_ATTR_BASIC ())
    * sbox, kbox
    */
 
-  __local u32 s_SPtrans[8][64];
-  __local u32 s_skb[8][64];
+  LOCAL_AS u32 s_SPtrans[8][64];
+  LOCAL_AS u32 s_skb[8][64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {

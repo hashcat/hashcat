@@ -26,7 +26,7 @@ typedef struct lotus8_tmp
 
 } lotus8_tmp_t;
 
-__constant u32 lotus64_table[64] =
+CONSTANT_AS u32 lotus64_table[64] =
 {
   '0', '1', '2', '3', '4', '5', '6', '7',
   '8', '9', 'A', 'B', 'C', 'D', 'E', 'F',
@@ -38,7 +38,7 @@ __constant u32 lotus64_table[64] =
   'u', 'v', 'w', 'x', 'y', 'z', '+', '/',
 };
 
-__constant u32 lotus_magic_table[256] =
+CONSTANT_AS u32 lotus_magic_table[256] =
 {
   0xbd, 0x56, 0xea, 0xf2, 0xa2, 0xf1, 0xac, 0x2a,
   0xb0, 0x93, 0xd1, 0x9c, 0x1b, 0x33, 0xfd, 0xd0,
@@ -78,7 +78,7 @@ __constant u32 lotus_magic_table[256] =
 
 #define BOX1(S,i) (S)[(i)]
 
-DECLSPEC void lotus_mix (u32 *in, const __local u32 *s_lotus_magic_table)
+DECLSPEC void lotus_mix (u32 *in, const LOCAL_AS u32 *s_lotus_magic_table)
 {
   u8 p = 0;
 
@@ -101,7 +101,7 @@ DECLSPEC void lotus_mix (u32 *in, const __local u32 *s_lotus_magic_table)
   }
 }
 
-DECLSPEC void lotus_transform_password (const u32 *in, u32 *out, const __local u32 *s_lotus_magic_table)
+DECLSPEC void lotus_transform_password (const u32 *in, u32 *out, const LOCAL_AS u32 *s_lotus_magic_table)
 {
   u8 t = (u8) (out[3] >> 24);
 
@@ -198,7 +198,7 @@ DECLSPEC void pad (u32 *w, const u32 len)
   }
 }
 
-DECLSPEC void mdtransform_norecalc (u32 *state, const u32 *block, const __local u32 *s_lotus_magic_table)
+DECLSPEC void mdtransform_norecalc (u32 *state, const u32 *block, const LOCAL_AS u32 *s_lotus_magic_table)
 {
   u32 x[12];
 
@@ -223,14 +223,14 @@ DECLSPEC void mdtransform_norecalc (u32 *state, const u32 *block, const __local 
   state[3] = x[3];
 }
 
-DECLSPEC void mdtransform (u32 *state, u32 *checksum, const u32 *block, const __local u32 *s_lotus_magic_table)
+DECLSPEC void mdtransform (u32 *state, u32 *checksum, const u32 *block, const LOCAL_AS u32 *s_lotus_magic_table)
 {
   mdtransform_norecalc (state, block, s_lotus_magic_table);
 
   lotus_transform_password (block, checksum, s_lotus_magic_table);
 }
 
-DECLSPEC void domino_big_md (const u32 *saved_key, const u32 size, u32 *state, const __local u32 *s_lotus_magic_table)
+DECLSPEC void domino_big_md (const u32 *saved_key, const u32 size, u32 *state, const LOCAL_AS u32 *s_lotus_magic_table)
 {
   u32 checksum[4];
 
@@ -394,7 +394,7 @@ DECLSPEC void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipa
   sha1_transform_vector (w0, w1, w2, w3, digest);
 }
 
-__kernel void m09100_init (KERN_ATTR_TMPS (lotus8_tmp_t))
+KERNEL_FQ void m09100_init (KERN_ATTR_TMPS (lotus8_tmp_t))
 {
   /**
    * base
@@ -408,14 +408,14 @@ __kernel void m09100_init (KERN_ATTR_TMPS (lotus8_tmp_t))
    * sbox
    */
 
-  __local u32 s_lotus_magic_table[256];
+  LOCAL_AS u32 s_lotus_magic_table[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
     s_lotus_magic_table[i] = lotus_magic_table[i];
   }
 
-  __local u32 l_bin2asc[256];
+  LOCAL_AS u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -660,7 +660,7 @@ __kernel void m09100_init (KERN_ATTR_TMPS (lotus8_tmp_t))
   }
 }
 
-__kernel void m09100_loop (KERN_ATTR_TMPS (lotus8_tmp_t))
+KERNEL_FQ void m09100_loop (KERN_ATTR_TMPS (lotus8_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -745,7 +745,7 @@ __kernel void m09100_loop (KERN_ATTR_TMPS (lotus8_tmp_t))
   }
 }
 
-__kernel void m09100_comp (KERN_ATTR_TMPS (lotus8_tmp_t))
+KERNEL_FQ void m09100_comp (KERN_ATTR_TMPS (lotus8_tmp_t))
 {
   /**
    * base

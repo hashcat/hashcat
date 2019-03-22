@@ -12,7 +12,7 @@
 #include "inc_simd.cl"
 #endif
 
-__constant u32a lotus_magic_table[256] =
+CONSTANT_AS u32a lotus_magic_table[256] =
 {
   0xbd, 0x56, 0xea, 0xf2, 0xa2, 0xf1, 0xac, 0x2a,
   0xb0, 0x93, 0xd1, 0x9c, 0x1b, 0x33, 0xfd, 0xd0,
@@ -60,7 +60,7 @@ __constant u32a lotus_magic_table[256] =
 #define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3], (S)[(i).s4], (S)[(i).s5], (S)[(i).s6], (S)[(i).s7], (S)[(i).s8], (S)[(i).s9], (S)[(i).sa], (S)[(i).sb], (S)[(i).sc], (S)[(i).sd], (S)[(i).se], (S)[(i).sf])
 #endif
 
-DECLSPEC void lotus_mix (u32x *in, __local u32 *s_lotus_magic_table)
+DECLSPEC void lotus_mix (u32x *in, LOCAL_AS u32 *s_lotus_magic_table)
 {
   u32x p = 0;
 
@@ -83,7 +83,7 @@ DECLSPEC void lotus_mix (u32x *in, __local u32 *s_lotus_magic_table)
   }
 }
 
-DECLSPEC void lotus_transform_password (const u32x *in, u32x *out, __local u32 *s_lotus_magic_table)
+DECLSPEC void lotus_transform_password (const u32x *in, u32x *out, LOCAL_AS u32 *s_lotus_magic_table)
 {
   u32x t = out[3] >> 24;
 
@@ -180,7 +180,7 @@ DECLSPEC void pad (u32 *w, const u32 len)
   }
 }
 
-DECLSPEC void mdtransform_norecalc (u32x *state, const u32x *block, __local u32 *s_lotus_magic_table)
+DECLSPEC void mdtransform_norecalc (u32x *state, const u32x *block, LOCAL_AS u32 *s_lotus_magic_table)
 {
   u32x x[12];
 
@@ -205,14 +205,14 @@ DECLSPEC void mdtransform_norecalc (u32x *state, const u32x *block, __local u32 
   state[3] = x[3];
 }
 
-DECLSPEC void mdtransform (u32x *state, u32x *checksum, const u32x *block, __local u32 *s_lotus_magic_table)
+DECLSPEC void mdtransform (u32x *state, u32x *checksum, const u32x *block, LOCAL_AS u32 *s_lotus_magic_table)
 {
   mdtransform_norecalc (state, block, s_lotus_magic_table);
 
   lotus_transform_password (block, checksum, s_lotus_magic_table);
 }
 
-DECLSPEC void domino_big_md (const u32x *saved_key, const u32 size, u32x *state, __local u32 *s_lotus_magic_table)
+DECLSPEC void domino_big_md (const u32x *saved_key, const u32 size, u32x *state, LOCAL_AS u32 *s_lotus_magic_table)
 {
   u32x checksum[4];
 
@@ -226,7 +226,7 @@ DECLSPEC void domino_big_md (const u32x *saved_key, const u32 size, u32x *state,
   mdtransform_norecalc (state, checksum, s_lotus_magic_table);
 }
 
-DECLSPEC void m08600m (__local u32 *s_lotus_magic_table, u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC void m08600m (LOCAL_AS u32 *s_lotus_magic_table, u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -273,7 +273,7 @@ DECLSPEC void m08600m (__local u32 *s_lotus_magic_table, u32 *w, const u32 pw_le
   }
 }
 
-DECLSPEC void m08600s (__local u32 *s_lotus_magic_table, u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC void m08600s (LOCAL_AS u32 *s_lotus_magic_table, u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -332,7 +332,7 @@ DECLSPEC void m08600s (__local u32 *s_lotus_magic_table, u32 *w, const u32 pw_le
   }
 }
 
-__kernel void m08600_mxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m08600_mxx (KERN_ATTR_VECTOR ())
 {
   /**
    * base
@@ -346,7 +346,7 @@ __kernel void m08600_mxx (KERN_ATTR_VECTOR ())
    * sbox
    */
 
-  __local u32 s_lotus_magic_table[256];
+  LOCAL_AS u32 s_lotus_magic_table[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -389,7 +389,7 @@ __kernel void m08600_mxx (KERN_ATTR_VECTOR ())
   m08600m (s_lotus_magic_table, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }
 
-__kernel void m08600_sxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m08600_sxx (KERN_ATTR_VECTOR ())
 {
   /**
    * base
@@ -403,7 +403,7 @@ __kernel void m08600_sxx (KERN_ATTR_VECTOR ())
    * sbox
    */
 
-  __local u32 s_lotus_magic_table[256];
+  LOCAL_AS u32 s_lotus_magic_table[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {

@@ -13,7 +13,7 @@
 #include "inc_hash_md5.cl"
 #endif
 
-__constant u32a padding[8] =
+CONSTANT_AS u32a padding[8] =
 {
   0x5e4ebf28,
   0x418a754e,
@@ -46,7 +46,7 @@ typedef struct pdf
 
 } pdf_t;
 
-__kernel void m10420_m04 (KERN_ATTR_ESALT (pdf_t))
+KERNEL_FQ void m10420_m04 (KERN_ATTR_ESALT (pdf_t))
 {
   /**
    * modifier
@@ -259,15 +259,15 @@ __kernel void m10420_m04 (KERN_ATTR_ESALT (pdf_t))
   }
 }
 
-__kernel void m10420_m08 (KERN_ATTR_ESALT (pdf_t))
+KERNEL_FQ void m10420_m08 (KERN_ATTR_ESALT (pdf_t))
 {
 }
 
-__kernel void m10420_m16 (KERN_ATTR_ESALT (pdf_t))
+KERNEL_FQ void m10420_m16 (KERN_ATTR_ESALT (pdf_t))
 {
 }
 
-__kernel void m10420_s04 (KERN_ATTR_ESALT (pdf_t))
+KERNEL_FQ void m10420_s04 (KERN_ATTR_ESALT (pdf_t))
 {
   /**
    * modifier
@@ -492,10 +492,10 @@ __kernel void m10420_s04 (KERN_ATTR_ESALT (pdf_t))
   }
 }
 
-__kernel void m10420_s08 (KERN_ATTR_ESALT (pdf_t))
+KERNEL_FQ void m10420_s08 (KERN_ATTR_ESALT (pdf_t))
 {
 }
 
-__kernel void m10420_s16 (KERN_ATTR_ESALT (pdf_t))
+KERNEL_FQ void m10420_s16 (KERN_ATTR_ESALT (pdf_t))
 {
 }

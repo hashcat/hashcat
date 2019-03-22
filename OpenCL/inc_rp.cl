@@ -9,7 +9,7 @@
 
 #ifdef REAL_SHM
 #define COPY_PW(x)                \
-  __local pw_t s_pws[64];         \
+  LOCAL_AS pw_t s_pws[64];         \
   s_pws[get_local_id (0)] = (x);
 #else
 #define COPY_PW(x)                \
@@ -747,7 +747,7 @@ DECLSPEC int apply_rule (const u32 name, MAYBE_UNUSED const u8 p0, MAYBE_UNUSED 
   return out_len;
 }
 
-DECLSPEC int apply_rules (__constant const u32 *cmds, u32 *buf, const int in_len)
+DECLSPEC int apply_rules (CONSTANT_AS const u32 *cmds, u32 *buf, const int in_len)
 {
   int out_len = in_len;
 

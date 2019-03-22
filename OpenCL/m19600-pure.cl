@@ -114,7 +114,7 @@ DECLSPEC void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipa
   sha1_transform_vector (w0, w1, w2, w3, digest);
 }
 
-__kernel void m19600_init (KERN_ATTR_TMPS_ESALT (krb5tgs_17_tmp_t, krb5tgs_17_t))
+KERNEL_FQ void m19600_init (KERN_ATTR_TMPS_ESALT (krb5tgs_17_tmp_t, krb5tgs_17_t))
 {
   /**
    * base
@@ -192,7 +192,7 @@ __kernel void m19600_init (KERN_ATTR_TMPS_ESALT (krb5tgs_17_tmp_t, krb5tgs_17_t)
   }
 }
 
-__kernel void m19600_loop (KERN_ATTR_TMPS_ESALT (krb5tgs_17_tmp_t, krb5tgs_17_t))
+KERNEL_FQ void m19600_loop (KERN_ATTR_TMPS_ESALT (krb5tgs_17_tmp_t, krb5tgs_17_t))
 {
    /**
    * base
@@ -280,7 +280,7 @@ __kernel void m19600_loop (KERN_ATTR_TMPS_ESALT (krb5tgs_17_tmp_t, krb5tgs_17_t)
   }
 }
 
-__kernel void m19600_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_17_tmp_t, krb5tgs_17_t))
+KERNEL_FQ void m19600_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_17_tmp_t, krb5tgs_17_t))
 {
   /**
    * base
@@ -296,17 +296,17 @@ __kernel void m19600_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_17_tmp_t, krb5tgs_17_t)
 
   #ifdef REAL_SHM
 
-  __local u32 s_te0[256];
-  __local u32 s_te1[256];
-  __local u32 s_te2[256];
-  __local u32 s_te3[256];
-  __local u32 s_te4[256];
+  LOCAL_AS u32 s_te0[256];
+  LOCAL_AS u32 s_te1[256];
+  LOCAL_AS u32 s_te2[256];
+  LOCAL_AS u32 s_te3[256];
+  LOCAL_AS u32 s_te4[256];
 
-  __local u32 s_td0[256];
-  __local u32 s_td1[256];
-  __local u32 s_td2[256];
-  __local u32 s_td3[256];
-  __local u32 s_td4[256];
+  LOCAL_AS u32 s_td0[256];
+  LOCAL_AS u32 s_td1[256];
+  LOCAL_AS u32 s_td2[256];
+  LOCAL_AS u32 s_td3[256];
+  LOCAL_AS u32 s_td4[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -327,17 +327,17 @@ __kernel void m19600_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_17_tmp_t, krb5tgs_17_t)
 
   #else
 
-  __constant u32a *s_te0 = te0;
-  __constant u32a *s_te1 = te1;
-  __constant u32a *s_te2 = te2;
-  __constant u32a *s_te3 = te3;
-  __constant u32a *s_te4 = te4;
+  CONSTANT_AS u32a *s_te0 = te0;
+  CONSTANT_AS u32a *s_te1 = te1;
+  CONSTANT_AS u32a *s_te2 = te2;
+  CONSTANT_AS u32a *s_te3 = te3;
+  CONSTANT_AS u32a *s_te4 = te4;
 
-  __constant u32a *s_td0 = td0;
-  __constant u32a *s_td1 = td1;
-  __constant u32a *s_td2 = td2;
-  __constant u32a *s_td3 = td3;
-  __constant u32a *s_td4 = td4;
+  CONSTANT_AS u32a *s_td0 = td0;
+  CONSTANT_AS u32a *s_td1 = td1;
+  CONSTANT_AS u32a *s_td2 = td2;
+  CONSTANT_AS u32a *s_td3 = td3;
+  CONSTANT_AS u32a *s_td4 = td4;
 
   #endif
 

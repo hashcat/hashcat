@@ -32,7 +32,7 @@ typedef struct
 
 } RC4_KEY;
 
-DECLSPEC void swap (__local RC4_KEY *rc4_key, const u8 i, const u8 j)
+DECLSPEC void swap (LOCAL_AS RC4_KEY *rc4_key, const u8 i, const u8 j)
 {
   u8 tmp;
 
@@ -41,12 +41,12 @@ DECLSPEC void swap (__local RC4_KEY *rc4_key, const u8 i, const u8 j)
   rc4_key->S[j] = tmp;
 }
 
-DECLSPEC void rc4_init_16 (__local RC4_KEY *rc4_key, const u32 *data)
+DECLSPEC void rc4_init_16 (LOCAL_AS RC4_KEY *rc4_key, const u32 *data)
 {
   u32 v = 0x03020100;
   u32 a = 0x04040404;
 
-  __local u32 *ptr = (__local u32 *) rc4_key->S;
+  LOCAL_AS u32 *ptr = (LOCAL_AS u32 *) rc4_key->S;
 
   #ifdef _unroll
   #pragma unroll
@@ -94,7 +94,7 @@ DECLSPEC void rc4_init_16 (__local RC4_KEY *rc4_key, const u32 *data)
   }
 }
 
-DECLSPEC u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, const __global u32 *in, u32 *out)
+DECLSPEC u8 rc4_next_16 (LOCAL_AS RC4_KEY *rc4_key, u8 i, u8 j, const GLOBAL_AS u32 *in, u32 *out)
 {
   #ifdef _unroll
   #pragma unroll
@@ -232,7 +232,7 @@ DECLSPEC void hmac_md5_run (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *ipad, u32 *
   md5_transform (w0, w1, w2, w3, digest);
 }
 
-DECLSPEC int decrypt_and_check (__local RC4_KEY *rc4_key, u32 *data, __global const u32 *edata2, const u32 edata2_len, const u32 *K2, const u32 *checksum)
+DECLSPEC int decrypt_and_check (LOCAL_AS RC4_KEY *rc4_key, u32 *data, GLOBAL_AS const u32 *edata2, const u32 edata2_len, const u32 *K2, const u32 *checksum)
 {
   rc4_init_16 (rc4_key, data);
 
@@ -570,7 +570,7 @@ DECLSPEC void kerb_prepare (const u32 *w0, const u32 *w1, const u32 pw_len, cons
   hmac_md5_run (w0_t, w1_t, w2_t, w3_t, ipad, opad, digest);
 }
 
-DECLSPEC void m18200 (__local RC4_KEY *rc4_key, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_ESALT (krb5asrep_t))
+DECLSPEC void m18200 (LOCAL_AS RC4_KEY *rc4_key, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_ESALT (krb5asrep_t))
 {
   /**
    * modifier
@@ -629,7 +629,7 @@ DECLSPEC void m18200 (__local RC4_KEY *rc4_key, u32 *w0, u32 *w1, u32 *w2, u32 *
   }
 }
 
-__kernel void m18200_m04 (KERN_ATTR_ESALT (krb5asrep_t))
+KERNEL_FQ void m18200_m04 (KERN_ATTR_ESALT (krb5asrep_t))
 {
   /**
    * base
@@ -674,14 +674,14 @@ __kernel void m18200_m04 (KERN_ATTR_ESALT (krb5asrep_t))
    * main
    */
 
-  __local RC4_KEY rc4_keys[64];
+  LOCAL_AS RC4_KEY rc4_keys[64];
 
-  __local RC4_KEY *rc4_key = &rc4_keys[lid];
+  LOCAL_AS RC4_KEY *rc4_key = &rc4_keys[lid];
 
   m18200 (rc4_key, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }
 
-__kernel void m18200_m08 (KERN_ATTR_ESALT (krb5asrep_t))
+KERNEL_FQ void m18200_m08 (KERN_ATTR_ESALT (krb5asrep_t))
 {
   /**
    * base
@@ -726,18 +726,18 @@ __kernel void m18200_m08 (KERN_ATTR_ESALT (krb5asrep_t))
    * main
    */
 
-  __local RC4_KEY rc4_keys[64];
+  LOCAL_AS RC4_KEY rc4_keys[64];
 
-  __local RC4_KEY *rc4_key = &rc4_keys[lid];
+  LOCAL_AS RC4_KEY *rc4_key = &rc4_keys[lid];
 
   m18200 (rc4_key, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }
 
-__kernel void m18200_m16 (KERN_ATTR_ESALT (krb5asrep_t))
+KERNEL_FQ void m18200_m16 (KERN_ATTR_ESALT (krb5asrep_t))
 {
 }
 
-__kernel void m18200_s04 (KERN_ATTR_ESALT (krb5asrep_t))
+KERNEL_FQ void m18200_s04 (KERN_ATTR_ESALT (krb5asrep_t))
 {
   /**
    * base
@@ -782,14 +782,14 @@ __kernel void m18200_s04 (KERN_ATTR_ESALT (krb5asrep_t))
    * main
    */
 
-  __local RC4_KEY rc4_keys[64];
+  LOCAL_AS RC4_KEY rc4_keys[64];
 
-  __local RC4_KEY *rc4_key = &rc4_keys[lid];
+  LOCAL_AS RC4_KEY *rc4_key = &rc4_keys[lid];
 
   m18200 (rc4_key, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }
 
-__kernel void m18200_s08 (KERN_ATTR_ESALT (krb5asrep_t))
+KERNEL_FQ void m18200_s08 (KERN_ATTR_ESALT (krb5asrep_t))
 {
   /**
    * base
@@ -834,13 +834,13 @@ __kernel void m18200_s08 (KERN_ATTR_ESALT (krb5asrep_t))
    * main
    */
 
-  __local RC4_KEY rc4_keys[64];
+  LOCAL_AS RC4_KEY rc4_keys[64];
 
-  __local RC4_KEY *rc4_key = &rc4_keys[lid];
+  LOCAL_AS RC4_KEY *rc4_key = &rc4_keys[lid];
 
   m18200 (rc4_key, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }
 
-__kernel void m18200_s16 (KERN_ATTR_ESALT (krb5asrep_t))
+KERNEL_FQ void m18200_s16 (KERN_ATTR_ESALT (krb5asrep_t))
 {
 }

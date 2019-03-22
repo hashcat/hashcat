@@ -319,7 +319,7 @@ DECLSPEC void m16600 (SHM_TYPE u32a *s_te0, SHM_TYPE u32a *s_te1, SHM_TYPE u32a 
   }
 }
 
-__kernel void m16600_m04 (KERN_ATTR_ESALT (electrum_wallet_t))
+KERNEL_FQ void m16600_m04 (KERN_ATTR_ESALT (electrum_wallet_t))
 {
   /**
    * base
@@ -335,17 +335,17 @@ __kernel void m16600_m04 (KERN_ATTR_ESALT (electrum_wallet_t))
 
   #ifdef REAL_SHM
 
-  __local u32 s_td0[256];
-  __local u32 s_td1[256];
-  __local u32 s_td2[256];
-  __local u32 s_td3[256];
-  __local u32 s_td4[256];
+  LOCAL_AS u32 s_td0[256];
+  LOCAL_AS u32 s_td1[256];
+  LOCAL_AS u32 s_td2[256];
+  LOCAL_AS u32 s_td3[256];
+  LOCAL_AS u32 s_td4[256];
 
-  __local u32 s_te0[256];
-  __local u32 s_te1[256];
-  __local u32 s_te2[256];
-  __local u32 s_te3[256];
-  __local u32 s_te4[256];
+  LOCAL_AS u32 s_te0[256];
+  LOCAL_AS u32 s_te1[256];
+  LOCAL_AS u32 s_te2[256];
+  LOCAL_AS u32 s_te3[256];
+  LOCAL_AS u32 s_te4[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -366,17 +366,17 @@ __kernel void m16600_m04 (KERN_ATTR_ESALT (electrum_wallet_t))
 
   #else
 
-  __constant u32a *s_td0 = td0;
-  __constant u32a *s_td1 = td1;
-  __constant u32a *s_td2 = td2;
-  __constant u32a *s_td3 = td3;
-  __constant u32a *s_td4 = td4;
+  CONSTANT_AS u32a *s_td0 = td0;
+  CONSTANT_AS u32a *s_td1 = td1;
+  CONSTANT_AS u32a *s_td2 = td2;
+  CONSTANT_AS u32a *s_td3 = td3;
+  CONSTANT_AS u32a *s_td4 = td4;
 
-  __constant u32a *s_te0 = te0;
-  __constant u32a *s_te1 = te1;
-  __constant u32a *s_te2 = te2;
-  __constant u32a *s_te3 = te3;
-  __constant u32a *s_te4 = te4;
+  CONSTANT_AS u32a *s_te0 = te0;
+  CONSTANT_AS u32a *s_te1 = te1;
+  CONSTANT_AS u32a *s_te2 = te2;
+  CONSTANT_AS u32a *s_te3 = te3;
+  CONSTANT_AS u32a *s_te4 = te4;
 
   #endif
 
@@ -414,7 +414,7 @@ __kernel void m16600_m04 (KERN_ATTR_ESALT (electrum_wallet_t))
   m16600 (s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, w, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }
 
-__kernel void m16600_m08 (KERN_ATTR_ESALT (electrum_wallet_t))
+KERNEL_FQ void m16600_m08 (KERN_ATTR_ESALT (electrum_wallet_t))
 {
   /**
    * base
@@ -430,17 +430,17 @@ __kernel void m16600_m08 (KERN_ATTR_ESALT (electrum_wallet_t))
 
   #ifdef REAL_SHM
 
-  __local u32 s_td0[256];
-  __local u32 s_td1[256];
-  __local u32 s_td2[256];
-  __local u32 s_td3[256];
-  __local u32 s_td4[256];
+  LOCAL_AS u32 s_td0[256];
+  LOCAL_AS u32 s_td1[256];
+  LOCAL_AS u32 s_td2[256];
+  LOCAL_AS u32 s_td3[256];
+  LOCAL_AS u32 s_td4[256];
 
-  __local u32 s_te0[256];
-  __local u32 s_te1[256];
-  __local u32 s_te2[256];
-  __local u32 s_te3[256];
-  __local u32 s_te4[256];
+  LOCAL_AS u32 s_te0[256];
+  LOCAL_AS u32 s_te1[256];
+  LOCAL_AS u32 s_te2[256];
+  LOCAL_AS u32 s_te3[256];
+  LOCAL_AS u32 s_te4[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -461,17 +461,17 @@ __kernel void m16600_m08 (KERN_ATTR_ESALT (electrum_wallet_t))
 
   #else
 
-  __constant u32a *s_td0 = td0;
-  __constant u32a *s_td1 = td1;
-  __constant u32a *s_td2 = td2;
-  __constant u32a *s_td3 = td3;
-  __constant u32a *s_td4 = td4;
+  CONSTANT_AS u32a *s_td0 = td0;
+  CONSTANT_AS u32a *s_td1 = td1;
+  CONSTANT_AS u32a *s_td2 = td2;
+  CONSTANT_AS u32a *s_td3 = td3;
+  CONSTANT_AS u32a *s_td4 = td4;
 
-  __constant u32a *s_te0 = te0;
-  __constant u32a *s_te1 = te1;
-  __constant u32a *s_te2 = te2;
-  __constant u32a *s_te3 = te3;
-  __constant u32a *s_te4 = te4;
+  CONSTANT_AS u32a *s_te0 = te0;
+  CONSTANT_AS u32a *s_te1 = te1;
+  CONSTANT_AS u32a *s_te2 = te2;
+  CONSTANT_AS u32a *s_te3 = te3;
+  CONSTANT_AS u32a *s_te4 = te4;
 
   #endif
 
@@ -509,7 +509,7 @@ __kernel void m16600_m08 (KERN_ATTR_ESALT (electrum_wallet_t))
   m16600 (s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, w, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }
 
-__kernel void m16600_m16 (KERN_ATTR_ESALT (electrum_wallet_t))
+KERNEL_FQ void m16600_m16 (KERN_ATTR_ESALT (electrum_wallet_t))
 {
   /**
    * base
@@ -525,17 +525,17 @@ __kernel void m16600_m16 (KERN_ATTR_ESALT (electrum_wallet_t))
 
   #ifdef REAL_SHM
 
-  __local u32 s_td0[256];
-  __local u32 s_td1[256];
-  __local u32 s_td2[256];
-  __local u32 s_td3[256];
-  __local u32 s_td4[256];
+  LOCAL_AS u32 s_td0[256];
+  LOCAL_AS u32 s_td1[256];
+  LOCAL_AS u32 s_td2[256];
+  LOCAL_AS u32 s_td3[256];
+  LOCAL_AS u32 s_td4[256];
 
-  __local u32 s_te0[256];
-  __local u32 s_te1[256];
-  __local u32 s_te2[256];
-  __local u32 s_te3[256];
-  __local u32 s_te4[256];
+  LOCAL_AS u32 s_te0[256];
+  LOCAL_AS u32 s_te1[256];
+  LOCAL_AS u32 s_te2[256];
+  LOCAL_AS u32 s_te3[256];
+  LOCAL_AS u32 s_te4[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -556,17 +556,17 @@ __kernel void m16600_m16 (KERN_ATTR_ESALT (electrum_wallet_t))
 
   #else
 
-  __constant u32a *s_td0 = td0;
-  __constant u32a *s_td1 = td1;
-  __constant u32a *s_td2 = td2;
-  __constant u32a *s_td3 = td3;
-  __constant u32a *s_td4 = td4;
+  CONSTANT_AS u32a *s_td0 = td0;
+  CONSTANT_AS u32a *s_td1 = td1;
+  CONSTANT_AS u32a *s_td2 = td2;
+  CONSTANT_AS u32a *s_td3 = td3;
+  CONSTANT_AS u32a *s_td4 = td4;
 
-  __constant u32a *s_te0 = te0;
-  __constant u32a *s_te1 = te1;
-  __constant u32a *s_te2 = te2;
-  __constant u32a *s_te3 = te3;
-  __constant u32a *s_te4 = te4;
+  CONSTANT_AS u32a *s_te0 = te0;
+  CONSTANT_AS u32a *s_te1 = te1;
+  CONSTANT_AS u32a *s_te2 = te2;
+  CONSTANT_AS u32a *s_te3 = te3;
+  CONSTANT_AS u32a *s_te4 = te4;
 
   #endif
 
@@ -604,7 +604,7 @@ __kernel void m16600_m16 (KERN_ATTR_ESALT (electrum_wallet_t))
   m16600 (s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, w, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }
 
-__kernel void m16600_s04 (KERN_ATTR_ESALT (electrum_wallet_t))
+KERNEL_FQ void m16600_s04 (KERN_ATTR_ESALT (electrum_wallet_t))
 {
   /**
    * base
@@ -620,17 +620,17 @@ __kernel void m16600_s04 (KERN_ATTR_ESALT (electrum_wallet_t))
 
   #ifdef REAL_SHM
 
-  __local u32 s_td0[256];
-  __local u32 s_td1[256];
-  __local u32 s_td2[256];
-  __local u32 s_td3[256];
-  __local u32 s_td4[256];
+  LOCAL_AS u32 s_td0[256];
+  LOCAL_AS u32 s_td1[256];
+  LOCAL_AS u32 s_td2[256];
+  LOCAL_AS u32 s_td3[256];
+  LOCAL_AS u32 s_td4[256];
 
-  __local u32 s_te0[256];
-  __local u32 s_te1[256];
-  __local u32 s_te2[256];
-  __local u32 s_te3[256];
-  __local u32 s_te4[256];
+  LOCAL_AS u32 s_te0[256];
+  LOCAL_AS u32 s_te1[256];
+  LOCAL_AS u32 s_te2[256];
+  LOCAL_AS u32 s_te3[256];
+  LOCAL_AS u32 s_te4[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -651,17 +651,17 @@ __kernel void m16600_s04 (KERN_ATTR_ESALT (electrum_wallet_t))
 
   #else
 
-  __constant u32a *s_td0 = td0;
-  __constant u32a *s_td1 = td1;
-  __constant u32a *s_td2 = td2;
-  __constant u32a *s_td3 = td3;
-  __constant u32a *s_td4 = td4;
+  CONSTANT_AS u32a *s_td0 = td0;
+  CONSTANT_AS u32a *s_td1 = td1;
+  CONSTANT_AS u32a *s_td2 = td2;
+  CONSTANT_AS u32a *s_td3 = td3;
+  CONSTANT_AS u32a *s_td4 = td4;
 
-  __constant u32a *s_te0 = te0;
-  __constant u32a *s_te1 = te1;
-  __constant u32a *s_te2 = te2;
-  __constant u32a *s_te3 = te3;
-  __constant u32a *s_te4 = te4;
+  CONSTANT_AS u32a *s_te0 = te0;
+  CONSTANT_AS u32a *s_te1 = te1;
+  CONSTANT_AS u32a *s_te2 = te2;
+  CONSTANT_AS u32a *s_te3 = te3;
+  CONSTANT_AS u32a *s_te4 = te4;
 
   #endif
 
@@ -699,7 +699,7 @@ __kernel void m16600_s04 (KERN_ATTR_ESALT (electrum_wallet_t))
   m16600 (s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, w, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }
 
-__kernel void m16600_s08 (KERN_ATTR_ESALT (electrum_wallet_t))
+KERNEL_FQ void m16600_s08 (KERN_ATTR_ESALT (electrum_wallet_t))
 {
   /**
    * base
@@ -715,17 +715,17 @@ __kernel void m16600_s08 (KERN_ATTR_ESALT (electrum_wallet_t))
 
   #ifdef REAL_SHM
 
-  __local u32 s_td0[256];
-  __local u32 s_td1[256];
-  __local u32 s_td2[256];
-  __local u32 s_td3[256];
-  __local u32 s_td4[256];
+  LOCAL_AS u32 s_td0[256];
+  LOCAL_AS u32 s_td1[256];
+  LOCAL_AS u32 s_td2[256];
+  LOCAL_AS u32 s_td3[256];
+  LOCAL_AS u32 s_td4[256];
 
-  __local u32 s_te0[256];
-  __local u32 s_te1[256];
-  __local u32 s_te2[256];
-  __local u32 s_te3[256];
-  __local u32 s_te4[256];
+  LOCAL_AS u32 s_te0[256];
+  LOCAL_AS u32 s_te1[256];
+  LOCAL_AS u32 s_te2[256];
+  LOCAL_AS u32 s_te3[256];
+  LOCAL_AS u32 s_te4[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -746,17 +746,17 @@ __kernel void m16600_s08 (KERN_ATTR_ESALT (electrum_wallet_t))
 
   #else
 
-  __constant u32a *s_td0 = td0;
-  __constant u32a *s_td1 = td1;
-  __constant u32a *s_td2 = td2;
-  __constant u32a *s_td3 = td3;
-  __constant u32a *s_td4 = td4;
+  CONSTANT_AS u32a *s_td0 = td0;
+  CONSTANT_AS u32a *s_td1 = td1;
+  CONSTANT_AS u32a *s_td2 = td2;
+  CONSTANT_AS u32a *s_td3 = td3;
+  CONSTANT_AS u32a *s_td4 = td4;
 
-  __constant u32a *s_te0 = te0;
-  __constant u32a *s_te1 = te1;
-  __constant u32a *s_te2 = te2;
-  __constant u32a *s_te3 = te3;
-  __constant u32a *s_te4 = te4;
+  CONSTANT_AS u32a *s_te0 = te0;
+  CONSTANT_AS u32a *s_te1 = te1;
+  CONSTANT_AS u32a *s_te2 = te2;
+  CONSTANT_AS u32a *s_te3 = te3;
+  CONSTANT_AS u32a *s_te4 = te4;
 
   #endif
 
@@ -794,7 +794,7 @@ __kernel void m16600_s08 (KERN_ATTR_ESALT (electrum_wallet_t))
   m16600 (s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, w, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }
 
-__kernel void m16600_s16 (KERN_ATTR_ESALT (electrum_wallet_t))
+KERNEL_FQ void m16600_s16 (KERN_ATTR_ESALT (electrum_wallet_t))
 {
   /**
    * base
@@ -810,17 +810,17 @@ __kernel void m16600_s16 (KERN_ATTR_ESALT (electrum_wallet_t))
 
   #ifdef REAL_SHM
 
-  __local u32 s_td0[256];
-  __local u32 s_td1[256];
-  __local u32 s_td2[256];
-  __local u32 s_td3[256];
-  __local u32 s_td4[256];
+  LOCAL_AS u32 s_td0[256];
+  LOCAL_AS u32 s_td1[256];
+  LOCAL_AS u32 s_td2[256];
+  LOCAL_AS u32 s_td3[256];
+  LOCAL_AS u32 s_td4[256];
 
-  __local u32 s_te0[256];
-  __local u32 s_te1[256];
-  __local u32 s_te2[256];
-  __local u32 s_te3[256];
-  __local u32 s_te4[256];
+  LOCAL_AS u32 s_te0[256];
+  LOCAL_AS u32 s_te1[256];
+  LOCAL_AS u32 s_te2[256];
+  LOCAL_AS u32 s_te3[256];
+  LOCAL_AS u32 s_te4[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -841,17 +841,17 @@ __kernel void m16600_s16 (KERN_ATTR_ESALT (electrum_wallet_t))
 
   #else
 
-  __constant u32a *s_td0 = td0;
-  __constant u32a *s_td1 = td1;
-  __constant u32a *s_td2 = td2;
-  __constant u32a *s_td3 = td3;
-  __constant u32a *s_td4 = td4;
+  CONSTANT_AS u32a *s_td0 = td0;
+  CONSTANT_AS u32a *s_td1 = td1;
+  CONSTANT_AS u32a *s_td2 = td2;
+  CONSTANT_AS u32a *s_td3 = td3;
+  CONSTANT_AS u32a *s_td4 = td4;
 
-  __constant u32a *s_te0 = te0;
-  __constant u32a *s_te1 = te1;
-  __constant u32a *s_te2 = te2;
-  __constant u32a *s_te3 = te3;
-  __constant u32a *s_te4 = te4;
+  CONSTANT_AS u32a *s_te0 = te0;
+  CONSTANT_AS u32a *s_te1 = te1;
+  CONSTANT_AS u32a *s_te2 = te2;
+  CONSTANT_AS u32a *s_te3 = te3;
+  CONSTANT_AS u32a *s_te4 = te4;
 
   #endif
 

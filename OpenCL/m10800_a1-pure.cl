@@ -13,7 +13,7 @@
 #include "inc_hash_sha384.cl"
 #endif
 
-__kernel void m10800_mxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void m10800_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -55,7 +55,7 @@ __kernel void m10800_mxx (KERN_ATTR_BASIC ())
   }
 }
 
-__kernel void m10800_sxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void m10800_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier

@@ -91,7 +91,7 @@ DECLSPEC void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipa
   sha1_transform_vector (w0, w1, w2, w3, digest);
 }
 
-__kernel void m15300_init (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
+KERNEL_FQ void m15300_init (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
 {
   /**
    * base
@@ -288,7 +288,7 @@ __kernel void m15300_init (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
   }
 }
 
-__kernel void m15300_loop (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
+KERNEL_FQ void m15300_loop (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
 {
   /**
    * base
@@ -377,7 +377,7 @@ __kernel void m15300_loop (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
   }
 }
 
-__kernel void m15300_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
+KERNEL_FQ void m15300_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -389,8 +389,8 @@ __kernel void m15300_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
 
   #ifdef REAL_SHM
 
-  __local u32 s_SPtrans[8][64];
-  __local u32 s_skb[8][64];
+  LOCAL_AS u32 s_SPtrans[8][64];
+  LOCAL_AS u32 s_skb[8][64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
@@ -417,8 +417,8 @@ __kernel void m15300_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
 
   #else
 
-  __constant u32a (*s_SPtrans)[64] = c_SPtrans;
-  __constant u32a (*s_skb)[64]     = c_skb;
+  CONSTANT_AS u32a (*s_SPtrans)[64] = c_SPtrans;
+  CONSTANT_AS u32a (*s_skb)[64]     = c_skb;
 
   #endif
 

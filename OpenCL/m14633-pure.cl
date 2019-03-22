@@ -151,7 +151,7 @@ DECLSPEC void hmac_sha512_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w
   sha512_transform_vector (w0, w1, w2, w3, w4, w5, w6, w7, digest);
 }
 
-__kernel void m14633_init (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
+KERNEL_FQ void m14633_init (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
 {
   /**
    * base
@@ -257,7 +257,7 @@ __kernel void m14633_init (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
   }
 }
 
-__kernel void m14633_loop (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
+KERNEL_FQ void m14633_loop (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -385,7 +385,7 @@ __kernel void m14633_loop (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
   }
 }
 
-__kernel void m14633_comp (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
+KERNEL_FQ void m14633_comp (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
 {
   const u64 gid = get_global_id (0);
 

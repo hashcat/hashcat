@@ -19,7 +19,7 @@ typedef struct win8phone
 
 } win8phone_t;
 
-__kernel void m13800_mxx (KERN_ATTR_VECTOR_ESALT (win8phone_t))
+KERNEL_FQ void m13800_mxx (KERN_ATTR_VECTOR_ESALT (win8phone_t))
 {
   /**
    * modifier
@@ -85,7 +85,7 @@ __kernel void m13800_mxx (KERN_ATTR_VECTOR_ESALT (win8phone_t))
   }
 }
 
-__kernel void m13800_sxx (KERN_ATTR_VECTOR_ESALT (win8phone_t))
+KERNEL_FQ void m13800_sxx (KERN_ATTR_VECTOR_ESALT (win8phone_t))
 {
   /**
    * modifier

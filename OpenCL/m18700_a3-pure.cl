@@ -69,7 +69,7 @@ DECLSPEC u32x hashCode_w0 (const u32x init, const u32x w0, const u32 *w, const u
   return hash;
 }
 
-__kernel void m18700_mxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m18700_mxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -116,7 +116,7 @@ __kernel void m18700_mxx (KERN_ATTR_VECTOR ())
   }
 }
 
-__kernel void m18700_sxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m18700_sxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier

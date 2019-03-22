@@ -9,10 +9,10 @@
 #include "inc_common.cl"
 #endif
 
-__kernel void m02000_mxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void m02000_mxx (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m02000_sxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void m02000_sxx (KERN_ATTR_BASIC ())
 {
 }

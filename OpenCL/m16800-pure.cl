@@ -73,7 +73,7 @@ DECLSPEC void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipa
   sha1_transform_vector (w0, w1, w2, w3, digest);
 }
 
-__kernel void m16800_init (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_pmkid_t))
+KERNEL_FQ void m16800_init (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_pmkid_t))
 {
   /**
    * base
@@ -145,7 +145,7 @@ __kernel void m16800_init (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_pmkid_t))
   }
 }
 
-__kernel void m16800_loop (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_pmkid_t))
+KERNEL_FQ void m16800_loop (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_pmkid_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -230,12 +230,12 @@ __kernel void m16800_loop (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_pmkid_t))
   }
 }
 
-__kernel void m16800_comp (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_pmkid_t))
+KERNEL_FQ void m16800_comp (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_pmkid_t))
 {
   // not in use here, special case...
 }
 
-__kernel void m16800_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_pmkid_t))
+KERNEL_FQ void m16800_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_pmkid_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -265,7 +265,7 @@ __kernel void m16800_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_pmkid_t))
 
   const u32 digest_cur = digests_offset + digest_pos;
 
-  __global const wpa_pmkid_t *wpa_pmkid = &esalt_bufs[digest_cur];
+  GLOBAL_AS const wpa_pmkid_t *wpa_pmkid = &esalt_bufs[digest_cur];
 
   sha1_hmac_ctx_t sha1_hmac_ctx;
 

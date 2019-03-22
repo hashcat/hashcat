@@ -13,7 +13,7 @@
 #include "inc_hash_ripemd160.cl"
 #endif
 
-__kernel void m06000_mxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m06000_mxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -68,7 +68,7 @@ __kernel void m06000_mxx (KERN_ATTR_VECTOR ())
   }
 }
 
-__kernel void m06000_sxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m06000_sxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier

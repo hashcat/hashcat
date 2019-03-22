@@ -18,7 +18,7 @@ DECLSPEC void whirlpool_transform_transport_vector (const u32x *w, u32x *digest,
   whirlpool_transform_vector (w + 0, w + 4, w + 8, w + 12, digest, s_Ch, s_Cl);
 }
 
-__kernel void m06100_m04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m06100_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -34,8 +34,8 @@ __kernel void m06100_m04 (KERN_ATTR_BASIC ())
 
   #ifdef REAL_SHM
 
-  __local u32 s_Ch[8][256];
-  __local u32 s_Cl[8][256];
+  LOCAL_AS u32 s_Ch[8][256];
+  LOCAL_AS u32 s_Cl[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -62,8 +62,8 @@ __kernel void m06100_m04 (KERN_ATTR_BASIC ())
 
   #else
 
-  __constant u32a (*s_Ch)[256] = Ch;
-  __constant u32a (*s_Cl)[256] = Cl;
+  CONSTANT_AS u32a (*s_Ch)[256] = Ch;
+  CONSTANT_AS u32a (*s_Cl)[256] = Cl;
 
   #endif
 
@@ -208,15 +208,15 @@ __kernel void m06100_m04 (KERN_ATTR_BASIC ())
   }
 }
 
-__kernel void m06100_m08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m06100_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m06100_m16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m06100_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m06100_s04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m06100_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -232,8 +232,8 @@ __kernel void m06100_s04 (KERN_ATTR_BASIC ())
 
   #ifdef REAL_SHM
 
-  __local u32 s_Ch[8][256];
-  __local u32 s_Cl[8][256];
+  LOCAL_AS u32 s_Ch[8][256];
+  LOCAL_AS u32 s_Cl[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -260,8 +260,8 @@ __kernel void m06100_s04 (KERN_ATTR_BASIC ())
 
   #else
 
-  __constant u32a (*s_Ch)[256] = Ch;
-  __constant u32a (*s_Cl)[256] = Cl;
+  CONSTANT_AS u32a (*s_Ch)[256] = Ch;
+  CONSTANT_AS u32a (*s_Cl)[256] = Cl;
 
   #endif
 
@@ -418,10 +418,10 @@ __kernel void m06100_s04 (KERN_ATTR_BASIC ())
   }
 }
 
-__kernel void m06100_s08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m06100_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m06100_s16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m06100_s16 (KERN_ATTR_BASIC ())
 {
 }

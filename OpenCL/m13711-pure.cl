@@ -57,7 +57,7 @@ typedef struct vc_tmp
 
 } vc_tmp_t;
 
-DECLSPEC int check_header_0512 (__global const vc_t *esalt_bufs, __global u32 *key, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC int check_header_0512 (GLOBAL_AS const vc_t *esalt_bufs, GLOBAL_AS u32 *key, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 key1[8];
   u32 key2[8];
@@ -124,7 +124,7 @@ DECLSPEC void hmac_ripemd160_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x
   ripemd160_transform_vector (w0, w1, w2, w3, digest);
 }
 
-__kernel void m13711_init (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
+KERNEL_FQ void m13711_init (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -136,7 +136,7 @@ __kernel void m13711_init (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 
   const int keyboard_layout_mapping_cnt = esalt_bufs[digests_offset].keyboard_layout_mapping_cnt;
 
-  __local keyboard_layout_mapping_t s_keyboard_layout_mapping_buf[256];
+  LOCAL_AS keyboard_layout_mapping_t s_keyboard_layout_mapping_buf[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -251,7 +251,7 @@ __kernel void m13711_init (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
   }
 }
 
-__kernel void m13711_loop (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
+KERNEL_FQ void m13711_loop (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -263,17 +263,17 @@ __kernel void m13711_loop (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 
   #ifdef REAL_SHM
 
-  __local u32 s_td0[256];
-  __local u32 s_td1[256];
-  __local u32 s_td2[256];
-  __local u32 s_td3[256];
-  __local u32 s_td4[256];
+  LOCAL_AS u32 s_td0[256];
+  LOCAL_AS u32 s_td1[256];
+  LOCAL_AS u32 s_td2[256];
+  LOCAL_AS u32 s_td3[256];
+  LOCAL_AS u32 s_td4[256];
 
-  __local u32 s_te0[256];
-  __local u32 s_te1[256];
-  __local u32 s_te2[256];
-  __local u32 s_te3[256];
-  __local u32 s_te4[256];
+  LOCAL_AS u32 s_te0[256];
+  LOCAL_AS u32 s_te1[256];
+  LOCAL_AS u32 s_te2[256];
+  LOCAL_AS u32 s_te3[256];
+  LOCAL_AS u32 s_te4[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -294,17 +294,17 @@ __kernel void m13711_loop (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 
   #else
 
-  __constant u32a *s_td0 = td0;
-  __constant u32a *s_td1 = td1;
-  __constant u32a *s_td2 = td2;
-  __constant u32a *s_td3 = td3;
-  __constant u32a *s_td4 = td4;
+  CONSTANT_AS u32a *s_td0 = td0;
+  CONSTANT_AS u32a *s_td1 = td1;
+  CONSTANT_AS u32a *s_td2 = td2;
+  CONSTANT_AS u32a *s_td3 = td3;
+  CONSTANT_AS u32a *s_td4 = td4;
 
-  __constant u32a *s_te0 = te0;
-  __constant u32a *s_te1 = te1;
-  __constant u32a *s_te2 = te2;
-  __constant u32a *s_te3 = te3;
-  __constant u32a *s_te4 = te4;
+  CONSTANT_AS u32a *s_te0 = te0;
+  CONSTANT_AS u32a *s_te1 = te1;
+  CONSTANT_AS u32a *s_te2 = te2;
+  CONSTANT_AS u32a *s_te3 = te3;
+  CONSTANT_AS u32a *s_te4 = te4;
 
   #endif
 
@@ -435,7 +435,7 @@ __kernel void m13711_loop (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
   if (check_header_0512 (esalt_bufs, tmps[gid].pim_key, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) != -1) tmps[gid].pim = pim;
 }
 
-__kernel void m13711_comp (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
+KERNEL_FQ void m13711_comp (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -447,17 +447,17 @@ __kernel void m13711_comp (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 
   #ifdef REAL_SHM
 
-  __local u32 s_td0[256];
-  __local u32 s_td1[256];
-  __local u32 s_td2[256];
-  __local u32 s_td3[256];
-  __local u32 s_td4[256];
+  LOCAL_AS u32 s_td0[256];
+  LOCAL_AS u32 s_td1[256];
+  LOCAL_AS u32 s_td2[256];
+  LOCAL_AS u32 s_td3[256];
+  LOCAL_AS u32 s_td4[256];
 
-  __local u32 s_te0[256];
-  __local u32 s_te1[256];
-  __local u32 s_te2[256];
-  __local u32 s_te3[256];
-  __local u32 s_te4[256];
+  LOCAL_AS u32 s_te0[256];
+  LOCAL_AS u32 s_te1[256];
+  LOCAL_AS u32 s_te2[256];
+  LOCAL_AS u32 s_te3[256];
+  LOCAL_AS u32 s_te4[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -478,17 +478,17 @@ __kernel void m13711_comp (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 
   #else
 
-  __constant u32a *s_td0 = td0;
-  __constant u32a *s_td1 = td1;
-  __constant u32a *s_td2 = td2;
-  __constant u32a *s_td3 = td3;
-  __constant u32a *s_td4 = td4;
+  CONSTANT_AS u32a *s_td0 = td0;
+  CONSTANT_AS u32a *s_td1 = td1;
+  CONSTANT_AS u32a *s_td2 = td2;
+  CONSTANT_AS u32a *s_td3 = td3;
+  CONSTANT_AS u32a *s_td4 = td4;
 
-  __constant u32a *s_te0 = te0;
-  __constant u32a *s_te1 = te1;
-  __constant u32a *s_te2 = te2;
-  __constant u32a *s_te3 = te3;
-  __constant u32a *s_te4 = te4;
+  CONSTANT_AS u32a *s_te0 = te0;
+  CONSTANT_AS u32a *s_te1 = te1;
+  CONSTANT_AS u32a *s_te2 = te2;
+  CONSTANT_AS u32a *s_te3 = te3;
+  CONSTANT_AS u32a *s_te4 = te4;
 
   #endif
 

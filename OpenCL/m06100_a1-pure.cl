@@ -13,7 +13,7 @@
 #include "inc_hash_whirlpool.cl"
 #endif
 
-__kernel void m06100_mxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void m06100_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -29,8 +29,8 @@ __kernel void m06100_mxx (KERN_ATTR_BASIC ())
 
   #ifdef REAL_SHM
 
-  __local u32 s_Ch[8][256];
-  __local u32 s_Cl[8][256];
+  LOCAL_AS u32 s_Ch[8][256];
+  LOCAL_AS u32 s_Cl[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -57,8 +57,8 @@ __kernel void m06100_mxx (KERN_ATTR_BASIC ())
 
   #else
 
-  __constant u32a (*s_Ch)[256] = Ch;
-  __constant u32a (*s_Cl)[256] = Cl;
+  CONSTANT_AS u32a (*s_Ch)[256] = Ch;
+  CONSTANT_AS u32a (*s_Cl)[256] = Cl;
 
   #endif
 
@@ -95,7 +95,7 @@ __kernel void m06100_mxx (KERN_ATTR_BASIC ())
   }
 }
 
-__kernel void m06100_sxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void m06100_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -111,8 +111,8 @@ __kernel void m06100_sxx (KERN_ATTR_BASIC ())
 
   #ifdef REAL_SHM
 
-  __local u32 s_Ch[8][256];
-  __local u32 s_Cl[8][256];
+  LOCAL_AS u32 s_Ch[8][256];
+  LOCAL_AS u32 s_Cl[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -139,8 +139,8 @@ __kernel void m06100_sxx (KERN_ATTR_BASIC ())
 
   #else
 
-  __constant u32a (*s_Ch)[256] = Ch;
-  __constant u32a (*s_Cl)[256] = Cl;
+  CONSTANT_AS u32a (*s_Ch)[256] = Ch;
+  CONSTANT_AS u32a (*s_Cl)[256] = Cl;
 
   #endif
 

@@ -14,7 +14,7 @@
 #include "inc_simd.cl"
 #endif
 
-__constant u32a c_tables[4][256] =
+CONSTANT_AS u32a c_tables[4][256] =
 {
   {
     0x00072000, 0x00075000, 0x00074800, 0x00071000,
@@ -697,7 +697,7 @@ __constant u32a c_tables[4][256] =
   R (k, h, s, 6, t);      \
 }
 
-__kernel void m06900_m04 (KERN_ATTR_RULES ())
+KERNEL_FQ void m06900_m04 (KERN_ATTR_RULES ())
 {
   /**
    * base
@@ -711,7 +711,7 @@ __kernel void m06900_m04 (KERN_ATTR_RULES ())
    * sbox
    */
 
-  __local u32 s_tables[4][256];
+  LOCAL_AS u32 s_tables[4][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -905,15 +905,15 @@ __kernel void m06900_m04 (KERN_ATTR_RULES ())
   }
 }
 
-__kernel void m06900_m08 (KERN_ATTR_RULES ())
+KERNEL_FQ void m06900_m08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m06900_m16 (KERN_ATTR_RULES ())
+KERNEL_FQ void m06900_m16 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m06900_s04 (KERN_ATTR_RULES ())
+KERNEL_FQ void m06900_s04 (KERN_ATTR_RULES ())
 {
   /**
    * base
@@ -927,7 +927,7 @@ __kernel void m06900_s04 (KERN_ATTR_RULES ())
    * sbox
    */
 
-  __local u32 s_tables[4][256];
+  LOCAL_AS u32 s_tables[4][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -1137,10 +1137,10 @@ __kernel void m06900_s04 (KERN_ATTR_RULES ())
   }
 }
 
-__kernel void m06900_s08 (KERN_ATTR_RULES ())
+KERNEL_FQ void m06900_s08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m06900_s16 (KERN_ATTR_RULES ())
+KERNEL_FQ void m06900_s16 (KERN_ATTR_RULES ())
 {
 }

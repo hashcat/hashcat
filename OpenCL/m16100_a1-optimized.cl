@@ -24,7 +24,7 @@ typedef struct tacacs_plus
 
 } tacacs_plus_t;
 
-__kernel void m16100_m04 (KERN_ATTR_ESALT (tacacs_plus_t))
+KERNEL_FQ void m16100_m04 (KERN_ATTR_ESALT (tacacs_plus_t))
 {
   /**
    * modifier
@@ -362,15 +362,15 @@ __kernel void m16100_m04 (KERN_ATTR_ESALT (tacacs_plus_t))
   }
 }
 
-__kernel void m16100_m08 (KERN_ATTR_ESALT (tacacs_plus_t))
+KERNEL_FQ void m16100_m08 (KERN_ATTR_ESALT (tacacs_plus_t))
 {
 }
 
-__kernel void m16100_m16 (KERN_ATTR_ESALT (tacacs_plus_t))
+KERNEL_FQ void m16100_m16 (KERN_ATTR_ESALT (tacacs_plus_t))
 {
 }
 
-__kernel void m16100_s04 (KERN_ATTR_ESALT (tacacs_plus_t))
+KERNEL_FQ void m16100_s04 (KERN_ATTR_ESALT (tacacs_plus_t))
 {
   /**
    * modifier
@@ -708,10 +708,10 @@ __kernel void m16100_s04 (KERN_ATTR_ESALT (tacacs_plus_t))
   }
 }
 
-__kernel void m16100_s08 (KERN_ATTR_ESALT (tacacs_plus_t))
+KERNEL_FQ void m16100_s08 (KERN_ATTR_ESALT (tacacs_plus_t))
 {
 }
 
-__kernel void m16100_s16 (KERN_ATTR_ESALT (tacacs_plus_t))
+KERNEL_FQ void m16100_s16 (KERN_ATTR_ESALT (tacacs_plus_t))
 {
 }

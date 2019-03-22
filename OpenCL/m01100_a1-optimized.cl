@@ -13,7 +13,7 @@
 #include "inc_hash_md4.cl"
 #endif
 
-__kernel void m01100_m04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m01100_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * base
@@ -40,7 +40,7 @@ __kernel void m01100_m04 (KERN_ATTR_BASIC ())
    * salt
    */
 
-  __local salt_t s_salt_buf[1];
+  LOCAL_AS salt_t s_salt_buf[1];
 
   if (lid == 0)
   {
@@ -286,15 +286,15 @@ __kernel void m01100_m04 (KERN_ATTR_BASIC ())
   }
 }
 
-__kernel void m01100_m08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m01100_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m01100_m16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m01100_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m01100_s04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m01100_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * base
@@ -321,7 +321,7 @@ __kernel void m01100_s04 (KERN_ATTR_BASIC ())
    * salt
    */
 
-  __local salt_t s_salt_buf[1];
+  LOCAL_AS salt_t s_salt_buf[1];
 
   if (lid == 0)
   {
@@ -582,10 +582,10 @@ __kernel void m01100_s04 (KERN_ATTR_BASIC ())
   }
 }
 
-__kernel void m01100_s08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m01100_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m01100_s16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m01100_s16 (KERN_ATTR_BASIC ())
 {
 }

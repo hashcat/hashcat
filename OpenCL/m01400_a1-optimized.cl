@@ -27,7 +27,7 @@
   h = 0;                                        \
 }
 
-__kernel void m01400_m04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m01400_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -232,15 +232,15 @@ __kernel void m01400_m04 (KERN_ATTR_BASIC ())
   }
 }
 
-__kernel void m01400_m08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m01400_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m01400_m16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m01400_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m01400_s04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m01400_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -478,10 +478,10 @@ __kernel void m01400_s04 (KERN_ATTR_BASIC ())
   }
 }
 
-__kernel void m01400_s08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m01400_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m01400_s16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m01400_s16 (KERN_ATTR_BASIC ())
 {
 }

@@ -1138,7 +1138,7 @@ DECLSPEC u32 do_round (const u32 *w, const u32 pw_len, pdf17l8_tmp_t *tmp, SHM_T
   return ex;
 }
 
-__kernel void m10700_init (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
+KERNEL_FQ void m10700_init (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
 {
   /**
    * base
@@ -1182,7 +1182,7 @@ __kernel void m10700_init (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
   tmps[gid] = tmp;
 }
 
-__kernel void m10700_loop (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
+KERNEL_FQ void m10700_loop (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -1194,11 +1194,11 @@ __kernel void m10700_loop (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
 
   #ifdef REAL_SHM
 
-  __local u32 s_te0[256];
-  __local u32 s_te1[256];
-  __local u32 s_te2[256];
-  __local u32 s_te3[256];
-  __local u32 s_te4[256];
+  LOCAL_AS u32 s_te0[256];
+  LOCAL_AS u32 s_te1[256];
+  LOCAL_AS u32 s_te2[256];
+  LOCAL_AS u32 s_te3[256];
+  LOCAL_AS u32 s_te4[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -1213,11 +1213,11 @@ __kernel void m10700_loop (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
 
   #else
 
-  __constant u32a *s_te0 = te0;
-  __constant u32a *s_te1 = te1;
-  __constant u32a *s_te2 = te2;
-  __constant u32a *s_te3 = te3;
-  __constant u32a *s_te4 = te4;
+  CONSTANT_AS u32a *s_te0 = te0;
+  CONSTANT_AS u32a *s_te1 = te1;
+  CONSTANT_AS u32a *s_te2 = te2;
+  CONSTANT_AS u32a *s_te3 = te3;
+  CONSTANT_AS u32a *s_te4 = te4;
 
   #endif
 
@@ -1260,7 +1260,7 @@ __kernel void m10700_loop (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
   tmps[gid] = tmp;
 }
 
-__kernel void m10700_comp (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
+KERNEL_FQ void m10700_comp (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
 {
   /**
    * modifier

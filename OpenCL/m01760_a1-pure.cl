@@ -13,7 +13,7 @@
 #include "inc_hash_sha512.cl"
 #endif
 
-__kernel void m01760_mxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void m01760_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -93,7 +93,7 @@ __kernel void m01760_mxx (KERN_ATTR_BASIC ())
   }
 }
 
-__kernel void m01760_sxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void m01760_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier

@@ -26,7 +26,7 @@ typedef struct tacacs_plus
 
 } tacacs_plus_t;
 
-__kernel void m16100_mxx (KERN_ATTR_RULES_ESALT (tacacs_plus_t))
+KERNEL_FQ void m16100_mxx (KERN_ATTR_RULES_ESALT (tacacs_plus_t))
 {
   /**
    * modifier
@@ -188,7 +188,7 @@ __kernel void m16100_mxx (KERN_ATTR_RULES_ESALT (tacacs_plus_t))
   }
 }
 
-__kernel void m16100_sxx (KERN_ATTR_RULES_ESALT (tacacs_plus_t))
+KERNEL_FQ void m16100_sxx (KERN_ATTR_RULES_ESALT (tacacs_plus_t))
 {
   /**
    * modifier

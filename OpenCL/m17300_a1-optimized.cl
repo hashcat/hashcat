@@ -12,7 +12,7 @@
 #include "inc_simd.cl"
 #endif
 
-__constant u64a keccakf_rndc[24] =
+CONSTANT_AS u64a keccakf_rndc[24] =
 {
   0x0000000000000001, 0x0000000000008082, 0x800000000000808a,
   0x8000000080008000, 0x000000000000808b, 0x0000000080000001,
@@ -28,7 +28,7 @@ __constant u64a keccakf_rndc[24] =
 #define KECCAK_ROUNDS 24
 #endif
 
-__kernel void m17300_m04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m17300_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -297,15 +297,15 @@ __kernel void m17300_m04 (KERN_ATTR_BASIC ())
 }
 
 
-__kernel void m17300_m08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m17300_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m17300_m16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m17300_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m17300_s04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m17300_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -585,10 +585,10 @@ __kernel void m17300_s04 (KERN_ATTR_BASIC ())
   }
 }
 
-__kernel void m17300_s08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m17300_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m17300_s16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m17300_s16 (KERN_ATTR_BASIC ())
 {
 }

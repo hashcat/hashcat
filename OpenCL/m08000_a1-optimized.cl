@@ -152,7 +152,7 @@ DECLSPEC void sha256_transform_z (u32x *digest)
   digest[7] += h;
 }
 
-DECLSPEC void sha256_transform_s (u32x *digest, __local u32 *w)
+DECLSPEC void sha256_transform_s (u32x *digest, LOCAL_AS u32 *w)
 {
   u32x a = digest[0];
   u32x b = digest[1];
@@ -203,7 +203,7 @@ DECLSPEC void sha256_transform_s (u32x *digest, __local u32 *w)
   digest[7] += h;
 }
 
-__kernel void m08000_m04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m08000_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -225,8 +225,8 @@ __kernel void m08000_m04 (KERN_ATTR_BASIC ())
    * precompute final msg blocks
    */
 
-  __local u32 w_s1[64];
-  __local u32 w_s2[64];
+  LOCAL_AS u32 w_s1[64];
+  LOCAL_AS u32 w_s2[64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
@@ -420,15 +420,15 @@ __kernel void m08000_m04 (KERN_ATTR_BASIC ())
   }
 }
 
-__kernel void m08000_m08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m08000_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m08000_m16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m08000_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m08000_s04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m08000_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -450,8 +450,8 @@ __kernel void m08000_s04 (KERN_ATTR_BASIC ())
    * precompute final msg blocks
    */
 
-  __local u32 w_s1[64];
-  __local u32 w_s2[64];
+  LOCAL_AS u32 w_s1[64];
+  LOCAL_AS u32 w_s2[64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
@@ -657,10 +657,10 @@ __kernel void m08000_s04 (KERN_ATTR_BASIC ())
   }
 }
 
-__kernel void m08000_s08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m08000_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m08000_s16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m08000_s16 (KERN_ATTR_BASIC ())
 {
 }

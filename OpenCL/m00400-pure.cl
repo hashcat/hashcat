@@ -22,7 +22,7 @@ typedef struct phpass_tmp
 
 } phpass_tmp_t;
 
-__kernel void m00400_init (KERN_ATTR_TMPS (phpass_tmp_t))
+KERNEL_FQ void m00400_init (KERN_ATTR_TMPS (phpass_tmp_t))
 {
   /**
    * base
@@ -59,7 +59,7 @@ __kernel void m00400_init (KERN_ATTR_TMPS (phpass_tmp_t))
   tmps[gid].digest_buf[3] = digest[3];
 }
 
-__kernel void m00400_loop (KERN_ATTR_TMPS (phpass_tmp_t))
+KERNEL_FQ void m00400_loop (KERN_ATTR_TMPS (phpass_tmp_t))
 {
   /**
    * base
@@ -160,7 +160,7 @@ __kernel void m00400_loop (KERN_ATTR_TMPS (phpass_tmp_t))
   tmps[gid].digest_buf[3] = digest[3];
 }
 
-__kernel void m00400_comp (KERN_ATTR_TMPS (phpass_tmp_t))
+KERNEL_FQ void m00400_comp (KERN_ATTR_TMPS (phpass_tmp_t))
 {
   /**
    * modifier

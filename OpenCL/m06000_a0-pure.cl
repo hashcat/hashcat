@@ -15,7 +15,7 @@
 #include "inc_hash_ripemd160.cl"
 #endif
 
-__kernel void m06000_mxx (KERN_ATTR_RULES ())
+KERNEL_FQ void m06000_mxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -59,7 +59,7 @@ __kernel void m06000_mxx (KERN_ATTR_RULES ())
   }
 }
 
-__kernel void m06000_sxx (KERN_ATTR_RULES ())
+KERNEL_FQ void m06000_sxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier
