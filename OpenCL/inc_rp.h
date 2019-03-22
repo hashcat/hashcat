@@ -58,18 +58,3 @@
 #define RULE_OP_MANGLE_TITLE            'E'
 
 #define RP_PASSWORD_SIZE 256
-
-#ifdef REAL_SHM
-#define COPY_PW(x)              \
-  __local pw_t s_pws[64];       \
-  s_pws[get_local_id(0)] = (x);
-#else
-#define COPY_PW(x)              \
-  pw_t pw = (x);
-#endif
-
-#ifdef REAL_SHM
-#define PASTE_PW s_pws[get_local_id(0)];
-#else
-#define PASTE_PW pw;
-#endif
