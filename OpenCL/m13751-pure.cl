@@ -13,7 +13,6 @@
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha256.cl"
-
 #include "inc_cipher_aes.cl"
 #include "inc_cipher_twofish.cl"
 #include "inc_cipher_serpent.cl"

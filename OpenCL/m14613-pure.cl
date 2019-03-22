@@ -83,7 +83,6 @@ typedef struct luks_tmp
 #include "inc_luks_af.cl"
 #include "inc_luks_essiv.cl"
 #include "inc_luks_xts.cl"
-
 #include "inc_luks_twofish.cl"
 
 #define COMPARE_S "inc_comp_single.cl"

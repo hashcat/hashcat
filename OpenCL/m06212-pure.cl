@@ -10,7 +10,6 @@
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_ripemd160.cl"
-
 #include "inc_cipher_aes.cl"
 #include "inc_cipher_twofish.cl"
 #include "inc_cipher_serpent.cl"
