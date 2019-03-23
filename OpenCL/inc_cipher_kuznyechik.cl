@@ -17,6 +17,23 @@
 #include "inc_common.h"
 #include "inc_cipher_kuznyechik.h"
 
+#define extract_byte(x,n) (((x) >> (8 * (n))) & 0xff)
+
+#define k_lookup(w,sbox)                      \
+  for (int i = 0; i < 4; i++)                 \
+    w[i] = sbox[extract_byte (w[i], 0)] <<  0 \
+         | sbox[extract_byte (w[i], 1)] <<  8 \
+         | sbox[extract_byte (w[i], 2)] << 16 \
+         | sbox[extract_byte (w[i], 3)] << 24
+
+#define k_xor(n)                      \
+  for (int i = (n); i > 0; i /= 2)    \
+  {                                   \
+    z ^= x * (i % 2);                 \
+    x = (x << 1) ^ ((x >> 7) * 0xc3); \
+    x &= 0xff;                        \
+  }
+
 DECLSPEC void kuznyechik_linear (u32 *w)
 {
   // used in k_xor macro
@@ -213,3 +230,7 @@ DECLSPEC void kuznyechik_decrypt (const u32 *ks, const u32 *in, u32 *out)
     out[3] ^= ks[4 * i + 3];
   }
 }
+
+#undef k_xor
+#undef k_lookup
+#undef extract_byte

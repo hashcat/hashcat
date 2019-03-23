@@ -8,6 +8,58 @@
 #include "inc_common.h"
 #include "inc_cipher_des.h"
 
+#define PERM_OP(a,b,n,m) \
+{                        \
+  u32x t;                \
+  t = a >> n;            \
+  t = t ^ b;             \
+  t = t & m;             \
+  b = b ^ t;             \
+  t = t << n;            \
+  a = a ^ t;             \
+}
+
+#define HPERM_OP(a,n,m)  \
+{                        \
+  u32x t;                \
+  t = a << (16 + n);     \
+  t = t ^ a;             \
+  t = t & m;             \
+  a  = a ^ t;            \
+  t = t >> (16 + n);     \
+  a  = a ^ t;            \
+}
+
+#define DES_IP(l,r)                \
+{                                  \
+  PERM_OP (r, l,  4, 0x0f0f0f0f);  \
+  PERM_OP (l, r, 16, 0x0000ffff);  \
+  PERM_OP (r, l,  2, 0x33333333);  \
+  PERM_OP (l, r,  8, 0x00ff00ff);  \
+  PERM_OP (r, l,  1, 0x55555555);  \
+}
+
+#define DES_FP(l,r)                \
+{                                  \
+  PERM_OP (l, r,  1, 0x55555555);  \
+  PERM_OP (r, l,  8, 0x00ff00ff);  \
+  PERM_OP (l, r,  2, 0x33333333);  \
+  PERM_OP (r, l, 16, 0x0000ffff);  \
+  PERM_OP (l, r,  4, 0x0f0f0f0f);  \
+}
+
+#if   VECT_SIZE == 1
+#define DES_BOX(i,n,S) (S)[(n)][(i)]
+#elif VECT_SIZE == 2
+#define DES_BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1])
+#elif VECT_SIZE == 4
+#define DES_BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3])
+#elif VECT_SIZE == 8
+#define DES_BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3], (S)[(n)][(i).s4], (S)[(n)][(i).s5], (S)[(n)][(i).s6], (S)[(n)][(i).s7])
+#elif VECT_SIZE == 16
+#define DES_BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3], (S)[(n)][(i).s4], (S)[(n)][(i).s5], (S)[(n)][(i).s6], (S)[(n)][(i).s7], (S)[(n)][(i).s8], (S)[(n)][(i).s9], (S)[(n)][(i).sa], (S)[(n)][(i).sb], (S)[(n)][(i).sc], (S)[(n)][(i).sd], (S)[(n)][(i).se], (S)[(n)][(i).sf])
+#endif
+
 DECLSPEC void _des_crypt_encrypt (u32x *iv, u32x *data, u32x *Kc, u32x *Kd, SHM_TYPE u32 (*s_SPtrans)[64])
 {
   u32x r = data[0];
@@ -172,3 +224,10 @@ DECLSPEC void _des_crypt_keysetup (u32x c, u32x d, u32x *Kc, u32x *Kd, SHM_TYPE 
     Kd[i] = hc_rotl32 (Kd[i], 2u);
   }
 }
+
+#undef PERM_OP
+#undef HPERM_OP
+#undef DES_IP
+#undef DES_FP
+
+#undef DES_BOX

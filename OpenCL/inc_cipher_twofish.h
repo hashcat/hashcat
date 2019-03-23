@@ -6,70 +6,6 @@
 #ifndef _INC_CIPHER_TWOFISH_H
 #define _INC_CIPHER_TWOFISH_H
 
-#define extract_byte(x,n) (((x) >> (8 * (n))) & 0xff)
-
-// 128 bit key
-
-#define g1_fun128(x)                        \
-  (mds (0, q20 (extract_byte (x, 3), sk)) ^ \
-   mds (1, q21 (extract_byte (x, 0), sk)) ^ \
-   mds (2, q22 (extract_byte (x, 1), sk)) ^ \
-   mds (3, q23 (extract_byte (x, 2), sk)))
-
-#define g0_fun128(x)                        \
-  (mds (0, q20 (extract_byte (x, 0), sk)) ^ \
-   mds (1, q21 (extract_byte (x, 1), sk)) ^ \
-   mds (2, q22 (extract_byte (x, 2), sk)) ^ \
-   mds (3, q23 (extract_byte (x, 3), sk)))
-
-#define f_rnd128(i)                                                   \
-{                                                                     \
-  u32 t0 = g0_fun128 (data[0]);                                       \
-  u32 t1 = g1_fun128 (data[1]);                                       \
-  data[2] = hc_rotr32_S (data[2] ^ (t0 + t1 + lk[4 * (i) + 8]), 1);      \
-  data[3] = hc_rotl32_S (data[3], 1) ^ (t0 + 2 * t1 + lk[4 * (i) + 9]);  \
-  u32 t2 = g0_fun128 (data[2]);                                       \
-  u32 t3 = g1_fun128 (data[3]);                                       \
-  data[0] = hc_rotr32_S (data[0] ^ (t2 + t3 + lk[4 * (i) + 10]), 1);     \
-  data[1] = hc_rotl32_S (data[1], 1) ^ (t2 + 2 * t3 + lk[4 * (i) + 11]); \
-}
-
-#define i_rnd128(i)                                                   \
-{                                                                     \
-  u32 t0 = g0_fun128 (data[0]);                                       \
-  u32 t1 = g1_fun128 (data[1]);                                       \
-  data[2] = hc_rotl32_S (data[2], 1) ^ (t0 + t1 + lk[4 * (i) + 10]);     \
-  data[3] = hc_rotr32_S (data[3] ^ (t0 + 2 * t1 + lk[4 * (i) + 11]), 1); \
-  u32 t2 = g0_fun128 (data[2]);                                       \
-  u32 t3 = g1_fun128 (data[3]);                                       \
-  data[0] = hc_rotl32_S (data[0], 1) ^ (t2 + t3 + lk[4 * (i) +  8]);     \
-  data[1] = hc_rotr32_S (data[1] ^ (t2 + 2 * t3 + lk[4 * (i) +  9]), 1); \
-}
-
-#define f_rnd256(i)                                                   \
-{                                                                     \
-  u32 t0 = g0_fun256 (data[0]);                                       \
-  u32 t1 = g1_fun256 (data[1]);                                       \
-  data[2] = hc_rotr32_S (data[2] ^ (t0 + t1 + lk[4 * (i) + 8]), 1);      \
-  data[3] = hc_rotl32_S (data[3], 1) ^ (t0 + 2 * t1 + lk[4 * (i) + 9]);  \
-  u32 t2 = g0_fun256 (data[2]);                                       \
-  u32 t3 = g1_fun256 (data[3]);                                       \
-  data[0] = hc_rotr32_S (data[0] ^ (t2 + t3 + lk[4 * (i) + 10]), 1);     \
-  data[1] = hc_rotl32_S (data[1], 1) ^ (t2 + 2 * t3 + lk[4 * (i) + 11]); \
-}
-
-#define i_rnd256(i)                                                   \
-{                                                                     \
-  u32 t0 = g0_fun256 (data[0]);                                       \
-  u32 t1 = g1_fun256 (data[1]);                                       \
-  data[2] = hc_rotl32_S (data[2], 1) ^ (t0 + t1 + lk[4 * (i) + 10]);     \
-  data[3] = hc_rotr32_S (data[3] ^ (t0 + 2 * t1 + lk[4 * (i) + 11]), 1); \
-  u32 t2 = g0_fun256 (data[2]);                                       \
-  u32 t3 = g1_fun256 (data[3]);                                       \
-  data[0] = hc_rotl32_S (data[0], 1) ^ (t2 + t3 + lk[4 * (i) +  8]);     \
-  data[1] = hc_rotr32_S (data[1] ^ (t2 + 2 * t3 + lk[4 * (i) +  9]), 1); \
-}
-
 CONSTANT_AS u32a q_tab[2][256] =
 {
   {
@@ -121,8 +57,6 @@ CONSTANT_AS u32a q_tab[2][256] =
     0x55, 0x09, 0xBE, 0x91
   }
 };
-
-#define q(n,x) q_tab[n][x]
 
 CONSTANT_AS u32a  m_tab[4][256] =
 {
@@ -302,18 +236,6 @@ CONSTANT_AS u32a  m_tab[4][256] =
     0xE2510FE2, 0x00000000, 0x9A196F9A, 0xE01A9DE0, 0x8F94368F, 0xE6C742E6,
     0xECC94AEC, 0xFDD25EFD, 0xAB7FC1AB, 0xD8A8E0D8 }
 };
-
-#define mds(n,x) m_tab[n][x]
-
-#define q20(x,k) q (0, q (0, x) ^ extract_byte (k[1], 0)) ^ extract_byte (k[0], 0)
-#define q21(x,k) q (0, q (1, x) ^ extract_byte (k[1], 1)) ^ extract_byte (k[0], 1)
-#define q22(x,k) q (1, q (0, x) ^ extract_byte (k[1], 2)) ^ extract_byte (k[0], 2)
-#define q23(x,k) q (1, q (1, x) ^ extract_byte (k[1], 3)) ^ extract_byte (k[0], 3)
-
-#define q40(x,k) q (0, q (0, q (1, q (1, x) ^ extract_byte (k[3], 0)) ^ extract_byte (k[2], 0)) ^ extract_byte (k[1], 0)) ^ extract_byte (k[0], 0)
-#define q41(x,k) q (0, q (1, q (1, q (0, x) ^ extract_byte (k[3], 1)) ^ extract_byte (k[2], 1)) ^ extract_byte (k[1], 1)) ^ extract_byte (k[0], 1)
-#define q42(x,k) q (1, q (0, q (0, q (0, x) ^ extract_byte (k[3], 2)) ^ extract_byte (k[2], 2)) ^ extract_byte (k[1], 2)) ^ extract_byte (k[0], 2)
-#define q43(x,k) q (1, q (1, q (0, q (1, x) ^ extract_byte (k[3], 3)) ^ extract_byte (k[2], 3)) ^ extract_byte (k[1], 3)) ^ extract_byte (k[0], 3)
 
 DECLSPEC u32 mds_rem (u32 p0, u32 p1);
 DECLSPEC u32 h_fun128 (u32 *sk, u32 *lk, const u32 x, const u32 *key);

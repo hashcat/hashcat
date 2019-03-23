@@ -10,21 +10,6 @@
 #define MAYBE_UNUSED
 #endif
 
-#ifdef REAL_SHM
-#define COPY_PW(x)                \
-  LOCAL_AS pw_t s_pws[64];         \
-  s_pws[get_local_id (0)] = (x);
-#else
-#define COPY_PW(x)                \
-  pw_t pw = (x);
-#endif
-
-#ifdef REAL_SHM
-#define PASTE_PW s_pws[get_local_id(0)];
-#else
-#define PASTE_PW pw;
-#endif
-
 #define RULE_OP_MANGLE_NOOP             ':'
 #define RULE_OP_MANGLE_LREST            'l'
 #define RULE_OP_MANGLE_UREST            'u'

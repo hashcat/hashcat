@@ -8,6 +8,21 @@
 #include "inc_common.h"
 #include "inc_rp.h"
 
+#ifdef REAL_SHM
+#define COPY_PW(x)                \
+  LOCAL_AS pw_t s_pws[64];         \
+  s_pws[get_local_id (0)] = (x);
+#else
+#define COPY_PW(x)                \
+  pw_t pw = (x);
+#endif
+
+#ifdef REAL_SHM
+#define PASTE_PW s_pws[get_local_id(0)];
+#else
+#define PASTE_PW pw;
+#endif
+
 DECLSPEC u32 generate_cmask (const u32 value)
 {
   const u32 rmask =  ((value & 0x40404040u) >> 1u)
@@ -750,3 +765,6 @@ DECLSPEC int apply_rules (CONSTANT_AS const u32 *cmds, u32 *buf, const int in_le
 
   return out_len;
 }
+
+#undef COPY_PW
+#undef PASTE_PW

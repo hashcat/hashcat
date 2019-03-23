@@ -42,15 +42,6 @@ CONSTANT_AS const u32a c_sbox[256] =
   0x15, 0xe3, 0xad, 0xf4, 0x77, 0xc7, 0x80, 0x9e
 };
 
-#define c_sbox1(n) c_sbox[(n)]
-#define c_sbox2(n) (((c_sbox[(n)] >> 7) ^ (c_sbox[(n)] << 1)) & 0xff)
-#define c_sbox3(n) (((c_sbox[(n)] >> 1) ^ (c_sbox[(n)] << 7)) & 0xff)
-#define c_sbox4(n) c_sbox[(((n) << 1) ^ ((n) >> 7)) & 0xff]
-
-#define cam_rotate(a,b,n) hc_swap32_S ((u[(a)] << (n)) ^ (u[(b)] >> (32 - (n))))
-
-#define extract_byte(x,n) (((x) >> (8 * (n))) & 0xff)
-
 DECLSPEC void cam_feistel (const u32 *x, const u32 *k, u32 *y);
 DECLSPEC void cam_fl (u32 *x, const u32 *kl, const u32 *kr);
 DECLSPEC void camellia256_set_key (u32 *ks, const u32 *ukey);

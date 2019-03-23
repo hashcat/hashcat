@@ -20,6 +20,15 @@
 #include "inc_common.h"
 #include "inc_cipher_camellia.h"
 
+#define c_sbox1(n) c_sbox[(n)]
+#define c_sbox2(n) (((c_sbox[(n)] >> 7) ^ (c_sbox[(n)] << 1)) & 0xff)
+#define c_sbox3(n) (((c_sbox[(n)] >> 1) ^ (c_sbox[(n)] << 7)) & 0xff)
+#define c_sbox4(n) c_sbox[(((n) << 1) ^ ((n) >> 7)) & 0xff]
+
+#define cam_rotate(a,b,n) hc_swap32_S ((u[(a)] << (n)) ^ (u[(b)] >> (32 - (n))))
+
+#define extract_byte(x,n) (((x) >> (8 * (n))) & 0xff)
+
 DECLSPEC void cam_feistel (const u32 *x, const u32 *k, u32 *y)
 {
   u32 b[8];
@@ -323,3 +332,12 @@ DECLSPEC void camellia256_decrypt (const u32 *ks, const u32 *in, u32 *out)
   out[2] = tmp[0] ^ ks[2];
   out[3] = tmp[1] ^ ks[3];
 }
+
+#undef c_sbox1
+#undef c_sbox2
+#undef c_sbox3
+#undef c_sbox4
+
+#undef cam_rotate
+
+#undef extract_byte

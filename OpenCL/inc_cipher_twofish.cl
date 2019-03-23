@@ -24,6 +24,82 @@
 #include "inc_common.h"
 #include "inc_cipher_twofish.h"
 
+#define extract_byte(x,n) (((x) >> (8 * (n))) & 0xff)
+
+#define g1_fun128(x)                        \
+  (mds (0, q20 (extract_byte (x, 3), sk)) ^ \
+   mds (1, q21 (extract_byte (x, 0), sk)) ^ \
+   mds (2, q22 (extract_byte (x, 1), sk)) ^ \
+   mds (3, q23 (extract_byte (x, 2), sk)))
+
+#define g0_fun128(x)                        \
+  (mds (0, q20 (extract_byte (x, 0), sk)) ^ \
+   mds (1, q21 (extract_byte (x, 1), sk)) ^ \
+   mds (2, q22 (extract_byte (x, 2), sk)) ^ \
+   mds (3, q23 (extract_byte (x, 3), sk)))
+
+#define f_rnd128(i)                                                   \
+{                                                                     \
+  u32 t0 = g0_fun128 (data[0]);                                       \
+  u32 t1 = g1_fun128 (data[1]);                                       \
+  data[2] = hc_rotr32_S (data[2] ^ (t0 + t1 + lk[4 * (i) + 8]), 1);      \
+  data[3] = hc_rotl32_S (data[3], 1) ^ (t0 + 2 * t1 + lk[4 * (i) + 9]);  \
+  u32 t2 = g0_fun128 (data[2]);                                       \
+  u32 t3 = g1_fun128 (data[3]);                                       \
+  data[0] = hc_rotr32_S (data[0] ^ (t2 + t3 + lk[4 * (i) + 10]), 1);     \
+  data[1] = hc_rotl32_S (data[1], 1) ^ (t2 + 2 * t3 + lk[4 * (i) + 11]); \
+}
+
+#define i_rnd128(i)                                                   \
+{                                                                     \
+  u32 t0 = g0_fun128 (data[0]);                                       \
+  u32 t1 = g1_fun128 (data[1]);                                       \
+  data[2] = hc_rotl32_S (data[2], 1) ^ (t0 + t1 + lk[4 * (i) + 10]);     \
+  data[3] = hc_rotr32_S (data[3] ^ (t0 + 2 * t1 + lk[4 * (i) + 11]), 1); \
+  u32 t2 = g0_fun128 (data[2]);                                       \
+  u32 t3 = g1_fun128 (data[3]);                                       \
+  data[0] = hc_rotl32_S (data[0], 1) ^ (t2 + t3 + lk[4 * (i) +  8]);     \
+  data[1] = hc_rotr32_S (data[1] ^ (t2 + 2 * t3 + lk[4 * (i) +  9]), 1); \
+}
+
+#define f_rnd256(i)                                                   \
+{                                                                     \
+  u32 t0 = g0_fun256 (data[0]);                                       \
+  u32 t1 = g1_fun256 (data[1]);                                       \
+  data[2] = hc_rotr32_S (data[2] ^ (t0 + t1 + lk[4 * (i) + 8]), 1);      \
+  data[3] = hc_rotl32_S (data[3], 1) ^ (t0 + 2 * t1 + lk[4 * (i) + 9]);  \
+  u32 t2 = g0_fun256 (data[2]);                                       \
+  u32 t3 = g1_fun256 (data[3]);                                       \
+  data[0] = hc_rotr32_S (data[0] ^ (t2 + t3 + lk[4 * (i) + 10]), 1);     \
+  data[1] = hc_rotl32_S (data[1], 1) ^ (t2 + 2 * t3 + lk[4 * (i) + 11]); \
+}
+
+#define i_rnd256(i)                                                   \
+{                                                                     \
+  u32 t0 = g0_fun256 (data[0]);                                       \
+  u32 t1 = g1_fun256 (data[1]);                                       \
+  data[2] = hc_rotl32_S (data[2], 1) ^ (t0 + t1 + lk[4 * (i) + 10]);     \
+  data[3] = hc_rotr32_S (data[3] ^ (t0 + 2 * t1 + lk[4 * (i) + 11]), 1); \
+  u32 t2 = g0_fun256 (data[2]);                                       \
+  u32 t3 = g1_fun256 (data[3]);                                       \
+  data[0] = hc_rotl32_S (data[0], 1) ^ (t2 + t3 + lk[4 * (i) +  8]);     \
+  data[1] = hc_rotr32_S (data[1] ^ (t2 + 2 * t3 + lk[4 * (i) +  9]), 1); \
+}
+
+#define q(n,x) q_tab[n][x]
+
+#define mds(n,x) m_tab[n][x]
+
+#define q20(x,k) q (0, q (0, x) ^ extract_byte (k[1], 0)) ^ extract_byte (k[0], 0)
+#define q21(x,k) q (0, q (1, x) ^ extract_byte (k[1], 1)) ^ extract_byte (k[0], 1)
+#define q22(x,k) q (1, q (0, x) ^ extract_byte (k[1], 2)) ^ extract_byte (k[0], 2)
+#define q23(x,k) q (1, q (1, x) ^ extract_byte (k[1], 3)) ^ extract_byte (k[0], 3)
+
+#define q40(x,k) q (0, q (0, q (1, q (1, x) ^ extract_byte (k[3], 0)) ^ extract_byte (k[2], 0)) ^ extract_byte (k[1], 0)) ^ extract_byte (k[0], 0)
+#define q41(x,k) q (0, q (1, q (1, q (0, x) ^ extract_byte (k[3], 1)) ^ extract_byte (k[2], 1)) ^ extract_byte (k[1], 1)) ^ extract_byte (k[0], 1)
+#define q42(x,k) q (1, q (0, q (0, q (0, x) ^ extract_byte (k[3], 2)) ^ extract_byte (k[2], 2)) ^ extract_byte (k[1], 2)) ^ extract_byte (k[0], 2)
+#define q43(x,k) q (1, q (1, q (0, q (1, x) ^ extract_byte (k[3], 3)) ^ extract_byte (k[2], 3)) ^ extract_byte (k[1], 3)) ^ extract_byte (k[0], 3)
+
 DECLSPEC u32 mds_rem (u32 p0, u32 p1)
 {
   #define G_MOD 0x14d
@@ -274,3 +350,23 @@ DECLSPEC void twofish256_decrypt (const u32 *sk, const u32 *lk, const u32 *in, u
   out[2] = data[0] ^ lk[2];
   out[3] = data[1] ^ lk[3];
 }
+
+#define g1_fun128
+#define g0_fun128
+#define f_rnd128
+#define i_rnd128
+#define f_rnd256
+#define i_rnd256
+
+#define q
+
+#define mds
+
+#define q20
+#define q21
+#define q22
+#define q23
+#define q40
+#define q41
+#define q42
+#define q43

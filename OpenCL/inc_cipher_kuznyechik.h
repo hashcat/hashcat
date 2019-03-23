@@ -6,23 +6,6 @@
 #ifndef _INC_CIPHER_KUZNYECHIK_H
 #define _INC_CIPHER_KUZNYECHIK_H
 
-#define extract_byte(x,n) (((x) >> (8 * (n))) & 0xff)
-
-#define k_lookup(w,sbox)                      \
-  for (int i = 0; i < 4; i++)                 \
-    w[i] = sbox[extract_byte (w[i], 0)] <<  0 \
-         | sbox[extract_byte (w[i], 1)] <<  8 \
-         | sbox[extract_byte (w[i], 2)] << 16 \
-         | sbox[extract_byte (w[i], 3)] << 24
-
-#define k_xor(n)                      \
-  for (int i = (n); i > 0; i /= 2)    \
-  {                                   \
-    z ^= x * (i % 2);                 \
-    x = (x << 1) ^ ((x >> 7) * 0xc3); \
-    x &= 0xff;                        \
-  }
-
 CONSTANT_AS const u32a k_sbox[256] =
 {
   0xfc, 0xee, 0xdd, 0x11, 0xcf, 0x6e, 0x31, 0x16,

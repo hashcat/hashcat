@@ -11,7 +11,7 @@
 #include "inc_cipher_twofish.h"
 #include "inc_cipher_camellia.h"
 #include "inc_cipher_kuznyechik.h"
-#include "inc_hash_veracrypt_xts.h"
+#include "inc_veracrypt_xts.h"
 
 DECLSPEC void camellia256_decrypt_xts_first (const u32 *ukey1, const u32 *ukey2, const u32 *in, u32 *out, u32 *S, u32 *T, u32 *ks)
 {
