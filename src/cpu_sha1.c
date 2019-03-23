@@ -16,7 +16,7 @@
 #define SHA1_STEP_S(f,a,b,c,d,e,x)    \
 {                                     \
   e += K;                             \
-  e  = hc_add3_S (e, x, f (b, c, d)); \
+  e  = add3_S (e, x, f (b, c, d)); \
   e += rotl32_S (a,  5u);             \
   b  = rotl32_S (b, 30u);             \
 }
@@ -24,14 +24,14 @@
 #define SHA1_STEP(f,a,b,c,d,e,x)    \
 {                                   \
   e += K;                           \
-  e  = hc_add3 (e, x, f (b, c, d)); \
+  e  = add3 (e, x, f (b, c, d)); \
   e += rotl32 (a,  5u);             \
   b  = rotl32 (b, 30u);             \
 }
 
 #define SHA1_STEPX(f,a,b,c,d,e,x)   \
 {                                   \
-  e  = hc_add3 (e, x, f (b, c, d)); \
+  e  = add3 (e, x, f (b, c, d)); \
   e += rotl32 (a,  5u);             \
   b  = rotl32 (b, 30u);             \
 }

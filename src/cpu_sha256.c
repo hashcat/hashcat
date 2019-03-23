@@ -26,20 +26,20 @@
 
 #define SHA256_STEP_S(F0,F1,a,b,c,d,e,f,g,h,x,K)  \
 {                                                 \
-  h = hc_add3_S (h, K, x);                        \
-  h = hc_add3_S (h, SHA256_S3_S (e), F1 (e,f,g)); \
+  h = add3_S (h, K, x);                        \
+  h = add3_S (h, SHA256_S3_S (e), F1 (e,f,g)); \
   d += h;                                         \
-  h = hc_add3_S (h, SHA256_S2_S (a), F0 (a,b,c)); \
+  h = add3_S (h, SHA256_S2_S (a), F0 (a,b,c)); \
 }
 
 #define SHA256_EXPAND_S(x,y,z,w) (SHA256_S1_S (x) + y + SHA256_S0_S (z) + w)
 
 #define SHA256_STEP(F0,F1,a,b,c,d,e,f,g,h,x,K)    \
 {                                                 \
-  h = hc_add3 (h, K, x);                          \
-  h = hc_add3 (h, SHA256_S3 (e), F1 (e,f,g));     \
+  h = add3 (h, K, x);                          \
+  h = add3 (h, SHA256_S3 (e), F1 (e,f,g));     \
   d += h;                                         \
-  h = hc_add3 (h, SHA256_S2 (a), F0 (a,b,c));     \
+  h = add3 (h, SHA256_S2 (a), F0 (a,b,c));     \
 }
 
 #define SHA256_EXPAND(x,y,z,w) (SHA256_S1 (x) + y + SHA256_S0 (z) + w)

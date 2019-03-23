@@ -24,7 +24,7 @@
 #define MD5_STEP_S(f,a,b,c,d,x,K,s)   \
 {                                     \
   a += K;                             \
-  a  = hc_add3_S (a, x, f (b, c, d)); \
+  a  = add3_S (a, x, f (b, c, d)); \
   a  = rotl32_S (a, s);               \
   a += b;                             \
 }
@@ -32,14 +32,14 @@
 #define MD5_STEP(f,a,b,c,d,x,K,s)   \
 {                                   \
   a += K;                           \
-  a  = hc_add3 (a, x, f (b, c, d)); \
+  a  = add3 (a, x, f (b, c, d)); \
   a  = rotl32 (a, s);               \
   a += b;                           \
 }
 
 #define MD5_STEP0(f,a,b,c,d,K,s)    \
 {                                   \
-  a  = hc_add3 (a, K, f (b, c, d)); \
+  a  = add3 (a, K, f (b, c, d)); \
   a  = rotl32 (a, s);               \
   a += b;                           \
 }
