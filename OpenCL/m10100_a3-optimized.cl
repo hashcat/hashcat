@@ -14,19 +14,19 @@
 
 #define SIPROUND(v0,v1,v2,v3) \
   (v0) += (v1);               \
-  (v1)  = rotl64 ((v1), 13);  \
+  (v1)  = hc_rotl64 ((v1), 13);  \
   (v1) ^= (v0);               \
-  (v0)  = rotl64 ((v0), 32);  \
+  (v0)  = hc_rotl64 ((v0), 32);  \
   (v2) += (v3);               \
-  (v3)  = rotl64 ((v3), 16);  \
+  (v3)  = hc_rotl64 ((v3), 16);  \
   (v3) ^= (v2);               \
   (v0) += (v3);               \
-  (v3)  = rotl64 ((v3), 21);  \
+  (v3)  = hc_rotl64 ((v3), 21);  \
   (v3) ^= (v0);               \
   (v2) += (v1);               \
-  (v1)  = rotl64 ((v1), 17);  \
+  (v1)  = hc_rotl64 ((v1), 17);  \
   (v1) ^= (v2);               \
-  (v2)  = rotl64 ((v2), 32)
+  (v2)  = hc_rotl64 ((v2), 32)
 
 DECLSPEC void m10100m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {

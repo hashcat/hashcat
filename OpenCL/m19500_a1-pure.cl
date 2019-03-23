@@ -79,12 +79,12 @@ KERNEL_FQ void m19500_mxx (KERN_ATTR_ESALT (devise_hash_t))
 
   for (int i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = swap32_S (esalt_bufs[salt_pos].salt_buf[idx]);
+    s[idx] = hc_swap32_S (esalt_bufs[salt_pos].salt_buf[idx]);
   }
 
   for (int i = 0, idx = 0; i < site_key_len; i += 4, idx += 1)
   {
-    k[idx] = swap32_S (esalt_bufs[salt_pos].site_key_buf[idx]);
+    k[idx] = hc_swap32_S (esalt_bufs[salt_pos].site_key_buf[idx]);
   }
 
   // precompute some stuff
@@ -222,12 +222,12 @@ KERNEL_FQ void m19500_sxx (KERN_ATTR_ESALT (devise_hash_t))
 
   for (int i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = swap32_S (esalt_bufs[salt_pos].salt_buf[idx]);
+    s[idx] = hc_swap32_S (esalt_bufs[salt_pos].salt_buf[idx]);
   }
 
   for (int i = 0, idx = 0; i < site_key_len; i += 4, idx += 1)
   {
-    k[idx] = swap32_S (esalt_bufs[salt_pos].site_key_buf[idx]);
+    k[idx] = hc_swap32_S (esalt_bufs[salt_pos].site_key_buf[idx]);
   }
 
   // precompute some stuff

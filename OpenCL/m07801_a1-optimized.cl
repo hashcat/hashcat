@@ -207,20 +207,20 @@ KERNEL_FQ void m07801_m04 (KERN_ATTR_BASIC ())
 
     u32 final[32];
 
-    final[ 0] = swap32_S (w0[0] | s0[0]);
-    final[ 1] = swap32_S (w0[1] | s0[1]);
-    final[ 2] = swap32_S (w0[2] | s0[2]);
-    final[ 3] = swap32_S (w0[3] | s0[3]);
-    final[ 4] = swap32_S (w1[0] | s1[0]);
-    final[ 5] = swap32_S (w1[1] | s1[1]);
-    final[ 6] = swap32_S (w1[2] | s1[2]);
-    final[ 7] = swap32_S (w1[3] | s1[3]);
-    final[ 8] = swap32_S (w2[0] | s2[0]);
-    final[ 9] = swap32_S (w2[1] | s2[1]);
-    final[10] = swap32_S (w2[2] | s2[2]);
-    final[11] = swap32_S (w2[3] | s2[3]);
-    final[12] = swap32_S (w3[0] | s3[0]);
-    final[13] = swap32_S (w3[1] | s3[1]);
+    final[ 0] = hc_swap32_S (w0[0] | s0[0]);
+    final[ 1] = hc_swap32_S (w0[1] | s0[1]);
+    final[ 2] = hc_swap32_S (w0[2] | s0[2]);
+    final[ 3] = hc_swap32_S (w0[3] | s0[3]);
+    final[ 4] = hc_swap32_S (w1[0] | s1[0]);
+    final[ 5] = hc_swap32_S (w1[1] | s1[1]);
+    final[ 6] = hc_swap32_S (w1[2] | s1[2]);
+    final[ 7] = hc_swap32_S (w1[3] | s1[3]);
+    final[ 8] = hc_swap32_S (w2[0] | s2[0]);
+    final[ 9] = hc_swap32_S (w2[1] | s2[1]);
+    final[10] = hc_swap32_S (w2[2] | s2[2]);
+    final[11] = hc_swap32_S (w2[3] | s2[3]);
+    final[12] = hc_swap32_S (w3[0] | s3[0]);
+    final[13] = hc_swap32_S (w3[1] | s3[1]);
     final[14] = 0;
     final[15] = pw_salt_len * 8;
     final[16] = 0;
@@ -284,20 +284,20 @@ KERNEL_FQ void m07801_m04 (KERN_ATTR_BASIC ())
     digest[3] = SHA1M_D;
     digest[4] = SHA1M_E;
 
-    final[ 0] = swap32_S (w0[0]);
-    final[ 1] = swap32_S (w0[1]);
-    final[ 2] = swap32_S (w0[2]);
-    final[ 3] = swap32_S (w0[3]);
-    final[ 4] = swap32_S (w1[0]);
-    final[ 5] = swap32_S (w1[1]);
-    final[ 6] = swap32_S (w1[2]);
-    final[ 7] = swap32_S (w1[3]);
-    final[ 8] = swap32_S (w2[0]);
-    final[ 9] = swap32_S (w2[1]);
-    final[10] = swap32_S (w2[2]);
-    final[11] = swap32_S (w2[3]);
-    final[12] = swap32_S (w3[0]);
-    final[13] = swap32_S (w3[1]);
+    final[ 0] = hc_swap32_S (w0[0]);
+    final[ 1] = hc_swap32_S (w0[1]);
+    final[ 2] = hc_swap32_S (w0[2]);
+    final[ 3] = hc_swap32_S (w0[3]);
+    final[ 4] = hc_swap32_S (w1[0]);
+    final[ 5] = hc_swap32_S (w1[1]);
+    final[ 6] = hc_swap32_S (w1[2]);
+    final[ 7] = hc_swap32_S (w1[3]);
+    final[ 8] = hc_swap32_S (w2[0]);
+    final[ 9] = hc_swap32_S (w2[1]);
+    final[10] = hc_swap32_S (w2[2]);
+    final[11] = hc_swap32_S (w2[3]);
+    final[12] = hc_swap32_S (w3[0]);
+    final[13] = hc_swap32_S (w3[1]);
     final[14] = 0;
     final[15] = 0;
 
@@ -326,7 +326,7 @@ KERNEL_FQ void m07801_m04 (KERN_ATTR_BASIC ())
 
     for (i = 0; i < salt_len + 1; i += 4) // +1 for the 0x80
     {
-      const u32 tmp = swap32_S (salt_buf[i / 4]); // attention, int[] not char[]
+      const u32 tmp = hc_swap32_S (salt_buf[i / 4]); // attention, int[] not char[]
 
       SETSHIFTEDINT (final, final_len + i, tmp);
     }
@@ -527,20 +527,20 @@ KERNEL_FQ void m07801_s04 (KERN_ATTR_BASIC ())
 
     u32 final[32];
 
-    final[ 0] = swap32_S (w0[0] | s0[0]);
-    final[ 1] = swap32_S (w0[1] | s0[1]);
-    final[ 2] = swap32_S (w0[2] | s0[2]);
-    final[ 3] = swap32_S (w0[3] | s0[3]);
-    final[ 4] = swap32_S (w1[0] | s1[0]);
-    final[ 5] = swap32_S (w1[1] | s1[1]);
-    final[ 6] = swap32_S (w1[2] | s1[2]);
-    final[ 7] = swap32_S (w1[3] | s1[3]);
-    final[ 8] = swap32_S (w2[0] | s2[0]);
-    final[ 9] = swap32_S (w2[1] | s2[1]);
-    final[10] = swap32_S (w2[2] | s2[2]);
-    final[11] = swap32_S (w2[3] | s2[3]);
-    final[12] = swap32_S (w3[0] | s3[0]);
-    final[13] = swap32_S (w3[1] | s3[1]);
+    final[ 0] = hc_swap32_S (w0[0] | s0[0]);
+    final[ 1] = hc_swap32_S (w0[1] | s0[1]);
+    final[ 2] = hc_swap32_S (w0[2] | s0[2]);
+    final[ 3] = hc_swap32_S (w0[3] | s0[3]);
+    final[ 4] = hc_swap32_S (w1[0] | s1[0]);
+    final[ 5] = hc_swap32_S (w1[1] | s1[1]);
+    final[ 6] = hc_swap32_S (w1[2] | s1[2]);
+    final[ 7] = hc_swap32_S (w1[3] | s1[3]);
+    final[ 8] = hc_swap32_S (w2[0] | s2[0]);
+    final[ 9] = hc_swap32_S (w2[1] | s2[1]);
+    final[10] = hc_swap32_S (w2[2] | s2[2]);
+    final[11] = hc_swap32_S (w2[3] | s2[3]);
+    final[12] = hc_swap32_S (w3[0] | s3[0]);
+    final[13] = hc_swap32_S (w3[1] | s3[1]);
     final[14] = 0;
     final[15] = pw_salt_len * 8;
     final[16] = 0;
@@ -604,20 +604,20 @@ KERNEL_FQ void m07801_s04 (KERN_ATTR_BASIC ())
     digest[3] = SHA1M_D;
     digest[4] = SHA1M_E;
 
-    final[ 0] = swap32_S (w0[0]);
-    final[ 1] = swap32_S (w0[1]);
-    final[ 2] = swap32_S (w0[2]);
-    final[ 3] = swap32_S (w0[3]);
-    final[ 4] = swap32_S (w1[0]);
-    final[ 5] = swap32_S (w1[1]);
-    final[ 6] = swap32_S (w1[2]);
-    final[ 7] = swap32_S (w1[3]);
-    final[ 8] = swap32_S (w2[0]);
-    final[ 9] = swap32_S (w2[1]);
-    final[10] = swap32_S (w2[2]);
-    final[11] = swap32_S (w2[3]);
-    final[12] = swap32_S (w3[0]);
-    final[13] = swap32_S (w3[1]);
+    final[ 0] = hc_swap32_S (w0[0]);
+    final[ 1] = hc_swap32_S (w0[1]);
+    final[ 2] = hc_swap32_S (w0[2]);
+    final[ 3] = hc_swap32_S (w0[3]);
+    final[ 4] = hc_swap32_S (w1[0]);
+    final[ 5] = hc_swap32_S (w1[1]);
+    final[ 6] = hc_swap32_S (w1[2]);
+    final[ 7] = hc_swap32_S (w1[3]);
+    final[ 8] = hc_swap32_S (w2[0]);
+    final[ 9] = hc_swap32_S (w2[1]);
+    final[10] = hc_swap32_S (w2[2]);
+    final[11] = hc_swap32_S (w2[3]);
+    final[12] = hc_swap32_S (w3[0]);
+    final[13] = hc_swap32_S (w3[1]);
     final[14] = 0;
     final[15] = 0;
 
@@ -646,7 +646,7 @@ KERNEL_FQ void m07801_s04 (KERN_ATTR_BASIC ())
 
     for (i = 0; i < salt_len + 1; i += 4) // +1 for the 0x80
     {
-      const u32 tmp = swap32_S (salt_buf[i / 4]); // attention, int[] not char[]
+      const u32 tmp = hc_swap32_S (salt_buf[i / 4]); // attention, int[] not char[]
 
       SETSHIFTEDINT (final, final_len + i, tmp);
     }

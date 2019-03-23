@@ -66,14 +66,14 @@ DECLSPEC void m07801m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
 
   u32 salt_buf[8];
 
-  salt_buf[0] = swap32_S (salt_bufs[salt_pos].salt_buf[0]);
-  salt_buf[1] = swap32_S (salt_bufs[salt_pos].salt_buf[1]);
-  salt_buf[2] = swap32_S (salt_bufs[salt_pos].salt_buf[2]);
-  salt_buf[3] = swap32_S (salt_bufs[salt_pos].salt_buf[3]);
-  salt_buf[4] = swap32_S (salt_bufs[salt_pos].salt_buf[4]);
-  salt_buf[5] = swap32_S (salt_bufs[salt_pos].salt_buf[5]);
-  salt_buf[6] = swap32_S (salt_bufs[salt_pos].salt_buf[6]);
-  salt_buf[7] = swap32_S (salt_bufs[salt_pos].salt_buf[7]);
+  salt_buf[0] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[0]);
+  salt_buf[1] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[1]);
+  salt_buf[2] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[2]);
+  salt_buf[3] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[3]);
+  salt_buf[4] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[4]);
+  salt_buf[5] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[5]);
+  salt_buf[6] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[6]);
+  salt_buf[7] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[7]);
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
@@ -282,14 +282,14 @@ DECLSPEC void m07801s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
 
   u32 salt_buf[8];
 
-  salt_buf[0] = swap32_S (salt_bufs[salt_pos].salt_buf[0]);
-  salt_buf[1] = swap32_S (salt_bufs[salt_pos].salt_buf[1]);
-  salt_buf[2] = swap32_S (salt_bufs[salt_pos].salt_buf[2]);
-  salt_buf[3] = swap32_S (salt_bufs[salt_pos].salt_buf[3]);
-  salt_buf[4] = swap32_S (salt_bufs[salt_pos].salt_buf[4]);
-  salt_buf[5] = swap32_S (salt_bufs[salt_pos].salt_buf[5]);
-  salt_buf[6] = swap32_S (salt_bufs[salt_pos].salt_buf[6]);
-  salt_buf[7] = swap32_S (salt_bufs[salt_pos].salt_buf[7]);
+  salt_buf[0] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[0]);
+  salt_buf[1] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[1]);
+  salt_buf[2] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[2]);
+  salt_buf[3] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[3]);
+  salt_buf[4] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[4]);
+  salt_buf[5] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[5]);
+  salt_buf[6] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[6]);
+  salt_buf[7] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[7]);
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
 

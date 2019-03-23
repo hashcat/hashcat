@@ -119,7 +119,7 @@ KERNEL_FQ void m09600_loop (KERN_ATTR_TMPS_ESALT (office2013_tmp_t, office2013_t
 
   for (u32 i = 0, j = loop_pos; i < loop_cnt; i++, j++)
   {
-    w0[0] = swap32 (j);
+    w0[0] = hc_swap32 (j);
     w0[1] = h32_from_64 (t0);
     w0[2] = l32_from_64 (t0);
     w0[3] = h32_from_64 (t1);

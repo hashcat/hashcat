@@ -30,7 +30,7 @@ typedef struct ethereum_scrypt
 
 } ethereum_scrypt_t;
 
-DECLSPEC uint4 swap32_4 (uint4 v)
+DECLSPEC uint4 hc_swap32_4 (uint4 v)
 {
   return (rotate ((v & 0x00FF00FF), 24u) | rotate ((v & 0xFF00FF00),  8u));
 }
@@ -242,7 +242,7 @@ DECLSPEC void scrypt_smix (uint4 *X, uint4 *T, GLOBAL_AS uint4 * restrict V0, GL
   u32 j = keccakf_piln[s];      \
   u32 k = keccakf_rotc[s];      \
   bc0 = st[j];                  \
-  st[j] = rotl64_S (t, k);      \
+  st[j] = hc_rotl64_S (t, k);      \
   t = bc0;                      \
 }
 
@@ -304,11 +304,11 @@ DECLSPEC void keccak_transform_S (u64 *st)
 
     u64 t;
 
-    t = bc4 ^ rotl64_S (bc1, 1); Theta2 (0);
-    t = bc0 ^ rotl64_S (bc2, 1); Theta2 (1);
-    t = bc1 ^ rotl64_S (bc3, 1); Theta2 (2);
-    t = bc2 ^ rotl64_S (bc4, 1); Theta2 (3);
-    t = bc3 ^ rotl64_S (bc0, 1); Theta2 (4);
+    t = bc4 ^ hc_rotl64_S (bc1, 1); Theta2 (0);
+    t = bc0 ^ hc_rotl64_S (bc2, 1); Theta2 (1);
+    t = bc1 ^ hc_rotl64_S (bc3, 1); Theta2 (2);
+    t = bc2 ^ hc_rotl64_S (bc4, 1); Theta2 (3);
+    t = bc3 ^ hc_rotl64_S (bc0, 1); Theta2 (4);
 
     // Rho Pi
 
@@ -435,23 +435,23 @@ KERNEL_FQ void m15700_loop (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, ethereum_scrypt_
   #ifdef _unroll
   #pragma unroll
   #endif
-  for (int z = 0; z < STATE_CNT4; z++) X[z] = swap32_4 (tmps[gid].P[z]);
+  for (int z = 0; z < STATE_CNT4; z++) X[z] = hc_swap32_4 (tmps[gid].P[z]);
 
   scrypt_smix (X, T, d_scrypt0_buf, d_scrypt1_buf, d_scrypt2_buf, d_scrypt3_buf);
 
   #ifdef _unroll
   #pragma unroll
   #endif
-  for (int z = 0; z < STATE_CNT4; z++) tmps[gid].P[z] = swap32_4 (X[z]);
+  for (int z = 0; z < STATE_CNT4; z++) tmps[gid].P[z] = hc_swap32_4 (X[z]);
 
   #if SCRYPT_P >= 1
   for (int i = STATE_CNT4; i < SCRYPT_CNT4; i += STATE_CNT4)
   {
-    for (int z = 0; z < STATE_CNT4; z++) X[z] = swap32_4 (tmps[gid].P[i + z]);
+    for (int z = 0; z < STATE_CNT4; z++) X[z] = hc_swap32_4 (tmps[gid].P[i + z]);
 
     scrypt_smix (X, T, d_scrypt0_buf, d_scrypt1_buf, d_scrypt2_buf, d_scrypt3_buf);
 
-    for (int z = 0; z < STATE_CNT4; z++) tmps[gid].P[i + z] = swap32_4 (X[z]);
+    for (int z = 0; z < STATE_CNT4; z++) tmps[gid].P[i + z] = hc_swap32_4 (X[z]);
   }
   #endif
 }
@@ -553,10 +553,10 @@ KERNEL_FQ void m15700_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, ethereum_scrypt_
 
   u32 key[4];
 
-  key[0] = swap32_S (ctx.opad.h[4]);
-  key[1] = swap32_S (ctx.opad.h[5]);
-  key[2] = swap32_S (ctx.opad.h[6]);
-  key[3] = swap32_S (ctx.opad.h[7]);
+  key[0] = hc_swap32_S (ctx.opad.h[4]);
+  key[1] = hc_swap32_S (ctx.opad.h[5]);
+  key[2] = hc_swap32_S (ctx.opad.h[6]);
+  key[3] = hc_swap32_S (ctx.opad.h[7]);
 
   u64 st[25];
 

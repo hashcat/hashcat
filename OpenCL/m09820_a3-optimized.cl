@@ -115,8 +115,8 @@ DECLSPEC void m09820m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
 
     sha1_transform_vector (w0_t, w1_t, w2_t, w3_t, digest);
 
-    digest[0] = swap32 (digest[0]);
-    digest[1] = swap32 (digest[1]) & 0xff;
+    digest[0] = hc_swap32 (digest[0]);
+    digest[1] = hc_swap32 (digest[1]) & 0xff;
     digest[2] = 0;
     digest[3] = 0;
 
@@ -229,8 +229,8 @@ DECLSPEC void m09820s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
 
     sha1_transform_vector (w0_t, w1_t, w2_t, w3_t, digest);
 
-    digest[0] = swap32 (digest[0]);
-    digest[1] = swap32 (digest[1]) & 0xff;
+    digest[0] = hc_swap32 (digest[0]);
+    digest[1] = hc_swap32 (digest[1]) & 0xff;
     digest[2] = 0;
     digest[3] = 0;
 

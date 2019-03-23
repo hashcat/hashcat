@@ -30,13 +30,13 @@ typedef struct blake2
 #define BLAKE2B_G(r,i,a,b,c,d)                \
   do {                                        \
     a = a + b + m[blake2b_sigma[r][2*i+0]];   \
-    d = rotr64 (d ^ a, 32);                   \
+    d = hc_rotr64 (d ^ a, 32);                   \
     c = c + d;                                \
-    b = rotr64 (b ^ c, 24);                   \
+    b = hc_rotr64 (b ^ c, 24);                   \
     a = a + b + m[blake2b_sigma[r][2*i+1]];   \
-    d = rotr64 (d ^ a, 16);                   \
+    d = hc_rotr64 (d ^ a, 16);                   \
     c = c + d;                                \
-    b = rotr64 (b ^ c, 63);                   \
+    b = hc_rotr64 (b ^ c, 63);                   \
   } while(0)
 
 #define BLAKE2B_ROUND(r)                     \

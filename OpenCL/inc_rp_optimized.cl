@@ -3,6 +3,11 @@
  * License.....: MIT
  */
 
+#include "inc_vendor.h"
+#include "inc_types.h"
+#include "inc_common.h"
+#include "inc_rp_optimized.h"
+
 #ifndef MAYBE_UNUSED
 #define MAYBE_UNUSED
 #endif
@@ -788,14 +793,14 @@ DECLSPEC void append_block8 (const u32 offset, u32 *buf0, u32 *buf1, const u32 *
   #endif
 
   #if (defined IS_AMD && HAS_VPERM == 0) || defined IS_GENERIC
-  const u32 src_r00 = swap32_S (src_r0[0]);
-  const u32 src_r01 = swap32_S (src_r0[1]);
-  const u32 src_r02 = swap32_S (src_r0[2]);
-  const u32 src_r03 = swap32_S (src_r0[3]);
-  const u32 src_r10 = swap32_S (src_r1[0]);
-  const u32 src_r11 = swap32_S (src_r1[1]);
-  const u32 src_r12 = swap32_S (src_r1[2]);
-  const u32 src_r13 = swap32_S (src_r1[3]);
+  const u32 src_r00 = hc_swap32_S (src_r0[0]);
+  const u32 src_r01 = hc_swap32_S (src_r0[1]);
+  const u32 src_r02 = hc_swap32_S (src_r0[2]);
+  const u32 src_r03 = hc_swap32_S (src_r0[3]);
+  const u32 src_r10 = hc_swap32_S (src_r1[0]);
+  const u32 src_r11 = hc_swap32_S (src_r1[1]);
+  const u32 src_r12 = hc_swap32_S (src_r1[2]);
+  const u32 src_r13 = hc_swap32_S (src_r1[3]);
 
   switch (offset_switch)
   {
@@ -889,14 +894,14 @@ DECLSPEC void append_block8 (const u32 offset, u32 *buf0, u32 *buf1, const u32 *
       break;
   }
 
-  s0 = swap32_S (s0);
-  s1 = swap32_S (s1);
-  s2 = swap32_S (s2);
-  s3 = swap32_S (s3);
-  s4 = swap32_S (s4);
-  s5 = swap32_S (s5);
-  s6 = swap32_S (s6);
-  s7 = swap32_S (s7);
+  s0 = hc_swap32_S (s0);
+  s1 = hc_swap32_S (s1);
+  s2 = hc_swap32_S (s2);
+  s3 = hc_swap32_S (s3);
+  s4 = hc_swap32_S (s4);
+  s5 = hc_swap32_S (s5);
+  s6 = hc_swap32_S (s6);
+  s7 = hc_swap32_S (s7);
   #endif
 
   #if (defined IS_AMD && HAS_VPERM == 1) || defined IS_NV
@@ -1041,14 +1046,14 @@ DECLSPEC void reverse_block (u32 *in0, u32 *in1, u32 *out0, u32 *out1, const u32
   tib41[2] = out0[1];
   tib41[3] = out0[0];
 
-  out0[0] = swap32_S (tib40[0]);
-  out0[1] = swap32_S (tib40[1]);
-  out0[2] = swap32_S (tib40[2]);
-  out0[3] = swap32_S (tib40[3]);
-  out1[0] = swap32_S (tib41[0]);
-  out1[1] = swap32_S (tib41[1]);
-  out1[2] = swap32_S (tib41[2]);
-  out1[3] = swap32_S (tib41[3]);
+  out0[0] = hc_swap32_S (tib40[0]);
+  out0[1] = hc_swap32_S (tib40[1]);
+  out0[2] = hc_swap32_S (tib40[2]);
+  out0[3] = hc_swap32_S (tib40[3]);
+  out1[0] = hc_swap32_S (tib41[0]);
+  out1[1] = hc_swap32_S (tib41[1]);
+  out1[2] = hc_swap32_S (tib41[2]);
+  out1[3] = hc_swap32_S (tib41[3]);
 }
 
 DECLSPEC void exchange_byte (u32 *buf, const int off_src, const int off_dst)

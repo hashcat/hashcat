@@ -146,14 +146,14 @@ KERNEL_FQ void m16600_mxx (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
 
     u32 ukey[8];
 
-    ukey[0] = swap32_S (a);
-    ukey[1] = swap32_S (b);
-    ukey[2] = swap32_S (c);
-    ukey[3] = swap32_S (d);
-    ukey[4] = swap32_S (e);
-    ukey[5] = swap32_S (f);
-    ukey[6] = swap32_S (g);
-    ukey[7] = swap32_S (h);
+    ukey[0] = hc_swap32_S (a);
+    ukey[1] = hc_swap32_S (b);
+    ukey[2] = hc_swap32_S (c);
+    ukey[3] = hc_swap32_S (d);
+    ukey[4] = hc_swap32_S (e);
+    ukey[5] = hc_swap32_S (f);
+    ukey[6] = hc_swap32_S (g);
+    ukey[7] = hc_swap32_S (h);
 
     #define KEYLEN 60
 
@@ -337,14 +337,14 @@ KERNEL_FQ void m16600_sxx (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
 
     u32 ukey[8];
 
-    ukey[0] = swap32_S (a);
-    ukey[1] = swap32_S (b);
-    ukey[2] = swap32_S (c);
-    ukey[3] = swap32_S (d);
-    ukey[4] = swap32_S (e);
-    ukey[5] = swap32_S (f);
-    ukey[6] = swap32_S (g);
-    ukey[7] = swap32_S (h);
+    ukey[0] = hc_swap32_S (a);
+    ukey[1] = hc_swap32_S (b);
+    ukey[2] = hc_swap32_S (c);
+    ukey[3] = hc_swap32_S (d);
+    ukey[4] = hc_swap32_S (e);
+    ukey[5] = hc_swap32_S (f);
+    ukey[6] = hc_swap32_S (g);
+    ukey[7] = hc_swap32_S (h);
 
     #define KEYLEN 60
 

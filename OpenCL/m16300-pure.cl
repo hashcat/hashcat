@@ -67,7 +67,7 @@ CONSTANT_AS u64a keccakf_rndc[24] =
   u32 j = keccakf_piln[s];      \
   u32 k = keccakf_rotc[s];      \
   bc0 = st[j];                  \
-  st[j] = rotl64_S (t, k);      \
+  st[j] = hc_rotl64_S (t, k);      \
   t = bc0;                      \
 }
 
@@ -117,11 +117,11 @@ DECLSPEC void keccak_transform_S (u64 *st)
 
     u64 t;
 
-    t = bc4 ^ rotl64_S (bc1, 1); Theta2 (0);
-    t = bc0 ^ rotl64_S (bc2, 1); Theta2 (1);
-    t = bc1 ^ rotl64_S (bc3, 1); Theta2 (2);
-    t = bc2 ^ rotl64_S (bc4, 1); Theta2 (3);
-    t = bc3 ^ rotl64_S (bc0, 1); Theta2 (4);
+    t = bc4 ^ hc_rotl64_S (bc1, 1); Theta2 (0);
+    t = bc0 ^ hc_rotl64_S (bc2, 1); Theta2 (1);
+    t = bc1 ^ hc_rotl64_S (bc3, 1); Theta2 (2);
+    t = bc2 ^ hc_rotl64_S (bc4, 1); Theta2 (3);
+    t = bc3 ^ hc_rotl64_S (bc0, 1); Theta2 (4);
 
     // Rho Pi
 
@@ -523,10 +523,10 @@ KERNEL_FQ void m16300_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, ethereum_
     c ^= out[2];
     d ^= out[3];
 
-    a = swap32_S (a);
-    b = swap32_S (b);
-    c = swap32_S (c);
-    d = swap32_S (d);
+    a = hc_swap32_S (a);
+    b = hc_swap32_S (b);
+    c = hc_swap32_S (c);
+    d = hc_swap32_S (d);
 
     seed[seed_idx + 0] = hl32_to_64_S (b, a);
     seed[seed_idx + 1] = hl32_to_64_S (d, c);

@@ -352,16 +352,16 @@ KERNEL_FQ void m18300_comp (KERN_ATTR_TMPS_ESALT (apple_secure_notes_tmp_t, appl
   u32 P3[2];
   u32 P4[2];
 
-  A[0]  = swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[0]);
-  A[1]  = swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[1]);
-  P1[0] = swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[2]);
-  P1[1] = swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[3]);
-  P2[0] = swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[4]);
-  P2[1] = swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[5]);
-  P3[0] = swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[6]);
-  P3[1] = swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[7]);
-  P4[0] = swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[8]);
-  P4[1] = swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[9]);
+  A[0]  = hc_swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[0]);
+  A[1]  = hc_swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[1]);
+  P1[0] = hc_swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[2]);
+  P1[1] = hc_swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[3]);
+  P2[0] = hc_swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[4]);
+  P2[1] = hc_swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[5]);
+  P3[0] = hc_swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[6]);
+  P3[1] = hc_swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[7]);
+  P4[0] = hc_swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[8]);
+  P4[1] = hc_swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[9]);
 
   for (int j = 5; j >= 0; j--)
   {

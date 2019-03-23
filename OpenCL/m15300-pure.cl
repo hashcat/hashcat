@@ -143,10 +143,10 @@ KERNEL_FQ void m15300_init (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
     digest_context[3] = ctx.h[3];
     digest_context[4] = 0;
 
-    digest_context[0] = swap32_S (digest_context[0]);
-    digest_context[1] = swap32_S (digest_context[1]);
-    digest_context[2] = swap32_S (digest_context[2]);
-    digest_context[3] = swap32_S (digest_context[3]);
+    digest_context[0] = hc_swap32_S (digest_context[0]);
+    digest_context[1] = hc_swap32_S (digest_context[1]);
+    digest_context[2] = hc_swap32_S (digest_context[2]);
+    digest_context[3] = hc_swap32_S (digest_context[3]);
   }
 
   /* initialize hmac-sha1 */
@@ -435,17 +435,17 @@ KERNEL_FQ void m15300_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
 
   u32 key[6];
 
-  key[0] = swap32_S (tmps[gid].out[0]);
-  key[1] = swap32_S (tmps[gid].out[1]);
-  key[2] = swap32_S (tmps[gid].out[2]);
-  key[3] = swap32_S (tmps[gid].out[3]);
-  key[4] = swap32_S (tmps[gid].out[4]);
-  key[5] = swap32_S (tmps[gid].out[5]);
+  key[0] = hc_swap32_S (tmps[gid].out[0]);
+  key[1] = hc_swap32_S (tmps[gid].out[1]);
+  key[2] = hc_swap32_S (tmps[gid].out[2]);
+  key[3] = hc_swap32_S (tmps[gid].out[3]);
+  key[4] = hc_swap32_S (tmps[gid].out[4]);
+  key[5] = hc_swap32_S (tmps[gid].out[5]);
 
   u32 iv[2];
 
-  iv[0] = swap32_S (tmps[gid].out[6]);
-  iv[1] = swap32_S (tmps[gid].out[7]);
+  iv[0] = hc_swap32_S (tmps[gid].out[6]);
+  iv[1] = hc_swap32_S (tmps[gid].out[7]);
 
   u32 decrypted[26];
 
@@ -485,8 +485,8 @@ KERNEL_FQ void m15300_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
 
     u32 data[2];
 
-    data[0] = swap32_S (esalt_bufs[digests_offset].contents[contents_off + 0]);
-    data[1] = swap32_S (esalt_bufs[digests_offset].contents[contents_off + 1]);
+    data[0] = hc_swap32_S (esalt_bufs[digests_offset].contents[contents_off + 0]);
+    data[1] = hc_swap32_S (esalt_bufs[digests_offset].contents[contents_off + 1]);
 
     u32 p1[2];
 
@@ -518,15 +518,15 @@ KERNEL_FQ void m15300_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
   u32 expectedHmac[4];
   u32 lastKey[16];
 
-  hmacSalt[0] = swap32_S (decrypted[0]);
-  hmacSalt[1] = swap32_S (decrypted[1]);
-  hmacSalt[2] = swap32_S (decrypted[2]);
-  hmacSalt[3] = swap32_S (decrypted[3]);
+  hmacSalt[0] = hc_swap32_S (decrypted[0]);
+  hmacSalt[1] = hc_swap32_S (decrypted[1]);
+  hmacSalt[2] = hc_swap32_S (decrypted[2]);
+  hmacSalt[3] = hc_swap32_S (decrypted[3]);
 
-  expectedHmac[0] = swap32_S (decrypted[4 + 0]);
-  expectedHmac[1] = swap32_S (decrypted[4 + 1]);
-  expectedHmac[2] = swap32_S (decrypted[4 + 2]);
-  expectedHmac[3] = swap32_S (decrypted[4 + 3]);
+  expectedHmac[0] = hc_swap32_S (decrypted[4 + 0]);
+  expectedHmac[1] = hc_swap32_S (decrypted[4 + 1]);
+  expectedHmac[2] = hc_swap32_S (decrypted[4 + 2]);
+  expectedHmac[3] = hc_swap32_S (decrypted[4 + 3]);
 
   for(int i = 0; i < 16; i++)
   {
@@ -594,22 +594,22 @@ KERNEL_FQ void m15300_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
 
   sha1_hmac_init_64 (&ctx, w0, w1, w2, w3);
 
-  w0[0] = swap32_S (lastKey[ 0]);
-  w0[1] = swap32_S (lastKey[ 1]);
-  w0[2] = swap32_S (lastKey[ 2]);
-  w0[3] = swap32_S (lastKey[ 3]);
-  w1[0] = swap32_S (lastKey[ 4]);
-  w1[1] = swap32_S (lastKey[ 5]);
-  w1[2] = swap32_S (lastKey[ 6]);
-  w1[3] = swap32_S (lastKey[ 7]);
-  w2[0] = swap32_S (lastKey[ 8]);
-  w2[1] = swap32_S (lastKey[ 9]);
-  w2[2] = swap32_S (lastKey[10]);
-  w2[3] = swap32_S (lastKey[11]);
-  w3[0] = swap32_S (lastKey[12]);
-  w3[1] = swap32_S (lastKey[13]);
-  w3[2] = swap32_S (lastKey[14]);
-  w3[3] = swap32_S (lastKey[15]);
+  w0[0] = hc_swap32_S (lastKey[ 0]);
+  w0[1] = hc_swap32_S (lastKey[ 1]);
+  w0[2] = hc_swap32_S (lastKey[ 2]);
+  w0[3] = hc_swap32_S (lastKey[ 3]);
+  w1[0] = hc_swap32_S (lastKey[ 4]);
+  w1[1] = hc_swap32_S (lastKey[ 5]);
+  w1[2] = hc_swap32_S (lastKey[ 6]);
+  w1[3] = hc_swap32_S (lastKey[ 7]);
+  w2[0] = hc_swap32_S (lastKey[ 8]);
+  w2[1] = hc_swap32_S (lastKey[ 9]);
+  w2[2] = hc_swap32_S (lastKey[10]);
+  w2[3] = hc_swap32_S (lastKey[11]);
+  w3[0] = hc_swap32_S (lastKey[12]);
+  w3[1] = hc_swap32_S (lastKey[13]);
+  w3[2] = hc_swap32_S (lastKey[14]);
+  w3[3] = hc_swap32_S (lastKey[15]);
 
   sha1_hmac_update_64 (&ctx, w0, w1, w2, w3, 64);
 

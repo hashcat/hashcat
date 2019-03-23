@@ -314,17 +314,17 @@ KERNEL_FQ void m18900_comp (KERN_ATTR_TMPS_ESALT (android_backup_tmp_t, android_
 
   u32 iv[4];
 
-  iv[0] = swap32_S (esalt_bufs[digests_offset].masterkey_blob[16]);
-  iv[1] = swap32_S (esalt_bufs[digests_offset].masterkey_blob[17]);
-  iv[2] = swap32_S (esalt_bufs[digests_offset].masterkey_blob[18]);
-  iv[3] = swap32_S (esalt_bufs[digests_offset].masterkey_blob[19]);
+  iv[0] = hc_swap32_S (esalt_bufs[digests_offset].masterkey_blob[16]);
+  iv[1] = hc_swap32_S (esalt_bufs[digests_offset].masterkey_blob[17]);
+  iv[2] = hc_swap32_S (esalt_bufs[digests_offset].masterkey_blob[18]);
+  iv[3] = hc_swap32_S (esalt_bufs[digests_offset].masterkey_blob[19]);
 
   u32 ct[4];
 
-  ct[0] = swap32_S (esalt_bufs[digests_offset].masterkey_blob[20]);
-  ct[1] = swap32_S (esalt_bufs[digests_offset].masterkey_blob[21]);
-  ct[2] = swap32_S (esalt_bufs[digests_offset].masterkey_blob[22]);
-  ct[3] = swap32_S (esalt_bufs[digests_offset].masterkey_blob[23]);
+  ct[0] = hc_swap32_S (esalt_bufs[digests_offset].masterkey_blob[20]);
+  ct[1] = hc_swap32_S (esalt_bufs[digests_offset].masterkey_blob[21]);
+  ct[2] = hc_swap32_S (esalt_bufs[digests_offset].masterkey_blob[22]);
+  ct[3] = hc_swap32_S (esalt_bufs[digests_offset].masterkey_blob[23]);
 
   u32 pt[4];
 

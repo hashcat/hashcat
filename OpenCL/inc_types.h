@@ -3,6 +3,9 @@
  * License.....: MIT
  */
 
+#ifndef _INC_TYPES_H
+#define _INC_TYPES_H
+
 typedef uchar  u8;
 typedef ushort u16;
 typedef uint   u32;
@@ -262,6 +265,72 @@ typedef enum sha2_32_constants
   SHA224M_G=0x64f98fa7,
   SHA224M_H=0xbefa4fa4,
 
+  // SHA-224 Constants
+  SHA224C00=0x428a2f98,
+  SHA224C01=0x71374491,
+  SHA224C02=0xb5c0fbcf,
+  SHA224C03=0xe9b5dba5,
+  SHA224C04=0x3956c25b,
+  SHA224C05=0x59f111f1,
+  SHA224C06=0x923f82a4,
+  SHA224C07=0xab1c5ed5,
+  SHA224C08=0xd807aa98,
+  SHA224C09=0x12835b01,
+  SHA224C0a=0x243185be,
+  SHA224C0b=0x550c7dc3,
+  SHA224C0c=0x72be5d74,
+  SHA224C0d=0x80deb1fe,
+  SHA224C0e=0x9bdc06a7,
+  SHA224C0f=0xc19bf174,
+  SHA224C10=0xe49b69c1,
+  SHA224C11=0xefbe4786,
+  SHA224C12=0x0fc19dc6,
+  SHA224C13=0x240ca1cc,
+  SHA224C14=0x2de92c6f,
+  SHA224C15=0x4a7484aa,
+  SHA224C16=0x5cb0a9dc,
+  SHA224C17=0x76f988da,
+  SHA224C18=0x983e5152,
+  SHA224C19=0xa831c66d,
+  SHA224C1a=0xb00327c8,
+  SHA224C1b=0xbf597fc7,
+  SHA224C1c=0xc6e00bf3,
+  SHA224C1d=0xd5a79147,
+  SHA224C1e=0x06ca6351,
+  SHA224C1f=0x14292967,
+  SHA224C20=0x27b70a85,
+  SHA224C21=0x2e1b2138,
+  SHA224C22=0x4d2c6dfc,
+  SHA224C23=0x53380d13,
+  SHA224C24=0x650a7354,
+  SHA224C25=0x766a0abb,
+  SHA224C26=0x81c2c92e,
+  SHA224C27=0x92722c85,
+  SHA224C28=0xa2bfe8a1,
+  SHA224C29=0xa81a664b,
+  SHA224C2a=0xc24b8b70,
+  SHA224C2b=0xc76c51a3,
+  SHA224C2c=0xd192e819,
+  SHA224C2d=0xd6990624,
+  SHA224C2e=0xf40e3585,
+  SHA224C2f=0x106aa070,
+  SHA224C30=0x19a4c116,
+  SHA224C31=0x1e376c08,
+  SHA224C32=0x2748774c,
+  SHA224C33=0x34b0bcb5,
+  SHA224C34=0x391c0cb3,
+  SHA224C35=0x4ed8aa4a,
+  SHA224C36=0x5b9cca4f,
+  SHA224C37=0x682e6ff3,
+  SHA224C38=0x748f82ee,
+  SHA224C39=0x78a5636f,
+  SHA224C3a=0x84c87814,
+  SHA224C3b=0x8cc70208,
+  SHA224C3c=0x90befffa,
+  SHA224C3d=0xa4506ceb,
+  SHA224C3e=0xbef9a3f7,
+  SHA224C3f=0xc67178f2,
+
   // SHA-256 Initial Hash Values
   SHA256M_A=0x6a09e667,
   SHA256M_B=0xbb67ae85,
@@ -272,7 +341,7 @@ typedef enum sha2_32_constants
   SHA256M_G=0x1f83d9ab,
   SHA256M_H=0x5be0cd19,
 
-  // SHA-224/256 Constants
+  // SHA-256 Constants
   SHA256C00=0x428a2f98,
   SHA256C01=0x71374491,
   SHA256C02=0xb5c0fbcf,
@@ -336,7 +405,7 @@ typedef enum sha2_32_constants
   SHA256C3c=0x90befffa,
   SHA256C3d=0xa4506ceb,
   SHA256C3e=0xbef9a3f7,
-  SHA256C3f=0xc67178f2
+  SHA256C3f=0xc67178f2,
 
 } sha2_32_constants_t;
 
@@ -850,3 +919,5 @@ typedef struct keyboard_layout_mapping
   int dst_len;
 
 } keyboard_layout_mapping_t;
+
+#endif

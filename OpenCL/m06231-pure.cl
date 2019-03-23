@@ -230,7 +230,7 @@ KERNEL_FQ void m06231_init (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
 
   const u32 pw_len = pws[gid].pw_len;
 
-  execute_keyboard_layout_mapping (w0, w1, w2, w3, pw_len, s_keyboard_layout_mapping_buf, keyboard_layout_mapping_cnt);
+  hc_execute_keyboard_layout_mapping (w0, w1, w2, w3, pw_len, s_keyboard_layout_mapping_buf, keyboard_layout_mapping_cnt);
 
   w0[0] = u8add (w0[0], esalt_bufs[digests_offset].keyfile_buf[ 0]);
   w0[1] = u8add (w0[1], esalt_bufs[digests_offset].keyfile_buf[ 1]);
@@ -249,22 +249,22 @@ KERNEL_FQ void m06231_init (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
   w3[2] = u8add (w3[2], esalt_bufs[digests_offset].keyfile_buf[14]);
   w3[3] = u8add (w3[3], esalt_bufs[digests_offset].keyfile_buf[15]);
 
-  w0[0] = swap32_S (w0[0]);
-  w0[1] = swap32_S (w0[1]);
-  w0[2] = swap32_S (w0[2]);
-  w0[3] = swap32_S (w0[3]);
-  w1[0] = swap32_S (w1[0]);
-  w1[1] = swap32_S (w1[1]);
-  w1[2] = swap32_S (w1[2]);
-  w1[3] = swap32_S (w1[3]);
-  w2[0] = swap32_S (w2[0]);
-  w2[1] = swap32_S (w2[1]);
-  w2[2] = swap32_S (w2[2]);
-  w2[3] = swap32_S (w2[3]);
-  w3[0] = swap32_S (w3[0]);
-  w3[1] = swap32_S (w3[1]);
-  w3[2] = swap32_S (w3[2]);
-  w3[3] = swap32_S (w3[3]);
+  w0[0] = hc_swap32_S (w0[0]);
+  w0[1] = hc_swap32_S (w0[1]);
+  w0[2] = hc_swap32_S (w0[2]);
+  w0[3] = hc_swap32_S (w0[3]);
+  w1[0] = hc_swap32_S (w1[0]);
+  w1[1] = hc_swap32_S (w1[1]);
+  w1[2] = hc_swap32_S (w1[2]);
+  w1[3] = hc_swap32_S (w1[3]);
+  w2[0] = hc_swap32_S (w2[0]);
+  w2[1] = hc_swap32_S (w2[1]);
+  w2[2] = hc_swap32_S (w2[2]);
+  w2[3] = hc_swap32_S (w2[3]);
+  w3[0] = hc_swap32_S (w3[0]);
+  w3[1] = hc_swap32_S (w3[1]);
+  w3[2] = hc_swap32_S (w3[2]);
+  w3[3] = hc_swap32_S (w3[3]);
 
   whirlpool_hmac_ctx_t whirlpool_hmac_ctx;
 
@@ -670,25 +670,25 @@ KERNEL_FQ void m06231_comp (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
 
   u32 ukey1[8];
 
-  ukey1[0] = swap32_S (tmps[gid].out[ 0]);
-  ukey1[1] = swap32_S (tmps[gid].out[ 1]);
-  ukey1[2] = swap32_S (tmps[gid].out[ 2]);
-  ukey1[3] = swap32_S (tmps[gid].out[ 3]);
-  ukey1[4] = swap32_S (tmps[gid].out[ 4]);
-  ukey1[5] = swap32_S (tmps[gid].out[ 5]);
-  ukey1[6] = swap32_S (tmps[gid].out[ 6]);
-  ukey1[7] = swap32_S (tmps[gid].out[ 7]);
+  ukey1[0] = hc_swap32_S (tmps[gid].out[ 0]);
+  ukey1[1] = hc_swap32_S (tmps[gid].out[ 1]);
+  ukey1[2] = hc_swap32_S (tmps[gid].out[ 2]);
+  ukey1[3] = hc_swap32_S (tmps[gid].out[ 3]);
+  ukey1[4] = hc_swap32_S (tmps[gid].out[ 4]);
+  ukey1[5] = hc_swap32_S (tmps[gid].out[ 5]);
+  ukey1[6] = hc_swap32_S (tmps[gid].out[ 6]);
+  ukey1[7] = hc_swap32_S (tmps[gid].out[ 7]);
 
   u32 ukey2[8];
 
-  ukey2[0] = swap32_S (tmps[gid].out[ 8]);
-  ukey2[1] = swap32_S (tmps[gid].out[ 9]);
-  ukey2[2] = swap32_S (tmps[gid].out[10]);
-  ukey2[3] = swap32_S (tmps[gid].out[11]);
-  ukey2[4] = swap32_S (tmps[gid].out[12]);
-  ukey2[5] = swap32_S (tmps[gid].out[13]);
-  ukey2[6] = swap32_S (tmps[gid].out[14]);
-  ukey2[7] = swap32_S (tmps[gid].out[15]);
+  ukey2[0] = hc_swap32_S (tmps[gid].out[ 8]);
+  ukey2[1] = hc_swap32_S (tmps[gid].out[ 9]);
+  ukey2[2] = hc_swap32_S (tmps[gid].out[10]);
+  ukey2[3] = hc_swap32_S (tmps[gid].out[11]);
+  ukey2[4] = hc_swap32_S (tmps[gid].out[12]);
+  ukey2[5] = hc_swap32_S (tmps[gid].out[13]);
+  ukey2[6] = hc_swap32_S (tmps[gid].out[14]);
+  ukey2[7] = hc_swap32_S (tmps[gid].out[15]);
 
   if (verify_header_aes (esalt_bufs[0].data_buf, esalt_bufs[0].signature, ukey1, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
   {

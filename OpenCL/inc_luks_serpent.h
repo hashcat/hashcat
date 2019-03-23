@@ -3,6 +3,9 @@
  * License.....: MIT
  */
 
+#ifndef _INC_LUKS_SERPENT_H
+#define _INC_LUKS_SERPENT_H
+
 DECLSPEC void serpent128_decrypt_cbc (const u32 *ks1, const u32 *in, u32 *out, u32 *essiv);
 DECLSPEC void serpent256_decrypt_cbc (const u32 *ks1, const u32 *in, u32 *out, u32 *essiv);
 DECLSPEC void luks_decrypt_sector_serpent_cbc_essiv128 (GLOBAL_AS const u32 *in, u32 *out, const u32 *ks1, const u32 *ks2, const u32 sector);
@@ -66,3 +69,5 @@ DECLSPEC void luks_af_sha1_then_serpent_decrypt (GLOBAL_AS const luks_t *luks_bu
 DECLSPEC void luks_af_sha256_then_serpent_decrypt (GLOBAL_AS const luks_t *luks_bufs, GLOBAL_AS luks_tmp_t *tmps, u32 *pt_buf);
 DECLSPEC void luks_af_sha512_then_serpent_decrypt (GLOBAL_AS const luks_t *luks_bufs, GLOBAL_AS luks_tmp_t *tmps, u32 *pt_buf);
 DECLSPEC void luks_af_ripemd160_then_serpent_decrypt (GLOBAL_AS const luks_t *luks_bufs, GLOBAL_AS luks_tmp_t *tmps, u32 *pt_buf);
+
+#endif // _INC_LUKS_SERPENT_H

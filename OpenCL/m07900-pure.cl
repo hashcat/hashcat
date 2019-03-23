@@ -74,7 +74,7 @@ KERNEL_FQ void m07900_loop (KERN_ATTR_TMPS (drupal7_tmp_t))
 
   for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
-    w[idx] = swap32_S (w[idx]);
+    w[idx] = hc_swap32_S (w[idx]);
   }
 
   /**

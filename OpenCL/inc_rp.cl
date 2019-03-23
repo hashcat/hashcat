@@ -3,24 +3,10 @@
  * License.....: MIT
  */
 
-#ifndef MAYBE_UNUSED
-#define MAYBE_UNUSED
-#endif
-
-#ifdef REAL_SHM
-#define COPY_PW(x)                \
-  LOCAL_AS pw_t s_pws[64];         \
-  s_pws[get_local_id (0)] = (x);
-#else
-#define COPY_PW(x)                \
-  pw_t pw = (x);
-#endif
-
-#ifdef REAL_SHM
-#define PASTE_PW s_pws[get_local_id(0)];
-#else
-#define PASTE_PW pw;
-#endif
+#include "inc_vendor.h"
+#include "inc_types.h"
+#include "inc_common.h"
+#include "inc_rp.h"
 
 DECLSPEC u32 generate_cmask (const u32 value)
 {

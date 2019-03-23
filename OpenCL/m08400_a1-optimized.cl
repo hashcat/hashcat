@@ -80,16 +80,16 @@ KERNEL_FQ void m08400_m04 (KERN_ATTR_BASIC ())
   u32 salt_buf1[4];
   u32 salt_buf2[4];
 
-  salt_buf0[0] = swap32_S (salt_bufs[salt_pos].salt_buf[ 0]);
-  salt_buf0[1] = swap32_S (salt_bufs[salt_pos].salt_buf[ 1]);
-  salt_buf0[2] = swap32_S (salt_bufs[salt_pos].salt_buf[ 2]);
-  salt_buf0[3] = swap32_S (salt_bufs[salt_pos].salt_buf[ 3]);
-  salt_buf1[0] = swap32_S (salt_bufs[salt_pos].salt_buf[ 4]);
-  salt_buf1[1] = swap32_S (salt_bufs[salt_pos].salt_buf[ 5]);
-  salt_buf1[2] = swap32_S (salt_bufs[salt_pos].salt_buf[ 6]);
-  salt_buf1[3] = swap32_S (salt_bufs[salt_pos].salt_buf[ 7]);
-  salt_buf2[0] = swap32_S (salt_bufs[salt_pos].salt_buf[ 8]);
-  salt_buf2[1] = swap32_S (salt_bufs[salt_pos].salt_buf[ 9]);
+  salt_buf0[0] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 0]);
+  salt_buf0[1] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 1]);
+  salt_buf0[2] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 2]);
+  salt_buf0[3] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 3]);
+  salt_buf1[0] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 4]);
+  salt_buf1[1] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 5]);
+  salt_buf1[2] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 6]);
+  salt_buf1[3] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 7]);
+  salt_buf2[0] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 8]);
+  salt_buf2[1] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 9]);
   salt_buf2[2] = 0;
   salt_buf2[3] = 0;
 
@@ -172,20 +172,20 @@ KERNEL_FQ void m08400_m04 (KERN_ATTR_BASIC ())
      * SHA1
      */
 
-    w0[0] = swap32 (w0[0]);
-    w0[1] = swap32 (w0[1]);
-    w0[2] = swap32 (w0[2]);
-    w0[3] = swap32 (w0[3]);
-    w1[0] = swap32 (w1[0]);
-    w1[1] = swap32 (w1[1]);
-    w1[2] = swap32 (w1[2]);
-    w1[3] = swap32 (w1[3]);
-    w2[0] = swap32 (w2[0]);
-    w2[1] = swap32 (w2[1]);
-    w2[2] = swap32 (w2[2]);
-    w2[3] = swap32 (w2[3]);
-    w3[0] = swap32 (w3[0]);
-    w3[1] = swap32 (w3[1]);
+    w0[0] = hc_swap32 (w0[0]);
+    w0[1] = hc_swap32 (w0[1]);
+    w0[2] = hc_swap32 (w0[2]);
+    w0[3] = hc_swap32 (w0[3]);
+    w1[0] = hc_swap32 (w1[0]);
+    w1[1] = hc_swap32 (w1[1]);
+    w1[2] = hc_swap32 (w1[2]);
+    w1[3] = hc_swap32 (w1[3]);
+    w2[0] = hc_swap32 (w2[0]);
+    w2[1] = hc_swap32 (w2[1]);
+    w2[2] = hc_swap32 (w2[2]);
+    w2[3] = hc_swap32 (w2[3]);
+    w3[0] = hc_swap32 (w3[0]);
+    w3[1] = hc_swap32 (w3[1]);
     w3[2] = 0;
     w3[3] = pw_len * 8;
 
@@ -392,16 +392,16 @@ KERNEL_FQ void m08400_s04 (KERN_ATTR_BASIC ())
   u32 salt_buf1[4];
   u32 salt_buf2[4];
 
-  salt_buf0[0] = swap32_S (salt_bufs[salt_pos].salt_buf[ 0]);
-  salt_buf0[1] = swap32_S (salt_bufs[salt_pos].salt_buf[ 1]);
-  salt_buf0[2] = swap32_S (salt_bufs[salt_pos].salt_buf[ 2]);
-  salt_buf0[3] = swap32_S (salt_bufs[salt_pos].salt_buf[ 3]);
-  salt_buf1[0] = swap32_S (salt_bufs[salt_pos].salt_buf[ 4]);
-  salt_buf1[1] = swap32_S (salt_bufs[salt_pos].salt_buf[ 5]);
-  salt_buf1[2] = swap32_S (salt_bufs[salt_pos].salt_buf[ 6]);
-  salt_buf1[3] = swap32_S (salt_bufs[salt_pos].salt_buf[ 7]);
-  salt_buf2[0] = swap32_S (salt_bufs[salt_pos].salt_buf[ 8]);
-  salt_buf2[1] = swap32_S (salt_bufs[salt_pos].salt_buf[ 9]);
+  salt_buf0[0] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 0]);
+  salt_buf0[1] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 1]);
+  salt_buf0[2] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 2]);
+  salt_buf0[3] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 3]);
+  salt_buf1[0] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 4]);
+  salt_buf1[1] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 5]);
+  salt_buf1[2] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 6]);
+  salt_buf1[3] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 7]);
+  salt_buf2[0] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 8]);
+  salt_buf2[1] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 9]);
   salt_buf2[2] = 0;
   salt_buf2[3] = 0;
 
@@ -496,20 +496,20 @@ KERNEL_FQ void m08400_s04 (KERN_ATTR_BASIC ())
      * SHA1
      */
 
-    w0[0] = swap32 (w0[0]);
-    w0[1] = swap32 (w0[1]);
-    w0[2] = swap32 (w0[2]);
-    w0[3] = swap32 (w0[3]);
-    w1[0] = swap32 (w1[0]);
-    w1[1] = swap32 (w1[1]);
-    w1[2] = swap32 (w1[2]);
-    w1[3] = swap32 (w1[3]);
-    w2[0] = swap32 (w2[0]);
-    w2[1] = swap32 (w2[1]);
-    w2[2] = swap32 (w2[2]);
-    w2[3] = swap32 (w2[3]);
-    w3[0] = swap32 (w3[0]);
-    w3[1] = swap32 (w3[1]);
+    w0[0] = hc_swap32 (w0[0]);
+    w0[1] = hc_swap32 (w0[1]);
+    w0[2] = hc_swap32 (w0[2]);
+    w0[3] = hc_swap32 (w0[3]);
+    w1[0] = hc_swap32 (w1[0]);
+    w1[1] = hc_swap32 (w1[1]);
+    w1[2] = hc_swap32 (w1[2]);
+    w1[3] = hc_swap32 (w1[3]);
+    w2[0] = hc_swap32 (w2[0]);
+    w2[1] = hc_swap32 (w2[1]);
+    w2[2] = hc_swap32 (w2[2]);
+    w2[3] = hc_swap32 (w2[3]);
+    w3[0] = hc_swap32 (w3[0]);
+    w3[1] = hc_swap32 (w3[1]);
     w3[2] = 0;
     w3[3] = pw_len * 8;
 

@@ -48,7 +48,7 @@ KERNEL_FQ void m07400_init (KERN_ATTR_TMPS (sha256crypt_tmp_t))
 
   for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
-    w[idx] = swap32_S (w[idx]);
+    w[idx] = hc_swap32_S (w[idx]);
   }
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
@@ -62,7 +62,7 @@ KERNEL_FQ void m07400_init (KERN_ATTR_TMPS (sha256crypt_tmp_t))
 
   for (int i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = swap32_S (s[idx]);
+    s[idx] = hc_swap32_S (s[idx]);
   }
 
   /**
@@ -356,10 +356,10 @@ KERNEL_FQ void m07400_comp (KERN_ATTR_TMPS (sha256crypt_tmp_t))
 
   const u64 lid = get_local_id (0);
 
-  const u32 r0 = swap32_S (tmps[gid].alt_result[0]);
-  const u32 r1 = swap32_S (tmps[gid].alt_result[1]);
-  const u32 r2 = swap32_S (tmps[gid].alt_result[2]);
-  const u32 r3 = swap32_S (tmps[gid].alt_result[3]);
+  const u32 r0 = hc_swap32_S (tmps[gid].alt_result[0]);
+  const u32 r1 = hc_swap32_S (tmps[gid].alt_result[1]);
+  const u32 r2 = hc_swap32_S (tmps[gid].alt_result[2]);
+  const u32 r3 = hc_swap32_S (tmps[gid].alt_result[3]);
 
   #define il_pos 0
 

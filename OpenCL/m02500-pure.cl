@@ -423,10 +423,10 @@ KERNEL_FQ void m02500_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_eapol_t)
       u32 t2[4];
       u32 t3[4];
 
-      t0[0] = swap32_S (digest[0]);
-      t0[1] = swap32_S (digest[1]);
-      t0[2] = swap32_S (digest[2]);
-      t0[3] = swap32_S (digest[3]);
+      t0[0] = hc_swap32_S (digest[0]);
+      t0[1] = hc_swap32_S (digest[1]);
+      t0[2] = hc_swap32_S (digest[2]);
+      t0[3] = hc_swap32_S (digest[3]);
       t1[0] = 0;
       t1[1] = 0;
       t1[2] = 0;
@@ -476,12 +476,12 @@ KERNEL_FQ void m02500_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_eapol_t)
     {
       u32 t = to;
 
-      t = swap32_S (t);
+      t = hc_swap32_S (t);
 
       t -= nonce_error_corrections / 2;
       t += nonce_error_correction;
 
-      t = swap32_S (t);
+      t = hc_swap32_S (t);
 
       if (wpa_eapol->nonce_compare < 0)
       {
@@ -543,10 +543,10 @@ KERNEL_FQ void m02500_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_eapol_t)
       u32 t2[4];
       u32 t3[4];
 
-      t0[0] = swap32_S (digest[0]);
-      t0[1] = swap32_S (digest[1]);
-      t0[2] = swap32_S (digest[2]);
-      t0[3] = swap32_S (digest[3]);
+      t0[0] = hc_swap32_S (digest[0]);
+      t0[1] = hc_swap32_S (digest[1]);
+      t0[2] = hc_swap32_S (digest[2]);
+      t0[3] = hc_swap32_S (digest[3]);
       t1[0] = 0;
       t1[1] = 0;
       t1[2] = 0;
@@ -787,12 +787,12 @@ KERNEL_FQ void m02500_aux2 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_eapol_t)
     {
       u32 t = to;
 
-      t = swap32_S (t);
+      t = hc_swap32_S (t);
 
       t -= nonce_error_corrections / 2;
       t += nonce_error_correction;
 
-      t = swap32_S (t);
+      t = hc_swap32_S (t);
 
       if (wpa_eapol->nonce_compare < 0)
       {
@@ -1087,10 +1087,10 @@ KERNEL_FQ void m02500_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_eapol_t)
 
       u32 digest[4];
 
-      digest[0] = swap32_S (ctx1.opad.h[0]);
-      digest[1] = swap32_S (ctx1.opad.h[1]);
-      digest[2] = swap32_S (ctx1.opad.h[2]);
-      digest[3] = swap32_S (ctx1.opad.h[3]);
+      digest[0] = hc_swap32_S (ctx1.opad.h[0]);
+      digest[1] = hc_swap32_S (ctx1.opad.h[1]);
+      digest[2] = hc_swap32_S (ctx1.opad.h[2]);
+      digest[3] = hc_swap32_S (ctx1.opad.h[3]);
 
       // AES CMAC
 
@@ -1181,12 +1181,12 @@ KERNEL_FQ void m02500_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_eapol_t)
     {
       u32 t = to;
 
-      t = swap32_S (t);
+      t = hc_swap32_S (t);
 
       t -= nonce_error_corrections / 2;
       t += nonce_error_correction;
 
-      t = swap32_S (t);
+      t = hc_swap32_S (t);
 
       if (wpa_eapol->nonce_compare < 0)
       {
@@ -1238,10 +1238,10 @@ KERNEL_FQ void m02500_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_eapol_t)
 
       u32 digest[4];
 
-      digest[0] = swap32_S (ctx1.opad.h[0]);
-      digest[1] = swap32_S (ctx1.opad.h[1]);
-      digest[2] = swap32_S (ctx1.opad.h[2]);
-      digest[3] = swap32_S (ctx1.opad.h[3]);
+      digest[0] = hc_swap32_S (ctx1.opad.h[0]);
+      digest[1] = hc_swap32_S (ctx1.opad.h[1]);
+      digest[2] = hc_swap32_S (ctx1.opad.h[2]);
+      digest[3] = hc_swap32_S (ctx1.opad.h[3]);
 
       // AES CMAC
 

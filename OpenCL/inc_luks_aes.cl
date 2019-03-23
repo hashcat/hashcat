@@ -1,3 +1,16 @@
+/**
+ * Author......: See docs/credits.txt
+ * License.....: MIT
+ */
+
+#include "inc_vendor.h"
+#include "inc_types.h"
+#include "inc_common.h"
+#include "inc_cipher_aes.h"
+#include "inc_luks_af.h"
+#include "inc_luks_essiv.h"
+#include "inc_luks_xts.h"
+#include "inc_luks_aes.h"
 
 // cbc-essiv
 
@@ -2563,10 +2576,10 @@ DECLSPEC void luks_af_sha1_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs, 
     {
       u32 ukey[4];
 
-      ukey[0] = swap32_S (tmps->out32[0]);
-      ukey[1] = swap32_S (tmps->out32[1]);
-      ukey[2] = swap32_S (tmps->out32[2]);
-      ukey[3] = swap32_S (tmps->out32[3]);
+      ukey[0] = hc_swap32_S (tmps->out32[0]);
+      ukey[1] = hc_swap32_S (tmps->out32[1]);
+      ukey[2] = hc_swap32_S (tmps->out32[2]);
+      ukey[3] = hc_swap32_S (tmps->out32[3]);
 
       u32 essivhash[8];
 
@@ -2592,14 +2605,14 @@ DECLSPEC void luks_af_sha1_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs, 
     {
       u32 ukey[8];
 
-      ukey[0] = swap32_S (tmps->out32[0]);
-      ukey[1] = swap32_S (tmps->out32[1]);
-      ukey[2] = swap32_S (tmps->out32[2]);
-      ukey[3] = swap32_S (tmps->out32[3]);
-      ukey[4] = swap32_S (tmps->out32[4]);
-      ukey[5] = swap32_S (tmps->out32[5]);
-      ukey[6] = swap32_S (tmps->out32[6]);
-      ukey[7] = swap32_S (tmps->out32[7]);
+      ukey[0] = hc_swap32_S (tmps->out32[0]);
+      ukey[1] = hc_swap32_S (tmps->out32[1]);
+      ukey[2] = hc_swap32_S (tmps->out32[2]);
+      ukey[3] = hc_swap32_S (tmps->out32[3]);
+      ukey[4] = hc_swap32_S (tmps->out32[4]);
+      ukey[5] = hc_swap32_S (tmps->out32[5]);
+      ukey[6] = hc_swap32_S (tmps->out32[6]);
+      ukey[7] = hc_swap32_S (tmps->out32[7]);
 
       u32 essivhash[8];
 
@@ -2628,10 +2641,10 @@ DECLSPEC void luks_af_sha1_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs, 
     {
       u32 ukey[4];
 
-      ukey[0] = swap32_S (tmps->out32[0]);
-      ukey[1] = swap32_S (tmps->out32[1]);
-      ukey[2] = swap32_S (tmps->out32[2]);
-      ukey[3] = swap32_S (tmps->out32[3]);
+      ukey[0] = hc_swap32_S (tmps->out32[0]);
+      ukey[1] = hc_swap32_S (tmps->out32[1]);
+      ukey[2] = hc_swap32_S (tmps->out32[2]);
+      ukey[3] = hc_swap32_S (tmps->out32[3]);
 
       u32 ks1[44];
 
@@ -2651,14 +2664,14 @@ DECLSPEC void luks_af_sha1_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs, 
     {
       u32 ukey[8];
 
-      ukey[0] = swap32_S (tmps->out32[0]);
-      ukey[1] = swap32_S (tmps->out32[1]);
-      ukey[2] = swap32_S (tmps->out32[2]);
-      ukey[3] = swap32_S (tmps->out32[3]);
-      ukey[4] = swap32_S (tmps->out32[4]);
-      ukey[5] = swap32_S (tmps->out32[5]);
-      ukey[6] = swap32_S (tmps->out32[6]);
-      ukey[7] = swap32_S (tmps->out32[7]);
+      ukey[0] = hc_swap32_S (tmps->out32[0]);
+      ukey[1] = hc_swap32_S (tmps->out32[1]);
+      ukey[2] = hc_swap32_S (tmps->out32[2]);
+      ukey[3] = hc_swap32_S (tmps->out32[3]);
+      ukey[4] = hc_swap32_S (tmps->out32[4]);
+      ukey[5] = hc_swap32_S (tmps->out32[5]);
+      ukey[6] = hc_swap32_S (tmps->out32[6]);
+      ukey[7] = hc_swap32_S (tmps->out32[7]);
 
       u32 ks1[60];
 
@@ -2681,17 +2694,17 @@ DECLSPEC void luks_af_sha1_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs, 
     {
       u32 ukey1[4];
 
-      ukey1[0] = swap32_S (tmps->out32[0]);
-      ukey1[1] = swap32_S (tmps->out32[1]);
-      ukey1[2] = swap32_S (tmps->out32[2]);
-      ukey1[3] = swap32_S (tmps->out32[3]);
+      ukey1[0] = hc_swap32_S (tmps->out32[0]);
+      ukey1[1] = hc_swap32_S (tmps->out32[1]);
+      ukey1[2] = hc_swap32_S (tmps->out32[2]);
+      ukey1[3] = hc_swap32_S (tmps->out32[3]);
 
       u32 ukey2[4];
 
-      ukey2[0] = swap32_S (tmps->out32[4]);
-      ukey2[1] = swap32_S (tmps->out32[5]);
-      ukey2[2] = swap32_S (tmps->out32[6]);
-      ukey2[3] = swap32_S (tmps->out32[7]);
+      ukey2[0] = hc_swap32_S (tmps->out32[4]);
+      ukey2[1] = hc_swap32_S (tmps->out32[5]);
+      ukey2[2] = hc_swap32_S (tmps->out32[6]);
+      ukey2[3] = hc_swap32_S (tmps->out32[7]);
 
       u32 ks1[44];
       u32 ks2[44];
@@ -2713,25 +2726,25 @@ DECLSPEC void luks_af_sha1_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs, 
     {
       u32 ukey1[8];
 
-      ukey1[0] = swap32_S (tmps->out32[ 0]);
-      ukey1[1] = swap32_S (tmps->out32[ 1]);
-      ukey1[2] = swap32_S (tmps->out32[ 2]);
-      ukey1[3] = swap32_S (tmps->out32[ 3]);
-      ukey1[4] = swap32_S (tmps->out32[ 4]);
-      ukey1[5] = swap32_S (tmps->out32[ 5]);
-      ukey1[6] = swap32_S (tmps->out32[ 6]);
-      ukey1[7] = swap32_S (tmps->out32[ 7]);
+      ukey1[0] = hc_swap32_S (tmps->out32[ 0]);
+      ukey1[1] = hc_swap32_S (tmps->out32[ 1]);
+      ukey1[2] = hc_swap32_S (tmps->out32[ 2]);
+      ukey1[3] = hc_swap32_S (tmps->out32[ 3]);
+      ukey1[4] = hc_swap32_S (tmps->out32[ 4]);
+      ukey1[5] = hc_swap32_S (tmps->out32[ 5]);
+      ukey1[6] = hc_swap32_S (tmps->out32[ 6]);
+      ukey1[7] = hc_swap32_S (tmps->out32[ 7]);
 
       u32 ukey2[8];
 
-      ukey2[0] = swap32_S (tmps->out32[ 8]);
-      ukey2[1] = swap32_S (tmps->out32[ 9]);
-      ukey2[2] = swap32_S (tmps->out32[10]);
-      ukey2[3] = swap32_S (tmps->out32[11]);
-      ukey2[4] = swap32_S (tmps->out32[12]);
-      ukey2[5] = swap32_S (tmps->out32[13]);
-      ukey2[6] = swap32_S (tmps->out32[14]);
-      ukey2[7] = swap32_S (tmps->out32[15]);
+      ukey2[0] = hc_swap32_S (tmps->out32[ 8]);
+      ukey2[1] = hc_swap32_S (tmps->out32[ 9]);
+      ukey2[2] = hc_swap32_S (tmps->out32[10]);
+      ukey2[3] = hc_swap32_S (tmps->out32[11]);
+      ukey2[4] = hc_swap32_S (tmps->out32[12]);
+      ukey2[5] = hc_swap32_S (tmps->out32[13]);
+      ukey2[6] = hc_swap32_S (tmps->out32[14]);
+      ukey2[7] = hc_swap32_S (tmps->out32[15]);
 
       u32 ks1[60];
       u32 ks2[60];
@@ -2954,10 +2967,10 @@ DECLSPEC void luks_af_sha256_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
     {
       u32 ukey[4];
 
-      ukey[0] = swap32_S (tmps->out32[0]);
-      ukey[1] = swap32_S (tmps->out32[1]);
-      ukey[2] = swap32_S (tmps->out32[2]);
-      ukey[3] = swap32_S (tmps->out32[3]);
+      ukey[0] = hc_swap32_S (tmps->out32[0]);
+      ukey[1] = hc_swap32_S (tmps->out32[1]);
+      ukey[2] = hc_swap32_S (tmps->out32[2]);
+      ukey[3] = hc_swap32_S (tmps->out32[3]);
 
       u32 essivhash[8];
 
@@ -2983,14 +2996,14 @@ DECLSPEC void luks_af_sha256_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
     {
       u32 ukey[8];
 
-      ukey[0] = swap32_S (tmps->out32[0]);
-      ukey[1] = swap32_S (tmps->out32[1]);
-      ukey[2] = swap32_S (tmps->out32[2]);
-      ukey[3] = swap32_S (tmps->out32[3]);
-      ukey[4] = swap32_S (tmps->out32[4]);
-      ukey[5] = swap32_S (tmps->out32[5]);
-      ukey[6] = swap32_S (tmps->out32[6]);
-      ukey[7] = swap32_S (tmps->out32[7]);
+      ukey[0] = hc_swap32_S (tmps->out32[0]);
+      ukey[1] = hc_swap32_S (tmps->out32[1]);
+      ukey[2] = hc_swap32_S (tmps->out32[2]);
+      ukey[3] = hc_swap32_S (tmps->out32[3]);
+      ukey[4] = hc_swap32_S (tmps->out32[4]);
+      ukey[5] = hc_swap32_S (tmps->out32[5]);
+      ukey[6] = hc_swap32_S (tmps->out32[6]);
+      ukey[7] = hc_swap32_S (tmps->out32[7]);
 
       u32 essivhash[8];
 
@@ -3019,10 +3032,10 @@ DECLSPEC void luks_af_sha256_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
     {
       u32 ukey[4];
 
-      ukey[0] = swap32_S (tmps->out32[0]);
-      ukey[1] = swap32_S (tmps->out32[1]);
-      ukey[2] = swap32_S (tmps->out32[2]);
-      ukey[3] = swap32_S (tmps->out32[3]);
+      ukey[0] = hc_swap32_S (tmps->out32[0]);
+      ukey[1] = hc_swap32_S (tmps->out32[1]);
+      ukey[2] = hc_swap32_S (tmps->out32[2]);
+      ukey[3] = hc_swap32_S (tmps->out32[3]);
 
       u32 ks1[44];
 
@@ -3042,14 +3055,14 @@ DECLSPEC void luks_af_sha256_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
     {
       u32 ukey[8];
 
-      ukey[0] = swap32_S (tmps->out32[0]);
-      ukey[1] = swap32_S (tmps->out32[1]);
-      ukey[2] = swap32_S (tmps->out32[2]);
-      ukey[3] = swap32_S (tmps->out32[3]);
-      ukey[4] = swap32_S (tmps->out32[4]);
-      ukey[5] = swap32_S (tmps->out32[5]);
-      ukey[6] = swap32_S (tmps->out32[6]);
-      ukey[7] = swap32_S (tmps->out32[7]);
+      ukey[0] = hc_swap32_S (tmps->out32[0]);
+      ukey[1] = hc_swap32_S (tmps->out32[1]);
+      ukey[2] = hc_swap32_S (tmps->out32[2]);
+      ukey[3] = hc_swap32_S (tmps->out32[3]);
+      ukey[4] = hc_swap32_S (tmps->out32[4]);
+      ukey[5] = hc_swap32_S (tmps->out32[5]);
+      ukey[6] = hc_swap32_S (tmps->out32[6]);
+      ukey[7] = hc_swap32_S (tmps->out32[7]);
 
       u32 ks1[60];
 
@@ -3072,17 +3085,17 @@ DECLSPEC void luks_af_sha256_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
     {
       u32 ukey1[4];
 
-      ukey1[0] = swap32_S (tmps->out32[0]);
-      ukey1[1] = swap32_S (tmps->out32[1]);
-      ukey1[2] = swap32_S (tmps->out32[2]);
-      ukey1[3] = swap32_S (tmps->out32[3]);
+      ukey1[0] = hc_swap32_S (tmps->out32[0]);
+      ukey1[1] = hc_swap32_S (tmps->out32[1]);
+      ukey1[2] = hc_swap32_S (tmps->out32[2]);
+      ukey1[3] = hc_swap32_S (tmps->out32[3]);
 
       u32 ukey2[4];
 
-      ukey2[0] = swap32_S (tmps->out32[4]);
-      ukey2[1] = swap32_S (tmps->out32[5]);
-      ukey2[2] = swap32_S (tmps->out32[6]);
-      ukey2[3] = swap32_S (tmps->out32[7]);
+      ukey2[0] = hc_swap32_S (tmps->out32[4]);
+      ukey2[1] = hc_swap32_S (tmps->out32[5]);
+      ukey2[2] = hc_swap32_S (tmps->out32[6]);
+      ukey2[3] = hc_swap32_S (tmps->out32[7]);
 
       u32 ks1[44];
       u32 ks2[44];
@@ -3104,25 +3117,25 @@ DECLSPEC void luks_af_sha256_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
     {
       u32 ukey1[8];
 
-      ukey1[0] = swap32_S (tmps->out32[ 0]);
-      ukey1[1] = swap32_S (tmps->out32[ 1]);
-      ukey1[2] = swap32_S (tmps->out32[ 2]);
-      ukey1[3] = swap32_S (tmps->out32[ 3]);
-      ukey1[4] = swap32_S (tmps->out32[ 4]);
-      ukey1[5] = swap32_S (tmps->out32[ 5]);
-      ukey1[6] = swap32_S (tmps->out32[ 6]);
-      ukey1[7] = swap32_S (tmps->out32[ 7]);
+      ukey1[0] = hc_swap32_S (tmps->out32[ 0]);
+      ukey1[1] = hc_swap32_S (tmps->out32[ 1]);
+      ukey1[2] = hc_swap32_S (tmps->out32[ 2]);
+      ukey1[3] = hc_swap32_S (tmps->out32[ 3]);
+      ukey1[4] = hc_swap32_S (tmps->out32[ 4]);
+      ukey1[5] = hc_swap32_S (tmps->out32[ 5]);
+      ukey1[6] = hc_swap32_S (tmps->out32[ 6]);
+      ukey1[7] = hc_swap32_S (tmps->out32[ 7]);
 
       u32 ukey2[8];
 
-      ukey2[0] = swap32_S (tmps->out32[ 8]);
-      ukey2[1] = swap32_S (tmps->out32[ 9]);
-      ukey2[2] = swap32_S (tmps->out32[10]);
-      ukey2[3] = swap32_S (tmps->out32[11]);
-      ukey2[4] = swap32_S (tmps->out32[12]);
-      ukey2[5] = swap32_S (tmps->out32[13]);
-      ukey2[6] = swap32_S (tmps->out32[14]);
-      ukey2[7] = swap32_S (tmps->out32[15]);
+      ukey2[0] = hc_swap32_S (tmps->out32[ 8]);
+      ukey2[1] = hc_swap32_S (tmps->out32[ 9]);
+      ukey2[2] = hc_swap32_S (tmps->out32[10]);
+      ukey2[3] = hc_swap32_S (tmps->out32[11]);
+      ukey2[4] = hc_swap32_S (tmps->out32[12]);
+      ukey2[5] = hc_swap32_S (tmps->out32[13]);
+      ukey2[6] = hc_swap32_S (tmps->out32[14]);
+      ukey2[7] = hc_swap32_S (tmps->out32[15]);
 
       u32 ks1[60];
       u32 ks2[60];
@@ -3332,10 +3345,10 @@ DECLSPEC void luks_af_sha512_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
     {
       u32 ukey[4];
 
-      ukey[0] = swap32_S (tmps->out32[1]);
-      ukey[1] = swap32_S (tmps->out32[0]);
-      ukey[2] = swap32_S (tmps->out32[3]);
-      ukey[3] = swap32_S (tmps->out32[2]);
+      ukey[0] = hc_swap32_S (tmps->out32[1]);
+      ukey[1] = hc_swap32_S (tmps->out32[0]);
+      ukey[2] = hc_swap32_S (tmps->out32[3]);
+      ukey[3] = hc_swap32_S (tmps->out32[2]);
 
       u32 essivhash[8];
 
@@ -3361,14 +3374,14 @@ DECLSPEC void luks_af_sha512_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
     {
       u32 ukey[8];
 
-      ukey[0] = swap32_S (tmps->out32[1]);
-      ukey[1] = swap32_S (tmps->out32[0]);
-      ukey[2] = swap32_S (tmps->out32[3]);
-      ukey[3] = swap32_S (tmps->out32[2]);
-      ukey[4] = swap32_S (tmps->out32[5]);
-      ukey[5] = swap32_S (tmps->out32[4]);
-      ukey[6] = swap32_S (tmps->out32[7]);
-      ukey[7] = swap32_S (tmps->out32[6]);
+      ukey[0] = hc_swap32_S (tmps->out32[1]);
+      ukey[1] = hc_swap32_S (tmps->out32[0]);
+      ukey[2] = hc_swap32_S (tmps->out32[3]);
+      ukey[3] = hc_swap32_S (tmps->out32[2]);
+      ukey[4] = hc_swap32_S (tmps->out32[5]);
+      ukey[5] = hc_swap32_S (tmps->out32[4]);
+      ukey[6] = hc_swap32_S (tmps->out32[7]);
+      ukey[7] = hc_swap32_S (tmps->out32[6]);
 
       u32 essivhash[8];
 
@@ -3397,10 +3410,10 @@ DECLSPEC void luks_af_sha512_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
     {
       u32 ukey[4];
 
-      ukey[0] = swap32_S (tmps->out32[1]);
-      ukey[1] = swap32_S (tmps->out32[0]);
-      ukey[2] = swap32_S (tmps->out32[3]);
-      ukey[3] = swap32_S (tmps->out32[2]);
+      ukey[0] = hc_swap32_S (tmps->out32[1]);
+      ukey[1] = hc_swap32_S (tmps->out32[0]);
+      ukey[2] = hc_swap32_S (tmps->out32[3]);
+      ukey[3] = hc_swap32_S (tmps->out32[2]);
 
       u32 ks1[44];
 
@@ -3420,14 +3433,14 @@ DECLSPEC void luks_af_sha512_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
     {
       u32 ukey[8];
 
-      ukey[0] = swap32_S (tmps->out32[1]);
-      ukey[1] = swap32_S (tmps->out32[0]);
-      ukey[2] = swap32_S (tmps->out32[3]);
-      ukey[3] = swap32_S (tmps->out32[2]);
-      ukey[4] = swap32_S (tmps->out32[5]);
-      ukey[5] = swap32_S (tmps->out32[4]);
-      ukey[6] = swap32_S (tmps->out32[7]);
-      ukey[7] = swap32_S (tmps->out32[6]);
+      ukey[0] = hc_swap32_S (tmps->out32[1]);
+      ukey[1] = hc_swap32_S (tmps->out32[0]);
+      ukey[2] = hc_swap32_S (tmps->out32[3]);
+      ukey[3] = hc_swap32_S (tmps->out32[2]);
+      ukey[4] = hc_swap32_S (tmps->out32[5]);
+      ukey[5] = hc_swap32_S (tmps->out32[4]);
+      ukey[6] = hc_swap32_S (tmps->out32[7]);
+      ukey[7] = hc_swap32_S (tmps->out32[6]);
 
       u32 ks1[60];
 
@@ -3450,17 +3463,17 @@ DECLSPEC void luks_af_sha512_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
     {
       u32 ukey1[4];
 
-      ukey1[0] = swap32_S (tmps->out32[1]);
-      ukey1[1] = swap32_S (tmps->out32[0]);
-      ukey1[2] = swap32_S (tmps->out32[3]);
-      ukey1[3] = swap32_S (tmps->out32[2]);
+      ukey1[0] = hc_swap32_S (tmps->out32[1]);
+      ukey1[1] = hc_swap32_S (tmps->out32[0]);
+      ukey1[2] = hc_swap32_S (tmps->out32[3]);
+      ukey1[3] = hc_swap32_S (tmps->out32[2]);
 
       u32 ukey2[4];
 
-      ukey2[0] = swap32_S (tmps->out32[5]);
-      ukey2[1] = swap32_S (tmps->out32[4]);
-      ukey2[2] = swap32_S (tmps->out32[7]);
-      ukey2[3] = swap32_S (tmps->out32[6]);
+      ukey2[0] = hc_swap32_S (tmps->out32[5]);
+      ukey2[1] = hc_swap32_S (tmps->out32[4]);
+      ukey2[2] = hc_swap32_S (tmps->out32[7]);
+      ukey2[3] = hc_swap32_S (tmps->out32[6]);
 
       u32 ks1[44];
       u32 ks2[44];
@@ -3482,25 +3495,25 @@ DECLSPEC void luks_af_sha512_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
     {
       u32 ukey1[8];
 
-      ukey1[0] = swap32_S (tmps->out32[ 1]);
-      ukey1[1] = swap32_S (tmps->out32[ 0]);
-      ukey1[2] = swap32_S (tmps->out32[ 3]);
-      ukey1[3] = swap32_S (tmps->out32[ 2]);
-      ukey1[4] = swap32_S (tmps->out32[ 5]);
-      ukey1[5] = swap32_S (tmps->out32[ 4]);
-      ukey1[6] = swap32_S (tmps->out32[ 7]);
-      ukey1[7] = swap32_S (tmps->out32[ 6]);
+      ukey1[0] = hc_swap32_S (tmps->out32[ 1]);
+      ukey1[1] = hc_swap32_S (tmps->out32[ 0]);
+      ukey1[2] = hc_swap32_S (tmps->out32[ 3]);
+      ukey1[3] = hc_swap32_S (tmps->out32[ 2]);
+      ukey1[4] = hc_swap32_S (tmps->out32[ 5]);
+      ukey1[5] = hc_swap32_S (tmps->out32[ 4]);
+      ukey1[6] = hc_swap32_S (tmps->out32[ 7]);
+      ukey1[7] = hc_swap32_S (tmps->out32[ 6]);
 
       u32 ukey2[8];
 
-      ukey2[0] = swap32_S (tmps->out32[ 9]);
-      ukey2[1] = swap32_S (tmps->out32[ 8]);
-      ukey2[2] = swap32_S (tmps->out32[11]);
-      ukey2[3] = swap32_S (tmps->out32[10]);
-      ukey2[4] = swap32_S (tmps->out32[13]);
-      ukey2[5] = swap32_S (tmps->out32[12]);
-      ukey2[6] = swap32_S (tmps->out32[15]);
-      ukey2[7] = swap32_S (tmps->out32[14]);
+      ukey2[0] = hc_swap32_S (tmps->out32[ 9]);
+      ukey2[1] = hc_swap32_S (tmps->out32[ 8]);
+      ukey2[2] = hc_swap32_S (tmps->out32[11]);
+      ukey2[3] = hc_swap32_S (tmps->out32[10]);
+      ukey2[4] = hc_swap32_S (tmps->out32[13]);
+      ukey2[5] = hc_swap32_S (tmps->out32[12]);
+      ukey2[6] = hc_swap32_S (tmps->out32[15]);
+      ukey2[7] = hc_swap32_S (tmps->out32[14]);
 
       u32 ks1[60];
       u32 ks2[60];

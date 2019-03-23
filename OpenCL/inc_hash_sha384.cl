@@ -1,105 +1,17 @@
+/**
+ * Author......: See docs/credits.txt
+ * License.....: MIT
+ */
+
+#include "inc_vendor.h"
+#include "inc_types.h"
+#include "inc_common.h"
+#include "inc_hash_sha384.h"
 
 // important notes on this:
 // input buf unused bytes needs to be set to zero
 // input buf needs to be in algorithm native byte order (md5 = LE, sha1 = BE, etc)
 // input buf needs to be 128 byte aligned when using sha384_update()
-
-#define SHIFT_RIGHT_64(x,n) ((x) >> (n))
-
-#define SHA384_S0_S(x) (rotr64_S ((x), 28) ^ rotr64_S ((x), 34) ^ rotr64_S ((x), 39))
-#define SHA384_S1_S(x) (rotr64_S ((x), 14) ^ rotr64_S ((x), 18) ^ rotr64_S ((x), 41))
-#define SHA384_S2_S(x) (rotr64_S ((x),  1) ^ rotr64_S ((x),  8) ^ SHIFT_RIGHT_64 ((x), 7))
-#define SHA384_S3_S(x) (rotr64_S ((x), 19) ^ rotr64_S ((x), 61) ^ SHIFT_RIGHT_64 ((x), 6))
-
-#define SHA384_S0(x) (rotr64 ((x), 28) ^ rotr64 ((x), 34) ^ rotr64 ((x), 39))
-#define SHA384_S1(x) (rotr64 ((x), 14) ^ rotr64 ((x), 18) ^ rotr64 ((x), 41))
-#define SHA384_S2(x) (rotr64 ((x),  1) ^ rotr64 ((x),  8) ^ SHIFT_RIGHT_64 ((x), 7))
-#define SHA384_S3(x) (rotr64 ((x), 19) ^ rotr64 ((x), 61) ^ SHIFT_RIGHT_64 ((x), 6))
-
-#define SHA384_F0(x,y,z) ((z) ^ ((x) & ((y) ^ (z))))
-#define SHA384_F1(x,y,z) (((x) & (y)) | ((z) & ((x) ^ (y))))
-
-#ifdef IS_NV
-#define SHA384_F0o(x,y,z) (bitselect ((z), (y), (x)))
-#define SHA384_F1o(x,y,z) (bitselect ((x), (y), ((x) ^ (z))))
-#endif
-
-#ifdef IS_AMD
-#define SHA384_F0o(x,y,z) (bitselect ((z), (y), (x)))
-#define SHA384_F1o(x,y,z) (bitselect ((x), (y), ((x) ^ (z))))
-#endif
-
-#ifdef IS_GENERIC
-#define SHA384_F0o(x,y,z) (SHA384_F0 ((x), (y), (z)))
-#define SHA384_F1o(x,y,z) (SHA384_F1 ((x), (y), (z)))
-#endif
-
-#define SHA384_STEP_S(F0,F1,a,b,c,d,e,f,g,h,x,K)  \
-{                                                 \
-  h += K;                                         \
-  h += x;                                         \
-  h += SHA384_S1_S (e);                           \
-  h += F0 (e, f, g);                              \
-  d += h;                                         \
-  h += SHA384_S0_S (a);                           \
-  h += F1 (a, b, c);                              \
-}
-
-#define SHA384_EXPAND_S(x,y,z,w) (SHA384_S3_S (x) + y + SHA384_S2_S (z) + w)
-
-#define SHA384_STEP(F0,F1,a,b,c,d,e,f,g,h,x,K)  \
-{                                               \
-  h += K;                                       \
-  h += x;                                       \
-  h += SHA384_S1 (e);                           \
-  h += F0 (e, f, g);                            \
-  d += h;                                       \
-  h += SHA384_S0 (a);                           \
-  h += F1 (a, b, c);                            \
-}
-
-#define SHA384_EXPAND(x,y,z,w) (SHA384_S3 (x) + y + SHA384_S2 (z) + w)
-
-CONSTANT_AS u64a k_sha384[80] =
-{
-  SHA512C00, SHA512C01, SHA512C02, SHA512C03,
-  SHA512C04, SHA512C05, SHA512C06, SHA512C07,
-  SHA512C08, SHA512C09, SHA512C0a, SHA512C0b,
-  SHA512C0c, SHA512C0d, SHA512C0e, SHA512C0f,
-  SHA512C10, SHA512C11, SHA512C12, SHA512C13,
-  SHA512C14, SHA512C15, SHA512C16, SHA512C17,
-  SHA512C18, SHA512C19, SHA512C1a, SHA512C1b,
-  SHA512C1c, SHA512C1d, SHA512C1e, SHA512C1f,
-  SHA512C20, SHA512C21, SHA512C22, SHA512C23,
-  SHA512C24, SHA512C25, SHA512C26, SHA512C27,
-  SHA512C28, SHA512C29, SHA512C2a, SHA512C2b,
-  SHA512C2c, SHA512C2d, SHA512C2e, SHA512C2f,
-  SHA512C30, SHA512C31, SHA512C32, SHA512C33,
-  SHA512C34, SHA512C35, SHA512C36, SHA512C37,
-  SHA512C38, SHA512C39, SHA512C3a, SHA512C3b,
-  SHA512C3c, SHA512C3d, SHA512C3e, SHA512C3f,
-  SHA512C40, SHA512C41, SHA512C42, SHA512C43,
-  SHA512C44, SHA512C45, SHA512C46, SHA512C47,
-  SHA512C48, SHA512C49, SHA512C4a, SHA512C4b,
-  SHA512C4c, SHA512C4d, SHA512C4e, SHA512C4f,
-};
-
-typedef struct sha384_ctx
-{
-  u64 h[8];
-
-  u32 w0[4];
-  u32 w1[4];
-  u32 w2[4];
-  u32 w3[4];
-  u32 w4[4];
-  u32 w5[4];
-  u32 w6[4];
-  u32 w7[4];
-
-  int len;
-
-} sha384_ctx_t;
 
 DECLSPEC void sha384_transform (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, const u32 *w4, const u32 *w5, const u32 *w6, const u32 *w7, u64 *digest)
 {
@@ -502,38 +414,38 @@ DECLSPEC void sha384_update_swap (sha384_ctx_t *ctx, const u32 *w, const int len
     w7[2] = w[pos4 + 30];
     w7[3] = w[pos4 + 31];
 
-    w0[0] = swap32_S (w0[0]);
-    w0[1] = swap32_S (w0[1]);
-    w0[2] = swap32_S (w0[2]);
-    w0[3] = swap32_S (w0[3]);
-    w1[0] = swap32_S (w1[0]);
-    w1[1] = swap32_S (w1[1]);
-    w1[2] = swap32_S (w1[2]);
-    w1[3] = swap32_S (w1[3]);
-    w2[0] = swap32_S (w2[0]);
-    w2[1] = swap32_S (w2[1]);
-    w2[2] = swap32_S (w2[2]);
-    w2[3] = swap32_S (w2[3]);
-    w3[0] = swap32_S (w3[0]);
-    w3[1] = swap32_S (w3[1]);
-    w3[2] = swap32_S (w3[2]);
-    w3[3] = swap32_S (w3[3]);
-    w4[0] = swap32_S (w4[0]);
-    w4[1] = swap32_S (w4[1]);
-    w4[2] = swap32_S (w4[2]);
-    w4[3] = swap32_S (w4[3]);
-    w5[0] = swap32_S (w5[0]);
-    w5[1] = swap32_S (w5[1]);
-    w5[2] = swap32_S (w5[2]);
-    w5[3] = swap32_S (w5[3]);
-    w6[0] = swap32_S (w6[0]);
-    w6[1] = swap32_S (w6[1]);
-    w6[2] = swap32_S (w6[2]);
-    w6[3] = swap32_S (w6[3]);
-    w7[0] = swap32_S (w7[0]);
-    w7[1] = swap32_S (w7[1]);
-    w7[2] = swap32_S (w7[2]);
-    w7[3] = swap32_S (w7[3]);
+    w0[0] = hc_swap32_S (w0[0]);
+    w0[1] = hc_swap32_S (w0[1]);
+    w0[2] = hc_swap32_S (w0[2]);
+    w0[3] = hc_swap32_S (w0[3]);
+    w1[0] = hc_swap32_S (w1[0]);
+    w1[1] = hc_swap32_S (w1[1]);
+    w1[2] = hc_swap32_S (w1[2]);
+    w1[3] = hc_swap32_S (w1[3]);
+    w2[0] = hc_swap32_S (w2[0]);
+    w2[1] = hc_swap32_S (w2[1]);
+    w2[2] = hc_swap32_S (w2[2]);
+    w2[3] = hc_swap32_S (w2[3]);
+    w3[0] = hc_swap32_S (w3[0]);
+    w3[1] = hc_swap32_S (w3[1]);
+    w3[2] = hc_swap32_S (w3[2]);
+    w3[3] = hc_swap32_S (w3[3]);
+    w4[0] = hc_swap32_S (w4[0]);
+    w4[1] = hc_swap32_S (w4[1]);
+    w4[2] = hc_swap32_S (w4[2]);
+    w4[3] = hc_swap32_S (w4[3]);
+    w5[0] = hc_swap32_S (w5[0]);
+    w5[1] = hc_swap32_S (w5[1]);
+    w5[2] = hc_swap32_S (w5[2]);
+    w5[3] = hc_swap32_S (w5[3]);
+    w6[0] = hc_swap32_S (w6[0]);
+    w6[1] = hc_swap32_S (w6[1]);
+    w6[2] = hc_swap32_S (w6[2]);
+    w6[3] = hc_swap32_S (w6[3]);
+    w7[0] = hc_swap32_S (w7[0]);
+    w7[1] = hc_swap32_S (w7[1]);
+    w7[2] = hc_swap32_S (w7[2]);
+    w7[3] = hc_swap32_S (w7[3]);
 
     sha384_update_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, 128);
   }
@@ -571,38 +483,38 @@ DECLSPEC void sha384_update_swap (sha384_ctx_t *ctx, const u32 *w, const int len
   w7[2] = w[pos4 + 30];
   w7[3] = w[pos4 + 31];
 
-  w0[0] = swap32_S (w0[0]);
-  w0[1] = swap32_S (w0[1]);
-  w0[2] = swap32_S (w0[2]);
-  w0[3] = swap32_S (w0[3]);
-  w1[0] = swap32_S (w1[0]);
-  w1[1] = swap32_S (w1[1]);
-  w1[2] = swap32_S (w1[2]);
-  w1[3] = swap32_S (w1[3]);
-  w2[0] = swap32_S (w2[0]);
-  w2[1] = swap32_S (w2[1]);
-  w2[2] = swap32_S (w2[2]);
-  w2[3] = swap32_S (w2[3]);
-  w3[0] = swap32_S (w3[0]);
-  w3[1] = swap32_S (w3[1]);
-  w3[2] = swap32_S (w3[2]);
-  w3[3] = swap32_S (w3[3]);
-  w4[0] = swap32_S (w4[0]);
-  w4[1] = swap32_S (w4[1]);
-  w4[2] = swap32_S (w4[2]);
-  w4[3] = swap32_S (w4[3]);
-  w5[0] = swap32_S (w5[0]);
-  w5[1] = swap32_S (w5[1]);
-  w5[2] = swap32_S (w5[2]);
-  w5[3] = swap32_S (w5[3]);
-  w6[0] = swap32_S (w6[0]);
-  w6[1] = swap32_S (w6[1]);
-  w6[2] = swap32_S (w6[2]);
-  w6[3] = swap32_S (w6[3]);
-  w7[0] = swap32_S (w7[0]);
-  w7[1] = swap32_S (w7[1]);
-  w7[2] = swap32_S (w7[2]);
-  w7[3] = swap32_S (w7[3]);
+  w0[0] = hc_swap32_S (w0[0]);
+  w0[1] = hc_swap32_S (w0[1]);
+  w0[2] = hc_swap32_S (w0[2]);
+  w0[3] = hc_swap32_S (w0[3]);
+  w1[0] = hc_swap32_S (w1[0]);
+  w1[1] = hc_swap32_S (w1[1]);
+  w1[2] = hc_swap32_S (w1[2]);
+  w1[3] = hc_swap32_S (w1[3]);
+  w2[0] = hc_swap32_S (w2[0]);
+  w2[1] = hc_swap32_S (w2[1]);
+  w2[2] = hc_swap32_S (w2[2]);
+  w2[3] = hc_swap32_S (w2[3]);
+  w3[0] = hc_swap32_S (w3[0]);
+  w3[1] = hc_swap32_S (w3[1]);
+  w3[2] = hc_swap32_S (w3[2]);
+  w3[3] = hc_swap32_S (w3[3]);
+  w4[0] = hc_swap32_S (w4[0]);
+  w4[1] = hc_swap32_S (w4[1]);
+  w4[2] = hc_swap32_S (w4[2]);
+  w4[3] = hc_swap32_S (w4[3]);
+  w5[0] = hc_swap32_S (w5[0]);
+  w5[1] = hc_swap32_S (w5[1]);
+  w5[2] = hc_swap32_S (w5[2]);
+  w5[3] = hc_swap32_S (w5[3]);
+  w6[0] = hc_swap32_S (w6[0]);
+  w6[1] = hc_swap32_S (w6[1]);
+  w6[2] = hc_swap32_S (w6[2]);
+  w6[3] = hc_swap32_S (w6[3]);
+  w7[0] = hc_swap32_S (w7[0]);
+  w7[1] = hc_swap32_S (w7[1]);
+  w7[2] = hc_swap32_S (w7[2]);
+  w7[3] = hc_swap32_S (w7[3]);
 
   sha384_update_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, len - pos1);
 }
@@ -711,38 +623,38 @@ DECLSPEC void sha384_update_utf16le_swap (sha384_ctx_t *ctx, const u32 *w, const
     make_utf16le_S (w1, w2, w3);
     make_utf16le_S (w0, w0, w1);
 
-    w0[0] = swap32_S (w0[0]);
-    w0[1] = swap32_S (w0[1]);
-    w0[2] = swap32_S (w0[2]);
-    w0[3] = swap32_S (w0[3]);
-    w1[0] = swap32_S (w1[0]);
-    w1[1] = swap32_S (w1[1]);
-    w1[2] = swap32_S (w1[2]);
-    w1[3] = swap32_S (w1[3]);
-    w2[0] = swap32_S (w2[0]);
-    w2[1] = swap32_S (w2[1]);
-    w2[2] = swap32_S (w2[2]);
-    w2[3] = swap32_S (w2[3]);
-    w3[0] = swap32_S (w3[0]);
-    w3[1] = swap32_S (w3[1]);
-    w3[2] = swap32_S (w3[2]);
-    w3[3] = swap32_S (w3[3]);
-    w4[0] = swap32_S (w4[0]);
-    w4[1] = swap32_S (w4[1]);
-    w4[2] = swap32_S (w4[2]);
-    w4[3] = swap32_S (w4[3]);
-    w5[0] = swap32_S (w5[0]);
-    w5[1] = swap32_S (w5[1]);
-    w5[2] = swap32_S (w5[2]);
-    w5[3] = swap32_S (w5[3]);
-    w6[0] = swap32_S (w6[0]);
-    w6[1] = swap32_S (w6[1]);
-    w6[2] = swap32_S (w6[2]);
-    w6[3] = swap32_S (w6[3]);
-    w7[0] = swap32_S (w7[0]);
-    w7[1] = swap32_S (w7[1]);
-    w7[2] = swap32_S (w7[2]);
-    w7[3] = swap32_S (w7[3]);
+    w0[0] = hc_swap32_S (w0[0]);
+    w0[1] = hc_swap32_S (w0[1]);
+    w0[2] = hc_swap32_S (w0[2]);
+    w0[3] = hc_swap32_S (w0[3]);
+    w1[0] = hc_swap32_S (w1[0]);
+    w1[1] = hc_swap32_S (w1[1]);
+    w1[2] = hc_swap32_S (w1[2]);
+    w1[3] = hc_swap32_S (w1[3]);
+    w2[0] = hc_swap32_S (w2[0]);
+    w2[1] = hc_swap32_S (w2[1]);
+    w2[2] = hc_swap32_S (w2[2]);
+    w2[3] = hc_swap32_S (w2[3]);
+    w3[0] = hc_swap32_S (w3[0]);
+    w3[1] = hc_swap32_S (w3[1]);
+    w3[2] = hc_swap32_S (w3[2]);
+    w3[3] = hc_swap32_S (w3[3]);
+    w4[0] = hc_swap32_S (w4[0]);
+    w4[1] = hc_swap32_S (w4[1]);
+    w4[2] = hc_swap32_S (w4[2]);
+    w4[3] = hc_swap32_S (w4[3]);
+    w5[0] = hc_swap32_S (w5[0]);
+    w5[1] = hc_swap32_S (w5[1]);
+    w5[2] = hc_swap32_S (w5[2]);
+    w5[3] = hc_swap32_S (w5[3]);
+    w6[0] = hc_swap32_S (w6[0]);
+    w6[1] = hc_swap32_S (w6[1]);
+    w6[2] = hc_swap32_S (w6[2]);
+    w6[3] = hc_swap32_S (w6[3]);
+    w7[0] = hc_swap32_S (w7[0]);
+    w7[1] = hc_swap32_S (w7[1]);
+    w7[2] = hc_swap32_S (w7[2]);
+    w7[3] = hc_swap32_S (w7[3]);
 
     sha384_update_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, 64 * 2);
   }
@@ -769,38 +681,38 @@ DECLSPEC void sha384_update_utf16le_swap (sha384_ctx_t *ctx, const u32 *w, const
   make_utf16le_S (w1, w2, w3);
   make_utf16le_S (w0, w0, w1);
 
-  w0[0] = swap32_S (w0[0]);
-  w0[1] = swap32_S (w0[1]);
-  w0[2] = swap32_S (w0[2]);
-  w0[3] = swap32_S (w0[3]);
-  w1[0] = swap32_S (w1[0]);
-  w1[1] = swap32_S (w1[1]);
-  w1[2] = swap32_S (w1[2]);
-  w1[3] = swap32_S (w1[3]);
-  w2[0] = swap32_S (w2[0]);
-  w2[1] = swap32_S (w2[1]);
-  w2[2] = swap32_S (w2[2]);
-  w2[3] = swap32_S (w2[3]);
-  w3[0] = swap32_S (w3[0]);
-  w3[1] = swap32_S (w3[1]);
-  w3[2] = swap32_S (w3[2]);
-  w3[3] = swap32_S (w3[3]);
-  w4[0] = swap32_S (w4[0]);
-  w4[1] = swap32_S (w4[1]);
-  w4[2] = swap32_S (w4[2]);
-  w4[3] = swap32_S (w4[3]);
-  w5[0] = swap32_S (w5[0]);
-  w5[1] = swap32_S (w5[1]);
-  w5[2] = swap32_S (w5[2]);
-  w5[3] = swap32_S (w5[3]);
-  w6[0] = swap32_S (w6[0]);
-  w6[1] = swap32_S (w6[1]);
-  w6[2] = swap32_S (w6[2]);
-  w6[3] = swap32_S (w6[3]);
-  w7[0] = swap32_S (w7[0]);
-  w7[1] = swap32_S (w7[1]);
-  w7[2] = swap32_S (w7[2]);
-  w7[3] = swap32_S (w7[3]);
+  w0[0] = hc_swap32_S (w0[0]);
+  w0[1] = hc_swap32_S (w0[1]);
+  w0[2] = hc_swap32_S (w0[2]);
+  w0[3] = hc_swap32_S (w0[3]);
+  w1[0] = hc_swap32_S (w1[0]);
+  w1[1] = hc_swap32_S (w1[1]);
+  w1[2] = hc_swap32_S (w1[2]);
+  w1[3] = hc_swap32_S (w1[3]);
+  w2[0] = hc_swap32_S (w2[0]);
+  w2[1] = hc_swap32_S (w2[1]);
+  w2[2] = hc_swap32_S (w2[2]);
+  w2[3] = hc_swap32_S (w2[3]);
+  w3[0] = hc_swap32_S (w3[0]);
+  w3[1] = hc_swap32_S (w3[1]);
+  w3[2] = hc_swap32_S (w3[2]);
+  w3[3] = hc_swap32_S (w3[3]);
+  w4[0] = hc_swap32_S (w4[0]);
+  w4[1] = hc_swap32_S (w4[1]);
+  w4[2] = hc_swap32_S (w4[2]);
+  w4[3] = hc_swap32_S (w4[3]);
+  w5[0] = hc_swap32_S (w5[0]);
+  w5[1] = hc_swap32_S (w5[1]);
+  w5[2] = hc_swap32_S (w5[2]);
+  w5[3] = hc_swap32_S (w5[3]);
+  w6[0] = hc_swap32_S (w6[0]);
+  w6[1] = hc_swap32_S (w6[1]);
+  w6[2] = hc_swap32_S (w6[2]);
+  w6[3] = hc_swap32_S (w6[3]);
+  w7[0] = hc_swap32_S (w7[0]);
+  w7[1] = hc_swap32_S (w7[1]);
+  w7[2] = hc_swap32_S (w7[2]);
+  w7[3] = hc_swap32_S (w7[3]);
 
   sha384_update_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, (len - pos1) * 2);
 }
@@ -942,38 +854,38 @@ DECLSPEC void sha384_update_global_swap (sha384_ctx_t *ctx, const GLOBAL_AS u32 
     w7[2] = w[pos4 + 30];
     w7[3] = w[pos4 + 31];
 
-    w0[0] = swap32_S (w0[0]);
-    w0[1] = swap32_S (w0[1]);
-    w0[2] = swap32_S (w0[2]);
-    w0[3] = swap32_S (w0[3]);
-    w1[0] = swap32_S (w1[0]);
-    w1[1] = swap32_S (w1[1]);
-    w1[2] = swap32_S (w1[2]);
-    w1[3] = swap32_S (w1[3]);
-    w2[0] = swap32_S (w2[0]);
-    w2[1] = swap32_S (w2[1]);
-    w2[2] = swap32_S (w2[2]);
-    w2[3] = swap32_S (w2[3]);
-    w3[0] = swap32_S (w3[0]);
-    w3[1] = swap32_S (w3[1]);
-    w3[2] = swap32_S (w3[2]);
-    w3[3] = swap32_S (w3[3]);
-    w4[0] = swap32_S (w4[0]);
-    w4[1] = swap32_S (w4[1]);
-    w4[2] = swap32_S (w4[2]);
-    w4[3] = swap32_S (w4[3]);
-    w5[0] = swap32_S (w5[0]);
-    w5[1] = swap32_S (w5[1]);
-    w5[2] = swap32_S (w5[2]);
-    w5[3] = swap32_S (w5[3]);
-    w6[0] = swap32_S (w6[0]);
-    w6[1] = swap32_S (w6[1]);
-    w6[2] = swap32_S (w6[2]);
-    w6[3] = swap32_S (w6[3]);
-    w7[0] = swap32_S (w7[0]);
-    w7[1] = swap32_S (w7[1]);
-    w7[2] = swap32_S (w7[2]);
-    w7[3] = swap32_S (w7[3]);
+    w0[0] = hc_swap32_S (w0[0]);
+    w0[1] = hc_swap32_S (w0[1]);
+    w0[2] = hc_swap32_S (w0[2]);
+    w0[3] = hc_swap32_S (w0[3]);
+    w1[0] = hc_swap32_S (w1[0]);
+    w1[1] = hc_swap32_S (w1[1]);
+    w1[2] = hc_swap32_S (w1[2]);
+    w1[3] = hc_swap32_S (w1[3]);
+    w2[0] = hc_swap32_S (w2[0]);
+    w2[1] = hc_swap32_S (w2[1]);
+    w2[2] = hc_swap32_S (w2[2]);
+    w2[3] = hc_swap32_S (w2[3]);
+    w3[0] = hc_swap32_S (w3[0]);
+    w3[1] = hc_swap32_S (w3[1]);
+    w3[2] = hc_swap32_S (w3[2]);
+    w3[3] = hc_swap32_S (w3[3]);
+    w4[0] = hc_swap32_S (w4[0]);
+    w4[1] = hc_swap32_S (w4[1]);
+    w4[2] = hc_swap32_S (w4[2]);
+    w4[3] = hc_swap32_S (w4[3]);
+    w5[0] = hc_swap32_S (w5[0]);
+    w5[1] = hc_swap32_S (w5[1]);
+    w5[2] = hc_swap32_S (w5[2]);
+    w5[3] = hc_swap32_S (w5[3]);
+    w6[0] = hc_swap32_S (w6[0]);
+    w6[1] = hc_swap32_S (w6[1]);
+    w6[2] = hc_swap32_S (w6[2]);
+    w6[3] = hc_swap32_S (w6[3]);
+    w7[0] = hc_swap32_S (w7[0]);
+    w7[1] = hc_swap32_S (w7[1]);
+    w7[2] = hc_swap32_S (w7[2]);
+    w7[3] = hc_swap32_S (w7[3]);
 
     sha384_update_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, 128);
   }
@@ -1011,38 +923,38 @@ DECLSPEC void sha384_update_global_swap (sha384_ctx_t *ctx, const GLOBAL_AS u32 
   w7[2] = w[pos4 + 30];
   w7[3] = w[pos4 + 31];
 
-  w0[0] = swap32_S (w0[0]);
-  w0[1] = swap32_S (w0[1]);
-  w0[2] = swap32_S (w0[2]);
-  w0[3] = swap32_S (w0[3]);
-  w1[0] = swap32_S (w1[0]);
-  w1[1] = swap32_S (w1[1]);
-  w1[2] = swap32_S (w1[2]);
-  w1[3] = swap32_S (w1[3]);
-  w2[0] = swap32_S (w2[0]);
-  w2[1] = swap32_S (w2[1]);
-  w2[2] = swap32_S (w2[2]);
-  w2[3] = swap32_S (w2[3]);
-  w3[0] = swap32_S (w3[0]);
-  w3[1] = swap32_S (w3[1]);
-  w3[2] = swap32_S (w3[2]);
-  w3[3] = swap32_S (w3[3]);
-  w4[0] = swap32_S (w4[0]);
-  w4[1] = swap32_S (w4[1]);
-  w4[2] = swap32_S (w4[2]);
-  w4[3] = swap32_S (w4[3]);
-  w5[0] = swap32_S (w5[0]);
-  w5[1] = swap32_S (w5[1]);
-  w5[2] = swap32_S (w5[2]);
-  w5[3] = swap32_S (w5[3]);
-  w6[0] = swap32_S (w6[0]);
-  w6[1] = swap32_S (w6[1]);
-  w6[2] = swap32_S (w6[2]);
-  w6[3] = swap32_S (w6[3]);
-  w7[0] = swap32_S (w7[0]);
-  w7[1] = swap32_S (w7[1]);
-  w7[2] = swap32_S (w7[2]);
-  w7[3] = swap32_S (w7[3]);
+  w0[0] = hc_swap32_S (w0[0]);
+  w0[1] = hc_swap32_S (w0[1]);
+  w0[2] = hc_swap32_S (w0[2]);
+  w0[3] = hc_swap32_S (w0[3]);
+  w1[0] = hc_swap32_S (w1[0]);
+  w1[1] = hc_swap32_S (w1[1]);
+  w1[2] = hc_swap32_S (w1[2]);
+  w1[3] = hc_swap32_S (w1[3]);
+  w2[0] = hc_swap32_S (w2[0]);
+  w2[1] = hc_swap32_S (w2[1]);
+  w2[2] = hc_swap32_S (w2[2]);
+  w2[3] = hc_swap32_S (w2[3]);
+  w3[0] = hc_swap32_S (w3[0]);
+  w3[1] = hc_swap32_S (w3[1]);
+  w3[2] = hc_swap32_S (w3[2]);
+  w3[3] = hc_swap32_S (w3[3]);
+  w4[0] = hc_swap32_S (w4[0]);
+  w4[1] = hc_swap32_S (w4[1]);
+  w4[2] = hc_swap32_S (w4[2]);
+  w4[3] = hc_swap32_S (w4[3]);
+  w5[0] = hc_swap32_S (w5[0]);
+  w5[1] = hc_swap32_S (w5[1]);
+  w5[2] = hc_swap32_S (w5[2]);
+  w5[3] = hc_swap32_S (w5[3]);
+  w6[0] = hc_swap32_S (w6[0]);
+  w6[1] = hc_swap32_S (w6[1]);
+  w6[2] = hc_swap32_S (w6[2]);
+  w6[3] = hc_swap32_S (w6[3]);
+  w7[0] = hc_swap32_S (w7[0]);
+  w7[1] = hc_swap32_S (w7[1]);
+  w7[2] = hc_swap32_S (w7[2]);
+  w7[3] = hc_swap32_S (w7[3]);
 
   sha384_update_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, len - pos1);
 }
@@ -1151,38 +1063,38 @@ DECLSPEC void sha384_update_global_utf16le_swap (sha384_ctx_t *ctx, const GLOBAL
     make_utf16le_S (w1, w2, w3);
     make_utf16le_S (w0, w0, w1);
 
-    w0[0] = swap32_S (w0[0]);
-    w0[1] = swap32_S (w0[1]);
-    w0[2] = swap32_S (w0[2]);
-    w0[3] = swap32_S (w0[3]);
-    w1[0] = swap32_S (w1[0]);
-    w1[1] = swap32_S (w1[1]);
-    w1[2] = swap32_S (w1[2]);
-    w1[3] = swap32_S (w1[3]);
-    w2[0] = swap32_S (w2[0]);
-    w2[1] = swap32_S (w2[1]);
-    w2[2] = swap32_S (w2[2]);
-    w2[3] = swap32_S (w2[3]);
-    w3[0] = swap32_S (w3[0]);
-    w3[1] = swap32_S (w3[1]);
-    w3[2] = swap32_S (w3[2]);
-    w3[3] = swap32_S (w3[3]);
-    w4[0] = swap32_S (w4[0]);
-    w4[1] = swap32_S (w4[1]);
-    w4[2] = swap32_S (w4[2]);
-    w4[3] = swap32_S (w4[3]);
-    w5[0] = swap32_S (w5[0]);
-    w5[1] = swap32_S (w5[1]);
-    w5[2] = swap32_S (w5[2]);
-    w5[3] = swap32_S (w5[3]);
-    w6[0] = swap32_S (w6[0]);
-    w6[1] = swap32_S (w6[1]);
-    w6[2] = swap32_S (w6[2]);
-    w6[3] = swap32_S (w6[3]);
-    w7[0] = swap32_S (w7[0]);
-    w7[1] = swap32_S (w7[1]);
-    w7[2] = swap32_S (w7[2]);
-    w7[3] = swap32_S (w7[3]);
+    w0[0] = hc_swap32_S (w0[0]);
+    w0[1] = hc_swap32_S (w0[1]);
+    w0[2] = hc_swap32_S (w0[2]);
+    w0[3] = hc_swap32_S (w0[3]);
+    w1[0] = hc_swap32_S (w1[0]);
+    w1[1] = hc_swap32_S (w1[1]);
+    w1[2] = hc_swap32_S (w1[2]);
+    w1[3] = hc_swap32_S (w1[3]);
+    w2[0] = hc_swap32_S (w2[0]);
+    w2[1] = hc_swap32_S (w2[1]);
+    w2[2] = hc_swap32_S (w2[2]);
+    w2[3] = hc_swap32_S (w2[3]);
+    w3[0] = hc_swap32_S (w3[0]);
+    w3[1] = hc_swap32_S (w3[1]);
+    w3[2] = hc_swap32_S (w3[2]);
+    w3[3] = hc_swap32_S (w3[3]);
+    w4[0] = hc_swap32_S (w4[0]);
+    w4[1] = hc_swap32_S (w4[1]);
+    w4[2] = hc_swap32_S (w4[2]);
+    w4[3] = hc_swap32_S (w4[3]);
+    w5[0] = hc_swap32_S (w5[0]);
+    w5[1] = hc_swap32_S (w5[1]);
+    w5[2] = hc_swap32_S (w5[2]);
+    w5[3] = hc_swap32_S (w5[3]);
+    w6[0] = hc_swap32_S (w6[0]);
+    w6[1] = hc_swap32_S (w6[1]);
+    w6[2] = hc_swap32_S (w6[2]);
+    w6[3] = hc_swap32_S (w6[3]);
+    w7[0] = hc_swap32_S (w7[0]);
+    w7[1] = hc_swap32_S (w7[1]);
+    w7[2] = hc_swap32_S (w7[2]);
+    w7[3] = hc_swap32_S (w7[3]);
 
     sha384_update_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, 64 * 2);
   }
@@ -1209,38 +1121,38 @@ DECLSPEC void sha384_update_global_utf16le_swap (sha384_ctx_t *ctx, const GLOBAL
   make_utf16le_S (w1, w2, w3);
   make_utf16le_S (w0, w0, w1);
 
-  w0[0] = swap32_S (w0[0]);
-  w0[1] = swap32_S (w0[1]);
-  w0[2] = swap32_S (w0[2]);
-  w0[3] = swap32_S (w0[3]);
-  w1[0] = swap32_S (w1[0]);
-  w1[1] = swap32_S (w1[1]);
-  w1[2] = swap32_S (w1[2]);
-  w1[3] = swap32_S (w1[3]);
-  w2[0] = swap32_S (w2[0]);
-  w2[1] = swap32_S (w2[1]);
-  w2[2] = swap32_S (w2[2]);
-  w2[3] = swap32_S (w2[3]);
-  w3[0] = swap32_S (w3[0]);
-  w3[1] = swap32_S (w3[1]);
-  w3[2] = swap32_S (w3[2]);
-  w3[3] = swap32_S (w3[3]);
-  w4[0] = swap32_S (w4[0]);
-  w4[1] = swap32_S (w4[1]);
-  w4[2] = swap32_S (w4[2]);
-  w4[3] = swap32_S (w4[3]);
-  w5[0] = swap32_S (w5[0]);
-  w5[1] = swap32_S (w5[1]);
-  w5[2] = swap32_S (w5[2]);
-  w5[3] = swap32_S (w5[3]);
-  w6[0] = swap32_S (w6[0]);
-  w6[1] = swap32_S (w6[1]);
-  w6[2] = swap32_S (w6[2]);
-  w6[3] = swap32_S (w6[3]);
-  w7[0] = swap32_S (w7[0]);
-  w7[1] = swap32_S (w7[1]);
-  w7[2] = swap32_S (w7[2]);
-  w7[3] = swap32_S (w7[3]);
+  w0[0] = hc_swap32_S (w0[0]);
+  w0[1] = hc_swap32_S (w0[1]);
+  w0[2] = hc_swap32_S (w0[2]);
+  w0[3] = hc_swap32_S (w0[3]);
+  w1[0] = hc_swap32_S (w1[0]);
+  w1[1] = hc_swap32_S (w1[1]);
+  w1[2] = hc_swap32_S (w1[2]);
+  w1[3] = hc_swap32_S (w1[3]);
+  w2[0] = hc_swap32_S (w2[0]);
+  w2[1] = hc_swap32_S (w2[1]);
+  w2[2] = hc_swap32_S (w2[2]);
+  w2[3] = hc_swap32_S (w2[3]);
+  w3[0] = hc_swap32_S (w3[0]);
+  w3[1] = hc_swap32_S (w3[1]);
+  w3[2] = hc_swap32_S (w3[2]);
+  w3[3] = hc_swap32_S (w3[3]);
+  w4[0] = hc_swap32_S (w4[0]);
+  w4[1] = hc_swap32_S (w4[1]);
+  w4[2] = hc_swap32_S (w4[2]);
+  w4[3] = hc_swap32_S (w4[3]);
+  w5[0] = hc_swap32_S (w5[0]);
+  w5[1] = hc_swap32_S (w5[1]);
+  w5[2] = hc_swap32_S (w5[2]);
+  w5[3] = hc_swap32_S (w5[3]);
+  w6[0] = hc_swap32_S (w6[0]);
+  w6[1] = hc_swap32_S (w6[1]);
+  w6[2] = hc_swap32_S (w6[2]);
+  w6[3] = hc_swap32_S (w6[3]);
+  w7[0] = hc_swap32_S (w7[0]);
+  w7[1] = hc_swap32_S (w7[1]);
+  w7[2] = hc_swap32_S (w7[2]);
+  w7[3] = hc_swap32_S (w7[3]);
 
   sha384_update_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, (len - pos1) * 2);
 }
@@ -1296,13 +1208,6 @@ DECLSPEC void sha384_final (sha384_ctx_t *ctx)
 }
 
 // sha384_hmac
-
-typedef struct sha384_hmac_ctx
-{
-  sha384_ctx_t ipad;
-  sha384_ctx_t opad;
-
-} sha384_hmac_ctx_t;
 
 DECLSPEC void sha384_hmac_init_128 (sha384_hmac_ctx_t *ctx, const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, const u32 *w4, const u32 *w5, const u32 *w6, const u32 *w7)
 {
@@ -1543,38 +1448,38 @@ DECLSPEC void sha384_hmac_init_swap (sha384_hmac_ctx_t *ctx, const u32 *w, const
   }
   else
   {
-    w0[0] = swap32_S (w[ 0]);
-    w0[1] = swap32_S (w[ 1]);
-    w0[2] = swap32_S (w[ 2]);
-    w0[3] = swap32_S (w[ 3]);
-    w1[0] = swap32_S (w[ 4]);
-    w1[1] = swap32_S (w[ 5]);
-    w1[2] = swap32_S (w[ 6]);
-    w1[3] = swap32_S (w[ 7]);
-    w2[0] = swap32_S (w[ 8]);
-    w2[1] = swap32_S (w[ 9]);
-    w2[2] = swap32_S (w[10]);
-    w2[3] = swap32_S (w[11]);
-    w3[0] = swap32_S (w[12]);
-    w3[1] = swap32_S (w[13]);
-    w3[2] = swap32_S (w[14]);
-    w3[3] = swap32_S (w[15]);
-    w4[0] = swap32_S (w[16]);
-    w4[1] = swap32_S (w[17]);
-    w4[2] = swap32_S (w[18]);
-    w4[3] = swap32_S (w[19]);
-    w5[0] = swap32_S (w[20]);
-    w5[1] = swap32_S (w[21]);
-    w5[2] = swap32_S (w[22]);
-    w5[3] = swap32_S (w[23]);
-    w6[0] = swap32_S (w[24]);
-    w6[1] = swap32_S (w[25]);
-    w6[2] = swap32_S (w[26]);
-    w6[3] = swap32_S (w[27]);
-    w7[0] = swap32_S (w[28]);
-    w7[1] = swap32_S (w[29]);
-    w7[2] = swap32_S (w[30]);
-    w7[3] = swap32_S (w[31]);
+    w0[0] = hc_swap32_S (w[ 0]);
+    w0[1] = hc_swap32_S (w[ 1]);
+    w0[2] = hc_swap32_S (w[ 2]);
+    w0[3] = hc_swap32_S (w[ 3]);
+    w1[0] = hc_swap32_S (w[ 4]);
+    w1[1] = hc_swap32_S (w[ 5]);
+    w1[2] = hc_swap32_S (w[ 6]);
+    w1[3] = hc_swap32_S (w[ 7]);
+    w2[0] = hc_swap32_S (w[ 8]);
+    w2[1] = hc_swap32_S (w[ 9]);
+    w2[2] = hc_swap32_S (w[10]);
+    w2[3] = hc_swap32_S (w[11]);
+    w3[0] = hc_swap32_S (w[12]);
+    w3[1] = hc_swap32_S (w[13]);
+    w3[2] = hc_swap32_S (w[14]);
+    w3[3] = hc_swap32_S (w[15]);
+    w4[0] = hc_swap32_S (w[16]);
+    w4[1] = hc_swap32_S (w[17]);
+    w4[2] = hc_swap32_S (w[18]);
+    w4[3] = hc_swap32_S (w[19]);
+    w5[0] = hc_swap32_S (w[20]);
+    w5[1] = hc_swap32_S (w[21]);
+    w5[2] = hc_swap32_S (w[22]);
+    w5[3] = hc_swap32_S (w[23]);
+    w6[0] = hc_swap32_S (w[24]);
+    w6[1] = hc_swap32_S (w[25]);
+    w6[2] = hc_swap32_S (w[26]);
+    w6[3] = hc_swap32_S (w[27]);
+    w7[0] = hc_swap32_S (w[28]);
+    w7[1] = hc_swap32_S (w[29]);
+    w7[2] = hc_swap32_S (w[30]);
+    w7[3] = hc_swap32_S (w[31]);
   }
 
   sha384_hmac_init_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7);
@@ -1729,38 +1634,38 @@ DECLSPEC void sha384_hmac_init_global_swap (sha384_hmac_ctx_t *ctx, GLOBAL_AS co
   }
   else
   {
-    w0[0] = swap32_S (w[ 0]);
-    w0[1] = swap32_S (w[ 1]);
-    w0[2] = swap32_S (w[ 2]);
-    w0[3] = swap32_S (w[ 3]);
-    w1[0] = swap32_S (w[ 4]);
-    w1[1] = swap32_S (w[ 5]);
-    w1[2] = swap32_S (w[ 6]);
-    w1[3] = swap32_S (w[ 7]);
-    w2[0] = swap32_S (w[ 8]);
-    w2[1] = swap32_S (w[ 9]);
-    w2[2] = swap32_S (w[10]);
-    w2[3] = swap32_S (w[11]);
-    w3[0] = swap32_S (w[12]);
-    w3[1] = swap32_S (w[13]);
-    w3[2] = swap32_S (w[14]);
-    w3[3] = swap32_S (w[15]);
-    w4[0] = swap32_S (w[16]);
-    w4[1] = swap32_S (w[17]);
-    w4[2] = swap32_S (w[18]);
-    w4[3] = swap32_S (w[19]);
-    w5[0] = swap32_S (w[20]);
-    w5[1] = swap32_S (w[21]);
-    w5[2] = swap32_S (w[22]);
-    w5[3] = swap32_S (w[23]);
-    w6[0] = swap32_S (w[24]);
-    w6[1] = swap32_S (w[25]);
-    w6[2] = swap32_S (w[26]);
-    w6[3] = swap32_S (w[27]);
-    w7[0] = swap32_S (w[28]);
-    w7[1] = swap32_S (w[29]);
-    w7[2] = swap32_S (w[30]);
-    w7[3] = swap32_S (w[31]);
+    w0[0] = hc_swap32_S (w[ 0]);
+    w0[1] = hc_swap32_S (w[ 1]);
+    w0[2] = hc_swap32_S (w[ 2]);
+    w0[3] = hc_swap32_S (w[ 3]);
+    w1[0] = hc_swap32_S (w[ 4]);
+    w1[1] = hc_swap32_S (w[ 5]);
+    w1[2] = hc_swap32_S (w[ 6]);
+    w1[3] = hc_swap32_S (w[ 7]);
+    w2[0] = hc_swap32_S (w[ 8]);
+    w2[1] = hc_swap32_S (w[ 9]);
+    w2[2] = hc_swap32_S (w[10]);
+    w2[3] = hc_swap32_S (w[11]);
+    w3[0] = hc_swap32_S (w[12]);
+    w3[1] = hc_swap32_S (w[13]);
+    w3[2] = hc_swap32_S (w[14]);
+    w3[3] = hc_swap32_S (w[15]);
+    w4[0] = hc_swap32_S (w[16]);
+    w4[1] = hc_swap32_S (w[17]);
+    w4[2] = hc_swap32_S (w[18]);
+    w4[3] = hc_swap32_S (w[19]);
+    w5[0] = hc_swap32_S (w[20]);
+    w5[1] = hc_swap32_S (w[21]);
+    w5[2] = hc_swap32_S (w[22]);
+    w5[3] = hc_swap32_S (w[23]);
+    w6[0] = hc_swap32_S (w[24]);
+    w6[1] = hc_swap32_S (w[25]);
+    w6[2] = hc_swap32_S (w[26]);
+    w6[3] = hc_swap32_S (w[27]);
+    w7[0] = hc_swap32_S (w[28]);
+    w7[1] = hc_swap32_S (w[29]);
+    w7[2] = hc_swap32_S (w[30]);
+    w7[3] = hc_swap32_S (w[31]);
   }
 
   sha384_hmac_init_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7);
@@ -1863,23 +1768,6 @@ DECLSPEC void sha384_hmac_final (sha384_hmac_ctx_t *ctx)
 }
 
 // while input buf can be a vector datatype, the length of the different elements can not
-
-typedef struct sha384_ctx_vector
-{
-  u64x h[8];
-
-  u32x w0[4];
-  u32x w1[4];
-  u32x w2[4];
-  u32x w3[4];
-  u32x w4[4];
-  u32x w5[4];
-  u32x w6[4];
-  u32x w7[4];
-
-  int  len;
-
-} sha384_ctx_vector_t;
 
 DECLSPEC void sha384_transform_vector (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, const u32x *w4, const u32x *w5, const u32x *w6, const u32x *w7, u64x *digest)
 {
@@ -2329,38 +2217,38 @@ DECLSPEC void sha384_update_vector_swap (sha384_ctx_vector_t *ctx, const u32x *w
     w7[2] = w[pos4 + 30];
     w7[3] = w[pos4 + 31];
 
-    w0[0] = swap32 (w0[0]);
-    w0[1] = swap32 (w0[1]);
-    w0[2] = swap32 (w0[2]);
-    w0[3] = swap32 (w0[3]);
-    w1[0] = swap32 (w1[0]);
-    w1[1] = swap32 (w1[1]);
-    w1[2] = swap32 (w1[2]);
-    w1[3] = swap32 (w1[3]);
-    w2[0] = swap32 (w2[0]);
-    w2[1] = swap32 (w2[1]);
-    w2[2] = swap32 (w2[2]);
-    w2[3] = swap32 (w2[3]);
-    w3[0] = swap32 (w3[0]);
-    w3[1] = swap32 (w3[1]);
-    w3[2] = swap32 (w3[2]);
-    w3[3] = swap32 (w3[3]);
-    w4[0] = swap32 (w4[0]);
-    w4[1] = swap32 (w4[1]);
-    w4[2] = swap32 (w4[2]);
-    w4[3] = swap32 (w4[3]);
-    w5[0] = swap32 (w5[0]);
-    w5[1] = swap32 (w5[1]);
-    w5[2] = swap32 (w5[2]);
-    w5[3] = swap32 (w5[3]);
-    w6[0] = swap32 (w6[0]);
-    w6[1] = swap32 (w6[1]);
-    w6[2] = swap32 (w6[2]);
-    w6[3] = swap32 (w6[3]);
-    w7[0] = swap32 (w7[0]);
-    w7[1] = swap32 (w7[1]);
-    w7[2] = swap32 (w7[2]);
-    w7[3] = swap32 (w7[3]);
+    w0[0] = hc_swap32 (w0[0]);
+    w0[1] = hc_swap32 (w0[1]);
+    w0[2] = hc_swap32 (w0[2]);
+    w0[3] = hc_swap32 (w0[3]);
+    w1[0] = hc_swap32 (w1[0]);
+    w1[1] = hc_swap32 (w1[1]);
+    w1[2] = hc_swap32 (w1[2]);
+    w1[3] = hc_swap32 (w1[3]);
+    w2[0] = hc_swap32 (w2[0]);
+    w2[1] = hc_swap32 (w2[1]);
+    w2[2] = hc_swap32 (w2[2]);
+    w2[3] = hc_swap32 (w2[3]);
+    w3[0] = hc_swap32 (w3[0]);
+    w3[1] = hc_swap32 (w3[1]);
+    w3[2] = hc_swap32 (w3[2]);
+    w3[3] = hc_swap32 (w3[3]);
+    w4[0] = hc_swap32 (w4[0]);
+    w4[1] = hc_swap32 (w4[1]);
+    w4[2] = hc_swap32 (w4[2]);
+    w4[3] = hc_swap32 (w4[3]);
+    w5[0] = hc_swap32 (w5[0]);
+    w5[1] = hc_swap32 (w5[1]);
+    w5[2] = hc_swap32 (w5[2]);
+    w5[3] = hc_swap32 (w5[3]);
+    w6[0] = hc_swap32 (w6[0]);
+    w6[1] = hc_swap32 (w6[1]);
+    w6[2] = hc_swap32 (w6[2]);
+    w6[3] = hc_swap32 (w6[3]);
+    w7[0] = hc_swap32 (w7[0]);
+    w7[1] = hc_swap32 (w7[1]);
+    w7[2] = hc_swap32 (w7[2]);
+    w7[3] = hc_swap32 (w7[3]);
 
     sha384_update_vector_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, 128);
   }
@@ -2398,38 +2286,38 @@ DECLSPEC void sha384_update_vector_swap (sha384_ctx_vector_t *ctx, const u32x *w
   w7[2] = w[pos4 + 30];
   w7[3] = w[pos4 + 31];
 
-  w0[0] = swap32 (w0[0]);
-  w0[1] = swap32 (w0[1]);
-  w0[2] = swap32 (w0[2]);
-  w0[3] = swap32 (w0[3]);
-  w1[0] = swap32 (w1[0]);
-  w1[1] = swap32 (w1[1]);
-  w1[2] = swap32 (w1[2]);
-  w1[3] = swap32 (w1[3]);
-  w2[0] = swap32 (w2[0]);
-  w2[1] = swap32 (w2[1]);
-  w2[2] = swap32 (w2[2]);
-  w2[3] = swap32 (w2[3]);
-  w3[0] = swap32 (w3[0]);
-  w3[1] = swap32 (w3[1]);
-  w3[2] = swap32 (w3[2]);
-  w3[3] = swap32 (w3[3]);
-  w4[0] = swap32 (w4[0]);
-  w4[1] = swap32 (w4[1]);
-  w4[2] = swap32 (w4[2]);
-  w4[3] = swap32 (w4[3]);
-  w5[0] = swap32 (w5[0]);
-  w5[1] = swap32 (w5[1]);
-  w5[2] = swap32 (w5[2]);
-  w5[3] = swap32 (w5[3]);
-  w6[0] = swap32 (w6[0]);
-  w6[1] = swap32 (w6[1]);
-  w6[2] = swap32 (w6[2]);
-  w6[3] = swap32 (w6[3]);
-  w7[0] = swap32 (w7[0]);
-  w7[1] = swap32 (w7[1]);
-  w7[2] = swap32 (w7[2]);
-  w7[3] = swap32 (w7[3]);
+  w0[0] = hc_swap32 (w0[0]);
+  w0[1] = hc_swap32 (w0[1]);
+  w0[2] = hc_swap32 (w0[2]);
+  w0[3] = hc_swap32 (w0[3]);
+  w1[0] = hc_swap32 (w1[0]);
+  w1[1] = hc_swap32 (w1[1]);
+  w1[2] = hc_swap32 (w1[2]);
+  w1[3] = hc_swap32 (w1[3]);
+  w2[0] = hc_swap32 (w2[0]);
+  w2[1] = hc_swap32 (w2[1]);
+  w2[2] = hc_swap32 (w2[2]);
+  w2[3] = hc_swap32 (w2[3]);
+  w3[0] = hc_swap32 (w3[0]);
+  w3[1] = hc_swap32 (w3[1]);
+  w3[2] = hc_swap32 (w3[2]);
+  w3[3] = hc_swap32 (w3[3]);
+  w4[0] = hc_swap32 (w4[0]);
+  w4[1] = hc_swap32 (w4[1]);
+  w4[2] = hc_swap32 (w4[2]);
+  w4[3] = hc_swap32 (w4[3]);
+  w5[0] = hc_swap32 (w5[0]);
+  w5[1] = hc_swap32 (w5[1]);
+  w5[2] = hc_swap32 (w5[2]);
+  w5[3] = hc_swap32 (w5[3]);
+  w6[0] = hc_swap32 (w6[0]);
+  w6[1] = hc_swap32 (w6[1]);
+  w6[2] = hc_swap32 (w6[2]);
+  w6[3] = hc_swap32 (w6[3]);
+  w7[0] = hc_swap32 (w7[0]);
+  w7[1] = hc_swap32 (w7[1]);
+  w7[2] = hc_swap32 (w7[2]);
+  w7[3] = hc_swap32 (w7[3]);
 
   sha384_update_vector_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, len - pos1);
 }
@@ -2538,38 +2426,38 @@ DECLSPEC void sha384_update_vector_utf16le_swap (sha384_ctx_vector_t *ctx, const
     make_utf16le (w1, w2, w3);
     make_utf16le (w0, w0, w1);
 
-    w0[0] = swap32 (w0[0]);
-    w0[1] = swap32 (w0[1]);
-    w0[2] = swap32 (w0[2]);
-    w0[3] = swap32 (w0[3]);
-    w1[0] = swap32 (w1[0]);
-    w1[1] = swap32 (w1[1]);
-    w1[2] = swap32 (w1[2]);
-    w1[3] = swap32 (w1[3]);
-    w2[0] = swap32 (w2[0]);
-    w2[1] = swap32 (w2[1]);
-    w2[2] = swap32 (w2[2]);
-    w2[3] = swap32 (w2[3]);
-    w3[0] = swap32 (w3[0]);
-    w3[1] = swap32 (w3[1]);
-    w3[2] = swap32 (w3[2]);
-    w3[3] = swap32 (w3[3]);
-    w4[0] = swap32 (w4[0]);
-    w4[1] = swap32 (w4[1]);
-    w4[2] = swap32 (w4[2]);
-    w4[3] = swap32 (w4[3]);
-    w5[0] = swap32 (w5[0]);
-    w5[1] = swap32 (w5[1]);
-    w5[2] = swap32 (w5[2]);
-    w5[3] = swap32 (w5[3]);
-    w6[0] = swap32 (w6[0]);
-    w6[1] = swap32 (w6[1]);
-    w6[2] = swap32 (w6[2]);
-    w6[3] = swap32 (w6[3]);
-    w7[0] = swap32 (w7[0]);
-    w7[1] = swap32 (w7[1]);
-    w7[2] = swap32 (w7[2]);
-    w7[3] = swap32 (w7[3]);
+    w0[0] = hc_swap32 (w0[0]);
+    w0[1] = hc_swap32 (w0[1]);
+    w0[2] = hc_swap32 (w0[2]);
+    w0[3] = hc_swap32 (w0[3]);
+    w1[0] = hc_swap32 (w1[0]);
+    w1[1] = hc_swap32 (w1[1]);
+    w1[2] = hc_swap32 (w1[2]);
+    w1[3] = hc_swap32 (w1[3]);
+    w2[0] = hc_swap32 (w2[0]);
+    w2[1] = hc_swap32 (w2[1]);
+    w2[2] = hc_swap32 (w2[2]);
+    w2[3] = hc_swap32 (w2[3]);
+    w3[0] = hc_swap32 (w3[0]);
+    w3[1] = hc_swap32 (w3[1]);
+    w3[2] = hc_swap32 (w3[2]);
+    w3[3] = hc_swap32 (w3[3]);
+    w4[0] = hc_swap32 (w4[0]);
+    w4[1] = hc_swap32 (w4[1]);
+    w4[2] = hc_swap32 (w4[2]);
+    w4[3] = hc_swap32 (w4[3]);
+    w5[0] = hc_swap32 (w5[0]);
+    w5[1] = hc_swap32 (w5[1]);
+    w5[2] = hc_swap32 (w5[2]);
+    w5[3] = hc_swap32 (w5[3]);
+    w6[0] = hc_swap32 (w6[0]);
+    w6[1] = hc_swap32 (w6[1]);
+    w6[2] = hc_swap32 (w6[2]);
+    w6[3] = hc_swap32 (w6[3]);
+    w7[0] = hc_swap32 (w7[0]);
+    w7[1] = hc_swap32 (w7[1]);
+    w7[2] = hc_swap32 (w7[2]);
+    w7[3] = hc_swap32 (w7[3]);
 
     sha384_update_vector_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, 64 * 2);
   }
@@ -2596,38 +2484,38 @@ DECLSPEC void sha384_update_vector_utf16le_swap (sha384_ctx_vector_t *ctx, const
   make_utf16le (w1, w2, w3);
   make_utf16le (w0, w0, w1);
 
-  w0[0] = swap32 (w0[0]);
-  w0[1] = swap32 (w0[1]);
-  w0[2] = swap32 (w0[2]);
-  w0[3] = swap32 (w0[3]);
-  w1[0] = swap32 (w1[0]);
-  w1[1] = swap32 (w1[1]);
-  w1[2] = swap32 (w1[2]);
-  w1[3] = swap32 (w1[3]);
-  w2[0] = swap32 (w2[0]);
-  w2[1] = swap32 (w2[1]);
-  w2[2] = swap32 (w2[2]);
-  w2[3] = swap32 (w2[3]);
-  w3[0] = swap32 (w3[0]);
-  w3[1] = swap32 (w3[1]);
-  w3[2] = swap32 (w3[2]);
-  w3[3] = swap32 (w3[3]);
-  w4[0] = swap32 (w4[0]);
-  w4[1] = swap32 (w4[1]);
-  w4[2] = swap32 (w4[2]);
-  w4[3] = swap32 (w4[3]);
-  w5[0] = swap32 (w5[0]);
-  w5[1] = swap32 (w5[1]);
-  w5[2] = swap32 (w5[2]);
-  w5[3] = swap32 (w5[3]);
-  w6[0] = swap32 (w6[0]);
-  w6[1] = swap32 (w6[1]);
-  w6[2] = swap32 (w6[2]);
-  w6[3] = swap32 (w6[3]);
-  w7[0] = swap32 (w7[0]);
-  w7[1] = swap32 (w7[1]);
-  w7[2] = swap32 (w7[2]);
-  w7[3] = swap32 (w7[3]);
+  w0[0] = hc_swap32 (w0[0]);
+  w0[1] = hc_swap32 (w0[1]);
+  w0[2] = hc_swap32 (w0[2]);
+  w0[3] = hc_swap32 (w0[3]);
+  w1[0] = hc_swap32 (w1[0]);
+  w1[1] = hc_swap32 (w1[1]);
+  w1[2] = hc_swap32 (w1[2]);
+  w1[3] = hc_swap32 (w1[3]);
+  w2[0] = hc_swap32 (w2[0]);
+  w2[1] = hc_swap32 (w2[1]);
+  w2[2] = hc_swap32 (w2[2]);
+  w2[3] = hc_swap32 (w2[3]);
+  w3[0] = hc_swap32 (w3[0]);
+  w3[1] = hc_swap32 (w3[1]);
+  w3[2] = hc_swap32 (w3[2]);
+  w3[3] = hc_swap32 (w3[3]);
+  w4[0] = hc_swap32 (w4[0]);
+  w4[1] = hc_swap32 (w4[1]);
+  w4[2] = hc_swap32 (w4[2]);
+  w4[3] = hc_swap32 (w4[3]);
+  w5[0] = hc_swap32 (w5[0]);
+  w5[1] = hc_swap32 (w5[1]);
+  w5[2] = hc_swap32 (w5[2]);
+  w5[3] = hc_swap32 (w5[3]);
+  w6[0] = hc_swap32 (w6[0]);
+  w6[1] = hc_swap32 (w6[1]);
+  w6[2] = hc_swap32 (w6[2]);
+  w6[3] = hc_swap32 (w6[3]);
+  w7[0] = hc_swap32 (w7[0]);
+  w7[1] = hc_swap32 (w7[1]);
+  w7[2] = hc_swap32 (w7[2]);
+  w7[3] = hc_swap32 (w7[3]);
 
   sha384_update_vector_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, (len - pos1) * 2);
 }
@@ -2749,13 +2637,6 @@ DECLSPEC void sha384_final_vector (sha384_ctx_vector_t *ctx)
 }
 
 // HMAC + Vector
-
-typedef struct sha384_hmac_ctx_vector
-{
-  sha384_ctx_vector_t ipad;
-  sha384_ctx_vector_t opad;
-
-} sha384_hmac_ctx_vector_t;
 
 DECLSPEC void sha384_hmac_init_vector_128 (sha384_hmac_ctx_vector_t *ctx, const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, const u32x *w4, const u32x *w5, const u32x *w6, const u32x *w7)
 {

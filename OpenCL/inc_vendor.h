@@ -3,6 +3,9 @@
  * License.....: MIT
  */
 
+#ifndef _INC_VENDOR_H
+#define _INC_VENDOR_H
+
 #ifdef _CPU_OPENCL_EMU_H
 #define CONSTANT_AS
 #define GLOBAL_AS
@@ -111,4 +114,6 @@
 
 #ifdef NO_UNROLL
 #undef _unroll
+#endif
+
 #endif

@@ -180,20 +180,20 @@ KERNEL_FQ void m16600_m04 (KERN_ATTR_ESALT (electrum_wallet_t))
      * sha256
      */
 
-    u32x w0_t = swap32 (w0[0]);
-    u32x w1_t = swap32 (w0[1]);
-    u32x w2_t = swap32 (w0[2]);
-    u32x w3_t = swap32 (w0[3]);
-    u32x w4_t = swap32 (w1[0]);
-    u32x w5_t = swap32 (w1[1]);
-    u32x w6_t = swap32 (w1[2]);
-    u32x w7_t = swap32 (w1[3]);
-    u32x w8_t = swap32 (w2[0]);
-    u32x w9_t = swap32 (w2[1]);
-    u32x wa_t = swap32 (w2[2]);
-    u32x wb_t = swap32 (w2[3]);
-    u32x wc_t = swap32 (w3[0]);
-    u32x wd_t = swap32 (w3[1]);
+    u32x w0_t = hc_swap32 (w0[0]);
+    u32x w1_t = hc_swap32 (w0[1]);
+    u32x w2_t = hc_swap32 (w0[2]);
+    u32x w3_t = hc_swap32 (w0[3]);
+    u32x w4_t = hc_swap32 (w1[0]);
+    u32x w5_t = hc_swap32 (w1[1]);
+    u32x w6_t = hc_swap32 (w1[2]);
+    u32x w7_t = hc_swap32 (w1[3]);
+    u32x w8_t = hc_swap32 (w2[0]);
+    u32x w9_t = hc_swap32 (w2[1]);
+    u32x wa_t = hc_swap32 (w2[2]);
+    u32x wb_t = hc_swap32 (w2[3]);
+    u32x wc_t = hc_swap32 (w3[0]);
+    u32x wd_t = hc_swap32 (w3[1]);
     u32x we_t = 0;
     u32x wf_t = pw_len * 8;
 
@@ -388,14 +388,14 @@ KERNEL_FQ void m16600_m04 (KERN_ATTR_ESALT (electrum_wallet_t))
 
     u32 ukey[8];
 
-    ukey[0] = swap32_S (a);
-    ukey[1] = swap32_S (b);
-    ukey[2] = swap32_S (c);
-    ukey[3] = swap32_S (d);
-    ukey[4] = swap32_S (e);
-    ukey[5] = swap32_S (f);
-    ukey[6] = swap32_S (g);
-    ukey[7] = swap32_S (h);
+    ukey[0] = hc_swap32_S (a);
+    ukey[1] = hc_swap32_S (b);
+    ukey[2] = hc_swap32_S (c);
+    ukey[3] = hc_swap32_S (d);
+    ukey[4] = hc_swap32_S (e);
+    ukey[5] = hc_swap32_S (f);
+    ukey[6] = hc_swap32_S (g);
+    ukey[7] = hc_swap32_S (h);
 
     #define KEYLEN 60
 
@@ -623,20 +623,20 @@ KERNEL_FQ void m16600_s04 (KERN_ATTR_ESALT (electrum_wallet_t))
      * sha256
      */
 
-    u32x w0_t = swap32 (w0[0]);
-    u32x w1_t = swap32 (w0[1]);
-    u32x w2_t = swap32 (w0[2]);
-    u32x w3_t = swap32 (w0[3]);
-    u32x w4_t = swap32 (w1[0]);
-    u32x w5_t = swap32 (w1[1]);
-    u32x w6_t = swap32 (w1[2]);
-    u32x w7_t = swap32 (w1[3]);
-    u32x w8_t = swap32 (w2[0]);
-    u32x w9_t = swap32 (w2[1]);
-    u32x wa_t = swap32 (w2[2]);
-    u32x wb_t = swap32 (w2[3]);
-    u32x wc_t = swap32 (w3[0]);
-    u32x wd_t = swap32 (w3[1]);
+    u32x w0_t = hc_swap32 (w0[0]);
+    u32x w1_t = hc_swap32 (w0[1]);
+    u32x w2_t = hc_swap32 (w0[2]);
+    u32x w3_t = hc_swap32 (w0[3]);
+    u32x w4_t = hc_swap32 (w1[0]);
+    u32x w5_t = hc_swap32 (w1[1]);
+    u32x w6_t = hc_swap32 (w1[2]);
+    u32x w7_t = hc_swap32 (w1[3]);
+    u32x w8_t = hc_swap32 (w2[0]);
+    u32x w9_t = hc_swap32 (w2[1]);
+    u32x wa_t = hc_swap32 (w2[2]);
+    u32x wb_t = hc_swap32 (w2[3]);
+    u32x wc_t = hc_swap32 (w3[0]);
+    u32x wd_t = hc_swap32 (w3[1]);
     u32x we_t = 0;
     u32x wf_t = pw_len * 8;
 
@@ -831,14 +831,14 @@ KERNEL_FQ void m16600_s04 (KERN_ATTR_ESALT (electrum_wallet_t))
 
     u32 ukey[8];
 
-    ukey[0] = swap32_S (a);
-    ukey[1] = swap32_S (b);
-    ukey[2] = swap32_S (c);
-    ukey[3] = swap32_S (d);
-    ukey[4] = swap32_S (e);
-    ukey[5] = swap32_S (f);
-    ukey[6] = swap32_S (g);
-    ukey[7] = swap32_S (h);
+    ukey[0] = hc_swap32_S (a);
+    ukey[1] = hc_swap32_S (b);
+    ukey[2] = hc_swap32_S (c);
+    ukey[3] = hc_swap32_S (d);
+    ukey[4] = hc_swap32_S (e);
+    ukey[5] = hc_swap32_S (f);
+    ukey[6] = hc_swap32_S (g);
+    ukey[7] = hc_swap32_S (h);
 
     #define KEYLEN 60
 

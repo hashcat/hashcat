@@ -44,7 +44,7 @@ KERNEL_FQ void m05400_mxx (KERN_ATTR_ESALT (ikepsk_t))
 
   for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
-    w[idx] = swap32_S (pws[gid].i[idx]);
+    w[idx] = hc_swap32_S (pws[gid].i[idx]);
   }
 
   /**
@@ -62,7 +62,7 @@ KERNEL_FQ void m05400_mxx (KERN_ATTR_ESALT (ikepsk_t))
     #endif
     for (int idx = 0; idx < 64; idx++)
     {
-      c[idx] = swap32_S (combs_buf[il_pos].i[idx]);
+      c[idx] = hc_swap32_S (combs_buf[il_pos].i[idx]);
     }
 
     switch_buffer_by_offset_1x64_be_S (c, pw_len);
@@ -155,7 +155,7 @@ KERNEL_FQ void m05400_sxx (KERN_ATTR_ESALT (ikepsk_t))
 
   for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
-    w[idx] = swap32_S (pws[gid].i[idx]);
+    w[idx] = hc_swap32_S (pws[gid].i[idx]);
   }
 
   /**
@@ -173,7 +173,7 @@ KERNEL_FQ void m05400_sxx (KERN_ATTR_ESALT (ikepsk_t))
     #endif
     for (int idx = 0; idx < 64; idx++)
     {
-      c[idx] = swap32_S (combs_buf[il_pos].i[idx]);
+      c[idx] = hc_swap32_S (combs_buf[il_pos].i[idx]);
     }
 
     switch_buffer_by_offset_1x64_be_S (c, pw_len);

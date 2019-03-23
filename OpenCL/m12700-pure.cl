@@ -333,10 +333,10 @@ KERNEL_FQ void m12700_comp (KERN_ATTR_TMPS (mywallet_tmp_t))
   out[2] ^= salt_bufs[salt_pos].salt_buf[2];
   out[3] ^= salt_bufs[salt_pos].salt_buf[3];
 
-  out[0] = swap32_S (out[0]);
-  out[1] = swap32_S (out[1]);
-  out[2] = swap32_S (out[2]);
-  out[3] = swap32_S (out[3]);
+  out[0] = hc_swap32_S (out[0]);
+  out[1] = hc_swap32_S (out[1]);
+  out[2] = hc_swap32_S (out[2]);
+  out[3] = hc_swap32_S (out[3]);
 
   if ((out[0] & 0xff) != '{') return;
 

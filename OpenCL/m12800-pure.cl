@@ -156,22 +156,22 @@ KERNEL_FQ void m12800_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
   make_utf16le_S (w1, w2, w3);
   make_utf16le_S (w0, w0, w1);
 
-  w0[0] = swap32_S (w0[0]);
-  w0[1] = swap32_S (w0[1]);
-  w0[2] = swap32_S (w0[2]);
-  w0[3] = swap32_S (w0[3]);
-  w1[0] = swap32_S (w1[0]);
-  w1[1] = swap32_S (w1[1]);
-  w1[2] = swap32_S (w1[2]);
-  w1[3] = swap32_S (w1[3]);
-  w2[0] = swap32_S (w2[0]);
-  w2[1] = swap32_S (w2[1]);
-  w2[2] = swap32_S (w2[2]);
-  w2[3] = swap32_S (w2[3]);
-  w3[0] = swap32_S (w3[0]);
-  w3[1] = swap32_S (w3[1]);
-  w3[2] = swap32_S (w3[2]);
-  w3[3] = swap32_S (w3[3]);
+  w0[0] = hc_swap32_S (w0[0]);
+  w0[1] = hc_swap32_S (w0[1]);
+  w0[2] = hc_swap32_S (w0[2]);
+  w0[3] = hc_swap32_S (w0[3]);
+  w1[0] = hc_swap32_S (w1[0]);
+  w1[1] = hc_swap32_S (w1[1]);
+  w1[2] = hc_swap32_S (w1[2]);
+  w1[3] = hc_swap32_S (w1[3]);
+  w2[0] = hc_swap32_S (w2[0]);
+  w2[1] = hc_swap32_S (w2[1]);
+  w2[2] = hc_swap32_S (w2[2]);
+  w2[3] = hc_swap32_S (w2[3]);
+  w3[0] = hc_swap32_S (w3[0]);
+  w3[1] = hc_swap32_S (w3[1]);
+  w3[2] = hc_swap32_S (w3[2]);
+  w3[3] = hc_swap32_S (w3[3]);
 
   sha256_hmac_ctx_t sha256_hmac_ctx;
 

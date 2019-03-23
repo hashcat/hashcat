@@ -519,22 +519,22 @@ KERNEL_FQ void m13800_m04 (KERN_ATTR_ESALT (win8phone_t))
 
     u32x w[16];
 
-    w[ 0] = swap32 (w0[0]);
-    w[ 1] = swap32 (w0[1]);
-    w[ 2] = swap32 (w0[2]);
-    w[ 3] = swap32 (w0[3]);
-    w[ 4] = swap32 (w1[0]);
-    w[ 5] = swap32 (w1[1]);
-    w[ 6] = swap32 (w1[2]);
-    w[ 7] = swap32 (w1[3]);
-    w[ 8] = swap32 (w2[0]);
-    w[ 9] = swap32 (w2[1]);
-    w[10] = swap32 (w2[2]);
-    w[11] = swap32 (w2[3]);
-    w[12] = swap32 (w3[0]);
-    w[13] = swap32 (w3[1]);
-    w[14] = swap32 (w3[2]);
-    w[15] = swap32 (w3[3]);
+    w[ 0] = hc_swap32 (w0[0]);
+    w[ 1] = hc_swap32 (w0[1]);
+    w[ 2] = hc_swap32 (w0[2]);
+    w[ 3] = hc_swap32 (w0[3]);
+    w[ 4] = hc_swap32 (w1[0]);
+    w[ 5] = hc_swap32 (w1[1]);
+    w[ 6] = hc_swap32 (w1[2]);
+    w[ 7] = hc_swap32 (w1[3]);
+    w[ 8] = hc_swap32 (w2[0]);
+    w[ 9] = hc_swap32 (w2[1]);
+    w[10] = hc_swap32 (w2[2]);
+    w[11] = hc_swap32 (w2[3]);
+    w[12] = hc_swap32 (w3[0]);
+    w[13] = hc_swap32 (w3[1]);
+    w[14] = hc_swap32 (w3[2]);
+    w[15] = hc_swap32 (w3[3]);
 
     u32x carry[16];
 
@@ -783,22 +783,22 @@ KERNEL_FQ void m13800_s04 (KERN_ATTR_ESALT (win8phone_t))
 
     u32x w[16];
 
-    w[ 0] = swap32 (w0[0]);
-    w[ 1] = swap32 (w0[1]);
-    w[ 2] = swap32 (w0[2]);
-    w[ 3] = swap32 (w0[3]);
-    w[ 4] = swap32 (w1[0]);
-    w[ 5] = swap32 (w1[1]);
-    w[ 6] = swap32 (w1[2]);
-    w[ 7] = swap32 (w1[3]);
-    w[ 8] = swap32 (w2[0]);
-    w[ 9] = swap32 (w2[1]);
-    w[10] = swap32 (w2[2]);
-    w[11] = swap32 (w2[3]);
-    w[12] = swap32 (w3[0]);
-    w[13] = swap32 (w3[1]);
-    w[14] = swap32 (w3[2]);
-    w[15] = swap32 (w3[3]);
+    w[ 0] = hc_swap32 (w0[0]);
+    w[ 1] = hc_swap32 (w0[1]);
+    w[ 2] = hc_swap32 (w0[2]);
+    w[ 3] = hc_swap32 (w0[3]);
+    w[ 4] = hc_swap32 (w1[0]);
+    w[ 5] = hc_swap32 (w1[1]);
+    w[ 6] = hc_swap32 (w1[2]);
+    w[ 7] = hc_swap32 (w1[3]);
+    w[ 8] = hc_swap32 (w2[0]);
+    w[ 9] = hc_swap32 (w2[1]);
+    w[10] = hc_swap32 (w2[2]);
+    w[11] = hc_swap32 (w2[3]);
+    w[12] = hc_swap32 (w3[0]);
+    w[13] = hc_swap32 (w3[1]);
+    w[14] = hc_swap32 (w3[2]);
+    w[15] = hc_swap32 (w3[3]);
 
     u32x carry[16];
 

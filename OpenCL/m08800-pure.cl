@@ -463,9 +463,9 @@ KERNEL_FQ void m08800_comp (KERN_ATTR_TMPS_ESALT (androidfde_tmp_t, androidfde_t
     }
 
     // we need just a few swapped, because we do not access the others
-    r[ 5] = swap32_S (r[ 5]);
-    r[ 6] = swap32_S (r[ 6]);
-    r[14] = swap32_S (r[14]);
+    r[ 5] = hc_swap32_S (r[ 5]);
+    r[ 6] = hc_swap32_S (r[ 6]);
+    r[14] = hc_swap32_S (r[14]);
 
     // superblock not on id 0 or 1
     // assumes max block size is 32MiB

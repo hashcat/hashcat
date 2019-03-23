@@ -454,7 +454,7 @@ DECLSPEC void _des_crypt_encrypt (u32 *iv, u32 mask, u32 rounds, u32 *Kc, u32 *K
       u = u ^ Kc[j + 0];
       t = t ^ (t << 16);
       t = t ^ r;
-      t = rotl32 (t, 28u);
+      t = hc_rotl32 (t, 28u);
       t = t ^ Kd[j + 0];
 
       l ^= BOX (((u >>  0) & 0x3f), 0, s_SPtrans)
@@ -474,7 +474,7 @@ DECLSPEC void _des_crypt_encrypt (u32 *iv, u32 mask, u32 rounds, u32 *Kc, u32 *K
       u = u ^ Kc[j + 1];
       t = t ^ (t << 16);
       t = t ^ l;
-      t = rotl32 (t, 28u);
+      t = hc_rotl32 (t, 28u);
       t = t ^ Kd[j + 1];
 
       r ^= BOX (((u >>  0) & 0x3f), 0, s_SPtrans)
@@ -569,13 +569,13 @@ KERNEL_FQ void m12400_init (KERN_ATTR_TMPS (bsdicrypt_tmp_t))
 
     IP (out[0], out[1], tt);
 
-    out[0] = rotr32 (out[0], 31);
-    out[1] = rotr32 (out[1], 31);
+    out[0] = hc_rotr32 (out[0], 31);
+    out[1] = hc_rotr32 (out[1], 31);
 
     _des_crypt_encrypt (out, 0, 1, Kc, Kd, s_SPtrans);
 
-    out[0] = rotl32 (out[0], 31);
-    out[1] = rotl32 (out[1], 31);
+    out[0] = hc_rotl32 (out[0], 31);
+    out[1] = hc_rotl32 (out[1], 31);
 
     FP (out[1], out[0], tt);
 

@@ -404,24 +404,24 @@ KERNEL_FQ void __attribute__((reqd_work_group_size(FIXED_LOCAL_SIZE, 1, 1))) m03
 
   expand_key (E, w, pw_len);
 
-  E[ 0] = swap32_S (E[ 0]);
-  E[ 1] = swap32_S (E[ 1]);
-  E[ 2] = swap32_S (E[ 2]);
-  E[ 3] = swap32_S (E[ 3]);
-  E[ 4] = swap32_S (E[ 4]);
-  E[ 5] = swap32_S (E[ 5]);
-  E[ 6] = swap32_S (E[ 6]);
-  E[ 7] = swap32_S (E[ 7]);
-  E[ 8] = swap32_S (E[ 8]);
-  E[ 9] = swap32_S (E[ 9]);
-  E[10] = swap32_S (E[10]);
-  E[11] = swap32_S (E[11]);
-  E[12] = swap32_S (E[12]);
-  E[13] = swap32_S (E[13]);
-  E[14] = swap32_S (E[14]);
-  E[15] = swap32_S (E[15]);
-  E[16] = swap32_S (E[16]);
-  E[17] = swap32_S (E[17]);
+  E[ 0] = hc_swap32_S (E[ 0]);
+  E[ 1] = hc_swap32_S (E[ 1]);
+  E[ 2] = hc_swap32_S (E[ 2]);
+  E[ 3] = hc_swap32_S (E[ 3]);
+  E[ 4] = hc_swap32_S (E[ 4]);
+  E[ 5] = hc_swap32_S (E[ 5]);
+  E[ 6] = hc_swap32_S (E[ 6]);
+  E[ 7] = hc_swap32_S (E[ 7]);
+  E[ 8] = hc_swap32_S (E[ 8]);
+  E[ 9] = hc_swap32_S (E[ 9]);
+  E[10] = hc_swap32_S (E[10]);
+  E[11] = hc_swap32_S (E[11]);
+  E[12] = hc_swap32_S (E[12]);
+  E[13] = hc_swap32_S (E[13]);
+  E[14] = hc_swap32_S (E[14]);
+  E[15] = hc_swap32_S (E[15]);
+  E[16] = hc_swap32_S (E[16]);
+  E[17] = hc_swap32_S (E[17]);
 
   for (u32 i = 0; i < 18; i++)
   {

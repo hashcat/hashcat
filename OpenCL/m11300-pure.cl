@@ -328,10 +328,10 @@ KERNEL_FQ void m11300_comp (KERN_ATTR_TMPS_ESALT (bitcoin_wallet_tmp_t, bitcoin_
   {
     u32 data[4];
 
-    data[0] = swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 0]);
-    data[1] = swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 1]);
-    data[2] = swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 2]);
-    data[3] = swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 3]);
+    data[0] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 0]);
+    data[1] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 1]);
+    data[2] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 2]);
+    data[3] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 3]);
 
     AES256_decrypt (ks, data, out, s_td0, s_td1, s_td2, s_td3, s_td4);
 

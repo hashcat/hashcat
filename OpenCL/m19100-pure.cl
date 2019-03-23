@@ -82,10 +82,10 @@ KERNEL_FQ void m19100_comp (KERN_ATTR_TMPS (qnx_sha256_tmp_t))
 
   sha256_final (&sha256_ctx);
 
-  const u32 r0 = swap32_S (sha256_ctx.h[0]);
-  const u32 r1 = swap32_S (sha256_ctx.h[1]);
-  const u32 r2 = swap32_S (sha256_ctx.h[2]);
-  const u32 r3 = swap32_S (sha256_ctx.h[3]);
+  const u32 r0 = hc_swap32_S (sha256_ctx.h[0]);
+  const u32 r1 = hc_swap32_S (sha256_ctx.h[1]);
+  const u32 r2 = hc_swap32_S (sha256_ctx.h[2]);
+  const u32 r3 = hc_swap32_S (sha256_ctx.h[3]);
 
   #define il_pos 0
 

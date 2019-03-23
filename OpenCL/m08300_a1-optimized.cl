@@ -261,20 +261,20 @@ KERNEL_FQ void m08300_m04 (KERN_ATTR_BASIC ())
      * sha1
      */
 
-    w0_t[0] = swap32 (w0_t[0]);
-    w0_t[1] = swap32 (w0_t[1]);
-    w0_t[2] = swap32 (w0_t[2]);
-    w0_t[3] = swap32 (w0_t[3]);
-    w1_t[0] = swap32 (w1_t[0]);
-    w1_t[1] = swap32 (w1_t[1]);
-    w1_t[2] = swap32 (w1_t[2]);
-    w1_t[3] = swap32 (w1_t[3]);
-    w2_t[0] = swap32 (w2_t[0]);
-    w2_t[1] = swap32 (w2_t[1]);
-    w2_t[2] = swap32 (w2_t[2]);
-    w2_t[3] = swap32 (w2_t[3]);
-    w3_t[0] = swap32 (w3_t[0]);
-    w3_t[1] = swap32 (w3_t[1]);
+    w0_t[0] = hc_swap32 (w0_t[0]);
+    w0_t[1] = hc_swap32 (w0_t[1]);
+    w0_t[2] = hc_swap32 (w0_t[2]);
+    w0_t[3] = hc_swap32 (w0_t[3]);
+    w1_t[0] = hc_swap32 (w1_t[0]);
+    w1_t[1] = hc_swap32 (w1_t[1]);
+    w1_t[2] = hc_swap32 (w1_t[2]);
+    w1_t[3] = hc_swap32 (w1_t[3]);
+    w2_t[0] = hc_swap32 (w2_t[0]);
+    w2_t[1] = hc_swap32 (w2_t[1]);
+    w2_t[2] = hc_swap32 (w2_t[2]);
+    w2_t[3] = hc_swap32 (w2_t[3]);
+    w3_t[0] = hc_swap32 (w3_t[0]);
+    w3_t[1] = hc_swap32 (w3_t[1]);
     w3_t[2] = 0;
     w3_t[3] = (1 + pw_len + domain_len + 1 + salt_len) * 8;
 
@@ -297,14 +297,14 @@ KERNEL_FQ void m08300_m04 (KERN_ATTR_BASIC ())
       w0_t[2] = digest[2];
       w0_t[3] = digest[3];
       w1_t[0] = digest[4];
-      w1_t[1] = swap32 (salt_buf0[0]);
-      w1_t[2] = swap32 (salt_buf0[1]);
-      w1_t[3] = swap32 (salt_buf0[2]);
-      w2_t[0] = swap32 (salt_buf0[3]);
-      w2_t[1] = swap32 (salt_buf1[0]);
-      w2_t[2] = swap32 (salt_buf1[1]);
-      w2_t[3] = swap32 (salt_buf1[2]);
-      w3_t[0] = swap32 (salt_buf1[3]);
+      w1_t[1] = hc_swap32 (salt_buf0[0]);
+      w1_t[2] = hc_swap32 (salt_buf0[1]);
+      w1_t[3] = hc_swap32 (salt_buf0[2]);
+      w2_t[0] = hc_swap32 (salt_buf0[3]);
+      w2_t[1] = hc_swap32 (salt_buf1[0]);
+      w2_t[2] = hc_swap32 (salt_buf1[1]);
+      w2_t[3] = hc_swap32 (salt_buf1[2]);
+      w3_t[0] = hc_swap32 (salt_buf1[3]);
       w3_t[1] = 0;
       w3_t[2] = 0;
       w3_t[3] = (20 + salt_len) * 8;
@@ -590,20 +590,20 @@ KERNEL_FQ void m08300_s04 (KERN_ATTR_BASIC ())
      * sha1
      */
 
-    w0_t[0] = swap32 (w0_t[0]);
-    w0_t[1] = swap32 (w0_t[1]);
-    w0_t[2] = swap32 (w0_t[2]);
-    w0_t[3] = swap32 (w0_t[3]);
-    w1_t[0] = swap32 (w1_t[0]);
-    w1_t[1] = swap32 (w1_t[1]);
-    w1_t[2] = swap32 (w1_t[2]);
-    w1_t[3] = swap32 (w1_t[3]);
-    w2_t[0] = swap32 (w2_t[0]);
-    w2_t[1] = swap32 (w2_t[1]);
-    w2_t[2] = swap32 (w2_t[2]);
-    w2_t[3] = swap32 (w2_t[3]);
-    w3_t[0] = swap32 (w3_t[0]);
-    w3_t[1] = swap32 (w3_t[1]);
+    w0_t[0] = hc_swap32 (w0_t[0]);
+    w0_t[1] = hc_swap32 (w0_t[1]);
+    w0_t[2] = hc_swap32 (w0_t[2]);
+    w0_t[3] = hc_swap32 (w0_t[3]);
+    w1_t[0] = hc_swap32 (w1_t[0]);
+    w1_t[1] = hc_swap32 (w1_t[1]);
+    w1_t[2] = hc_swap32 (w1_t[2]);
+    w1_t[3] = hc_swap32 (w1_t[3]);
+    w2_t[0] = hc_swap32 (w2_t[0]);
+    w2_t[1] = hc_swap32 (w2_t[1]);
+    w2_t[2] = hc_swap32 (w2_t[2]);
+    w2_t[3] = hc_swap32 (w2_t[3]);
+    w3_t[0] = hc_swap32 (w3_t[0]);
+    w3_t[1] = hc_swap32 (w3_t[1]);
     w3_t[2] = 0;
     w3_t[3] = (1 + pw_len + domain_len + 1 + salt_len) * 8;
 
@@ -626,14 +626,14 @@ KERNEL_FQ void m08300_s04 (KERN_ATTR_BASIC ())
       w0_t[2] = digest[2];
       w0_t[3] = digest[3];
       w1_t[0] = digest[4];
-      w1_t[1] = swap32 (salt_buf0[0]);
-      w1_t[2] = swap32 (salt_buf0[1]);
-      w1_t[3] = swap32 (salt_buf0[2]);
-      w2_t[0] = swap32 (salt_buf0[3]);
-      w2_t[1] = swap32 (salt_buf1[0]);
-      w2_t[2] = swap32 (salt_buf1[1]);
-      w2_t[3] = swap32 (salt_buf1[2]);
-      w3_t[0] = swap32 (salt_buf1[3]);
+      w1_t[1] = hc_swap32 (salt_buf0[0]);
+      w1_t[2] = hc_swap32 (salt_buf0[1]);
+      w1_t[3] = hc_swap32 (salt_buf0[2]);
+      w2_t[0] = hc_swap32 (salt_buf0[3]);
+      w2_t[1] = hc_swap32 (salt_buf1[0]);
+      w2_t[2] = hc_swap32 (salt_buf1[1]);
+      w2_t[3] = hc_swap32 (salt_buf1[2]);
+      w3_t[0] = hc_swap32 (salt_buf1[3]);
       w3_t[1] = 0;
       w3_t[2] = 0;
       w3_t[3] = (20 + salt_len) * 8;

@@ -61,12 +61,12 @@ KERNEL_FQ void m07000_mxx (KERN_ATTR_RULES ())
     u32 p2[4];
     u32 p3[4];
 
-    p0[0] = swap32_S (FORTIGATE_A);
-    p0[1] = swap32_S (FORTIGATE_B);
-    p0[2] = swap32_S (FORTIGATE_C);
-    p0[3] = swap32_S (FORTIGATE_D);
-    p1[0] = swap32_S (FORTIGATE_E);
-    p1[1] = swap32_S (FORTIGATE_F);
+    p0[0] = hc_swap32_S (FORTIGATE_A);
+    p0[1] = hc_swap32_S (FORTIGATE_B);
+    p0[2] = hc_swap32_S (FORTIGATE_C);
+    p0[3] = hc_swap32_S (FORTIGATE_D);
+    p1[0] = hc_swap32_S (FORTIGATE_E);
+    p1[1] = hc_swap32_S (FORTIGATE_F);
     p1[2] = 0;
     p1[3] = 0;
     p2[0] = 0;
@@ -149,12 +149,12 @@ KERNEL_FQ void m07000_sxx (KERN_ATTR_RULES ())
     u32 p2[4];
     u32 p3[4];
 
-    p0[0] = swap32_S (FORTIGATE_A);
-    p0[1] = swap32_S (FORTIGATE_B);
-    p0[2] = swap32_S (FORTIGATE_C);
-    p0[3] = swap32_S (FORTIGATE_D);
-    p1[0] = swap32_S (FORTIGATE_E);
-    p1[1] = swap32_S (FORTIGATE_F);
+    p0[0] = hc_swap32_S (FORTIGATE_A);
+    p0[1] = hc_swap32_S (FORTIGATE_B);
+    p0[2] = hc_swap32_S (FORTIGATE_C);
+    p0[3] = hc_swap32_S (FORTIGATE_D);
+    p1[0] = hc_swap32_S (FORTIGATE_E);
+    p1[1] = hc_swap32_S (FORTIGATE_F);
     p1[2] = 0;
     p1[3] = 0;
     p2[0] = 0;

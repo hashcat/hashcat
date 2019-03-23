@@ -1,3 +1,17 @@
+/**
+ * Author......: See docs/credits.txt
+ * License.....: MIT
+ */
+
+#include "inc_vendor.h"
+#include "inc_types.h"
+#include "inc_common.h"
+#include "inc_cipher_aes.h"
+#include "inc_cipher_serpent.h"
+#include "inc_cipher_twofish.h"
+#include "inc_truecrypt_crc32.h"
+#include "inc_truecrypt_xts.h"
+
 DECLSPEC void xts_mul2 (u32 *in, u32 *out)
 {
   const u32 c = in[3] >> 31;
@@ -171,7 +185,7 @@ DECLSPEC int verify_header_aes (GLOBAL_AS const u32 *data_buf, const u32 signatu
 
   if (tmp[0] != signature) return 0;
 
-  const u32 crc32_save = swap32_S (~tmp[2]);
+  const u32 crc32_save = hc_swap32_S (~tmp[2]);
 
   // seek to byte 256
 
@@ -225,7 +239,7 @@ DECLSPEC int verify_header_serpent (GLOBAL_AS const u32 *data_buf, const u32 sig
 
   if (tmp[0] != signature) return 0;
 
-  const u32 crc32_save = swap32_S (~tmp[2]);
+  const u32 crc32_save = hc_swap32_S (~tmp[2]);
 
   // seek to byte 256
 
@@ -280,7 +294,7 @@ DECLSPEC int verify_header_twofish (GLOBAL_AS const u32 *data_buf, const u32 sig
 
   if (tmp[0] != signature) return 0;
 
-  const u32 crc32_save = swap32_S (~tmp[2]);
+  const u32 crc32_save = hc_swap32_S (~tmp[2]);
 
   // seek to byte 256
 
@@ -341,7 +355,7 @@ DECLSPEC int verify_header_aes_twofish (GLOBAL_AS const u32 *data_buf, const u32
 
   if (tmp[0] != signature) return 0;
 
-  const u32 crc32_save = swap32_S (~tmp[2]);
+  const u32 crc32_save = hc_swap32_S (~tmp[2]);
 
   // seek to byte 256
 
@@ -400,7 +414,7 @@ DECLSPEC int verify_header_serpent_aes (GLOBAL_AS const u32 *data_buf, const u32
 
   if (tmp[0] != signature) return 0;
 
-  const u32 crc32_save = swap32_S (~tmp[2]);
+  const u32 crc32_save = hc_swap32_S (~tmp[2]);
 
   // seek to byte 256
 
@@ -461,7 +475,7 @@ DECLSPEC int verify_header_twofish_serpent (GLOBAL_AS const u32 *data_buf, const
 
   if (tmp[0] != signature) return 0;
 
-  const u32 crc32_save = swap32_S (~tmp[2]);
+  const u32 crc32_save = hc_swap32_S (~tmp[2]);
 
   // seek to byte 256
 
@@ -528,7 +542,7 @@ DECLSPEC int verify_header_aes_twofish_serpent (GLOBAL_AS const u32 *data_buf, c
 
   if (tmp[0] != signature) return 0;
 
-  const u32 crc32_save = swap32_S (~tmp[2]);
+  const u32 crc32_save = hc_swap32_S (~tmp[2]);
 
   // seek to byte 256
 
@@ -595,7 +609,7 @@ DECLSPEC int verify_header_serpent_twofish_aes (GLOBAL_AS const u32 *data_buf, c
 
   if (tmp[0] != signature) return 0;
 
-  const u32 crc32_save = swap32_S (~tmp[2]);
+  const u32 crc32_save = hc_swap32_S (~tmp[2]);
 
   // seek to byte 256
 

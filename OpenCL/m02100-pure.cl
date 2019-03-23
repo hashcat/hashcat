@@ -98,10 +98,10 @@ KERNEL_FQ void m02100_init (KERN_ATTR_TMPS (dcc2_tmp_t))
 
   md4_final (&md4_ctx2);
 
-  md4_ctx2.h[0] = swap32_S (md4_ctx2.h[0]);
-  md4_ctx2.h[1] = swap32_S (md4_ctx2.h[1]);
-  md4_ctx2.h[2] = swap32_S (md4_ctx2.h[2]);
-  md4_ctx2.h[3] = swap32_S (md4_ctx2.h[3]);
+  md4_ctx2.h[0] = hc_swap32_S (md4_ctx2.h[0]);
+  md4_ctx2.h[1] = hc_swap32_S (md4_ctx2.h[1]);
+  md4_ctx2.h[2] = hc_swap32_S (md4_ctx2.h[2]);
+  md4_ctx2.h[3] = hc_swap32_S (md4_ctx2.h[3]);
 
   // dcc2
 

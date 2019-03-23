@@ -257,10 +257,10 @@ DECLSPEC void m09800m (LOCAL_AS RC4_KEY *rc4_keys, u32 *w0, u32 *w1, u32 *w2, u3
 
     sha1_transform (w0_t, w1_t, w2_t, w3_t, digest);
 
-    digest[0] = swap32_S (digest[0]);
-    digest[1] = swap32_S (digest[1]);
-    digest[2] = swap32_S (digest[2]);
-    digest[3] = swap32_S (digest[3]);
+    digest[0] = hc_swap32_S (digest[0]);
+    digest[1] = hc_swap32_S (digest[1]);
+    digest[2] = hc_swap32_S (digest[2]);
+    digest[3] = hc_swap32_S (digest[3]);
 
     if (version == 3)
     {
@@ -275,10 +275,10 @@ DECLSPEC void m09800m (LOCAL_AS RC4_KEY *rc4_keys, u32 *w0, u32 *w1, u32 *w2, u3
 
     u8 j = rc4_next_16 (rc4_key, 0, 0, encryptedVerifier, out);
 
-    w0_t[0] = swap32_S (out[0]);
-    w0_t[1] = swap32_S (out[1]);
-    w0_t[2] = swap32_S (out[2]);
-    w0_t[3] = swap32_S (out[3]);
+    w0_t[0] = hc_swap32_S (out[0]);
+    w0_t[1] = hc_swap32_S (out[1]);
+    w0_t[2] = hc_swap32_S (out[2]);
+    w0_t[3] = hc_swap32_S (out[3]);
     w1_t[0] = 0x80000000;
     w1_t[1] = 0;
     w1_t[2] = 0;
@@ -300,10 +300,10 @@ DECLSPEC void m09800m (LOCAL_AS RC4_KEY *rc4_keys, u32 *w0, u32 *w1, u32 *w2, u3
 
     sha1_transform (w0_t, w1_t, w2_t, w3_t, digest);
 
-    digest[0] = swap32_S (digest[0]);
-    digest[1] = swap32_S (digest[1]);
-    digest[2] = swap32_S (digest[2]);
-    digest[3] = swap32_S (digest[3]);
+    digest[0] = hc_swap32_S (digest[0]);
+    digest[1] = hc_swap32_S (digest[1]);
+    digest[2] = hc_swap32_S (digest[2]);
+    digest[3] = hc_swap32_S (digest[3]);
 
     rc4_next_16 (rc4_key, 16, j, digest, out);
 
@@ -437,10 +437,10 @@ DECLSPEC void m09800s (LOCAL_AS RC4_KEY *rc4_keys, u32 *w0, u32 *w1, u32 *w2, u3
 
     sha1_transform (w0_t, w1_t, w2_t, w3_t, digest);
 
-    digest[0] = swap32_S (digest[0]);
-    digest[1] = swap32_S (digest[1]);
-    digest[2] = swap32_S (digest[2]);
-    digest[3] = swap32_S (digest[3]);
+    digest[0] = hc_swap32_S (digest[0]);
+    digest[1] = hc_swap32_S (digest[1]);
+    digest[2] = hc_swap32_S (digest[2]);
+    digest[3] = hc_swap32_S (digest[3]);
 
     if (version == 3)
     {
@@ -455,10 +455,10 @@ DECLSPEC void m09800s (LOCAL_AS RC4_KEY *rc4_keys, u32 *w0, u32 *w1, u32 *w2, u3
 
     u8 j = rc4_next_16 (rc4_key, 0, 0, encryptedVerifier, out);
 
-    w0_t[0] = swap32_S (out[0]);
-    w0_t[1] = swap32_S (out[1]);
-    w0_t[2] = swap32_S (out[2]);
-    w0_t[3] = swap32_S (out[3]);
+    w0_t[0] = hc_swap32_S (out[0]);
+    w0_t[1] = hc_swap32_S (out[1]);
+    w0_t[2] = hc_swap32_S (out[2]);
+    w0_t[3] = hc_swap32_S (out[3]);
     w1_t[0] = 0x80000000;
     w1_t[1] = 0;
     w1_t[2] = 0;
@@ -480,10 +480,10 @@ DECLSPEC void m09800s (LOCAL_AS RC4_KEY *rc4_keys, u32 *w0, u32 *w1, u32 *w2, u3
 
     sha1_transform (w0_t, w1_t, w2_t, w3_t, digest);
 
-    digest[0] = swap32_S (digest[0]);
-    digest[1] = swap32_S (digest[1]);
-    digest[2] = swap32_S (digest[2]);
-    digest[3] = swap32_S (digest[3]);
+    digest[0] = hc_swap32_S (digest[0]);
+    digest[1] = hc_swap32_S (digest[1]);
+    digest[2] = hc_swap32_S (digest[2]);
+    digest[3] = hc_swap32_S (digest[3]);
 
     rc4_next_16 (rc4_key, 16, j, digest, out);
 

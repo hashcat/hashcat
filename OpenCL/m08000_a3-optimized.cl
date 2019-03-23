@@ -217,9 +217,9 @@ DECLSPEC void m08000m (LOCAL_AS u32 *w_s1, LOCAL_AS u32 *w_s2, u32 *w, const u32
    * salt
    */
 
-  const u32 salt_buf0 = swap32_S (salt_bufs[salt_pos].salt_buf[ 0]);
-  const u32 salt_buf1 = swap32_S (salt_bufs[salt_pos].salt_buf[ 1]);
-  const u32 salt_buf2 = swap32_S (salt_bufs[salt_pos].salt_buf[ 2]); // 0x80
+  const u32 salt_buf0 = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 0]);
+  const u32 salt_buf1 = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 1]);
+  const u32 salt_buf2 = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 2]); // 0x80
 
   /**
    * precompute final msg blocks
@@ -339,9 +339,9 @@ DECLSPEC void m08000s (LOCAL_AS u32 *w_s1, LOCAL_AS u32 *w_s2, u32 *w, const u32
    * salt
    */
 
-  const u32 salt_buf0 = swap32_S (salt_bufs[salt_pos].salt_buf[ 0]);
-  const u32 salt_buf1 = swap32_S (salt_bufs[salt_pos].salt_buf[ 1]);
-  const u32 salt_buf2 = swap32_S (salt_bufs[salt_pos].salt_buf[ 2]); // 0x80
+  const u32 salt_buf0 = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 0]);
+  const u32 salt_buf1 = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 1]);
+  const u32 salt_buf2 = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 2]); // 0x80
 
   /**
    * precompute final msg blocks

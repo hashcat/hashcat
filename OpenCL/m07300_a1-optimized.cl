@@ -218,22 +218,22 @@ KERNEL_FQ void m07300_m04 (KERN_ATTR_ESALT (rakp_t))
     w3[2] = wordl3[2] | wordr3[2];
     w3[3] = wordl3[3] | wordr3[3];
 
-    w0[0] = swap32 (w0[0]);
-    w0[1] = swap32 (w0[1]);
-    w0[2] = swap32 (w0[2]);
-    w0[3] = swap32 (w0[3]);
-    w1[0] = swap32 (w1[0]);
-    w1[1] = swap32 (w1[1]);
-    w1[2] = swap32 (w1[2]);
-    w1[3] = swap32 (w1[3]);
-    w2[0] = swap32 (w2[0]);
-    w2[1] = swap32 (w2[1]);
-    w2[2] = swap32 (w2[2]);
-    w2[3] = swap32 (w2[3]);
-    w3[0] = swap32 (w3[0]);
-    w3[1] = swap32 (w3[1]);
-    w3[2] = swap32 (w3[2]);
-    w3[3] = swap32 (w3[3]);
+    w0[0] = hc_swap32 (w0[0]);
+    w0[1] = hc_swap32 (w0[1]);
+    w0[2] = hc_swap32 (w0[2]);
+    w0[3] = hc_swap32 (w0[3]);
+    w1[0] = hc_swap32 (w1[0]);
+    w1[1] = hc_swap32 (w1[1]);
+    w1[2] = hc_swap32 (w1[2]);
+    w1[3] = hc_swap32 (w1[3]);
+    w2[0] = hc_swap32 (w2[0]);
+    w2[1] = hc_swap32 (w2[1]);
+    w2[2] = hc_swap32 (w2[2]);
+    w2[3] = hc_swap32 (w2[3]);
+    w3[0] = hc_swap32 (w3[0]);
+    w3[1] = hc_swap32 (w3[1]);
+    w3[2] = hc_swap32 (w3[2]);
+    w3[3] = hc_swap32 (w3[3]);
 
     /**
      * RAKP
@@ -425,22 +425,22 @@ KERNEL_FQ void m07300_s04 (KERN_ATTR_ESALT (rakp_t))
     w3[2] = wordl3[2] | wordr3[2];
     w3[3] = wordl3[3] | wordr3[3];
 
-    w0[0] = swap32 (w0[0]);
-    w0[1] = swap32 (w0[1]);
-    w0[2] = swap32 (w0[2]);
-    w0[3] = swap32 (w0[3]);
-    w1[0] = swap32 (w1[0]);
-    w1[1] = swap32 (w1[1]);
-    w1[2] = swap32 (w1[2]);
-    w1[3] = swap32 (w1[3]);
-    w2[0] = swap32 (w2[0]);
-    w2[1] = swap32 (w2[1]);
-    w2[2] = swap32 (w2[2]);
-    w2[3] = swap32 (w2[3]);
-    w3[0] = swap32 (w3[0]);
-    w3[1] = swap32 (w3[1]);
-    w3[2] = swap32 (w3[2]);
-    w3[3] = swap32 (w3[3]);
+    w0[0] = hc_swap32 (w0[0]);
+    w0[1] = hc_swap32 (w0[1]);
+    w0[2] = hc_swap32 (w0[2]);
+    w0[3] = hc_swap32 (w0[3]);
+    w1[0] = hc_swap32 (w1[0]);
+    w1[1] = hc_swap32 (w1[1]);
+    w1[2] = hc_swap32 (w1[2]);
+    w1[3] = hc_swap32 (w1[3]);
+    w2[0] = hc_swap32 (w2[0]);
+    w2[1] = hc_swap32 (w2[1]);
+    w2[2] = hc_swap32 (w2[2]);
+    w2[3] = hc_swap32 (w2[3]);
+    w3[0] = hc_swap32 (w3[0]);
+    w3[1] = hc_swap32 (w3[1]);
+    w3[2] = hc_swap32 (w3[2]);
+    w3[3] = hc_swap32 (w3[3]);
 
     /**
      * RAKP

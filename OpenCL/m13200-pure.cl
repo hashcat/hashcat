@@ -174,7 +174,7 @@ KERNEL_FQ void m13200_loop (KERN_ATTR_TMPS (axcrypt_tmp_t))
   {
     const u32 j2 = j * 2;
 
-    cipher[0] ^= swap32_S (j2 + 2);
+    cipher[0] ^= hc_swap32_S (j2 + 2);
 
     /* R[i] */
     cipher[2] = lsb[2];
@@ -188,7 +188,7 @@ KERNEL_FQ void m13200_loop (KERN_ATTR_TMPS (axcrypt_tmp_t))
     lsb[3] = cipher[3];
 
     /* 2nd block treatment */
-    cipher[0] ^= swap32_S (j2 + 1);
+    cipher[0] ^= hc_swap32_S (j2 + 1);
 
     cipher[2] = lsb[0];
     cipher[3] = lsb[1];

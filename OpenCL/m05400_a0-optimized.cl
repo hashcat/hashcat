@@ -132,14 +132,14 @@ KERNEL_FQ void m05400_m04 (KERN_ATTR_RULES_ESALT (ikepsk_t))
 
   for (u32 i = lid; i < 16; i += lsz)
   {
-    s_nr_buf[i] = swap32_S (esalt_bufs[digests_offset].nr_buf[i]);
+    s_nr_buf[i] = hc_swap32_S (esalt_bufs[digests_offset].nr_buf[i]);
   }
 
   LOCAL_AS u32 s_msg_buf[128];
 
   for (u32 i = lid; i < 128; i += lsz)
   {
-    s_msg_buf[i] = swap32_S (esalt_bufs[digests_offset].msg_buf[i]);
+    s_msg_buf[i] = hc_swap32_S (esalt_bufs[digests_offset].msg_buf[i]);
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
@@ -188,14 +188,14 @@ KERNEL_FQ void m05400_m04 (KERN_ATTR_RULES_ESALT (ikepsk_t))
      * pads
      */
 
-    w0[0] = swap32 (w0[0]);
-    w0[1] = swap32 (w0[1]);
-    w0[2] = swap32 (w0[2]);
-    w0[3] = swap32 (w0[3]);
-    w1[0] = swap32 (w1[0]);
-    w1[1] = swap32 (w1[1]);
-    w1[2] = swap32 (w1[2]);
-    w1[3] = swap32 (w1[3]);
+    w0[0] = hc_swap32 (w0[0]);
+    w0[1] = hc_swap32 (w0[1]);
+    w0[2] = hc_swap32 (w0[2]);
+    w0[3] = hc_swap32 (w0[3]);
+    w1[0] = hc_swap32 (w1[0]);
+    w1[1] = hc_swap32 (w1[1]);
+    w1[2] = hc_swap32 (w1[2]);
+    w1[3] = hc_swap32 (w1[3]);
 
     u32x ipad[5];
     u32x opad[5];
@@ -316,14 +316,14 @@ KERNEL_FQ void m05400_s04 (KERN_ATTR_RULES_ESALT (ikepsk_t))
 
   for (u32 i = lid; i < 16; i += lsz)
   {
-    s_nr_buf[i] = swap32_S (esalt_bufs[digests_offset].nr_buf[i]);
+    s_nr_buf[i] = hc_swap32_S (esalt_bufs[digests_offset].nr_buf[i]);
   }
 
   LOCAL_AS u32 s_msg_buf[128];
 
   for (u32 i = lid; i < 128; i += lsz)
   {
-    s_msg_buf[i] = swap32_S (esalt_bufs[digests_offset].msg_buf[i]);
+    s_msg_buf[i] = hc_swap32_S (esalt_bufs[digests_offset].msg_buf[i]);
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
@@ -384,14 +384,14 @@ KERNEL_FQ void m05400_s04 (KERN_ATTR_RULES_ESALT (ikepsk_t))
      * pads
      */
 
-    w0[0] = swap32 (w0[0]);
-    w0[1] = swap32 (w0[1]);
-    w0[2] = swap32 (w0[2]);
-    w0[3] = swap32 (w0[3]);
-    w1[0] = swap32 (w1[0]);
-    w1[1] = swap32 (w1[1]);
-    w1[2] = swap32 (w1[2]);
-    w1[3] = swap32 (w1[3]);
+    w0[0] = hc_swap32 (w0[0]);
+    w0[1] = hc_swap32 (w0[1]);
+    w0[2] = hc_swap32 (w0[2]);
+    w0[3] = hc_swap32 (w0[3]);
+    w1[0] = hc_swap32 (w1[0]);
+    w1[1] = hc_swap32 (w1[1]);
+    w1[2] = hc_swap32 (w1[2]);
+    w1[3] = hc_swap32 (w1[3]);
 
     u32x ipad[5];
     u32x opad[5];

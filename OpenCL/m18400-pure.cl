@@ -120,10 +120,10 @@ KERNEL_FQ void m18400_init (KERN_ATTR_TMPS_ESALT (odf12_tmp_t, odf12_t))
   u32 m2[4];
   u32 m3[4];
 
-  m0[0] = swap32_S (salt_bufs[digests_offset].salt_buf[0]);
-  m0[1] = swap32_S (salt_bufs[digests_offset].salt_buf[1]);
-  m0[2] = swap32_S (salt_bufs[digests_offset].salt_buf[2]);
-  m0[3] = swap32_S (salt_bufs[digests_offset].salt_buf[3]);
+  m0[0] = hc_swap32_S (salt_bufs[digests_offset].salt_buf[0]);
+  m0[1] = hc_swap32_S (salt_bufs[digests_offset].salt_buf[1]);
+  m0[2] = hc_swap32_S (salt_bufs[digests_offset].salt_buf[2]);
+  m0[3] = hc_swap32_S (salt_bufs[digests_offset].salt_buf[3]);
   m1[0] = 0;
   m1[1] = 0;
   m1[2] = 0;
@@ -329,14 +329,14 @@ KERNEL_FQ void m18400_comp (KERN_ATTR_TMPS_ESALT (odf12_tmp_t, odf12_t))
 
   u32 ukey[8];
 
-  ukey[0] = swap32_S (tmps[gid].out[0]);
-  ukey[1] = swap32_S (tmps[gid].out[1]);
-  ukey[2] = swap32_S (tmps[gid].out[2]);
-  ukey[3] = swap32_S (tmps[gid].out[3]);
-  ukey[4] = swap32_S (tmps[gid].out[4]);
-  ukey[5] = swap32_S (tmps[gid].out[5]);
-  ukey[6] = swap32_S (tmps[gid].out[6]);
-  ukey[7] = swap32_S (tmps[gid].out[7]);
+  ukey[0] = hc_swap32_S (tmps[gid].out[0]);
+  ukey[1] = hc_swap32_S (tmps[gid].out[1]);
+  ukey[2] = hc_swap32_S (tmps[gid].out[2]);
+  ukey[3] = hc_swap32_S (tmps[gid].out[3]);
+  ukey[4] = hc_swap32_S (tmps[gid].out[4]);
+  ukey[5] = hc_swap32_S (tmps[gid].out[5]);
+  ukey[6] = hc_swap32_S (tmps[gid].out[6]);
+  ukey[7] = hc_swap32_S (tmps[gid].out[7]);
 
   u32 ks[60];
 
@@ -435,35 +435,35 @@ KERNEL_FQ void m18400_comp (KERN_ATTR_TMPS_ESALT (odf12_tmp_t, odf12_t))
     iv[2] = ct[2];
     iv[3] = ct[3];
 
-    pt1[0] = swap32_S (pt1[0]);
-    pt1[1] = swap32_S (pt1[1]);
-    pt1[2] = swap32_S (pt1[2]);
-    pt1[3] = swap32_S (pt1[3]);
+    pt1[0] = hc_swap32_S (pt1[0]);
+    pt1[1] = hc_swap32_S (pt1[1]);
+    pt1[2] = hc_swap32_S (pt1[2]);
+    pt1[3] = hc_swap32_S (pt1[3]);
 
-    pt2[0] = swap32_S (pt2[0]);
-    pt2[1] = swap32_S (pt2[1]);
-    pt2[2] = swap32_S (pt2[2]);
-    pt2[3] = swap32_S (pt2[3]);
+    pt2[0] = hc_swap32_S (pt2[0]);
+    pt2[1] = hc_swap32_S (pt2[1]);
+    pt2[2] = hc_swap32_S (pt2[2]);
+    pt2[3] = hc_swap32_S (pt2[3]);
 
-    pt3[0] = swap32_S (pt3[0]);
-    pt3[1] = swap32_S (pt3[1]);
-    pt3[2] = swap32_S (pt3[2]);
-    pt3[3] = swap32_S (pt3[3]);
+    pt3[0] = hc_swap32_S (pt3[0]);
+    pt3[1] = hc_swap32_S (pt3[1]);
+    pt3[2] = hc_swap32_S (pt3[2]);
+    pt3[3] = hc_swap32_S (pt3[3]);
 
-    pt4[0] = swap32_S (pt4[0]);
-    pt4[1] = swap32_S (pt4[1]);
-    pt4[2] = swap32_S (pt4[2]);
-    pt4[3] = swap32_S (pt4[3]);
+    pt4[0] = hc_swap32_S (pt4[0]);
+    pt4[1] = hc_swap32_S (pt4[1]);
+    pt4[2] = hc_swap32_S (pt4[2]);
+    pt4[3] = hc_swap32_S (pt4[3]);
 
     sha256_update_64 (&sha256_ctx, pt1, pt2, pt3, pt4, 64);
   }
 
   sha256_final (&sha256_ctx);
 
-  const u32 r0 = swap32_S (sha256_ctx.h[0]);
-  const u32 r1 = swap32_S (sha256_ctx.h[1]);
-  const u32 r2 = swap32_S (sha256_ctx.h[2]);
-  const u32 r3 = swap32_S (sha256_ctx.h[3]);
+  const u32 r0 = hc_swap32_S (sha256_ctx.h[0]);
+  const u32 r1 = hc_swap32_S (sha256_ctx.h[1]);
+  const u32 r2 = hc_swap32_S (sha256_ctx.h[2]);
+  const u32 r3 = hc_swap32_S (sha256_ctx.h[3]);
 
   #define il_pos 0
 

@@ -63,7 +63,7 @@ KERNEL_FQ void m11760_mxx (KERN_ATTR_BASIC ())
 
   for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
-    w[idx] = swap32_S (pws[gid].i[idx]);
+    w[idx] = hc_swap32_S (pws[gid].i[idx]);
   }
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
@@ -72,7 +72,7 @@ KERNEL_FQ void m11760_mxx (KERN_ATTR_BASIC ())
 
   for (int i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = swap32_S (salt_bufs[salt_pos].salt_buf[idx]);
+    s[idx] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[idx]);
   }
 
   streebog256_hmac_ctx_t ctx0;
@@ -94,7 +94,7 @@ KERNEL_FQ void m11760_mxx (KERN_ATTR_BASIC ())
     #endif
     for (int idx = 0; idx < 64; idx++)
     {
-      c[idx] = swap32_S (combs_buf[il_pos].i[idx]);
+      c[idx] = hc_swap32_S (combs_buf[il_pos].i[idx]);
     }
 
     switch_buffer_by_offset_1x64_be_S (c, pw_len);
@@ -184,7 +184,7 @@ KERNEL_FQ void m11760_sxx (KERN_ATTR_BASIC ())
 
   for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
-    w[idx] = swap32_S (pws[gid].i[idx]);
+    w[idx] = hc_swap32_S (pws[gid].i[idx]);
   }
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
@@ -193,7 +193,7 @@ KERNEL_FQ void m11760_sxx (KERN_ATTR_BASIC ())
 
   for (int i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = swap32_S (salt_bufs[salt_pos].salt_buf[idx]);
+    s[idx] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[idx]);
   }
 
   streebog256_hmac_ctx_t ctx0;
@@ -215,7 +215,7 @@ KERNEL_FQ void m11760_sxx (KERN_ATTR_BASIC ())
     #endif
     for (int idx = 0; idx < 64; idx++)
     {
-      c[idx] = swap32_S (combs_buf[il_pos].i[idx]);
+      c[idx] = hc_swap32_S (combs_buf[il_pos].i[idx]);
     }
 
     switch_buffer_by_offset_1x64_be_S (c, pw_len);

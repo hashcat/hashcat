@@ -3,81 +3,9 @@
  * License.....: MIT
  */
 
-/*
- * Prototype kernel function that fits all kernel macros
- *
- * There are four variables where major differences occur:
- *
- *   -  P2: Adress space of kernel_rules_t struct.
- *          If the kernel uses rules_buf, it will be stored in CONSTANT_AS.
- *          If it does not, cheaper GLOBAL_AS space is used.
- *
- *   -  P4: Innerloop word buffer:
- *          Most kernels use a bf_t structure in GLOBAL_AS address space (_BASIC).
- *          Some use u32x pointer to a vector in CONSTANT_AS address space (_VECTOR).
- *          A few use a specific bs_word_t struct (_BITSLICE).
- *
- *   -  P5: Type of the tmps structure with additional data, or void.
- *          Used with slow hash types (ATTACK_EXEC_OUTSIDE_KERNEL) only.
- *
- *   - P19: Type of the esalt_bufs structure with additional data, or void.
- */
-
-#define KERN_ATTR(p2,p4,p5,p6,p19)                            \
-  GLOBAL_AS       pw_t          * restrict pws,               \
-  p2        const kernel_rule_t * restrict rules_buf,         \
-  GLOBAL_AS const pw_t          * restrict combs_buf,         \
-  p4,                                                         \
-  GLOBAL_AS p5                  * restrict tmps,              \
-  GLOBAL_AS p6                  * restrict hooks,             \
-  GLOBAL_AS const u32           * restrict bitmaps_buf_s1_a,  \
-  GLOBAL_AS const u32           * restrict bitmaps_buf_s1_b,  \
-  GLOBAL_AS const u32           * restrict bitmaps_buf_s1_c,  \
-  GLOBAL_AS const u32           * restrict bitmaps_buf_s1_d,  \
-  GLOBAL_AS const u32           * restrict bitmaps_buf_s2_a,  \
-  GLOBAL_AS const u32           * restrict bitmaps_buf_s2_b,  \
-  GLOBAL_AS const u32           * restrict bitmaps_buf_s2_c,  \
-  GLOBAL_AS const u32           * restrict bitmaps_buf_s2_d,  \
-  GLOBAL_AS       plain_t       * restrict plains_buf,        \
-  GLOBAL_AS const digest_t      * restrict digests_buf,       \
-  GLOBAL_AS       u32           * restrict hashes_shown,      \
-  GLOBAL_AS const salt_t        * restrict salt_bufs,         \
-  GLOBAL_AS const p19           * restrict esalt_bufs,        \
-  GLOBAL_AS       u32           * restrict d_return_buf,      \
-  GLOBAL_AS       void          * restrict d_extra0_buf,      \
-  GLOBAL_AS       void          * restrict d_extra1_buf,      \
-  GLOBAL_AS       void          * restrict d_extra2_buf,      \
-  GLOBAL_AS       void          * restrict d_extra3_buf,      \
-  const u32 bitmap_mask,    \
-  const u32 bitmap_shift1,  \
-  const u32 bitmap_shift2,  \
-  const u32 salt_pos,       \
-  const u32 loop_pos,       \
-  const u32 loop_cnt,       \
-  const u32 il_cnt,         \
-  const u32 digests_cnt,    \
-  const u32 digests_offset, \
-  const u32 combs_mode,     \
-  const u64 gid_max
-
-/*
- * Shortcut macros for usage in the actual kernels
- *
- * Not all possible combinations are needed. E.g. all kernels that use rules
- * do not use the tmps pointer, all kernels that use a vector pointer in P4
- * do not use rules or tmps, etc.
- */
-
-#define KERN_ATTR_BASIC()         KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      * restrict bfs_buf,     void, void, void)
-#define KERN_ATTR_BITSLICE()      KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bs_word_t * restrict words_buf_r, void, void, void)
-#define KERN_ATTR_ESALT(e)        KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      * restrict bfs_buf,     void, void, e)
-#define KERN_ATTR_RULES()         KERN_ATTR (CONSTANT_AS, GLOBAL_AS   const bf_t      * restrict bfs_buf,     void, void, void)
-#define KERN_ATTR_RULES_ESALT(e)  KERN_ATTR (CONSTANT_AS, GLOBAL_AS   const bf_t      * restrict bfs_buf,     void, void, e)
-#define KERN_ATTR_TMPS(t)         KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      * restrict bfs_buf,     t,    void, void)
-#define KERN_ATTR_TMPS_ESALT(t,e) KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      * restrict bfs_buf,     t,    void, e)
-#define KERN_ATTR_TMPS_HOOKS(t,h) KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      * restrict bfs_buf,     t,    h,    void)
-#define KERN_ATTR_VECTOR()        KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const u32x      * restrict words_buf_r, void, void, void)
-#define KERN_ATTR_VECTOR_ESALT(e) KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const u32x      * restrict words_buf_r, void, void, e)
+#include "inc_vendor.h"
+#include "inc_types.h"
+#include "inc_common.h"
 
 /**
  * vendor specific (or generic) functions
@@ -396,7 +324,7 @@ DECLSPEC u64x hl32_to_64 (const u32x a, const u32x b)
 #ifdef IS_AMD
 
 #if HAS_VPERM
-DECLSPEC u32 swap32_S (const u32 v)
+DECLSPEC u32 hc_swap32_S (const u32 v)
 {
   u32 r;
 
@@ -405,7 +333,7 @@ DECLSPEC u32 swap32_S (const u32 v)
   return r;
 }
 
-DECLSPEC u64 swap64_S (const u64 v)
+DECLSPEC u64 hc_swap64_S (const u64 v)
 {
   const u32 v0 = h32_from_64_S (v);
   const u32 v1 = l32_from_64_S (v);
@@ -421,28 +349,28 @@ DECLSPEC u64 swap64_S (const u64 v)
   return r;
 }
 #else
-DECLSPEC u32 swap32_S (const u32 v)
+DECLSPEC u32 hc_swap32_S (const u32 v)
 {
   return as_uint (as_uchar4 (v).s3210);
 }
 
-DECLSPEC u64 swap64_S (const u64 v)
+DECLSPEC u64 hc_swap64_S (const u64 v)
 {
   return (as_ulong (as_uchar8 (v).s76543210));
 }
 #endif
 
-DECLSPEC u32 rotr32_S (const u32 a, const u32 n)
+DECLSPEC u32 hc_rotr32_S (const u32 a, const int n)
 {
-  return rotate (a, (32 - n));
+  return rotate (a, (u32) 32 - n);
 }
 
-DECLSPEC u32 rotl32_S (const u32 a, const u32 n)
+DECLSPEC u32 hc_rotl32_S (const u32 a, const int n)
 {
-  return rotate (a, n);
+  return rotate (a, (u32) n);
 }
 
-DECLSPEC u64 rotr64_S (const u64 a, const u32 n)
+DECLSPEC u64 hc_rotr64_S (const u64 a, const int n)
 {
   const u32 a0 = h32_from_64_S (a);
   const u32 a1 = l32_from_64_S (a);
@@ -455,18 +383,18 @@ DECLSPEC u64 rotr64_S (const u64 a, const u32 n)
   return r;
 }
 
-DECLSPEC u64 rotl64_S (const u64 a, const u32 n)
+DECLSPEC u64 hc_rotl64_S (const u64 a, const int n)
 {
-  return rotr64_S (a, 64 - n);
+  return hc_rotr64_S (a, n);
 }
 
 #if HAS_VPERM
-DECLSPEC u32x swap32 (const u32x v)
+DECLSPEC u32x hc_swap32 (const u32x v)
 {
   return bitselect (rotate (v, 24u), rotate (v, 8u), 0x00ff00ffu);
 }
 
-DECLSPEC u64x swap64 (const u64x v)
+DECLSPEC u64x hc_swap64 (const u64x v)
 {
   const u32x a0 = h32_from_64 (v);
   const u32x a1 = l32_from_64 (v);
@@ -528,12 +456,12 @@ DECLSPEC u64x swap64 (const u64x v)
   return r;
 }
 #else
-DECLSPEC u32x swap32 (const u32x v)
+DECLSPEC u32x hc_swap32 (const u32x v)
 {
   return bitselect (rotate (v, 24u), rotate (v, 8u), 0x00ff00ffu);
 }
 
-DECLSPEC u64x swap64 (const u64x v)
+DECLSPEC u64x hc_swap64 (const u64x v)
 {
   return bitselect (bitselect (rotate (v, 24ul),
                                rotate (v,  8ul), 0x000000ff000000fful),
@@ -543,17 +471,17 @@ DECLSPEC u64x swap64 (const u64x v)
 }
 #endif
 
-DECLSPEC u32x rotr32 (const u32x a, const u32 n)
+DECLSPEC u32x hc_rotr32 (const u32x a, const int n)
 {
-  return rotate (a, (32 - n));
+  return rotate (a, (u32) 32 - n);
 }
 
-DECLSPEC u32x rotl32 (const u32x a, const u32 n)
+DECLSPEC u32x hc_rotl32 (const u32x a, const int n)
 {
-  return rotate (a, n);
+  return rotate (a, (u32)  n);
 }
 
-DECLSPEC u64x rotr64 (const u64x a, const u32 n)
+DECLSPEC u64x hc_rotr64 (const u64x a, const int n)
 {
   const u32x a0 = h32_from_64 (a);
   const u32x a1 = l32_from_64 (a);
@@ -566,9 +494,9 @@ DECLSPEC u64x rotr64 (const u64x a, const u32 n)
   return r;
 }
 
-DECLSPEC u64x rotl64 (const u64x a, const u32 n)
+DECLSPEC u64x hc_rotl64 (const u64x a, const int n)
 {
-  return rotr64 (a, 64 - n);
+  return hc_rotr64 (a, 64 - n);
 }
 
 DECLSPEC u32x hc_bfe (const u32x a, const u32x b, const u32x c)
@@ -597,7 +525,7 @@ DECLSPEC u32 hc_bfe_S (const u32 a, const u32 b, const u32 c)
   #undef BFE
 }
 
-DECLSPEC u32x hc_bytealign_be (const u32x a, const u32x b, const u32 c)
+DECLSPEC u32x hc_bytealign_be (const u32x a, const u32x b, const int c)
 {
   u32x r;
 
@@ -612,7 +540,7 @@ DECLSPEC u32x hc_bytealign_be (const u32x a, const u32x b, const u32 c)
   return r;
 }
 
-DECLSPEC u32 hc_bytealign_be_S (const u32 a, const u32 b, const u32 c)
+DECLSPEC u32 hc_bytealign_be_S (const u32 a, const u32 b, const int c)
 {
   u32 r;
 
@@ -627,7 +555,7 @@ DECLSPEC u32 hc_bytealign_be_S (const u32 a, const u32 b, const u32 c)
   return r;
 }
 
-DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const u32 c)
+DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const int c)
 {
   u32x r;
 
@@ -642,7 +570,7 @@ DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const u32 c)
   return r;
 }
 
-DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const u32 c)
+DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const int c)
 {
   u32 r;
 
@@ -808,7 +736,7 @@ DECLSPEC u32 hc_lop_0x96_S (const u32 a, const u32 b, const u32 c)
 #endif
 
 #ifdef IS_NV
-DECLSPEC u32 swap32_S (const u32 v)
+DECLSPEC u32 hc_swap32_S (const u32 v)
 {
   u32 r;
 
@@ -817,7 +745,7 @@ DECLSPEC u32 swap32_S (const u32 v)
   return r;
 }
 
-DECLSPEC u64 swap64_S (const u64 v)
+DECLSPEC u64 hc_swap64_S (const u64 v)
 {
   u32 il;
   u32 ir;
@@ -837,27 +765,27 @@ DECLSPEC u64 swap64_S (const u64 v)
   return r;
 }
 
-DECLSPEC u32 rotr32_S (const u32 a, const u32 n)
+DECLSPEC u32 hc_rotr32_S (const u32 a, const int n)
 {
-  return rotate (a, (32 - n));
+  return rotate (a, (u32) 32 - n);
 }
 
-DECLSPEC u32 rotl32_S (const u32 a, const u32 n)
+DECLSPEC u32 hc_rotl32_S (const u32 a, const int n)
 {
-  return rotate (a, n);
+  return rotate (a, (u32) n);
 }
 
-DECLSPEC u64 rotr64_S (const u64 a, const u32 n)
+DECLSPEC u64 hc_rotr64_S (const u64 a, const int n)
 {
-  return rotate (a, (u64) (64 - n));
+  return rotate (a, (u64) 64 - n);
 }
 
-DECLSPEC u64 rotl64_S (const u64 a, const u32 n)
+DECLSPEC u64 hc_rotl64_S (const u64 a, const int n)
 {
   return rotate (a, (u64) n);
 }
 
-DECLSPEC u32x swap32 (const u32x v)
+DECLSPEC u32x hc_swap32 (const u32x v)
 {
   u32x r;
 
@@ -896,7 +824,7 @@ DECLSPEC u32x swap32 (const u32x v)
   return r;
 }
 
-DECLSPEC u64x swap64 (const u64x v)
+DECLSPEC u64x hc_swap64 (const u64x v)
 {
   u32x il;
   u32x ir;
@@ -1022,22 +950,22 @@ DECLSPEC u64x swap64 (const u64x v)
   return r;
 }
 
-DECLSPEC u32x rotr32 (const u32x a, const u32 n)
+DECLSPEC u32x hc_rotr32 (const u32x a, const int n)
 {
-  return rotate (a, (32 - n));
+  return rotate (a, (u32x) 32 - n);
 }
 
-DECLSPEC u32x rotl32 (const u32x a, const u32 n)
+DECLSPEC u32x hc_rotl32 (const u32x a, const int n)
 {
-  return rotate (a, n);
+  return rotate (a, (u32x) n);
 }
 
-DECLSPEC u64x rotr64 (const u64x a, const u32 n)
+DECLSPEC u64x hc_rotr64 (const u64x a, const int n)
 {
-  return rotate (a, (u64x) (64 - n));
+  return rotate (a, (u64x) 64 - n);
 }
 
-DECLSPEC u64x rotl64 (const u64x a, const u32 n)
+DECLSPEC u64x hc_rotl64 (const u64x a, const int n)
 {
   return rotate (a, (u64x) n);
 }
@@ -1138,7 +1066,7 @@ DECLSPEC u32 hc_bfe_S (const u32 a, const u32 b, const u32 c)
   return r;
 }
 
-DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const u32x c)
+DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const int c)
 {
   u32x r;
 
@@ -1149,31 +1077,31 @@ DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const u32x c)
   #endif
 
   #if VECT_SIZE >= 2
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s0) : "r"(b.s0), "r"(a.s0), "r"((c.s0 & 3) * 8));
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s1) : "r"(b.s1), "r"(a.s1), "r"((c.s1 & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s0) : "r"(b.s0), "r"(a.s0), "r"((c & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s1) : "r"(b.s1), "r"(a.s1), "r"((c & 3) * 8));
   #endif
 
   #if VECT_SIZE >= 4
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s2) : "r"(b.s2), "r"(a.s2), "r"((c.s2 & 3) * 8));
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s3) : "r"(b.s3), "r"(a.s3), "r"((c.s3 & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s2) : "r"(b.s2), "r"(a.s2), "r"((c & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s3) : "r"(b.s3), "r"(a.s3), "r"((c & 3) * 8));
   #endif
 
   #if VECT_SIZE >= 8
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s4) : "r"(b.s4), "r"(a.s4), "r"((c.s4 & 3) * 8));
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s5) : "r"(b.s5), "r"(a.s5), "r"((c.s5 & 3) * 8));
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s6) : "r"(b.s6), "r"(a.s6), "r"((c.s6 & 3) * 8));
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s7) : "r"(b.s7), "r"(a.s7), "r"((c.s7 & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s4) : "r"(b.s4), "r"(a.s4), "r"((c & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s5) : "r"(b.s5), "r"(a.s5), "r"((c & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s6) : "r"(b.s6), "r"(a.s6), "r"((c & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s7) : "r"(b.s7), "r"(a.s7), "r"((c & 3) * 8));
   #endif
 
   #if VECT_SIZE >= 16
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s8) : "r"(b.s8), "r"(a.s8), "r"((c.s8 & 3) * 8));
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s9) : "r"(b.s9), "r"(a.s9), "r"((c.s9 & 3) * 8));
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sa) : "r"(b.sa), "r"(a.sa), "r"((c.sa & 3) * 8));
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sb) : "r"(b.sb), "r"(a.sb), "r"((c.sb & 3) * 8));
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sc) : "r"(b.sc), "r"(a.sc), "r"((c.sc & 3) * 8));
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sd) : "r"(b.sd), "r"(a.sd), "r"((c.sd & 3) * 8));
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.se) : "r"(b.se), "r"(a.se), "r"((c.se & 3) * 8));
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sf) : "r"(b.sf), "r"(a.sf), "r"((c.sf & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s8) : "r"(b.s8), "r"(a.s8), "r"((c & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s9) : "r"(b.s9), "r"(a.s9), "r"((c & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sa) : "r"(b.sa), "r"(a.sa), "r"((c & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sb) : "r"(b.sb), "r"(a.sb), "r"((c & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sc) : "r"(b.sc), "r"(a.sc), "r"((c & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sd) : "r"(b.sd), "r"(a.sd), "r"((c & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.se) : "r"(b.se), "r"(a.se), "r"((c & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sf) : "r"(b.sf), "r"(a.sf), "r"((c & 3) * 8));
   #endif
 
   #else
@@ -1185,7 +1113,7 @@ DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const u32x c)
   return r;
 }
 
-DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const u32 c)
+DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const int c)
 {
   u32 r;
 
@@ -1279,61 +1207,61 @@ DECLSPEC u32 hc_lop_0x96_S (const u32 a, const u32 b, const u32 c)
 #endif
 
 #ifdef IS_GENERIC
-DECLSPEC u32 swap32_S (const u32 v)
+DECLSPEC u32 hc_swap32_S (const u32 v)
 {
   #ifdef _CPU_OPENCL_EMU_H
-  return emu_byte_swap_32 (v);
+  return byte_swap_32 (v);
   #else
   return (as_uint (as_uchar4 (v).s3210));
   #endif
 }
 
-DECLSPEC u64 swap64_S (const u64 v)
+DECLSPEC u64 hc_swap64_S (const u64 v)
 {
   #ifdef _CPU_OPENCL_EMU_H
-  return emu_byte_swap_64 (v);
+  return byte_swap_64 (v);
   #else
   return (as_ulong (as_uchar8 (v).s76543210));
   #endif
 }
 
-DECLSPEC u32 rotr32_S (const u32 a, const u32 n)
+DECLSPEC u32 hc_rotr32_S (const u32 a, const int n)
 {
   #ifdef _CPU_OPENCL_EMU_H
-  return emu_rotate_32 (a, (32 - n));
+  return rotr32 (a, n);
   #else
-  return rotate (a, (32 - n));
+  return rotate (a, (u32) 32 - n);
   #endif
 }
 
-DECLSPEC u32 rotl32_S (const u32 a, const u32 n)
+DECLSPEC u32 hc_rotl32_S (const u32 a, const int n)
 {
   #ifdef _CPU_OPENCL_EMU_H
-  return emu_rotate_32 (a, n);
+  return rotl32 (a, n);
   #else
-  return rotate (a, n);
+  return rotate (a, (u32) n);
   #endif
 }
 
-DECLSPEC u64 rotr64_S (const u64 a, const u32 n)
+DECLSPEC u64 hc_rotr64_S (const u64 a, const int n)
 {
   #ifdef _CPU_OPENCL_EMU_H
-  return emu_rotate_64 (a, (u64) (64 - n));
+  return rotr64 (a, n);
   #else
-  return rotate (a, (u64) (64 - n));
+  return rotate (a, (u64) 64 - n);
   #endif
 }
 
-DECLSPEC u64 rotl64_S (const u64 a, const u32 n)
+DECLSPEC u64 hc_rotl64_S (const u64 a, const int n)
 {
   #ifdef _CPU_OPENCL_EMU_H
-  return emu_rotate_64 (a, (u64) n);
+  return rotl64 (a, n);
   #else
   return rotate (a, (u64) n);
   #endif
 }
 
-DECLSPEC u32x swap32 (const u32x v)
+DECLSPEC u32x hc_swap32 (const u32x v)
 {
   return ((v >> 24) & 0x000000ff)
        | ((v >>  8) & 0x0000ff00)
@@ -1341,7 +1269,7 @@ DECLSPEC u32x swap32 (const u32x v)
        | ((v << 24) & 0xff000000);
 }
 
-DECLSPEC u64x swap64 (const u64x v)
+DECLSPEC u64x hc_swap64 (const u64x v)
 {
   return ((v >> 56) & 0x00000000000000ff)
        | ((v >> 40) & 0x000000000000ff00)
@@ -1356,37 +1284,37 @@ DECLSPEC u64x swap64 (const u64x v)
 // For _CPU_OPENCL_EMU_H we dont need to care about vector functions
 // The VECT_SIZE is guaranteed to be set to 1 from cpu_opencl_emu.h
 
-DECLSPEC u32x rotr32 (const u32x a, const u32 n)
+DECLSPEC u32x hc_rotr32 (const u32x a, const int n)
 {
   #ifdef _CPU_OPENCL_EMU_H
-  return emu_rotate_32 (a, (32 - n));
+  return rotr32 (a, n);
   #else
-  return rotate (a, (32 - n));
+  return rotate (a, (u32x) 32 - n);
   #endif
 }
 
-DECLSPEC u32x rotl32 (const u32x a, const u32 n)
+DECLSPEC u32x hc_rotl32 (const u32x a, const int n)
 {
   #ifdef _CPU_OPENCL_EMU_H
-  return emu_rotate_32 (a, n);
+  return rotl32 (a, n);
   #else
-  return rotate (a, n);
+  return rotate (a, (u32x) n);
   #endif
 }
 
-DECLSPEC u64x rotr64 (const u64x a, const u32 n)
+DECLSPEC u64x hc_rotr64 (const u64x a, const int n)
 {
   #ifdef _CPU_OPENCL_EMU_H
-  return emu_rotate_64 (a, (u64x) (64 - n));
+  return rotr64 (a, n);
   #else
-  return rotate (a, (u64x) (64 - n));
+  return rotate (a, (u64x) 64 - n);
   #endif
 }
 
-DECLSPEC u64x rotl64 (const u64x a, const u32 n)
+DECLSPEC u64x hc_rotl64 (const u64x a, const int n)
 {
   #ifdef _CPU_OPENCL_EMU_H
-  return emu_rotate_64 (a, (u64x) n);
+  return rotl64 (a, n);
   #else
   return rotate (a, (u64x) n);
   #endif
@@ -1418,7 +1346,7 @@ DECLSPEC u32 hc_bfe_S (const u32 a, const u32 b, const u32 c)
   #undef BFE
 }
 
-DECLSPEC u32x hc_bytealign_be (const u32x a, const u32x b, const u32 c)
+DECLSPEC u32x hc_bytealign_be (const u32x a, const u32x b, const int c)
 {
   u32x r;
 
@@ -1433,7 +1361,7 @@ DECLSPEC u32x hc_bytealign_be (const u32x a, const u32x b, const u32 c)
   return r;
 }
 
-DECLSPEC u32 hc_bytealign_be_S (const u32 a, const u32 b, const u32 c)
+DECLSPEC u32 hc_bytealign_be_S (const u32 a, const u32 b, const int c)
 {
   u32 r;
 
@@ -1448,7 +1376,7 @@ DECLSPEC u32 hc_bytealign_be_S (const u32 a, const u32 b, const u32 c)
   return r;
 }
 
-DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const u32 c)
+DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const int c)
 {
   u32x r;
 
@@ -1463,7 +1391,7 @@ DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const u32 c)
   return r;
 }
 
-DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const u32 c)
+DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const int c)
 {
   u32 r;
 
@@ -1599,7 +1527,7 @@ DECLSPEC void mark_hash (GLOBAL_AS plain_t *plains_buf, GLOBAL_AS u32 *d_result,
   plains_buf[idx].extra2     = extra2;      // unused so far
 }
 
-DECLSPEC int count_char (const u32 *buf, const int elems, const u32 c)
+DECLSPEC int hc_count_char (const u32 *buf, const int elems, const u32 c)
 {
   int r = 0;
 
@@ -1616,7 +1544,7 @@ DECLSPEC int count_char (const u32 *buf, const int elems, const u32 c)
   return r;
 }
 
-DECLSPEC float get_entropy (const u32 *buf, const int elems)
+DECLSPEC float hc_get_entropy (const u32 *buf, const int elems)
 {
   const int length = elems * 4;
 
@@ -1627,7 +1555,7 @@ DECLSPEC float get_entropy (const u32 *buf, const int elems)
   #endif
   for (u32 c = 0; c < 256; c++)
   {
-    const int r = count_char (buf, elems, c);
+    const int r = hc_count_char (buf, elems, c);
 
     if (r == 0) continue;
 
@@ -1679,7 +1607,7 @@ DECLSPEC int is_valid_base58_32 (const u32 v)
   return 1;
 }
 
-DECLSPEC int find_keyboard_layout_map (const u32 search, const int search_len, LOCAL_AS keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt)
+DECLSPEC int hc_find_keyboard_layout_map (const u32 search, const int search_len, LOCAL_AS keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt)
 {
   for (int idx = 0; idx < keyboard_layout_mapping_cnt; idx++)
   {
@@ -1697,7 +1625,7 @@ DECLSPEC int find_keyboard_layout_map (const u32 search, const int search_len, L
   return -1;
 }
 
-DECLSPEC int execute_keyboard_layout_mapping (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int pw_len, LOCAL_AS keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt)
+DECLSPEC int hc_execute_keyboard_layout_mapping (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int pw_len, LOCAL_AS keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt)
 {
   u32 out_buf[16] = { 0 };
 
@@ -1757,7 +1685,7 @@ DECLSPEC int execute_keyboard_layout_mapping (u32 w0[4], u32 w1[4], u32 w2[4], u
 
     for (src_len = rem; src_len > 0; src_len--)
     {
-      const int idx = find_keyboard_layout_map (src, src_len, s_keyboard_layout_mapping_buf, keyboard_layout_mapping_cnt);
+      const int idx = hc_find_keyboard_layout_map (src, src_len, s_keyboard_layout_mapping_buf, keyboard_layout_mapping_cnt);
 
       if (idx == -1) continue;
 

@@ -81,7 +81,7 @@ DECLSPEC void m17300m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
 
     #define Rho_Pi(ad,r)     \
       bc0 = ad;              \
-      ad = rotl64 (t, r);    \
+      ad = hc_rotl64 (t, r);    \
       t = bc0;               \
 
     #ifdef _unroll
@@ -99,11 +99,11 @@ DECLSPEC void m17300m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
 
       u64x t;
 
-      t = bc4 ^ rotl64 (bc1, 1); a00 ^= t; a10 ^= t; a20 ^= t; a30 ^= t; a40 ^= t;
-      t = bc0 ^ rotl64 (bc2, 1); a01 ^= t; a11 ^= t; a21 ^= t; a31 ^= t; a41 ^= t;
-      t = bc1 ^ rotl64 (bc3, 1); a02 ^= t; a12 ^= t; a22 ^= t; a32 ^= t; a42 ^= t;
-      t = bc2 ^ rotl64 (bc4, 1); a03 ^= t; a13 ^= t; a23 ^= t; a33 ^= t; a43 ^= t;
-      t = bc3 ^ rotl64 (bc0, 1); a04 ^= t; a14 ^= t; a24 ^= t; a34 ^= t; a44 ^= t;
+      t = bc4 ^ hc_rotl64 (bc1, 1); a00 ^= t; a10 ^= t; a20 ^= t; a30 ^= t; a40 ^= t;
+      t = bc0 ^ hc_rotl64 (bc2, 1); a01 ^= t; a11 ^= t; a21 ^= t; a31 ^= t; a41 ^= t;
+      t = bc1 ^ hc_rotl64 (bc3, 1); a02 ^= t; a12 ^= t; a22 ^= t; a32 ^= t; a42 ^= t;
+      t = bc2 ^ hc_rotl64 (bc4, 1); a03 ^= t; a13 ^= t; a23 ^= t; a33 ^= t; a43 ^= t;
+      t = bc3 ^ hc_rotl64 (bc0, 1); a04 ^= t; a14 ^= t; a24 ^= t; a34 ^= t; a44 ^= t;
 
       // Rho Pi
 
@@ -166,11 +166,11 @@ DECLSPEC void m17300m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
 
     u64x t;
 
-    t = bc4 ^ rotl64 (bc1, 1); a00 ^= t; a10 ^= t; a20 ^= t; a30 ^= t;
-    t = bc0 ^ rotl64 (bc2, 1);                     a21 ^= t; a31 ^= t; a41 ^= t;
-    t = bc1 ^ rotl64 (bc3, 1); a02 ^= t; a12 ^= t; a22 ^= t; a32 ^= t;
-    t = bc2 ^ rotl64 (bc4, 1); a03 ^= t; a13 ^= t; a23 ^= t; a33 ^= t; a43 ^= t;
-    t = bc3 ^ rotl64 (bc0, 1); a04 ^= t;                     a34 ^= t; a44 ^= t;
+    t = bc4 ^ hc_rotl64 (bc1, 1); a00 ^= t; a10 ^= t; a20 ^= t; a30 ^= t;
+    t = bc0 ^ hc_rotl64 (bc2, 1);                     a21 ^= t; a31 ^= t; a41 ^= t;
+    t = bc1 ^ hc_rotl64 (bc3, 1); a02 ^= t; a12 ^= t; a22 ^= t; a32 ^= t;
+    t = bc2 ^ hc_rotl64 (bc4, 1); a03 ^= t; a13 ^= t; a23 ^= t; a33 ^= t; a43 ^= t;
+    t = bc3 ^ hc_rotl64 (bc0, 1); a04 ^= t;                     a34 ^= t; a44 ^= t;
 
     // Rho Pi
 
@@ -279,7 +279,7 @@ DECLSPEC void m17300s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
 
     #define Rho_Pi(ad,r)     \
       bc0 = ad;              \
-      ad = rotl64 (t, r);    \
+      ad = hc_rotl64 (t, r);    \
       t = bc0;               \
 
     #ifdef _unroll
@@ -297,11 +297,11 @@ DECLSPEC void m17300s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
 
       u64x t;
 
-      t = bc4 ^ rotl64 (bc1, 1); a00 ^= t; a10 ^= t; a20 ^= t; a30 ^= t; a40 ^= t;
-      t = bc0 ^ rotl64 (bc2, 1); a01 ^= t; a11 ^= t; a21 ^= t; a31 ^= t; a41 ^= t;
-      t = bc1 ^ rotl64 (bc3, 1); a02 ^= t; a12 ^= t; a22 ^= t; a32 ^= t; a42 ^= t;
-      t = bc2 ^ rotl64 (bc4, 1); a03 ^= t; a13 ^= t; a23 ^= t; a33 ^= t; a43 ^= t;
-      t = bc3 ^ rotl64 (bc0, 1); a04 ^= t; a14 ^= t; a24 ^= t; a34 ^= t; a44 ^= t;
+      t = bc4 ^ hc_rotl64 (bc1, 1); a00 ^= t; a10 ^= t; a20 ^= t; a30 ^= t; a40 ^= t;
+      t = bc0 ^ hc_rotl64 (bc2, 1); a01 ^= t; a11 ^= t; a21 ^= t; a31 ^= t; a41 ^= t;
+      t = bc1 ^ hc_rotl64 (bc3, 1); a02 ^= t; a12 ^= t; a22 ^= t; a32 ^= t; a42 ^= t;
+      t = bc2 ^ hc_rotl64 (bc4, 1); a03 ^= t; a13 ^= t; a23 ^= t; a33 ^= t; a43 ^= t;
+      t = bc3 ^ hc_rotl64 (bc0, 1); a04 ^= t; a14 ^= t; a24 ^= t; a34 ^= t; a44 ^= t;
 
       // Rho Pi
 
@@ -364,11 +364,11 @@ DECLSPEC void m17300s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
 
     u64x t;
 
-    t = bc4 ^ rotl64 (bc1, 1); a00 ^= t; a10 ^= t; a20 ^= t; a30 ^= t;
-    t = bc0 ^ rotl64 (bc2, 1);                     a21 ^= t; a31 ^= t; a41 ^= t;
-    t = bc1 ^ rotl64 (bc3, 1); a02 ^= t; a12 ^= t; a22 ^= t; a32 ^= t;
-    t = bc2 ^ rotl64 (bc4, 1); a03 ^= t; a13 ^= t; a23 ^= t; a33 ^= t; a43 ^= t;
-    t = bc3 ^ rotl64 (bc0, 1); a04 ^= t;                     a34 ^= t; a44 ^= t;
+    t = bc4 ^ hc_rotl64 (bc1, 1); a00 ^= t; a10 ^= t; a20 ^= t; a30 ^= t;
+    t = bc0 ^ hc_rotl64 (bc2, 1);                     a21 ^= t; a31 ^= t; a41 ^= t;
+    t = bc1 ^ hc_rotl64 (bc3, 1); a02 ^= t; a12 ^= t; a22 ^= t; a32 ^= t;
+    t = bc2 ^ hc_rotl64 (bc4, 1); a03 ^= t; a13 ^= t; a23 ^= t; a33 ^= t; a43 ^= t;
+    t = bc3 ^ hc_rotl64 (bc0, 1); a04 ^= t;                     a34 ^= t; a44 ^= t;
 
     // Rho Pi
 

@@ -43,7 +43,7 @@ KERNEL_FQ void m04900_mxx (KERN_ATTR_VECTOR ())
 
   for (int i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = swap32 (salt_bufs[salt_pos].salt_buf[idx]);
+    s[idx] = hc_swap32 (salt_bufs[salt_pos].salt_buf[idx]);
   }
 
   sha1_ctx_t ctx0;
@@ -127,7 +127,7 @@ KERNEL_FQ void m04900_sxx (KERN_ATTR_VECTOR ())
 
   for (int i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = swap32 (salt_bufs[salt_pos].salt_buf[idx]);
+    s[idx] = hc_swap32 (salt_bufs[salt_pos].salt_buf[idx]);
   }
 
   sha1_ctx_t ctx0;

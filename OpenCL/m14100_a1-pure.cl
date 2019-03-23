@@ -372,8 +372,8 @@ CONSTANT_AS u32a c_skb[8][64] =
 
 DECLSPEC void _des_crypt_encrypt (u32 *iv, u32 *data, u32 *Kc, u32 *Kd, LOCAL_AS u32 (*s_SPtrans)[64])
 {
-  u32 r = rotl32_S (data[0], 3u);
-  u32 l = rotl32_S (data[1], 3u);
+  u32 r = hc_rotl32_S (data[0], 3u);
+  u32 l = hc_rotl32_S (data[1], 3u);
 
   u32 tt;
 
@@ -386,7 +386,7 @@ DECLSPEC void _des_crypt_encrypt (u32 *iv, u32 *data, u32 *Kc, u32 *Kd, LOCAL_AS
     u32 t;
 
     u = Kc[i + 0] ^ r;
-    t = Kd[i + 0] ^ rotl32_S (r, 28u);
+    t = Kd[i + 0] ^ hc_rotl32_S (r, 28u);
 
     l ^= BOX (((u >>  2) & 0x3f), 0, s_SPtrans)
        | BOX (((u >> 10) & 0x3f), 2, s_SPtrans)
@@ -398,7 +398,7 @@ DECLSPEC void _des_crypt_encrypt (u32 *iv, u32 *data, u32 *Kc, u32 *Kd, LOCAL_AS
        | BOX (((t >> 26) & 0x3f), 7, s_SPtrans);
 
     u = Kc[i + 1] ^ l;
-    t = Kd[i + 1] ^ rotl32_S (l, 28u);
+    t = Kd[i + 1] ^ hc_rotl32_S (l, 28u);
 
     r ^= BOX (((u >>  2) & 0x3f), 0, s_SPtrans)
        | BOX (((u >> 10) & 0x3f), 2, s_SPtrans)
@@ -410,14 +410,14 @@ DECLSPEC void _des_crypt_encrypt (u32 *iv, u32 *data, u32 *Kc, u32 *Kd, LOCAL_AS
        | BOX (((t >> 26) & 0x3f), 7, s_SPtrans);
   }
 
-  iv[0] = rotl32_S (l, 29u);
-  iv[1] = rotl32_S (r, 29u);
+  iv[0] = hc_rotl32_S (l, 29u);
+  iv[1] = hc_rotl32_S (r, 29u);
 }
 
 DECLSPEC void _des_crypt_decrypt (u32 *iv, u32 *data, u32 *Kc, u32 *Kd, LOCAL_AS u32 (*s_SPtrans)[64])
 {
-  u32 r = rotl32_S (data[0], 3u);
-  u32 l = rotl32_S (data[1], 3u);
+  u32 r = hc_rotl32_S (data[0], 3u);
+  u32 l = hc_rotl32_S (data[1], 3u);
 
   u32 tt;
 
@@ -430,7 +430,7 @@ DECLSPEC void _des_crypt_decrypt (u32 *iv, u32 *data, u32 *Kc, u32 *Kd, LOCAL_AS
     u32 t;
 
     u = Kc[i - 1] ^ r;
-    t = Kd[i - 1] ^ rotl32_S (r, 28u);
+    t = Kd[i - 1] ^ hc_rotl32_S (r, 28u);
 
     l ^= BOX (((u >>  2) & 0x3f), 0, s_SPtrans)
        | BOX (((u >> 10) & 0x3f), 2, s_SPtrans)
@@ -442,7 +442,7 @@ DECLSPEC void _des_crypt_decrypt (u32 *iv, u32 *data, u32 *Kc, u32 *Kd, LOCAL_AS
        | BOX (((t >> 26) & 0x3f), 7, s_SPtrans);
 
     u = Kc[i - 2] ^ l;
-    t = Kd[i - 2] ^ rotl32_S (l, 28u);
+    t = Kd[i - 2] ^ hc_rotl32_S (l, 28u);
 
     r ^= BOX (((u >>  2) & 0x3f), 0, s_SPtrans)
        | BOX (((u >> 10) & 0x3f), 2, s_SPtrans)
@@ -454,8 +454,8 @@ DECLSPEC void _des_crypt_decrypt (u32 *iv, u32 *data, u32 *Kc, u32 *Kd, LOCAL_AS
        | BOX (((t >> 26) & 0x3f), 7, s_SPtrans);
   }
 
-  iv[0] = rotl32_S (l, 29u);
-  iv[1] = rotl32_S (r, 29u);
+  iv[0] = hc_rotl32_S (l, 29u);
+  iv[1] = hc_rotl32_S (r, 29u);
 }
 
 DECLSPEC void _des_crypt_keysetup (u32 c, u32 d, u32 *Kc, u32 *Kd, LOCAL_AS u32 (*s_skb)[64])
@@ -525,8 +525,8 @@ DECLSPEC void _des_crypt_keysetup (u32 c, u32 d, u32 *Kc, u32 *Kd, LOCAL_AS u32 
     Kc[i] = ((t << 16) | (s & 0x0000ffff));
     Kd[i] = ((s >> 16) | (t & 0xffff0000));
 
-    Kc[i] = rotl32_S (Kc[i], 2u);
-    Kd[i] = rotl32_S (Kd[i], 2u);
+    Kc[i] = hc_rotl32_S (Kc[i], 2u);
+    Kd[i] = hc_rotl32_S (Kd[i], 2u);
   }
 }
 

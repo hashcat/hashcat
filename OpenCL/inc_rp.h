@@ -3,6 +3,28 @@
  * License.....: MIT
  */
 
+#ifndef _INC_RP_H
+#define _INC_RP_H
+
+#ifndef MAYBE_UNUSED
+#define MAYBE_UNUSED
+#endif
+
+#ifdef REAL_SHM
+#define COPY_PW(x)                \
+  LOCAL_AS pw_t s_pws[64];         \
+  s_pws[get_local_id (0)] = (x);
+#else
+#define COPY_PW(x)                \
+  pw_t pw = (x);
+#endif
+
+#ifdef REAL_SHM
+#define PASTE_PW s_pws[get_local_id(0)];
+#else
+#define PASTE_PW pw;
+#endif
+
 #define RULE_OP_MANGLE_NOOP             ':'
 #define RULE_OP_MANGLE_LREST            'l'
 #define RULE_OP_MANGLE_UREST            'u'
@@ -107,3 +129,5 @@ DECLSPEC int mangle_dupeblock_last (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const
 DECLSPEC int mangle_title_sep (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u32 *buf, const int len);
 DECLSPEC int apply_rule (const u32 name, MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u32 *buf, const int in_len);
 DECLSPEC int apply_rules (CONSTANT_AS const u32 *cmds, u32 *buf, const int in_len);
+
+#endif // _INC_RP_H

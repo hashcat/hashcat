@@ -1,3 +1,13 @@
+/**
+ * Author......: See docs/credits.txt
+ * License.....: MIT
+ */
+
+#include "inc_vendor.h"
+#include "inc_types.h"
+#include "inc_common.h"
+#include "inc_truecrypt_keyfile.h"
+
 DECLSPEC u32 u8add (const u32 a, const u32 b)
 {
   const u32 a1 = (a >>  0) & 0xff;

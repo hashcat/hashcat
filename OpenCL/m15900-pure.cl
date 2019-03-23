@@ -160,10 +160,10 @@ KERNEL_FQ void m15900_init (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v2_t, dpapimk_t))
     digest_context[3] = ctx.h[3];
     digest_context[4] = 0;
 
-    digest_context[0] = swap32_S (digest_context[0]);
-    digest_context[1] = swap32_S (digest_context[1]);
-    digest_context[2] = swap32_S (digest_context[2]);
-    digest_context[3] = swap32_S (digest_context[3]);
+    digest_context[0] = hc_swap32_S (digest_context[0]);
+    digest_context[1] = hc_swap32_S (digest_context[1]);
+    digest_context[2] = hc_swap32_S (digest_context[2]);
+    digest_context[3] = hc_swap32_S (digest_context[3]);
   }
 
   /* initialize hmac-sha1 */

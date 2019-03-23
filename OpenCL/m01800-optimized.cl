@@ -208,13 +208,13 @@ KERNEL_FQ void m01800_init (KERN_ATTR_TMPS (sha512crypt_tmp_t))
 
   u64 pw[2];
 
-  pw[0] = swap64_S (hl32_to_64 (w0[1], w0[0]));
-  pw[1] = swap64_S (hl32_to_64 (w0[3], w0[2]));
+  pw[0] = hc_swap64_S (hl32_to_64 (w0[1], w0[0]));
+  pw[1] = hc_swap64_S (hl32_to_64 (w0[3], w0[2]));
 
   u64 salt[2];
 
-  salt[0] = swap64_S (hl32_to_64 (salt_buf[1], salt_buf[0]));
-  salt[1] = swap64_S (hl32_to_64 (salt_buf[3], salt_buf[2]));
+  salt[0] = hc_swap64_S (hl32_to_64 (salt_buf[1], salt_buf[0]));
+  salt[1] = hc_swap64_S (hl32_to_64 (salt_buf[3], salt_buf[2]));
 
   /**
    * begin
@@ -488,8 +488,8 @@ KERNEL_FQ void m01800_comp (KERN_ATTR_TMPS (sha512crypt_tmp_t))
 
   const u64 lid = get_local_id (0);
 
-  const u64 a = swap64_S (tmps[gid].l_alt_result[0]);
-  const u64 b = swap64_S (tmps[gid].l_alt_result[1]);
+  const u64 a = hc_swap64_S (tmps[gid].l_alt_result[0]);
+  const u64 b = hc_swap64_S (tmps[gid].l_alt_result[1]);
 
   const u32 r0 = l32_from_64_S (a);
   const u32 r1 = h32_from_64_S (a);

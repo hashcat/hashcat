@@ -48,12 +48,12 @@ KERNEL_FQ void m19300_mxx (KERN_ATTR_ESALT (sha1_double_salt_t))
 
   for (int i = 0, idx = 0; i < salt1_len; i += 4, idx += 1)
   {
-    s1[idx] = swap32_S (esalt_bufs[digests_offset].salt1_buf[idx]);
+    s1[idx] = hc_swap32_S (esalt_bufs[digests_offset].salt1_buf[idx]);
   }
 
   for (int i = 0, idx = 0; i < salt2_len; i += 4, idx += 1)
   {
-    s2[idx] = swap32_S (esalt_bufs[digests_offset].salt2_buf[idx]);
+    s2[idx] = hc_swap32_S (esalt_bufs[digests_offset].salt2_buf[idx]);
   }
 
   sha1_ctx_t ctx0;
@@ -124,12 +124,12 @@ KERNEL_FQ void m19300_sxx (KERN_ATTR_ESALT (sha1_double_salt_t))
 
   for (int i = 0, idx = 0; i < salt1_len; i += 4, idx += 1)
   {
-    s1[idx] = swap32_S (esalt_bufs[digests_offset].salt1_buf[idx]);
+    s1[idx] = hc_swap32_S (esalt_bufs[digests_offset].salt1_buf[idx]);
   }
 
   for (int i = 0, idx = 0; i < salt2_len; i += 4, idx += 1)
   {
-    s2[idx] = swap32_S (esalt_bufs[digests_offset].salt2_buf[idx]);
+    s2[idx] = hc_swap32_S (esalt_bufs[digests_offset].salt2_buf[idx]);
   }
 
   sha1_ctx_t ctx0;

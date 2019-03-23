@@ -447,7 +447,7 @@ DECLSPEC void _des_crypt_encrypt (u32 *iv, u32 mask, u32x *Kc, u32x *Kd, LOCAL_A
       u = u ^ Kc[j + 0];
       t = t ^ (t << 16);
       t = t ^ r;
-      t = rotl32 (t, 28u);
+      t = hc_rotl32 (t, 28u);
       t = t ^ Kd[j + 0];
 
       l ^= BOX (((u >>  0) & 0x3f), 0, s_SPtrans)
@@ -467,7 +467,7 @@ DECLSPEC void _des_crypt_encrypt (u32 *iv, u32 mask, u32x *Kc, u32x *Kd, LOCAL_A
       u = u ^ Kc[j + 1];
       t = t ^ (t << 16);
       t = t ^ l;
-      t = rotl32 (t, 28u);
+      t = hc_rotl32 (t, 28u);
       t = t ^ Kd[j + 1];
 
       r ^= BOX (((u >>  0) & 0x3f), 0, s_SPtrans)
@@ -487,8 +487,8 @@ DECLSPEC void _des_crypt_encrypt (u32 *iv, u32 mask, u32x *Kc, u32x *Kd, LOCAL_A
     r  = tt;
   }
 
-  iv[0] = rotl32 (r, 31);
-  iv[1] = rotl32 (l, 31);
+  iv[0] = hc_rotl32 (r, 31);
+  iv[1] = hc_rotl32 (l, 31);
 }
 
 KERNEL_FQ void m16000_mxx (KERN_ATTR_BASIC ())

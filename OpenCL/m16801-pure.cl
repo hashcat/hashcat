@@ -84,14 +84,14 @@ KERNEL_FQ void m16801_init (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_pmkid_t))
     out_ptr[i] = hex_to_u8 (in_ptr + j);
   }
 
-  tmps[gid].out[0] = swap32_S (out[0]);
-  tmps[gid].out[1] = swap32_S (out[1]);
-  tmps[gid].out[2] = swap32_S (out[2]);
-  tmps[gid].out[3] = swap32_S (out[3]);
-  tmps[gid].out[4] = swap32_S (out[4]);
-  tmps[gid].out[5] = swap32_S (out[5]);
-  tmps[gid].out[6] = swap32_S (out[6]);
-  tmps[gid].out[7] = swap32_S (out[7]);
+  tmps[gid].out[0] = hc_swap32_S (out[0]);
+  tmps[gid].out[1] = hc_swap32_S (out[1]);
+  tmps[gid].out[2] = hc_swap32_S (out[2]);
+  tmps[gid].out[3] = hc_swap32_S (out[3]);
+  tmps[gid].out[4] = hc_swap32_S (out[4]);
+  tmps[gid].out[5] = hc_swap32_S (out[5]);
+  tmps[gid].out[6] = hc_swap32_S (out[6]);
+  tmps[gid].out[7] = hc_swap32_S (out[7]);
 }
 
 KERNEL_FQ void m16801_loop (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_pmkid_t))

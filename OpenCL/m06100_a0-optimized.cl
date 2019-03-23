@@ -106,14 +106,14 @@ KERNEL_FQ void m06100_m04 (KERN_ATTR_RULES ())
 
     u32x w[16];
 
-    w[ 0] = swap32 (w0[0]);
-    w[ 1] = swap32 (w0[1]);
-    w[ 2] = swap32 (w0[2]);
-    w[ 3] = swap32 (w0[3]);
-    w[ 4] = swap32 (w1[0]);
-    w[ 5] = swap32 (w1[1]);
-    w[ 6] = swap32 (w1[2]);
-    w[ 7] = swap32 (w1[3]);
+    w[ 0] = hc_swap32 (w0[0]);
+    w[ 1] = hc_swap32 (w0[1]);
+    w[ 2] = hc_swap32 (w0[2]);
+    w[ 3] = hc_swap32 (w0[3]);
+    w[ 4] = hc_swap32 (w1[0]);
+    w[ 5] = hc_swap32 (w1[1]);
+    w[ 6] = hc_swap32 (w1[2]);
+    w[ 7] = hc_swap32 (w1[3]);
     w[ 8] = 0;
     w[ 9] = 0;
     w[10] = 0;
@@ -258,14 +258,14 @@ KERNEL_FQ void m06100_s04 (KERN_ATTR_RULES ())
 
     u32x w[16];
 
-    w[ 0] = swap32 (w0[0]);
-    w[ 1] = swap32 (w0[1]);
-    w[ 2] = swap32 (w0[2]);
-    w[ 3] = swap32 (w0[3]);
-    w[ 4] = swap32 (w1[0]);
-    w[ 5] = swap32 (w1[1]);
-    w[ 6] = swap32 (w1[2]);
-    w[ 7] = swap32 (w1[3]);
+    w[ 0] = hc_swap32 (w0[0]);
+    w[ 1] = hc_swap32 (w0[1]);
+    w[ 2] = hc_swap32 (w0[2]);
+    w[ 3] = hc_swap32 (w0[3]);
+    w[ 4] = hc_swap32 (w1[0]);
+    w[ 5] = hc_swap32 (w1[1]);
+    w[ 6] = hc_swap32 (w1[2]);
+    w[ 7] = hc_swap32 (w1[3]);
     w[ 8] = 0;
     w[ 9] = 0;
     w[10] = 0;

@@ -95,7 +95,7 @@ KERNEL_FQ void m09400_loop (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t
 
   for (u32 i = 0, j = loop_pos; i < loop_cnt; i++, j++)
   {
-    w0[0] = swap32 (j);
+    w0[0] = hc_swap32 (j);
     w0[1] = t0;
     w0[2] = t1;
     w0[3] = t2;

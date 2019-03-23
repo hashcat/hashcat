@@ -284,16 +284,16 @@ KERNEL_FQ void m09800_m04 (KERN_ATTR_ESALT (oldoffice34_t))
 
     w3[3] = pw_salt_len * 8;
     w3[2] = 0;
-    w3[1] = swap32 (w2[1]);
-    w3[0] = swap32 (w2[0]);
-    w2[3] = swap32 (w1[3]);
-    w2[2] = swap32 (w1[2]);
-    w2[1] = swap32 (w1[1]);
-    w2[0] = swap32 (w1[0]);
-    w1[3] = swap32 (w0[3]);
-    w1[2] = swap32 (w0[2]);
-    w1[1] = swap32 (w0[1]);
-    w1[0] = swap32 (w0[0]);
+    w3[1] = hc_swap32 (w2[1]);
+    w3[0] = hc_swap32 (w2[0]);
+    w2[3] = hc_swap32 (w1[3]);
+    w2[2] = hc_swap32 (w1[2]);
+    w2[1] = hc_swap32 (w1[1]);
+    w2[0] = hc_swap32 (w1[0]);
+    w1[3] = hc_swap32 (w0[3]);
+    w1[2] = hc_swap32 (w0[2]);
+    w1[1] = hc_swap32 (w0[1]);
+    w1[0] = hc_swap32 (w0[0]);
     w0[3] = salt_buf[3];
     w0[2] = salt_buf[2];
     w0[1] = salt_buf[1];
@@ -334,10 +334,10 @@ KERNEL_FQ void m09800_m04 (KERN_ATTR_ESALT (oldoffice34_t))
 
     sha1_transform (w0, w1, w2, w3, digest);
 
-    digest[0] = swap32_S (digest[0]);
-    digest[1] = swap32_S (digest[1]);
-    digest[2] = swap32_S (digest[2]);
-    digest[3] = swap32_S (digest[3]);
+    digest[0] = hc_swap32_S (digest[0]);
+    digest[1] = hc_swap32_S (digest[1]);
+    digest[2] = hc_swap32_S (digest[2]);
+    digest[3] = hc_swap32_S (digest[3]);
 
     if (version == 3)
     {
@@ -352,10 +352,10 @@ KERNEL_FQ void m09800_m04 (KERN_ATTR_ESALT (oldoffice34_t))
 
     u8 j = rc4_next_16 (rc4_key, 0, 0, encryptedVerifier, out);
 
-    w0[0] = swap32 (out[0]);
-    w0[1] = swap32 (out[1]);
-    w0[2] = swap32 (out[2]);
-    w0[3] = swap32 (out[3]);
+    w0[0] = hc_swap32 (out[0]);
+    w0[1] = hc_swap32 (out[1]);
+    w0[2] = hc_swap32 (out[2]);
+    w0[3] = hc_swap32 (out[3]);
     w1[0] = 0x80000000;
     w1[1] = 0;
     w1[2] = 0;
@@ -377,10 +377,10 @@ KERNEL_FQ void m09800_m04 (KERN_ATTR_ESALT (oldoffice34_t))
 
     sha1_transform (w0, w1, w2, w3, digest);
 
-    digest[0] = swap32_S (digest[0]);
-    digest[1] = swap32_S (digest[1]);
-    digest[2] = swap32_S (digest[2]);
-    digest[3] = swap32_S (digest[3]);
+    digest[0] = hc_swap32_S (digest[0]);
+    digest[1] = hc_swap32_S (digest[1]);
+    digest[2] = hc_swap32_S (digest[2]);
+    digest[3] = hc_swap32_S (digest[3]);
 
     rc4_next_16 (rc4_key, 16, j, digest, out);
 
@@ -546,16 +546,16 @@ KERNEL_FQ void m09800_s04 (KERN_ATTR_ESALT (oldoffice34_t))
 
     w3[3] = pw_salt_len * 8;
     w3[2] = 0;
-    w3[1] = swap32 (w2[1]);
-    w3[0] = swap32 (w2[0]);
-    w2[3] = swap32 (w1[3]);
-    w2[2] = swap32 (w1[2]);
-    w2[1] = swap32 (w1[1]);
-    w2[0] = swap32 (w1[0]);
-    w1[3] = swap32 (w0[3]);
-    w1[2] = swap32 (w0[2]);
-    w1[1] = swap32 (w0[1]);
-    w1[0] = swap32 (w0[0]);
+    w3[1] = hc_swap32 (w2[1]);
+    w3[0] = hc_swap32 (w2[0]);
+    w2[3] = hc_swap32 (w1[3]);
+    w2[2] = hc_swap32 (w1[2]);
+    w2[1] = hc_swap32 (w1[1]);
+    w2[0] = hc_swap32 (w1[0]);
+    w1[3] = hc_swap32 (w0[3]);
+    w1[2] = hc_swap32 (w0[2]);
+    w1[1] = hc_swap32 (w0[1]);
+    w1[0] = hc_swap32 (w0[0]);
     w0[3] = salt_buf[3];
     w0[2] = salt_buf[2];
     w0[1] = salt_buf[1];
@@ -596,10 +596,10 @@ KERNEL_FQ void m09800_s04 (KERN_ATTR_ESALT (oldoffice34_t))
 
     sha1_transform (w0, w1, w2, w3, digest);
 
-    digest[0] = swap32_S (digest[0]);
-    digest[1] = swap32_S (digest[1]);
-    digest[2] = swap32_S (digest[2]);
-    digest[3] = swap32_S (digest[3]);
+    digest[0] = hc_swap32_S (digest[0]);
+    digest[1] = hc_swap32_S (digest[1]);
+    digest[2] = hc_swap32_S (digest[2]);
+    digest[3] = hc_swap32_S (digest[3]);
 
     if (version == 3)
     {
@@ -614,10 +614,10 @@ KERNEL_FQ void m09800_s04 (KERN_ATTR_ESALT (oldoffice34_t))
 
     u8 j = rc4_next_16 (rc4_key, 0, 0, encryptedVerifier, out);
 
-    w0[0] = swap32 (out[0]);
-    w0[1] = swap32 (out[1]);
-    w0[2] = swap32 (out[2]);
-    w0[3] = swap32 (out[3]);
+    w0[0] = hc_swap32 (out[0]);
+    w0[1] = hc_swap32 (out[1]);
+    w0[2] = hc_swap32 (out[2]);
+    w0[3] = hc_swap32 (out[3]);
     w1[0] = 0x80000000;
     w1[1] = 0;
     w1[2] = 0;
@@ -639,10 +639,10 @@ KERNEL_FQ void m09800_s04 (KERN_ATTR_ESALT (oldoffice34_t))
 
     sha1_transform (w0, w1, w2, w3, digest);
 
-    digest[0] = swap32_S (digest[0]);
-    digest[1] = swap32_S (digest[1]);
-    digest[2] = swap32_S (digest[2]);
-    digest[3] = swap32_S (digest[3]);
+    digest[0] = hc_swap32_S (digest[0]);
+    digest[1] = hc_swap32_S (digest[1]);
+    digest[2] = hc_swap32_S (digest[2]);
+    digest[3] = hc_swap32_S (digest[3]);
 
     rc4_next_16 (rc4_key, 16, j, digest, out);
 

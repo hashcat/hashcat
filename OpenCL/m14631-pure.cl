@@ -454,7 +454,7 @@ KERNEL_FQ void m14631_comp (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
 
   // check entropy
 
-  const float entropy = get_entropy (pt_buf, 128);
+  const float entropy = hc_get_entropy (pt_buf, 128);
 
   if (entropy < MAX_ENTROPY)
   {

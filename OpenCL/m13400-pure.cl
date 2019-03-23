@@ -450,21 +450,21 @@ KERNEL_FQ void m13400_comp (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
       u32 sk[4];
       u32 lk[40];
 
-      digest[0] = swap32_S (digest[0]);
-      digest[1] = swap32_S (digest[1]);
-      digest[2] = swap32_S (digest[2]);
-      digest[3] = swap32_S (digest[3]);
-      digest[4] = swap32_S (digest[4]);
-      digest[5] = swap32_S (digest[5]);
-      digest[6] = swap32_S (digest[6]);
-      digest[7] = swap32_S (digest[7]);
+      digest[0] = hc_swap32_S (digest[0]);
+      digest[1] = hc_swap32_S (digest[1]);
+      digest[2] = hc_swap32_S (digest[2]);
+      digest[3] = hc_swap32_S (digest[3]);
+      digest[4] = hc_swap32_S (digest[4]);
+      digest[5] = hc_swap32_S (digest[5]);
+      digest[6] = hc_swap32_S (digest[6]);
+      digest[7] = hc_swap32_S (digest[7]);
 
       twofish256_set_key (sk, lk, digest);
 
-      iv[0] = swap32_S (iv[0]);
-      iv[1] = swap32_S (iv[1]);
-      iv[2] = swap32_S (iv[2]);
-      iv[3] = swap32_S (iv[3]);
+      iv[0] = hc_swap32_S (iv[0]);
+      iv[1] = hc_swap32_S (iv[1]);
+      iv[2] = hc_swap32_S (iv[2]);
+      iv[3] = hc_swap32_S (iv[3]);
 
       u32 contents_len = esalt_bufs[digests_offset].contents_len;
 
@@ -482,10 +482,10 @@ KERNEL_FQ void m13400_comp (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
         data[2] = esalt_bufs[digests_offset].contents[contents_off + 2];
         data[3] = esalt_bufs[digests_offset].contents[contents_off + 3];
 
-        data[0] = swap32_S (data[0]);
-        data[1] = swap32_S (data[1]);
-        data[2] = swap32_S (data[2]);
-        data[3] = swap32_S (data[3]);
+        data[0] = hc_swap32_S (data[0]);
+        data[1] = hc_swap32_S (data[1]);
+        data[2] = hc_swap32_S (data[2]);
+        data[3] = hc_swap32_S (data[3]);
 
         u32 out[4];
 
@@ -496,10 +496,10 @@ KERNEL_FQ void m13400_comp (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
         out[2] ^= iv[2];
         out[3] ^= iv[3];
 
-        out[0] = swap32_S (out[0]);
-        out[1] = swap32_S (out[1]);
-        out[2] = swap32_S (out[2]);
-        out[3] = swap32_S (out[3]);
+        out[0] = hc_swap32_S (out[0]);
+        out[1] = hc_swap32_S (out[1]);
+        out[2] = hc_swap32_S (out[2]);
+        out[3] = hc_swap32_S (out[3]);
 
         u32 w0[4] = { 0 };
         u32 w1[4] = { 0 };
@@ -528,10 +528,10 @@ KERNEL_FQ void m13400_comp (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
       data[2] = esalt_bufs[digests_offset].contents[contents_off + 2];
       data[3] = esalt_bufs[digests_offset].contents[contents_off + 3];
 
-      data[0] = swap32_S (data[0]);
-      data[1] = swap32_S (data[1]);
-      data[2] = swap32_S (data[2]);
-      data[3] = swap32_S (data[3]);
+      data[0] = hc_swap32_S (data[0]);
+      data[1] = hc_swap32_S (data[1]);
+      data[2] = hc_swap32_S (data[2]);
+      data[3] = hc_swap32_S (data[3]);
 
       u32 out[4];
 
@@ -542,10 +542,10 @@ KERNEL_FQ void m13400_comp (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
       out[2] ^= iv[2];
       out[3] ^= iv[3];
 
-      out[0] = swap32_S (out[0]);
-      out[1] = swap32_S (out[1]);
-      out[2] = swap32_S (out[2]);
-      out[3] = swap32_S (out[3]);
+      out[0] = hc_swap32_S (out[0]);
+      out[1] = hc_swap32_S (out[1]);
+      out[2] = hc_swap32_S (out[2]);
+      out[3] = hc_swap32_S (out[3]);
 
       // now we can access the pad byte
 

@@ -229,10 +229,10 @@ KERNEL_FQ void m09810_m04 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
 
     u8 j = rc4_next_16 (rc4_key, 0, 0, encryptedVerifier, out);
 
-    w0[0] = swap32 (out[0]);
-    w0[1] = swap32 (out[1]);
-    w0[2] = swap32 (out[2]);
-    w0[3] = swap32 (out[3]);
+    w0[0] = hc_swap32 (out[0]);
+    w0[1] = hc_swap32 (out[1]);
+    w0[2] = hc_swap32 (out[2]);
+    w0[3] = hc_swap32 (out[3]);
     w1[0] = 0x80000000;
     w1[1] = 0;
     w1[2] = 0;
@@ -256,10 +256,10 @@ KERNEL_FQ void m09810_m04 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
 
     sha1_transform (w0, w1, w2, w3, digest);
 
-    digest[0] = swap32_S (digest[0]);
-    digest[1] = swap32_S (digest[1]);
-    digest[2] = swap32_S (digest[2]);
-    digest[3] = swap32_S (digest[3]);
+    digest[0] = hc_swap32_S (digest[0]);
+    digest[1] = hc_swap32_S (digest[1]);
+    digest[2] = hc_swap32_S (digest[2]);
+    digest[3] = hc_swap32_S (digest[3]);
 
     rc4_next_16 (rc4_key, 16, j, digest, out);
 
@@ -368,10 +368,10 @@ KERNEL_FQ void m09810_s04 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
 
     u8 j = rc4_next_16 (rc4_key, 0, 0, encryptedVerifier, out);
 
-    w0[0] = swap32 (out[0]);
-    w0[1] = swap32 (out[1]);
-    w0[2] = swap32 (out[2]);
-    w0[3] = swap32 (out[3]);
+    w0[0] = hc_swap32 (out[0]);
+    w0[1] = hc_swap32 (out[1]);
+    w0[2] = hc_swap32 (out[2]);
+    w0[3] = hc_swap32 (out[3]);
     w1[0] = 0x80000000;
     w1[1] = 0;
     w1[2] = 0;
@@ -395,10 +395,10 @@ KERNEL_FQ void m09810_s04 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
 
     sha1_transform (w0, w1, w2, w3, digest);
 
-    digest[0] = swap32_S (digest[0]);
-    digest[1] = swap32_S (digest[1]);
-    digest[2] = swap32_S (digest[2]);
-    digest[3] = swap32_S (digest[3]);
+    digest[0] = hc_swap32_S (digest[0]);
+    digest[1] = hc_swap32_S (digest[1]);
+    digest[2] = hc_swap32_S (digest[2]);
+    digest[3] = hc_swap32_S (digest[3]);
 
     rc4_next_16 (rc4_key, 16, j, digest, out);
 

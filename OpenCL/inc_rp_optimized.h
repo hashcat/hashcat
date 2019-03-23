@@ -3,6 +3,13 @@
  * License.....: MIT
  */
 
+#ifndef _INC_RP_OPTIMIZED_H
+#define _INC_RP_OPTIMIZED_H
+
+#ifndef MAYBE_UNUSED
+#define MAYBE_UNUSED
+#endif
+
 #define RULE_OP_MANGLE_NOOP             ':'
 #define RULE_OP_MANGLE_LREST            'l'
 #define RULE_OP_MANGLE_UREST            'u'
@@ -113,3 +120,5 @@ DECLSPEC u32 rule_op_mangle_title_sep (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED c
 DECLSPEC u32 apply_rule (const u32 name, const u32 p0, const u32 p1, u32 *buf0, u32 *buf1, const u32 in_len);
 DECLSPEC u32 apply_rules (CONSTANT_AS const u32 *cmds, u32 *buf0, u32 *buf1, const u32 len);
 DECLSPEC u32x apply_rules_vect (const u32 *pw_buf0, const u32 *pw_buf1, const u32 pw_len, CONSTANT_AS const kernel_rule_t *rules_buf, const u32 il_pos, u32x *buf0, u32x *buf1);
+
+#endif // _INC_RP_OPTIMIZED_H

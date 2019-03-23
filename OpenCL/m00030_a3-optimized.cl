@@ -16,7 +16,7 @@
 #define MD5_STEP_REV(f,a,b,c,d,x,t,s)   \
 {                                       \
   a -= b;                               \
-  a  = rotr32_S (a, s);                 \
+  a  = hc_rotr32_S (a, s);                 \
   a -= f (b, c, d);                     \
   a -= x;                               \
   a -= t;                               \
@@ -25,7 +25,7 @@
 #define MD5_STEP_REV1(f,a,b,c,d,x,t,s)  \
 {                                       \
   a -= b;                               \
-  a  = rotr32_S (a, s);                 \
+  a  = hc_rotr32_S (a, s);                 \
   a -= x;                               \
   a -= t;                               \
 }

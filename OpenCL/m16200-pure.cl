@@ -346,12 +346,12 @@ KERNEL_FQ void m16200_comp (KERN_ATTR_TMPS_ESALT (apple_secure_notes_tmp_t, appl
   u32 P1[2];
   u32 P2[2];
 
-  A[0]  = swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[0]);
-  A[1]  = swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[1]);
-  P1[0] = swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[2]);
-  P1[1] = swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[3]);
-  P2[0] = swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[4]);
-  P2[1] = swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[5]);
+  A[0]  = hc_swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[0]);
+  A[1]  = hc_swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[1]);
+  P1[0] = hc_swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[2]);
+  P1[1] = hc_swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[3]);
+  P2[0] = hc_swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[4]);
+  P2[1] = hc_swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[5]);
 
   for (int j = 5; j >= 0; j--)
   {

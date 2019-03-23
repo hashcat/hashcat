@@ -1,3 +1,18 @@
+/**
+ * Author......: See docs/credits.txt
+ * License.....: MIT
+ */
+
+#include "inc_vendor.h"
+#include "inc_types.h"
+#include "inc_common.h"
+#include "inc_cipher_aes.h"
+#include "inc_cipher_serpent.h"
+#include "inc_cipher_twofish.h"
+#include "inc_cipher_camellia.h"
+#include "inc_cipher_kuznyechik.h"
+#include "inc_hash_veracrypt_xts.h"
+
 DECLSPEC void camellia256_decrypt_xts_first (const u32 *ukey1, const u32 *ukey2, const u32 *in, u32 *out, u32 *S, u32 *T, u32 *ks)
 {
   out[0] = in[0];
@@ -113,7 +128,7 @@ DECLSPEC int verify_header_camellia (GLOBAL_AS const u32 *data_buf, const u32 si
 
   if (tmp[0] != signature) return 0;
 
-  const u32 crc32_save = swap32_S (~tmp[2]);
+  const u32 crc32_save = hc_swap32_S (~tmp[2]);
 
   // seek to byte 256
 
@@ -167,7 +182,7 @@ DECLSPEC int verify_header_kuznyechik (GLOBAL_AS const u32 *data_buf, const u32 
 
   if (tmp[0] != signature) return 0;
 
-  const u32 crc32_save = swap32_S (~tmp[2]);
+  const u32 crc32_save = hc_swap32_S (~tmp[2]);
 
   // seek to byte 256
 
@@ -226,7 +241,7 @@ DECLSPEC int verify_header_camellia_kuznyechik (GLOBAL_AS const u32 *data_buf, c
 
   if (tmp[0] != signature) return 0;
 
-  const u32 crc32_save = swap32_S (~tmp[2]);
+  const u32 crc32_save = hc_swap32_S (~tmp[2]);
 
   // seek to byte 256
 
@@ -285,7 +300,7 @@ DECLSPEC int verify_header_camellia_serpent (GLOBAL_AS const u32 *data_buf, cons
 
   if (tmp[0] != signature) return 0;
 
-  const u32 crc32_save = swap32_S (~tmp[2]);
+  const u32 crc32_save = hc_swap32_S (~tmp[2]);
 
   // seek to byte 256
 
@@ -344,7 +359,7 @@ DECLSPEC int verify_header_kuznyechik_aes (GLOBAL_AS const u32 *data_buf, const 
 
   if (tmp[0] != signature) return 0;
 
-  const u32 crc32_save = swap32_S (~tmp[2]);
+  const u32 crc32_save = hc_swap32_S (~tmp[2]);
 
   // seek to byte 256
 
@@ -405,7 +420,7 @@ DECLSPEC int verify_header_kuznyechik_twofish (GLOBAL_AS const u32 *data_buf, co
 
   if (tmp[0] != signature) return 0;
 
-  const u32 crc32_save = swap32_S (~tmp[2]);
+  const u32 crc32_save = hc_swap32_S (~tmp[2]);
 
   // seek to byte 256
 
@@ -469,7 +484,7 @@ DECLSPEC int verify_header_kuznyechik_serpent_camellia (GLOBAL_AS const u32 *dat
 
   if (tmp[0] != signature) return 0;
 
-  const u32 crc32_save = swap32_S (~tmp[2]);
+  const u32 crc32_save = hc_swap32_S (~tmp[2]);
 
   // seek to byte 256
 

@@ -240,7 +240,7 @@ KERNEL_FQ void m11600_loop (KERN_ATTR_TMPS_HOOKS (seven_zip_tmp_t, seven_zip_hoo
   {
     sha256_update_utf16le_swap (&ctx, w, pw_len);
 
-    memcat8c_be (ctx.w0, ctx.w1, ctx.w2, ctx.w3, ctx.len, swap32_S (j), ctx.h);
+    memcat8c_be (ctx.w0, ctx.w1, ctx.w2, ctx.w3, ctx.len, hc_swap32_S (j), ctx.h);
 
     ctx.len += 8;
   }
@@ -322,14 +322,14 @@ KERNEL_FQ void m11600_hook23 (KERN_ATTR_TMPS_HOOKS (seven_zip_tmp_t, seven_zip_h
 
   sha256_final (&ctx);
 
-  hooks[gid].ukey[0] = swap32_S (ctx.h[0]);
-  hooks[gid].ukey[1] = swap32_S (ctx.h[1]);
-  hooks[gid].ukey[2] = swap32_S (ctx.h[2]);
-  hooks[gid].ukey[3] = swap32_S (ctx.h[3]);
-  hooks[gid].ukey[4] = swap32_S (ctx.h[4]);
-  hooks[gid].ukey[5] = swap32_S (ctx.h[5]);
-  hooks[gid].ukey[6] = swap32_S (ctx.h[6]);
-  hooks[gid].ukey[7] = swap32_S (ctx.h[7]);
+  hooks[gid].ukey[0] = hc_swap32_S (ctx.h[0]);
+  hooks[gid].ukey[1] = hc_swap32_S (ctx.h[1]);
+  hooks[gid].ukey[2] = hc_swap32_S (ctx.h[2]);
+  hooks[gid].ukey[3] = hc_swap32_S (ctx.h[3]);
+  hooks[gid].ukey[4] = hc_swap32_S (ctx.h[4]);
+  hooks[gid].ukey[5] = hc_swap32_S (ctx.h[5]);
+  hooks[gid].ukey[6] = hc_swap32_S (ctx.h[6]);
+  hooks[gid].ukey[7] = hc_swap32_S (ctx.h[7]);
 }
 
 KERNEL_FQ void m11600_comp (KERN_ATTR_TMPS_HOOKS (seven_zip_tmp_t, seven_zip_hook_t))

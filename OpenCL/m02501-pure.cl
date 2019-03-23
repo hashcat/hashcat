@@ -14,10 +14,16 @@
 #include "inc_hash_sha1.cl"
 #include "inc_hash_sha256.cl"
 #include "inc_cipher_aes.cl"
+#else
+#include "inc_vendor.h"
+#include "inc_types.h"
+#include "inc_common.h"
+#include "inc_simd.h"
+#include "inc_hash_md5.h"
+#include "inc_hash_sha1.h"
+#include "inc_hash_sha256.h"
+#include "inc_cipher_aes.h"
 #endif
-
-#define COMPARE_S "inc_comp_single.cl"
-#define COMPARE_M "inc_comp_multi.cl"
 
 typedef struct wpa_pmk_tmp
 {
@@ -129,14 +135,14 @@ KERNEL_FQ void m02501_init (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
     out_ptr[i] = hex_to_u8 (in_ptr + j);
   }
 
-  tmps[gid].out[0] = swap32_S (out[0]);
-  tmps[gid].out[1] = swap32_S (out[1]);
-  tmps[gid].out[2] = swap32_S (out[2]);
-  tmps[gid].out[3] = swap32_S (out[3]);
-  tmps[gid].out[4] = swap32_S (out[4]);
-  tmps[gid].out[5] = swap32_S (out[5]);
-  tmps[gid].out[6] = swap32_S (out[6]);
-  tmps[gid].out[7] = swap32_S (out[7]);
+  tmps[gid].out[0] = hc_swap32_S (out[0]);
+  tmps[gid].out[1] = hc_swap32_S (out[1]);
+  tmps[gid].out[2] = hc_swap32_S (out[2]);
+  tmps[gid].out[3] = hc_swap32_S (out[3]);
+  tmps[gid].out[4] = hc_swap32_S (out[4]);
+  tmps[gid].out[5] = hc_swap32_S (out[5]);
+  tmps[gid].out[6] = hc_swap32_S (out[6]);
+  tmps[gid].out[7] = hc_swap32_S (out[7]);
 }
 
 KERNEL_FQ void m02501_loop (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
@@ -294,10 +300,10 @@ KERNEL_FQ void m02501_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
       u32 t2[4];
       u32 t3[4];
 
-      t0[0] = swap32_S (digest[0]);
-      t0[1] = swap32_S (digest[1]);
-      t0[2] = swap32_S (digest[2]);
-      t0[3] = swap32_S (digest[3]);
+      t0[0] = hc_swap32_S (digest[0]);
+      t0[1] = hc_swap32_S (digest[1]);
+      t0[2] = hc_swap32_S (digest[2]);
+      t0[3] = hc_swap32_S (digest[3]);
       t1[0] = 0;
       t1[1] = 0;
       t1[2] = 0;
@@ -347,12 +353,12 @@ KERNEL_FQ void m02501_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
     {
       u32 t = to;
 
-      t = swap32_S (t);
+      t = hc_swap32_S (t);
 
       t -= nonce_error_corrections / 2;
       t += nonce_error_correction;
 
-      t = swap32_S (t);
+      t = hc_swap32_S (t);
 
       if (wpa_eapol->nonce_compare < 0)
       {
@@ -414,10 +420,10 @@ KERNEL_FQ void m02501_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
       u32 t2[4];
       u32 t3[4];
 
-      t0[0] = swap32_S (digest[0]);
-      t0[1] = swap32_S (digest[1]);
-      t0[2] = swap32_S (digest[2]);
-      t0[3] = swap32_S (digest[3]);
+      t0[0] = hc_swap32_S (digest[0]);
+      t0[1] = hc_swap32_S (digest[1]);
+      t0[2] = hc_swap32_S (digest[2]);
+      t0[3] = hc_swap32_S (digest[3]);
       t1[0] = 0;
       t1[1] = 0;
       t1[2] = 0;
@@ -658,12 +664,12 @@ KERNEL_FQ void m02501_aux2 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
     {
       u32 t = to;
 
-      t = swap32_S (t);
+      t = hc_swap32_S (t);
 
       t -= nonce_error_corrections / 2;
       t += nonce_error_correction;
 
-      t = swap32_S (t);
+      t = hc_swap32_S (t);
 
       if (wpa_eapol->nonce_compare < 0)
       {
@@ -958,10 +964,10 @@ KERNEL_FQ void m02501_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
 
       u32 digest[4];
 
-      digest[0] = swap32_S (ctx1.opad.h[0]);
-      digest[1] = swap32_S (ctx1.opad.h[1]);
-      digest[2] = swap32_S (ctx1.opad.h[2]);
-      digest[3] = swap32_S (ctx1.opad.h[3]);
+      digest[0] = hc_swap32_S (ctx1.opad.h[0]);
+      digest[1] = hc_swap32_S (ctx1.opad.h[1]);
+      digest[2] = hc_swap32_S (ctx1.opad.h[2]);
+      digest[3] = hc_swap32_S (ctx1.opad.h[3]);
 
       // AES CMAC
 
@@ -1052,12 +1058,12 @@ KERNEL_FQ void m02501_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
     {
       u32 t = to;
 
-      t = swap32_S (t);
+      t = hc_swap32_S (t);
 
       t -= nonce_error_corrections / 2;
       t += nonce_error_correction;
 
-      t = swap32_S (t);
+      t = hc_swap32_S (t);
 
       if (wpa_eapol->nonce_compare < 0)
       {
@@ -1109,10 +1115,10 @@ KERNEL_FQ void m02501_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
 
       u32 digest[4];
 
-      digest[0] = swap32_S (ctx1.opad.h[0]);
-      digest[1] = swap32_S (ctx1.opad.h[1]);
-      digest[2] = swap32_S (ctx1.opad.h[2]);
-      digest[3] = swap32_S (ctx1.opad.h[3]);
+      digest[0] = hc_swap32_S (ctx1.opad.h[0]);
+      digest[1] = hc_swap32_S (ctx1.opad.h[1]);
+      digest[2] = hc_swap32_S (ctx1.opad.h[2]);
+      digest[3] = hc_swap32_S (ctx1.opad.h[3]);
 
       // AES CMAC
 

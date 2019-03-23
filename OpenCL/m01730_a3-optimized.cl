@@ -149,22 +149,22 @@ DECLSPEC void m01730m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 
   switch_buffer_by_offset_le_S (salt_buf0, salt_buf1, salt_buf2, salt_buf3, pw_len);
 
-  w[ 0] |= swap32_S (salt_buf0[0]);
-  w[ 1] |= swap32_S (salt_buf0[1]);
-  w[ 2] |= swap32_S (salt_buf0[2]);
-  w[ 3] |= swap32_S (salt_buf0[3]);
-  w[ 4] |= swap32_S (salt_buf1[0]);
-  w[ 5] |= swap32_S (salt_buf1[1]);
-  w[ 6] |= swap32_S (salt_buf1[2]);
-  w[ 7] |= swap32_S (salt_buf1[3]);
-  w[ 8] |= swap32_S (salt_buf2[0]);
-  w[ 9] |= swap32_S (salt_buf2[1]);
-  w[10] |= swap32_S (salt_buf2[2]);
-  w[11] |= swap32_S (salt_buf2[3]);
-  w[12] |= swap32_S (salt_buf3[0]);
-  w[13] |= swap32_S (salt_buf3[1]);
-  w[14] |= swap32_S (salt_buf3[2]);
-  w[15] |= swap32_S (salt_buf3[3]);
+  w[ 0] |= hc_swap32_S (salt_buf0[0]);
+  w[ 1] |= hc_swap32_S (salt_buf0[1]);
+  w[ 2] |= hc_swap32_S (salt_buf0[2]);
+  w[ 3] |= hc_swap32_S (salt_buf0[3]);
+  w[ 4] |= hc_swap32_S (salt_buf1[0]);
+  w[ 5] |= hc_swap32_S (salt_buf1[1]);
+  w[ 6] |= hc_swap32_S (salt_buf1[2]);
+  w[ 7] |= hc_swap32_S (salt_buf1[3]);
+  w[ 8] |= hc_swap32_S (salt_buf2[0]);
+  w[ 9] |= hc_swap32_S (salt_buf2[1]);
+  w[10] |= hc_swap32_S (salt_buf2[2]);
+  w[11] |= hc_swap32_S (salt_buf2[3]);
+  w[12] |= hc_swap32_S (salt_buf3[0]);
+  w[13] |= hc_swap32_S (salt_buf3[1]);
+  w[14] |= hc_swap32_S (salt_buf3[2]);
+  w[15] |= hc_swap32_S (salt_buf3[3]);
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
