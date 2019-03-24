@@ -586,7 +586,7 @@ DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const int c)
 }
 
 #if HAS_VPERM
-DECLSPEC u32x hc_byte_perm (const u32x a, const u32x b, const u32x c)
+DECLSPEC u32x hc_byte_perm (const u32x a, const u32x b, const int c)
 {
   u32x r;
 
@@ -595,51 +595,51 @@ DECLSPEC u32x hc_byte_perm (const u32x a, const u32x b, const u32x c)
   #endif
 
   #if VECT_SIZE >= 2
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s0) : "v"(b.s0), "v"(a.s0), "v"(c.s0));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s1) : "v"(b.s1), "v"(a.s1), "v"(c.s1));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s0) : "v"(b.s0), "v"(a.s0), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s1) : "v"(b.s1), "v"(a.s1), "v"(c));
   #endif
 
   #if VECT_SIZE >= 4
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s0) : "v"(b.s0), "v"(a.s0), "v"(c.s0));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s1) : "v"(b.s1), "v"(a.s1), "v"(c.s1));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s2) : "v"(b.s2), "v"(a.s2), "v"(c.s2));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s3) : "v"(b.s3), "v"(a.s3), "v"(c.s3));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s0) : "v"(b.s0), "v"(a.s0), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s1) : "v"(b.s1), "v"(a.s1), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s2) : "v"(b.s2), "v"(a.s2), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s3) : "v"(b.s3), "v"(a.s3), "v"(c));
   #endif
 
   #if VECT_SIZE >= 8
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s0) : "v"(b.s0), "v"(a.s0), "v"(c.s0));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s1) : "v"(b.s1), "v"(a.s1), "v"(c.s1));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s2) : "v"(b.s2), "v"(a.s2), "v"(c.s2));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s3) : "v"(b.s3), "v"(a.s3), "v"(c.s3));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s4) : "v"(b.s4), "v"(a.s4), "v"(c.s4));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s5) : "v"(b.s5), "v"(a.s5), "v"(c.s5));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s6) : "v"(b.s6), "v"(a.s6), "v"(c.s6));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s7) : "v"(b.s7), "v"(a.s7), "v"(c.s7));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s0) : "v"(b.s0), "v"(a.s0), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s1) : "v"(b.s1), "v"(a.s1), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s2) : "v"(b.s2), "v"(a.s2), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s3) : "v"(b.s3), "v"(a.s3), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s4) : "v"(b.s4), "v"(a.s4), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s5) : "v"(b.s5), "v"(a.s5), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s6) : "v"(b.s6), "v"(a.s6), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s7) : "v"(b.s7), "v"(a.s7), "v"(c));
   #endif
 
   #if VECT_SIZE >= 16
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s0) : "v"(b.s0), "v"(a.s0), "v"(c.s0));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s1) : "v"(b.s1), "v"(a.s1), "v"(c.s1));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s2) : "v"(b.s2), "v"(a.s2), "v"(c.s2));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s3) : "v"(b.s3), "v"(a.s3), "v"(c.s3));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s4) : "v"(b.s4), "v"(a.s4), "v"(c.s4));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s5) : "v"(b.s5), "v"(a.s5), "v"(c.s5));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s6) : "v"(b.s6), "v"(a.s6), "v"(c.s6));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s7) : "v"(b.s7), "v"(a.s7), "v"(c.s7));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s8) : "v"(b.s8), "v"(a.s8), "v"(c.s8));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s9) : "v"(b.s9), "v"(a.s9), "v"(c.s9));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.sa) : "v"(b.sa), "v"(a.sa), "v"(c.sa));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.sb) : "v"(b.sb), "v"(a.sb), "v"(c.sb));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.sc) : "v"(b.sc), "v"(a.sc), "v"(c.sc));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.sd) : "v"(b.sd), "v"(a.sd), "v"(c.sd));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.se) : "v"(b.se), "v"(a.se), "v"(c.se));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.sf) : "v"(b.sf), "v"(a.sf), "v"(c.sf));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s0) : "v"(b.s0), "v"(a.s0), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s1) : "v"(b.s1), "v"(a.s1), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s2) : "v"(b.s2), "v"(a.s2), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s3) : "v"(b.s3), "v"(a.s3), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s4) : "v"(b.s4), "v"(a.s4), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s5) : "v"(b.s5), "v"(a.s5), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s6) : "v"(b.s6), "v"(a.s6), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s7) : "v"(b.s7), "v"(a.s7), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s8) : "v"(b.s8), "v"(a.s8), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s9) : "v"(b.s9), "v"(a.s9), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.sa) : "v"(b.sa), "v"(a.sa), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.sb) : "v"(b.sb), "v"(a.sb), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.sc) : "v"(b.sc), "v"(a.sc), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.sd) : "v"(b.sd), "v"(a.sd), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.se) : "v"(b.se), "v"(a.se), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.sf) : "v"(b.sf), "v"(a.sf), "v"(c));
   #endif
 
   return r;
 }
 
-DECLSPEC u32 hc_byte_perm_S (const u32 a, const u32 b, const u32 c)
+DECLSPEC u32 hc_byte_perm_S (const u32 a, const u32 b, const int c)
 {
   u32 r;
 
@@ -970,46 +970,46 @@ DECLSPEC u64x hc_rotl64 (const u64x a, const int n)
   return rotate (a, (u64x) n);
 }
 
-DECLSPEC u32x hc_byte_perm (const u32x a, const u32x b, const u32x c)
+DECLSPEC u32x hc_byte_perm (const u32x a, const u32x b, const int c)
 {
   u32x r;
 
   #if VECT_SIZE == 1
-  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r)    : "r"(a),    "r"(b),    "r"(c)   );
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r)    : "r"(a),    "r"(b),    "r"(c));
   #endif
 
   #if VECT_SIZE >= 2
-  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s0) : "r"(a.s0), "r"(b.s0), "r"(c.s0));
-  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s1) : "r"(a.s1), "r"(b.s1), "r"(c.s1));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s0) : "r"(a.s0), "r"(b.s0), "r"(c));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s1) : "r"(a.s1), "r"(b.s1), "r"(c));
   #endif
 
   #if VECT_SIZE >= 4
-  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s2) : "r"(a.s2), "r"(b.s2), "r"(c.s2));
-  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s3) : "r"(a.s3), "r"(b.s3), "r"(c.s3));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s2) : "r"(a.s2), "r"(b.s2), "r"(c));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s3) : "r"(a.s3), "r"(b.s3), "r"(c));
   #endif
 
   #if VECT_SIZE >= 8
-  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s4) : "r"(a.s4), "r"(b.s4), "r"(c.s4));
-  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s5) : "r"(a.s5), "r"(b.s5), "r"(c.s5));
-  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s6) : "r"(a.s6), "r"(b.s6), "r"(c.s6));
-  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s7) : "r"(a.s7), "r"(b.s7), "r"(c.s7));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s4) : "r"(a.s4), "r"(b.s4), "r"(c));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s5) : "r"(a.s5), "r"(b.s5), "r"(c));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s6) : "r"(a.s6), "r"(b.s6), "r"(c));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s7) : "r"(a.s7), "r"(b.s7), "r"(c));
   #endif
 
   #if VECT_SIZE >= 16
-  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s8) : "r"(a.s8), "r"(b.s8), "r"(c.s8));
-  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s9) : "r"(a.s9), "r"(b.s9), "r"(c.s9));
-  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.sa) : "r"(a.sa), "r"(b.sa), "r"(c.sa));
-  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.sb) : "r"(a.sb), "r"(b.sb), "r"(c.sb));
-  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.sc) : "r"(a.sc), "r"(b.sc), "r"(c.sc));
-  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.sd) : "r"(a.sd), "r"(b.sd), "r"(c.sd));
-  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.se) : "r"(a.se), "r"(b.se), "r"(c.se));
-  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.sf) : "r"(a.sf), "r"(b.sf), "r"(c.sf));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s8) : "r"(a.s8), "r"(b.s8), "r"(c));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s9) : "r"(a.s9), "r"(b.s9), "r"(c));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.sa) : "r"(a.sa), "r"(b.sa), "r"(c));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.sb) : "r"(a.sb), "r"(b.sb), "r"(c));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.sc) : "r"(a.sc), "r"(b.sc), "r"(c));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.sd) : "r"(a.sd), "r"(b.sd), "r"(c));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.se) : "r"(a.se), "r"(b.se), "r"(c));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.sf) : "r"(a.sf), "r"(b.sf), "r"(c));
   #endif
 
   return r;
 }
 
-DECLSPEC u32 hc_byte_perm_S (const u32 a, const u32 b, const u32 c)
+DECLSPEC u32 hc_byte_perm_S (const u32 a, const u32 b, const int c)
 {
   u32 r;
 
@@ -1072,41 +1072,43 @@ DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const int c)
 
   #if CUDA_ARCH >= 350
 
+  const int c38 = (c & 3) * 8;
+
   #if VECT_SIZE == 1
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r)    : "r"(b),    "r"(a),    "r"((c & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r)    : "r"(b),    "r"(a),    "r"(c38));
   #endif
 
   #if VECT_SIZE >= 2
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s0) : "r"(b.s0), "r"(a.s0), "r"((c & 3) * 8));
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s1) : "r"(b.s1), "r"(a.s1), "r"((c & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s0) : "r"(b.s0), "r"(a.s0), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s1) : "r"(b.s1), "r"(a.s1), "r"(c38));
   #endif
 
   #if VECT_SIZE >= 4
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s2) : "r"(b.s2), "r"(a.s2), "r"((c & 3) * 8));
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s3) : "r"(b.s3), "r"(a.s3), "r"((c & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s2) : "r"(b.s2), "r"(a.s2), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s3) : "r"(b.s3), "r"(a.s3), "r"(c38));
   #endif
 
   #if VECT_SIZE >= 8
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s4) : "r"(b.s4), "r"(a.s4), "r"((c & 3) * 8));
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s5) : "r"(b.s5), "r"(a.s5), "r"((c & 3) * 8));
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s6) : "r"(b.s6), "r"(a.s6), "r"((c & 3) * 8));
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s7) : "r"(b.s7), "r"(a.s7), "r"((c & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s4) : "r"(b.s4), "r"(a.s4), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s5) : "r"(b.s5), "r"(a.s5), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s6) : "r"(b.s6), "r"(a.s6), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s7) : "r"(b.s7), "r"(a.s7), "r"(c38));
   #endif
 
   #if VECT_SIZE >= 16
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s8) : "r"(b.s8), "r"(a.s8), "r"((c & 3) * 8));
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s9) : "r"(b.s9), "r"(a.s9), "r"((c & 3) * 8));
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sa) : "r"(b.sa), "r"(a.sa), "r"((c & 3) * 8));
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sb) : "r"(b.sb), "r"(a.sb), "r"((c & 3) * 8));
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sc) : "r"(b.sc), "r"(a.sc), "r"((c & 3) * 8));
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sd) : "r"(b.sd), "r"(a.sd), "r"((c & 3) * 8));
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.se) : "r"(b.se), "r"(a.se), "r"((c & 3) * 8));
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sf) : "r"(b.sf), "r"(a.sf), "r"((c & 3) * 8));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s8) : "r"(b.s8), "r"(a.s8), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s9) : "r"(b.s9), "r"(a.s9), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sa) : "r"(b.sa), "r"(a.sa), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sb) : "r"(b.sb), "r"(a.sb), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sc) : "r"(b.sc), "r"(a.sc), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sd) : "r"(b.sd), "r"(a.sd), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.se) : "r"(b.se), "r"(a.se), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sf) : "r"(b.sf), "r"(a.sf), "r"(c38));
   #endif
 
   #else
 
-  r = hc_byte_perm (b, a, ((u32x) (0x76543210) >> ((c & 3) * 4)) & 0xffff);
+  r = hc_byte_perm (b, a, (0x76543210 >> ((c & 3) * 4)) & 0xffff);
 
   #endif
 
@@ -1119,7 +1121,9 @@ DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const int c)
 
   #if CUDA_ARCH >= 350
 
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r) : "r"(b), "r"(a), "r"((c & 3) * 8));
+  const int c38 = (c & 3) * 8;
+
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r) : "r"(b), "r"(a), "r"(c38));
 
   #else
 

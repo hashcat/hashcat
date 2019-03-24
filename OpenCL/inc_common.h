@@ -82,18 +82,40 @@
 #define KERN_ATTR_VECTOR()        KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const u32x      * restrict words_buf_r, void, void, void)
 #define KERN_ATTR_VECTOR_ESALT(e) KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const u32x      * restrict words_buf_r, void, void, e)
 
-DECLSPEC u32x hc_add3           (const u32x a, const u32x b, const u32x c);
-DECLSPEC u32  hc_add3_S         (const u32  a, const u32  b, const u32  c);
-DECLSPEC u32x hc_bfe            (const u32x a, const u32x b, const u32x c);
-DECLSPEC u32  hc_bfe_S          (const u32  a, const u32  b, const u32  c);
-DECLSPEC u32x hc_bytealign      (const u32x a, const u32x b, const int  c);
-DECLSPEC u32  hc_bytealign_S    (const u32  a, const u32  b, const int  c);
-DECLSPEC u32x hc_bytealign_be   (const u32x a, const u32x b, const int  c);
-DECLSPEC u32  hc_bytealign_be_S (const u32  a, const u32  b, const int  c);
-DECLSPEC u32x hc_byte_perm      (const u32x a, const u32x b, const u32x c);
-DECLSPEC u32  hc_byte_perm_S    (const u32  a, const u32  b, const u32  c);
-DECLSPEC u32x hc_lop_0x96       (const u32x a, const u32x b, const u32x c);
-DECLSPEC u32  hc_lop_0x96_S     (const u32  a, const u32  b, const u32  c);
+// union based packing
+
+DECLSPEC u8 v8a_from_v32_S   (const u32 v32);
+DECLSPEC u8 v8b_from_v32_S   (const u32 v32);
+DECLSPEC u8 v8c_from_v32_S   (const u32 v32);
+DECLSPEC u8 v8d_from_v32_S   (const u32 v32);
+
+DECLSPEC u16 v16a_from_v32_S (const u32 v32);
+DECLSPEC u16 v16b_from_v32_S (const u32 v32);
+
+DECLSPEC u32 v32a_from_v64_S (const u64 v64);
+DECLSPEC u32 v32b_from_v64_S (const u64 v64);
+
+DECLSPEC u32 v32_from_v16ab_S (const u16 v16a, const u16 v16b);
+DECLSPEC u64 v64_from_v32ab_S (const u32 v32a, const u32 v32b);
+
+// inline asm packing
+
+DECLSPEC u32 unpack_v8a_from_v32_S (const u32 v32);
+DECLSPEC u32 unpack_v8b_from_v32_S (const u32 v32);
+DECLSPEC u32 unpack_v8c_from_v32_S (const u32 v32);
+DECLSPEC u32 unpack_v8d_from_v32_S (const u32 v32);
+
+// opencl intern based packing
+
+DECLSPEC u32x l32_from_64   (u64x a);
+DECLSPEC u32x h32_from_64   (u64x a);
+DECLSPEC u32  l32_from_64_S (u64  a);
+DECLSPEC u32  h32_from_64_S (u64  a);
+
+DECLSPEC u64x hl32_to_64   (const u32x a, const u32x b);
+DECLSPEC u64  hl32_to_64_S (const u32  a, const u32  b);
+
+// bit operations
 
 DECLSPEC u32x hc_rotl32   (const u32x a, const int n);
 DECLSPEC u32x hc_rotl32   (const u32x a, const int n);
@@ -117,30 +139,23 @@ DECLSPEC u32  hc_swap32_S (const u32  v);
 DECLSPEC u64x hc_swap64   (const u64x v);
 DECLSPEC u64  hc_swap64_S (const u64  v);
 
-DECLSPEC u32x l32_from_64   (u64x a);
-DECLSPEC u32x h32_from_64   (u64x a);
-DECLSPEC u32  l32_from_64_S (u64  a);
-DECLSPEC u32  h32_from_64_S (u64  a);
+// byte operations
 
-DECLSPEC u64x hl32_to_64   (const u32x a, const u32x b);
-DECLSPEC u64  hl32_to_64_S (const u32  a, const u32  b);
+DECLSPEC u32x hc_bytealign      (const u32x a, const u32x b, const int  c);
+DECLSPEC u32  hc_bytealign_S    (const u32  a, const u32  b, const int  c);
+DECLSPEC u32x hc_bytealign_be   (const u32x a, const u32x b, const int  c);
+DECLSPEC u32  hc_bytealign_be_S (const u32  a, const u32  b, const int  c);
+DECLSPEC u32x hc_byte_perm      (const u32x a, const u32x b, const int  c);
+DECLSPEC u32  hc_byte_perm_S    (const u32  a, const u32  b, const int  c);
 
-DECLSPEC u8 v8a_from_v32_S   (const u32 v32);
-DECLSPEC u8 v8b_from_v32_S   (const u32 v32);
-DECLSPEC u8 v8c_from_v32_S   (const u32 v32);
-DECLSPEC u8 v8d_from_v32_S   (const u32 v32);
-DECLSPEC u16 v16a_from_v32_S (const u32 v32);
-DECLSPEC u16 v16b_from_v32_S (const u32 v32);
-DECLSPEC u32 v32a_from_v64_S (const u64 v64);
-DECLSPEC u32 v32b_from_v64_S (const u64 v64);
+DECLSPEC u32x hc_add3           (const u32x a, const u32x b, const u32x c);
+DECLSPEC u32  hc_add3_S         (const u32  a, const u32  b, const u32  c);
+DECLSPEC u32x hc_bfe            (const u32x a, const u32x b, const u32x c);
+DECLSPEC u32  hc_bfe_S          (const u32  a, const u32  b, const u32  c);
+DECLSPEC u32x hc_lop_0x96       (const u32x a, const u32x b, const u32x c);
+DECLSPEC u32  hc_lop_0x96_S     (const u32  a, const u32  b, const u32  c);
 
-DECLSPEC u32 v32_from_v16ab_S (const u16 v16a, const u16 v16b);
-DECLSPEC u64 v64_from_v32ab_S (const u32 v32a, const u32 v32b);
-
-DECLSPEC u32 unpack_v8a_from_v32_S (const u32 v32);
-DECLSPEC u32 unpack_v8b_from_v32_S (const u32 v32);
-DECLSPEC u32 unpack_v8c_from_v32_S (const u32 v32);
-DECLSPEC u32 unpack_v8d_from_v32_S (const u32 v32);
+// legacy common code
 
 DECLSPEC int ffz (const u32 v);
 DECLSPEC int hash_comp (const u32 *d1, GLOBAL_AS const u32 *d2);
