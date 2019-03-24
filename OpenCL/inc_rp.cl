@@ -765,6 +765,3 @@ DECLSPEC int apply_rules (CONSTANT_AS const u32 *cmds, u32 *buf, const int in_le
 
   return out_len;
 }
-
-#undef COPY_PW
-#undef PASTE_PW

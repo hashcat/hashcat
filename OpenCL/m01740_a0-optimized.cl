@@ -15,7 +15,7 @@
 #include "inc_hash_sha512.cl"
 #endif
 
-DECLSPEC void sha512_transform (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u64x *digest)
+DECLSPEC void sha512_transform_intern (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u64x *digest)
 {
   u64x w0_t = hl32_to_64 (w0[0], w0[1]);
   u64x w1_t = hl32_to_64 (w0[2], w0[3]);
@@ -254,7 +254,7 @@ KERNEL_FQ void m01740_m04 (KERN_ATTR_RULES ())
     digest[6] = SHA512M_G;
     digest[7] = SHA512M_H;
 
-    sha512_transform (w0_t, w1_t, w2_t, w3_t, digest);
+    sha512_transform_intern (w0_t, w1_t, w2_t, w3_t, digest);
 
     const u32x r0 = l32_from_64 (digest[7]);
     const u32x r1 = h32_from_64 (digest[7]);
@@ -425,7 +425,7 @@ KERNEL_FQ void m01740_s04 (KERN_ATTR_RULES ())
     digest[6] = SHA512M_G;
     digest[7] = SHA512M_H;
 
-    sha512_transform (w0_t, w1_t, w2_t, w3_t, digest);
+    sha512_transform_intern (w0_t, w1_t, w2_t, w3_t, digest);
 
     const u32x r0 = l32_from_64 (digest[7]);
     const u32x r1 = h32_from_64 (digest[7]);

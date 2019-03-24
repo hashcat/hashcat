@@ -15,7 +15,7 @@
 #include "inc_hash_sha512.cl"
 #endif
 
-DECLSPEC void sha512_transform_intern_transport_vector (const u64x *w0, const u64x *w1, const u64x *w2, const u64x *w3, u64x *digest)
+DECLSPEC void sha512_transform_transport_vector (const u64x *w0, const u64x *w1, const u64x *w2, const u64x *w3, u64x *digest)
 {
   u32x t0[4];
   u32x t1[4];
@@ -59,7 +59,7 @@ DECLSPEC void sha512_transform_intern_transport_vector (const u64x *w0, const u6
   t7[2] = h32_from_64 (w3[3]);
   t7[3] = l32_from_64 (w3[3]);
 
-  sha512_transform_intern_vector (t0, t1, t2, t3, t4, t5, t6, t7, digest);
+  sha512_transform_vector (t0, t1, t2, t3, t4, t5, t6, t7, digest);
 }
 
 DECLSPEC void hmac_sha512_pad (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u64x *ipad, u64x *opad)
@@ -95,7 +95,7 @@ DECLSPEC void hmac_sha512_pad (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u64x *ipa
   ipad[6] = SHA512M_G;
   ipad[7] = SHA512M_H;
 
-  sha512_transform_intern_transport_vector (w0_t, w1_t, w2_t, w3_t, ipad);
+  sha512_transform_transport_vector (w0_t, w1_t, w2_t, w3_t, ipad);
 
   w0_t[0] = hl32_to_64 (w0[0], w0[1]) ^ (u64x) 0x5c5c5c5c5c5c5c5c;
   w0_t[1] = hl32_to_64 (w0[2], w0[3]) ^ (u64x) 0x5c5c5c5c5c5c5c5c;
@@ -123,7 +123,7 @@ DECLSPEC void hmac_sha512_pad (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u64x *ipa
   opad[6] = SHA512M_G;
   opad[7] = SHA512M_H;
 
-  sha512_transform_intern_transport_vector (w0_t, w1_t, w2_t, w3_t, opad);
+  sha512_transform_transport_vector (w0_t, w1_t, w2_t, w3_t, opad);
 }
 
 DECLSPEC void hmac_sha512_run (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u64x *ipad, u64x *opad, u64x *digest)
@@ -159,7 +159,7 @@ DECLSPEC void hmac_sha512_run (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u64x *ipa
   digest[6] = ipad[6];
   digest[7] = ipad[7];
 
-  sha512_transform_intern_transport_vector (w0_t, w1_t, w2_t, w3_t, digest);
+  sha512_transform_transport_vector (w0_t, w1_t, w2_t, w3_t, digest);
 
   w0_t[0] = digest[0];
   w0_t[1] = digest[1];
@@ -187,7 +187,7 @@ DECLSPEC void hmac_sha512_run (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u64x *ipa
   digest[6] = opad[6];
   digest[7] = opad[7];
 
-  sha512_transform_intern_transport_vector (w0_t, w1_t, w2_t, w3_t, digest);
+  sha512_transform_transport_vector (w0_t, w1_t, w2_t, w3_t, digest);
 }
 
 KERNEL_FQ void m01750_m04 (KERN_ATTR_RULES ())

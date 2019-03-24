@@ -12,6 +12,7 @@
 #include "inc_rp_optimized.h"
 #include "inc_rp_optimized.cl"
 #include "inc_simd.cl"
+#include "inc_hash_md4.cl"
 #endif
 
 KERNEL_FQ void m01100_m04 (KERN_ATTR_RULES ())
