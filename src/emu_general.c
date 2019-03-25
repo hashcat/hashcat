@@ -17,17 +17,17 @@ u32 atomic_inc (u32 *p)
   return *p++;
 }
 
-size_t get_global_id (uint dimindx __attribute__((unused)))
+size_t get_global_id (u32 dimindx __attribute__((unused)))
 {
   return 0;
 }
 
-size_t get_local_id (uint dimindx __attribute__((unused)))
+size_t get_local_id (u32 dimindx __attribute__((unused)))
 {
   return 0;
 }
 
-size_t get_local_size (uint dimindx __attribute__((unused)))
+size_t get_local_size (u32 dimindx __attribute__((unused)))
 {
   return 0;
 }

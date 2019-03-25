@@ -15,11 +15,11 @@
 #define HAS_VBFE       0
 #define VECT_SIZE      1
 
-uint atomic_dec (uint *p);
-uint atomic_inc (uint *p);
+u32 atomic_dec (u32 *p);
+u32 atomic_inc (u32 *p);
 
-size_t get_global_id  (uint dimindx __attribute__((unused)));
-size_t get_local_id   (uint dimindx __attribute__((unused)));
-size_t get_local_size (uint dimindx __attribute__((unused)));
+size_t get_global_id  (u32 dimindx __attribute__((unused)));
+size_t get_local_id   (u32 dimindx __attribute__((unused)));
+size_t get_local_size (u32 dimindx __attribute__((unused)));
 
 #endif // _CPU_OPENCL_EMU_H
