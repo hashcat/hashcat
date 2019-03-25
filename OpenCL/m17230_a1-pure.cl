@@ -84,7 +84,12 @@ Author: Sein Coray
 
 */
 
-#include "inc_zip_inflate.cl"
+#include "inc_vendor.h"
+#include "inc_types.h"
+#include "inc_common.cl"
+#include "inc_simd.cl"
+#include "inc_rp.h"
+#include "inc_rp.cl"
 
 #define CRC32(x,c) (((x)>>8)^l_crc32tab[((x)^(c))&0xff])
 #define MSB(x)     ((x)>>24)
