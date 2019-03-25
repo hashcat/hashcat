@@ -6,6 +6,18 @@
 #ifndef _EMU_M02501_PURE_H
 #define _EMU_M02501_PURE_H
 
+#define DGST_ELEM 4
+#define DGST_POS0 0
+#define DGST_POS1 1
+#define DGST_POS2 2
+#define DGST_POS3 3
+
+typedef struct digest
+{
+  u32 digest_buf[DGST_ELEM];
+
+} digest_t;
+
 typedef struct wpa_pmk_tmp
 {
   u32 out[8];
