@@ -56,7 +56,7 @@ typedef int64_t i64;
 // there's no such thing in plain C, therefore all vector operation cannot work in this emu
 // which is why VECT_SIZE is set to 1
 
-typedef uint uint4;
+typedef uint32_t uint4;
 
 // timer
 
