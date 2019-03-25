@@ -61681,7 +61681,7 @@ DECLSPEC void gpu_decompress_entry (GLOBAL_AS pw_idx_t *pws_idx, GLOBAL_AS u32 *
   pw->pw_len = len;
 }
 
-KERNEL_FQ void gpu_decompress (GLOBAL_AS pw_idx_t * restrict pws_idx, GLOBAL_AS u32 * restrict pws_comp, GLOBAL_AS pw_t * restrict pws_buf, const u64 gid_max)
+KERNEL_FQ void gpu_decompress (GLOBAL_AS pw_idx_t *pws_idx, GLOBAL_AS u32 *pws_comp, GLOBAL_AS pw_t *pws_buf, const u64 gid_max)
 {
   const u64 gid = get_global_id (0);
 
@@ -61694,7 +61694,7 @@ KERNEL_FQ void gpu_decompress (GLOBAL_AS pw_idx_t * restrict pws_idx, GLOBAL_AS 
   pws_buf[gid] = pw;
 }
 
-KERNEL_FQ void gpu_memset (GLOBAL_AS uint4 * restrict buf, const u32 value, const u64 gid_max)
+KERNEL_FQ void gpu_memset (GLOBAL_AS uint4 *buf, const u32 value, const u64 gid_max)
 {
   const u64 gid = get_global_id (0);
 
@@ -61703,7 +61703,7 @@ KERNEL_FQ void gpu_memset (GLOBAL_AS uint4 * restrict buf, const u32 value, cons
   buf[gid] = (uint4) (value);
 }
 
-KERNEL_FQ void gpu_atinit (GLOBAL_AS pw_t * restrict buf, const u64 gid_max)
+KERNEL_FQ void gpu_atinit (GLOBAL_AS pw_t *buf, const u64 gid_max)
 {
   const u64 gid = get_global_id (0);
 

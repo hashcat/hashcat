@@ -52,7 +52,7 @@
   PERM_OP (l, r, tt,  4, 0x0f0f0f0f);  \
 }
 
-CONSTANT_AS u32a c_SPtrans[8][64] =
+CONSTANT_AS CONSTSPEC u32a c_SPtrans[8][64] =
 {
   {
     /* nibble 0 */
@@ -208,7 +208,7 @@ CONSTANT_AS u32a c_SPtrans[8][64] =
   },
 };
 
-CONSTANT_AS u32a c_skb[8][64] =
+CONSTANT_AS CONSTSPEC u32a c_skb[8][64] =
 {
   {
     0x00000000, 0x00000010, 0x20000000, 0x20000010,
@@ -576,7 +576,7 @@ KERNEL_FQ void m14000_mxx (KERN_ATTR_RULES ())
     u32 w2[4] = { 0 };
     u32 w3[4] = { 0 };
 
-    apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+    apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     const u32 c = w0[0];
     const u32 d = w0[1];
@@ -693,7 +693,7 @@ KERNEL_FQ void m14000_sxx (KERN_ATTR_RULES ())
     u32 w2[4] = { 0 };
     u32 w3[4] = { 0 };
 
-    apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+    apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     const u32 c = w0[0];
     const u32 d = w0[1];

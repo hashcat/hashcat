@@ -28,7 +28,7 @@
   (a)[((n)/4)+1]  = x >> 32;        \
 }
 
-CONSTANT_AS u32a sapb_trans_tbl[256] =
+CONSTANT_AS CONSTSPEC u32a sapb_trans_tbl[256] =
 {
   // first value hack for 0 byte as part of an optimization
   0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
@@ -49,7 +49,7 @@ CONSTANT_AS u32a sapb_trans_tbl[256] =
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
 };
 
-CONSTANT_AS u32a bcodeArray[48] =
+CONSTANT_AS CONSTSPEC u32a bcodeArray[48] =
 {
   0x14, 0x77, 0xf3, 0xd4, 0xbb, 0x71, 0x23, 0xd0, 0x03, 0xff, 0x47, 0x93, 0x55, 0xaa, 0x66, 0x91,
   0xf2, 0x88, 0x6b, 0x99, 0xbf, 0xcb, 0x32, 0x1a, 0x19, 0xd9, 0xa7, 0x82, 0x22, 0x49, 0xa2, 0x51,
@@ -205,7 +205,7 @@ KERNEL_FQ void m07701_m04 (KERN_ATTR_RULES ())
     u32x w2[4] = { 0 };
     u32x w3[4] = { 0 };
 
-    const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+    const u32x out_len = apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     if (out_len > 8) continue; // otherwise it overflows in waldorf function
 
@@ -381,7 +381,7 @@ KERNEL_FQ void m07701_s04 (KERN_ATTR_RULES ())
     u32x w2[4] = { 0 };
     u32x w3[4] = { 0 };
 
-    const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+    const u32x out_len = apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     if (out_len > 8) continue; // otherwise it overflows in waldorf function
 

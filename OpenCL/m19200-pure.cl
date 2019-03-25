@@ -154,7 +154,7 @@ DECLSPEC u32 sha512_update_128_qnxbug (sha512_ctx_t *ctx, u32 *w0, u32 *w1, u32 
   return sav;
 }
 
-DECLSPEC u32 sha512_update_global_swap_qnxbug (sha512_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len, u32 sav)
+DECLSPEC u32 sha512_update_global_swap_qnxbug (sha512_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len, u32 sav)
 {
   u32 w0[4];
   u32 w1[4];

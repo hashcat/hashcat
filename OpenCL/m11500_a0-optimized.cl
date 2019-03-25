@@ -15,7 +15,7 @@
 #include "inc_simd.cl"
 #endif
 
-CONSTANT_AS u32a crc32tab[0x100] =
+CONSTANT_AS CONSTSPEC u32a crc32tab[0x100] =
 {
   0x00000000, 0x77073096, 0xee0e612c, 0x990951ba,
   0x076dc419, 0x706af48f, 0xe963a535, 0x9e6495a3,
@@ -173,7 +173,7 @@ KERNEL_FQ void m11500_m04 (KERN_ATTR_RULES ())
     u32x w2[4] = { 0 };
     u32x w3[4] = { 0 };
 
-    const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+    const u32x out_len = apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     /**
      * crc32
@@ -273,7 +273,7 @@ KERNEL_FQ void m11500_s04 (KERN_ATTR_RULES ())
     u32x w2[4] = { 0 };
     u32x w3[4] = { 0 };
 
-    const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+    const u32x out_len = apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     /**
      * crc32

@@ -297,7 +297,7 @@ KERNEL_FQ void m08000_m04 (KERN_ATTR_RULES ())
     u32x w2[4] = { 0 };
     u32x w3[4] = { 0 };
 
-    apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+    apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     u32x w0_t[4];
     u32x w1_t[4];
@@ -480,7 +480,7 @@ KERNEL_FQ void m08000_s04 (KERN_ATTR_RULES ())
     u32x w2[4] = { 0 };
     u32x w3[4] = { 0 };
 
-    apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+    apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     u32x w0_t[4];
     u32x w1_t[4];

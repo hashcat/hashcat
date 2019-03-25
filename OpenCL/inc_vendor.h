@@ -7,11 +7,13 @@
 #define _INC_VENDOR_H
 
 #ifdef _CPU_OPENCL_EMU_H
+#define CONSTSPEC static const
 #define CONSTANT_AS
 #define GLOBAL_AS
 #define LOCAL_AS
 #define KERNEL_FQ
 #else
+#define CONSTSPEC const
 #define CONSTANT_AS __constant
 #define GLOBAL_AS   __global
 #define LOCAL_AS    __local

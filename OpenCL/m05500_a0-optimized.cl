@@ -47,7 +47,7 @@ typedef struct netntlm
   a  = a ^ tt;              \
 }
 
-CONSTANT_AS u32a c_SPtrans[8][64] =
+CONSTANT_AS CONSTSPEC u32a c_SPtrans[8][64] =
 {
   {
     0x02080800, 0x00080000, 0x02000002, 0x02080802,
@@ -195,7 +195,7 @@ CONSTANT_AS u32a c_SPtrans[8][64] =
   }
 };
 
-CONSTANT_AS u32a c_skb[8][64] =
+CONSTANT_AS CONSTSPEC u32a c_skb[8][64] =
 {
   {
     0x00000000, 0x00000010, 0x20000000, 0x20000010,
@@ -585,7 +585,7 @@ KERNEL_FQ void m05500_m04 (KERN_ATTR_RULES ())
     u32x w2[4] = { 0 };
     u32x w3[4] = { 0 };
 
-    const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+    const u32x out_len = apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     append_0x80_2x4_VV (w0, w1, out_len);
 
@@ -805,7 +805,7 @@ KERNEL_FQ void m05500_s04 (KERN_ATTR_RULES ())
     u32x w2[4] = { 0 };
     u32x w3[4] = { 0 };
 
-    const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+    const u32x out_len = apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     append_0x80_2x4_VV (w0, w1, out_len);
 

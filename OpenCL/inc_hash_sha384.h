@@ -62,7 +62,7 @@
 
 #define SHA384_EXPAND(x,y,z,w) (SHA384_S3 (x) + y + SHA384_S2 (z) + w)
 
-CONSTANT_AS u64a k_sha384[80] =
+CONSTANT_AS CONSTSPEC u64a k_sha384[80] =
 {
   SHA512C00, SHA512C01, SHA512C02, SHA512C03,
   SHA512C04, SHA512C05, SHA512C06, SHA512C07,
@@ -141,10 +141,10 @@ DECLSPEC void sha384_update (sha384_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void sha384_update_swap (sha384_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void sha384_update_utf16le (sha384_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void sha384_update_utf16le_swap (sha384_ctx_t *ctx, const u32 *w, const int len);
-DECLSPEC void sha384_update_global (sha384_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len);
-DECLSPEC void sha384_update_global_swap (sha384_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len);
-DECLSPEC void sha384_update_global_utf16le (sha384_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len);
-DECLSPEC void sha384_update_global_utf16le_swap (sha384_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len);
+DECLSPEC void sha384_update_global (sha384_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
+DECLSPEC void sha384_update_global_swap (sha384_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
+DECLSPEC void sha384_update_global_utf16le (sha384_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
+DECLSPEC void sha384_update_global_utf16le_swap (sha384_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
 DECLSPEC void sha384_final (sha384_ctx_t *ctx);
 DECLSPEC void sha384_hmac_init_128 (sha384_hmac_ctx_t *ctx, const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, const u32 *w4, const u32 *w5, const u32 *w6, const u32 *w7);
 DECLSPEC void sha384_hmac_init (sha384_hmac_ctx_t *ctx, const u32 *w, const int len);
@@ -156,10 +156,10 @@ DECLSPEC void sha384_hmac_update (sha384_hmac_ctx_t *ctx, const u32 *w, const in
 DECLSPEC void sha384_hmac_update_swap (sha384_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void sha384_hmac_update_utf16le (sha384_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void sha384_hmac_update_utf16le_swap (sha384_hmac_ctx_t *ctx, const u32 *w, const int len);
-DECLSPEC void sha384_hmac_update_global (sha384_hmac_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len);
-DECLSPEC void sha384_hmac_update_global_swap (sha384_hmac_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len);
-DECLSPEC void sha384_hmac_update_global_utf16le (sha384_hmac_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len);
-DECLSPEC void sha384_hmac_update_global_utf16le_swap (sha384_hmac_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len);
+DECLSPEC void sha384_hmac_update_global (sha384_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
+DECLSPEC void sha384_hmac_update_global_swap (sha384_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
+DECLSPEC void sha384_hmac_update_global_utf16le (sha384_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
+DECLSPEC void sha384_hmac_update_global_utf16le_swap (sha384_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
 DECLSPEC void sha384_hmac_final (sha384_hmac_ctx_t *ctx);
 DECLSPEC void sha384_transform_vector (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, const u32x *w4, const u32x *w5, const u32x *w6, const u32x *w7, u64x *digest);
 DECLSPEC void sha384_init_vector (sha384_ctx_vector_t *ctx);

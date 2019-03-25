@@ -351,22 +351,22 @@ DECLSPEC void twofish256_decrypt (const u32 *sk, const u32 *lk, const u32 *in, u
   out[3] = data[1] ^ lk[3];
 }
 
-#define g1_fun128
-#define g0_fun128
-#define f_rnd128
-#define i_rnd128
-#define f_rnd256
-#define i_rnd256
+#undef g1_fun128
+#undef g0_fun128
+#undef f_rnd128
+#undef i_rnd128
+#undef f_rnd256
+#undef i_rnd256
 
-#define q
+#undef q
 
-#define mds
+#undef mds
 
-#define q20
-#define q21
-#define q22
-#define q23
-#define q40
-#define q41
-#define q42
-#define q43
+#undef q20
+#undef q21
+#undef q22
+#undef q23
+#undef q40
+#undef q41
+#undef q42
+#undef q43

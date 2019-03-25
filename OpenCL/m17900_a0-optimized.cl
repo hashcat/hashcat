@@ -14,7 +14,7 @@
 #include "inc_simd.cl"
 #endif
 
-CONSTANT_AS u64a keccakf_rndc[24] =
+CONSTANT_AS CONSTSPEC u64a keccakf_rndc[24] =
 {
   0x0000000000000001, 0x0000000000008082, 0x800000000000808a,
   0x8000000080008000, 0x000000000000808b, 0x0000000080000001,
@@ -71,7 +71,7 @@ KERNEL_FQ void m17900_m04 (KERN_ATTR_RULES ())
     u32x w2[4] = { 0 };
     u32x w3[4] = { 0 };
 
-    const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+    const u32x out_len = apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     append_0x01_2x4_VV (w0, w1, out_len);
 
@@ -301,7 +301,7 @@ KERNEL_FQ void m17900_s04 (KERN_ATTR_RULES ())
     u32x w2[4] = { 0 };
     u32x w3[4] = { 0 };
 
-    const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+    const u32x out_len = apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     append_0x01_2x4_VV (w0, w1, out_len);
 

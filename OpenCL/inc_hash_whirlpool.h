@@ -8,7 +8,7 @@
 
 #define R 10
 
-CONSTANT_AS u32a Ch[8][256] =
+CONSTANT_AS CONSTSPEC u32a Ch[8][256] =
 {
   {
     0x18186018, 0x23238c23, 0xc6c63fc6, 0xe8e887e8,
@@ -540,7 +540,7 @@ CONSTANT_AS u32a Ch[8][256] =
   }
 };
 
-CONSTANT_AS u32a Cl[8][256] =
+CONSTANT_AS CONSTSPEC u32a Cl[8][256] =
 {
   {
     0xc07830d8, 0x05af4626, 0x7ef991b8, 0x136fcdfb,
@@ -1072,7 +1072,7 @@ CONSTANT_AS u32a Cl[8][256] =
   },
 };
 
-CONSTANT_AS u32a rch[R + 1] =
+CONSTANT_AS CONSTSPEC u32a rch[R + 1] =
 {
   0x00000000,
   0x1823c6e8,
@@ -1087,7 +1087,7 @@ CONSTANT_AS u32a rch[R + 1] =
   0xca2dbf07,
 };
 
-CONSTANT_AS u32a rcl[R + 1] =
+CONSTANT_AS CONSTSPEC u32a rcl[R + 1] =
 {
   0x00000000,
   0x87b8014f,
@@ -1169,10 +1169,10 @@ DECLSPEC void whirlpool_update (whirlpool_ctx_t *ctx, const u32 *w, const int le
 DECLSPEC void whirlpool_update_swap (whirlpool_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void whirlpool_update_utf16le (whirlpool_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void whirlpool_update_utf16le_swap (whirlpool_ctx_t *ctx, const u32 *w, const int len);
-DECLSPEC void whirlpool_update_global (whirlpool_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len);
-DECLSPEC void whirlpool_update_global_swap (whirlpool_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len);
-DECLSPEC void whirlpool_update_global_utf16le (whirlpool_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len);
-DECLSPEC void whirlpool_update_global_utf16le_swap (whirlpool_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len);
+DECLSPEC void whirlpool_update_global (whirlpool_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
+DECLSPEC void whirlpool_update_global_swap (whirlpool_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
+DECLSPEC void whirlpool_update_global_utf16le (whirlpool_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
+DECLSPEC void whirlpool_update_global_utf16le_swap (whirlpool_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
 DECLSPEC void whirlpool_final (whirlpool_ctx_t *ctx);
 DECLSPEC void whirlpool_hmac_init_64 (whirlpool_hmac_ctx_t *ctx, const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256]);
 DECLSPEC void whirlpool_hmac_init (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256]);
@@ -1184,10 +1184,10 @@ DECLSPEC void whirlpool_hmac_update (whirlpool_hmac_ctx_t *ctx, const u32 *w, co
 DECLSPEC void whirlpool_hmac_update_swap (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void whirlpool_hmac_update_utf16le (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void whirlpool_hmac_update_utf16le_swap (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len);
-DECLSPEC void whirlpool_hmac_update_global (whirlpool_hmac_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len);
-DECLSPEC void whirlpool_hmac_update_global_swap (whirlpool_hmac_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len);
-DECLSPEC void whirlpool_hmac_update_global_utf16le (whirlpool_hmac_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len);
-DECLSPEC void whirlpool_hmac_update_global_utf16le_swap (whirlpool_hmac_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len);
+DECLSPEC void whirlpool_hmac_update_global (whirlpool_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
+DECLSPEC void whirlpool_hmac_update_global_swap (whirlpool_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
+DECLSPEC void whirlpool_hmac_update_global_utf16le (whirlpool_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
+DECLSPEC void whirlpool_hmac_update_global_utf16le_swap (whirlpool_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
 DECLSPEC void whirlpool_hmac_final (whirlpool_hmac_ctx_t *ctx);
 DECLSPEC void whirlpool_transform_vector (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u32x *digest, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256]);
 DECLSPEC void whirlpool_init_vector (whirlpool_ctx_vector_t *ctx, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256]);

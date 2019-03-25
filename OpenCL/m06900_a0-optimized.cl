@@ -14,7 +14,7 @@
 #include "inc_simd.cl"
 #endif
 
-CONSTANT_AS u32a c_tables[4][256] =
+CONSTANT_AS CONSTSPEC u32a c_tables[4][256] =
 {
   {
     0x00072000, 0x00075000, 0x00074800, 0x00071000,
@@ -754,7 +754,7 @@ KERNEL_FQ void m06900_m04 (KERN_ATTR_RULES ())
     u32x w2[4] = { 0 };
     u32x w3[4] = { 0 };
 
-    const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+    const u32x out_len = apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     u32x data[8];
 
@@ -982,7 +982,7 @@ KERNEL_FQ void m06900_s04 (KERN_ATTR_RULES ())
     u32x w2[4] = { 0 };
     u32x w3[4] = { 0 };
 
-    const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+    const u32x out_len = apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     /**
      * GOST

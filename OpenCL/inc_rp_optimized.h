@@ -64,17 +64,17 @@
 #define RULE_OP_MANGLE_DUPEBLOCK_LAST   'Y'
 #define RULE_OP_MANGLE_TITLE            'E'
 
-DECLSPEC u32 generate_cmask (const u32 value);
-DECLSPEC void truncate_right (u32 *buf0, u32 *buf1, const u32 offset);
-DECLSPEC void truncate_left (u32 *buf0, u32 *buf1, const u32 offset);
-DECLSPEC void lshift_block (const u32 *in0, const u32 *in1, u32 *out0, u32 *out1);
-DECLSPEC void rshift_block (const u32 *in0, const u32 *in1, u32 *out0, u32 *out1);
-DECLSPEC void lshift_block_N (const u32 *in0, const u32 *in1, u32 *out0, u32 *out1, const u32 num);
-DECLSPEC void rshift_block_N (const u32 *in0, const u32 *in1, u32 *out0, u32 *out1, const u32 num);
-DECLSPEC void append_block1 (const u32 offset, u32 *buf0, u32 *buf1, const u32 src_r0);
-DECLSPEC void append_block8 (const u32 offset, u32 *buf0, u32 *buf1, const u32 *src_l0, const u32 *src_l1, const u32 *src_r0, const u32 *src_r1);
-DECLSPEC void reverse_block (u32 *in0, u32 *in1, u32 *out0, u32 *out1, const u32 len);
-DECLSPEC void exchange_byte (u32 *buf, const int off_src, const int off_dst);
+DECLSPEC u32 generate_cmask_optimized (const u32 value);
+DECLSPEC void truncate_right_optimized (u32 *buf0, u32 *buf1, const u32 offset);
+DECLSPEC void truncate_left_optimized (u32 *buf0, u32 *buf1, const u32 offset);
+DECLSPEC void lshift_block_optimized (const u32 *in0, const u32 *in1, u32 *out0, u32 *out1);
+DECLSPEC void rshift_block_optimized (const u32 *in0, const u32 *in1, u32 *out0, u32 *out1);
+DECLSPEC void lshift_block_optimized_N (const u32 *in0, const u32 *in1, u32 *out0, u32 *out1, const u32 num);
+DECLSPEC void rshift_block_optimized_N (const u32 *in0, const u32 *in1, u32 *out0, u32 *out1, const u32 num);
+DECLSPEC void append_block1_optimized (const u32 offset, u32 *buf0, u32 *buf1, const u32 src_r0);
+DECLSPEC void append_block8_optimized (const u32 offset, u32 *buf0, u32 *buf1, const u32 *src_l0, const u32 *src_l1, const u32 *src_r0, const u32 *src_r1);
+DECLSPEC void reverse_block_optimized (u32 *in0, u32 *in1, u32 *out0, u32 *out1, const u32 len);
+DECLSPEC void exchange_byte_optimized (u32 *buf, const int off_src, const int off_dst);
 DECLSPEC u32 rule_op_mangle_lrest (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 *buf0, MAYBE_UNUSED u32 *buf1, const u32 in_len);
 DECLSPEC u32 rule_op_mangle_urest (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 *buf0, MAYBE_UNUSED u32 *buf1, const u32 in_len);
 DECLSPEC u32 rule_op_mangle_lrest_ufirst (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 *buf0, MAYBE_UNUSED u32 *buf1, const u32 in_len);
@@ -117,8 +117,8 @@ DECLSPEC u32 rule_op_mangle_dupeblock_first (MAYBE_UNUSED const u32 p0, MAYBE_UN
 DECLSPEC u32 rule_op_mangle_dupeblock_last (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 *buf0, MAYBE_UNUSED u32 *buf1, const u32 in_len);
 DECLSPEC u32 toggle_on_register (const u32 in, const u32 r);
 DECLSPEC u32 rule_op_mangle_title_sep (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 *buf0, MAYBE_UNUSED u32 *buf1, const u32 in_len);
-DECLSPEC u32 apply_rule (const u32 name, const u32 p0, const u32 p1, u32 *buf0, u32 *buf1, const u32 in_len);
-DECLSPEC u32 apply_rules (CONSTANT_AS const u32 *cmds, u32 *buf0, u32 *buf1, const u32 len);
-DECLSPEC u32x apply_rules_vect (const u32 *pw_buf0, const u32 *pw_buf1, const u32 pw_len, CONSTANT_AS const kernel_rule_t *rules_buf, const u32 il_pos, u32x *buf0, u32x *buf1);
+DECLSPEC u32 apply_rule_optimized (const u32 name, const u32 p0, const u32 p1, u32 *buf0, u32 *buf1, const u32 in_len);
+DECLSPEC u32 apply_rules_optimized (CONSTANT_AS u32 *cmds, u32 *buf0, u32 *buf1, const u32 len);
+DECLSPEC u32x apply_rules_vect_optimized (const u32 *pw_buf0, const u32 *pw_buf1, const u32 pw_len, CONSTANT_AS kernel_rule_t *rules_buf, const u32 il_pos, u32x *buf0, u32x *buf1);
 
 #endif // _INC_RP_OPTIMIZED_H

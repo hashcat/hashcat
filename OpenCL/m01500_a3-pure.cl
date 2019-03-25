@@ -1885,7 +1885,7 @@ DECLSPEC void transpose32c (u32 *data)
 // transpose bitslice mod : attention race conditions, need different buffers for *in and *out
 //
 
-KERNEL_FQ void m01500_tm (GLOBAL_AS u32 * restrict mod, GLOBAL_AS bs_word_t * restrict words_buf_r)
+KERNEL_FQ void m01500_tm (GLOBAL_AS u32 *mod, GLOBAL_AS bs_word_t *words_buf_r)
 {
   const u64 gid = get_global_id (0);
 

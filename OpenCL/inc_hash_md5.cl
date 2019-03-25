@@ -470,7 +470,7 @@ DECLSPEC void md5_update_utf16le_swap (md5_ctx_t *ctx, const u32 *w, const int l
   md5_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-DECLSPEC void md5_update_global (md5_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len)
+DECLSPEC void md5_update_global (md5_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -522,7 +522,7 @@ DECLSPEC void md5_update_global (md5_ctx_t *ctx, const GLOBAL_AS u32 *w, const i
   md5_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-DECLSPEC void md5_update_global_swap (md5_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len)
+DECLSPEC void md5_update_global_swap (md5_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -608,7 +608,7 @@ DECLSPEC void md5_update_global_swap (md5_ctx_t *ctx, const GLOBAL_AS u32 *w, co
   md5_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-DECLSPEC void md5_update_global_utf16le (md5_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len)
+DECLSPEC void md5_update_global_utf16le (md5_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -650,7 +650,7 @@ DECLSPEC void md5_update_global_utf16le (md5_ctx_t *ctx, const GLOBAL_AS u32 *w,
   md5_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-DECLSPEC void md5_update_global_utf16le_swap (md5_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len)
+DECLSPEC void md5_update_global_utf16le_swap (md5_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1069,22 +1069,22 @@ DECLSPEC void md5_hmac_update_utf16le_swap (md5_hmac_ctx_t *ctx, const u32 *w, c
   md5_update_utf16le_swap (&ctx->ipad, w, len);
 }
 
-DECLSPEC void md5_hmac_update_global (md5_hmac_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len)
+DECLSPEC void md5_hmac_update_global (md5_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   md5_update_global (&ctx->ipad, w, len);
 }
 
-DECLSPEC void md5_hmac_update_global_swap (md5_hmac_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len)
+DECLSPEC void md5_hmac_update_global_swap (md5_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   md5_update_global_swap (&ctx->ipad, w, len);
 }
 
-DECLSPEC void md5_hmac_update_global_utf16le (md5_hmac_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len)
+DECLSPEC void md5_hmac_update_global_utf16le (md5_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   md5_update_global_utf16le (&ctx->ipad, w, len);
 }
 
-DECLSPEC void md5_hmac_update_global_utf16le_swap (md5_hmac_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len)
+DECLSPEC void md5_hmac_update_global_utf16le_swap (md5_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   md5_update_global_utf16le_swap (&ctx->ipad, w, len);
 }

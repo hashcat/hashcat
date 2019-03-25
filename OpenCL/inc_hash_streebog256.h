@@ -6,7 +6,7 @@
 #ifndef _INC_HASH_STREEBOG256_H
 #define _INC_HASH_STREEBOG256_H
 
-CONSTANT_AS u64a sbob_sl64[8][256] =
+CONSTANT_AS CONSTSPEC u64a sbob_sl64[8][256] =
 {
   {
     0xd031c397ce553fe6, 0x16ba5b01b006b525, 0xa89bade6296e70c8, 0x6a1f525d77d3435b,
@@ -538,7 +538,7 @@ CONSTANT_AS u64a sbob_sl64[8][256] =
   },
 };
 
-CONSTANT_AS u64a sbob_rc64[12][8] =
+CONSTANT_AS CONSTSPEC u64a sbob_rc64[12][8] =
 {
   {
     0xe9daca1eda5b08b1, 0x1f7c65c0812fcbeb, 0x16d0452e43766a2f, 0xfcc485758db84e71,
@@ -677,7 +677,7 @@ DECLSPEC void streebog256_transform (streebog256_ctx_t *ctx, const u32 *w0, cons
 DECLSPEC void streebog256_update_64 (streebog256_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len);
 DECLSPEC void streebog256_update (streebog256_ctx_t *ctx, const u32 *w, int len);
 DECLSPEC void streebog256_update_swap (streebog256_ctx_t *ctx, const u32 *w, int len);
-DECLSPEC void streebog256_update_global_swap (streebog256_ctx_t *ctx, const GLOBAL_AS u32 *w, int len);
+DECLSPEC void streebog256_update_global_swap (streebog256_ctx_t *ctx, GLOBAL_AS const u32 *w, int len);
 DECLSPEC void streebog256_final (streebog256_ctx_t *ctx);
 DECLSPEC void streebog256_hmac_init_64 (streebog256_hmac_ctx_t *ctx, const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, SHM_TYPE u64a (*s_sbob_sl64)[256]);
 DECLSPEC void streebog256_hmac_init (streebog256_hmac_ctx_t *ctx, const u32 *w, const int len, SHM_TYPE u64a (*s_sbob_sl64)[256]);
@@ -685,7 +685,7 @@ DECLSPEC void streebog256_hmac_init_swap (streebog256_hmac_ctx_t *ctx, const u32
 DECLSPEC void streebog256_hmac_update_64 (streebog256_hmac_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len);
 DECLSPEC void streebog256_hmac_update (streebog256_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void streebog256_hmac_update_swap (streebog256_hmac_ctx_t *ctx, const u32 *w, const int len);
-DECLSPEC void streebog256_hmac_update_global_swap (streebog256_hmac_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len);
+DECLSPEC void streebog256_hmac_update_global_swap (streebog256_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
 DECLSPEC void streebog256_hmac_final (streebog256_hmac_ctx_t *ctx);
 DECLSPEC void streebog256_init_vector (streebog256_ctx_vector_t *ctx, SHM_TYPE u64a (*s_sbob_sl64)[256]);
 DECLSPEC void streebog256_add_vector (u64x *x, const u64x *y);
