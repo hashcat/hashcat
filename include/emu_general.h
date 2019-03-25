@@ -24,10 +24,10 @@ typedef uint16_t ushort;
 typedef uint32_t uint;
 typedef uint64_t ulong;
 
-typedef uchar  u8;
-typedef ushort u16;
-typedef uint   u32;
-typedef ulong  u64;
+typedef uint8_t  u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
 
 // there's no such thing in plain C, therefore all vector operation cannot work in this emu
 // which is why VECT_SIZE is set to 1
