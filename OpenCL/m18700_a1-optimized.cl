@@ -5,16 +5,16 @@
 
 //#define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_scalar.cl"
 #include "inc_simd.cl"
 #include "inc_hash_md5.cl"
+#endif
 
-DECLSPEC u32 hashCode_g (const u32 init, __global u32 * restrict w, const u32 pw_len)
+DECLSPEC u32 hashCode_g (const u32 init, GLOBAL_AS u32 * restrict w, const u32 pw_len)
 {
   u32 hash = init;
 
@@ -52,7 +52,7 @@ DECLSPEC u32 hashCode_g (const u32 init, __global u32 * restrict w, const u32 pw
   return hash;
 }
 
-__kernel void m18700_m04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m18700_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -96,15 +96,15 @@ __kernel void m18700_m04 (KERN_ATTR_BASIC ())
   }
 }
 
-__kernel void m18700_m08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m18700_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m18700_m16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m18700_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m18700_s04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m18700_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -160,10 +160,10 @@ __kernel void m18700_s04 (KERN_ATTR_BASIC ())
   }
 }
 
-__kernel void m18700_s08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m18700_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m18700_s16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m18700_s16 (KERN_ATTR_BASIC ())
 {
 }

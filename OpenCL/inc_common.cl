@@ -3,87 +3,1439 @@
  * License.....: MIT
  */
 
-/*
- * Prototype kernel function that fits all kernel macros
- *
- * There are four variables where major differences occur:
- *
- *   -  P2: Adress space of kernel_rules_t struct.
- *          If the kernel uses rules_buf, it will be stored in __constant.
- *          If it does not, cheaper __global space is used.
- *
- *   -  P4: Innerloop word buffer:
- *          Most kernels use a bf_t structure in __global address space (_BASIC).
- *          Some use u32x pointer to a vector in __constant address space (_VECTOR).
- *          A few use a specific bs_word_t struct (_BITSLICE).
- *
- *   -  P5: Type of the tmps structure with additional data, or void.
- *          Used with slow hash types (ATTACK_EXEC_OUTSIDE_KERNEL) only.
- *
- *   - P19: Type of the esalt_bufs structure with additional data, or void.
+#include "inc_vendor.h"
+#include "inc_types.h"
+#include "inc_common.h"
+
+/**
+ * vendor specific (or generic) functions
  */
 
-#define KERN_ATTR(p2,p4,p5,p6,p19)                           \
-  __global       pw_t          * restrict pws,               \
-  p2       const kernel_rule_t * restrict rules_buf,         \
-  __global const pw_t          * restrict combs_buf,         \
-  p4,                                                        \
-  __global p5                  * restrict tmps,              \
-  __global p6                  * restrict hooks,             \
-  __global const u32           * restrict bitmaps_buf_s1_a,  \
-  __global const u32           * restrict bitmaps_buf_s1_b,  \
-  __global const u32           * restrict bitmaps_buf_s1_c,  \
-  __global const u32           * restrict bitmaps_buf_s1_d,  \
-  __global const u32           * restrict bitmaps_buf_s2_a,  \
-  __global const u32           * restrict bitmaps_buf_s2_b,  \
-  __global const u32           * restrict bitmaps_buf_s2_c,  \
-  __global const u32           * restrict bitmaps_buf_s2_d,  \
-  __global       plain_t       * restrict plains_buf,        \
-  __global const digest_t      * restrict digests_buf,       \
-  __global       u32           * restrict hashes_shown,      \
-  __global const salt_t        * restrict salt_bufs,         \
-  __global const p19           * restrict esalt_bufs,        \
-  __global       u32           * restrict d_return_buf,      \
-  __global       void          * restrict d_extra0_buf,      \
-  __global       void          * restrict d_extra1_buf,      \
-  __global       void          * restrict d_extra2_buf,      \
-  __global       void          * restrict d_extra3_buf,      \
-  const u32 bitmap_mask,    \
-  const u32 bitmap_shift1,  \
-  const u32 bitmap_shift2,  \
-  const u32 salt_pos,       \
-  const u32 loop_pos,       \
-  const u32 loop_cnt,       \
-  const u32 il_cnt,         \
-  const u32 digests_cnt,    \
-  const u32 digests_offset, \
-  const u32 combs_mode,     \
-  const u64 gid_max
+DECLSPEC u8 v8a_from_v32_S (const u32 v32)
+{
+  vconv32_t v;
 
-/*
- * Shortcut macros for usage in the actual kernels
- *
- * Not all possible combinations are needed. E.g. all kernels that use rules
- * do not use the tmps pointer, all kernels that use a vector pointer in P4
- * do not use rules or tmps, etc.
- */
+  v.v32 = v32;
 
-#define KERN_ATTR_BASIC()         KERN_ATTR (__global,   __global   const bf_t      * restrict bfs_buf,     void, void, void)
-#define KERN_ATTR_BITSLICE()      KERN_ATTR (__global,   __constant const bs_word_t * restrict words_buf_r, void, void, void)
-#define KERN_ATTR_ESALT(e)        KERN_ATTR (__global,   __global   const bf_t      * restrict bfs_buf,     void, void, e)
-#define KERN_ATTR_RULES()         KERN_ATTR (__constant, __global   const bf_t      * restrict bfs_buf,     void, void, void)
-#define KERN_ATTR_RULES_ESALT(e)  KERN_ATTR (__constant, __global   const bf_t      * restrict bfs_buf,     void, void, e)
-#define KERN_ATTR_TMPS(t)         KERN_ATTR (__global,   __global   const bf_t      * restrict bfs_buf,     t,    void, void)
-#define KERN_ATTR_TMPS_ESALT(t,e) KERN_ATTR (__global,   __global   const bf_t      * restrict bfs_buf,     t,    void, e)
-#define KERN_ATTR_TMPS_HOOKS(t,h) KERN_ATTR (__global,   __global   const bf_t      * restrict bfs_buf,     t,    h,    void)
-#define KERN_ATTR_VECTOR()        KERN_ATTR (__global,   __constant const u32x      * restrict words_buf_r, void, void, void)
-#define KERN_ATTR_VECTOR_ESALT(e) KERN_ATTR (__global,   __constant const u32x      * restrict words_buf_r, void, void, e)
+  return v.v8a;
+}
+
+DECLSPEC u8 v8b_from_v32_S (const u32 v32)
+{
+  vconv32_t v;
+
+  v.v32 = v32;
+
+  return v.v8b;
+}
+
+DECLSPEC u8 v8c_from_v32_S (const u32 v32)
+{
+  vconv32_t v;
+
+  v.v32 = v32;
+
+  return v.v8c;
+}
+
+DECLSPEC u8 v8d_from_v32_S (const u32 v32)
+{
+  vconv32_t v;
+
+  v.v32 = v32;
+
+  return v.v8d;
+}
+
+DECLSPEC u16 v16a_from_v32_S (const u32 v32)
+{
+  vconv32_t v;
+
+  v.v32 = v32;
+
+  return v.v16a;
+}
+
+DECLSPEC u16 v16b_from_v32_S (const u32 v32)
+{
+  vconv32_t v;
+
+  v.v32 = v32;
+
+  return v.v16b;
+}
+
+DECLSPEC u32 v32_from_v16ab_S (const u16 v16a, const u16 v16b)
+{
+  vconv32_t v;
+
+  v.v16a = v16a;
+  v.v16b = v16b;
+
+  return v.v32;
+}
+
+DECLSPEC u32 v32a_from_v64_S (const u64 v64)
+{
+  vconv64_t v;
+
+  v.v64 = v64;
+
+  return v.v32a;
+}
+
+DECLSPEC u32 v32b_from_v64_S (const u64 v64)
+{
+  vconv64_t v;
+
+  v.v64 = v64;
+
+  return v.v32b;
+}
+
+DECLSPEC u64 v64_from_v32ab_S (const u32 v32a, const u32 v32b)
+{
+  vconv64_t v;
+
+  v.v32a = v32a;
+  v.v32b = v32b;
+
+  return v.v64;
+}
+
+// unpack function are similar, but always return u32
+
+DECLSPEC u32 unpack_v8a_from_v32_S (const u32 v32)
+{
+  u32 r;
+
+  #if defined IS_NV
+  asm volatile ("bfe.u32 %0, %1, 0, 8;" : "=r"(r) : "r"(v32));
+  #elif defined IS_AMD
+    #if HAS_VBFE
+    __asm__ __volatile__ ("V_BFE_U32 %0, %1, 0, 8;" : "=v"(r) : "v"(v32));
+    #else
+    r = (v32 >> 0) & 0xff;
+    #endif
+  #else
+  r = (v32 >> 0) & 0xff;
+  #endif
+
+  return r;
+}
+
+DECLSPEC u32 unpack_v8b_from_v32_S (const u32 v32)
+{
+  u32 r;
+
+  #if defined IS_NV
+  asm volatile ("bfe.u32 %0, %1, 8, 8;" : "=r"(r) : "r"(v32));
+  #elif defined IS_AMD
+    #if HAS_VBFE
+    __asm__ __volatile__ ("V_BFE_U32 %0, %1, 8, 8;" : "=v"(r) : "v"(v32));
+    #else
+    r = (v32 >> 8) & 0xff;
+    #endif
+  #else
+  r = (v32 >> 8) & 0xff;
+  #endif
+
+  return r;
+}
+
+DECLSPEC u32 unpack_v8c_from_v32_S (const u32 v32)
+{
+  u32 r;
+
+  #if defined IS_NV
+  asm volatile ("bfe.u32 %0, %1, 16, 8;" : "=r"(r) : "r"(v32));
+  #elif defined IS_AMD
+    #if HAS_VBFE
+    __asm__ __volatile__ ("V_BFE_U32 %0, %1, 16, 8;" : "=v"(r) : "v"(v32));
+    #else
+    r = (v32 >> 16) & 0xff;
+    #endif
+  #else
+  r = (v32 >> 16) & 0xff;
+  #endif
+
+  return r;
+}
+
+DECLSPEC u32 unpack_v8d_from_v32_S (const u32 v32)
+{
+  u32 r;
+
+  #if defined IS_NV
+  asm volatile ("bfe.u32 %0, %1, 24, 8;" : "=r"(r) : "r"(v32));
+  #elif defined IS_AMD
+    #if HAS_VBFE
+    __asm__ __volatile__ ("V_BFE_U32 %0, %1, 24, 8;" : "=v"(r) : "v"(v32));
+    #else
+    r = (v32 >> 24) & 0xff;
+    #endif
+  #else
+  r = (v32 >> 24) & 0xff;
+  #endif
+
+  return r;
+}
+
+DECLSPEC u32 l32_from_64_S (u64 a)
+{
+  const u32 r = (u32) (a);
+
+  return r;
+}
+
+DECLSPEC u32 h32_from_64_S (u64 a)
+{
+  a >>= 32;
+
+  const u32 r = (u32) (a);
+
+  return r;
+}
+
+DECLSPEC u64 hl32_to_64_S (const u32 a, const u32 b)
+{
+  return v64_from_v32ab_S (b, a);
+}
+
+DECLSPEC u32x l32_from_64 (u64x a)
+{
+  u32x r;
+
+  #if VECT_SIZE == 1
+  r    = (u32) a;
+  #endif
+
+  #if VECT_SIZE >= 2
+  r.s0 = (u32) a.s0;
+  r.s1 = (u32) a.s1;
+  #endif
+
+  #if VECT_SIZE >= 4
+  r.s2 = (u32) a.s2;
+  r.s3 = (u32) a.s3;
+  #endif
+
+  #if VECT_SIZE >= 8
+  r.s4 = (u32) a.s4;
+  r.s5 = (u32) a.s5;
+  r.s6 = (u32) a.s6;
+  r.s7 = (u32) a.s7;
+  #endif
+
+  #if VECT_SIZE >= 16
+  r.s8 = (u32) a.s8;
+  r.s9 = (u32) a.s9;
+  r.sa = (u32) a.sa;
+  r.sb = (u32) a.sb;
+  r.sc = (u32) a.sc;
+  r.sd = (u32) a.sd;
+  r.se = (u32) a.se;
+  r.sf = (u32) a.sf;
+  #endif
+
+  return r;
+}
+
+DECLSPEC u32x h32_from_64 (u64x a)
+{
+  a >>= 32;
+
+  u32x r;
+
+  #if VECT_SIZE == 1
+  r    = (u32) a;
+  #endif
+
+  #if VECT_SIZE >= 2
+  r.s0 = (u32) a.s0;
+  r.s1 = (u32) a.s1;
+  #endif
+
+  #if VECT_SIZE >= 4
+  r.s2 = (u32) a.s2;
+  r.s3 = (u32) a.s3;
+  #endif
+
+  #if VECT_SIZE >= 8
+  r.s4 = (u32) a.s4;
+  r.s5 = (u32) a.s5;
+  r.s6 = (u32) a.s6;
+  r.s7 = (u32) a.s7;
+  #endif
+
+  #if VECT_SIZE >= 16
+  r.s8 = (u32) a.s8;
+  r.s9 = (u32) a.s9;
+  r.sa = (u32) a.sa;
+  r.sb = (u32) a.sb;
+  r.sc = (u32) a.sc;
+  r.sd = (u32) a.sd;
+  r.se = (u32) a.se;
+  r.sf = (u32) a.sf;
+  #endif
+
+  return r;
+}
+
+DECLSPEC u64x hl32_to_64 (const u32x a, const u32x b)
+{
+  u64x r;
+
+  #if VECT_SIZE == 1
+  r    = v64_from_v32ab_S  (b   , a);
+  #endif
+
+  #if VECT_SIZE >= 2
+  r.s0 = v64_from_v32ab_S  (b.s0, a.s0);
+  r.s1 = v64_from_v32ab_S  (b.s1, a.s1);
+  #endif
+
+  #if VECT_SIZE >= 4
+  r.s2 = v64_from_v32ab_S  (b.s2, a.s2);
+  r.s3 = v64_from_v32ab_S  (b.s3, a.s3);
+  #endif
+
+  #if VECT_SIZE >= 8
+  r.s4 = v64_from_v32ab_S  (b.s4, a.s4);
+  r.s5 = v64_from_v32ab_S  (b.s5, a.s5);
+  r.s6 = v64_from_v32ab_S  (b.s6, a.s6);
+  r.s7 = v64_from_v32ab_S  (b.s7, a.s7);
+  #endif
+
+  #if VECT_SIZE >= 16
+  r.s8 = v64_from_v32ab_S  (b.s8, a.s8);
+  r.s9 = v64_from_v32ab_S  (b.s9, a.s9);
+  r.sa = v64_from_v32ab_S  (b.sa, a.sa);
+  r.sb = v64_from_v32ab_S  (b.sb, a.sb);
+  r.sc = v64_from_v32ab_S  (b.sc, a.sc);
+  r.sd = v64_from_v32ab_S  (b.sd, a.sd);
+  r.se = v64_from_v32ab_S  (b.se, a.se);
+  r.sf = v64_from_v32ab_S  (b.sf, a.sf);
+  #endif
+
+  return r;
+}
+
+#ifdef IS_AMD
+
+#if HAS_VPERM
+DECLSPEC u32 hc_swap32_S (const u32 v)
+{
+  u32 r;
+
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r) : "v"(v), "v"(0x00010203));
+
+  return r;
+}
+
+DECLSPEC u64 hc_swap64_S (const u64 v)
+{
+  const u32 v0 = h32_from_64_S (v);
+  const u32 v1 = l32_from_64_S (v);
+
+  u32 t0;
+  u32 t1;
+
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(t0) : "v"(v0), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(t1) : "v"(v1), "v"(0x00010203));
+
+  const u64 r = hl32_to_64_S (t1, t0);
+
+  return r;
+}
+#else
+DECLSPEC u32 hc_swap32_S (const u32 v)
+{
+  return as_uint (as_uchar4 (v).s3210);
+}
+
+DECLSPEC u64 hc_swap64_S (const u64 v)
+{
+  return (as_ulong (as_uchar8 (v).s76543210));
+}
+#endif
+
+DECLSPEC u32 hc_rotr32_S (const u32 a, const int n)
+{
+  return rotate (a, (u32) 32 - n);
+}
+
+DECLSPEC u32 hc_rotl32_S (const u32 a, const int n)
+{
+  return rotate (a, (u32) n);
+}
+
+DECLSPEC u64 hc_rotr64_S (const u64 a, const int n)
+{
+  const u32 a0 = h32_from_64_S (a);
+  const u32 a1 = l32_from_64_S (a);
+
+  const u32 t0 = (n >= 32) ? amd_bitalign (a0, a1, n - 32) : amd_bitalign (a1, a0, n);
+  const u32 t1 = (n >= 32) ? amd_bitalign (a1, a0, n - 32) : amd_bitalign (a0, a1, n);
+
+  const u64 r = hl32_to_64_S (t0, t1);
+
+  return r;
+}
+
+DECLSPEC u64 hc_rotl64_S (const u64 a, const int n)
+{
+  return hc_rotr64_S (a, n);
+}
+
+#if HAS_VPERM
+DECLSPEC u32x hc_swap32 (const u32x v)
+{
+  return bitselect (rotate (v, 24u), rotate (v, 8u), 0x00ff00ffu);
+}
+
+DECLSPEC u64x hc_swap64 (const u64x v)
+{
+  const u32x a0 = h32_from_64 (v);
+  const u32x a1 = l32_from_64 (v);
+
+  u32x t0;
+  u32x t1;
+
+  #if VECT_SIZE == 1
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0) : "v"(0), "v"(a0), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1) : "v"(0), "v"(a1), "v"(0x00010203));
+  #endif
+
+  #if VECT_SIZE >= 2
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s0) : "v"(0), "v"(a0.s0), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s0) : "v"(0), "v"(a1.s0), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s1) : "v"(0), "v"(a0.s1), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s1) : "v"(0), "v"(a1.s1), "v"(0x00010203));
+  #endif
+
+  #if VECT_SIZE >= 4
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s2) : "v"(0), "v"(a0.s2), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s2) : "v"(0), "v"(a1.s2), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s3) : "v"(0), "v"(a0.s3), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s3) : "v"(0), "v"(a1.s3), "v"(0x00010203));
+  #endif
+
+  #if VECT_SIZE >= 8
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s4) : "v"(0), "v"(a0.s4), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s4) : "v"(0), "v"(a1.s4), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s5) : "v"(0), "v"(a0.s5), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s5) : "v"(0), "v"(a1.s5), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s6) : "v"(0), "v"(a0.s6), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s6) : "v"(0), "v"(a1.s6), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s7) : "v"(0), "v"(a0.s7), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s7) : "v"(0), "v"(a1.s7), "v"(0x00010203));
+  #endif
+
+  #if VECT_SIZE >= 16
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s8) : "v"(0), "v"(a0.s8), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s8) : "v"(0), "v"(a1.s8), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s9) : "v"(0), "v"(a0.s9), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s9) : "v"(0), "v"(a1.s9), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.sa) : "v"(0), "v"(a0.sa), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.sa) : "v"(0), "v"(a1.sa), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.sb) : "v"(0), "v"(a0.sb), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.sb) : "v"(0), "v"(a1.sb), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.sc) : "v"(0), "v"(a0.sc), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.sc) : "v"(0), "v"(a1.sc), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.sd) : "v"(0), "v"(a0.sd), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.sd) : "v"(0), "v"(a1.sd), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.se) : "v"(0), "v"(a0.se), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.se) : "v"(0), "v"(a1.se), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.sf) : "v"(0), "v"(a0.sf), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.sf) : "v"(0), "v"(a1.sf), "v"(0x00010203));
+  #endif
+
+  const u64x r = hl32_to_64 (t1, t0);
+
+  return r;
+}
+#else
+DECLSPEC u32x hc_swap32 (const u32x v)
+{
+  return bitselect (rotate (v, 24u), rotate (v, 8u), 0x00ff00ffu);
+}
+
+DECLSPEC u64x hc_swap64 (const u64x v)
+{
+  return bitselect (bitselect (rotate (v, 24ul),
+                               rotate (v,  8ul), 0x000000ff000000fful),
+                    bitselect (rotate (v, 56ul),
+                               rotate (v, 40ul), 0x00ff000000ff0000ul),
+                                                 0xffff0000ffff0000ul);
+}
+#endif
+
+DECLSPEC u32x hc_rotr32 (const u32x a, const int n)
+{
+  return rotate (a, (u32) 32 - n);
+}
+
+DECLSPEC u32x hc_rotl32 (const u32x a, const int n)
+{
+  return rotate (a, (u32)  n);
+}
+
+DECLSPEC u64x hc_rotr64 (const u64x a, const int n)
+{
+  const u32x a0 = h32_from_64 (a);
+  const u32x a1 = l32_from_64 (a);
+
+  const u32x t0 = (n >= 32) ? amd_bitalign (a0, a1, n - 32) : amd_bitalign (a1, a0, n);
+  const u32x t1 = (n >= 32) ? amd_bitalign (a1, a0, n - 32) : amd_bitalign (a0, a1, n);
+
+  const u64x r = hl32_to_64 (t0, t1);
+
+  return r;
+}
+
+DECLSPEC u64x hc_rotl64 (const u64x a, const int n)
+{
+  return hc_rotr64 (a, 64 - n);
+}
+
+DECLSPEC u32x hc_bfe (const u32x a, const u32x b, const u32x c)
+{
+  #define BIT(x)      ((u32x) (1u) << (x))
+  #define BIT_MASK(x) (BIT (x) - 1)
+  #define BFE(x,y,z)  (((x) >> (y)) & BIT_MASK (z))
+
+  return BFE (a, b, c);
+
+  #undef BIT
+  #undef BIT_MASK
+  #undef BFE
+}
+
+DECLSPEC u32 hc_bfe_S (const u32 a, const u32 b, const u32 c)
+{
+  #define BIT(x)      (1u << (x))
+  #define BIT_MASK(x) (BIT (x) - 1)
+  #define BFE(x,y,z)  (((x) >> (y)) & BIT_MASK (z))
+
+  return BFE (a, b, c);
+
+  #undef BIT
+  #undef BIT_MASK
+  #undef BFE
+}
+
+DECLSPEC u32x hc_bytealign_be (const u32x a, const u32x b, const int c)
+{
+  u32x r;
+
+  switch (c & 3)
+  {
+    case 0: r =              b;        break;
+    case 1: r = (a << 24) | (b >>  8); break;
+    case 2: r = (a << 16) | (b >> 16); break;
+    case 3: r = (a <<  8) | (b >> 24); break;
+  }
+
+  return r;
+}
+
+DECLSPEC u32 hc_bytealign_be_S (const u32 a, const u32 b, const int c)
+{
+  u32 r;
+
+  switch (c & 3)
+  {
+    case 0: r =              b;        break;
+    case 1: r = (a << 24) | (b >>  8); break;
+    case 2: r = (a << 16) | (b >> 16); break;
+    case 3: r = (a <<  8) | (b >> 24); break;
+  }
+
+  return r;
+}
+
+DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const int c)
+{
+  u32x r;
+
+  switch (c & 3)
+  {
+    case 0: r =              b;        break;
+    case 1: r = (a >> 24) | (b <<  8); break;
+    case 2: r = (a >> 16) | (b << 16); break;
+    case 3: r = (a >>  8) | (b << 24); break;
+  }
+
+  return r;
+}
+
+DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const int c)
+{
+  u32 r;
+
+  switch (c & 3)
+  {
+    case 0: r =              b;        break;
+    case 1: r = (a >> 24) | (b <<  8); break;
+    case 2: r = (a >> 16) | (b << 16); break;
+    case 3: r = (a >>  8) | (b << 24); break;
+  }
+
+  return r;
+}
+
+#if HAS_VPERM
+DECLSPEC u32x hc_byte_perm (const u32x a, const u32x b, const int c)
+{
+  u32x r;
+
+  #if VECT_SIZE == 1
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r) : "v"(b), "v"(a), "v"(c));
+  #endif
+
+  #if VECT_SIZE >= 2
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s0) : "v"(b.s0), "v"(a.s0), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s1) : "v"(b.s1), "v"(a.s1), "v"(c));
+  #endif
+
+  #if VECT_SIZE >= 4
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s0) : "v"(b.s0), "v"(a.s0), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s1) : "v"(b.s1), "v"(a.s1), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s2) : "v"(b.s2), "v"(a.s2), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s3) : "v"(b.s3), "v"(a.s3), "v"(c));
+  #endif
+
+  #if VECT_SIZE >= 8
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s0) : "v"(b.s0), "v"(a.s0), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s1) : "v"(b.s1), "v"(a.s1), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s2) : "v"(b.s2), "v"(a.s2), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s3) : "v"(b.s3), "v"(a.s3), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s4) : "v"(b.s4), "v"(a.s4), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s5) : "v"(b.s5), "v"(a.s5), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s6) : "v"(b.s6), "v"(a.s6), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s7) : "v"(b.s7), "v"(a.s7), "v"(c));
+  #endif
+
+  #if VECT_SIZE >= 16
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s0) : "v"(b.s0), "v"(a.s0), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s1) : "v"(b.s1), "v"(a.s1), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s2) : "v"(b.s2), "v"(a.s2), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s3) : "v"(b.s3), "v"(a.s3), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s4) : "v"(b.s4), "v"(a.s4), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s5) : "v"(b.s5), "v"(a.s5), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s6) : "v"(b.s6), "v"(a.s6), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s7) : "v"(b.s7), "v"(a.s7), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s8) : "v"(b.s8), "v"(a.s8), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s9) : "v"(b.s9), "v"(a.s9), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.sa) : "v"(b.sa), "v"(a.sa), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.sb) : "v"(b.sb), "v"(a.sb), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.sc) : "v"(b.sc), "v"(a.sc), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.sd) : "v"(b.sd), "v"(a.sd), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.se) : "v"(b.se), "v"(a.se), "v"(c));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.sf) : "v"(b.sf), "v"(a.sf), "v"(c));
+  #endif
+
+  return r;
+}
+
+DECLSPEC u32 hc_byte_perm_S (const u32 a, const u32 b, const int c)
+{
+  u32 r;
+
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r) : "v"(b), "v"(a), "v"(c));
+
+  return r;
+}
+#endif
+
+#if HAS_VADD3
+DECLSPEC u32x hc_add3 (const u32x a, const u32x b, const u32x c)
+{
+  u32x r;
+
+  #if VECT_SIZE == 1
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r) : "v"(b), "v"(a), "v"(c));
+  #endif
+
+  #if VECT_SIZE >= 2
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s0) : "v"(b.s0), "v"(a.s0), "v"(c.s0));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s1) : "v"(b.s1), "v"(a.s1), "v"(c.s1));
+  #endif
+
+  #if VECT_SIZE >= 4
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s0) : "v"(b.s0), "v"(a.s0), "v"(c.s0));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s1) : "v"(b.s1), "v"(a.s1), "v"(c.s1));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s2) : "v"(b.s2), "v"(a.s2), "v"(c.s2));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s3) : "v"(b.s3), "v"(a.s3), "v"(c.s3));
+  #endif
+
+  #if VECT_SIZE >= 8
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s0) : "v"(b.s0), "v"(a.s0), "v"(c.s0));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s1) : "v"(b.s1), "v"(a.s1), "v"(c.s1));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s2) : "v"(b.s2), "v"(a.s2), "v"(c.s2));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s3) : "v"(b.s3), "v"(a.s3), "v"(c.s3));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s4) : "v"(b.s4), "v"(a.s4), "v"(c.s4));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s5) : "v"(b.s5), "v"(a.s5), "v"(c.s5));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s6) : "v"(b.s6), "v"(a.s6), "v"(c.s6));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s7) : "v"(b.s7), "v"(a.s7), "v"(c.s7));
+  #endif
+
+  #if VECT_SIZE >= 16
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s0) : "v"(b.s0), "v"(a.s0), "v"(c.s0));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s1) : "v"(b.s1), "v"(a.s1), "v"(c.s1));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s2) : "v"(b.s2), "v"(a.s2), "v"(c.s2));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s3) : "v"(b.s3), "v"(a.s3), "v"(c.s3));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s4) : "v"(b.s4), "v"(a.s4), "v"(c.s4));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s5) : "v"(b.s5), "v"(a.s5), "v"(c.s5));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s6) : "v"(b.s6), "v"(a.s6), "v"(c.s6));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s7) : "v"(b.s7), "v"(a.s7), "v"(c.s7));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s8) : "v"(b.s8), "v"(a.s8), "v"(c.s8));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.s9) : "v"(b.s9), "v"(a.s9), "v"(c.s9));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.sa) : "v"(b.sa), "v"(a.sa), "v"(c.sa));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.sb) : "v"(b.sb), "v"(a.sb), "v"(c.sb));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.sc) : "v"(b.sc), "v"(a.sc), "v"(c.sc));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.sd) : "v"(b.sd), "v"(a.sd), "v"(c.sd));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.se) : "v"(b.se), "v"(a.se), "v"(c.se));
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r.sf) : "v"(b.sf), "v"(a.sf), "v"(c.sf));
+  #endif
+
+  return r;
+}
+
+DECLSPEC u32 hc_add3_S (const u32 a, const u32 b, const u32 c)
+{
+  u32 r;
+
+  __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r) : "v"(b), "v"(a), "v"(c));
+
+  return r;
+}
+#else
+DECLSPEC u32x hc_add3 (const u32x a, const u32x b, const u32x c)
+{
+  return a + b + c;
+}
+
+DECLSPEC u32 hc_add3_S (const u32 a, const u32 b, const u32 c)
+{
+  return a + b + c;
+}
+#endif
+
+DECLSPEC u32x hc_lop_0x96 (const u32x a, const u32x b, const u32x c)
+{
+  return a ^ b ^ c;
+}
+
+DECLSPEC u32 hc_lop_0x96_S (const u32 a, const u32 b, const u32 c)
+{
+  return a ^ b ^ c;
+}
+
+#endif
+
+#ifdef IS_NV
+DECLSPEC u32 hc_swap32_S (const u32 v)
+{
+  u32 r;
+
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r) : "r"(v));
+
+  return r;
+}
+
+DECLSPEC u64 hc_swap64_S (const u64 v)
+{
+  u32 il;
+  u32 ir;
+
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il), "=r"(ir) : "l"(v));
+
+  u32 tl;
+  u32 tr;
+
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl) : "r"(il));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr) : "r"(ir));
+
+  u64 r;
+
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r) : "r"(tr), "r"(tl));
+
+  return r;
+}
+
+DECLSPEC u32 hc_rotr32_S (const u32 a, const int n)
+{
+  return rotate (a, (u32) 32 - n);
+}
+
+DECLSPEC u32 hc_rotl32_S (const u32 a, const int n)
+{
+  return rotate (a, (u32) n);
+}
+
+DECLSPEC u64 hc_rotr64_S (const u64 a, const int n)
+{
+  return rotate (a, (u64) 64 - n);
+}
+
+DECLSPEC u64 hc_rotl64_S (const u64 a, const int n)
+{
+  return rotate (a, (u64) n);
+}
+
+DECLSPEC u32x hc_swap32 (const u32x v)
+{
+  u32x r;
+
+  #if VECT_SIZE == 1
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r) : "r"(v));
+  #endif
+
+  #if VECT_SIZE >= 2
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s0) : "r"(v.s0));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s1) : "r"(v.s1));
+  #endif
+
+  #if VECT_SIZE >= 4
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s2) : "r"(v.s2));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s3) : "r"(v.s3));
+  #endif
+
+  #if VECT_SIZE >= 8
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s4) : "r"(v.s4));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s5) : "r"(v.s5));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s6) : "r"(v.s6));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s7) : "r"(v.s7));
+  #endif
+
+  #if VECT_SIZE >= 16
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s8) : "r"(v.s8));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s9) : "r"(v.s9));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.sa) : "r"(v.sa));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.sb) : "r"(v.sb));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.sc) : "r"(v.sc));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.sd) : "r"(v.sd));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.se) : "r"(v.se));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.sf) : "r"(v.sf));
+  #endif
+
+  return r;
+}
+
+DECLSPEC u64x hc_swap64 (const u64x v)
+{
+  u32x il;
+  u32x ir;
+
+  #if VECT_SIZE == 1
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il), "=r"(ir) : "l"(v));
+  #endif
+
+  #if VECT_SIZE >= 2
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s0), "=r"(ir.s0) : "l"(v.s0));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s1), "=r"(ir.s1) : "l"(v.s1));
+  #endif
+
+  #if VECT_SIZE >= 4
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s2), "=r"(ir.s2) : "l"(v.s2));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s3), "=r"(ir.s3) : "l"(v.s3));
+  #endif
+
+  #if VECT_SIZE >= 8
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s4), "=r"(ir.s4) : "l"(v.s4));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s5), "=r"(ir.s5) : "l"(v.s5));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s6), "=r"(ir.s6) : "l"(v.s6));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s7), "=r"(ir.s7) : "l"(v.s7));
+  #endif
+
+  #if VECT_SIZE >= 16
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s8), "=r"(ir.s8) : "l"(v.s8));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s9), "=r"(ir.s9) : "l"(v.s9));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.sa), "=r"(ir.sa) : "l"(v.sa));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.sb), "=r"(ir.sb) : "l"(v.sb));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.sc), "=r"(ir.sc) : "l"(v.sc));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.sd), "=r"(ir.sd) : "l"(v.sd));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.se), "=r"(ir.se) : "l"(v.se));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.sf), "=r"(ir.sf) : "l"(v.sf));
+  #endif
+
+  u32x tl;
+  u32x tr;
+
+  #if VECT_SIZE == 1
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl) : "r"(il));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr) : "r"(ir));
+  #endif
+
+  #if VECT_SIZE >= 2
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s0) : "r"(il.s0));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s0) : "r"(ir.s0));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s1) : "r"(il.s1));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s1) : "r"(ir.s1));
+  #endif
+
+  #if VECT_SIZE >= 4
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s2) : "r"(il.s2));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s2) : "r"(ir.s2));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s3) : "r"(il.s3));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s3) : "r"(ir.s3));
+  #endif
+
+  #if VECT_SIZE >= 8
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s4) : "r"(il.s4));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s4) : "r"(ir.s4));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s5) : "r"(il.s5));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s5) : "r"(ir.s5));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s6) : "r"(il.s6));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s6) : "r"(ir.s6));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s7) : "r"(il.s7));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s7) : "r"(ir.s7));
+  #endif
+
+  #if VECT_SIZE >= 16
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s8) : "r"(il.s8));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s8) : "r"(ir.s8));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s9) : "r"(il.s9));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s9) : "r"(ir.s9));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.sa) : "r"(il.sa));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.sa) : "r"(ir.sa));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.sb) : "r"(il.sb));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.sb) : "r"(ir.sb));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.sc) : "r"(il.sc));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.sc) : "r"(ir.sc));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.sd) : "r"(il.sd));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.sd) : "r"(ir.sd));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.se) : "r"(il.se));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.se) : "r"(ir.se));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.sf) : "r"(il.sf));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.sf) : "r"(ir.sf));
+  #endif
+
+  u64x r;
+
+  #if VECT_SIZE == 1
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r) : "r"(tr), "r"(tl));
+  #endif
+
+  #if VECT_SIZE >= 2
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s0) : "r"(tr.s0), "r"(tl.s0));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s1) : "r"(tr.s1), "r"(tl.s1));
+  #endif
+
+  #if VECT_SIZE >= 4
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s2) : "r"(tr.s2), "r"(tl.s2));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s3) : "r"(tr.s3), "r"(tl.s3));
+  #endif
+
+  #if VECT_SIZE >= 8
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s4) : "r"(tr.s4), "r"(tl.s4));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s5) : "r"(tr.s5), "r"(tl.s5));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s6) : "r"(tr.s6), "r"(tl.s6));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s7) : "r"(tr.s7), "r"(tl.s7));
+  #endif
+
+  #if VECT_SIZE >= 16
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s8) : "r"(tr.s8), "r"(tl.s8));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s9) : "r"(tr.s9), "r"(tl.s9));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.sa) : "r"(tr.sa), "r"(tl.sa));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.sb) : "r"(tr.sb), "r"(tl.sb));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.sc) : "r"(tr.sc), "r"(tl.sc));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.sd) : "r"(tr.sd), "r"(tl.sd));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.se) : "r"(tr.se), "r"(tl.se));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.sf) : "r"(tr.sf), "r"(tl.sf));
+  #endif
+
+  return r;
+}
+
+DECLSPEC u32x hc_rotr32 (const u32x a, const int n)
+{
+  return rotate (a, (u32x) 32 - n);
+}
+
+DECLSPEC u32x hc_rotl32 (const u32x a, const int n)
+{
+  return rotate (a, (u32x) n);
+}
+
+DECLSPEC u64x hc_rotr64 (const u64x a, const int n)
+{
+  return rotate (a, (u64x) 64 - n);
+}
+
+DECLSPEC u64x hc_rotl64 (const u64x a, const int n)
+{
+  return rotate (a, (u64x) n);
+}
+
+DECLSPEC u32x hc_byte_perm (const u32x a, const u32x b, const int c)
+{
+  u32x r;
+
+  #if VECT_SIZE == 1
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r)    : "r"(a),    "r"(b),    "r"(c));
+  #endif
+
+  #if VECT_SIZE >= 2
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s0) : "r"(a.s0), "r"(b.s0), "r"(c));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s1) : "r"(a.s1), "r"(b.s1), "r"(c));
+  #endif
+
+  #if VECT_SIZE >= 4
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s2) : "r"(a.s2), "r"(b.s2), "r"(c));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s3) : "r"(a.s3), "r"(b.s3), "r"(c));
+  #endif
+
+  #if VECT_SIZE >= 8
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s4) : "r"(a.s4), "r"(b.s4), "r"(c));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s5) : "r"(a.s5), "r"(b.s5), "r"(c));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s6) : "r"(a.s6), "r"(b.s6), "r"(c));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s7) : "r"(a.s7), "r"(b.s7), "r"(c));
+  #endif
+
+  #if VECT_SIZE >= 16
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s8) : "r"(a.s8), "r"(b.s8), "r"(c));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s9) : "r"(a.s9), "r"(b.s9), "r"(c));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.sa) : "r"(a.sa), "r"(b.sa), "r"(c));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.sb) : "r"(a.sb), "r"(b.sb), "r"(c));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.sc) : "r"(a.sc), "r"(b.sc), "r"(c));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.sd) : "r"(a.sd), "r"(b.sd), "r"(c));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.se) : "r"(a.se), "r"(b.se), "r"(c));
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.sf) : "r"(a.sf), "r"(b.sf), "r"(c));
+  #endif
+
+  return r;
+}
+
+DECLSPEC u32 hc_byte_perm_S (const u32 a, const u32 b, const int c)
+{
+  u32 r;
+
+  asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r) : "r"(a), "r"(b), "r"(c));
+
+  return r;
+}
+
+DECLSPEC u32x hc_bfe (const u32x a, const u32x b, const u32x c)
+{
+  u32x r;
+
+  #if VECT_SIZE == 1
+  asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r)    : "r"(a),    "r"(b),    "r"(c));
+  #endif
+
+  #if VECT_SIZE >= 2
+  asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s0) : "r"(a.s0), "r"(b.s0), "r"(c.s0));
+  asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s1) : "r"(a.s1), "r"(b.s1), "r"(c.s1));
+  #endif
+
+  #if VECT_SIZE >= 4
+  asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s2) : "r"(a.s2), "r"(b.s2), "r"(c.s2));
+  asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s3) : "r"(a.s3), "r"(b.s3), "r"(c.s3));
+  #endif
+
+  #if VECT_SIZE >= 8
+  asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s4) : "r"(a.s4), "r"(b.s4), "r"(c.s4));
+  asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s5) : "r"(a.s5), "r"(b.s5), "r"(c.s5));
+  asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s6) : "r"(a.s6), "r"(b.s6), "r"(c.s6));
+  asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s7) : "r"(a.s7), "r"(b.s7), "r"(c.s7));
+  #endif
+
+  #if VECT_SIZE >= 16
+  asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s8) : "r"(a.s8), "r"(b.s8), "r"(c.s8));
+  asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s9) : "r"(a.s9), "r"(b.s9), "r"(c.s9));
+  asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.sa) : "r"(a.sa), "r"(b.sa), "r"(c.sa));
+  asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.sb) : "r"(a.sb), "r"(b.sb), "r"(c.sb));
+  asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.sc) : "r"(a.sc), "r"(b.sc), "r"(c.sc));
+  asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.sd) : "r"(a.sd), "r"(b.sd), "r"(c.sd));
+  asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.se) : "r"(a.se), "r"(b.se), "r"(c.se));
+  asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.sf) : "r"(a.sf), "r"(b.sf), "r"(c.sf));
+  #endif
+
+  return r;
+}
+
+DECLSPEC u32 hc_bfe_S (const u32 a, const u32 b, const u32 c)
+{
+  u32 r;
+
+  asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r) : "r"(a), "r"(b), "r"(c));
+
+  return r;
+}
+
+DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const int c)
+{
+  u32x r;
+
+  #if CUDA_ARCH >= 350
+
+  const int c38 = (c & 3) * 8;
+
+  #if VECT_SIZE == 1
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r)    : "r"(b),    "r"(a),    "r"(c38));
+  #endif
+
+  #if VECT_SIZE >= 2
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s0) : "r"(b.s0), "r"(a.s0), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s1) : "r"(b.s1), "r"(a.s1), "r"(c38));
+  #endif
+
+  #if VECT_SIZE >= 4
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s2) : "r"(b.s2), "r"(a.s2), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s3) : "r"(b.s3), "r"(a.s3), "r"(c38));
+  #endif
+
+  #if VECT_SIZE >= 8
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s4) : "r"(b.s4), "r"(a.s4), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s5) : "r"(b.s5), "r"(a.s5), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s6) : "r"(b.s6), "r"(a.s6), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s7) : "r"(b.s7), "r"(a.s7), "r"(c38));
+  #endif
+
+  #if VECT_SIZE >= 16
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s8) : "r"(b.s8), "r"(a.s8), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s9) : "r"(b.s9), "r"(a.s9), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sa) : "r"(b.sa), "r"(a.sa), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sb) : "r"(b.sb), "r"(a.sb), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sc) : "r"(b.sc), "r"(a.sc), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sd) : "r"(b.sd), "r"(a.sd), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.se) : "r"(b.se), "r"(a.se), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sf) : "r"(b.sf), "r"(a.sf), "r"(c38));
+  #endif
+
+  #else
+
+  r = hc_byte_perm (b, a, (0x76543210 >> ((c & 3) * 4)) & 0xffff);
+
+  #endif
+
+  return r;
+}
+
+DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const int c)
+{
+  u32 r;
+
+  #if CUDA_ARCH >= 350
+
+  const int c38 = (c & 3) * 8;
+
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r) : "r"(b), "r"(a), "r"(c38));
+
+  #else
+
+  r = hc_byte_perm_S (b, a, (0x76543210 >> ((c & 3) * 4)) & 0xffff);
+
+  #endif
+
+  return r;
+}
+
+DECLSPEC u32x hc_add3 (const u32x a, const u32x b, const u32x c)
+{
+  return a + b + c;
+}
+
+DECLSPEC u32 hc_add3_S (const u32 a, const u32 b, const u32 c)
+{
+  return a + b + c;
+}
+
+DECLSPEC u32x hc_lop_0x96 (const u32x a, const u32x b, const u32x c)
+{
+  u32x r;
+
+  #if CUDA_ARCH >= 500
+
+  #if VECT_SIZE == 1
+  asm volatile ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r): "r"(a), "r"(b), "r"(c));
+  #endif
+
+  #if VECT_SIZE >= 2
+  asm volatile ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s0): "r"(a.s0), "r"(b.s0), "r"(c.s0));
+  asm volatile ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s1): "r"(a.s1), "r"(b.s1), "r"(c.s1));
+  #endif
+
+  #if VECT_SIZE >= 4
+  asm volatile ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s2): "r"(a.s2), "r"(b.s2), "r"(c.s2));
+  asm volatile ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s3): "r"(a.s3), "r"(b.s3), "r"(c.s3));
+  #endif
+
+  #if VECT_SIZE >= 8
+  asm volatile ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s4): "r"(a.s4), "r"(b.s4), "r"(c.s4));
+  asm volatile ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s5): "r"(a.s5), "r"(b.s5), "r"(c.s5));
+  asm volatile ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s6): "r"(a.s6), "r"(b.s6), "r"(c.s6));
+  asm volatile ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s7): "r"(a.s7), "r"(b.s7), "r"(c.s7));
+  #endif
+
+  #if VECT_SIZE >= 16
+  asm volatile ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s8): "r"(a.s8), "r"(b.s8), "r"(c.s8));
+  asm volatile ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.s9): "r"(a.s9), "r"(b.s9), "r"(c.s9));
+  asm volatile ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.sa): "r"(a.sa), "r"(b.sa), "r"(c.sa));
+  asm volatile ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.sb): "r"(a.sb), "r"(b.sb), "r"(c.sb));
+  asm volatile ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.sc): "r"(a.sc), "r"(b.sc), "r"(c.sc));
+  asm volatile ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.sd): "r"(a.sd), "r"(b.sd), "r"(c.sd));
+  asm volatile ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.se): "r"(a.se), "r"(b.se), "r"(c.se));
+  asm volatile ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r.sf): "r"(a.sf), "r"(b.sf), "r"(c.sf));
+  #endif
+
+  #else
+
+  r = a ^ b ^ c;
+
+  #endif
+
+  return r;
+}
+
+DECLSPEC u32 hc_lop_0x96_S (const u32 a, const u32 b, const u32 c)
+{
+  u32 r;
+
+  #if CUDA_ARCH >= 500
+
+  asm volatile ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r"(r): "r"(a), "r"(b), "r"(c));
+
+  #else
+
+  r = a ^ b ^ c;
+
+  #endif
+
+  return r;
+}
+
+#endif
+
+#ifdef IS_GENERIC
+DECLSPEC u32 hc_swap32_S (const u32 v)
+{
+  #ifdef _CPU_OPENCL_EMU_H
+  return byte_swap_32 (v);
+  #else
+  return (as_uint (as_uchar4 (v).s3210));
+  #endif
+}
+
+DECLSPEC u64 hc_swap64_S (const u64 v)
+{
+  #ifdef _CPU_OPENCL_EMU_H
+  return byte_swap_64 (v);
+  #else
+  return (as_ulong (as_uchar8 (v).s76543210));
+  #endif
+}
+
+DECLSPEC u32 hc_rotr32_S (const u32 a, const int n)
+{
+  #ifdef _CPU_OPENCL_EMU_H
+  return rotr32 (a, n);
+  #else
+  return rotate (a, (u32) 32 - n);
+  #endif
+}
+
+DECLSPEC u32 hc_rotl32_S (const u32 a, const int n)
+{
+  #ifdef _CPU_OPENCL_EMU_H
+  return rotl32 (a, n);
+  #else
+  return rotate (a, (u32) n);
+  #endif
+}
+
+DECLSPEC u64 hc_rotr64_S (const u64 a, const int n)
+{
+  #ifdef _CPU_OPENCL_EMU_H
+  return rotr64 (a, n);
+  #else
+  return rotate (a, (u64) 64 - n);
+  #endif
+}
+
+DECLSPEC u64 hc_rotl64_S (const u64 a, const int n)
+{
+  #ifdef _CPU_OPENCL_EMU_H
+  return rotl64 (a, n);
+  #else
+  return rotate (a, (u64) n);
+  #endif
+}
+
+DECLSPEC u32x hc_swap32 (const u32x v)
+{
+  return ((v >> 24) & 0x000000ff)
+       | ((v >>  8) & 0x0000ff00)
+       | ((v <<  8) & 0x00ff0000)
+       | ((v << 24) & 0xff000000);
+}
+
+DECLSPEC u64x hc_swap64 (const u64x v)
+{
+  return ((v >> 56) & 0x00000000000000ff)
+       | ((v >> 40) & 0x000000000000ff00)
+       | ((v >> 24) & 0x0000000000ff0000)
+       | ((v >>  8) & 0x00000000ff000000)
+       | ((v <<  8) & 0x000000ff00000000)
+       | ((v << 24) & 0x0000ff0000000000)
+       | ((v << 40) & 0x00ff000000000000)
+       | ((v << 56) & 0xff00000000000000);
+}
+
+// For _CPU_OPENCL_EMU_H we dont need to care about vector functions
+// The VECT_SIZE is guaranteed to be set to 1 from cpu_opencl_emu.h
+
+DECLSPEC u32x hc_rotr32 (const u32x a, const int n)
+{
+  #ifdef _CPU_OPENCL_EMU_H
+  return rotr32 (a, n);
+  #else
+  return rotate (a, (u32x) 32 - n);
+  #endif
+}
+
+DECLSPEC u32x hc_rotl32 (const u32x a, const int n)
+{
+  #ifdef _CPU_OPENCL_EMU_H
+  return rotl32 (a, n);
+  #else
+  return rotate (a, (u32x) n);
+  #endif
+}
+
+DECLSPEC u64x hc_rotr64 (const u64x a, const int n)
+{
+  #ifdef _CPU_OPENCL_EMU_H
+  return rotr64 (a, n);
+  #else
+  return rotate (a, (u64x) 64 - n);
+  #endif
+}
+
+DECLSPEC u64x hc_rotl64 (const u64x a, const int n)
+{
+  #ifdef _CPU_OPENCL_EMU_H
+  return rotl64 (a, n);
+  #else
+  return rotate (a, (u64x) n);
+  #endif
+}
+
+DECLSPEC u32x hc_bfe (const u32x a, const u32x b, const u32x c)
+{
+  #define BIT(x)      ((u32x) (1u) << (x))
+  #define BIT_MASK(x) (BIT (x) - 1)
+  #define BFE(x,y,z)  (((x) >> (y)) & BIT_MASK (z))
+
+  return BFE (a, b, c);
+
+  #undef BIT
+  #undef BIT_MASK
+  #undef BFE
+}
+
+DECLSPEC u32 hc_bfe_S (const u32 a, const u32 b, const u32 c)
+{
+  #define BIT(x)      (1u << (x))
+  #define BIT_MASK(x) (BIT (x) - 1)
+  #define BFE(x,y,z)  (((x) >> (y)) & BIT_MASK (z))
+
+  return BFE (a, b, c);
+
+  #undef BIT
+  #undef BIT_MASK
+  #undef BFE
+}
+
+DECLSPEC u32x hc_bytealign_be (const u32x a, const u32x b, const int c)
+{
+  u32x r;
+
+  switch (c & 3)
+  {
+    case 0: r =              b;        break;
+    case 1: r = (a << 24) | (b >>  8); break;
+    case 2: r = (a << 16) | (b >> 16); break;
+    case 3: r = (a <<  8) | (b >> 24); break;
+  }
+
+  return r;
+}
+
+DECLSPEC u32 hc_bytealign_be_S (const u32 a, const u32 b, const int c)
+{
+  u32 r;
+
+  switch (c & 3)
+  {
+    case 0: r =              b;        break;
+    case 1: r = (a << 24) | (b >>  8); break;
+    case 2: r = (a << 16) | (b >> 16); break;
+    case 3: r = (a <<  8) | (b >> 24); break;
+  }
+
+  return r;
+}
+
+DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const int c)
+{
+  u32x r;
+
+  switch (c & 3)
+  {
+    case 0: r =              b;        break;
+    case 1: r = (a >> 24) | (b <<  8); break;
+    case 2: r = (a >> 16) | (b << 16); break;
+    case 3: r = (a >>  8) | (b << 24); break;
+  }
+
+  return r;
+}
+
+DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const int c)
+{
+  u32 r;
+
+  switch (c & 3)
+  {
+    case 0: r =              b;        break;
+    case 1: r = (a >> 24) | (b <<  8); break;
+    case 2: r = (a >> 16) | (b << 16); break;
+    case 3: r = (a >>  8) | (b << 24); break;
+  }
+
+  return r;
+}
+
+DECLSPEC u32x hc_add3 (const u32x a, const u32x b, const u32x c)
+{
+  return a + b + c;
+}
+
+DECLSPEC u32 hc_add3_S (const u32 a, const u32 b, const u32 c)
+{
+  return a + b + c;
+}
+
+DECLSPEC u32x hc_lop_0x96 (const u32x a, const u32x b, const u32x c)
+{
+  return a ^ b ^ c;
+}
+
+DECLSPEC u32 hc_lop_0x96_S (const u32 a, const u32 b, const u32 c)
+{
+  return a ^ b ^ c;
+}
+
+#endif
 
 /**
  * pure scalar functions
  */
 
-DECLSPEC int ffz (const u32 v);
 DECLSPEC int ffz (const u32 v)
 {
   #ifdef _unroll
@@ -99,8 +1451,7 @@ DECLSPEC int ffz (const u32 v)
   return -1;
 }
 
-DECLSPEC int hash_comp (const u32 *d1, __global const u32 *d2);
-DECLSPEC int hash_comp (const u32 *d1, __global const u32 *d2)
+DECLSPEC int hash_comp (const u32 *d1, GLOBAL_AS const u32 *d2)
 {
   if (d1[3] > d2[DGST_R3]) return ( 1);
   if (d1[3] < d2[DGST_R3]) return (-1);
@@ -114,8 +1465,7 @@ DECLSPEC int hash_comp (const u32 *d1, __global const u32 *d2)
   return (0);
 }
 
-DECLSPEC int find_hash (const u32 *digest, const u32 digests_cnt, __global const digest_t *digests_buf);
-DECLSPEC int find_hash (const u32 *digest, const u32 digests_cnt, __global const digest_t *digests_buf)
+DECLSPEC int find_hash (const u32 *digest, const u32 digests_cnt, GLOBAL_AS const digest_t *digests_buf)
 {
   for (u32 l = 0, r = digests_cnt; r; r >>= 1)
   {
@@ -138,14 +1488,12 @@ DECLSPEC int find_hash (const u32 *digest, const u32 digests_cnt, __global const
   return (-1);
 }
 
-DECLSPEC u32 check_bitmap (__global const u32 *bitmap, const u32 bitmap_mask, const u32 bitmap_shift, const u32 digest);
-DECLSPEC u32 check_bitmap (__global const u32 *bitmap, const u32 bitmap_mask, const u32 bitmap_shift, const u32 digest)
+DECLSPEC u32 check_bitmap (GLOBAL_AS const u32 *bitmap, const u32 bitmap_mask, const u32 bitmap_shift, const u32 digest)
 {
   return (bitmap[(digest >> bitmap_shift) & bitmap_mask] & (1 << (digest & 0x1f)));
 }
 
-DECLSPEC u32 check (const u32 *digest, __global const u32 *bitmap_s1_a, __global const u32 *bitmap_s1_b, __global const u32 *bitmap_s1_c, __global const u32 *bitmap_s1_d, __global const u32 *bitmap_s2_a, __global const u32 *bitmap_s2_b, __global const u32 *bitmap_s2_c, __global const u32 *bitmap_s2_d, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2);
-DECLSPEC u32 check (const u32 *digest, __global const u32 *bitmap_s1_a, __global const u32 *bitmap_s1_b, __global const u32 *bitmap_s1_c, __global const u32 *bitmap_s1_d, __global const u32 *bitmap_s2_a, __global const u32 *bitmap_s2_b, __global const u32 *bitmap_s2_c, __global const u32 *bitmap_s2_d, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2)
+DECLSPEC u32 check (const u32 *digest, GLOBAL_AS const u32 *bitmap_s1_a, GLOBAL_AS const u32 *bitmap_s1_b, GLOBAL_AS const u32 *bitmap_s1_c, GLOBAL_AS const u32 *bitmap_s1_d, GLOBAL_AS const u32 *bitmap_s2_a, GLOBAL_AS const u32 *bitmap_s2_b, GLOBAL_AS const u32 *bitmap_s2_c, GLOBAL_AS const u32 *bitmap_s2_d, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2)
 {
   if (check_bitmap (bitmap_s1_a, bitmap_mask, bitmap_shift1, digest[0]) == 0) return (0);
   if (check_bitmap (bitmap_s1_b, bitmap_mask, bitmap_shift1, digest[1]) == 0) return (0);
@@ -160,8 +1508,7 @@ DECLSPEC u32 check (const u32 *digest, __global const u32 *bitmap_s1_a, __global
   return (1);
 }
 
-DECLSPEC void mark_hash (__global plain_t *plains_buf, __global u32 *d_result, const u32 salt_pos, const u32 digests_cnt, const u32 digest_pos, const u32 hash_pos, const u64 gid, const u32 il_pos, const u32 extra1, const u32 extra2);
-DECLSPEC void mark_hash (__global plain_t *plains_buf, __global u32 *d_result, const u32 salt_pos, const u32 digests_cnt, const u32 digest_pos, const u32 hash_pos, const u64 gid, const u32 il_pos, const u32 extra1, const u32 extra2)
+DECLSPEC void mark_hash (GLOBAL_AS plain_t *plains_buf, GLOBAL_AS u32 *d_result, const u32 salt_pos, const u32 digests_cnt, const u32 digest_pos, const u32 hash_pos, const u64 gid, const u32 il_pos, const u32 extra1, const u32 extra2)
 {
   const u32 idx = atomic_inc (d_result);
 
@@ -184,8 +1531,7 @@ DECLSPEC void mark_hash (__global plain_t *plains_buf, __global u32 *d_result, c
   plains_buf[idx].extra2     = extra2;      // unused so far
 }
 
-DECLSPEC int count_char (const u32 *buf, const int elems, const u32 c);
-DECLSPEC int count_char (const u32 *buf, const int elems, const u32 c)
+DECLSPEC int hc_count_char (const u32 *buf, const int elems, const u32 c)
 {
   int r = 0;
 
@@ -202,8 +1548,7 @@ DECLSPEC int count_char (const u32 *buf, const int elems, const u32 c)
   return r;
 }
 
-DECLSPEC float get_entropy (const u32 *buf, const int elems);
-DECLSPEC float get_entropy (const u32 *buf, const int elems)
+DECLSPEC float hc_get_entropy (const u32 *buf, const int elems)
 {
   const int length = elems * 4;
 
@@ -214,7 +1559,7 @@ DECLSPEC float get_entropy (const u32 *buf, const int elems)
   #endif
   for (u32 c = 0; c < 256; c++)
   {
-    const int r = count_char (buf, elems, c);
+    const int r = hc_count_char (buf, elems, c);
 
     if (r == 0) continue;
 
@@ -226,7 +1571,6 @@ DECLSPEC float get_entropy (const u32 *buf, const int elems)
   return entropy;
 }
 
-DECLSPEC int is_valid_hex_8 (const u8 v);
 DECLSPEC int is_valid_hex_8 (const u8 v)
 {
   // direct lookup table is slower thanks to CMOV
@@ -237,7 +1581,6 @@ DECLSPEC int is_valid_hex_8 (const u8 v)
   return 0;
 }
 
-DECLSPEC int is_valid_hex_32 (const u32 v);
 DECLSPEC int is_valid_hex_32 (const u32 v)
 {
   if (is_valid_hex_8 ((u8) (v >>  0)) == 0) return 0;
@@ -248,7 +1591,6 @@ DECLSPEC int is_valid_hex_32 (const u32 v)
   return 1;
 }
 
-DECLSPEC int is_valid_base58_8 (const u8 v);
 DECLSPEC int is_valid_base58_8 (const u8 v)
 {
   if (v > 'z') return 0;
@@ -259,7 +1601,6 @@ DECLSPEC int is_valid_base58_8 (const u8 v)
   return 1;
 }
 
-DECLSPEC int is_valid_base58_32 (const u32 v);
 DECLSPEC int is_valid_base58_32 (const u32 v)
 {
   if (is_valid_base58_8 ((u8) (v >>  0)) == 0) return 0;
@@ -270,8 +1611,7 @@ DECLSPEC int is_valid_base58_32 (const u32 v)
   return 1;
 }
 
-DECLSPEC int find_keyboard_layout_map (const u32 search, const int search_len, __local keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt);
-DECLSPEC int find_keyboard_layout_map (const u32 search, const int search_len, __local keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt)
+DECLSPEC int hc_find_keyboard_layout_map (const u32 search, const int search_len, LOCAL_AS keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt)
 {
   for (int idx = 0; idx < keyboard_layout_mapping_cnt; idx++)
   {
@@ -289,8 +1629,7 @@ DECLSPEC int find_keyboard_layout_map (const u32 search, const int search_len, _
   return -1;
 }
 
-DECLSPEC int execute_keyboard_layout_mapping (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int pw_len, __local keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt);
-DECLSPEC int execute_keyboard_layout_mapping (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int pw_len, __local keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt)
+DECLSPEC int hc_execute_keyboard_layout_mapping (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int pw_len, LOCAL_AS keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt)
 {
   u32 out_buf[16] = { 0 };
 
@@ -350,7 +1689,7 @@ DECLSPEC int execute_keyboard_layout_mapping (u32 w0[4], u32 w1[4], u32 w2[4], u
 
     for (src_len = rem; src_len > 0; src_len--)
     {
-      const int idx = find_keyboard_layout_map (src, src_len, s_keyboard_layout_mapping_buf, keyboard_layout_mapping_cnt);
+      const int idx = hc_find_keyboard_layout_map (src, src_len, s_keyboard_layout_mapping_buf, keyboard_layout_mapping_cnt);
 
       if (idx == -1) continue;
 
@@ -420,7 +1759,6 @@ DECLSPEC int execute_keyboard_layout_mapping (u32 w0[4], u32 w1[4], u32 w2[4], u
  * vector functions
  */
 
-DECLSPEC void make_utf16be (const u32x *in, u32x *out1, u32x *out2);
 DECLSPEC void make_utf16be (const u32x *in, u32x *out1, u32x *out2)
 {
   #if defined IS_NV
@@ -459,7 +1797,6 @@ DECLSPEC void make_utf16be (const u32x *in, u32x *out1, u32x *out2)
   #endif
 }
 
-DECLSPEC void make_utf16beN (const u32x *in, u32x *out1, u32x *out2);
 DECLSPEC void make_utf16beN (const u32x *in, u32x *out1, u32x *out2)
 {
   #if defined IS_NV
@@ -498,7 +1835,6 @@ DECLSPEC void make_utf16beN (const u32x *in, u32x *out1, u32x *out2)
   #endif
 }
 
-DECLSPEC void make_utf16le (const u32x *in, u32x *out1, u32x *out2);
 DECLSPEC void make_utf16le (const u32x *in, u32x *out1, u32x *out2)
 {
   #if defined IS_NV
@@ -537,7 +1873,6 @@ DECLSPEC void make_utf16le (const u32x *in, u32x *out1, u32x *out2)
   #endif
 }
 
-DECLSPEC void make_utf16leN (const u32x *in, u32x *out1, u32x *out2);
 DECLSPEC void make_utf16leN (const u32x *in, u32x *out1, u32x *out2)
 {
   #if defined IS_NV
@@ -576,7 +1911,6 @@ DECLSPEC void make_utf16leN (const u32x *in, u32x *out1, u32x *out2)
   #endif
 }
 
-DECLSPEC void undo_utf16be (const u32x *in1, const u32x *in2, u32x *out);
 DECLSPEC void undo_utf16be (const u32x *in1, const u32x *in2, u32x *out)
 {
   #if defined IS_NV
@@ -607,7 +1941,6 @@ DECLSPEC void undo_utf16be (const u32x *in1, const u32x *in2, u32x *out)
   #endif
 }
 
-DECLSPEC void undo_utf16le (const u32x *in1, const u32x *in2, u32x *out);
 DECLSPEC void undo_utf16le (const u32x *in1, const u32x *in2, u32x *out)
 {
   #if defined IS_NV
@@ -638,7 +1971,6 @@ DECLSPEC void undo_utf16le (const u32x *in1, const u32x *in2, u32x *out)
   #endif
 }
 
-DECLSPEC void set_mark_1x4 (u32 *v, const u32 offset);
 DECLSPEC void set_mark_1x4 (u32 *v, const u32 offset)
 {
   const u32 c = (offset & 15) / 4;
@@ -650,7 +1982,6 @@ DECLSPEC void set_mark_1x4 (u32 *v, const u32 offset)
   v[3] = (c == 3) ? r : 0;
 }
 
-DECLSPEC void append_helper_1x4 (u32x *r, const u32 v, const u32 *m);
 DECLSPEC void append_helper_1x4 (u32x *r, const u32 v, const u32 *m)
 {
   r[0] |= v & m[0];
@@ -659,7 +1990,6 @@ DECLSPEC void append_helper_1x4 (u32x *r, const u32 v, const u32 *m)
   r[3] |= v & m[3];
 }
 
-DECLSPEC void append_0x80_1x4 (u32x *w0, const u32 offset);
 DECLSPEC void append_0x80_1x4 (u32x *w0, const u32 offset)
 {
   u32 v[4];
@@ -669,7 +1999,6 @@ DECLSPEC void append_0x80_1x4 (u32x *w0, const u32 offset)
   append_helper_1x4 (w0, 0x80808080, v);
 }
 
-DECLSPEC void append_0x80_2x4 (u32x *w0, u32x *w1, const u32 offset);
 DECLSPEC void append_0x80_2x4 (u32x *w0, u32x *w1, const u32 offset)
 {
   u32 v[4];
@@ -682,7 +2011,6 @@ DECLSPEC void append_0x80_2x4 (u32x *w0, u32x *w1, const u32 offset)
   append_helper_1x4 (w1, ((offset16 == 1) ? 0x80808080 : 0), v);
 }
 
-DECLSPEC void append_0x80_3x4 (u32x *w0, u32x *w1, u32x *w2, const u32 offset);
 DECLSPEC void append_0x80_3x4 (u32x *w0, u32x *w1, u32x *w2, const u32 offset)
 {
   u32 v[4];
@@ -696,7 +2024,6 @@ DECLSPEC void append_0x80_3x4 (u32x *w0, u32x *w1, u32x *w2, const u32 offset)
   append_helper_1x4 (w2, ((offset16 == 2) ? 0x80808080 : 0), v);
 }
 
-DECLSPEC void append_0x80_4x4 (u32x *w0, u32x *w1, u32x *w2, u32x *w3, const u32 offset);
 DECLSPEC void append_0x80_4x4 (u32x *w0, u32x *w1, u32x *w2, u32x *w3, const u32 offset)
 {
   u32 v[4];
@@ -711,7 +2038,6 @@ DECLSPEC void append_0x80_4x4 (u32x *w0, u32x *w1, u32x *w2, u32x *w3, const u32
   append_helper_1x4 (w3, ((offset16 == 3) ? 0x80808080 : 0), v);
 }
 
-DECLSPEC void append_0x80_8x4 (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, const u32 offset);
 DECLSPEC void append_0x80_8x4 (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, const u32 offset)
 {
   u32 v[4];
@@ -730,7 +2056,6 @@ DECLSPEC void append_0x80_8x4 (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4,
   append_helper_1x4 (w7, ((offset16 == 7) ? 0x80808080 : 0), v);
 }
 
-DECLSPEC void append_0x80_1x16 (u32x *w, const u32 offset);
 DECLSPEC void append_0x80_1x16 (u32x *w, const u32 offset)
 {
   u32 v[4];
@@ -745,7 +2070,6 @@ DECLSPEC void append_0x80_1x16 (u32x *w, const u32 offset)
   append_helper_1x4 (w + 12, ((offset16 == 3) ? 0x80808080 : 0), v);
 }
 
-DECLSPEC void switch_buffer_by_offset_le (u32x *w0, u32x *w1, u32x *w2, u32x *w3, const u32 offset);
 DECLSPEC void switch_buffer_by_offset_le (u32x *w0, u32x *w1, u32x *w2, u32x *w3, const u32 offset)
 {
   const int offset_switch = offset / 4;
@@ -1414,7 +2738,6 @@ DECLSPEC void switch_buffer_by_offset_le (u32x *w0, u32x *w1, u32x *w2, u32x *w3
   #endif
 }
 
-DECLSPEC void switch_buffer_by_offset_carry_le (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *c0, u32x *c1, u32x *c2, u32x *c3, const u32 offset);
 DECLSPEC void switch_buffer_by_offset_carry_le (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *c0, u32x *c1, u32x *c2, u32x *c3, const u32 offset)
 {
   const int offset_switch = offset / 4;
@@ -2684,7 +4007,6 @@ DECLSPEC void switch_buffer_by_offset_carry_le (u32x *w0, u32x *w1, u32x *w2, u3
   #endif
 }
 
-DECLSPEC void switch_buffer_by_offset_be (u32x *w0, u32x *w1, u32x *w2, u32x *w3, const u32 offset);
 DECLSPEC void switch_buffer_by_offset_be (u32x *w0, u32x *w1, u32x *w2, u32x *w3, const u32 offset)
 {
   const int offset_switch = offset / 4;
@@ -3349,7 +4671,6 @@ DECLSPEC void switch_buffer_by_offset_be (u32x *w0, u32x *w1, u32x *w2, u32x *w3
   #endif
 }
 
-DECLSPEC void switch_buffer_by_offset_carry_be (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *c0, u32x *c1, u32x *c2, u32x *c3, const u32 offset);
 DECLSPEC void switch_buffer_by_offset_carry_be (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *c0, u32x *c1, u32x *c2, u32x *c3, const u32 offset)
 {
   const int offset_switch = offset / 4;
@@ -4286,7 +5607,6 @@ DECLSPEC void switch_buffer_by_offset_carry_be (u32x *w0, u32x *w1, u32x *w2, u3
   #endif
 }
 
-DECLSPEC void switch_buffer_by_offset_8x4_le (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, const u32 offset);
 DECLSPEC void switch_buffer_by_offset_8x4_le (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, const u32 offset)
 {
   const int offset_switch = offset / 4;
@@ -6027,7 +7347,6 @@ DECLSPEC void switch_buffer_by_offset_8x4_le (u32x *w0, u32x *w1, u32x *w2, u32x
   #endif
 }
 
-DECLSPEC void switch_buffer_by_offset_8x4_be (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, const u32 offset);
 DECLSPEC void switch_buffer_by_offset_8x4_be (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, const u32 offset)
 {
   const int offset_switch = offset / 4;
@@ -8356,7 +9675,6 @@ DECLSPEC void switch_buffer_by_offset_8x4_be (u32x *w0, u32x *w1, u32x *w2, u32x
   #endif
 }
 
-DECLSPEC void switch_buffer_by_offset_8x4_carry_be (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, u32x *c0, u32x *c1, u32x *c2, u32x *c3, u32x *c4, u32x *c5, u32x *c6, u32x *c7, const u32 offset);
 DECLSPEC void switch_buffer_by_offset_8x4_carry_be (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, u32x *c0, u32x *c1, u32x *c2, u32x *c3, u32x *c4, u32x *c5, u32x *c6, u32x *c7, const u32 offset)
 {
   const int offset_switch = offset / 4;
@@ -11741,7 +13059,6 @@ DECLSPEC void switch_buffer_by_offset_8x4_carry_be (u32x *w0, u32x *w1, u32x *w2
   #endif
 }
 
-DECLSPEC void switch_buffer_by_offset_1x64_le (u32x *w, const u32 offset);
 DECLSPEC void switch_buffer_by_offset_1x64_le (u32x *w, const u32 offset)
 {
   const int offset_switch = offset / 4;
@@ -20474,7 +21791,6 @@ DECLSPEC void switch_buffer_by_offset_1x64_le (u32x *w, const u32 offset)
   #endif
 }
 
-DECLSPEC void switch_buffer_by_offset_1x64_be (u32x *w, const u32 offset);
 DECLSPEC void switch_buffer_by_offset_1x64_be (u32x *w, const u32 offset)
 {
   const int offset_switch = offset / 4;
@@ -29207,7 +30523,6 @@ DECLSPEC void switch_buffer_by_offset_1x64_be (u32x *w, const u32 offset)
  * vector functions as scalar (for outer loop usage)
  */
 
-DECLSPEC void truncate_block_4x4_le_S (u32 *w0, const u32 len);
 DECLSPEC void truncate_block_4x4_le_S (u32 *w0, const u32 len)
 {
   switch (len)
@@ -29318,7 +30633,6 @@ DECLSPEC void truncate_block_4x4_le_S (u32 *w0, const u32 len)
   }
 }
 
-DECLSPEC void truncate_block_4x4_be_S (u32 *w0, const u32 len);
 DECLSPEC void truncate_block_4x4_be_S (u32 *w0, const u32 len)
 {
   switch (len)
@@ -29429,7 +30743,6 @@ DECLSPEC void truncate_block_4x4_be_S (u32 *w0, const u32 len)
   }
 }
 
-DECLSPEC void truncate_block_16x4_le_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 len);
 DECLSPEC void truncate_block_16x4_le_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 len)
 {
   switch (len)
@@ -30236,7 +31549,6 @@ DECLSPEC void truncate_block_16x4_le_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, cons
   }
 }
 
-DECLSPEC void truncate_block_16x4_be_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 len);
 DECLSPEC void truncate_block_16x4_be_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 len)
 {
   switch (len)
@@ -31043,7 +32355,6 @@ DECLSPEC void truncate_block_16x4_be_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, cons
   }
 }
 
-DECLSPEC void set_mark_1x4_S (u32 *v, const u32 offset);
 DECLSPEC void set_mark_1x4_S (u32 *v, const u32 offset)
 {
   const u32 c = (offset & 15) / 4;
@@ -31055,7 +32366,6 @@ DECLSPEC void set_mark_1x4_S (u32 *v, const u32 offset)
   v[3] = (c == 3) ? r : 0;
 }
 
-DECLSPEC void append_helper_1x4_S (u32 *r, const u32 v, const u32 *m);
 DECLSPEC void append_helper_1x4_S (u32 *r, const u32 v, const u32 *m)
 {
   r[0] |= v & m[0];
@@ -31064,7 +32374,6 @@ DECLSPEC void append_helper_1x4_S (u32 *r, const u32 v, const u32 *m)
   r[3] |= v & m[3];
 }
 
-DECLSPEC void append_0x01_2x4_S (u32 *w0, u32 *w1, const u32 offset);
 DECLSPEC void append_0x01_2x4_S (u32 *w0, u32 *w1, const u32 offset)
 {
   u32 v[4];
@@ -31077,7 +32386,6 @@ DECLSPEC void append_0x01_2x4_S (u32 *w0, u32 *w1, const u32 offset)
   append_helper_1x4_S (w1, ((offset16 == 1) ? 0x01010101 : 0), v);
 }
 
-DECLSPEC void append_0x06_2x4_S (u32 *w0, u32 *w1, const u32 offset);
 DECLSPEC void append_0x06_2x4_S (u32 *w0, u32 *w1, const u32 offset)
 {
   u32 v[4];
@@ -31090,7 +32398,6 @@ DECLSPEC void append_0x06_2x4_S (u32 *w0, u32 *w1, const u32 offset)
   append_helper_1x4_S (w1, ((offset16 == 1) ? 0x06060606 : 0), v);
 }
 
-DECLSPEC void append_0x01_4x4_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 offset);
 DECLSPEC void append_0x01_4x4_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 offset)
 {
   u32 v[4];
@@ -31105,7 +32412,6 @@ DECLSPEC void append_0x01_4x4_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 o
   append_helper_1x4_S (w3, ((offset16 == 3) ? 0x01010101 : 0), v);
 }
 
-DECLSPEC void append_0x80_1x4_S (u32 *w0, const u32 offset);
 DECLSPEC void append_0x80_1x4_S (u32 *w0, const u32 offset)
 {
   u32 v[4];
@@ -31115,7 +32421,6 @@ DECLSPEC void append_0x80_1x4_S (u32 *w0, const u32 offset)
   append_helper_1x4_S (w0, 0x80808080, v);
 }
 
-DECLSPEC void append_0x80_2x4_S (u32 *w0, u32 *w1, const u32 offset);
 DECLSPEC void append_0x80_2x4_S (u32 *w0, u32 *w1, const u32 offset)
 {
   u32 v[4];
@@ -31128,7 +32433,6 @@ DECLSPEC void append_0x80_2x4_S (u32 *w0, u32 *w1, const u32 offset)
   append_helper_1x4_S (w1, ((offset16 == 1) ? 0x80808080 : 0), v);
 }
 
-DECLSPEC void append_0x80_3x4_S (u32 *w0, u32 *w1, u32 *w2, const u32 offset);
 DECLSPEC void append_0x80_3x4_S (u32 *w0, u32 *w1, u32 *w2, const u32 offset)
 {
   u32 v[4];
@@ -31142,7 +32446,6 @@ DECLSPEC void append_0x80_3x4_S (u32 *w0, u32 *w1, u32 *w2, const u32 offset)
   append_helper_1x4_S (w2, ((offset16 == 2) ? 0x80808080 : 0), v);
 }
 
-DECLSPEC void append_0x80_4x4_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 offset);
 DECLSPEC void append_0x80_4x4_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 offset)
 {
   u32 v[4];
@@ -31157,7 +32460,6 @@ DECLSPEC void append_0x80_4x4_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 o
   append_helper_1x4_S (w3, ((offset16 == 3) ? 0x80808080 : 0), v);
 }
 
-DECLSPEC void append_0x80_8x4_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const u32 offset);
 DECLSPEC void append_0x80_8x4_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const u32 offset)
 {
   u32 v[4];
@@ -31176,7 +32478,6 @@ DECLSPEC void append_0x80_8x4_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u3
   append_helper_1x4_S (w7, ((offset16 == 7) ? 0x80808080 : 0), v);
 }
 
-DECLSPEC void make_utf16be_S (const u32 *in, u32 *out1, u32 *out2);
 DECLSPEC void make_utf16be_S (const u32 *in, u32 *out1, u32 *out2)
 {
   #if defined IS_NV
@@ -31215,7 +32516,6 @@ DECLSPEC void make_utf16be_S (const u32 *in, u32 *out1, u32 *out2)
   #endif
 }
 
-DECLSPEC void make_utf16le_S (const u32 *in, u32 *out1, u32 *out2);
 DECLSPEC void make_utf16le_S (const u32 *in, u32 *out1, u32 *out2)
 {
   #if defined IS_NV
@@ -31254,7 +32554,6 @@ DECLSPEC void make_utf16le_S (const u32 *in, u32 *out1, u32 *out2)
   #endif
 }
 
-DECLSPEC void undo_utf16be_S (const u32 *in1, const u32 *in2, u32 *out);
 DECLSPEC void undo_utf16be_S (const u32 *in1, const u32 *in2, u32 *out)
 {
   #if defined IS_NV
@@ -31285,7 +32584,6 @@ DECLSPEC void undo_utf16be_S (const u32 *in1, const u32 *in2, u32 *out)
   #endif
 }
 
-DECLSPEC void undo_utf16le_S (const u32 *in1, const u32 *in2, u32 *out);
 DECLSPEC void undo_utf16le_S (const u32 *in1, const u32 *in2, u32 *out)
 {
   #if defined IS_NV
@@ -31316,7 +32614,6 @@ DECLSPEC void undo_utf16le_S (const u32 *in1, const u32 *in2, u32 *out)
   #endif
 }
 
-DECLSPEC void switch_buffer_by_offset_le_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 offset);
 DECLSPEC void switch_buffer_by_offset_le_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 offset)
 {
   const int offset_switch = offset / 4;
@@ -31985,7 +33282,6 @@ DECLSPEC void switch_buffer_by_offset_le_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, 
   #endif
 }
 
-DECLSPEC void switch_buffer_by_offset_carry_le_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *c0, u32 *c1, u32 *c2, u32 *c3, const u32 offset);
 DECLSPEC void switch_buffer_by_offset_carry_le_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *c0, u32 *c1, u32 *c2, u32 *c3, const u32 offset)
 {
   const int offset_switch = offset / 4;
@@ -33255,7 +34551,6 @@ DECLSPEC void switch_buffer_by_offset_carry_le_S (u32 *w0, u32 *w1, u32 *w2, u32
   #endif
 }
 
-DECLSPEC void switch_buffer_by_offset_be_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 offset);
 DECLSPEC void switch_buffer_by_offset_be_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 offset)
 {
   const int offset_switch = offset / 4;
@@ -33920,7 +35215,6 @@ DECLSPEC void switch_buffer_by_offset_be_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, 
   #endif
 }
 
-DECLSPEC void switch_buffer_by_offset_carry_be_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *c0, u32 *c1, u32 *c2, u32 *c3, const u32 offset);
 DECLSPEC void switch_buffer_by_offset_carry_be_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *c0, u32 *c1, u32 *c2, u32 *c3, const u32 offset)
 {
   const int offset_switch = offset / 4;
@@ -34857,7 +36151,6 @@ DECLSPEC void switch_buffer_by_offset_carry_be_S (u32 *w0, u32 *w1, u32 *w2, u32
   #endif
 }
 
-DECLSPEC void switch_buffer_by_offset_8x4_le_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const u32 offset);
 DECLSPEC void switch_buffer_by_offset_8x4_le_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const u32 offset)
 {
   const int offset_switch = offset / 4;
@@ -36598,7 +37891,6 @@ DECLSPEC void switch_buffer_by_offset_8x4_le_S (u32 *w0, u32 *w1, u32 *w2, u32 *
   #endif
 }
 
-DECLSPEC void switch_buffer_by_offset_8x4_be_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const u32 offset);
 DECLSPEC void switch_buffer_by_offset_8x4_be_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const u32 offset)
 {
   const int offset_switch = offset / 4;
@@ -38927,7 +40219,6 @@ DECLSPEC void switch_buffer_by_offset_8x4_be_S (u32 *w0, u32 *w1, u32 *w2, u32 *
   #endif
 }
 
-DECLSPEC void switch_buffer_by_offset_8x4_carry_be_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, u32 *c0, u32 *c1, u32 *c2, u32 *c3, u32 *c4, u32 *c5, u32 *c6, u32 *c7, const u32 offset);
 DECLSPEC void switch_buffer_by_offset_8x4_carry_be_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, u32 *c0, u32 *c1, u32 *c2, u32 *c3, u32 *c4, u32 *c5, u32 *c6, u32 *c7, const u32 offset)
 {
   const int offset_switch = offset / 4;
@@ -42312,7 +43603,6 @@ DECLSPEC void switch_buffer_by_offset_8x4_carry_be_S (u32 *w0, u32 *w1, u32 *w2,
   #endif
 }
 
-DECLSPEC void switch_buffer_by_offset_1x64_le_S (u32 *w, const u32 offset);
 DECLSPEC void switch_buffer_by_offset_1x64_le_S (u32 *w, const u32 offset)
 {
   const int offset_switch = offset / 4;
@@ -51045,7 +52335,6 @@ DECLSPEC void switch_buffer_by_offset_1x64_le_S (u32 *w, const u32 offset)
   #endif
 }
 
-DECLSPEC void switch_buffer_by_offset_1x64_be_S (u32 *w, const u32 offset);
 DECLSPEC void switch_buffer_by_offset_1x64_be_S (u32 *w, const u32 offset)
 {
   const int offset_switch = offset / 4;
@@ -59838,7 +61127,6 @@ DECLSPEC void switch_buffer_by_offset_1x64_be_S (u32 *w, const u32 offset)
   PACKSV4 (s6, v6, e);                                              \
   PACKSV4 (s7, v7, e);
 
-DECLSPEC void switch_buffer_by_offset_le_VV (u32x *w0, u32x *w1, u32x *w2, u32x *w3, const u32x offset);
 DECLSPEC void switch_buffer_by_offset_le_VV (u32x *w0, u32x *w1, u32x *w2, u32x *w3, const u32x offset)
 {
   #if VECT_SIZE == 1
@@ -59899,7 +61187,6 @@ DECLSPEC void switch_buffer_by_offset_le_VV (u32x *w0, u32x *w1, u32x *w2, u32x 
   #endif
 }
 
-DECLSPEC void switch_buffer_by_offset_8x4_le_VV (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, const u32x offset);
 DECLSPEC void switch_buffer_by_offset_8x4_le_VV (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, const u32x offset)
 {
   #if VECT_SIZE == 1
@@ -60080,7 +61367,6 @@ DECLSPEC void switch_buffer_by_offset_8x4_le_VV (u32x *w0, u32x *w1, u32x *w2, u
   #endif
 }
 
-DECLSPEC void append_0x01_2x4_VV (u32x *w0, u32x *w1, const u32x offset);
 DECLSPEC void append_0x01_2x4_VV (u32x *w0, u32x *w1, const u32x offset)
 {
   #if VECT_SIZE == 1
@@ -60139,7 +61425,6 @@ DECLSPEC void append_0x01_2x4_VV (u32x *w0, u32x *w1, const u32x offset)
   #endif
 }
 
-DECLSPEC void append_0x01_4x4_VV (u32x *w0, u32x *w1, u32x *w2, u32x *w3, const u32x offset);
 DECLSPEC void append_0x01_4x4_VV (u32x *w0, u32x *w1, u32x *w2, u32x *w3, const u32x offset)
 {
   #if VECT_SIZE == 1
@@ -60200,7 +61485,6 @@ DECLSPEC void append_0x01_4x4_VV (u32x *w0, u32x *w1, u32x *w2, u32x *w3, const 
   #endif
 }
 
-DECLSPEC void append_0x06_2x4_VV (u32x *w0, u32x *w1, const u32x offset);
 DECLSPEC void append_0x06_2x4_VV (u32x *w0, u32x *w1, const u32x offset)
 {
   #if VECT_SIZE == 1
@@ -60259,7 +61543,6 @@ DECLSPEC void append_0x06_2x4_VV (u32x *w0, u32x *w1, const u32x offset)
   #endif
 }
 
-DECLSPEC void append_0x80_2x4_VV (u32x *w0, u32x *w1, const u32x offset);
 DECLSPEC void append_0x80_2x4_VV (u32x *w0, u32x *w1, const u32x offset)
 {
   #if VECT_SIZE == 1
@@ -60318,7 +61601,6 @@ DECLSPEC void append_0x80_2x4_VV (u32x *w0, u32x *w1, const u32x offset)
   #endif
 }
 
-DECLSPEC void append_0x80_4x4_VV (u32x *w0, u32x *w1, u32x *w2, u32x *w3, const u32x offset);
 DECLSPEC void append_0x80_4x4_VV (u32x *w0, u32x *w1, u32x *w2, u32x *w3, const u32x offset)
 {
   #if VECT_SIZE == 1
@@ -60379,8 +61661,7 @@ DECLSPEC void append_0x80_4x4_VV (u32x *w0, u32x *w1, u32x *w2, u32x *w3, const 
   #endif
 }
 
-DECLSPEC void gpu_decompress_entry (__global pw_idx_t *pws_idx, __global u32 *pws_comp, pw_t *pw, const u64 gid);
-DECLSPEC void gpu_decompress_entry (__global pw_idx_t *pws_idx, __global u32 *pws_comp, pw_t *pw, const u64 gid)
+DECLSPEC void gpu_decompress_entry (GLOBAL_AS pw_idx_t *pws_idx, GLOBAL_AS u32 *pws_comp, pw_t *pw, const u64 gid)
 {
   const u32 off = pws_idx[gid].off;
   const u32 cnt = pws_idx[gid].cnt;
@@ -60400,7 +61681,7 @@ DECLSPEC void gpu_decompress_entry (__global pw_idx_t *pws_idx, __global u32 *pw
   pw->pw_len = len;
 }
 
-__kernel void gpu_decompress (__global pw_idx_t * restrict pws_idx, __global u32 * restrict pws_comp, __global pw_t * restrict pws_buf, const u64 gid_max)
+KERNEL_FQ void gpu_decompress (GLOBAL_AS pw_idx_t * restrict pws_idx, GLOBAL_AS u32 * restrict pws_comp, GLOBAL_AS pw_t * restrict pws_buf, const u64 gid_max)
 {
   const u64 gid = get_global_id (0);
 
@@ -60413,7 +61694,7 @@ __kernel void gpu_decompress (__global pw_idx_t * restrict pws_idx, __global u32
   pws_buf[gid] = pw;
 }
 
-__kernel void gpu_memset (__global uint4 * restrict buf, const u32 value, const u64 gid_max)
+KERNEL_FQ void gpu_memset (GLOBAL_AS uint4 * restrict buf, const u32 value, const u64 gid_max)
 {
   const u64 gid = get_global_id (0);
 
@@ -60422,7 +61703,7 @@ __kernel void gpu_memset (__global uint4 * restrict buf, const u32 value, const 
   buf[gid] = (uint4) (value);
 }
 
-__kernel void gpu_atinit (__global pw_t * restrict buf, const u64 gid_max)
+KERNEL_FQ void gpu_atinit (GLOBAL_AS pw_t * restrict buf, const u64 gid_max)
 {
   const u64 gid = get_global_id (0);
 

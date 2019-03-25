@@ -6,30 +6,30 @@
 //incompatible to simd
 //#define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
+#endif
 
 #define SIPROUND(v0,v1,v2,v3) \
   (v0) += (v1);               \
-  (v1)  = rotl64 ((v1), 13);  \
+  (v1)  = hc_rotl64 ((v1), 13);  \
   (v1) ^= (v0);               \
-  (v0)  = rotl64 ((v0), 32);  \
+  (v0)  = hc_rotl64 ((v0), 32);  \
   (v2) += (v3);               \
-  (v3)  = rotl64 ((v3), 16);  \
+  (v3)  = hc_rotl64 ((v3), 16);  \
   (v3) ^= (v2);               \
   (v0) += (v3);               \
-  (v3)  = rotl64 ((v3), 21);  \
+  (v3)  = hc_rotl64 ((v3), 21);  \
   (v3) ^= (v0);               \
   (v2) += (v1);               \
-  (v1)  = rotl64 ((v1), 17);  \
+  (v1)  = hc_rotl64 ((v1), 17);  \
   (v1) ^= (v2);               \
-  (v2)  = rotl64 ((v2), 32)
+  (v2)  = hc_rotl64 ((v2), 32)
 
-__kernel void m10100_m04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m10100_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -208,15 +208,15 @@ __kernel void m10100_m04 (KERN_ATTR_BASIC ())
   }
 }
 
-__kernel void m10100_m08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m10100_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m10100_m16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m10100_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m10100_s04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m10100_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -407,10 +407,10 @@ __kernel void m10100_s04 (KERN_ATTR_BASIC ())
   }
 }
 
-__kernel void m10100_s08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m10100_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m10100_s16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m10100_s16 (KERN_ATTR_BASIC ())
 {
 }

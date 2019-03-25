@@ -5,13 +5,13 @@
 
 //#define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_scalar.cl"
 #include "inc_hash_sha512.cl"
+#endif
 
 typedef struct jwt
 {
@@ -22,7 +22,7 @@ typedef struct jwt
 
 } jwt_t;
 
-__kernel void m16513_mxx (KERN_ATTR_ESALT (jwt_t))
+KERNEL_FQ void m16513_mxx (KERN_ATTR_ESALT (jwt_t))
 {
   /**
    * modifier
@@ -43,7 +43,7 @@ __kernel void m16513_mxx (KERN_ATTR_ESALT (jwt_t))
 
   for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
-    w[idx] = swap32_S (pws[gid].i[idx]);
+    w[idx] = hc_swap32_S (pws[gid].i[idx]);
   }
 
   /**
@@ -61,7 +61,7 @@ __kernel void m16513_mxx (KERN_ATTR_ESALT (jwt_t))
     #endif
     for (int idx = 0; idx < 64; idx++)
     {
-      c[idx] = swap32_S (combs_buf[il_pos].i[idx]);
+      c[idx] = hc_swap32_S (combs_buf[il_pos].i[idx]);
     }
 
     switch_buffer_by_offset_1x64_be_S (c, pw_len);
@@ -91,7 +91,7 @@ __kernel void m16513_mxx (KERN_ATTR_ESALT (jwt_t))
   }
 }
 
-__kernel void m16513_sxx (KERN_ATTR_ESALT (jwt_t))
+KERNEL_FQ void m16513_sxx (KERN_ATTR_ESALT (jwt_t))
 {
   /**
    * modifier
@@ -124,7 +124,7 @@ __kernel void m16513_sxx (KERN_ATTR_ESALT (jwt_t))
 
   for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
-    w[idx] = swap32_S (pws[gid].i[idx]);
+    w[idx] = hc_swap32_S (pws[gid].i[idx]);
   }
 
   /**
@@ -142,7 +142,7 @@ __kernel void m16513_sxx (KERN_ATTR_ESALT (jwt_t))
     #endif
     for (int idx = 0; idx < 64; idx++)
     {
-      c[idx] = swap32_S (combs_buf[il_pos].i[idx]);
+      c[idx] = hc_swap32_S (combs_buf[il_pos].i[idx]);
     }
 
     switch_buffer_by_offset_1x64_be_S (c, pw_len);

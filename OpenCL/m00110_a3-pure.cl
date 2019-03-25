@@ -5,15 +5,15 @@
 
 #define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha1.cl"
+#endif
 
-__kernel void m00110_mxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m00110_mxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -43,7 +43,7 @@ __kernel void m00110_mxx (KERN_ATTR_VECTOR ())
 
   for (int i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = swap32_S (salt_bufs[salt_pos].salt_buf[idx]);
+    s[idx] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[idx]);
   }
 
   /**
@@ -79,7 +79,7 @@ __kernel void m00110_mxx (KERN_ATTR_VECTOR ())
   }
 }
 
-__kernel void m00110_sxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m00110_sxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -121,7 +121,7 @@ __kernel void m00110_sxx (KERN_ATTR_VECTOR ())
 
   for (int i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = swap32_S (salt_bufs[salt_pos].salt_buf[idx]);
+    s[idx] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[idx]);
   }
 
   /**

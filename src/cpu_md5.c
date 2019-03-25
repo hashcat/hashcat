@@ -3,14 +3,46 @@
  * License.....: MIT
  */
 
-#define IS_GENERIC
-
 #include "common.h"
 #include "types.h"
 #include "bitops.h"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "cpu_md5.h"
+
+#define MD5_F_S(x,y,z)  ((z) ^ ((x) & ((y) ^ (z))))
+#define MD5_G_S(x,y,z)  ((y) ^ ((z) & ((x) ^ (y))))
+#define MD5_H_S(x,y,z)  ((x) ^ (y) ^ (z))
+#define MD5_I_S(x,y,z)  ((y) ^ ((x) | ~(z)))
+
+#define MD5_F(x,y,z)    ((z) ^ ((x) & ((y) ^ (z))))
+#define MD5_G(x,y,z)    ((y) ^ ((z) & ((x) ^ (y))))
+#define MD5_H(x,y,z)    ((x) ^ (y) ^ (z))
+#define MD5_H1(x,y,z)   ((t = (x) ^ (y)) ^ (z))
+#define MD5_H2(x,y,z)   ((x) ^ t)
+#define MD5_I(x,y,z)    ((y) ^ ((x) | ~(z)))
+#define MD5_Fo(x,y,z)   (MD5_F((x), (y), (z)))
+#define MD5_Go(x,y,z)   (MD5_G((x), (y), (z)))
+
+#define MD5_STEP_S(f,a,b,c,d,x,K,s)   \
+{                                     \
+  a += K;                             \
+  a  = add3_S (a, x, f (b, c, d)); \
+  a  = rotl32_S (a, s);               \
+  a += b;                             \
+}
+
+#define MD5_STEP(f,a,b,c,d,x,K,s)   \
+{                                   \
+  a += K;                           \
+  a  = add3 (a, x, f (b, c, d)); \
+  a  = rotl32 (a, s);               \
+  a += b;                           \
+}
+
+#define MD5_STEP0(f,a,b,c,d,K,s)    \
+{                                   \
+  a  = add3 (a, K, f (b, c, d)); \
+  a  = rotl32 (a, s);               \
+  a += b;                           \
+}
 
 void md5_64 (const u32 block[16], u32 digest[4])
 {

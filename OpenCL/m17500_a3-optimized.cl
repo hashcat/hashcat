@@ -5,14 +5,14 @@
 
 #define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
+#endif
 
-__constant u64a keccakf_rndc[24] =
+CONSTANT_AS u64a keccakf_rndc[24] =
 {
   0x0000000000000001, 0x0000000000008082, 0x800000000000808a,
   0x8000000080008000, 0x000000000000808b, 0x0000000080000001,
@@ -81,7 +81,7 @@ DECLSPEC void m17500m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
 
     #define Rho_Pi(ad,r)     \
       bc0 = ad;              \
-      ad = rotl64 (t, r);    \
+      ad = hc_rotl64 (t, r);    \
       t = bc0;               \
 
     #ifdef _unroll
@@ -99,11 +99,11 @@ DECLSPEC void m17500m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
 
       u64x t;
 
-      t = bc4 ^ rotl64 (bc1, 1); a00 ^= t; a10 ^= t; a20 ^= t; a30 ^= t; a40 ^= t;
-      t = bc0 ^ rotl64 (bc2, 1); a01 ^= t; a11 ^= t; a21 ^= t; a31 ^= t; a41 ^= t;
-      t = bc1 ^ rotl64 (bc3, 1); a02 ^= t; a12 ^= t; a22 ^= t; a32 ^= t; a42 ^= t;
-      t = bc2 ^ rotl64 (bc4, 1); a03 ^= t; a13 ^= t; a23 ^= t; a33 ^= t; a43 ^= t;
-      t = bc3 ^ rotl64 (bc0, 1); a04 ^= t; a14 ^= t; a24 ^= t; a34 ^= t; a44 ^= t;
+      t = bc4 ^ hc_rotl64 (bc1, 1); a00 ^= t; a10 ^= t; a20 ^= t; a30 ^= t; a40 ^= t;
+      t = bc0 ^ hc_rotl64 (bc2, 1); a01 ^= t; a11 ^= t; a21 ^= t; a31 ^= t; a41 ^= t;
+      t = bc1 ^ hc_rotl64 (bc3, 1); a02 ^= t; a12 ^= t; a22 ^= t; a32 ^= t; a42 ^= t;
+      t = bc2 ^ hc_rotl64 (bc4, 1); a03 ^= t; a13 ^= t; a23 ^= t; a33 ^= t; a43 ^= t;
+      t = bc3 ^ hc_rotl64 (bc0, 1); a04 ^= t; a14 ^= t; a24 ^= t; a34 ^= t; a44 ^= t;
 
       // Rho Pi
 
@@ -166,11 +166,11 @@ DECLSPEC void m17500m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
 
     u64x t;
 
-    t = bc4 ^ rotl64 (bc1, 1); a00 ^= t; a10 ^= t; a20 ^= t; a30 ^= t;
-    t = bc0 ^ rotl64 (bc2, 1);                     a21 ^= t; a31 ^= t; a41 ^= t;
-    t = bc1 ^ rotl64 (bc3, 1); a02 ^= t; a12 ^= t; a22 ^= t; a32 ^= t;
-    t = bc2 ^ rotl64 (bc4, 1); a03 ^= t; a13 ^= t; a23 ^= t; a33 ^= t; a43 ^= t;
-    t = bc3 ^ rotl64 (bc0, 1); a04 ^= t;                     a34 ^= t; a44 ^= t;
+    t = bc4 ^ hc_rotl64 (bc1, 1); a00 ^= t; a10 ^= t; a20 ^= t; a30 ^= t;
+    t = bc0 ^ hc_rotl64 (bc2, 1);                     a21 ^= t; a31 ^= t; a41 ^= t;
+    t = bc1 ^ hc_rotl64 (bc3, 1); a02 ^= t; a12 ^= t; a22 ^= t; a32 ^= t;
+    t = bc2 ^ hc_rotl64 (bc4, 1); a03 ^= t; a13 ^= t; a23 ^= t; a33 ^= t; a43 ^= t;
+    t = bc3 ^ hc_rotl64 (bc0, 1); a04 ^= t;                     a34 ^= t; a44 ^= t;
 
     // Rho Pi
 
@@ -279,7 +279,7 @@ DECLSPEC void m17500s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
 
     #define Rho_Pi(ad,r)     \
       bc0 = ad;              \
-      ad = rotl64 (t, r);    \
+      ad = hc_rotl64 (t, r);    \
       t = bc0;               \
 
     #ifdef _unroll
@@ -297,11 +297,11 @@ DECLSPEC void m17500s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
 
       u64x t;
 
-      t = bc4 ^ rotl64 (bc1, 1); a00 ^= t; a10 ^= t; a20 ^= t; a30 ^= t; a40 ^= t;
-      t = bc0 ^ rotl64 (bc2, 1); a01 ^= t; a11 ^= t; a21 ^= t; a31 ^= t; a41 ^= t;
-      t = bc1 ^ rotl64 (bc3, 1); a02 ^= t; a12 ^= t; a22 ^= t; a32 ^= t; a42 ^= t;
-      t = bc2 ^ rotl64 (bc4, 1); a03 ^= t; a13 ^= t; a23 ^= t; a33 ^= t; a43 ^= t;
-      t = bc3 ^ rotl64 (bc0, 1); a04 ^= t; a14 ^= t; a24 ^= t; a34 ^= t; a44 ^= t;
+      t = bc4 ^ hc_rotl64 (bc1, 1); a00 ^= t; a10 ^= t; a20 ^= t; a30 ^= t; a40 ^= t;
+      t = bc0 ^ hc_rotl64 (bc2, 1); a01 ^= t; a11 ^= t; a21 ^= t; a31 ^= t; a41 ^= t;
+      t = bc1 ^ hc_rotl64 (bc3, 1); a02 ^= t; a12 ^= t; a22 ^= t; a32 ^= t; a42 ^= t;
+      t = bc2 ^ hc_rotl64 (bc4, 1); a03 ^= t; a13 ^= t; a23 ^= t; a33 ^= t; a43 ^= t;
+      t = bc3 ^ hc_rotl64 (bc0, 1); a04 ^= t; a14 ^= t; a24 ^= t; a34 ^= t; a44 ^= t;
 
       // Rho Pi
 
@@ -364,11 +364,11 @@ DECLSPEC void m17500s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
 
     u64x t;
 
-    t = bc4 ^ rotl64 (bc1, 1); a00 ^= t; a10 ^= t; a20 ^= t; a30 ^= t;
-    t = bc0 ^ rotl64 (bc2, 1);                     a21 ^= t; a31 ^= t; a41 ^= t;
-    t = bc1 ^ rotl64 (bc3, 1); a02 ^= t; a12 ^= t; a22 ^= t; a32 ^= t;
-    t = bc2 ^ rotl64 (bc4, 1); a03 ^= t; a13 ^= t; a23 ^= t; a33 ^= t; a43 ^= t;
-    t = bc3 ^ rotl64 (bc0, 1); a04 ^= t;                     a34 ^= t; a44 ^= t;
+    t = bc4 ^ hc_rotl64 (bc1, 1); a00 ^= t; a10 ^= t; a20 ^= t; a30 ^= t;
+    t = bc0 ^ hc_rotl64 (bc2, 1);                     a21 ^= t; a31 ^= t; a41 ^= t;
+    t = bc1 ^ hc_rotl64 (bc3, 1); a02 ^= t; a12 ^= t; a22 ^= t; a32 ^= t;
+    t = bc2 ^ hc_rotl64 (bc4, 1); a03 ^= t; a13 ^= t; a23 ^= t; a33 ^= t; a43 ^= t;
+    t = bc3 ^ hc_rotl64 (bc0, 1); a04 ^= t;                     a34 ^= t; a44 ^= t;
 
     // Rho Pi
 
@@ -412,7 +412,7 @@ DECLSPEC void m17500s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
   }
 }
 
-__kernel void m17500_m04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m17500_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * base
@@ -459,7 +459,7 @@ __kernel void m17500_m04 (KERN_ATTR_BASIC ())
   m17500m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }
 
-__kernel void m17500_m08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m17500_m08 (KERN_ATTR_BASIC ())
 {
   /**
    * base
@@ -506,7 +506,7 @@ __kernel void m17500_m08 (KERN_ATTR_BASIC ())
   m17500m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }
 
-__kernel void m17500_m16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m17500_m16 (KERN_ATTR_BASIC ())
 {
   /**
    * base
@@ -553,7 +553,7 @@ __kernel void m17500_m16 (KERN_ATTR_BASIC ())
   m17500m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }
 
-__kernel void m17500_s04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m17500_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * base
@@ -600,7 +600,7 @@ __kernel void m17500_s04 (KERN_ATTR_BASIC ())
   m17500s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }
 
-__kernel void m17500_s08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m17500_s08 (KERN_ATTR_BASIC ())
 {
   /**
    * base
@@ -647,7 +647,7 @@ __kernel void m17500_s08 (KERN_ATTR_BASIC ())
   m17500s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }
 
-__kernel void m17500_s16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m17500_s16 (KERN_ATTR_BASIC ())
 {
   /**
    * base

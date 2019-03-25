@@ -3,13 +3,9 @@
  * License.....: MIT
  */
 
-#define IS_GENERIC
-
 #include "common.h"
 #include "types.h"
 #include "bitops.h"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
 #include "cpu_des.h"
 
 #define BOX(v,i,S) (S)[(i)][(v)]
@@ -331,14 +327,12 @@ void _des_keysetup (const u32 data[2], u32 Kc[16], u32 Kd[16])
   u32 c = data[0];
   u32 d = data[1];
 
-  u32 tt;
-
-  PERM_OP  (d, c, tt, 4, 0x0f0f0f0f);
-  HPERM_OP (c,    tt, 2, 0xcccc0000);
-  HPERM_OP (d,    tt, 2, 0xcccc0000);
-  PERM_OP  (d, c, tt, 1, 0x55555555);
-  PERM_OP  (c, d, tt, 8, 0x00ff00ff);
-  PERM_OP  (d, c, tt, 1, 0x55555555);
+  PERM_OP  (d, c, 4, 0x0f0f0f0f);
+  HPERM_OP (c,    2, 0xcccc0000);
+  HPERM_OP (d,    2, 0xcccc0000);
+  PERM_OP  (d, c, 1, 0x55555555);
+  PERM_OP  (c, d, 8, 0x00ff00ff);
+  PERM_OP  (d, c, 1, 0x55555555);
 
   d = ((d & 0x000000ff) << 16)
     | ((d & 0x0000ff00) <<  0)
@@ -389,9 +383,7 @@ void _des_encrypt (u32 data[2], const u32 Kc[16], const u32 Kd[16])
   u32 r = data[0];
   u32 l = data[1];
 
-  u32 tt;
-
-  IP (r, l, tt);
+  DES_IP (r, l);
 
   r = rotl32 (r, 3u);
   l = rotl32 (l, 3u);
@@ -412,6 +404,8 @@ void _des_encrypt (u32 data[2], const u32 Kc[16], const u32 Kd[16])
        | BOX (((t >> 18) & 0x3f), 5, c_SPtrans)
        | BOX (((t >> 26) & 0x3f), 7, c_SPtrans);
 
+    u32 tt;
+
     tt = l;
     l  = r;
     r  = tt;
@@ -420,7 +414,7 @@ void _des_encrypt (u32 data[2], const u32 Kc[16], const u32 Kd[16])
   l = rotl32 (l, 29u);
   r = rotl32 (r, 29u);
 
-  FP (r, l, tt);
+  DES_FP (r, l);
 
   data[0] = l;
   data[1] = r;

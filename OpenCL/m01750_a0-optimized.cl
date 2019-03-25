@@ -5,15 +5,15 @@
 
 #define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_rp_optimized.h"
 #include "inc_rp_optimized.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha512.cl"
+#endif
 
 DECLSPEC void sha512_transform_transport_vector (const u64x *w0, const u64x *w1, const u64x *w2, const u64x *w3, u64x *digest)
 {
@@ -190,7 +190,7 @@ DECLSPEC void hmac_sha512_run (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u64x *ipa
   sha512_transform_transport_vector (w0_t, w1_t, w2_t, w3_t, digest);
 }
 
-__kernel void m01750_m04 (KERN_ATTR_RULES ())
+KERNEL_FQ void m01750_m04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -229,22 +229,22 @@ __kernel void m01750_m04 (KERN_ATTR_RULES ())
   u32 salt_buf2[4];
   u32 salt_buf3[4];
 
-  salt_buf0[0] = swap32_S (salt_bufs[salt_pos].salt_buf[ 0]);
-  salt_buf0[1] = swap32_S (salt_bufs[salt_pos].salt_buf[ 1]);
-  salt_buf0[2] = swap32_S (salt_bufs[salt_pos].salt_buf[ 2]);
-  salt_buf0[3] = swap32_S (salt_bufs[salt_pos].salt_buf[ 3]);
-  salt_buf1[0] = swap32_S (salt_bufs[salt_pos].salt_buf[ 4]);
-  salt_buf1[1] = swap32_S (salt_bufs[salt_pos].salt_buf[ 5]);
-  salt_buf1[2] = swap32_S (salt_bufs[salt_pos].salt_buf[ 6]);
-  salt_buf1[3] = swap32_S (salt_bufs[salt_pos].salt_buf[ 7]);
-  salt_buf2[0] = swap32_S (salt_bufs[salt_pos].salt_buf[ 8]);
-  salt_buf2[1] = swap32_S (salt_bufs[salt_pos].salt_buf[ 9]);
-  salt_buf2[2] = swap32_S (salt_bufs[salt_pos].salt_buf[10]);
-  salt_buf2[3] = swap32_S (salt_bufs[salt_pos].salt_buf[11]);
-  salt_buf3[0] = swap32_S (salt_bufs[salt_pos].salt_buf[12]);
-  salt_buf3[1] = swap32_S (salt_bufs[salt_pos].salt_buf[13]);
-  salt_buf3[2] = swap32_S (salt_bufs[salt_pos].salt_buf[14]);
-  salt_buf3[3] = swap32_S (salt_bufs[salt_pos].salt_buf[15]);
+  salt_buf0[0] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 0]);
+  salt_buf0[1] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 1]);
+  salt_buf0[2] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 2]);
+  salt_buf0[3] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 3]);
+  salt_buf1[0] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 4]);
+  salt_buf1[1] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 5]);
+  salt_buf1[2] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 6]);
+  salt_buf1[3] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 7]);
+  salt_buf2[0] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 8]);
+  salt_buf2[1] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 9]);
+  salt_buf2[2] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[10]);
+  salt_buf2[3] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[11]);
+  salt_buf3[0] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[12]);
+  salt_buf3[1] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[13]);
+  salt_buf3[2] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[14]);
+  salt_buf3[3] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[15]);
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
@@ -261,14 +261,14 @@ __kernel void m01750_m04 (KERN_ATTR_RULES ())
 
     apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
-    w0[0] = swap32 (w0[0]);
-    w0[1] = swap32 (w0[1]);
-    w0[2] = swap32 (w0[2]);
-    w0[3] = swap32 (w0[3]);
-    w1[0] = swap32 (w1[0]);
-    w1[1] = swap32 (w1[1]);
-    w1[2] = swap32 (w1[2]);
-    w1[3] = swap32 (w1[3]);
+    w0[0] = hc_swap32 (w0[0]);
+    w0[1] = hc_swap32 (w0[1]);
+    w0[2] = hc_swap32 (w0[2]);
+    w0[3] = hc_swap32 (w0[3]);
+    w1[0] = hc_swap32 (w1[0]);
+    w1[1] = hc_swap32 (w1[1]);
+    w1[2] = hc_swap32 (w1[2]);
+    w1[3] = hc_swap32 (w1[3]);
 
     /**
      * pads
@@ -309,15 +309,15 @@ __kernel void m01750_m04 (KERN_ATTR_RULES ())
   }
 }
 
-__kernel void m01750_m08 (KERN_ATTR_RULES ())
+KERNEL_FQ void m01750_m08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m01750_m16 (KERN_ATTR_RULES ())
+KERNEL_FQ void m01750_m16 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m01750_s04 (KERN_ATTR_RULES ())
+KERNEL_FQ void m01750_s04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -356,22 +356,22 @@ __kernel void m01750_s04 (KERN_ATTR_RULES ())
   u32 salt_buf2[4];
   u32 salt_buf3[4];
 
-  salt_buf0[0] = swap32_S (salt_bufs[salt_pos].salt_buf[ 0]);
-  salt_buf0[1] = swap32_S (salt_bufs[salt_pos].salt_buf[ 1]);
-  salt_buf0[2] = swap32_S (salt_bufs[salt_pos].salt_buf[ 2]);
-  salt_buf0[3] = swap32_S (salt_bufs[salt_pos].salt_buf[ 3]);
-  salt_buf1[0] = swap32_S (salt_bufs[salt_pos].salt_buf[ 4]);
-  salt_buf1[1] = swap32_S (salt_bufs[salt_pos].salt_buf[ 5]);
-  salt_buf1[2] = swap32_S (salt_bufs[salt_pos].salt_buf[ 6]);
-  salt_buf1[3] = swap32_S (salt_bufs[salt_pos].salt_buf[ 7]);
-  salt_buf2[0] = swap32_S (salt_bufs[salt_pos].salt_buf[ 8]);
-  salt_buf2[1] = swap32_S (salt_bufs[salt_pos].salt_buf[ 9]);
-  salt_buf2[2] = swap32_S (salt_bufs[salt_pos].salt_buf[10]);
-  salt_buf2[3] = swap32_S (salt_bufs[salt_pos].salt_buf[11]);
-  salt_buf3[0] = swap32_S (salt_bufs[salt_pos].salt_buf[12]);
-  salt_buf3[1] = swap32_S (salt_bufs[salt_pos].salt_buf[13]);
-  salt_buf3[2] = swap32_S (salt_bufs[salt_pos].salt_buf[14]);
-  salt_buf3[3] = swap32_S (salt_bufs[salt_pos].salt_buf[15]);
+  salt_buf0[0] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 0]);
+  salt_buf0[1] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 1]);
+  salt_buf0[2] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 2]);
+  salt_buf0[3] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 3]);
+  salt_buf1[0] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 4]);
+  salt_buf1[1] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 5]);
+  salt_buf1[2] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 6]);
+  salt_buf1[3] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 7]);
+  salt_buf2[0] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 8]);
+  salt_buf2[1] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 9]);
+  salt_buf2[2] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[10]);
+  salt_buf2[3] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[11]);
+  salt_buf3[0] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[12]);
+  salt_buf3[1] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[13]);
+  salt_buf3[2] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[14]);
+  salt_buf3[3] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[15]);
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
@@ -400,14 +400,14 @@ __kernel void m01750_s04 (KERN_ATTR_RULES ())
 
     apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
-    w0[0] = swap32 (w0[0]);
-    w0[1] = swap32 (w0[1]);
-    w0[2] = swap32 (w0[2]);
-    w0[3] = swap32 (w0[3]);
-    w1[0] = swap32 (w1[0]);
-    w1[1] = swap32 (w1[1]);
-    w1[2] = swap32 (w1[2]);
-    w1[3] = swap32 (w1[3]);
+    w0[0] = hc_swap32 (w0[0]);
+    w0[1] = hc_swap32 (w0[1]);
+    w0[2] = hc_swap32 (w0[2]);
+    w0[3] = hc_swap32 (w0[3]);
+    w1[0] = hc_swap32 (w1[0]);
+    w1[1] = hc_swap32 (w1[1]);
+    w1[2] = hc_swap32 (w1[2]);
+    w1[3] = hc_swap32 (w1[3]);
 
     /**
      * pads
@@ -448,10 +448,10 @@ __kernel void m01750_s04 (KERN_ATTR_RULES ())
   }
 }
 
-__kernel void m01750_s08 (KERN_ATTR_RULES ())
+KERNEL_FQ void m01750_s08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m01750_s16 (KERN_ATTR_RULES ())
+KERNEL_FQ void m01750_s16 (KERN_ATTR_RULES ())
 {
 }

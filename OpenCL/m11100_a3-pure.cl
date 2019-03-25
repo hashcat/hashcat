@@ -5,13 +5,13 @@
 
 #define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_md5.cl"
+#endif
 
 #if   VECT_SIZE == 1
 #define uint_to_hex_lower8(i) (u32x) (l_bin2asc[(i)])
@@ -25,7 +25,7 @@
 #define uint_to_hex_lower8(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7], l_bin2asc[(i).s8], l_bin2asc[(i).s9], l_bin2asc[(i).sa], l_bin2asc[(i).sb], l_bin2asc[(i).sc], l_bin2asc[(i).sd], l_bin2asc[(i).se], l_bin2asc[(i).sf])
 #endif
 
-__kernel void m11100_mxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m11100_mxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -39,7 +39,7 @@ __kernel void m11100_mxx (KERN_ATTR_VECTOR ())
    * bin2asc table
    */
 
-  __local u32 l_bin2asc[256];
+  LOCAL_AS u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -212,7 +212,7 @@ __kernel void m11100_mxx (KERN_ATTR_VECTOR ())
   }
 }
 
-__kernel void m11100_sxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m11100_sxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -226,7 +226,7 @@ __kernel void m11100_sxx (KERN_ATTR_VECTOR ())
    * bin2asc table
    */
 
-  __local u32 l_bin2asc[256];
+  LOCAL_AS u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {

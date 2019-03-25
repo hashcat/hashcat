@@ -5,39 +5,15 @@
 
 #define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
+#include "inc_hash_sha256.cl"
+#endif
 
-__constant u32a k_sha256[64] =
-{
-  SHA256C00, SHA256C01, SHA256C02, SHA256C03,
-  SHA256C04, SHA256C05, SHA256C06, SHA256C07,
-  SHA256C08, SHA256C09, SHA256C0a, SHA256C0b,
-  SHA256C0c, SHA256C0d, SHA256C0e, SHA256C0f,
-  SHA256C10, SHA256C11, SHA256C12, SHA256C13,
-  SHA256C14, SHA256C15, SHA256C16, SHA256C17,
-  SHA256C18, SHA256C19, SHA256C1a, SHA256C1b,
-  SHA256C1c, SHA256C1d, SHA256C1e, SHA256C1f,
-  SHA256C20, SHA256C21, SHA256C22, SHA256C23,
-  SHA256C24, SHA256C25, SHA256C26, SHA256C27,
-  SHA256C28, SHA256C29, SHA256C2a, SHA256C2b,
-  SHA256C2c, SHA256C2d, SHA256C2e, SHA256C2f,
-  SHA256C30, SHA256C31, SHA256C32, SHA256C33,
-  SHA256C34, SHA256C35, SHA256C36, SHA256C37,
-  SHA256C38, SHA256C39, SHA256C3a, SHA256C3b,
-  SHA256C3c, SHA256C3d, SHA256C3e, SHA256C3f,
-};
-
-#define SHA256_S0_S(x) (rotl32_S ((x), 25u) ^ rotl32_S ((x), 14u) ^ SHIFT_RIGHT_32 ((x),  3u))
-#define SHA256_S1_S(x) (rotl32_S ((x), 15u) ^ rotl32_S ((x), 13u) ^ SHIFT_RIGHT_32 ((x), 10u))
-
-#define SHA256_EXPAND_S(x,y,z,w) (SHA256_S1_S (x) + y + SHA256_S0_S (z) + w)
-
-DECLSPEC void sha256_transform (u32x *digest, const u32x *w)
+DECLSPEC void sha256_transform_m (u32x *digest, const u32x *w)
 {
   u32x a = digest[0];
   u32x b = digest[1];
@@ -176,7 +152,7 @@ DECLSPEC void sha256_transform_z (u32x *digest)
   digest[7] += h;
 }
 
-DECLSPEC void sha256_transform_s (u32x *digest, __local u32 *w)
+DECLSPEC void sha256_transform_s (u32x *digest, LOCAL_AS u32 *w)
 {
   u32x a = digest[0];
   u32x b = digest[1];
@@ -227,7 +203,7 @@ DECLSPEC void sha256_transform_s (u32x *digest, __local u32 *w)
   digest[7] += h;
 }
 
-__kernel void m08000_m04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m08000_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -241,16 +217,16 @@ __kernel void m08000_m04 (KERN_ATTR_BASIC ())
    * salt
    */
 
-  const u32 salt_buf0 = swap32_S (salt_bufs[salt_pos].salt_buf[ 0]);
-  const u32 salt_buf1 = swap32_S (salt_bufs[salt_pos].salt_buf[ 1]);
-  const u32 salt_buf2 = swap32_S (salt_bufs[salt_pos].salt_buf[ 2]); // 0x80
+  const u32 salt_buf0 = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 0]);
+  const u32 salt_buf1 = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 1]);
+  const u32 salt_buf2 = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 2]); // 0x80
 
   /**
    * precompute final msg blocks
    */
 
-  __local u32 w_s1[64];
-  __local u32 w_s2[64];
+  LOCAL_AS u32 w_s1[64];
+  LOCAL_AS u32 w_s2[64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
@@ -385,22 +361,22 @@ __kernel void m08000_m04 (KERN_ATTR_BASIC ())
 
     u32x w_t[16];
 
-    w_t[ 0] = swap32 (w0_t[0]);
-    w_t[ 1] = swap32 (w0_t[1]);
-    w_t[ 2] = swap32 (w0_t[2]);
-    w_t[ 3] = swap32 (w0_t[3]);
-    w_t[ 4] = swap32 (w1_t[0]);
-    w_t[ 5] = swap32 (w1_t[1]);
-    w_t[ 6] = swap32 (w1_t[2]);
-    w_t[ 7] = swap32 (w1_t[3]);
-    w_t[ 8] = swap32 (w2_t[0]);
-    w_t[ 9] = swap32 (w2_t[1]);
-    w_t[10] = swap32 (w2_t[2]);
-    w_t[11] = swap32 (w2_t[3]);
-    w_t[12] = swap32 (w3_t[0]);
-    w_t[13] = swap32 (w3_t[1]);
-    w_t[14] = swap32 (w3_t[2]);
-    w_t[15] = swap32 (w3_t[3]);
+    w_t[ 0] = hc_swap32 (w0_t[0]);
+    w_t[ 1] = hc_swap32 (w0_t[1]);
+    w_t[ 2] = hc_swap32 (w0_t[2]);
+    w_t[ 3] = hc_swap32 (w0_t[3]);
+    w_t[ 4] = hc_swap32 (w1_t[0]);
+    w_t[ 5] = hc_swap32 (w1_t[1]);
+    w_t[ 6] = hc_swap32 (w1_t[2]);
+    w_t[ 7] = hc_swap32 (w1_t[3]);
+    w_t[ 8] = hc_swap32 (w2_t[0]);
+    w_t[ 9] = hc_swap32 (w2_t[1]);
+    w_t[10] = hc_swap32 (w2_t[2]);
+    w_t[11] = hc_swap32 (w2_t[3]);
+    w_t[12] = hc_swap32 (w3_t[0]);
+    w_t[13] = hc_swap32 (w3_t[1]);
+    w_t[14] = hc_swap32 (w3_t[2]);
+    w_t[15] = hc_swap32 (w3_t[3]);
 
     w_t[ 0] = w_t[ 0] >> 8;
     w_t[ 1] = w_t[ 1] >> 8;
@@ -430,7 +406,7 @@ __kernel void m08000_m04 (KERN_ATTR_BASIC ())
     digest[6] = SHA256M_G;
     digest[7] = SHA256M_H;
 
-    sha256_transform   (digest, w_t);   //   0 -  64
+    sha256_transform_m   (digest, w_t);   //   0 -  64
     sha256_transform_z (digest);        //  64 - 128
     sha256_transform_z (digest);        // 128 - 192
     sha256_transform_z (digest);        // 192 - 256
@@ -444,15 +420,15 @@ __kernel void m08000_m04 (KERN_ATTR_BASIC ())
   }
 }
 
-__kernel void m08000_m08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m08000_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m08000_m16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m08000_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m08000_s04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m08000_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -466,16 +442,16 @@ __kernel void m08000_s04 (KERN_ATTR_BASIC ())
    * salt
    */
 
-  const u32 salt_buf0 = swap32_S (salt_bufs[salt_pos].salt_buf[ 0]);
-  const u32 salt_buf1 = swap32_S (salt_bufs[salt_pos].salt_buf[ 1]);
-  const u32 salt_buf2 = swap32_S (salt_bufs[salt_pos].salt_buf[ 2]); // 0x80
+  const u32 salt_buf0 = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 0]);
+  const u32 salt_buf1 = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 1]);
+  const u32 salt_buf2 = hc_swap32_S (salt_bufs[salt_pos].salt_buf[ 2]); // 0x80
 
   /**
    * precompute final msg blocks
    */
 
-  __local u32 w_s1[64];
-  __local u32 w_s2[64];
+  LOCAL_AS u32 w_s1[64];
+  LOCAL_AS u32 w_s2[64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
@@ -622,22 +598,22 @@ __kernel void m08000_s04 (KERN_ATTR_BASIC ())
 
     u32x w_t[16];
 
-    w_t[ 0] = swap32 (w0_t[0]);
-    w_t[ 1] = swap32 (w0_t[1]);
-    w_t[ 2] = swap32 (w0_t[2]);
-    w_t[ 3] = swap32 (w0_t[3]);
-    w_t[ 4] = swap32 (w1_t[0]);
-    w_t[ 5] = swap32 (w1_t[1]);
-    w_t[ 6] = swap32 (w1_t[2]);
-    w_t[ 7] = swap32 (w1_t[3]);
-    w_t[ 8] = swap32 (w2_t[0]);
-    w_t[ 9] = swap32 (w2_t[1]);
-    w_t[10] = swap32 (w2_t[2]);
-    w_t[11] = swap32 (w2_t[3]);
-    w_t[12] = swap32 (w3_t[0]);
-    w_t[13] = swap32 (w3_t[1]);
-    w_t[14] = swap32 (w3_t[2]);
-    w_t[15] = swap32 (w3_t[3]);
+    w_t[ 0] = hc_swap32 (w0_t[0]);
+    w_t[ 1] = hc_swap32 (w0_t[1]);
+    w_t[ 2] = hc_swap32 (w0_t[2]);
+    w_t[ 3] = hc_swap32 (w0_t[3]);
+    w_t[ 4] = hc_swap32 (w1_t[0]);
+    w_t[ 5] = hc_swap32 (w1_t[1]);
+    w_t[ 6] = hc_swap32 (w1_t[2]);
+    w_t[ 7] = hc_swap32 (w1_t[3]);
+    w_t[ 8] = hc_swap32 (w2_t[0]);
+    w_t[ 9] = hc_swap32 (w2_t[1]);
+    w_t[10] = hc_swap32 (w2_t[2]);
+    w_t[11] = hc_swap32 (w2_t[3]);
+    w_t[12] = hc_swap32 (w3_t[0]);
+    w_t[13] = hc_swap32 (w3_t[1]);
+    w_t[14] = hc_swap32 (w3_t[2]);
+    w_t[15] = hc_swap32 (w3_t[3]);
 
     w_t[ 0] = w_t[ 0] >> 8;
     w_t[ 1] = w_t[ 1] >> 8;
@@ -667,7 +643,7 @@ __kernel void m08000_s04 (KERN_ATTR_BASIC ())
     digest[6] = SHA256M_G;
     digest[7] = SHA256M_H;
 
-    sha256_transform   (digest, w_t);   //   0 -  64
+    sha256_transform_m   (digest, w_t);   //   0 -  64
     sha256_transform_z (digest);        //  64 - 128
     sha256_transform_z (digest);        // 128 - 192
     sha256_transform_z (digest);        // 192 - 256
@@ -681,10 +657,10 @@ __kernel void m08000_s04 (KERN_ATTR_BASIC ())
   }
 }
 
-__kernel void m08000_s08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m08000_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m08000_s16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m08000_s16 (KERN_ATTR_BASIC ())
 {
 }

@@ -3,14 +3,14 @@
  * License.....: MIT
  */
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_hash_sha256.cl"
 #include "inc_cipher_aes.cl"
 #include "inc_cipher_twofish.cl"
+#endif
 
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
@@ -44,7 +44,7 @@ typedef struct keepass
 
 } keepass_t;
 
-__kernel void m13400_init (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
+KERNEL_FQ void m13400_init (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
 {
   /**
    * base
@@ -163,7 +163,7 @@ __kernel void m13400_init (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
   tmps[gid].tmp_digest[7] = digest[7];
 }
 
-__kernel void m13400_loop (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
+KERNEL_FQ void m13400_loop (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -175,11 +175,11 @@ __kernel void m13400_loop (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
 
   #ifdef REAL_SHM
 
-  __local u32 s_te0[256];
-  __local u32 s_te1[256];
-  __local u32 s_te2[256];
-  __local u32 s_te3[256];
-  __local u32 s_te4[256];
+  LOCAL_AS u32 s_te0[256];
+  LOCAL_AS u32 s_te1[256];
+  LOCAL_AS u32 s_te2[256];
+  LOCAL_AS u32 s_te3[256];
+  LOCAL_AS u32 s_te4[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -194,11 +194,11 @@ __kernel void m13400_loop (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
 
   #else
 
-  __constant u32a *s_te0 = te0;
-  __constant u32a *s_te1 = te1;
-  __constant u32a *s_te2 = te2;
-  __constant u32a *s_te3 = te3;
-  __constant u32a *s_te4 = te4;
+  CONSTANT_AS u32a *s_te0 = te0;
+  CONSTANT_AS u32a *s_te1 = te1;
+  CONSTANT_AS u32a *s_te2 = te2;
+  CONSTANT_AS u32a *s_te3 = te3;
+  CONSTANT_AS u32a *s_te4 = te4;
 
   #endif
 
@@ -251,7 +251,7 @@ __kernel void m13400_loop (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
   tmps[gid].tmp_digest[7] = data1[3];
 }
 
-__kernel void m13400_comp (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
+KERNEL_FQ void m13400_comp (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -263,17 +263,17 @@ __kernel void m13400_comp (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
 
   #ifdef REAL_SHM
 
-  __local u32 s_td0[256];
-  __local u32 s_td1[256];
-  __local u32 s_td2[256];
-  __local u32 s_td3[256];
-  __local u32 s_td4[256];
+  LOCAL_AS u32 s_td0[256];
+  LOCAL_AS u32 s_td1[256];
+  LOCAL_AS u32 s_td2[256];
+  LOCAL_AS u32 s_td3[256];
+  LOCAL_AS u32 s_td4[256];
 
-  __local u32 s_te0[256];
-  __local u32 s_te1[256];
-  __local u32 s_te2[256];
-  __local u32 s_te3[256];
-  __local u32 s_te4[256];
+  LOCAL_AS u32 s_te0[256];
+  LOCAL_AS u32 s_te1[256];
+  LOCAL_AS u32 s_te2[256];
+  LOCAL_AS u32 s_te3[256];
+  LOCAL_AS u32 s_te4[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -294,17 +294,17 @@ __kernel void m13400_comp (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
 
   #else
 
-  __constant u32a *s_td0 = td0;
-  __constant u32a *s_td1 = td1;
-  __constant u32a *s_td2 = td2;
-  __constant u32a *s_td3 = td3;
-  __constant u32a *s_td4 = td4;
+  CONSTANT_AS u32a *s_td0 = td0;
+  CONSTANT_AS u32a *s_td1 = td1;
+  CONSTANT_AS u32a *s_td2 = td2;
+  CONSTANT_AS u32a *s_td3 = td3;
+  CONSTANT_AS u32a *s_td4 = td4;
 
-  __constant u32a *s_te0 = te0;
-  __constant u32a *s_te1 = te1;
-  __constant u32a *s_te2 = te2;
-  __constant u32a *s_te3 = te3;
-  __constant u32a *s_te4 = te4;
+  CONSTANT_AS u32a *s_te0 = te0;
+  CONSTANT_AS u32a *s_te1 = te1;
+  CONSTANT_AS u32a *s_te2 = te2;
+  CONSTANT_AS u32a *s_te3 = te3;
+  CONSTANT_AS u32a *s_te4 = te4;
 
   #endif
 
@@ -450,21 +450,21 @@ __kernel void m13400_comp (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
       u32 sk[4];
       u32 lk[40];
 
-      digest[0] = swap32_S (digest[0]);
-      digest[1] = swap32_S (digest[1]);
-      digest[2] = swap32_S (digest[2]);
-      digest[3] = swap32_S (digest[3]);
-      digest[4] = swap32_S (digest[4]);
-      digest[5] = swap32_S (digest[5]);
-      digest[6] = swap32_S (digest[6]);
-      digest[7] = swap32_S (digest[7]);
+      digest[0] = hc_swap32_S (digest[0]);
+      digest[1] = hc_swap32_S (digest[1]);
+      digest[2] = hc_swap32_S (digest[2]);
+      digest[3] = hc_swap32_S (digest[3]);
+      digest[4] = hc_swap32_S (digest[4]);
+      digest[5] = hc_swap32_S (digest[5]);
+      digest[6] = hc_swap32_S (digest[6]);
+      digest[7] = hc_swap32_S (digest[7]);
 
       twofish256_set_key (sk, lk, digest);
 
-      iv[0] = swap32_S (iv[0]);
-      iv[1] = swap32_S (iv[1]);
-      iv[2] = swap32_S (iv[2]);
-      iv[3] = swap32_S (iv[3]);
+      iv[0] = hc_swap32_S (iv[0]);
+      iv[1] = hc_swap32_S (iv[1]);
+      iv[2] = hc_swap32_S (iv[2]);
+      iv[3] = hc_swap32_S (iv[3]);
 
       u32 contents_len = esalt_bufs[digests_offset].contents_len;
 
@@ -482,10 +482,10 @@ __kernel void m13400_comp (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
         data[2] = esalt_bufs[digests_offset].contents[contents_off + 2];
         data[3] = esalt_bufs[digests_offset].contents[contents_off + 3];
 
-        data[0] = swap32_S (data[0]);
-        data[1] = swap32_S (data[1]);
-        data[2] = swap32_S (data[2]);
-        data[3] = swap32_S (data[3]);
+        data[0] = hc_swap32_S (data[0]);
+        data[1] = hc_swap32_S (data[1]);
+        data[2] = hc_swap32_S (data[2]);
+        data[3] = hc_swap32_S (data[3]);
 
         u32 out[4];
 
@@ -496,10 +496,10 @@ __kernel void m13400_comp (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
         out[2] ^= iv[2];
         out[3] ^= iv[3];
 
-        out[0] = swap32_S (out[0]);
-        out[1] = swap32_S (out[1]);
-        out[2] = swap32_S (out[2]);
-        out[3] = swap32_S (out[3]);
+        out[0] = hc_swap32_S (out[0]);
+        out[1] = hc_swap32_S (out[1]);
+        out[2] = hc_swap32_S (out[2]);
+        out[3] = hc_swap32_S (out[3]);
 
         u32 w0[4] = { 0 };
         u32 w1[4] = { 0 };
@@ -528,10 +528,10 @@ __kernel void m13400_comp (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
       data[2] = esalt_bufs[digests_offset].contents[contents_off + 2];
       data[3] = esalt_bufs[digests_offset].contents[contents_off + 3];
 
-      data[0] = swap32_S (data[0]);
-      data[1] = swap32_S (data[1]);
-      data[2] = swap32_S (data[2]);
-      data[3] = swap32_S (data[3]);
+      data[0] = hc_swap32_S (data[0]);
+      data[1] = hc_swap32_S (data[1]);
+      data[2] = hc_swap32_S (data[2]);
+      data[3] = hc_swap32_S (data[3]);
 
       u32 out[4];
 
@@ -542,10 +542,10 @@ __kernel void m13400_comp (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
       out[2] ^= iv[2];
       out[3] ^= iv[3];
 
-      out[0] = swap32_S (out[0]);
-      out[1] = swap32_S (out[1]);
-      out[2] = swap32_S (out[2]);
-      out[3] = swap32_S (out[3]);
+      out[0] = hc_swap32_S (out[0]);
+      out[1] = hc_swap32_S (out[1]);
+      out[2] = hc_swap32_S (out[2]);
+      out[3] = hc_swap32_S (out[3]);
 
       // now we can access the pad byte
 
@@ -698,5 +698,7 @@ __kernel void m13400_comp (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
 
   #define il_pos 0
 
+  #ifdef KERNEL_STATIC
   #include COMPARE_M
+  #endif
 }

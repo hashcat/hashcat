@@ -5,15 +5,15 @@
 
 #define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_rp_optimized.h"
 #include "inc_rp_optimized.cl"
 #include "inc_simd.cl"
 #include "inc_hash_md5.cl"
+#endif
 
 typedef struct ikepsk
 {
@@ -110,7 +110,7 @@ DECLSPEC void hmac_md5_run (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, 
   md5_transform_vector (w0, w1, w2, w3, digest);
 }
 
-__kernel void m05300_m04 (KERN_ATTR_RULES_ESALT (ikepsk_t))
+KERNEL_FQ void m05300_m04 (KERN_ATTR_RULES_ESALT (ikepsk_t))
 {
   /**
    * modifier
@@ -124,14 +124,14 @@ __kernel void m05300_m04 (KERN_ATTR_RULES_ESALT (ikepsk_t))
    * s_msg
    */
 
-  __local u32 s_nr_buf[16];
+  LOCAL_AS u32 s_nr_buf[16];
 
   for (u32 i = lid; i < 16; i += lsz)
   {
     s_nr_buf[i] = esalt_bufs[digests_offset].nr_buf[i];
   }
 
-  __local u32 s_msg_buf[128];
+  LOCAL_AS u32 s_msg_buf[128];
 
   for (u32 i = lid; i < 128; i += lsz)
   {
@@ -277,15 +277,15 @@ __kernel void m05300_m04 (KERN_ATTR_RULES_ESALT (ikepsk_t))
   }
 }
 
-__kernel void m05300_m08 (KERN_ATTR_RULES_ESALT (ikepsk_t))
+KERNEL_FQ void m05300_m08 (KERN_ATTR_RULES_ESALT (ikepsk_t))
 {
 }
 
-__kernel void m05300_m16 (KERN_ATTR_RULES_ESALT (ikepsk_t))
+KERNEL_FQ void m05300_m16 (KERN_ATTR_RULES_ESALT (ikepsk_t))
 {
 }
 
-__kernel void m05300_s04 (KERN_ATTR_RULES_ESALT (ikepsk_t))
+KERNEL_FQ void m05300_s04 (KERN_ATTR_RULES_ESALT (ikepsk_t))
 {
   /**
    * modifier
@@ -299,14 +299,14 @@ __kernel void m05300_s04 (KERN_ATTR_RULES_ESALT (ikepsk_t))
    * s_msg
    */
 
-  __local u32 s_nr_buf[16];
+  LOCAL_AS u32 s_nr_buf[16];
 
   for (u32 i = lid; i < 16; i += lsz)
   {
     s_nr_buf[i] = esalt_bufs[digests_offset].nr_buf[i];
   }
 
-  __local u32 s_msg_buf[128];
+  LOCAL_AS u32 s_msg_buf[128];
 
   for (u32 i = lid; i < 128; i += lsz)
   {
@@ -464,10 +464,10 @@ __kernel void m05300_s04 (KERN_ATTR_RULES_ESALT (ikepsk_t))
   }
 }
 
-__kernel void m05300_s08 (KERN_ATTR_RULES_ESALT (ikepsk_t))
+KERNEL_FQ void m05300_s08 (KERN_ATTR_RULES_ESALT (ikepsk_t))
 {
 }
 
-__kernel void m05300_s16 (KERN_ATTR_RULES_ESALT (ikepsk_t))
+KERNEL_FQ void m05300_s16 (KERN_ATTR_RULES_ESALT (ikepsk_t))
 {
 }

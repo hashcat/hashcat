@@ -127,9 +127,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     salt_buf_pc_ptr[i] = 0x40;
   }
 
-  u32 tt;
-
-  IP (salt->salt_buf_pc[0], salt->salt_buf_pc[1], tt);
+  DES_IP (salt->salt_buf_pc[0], salt->salt_buf_pc[1]);
 
   salt->salt_buf_pc[0] = rotl32 (salt->salt_buf_pc[0], 3u);
   salt->salt_buf_pc[1] = rotl32 (salt->salt_buf_pc[1], 3u);
@@ -141,7 +139,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[0] = hex_to_u32 (hash_pos + 0);
   digest[1] = hex_to_u32 (hash_pos + 8);
 
-  IP (digest[0], digest[1], tt);
+  DES_IP (digest[0], digest[1]);
 
   digest[0] = rotr32 (digest[0], 29);
   digest[1] = rotr32 (digest[1], 29);
@@ -160,9 +158,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   tmp[0] = rotl32 (digest[0], 29);
   tmp[1] = rotl32 (digest[1], 29);
 
-  u32 tt;
-
-  FP (tmp[1], tmp[0], tt);
+  DES_FP (tmp[1], tmp[0]);
 
   char tmp_salt[SALT_MAX * 2];
 

@@ -5,14 +5,15 @@
 
 #define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
+#include "inc_hash_md5.cl"
+#endif
 
-__kernel void m00010_m04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m00010_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -273,15 +274,15 @@ __kernel void m00010_m04 (KERN_ATTR_BASIC ())
   }
 }
 
-__kernel void m00010_m08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m00010_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m00010_m16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m00010_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m00010_s04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m00010_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -557,10 +558,10 @@ __kernel void m00010_s04 (KERN_ATTR_BASIC ())
   }
 }
 
-__kernel void m00010_s08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m00010_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m00010_s16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m00010_s16 (KERN_ATTR_BASIC ())
 {
 }

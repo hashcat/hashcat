@@ -2641,9 +2641,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
   // this test needs to be done manually because of macOS opencl runtime
   // if there's a problem with permission, its not reporting back and erroring out silently
 
-  #define files_cnt 16
-
-  const char *files_names[files_cnt] =
+  const char *files_names[] =
   {
     "inc_cipher_aes.cl",
     "inc_cipher_serpent.cl",
@@ -2653,17 +2651,16 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     "inc_comp_multi.cl",
     "inc_comp_single_bs.cl",
     "inc_comp_single.cl",
-    "inc_hash_constants.h",
-    "inc_hash_functions.cl",
     "inc_rp_optimized.cl",
     "inc_rp_optimized.h",
     "inc_simd.cl",
     "inc_scalar.cl",
-    "inc_types.cl",
-    "inc_vendor.cl",
+    "inc_types.h",
+    "inc_vendor.h",
+    NULL
   };
 
-  for (int i = 0; i < files_cnt; i++)
+  for (int i = 0; files_names[i] != NULL; i++)
   {
     if (hc_path_read (files_names[i]) == false)
     {

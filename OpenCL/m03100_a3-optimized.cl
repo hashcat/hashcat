@@ -5,13 +5,13 @@
 
 #define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_cipher_des.cl"
+#endif
 
 DECLSPEC void m03100m (SHM_TYPE u32 (*s_SPtrans)[64], SHM_TYPE u32 (*s_skb)[64], u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
@@ -387,7 +387,7 @@ DECLSPEC void m03100s (SHM_TYPE u32 (*s_SPtrans)[64], SHM_TYPE u32 (*s_skb)[64],
   }
 }
 
-__kernel void m03100_m04 (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m03100_m04 (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -428,8 +428,8 @@ __kernel void m03100_m04 (KERN_ATTR_VECTOR ())
 
   #ifdef REAL_SHM
 
-  __local u32 s_SPtrans[8][64];
-  __local u32 s_skb[8][64];
+  LOCAL_AS u32 s_SPtrans[8][64];
+  LOCAL_AS u32 s_skb[8][64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
@@ -456,8 +456,8 @@ __kernel void m03100_m04 (KERN_ATTR_VECTOR ())
 
   #else
 
-  __constant u32a (*s_SPtrans)[64] = c_SPtrans;
-  __constant u32a (*s_skb)[64]     = c_skb;
+  CONSTANT_AS u32a (*s_SPtrans)[64] = c_SPtrans;
+  CONSTANT_AS u32a (*s_skb)[64]     = c_skb;
 
   #endif
 
@@ -470,7 +470,7 @@ __kernel void m03100_m04 (KERN_ATTR_VECTOR ())
   m03100m (s_SPtrans, s_skb, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }
 
-__kernel void m03100_m08 (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m03100_m08 (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -511,8 +511,8 @@ __kernel void m03100_m08 (KERN_ATTR_VECTOR ())
 
   #ifdef REAL_SHM
 
-  __local u32 s_SPtrans[8][64];
-  __local u32 s_skb[8][64];
+  LOCAL_AS u32 s_SPtrans[8][64];
+  LOCAL_AS u32 s_skb[8][64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
@@ -539,8 +539,8 @@ __kernel void m03100_m08 (KERN_ATTR_VECTOR ())
 
   #else
 
-  __constant u32a (*s_SPtrans)[64] = c_SPtrans;
-  __constant u32a (*s_skb)[64]     = c_skb;
+  CONSTANT_AS u32a (*s_SPtrans)[64] = c_SPtrans;
+  CONSTANT_AS u32a (*s_skb)[64]     = c_skb;
 
   #endif
 
@@ -553,11 +553,11 @@ __kernel void m03100_m08 (KERN_ATTR_VECTOR ())
   m03100m (s_SPtrans, s_skb, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }
 
-__kernel void m03100_m16 (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m03100_m16 (KERN_ATTR_VECTOR ())
 {
 }
 
-__kernel void m03100_s04 (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m03100_s04 (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -598,8 +598,8 @@ __kernel void m03100_s04 (KERN_ATTR_VECTOR ())
 
   #ifdef REAL_SHM
 
-  __local u32 s_SPtrans[8][64];
-  __local u32 s_skb[8][64];
+  LOCAL_AS u32 s_SPtrans[8][64];
+  LOCAL_AS u32 s_skb[8][64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
@@ -626,8 +626,8 @@ __kernel void m03100_s04 (KERN_ATTR_VECTOR ())
 
   #else
 
-  __constant u32a (*s_SPtrans)[64] = c_SPtrans;
-  __constant u32a (*s_skb)[64]     = c_skb;
+  CONSTANT_AS u32a (*s_SPtrans)[64] = c_SPtrans;
+  CONSTANT_AS u32a (*s_skb)[64]     = c_skb;
 
   #endif
 
@@ -640,7 +640,7 @@ __kernel void m03100_s04 (KERN_ATTR_VECTOR ())
   m03100s (s_SPtrans, s_skb, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }
 
-__kernel void m03100_s08 (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m03100_s08 (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -681,8 +681,8 @@ __kernel void m03100_s08 (KERN_ATTR_VECTOR ())
 
   #ifdef REAL_SHM
 
-  __local u32 s_SPtrans[8][64];
-  __local u32 s_skb[8][64];
+  LOCAL_AS u32 s_SPtrans[8][64];
+  LOCAL_AS u32 s_skb[8][64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
@@ -709,8 +709,8 @@ __kernel void m03100_s08 (KERN_ATTR_VECTOR ())
 
   #else
 
-  __constant u32a (*s_SPtrans)[64] = c_SPtrans;
-  __constant u32a (*s_skb)[64]     = c_skb;
+  CONSTANT_AS u32a (*s_SPtrans)[64] = c_SPtrans;
+  CONSTANT_AS u32a (*s_skb)[64]     = c_skb;
 
   #endif
 
@@ -723,6 +723,6 @@ __kernel void m03100_s08 (KERN_ATTR_VECTOR ())
   m03100s (s_SPtrans, s_skb, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }
 
-__kernel void m03100_s16 (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m03100_s16 (KERN_ATTR_VECTOR ())
 {
 }

@@ -6,17 +6,17 @@
 //incompatible
 //#define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_rp_optimized.h"
 #include "inc_rp_optimized.cl"
 #include "inc_simd.cl"
 #include "inc_cipher_des.cl"
+#endif
 
-__kernel void m03100_m04 (KERN_ATTR_RULES ())
+KERNEL_FQ void m03100_m04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -32,8 +32,8 @@ __kernel void m03100_m04 (KERN_ATTR_RULES ())
 
   #ifdef REAL_SHM
 
-  __local u32 s_SPtrans[8][64];
-  __local u32 s_skb[8][64];
+  LOCAL_AS u32 s_SPtrans[8][64];
+  LOCAL_AS u32 s_skb[8][64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
@@ -60,8 +60,8 @@ __kernel void m03100_m04 (KERN_ATTR_RULES ())
 
   #else
 
-  __constant u32a (*s_SPtrans)[64] = c_SPtrans;
-  __constant u32a (*s_skb)[64]     = c_skb;
+  CONSTANT_AS u32a (*s_SPtrans)[64] = c_SPtrans;
+  CONSTANT_AS u32a (*s_skb)[64]     = c_skb;
 
   #endif
 
@@ -240,15 +240,15 @@ __kernel void m03100_m04 (KERN_ATTR_RULES ())
   }
 }
 
-__kernel void m03100_m08 (KERN_ATTR_RULES ())
+KERNEL_FQ void m03100_m08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m03100_m16 (KERN_ATTR_RULES ())
+KERNEL_FQ void m03100_m16 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m03100_s04 (KERN_ATTR_RULES ())
+KERNEL_FQ void m03100_s04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -264,8 +264,8 @@ __kernel void m03100_s04 (KERN_ATTR_RULES ())
 
   #ifdef REAL_SHM
 
-  __local u32 s_SPtrans[8][64];
-  __local u32 s_skb[8][64];
+  LOCAL_AS u32 s_SPtrans[8][64];
+  LOCAL_AS u32 s_skb[8][64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
@@ -292,8 +292,8 @@ __kernel void m03100_s04 (KERN_ATTR_RULES ())
 
   #else
 
-  __constant u32a (*s_SPtrans)[64] = c_SPtrans;
-  __constant u32a (*s_skb)[64]     = c_skb;
+  CONSTANT_AS u32a (*s_SPtrans)[64] = c_SPtrans;
+  CONSTANT_AS u32a (*s_skb)[64]     = c_skb;
 
   #endif
 
@@ -484,10 +484,10 @@ __kernel void m03100_s04 (KERN_ATTR_RULES ())
   }
 }
 
-__kernel void m03100_s08 (KERN_ATTR_RULES ())
+KERNEL_FQ void m03100_s08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m03100_s16 (KERN_ATTR_RULES ())
+KERNEL_FQ void m03100_s16 (KERN_ATTR_RULES ())
 {
 }

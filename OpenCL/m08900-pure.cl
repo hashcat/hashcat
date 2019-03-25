@@ -3,12 +3,12 @@
  * License.....: MIT
  */
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_hash_sha256.cl"
+#endif
 
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
@@ -23,7 +23,7 @@ typedef struct
 
 } scrypt_tmp_t;
 
-DECLSPEC uint4 swap32_4 (uint4 v)
+DECLSPEC uint4 hc_swap32_4 (uint4 v)
 {
   return (rotate ((v & 0x00FF00FF), 24u) | rotate ((v & 0xFF00FF00),  8u));
 }
@@ -135,7 +135,7 @@ DECLSPEC void salsa_r (uint4 *TI)
   }
 }
 
-DECLSPEC void scrypt_smix (uint4 *X, uint4 *T, __global uint4 * restrict V0, __global uint4 * restrict V1, __global uint4 * restrict V2, __global uint4 * restrict V3)
+DECLSPEC void scrypt_smix (uint4 *X, uint4 *T, GLOBAL_AS uint4 * restrict V0, GLOBAL_AS uint4 * restrict V1, GLOBAL_AS uint4 * restrict V2, GLOBAL_AS uint4 * restrict V3)
 {
   #define Coord(xd4,y,z) (((xd4) * ySIZE * zSIZE) + ((y) * zSIZE) + (z))
   #define CO Coord(xd4,y,z)
@@ -148,7 +148,7 @@ DECLSPEC void scrypt_smix (uint4 *X, uint4 *T, __global uint4 * restrict V0, __g
   const u32 xd4 = x / 4;
   const u32 xm4 = x & 3;
 
-  __global uint4 * restrict V;
+  GLOBAL_AS uint4 * restrict V;
 
   switch (xm4)
   {
@@ -215,7 +215,7 @@ DECLSPEC void scrypt_smix (uint4 *X, uint4 *T, __global uint4 * restrict V0, __g
   }
 }
 
-__kernel void m08900_init (KERN_ATTR_TMPS (scrypt_tmp_t))
+KERNEL_FQ void m08900_init (KERN_ATTR_TMPS (scrypt_tmp_t))
 {
   /**
    * base
@@ -280,16 +280,16 @@ __kernel void m08900_init (KERN_ATTR_TMPS (scrypt_tmp_t))
   }
 }
 
-__kernel void m08900_loop (KERN_ATTR_TMPS (scrypt_tmp_t))
+KERNEL_FQ void m08900_loop (KERN_ATTR_TMPS (scrypt_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
   if (gid >= gid_max) return;
 
-  __global uint4 * restrict d_scrypt0_buf = d_extra0_buf;
-  __global uint4 * restrict d_scrypt1_buf = d_extra1_buf;
-  __global uint4 * restrict d_scrypt2_buf = d_extra2_buf;
-  __global uint4 * restrict d_scrypt3_buf = d_extra3_buf;
+  GLOBAL_AS uint4 * restrict d_scrypt0_buf = d_extra0_buf;
+  GLOBAL_AS uint4 * restrict d_scrypt1_buf = d_extra1_buf;
+  GLOBAL_AS uint4 * restrict d_scrypt2_buf = d_extra2_buf;
+  GLOBAL_AS uint4 * restrict d_scrypt3_buf = d_extra3_buf;
 
   uint4 X[STATE_CNT4];
   uint4 T[STATE_CNT4];
@@ -297,28 +297,28 @@ __kernel void m08900_loop (KERN_ATTR_TMPS (scrypt_tmp_t))
   #ifdef _unroll
   #pragma unroll
   #endif
-  for (int z = 0; z < STATE_CNT4; z++) X[z] = swap32_4 (tmps[gid].P[z]);
+  for (int z = 0; z < STATE_CNT4; z++) X[z] = hc_swap32_4 (tmps[gid].P[z]);
 
   scrypt_smix (X, T, d_scrypt0_buf, d_scrypt1_buf, d_scrypt2_buf, d_scrypt3_buf);
 
   #ifdef _unroll
   #pragma unroll
   #endif
-  for (int z = 0; z < STATE_CNT4; z++) tmps[gid].P[z] = swap32_4 (X[z]);
+  for (int z = 0; z < STATE_CNT4; z++) tmps[gid].P[z] = hc_swap32_4 (X[z]);
 
   #if SCRYPT_P >= 1
   for (int i = STATE_CNT4; i < SCRYPT_CNT4; i += STATE_CNT4)
   {
-    for (int z = 0; z < STATE_CNT4; z++) X[z] = swap32_4 (tmps[gid].P[i + z]);
+    for (int z = 0; z < STATE_CNT4; z++) X[z] = hc_swap32_4 (tmps[gid].P[i + z]);
 
     scrypt_smix (X, T, d_scrypt0_buf, d_scrypt1_buf, d_scrypt2_buf, d_scrypt3_buf);
 
-    for (int z = 0; z < STATE_CNT4; z++) tmps[gid].P[i + z] = swap32_4 (X[z]);
+    for (int z = 0; z < STATE_CNT4; z++) tmps[gid].P[i + z] = hc_swap32_4 (X[z]);
   }
   #endif
 }
 
-__kernel void m08900_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
+KERNEL_FQ void m08900_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
 {
   /**
    * base
@@ -398,12 +398,14 @@ __kernel void m08900_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
 
   sha256_hmac_final (&ctx);
 
-  const u32 r0 = swap32_S (ctx.opad.h[DGST_R0]);
-  const u32 r1 = swap32_S (ctx.opad.h[DGST_R1]);
-  const u32 r2 = swap32_S (ctx.opad.h[DGST_R2]);
-  const u32 r3 = swap32_S (ctx.opad.h[DGST_R3]);
+  const u32 r0 = hc_swap32_S (ctx.opad.h[DGST_R0]);
+  const u32 r1 = hc_swap32_S (ctx.opad.h[DGST_R1]);
+  const u32 r2 = hc_swap32_S (ctx.opad.h[DGST_R2]);
+  const u32 r3 = hc_swap32_S (ctx.opad.h[DGST_R3]);
 
   #define il_pos 0
 
+  #ifdef KERNEL_STATIC
   #include COMPARE_M
+  #endif
 }

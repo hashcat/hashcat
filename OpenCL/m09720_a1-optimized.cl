@@ -5,13 +5,13 @@
 
 #define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_md5.cl"
+#endif
 
 typedef struct oldoffice01
 {
@@ -366,7 +366,7 @@ DECLSPEC void gen336 (u32x *digest_pre, u32 *salt_buf, u32x *digest)
   md5_transform_vector (w0_t, w1_t, w2_t, w3_t, digest);
 }
 
-__kernel void m09720_m04 (KERN_ATTR_ESALT (oldoffice01_t))
+KERNEL_FQ void m09720_m04 (KERN_ATTR_ESALT (oldoffice01_t))
 {
   /**
    * modifier
@@ -514,15 +514,15 @@ __kernel void m09720_m04 (KERN_ATTR_ESALT (oldoffice01_t))
   }
 }
 
-__kernel void m09720_m08 (KERN_ATTR_ESALT (oldoffice01_t))
+KERNEL_FQ void m09720_m08 (KERN_ATTR_ESALT (oldoffice01_t))
 {
 }
 
-__kernel void m09720_m16 (KERN_ATTR_ESALT (oldoffice01_t))
+KERNEL_FQ void m09720_m16 (KERN_ATTR_ESALT (oldoffice01_t))
 {
 }
 
-__kernel void m09720_s04 (KERN_ATTR_ESALT (oldoffice01_t))
+KERNEL_FQ void m09720_s04 (KERN_ATTR_ESALT (oldoffice01_t))
 {
   /**
    * modifier
@@ -682,10 +682,10 @@ __kernel void m09720_s04 (KERN_ATTR_ESALT (oldoffice01_t))
   }
 }
 
-__kernel void m09720_s08 (KERN_ATTR_ESALT (oldoffice01_t))
+KERNEL_FQ void m09720_s08 (KERN_ATTR_ESALT (oldoffice01_t))
 {
 }
 
-__kernel void m09720_s16 (KERN_ATTR_ESALT (oldoffice01_t))
+KERNEL_FQ void m09720_s16 (KERN_ATTR_ESALT (oldoffice01_t))
 {
 }

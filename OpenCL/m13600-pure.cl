@@ -5,13 +5,13 @@
 
 #define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha1.cl"
+#endif
 
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
@@ -78,7 +78,7 @@ DECLSPEC void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipa
   sha1_transform_vector (w0, w1, w2, w3, digest);
 }
 
-__kernel void m13600_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, zip2_t))
+KERNEL_FQ void m13600_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, zip2_t))
 {
   /**
    * base
@@ -109,10 +109,10 @@ __kernel void m13600_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, zip2_t))
   u32 w2[4];
   u32 w3[4];
 
-  w0[0] = swap32_S (esalt_bufs[digests_offset].salt_buf[0]);
-  w0[1] = swap32_S (esalt_bufs[digests_offset].salt_buf[1]);
-  w0[2] = swap32_S (esalt_bufs[digests_offset].salt_buf[2]);
-  w0[3] = swap32_S (esalt_bufs[digests_offset].salt_buf[3]);
+  w0[0] = hc_swap32_S (esalt_bufs[digests_offset].salt_buf[0]);
+  w0[1] = hc_swap32_S (esalt_bufs[digests_offset].salt_buf[1]);
+  w0[2] = hc_swap32_S (esalt_bufs[digests_offset].salt_buf[2]);
+  w0[3] = hc_swap32_S (esalt_bufs[digests_offset].salt_buf[3]);
   w1[0] = 0;
   w1[1] = 0;
   w1[2] = 0;
@@ -191,7 +191,7 @@ __kernel void m13600_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, zip2_t))
   }
 }
 
-__kernel void m13600_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, zip2_t))
+KERNEL_FQ void m13600_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, zip2_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -300,7 +300,7 @@ __kernel void m13600_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, zip2_t))
   }
 }
 
-__kernel void m13600_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, zip2_t))
+KERNEL_FQ void m13600_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, zip2_t))
 {
   /**
    * base
@@ -367,12 +367,14 @@ __kernel void m13600_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, zip2_t))
 
   sha1_hmac_final (&ctx);
 
-  const u32 r0 = swap32_S (ctx.opad.h[0] & 0xffffffff);
-  const u32 r1 = swap32_S (ctx.opad.h[1] & 0xffffffff);
-  const u32 r2 = swap32_S (ctx.opad.h[2] & 0xffff0000);
-  const u32 r3 = swap32_S (ctx.opad.h[3] & 0x00000000);
+  const u32 r0 = hc_swap32_S (ctx.opad.h[0] & 0xffffffff);
+  const u32 r1 = hc_swap32_S (ctx.opad.h[1] & 0xffffffff);
+  const u32 r2 = hc_swap32_S (ctx.opad.h[2] & 0xffff0000);
+  const u32 r3 = hc_swap32_S (ctx.opad.h[3] & 0x00000000);
 
   #define il_pos 0
 
+  #ifdef KERNEL_STATIC
   #include COMPARE_M
+  #endif
 }

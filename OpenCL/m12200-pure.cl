@@ -5,13 +5,13 @@
 
 #define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha512.cl"
+#endif
 
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
@@ -22,7 +22,7 @@ typedef struct ecryptfs_tmp
 
 } ecryptfs_tmp_t;
 
-__kernel void m12200_init (KERN_ATTR_TMPS (ecryptfs_tmp_t))
+KERNEL_FQ void m12200_init (KERN_ATTR_TMPS (ecryptfs_tmp_t))
 {
   /**
    * base
@@ -52,7 +52,7 @@ __kernel void m12200_init (KERN_ATTR_TMPS (ecryptfs_tmp_t))
   tmps[gid].out[7] = ctx.h[7];
 }
 
-__kernel void m12200_loop (KERN_ATTR_TMPS (ecryptfs_tmp_t))
+KERNEL_FQ void m12200_loop (KERN_ATTR_TMPS (ecryptfs_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -161,7 +161,7 @@ __kernel void m12200_loop (KERN_ATTR_TMPS (ecryptfs_tmp_t))
   unpack64v (tmps, out, gid, 7, t7);
 }
 
-__kernel void m12200_comp (KERN_ATTR_TMPS (ecryptfs_tmp_t))
+KERNEL_FQ void m12200_comp (KERN_ATTR_TMPS (ecryptfs_tmp_t))
 {
   /**
    * base
@@ -182,5 +182,7 @@ __kernel void m12200_comp (KERN_ATTR_TMPS (ecryptfs_tmp_t))
 
   #define il_pos 0
 
+  #ifdef KERNEL_STATIC
   #include COMPARE_M
+  #endif
 }

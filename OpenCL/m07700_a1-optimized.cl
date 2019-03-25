@@ -6,13 +6,13 @@
 //too much register pressure
 //#define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_md5.cl"
+#endif
 
 #define GETCHAR(a,p)  (((a)[(p) / 4] >> (((p) & 3) * 8)) & 0xff)
 #define PUTCHAR(a,p,c) ((a)[(p) / 4] = (((a)[(p) / 4] & ~(0xff << (((p) & 3) * 8))) | ((c) << (((p) & 3) * 8))))
@@ -26,7 +26,7 @@
   (a)[((n)/4)+1]  = x >> 32;        \
 }
 
-__constant u32a sapb_trans_tbl[256] =
+CONSTANT_AS u32a sapb_trans_tbl[256] =
 {
   // first value hack for 0 byte as part of an optimization
   0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
@@ -47,7 +47,7 @@ __constant u32a sapb_trans_tbl[256] =
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
 };
 
-__constant u32a bcodeArray[48] =
+CONSTANT_AS u32a bcodeArray[48] =
 {
   0x14, 0x77, 0xf3, 0xd4, 0xbb, 0x71, 0x23, 0xd0, 0x03, 0xff, 0x47, 0x93, 0x55, 0xaa, 0x66, 0x91,
   0xf2, 0x88, 0x6b, 0x99, 0xbf, 0xcb, 0x32, 0x1a, 0x19, 0xd9, 0xa7, 0x82, 0x22, 0x49, 0xa2, 0x51,
@@ -145,7 +145,7 @@ DECLSPEC u32 walld0rf_magic (const u32 *w0, const u32 pw_len, const u32 *salt_bu
   return sum20;
 }
 
-__kernel void m07700_m04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m07700_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -344,15 +344,15 @@ __kernel void m07700_m04 (KERN_ATTR_BASIC ())
   }
 }
 
-__kernel void m07700_m08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m07700_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m07700_m16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m07700_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m07700_s04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m07700_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -563,10 +563,10 @@ __kernel void m07700_s04 (KERN_ATTR_BASIC ())
   }
 }
 
-__kernel void m07700_s08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m07700_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m07700_s16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m07700_s16 (KERN_ATTR_BASIC ())
 {
 }

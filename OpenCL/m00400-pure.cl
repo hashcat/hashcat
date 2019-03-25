@@ -5,13 +5,13 @@
 
 //#define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_md5.cl"
+#endif
 
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
@@ -22,7 +22,7 @@ typedef struct phpass_tmp
 
 } phpass_tmp_t;
 
-__kernel void m00400_init (KERN_ATTR_TMPS (phpass_tmp_t))
+KERNEL_FQ void m00400_init (KERN_ATTR_TMPS (phpass_tmp_t))
 {
   /**
    * base
@@ -59,7 +59,7 @@ __kernel void m00400_init (KERN_ATTR_TMPS (phpass_tmp_t))
   tmps[gid].digest_buf[3] = digest[3];
 }
 
-__kernel void m00400_loop (KERN_ATTR_TMPS (phpass_tmp_t))
+KERNEL_FQ void m00400_loop (KERN_ATTR_TMPS (phpass_tmp_t))
 {
   /**
    * base
@@ -160,7 +160,7 @@ __kernel void m00400_loop (KERN_ATTR_TMPS (phpass_tmp_t))
   tmps[gid].digest_buf[3] = digest[3];
 }
 
-__kernel void m00400_comp (KERN_ATTR_TMPS (phpass_tmp_t))
+KERNEL_FQ void m00400_comp (KERN_ATTR_TMPS (phpass_tmp_t))
 {
   /**
    * modifier
@@ -182,5 +182,7 @@ __kernel void m00400_comp (KERN_ATTR_TMPS (phpass_tmp_t))
 
   #define il_pos 0
 
+  #ifdef KERNEL_STATIC
   #include COMPARE_M
+  #endif
 }

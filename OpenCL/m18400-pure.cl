@@ -5,15 +5,15 @@
 
 #define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha1.cl"
 #include "inc_hash_sha256.cl"
 #include "inc_cipher_aes.cl"
+#endif
 
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
@@ -73,7 +73,7 @@ DECLSPEC void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipa
   sha1_transform_vector (w0, w1, w2, w3, digest);
 }
 
-__kernel void m18400_init (KERN_ATTR_TMPS_ESALT (odf12_tmp_t, odf12_t))
+KERNEL_FQ void m18400_init (KERN_ATTR_TMPS_ESALT (odf12_tmp_t, odf12_t))
 {
   /**
    * base
@@ -120,10 +120,10 @@ __kernel void m18400_init (KERN_ATTR_TMPS_ESALT (odf12_tmp_t, odf12_t))
   u32 m2[4];
   u32 m3[4];
 
-  m0[0] = swap32_S (salt_bufs[digests_offset].salt_buf[0]);
-  m0[1] = swap32_S (salt_bufs[digests_offset].salt_buf[1]);
-  m0[2] = swap32_S (salt_bufs[digests_offset].salt_buf[2]);
-  m0[3] = swap32_S (salt_bufs[digests_offset].salt_buf[3]);
+  m0[0] = hc_swap32_S (salt_bufs[digests_offset].salt_buf[0]);
+  m0[1] = hc_swap32_S (salt_bufs[digests_offset].salt_buf[1]);
+  m0[2] = hc_swap32_S (salt_bufs[digests_offset].salt_buf[2]);
+  m0[3] = hc_swap32_S (salt_bufs[digests_offset].salt_buf[3]);
   m1[0] = 0;
   m1[1] = 0;
   m1[2] = 0;
@@ -178,7 +178,7 @@ __kernel void m18400_init (KERN_ATTR_TMPS_ESALT (odf12_tmp_t, odf12_t))
   }
 }
 
-__kernel void m18400_loop (KERN_ATTR_TMPS_ESALT (odf12_tmp_t, odf12_t))
+KERNEL_FQ void m18400_loop (KERN_ATTR_TMPS_ESALT (odf12_tmp_t, odf12_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -264,7 +264,7 @@ __kernel void m18400_loop (KERN_ATTR_TMPS_ESALT (odf12_tmp_t, odf12_t))
   }
 }
 
-__kernel void m18400_comp (KERN_ATTR_TMPS_ESALT (odf12_tmp_t, odf12_t))
+KERNEL_FQ void m18400_comp (KERN_ATTR_TMPS_ESALT (odf12_tmp_t, odf12_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -276,17 +276,17 @@ __kernel void m18400_comp (KERN_ATTR_TMPS_ESALT (odf12_tmp_t, odf12_t))
 
   #ifdef REAL_SHM
 
-  __local u32 s_td0[256];
-  __local u32 s_td1[256];
-  __local u32 s_td2[256];
-  __local u32 s_td3[256];
-  __local u32 s_td4[256];
+  LOCAL_AS u32 s_td0[256];
+  LOCAL_AS u32 s_td1[256];
+  LOCAL_AS u32 s_td2[256];
+  LOCAL_AS u32 s_td3[256];
+  LOCAL_AS u32 s_td4[256];
 
-  __local u32 s_te0[256];
-  __local u32 s_te1[256];
-  __local u32 s_te2[256];
-  __local u32 s_te3[256];
-  __local u32 s_te4[256];
+  LOCAL_AS u32 s_te0[256];
+  LOCAL_AS u32 s_te1[256];
+  LOCAL_AS u32 s_te2[256];
+  LOCAL_AS u32 s_te3[256];
+  LOCAL_AS u32 s_te4[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -307,17 +307,17 @@ __kernel void m18400_comp (KERN_ATTR_TMPS_ESALT (odf12_tmp_t, odf12_t))
 
   #else
 
-  __constant u32a *s_td0 = td0;
-  __constant u32a *s_td1 = td1;
-  __constant u32a *s_td2 = td2;
-  __constant u32a *s_td3 = td3;
-  __constant u32a *s_td4 = td4;
+  CONSTANT_AS u32a *s_td0 = td0;
+  CONSTANT_AS u32a *s_td1 = td1;
+  CONSTANT_AS u32a *s_td2 = td2;
+  CONSTANT_AS u32a *s_td3 = td3;
+  CONSTANT_AS u32a *s_td4 = td4;
 
-  __constant u32a *s_te0 = te0;
-  __constant u32a *s_te1 = te1;
-  __constant u32a *s_te2 = te2;
-  __constant u32a *s_te3 = te3;
-  __constant u32a *s_te4 = te4;
+  CONSTANT_AS u32a *s_te0 = te0;
+  CONSTANT_AS u32a *s_te1 = te1;
+  CONSTANT_AS u32a *s_te2 = te2;
+  CONSTANT_AS u32a *s_te3 = te3;
+  CONSTANT_AS u32a *s_te4 = te4;
 
   #endif
 
@@ -329,20 +329,20 @@ __kernel void m18400_comp (KERN_ATTR_TMPS_ESALT (odf12_tmp_t, odf12_t))
 
   u32 ukey[8];
 
-  ukey[0] = swap32_S (tmps[gid].out[0]);
-  ukey[1] = swap32_S (tmps[gid].out[1]);
-  ukey[2] = swap32_S (tmps[gid].out[2]);
-  ukey[3] = swap32_S (tmps[gid].out[3]);
-  ukey[4] = swap32_S (tmps[gid].out[4]);
-  ukey[5] = swap32_S (tmps[gid].out[5]);
-  ukey[6] = swap32_S (tmps[gid].out[6]);
-  ukey[7] = swap32_S (tmps[gid].out[7]);
+  ukey[0] = hc_swap32_S (tmps[gid].out[0]);
+  ukey[1] = hc_swap32_S (tmps[gid].out[1]);
+  ukey[2] = hc_swap32_S (tmps[gid].out[2]);
+  ukey[3] = hc_swap32_S (tmps[gid].out[3]);
+  ukey[4] = hc_swap32_S (tmps[gid].out[4]);
+  ukey[5] = hc_swap32_S (tmps[gid].out[5]);
+  ukey[6] = hc_swap32_S (tmps[gid].out[6]);
+  ukey[7] = hc_swap32_S (tmps[gid].out[7]);
 
   u32 ks[60];
 
   aes256_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
 
-  __global const odf12_t *es = &esalt_bufs[digests_offset];
+  GLOBAL_AS const odf12_t *es = &esalt_bufs[digests_offset];
 
   u32 iv[4];
 
@@ -435,37 +435,39 @@ __kernel void m18400_comp (KERN_ATTR_TMPS_ESALT (odf12_tmp_t, odf12_t))
     iv[2] = ct[2];
     iv[3] = ct[3];
 
-    pt1[0] = swap32_S (pt1[0]);
-    pt1[1] = swap32_S (pt1[1]);
-    pt1[2] = swap32_S (pt1[2]);
-    pt1[3] = swap32_S (pt1[3]);
+    pt1[0] = hc_swap32_S (pt1[0]);
+    pt1[1] = hc_swap32_S (pt1[1]);
+    pt1[2] = hc_swap32_S (pt1[2]);
+    pt1[3] = hc_swap32_S (pt1[3]);
 
-    pt2[0] = swap32_S (pt2[0]);
-    pt2[1] = swap32_S (pt2[1]);
-    pt2[2] = swap32_S (pt2[2]);
-    pt2[3] = swap32_S (pt2[3]);
+    pt2[0] = hc_swap32_S (pt2[0]);
+    pt2[1] = hc_swap32_S (pt2[1]);
+    pt2[2] = hc_swap32_S (pt2[2]);
+    pt2[3] = hc_swap32_S (pt2[3]);
 
-    pt3[0] = swap32_S (pt3[0]);
-    pt3[1] = swap32_S (pt3[1]);
-    pt3[2] = swap32_S (pt3[2]);
-    pt3[3] = swap32_S (pt3[3]);
+    pt3[0] = hc_swap32_S (pt3[0]);
+    pt3[1] = hc_swap32_S (pt3[1]);
+    pt3[2] = hc_swap32_S (pt3[2]);
+    pt3[3] = hc_swap32_S (pt3[3]);
 
-    pt4[0] = swap32_S (pt4[0]);
-    pt4[1] = swap32_S (pt4[1]);
-    pt4[2] = swap32_S (pt4[2]);
-    pt4[3] = swap32_S (pt4[3]);
+    pt4[0] = hc_swap32_S (pt4[0]);
+    pt4[1] = hc_swap32_S (pt4[1]);
+    pt4[2] = hc_swap32_S (pt4[2]);
+    pt4[3] = hc_swap32_S (pt4[3]);
 
     sha256_update_64 (&sha256_ctx, pt1, pt2, pt3, pt4, 64);
   }
 
   sha256_final (&sha256_ctx);
 
-  const u32 r0 = swap32_S (sha256_ctx.h[0]);
-  const u32 r1 = swap32_S (sha256_ctx.h[1]);
-  const u32 r2 = swap32_S (sha256_ctx.h[2]);
-  const u32 r3 = swap32_S (sha256_ctx.h[3]);
+  const u32 r0 = hc_swap32_S (sha256_ctx.h[0]);
+  const u32 r1 = hc_swap32_S (sha256_ctx.h[1]);
+  const u32 r2 = hc_swap32_S (sha256_ctx.h[2]);
+  const u32 r3 = hc_swap32_S (sha256_ctx.h[3]);
 
   #define il_pos 0
 
+  #ifdef KERNEL_STATIC
   #include COMPARE_M
+  #endif
 }

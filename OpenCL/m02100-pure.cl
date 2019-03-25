@@ -5,14 +5,14 @@
 
 #define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_md4.cl"
 #include "inc_hash_sha1.cl"
+#endif
 
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
@@ -63,7 +63,7 @@ DECLSPEC void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipa
   sha1_transform_vector (w0, w1, w2, w3, digest);
 }
 
-__kernel void m02100_init (KERN_ATTR_TMPS (dcc2_tmp_t))
+KERNEL_FQ void m02100_init (KERN_ATTR_TMPS (dcc2_tmp_t))
 {
   /**
    * base
@@ -98,10 +98,10 @@ __kernel void m02100_init (KERN_ATTR_TMPS (dcc2_tmp_t))
 
   md4_final (&md4_ctx2);
 
-  md4_ctx2.h[0] = swap32_S (md4_ctx2.h[0]);
-  md4_ctx2.h[1] = swap32_S (md4_ctx2.h[1]);
-  md4_ctx2.h[2] = swap32_S (md4_ctx2.h[2]);
-  md4_ctx2.h[3] = swap32_S (md4_ctx2.h[3]);
+  md4_ctx2.h[0] = hc_swap32_S (md4_ctx2.h[0]);
+  md4_ctx2.h[1] = hc_swap32_S (md4_ctx2.h[1]);
+  md4_ctx2.h[2] = hc_swap32_S (md4_ctx2.h[2]);
+  md4_ctx2.h[3] = hc_swap32_S (md4_ctx2.h[3]);
 
   // dcc2
 
@@ -178,7 +178,7 @@ __kernel void m02100_init (KERN_ATTR_TMPS (dcc2_tmp_t))
   tmps[gid].out[3] = tmps[gid].dgst[3];
 }
 
-__kernel void m02100_loop (KERN_ATTR_TMPS (dcc2_tmp_t))
+KERNEL_FQ void m02100_loop (KERN_ATTR_TMPS (dcc2_tmp_t))
 {
   /**
    * base
@@ -265,7 +265,7 @@ __kernel void m02100_loop (KERN_ATTR_TMPS (dcc2_tmp_t))
   unpackv (tmps, out, gid, 3, out[3]);
 }
 
-__kernel void m02100_comp (KERN_ATTR_TMPS (dcc2_tmp_t))
+KERNEL_FQ void m02100_comp (KERN_ATTR_TMPS (dcc2_tmp_t))
 {
   /**
    * base
@@ -284,5 +284,7 @@ __kernel void m02100_comp (KERN_ATTR_TMPS (dcc2_tmp_t))
 
   #define il_pos 0
 
+  #ifdef KERNEL_STATIC
   #include COMPARE_M
+  #endif
 }

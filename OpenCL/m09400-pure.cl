@@ -5,14 +5,14 @@
 
 #define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha1.cl"
 #include "inc_cipher_aes.cl"
+#endif
 
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
@@ -32,7 +32,7 @@ typedef struct office2007
 
 } office2007_t;
 
-__kernel void m09400_init (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t))
+KERNEL_FQ void m09400_init (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t))
 {
   /**
    * base
@@ -59,7 +59,7 @@ __kernel void m09400_init (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t)
   tmps[gid].out[4] = ctx.h[4];
 }
 
-__kernel void m09400_loop (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t))
+KERNEL_FQ void m09400_loop (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -95,7 +95,7 @@ __kernel void m09400_loop (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t)
 
   for (u32 i = 0, j = loop_pos; i < loop_cnt; i++, j++)
   {
-    w0[0] = swap32 (j);
+    w0[0] = hc_swap32 (j);
     w0[1] = t0;
     w0[2] = t1;
     w0[3] = t2;
@@ -126,7 +126,7 @@ __kernel void m09400_loop (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t)
   unpackv (tmps, out, gid, 4, t4);
 }
 
-__kernel void m09400_comp (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t))
+KERNEL_FQ void m09400_comp (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -138,17 +138,17 @@ __kernel void m09400_comp (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t)
 
   #ifdef REAL_SHM
 
-  __local u32 s_td0[256];
-  __local u32 s_td1[256];
-  __local u32 s_td2[256];
-  __local u32 s_td3[256];
-  __local u32 s_td4[256];
+  LOCAL_AS u32 s_td0[256];
+  LOCAL_AS u32 s_td1[256];
+  LOCAL_AS u32 s_td2[256];
+  LOCAL_AS u32 s_td3[256];
+  LOCAL_AS u32 s_td4[256];
 
-  __local u32 s_te0[256];
-  __local u32 s_te1[256];
-  __local u32 s_te2[256];
-  __local u32 s_te3[256];
-  __local u32 s_te4[256];
+  LOCAL_AS u32 s_te0[256];
+  LOCAL_AS u32 s_te1[256];
+  LOCAL_AS u32 s_te2[256];
+  LOCAL_AS u32 s_te3[256];
+  LOCAL_AS u32 s_te4[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -169,17 +169,17 @@ __kernel void m09400_comp (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t)
 
   #else
 
-  __constant u32a *s_td0 = td0;
-  __constant u32a *s_td1 = td1;
-  __constant u32a *s_td2 = td2;
-  __constant u32a *s_td3 = td3;
-  __constant u32a *s_td4 = td4;
+  CONSTANT_AS u32a *s_td0 = td0;
+  CONSTANT_AS u32a *s_td1 = td1;
+  CONSTANT_AS u32a *s_td2 = td2;
+  CONSTANT_AS u32a *s_td3 = td3;
+  CONSTANT_AS u32a *s_td4 = td4;
 
-  __constant u32a *s_te0 = te0;
-  __constant u32a *s_te1 = te1;
-  __constant u32a *s_te2 = te2;
-  __constant u32a *s_te3 = te3;
-  __constant u32a *s_te4 = te4;
+  CONSTANT_AS u32a *s_te0 = te0;
+  CONSTANT_AS u32a *s_te1 = te1;
+  CONSTANT_AS u32a *s_te2 = te2;
+  CONSTANT_AS u32a *s_te3 = te3;
+  CONSTANT_AS u32a *s_te4 = te4;
 
   #endif
 
@@ -331,7 +331,9 @@ __kernel void m09400_comp (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t)
     const u32 r2 = out[2];
     const u32 r3 = out[3];
 
+    #ifdef KERNEL_STATIC
     #define il_pos 0
+    #endif
 
     #include COMPARE_M
   }
@@ -429,6 +431,8 @@ __kernel void m09400_comp (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t)
 
     #define il_pos 0
 
+    #ifdef KERNEL_STATIC
     #include COMPARE_M
+    #endif
   }
 }

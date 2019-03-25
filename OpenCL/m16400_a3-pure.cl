@@ -5,13 +5,13 @@
 
 #define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_md5.cl"
+#endif
 
 DECLSPEC void cram_md5_transform_vector (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u32x *digest)
 {
@@ -176,7 +176,7 @@ DECLSPEC void cram_md5_final_vector (md5_ctx_vector_t *ctx)
   cram_md5_transform_vector (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
 }
 
-__kernel void m16400_mxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m16400_mxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -231,7 +231,7 @@ __kernel void m16400_mxx (KERN_ATTR_VECTOR ())
   }
 }
 
-__kernel void m16400_sxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m16400_sxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier

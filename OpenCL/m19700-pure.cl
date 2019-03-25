@@ -5,14 +5,14 @@
 
 #define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha1.cl"
 #include "inc_cipher_aes.cl"
+#endif
 
 typedef struct krb5tgs_18
 {
@@ -40,10 +40,10 @@ DECLSPEC void aes256_encrypt_cbc (const u32 *aes_ks, u32 *aes_iv, const u32 *in,
 {
   u32 data[4];
 
-  data[0] = swap32_S (in[0]);
-  data[1] = swap32_S (in[1]);
-  data[2] = swap32_S (in[2]);
-  data[3] = swap32_S (in[3]);
+  data[0] = hc_swap32_S (in[0]);
+  data[1] = hc_swap32_S (in[1]);
+  data[2] = hc_swap32_S (in[2]);
+  data[3] = hc_swap32_S (in[3]);
 
   data[0] ^= aes_iv[0];
   data[1] ^= aes_iv[1];
@@ -57,10 +57,10 @@ DECLSPEC void aes256_encrypt_cbc (const u32 *aes_ks, u32 *aes_iv, const u32 *in,
   aes_iv[2] = out[2];
   aes_iv[3] = out[3];
 
-  out[0] = swap32_S (out[0]);
-  out[1] = swap32_S (out[1]);
-  out[2] = swap32_S (out[2]);
-  out[3] = swap32_S (out[3]);
+  out[0] = hc_swap32_S (out[0]);
+  out[1] = hc_swap32_S (out[1]);
+  out[2] = hc_swap32_S (out[2]);
+  out[3] = hc_swap32_S (out[3]);
 }
 
 DECLSPEC void aes256_decrypt_cbc (const u32 *ks1, const u32 *in, u32 *out, u32 *essiv, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
@@ -114,7 +114,7 @@ DECLSPEC void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipa
   sha1_transform_vector (w0, w1, w2, w3, digest);
 }
 
-__kernel void m19700_init (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t))
+KERNEL_FQ void m19700_init (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t))
 {
   /**
    * base
@@ -192,7 +192,7 @@ __kernel void m19700_init (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t)
   }
 }
 
-__kernel void m19700_loop (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t))
+KERNEL_FQ void m19700_loop (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t))
 {
    /**
    * base
@@ -280,7 +280,7 @@ __kernel void m19700_loop (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t)
   }
 }
 
-__kernel void m19700_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t))
+KERNEL_FQ void m19700_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t))
 {
   /**
    * base
@@ -296,17 +296,17 @@ __kernel void m19700_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t)
 
   #ifdef REAL_SHM
 
-  __local u32 s_td0[256];
-  __local u32 s_td1[256];
-  __local u32 s_td2[256];
-  __local u32 s_td3[256];
-  __local u32 s_td4[256];
+  LOCAL_AS u32 s_td0[256];
+  LOCAL_AS u32 s_td1[256];
+  LOCAL_AS u32 s_td2[256];
+  LOCAL_AS u32 s_td3[256];
+  LOCAL_AS u32 s_td4[256];
 
-  __local u32 s_te0[256];
-  __local u32 s_te1[256];
-  __local u32 s_te2[256];
-  __local u32 s_te3[256];
-  __local u32 s_te4[256];
+  LOCAL_AS u32 s_te0[256];
+  LOCAL_AS u32 s_te1[256];
+  LOCAL_AS u32 s_te2[256];
+  LOCAL_AS u32 s_te3[256];
+  LOCAL_AS u32 s_te4[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -327,17 +327,17 @@ __kernel void m19700_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t)
 
   #else
 
-  __constant u32a *s_td0 = td0;
-  __constant u32a *s_td1 = td1;
-  __constant u32a *s_td2 = td2;
-  __constant u32a *s_td3 = td3;
-  __constant u32a *s_td4 = td4;
+  CONSTANT_AS u32a *s_td0 = td0;
+  CONSTANT_AS u32a *s_td1 = td1;
+  CONSTANT_AS u32a *s_td2 = td2;
+  CONSTANT_AS u32a *s_td3 = td3;
+  CONSTANT_AS u32a *s_td4 = td4;
 
-  __constant u32a *s_te0 = te0;
-  __constant u32a *s_te1 = te1;
-  __constant u32a *s_te2 = te2;
-  __constant u32a *s_te3 = te3;
-  __constant u32a *s_te4 = te4;
+  CONSTANT_AS u32a *s_te0 = te0;
+  CONSTANT_AS u32a *s_te1 = te1;
+  CONSTANT_AS u32a *s_te2 = te2;
+  CONSTANT_AS u32a *s_te3 = te3;
+  CONSTANT_AS u32a *s_te4 = te4;
 
   #endif
 
@@ -364,14 +364,14 @@ __kernel void m19700_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t)
   // then aes_cbc encrypt this nfolded value with 'seed' as key along with a null IV
   u32 aes_key[8];
 
-  aes_key[0] = swap32_S (tmps[gid].out[0]);
-  aes_key[1] = swap32_S (tmps[gid].out[1]);
-  aes_key[2] = swap32_S (tmps[gid].out[2]);
-  aes_key[3] = swap32_S (tmps[gid].out[3]);
-  aes_key[4] = swap32_S (tmps[gid].out[4]);
-  aes_key[5] = swap32_S (tmps[gid].out[5]);
-  aes_key[6] = swap32_S (tmps[gid].out[6]);
-  aes_key[7] = swap32_S (tmps[gid].out[7]);
+  aes_key[0] = hc_swap32_S (tmps[gid].out[0]);
+  aes_key[1] = hc_swap32_S (tmps[gid].out[1]);
+  aes_key[2] = hc_swap32_S (tmps[gid].out[2]);
+  aes_key[3] = hc_swap32_S (tmps[gid].out[3]);
+  aes_key[4] = hc_swap32_S (tmps[gid].out[4]);
+  aes_key[5] = hc_swap32_S (tmps[gid].out[5]);
+  aes_key[6] = hc_swap32_S (tmps[gid].out[6]);
+  aes_key[7] = hc_swap32_S (tmps[gid].out[7]);
 
   u32 aes_iv[4];
 
@@ -421,14 +421,14 @@ __kernel void m19700_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t)
   aes_iv[2] = 0;
   aes_iv[3] = 0;
 
-  key_bytes[0] = swap32_S (key_bytes[0]);
-  key_bytes[1] = swap32_S (key_bytes[1]);
-  key_bytes[2] = swap32_S (key_bytes[2]);
-  key_bytes[3] = swap32_S (key_bytes[3]);
-  key_bytes[4] = swap32_S (key_bytes[4]);
-  key_bytes[5] = swap32_S (key_bytes[5]);
-  key_bytes[6] = swap32_S (key_bytes[6]);
-  key_bytes[7] = swap32_S (key_bytes[7]);
+  key_bytes[0] = hc_swap32_S (key_bytes[0]);
+  key_bytes[1] = hc_swap32_S (key_bytes[1]);
+  key_bytes[2] = hc_swap32_S (key_bytes[2]);
+  key_bytes[3] = hc_swap32_S (key_bytes[3]);
+  key_bytes[4] = hc_swap32_S (key_bytes[4]);
+  key_bytes[5] = hc_swap32_S (key_bytes[5]);
+  key_bytes[6] = hc_swap32_S (key_bytes[6]);
+  key_bytes[7] = hc_swap32_S (key_bytes[7]);
 
   // then aes_cbc encrypt this nfolded value with 'key_bytes' as key along with a null IV
   aes256_set_encrypt_key (aes_ks, key_bytes, s_te0, s_te1, s_te2, s_te3, s_te4);
@@ -545,17 +545,17 @@ __kernel void m19700_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t)
 
   aes256_decrypt_cbc (aes_cts_decrypt_ks, first_blocks, decrypted_block, aes_iv, s_td0, s_td1, s_td2, s_td3, s_td4);
 
-  w0[0] = swap32_S (decrypted_block[0]);
-  w0[1] = swap32_S (decrypted_block[1]);
-  w0[2] = swap32_S (decrypted_block[2]);
-  w0[3] = swap32_S (decrypted_block[3]);
+  w0[0] = hc_swap32_S (decrypted_block[0]);
+  w0[1] = hc_swap32_S (decrypted_block[1]);
+  w0[2] = hc_swap32_S (decrypted_block[2]);
+  w0[3] = hc_swap32_S (decrypted_block[3]);
 
   aes256_decrypt_cbc (aes_cts_decrypt_ks, first_blocks + 4, decrypted_block, aes_iv, s_td0, s_td1, s_td2, s_td3, s_td4);
 
-  w1[0] = swap32_S (decrypted_block[0]);
-  w1[1] = swap32_S (decrypted_block[1]);
-  w1[2] = swap32_S (decrypted_block[2]);
-  w1[3] = swap32_S (decrypted_block[3]);
+  w1[0] = hc_swap32_S (decrypted_block[0]);
+  w1[1] = hc_swap32_S (decrypted_block[1]);
+  w1[2] = hc_swap32_S (decrypted_block[2]);
+  w1[3] = hc_swap32_S (decrypted_block[3]);
 
   if (((decrypted_block[0] & 0xff00ffff) == 0x30008163) || ((decrypted_block[0] & 0x0000ffff) == 0x00008263))
   {
@@ -567,17 +567,17 @@ __kernel void m19700_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t)
       // we need to decrypt also the 2 following blocks in order to be able to compute the hmac directly
       aes256_decrypt_cbc (aes_cts_decrypt_ks, first_blocks + 8, decrypted_block, aes_iv, s_td0, s_td1, s_td2, s_td3, s_td4);
 
-      w2[0] = swap32_S (decrypted_block[0]);
-      w2[1] = swap32_S (decrypted_block[1]);
-      w2[2] = swap32_S (decrypted_block[2]);
-      w2[3] = swap32_S (decrypted_block[3]);
+      w2[0] = hc_swap32_S (decrypted_block[0]);
+      w2[1] = hc_swap32_S (decrypted_block[1]);
+      w2[2] = hc_swap32_S (decrypted_block[2]);
+      w2[3] = hc_swap32_S (decrypted_block[3]);
 
       aes256_decrypt_cbc (aes_cts_decrypt_ks, first_blocks + 12, decrypted_block, aes_iv, s_td0, s_td1, s_td2, s_td3, s_td4);
 
-      w3[0] = swap32_S (decrypted_block[0]);
-      w3[1] = swap32_S (decrypted_block[1]);
-      w3[2] = swap32_S (decrypted_block[2]);
-      w3[3] = swap32_S (decrypted_block[3]);
+      w3[0] = hc_swap32_S (decrypted_block[0]);
+      w3[1] = hc_swap32_S (decrypted_block[1]);
+      w3[2] = hc_swap32_S (decrypted_block[2]);
+      w3[3] = hc_swap32_S (decrypted_block[3]);
 
       int block_position;
 
@@ -660,31 +660,31 @@ __kernel void m19700_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t)
 
         aes256_decrypt_cbc (aes_cts_decrypt_ks, block, decrypted_block, aes_iv, s_td0, s_td1, s_td2, s_td3, s_td4);
 
-        w0[0] = swap32_S (decrypted_block[0]);
-        w0[1] = swap32_S (decrypted_block[1]);
-        w0[2] = swap32_S (decrypted_block[2]);
-        w0[3] = swap32_S (decrypted_block[3]);
+        w0[0] = hc_swap32_S (decrypted_block[0]);
+        w0[1] = hc_swap32_S (decrypted_block[1]);
+        w0[2] = hc_swap32_S (decrypted_block[2]);
+        w0[3] = hc_swap32_S (decrypted_block[3]);
 
         aes256_decrypt_cbc (aes_cts_decrypt_ks, block + 4, decrypted_block, aes_iv, s_td0, s_td1, s_td2, s_td3, s_td4);
 
-        w1[0] = swap32_S (decrypted_block[0]);
-        w1[1] = swap32_S (decrypted_block[1]);
-        w1[2] = swap32_S (decrypted_block[2]);
-        w1[3] = swap32_S (decrypted_block[3]);
+        w1[0] = hc_swap32_S (decrypted_block[0]);
+        w1[1] = hc_swap32_S (decrypted_block[1]);
+        w1[2] = hc_swap32_S (decrypted_block[2]);
+        w1[3] = hc_swap32_S (decrypted_block[3]);
 
         aes256_decrypt_cbc (aes_cts_decrypt_ks, block + 8, decrypted_block, aes_iv, s_td0, s_td1, s_td2, s_td3, s_td4);
 
-        w2[0] = swap32_S (decrypted_block[0]);
-        w2[1] = swap32_S (decrypted_block[1]);
-        w2[2] = swap32_S (decrypted_block[2]);
-        w2[3] = swap32_S (decrypted_block[3]);
+        w2[0] = hc_swap32_S (decrypted_block[0]);
+        w2[1] = hc_swap32_S (decrypted_block[1]);
+        w2[2] = hc_swap32_S (decrypted_block[2]);
+        w2[3] = hc_swap32_S (decrypted_block[3]);
 
         aes256_decrypt_cbc (aes_cts_decrypt_ks, block + 12, decrypted_block, aes_iv, s_td0, s_td1, s_td2, s_td3, s_td4);
 
-        w3[0] = swap32_S (decrypted_block[0]);
-        w3[1] = swap32_S (decrypted_block[1]);
-        w3[2] = swap32_S (decrypted_block[2]);
-        w3[3] = swap32_S (decrypted_block[3]);
+        w3[0] = hc_swap32_S (decrypted_block[0]);
+        w3[1] = hc_swap32_S (decrypted_block[1]);
+        w3[2] = hc_swap32_S (decrypted_block[2]);
+        w3[3] = hc_swap32_S (decrypted_block[3]);
 
         sha1_hmac_update_64 (&sha1_hmac_ctx, w0, w1, w2, w3, 64);
 
@@ -701,10 +701,10 @@ __kernel void m19700_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t)
 
         aes256_decrypt_cbc (aes_cts_decrypt_ks, block, decrypted_block, aes_iv, s_td0, s_td1, s_td2, s_td3, s_td4);
 
-        w0[0] = swap32_S (decrypted_block[0]);
-        w0[1] = swap32_S (decrypted_block[1]);
-        w0[2] = swap32_S (decrypted_block[2]);
-        w0[3] = swap32_S (decrypted_block[3]);
+        w0[0] = hc_swap32_S (decrypted_block[0]);
+        w0[1] = hc_swap32_S (decrypted_block[1]);
+        w0[2] = hc_swap32_S (decrypted_block[2]);
+        w0[3] = hc_swap32_S (decrypted_block[3]);
 
         w1[0] = 0;
         w1[1] = 0;
@@ -738,17 +738,17 @@ __kernel void m19700_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t)
 
         aes256_decrypt_cbc (aes_cts_decrypt_ks, block, decrypted_block, aes_iv, s_td0, s_td1, s_td2, s_td3, s_td4);
 
-        w0[0] = swap32_S (decrypted_block[0]);
-        w0[1] = swap32_S (decrypted_block[1]);
-        w0[2] = swap32_S (decrypted_block[2]);
-        w0[3] = swap32_S (decrypted_block[3]);
+        w0[0] = hc_swap32_S (decrypted_block[0]);
+        w0[1] = hc_swap32_S (decrypted_block[1]);
+        w0[2] = hc_swap32_S (decrypted_block[2]);
+        w0[3] = hc_swap32_S (decrypted_block[3]);
 
         aes256_decrypt_cbc (aes_cts_decrypt_ks, block + 4, decrypted_block, aes_iv, s_td0, s_td1, s_td2, s_td3, s_td4);
 
-        w1[0] = swap32_S (decrypted_block[0]);
-        w1[1] = swap32_S (decrypted_block[1]);
-        w1[2] = swap32_S (decrypted_block[2]);
-        w1[3] = swap32_S (decrypted_block[3]);
+        w1[0] = hc_swap32_S (decrypted_block[0]);
+        w1[1] = hc_swap32_S (decrypted_block[1]);
+        w1[2] = hc_swap32_S (decrypted_block[2]);
+        w1[3] = hc_swap32_S (decrypted_block[3]);
 
         w2[0] = 0;
         w2[1] = 0;
@@ -781,24 +781,24 @@ __kernel void m19700_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t)
 
         aes256_decrypt_cbc (aes_cts_decrypt_ks, block, decrypted_block, aes_iv, s_td0, s_td1, s_td2, s_td3, s_td4);
 
-        w0[0] = swap32_S (decrypted_block[0]);
-        w0[1] = swap32_S (decrypted_block[1]);
-        w0[2] = swap32_S (decrypted_block[2]);
-        w0[3] = swap32_S (decrypted_block[3]);
+        w0[0] = hc_swap32_S (decrypted_block[0]);
+        w0[1] = hc_swap32_S (decrypted_block[1]);
+        w0[2] = hc_swap32_S (decrypted_block[2]);
+        w0[3] = hc_swap32_S (decrypted_block[3]);
 
         aes256_decrypt_cbc (aes_cts_decrypt_ks, block + 4, decrypted_block, aes_iv, s_td0, s_td1, s_td2, s_td3, s_td4);
 
-        w1[0] = swap32_S (decrypted_block[0]);
-        w1[1] = swap32_S (decrypted_block[1]);
-        w1[2] = swap32_S (decrypted_block[2]);
-        w1[3] = swap32_S (decrypted_block[3]);
+        w1[0] = hc_swap32_S (decrypted_block[0]);
+        w1[1] = hc_swap32_S (decrypted_block[1]);
+        w1[2] = hc_swap32_S (decrypted_block[2]);
+        w1[3] = hc_swap32_S (decrypted_block[3]);
 
         aes256_decrypt_cbc (aes_cts_decrypt_ks, block + 8, decrypted_block, aes_iv, s_td0, s_td1, s_td2, s_td3, s_td4);
 
-        w2[0] = swap32_S (decrypted_block[0]);
-        w2[1] = swap32_S (decrypted_block[1]);
-        w2[2] = swap32_S (decrypted_block[2]);
-        w2[3] = swap32_S (decrypted_block[3]);
+        w2[0] = hc_swap32_S (decrypted_block[0]);
+        w2[1] = hc_swap32_S (decrypted_block[1]);
+        w2[2] = hc_swap32_S (decrypted_block[2]);
+        w2[3] = hc_swap32_S (decrypted_block[3]);
 
         w3[0] = 0;
         w3[1] = 0;
@@ -871,7 +871,7 @@ __kernel void m19700_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t)
           u32 mask = (0xffffffff >> ((4 - last_block_size) * 8));
 
           last_plaintext[0] = last_block[0] ^ (decrypted_block[0] & mask);
-          last_plaintext[0] = swap32_S (last_plaintext[0]);
+          last_plaintext[0] = hc_swap32_S (last_plaintext[0]);
 
           n_1_crafted[0] = (last_block[0] & mask) | (decrypted_block[0] & (mask ^ 0xffffffff));
           n_1_crafted[1] = decrypted_block[1];
@@ -891,7 +891,7 @@ __kernel void m19700_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t)
             n_1_crafted[3] = decrypted_block[3];
 
             last_plaintext[0] = last_block[0] ^ decrypted_block[0];
-            last_plaintext[0] = swap32_S (last_plaintext[0]);
+            last_plaintext[0] = hc_swap32_S (last_plaintext[0]);
           }
           else
           {
@@ -902,8 +902,8 @@ __kernel void m19700_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t)
             last_plaintext[0] = last_block[0] ^ decrypted_block[0];
             last_plaintext[1] = last_block[1] ^ (decrypted_block[1] & mask);
 
-            last_plaintext[0] = swap32_S (last_plaintext[0]);
-            last_plaintext[1] = swap32_S (last_plaintext[1]);
+            last_plaintext[0] = hc_swap32_S (last_plaintext[0]);
+            last_plaintext[1] = hc_swap32_S (last_plaintext[1]);
 
             n_1_crafted[0] = last_block[0];
             n_1_crafted[1] = (last_block[1] & mask) | (decrypted_block[1] & (mask ^ 0xffffffff));
@@ -927,8 +927,8 @@ __kernel void m19700_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t)
             last_plaintext[0] = last_block[0] ^ decrypted_block[0];
             last_plaintext[1] = last_block[1] ^ decrypted_block[1];
 
-            last_plaintext[0] = swap32_S (last_plaintext[0]);
-            last_plaintext[1] = swap32_S (last_plaintext[1]);
+            last_plaintext[0] = hc_swap32_S (last_plaintext[0]);
+            last_plaintext[1] = hc_swap32_S (last_plaintext[1]);
           }
           else
           {
@@ -940,9 +940,9 @@ __kernel void m19700_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t)
             last_plaintext[1] = last_block[1] ^ decrypted_block[1];
             last_plaintext[2] = last_block[2] ^ (decrypted_block[2] & mask);
 
-            last_plaintext[0] = swap32_S (last_plaintext[0]);
-            last_plaintext[1] = swap32_S (last_plaintext[1]);
-            last_plaintext[2] = swap32_S (last_plaintext[2]);
+            last_plaintext[0] = hc_swap32_S (last_plaintext[0]);
+            last_plaintext[1] = hc_swap32_S (last_plaintext[1]);
+            last_plaintext[2] = hc_swap32_S (last_plaintext[2]);
 
             n_1_crafted[0] = last_block[0];
             n_1_crafted[1] = last_block[1];
@@ -968,9 +968,9 @@ __kernel void m19700_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t)
             last_plaintext[1] = last_block[1] ^ decrypted_block[1];
             last_plaintext[2] = last_block[2] ^ decrypted_block[2];
 
-            last_plaintext[0] = swap32_S (last_plaintext[0]);
-            last_plaintext[1] = swap32_S (last_plaintext[1]);
-            last_plaintext[2] = swap32_S (last_plaintext[2]);
+            last_plaintext[0] = hc_swap32_S (last_plaintext[0]);
+            last_plaintext[1] = hc_swap32_S (last_plaintext[1]);
+            last_plaintext[2] = hc_swap32_S (last_plaintext[2]);
           }
           else
           {
@@ -983,10 +983,10 @@ __kernel void m19700_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t)
             last_plaintext[2] = last_block[2] ^ decrypted_block[2];
             last_plaintext[3] = last_block[3] ^ (decrypted_block[3] & mask);
 
-            last_plaintext[0] = swap32_S (last_plaintext[0]);
-            last_plaintext[1] = swap32_S (last_plaintext[1]);
-            last_plaintext[2] = swap32_S (last_plaintext[2]);
-            last_plaintext[3] = swap32_S (last_plaintext[3]);
+            last_plaintext[0] = hc_swap32_S (last_plaintext[0]);
+            last_plaintext[1] = hc_swap32_S (last_plaintext[1]);
+            last_plaintext[2] = hc_swap32_S (last_plaintext[2]);
+            last_plaintext[3] = hc_swap32_S (last_plaintext[3]);
 
             n_1_crafted[0] = last_block[0];
             n_1_crafted[1] = last_block[1];
@@ -1012,10 +1012,10 @@ __kernel void m19700_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t)
           last_plaintext[2] = last_block[2] ^ decrypted_block[2];
           last_plaintext[3] = last_block[3] ^ decrypted_block[3];
 
-          last_plaintext[0] = swap32_S (last_plaintext[0]);
-          last_plaintext[1] = swap32_S (last_plaintext[1]);
-          last_plaintext[2] = swap32_S (last_plaintext[2]);
-          last_plaintext[3] = swap32_S (last_plaintext[3]);
+          last_plaintext[0] = hc_swap32_S (last_plaintext[0]);
+          last_plaintext[1] = hc_swap32_S (last_plaintext[1]);
+          last_plaintext[2] = hc_swap32_S (last_plaintext[2]);
+          last_plaintext[3] = hc_swap32_S (last_plaintext[3]);
           break;
 
         default:
@@ -1032,10 +1032,10 @@ __kernel void m19700_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t)
       n_1_crafted[2] ^= last_block_cbc[2];
       n_1_crafted[3] ^= last_block_cbc[3];
 
-      w0[0] = swap32_S (n_1_crafted[0]);
-      w0[1] = swap32_S (n_1_crafted[1]);
-      w0[2] = swap32_S (n_1_crafted[2]);
-      w0[3] = swap32_S (n_1_crafted[3]);
+      w0[0] = hc_swap32_S (n_1_crafted[0]);
+      w0[1] = hc_swap32_S (n_1_crafted[1]);
+      w0[2] = hc_swap32_S (n_1_crafted[2]);
+      w0[3] = hc_swap32_S (n_1_crafted[3]);
 
       w1[0] = last_plaintext[0];
       w1[1] = last_plaintext[1];

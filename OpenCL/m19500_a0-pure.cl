@@ -5,15 +5,15 @@
 
 //#define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_rp.h"
 #include "inc_rp.cl"
 #include "inc_scalar.cl"
 #include "inc_hash_sha1.cl"
+#endif
 
 typedef struct devise_hash
 {
@@ -37,7 +37,7 @@ typedef struct devise_hash
 #define uint_to_hex_lower8_le(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7], l_bin2asc[(i).s8], l_bin2asc[(i).s9], l_bin2asc[(i).sa], l_bin2asc[(i).sb], l_bin2asc[(i).sc], l_bin2asc[(i).sd], l_bin2asc[(i).se], l_bin2asc[(i).sf])
 #endif
 
-__kernel void m19500_mxx (KERN_ATTR_RULES_ESALT (devise_hash_t))
+KERNEL_FQ void m19500_mxx (KERN_ATTR_RULES_ESALT (devise_hash_t))
 {
   /**
    * modifier
@@ -51,7 +51,7 @@ __kernel void m19500_mxx (KERN_ATTR_RULES_ESALT (devise_hash_t))
    * bin2asc table
    */
 
-  __local u32 l_bin2asc[256];
+  LOCAL_AS u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -83,12 +83,12 @@ __kernel void m19500_mxx (KERN_ATTR_RULES_ESALT (devise_hash_t))
 
   for (int i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = swap32_S (esalt_bufs[salt_pos].salt_buf[idx]);
+    s[idx] = hc_swap32_S (esalt_bufs[salt_pos].salt_buf[idx]);
   }
 
   for (int i = 0, idx = 0; i < site_key_len; i += 4, idx += 1)
   {
-    k[idx] = swap32_S (esalt_bufs[salt_pos].site_key_buf[idx]);
+    k[idx] = hc_swap32_S (esalt_bufs[salt_pos].site_key_buf[idx]);
   }
 
   // precompute some stuff
@@ -172,7 +172,7 @@ __kernel void m19500_mxx (KERN_ATTR_RULES_ESALT (devise_hash_t))
   }
 }
 
-__kernel void m19500_sxx (KERN_ATTR_RULES_ESALT (devise_hash_t))
+KERNEL_FQ void m19500_sxx (KERN_ATTR_RULES_ESALT (devise_hash_t))
 {
   /**
    * modifier
@@ -186,7 +186,7 @@ __kernel void m19500_sxx (KERN_ATTR_RULES_ESALT (devise_hash_t))
    * bin2asc table
    */
 
-  __local u32 l_bin2asc[256];
+  LOCAL_AS u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -230,12 +230,12 @@ __kernel void m19500_sxx (KERN_ATTR_RULES_ESALT (devise_hash_t))
 
   for (int i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = swap32_S (esalt_bufs[salt_pos].salt_buf[idx]);
+    s[idx] = hc_swap32_S (esalt_bufs[salt_pos].salt_buf[idx]);
   }
 
   for (int i = 0, idx = 0; i < site_key_len; i += 4, idx += 1)
   {
-    k[idx] = swap32_S (esalt_bufs[salt_pos].site_key_buf[idx]);
+    k[idx] = hc_swap32_S (esalt_bufs[salt_pos].site_key_buf[idx]);
   }
 
   // precompute some stuff

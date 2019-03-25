@@ -82,9 +82,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memcpy (digest, tmp_buf, 8);
 
-  u32 tt;
-
-  IP (digest[0], digest[1], tt);
+  DES_IP (digest[0], digest[1]);
 
   digest[2] = 0;
   digest[3] = 0;
@@ -101,9 +99,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   tmp[0] = digest[0];
   tmp[1] = digest[1];
 
-  u32 tt;
-
-  FP (tmp[1], tmp[0], tt);
+  DES_FP (tmp[1], tmp[0]);
 
   char ptr_plain[32];
 

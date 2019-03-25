@@ -5,15 +5,15 @@
 
 //#define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_rp.h"
 #include "inc_rp.cl"
 #include "inc_scalar.cl"
 #include "inc_hash_md5.cl"
+#endif
 
 typedef struct tacacs_plus
 {
@@ -26,7 +26,7 @@ typedef struct tacacs_plus
 
 } tacacs_plus_t;
 
-__kernel void m16100_mxx (KERN_ATTR_RULES_ESALT (tacacs_plus_t))
+KERNEL_FQ void m16100_mxx (KERN_ATTR_RULES_ESALT (tacacs_plus_t))
 {
   /**
    * modifier
@@ -188,7 +188,7 @@ __kernel void m16100_mxx (KERN_ATTR_RULES_ESALT (tacacs_plus_t))
   }
 }
 
-__kernel void m16100_sxx (KERN_ATTR_RULES_ESALT (tacacs_plus_t))
+KERNEL_FQ void m16100_sxx (KERN_ATTR_RULES_ESALT (tacacs_plus_t))
 {
   /**
    * modifier

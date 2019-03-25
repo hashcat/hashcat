@@ -1,7 +1,15 @@
+/**
+ * Author......: See docs/credits.txt
+ * License.....: MIT
+ */
+
+#include "inc_vendor.h"
+#include "inc_types.h"
+#include "inc_common.h"
+#include "inc_luks_twofish.h"
 
 // cbc-essiv
 
-DECLSPEC void twofish128_decrypt_cbc (const u32 *sk1, const u32 *lk1, const u32 *in, u32 *out, u32 *essiv);
 DECLSPEC void twofish128_decrypt_cbc (const u32 *sk1, const u32 *lk1, const u32 *in, u32 *out, u32 *essiv)
 {
   twofish128_decrypt (sk1, lk1, in, out);
@@ -17,7 +25,6 @@ DECLSPEC void twofish128_decrypt_cbc (const u32 *sk1, const u32 *lk1, const u32 
   essiv[3] = in[3];
 }
 
-DECLSPEC void twofish256_decrypt_cbc (const u32 *sk1, const u32 *lk1, const u32 *in, u32 *out, u32 *essiv);
 DECLSPEC void twofish256_decrypt_cbc (const u32 *sk1, const u32 *lk1, const u32 *in, u32 *out, u32 *essiv)
 {
   twofish256_decrypt (sk1, lk1, in, out);
@@ -33,8 +40,7 @@ DECLSPEC void twofish256_decrypt_cbc (const u32 *sk1, const u32 *lk1, const u32 
   essiv[3] = in[3];
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv128 (__global const u32 *in, u32 *out, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv128 (__global const u32 *in, u32 *out, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv128 (GLOBAL_AS const u32 *in, u32 *out, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -68,8 +74,7 @@ DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv128 (__global const u32 *in, 
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv128_mk_sha1 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv128_mk_sha1 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv128_mk_sha1 (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -106,8 +111,7 @@ DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv128_mk_sha1 (__global const u
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv128_mk_sha1_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv128_mk_sha1_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv128_mk_sha1_final (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -167,8 +171,7 @@ DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv128_mk_sha1_final (__global c
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv128_mk_sha256 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv128_mk_sha256 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv128_mk_sha256 (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -205,8 +208,7 @@ DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv128_mk_sha256 (__global const
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv128_mk_sha256_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv128_mk_sha256_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv128_mk_sha256_final (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -266,8 +268,7 @@ DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv128_mk_sha256_final (__global
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv128_mk_sha512 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv128_mk_sha512 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv128_mk_sha512 (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -304,8 +305,7 @@ DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv128_mk_sha512 (__global const
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv128_mk_sha512_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv128_mk_sha512_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv128_mk_sha512_final (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -365,8 +365,7 @@ DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv128_mk_sha512_final (__global
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv128_mk_ripemd160 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv128_mk_ripemd160 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv128_mk_ripemd160 (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -403,8 +402,7 @@ DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv128_mk_ripemd160 (__global co
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv128_mk_ripemd160_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv128_mk_ripemd160_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv128_mk_ripemd160_final (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -464,8 +462,7 @@ DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv128_mk_ripemd160_final (__glo
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv256 (__global const u32 *in, u32 *out, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv256 (__global const u32 *in, u32 *out, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv256 (GLOBAL_AS const u32 *in, u32 *out, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -499,8 +496,7 @@ DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv256 (__global const u32 *in, 
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv256_mk_sha1 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv256_mk_sha1 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv256_mk_sha1 (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -537,8 +533,7 @@ DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv256_mk_sha1 (__global const u
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv256_mk_sha1_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv256_mk_sha1_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv256_mk_sha1_final (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -598,8 +593,7 @@ DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv256_mk_sha1_final (__global c
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv256_mk_sha256 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv256_mk_sha256 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv256_mk_sha256 (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -636,8 +630,7 @@ DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv256_mk_sha256 (__global const
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv256_mk_sha256_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv256_mk_sha256_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv256_mk_sha256_final (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -697,8 +690,7 @@ DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv256_mk_sha256_final (__global
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv256_mk_sha512 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv256_mk_sha512 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv256_mk_sha512 (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -735,8 +727,7 @@ DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv256_mk_sha512 (__global const
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv256_mk_sha512_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv256_mk_sha512_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv256_mk_sha512_final (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -796,8 +787,7 @@ DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv256_mk_sha512_final (__global
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv256_mk_ripemd160 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv256_mk_ripemd160 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv256_mk_ripemd160 (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -834,8 +824,7 @@ DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv256_mk_ripemd160 (__global co
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv256_mk_ripemd160_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv256_mk_ripemd160_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv256_mk_ripemd160_final (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -897,8 +886,7 @@ DECLSPEC void luks_decrypt_sector_twofish_cbc_essiv256_mk_ripemd160_final (__glo
 
 // cbc-plain
 
-DECLSPEC void luks_decrypt_sector_twofish_cbc_plain128 (__global const u32 *in, u32 *out, const u32 *sk1, const u32 *lk1, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_cbc_plain128 (__global const u32 *in, u32 *out, const u32 *sk1, const u32 *lk1, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_cbc_plain128 (GLOBAL_AS const u32 *in, u32 *out, const u32 *sk1, const u32 *lk1, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -928,8 +916,7 @@ DECLSPEC void luks_decrypt_sector_twofish_cbc_plain128 (__global const u32 *in, 
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_cbc_plain128_mk_sha1 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_cbc_plain128_mk_sha1 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_cbc_plain128_mk_sha1 (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -962,8 +949,7 @@ DECLSPEC void luks_decrypt_sector_twofish_cbc_plain128_mk_sha1 (__global const u
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_cbc_plain128_mk_sha1_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_cbc_plain128_mk_sha1_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_cbc_plain128_mk_sha1_final (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1019,8 +1005,7 @@ DECLSPEC void luks_decrypt_sector_twofish_cbc_plain128_mk_sha1_final (__global c
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_cbc_plain128_mk_sha256 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_cbc_plain128_mk_sha256 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_cbc_plain128_mk_sha256 (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1053,8 +1038,7 @@ DECLSPEC void luks_decrypt_sector_twofish_cbc_plain128_mk_sha256 (__global const
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_cbc_plain128_mk_sha256_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_cbc_plain128_mk_sha256_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_cbc_plain128_mk_sha256_final (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1110,8 +1094,7 @@ DECLSPEC void luks_decrypt_sector_twofish_cbc_plain128_mk_sha256_final (__global
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_cbc_plain128_mk_sha512 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_cbc_plain128_mk_sha512 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_cbc_plain128_mk_sha512 (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1144,8 +1127,7 @@ DECLSPEC void luks_decrypt_sector_twofish_cbc_plain128_mk_sha512 (__global const
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_cbc_plain128_mk_sha512_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_cbc_plain128_mk_sha512_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_cbc_plain128_mk_sha512_final (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1201,8 +1183,7 @@ DECLSPEC void luks_decrypt_sector_twofish_cbc_plain128_mk_sha512_final (__global
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_cbc_plain128_mk_ripemd160 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_cbc_plain128_mk_ripemd160 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_cbc_plain128_mk_ripemd160 (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1235,8 +1216,7 @@ DECLSPEC void luks_decrypt_sector_twofish_cbc_plain128_mk_ripemd160 (__global co
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_cbc_plain128_mk_ripemd160_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_cbc_plain128_mk_ripemd160_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_cbc_plain128_mk_ripemd160_final (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1292,8 +1272,7 @@ DECLSPEC void luks_decrypt_sector_twofish_cbc_plain128_mk_ripemd160_final (__glo
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_cbc_plain256 (__global const u32 *in, u32 *out, const u32 *sk1, const u32 *lk1, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_cbc_plain256 (__global const u32 *in, u32 *out, const u32 *sk1, const u32 *lk1, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_cbc_plain256 (GLOBAL_AS const u32 *in, u32 *out, const u32 *sk1, const u32 *lk1, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1323,8 +1302,7 @@ DECLSPEC void luks_decrypt_sector_twofish_cbc_plain256 (__global const u32 *in, 
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_cbc_plain256_mk_sha1 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_cbc_plain256_mk_sha1 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_cbc_plain256_mk_sha1 (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1357,8 +1335,7 @@ DECLSPEC void luks_decrypt_sector_twofish_cbc_plain256_mk_sha1 (__global const u
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_cbc_plain256_mk_sha1_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_cbc_plain256_mk_sha1_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_cbc_plain256_mk_sha1_final (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1414,8 +1391,7 @@ DECLSPEC void luks_decrypt_sector_twofish_cbc_plain256_mk_sha1_final (__global c
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_cbc_plain256_mk_sha256 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_cbc_plain256_mk_sha256 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_cbc_plain256_mk_sha256 (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1448,8 +1424,7 @@ DECLSPEC void luks_decrypt_sector_twofish_cbc_plain256_mk_sha256 (__global const
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_cbc_plain256_mk_sha256_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_cbc_plain256_mk_sha256_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_cbc_plain256_mk_sha256_final (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1505,8 +1480,7 @@ DECLSPEC void luks_decrypt_sector_twofish_cbc_plain256_mk_sha256_final (__global
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_cbc_plain256_mk_sha512 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_cbc_plain256_mk_sha512 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_cbc_plain256_mk_sha512 (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1539,8 +1513,7 @@ DECLSPEC void luks_decrypt_sector_twofish_cbc_plain256_mk_sha512 (__global const
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_cbc_plain256_mk_sha512_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_cbc_plain256_mk_sha512_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_cbc_plain256_mk_sha512_final (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1596,8 +1569,7 @@ DECLSPEC void luks_decrypt_sector_twofish_cbc_plain256_mk_sha512_final (__global
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_cbc_plain256_mk_ripemd160 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_cbc_plain256_mk_ripemd160 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_cbc_plain256_mk_ripemd160 (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1630,8 +1602,7 @@ DECLSPEC void luks_decrypt_sector_twofish_cbc_plain256_mk_ripemd160 (__global co
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_cbc_plain256_mk_ripemd160_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_cbc_plain256_mk_ripemd160_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_cbc_plain256_mk_ripemd160_final (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1689,7 +1660,6 @@ DECLSPEC void luks_decrypt_sector_twofish_cbc_plain256_mk_ripemd160_final (__glo
 
 // xts-plain
 
-DECLSPEC void twofish128_decrypt_xts (const u32 *sk1, const u32 *lk1, const u32 *in, u32 *out, u32 *T);
 DECLSPEC void twofish128_decrypt_xts (const u32 *sk1, const u32 *lk1, const u32 *in, u32 *out, u32 *T)
 {
   out[0] = in[0];
@@ -1712,7 +1682,6 @@ DECLSPEC void twofish128_decrypt_xts (const u32 *sk1, const u32 *lk1, const u32 
   xts_mul2 (T, T);
 }
 
-DECLSPEC void twofish256_decrypt_xts (const u32 *sk1, const u32 *lk1, const u32 *in, u32 *out, u32 *T);
 DECLSPEC void twofish256_decrypt_xts (const u32 *sk1, const u32 *lk1, const u32 *in, u32 *out, u32 *T)
 {
   out[0] = in[0];
@@ -1735,8 +1704,7 @@ DECLSPEC void twofish256_decrypt_xts (const u32 *sk1, const u32 *lk1, const u32 
   xts_mul2 (T, T);
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_xts_plain256 (__global const u32 *in, u32 *out, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_xts_plain256 (__global const u32 *in, u32 *out, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_xts_plain256 (GLOBAL_AS const u32 *in, u32 *out, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1770,8 +1738,7 @@ DECLSPEC void luks_decrypt_sector_twofish_xts_plain256 (__global const u32 *in, 
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_xts_plain256_mk_sha1 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_xts_plain256_mk_sha1 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_xts_plain256_mk_sha1 (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1808,8 +1775,7 @@ DECLSPEC void luks_decrypt_sector_twofish_xts_plain256_mk_sha1 (__global const u
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_xts_plain256_mk_sha1_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_xts_plain256_mk_sha1_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_xts_plain256_mk_sha1_final (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1869,8 +1835,7 @@ DECLSPEC void luks_decrypt_sector_twofish_xts_plain256_mk_sha1_final (__global c
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_xts_plain256_mk_sha256 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_xts_plain256_mk_sha256 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_xts_plain256_mk_sha256 (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1907,8 +1872,7 @@ DECLSPEC void luks_decrypt_sector_twofish_xts_plain256_mk_sha256 (__global const
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_xts_plain256_mk_sha256_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_xts_plain256_mk_sha256_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_xts_plain256_mk_sha256_final (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1968,8 +1932,7 @@ DECLSPEC void luks_decrypt_sector_twofish_xts_plain256_mk_sha256_final (__global
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_xts_plain256_mk_sha512 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_xts_plain256_mk_sha512 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_xts_plain256_mk_sha512 (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -2006,8 +1969,7 @@ DECLSPEC void luks_decrypt_sector_twofish_xts_plain256_mk_sha512 (__global const
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_xts_plain256_mk_sha512_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_xts_plain256_mk_sha512_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_xts_plain256_mk_sha512_final (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -2067,8 +2029,7 @@ DECLSPEC void luks_decrypt_sector_twofish_xts_plain256_mk_sha512_final (__global
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_xts_plain256_mk_ripemd160 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_xts_plain256_mk_ripemd160 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_xts_plain256_mk_ripemd160 (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -2105,8 +2066,7 @@ DECLSPEC void luks_decrypt_sector_twofish_xts_plain256_mk_ripemd160 (__global co
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_xts_plain256_mk_ripemd160_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_xts_plain256_mk_ripemd160_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_xts_plain256_mk_ripemd160_final (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -2166,8 +2126,7 @@ DECLSPEC void luks_decrypt_sector_twofish_xts_plain256_mk_ripemd160_final (__glo
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_xts_plain512 (__global const u32 *in, u32 *out, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_xts_plain512 (__global const u32 *in, u32 *out, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_xts_plain512 (GLOBAL_AS const u32 *in, u32 *out, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -2201,8 +2160,7 @@ DECLSPEC void luks_decrypt_sector_twofish_xts_plain512 (__global const u32 *in, 
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_xts_plain512_mk_sha1 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_xts_plain512_mk_sha1 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_xts_plain512_mk_sha1 (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -2239,8 +2197,7 @@ DECLSPEC void luks_decrypt_sector_twofish_xts_plain512_mk_sha1 (__global const u
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_xts_plain512_mk_sha1_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_xts_plain512_mk_sha1_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_xts_plain512_mk_sha1_final (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -2300,8 +2257,7 @@ DECLSPEC void luks_decrypt_sector_twofish_xts_plain512_mk_sha1_final (__global c
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_xts_plain512_mk_sha256 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_xts_plain512_mk_sha256 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_xts_plain512_mk_sha256 (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -2338,8 +2294,7 @@ DECLSPEC void luks_decrypt_sector_twofish_xts_plain512_mk_sha256 (__global const
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_xts_plain512_mk_sha256_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_xts_plain512_mk_sha256_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_xts_plain512_mk_sha256_final (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -2399,8 +2354,7 @@ DECLSPEC void luks_decrypt_sector_twofish_xts_plain512_mk_sha256_final (__global
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_xts_plain512_mk_sha512 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_xts_plain512_mk_sha512 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_xts_plain512_mk_sha512 (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -2437,8 +2391,7 @@ DECLSPEC void luks_decrypt_sector_twofish_xts_plain512_mk_sha512 (__global const
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_xts_plain512_mk_sha512_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_xts_plain512_mk_sha512_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_xts_plain512_mk_sha512_final (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -2498,8 +2451,7 @@ DECLSPEC void luks_decrypt_sector_twofish_xts_plain512_mk_sha512_final (__global
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_xts_plain512_mk_ripemd160 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_xts_plain512_mk_ripemd160 (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_xts_plain512_mk_ripemd160 (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -2536,8 +2488,7 @@ DECLSPEC void luks_decrypt_sector_twofish_xts_plain512_mk_ripemd160 (__global co
   }
 }
 
-DECLSPEC void luks_decrypt_sector_twofish_xts_plain512_mk_ripemd160_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector);
-DECLSPEC void luks_decrypt_sector_twofish_xts_plain512_mk_ripemd160_final (__global const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
+DECLSPEC void luks_decrypt_sector_twofish_xts_plain512_mk_ripemd160_final (GLOBAL_AS const u32 *in, u32 *mk, const u32 *sk1, const u32 *lk1, const u32 *sk2, const u32 *lk2, const u32 sector)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -2599,8 +2550,7 @@ DECLSPEC void luks_decrypt_sector_twofish_xts_plain512_mk_ripemd160_final (__glo
 
 // luks helper
 
-DECLSPEC void luks_af_sha1_then_twofish_decrypt (__global const luks_t *luks_bufs, __global luks_tmp_t *tmps, u32 *pt_buf);
-DECLSPEC void luks_af_sha1_then_twofish_decrypt (__global const luks_t *luks_bufs, __global luks_tmp_t *tmps, u32 *pt_buf)
+DECLSPEC void luks_af_sha1_then_twofish_decrypt (GLOBAL_AS const luks_t *luks_bufs, GLOBAL_AS luks_tmp_t *tmps, u32 *pt_buf)
 {
   const u32 key_size    = luks_bufs->key_size;
   const u32 cipher_mode = luks_bufs->cipher_mode;
@@ -2622,10 +2572,10 @@ DECLSPEC void luks_af_sha1_then_twofish_decrypt (__global const luks_t *luks_buf
     {
       u32 ukey[4];
 
-      ukey[0] = swap32_S (tmps->out32[0]);
-      ukey[1] = swap32_S (tmps->out32[1]);
-      ukey[2] = swap32_S (tmps->out32[2]);
-      ukey[3] = swap32_S (tmps->out32[3]);
+      ukey[0] = hc_swap32_S (tmps->out32[0]);
+      ukey[1] = hc_swap32_S (tmps->out32[1]);
+      ukey[2] = hc_swap32_S (tmps->out32[2]);
+      ukey[3] = hc_swap32_S (tmps->out32[3]);
 
       u32 essivhash[8];
 
@@ -2651,14 +2601,14 @@ DECLSPEC void luks_af_sha1_then_twofish_decrypt (__global const luks_t *luks_buf
     {
       u32 ukey[8];
 
-      ukey[0] = swap32_S (tmps->out32[0]);
-      ukey[1] = swap32_S (tmps->out32[1]);
-      ukey[2] = swap32_S (tmps->out32[2]);
-      ukey[3] = swap32_S (tmps->out32[3]);
-      ukey[4] = swap32_S (tmps->out32[4]);
-      ukey[5] = swap32_S (tmps->out32[5]);
-      ukey[6] = swap32_S (tmps->out32[6]);
-      ukey[7] = swap32_S (tmps->out32[7]);
+      ukey[0] = hc_swap32_S (tmps->out32[0]);
+      ukey[1] = hc_swap32_S (tmps->out32[1]);
+      ukey[2] = hc_swap32_S (tmps->out32[2]);
+      ukey[3] = hc_swap32_S (tmps->out32[3]);
+      ukey[4] = hc_swap32_S (tmps->out32[4]);
+      ukey[5] = hc_swap32_S (tmps->out32[5]);
+      ukey[6] = hc_swap32_S (tmps->out32[6]);
+      ukey[7] = hc_swap32_S (tmps->out32[7]);
 
       u32 essivhash[8];
 
@@ -2687,10 +2637,10 @@ DECLSPEC void luks_af_sha1_then_twofish_decrypt (__global const luks_t *luks_buf
     {
       u32 ukey[4];
 
-      ukey[0] = swap32_S (tmps->out32[0]);
-      ukey[1] = swap32_S (tmps->out32[1]);
-      ukey[2] = swap32_S (tmps->out32[2]);
-      ukey[3] = swap32_S (tmps->out32[3]);
+      ukey[0] = hc_swap32_S (tmps->out32[0]);
+      ukey[1] = hc_swap32_S (tmps->out32[1]);
+      ukey[2] = hc_swap32_S (tmps->out32[2]);
+      ukey[3] = hc_swap32_S (tmps->out32[3]);
 
       u32 sk1[4]; u32 lk1[40];
 
@@ -2710,14 +2660,14 @@ DECLSPEC void luks_af_sha1_then_twofish_decrypt (__global const luks_t *luks_buf
     {
       u32 ukey[8];
 
-      ukey[0] = swap32_S (tmps->out32[0]);
-      ukey[1] = swap32_S (tmps->out32[1]);
-      ukey[2] = swap32_S (tmps->out32[2]);
-      ukey[3] = swap32_S (tmps->out32[3]);
-      ukey[4] = swap32_S (tmps->out32[4]);
-      ukey[5] = swap32_S (tmps->out32[5]);
-      ukey[6] = swap32_S (tmps->out32[6]);
-      ukey[7] = swap32_S (tmps->out32[7]);
+      ukey[0] = hc_swap32_S (tmps->out32[0]);
+      ukey[1] = hc_swap32_S (tmps->out32[1]);
+      ukey[2] = hc_swap32_S (tmps->out32[2]);
+      ukey[3] = hc_swap32_S (tmps->out32[3]);
+      ukey[4] = hc_swap32_S (tmps->out32[4]);
+      ukey[5] = hc_swap32_S (tmps->out32[5]);
+      ukey[6] = hc_swap32_S (tmps->out32[6]);
+      ukey[7] = hc_swap32_S (tmps->out32[7]);
 
       u32 sk1[4]; u32 lk1[40];
 
@@ -2740,17 +2690,17 @@ DECLSPEC void luks_af_sha1_then_twofish_decrypt (__global const luks_t *luks_buf
     {
       u32 ukey1[4];
 
-      ukey1[0] = swap32_S (tmps->out32[0]);
-      ukey1[1] = swap32_S (tmps->out32[1]);
-      ukey1[2] = swap32_S (tmps->out32[2]);
-      ukey1[3] = swap32_S (tmps->out32[3]);
+      ukey1[0] = hc_swap32_S (tmps->out32[0]);
+      ukey1[1] = hc_swap32_S (tmps->out32[1]);
+      ukey1[2] = hc_swap32_S (tmps->out32[2]);
+      ukey1[3] = hc_swap32_S (tmps->out32[3]);
 
       u32 ukey2[4];
 
-      ukey2[0] = swap32_S (tmps->out32[4]);
-      ukey2[1] = swap32_S (tmps->out32[5]);
-      ukey2[2] = swap32_S (tmps->out32[6]);
-      ukey2[3] = swap32_S (tmps->out32[7]);
+      ukey2[0] = hc_swap32_S (tmps->out32[4]);
+      ukey2[1] = hc_swap32_S (tmps->out32[5]);
+      ukey2[2] = hc_swap32_S (tmps->out32[6]);
+      ukey2[3] = hc_swap32_S (tmps->out32[7]);
 
       u32 sk1[4]; u32 lk1[40];
       u32 sk2[4]; u32 lk2[40];
@@ -2772,25 +2722,25 @@ DECLSPEC void luks_af_sha1_then_twofish_decrypt (__global const luks_t *luks_buf
     {
       u32 ukey1[8];
 
-      ukey1[0] = swap32_S (tmps->out32[ 0]);
-      ukey1[1] = swap32_S (tmps->out32[ 1]);
-      ukey1[2] = swap32_S (tmps->out32[ 2]);
-      ukey1[3] = swap32_S (tmps->out32[ 3]);
-      ukey1[4] = swap32_S (tmps->out32[ 4]);
-      ukey1[5] = swap32_S (tmps->out32[ 5]);
-      ukey1[6] = swap32_S (tmps->out32[ 6]);
-      ukey1[7] = swap32_S (tmps->out32[ 7]);
+      ukey1[0] = hc_swap32_S (tmps->out32[ 0]);
+      ukey1[1] = hc_swap32_S (tmps->out32[ 1]);
+      ukey1[2] = hc_swap32_S (tmps->out32[ 2]);
+      ukey1[3] = hc_swap32_S (tmps->out32[ 3]);
+      ukey1[4] = hc_swap32_S (tmps->out32[ 4]);
+      ukey1[5] = hc_swap32_S (tmps->out32[ 5]);
+      ukey1[6] = hc_swap32_S (tmps->out32[ 6]);
+      ukey1[7] = hc_swap32_S (tmps->out32[ 7]);
 
       u32 ukey2[8];
 
-      ukey2[0] = swap32_S (tmps->out32[ 8]);
-      ukey2[1] = swap32_S (tmps->out32[ 9]);
-      ukey2[2] = swap32_S (tmps->out32[10]);
-      ukey2[3] = swap32_S (tmps->out32[11]);
-      ukey2[4] = swap32_S (tmps->out32[12]);
-      ukey2[5] = swap32_S (tmps->out32[13]);
-      ukey2[6] = swap32_S (tmps->out32[14]);
-      ukey2[7] = swap32_S (tmps->out32[15]);
+      ukey2[0] = hc_swap32_S (tmps->out32[ 8]);
+      ukey2[1] = hc_swap32_S (tmps->out32[ 9]);
+      ukey2[2] = hc_swap32_S (tmps->out32[10]);
+      ukey2[3] = hc_swap32_S (tmps->out32[11]);
+      ukey2[4] = hc_swap32_S (tmps->out32[12]);
+      ukey2[5] = hc_swap32_S (tmps->out32[13]);
+      ukey2[6] = hc_swap32_S (tmps->out32[14]);
+      ukey2[7] = hc_swap32_S (tmps->out32[15]);
 
       u32 sk1[4]; u32 lk1[40];
       u32 sk2[4]; u32 lk2[40];
@@ -2959,8 +2909,7 @@ DECLSPEC void luks_af_sha1_then_twofish_decrypt (__global const luks_t *luks_buf
   }
 }
 
-DECLSPEC void luks_af_sha256_then_twofish_decrypt (__global const luks_t *luks_bufs, __global luks_tmp_t *tmps, u32 *pt_buf);
-DECLSPEC void luks_af_sha256_then_twofish_decrypt (__global const luks_t *luks_bufs, __global luks_tmp_t *tmps, u32 *pt_buf)
+DECLSPEC void luks_af_sha256_then_twofish_decrypt (GLOBAL_AS const luks_t *luks_bufs, GLOBAL_AS luks_tmp_t *tmps, u32 *pt_buf)
 {
   const u32 key_size    = luks_bufs->key_size;
   const u32 cipher_mode = luks_bufs->cipher_mode;
@@ -2982,10 +2931,10 @@ DECLSPEC void luks_af_sha256_then_twofish_decrypt (__global const luks_t *luks_b
     {
       u32 ukey[4];
 
-      ukey[0] = swap32_S (tmps->out32[0]);
-      ukey[1] = swap32_S (tmps->out32[1]);
-      ukey[2] = swap32_S (tmps->out32[2]);
-      ukey[3] = swap32_S (tmps->out32[3]);
+      ukey[0] = hc_swap32_S (tmps->out32[0]);
+      ukey[1] = hc_swap32_S (tmps->out32[1]);
+      ukey[2] = hc_swap32_S (tmps->out32[2]);
+      ukey[3] = hc_swap32_S (tmps->out32[3]);
 
       u32 essivhash[8];
 
@@ -3011,14 +2960,14 @@ DECLSPEC void luks_af_sha256_then_twofish_decrypt (__global const luks_t *luks_b
     {
       u32 ukey[8];
 
-      ukey[0] = swap32_S (tmps->out32[0]);
-      ukey[1] = swap32_S (tmps->out32[1]);
-      ukey[2] = swap32_S (tmps->out32[2]);
-      ukey[3] = swap32_S (tmps->out32[3]);
-      ukey[4] = swap32_S (tmps->out32[4]);
-      ukey[5] = swap32_S (tmps->out32[5]);
-      ukey[6] = swap32_S (tmps->out32[6]);
-      ukey[7] = swap32_S (tmps->out32[7]);
+      ukey[0] = hc_swap32_S (tmps->out32[0]);
+      ukey[1] = hc_swap32_S (tmps->out32[1]);
+      ukey[2] = hc_swap32_S (tmps->out32[2]);
+      ukey[3] = hc_swap32_S (tmps->out32[3]);
+      ukey[4] = hc_swap32_S (tmps->out32[4]);
+      ukey[5] = hc_swap32_S (tmps->out32[5]);
+      ukey[6] = hc_swap32_S (tmps->out32[6]);
+      ukey[7] = hc_swap32_S (tmps->out32[7]);
 
       u32 essivhash[8];
 
@@ -3047,10 +2996,10 @@ DECLSPEC void luks_af_sha256_then_twofish_decrypt (__global const luks_t *luks_b
     {
       u32 ukey[4];
 
-      ukey[0] = swap32_S (tmps->out32[0]);
-      ukey[1] = swap32_S (tmps->out32[1]);
-      ukey[2] = swap32_S (tmps->out32[2]);
-      ukey[3] = swap32_S (tmps->out32[3]);
+      ukey[0] = hc_swap32_S (tmps->out32[0]);
+      ukey[1] = hc_swap32_S (tmps->out32[1]);
+      ukey[2] = hc_swap32_S (tmps->out32[2]);
+      ukey[3] = hc_swap32_S (tmps->out32[3]);
 
       u32 sk1[4]; u32 lk1[40];
 
@@ -3070,14 +3019,14 @@ DECLSPEC void luks_af_sha256_then_twofish_decrypt (__global const luks_t *luks_b
     {
       u32 ukey[8];
 
-      ukey[0] = swap32_S (tmps->out32[0]);
-      ukey[1] = swap32_S (tmps->out32[1]);
-      ukey[2] = swap32_S (tmps->out32[2]);
-      ukey[3] = swap32_S (tmps->out32[3]);
-      ukey[4] = swap32_S (tmps->out32[4]);
-      ukey[5] = swap32_S (tmps->out32[5]);
-      ukey[6] = swap32_S (tmps->out32[6]);
-      ukey[7] = swap32_S (tmps->out32[7]);
+      ukey[0] = hc_swap32_S (tmps->out32[0]);
+      ukey[1] = hc_swap32_S (tmps->out32[1]);
+      ukey[2] = hc_swap32_S (tmps->out32[2]);
+      ukey[3] = hc_swap32_S (tmps->out32[3]);
+      ukey[4] = hc_swap32_S (tmps->out32[4]);
+      ukey[5] = hc_swap32_S (tmps->out32[5]);
+      ukey[6] = hc_swap32_S (tmps->out32[6]);
+      ukey[7] = hc_swap32_S (tmps->out32[7]);
 
       u32 sk1[4]; u32 lk1[40];
 
@@ -3100,17 +3049,17 @@ DECLSPEC void luks_af_sha256_then_twofish_decrypt (__global const luks_t *luks_b
     {
       u32 ukey1[4];
 
-      ukey1[0] = swap32_S (tmps->out32[0]);
-      ukey1[1] = swap32_S (tmps->out32[1]);
-      ukey1[2] = swap32_S (tmps->out32[2]);
-      ukey1[3] = swap32_S (tmps->out32[3]);
+      ukey1[0] = hc_swap32_S (tmps->out32[0]);
+      ukey1[1] = hc_swap32_S (tmps->out32[1]);
+      ukey1[2] = hc_swap32_S (tmps->out32[2]);
+      ukey1[3] = hc_swap32_S (tmps->out32[3]);
 
       u32 ukey2[4];
 
-      ukey2[0] = swap32_S (tmps->out32[4]);
-      ukey2[1] = swap32_S (tmps->out32[5]);
-      ukey2[2] = swap32_S (tmps->out32[6]);
-      ukey2[3] = swap32_S (tmps->out32[7]);
+      ukey2[0] = hc_swap32_S (tmps->out32[4]);
+      ukey2[1] = hc_swap32_S (tmps->out32[5]);
+      ukey2[2] = hc_swap32_S (tmps->out32[6]);
+      ukey2[3] = hc_swap32_S (tmps->out32[7]);
 
       u32 sk1[4]; u32 lk1[40];
       u32 sk2[4]; u32 lk2[40];
@@ -3132,25 +3081,25 @@ DECLSPEC void luks_af_sha256_then_twofish_decrypt (__global const luks_t *luks_b
     {
       u32 ukey1[8];
 
-      ukey1[0] = swap32_S (tmps->out32[ 0]);
-      ukey1[1] = swap32_S (tmps->out32[ 1]);
-      ukey1[2] = swap32_S (tmps->out32[ 2]);
-      ukey1[3] = swap32_S (tmps->out32[ 3]);
-      ukey1[4] = swap32_S (tmps->out32[ 4]);
-      ukey1[5] = swap32_S (tmps->out32[ 5]);
-      ukey1[6] = swap32_S (tmps->out32[ 6]);
-      ukey1[7] = swap32_S (tmps->out32[ 7]);
+      ukey1[0] = hc_swap32_S (tmps->out32[ 0]);
+      ukey1[1] = hc_swap32_S (tmps->out32[ 1]);
+      ukey1[2] = hc_swap32_S (tmps->out32[ 2]);
+      ukey1[3] = hc_swap32_S (tmps->out32[ 3]);
+      ukey1[4] = hc_swap32_S (tmps->out32[ 4]);
+      ukey1[5] = hc_swap32_S (tmps->out32[ 5]);
+      ukey1[6] = hc_swap32_S (tmps->out32[ 6]);
+      ukey1[7] = hc_swap32_S (tmps->out32[ 7]);
 
       u32 ukey2[8];
 
-      ukey2[0] = swap32_S (tmps->out32[ 8]);
-      ukey2[1] = swap32_S (tmps->out32[ 9]);
-      ukey2[2] = swap32_S (tmps->out32[10]);
-      ukey2[3] = swap32_S (tmps->out32[11]);
-      ukey2[4] = swap32_S (tmps->out32[12]);
-      ukey2[5] = swap32_S (tmps->out32[13]);
-      ukey2[6] = swap32_S (tmps->out32[14]);
-      ukey2[7] = swap32_S (tmps->out32[15]);
+      ukey2[0] = hc_swap32_S (tmps->out32[ 8]);
+      ukey2[1] = hc_swap32_S (tmps->out32[ 9]);
+      ukey2[2] = hc_swap32_S (tmps->out32[10]);
+      ukey2[3] = hc_swap32_S (tmps->out32[11]);
+      ukey2[4] = hc_swap32_S (tmps->out32[12]);
+      ukey2[5] = hc_swap32_S (tmps->out32[13]);
+      ukey2[6] = hc_swap32_S (tmps->out32[14]);
+      ukey2[7] = hc_swap32_S (tmps->out32[15]);
 
       u32 sk1[4]; u32 lk1[40];
       u32 sk2[4]; u32 lk2[40];
@@ -3319,8 +3268,7 @@ DECLSPEC void luks_af_sha256_then_twofish_decrypt (__global const luks_t *luks_b
   }
 }
 
-DECLSPEC void luks_af_sha512_then_twofish_decrypt (__global const luks_t *luks_bufs, __global luks_tmp_t *tmps, u32 *pt_buf);
-DECLSPEC void luks_af_sha512_then_twofish_decrypt (__global const luks_t *luks_bufs, __global luks_tmp_t *tmps, u32 *pt_buf)
+DECLSPEC void luks_af_sha512_then_twofish_decrypt (GLOBAL_AS const luks_t *luks_bufs, GLOBAL_AS luks_tmp_t *tmps, u32 *pt_buf)
 {
   const u32 key_size    = luks_bufs->key_size;
   const u32 cipher_mode = luks_bufs->cipher_mode;
@@ -3361,10 +3309,10 @@ DECLSPEC void luks_af_sha512_then_twofish_decrypt (__global const luks_t *luks_b
     {
       u32 ukey[4];
 
-      ukey[0] = swap32_S (tmps->out32[1]);
-      ukey[1] = swap32_S (tmps->out32[0]);
-      ukey[2] = swap32_S (tmps->out32[3]);
-      ukey[3] = swap32_S (tmps->out32[2]);
+      ukey[0] = hc_swap32_S (tmps->out32[1]);
+      ukey[1] = hc_swap32_S (tmps->out32[0]);
+      ukey[2] = hc_swap32_S (tmps->out32[3]);
+      ukey[3] = hc_swap32_S (tmps->out32[2]);
 
       u32 essivhash[8];
 
@@ -3390,14 +3338,14 @@ DECLSPEC void luks_af_sha512_then_twofish_decrypt (__global const luks_t *luks_b
     {
       u32 ukey[8];
 
-      ukey[0] = swap32_S (tmps->out32[1]);
-      ukey[1] = swap32_S (tmps->out32[0]);
-      ukey[2] = swap32_S (tmps->out32[3]);
-      ukey[3] = swap32_S (tmps->out32[2]);
-      ukey[4] = swap32_S (tmps->out32[5]);
-      ukey[5] = swap32_S (tmps->out32[4]);
-      ukey[6] = swap32_S (tmps->out32[7]);
-      ukey[7] = swap32_S (tmps->out32[6]);
+      ukey[0] = hc_swap32_S (tmps->out32[1]);
+      ukey[1] = hc_swap32_S (tmps->out32[0]);
+      ukey[2] = hc_swap32_S (tmps->out32[3]);
+      ukey[3] = hc_swap32_S (tmps->out32[2]);
+      ukey[4] = hc_swap32_S (tmps->out32[5]);
+      ukey[5] = hc_swap32_S (tmps->out32[4]);
+      ukey[6] = hc_swap32_S (tmps->out32[7]);
+      ukey[7] = hc_swap32_S (tmps->out32[6]);
 
       u32 essivhash[8];
 
@@ -3426,10 +3374,10 @@ DECLSPEC void luks_af_sha512_then_twofish_decrypt (__global const luks_t *luks_b
     {
       u32 ukey[4];
 
-      ukey[0] = swap32_S (tmps->out32[1]);
-      ukey[1] = swap32_S (tmps->out32[0]);
-      ukey[2] = swap32_S (tmps->out32[3]);
-      ukey[3] = swap32_S (tmps->out32[2]);
+      ukey[0] = hc_swap32_S (tmps->out32[1]);
+      ukey[1] = hc_swap32_S (tmps->out32[0]);
+      ukey[2] = hc_swap32_S (tmps->out32[3]);
+      ukey[3] = hc_swap32_S (tmps->out32[2]);
 
       u32 sk1[4]; u32 lk1[40];
 
@@ -3449,14 +3397,14 @@ DECLSPEC void luks_af_sha512_then_twofish_decrypt (__global const luks_t *luks_b
     {
       u32 ukey[8];
 
-      ukey[0] = swap32_S (tmps->out32[1]);
-      ukey[1] = swap32_S (tmps->out32[0]);
-      ukey[2] = swap32_S (tmps->out32[3]);
-      ukey[3] = swap32_S (tmps->out32[2]);
-      ukey[4] = swap32_S (tmps->out32[5]);
-      ukey[5] = swap32_S (tmps->out32[4]);
-      ukey[6] = swap32_S (tmps->out32[7]);
-      ukey[7] = swap32_S (tmps->out32[6]);
+      ukey[0] = hc_swap32_S (tmps->out32[1]);
+      ukey[1] = hc_swap32_S (tmps->out32[0]);
+      ukey[2] = hc_swap32_S (tmps->out32[3]);
+      ukey[3] = hc_swap32_S (tmps->out32[2]);
+      ukey[4] = hc_swap32_S (tmps->out32[5]);
+      ukey[5] = hc_swap32_S (tmps->out32[4]);
+      ukey[6] = hc_swap32_S (tmps->out32[7]);
+      ukey[7] = hc_swap32_S (tmps->out32[6]);
 
       u32 sk1[4]; u32 lk1[40];
 
@@ -3479,17 +3427,17 @@ DECLSPEC void luks_af_sha512_then_twofish_decrypt (__global const luks_t *luks_b
     {
       u32 ukey1[4];
 
-      ukey1[0] = swap32_S (tmps->out32[1]);
-      ukey1[1] = swap32_S (tmps->out32[0]);
-      ukey1[2] = swap32_S (tmps->out32[3]);
-      ukey1[3] = swap32_S (tmps->out32[2]);
+      ukey1[0] = hc_swap32_S (tmps->out32[1]);
+      ukey1[1] = hc_swap32_S (tmps->out32[0]);
+      ukey1[2] = hc_swap32_S (tmps->out32[3]);
+      ukey1[3] = hc_swap32_S (tmps->out32[2]);
 
       u32 ukey2[4];
 
-      ukey2[0] = swap32_S (tmps->out32[5]);
-      ukey2[1] = swap32_S (tmps->out32[4]);
-      ukey2[2] = swap32_S (tmps->out32[7]);
-      ukey2[3] = swap32_S (tmps->out32[6]);
+      ukey2[0] = hc_swap32_S (tmps->out32[5]);
+      ukey2[1] = hc_swap32_S (tmps->out32[4]);
+      ukey2[2] = hc_swap32_S (tmps->out32[7]);
+      ukey2[3] = hc_swap32_S (tmps->out32[6]);
 
       u32 sk1[4]; u32 lk1[40];
       u32 sk2[4]; u32 lk2[40];
@@ -3511,25 +3459,25 @@ DECLSPEC void luks_af_sha512_then_twofish_decrypt (__global const luks_t *luks_b
     {
       u32 ukey1[8];
 
-      ukey1[0] = swap32_S (tmps->out32[ 1]);
-      ukey1[1] = swap32_S (tmps->out32[ 0]);
-      ukey1[2] = swap32_S (tmps->out32[ 3]);
-      ukey1[3] = swap32_S (tmps->out32[ 2]);
-      ukey1[4] = swap32_S (tmps->out32[ 5]);
-      ukey1[5] = swap32_S (tmps->out32[ 4]);
-      ukey1[6] = swap32_S (tmps->out32[ 7]);
-      ukey1[7] = swap32_S (tmps->out32[ 6]);
+      ukey1[0] = hc_swap32_S (tmps->out32[ 1]);
+      ukey1[1] = hc_swap32_S (tmps->out32[ 0]);
+      ukey1[2] = hc_swap32_S (tmps->out32[ 3]);
+      ukey1[3] = hc_swap32_S (tmps->out32[ 2]);
+      ukey1[4] = hc_swap32_S (tmps->out32[ 5]);
+      ukey1[5] = hc_swap32_S (tmps->out32[ 4]);
+      ukey1[6] = hc_swap32_S (tmps->out32[ 7]);
+      ukey1[7] = hc_swap32_S (tmps->out32[ 6]);
 
       u32 ukey2[8];
 
-      ukey2[0] = swap32_S (tmps->out32[ 9]);
-      ukey2[1] = swap32_S (tmps->out32[ 8]);
-      ukey2[2] = swap32_S (tmps->out32[11]);
-      ukey2[3] = swap32_S (tmps->out32[10]);
-      ukey2[4] = swap32_S (tmps->out32[13]);
-      ukey2[5] = swap32_S (tmps->out32[12]);
-      ukey2[6] = swap32_S (tmps->out32[15]);
-      ukey2[7] = swap32_S (tmps->out32[14]);
+      ukey2[0] = hc_swap32_S (tmps->out32[ 9]);
+      ukey2[1] = hc_swap32_S (tmps->out32[ 8]);
+      ukey2[2] = hc_swap32_S (tmps->out32[11]);
+      ukey2[3] = hc_swap32_S (tmps->out32[10]);
+      ukey2[4] = hc_swap32_S (tmps->out32[13]);
+      ukey2[5] = hc_swap32_S (tmps->out32[12]);
+      ukey2[6] = hc_swap32_S (tmps->out32[15]);
+      ukey2[7] = hc_swap32_S (tmps->out32[14]);
 
       u32 sk1[4]; u32 lk1[40];
       u32 sk2[4]; u32 lk2[40];
@@ -3698,8 +3646,7 @@ DECLSPEC void luks_af_sha512_then_twofish_decrypt (__global const luks_t *luks_b
   }
 }
 
-DECLSPEC void luks_af_ripemd160_then_twofish_decrypt (__global const luks_t *luks_bufs, __global luks_tmp_t *tmps, u32 *pt_buf);
-DECLSPEC void luks_af_ripemd160_then_twofish_decrypt (__global const luks_t *luks_bufs, __global luks_tmp_t *tmps, u32 *pt_buf)
+DECLSPEC void luks_af_ripemd160_then_twofish_decrypt (GLOBAL_AS const luks_t *luks_bufs, GLOBAL_AS luks_tmp_t *tmps, u32 *pt_buf)
 {
   const u32 key_size    = luks_bufs->key_size;
   const u32 cipher_mode = luks_bufs->cipher_mode;

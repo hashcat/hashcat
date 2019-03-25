@@ -3,12 +3,12 @@
  * License.....: MIT
  */
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_hash_sha512.cl"
+#endif
 
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
@@ -170,7 +170,7 @@ DECLSPEC void orig_sha512_final (orig_sha512_ctx_t *sha512_ctx)
   sha512_transform_transport (sha512_ctx->buf, sha512_ctx->state);
 }
 
-__kernel void m01800_init (KERN_ATTR_TMPS (sha512crypt_tmp_t))
+KERNEL_FQ void m01800_init (KERN_ATTR_TMPS (sha512crypt_tmp_t))
 {
   /**
    * base
@@ -208,13 +208,13 @@ __kernel void m01800_init (KERN_ATTR_TMPS (sha512crypt_tmp_t))
 
   u64 pw[2];
 
-  pw[0] = swap64_S (hl32_to_64 (w0[1], w0[0]));
-  pw[1] = swap64_S (hl32_to_64 (w0[3], w0[2]));
+  pw[0] = hc_swap64_S (hl32_to_64 (w0[1], w0[0]));
+  pw[1] = hc_swap64_S (hl32_to_64 (w0[3], w0[2]));
 
   u64 salt[2];
 
-  salt[0] = swap64_S (hl32_to_64 (salt_buf[1], salt_buf[0]));
-  salt[1] = swap64_S (hl32_to_64 (salt_buf[3], salt_buf[2]));
+  salt[0] = hc_swap64_S (hl32_to_64 (salt_buf[1], salt_buf[0]));
+  salt[1] = hc_swap64_S (hl32_to_64 (salt_buf[3], salt_buf[2]));
 
   /**
    * begin
@@ -299,7 +299,7 @@ __kernel void m01800_init (KERN_ATTR_TMPS (sha512crypt_tmp_t))
   tmps[gid].l_s_bytes[1] = sha512_ctx.state[1];
 }
 
-__kernel void m01800_loop (KERN_ATTR_TMPS (sha512crypt_tmp_t))
+KERNEL_FQ void m01800_loop (KERN_ATTR_TMPS (sha512crypt_tmp_t))
 {
   /**
    * base
@@ -476,7 +476,7 @@ __kernel void m01800_loop (KERN_ATTR_TMPS (sha512crypt_tmp_t))
   tmps[gid].l_alt_result[7] = l_alt_result[7];
 }
 
-__kernel void m01800_comp (KERN_ATTR_TMPS (sha512crypt_tmp_t))
+KERNEL_FQ void m01800_comp (KERN_ATTR_TMPS (sha512crypt_tmp_t))
 {
   /**
    * base
@@ -488,8 +488,8 @@ __kernel void m01800_comp (KERN_ATTR_TMPS (sha512crypt_tmp_t))
 
   const u64 lid = get_local_id (0);
 
-  const u64 a = swap64_S (tmps[gid].l_alt_result[0]);
-  const u64 b = swap64_S (tmps[gid].l_alt_result[1]);
+  const u64 a = hc_swap64_S (tmps[gid].l_alt_result[0]);
+  const u64 b = hc_swap64_S (tmps[gid].l_alt_result[1]);
 
   const u32 r0 = l32_from_64_S (a);
   const u32 r1 = h32_from_64_S (a);
@@ -498,5 +498,7 @@ __kernel void m01800_comp (KERN_ATTR_TMPS (sha512crypt_tmp_t))
 
   #define il_pos 0
 
+  #ifdef KERNEL_STATIC
   #include COMPARE_M
+  #endif
 }

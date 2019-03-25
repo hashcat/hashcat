@@ -5,14 +5,14 @@
 
 #define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_rp_optimized.h"
 #include "inc_rp_optimized.cl"
 #include "inc_simd.cl"
+#endif
 
 typedef struct chacha20
 {
@@ -31,13 +31,13 @@ typedef struct chacha20
 #define QR(a, b, c, d)                \
   do {                                \
     x[a] = x[a] + x[b];               \
-    x[d] = rotl32(x[d] ^ x[a], 16);   \
+    x[d] = hc_rotl32(x[d] ^ x[a], 16);   \
     x[c] = x[c] + x[d];               \
-    x[b] = rotl32(x[b] ^ x[c], 12);   \
+    x[b] = hc_rotl32(x[b] ^ x[c], 12);   \
     x[a] = x[a] + x[b];               \
-    x[d] = rotl32(x[d] ^ x[a], 8);    \
+    x[d] = hc_rotl32(x[d] ^ x[a], 8);    \
     x[c] = x[c] + x[d];               \
-    x[b] = rotl32(x[b] ^ x[c], 7);    \
+    x[b] = hc_rotl32(x[b] ^ x[c], 7);    \
   } while (0);
 
 DECLSPEC void chacha20_transform (const u32x *w0, const u32x *w1, const u32 *position, const u32 offset, const u32 *iv, const u32 *plain, u32x *digest)
@@ -207,7 +207,7 @@ DECLSPEC void chacha20_transform (const u32x *w0, const u32x *w1, const u32 *pos
   }
 }
 
-__kernel void m15400_m04 (KERN_ATTR_RULES_ESALT (chacha20_t))
+KERNEL_FQ void m15400_m04 (KERN_ATTR_RULES_ESALT (chacha20_t))
 {
   /**
    * modifier
@@ -274,15 +274,15 @@ __kernel void m15400_m04 (KERN_ATTR_RULES_ESALT (chacha20_t))
   }
 }
 
-__kernel void m15400_m08 (KERN_ATTR_RULES_ESALT (chacha20_t))
+KERNEL_FQ void m15400_m08 (KERN_ATTR_RULES_ESALT (chacha20_t))
 {
 }
 
-__kernel void m15400_m16 (KERN_ATTR_RULES_ESALT (chacha20_t))
+KERNEL_FQ void m15400_m16 (KERN_ATTR_RULES_ESALT (chacha20_t))
 {
 }
 
-__kernel void m15400_s04 (KERN_ATTR_RULES_ESALT (chacha20_t))
+KERNEL_FQ void m15400_s04 (KERN_ATTR_RULES_ESALT (chacha20_t))
 {
   /**
    * modifier
@@ -364,10 +364,10 @@ __kernel void m15400_s04 (KERN_ATTR_RULES_ESALT (chacha20_t))
   }
 }
 
-__kernel void m15400_s08 (KERN_ATTR_RULES_ESALT (chacha20_t))
+KERNEL_FQ void m15400_s08 (KERN_ATTR_RULES_ESALT (chacha20_t))
 {
 }
 
-__kernel void m15400_s16 (KERN_ATTR_RULES_ESALT (chacha20_t))
+KERNEL_FQ void m15400_s16 (KERN_ATTR_RULES_ESALT (chacha20_t))
 {
 }

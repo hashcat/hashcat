@@ -5,13 +5,13 @@
 
 //#define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha512.cl"
+#endif
 
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
@@ -154,7 +154,7 @@ DECLSPEC u32 sha512_update_128_qnxbug (sha512_ctx_t *ctx, u32 *w0, u32 *w1, u32 
   return sav;
 }
 
-DECLSPEC u32 sha512_update_global_swap_qnxbug (sha512_ctx_t *ctx, const __global u32 *w, const int len, u32 sav)
+DECLSPEC u32 sha512_update_global_swap_qnxbug (sha512_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len, u32 sav)
 {
   u32 w0[4];
   u32 w1[4];
@@ -203,38 +203,38 @@ DECLSPEC u32 sha512_update_global_swap_qnxbug (sha512_ctx_t *ctx, const __global
     w7[2] = w[pos4 + 30];
     w7[3] = w[pos4 + 31];
 
-    w0[0] = swap32_S (w0[0]);
-    w0[1] = swap32_S (w0[1]);
-    w0[2] = swap32_S (w0[2]);
-    w0[3] = swap32_S (w0[3]);
-    w1[0] = swap32_S (w1[0]);
-    w1[1] = swap32_S (w1[1]);
-    w1[2] = swap32_S (w1[2]);
-    w1[3] = swap32_S (w1[3]);
-    w2[0] = swap32_S (w2[0]);
-    w2[1] = swap32_S (w2[1]);
-    w2[2] = swap32_S (w2[2]);
-    w2[3] = swap32_S (w2[3]);
-    w3[0] = swap32_S (w3[0]);
-    w3[1] = swap32_S (w3[1]);
-    w3[2] = swap32_S (w3[2]);
-    w3[3] = swap32_S (w3[3]);
-    w4[0] = swap32_S (w4[0]);
-    w4[1] = swap32_S (w4[1]);
-    w4[2] = swap32_S (w4[2]);
-    w4[3] = swap32_S (w4[3]);
-    w5[0] = swap32_S (w5[0]);
-    w5[1] = swap32_S (w5[1]);
-    w5[2] = swap32_S (w5[2]);
-    w5[3] = swap32_S (w5[3]);
-    w6[0] = swap32_S (w6[0]);
-    w6[1] = swap32_S (w6[1]);
-    w6[2] = swap32_S (w6[2]);
-    w6[3] = swap32_S (w6[3]);
-    w7[0] = swap32_S (w7[0]);
-    w7[1] = swap32_S (w7[1]);
-    w7[2] = swap32_S (w7[2]);
-    w7[3] = swap32_S (w7[3]);
+    w0[0] = hc_swap32_S (w0[0]);
+    w0[1] = hc_swap32_S (w0[1]);
+    w0[2] = hc_swap32_S (w0[2]);
+    w0[3] = hc_swap32_S (w0[3]);
+    w1[0] = hc_swap32_S (w1[0]);
+    w1[1] = hc_swap32_S (w1[1]);
+    w1[2] = hc_swap32_S (w1[2]);
+    w1[3] = hc_swap32_S (w1[3]);
+    w2[0] = hc_swap32_S (w2[0]);
+    w2[1] = hc_swap32_S (w2[1]);
+    w2[2] = hc_swap32_S (w2[2]);
+    w2[3] = hc_swap32_S (w2[3]);
+    w3[0] = hc_swap32_S (w3[0]);
+    w3[1] = hc_swap32_S (w3[1]);
+    w3[2] = hc_swap32_S (w3[2]);
+    w3[3] = hc_swap32_S (w3[3]);
+    w4[0] = hc_swap32_S (w4[0]);
+    w4[1] = hc_swap32_S (w4[1]);
+    w4[2] = hc_swap32_S (w4[2]);
+    w4[3] = hc_swap32_S (w4[3]);
+    w5[0] = hc_swap32_S (w5[0]);
+    w5[1] = hc_swap32_S (w5[1]);
+    w5[2] = hc_swap32_S (w5[2]);
+    w5[3] = hc_swap32_S (w5[3]);
+    w6[0] = hc_swap32_S (w6[0]);
+    w6[1] = hc_swap32_S (w6[1]);
+    w6[2] = hc_swap32_S (w6[2]);
+    w6[3] = hc_swap32_S (w6[3]);
+    w7[0] = hc_swap32_S (w7[0]);
+    w7[1] = hc_swap32_S (w7[1]);
+    w7[2] = hc_swap32_S (w7[2]);
+    w7[3] = hc_swap32_S (w7[3]);
 
     sav = sha512_update_128_qnxbug (ctx, w0, w1, w2, w3, w4, w5, w6, w7, 128, sav);
   }
@@ -272,38 +272,38 @@ DECLSPEC u32 sha512_update_global_swap_qnxbug (sha512_ctx_t *ctx, const __global
   w7[2] = w[pos4 + 30];
   w7[3] = w[pos4 + 31];
 
-  w0[0] = swap32_S (w0[0]);
-  w0[1] = swap32_S (w0[1]);
-  w0[2] = swap32_S (w0[2]);
-  w0[3] = swap32_S (w0[3]);
-  w1[0] = swap32_S (w1[0]);
-  w1[1] = swap32_S (w1[1]);
-  w1[2] = swap32_S (w1[2]);
-  w1[3] = swap32_S (w1[3]);
-  w2[0] = swap32_S (w2[0]);
-  w2[1] = swap32_S (w2[1]);
-  w2[2] = swap32_S (w2[2]);
-  w2[3] = swap32_S (w2[3]);
-  w3[0] = swap32_S (w3[0]);
-  w3[1] = swap32_S (w3[1]);
-  w3[2] = swap32_S (w3[2]);
-  w3[3] = swap32_S (w3[3]);
-  w4[0] = swap32_S (w4[0]);
-  w4[1] = swap32_S (w4[1]);
-  w4[2] = swap32_S (w4[2]);
-  w4[3] = swap32_S (w4[3]);
-  w5[0] = swap32_S (w5[0]);
-  w5[1] = swap32_S (w5[1]);
-  w5[2] = swap32_S (w5[2]);
-  w5[3] = swap32_S (w5[3]);
-  w6[0] = swap32_S (w6[0]);
-  w6[1] = swap32_S (w6[1]);
-  w6[2] = swap32_S (w6[2]);
-  w6[3] = swap32_S (w6[3]);
-  w7[0] = swap32_S (w7[0]);
-  w7[1] = swap32_S (w7[1]);
-  w7[2] = swap32_S (w7[2]);
-  w7[3] = swap32_S (w7[3]);
+  w0[0] = hc_swap32_S (w0[0]);
+  w0[1] = hc_swap32_S (w0[1]);
+  w0[2] = hc_swap32_S (w0[2]);
+  w0[3] = hc_swap32_S (w0[3]);
+  w1[0] = hc_swap32_S (w1[0]);
+  w1[1] = hc_swap32_S (w1[1]);
+  w1[2] = hc_swap32_S (w1[2]);
+  w1[3] = hc_swap32_S (w1[3]);
+  w2[0] = hc_swap32_S (w2[0]);
+  w2[1] = hc_swap32_S (w2[1]);
+  w2[2] = hc_swap32_S (w2[2]);
+  w2[3] = hc_swap32_S (w2[3]);
+  w3[0] = hc_swap32_S (w3[0]);
+  w3[1] = hc_swap32_S (w3[1]);
+  w3[2] = hc_swap32_S (w3[2]);
+  w3[3] = hc_swap32_S (w3[3]);
+  w4[0] = hc_swap32_S (w4[0]);
+  w4[1] = hc_swap32_S (w4[1]);
+  w4[2] = hc_swap32_S (w4[2]);
+  w4[3] = hc_swap32_S (w4[3]);
+  w5[0] = hc_swap32_S (w5[0]);
+  w5[1] = hc_swap32_S (w5[1]);
+  w5[2] = hc_swap32_S (w5[2]);
+  w5[3] = hc_swap32_S (w5[3]);
+  w6[0] = hc_swap32_S (w6[0]);
+  w6[1] = hc_swap32_S (w6[1]);
+  w6[2] = hc_swap32_S (w6[2]);
+  w6[3] = hc_swap32_S (w6[3]);
+  w7[0] = hc_swap32_S (w7[0]);
+  w7[1] = hc_swap32_S (w7[1]);
+  w7[2] = hc_swap32_S (w7[2]);
+  w7[3] = hc_swap32_S (w7[3]);
 
   sav = sha512_update_128_qnxbug (ctx, w0, w1, w2, w3, w4, w5, w6, w7, len - pos1, sav);
 
@@ -363,7 +363,7 @@ DECLSPEC void sha512_final_qnxbug (sha512_ctx_t *ctx, u32 sav)
   sha512_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->w4, ctx->w5, ctx->w6, ctx->w7, ctx->h);
 }
 
-__kernel void m19200_init (KERN_ATTR_TMPS (qnx_sha512_tmp_t))
+KERNEL_FQ void m19200_init (KERN_ATTR_TMPS (qnx_sha512_tmp_t))
 {
   /**
    * base
@@ -389,7 +389,7 @@ __kernel void m19200_init (KERN_ATTR_TMPS (qnx_sha512_tmp_t))
   tmps[gid].sav = 0;
 }
 
-__kernel void m19200_loop (KERN_ATTR_TMPS (qnx_sha512_tmp_t))
+KERNEL_FQ void m19200_loop (KERN_ATTR_TMPS (qnx_sha512_tmp_t))
 {
   /**
    * base
@@ -411,7 +411,7 @@ __kernel void m19200_loop (KERN_ATTR_TMPS (qnx_sha512_tmp_t))
   tmps[gid].sav = sav;
 }
 
-__kernel void m19200_comp (KERN_ATTR_TMPS (qnx_sha512_tmp_t))
+KERNEL_FQ void m19200_comp (KERN_ATTR_TMPS (qnx_sha512_tmp_t))
 {
   /**
    * modifier
@@ -426,14 +426,16 @@ __kernel void m19200_comp (KERN_ATTR_TMPS (qnx_sha512_tmp_t))
 
   sha512_final (&sha512_ctx);
 
-  const u32 r0 = l32_from_64_S (swap64_S (sha512_ctx.h[0]));
-  const u32 r1 = h32_from_64_S (swap64_S (sha512_ctx.h[0]));
-  const u32 r2 = l32_from_64_S (swap64_S (sha512_ctx.h[1]));
-  const u32 r3 = h32_from_64_S (swap64_S (sha512_ctx.h[1]));
+  const u32 r0 = l32_from_64_S (hc_swap64_S (sha512_ctx.h[0]));
+  const u32 r1 = h32_from_64_S (hc_swap64_S (sha512_ctx.h[0]));
+  const u32 r2 = l32_from_64_S (hc_swap64_S (sha512_ctx.h[1]));
+  const u32 r3 = h32_from_64_S (hc_swap64_S (sha512_ctx.h[1]));
 
   #define il_pos 0
 
+  #ifdef KERNEL_STATIC
   #include COMPARE_M
+  #endif
 
   // we should also handle the buggy qnx sha512 implementation
   // see https://github.com/magnumripper/JohnTheRipper/blob/bleeding-jumbo/src/sha2.c#L578-L595
@@ -445,11 +447,13 @@ __kernel void m19200_comp (KERN_ATTR_TMPS (qnx_sha512_tmp_t))
   {
     sha512_final_qnxbug (&sha512_ctx2, sav);
 
-    const u32 r0 = l32_from_64_S (swap64_S (sha512_ctx2.h[0]));
-    const u32 r1 = h32_from_64_S (swap64_S (sha512_ctx2.h[0]));
-    const u32 r2 = l32_from_64_S (swap64_S (sha512_ctx2.h[1]));
-    const u32 r3 = h32_from_64_S (swap64_S (sha512_ctx2.h[1]));
+    const u32 r0 = l32_from_64_S (hc_swap64_S (sha512_ctx2.h[0]));
+    const u32 r1 = h32_from_64_S (hc_swap64_S (sha512_ctx2.h[0]));
+    const u32 r2 = l32_from_64_S (hc_swap64_S (sha512_ctx2.h[1]));
+    const u32 r3 = h32_from_64_S (hc_swap64_S (sha512_ctx2.h[1]));
 
+    #ifdef KERNEL_STATIC
     #include COMPARE_M
+    #endif
   }
 }

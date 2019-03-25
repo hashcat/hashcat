@@ -3,12 +3,12 @@
  * License.....: MIT
  */
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_hash_sha256.cl"
+#endif
 
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
@@ -30,7 +30,7 @@ typedef struct ethereum_scrypt
 
 } ethereum_scrypt_t;
 
-DECLSPEC uint4 swap32_4 (uint4 v)
+DECLSPEC uint4 hc_swap32_4 (uint4 v)
 {
   return (rotate ((v & 0x00FF00FF), 24u) | rotate ((v & 0xFF00FF00),  8u));
 }
@@ -142,7 +142,7 @@ DECLSPEC void salsa_r (uint4 *TI)
   }
 }
 
-DECLSPEC void scrypt_smix (uint4 *X, uint4 *T, __global uint4 * restrict V0, __global uint4 * restrict V1, __global uint4 * restrict V2, __global uint4 * restrict V3)
+DECLSPEC void scrypt_smix (uint4 *X, uint4 *T, GLOBAL_AS uint4 * restrict V0, GLOBAL_AS uint4 * restrict V1, GLOBAL_AS uint4 * restrict V2, GLOBAL_AS uint4 * restrict V3)
 {
   #define Coord(xd4,y,z) (((xd4) * ySIZE * zSIZE) + ((y) * zSIZE) + (z))
   #define CO Coord(xd4,y,z)
@@ -155,7 +155,7 @@ DECLSPEC void scrypt_smix (uint4 *X, uint4 *T, __global uint4 * restrict V0, __g
   const u32 xd4 = x / 4;
   const u32 xm4 = x & 3;
 
-  __global uint4 * restrict V;
+  GLOBAL_AS uint4 * restrict V;
 
   switch (xm4)
   {
@@ -242,7 +242,7 @@ DECLSPEC void scrypt_smix (uint4 *X, uint4 *T, __global uint4 * restrict V0, __g
   u32 j = keccakf_piln[s];      \
   u32 k = keccakf_rotc[s];      \
   bc0 = st[j];                  \
-  st[j] = rotl64_S (t, k);      \
+  st[j] = hc_rotl64_S (t, k);      \
   t = bc0;                      \
 }
 
@@ -260,7 +260,7 @@ DECLSPEC void scrypt_smix (uint4 *X, uint4 *T, __global uint4 * restrict V0, __g
   st[4 + s] ^= ~bc0 & bc1;      \
 }
 
-__constant u64a keccakf_rndc[24] =
+CONSTANT_AS u64a keccakf_rndc[24] =
 {
   0x0000000000000001, 0x0000000000008082, 0x800000000000808a,
   0x8000000080008000, 0x000000000000808b, 0x0000000080000001,
@@ -304,11 +304,11 @@ DECLSPEC void keccak_transform_S (u64 *st)
 
     u64 t;
 
-    t = bc4 ^ rotl64_S (bc1, 1); Theta2 (0);
-    t = bc0 ^ rotl64_S (bc2, 1); Theta2 (1);
-    t = bc1 ^ rotl64_S (bc3, 1); Theta2 (2);
-    t = bc2 ^ rotl64_S (bc4, 1); Theta2 (3);
-    t = bc3 ^ rotl64_S (bc0, 1); Theta2 (4);
+    t = bc4 ^ hc_rotl64_S (bc1, 1); Theta2 (0);
+    t = bc0 ^ hc_rotl64_S (bc2, 1); Theta2 (1);
+    t = bc1 ^ hc_rotl64_S (bc3, 1); Theta2 (2);
+    t = bc2 ^ hc_rotl64_S (bc4, 1); Theta2 (3);
+    t = bc3 ^ hc_rotl64_S (bc0, 1); Theta2 (4);
 
     // Rho Pi
 
@@ -353,7 +353,7 @@ DECLSPEC void keccak_transform_S (u64 *st)
   }
 }
 
-__kernel void m15700_init (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, ethereum_scrypt_t))
+KERNEL_FQ void m15700_init (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, ethereum_scrypt_t))
 {
   /**
    * base
@@ -418,16 +418,16 @@ __kernel void m15700_init (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, ethereum_scrypt_t
   }
 }
 
-__kernel void m15700_loop (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, ethereum_scrypt_t))
+KERNEL_FQ void m15700_loop (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, ethereum_scrypt_t))
 {
   const u64 gid = get_global_id (0);
 
   if (gid >= gid_max) return;
 
-  __global uint4 * restrict d_scrypt0_buf = d_extra0_buf;
-  __global uint4 * restrict d_scrypt1_buf = d_extra1_buf;
-  __global uint4 * restrict d_scrypt2_buf = d_extra2_buf;
-  __global uint4 * restrict d_scrypt3_buf = d_extra3_buf;
+  GLOBAL_AS uint4 * restrict d_scrypt0_buf = d_extra0_buf;
+  GLOBAL_AS uint4 * restrict d_scrypt1_buf = d_extra1_buf;
+  GLOBAL_AS uint4 * restrict d_scrypt2_buf = d_extra2_buf;
+  GLOBAL_AS uint4 * restrict d_scrypt3_buf = d_extra3_buf;
 
   uint4 X[STATE_CNT4];
   uint4 T[STATE_CNT4];
@@ -435,28 +435,28 @@ __kernel void m15700_loop (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, ethereum_scrypt_t
   #ifdef _unroll
   #pragma unroll
   #endif
-  for (int z = 0; z < STATE_CNT4; z++) X[z] = swap32_4 (tmps[gid].P[z]);
+  for (int z = 0; z < STATE_CNT4; z++) X[z] = hc_swap32_4 (tmps[gid].P[z]);
 
   scrypt_smix (X, T, d_scrypt0_buf, d_scrypt1_buf, d_scrypt2_buf, d_scrypt3_buf);
 
   #ifdef _unroll
   #pragma unroll
   #endif
-  for (int z = 0; z < STATE_CNT4; z++) tmps[gid].P[z] = swap32_4 (X[z]);
+  for (int z = 0; z < STATE_CNT4; z++) tmps[gid].P[z] = hc_swap32_4 (X[z]);
 
   #if SCRYPT_P >= 1
   for (int i = STATE_CNT4; i < SCRYPT_CNT4; i += STATE_CNT4)
   {
-    for (int z = 0; z < STATE_CNT4; z++) X[z] = swap32_4 (tmps[gid].P[i + z]);
+    for (int z = 0; z < STATE_CNT4; z++) X[z] = hc_swap32_4 (tmps[gid].P[i + z]);
 
     scrypt_smix (X, T, d_scrypt0_buf, d_scrypt1_buf, d_scrypt2_buf, d_scrypt3_buf);
 
-    for (int z = 0; z < STATE_CNT4; z++) tmps[gid].P[i + z] = swap32_4 (X[z]);
+    for (int z = 0; z < STATE_CNT4; z++) tmps[gid].P[i + z] = hc_swap32_4 (X[z]);
   }
   #endif
 }
 
-__kernel void m15700_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, ethereum_scrypt_t))
+KERNEL_FQ void m15700_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, ethereum_scrypt_t))
 {
   /**
    * base
@@ -553,10 +553,10 @@ __kernel void m15700_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, ethereum_scrypt_t
 
   u32 key[4];
 
-  key[0] = swap32_S (ctx.opad.h[4]);
-  key[1] = swap32_S (ctx.opad.h[5]);
-  key[2] = swap32_S (ctx.opad.h[6]);
-  key[3] = swap32_S (ctx.opad.h[7]);
+  key[0] = hc_swap32_S (ctx.opad.h[4]);
+  key[1] = hc_swap32_S (ctx.opad.h[5]);
+  key[2] = hc_swap32_S (ctx.opad.h[6]);
+  key[3] = hc_swap32_S (ctx.opad.h[7]);
 
   u64 st[25];
 
@@ -603,5 +603,7 @@ __kernel void m15700_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, ethereum_scrypt_t
 
   #define il_pos 0
 
+  #ifdef KERNEL_STATIC
   #include COMPARE_M
+  #endif
 }

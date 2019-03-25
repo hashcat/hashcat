@@ -5,13 +5,13 @@
 
 #define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha1.cl"
+#endif
 
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
@@ -63,7 +63,7 @@ DECLSPEC void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipa
   sha1_transform_vector (w0, w1, w2, w3, digest);
 }
 
-__kernel void m15100_init (KERN_ATTR_TMPS (pbkdf1_sha1_tmp_t))
+KERNEL_FQ void m15100_init (KERN_ATTR_TMPS (pbkdf1_sha1_tmp_t))
 {
   /**
    * base
@@ -100,7 +100,7 @@ __kernel void m15100_init (KERN_ATTR_TMPS (pbkdf1_sha1_tmp_t))
   tmps[gid].out[4] = sha1_hmac_ctx.opad.h[4];
 }
 
-__kernel void m15100_loop (KERN_ATTR_TMPS (pbkdf1_sha1_tmp_t))
+KERNEL_FQ void m15100_loop (KERN_ATTR_TMPS (pbkdf1_sha1_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -163,7 +163,7 @@ __kernel void m15100_loop (KERN_ATTR_TMPS (pbkdf1_sha1_tmp_t))
   unpackv (tmps, out, gid, 4, out[4]);
 }
 
-__kernel void m15100_comp (KERN_ATTR_TMPS (pbkdf1_sha1_tmp_t))
+KERNEL_FQ void m15100_comp (KERN_ATTR_TMPS (pbkdf1_sha1_tmp_t))
 {
   /**
    * base
@@ -182,5 +182,7 @@ __kernel void m15100_comp (KERN_ATTR_TMPS (pbkdf1_sha1_tmp_t))
 
   #define il_pos 0
 
+  #ifdef KERNEL_STATIC
   #include COMPARE_M
+  #endif
 }
