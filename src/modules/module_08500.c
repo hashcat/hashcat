@@ -9,7 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
-#include "cpu_des.h"
+#include "emu_inc_cipher_des.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;

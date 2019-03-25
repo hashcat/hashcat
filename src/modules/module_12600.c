@@ -9,7 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
-#include "cpu_sha256.h"
+#include "emu_inc_hash_sha256.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 3;
@@ -138,7 +138,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u32 pc256[8] = { SHA256M_A, SHA256M_B, SHA256M_C, SHA256M_D, SHA256M_E, SHA256M_F, SHA256M_G, SHA256M_H };
 
-  sha256_64 (w, pc256);
+  sha256_transform (w + 0, w + 4, w + 8, w + 12, pc256);
 
   salt->salt_buf_pc[0] = pc256[0];
   salt->salt_buf_pc[1] = pc256[1];

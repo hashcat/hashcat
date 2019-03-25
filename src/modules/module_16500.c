@@ -9,7 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
-#include "cpu_md5.h"
+#include "emu_inc_hash_md5.h"
 #include "memory.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -192,7 +192,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     {
       block[j] = jwt->salt_buf[i + j];
 
-      md5_64 (block, hash);
+      md5_transform (block + 0, block + 4, block + 8, block + 12, hash);
     }
   }
 

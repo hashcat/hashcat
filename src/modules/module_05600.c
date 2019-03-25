@@ -9,8 +9,8 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
-#include "cpu_des.h"
-#include "cpu_md5.h"
+#include "emu_inc_cipher_des.h"
+#include "emu_inc_hash_md5.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -214,14 +214,14 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (u32 i = 0; i < 64; i += 16, uptr += 16)
   {
-    md5_64 (uptr, salt->salt_buf);
+    md5_transform (uptr + 0, uptr + 4, uptr + 8, uptr + 12, salt->salt_buf);
   }
 
   uptr = (u32 *) netntlm->chall_buf;
 
   for (u32 i = 0; i < 256; i += 16, uptr += 16)
   {
-    md5_64 (uptr, salt->salt_buf);
+    md5_transform (uptr + 0, uptr + 4, uptr + 8, uptr + 12, salt->salt_buf);
   }
 
   salt->salt_len = 16;

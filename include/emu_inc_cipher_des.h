@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _EMU_INC_HASH_SHA1_H
-#define _EMU_INC_HASH_SHA1_H
+#ifndef _EMU_INC_CIPHER_DES_H
+#define _EMU_INC_CIPHER_DES_H
 
 #include "emu_general.h"
 
@@ -14,8 +14,8 @@
 #pragma GCC diagnostic ignored "-Wunknown-pragmas"
 
 #include "inc_vendor.h"
-#include "inc_hash_sha1.h"
+#include "inc_cipher_des.h"
 
 #pragma GCC diagnostic pop
 
-#endif // _EMU_INC_HASH_SHA1_H
+#endif // _EMU_INC_CIPHER_DES_H

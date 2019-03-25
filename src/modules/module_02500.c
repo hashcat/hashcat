@@ -10,7 +10,7 @@
 #include "convert.h"
 #include "shared.h"
 #include "memory.h"
-#include "cpu_md5.h"
+#include "emu_inc_hash_md5.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -651,48 +651,48 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (int i = 0; i < 16; i++) block[i] = salt->salt_buf[i];
 
-  md5_64 (block, hash);
+  md5_transform (block + 0, block + 4, block + 8, block + 12, hash);
 
   for (int i = 0; i < 16; i++) block[i] = wpa_eapol->pke[i +  0];
 
-  md5_64 (block, hash);
+  md5_transform (block + 0, block + 4, block + 8, block + 12, hash);
 
   for (int i = 0; i < 16; i++) block[i] = wpa_eapol->pke[i + 16];
 
-  md5_64 (block, hash);
+  md5_transform (block + 0, block + 4, block + 8, block + 12, hash);
 
   for (int i = 0; i < 16; i++) block[i] = wpa_eapol->eapol[i +  0];
 
-  md5_64 (block, hash);
+  md5_transform (block + 0, block + 4, block + 8, block + 12, hash);
 
   for (int i = 0; i < 16; i++) block[i] = wpa_eapol->eapol[i + 16];
 
-  md5_64 (block, hash);
+  md5_transform (block + 0, block + 4, block + 8, block + 12, hash);
 
   for (int i = 0; i < 16; i++) block[i] = wpa_eapol->eapol[i + 32];
 
-  md5_64 (block, hash);
+  md5_transform (block + 0, block + 4, block + 8, block + 12, hash);
 
   for (int i = 0; i < 16; i++) block[i] = wpa_eapol->eapol[i + 48];
 
-  md5_64 (block, hash);
+  md5_transform (block + 0, block + 4, block + 8, block + 12, hash);
 
   for (int i = 0; i <  6; i++) block_ptr[i + 0] = wpa_eapol->orig_mac_ap[i];
   for (int i = 0; i <  6; i++) block_ptr[i + 6] = wpa_eapol->orig_mac_sta[i];
 
-  md5_64 (block, hash);
+  md5_transform (block + 0, block + 4, block + 8, block + 12, hash);
 
   for (int i = 0; i < 32; i++) block_ptr[i +  0] = wpa_eapol->orig_nonce_ap[i];
   for (int i = 0; i < 32; i++) block_ptr[i + 32] = wpa_eapol->orig_nonce_sta[i];
 
-  md5_64 (block, hash);
+  md5_transform (block + 0, block + 4, block + 8, block + 12, hash);
 
   block[0] = wpa_eapol->keymic[0];
   block[1] = wpa_eapol->keymic[1];
   block[2] = wpa_eapol->keymic[2];
   block[3] = wpa_eapol->keymic[3];
 
-  md5_64 (block, hash);
+  md5_transform (block + 0, block + 4, block + 8, block + 12, hash);
 
   wpa_eapol->hash[0] = hash[0];
   wpa_eapol->hash[1] = hash[1];

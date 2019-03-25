@@ -9,8 +9,8 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
-#include "cpu_des.h"
-#include "cpu_md5.h"
+#include "emu_inc_cipher_des.h"
+#include "emu_inc_hash_md5.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -246,7 +246,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
       dgst[2] = MD5M_C;
       dgst[3] = MD5M_D;
 
-      md5_64 (w, dgst);
+      md5_transform (w + 0, w + 4, w + 8, w + 12, dgst);
 
       salt->salt_buf[0] = dgst[0];
       salt->salt_buf[1] = dgst[1];
@@ -265,11 +265,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     u32 Kc[16] = { 0 };
     u32 Kd[16] = { 0 };
 
-    _des_keysetup (key_des, Kc, Kd);
+    _des_crypt_keysetup (key_des[0], key_des[1], Kc, Kd, (u32 (*)[64]) c_skb);
 
     u32 data3[2] = { salt->salt_buf[0], salt->salt_buf[1] };
 
-    _des_encrypt (data3, Kc, Kd);
+    _des_crypt_encrypt (data3, data3, Kc, Kd, (u32 (*)[64]) c_SPtrans);
 
     if (data3[0] != digest_tmp[0]) continue;
     if (data3[1] != digest_tmp[1]) continue;

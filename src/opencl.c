@@ -22,7 +22,7 @@
 #include "wordlist.h"
 #include "shared.h"
 #include "hashes.h"
-#include "cpu_md5.h"
+#include "emu_inc_hash_md5.h"
 #include "event.h"
 #include "dynloader.h"
 #include "opencl.h"
@@ -4902,20 +4902,28 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     const size_t dnclen        = snprintf (device_name_chksum,        HCBUFSIZ_TINY, "%u-%u-%s-%s-%s-%d-%u-%u", device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, opencl_ctx->comptime, user_options->opencl_vector_width, hashconfig->hash_mode);
     const size_t dnclen_amp_mp = snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%u-%s-%s-%s-%d",          device_param->platform_vendor_id,                             device_param->device_name, device_param->device_version, device_param->driver_version, opencl_ctx->comptime);
 
+    u32 *device_name_chksum32 = (u32 *) device_name_chksum;
+
     u32 device_name_digest[4] = { 0 };
 
     for (size_t i = 0; i < dnclen; i += 64)
     {
-      md5_64 ((u32 *) (device_name_chksum + i), device_name_digest);
+      md5_transform (device_name_chksum32 + 0, device_name_chksum32 + 4, device_name_chksum32 + 8, device_name_chksum32 + 12, device_name_digest);
+
+      device_name_chksum32 += 16;
     }
 
     snprintf (device_name_chksum, HCBUFSIZ_TINY, "%08x", device_name_digest[0]);
+
+    u32 *device_name_chksum_amp_mp32 = (u32 *) device_name_chksum;
 
     u32 device_name_digest_amp_mp[4] = { 0 };
 
     for (size_t i = 0; i < dnclen_amp_mp; i += 64)
     {
-      md5_64 ((u32 *) (device_name_chksum_amp_mp + i), device_name_digest_amp_mp);
+      md5_transform (device_name_chksum_amp_mp32 + 0, device_name_chksum_amp_mp32 + 4, device_name_chksum_amp_mp32 + 8, device_name_chksum_amp_mp32 + 12, device_name_digest_amp_mp);
+
+      device_name_chksum_amp_mp32 += 16;
     }
 
     snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%08x", device_name_digest_amp_mp[0]);

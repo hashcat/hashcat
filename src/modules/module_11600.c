@@ -10,7 +10,7 @@
 #include "convert.h"
 #include "shared.h"
 #include "memory.h"
-#include "cpu_aes.h"
+#include "emu_inc_cipher_aes.h"
 #include "cpu_crc32.h"
 #include "ext_lzma.h"
 
@@ -110,7 +110,7 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_salts_buf,
 
     seven_zip_hook_t *hook_item = &hook_items[pw_pos];
 
-    const u8 *ukey = (const u8 *) hook_item->ukey;
+    const u32 *ukey = (const u32 *) hook_item->ukey;
 
     // init AES
 
@@ -118,13 +118,13 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_salts_buf,
 
     memset (&aes_key, 0, sizeof (aes_key));
 
-    AES_set_decrypt_key (ukey, 256, &aes_key);
+    aes256_set_decrypt_key (aes_key.rdk, ukey, (u32 *) te0, (u32 *) te1, (u32 *) te2, (u32 *) te3, (u32 *) te4, (u32 *) td0, (u32 *) td1, (u32 *) td2, (u32 *) td3, (u32 *) td4);
 
     int aes_len = seven_zip->aes_len;
 
     u32 data[4];
-    u32 out [4];
-    u32 iv  [4];
+    u32 out[4];
+    u32 iv[4];
 
     iv[0] = seven_zip->iv_buf[0];
     iv[1] = seven_zip->iv_buf[1];
@@ -145,7 +145,7 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_salts_buf,
       data[2] = data_buf[j + 2];
       data[3] = data_buf[j + 3];
 
-      AES_decrypt (&aes_key, (u8*) data, (u8*) out);
+      aes256_decrypt (aes_key.rdk, data, out, (u32 *) td0, (u32 *) td1, (u32 *) td2, (u32 *) td3, (u32 *) td4);
 
       out[0] ^= iv[0];
       out[1] ^= iv[1];
@@ -170,7 +170,7 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_salts_buf,
     data[2] = data_buf[j + 2];
     data[3] = data_buf[j + 3];
 
-    AES_decrypt (&aes_key, (u8*) data, (u8*) out);
+    aes256_decrypt (aes_key.rdk, data, out, (u32 *) td0, (u32 *) td1, (u32 *) td2, (u32 *) td3, (u32 *) td4);
 
     out[0] ^= iv[0];
     out[1] ^= iv[1];

@@ -9,7 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
-#include "cpu_md5.h"
+#include "emu_inc_hash_md5.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -54,6 +54,72 @@ typedef struct sip
 } sip_t;
 
 static const char *SIGNATURE_SIP_AUTH = "$sip$";
+
+static void md5_complete_no_limit (u32 digest[4], const u32 *plain, const u32 plain_len)
+{
+  digest[0] = MD5M_A;
+  digest[1] = MD5M_B;
+  digest[2] = MD5M_C;
+  digest[3] = MD5M_D;
+
+  int block_total_len = 16 * 4; // sizeof (block)
+
+  u8 *plain_ptr = (u8 *) plain;
+
+  // init
+
+  int remaining_len = (int) plain_len;
+
+  // loop
+
+  u32 loop = 1;
+
+  while (loop)
+  {
+    loop = (remaining_len > 55);
+
+    int cur_len  = MIN (block_total_len, remaining_len);
+    int copy_len = MAX (cur_len, 0);  // should never be negative of course
+
+    // initialize the block
+
+    u32 block[16] = { 0 };
+
+    // copy the bytes from the plain pointer (plain_ptr)
+
+    memcpy (block, plain, (size_t) copy_len);
+
+    /*
+     * final block
+     */
+
+    // set 0x80 if needed
+
+    if (cur_len >= 0)
+    {
+      if (copy_len < block_total_len)
+      {
+        u8 *block_ptr = (u8 *) block;
+
+        block_ptr[copy_len] = 0x80;
+      }
+    }
+
+    // set block[14] set to total_len
+
+    if (! loop) block[14] = plain_len * 8;
+
+    /*
+     * md5 ()
+     */
+
+    md5_transform (block + 0, block + 4, block + 8, block + 12, digest);
+
+    remaining_len -= block_total_len;
+
+    plain_ptr += 64;
+  }
+}
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
