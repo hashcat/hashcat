@@ -277,14 +277,9 @@ endif # MSYS2
 ## Objects
 ##
 
-#missing:
-#-rw-r--r-- 1 root root 440 Mar 23 22:08 src/emu_inc_truecrypt_crc32.c
-#-rw-r--r-- 1 root root 442 Mar 23 22:09 src/emu_inc_truecrypt_keyfile.c
-#-rw-r--r-- 1 root root 438 Mar 23 22:10 src/emu_inc_truecrypt_xts.c
-#-rw-r--r-- 1 root root 432 Mar 22 23:07 src/emu_m02501_pure.c
-
 EMU_OBJS_ALL            := emu_general emu_inc_common emu_inc_scalar emu_inc_simd
-EMU_OBJS_ALL            += emu_inc_rp emu_inc_rp_optimized
+EMU_OBJS_ALL            += emu_inc_rp emu_inc_rp_optimized 
+EMU_OBJS_ALL            += emu_inc_truecrypt_crc32 emu_inc_truecrypt_keyfile emu_inc_truecrypt_xts emu_inc_veracrypt_xts
 EMU_OBJS_ALL            += emu_inc_hash_md4 emu_inc_hash_md5 emu_inc_hash_ripemd160 emu_inc_hash_sha1 emu_inc_hash_sha256 emu_inc_hash_sha384 emu_inc_hash_sha512 emu_inc_hash_streebog256 emu_inc_hash_streebog512
 EMU_OBJS_ALL            += emu_inc_cipher_aes emu_inc_cipher_camellia emu_inc_cipher_des emu_inc_cipher_kuznyechik emu_inc_cipher_serpent emu_inc_cipher_twofish
 
