@@ -6,10 +6,17 @@
 #ifndef _INC_TYPES_H
 #define _INC_TYPES_H
 
+#ifdef KERNEL_STATIC
 typedef uchar  u8;
 typedef ushort u16;
 typedef uint   u32;
 typedef ulong  u64;
+#else
+typedef uint8_t  u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
+#endif
 
 //testwise disabled
 //typedef u8  u8a  __attribute__ ((aligned (8)));
@@ -30,11 +37,12 @@ typedef u64 u64a;
 #define CONCAT(a, b)       a##b
 #define VTYPE(type, width) CONCAT(type, width)
 
+// emulated is always VECT_SIZE = 1
 #if VECT_SIZE == 1
-typedef uchar   u8x;
-typedef ushort  u16x;
-typedef uint    u32x;
-typedef ulong   u64x;
+typedef u8   u8x;
+typedef u16  u16x;
+typedef u32  u32x;
+typedef u64  u64x;
 #else
 typedef VTYPE(uchar,  VECT_SIZE)  u8x;
 typedef VTYPE(ushort, VECT_SIZE) u16x;

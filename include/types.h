@@ -46,10 +46,10 @@ typedef int64_t i64;
 
 // import types from opencl
 
-typedef uint8_t  uchar;
-typedef uint16_t ushort;
-typedef uint32_t uint;
-typedef uint64_t ulong;
+//typedef uint8_t  uchar;
+//typedef uint16_t ushort;
+//typedef uint32_t uint;
+//typedef uint64_t ulong;
 
 #include "inc_types.h"
 
