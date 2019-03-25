@@ -555,7 +555,7 @@ DECLSPEC void whirlpool_update_utf16le_swap (whirlpool_ctx_t *ctx, const u32 *w,
   whirlpool_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-DECLSPEC void whirlpool_update_global (whirlpool_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len)
+DECLSPEC void whirlpool_update_global (whirlpool_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -607,7 +607,7 @@ DECLSPEC void whirlpool_update_global (whirlpool_ctx_t *ctx, const GLOBAL_AS u32
   whirlpool_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-DECLSPEC void whirlpool_update_global_swap (whirlpool_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len)
+DECLSPEC void whirlpool_update_global_swap (whirlpool_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -693,7 +693,7 @@ DECLSPEC void whirlpool_update_global_swap (whirlpool_ctx_t *ctx, const GLOBAL_A
   whirlpool_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-DECLSPEC void whirlpool_update_global_utf16le (whirlpool_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len)
+DECLSPEC void whirlpool_update_global_utf16le (whirlpool_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -735,7 +735,7 @@ DECLSPEC void whirlpool_update_global_utf16le (whirlpool_ctx_t *ctx, const GLOBA
   whirlpool_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-DECLSPEC void whirlpool_update_global_utf16le_swap (whirlpool_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len)
+DECLSPEC void whirlpool_update_global_utf16le_swap (whirlpool_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1154,22 +1154,22 @@ DECLSPEC void whirlpool_hmac_update_utf16le_swap (whirlpool_hmac_ctx_t *ctx, con
   whirlpool_update_utf16le_swap (&ctx->ipad, w, len);
 }
 
-DECLSPEC void whirlpool_hmac_update_global (whirlpool_hmac_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len)
+DECLSPEC void whirlpool_hmac_update_global (whirlpool_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   whirlpool_update_global (&ctx->ipad, w, len);
 }
 
-DECLSPEC void whirlpool_hmac_update_global_swap (whirlpool_hmac_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len)
+DECLSPEC void whirlpool_hmac_update_global_swap (whirlpool_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   whirlpool_update_global_swap (&ctx->ipad, w, len);
 }
 
-DECLSPEC void whirlpool_hmac_update_global_utf16le (whirlpool_hmac_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len)
+DECLSPEC void whirlpool_hmac_update_global_utf16le (whirlpool_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   whirlpool_update_global_utf16le (&ctx->ipad, w, len);
 }
 
-DECLSPEC void whirlpool_hmac_update_global_utf16le_swap (whirlpool_hmac_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len)
+DECLSPEC void whirlpool_hmac_update_global_utf16le_swap (whirlpool_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   whirlpool_update_global_utf16le_swap (&ctx->ipad, w, len);
 }

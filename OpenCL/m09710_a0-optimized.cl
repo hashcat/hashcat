@@ -210,7 +210,7 @@ KERNEL_FQ void m09710_m04 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
     u32x w2[4] = { 0 };
     u32x w3[4] = { 0 };
 
-    apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+    apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     /**
      * md5
@@ -362,7 +362,7 @@ KERNEL_FQ void m09710_s04 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
     u32x w2[4] = { 0 };
     u32x w3[4] = { 0 };
 
-    apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+    apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     /**
      * md5

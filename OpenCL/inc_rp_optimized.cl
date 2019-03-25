@@ -12,7 +12,7 @@
 #define MAYBE_UNUSED
 #endif
 
-DECLSPEC u32 generate_cmask (const u32 value)
+DECLSPEC u32 generate_cmask_optimized (const u32 value)
 {
   const u32 rmask =  ((value & 0x40404040u) >> 1u)
                   & ~((value & 0x80808080u) >> 2u);
@@ -23,7 +23,7 @@ DECLSPEC u32 generate_cmask (const u32 value)
   return rmask & ~hmask & lmask;
 }
 
-DECLSPEC void truncate_right (u32 *buf0, u32 *buf1, const u32 offset)
+DECLSPEC void truncate_right_optimized (u32 *buf0, u32 *buf1, const u32 offset)
 {
   const u32 tmp = (1u << ((offset & 3u) * 8u)) - 1u;
 
@@ -82,7 +82,7 @@ DECLSPEC void truncate_right (u32 *buf0, u32 *buf1, const u32 offset)
   }
 }
 
-DECLSPEC void truncate_left (u32 *buf0, u32 *buf1, const u32 offset)
+DECLSPEC void truncate_left_optimized (u32 *buf0, u32 *buf1, const u32 offset)
 {
   const u32 tmp = ~((1u << ((offset & 3u) * 8u)) - 1u);
 
@@ -141,7 +141,7 @@ DECLSPEC void truncate_left (u32 *buf0, u32 *buf1, const u32 offset)
   }
 }
 
-DECLSPEC void lshift_block (const u32 *in0, const u32 *in1, u32 *out0, u32 *out1)
+DECLSPEC void lshift_block_optimized (const u32 *in0, const u32 *in1, u32 *out0, u32 *out1)
 {
   out0[0] = hc_bytealign_S (in0[1], in0[0], 1);
   out0[1] = hc_bytealign_S (in0[2], in0[1], 1);
@@ -153,7 +153,7 @@ DECLSPEC void lshift_block (const u32 *in0, const u32 *in1, u32 *out0, u32 *out1
   out1[3] = hc_bytealign_S (     0, in1[3], 1);
 }
 
-DECLSPEC void rshift_block (const u32 *in0, const u32 *in1, u32 *out0, u32 *out1)
+DECLSPEC void rshift_block_optimized (const u32 *in0, const u32 *in1, u32 *out0, u32 *out1)
 {
   out1[3] = hc_bytealign_S (in1[3], in1[2], 3);
   out1[2] = hc_bytealign_S (in1[2], in1[1], 3);
@@ -165,7 +165,7 @@ DECLSPEC void rshift_block (const u32 *in0, const u32 *in1, u32 *out0, u32 *out1
   out0[0] = hc_bytealign_S (in0[0],      0, 3);
 }
 
-DECLSPEC void lshift_block_N (const u32 *in0, const u32 *in1, u32 *out0, u32 *out1, const u32 num)
+DECLSPEC void lshift_block_optimized_N (const u32 *in0, const u32 *in1, u32 *out0, u32 *out1, const u32 num)
 {
   switch (num)
   {
@@ -460,7 +460,7 @@ DECLSPEC void lshift_block_N (const u32 *in0, const u32 *in1, u32 *out0, u32 *ou
   }
 }
 
-DECLSPEC void rshift_block_N (const u32 *in0, const u32 *in1, u32 *out0, u32 *out1, const u32 num)
+DECLSPEC void rshift_block_optimized_N (const u32 *in0, const u32 *in1, u32 *out0, u32 *out1, const u32 num)
 {
   switch (num)
   {
@@ -755,7 +755,7 @@ DECLSPEC void rshift_block_N (const u32 *in0, const u32 *in1, u32 *out0, u32 *ou
   }
 }
 
-DECLSPEC void append_block1 (const u32 offset, u32 *buf0, u32 *buf1, const u32 src_r0)
+DECLSPEC void append_block1_optimized (const u32 offset, u32 *buf0, u32 *buf1, const u32 src_r0)
 {
   // this version works with 1 byte append only
   const u32 value = src_r0 & 0xff;
@@ -775,7 +775,7 @@ DECLSPEC void append_block1 (const u32 offset, u32 *buf0, u32 *buf1, const u32 s
   append_helper_1x4_S (buf1, ((offset16 == 1) ? tmp : 0), v);
 }
 
-DECLSPEC void append_block8 (const u32 offset, u32 *buf0, u32 *buf1, const u32 *src_l0, const u32 *src_l1, const u32 *src_r0, const u32 *src_r1)
+DECLSPEC void append_block8_optimized (const u32 offset, u32 *buf0, u32 *buf1, const u32 *src_l0, const u32 *src_l1, const u32 *src_r0, const u32 *src_r1)
 {
   u32 s0 = 0;
   u32 s1 = 0;
@@ -1030,9 +1030,9 @@ DECLSPEC void append_block8 (const u32 offset, u32 *buf0, u32 *buf1, const u32 *
   buf1[3] = src_l1[3] | s7;
 }
 
-DECLSPEC void reverse_block (u32 *in0, u32 *in1, u32 *out0, u32 *out1, const u32 len)
+DECLSPEC void reverse_block_optimized (u32 *in0, u32 *in1, u32 *out0, u32 *out1, const u32 len)
 {
-  rshift_block_N (in0, in1, out0, out1, 32 - len);
+  rshift_block_optimized_N (in0, in1, out0, out1, 32 - len);
 
   u32 tib40[4];
   u32 tib41[4];
@@ -1056,7 +1056,7 @@ DECLSPEC void reverse_block (u32 *in0, u32 *in1, u32 *out0, u32 *out1, const u32
   out1[3] = hc_swap32_S (tib41[3]);
 }
 
-DECLSPEC void exchange_byte (u32 *buf, const int off_src, const int off_dst)
+DECLSPEC void exchange_byte_optimized (u32 *buf, const int off_src, const int off_dst)
 {
   u8 *ptr = (u8 *) buf;
 
@@ -1070,14 +1070,14 @@ DECLSPEC u32 rule_op_mangle_lrest (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const
 {
   u32 t;
 
-  t = buf0[0]; buf0[0] = t | generate_cmask (t);
-  t = buf0[1]; buf0[1] = t | generate_cmask (t);
-  t = buf0[2]; buf0[2] = t | generate_cmask (t);
-  t = buf0[3]; buf0[3] = t | generate_cmask (t);
-  t = buf1[0]; buf1[0] = t | generate_cmask (t);
-  t = buf1[1]; buf1[1] = t | generate_cmask (t);
-  t = buf1[2]; buf1[2] = t | generate_cmask (t);
-  t = buf1[3]; buf1[3] = t | generate_cmask (t);
+  t = buf0[0]; buf0[0] = t | generate_cmask_optimized (t);
+  t = buf0[1]; buf0[1] = t | generate_cmask_optimized (t);
+  t = buf0[2]; buf0[2] = t | generate_cmask_optimized (t);
+  t = buf0[3]; buf0[3] = t | generate_cmask_optimized (t);
+  t = buf1[0]; buf1[0] = t | generate_cmask_optimized (t);
+  t = buf1[1]; buf1[1] = t | generate_cmask_optimized (t);
+  t = buf1[2]; buf1[2] = t | generate_cmask_optimized (t);
+  t = buf1[3]; buf1[3] = t | generate_cmask_optimized (t);
 
   return in_len;
 }
@@ -1086,14 +1086,14 @@ DECLSPEC u32 rule_op_mangle_urest (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const
 {
   u32 t;
 
-  t = buf0[0]; buf0[0] = t & ~(generate_cmask (t));
-  t = buf0[1]; buf0[1] = t & ~(generate_cmask (t));
-  t = buf0[2]; buf0[2] = t & ~(generate_cmask (t));
-  t = buf0[3]; buf0[3] = t & ~(generate_cmask (t));
-  t = buf1[0]; buf1[0] = t & ~(generate_cmask (t));
-  t = buf1[1]; buf1[1] = t & ~(generate_cmask (t));
-  t = buf1[2]; buf1[2] = t & ~(generate_cmask (t));
-  t = buf1[3]; buf1[3] = t & ~(generate_cmask (t));
+  t = buf0[0]; buf0[0] = t & ~(generate_cmask_optimized (t));
+  t = buf0[1]; buf0[1] = t & ~(generate_cmask_optimized (t));
+  t = buf0[2]; buf0[2] = t & ~(generate_cmask_optimized (t));
+  t = buf0[3]; buf0[3] = t & ~(generate_cmask_optimized (t));
+  t = buf1[0]; buf1[0] = t & ~(generate_cmask_optimized (t));
+  t = buf1[1]; buf1[1] = t & ~(generate_cmask_optimized (t));
+  t = buf1[2]; buf1[2] = t & ~(generate_cmask_optimized (t));
+  t = buf1[3]; buf1[3] = t & ~(generate_cmask_optimized (t));
 
   return in_len;
 }
@@ -1102,16 +1102,16 @@ DECLSPEC u32 rule_op_mangle_lrest_ufirst (MAYBE_UNUSED const u32 p0, MAYBE_UNUSE
 {
   u32 t;
 
-  t = buf0[0]; buf0[0] = t | generate_cmask (t);
-  t = buf0[1]; buf0[1] = t | generate_cmask (t);
-  t = buf0[2]; buf0[2] = t | generate_cmask (t);
-  t = buf0[3]; buf0[3] = t | generate_cmask (t);
-  t = buf1[0]; buf1[0] = t | generate_cmask (t);
-  t = buf1[1]; buf1[1] = t | generate_cmask (t);
-  t = buf1[2]; buf1[2] = t | generate_cmask (t);
-  t = buf1[3]; buf1[3] = t | generate_cmask (t);
+  t = buf0[0]; buf0[0] = t | generate_cmask_optimized (t);
+  t = buf0[1]; buf0[1] = t | generate_cmask_optimized (t);
+  t = buf0[2]; buf0[2] = t | generate_cmask_optimized (t);
+  t = buf0[3]; buf0[3] = t | generate_cmask_optimized (t);
+  t = buf1[0]; buf1[0] = t | generate_cmask_optimized (t);
+  t = buf1[1]; buf1[1] = t | generate_cmask_optimized (t);
+  t = buf1[2]; buf1[2] = t | generate_cmask_optimized (t);
+  t = buf1[3]; buf1[3] = t | generate_cmask_optimized (t);
 
-  t = buf0[0]; buf0[0] = t & ~(0x00000020 & generate_cmask (t));
+  t = buf0[0]; buf0[0] = t & ~(0x00000020 & generate_cmask_optimized (t));
 
   return in_len;
 }
@@ -1120,16 +1120,16 @@ DECLSPEC u32 rule_op_mangle_urest_lfirst (MAYBE_UNUSED const u32 p0, MAYBE_UNUSE
 {
   u32 t;
 
-  t = buf0[0]; buf0[0] = t & ~(generate_cmask (t));
-  t = buf0[1]; buf0[1] = t & ~(generate_cmask (t));
-  t = buf0[2]; buf0[2] = t & ~(generate_cmask (t));
-  t = buf0[3]; buf0[3] = t & ~(generate_cmask (t));
-  t = buf1[0]; buf1[0] = t & ~(generate_cmask (t));
-  t = buf1[1]; buf1[1] = t & ~(generate_cmask (t));
-  t = buf1[2]; buf1[2] = t & ~(generate_cmask (t));
-  t = buf1[3]; buf1[3] = t & ~(generate_cmask (t));
+  t = buf0[0]; buf0[0] = t & ~(generate_cmask_optimized (t));
+  t = buf0[1]; buf0[1] = t & ~(generate_cmask_optimized (t));
+  t = buf0[2]; buf0[2] = t & ~(generate_cmask_optimized (t));
+  t = buf0[3]; buf0[3] = t & ~(generate_cmask_optimized (t));
+  t = buf1[0]; buf1[0] = t & ~(generate_cmask_optimized (t));
+  t = buf1[1]; buf1[1] = t & ~(generate_cmask_optimized (t));
+  t = buf1[2]; buf1[2] = t & ~(generate_cmask_optimized (t));
+  t = buf1[3]; buf1[3] = t & ~(generate_cmask_optimized (t));
 
-  t = buf0[0]; buf0[0] = t | (0x00000020 & generate_cmask (t));
+  t = buf0[0]; buf0[0] = t | (0x00000020 & generate_cmask_optimized (t));
 
   return in_len;
 }
@@ -1138,14 +1138,14 @@ DECLSPEC u32 rule_op_mangle_trest (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const
 {
   u32 t;
 
-  t = buf0[0]; buf0[0] = t ^ generate_cmask (t);
-  t = buf0[1]; buf0[1] = t ^ generate_cmask (t);
-  t = buf0[2]; buf0[2] = t ^ generate_cmask (t);
-  t = buf0[3]; buf0[3] = t ^ generate_cmask (t);
-  t = buf1[0]; buf1[0] = t ^ generate_cmask (t);
-  t = buf1[1]; buf1[1] = t ^ generate_cmask (t);
-  t = buf1[2]; buf1[2] = t ^ generate_cmask (t);
-  t = buf1[3]; buf1[3] = t ^ generate_cmask (t);
+  t = buf0[0]; buf0[0] = t ^ generate_cmask_optimized (t);
+  t = buf0[1]; buf0[1] = t ^ generate_cmask_optimized (t);
+  t = buf0[2]; buf0[2] = t ^ generate_cmask_optimized (t);
+  t = buf0[3]; buf0[3] = t ^ generate_cmask_optimized (t);
+  t = buf1[0]; buf1[0] = t ^ generate_cmask_optimized (t);
+  t = buf1[1]; buf1[1] = t ^ generate_cmask_optimized (t);
+  t = buf1[2]; buf1[2] = t ^ generate_cmask_optimized (t);
+  t = buf1[3]; buf1[3] = t ^ generate_cmask_optimized (t);
 
   return in_len;
 }
@@ -1169,7 +1169,7 @@ DECLSPEC u32 rule_op_mangle_toggle_at (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED c
 
   const u32 m = 0x20u << ((p0 & 3) * 8);
 
-  t[p0 / 4] = tmp ^ (m & generate_cmask (tmp));
+  t[p0 / 4] = tmp ^ (m & generate_cmask_optimized (tmp));
 
   buf0[0] = t[0];
   buf0[1] = t[1];
@@ -1185,7 +1185,7 @@ DECLSPEC u32 rule_op_mangle_toggle_at (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED c
 
 DECLSPEC u32 rule_op_mangle_reverse (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 *buf0, MAYBE_UNUSED u32 *buf1, const u32 in_len)
 {
-  reverse_block (buf0, buf1, buf0, buf1, in_len);
+  reverse_block_optimized (buf0, buf1, buf0, buf1, in_len);
 
   return in_len;
 }
@@ -1196,7 +1196,7 @@ DECLSPEC u32 rule_op_mangle_dupeword (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED co
 
   u32 out_len = in_len;
 
-  append_block8 (out_len, buf0, buf1, buf0, buf1, buf0, buf1);
+  append_block8_optimized (out_len, buf0, buf1, buf0, buf1, buf0, buf1);
 
   out_len += in_len;
 
@@ -1223,7 +1223,7 @@ DECLSPEC u32 rule_op_mangle_dupeword_times (MAYBE_UNUSED const u32 p0, MAYBE_UNU
 
   for (u32 i = 0; i < p0; i++)
   {
-    append_block8 (out_len, buf0, buf1, buf0, buf1, tib40, tib41);
+    append_block8_optimized (out_len, buf0, buf1, buf0, buf1, tib40, tib41);
 
     out_len += in_len;
   }
@@ -1240,9 +1240,9 @@ DECLSPEC u32 rule_op_mangle_reflect (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED con
   u32 tib40[4] = { 0 };
   u32 tib41[4] = { 0 };
 
-  reverse_block (buf0, buf1, tib40, tib41, out_len);
+  reverse_block_optimized (buf0, buf1, tib40, tib41, out_len);
 
-  append_block8 (out_len, buf0, buf1, buf0, buf1, tib40, tib41);
+  append_block8_optimized (out_len, buf0, buf1, buf0, buf1, tib40, tib41);
 
   out_len += in_len;
 
@@ -1255,7 +1255,7 @@ DECLSPEC u32 rule_op_mangle_append (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED cons
 
   u32 out_len = in_len;
 
-  append_block1 (out_len, buf0, buf1, p0);
+  append_block1_optimized (out_len, buf0, buf1, p0);
 
   out_len++;
 
@@ -1268,7 +1268,7 @@ DECLSPEC u32 rule_op_mangle_prepend (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED con
 
   u32 out_len = in_len;
 
-  rshift_block (buf0, buf1, buf0, buf1);
+  rshift_block_optimized (buf0, buf1, buf0, buf1);
 
   buf0[0] = buf0[0] | p0;
 
@@ -1285,9 +1285,9 @@ DECLSPEC u32 rule_op_mangle_rotate_left (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED
 
   const u32 tmp = buf0[0];
 
-  lshift_block (buf0, buf1, buf0, buf1);
+  lshift_block_optimized (buf0, buf1, buf0, buf1);
 
-  append_block1 (in_len1, buf0, buf1, tmp);
+  append_block1_optimized (in_len1, buf0, buf1, tmp);
 
   return in_len;
 }
@@ -1325,11 +1325,11 @@ DECLSPEC u32 rule_op_mangle_rotate_right (MAYBE_UNUSED const u32 p0, MAYBE_UNUSE
 
   tmp = (tmp >> sh) & 0xff;
 
-  rshift_block (buf0, buf1, buf0, buf1);
+  rshift_block_optimized (buf0, buf1, buf0, buf1);
 
   buf0[0] |= tmp;
 
-  truncate_right (buf0, buf1, in_len);
+  truncate_right_optimized (buf0, buf1, in_len);
 
   return in_len;
 }
@@ -1340,7 +1340,7 @@ DECLSPEC u32 rule_op_mangle_delete_first (MAYBE_UNUSED const u32 p0, MAYBE_UNUSE
 
   const u32 in_len1 = in_len - 1;
 
-  lshift_block (buf0, buf1, buf0, buf1);
+  lshift_block_optimized (buf0, buf1, buf0, buf1);
 
   return in_len1;
 }
@@ -1374,7 +1374,7 @@ DECLSPEC u32 rule_op_mangle_delete_at (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED c
   u32 tib40[4];
   u32 tib41[4];
 
-  lshift_block (buf0, buf1, tib40, tib41);
+  lshift_block_optimized (buf0, buf1, tib40, tib41);
 
   const u32 ml = (1 << ((p0 & 3) * 8)) - 1;
   const u32 mr = ~ml;
@@ -1454,9 +1454,9 @@ DECLSPEC u32 rule_op_mangle_extract (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED con
 
   u32 out_len = p1;
 
-  lshift_block_N (buf0, buf1, buf0, buf1, p0);
+  lshift_block_optimized_N (buf0, buf1, buf0, buf1, p0);
 
-  truncate_right (buf0, buf1, out_len);
+  truncate_right_optimized (buf0, buf1, out_len);
 
   return out_len;
 }
@@ -1481,7 +1481,7 @@ DECLSPEC u32 rule_op_mangle_omit (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const 
   tib41[2] = 0;
   tib41[3] = 0;
 
-  lshift_block_N (buf0, buf1, tib40, tib41, p1);
+  lshift_block_optimized_N (buf0, buf1, tib40, tib41, p1);
 
   const u32 ml = (1 << ((p0 & 3) * 8)) - 1;
   const u32 mr = ~ml;
@@ -1564,7 +1564,7 @@ DECLSPEC u32 rule_op_mangle_insert (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED cons
   u32 tib40[4];
   u32 tib41[4];
 
-  rshift_block (buf0, buf1, tib40, tib41);
+  rshift_block_optimized (buf0, buf1, tib40, tib41);
 
   const u32 p1n = p1 << ((p0 & 3) * 8);
 
@@ -1670,7 +1670,7 @@ DECLSPEC u32 rule_op_mangle_truncate_at (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED
 {
   if (p0 >= in_len) return in_len;
 
-  truncate_right (buf0, buf1, p0);
+  truncate_right_optimized (buf0, buf1, p0);
 
   return p0;
 }
@@ -1794,12 +1794,12 @@ DECLSPEC u32 rule_op_mangle_dupechar_first (MAYBE_UNUSED const u32 p0, MAYBE_UNU
                   | tmp << 16
                   | tmp << 24;
 
-  rshift_block_N (buf0, buf1, buf0, buf1, p0);
+  rshift_block_optimized_N (buf0, buf1, buf0, buf1, p0);
 
   u32 t0[4] = { tmp32, tmp32, tmp32, tmp32 };
   u32 t1[4] = { tmp32, tmp32, tmp32, tmp32 };
 
-  truncate_right (t0, t1, p0);
+  truncate_right_optimized (t0, t1, p0);
 
   buf0[0] |= t0[0];
   buf0[1] |= t0[1];
@@ -1853,7 +1853,7 @@ DECLSPEC u32 rule_op_mangle_dupechar_last (MAYBE_UNUSED const u32 p0, MAYBE_UNUS
 
   for (u32 i = 0; i < p0; i++)
   {
-    append_block1 (out_len, buf0, buf1, tmp);
+    append_block1_optimized (out_len, buf0, buf1, tmp);
 
     out_len++;
   }
@@ -1918,7 +1918,7 @@ DECLSPEC u32 rule_op_mangle_switch_last (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED
   t[6] = buf1[2];
   t[7] = buf1[3];
 
-  exchange_byte (t, in_len - 2, in_len - 1);
+  exchange_byte_optimized (t, in_len - 2, in_len - 1);
 
   buf0[0] = t[0];
   buf0[1] = t[1];
@@ -1948,7 +1948,7 @@ DECLSPEC u32 rule_op_mangle_switch_at (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED c
   t[6] = buf1[2];
   t[7] = buf1[3];
 
-  exchange_byte (t, p0, p1);
+  exchange_byte_optimized (t, p0, p1);
 
   buf0[0] = t[0];
   buf0[1] = t[1];
@@ -2108,7 +2108,7 @@ DECLSPEC u32 rule_op_mangle_replace_np1 (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED
 
   u32 tib4x[8];
 
-  lshift_block (buf0, buf1, tib4x + 0, tib4x + 4);
+  lshift_block_optimized (buf0, buf1, tib4x + 0, tib4x + 4);
 
   const u32 mr = 0xffu << ((p0 & 3) * 8);
   const u32 ml = ~mr;
@@ -2150,7 +2150,7 @@ DECLSPEC u32 rule_op_mangle_replace_nm1 (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED
 
   u32 tib4x[8];
 
-  rshift_block (buf0, buf1, tib4x + 0, tib4x + 4);
+  rshift_block_optimized (buf0, buf1, tib4x + 0, tib4x + 4);
 
   const u32 mr = 0xffu << ((p0 & 3) * 8);
   const u32 ml = ~mr;
@@ -2204,9 +2204,9 @@ DECLSPEC u32 rule_op_mangle_dupeblock_first (MAYBE_UNUSED const u32 p0, MAYBE_UN
   tib41[2] = buf1[2];
   tib41[3] = buf1[3];
 
-  truncate_right (tib40, tib41, p0);
+  truncate_right_optimized (tib40, tib41, p0);
 
-  rshift_block_N (buf0, buf1, buf0, buf1, p0);
+  rshift_block_optimized_N (buf0, buf1, buf0, buf1, p0);
 
   buf0[0] |= tib40[0];
   buf0[1] |= tib40[1];
@@ -2233,9 +2233,9 @@ DECLSPEC u32 rule_op_mangle_dupeblock_last (MAYBE_UNUSED const u32 p0, MAYBE_UNU
   u32 tib40[4];
   u32 tib41[4];
 
-  rshift_block_N (buf0, buf1, tib40, tib41, p0);
+  rshift_block_optimized_N (buf0, buf1, tib40, tib41, p0);
 
-  truncate_left (tib40, tib41, out_len);
+  truncate_left_optimized (tib40, tib41, out_len);
 
   buf0[0] |= tib40[0];
   buf0[1] |= tib40[1];
@@ -2255,7 +2255,7 @@ DECLSPEC u32 toggle_on_register (const u32 in, const u32 r)
 {
   u32 out = in;
 
-  const u32 cmask = generate_cmask (out);
+  const u32 cmask = generate_cmask_optimized (out);
 
   if (r & 1) out = out ^ (0x00000020 & cmask);
   if (r & 2) out = out ^ (0x00002000 & cmask);
@@ -2305,7 +2305,7 @@ DECLSPEC u32 rule_op_mangle_title_sep (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED c
   return in_len;
 }
 
-DECLSPEC u32 apply_rule (const u32 name, const u32 p0, const u32 p1, u32 *buf0, u32 *buf1, const u32 in_len)
+DECLSPEC u32 apply_rule_optimized (const u32 name, const u32 p0, const u32 p1, u32 *buf0, u32 *buf1, const u32 in_len)
 {
   u32 out_len = in_len;
 
@@ -2357,7 +2357,7 @@ DECLSPEC u32 apply_rule (const u32 name, const u32 p0, const u32 p1, u32 *buf0, 
   return out_len;
 }
 
-DECLSPEC u32 apply_rules (CONSTANT_AS const u32 *cmds, u32 *buf0, u32 *buf1, const u32 len)
+DECLSPEC u32 apply_rules_optimized (CONSTANT_AS u32 *cmds, u32 *buf0, u32 *buf1, const u32 len)
 {
   u32 out_len = len;
 
@@ -2369,13 +2369,13 @@ DECLSPEC u32 apply_rules (CONSTANT_AS const u32 *cmds, u32 *buf0, u32 *buf1, con
     const u32 p0   = (cmd >>  8) & 0xff;
     const u32 p1   = (cmd >> 16) & 0xff;
 
-    out_len = apply_rule (name, p0, p1, buf0, buf1, out_len);
+    out_len = apply_rule_optimized (name, p0, p1, buf0, buf1, out_len);
   }
 
   return out_len;
 }
 
-DECLSPEC u32x apply_rules_vect (const u32 *pw_buf0, const u32 *pw_buf1, const u32 pw_len, CONSTANT_AS const kernel_rule_t *rules_buf, const u32 il_pos, u32x *buf0, u32x *buf1)
+DECLSPEC u32x apply_rules_vect_optimized (const u32 *pw_buf0, const u32 *pw_buf1, const u32 pw_len, CONSTANT_AS kernel_rule_t *rules_buf, const u32 il_pos, u32x *buf0, u32x *buf1)
 {
   #if VECT_SIZE == 1
 
@@ -2388,7 +2388,7 @@ DECLSPEC u32x apply_rules_vect (const u32 *pw_buf0, const u32 *pw_buf1, const u3
   buf1[2] = pw_buf1[2];
   buf1[3] = pw_buf1[3];
 
-  return apply_rules (rules_buf[il_pos].cmds, buf0, buf1, pw_len);
+  return apply_rules_optimized (rules_buf[il_pos].cmds, buf0, buf1, pw_len);
 
   #else
 
@@ -2411,7 +2411,7 @@ DECLSPEC u32x apply_rules_vect (const u32 *pw_buf0, const u32 *pw_buf1, const u3
     tmp1[2] = pw_buf1[2];
     tmp1[3] = pw_buf1[3];
 
-    const u32 tmp_len = apply_rules (rules_buf[il_pos + i].cmds, tmp0, tmp1, pw_len);
+    const u32 tmp_len = apply_rules_optimized (rules_buf[il_pos + i].cmds, tmp0, tmp1, pw_len);
 
     switch (i)
     {

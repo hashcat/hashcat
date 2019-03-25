@@ -99,7 +99,7 @@ typedef struct sha256_hmac_ctx_vector
 
 } sha256_hmac_ctx_vector_t;
 
-CONSTANT_AS u32a k_sha256[64] =
+CONSTANT_AS CONSTSPEC u32a k_sha256[64] =
 {
   SHA256C00, SHA256C01, SHA256C02, SHA256C03,
   SHA256C04, SHA256C05, SHA256C06, SHA256C07,
@@ -126,10 +126,10 @@ DECLSPEC void sha256_update (sha256_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void sha256_update_swap (sha256_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void sha256_update_utf16le (sha256_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void sha256_update_utf16le_swap (sha256_ctx_t *ctx, const u32 *w, const int len);
-DECLSPEC void sha256_update_global (sha256_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len);
-DECLSPEC void sha256_update_global_swap (sha256_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len);
-DECLSPEC void sha256_update_global_utf16le (sha256_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len);
-DECLSPEC void sha256_update_global_utf16le_swap (sha256_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len);
+DECLSPEC void sha256_update_global (sha256_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
+DECLSPEC void sha256_update_global_swap (sha256_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
+DECLSPEC void sha256_update_global_utf16le (sha256_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
+DECLSPEC void sha256_update_global_utf16le_swap (sha256_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
 DECLSPEC void sha256_final (sha256_ctx_t *ctx);
 DECLSPEC void sha256_hmac_init_64 (sha256_hmac_ctx_t *ctx, const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3);
 DECLSPEC void sha256_hmac_init (sha256_hmac_ctx_t *ctx, const u32 *w, const int len);
@@ -141,10 +141,10 @@ DECLSPEC void sha256_hmac_update (sha256_hmac_ctx_t *ctx, const u32 *w, const in
 DECLSPEC void sha256_hmac_update_swap (sha256_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void sha256_hmac_update_utf16le (sha256_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void sha256_hmac_update_utf16le_swap (sha256_hmac_ctx_t *ctx, const u32 *w, const int len);
-DECLSPEC void sha256_hmac_update_global (sha256_hmac_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len);
-DECLSPEC void sha256_hmac_update_global_swap (sha256_hmac_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len);
-DECLSPEC void sha256_hmac_update_global_utf16le (sha256_hmac_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len);
-DECLSPEC void sha256_hmac_update_global_utf16le_swap (sha256_hmac_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len);
+DECLSPEC void sha256_hmac_update_global (sha256_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
+DECLSPEC void sha256_hmac_update_global_swap (sha256_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
+DECLSPEC void sha256_hmac_update_global_utf16le (sha256_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
+DECLSPEC void sha256_hmac_update_global_utf16le_swap (sha256_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
 DECLSPEC void sha256_hmac_final (sha256_hmac_ctx_t *ctx);
 DECLSPEC void sha256_transform_vector (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u32x *digest);
 DECLSPEC void sha256_init_vector (sha256_ctx_vector_t *ctx);

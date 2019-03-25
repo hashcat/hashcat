@@ -277,7 +277,18 @@ endif # MSYS2
 ## Objects
 ##
 
-OBJS_ALL                := affinity autotune benchmark bitmap bitops combinator common convert cpt cpu_aes cpu_crc32 cpu_des cpu_md4 cpu_md5 cpu_sha1 cpu_sha256 debugfile dictstat dispatch dynloader event ext_ADL ext_nvapi ext_nvml ext_OpenCL ext_sysfs ext_lzma filehandling folder hashcat hashes hlfmt hwmon induct interface keyboard_layout locking logfile loopback memory monitor mpsp opencl outfile_check outfile pidfile potfile restore rp rp_cpu rp_kernel_on_cpu rp_kernel_on_cpu_optimized selftest slow_candidates shared status stdout straight terminal thread timer tuningdb usage user_options wordlist
+#missing:
+#-rw-r--r-- 1 root root 440 Mar 23 22:08 src/emu_inc_truecrypt_crc32.c
+#-rw-r--r-- 1 root root 442 Mar 23 22:09 src/emu_inc_truecrypt_keyfile.c
+#-rw-r--r-- 1 root root 438 Mar 23 22:10 src/emu_inc_truecrypt_xts.c
+#-rw-r--r-- 1 root root 432 Mar 22 23:07 src/emu_m02501_pure.c
+
+EMU_OBJS_ALL            := emu_general emu_inc_common emu_inc_scalar emu_inc_simd
+EMU_OBJS_ALL            += emu_inc_rp emu_inc_rp_optimized
+EMU_OBJS_ALL            += emu_inc_hash_md4 emu_inc_hash_md5 emu_inc_hash_ripemd160 emu_inc_hash_sha1 emu_inc_hash_sha256 emu_inc_hash_sha384 emu_inc_hash_sha512 emu_inc_hash_streebog256 emu_inc_hash_streebog512
+EMU_OBJS_ALL            += emu_inc_cipher_aes emu_inc_cipher_camellia emu_inc_cipher_des emu_inc_cipher_kuznyechik emu_inc_cipher_serpent emu_inc_cipher_twofish
+
+OBJS_ALL                := affinity autotune benchmark bitmap bitops combinator common convert cpt cpu_aes cpu_crc32 cpu_des cpu_md5 cpu_sha1 cpu_sha256 debugfile dictstat dispatch dynloader event ext_ADL ext_nvapi ext_nvml ext_OpenCL ext_sysfs ext_lzma filehandling folder hashcat hashes hlfmt hwmon induct interface keyboard_layout locking logfile loopback memory monitor mpsp opencl outfile_check outfile pidfile potfile restore rp rp_cpu selftest slow_candidates shared status stdout straight terminal thread timer tuningdb usage user_options wordlist $(EMU_OBJS_ALL)
 
 ifeq ($(ENABLE_BRAIN),1)
 OBJS_ALL                += brain
@@ -311,7 +322,9 @@ WIN_OBJS                += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).WIN.o)
 endif
 endif
 
-MODULE_OBJS_ALL                 := bitops convert cpu_aes cpu_crc32 cpu_des cpu_md4 cpu_md5 cpu_sha1 cpu_sha256 ext_lzma filehandling keyboard_layout memory shared
+EMU_MODULE_OBJS_ALL             := emu_general emu_inc_common emu_inc_hash_md4
+
+MODULE_OBJS_ALL                 := bitops convert cpu_aes cpu_crc32 cpu_des cpu_md5 cpu_sha1 cpu_sha256 ext_lzma filehandling keyboard_layout memory shared $(EMU_MODULE_OBJS_ALL)
 
 ifeq ($(USE_SYSTEM_LZMA),0)
 MODULE_OBJS_ALL                 += Alloc Lzma2Dec LzmaDec

@@ -10,7 +10,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
-#include "cpu_md4.h"
+#include "emu_inc_hash_md4.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -81,25 +81,18 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memcpy (w, pw_buf, pw_len);
 
-  u8 *w_ptr = (u8 *) w;
+  md4_ctx_t ctx;
 
-  w_ptr[line_len] = 0x80;
-
-  w[14] = line_len * 8;
+  md4_init (&ctx);
+  md4_update (&ctx, w, pw_len);
+  md4_final (&ctx);
 
   u32 dgst[4];
 
-  dgst[0] = MD4M_A;
-  dgst[1] = MD4M_B;
-  dgst[2] = MD4M_C;
-  dgst[3] = MD4M_D;
-
-  md4_64 (w, dgst);
-
-  digest[0] = dgst[0];
-  digest[1] = dgst[1];
-  digest[2] = dgst[2];
-  digest[3] = dgst[3];
+  digest[0] = ctx.h[0];
+  digest[1] = ctx.h[1];
+  digest[2] = ctx.h[2];
+  digest[3] = ctx.h[3];
 
   if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
   {

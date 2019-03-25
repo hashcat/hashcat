@@ -361,7 +361,7 @@ DECLSPEC void streebog256_update_swap (streebog256_ctx_t *ctx, const u32 *w, int
   }
 }
 
-DECLSPEC void streebog256_update_global_swap (streebog256_ctx_t *ctx, const GLOBAL_AS u32 *w, int len)
+DECLSPEC void streebog256_update_global_swap (streebog256_ctx_t *ctx, GLOBAL_AS const u32 *w, int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -634,7 +634,7 @@ DECLSPEC void streebog256_hmac_update_swap (streebog256_hmac_ctx_t *ctx, const u
   streebog256_update_swap (&ctx->ipad, w, len);
 }
 
-DECLSPEC void streebog256_hmac_update_global_swap (streebog256_hmac_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len)
+DECLSPEC void streebog256_hmac_update_global_swap (streebog256_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   streebog256_update_global_swap (&ctx->ipad, w, len);
 }
