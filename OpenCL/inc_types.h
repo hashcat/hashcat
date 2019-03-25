@@ -823,11 +823,13 @@ typedef enum combinator_mode
 
 } combinator_mode_t;
 
+#ifdef KERNEL_STATIC
 typedef struct digest
 {
   u32 digest_buf[DGST_ELEM];
 
 } digest_t;
+#endif
 
 typedef struct salt
 {

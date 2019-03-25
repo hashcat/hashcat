@@ -8,6 +8,10 @@
 #include "inc_common.h"
 #include "inc_rp.h"
 
+#ifndef MAYBE_UNUSED
+#define MAYBE_UNUSED
+#endif
+
 #ifdef REAL_SHM
 #define COPY_PW(x)                \
   LOCAL_AS pw_t s_pws[64];         \

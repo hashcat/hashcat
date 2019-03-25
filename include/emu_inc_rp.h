@@ -3,6 +3,9 @@
  * License.....: MIT
  */
 
+#ifndef _EMU_INC_RP_H
+#define _EMU_INC_RP_H
+
 #include "emu_general.h"
 
 #define DGST_ELEM 4
@@ -17,8 +20,8 @@
 #pragma GCC diagnostic ignored "-Wunknown-pragmas"
 
 #include "inc_vendor.h"
-//#include "inc_types.h"
-//#include "inc_common.h"
 #include "inc_rp.h"
 
 #pragma GCC diagnostic pop
+
+#endif // _EMU_INC_RP_H

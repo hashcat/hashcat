@@ -9,7 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
-#include "cpu_sha1.h"
+#include "emu_inc_hash_sha1.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 3;
@@ -160,7 +160,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     w[14] = byte_swap_32 (pstoken->salt_buf[pstoken->pc_offset + 14]);
     w[15] = byte_swap_32 (pstoken->salt_buf[pstoken->pc_offset + 15]);
 
-    sha1_64 (w, pstoken->pc_digest);
+    sha1_transform (w + 0, w + 4, w + 8, w + 12, pstoken->pc_digest);
 
     pstoken->pc_offset += 16;
   }

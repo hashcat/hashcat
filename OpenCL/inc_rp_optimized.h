@@ -6,6 +6,10 @@
 #ifndef _INC_RP_OPTIMIZED_H
 #define _INC_RP_OPTIMIZED_H
 
+#ifndef DECLSPEC
+#define DECLSPEC
+#endif
+
 #ifndef MAYBE_UNUSED
 #define MAYBE_UNUSED
 #endif

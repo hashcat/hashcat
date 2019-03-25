@@ -1451,6 +1451,7 @@ DECLSPEC int ffz (const u32 v)
   return -1;
 }
 
+#ifdef KERNEL_STATIC
 DECLSPEC int hash_comp (const u32 *d1, GLOBAL_AS const u32 *d2)
 {
   if (d1[3] > d2[DGST_R3]) return ( 1);
@@ -1487,6 +1488,7 @@ DECLSPEC int find_hash (const u32 *digest, const u32 digests_cnt, GLOBAL_AS cons
 
   return (-1);
 }
+#endif
 
 DECLSPEC u32 check_bitmap (GLOBAL_AS const u32 *bitmap, const u32 bitmap_mask, const u32 bitmap_shift, const u32 digest)
 {

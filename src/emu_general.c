@@ -3,6 +3,8 @@
  * License.....: MIT
  */
 
+#include "common.h"
+#include "types.h"
 #include "emu_general.h"
 
 u32 atomic_dec (u32 *p)
