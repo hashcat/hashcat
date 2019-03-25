@@ -3,14 +3,38 @@
  * License.....: MIT
  */
 
-#define IS_GENERIC
-
 #include "common.h"
 #include "types.h"
 #include "bitops.h"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "cpu_sha1.h"
+
+#define SHA1_F0(x,y,z)  ((z) ^ ((x) & ((y) ^ (z))))
+#define SHA1_F1(x,y,z)  ((x) ^ (y) ^ (z))
+#define SHA1_F2(x,y,z)  (((x) & (y)) | ((z) & ((x) ^ (y))))
+#define SHA1_F0o(x,y,z) (SHA1_F0 ((x), (y), (z)))
+#define SHA1_F2o(x,y,z) (SHA1_F2 ((x), (y), (z)))
+
+#define SHA1_STEP_S(f,a,b,c,d,e,x)    \
+{                                     \
+  e += K;                             \
+  e  = add3_S (e, x, f (b, c, d)); \
+  e += rotl32_S (a,  5u);             \
+  b  = rotl32_S (b, 30u);             \
+}
+
+#define SHA1_STEP(f,a,b,c,d,e,x)    \
+{                                   \
+  e += K;                           \
+  e  = add3 (e, x, f (b, c, d)); \
+  e += rotl32 (a,  5u);             \
+  b  = rotl32 (b, 30u);             \
+}
+
+#define SHA1_STEPX(f,a,b,c,d,e,x)   \
+{                                   \
+  e  = add3 (e, x, f (b, c, d)); \
+  e += rotl32 (a,  5u);             \
+  b  = rotl32 (b, 30u);             \
+}
 
 void sha1_64 (const u32 block[16], u32 digest[5])
 {

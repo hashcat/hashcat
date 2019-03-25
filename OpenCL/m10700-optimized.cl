@@ -3,15 +3,15 @@
  * License.....: MIT
  */
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_hash_sha256.cl"
 #include "inc_hash_sha384.cl"
 #include "inc_hash_sha512.cl"
 #include "inc_cipher_aes.cl"
+#endif
 
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
@@ -77,22 +77,22 @@ DECLSPEC void orig_sha256_transform (const u32 *w0, const u32 *w1, const u32 *w2
   u32 t2[4];
   u32 t3[4];
 
-  t0[0] = swap32_S (w0[0]);
-  t0[1] = swap32_S (w0[1]);
-  t0[2] = swap32_S (w0[2]);
-  t0[3] = swap32_S (w0[3]);
-  t1[0] = swap32_S (w1[0]);
-  t1[1] = swap32_S (w1[1]);
-  t1[2] = swap32_S (w1[2]);
-  t1[3] = swap32_S (w1[3]);
-  t2[0] = swap32_S (w2[0]);
-  t2[1] = swap32_S (w2[1]);
-  t2[2] = swap32_S (w2[2]);
-  t2[3] = swap32_S (w2[3]);
-  t3[0] = swap32_S (w3[0]);
-  t3[1] = swap32_S (w3[1]);
-  t3[2] = swap32_S (w3[2]);
-  t3[3] = swap32_S (w3[3]);
+  t0[0] = hc_swap32_S (w0[0]);
+  t0[1] = hc_swap32_S (w0[1]);
+  t0[2] = hc_swap32_S (w0[2]);
+  t0[3] = hc_swap32_S (w0[3]);
+  t1[0] = hc_swap32_S (w1[0]);
+  t1[1] = hc_swap32_S (w1[1]);
+  t1[2] = hc_swap32_S (w1[2]);
+  t1[3] = hc_swap32_S (w1[3]);
+  t2[0] = hc_swap32_S (w2[0]);
+  t2[1] = hc_swap32_S (w2[1]);
+  t2[2] = hc_swap32_S (w2[2]);
+  t2[3] = hc_swap32_S (w2[3]);
+  t3[0] = hc_swap32_S (w3[0]);
+  t3[1] = hc_swap32_S (w3[1]);
+  t3[2] = hc_swap32_S (w3[2]);
+  t3[3] = hc_swap32_S (w3[3]);
 
   sha256_transform (t0, t1, t2, t3, digest);
 }
@@ -108,38 +108,38 @@ DECLSPEC void orig_sha384_transform (const u64 *w0, const u64 *w1, const u64 *w2
   u32 t6[4];
   u32 t7[4];
 
-  t0[0] = swap32_S (l32_from_64_S (w0[0]));
-  t0[1] = swap32_S (h32_from_64_S (w0[0]));
-  t0[2] = swap32_S (l32_from_64_S (w0[1]));
-  t0[3] = swap32_S (h32_from_64_S (w0[1]));
-  t1[0] = swap32_S (l32_from_64_S (w0[2]));
-  t1[1] = swap32_S (h32_from_64_S (w0[2]));
-  t1[2] = swap32_S (l32_from_64_S (w0[3]));
-  t1[3] = swap32_S (h32_from_64_S (w0[3]));
-  t2[0] = swap32_S (l32_from_64_S (w1[0]));
-  t2[1] = swap32_S (h32_from_64_S (w1[0]));
-  t2[2] = swap32_S (l32_from_64_S (w1[1]));
-  t2[3] = swap32_S (h32_from_64_S (w1[1]));
-  t3[0] = swap32_S (l32_from_64_S (w1[2]));
-  t3[1] = swap32_S (h32_from_64_S (w1[2]));
-  t3[2] = swap32_S (l32_from_64_S (w1[3]));
-  t3[3] = swap32_S (h32_from_64_S (w1[3]));
-  t4[0] = swap32_S (l32_from_64_S (w2[0]));
-  t4[1] = swap32_S (h32_from_64_S (w2[0]));
-  t4[2] = swap32_S (l32_from_64_S (w2[1]));
-  t4[3] = swap32_S (h32_from_64_S (w2[1]));
-  t5[0] = swap32_S (l32_from_64_S (w2[2]));
-  t5[1] = swap32_S (h32_from_64_S (w2[2]));
-  t5[2] = swap32_S (l32_from_64_S (w2[3]));
-  t5[3] = swap32_S (h32_from_64_S (w2[3]));
-  t6[0] = swap32_S (l32_from_64_S (w3[0]));
-  t6[1] = swap32_S (h32_from_64_S (w3[0]));
-  t6[2] = swap32_S (l32_from_64_S (w3[1]));
-  t6[3] = swap32_S (h32_from_64_S (w3[1]));
-  t7[0] = swap32_S (l32_from_64_S (w3[2]));
-  t7[1] = swap32_S (h32_from_64_S (w3[2]));
-  t7[2] = swap32_S (l32_from_64_S (w3[3]));
-  t7[3] = swap32_S (h32_from_64_S (w3[3]));
+  t0[0] = hc_swap32_S (l32_from_64_S (w0[0]));
+  t0[1] = hc_swap32_S (h32_from_64_S (w0[0]));
+  t0[2] = hc_swap32_S (l32_from_64_S (w0[1]));
+  t0[3] = hc_swap32_S (h32_from_64_S (w0[1]));
+  t1[0] = hc_swap32_S (l32_from_64_S (w0[2]));
+  t1[1] = hc_swap32_S (h32_from_64_S (w0[2]));
+  t1[2] = hc_swap32_S (l32_from_64_S (w0[3]));
+  t1[3] = hc_swap32_S (h32_from_64_S (w0[3]));
+  t2[0] = hc_swap32_S (l32_from_64_S (w1[0]));
+  t2[1] = hc_swap32_S (h32_from_64_S (w1[0]));
+  t2[2] = hc_swap32_S (l32_from_64_S (w1[1]));
+  t2[3] = hc_swap32_S (h32_from_64_S (w1[1]));
+  t3[0] = hc_swap32_S (l32_from_64_S (w1[2]));
+  t3[1] = hc_swap32_S (h32_from_64_S (w1[2]));
+  t3[2] = hc_swap32_S (l32_from_64_S (w1[3]));
+  t3[3] = hc_swap32_S (h32_from_64_S (w1[3]));
+  t4[0] = hc_swap32_S (l32_from_64_S (w2[0]));
+  t4[1] = hc_swap32_S (h32_from_64_S (w2[0]));
+  t4[2] = hc_swap32_S (l32_from_64_S (w2[1]));
+  t4[3] = hc_swap32_S (h32_from_64_S (w2[1]));
+  t5[0] = hc_swap32_S (l32_from_64_S (w2[2]));
+  t5[1] = hc_swap32_S (h32_from_64_S (w2[2]));
+  t5[2] = hc_swap32_S (l32_from_64_S (w2[3]));
+  t5[3] = hc_swap32_S (h32_from_64_S (w2[3]));
+  t6[0] = hc_swap32_S (l32_from_64_S (w3[0]));
+  t6[1] = hc_swap32_S (h32_from_64_S (w3[0]));
+  t6[2] = hc_swap32_S (l32_from_64_S (w3[1]));
+  t6[3] = hc_swap32_S (h32_from_64_S (w3[1]));
+  t7[0] = hc_swap32_S (l32_from_64_S (w3[2]));
+  t7[1] = hc_swap32_S (h32_from_64_S (w3[2]));
+  t7[2] = hc_swap32_S (l32_from_64_S (w3[3]));
+  t7[3] = hc_swap32_S (h32_from_64_S (w3[3]));
 
   sha384_transform (t0, t1, t2, t3, t4, t5, t6, t7, digest);
 }
@@ -155,38 +155,38 @@ DECLSPEC void orig_sha512_transform (const u64 *w0, const u64 *w1, const u64 *w2
   u32 t6[4];
   u32 t7[4];
 
-  t0[0] = swap32_S (l32_from_64_S (w0[0]));
-  t0[1] = swap32_S (h32_from_64_S (w0[0]));
-  t0[2] = swap32_S (l32_from_64_S (w0[1]));
-  t0[3] = swap32_S (h32_from_64_S (w0[1]));
-  t1[0] = swap32_S (l32_from_64_S (w0[2]));
-  t1[1] = swap32_S (h32_from_64_S (w0[2]));
-  t1[2] = swap32_S (l32_from_64_S (w0[3]));
-  t1[3] = swap32_S (h32_from_64_S (w0[3]));
-  t2[0] = swap32_S (l32_from_64_S (w1[0]));
-  t2[1] = swap32_S (h32_from_64_S (w1[0]));
-  t2[2] = swap32_S (l32_from_64_S (w1[1]));
-  t2[3] = swap32_S (h32_from_64_S (w1[1]));
-  t3[0] = swap32_S (l32_from_64_S (w1[2]));
-  t3[1] = swap32_S (h32_from_64_S (w1[2]));
-  t3[2] = swap32_S (l32_from_64_S (w1[3]));
-  t3[3] = swap32_S (h32_from_64_S (w1[3]));
-  t4[0] = swap32_S (l32_from_64_S (w2[0]));
-  t4[1] = swap32_S (h32_from_64_S (w2[0]));
-  t4[2] = swap32_S (l32_from_64_S (w2[1]));
-  t4[3] = swap32_S (h32_from_64_S (w2[1]));
-  t5[0] = swap32_S (l32_from_64_S (w2[2]));
-  t5[1] = swap32_S (h32_from_64_S (w2[2]));
-  t5[2] = swap32_S (l32_from_64_S (w2[3]));
-  t5[3] = swap32_S (h32_from_64_S (w2[3]));
-  t6[0] = swap32_S (l32_from_64_S (w3[0]));
-  t6[1] = swap32_S (h32_from_64_S (w3[0]));
-  t6[2] = swap32_S (l32_from_64_S (w3[1]));
-  t6[3] = swap32_S (h32_from_64_S (w3[1]));
-  t7[0] = swap32_S (l32_from_64_S (w3[2]));
-  t7[1] = swap32_S (h32_from_64_S (w3[2]));
-  t7[2] = swap32_S (l32_from_64_S (w3[3]));
-  t7[3] = swap32_S (h32_from_64_S (w3[3]));
+  t0[0] = hc_swap32_S (l32_from_64_S (w0[0]));
+  t0[1] = hc_swap32_S (h32_from_64_S (w0[0]));
+  t0[2] = hc_swap32_S (l32_from_64_S (w0[1]));
+  t0[3] = hc_swap32_S (h32_from_64_S (w0[1]));
+  t1[0] = hc_swap32_S (l32_from_64_S (w0[2]));
+  t1[1] = hc_swap32_S (h32_from_64_S (w0[2]));
+  t1[2] = hc_swap32_S (l32_from_64_S (w0[3]));
+  t1[3] = hc_swap32_S (h32_from_64_S (w0[3]));
+  t2[0] = hc_swap32_S (l32_from_64_S (w1[0]));
+  t2[1] = hc_swap32_S (h32_from_64_S (w1[0]));
+  t2[2] = hc_swap32_S (l32_from_64_S (w1[1]));
+  t2[3] = hc_swap32_S (h32_from_64_S (w1[1]));
+  t3[0] = hc_swap32_S (l32_from_64_S (w1[2]));
+  t3[1] = hc_swap32_S (h32_from_64_S (w1[2]));
+  t3[2] = hc_swap32_S (l32_from_64_S (w1[3]));
+  t3[3] = hc_swap32_S (h32_from_64_S (w1[3]));
+  t4[0] = hc_swap32_S (l32_from_64_S (w2[0]));
+  t4[1] = hc_swap32_S (h32_from_64_S (w2[0]));
+  t4[2] = hc_swap32_S (l32_from_64_S (w2[1]));
+  t4[3] = hc_swap32_S (h32_from_64_S (w2[1]));
+  t5[0] = hc_swap32_S (l32_from_64_S (w2[2]));
+  t5[1] = hc_swap32_S (h32_from_64_S (w2[2]));
+  t5[2] = hc_swap32_S (l32_from_64_S (w2[3]));
+  t5[3] = hc_swap32_S (h32_from_64_S (w2[3]));
+  t6[0] = hc_swap32_S (l32_from_64_S (w3[0]));
+  t6[1] = hc_swap32_S (h32_from_64_S (w3[0]));
+  t6[2] = hc_swap32_S (l32_from_64_S (w3[1]));
+  t6[3] = hc_swap32_S (h32_from_64_S (w3[1]));
+  t7[0] = hc_swap32_S (l32_from_64_S (w3[2]));
+  t7[1] = hc_swap32_S (h32_from_64_S (w3[2]));
+  t7[2] = hc_swap32_S (l32_from_64_S (w3[3]));
+  t7[3] = hc_swap32_S (h32_from_64_S (w3[3]));
 
   sha512_transform (t0, t1, t2, t3, t4, t5, t6, t7, digest);
 }
@@ -427,7 +427,7 @@ DECLSPEC u32 do_round (const u32 *pw, const u32 pw_len, ctx_t *ctx, SHM_TYPE u32
                     ctx->W64[12] = 0;
                     ctx->W64[13] = 0;
                     ctx->W64[14] = 0;
-                    ctx->W64[15] = swap64_S ((u64) (final_len * 8));
+                    ctx->W64[15] = hc_swap64_S ((u64) (final_len * 8));
                     ex = ctx->W64[7] >> 56;
                     break;
       case BLSZ512: make_w_with_offset (ctx, 64, offset, sc, pwbl_len, iv, ks, s_te0, s_te1, s_te2, s_te3, s_te4);
@@ -438,7 +438,7 @@ DECLSPEC u32 do_round (const u32 *pw, const u32 pw_len, ctx_t *ctx, SHM_TYPE u32
                     ctx->W64[12] = 0;
                     ctx->W64[13] = 0;
                     ctx->W64[14] = 0;
-                    ctx->W64[15] = swap64_S ((u64) (final_len * 8));
+                    ctx->W64[15] = hc_swap64_S ((u64) (final_len * 8));
                     ex = ctx->W64[7] >> 56;
                     break;
     }
@@ -463,7 +463,7 @@ DECLSPEC u32 do_round (const u32 *pw, const u32 pw_len, ctx_t *ctx, SHM_TYPE u32
                     ctx->W32[12] = 0;
                     ctx->W32[13] = 0;
                     ctx->W32[14] = 0;
-                    ctx->W32[15] = swap32_S (final_len * 8);
+                    ctx->W32[15] = hc_swap32_S (final_len * 8);
                     break;
       case BLSZ384: ex = ctx->W64[15] >> 56;
                     ctx->W64[ 0] = 0x80;
@@ -481,7 +481,7 @@ DECLSPEC u32 do_round (const u32 *pw, const u32 pw_len, ctx_t *ctx, SHM_TYPE u32
                     ctx->W64[12] = 0;
                     ctx->W64[13] = 0;
                     ctx->W64[14] = 0;
-                    ctx->W64[15] = swap64_S ((u64) (final_len * 8));
+                    ctx->W64[15] = hc_swap64_S ((u64) (final_len * 8));
                     break;
       case BLSZ512: ex = ctx->W64[15] >> 56;
                     ctx->W64[ 0] = 0x80;
@@ -499,7 +499,7 @@ DECLSPEC u32 do_round (const u32 *pw, const u32 pw_len, ctx_t *ctx, SHM_TYPE u32
                     ctx->W64[12] = 0;
                     ctx->W64[13] = 0;
                     ctx->W64[14] = 0;
-                    ctx->W64[15] = swap64_S ((u64) (final_len * 8));
+                    ctx->W64[15] = hc_swap64_S ((u64) (final_len * 8));
                     break;
     }
   }
@@ -507,14 +507,14 @@ DECLSPEC u32 do_round (const u32 *pw, const u32 pw_len, ctx_t *ctx, SHM_TYPE u32
   switch (ctx->dgst_len)
   {
     case BLSZ256: orig_sha256_transform (&ctx->W32[ 0], &ctx->W32[ 4], &ctx->W32[ 8], &ctx->W32[12], ctx->dgst32);
-                  ctx->dgst32[ 0] = swap32_S (ctx->dgst32[0]);
-                  ctx->dgst32[ 1] = swap32_S (ctx->dgst32[1]);
-                  ctx->dgst32[ 2] = swap32_S (ctx->dgst32[2]);
-                  ctx->dgst32[ 3] = swap32_S (ctx->dgst32[3]);
-                  ctx->dgst32[ 4] = swap32_S (ctx->dgst32[4]);
-                  ctx->dgst32[ 5] = swap32_S (ctx->dgst32[5]);
-                  ctx->dgst32[ 6] = swap32_S (ctx->dgst32[6]);
-                  ctx->dgst32[ 7] = swap32_S (ctx->dgst32[7]);
+                  ctx->dgst32[ 0] = hc_swap32_S (ctx->dgst32[0]);
+                  ctx->dgst32[ 1] = hc_swap32_S (ctx->dgst32[1]);
+                  ctx->dgst32[ 2] = hc_swap32_S (ctx->dgst32[2]);
+                  ctx->dgst32[ 3] = hc_swap32_S (ctx->dgst32[3]);
+                  ctx->dgst32[ 4] = hc_swap32_S (ctx->dgst32[4]);
+                  ctx->dgst32[ 5] = hc_swap32_S (ctx->dgst32[5]);
+                  ctx->dgst32[ 6] = hc_swap32_S (ctx->dgst32[6]);
+                  ctx->dgst32[ 7] = hc_swap32_S (ctx->dgst32[7]);
                   ctx->dgst32[ 8] = 0;
                   ctx->dgst32[ 9] = 0;
                   ctx->dgst32[10] = 0;
@@ -525,31 +525,31 @@ DECLSPEC u32 do_round (const u32 *pw, const u32 pw_len, ctx_t *ctx, SHM_TYPE u32
                   ctx->dgst32[15] = 0;
                   break;
     case BLSZ384: orig_sha384_transform (&ctx->W64[ 0], &ctx->W64[ 4], &ctx->W64[ 8], &ctx->W64[12], ctx->dgst64);
-                  ctx->dgst64[0] = swap64_S (ctx->dgst64[0]);
-                  ctx->dgst64[1] = swap64_S (ctx->dgst64[1]);
-                  ctx->dgst64[2] = swap64_S (ctx->dgst64[2]);
-                  ctx->dgst64[3] = swap64_S (ctx->dgst64[3]);
-                  ctx->dgst64[4] = swap64_S (ctx->dgst64[4]);
-                  ctx->dgst64[5] = swap64_S (ctx->dgst64[5]);
+                  ctx->dgst64[0] = hc_swap64_S (ctx->dgst64[0]);
+                  ctx->dgst64[1] = hc_swap64_S (ctx->dgst64[1]);
+                  ctx->dgst64[2] = hc_swap64_S (ctx->dgst64[2]);
+                  ctx->dgst64[3] = hc_swap64_S (ctx->dgst64[3]);
+                  ctx->dgst64[4] = hc_swap64_S (ctx->dgst64[4]);
+                  ctx->dgst64[5] = hc_swap64_S (ctx->dgst64[5]);
                   ctx->dgst64[6] = 0;
                   ctx->dgst64[7] = 0;
                   break;
     case BLSZ512: orig_sha512_transform (&ctx->W64[ 0], &ctx->W64[ 4], &ctx->W64[ 8], &ctx->W64[12], ctx->dgst64);
-                  ctx->dgst64[0] = swap64_S (ctx->dgst64[0]);
-                  ctx->dgst64[1] = swap64_S (ctx->dgst64[1]);
-                  ctx->dgst64[2] = swap64_S (ctx->dgst64[2]);
-                  ctx->dgst64[3] = swap64_S (ctx->dgst64[3]);
-                  ctx->dgst64[4] = swap64_S (ctx->dgst64[4]);
-                  ctx->dgst64[5] = swap64_S (ctx->dgst64[5]);
-                  ctx->dgst64[6] = swap64_S (ctx->dgst64[6]);
-                  ctx->dgst64[7] = swap64_S (ctx->dgst64[7]);
+                  ctx->dgst64[0] = hc_swap64_S (ctx->dgst64[0]);
+                  ctx->dgst64[1] = hc_swap64_S (ctx->dgst64[1]);
+                  ctx->dgst64[2] = hc_swap64_S (ctx->dgst64[2]);
+                  ctx->dgst64[3] = hc_swap64_S (ctx->dgst64[3]);
+                  ctx->dgst64[4] = hc_swap64_S (ctx->dgst64[4]);
+                  ctx->dgst64[5] = hc_swap64_S (ctx->dgst64[5]);
+                  ctx->dgst64[6] = hc_swap64_S (ctx->dgst64[6]);
+                  ctx->dgst64[7] = hc_swap64_S (ctx->dgst64[7]);
                   break;
   }
 
   return ex;
 }
 
-__kernel void m10700_init (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
+KERNEL_FQ void m10700_init (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
 {
   /**
    * base
@@ -569,19 +569,19 @@ __kernel void m10700_init (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
 
   sha256_final (&ctx);
 
-  tmps[gid].dgst32[0] = swap32_S (ctx.h[0]);
-  tmps[gid].dgst32[1] = swap32_S (ctx.h[1]);
-  tmps[gid].dgst32[2] = swap32_S (ctx.h[2]);
-  tmps[gid].dgst32[3] = swap32_S (ctx.h[3]);
-  tmps[gid].dgst32[4] = swap32_S (ctx.h[4]);
-  tmps[gid].dgst32[5] = swap32_S (ctx.h[5]);
-  tmps[gid].dgst32[6] = swap32_S (ctx.h[6]);
-  tmps[gid].dgst32[7] = swap32_S (ctx.h[7]);
+  tmps[gid].dgst32[0] = hc_swap32_S (ctx.h[0]);
+  tmps[gid].dgst32[1] = hc_swap32_S (ctx.h[1]);
+  tmps[gid].dgst32[2] = hc_swap32_S (ctx.h[2]);
+  tmps[gid].dgst32[3] = hc_swap32_S (ctx.h[3]);
+  tmps[gid].dgst32[4] = hc_swap32_S (ctx.h[4]);
+  tmps[gid].dgst32[5] = hc_swap32_S (ctx.h[5]);
+  tmps[gid].dgst32[6] = hc_swap32_S (ctx.h[6]);
+  tmps[gid].dgst32[7] = hc_swap32_S (ctx.h[7]);
   tmps[gid].dgst_len  = BLSZ256;
   tmps[gid].W_len     = WORDSZ256;
 }
 
-__kernel void m10700_loop (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
+KERNEL_FQ void m10700_loop (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -593,11 +593,11 @@ __kernel void m10700_loop (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
 
   #ifdef REAL_SHM
 
-  __local u32 s_te0[256];
-  __local u32 s_te1[256];
-  __local u32 s_te2[256];
-  __local u32 s_te3[256];
-  __local u32 s_te4[256];
+  LOCAL_AS u32 s_te0[256];
+  LOCAL_AS u32 s_te1[256];
+  LOCAL_AS u32 s_te2[256];
+  LOCAL_AS u32 s_te3[256];
+  LOCAL_AS u32 s_te4[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -612,11 +612,11 @@ __kernel void m10700_loop (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
 
   #else
 
-  __constant u32a *s_te0 = te0;
-  __constant u32a *s_te1 = te1;
-  __constant u32a *s_te2 = te2;
-  __constant u32a *s_te3 = te3;
-  __constant u32a *s_te4 = te4;
+  CONSTANT_AS u32a *s_te0 = te0;
+  CONSTANT_AS u32a *s_te1 = te1;
+  CONSTANT_AS u32a *s_te2 = te2;
+  CONSTANT_AS u32a *s_te3 = te3;
+  CONSTANT_AS u32a *s_te4 = te4;
 
   #endif
 
@@ -681,7 +681,7 @@ __kernel void m10700_loop (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
   tmps[gid].W_len     = ctx.W_len;
 }
 
-__kernel void m10700_comp (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
+KERNEL_FQ void m10700_comp (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
 {
   /**
    * modifier
@@ -697,12 +697,14 @@ __kernel void m10700_comp (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
    * digest
    */
 
-  const u32 r0 = swap32_S (tmps[gid].dgst32[DGST_R0]);
-  const u32 r1 = swap32_S (tmps[gid].dgst32[DGST_R1]);
-  const u32 r2 = swap32_S (tmps[gid].dgst32[DGST_R2]);
-  const u32 r3 = swap32_S (tmps[gid].dgst32[DGST_R3]);
+  const u32 r0 = hc_swap32_S (tmps[gid].dgst32[DGST_R0]);
+  const u32 r1 = hc_swap32_S (tmps[gid].dgst32[DGST_R1]);
+  const u32 r2 = hc_swap32_S (tmps[gid].dgst32[DGST_R2]);
+  const u32 r3 = hc_swap32_S (tmps[gid].dgst32[DGST_R3]);
 
   #define il_pos 0
 
+  #ifdef KERNEL_STATIC
   #include COMPARE_M
+  #endif
 }

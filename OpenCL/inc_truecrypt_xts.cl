@@ -1,4 +1,17 @@
-DECLSPEC void xts_mul2 (u32 *in, u32 *out);
+/**
+ * Author......: See docs/credits.txt
+ * License.....: MIT
+ */
+
+#include "inc_vendor.h"
+#include "inc_types.h"
+#include "inc_common.h"
+#include "inc_cipher_aes.h"
+#include "inc_cipher_serpent.h"
+#include "inc_cipher_twofish.h"
+#include "inc_truecrypt_crc32.h"
+#include "inc_truecrypt_xts.h"
+
 DECLSPEC void xts_mul2 (u32 *in, u32 *out)
 {
   const u32 c = in[3] >> 31;
@@ -11,7 +24,6 @@ DECLSPEC void xts_mul2 (u32 *in, u32 *out)
   out[0] ^= c * 0x87;
 }
 
-DECLSPEC void aes256_decrypt_xts_first (const u32 *ukey1, const u32 *ukey2, const u32 *in, u32 *out, u32 *S, u32 *T, u32 *ks, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4);
 DECLSPEC void aes256_decrypt_xts_first (const u32 *ukey1, const u32 *ukey2, const u32 *in, u32 *out, u32 *S, u32 *T, u32 *ks, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   out[0] = in[0];
@@ -36,7 +48,6 @@ DECLSPEC void aes256_decrypt_xts_first (const u32 *ukey1, const u32 *ukey2, cons
   out[3] ^= T[3];
 }
 
-DECLSPEC void aes256_decrypt_xts_next (const u32 *in, u32 *out, u32 *T, u32 *ks, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4);
 DECLSPEC void aes256_decrypt_xts_next (const u32 *in, u32 *out, u32 *T, u32 *ks, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   out[0] = in[0];
@@ -59,7 +70,6 @@ DECLSPEC void aes256_decrypt_xts_next (const u32 *in, u32 *out, u32 *T, u32 *ks,
   out[3] ^= T[3];
 }
 
-DECLSPEC void serpent256_decrypt_xts_first (const u32 *ukey1, const u32 *ukey2, const u32 *in, u32 *out, u32 *S, u32 *T, u32 *ks);
 DECLSPEC void serpent256_decrypt_xts_first (const u32 *ukey1, const u32 *ukey2, const u32 *in, u32 *out, u32 *S, u32 *T, u32 *ks)
 {
   out[0] = in[0];
@@ -84,7 +94,6 @@ DECLSPEC void serpent256_decrypt_xts_first (const u32 *ukey1, const u32 *ukey2, 
   out[3] ^= T[3];
 }
 
-DECLSPEC void serpent256_decrypt_xts_next (const u32 *in, u32 *out, u32 *T, u32 *ks);
 DECLSPEC void serpent256_decrypt_xts_next (const u32 *in, u32 *out, u32 *T, u32 *ks)
 {
   out[0] = in[0];
@@ -107,7 +116,6 @@ DECLSPEC void serpent256_decrypt_xts_next (const u32 *in, u32 *out, u32 *T, u32 
   out[3] ^= T[3];
 }
 
-DECLSPEC void twofish256_decrypt_xts_first (const u32 *ukey1, const u32 *ukey2, const u32 *in, u32 *out, u32 *S, u32 *T, u32 *sk, u32 *lk);
 DECLSPEC void twofish256_decrypt_xts_first (const u32 *ukey1, const u32 *ukey2, const u32 *in, u32 *out, u32 *S, u32 *T, u32 *sk, u32 *lk)
 {
   out[0] = in[0];
@@ -132,7 +140,6 @@ DECLSPEC void twofish256_decrypt_xts_first (const u32 *ukey1, const u32 *ukey2, 
   out[3] ^= T[3];
 }
 
-DECLSPEC void twofish256_decrypt_xts_next (const u32 *in, u32 *out, u32 *T, u32 *sk, u32 *lk);
 DECLSPEC void twofish256_decrypt_xts_next (const u32 *in, u32 *out, u32 *T, u32 *sk, u32 *lk)
 {
   out[0] = in[0];
@@ -157,8 +164,7 @@ DECLSPEC void twofish256_decrypt_xts_next (const u32 *in, u32 *out, u32 *T, u32 
 
 // 512 bit
 
-DECLSPEC int verify_header_aes (__global const tc_t *esalt_bufs, const u32 *ukey1, const u32 *ukey2, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4);
-DECLSPEC int verify_header_aes (__global const tc_t *esalt_bufs, const u32 *ukey1, const u32 *ukey2, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC int verify_header_aes (GLOBAL_AS const u32 *data_buf, const u32 signature, const u32 *ukey1, const u32 *ukey2, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 ks_aes[60];
 
@@ -168,20 +174,18 @@ DECLSPEC int verify_header_aes (__global const tc_t *esalt_bufs, const u32 *ukey
 
   u32 data[4];
 
-  data[0] = esalt_bufs[0].data_buf[0];
-  data[1] = esalt_bufs[0].data_buf[1];
-  data[2] = esalt_bufs[0].data_buf[2];
-  data[3] = esalt_bufs[0].data_buf[3];
+  data[0] = data_buf[0];
+  data[1] = data_buf[1];
+  data[2] = data_buf[2];
+  data[3] = data_buf[3];
 
   u32 tmp[4];
 
   aes256_decrypt_xts_first (ukey1, ukey2, data, tmp, S, T_aes, ks_aes, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
 
-  const u32 signature = esalt_bufs[0].signature;
-
   if (tmp[0] != signature) return 0;
 
-  const u32 crc32_save = swap32_S (~tmp[2]);
+  const u32 crc32_save = hc_swap32_S (~tmp[2]);
 
   // seek to byte 256
 
@@ -196,10 +200,10 @@ DECLSPEC int verify_header_aes (__global const tc_t *esalt_bufs, const u32 *ukey
 
   for (int i = 64 - 16; i < 128 - 16; i += 4)
   {
-    data[0] = esalt_bufs[0].data_buf[i + 0];
-    data[1] = esalt_bufs[0].data_buf[i + 1];
-    data[2] = esalt_bufs[0].data_buf[i + 2];
-    data[3] = esalt_bufs[0].data_buf[i + 3];
+    data[0] = data_buf[i + 0];
+    data[1] = data_buf[i + 1];
+    data[2] = data_buf[i + 2];
+    data[3] = data_buf[i + 3];
 
     aes256_decrypt_xts_next (data, tmp, T_aes, ks_aes, s_td0, s_td1, s_td2, s_td3, s_td4);
 
@@ -214,8 +218,7 @@ DECLSPEC int verify_header_aes (__global const tc_t *esalt_bufs, const u32 *ukey
   return 1;
 }
 
-DECLSPEC int verify_header_serpent (__global const tc_t *esalt_bufs, const u32 *ukey1, const u32 *ukey2);
-DECLSPEC int verify_header_serpent (__global const tc_t *esalt_bufs, const u32 *ukey1, const u32 *ukey2)
+DECLSPEC int verify_header_serpent (GLOBAL_AS const u32 *data_buf, const u32 signature, const u32 *ukey1, const u32 *ukey2)
 {
   u32 ks_serpent[140];
 
@@ -225,20 +228,18 @@ DECLSPEC int verify_header_serpent (__global const tc_t *esalt_bufs, const u32 *
 
   u32 data[4];
 
-  data[0] = esalt_bufs[0].data_buf[0];
-  data[1] = esalt_bufs[0].data_buf[1];
-  data[2] = esalt_bufs[0].data_buf[2];
-  data[3] = esalt_bufs[0].data_buf[3];
+  data[0] = data_buf[0];
+  data[1] = data_buf[1];
+  data[2] = data_buf[2];
+  data[3] = data_buf[3];
 
   u32 tmp[4];
 
   serpent256_decrypt_xts_first (ukey1, ukey2, data, tmp, S, T_serpent, ks_serpent);
 
-  const u32 signature = esalt_bufs[0].signature;
-
   if (tmp[0] != signature) return 0;
 
-  const u32 crc32_save = swap32_S (~tmp[2]);
+  const u32 crc32_save = hc_swap32_S (~tmp[2]);
 
   // seek to byte 256
 
@@ -253,10 +254,10 @@ DECLSPEC int verify_header_serpent (__global const tc_t *esalt_bufs, const u32 *
 
   for (int i = 64 - 16; i < 128 - 16; i += 4)
   {
-    data[0] = esalt_bufs[0].data_buf[i + 0];
-    data[1] = esalt_bufs[0].data_buf[i + 1];
-    data[2] = esalt_bufs[0].data_buf[i + 2];
-    data[3] = esalt_bufs[0].data_buf[i + 3];
+    data[0] = data_buf[i + 0];
+    data[1] = data_buf[i + 1];
+    data[2] = data_buf[i + 2];
+    data[3] = data_buf[i + 3];
 
     serpent256_decrypt_xts_next (data, tmp, T_serpent, ks_serpent);
 
@@ -271,8 +272,7 @@ DECLSPEC int verify_header_serpent (__global const tc_t *esalt_bufs, const u32 *
   return 1;
 }
 
-DECLSPEC int verify_header_twofish (__global const tc_t *esalt_bufs, const u32 *ukey1, const u32 *ukey2);
-DECLSPEC int verify_header_twofish (__global const tc_t *esalt_bufs, const u32 *ukey1, const u32 *ukey2)
+DECLSPEC int verify_header_twofish (GLOBAL_AS const u32 *data_buf, const u32 signature, const u32 *ukey1, const u32 *ukey2)
 {
   u32 sk_twofish[4];
   u32 lk_twofish[40];
@@ -283,20 +283,18 @@ DECLSPEC int verify_header_twofish (__global const tc_t *esalt_bufs, const u32 *
 
   u32 data[4];
 
-  data[0] = esalt_bufs[0].data_buf[0];
-  data[1] = esalt_bufs[0].data_buf[1];
-  data[2] = esalt_bufs[0].data_buf[2];
-  data[3] = esalt_bufs[0].data_buf[3];
+  data[0] = data_buf[0];
+  data[1] = data_buf[1];
+  data[2] = data_buf[2];
+  data[3] = data_buf[3];
 
   u32 tmp[4];
 
   twofish256_decrypt_xts_first (ukey1, ukey2, data, tmp, S, T_twofish, sk_twofish, lk_twofish);
 
-  const u32 signature = esalt_bufs[0].signature;
-
   if (tmp[0] != signature) return 0;
 
-  const u32 crc32_save = swap32_S (~tmp[2]);
+  const u32 crc32_save = hc_swap32_S (~tmp[2]);
 
   // seek to byte 256
 
@@ -311,10 +309,10 @@ DECLSPEC int verify_header_twofish (__global const tc_t *esalt_bufs, const u32 *
 
   for (int i = 64 - 16; i < 128 - 16; i += 4)
   {
-    data[0] = esalt_bufs[0].data_buf[i + 0];
-    data[1] = esalt_bufs[0].data_buf[i + 1];
-    data[2] = esalt_bufs[0].data_buf[i + 2];
-    data[3] = esalt_bufs[0].data_buf[i + 3];
+    data[0] = data_buf[i + 0];
+    data[1] = data_buf[i + 1];
+    data[2] = data_buf[i + 2];
+    data[3] = data_buf[i + 3];
 
     twofish256_decrypt_xts_next (data, tmp, T_twofish, sk_twofish, lk_twofish);
 
@@ -331,8 +329,7 @@ DECLSPEC int verify_header_twofish (__global const tc_t *esalt_bufs, const u32 *
 
 // 1024 bit
 
-DECLSPEC int verify_header_aes_twofish (__global const tc_t *esalt_bufs, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4);
-DECLSPEC int verify_header_aes_twofish (__global const tc_t *esalt_bufs, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC int verify_header_aes_twofish (GLOBAL_AS const u32 *data_buf, const u32 signature, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 ks_aes[60];
 
@@ -346,21 +343,19 @@ DECLSPEC int verify_header_aes_twofish (__global const tc_t *esalt_bufs, const u
 
   u32 data[4];
 
-  data[0] = esalt_bufs[0].data_buf[0];
-  data[1] = esalt_bufs[0].data_buf[1];
-  data[2] = esalt_bufs[0].data_buf[2];
-  data[3] = esalt_bufs[0].data_buf[3];
+  data[0] = data_buf[0];
+  data[1] = data_buf[1];
+  data[2] = data_buf[2];
+  data[3] = data_buf[3];
 
   u32 tmp[4];
 
   aes256_decrypt_xts_first     (ukey2, ukey4, data, tmp, S, T_aes,     ks_aes, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
   twofish256_decrypt_xts_first (ukey1, ukey3, tmp,  tmp, S, T_twofish, sk_twofish, lk_twofish);
 
-  const u32 signature = esalt_bufs[0].signature;
-
   if (tmp[0] != signature) return 0;
 
-  const u32 crc32_save = swap32_S (~tmp[2]);
+  const u32 crc32_save = hc_swap32_S (~tmp[2]);
 
   // seek to byte 256
 
@@ -376,10 +371,10 @@ DECLSPEC int verify_header_aes_twofish (__global const tc_t *esalt_bufs, const u
 
   for (int i = 64 - 16; i < 128 - 16; i += 4)
   {
-    data[0] = esalt_bufs[0].data_buf[i + 0];
-    data[1] = esalt_bufs[0].data_buf[i + 1];
-    data[2] = esalt_bufs[0].data_buf[i + 2];
-    data[3] = esalt_bufs[0].data_buf[i + 3];
+    data[0] = data_buf[i + 0];
+    data[1] = data_buf[i + 1];
+    data[2] = data_buf[i + 2];
+    data[3] = data_buf[i + 3];
 
     aes256_decrypt_xts_next     (data, tmp, T_aes,     ks_aes, s_td0, s_td1, s_td2, s_td3, s_td4);
     twofish256_decrypt_xts_next (tmp,  tmp, T_twofish, sk_twofish, lk_twofish);
@@ -395,8 +390,7 @@ DECLSPEC int verify_header_aes_twofish (__global const tc_t *esalt_bufs, const u
   return 1;
 }
 
-DECLSPEC int verify_header_serpent_aes (__global const tc_t *esalt_bufs, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4);
-DECLSPEC int verify_header_serpent_aes (__global const tc_t *esalt_bufs, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC int verify_header_serpent_aes (GLOBAL_AS const u32 *data_buf, const u32 signature, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 ks_serpent[140];
   u32 ks_aes[60];
@@ -408,21 +402,19 @@ DECLSPEC int verify_header_serpent_aes (__global const tc_t *esalt_bufs, const u
 
   u32 data[4];
 
-  data[0] = esalt_bufs[0].data_buf[0];
-  data[1] = esalt_bufs[0].data_buf[1];
-  data[2] = esalt_bufs[0].data_buf[2];
-  data[3] = esalt_bufs[0].data_buf[3];
+  data[0] = data_buf[0];
+  data[1] = data_buf[1];
+  data[2] = data_buf[2];
+  data[3] = data_buf[3];
 
   u32 tmp[4];
 
   serpent256_decrypt_xts_first (ukey2, ukey4, data, tmp, S, T_serpent, ks_serpent);
   aes256_decrypt_xts_first     (ukey1, ukey3, tmp,  tmp, S, T_aes,     ks_aes, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
 
-  const u32 signature = esalt_bufs[0].signature;
-
   if (tmp[0] != signature) return 0;
 
-  const u32 crc32_save = swap32_S (~tmp[2]);
+  const u32 crc32_save = hc_swap32_S (~tmp[2]);
 
   // seek to byte 256
 
@@ -438,10 +430,10 @@ DECLSPEC int verify_header_serpent_aes (__global const tc_t *esalt_bufs, const u
 
   for (int i = 64 - 16; i < 128 - 16; i += 4)
   {
-    data[0] = esalt_bufs[0].data_buf[i + 0];
-    data[1] = esalt_bufs[0].data_buf[i + 1];
-    data[2] = esalt_bufs[0].data_buf[i + 2];
-    data[3] = esalt_bufs[0].data_buf[i + 3];
+    data[0] = data_buf[i + 0];
+    data[1] = data_buf[i + 1];
+    data[2] = data_buf[i + 2];
+    data[3] = data_buf[i + 3];
 
     serpent256_decrypt_xts_next (data, tmp, T_serpent, ks_serpent);
     aes256_decrypt_xts_next     (tmp,  tmp, T_aes,     ks_aes, s_td0, s_td1, s_td2, s_td3, s_td4);
@@ -457,8 +449,7 @@ DECLSPEC int verify_header_serpent_aes (__global const tc_t *esalt_bufs, const u
   return 1;
 }
 
-DECLSPEC int verify_header_twofish_serpent (__global const tc_t *esalt_bufs, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4);
-DECLSPEC int verify_header_twofish_serpent (__global const tc_t *esalt_bufs, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4)
+DECLSPEC int verify_header_twofish_serpent (GLOBAL_AS const u32 *data_buf, const u32 signature, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4)
 {
   u32 sk_twofish[4];
   u32 lk_twofish[40];
@@ -472,21 +463,19 @@ DECLSPEC int verify_header_twofish_serpent (__global const tc_t *esalt_bufs, con
 
   u32 data[4];
 
-  data[0] = esalt_bufs[0].data_buf[0];
-  data[1] = esalt_bufs[0].data_buf[1];
-  data[2] = esalt_bufs[0].data_buf[2];
-  data[3] = esalt_bufs[0].data_buf[3];
+  data[0] = data_buf[0];
+  data[1] = data_buf[1];
+  data[2] = data_buf[2];
+  data[3] = data_buf[3];
 
   u32 tmp[4];
 
   twofish256_decrypt_xts_first (ukey2, ukey4, data, tmp, S, T_twofish, sk_twofish, lk_twofish);
   serpent256_decrypt_xts_first (ukey1, ukey3, tmp,  tmp, S, T_serpent, ks_serpent);
 
-  const u32 signature = esalt_bufs[0].signature;
-
   if (tmp[0] != signature) return 0;
 
-  const u32 crc32_save = swap32_S (~tmp[2]);
+  const u32 crc32_save = hc_swap32_S (~tmp[2]);
 
   // seek to byte 256
 
@@ -502,10 +491,10 @@ DECLSPEC int verify_header_twofish_serpent (__global const tc_t *esalt_bufs, con
 
   for (int i = 64 - 16; i < 128 - 16; i += 4)
   {
-    data[0] = esalt_bufs[0].data_buf[i + 0];
-    data[1] = esalt_bufs[0].data_buf[i + 1];
-    data[2] = esalt_bufs[0].data_buf[i + 2];
-    data[3] = esalt_bufs[0].data_buf[i + 3];
+    data[0] = data_buf[i + 0];
+    data[1] = data_buf[i + 1];
+    data[2] = data_buf[i + 2];
+    data[3] = data_buf[i + 3];
 
     twofish256_decrypt_xts_next (data, tmp, T_twofish, sk_twofish, lk_twofish);
     serpent256_decrypt_xts_next (tmp,  tmp, T_serpent, ks_serpent);
@@ -523,8 +512,7 @@ DECLSPEC int verify_header_twofish_serpent (__global const tc_t *esalt_bufs, con
 
 // 1536 bit
 
-DECLSPEC int verify_header_aes_twofish_serpent (__global const tc_t *esalt_bufs, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4, const u32 *ukey5, const u32 *ukey6, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4);
-DECLSPEC int verify_header_aes_twofish_serpent (__global const tc_t *esalt_bufs, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4, const u32 *ukey5, const u32 *ukey6, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC int verify_header_aes_twofish_serpent (GLOBAL_AS const u32 *data_buf, const u32 signature, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4, const u32 *ukey5, const u32 *ukey6, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 ks_aes[60];
 
@@ -541,10 +529,10 @@ DECLSPEC int verify_header_aes_twofish_serpent (__global const tc_t *esalt_bufs,
 
   u32 data[4];
 
-  data[0] = esalt_bufs[0].data_buf[0];
-  data[1] = esalt_bufs[0].data_buf[1];
-  data[2] = esalt_bufs[0].data_buf[2];
-  data[3] = esalt_bufs[0].data_buf[3];
+  data[0] = data_buf[0];
+  data[1] = data_buf[1];
+  data[2] = data_buf[2];
+  data[3] = data_buf[3];
 
   u32 tmp[4];
 
@@ -552,11 +540,9 @@ DECLSPEC int verify_header_aes_twofish_serpent (__global const tc_t *esalt_bufs,
   twofish256_decrypt_xts_first (ukey2, ukey5, tmp,  tmp, S, T_twofish, sk_twofish, lk_twofish);
   serpent256_decrypt_xts_first (ukey1, ukey4, tmp,  tmp, S, T_serpent, ks_serpent);
 
-  const u32 signature = esalt_bufs[0].signature;
-
   if (tmp[0] != signature) return 0;
 
-  const u32 crc32_save = swap32_S (~tmp[2]);
+  const u32 crc32_save = hc_swap32_S (~tmp[2]);
 
   // seek to byte 256
 
@@ -573,10 +559,10 @@ DECLSPEC int verify_header_aes_twofish_serpent (__global const tc_t *esalt_bufs,
 
   for (int i = 64 - 16; i < 128 - 16; i += 4)
   {
-    data[0] = esalt_bufs[0].data_buf[i + 0];
-    data[1] = esalt_bufs[0].data_buf[i + 1];
-    data[2] = esalt_bufs[0].data_buf[i + 2];
-    data[3] = esalt_bufs[0].data_buf[i + 3];
+    data[0] = data_buf[i + 0];
+    data[1] = data_buf[i + 1];
+    data[2] = data_buf[i + 2];
+    data[3] = data_buf[i + 3];
 
     aes256_decrypt_xts_next     (data, tmp, T_aes,     ks_aes, s_td0, s_td1, s_td2, s_td3, s_td4);
     twofish256_decrypt_xts_next (tmp,  tmp, T_twofish, sk_twofish, lk_twofish);
@@ -593,8 +579,7 @@ DECLSPEC int verify_header_aes_twofish_serpent (__global const tc_t *esalt_bufs,
   return 1;
 }
 
-DECLSPEC int verify_header_serpent_twofish_aes (__global const tc_t *esalt_bufs, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4, const u32 *ukey5, const u32 *ukey6, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4);
-DECLSPEC int verify_header_serpent_twofish_aes (__global const tc_t *esalt_bufs, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4, const u32 *ukey5, const u32 *ukey6, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC int verify_header_serpent_twofish_aes (GLOBAL_AS const u32 *data_buf, const u32 signature, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4, const u32 *ukey5, const u32 *ukey6, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 ks_serpent[140];
 
@@ -611,10 +596,10 @@ DECLSPEC int verify_header_serpent_twofish_aes (__global const tc_t *esalt_bufs,
 
   u32 data[4];
 
-  data[0] = esalt_bufs[0].data_buf[0];
-  data[1] = esalt_bufs[0].data_buf[1];
-  data[2] = esalt_bufs[0].data_buf[2];
-  data[3] = esalt_bufs[0].data_buf[3];
+  data[0] = data_buf[0];
+  data[1] = data_buf[1];
+  data[2] = data_buf[2];
+  data[3] = data_buf[3];
 
   u32 tmp[4];
 
@@ -622,11 +607,9 @@ DECLSPEC int verify_header_serpent_twofish_aes (__global const tc_t *esalt_bufs,
   twofish256_decrypt_xts_first (ukey2, ukey5, tmp,  tmp, S, T_twofish, sk_twofish, lk_twofish);
   aes256_decrypt_xts_first     (ukey1, ukey4, tmp,  tmp, S, T_aes,     ks_aes, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
 
-  const u32 signature = esalt_bufs[0].signature;
-
   if (tmp[0] != signature) return 0;
 
-  const u32 crc32_save = swap32_S (~tmp[2]);
+  const u32 crc32_save = hc_swap32_S (~tmp[2]);
 
   // seek to byte 256
 
@@ -643,10 +626,10 @@ DECLSPEC int verify_header_serpent_twofish_aes (__global const tc_t *esalt_bufs,
 
   for (int i = 64 - 16; i < 128 - 16; i += 4)
   {
-    data[0] = esalt_bufs[0].data_buf[i + 0];
-    data[1] = esalt_bufs[0].data_buf[i + 1];
-    data[2] = esalt_bufs[0].data_buf[i + 2];
-    data[3] = esalt_bufs[0].data_buf[i + 3];
+    data[0] = data_buf[i + 0];
+    data[1] = data_buf[i + 1];
+    data[2] = data_buf[i + 2];
+    data[3] = data_buf[i + 3];
 
     serpent256_decrypt_xts_next (data, tmp, T_serpent, ks_serpent);
     twofish256_decrypt_xts_next (tmp,  tmp, T_twofish, sk_twofish, lk_twofish);

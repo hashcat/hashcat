@@ -1,53 +1,66 @@
 * changes v5.1.0 -> v5.x.x
 
 ##
+## Feature
+##
+
+- Fully modularized hash-mode integration via plugin interface and converted all existing hash-modes
+- Support for inline VeraCrypt PIM Brute-Force
+
+##
 ## Algorithms
 ##
 
-- Added hash-mode 18400 (Open Document Format (ODF) 1.2 (SHA-256, AES))
-- Added hash-mode 18500 sha1(md5(md5($pass)))
-- Added hash-mode 18600 (Open Document Format (ODF) 1.1 (SHA-1, Blowfish))
-- Added hash-mode 18700 Java Object hashCode()
-- Added hash-mode 18800 Blockchain, My Wallet, Second Password (SHA256)
-- Added hash-mode 18900 Android Backup
-- Added hash-mode 19000 QNX /etc/shadow (MD5)
-- Added hash-mode 19100 QNX /etc/shadow (SHA256)
-- Added hash-mode 19200 QNX /etc/shadow (SHA512)
-- Added hash-mode 19300 sha1($salt1.$pass.$salt2)
+- Added hash-mode: Open Document Format (ODF) 1.2 (SHA-256, AES)
+- Added hash-mode: Open Document Format (ODF) 1.1 (SHA-1, Blowfish)
+- Added hash-mode: Java Object hashCode()
+- Added hash-mode: Blockchain, My Wallet, Second Password (SHA256)
+- Added hash-mode: Android Backup
+- Added hash-mode: QNX /etc/shadow (MD5)
+- Added hash-mode: QNX /etc/shadow (SHA256)
+- Added hash-mode: QNX /etc/shadow (SHA512)
+- Added hash-mode: Kerberos 5 TGS-REP etype 17 (AES128-CTS-HMAC-SHA1-96)
+- Added hash-mode: Kerberos 5 TGS-REP etype 18 (AES256-CTS-HMAC-SHA1-96)
+- Added hash-mode: sha1(md5(md5($pass)))
+- Added hash-mode: sha1($salt1.$pass.$salt2)
+- Added hash-mode: Ruby on Rails Restful-Authentication
 
 ##
 ## Bugs
 ##
 
-- Fixed output of IKE PSK (mode 5300 and 5400) hashes to have separators at right position
-- Fixed the validation of the --brain-client-features command line argument (only values 1, 2 or 3 are allowed)
 - Fixed cracking of Cisco-PIX and Cisco-ASA MD5 passwords in mask-attack mode if mask > length 16
+- Fixed cracking of Electrum Wallet Salt-Type 2 hashes
 - Fixed cracking of NetNTLMv1 passwords in mask-attack mode if mask > length 16 (optimized kernels only)
-- Fixed the 7-Zip parser to allow the entire supported range of encrypted and decrypted data lengths
-- Fixed incorrect progress-only result in a special race condition
-- Fixed maximum password length limit which was announced as 256 but actually was 255
 - Fixed cracking raw Streebog-HMAC 256 and 512 hashes with password of length >= 64
 - Fixed cracking raw Whirlpool hashes cracking with password of length >= 32
-- Fixed cracking of Electrum Wallet Salt-Type 2 hashes
+- Fixed incorrect progress-only result in a special race condition
+- Fixed maximum password length limit which was announced as 256 but actually was 255
+- Fixed output of IKE PSK (mode 5300 and 5400) hashes to have separators at right position
+- Fixed the 7-Zip parser to allow the entire supported range of encrypted and decrypted data lengths
+- Fixed the validation of the --brain-client-features command line argument (only values 1, 2 or 3 are allowed)
 
 ##
 ## Improvements
 ##
 
-- Building: Updated BUILD.md
-- Tuning Database: Updated hashcat.hctune with new models and refreshed vector width values
+- Cracking bcrypt and Password Safe v2: Use a feedback from the OpenCL runtime to dynamically find out optimal thread count
 - Bitcoin Wallet: Be more user friendly by allowing a larger data range for ckey and public_key
-- OpenCL Runtime: Workaround JiT compiler error on AMDGPU driver compiling WPA-EAPOL-PBKDF2 OpenCL kernel
+- Building: Updated BUILD.md
+- My Wallet: Added additional plaintext pattern used in newer versions
 - OpenCL Runtime: Disable OpenCL kernel cache on Apple for Intel CPU (throws CL_BUILD_PROGRAM_FAILURE for no reason)
 - OpenCL Runtime: Improve ROCM detection and make sure to not confuse with recent AMDGPU drivers
 - OpenCL Runtime: Not using amd_bytealign (amd_bitalign is fine) on AMDGPU driver drastically reduces JiT segfaults
-- My Wallet: Added additional plaintext pattern used in newer versions
+- OpenCL Runtime: Update unstable mode warnings for Apple and AMDGPU drivers
+- OpenCL Runtime: Workaround JiT compiler error on AMDGPU driver compiling WPA-EAPOL-PBKDF2 OpenCL kernel
+- Tuning Database: Updated hashcat.hctune with new models and refreshed vector width values
 
 ##
 ## Technical
 ##
 
 - Binary Distribution: Removed 32 bit binary executables
+- Keep Guessing: No longer automatically activate --keep-guessing for modes 9720, 9820, 14900 and 18100
 
 * changes v5.0.0 -> v5.1.0
 

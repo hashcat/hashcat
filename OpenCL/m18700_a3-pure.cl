@@ -5,13 +5,13 @@
 
 #define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_md5.cl"
+#endif
 
 DECLSPEC u32x hashCode_w0 (const u32x init, const u32x w0, const u32 *w, const u32 pw_len)
 {
@@ -69,7 +69,7 @@ DECLSPEC u32x hashCode_w0 (const u32x init, const u32x w0, const u32 *w, const u
   return hash;
 }
 
-__kernel void m18700_mxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m18700_mxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -116,7 +116,7 @@ __kernel void m18700_mxx (KERN_ATTR_VECTOR ())
   }
 }
 
-__kernel void m18700_sxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m18700_sxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier

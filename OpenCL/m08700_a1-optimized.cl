@@ -6,14 +6,14 @@
 //incompatible
 //#define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
+#endif
 
-__constant u32a lotus_magic_table[256] =
+CONSTANT_AS u32a lotus_magic_table[256] =
 {
   0xbd, 0x56, 0xea, 0xf2, 0xa2, 0xf1, 0xac, 0x2a,
   0xb0, 0x93, 0xd1, 0x9c, 0x1b, 0x33, 0xfd, 0xd0,
@@ -73,7 +73,7 @@ __constant u32a lotus_magic_table[256] =
 #define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3], (S)[(i).s4], (S)[(i).s5], (S)[(i).s6], (S)[(i).s7], (S)[(i).s8], (S)[(i).s9], (S)[(i).sa], (S)[(i).sb], (S)[(i).sc], (S)[(i).sd], (S)[(i).se], (S)[(i).sf])
 #endif
 
-DECLSPEC void lotus_mix (u32x *in, __local u32 *s_lotus_magic_table)
+DECLSPEC void lotus_mix (u32x *in, LOCAL_AS u32 *s_lotus_magic_table)
 {
   u32x p = 0;
 
@@ -96,7 +96,7 @@ DECLSPEC void lotus_mix (u32x *in, __local u32 *s_lotus_magic_table)
   }
 }
 
-DECLSPEC void lotus_transform_password (u32x *in, u32x *out, __local u32 *s_lotus_magic_table)
+DECLSPEC void lotus_transform_password (u32x *in, u32x *out, LOCAL_AS u32 *s_lotus_magic_table)
 {
   u32x t = out[3] >> 24;
 
@@ -193,7 +193,7 @@ DECLSPEC void pad (u32 *w, const u32 len)
   }
 }
 
-DECLSPEC void mdtransform_norecalc (u32x *state, u32x *block, __local u32 *s_lotus_magic_table)
+DECLSPEC void mdtransform_norecalc (u32x *state, u32x *block, LOCAL_AS u32 *s_lotus_magic_table)
 {
   u32x x[12];
 
@@ -218,14 +218,14 @@ DECLSPEC void mdtransform_norecalc (u32x *state, u32x *block, __local u32 *s_lot
   state[3] = x[3];
 }
 
-DECLSPEC void mdtransform (u32x *state, u32x *checksum, u32x *block, __local u32 *s_lotus_magic_table)
+DECLSPEC void mdtransform (u32x *state, u32x *checksum, u32x *block, LOCAL_AS u32 *s_lotus_magic_table)
 {
   mdtransform_norecalc (state, block, s_lotus_magic_table);
 
   lotus_transform_password (block, checksum, s_lotus_magic_table);
 }
 
-DECLSPEC void domino_big_md (const u32x *saved_key, const u32 size, u32x *state, __local u32 *s_lotus_magic_table)
+DECLSPEC void domino_big_md (const u32x *saved_key, const u32 size, u32x *state, LOCAL_AS u32 *s_lotus_magic_table)
 {
   u32x checksum[4];
 
@@ -264,7 +264,7 @@ DECLSPEC void domino_big_md (const u32x *saved_key, const u32 size, u32x *state,
   mdtransform_norecalc (state, checksum, s_lotus_magic_table);
 }
 
-__kernel void m08700_m04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m08700_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * base
@@ -278,14 +278,14 @@ __kernel void m08700_m04 (KERN_ATTR_BASIC ())
    * sbox
    */
 
-  __local u32 s_lotus_magic_table[256];
+  LOCAL_AS u32 s_lotus_magic_table[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
     s_lotus_magic_table[i] = lotus_magic_table[i];
   }
 
-  __local u32 l_bin2asc[256];
+  LOCAL_AS u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -503,15 +503,15 @@ __kernel void m08700_m04 (KERN_ATTR_BASIC ())
   }
 }
 
-__kernel void m08700_m08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m08700_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m08700_m16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m08700_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m08700_s04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m08700_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * base
@@ -525,14 +525,14 @@ __kernel void m08700_s04 (KERN_ATTR_BASIC ())
    * sbox
    */
 
-  __local u32 s_lotus_magic_table[256];
+  LOCAL_AS u32 s_lotus_magic_table[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
     s_lotus_magic_table[i] = lotus_magic_table[i];
   }
 
-  __local u32 l_bin2asc[256];
+  LOCAL_AS u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -762,10 +762,10 @@ __kernel void m08700_s04 (KERN_ATTR_BASIC ())
   }
 }
 
-__kernel void m08700_s08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m08700_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m08700_s16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m08700_s16 (KERN_ATTR_BASIC ())
 {
 }

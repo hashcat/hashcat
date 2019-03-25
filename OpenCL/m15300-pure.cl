@@ -11,15 +11,15 @@
 #undef  LOCAL_MEM_TYPE
 #define LOCAL_MEM_TYPE LOCAL_MEM_TYPE_GLOBAL
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_md4.cl"
 #include "inc_hash_sha1.cl"
 #include "inc_cipher_des.cl"
+#endif
 
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
@@ -91,7 +91,7 @@ DECLSPEC void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipa
   sha1_transform_vector (w0, w1, w2, w3, digest);
 }
 
-__kernel void m15300_init (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
+KERNEL_FQ void m15300_init (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
 {
   /**
    * base
@@ -143,10 +143,10 @@ __kernel void m15300_init (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
     digest_context[3] = ctx.h[3];
     digest_context[4] = 0;
 
-    digest_context[0] = swap32_S (digest_context[0]);
-    digest_context[1] = swap32_S (digest_context[1]);
-    digest_context[2] = swap32_S (digest_context[2]);
-    digest_context[3] = swap32_S (digest_context[3]);
+    digest_context[0] = hc_swap32_S (digest_context[0]);
+    digest_context[1] = hc_swap32_S (digest_context[1]);
+    digest_context[2] = hc_swap32_S (digest_context[2]);
+    digest_context[3] = hc_swap32_S (digest_context[3]);
   }
 
   /* initialize hmac-sha1 */
@@ -288,7 +288,7 @@ __kernel void m15300_init (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
   }
 }
 
-__kernel void m15300_loop (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
+KERNEL_FQ void m15300_loop (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
 {
   /**
    * base
@@ -377,7 +377,7 @@ __kernel void m15300_loop (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
   }
 }
 
-__kernel void m15300_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
+KERNEL_FQ void m15300_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -389,8 +389,8 @@ __kernel void m15300_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
 
   #ifdef REAL_SHM
 
-  __local u32 s_SPtrans[8][64];
-  __local u32 s_skb[8][64];
+  LOCAL_AS u32 s_SPtrans[8][64];
+  LOCAL_AS u32 s_skb[8][64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
@@ -417,8 +417,8 @@ __kernel void m15300_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
 
   #else
 
-  __constant u32a (*s_SPtrans)[64] = c_SPtrans;
-  __constant u32a (*s_skb)[64]     = c_skb;
+  CONSTANT_AS u32a (*s_SPtrans)[64] = c_SPtrans;
+  CONSTANT_AS u32a (*s_skb)[64]     = c_skb;
 
   #endif
 
@@ -435,17 +435,17 @@ __kernel void m15300_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
 
   u32 key[6];
 
-  key[0] = swap32_S (tmps[gid].out[0]);
-  key[1] = swap32_S (tmps[gid].out[1]);
-  key[2] = swap32_S (tmps[gid].out[2]);
-  key[3] = swap32_S (tmps[gid].out[3]);
-  key[4] = swap32_S (tmps[gid].out[4]);
-  key[5] = swap32_S (tmps[gid].out[5]);
+  key[0] = hc_swap32_S (tmps[gid].out[0]);
+  key[1] = hc_swap32_S (tmps[gid].out[1]);
+  key[2] = hc_swap32_S (tmps[gid].out[2]);
+  key[3] = hc_swap32_S (tmps[gid].out[3]);
+  key[4] = hc_swap32_S (tmps[gid].out[4]);
+  key[5] = hc_swap32_S (tmps[gid].out[5]);
 
   u32 iv[2];
 
-  iv[0] = swap32_S (tmps[gid].out[6]);
-  iv[1] = swap32_S (tmps[gid].out[7]);
+  iv[0] = hc_swap32_S (tmps[gid].out[6]);
+  iv[1] = hc_swap32_S (tmps[gid].out[7]);
 
   u32 decrypted[26];
 
@@ -485,8 +485,8 @@ __kernel void m15300_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
 
     u32 data[2];
 
-    data[0] = swap32_S (esalt_bufs[digests_offset].contents[contents_off + 0]);
-    data[1] = swap32_S (esalt_bufs[digests_offset].contents[contents_off + 1]);
+    data[0] = hc_swap32_S (esalt_bufs[digests_offset].contents[contents_off + 0]);
+    data[1] = hc_swap32_S (esalt_bufs[digests_offset].contents[contents_off + 1]);
 
     u32 p1[2];
 
@@ -518,15 +518,15 @@ __kernel void m15300_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
   u32 expectedHmac[4];
   u32 lastKey[16];
 
-  hmacSalt[0] = swap32_S (decrypted[0]);
-  hmacSalt[1] = swap32_S (decrypted[1]);
-  hmacSalt[2] = swap32_S (decrypted[2]);
-  hmacSalt[3] = swap32_S (decrypted[3]);
+  hmacSalt[0] = hc_swap32_S (decrypted[0]);
+  hmacSalt[1] = hc_swap32_S (decrypted[1]);
+  hmacSalt[2] = hc_swap32_S (decrypted[2]);
+  hmacSalt[3] = hc_swap32_S (decrypted[3]);
 
-  expectedHmac[0] = swap32_S (decrypted[4 + 0]);
-  expectedHmac[1] = swap32_S (decrypted[4 + 1]);
-  expectedHmac[2] = swap32_S (decrypted[4 + 2]);
-  expectedHmac[3] = swap32_S (decrypted[4 + 3]);
+  expectedHmac[0] = hc_swap32_S (decrypted[4 + 0]);
+  expectedHmac[1] = hc_swap32_S (decrypted[4 + 1]);
+  expectedHmac[2] = hc_swap32_S (decrypted[4 + 2]);
+  expectedHmac[3] = hc_swap32_S (decrypted[4 + 3]);
 
   for(int i = 0; i < 16; i++)
   {
@@ -594,22 +594,22 @@ __kernel void m15300_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
 
   sha1_hmac_init_64 (&ctx, w0, w1, w2, w3);
 
-  w0[0] = swap32_S (lastKey[ 0]);
-  w0[1] = swap32_S (lastKey[ 1]);
-  w0[2] = swap32_S (lastKey[ 2]);
-  w0[3] = swap32_S (lastKey[ 3]);
-  w1[0] = swap32_S (lastKey[ 4]);
-  w1[1] = swap32_S (lastKey[ 5]);
-  w1[2] = swap32_S (lastKey[ 6]);
-  w1[3] = swap32_S (lastKey[ 7]);
-  w2[0] = swap32_S (lastKey[ 8]);
-  w2[1] = swap32_S (lastKey[ 9]);
-  w2[2] = swap32_S (lastKey[10]);
-  w2[3] = swap32_S (lastKey[11]);
-  w3[0] = swap32_S (lastKey[12]);
-  w3[1] = swap32_S (lastKey[13]);
-  w3[2] = swap32_S (lastKey[14]);
-  w3[3] = swap32_S (lastKey[15]);
+  w0[0] = hc_swap32_S (lastKey[ 0]);
+  w0[1] = hc_swap32_S (lastKey[ 1]);
+  w0[2] = hc_swap32_S (lastKey[ 2]);
+  w0[3] = hc_swap32_S (lastKey[ 3]);
+  w1[0] = hc_swap32_S (lastKey[ 4]);
+  w1[1] = hc_swap32_S (lastKey[ 5]);
+  w1[2] = hc_swap32_S (lastKey[ 6]);
+  w1[3] = hc_swap32_S (lastKey[ 7]);
+  w2[0] = hc_swap32_S (lastKey[ 8]);
+  w2[1] = hc_swap32_S (lastKey[ 9]);
+  w2[2] = hc_swap32_S (lastKey[10]);
+  w2[3] = hc_swap32_S (lastKey[11]);
+  w3[0] = hc_swap32_S (lastKey[12]);
+  w3[1] = hc_swap32_S (lastKey[13]);
+  w3[2] = hc_swap32_S (lastKey[14]);
+  w3[3] = hc_swap32_S (lastKey[15]);
 
   sha1_hmac_update_64 (&ctx, w0, w1, w2, w3, 64);
 
@@ -624,7 +624,7 @@ __kernel void m15300_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
   {
     if (atomic_inc (&hashes_shown[digests_offset]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos, 0, 0);
     }
   }
 }

@@ -1,4 +1,13 @@
-DECLSPEC void xts_mul2 (u32 *in, u32 *out);
+/**
+ * Author......: See docs/credits.txt
+ * License.....: MIT
+ */
+
+#include "inc_vendor.h"
+#include "inc_types.h"
+#include "inc_common.h"
+#include "inc_luks_xts.h"
+
 DECLSPEC void xts_mul2 (u32 *in, u32 *out)
 {
   const u32 c = in[3] >> 31;

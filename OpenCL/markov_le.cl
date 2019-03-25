@@ -3,16 +3,16 @@
  * License.....: MIT
  */
 
-#include "inc_vendor.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
+#endif
 
 #define CHARSIZ 256
 
-#include "inc_types.cl"
-
-DECLSPEC void generate_pw (u32 *pw_buf, __global const cs_t *root_css_buf, __global const cs_t *markov_css_buf, const u32 pw_l_len, const u32 pw_r_len, const u32 mask80, const u32 bits14, const u32 bits15, u64 val);
-DECLSPEC void generate_pw (u32 *pw_buf, __global const cs_t *root_css_buf, __global const cs_t *markov_css_buf, const u32 pw_l_len, const u32 pw_r_len, const u32 mask80, const u32 bits14, const u32 bits15, u64 val)
+DECLSPEC void generate_pw (u32 *pw_buf, GLOBAL_AS const cs_t *root_css_buf, GLOBAL_AS const cs_t *markov_css_buf, const u32 pw_l_len, const u32 pw_r_len, const u32 mask80, const u32 bits14, const u32 bits15, u64 val)
 {
-  __global const cs_t *cs = &root_css_buf[pw_r_len];
+  GLOBAL_AS const cs_t *cs = &root_css_buf[pw_r_len];
 
   u32 i;
   u32 j;
@@ -45,7 +45,7 @@ DECLSPEC void generate_pw (u32 *pw_buf, __global const cs_t *root_css_buf, __glo
   if (bits15) pw_buf[15] = (pw_l_len + pw_r_len) * 8;
 }
 
-__kernel void l_markov (__global pw_t * restrict pws_buf_l, __global const cs_t * restrict root_css_buf, __global const cs_t * restrict markov_css_buf, const u64 off, const u32 pw_l_len, const u32 pw_r_len, const u32 mask80, const u32 bits14, const u32 bits15, const u64 gid_max)
+KERNEL_FQ void l_markov (GLOBAL_AS pw_t * restrict pws_buf_l, GLOBAL_AS const cs_t * restrict root_css_buf, GLOBAL_AS const cs_t * restrict markov_css_buf, const u64 off, const u32 pw_l_len, const u32 pw_r_len, const u32 mask80, const u32 bits14, const u32 bits15, const u64 gid_max)
 {
   const u64 gid = get_global_id (0);
 
@@ -64,7 +64,7 @@ __kernel void l_markov (__global pw_t * restrict pws_buf_l, __global const cs_t 
   pws_buf_l[gid].pw_len = pw_l_len + pw_r_len;
 }
 
-__kernel void r_markov (__global bf_t * restrict pws_buf_r, __global const cs_t * restrict root_css_buf, __global const cs_t * restrict markov_css_buf, const u64 off, const u32 pw_r_len, const u32 mask80, const u32 bits14, const u32 bits15, const u64 gid_max)
+KERNEL_FQ void r_markov (GLOBAL_AS bf_t * restrict pws_buf_r, GLOBAL_AS const cs_t * restrict root_css_buf, GLOBAL_AS const cs_t * restrict markov_css_buf, const u64 off, const u32 pw_r_len, const u32 mask80, const u32 bits14, const u32 bits15, const u64 gid_max)
 {
   const u64 gid = get_global_id (0);
 
@@ -77,7 +77,7 @@ __kernel void r_markov (__global bf_t * restrict pws_buf_r, __global const cs_t 
   pws_buf_r[gid].i = pw_buf[0];
 }
 
-__kernel void C_markov (__global pw_t * restrict pws_buf, __global const cs_t * restrict root_css_buf, __global const cs_t * restrict markov_css_buf, const u64 off, const u32 pw_len, const u32 mask80, const u32 bits14, const u32 bits15, const u64 gid_max)
+KERNEL_FQ void C_markov (GLOBAL_AS pw_t * restrict pws_buf, GLOBAL_AS const cs_t * restrict root_css_buf, GLOBAL_AS const cs_t * restrict markov_css_buf, const u64 off, const u32 pw_len, const u32 mask80, const u32 bits14, const u32 bits15, const u64 gid_max)
 {
   const u64 gid = get_global_id (0);
 

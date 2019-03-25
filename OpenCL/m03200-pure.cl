@@ -3,11 +3,11 @@
  * License.....: MIT
  */
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
+#endif
 
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
@@ -27,7 +27,7 @@ typedef struct bcrypt_tmp
 
 // http://www.schneier.com/code/constants.txt
 
-__constant u32a c_sbox0[256] =
+CONSTANT_AS u32a c_sbox0[256] =
 {
   0xd1310ba6, 0x98dfb5ac, 0x2ffd72db, 0xd01adfb7,
   0xb8e1afed, 0x6a267e96, 0xba7c9045, 0xf12c7f99,
@@ -95,7 +95,7 @@ __constant u32a c_sbox0[256] =
   0x53b02d5d, 0xa99f8fa1, 0x08ba4799, 0x6e85076a
 };
 
-__constant u32a c_sbox1[256] =
+CONSTANT_AS u32a c_sbox1[256] =
 {
   0x4b7a70e9, 0xb5b32944, 0xdb75092e, 0xc4192623,
   0xad6ea6b0, 0x49a7df7d, 0x9cee60b8, 0x8fedb266,
@@ -163,7 +163,7 @@ __constant u32a c_sbox1[256] =
   0x153e21e7, 0x8fb03d4a, 0xe6e39f2b, 0xdb83adf7
 };
 
-__constant u32a c_sbox2[256] =
+CONSTANT_AS u32a c_sbox2[256] =
 {
   0xe93d5a68, 0x948140f7, 0xf64c261c, 0x94692934,
   0x411520f7, 0x7602d4f7, 0xbcf46b2e, 0xd4a20068,
@@ -231,7 +231,7 @@ __constant u32a c_sbox2[256] =
   0xd79a3234, 0x92638212, 0x670efa8e, 0x406000e0
 };
 
-__constant u32a c_sbox3[256] =
+CONSTANT_AS u32a c_sbox3[256] =
 {
   0x3a39ce37, 0xd3faf5cf, 0xabc27737, 0x5ac52d1b,
   0x5cb0679e, 0x4fa33742, 0xd3822740, 0x99bc9bbe,
@@ -299,16 +299,21 @@ __constant u32a c_sbox3[256] =
   0xb74e6132, 0xce77e25b, 0x578fdfe3, 0x3ac372e6
 };
 
-#define BF_ROUND(L,R,N)             \
-{                                   \
-  u32 tmp;                          \
-                                  \
-  tmp  = S0[hc_bfe_S ((L), 24, 8)]; \
-  tmp += S1[hc_bfe_S ((L), 16, 8)]; \
-  tmp ^= S2[hc_bfe_S ((L),  8, 8)]; \
-  tmp += S3[hc_bfe_S ((L),  0, 8)]; \
-                                  \
-  (R) ^= tmp ^ P[(N)];              \
+#define BF_ROUND(L,R,N)                       \
+{                                             \
+  u32 tmp;                                    \
+                                              \
+  const u32 r0 = unpack_v8d_from_v32_S ((L)); \
+  const u32 r1 = unpack_v8c_from_v32_S ((L)); \
+  const u32 r2 = unpack_v8b_from_v32_S ((L)); \
+  const u32 r3 = unpack_v8a_from_v32_S ((L)); \
+                                              \
+  tmp  = S0[r0];                              \
+  tmp += S1[r1];                              \
+  tmp ^= S2[r2];                              \
+  tmp += S3[r3];                              \
+                                              \
+  (R) ^= tmp ^ P[(N)];                        \
 }
 
 #define BF_ENCRYPT(L,R) \
@@ -361,7 +366,7 @@ DECLSPEC void expand_key (u32 *E, u32 *W, const int len)
   }
 }
 
-__kernel void m03200_init (KERN_ATTR_TMPS (bcrypt_tmp_t))
+KERNEL_FQ void __attribute__((reqd_work_group_size(FIXED_LOCAL_SIZE, 1, 1))) m03200_init (KERN_ATTR_TMPS (bcrypt_tmp_t))
 {
   /**
    * base
@@ -399,24 +404,24 @@ __kernel void m03200_init (KERN_ATTR_TMPS (bcrypt_tmp_t))
 
   expand_key (E, w, pw_len);
 
-  E[ 0] = swap32_S (E[ 0]);
-  E[ 1] = swap32_S (E[ 1]);
-  E[ 2] = swap32_S (E[ 2]);
-  E[ 3] = swap32_S (E[ 3]);
-  E[ 4] = swap32_S (E[ 4]);
-  E[ 5] = swap32_S (E[ 5]);
-  E[ 6] = swap32_S (E[ 6]);
-  E[ 7] = swap32_S (E[ 7]);
-  E[ 8] = swap32_S (E[ 8]);
-  E[ 9] = swap32_S (E[ 9]);
-  E[10] = swap32_S (E[10]);
-  E[11] = swap32_S (E[11]);
-  E[12] = swap32_S (E[12]);
-  E[13] = swap32_S (E[13]);
-  E[14] = swap32_S (E[14]);
-  E[15] = swap32_S (E[15]);
-  E[16] = swap32_S (E[16]);
-  E[17] = swap32_S (E[17]);
+  E[ 0] = hc_swap32_S (E[ 0]);
+  E[ 1] = hc_swap32_S (E[ 1]);
+  E[ 2] = hc_swap32_S (E[ 2]);
+  E[ 3] = hc_swap32_S (E[ 3]);
+  E[ 4] = hc_swap32_S (E[ 4]);
+  E[ 5] = hc_swap32_S (E[ 5]);
+  E[ 6] = hc_swap32_S (E[ 6]);
+  E[ 7] = hc_swap32_S (E[ 7]);
+  E[ 8] = hc_swap32_S (E[ 8]);
+  E[ 9] = hc_swap32_S (E[ 9]);
+  E[10] = hc_swap32_S (E[10]);
+  E[11] = hc_swap32_S (E[11]);
+  E[12] = hc_swap32_S (E[12]);
+  E[13] = hc_swap32_S (E[13]);
+  E[14] = hc_swap32_S (E[14]);
+  E[15] = hc_swap32_S (E[15]);
+  E[16] = hc_swap32_S (E[16]);
+  E[17] = hc_swap32_S (E[17]);
 
   for (u32 i = 0; i < 18; i++)
   {
@@ -438,15 +443,15 @@ __kernel void m03200_init (KERN_ATTR_TMPS (bcrypt_tmp_t))
    * do the key setup
    */
 
-  __local u32 S0_all[8][256];
-  __local u32 S1_all[8][256];
-  __local u32 S2_all[8][256];
-  __local u32 S3_all[8][256];
+  LOCAL_AS u32 S0_all[FIXED_LOCAL_SIZE][256];
+  LOCAL_AS u32 S1_all[FIXED_LOCAL_SIZE][256];
+  LOCAL_AS u32 S2_all[FIXED_LOCAL_SIZE][256];
+  LOCAL_AS u32 S3_all[FIXED_LOCAL_SIZE][256];
 
-  __local u32 *S0 = S0_all[lid];
-  __local u32 *S1 = S1_all[lid];
-  __local u32 *S2 = S2_all[lid];
-  __local u32 *S3 = S3_all[lid];
+  LOCAL_AS u32 *S0 = S0_all[lid];
+  LOCAL_AS u32 *S1 = S1_all[lid];
+  LOCAL_AS u32 *S2 = S2_all[lid];
+  LOCAL_AS u32 *S3 = S3_all[lid];
 
   // initstate
 
@@ -580,7 +585,7 @@ __kernel void m03200_init (KERN_ATTR_TMPS (bcrypt_tmp_t))
   }
 }
 
-__kernel void m03200_loop (KERN_ATTR_TMPS (bcrypt_tmp_t))
+KERNEL_FQ void __attribute__((reqd_work_group_size(FIXED_LOCAL_SIZE, 1, 1))) m03200_loop (KERN_ATTR_TMPS (bcrypt_tmp_t))
 {
   /**
    * base
@@ -607,15 +612,15 @@ __kernel void m03200_loop (KERN_ATTR_TMPS (bcrypt_tmp_t))
     P[i] = tmps[gid].P[i];
   }
 
-  __local u32 S0_all[8][256];
-  __local u32 S1_all[8][256];
-  __local u32 S2_all[8][256];
-  __local u32 S3_all[8][256];
+  LOCAL_AS u32 S0_all[FIXED_LOCAL_SIZE][256];
+  LOCAL_AS u32 S1_all[FIXED_LOCAL_SIZE][256];
+  LOCAL_AS u32 S2_all[FIXED_LOCAL_SIZE][256];
+  LOCAL_AS u32 S3_all[FIXED_LOCAL_SIZE][256];
 
-  __local u32 *S0 = S0_all[lid];
-  __local u32 *S1 = S1_all[lid];
-  __local u32 *S2 = S2_all[lid];
-  __local u32 *S3 = S3_all[lid];
+  LOCAL_AS u32 *S0 = S0_all[lid];
+  LOCAL_AS u32 *S1 = S1_all[lid];
+  LOCAL_AS u32 *S2 = S2_all[lid];
+  LOCAL_AS u32 *S3 = S3_all[lid];
 
   for (u32 i = 0; i < 256; i++)
   {
@@ -653,9 +658,6 @@ __kernel void m03200_loop (KERN_ATTR_TMPS (bcrypt_tmp_t))
     L0 = 0;
     R0 = 0;
 
-    #ifdef _unroll
-    #pragma unroll
-    #endif
     for (u32 i = 0; i < 9; i++)
     {
       BF_ENCRYPT (L0, R0);
@@ -718,9 +720,6 @@ __kernel void m03200_loop (KERN_ATTR_TMPS (bcrypt_tmp_t))
     L0 = 0;
     R0 = 0;
 
-    #ifdef _unroll
-    #pragma unroll
-    #endif
     for (u32 i = 0; i < 9; i++)
     {
       BF_ENCRYPT (L0, R0);
@@ -778,7 +777,7 @@ __kernel void m03200_loop (KERN_ATTR_TMPS (bcrypt_tmp_t))
   }
 }
 
-__kernel void m03200_comp (KERN_ATTR_TMPS (bcrypt_tmp_t))
+KERNEL_FQ void __attribute__((reqd_work_group_size(FIXED_LOCAL_SIZE, 1, 1))) m03200_comp (KERN_ATTR_TMPS (bcrypt_tmp_t))
 {
   /**
    * base
@@ -798,15 +797,15 @@ __kernel void m03200_comp (KERN_ATTR_TMPS (bcrypt_tmp_t))
     P[i] = tmps[gid].P[i];
   }
 
-  __local u32 S0_all[8][256];
-  __local u32 S1_all[8][256];
-  __local u32 S2_all[8][256];
-  __local u32 S3_all[8][256];
+  LOCAL_AS u32 S0_all[FIXED_LOCAL_SIZE][256];
+  LOCAL_AS u32 S1_all[FIXED_LOCAL_SIZE][256];
+  LOCAL_AS u32 S2_all[FIXED_LOCAL_SIZE][256];
+  LOCAL_AS u32 S3_all[FIXED_LOCAL_SIZE][256];
 
-  __local u32 *S0 = S0_all[lid];
-  __local u32 *S1 = S1_all[lid];
-  __local u32 *S2 = S2_all[lid];
-  __local u32 *S3 = S3_all[lid];
+  LOCAL_AS u32 *S0 = S0_all[lid];
+  LOCAL_AS u32 *S1 = S1_all[lid];
+  LOCAL_AS u32 *S2 = S2_all[lid];
+  LOCAL_AS u32 *S3 = S3_all[lid];
 
   for (u32 i = 0; i < 256; i++)
   {
@@ -854,5 +853,7 @@ __kernel void m03200_comp (KERN_ATTR_TMPS (bcrypt_tmp_t))
 
   #define il_pos 0
 
+  #ifdef KERNEL_STATIC
   #include COMPARE_M
+  #endif
 }

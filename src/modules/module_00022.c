@@ -9,7 +9,6 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
-#include "inc_hash_constants.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -203,39 +202,37 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   tmp[2] = byte_swap_32 (tmp[2]);
   tmp[3] = byte_swap_32 (tmp[3]);
 
-  u16 *ptr = (u16 *) tmp;
-
   u8 tmp_buf[32];
 
   tmp_buf[ 0] = sig[0];
-  tmp_buf[ 1] = int_to_base64 (((ptr[1]) >> 12) & 0x3f);
-  tmp_buf[ 2] = int_to_base64 (((ptr[1]) >>  6) & 0x3f);
-  tmp_buf[ 3] = int_to_base64 (((ptr[1]) >>  0) & 0x3f);
-  tmp_buf[ 4] = int_to_base64 (((ptr[0]) >> 12) & 0x3f);
-  tmp_buf[ 5] = int_to_base64 (((ptr[0]) >>  6) & 0x3f);
+  tmp_buf[ 1] = int_to_base64 (((v16b_from_v32 (tmp[0])) >> 12) & 0x3f);
+  tmp_buf[ 2] = int_to_base64 (((v16b_from_v32 (tmp[0])) >>  6) & 0x3f);
+  tmp_buf[ 3] = int_to_base64 (((v16b_from_v32 (tmp[0])) >>  0) & 0x3f);
+  tmp_buf[ 4] = int_to_base64 (((v16a_from_v32 (tmp[0])) >> 12) & 0x3f);
+  tmp_buf[ 5] = int_to_base64 (((v16a_from_v32 (tmp[0])) >>  6) & 0x3f);
   tmp_buf[ 6] = sig[1];
-  tmp_buf[ 7] = int_to_base64 (((ptr[0]) >>  0) & 0x3f);
-  tmp_buf[ 8] = int_to_base64 (((ptr[3]) >> 12) & 0x3f);
-  tmp_buf[ 9] = int_to_base64 (((ptr[3]) >>  6) & 0x3f);
-  tmp_buf[10] = int_to_base64 (((ptr[3]) >>  0) & 0x3f);
-  tmp_buf[11] = int_to_base64 (((ptr[2]) >> 12) & 0x3f);
+  tmp_buf[ 7] = int_to_base64 (((v16a_from_v32 (tmp[0])) >>  0) & 0x3f);
+  tmp_buf[ 8] = int_to_base64 (((v16b_from_v32 (tmp[1])) >> 12) & 0x3f);
+  tmp_buf[ 9] = int_to_base64 (((v16b_from_v32 (tmp[1])) >>  6) & 0x3f);
+  tmp_buf[10] = int_to_base64 (((v16b_from_v32 (tmp[1])) >>  0) & 0x3f);
+  tmp_buf[11] = int_to_base64 (((v16a_from_v32 (tmp[1])) >> 12) & 0x3f);
   tmp_buf[12] = sig[2];
-  tmp_buf[13] = int_to_base64 (((ptr[2]) >>  6) & 0x3f);
-  tmp_buf[14] = int_to_base64 (((ptr[2]) >>  0) & 0x3f);
-  tmp_buf[15] = int_to_base64 (((ptr[5]) >> 12) & 0x3f);
-  tmp_buf[16] = int_to_base64 (((ptr[5]) >>  6) & 0x3f);
+  tmp_buf[13] = int_to_base64 (((v16a_from_v32 (tmp[1])) >>  6) & 0x3f);
+  tmp_buf[14] = int_to_base64 (((v16a_from_v32 (tmp[1])) >>  0) & 0x3f);
+  tmp_buf[15] = int_to_base64 (((v16b_from_v32 (tmp[2])) >> 12) & 0x3f);
+  tmp_buf[16] = int_to_base64 (((v16b_from_v32 (tmp[2])) >>  6) & 0x3f);
   tmp_buf[17] = sig[3];
-  tmp_buf[18] = int_to_base64 (((ptr[5]) >>  0) & 0x3f);
-  tmp_buf[19] = int_to_base64 (((ptr[4]) >> 12) & 0x3f);
-  tmp_buf[20] = int_to_base64 (((ptr[4]) >>  6) & 0x3f);
-  tmp_buf[21] = int_to_base64 (((ptr[4]) >>  0) & 0x3f);
-  tmp_buf[22] = int_to_base64 (((ptr[7]) >> 12) & 0x3f);
+  tmp_buf[18] = int_to_base64 (((v16b_from_v32 (tmp[2])) >>  0) & 0x3f);
+  tmp_buf[19] = int_to_base64 (((v16a_from_v32 (tmp[2])) >> 12) & 0x3f);
+  tmp_buf[20] = int_to_base64 (((v16a_from_v32 (tmp[2])) >>  6) & 0x3f);
+  tmp_buf[21] = int_to_base64 (((v16a_from_v32 (tmp[2])) >>  0) & 0x3f);
+  tmp_buf[22] = int_to_base64 (((v16b_from_v32 (tmp[3])) >> 12) & 0x3f);
   tmp_buf[23] = sig[4];
-  tmp_buf[24] = int_to_base64 (((ptr[7]) >>  6) & 0x3f);
-  tmp_buf[25] = int_to_base64 (((ptr[7]) >>  0) & 0x3f);
-  tmp_buf[26] = int_to_base64 (((ptr[6]) >> 12) & 0x3f);
-  tmp_buf[27] = int_to_base64 (((ptr[6]) >>  6) & 0x3f);
-  tmp_buf[28] = int_to_base64 (((ptr[6]) >>  0) & 0x3f);
+  tmp_buf[24] = int_to_base64 (((v16b_from_v32 (tmp[3])) >>  6) & 0x3f);
+  tmp_buf[25] = int_to_base64 (((v16b_from_v32 (tmp[3])) >>  0) & 0x3f);
+  tmp_buf[26] = int_to_base64 (((v16a_from_v32 (tmp[3])) >> 12) & 0x3f);
+  tmp_buf[27] = int_to_base64 (((v16a_from_v32 (tmp[3])) >>  6) & 0x3f);
+  tmp_buf[28] = int_to_base64 (((v16a_from_v32 (tmp[3])) >>  0) & 0x3f);
   tmp_buf[29] = sig[5];
   tmp_buf[30] = 0;
 

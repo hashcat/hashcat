@@ -5,20 +5,20 @@
 
 #define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_whirlpool.cl"
+#endif
 
-DECLSPEC void whirlpool_transform_transport_vector (const u32x *w, u32x *digest, __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
+DECLSPEC void whirlpool_transform_transport_vector (const u32x *w, u32x *digest, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
 {
   whirlpool_transform_vector (w + 0, w + 4, w + 8, w + 12, digest, s_Ch, s_Cl);
 }
 
-DECLSPEC void m06100m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC (), __local u32 (*s_Cl)[256], __local u32 (*s_Ch)[256])
+DECLSPEC void m06100m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC (), SHM_TYPE u32 (*s_Cl)[256], SHM_TYPE u32 (*s_Ch)[256])
 {
   /**
    * modifier
@@ -87,7 +87,7 @@ DECLSPEC void m06100m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
   }
 }
 
-DECLSPEC void m06100s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC (), __local u32 (*s_Cl)[256], __local u32 (*s_Ch)[256])
+DECLSPEC void m06100s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC (), SHM_TYPE u32 (*s_Cl)[256], SHM_TYPE u32 (*s_Ch)[256])
 {
   /**
    * modifier
@@ -168,7 +168,7 @@ DECLSPEC void m06100s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
   }
 }
 
-__kernel void m06100_m04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m06100_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -179,11 +179,13 @@ __kernel void m06100_m04 (KERN_ATTR_BASIC ())
   const u64 lsz = get_local_size (0);
 
   /**
-   * shared
+   * Whirlpool shared
    */
 
-  __local u32 s_Ch[8][256];
-  __local u32 s_Cl[8][256];
+  #ifdef REAL_SHM
+
+  LOCAL_AS u32 s_Ch[8][256];
+  LOCAL_AS u32 s_Cl[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -207,6 +209,13 @@ __kernel void m06100_m04 (KERN_ATTR_BASIC ())
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
+
+  #else
+
+  CONSTANT_AS u32a (*s_Ch)[256] = Ch;
+  CONSTANT_AS u32a (*s_Cl)[256] = Cl;
+
+  #endif
 
   if (gid >= gid_max) return;
 
@@ -251,7 +260,7 @@ __kernel void m06100_m04 (KERN_ATTR_BASIC ())
   m06100m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max, s_Cl, s_Ch);
 }
 
-__kernel void m06100_m08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m06100_m08 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -262,11 +271,13 @@ __kernel void m06100_m08 (KERN_ATTR_BASIC ())
   const u64 lsz = get_local_size (0);
 
   /**
-   * shared
+   * Whirlpool shared
    */
 
-  __local u32 s_Ch[8][256];
-  __local u32 s_Cl[8][256];
+  #ifdef REAL_SHM
+
+  LOCAL_AS u32 s_Ch[8][256];
+  LOCAL_AS u32 s_Cl[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -290,6 +301,13 @@ __kernel void m06100_m08 (KERN_ATTR_BASIC ())
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
+
+  #else
+
+  CONSTANT_AS u32a (*s_Ch)[256] = Ch;
+  CONSTANT_AS u32a (*s_Cl)[256] = Cl;
+
+  #endif
 
   if (gid >= gid_max) return;
 
@@ -334,11 +352,11 @@ __kernel void m06100_m08 (KERN_ATTR_BASIC ())
   m06100m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max, s_Cl, s_Ch);
 }
 
-__kernel void m06100_m16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m06100_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m06100_s04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m06100_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -349,11 +367,13 @@ __kernel void m06100_s04 (KERN_ATTR_BASIC ())
   const u64 lsz = get_local_size (0);
 
   /**
-   * shared
+   * Whirlpool shared
    */
 
-  __local u32 s_Ch[8][256];
-  __local u32 s_Cl[8][256];
+  #ifdef REAL_SHM
+
+  LOCAL_AS u32 s_Ch[8][256];
+  LOCAL_AS u32 s_Cl[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -377,6 +397,13 @@ __kernel void m06100_s04 (KERN_ATTR_BASIC ())
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
+
+  #else
+
+  CONSTANT_AS u32a (*s_Ch)[256] = Ch;
+  CONSTANT_AS u32a (*s_Cl)[256] = Cl;
+
+  #endif
 
   if (gid >= gid_max) return;
 
@@ -421,7 +448,7 @@ __kernel void m06100_s04 (KERN_ATTR_BASIC ())
   m06100s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max, s_Cl, s_Ch);
 }
 
-__kernel void m06100_s08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m06100_s08 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -432,11 +459,13 @@ __kernel void m06100_s08 (KERN_ATTR_BASIC ())
   const u64 lsz = get_local_size (0);
 
   /**
-   * shared
+   * Whirlpool shared
    */
 
-  __local u32 s_Ch[8][256];
-  __local u32 s_Cl[8][256];
+  #ifdef REAL_SHM
+
+  LOCAL_AS u32 s_Ch[8][256];
+  LOCAL_AS u32 s_Cl[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -460,6 +489,13 @@ __kernel void m06100_s08 (KERN_ATTR_BASIC ())
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
+
+  #else
+
+  CONSTANT_AS u32a (*s_Ch)[256] = Ch;
+  CONSTANT_AS u32a (*s_Cl)[256] = Cl;
+
+  #endif
 
   if (gid >= gid_max) return;
 
@@ -504,6 +540,6 @@ __kernel void m06100_s08 (KERN_ATTR_BASIC ())
   m06100s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max, s_Cl, s_Ch);
 }
 
-__kernel void m06100_s16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m06100_s16 (KERN_ATTR_BASIC ())
 {
 }

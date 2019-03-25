@@ -5,40 +5,17 @@
 
 #define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_rp_optimized.h"
 #include "inc_rp_optimized.cl"
 #include "inc_simd.cl"
+#include "inc_hash_sha512.cl"
+#endif
 
-__constant u64a k_sha512[80] =
-{
-  SHA512C00, SHA512C01, SHA512C02, SHA512C03,
-  SHA512C04, SHA512C05, SHA512C06, SHA512C07,
-  SHA512C08, SHA512C09, SHA512C0a, SHA512C0b,
-  SHA512C0c, SHA512C0d, SHA512C0e, SHA512C0f,
-  SHA512C10, SHA512C11, SHA512C12, SHA512C13,
-  SHA512C14, SHA512C15, SHA512C16, SHA512C17,
-  SHA512C18, SHA512C19, SHA512C1a, SHA512C1b,
-  SHA512C1c, SHA512C1d, SHA512C1e, SHA512C1f,
-  SHA512C20, SHA512C21, SHA512C22, SHA512C23,
-  SHA512C24, SHA512C25, SHA512C26, SHA512C27,
-  SHA512C28, SHA512C29, SHA512C2a, SHA512C2b,
-  SHA512C2c, SHA512C2d, SHA512C2e, SHA512C2f,
-  SHA512C30, SHA512C31, SHA512C32, SHA512C33,
-  SHA512C34, SHA512C35, SHA512C36, SHA512C37,
-  SHA512C38, SHA512C39, SHA512C3a, SHA512C3b,
-  SHA512C3c, SHA512C3d, SHA512C3e, SHA512C3f,
-  SHA512C40, SHA512C41, SHA512C42, SHA512C43,
-  SHA512C44, SHA512C45, SHA512C46, SHA512C47,
-  SHA512C48, SHA512C49, SHA512C4a, SHA512C4b,
-  SHA512C4c, SHA512C4d, SHA512C4e, SHA512C4f,
-};
-
-DECLSPEC void sha512_transform (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, const u32x *w4, const u32x *w5, const u32x *w6, const u32x *w7, u64x *digest)
+DECLSPEC void sha512_transform_intern (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, const u32x *w4, const u32x *w5, const u32x *w6, const u32x *w7, u64x *digest)
 {
   u64x w0_t = hl32_to_64 (w0[0], w0[1]);
   u64x w1_t = hl32_to_64 (w0[2], w0[3]);
@@ -137,7 +114,7 @@ DECLSPEC void sha512_transform (const u32x *w0, const u32x *w1, const u32x *w2, 
   digest[7] = h;
 }
 
-__kernel void m15000_m04 (KERN_ATTR_RULES ())
+KERNEL_FQ void m15000_m04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -275,36 +252,36 @@ __kernel void m15000_m04 (KERN_ATTR_RULES ())
     w3_t[2] |= w3[2];
     w3_t[3] |= w3[3];
 
-    w0_t[0] = swap32 (w0_t[0]);
-    w0_t[1] = swap32 (w0_t[1]);
-    w0_t[2] = swap32 (w0_t[2]);
-    w0_t[3] = swap32 (w0_t[3]);
-    w1_t[0] = swap32 (w1_t[0]);
-    w1_t[1] = swap32 (w1_t[1]);
-    w1_t[2] = swap32 (w1_t[2]);
-    w1_t[3] = swap32 (w1_t[3]);
-    w2_t[0] = swap32 (w2_t[0]);
-    w2_t[1] = swap32 (w2_t[1]);
-    w2_t[2] = swap32 (w2_t[2]);
-    w2_t[3] = swap32 (w2_t[3]);
-    w3_t[0] = swap32 (w3_t[0]);
-    w3_t[1] = swap32 (w3_t[1]);
-    w3_t[2] = swap32 (w3_t[2]);
-    w3_t[3] = swap32 (w3_t[3]);
-    w4_t[0] = swap32 (w4_t[0]);
-    w4_t[1] = swap32 (w4_t[1]);
-    w4_t[2] = swap32 (w4_t[2]);
-    w4_t[3] = swap32 (w4_t[3]);
-    w5_t[0] = swap32 (w5_t[0]);
-    w5_t[1] = swap32 (w5_t[1]);
-    w5_t[2] = swap32 (w5_t[2]);
-    w5_t[3] = swap32 (w5_t[3]);
-    w6_t[0] = swap32 (w6_t[0]);
-    w6_t[1] = swap32 (w6_t[1]);
-    w6_t[2] = swap32 (w6_t[2]);
-    w6_t[3] = swap32 (w6_t[3]);
-    w7_t[0] = swap32 (w7_t[0]);
-    w7_t[1] = swap32 (w7_t[1]);
+    w0_t[0] = hc_swap32 (w0_t[0]);
+    w0_t[1] = hc_swap32 (w0_t[1]);
+    w0_t[2] = hc_swap32 (w0_t[2]);
+    w0_t[3] = hc_swap32 (w0_t[3]);
+    w1_t[0] = hc_swap32 (w1_t[0]);
+    w1_t[1] = hc_swap32 (w1_t[1]);
+    w1_t[2] = hc_swap32 (w1_t[2]);
+    w1_t[3] = hc_swap32 (w1_t[3]);
+    w2_t[0] = hc_swap32 (w2_t[0]);
+    w2_t[1] = hc_swap32 (w2_t[1]);
+    w2_t[2] = hc_swap32 (w2_t[2]);
+    w2_t[3] = hc_swap32 (w2_t[3]);
+    w3_t[0] = hc_swap32 (w3_t[0]);
+    w3_t[1] = hc_swap32 (w3_t[1]);
+    w3_t[2] = hc_swap32 (w3_t[2]);
+    w3_t[3] = hc_swap32 (w3_t[3]);
+    w4_t[0] = hc_swap32 (w4_t[0]);
+    w4_t[1] = hc_swap32 (w4_t[1]);
+    w4_t[2] = hc_swap32 (w4_t[2]);
+    w4_t[3] = hc_swap32 (w4_t[3]);
+    w5_t[0] = hc_swap32 (w5_t[0]);
+    w5_t[1] = hc_swap32 (w5_t[1]);
+    w5_t[2] = hc_swap32 (w5_t[2]);
+    w5_t[3] = hc_swap32 (w5_t[3]);
+    w6_t[0] = hc_swap32 (w6_t[0]);
+    w6_t[1] = hc_swap32 (w6_t[1]);
+    w6_t[2] = hc_swap32 (w6_t[2]);
+    w6_t[3] = hc_swap32 (w6_t[3]);
+    w7_t[0] = hc_swap32 (w7_t[0]);
+    w7_t[1] = hc_swap32 (w7_t[1]);
     w7_t[2] = 0;
     w7_t[3] = pw_salt_len * 8;
 
@@ -323,7 +300,7 @@ __kernel void m15000_m04 (KERN_ATTR_RULES ())
     digest[6] = SHA512M_G;
     digest[7] = SHA512M_H;
 
-    sha512_transform (w0_t, w1_t, w2_t, w3_t, w4_t, w5_t, w6_t, w7_t, digest);
+    sha512_transform_intern (w0_t, w1_t, w2_t, w3_t, w4_t, w5_t, w6_t, w7_t, digest);
 
     const u32x r0 = l32_from_64 (digest[7]);
     const u32x r1 = h32_from_64 (digest[7]);
@@ -334,15 +311,15 @@ __kernel void m15000_m04 (KERN_ATTR_RULES ())
   }
 }
 
-__kernel void m15000_m08 (KERN_ATTR_RULES ())
+KERNEL_FQ void m15000_m08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m15000_m16 (KERN_ATTR_RULES ())
+KERNEL_FQ void m15000_m16 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m15000_s04 (KERN_ATTR_RULES ())
+KERNEL_FQ void m15000_s04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -492,36 +469,36 @@ __kernel void m15000_s04 (KERN_ATTR_RULES ())
     w3_t[2] |= w3[2];
     w3_t[3] |= w3[3];
 
-    w0_t[0] = swap32 (w0_t[0]);
-    w0_t[1] = swap32 (w0_t[1]);
-    w0_t[2] = swap32 (w0_t[2]);
-    w0_t[3] = swap32 (w0_t[3]);
-    w1_t[0] = swap32 (w1_t[0]);
-    w1_t[1] = swap32 (w1_t[1]);
-    w1_t[2] = swap32 (w1_t[2]);
-    w1_t[3] = swap32 (w1_t[3]);
-    w2_t[0] = swap32 (w2_t[0]);
-    w2_t[1] = swap32 (w2_t[1]);
-    w2_t[2] = swap32 (w2_t[2]);
-    w2_t[3] = swap32 (w2_t[3]);
-    w3_t[0] = swap32 (w3_t[0]);
-    w3_t[1] = swap32 (w3_t[1]);
-    w3_t[2] = swap32 (w3_t[2]);
-    w3_t[3] = swap32 (w3_t[3]);
-    w4_t[0] = swap32 (w4_t[0]);
-    w4_t[1] = swap32 (w4_t[1]);
-    w4_t[2] = swap32 (w4_t[2]);
-    w4_t[3] = swap32 (w4_t[3]);
-    w5_t[0] = swap32 (w5_t[0]);
-    w5_t[1] = swap32 (w5_t[1]);
-    w5_t[2] = swap32 (w5_t[2]);
-    w5_t[3] = swap32 (w5_t[3]);
-    w6_t[0] = swap32 (w6_t[0]);
-    w6_t[1] = swap32 (w6_t[1]);
-    w6_t[2] = swap32 (w6_t[2]);
-    w6_t[3] = swap32 (w6_t[3]);
-    w7_t[0] = swap32 (w7_t[0]);
-    w7_t[1] = swap32 (w7_t[1]);
+    w0_t[0] = hc_swap32 (w0_t[0]);
+    w0_t[1] = hc_swap32 (w0_t[1]);
+    w0_t[2] = hc_swap32 (w0_t[2]);
+    w0_t[3] = hc_swap32 (w0_t[3]);
+    w1_t[0] = hc_swap32 (w1_t[0]);
+    w1_t[1] = hc_swap32 (w1_t[1]);
+    w1_t[2] = hc_swap32 (w1_t[2]);
+    w1_t[3] = hc_swap32 (w1_t[3]);
+    w2_t[0] = hc_swap32 (w2_t[0]);
+    w2_t[1] = hc_swap32 (w2_t[1]);
+    w2_t[2] = hc_swap32 (w2_t[2]);
+    w2_t[3] = hc_swap32 (w2_t[3]);
+    w3_t[0] = hc_swap32 (w3_t[0]);
+    w3_t[1] = hc_swap32 (w3_t[1]);
+    w3_t[2] = hc_swap32 (w3_t[2]);
+    w3_t[3] = hc_swap32 (w3_t[3]);
+    w4_t[0] = hc_swap32 (w4_t[0]);
+    w4_t[1] = hc_swap32 (w4_t[1]);
+    w4_t[2] = hc_swap32 (w4_t[2]);
+    w4_t[3] = hc_swap32 (w4_t[3]);
+    w5_t[0] = hc_swap32 (w5_t[0]);
+    w5_t[1] = hc_swap32 (w5_t[1]);
+    w5_t[2] = hc_swap32 (w5_t[2]);
+    w5_t[3] = hc_swap32 (w5_t[3]);
+    w6_t[0] = hc_swap32 (w6_t[0]);
+    w6_t[1] = hc_swap32 (w6_t[1]);
+    w6_t[2] = hc_swap32 (w6_t[2]);
+    w6_t[3] = hc_swap32 (w6_t[3]);
+    w7_t[0] = hc_swap32 (w7_t[0]);
+    w7_t[1] = hc_swap32 (w7_t[1]);
     w7_t[2] = 0;
     w7_t[3] = pw_salt_len * 8;
 
@@ -540,7 +517,7 @@ __kernel void m15000_s04 (KERN_ATTR_RULES ())
     digest[6] = SHA512M_G;
     digest[7] = SHA512M_H;
 
-    sha512_transform (w0_t, w1_t, w2_t, w3_t, w4_t, w5_t, w6_t, w7_t, digest);
+    sha512_transform_intern (w0_t, w1_t, w2_t, w3_t, w4_t, w5_t, w6_t, w7_t, digest);
 
     const u32x r0 = l32_from_64 (digest[7]);
     const u32x r1 = h32_from_64 (digest[7]);
@@ -551,10 +528,10 @@ __kernel void m15000_s04 (KERN_ATTR_RULES ())
   }
 }
 
-__kernel void m15000_s08 (KERN_ATTR_RULES ())
+KERNEL_FQ void m15000_s08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m15000_s16 (KERN_ATTR_RULES ())
+KERNEL_FQ void m15000_s16 (KERN_ATTR_RULES ())
 {
 }

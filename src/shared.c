@@ -8,7 +8,6 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
-#include "inc_hash_constants.h"
 #include "cpu_des.h"
 
 #if defined (__CYGWIN__)

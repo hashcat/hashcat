@@ -5,15 +5,15 @@
 
 //#define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_scalar.cl"
 #include "inc_hash_sha1.cl"
+#endif
 
-__kernel void m08300_mxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void m08300_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -34,7 +34,7 @@ __kernel void m08300_mxx (KERN_ATTR_BASIC ())
 
   for (int i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = swap32_S (salt_bufs[salt_pos].salt_buf[idx]);
+    s[idx] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[idx]);
   }
 
   const u32 salt_len_pc = salt_bufs[salt_pos].salt_len_pc;
@@ -43,7 +43,7 @@ __kernel void m08300_mxx (KERN_ATTR_BASIC ())
 
   for (int i = 0, idx = 0; i < salt_len_pc; i += 4, idx += 1)
   {
-    s_pc[idx] = swap32_S (salt_bufs[salt_pos].salt_buf_pc[idx]);
+    s_pc[idx] = hc_swap32_S (salt_bufs[salt_pos].salt_buf_pc[idx]);
   }
 
   const u32 salt_iter = salt_bufs[salt_pos].salt_iter;
@@ -116,7 +116,7 @@ __kernel void m08300_mxx (KERN_ATTR_BASIC ())
   }
 }
 
-__kernel void m08300_sxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void m08300_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -149,7 +149,7 @@ __kernel void m08300_sxx (KERN_ATTR_BASIC ())
 
   for (int i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = swap32_S (salt_bufs[salt_pos].salt_buf[idx]);
+    s[idx] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[idx]);
   }
 
   const u32 salt_len_pc = salt_bufs[salt_pos].salt_len_pc;
@@ -158,7 +158,7 @@ __kernel void m08300_sxx (KERN_ATTR_BASIC ())
 
   for (int i = 0, idx = 0; i < salt_len_pc; i += 4, idx += 1)
   {
-    s_pc[idx] = swap32_S (salt_bufs[salt_pos].salt_buf_pc[idx]);
+    s_pc[idx] = hc_swap32_S (salt_bufs[salt_pos].salt_buf_pc[idx]);
   }
 
   const u32 salt_iter = salt_bufs[salt_pos].salt_iter;

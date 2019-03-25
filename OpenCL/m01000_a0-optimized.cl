@@ -5,16 +5,17 @@
 
 #define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_rp_optimized.h"
 #include "inc_rp_optimized.cl"
 #include "inc_simd.cl"
+#include "inc_hash_md4.cl"
+#endif
 
-__kernel void m01000_m04 (KERN_ATTR_RULES ())
+KERNEL_FQ void m01000_m04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -125,15 +126,15 @@ __kernel void m01000_m04 (KERN_ATTR_RULES ())
   }
 }
 
-__kernel void m01000_m08 (KERN_ATTR_RULES ())
+KERNEL_FQ void m01000_m08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m01000_m16 (KERN_ATTR_RULES ())
+KERNEL_FQ void m01000_m16 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m01000_s04 (KERN_ATTR_RULES ())
+KERNEL_FQ void m01000_s04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -259,10 +260,10 @@ __kernel void m01000_s04 (KERN_ATTR_RULES ())
   }
 }
 
-__kernel void m01000_s08 (KERN_ATTR_RULES ())
+KERNEL_FQ void m01000_s08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m01000_s16 (KERN_ATTR_RULES ())
+KERNEL_FQ void m01000_s16 (KERN_ATTR_RULES ())
 {
 }

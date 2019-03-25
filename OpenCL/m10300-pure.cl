@@ -3,12 +3,12 @@
  * License.....: MIT
  */
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_hash_sha1.cl"
+#endif
 
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
@@ -19,7 +19,7 @@ typedef struct saph_sha1_tmp
 
 } saph_sha1_tmp_t;
 
-__kernel void m10300_init (KERN_ATTR_TMPS (saph_sha1_tmp_t))
+KERNEL_FQ void m10300_init (KERN_ATTR_TMPS (saph_sha1_tmp_t))
 {
   /**
    * base
@@ -46,7 +46,7 @@ __kernel void m10300_init (KERN_ATTR_TMPS (saph_sha1_tmp_t))
   tmps[gid].digest_buf[4] = ctx.h[4];
 }
 
-__kernel void m10300_loop (KERN_ATTR_TMPS (saph_sha1_tmp_t))
+KERNEL_FQ void m10300_loop (KERN_ATTR_TMPS (saph_sha1_tmp_t))
 {
   /**
    * base
@@ -126,7 +126,7 @@ __kernel void m10300_loop (KERN_ATTR_TMPS (saph_sha1_tmp_t))
   tmps[gid].digest_buf[4] = digest[4];
 }
 
-__kernel void m10300_comp (KERN_ATTR_TMPS (saph_sha1_tmp_t))
+KERNEL_FQ void m10300_comp (KERN_ATTR_TMPS (saph_sha1_tmp_t))
 {
   /**
    * modifier
@@ -149,5 +149,7 @@ __kernel void m10300_comp (KERN_ATTR_TMPS (saph_sha1_tmp_t))
 
   #define il_pos 0
 
+  #ifdef KERNEL_STATIC
   #include COMPARE_M
+  #endif
 }

@@ -5,15 +5,15 @@
 
 //#define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_scalar.cl"
 #include "inc_hash_streebog512.cl"
+#endif
 
-__kernel void m11850_mxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void m11850_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -29,7 +29,7 @@ __kernel void m11850_mxx (KERN_ATTR_BASIC ())
 
   #ifdef REAL_SHM
 
-  __local u64a s_sbob_sl64[8][256];
+  LOCAL_AS u64a s_sbob_sl64[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -47,7 +47,7 @@ __kernel void m11850_mxx (KERN_ATTR_BASIC ())
 
   #else
 
-  __constant u64a (*s_sbob_sl64)[256] = sbob_sl64;
+  CONSTANT_AS u64a (*s_sbob_sl64)[256] = sbob_sl64;
 
   #endif
 
@@ -63,7 +63,7 @@ __kernel void m11850_mxx (KERN_ATTR_BASIC ())
 
   for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
-    w[idx] = swap32_S (pws[gid].i[idx]);
+    w[idx] = hc_swap32_S (pws[gid].i[idx]);
   }
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
@@ -72,7 +72,7 @@ __kernel void m11850_mxx (KERN_ATTR_BASIC ())
 
   for (int i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = swap32_S (salt_bufs[salt_pos].salt_buf[idx]);
+    s[idx] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[idx]);
   }
 
   /**
@@ -90,7 +90,7 @@ __kernel void m11850_mxx (KERN_ATTR_BASIC ())
     #endif
     for (int idx = 0; idx < 64; idx++)
     {
-      c[idx] = swap32_S (combs_buf[il_pos].i[idx]);
+      c[idx] = hc_swap32_S (combs_buf[il_pos].i[idx]);
     }
 
     switch_buffer_by_offset_1x64_be_S (c, pw_len);
@@ -120,7 +120,7 @@ __kernel void m11850_mxx (KERN_ATTR_BASIC ())
   }
 }
 
-__kernel void m11850_sxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void m11850_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -136,7 +136,7 @@ __kernel void m11850_sxx (KERN_ATTR_BASIC ())
 
   #ifdef REAL_SHM
 
-  __local u64a s_sbob_sl64[8][256];
+  LOCAL_AS u64a s_sbob_sl64[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -154,7 +154,7 @@ __kernel void m11850_sxx (KERN_ATTR_BASIC ())
 
   #else
 
-  __constant u64a (*s_sbob_sl64)[256] = sbob_sl64;
+  CONSTANT_AS u64a (*s_sbob_sl64)[256] = sbob_sl64;
 
   #endif
 
@@ -182,7 +182,7 @@ __kernel void m11850_sxx (KERN_ATTR_BASIC ())
 
   for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
-    w[idx] = swap32_S (pws[gid].i[idx]);
+    w[idx] = hc_swap32_S (pws[gid].i[idx]);
   }
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
@@ -191,7 +191,7 @@ __kernel void m11850_sxx (KERN_ATTR_BASIC ())
 
   for (int i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = swap32_S (salt_bufs[salt_pos].salt_buf[idx]);
+    s[idx] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[idx]);
   }
 
   /**
@@ -209,7 +209,7 @@ __kernel void m11850_sxx (KERN_ATTR_BASIC ())
     #endif
     for (int idx = 0; idx < 64; idx++)
     {
-      c[idx] = swap32_S (combs_buf[il_pos].i[idx]);
+      c[idx] = hc_swap32_S (combs_buf[il_pos].i[idx]);
     }
 
     switch_buffer_by_offset_1x64_be_S (c, pw_len);

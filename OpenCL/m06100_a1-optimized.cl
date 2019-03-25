@@ -5,20 +5,20 @@
 
 #define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_whirlpool.cl"
+#endif
 
-DECLSPEC void whirlpool_transform_transport_vector (const u32x *w, u32x *digest, __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
+DECLSPEC void whirlpool_transform_transport_vector (const u32x *w, u32x *digest, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
 {
   whirlpool_transform_vector (w + 0, w + 4, w + 8, w + 12, digest, s_Ch, s_Cl);
 }
 
-__kernel void m06100_m04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m06100_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -29,11 +29,13 @@ __kernel void m06100_m04 (KERN_ATTR_BASIC ())
   const u64 lsz = get_local_size (0);
 
   /**
-   * shared
+   * Whirlpool shared
    */
 
-  __local u32 s_Ch[8][256];
-  __local u32 s_Cl[8][256];
+  #ifdef REAL_SHM
+
+  LOCAL_AS u32 s_Ch[8][256];
+  LOCAL_AS u32 s_Cl[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -57,6 +59,13 @@ __kernel void m06100_m04 (KERN_ATTR_BASIC ())
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
+
+  #else
+
+  CONSTANT_AS u32a (*s_Ch)[256] = Ch;
+  CONSTANT_AS u32a (*s_Cl)[256] = Cl;
+
+  #endif
 
   if (gid >= gid_max) return;
 
@@ -153,14 +162,14 @@ __kernel void m06100_m04 (KERN_ATTR_BASIC ())
 
     u32x w[16];
 
-    w[ 0] = swap32 (w0[0]);
-    w[ 1] = swap32 (w0[1]);
-    w[ 2] = swap32 (w0[2]);
-    w[ 3] = swap32 (w0[3]);
-    w[ 4] = swap32 (w1[0]);
-    w[ 5] = swap32 (w1[1]);
-    w[ 6] = swap32 (w1[2]);
-    w[ 7] = swap32 (w1[3]);
+    w[ 0] = hc_swap32 (w0[0]);
+    w[ 1] = hc_swap32 (w0[1]);
+    w[ 2] = hc_swap32 (w0[2]);
+    w[ 3] = hc_swap32 (w0[3]);
+    w[ 4] = hc_swap32 (w1[0]);
+    w[ 5] = hc_swap32 (w1[1]);
+    w[ 6] = hc_swap32 (w1[2]);
+    w[ 7] = hc_swap32 (w1[3]);
     w[ 8] = 0;
     w[ 9] = 0;
     w[10] = 0;
@@ -199,15 +208,15 @@ __kernel void m06100_m04 (KERN_ATTR_BASIC ())
   }
 }
 
-__kernel void m06100_m08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m06100_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m06100_m16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m06100_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m06100_s04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m06100_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -218,11 +227,13 @@ __kernel void m06100_s04 (KERN_ATTR_BASIC ())
   const u64 lsz = get_local_size (0);
 
   /**
-   * shared
+   * Whirlpool shared
    */
 
-  __local u32 s_Ch[8][256];
-  __local u32 s_Cl[8][256];
+  #ifdef REAL_SHM
+
+  LOCAL_AS u32 s_Ch[8][256];
+  LOCAL_AS u32 s_Cl[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -246,6 +257,13 @@ __kernel void m06100_s04 (KERN_ATTR_BASIC ())
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
+
+  #else
+
+  CONSTANT_AS u32a (*s_Ch)[256] = Ch;
+  CONSTANT_AS u32a (*s_Cl)[256] = Cl;
+
+  #endif
 
   if (gid >= gid_max) return;
 
@@ -354,14 +372,14 @@ __kernel void m06100_s04 (KERN_ATTR_BASIC ())
 
     u32x w[16];
 
-    w[ 0] = swap32 (w0[0]);
-    w[ 1] = swap32 (w0[1]);
-    w[ 2] = swap32 (w0[2]);
-    w[ 3] = swap32 (w0[3]);
-    w[ 4] = swap32 (w1[0]);
-    w[ 5] = swap32 (w1[1]);
-    w[ 6] = swap32 (w1[2]);
-    w[ 7] = swap32 (w1[3]);
+    w[ 0] = hc_swap32 (w0[0]);
+    w[ 1] = hc_swap32 (w0[1]);
+    w[ 2] = hc_swap32 (w0[2]);
+    w[ 3] = hc_swap32 (w0[3]);
+    w[ 4] = hc_swap32 (w1[0]);
+    w[ 5] = hc_swap32 (w1[1]);
+    w[ 6] = hc_swap32 (w1[2]);
+    w[ 7] = hc_swap32 (w1[3]);
     w[ 8] = 0;
     w[ 9] = 0;
     w[10] = 0;
@@ -400,10 +418,10 @@ __kernel void m06100_s04 (KERN_ATTR_BASIC ())
   }
 }
 
-__kernel void m06100_s08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m06100_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m06100_s16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m06100_s16 (KERN_ATTR_BASIC ())
 {
 }

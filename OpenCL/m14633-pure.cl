@@ -5,14 +5,16 @@
 
 #define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
+#include "inc_hash_sha256.cl"
 #include "inc_hash_sha512.cl"
+#include "inc_hash_ripemd160.cl"
 #include "inc_cipher_twofish.cl"
+#endif
 
 #define LUKS_STRIPES 4000
 
@@ -79,11 +81,12 @@ typedef struct luks_tmp
 
 } luks_tmp_t;
 
+#ifdef KERNEL_STATIC
 #include "inc_luks_af.cl"
 #include "inc_luks_essiv.cl"
 #include "inc_luks_xts.cl"
-
 #include "inc_luks_twofish.cl"
+#endif
 
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
@@ -148,7 +151,7 @@ DECLSPEC void hmac_sha512_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w
   sha512_transform_vector (w0, w1, w2, w3, w4, w5, w6, w7, digest);
 }
 
-__kernel void m14633_init (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
+KERNEL_FQ void m14633_init (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
 {
   /**
    * base
@@ -254,7 +257,7 @@ __kernel void m14633_init (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
   }
 }
 
-__kernel void m14633_loop (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
+KERNEL_FQ void m14633_loop (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -382,7 +385,7 @@ __kernel void m14633_loop (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
   }
 }
 
-__kernel void m14633_comp (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
+KERNEL_FQ void m14633_comp (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -398,13 +401,13 @@ __kernel void m14633_comp (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
 
   // check entropy
 
-  const float entropy = get_entropy (pt_buf, 128);
+  const float entropy = hc_get_entropy (pt_buf, 128);
 
   if (entropy < MAX_ENTROPY)
   {
     if (atomic_inc (&hashes_shown[digests_offset]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0, 0, 0);
     }
   }
 }

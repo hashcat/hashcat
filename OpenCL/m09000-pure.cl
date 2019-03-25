@@ -3,11 +3,12 @@
  * License.....: MIT
  */
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
+#include "inc_hash_sha1.cl"
+#endif
 
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
@@ -27,7 +28,7 @@ typedef struct pwsafe2_tmp
 
 // http://www.schneier.com/code/constants.txt
 
-__constant u32a c_sbox0[256] =
+CONSTANT_AS u32a c_sbox0[256] =
 {
   0xd1310ba6, 0x98dfb5ac, 0x2ffd72db, 0xd01adfb7,
   0xb8e1afed, 0x6a267e96, 0xba7c9045, 0xf12c7f99,
@@ -95,7 +96,7 @@ __constant u32a c_sbox0[256] =
   0x53b02d5d, 0xa99f8fa1, 0x08ba4799, 0x6e85076a
 };
 
-__constant u32a c_sbox1[256] =
+CONSTANT_AS u32a c_sbox1[256] =
 {
   0x4b7a70e9, 0xb5b32944, 0xdb75092e, 0xc4192623,
   0xad6ea6b0, 0x49a7df7d, 0x9cee60b8, 0x8fedb266,
@@ -163,7 +164,7 @@ __constant u32a c_sbox1[256] =
   0x153e21e7, 0x8fb03d4a, 0xe6e39f2b, 0xdb83adf7
 };
 
-__constant u32a c_sbox2[256] =
+CONSTANT_AS u32a c_sbox2[256] =
 {
   0xe93d5a68, 0x948140f7, 0xf64c261c, 0x94692934,
   0x411520f7, 0x7602d4f7, 0xbcf46b2e, 0xd4a20068,
@@ -231,7 +232,7 @@ __constant u32a c_sbox2[256] =
   0xd79a3234, 0x92638212, 0x670efa8e, 0x406000e0
 };
 
-__constant u32a c_sbox3[256] =
+CONSTANT_AS u32a c_sbox3[256] =
 {
   0x3a39ce37, 0xd3faf5cf, 0xabc27737, 0x5ac52d1b,
   0x5cb0679e, 0x4fa33742, 0xd3822740, 0x99bc9bbe,
@@ -299,7 +300,7 @@ __constant u32a c_sbox3[256] =
   0xb74e6132, 0xce77e25b, 0x578fdfe3, 0x3ac372e6
 };
 
-__constant u32a c_pbox[18] =
+CONSTANT_AS u32a c_pbox[18] =
 {
   0x243f6a88, 0x85a308d3, 0x13198a2e, 0x03707344,
   0xa4093822, 0x299f31d0, 0x082efa98, 0xec4e6c89,
@@ -308,51 +309,22 @@ __constant u32a c_pbox[18] =
   0x9216d5d9, 0x8979fb1b
 };
 
-#ifdef IS_AMD
-#define BF_ROUND(L,R,N)       \
-{                             \
-  uchar4 c = as_uchar4 ((L)); \
-                              \
-  u32 tmp;                    \
-                              \
-  tmp  = S0[c.s3];            \
-  tmp += S1[c.s2];            \
-  tmp ^= S2[c.s1];            \
-  tmp += S3[c.s0];            \
-                              \
-  (R) ^= tmp ^ P[(N)];        \
+#define BF_ROUND(L,R,N)                       \
+{                                             \
+  u32 tmp;                                    \
+                                              \
+  const u32 r0 = unpack_v8d_from_v32_S ((L)); \
+  const u32 r1 = unpack_v8c_from_v32_S ((L)); \
+  const u32 r2 = unpack_v8b_from_v32_S ((L)); \
+  const u32 r3 = unpack_v8a_from_v32_S ((L)); \
+                                              \
+  tmp  = S0[r0];                              \
+  tmp += S1[r1];                              \
+  tmp ^= S2[r2];                              \
+  tmp += S3[r3];                              \
+                                              \
+  (R) ^= tmp ^ P[(N)];                        \
 }
-#endif
-
-#ifdef IS_NV
-#define BF_ROUND(L,R,N)             \
-{                                   \
-  u32 tmp;                          \
-                                    \
-  tmp  = S0[hc_bfe_S ((L), 24, 8)];  \
-  tmp += S1[hc_bfe_S ((L), 16, 8)];  \
-  tmp ^= S2[hc_bfe_S ((L),  8, 8)];  \
-  tmp += S3[hc_bfe_S ((L),  0, 8)];  \
-                                    \
-  (R) ^= tmp ^ P[(N)];              \
-}
-#endif
-
-#ifdef IS_GENERIC
-#define BF_ROUND(L,R,N)       \
-{                             \
-  uchar4 c = as_uchar4 ((L)); \
-                              \
-  u32 tmp;                    \
-                              \
-  tmp  = S0[c.s3];            \
-  tmp += S1[c.s2];            \
-  tmp ^= S2[c.s1];            \
-  tmp += S3[c.s0];            \
-                              \
-  (R) ^= tmp ^ P[(N)];        \
-}
-#endif
 
 #define BF_ENCRYPT(L,R) \
 {                       \
@@ -384,135 +356,7 @@ __constant u32a c_pbox[18] =
   L ^= P[17];           \
 }
 
-DECLSPEC void sha1_transform (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest)
-{
-  u32 A = digest[0];
-  u32 B = digest[1];
-  u32 C = digest[2];
-  u32 D = digest[3];
-  u32 E = digest[4];
-
-  u32 w0_t = w0[0];
-  u32 w1_t = w0[1];
-  u32 w2_t = w0[2];
-  u32 w3_t = w0[3];
-  u32 w4_t = w1[0];
-  u32 w5_t = w1[1];
-  u32 w6_t = w1[2];
-  u32 w7_t = w1[3];
-  u32 w8_t = w2[0];
-  u32 w9_t = w2[1];
-  u32 wa_t = w2[2];
-  u32 wb_t = w2[3];
-  u32 wc_t = w3[0];
-  u32 wd_t = w3[1];
-  u32 we_t = w3[2];
-  u32 wf_t = w3[3];
-
-  #undef K
-  #define K SHA1C00
-
-  SHA1_STEP (SHA1_F0o, A, B, C, D, E, w0_t);
-  SHA1_STEP (SHA1_F0o, E, A, B, C, D, w1_t);
-  SHA1_STEP (SHA1_F0o, D, E, A, B, C, w2_t);
-  SHA1_STEP (SHA1_F0o, C, D, E, A, B, w3_t);
-  SHA1_STEP (SHA1_F0o, B, C, D, E, A, w4_t);
-  SHA1_STEP (SHA1_F0o, A, B, C, D, E, w5_t);
-  SHA1_STEP (SHA1_F0o, E, A, B, C, D, w6_t);
-  SHA1_STEP (SHA1_F0o, D, E, A, B, C, w7_t);
-  SHA1_STEP (SHA1_F0o, C, D, E, A, B, w8_t);
-  SHA1_STEP (SHA1_F0o, B, C, D, E, A, w9_t);
-  SHA1_STEP (SHA1_F0o, A, B, C, D, E, wa_t);
-  SHA1_STEP (SHA1_F0o, E, A, B, C, D, wb_t);
-  SHA1_STEP (SHA1_F0o, D, E, A, B, C, wc_t);
-  SHA1_STEP (SHA1_F0o, C, D, E, A, B, wd_t);
-  SHA1_STEP (SHA1_F0o, B, C, D, E, A, we_t);
-  SHA1_STEP (SHA1_F0o, A, B, C, D, E, wf_t);
-  w0_t = rotl32 ((wd_t ^ w8_t ^ w2_t ^ w0_t), 1u); SHA1_STEP (SHA1_F0o, E, A, B, C, D, w0_t);
-  w1_t = rotl32 ((we_t ^ w9_t ^ w3_t ^ w1_t), 1u); SHA1_STEP (SHA1_F0o, D, E, A, B, C, w1_t);
-  w2_t = rotl32 ((wf_t ^ wa_t ^ w4_t ^ w2_t), 1u); SHA1_STEP (SHA1_F0o, C, D, E, A, B, w2_t);
-  w3_t = rotl32 ((w0_t ^ wb_t ^ w5_t ^ w3_t), 1u); SHA1_STEP (SHA1_F0o, B, C, D, E, A, w3_t);
-
-  #undef K
-  #define K SHA1C01
-
-  w4_t = rotl32 ((w1_t ^ wc_t ^ w6_t ^ w4_t), 1u); SHA1_STEP (SHA1_F1, A, B, C, D, E, w4_t);
-  w5_t = rotl32 ((w2_t ^ wd_t ^ w7_t ^ w5_t), 1u); SHA1_STEP (SHA1_F1, E, A, B, C, D, w5_t);
-  w6_t = rotl32 ((w3_t ^ we_t ^ w8_t ^ w6_t), 1u); SHA1_STEP (SHA1_F1, D, E, A, B, C, w6_t);
-  w7_t = rotl32 ((w4_t ^ wf_t ^ w9_t ^ w7_t), 1u); SHA1_STEP (SHA1_F1, C, D, E, A, B, w7_t);
-  w8_t = rotl32 ((w5_t ^ w0_t ^ wa_t ^ w8_t), 1u); SHA1_STEP (SHA1_F1, B, C, D, E, A, w8_t);
-  w9_t = rotl32 ((w6_t ^ w1_t ^ wb_t ^ w9_t), 1u); SHA1_STEP (SHA1_F1, A, B, C, D, E, w9_t);
-  wa_t = rotl32 ((w7_t ^ w2_t ^ wc_t ^ wa_t), 1u); SHA1_STEP (SHA1_F1, E, A, B, C, D, wa_t);
-  wb_t = rotl32 ((w8_t ^ w3_t ^ wd_t ^ wb_t), 1u); SHA1_STEP (SHA1_F1, D, E, A, B, C, wb_t);
-  wc_t = rotl32 ((w9_t ^ w4_t ^ we_t ^ wc_t), 1u); SHA1_STEP (SHA1_F1, C, D, E, A, B, wc_t);
-  wd_t = rotl32 ((wa_t ^ w5_t ^ wf_t ^ wd_t), 1u); SHA1_STEP (SHA1_F1, B, C, D, E, A, wd_t);
-  we_t = rotl32 ((wb_t ^ w6_t ^ w0_t ^ we_t), 1u); SHA1_STEP (SHA1_F1, A, B, C, D, E, we_t);
-  wf_t = rotl32 ((wc_t ^ w7_t ^ w1_t ^ wf_t), 1u); SHA1_STEP (SHA1_F1, E, A, B, C, D, wf_t);
-  w0_t = rotl32 ((wd_t ^ w8_t ^ w2_t ^ w0_t), 1u); SHA1_STEP (SHA1_F1, D, E, A, B, C, w0_t);
-  w1_t = rotl32 ((we_t ^ w9_t ^ w3_t ^ w1_t), 1u); SHA1_STEP (SHA1_F1, C, D, E, A, B, w1_t);
-  w2_t = rotl32 ((wf_t ^ wa_t ^ w4_t ^ w2_t), 1u); SHA1_STEP (SHA1_F1, B, C, D, E, A, w2_t);
-  w3_t = rotl32 ((w0_t ^ wb_t ^ w5_t ^ w3_t), 1u); SHA1_STEP (SHA1_F1, A, B, C, D, E, w3_t);
-  w4_t = rotl32 ((w1_t ^ wc_t ^ w6_t ^ w4_t), 1u); SHA1_STEP (SHA1_F1, E, A, B, C, D, w4_t);
-  w5_t = rotl32 ((w2_t ^ wd_t ^ w7_t ^ w5_t), 1u); SHA1_STEP (SHA1_F1, D, E, A, B, C, w5_t);
-  w6_t = rotl32 ((w3_t ^ we_t ^ w8_t ^ w6_t), 1u); SHA1_STEP (SHA1_F1, C, D, E, A, B, w6_t);
-  w7_t = rotl32 ((w4_t ^ wf_t ^ w9_t ^ w7_t), 1u); SHA1_STEP (SHA1_F1, B, C, D, E, A, w7_t);
-
-  #undef K
-  #define K SHA1C02
-
-  w8_t = rotl32 ((w5_t ^ w0_t ^ wa_t ^ w8_t), 1u); SHA1_STEP (SHA1_F2o, A, B, C, D, E, w8_t);
-  w9_t = rotl32 ((w6_t ^ w1_t ^ wb_t ^ w9_t), 1u); SHA1_STEP (SHA1_F2o, E, A, B, C, D, w9_t);
-  wa_t = rotl32 ((w7_t ^ w2_t ^ wc_t ^ wa_t), 1u); SHA1_STEP (SHA1_F2o, D, E, A, B, C, wa_t);
-  wb_t = rotl32 ((w8_t ^ w3_t ^ wd_t ^ wb_t), 1u); SHA1_STEP (SHA1_F2o, C, D, E, A, B, wb_t);
-  wc_t = rotl32 ((w9_t ^ w4_t ^ we_t ^ wc_t), 1u); SHA1_STEP (SHA1_F2o, B, C, D, E, A, wc_t);
-  wd_t = rotl32 ((wa_t ^ w5_t ^ wf_t ^ wd_t), 1u); SHA1_STEP (SHA1_F2o, A, B, C, D, E, wd_t);
-  we_t = rotl32 ((wb_t ^ w6_t ^ w0_t ^ we_t), 1u); SHA1_STEP (SHA1_F2o, E, A, B, C, D, we_t);
-  wf_t = rotl32 ((wc_t ^ w7_t ^ w1_t ^ wf_t), 1u); SHA1_STEP (SHA1_F2o, D, E, A, B, C, wf_t);
-  w0_t = rotl32 ((wd_t ^ w8_t ^ w2_t ^ w0_t), 1u); SHA1_STEP (SHA1_F2o, C, D, E, A, B, w0_t);
-  w1_t = rotl32 ((we_t ^ w9_t ^ w3_t ^ w1_t), 1u); SHA1_STEP (SHA1_F2o, B, C, D, E, A, w1_t);
-  w2_t = rotl32 ((wf_t ^ wa_t ^ w4_t ^ w2_t), 1u); SHA1_STEP (SHA1_F2o, A, B, C, D, E, w2_t);
-  w3_t = rotl32 ((w0_t ^ wb_t ^ w5_t ^ w3_t), 1u); SHA1_STEP (SHA1_F2o, E, A, B, C, D, w3_t);
-  w4_t = rotl32 ((w1_t ^ wc_t ^ w6_t ^ w4_t), 1u); SHA1_STEP (SHA1_F2o, D, E, A, B, C, w4_t);
-  w5_t = rotl32 ((w2_t ^ wd_t ^ w7_t ^ w5_t), 1u); SHA1_STEP (SHA1_F2o, C, D, E, A, B, w5_t);
-  w6_t = rotl32 ((w3_t ^ we_t ^ w8_t ^ w6_t), 1u); SHA1_STEP (SHA1_F2o, B, C, D, E, A, w6_t);
-  w7_t = rotl32 ((w4_t ^ wf_t ^ w9_t ^ w7_t), 1u); SHA1_STEP (SHA1_F2o, A, B, C, D, E, w7_t);
-  w8_t = rotl32 ((w5_t ^ w0_t ^ wa_t ^ w8_t), 1u); SHA1_STEP (SHA1_F2o, E, A, B, C, D, w8_t);
-  w9_t = rotl32 ((w6_t ^ w1_t ^ wb_t ^ w9_t), 1u); SHA1_STEP (SHA1_F2o, D, E, A, B, C, w9_t);
-  wa_t = rotl32 ((w7_t ^ w2_t ^ wc_t ^ wa_t), 1u); SHA1_STEP (SHA1_F2o, C, D, E, A, B, wa_t);
-  wb_t = rotl32 ((w8_t ^ w3_t ^ wd_t ^ wb_t), 1u); SHA1_STEP (SHA1_F2o, B, C, D, E, A, wb_t);
-
-  #undef K
-  #define K SHA1C03
-
-  wc_t = rotl32 ((w9_t ^ w4_t ^ we_t ^ wc_t), 1u); SHA1_STEP (SHA1_F1, A, B, C, D, E, wc_t);
-  wd_t = rotl32 ((wa_t ^ w5_t ^ wf_t ^ wd_t), 1u); SHA1_STEP (SHA1_F1, E, A, B, C, D, wd_t);
-  we_t = rotl32 ((wb_t ^ w6_t ^ w0_t ^ we_t), 1u); SHA1_STEP (SHA1_F1, D, E, A, B, C, we_t);
-  wf_t = rotl32 ((wc_t ^ w7_t ^ w1_t ^ wf_t), 1u); SHA1_STEP (SHA1_F1, C, D, E, A, B, wf_t);
-  w0_t = rotl32 ((wd_t ^ w8_t ^ w2_t ^ w0_t), 1u); SHA1_STEP (SHA1_F1, B, C, D, E, A, w0_t);
-  w1_t = rotl32 ((we_t ^ w9_t ^ w3_t ^ w1_t), 1u); SHA1_STEP (SHA1_F1, A, B, C, D, E, w1_t);
-  w2_t = rotl32 ((wf_t ^ wa_t ^ w4_t ^ w2_t), 1u); SHA1_STEP (SHA1_F1, E, A, B, C, D, w2_t);
-  w3_t = rotl32 ((w0_t ^ wb_t ^ w5_t ^ w3_t), 1u); SHA1_STEP (SHA1_F1, D, E, A, B, C, w3_t);
-  w4_t = rotl32 ((w1_t ^ wc_t ^ w6_t ^ w4_t), 1u); SHA1_STEP (SHA1_F1, C, D, E, A, B, w4_t);
-  w5_t = rotl32 ((w2_t ^ wd_t ^ w7_t ^ w5_t), 1u); SHA1_STEP (SHA1_F1, B, C, D, E, A, w5_t);
-  w6_t = rotl32 ((w3_t ^ we_t ^ w8_t ^ w6_t), 1u); SHA1_STEP (SHA1_F1, A, B, C, D, E, w6_t);
-  w7_t = rotl32 ((w4_t ^ wf_t ^ w9_t ^ w7_t), 1u); SHA1_STEP (SHA1_F1, E, A, B, C, D, w7_t);
-  w8_t = rotl32 ((w5_t ^ w0_t ^ wa_t ^ w8_t), 1u); SHA1_STEP (SHA1_F1, D, E, A, B, C, w8_t);
-  w9_t = rotl32 ((w6_t ^ w1_t ^ wb_t ^ w9_t), 1u); SHA1_STEP (SHA1_F1, C, D, E, A, B, w9_t);
-  wa_t = rotl32 ((w7_t ^ w2_t ^ wc_t ^ wa_t), 1u); SHA1_STEP (SHA1_F1, B, C, D, E, A, wa_t);
-  wb_t = rotl32 ((w8_t ^ w3_t ^ wd_t ^ wb_t), 1u); SHA1_STEP (SHA1_F1, A, B, C, D, E, wb_t);
-  wc_t = rotl32 ((w9_t ^ w4_t ^ we_t ^ wc_t), 1u); SHA1_STEP (SHA1_F1, E, A, B, C, D, wc_t);
-  wd_t = rotl32 ((wa_t ^ w5_t ^ wf_t ^ wd_t), 1u); SHA1_STEP (SHA1_F1, D, E, A, B, C, wd_t);
-  we_t = rotl32 ((wb_t ^ w6_t ^ w0_t ^ we_t), 1u); SHA1_STEP (SHA1_F1, C, D, E, A, B, we_t);
-  wf_t = rotl32 ((wc_t ^ w7_t ^ w1_t ^ wf_t), 1u); SHA1_STEP (SHA1_F1, B, C, D, E, A, wf_t);
-
-  digest[0] += A;
-  digest[1] += B;
-  digest[2] += C;
-  digest[3] += D;
-  digest[4] += E;
-}
-
-__kernel void m09000_init (KERN_ATTR_TMPS (pwsafe2_tmp_t))
+KERNEL_FQ void __attribute__((reqd_work_group_size(FIXED_LOCAL_SIZE, 1, 1))) m09000_init (KERN_ATTR_TMPS (pwsafe2_tmp_t))
 {
   /**
    * base
@@ -585,20 +429,20 @@ __kernel void m09000_init (KERN_ATTR_TMPS (pwsafe2_tmp_t))
   w0[1] = salt_buf[1];
   w0[0] = salt_buf[0];
 
-  w0[0] = swap32_S (w0[0]);
-  w0[1] = swap32_S (w0[1]);
-  w0[2] = swap32_S (w0[2]);
-  w0[3] = swap32_S (w0[3]);
-  w1[0] = swap32_S (w1[0]);
-  w1[1] = swap32_S (w1[1]);
-  w1[2] = swap32_S (w1[2]);
-  w1[3] = swap32_S (w1[3]);
-  w2[0] = swap32_S (w2[0]);
-  w2[1] = swap32_S (w2[1]);
-  w2[2] = swap32_S (w2[2]);
-  w2[3] = swap32_S (w2[3]);
-  w3[0] = swap32_S (w3[0]);
-  w3[1] = swap32_S (w3[1]);
+  w0[0] = hc_swap32_S (w0[0]);
+  w0[1] = hc_swap32_S (w0[1]);
+  w0[2] = hc_swap32_S (w0[2]);
+  w0[3] = hc_swap32_S (w0[3]);
+  w1[0] = hc_swap32_S (w1[0]);
+  w1[1] = hc_swap32_S (w1[1]);
+  w1[2] = hc_swap32_S (w1[2]);
+  w1[3] = hc_swap32_S (w1[3]);
+  w2[0] = hc_swap32_S (w2[0]);
+  w2[1] = hc_swap32_S (w2[1]);
+  w2[2] = hc_swap32_S (w2[2]);
+  w2[3] = hc_swap32_S (w2[3]);
+  w3[0] = hc_swap32_S (w3[0]);
+  w3[1] = hc_swap32_S (w3[1]);
 
   const u32 block_len = salt_len + 2 + pw_len;
 
@@ -626,15 +470,15 @@ __kernel void m09000_init (KERN_ATTR_TMPS (pwsafe2_tmp_t))
     P[i] = c_pbox[i];
   }
 
-  __local u32 S0_all[8][256];
-  __local u32 S1_all[8][256];
-  __local u32 S2_all[8][256];
-  __local u32 S3_all[8][256];
+  LOCAL_AS u32 S0_all[FIXED_LOCAL_SIZE][256];
+  LOCAL_AS u32 S1_all[FIXED_LOCAL_SIZE][256];
+  LOCAL_AS u32 S2_all[FIXED_LOCAL_SIZE][256];
+  LOCAL_AS u32 S3_all[FIXED_LOCAL_SIZE][256];
 
-  __local u32 *S0 = S0_all[lid];
-  __local u32 *S1 = S1_all[lid];
-  __local u32 *S2 = S2_all[lid];
-  __local u32 *S3 = S3_all[lid];
+  LOCAL_AS u32 *S0 = S0_all[lid];
+  LOCAL_AS u32 *S1 = S1_all[lid];
+  LOCAL_AS u32 *S2 = S2_all[lid];
+  LOCAL_AS u32 *S3 = S3_all[lid];
 
   for (u32 i = 0; i < 256; i++)
   {
@@ -731,7 +575,7 @@ __kernel void m09000_init (KERN_ATTR_TMPS (pwsafe2_tmp_t))
   }
 }
 
-__kernel void m09000_loop (KERN_ATTR_TMPS (pwsafe2_tmp_t))
+KERNEL_FQ void __attribute__((reqd_work_group_size(FIXED_LOCAL_SIZE, 1, 1))) m09000_loop (KERN_ATTR_TMPS (pwsafe2_tmp_t))
 {
   /**
    * base
@@ -752,23 +596,21 @@ __kernel void m09000_loop (KERN_ATTR_TMPS (pwsafe2_tmp_t))
 
   u32 P[18];
 
-  #pragma unroll
   for (u32 i = 0; i < 18; i++)
   {
     P[i] = tmps[gid].P[i];
   }
 
-  __local u32 S0_all[8][256];
-  __local u32 S1_all[8][256];
-  __local u32 S2_all[8][256];
-  __local u32 S3_all[8][256];
+  LOCAL_AS u32 S0_all[FIXED_LOCAL_SIZE][256];
+  LOCAL_AS u32 S1_all[FIXED_LOCAL_SIZE][256];
+  LOCAL_AS u32 S2_all[FIXED_LOCAL_SIZE][256];
+  LOCAL_AS u32 S3_all[FIXED_LOCAL_SIZE][256];
 
-  __local u32 *S0 = S0_all[lid];
-  __local u32 *S1 = S1_all[lid];
-  __local u32 *S2 = S2_all[lid];
-  __local u32 *S3 = S3_all[lid];
+  LOCAL_AS u32 *S0 = S0_all[lid];
+  LOCAL_AS u32 *S1 = S1_all[lid];
+  LOCAL_AS u32 *S2 = S2_all[lid];
+  LOCAL_AS u32 *S3 = S3_all[lid];
 
-  #pragma unroll
   for (u32 i = 0; i < 256; i++)
   {
     S0[i] = tmps[gid].S0[i];
@@ -793,7 +635,7 @@ __kernel void m09000_loop (KERN_ATTR_TMPS (pwsafe2_tmp_t))
   tmps[gid].digest[1] = R0;
 }
 
-__kernel void m09000_comp (KERN_ATTR_TMPS (pwsafe2_tmp_t))
+KERNEL_FQ void m09000_comp (KERN_ATTR_TMPS (pwsafe2_tmp_t))
 {
   /**
    * base
@@ -819,8 +661,8 @@ __kernel void m09000_comp (KERN_ATTR_TMPS (pwsafe2_tmp_t))
   u32 w2[4];
   u32 w3[4];
 
-  w0[0] = swap32_S (digest[0]);
-  w0[1] = swap32_S (digest[1]);
+  w0[0] = hc_swap32_S (digest[0]);
+  w0[1] = hc_swap32_S (digest[1]);
   w0[2] = 0x00008000;
   w0[3] = 0;
   w1[0] = 0;
@@ -853,5 +695,7 @@ __kernel void m09000_comp (KERN_ATTR_TMPS (pwsafe2_tmp_t))
 
   #define il_pos 0
 
+  #ifdef KERNEL_STATIC
   #include COMPARE_M
+  #endif
 }

@@ -5,19 +5,16 @@
 
 #define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha512.cl"
-
 #include "inc_cipher_aes.cl"
 #include "inc_cipher_twofish.cl"
 #include "inc_cipher_serpent.cl"
-#include "inc_cipher_camellia.cl"
-#include "inc_cipher_kuznyechik.cl"
+#endif
 
 typedef struct tc
 {
@@ -31,10 +28,11 @@ typedef struct tc
 
 } tc_t;
 
+#ifdef KERNEL_STATIC
 #include "inc_truecrypt_keyfile.cl"
 #include "inc_truecrypt_crc32.cl"
 #include "inc_truecrypt_xts.cl"
-#include "inc_veracrypt_xts.cl"
+#endif
 
 typedef struct tc64_tmp
 {
@@ -104,7 +102,7 @@ DECLSPEC void hmac_sha512_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w
   sha512_transform_vector (w0, w1, w2, w3, w4, w5, w6, w7, digest);
 }
 
-__kernel void m06221_init (KERN_ATTR_TMPS_ESALT (tc64_tmp_t, tc_t))
+KERNEL_FQ void m06221_init (KERN_ATTR_TMPS_ESALT (tc64_tmp_t, tc_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -116,7 +114,7 @@ __kernel void m06221_init (KERN_ATTR_TMPS_ESALT (tc64_tmp_t, tc_t))
 
   const int keyboard_layout_mapping_cnt = esalt_bufs[digests_offset].keyboard_layout_mapping_cnt;
 
-  __local keyboard_layout_mapping_t s_keyboard_layout_mapping_buf[256];
+  LOCAL_AS keyboard_layout_mapping_t s_keyboard_layout_mapping_buf[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -175,7 +173,7 @@ __kernel void m06221_init (KERN_ATTR_TMPS_ESALT (tc64_tmp_t, tc_t))
 
   const u32 pw_len = pws[gid].pw_len;
 
-  execute_keyboard_layout_mapping (w0, w1, w2, w3, pw_len, s_keyboard_layout_mapping_buf, keyboard_layout_mapping_cnt);
+  hc_execute_keyboard_layout_mapping (w0, w1, w2, w3, pw_len, s_keyboard_layout_mapping_buf, keyboard_layout_mapping_cnt);
 
   w0[0] = u8add (w0[0], esalt_bufs[digests_offset].keyfile_buf[ 0]);
   w0[1] = u8add (w0[1], esalt_bufs[digests_offset].keyfile_buf[ 1]);
@@ -194,38 +192,38 @@ __kernel void m06221_init (KERN_ATTR_TMPS_ESALT (tc64_tmp_t, tc_t))
   w3[2] = u8add (w3[2], esalt_bufs[digests_offset].keyfile_buf[14]);
   w3[3] = u8add (w3[3], esalt_bufs[digests_offset].keyfile_buf[15]);
 
-  w0[0] = swap32_S (w0[0]);
-  w0[1] = swap32_S (w0[1]);
-  w0[2] = swap32_S (w0[2]);
-  w0[3] = swap32_S (w0[3]);
-  w1[0] = swap32_S (w1[0]);
-  w1[1] = swap32_S (w1[1]);
-  w1[2] = swap32_S (w1[2]);
-  w1[3] = swap32_S (w1[3]);
-  w2[0] = swap32_S (w2[0]);
-  w2[1] = swap32_S (w2[1]);
-  w2[2] = swap32_S (w2[2]);
-  w2[3] = swap32_S (w2[3]);
-  w3[0] = swap32_S (w3[0]);
-  w3[1] = swap32_S (w3[1]);
-  w3[2] = swap32_S (w3[2]);
-  w3[3] = swap32_S (w3[3]);
-  w4[0] = swap32_S (w4[0]);
-  w4[1] = swap32_S (w4[1]);
-  w4[2] = swap32_S (w4[2]);
-  w4[3] = swap32_S (w4[3]);
-  w5[0] = swap32_S (w5[0]);
-  w5[1] = swap32_S (w5[1]);
-  w5[2] = swap32_S (w5[2]);
-  w5[3] = swap32_S (w5[3]);
-  w6[0] = swap32_S (w6[0]);
-  w6[1] = swap32_S (w6[1]);
-  w6[2] = swap32_S (w6[2]);
-  w6[3] = swap32_S (w6[3]);
-  w7[0] = swap32_S (w7[0]);
-  w7[1] = swap32_S (w7[1]);
-  w7[2] = swap32_S (w7[2]);
-  w7[3] = swap32_S (w7[3]);
+  w0[0] = hc_swap32_S (w0[0]);
+  w0[1] = hc_swap32_S (w0[1]);
+  w0[2] = hc_swap32_S (w0[2]);
+  w0[3] = hc_swap32_S (w0[3]);
+  w1[0] = hc_swap32_S (w1[0]);
+  w1[1] = hc_swap32_S (w1[1]);
+  w1[2] = hc_swap32_S (w1[2]);
+  w1[3] = hc_swap32_S (w1[3]);
+  w2[0] = hc_swap32_S (w2[0]);
+  w2[1] = hc_swap32_S (w2[1]);
+  w2[2] = hc_swap32_S (w2[2]);
+  w2[3] = hc_swap32_S (w2[3]);
+  w3[0] = hc_swap32_S (w3[0]);
+  w3[1] = hc_swap32_S (w3[1]);
+  w3[2] = hc_swap32_S (w3[2]);
+  w3[3] = hc_swap32_S (w3[3]);
+  w4[0] = hc_swap32_S (w4[0]);
+  w4[1] = hc_swap32_S (w4[1]);
+  w4[2] = hc_swap32_S (w4[2]);
+  w4[3] = hc_swap32_S (w4[3]);
+  w5[0] = hc_swap32_S (w5[0]);
+  w5[1] = hc_swap32_S (w5[1]);
+  w5[2] = hc_swap32_S (w5[2]);
+  w5[3] = hc_swap32_S (w5[3]);
+  w6[0] = hc_swap32_S (w6[0]);
+  w6[1] = hc_swap32_S (w6[1]);
+  w6[2] = hc_swap32_S (w6[2]);
+  w6[3] = hc_swap32_S (w6[3]);
+  w7[0] = hc_swap32_S (w7[0]);
+  w7[1] = hc_swap32_S (w7[1]);
+  w7[2] = hc_swap32_S (w7[2]);
+  w7[3] = hc_swap32_S (w7[3]);
 
   sha512_hmac_ctx_t sha512_hmac_ctx;
 
@@ -312,7 +310,7 @@ __kernel void m06221_init (KERN_ATTR_TMPS_ESALT (tc64_tmp_t, tc_t))
   }
 }
 
-__kernel void m06221_loop (KERN_ATTR_TMPS_ESALT (tc64_tmp_t, tc_t))
+KERNEL_FQ void m06221_loop (KERN_ATTR_TMPS_ESALT (tc64_tmp_t, tc_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -438,7 +436,7 @@ __kernel void m06221_loop (KERN_ATTR_TMPS_ESALT (tc64_tmp_t, tc_t))
   }
 }
 
-__kernel void m06221_comp (KERN_ATTR_TMPS_ESALT (tc64_tmp_t, tc_t))
+KERNEL_FQ void m06221_comp (KERN_ATTR_TMPS_ESALT (tc64_tmp_t, tc_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -450,17 +448,17 @@ __kernel void m06221_comp (KERN_ATTR_TMPS_ESALT (tc64_tmp_t, tc_t))
 
   #ifdef REAL_SHM
 
-  __local u32 s_td0[256];
-  __local u32 s_td1[256];
-  __local u32 s_td2[256];
-  __local u32 s_td3[256];
-  __local u32 s_td4[256];
+  LOCAL_AS u32 s_td0[256];
+  LOCAL_AS u32 s_td1[256];
+  LOCAL_AS u32 s_td2[256];
+  LOCAL_AS u32 s_td3[256];
+  LOCAL_AS u32 s_td4[256];
 
-  __local u32 s_te0[256];
-  __local u32 s_te1[256];
-  __local u32 s_te2[256];
-  __local u32 s_te3[256];
-  __local u32 s_te4[256];
+  LOCAL_AS u32 s_te0[256];
+  LOCAL_AS u32 s_te1[256];
+  LOCAL_AS u32 s_te2[256];
+  LOCAL_AS u32 s_te3[256];
+  LOCAL_AS u32 s_te4[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -481,17 +479,17 @@ __kernel void m06221_comp (KERN_ATTR_TMPS_ESALT (tc64_tmp_t, tc_t))
 
   #else
 
-  __constant u32a *s_td0 = td0;
-  __constant u32a *s_td1 = td1;
-  __constant u32a *s_td2 = td2;
-  __constant u32a *s_td3 = td3;
-  __constant u32a *s_td4 = td4;
+  CONSTANT_AS u32a *s_td0 = td0;
+  CONSTANT_AS u32a *s_td1 = td1;
+  CONSTANT_AS u32a *s_td2 = td2;
+  CONSTANT_AS u32a *s_td3 = td3;
+  CONSTANT_AS u32a *s_td4 = td4;
 
-  __constant u32a *s_te0 = te0;
-  __constant u32a *s_te1 = te1;
-  __constant u32a *s_te2 = te2;
-  __constant u32a *s_te3 = te3;
-  __constant u32a *s_te4 = te4;
+  CONSTANT_AS u32a *s_te0 = te0;
+  CONSTANT_AS u32a *s_te1 = te1;
+  CONSTANT_AS u32a *s_te2 = te2;
+  CONSTANT_AS u32a *s_te3 = te3;
+  CONSTANT_AS u32a *s_te4 = te4;
 
   #endif
 
@@ -499,63 +497,47 @@ __kernel void m06221_comp (KERN_ATTR_TMPS_ESALT (tc64_tmp_t, tc_t))
 
   u32 ukey1[8];
 
-  ukey1[0] = swap32_S (h32_from_64_S (tmps[gid].out[0]));
-  ukey1[1] = swap32_S (l32_from_64_S (tmps[gid].out[0]));
-  ukey1[2] = swap32_S (h32_from_64_S (tmps[gid].out[1]));
-  ukey1[3] = swap32_S (l32_from_64_S (tmps[gid].out[1]));
-  ukey1[4] = swap32_S (h32_from_64_S (tmps[gid].out[2]));
-  ukey1[5] = swap32_S (l32_from_64_S (tmps[gid].out[2]));
-  ukey1[6] = swap32_S (h32_from_64_S (tmps[gid].out[3]));
-  ukey1[7] = swap32_S (l32_from_64_S (tmps[gid].out[3]));
+  ukey1[0] = hc_swap32_S (h32_from_64_S (tmps[gid].out[0]));
+  ukey1[1] = hc_swap32_S (l32_from_64_S (tmps[gid].out[0]));
+  ukey1[2] = hc_swap32_S (h32_from_64_S (tmps[gid].out[1]));
+  ukey1[3] = hc_swap32_S (l32_from_64_S (tmps[gid].out[1]));
+  ukey1[4] = hc_swap32_S (h32_from_64_S (tmps[gid].out[2]));
+  ukey1[5] = hc_swap32_S (l32_from_64_S (tmps[gid].out[2]));
+  ukey1[6] = hc_swap32_S (h32_from_64_S (tmps[gid].out[3]));
+  ukey1[7] = hc_swap32_S (l32_from_64_S (tmps[gid].out[3]));
 
   u32 ukey2[8];
 
-  ukey2[0] = swap32_S (h32_from_64_S (tmps[gid].out[4]));
-  ukey2[1] = swap32_S (l32_from_64_S (tmps[gid].out[4]));
-  ukey2[2] = swap32_S (h32_from_64_S (tmps[gid].out[5]));
-  ukey2[3] = swap32_S (l32_from_64_S (tmps[gid].out[5]));
-  ukey2[4] = swap32_S (h32_from_64_S (tmps[gid].out[6]));
-  ukey2[5] = swap32_S (l32_from_64_S (tmps[gid].out[6]));
-  ukey2[6] = swap32_S (h32_from_64_S (tmps[gid].out[7]));
-  ukey2[7] = swap32_S (l32_from_64_S (tmps[gid].out[7]));
+  ukey2[0] = hc_swap32_S (h32_from_64_S (tmps[gid].out[4]));
+  ukey2[1] = hc_swap32_S (l32_from_64_S (tmps[gid].out[4]));
+  ukey2[2] = hc_swap32_S (h32_from_64_S (tmps[gid].out[5]));
+  ukey2[3] = hc_swap32_S (l32_from_64_S (tmps[gid].out[5]));
+  ukey2[4] = hc_swap32_S (h32_from_64_S (tmps[gid].out[6]));
+  ukey2[5] = hc_swap32_S (l32_from_64_S (tmps[gid].out[6]));
+  ukey2[6] = hc_swap32_S (h32_from_64_S (tmps[gid].out[7]));
+  ukey2[7] = hc_swap32_S (l32_from_64_S (tmps[gid].out[7]));
 
-  if (verify_header_aes (esalt_bufs, ukey1, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
+  if (verify_header_aes (esalt_bufs[0].data_buf, esalt_bufs[0].signature, ukey1, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
   {
     if (atomic_inc (&hashes_shown[0]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0, 0, 0);
     }
   }
 
-  if (verify_header_serpent (esalt_bufs, ukey1, ukey2) == 1)
+  if (verify_header_serpent (esalt_bufs[0].data_buf, esalt_bufs[0].signature, ukey1, ukey2) == 1)
   {
     if (atomic_inc (&hashes_shown[0]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0, 0, 0);
     }
   }
 
-  if (verify_header_twofish (esalt_bufs, ukey1, ukey2) == 1)
+  if (verify_header_twofish (esalt_bufs[0].data_buf, esalt_bufs[0].signature, ukey1, ukey2) == 1)
   {
     if (atomic_inc (&hashes_shown[0]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
-    }
-  }
-
-  if (verify_header_camellia (esalt_bufs, ukey1, ukey2) == 1)
-  {
-    if (atomic_inc (&hashes_shown[0]) == 0)
-    {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
-    }
-  }
-
-  if (verify_header_kuznyechik (esalt_bufs, ukey1, ukey2) == 1)
-  {
-    if (atomic_inc (&hashes_shown[0]) == 0)
-    {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0, 0, 0);
     }
   }
 }

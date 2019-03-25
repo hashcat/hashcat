@@ -3,6 +3,21 @@
  * License.....: MIT
  */
 
+#ifndef _INC_VENDOR_H
+#define _INC_VENDOR_H
+
+#ifdef _CPU_OPENCL_EMU_H
+#define CONSTANT_AS
+#define GLOBAL_AS
+#define LOCAL_AS
+#define KERNEL_FQ
+#else
+#define CONSTANT_AS __constant
+#define GLOBAL_AS   __global
+#define LOCAL_AS    __local
+#define KERNEL_FQ   __kernel
+#endif
+
 /**
  * device type
  */
@@ -54,9 +69,9 @@
 #endif
 
 #ifdef REAL_SHM
-#define SHM_TYPE __local
+#define SHM_TYPE LOCAL_AS
 #else
-#define SHM_TYPE __constant
+#define SHM_TYPE CONSTANT_AS
 #endif
 
 /**
@@ -99,4 +114,6 @@
 
 #ifdef NO_UNROLL
 #undef _unroll
+#endif
+
 #endif

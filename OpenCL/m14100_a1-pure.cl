@@ -5,12 +5,12 @@
 
 //#define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
+#endif
 
 #define PERM_OP(a,b,tt,n,m) \
 {                           \
@@ -50,7 +50,7 @@
   PERM_OP (l, r, tt,  4, 0x0f0f0f0f);  \
 }
 
-__constant u32a c_SPtrans[8][64] =
+CONSTANT_AS u32a c_SPtrans[8][64] =
 {
   {
     0x02080800, 0x00080000, 0x02000002, 0x02080802,
@@ -198,7 +198,7 @@ __constant u32a c_SPtrans[8][64] =
   }
 };
 
-__constant u32a c_skb[8][64] =
+CONSTANT_AS u32a c_skb[8][64] =
 {
   {
     0x00000000, 0x00000010, 0x20000000, 0x20000010,
@@ -370,10 +370,10 @@ __constant u32a c_skb[8][64] =
 #define BOX1(i,S) (u32x) ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3], (S)[(i).s4], (S)[(i).s5], (S)[(i).s6], (S)[(i).s7], (S)[(i).s8], (S)[(i).s9], (S)[(i).sa], (S)[(i).sb], (S)[(i).sc], (S)[(i).sd], (S)[(i).se], (S)[(i).sf])
 #endif
 
-DECLSPEC void _des_crypt_encrypt (u32 *iv, u32 *data, u32 *Kc, u32 *Kd, __local u32 (*s_SPtrans)[64])
+DECLSPEC void _des_crypt_encrypt (u32 *iv, u32 *data, u32 *Kc, u32 *Kd, LOCAL_AS u32 (*s_SPtrans)[64])
 {
-  u32 r = rotl32_S (data[0], 3u);
-  u32 l = rotl32_S (data[1], 3u);
+  u32 r = hc_rotl32_S (data[0], 3u);
+  u32 l = hc_rotl32_S (data[1], 3u);
 
   u32 tt;
 
@@ -386,7 +386,7 @@ DECLSPEC void _des_crypt_encrypt (u32 *iv, u32 *data, u32 *Kc, u32 *Kd, __local 
     u32 t;
 
     u = Kc[i + 0] ^ r;
-    t = Kd[i + 0] ^ rotl32_S (r, 28u);
+    t = Kd[i + 0] ^ hc_rotl32_S (r, 28u);
 
     l ^= BOX (((u >>  2) & 0x3f), 0, s_SPtrans)
        | BOX (((u >> 10) & 0x3f), 2, s_SPtrans)
@@ -398,7 +398,7 @@ DECLSPEC void _des_crypt_encrypt (u32 *iv, u32 *data, u32 *Kc, u32 *Kd, __local 
        | BOX (((t >> 26) & 0x3f), 7, s_SPtrans);
 
     u = Kc[i + 1] ^ l;
-    t = Kd[i + 1] ^ rotl32_S (l, 28u);
+    t = Kd[i + 1] ^ hc_rotl32_S (l, 28u);
 
     r ^= BOX (((u >>  2) & 0x3f), 0, s_SPtrans)
        | BOX (((u >> 10) & 0x3f), 2, s_SPtrans)
@@ -410,14 +410,14 @@ DECLSPEC void _des_crypt_encrypt (u32 *iv, u32 *data, u32 *Kc, u32 *Kd, __local 
        | BOX (((t >> 26) & 0x3f), 7, s_SPtrans);
   }
 
-  iv[0] = rotl32_S (l, 29u);
-  iv[1] = rotl32_S (r, 29u);
+  iv[0] = hc_rotl32_S (l, 29u);
+  iv[1] = hc_rotl32_S (r, 29u);
 }
 
-DECLSPEC void _des_crypt_decrypt (u32 *iv, u32 *data, u32 *Kc, u32 *Kd, __local u32 (*s_SPtrans)[64])
+DECLSPEC void _des_crypt_decrypt (u32 *iv, u32 *data, u32 *Kc, u32 *Kd, LOCAL_AS u32 (*s_SPtrans)[64])
 {
-  u32 r = rotl32_S (data[0], 3u);
-  u32 l = rotl32_S (data[1], 3u);
+  u32 r = hc_rotl32_S (data[0], 3u);
+  u32 l = hc_rotl32_S (data[1], 3u);
 
   u32 tt;
 
@@ -430,7 +430,7 @@ DECLSPEC void _des_crypt_decrypt (u32 *iv, u32 *data, u32 *Kc, u32 *Kd, __local 
     u32 t;
 
     u = Kc[i - 1] ^ r;
-    t = Kd[i - 1] ^ rotl32_S (r, 28u);
+    t = Kd[i - 1] ^ hc_rotl32_S (r, 28u);
 
     l ^= BOX (((u >>  2) & 0x3f), 0, s_SPtrans)
        | BOX (((u >> 10) & 0x3f), 2, s_SPtrans)
@@ -442,7 +442,7 @@ DECLSPEC void _des_crypt_decrypt (u32 *iv, u32 *data, u32 *Kc, u32 *Kd, __local 
        | BOX (((t >> 26) & 0x3f), 7, s_SPtrans);
 
     u = Kc[i - 2] ^ l;
-    t = Kd[i - 2] ^ rotl32_S (l, 28u);
+    t = Kd[i - 2] ^ hc_rotl32_S (l, 28u);
 
     r ^= BOX (((u >>  2) & 0x3f), 0, s_SPtrans)
        | BOX (((u >> 10) & 0x3f), 2, s_SPtrans)
@@ -454,11 +454,11 @@ DECLSPEC void _des_crypt_decrypt (u32 *iv, u32 *data, u32 *Kc, u32 *Kd, __local 
        | BOX (((t >> 26) & 0x3f), 7, s_SPtrans);
   }
 
-  iv[0] = rotl32_S (l, 29u);
-  iv[1] = rotl32_S (r, 29u);
+  iv[0] = hc_rotl32_S (l, 29u);
+  iv[1] = hc_rotl32_S (r, 29u);
 }
 
-DECLSPEC void _des_crypt_keysetup (u32 c, u32 d, u32 *Kc, u32 *Kd, __local u32 (*s_skb)[64])
+DECLSPEC void _des_crypt_keysetup (u32 c, u32 d, u32 *Kc, u32 *Kd, LOCAL_AS u32 (*s_skb)[64])
 {
   u32 tt;
 
@@ -525,12 +525,12 @@ DECLSPEC void _des_crypt_keysetup (u32 c, u32 d, u32 *Kc, u32 *Kd, __local u32 (
     Kc[i] = ((t << 16) | (s & 0x0000ffff));
     Kd[i] = ((s >> 16) | (t & 0xffff0000));
 
-    Kc[i] = rotl32_S (Kc[i], 2u);
-    Kd[i] = rotl32_S (Kd[i], 2u);
+    Kc[i] = hc_rotl32_S (Kc[i], 2u);
+    Kd[i] = hc_rotl32_S (Kd[i], 2u);
   }
 }
 
-__kernel void m14100_mxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void m14100_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * base
@@ -544,8 +544,8 @@ __kernel void m14100_mxx (KERN_ATTR_BASIC ())
    * shared
    */
 
-  __local u32 s_SPtrans[8][64];
-  __local u32 s_skb[8][64];
+  LOCAL_AS u32 s_SPtrans[8][64];
+  LOCAL_AS u32 s_skb[8][64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
@@ -713,7 +713,7 @@ __kernel void m14100_mxx (KERN_ATTR_BASIC ())
   }
 }
 
-__kernel void m14100_sxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void m14100_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * base
@@ -727,8 +727,8 @@ __kernel void m14100_sxx (KERN_ATTR_BASIC ())
    * shared
    */
 
-  __local u32 s_SPtrans[8][64];
-  __local u32 s_skb[8][64];
+  LOCAL_AS u32 s_SPtrans[8][64];
+  LOCAL_AS u32 s_skb[8][64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {

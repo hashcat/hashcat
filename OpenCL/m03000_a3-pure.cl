@@ -5,11 +5,11 @@
  *             : sboxes for others were takes fron JtR, license below
  */
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
+#endif
 
 #define COMPARE_S "inc_comp_single_bs.cl"
 #define COMPARE_M "inc_comp_multi_bs.cl"
@@ -1730,7 +1730,7 @@ DECLSPEC void transpose32c (u32 *data)
 // transpose bitslice mod  : attention race conditions, need different buffers for *in and *out
 //
 
-__kernel void m03000_tm (__global u32 * restrict mod, __global bs_word_t * restrict words_buf_r)
+KERNEL_FQ void m03000_tm (GLOBAL_AS u32 * restrict mod, GLOBAL_AS bs_word_t * restrict words_buf_r)
 {
   const u64 gid = get_global_id (0);
 
@@ -1752,7 +1752,7 @@ __kernel void m03000_tm (__global u32 * restrict mod, __global bs_word_t * restr
   }
 }
 
-__kernel void m03000_mxx (KERN_ATTR_BITSLICE ())
+KERNEL_FQ void m03000_mxx (KERN_ATTR_BITSLICE ())
 {
   /**
    * base
@@ -2087,7 +2087,9 @@ __kernel void m03000_mxx (KERN_ATTR_BITSLICE ())
       const u32 r0 = search[0];
       const u32 r1 = search[1];
       const u32 r2 = 0;
+      #ifdef KERNEL_STATIC
       const u32 r3 = 0;
+      #endif
 
       #include COMPARE_M
     }
@@ -2117,14 +2119,16 @@ __kernel void m03000_mxx (KERN_ATTR_BITSLICE ())
       const u32 r0 = out0[31 - slice];
       const u32 r1 = out1[31 - slice];
       const u32 r2 = 0;
+      #ifdef KERNEL_STATIC
       const u32 r3 = 0;
+      #endif
 
       #include COMPARE_M
     }
   }
 }
 
-__kernel void m03000_sxx (KERN_ATTR_BITSLICE ())
+KERNEL_FQ void m03000_sxx (KERN_ATTR_BITSLICE ())
 {
   /**
    * base
@@ -2510,5 +2514,7 @@ __kernel void m03000_sxx (KERN_ATTR_BITSLICE ())
 
   const u32 slice = ffz (tmpResult);
 
+  #ifdef KERNEL_STATIC
   #include COMPARE_S
+  #endif
 }

@@ -21,9 +21,8 @@ static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_5;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_FDE;
 static const char *HASH_NAME      = "VeraCrypt RIPEMD160 + XTS 1536 bit";
-static const u64   KERN_TYPE      = 6213;
-static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
-                                  | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
+static const u64   KERN_TYPE      = 13713;
+static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_BINARY_HASHFILE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
@@ -45,7 +44,7 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
-typedef struct tc_tmp
+typedef struct vc_tmp
 {
   u32 ipad[16];
   u32 opad[16];
@@ -53,9 +52,12 @@ typedef struct tc_tmp
   u32 dgst[64];
   u32 out[64];
 
-} tc_tmp_t;
+  u32 pim_key[64];
+  int pim; // marker for cracked
 
-typedef struct tc
+} vc_tmp_t;
+
+typedef struct vc
 {
   u32 salt_buf[32];
   u32 data_buf[112];
@@ -65,10 +67,26 @@ typedef struct tc
   keyboard_layout_mapping_t keyboard_layout_mapping_buf[256];
   int                       keyboard_layout_mapping_cnt;
 
-} tc_t;
+  int pim_multi; // 2048 for boot (not SHA-512 or Whirlpool), 1000 for others
+  int pim_start;
+  int pim_stop;
+
+} vc_t;
 
 static const int   ROUNDS_VERACRYPT_655331     = 655331;
 static const float MIN_SUFFICIENT_ENTROPY_FILE = 7.0f;
+
+int module_build_plain_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const plain_t *plain, const u32 *src_buf, MAYBE_UNUSED const size_t src_sz, MAYBE_UNUSED const int src_len, u32 *dst_buf, MAYBE_UNUSED const size_t dst_sz)
+{
+  if (plain->extra1 == 0)
+  {
+    return snprintf ((char *) dst_buf, dst_sz, "%s", (char *) src_buf);
+  }
+  else
+  {
+    return snprintf ((char *) dst_buf, dst_sz, "%s   (PIM=%d)", (char *) src_buf, plain->extra1 - 15);
+  }
+}
 
 bool module_potfile_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -86,16 +104,23 @@ bool module_outfile_check_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u64 esalt_size = (const u64) sizeof (tc_t);
+  const u64 esalt_size = (const u64) sizeof (vc_t);
 
   return esalt_size;
 }
 
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u64 tmp_size = (const u64) sizeof (tc_tmp_t);
+  const u64 tmp_size = (const u64) sizeof (vc_tmp_t);
 
   return tmp_size;
+}
+
+u32 module_kernel_loops_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 kernel_loops_max = 1000; // lowest PIM multiplier
+
+  return kernel_loops_max;
 }
 
 u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -158,7 +183,7 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
   // keyfiles
 
-  tc_t *tc = (tc_t *) hash->esalt;
+  vc_t *vc = (vc_t *) hash->esalt;
 
   if (user_options->veracrypt_keyfiles)
   {
@@ -172,7 +197,7 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
     {
       if (hc_path_read (keyfile))
       {
-        cpu_crc32 (keyfile, (u8 *) tc->keyfile_buf);
+        cpu_crc32 (keyfile, (u8 *) vc->keyfile_buf);
       }
 
       keyfile = strtok_r ((char *) NULL, ",", &saveptr);
@@ -187,7 +212,7 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
   {
     if (hc_path_read (user_options->keyboard_layout_mapping))
     {
-      initialize_keyboard_layout_mapping (user_options->keyboard_layout_mapping, tc->keyboard_layout_mapping_buf, &tc->keyboard_layout_mapping_cnt);
+      initialize_keyboard_layout_mapping (user_options->keyboard_layout_mapping, vc->keyboard_layout_mapping_buf, &vc->keyboard_layout_mapping_cnt);
     }
   }
 
@@ -195,50 +220,46 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
   salt_t *salt = hash->salt;
 
-  if (user_options->veracrypt_pim)
+  if ((user_options->veracrypt_pim_start) && (user_options->veracrypt_pim_stop))
   {
-    salt->salt_iter = 15000 + (user_options->veracrypt_pim * 1000);
+    vc->pim_start = 15 + user_options->veracrypt_pim_start;
+    vc->pim_stop  = 15 + user_options->veracrypt_pim_stop;
 
+    salt->salt_iter = vc->pim_stop * 1000;
     salt->salt_iter--;
   }
 
   return 1;
 }
 
-bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *hc_device_param)
-{
-  // amdgpu-pro-18.50-708488-ubuntu-18.04: Segmentation fault
-  if ((hc_device_param->device_vendor_id == VENDOR_ID_AMD) && (hc_device_param->has_vperm == false))
-  {
-    return true;
-  }
-
-  return false;
-}
-
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
   u32 *digest = (u32 *) digest_buf;
 
-  tc_t *tc = (tc_t *) esalt_buf;
+  vc_t *vc = (vc_t *) esalt_buf;
 
   const float entropy = get_entropy ((const u8 *) line_buf, line_len);
 
   if (entropy < MIN_SUFFICIENT_ENTROPY_FILE) return (PARSER_INSUFFICIENT_ENTROPY);
 
-  memcpy (tc->salt_buf, line_buf, 64);
+  memcpy (vc->salt_buf, line_buf, 64);
 
-  memcpy (tc->data_buf, line_buf + 64, 512 - 64);
+  memcpy (vc->data_buf, line_buf + 64, 512 - 64);
 
-  salt->salt_buf[0] = tc->salt_buf[0];
+  salt->salt_buf[0] = vc->salt_buf[0];
 
   salt->salt_len = 4;
 
-  salt->salt_iter = ROUNDS_VERACRYPT_655331 - 1;
+  salt->salt_iter = ROUNDS_VERACRYPT_655331;
+  salt->salt_iter--;
 
-  tc->signature = 0x41524556; // "VERA"
+  vc->pim_multi = 1000;
+  vc->pim_start = 0;
+  vc->pim_stop  = 0;
 
-  digest[0] = tc->data_buf[0];
+  vc->signature = 0x41524556; // "VERA"
+
+  digest[0] = vc->data_buf[0];
 
   return (PARSER_OK);
 }
@@ -253,7 +274,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
   module_ctx->module_benchmark_mask           = MODULE_DEFAULT;
   module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
-  module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
+  module_ctx->module_build_plain_postprocess  = module_build_plain_postprocess;
   module_ctx->module_deep_comp_kernel         = MODULE_DEFAULT;
   module_ctx->module_dgst_pos0                = module_dgst_pos0;
   module_ctx->module_dgst_pos1                = module_dgst_pos1;
@@ -286,7 +307,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_jit_cache_disable        = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_max         = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_min         = MODULE_DEFAULT;
-  module_ctx->module_kernel_loops_max         = MODULE_DEFAULT;
+  module_ctx->module_kernel_loops_max         = module_kernel_loops_max;
   module_ctx->module_kernel_loops_min         = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
@@ -308,6 +329,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_hash                  = module_st_hash;
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
-  module_ctx->module_unstable_warning         = module_unstable_warning;
+  module_ctx->module_unstable_warning         = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

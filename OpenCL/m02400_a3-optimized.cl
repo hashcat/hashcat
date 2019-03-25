@@ -5,12 +5,13 @@
 
 #define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
+#include "inc_hash_md5.cl"
+#endif
 
 DECLSPEC void m02400m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
@@ -457,7 +458,7 @@ DECLSPEC void m02400s (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
   }
 }
 
-__kernel void m02400_m04 (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m02400_m04 (KERN_ATTR_VECTOR ())
 {
   /**
    * base
@@ -495,7 +496,7 @@ __kernel void m02400_m04 (KERN_ATTR_VECTOR ())
   m02400m (w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }
 
-__kernel void m02400_m08 (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m02400_m08 (KERN_ATTR_VECTOR ())
 {
   /**
    * base
@@ -533,7 +534,7 @@ __kernel void m02400_m08 (KERN_ATTR_VECTOR ())
   m02400m (w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }
 
-__kernel void m02400_m16 (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m02400_m16 (KERN_ATTR_VECTOR ())
 {
   /**
    * base
@@ -571,7 +572,7 @@ __kernel void m02400_m16 (KERN_ATTR_VECTOR ())
   m02400m (w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }
 
-__kernel void m02400_s04 (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m02400_s04 (KERN_ATTR_VECTOR ())
 {
   /**
    * base
@@ -609,7 +610,7 @@ __kernel void m02400_s04 (KERN_ATTR_VECTOR ())
   m02400s (w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }
 
-__kernel void m02400_s08 (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m02400_s08 (KERN_ATTR_VECTOR ())
 {
   /**
    * base
@@ -647,7 +648,7 @@ __kernel void m02400_s08 (KERN_ATTR_VECTOR ())
   m02400s (w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }
 
-__kernel void m02400_s16 (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m02400_s16 (KERN_ATTR_VECTOR ())
 {
   /**
    * base

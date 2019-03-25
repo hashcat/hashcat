@@ -5,14 +5,15 @@
 
 #define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_rp_optimized.h"
 #include "inc_rp_optimized.cl"
 #include "inc_simd.cl"
+#include "inc_hash_sha256.cl"
+#endif
 
 #define SHA256_STEP_REV(a,b,c,d,e,f,g,h)        \
 {                                               \
@@ -28,7 +29,7 @@
   h = 0;                                        \
 }
 
-__kernel void m01440_m04 (KERN_ATTR_RULES ())
+KERNEL_FQ void m01440_m04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -135,20 +136,20 @@ __kernel void m01440_m04 (KERN_ATTR_RULES ())
      * sha256
      */
 
-    u32x w0_t = swap32 (w0[0]);
-    u32x w1_t = swap32 (w0[1]);
-    u32x w2_t = swap32 (w0[2]);
-    u32x w3_t = swap32 (w0[3]);
-    u32x w4_t = swap32 (w1[0]);
-    u32x w5_t = swap32 (w1[1]);
-    u32x w6_t = swap32 (w1[2]);
-    u32x w7_t = swap32 (w1[3]);
-    u32x w8_t = swap32 (w2[0]);
-    u32x w9_t = swap32 (w2[1]);
-    u32x wa_t = swap32 (w2[2]);
-    u32x wb_t = swap32 (w2[3]);
-    u32x wc_t = swap32 (w3[0]);
-    u32x wd_t = swap32 (w3[1]);
+    u32x w0_t = hc_swap32 (w0[0]);
+    u32x w1_t = hc_swap32 (w0[1]);
+    u32x w2_t = hc_swap32 (w0[2]);
+    u32x w3_t = hc_swap32 (w0[3]);
+    u32x w4_t = hc_swap32 (w1[0]);
+    u32x w5_t = hc_swap32 (w1[1]);
+    u32x w6_t = hc_swap32 (w1[2]);
+    u32x w7_t = hc_swap32 (w1[3]);
+    u32x w8_t = hc_swap32 (w2[0]);
+    u32x w9_t = hc_swap32 (w2[1]);
+    u32x wa_t = hc_swap32 (w2[2]);
+    u32x wb_t = hc_swap32 (w2[3]);
+    u32x wc_t = hc_swap32 (w3[0]);
+    u32x wd_t = hc_swap32 (w3[1]);
     u32x we_t = 0;
     u32x wf_t = out_salt_len * 8;
 
@@ -233,15 +234,15 @@ __kernel void m01440_m04 (KERN_ATTR_RULES ())
   }
 }
 
-__kernel void m01440_m08 (KERN_ATTR_RULES ())
+KERNEL_FQ void m01440_m08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m01440_m16 (KERN_ATTR_RULES ())
+KERNEL_FQ void m01440_m16 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m01440_s04 (KERN_ATTR_RULES ())
+KERNEL_FQ void m01440_s04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -378,20 +379,20 @@ __kernel void m01440_s04 (KERN_ATTR_RULES ())
      * sha256
      */
 
-    u32x w0_t = swap32 (w0[0]);
-    u32x w1_t = swap32 (w0[1]);
-    u32x w2_t = swap32 (w0[2]);
-    u32x w3_t = swap32 (w0[3]);
-    u32x w4_t = swap32 (w1[0]);
-    u32x w5_t = swap32 (w1[1]);
-    u32x w6_t = swap32 (w1[2]);
-    u32x w7_t = swap32 (w1[3]);
-    u32x w8_t = swap32 (w2[0]);
-    u32x w9_t = swap32 (w2[1]);
-    u32x wa_t = swap32 (w2[2]);
-    u32x wb_t = swap32 (w2[3]);
-    u32x wc_t = swap32 (w3[0]);
-    u32x wd_t = swap32 (w3[1]);
+    u32x w0_t = hc_swap32 (w0[0]);
+    u32x w1_t = hc_swap32 (w0[1]);
+    u32x w2_t = hc_swap32 (w0[2]);
+    u32x w3_t = hc_swap32 (w0[3]);
+    u32x w4_t = hc_swap32 (w1[0]);
+    u32x w5_t = hc_swap32 (w1[1]);
+    u32x w6_t = hc_swap32 (w1[2]);
+    u32x w7_t = hc_swap32 (w1[3]);
+    u32x w8_t = hc_swap32 (w2[0]);
+    u32x w9_t = hc_swap32 (w2[1]);
+    u32x wa_t = hc_swap32 (w2[2]);
+    u32x wb_t = hc_swap32 (w2[3]);
+    u32x wc_t = hc_swap32 (w3[0]);
+    u32x wd_t = hc_swap32 (w3[1]);
     u32x we_t = 0;
     u32x wf_t = out_salt_len * 8;
 
@@ -479,10 +480,10 @@ __kernel void m01440_s04 (KERN_ATTR_RULES ())
   }
 }
 
-__kernel void m01440_s08 (KERN_ATTR_RULES ())
+KERNEL_FQ void m01440_s08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m01440_s16 (KERN_ATTR_RULES ())
+KERNEL_FQ void m01440_s16 (KERN_ATTR_RULES ())
 {
 }

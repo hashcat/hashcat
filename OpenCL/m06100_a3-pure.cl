@@ -5,15 +5,15 @@
 
 #define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_whirlpool.cl"
+#endif
 
-__kernel void m06100_mxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m06100_mxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -24,11 +24,13 @@ __kernel void m06100_mxx (KERN_ATTR_VECTOR ())
   const u64 lsz = get_local_size (0);
 
   /**
-   * shared
+   * Whirlpool shared
    */
 
-  __local u32 s_Ch[8][256];
-  __local u32 s_Cl[8][256];
+  #ifdef REAL_SHM
+
+  LOCAL_AS u32 s_Ch[8][256];
+  LOCAL_AS u32 s_Cl[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -52,6 +54,13 @@ __kernel void m06100_mxx (KERN_ATTR_VECTOR ())
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
+
+  #else
+
+  CONSTANT_AS u32a (*s_Ch)[256] = Ch;
+  CONSTANT_AS u32a (*s_Cl)[256] = Cl;
+
+  #endif
 
   if (gid >= gid_max) return;
 
@@ -99,7 +108,7 @@ __kernel void m06100_mxx (KERN_ATTR_VECTOR ())
   }
 }
 
-__kernel void m06100_sxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m06100_sxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -110,11 +119,13 @@ __kernel void m06100_sxx (KERN_ATTR_VECTOR ())
   const u64 lsz = get_local_size (0);
 
   /**
-   * shared
+   * Whirlpool shared
    */
 
-  __local u32 s_Ch[8][256];
-  __local u32 s_Cl[8][256];
+  #ifdef REAL_SHM
+
+  LOCAL_AS u32 s_Ch[8][256];
+  LOCAL_AS u32 s_Cl[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -138,6 +149,13 @@ __kernel void m06100_sxx (KERN_ATTR_VECTOR ())
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
+
+  #else
+
+  CONSTANT_AS u32a (*s_Ch)[256] = Ch;
+  CONSTANT_AS u32a (*s_Cl)[256] = Cl;
+
+  #endif
 
   if (gid >= gid_max) return;
 

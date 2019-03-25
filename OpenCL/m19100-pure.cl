@@ -5,13 +5,13 @@
 
 //#define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha256.cl"
+#endif
 
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
@@ -22,7 +22,7 @@ typedef struct qnx_sha256_tmp
 
 } qnx_sha256_tmp_t;
 
-__kernel void m19100_init (KERN_ATTR_TMPS (qnx_sha256_tmp_t))
+KERNEL_FQ void m19100_init (KERN_ATTR_TMPS (qnx_sha256_tmp_t))
 {
   /**
    * base
@@ -47,7 +47,7 @@ __kernel void m19100_init (KERN_ATTR_TMPS (qnx_sha256_tmp_t))
   tmps[gid].sha256_ctx = sha256_ctx;
 }
 
-__kernel void m19100_loop (KERN_ATTR_TMPS (qnx_sha256_tmp_t))
+KERNEL_FQ void m19100_loop (KERN_ATTR_TMPS (qnx_sha256_tmp_t))
 {
   /**
    * base
@@ -67,7 +67,7 @@ __kernel void m19100_loop (KERN_ATTR_TMPS (qnx_sha256_tmp_t))
   tmps[gid].sha256_ctx = sha256_ctx;
 }
 
-__kernel void m19100_comp (KERN_ATTR_TMPS (qnx_sha256_tmp_t))
+KERNEL_FQ void m19100_comp (KERN_ATTR_TMPS (qnx_sha256_tmp_t))
 {
   /**
    * modifier
@@ -82,12 +82,14 @@ __kernel void m19100_comp (KERN_ATTR_TMPS (qnx_sha256_tmp_t))
 
   sha256_final (&sha256_ctx);
 
-  const u32 r0 = swap32_S (sha256_ctx.h[0]);
-  const u32 r1 = swap32_S (sha256_ctx.h[1]);
-  const u32 r2 = swap32_S (sha256_ctx.h[2]);
-  const u32 r3 = swap32_S (sha256_ctx.h[3]);
+  const u32 r0 = hc_swap32_S (sha256_ctx.h[0]);
+  const u32 r1 = hc_swap32_S (sha256_ctx.h[1]);
+  const u32 r2 = hc_swap32_S (sha256_ctx.h[2]);
+  const u32 r3 = hc_swap32_S (sha256_ctx.h[3]);
 
   #define il_pos 0
 
+  #ifdef KERNEL_STATIC
   #include COMPARE_M
+  #endif
 }

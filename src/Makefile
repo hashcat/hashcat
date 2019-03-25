@@ -221,7 +221,6 @@ endif
 
 ifeq ($(UNAME),Linux)
 CFLAGS_NATIVE           := $(CFLAGS)
-CFLAGS_NATIVE           += -I$(OPENCL_HEADERS_KHRONOS)/
 CFLAGS_NATIVE           += -DWITH_HWMON
 LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -lpthread
@@ -233,7 +232,6 @@ endif # Linux
 ifeq ($(UNAME),FreeBSD)
 ifndef PORTNAME
 CFLAGS_NATIVE           := $(CFLAGS)
-CFLAGS_NATIVE           += -I$(OPENCL_HEADERS_KHRONOS)/
 LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -lpthread
 LFLAGS_NATIVE           += -lm
@@ -256,7 +254,6 @@ endif # Darwin
 
 ifeq ($(UNAME),CYGWIN)
 CFLAGS_NATIVE           := $(CFLAGS)
-CFLAGS_NATIVE           += -I$(OPENCL_HEADERS_KHRONOS)/
 CFLAGS_NATIVE           += -DWITH_HWMON
 LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -Wl,--dynamicbase
@@ -267,7 +264,6 @@ endif # CYGWIN
 
 ifeq ($(UNAME),MSYS2)
 CFLAGS_NATIVE           := $(CFLAGS)
-CFLAGS_NATIVE           += -I$(OPENCL_HEADERS_KHRONOS)/
 CFLAGS_NATIVE           += -DWITH_HWMON
 LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -Wl,--dynamicbase
@@ -545,11 +541,9 @@ WIN_ICONV               := /opt/win-iconv-64
 
 CFLAGS_CROSS_LINUX      := $(CFLAGS)
 CFLAGS_CROSS_LINUX      += -fPIC
-CFLAGS_CROSS_LINUX      += -I$(OPENCL_HEADERS_KHRONOS)/
 CFLAGS_CROSS_LINUX      += -DWITH_HWMON
 CFLAGS_CROSS_WIN        := $(CFLAGS)
 CFLAGS_CROSS_WIN        += -fPIC
-CFLAGS_CROSS_WIN        += -I$(OPENCL_HEADERS_KHRONOS)/
 CFLAGS_CROSS_WIN        += -I$(WIN_ICONV)/include/
 CFLAGS_CROSS_WIN        += -DWITH_HWMON
 

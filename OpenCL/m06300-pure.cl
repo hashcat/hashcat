@@ -5,12 +5,12 @@
 
 //#define NEW_SIMD_CODE
 
-#include "inc_vendor.cl"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "inc_types.cl"
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_hash_md5.cl"
+#endif
 
 #define PUTCHAR_LE(a,p,c) ((u8 *)(a))[(p)] = (u8) (c)
 #define GETCHAR_LE(a,p)   ((u8 *)(a))[(p)]
@@ -24,7 +24,7 @@ typedef struct md5crypt_tmp
 
 } md5crypt_tmp_t;
 
-__kernel void m06300_init (KERN_ATTR_TMPS (md5crypt_tmp_t))
+KERNEL_FQ void m06300_init (KERN_ATTR_TMPS (md5crypt_tmp_t))
 {
   /**
    * base
@@ -124,7 +124,7 @@ __kernel void m06300_init (KERN_ATTR_TMPS (md5crypt_tmp_t))
   tmps[gid].digest_buf[3] = md5_ctx.h[3];
 }
 
-__kernel void m06300_loop (KERN_ATTR_TMPS (md5crypt_tmp_t))
+KERNEL_FQ void m06300_loop (KERN_ATTR_TMPS (md5crypt_tmp_t))
 {
   /**
    * base
@@ -321,7 +321,7 @@ __kernel void m06300_loop (KERN_ATTR_TMPS (md5crypt_tmp_t))
   tmps[gid].digest_buf[3] = digest[3];
 }
 
-__kernel void m06300_comp (KERN_ATTR_TMPS (md5crypt_tmp_t))
+KERNEL_FQ void m06300_comp (KERN_ATTR_TMPS (md5crypt_tmp_t))
 {
   /**
    * modifier
@@ -344,5 +344,7 @@ __kernel void m06300_comp (KERN_ATTR_TMPS (md5crypt_tmp_t))
 
   #define il_pos 0
 
+  #ifdef KERNEL_STATIC
   #include COMPARE_M
+  #endif
 }

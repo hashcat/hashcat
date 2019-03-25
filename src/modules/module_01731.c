@@ -9,7 +9,6 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
-#include "inc_hash_constants.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 14;
@@ -149,8 +148,6 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     tmp[7] += SHA512M_H;
   }
 
-  const u32 *ptr = (const u32 *) tmp;
-
   char tmp_salt[SALT_MAX * 2];
 
   const int salt_len = generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, (const int) salt->salt_len, (u8 *) tmp_salt);
@@ -159,14 +156,14 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const int line_len = snprintf (line_buf, line_size, "0x0200%s%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
     tmp_salt,
-    ptr[ 1], ptr[ 0],
-    ptr[ 3], ptr[ 2],
-    ptr[ 5], ptr[ 4],
-    ptr[ 7], ptr[ 6],
-    ptr[ 9], ptr[ 8],
-    ptr[11], ptr[10],
-    ptr[13], ptr[12],
-    ptr[15], ptr[14]);
+    v32b_from_v64 (tmp[0]), v32a_from_v64 (tmp[0]),
+    v32b_from_v64 (tmp[1]), v32a_from_v64 (tmp[1]),
+    v32b_from_v64 (tmp[2]), v32a_from_v64 (tmp[2]),
+    v32b_from_v64 (tmp[3]), v32a_from_v64 (tmp[3]),
+    v32b_from_v64 (tmp[4]), v32a_from_v64 (tmp[4]),
+    v32b_from_v64 (tmp[5]), v32a_from_v64 (tmp[5]),
+    v32b_from_v64 (tmp[6]), v32a_from_v64 (tmp[6]),
+    v32b_from_v64 (tmp[7]), v32a_from_v64 (tmp[7]));
 
   return line_len;
 }

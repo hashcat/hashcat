@@ -3,14 +3,46 @@
  * License.....: MIT
  */
 
-#define IS_GENERIC
-
 #include "common.h"
 #include "types.h"
 #include "bitops.h"
-#include "inc_hash_constants.h"
-#include "inc_hash_functions.cl"
-#include "cpu_sha256.h"
+
+#define SHIFT_RIGHT_32(x,n) ((x) >> (n))
+
+#define SHA256_S0_S(x) (rotl32_S ((x), 25u) ^ rotl32_S ((x), 14u) ^ SHIFT_RIGHT_32 ((x),  3u))
+#define SHA256_S1_S(x) (rotl32_S ((x), 15u) ^ rotl32_S ((x), 13u) ^ SHIFT_RIGHT_32 ((x), 10u))
+#define SHA256_S2_S(x) (rotl32_S ((x), 30u) ^ rotl32_S ((x), 19u) ^ rotl32_S ((x), 10u))
+#define SHA256_S3_S(x) (rotl32_S ((x), 26u) ^ rotl32_S ((x), 21u) ^ rotl32_S ((x),  7u))
+
+#define SHA256_S0(x) (rotl32 ((x), 25u) ^ rotl32 ((x), 14u) ^ SHIFT_RIGHT_32 ((x),  3u))
+#define SHA256_S1(x) (rotl32 ((x), 15u) ^ rotl32 ((x), 13u) ^ SHIFT_RIGHT_32 ((x), 10u))
+#define SHA256_S2(x) (rotl32 ((x), 30u) ^ rotl32 ((x), 19u) ^ rotl32 ((x), 10u))
+#define SHA256_S3(x) (rotl32 ((x), 26u) ^ rotl32 ((x), 21u) ^ rotl32 ((x),  7u))
+
+#define SHA256_F0(x,y,z)  (((x) & (y)) | ((z) & ((x) ^ (y))))
+#define SHA256_F1(x,y,z)  ((z) ^ ((x) & ((y) ^ (z))))
+#define SHA256_F0o(x,y,z) (SHA256_F0 ((x), (y), (z)))
+#define SHA256_F1o(x,y,z) (SHA256_F1 ((x), (y), (z)))
+
+#define SHA256_STEP_S(F0,F1,a,b,c,d,e,f,g,h,x,K)  \
+{                                                 \
+  h = add3_S (h, K, x);                        \
+  h = add3_S (h, SHA256_S3_S (e), F1 (e,f,g)); \
+  d += h;                                         \
+  h = add3_S (h, SHA256_S2_S (a), F0 (a,b,c)); \
+}
+
+#define SHA256_EXPAND_S(x,y,z,w) (SHA256_S1_S (x) + y + SHA256_S0_S (z) + w)
+
+#define SHA256_STEP(F0,F1,a,b,c,d,e,f,g,h,x,K)    \
+{                                                 \
+  h = add3 (h, K, x);                          \
+  h = add3 (h, SHA256_S3 (e), F1 (e,f,g));     \
+  d += h;                                         \
+  h = add3 (h, SHA256_S2 (a), F0 (a,b,c));     \
+}
+
+#define SHA256_EXPAND(x,y,z,w) (SHA256_S1 (x) + y + SHA256_S0 (z) + w)
 
 void sha256_64 (const u32 block[16], u32 digest[8])
 {
