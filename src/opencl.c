@@ -4899,34 +4899,35 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     char *device_name_chksum        = (char *) hcmalloc (HCBUFSIZ_TINY);
     char *device_name_chksum_amp_mp = (char *) hcmalloc (HCBUFSIZ_TINY);
 
-    const size_t dnclen        = snprintf (device_name_chksum,        HCBUFSIZ_TINY, "%u-%u-%s-%s-%s-%d-%u-%u", device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, opencl_ctx->comptime, user_options->opencl_vector_width, hashconfig->hash_mode);
-    const size_t dnclen_amp_mp = snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%u-%s-%s-%s-%d",          device_param->platform_vendor_id,                             device_param->device_name, device_param->device_version, device_param->driver_version, opencl_ctx->comptime);
+    const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY, "%d-%u-%s-%s-%s-%d-%d",
+      opencl_ctx->comptime,
+      device_param->platform_vendor_id,
+      device_param->device_name,
+      device_param->device_version,
+      device_param->driver_version,
+      device_param->vector_width,
+      hashconfig->hash_mode);
 
-    u32 *device_name_chksum32 = (u32 *) device_name_chksum;
+    const size_t dnclen_amp_mp = snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%d-%u-%s-%s-%s",
+      opencl_ctx->comptime,
+      device_param->platform_vendor_id,
+      device_param->device_name,
+      device_param->device_version,
+      device_param->driver_version);
 
-    u32 device_name_digest[4] = { 0 };
+    md5_ctx_t md5_ctx;
 
-    for (size_t i = 0; i < dnclen; i += 64)
-    {
-      md5_transform (device_name_chksum32 + 0, device_name_chksum32 + 4, device_name_chksum32 + 8, device_name_chksum32 + 12, device_name_digest);
+    md5_init (&md5_ctx);
+    md5_update (&md5_ctx, (u32 *) device_name_chksum, dnclen);
+    md5_final (&md5_ctx);
 
-      device_name_chksum32 += 16;
-    }
+    snprintf (device_name_chksum, HCBUFSIZ_TINY, "%08x", md5_ctx.h[0]);
 
-    snprintf (device_name_chksum, HCBUFSIZ_TINY, "%08x", device_name_digest[0]);
+    md5_init (&md5_ctx);
+    md5_update (&md5_ctx, (u32 *) device_name_chksum_amp_mp, dnclen_amp_mp);
+    md5_final (&md5_ctx);
 
-    u32 *device_name_chksum_amp_mp32 = (u32 *) device_name_chksum;
-
-    u32 device_name_digest_amp_mp[4] = { 0 };
-
-    for (size_t i = 0; i < dnclen_amp_mp; i += 64)
-    {
-      md5_transform (device_name_chksum_amp_mp32 + 0, device_name_chksum_amp_mp32 + 4, device_name_chksum_amp_mp32 + 8, device_name_chksum_amp_mp32 + 12, device_name_digest_amp_mp);
-
-      device_name_chksum_amp_mp32 += 16;
-    }
-
-    snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%08x", device_name_digest_amp_mp[0]);
+    snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%08x", md5_ctx.h[0]);
 
     /**
      * kernel cache
