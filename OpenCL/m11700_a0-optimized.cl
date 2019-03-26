@@ -18,7 +18,7 @@
 
 #define INITVAL 0x0101010101010101
 
-DECLSPEC void streebog_g (u64x *h, const u64x *m, LOCAL_AS u64 (*s_sbob_sl64)[256])
+DECLSPEC static void streebog_g (u64x *h, const u64x *m, LOCAL_AS u64 (*s_sbob_sl64)[256])
 {
   u64x k[8];
   u64x s[8];

@@ -13,7 +13,7 @@
 #include "inc_hash_sha256.cl"
 #endif
 
-DECLSPEC void sha256_transform_m (u32x *digest, const u32x *w)
+DECLSPEC static void sha256_transform_m (u32x *digest, const u32x *w)
 {
   u32x a = digest[0];
   u32x b = digest[1];
@@ -101,7 +101,7 @@ DECLSPEC void sha256_transform_m (u32x *digest, const u32x *w)
   digest[7] += h;
 }
 
-DECLSPEC void sha256_transform_z (u32x *digest)
+DECLSPEC static void sha256_transform_z (u32x *digest)
 {
   u32x a = digest[0];
   u32x b = digest[1];
@@ -152,7 +152,7 @@ DECLSPEC void sha256_transform_z (u32x *digest)
   digest[7] += h;
 }
 
-DECLSPEC void sha256_transform_s (u32x *digest, LOCAL_AS u32 *w)
+DECLSPEC static void sha256_transform_s (u32x *digest, LOCAL_AS u32 *w)
 {
   u32x a = digest[0];
   u32x b = digest[1];
@@ -203,7 +203,7 @@ DECLSPEC void sha256_transform_s (u32x *digest, LOCAL_AS u32 *w)
   digest[7] += h;
 }
 
-DECLSPEC void m08000m (LOCAL_AS u32 *w_s1, LOCAL_AS u32 *w_s2, u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC static void m08000m (LOCAL_AS u32 *w_s1, LOCAL_AS u32 *w_s2, u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -325,7 +325,7 @@ DECLSPEC void m08000m (LOCAL_AS u32 *w_s1, LOCAL_AS u32 *w_s2, u32 *w, const u32
   }
 }
 
-DECLSPEC void m08000s (LOCAL_AS u32 *w_s1, LOCAL_AS u32 *w_s2, u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC static void m08000s (LOCAL_AS u32 *w_s1, LOCAL_AS u32 *w_s2, u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier

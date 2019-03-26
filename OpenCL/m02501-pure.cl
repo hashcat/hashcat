@@ -54,12 +54,12 @@ typedef struct wpa_eapol
 
 } wpa_eapol_t;
 
-DECLSPEC u8 hex_convert (const u8 c)
+DECLSPEC static u8 hex_convert (const u8 c)
 {
   return (c & 15) + (c >> 6) * 9;
 }
 
-DECLSPEC u8 hex_to_u8 (const u8 *hex)
+DECLSPEC static u8 hex_to_u8 (const u8 *hex)
 {
   u8 v = 0;
 
@@ -69,7 +69,7 @@ DECLSPEC u8 hex_to_u8 (const u8 *hex)
   return (v);
 }
 
-DECLSPEC void make_kn (u32 *k)
+DECLSPEC static void make_kn (u32 *k)
 {
   u32 kl[4];
   u32 kr[4];

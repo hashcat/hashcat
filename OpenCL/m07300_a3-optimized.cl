@@ -20,7 +20,7 @@ typedef struct rakp
 
 } rakp_t;
 
-DECLSPEC void hmac_sha1_pad (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad)
+DECLSPEC static void hmac_sha1_pad (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad)
 {
   w0[0] = w0[0] ^ 0x36363636;
   w0[1] = w0[1] ^ 0x36363636;
@@ -73,7 +73,7 @@ DECLSPEC void hmac_sha1_pad (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad,
   sha1_transform_vector (w0, w1, w2, w3, opad);
 }
 
-DECLSPEC void hmac_sha1_run (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
+DECLSPEC static void hmac_sha1_run (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
 {
   digest[0] = ipad[0];
   digest[1] = ipad[1];
@@ -109,7 +109,7 @@ DECLSPEC void hmac_sha1_run (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad,
   sha1_transform_vector (w0, w1, w2, w3, digest);
 }
 
-DECLSPEC void m07300m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_ESALT (rakp_t))
+DECLSPEC static void m07300m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_ESALT (rakp_t))
 {
   /**
    * modifier
@@ -219,7 +219,7 @@ DECLSPEC void m07300m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
   }
 }
 
-DECLSPEC void m07300s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_ESALT (rakp_t))
+DECLSPEC static void m07300s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_ESALT (rakp_t))
 {
   /**
    * modifier

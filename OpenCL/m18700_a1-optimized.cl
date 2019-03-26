@@ -14,7 +14,7 @@
 #include "inc_hash_md5.cl"
 #endif
 
-DECLSPEC u32 hashCode_g (const u32 init, GLOBAL_AS u32 *w, const u32 pw_len)
+DECLSPEC static u32 hashCode_g (const u32 init, GLOBAL_AS u32 *w, const u32 pw_len)
 {
   u32 hash = init;
 

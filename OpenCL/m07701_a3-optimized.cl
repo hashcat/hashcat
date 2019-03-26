@@ -45,7 +45,7 @@ CONSTANT_AS CONSTSPEC u32a bcodeArray[48] =
   0xe2, 0xb7, 0x33, 0x71, 0x8b, 0x9f, 0x5d, 0x01, 0x44, 0x70, 0xae, 0x11, 0xef, 0x28, 0xf0, 0x0d
 };
 
-DECLSPEC u32 sapb_trans (const u32 in)
+DECLSPEC static u32 sapb_trans (const u32 in)
 {
   u32 out = 0;
 
@@ -57,7 +57,7 @@ DECLSPEC u32 sapb_trans (const u32 in)
   return out;
 }
 
-DECLSPEC u32 walld0rf_magic (const u32 *w0, const u32 pw_len, const u32 *salt_buf0, const u32 salt_len, const u32 a, const u32 b, const u32 c, const u32 d, u32 *t)
+DECLSPEC static u32 walld0rf_magic (const u32 *w0, const u32 pw_len, const u32 *salt_buf0, const u32 salt_len, const u32 a, const u32 b, const u32 c, const u32 d, u32 *t)
 {
   t[ 0] = 0;
   t[ 1] = 0;
@@ -136,7 +136,7 @@ DECLSPEC u32 walld0rf_magic (const u32 *w0, const u32 pw_len, const u32 *salt_bu
   return sum20;
 }
 
-DECLSPEC void m07701m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC ())
+DECLSPEC static void m07701m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -261,7 +261,7 @@ DECLSPEC void m07701m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
   }
 }
 
-DECLSPEC void m07701s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC ())
+DECLSPEC static void m07701s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC ())
 {
   /**
    * modifier

@@ -28,7 +28,7 @@
   a -= t;                               \
 }
 
-DECLSPEC void m01000m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC static void m01000m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -164,7 +164,7 @@ DECLSPEC void m01000m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
   }
 }
 
-DECLSPEC void m01000s (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC static void m01000s (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier

@@ -13,7 +13,7 @@
 #include "inc_hash_sha1.cl"
 #endif
 
-DECLSPEC void m00300m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC static void m00300m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -382,7 +382,7 @@ DECLSPEC void m00300m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
   }
 }
 
-DECLSPEC void m00300s (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC static void m00300s (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier

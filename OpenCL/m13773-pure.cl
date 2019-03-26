@@ -60,7 +60,7 @@ typedef struct vc64_sbog_tmp
 
 } vc64_sbog_tmp_t;
 
-DECLSPEC int check_header_0512 (GLOBAL_AS const vc_t *esalt_bufs, GLOBAL_AS u64 *key, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC static int check_header_0512 (GLOBAL_AS const vc_t *esalt_bufs, GLOBAL_AS u64 *key, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 key1[8];
   u32 key2[8];
@@ -91,7 +91,7 @@ DECLSPEC int check_header_0512 (GLOBAL_AS const vc_t *esalt_bufs, GLOBAL_AS u64 
   return -1;
 }
 
-DECLSPEC int check_header_1024 (GLOBAL_AS const vc_t *esalt_bufs, GLOBAL_AS u64 *key, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC static int check_header_1024 (GLOBAL_AS const vc_t *esalt_bufs, GLOBAL_AS u64 *key, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 key1[8];
   u32 key2[8];
@@ -142,7 +142,7 @@ DECLSPEC int check_header_1024 (GLOBAL_AS const vc_t *esalt_bufs, GLOBAL_AS u64 
   return -1;
 }
 
-DECLSPEC int check_header_1536 (GLOBAL_AS const vc_t *esalt_bufs, GLOBAL_AS u64 *key, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC static int check_header_1536 (GLOBAL_AS const vc_t *esalt_bufs, GLOBAL_AS u64 *key, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 key1[8];
   u32 key2[8];
@@ -207,7 +207,7 @@ DECLSPEC int check_header_1536 (GLOBAL_AS const vc_t *esalt_bufs, GLOBAL_AS u64 
   return -1;
 }
 
-DECLSPEC void hmac_streebog512_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u64x *ipad_hash, u64x *opad_hash, u64x *ipad_raw, u64x *opad_raw, u64x *digest, SHM_TYPE u64a (*s_sbob_sl64)[256])
+DECLSPEC static void hmac_streebog512_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u64x *ipad_hash, u64x *opad_hash, u64x *ipad_raw, u64x *opad_raw, u64x *digest, SHM_TYPE u64a (*s_sbob_sl64)[256])
 {
   const u64x nullbuf[8] = { 0 };
   u64x counterbuf[8]    = { 0 };

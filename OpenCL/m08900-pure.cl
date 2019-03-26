@@ -23,7 +23,7 @@ typedef struct
 
 } scrypt_tmp_t;
 
-DECLSPEC uint4 hc_swap32_4 (uint4 v)
+DECLSPEC static uint4 hc_swap32_4 (uint4 v)
 {
   return (rotate ((v & 0x00FF00FF), 24u) | rotate ((v & 0xFF00FF00),  8u));
 }
@@ -83,7 +83,7 @@ DECLSPEC uint4 hc_swap32_4 (uint4 v)
   R3 = R3 + X3;         \
 }
 
-DECLSPEC void salsa_r (uint4 *TI)
+DECLSPEC static void salsa_r (uint4 *TI)
 {
   uint4 R0 = TI[STATE_CNT4 - 4];
   uint4 R1 = TI[STATE_CNT4 - 3];
@@ -135,7 +135,7 @@ DECLSPEC void salsa_r (uint4 *TI)
   }
 }
 
-DECLSPEC void scrypt_smix (uint4 *X, uint4 *T, GLOBAL_AS uint4 *V0, GLOBAL_AS uint4 *V1, GLOBAL_AS uint4 *V2, GLOBAL_AS uint4 *V3)
+DECLSPEC static void scrypt_smix (uint4 *X, uint4 *T, GLOBAL_AS uint4 *V0, GLOBAL_AS uint4 *V1, GLOBAL_AS uint4 *V2, GLOBAL_AS uint4 *V3)
 {
   #define Coord(xd4,y,z) (((xd4) * ySIZE * zSIZE) + ((y) * zSIZE) + (z))
   #define CO Coord(xd4,y,z)

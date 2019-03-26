@@ -28,7 +28,7 @@ CONSTANT_AS CONSTSPEC u64a keccakf_rndc[24] =
 #define KECCAK_ROUNDS 24
 #endif
 
-DECLSPEC void m17400m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC ())
+DECLSPEC static void m17400m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -215,7 +215,7 @@ DECLSPEC void m17400m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
   }
 }
 
-DECLSPEC void m17400s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC ())
+DECLSPEC static void m17400s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC ())
 {
   /**
    * modifier

@@ -85,7 +85,7 @@ CONSTANT_AS CONSTSPEC u64a keccakf_rndc[24] =
   st[4 + s] ^= ~bc0 & bc1;      \
 }
 
-DECLSPEC void keccak_transform_S (u64 *st)
+DECLSPEC static void keccak_transform_S (u64 *st)
 {
   const u8 keccakf_rotc[24] =
   {
@@ -166,7 +166,7 @@ DECLSPEC void keccak_transform_S (u64 *st)
   }
 }
 
-DECLSPEC void hmac_sha256_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
+DECLSPEC static void hmac_sha256_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
 {
   digest[0] = ipad[0];
   digest[1] = ipad[1];

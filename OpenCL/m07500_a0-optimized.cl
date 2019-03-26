@@ -35,7 +35,7 @@ typedef struct
 
 } RC4_KEY;
 
-DECLSPEC void swap (LOCAL_AS RC4_KEY *rc4_key, const u8 i, const u8 j)
+DECLSPEC static void swap (LOCAL_AS RC4_KEY *rc4_key, const u8 i, const u8 j)
 {
   u8 tmp;
 
@@ -44,7 +44,7 @@ DECLSPEC void swap (LOCAL_AS RC4_KEY *rc4_key, const u8 i, const u8 j)
   rc4_key->S[j] = tmp;
 }
 
-DECLSPEC void rc4_init_16 (LOCAL_AS RC4_KEY *rc4_key, const u32 *data)
+DECLSPEC static void rc4_init_16 (LOCAL_AS RC4_KEY *rc4_key, const u32 *data)
 {
   u32 v = 0x03020100;
   u32 a = 0x04040404;
@@ -97,7 +97,7 @@ DECLSPEC void rc4_init_16 (LOCAL_AS RC4_KEY *rc4_key, const u32 *data)
   }
 }
 
-DECLSPEC u8 rc4_next_16 (LOCAL_AS RC4_KEY *rc4_key, u8 i, u8 j, const u32 *in, u32 *out)
+DECLSPEC static u8 rc4_next_16 (LOCAL_AS RC4_KEY *rc4_key, u8 i, u8 j, const u32 *in, u32 *out)
 {
   #ifdef _unroll
   #pragma unroll
@@ -150,7 +150,7 @@ DECLSPEC u8 rc4_next_16 (LOCAL_AS RC4_KEY *rc4_key, u8 i, u8 j, const u32 *in, u
   return j;
 }
 
-DECLSPEC int decrypt_and_check (LOCAL_AS RC4_KEY *rc4_key, u32 *data, u32 *timestamp_ct)
+DECLSPEC static int decrypt_and_check (LOCAL_AS RC4_KEY *rc4_key, u32 *data, u32 *timestamp_ct)
 {
   rc4_init_16 (rc4_key, data);
 
@@ -180,7 +180,7 @@ DECLSPEC int decrypt_and_check (LOCAL_AS RC4_KEY *rc4_key, u32 *data, u32 *times
   return 1;
 }
 
-DECLSPEC void hmac_md5_pad (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *ipad, u32 *opad)
+DECLSPEC static void hmac_md5_pad (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *ipad, u32 *opad)
 {
   w0[0] = w0[0] ^ 0x36363636;
   w0[1] = w0[1] ^ 0x36363636;
@@ -231,7 +231,7 @@ DECLSPEC void hmac_md5_pad (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *ipad, u32 *
   md5_transform (w0, w1, w2, w3, opad);
 }
 
-DECLSPEC void hmac_md5_run (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *ipad, u32 *opad, u32 *digest)
+DECLSPEC static void hmac_md5_run (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *ipad, u32 *opad, u32 *digest)
 {
   digest[0] = ipad[0];
   digest[1] = ipad[1];
@@ -265,7 +265,7 @@ DECLSPEC void hmac_md5_run (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *ipad, u32 *
   md5_transform (w0, w1, w2, w3, digest);
 }
 
-DECLSPEC void kerb_prepare (const u32 *w0, const u32 *w1, const u32 pw_len, const u32 *checksum, u32 *digest)
+DECLSPEC static void kerb_prepare (const u32 *w0, const u32 *w1, const u32 pw_len, const u32 *checksum, u32 *digest)
 {
   /**
    * pads

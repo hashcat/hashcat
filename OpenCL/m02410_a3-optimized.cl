@@ -13,7 +13,7 @@
 #include "inc_hash_md5.cl"
 #endif
 
-DECLSPEC void m02410m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC static void m02410m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -277,7 +277,7 @@ DECLSPEC void m02410m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
   }
 }
 
-DECLSPEC void m02410s (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC static void m02410s (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier

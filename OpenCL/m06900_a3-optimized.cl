@@ -695,7 +695,7 @@ CONSTANT_AS CONSTSPEC u32a c_tables[4][256] =
   R (k, h, s, 6, t);      \
 }
 
-DECLSPEC void m06900m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC (), LOCAL_AS u32 (*s_tables)[256])
+DECLSPEC static void m06900m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC (), LOCAL_AS u32 (*s_tables)[256])
 {
   /**
    * modifier
@@ -869,7 +869,7 @@ DECLSPEC void m06900m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
   }
 }
 
-DECLSPEC void m06900s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC (), LOCAL_AS u32 (*s_tables)[256])
+DECLSPEC static void m06900s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC (), LOCAL_AS u32 (*s_tables)[256])
 {
   /**
    * modifier

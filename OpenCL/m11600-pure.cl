@@ -31,7 +31,7 @@ typedef struct
 
 } seven_zip_hook_t;
 
-DECLSPEC void memcat8c_be (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 len, const u32 append, u32 *digest)
+DECLSPEC static void memcat8c_be (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 len, const u32 append, u32 *digest)
 {
   const u32 func_len = len & 63;
 

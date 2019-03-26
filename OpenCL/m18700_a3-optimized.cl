@@ -13,7 +13,7 @@
 #include "inc_hash_md5.cl"
 #endif
 
-DECLSPEC u32x hashCode_w0 (const u32x init, const u32x w0, const u32 *w, const u32 pw_len)
+DECLSPEC static u32x hashCode_w0 (const u32x init, const u32x w0, const u32 *w, const u32 pw_len)
 {
   u32x hash = init;
 
@@ -69,7 +69,7 @@ DECLSPEC u32x hashCode_w0 (const u32x init, const u32x w0, const u32 *w, const u
   return hash;
 }
 
-DECLSPEC void m18700m (const u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC static void m18700m (const u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -101,7 +101,7 @@ DECLSPEC void m18700m (const u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
   }
 }
 
-DECLSPEC void m18700s (const u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC static void m18700s (const u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier

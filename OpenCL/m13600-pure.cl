@@ -42,7 +42,7 @@ typedef struct zip2
 
 } zip2_t;
 
-DECLSPEC void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
+DECLSPEC static void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
 {
   digest[0] = ipad[0];
   digest[1] = ipad[1];

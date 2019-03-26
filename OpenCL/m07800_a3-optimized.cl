@@ -26,7 +26,7 @@ CONSTANT_AS CONSTSPEC u32a theMagicArray[64] =
   0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
 };
 
-DECLSPEC u32 GETSHIFTEDINT_CONST (CONSTANT_AS u32a *a, const int n)
+DECLSPEC static u32 GETSHIFTEDINT_CONST (CONSTANT_AS u32a *a, const int n)
 {
   const int d = n / 4;
   const int m = n & 3;
@@ -38,7 +38,7 @@ DECLSPEC u32 GETSHIFTEDINT_CONST (CONSTANT_AS u32a *a, const int n)
   return h32_from_64_S (tmp);
 }
 
-DECLSPEC void SETSHIFTEDINT (u32 *a, const int n, const u32 v)
+DECLSPEC static void SETSHIFTEDINT (u32 *a, const int n, const u32 v)
 {
   const int d = n / 4;
   const int m = n & 3;
@@ -51,7 +51,7 @@ DECLSPEC void SETSHIFTEDINT (u32 *a, const int n, const u32 v)
   a[d + 1]  = l32_from_64_S (tmp);
 }
 
-DECLSPEC void m07800m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC ())
+DECLSPEC static void m07800m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -267,7 +267,7 @@ DECLSPEC void m07800m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
   }
 }
 
-DECLSPEC void m07800s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC ())
+DECLSPEC static void m07800s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC ())
 {
   /**
    * modifier

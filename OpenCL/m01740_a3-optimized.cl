@@ -13,7 +13,7 @@
 #include "inc_hash_sha512.cl"
 #endif
 
-DECLSPEC void sha512_transform_intern (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u64x *digest)
+DECLSPEC static void sha512_transform_intern (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u64x *digest)
 {
   u64x w0_t = hl32_to_64 (w0[0], w0[1]);
   u64x w1_t = hl32_to_64 (w0[2], w0[3]);
@@ -112,7 +112,7 @@ DECLSPEC void sha512_transform_intern (const u32x *w0, const u32x *w1, const u32
   digest[7] = h;
 }
 
-DECLSPEC void m01740m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC ())
+DECLSPEC static void m01740m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -230,7 +230,7 @@ DECLSPEC void m01740m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
   }
 }
 
-DECLSPEC void m01740s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC ())
+DECLSPEC static void m01740s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC ())
 {
   /**
    * modifier

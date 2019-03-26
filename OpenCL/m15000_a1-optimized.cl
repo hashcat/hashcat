@@ -13,7 +13,7 @@
 #include "inc_hash_sha512.cl"
 #endif
 
-DECLSPEC void sha512_transform_intern (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, const u32x *w4, const u32x *w5, const u32x *w6, const u32x *w7, u64x *digest)
+DECLSPEC static void sha512_transform_intern (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, const u32x *w4, const u32x *w5, const u32x *w6, const u32x *w7, u64x *digest)
 {
   u64x w0_t = hl32_to_64 (w0[0], w0[1]);
   u64x w1_t = hl32_to_64 (w0[2], w0[3]);

@@ -81,7 +81,7 @@ CONSTANT_AS CONSTSPEC u32a crc32tab[0x100] =
   0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
 };
 
-DECLSPEC u32x round_crc32 (u32x a, const u32x v)
+DECLSPEC static u32x round_crc32 (u32x a, const u32x v)
 {
   const u32x k = (a ^ v) & 0xff;
 
@@ -104,7 +104,7 @@ DECLSPEC u32x round_crc32 (u32x a, const u32x v)
   return a;
 }
 
-DECLSPEC u32x crc32 (const u32x *w, const u32 pw_len, const u32 iv)
+DECLSPEC static u32x crc32 (const u32x *w, const u32 pw_len, const u32 iv)
 {
   u32x a = iv ^ ~0;
 
@@ -124,7 +124,7 @@ DECLSPEC u32x crc32 (const u32x *w, const u32 pw_len, const u32 iv)
   return ~a;
 }
 
-DECLSPEC void m11500m (u32 *w, const u32 pw_len, KERN_ATTR_BASIC ())
+DECLSPEC static void m11500m (u32 *w, const u32 pw_len, KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -182,7 +182,7 @@ DECLSPEC void m11500m (u32 *w, const u32 pw_len, KERN_ATTR_BASIC ())
   }
 }
 
-DECLSPEC void m11500s (u32 *w, const u32 pw_len, KERN_ATTR_BASIC ())
+DECLSPEC static void m11500s (u32 *w, const u32 pw_len, KERN_ATTR_BASIC ())
 {
   /**
    * modifier

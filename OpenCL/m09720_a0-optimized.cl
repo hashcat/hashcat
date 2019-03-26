@@ -24,7 +24,7 @@ typedef struct oldoffice01
 
 } oldoffice01_t;
 
-DECLSPEC void gen336 (u32x *digest_pre, u32 *salt_buf, u32x *digest)
+DECLSPEC static void gen336 (u32x *digest_pre, u32 *salt_buf, u32x *digest)
 {
   u32x digest_t0[2];
   u32x digest_t1[2];

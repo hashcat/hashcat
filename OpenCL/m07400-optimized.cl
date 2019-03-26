@@ -23,7 +23,7 @@ typedef struct sha256crypt_tmp
 
 } sha256crypt_tmp_t;
 
-DECLSPEC void sha256_transform_transport (const u32 *w, u32 *digest)
+DECLSPEC static void sha256_transform_transport (const u32 *w, u32 *digest)
 {
   u32 w0[4];
   u32 w1[4];
@@ -50,7 +50,7 @@ DECLSPEC void sha256_transform_transport (const u32 *w, u32 *digest)
   sha256_transform (w0, w1, w2, w3, digest);
 }
 
-DECLSPEC void init_ctx (u32 *digest)
+DECLSPEC static void init_ctx (u32 *digest)
 {
   digest[0] = SHA256M_A;
   digest[1] = SHA256M_B;
@@ -62,7 +62,7 @@ DECLSPEC void init_ctx (u32 *digest)
   digest[7] = SHA256M_H;
 }
 
-DECLSPEC void bzero16 (u32 *block)
+DECLSPEC static void bzero16 (u32 *block)
 {
   block[ 0] = 0;
   block[ 1] = 0;
@@ -82,7 +82,7 @@ DECLSPEC void bzero16 (u32 *block)
   block[15] = 0;
 }
 
-DECLSPEC void bswap8 (u32 *block)
+DECLSPEC static void bswap8 (u32 *block)
 {
   block[ 0] = hc_swap32_S (block[ 0]);
   block[ 1] = hc_swap32_S (block[ 1]);
@@ -94,7 +94,7 @@ DECLSPEC void bswap8 (u32 *block)
   block[ 7] = hc_swap32_S (block[ 7]);
 }
 
-DECLSPEC u32 memcat16 (u32 *block, const u32 offset, const u32 *append, const u32 append_len)
+DECLSPEC static u32 memcat16 (u32 *block, const u32 offset, const u32 *append, const u32 append_len)
 {
   u32 tmp0;
   u32 tmp1;
@@ -229,7 +229,7 @@ DECLSPEC u32 memcat16 (u32 *block, const u32 offset, const u32 *append, const u3
   return new_len;
 }
 
-DECLSPEC u32 memcat16c (u32 *block, const u32 offset, const u32 *append, const u32 append_len, u32 *digest)
+DECLSPEC static u32 memcat16c (u32 *block, const u32 offset, const u32 *append, const u32 append_len, u32 *digest)
 {
   u32 tmp0;
   u32 tmp1;
@@ -390,7 +390,7 @@ DECLSPEC u32 memcat16c (u32 *block, const u32 offset, const u32 *append, const u
   return new_len;
 }
 
-DECLSPEC u32 memcat20 (u32 *block, const u32 offset, const u32 *append, const u32 append_len)
+DECLSPEC static u32 memcat20 (u32 *block, const u32 offset, const u32 *append, const u32 append_len)
 {
   u32 tmp0;
   u32 tmp1;
@@ -533,7 +533,7 @@ DECLSPEC u32 memcat20 (u32 *block, const u32 offset, const u32 *append, const u3
   return offset + append_len;
 }
 
-DECLSPEC u32 memcat20_x80 (u32 *block, const u32 offset, const u32 *append, const u32 append_len)
+DECLSPEC static u32 memcat20_x80 (u32 *block, const u32 offset, const u32 *append, const u32 append_len)
 {
   u32 tmp0;
   u32 tmp1;

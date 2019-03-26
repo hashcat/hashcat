@@ -24,7 +24,7 @@ typedef struct tacacs_plus
 
 } tacacs_plus_t;
 
-DECLSPEC void m16100m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_ESALT (tacacs_plus_t))
+DECLSPEC static void m16100m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_ESALT (tacacs_plus_t))
 {
   /**
    * modifier
@@ -277,7 +277,7 @@ DECLSPEC void m16100m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
   }
 }
 
-DECLSPEC void m16100s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_ESALT (tacacs_plus_t))
+DECLSPEC static void m16100s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_ESALT (tacacs_plus_t))
 {
   /**
    * modifier

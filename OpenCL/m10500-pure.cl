@@ -61,7 +61,7 @@ typedef struct
 
 } RC4_KEY;
 
-DECLSPEC void swap (LOCAL_AS RC4_KEY *rc4_key, const u8 i, const u8 j)
+DECLSPEC static void swap (LOCAL_AS RC4_KEY *rc4_key, const u8 i, const u8 j)
 {
   u8 tmp;
 
@@ -70,7 +70,7 @@ DECLSPEC void swap (LOCAL_AS RC4_KEY *rc4_key, const u8 i, const u8 j)
   rc4_key->S[j] = tmp;
 }
 
-DECLSPEC void rc4_init_16 (LOCAL_AS RC4_KEY *rc4_key, const u32 *data)
+DECLSPEC static void rc4_init_16 (LOCAL_AS RC4_KEY *rc4_key, const u32 *data)
 {
   u32 v = 0x03020100;
   u32 a = 0x04040404;
@@ -126,7 +126,7 @@ DECLSPEC void rc4_init_16 (LOCAL_AS RC4_KEY *rc4_key, const u32 *data)
   }
 }
 
-DECLSPEC u8 rc4_next_16 (LOCAL_AS RC4_KEY *rc4_key, u8 i, u8 j, const u32 *in, u32 *out)
+DECLSPEC static u8 rc4_next_16 (LOCAL_AS RC4_KEY *rc4_key, u8 i, u8 j, const u32 *in, u32 *out)
 {
   #ifdef _unroll
   #pragma unroll

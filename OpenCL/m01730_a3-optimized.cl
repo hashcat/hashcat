@@ -13,7 +13,7 @@
 #include "inc_hash_sha512.cl"
 #endif
 
-DECLSPEC void sha512_transform_intern (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u64x *digest)
+DECLSPEC static void sha512_transform_intern (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u64x *digest)
 {
   u64x w0_t = hl32_to_64 (w0[0], w0[1]);
   u64x w1_t = hl32_to_64 (w0[2], w0[3]);
@@ -112,7 +112,7 @@ DECLSPEC void sha512_transform_intern (const u32x *w0, const u32x *w1, const u32
   digest[7] = h;
 }
 
-DECLSPEC void m01730m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC static void m01730m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -228,7 +228,7 @@ DECLSPEC void m01730m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
   }
 }
 
-DECLSPEC void m01730s (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC static void m01730s (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
