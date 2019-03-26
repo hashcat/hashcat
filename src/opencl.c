@@ -4899,14 +4899,14 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     char *device_name_chksum        = (char *) hcmalloc (HCBUFSIZ_TINY);
     char *device_name_chksum_amp_mp = (char *) hcmalloc (HCBUFSIZ_TINY);
 
-    const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY, "%d-%u-%s-%s-%s-%d-%d",
+    const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY, "%d-%u-%s-%s-%s-%d-%u",
       opencl_ctx->comptime,
       device_param->platform_vendor_id,
       device_param->device_name,
       device_param->device_version,
       device_param->driver_version,
       device_param->vector_width,
-      hashconfig->hash_mode);
+      hashconfig->kern_type);
 
     const size_t dnclen_amp_mp = snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%d-%u-%s-%s-%s",
       opencl_ctx->comptime,
