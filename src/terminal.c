@@ -725,6 +725,7 @@ void opencl_info_compact (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->quiet            == true) return;
   if (user_options->machine_readable == true) return;
+  if (user_options->status_json      == true) return;
 
   cl_uint         platforms_cnt         = opencl_ctx->platforms_cnt;
   cl_platform_id *platforms             = opencl_ctx->platforms;
@@ -887,6 +888,28 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
   hcfree (hashcat_status);
 }
 
+
+
+void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
+{
+  hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
+
+  const int rc_status = hashcat_get_status (hashcat_ctx, hashcat_status);
+
+  if (rc_status == -1)
+  {
+    hcfree (hashcat_status);
+
+    return;
+  }
+  
+   /**
+   * build status in json
+   */
+  
+}
+
+
 void status_display (hashcat_ctx_t *hashcat_ctx)
 {
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
@@ -897,6 +920,13 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   {
     status_display_machine_readable (hashcat_ctx);
 
+    return;
+  }
+  
+  if (user_options->status_json == true)
+  {
+    status_display_status_json (hashcat_ctx);
+    
     return;
   }
 
@@ -1564,6 +1594,25 @@ void status_speed_machine_readable (hashcat_ctx_t *hashcat_ctx)
   hcfree (hashcat_status);
 }
 
+void status_speed_json (hashcat_ctx_t *hashcat_ctx)
+{
+  hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
+
+  const int rc_status = hashcat_get_status (hashcat_ctx, hashcat_status);
+
+  if (rc_status == -1)
+  {
+    hcfree (hashcat_status);
+
+    return;
+  }
+  
+   /**
+   * build status speed in json
+   */
+  
+}
+
 void status_speed (hashcat_ctx_t *hashcat_ctx)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
@@ -1571,6 +1620,13 @@ void status_speed (hashcat_ctx_t *hashcat_ctx)
   if (user_options->machine_readable == true)
   {
     status_speed_machine_readable (hashcat_ctx);
+
+    return;
+  }
+  
+  if (user_options->status_json == true)
+  {
+    status_speed_json (hashcat_ctx);
 
     return;
   }
@@ -1641,6 +1697,25 @@ void status_progress_machine_readable (hashcat_ctx_t *hashcat_ctx)
   hcfree (hashcat_status);
 }
 
+void status_progress_json (hashcat_ctx_t *hashcat_ctx)
+{
+  hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
+
+  const int rc_status = hashcat_get_status (hashcat_ctx, hashcat_status);
+
+  if (rc_status == -1)
+  {
+    hcfree (hashcat_status);
+
+    return;
+  }
+  
+   /**
+   * build status progress in json
+   */
+  
+}
+
 void status_progress (hashcat_ctx_t *hashcat_ctx)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
@@ -1648,6 +1723,13 @@ void status_progress (hashcat_ctx_t *hashcat_ctx)
   if (user_options->machine_readable == true)
   {
     status_progress_machine_readable (hashcat_ctx);
+
+    return;
+  }
+  
+  if (user_options->status_json == true)
+  {
+    status_progress_json (hashcat_ctx);
 
     return;
   }
