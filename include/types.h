@@ -1860,6 +1860,7 @@ typedef struct user_options
   bool         slow_candidates;
   bool         speed_only;
   bool         status;
+  bool         status_json;
   bool         stdout_flag;
   bool         stdin_timeout_abort_chgd;
   bool         usage;
