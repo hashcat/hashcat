@@ -541,6 +541,12 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
     }
   }
 
+  // amdgpu-pro-18.50-708488-ubuntu-18.04:  password not found
+  if ((device_param->device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
+  {
+    return true;
+  }
+
   return false;
 }
 
