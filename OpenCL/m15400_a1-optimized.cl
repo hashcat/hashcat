@@ -9,8 +9,6 @@
 #include "inc_vendor.h"
 #include "inc_types.h"
 #include "inc_common.cl"
-#include "inc_rp_optimized.h"
-#include "inc_rp_optimized.cl"
 #include "inc_simd.cl"
 #endif
 
