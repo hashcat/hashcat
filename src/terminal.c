@@ -906,7 +906,10 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
    /**
    * build status in json
    */
-  
+
+  status_status_destroy (hashcat_ctx, hashcat_status);
+
+  hcfree (hashcat_status);
 }
 
 
@@ -1610,7 +1613,10 @@ void status_speed_json (hashcat_ctx_t *hashcat_ctx)
    /**
    * build status speed in json
    */
-  
+
+  status_status_destroy (hashcat_ctx, hashcat_status);
+
+  hcfree (hashcat_status);
 }
 
 void status_speed (hashcat_ctx_t *hashcat_ctx)
@@ -1713,7 +1719,10 @@ void status_progress_json (hashcat_ctx_t *hashcat_ctx)
    /**
    * build status progress in json
    */
-  
+
+  status_status_destroy (hashcat_ctx, hashcat_status);
+
+  hcfree (hashcat_status);
 }
 
 void status_progress (hashcat_ctx_t *hashcat_ctx)
