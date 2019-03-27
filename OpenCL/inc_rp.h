@@ -117,6 +117,6 @@ DECLSPEC int mangle_dupeblock_first (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED cons
 DECLSPEC int mangle_dupeblock_last (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len);
 DECLSPEC int mangle_title_sep (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u32 *buf, const int len);
 DECLSPEC int apply_rule (const u32 name, MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u32 *buf, const int in_len);
-DECLSPEC int apply_rules (CONSTANT_AS u32 *cmds, u32 *buf, const int in_len);
+DECLSPEC int apply_rules (CONSTANT_AS const u32 *cmds, u32 *buf, const int in_len);
 
 #endif // _INC_RP_H

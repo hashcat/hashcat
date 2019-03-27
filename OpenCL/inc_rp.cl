@@ -752,7 +752,7 @@ DECLSPEC int apply_rule (const u32 name, MAYBE_UNUSED const u8 p0, MAYBE_UNUSED 
   return out_len;
 }
 
-DECLSPEC int apply_rules (CONSTANT_AS u32 *cmds, u32 *buf, const int in_len)
+DECLSPEC int apply_rules (CONSTANT_AS const u32 *cmds, u32 *buf, const int in_len)
 {
   int out_len = in_len;
 
