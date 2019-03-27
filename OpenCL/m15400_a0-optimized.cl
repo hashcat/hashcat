@@ -213,8 +213,11 @@ KERNEL_FQ void m15400_m04 (KERN_ATTR_RULES_ESALT (chacha20_t))
    * modifier
    */
 
-  const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
+
+  const u64 gid = get_global_id (0);
+
+  if (gid >= gid_max) return;
 
   u32 pw_buf0[4];
   u32 pw_buf1[4];
@@ -259,7 +262,7 @@ KERNEL_FQ void m15400_m04 (KERN_ATTR_RULES_ESALT (chacha20_t))
     u32x w0[4] = { 0 };
     u32x w1[4] = { 0 };
 
-    const u32x out_len = apply_rules_vect(pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+    const u32x out_len = apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     u32x digest[4] = { 0 };
 
@@ -349,7 +352,7 @@ KERNEL_FQ void m15400_s04 (KERN_ATTR_RULES_ESALT (chacha20_t))
     u32x w0[4] = { 0 };
     u32x w1[4] = { 0 };
 
-    const u32x out_len = apply_rules_vect(pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+    const u32x out_len = apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     u32x digest[4] = { 0 };
 
