@@ -393,7 +393,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_RESTORE_DISABLE:           user_options->restore_disable           = true;                            break;
       case IDX_RESTORE_FILE_PATH:         user_options->restore_file_path         = optarg;                          break;
       case IDX_STATUS:                    user_options->status                    = true;                            break;
-	  case IDX_STATUS_JSON:               user_options->status_json               = true;                            break;
+	    case IDX_STATUS_JSON:               user_options->status_json               = true;                            break;
       case IDX_STATUS_TIMER:              user_options->status_timer              = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_MACHINE_READABLE:          user_options->machine_readable          = true;                            break;
       case IDX_LOOPBACK:                  user_options->loopback                  = true;                            break;
