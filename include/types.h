@@ -778,7 +778,7 @@ typedef enum user_options_map
   IDX_SPEED_ONLY                = 0xff3d,
   IDX_SPIN_DAMP                 = 0xff3e,
   IDX_STATUS                    = 0xff3f,
-  IDX_STATUS_JSON               = 0xff40
+  IDX_STATUS_JSON               = 0xff40,
   IDX_STATUS_TIMER              = 0xff41,
   IDX_STDOUT_FLAG               = 0xff42,
   IDX_STDIN_TIMEOUT_ABORT       = 0xff43,
