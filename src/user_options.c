@@ -913,12 +913,22 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
   }
-
+  
+  if (user_options->machine_readable == true)
+  {
+    if (user_options->status_json == true)
+    {
+      event_log_error (hashcat_ctx, "The --status-json flag can not be used with --machine-readable.");
+      
+      return -1;
+    }
+  }
+  
   if (user_options->remove_timer_chgd == true)
   {
     if (user_options->remove == false)
     {
-      event_log_error (hashcat_ctx, "The --remove-timer requires --remove.");
+      event_log_error (hashcat_ctx, "The --remove-timer flag requires --remove.");
 
       return -1;
     }
@@ -1110,7 +1120,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
   }
-
+  
   if (user_options->stdin_timeout_abort_chgd == true)
   {
     if (user_options->attack_mode != ATTACK_MODE_STRAIGHT)

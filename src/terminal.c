@@ -889,7 +889,6 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
 }
 
 
-
 void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
 {
   hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
