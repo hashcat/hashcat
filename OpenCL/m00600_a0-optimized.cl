@@ -137,8 +137,11 @@ KERNEL_FQ void m00600_m04 (KERN_ATTR_RULES_ESALT (blake2_t))
    * modifier
    */
 
-  const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
+
+  const u64 gid = get_global_id (0);
+
+  if (gid >= gid_max) return;
 
   u32 pw_buf0[4];
   u32 pw_buf1[4];
@@ -183,10 +186,9 @@ KERNEL_FQ void m00600_m04 (KERN_ATTR_RULES_ESALT (blake2_t))
     u32x w2[4] = { 0 };
     u32x w3[4] = { 0 };
 
-    const u32x out_len = apply_rules_vect(pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+    const u32x out_len = apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     u64x digest[8];
-
     u64x m[16];
     u64x v[16];
 
@@ -303,7 +305,7 @@ KERNEL_FQ void m00600_s04 (KERN_ATTR_RULES_ESALT (blake2_t))
     u32x w2[4] = { 0 };
     u32x w3[4] = { 0 };
 
-    const u32x out_len = apply_rules_vect(pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+    const u32x out_len = apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     u64x digest[8];
     u64x m[16];
