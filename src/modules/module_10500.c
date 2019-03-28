@@ -74,68 +74,18 @@ static const char *SIGNATURE_PDF = "$pdf$";
 
 static void md5_complete_no_limit (u32 digest[4], const u32 *plain, const u32 plain_len)
 {
-  digest[0] = MD5M_A;
-  digest[1] = MD5M_B;
-  digest[2] = MD5M_C;
-  digest[3] = MD5M_D;
+  // plain = u32 tmp_md5_buf[64] so this is compatible
 
-  int block_total_len = 16 * 4; // sizeof (block)
+  md5_ctx_t md5_ctx;
 
-  u8 *plain_ptr = (u8 *) plain;
+  md5_init (&md5_ctx);
+  md5_update (&md5_ctx, plain, plain_len);
+  md5_final (&md5_ctx);
 
-  // init
-
-  int remaining_len = (int) plain_len;
-
-  // loop
-
-  u32 loop = 1;
-
-  while (loop)
-  {
-    loop = (remaining_len > 55);
-
-    int cur_len  = MIN (block_total_len, remaining_len);
-    int copy_len = MAX (cur_len, 0);  // should never be negative of course
-
-    // initialize the block
-
-    u32 block[16] = { 0 };
-
-    // copy the bytes from the plain pointer (plain_ptr)
-
-    memcpy (block, plain, (size_t) copy_len);
-
-    /*
-     * final block
-     */
-
-    // set 0x80 if needed
-
-    if (cur_len >= 0)
-    {
-      if (copy_len < block_total_len)
-      {
-        u8 *block_ptr = (u8 *) block;
-
-        block_ptr[copy_len] = 0x80;
-      }
-    }
-
-    // set block[14] set to total_len
-
-    if (! loop) block[14] = plain_len * 8;
-
-    /*
-     * md5 ()
-     */
-
-    md5_transform (block + 0, block + 4, block + 8, block + 12, digest);
-
-    remaining_len -= block_total_len;
-
-    plain_ptr += 64;
-  }
+  digest[0] = md5_ctx.h[0];
+  digest[1] = md5_ctx.h[1];
+  digest[2] = md5_ctx.h[2];
+  digest[3] = md5_ctx.h[3];
 }
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
