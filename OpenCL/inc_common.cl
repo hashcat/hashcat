@@ -1070,45 +1070,49 @@ DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const int c)
 {
   u32x r;
 
+  const int c_mod_4 = c & 3;
+
+  const int c_minus_4 = 4 - c_mod_4;
+
   #if CUDA_ARCH >= 350
 
-  const int c38 = (c & 3) * 8;
+  const int c38 = c_minus_4 * 8;
 
   #if VECT_SIZE == 1
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r)    : "r"(b),    "r"(a),    "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r)    : "r"(a),    "r"(b),    "r"(c38));
   #endif
 
   #if VECT_SIZE >= 2
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s0) : "r"(b.s0), "r"(a.s0), "r"(c38));
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s1) : "r"(b.s1), "r"(a.s1), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s0) : "r"(a.s0), "r"(b.s0), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s1) : "r"(a.s1), "r"(b.s1), "r"(c38));
   #endif
 
   #if VECT_SIZE >= 4
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s2) : "r"(b.s2), "r"(a.s2), "r"(c38));
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s3) : "r"(b.s3), "r"(a.s3), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s2) : "r"(a.s2), "r"(b.s2), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s3) : "r"(a.s3), "r"(b.s3), "r"(c38));
   #endif
 
   #if VECT_SIZE >= 8
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s4) : "r"(b.s4), "r"(a.s4), "r"(c38));
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s5) : "r"(b.s5), "r"(a.s5), "r"(c38));
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s6) : "r"(b.s6), "r"(a.s6), "r"(c38));
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s7) : "r"(b.s7), "r"(a.s7), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s4) : "r"(a.s4), "r"(b.s4), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s5) : "r"(a.s5), "r"(b.s5), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s6) : "r"(a.s6), "r"(b.s6), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s7) : "r"(a.s7), "r"(b.s7), "r"(c38));
   #endif
 
   #if VECT_SIZE >= 16
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s8) : "r"(b.s8), "r"(a.s8), "r"(c38));
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s9) : "r"(b.s9), "r"(a.s9), "r"(c38));
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sa) : "r"(b.sa), "r"(a.sa), "r"(c38));
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sb) : "r"(b.sb), "r"(a.sb), "r"(c38));
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sc) : "r"(b.sc), "r"(a.sc), "r"(c38));
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sd) : "r"(b.sd), "r"(a.sd), "r"(c38));
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.se) : "r"(b.se), "r"(a.se), "r"(c38));
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sf) : "r"(b.sf), "r"(a.sf), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s8) : "r"(a.s8), "r"(b.s8), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s9) : "r"(a.s9), "r"(b.s9), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sa) : "r"(a.sa), "r"(b.sa), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sb) : "r"(a.sb), "r"(b.sb), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sc) : "r"(a.sc), "r"(b.sc), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sd) : "r"(a.sd), "r"(b.sd), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.se) : "r"(a.se), "r"(b.se), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sf) : "r"(a.sf), "r"(b.sf), "r"(c38));
   #endif
 
   #else
 
-  r = hc_byte_perm (b, a, (0x76543210 >> ((c & 3) * 4)) & 0xffff);
+  r = hc_byte_perm (a, b, (0x76543210 >> (c_minus_4 * 4)) & 0xffff);
 
   #endif
 
@@ -1119,15 +1123,19 @@ DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const int c)
 {
   u32 r;
 
+  const int c_mod_4 = c & 3;
+
+  const int c_minus_4 = 4 - c_mod_4;
+
   #if CUDA_ARCH >= 350
 
-  const int c38 = (c & 3) * 8;
+  const int c38 = c_minus_4 * 8;
 
-  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r) : "r"(b), "r"(a), "r"(c38));
+  asm volatile ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r) : "r"(a), "r"(b), "r"(c38));
 
   #else
 
-  r = hc_byte_perm_S (b, a, (0x76543210 >> ((c & 3) * 4)) & 0xffff);
+  r = hc_byte_perm_S (a, b, (0x76543210 >> (c_minus_4 * 4)) & 0xffff);
 
   #endif
 
@@ -3206,299 +3214,168 @@ DECLSPEC void switch_buffer_by_offset_carry_le (u32x *w0, u32x *w1, u32x *w2, u3
   #endif
 
   #ifdef IS_NV
-
-  const int offset_mod_4 = offset & 3;
-
-  const int offset_minus_4 = 4 - offset_mod_4;
-
-  // todo
+  // atm only same code as for AMD, but could be improved
   switch (offset_switch)
   {
     case 0:
-      c0[0] = hc_bytealign (    0, w3[3], offset_minus_4);
-      w3[3] = hc_bytealign (w3[3], w3[2], offset_minus_4);
-      w3[2] = hc_bytealign (w3[2], w3[1], offset_minus_4);
-      w3[1] = hc_bytealign (w3[1], w3[0], offset_minus_4);
-      w3[0] = hc_bytealign (w3[0], w2[3], offset_minus_4);
-      w2[3] = hc_bytealign (w2[3], w2[2], offset_minus_4);
-      w2[2] = hc_bytealign (w2[2], w2[1], offset_minus_4);
-      w2[1] = hc_bytealign (w2[1], w2[0], offset_minus_4);
-      w2[0] = hc_bytealign (w2[0], w1[3], offset_minus_4);
-      w1[3] = hc_bytealign (w1[3], w1[2], offset_minus_4);
-      w1[2] = hc_bytealign (w1[2], w1[1], offset_minus_4);
-      w1[1] = hc_bytealign (w1[1], w1[0], offset_minus_4);
-      w1[0] = hc_bytealign (w1[0], w0[3], offset_minus_4);
-      w0[3] = hc_bytealign (w0[3], w0[2], offset_minus_4);
-      w0[2] = hc_bytealign (w0[2], w0[1], offset_minus_4);
-      w0[1] = hc_bytealign (w0[1], w0[0], offset_minus_4);
-      w0[0] = hc_bytealign (w0[0],     0, offset_minus_4);
-
-      if (offset_mod_4 == 0)
-      {
-        w0[0] = w0[1];
-        w0[1] = w0[2];
-        w0[2] = w0[3];
-        w0[3] = w1[0];
-        w1[0] = w1[1];
-        w1[1] = w1[2];
-        w1[2] = w1[3];
-        w1[3] = w2[0];
-        w2[0] = w2[1];
-        w2[1] = w2[2];
-        w2[2] = w2[3];
-        w2[3] = w3[0];
-        w3[0] = w3[1];
-        w3[1] = w3[2];
-        w3[2] = w3[3];
-        w3[3] = c0[0];
-        c0[0] = 0;
-      }
+      c0[0] = hc_bytealign (w3[3],     0, offset);
+      w3[3] = hc_bytealign (w3[2], w3[3], offset);
+      w3[2] = hc_bytealign (w3[1], w3[2], offset);
+      w3[1] = hc_bytealign (w3[0], w3[1], offset);
+      w3[0] = hc_bytealign (w2[3], w3[0], offset);
+      w2[3] = hc_bytealign (w2[2], w2[3], offset);
+      w2[2] = hc_bytealign (w2[1], w2[2], offset);
+      w2[1] = hc_bytealign (w2[0], w2[1], offset);
+      w2[0] = hc_bytealign (w1[3], w2[0], offset);
+      w1[3] = hc_bytealign (w1[2], w1[3], offset);
+      w1[2] = hc_bytealign (w1[1], w1[2], offset);
+      w1[1] = hc_bytealign (w1[0], w1[1], offset);
+      w1[0] = hc_bytealign (w0[3], w1[0], offset);
+      w0[3] = hc_bytealign (w0[2], w0[3], offset);
+      w0[2] = hc_bytealign (w0[1], w0[2], offset);
+      w0[1] = hc_bytealign (w0[0], w0[1], offset);
+      w0[0] = hc_bytealign (    0, w0[0], offset);
 
       break;
 
     case 1:
-      c0[1] = hc_bytealign (    0, w3[3], offset_minus_4);
-      c0[0] = hc_bytealign (w3[3], w3[2], offset_minus_4);
-      w3[3] = hc_bytealign (w3[2], w3[1], offset_minus_4);
-      w3[2] = hc_bytealign (w3[1], w3[0], offset_minus_4);
-      w3[1] = hc_bytealign (w3[0], w2[3], offset_minus_4);
-      w3[0] = hc_bytealign (w2[3], w2[2], offset_minus_4);
-      w2[3] = hc_bytealign (w2[2], w2[1], offset_minus_4);
-      w2[2] = hc_bytealign (w2[1], w2[0], offset_minus_4);
-      w2[1] = hc_bytealign (w2[0], w1[3], offset_minus_4);
-      w2[0] = hc_bytealign (w1[3], w1[2], offset_minus_4);
-      w1[3] = hc_bytealign (w1[2], w1[1], offset_minus_4);
-      w1[2] = hc_bytealign (w1[1], w1[0], offset_minus_4);
-      w1[1] = hc_bytealign (w1[0], w0[3], offset_minus_4);
-      w1[0] = hc_bytealign (w0[3], w0[2], offset_minus_4);
-      w0[3] = hc_bytealign (w0[2], w0[1], offset_minus_4);
-      w0[2] = hc_bytealign (w0[1], w0[0], offset_minus_4);
-      w0[1] = hc_bytealign (w0[0],     0, offset_minus_4);
+      c0[1] = hc_bytealign (w3[3],     0, offset);
+      c0[0] = hc_bytealign (w3[2], w3[3], offset);
+      w3[3] = hc_bytealign (w3[1], w3[2], offset);
+      w3[2] = hc_bytealign (w3[0], w3[1], offset);
+      w3[1] = hc_bytealign (w2[3], w3[0], offset);
+      w3[0] = hc_bytealign (w2[2], w2[3], offset);
+      w2[3] = hc_bytealign (w2[1], w2[2], offset);
+      w2[2] = hc_bytealign (w2[0], w2[1], offset);
+      w2[1] = hc_bytealign (w1[3], w2[0], offset);
+      w2[0] = hc_bytealign (w1[2], w1[3], offset);
+      w1[3] = hc_bytealign (w1[1], w1[2], offset);
+      w1[2] = hc_bytealign (w1[0], w1[1], offset);
+      w1[1] = hc_bytealign (w0[3], w1[0], offset);
+      w1[0] = hc_bytealign (w0[2], w0[3], offset);
+      w0[3] = hc_bytealign (w0[1], w0[2], offset);
+      w0[2] = hc_bytealign (w0[0], w0[1], offset);
+      w0[1] = hc_bytealign (    0, w0[0], offset);
       w0[0] = 0;
-
-      if (offset_mod_4 == 0)
-      {
-        w0[1] = w0[2];
-        w0[2] = w0[3];
-        w0[3] = w1[0];
-        w1[0] = w1[1];
-        w1[1] = w1[2];
-        w1[2] = w1[3];
-        w1[3] = w2[0];
-        w2[0] = w2[1];
-        w2[1] = w2[2];
-        w2[2] = w2[3];
-        w2[3] = w3[0];
-        w3[0] = w3[1];
-        w3[1] = w3[2];
-        w3[2] = w3[3];
-        w3[3] = c0[0];
-        c0[0] = c0[1];
-        c0[1] = 0;
-      }
 
       break;
 
     case 2:
-      c0[2] = hc_bytealign (    0, w3[3], offset_minus_4);
-      c0[1] = hc_bytealign (w3[3], w3[2], offset_minus_4);
-      c0[0] = hc_bytealign (w3[2], w3[1], offset_minus_4);
-      w3[3] = hc_bytealign (w3[1], w3[0], offset_minus_4);
-      w3[2] = hc_bytealign (w3[0], w2[3], offset_minus_4);
-      w3[1] = hc_bytealign (w2[3], w2[2], offset_minus_4);
-      w3[0] = hc_bytealign (w2[2], w2[1], offset_minus_4);
-      w2[3] = hc_bytealign (w2[1], w2[0], offset_minus_4);
-      w2[2] = hc_bytealign (w2[0], w1[3], offset_minus_4);
-      w2[1] = hc_bytealign (w1[3], w1[2], offset_minus_4);
-      w2[0] = hc_bytealign (w1[2], w1[1], offset_minus_4);
-      w1[3] = hc_bytealign (w1[1], w1[0], offset_minus_4);
-      w1[2] = hc_bytealign (w1[0], w0[3], offset_minus_4);
-      w1[1] = hc_bytealign (w0[3], w0[2], offset_minus_4);
-      w1[0] = hc_bytealign (w0[2], w0[1], offset_minus_4);
-      w0[3] = hc_bytealign (w0[1], w0[0], offset_minus_4);
-      w0[2] = hc_bytealign (w0[0],     0, offset_minus_4);
+      c0[2] = hc_bytealign (w3[3],     0, offset);
+      c0[1] = hc_bytealign (w3[2], w3[3], offset);
+      c0[0] = hc_bytealign (w3[1], w3[2], offset);
+      w3[3] = hc_bytealign (w3[0], w3[1], offset);
+      w3[2] = hc_bytealign (w2[3], w3[0], offset);
+      w3[1] = hc_bytealign (w2[2], w2[3], offset);
+      w3[0] = hc_bytealign (w2[1], w2[2], offset);
+      w2[3] = hc_bytealign (w2[0], w2[1], offset);
+      w2[2] = hc_bytealign (w1[3], w2[0], offset);
+      w2[1] = hc_bytealign (w1[2], w1[3], offset);
+      w2[0] = hc_bytealign (w1[1], w1[2], offset);
+      w1[3] = hc_bytealign (w1[0], w1[1], offset);
+      w1[2] = hc_bytealign (w0[3], w1[0], offset);
+      w1[1] = hc_bytealign (w0[2], w0[3], offset);
+      w1[0] = hc_bytealign (w0[1], w0[2], offset);
+      w0[3] = hc_bytealign (w0[0], w0[1], offset);
+      w0[2] = hc_bytealign (    0, w0[0], offset);
       w0[1] = 0;
       w0[0] = 0;
-
-      if (offset_mod_4 == 0)
-      {
-        w0[2] = w0[3];
-        w0[3] = w1[0];
-        w1[0] = w1[1];
-        w1[1] = w1[2];
-        w1[2] = w1[3];
-        w1[3] = w2[0];
-        w2[0] = w2[1];
-        w2[1] = w2[2];
-        w2[2] = w2[3];
-        w2[3] = w3[0];
-        w3[0] = w3[1];
-        w3[1] = w3[2];
-        w3[2] = w3[3];
-        w3[3] = c0[0];
-        c0[0] = c0[1];
-        c0[1] = c0[2];
-        c0[2] = 0;
-      }
 
       break;
 
     case 3:
-      c0[3] = hc_bytealign (    0, w3[3], offset_minus_4);
-      c0[2] = hc_bytealign (w3[3], w3[2], offset_minus_4);
-      c0[1] = hc_bytealign (w3[2], w3[1], offset_minus_4);
-      c0[0] = hc_bytealign (w3[1], w3[0], offset_minus_4);
-      w3[3] = hc_bytealign (w3[0], w2[3], offset_minus_4);
-      w3[2] = hc_bytealign (w2[3], w2[2], offset_minus_4);
-      w3[1] = hc_bytealign (w2[2], w2[1], offset_minus_4);
-      w3[0] = hc_bytealign (w2[1], w2[0], offset_minus_4);
-      w2[3] = hc_bytealign (w2[0], w1[3], offset_minus_4);
-      w2[2] = hc_bytealign (w1[3], w1[2], offset_minus_4);
-      w2[1] = hc_bytealign (w1[2], w1[1], offset_minus_4);
-      w2[0] = hc_bytealign (w1[1], w1[0], offset_minus_4);
-      w1[3] = hc_bytealign (w1[0], w0[3], offset_minus_4);
-      w1[2] = hc_bytealign (w0[3], w0[2], offset_minus_4);
-      w1[1] = hc_bytealign (w0[2], w0[1], offset_minus_4);
-      w1[0] = hc_bytealign (w0[1], w0[0], offset_minus_4);
-      w0[3] = hc_bytealign (w0[0],     0, offset_minus_4);
+      c0[3] = hc_bytealign (w3[3],     0, offset);
+      c0[2] = hc_bytealign (w3[2], w3[3], offset);
+      c0[1] = hc_bytealign (w3[1], w3[2], offset);
+      c0[0] = hc_bytealign (w3[0], w3[1], offset);
+      w3[3] = hc_bytealign (w2[3], w3[0], offset);
+      w3[2] = hc_bytealign (w2[2], w2[3], offset);
+      w3[1] = hc_bytealign (w2[1], w2[2], offset);
+      w3[0] = hc_bytealign (w2[0], w2[1], offset);
+      w2[3] = hc_bytealign (w1[3], w2[0], offset);
+      w2[2] = hc_bytealign (w1[2], w1[3], offset);
+      w2[1] = hc_bytealign (w1[1], w1[2], offset);
+      w2[0] = hc_bytealign (w1[0], w1[1], offset);
+      w1[3] = hc_bytealign (w0[3], w1[0], offset);
+      w1[2] = hc_bytealign (w0[2], w0[3], offset);
+      w1[1] = hc_bytealign (w0[1], w0[2], offset);
+      w1[0] = hc_bytealign (w0[0], w0[1], offset);
+      w0[3] = hc_bytealign (    0, w0[0], offset);
       w0[2] = 0;
       w0[1] = 0;
       w0[0] = 0;
 
-      if (offset_mod_4 == 0)
-      {
-        w0[3] = w1[0];
-        w1[0] = w1[1];
-        w1[1] = w1[2];
-        w1[2] = w1[3];
-        w1[3] = w2[0];
-        w2[0] = w2[1];
-        w2[1] = w2[2];
-        w2[2] = w2[3];
-        w2[3] = w3[0];
-        w3[0] = w3[1];
-        w3[1] = w3[2];
-        w3[2] = w3[3];
-        w3[3] = c0[0];
-        c0[0] = c0[1];
-        c0[1] = c0[2];
-        c0[2] = c0[3];
-        c0[3] = 0;
-      }
-
       break;
 
     case 4:
-      c1[0] = hc_bytealign (    0, w3[3], offset_minus_4);
-      c0[3] = hc_bytealign (w3[3], w3[2], offset_minus_4);
-      c0[2] = hc_bytealign (w3[2], w3[1], offset_minus_4);
-      c0[1] = hc_bytealign (w3[1], w3[0], offset_minus_4);
-      c0[0] = hc_bytealign (w3[0], w2[3], offset_minus_4);
-      w3[3] = hc_bytealign (w2[3], w2[2], offset_minus_4);
-      w3[2] = hc_bytealign (w2[2], w2[1], offset_minus_4);
-      w3[1] = hc_bytealign (w2[1], w2[0], offset_minus_4);
-      w3[0] = hc_bytealign (w2[0], w1[3], offset_minus_4);
-      w2[3] = hc_bytealign (w1[3], w1[2], offset_minus_4);
-      w2[2] = hc_bytealign (w1[2], w1[1], offset_minus_4);
-      w2[1] = hc_bytealign (w1[1], w1[0], offset_minus_4);
-      w2[0] = hc_bytealign (w1[0], w0[3], offset_minus_4);
-      w1[3] = hc_bytealign (w0[3], w0[2], offset_minus_4);
-      w1[2] = hc_bytealign (w0[2], w0[1], offset_minus_4);
-      w1[1] = hc_bytealign (w0[1], w0[0], offset_minus_4);
-      w1[0] = hc_bytealign (w0[0],     0, offset_minus_4);
+      c1[0] = hc_bytealign (w3[3],     0, offset);
+      c0[3] = hc_bytealign (w3[2], w3[3], offset);
+      c0[2] = hc_bytealign (w3[1], w3[2], offset);
+      c0[1] = hc_bytealign (w3[0], w3[1], offset);
+      c0[0] = hc_bytealign (w2[3], w3[0], offset);
+      w3[3] = hc_bytealign (w2[2], w2[3], offset);
+      w3[2] = hc_bytealign (w2[1], w2[2], offset);
+      w3[1] = hc_bytealign (w2[0], w2[1], offset);
+      w3[0] = hc_bytealign (w1[3], w2[0], offset);
+      w2[3] = hc_bytealign (w1[2], w1[3], offset);
+      w2[2] = hc_bytealign (w1[1], w1[2], offset);
+      w2[1] = hc_bytealign (w1[0], w1[1], offset);
+      w2[0] = hc_bytealign (w0[3], w1[0], offset);
+      w1[3] = hc_bytealign (w0[2], w0[3], offset);
+      w1[2] = hc_bytealign (w0[1], w0[2], offset);
+      w1[1] = hc_bytealign (w0[0], w0[1], offset);
+      w1[0] = hc_bytealign (    0, w0[0], offset);
       w0[3] = 0;
       w0[2] = 0;
       w0[1] = 0;
       w0[0] = 0;
 
-      if (offset_mod_4 == 0)
-      {
-        w1[0] = w1[1];
-        w1[1] = w1[2];
-        w1[2] = w1[3];
-        w1[3] = w2[0];
-        w2[0] = w2[1];
-        w2[1] = w2[2];
-        w2[2] = w2[3];
-        w2[3] = w3[0];
-        w3[0] = w3[1];
-        w3[1] = w3[2];
-        w3[2] = w3[3];
-        w3[3] = c0[0];
-        c0[0] = c0[1];
-        c0[1] = c0[2];
-        c0[2] = c0[3];
-        c0[3] = c1[0];
-        c1[0] = 0;
-      }
-
       break;
 
     case 5:
-      c1[1] = hc_bytealign (    0, w3[3], offset_minus_4);
-      c1[0] = hc_bytealign (w3[3], w3[2], offset_minus_4);
-      c0[3] = hc_bytealign (w3[2], w3[1], offset_minus_4);
-      c0[2] = hc_bytealign (w3[1], w3[0], offset_minus_4);
-      c0[1] = hc_bytealign (w3[0], w2[3], offset_minus_4);
-      c0[0] = hc_bytealign (w2[3], w2[2], offset_minus_4);
-      w3[3] = hc_bytealign (w2[2], w2[1], offset_minus_4);
-      w3[2] = hc_bytealign (w2[1], w2[0], offset_minus_4);
-      w3[1] = hc_bytealign (w2[0], w1[3], offset_minus_4);
-      w3[0] = hc_bytealign (w1[3], w1[2], offset_minus_4);
-      w2[3] = hc_bytealign (w1[2], w1[1], offset_minus_4);
-      w2[2] = hc_bytealign (w1[1], w1[0], offset_minus_4);
-      w2[1] = hc_bytealign (w1[0], w0[3], offset_minus_4);
-      w2[0] = hc_bytealign (w0[3], w0[2], offset_minus_4);
-      w1[3] = hc_bytealign (w0[2], w0[1], offset_minus_4);
-      w1[2] = hc_bytealign (w0[1], w0[0], offset_minus_4);
-      w1[1] = hc_bytealign (w0[0],     0, offset_minus_4);
+      c1[1] = hc_bytealign (w3[3],     0, offset);
+      c1[0] = hc_bytealign (w3[2], w3[3], offset);
+      c0[3] = hc_bytealign (w3[1], w3[2], offset);
+      c0[2] = hc_bytealign (w3[0], w3[1], offset);
+      c0[1] = hc_bytealign (w2[3], w3[0], offset);
+      c0[0] = hc_bytealign (w2[2], w2[3], offset);
+      w3[3] = hc_bytealign (w2[1], w2[2], offset);
+      w3[2] = hc_bytealign (w2[0], w2[1], offset);
+      w3[1] = hc_bytealign (w1[3], w2[0], offset);
+      w3[0] = hc_bytealign (w1[2], w1[3], offset);
+      w2[3] = hc_bytealign (w1[1], w1[2], offset);
+      w2[2] = hc_bytealign (w1[0], w1[1], offset);
+      w2[1] = hc_bytealign (w0[3], w1[0], offset);
+      w2[0] = hc_bytealign (w0[2], w0[3], offset);
+      w1[3] = hc_bytealign (w0[1], w0[2], offset);
+      w1[2] = hc_bytealign (w0[0], w0[1], offset);
+      w1[1] = hc_bytealign (    0, w0[0], offset);
       w1[0] = 0;
       w0[3] = 0;
       w0[2] = 0;
       w0[1] = 0;
       w0[0] = 0;
 
-      if (offset_mod_4 == 0)
-      {
-        w1[1] = w1[2];
-        w1[2] = w1[3];
-        w1[3] = w2[0];
-        w2[0] = w2[1];
-        w2[1] = w2[2];
-        w2[2] = w2[3];
-        w2[3] = w3[0];
-        w3[0] = w3[1];
-        w3[1] = w3[2];
-        w3[2] = w3[3];
-        w3[3] = c0[0];
-        c0[0] = c0[1];
-        c0[1] = c0[2];
-        c0[2] = c0[3];
-        c0[3] = c1[0];
-        c1[0] = c1[1];
-        c1[1] = 0;
-      }
-
       break;
 
     case 6:
-      c1[2] = hc_bytealign (    0, w3[3], offset_minus_4);
-      c1[1] = hc_bytealign (w3[3], w3[2], offset_minus_4);
-      c1[0] = hc_bytealign (w3[2], w3[1], offset_minus_4);
-      c0[3] = hc_bytealign (w3[1], w3[0], offset_minus_4);
-      c0[2] = hc_bytealign (w3[0], w2[3], offset_minus_4);
-      c0[1] = hc_bytealign (w2[3], w2[2], offset_minus_4);
-      c0[0] = hc_bytealign (w2[2], w2[1], offset_minus_4);
-      w3[3] = hc_bytealign (w2[1], w2[0], offset_minus_4);
-      w3[2] = hc_bytealign (w2[0], w1[3], offset_minus_4);
-      w3[1] = hc_bytealign (w1[3], w1[2], offset_minus_4);
-      w3[0] = hc_bytealign (w1[2], w1[1], offset_minus_4);
-      w2[3] = hc_bytealign (w1[1], w1[0], offset_minus_4);
-      w2[2] = hc_bytealign (w1[0], w0[3], offset_minus_4);
-      w2[1] = hc_bytealign (w0[3], w0[2], offset_minus_4);
-      w2[0] = hc_bytealign (w0[2], w0[1], offset_minus_4);
-      w1[3] = hc_bytealign (w0[1], w0[0], offset_minus_4);
-      w1[2] = hc_bytealign (w0[0],     0, offset_minus_4);
+      c1[2] = hc_bytealign (w3[3],     0, offset);
+      c1[1] = hc_bytealign (w3[2], w3[3], offset);
+      c1[0] = hc_bytealign (w3[1], w3[2], offset);
+      c0[3] = hc_bytealign (w3[0], w3[1], offset);
+      c0[2] = hc_bytealign (w2[3], w3[0], offset);
+      c0[1] = hc_bytealign (w2[2], w2[3], offset);
+      c0[0] = hc_bytealign (w2[1], w2[2], offset);
+      w3[3] = hc_bytealign (w2[0], w2[1], offset);
+      w3[2] = hc_bytealign (w1[3], w2[0], offset);
+      w3[1] = hc_bytealign (w1[2], w1[3], offset);
+      w3[0] = hc_bytealign (w1[1], w1[2], offset);
+      w2[3] = hc_bytealign (w1[0], w1[1], offset);
+      w2[2] = hc_bytealign (w0[3], w1[0], offset);
+      w2[1] = hc_bytealign (w0[2], w0[3], offset);
+      w2[0] = hc_bytealign (w0[1], w0[2], offset);
+      w1[3] = hc_bytealign (w0[0], w0[1], offset);
+      w1[2] = hc_bytealign (    0, w0[0], offset);
       w1[1] = 0;
       w1[0] = 0;
       w0[3] = 0;
@@ -3506,47 +3383,26 @@ DECLSPEC void switch_buffer_by_offset_carry_le (u32x *w0, u32x *w1, u32x *w2, u3
       w0[1] = 0;
       w0[0] = 0;
 
-      if (offset_mod_4 == 0)
-      {
-        w1[2] = w1[3];
-        w1[3] = w2[0];
-        w2[0] = w2[1];
-        w2[1] = w2[2];
-        w2[2] = w2[3];
-        w2[3] = w3[0];
-        w3[0] = w3[1];
-        w3[1] = w3[2];
-        w3[2] = w3[3];
-        w3[3] = c0[0];
-        c0[0] = c0[1];
-        c0[1] = c0[2];
-        c0[2] = c0[3];
-        c0[3] = c1[0];
-        c1[0] = c1[1];
-        c1[1] = c1[2];
-        c1[2] = 0;
-      }
-
       break;
 
     case 7:
-      c1[3] = hc_bytealign (    0, w3[3], offset_minus_4);
-      c1[2] = hc_bytealign (w3[3], w3[2], offset_minus_4);
-      c1[1] = hc_bytealign (w3[2], w3[1], offset_minus_4);
-      c1[0] = hc_bytealign (w3[1], w3[0], offset_minus_4);
-      c0[3] = hc_bytealign (w3[0], w2[3], offset_minus_4);
-      c0[2] = hc_bytealign (w2[3], w2[2], offset_minus_4);
-      c0[1] = hc_bytealign (w2[2], w2[1], offset_minus_4);
-      c0[0] = hc_bytealign (w2[1], w2[0], offset_minus_4);
-      w3[3] = hc_bytealign (w2[0], w1[3], offset_minus_4);
-      w3[2] = hc_bytealign (w1[3], w1[2], offset_minus_4);
-      w3[1] = hc_bytealign (w1[2], w1[1], offset_minus_4);
-      w3[0] = hc_bytealign (w1[1], w1[0], offset_minus_4);
-      w2[3] = hc_bytealign (w1[0], w0[3], offset_minus_4);
-      w2[2] = hc_bytealign (w0[3], w0[2], offset_minus_4);
-      w2[1] = hc_bytealign (w0[2], w0[1], offset_minus_4);
-      w2[0] = hc_bytealign (w0[1], w0[0], offset_minus_4);
-      w1[3] = hc_bytealign (w0[0],     0, offset_minus_4);
+      c1[3] = hc_bytealign (w3[3],     0, offset);
+      c1[2] = hc_bytealign (w3[2], w3[3], offset);
+      c1[1] = hc_bytealign (w3[1], w3[2], offset);
+      c1[0] = hc_bytealign (w3[0], w3[1], offset);
+      c0[3] = hc_bytealign (w2[3], w3[0], offset);
+      c0[2] = hc_bytealign (w2[2], w2[3], offset);
+      c0[1] = hc_bytealign (w2[1], w2[2], offset);
+      c0[0] = hc_bytealign (w2[0], w2[1], offset);
+      w3[3] = hc_bytealign (w1[3], w2[0], offset);
+      w3[2] = hc_bytealign (w1[2], w1[3], offset);
+      w3[1] = hc_bytealign (w1[1], w1[2], offset);
+      w3[0] = hc_bytealign (w1[0], w1[1], offset);
+      w2[3] = hc_bytealign (w0[3], w1[0], offset);
+      w2[2] = hc_bytealign (w0[2], w0[3], offset);
+      w2[1] = hc_bytealign (w0[1], w0[2], offset);
+      w2[0] = hc_bytealign (w0[0], w0[1], offset);
+      w1[3] = hc_bytealign (    0, w0[0], offset);
       w1[2] = 0;
       w1[1] = 0;
       w1[0] = 0;
@@ -3555,47 +3411,26 @@ DECLSPEC void switch_buffer_by_offset_carry_le (u32x *w0, u32x *w1, u32x *w2, u3
       w0[1] = 0;
       w0[0] = 0;
 
-      if (offset_mod_4 == 0)
-      {
-        w1[3] = w2[0];
-        w2[0] = w2[1];
-        w2[1] = w2[2];
-        w2[2] = w2[3];
-        w2[3] = w3[0];
-        w3[0] = w3[1];
-        w3[1] = w3[2];
-        w3[2] = w3[3];
-        w3[3] = c0[0];
-        c0[0] = c0[1];
-        c0[1] = c0[2];
-        c0[2] = c0[3];
-        c0[3] = c1[0];
-        c1[0] = c1[1];
-        c1[1] = c1[2];
-        c1[2] = c1[3];
-        c1[3] = 0;
-      }
-
       break;
 
     case 8:
-      c2[0] = hc_bytealign (    0, w3[3], offset_minus_4);
-      c1[3] = hc_bytealign (w3[3], w3[2], offset_minus_4);
-      c1[2] = hc_bytealign (w3[2], w3[1], offset_minus_4);
-      c1[1] = hc_bytealign (w3[1], w3[0], offset_minus_4);
-      c1[0] = hc_bytealign (w3[0], w2[3], offset_minus_4);
-      c0[3] = hc_bytealign (w2[3], w2[2], offset_minus_4);
-      c0[2] = hc_bytealign (w2[2], w2[1], offset_minus_4);
-      c0[1] = hc_bytealign (w2[1], w2[0], offset_minus_4);
-      c0[0] = hc_bytealign (w2[0], w1[3], offset_minus_4);
-      w3[3] = hc_bytealign (w1[3], w1[2], offset_minus_4);
-      w3[2] = hc_bytealign (w1[2], w1[1], offset_minus_4);
-      w3[1] = hc_bytealign (w1[1], w1[0], offset_minus_4);
-      w3[0] = hc_bytealign (w1[0], w0[3], offset_minus_4);
-      w2[3] = hc_bytealign (w0[3], w0[2], offset_minus_4);
-      w2[2] = hc_bytealign (w0[2], w0[1], offset_minus_4);
-      w2[1] = hc_bytealign (w0[1], w0[0], offset_minus_4);
-      w2[0] = hc_bytealign (w0[0],     0, offset_minus_4);
+      c2[0] = hc_bytealign (w3[3],     0, offset);
+      c1[3] = hc_bytealign (w3[2], w3[3], offset);
+      c1[2] = hc_bytealign (w3[1], w3[2], offset);
+      c1[1] = hc_bytealign (w3[0], w3[1], offset);
+      c1[0] = hc_bytealign (w2[3], w3[0], offset);
+      c0[3] = hc_bytealign (w2[2], w2[3], offset);
+      c0[2] = hc_bytealign (w2[1], w2[2], offset);
+      c0[1] = hc_bytealign (w2[0], w2[1], offset);
+      c0[0] = hc_bytealign (w1[3], w2[0], offset);
+      w3[3] = hc_bytealign (w1[2], w1[3], offset);
+      w3[2] = hc_bytealign (w1[1], w1[2], offset);
+      w3[1] = hc_bytealign (w1[0], w1[1], offset);
+      w3[0] = hc_bytealign (w0[3], w1[0], offset);
+      w2[3] = hc_bytealign (w0[2], w0[3], offset);
+      w2[2] = hc_bytealign (w0[1], w0[2], offset);
+      w2[1] = hc_bytealign (w0[0], w0[1], offset);
+      w2[0] = hc_bytealign (    0, w0[0], offset);
       w1[3] = 0;
       w1[2] = 0;
       w1[1] = 0;
@@ -3605,47 +3440,26 @@ DECLSPEC void switch_buffer_by_offset_carry_le (u32x *w0, u32x *w1, u32x *w2, u3
       w0[1] = 0;
       w0[0] = 0;
 
-      if (offset_mod_4 == 0)
-      {
-        w2[0] = w2[1];
-        w2[1] = w2[2];
-        w2[2] = w2[3];
-        w2[3] = w3[0];
-        w3[0] = w3[1];
-        w3[1] = w3[2];
-        w3[2] = w3[3];
-        w3[3] = c0[0];
-        c0[0] = c0[1];
-        c0[1] = c0[2];
-        c0[2] = c0[3];
-        c0[3] = c1[0];
-        c1[0] = c1[1];
-        c1[1] = c1[2];
-        c1[2] = c1[3];
-        c1[3] = c2[0];
-        c2[0] = 0;
-      }
-
       break;
 
     case 9:
-      c2[1] = hc_bytealign (    0, w3[3], offset_minus_4);
-      c2[0] = hc_bytealign (w3[3], w3[2], offset_minus_4);
-      c1[3] = hc_bytealign (w3[2], w3[1], offset_minus_4);
-      c1[2] = hc_bytealign (w3[1], w3[0], offset_minus_4);
-      c1[1] = hc_bytealign (w3[0], w2[3], offset_minus_4);
-      c1[0] = hc_bytealign (w2[3], w2[2], offset_minus_4);
-      c0[3] = hc_bytealign (w2[2], w2[1], offset_minus_4);
-      c0[2] = hc_bytealign (w2[1], w2[0], offset_minus_4);
-      c0[1] = hc_bytealign (w2[0], w1[3], offset_minus_4);
-      c0[0] = hc_bytealign (w1[3], w1[2], offset_minus_4);
-      w3[3] = hc_bytealign (w1[2], w1[1], offset_minus_4);
-      w3[2] = hc_bytealign (w1[1], w1[0], offset_minus_4);
-      w3[1] = hc_bytealign (w1[0], w0[3], offset_minus_4);
-      w3[0] = hc_bytealign (w0[3], w0[2], offset_minus_4);
-      w2[3] = hc_bytealign (w0[2], w0[1], offset_minus_4);
-      w2[2] = hc_bytealign (w0[1], w0[0], offset_minus_4);
-      w2[1] = hc_bytealign (w0[0],     0, offset_minus_4);
+      c2[1] = hc_bytealign (w3[3],     0, offset);
+      c2[0] = hc_bytealign (w3[2], w3[3], offset);
+      c1[3] = hc_bytealign (w3[1], w3[2], offset);
+      c1[2] = hc_bytealign (w3[0], w3[1], offset);
+      c1[1] = hc_bytealign (w2[3], w3[0], offset);
+      c1[0] = hc_bytealign (w2[2], w2[3], offset);
+      c0[3] = hc_bytealign (w2[1], w2[2], offset);
+      c0[2] = hc_bytealign (w2[0], w2[1], offset);
+      c0[1] = hc_bytealign (w1[3], w2[0], offset);
+      c0[0] = hc_bytealign (w1[2], w1[3], offset);
+      w3[3] = hc_bytealign (w1[1], w1[2], offset);
+      w3[2] = hc_bytealign (w1[0], w1[1], offset);
+      w3[1] = hc_bytealign (w0[3], w1[0], offset);
+      w3[0] = hc_bytealign (w0[2], w0[3], offset);
+      w2[3] = hc_bytealign (w0[1], w0[2], offset);
+      w2[2] = hc_bytealign (w0[0], w0[1], offset);
+      w2[1] = hc_bytealign (    0, w0[0], offset);
       w2[0] = 0;
       w1[3] = 0;
       w1[2] = 0;
@@ -3656,47 +3470,26 @@ DECLSPEC void switch_buffer_by_offset_carry_le (u32x *w0, u32x *w1, u32x *w2, u3
       w0[1] = 0;
       w0[0] = 0;
 
-      if (offset_mod_4 == 0)
-      {
-        w2[1] = w2[2];
-        w2[2] = w2[3];
-        w2[3] = w3[0];
-        w3[0] = w3[1];
-        w3[1] = w3[2];
-        w3[2] = w3[3];
-        w3[3] = c0[0];
-        c0[0] = c0[1];
-        c0[1] = c0[2];
-        c0[2] = c0[3];
-        c0[3] = c1[0];
-        c1[0] = c1[1];
-        c1[1] = c1[2];
-        c1[2] = c1[3];
-        c1[3] = c2[0];
-        c2[0] = c2[1];
-        c2[1] = 0;
-      }
-
       break;
 
     case 10:
-      c2[2] = hc_bytealign (    0, w3[3], offset_minus_4);
-      c2[1] = hc_bytealign (w3[3], w3[2], offset_minus_4);
-      c2[0] = hc_bytealign (w3[2], w3[1], offset_minus_4);
-      c1[3] = hc_bytealign (w3[1], w3[0], offset_minus_4);
-      c1[2] = hc_bytealign (w3[0], w2[3], offset_minus_4);
-      c1[1] = hc_bytealign (w2[3], w2[2], offset_minus_4);
-      c1[0] = hc_bytealign (w2[2], w2[1], offset_minus_4);
-      c0[3] = hc_bytealign (w2[1], w2[0], offset_minus_4);
-      c0[2] = hc_bytealign (w2[0], w1[3], offset_minus_4);
-      c0[1] = hc_bytealign (w1[3], w1[2], offset_minus_4);
-      c0[0] = hc_bytealign (w1[2], w1[1], offset_minus_4);
-      w3[3] = hc_bytealign (w1[1], w1[0], offset_minus_4);
-      w3[2] = hc_bytealign (w1[0], w0[3], offset_minus_4);
-      w3[1] = hc_bytealign (w0[3], w0[2], offset_minus_4);
-      w3[0] = hc_bytealign (w0[2], w0[1], offset_minus_4);
-      w2[3] = hc_bytealign (w0[1], w0[0], offset_minus_4);
-      w2[2] = hc_bytealign (w0[0],     0, offset_minus_4);
+      c2[2] = hc_bytealign (w3[3],     0, offset);
+      c2[1] = hc_bytealign (w3[2], w3[3], offset);
+      c2[0] = hc_bytealign (w3[1], w3[2], offset);
+      c1[3] = hc_bytealign (w3[0], w3[1], offset);
+      c1[2] = hc_bytealign (w2[3], w3[0], offset);
+      c1[1] = hc_bytealign (w2[2], w2[3], offset);
+      c1[0] = hc_bytealign (w2[1], w2[2], offset);
+      c0[3] = hc_bytealign (w2[0], w2[1], offset);
+      c0[2] = hc_bytealign (w1[3], w2[0], offset);
+      c0[1] = hc_bytealign (w1[2], w1[3], offset);
+      c0[0] = hc_bytealign (w1[1], w1[2], offset);
+      w3[3] = hc_bytealign (w1[0], w1[1], offset);
+      w3[2] = hc_bytealign (w0[3], w1[0], offset);
+      w3[1] = hc_bytealign (w0[2], w0[3], offset);
+      w3[0] = hc_bytealign (w0[1], w0[2], offset);
+      w2[3] = hc_bytealign (w0[0], w0[1], offset);
+      w2[2] = hc_bytealign (    0, w0[0], offset);
       w2[1] = 0;
       w2[0] = 0;
       w1[3] = 0;
@@ -3708,47 +3501,26 @@ DECLSPEC void switch_buffer_by_offset_carry_le (u32x *w0, u32x *w1, u32x *w2, u3
       w0[1] = 0;
       w0[0] = 0;
 
-      if (offset_mod_4 == 0)
-      {
-        w2[2] = w2[3];
-        w2[3] = w3[0];
-        w3[0] = w3[1];
-        w3[1] = w3[2];
-        w3[2] = w3[3];
-        w3[3] = c0[0];
-        c0[0] = c0[1];
-        c0[1] = c0[2];
-        c0[2] = c0[3];
-        c0[3] = c1[0];
-        c1[0] = c1[1];
-        c1[1] = c1[2];
-        c1[2] = c1[3];
-        c1[3] = c2[0];
-        c2[0] = c2[1];
-        c2[1] = c2[2];
-        c2[2] = 0;
-      }
-
       break;
 
     case 11:
-      c2[3] = hc_bytealign (    0, w3[3], offset_minus_4);
-      c2[2] = hc_bytealign (w3[3], w3[2], offset_minus_4);
-      c2[1] = hc_bytealign (w3[2], w3[1], offset_minus_4);
-      c2[0] = hc_bytealign (w3[1], w3[0], offset_minus_4);
-      c1[3] = hc_bytealign (w3[0], w2[3], offset_minus_4);
-      c1[2] = hc_bytealign (w2[3], w2[2], offset_minus_4);
-      c1[1] = hc_bytealign (w2[2], w2[1], offset_minus_4);
-      c1[0] = hc_bytealign (w2[1], w2[0], offset_minus_4);
-      c0[3] = hc_bytealign (w2[0], w1[3], offset_minus_4);
-      c0[2] = hc_bytealign (w1[3], w1[2], offset_minus_4);
-      c0[1] = hc_bytealign (w1[2], w1[1], offset_minus_4);
-      c0[0] = hc_bytealign (w1[1], w1[0], offset_minus_4);
-      w3[3] = hc_bytealign (w1[0], w0[3], offset_minus_4);
-      w3[2] = hc_bytealign (w0[3], w0[2], offset_minus_4);
-      w3[1] = hc_bytealign (w0[2], w0[1], offset_minus_4);
-      w3[0] = hc_bytealign (w0[1], w0[0], offset_minus_4);
-      w2[3] = hc_bytealign (w0[0],     0, offset_minus_4);
+      c2[3] = hc_bytealign (w3[3],     0, offset);
+      c2[2] = hc_bytealign (w3[2], w3[3], offset);
+      c2[1] = hc_bytealign (w3[1], w3[2], offset);
+      c2[0] = hc_bytealign (w3[0], w3[1], offset);
+      c1[3] = hc_bytealign (w2[3], w3[0], offset);
+      c1[2] = hc_bytealign (w2[2], w2[3], offset);
+      c1[1] = hc_bytealign (w2[1], w2[2], offset);
+      c1[0] = hc_bytealign (w2[0], w2[1], offset);
+      c0[3] = hc_bytealign (w1[3], w2[0], offset);
+      c0[2] = hc_bytealign (w1[2], w1[3], offset);
+      c0[1] = hc_bytealign (w1[1], w1[2], offset);
+      c0[0] = hc_bytealign (w1[0], w1[1], offset);
+      w3[3] = hc_bytealign (w0[3], w1[0], offset);
+      w3[2] = hc_bytealign (w0[2], w0[3], offset);
+      w3[1] = hc_bytealign (w0[1], w0[2], offset);
+      w3[0] = hc_bytealign (w0[0], w0[1], offset);
+      w2[3] = hc_bytealign (    0, w0[0], offset);
       w2[2] = 0;
       w2[1] = 0;
       w2[0] = 0;
@@ -3761,47 +3533,26 @@ DECLSPEC void switch_buffer_by_offset_carry_le (u32x *w0, u32x *w1, u32x *w2, u3
       w0[1] = 0;
       w0[0] = 0;
 
-      if (offset_mod_4 == 0)
-      {
-        w2[3] = w3[0];
-        w3[0] = w3[1];
-        w3[1] = w3[2];
-        w3[2] = w3[3];
-        w3[3] = c0[0];
-        c0[0] = c0[1];
-        c0[1] = c0[2];
-        c0[2] = c0[3];
-        c0[3] = c1[0];
-        c1[0] = c1[1];
-        c1[1] = c1[2];
-        c1[2] = c1[3];
-        c1[3] = c2[0];
-        c2[0] = c2[1];
-        c2[1] = c2[2];
-        c2[2] = c2[3];
-        c2[3] = 0;
-      }
-
       break;
 
     case 12:
-      c3[0] = hc_bytealign (    0, w3[3], offset_minus_4);
-      c2[3] = hc_bytealign (w3[3], w3[2], offset_minus_4);
-      c2[2] = hc_bytealign (w3[2], w3[1], offset_minus_4);
-      c2[1] = hc_bytealign (w3[1], w3[0], offset_minus_4);
-      c2[0] = hc_bytealign (w3[0], w2[3], offset_minus_4);
-      c1[3] = hc_bytealign (w2[3], w2[2], offset_minus_4);
-      c1[2] = hc_bytealign (w2[2], w2[1], offset_minus_4);
-      c1[1] = hc_bytealign (w2[1], w2[0], offset_minus_4);
-      c1[0] = hc_bytealign (w2[0], w1[3], offset_minus_4);
-      c0[3] = hc_bytealign (w1[3], w1[2], offset_minus_4);
-      c0[2] = hc_bytealign (w1[2], w1[1], offset_minus_4);
-      c0[1] = hc_bytealign (w1[1], w1[0], offset_minus_4);
-      c0[0] = hc_bytealign (w1[0], w0[3], offset_minus_4);
-      w3[3] = hc_bytealign (w0[3], w0[2], offset_minus_4);
-      w3[2] = hc_bytealign (w0[2], w0[1], offset_minus_4);
-      w3[1] = hc_bytealign (w0[1], w0[0], offset_minus_4);
-      w3[0] = hc_bytealign (w0[0],     0, offset_minus_4);
+      c3[0] = hc_bytealign (w3[3],     0, offset);
+      c2[3] = hc_bytealign (w3[2], w3[3], offset);
+      c2[2] = hc_bytealign (w3[1], w3[2], offset);
+      c2[1] = hc_bytealign (w3[0], w3[1], offset);
+      c2[0] = hc_bytealign (w2[3], w3[0], offset);
+      c1[3] = hc_bytealign (w2[2], w2[3], offset);
+      c1[2] = hc_bytealign (w2[1], w2[2], offset);
+      c1[1] = hc_bytealign (w2[0], w2[1], offset);
+      c1[0] = hc_bytealign (w1[3], w2[0], offset);
+      c0[3] = hc_bytealign (w1[2], w1[3], offset);
+      c0[2] = hc_bytealign (w1[1], w1[2], offset);
+      c0[1] = hc_bytealign (w1[0], w1[1], offset);
+      c0[0] = hc_bytealign (w0[3], w1[0], offset);
+      w3[3] = hc_bytealign (w0[2], w0[3], offset);
+      w3[2] = hc_bytealign (w0[1], w0[2], offset);
+      w3[1] = hc_bytealign (w0[0], w0[1], offset);
+      w3[0] = hc_bytealign (    0, w0[0], offset);
       w2[3] = 0;
       w2[2] = 0;
       w2[1] = 0;
@@ -3815,47 +3566,26 @@ DECLSPEC void switch_buffer_by_offset_carry_le (u32x *w0, u32x *w1, u32x *w2, u3
       w0[1] = 0;
       w0[0] = 0;
 
-      if (offset_mod_4 == 0)
-      {
-        w3[0] = w3[1];
-        w3[1] = w3[2];
-        w3[2] = w3[3];
-        w3[3] = c0[0];
-        c0[0] = c0[1];
-        c0[1] = c0[2];
-        c0[2] = c0[3];
-        c0[3] = c1[0];
-        c1[0] = c1[1];
-        c1[1] = c1[2];
-        c1[2] = c1[3];
-        c1[3] = c2[0];
-        c2[0] = c2[1];
-        c2[1] = c2[2];
-        c2[2] = c2[3];
-        c2[3] = c3[0];
-        c3[0] = 0;
-      }
-
       break;
 
     case 13:
-      c3[1] = hc_bytealign (    0, w3[3], offset_minus_4);
-      c3[0] = hc_bytealign (w3[3], w3[2], offset_minus_4);
-      c2[3] = hc_bytealign (w3[2], w3[1], offset_minus_4);
-      c2[2] = hc_bytealign (w3[1], w3[0], offset_minus_4);
-      c2[1] = hc_bytealign (w3[0], w2[3], offset_minus_4);
-      c2[0] = hc_bytealign (w2[3], w2[2], offset_minus_4);
-      c1[3] = hc_bytealign (w2[2], w2[1], offset_minus_4);
-      c1[2] = hc_bytealign (w2[1], w2[0], offset_minus_4);
-      c1[1] = hc_bytealign (w2[0], w1[3], offset_minus_4);
-      c1[0] = hc_bytealign (w1[3], w1[2], offset_minus_4);
-      c0[3] = hc_bytealign (w1[2], w1[1], offset_minus_4);
-      c0[2] = hc_bytealign (w1[1], w1[0], offset_minus_4);
-      c0[1] = hc_bytealign (w1[0], w0[3], offset_minus_4);
-      c0[0] = hc_bytealign (w0[3], w0[2], offset_minus_4);
-      w3[3] = hc_bytealign (w0[2], w0[1], offset_minus_4);
-      w3[2] = hc_bytealign (w0[1], w0[0], offset_minus_4);
-      w3[1] = hc_bytealign (w0[0],     0, offset_minus_4);
+      c3[1] = hc_bytealign (w3[3],     0, offset);
+      c3[0] = hc_bytealign (w3[2], w3[3], offset);
+      c2[3] = hc_bytealign (w3[1], w3[2], offset);
+      c2[2] = hc_bytealign (w3[0], w3[1], offset);
+      c2[1] = hc_bytealign (w2[3], w3[0], offset);
+      c2[0] = hc_bytealign (w2[2], w2[3], offset);
+      c1[3] = hc_bytealign (w2[1], w2[2], offset);
+      c1[2] = hc_bytealign (w2[0], w2[1], offset);
+      c1[1] = hc_bytealign (w1[3], w2[0], offset);
+      c1[0] = hc_bytealign (w1[2], w1[3], offset);
+      c0[3] = hc_bytealign (w1[1], w1[2], offset);
+      c0[2] = hc_bytealign (w1[0], w1[1], offset);
+      c0[1] = hc_bytealign (w0[3], w1[0], offset);
+      c0[0] = hc_bytealign (w0[2], w0[3], offset);
+      w3[3] = hc_bytealign (w0[1], w0[2], offset);
+      w3[2] = hc_bytealign (w0[0], w0[1], offset);
+      w3[1] = hc_bytealign (    0, w0[0], offset);
       w3[0] = 0;
       w2[3] = 0;
       w2[2] = 0;
@@ -3870,47 +3600,26 @@ DECLSPEC void switch_buffer_by_offset_carry_le (u32x *w0, u32x *w1, u32x *w2, u3
       w0[1] = 0;
       w0[0] = 0;
 
-      if (offset_mod_4 == 0)
-      {
-        w3[1] = w3[2];
-        w3[2] = w3[3];
-        w3[3] = c0[0];
-        c0[0] = c0[1];
-        c0[1] = c0[2];
-        c0[2] = c0[3];
-        c0[3] = c1[0];
-        c1[0] = c1[1];
-        c1[1] = c1[2];
-        c1[2] = c1[3];
-        c1[3] = c2[0];
-        c2[0] = c2[1];
-        c2[1] = c2[2];
-        c2[2] = c2[3];
-        c2[3] = c3[0];
-        c3[0] = c3[1];
-        c3[1] = 0;
-      }
-
       break;
 
     case 14:
-      c3[2] = hc_bytealign (    0, w3[3], offset_minus_4);
-      c3[1] = hc_bytealign (w3[3], w3[2], offset_minus_4);
-      c3[0] = hc_bytealign (w3[2], w3[1], offset_minus_4);
-      c2[3] = hc_bytealign (w3[1], w3[0], offset_minus_4);
-      c2[2] = hc_bytealign (w3[0], w2[3], offset_minus_4);
-      c2[1] = hc_bytealign (w2[3], w2[2], offset_minus_4);
-      c2[0] = hc_bytealign (w2[2], w2[1], offset_minus_4);
-      c1[3] = hc_bytealign (w2[1], w2[0], offset_minus_4);
-      c1[2] = hc_bytealign (w2[0], w1[3], offset_minus_4);
-      c1[1] = hc_bytealign (w1[3], w1[2], offset_minus_4);
-      c1[0] = hc_bytealign (w1[2], w1[1], offset_minus_4);
-      c0[3] = hc_bytealign (w1[1], w1[0], offset_minus_4);
-      c0[2] = hc_bytealign (w1[0], w0[3], offset_minus_4);
-      c0[1] = hc_bytealign (w0[3], w0[2], offset_minus_4);
-      c0[0] = hc_bytealign (w0[2], w0[1], offset_minus_4);
-      w3[3] = hc_bytealign (w0[1], w0[0], offset_minus_4);
-      w3[2] = hc_bytealign (w0[0],     0, offset_minus_4);
+      c3[2] = hc_bytealign (w3[3],     0, offset);
+      c3[1] = hc_bytealign (w3[2], w3[3], offset);
+      c3[0] = hc_bytealign (w3[1], w3[2], offset);
+      c2[3] = hc_bytealign (w3[0], w3[1], offset);
+      c2[2] = hc_bytealign (w2[3], w3[0], offset);
+      c2[1] = hc_bytealign (w2[2], w2[3], offset);
+      c2[0] = hc_bytealign (w2[1], w2[2], offset);
+      c1[3] = hc_bytealign (w2[0], w2[1], offset);
+      c1[2] = hc_bytealign (w1[3], w2[0], offset);
+      c1[1] = hc_bytealign (w1[2], w1[3], offset);
+      c1[0] = hc_bytealign (w1[1], w1[2], offset);
+      c0[3] = hc_bytealign (w1[0], w1[1], offset);
+      c0[2] = hc_bytealign (w0[3], w1[0], offset);
+      c0[1] = hc_bytealign (w0[2], w0[3], offset);
+      c0[0] = hc_bytealign (w0[1], w0[2], offset);
+      w3[3] = hc_bytealign (w0[0], w0[1], offset);
+      w3[2] = hc_bytealign (    0, w0[0], offset);
       w3[1] = 0;
       w3[0] = 0;
       w2[3] = 0;
@@ -3926,47 +3635,26 @@ DECLSPEC void switch_buffer_by_offset_carry_le (u32x *w0, u32x *w1, u32x *w2, u3
       w0[1] = 0;
       w0[0] = 0;
 
-      if (offset_mod_4 == 0)
-      {
-        w3[2] = w3[3];
-        w3[3] = c0[0];
-        c0[0] = c0[1];
-        c0[1] = c0[2];
-        c0[2] = c0[3];
-        c0[3] = c1[0];
-        c1[0] = c1[1];
-        c1[1] = c1[2];
-        c1[2] = c1[3];
-        c1[3] = c2[0];
-        c2[0] = c2[1];
-        c2[1] = c2[2];
-        c2[2] = c2[3];
-        c2[3] = c3[0];
-        c3[0] = c3[1];
-        c3[1] = c3[2];
-        c3[2] = 0;
-      }
-
       break;
 
     case 15:
-      c3[3] = hc_bytealign (    0, w3[3], offset_minus_4);
-      c3[2] = hc_bytealign (w3[3], w3[2], offset_minus_4);
-      c3[1] = hc_bytealign (w3[2], w3[1], offset_minus_4);
-      c3[0] = hc_bytealign (w3[1], w3[0], offset_minus_4);
-      c2[3] = hc_bytealign (w3[0], w2[3], offset_minus_4);
-      c2[2] = hc_bytealign (w2[3], w2[2], offset_minus_4);
-      c2[1] = hc_bytealign (w2[2], w2[1], offset_minus_4);
-      c2[0] = hc_bytealign (w2[1], w2[0], offset_minus_4);
-      c1[3] = hc_bytealign (w2[0], w1[3], offset_minus_4);
-      c1[2] = hc_bytealign (w1[3], w1[2], offset_minus_4);
-      c1[1] = hc_bytealign (w1[2], w1[1], offset_minus_4);
-      c1[0] = hc_bytealign (w1[1], w1[0], offset_minus_4);
-      c0[3] = hc_bytealign (w1[0], w0[3], offset_minus_4);
-      c0[2] = hc_bytealign (w0[3], w0[2], offset_minus_4);
-      c0[1] = hc_bytealign (w0[2], w0[1], offset_minus_4);
-      c0[0] = hc_bytealign (w0[1], w0[0], offset_minus_4);
-      w3[3] = hc_bytealign (w0[0],     0, offset_minus_4);
+      c3[3] = hc_bytealign (w3[3],     0, offset);
+      c3[2] = hc_bytealign (w3[2], w3[3], offset);
+      c3[1] = hc_bytealign (w3[1], w3[2], offset);
+      c3[0] = hc_bytealign (w3[0], w3[1], offset);
+      c2[3] = hc_bytealign (w2[3], w3[0], offset);
+      c2[2] = hc_bytealign (w2[2], w2[3], offset);
+      c2[1] = hc_bytealign (w2[1], w2[2], offset);
+      c2[0] = hc_bytealign (w2[0], w2[1], offset);
+      c1[3] = hc_bytealign (w1[3], w2[0], offset);
+      c1[2] = hc_bytealign (w1[2], w1[3], offset);
+      c1[1] = hc_bytealign (w1[1], w1[2], offset);
+      c1[0] = hc_bytealign (w1[0], w1[1], offset);
+      c0[3] = hc_bytealign (w0[3], w1[0], offset);
+      c0[2] = hc_bytealign (w0[2], w0[3], offset);
+      c0[1] = hc_bytealign (w0[1], w0[2], offset);
+      c0[0] = hc_bytealign (w0[0], w0[1], offset);
+      w3[3] = hc_bytealign (    0, w0[0], offset);
       w3[2] = 0;
       w3[1] = 0;
       w3[0] = 0;
@@ -3982,27 +3670,6 @@ DECLSPEC void switch_buffer_by_offset_carry_le (u32x *w0, u32x *w1, u32x *w2, u3
       w0[2] = 0;
       w0[1] = 0;
       w0[0] = 0;
-
-      if (offset_mod_4 == 0)
-      {
-        w3[3] = c0[0];
-        c0[0] = c0[1];
-        c0[1] = c0[2];
-        c0[2] = c0[3];
-        c0[3] = c1[0];
-        c1[0] = c1[1];
-        c1[1] = c1[2];
-        c1[2] = c1[3];
-        c1[3] = c2[0];
-        c2[0] = c2[1];
-        c2[1] = c2[2];
-        c2[2] = c2[3];
-        c2[3] = c3[0];
-        c3[0] = c3[1];
-        c3[1] = c3[2];
-        c3[2] = c3[3];
-        c3[3] = 0;
-      }
 
       break;
   }
@@ -33750,299 +33417,168 @@ DECLSPEC void switch_buffer_by_offset_carry_le_S (u32 *w0, u32 *w1, u32 *w2, u32
   #endif
 
   #ifdef IS_NV
-
-  const int offset_mod_4 = offset & 3;
-
-  const int offset_minus_4 = 4 - offset_mod_4;
-
-  // todo
+  // could be improved, too
   switch (offset_switch)
   {
     case 0:
-      c0[0] = hc_bytealign_S (    0, w3[3], offset_minus_4);
-      w3[3] = hc_bytealign_S (w3[3], w3[2], offset_minus_4);
-      w3[2] = hc_bytealign_S (w3[2], w3[1], offset_minus_4);
-      w3[1] = hc_bytealign_S (w3[1], w3[0], offset_minus_4);
-      w3[0] = hc_bytealign_S (w3[0], w2[3], offset_minus_4);
-      w2[3] = hc_bytealign_S (w2[3], w2[2], offset_minus_4);
-      w2[2] = hc_bytealign_S (w2[2], w2[1], offset_minus_4);
-      w2[1] = hc_bytealign_S (w2[1], w2[0], offset_minus_4);
-      w2[0] = hc_bytealign_S (w2[0], w1[3], offset_minus_4);
-      w1[3] = hc_bytealign_S (w1[3], w1[2], offset_minus_4);
-      w1[2] = hc_bytealign_S (w1[2], w1[1], offset_minus_4);
-      w1[1] = hc_bytealign_S (w1[1], w1[0], offset_minus_4);
-      w1[0] = hc_bytealign_S (w1[0], w0[3], offset_minus_4);
-      w0[3] = hc_bytealign_S (w0[3], w0[2], offset_minus_4);
-      w0[2] = hc_bytealign_S (w0[2], w0[1], offset_minus_4);
-      w0[1] = hc_bytealign_S (w0[1], w0[0], offset_minus_4);
-      w0[0] = hc_bytealign_S (w0[0],     0, offset_minus_4);
-
-      if (offset_mod_4 == 0)
-      {
-        w0[0] = w0[1];
-        w0[1] = w0[2];
-        w0[2] = w0[3];
-        w0[3] = w1[0];
-        w1[0] = w1[1];
-        w1[1] = w1[2];
-        w1[2] = w1[3];
-        w1[3] = w2[0];
-        w2[0] = w2[1];
-        w2[1] = w2[2];
-        w2[2] = w2[3];
-        w2[3] = w3[0];
-        w3[0] = w3[1];
-        w3[1] = w3[2];
-        w3[2] = w3[3];
-        w3[3] = c0[0];
-        c0[0] = 0;
-      }
+      c0[0] = hc_bytealign_S (w3[3],     0, offset);
+      w3[3] = hc_bytealign_S (w3[2], w3[3], offset);
+      w3[2] = hc_bytealign_S (w3[1], w3[2], offset);
+      w3[1] = hc_bytealign_S (w3[0], w3[1], offset);
+      w3[0] = hc_bytealign_S (w2[3], w3[0], offset);
+      w2[3] = hc_bytealign_S (w2[2], w2[3], offset);
+      w2[2] = hc_bytealign_S (w2[1], w2[2], offset);
+      w2[1] = hc_bytealign_S (w2[0], w2[1], offset);
+      w2[0] = hc_bytealign_S (w1[3], w2[0], offset);
+      w1[3] = hc_bytealign_S (w1[2], w1[3], offset);
+      w1[2] = hc_bytealign_S (w1[1], w1[2], offset);
+      w1[1] = hc_bytealign_S (w1[0], w1[1], offset);
+      w1[0] = hc_bytealign_S (w0[3], w1[0], offset);
+      w0[3] = hc_bytealign_S (w0[2], w0[3], offset);
+      w0[2] = hc_bytealign_S (w0[1], w0[2], offset);
+      w0[1] = hc_bytealign_S (w0[0], w0[1], offset);
+      w0[0] = hc_bytealign_S (    0, w0[0], offset);
 
       break;
 
     case 1:
-      c0[1] = hc_bytealign_S (    0, w3[3], offset_minus_4);
-      c0[0] = hc_bytealign_S (w3[3], w3[2], offset_minus_4);
-      w3[3] = hc_bytealign_S (w3[2], w3[1], offset_minus_4);
-      w3[2] = hc_bytealign_S (w3[1], w3[0], offset_minus_4);
-      w3[1] = hc_bytealign_S (w3[0], w2[3], offset_minus_4);
-      w3[0] = hc_bytealign_S (w2[3], w2[2], offset_minus_4);
-      w2[3] = hc_bytealign_S (w2[2], w2[1], offset_minus_4);
-      w2[2] = hc_bytealign_S (w2[1], w2[0], offset_minus_4);
-      w2[1] = hc_bytealign_S (w2[0], w1[3], offset_minus_4);
-      w2[0] = hc_bytealign_S (w1[3], w1[2], offset_minus_4);
-      w1[3] = hc_bytealign_S (w1[2], w1[1], offset_minus_4);
-      w1[2] = hc_bytealign_S (w1[1], w1[0], offset_minus_4);
-      w1[1] = hc_bytealign_S (w1[0], w0[3], offset_minus_4);
-      w1[0] = hc_bytealign_S (w0[3], w0[2], offset_minus_4);
-      w0[3] = hc_bytealign_S (w0[2], w0[1], offset_minus_4);
-      w0[2] = hc_bytealign_S (w0[1], w0[0], offset_minus_4);
-      w0[1] = hc_bytealign_S (w0[0],     0, offset_minus_4);
+      c0[1] = hc_bytealign_S (w3[3],     0, offset);
+      c0[0] = hc_bytealign_S (w3[2], w3[3], offset);
+      w3[3] = hc_bytealign_S (w3[1], w3[2], offset);
+      w3[2] = hc_bytealign_S (w3[0], w3[1], offset);
+      w3[1] = hc_bytealign_S (w2[3], w3[0], offset);
+      w3[0] = hc_bytealign_S (w2[2], w2[3], offset);
+      w2[3] = hc_bytealign_S (w2[1], w2[2], offset);
+      w2[2] = hc_bytealign_S (w2[0], w2[1], offset);
+      w2[1] = hc_bytealign_S (w1[3], w2[0], offset);
+      w2[0] = hc_bytealign_S (w1[2], w1[3], offset);
+      w1[3] = hc_bytealign_S (w1[1], w1[2], offset);
+      w1[2] = hc_bytealign_S (w1[0], w1[1], offset);
+      w1[1] = hc_bytealign_S (w0[3], w1[0], offset);
+      w1[0] = hc_bytealign_S (w0[2], w0[3], offset);
+      w0[3] = hc_bytealign_S (w0[1], w0[2], offset);
+      w0[2] = hc_bytealign_S (w0[0], w0[1], offset);
+      w0[1] = hc_bytealign_S (    0, w0[0], offset);
       w0[0] = 0;
-
-      if (offset_mod_4 == 0)
-      {
-        w0[1] = w0[2];
-        w0[2] = w0[3];
-        w0[3] = w1[0];
-        w1[0] = w1[1];
-        w1[1] = w1[2];
-        w1[2] = w1[3];
-        w1[3] = w2[0];
-        w2[0] = w2[1];
-        w2[1] = w2[2];
-        w2[2] = w2[3];
-        w2[3] = w3[0];
-        w3[0] = w3[1];
-        w3[1] = w3[2];
-        w3[2] = w3[3];
-        w3[3] = c0[0];
-        c0[0] = c0[1];
-        c0[1] = 0;
-      }
 
       break;
 
     case 2:
-      c0[2] = hc_bytealign_S (    0, w3[3], offset_minus_4);
-      c0[1] = hc_bytealign_S (w3[3], w3[2], offset_minus_4);
-      c0[0] = hc_bytealign_S (w3[2], w3[1], offset_minus_4);
-      w3[3] = hc_bytealign_S (w3[1], w3[0], offset_minus_4);
-      w3[2] = hc_bytealign_S (w3[0], w2[3], offset_minus_4);
-      w3[1] = hc_bytealign_S (w2[3], w2[2], offset_minus_4);
-      w3[0] = hc_bytealign_S (w2[2], w2[1], offset_minus_4);
-      w2[3] = hc_bytealign_S (w2[1], w2[0], offset_minus_4);
-      w2[2] = hc_bytealign_S (w2[0], w1[3], offset_minus_4);
-      w2[1] = hc_bytealign_S (w1[3], w1[2], offset_minus_4);
-      w2[0] = hc_bytealign_S (w1[2], w1[1], offset_minus_4);
-      w1[3] = hc_bytealign_S (w1[1], w1[0], offset_minus_4);
-      w1[2] = hc_bytealign_S (w1[0], w0[3], offset_minus_4);
-      w1[1] = hc_bytealign_S (w0[3], w0[2], offset_minus_4);
-      w1[0] = hc_bytealign_S (w0[2], w0[1], offset_minus_4);
-      w0[3] = hc_bytealign_S (w0[1], w0[0], offset_minus_4);
-      w0[2] = hc_bytealign_S (w0[0],     0, offset_minus_4);
+      c0[2] = hc_bytealign_S (w3[3],     0, offset);
+      c0[1] = hc_bytealign_S (w3[2], w3[3], offset);
+      c0[0] = hc_bytealign_S (w3[1], w3[2], offset);
+      w3[3] = hc_bytealign_S (w3[0], w3[1], offset);
+      w3[2] = hc_bytealign_S (w2[3], w3[0], offset);
+      w3[1] = hc_bytealign_S (w2[2], w2[3], offset);
+      w3[0] = hc_bytealign_S (w2[1], w2[2], offset);
+      w2[3] = hc_bytealign_S (w2[0], w2[1], offset);
+      w2[2] = hc_bytealign_S (w1[3], w2[0], offset);
+      w2[1] = hc_bytealign_S (w1[2], w1[3], offset);
+      w2[0] = hc_bytealign_S (w1[1], w1[2], offset);
+      w1[3] = hc_bytealign_S (w1[0], w1[1], offset);
+      w1[2] = hc_bytealign_S (w0[3], w1[0], offset);
+      w1[1] = hc_bytealign_S (w0[2], w0[3], offset);
+      w1[0] = hc_bytealign_S (w0[1], w0[2], offset);
+      w0[3] = hc_bytealign_S (w0[0], w0[1], offset);
+      w0[2] = hc_bytealign_S (    0, w0[0], offset);
       w0[1] = 0;
       w0[0] = 0;
-
-      if (offset_mod_4 == 0)
-      {
-        w0[2] = w0[3];
-        w0[3] = w1[0];
-        w1[0] = w1[1];
-        w1[1] = w1[2];
-        w1[2] = w1[3];
-        w1[3] = w2[0];
-        w2[0] = w2[1];
-        w2[1] = w2[2];
-        w2[2] = w2[3];
-        w2[3] = w3[0];
-        w3[0] = w3[1];
-        w3[1] = w3[2];
-        w3[2] = w3[3];
-        w3[3] = c0[0];
-        c0[0] = c0[1];
-        c0[1] = c0[2];
-        c0[2] = 0;
-      }
 
       break;
 
     case 3:
-      c0[3] = hc_bytealign_S (    0, w3[3], offset_minus_4);
-      c0[2] = hc_bytealign_S (w3[3], w3[2], offset_minus_4);
-      c0[1] = hc_bytealign_S (w3[2], w3[1], offset_minus_4);
-      c0[0] = hc_bytealign_S (w3[1], w3[0], offset_minus_4);
-      w3[3] = hc_bytealign_S (w3[0], w2[3], offset_minus_4);
-      w3[2] = hc_bytealign_S (w2[3], w2[2], offset_minus_4);
-      w3[1] = hc_bytealign_S (w2[2], w2[1], offset_minus_4);
-      w3[0] = hc_bytealign_S (w2[1], w2[0], offset_minus_4);
-      w2[3] = hc_bytealign_S (w2[0], w1[3], offset_minus_4);
-      w2[2] = hc_bytealign_S (w1[3], w1[2], offset_minus_4);
-      w2[1] = hc_bytealign_S (w1[2], w1[1], offset_minus_4);
-      w2[0] = hc_bytealign_S (w1[1], w1[0], offset_minus_4);
-      w1[3] = hc_bytealign_S (w1[0], w0[3], offset_minus_4);
-      w1[2] = hc_bytealign_S (w0[3], w0[2], offset_minus_4);
-      w1[1] = hc_bytealign_S (w0[2], w0[1], offset_minus_4);
-      w1[0] = hc_bytealign_S (w0[1], w0[0], offset_minus_4);
-      w0[3] = hc_bytealign_S (w0[0],     0, offset_minus_4);
+      c0[3] = hc_bytealign_S (w3[3],     0, offset);
+      c0[2] = hc_bytealign_S (w3[2], w3[3], offset);
+      c0[1] = hc_bytealign_S (w3[1], w3[2], offset);
+      c0[0] = hc_bytealign_S (w3[0], w3[1], offset);
+      w3[3] = hc_bytealign_S (w2[3], w3[0], offset);
+      w3[2] = hc_bytealign_S (w2[2], w2[3], offset);
+      w3[1] = hc_bytealign_S (w2[1], w2[2], offset);
+      w3[0] = hc_bytealign_S (w2[0], w2[1], offset);
+      w2[3] = hc_bytealign_S (w1[3], w2[0], offset);
+      w2[2] = hc_bytealign_S (w1[2], w1[3], offset);
+      w2[1] = hc_bytealign_S (w1[1], w1[2], offset);
+      w2[0] = hc_bytealign_S (w1[0], w1[1], offset);
+      w1[3] = hc_bytealign_S (w0[3], w1[0], offset);
+      w1[2] = hc_bytealign_S (w0[2], w0[3], offset);
+      w1[1] = hc_bytealign_S (w0[1], w0[2], offset);
+      w1[0] = hc_bytealign_S (w0[0], w0[1], offset);
+      w0[3] = hc_bytealign_S (    0, w0[0], offset);
       w0[2] = 0;
       w0[1] = 0;
       w0[0] = 0;
 
-      if (offset_mod_4 == 0)
-      {
-        w0[3] = w1[0];
-        w1[0] = w1[1];
-        w1[1] = w1[2];
-        w1[2] = w1[3];
-        w1[3] = w2[0];
-        w2[0] = w2[1];
-        w2[1] = w2[2];
-        w2[2] = w2[3];
-        w2[3] = w3[0];
-        w3[0] = w3[1];
-        w3[1] = w3[2];
-        w3[2] = w3[3];
-        w3[3] = c0[0];
-        c0[0] = c0[1];
-        c0[1] = c0[2];
-        c0[2] = c0[3];
-        c0[3] = 0;
-      }
-
       break;
 
     case 4:
-      c1[0] = hc_bytealign_S (    0, w3[3], offset_minus_4);
-      c0[3] = hc_bytealign_S (w3[3], w3[2], offset_minus_4);
-      c0[2] = hc_bytealign_S (w3[2], w3[1], offset_minus_4);
-      c0[1] = hc_bytealign_S (w3[1], w3[0], offset_minus_4);
-      c0[0] = hc_bytealign_S (w3[0], w2[3], offset_minus_4);
-      w3[3] = hc_bytealign_S (w2[3], w2[2], offset_minus_4);
-      w3[2] = hc_bytealign_S (w2[2], w2[1], offset_minus_4);
-      w3[1] = hc_bytealign_S (w2[1], w2[0], offset_minus_4);
-      w3[0] = hc_bytealign_S (w2[0], w1[3], offset_minus_4);
-      w2[3] = hc_bytealign_S (w1[3], w1[2], offset_minus_4);
-      w2[2] = hc_bytealign_S (w1[2], w1[1], offset_minus_4);
-      w2[1] = hc_bytealign_S (w1[1], w1[0], offset_minus_4);
-      w2[0] = hc_bytealign_S (w1[0], w0[3], offset_minus_4);
-      w1[3] = hc_bytealign_S (w0[3], w0[2], offset_minus_4);
-      w1[2] = hc_bytealign_S (w0[2], w0[1], offset_minus_4);
-      w1[1] = hc_bytealign_S (w0[1], w0[0], offset_minus_4);
-      w1[0] = hc_bytealign_S (w0[0],     0, offset_minus_4);
+      c1[0] = hc_bytealign_S (w3[3],     0, offset);
+      c0[3] = hc_bytealign_S (w3[2], w3[3], offset);
+      c0[2] = hc_bytealign_S (w3[1], w3[2], offset);
+      c0[1] = hc_bytealign_S (w3[0], w3[1], offset);
+      c0[0] = hc_bytealign_S (w2[3], w3[0], offset);
+      w3[3] = hc_bytealign_S (w2[2], w2[3], offset);
+      w3[2] = hc_bytealign_S (w2[1], w2[2], offset);
+      w3[1] = hc_bytealign_S (w2[0], w2[1], offset);
+      w3[0] = hc_bytealign_S (w1[3], w2[0], offset);
+      w2[3] = hc_bytealign_S (w1[2], w1[3], offset);
+      w2[2] = hc_bytealign_S (w1[1], w1[2], offset);
+      w2[1] = hc_bytealign_S (w1[0], w1[1], offset);
+      w2[0] = hc_bytealign_S (w0[3], w1[0], offset);
+      w1[3] = hc_bytealign_S (w0[2], w0[3], offset);
+      w1[2] = hc_bytealign_S (w0[1], w0[2], offset);
+      w1[1] = hc_bytealign_S (w0[0], w0[1], offset);
+      w1[0] = hc_bytealign_S (    0, w0[0], offset);
       w0[3] = 0;
       w0[2] = 0;
       w0[1] = 0;
       w0[0] = 0;
 
-      if (offset_mod_4 == 0)
-      {
-        w1[0] = w1[1];
-        w1[1] = w1[2];
-        w1[2] = w1[3];
-        w1[3] = w2[0];
-        w2[0] = w2[1];
-        w2[1] = w2[2];
-        w2[2] = w2[3];
-        w2[3] = w3[0];
-        w3[0] = w3[1];
-        w3[1] = w3[2];
-        w3[2] = w3[3];
-        w3[3] = c0[0];
-        c0[0] = c0[1];
-        c0[1] = c0[2];
-        c0[2] = c0[3];
-        c0[3] = c1[0];
-        c1[0] = 0;
-      }
-
       break;
 
     case 5:
-      c1[1] = hc_bytealign_S (    0, w3[3], offset_minus_4);
-      c1[0] = hc_bytealign_S (w3[3], w3[2], offset_minus_4);
-      c0[3] = hc_bytealign_S (w3[2], w3[1], offset_minus_4);
-      c0[2] = hc_bytealign_S (w3[1], w3[0], offset_minus_4);
-      c0[1] = hc_bytealign_S (w3[0], w2[3], offset_minus_4);
-      c0[0] = hc_bytealign_S (w2[3], w2[2], offset_minus_4);
-      w3[3] = hc_bytealign_S (w2[2], w2[1], offset_minus_4);
-      w3[2] = hc_bytealign_S (w2[1], w2[0], offset_minus_4);
-      w3[1] = hc_bytealign_S (w2[0], w1[3], offset_minus_4);
-      w3[0] = hc_bytealign_S (w1[3], w1[2], offset_minus_4);
-      w2[3] = hc_bytealign_S (w1[2], w1[1], offset_minus_4);
-      w2[2] = hc_bytealign_S (w1[1], w1[0], offset_minus_4);
-      w2[1] = hc_bytealign_S (w1[0], w0[3], offset_minus_4);
-      w2[0] = hc_bytealign_S (w0[3], w0[2], offset_minus_4);
-      w1[3] = hc_bytealign_S (w0[2], w0[1], offset_minus_4);
-      w1[2] = hc_bytealign_S (w0[1], w0[0], offset_minus_4);
-      w1[1] = hc_bytealign_S (w0[0],     0, offset_minus_4);
+      c1[1] = hc_bytealign_S (w3[3],     0, offset);
+      c1[0] = hc_bytealign_S (w3[2], w3[3], offset);
+      c0[3] = hc_bytealign_S (w3[1], w3[2], offset);
+      c0[2] = hc_bytealign_S (w3[0], w3[1], offset);
+      c0[1] = hc_bytealign_S (w2[3], w3[0], offset);
+      c0[0] = hc_bytealign_S (w2[2], w2[3], offset);
+      w3[3] = hc_bytealign_S (w2[1], w2[2], offset);
+      w3[2] = hc_bytealign_S (w2[0], w2[1], offset);
+      w3[1] = hc_bytealign_S (w1[3], w2[0], offset);
+      w3[0] = hc_bytealign_S (w1[2], w1[3], offset);
+      w2[3] = hc_bytealign_S (w1[1], w1[2], offset);
+      w2[2] = hc_bytealign_S (w1[0], w1[1], offset);
+      w2[1] = hc_bytealign_S (w0[3], w1[0], offset);
+      w2[0] = hc_bytealign_S (w0[2], w0[3], offset);
+      w1[3] = hc_bytealign_S (w0[1], w0[2], offset);
+      w1[2] = hc_bytealign_S (w0[0], w0[1], offset);
+      w1[1] = hc_bytealign_S (    0, w0[0], offset);
       w1[0] = 0;
       w0[3] = 0;
       w0[2] = 0;
       w0[1] = 0;
       w0[0] = 0;
 
-      if (offset_mod_4 == 0)
-      {
-        w1[1] = w1[2];
-        w1[2] = w1[3];
-        w1[3] = w2[0];
-        w2[0] = w2[1];
-        w2[1] = w2[2];
-        w2[2] = w2[3];
-        w2[3] = w3[0];
-        w3[0] = w3[1];
-        w3[1] = w3[2];
-        w3[2] = w3[3];
-        w3[3] = c0[0];
-        c0[0] = c0[1];
-        c0[1] = c0[2];
-        c0[2] = c0[3];
-        c0[3] = c1[0];
-        c1[0] = c1[1];
-        c1[1] = 0;
-      }
-
       break;
 
     case 6:
-      c1[2] = hc_bytealign_S (    0, w3[3], offset_minus_4);
-      c1[1] = hc_bytealign_S (w3[3], w3[2], offset_minus_4);
-      c1[0] = hc_bytealign_S (w3[2], w3[1], offset_minus_4);
-      c0[3] = hc_bytealign_S (w3[1], w3[0], offset_minus_4);
-      c0[2] = hc_bytealign_S (w3[0], w2[3], offset_minus_4);
-      c0[1] = hc_bytealign_S (w2[3], w2[2], offset_minus_4);
-      c0[0] = hc_bytealign_S (w2[2], w2[1], offset_minus_4);
-      w3[3] = hc_bytealign_S (w2[1], w2[0], offset_minus_4);
-      w3[2] = hc_bytealign_S (w2[0], w1[3], offset_minus_4);
-      w3[1] = hc_bytealign_S (w1[3], w1[2], offset_minus_4);
-      w3[0] = hc_bytealign_S (w1[2], w1[1], offset_minus_4);
-      w2[3] = hc_bytealign_S (w1[1], w1[0], offset_minus_4);
-      w2[2] = hc_bytealign_S (w1[0], w0[3], offset_minus_4);
-      w2[1] = hc_bytealign_S (w0[3], w0[2], offset_minus_4);
-      w2[0] = hc_bytealign_S (w0[2], w0[1], offset_minus_4);
-      w1[3] = hc_bytealign_S (w0[1], w0[0], offset_minus_4);
-      w1[2] = hc_bytealign_S (w0[0],     0, offset_minus_4);
+      c1[2] = hc_bytealign_S (w3[3],     0, offset);
+      c1[1] = hc_bytealign_S (w3[2], w3[3], offset);
+      c1[0] = hc_bytealign_S (w3[1], w3[2], offset);
+      c0[3] = hc_bytealign_S (w3[0], w3[1], offset);
+      c0[2] = hc_bytealign_S (w2[3], w3[0], offset);
+      c0[1] = hc_bytealign_S (w2[2], w2[3], offset);
+      c0[0] = hc_bytealign_S (w2[1], w2[2], offset);
+      w3[3] = hc_bytealign_S (w2[0], w2[1], offset);
+      w3[2] = hc_bytealign_S (w1[3], w2[0], offset);
+      w3[1] = hc_bytealign_S (w1[2], w1[3], offset);
+      w3[0] = hc_bytealign_S (w1[1], w1[2], offset);
+      w2[3] = hc_bytealign_S (w1[0], w1[1], offset);
+      w2[2] = hc_bytealign_S (w0[3], w1[0], offset);
+      w2[1] = hc_bytealign_S (w0[2], w0[3], offset);
+      w2[0] = hc_bytealign_S (w0[1], w0[2], offset);
+      w1[3] = hc_bytealign_S (w0[0], w0[1], offset);
+      w1[2] = hc_bytealign_S (    0, w0[0], offset);
       w1[1] = 0;
       w1[0] = 0;
       w0[3] = 0;
@@ -34050,47 +33586,26 @@ DECLSPEC void switch_buffer_by_offset_carry_le_S (u32 *w0, u32 *w1, u32 *w2, u32
       w0[1] = 0;
       w0[0] = 0;
 
-      if (offset_mod_4 == 0)
-      {
-        w1[2] = w1[3];
-        w1[3] = w2[0];
-        w2[0] = w2[1];
-        w2[1] = w2[2];
-        w2[2] = w2[3];
-        w2[3] = w3[0];
-        w3[0] = w3[1];
-        w3[1] = w3[2];
-        w3[2] = w3[3];
-        w3[3] = c0[0];
-        c0[0] = c0[1];
-        c0[1] = c0[2];
-        c0[2] = c0[3];
-        c0[3] = c1[0];
-        c1[0] = c1[1];
-        c1[1] = c1[2];
-        c1[2] = 0;
-      }
-
       break;
 
     case 7:
-      c1[3] = hc_bytealign_S (    0, w3[3], offset_minus_4);
-      c1[2] = hc_bytealign_S (w3[3], w3[2], offset_minus_4);
-      c1[1] = hc_bytealign_S (w3[2], w3[1], offset_minus_4);
-      c1[0] = hc_bytealign_S (w3[1], w3[0], offset_minus_4);
-      c0[3] = hc_bytealign_S (w3[0], w2[3], offset_minus_4);
-      c0[2] = hc_bytealign_S (w2[3], w2[2], offset_minus_4);
-      c0[1] = hc_bytealign_S (w2[2], w2[1], offset_minus_4);
-      c0[0] = hc_bytealign_S (w2[1], w2[0], offset_minus_4);
-      w3[3] = hc_bytealign_S (w2[0], w1[3], offset_minus_4);
-      w3[2] = hc_bytealign_S (w1[3], w1[2], offset_minus_4);
-      w3[1] = hc_bytealign_S (w1[2], w1[1], offset_minus_4);
-      w3[0] = hc_bytealign_S (w1[1], w1[0], offset_minus_4);
-      w2[3] = hc_bytealign_S (w1[0], w0[3], offset_minus_4);
-      w2[2] = hc_bytealign_S (w0[3], w0[2], offset_minus_4);
-      w2[1] = hc_bytealign_S (w0[2], w0[1], offset_minus_4);
-      w2[0] = hc_bytealign_S (w0[1], w0[0], offset_minus_4);
-      w1[3] = hc_bytealign_S (w0[0],     0, offset_minus_4);
+      c1[3] = hc_bytealign_S (w3[3],     0, offset);
+      c1[2] = hc_bytealign_S (w3[2], w3[3], offset);
+      c1[1] = hc_bytealign_S (w3[1], w3[2], offset);
+      c1[0] = hc_bytealign_S (w3[0], w3[1], offset);
+      c0[3] = hc_bytealign_S (w2[3], w3[0], offset);
+      c0[2] = hc_bytealign_S (w2[2], w2[3], offset);
+      c0[1] = hc_bytealign_S (w2[1], w2[2], offset);
+      c0[0] = hc_bytealign_S (w2[0], w2[1], offset);
+      w3[3] = hc_bytealign_S (w1[3], w2[0], offset);
+      w3[2] = hc_bytealign_S (w1[2], w1[3], offset);
+      w3[1] = hc_bytealign_S (w1[1], w1[2], offset);
+      w3[0] = hc_bytealign_S (w1[0], w1[1], offset);
+      w2[3] = hc_bytealign_S (w0[3], w1[0], offset);
+      w2[2] = hc_bytealign_S (w0[2], w0[3], offset);
+      w2[1] = hc_bytealign_S (w0[1], w0[2], offset);
+      w2[0] = hc_bytealign_S (w0[0], w0[1], offset);
+      w1[3] = hc_bytealign_S (    0, w0[0], offset);
       w1[2] = 0;
       w1[1] = 0;
       w1[0] = 0;
@@ -34099,47 +33614,26 @@ DECLSPEC void switch_buffer_by_offset_carry_le_S (u32 *w0, u32 *w1, u32 *w2, u32
       w0[1] = 0;
       w0[0] = 0;
 
-      if (offset_mod_4 == 0)
-      {
-        w1[3] = w2[0];
-        w2[0] = w2[1];
-        w2[1] = w2[2];
-        w2[2] = w2[3];
-        w2[3] = w3[0];
-        w3[0] = w3[1];
-        w3[1] = w3[2];
-        w3[2] = w3[3];
-        w3[3] = c0[0];
-        c0[0] = c0[1];
-        c0[1] = c0[2];
-        c0[2] = c0[3];
-        c0[3] = c1[0];
-        c1[0] = c1[1];
-        c1[1] = c1[2];
-        c1[2] = c1[3];
-        c1[3] = 0;
-      }
-
       break;
 
     case 8:
-      c2[0] = hc_bytealign_S (    0, w3[3], offset_minus_4);
-      c1[3] = hc_bytealign_S (w3[3], w3[2], offset_minus_4);
-      c1[2] = hc_bytealign_S (w3[2], w3[1], offset_minus_4);
-      c1[1] = hc_bytealign_S (w3[1], w3[0], offset_minus_4);
-      c1[0] = hc_bytealign_S (w3[0], w2[3], offset_minus_4);
-      c0[3] = hc_bytealign_S (w2[3], w2[2], offset_minus_4);
-      c0[2] = hc_bytealign_S (w2[2], w2[1], offset_minus_4);
-      c0[1] = hc_bytealign_S (w2[1], w2[0], offset_minus_4);
-      c0[0] = hc_bytealign_S (w2[0], w1[3], offset_minus_4);
-      w3[3] = hc_bytealign_S (w1[3], w1[2], offset_minus_4);
-      w3[2] = hc_bytealign_S (w1[2], w1[1], offset_minus_4);
-      w3[1] = hc_bytealign_S (w1[1], w1[0], offset_minus_4);
-      w3[0] = hc_bytealign_S (w1[0], w0[3], offset_minus_4);
-      w2[3] = hc_bytealign_S (w0[3], w0[2], offset_minus_4);
-      w2[2] = hc_bytealign_S (w0[2], w0[1], offset_minus_4);
-      w2[1] = hc_bytealign_S (w0[1], w0[0], offset_minus_4);
-      w2[0] = hc_bytealign_S (w0[0],     0, offset_minus_4);
+      c2[0] = hc_bytealign_S (w3[3],     0, offset);
+      c1[3] = hc_bytealign_S (w3[2], w3[3], offset);
+      c1[2] = hc_bytealign_S (w3[1], w3[2], offset);
+      c1[1] = hc_bytealign_S (w3[0], w3[1], offset);
+      c1[0] = hc_bytealign_S (w2[3], w3[0], offset);
+      c0[3] = hc_bytealign_S (w2[2], w2[3], offset);
+      c0[2] = hc_bytealign_S (w2[1], w2[2], offset);
+      c0[1] = hc_bytealign_S (w2[0], w2[1], offset);
+      c0[0] = hc_bytealign_S (w1[3], w2[0], offset);
+      w3[3] = hc_bytealign_S (w1[2], w1[3], offset);
+      w3[2] = hc_bytealign_S (w1[1], w1[2], offset);
+      w3[1] = hc_bytealign_S (w1[0], w1[1], offset);
+      w3[0] = hc_bytealign_S (w0[3], w1[0], offset);
+      w2[3] = hc_bytealign_S (w0[2], w0[3], offset);
+      w2[2] = hc_bytealign_S (w0[1], w0[2], offset);
+      w2[1] = hc_bytealign_S (w0[0], w0[1], offset);
+      w2[0] = hc_bytealign_S (    0, w0[0], offset);
       w1[3] = 0;
       w1[2] = 0;
       w1[1] = 0;
@@ -34149,47 +33643,26 @@ DECLSPEC void switch_buffer_by_offset_carry_le_S (u32 *w0, u32 *w1, u32 *w2, u32
       w0[1] = 0;
       w0[0] = 0;
 
-      if (offset_mod_4 == 0)
-      {
-        w2[0] = w2[1];
-        w2[1] = w2[2];
-        w2[2] = w2[3];
-        w2[3] = w3[0];
-        w3[0] = w3[1];
-        w3[1] = w3[2];
-        w3[2] = w3[3];
-        w3[3] = c0[0];
-        c0[0] = c0[1];
-        c0[1] = c0[2];
-        c0[2] = c0[3];
-        c0[3] = c1[0];
-        c1[0] = c1[1];
-        c1[1] = c1[2];
-        c1[2] = c1[3];
-        c1[3] = c2[0];
-        c2[0] = 0;
-      }
-
       break;
 
     case 9:
-      c2[1] = hc_bytealign_S (    0, w3[3], offset_minus_4);
-      c2[0] = hc_bytealign_S (w3[3], w3[2], offset_minus_4);
-      c1[3] = hc_bytealign_S (w3[2], w3[1], offset_minus_4);
-      c1[2] = hc_bytealign_S (w3[1], w3[0], offset_minus_4);
-      c1[1] = hc_bytealign_S (w3[0], w2[3], offset_minus_4);
-      c1[0] = hc_bytealign_S (w2[3], w2[2], offset_minus_4);
-      c0[3] = hc_bytealign_S (w2[2], w2[1], offset_minus_4);
-      c0[2] = hc_bytealign_S (w2[1], w2[0], offset_minus_4);
-      c0[1] = hc_bytealign_S (w2[0], w1[3], offset_minus_4);
-      c0[0] = hc_bytealign_S (w1[3], w1[2], offset_minus_4);
-      w3[3] = hc_bytealign_S (w1[2], w1[1], offset_minus_4);
-      w3[2] = hc_bytealign_S (w1[1], w1[0], offset_minus_4);
-      w3[1] = hc_bytealign_S (w1[0], w0[3], offset_minus_4);
-      w3[0] = hc_bytealign_S (w0[3], w0[2], offset_minus_4);
-      w2[3] = hc_bytealign_S (w0[2], w0[1], offset_minus_4);
-      w2[2] = hc_bytealign_S (w0[1], w0[0], offset_minus_4);
-      w2[1] = hc_bytealign_S (w0[0],     0, offset_minus_4);
+      c2[1] = hc_bytealign_S (w3[3],     0, offset);
+      c2[0] = hc_bytealign_S (w3[2], w3[3], offset);
+      c1[3] = hc_bytealign_S (w3[1], w3[2], offset);
+      c1[2] = hc_bytealign_S (w3[0], w3[1], offset);
+      c1[1] = hc_bytealign_S (w2[3], w3[0], offset);
+      c1[0] = hc_bytealign_S (w2[2], w2[3], offset);
+      c0[3] = hc_bytealign_S (w2[1], w2[2], offset);
+      c0[2] = hc_bytealign_S (w2[0], w2[1], offset);
+      c0[1] = hc_bytealign_S (w1[3], w2[0], offset);
+      c0[0] = hc_bytealign_S (w1[2], w1[3], offset);
+      w3[3] = hc_bytealign_S (w1[1], w1[2], offset);
+      w3[2] = hc_bytealign_S (w1[0], w1[1], offset);
+      w3[1] = hc_bytealign_S (w0[3], w1[0], offset);
+      w3[0] = hc_bytealign_S (w0[2], w0[3], offset);
+      w2[3] = hc_bytealign_S (w0[1], w0[2], offset);
+      w2[2] = hc_bytealign_S (w0[0], w0[1], offset);
+      w2[1] = hc_bytealign_S (    0, w0[0], offset);
       w2[0] = 0;
       w1[3] = 0;
       w1[2] = 0;
@@ -34200,47 +33673,26 @@ DECLSPEC void switch_buffer_by_offset_carry_le_S (u32 *w0, u32 *w1, u32 *w2, u32
       w0[1] = 0;
       w0[0] = 0;
 
-      if (offset_mod_4 == 0)
-      {
-        w2[1] = w2[2];
-        w2[2] = w2[3];
-        w2[3] = w3[0];
-        w3[0] = w3[1];
-        w3[1] = w3[2];
-        w3[2] = w3[3];
-        w3[3] = c0[0];
-        c0[0] = c0[1];
-        c0[1] = c0[2];
-        c0[2] = c0[3];
-        c0[3] = c1[0];
-        c1[0] = c1[1];
-        c1[1] = c1[2];
-        c1[2] = c1[3];
-        c1[3] = c2[0];
-        c2[0] = c2[1];
-        c2[1] = 0;
-      }
-
       break;
 
     case 10:
-      c2[2] = hc_bytealign_S (    0, w3[3], offset_minus_4);
-      c2[1] = hc_bytealign_S (w3[3], w3[2], offset_minus_4);
-      c2[0] = hc_bytealign_S (w3[2], w3[1], offset_minus_4);
-      c1[3] = hc_bytealign_S (w3[1], w3[0], offset_minus_4);
-      c1[2] = hc_bytealign_S (w3[0], w2[3], offset_minus_4);
-      c1[1] = hc_bytealign_S (w2[3], w2[2], offset_minus_4);
-      c1[0] = hc_bytealign_S (w2[2], w2[1], offset_minus_4);
-      c0[3] = hc_bytealign_S (w2[1], w2[0], offset_minus_4);
-      c0[2] = hc_bytealign_S (w2[0], w1[3], offset_minus_4);
-      c0[1] = hc_bytealign_S (w1[3], w1[2], offset_minus_4);
-      c0[0] = hc_bytealign_S (w1[2], w1[1], offset_minus_4);
-      w3[3] = hc_bytealign_S (w1[1], w1[0], offset_minus_4);
-      w3[2] = hc_bytealign_S (w1[0], w0[3], offset_minus_4);
-      w3[1] = hc_bytealign_S (w0[3], w0[2], offset_minus_4);
-      w3[0] = hc_bytealign_S (w0[2], w0[1], offset_minus_4);
-      w2[3] = hc_bytealign_S (w0[1], w0[0], offset_minus_4);
-      w2[2] = hc_bytealign_S (w0[0],     0, offset_minus_4);
+      c2[2] = hc_bytealign_S (w3[3],     0, offset);
+      c2[1] = hc_bytealign_S (w3[2], w3[3], offset);
+      c2[0] = hc_bytealign_S (w3[1], w3[2], offset);
+      c1[3] = hc_bytealign_S (w3[0], w3[1], offset);
+      c1[2] = hc_bytealign_S (w2[3], w3[0], offset);
+      c1[1] = hc_bytealign_S (w2[2], w2[3], offset);
+      c1[0] = hc_bytealign_S (w2[1], w2[2], offset);
+      c0[3] = hc_bytealign_S (w2[0], w2[1], offset);
+      c0[2] = hc_bytealign_S (w1[3], w2[0], offset);
+      c0[1] = hc_bytealign_S (w1[2], w1[3], offset);
+      c0[0] = hc_bytealign_S (w1[1], w1[2], offset);
+      w3[3] = hc_bytealign_S (w1[0], w1[1], offset);
+      w3[2] = hc_bytealign_S (w0[3], w1[0], offset);
+      w3[1] = hc_bytealign_S (w0[2], w0[3], offset);
+      w3[0] = hc_bytealign_S (w0[1], w0[2], offset);
+      w2[3] = hc_bytealign_S (w0[0], w0[1], offset);
+      w2[2] = hc_bytealign_S (    0, w0[0], offset);
       w2[1] = 0;
       w2[0] = 0;
       w1[3] = 0;
@@ -34252,47 +33704,26 @@ DECLSPEC void switch_buffer_by_offset_carry_le_S (u32 *w0, u32 *w1, u32 *w2, u32
       w0[1] = 0;
       w0[0] = 0;
 
-      if (offset_mod_4 == 0)
-      {
-        w2[2] = w2[3];
-        w2[3] = w3[0];
-        w3[0] = w3[1];
-        w3[1] = w3[2];
-        w3[2] = w3[3];
-        w3[3] = c0[0];
-        c0[0] = c0[1];
-        c0[1] = c0[2];
-        c0[2] = c0[3];
-        c0[3] = c1[0];
-        c1[0] = c1[1];
-        c1[1] = c1[2];
-        c1[2] = c1[3];
-        c1[3] = c2[0];
-        c2[0] = c2[1];
-        c2[1] = c2[2];
-        c2[2] = 0;
-      }
-
       break;
 
     case 11:
-      c2[3] = hc_bytealign_S (    0, w3[3], offset_minus_4);
-      c2[2] = hc_bytealign_S (w3[3], w3[2], offset_minus_4);
-      c2[1] = hc_bytealign_S (w3[2], w3[1], offset_minus_4);
-      c2[0] = hc_bytealign_S (w3[1], w3[0], offset_minus_4);
-      c1[3] = hc_bytealign_S (w3[0], w2[3], offset_minus_4);
-      c1[2] = hc_bytealign_S (w2[3], w2[2], offset_minus_4);
-      c1[1] = hc_bytealign_S (w2[2], w2[1], offset_minus_4);
-      c1[0] = hc_bytealign_S (w2[1], w2[0], offset_minus_4);
-      c0[3] = hc_bytealign_S (w2[0], w1[3], offset_minus_4);
-      c0[2] = hc_bytealign_S (w1[3], w1[2], offset_minus_4);
-      c0[1] = hc_bytealign_S (w1[2], w1[1], offset_minus_4);
-      c0[0] = hc_bytealign_S (w1[1], w1[0], offset_minus_4);
-      w3[3] = hc_bytealign_S (w1[0], w0[3], offset_minus_4);
-      w3[2] = hc_bytealign_S (w0[3], w0[2], offset_minus_4);
-      w3[1] = hc_bytealign_S (w0[2], w0[1], offset_minus_4);
-      w3[0] = hc_bytealign_S (w0[1], w0[0], offset_minus_4);
-      w2[3] = hc_bytealign_S (w0[0],     0, offset_minus_4);
+      c2[3] = hc_bytealign_S (w3[3],     0, offset);
+      c2[2] = hc_bytealign_S (w3[2], w3[3], offset);
+      c2[1] = hc_bytealign_S (w3[1], w3[2], offset);
+      c2[0] = hc_bytealign_S (w3[0], w3[1], offset);
+      c1[3] = hc_bytealign_S (w2[3], w3[0], offset);
+      c1[2] = hc_bytealign_S (w2[2], w2[3], offset);
+      c1[1] = hc_bytealign_S (w2[1], w2[2], offset);
+      c1[0] = hc_bytealign_S (w2[0], w2[1], offset);
+      c0[3] = hc_bytealign_S (w1[3], w2[0], offset);
+      c0[2] = hc_bytealign_S (w1[2], w1[3], offset);
+      c0[1] = hc_bytealign_S (w1[1], w1[2], offset);
+      c0[0] = hc_bytealign_S (w1[0], w1[1], offset);
+      w3[3] = hc_bytealign_S (w0[3], w1[0], offset);
+      w3[2] = hc_bytealign_S (w0[2], w0[3], offset);
+      w3[1] = hc_bytealign_S (w0[1], w0[2], offset);
+      w3[0] = hc_bytealign_S (w0[0], w0[1], offset);
+      w2[3] = hc_bytealign_S (    0, w0[0], offset);
       w2[2] = 0;
       w2[1] = 0;
       w2[0] = 0;
@@ -34305,47 +33736,26 @@ DECLSPEC void switch_buffer_by_offset_carry_le_S (u32 *w0, u32 *w1, u32 *w2, u32
       w0[1] = 0;
       w0[0] = 0;
 
-      if (offset_mod_4 == 0)
-      {
-        w2[3] = w3[0];
-        w3[0] = w3[1];
-        w3[1] = w3[2];
-        w3[2] = w3[3];
-        w3[3] = c0[0];
-        c0[0] = c0[1];
-        c0[1] = c0[2];
-        c0[2] = c0[3];
-        c0[3] = c1[0];
-        c1[0] = c1[1];
-        c1[1] = c1[2];
-        c1[2] = c1[3];
-        c1[3] = c2[0];
-        c2[0] = c2[1];
-        c2[1] = c2[2];
-        c2[2] = c2[3];
-        c2[3] = 0;
-      }
-
       break;
 
     case 12:
-      c3[0] = hc_bytealign_S (    0, w3[3], offset_minus_4);
-      c2[3] = hc_bytealign_S (w3[3], w3[2], offset_minus_4);
-      c2[2] = hc_bytealign_S (w3[2], w3[1], offset_minus_4);
-      c2[1] = hc_bytealign_S (w3[1], w3[0], offset_minus_4);
-      c2[0] = hc_bytealign_S (w3[0], w2[3], offset_minus_4);
-      c1[3] = hc_bytealign_S (w2[3], w2[2], offset_minus_4);
-      c1[2] = hc_bytealign_S (w2[2], w2[1], offset_minus_4);
-      c1[1] = hc_bytealign_S (w2[1], w2[0], offset_minus_4);
-      c1[0] = hc_bytealign_S (w2[0], w1[3], offset_minus_4);
-      c0[3] = hc_bytealign_S (w1[3], w1[2], offset_minus_4);
-      c0[2] = hc_bytealign_S (w1[2], w1[1], offset_minus_4);
-      c0[1] = hc_bytealign_S (w1[1], w1[0], offset_minus_4);
-      c0[0] = hc_bytealign_S (w1[0], w0[3], offset_minus_4);
-      w3[3] = hc_bytealign_S (w0[3], w0[2], offset_minus_4);
-      w3[2] = hc_bytealign_S (w0[2], w0[1], offset_minus_4);
-      w3[1] = hc_bytealign_S (w0[1], w0[0], offset_minus_4);
-      w3[0] = hc_bytealign_S (w0[0],     0, offset_minus_4);
+      c3[0] = hc_bytealign_S (w3[3],     0, offset);
+      c2[3] = hc_bytealign_S (w3[2], w3[3], offset);
+      c2[2] = hc_bytealign_S (w3[1], w3[2], offset);
+      c2[1] = hc_bytealign_S (w3[0], w3[1], offset);
+      c2[0] = hc_bytealign_S (w2[3], w3[0], offset);
+      c1[3] = hc_bytealign_S (w2[2], w2[3], offset);
+      c1[2] = hc_bytealign_S (w2[1], w2[2], offset);
+      c1[1] = hc_bytealign_S (w2[0], w2[1], offset);
+      c1[0] = hc_bytealign_S (w1[3], w2[0], offset);
+      c0[3] = hc_bytealign_S (w1[2], w1[3], offset);
+      c0[2] = hc_bytealign_S (w1[1], w1[2], offset);
+      c0[1] = hc_bytealign_S (w1[0], w1[1], offset);
+      c0[0] = hc_bytealign_S (w0[3], w1[0], offset);
+      w3[3] = hc_bytealign_S (w0[2], w0[3], offset);
+      w3[2] = hc_bytealign_S (w0[1], w0[2], offset);
+      w3[1] = hc_bytealign_S (w0[0], w0[1], offset);
+      w3[0] = hc_bytealign_S (    0, w0[0], offset);
       w2[3] = 0;
       w2[2] = 0;
       w2[1] = 0;
@@ -34359,47 +33769,26 @@ DECLSPEC void switch_buffer_by_offset_carry_le_S (u32 *w0, u32 *w1, u32 *w2, u32
       w0[1] = 0;
       w0[0] = 0;
 
-      if (offset_mod_4 == 0)
-      {
-        w3[0] = w3[1];
-        w3[1] = w3[2];
-        w3[2] = w3[3];
-        w3[3] = c0[0];
-        c0[0] = c0[1];
-        c0[1] = c0[2];
-        c0[2] = c0[3];
-        c0[3] = c1[0];
-        c1[0] = c1[1];
-        c1[1] = c1[2];
-        c1[2] = c1[3];
-        c1[3] = c2[0];
-        c2[0] = c2[1];
-        c2[1] = c2[2];
-        c2[2] = c2[3];
-        c2[3] = c3[0];
-        c3[0] = 0;
-      }
-
       break;
 
     case 13:
-      c3[1] = hc_bytealign_S (    0, w3[3], offset_minus_4);
-      c3[0] = hc_bytealign_S (w3[3], w3[2], offset_minus_4);
-      c2[3] = hc_bytealign_S (w3[2], w3[1], offset_minus_4);
-      c2[2] = hc_bytealign_S (w3[1], w3[0], offset_minus_4);
-      c2[1] = hc_bytealign_S (w3[0], w2[3], offset_minus_4);
-      c2[0] = hc_bytealign_S (w2[3], w2[2], offset_minus_4);
-      c1[3] = hc_bytealign_S (w2[2], w2[1], offset_minus_4);
-      c1[2] = hc_bytealign_S (w2[1], w2[0], offset_minus_4);
-      c1[1] = hc_bytealign_S (w2[0], w1[3], offset_minus_4);
-      c1[0] = hc_bytealign_S (w1[3], w1[2], offset_minus_4);
-      c0[3] = hc_bytealign_S (w1[2], w1[1], offset_minus_4);
-      c0[2] = hc_bytealign_S (w1[1], w1[0], offset_minus_4);
-      c0[1] = hc_bytealign_S (w1[0], w0[3], offset_minus_4);
-      c0[0] = hc_bytealign_S (w0[3], w0[2], offset_minus_4);
-      w3[3] = hc_bytealign_S (w0[2], w0[1], offset_minus_4);
-      w3[2] = hc_bytealign_S (w0[1], w0[0], offset_minus_4);
-      w3[1] = hc_bytealign_S (w0[0],     0, offset_minus_4);
+      c3[1] = hc_bytealign_S (w3[3],     0, offset);
+      c3[0] = hc_bytealign_S (w3[2], w3[3], offset);
+      c2[3] = hc_bytealign_S (w3[1], w3[2], offset);
+      c2[2] = hc_bytealign_S (w3[0], w3[1], offset);
+      c2[1] = hc_bytealign_S (w2[3], w3[0], offset);
+      c2[0] = hc_bytealign_S (w2[2], w2[3], offset);
+      c1[3] = hc_bytealign_S (w2[1], w2[2], offset);
+      c1[2] = hc_bytealign_S (w2[0], w2[1], offset);
+      c1[1] = hc_bytealign_S (w1[3], w2[0], offset);
+      c1[0] = hc_bytealign_S (w1[2], w1[3], offset);
+      c0[3] = hc_bytealign_S (w1[1], w1[2], offset);
+      c0[2] = hc_bytealign_S (w1[0], w1[1], offset);
+      c0[1] = hc_bytealign_S (w0[3], w1[0], offset);
+      c0[0] = hc_bytealign_S (w0[2], w0[3], offset);
+      w3[3] = hc_bytealign_S (w0[1], w0[2], offset);
+      w3[2] = hc_bytealign_S (w0[0], w0[1], offset);
+      w3[1] = hc_bytealign_S (    0, w0[0], offset);
       w3[0] = 0;
       w2[3] = 0;
       w2[2] = 0;
@@ -34414,47 +33803,26 @@ DECLSPEC void switch_buffer_by_offset_carry_le_S (u32 *w0, u32 *w1, u32 *w2, u32
       w0[1] = 0;
       w0[0] = 0;
 
-      if (offset_mod_4 == 0)
-      {
-        w3[1] = w3[2];
-        w3[2] = w3[3];
-        w3[3] = c0[0];
-        c0[0] = c0[1];
-        c0[1] = c0[2];
-        c0[2] = c0[3];
-        c0[3] = c1[0];
-        c1[0] = c1[1];
-        c1[1] = c1[2];
-        c1[2] = c1[3];
-        c1[3] = c2[0];
-        c2[0] = c2[1];
-        c2[1] = c2[2];
-        c2[2] = c2[3];
-        c2[3] = c3[0];
-        c3[0] = c3[1];
-        c3[1] = 0;
-      }
-
       break;
 
     case 14:
-      c3[2] = hc_bytealign_S (    0, w3[3], offset_minus_4);
-      c3[1] = hc_bytealign_S (w3[3], w3[2], offset_minus_4);
-      c3[0] = hc_bytealign_S (w3[2], w3[1], offset_minus_4);
-      c2[3] = hc_bytealign_S (w3[1], w3[0], offset_minus_4);
-      c2[2] = hc_bytealign_S (w3[0], w2[3], offset_minus_4);
-      c2[1] = hc_bytealign_S (w2[3], w2[2], offset_minus_4);
-      c2[0] = hc_bytealign_S (w2[2], w2[1], offset_minus_4);
-      c1[3] = hc_bytealign_S (w2[1], w2[0], offset_minus_4);
-      c1[2] = hc_bytealign_S (w2[0], w1[3], offset_minus_4);
-      c1[1] = hc_bytealign_S (w1[3], w1[2], offset_minus_4);
-      c1[0] = hc_bytealign_S (w1[2], w1[1], offset_minus_4);
-      c0[3] = hc_bytealign_S (w1[1], w1[0], offset_minus_4);
-      c0[2] = hc_bytealign_S (w1[0], w0[3], offset_minus_4);
-      c0[1] = hc_bytealign_S (w0[3], w0[2], offset_minus_4);
-      c0[0] = hc_bytealign_S (w0[2], w0[1], offset_minus_4);
-      w3[3] = hc_bytealign_S (w0[1], w0[0], offset_minus_4);
-      w3[2] = hc_bytealign_S (w0[0],     0, offset_minus_4);
+      c3[2] = hc_bytealign_S (w3[3],     0, offset);
+      c3[1] = hc_bytealign_S (w3[2], w3[3], offset);
+      c3[0] = hc_bytealign_S (w3[1], w3[2], offset);
+      c2[3] = hc_bytealign_S (w3[0], w3[1], offset);
+      c2[2] = hc_bytealign_S (w2[3], w3[0], offset);
+      c2[1] = hc_bytealign_S (w2[2], w2[3], offset);
+      c2[0] = hc_bytealign_S (w2[1], w2[2], offset);
+      c1[3] = hc_bytealign_S (w2[0], w2[1], offset);
+      c1[2] = hc_bytealign_S (w1[3], w2[0], offset);
+      c1[1] = hc_bytealign_S (w1[2], w1[3], offset);
+      c1[0] = hc_bytealign_S (w1[1], w1[2], offset);
+      c0[3] = hc_bytealign_S (w1[0], w1[1], offset);
+      c0[2] = hc_bytealign_S (w0[3], w1[0], offset);
+      c0[1] = hc_bytealign_S (w0[2], w0[3], offset);
+      c0[0] = hc_bytealign_S (w0[1], w0[2], offset);
+      w3[3] = hc_bytealign_S (w0[0], w0[1], offset);
+      w3[2] = hc_bytealign_S (    0, w0[0], offset);
       w3[1] = 0;
       w3[0] = 0;
       w2[3] = 0;
@@ -34470,47 +33838,26 @@ DECLSPEC void switch_buffer_by_offset_carry_le_S (u32 *w0, u32 *w1, u32 *w2, u32
       w0[1] = 0;
       w0[0] = 0;
 
-      if (offset_mod_4 == 0)
-      {
-        w3[2] = w3[3];
-        w3[3] = c0[0];
-        c0[0] = c0[1];
-        c0[1] = c0[2];
-        c0[2] = c0[3];
-        c0[3] = c1[0];
-        c1[0] = c1[1];
-        c1[1] = c1[2];
-        c1[2] = c1[3];
-        c1[3] = c2[0];
-        c2[0] = c2[1];
-        c2[1] = c2[2];
-        c2[2] = c2[3];
-        c2[3] = c3[0];
-        c3[0] = c3[1];
-        c3[1] = c3[2];
-        c3[2] = 0;
-      }
-
       break;
 
     case 15:
-      c3[3] = hc_bytealign_S (    0, w3[3], offset_minus_4);
-      c3[2] = hc_bytealign_S (w3[3], w3[2], offset_minus_4);
-      c3[1] = hc_bytealign_S (w3[2], w3[1], offset_minus_4);
-      c3[0] = hc_bytealign_S (w3[1], w3[0], offset_minus_4);
-      c2[3] = hc_bytealign_S (w3[0], w2[3], offset_minus_4);
-      c2[2] = hc_bytealign_S (w2[3], w2[2], offset_minus_4);
-      c2[1] = hc_bytealign_S (w2[2], w2[1], offset_minus_4);
-      c2[0] = hc_bytealign_S (w2[1], w2[0], offset_minus_4);
-      c1[3] = hc_bytealign_S (w2[0], w1[3], offset_minus_4);
-      c1[2] = hc_bytealign_S (w1[3], w1[2], offset_minus_4);
-      c1[1] = hc_bytealign_S (w1[2], w1[1], offset_minus_4);
-      c1[0] = hc_bytealign_S (w1[1], w1[0], offset_minus_4);
-      c0[3] = hc_bytealign_S (w1[0], w0[3], offset_minus_4);
-      c0[2] = hc_bytealign_S (w0[3], w0[2], offset_minus_4);
-      c0[1] = hc_bytealign_S (w0[2], w0[1], offset_minus_4);
-      c0[0] = hc_bytealign_S (w0[1], w0[0], offset_minus_4);
-      w3[3] = hc_bytealign_S (w0[0],     0, offset_minus_4);
+      c3[3] = hc_bytealign_S (w3[3],     0, offset);
+      c3[2] = hc_bytealign_S (w3[2], w3[3], offset);
+      c3[1] = hc_bytealign_S (w3[1], w3[2], offset);
+      c3[0] = hc_bytealign_S (w3[0], w3[1], offset);
+      c2[3] = hc_bytealign_S (w2[3], w3[0], offset);
+      c2[2] = hc_bytealign_S (w2[2], w2[3], offset);
+      c2[1] = hc_bytealign_S (w2[1], w2[2], offset);
+      c2[0] = hc_bytealign_S (w2[0], w2[1], offset);
+      c1[3] = hc_bytealign_S (w1[3], w2[0], offset);
+      c1[2] = hc_bytealign_S (w1[2], w1[3], offset);
+      c1[1] = hc_bytealign_S (w1[1], w1[2], offset);
+      c1[0] = hc_bytealign_S (w1[0], w1[1], offset);
+      c0[3] = hc_bytealign_S (w0[3], w1[0], offset);
+      c0[2] = hc_bytealign_S (w0[2], w0[3], offset);
+      c0[1] = hc_bytealign_S (w0[1], w0[2], offset);
+      c0[0] = hc_bytealign_S (w0[0], w0[1], offset);
+      w3[3] = hc_bytealign_S (    0, w0[0], offset);
       w3[2] = 0;
       w3[1] = 0;
       w3[0] = 0;
@@ -34526,27 +33873,6 @@ DECLSPEC void switch_buffer_by_offset_carry_le_S (u32 *w0, u32 *w1, u32 *w2, u32
       w0[2] = 0;
       w0[1] = 0;
       w0[0] = 0;
-
-      if (offset_mod_4 == 0)
-      {
-        w3[3] = c0[0];
-        c0[0] = c0[1];
-        c0[1] = c0[2];
-        c0[2] = c0[3];
-        c0[3] = c1[0];
-        c1[0] = c1[1];
-        c1[1] = c1[2];
-        c1[2] = c1[3];
-        c1[3] = c2[0];
-        c2[0] = c2[1];
-        c2[1] = c2[2];
-        c2[2] = c2[3];
-        c2[3] = c3[0];
-        c3[0] = c3[1];
-        c3[1] = c3[2];
-        c3[2] = c3[3];
-        c3[3] = 0;
-      }
 
       break;
   }
