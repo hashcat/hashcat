@@ -470,6 +470,8 @@ static int mangle_title_sep (char arr[RP_PASSWORD_SIZE], int arr_len, char c)
     }
   }
 
+  MANGLE_UPPER_AT (arr, 0);
+
   return (arr_len);
 }
 
