@@ -6,7 +6,7 @@ Tested on a Windows 7 SP1 x64 machine.
 
 Go to https://www.msys2.org/ and follow the instructions on the main page (steps 1 to 7).
 
-Install additional dependencies required to compile hashcat by running the following commands:
+Install additional dependencies required to compile hashcat by running the following commands
 
 ```
 $ pacman -S git
@@ -23,7 +23,7 @@ Once all that is done, type the following command to copy the latest master revi
 $ git clone https://github.com/hashcat/hashcat.git
 ```
 
-Switch to the newly created folder by runnig
+Switch to the newly created folder by running
 
 ```
 $ cd hashcat
@@ -35,7 +35,7 @@ Now type "make" to start compiling hashcat
 $ make
 ```
 
-The process may take a while, please be patient. Once it's finished, run hashcat by typing "./hashcat.exe".
+The process may take a while, please be patient. Once it's finished, run hashcat by typing "./hashcat.exe"
 
 ```
 $ ./hashcat.exe
