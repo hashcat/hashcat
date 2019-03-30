@@ -796,7 +796,7 @@ KERNEL_FQ void m13773_comp (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, vc_t))
   {
     if (atomic_inc (&hashes_shown[0]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0, tmps[gid].pim, 0);
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0, 0, 0);
     }
   }
   else

@@ -71,7 +71,7 @@ int         module_hash_init_selftest       (MAYBE_UNUSED const hashconfig_t *ha
 void        module_hook12                   (hc_device_param_t *device_param, const void *hook_salts_buf, const u32 salt_pos, const u64 pws_cnt);
 void        module_hook23                   (hc_device_param_t *device_param, const void *hook_salts_buf, const u32 salt_pos, const u64 pws_cnt);
 
-int         module_build_plain_postprocess  (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const plain_t *plain, const u32 *src_buf, MAYBE_UNUSED const size_t src_sz, const int src_len, u32 *dst_buf, MAYBE_UNUSED const size_t dst_sz);
+int         module_build_plain_postprocess  (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const void *tmps, const u32 *src_buf, MAYBE_UNUSED const size_t src_sz, MAYBE_UNUSED const int src_len, u32 *dst_buf, MAYBE_UNUSED const size_t dst_sz);
 
 bool        module_unstable_warning         (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param);
 

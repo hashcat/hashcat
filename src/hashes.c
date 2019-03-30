@@ -264,6 +264,15 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
   const u32 salt_pos    = plain->salt_pos;
   const u32 digest_pos  = plain->digest_pos;  // relative
 
+  void *tmps = NULL;
+
+  if (hashconfig->opts_type & OPTS_TYPE_COPY_TMPS)
+  {
+    void *tmps = hcmalloc (hashconfig->tmp_size);
+
+    hc_clEnqueueReadBuffer (hashcat_ctx, device_param->command_queue, device_param->d_tmps, CL_TRUE, plain->gidvid * hashconfig->tmp_size, hashconfig->tmp_size, tmps, 0, NULL, NULL);
+  }
+
   // hash
 
   u8 *out_buf = hashes->out_buf;
@@ -285,7 +294,7 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
   {
     u32 temp_buf[64] = { 0 };
 
-    const int temp_len = module_ctx->module_build_plain_postprocess (hashcat_ctx->hashconfig, hashcat_ctx->hashes, plain, plain_buf, sizeof (plain_buf), plain_len, temp_buf, sizeof (temp_buf));
+    const int temp_len = module_ctx->module_build_plain_postprocess (hashcat_ctx->hashconfig, hashcat_ctx->hashes, tmps, plain_buf, sizeof (plain_buf), plain_len, temp_buf, sizeof (temp_buf));
 
     if (temp_len < (int) sizeof (plain_buf))
     {
@@ -350,6 +359,11 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
     {
       debugfile_write_append (hashcat_ctx, debug_rule_buf, debug_rule_len, plain_ptr, plain_len, debug_plain_ptr, debug_plain_len);
     }
+  }
+
+  if (hashconfig->opts_type & OPTS_TYPE_COPY_TMPS)
+  {
+    hcfree (tmps);
   }
 }
 

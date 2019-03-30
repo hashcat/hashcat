@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _HASH_MANAGEMENT_H
-#define _HASH_MANAGEMENT_H
+#ifndef _HASHES_H
+#define _HASHES_H
 
 int sort_by_string       (const void *v1, const void *v2);
 int sort_by_digest_p0p1  (const void *v1, const void *v2, void *v3);
@@ -30,4 +30,4 @@ void hashes_destroy (hashcat_ctx_t *hashcat_ctx);
 
 void hashes_logger (hashcat_ctx_t *hashcat_ctx);
 
-#endif // _HASH_MANAGEMENT_H
+#endif // _HASHES_H

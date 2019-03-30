@@ -24,7 +24,8 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_AUX1
-                                  | OPTS_TYPE_DEEP_COMP_KERNEL;
+                                  | OPTS_TYPE_DEEP_COMP_KERNEL
+                                  | OPTS_TYPE_COPY_TMPS;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat!";
 static const char *ST_HASH        = "2582a8281bf9d4308d6f5731d0e61c61*4604ba734d4e*89acf0e761f4*ed487162465a774bfba60eb603a39f3a";
@@ -234,34 +235,9 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const wpa_pmkid_t *wpa_pmkid = (const wpa_pmkid_t *) esalt_buf;
 
-  char tmp_buf[128];
+  exec_hexify ((const u8 *) wpa_pmkid->essid_buf, (const size_t) wpa_pmkid->essid_len, (u8 *) line_buf);
 
-  exec_hexify ((const u8*) wpa_pmkid->essid_buf, wpa_pmkid->essid_len, (u8 *) tmp_buf);
-
-  const int tmp_len = wpa_pmkid->essid_len * 2;
-
-  tmp_buf[tmp_len] = 0;
-
-  const int line_len = snprintf (line_buf, line_size, "%08x%08x%08x%08x*%02x%02x%02x%02x%02x%02x*%02x%02x%02x%02x%02x%02x*%s",
-    byte_swap_32 (wpa_pmkid->pmkid[0]),
-    byte_swap_32 (wpa_pmkid->pmkid[1]),
-    byte_swap_32 (wpa_pmkid->pmkid[2]),
-    byte_swap_32 (wpa_pmkid->pmkid[3]),
-    wpa_pmkid->orig_mac_ap[0],
-    wpa_pmkid->orig_mac_ap[1],
-    wpa_pmkid->orig_mac_ap[2],
-    wpa_pmkid->orig_mac_ap[3],
-    wpa_pmkid->orig_mac_ap[4],
-    wpa_pmkid->orig_mac_ap[5],
-    wpa_pmkid->orig_mac_sta[0],
-    wpa_pmkid->orig_mac_sta[1],
-    wpa_pmkid->orig_mac_sta[2],
-    wpa_pmkid->orig_mac_sta[3],
-    wpa_pmkid->orig_mac_sta[4],
-    wpa_pmkid->orig_mac_sta[5],
-    tmp_buf);
-
-  return line_len;
+  return wpa_pmkid->essid_len * 2;
 }
 
 void module_init (module_ctx_t *module_ctx)

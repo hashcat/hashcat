@@ -414,6 +414,7 @@ typedef enum opts_type
   OPTS_TYPE_KEYBOARD_MAPPING  = (1ULL << 41),
   OPTS_TYPE_DEEP_COMP_KERNEL  = (1ULL << 42), // if we have to iterate through each hash inside the comp kernel, for example if each hash has to be decrypted separately
   OPTS_TYPE_SUGGEST_KG        = (1ULL << 43), // suggest keep guessing for modules the user maybe wants to use --keep-guessing
+  OPTS_TYPE_COPY_TMPS         = (1ULL << 44), // if we want to use data from tmps buffer (for example get the PMK in WPA)
 
 } opts_type_t;
 
@@ -2260,7 +2261,7 @@ typedef struct module_ctx
   void        (*module_hook12)                  (hc_device_param_t *, const void *, const u32, const u64);
   void        (*module_hook23)                  (hc_device_param_t *, const void *, const u32, const u64);
 
-  int         (*module_build_plain_postprocess) (const hashconfig_t *, const hashes_t *, const plain_t *, const u32 *, const size_t, const int, u32 *, const size_t);
+  int         (*module_build_plain_postprocess) (const hashconfig_t *, const hashes_t *, const void *, const u32 *, const size_t, const int, u32 *, const size_t);
 
   bool        (*module_unstable_warning)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const hc_device_param_t *);
 

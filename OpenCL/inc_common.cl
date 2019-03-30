@@ -1483,7 +1483,7 @@ DECLSPEC void mark_hash (GLOBAL_AS plain_t *plains_buf, GLOBAL_AS u32 *d_result,
   plains_buf[idx].hash_pos   = hash_pos;    // absolute
   plains_buf[idx].gidvid     = gid;
   plains_buf[idx].il_pos     = il_pos;
-  plains_buf[idx].extra1     = extra1;      // for example, used as veracrypt pim storage
+  plains_buf[idx].extra1     = extra1;      // unused so far
   plains_buf[idx].extra2     = extra2;      // unused so far
 }
 
