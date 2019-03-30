@@ -268,7 +268,7 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   if (hashconfig->opts_type & OPTS_TYPE_COPY_TMPS)
   {
-    void *tmps = hcmalloc (hashconfig->tmp_size);
+    tmps = hcmalloc (hashconfig->tmp_size);
 
     hc_clEnqueueReadBuffer (hashcat_ctx, device_param->command_queue, device_param->d_tmps, CL_TRUE, plain->gidvid * hashconfig->tmp_size, hashconfig->tmp_size, tmps, 0, NULL, NULL);
   }
