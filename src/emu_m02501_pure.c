@@ -7,7 +7,6 @@
 #include "types.h"
 #include "emu_general.h"
 
-#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunknown-pragmas"
@@ -26,4 +25,3 @@ typedef struct digest
 
 #include "m02501-pure.cl"
 
-#pragma GCC diagnostic pop
