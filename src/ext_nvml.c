@@ -5,7 +5,4 @@
 
 #include "common.h"
 #include "types.h"
-#include "event.h"
-#include "memory.h"
-#include "dynloader.h"
 #include "ext_nvml.h"

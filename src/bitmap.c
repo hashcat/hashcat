@@ -6,8 +6,8 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
-#include "bitmap.h"
 #include "event.h"
+#include "bitmap.h"
 
 static void selftest_to_bitmap (const u32 dgst_shifts, char *digests_buf_ptr, const u32 dgst_pos0, const u32 dgst_pos1, const u32 dgst_pos2, const u32 dgst_pos3, const u32 bitmap_mask, u32 *bitmap_a, u32 *bitmap_b, u32 *bitmap_c, u32 *bitmap_d)
 {

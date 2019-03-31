@@ -5,63 +5,17 @@
 
 #include "common.h"
 #include "types.h"
-#include "bitops.h"
 #include "memory.h"
-#include "convert.h"
 #include "event.h"
 #include "shared.h"
 #include "opencl.h"
-#include "interface.h"
-#include "filehandling.h"
 #include "modules.h"
 #include "dynloader.h"
+#include "interface.h"
 
 /**
  * parsing
  */
-
-int ascii_digest (const hashconfig_t *hashconfig, const hashes_t *hashes, const module_ctx_t *module_ctx, char *out_buf, const int out_size, const u32 salt_pos, const u32 digest_pos)
-{
-  void        *digests_buf    = hashes->digests_buf;
-  salt_t      *salts_buf      = hashes->salts_buf;
-  void        *esalts_buf     = hashes->esalts_buf;
-  void        *hook_salts_buf = hashes->hook_salts_buf;
-  hashinfo_t **hash_info      = hashes->hash_info;
-  const char  *hashfile       = hashes->hashfile;
-
-  const u32 dgst_size         = hashconfig->dgst_size;
-  const u64 esalt_size        = hashconfig->esalt_size;
-  const u64 hook_salt_size    = hashconfig->hook_salt_size;
-
-  if (module_ctx->module_hash_encode == MODULE_DEFAULT)
-  {
-    return snprintf (out_buf, out_size, "%s", hashfile);
-  }
-
-  char *digests_buf_ptr    = (char *) digests_buf;
-  char *esalts_buf_ptr     = (char *) esalts_buf;
-  char *hook_salts_buf_ptr = (char *) hook_salts_buf;
-
-  const u32 digest_cur = salts_buf[salt_pos].digests_offset + digest_pos;
-
-  hashinfo_t *hash_info_ptr = NULL;
-
-  if (hash_info) hash_info_ptr = hash_info[digest_cur];
-
-  const int out_len = module_ctx->module_hash_encode
-  (
-    hashconfig,
-    digests_buf_ptr + (digest_cur * dgst_size),
-    salts_buf + salt_pos,
-    esalts_buf_ptr + (digest_cur * esalt_size),
-    hook_salts_buf_ptr + (digest_cur * hook_salt_size),
-    hash_info_ptr,
-    out_buf,
-    out_size
-  );
-
-  return out_len;
-}
 
 int module_filename (const folder_config_t *folder_config, const int hash_mode, char *out_buf, const size_t out_size)
 {

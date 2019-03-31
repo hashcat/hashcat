@@ -5,17 +5,11 @@
 
 #include "common.h"
 #include "types.h"
-#include "interface.h"
-#include "timer.h"
 #include "event.h"
 #include "memory.h"
 #include "filehandling.h"
-#include "ext_OpenCL.h"
-#include "tuningdb.h"
-#include "thread.h"
-#include "opencl.h"
-#include "hashes.h"
 #include "shared.h"
+#include "tuningdb.h"
 
 static int sort_by_tuning_db_alias (const void *v1, const void *v2)
 {

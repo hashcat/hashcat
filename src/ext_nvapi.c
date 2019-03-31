@@ -5,6 +5,4 @@
 
 #include "common.h"
 #include "types.h"
-#include "event.h"
-#include "memory.h"
 #include "ext_nvapi.h"

@@ -5,7 +5,6 @@
 
 #include "common.h"
 #include "types.h"
-#include "bitops.h"
 #include "convert.h"
 #include "shared.h"
 

@@ -11,7 +11,6 @@
 #include "interface.h"
 #include "shared.h"
 #include "usage.h"
-#include "outfile.h"
 #include "opencl.h"
 #include "user_options.h"
 

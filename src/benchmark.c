@@ -6,9 +6,9 @@
 #include "common.h"
 #include "types.h"
 #include "interface.h"
-#include "benchmark.h"
 #include "memory.h"
 #include "shared.h"
+#include "benchmark.h"
 
 static const int DEFAULT_BENCHMARK_ALGORITHMS_BUF[] =
 {

@@ -9,7 +9,6 @@
 #include "bitops.h"
 #include "convert.h"
 #include "opencl.h"
-#include "interface.h"
 #include "thread.h"
 #include "selftest.h"
 

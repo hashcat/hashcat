@@ -9,15 +9,12 @@
 #include "event.h"
 #include "convert.h"
 #include "thread.h"
-#include "timer.h"
 #include "status.h"
-#include "restore.h"
 #include "shared.h"
 #include "hwmon.h"
 #include "interface.h"
-#include "outfile.h"
-#include "terminal.h"
 #include "hashcat.h"
+#include "terminal.h"
 
 static const size_t TERMINAL_LINE_LENGTH = 79;
 

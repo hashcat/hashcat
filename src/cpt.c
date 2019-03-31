@@ -7,7 +7,6 @@
 #include "types.h"
 #include "memory.h"
 #include "cpt.h"
-#include "shared.h"
 
 int cpt_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {

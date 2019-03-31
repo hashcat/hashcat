@@ -5,19 +5,16 @@
 
 #include "common.h"
 #include "types.h"
-#include "memory.h"
 #include "event.h"
 #include "convert.h"
-#include "interface.h"
-#include "hashes.h"
 #include "mpsp.h"
 #include "rp.h"
 #include "emu_inc_rp.h"
 #include "emu_inc_rp_optimized.h"
 #include "opencl.h"
 #include "shared.h"
-#include "outfile.h"
 #include "locking.h"
+#include "outfile.h"
 
 int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain, u32 *plain_buf, int *out_len)
 {

@@ -5,10 +5,8 @@
 
 #include "common.h"
 #include "types.h"
-#include "memory.h"
 #include "event.h"
 #include "timer.h"
-#include "shared.h"
 #include "thread.h"
 
 /*

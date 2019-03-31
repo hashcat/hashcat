@@ -7,15 +7,12 @@
 #include "types.h"
 #include "memory.h"
 #include "event.h"
-#include "outfile_check.h"
 #include "filehandling.h"
-#include "convert.h"
 #include "folder.h"
 #include "hashes.h"
-#include "interface.h"
 #include "shared.h"
 #include "thread.h"
-#include "bitops.h"
+#include "outfile_check.h"
 
 static int sort_by_salt_buf (const void *v1, const void *v2, MAYBE_UNUSED void * v3)
 {

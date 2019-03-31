@@ -7,26 +7,21 @@
 #include "types.h"
 #include "memory.h"
 #include "event.h"
-#include "hashes.h"
-
 #include "convert.h"
 #include "debugfile.h"
 #include "filehandling.h"
 #include "hlfmt.h"
-#include "interface.h"
 #include "terminal.h"
 #include "logfile.h"
 #include "loopback.h"
-#include "mpsp.h"
 #include "opencl.h"
 #include "outfile.h"
 #include "potfile.h"
 #include "rp.h"
 #include "shared.h"
 #include "thread.h"
-#include "timer.h"
 #include "locking.h"
-#include "cpu_crc32.h"
+#include "hashes.h"
 
 #ifdef WITH_BRAIN
 #include "brain.h"
@@ -126,6 +121,50 @@ int sort_by_hash_no_salt (const void *v1, const void *v2, void *v3)
   return sort_by_digest_p0p1 (d1, d2, v3);
 }
 
+int hash_encode (const hashconfig_t *hashconfig, const hashes_t *hashes, const module_ctx_t *module_ctx, char *out_buf, const int out_size, const u32 salt_pos, const u32 digest_pos)
+{
+  if (module_ctx->module_hash_encode == MODULE_DEFAULT)
+  {
+    return snprintf (out_buf, out_size, "%s", hashes->hashfile);
+  }
+
+  salt_t *salts_buf = hashes->salts_buf;
+
+  salts_buf += salt_pos;
+
+  const u32 digest_cur = salts_buf[salt_pos].digests_offset + digest_pos;
+
+  void        *digests_buf    = hashes->digests_buf;
+  void        *esalts_buf     = hashes->esalts_buf;
+  void        *hook_salts_buf = hashes->hook_salts_buf;
+  hashinfo_t **hash_info      = hashes->hash_info;
+
+  char       *digests_buf_ptr    = (char *) digests_buf;
+  char       *esalts_buf_ptr     = (char *) esalts_buf;
+  char       *hook_salts_buf_ptr = (char *) hook_salts_buf;
+  hashinfo_t *hash_info_ptr      = NULL;
+
+  digests_buf_ptr    += digest_cur * hashconfig->dgst_size;
+  esalts_buf_ptr     += digest_cur * hashconfig->esalt_size;
+  hook_salts_buf_ptr += digest_cur * hashconfig->hook_salt_size;
+
+  if (hash_info) hash_info_ptr = hash_info[digest_cur];
+
+  const int out_len = module_ctx->module_hash_encode
+  (
+    hashconfig,
+    digests_buf_ptr,
+    salts_buf,
+    esalts_buf_ptr,
+    hook_salts_buf_ptr,
+    hash_info_ptr,
+    out_buf,
+    out_size
+  );
+
+  return out_len;
+}
+
 int save_hash (hashcat_ctx_t *hashcat_ctx)
 {
   hashes_t        *hashes       = hashcat_ctx->hashes;
@@ -206,7 +245,7 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
           fputc (separator, fp);
         }
 
-        const int out_len = ascii_digest (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf, HCBUFSIZ_LARGE, salt_pos, digest_pos);
+        const int out_len = hash_encode (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf, HCBUFSIZ_LARGE, salt_pos, digest_pos);
 
         out_buf[out_len] = 0;
 
@@ -277,7 +316,7 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   u8 *out_buf = hashes->out_buf;
 
-  const int out_len = ascii_digest (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf, HCBUFSIZ_LARGE, salt_pos, digest_pos);
+  const int out_len = hash_encode (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf, HCBUFSIZ_LARGE, salt_pos, digest_pos);
 
   out_buf[out_len] = 0;
 

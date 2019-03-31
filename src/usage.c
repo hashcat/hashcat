@@ -5,9 +5,9 @@
 
 #include "common.h"
 #include "types.h"
+#include "memory.h"
 #include "shared.h"
 #include "interface.h"
-#include "memory.h"
 #include "usage.h"
 
 static const char *const USAGE_MINI[] =
