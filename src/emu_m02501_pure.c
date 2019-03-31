@@ -7,6 +7,8 @@
 #include "types.h"
 #include "emu_general.h"
 
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
 #define DGST_ELEM 4
 #define DGST_POS0 0
 #define DGST_POS1 1

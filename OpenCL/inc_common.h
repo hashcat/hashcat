@@ -26,42 +26,42 @@
  *   - P19: Type of the esalt_bufs structure with additional data, or void.
  */
 
-#define KERN_ATTR(p2,p4,p5,p6,p19)                               \
-  MAYBE_UNUSED GLOBAL_AS       pw_t          *pws,               \
-  MAYBE_UNUSED p2        const kernel_rule_t *rules_buf,         \
-  MAYBE_UNUSED GLOBAL_AS const pw_t          *combs_buf,         \
-  MAYBE_UNUSED p4,                                               \
-  MAYBE_UNUSED GLOBAL_AS p5                  *tmps,              \
-  MAYBE_UNUSED GLOBAL_AS p6                  *hooks,             \
-  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s1_a,  \
-  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s1_b,  \
-  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s1_c,  \
-  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s1_d,  \
-  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s2_a,  \
-  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s2_b,  \
-  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s2_c,  \
-  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s2_d,  \
-  MAYBE_UNUSED GLOBAL_AS       plain_t       *plains_buf,        \
-  MAYBE_UNUSED GLOBAL_AS const digest_t      *digests_buf,       \
-  MAYBE_UNUSED GLOBAL_AS       u32           *hashes_shown,      \
-  MAYBE_UNUSED GLOBAL_AS const salt_t        *salt_bufs,         \
-  MAYBE_UNUSED GLOBAL_AS const p19           *esalt_bufs,        \
-  MAYBE_UNUSED GLOBAL_AS       u32           *d_return_buf,      \
-  MAYBE_UNUSED GLOBAL_AS       void          *d_extra0_buf,      \
-  MAYBE_UNUSED GLOBAL_AS       void          *d_extra1_buf,      \
-  MAYBE_UNUSED GLOBAL_AS       void          *d_extra2_buf,      \
-  MAYBE_UNUSED GLOBAL_AS       void          *d_extra3_buf,      \
-  MAYBE_UNUSED const u32 bitmap_mask,                            \
-  MAYBE_UNUSED const u32 bitmap_shift1,                          \
-  MAYBE_UNUSED const u32 bitmap_shift2,                          \
-  MAYBE_UNUSED const u32 salt_pos,                               \
-  MAYBE_UNUSED const u32 loop_pos,                               \
-  MAYBE_UNUSED const u32 loop_cnt,                               \
-  MAYBE_UNUSED const u32 il_cnt,                                 \
-  MAYBE_UNUSED const u32 digests_cnt,                            \
-  MAYBE_UNUSED const u32 digests_offset,                         \
-  MAYBE_UNUSED const u32 combs_mode,                             \
-  MAYBE_UNUSED const u64 gid_max
+#define KERN_ATTR(p2,p4,p5,p6,p19)                  \
+  GLOBAL_AS       pw_t          *pws,               \
+  p2        const kernel_rule_t *rules_buf,         \
+  GLOBAL_AS const pw_t          *combs_buf,         \
+  p4,                                               \
+  GLOBAL_AS p5                  *tmps,              \
+  GLOBAL_AS p6                  *hooks,             \
+  GLOBAL_AS const u32           *bitmaps_buf_s1_a,  \
+  GLOBAL_AS const u32           *bitmaps_buf_s1_b,  \
+  GLOBAL_AS const u32           *bitmaps_buf_s1_c,  \
+  GLOBAL_AS const u32           *bitmaps_buf_s1_d,  \
+  GLOBAL_AS const u32           *bitmaps_buf_s2_a,  \
+  GLOBAL_AS const u32           *bitmaps_buf_s2_b,  \
+  GLOBAL_AS const u32           *bitmaps_buf_s2_c,  \
+  GLOBAL_AS const u32           *bitmaps_buf_s2_d,  \
+  GLOBAL_AS       plain_t       *plains_buf,        \
+  GLOBAL_AS const digest_t      *digests_buf,       \
+  GLOBAL_AS       u32           *hashes_shown,      \
+  GLOBAL_AS const salt_t        *salt_bufs,         \
+  GLOBAL_AS const p19           *esalt_bufs,        \
+  GLOBAL_AS       u32           *d_return_buf,      \
+  GLOBAL_AS       void          *d_extra0_buf,      \
+  GLOBAL_AS       void          *d_extra1_buf,      \
+  GLOBAL_AS       void          *d_extra2_buf,      \
+  GLOBAL_AS       void          *d_extra3_buf,      \
+  const u32 bitmap_mask,                            \
+  const u32 bitmap_shift1,                          \
+  const u32 bitmap_shift2,                          \
+  const u32 salt_pos,                               \
+  const u32 loop_pos,                               \
+  const u32 loop_cnt,                               \
+  const u32 il_cnt,                                 \
+  const u32 digests_cnt,                            \
+  const u32 digests_offset,                         \
+  const u32 combs_mode,                             \
+  const u64 gid_max
 
 /*
  * Shortcut macros for usage in the actual kernels
