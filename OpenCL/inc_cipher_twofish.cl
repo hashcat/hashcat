@@ -131,7 +131,7 @@ DECLSPEC u32 mds_rem (u32 p0, u32 p1)
   return p1;
 }
 
-DECLSPEC u32 h_fun128 (u32 *sk, u32 *lk, const u32 x, const u32 *key)
+DECLSPEC u32 h_fun128 (const u32 x, const u32 *key)
 {
   u32  b0, b1, b2, b3;
 
@@ -168,8 +168,8 @@ DECLSPEC void twofish128_set_key (u32 *sk, u32 *lk, const u32 *ukey)
     u32 a = 0x01010101 * i;
     u32 b = 0x01010101 + a;
 
-    a = h_fun128 (sk, lk, a, me_key);
-    b = h_fun128 (sk, lk, b, mo_key);
+    a = h_fun128 (a, me_key);
+    b = h_fun128 (b, mo_key);
 
     b = hc_rotl32_S (b, 8);
 
@@ -240,7 +240,7 @@ DECLSPEC void twofish128_decrypt (const u32 *sk, const u32 *lk, const u32 *in, u
    mds (2, q42 (extract_byte (x, 2), sk)) ^ \
    mds (3, q43 (extract_byte (x, 3), sk)))
 
-DECLSPEC u32 h_fun256 (u32 *sk, u32 *lk, const u32 x, const u32 *key)
+DECLSPEC u32 h_fun256 (const u32 x, const u32 *key)
 {
   u32  b0, b1, b2, b3;
 
@@ -293,8 +293,8 @@ DECLSPEC void twofish256_set_key (u32 *sk, u32 *lk, const u32 *ukey)
     u32 a = 0x01010101 * i;
     u32 b = 0x01010101 + a;
 
-    a = h_fun256 (sk, lk, a, me_key);
-    b = h_fun256 (sk, lk, b, mo_key);
+    a = h_fun256 (a, me_key);
+    b = h_fun256 (b, mo_key);
 
     b = hc_rotl32_S (b, 8);
 

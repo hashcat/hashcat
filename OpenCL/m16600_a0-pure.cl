@@ -159,7 +159,7 @@ KERNEL_FQ void m16600_mxx (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
 
     u32 ks[KEYLEN];
 
-    aes256_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+    aes256_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
     u32 encrypted[4];
 
@@ -350,7 +350,7 @@ KERNEL_FQ void m16600_sxx (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
 
     u32 ks[KEYLEN];
 
-    aes256_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+    aes256_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
     u32 encrypted[4];
 

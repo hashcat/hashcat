@@ -60941,7 +60941,9 @@ DECLSPEC void gpu_decompress_entry (GLOBAL_AS pw_idx_t *pws_idx, GLOBAL_AS u32 *
   const u32 cnt = pws_idx[gid].cnt;
   const u32 len = pws_idx[gid].len;
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (u32 i = 0; i < 64; i++)
   {
     pw->i[i] = 0;

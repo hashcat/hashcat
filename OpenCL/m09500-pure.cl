@@ -268,7 +268,7 @@ KERNEL_FQ void m09500_comp (KERN_ATTR_TMPS_ESALT (office2010_tmp_t, office2010_t
 
   u32 ks[44];
 
-  AES128_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+  AES128_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
   u32 data[4];
 
@@ -325,7 +325,7 @@ KERNEL_FQ void m09500_comp (KERN_ATTR_TMPS_ESALT (office2010_tmp_t, office2010_t
   ukey[2] = digest1[2];
   ukey[3] = digest1[3];
 
-  AES128_set_encrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_te4);
+  AES128_set_encrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3);
 
   data[0] = digest[0] ^ salt_bufs[salt_pos].salt_buf[0];
   data[1] = digest[1] ^ salt_bufs[salt_pos].salt_buf[1];

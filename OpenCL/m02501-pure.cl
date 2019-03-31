@@ -973,7 +973,7 @@ KERNEL_FQ void m02501_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
 
       u32 ks[44];
 
-      aes128_set_encrypt_key (ks, digest, s_te0, s_te1, s_te2, s_te3, s_te4);
+      aes128_set_encrypt_key (ks, digest, s_te0, s_te1, s_te2, s_te3);
 
       u32 m[4];
 
@@ -1124,7 +1124,7 @@ KERNEL_FQ void m02501_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
 
       u32 ks[44];
 
-      aes128_set_encrypt_key (ks, digest, s_te0, s_te1, s_te2, s_te3, s_te4);
+      aes128_set_encrypt_key (ks, digest, s_te0, s_te1, s_te2, s_te3);
 
       u32 m[4];
 

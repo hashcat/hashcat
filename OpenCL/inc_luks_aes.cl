@@ -2588,8 +2588,8 @@ DECLSPEC void luks_af_sha1_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs, 
       u32 ks1[44];
       u32 ks2[60];
 
-      aes128_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
-      aes256_set_encrypt_key (ks2, essivhash, s_te0, s_te1, s_te2, s_te3, s_te4);
+      aes128_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+      aes256_set_encrypt_key (ks2, essivhash, s_te0, s_te1, s_te2, s_te3);
 
       int sector = 0;
       int offset = 0;
@@ -2621,8 +2621,8 @@ DECLSPEC void luks_af_sha1_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs, 
       u32 ks1[60];
       u32 ks2[60];
 
-      aes256_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
-      aes256_set_encrypt_key (ks2, essivhash, s_te0, s_te1, s_te2, s_te3, s_te4);
+      aes256_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+      aes256_set_encrypt_key (ks2, essivhash, s_te0, s_te1, s_te2, s_te3);
 
       int sector = 0;
       int offset = 0;
@@ -2648,7 +2648,7 @@ DECLSPEC void luks_af_sha1_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs, 
 
       u32 ks1[44];
 
-      aes128_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      aes128_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
       int sector = 0;
       int offset = 0;
@@ -2675,7 +2675,7 @@ DECLSPEC void luks_af_sha1_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs, 
 
       u32 ks1[60];
 
-      aes256_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      aes256_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
       int sector = 0;
       int offset = 0;
@@ -2709,8 +2709,8 @@ DECLSPEC void luks_af_sha1_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs, 
       u32 ks1[44];
       u32 ks2[44];
 
-      aes128_set_decrypt_key (ks1, ukey1, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
-      aes128_set_encrypt_key (ks2, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4);
+      aes128_set_decrypt_key (ks1, ukey1, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+      aes128_set_encrypt_key (ks2, ukey2, s_te0, s_te1, s_te2, s_te3);
 
       int sector = 0;
       int offset = 0;
@@ -2749,8 +2749,8 @@ DECLSPEC void luks_af_sha1_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs, 
       u32 ks1[60];
       u32 ks2[60];
 
-      aes256_set_decrypt_key (ks1, ukey1, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
-      aes256_set_encrypt_key (ks2, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4);
+      aes256_set_decrypt_key (ks1, ukey1, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+      aes256_set_encrypt_key (ks2, ukey2, s_te0, s_te1, s_te2, s_te3);
 
       int sector = 0;
       int offset = 0;
@@ -2788,8 +2788,8 @@ DECLSPEC void luks_af_sha1_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs, 
       u32 ks1[44];
       u32 ks2[60];
 
-      aes128_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
-      aes256_set_encrypt_key (ks2, essivhash, s_te0, s_te1, s_te2, s_te3, s_te4);
+      aes128_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+      aes256_set_encrypt_key (ks2, essivhash, s_te0, s_te1, s_te2, s_te3);
 
       luks_decrypt_sector_aes_cbc_essiv128 (luks_bufs->ct_buf, pt_buf, ks1, ks2, 0, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
@@ -2817,8 +2817,8 @@ DECLSPEC void luks_af_sha1_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs, 
       u32 ks1[60];
       u32 ks2[60];
 
-      aes256_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
-      aes256_set_encrypt_key (ks2, essivhash, s_te0, s_te1, s_te2, s_te3, s_te4);
+      aes256_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+      aes256_set_encrypt_key (ks2, essivhash, s_te0, s_te1, s_te2, s_te3);
 
       luks_decrypt_sector_aes_cbc_essiv256 (luks_bufs->ct_buf, pt_buf, ks1, ks2, 0, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
@@ -2840,7 +2840,7 @@ DECLSPEC void luks_af_sha1_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs, 
 
       u32 ks1[44];
 
-      aes128_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      aes128_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
       luks_decrypt_sector_aes_cbc_plain128 (luks_bufs->ct_buf, pt_buf, ks1, 0, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
@@ -2863,7 +2863,7 @@ DECLSPEC void luks_af_sha1_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs, 
 
       u32 ks1[60];
 
-      aes256_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      aes256_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
       luks_decrypt_sector_aes_cbc_plain256 (luks_bufs->ct_buf, pt_buf, ks1, 0, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
@@ -2897,8 +2897,8 @@ DECLSPEC void luks_af_sha1_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs, 
       u32 ks1[44];
       u32 ks2[44];
 
-      aes128_set_decrypt_key (ks1, ukey1, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
-      aes128_set_encrypt_key (ks2, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4);
+      aes128_set_decrypt_key (ks1, ukey1, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+      aes128_set_encrypt_key (ks2, ukey2, s_te0, s_te1, s_te2, s_te3);
 
       luks_decrypt_sector_aes_xts_plain256 (luks_bufs->ct_buf, pt_buf, ks1, ks2, 0, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
@@ -2937,8 +2937,8 @@ DECLSPEC void luks_af_sha1_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs, 
       u32 ks1[60];
       u32 ks2[60];
 
-      aes256_set_decrypt_key (ks1, ukey1, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
-      aes256_set_encrypt_key (ks2, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4);
+      aes256_set_decrypt_key (ks1, ukey1, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+      aes256_set_encrypt_key (ks2, ukey2, s_te0, s_te1, s_te2, s_te3);
 
       luks_decrypt_sector_aes_xts_plain512 (luks_bufs->ct_buf, pt_buf, ks1, ks2, 0, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
@@ -2979,8 +2979,8 @@ DECLSPEC void luks_af_sha256_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
       u32 ks1[44];
       u32 ks2[60];
 
-      aes128_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
-      aes256_set_encrypt_key (ks2, essivhash, s_te0, s_te1, s_te2, s_te3, s_te4);
+      aes128_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+      aes256_set_encrypt_key (ks2, essivhash, s_te0, s_te1, s_te2, s_te3);
 
       int sector = 0;
       int offset = 0;
@@ -3012,8 +3012,8 @@ DECLSPEC void luks_af_sha256_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
       u32 ks1[60];
       u32 ks2[60];
 
-      aes256_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
-      aes256_set_encrypt_key (ks2, essivhash, s_te0, s_te1, s_te2, s_te3, s_te4);
+      aes256_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+      aes256_set_encrypt_key (ks2, essivhash, s_te0, s_te1, s_te2, s_te3);
 
       int sector = 0;
       int offset = 0;
@@ -3039,7 +3039,7 @@ DECLSPEC void luks_af_sha256_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
 
       u32 ks1[44];
 
-      aes128_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      aes128_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
       int sector = 0;
       int offset = 0;
@@ -3066,7 +3066,7 @@ DECLSPEC void luks_af_sha256_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
 
       u32 ks1[60];
 
-      aes256_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      aes256_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
       int sector = 0;
       int offset = 0;
@@ -3100,8 +3100,8 @@ DECLSPEC void luks_af_sha256_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
       u32 ks1[44];
       u32 ks2[44];
 
-      aes128_set_decrypt_key (ks1, ukey1, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
-      aes128_set_encrypt_key (ks2, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4);
+      aes128_set_decrypt_key (ks1, ukey1, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+      aes128_set_encrypt_key (ks2, ukey2, s_te0, s_te1, s_te2, s_te3);
 
       int sector = 0;
       int offset = 0;
@@ -3140,8 +3140,8 @@ DECLSPEC void luks_af_sha256_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
       u32 ks1[60];
       u32 ks2[60];
 
-      aes256_set_decrypt_key (ks1, ukey1, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
-      aes256_set_encrypt_key (ks2, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4);
+      aes256_set_decrypt_key (ks1, ukey1, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+      aes256_set_encrypt_key (ks2, ukey2, s_te0, s_te1, s_te2, s_te3);
 
       int sector = 0;
       int offset = 0;
@@ -3175,8 +3175,8 @@ DECLSPEC void luks_af_sha256_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
       u32 ks1[44];
       u32 ks2[60];
 
-      aes128_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
-      aes256_set_encrypt_key (ks2, essivhash, s_te0, s_te1, s_te2, s_te3, s_te4);
+      aes128_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+      aes256_set_encrypt_key (ks2, essivhash, s_te0, s_te1, s_te2, s_te3);
 
       luks_decrypt_sector_aes_cbc_essiv128 (luks_bufs->ct_buf, pt_buf, ks1, ks2, 0, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
@@ -3200,8 +3200,8 @@ DECLSPEC void luks_af_sha256_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
       u32 ks1[60];
       u32 ks2[60];
 
-      aes256_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
-      aes256_set_encrypt_key (ks2, essivhash, s_te0, s_te1, s_te2, s_te3, s_te4);
+      aes256_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+      aes256_set_encrypt_key (ks2, essivhash, s_te0, s_te1, s_te2, s_te3);
 
       luks_decrypt_sector_aes_cbc_essiv256 (luks_bufs->ct_buf, pt_buf, ks1, ks2, 0, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
@@ -3219,7 +3219,7 @@ DECLSPEC void luks_af_sha256_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
 
       u32 ks1[44];
 
-      aes128_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      aes128_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
       luks_decrypt_sector_aes_cbc_plain128 (luks_bufs->ct_buf, pt_buf, ks1, 0, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
@@ -3238,7 +3238,7 @@ DECLSPEC void luks_af_sha256_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
 
       u32 ks1[60];
 
-      aes256_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      aes256_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
       luks_decrypt_sector_aes_cbc_plain256 (luks_bufs->ct_buf, pt_buf, ks1, 0, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
@@ -3264,8 +3264,8 @@ DECLSPEC void luks_af_sha256_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
       u32 ks1[44];
       u32 ks2[44];
 
-      aes128_set_decrypt_key (ks1, ukey1, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
-      aes128_set_encrypt_key (ks2, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4);
+      aes128_set_decrypt_key (ks1, ukey1, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+      aes128_set_encrypt_key (ks2, ukey2, s_te0, s_te1, s_te2, s_te3);
 
       luks_decrypt_sector_aes_xts_plain256 (luks_bufs->ct_buf, pt_buf, ks1, ks2, 0, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
@@ -3296,8 +3296,8 @@ DECLSPEC void luks_af_sha256_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
       u32 ks1[60];
       u32 ks2[60];
 
-      aes256_set_decrypt_key (ks1, ukey1, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
-      aes256_set_encrypt_key (ks2, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4);
+      aes256_set_decrypt_key (ks1, ukey1, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+      aes256_set_encrypt_key (ks2, ukey2, s_te0, s_te1, s_te2, s_te3);
 
       luks_decrypt_sector_aes_xts_plain512 (luks_bufs->ct_buf, pt_buf, ks1, ks2, 0, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
@@ -3357,8 +3357,8 @@ DECLSPEC void luks_af_sha512_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
       u32 ks1[44];
       u32 ks2[60];
 
-      aes128_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
-      aes256_set_encrypt_key (ks2, essivhash, s_te0, s_te1, s_te2, s_te3, s_te4);
+      aes128_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+      aes256_set_encrypt_key (ks2, essivhash, s_te0, s_te1, s_te2, s_te3);
 
       int sector = 0;
       int offset = 0;
@@ -3390,8 +3390,8 @@ DECLSPEC void luks_af_sha512_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
       u32 ks1[60];
       u32 ks2[60];
 
-      aes256_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
-      aes256_set_encrypt_key (ks2, essivhash, s_te0, s_te1, s_te2, s_te3, s_te4);
+      aes256_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+      aes256_set_encrypt_key (ks2, essivhash, s_te0, s_te1, s_te2, s_te3);
 
       int sector = 0;
       int offset = 0;
@@ -3417,7 +3417,7 @@ DECLSPEC void luks_af_sha512_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
 
       u32 ks1[44];
 
-      aes128_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      aes128_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
       int sector = 0;
       int offset = 0;
@@ -3444,7 +3444,7 @@ DECLSPEC void luks_af_sha512_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
 
       u32 ks1[60];
 
-      aes256_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      aes256_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
       int sector = 0;
       int offset = 0;
@@ -3478,8 +3478,8 @@ DECLSPEC void luks_af_sha512_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
       u32 ks1[44];
       u32 ks2[44];
 
-      aes128_set_decrypt_key (ks1, ukey1, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
-      aes128_set_encrypt_key (ks2, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4);
+      aes128_set_decrypt_key (ks1, ukey1, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+      aes128_set_encrypt_key (ks2, ukey2, s_te0, s_te1, s_te2, s_te3);
 
       int sector = 0;
       int offset = 0;
@@ -3518,8 +3518,8 @@ DECLSPEC void luks_af_sha512_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
       u32 ks1[60];
       u32 ks2[60];
 
-      aes256_set_decrypt_key (ks1, ukey1, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
-      aes256_set_encrypt_key (ks2, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4);
+      aes256_set_decrypt_key (ks1, ukey1, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+      aes256_set_encrypt_key (ks2, ukey2, s_te0, s_te1, s_te2, s_te3);
 
       int sector = 0;
       int offset = 0;
@@ -3553,8 +3553,8 @@ DECLSPEC void luks_af_sha512_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
       u32 ks1[44];
       u32 ks2[60];
 
-      aes128_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
-      aes256_set_encrypt_key (ks2, essivhash, s_te0, s_te1, s_te2, s_te3, s_te4);
+      aes128_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+      aes256_set_encrypt_key (ks2, essivhash, s_te0, s_te1, s_te2, s_te3);
 
       luks_decrypt_sector_aes_cbc_essiv128 (luks_bufs->ct_buf, pt_buf, ks1, ks2, 0, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
@@ -3578,8 +3578,8 @@ DECLSPEC void luks_af_sha512_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
       u32 ks1[60];
       u32 ks2[60];
 
-      aes256_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
-      aes256_set_encrypt_key (ks2, essivhash, s_te0, s_te1, s_te2, s_te3, s_te4);
+      aes256_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+      aes256_set_encrypt_key (ks2, essivhash, s_te0, s_te1, s_te2, s_te3);
 
       luks_decrypt_sector_aes_cbc_essiv256 (luks_bufs->ct_buf, pt_buf, ks1, ks2, 0, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
@@ -3597,7 +3597,7 @@ DECLSPEC void luks_af_sha512_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
 
       u32 ks1[44];
 
-      aes128_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      aes128_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
       luks_decrypt_sector_aes_cbc_plain128 (luks_bufs->ct_buf, pt_buf, ks1, 0, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
@@ -3616,7 +3616,7 @@ DECLSPEC void luks_af_sha512_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
 
       u32 ks1[60];
 
-      aes256_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      aes256_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
       luks_decrypt_sector_aes_cbc_plain256 (luks_bufs->ct_buf, pt_buf, ks1, 0, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
@@ -3642,8 +3642,8 @@ DECLSPEC void luks_af_sha512_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
       u32 ks1[44];
       u32 ks2[44];
 
-      aes128_set_decrypt_key (ks1, ukey1, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
-      aes128_set_encrypt_key (ks2, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4);
+      aes128_set_decrypt_key (ks1, ukey1, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+      aes128_set_encrypt_key (ks2, ukey2, s_te0, s_te1, s_te2, s_te3);
 
       luks_decrypt_sector_aes_xts_plain256 (luks_bufs->ct_buf, pt_buf, ks1, ks2, 0, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
@@ -3674,8 +3674,8 @@ DECLSPEC void luks_af_sha512_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
       u32 ks1[60];
       u32 ks2[60];
 
-      aes256_set_decrypt_key (ks1, ukey1, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
-      aes256_set_encrypt_key (ks2, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4);
+      aes256_set_decrypt_key (ks1, ukey1, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+      aes256_set_encrypt_key (ks2, ukey2, s_te0, s_te1, s_te2, s_te3);
 
       luks_decrypt_sector_aes_xts_plain512 (luks_bufs->ct_buf, pt_buf, ks1, ks2, 0, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
@@ -3716,8 +3716,8 @@ DECLSPEC void luks_af_ripemd160_then_aes_decrypt (GLOBAL_AS const luks_t *luks_b
       u32 ks1[44];
       u32 ks2[60];
 
-      aes128_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
-      aes256_set_encrypt_key (ks2, essivhash, s_te0, s_te1, s_te2, s_te3, s_te4);
+      aes128_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+      aes256_set_encrypt_key (ks2, essivhash, s_te0, s_te1, s_te2, s_te3);
 
       int sector = 0;
       int offset = 0;
@@ -3749,8 +3749,8 @@ DECLSPEC void luks_af_ripemd160_then_aes_decrypt (GLOBAL_AS const luks_t *luks_b
       u32 ks1[60];
       u32 ks2[60];
 
-      aes256_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
-      aes256_set_encrypt_key (ks2, essivhash, s_te0, s_te1, s_te2, s_te3, s_te4);
+      aes256_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+      aes256_set_encrypt_key (ks2, essivhash, s_te0, s_te1, s_te2, s_te3);
 
       int sector = 0;
       int offset = 0;
@@ -3776,7 +3776,7 @@ DECLSPEC void luks_af_ripemd160_then_aes_decrypt (GLOBAL_AS const luks_t *luks_b
 
       u32 ks1[44];
 
-      aes128_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      aes128_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
       int sector = 0;
       int offset = 0;
@@ -3803,7 +3803,7 @@ DECLSPEC void luks_af_ripemd160_then_aes_decrypt (GLOBAL_AS const luks_t *luks_b
 
       u32 ks1[60];
 
-      aes256_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      aes256_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
       int sector = 0;
       int offset = 0;
@@ -3837,8 +3837,8 @@ DECLSPEC void luks_af_ripemd160_then_aes_decrypt (GLOBAL_AS const luks_t *luks_b
       u32 ks1[44];
       u32 ks2[44];
 
-      aes128_set_decrypt_key (ks1, ukey1, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
-      aes128_set_encrypt_key (ks2, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4);
+      aes128_set_decrypt_key (ks1, ukey1, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+      aes128_set_encrypt_key (ks2, ukey2, s_te0, s_te1, s_te2, s_te3);
 
       int sector = 0;
       int offset = 0;
@@ -3877,8 +3877,8 @@ DECLSPEC void luks_af_ripemd160_then_aes_decrypt (GLOBAL_AS const luks_t *luks_b
       u32 ks1[60];
       u32 ks2[60];
 
-      aes256_set_decrypt_key (ks1, ukey1, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
-      aes256_set_encrypt_key (ks2, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4);
+      aes256_set_decrypt_key (ks1, ukey1, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+      aes256_set_encrypt_key (ks2, ukey2, s_te0, s_te1, s_te2, s_te3);
 
       int sector = 0;
       int offset = 0;
@@ -3912,8 +3912,8 @@ DECLSPEC void luks_af_ripemd160_then_aes_decrypt (GLOBAL_AS const luks_t *luks_b
       u32 ks1[44];
       u32 ks2[60];
 
-      aes128_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
-      aes256_set_encrypt_key (ks2, essivhash, s_te0, s_te1, s_te2, s_te3, s_te4);
+      aes128_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+      aes256_set_encrypt_key (ks2, essivhash, s_te0, s_te1, s_te2, s_te3);
 
       luks_decrypt_sector_aes_cbc_essiv128 (luks_bufs->ct_buf, pt_buf, ks1, ks2, 0, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
@@ -3937,8 +3937,8 @@ DECLSPEC void luks_af_ripemd160_then_aes_decrypt (GLOBAL_AS const luks_t *luks_b
       u32 ks1[60];
       u32 ks2[60];
 
-      aes256_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
-      aes256_set_encrypt_key (ks2, essivhash, s_te0, s_te1, s_te2, s_te3, s_te4);
+      aes256_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+      aes256_set_encrypt_key (ks2, essivhash, s_te0, s_te1, s_te2, s_te3);
 
       luks_decrypt_sector_aes_cbc_essiv256 (luks_bufs->ct_buf, pt_buf, ks1, ks2, 0, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
@@ -3956,7 +3956,7 @@ DECLSPEC void luks_af_ripemd160_then_aes_decrypt (GLOBAL_AS const luks_t *luks_b
 
       u32 ks1[44];
 
-      aes128_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      aes128_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
       luks_decrypt_sector_aes_cbc_plain128 (luks_bufs->ct_buf, pt_buf, ks1, 0, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
@@ -3975,7 +3975,7 @@ DECLSPEC void luks_af_ripemd160_then_aes_decrypt (GLOBAL_AS const luks_t *luks_b
 
       u32 ks1[60];
 
-      aes256_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      aes256_set_decrypt_key (ks1, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
       luks_decrypt_sector_aes_cbc_plain256 (luks_bufs->ct_buf, pt_buf, ks1, 0, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
@@ -4001,8 +4001,8 @@ DECLSPEC void luks_af_ripemd160_then_aes_decrypt (GLOBAL_AS const luks_t *luks_b
       u32 ks1[44];
       u32 ks2[44];
 
-      aes128_set_decrypt_key (ks1, ukey1, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
-      aes128_set_encrypt_key (ks2, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4);
+      aes128_set_decrypt_key (ks1, ukey1, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+      aes128_set_encrypt_key (ks2, ukey2, s_te0, s_te1, s_te2, s_te3);
 
       luks_decrypt_sector_aes_xts_plain256 (luks_bufs->ct_buf, pt_buf, ks1, ks2, 0, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
@@ -4033,8 +4033,8 @@ DECLSPEC void luks_af_ripemd160_then_aes_decrypt (GLOBAL_AS const luks_t *luks_b
       u32 ks1[60];
       u32 ks2[60];
 
-      aes256_set_decrypt_key (ks1, ukey1, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
-      aes256_set_encrypt_key (ks2, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4);
+      aes256_set_decrypt_key (ks1, ukey1, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+      aes256_set_encrypt_key (ks2, ukey2, s_te0, s_te1, s_te2, s_te3);
 
       luks_decrypt_sector_aes_xts_plain512 (luks_bufs->ct_buf, pt_buf, ks1, ks2, 0, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }

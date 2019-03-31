@@ -263,7 +263,7 @@ DECLSPEC static void m16600 (SHM_TYPE u32a *s_te0, SHM_TYPE u32a *s_te1, SHM_TYP
 
     u32 ks[KEYLEN];
 
-    aes256_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+    aes256_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
     u32 encrypted[4];
 

@@ -118,7 +118,7 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_salts_buf,
 
     memset (&aes_key, 0, sizeof (aes_key));
 
-    aes256_set_decrypt_key (aes_key.rdk, ukey, (u32 *) te0, (u32 *) te1, (u32 *) te2, (u32 *) te3, (u32 *) te4, (u32 *) td0, (u32 *) td1, (u32 *) td2, (u32 *) td3, (u32 *) td4);
+    aes256_set_decrypt_key (aes_key.rdk, ukey, (u32 *) te0, (u32 *) te1, (u32 *) te2, (u32 *) te3, (u32 *) td0, (u32 *) td1, (u32 *) td2, (u32 *) td3);
 
     int aes_len = seven_zip->aes_len;
 

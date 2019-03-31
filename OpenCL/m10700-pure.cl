@@ -910,7 +910,7 @@ DECLSPEC static u32 do_round (const u32 *w, const u32 pw_len, pdf17l8_tmp_t *tmp
 
   u32 aes_ks[44];
 
-  aes128_set_encrypt_key (aes_ks, aes_key, s_te0, s_te1, s_te2, s_te3, s_te4);
+  aes128_set_encrypt_key (aes_ks, aes_key, s_te0, s_te1, s_te2, s_te3);
 
   u32 aes_iv[4];
 

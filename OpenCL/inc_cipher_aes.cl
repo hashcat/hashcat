@@ -10,7 +10,7 @@
 
 // 128 bit key
 
-DECLSPEC void aes128_ExpandKey (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void aes128_ExpandKey (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3)
 {
   ks[ 0] = ukey[0];
   ks[ 1] = ukey[1];
@@ -98,7 +98,7 @@ DECLSPEC void aes128_ExpandKey (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, S
   ks[43] = ks[39] ^ ks[42];
 }
 
-DECLSPEC void aes128_InvertKey (u32 *ks, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void aes128_InvertKey (u32 *ks, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3)
 {
   u32 temp;
 
@@ -123,45 +123,45 @@ DECLSPEC void aes128_InvertKey (u32 *ks, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te
   temp = ks[18]; ks[18] = ks[26]; ks[26] = temp;
   temp = ks[19]; ks[19] = ks[27]; ks[27] = temp;
 
-  ks[ 4] = td0[te1[(ks[ 4] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[ 4] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[ 4] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[ 4] >>  0) & 0xff] & 0xff];
-  ks[ 5] = td0[te1[(ks[ 5] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[ 5] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[ 5] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[ 5] >>  0) & 0xff] & 0xff];
-  ks[ 6] = td0[te1[(ks[ 6] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[ 6] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[ 6] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[ 6] >>  0) & 0xff] & 0xff];
-  ks[ 7] = td0[te1[(ks[ 7] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[ 7] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[ 7] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[ 7] >>  0) & 0xff] & 0xff];
-  ks[ 8] = td0[te1[(ks[ 8] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[ 8] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[ 8] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[ 8] >>  0) & 0xff] & 0xff];
-  ks[ 9] = td0[te1[(ks[ 9] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[ 9] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[ 9] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[ 9] >>  0) & 0xff] & 0xff];
-  ks[10] = td0[te1[(ks[10] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[10] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[10] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[10] >>  0) & 0xff] & 0xff];
-  ks[11] = td0[te1[(ks[11] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[11] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[11] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[11] >>  0) & 0xff] & 0xff];
-  ks[12] = td0[te1[(ks[12] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[12] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[12] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[12] >>  0) & 0xff] & 0xff];
-  ks[13] = td0[te1[(ks[13] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[13] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[13] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[13] >>  0) & 0xff] & 0xff];
-  ks[14] = td0[te1[(ks[14] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[14] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[14] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[14] >>  0) & 0xff] & 0xff];
-  ks[15] = td0[te1[(ks[15] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[15] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[15] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[15] >>  0) & 0xff] & 0xff];
-  ks[16] = td0[te1[(ks[16] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[16] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[16] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[16] >>  0) & 0xff] & 0xff];
-  ks[17] = td0[te1[(ks[17] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[17] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[17] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[17] >>  0) & 0xff] & 0xff];
-  ks[18] = td0[te1[(ks[18] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[18] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[18] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[18] >>  0) & 0xff] & 0xff];
-  ks[19] = td0[te1[(ks[19] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[19] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[19] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[19] >>  0) & 0xff] & 0xff];
-  ks[20] = td0[te1[(ks[20] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[20] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[20] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[20] >>  0) & 0xff] & 0xff];
-  ks[21] = td0[te1[(ks[21] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[21] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[21] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[21] >>  0) & 0xff] & 0xff];
-  ks[22] = td0[te1[(ks[22] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[22] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[22] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[22] >>  0) & 0xff] & 0xff];
-  ks[23] = td0[te1[(ks[23] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[23] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[23] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[23] >>  0) & 0xff] & 0xff];
-  ks[24] = td0[te1[(ks[24] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[24] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[24] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[24] >>  0) & 0xff] & 0xff];
-  ks[25] = td0[te1[(ks[25] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[25] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[25] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[25] >>  0) & 0xff] & 0xff];
-  ks[26] = td0[te1[(ks[26] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[26] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[26] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[26] >>  0) & 0xff] & 0xff];
-  ks[27] = td0[te1[(ks[27] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[27] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[27] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[27] >>  0) & 0xff] & 0xff];
-  ks[28] = td0[te1[(ks[28] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[28] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[28] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[28] >>  0) & 0xff] & 0xff];
-  ks[29] = td0[te1[(ks[29] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[29] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[29] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[29] >>  0) & 0xff] & 0xff];
-  ks[30] = td0[te1[(ks[30] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[30] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[30] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[30] >>  0) & 0xff] & 0xff];
-  ks[31] = td0[te1[(ks[31] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[31] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[31] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[31] >>  0) & 0xff] & 0xff];
-  ks[32] = td0[te1[(ks[32] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[32] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[32] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[32] >>  0) & 0xff] & 0xff];
-  ks[33] = td0[te1[(ks[33] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[33] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[33] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[33] >>  0) & 0xff] & 0xff];
-  ks[34] = td0[te1[(ks[34] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[34] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[34] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[34] >>  0) & 0xff] & 0xff];
-  ks[35] = td0[te1[(ks[35] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[35] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[35] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[35] >>  0) & 0xff] & 0xff];
-  ks[36] = td0[te1[(ks[36] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[36] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[36] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[36] >>  0) & 0xff] & 0xff];
-  ks[37] = td0[te1[(ks[37] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[37] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[37] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[37] >>  0) & 0xff] & 0xff];
-  ks[38] = td0[te1[(ks[38] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[38] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[38] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[38] >>  0) & 0xff] & 0xff];
-  ks[39] = td0[te1[(ks[39] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[39] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[39] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[39] >>  0) & 0xff] & 0xff];
+  ks[ 4] = s_td0[s_te1[(ks[ 4] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[ 4] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[ 4] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[ 4] >>  0) & 0xff] & 0xff];
+  ks[ 5] = s_td0[s_te1[(ks[ 5] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[ 5] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[ 5] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[ 5] >>  0) & 0xff] & 0xff];
+  ks[ 6] = s_td0[s_te1[(ks[ 6] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[ 6] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[ 6] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[ 6] >>  0) & 0xff] & 0xff];
+  ks[ 7] = s_td0[s_te1[(ks[ 7] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[ 7] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[ 7] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[ 7] >>  0) & 0xff] & 0xff];
+  ks[ 8] = s_td0[s_te1[(ks[ 8] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[ 8] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[ 8] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[ 8] >>  0) & 0xff] & 0xff];
+  ks[ 9] = s_td0[s_te1[(ks[ 9] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[ 9] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[ 9] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[ 9] >>  0) & 0xff] & 0xff];
+  ks[10] = s_td0[s_te1[(ks[10] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[10] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[10] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[10] >>  0) & 0xff] & 0xff];
+  ks[11] = s_td0[s_te1[(ks[11] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[11] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[11] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[11] >>  0) & 0xff] & 0xff];
+  ks[12] = s_td0[s_te1[(ks[12] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[12] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[12] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[12] >>  0) & 0xff] & 0xff];
+  ks[13] = s_td0[s_te1[(ks[13] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[13] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[13] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[13] >>  0) & 0xff] & 0xff];
+  ks[14] = s_td0[s_te1[(ks[14] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[14] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[14] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[14] >>  0) & 0xff] & 0xff];
+  ks[15] = s_td0[s_te1[(ks[15] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[15] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[15] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[15] >>  0) & 0xff] & 0xff];
+  ks[16] = s_td0[s_te1[(ks[16] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[16] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[16] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[16] >>  0) & 0xff] & 0xff];
+  ks[17] = s_td0[s_te1[(ks[17] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[17] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[17] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[17] >>  0) & 0xff] & 0xff];
+  ks[18] = s_td0[s_te1[(ks[18] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[18] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[18] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[18] >>  0) & 0xff] & 0xff];
+  ks[19] = s_td0[s_te1[(ks[19] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[19] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[19] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[19] >>  0) & 0xff] & 0xff];
+  ks[20] = s_td0[s_te1[(ks[20] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[20] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[20] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[20] >>  0) & 0xff] & 0xff];
+  ks[21] = s_td0[s_te1[(ks[21] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[21] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[21] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[21] >>  0) & 0xff] & 0xff];
+  ks[22] = s_td0[s_te1[(ks[22] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[22] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[22] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[22] >>  0) & 0xff] & 0xff];
+  ks[23] = s_td0[s_te1[(ks[23] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[23] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[23] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[23] >>  0) & 0xff] & 0xff];
+  ks[24] = s_td0[s_te1[(ks[24] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[24] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[24] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[24] >>  0) & 0xff] & 0xff];
+  ks[25] = s_td0[s_te1[(ks[25] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[25] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[25] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[25] >>  0) & 0xff] & 0xff];
+  ks[26] = s_td0[s_te1[(ks[26] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[26] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[26] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[26] >>  0) & 0xff] & 0xff];
+  ks[27] = s_td0[s_te1[(ks[27] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[27] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[27] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[27] >>  0) & 0xff] & 0xff];
+  ks[28] = s_td0[s_te1[(ks[28] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[28] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[28] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[28] >>  0) & 0xff] & 0xff];
+  ks[29] = s_td0[s_te1[(ks[29] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[29] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[29] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[29] >>  0) & 0xff] & 0xff];
+  ks[30] = s_td0[s_te1[(ks[30] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[30] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[30] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[30] >>  0) & 0xff] & 0xff];
+  ks[31] = s_td0[s_te1[(ks[31] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[31] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[31] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[31] >>  0) & 0xff] & 0xff];
+  ks[32] = s_td0[s_te1[(ks[32] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[32] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[32] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[32] >>  0) & 0xff] & 0xff];
+  ks[33] = s_td0[s_te1[(ks[33] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[33] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[33] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[33] >>  0) & 0xff] & 0xff];
+  ks[34] = s_td0[s_te1[(ks[34] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[34] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[34] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[34] >>  0) & 0xff] & 0xff];
+  ks[35] = s_td0[s_te1[(ks[35] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[35] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[35] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[35] >>  0) & 0xff] & 0xff];
+  ks[36] = s_td0[s_te1[(ks[36] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[36] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[36] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[36] >>  0) & 0xff] & 0xff];
+  ks[37] = s_td0[s_te1[(ks[37] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[37] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[37] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[37] >>  0) & 0xff] & 0xff];
+  ks[38] = s_td0[s_te1[(ks[38] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[38] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[38] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[38] >>  0) & 0xff] & 0xff];
+  ks[39] = s_td0[s_te1[(ks[39] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[39] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[39] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[39] >>  0) & 0xff] & 0xff];
 }
 
-DECLSPEC void aes128_set_encrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void aes128_set_encrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3)
 {
   u32 ukey_s[4];
 
@@ -170,10 +170,10 @@ DECLSPEC void aes128_set_encrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_
   ukey_s[2] = hc_swap32_S (ukey[2]);
   ukey_s[3] = hc_swap32_S (ukey[3]);
 
-  aes128_ExpandKey (ks, ukey_s, s_te0, s_te1, s_te2, s_te3, s_te4);
+  aes128_ExpandKey (ks, ukey_s, s_te0, s_te1, s_te2, s_te3);
 }
 
-DECLSPEC void aes128_set_decrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void aes128_set_decrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3)
 {
   u32 ukey_s[4];
 
@@ -182,9 +182,9 @@ DECLSPEC void aes128_set_decrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_
   ukey_s[2] = hc_swap32_S (ukey[2]);
   ukey_s[3] = hc_swap32_S (ukey[3]);
 
-  aes128_ExpandKey (ks, ukey_s, s_te0, s_te1, s_te2, s_te3, s_te4);
+  aes128_ExpandKey (ks, ukey_s, s_te0, s_te1, s_te2, s_te3);
 
-  aes128_InvertKey (ks, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+  aes128_InvertKey (ks, s_te1, s_td0, s_td1, s_td2, s_td3);
 }
 
 DECLSPEC void aes128_encrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
@@ -361,7 +361,7 @@ DECLSPEC void aes128_decrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u
 
 // 256 bit key
 
-DECLSPEC void aes256_ExpandKey (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void aes256_ExpandKey (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3)
 {
   ks[ 0] = ukey[0];
   ks[ 1] = ukey[1];
@@ -477,7 +477,7 @@ DECLSPEC void aes256_ExpandKey (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, S
   ks[59] = ks[51] ^ ks[58];
 }
 
-DECLSPEC void aes256_InvertKey (u32 *ks, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void aes256_InvertKey (u32 *ks, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3)
 {
   u32 temp;
 
@@ -510,61 +510,61 @@ DECLSPEC void aes256_InvertKey (u32 *ks, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te
   temp = ks[26]; ks[26] = ks[34]; ks[34] = temp;
   temp = ks[27]; ks[27] = ks[35]; ks[35] = temp;
 
-  ks[ 4] = td0[te1[(ks[ 4] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[ 4] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[ 4] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[ 4] >>  0) & 0xff] & 0xff];
-  ks[ 5] = td0[te1[(ks[ 5] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[ 5] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[ 5] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[ 5] >>  0) & 0xff] & 0xff];
-  ks[ 6] = td0[te1[(ks[ 6] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[ 6] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[ 6] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[ 6] >>  0) & 0xff] & 0xff];
-  ks[ 7] = td0[te1[(ks[ 7] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[ 7] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[ 7] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[ 7] >>  0) & 0xff] & 0xff];
-  ks[ 8] = td0[te1[(ks[ 8] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[ 8] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[ 8] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[ 8] >>  0) & 0xff] & 0xff];
-  ks[ 9] = td0[te1[(ks[ 9] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[ 9] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[ 9] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[ 9] >>  0) & 0xff] & 0xff];
-  ks[10] = td0[te1[(ks[10] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[10] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[10] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[10] >>  0) & 0xff] & 0xff];
-  ks[11] = td0[te1[(ks[11] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[11] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[11] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[11] >>  0) & 0xff] & 0xff];
-  ks[12] = td0[te1[(ks[12] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[12] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[12] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[12] >>  0) & 0xff] & 0xff];
-  ks[13] = td0[te1[(ks[13] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[13] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[13] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[13] >>  0) & 0xff] & 0xff];
-  ks[14] = td0[te1[(ks[14] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[14] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[14] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[14] >>  0) & 0xff] & 0xff];
-  ks[15] = td0[te1[(ks[15] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[15] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[15] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[15] >>  0) & 0xff] & 0xff];
-  ks[16] = td0[te1[(ks[16] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[16] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[16] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[16] >>  0) & 0xff] & 0xff];
-  ks[17] = td0[te1[(ks[17] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[17] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[17] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[17] >>  0) & 0xff] & 0xff];
-  ks[18] = td0[te1[(ks[18] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[18] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[18] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[18] >>  0) & 0xff] & 0xff];
-  ks[19] = td0[te1[(ks[19] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[19] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[19] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[19] >>  0) & 0xff] & 0xff];
-  ks[20] = td0[te1[(ks[20] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[20] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[20] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[20] >>  0) & 0xff] & 0xff];
-  ks[21] = td0[te1[(ks[21] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[21] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[21] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[21] >>  0) & 0xff] & 0xff];
-  ks[22] = td0[te1[(ks[22] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[22] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[22] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[22] >>  0) & 0xff] & 0xff];
-  ks[23] = td0[te1[(ks[23] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[23] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[23] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[23] >>  0) & 0xff] & 0xff];
-  ks[24] = td0[te1[(ks[24] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[24] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[24] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[24] >>  0) & 0xff] & 0xff];
-  ks[25] = td0[te1[(ks[25] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[25] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[25] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[25] >>  0) & 0xff] & 0xff];
-  ks[26] = td0[te1[(ks[26] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[26] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[26] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[26] >>  0) & 0xff] & 0xff];
-  ks[27] = td0[te1[(ks[27] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[27] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[27] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[27] >>  0) & 0xff] & 0xff];
-  ks[28] = td0[te1[(ks[28] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[28] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[28] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[28] >>  0) & 0xff] & 0xff];
-  ks[29] = td0[te1[(ks[29] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[29] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[29] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[29] >>  0) & 0xff] & 0xff];
-  ks[30] = td0[te1[(ks[30] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[30] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[30] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[30] >>  0) & 0xff] & 0xff];
-  ks[31] = td0[te1[(ks[31] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[31] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[31] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[31] >>  0) & 0xff] & 0xff];
-  ks[32] = td0[te1[(ks[32] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[32] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[32] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[32] >>  0) & 0xff] & 0xff];
-  ks[33] = td0[te1[(ks[33] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[33] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[33] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[33] >>  0) & 0xff] & 0xff];
-  ks[34] = td0[te1[(ks[34] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[34] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[34] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[34] >>  0) & 0xff] & 0xff];
-  ks[35] = td0[te1[(ks[35] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[35] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[35] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[35] >>  0) & 0xff] & 0xff];
-  ks[36] = td0[te1[(ks[36] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[36] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[36] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[36] >>  0) & 0xff] & 0xff];
-  ks[37] = td0[te1[(ks[37] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[37] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[37] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[37] >>  0) & 0xff] & 0xff];
-  ks[38] = td0[te1[(ks[38] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[38] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[38] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[38] >>  0) & 0xff] & 0xff];
-  ks[39] = td0[te1[(ks[39] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[39] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[39] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[39] >>  0) & 0xff] & 0xff];
-  ks[40] = td0[te1[(ks[40] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[40] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[40] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[40] >>  0) & 0xff] & 0xff];
-  ks[41] = td0[te1[(ks[41] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[41] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[41] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[41] >>  0) & 0xff] & 0xff];
-  ks[42] = td0[te1[(ks[42] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[42] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[42] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[42] >>  0) & 0xff] & 0xff];
-  ks[43] = td0[te1[(ks[43] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[43] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[43] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[43] >>  0) & 0xff] & 0xff];
-  ks[44] = td0[te1[(ks[44] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[44] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[44] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[44] >>  0) & 0xff] & 0xff];
-  ks[45] = td0[te1[(ks[45] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[45] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[45] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[45] >>  0) & 0xff] & 0xff];
-  ks[46] = td0[te1[(ks[46] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[46] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[46] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[46] >>  0) & 0xff] & 0xff];
-  ks[47] = td0[te1[(ks[47] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[47] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[47] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[47] >>  0) & 0xff] & 0xff];
-  ks[48] = td0[te1[(ks[48] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[48] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[48] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[48] >>  0) & 0xff] & 0xff];
-  ks[49] = td0[te1[(ks[49] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[49] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[49] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[49] >>  0) & 0xff] & 0xff];
-  ks[50] = td0[te1[(ks[50] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[50] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[50] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[50] >>  0) & 0xff] & 0xff];
-  ks[51] = td0[te1[(ks[51] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[51] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[51] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[51] >>  0) & 0xff] & 0xff];
-  ks[52] = td0[te1[(ks[52] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[52] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[52] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[52] >>  0) & 0xff] & 0xff];
-  ks[53] = td0[te1[(ks[53] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[53] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[53] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[53] >>  0) & 0xff] & 0xff];
-  ks[54] = td0[te1[(ks[54] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[54] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[54] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[54] >>  0) & 0xff] & 0xff];
-  ks[55] = td0[te1[(ks[55] >> 24) & 0xff] & 0xff] ^ td1[te1[(ks[55] >> 16) & 0xff] & 0xff] ^ td2[te1[(ks[55] >>  8) & 0xff] & 0xff] ^ td3[te1[(ks[55] >>  0) & 0xff] & 0xff];
+  ks[ 4] = s_td0[s_te1[(ks[ 4] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[ 4] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[ 4] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[ 4] >>  0) & 0xff] & 0xff];
+  ks[ 5] = s_td0[s_te1[(ks[ 5] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[ 5] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[ 5] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[ 5] >>  0) & 0xff] & 0xff];
+  ks[ 6] = s_td0[s_te1[(ks[ 6] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[ 6] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[ 6] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[ 6] >>  0) & 0xff] & 0xff];
+  ks[ 7] = s_td0[s_te1[(ks[ 7] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[ 7] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[ 7] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[ 7] >>  0) & 0xff] & 0xff];
+  ks[ 8] = s_td0[s_te1[(ks[ 8] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[ 8] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[ 8] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[ 8] >>  0) & 0xff] & 0xff];
+  ks[ 9] = s_td0[s_te1[(ks[ 9] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[ 9] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[ 9] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[ 9] >>  0) & 0xff] & 0xff];
+  ks[10] = s_td0[s_te1[(ks[10] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[10] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[10] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[10] >>  0) & 0xff] & 0xff];
+  ks[11] = s_td0[s_te1[(ks[11] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[11] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[11] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[11] >>  0) & 0xff] & 0xff];
+  ks[12] = s_td0[s_te1[(ks[12] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[12] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[12] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[12] >>  0) & 0xff] & 0xff];
+  ks[13] = s_td0[s_te1[(ks[13] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[13] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[13] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[13] >>  0) & 0xff] & 0xff];
+  ks[14] = s_td0[s_te1[(ks[14] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[14] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[14] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[14] >>  0) & 0xff] & 0xff];
+  ks[15] = s_td0[s_te1[(ks[15] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[15] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[15] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[15] >>  0) & 0xff] & 0xff];
+  ks[16] = s_td0[s_te1[(ks[16] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[16] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[16] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[16] >>  0) & 0xff] & 0xff];
+  ks[17] = s_td0[s_te1[(ks[17] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[17] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[17] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[17] >>  0) & 0xff] & 0xff];
+  ks[18] = s_td0[s_te1[(ks[18] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[18] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[18] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[18] >>  0) & 0xff] & 0xff];
+  ks[19] = s_td0[s_te1[(ks[19] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[19] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[19] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[19] >>  0) & 0xff] & 0xff];
+  ks[20] = s_td0[s_te1[(ks[20] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[20] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[20] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[20] >>  0) & 0xff] & 0xff];
+  ks[21] = s_td0[s_te1[(ks[21] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[21] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[21] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[21] >>  0) & 0xff] & 0xff];
+  ks[22] = s_td0[s_te1[(ks[22] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[22] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[22] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[22] >>  0) & 0xff] & 0xff];
+  ks[23] = s_td0[s_te1[(ks[23] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[23] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[23] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[23] >>  0) & 0xff] & 0xff];
+  ks[24] = s_td0[s_te1[(ks[24] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[24] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[24] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[24] >>  0) & 0xff] & 0xff];
+  ks[25] = s_td0[s_te1[(ks[25] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[25] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[25] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[25] >>  0) & 0xff] & 0xff];
+  ks[26] = s_td0[s_te1[(ks[26] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[26] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[26] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[26] >>  0) & 0xff] & 0xff];
+  ks[27] = s_td0[s_te1[(ks[27] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[27] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[27] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[27] >>  0) & 0xff] & 0xff];
+  ks[28] = s_td0[s_te1[(ks[28] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[28] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[28] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[28] >>  0) & 0xff] & 0xff];
+  ks[29] = s_td0[s_te1[(ks[29] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[29] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[29] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[29] >>  0) & 0xff] & 0xff];
+  ks[30] = s_td0[s_te1[(ks[30] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[30] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[30] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[30] >>  0) & 0xff] & 0xff];
+  ks[31] = s_td0[s_te1[(ks[31] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[31] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[31] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[31] >>  0) & 0xff] & 0xff];
+  ks[32] = s_td0[s_te1[(ks[32] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[32] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[32] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[32] >>  0) & 0xff] & 0xff];
+  ks[33] = s_td0[s_te1[(ks[33] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[33] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[33] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[33] >>  0) & 0xff] & 0xff];
+  ks[34] = s_td0[s_te1[(ks[34] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[34] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[34] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[34] >>  0) & 0xff] & 0xff];
+  ks[35] = s_td0[s_te1[(ks[35] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[35] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[35] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[35] >>  0) & 0xff] & 0xff];
+  ks[36] = s_td0[s_te1[(ks[36] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[36] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[36] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[36] >>  0) & 0xff] & 0xff];
+  ks[37] = s_td0[s_te1[(ks[37] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[37] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[37] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[37] >>  0) & 0xff] & 0xff];
+  ks[38] = s_td0[s_te1[(ks[38] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[38] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[38] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[38] >>  0) & 0xff] & 0xff];
+  ks[39] = s_td0[s_te1[(ks[39] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[39] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[39] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[39] >>  0) & 0xff] & 0xff];
+  ks[40] = s_td0[s_te1[(ks[40] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[40] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[40] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[40] >>  0) & 0xff] & 0xff];
+  ks[41] = s_td0[s_te1[(ks[41] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[41] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[41] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[41] >>  0) & 0xff] & 0xff];
+  ks[42] = s_td0[s_te1[(ks[42] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[42] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[42] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[42] >>  0) & 0xff] & 0xff];
+  ks[43] = s_td0[s_te1[(ks[43] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[43] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[43] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[43] >>  0) & 0xff] & 0xff];
+  ks[44] = s_td0[s_te1[(ks[44] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[44] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[44] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[44] >>  0) & 0xff] & 0xff];
+  ks[45] = s_td0[s_te1[(ks[45] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[45] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[45] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[45] >>  0) & 0xff] & 0xff];
+  ks[46] = s_td0[s_te1[(ks[46] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[46] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[46] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[46] >>  0) & 0xff] & 0xff];
+  ks[47] = s_td0[s_te1[(ks[47] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[47] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[47] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[47] >>  0) & 0xff] & 0xff];
+  ks[48] = s_td0[s_te1[(ks[48] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[48] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[48] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[48] >>  0) & 0xff] & 0xff];
+  ks[49] = s_td0[s_te1[(ks[49] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[49] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[49] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[49] >>  0) & 0xff] & 0xff];
+  ks[50] = s_td0[s_te1[(ks[50] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[50] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[50] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[50] >>  0) & 0xff] & 0xff];
+  ks[51] = s_td0[s_te1[(ks[51] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[51] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[51] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[51] >>  0) & 0xff] & 0xff];
+  ks[52] = s_td0[s_te1[(ks[52] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[52] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[52] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[52] >>  0) & 0xff] & 0xff];
+  ks[53] = s_td0[s_te1[(ks[53] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[53] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[53] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[53] >>  0) & 0xff] & 0xff];
+  ks[54] = s_td0[s_te1[(ks[54] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[54] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[54] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[54] >>  0) & 0xff] & 0xff];
+  ks[55] = s_td0[s_te1[(ks[55] >> 24) & 0xff] & 0xff] ^ s_td1[s_te1[(ks[55] >> 16) & 0xff] & 0xff] ^ s_td2[s_te1[(ks[55] >>  8) & 0xff] & 0xff] ^ s_td3[s_te1[(ks[55] >>  0) & 0xff] & 0xff];
 }
 
-DECLSPEC void aes256_set_encrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void aes256_set_encrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3)
 {
   u32 ukey_s[8];
 
@@ -577,10 +577,10 @@ DECLSPEC void aes256_set_encrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_
   ukey_s[6] = hc_swap32_S (ukey[6]);
   ukey_s[7] = hc_swap32_S (ukey[7]);
 
-  aes256_ExpandKey (ks, ukey_s, s_te0, s_te1, s_te2, s_te3, s_te4);
+  aes256_ExpandKey (ks, ukey_s, s_te0, s_te1, s_te2, s_te3);
 }
 
-DECLSPEC void aes256_set_decrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void aes256_set_decrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3)
 {
   u32 ukey_s[8];
 
@@ -593,9 +593,9 @@ DECLSPEC void aes256_set_decrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_
   ukey_s[6] = hc_swap32_S (ukey[6]);
   ukey_s[7] = hc_swap32_S (ukey[7]);
 
-  aes256_ExpandKey (ks, ukey_s, s_te0, s_te1, s_te2, s_te3, s_te4);
+  aes256_ExpandKey (ks, ukey_s, s_te0, s_te1, s_te2, s_te3);
 
-  aes256_InvertKey (ks, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+  aes256_InvertKey (ks, s_te1, s_td0, s_td1, s_td2, s_td3);
 }
 
 DECLSPEC void aes256_encrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
@@ -804,7 +804,7 @@ DECLSPEC void aes256_decrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u
 
 // wrapper to avoid hc_swap32_S() confusion in the kernel code
 
-DECLSPEC void AES128_set_encrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void AES128_set_encrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3)
 {
   u32 ukey_s[4];
 
@@ -813,10 +813,10 @@ DECLSPEC void AES128_set_encrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_
   ukey_s[2] = hc_swap32_S (ukey[2]);
   ukey_s[3] = hc_swap32_S (ukey[3]);
 
-  aes128_set_encrypt_key (ks, ukey_s, s_te0, s_te1, s_te2, s_te3, s_te4);
+  aes128_set_encrypt_key (ks, ukey_s, s_te0, s_te1, s_te2, s_te3);
 }
 
-DECLSPEC void AES128_set_decrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void AES128_set_decrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3)
 {
   u32 ukey_s[4];
 
@@ -825,7 +825,7 @@ DECLSPEC void AES128_set_decrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_
   ukey_s[2] = hc_swap32_S (ukey[2]);
   ukey_s[3] = hc_swap32_S (ukey[3]);
 
-  aes128_set_decrypt_key (ks, ukey_s, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+  aes128_set_decrypt_key (ks, ukey_s, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 }
 
 DECLSPEC void AES128_encrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
@@ -866,7 +866,7 @@ DECLSPEC void AES128_decrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u
   out[3] = hc_swap32_S (out_s[3]);
 }
 
-DECLSPEC void AES256_set_encrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void AES256_set_encrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3)
 {
   u32 ukey_s[8];
 
@@ -879,10 +879,10 @@ DECLSPEC void AES256_set_encrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_
   ukey_s[6] = hc_swap32_S (ukey[6]);
   ukey_s[7] = hc_swap32_S (ukey[7]);
 
-  aes256_set_encrypt_key (ks, ukey_s, s_te0, s_te1, s_te2, s_te3, s_te4);
+  aes256_set_encrypt_key (ks, ukey_s, s_te0, s_te1, s_te2, s_te3);
 }
 
-DECLSPEC void AES256_set_decrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void AES256_set_decrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3)
 {
   u32 ukey_s[8];
 
@@ -895,7 +895,7 @@ DECLSPEC void AES256_set_decrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_
   ukey_s[6] = hc_swap32_S (ukey[6]);
   ukey_s[7] = hc_swap32_S (ukey[7]);
 
-  aes256_set_decrypt_key (ks, ukey_s, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+  aes256_set_decrypt_key (ks, ukey_s, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 }
 
 DECLSPEC void AES256_encrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)

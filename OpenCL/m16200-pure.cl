@@ -338,7 +338,7 @@ KERNEL_FQ void m16200_comp (KERN_ATTR_TMPS_ESALT (apple_secure_notes_tmp_t, appl
 
   u32 ks[KEYLEN];
 
-  AES128_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+  AES128_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
   // unwrap and compare
 

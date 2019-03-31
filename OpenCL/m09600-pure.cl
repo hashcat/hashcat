@@ -365,7 +365,7 @@ KERNEL_FQ void m09600_comp (KERN_ATTR_TMPS_ESALT (office2013_tmp_t, office2013_t
 
   u32 ks[60];
 
-  AES256_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+  AES256_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
   const u32 digest_cur = digests_offset + loop_pos;
 
@@ -444,7 +444,7 @@ KERNEL_FQ void m09600_comp (KERN_ATTR_TMPS_ESALT (office2013_tmp_t, office2013_t
   ukey[6] = h32_from_64_S (digest1[3]);
   ukey[7] = l32_from_64_S (digest1[3]);
 
-  AES256_set_encrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_te4);
+  AES256_set_encrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3);
 
   data[0] = h32_from_64_S (digest[0]) ^ salt_bufs[salt_pos].salt_buf[0];
   data[1] = l32_from_64_S (digest[0]) ^ salt_bufs[salt_pos].salt_buf[1];
