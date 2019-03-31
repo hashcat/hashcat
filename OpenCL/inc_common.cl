@@ -107,7 +107,7 @@ DECLSPEC u64 v64_from_v32ab_S (const u32 v32a, const u32 v32b)
 
 DECLSPEC u32 unpack_v8a_from_v32_S (const u32 v32)
 {
-  u32 r;
+  u32 r = 0;
 
   #if defined IS_NV
   asm volatile ("bfe.u32 %0, %1, 0, 8;" : "=r"(r) : "r"(v32));
@@ -126,7 +126,7 @@ DECLSPEC u32 unpack_v8a_from_v32_S (const u32 v32)
 
 DECLSPEC u32 unpack_v8b_from_v32_S (const u32 v32)
 {
-  u32 r;
+  u32 r = 0;
 
   #if defined IS_NV
   asm volatile ("bfe.u32 %0, %1, 8, 8;" : "=r"(r) : "r"(v32));
@@ -145,7 +145,7 @@ DECLSPEC u32 unpack_v8b_from_v32_S (const u32 v32)
 
 DECLSPEC u32 unpack_v8c_from_v32_S (const u32 v32)
 {
-  u32 r;
+  u32 r = 0;
 
   #if defined IS_NV
   asm volatile ("bfe.u32 %0, %1, 16, 8;" : "=r"(r) : "r"(v32));
@@ -164,7 +164,7 @@ DECLSPEC u32 unpack_v8c_from_v32_S (const u32 v32)
 
 DECLSPEC u32 unpack_v8d_from_v32_S (const u32 v32)
 {
-  u32 r;
+  u32 r = 0;
 
   #if defined IS_NV
   asm volatile ("bfe.u32 %0, %1, 24, 8;" : "=r"(r) : "r"(v32));
@@ -204,7 +204,7 @@ DECLSPEC u64 hl32_to_64_S (const u32 a, const u32 b)
 
 DECLSPEC u32x l32_from_64 (u64x a)
 {
-  u32x r;
+  u32x r = 0;
 
   #if VECT_SIZE == 1
   r    = (u32) a;
@@ -245,7 +245,7 @@ DECLSPEC u32x h32_from_64 (u64x a)
 {
   a >>= 32;
 
-  u32x r;
+  u32x r = 0;
 
   #if VECT_SIZE == 1
   r    = (u32) a;
@@ -326,7 +326,7 @@ DECLSPEC u64x hl32_to_64 (const u32x a, const u32x b)
 #if HAS_VPERM
 DECLSPEC u32 hc_swap32_S (const u32 v)
 {
-  u32 r;
+  u32 r = 0;
 
   __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r) : "v"(v), "v"(0x00010203));
 
@@ -527,7 +527,7 @@ DECLSPEC u32 hc_bfe_S (const u32 a, const u32 b, const u32 c)
 
 DECLSPEC u32x hc_bytealign_be (const u32x a, const u32x b, const int c)
 {
-  u32x r;
+  u32x r = 0;
 
   switch (c & 3)
   {
@@ -542,7 +542,7 @@ DECLSPEC u32x hc_bytealign_be (const u32x a, const u32x b, const int c)
 
 DECLSPEC u32 hc_bytealign_be_S (const u32 a, const u32 b, const int c)
 {
-  u32 r;
+  u32 r = 0;
 
   switch (c & 3)
   {
@@ -557,7 +557,7 @@ DECLSPEC u32 hc_bytealign_be_S (const u32 a, const u32 b, const int c)
 
 DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const int c)
 {
-  u32x r;
+  u32x r = 0;
 
   switch (c & 3)
   {
@@ -572,7 +572,7 @@ DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const int c)
 
 DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const int c)
 {
-  u32 r;
+  u32 r = 0;
 
   switch (c & 3)
   {
@@ -588,7 +588,7 @@ DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const int c)
 #if HAS_VPERM
 DECLSPEC u32x hc_byte_perm (const u32x a, const u32x b, const int c)
 {
-  u32x r;
+  u32x r = 0;
 
   #if VECT_SIZE == 1
   __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r) : "v"(b), "v"(a), "v"(c));
@@ -641,7 +641,7 @@ DECLSPEC u32x hc_byte_perm (const u32x a, const u32x b, const int c)
 
 DECLSPEC u32 hc_byte_perm_S (const u32 a, const u32 b, const int c)
 {
-  u32 r;
+  u32 r = 0;
 
   __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r) : "v"(b), "v"(a), "v"(c));
 
@@ -652,7 +652,7 @@ DECLSPEC u32 hc_byte_perm_S (const u32 a, const u32 b, const int c)
 #if HAS_VADD3
 DECLSPEC u32x hc_add3 (const u32x a, const u32x b, const u32x c)
 {
-  u32x r;
+  u32x r = 0;
 
   #if VECT_SIZE == 1
   __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r) : "v"(b), "v"(a), "v"(c));
@@ -705,7 +705,7 @@ DECLSPEC u32x hc_add3 (const u32x a, const u32x b, const u32x c)
 
 DECLSPEC u32 hc_add3_S (const u32 a, const u32 b, const u32 c)
 {
-  u32 r;
+  u32 r = 0;
 
   __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r) : "v"(b), "v"(a), "v"(c));
 
@@ -738,7 +738,7 @@ DECLSPEC u32 hc_lop_0x96_S (const u32 a, const u32 b, const u32 c)
 #ifdef IS_NV
 DECLSPEC u32 hc_swap32_S (const u32 v)
 {
-  u32 r;
+  u32 r = 0;
 
   asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r) : "r"(v));
 
@@ -787,7 +787,7 @@ DECLSPEC u64 hc_rotl64_S (const u64 a, const int n)
 
 DECLSPEC u32x hc_swap32 (const u32x v)
 {
-  u32x r;
+  u32x r = 0;
 
   #if VECT_SIZE == 1
   asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r) : "r"(v));
@@ -972,7 +972,7 @@ DECLSPEC u64x hc_rotl64 (const u64x a, const int n)
 
 DECLSPEC u32x hc_byte_perm (const u32x a, const u32x b, const int c)
 {
-  u32x r;
+  u32x r = 0;
 
   #if VECT_SIZE == 1
   asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r)    : "r"(a),    "r"(b),    "r"(c));
@@ -1011,7 +1011,7 @@ DECLSPEC u32x hc_byte_perm (const u32x a, const u32x b, const int c)
 
 DECLSPEC u32 hc_byte_perm_S (const u32 a, const u32 b, const int c)
 {
-  u32 r;
+  u32 r = 0;
 
   asm volatile ("prmt.b32 %0, %1, %2, %3;" : "=r"(r) : "r"(a), "r"(b), "r"(c));
 
@@ -1020,7 +1020,7 @@ DECLSPEC u32 hc_byte_perm_S (const u32 a, const u32 b, const int c)
 
 DECLSPEC u32x hc_bfe (const u32x a, const u32x b, const u32x c)
 {
-  u32x r;
+  u32x r = 0;
 
   #if VECT_SIZE == 1
   asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r)    : "r"(a),    "r"(b),    "r"(c));
@@ -1059,7 +1059,7 @@ DECLSPEC u32x hc_bfe (const u32x a, const u32x b, const u32x c)
 
 DECLSPEC u32 hc_bfe_S (const u32 a, const u32 b, const u32 c)
 {
-  u32 r;
+  u32 r = 0;
 
   asm volatile ("bfe.u32 %0, %1, %2, %3;" : "=r"(r) : "r"(a), "r"(b), "r"(c));
 
@@ -1100,7 +1100,7 @@ DECLSPEC u32 hc_add3_S (const u32 a, const u32 b, const u32 c)
 
 DECLSPEC u32x hc_lop_0x96 (const u32x a, const u32x b, const u32x c)
 {
-  u32x r;
+  u32x r = 0;
 
   #if CUDA_ARCH >= 500
 
@@ -1147,7 +1147,7 @@ DECLSPEC u32x hc_lop_0x96 (const u32x a, const u32x b, const u32x c)
 
 DECLSPEC u32 hc_lop_0x96_S (const u32 a, const u32 b, const u32 c)
 {
-  u32 r;
+  u32 r = 0;
 
   #if CUDA_ARCH >= 500
 
@@ -1306,7 +1306,7 @@ DECLSPEC u32 hc_bfe_S (const u32 a, const u32 b, const u32 c)
 
 DECLSPEC u32x hc_bytealign_be (const u32x a, const u32x b, const int c)
 {
-  u32x r;
+  u32x r = 0;
 
   switch (c & 3)
   {
@@ -1321,7 +1321,7 @@ DECLSPEC u32x hc_bytealign_be (const u32x a, const u32x b, const int c)
 
 DECLSPEC u32 hc_bytealign_be_S (const u32 a, const u32 b, const int c)
 {
-  u32 r;
+  u32 r = 0;
 
   switch (c & 3)
   {
@@ -1336,7 +1336,7 @@ DECLSPEC u32 hc_bytealign_be_S (const u32 a, const u32 b, const int c)
 
 DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const int c)
 {
-  u32x r;
+  u32x r = 0;
 
   switch (c & 3)
   {
@@ -1351,7 +1351,7 @@ DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const int c)
 
 DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const int c)
 {
-  u32 r;
+  u32 r = 0;
 
   switch (c & 3)
   {

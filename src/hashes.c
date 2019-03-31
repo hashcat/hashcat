@@ -132,7 +132,7 @@ int hash_encode (const hashconfig_t *hashconfig, const hashes_t *hashes, const m
 
   salts_buf += salt_pos;
 
-  const u32 digest_cur = salts_buf[salt_pos].digests_offset + digest_pos;
+  const u32 digest_cur = salts_buf->digests_offset + digest_pos;
 
   void        *digests_buf    = hashes->digests_buf;
   void        *esalts_buf     = hashes->esalts_buf;
