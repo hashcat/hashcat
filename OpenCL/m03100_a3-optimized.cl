@@ -159,14 +159,14 @@ DECLSPEC static void m03100m (SHM_TYPE u32 (*s_SPtrans)[64], SHM_TYPE u32 (*s_sk
       data[0] ^= iv[0];
       data[1] ^= iv[1];
 
-      _des_crypt_encrypt (iv, data, Kc, Kd, s_SPtrans);
+      _des_crypt_encrypt_vect (iv, data, Kc, Kd, s_SPtrans);
     }
 
     /**
      * key2 (generate hash)
      */
 
-    _des_crypt_keysetup (iv[0], iv[1], Kc, Kd, s_skb);
+    _des_crypt_keysetup_vect (iv[0], iv[1], Kc, Kd, s_skb);
 
     iv[0] = 0;
     iv[1] = 0;
@@ -181,7 +181,7 @@ DECLSPEC static void m03100m (SHM_TYPE u32 (*s_SPtrans)[64], SHM_TYPE u32 (*s_sk
       data[0] ^= iv[0];
       data[1] ^= iv[1];
 
-      _des_crypt_encrypt (iv, data, Kc, Kd, s_SPtrans);
+      _des_crypt_encrypt_vect (iv, data, Kc, Kd, s_SPtrans);
     }
 
     /**
@@ -352,14 +352,14 @@ DECLSPEC static void m03100s (SHM_TYPE u32 (*s_SPtrans)[64], SHM_TYPE u32 (*s_sk
       data[0] ^= iv[0];
       data[1] ^= iv[1];
 
-      _des_crypt_encrypt (iv, data, Kc, Kd, s_SPtrans);
+      _des_crypt_encrypt_vect (iv, data, Kc, Kd, s_SPtrans);
     }
 
     /**
      * key2 (generate hash)
      */
 
-    _des_crypt_keysetup (iv[0], iv[1], Kc, Kd, s_skb);
+    _des_crypt_keysetup_vect (iv[0], iv[1], Kc, Kd, s_skb);
 
     iv[0] = 0;
     iv[1] = 0;
@@ -374,7 +374,7 @@ DECLSPEC static void m03100s (SHM_TYPE u32 (*s_SPtrans)[64], SHM_TYPE u32 (*s_sk
       data[0] ^= iv[0];
       data[1] ^= iv[1];
 
-      _des_crypt_encrypt (iv, data, Kc, Kd, s_SPtrans);
+      _des_crypt_encrypt_vect (iv, data, Kc, Kd, s_SPtrans);
     }
 
     /**

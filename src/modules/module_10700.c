@@ -114,10 +114,10 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
     return true;
   }
 
-  // l_opencl_p_18.1.0.013: Segmentation fault
+  // l_opencl_p_18.1.0.013: password not found
   if (device_param->device_vendor_id == VENDOR_ID_INTEL_SDK)
   {
-    if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 1)
+    if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0)
     {
       return true;
     }
