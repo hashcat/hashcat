@@ -316,7 +316,7 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   u8 *out_buf = hashes->out_buf;
 
-  const int out_len = hash_encode (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf, HCBUFSIZ_LARGE, salt_pos, digest_pos);
+  int out_len = hash_encode (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf, HCBUFSIZ_LARGE, salt_pos, digest_pos);
 
   out_buf[out_len] = 0;
 
@@ -359,10 +359,6 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   build_debugdata (hashcat_ctx, device_param, plain, debug_rule_buf, &debug_rule_len, debug_plain_ptr, &debug_plain_len);
 
-  // no need for locking, we're in a mutex protected function
-
-  potfile_write_append (hashcat_ctx, (char *) out_buf, out_len, plain_ptr, plain_len);
-
   // outfile, can be either to file or stdout
   // if an error occurs opening the file, send to stdout as fallback
   // the fp gets opened for each cracked hash so that the user can modify (move) the outfile while hashcat runs
@@ -378,6 +374,52 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
   outfile_write_close (hashcat_ctx);
 
   EVENT_DATA (EVENT_CRACKER_HASH_CRACKED, tmp_buf, tmp_len);
+
+  // potfile
+  // we can have either used-defined hooks or reuse the same format as input format
+  // no need for locking, we're in a mutex protected function
+
+  if (module_ctx->module_hash_encode_potfile != MODULE_DEFAULT)
+  {
+    salt_t *salts_buf = hashes->salts_buf;
+
+    salts_buf += salt_pos;
+
+    const u32 digest_cur = salts_buf->digests_offset + digest_pos;
+
+    void        *digests_buf    = hashes->digests_buf;
+    void        *esalts_buf     = hashes->esalts_buf;
+    void        *hook_salts_buf = hashes->hook_salts_buf;
+    hashinfo_t **hash_info      = hashes->hash_info;
+
+    char       *digests_buf_ptr    = (char *) digests_buf;
+    char       *esalts_buf_ptr     = (char *) esalts_buf;
+    char       *hook_salts_buf_ptr = (char *) hook_salts_buf;
+    hashinfo_t *hash_info_ptr      = NULL;
+
+    digests_buf_ptr    += digest_cur * hashconfig->dgst_size;
+    esalts_buf_ptr     += digest_cur * hashconfig->esalt_size;
+    hook_salts_buf_ptr += digest_cur * hashconfig->hook_salt_size;
+
+    if (hash_info) hash_info_ptr = hash_info[digest_cur];
+
+    out_len = module_ctx->module_hash_encode_potfile
+    (
+      hashconfig,
+      digests_buf_ptr,
+      salts_buf,
+      esalts_buf_ptr,
+      hook_salts_buf_ptr,
+      hash_info_ptr,
+      (char *) out_buf,
+      HCBUFSIZ_LARGE,
+      tmps
+    );
+
+    out_buf[out_len] = 0;
+  }
+
+  potfile_write_append (hashcat_ctx, (char *) out_buf, out_len, plain_ptr, plain_len);
 
   // if enabled, update also the loopback file
 
