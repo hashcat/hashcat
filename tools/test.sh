@@ -15,6 +15,9 @@ TC_MODES="6211 6212 6213 6221 6222 6223 6231 6232 6233 6241 6242 6243"
 # List of VeraCrypt modes which have test containers
 VC_MODES="13711 13712 13713 13721 13722 13723 13731 13732 13733 13741 13742 13743 13751 13752 13753 13761 13762 13763 13771 13772 13773"
 
+# List of modes which either are OPTS_TYPE_PT_NEVERCRACK or produce collisions
+NEVER_CRACK="9720 9820 14900 18100"
+
 # LUKS mode has test containers
 LUKS_MODE="14600"
 
@@ -27,7 +30,6 @@ HASH_TYPES="$(echo -n ${HASH_TYPES} | tr ' ' '\n' | sort -u -n | tr '\n' ' ')"
 VECTOR_WIDTHS="1 2 4 8 16"
 
 HASHFILE_ONLY=$(grep -l OPTS_TYPE_BINARY_HASHFILE ${TDIR}/../src/modules/module_*.c | sed 's/.*module_0*\([0-9]\+\)\.c/\1/' | tr '\n' ' ')
-NEVER_CRACK=$(grep -l OPTS_TYPE_PT_NEVERCRACK ${TDIR}/../src/modules/module_*.c | sed 's/.*module_0*\([0-9]\+\)\.c/\1/' | tr '\n' ' ')
 SLOW_ALGOS=$(grep -l ATTACK_EXEC_OUTSIDE_KERNEL ${TDIR}/../src/modules/module_*.c | sed 's/.*module_0*\([0-9]\+\)\.c/\1/' | tr '\n' ' ')
 
 OUTD="test_$(date +%s)"
