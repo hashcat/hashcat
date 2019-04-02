@@ -1682,7 +1682,7 @@ void status_speed_json (hashcat_ctx_t *hashcat_ctx)
     }
     
     printf (" \{ \"device\": %d,", device_id + 1);
-    printf (" \"progress\": %" PRIu64 " \}", (u64) (device_info->hashes_msec_dev_benchmark * 1000));
+    printf (" \"speed\": %" PRIu64 " \}", (u64) (device_info->hashes_msec_dev_benchmark * 1000));
 
   }
   printf(" \] \}");
