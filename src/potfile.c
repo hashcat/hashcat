@@ -971,7 +971,7 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
 
           if ((hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE) == 0)
           {
-            binary_len--; // no need to the newline
+            binary_len--; // no need for the newline
           }
 
           memcpy (out_buf, binary_buf, binary_len);

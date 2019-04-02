@@ -432,26 +432,60 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const wpa_pmkid_t *wpa_pmkid = (const wpa_pmkid_t *) esalt_buf;
 
-  char tmp_buf[128];
+  int line_len = 0;
 
-  const int tmp_len = hex_encode ((const u8 *) wpa_pmkid->essid_buf, wpa_pmkid->essid_len, (u8 *) tmp_buf);
+  if (need_hexify ((const u8 *) wpa_pmkid->essid_buf, wpa_pmkid->essid_len, ':', 0) == true)
+  {
+    char tmp_buf[128];
 
-  tmp_buf[tmp_len] = 0;
+    int tmp_len = 0;
 
-  const int line_len = snprintf (line_buf, line_size, "%02x%02x%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x:%s",
-    wpa_pmkid->orig_mac_ap[0],
-    wpa_pmkid->orig_mac_ap[1],
-    wpa_pmkid->orig_mac_ap[2],
-    wpa_pmkid->orig_mac_ap[3],
-    wpa_pmkid->orig_mac_ap[4],
-    wpa_pmkid->orig_mac_ap[5],
-    wpa_pmkid->orig_mac_sta[0],
-    wpa_pmkid->orig_mac_sta[1],
-    wpa_pmkid->orig_mac_sta[2],
-    wpa_pmkid->orig_mac_sta[3],
-    wpa_pmkid->orig_mac_sta[4],
-    wpa_pmkid->orig_mac_sta[5],
-    tmp_buf);
+    tmp_buf[tmp_len++] = '$';
+    tmp_buf[tmp_len++] = 'H';
+    tmp_buf[tmp_len++] = 'E';
+    tmp_buf[tmp_len++] = 'X';
+    tmp_buf[tmp_len++] = '[';
+
+    exec_hexify ((const u8 *) wpa_pmkid->essid_buf, wpa_pmkid->essid_len, (u8 *) tmp_buf + tmp_len);
+
+    tmp_len += wpa_pmkid->essid_len * 2;
+
+    tmp_buf[tmp_len++] = ']';
+
+    tmp_buf[tmp_len++] = 0;
+
+    line_len = snprintf (line_buf, line_size, "%02x%02x%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x:%s",
+      wpa_pmkid->orig_mac_ap[0],
+      wpa_pmkid->orig_mac_ap[1],
+      wpa_pmkid->orig_mac_ap[2],
+      wpa_pmkid->orig_mac_ap[3],
+      wpa_pmkid->orig_mac_ap[4],
+      wpa_pmkid->orig_mac_ap[5],
+      wpa_pmkid->orig_mac_sta[0],
+      wpa_pmkid->orig_mac_sta[1],
+      wpa_pmkid->orig_mac_sta[2],
+      wpa_pmkid->orig_mac_sta[3],
+      wpa_pmkid->orig_mac_sta[4],
+      wpa_pmkid->orig_mac_sta[5],
+      tmp_buf);
+  }
+  else
+  {
+    line_len = snprintf (line_buf, line_size, "%02x%02x%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x:%s",
+      wpa_pmkid->orig_mac_ap[0],
+      wpa_pmkid->orig_mac_ap[1],
+      wpa_pmkid->orig_mac_ap[2],
+      wpa_pmkid->orig_mac_ap[3],
+      wpa_pmkid->orig_mac_ap[4],
+      wpa_pmkid->orig_mac_ap[5],
+      wpa_pmkid->orig_mac_sta[0],
+      wpa_pmkid->orig_mac_sta[1],
+      wpa_pmkid->orig_mac_sta[2],
+      wpa_pmkid->orig_mac_sta[3],
+      wpa_pmkid->orig_mac_sta[4],
+      wpa_pmkid->orig_mac_sta[5],
+      (const char *) wpa_pmkid->essid_buf);
+  }
 
   return line_len;
 }
