@@ -892,8 +892,10 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
 {
   const hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
   
+  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+  
   hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
-
+  
   const int rc_status = hashcat_get_status (hashcat_ctx, hashcat_status);
 
   if (rc_status == -1)
@@ -902,8 +904,25 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
 
     return;
   }
+  
+  time_t time_now;
+  
+  time (&time_now);
+  
+  time_t sec_etc = status_get_sec_etc (hashcat_ctx);
+  
+  if (overflow_check_u64_add (time_now, sec_etc) == false)
+  {
+    end = -1;
+  }
+  else
+  {
+    time_t end = time_now + sec_etc;
+  }
+
   printf ("\{ \"session\": \"%s\",", hashcat_status->session);
   printf (" \"status\": %d,", hashcat_status->status_number);
+  printf (" \"target\": \"%s\",", hashcat_status->hash_target);
   printf (" \"progress\": \[%" PRIu64 ", %" PRIu64 "\],", hashcat_status->progress_cur_relative_skip, hashcat_status->progress_end_relative_skip);
   printf (" \"restore_point\": %" PRIu64 ",", hashcat_status->restore_point);
   printf (" \"recovered_hashes\": \[%d, %d\],", hashcat_status->digests_done, hashcat_status->digests_cnt);
@@ -935,9 +954,9 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
 
     printf (" \"util\": %d \}", util);
   }
-  printf ("\]");
-  //printf ( the fucking time started)
-  //printf ( the fucking time estimated)
+  printf (" \]");
+  printf (" \"time_start\": %d,", status_ctx->runtime_start);
+  printf (" \"estimated_stop\": %d \}", end);
   
   hc_fwrite (EOL, strlen (EOL), 1, stdout);
   
