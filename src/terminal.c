@@ -913,7 +913,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
   
   if (overflow_check_u64_add (time_now, sec_etc) == false)
   {
-    end = -1;
+    time_t end = 1;
   }
   else
   {
@@ -955,8 +955,8 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
     printf (" \"util\": %d \}", util);
   }
   printf (" \]");
-  printf (" \"time_start\": %d,", status_ctx->runtime_start);
-  printf (" \"estimated_stop\": %d \}", end);
+  printf (" \"time_start\": %" PRIu64 ",", status_ctx->runtime_start);
+  printf (" \"estimated_stop\": %" PRIu64 "\}", end);
   
   hc_fwrite (EOL, strlen (EOL), 1, stdout);
   
