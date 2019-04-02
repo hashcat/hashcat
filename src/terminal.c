@@ -931,6 +931,9 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
   printf (" \"recovered_salts\": [%d, %d],", hashcat_status->salts_done, hashcat_status->salts_cnt);
   printf (" \"rejected\": %" PRIu64 ",", hashcat_status->progress_rejected);
   printf (" \"devices\": [");
+  
+  int device_num = 0;
+  
   for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
   {
     const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
@@ -938,7 +941,8 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
     if (device_info->skipped_dev == true) continue;
 
     if (device_info->skipped_warning_dev == true) continue;
-    if (device_id != 0)
+    
+    if (device_num != 0)
     {
       printf(",");
     }
@@ -955,6 +959,8 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
     const int util = hm_get_utilization_with_device_id (hashcat_ctx, device_id);
 
     printf (" \"util\": %d }", util);
+    
+    device_num++;
   }
   printf (" ],");
   printf (" \"time_start\": %" PRIu64 ",", status_ctx->runtime_start);
@@ -1668,6 +1674,8 @@ void status_speed_json (hashcat_ctx_t *hashcat_ctx)
   
   printf ("{ \"devices\": [");
   
+  int device_num = 0;
+  
   for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
   {
     const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
@@ -1676,14 +1684,14 @@ void status_speed_json (hashcat_ctx_t *hashcat_ctx)
 
     if (device_info->skipped_warning_dev == true) continue;
     
-    if (device_id != 0)
+    if (device_num != 0)
     {
       printf(",");
     }
     
     printf (" { \"device_id\": %d,", device_id + 1);
     printf (" \"speed\": %" PRIu64 " }", (u64) (device_info->hashes_msec_dev_benchmark * 1000));
-
+    device_num++;
   }
   printf(" ] }");
   
@@ -1791,6 +1799,8 @@ void status_progress_json (hashcat_ctx_t *hashcat_ctx)
   
   printf ("{ \"devices\": [");
   
+  int device_num = 0;
+  
   for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
   {
     const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
@@ -1799,7 +1809,7 @@ void status_progress_json (hashcat_ctx_t *hashcat_ctx)
 
     if (device_info->skipped_warning_dev == true) continue;
     
-    if (device_id != 0)
+    if (device_num != 0)
     {
       printf(",");
     }
@@ -1807,7 +1817,7 @@ void status_progress_json (hashcat_ctx_t *hashcat_ctx)
     printf (" { \"device_id\": %d,", device_id + 1);
     printf (" \"progress\": %" PRIu64 ",", device_info->progress_dev);
     printf (" \"runtime\": %0.2f }", device_info->runtime_msec_dev);
-
+    device_num++;
   }
   printf(" ] }");
   
