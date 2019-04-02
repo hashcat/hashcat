@@ -909,7 +909,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
   
   time (&time_now);
   
-  char *end;
+  time_t end;
   
   time_t sec_etc = status_get_sec_etc (hashcat_ctx);
   
