@@ -66,4 +66,7 @@ u32 v32a_from_v64 (const u64 v64);
 u32 v32b_from_v64 (const u64 v64);
 u64 v64_from_v32ab (const u32 v32a, const u32 v32b);
 
+int hex_decode (const u8 *in_buf, const int in_len, u8 *out_buf);
+int hex_encode (const u8 *in_buf, const int in_len, u8 *out_buf);
+
 #endif // _CONVERT_H

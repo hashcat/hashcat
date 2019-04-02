@@ -262,7 +262,7 @@ void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, cons
     tmp_len += 1;
   }
 
-  if (1)
+  if ((hashconfig->opts_type & OPTS_TYPE_POTFILE_NOPASS) == 0)
   {
     const bool always_ascii = (hashconfig->opts_type & OPTS_TYPE_PT_ALWAYS_ASCII) ? true : false;
 
@@ -514,6 +514,13 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
   if (rc == -1) return -1;
 
+  void *tmps = NULL;
+
+  if (hashconfig->tmp_size > 0)
+  {
+    tmps = hcmalloc (hashconfig->tmp_size);
+  }
+
   char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
   while (!feof (potfile_ctx->fp))
@@ -555,9 +562,30 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
     if (module_ctx->module_hash_decode_potfile != MODULE_DEFAULT)
     {
-      const int parser_status = module_ctx->module_hash_decode_potfile (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, hash_buf.hook_salt, hash_buf.hash_info, line_hash_buf, line_hash_len);
+      if (module_ctx->module_potfile_custom_check != MODULE_DEFAULT)
+      {
+        const int parser_status = module_ctx->module_hash_decode_potfile (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, hash_buf.hook_salt, hash_buf.hash_info, line_hash_buf, line_hash_len, tmps);
 
-      if (parser_status != PARSER_OK) continue;
+        if (parser_status != PARSER_OK) continue;
+
+        for (u32 hashes_pos = 0; hashes_pos < hashes_cnt; hashes_pos++)
+        {
+          const bool cracked = module_ctx->module_potfile_custom_check (hashconfig, &hashes_buf[hashes_pos], &hash_buf, tmps);
+
+          if (cracked == true)
+          {
+            potfile_update_hash (hashcat_ctx, &hashes_buf[hashes_pos], line_pw_buf, (u32) line_pw_len);
+          }
+        }
+
+        continue;
+      }
+      else
+      {
+        // should be rejected?
+        //const int parser_status = module_ctx->module_hash_decode_potfile (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, hash_buf.hook_salt, hash_buf.hash_info, line_hash_buf, line_hash_len, NULL);
+        //if (parser_status != PARSER_OK) continue;
+      }
     }
     else
     {
@@ -571,14 +599,19 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
         continue;
       }
+
+      hash_t *found = (hash_t *) hc_bsearch_r (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash, (void *) hashconfig);
+
+      potfile_update_hash (hashcat_ctx, found, line_pw_buf, (u32) line_pw_len);
     }
-
-    hash_t *found = (hash_t *) hc_bsearch_r (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash, (void *) hashconfig);
-
-    potfile_update_hash (hashcat_ctx, found, line_pw_buf, (u32) line_pw_len);
   }
 
   hcfree (line_buf);
+
+  if (hashconfig->tmp_size > 0)
+  {
+    hcfree (tmps);
+  }
 
   potfile_read_close (hashcat_ctx);
 

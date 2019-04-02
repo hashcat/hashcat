@@ -51,6 +51,7 @@ const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 
 static const u32 ROUNDS_WPA_PBKDF2 = 4096;
 
+/*
 typedef struct wpa_eapol
 {
   u32  pke[32];
@@ -66,7 +67,6 @@ typedef struct wpa_eapol
   u8   essid_len;
   u8   essid[32];
   u32  keymic[4];
-  u32  hash[4];
   int  nonce_compare;
   int  nonce_error_corrections;
   int  detected_le;
@@ -83,6 +83,7 @@ typedef struct wpa_pbkdf2_tmp
   u32 out[10];
 
 } wpa_pbkdf2_tmp_t;
+*/
 
 #define HCCAPX_VERSION   4
 #define HCCAPX_SIGNATURE 0x58504348 // HCPX
@@ -111,6 +112,23 @@ struct hccapx
 typedef struct hccapx hccapx_t;
 
 #pragma pack(pop)
+
+#define DGST_ELEM 4
+
+typedef struct digest
+{
+  u32 digest_buf[DGST_ELEM];
+
+} digest_t;
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
+#include "emu_general.h"
+#include "inc_vendor.h"
+#include "m02500-pure.cl"
+
+#pragma GCC diagnostic pop
 
 static void to_hccapx_t (const hashes_t *hashes, hccapx_t *hccapx, const u32 salt_pos, const u32 digest_pos)
 {
@@ -230,51 +248,71 @@ u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
   return pw_max;
 }
 
-int module_hash_decode_potfile (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
+int module_hash_decode_potfile (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len, MAYBE_UNUSED void *tmps)
 {
-  u32 *digest = (u32 *) digest_buf;
+  wpa_eapol_t *wpa_eapol = (wpa_eapol_t *) esalt_buf;
 
-  // here we have in line_hash_buf: hash:macap:macsta:essid:password
+  wpa_pbkdf2_tmp_t *wpa_pbkdf2_tmp = (wpa_pbkdf2_tmp_t *) tmps;
+
+  // here we have in line_hash_buf: PMK*essid:password
+  // but we don't care about the password
+
+  // PMK
+
+  wpa_pbkdf2_tmp->out[0] = hex_to_u32 ((const u8 *) line_buf +  0);
+  wpa_pbkdf2_tmp->out[1] = hex_to_u32 ((const u8 *) line_buf +  8);
+  wpa_pbkdf2_tmp->out[2] = hex_to_u32 ((const u8 *) line_buf + 16);
+  wpa_pbkdf2_tmp->out[3] = hex_to_u32 ((const u8 *) line_buf + 24);
+  wpa_pbkdf2_tmp->out[4] = hex_to_u32 ((const u8 *) line_buf + 32);
+  wpa_pbkdf2_tmp->out[5] = hex_to_u32 ((const u8 *) line_buf + 40);
+  wpa_pbkdf2_tmp->out[6] = hex_to_u32 ((const u8 *) line_buf + 48);
+  wpa_pbkdf2_tmp->out[7] = hex_to_u32 ((const u8 *) line_buf + 56);
+
+  // essid
 
   char *sep_pos = strrchr (line_buf, ':');
 
-  if (sep_pos == NULL) return (PARSER_HASH_ENCODING);
+  if (sep_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
-  if ((line_buf + 32 + 1 + 12 + 1 + 12) != sep_pos) return (PARSER_HASH_LENGTH);
+  if ((line_buf + 64) != sep_pos) return (PARSER_HASH_LENGTH);
 
   char *essid_pos = sep_pos + 1;
 
   const int essid_len = strlen (essid_pos);
 
-  u8 tmp_buf[128] = { 0 };
+  if (essid_len & 1) return (PARSER_SALT_VALUE);
 
-  int tmp_len = essid_len;
+  if (essid_len > 64) return (PARSER_SALT_VALUE);
 
-  memcpy (tmp_buf, essid_pos, essid_len);
-
-  if (is_hexify (tmp_buf, tmp_len) == true)
-  {
-    tmp_len = exec_unhexify (tmp_buf, tmp_len, tmp_buf, sizeof (tmp_buf));
-  }
-
-  if (tmp_len > 32) return (PARSER_HASH_VALUE);
-
-  memcpy (salt->salt_buf, tmp_buf, tmp_len);
-
-  salt->salt_len  = tmp_len;
-  salt->salt_iter = ROUNDS_WPA_PBKDF2 - 1;
-
-  digest[0] = hex_to_u32 ((const u8 *) &line_buf[ 0]);
-  digest[1] = hex_to_u32 ((const u8 *) &line_buf[ 8]);
-  digest[2] = hex_to_u32 ((const u8 *) &line_buf[16]);
-  digest[3] = hex_to_u32 ((const u8 *) &line_buf[24]);
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
+  wpa_eapol->essid_len = hex_decode ((const u8 *) essid_pos, essid_len, (u8 *) wpa_eapol->essid);
 
   return PARSER_OK;
+}
+
+int module_hash_encode_potfile (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size, MAYBE_UNUSED const void *tmps)
+{
+  const wpa_eapol_t *wpa_eapol = (const wpa_eapol_t *) esalt_buf;
+
+  const wpa_pbkdf2_tmp_t *wpa_pbkdf2_tmp = (const wpa_pbkdf2_tmp_t *) tmps;
+
+  char tmp_buf[128];
+
+  const int tmp_len = hex_encode ((const u8 *) wpa_eapol->essid, wpa_eapol->essid_len, (u8 *) tmp_buf);
+
+  tmp_buf[tmp_len] = 0;
+
+  const int line_len = snprintf (line_buf, line_size, "%08x%08x%08x%08x%08x%08x%08x%08x:%s",
+    wpa_pbkdf2_tmp->out[0],
+    wpa_pbkdf2_tmp->out[1],
+    wpa_pbkdf2_tmp->out[2],
+    wpa_pbkdf2_tmp->out[3],
+    wpa_pbkdf2_tmp->out[4],
+    wpa_pbkdf2_tmp->out[5],
+    wpa_pbkdf2_tmp->out[6],
+    wpa_pbkdf2_tmp->out[7],
+    tmp_buf);
+
+  return line_len;
 }
 
 int module_hash_encode_status (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
@@ -465,6 +503,97 @@ u32 module_deep_comp_kernel (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED c
   }
 
   return 0;
+}
+
+bool module_potfile_custom_check (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const hash_t *db, MAYBE_UNUSED const hash_t *entry_hash, MAYBE_UNUSED const void *entry_tmps)
+{
+  const wpa_eapol_t *wpa_eapol_entry = (const wpa_eapol_t *) entry_hash->esalt;
+  const wpa_eapol_t *wpa_eapol_db    = (const wpa_eapol_t *) db->esalt;
+
+  if (wpa_eapol_db->essid_len != wpa_eapol_entry->essid_len) return false;
+
+  if (strcmp ((const char *) wpa_eapol_db->essid, (const char *) wpa_eapol_entry->essid)) return false;
+
+  const wpa_pbkdf2_tmp_t *wpa_pbkdf2_tmp = (const wpa_pbkdf2_tmp_t *) entry_tmps;
+
+  wpa_pbkdf2_tmp_t tmps;
+
+  tmps.out[0] = byte_swap_32 (wpa_pbkdf2_tmp->out[0]);
+  tmps.out[1] = byte_swap_32 (wpa_pbkdf2_tmp->out[1]);
+  tmps.out[2] = byte_swap_32 (wpa_pbkdf2_tmp->out[2]);
+  tmps.out[3] = byte_swap_32 (wpa_pbkdf2_tmp->out[3]);
+  tmps.out[4] = byte_swap_32 (wpa_pbkdf2_tmp->out[4]);
+  tmps.out[5] = byte_swap_32 (wpa_pbkdf2_tmp->out[5]);
+  tmps.out[6] = byte_swap_32 (wpa_pbkdf2_tmp->out[6]);
+  tmps.out[7] = byte_swap_32 (wpa_pbkdf2_tmp->out[7]);
+
+  plain_t plains_buf;
+
+  u32 hashes_shown = 0;
+
+  u32 d_return_buf = 0;
+
+  void (*m02500_aux) (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_eapol_t));
+
+  if (wpa_eapol_db->keyver == 1)
+  {
+    m02500_aux = m02500_aux1;
+  }
+  else if (wpa_eapol_db->keyver == 2)
+  {
+    m02500_aux = m02500_aux2;
+  }
+  else if (wpa_eapol_db->keyver == 3)
+  {
+    m02500_aux = m02500_aux3;
+  }
+  else
+  {
+    m02500_aux = NULL;
+  }
+
+  m02500_aux
+  (
+    NULL,               // pws
+    NULL,               // rules_buf
+    NULL,               // combs_buf
+    NULL,               // bfs_buf
+    &tmps,              // tmps
+    NULL,               // hooks
+    NULL,               // bitmaps_buf_s1_a
+    NULL,               // bitmaps_buf_s1_b
+    NULL,               // bitmaps_buf_s1_c
+    NULL,               // bitmaps_buf_s1_d
+    NULL,               // bitmaps_buf_s2_a
+    NULL,               // bitmaps_buf_s2_b
+    NULL,               // bitmaps_buf_s2_c
+    NULL,               // bitmaps_buf_s2_d
+    &plains_buf,        // plains_buf
+    db->digest,         // digests_buf
+    &hashes_shown,      // hashes_shown
+    db->salt,           // salt_bufs
+    db->esalt,          // esalt_bufs
+    &d_return_buf,      // d_return_buf
+    NULL,               // d_extra0_buf
+    NULL,               // d_extra1_buf
+    NULL,               // d_extra2_buf
+    NULL,               // d_extra3_buf
+    0,                  // bitmap_mask
+    0,                  // bitmap_shift1
+    0,                  // bitmap_shift2
+    0,                  // salt_pos
+    0,                  // loop_pos
+    0,                  // loop_cnt
+    0,                  // il_cnt
+    1,                  // digests_cnt
+    0,                  // digests_offset
+    0,                  // combs_mode
+    1                   // gid_max
+  );
+
+  const bool r = (d_return_buf == 0) ? false : true;
+
+  return r;
 }
 
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
@@ -695,17 +824,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   md5_transform (block + 0, block + 4, block + 8, block + 12, hash);
 
-  wpa_eapol->hash[0] = hash[0];
-  wpa_eapol->hash[1] = hash[1];
-  wpa_eapol->hash[2] = hash[2];
-  wpa_eapol->hash[3] = hash[3];
-
   // make all this stuff unique
 
-  digest[0] = wpa_eapol->hash[0];
-  digest[1] = wpa_eapol->hash[1];
-  digest[2] = wpa_eapol->hash[2];
-  digest[3] = wpa_eapol->hash[3];
+  digest[0] = hash[0];
+  digest[1] = hash[1];
+  digest[2] = hash[2];
+  digest[3] = hash[3];
 
   return (PARSER_OK);
 }
@@ -716,7 +840,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   int line_len = 0;
 
-  if (need_hexify (wpa_eapol->essid, wpa_eapol->essid_len, hashconfig->separator, 0) == true)
+  if (need_hexify (wpa_eapol->essid, wpa_eapol->essid_len, ':', 0) == true)
   {
     char tmp_buf[128];
 
@@ -736,11 +860,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     tmp_buf[tmp_len++] = 0;
 
-    line_len = snprintf (line_buf, line_size, "%08x%08x%08x%08x:%02x%02x%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x:%s",
-      wpa_eapol->hash[0],
-      wpa_eapol->hash[1],
-      wpa_eapol->hash[2],
-      wpa_eapol->hash[3],
+    line_len = snprintf (line_buf, line_size, "%02x%02x%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x:%s",
       wpa_eapol->orig_mac_ap[0],
       wpa_eapol->orig_mac_ap[1],
       wpa_eapol->orig_mac_ap[2],
@@ -757,11 +877,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   }
   else
   {
-    line_len = snprintf (line_buf, line_size, "%08x%08x%08x%08x:%02x%02x%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x:%s",
-      wpa_eapol->hash[0],
-      wpa_eapol->hash[1],
-      wpa_eapol->hash[2],
-      wpa_eapol->hash[3],
+    line_len = snprintf (line_buf, line_size, "%02x%02x%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x:%s",
       wpa_eapol->orig_mac_ap[0],
       wpa_eapol->orig_mac_ap[1],
       wpa_eapol->orig_mac_ap[2],
@@ -809,7 +925,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_decode_zero_hash    = MODULE_DEFAULT;
   module_ctx->module_hash_decode              = module_hash_decode;
   module_ctx->module_hash_encode_status       = module_hash_encode_status;
-  module_ctx->module_hash_encode_potfile      = MODULE_DEFAULT;
+  module_ctx->module_hash_encode_potfile      = module_hash_encode_potfile;
   module_ctx->module_hash_encode              = module_hash_encode;
   module_ctx->module_hash_init_selftest       = module_hash_init_selftest;
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
@@ -834,6 +950,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_opts_type                = module_opts_type;
   module_ctx->module_outfile_check_disable    = MODULE_DEFAULT;
   module_ctx->module_outfile_check_nocomp     = MODULE_DEFAULT;
+  module_ctx->module_potfile_custom_check     = module_potfile_custom_check;
   module_ctx->module_potfile_disable          = MODULE_DEFAULT;
   module_ctx->module_potfile_keep_all_hashes  = MODULE_DEFAULT;
   module_ctx->module_pwdump_column            = MODULE_DEFAULT;

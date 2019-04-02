@@ -9,12 +9,12 @@
 
 u32 atomic_dec (u32 *p)
 {
-  return *p--;
+  return p[0]--;
 }
 
 u32 atomic_inc (u32 *p)
 {
-  return *p++;
+  return p[0]++;
 }
 
 size_t get_global_id (u32 dimindx __attribute__((unused)))

@@ -55,6 +55,7 @@
 - OpenCL Runtime: Update unstable mode warnings for Apple and AMDGPU drivers
 - OpenCL Runtime: Workaround JiT compiler error on AMDGPU driver compiling WPA-EAPOL-PBKDF2 OpenCL kernel
 - Tuning Database: Updated hashcat.hctune with new models and refreshed vector width values
+- WPA/WPA2 cracking: In the potfile, replace password with PMK in order to detect already cracked networks across all WPA modes
 
 ##
 ## Technical
@@ -62,6 +63,7 @@
 
 - Binary Distribution: Removed 32 bit binary executables
 - Keep Guessing: No longer automatically activate --keep-guessing for modes 9720, 9820, 14900 and 18100
+- Mode 16800/16801 hash format: Changed separator character from '*' to ':'
 
 * changes v5.0.0 -> v5.1.0
 

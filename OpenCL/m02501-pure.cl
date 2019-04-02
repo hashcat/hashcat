@@ -46,7 +46,6 @@ typedef struct wpa_eapol
   u8   essid_len;
   u8   essid[32];
   u32  keymic[4];
-  u32  hash[4];
   int  nonce_compare;
   int  nonce_error_corrections;
   int  detected_le;
@@ -54,6 +53,7 @@ typedef struct wpa_eapol
 
 } wpa_eapol_t;
 
+#ifdef KERNEL_STATIC
 DECLSPEC static u8 hex_convert (const u8 c)
 {
   return (c & 15) + (c >> 6) * 9;
@@ -68,6 +68,7 @@ DECLSPEC static u8 hex_to_u8 (const u8 *hex)
 
   return (v);
 }
+#endif
 
 DECLSPEC static void make_kn (u32 *k)
 {

@@ -415,6 +415,7 @@ typedef enum opts_type
   OPTS_TYPE_DEEP_COMP_KERNEL  = (1ULL << 42), // if we have to iterate through each hash inside the comp kernel, for example if each hash has to be decrypted separately
   OPTS_TYPE_SUGGEST_KG        = (1ULL << 43), // suggest keep guessing for modules the user maybe wants to use --keep-guessing
   OPTS_TYPE_COPY_TMPS         = (1ULL << 44), // if we want to use data from tmps buffer (for example get the PMK in WPA)
+  OPTS_TYPE_POTFILE_NOPASS    = (1ULL << 45), // sometimes the password should not be printed to potfile
 
 } opts_type_t;
 
@@ -2244,7 +2245,7 @@ typedef struct module_ctx
   int         (*module_hash_binary_parse)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, hashes_t *);
   int         (*module_hash_binary_save)        (const hashes_t *, const u32, const u32, char **);
 
-  int         (*module_hash_decode_potfile)     (const hashconfig_t *,       void *,       salt_t *,       void *,       void *,       hashinfo_t *, const char *, const int);
+  int         (*module_hash_decode_potfile)     (const hashconfig_t *,       void *,       salt_t *,       void *,       void *,       hashinfo_t *, const char *, const int, void *);
   int         (*module_hash_decode_zero_hash)   (const hashconfig_t *,       void *,       salt_t *,       void *,       void *,       hashinfo_t *);
   int         (*module_hash_decode)             (const hashconfig_t *,       void *,       salt_t *,       void *,       void *,       hashinfo_t *, const char *, const int);
   int         (*module_hash_encode_potfile)     (const hashconfig_t *, const void *, const salt_t *, const void *, const void *, const hashinfo_t *,       char *,       int, const void *);
@@ -2265,6 +2266,8 @@ typedef struct module_ctx
   int         (*module_build_plain_postprocess) (const hashconfig_t *, const hashes_t *, const void *, const u32 *, const size_t, const int, u32 *, const size_t);
 
   bool        (*module_unstable_warning)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const hc_device_param_t *);
+
+  bool        (*module_potfile_custom_check)    (const hashconfig_t *, const hash_t *, const hash_t *, const void *);
 
 } module_ctx_t;
 

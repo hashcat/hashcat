@@ -14,6 +14,15 @@
 #include "inc_hash_sha1.cl"
 #include "inc_hash_sha256.cl"
 #include "inc_cipher_aes.cl"
+#else
+#include "inc_vendor.h"
+#include "inc_types.h"
+#include "inc_common.h"
+#include "inc_simd.h"
+#include "inc_hash_md5.h"
+#include "inc_hash_sha1.h"
+#include "inc_hash_sha256.h"
+#include "inc_cipher_aes.h"
 #endif
 
 #define COMPARE_S "inc_comp_single.cl"
@@ -34,7 +43,6 @@ typedef struct wpa_eapol
   u8   essid_len;
   u8   essid[32];
   u32  keymic[4];
-  u32  hash[4];
   int  nonce_compare;
   int  nonce_error_corrections;
   int  detected_le;

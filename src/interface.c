@@ -168,6 +168,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_DEFINED (module_ctx->module_opts_type);
   CHECK_DEFINED (module_ctx->module_outfile_check_disable);
   CHECK_DEFINED (module_ctx->module_outfile_check_nocomp);
+  CHECK_DEFINED (module_ctx->module_potfile_custom_check);
   CHECK_DEFINED (module_ctx->module_potfile_disable);
   CHECK_DEFINED (module_ctx->module_potfile_keep_all_hashes);
   CHECK_DEFINED (module_ctx->module_pwdump_column);

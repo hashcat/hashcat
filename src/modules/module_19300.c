@@ -240,6 +240,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_opts_type                = module_opts_type;
   module_ctx->module_outfile_check_disable    = MODULE_DEFAULT;
   module_ctx->module_outfile_check_nocomp     = MODULE_DEFAULT;
+  module_ctx->module_potfile_custom_check     = MODULE_DEFAULT;
   module_ctx->module_potfile_disable          = MODULE_DEFAULT;
   module_ctx->module_potfile_keep_all_hashes  = MODULE_DEFAULT;
   module_ctx->module_pwdump_column            = MODULE_DEFAULT;
