@@ -905,7 +905,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
   printf ("\{ \"session\": \"%s\",", hashcat_status->session);
   printf (" \"status\": %d,", hashcat_status->status_number);
   printf (" \"progress\": \[%" PRIu64 ", %" PRIu64 "\],", hashcat_status->progress_cur_relative_skip, hashcat_status->progress_end_relative_skip);
-  printf (" \"restore_point\": %," PRIu64, hashcat_status->restore_point);
+  printf (" \"restore_point\": %" PRIu64 ",", hashcat_status->restore_point);
   printf (" \"recovered_hashes\": \[%d, %d\],", hashcat_status->digests_done, hashcat_status->digests_cnt);
   printf (" \"recovered_salts\": \[%d, %d\],", hashcat_status->salts_done, hashcat_status->salts_cnt);
   printf (" \"rejected\": %" PRIu64 ",", hashcat_status->progress_rejected);
