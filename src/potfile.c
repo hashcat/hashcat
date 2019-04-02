@@ -855,6 +855,7 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
 {
   hashconfig_t  *hashconfig  = hashcat_ctx->hashconfig;
   hashes_t      *hashes      = hashcat_ctx->hashes;
+  module_ctx_t  *module_ctx  = hashcat_ctx->module_ctx;
   potfile_ctx_t *potfile_ctx = hashcat_ctx->potfile_ctx;
 
   hash_t *hashes_buf = hashes->hashes_buf;
@@ -960,7 +961,29 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
 
         u8 *out_buf = potfile_ctx->out_buf;
 
-        const int out_len = hash_encode (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf, HCBUFSIZ_LARGE, salt_idx, digest_idx);
+        int out_len;
+
+        if (module_ctx->module_hash_binary_save != MODULE_DEFAULT)
+        {
+          char *binary_buf = NULL;
+
+          int binary_len = module_ctx->module_hash_binary_save (hashes, salt_idx, digest_idx, &binary_buf);
+
+          if ((hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE) == 0)
+          {
+            binary_len--; // no need to the newline
+          }
+
+          memcpy (out_buf, binary_buf, binary_len);
+
+          out_len = binary_len;
+
+          hcfree (binary_buf);
+        }
+        else
+        {
+          out_len = hash_encode (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf, HCBUFSIZ_LARGE, salt_idx, digest_idx);
+        }
 
         out_buf[out_len] = 0;
 
