@@ -925,7 +925,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
   printf ("{ \"session\": \"%s\",", hashcat_status->session);
   printf (" \"status\": %d,", hashcat_status->status_number);
   printf (" \"target\": \"%s\",", hashcat_status->hash_target);
-  printf (" \"progress\": [%" PRIu64 ", %" PRIu64 "\],", hashcat_status->progress_cur_relative_skip, hashcat_status->progress_end_relative_skip);
+  printf (" \"progress\": [%" PRIu64 ", %" PRIu64 "],", hashcat_status->progress_cur_relative_skip, hashcat_status->progress_end_relative_skip);
   printf (" \"restore_point\": %" PRIu64 ",", hashcat_status->restore_point);
   printf (" \"recovered_hashes\": [%d, %d],", hashcat_status->digests_done, hashcat_status->digests_cnt);
   printf (" \"recovered_salts\": [%d, %d],", hashcat_status->salts_done, hashcat_status->salts_cnt);
@@ -942,7 +942,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
     {
       printf(",");
     }
-    printf (" { \"device_id\": %d", device_id + 1);
+    printf (" { \"device_id\": %d,", device_id + 1);
     printf (" \"speed\": %" PRIu64 ",", (u64) (device_info->hashes_msec_dev * 1000));
     
     if (hwmon_ctx->enabled == true)
@@ -954,7 +954,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
     
     const int util = hm_get_utilization_with_device_id (hashcat_ctx, device_id);
 
-    printf (" \"util\": %d \}", util);
+    printf (" \"util\": %d }", util);
   }
   printf (" \],");
   printf (" \"time_start\": %" PRIu64 ",", status_ctx->runtime_start);
