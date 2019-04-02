@@ -186,6 +186,71 @@ int module_hash_encode_potfile (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
   return line_len;
 }
 
+int module_hash_binary_save (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u32 digest_pos, char **buf)
+{
+  const salt_t *salts_buf   = hashes->salts_buf;
+  const void   *esalts_buf  = hashes->esalts_buf;
+
+  const salt_t *salt = &salts_buf[salt_pos];
+
+  const u32 digest_cur = salt->digests_offset + digest_pos;
+
+  const wpa_pmkid_t *wpa_pmkids = (const wpa_pmkid_t *) esalts_buf;
+  const wpa_pmkid_t *wpa_pmkid  = &wpa_pmkids[digest_cur];
+
+  int len = 0;
+
+  if (wpa_pmkid->essid_len)
+  {
+    char tmp_buf[128];
+
+    const int tmp_len = hex_encode ((const u8 *) wpa_pmkid->essid_buf, wpa_pmkid->essid_len, (u8 *) tmp_buf);
+
+    tmp_buf[tmp_len] = 0;
+
+    len = hc_asprintf (buf, "%08x%08x%08x%08x:%02x%02x%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x:%s" EOL,
+      byte_swap_32 (wpa_pmkid->pmkid[0]),
+      byte_swap_32 (wpa_pmkid->pmkid[1]),
+      byte_swap_32 (wpa_pmkid->pmkid[2]),
+      byte_swap_32 (wpa_pmkid->pmkid[3]),
+      wpa_pmkid->orig_mac_ap[0],
+      wpa_pmkid->orig_mac_ap[1],
+      wpa_pmkid->orig_mac_ap[2],
+      wpa_pmkid->orig_mac_ap[3],
+      wpa_pmkid->orig_mac_ap[4],
+      wpa_pmkid->orig_mac_ap[5],
+      wpa_pmkid->orig_mac_sta[0],
+      wpa_pmkid->orig_mac_sta[1],
+      wpa_pmkid->orig_mac_sta[2],
+      wpa_pmkid->orig_mac_sta[3],
+      wpa_pmkid->orig_mac_sta[4],
+      wpa_pmkid->orig_mac_sta[5],
+      tmp_buf);
+  }
+  else
+  {
+    len = hc_asprintf (buf, "%08x%08x%08x%08x:%02x%02x%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x" EOL,
+      byte_swap_32 (wpa_pmkid->pmkid[0]),
+      byte_swap_32 (wpa_pmkid->pmkid[1]),
+      byte_swap_32 (wpa_pmkid->pmkid[2]),
+      byte_swap_32 (wpa_pmkid->pmkid[3]),
+      wpa_pmkid->orig_mac_ap[0],
+      wpa_pmkid->orig_mac_ap[1],
+      wpa_pmkid->orig_mac_ap[2],
+      wpa_pmkid->orig_mac_ap[3],
+      wpa_pmkid->orig_mac_ap[4],
+      wpa_pmkid->orig_mac_ap[5],
+      wpa_pmkid->orig_mac_sta[0],
+      wpa_pmkid->orig_mac_sta[1],
+      wpa_pmkid->orig_mac_sta[2],
+      wpa_pmkid->orig_mac_sta[3],
+      wpa_pmkid->orig_mac_sta[4],
+      wpa_pmkid->orig_mac_sta[5]);
+  }
+
+  return len;
+}
+
 u32 module_deep_comp_kernel (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u32 digest_pos)
 {
   return KERN_RUN_AUX1;
@@ -338,14 +403,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     const u8 *essid_buf = token.buf[3];
     const int essid_len = token.len[3];
 
-    u8 *essid_ptr = (u8 *) wpa_pmkid->essid_buf;
+    if (essid_len & 1) return (PARSER_SALT_VALUE);
 
-    for (int i = 0, j = 0; i < essid_len; i += 2, j += 1)
-    {
-      essid_ptr[j] = hex_to_u8 (essid_buf + i);
-    }
-
-    wpa_pmkid->essid_len = essid_len / 2;
+    wpa_pmkid->essid_len = hex_decode (essid_buf, essid_len, (u8 *) wpa_pmkid->essid_buf);
   }
 
   // pmkid
@@ -435,9 +495,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   {
     char tmp_buf[128];
 
-    exec_hexify ((const u8*) wpa_pmkid->essid_buf, wpa_pmkid->essid_len, (u8 *) tmp_buf);
-
-    int tmp_len = wpa_pmkid->essid_len * 2;
+    const int tmp_len = hex_encode ((const u8 *) wpa_pmkid->essid_buf, wpa_pmkid->essid_len, (u8 *) tmp_buf);
 
     tmp_buf[tmp_len] = 0;
 
@@ -458,7 +516,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   }
   else
   {
-    line_len = snprintf (line_buf, line_size, "%02x%02x%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x:%s",
+    line_len = snprintf (line_buf, line_size, "%02x%02x%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x",
       wpa_pmkid->orig_mac_ap[0],
       wpa_pmkid->orig_mac_ap[1],
       wpa_pmkid->orig_mac_ap[2],
@@ -470,8 +528,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
       wpa_pmkid->orig_mac_sta[2],
       wpa_pmkid->orig_mac_sta[3],
       wpa_pmkid->orig_mac_sta[4],
-      wpa_pmkid->orig_mac_sta[5],
-      (const u8 *) wpa_pmkid->essid_buf);
+      wpa_pmkid->orig_mac_sta[5]);
   }
 
   return line_len;
@@ -501,7 +558,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_forced_outfile_format    = MODULE_DEFAULT;
   module_ctx->module_hash_binary_count        = MODULE_DEFAULT;
   module_ctx->module_hash_binary_parse        = MODULE_DEFAULT;
-  module_ctx->module_hash_binary_save         = MODULE_DEFAULT;
+  module_ctx->module_hash_binary_save         = module_hash_binary_save;
   module_ctx->module_hash_decode_potfile      = module_hash_decode_potfile;
   module_ctx->module_hash_decode_zero_hash    = MODULE_DEFAULT;
   module_ctx->module_hash_decode              = module_hash_decode;

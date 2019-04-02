@@ -229,13 +229,13 @@ void naive_escape (char *s, size_t s_max, const char key_char, const char escape
   strncpy (s, s_escaped, s_max - 1);
 }
 
-void hc_asprintf (char **strp, const char *fmt, ...)
+int hc_asprintf (char **strp, const char *fmt, ...)
 {
   va_list args;
   va_start (args, fmt);
-  int rc __attribute__((unused));
-  rc = vasprintf (strp, fmt, args);
+  int rc = vasprintf (strp, fmt, args);
   va_end (args);
+  return rc;
 }
 
 #if defined (_WIN)
