@@ -956,7 +956,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
 
     printf (" \"util\": %d }", util);
   }
-  printf (" \],");
+  printf (" ],");
   printf (" \"time_start\": %" PRIu64 ",", status_ctx->runtime_start);
   printf (" \"estimated_stop\": %" PRIu64 " }", end);
   
