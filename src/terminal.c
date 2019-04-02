@@ -888,9 +888,10 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
   hcfree (hashcat_status);
 }
 
-
 void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
 {
+  const hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
+  
   hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
 
   const int rc_status = hashcat_get_status (hashcat_ctx, hashcat_status);
@@ -901,16 +902,51 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
 
     return;
   }
+  printf ("\{ \"session\": \"%s\",", hashcat_status->session);
+  printf (" \"status\": %d,", hashcat_status->status_number);
+  printf (" \"progress\": \[%," PRIu64 " %\]," PRIu64, hashcat_status->progress_cur_relative_skip, hashcat_status->progress_end_relative_skip);
+  printf (" \"restore_point\": %," PRIu64, hashcat_status->restore_point);
+  printf (" \"recovered_hashes\": \[%d, %d\],", hashcat_status->digests_done, hashcat_status->digests_cnt);
+  printf (" \"recovered_salts\": \[%d, %d\],", hashcat_status->salts_done, hashcat_status->salts_cnt);
+  printf (" \"rejected\": %," PRIu64, hashcat_status->progress_rejected);
+  printf (" \"devices\": \[");
+  for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+  {
+    const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
+
+    if (device_info->skipped_dev == true) continue;
+
+    if (device_info->skipped_warning_dev == true) continue;
+    if (device_id != 0)
+    {
+      printf(",");
+    }
+    printf (" \"device_id\": %d", device_id + 1);
+    printf (" \"speed\": %," PRIu64, (u64) (device_info->hashes_msec_dev * 1000));
+    
+    if (hwmon_ctx->enabled == true)
+    {
+      const int temp = hm_get_temperature_with_device_id (hashcat_ctx, device_id);
+
+      printf (" \"temp\": %d,", temp);   
+    } 
+    
+    const int util = hm_get_utilization_with_device_id (hashcat_ctx, device_id);
+
+    printf (" \"util\": %d \}", util);
+  }
+  printf ("\]");
+  //printf ( the fucking time started)
+  //printf ( the fucking time estimated)
   
-   /**
-   * build status in json
-   */
+  hc_fwrite (EOL, strlen (EOL), 1, stdout);
+  
+  fflush (stdout);
 
   status_status_destroy (hashcat_ctx, hashcat_status);
 
   hcfree (hashcat_status);
 }
-
 
 void status_display (hashcat_ctx_t *hashcat_ctx)
 {
