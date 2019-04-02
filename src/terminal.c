@@ -1685,7 +1685,8 @@ void status_speed_json (hashcat_ctx_t *hashcat_ctx)
     printf (" \"progress\": %" PRIu64 " \}", (u64) (device_info->hashes_msec_dev_benchmark * 1000));
 
   }
-  printf(" \] \}")
+  printf(" \] \}");
+  
   status_status_destroy (hashcat_ctx, hashcat_status);
 
   hcfree (hashcat_status);
@@ -1808,7 +1809,7 @@ void status_progress_json (hashcat_ctx_t *hashcat_ctx)
     printf (" \"runtime\": %0.2f \}", device_info->runtime_msec_dev);
 
   }
-  printf(" \] \}")
+  printf(" \] \}");
   
   status_status_destroy (hashcat_ctx, hashcat_status);
 
