@@ -915,11 +915,11 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
   
   if (overflow_check_u64_add (time_now, sec_etc) == false)
   {
-    time_t end = 1;
+    end = 1;
   }
   else
   {
-    time_t end = time_now + sec_etc;
+    end = time_now + sec_etc;
   }
 
   printf ("\{ \"session\": \"%s\",", hashcat_status->session);
@@ -958,7 +958,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
   }
   printf (" \]");
   printf (" \"time_start\": %" PRIu64 ",", status_ctx->runtime_start);
-  printf (" \"estimated_stop\": %" PRIu64 "\}", end);
+  printf (" \"estimated_stop\": %" PRIu64 " \}", end);
   
   hc_fwrite (EOL, strlen (EOL), 1, stdout);
   
@@ -1666,10 +1666,26 @@ void status_speed_json (hashcat_ctx_t *hashcat_ctx)
     return;
   }
   
-   /**
-   * build status speed in json
-   */
+  printf ("\{ \"devices\": [");
+  
+  for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+  {
+    const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
+    if (device_info->skipped_dev == true) continue;
+
+    if (device_info->skipped_warning_dev == true) continue;
+    
+    if (device_id != 0)
+    {
+      printf(",");
+    }
+    
+    printf (" \{ \"device\": %d,", device_id + 1);
+    printf (" \"progress\": %" PRIu64 " \}", (u64) (device_info->hashes_msec_dev_benchmark * 1000));
+
+  }
+  printf(" \] \}")
   status_status_destroy (hashcat_ctx, hashcat_status);
 
   hcfree (hashcat_status);
@@ -1772,10 +1788,28 @@ void status_progress_json (hashcat_ctx_t *hashcat_ctx)
     return;
   }
   
-   /**
-   * build status progress in json
-   */
+  printf ("\{ \"devices\": [");
+  
+  for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+  {
+    const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
+    if (device_info->skipped_dev == true) continue;
+
+    if (device_info->skipped_warning_dev == true) continue;
+    
+    if (device_id != 0)
+    {
+      printf(",");
+    }
+    
+    printf (" \{ \"device\": %d,", device_id + 1);
+    printf (" \"progress\": %" PRIu64 ",", device_info->progress_dev);
+    printf (" \"runtime\": %0.2f \}", device_info->runtime_msec_dev);
+
+  }
+  printf(" \] \}")
+  
   status_status_destroy (hashcat_ctx, hashcat_status);
 
   hcfree (hashcat_status);
