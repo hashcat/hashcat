@@ -18,6 +18,9 @@ VC_MODES="13711 13712 13713 13721 13722 13723 13731 13732 13733 13741 13742 1374
 # List of modes which either are OPTS_TYPE_PT_NEVERCRACK or produce collisions
 NEVER_CRACK="9720 9820 14900 18100"
 
+# List of modes which return a different output hash format than the input hash format
+NOCHECK_ENCODING="16800"
+
 # LUKS mode has test containers
 LUKS_MODE="14600"
 
@@ -2804,7 +2807,7 @@ if [ "${PACKAGE}" -eq 0 -o -z "${PACKAGE_FOLDER}" ]; then
   rm -rf ${OUTD}/logfull.txt && touch ${OUTD}/logfull.txt
 
   # populate array of hash types where we only should check if pass is in output (not both hash:pass)
-  IFS=';' read -ra PASS_ONLY <<< "${HASHFILE_ONLY}"
+  IFS=';' read -ra PASS_ONLY <<< "${HASHFILE_ONLY} ${NOCHECK_ENCODING}"
   IFS=';' read -ra TIMEOUT_ALGOS <<< "${SLOW_ALGOS}"
 
   IFS=';' read -ra NEVER_CRACK_ALGOS <<< "${NEVER_CRACK}"
