@@ -223,9 +223,7 @@ endif
 ifeq ($(UNAME),Linux)
 CFLAGS_NATIVE           := $(CFLAGS)
 CFLAGS_NATIVE           += -DWITH_HWMON
-CFLAGS_NATIVE           += -ffunction-sections -fdata-sections
 LFLAGS_NATIVE           := $(LFLAGS)
-LFLAGS_NATIVE           += -Wl,--gc-sections
 LFLAGS_NATIVE           += -lpthread
 LFLAGS_NATIVE           += -ldl
 LFLAGS_NATIVE           += -lrt
