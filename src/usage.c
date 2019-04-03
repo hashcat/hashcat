@@ -276,10 +276,9 @@ void usage_mini_print (const char *progname)
 
 void usage_big_print (hashcat_ctx_t *hashcat_ctx)
 {
-  folder_config_t *folder_config = hashcat_ctx->folder_config;
-  hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
-  module_ctx_t    *module_ctx    = hashcat_ctx->module_ctx;
-  user_options_t  *user_options  = hashcat_ctx->user_options;
+  const folder_config_t *folder_config = hashcat_ctx->folder_config;
+  const hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
+        user_options_t  *user_options  = hashcat_ctx->user_options;
 
   char *modulefile = (char *) hcmalloc (HCBUFSIZ_TINY);
 

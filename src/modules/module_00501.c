@@ -189,6 +189,7 @@ static void md5crypt_decode (u8 digest[16], const u8 buf[22])
   digest[11] = (l >>  0) & 0xff;
 }
 
+/* uses OPTS_TYPE_HASH_COPY
 static void md5crypt_encode (const u8 digest[16], u8 buf[22])
 {
   int l;
@@ -233,6 +234,7 @@ static void md5crypt_encode (const u8 digest[16], u8 buf[22])
   buf[20] = int_to_itoa64 (l & 0x3f); l >>= 6;
   buf[21] = int_to_itoa64 (l & 0x3f); //l >>= 6;
 }
+*/
 
 u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {

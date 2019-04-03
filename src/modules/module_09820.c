@@ -56,7 +56,7 @@ typedef struct oldoffice34
 
 static const char *SIGNATURE_OLDOFFICE  = "$oldoffice$";
 static const char *SIGNATURE_OLDOFFICE3 = "$oldoffice$3";
-static const char *SIGNATURE_OLDOFFICE4 = "$oldoffice$4";
+//static const char *SIGNATURE_OLDOFFICE4 = "$oldoffice$4";
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {

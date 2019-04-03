@@ -194,6 +194,7 @@ static void to_hccapx_t (const hashes_t *hashes, hccapx_t *hccapx, const u32 sal
   }
 }
 
+/*
 static int check_old_hccap (const char *hashfile)
 {
   FILE *fp = fopen (hashfile, "rb");
@@ -212,6 +213,7 @@ static int check_old_hccap (const char *hashfile)
 
   return 1;
 }
+*/
 
 const char *module_benchmark_mask (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {

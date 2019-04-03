@@ -54,8 +54,6 @@ static const char *PA_255 = "Unknown error";
 static const char *OPTI_STR_OPTIMIZED_KERNEL     = "Optimized-Kernel";
 static const char *OPTI_STR_ZERO_BYTE            = "Zero-Byte";
 static const char *OPTI_STR_PRECOMPUTE_INIT      = "Precompute-Init";
-static const char *OPTI_STR_PRECOMPUTE_MERKLE    = "Precompute-Merkle-Demgard";
-static const char *OPTI_STR_PRECOMPUTE_PERMUT    = "Precompute-Final-Permutation";
 static const char *OPTI_STR_MEET_IN_MIDDLE       = "Meet-In-The-Middle";
 static const char *OPTI_STR_EARLY_SKIP           = "Early-Skip";
 static const char *OPTI_STR_NOT_SALTED           = "Not-Salted";
@@ -1229,8 +1227,6 @@ int generic_salt_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, const u8 *
   {
     for (int i = 0, j = 0; i < in_len; i += 1, j += 2)
     {
-      const u8 p = in_buf[i];
-
       u8_to_hex (in_buf[i], tmp_u8 + j);
     }
 

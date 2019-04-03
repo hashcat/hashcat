@@ -1319,10 +1319,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
 int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 {
-  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
-  hashes_t       *hashes       = hashcat_ctx->hashes;
-  user_options_t *user_options = hashcat_ctx->user_options;
-  potfile_ctx_t  *potfile_ctx  = hashcat_ctx->potfile_ctx;
+  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+        hashes_t       *hashes       = hashcat_ctx->hashes;
+  const user_options_t *user_options = hashcat_ctx->user_options;
 
   hash_t *hashes_buf = hashes->hashes_buf;
   u32     hashes_cnt = hashes->hashes_cnt;
@@ -1837,8 +1836,6 @@ int hashes_init_benchmark (hashcat_ctx_t *hashcat_ctx)
   if (user_options->benchmark == false) return 0;
 
   if (hashconfig->is_salted == false) return 0;
-
-  hash_t *hashes_buf = hashes->hashes_buf;
 
   if (module_ctx->module_benchmark_salt != MODULE_DEFAULT)
   {

@@ -145,7 +145,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   // salt
 
   const u8 *salt_pos = token.buf[1];
-  const int salt_len = token.len[1];
 
   salt->salt_buf[0] = hex_to_u32 (salt_pos + 0);
   salt->salt_buf[1] = hex_to_u32 (salt_pos + 8);

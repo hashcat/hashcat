@@ -87,8 +87,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   md4_update (&ctx, w, pw_len);
   md4_final (&ctx);
 
-  u32 dgst[4];
-
   digest[0] = ctx.h[0];
   digest[1] = ctx.h[1];
   digest[2] = ctx.h[2];

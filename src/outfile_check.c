@@ -30,11 +30,9 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
   status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
 
-  size_t dgst_size      = hashconfig->dgst_size;
-  bool   is_salted      = hashconfig->is_salted;
-  size_t esalt_size     = hashconfig->esalt_size;
-  size_t hook_salt_size = hashconfig->hook_salt_size;
-  char   separator      = hashconfig->separator;
+  const size_t dgst_size = hashconfig->dgst_size;
+  const bool   is_salted = hashconfig->is_salted;
+  const char   separator = hashconfig->separator;
 
   salt_t    *salts_buf   = hashes->salts_buf;
   const u32  salts_cnt   = hashes->salts_cnt;
@@ -202,10 +200,6 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
           char *last_separator = strrchr (line_buf, separator);
 
           if (last_separator == NULL) break;
-
-          char *line_pw_buf = last_separator + 1;
-
-          size_t line_pw_len = line_buf + line_len - line_pw_buf;
 
           char *line_hash_buf = line_buf;
 

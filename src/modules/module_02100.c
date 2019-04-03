@@ -142,8 +142,6 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   line_len += snprintf (line_buf + line_len, line_size - line_len, "%s%u#", SIGNATURE_DCC2, salt->salt_iter + 1);
 
-  char *salt_ptr = (char *) salt->salt_buf;
-
   line_len += generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, (const int) salt->salt_len, (u8 *) line_buf + line_len);
 
   line_len += snprintf (line_buf + line_len, line_size - line_len, "#%08x%08x%08x%08x",

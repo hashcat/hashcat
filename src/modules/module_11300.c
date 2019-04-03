@@ -194,9 +194,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u8 *cry_salt_buf_pos    = token.buf[4];
   const u8 *cry_rounds_pos      = token.buf[5];
   const u8 *ckey_len_pos        = token.buf[6];
-  const u8 *ckey_buf_pos        = token.buf[7];
   const u8 *public_key_len_pos  = token.buf[8];
-  const u8 *public_key_buf_pos  = token.buf[9];
 
   const int cry_master_buf_len  = token.len[2];
   const int cry_salt_buf_len    = token.len[4];

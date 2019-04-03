@@ -244,7 +244,6 @@ KERNEL_FQ void m16800_comp (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_pmkid_t)
 KERNEL_FQ void m16800_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_pmkid_t))
 {
   const u64 gid = get_global_id (0);
-  const u64 lid = get_local_id (0);
 
   if (gid >= gid_max) return;
 

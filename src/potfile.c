@@ -25,6 +25,7 @@ int sort_by_hash_no_salt (const void *v1, const void *v2, void *v3);
 
 // this function is for potfile comparison where the potfile does not contain all the
 // information requires to do a true sort_by_hash() bsearch
+/*
 static int sort_by_hash_t_salt (const void *v1, const void *v2)
 {
   const hash_t *h1 = (const hash_t *) v1;
@@ -55,6 +56,7 @@ static int sort_by_hash_t_salt (const void *v1, const void *v2)
 
   return 0;
 }
+*/
 
 // this function is special and only used whenever --username and --show are used together:
 // it will sort all tree entries according to the settings stored in hashconfig
@@ -372,7 +374,6 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
   const hashes_t       *hashes       = hashcat_ctx->hashes;
   const module_ctx_t   *module_ctx   = hashcat_ctx->module_ctx;
   const potfile_ctx_t  *potfile_ctx  = hashcat_ctx->potfile_ctx;
-  const user_options_t *user_options = hashcat_ctx->user_options;
 
   if (potfile_ctx->enabled == false) return 0;
 
