@@ -621,6 +621,7 @@ typedef enum user_options_defaults
   SPEED_ONLY               = false,
   SPIN_DAMP                = 8,
   STATUS                   = false,
+  STATUS_JSON              = false,
   STATUS_TIMER             = 10,
   STDIN_TIMEOUT_ABORT      = 120,
   STDOUT_FLAG              = false,
@@ -728,17 +729,18 @@ typedef enum user_options_map
   IDX_SPEED_ONLY                = 0xff3d,
   IDX_SPIN_DAMP                 = 0xff3e,
   IDX_STATUS                    = 0xff3f,
-  IDX_STATUS_TIMER              = 0xff40,
-  IDX_STDOUT_FLAG               = 0xff41,
-  IDX_STDIN_TIMEOUT_ABORT       = 0xff42,
-  IDX_TRUECRYPT_KEYFILES        = 0xff43,
-  IDX_USERNAME                  = 0xff44,
-  IDX_VERACRYPT_KEYFILES        = 0xff45,
-  IDX_VERACRYPT_PIM_START       = 0xff46,
-  IDX_VERACRYPT_PIM_STOP        = 0xff47,
+  IDX_STATUS_JSON               = 0xff40,
+  IDX_STATUS_TIMER              = 0xff41,
+  IDX_STDOUT_FLAG               = 0xff42,
+  IDX_STDIN_TIMEOUT_ABORT       = 0xff43,
+  IDX_TRUECRYPT_KEYFILES        = 0xff44,
+  IDX_USERNAME                  = 0xff45,
+  IDX_VERACRYPT_KEYFILES        = 0xff46,
+  IDX_VERACRYPT_PIM_START       = 0xff47,
+  IDX_VERACRYPT_PIM_STOP        = 0xff48,
   IDX_VERSION_LOWER             = 'v',
   IDX_VERSION                   = 'V',
-  IDX_WORDLIST_AUTOHEX_DISABLE  = 0xff48,
+  IDX_WORDLIST_AUTOHEX_DISABLE  = 0xff49,
   IDX_WORKLOAD_PROFILE          = 'w',
 
 } user_options_map_t;
@@ -1727,6 +1729,7 @@ typedef struct user_options
   bool         slow_candidates;
   bool         speed_only;
   bool         status;
+  bool         status_json;
   bool         stdout_flag;
   bool         stdin_timeout_abort_chgd;
   bool         usage;
