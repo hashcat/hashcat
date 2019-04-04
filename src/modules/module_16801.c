@@ -11,6 +11,11 @@
 #include "shared.h"
 #include "memory.h"
 
+#define DGST_ELEM 4
+
+#include "emu_general.h"
+#include "m16801-pure.cl"
+
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
 static const u32   DGST_POS1      = 1;
@@ -66,23 +71,6 @@ typedef struct wpa_pmk_tmp
 
 } wpa_pmk_tmp_t;
 */
-
-#define DGST_ELEM 4
-
-typedef struct digest
-{
-  u32 digest_buf[DGST_ELEM];
-
-} digest_t;
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-
-#include "emu_general.h"
-#include "inc_vendor.h"
-#include "m16801-pure.cl"
-
-#pragma GCC diagnostic pop
 
 const char *module_benchmark_mask (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {

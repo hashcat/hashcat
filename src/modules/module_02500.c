@@ -10,8 +10,13 @@
 #include "convert.h"
 #include "shared.h"
 #include "memory.h"
+
+#define DGST_ELEM 4
+
+#include "emu_general.h"
 #include "emu_inc_cipher_aes.h"
 #include "emu_inc_hash_md5.h"
+#include "m02500-pure.cl"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -113,23 +118,6 @@ struct hccapx
 typedef struct hccapx hccapx_t;
 
 #pragma pack(pop)
-
-#define DGST_ELEM 4
-
-typedef struct digest
-{
-  u32 digest_buf[DGST_ELEM];
-
-} digest_t;
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-
-#include "emu_general.h"
-#include "inc_vendor.h"
-#include "m02500-pure.cl"
-
-#pragma GCC diagnostic pop
 
 static void to_hccapx_t (const hashes_t *hashes, hccapx_t *hccapx, const u32 salt_pos, const u32 digest_pos)
 {

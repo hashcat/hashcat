@@ -18,6 +18,10 @@
 #define KERNEL_FQ   __kernel
 #endif
 
+#ifndef MAYBE_UNUSED
+#define MAYBE_UNUSED
+#endif
+
 /**
  * device type
  */

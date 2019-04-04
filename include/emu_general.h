@@ -15,6 +15,14 @@
 #define HAS_VBFE       0
 #define VECT_SIZE      1
 
+#ifdef DGST_ELEM
+typedef struct digest
+{
+  u32 digest_buf[DGST_ELEM];
+
+} digest_t;
+#endif
+
 u32 atomic_dec (u32 *p);
 u32 atomic_inc (u32 *p);
 
