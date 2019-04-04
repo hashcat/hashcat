@@ -183,18 +183,12 @@ DECLSPEC u32 unpack_v8d_from_v32_S (const u32 v32)
 
 DECLSPEC u32 l32_from_64_S (u64 a)
 {
-  const u32 r = (u32) (a);
-
-  return r;
+  return v32a_from_v64_S (a);
 }
 
 DECLSPEC u32 h32_from_64_S (u64 a)
 {
-  a >>= 32;
-
-  const u32 r = (u32) (a);
-
-  return r;
+  return v32b_from_v64_S (a);
 }
 
 DECLSPEC u64 hl32_to_64_S (const u32 a, const u32 b)
@@ -207,35 +201,35 @@ DECLSPEC u32x l32_from_64 (u64x a)
   u32x r = 0;
 
   #if VECT_SIZE == 1
-  r    = (u32) a;
+  r    = l32_from_64_S (a);
   #endif
 
   #if VECT_SIZE >= 2
-  r.s0 = (u32) a.s0;
-  r.s1 = (u32) a.s1;
+  r.s0 = l32_from_64_S (a.s0);
+  r.s1 = l32_from_64_S (a.s1);
   #endif
 
   #if VECT_SIZE >= 4
-  r.s2 = (u32) a.s2;
-  r.s3 = (u32) a.s3;
+  r.s2 = l32_from_64_S (a.s2);
+  r.s3 = l32_from_64_S (a.s3);
   #endif
 
   #if VECT_SIZE >= 8
-  r.s4 = (u32) a.s4;
-  r.s5 = (u32) a.s5;
-  r.s6 = (u32) a.s6;
-  r.s7 = (u32) a.s7;
+  r.s4 = l32_from_64_S (a.s4);
+  r.s5 = l32_from_64_S (a.s5);
+  r.s6 = l32_from_64_S (a.s6);
+  r.s7 = l32_from_64_S (a.s7);
   #endif
 
   #if VECT_SIZE >= 16
-  r.s8 = (u32) a.s8;
-  r.s9 = (u32) a.s9;
-  r.sa = (u32) a.sa;
-  r.sb = (u32) a.sb;
-  r.sc = (u32) a.sc;
-  r.sd = (u32) a.sd;
-  r.se = (u32) a.se;
-  r.sf = (u32) a.sf;
+  r.s8 = l32_from_64_S (a.s8);
+  r.s9 = l32_from_64_S (a.s9);
+  r.sa = l32_from_64_S (a.sa);
+  r.sb = l32_from_64_S (a.sb);
+  r.sc = l32_from_64_S (a.sc);
+  r.sd = l32_from_64_S (a.sd);
+  r.se = l32_from_64_S (a.se);
+  r.sf = l32_from_64_S (a.sf);
   #endif
 
   return r;
@@ -243,40 +237,38 @@ DECLSPEC u32x l32_from_64 (u64x a)
 
 DECLSPEC u32x h32_from_64 (u64x a)
 {
-  a >>= 32;
-
   u32x r = 0;
 
   #if VECT_SIZE == 1
-  r    = (u32) a;
+  r    = h32_from_64_S (a);
   #endif
 
   #if VECT_SIZE >= 2
-  r.s0 = (u32) a.s0;
-  r.s1 = (u32) a.s1;
+  r.s0 = h32_from_64_S (a.s0);
+  r.s1 = h32_from_64_S (a.s1);
   #endif
 
   #if VECT_SIZE >= 4
-  r.s2 = (u32) a.s2;
-  r.s3 = (u32) a.s3;
+  r.s2 = h32_from_64_S (a.s2);
+  r.s3 = h32_from_64_S (a.s3);
   #endif
 
   #if VECT_SIZE >= 8
-  r.s4 = (u32) a.s4;
-  r.s5 = (u32) a.s5;
-  r.s6 = (u32) a.s6;
-  r.s7 = (u32) a.s7;
+  r.s4 = h32_from_64_S (a.s4);
+  r.s5 = h32_from_64_S (a.s5);
+  r.s6 = h32_from_64_S (a.s6);
+  r.s7 = h32_from_64_S (a.s7);
   #endif
 
   #if VECT_SIZE >= 16
-  r.s8 = (u32) a.s8;
-  r.s9 = (u32) a.s9;
-  r.sa = (u32) a.sa;
-  r.sb = (u32) a.sb;
-  r.sc = (u32) a.sc;
-  r.sd = (u32) a.sd;
-  r.se = (u32) a.se;
-  r.sf = (u32) a.sf;
+  r.s8 = h32_from_64_S (a.s8);
+  r.s9 = h32_from_64_S (a.s9);
+  r.sa = h32_from_64_S (a.sa);
+  r.sb = h32_from_64_S (a.sb);
+  r.sc = h32_from_64_S (a.sc);
+  r.sd = h32_from_64_S (a.sd);
+  r.se = h32_from_64_S (a.se);
+  r.sf = h32_from_64_S (a.sf);
   #endif
 
   return r;
