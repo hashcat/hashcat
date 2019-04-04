@@ -14,7 +14,7 @@
 #include "inc_hash_md5.cl"
 #endif
 
-CONSTANT_AS CONSTSPEC u32a padding[8] =
+CONSTANT_AS u32a padding[8] =
 {
   0x5e4ebf28,
   0x418a754e,

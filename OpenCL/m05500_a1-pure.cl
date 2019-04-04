@@ -45,7 +45,7 @@ typedef struct netntlm
   a  = a ^ tt;              \
 }
 
-CONSTANT_AS CONSTSPEC u32a c_SPtrans[8][64] =
+CONSTANT_AS u32a c_SPtrans[8][64] =
 {
   {
     0x02080800, 0x00080000, 0x02000002, 0x02080802,
@@ -193,7 +193,7 @@ CONSTANT_AS CONSTSPEC u32a c_SPtrans[8][64] =
   }
 };
 
-CONSTANT_AS CONSTSPEC u32a c_skb[8][64] =
+CONSTANT_AS u32a c_skb[8][64] =
 {
   {
     0x00000000, 0x00000010, 0x20000000, 0x20000010,

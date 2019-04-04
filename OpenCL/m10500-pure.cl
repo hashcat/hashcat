@@ -13,7 +13,7 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
-CONSTANT_AS CONSTSPEC u32a padding[8] =
+CONSTANT_AS u32a padding[8] =
 {
   0x5e4ebf28,
   0x418a754e,

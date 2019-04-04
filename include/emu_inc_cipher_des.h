@@ -11,4 +11,7 @@
 #include "inc_vendor.h"
 #include "inc_cipher_des.h"
 
+extern u32a c_SPtrans[8][64];
+extern u32a c_skb[8][64];
+
 #endif // _EMU_INC_CIPHER_DES_H

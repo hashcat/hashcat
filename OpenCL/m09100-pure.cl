@@ -26,7 +26,7 @@ typedef struct lotus8_tmp
 
 } lotus8_tmp_t;
 
-CONSTANT_AS CONSTSPEC u32a lotus64_table[64] =
+CONSTANT_AS u32a lotus64_table[64] =
 {
   '0', '1', '2', '3', '4', '5', '6', '7',
   '8', '9', 'A', 'B', 'C', 'D', 'E', 'F',
@@ -38,7 +38,7 @@ CONSTANT_AS CONSTSPEC u32a lotus64_table[64] =
   'u', 'v', 'w', 'x', 'y', 'z', '+', '/',
 };
 
-CONSTANT_AS CONSTSPEC u32a lotus_magic_table[256] =
+CONSTANT_AS u32a lotus_magic_table[256] =
 {
   0xbd, 0x56, 0xea, 0xf2, 0xa2, 0xf1, 0xac, 0x2a,
   0xb0, 0x93, 0xd1, 0x9c, 0x1b, 0x33, 0xfd, 0xd0,

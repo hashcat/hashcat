@@ -10,6 +10,7 @@
 #include "convert.h"
 #include "shared.h"
 #include "memory.h"
+#include "emu_inc_cipher_aes.h"
 #include "emu_inc_hash_md5.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;

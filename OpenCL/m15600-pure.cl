@@ -33,7 +33,7 @@ typedef struct ethereum_pbkdf2
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
-CONSTANT_AS CONSTSPEC u64a keccakf_rndc[24] =
+CONSTANT_AS u64a keccakf_rndc[24] =
 {
   0x0000000000000001, 0x0000000000008082, 0x800000000000808a,
   0x8000000080008000, 0x000000000000808b, 0x0000000080000001,
