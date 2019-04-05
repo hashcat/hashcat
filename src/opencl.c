@@ -4375,6 +4375,8 @@ static u32 get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param
     kernel_threads_max = device_maxworkgroup_size;
   }
 
+  u32 kernel_threads = kernel_threads_max;
+
   // complicated kernel tend to confuse OpenCL runtime suggestions for maximum thread size
   // let's workaround that by sticking to their device specific preferred thread size
 
@@ -4390,8 +4392,7 @@ static u32 get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param
 
           if ((kernel_preferred_wgs_multiple1 >= kernel_threads_min) && (kernel_preferred_wgs_multiple1 <= kernel_threads_max))
           {
-            kernel_threads_min = kernel_preferred_wgs_multiple1;
-            kernel_threads_max = kernel_preferred_wgs_multiple1;
+            kernel_threads = kernel_preferred_wgs_multiple1;
           }
         }
       }
@@ -4403,8 +4404,7 @@ static u32 get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param
 
           if ((kernel_preferred_wgs_multiple4 >= kernel_threads_min) && (kernel_preferred_wgs_multiple4 <= kernel_threads_max))
           {
-            kernel_threads_min = kernel_preferred_wgs_multiple4;
-            kernel_threads_max = kernel_preferred_wgs_multiple4;
+            kernel_threads = kernel_preferred_wgs_multiple4;
           }
         }
       }
@@ -4417,8 +4417,7 @@ static u32 get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param
 
         if ((kernel_preferred_wgs_multiple2 >= kernel_threads_min) && (kernel_preferred_wgs_multiple2 <= kernel_threads_max))
         {
-          kernel_threads_min = kernel_preferred_wgs_multiple2;
-          kernel_threads_max = kernel_preferred_wgs_multiple2;
+          kernel_threads = kernel_preferred_wgs_multiple2;
         }
       }
     }
@@ -4435,8 +4434,7 @@ static u32 get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param
 
           if ((kernel_preferred_wgs_multiple1 >= kernel_threads_min) && (kernel_preferred_wgs_multiple1 <= kernel_threads_max))
           {
-            kernel_threads_min = kernel_preferred_wgs_multiple1;
-            kernel_threads_max = kernel_preferred_wgs_multiple1;
+            kernel_threads = kernel_preferred_wgs_multiple1;
           }
         }
       }
@@ -4448,8 +4446,7 @@ static u32 get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param
 
           if ((kernel_preferred_wgs_multiple4 >= kernel_threads_min) && (kernel_preferred_wgs_multiple4 <= kernel_threads_max))
           {
-            kernel_threads_min = kernel_preferred_wgs_multiple4;
-            kernel_threads_max = kernel_preferred_wgs_multiple4;
+            kernel_threads = kernel_preferred_wgs_multiple4;
           }
         }
       }
@@ -4462,14 +4459,13 @@ static u32 get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param
 
         if ((kernel_preferred_wgs_multiple2 >= kernel_threads_min) && (kernel_preferred_wgs_multiple2 <= kernel_threads_max))
         {
-          kernel_threads_min = kernel_preferred_wgs_multiple2;
-          kernel_threads_max = kernel_preferred_wgs_multiple2;
+          kernel_threads = kernel_preferred_wgs_multiple2;
         }
       }
     }
   }
 
-  return kernel_threads_max;
+  return kernel_threads;
 }
 
 int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
@@ -4858,6 +4854,8 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D LOCAL_MEM_TYPE=%u -D VENDOR_ID=%u -D CUDA_ARCH=%u -D HAS_VPERM=%u -D HAS_VADD3=%u -D HAS_VBFE=%u -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -w ", device_param->device_local_mem_type, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->has_vperm, device_param->has_vadd3, device_param->has_vbfe, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, kern_type);
     #endif
 
+    build_options_buf[build_options_len] = 0;
+
     /*
     if (device_param->device_type & CL_DEVICE_TYPE_CPU)
     {
@@ -4883,6 +4881,8 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         build_options_module_len += snprintf (build_options_module_buf + build_options_module_len, build_options_sz - build_options_module_len, "%s", jit_build_options);
       }
     }
+
+    build_options_module_buf[build_options_module_len] = 0;
 
     #if defined (DEBUG)
     if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: build_options '%s'", device_id + 1, build_options_buf);

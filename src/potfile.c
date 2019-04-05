@@ -316,9 +316,12 @@ void potfile_update_hash (hashcat_ctx_t *hashcat_ctx, hash_t *found, char *line_
   found->pw_buf = (char *) hcmalloc (pw_len + 1);
   found->pw_len = pw_len;
 
-  memcpy (found->pw_buf, pw_buf, pw_len);
+  if (pw_buf)
+  {
+    memcpy (found->pw_buf, pw_buf, pw_len);
 
-  found->pw_buf[found->pw_len] = 0;
+    found->pw_buf[found->pw_len] = 0;
+  }
 
   found->cracked = 1;
 
@@ -546,17 +549,17 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
     if (line_hash_len == 0) continue;
 
-    if (hashconfig->is_salted == true)
+    if (hash_buf.salt)
     {
       memset (hash_buf.salt, 0, sizeof (salt_t));
     }
 
-    if (hashconfig->esalt_size > 0)
+    if (hash_buf.esalt)
     {
       memset (hash_buf.esalt, 0, hashconfig->esalt_size);
     }
 
-    if (hashconfig->hook_salt_size > 0)
+    if (hash_buf.hook_salt)
     {
       memset (hash_buf.hook_salt, 0, hashconfig->hook_salt_size);
     }

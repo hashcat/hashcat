@@ -209,17 +209,17 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
           if (line_hash_len == 0) continue;
 
-          if (hashconfig->is_salted == true)
+          if (hash_buf.salt)
           {
             memset (hash_buf.salt, 0, sizeof (salt_t));
           }
 
-          if (hashconfig->esalt_size > 0)
+          if (hash_buf.esalt)
           {
             memset (hash_buf.esalt, 0, hashconfig->esalt_size);
           }
 
-          if (hashconfig->hook_salt_size > 0)
+          if (hash_buf.hook_salt)
           {
             memset (hash_buf.hook_salt, 0, hashconfig->hook_salt_size);
           }
