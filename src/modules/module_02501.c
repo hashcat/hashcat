@@ -515,7 +515,7 @@ bool module_potfile_custom_check (MAYBE_UNUSED const hashconfig_t *hashconfig, M
   }
   else
   {
-    m02501_aux = NULL;
+    return false;
   }
 
   m02501_aux
