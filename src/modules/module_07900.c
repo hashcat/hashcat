@@ -403,7 +403,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u64 *digest = (const u64 *) digest_buf;
 
-  u64 tmp[8];
+  u64 tmp[8] = { 0 }; // this (useless?) initialization makes scan-build happy
 
   tmp[0] = byte_swap_64 (digest[0]);
   tmp[1] = byte_swap_64 (digest[1]);
@@ -416,7 +416,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   char ptr_plain[128] = { 0 };
 
-  drupal7_encode ((unsigned char *) tmp, (unsigned char *) ptr_plain);
+  drupal7_encode ((const u8 *) tmp, (u8 *) ptr_plain);
 
   // ugly hack start
 

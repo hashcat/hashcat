@@ -495,7 +495,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u64 *digest = (const u64 *) digest_buf;
 
-  u64 tmp[8];
+  u64 tmp[8] = { 0 }; // this (useless?) initialization makes scan-build happy
 
   tmp[0] = digest[0];
   tmp[1] = digest[1];

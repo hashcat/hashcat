@@ -257,10 +257,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (u32 i = 0; i < 0x10000; i++)
   {
-    u32 key_md4[2] = { i, 0 };
-    u32 key_des[2] = { 0, 0 };
+    u32 key_md4[2] = { 0 };
+    u32 key_des[2] = { 0 };
 
-    transform_netntlmv1_key ((u8 *) key_md4, (u8 *) key_des);
+    key_md4[0] = i;
+
+    transform_netntlmv1_key ((const u8 *) key_md4, (u8 *) key_des);
 
     u32 Kc[16] = { 0 };
     u32 Kd[16] = { 0 };

@@ -254,7 +254,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u32 *digest = (const u32 *) digest_buf;
 
-  u32 tmp[5];
+  u32 tmp[5] = { 0 }; // this (useless?) initialization makes scan-build happy
 
   tmp[0] = digest[0];
   tmp[1] = digest[1];

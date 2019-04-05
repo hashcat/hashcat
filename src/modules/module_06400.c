@@ -155,6 +155,7 @@ static void sha256aix_decode (u8 digest[32], const u8 buf[43])
   digest[31] = (l >>  8) & 0xff;
   digest[30] = (l >> 16) & 0xff;
 }
+
 static void sha256aix_encode (const u8 digest[32], u8 buf[43])
 {
   int l;
@@ -352,7 +353,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u32 *digest = (const u32 *) digest_buf;
 
-  u32 tmp[8];
+  u32 tmp[8] = { 0 }; // this (useless?) initialization makes scan-build happy
 
   tmp[0] = digest[0];
   tmp[1] = digest[1];
