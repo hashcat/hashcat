@@ -230,7 +230,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const cloudkey_t *cloudkey = (const cloudkey_t *) esalt_buf;
 
-  char data_buf[4096] = { 0 };
+  char data_buf[4096 + 1] = { 0 };
 
   for (int i = 0, j = 0; i < 512; i += 1, j += 8)
   {
