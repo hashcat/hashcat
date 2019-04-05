@@ -839,6 +839,42 @@ void uppercase (u8 *buf, const size_t len)
   for (size_t i = 0; i < len; i++) buf[i] = (u8) toupper ((int) buf[i]);
 }
 
+u8 v8a_from_v32 (const u32 v32)
+{
+  vconv32_t v;
+
+  v.v32 = v32;
+
+  return v.v8a;
+}
+
+u8 v8b_from_v32 (const u32 v32)
+{
+  vconv32_t v;
+
+  v.v32 = v32;
+
+  return v.v8b;
+}
+
+u8 v8c_from_v32 (const u32 v32)
+{
+  vconv32_t v;
+
+  v.v32 = v32;
+
+  return v.v8c;
+}
+
+u8 v8d_from_v32 (const u32 v32)
+{
+  vconv32_t v;
+
+  v.v32 = v32;
+
+  return v.v8d;
+}
+
 u16 v16a_from_v32 (const u32 v32)
 {
   vconv32_t v;
