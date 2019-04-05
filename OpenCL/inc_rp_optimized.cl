@@ -2276,10 +2276,10 @@ DECLSPEC u32 rule_op_mangle_title_sep (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED c
   buf0[1] = toggle_on_register (buf0[1], r1);
   buf0[2] = toggle_on_register (buf0[2], r2);
   buf0[3] = toggle_on_register (buf0[3], r3);
-  buf1[0] = toggle_on_register (buf1[0], r0);
-  buf1[1] = toggle_on_register (buf1[1], r1);
-  buf1[2] = toggle_on_register (buf1[2], r2);
-  buf1[3] = toggle_on_register (buf1[3], r3);
+  buf1[0] = toggle_on_register (buf1[0], r4);
+  buf1[1] = toggle_on_register (buf1[1], r5);
+  buf1[2] = toggle_on_register (buf1[2], r6);
+  buf1[3] = toggle_on_register (buf1[3], r7);
 
   return in_len;
 }
