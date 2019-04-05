@@ -133,8 +133,6 @@ DECLSPEC static void m00060m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_l
   salt_buf3[2] = salt_bufs[salt_pos].salt_buf[14];
   salt_buf3[3] = salt_bufs[salt_pos].salt_buf[15];
 
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
-
   /**
    * pads
    */
@@ -237,8 +235,6 @@ DECLSPEC static void m00060s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_l
   salt_buf3[1] = salt_bufs[salt_pos].salt_buf[13];
   salt_buf3[2] = salt_bufs[salt_pos].salt_buf[14];
   salt_buf3[3] = salt_bufs[salt_pos].salt_buf[15];
-
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
   /**
    * pads

@@ -404,7 +404,7 @@ KERNEL_FQ void m08800_comp (KERN_ATTR_TMPS_ESALT (androidfde_tmp_t, androidfde_t
     u32 r0 = out[0] ^ iv[0];
     u32 r1 = out[1] ^ iv[1];
     u32 r2 = out[2] ^ iv[2];
-    u32 r3 = out[3] ^ iv[3];
+    //u32 r3 = out[3] ^ iv[3];
 
     // rotate 3 byte (in fat!)
 

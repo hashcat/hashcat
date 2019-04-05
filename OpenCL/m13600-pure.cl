@@ -332,7 +332,7 @@ KERNEL_FQ void m13600_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, zip2_t))
 
   u32 key[8] = { 0 };
 
-  for (int i = iter_start, j = 0; i < iter_stop; i++, j++)
+  for (u32 i = iter_start, j = 0; i < iter_stop; i++, j++)
   {
     key[j] = tmps[gid].out[i];
   }

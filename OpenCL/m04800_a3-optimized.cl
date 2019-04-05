@@ -97,8 +97,6 @@ DECLSPEC static void m04800m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_l
   {
     const u32x w0r = ix_create_bft (bfs_buf, il_pos);
 
-    const u32x w0lr = w0l | w0r;
-
     u32x w0_t = w0l | (w0r <<  8);
     u32x w1_t = w1l | (w0r >> 24);
     u32x w2_t = w0[2];
@@ -294,8 +292,6 @@ DECLSPEC static void m04800s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_l
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
     const u32x w0r = ix_create_bft (bfs_buf, il_pos);
-
-    const u32x w0lr = w0l | w0r;
 
     u32x w0_t = w0l | (w0r <<  8);
     u32x w1_t = w1l | (w0r >> 24);
