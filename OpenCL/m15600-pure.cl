@@ -65,7 +65,7 @@ CONSTANT_AS u64a keccakf_rndc[24] =
   u32 j = keccakf_piln[s];      \
   u32 k = keccakf_rotc[s];      \
   bc0 = st[j];                  \
-  st[j] = hc_rotl64_S (t, k);      \
+  st[j] = hc_rotl64_S (t, k);   \
   t = bc0;                      \
 }
 

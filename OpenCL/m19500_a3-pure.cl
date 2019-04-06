@@ -163,11 +163,11 @@ KERNEL_FQ void m19500_mxx (KERN_ATTR_VECTOR_ESALT (devise_hash_t))
 
       ctx.len = 40 + 2;
 
-      sha1_update_vector (&ctx, s, salt_len);
-      sha1_update_vector (&ctx, glue, 2);
-      sha1_update_vector (&ctx, w, pw_len);
-      sha1_update_vector (&ctx, glue, 2);
-      sha1_update_vector (&ctx, k, site_key_len);
+      sha1_update (&ctx, s, salt_len);
+      sha1_update (&ctx, glue, 2);
+      sha1_update (&ctx, w, pw_len);
+      sha1_update (&ctx, glue, 2);
+      sha1_update (&ctx, k, site_key_len);
 
       sha1_final (&ctx);
     }

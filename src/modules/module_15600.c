@@ -43,13 +43,6 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
-typedef struct ethereum_pbkdf2
-{
-  u32 salt_buf[16];
-  u32 ciphertext[8];
-
-} ethereum_pbkdf2_t;
-
 typedef struct pbkdf2_sha256_tmp
 {
   u32  ipad[8];
@@ -59,6 +52,13 @@ typedef struct pbkdf2_sha256_tmp
   u32  out[32];
 
 } pbkdf2_sha256_tmp_t;
+
+typedef struct ethereum_pbkdf2
+{
+  u32 salt_buf[16];
+  u32 ciphertext[8];
+
+} ethereum_pbkdf2_t;
 
 static const char *SIGNATURE_ETHEREUM_PBKDF2 = "$ethereum$p";
 
@@ -90,6 +90,12 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 {
   // amdgpu-pro-18.50-708488-ubuntu-18.04:  self-test failed.
   if ((device_param->device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
+  {
+    return true;
+  }
+
+  // rocm 1.2.0-20190: self-test failed
+  if ((device_param->device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == true))
   {
     return true;
   }
