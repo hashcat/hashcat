@@ -5,9 +5,6 @@
 
 //#define NEW_SIMD_CODE
 
-//#undef  LOCAL_MEM_TYPE
-//#define LOCAL_MEM_TYPE LOCAL_MEM_TYPE_GLOBAL
-
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"

@@ -5,12 +5,6 @@
 
 #define NEW_SIMD_CODE
 
-// we don't need fast local memory
-// it's used in _comp kernel only
-// not using it helps some opencl runtimes to survive
-#undef  LOCAL_MEM_TYPE
-#define LOCAL_MEM_TYPE LOCAL_MEM_TYPE_GLOBAL
-
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
