@@ -912,17 +912,17 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
   }
-  
+
   if (user_options->machine_readable == true)
   {
     if (user_options->status_json == true)
     {
       event_log_error (hashcat_ctx, "The --status-json flag can not be used with --machine-readable.");
-      
+
       return -1;
     }
   }
-  
+
   if (user_options->remove_timer_chgd == true)
   {
     if (user_options->remove == false)
@@ -1119,7 +1119,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
   }
-  
+
   if (user_options->stdin_timeout_abort_chgd == true)
   {
     if (user_options->attack_mode != ATTACK_MODE_STRAIGHT)
@@ -2581,12 +2581,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
   const int rc = hashconfig_init (hashcat_ctx);
 
-  if (rc == -1)
-  {
-    event_log_error (hashcat_ctx, "%s: module initialization failed", modulefile);
-
-    return -1;
-  }
+  if (rc == -1) return -1;
 
   hashconfig_destroy (hashcat_ctx);
 
