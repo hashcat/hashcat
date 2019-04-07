@@ -130,11 +130,11 @@ _hashcat_opencl_devices ()
 {
   local num_devices=0
 
-  if which clinfo &> /dev/null; then
+  if which clinfo >/dev/null 2>/dev/null; then
 
     num_devices=$(clinfo 2>/dev/null 2> /dev/null)
 
-  elif which nvidia-smi &> /dev/null; then
+  elif which nvidia-smi >/dev/null 2>/dev/null; then
 
     num_devices=$(nvidia-smi --list-gpus | wc -l)
 
