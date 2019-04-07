@@ -1695,6 +1695,123 @@ DECLSPEC void sha512_hmac_init_global_swap (sha512_hmac_ctx_t *ctx, GLOBAL_AS co
   sha512_hmac_init_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7);
 }
 
+DECLSPEC void sha512_hmac_init_global_utf16le_swap (sha512_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+  u32 w4[4];
+  u32 w5[4];
+  u32 w6[4];
+  u32 w7[4];
+
+  const int len_new = len * 2;
+
+  if (len_new > 128)
+  {
+    sha512_ctx_t tmp;
+
+    sha512_init (&tmp);
+
+    sha512_update_global_utf16le_swap (&tmp, w, len);
+
+    sha512_final (&tmp);
+
+    w0[0] = h32_from_64_S (tmp.h[0]);
+    w0[1] = l32_from_64_S (tmp.h[0]);
+    w0[2] = h32_from_64_S (tmp.h[1]);
+    w0[3] = l32_from_64_S (tmp.h[1]);
+    w1[0] = h32_from_64_S (tmp.h[2]);
+    w1[1] = l32_from_64_S (tmp.h[2]);
+    w1[2] = h32_from_64_S (tmp.h[3]);
+    w1[3] = l32_from_64_S (tmp.h[3]);
+    w2[0] = h32_from_64_S (tmp.h[4]);
+    w2[1] = l32_from_64_S (tmp.h[4]);
+    w2[2] = h32_from_64_S (tmp.h[5]);
+    w2[3] = l32_from_64_S (tmp.h[5]);
+    w3[0] = h32_from_64_S (tmp.h[6]);
+    w3[1] = l32_from_64_S (tmp.h[6]);
+    w3[2] = h32_from_64_S (tmp.h[7]);
+    w3[3] = l32_from_64_S (tmp.h[7]);
+    w4[0] = 0;
+    w4[1] = 0;
+    w4[2] = 0;
+    w4[3] = 0;
+    w5[0] = 0;
+    w5[1] = 0;
+    w5[2] = 0;
+    w5[3] = 0;
+    w6[0] = 0;
+    w6[1] = 0;
+    w6[2] = 0;
+    w6[3] = 0;
+    w7[0] = 0;
+    w7[1] = 0;
+    w7[2] = 0;
+    w7[3] = 0;
+  }
+  else
+  {
+    w0[0] = w[ 0];
+    w0[1] = w[ 1];
+    w0[2] = w[ 2];
+    w0[3] = w[ 3];
+    w1[0] = w[ 4];
+    w1[1] = w[ 5];
+    w1[2] = w[ 6];
+    w1[3] = w[ 7];
+    w2[0] = w[ 8];
+    w2[1] = w[ 9];
+    w2[2] = w[10];
+    w2[3] = w[11];
+    w3[0] = w[12];
+    w3[1] = w[13];
+    w3[2] = w[14];
+    w3[3] = w[15];
+
+    make_utf16le_S (w3, w6, w7);
+    make_utf16le_S (w2, w4, w5);
+    make_utf16le_S (w1, w2, w3);
+    make_utf16le_S (w0, w0, w1);
+
+    w0[0] = hc_swap32_S (w0[0]);
+    w0[1] = hc_swap32_S (w0[1]);
+    w0[2] = hc_swap32_S (w0[2]);
+    w0[3] = hc_swap32_S (w0[3]);
+    w1[0] = hc_swap32_S (w1[0]);
+    w1[1] = hc_swap32_S (w1[1]);
+    w1[2] = hc_swap32_S (w1[2]);
+    w1[3] = hc_swap32_S (w1[3]);
+    w2[0] = hc_swap32_S (w2[0]);
+    w2[1] = hc_swap32_S (w2[1]);
+    w2[2] = hc_swap32_S (w2[2]);
+    w2[3] = hc_swap32_S (w2[3]);
+    w3[0] = hc_swap32_S (w3[0]);
+    w3[1] = hc_swap32_S (w3[1]);
+    w3[2] = hc_swap32_S (w3[2]);
+    w3[3] = hc_swap32_S (w3[3]);
+    w4[0] = hc_swap32_S (w4[0]);
+    w4[1] = hc_swap32_S (w4[1]);
+    w4[2] = hc_swap32_S (w4[2]);
+    w4[3] = hc_swap32_S (w4[3]);
+    w5[0] = hc_swap32_S (w5[0]);
+    w5[1] = hc_swap32_S (w5[1]);
+    w5[2] = hc_swap32_S (w5[2]);
+    w5[3] = hc_swap32_S (w5[3]);
+    w6[0] = hc_swap32_S (w6[0]);
+    w6[1] = hc_swap32_S (w6[1]);
+    w6[2] = hc_swap32_S (w6[2]);
+    w6[3] = hc_swap32_S (w6[3]);
+    w7[0] = hc_swap32_S (w7[0]);
+    w7[1] = hc_swap32_S (w7[1]);
+    w7[2] = hc_swap32_S (w7[2]);
+    w7[3] = hc_swap32_S (w7[3]);
+  }
+
+  sha512_hmac_init_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7);
+}
+
 DECLSPEC void sha512_hmac_update_128 (sha512_hmac_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const int len)
 {
   sha512_update_128 (&ctx->ipad, w0, w1, w2, w3, w4, w5, w6, w7, len);
