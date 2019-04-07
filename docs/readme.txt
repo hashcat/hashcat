@@ -236,6 +236,7 @@ NVIDIA GPUs require "NVIDIA Driver" (367.x or later)
 - eCryptfs
 - VeraCrypt
 - LUKS
+- DiskCryptor AES
 - FileVault 2
 - Apple File System (APFS)
 - MS Office <= 2003
