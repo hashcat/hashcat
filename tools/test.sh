@@ -208,7 +208,7 @@ function init()
 
       # download:
 
-      if ! wget -q "${luks_tests_url}" &> /dev/null; then
+      if ! wget -q "${luks_tests_url}" >/dev/null 2>/dev/null; then
         cd - >/dev/null
         echo "ERROR: Could not fetch the luks test files from this url: ${luks_tests_url}"
         exit 1
@@ -216,7 +216,7 @@ function init()
 
       # extract:
 
-      ${EXTRACT_CMD} "${luks_tests}" &> /dev/null
+      ${EXTRACT_CMD} "${luks_tests}" >/dev/null 2>/dev/null
 
       # cleanup:
 
@@ -388,28 +388,28 @@ function status()
       1)
         if ! is_in_array ${hash_type} ${NEVER_CRACK_ALGOS}; then
 
-           echo "password not found, cmdline : ${CMD}" &>> ${OUTD}/logfull.txt
+           echo "password not found, cmdline : ${CMD}" >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
            ((e_nf++))
 
         fi
 
         ;;
       4)
-        echo "timeout reached, cmdline : ${CMD}" &>> ${OUTD}/logfull.txt
+        echo "timeout reached, cmdline : ${CMD}" >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
         ((e_to++))
 
         ;;
       10)
         if [ "${pass_only}" -eq 1 ]; then
-          echo "plains not found in output, cmdline : ${CMD}" &>> ${OUTD}/logfull.txt
+          echo "plains not found in output, cmdline : ${CMD}" >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
         else
-          echo "hash:plains not matched in output, cmdline : ${CMD}" &>> ${OUTD}/logfull.txt
+          echo "hash:plains not matched in output, cmdline : ${CMD}" >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
         fi
         ((e_nm++))
 
         ;;
       *)
-        echo "! unhandled return code ${RET}, cmdline : ${CMD}" &>> ${OUTD}/logfull.txt
+        echo "! unhandled return code ${RET}, cmdline : ${CMD}" >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
         echo "! unhandled return code, see ${OUTD}/logfull.txt for details."
         ((e_nf++))
         ;;
@@ -435,7 +435,7 @@ function attack_0()
     e_nm=0
     cnt=0
 
-    echo "> Testing hash type $hash_type with attack mode 0, markov ${MARKOV}, single hash, device-type ${TYPE}, vector-width ${VECTOR}." &>> ${OUTD}/logfull.txt
+    echo "> Testing hash type $hash_type with attack mode 0, markov ${MARKOV}, single hash, device-type ${TYPE}, vector-width ${VECTOR}." >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
 
     max=32
 
@@ -474,7 +474,7 @@ function attack_0()
 
       CMD="echo "${pass}" | ./${BIN} ${OPTS} -a 0 -m ${hash_type} '${hash}'"
 
-      echo -n "[ len $((i + 1)) ] " &>> ${OUTD}/logfull.txt
+      echo -n "[ len $((i + 1)) ] " >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
 
       output=$(echo "${pass}" | ./${BIN} ${OPTS} -a 0 -m ${hash_type} "${hash}" 2>&1)
 
@@ -490,7 +490,7 @@ function attack_0()
           search="${hash}:${pass}"
         fi
 
-        echo "${output}" | grep -F "${search}" &> /dev/null
+        echo "${output}" | grep -F "${search}" >/dev/null 2>/dev/null
 
         if [ "${?}" -ne 0 ]; then
 
@@ -530,7 +530,7 @@ function attack_0()
     e_nm=0
     cnt=0
 
-    echo "> Testing hash type $hash_type with attack mode 0, markov ${MARKOV}, multi hash, Device-Type ${TYPE}, vector-width ${VECTOR}." &>> ${OUTD}/logfull.txt
+    echo "> Testing hash type $hash_type with attack mode 0, markov ${MARKOV}, multi hash, Device-Type ${TYPE}, vector-width ${VECTOR}." >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
 
     hash_file=${OUTD}/${hash_type}_hashes.txt
 
@@ -573,7 +573,7 @@ function attack_0()
           search="${hash}:${pass}"
         fi
 
-        echo "${output}" | grep -F "${search}" &> /dev/null
+        echo "${output}" | grep -F "${search}" >/dev/null 2>/dev/null
 
         if [ "${?}" -ne 0 ]; then
 
@@ -638,7 +638,7 @@ function attack_1()
       min=0
     fi
 
-    echo "> Testing hash type $hash_type with attack mode 1, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}." &>> ${OUTD}/logfull.txt
+    echo "> Testing hash type $hash_type with attack mode 1, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}." >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
     i=1
     while read -u 9 hash; do
 
@@ -654,7 +654,7 @@ function attack_1()
 
         CMD="./${BIN} ${OPTS} -a 1 -m ${hash_type} '${hash}' ${OUTD}/${hash_type}_dict1 ${OUTD}/${hash_type}_dict2"
 
-        echo -n "[ len $i ] " &>> ${OUTD}/logfull.txt
+        echo -n "[ len $i ] " >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
 
         output=$(./${BIN} ${OPTS} -a 1 -m ${hash_type} "${hash}" ${OUTD}/${hash_type}_dict1 ${OUTD}/${hash_type}_dict2 2>&1)
 
@@ -679,7 +679,7 @@ function attack_1()
             search="${hash}:${line_dict1}${line_dict2}"
           fi
 
-          echo "${output}" | grep -F "${search}" &> /dev/null
+          echo "${output}" | grep -F "${search}" >/dev/null 2>/dev/null
 
           if [ "${?}" -ne 0 ]; then
 
@@ -764,7 +764,7 @@ function attack_1()
 
     CMD="./${BIN} ${OPTS} -a 1 -m ${hash_type} ${hash_file} ${OUTD}/${hash_type}_dict1 ${OUTD}/${hash_type}_dict2"
 
-    echo "> Testing hash type $hash_type with attack mode 1, markov ${MARKOV}, multi hash, Device-Type ${TYPE}, vector-width ${VECTOR}." &>> ${OUTD}/logfull.txt
+    echo "> Testing hash type $hash_type with attack mode 1, markov ${MARKOV}, multi hash, Device-Type ${TYPE}, vector-width ${VECTOR}." >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
 
     output=$(./${BIN} ${OPTS} -a 1 -m ${hash_type} ${hash_file} ${OUTD}/${hash_type}_dict1 ${OUTD}/${hash_type}_dict2 2>&1)
 
@@ -793,7 +793,7 @@ function attack_1()
           search="${hash}:${line_dict1}${line_dict2}"
         fi
 
-        echo "${output}" | grep -F "${search}" &> /dev/null
+        echo "${output}" | grep -F "${search}" >/dev/null 2>/dev/null
 
         if [ "${?}" -ne 0 ]; then
 
@@ -846,7 +846,7 @@ function attack_3()
     e_nm=0
     cnt=0
 
-    echo "> Testing hash type $hash_type with attack mode 3, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}." &>> ${OUTD}/logfull.txt
+    echo "> Testing hash type $hash_type with attack mode 3, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}." >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
 
     max=8
 
@@ -926,7 +926,7 @@ function attack_3()
 
       CMD="./${BIN} ${OPTS} -a 3 -m ${hash_type} '${hash}' ${mask}"
 
-      echo -n "[ len $i ] " &>> ${OUTD}/logfull.txt
+      echo -n "[ len $i ] " >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
 
       output=$(./${BIN} ${OPTS} -a 3 -m ${hash_type} "${hash}" ${mask} 2>&1)
 
@@ -944,7 +944,7 @@ function attack_3()
           search="${hash}:${line_dict}"
         fi
 
-        echo "${output}" | grep -F "${search}" &> /dev/null
+        echo "${output}" | grep -F "${search}" >/dev/null 2>/dev/null
 
         if [ "${?}" -ne 0 ]; then
 
@@ -1271,7 +1271,7 @@ function attack_3()
 
     CMD="./${BIN} ${OPTS} -a 3 -m ${hash_type} ${increment_charset_opts} ${hash_file} ${mask} "
 
-    echo "> Testing hash type $hash_type with attack mode 3, markov ${MARKOV}, multi hash, Device-Type ${TYPE}, vector-width ${VECTOR}." &>> ${OUTD}/logfull.txt
+    echo "> Testing hash type $hash_type with attack mode 3, markov ${MARKOV}, multi hash, Device-Type ${TYPE}, vector-width ${VECTOR}." >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
 
     output=$(./${BIN} ${OPTS} -a 3 -m ${hash_type} ${increment_charset_opts} ${hash_file} ${mask} 2>&1)
 
@@ -1294,7 +1294,7 @@ function attack_3()
           search="${hash}:${pass}"
         fi
 
-        echo "${output}" | grep -F "${search}" &> /dev/null
+        echo "${output}" | grep -F "${search}" >/dev/null 2>/dev/null
 
         if [ "${?}" -ne 0 ]; then
 
@@ -1347,7 +1347,7 @@ function attack_6()
     e_nm=0
     cnt=0
 
-    echo "> Testing hash type $hash_type with attack mode 6, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}." &>> ${OUTD}/logfull.txt
+    echo "> Testing hash type $hash_type with attack mode 6, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}." >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
 
     min=1
     max=8
@@ -1491,7 +1491,7 @@ function attack_6()
 
         CMD="./${BIN} ${OPTS} -a 6 -m ${hash_type} '${hash}' ${dict1_a6} ${mask}"
 
-        echo -n "[ len $i ] " &>> ${OUTD}/logfull.txt
+        echo -n "[ len $i ] " >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
 
         output=$(./${BIN} ${OPTS} -a 6 -m ${hash_type} "${hash}" ${dict1_a6} ${mask} 2>&1)
 
@@ -1516,7 +1516,7 @@ function attack_6()
             search="${hash}:${line_dict1}${line_dict2}"
           fi
 
-          echo "${output}" | grep -F "${search}" &> /dev/null
+          echo "${output}" | grep -F "${search}" >/dev/null 2>/dev/null
 
           if [ "${?}" -ne 0 ]; then
 
@@ -1626,7 +1626,7 @@ function attack_6()
 
       CMD="./${BIN} ${OPTS} -a 6 -m ${hash_type} ${hash_file} ${OUTD}/${hash_type}_dict1_multi_${i} ${mask}"
 
-      echo "> Testing hash type $hash_type with attack mode 6, markov ${MARKOV}, multi hash with word len ${i}." &>> ${OUTD}/logfull.txt
+      echo "> Testing hash type $hash_type with attack mode 6, markov ${MARKOV}, multi hash with word len ${i}." >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
 
       output=$(./${BIN} ${OPTS} -a 6 -m ${hash_type} ${hash_file} ${OUTD}/${hash_type}_dict1_multi_${i} ${mask} 2>&1)
 
@@ -1649,7 +1649,7 @@ function attack_6()
             search="${hash}:${line_dict1}${line_dict2}"
           fi
 
-          echo "${output}" | grep -F "${search}" &> /dev/null
+          echo "${output}" | grep -F "${search}" >/dev/null 2>/dev/null
 
           if [ "${?}" -ne 0 ]; then
 
@@ -1704,7 +1704,7 @@ function attack_7()
     e_nm=0
     cnt=0
 
-    echo "> Testing hash type $hash_type with attack mode 7, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}." &>> ${OUTD}/logfull.txt
+    echo "> Testing hash type $hash_type with attack mode 7, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}." >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
 
     min=1
     max=8
@@ -1851,7 +1851,7 @@ function attack_7()
 
         CMD="./${BIN} ${OPTS} -a 7 -m ${hash_type} '${hash}' ${mask} ${dict2}"
 
-        echo -n "[ len $i ] " &>> ${OUTD}/logfull.txt
+        echo -n "[ len $i ] " >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
 
         output=$(./${BIN} ${OPTS} -a 7 -m ${hash_type} "${hash}" ${mask} ${dict2} 2>&1)
 
@@ -1876,7 +1876,7 @@ function attack_7()
             search="${hash}:${line_dict1}${line_dict2}"
           fi
 
-          echo "${output}" | grep -F "${search}" &> /dev/null
+          echo "${output}" | grep -F "${search}" >/dev/null 2>/dev/null
 
           if [ "${?}" -ne 0 ]; then
 
@@ -2021,7 +2021,7 @@ function attack_7()
 
       CMD="./${BIN} ${OPTS} -a 7 -m ${hash_type} ${hash_file} ${mask} ${dict_file}"
 
-      echo "> Testing hash type $hash_type with attack mode 7, markov ${MARKOV}, multi hash with word len ${i}." &>> ${OUTD}/logfull.txt
+      echo "> Testing hash type $hash_type with attack mode 7, markov ${MARKOV}, multi hash with word len ${i}." >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
 
       output=$(./${BIN} ${OPTS} -a 7 -m ${hash_type} ${hash_file} ${mask} ${dict_file} 2>&1)
 
@@ -2044,7 +2044,7 @@ function attack_7()
             search="${hash}:${line_dict1}${line_dict2}"
           fi
 
-          echo "${output}" | grep -F "${search}" &> /dev/null
+          echo "${output}" | grep -F "${search}" >/dev/null 2>/dev/null
 
           if [ "${?}" -ne 0 ]; then
 
@@ -2241,7 +2241,7 @@ function truecrypt_test()
   esac
 
   if [ ${#CMD} -gt 5 ]; then
-    echo "> Testing hash type $hashType with attack mode 3, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}, tcMode ${tcMode}" &>> ${OUTD}/logfull.txt
+    echo "> Testing hash type $hashType with attack mode 3, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}, tcMode ${tcMode}" >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
 
     output=$(${CMD} 2>&1)
 
@@ -2318,7 +2318,7 @@ function veracrypt_test()
 
   CMD="echo hashca{a..z} | ./${BIN} ${OPTS} -a 0 -m ${hash_type} ${filename}"
 
-  echo "> Testing hash type ${hash_type} with attack mode 0, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}, cipher ${cipher_cascade}" &>> ${OUTD}/logfull.txt
+  echo "> Testing hash type ${hash_type} with attack mode 0, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}, cipher ${cipher_cascade}" >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
 
   output=$(${CMD} 2>&1)
 
@@ -2444,7 +2444,7 @@ function luks_test()
           esac
 
           if [ -n "${CMD}" ]; then
-            echo "> Testing hash type ${hashType} with attack mode ${attackType}, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}, luksMode ${luks_mode}" &>> ${OUTD}/logfull.txt
+            echo "> Testing hash type ${hashType} with attack mode ${attackType}, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}, luksMode ${luks_mode}" >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
 
             output=$(${CMD} 2>&1)
             ret=${?}
@@ -2980,7 +2980,7 @@ if [ "${PACKAGE}" -eq 1 ]; then
 
     MODE=2
 
-    ls "${PACKAGE_FOLDER}"/*multi* &> /dev/null
+    ls "${PACKAGE_FOLDER}"/*multi* >/dev/null 2>/dev/null
 
     if [ "${?}" -ne 0 ]
     then
@@ -3038,6 +3038,6 @@ if [ "${PACKAGE}" -eq 1 ]; then
     -e "s/^\(ATTACK\)=0/\1=${ATTACK}/" \
     ${OUTD}/test.sh
 
-  ${PACKAGE_CMD} ${OUTD}/${OUTD}.7z ${OUTD}/ &> /dev/null
+  ${PACKAGE_CMD} ${OUTD}/${OUTD}.7z ${OUTD}/ >/dev/null 2>/dev/null
 
 fi
