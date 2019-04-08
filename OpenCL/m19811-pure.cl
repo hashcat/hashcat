@@ -380,6 +380,8 @@ KERNEL_FQ void m19811_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcrypt
 
   if (gid >= gid_max) return;
 
+  #define il_pos 0
+
   u32 ukey1[8];
 
   ukey1[0] = hc_swap32_S (h32_from_64_S (tmps[gid].out[0]));
@@ -401,8 +403,6 @@ KERNEL_FQ void m19811_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcrypt
   ukey2[5] = hc_swap32_S (l32_from_64_S (tmps[gid].out[6]));
   ukey2[6] = hc_swap32_S (h32_from_64_S (tmps[gid].out[7]));
   ukey2[7] = hc_swap32_S (l32_from_64_S (tmps[gid].out[7]));
-
-  #define il_pos 0
 
   if (dcrp_verify_header_aes (digests_buf[digests_offset].digest_buf, ukey1, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
   {
