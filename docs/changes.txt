@@ -24,7 +24,7 @@
 - Added hash-mode: sha1(md5(md5($pass)))
 - Added hash-mode: sha1($salt1.$pass.$salt2)
 - Added hash-mode: Ruby on Rails Restful-Authentication
-- Added hash-mode: DiskCryptor AES
+- Added hash-mode: DiskCryptor
 
 ##
 ## Bugs
