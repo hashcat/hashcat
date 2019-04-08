@@ -1206,9 +1206,16 @@ typedef struct hc_device_param
   char   *driver_version;
   char   *device_opencl_version;
 
-  bool    has_vperm;
+  // AMD
   bool    has_vadd3;
   bool    has_vbfe;
+  bool    has_vperm;
+
+  // NV
+  bool    has_bfe;
+  bool    has_lop3;
+  bool    has_mov64;
+  bool    has_prmt;
 
   double  spin_damp;
 

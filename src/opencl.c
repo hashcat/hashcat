@@ -344,15 +344,40 @@ static bool test_instruction (hashcat_ctx_t *hashcat_ctx, cl_context context, cl
 
   OCL_PTR *ocl = opencl_ctx->ocl;
 
-  CL_rc = ocl->clBuildProgram (program, 1, &device, NULL, NULL, NULL); // do not use the wrapper to avoid the error message
+  CL_rc = ocl->clBuildProgram (program, 1, &device, "-cl-std=CL1.2 -Werror", NULL, NULL); // do not use the wrapper to avoid the error message
 
-  const bool r = (CL_rc == CL_SUCCESS) ? true : false;
+  if (CL_rc != CL_SUCCESS)
+  {
+    #if defined (DEBUG)
+
+    event_log_error (hashcat_ctx, "clBuildProgram(): %s", val2cstr_cl (CL_rc));
+
+    size_t build_log_size = 0;
+
+    hc_clGetProgramBuildInfo (hashcat_ctx, program, device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
+
+    char *build_log = (char *) hcmalloc (build_log_size + 1);
+
+    hc_clGetProgramBuildInfo (hashcat_ctx, program, device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
+
+    build_log[build_log_size] = 0;
+
+    puts (build_log);
+
+    hcfree (build_log);
+
+    #endif
+
+    hc_clReleaseProgram (hashcat_ctx, program);
+
+    return false;
+  }
 
   CL_rc = hc_clReleaseProgram (hashcat_ctx, program);
 
   if (CL_rc == -1) return false;
 
-  return r;
+  return true;
 }
 
 void generate_source_kernel_filename (const bool slow_candidates, const u32 attack_exec, const u32 attack_kern, const u32 kern_type, const u32 opti_type, char *shared_dir, char *source_file)
@@ -3948,17 +3973,36 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if ((device_param->device_type & CL_DEVICE_TYPE_GPU) && (device_param->platform_vendor_id == VENDOR_ID_AMD))
       {
-        const bool has_vperm = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { uint r; __asm__ (\"V_PERM_B32 %0, 0, 0, 0;\" : \"=v\"(r)); }");
-
-        device_param->has_vperm = has_vperm;
-
-        const bool has_vadd3 = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { uint r; __asm__ (\"V_ADD3_U32 %0, 0, 0, 0;\" : \"=v\"(r)); }");
+        const bool has_vadd3 = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { uint r; __asm__ __volatile__ (\"V_ADD3_U32 %0, 0, 0, 0;\" : \"=v\"(r)); }");
 
         device_param->has_vadd3 = has_vadd3;
 
-        const bool has_vbfe = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { uint r; __asm__ (\"V_BFE_U32 %0, 0, 0, 0;\" : \"=v\"(r)); }");
+        const bool has_vbfe = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { uint r; __asm__ __volatile__ (\"V_BFE_U32 %0, 0, 0, 0;\" : \"=v\"(r)); }");
 
         device_param->has_vbfe = has_vbfe;
+
+        const bool has_vperm = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { uint r; __asm__ __volatile__ (\"V_PERM_B32 %0, 0, 0, 0;\" : \"=v\"(r)); }");
+
+        device_param->has_vperm = has_vperm;
+      }
+
+      if ((device_param->device_type & CL_DEVICE_TYPE_GPU) && (device_param->platform_vendor_id == VENDOR_ID_NV))
+      {
+        const bool has_bfe = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { uint r; asm volatile (\"bfe.u32 %0, 0, 0, 0;\" : \"=r\"(r)); }");
+
+        device_param->has_bfe = has_bfe;
+
+        const bool has_lop3 = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { uint r; asm volatile (\"lop3.b32 %0, 0, 0, 0, 0;\" : \"=r\"(r)); }");
+
+        device_param->has_lop3 = has_lop3;
+
+        const bool has_mov64 = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { ulong r; uint a; uint b; asm volatile (\"mov.b64 %0, {%1, %2};\" : \"=l\"(r) : \"r\"(a), \"r\"(b)); }");
+
+        device_param->has_mov64 = has_mov64;
+
+        const bool has_prmt = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { uint r; asm volatile (\"prmt.b32 %0, 0, 0, 0;\" : \"=r\"(r)); }");
+
+        device_param->has_prmt = has_prmt;
       }
 
       // device_available_mem
@@ -4849,9 +4893,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     // we don't have sm_* on vendors not NV but it doesn't matter
 
     #if defined (DEBUG)
-    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D LOCAL_MEM_TYPE=%u -D VENDOR_ID=%u -D CUDA_ARCH=%u -D HAS_VPERM=%u -D HAS_VADD3=%u -D HAS_VBFE=%u -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll ", device_param->device_local_mem_type, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->has_vperm, device_param->has_vadd3, device_param->has_vbfe, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, kern_type);
+    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D LOCAL_MEM_TYPE=%u -D VENDOR_ID=%u -D CUDA_ARCH=%u -D HAS_VPERM=%u -D HAS_VADD3=%u -D HAS_VBFE=%u -D HAS_BFE=%u -D HAS_LOP3=%u -D HAS_MOV64=%u -D HAS_PRMT=%u -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll ", device_param->device_local_mem_type, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->has_vperm, device_param->has_vadd3, device_param->has_vbfe, device_param->has_bfe, device_param->has_lop3, device_param->has_mov64, device_param->has_prmt, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, kern_type);
     #else
-    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D LOCAL_MEM_TYPE=%u -D VENDOR_ID=%u -D CUDA_ARCH=%u -D HAS_VPERM=%u -D HAS_VADD3=%u -D HAS_VBFE=%u -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -w ", device_param->device_local_mem_type, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->has_vperm, device_param->has_vadd3, device_param->has_vbfe, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, kern_type);
+    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D LOCAL_MEM_TYPE=%u -D VENDOR_ID=%u -D CUDA_ARCH=%u -D HAS_VPERM=%u -D HAS_VADD3=%u -D HAS_VBFE=%u -D HAS_BFE=%u -D HAS_LOP3=%u -D HAS_MOV64=%u -D HAS_PRMT=%u -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -w ", device_param->device_local_mem_type, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->has_vperm, device_param->has_vadd3, device_param->has_vbfe, device_param->has_bfe, device_param->has_lop3, device_param->has_mov64, device_param->has_prmt, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, kern_type);
     #endif
 
     build_options_buf[build_options_len] = 0;
