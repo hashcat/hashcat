@@ -1519,7 +1519,7 @@ typedef struct outfile_ctx
 
 typedef struct pot
 {
-  char     plain_buf[HCBUFSIZ_TINY];
+  char     plain_buf[HCBUFSIZ_SMALL];
   int      plain_len;
 
   hash_t   hash;
@@ -1614,7 +1614,7 @@ typedef struct out
 {
   FILE *fp;
 
-  char  buf[HCBUFSIZ_TINY];
+  char  buf[HCBUFSIZ_SMALL];
   int   len;
 
 } out_t;
@@ -2180,11 +2180,11 @@ typedef struct hashlist_parse
 
 typedef struct event_ctx
 {
-  char   old_buf[MAX_OLD_EVENTS][HCBUFSIZ_TINY];
+  char   old_buf[MAX_OLD_EVENTS][HCBUFSIZ_SMALL];
   size_t old_len[MAX_OLD_EVENTS];
   int    old_cnt;
 
-  char   msg_buf[HCBUFSIZ_TINY];
+  char   msg_buf[HCBUFSIZ_SMALL];
   size_t msg_len;
   bool   msg_newline;
 

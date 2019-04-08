@@ -836,7 +836,7 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
 
         if (is_collider_hex_password == true)
         {
-          u8 pass_unhexified[HCBUFSIZ_TINY] = { 0 };
+          u8 pass_unhexified[HCBUFSIZ_SMALL] = { 0 };
 
           const size_t pass_unhexified_len = exec_unhexify ((u8 *) hash->pw_buf, hash->pw_len, pass_unhexified, sizeof (pass_unhexified));
 
