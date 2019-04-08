@@ -344,7 +344,28 @@ static bool test_instruction (hashcat_ctx_t *hashcat_ctx, cl_context context, cl
 
   OCL_PTR *ocl = opencl_ctx->ocl;
 
+  // LLVM seems to write an error message (if there's an error) directly to stderr
+  // and not (as supposted to) into buffer for later request using clGetProgramBuildInfo()
+
+  #ifndef DEBUG
+  #ifndef _WIN
+  fflush (stderr);
+  int bak = dup (2);
+  int tmp = open ("/dev/null", O_WRONLY);
+  dup2 (tmp, 2);
+  close (tmp);
+  #endif
+  #endif
+
   CL_rc = ocl->clBuildProgram (program, 1, &device, "-cl-std=CL1.2 -Werror", NULL, NULL); // do not use the wrapper to avoid the error message
+
+  #ifndef DEBUG
+  #ifndef _WIN
+  fflush (stderr);
+  dup2 (bak, 2);
+  close (bak);
+  #endif
+  #endif
 
   if (CL_rc != CL_SUCCESS)
   {
