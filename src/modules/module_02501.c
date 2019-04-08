@@ -463,7 +463,7 @@ u32 module_deep_comp_kernel (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED c
   {
     return KERN_RUN_AUX2;
   }
-  else if (wpa_eapol->keyver == 3)
+  else if ((wpa_eapol->keyver == 0) || (wpa_eapol->keyver == 3))
   {
     return KERN_RUN_AUX3;
   }
@@ -509,7 +509,7 @@ bool module_potfile_custom_check (MAYBE_UNUSED const hashconfig_t *hashconfig, M
   {
     m02501_aux = m02501_aux2;
   }
-  else if (wpa_eapol_db->keyver == 3)
+  else if ((wpa_eapol_db->keyver == 0) || (wpa_eapol_db->keyver == 3))
   {
     m02501_aux = m02501_aux3;
   }
@@ -629,7 +629,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   wpa_eapol->keyver = in.keyver;
 
-  if ((wpa_eapol->keyver != 1) && (wpa_eapol->keyver != 2) && (wpa_eapol->keyver != 3)) return (PARSER_SALT_VALUE);
+  if ((wpa_eapol->keyver != 0) && (wpa_eapol->keyver != 1) && (wpa_eapol->keyver != 2) && (wpa_eapol->keyver != 3)) return (PARSER_SALT_VALUE);
 
   u8 *pke_ptr = (u8 *) wpa_eapol->pke;
 
@@ -663,7 +663,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
       memcpy (pke_ptr + 67, in.nonce_ap,  32);
     }
   }
-  else if (wpa_eapol->keyver == 3)
+  else if ((wpa_eapol->keyver == 0) ||  (wpa_eapol->keyver == 3))
   {
     pke_ptr[0] = 1;
     pke_ptr[1] = 0;
@@ -745,7 +745,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
       wpa_eapol->eapol[i] = byte_swap_32 (wpa_eapol->eapol[i]);
     }
   }
-  else if (wpa_eapol->keyver == 3)
+  else if ((wpa_eapol->keyver == 0) || (wpa_eapol->keyver == 3))
   {
     // nothing to do
   }
