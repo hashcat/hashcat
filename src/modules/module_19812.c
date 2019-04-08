@@ -17,8 +17,8 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_4;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_FDE;
-static const char *HASH_NAME      = "DiskCryptor AES";
-static const u64   KERN_TYPE      = 19800;
+static const char *HASH_NAME      = "DiskCryptor SHA512 + XTS 1024 bit";
+static const u64   KERN_TYPE      = 19812;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_USES_BITS_64
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
@@ -54,8 +54,8 @@ typedef struct pbkdf2_sha512_tmp
   u64  ipad[8];
   u64  opad[8];
 
-  u64  dgst[16];
-  u64  out[16];
+  u64  dgst[32];
+  u64  out[32];
 
 } pbkdf2_sha512_tmp_t;
 

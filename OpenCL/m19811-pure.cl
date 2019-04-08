@@ -11,8 +11,9 @@
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha512.cl"
-
 #include "inc_cipher_aes.cl"
+#include "inc_cipher_serpent.cl"
+#include "inc_cipher_twofish.cl"
 #include "inc_diskcryptor_xts.cl"
 #endif
 
@@ -21,8 +22,8 @@ typedef struct pbkdf2_sha512_tmp
   u64  ipad[8];
   u64  opad[8];
 
-  u64  dgst[16];
-  u64  out[16];
+  u64  dgst[32];
+  u64  out[32];
 
 } pbkdf2_sha512_tmp_t;
 
@@ -90,7 +91,7 @@ DECLSPEC static void hmac_sha512_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, 
   sha512_transform_vector (w0, w1, w2, w3, w4, w5, w6, w7, digest);
 }
 
-KERNEL_FQ void m19800_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcryptor_esalt_t))
+KERNEL_FQ void m19811_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcryptor_esalt_t))
 {
   /**
    * base
@@ -194,7 +195,7 @@ KERNEL_FQ void m19800_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcrypt
   }
 }
 
-KERNEL_FQ void m19800_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcryptor_esalt_t))
+KERNEL_FQ void m19811_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcryptor_esalt_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -320,7 +321,7 @@ KERNEL_FQ void m19800_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcrypt
   }
 }
 
-KERNEL_FQ void m19800_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcryptor_esalt_t))
+KERNEL_FQ void m19811_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcryptor_esalt_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -403,7 +404,23 @@ KERNEL_FQ void m19800_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcrypt
 
   #define il_pos 0
 
-  if (decrypt_and_check (digests_buf[digests_offset].digest_buf, ukey1, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
+  if (dcrp_verify_header_aes (digests_buf[digests_offset].digest_buf, ukey1, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
+  {
+    if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+    {
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset, gid, il_pos, 0, 0);
+    }
+  }
+
+  if (dcrp_verify_header_serpent (digests_buf[digests_offset].digest_buf, ukey1, ukey2) == 1)
+  {
+    if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+    {
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset, gid, il_pos, 0, 0);
+    }
+  }
+
+  if (dcrp_verify_header_twofish (digests_buf[digests_offset].digest_buf, ukey1, ukey2) == 1)
   {
     if (atomic_inc (&hashes_shown[digests_offset]) == 0)
     {
