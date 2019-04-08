@@ -109,7 +109,7 @@ DECLSPEC int dcrp_verify_header_aes (GLOBAL_AS const u32 *data_buf, const u32 *u
 {
   u32 ks_aes[60];
 
-  u32 S[4] = { 1, 0, 0, 0 }; // this weird offset / sector ID. found by lot of research by philsmd
+  u32 S[4] = { 1, 0, 0, 0 }; // this weird offset / sector ID
 
   u32 T_aes[4] = { 0 };
 
@@ -126,9 +126,9 @@ DECLSPEC int dcrp_verify_header_aes (GLOBAL_AS const u32 *data_buf, const u32 *u
 
   if (tmp[0] != 0x50524344) return 0; // signature / magic: "DCRP"
 
-  if ((tmp[2] != 0x00040002) && (tmp[2] != 0x00050002)) return 0; // header version 0x0002 and flags either 0x04 or 0x05
+  if ((tmp[2] != 0x00040002) && (tmp[2] != 0x00050002) && (tmp[2] != 0x00080002)) return 0; // header version 0x0002 and flags either 0x04, 0x05 or 0x08
 
-  if ((tmp[3] & 0xffff) != 0) return 0; // remaining 2 bytes of 0x00000004 / 0x00000005 => must be 0x0000
+  if ((tmp[3] & 0xffff) != 0) return 0; // remaining 2 bytes of 0x00000004 / 0x00000005 / 0x00000008 => must be 0x0000
 
   return 1;
 }
@@ -154,9 +154,9 @@ DECLSPEC int dcrp_verify_header_serpent (GLOBAL_AS const u32 *data_buf, const u3
 
   if (tmp[0] != 0x50524344) return 0; // signature / magic: "DCRP"
 
-  if ((tmp[2] != 0x00040002) && (tmp[2] != 0x00050002)) return 0; // header version 0x0002 and flags either 0x04 or 0x05
+  if ((tmp[2] != 0x00040002) && (tmp[2] != 0x00050002) && (tmp[2] != 0x00080002)) return 0; // header version 0x0002 and flags either 0x04, 0x05 or 0x08
 
-  if ((tmp[3] & 0xffff) != 0) return 0; // remaining 2 bytes of 0x00000004 / 0x00000005 => must be 0x0000
+  if ((tmp[3] & 0xffff) != 0) return 0; // remaining 2 bytes of 0x00000004 / 0x00000005 / 0x00000008 => must be 0x0000
 
   return 1;
 }
@@ -183,9 +183,9 @@ DECLSPEC int dcrp_verify_header_twofish (GLOBAL_AS const u32 *data_buf, const u3
 
   if (tmp[0] != 0x50524344) return 0; // signature / magic: "DCRP"
 
-  if ((tmp[2] != 0x00040002) && (tmp[2] != 0x00050002)) return 0; // header version 0x0002 and flags either 0x04 or 0x05
+  if ((tmp[2] != 0x00040002) && (tmp[2] != 0x00050002) && (tmp[2] != 0x00080002)) return 0; // header version 0x0002 and flags either 0x04, 0x05 or 0x08
 
-  if ((tmp[3] & 0xffff) != 0) return 0; // remaining 2 bytes of 0x00000004 / 0x00000005 => must be 0x0000
+  if ((tmp[3] & 0xffff) != 0) return 0; // remaining 2 bytes of 0x00000004 / 0x00000005 / 0x00000008 => must be 0x0000
 
   return 1;
 }
@@ -218,9 +218,9 @@ DECLSPEC int dcrp_verify_header_aes_twofish (GLOBAL_AS const u32 *data_buf, cons
 
   if (tmp[0] != 0x50524344) return 0; // signature / magic: "DCRP"
 
-  if ((tmp[2] != 0x00040002) && (tmp[2] != 0x00050002)) return 0; // header version 0x0002 and flags either 0x04 or 0x05
+  if ((tmp[2] != 0x00040002) && (tmp[2] != 0x00050002) && (tmp[2] != 0x00080002)) return 0; // header version 0x0002 and flags either 0x04, 0x05 or 0x08
 
-  if ((tmp[3] & 0xffff) != 0) return 0; // remaining 2 bytes of 0x00000004 / 0x00000005 => must be 0x0000
+  if ((tmp[3] & 0xffff) != 0) return 0; // remaining 2 bytes of 0x00000004 / 0x00000005 / 0x00000008 => must be 0x0000
 
   return 1;
 }
@@ -249,9 +249,9 @@ DECLSPEC int dcrp_verify_header_serpent_aes (GLOBAL_AS const u32 *data_buf, cons
 
   if (tmp[0] != 0x50524344) return 0; // signature / magic: "DCRP"
 
-  if ((tmp[2] != 0x00040002) && (tmp[2] != 0x00050002)) return 0; // header version 0x0002 and flags either 0x04 or 0x05
+  if ((tmp[2] != 0x00040002) && (tmp[2] != 0x00050002) && (tmp[2] != 0x00080002)) return 0; // header version 0x0002 and flags either 0x04, 0x05 or 0x08
 
-  if ((tmp[3] & 0xffff) != 0) return 0; // remaining 2 bytes of 0x00000004 / 0x00000005 => must be 0x0000
+  if ((tmp[3] & 0xffff) != 0) return 0; // remaining 2 bytes of 0x00000004 / 0x00000005 / 0x00000008 => must be 0x0000
 
   return 1;
 }
@@ -282,9 +282,9 @@ DECLSPEC int dcrp_verify_header_twofish_serpent (GLOBAL_AS const u32 *data_buf, 
 
   if (tmp[0] != 0x50524344) return 0; // signature / magic: "DCRP"
 
-  if ((tmp[2] != 0x00040002) && (tmp[2] != 0x00050002)) return 0; // header version 0x0002 and flags either 0x04 or 0x05
+  if ((tmp[2] != 0x00040002) && (tmp[2] != 0x00050002) && (tmp[2] != 0x00080002)) return 0; // header version 0x0002 and flags either 0x04, 0x05 or 0x08
 
-  if ((tmp[3] & 0xffff) != 0) return 0; // remaining 2 bytes of 0x00000004 / 0x00000005 => must be 0x0000
+  if ((tmp[3] & 0xffff) != 0) return 0; // remaining 2 bytes of 0x00000004 / 0x00000005 / 0x00000008 => must be 0x0000
 
   return 1;
 }
@@ -321,9 +321,9 @@ DECLSPEC int dcrp_verify_header_aes_twofish_serpent (GLOBAL_AS const u32 *data_b
 
   if (tmp[0] != 0x50524344) return 0; // signature / magic: "DCRP"
 
-  if ((tmp[2] != 0x00040002) && (tmp[2] != 0x00050002)) return 0; // header version 0x0002 and flags either 0x04 or 0x05
+  if ((tmp[2] != 0x00040002) && (tmp[2] != 0x00050002) && (tmp[2] != 0x00080002)) return 0; // header version 0x0002 and flags either 0x04, 0x05 or 0x08
 
-  if ((tmp[3] & 0xffff) != 0) return 0; // remaining 2 bytes of 0x00000004 / 0x00000005 => must be 0x0000
+  if ((tmp[3] & 0xffff) != 0) return 0; // remaining 2 bytes of 0x00000004 / 0x00000005 / 0x00000008 => must be 0x0000
 
   return 1;
 }
@@ -358,9 +358,9 @@ DECLSPEC int dcrp_verify_header_serpent_twofish_aes (GLOBAL_AS const u32 *data_b
 
   if (tmp[0] != 0x50524344) return 0; // signature / magic: "DCRP"
 
-  if ((tmp[2] != 0x00040002) && (tmp[2] != 0x00050002)) return 0; // header version 0x0002 and flags either 0x04 or 0x05
+  if ((tmp[2] != 0x00040002) && (tmp[2] != 0x00050002) && (tmp[2] != 0x00080002)) return 0; // header version 0x0002 and flags either 0x04, 0x05 or 0x08
 
-  if ((tmp[3] & 0xffff) != 0) return 0; // remaining 2 bytes of 0x00000004 / 0x00000005 => must be 0x0000
+  if ((tmp[3] & 0xffff) != 0) return 0; // remaining 2 bytes of 0x00000004 / 0x00000005 / 0x00000008 => must be 0x0000
 
   return 1;
 }
