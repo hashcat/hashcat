@@ -314,7 +314,7 @@ sub module_generate_hash
   (
     hasher     => Crypt::PBKDF2->hasher_from_algorithm ('HMACSHA2', 512),
     iterations => $iter,
-    output_len => 64
+    output_len => 128
   );
 
   my $word_utf16le = encode ("UTF-16LE", $word);
@@ -325,8 +325,10 @@ sub module_generate_hash
 
   my $key1 = encode_base64 (substr ($key,  0, 32), "");
   my $key2 = encode_base64 (substr ($key, 32, 32), "");
+  my $key3 = encode_base64 (substr ($key, 64, 32), "");
+  my $key4 = encode_base64 (substr ($key, 96, 32), "");
 
-  my $algo = random_number (1, 3);
+  my $algo = random_number (1, 6);
 
   my $diskcryptor_data = "";
 
@@ -377,7 +379,31 @@ sub module_generate_hash
 
         if (verify_data ($output_buf) == 0)
         {
-          return;
+          $algo = 4;
+
+          $output_buf = aes_decrypt     ($key2, $key4, $data);
+          $output_buf = twofish_decrypt ($key1, $key3, $salt_bin . $output_buf);
+
+          if (verify_data ($output_buf) == 0)
+          {
+            $algo = 5;
+
+            $output_buf = twofish_decrypt ($key2, $key4, $data);
+            $output_buf = serpent_decrypt ($key1, $key3, $salt_bin . $output_buf);
+
+            if (verify_data ($output_buf) == 0)
+            {
+              $algo = 6;
+
+              $output_buf = serpent_decrypt ($key2, $key4, $data);
+              $output_buf = aes_decrypt     ($key1, $key3, $salt_bin . $output_buf);
+
+              if (verify_data ($output_buf) == 0)
+              {
+                return;
+              }
+            }
+          }
         }
       }
     }
@@ -395,9 +421,24 @@ sub module_generate_hash
   {
     $hash_buf = twofish_encrypt ($key1, $key2, $diskcryptor_data);
   }
-  else
+  elsif ($algo == 3)
   {
     $hash_buf = serpent_encrypt ($key1, $key2, $diskcryptor_data);
+  }
+  elsif ($algo == 4)
+  {
+    $hash_buf = twofish_encrypt ($key1, $key3, $diskcryptor_data);
+    $hash_buf = aes_encrypt     ($key2, $key4, $salt_bin . pack ("H*", $hash_buf));
+  }
+  elsif ($algo == 5)
+  {
+    $hash_buf = serpent_encrypt ($key1, $key3, $diskcryptor_data);
+    $hash_buf = twofish_encrypt ($key2, $key4, $salt_bin . pack ("H*", $hash_buf));
+  }
+  else
+  {
+    $hash_buf = aes_encrypt     ($key1, $key3, $diskcryptor_data);
+    $hash_buf = serpent_encrypt ($key2, $key4, $salt_bin . pack ("H*", $hash_buf));
   }
 
   my $hash = sprintf ("\$diskcryptor\$0*%s%s", $salt, $hash_buf);
