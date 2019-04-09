@@ -304,29 +304,46 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   wpa_pmkid_t *wpa_pmkid = (wpa_pmkid_t *) esalt_buf;
 
+  // detect old/new format
+
+  int old_sep = 0;
+  int new_sep = 0;
+
+  for (int i = 0; i < line_len; i++)
+  {
+    const char c = line_buf[i];
+
+    if (c == '*') old_sep++;
+    if (c == ':') new_sep++;
+  }
+
+  const u8 sep = (new_sep > old_sep) ? ':' : '*';
+
+  // start normal parsing
+
   token_t token;
 
   token.token_cnt  = 4;
 
-  token.sep[0]     = ':';
+  token.sep[0]     = sep;
   token.len_min[0] = 32;
   token.len_max[0] = 32;
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.sep[1]     = ':';
+  token.sep[1]     = sep;
   token.len_min[1] = 12;
   token.len_max[1] = 12;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.sep[2]     = ':';
+  token.sep[2]     = sep;
   token.len_min[2] = 12;
   token.len_max[2] = 12;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.sep[3]     = ':';
+  token.sep[3]     = sep;
   token.len_min[3] = 0;
   token.len_max[3] = 64;
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
