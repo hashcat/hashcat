@@ -469,72 +469,73 @@ KERNEL_FQ void m19900_comp (KERN_ATTR_TMPS_ESALT (krb5pa_18_tmp_t, krb5pa_18_t))
   u32 aes_cts_decrypt_ks[60];
 
   AES256_set_decrypt_key (aes_cts_decrypt_ks, ke, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+  
+  // Our first decryption is the last block (currently in c_n-1) using the first portion of (c_n) as our IV, this allows us to get plaintext in one crypto operation
+  aes_iv[0] = esalt_bufs[digests_offset].enc_timestamp[8];
+  aes_iv[1] = esalt_bufs[digests_offset].enc_timestamp[9];
+  aes_iv[2] = esalt_bufs[digests_offset].enc_timestamp[10];
+  aes_iv[3] = esalt_bufs[digests_offset].enc_timestamp[11];
 
-  aes256_decrypt (aes_cts_decrypt_ks, enc_blocks + 4, decrypted_block, s_td0, s_td1, s_td2, s_td3, s_td4);
-
-  w0[0] = decrypted_block[0];
-  w0[1] = decrypted_block[1];
-  w0[2] = decrypted_block[2];
-  w0[3] = decrypted_block[3];
-  
-  int enc_timestamp_len = esalt_bufs[digests_offset].enc_timestamp_len;
-  int last_word_position = enc_timestamp_len / 4;
-  
-  // New c_1,  join c_n with result of the decrypted c_n-1
-  int last_block_iter;
-  for (last_block_iter = 4; last_block_iter < 8; last_block_iter++)
-  {
-    if (last_word_position > last_block_iter + 4)
-    {
-      enc_blocks[last_block_iter] = esalt_bufs[digests_offset].enc_timestamp[last_block_iter + 4];
-    }
-    else if (last_word_position == last_block_iter + 4)
-    {
-      // Handle case when the split lands in the middle of a WORD
-      switch (enc_timestamp_len % 4)
-      {
-      case 1:
-        enc_blocks[last_block_iter] = (esalt_bufs[digests_offset].enc_timestamp[last_block_iter + 4] & 0x000000ff) | (w0[last_block_iter - 4] & 0xffffff00);
-        break;
-      case 2:
-        enc_blocks[last_block_iter] = (esalt_bufs[digests_offset].enc_timestamp[last_block_iter + 4] & 0x0000ffff) | (w0[last_block_iter - 4] & 0xffff0000);
-        break;
-      case 3:
-        enc_blocks[last_block_iter] = (esalt_bufs[digests_offset].enc_timestamp[last_block_iter + 4] & 0x00ffffff) | (w0[last_block_iter - 4] & 0xff000000);
-        break;
-      default:
-        enc_blocks[last_block_iter] = w0[last_block_iter - 4];
-      }		
-    }
-    else
-    {
-      enc_blocks[last_block_iter] = w0[last_block_iter - 4];
-    }
-  }
-  
-  // c_2 aka c_n which is now equal to the old c_n-1
-  enc_blocks[8] = esalt_bufs[digests_offset].enc_timestamp[4];
-  enc_blocks[9] = esalt_bufs[digests_offset].enc_timestamp[5];
-  enc_blocks[10] = esalt_bufs[digests_offset].enc_timestamp[6]; 
-  enc_blocks[11] = esalt_bufs[digests_offset].enc_timestamp[7];
-  
-  // To speed up cracking, only decrypt c_1 since we know some expected values that will be in c_1, use c_0 as our IV
-  aes_iv[0] = enc_blocks[0];
-  aes_iv[1] = enc_blocks[1];
-  aes_iv[2] = enc_blocks[2];
-  aes_iv[3] = enc_blocks[3];
-  
   aes256_decrypt_cbc (aes_cts_decrypt_ks, enc_blocks + 4, decrypted_block, aes_iv, s_td0, s_td1, s_td2, s_td3, s_td4);
 
-  w1[0] = hc_swap32_S (decrypted_block[0]);
-  w1[1] = hc_swap32_S (decrypted_block[1]);
-  w1[2] = hc_swap32_S (decrypted_block[2]);
-  w1[3] = hc_swap32_S (decrypted_block[3]);
+  w0[0] = hc_swap32_S (decrypted_block[0]);
+  w0[1] = hc_swap32_S (decrypted_block[1]);
+  w0[2] = hc_swap32_S (decrypted_block[2]);
+  w0[3] = hc_swap32_S (decrypted_block[3]);
   
   // Move as much code as possible after this branch to avoid unnecessary computation on misses
-  if (((w1[0] & 0xff00ffff) == 0x3000a011) && ((w1[1] & 0x0000ffff) == 0x00003230))
+  if (((w0[0] & 0xf0f0f0f0) == 0x30303030) && ((w0[1] & 0xffff0000) == 0x5aa10000))
   {
-    // Since we match our expected values, go ahead and decrypt all blocks
+    // Decrypt c_n-1 without an IV for the padding blocks on c_n
+    aes256_decrypt (aes_cts_decrypt_ks, enc_blocks + 4, decrypted_block, s_td0, s_td1, s_td2, s_td3, s_td4);
+    
+    w0[0] = decrypted_block[0];
+    w0[1] = decrypted_block[1];
+    w0[2] = decrypted_block[2];
+    w0[3] = decrypted_block[3];
+    
+    int enc_timestamp_len = esalt_bufs[digests_offset].enc_timestamp_len;
+    int last_word_position = enc_timestamp_len / 4;
+    
+    // New c_1,  join c_n with result of the decrypted c_n-1
+    int last_block_iter;
+    for (last_block_iter = 4; last_block_iter < 8; last_block_iter++)
+    {
+      if (last_word_position > last_block_iter + 4)
+      {
+        enc_blocks[last_block_iter] = esalt_bufs[digests_offset].enc_timestamp[last_block_iter + 4];
+      }
+      else if (last_word_position == last_block_iter + 4)
+      {
+        // Handle case when the split lands in the middle of a WORD
+        switch (enc_timestamp_len % 4)
+        {
+        case 1:
+          enc_blocks[last_block_iter] = (esalt_bufs[digests_offset].enc_timestamp[last_block_iter + 4] & 0x000000ff) | (w0[last_block_iter - 4] & 0xffffff00);
+          break;
+        case 2:
+          enc_blocks[last_block_iter] = (esalt_bufs[digests_offset].enc_timestamp[last_block_iter + 4] & 0x0000ffff) | (w0[last_block_iter - 4] & 0xffff0000);
+          break;
+        case 3:
+          enc_blocks[last_block_iter] = (esalt_bufs[digests_offset].enc_timestamp[last_block_iter + 4] & 0x00ffffff) | (w0[last_block_iter - 4] & 0xff000000);
+          break;
+        default:
+          enc_blocks[last_block_iter] = w0[last_block_iter - 4];
+        }		
+      }
+      else
+      {
+        enc_blocks[last_block_iter] = w0[last_block_iter - 4];
+      }
+    }
+    
+    // c_2 aka c_n which is now equal to the old c_n-1
+    enc_blocks[8] = esalt_bufs[digests_offset].enc_timestamp[4];
+    enc_blocks[9] = esalt_bufs[digests_offset].enc_timestamp[5];
+    enc_blocks[10] = esalt_bufs[digests_offset].enc_timestamp[6]; 
+    enc_blocks[11] = esalt_bufs[digests_offset].enc_timestamp[7];
+  
+    // Go ahead and decrypt all blocks now as a normal AES CBC operation
     aes_iv[0] = 0;
     aes_iv[1] = 0;
     aes_iv[2] = 0;
