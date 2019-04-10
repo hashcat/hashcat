@@ -1231,7 +1231,7 @@ KERNEL_FQ void m10700_loop (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
 
   u32 w[64] = { 0 };
 
-  for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
     w[idx] = hc_swap32_S (pws[gid].i[idx]);
   }

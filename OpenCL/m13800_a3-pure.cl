@@ -38,7 +38,7 @@ KERNEL_FQ void m13800_mxx (KERN_ATTR_VECTOR_ESALT (win8phone_t))
 
   u32x w[64] = { 0 };
 
-  for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
     w[idx] = pws[gid].i[idx];
   }
@@ -47,7 +47,7 @@ KERNEL_FQ void m13800_mxx (KERN_ATTR_VECTOR_ESALT (win8phone_t))
 
   u32x s[32];
 
-  for (int i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
+  for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
     s[idx] = esalt_bufs[digests_offset].salt_buf[idx];
   }
@@ -116,7 +116,7 @@ KERNEL_FQ void m13800_sxx (KERN_ATTR_VECTOR_ESALT (win8phone_t))
 
   u32x w[64] = { 0 };
 
-  for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
     w[idx] = pws[gid].i[idx];
   }
@@ -125,7 +125,7 @@ KERNEL_FQ void m13800_sxx (KERN_ATTR_VECTOR_ESALT (win8phone_t))
 
   u32x s[32];
 
-  for (int i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
+  for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
     s[idx] = esalt_bufs[digests_offset].salt_buf[idx];
   }

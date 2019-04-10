@@ -2140,7 +2140,7 @@ KERNEL_FQ void m05800_loop (KERN_ATTR_TMPS (androidpin_tmp_t))
 
   u32 w[64] = { 0 };
 
-  for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
     w[idx] = hc_swap32_S (pws[gid].i[idx]);
   }
@@ -2149,7 +2149,7 @@ KERNEL_FQ void m05800_loop (KERN_ATTR_TMPS (androidpin_tmp_t))
 
   u32 s[64] = { 0 };
 
-  for (int i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
+  for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
     s[idx] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[idx]);
   }

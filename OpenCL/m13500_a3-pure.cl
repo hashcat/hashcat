@@ -75,7 +75,7 @@ KERNEL_FQ void m13500_mxx (KERN_ATTR_VECTOR_ESALT (pstoken_t))
 
   u32x w[64] = { 0 };
 
-  for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
     w[idx] = pws[gid].i[idx];
   }
@@ -175,7 +175,7 @@ KERNEL_FQ void m13500_sxx (KERN_ATTR_VECTOR_ESALT (pstoken_t))
 
   u32x w[64] = { 0 };
 
-  for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
     w[idx] = pws[gid].i[idx];
   }

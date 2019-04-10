@@ -81,7 +81,7 @@ KERNEL_FQ void m19500_mxx (KERN_ATTR_RULES_ESALT (devise_hash_t))
 
   const u32 glue[16] = { 0x2d2d0000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-  for (int i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
+  for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
     s[idx] = hc_swap32_S (esalt_bufs[salt_pos].salt_buf[idx]);
   }
@@ -228,7 +228,7 @@ KERNEL_FQ void m19500_sxx (KERN_ATTR_RULES_ESALT (devise_hash_t))
 
   const u32 glue[16] = { 0x2d2d0000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-  for (int i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
+  for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
     s[idx] = hc_swap32_S (esalt_bufs[salt_pos].salt_buf[idx]);
   }

@@ -546,7 +546,7 @@ KERNEL_FQ void m12400_init (KERN_ATTR_TMPS (bsdicrypt_tmp_t))
 
   u32 w[64] = { 0 };
 
-  for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
     w[idx] = pws[gid].i[idx];
   }
