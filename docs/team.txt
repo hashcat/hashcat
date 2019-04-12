@@ -21,7 +21,7 @@ We're a group of people participating in the yearly repeating password cracking 
 | Crack Me If You Can | DerbyCon, Louisville       | 2017 | 1st    |
 | PCrack              | SAINTCON, Utah             | 2017 | 1st    |
 | Crack Me If You Can | DEF CON, Las Vegas         | 2018 | 2nd    |
-| CracktheCon         | Cyphercon, Milwuakee       | 2019 | 1st    |
+| CracktheCon         | Cyphercon, Milwaukee       | 2019 | 1st    |
 
 * Special recognition for team hashcat goes to:
 
