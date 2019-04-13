@@ -75,7 +75,7 @@ CONSTANT_AS u32a lotus_magic_table[256] =
 #define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3], (S)[(i).s4], (S)[(i).s5], (S)[(i).s6], (S)[(i).s7], (S)[(i).s8], (S)[(i).s9], (S)[(i).sa], (S)[(i).sb], (S)[(i).sc], (S)[(i).sd], (S)[(i).se], (S)[(i).sf])
 #endif
 
-DECLSPEC static void lotus_mix (u32x *in, LOCAL_AS u32 *s_lotus_magic_table)
+DECLSPEC void lotus_mix (u32x *in, LOCAL_AS u32 *s_lotus_magic_table)
 {
   u32x p = 0;
 
@@ -98,7 +98,7 @@ DECLSPEC static void lotus_mix (u32x *in, LOCAL_AS u32 *s_lotus_magic_table)
   }
 }
 
-DECLSPEC static void lotus_transform_password (u32x *in, u32x *out, LOCAL_AS u32 *s_lotus_magic_table)
+DECLSPEC void lotus_transform_password (u32x *in, u32x *out, LOCAL_AS u32 *s_lotus_magic_table)
 {
   u32x t = out[3] >> 24;
 
@@ -116,7 +116,7 @@ DECLSPEC static void lotus_transform_password (u32x *in, u32x *out, LOCAL_AS u32
   }
 }
 
-DECLSPEC static void pad (u32 *w, const u32 len)
+DECLSPEC void pad (u32 *w, const u32 len)
 {
   const u32 val = 16 - len;
 
@@ -195,7 +195,7 @@ DECLSPEC static void pad (u32 *w, const u32 len)
   }
 }
 
-DECLSPEC static void mdtransform_norecalc (u32x *state, u32x *block, LOCAL_AS u32 *s_lotus_magic_table)
+DECLSPEC void mdtransform_norecalc (u32x *state, u32x *block, LOCAL_AS u32 *s_lotus_magic_table)
 {
   u32x x[12];
 
@@ -220,14 +220,14 @@ DECLSPEC static void mdtransform_norecalc (u32x *state, u32x *block, LOCAL_AS u3
   state[3] = x[3];
 }
 
-DECLSPEC static void mdtransform (u32x *state, u32x *checksum, u32x *block, LOCAL_AS u32 *s_lotus_magic_table)
+DECLSPEC void mdtransform (u32x *state, u32x *checksum, u32x *block, LOCAL_AS u32 *s_lotus_magic_table)
 {
   mdtransform_norecalc (state, block, s_lotus_magic_table);
 
   lotus_transform_password (block, checksum, s_lotus_magic_table);
 }
 
-DECLSPEC static void domino_big_md (const u32x *saved_key, const u32 size, u32x *state, LOCAL_AS u32 *s_lotus_magic_table)
+DECLSPEC void domino_big_md (const u32x *saved_key, const u32 size, u32x *state, LOCAL_AS u32 *s_lotus_magic_table)
 {
   u32x checksum[4];
 

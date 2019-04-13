@@ -13,7 +13,7 @@
 #include "inc_hash_md4.cl"
 #endif
 
-DECLSPEC static void m01100m (LOCAL_AS salt_t *s_salt_buf, u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC void m01100m (LOCAL_AS salt_t *s_salt_buf, u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -248,7 +248,7 @@ DECLSPEC static void m01100m (LOCAL_AS salt_t *s_salt_buf, u32 *w, const u32 pw_
   }
 }
 
-DECLSPEC static void m01100s (LOCAL_AS salt_t *s_salt_buf, u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC void m01100s (LOCAL_AS salt_t *s_salt_buf, u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier

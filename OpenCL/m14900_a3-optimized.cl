@@ -49,7 +49,7 @@ CONSTANT_AS u8a c_ftable[256] =
   0xbd, 0xa8, 0x3a, 0x01, 0x05, 0x59, 0x2a, 0x46
 };
 
-DECLSPEC static void g (LOCAL_AS u8 *s_ftable, const u32 *key, const int k, const u32 *wx, u32 *out)
+DECLSPEC void g (LOCAL_AS u8 *s_ftable, const u32 *key, const int k, const u32 *wx, u32 *out)
 {
   const u32 g1 = wx[1];
   const u32 g2 = wx[0];
@@ -62,7 +62,7 @@ DECLSPEC static void g (LOCAL_AS u8 *s_ftable, const u32 *key, const int k, cons
   out[1] = g5;
 }
 
-DECLSPEC static u32 skip32 (LOCAL_AS u8 *s_ftable, const u32 KP, const u32 *key)
+DECLSPEC u32 skip32 (LOCAL_AS u8 *s_ftable, const u32 KP, const u32 *key)
 {
   u32 wl[2];
   u32 wr[2];
@@ -102,7 +102,7 @@ DECLSPEC static u32 skip32 (LOCAL_AS u8 *s_ftable, const u32 KP, const u32 *key)
   return r;
 }
 
-DECLSPEC static void m14900m (LOCAL_AS u8 *s_ftable, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC ())
+DECLSPEC void m14900m (LOCAL_AS u8 *s_ftable, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -150,7 +150,7 @@ DECLSPEC static void m14900m (LOCAL_AS u8 *s_ftable, u32 *w0, u32 *w1, u32 *w2, 
   }
 }
 
-DECLSPEC static void m14900s (LOCAL_AS u8 *s_ftable, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC ())
+DECLSPEC void m14900s (LOCAL_AS u8 *s_ftable, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC ())
 {
   /**
    * modifier

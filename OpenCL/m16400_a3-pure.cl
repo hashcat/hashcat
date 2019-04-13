@@ -13,7 +13,7 @@
 #include "inc_hash_md5.cl"
 #endif
 
-DECLSPEC static void cram_md5_transform_vector (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u32x *digest)
+DECLSPEC void cram_md5_transform_vector (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u32x *digest)
 {
   u32x a = digest[0];
   u32x b = digest[1];
@@ -113,7 +113,7 @@ DECLSPEC static void cram_md5_transform_vector (const u32x *w0, const u32x *w1, 
   digest[3] += d;
 }
 
-DECLSPEC static void cram_md5_update_vector_64 (md5_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, const int len)
+DECLSPEC void cram_md5_update_vector_64 (md5_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, const int len)
 {
   #ifdef IS_AMD
   const int pos = ctx->len & 63;
@@ -143,7 +143,7 @@ DECLSPEC static void cram_md5_update_vector_64 (md5_ctx_vector_t *ctx, u32x *w0,
   ctx->w3[3] |= w3[3];
 }
 
-DECLSPEC static void cram_md5_update_vector (md5_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void cram_md5_update_vector (md5_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -171,7 +171,7 @@ DECLSPEC static void cram_md5_update_vector (md5_ctx_vector_t *ctx, const u32x *
 }
 
 
-DECLSPEC static void cram_md5_final_vector (md5_ctx_vector_t *ctx)
+DECLSPEC void cram_md5_final_vector (md5_ctx_vector_t *ctx)
 {
   cram_md5_transform_vector (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
 }

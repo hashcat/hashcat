@@ -22,7 +22,7 @@ typedef struct electrum_wallet
 
 } electrum_wallet_t;
 
-DECLSPEC static void m16600 (SHM_TYPE u32a *s_te0, SHM_TYPE u32a *s_te1, SHM_TYPE u32a *s_te2, SHM_TYPE u32a *s_te3, SHM_TYPE u32a *s_te4, SHM_TYPE u32a *s_td0, SHM_TYPE u32a *s_td1, SHM_TYPE u32a *s_td2, SHM_TYPE u32a *s_td3, SHM_TYPE u32a *s_td4, u32 *w, const u32 pw_len, KERN_ATTR_ESALT (electrum_wallet_t))
+DECLSPEC void m16600 (SHM_TYPE u32a *s_te0, SHM_TYPE u32a *s_te1, SHM_TYPE u32a *s_te2, SHM_TYPE u32a *s_te3, SHM_TYPE u32a *s_te4, SHM_TYPE u32a *s_td0, SHM_TYPE u32a *s_td1, SHM_TYPE u32a *s_td2, SHM_TYPE u32a *s_td3, SHM_TYPE u32a *s_td4, u32 *w, const u32 pw_len, KERN_ATTR_ESALT (electrum_wallet_t))
 {
   /**
    * base

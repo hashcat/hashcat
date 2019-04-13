@@ -28,7 +28,7 @@
   (v1) ^= (v2);               \
   (v2)  = hc_rotl64 ((v2), 32)
 
-DECLSPEC static void m10100m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC void m10100m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -118,7 +118,7 @@ DECLSPEC static void m10100m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
   }
 }
 
-DECLSPEC static void m10100s (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC void m10100s (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier

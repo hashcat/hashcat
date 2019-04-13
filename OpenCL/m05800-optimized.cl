@@ -2075,7 +2075,7 @@ CONSTANT_AS u32a c_pc_len[1024] =
   4
 };
 
-DECLSPEC static void append_word (u32 *w0, u32 *w1, const u32 *append, const u32 offset)
+DECLSPEC void append_word (u32 *w0, u32 *w1, const u32 *append, const u32 offset)
 {
   switch (offset)
   {
@@ -2109,7 +2109,7 @@ DECLSPEC static void append_word (u32 *w0, u32 *w1, const u32 *append, const u32
   }
 }
 
-DECLSPEC static void append_salt (u32 *w0, u32 *w1, u32 *w2, const u32 *append, const u32 offset)
+DECLSPEC void append_salt (u32 *w0, u32 *w1, u32 *w2, const u32 *append, const u32 offset)
 {
   u32 tmp0;
   u32 tmp1;

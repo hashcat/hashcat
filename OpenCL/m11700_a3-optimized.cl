@@ -16,7 +16,7 @@
 
 #define INITVAL 0x0101010101010101
 
-DECLSPEC static void streebog_g (u64x *h, const u64x *m, LOCAL_AS u64 (*s_sbob_sl64)[256])
+DECLSPEC void streebog_g (u64x *h, const u64x *m, LOCAL_AS u64 (*s_sbob_sl64)[256])
 {
   u64x k[8];
   u64x s[8];
@@ -75,7 +75,7 @@ DECLSPEC static void streebog_g (u64x *h, const u64x *m, LOCAL_AS u64 (*s_sbob_s
   }
 }
 
-DECLSPEC static void m11700m (LOCAL_AS u64 (*s_sbob_sl64)[256], u32 *w, const u32 pw_len, KERN_ATTR_BASIC ())
+DECLSPEC void m11700m (LOCAL_AS u64 (*s_sbob_sl64)[256], u32 *w, const u32 pw_len, KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -158,7 +158,7 @@ DECLSPEC static void m11700m (LOCAL_AS u64 (*s_sbob_sl64)[256], u32 *w, const u3
   }
 }
 
-DECLSPEC static void m11700s (LOCAL_AS u64 (*s_sbob_sl64)[256], u32 *w, const u32 pw_len, KERN_ATTR_BASIC ())
+DECLSPEC void m11700s (LOCAL_AS u64 (*s_sbob_sl64)[256], u32 *w, const u32 pw_len, KERN_ATTR_BASIC ())
 {
   /**
    * modifier

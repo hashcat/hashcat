@@ -23,7 +23,7 @@ typedef struct md5crypt_tmp
 
 #define md5crypt_magic 0x00243124u
 
-DECLSPEC static void memcat16 (u32 *block0, u32 *block1, u32 *block2, u32 *block3, const u32 offset, const u32 *append)
+DECLSPEC void memcat16 (u32 *block0, u32 *block1, u32 *block2, u32 *block3, const u32 offset, const u32 *append)
 {
   u32 tmp0;
   u32 tmp1;
@@ -130,7 +130,7 @@ DECLSPEC static void memcat16 (u32 *block0, u32 *block1, u32 *block2, u32 *block
   }
 }
 
-DECLSPEC static void memcat16_x80 (u32 *block0, u32 *block1, u32 *block2, u32 *block3, const u32 offset, const u32 *append)
+DECLSPEC void memcat16_x80 (u32 *block0, u32 *block1, u32 *block2, u32 *block3, const u32 offset, const u32 *append)
 {
   u32 tmp0;
   u32 tmp1;
@@ -239,7 +239,7 @@ DECLSPEC static void memcat16_x80 (u32 *block0, u32 *block1, u32 *block2, u32 *b
   }
 }
 
-DECLSPEC static void memcat8 (u32 *block0, u32 *block1, u32 *block2, u32 *block3, const u32 offset, const u32 *append)
+DECLSPEC void memcat8 (u32 *block0, u32 *block1, u32 *block2, u32 *block3, const u32 offset, const u32 *append)
 {
   u32 tmp0;
   u32 tmp1;
@@ -324,7 +324,7 @@ DECLSPEC static void memcat8 (u32 *block0, u32 *block1, u32 *block2, u32 *block3
   }
 }
 
-DECLSPEC static void append_sign (u32 *block0, u32 *block1, const u32 block_len)
+DECLSPEC void append_sign (u32 *block0, u32 *block1, const u32 block_len)
 {
   switch (block_len)
   {
@@ -406,7 +406,7 @@ DECLSPEC static void append_sign (u32 *block0, u32 *block1, const u32 block_len)
   }
 }
 
-DECLSPEC static void append_1st (u32 *block0, u32 *block1, u32 *block2, u32 *block3, const u32 block_len, const u32 append)
+DECLSPEC void append_1st (u32 *block0, u32 *block1, u32 *block2, u32 *block3, const u32 block_len, const u32 append)
 {
   switch (block_len)
   {

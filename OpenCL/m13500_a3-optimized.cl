@@ -24,7 +24,7 @@ typedef struct pstoken
 
 } pstoken_t;
 
-DECLSPEC static void m13500m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_ESALT (pstoken_t))
+DECLSPEC void m13500m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_ESALT (pstoken_t))
 {
   /**
    * modifier
@@ -417,7 +417,7 @@ DECLSPEC static void m13500m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_l
   }
 }
 
-DECLSPEC static void m13500s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_ESALT (pstoken_t))
+DECLSPEC void m13500s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_ESALT (pstoken_t))
 {
   /**
    * modifier
