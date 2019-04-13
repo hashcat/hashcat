@@ -55,6 +55,7 @@
 - OpenCL Runtime: Not using amd_bytealign (amd_bitalign is fine) on AMDGPU driver drastically reduces JiT segfaults
 - OpenCL Runtime: Update unstable mode warnings for Apple and AMDGPU drivers
 - OpenCL Runtime: Workaround JiT compiler error on AMDGPU driver compiling WPA-EAPOL-PBKDF2 OpenCL kernel
+- OpenCL Runtime: Workaround JiT compiler error on ROCM 2.3 driver if the 'inline' keyword is used in function declaration
 - Tuning Database: Updated hashcat.hctune with new models and refreshed vector width values
 - WPA/WPA2 cracking: In the potfile, replace password with PMK in order to detect already cracked networks across all WPA modes
 
