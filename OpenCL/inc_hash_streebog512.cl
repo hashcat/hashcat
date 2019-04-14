@@ -8,7 +8,7 @@
 #include "inc_common.h"
 #include "inc_hash_streebog512.h"
 
-CONSTANT_AS u64a sbob_sl64[8][256] =
+CONSTANT_AS u64a sbob512_sl64[8][256] =
 {
   {
     0xd031c397ce553fe6, 0x16ba5b01b006b525, 0xa89bade6296e70c8, 0x6a1f525d77d3435b,
@@ -540,7 +540,7 @@ CONSTANT_AS u64a sbob_sl64[8][256] =
   },
 };
 
-CONSTANT_AS u64a sbob_rc64[12][8] =
+CONSTANT_AS u64a sbob512_rc64[12][8] =
 {
   {
     0xe9daca1eda5b08b1, 0x1f7c65c0812fcbeb, 0x16d0452e43766a2f, 0xfcc485758db84e71,
@@ -712,7 +712,7 @@ DECLSPEC void streebog512_g (u64 *h, const u64 *n, const u64 *m, SHM_TYPE u64a (
 
     for (int i = 0; i < 8; i++)
     {
-      t[i] = k[i] ^ sbob_rc64[r][i];
+      t[i] = k[i] ^ sbob512_rc64[r][i];
     }
 
     #ifdef _unroll
@@ -1374,7 +1374,7 @@ DECLSPEC void streebog512_g_vector (u64x *h, const u64x *n, const u64x *m, SHM_T
 
     for (int i = 0; i < 8; i++)
     {
-      t[i] = k[i] ^ sbob_rc64[r][i];
+      t[i] = k[i] ^ sbob512_rc64[r][i];
     }
 
     #ifdef _unroll

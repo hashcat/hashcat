@@ -63,7 +63,7 @@ DECLSPEC void streebog_g (u64x *h, const u64x *m, LOCAL_AS u64 (*s_sbob_sl64)[25
 
     for (int i = 0; i < 8; i++)
     {
-      t[i] = k[i] ^ sbob_rc64[r][i];
+      t[i] = k[i] ^ sbob512_rc64[r][i];
     }
 
     #ifdef _unroll
