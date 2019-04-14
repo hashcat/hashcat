@@ -757,7 +757,9 @@ DECLSPEC void streebog256_transform (streebog256_ctx_t *ctx, const u32 *w0, cons
 
 DECLSPEC void streebog256_update_64 (streebog256_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len)
 {
-  const int pos = ctx->len;
+  const int pos = ctx->len & 63;
+
+  ctx->len += len;
 
   if ((pos + len) < 64)
   {
@@ -779,8 +781,6 @@ DECLSPEC void streebog256_update_64 (streebog256_ctx_t *ctx, u32 *w0, u32 *w1, u
     ctx->w3[1] |= w3[1];
     ctx->w3[2] |= w3[2];
     ctx->w3[3] |= w3[3];
-
-    ctx->len += len;
   }
   else
   {
@@ -826,8 +826,6 @@ DECLSPEC void streebog256_update_64 (streebog256_ctx_t *ctx, u32 *w0, u32 *w1, u
     ctx->w3[1] = c3[1];
     ctx->w3[2] = c3[2];
     ctx->w3[3] = c3[3];
-
-    ctx->len = (pos + len) & 63;
   }
 }
 
@@ -1022,7 +1020,7 @@ DECLSPEC void streebog256_final (streebog256_ctx_t *ctx)
   streebog256_g (ctx->h, ctx->n, m, ctx->s_sbob_sl64);
 
   u64 sizebuf[8] = { 0 };
-  sizebuf[7] = hc_swap64_S ((u64) (ctx->len << 3));
+  sizebuf[7] = hc_swap64_S ((u64) (pos << 3));
 
   streebog256_add (ctx->n, sizebuf);
 
@@ -1414,7 +1412,9 @@ DECLSPEC void streebog256_transform_vector (streebog256_ctx_vector_t *ctx, const
 
 DECLSPEC void streebog256_update_vector_64 (streebog256_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, const int len)
 {
-  const int pos = ctx->len;
+  const int pos = ctx->len & 63;
+
+  ctx->len += len;
 
   if ((pos + len) < 64)
   {
@@ -1436,8 +1436,6 @@ DECLSPEC void streebog256_update_vector_64 (streebog256_ctx_vector_t *ctx, u32x 
     ctx->w3[1] |= w3[1];
     ctx->w3[2] |= w3[2];
     ctx->w3[3] |= w3[3];
-
-    ctx->len += len;
   }
   else
   {
@@ -1483,8 +1481,6 @@ DECLSPEC void streebog256_update_vector_64 (streebog256_ctx_vector_t *ctx, u32x 
     ctx->w3[1] = c3[1];
     ctx->w3[2] = c3[2];
     ctx->w3[3] = c3[3];
-
-    ctx->len = (pos + len) & 63;
   }
 }
 
@@ -1622,7 +1618,7 @@ DECLSPEC void streebog256_final_vector (streebog256_ctx_vector_t *ctx)
   streebog256_g_vector (ctx->h, ctx->n, m, ctx->s_sbob_sl64);
 
   u64x sizebuf[8] = { 0 };
-  sizebuf[7] = hc_swap64 ((u64x) (ctx->len << 3));
+  sizebuf[7] = hc_swap64 ((u64x) (pos << 3));
 
   streebog256_add_vector (ctx->n, sizebuf);
 
