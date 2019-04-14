@@ -523,7 +523,7 @@ KERNEL_FQ void m11800_s08 (KERN_ATTR_BASIC ())
    * shared lookup table
    */
 
-  LOCAL_AS u64 s_sbob512_sl64[8][256];
+  LOCAL_AS u64 s_sbob_sl64[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
