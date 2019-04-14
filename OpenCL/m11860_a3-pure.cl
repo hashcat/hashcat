@@ -47,7 +47,7 @@ KERNEL_FQ void m11860_mxx (KERN_ATTR_VECTOR ())
 
   #else
 
-  CONSTANT_AS u64a (*s_sbob_sl64)[256] = sbob_sl64;
+  CONSTANT_AS u64a (*s_sbob_sl64)[256] = sbob512_sl64;
 
   #endif
 
