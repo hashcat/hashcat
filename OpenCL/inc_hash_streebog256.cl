@@ -1061,7 +1061,9 @@ DECLSPEC void streebog256_hmac_init_64 (streebog256_hmac_ctx_t *ctx, const u32 *
 
   streebog256_init (&ctx->ipad, s_sbob_sl64);
 
-  streebog256_update_64 (&ctx->ipad, t0, t1, t2, t3, 64);
+  streebog256_transform (&ctx->ipad, t0, t1, t2, t3);
+
+  ctx->ipad.len = 64;
 
   // opad
 
@@ -1084,7 +1086,9 @@ DECLSPEC void streebog256_hmac_init_64 (streebog256_hmac_ctx_t *ctx, const u32 *
 
   streebog256_init (&ctx->opad, s_sbob_sl64);
 
-  streebog256_update_64 (&ctx->opad, t0, t1, t2, t3, 64);
+  streebog256_transform (&ctx->opad, t0, t1, t2, t3);
+
+  ctx->opad.len = 64;
 }
 
 DECLSPEC void streebog256_hmac_init (streebog256_hmac_ctx_t *ctx, const u32 *w, const int len, SHM_TYPE u64a (*s_sbob_sl64)[256])
@@ -1659,7 +1663,9 @@ DECLSPEC void streebog256_hmac_init_vector_64 (streebog256_hmac_ctx_vector_t *ct
 
   streebog256_init_vector (&ctx->ipad, s_sbob_sl64);
 
-  streebog256_update_vector_64 (&ctx->ipad, t0, t1, t2, t3, 64);
+  streebog256_transform_vector (&ctx->ipad, t0, t1, t2, t3);
+
+  ctx->ipad.len = 64;
 
   // opad
 
@@ -1682,7 +1688,9 @@ DECLSPEC void streebog256_hmac_init_vector_64 (streebog256_hmac_ctx_vector_t *ct
 
   streebog256_init_vector (&ctx->opad, s_sbob_sl64);
 
-  streebog256_update_vector_64 (&ctx->opad, t0, t1, t2, t3, 64);
+  streebog256_transform_vector (&ctx->opad, t0, t1, t2, t3);
+
+  ctx->opad.len = 64;
 }
 
 DECLSPEC void streebog256_hmac_init_vector (streebog256_hmac_ctx_vector_t *ctx, const u32x *w, const int len, SHM_TYPE u64a (*s_sbob_sl64)[256])

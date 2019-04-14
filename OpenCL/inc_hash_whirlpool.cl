@@ -1969,7 +1969,9 @@ DECLSPEC void whirlpool_hmac_init_64 (whirlpool_hmac_ctx_t *ctx, const u32 *w0, 
 
   whirlpool_init (&ctx->ipad, s_Ch, s_Cl);
 
-  whirlpool_update_64 (&ctx->ipad, t0, t1, t2, t3, 64);
+  whirlpool_transform (t0, t1, t2, t3, ctx->ipad.h, ctx->ipad.s_Ch, ctx->ipad.s_Cl);
+
+  ctx->ipad.len = 64;
 
   // opad
 
@@ -1992,7 +1994,9 @@ DECLSPEC void whirlpool_hmac_init_64 (whirlpool_hmac_ctx_t *ctx, const u32 *w0, 
 
   whirlpool_init (&ctx->opad, s_Ch, s_Cl);
 
-  whirlpool_update_64 (&ctx->opad, t0, t1, t2, t3, 64);
+  whirlpool_transform (t0, t1, t2, t3, ctx->opad.h, ctx->opad.s_Ch, ctx->opad.s_Cl);
+
+  ctx->opad.len = 64;
 }
 
 DECLSPEC void whirlpool_hmac_init (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
@@ -2963,7 +2967,9 @@ DECLSPEC void whirlpool_hmac_init_vector_64 (whirlpool_hmac_ctx_vector_t *ctx, c
 
   whirlpool_init_vector (&ctx->ipad, s_Ch, s_Cl);
 
-  whirlpool_update_vector_64 (&ctx->ipad, t0, t1, t2, t3, 64);
+  whirlpool_transform_vector (t0, t1, t2, t3, ctx->ipad.h, ctx->ipad.s_Ch, ctx->ipad.s_Cl);
+
+  ctx->ipad.len = 64;
 
   // opad
 
@@ -2986,7 +2992,9 @@ DECLSPEC void whirlpool_hmac_init_vector_64 (whirlpool_hmac_ctx_vector_t *ctx, c
 
   whirlpool_init_vector (&ctx->opad, s_Ch, s_Cl);
 
-  whirlpool_update_vector_64 (&ctx->opad, t0, t1, t2, t3, 64);
+  whirlpool_transform_vector (t0, t1, t2, t3, ctx->opad.h, ctx->opad.s_Ch, ctx->opad.s_Cl);
+
+  ctx->opad.len = 64;
 }
 
 DECLSPEC void whirlpool_hmac_init_vector (whirlpool_hmac_ctx_vector_t *ctx, const u32x *w, const int len, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
