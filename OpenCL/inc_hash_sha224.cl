@@ -1833,7 +1833,7 @@ DECLSPEC void sha224_hmac_final_vector (sha224_hmac_ctx_vector_t *ctx)
   ctx->opad.w1[0] = ctx->ipad.h[4];
   ctx->opad.w1[1] = ctx->ipad.h[5];
   ctx->opad.w1[2] = ctx->ipad.h[6];
-  ctx->opad.w1[3] = 0:
+  ctx->opad.w1[3] = 0;
   ctx->opad.w2[0] = 0;
   ctx->opad.w2[1] = 0;
   ctx->opad.w2[2] = 0;

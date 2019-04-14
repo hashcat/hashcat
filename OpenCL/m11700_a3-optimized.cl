@@ -337,7 +337,7 @@ KERNEL_FQ void m11700_m08 (KERN_ATTR_BASIC ())
   {
     s_sbob_sl64[0][i] = sbob256_sl64[0][i];
     s_sbob_sl64[1][i] = sbob256_sl64[1][i];
-    s_sbob_sl64[2][i] = sbob256_s6l64[2][i];
+    s_sbob_sl64[2][i] = sbob256_sl64[2][i];
     s_sbob_sl64[3][i] = sbob256_sl64[3][i];
     s_sbob_sl64[4][i] = sbob256_sl64[4][i];
     s_sbob_sl64[5][i] = sbob256_sl64[5][i];
