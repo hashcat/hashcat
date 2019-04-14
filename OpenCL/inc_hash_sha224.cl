@@ -1108,29 +1108,24 @@ DECLSPEC void sha224_hmac_final (sha224_hmac_ctx_t *ctx)
 {
   sha224_final (&ctx->ipad);
 
-  u32 t0[4];
-  u32 t1[4];
-  u32 t2[4];
-  u32 t3[4];
+  ctx->opad.w0[0] = ctx->ipad.h[0];
+  ctx->opad.w0[1] = ctx->ipad.h[1];
+  ctx->opad.w0[2] = ctx->ipad.h[2];
+  ctx->opad.w0[3] = ctx->ipad.h[3];
+  ctx->opad.w1[0] = ctx->ipad.h[4];
+  ctx->opad.w1[1] = ctx->ipad.h[5];
+  ctx->opad.w1[2] = ctx->ipad.h[6];
+  ctx->opad.w1[3] = 0;
+  ctx->opad.w2[0] = 0;
+  ctx->opad.w2[1] = 0;
+  ctx->opad.w2[2] = 0;
+  ctx->opad.w2[3] = 0;
+  ctx->opad.w3[0] = 0;
+  ctx->opad.w3[1] = 0;
+  ctx->opad.w3[2] = 0;
+  ctx->opad.w3[3] = 0;
 
-  t0[0] = ctx->ipad.h[0];
-  t0[1] = ctx->ipad.h[1];
-  t0[2] = ctx->ipad.h[2];
-  t0[3] = ctx->ipad.h[3];
-  t1[0] = ctx->ipad.h[4];
-  t1[1] = ctx->ipad.h[5];
-  t1[2] = ctx->ipad.h[6];
-  t1[3] = 0;
-  t2[0] = 0;
-  t2[1] = 0;
-  t2[2] = 0;
-  t2[3] = 0;
-  t3[0] = 0;
-  t3[1] = 0;
-  t3[2] = 0;
-  t3[3] = 0;
-
-  sha224_update_64 (&ctx->opad, t0, t1, t2, t3, 28);
+  ctx->opad.len += 28;
 
   sha224_final (&ctx->opad);
 }
@@ -1823,29 +1818,24 @@ DECLSPEC void sha224_hmac_final_vector (sha224_hmac_ctx_vector_t *ctx)
 {
   sha224_final_vector (&ctx->ipad);
 
-  u32x t0[4];
-  u32x t1[4];
-  u32x t2[4];
-  u32x t3[4];
+  ctx->opad.w0[0] = ctx->ipad.h[0];
+  ctx->opad.w0[1] = ctx->ipad.h[1];
+  ctx->opad.w0[2] = ctx->ipad.h[2];
+  ctx->opad.w0[3] = ctx->ipad.h[3];
+  ctx->opad.w1[0] = ctx->ipad.h[4];
+  ctx->opad.w1[1] = ctx->ipad.h[5];
+  ctx->opad.w1[2] = ctx->ipad.h[6];
+  ctx->opad.w1[3] = 0:
+  ctx->opad.w2[0] = 0;
+  ctx->opad.w2[1] = 0;
+  ctx->opad.w2[2] = 0;
+  ctx->opad.w2[3] = 0;
+  ctx->opad.w3[0] = 0;
+  ctx->opad.w3[1] = 0;
+  ctx->opad.w3[2] = 0;
+  ctx->opad.w3[3] = 0;
 
-  t0[0] = ctx->ipad.h[0];
-  t0[1] = ctx->ipad.h[1];
-  t0[2] = ctx->ipad.h[2];
-  t0[3] = ctx->ipad.h[3];
-  t1[0] = ctx->ipad.h[4];
-  t1[1] = ctx->ipad.h[5];
-  t1[2] = ctx->ipad.h[6];
-  t1[3] = 0;
-  t2[0] = 0;
-  t2[1] = 0;
-  t2[2] = 0;
-  t2[3] = 0;
-  t3[0] = 0;
-  t3[1] = 0;
-  t3[2] = 0;
-  t3[3] = 0;
-
-  sha224_update_vector_64 (&ctx->opad, t0, t1, t2, t3, 28);
+  ctx->opad.len += 28;
 
   sha224_final_vector (&ctx->opad);
 }

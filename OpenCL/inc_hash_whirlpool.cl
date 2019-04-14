@@ -2272,29 +2272,43 @@ DECLSPEC void whirlpool_hmac_final (whirlpool_hmac_ctx_t *ctx)
 {
   whirlpool_final (&ctx->ipad);
 
-  u32 t0[4];
-  u32 t1[4];
-  u32 t2[4];
-  u32 t3[4];
+  ctx->opad.w0[0] = ctx->ipad.h[ 0];
+  ctx->opad.w0[1] = ctx->ipad.h[ 1];
+  ctx->opad.w0[2] = ctx->ipad.h[ 2];
+  ctx->opad.w0[3] = ctx->ipad.h[ 3];
+  ctx->opad.w1[0] = ctx->ipad.h[ 4];
+  ctx->opad.w1[1] = ctx->ipad.h[ 5];
+  ctx->opad.w1[2] = ctx->ipad.h[ 6];
+  ctx->opad.w1[3] = ctx->ipad.h[ 7];
+  ctx->opad.w2[0] = ctx->ipad.h[ 8];
+  ctx->opad.w2[1] = ctx->ipad.h[ 9];
+  ctx->opad.w2[2] = ctx->ipad.h[10];
+  ctx->opad.w2[3] = ctx->ipad.h[11];
+  ctx->opad.w3[0] = ctx->ipad.h[12];
+  ctx->opad.w3[1] = ctx->ipad.h[13];
+  ctx->opad.w3[2] = ctx->ipad.h[14];
+  ctx->opad.w3[3] = ctx->ipad.h[15];
 
-  t0[0] = ctx->ipad.h[ 0];
-  t0[1] = ctx->ipad.h[ 1];
-  t0[2] = ctx->ipad.h[ 2];
-  t0[3] = ctx->ipad.h[ 3];
-  t1[0] = ctx->ipad.h[ 4];
-  t1[1] = ctx->ipad.h[ 5];
-  t1[2] = ctx->ipad.h[ 6];
-  t1[3] = ctx->ipad.h[ 7];
-  t2[0] = ctx->ipad.h[ 8];
-  t2[1] = ctx->ipad.h[ 9];
-  t2[2] = ctx->ipad.h[10];
-  t2[3] = ctx->ipad.h[11];
-  t3[0] = ctx->ipad.h[12];
-  t3[1] = ctx->ipad.h[13];
-  t3[2] = ctx->ipad.h[14];
-  t3[3] = ctx->ipad.h[15];
+  ctx->opad.len += 64;
 
-  whirlpool_update_64 (&ctx->opad, t0, t1, t2, t3, 64);
+  whirlpool_transform (ctx->opad.w0, ctx->opad.w1, ctx->opad.w2, ctx->opad.w3, ctx->opad.h, ctx->opad.s_Ch, ctx->opad.s_Cl);
+
+  ctx->opad.w0[0] = 0;
+  ctx->opad.w0[1] = 0;
+  ctx->opad.w0[2] = 0;
+  ctx->opad.w0[3] = 0;
+  ctx->opad.w1[0] = 0;
+  ctx->opad.w1[1] = 0;
+  ctx->opad.w1[2] = 0;
+  ctx->opad.w1[3] = 0;
+  ctx->opad.w2[0] = 0;
+  ctx->opad.w2[1] = 0;
+  ctx->opad.w2[2] = 0;
+  ctx->opad.w2[3] = 0;
+  ctx->opad.w3[0] = 0;
+  ctx->opad.w3[1] = 0;
+  ctx->opad.w3[2] = 0;
+  ctx->opad.w3[3] = 0;
 
   whirlpool_final (&ctx->opad);
 }
@@ -3046,29 +3060,43 @@ DECLSPEC void whirlpool_hmac_final_vector (whirlpool_hmac_ctx_vector_t *ctx)
 {
   whirlpool_final_vector (&ctx->ipad);
 
-  u32x t0[4];
-  u32x t1[4];
-  u32x t2[4];
-  u32x t3[4];
+  ctx->opad.w0[0] = ctx->ipad.h[ 0];
+  ctx->opad.w0[1] = ctx->ipad.h[ 1];
+  ctx->opad.w0[2] = ctx->ipad.h[ 2];
+  ctx->opad.w0[3] = ctx->ipad.h[ 3];
+  ctx->opad.w1[0] = ctx->ipad.h[ 4];
+  ctx->opad.w1[1] = ctx->ipad.h[ 5];
+  ctx->opad.w1[2] = ctx->ipad.h[ 6];
+  ctx->opad.w1[3] = ctx->ipad.h[ 7];
+  ctx->opad.w2[0] = ctx->ipad.h[ 8];
+  ctx->opad.w2[1] = ctx->ipad.h[ 9];
+  ctx->opad.w2[2] = ctx->ipad.h[10];
+  ctx->opad.w2[3] = ctx->ipad.h[11];
+  ctx->opad.w3[0] = ctx->ipad.h[12];
+  ctx->opad.w3[1] = ctx->ipad.h[13];
+  ctx->opad.w3[2] = ctx->ipad.h[14];
+  ctx->opad.w3[3] = ctx->ipad.h[15];
 
-  t0[0] = ctx->ipad.h[ 0];
-  t0[1] = ctx->ipad.h[ 1];
-  t0[2] = ctx->ipad.h[ 2];
-  t0[3] = ctx->ipad.h[ 3];
-  t1[0] = ctx->ipad.h[ 4];
-  t1[1] = ctx->ipad.h[ 5];
-  t1[2] = ctx->ipad.h[ 6];
-  t1[3] = ctx->ipad.h[ 7];
-  t2[0] = ctx->ipad.h[ 8];
-  t2[1] = ctx->ipad.h[ 9];
-  t2[2] = ctx->ipad.h[10];
-  t2[3] = ctx->ipad.h[11];
-  t3[0] = ctx->ipad.h[12];
-  t3[1] = ctx->ipad.h[13];
-  t3[2] = ctx->ipad.h[14];
-  t3[3] = ctx->ipad.h[15];
+  ctx->opad.len += 64;
 
-  whirlpool_update_vector_64 (&ctx->opad, t0, t1, t2, t3, 64);
+  whirlpool_transform_vector (ctx->opad.w0, ctx->opad.w1, ctx->opad.w2, ctx->opad.w3, ctx->opad.h, ctx->opad.s_Ch, ctx->opad.s_Cl);
+
+  ctx->opad.w0[0] = 0;
+  ctx->opad.w0[1] = 0;
+  ctx->opad.w0[2] = 0;
+  ctx->opad.w0[3] = 0;
+  ctx->opad.w1[0] = 0;
+  ctx->opad.w1[1] = 0;
+  ctx->opad.w1[2] = 0;
+  ctx->opad.w1[3] = 0;
+  ctx->opad.w2[0] = 0;
+  ctx->opad.w2[1] = 0;
+  ctx->opad.w2[2] = 0;
+  ctx->opad.w2[3] = 0;
+  ctx->opad.w3[0] = 0;
+  ctx->opad.w3[1] = 0;
+  ctx->opad.w3[2] = 0;
+  ctx->opad.w3[3] = 0;
 
   whirlpool_final_vector (&ctx->opad);
 }
