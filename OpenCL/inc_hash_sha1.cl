@@ -176,71 +176,115 @@ DECLSPEC void sha1_update_64 (sha1_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w
 
   ctx->len += len;
 
-  if ((pos + len) < 64)
+  if (pos == 0)
   {
-    switch_buffer_by_offset_be_S (w0, w1, w2, w3, pos);
+    ctx->w0[0] = w0[0];
+    ctx->w0[1] = w0[1];
+    ctx->w0[2] = w0[2];
+    ctx->w0[3] = w0[3];
+    ctx->w1[0] = w1[0];
+    ctx->w1[1] = w1[1];
+    ctx->w1[2] = w1[2];
+    ctx->w1[3] = w1[3];
+    ctx->w2[0] = w2[0];
+    ctx->w2[1] = w2[1];
+    ctx->w2[2] = w2[2];
+    ctx->w2[3] = w2[3];
+    ctx->w3[0] = w3[0];
+    ctx->w3[1] = w3[1];
+    ctx->w3[2] = w3[2];
+    ctx->w3[3] = w3[3];
 
-    ctx->w0[0] |= w0[0];
-    ctx->w0[1] |= w0[1];
-    ctx->w0[2] |= w0[2];
-    ctx->w0[3] |= w0[3];
-    ctx->w1[0] |= w1[0];
-    ctx->w1[1] |= w1[1];
-    ctx->w1[2] |= w1[2];
-    ctx->w1[3] |= w1[3];
-    ctx->w2[0] |= w2[0];
-    ctx->w2[1] |= w2[1];
-    ctx->w2[2] |= w2[2];
-    ctx->w2[3] |= w2[3];
-    ctx->w3[0] |= w3[0];
-    ctx->w3[1] |= w3[1];
-    ctx->w3[2] |= w3[2];
-    ctx->w3[3] |= w3[3];
+    if (len == 64)
+    {
+      sha1_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
+
+      ctx->w0[0] = 0;
+      ctx->w0[1] = 0;
+      ctx->w0[2] = 0;
+      ctx->w0[3] = 0;
+      ctx->w1[0] = 0;
+      ctx->w1[1] = 0;
+      ctx->w1[2] = 0;
+      ctx->w1[3] = 0;
+      ctx->w2[0] = 0;
+      ctx->w2[1] = 0;
+      ctx->w2[2] = 0;
+      ctx->w2[3] = 0;
+      ctx->w3[0] = 0;
+      ctx->w3[1] = 0;
+      ctx->w3[2] = 0;
+      ctx->w3[3] = 0;
+    }
   }
   else
   {
-    u32 c0[4] = { 0 };
-    u32 c1[4] = { 0 };
-    u32 c2[4] = { 0 };
-    u32 c3[4] = { 0 };
+    if ((pos + len) < 64)
+    {
+      switch_buffer_by_offset_be_S (w0, w1, w2, w3, pos);
 
-    switch_buffer_by_offset_carry_be_S (w0, w1, w2, w3, c0, c1, c2, c3, pos);
+      ctx->w0[0] |= w0[0];
+      ctx->w0[1] |= w0[1];
+      ctx->w0[2] |= w0[2];
+      ctx->w0[3] |= w0[3];
+      ctx->w1[0] |= w1[0];
+      ctx->w1[1] |= w1[1];
+      ctx->w1[2] |= w1[2];
+      ctx->w1[3] |= w1[3];
+      ctx->w2[0] |= w2[0];
+      ctx->w2[1] |= w2[1];
+      ctx->w2[2] |= w2[2];
+      ctx->w2[3] |= w2[3];
+      ctx->w3[0] |= w3[0];
+      ctx->w3[1] |= w3[1];
+      ctx->w3[2] |= w3[2];
+      ctx->w3[3] |= w3[3];
+    }
+    else
+    {
+      u32 c0[4] = { 0 };
+      u32 c1[4] = { 0 };
+      u32 c2[4] = { 0 };
+      u32 c3[4] = { 0 };
 
-    ctx->w0[0] |= w0[0];
-    ctx->w0[1] |= w0[1];
-    ctx->w0[2] |= w0[2];
-    ctx->w0[3] |= w0[3];
-    ctx->w1[0] |= w1[0];
-    ctx->w1[1] |= w1[1];
-    ctx->w1[2] |= w1[2];
-    ctx->w1[3] |= w1[3];
-    ctx->w2[0] |= w2[0];
-    ctx->w2[1] |= w2[1];
-    ctx->w2[2] |= w2[2];
-    ctx->w2[3] |= w2[3];
-    ctx->w3[0] |= w3[0];
-    ctx->w3[1] |= w3[1];
-    ctx->w3[2] |= w3[2];
-    ctx->w3[3] |= w3[3];
+      switch_buffer_by_offset_carry_be_S (w0, w1, w2, w3, c0, c1, c2, c3, pos);
 
-    sha1_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
+      ctx->w0[0] |= w0[0];
+      ctx->w0[1] |= w0[1];
+      ctx->w0[2] |= w0[2];
+      ctx->w0[3] |= w0[3];
+      ctx->w1[0] |= w1[0];
+      ctx->w1[1] |= w1[1];
+      ctx->w1[2] |= w1[2];
+      ctx->w1[3] |= w1[3];
+      ctx->w2[0] |= w2[0];
+      ctx->w2[1] |= w2[1];
+      ctx->w2[2] |= w2[2];
+      ctx->w2[3] |= w2[3];
+      ctx->w3[0] |= w3[0];
+      ctx->w3[1] |= w3[1];
+      ctx->w3[2] |= w3[2];
+      ctx->w3[3] |= w3[3];
 
-    ctx->w0[0] = c0[0];
-    ctx->w0[1] = c0[1];
-    ctx->w0[2] = c0[2];
-    ctx->w0[3] = c0[3];
-    ctx->w1[0] = c1[0];
-    ctx->w1[1] = c1[1];
-    ctx->w1[2] = c1[2];
-    ctx->w1[3] = c1[3];
-    ctx->w2[0] = c2[0];
-    ctx->w2[1] = c2[1];
-    ctx->w2[2] = c2[2];
-    ctx->w2[3] = c2[3];
-    ctx->w3[0] = c3[0];
-    ctx->w3[1] = c3[1];
-    ctx->w3[2] = c3[2];
-    ctx->w3[3] = c3[3];
+      sha1_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
+
+      ctx->w0[0] = c0[0];
+      ctx->w0[1] = c0[1];
+      ctx->w0[2] = c0[2];
+      ctx->w0[3] = c0[3];
+      ctx->w1[0] = c1[0];
+      ctx->w1[1] = c1[1];
+      ctx->w1[2] = c1[2];
+      ctx->w1[3] = c1[3];
+      ctx->w2[0] = c2[0];
+      ctx->w2[1] = c2[1];
+      ctx->w2[2] = c2[2];
+      ctx->w2[3] = c2[3];
+      ctx->w3[0] = c3[0];
+      ctx->w3[1] = c3[1];
+      ctx->w3[2] = c3[2];
+      ctx->w3[3] = c3[3];
+    }
   }
 }
 
@@ -1578,71 +1622,115 @@ DECLSPEC void sha1_update_vector_64 (sha1_ctx_vector_t *ctx, u32x *w0, u32x *w1,
 
   ctx->len += len;
 
-  if ((pos + len) < 64)
+  if (pos == 0)
   {
-    switch_buffer_by_offset_be (w0, w1, w2, w3, pos);
+    ctx->w0[0] = w0[0];
+    ctx->w0[1] = w0[1];
+    ctx->w0[2] = w0[2];
+    ctx->w0[3] = w0[3];
+    ctx->w1[0] = w1[0];
+    ctx->w1[1] = w1[1];
+    ctx->w1[2] = w1[2];
+    ctx->w1[3] = w1[3];
+    ctx->w2[0] = w2[0];
+    ctx->w2[1] = w2[1];
+    ctx->w2[2] = w2[2];
+    ctx->w2[3] = w2[3];
+    ctx->w3[0] = w3[0];
+    ctx->w3[1] = w3[1];
+    ctx->w3[2] = w3[2];
+    ctx->w3[3] = w3[3];
 
-    ctx->w0[0] |= w0[0];
-    ctx->w0[1] |= w0[1];
-    ctx->w0[2] |= w0[2];
-    ctx->w0[3] |= w0[3];
-    ctx->w1[0] |= w1[0];
-    ctx->w1[1] |= w1[1];
-    ctx->w1[2] |= w1[2];
-    ctx->w1[3] |= w1[3];
-    ctx->w2[0] |= w2[0];
-    ctx->w2[1] |= w2[1];
-    ctx->w2[2] |= w2[2];
-    ctx->w2[3] |= w2[3];
-    ctx->w3[0] |= w3[0];
-    ctx->w3[1] |= w3[1];
-    ctx->w3[2] |= w3[2];
-    ctx->w3[3] |= w3[3];
+    if (len == 64)
+    {
+      sha1_transform_vector (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
+
+      ctx->w0[0] = 0;
+      ctx->w0[1] = 0;
+      ctx->w0[2] = 0;
+      ctx->w0[3] = 0;
+      ctx->w1[0] = 0;
+      ctx->w1[1] = 0;
+      ctx->w1[2] = 0;
+      ctx->w1[3] = 0;
+      ctx->w2[0] = 0;
+      ctx->w2[1] = 0;
+      ctx->w2[2] = 0;
+      ctx->w2[3] = 0;
+      ctx->w3[0] = 0;
+      ctx->w3[1] = 0;
+      ctx->w3[2] = 0;
+      ctx->w3[3] = 0;
+    }
   }
   else
   {
-    u32x c0[4] = { 0 };
-    u32x c1[4] = { 0 };
-    u32x c2[4] = { 0 };
-    u32x c3[4] = { 0 };
+    if ((pos + len) < 64)
+    {
+      switch_buffer_by_offset_be (w0, w1, w2, w3, pos);
 
-    switch_buffer_by_offset_carry_be (w0, w1, w2, w3, c0, c1, c2, c3, pos);
+      ctx->w0[0] |= w0[0];
+      ctx->w0[1] |= w0[1];
+      ctx->w0[2] |= w0[2];
+      ctx->w0[3] |= w0[3];
+      ctx->w1[0] |= w1[0];
+      ctx->w1[1] |= w1[1];
+      ctx->w1[2] |= w1[2];
+      ctx->w1[3] |= w1[3];
+      ctx->w2[0] |= w2[0];
+      ctx->w2[1] |= w2[1];
+      ctx->w2[2] |= w2[2];
+      ctx->w2[3] |= w2[3];
+      ctx->w3[0] |= w3[0];
+      ctx->w3[1] |= w3[1];
+      ctx->w3[2] |= w3[2];
+      ctx->w3[3] |= w3[3];
+    }
+    else
+    {
+      u32x c0[4] = { 0 };
+      u32x c1[4] = { 0 };
+      u32x c2[4] = { 0 };
+      u32x c3[4] = { 0 };
 
-    ctx->w0[0] |= w0[0];
-    ctx->w0[1] |= w0[1];
-    ctx->w0[2] |= w0[2];
-    ctx->w0[3] |= w0[3];
-    ctx->w1[0] |= w1[0];
-    ctx->w1[1] |= w1[1];
-    ctx->w1[2] |= w1[2];
-    ctx->w1[3] |= w1[3];
-    ctx->w2[0] |= w2[0];
-    ctx->w2[1] |= w2[1];
-    ctx->w2[2] |= w2[2];
-    ctx->w2[3] |= w2[3];
-    ctx->w3[0] |= w3[0];
-    ctx->w3[1] |= w3[1];
-    ctx->w3[2] |= w3[2];
-    ctx->w3[3] |= w3[3];
+      switch_buffer_by_offset_carry_be (w0, w1, w2, w3, c0, c1, c2, c3, pos);
 
-    sha1_transform_vector (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
+      ctx->w0[0] |= w0[0];
+      ctx->w0[1] |= w0[1];
+      ctx->w0[2] |= w0[2];
+      ctx->w0[3] |= w0[3];
+      ctx->w1[0] |= w1[0];
+      ctx->w1[1] |= w1[1];
+      ctx->w1[2] |= w1[2];
+      ctx->w1[3] |= w1[3];
+      ctx->w2[0] |= w2[0];
+      ctx->w2[1] |= w2[1];
+      ctx->w2[2] |= w2[2];
+      ctx->w2[3] |= w2[3];
+      ctx->w3[0] |= w3[0];
+      ctx->w3[1] |= w3[1];
+      ctx->w3[2] |= w3[2];
+      ctx->w3[3] |= w3[3];
 
-    ctx->w0[0] = c0[0];
-    ctx->w0[1] = c0[1];
-    ctx->w0[2] = c0[2];
-    ctx->w0[3] = c0[3];
-    ctx->w1[0] = c1[0];
-    ctx->w1[1] = c1[1];
-    ctx->w1[2] = c1[2];
-    ctx->w1[3] = c1[3];
-    ctx->w2[0] = c2[0];
-    ctx->w2[1] = c2[1];
-    ctx->w2[2] = c2[2];
-    ctx->w2[3] = c2[3];
-    ctx->w3[0] = c3[0];
-    ctx->w3[1] = c3[1];
-    ctx->w3[2] = c3[2];
-    ctx->w3[3] = c3[3];
+      sha1_transform_vector (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
+
+      ctx->w0[0] = c0[0];
+      ctx->w0[1] = c0[1];
+      ctx->w0[2] = c0[2];
+      ctx->w0[3] = c0[3];
+      ctx->w1[0] = c1[0];
+      ctx->w1[1] = c1[1];
+      ctx->w1[2] = c1[2];
+      ctx->w1[3] = c1[3];
+      ctx->w2[0] = c2[0];
+      ctx->w2[1] = c2[1];
+      ctx->w2[2] = c2[2];
+      ctx->w2[3] = c2[3];
+      ctx->w3[0] = c3[0];
+      ctx->w3[1] = c3[1];
+      ctx->w3[2] = c3[2];
+      ctx->w3[3] = c3[3];
+    }
   }
 }
 
