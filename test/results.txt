@@ -1,0 +1,366 @@
+remove found hashes
+
+
+***************************************begin sha256 phase********************************************
+
+
+
+
+=======================================Testing without mask============================
+
+
+
+
+==============================================================================
+test sha256sum enc password is password
+5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8
+checking potfile, should contain 1 line(s)
+1 /home/therek/.hashcat/hashcat.potfile
+
+
+==============================================================================
+test sha256sum enc password is password1938
+bf4ea57c31af393f4ef721d9c7a29e97d2c1ea2ab5c1eadc056f6fe899d79c47
+checking potfile, should contain 0 line(s)
+0 /home/therek/.hashcat/hashcat.potfile
+
+
+==============================================================================
+test sha256sum enc password is 0v3rl0rd
+8ea22b6bcb0a5e65682f381b3e738f326dd0455374536005cdd8adeffe315335
+checking potfile, should contain 0 line(s)
+0 /home/therek/.hashcat/hashcat.potfile
+
+
+==============================================================================
+test sha256sum enc password is adsadlajlkdjaldjldkjsakldjklsajdlajdsadsad
+0fea164a95a191a37c868f20688d39eb1a4a03116416ff4920612d8445030a3e
+checking potfile, should contain 0 line(s)
+0 /home/therek/.hashcat/hashcat.potfile
+
+
+==============================================================================
+test sha256sum enc password is 1285password
+7ab042e6142512ff82cd1d0b475c87ab09a0ade425373b76e3cb6d0d14ab8e57
+checking potfile, should contain 0 line(s)
+0 /home/therek/.hashcat/hashcat.potfile
+
+
+=======================================Testing with post mask of 1 to 4 digits============================
+
+
+
+
+==============================================================================
+test sha256sum enc password is password
+5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8
+checking potfile, should contain 0 line(s)
+0 /home/therek/.hashcat/hashcat.potfile
+
+
+==============================================================================
+test sha256sum enc password is password1938
+bf4ea57c31af393f4ef721d9c7a29e97d2c1ea2ab5c1eadc056f6fe899d79c47
+checking potfile, should contain 1 line(s)
+1 /home/therek/.hashcat/hashcat.potfile
+
+
+==============================================================================
+test sha256sum enc password is 0v3rl0rd
+8ea22b6bcb0a5e65682f381b3e738f326dd0455374536005cdd8adeffe315335
+checking potfile, should contain 0 line(s)
+0 /home/therek/.hashcat/hashcat.potfile
+
+
+==============================================================================
+test sha256sum enc password is adsadlajlkdjaldjldkjsakldjklsajdlajdsadsad
+0fea164a95a191a37c868f20688d39eb1a4a03116416ff4920612d8445030a3e
+checking potfile, should contain 0 line(s)
+0 /home/therek/.hashcat/hashcat.potfile
+
+
+==============================================================================
+test sha256sum enc password is 1285password
+7ab042e6142512ff82cd1d0b475c87ab09a0ade425373b76e3cb6d0d14ab8e57
+checking potfile, should contain 0 line(s)
+0 /home/therek/.hashcat/hashcat.potfile
+
+
+=======================================Testing with pre mask of 1 to 4 digits============================
+
+
+
+
+==============================================================================
+test sha256sum enc password is password
+5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8
+checking potfile, should contain 0 line(s)
+0 /home/therek/.hashcat/hashcat.potfile
+
+
+==============================================================================
+test sha256sum enc password is password1938
+bf4ea57c31af393f4ef721d9c7a29e97d2c1ea2ab5c1eadc056f6fe899d79c47
+checking potfile, should contain 0 line(s)
+0 /home/therek/.hashcat/hashcat.potfile
+
+
+==============================================================================
+test sha256sum enc password is 0v3rl0rd
+8ea22b6bcb0a5e65682f381b3e738f326dd0455374536005cdd8adeffe315335
+checking potfile, should contain 0 line(s)
+0 /home/therek/.hashcat/hashcat.potfile
+
+
+==============================================================================
+test sha256sum enc password is adsadlajlkdjaldjldkjsakldjklsajdlajdsadsad
+0fea164a95a191a37c868f20688d39eb1a4a03116416ff4920612d8445030a3e
+checking potfile, should contain 0 line(s)
+0 /home/therek/.hashcat/hashcat.potfile
+
+
+==============================================================================
+test sha256sum enc password is 1285password
+7ab042e6142512ff82cd1d0b475c87ab09a0ade425373b76e3cb6d0d14ab8e57
+checking potfile, should contain 1 line(s)
+1 /home/therek/.hashcat/hashcat.potfile
+
+
+***************************************begin md5 phase********************************************
+
+
+
+
+=======================================Testing without mask============================
+
+
+
+
+==============================================================================
+test md5sum enc password is password
+5f4dcc3b5aa765d61d8327deb882cf99
+checking potfile, should contain 1 line(s)
+1 /home/therek/.hashcat/hashcat.potfile
+
+
+==============================================================================
+test md5sum enc password is password1938
+e44dcb1fc78e9c94e5201606f888f50d
+checking potfile, should contain 0 line(s)
+0 /home/therek/.hashcat/hashcat.potfile
+
+
+==============================================================================
+test md5sum enc password is 0v3rl0rd
+a441a33823dcf74a9c1e4595332e8c38
+checking potfile, should contain 0 line(s)
+0 /home/therek/.hashcat/hashcat.potfile
+
+
+==============================================================================
+test md5sum enc password is adsadlajlkdjaldjldkjsakldjklsajdlajdsadsad
+dbc9653ffd60c590bc7eb217befae241
+checking potfile, should contain 0 line(s)
+0 /home/therek/.hashcat/hashcat.potfile
+
+
+==============================================================================
+test md5sum enc password is 1285password
+aa2d60a1fbcf8ee938d1327026b17c24
+checking potfile, should contain 0 line(s)
+0 /home/therek/.hashcat/hashcat.potfile
+
+
+=======================================Testing with post mask of 1 to 4 digits============================
+
+
+
+
+==============================================================================
+test md5sum enc password is password
+5f4dcc3b5aa765d61d8327deb882cf99
+checking potfile, should contain 0 line(s)
+0 /home/therek/.hashcat/hashcat.potfile
+
+
+==============================================================================
+test md5sum enc password is password1938
+e44dcb1fc78e9c94e5201606f888f50d
+checking potfile, should contain 1 line(s)
+1 /home/therek/.hashcat/hashcat.potfile
+
+
+==============================================================================
+test md5sum enc password is 0v3rl0rd
+a441a33823dcf74a9c1e4595332e8c38
+checking potfile, should contain 0 line(s)
+0 /home/therek/.hashcat/hashcat.potfile
+
+
+==============================================================================
+test md5sum enc password is adsadlajlkdjaldjldkjsakldjklsajdlajdsadsad
+dbc9653ffd60c590bc7eb217befae241
+checking potfile, should contain 0 line(s)
+0 /home/therek/.hashcat/hashcat.potfile
+
+
+==============================================================================
+test md5sum enc password is 1285password
+aa2d60a1fbcf8ee938d1327026b17c24
+checking potfile, should contain 0 line(s)
+0 /home/therek/.hashcat/hashcat.potfile
+
+
+=======================================Testing with pre mask of 1 to 4 digits============================
+
+
+
+
+==============================================================================
+test md5sum enc password is password
+5f4dcc3b5aa765d61d8327deb882cf99
+checking potfile, should contain 1 line(s)
+0 /home/therek/.hashcat/hashcat.potfile
+
+
+==============================================================================
+test md5sum enc password is password1938
+e44dcb1fc78e9c94e5201606f888f50d
+checking potfile, should contain 0 line(s)
+0 /home/therek/.hashcat/hashcat.potfile
+
+
+==============================================================================
+test md5sum enc password is 0v3rl0rd
+a441a33823dcf74a9c1e4595332e8c38
+checking potfile, should contain 0 line(s)
+0 /home/therek/.hashcat/hashcat.potfile
+
+
+==============================================================================
+test md5sum enc password is adsadlajlkdjaldjldkjsakldjklsajdlajdsadsad
+dbc9653ffd60c590bc7eb217befae241
+checking potfile, should contain 0 line(s)
+0 /home/therek/.hashcat/hashcat.potfile
+
+
+==============================================================================
+test md5sum enc password is 1285password
+aa2d60a1fbcf8ee938d1327026b17c24
+checking potfile, should contain 1 line(s)
+1 /home/therek/.hashcat/hashcat.potfile
+
+
+***************************************begin rules phase(sha256)********************************************
+
+
+
+
+=======================================Testing without mask============================
+
+
+
+
+==============================================================================
+test sha256sum enc password is password
+5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8
+checking potfile, should contain 1 line(s)
+1 /home/therek/.hashcat/hashcat.potfile
+
+
+==============================================================================
+test sha256sum enc password is password1938
+bf4ea57c31af393f4ef721d9c7a29e97d2c1ea2ab5c1eadc056f6fe899d79c47
+checking potfile, should contain 0 line(s)
+0 /home/therek/.hashcat/hashcat.potfile
+
+
+==============================================================================
+test sha256sum enc password is 0v3rl0rd
+8ea22b6bcb0a5e65682f381b3e738f326dd0455374536005cdd8adeffe315335
+checking potfile, should contain 0 line(s)
+1 /home/therek/.hashcat/hashcat.potfile
+
+
+==============================================================================
+test sha256sum enc password is adsadlajlkdjaldjldkjsakldjklsajdlajdsadsad
+0fea164a95a191a37c868f20688d39eb1a4a03116416ff4920612d8445030a3e
+checking potfile, should contain 0 line(s)
+0 /home/therek/.hashcat/hashcat.potfile
+
+
+==============================================================================
+test sha256sum enc password is 1285password
+7ab042e6142512ff82cd1d0b475c87ab09a0ade425373b76e3cb6d0d14ab8e57
+checking potfile, should contain 0 line(s)
+0 /home/therek/.hashcat/hashcat.potfile
+
+
+=======================================Testing with post mask of 1 to 4 digits============================
+
+
+
+
+==============================================================================
+test sha256sum enc password is password
+5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8
+checking potfile, should contain 0 line(s)
+
+
+==============================================================================
+test sha256sum enc password is password1938
+bf4ea57c31af393f4ef721d9c7a29e97d2c1ea2ab5c1eadc056f6fe899d79c47
+checking potfile, should contain 1 line(s)
+
+
+==============================================================================
+test sha256sum enc password is 0v3rl0rd
+8ea22b6bcb0a5e65682f381b3e738f326dd0455374536005cdd8adeffe315335
+checking potfile, should contain 0 line(s)
+
+
+==============================================================================
+test sha256sum enc password is adsadlajlkdjaldjldkjsakldjklsajdlajdsadsad
+0fea164a95a191a37c868f20688d39eb1a4a03116416ff4920612d8445030a3e
+checking potfile, should contain 0 line(s)
+
+
+==============================================================================
+test sha256sum enc password is 1285password
+7ab042e6142512ff82cd1d0b475c87ab09a0ade425373b76e3cb6d0d14ab8e57
+checking potfile, should contain 0 line(s)
+
+
+=======================================Testing with pre mask of 1 to 4 digits============================
+
+
+
+
+==============================================================================
+test sha256sum enc password is password
+5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8
+checking potfile, should contain 0 line(s)
+
+
+==============================================================================
+test sha256sum enc password is password1938
+bf4ea57c31af393f4ef721d9c7a29e97d2c1ea2ab5c1eadc056f6fe899d79c47
+checking potfile, should contain 0 line(s)
+
+
+==============================================================================
+test sha256sum enc password is 0v3rl0rd
+8ea22b6bcb0a5e65682f381b3e738f326dd0455374536005cdd8adeffe315335
+checking potfile, should contain 0 line(s)
+
+
+==============================================================================
+test sha256sum enc password is adsadlajlkdjaldjldkjsakldjklsajdlajdsadsad
+0fea164a95a191a37c868f20688d39eb1a4a03116416ff4920612d8445030a3e
+checking potfile, should contain 0 line(s)
+
+
+==============================================================================
+test sha256sum enc password is 1285password
+7ab042e6142512ff82cd1d0b475c87ab09a0ade425373b76e3cb6d0d14ab8e57
+checking potfile, should contain 1 line(s)
