@@ -244,71 +244,115 @@ DECLSPEC void ripemd160_update_64 (ripemd160_ctx_t *ctx, u32 *w0, u32 *w1, u32 *
 
   ctx->len += len;
 
-  if ((pos + len) < 64)
+  if (pos == 0)
   {
-    switch_buffer_by_offset_le_S (w0, w1, w2, w3, pos);
+    ctx->w0[0] = w0[0];
+    ctx->w0[1] = w0[1];
+    ctx->w0[2] = w0[2];
+    ctx->w0[3] = w0[3];
+    ctx->w1[0] = w1[0];
+    ctx->w1[1] = w1[1];
+    ctx->w1[2] = w1[2];
+    ctx->w1[3] = w1[3];
+    ctx->w2[0] = w2[0];
+    ctx->w2[1] = w2[1];
+    ctx->w2[2] = w2[2];
+    ctx->w2[3] = w2[3];
+    ctx->w3[0] = w3[0];
+    ctx->w3[1] = w3[1];
+    ctx->w3[2] = w3[2];
+    ctx->w3[3] = w3[3];
 
-    ctx->w0[0] |= w0[0];
-    ctx->w0[1] |= w0[1];
-    ctx->w0[2] |= w0[2];
-    ctx->w0[3] |= w0[3];
-    ctx->w1[0] |= w1[0];
-    ctx->w1[1] |= w1[1];
-    ctx->w1[2] |= w1[2];
-    ctx->w1[3] |= w1[3];
-    ctx->w2[0] |= w2[0];
-    ctx->w2[1] |= w2[1];
-    ctx->w2[2] |= w2[2];
-    ctx->w2[3] |= w2[3];
-    ctx->w3[0] |= w3[0];
-    ctx->w3[1] |= w3[1];
-    ctx->w3[2] |= w3[2];
-    ctx->w3[3] |= w3[3];
+    if (len == 64)
+    {
+      ripemd160_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
+
+      ctx->w0[0] = 0;
+      ctx->w0[1] = 0;
+      ctx->w0[2] = 0;
+      ctx->w0[3] = 0;
+      ctx->w1[0] = 0;
+      ctx->w1[1] = 0;
+      ctx->w1[2] = 0;
+      ctx->w1[3] = 0;
+      ctx->w2[0] = 0;
+      ctx->w2[1] = 0;
+      ctx->w2[2] = 0;
+      ctx->w2[3] = 0;
+      ctx->w3[0] = 0;
+      ctx->w3[1] = 0;
+      ctx->w3[2] = 0;
+      ctx->w3[3] = 0;
+    }
   }
   else
   {
-    u32 c0[4] = { 0 };
-    u32 c1[4] = { 0 };
-    u32 c2[4] = { 0 };
-    u32 c3[4] = { 0 };
+    if ((pos + len) < 64)
+    {
+      switch_buffer_by_offset_le_S (w0, w1, w2, w3, pos);
 
-    switch_buffer_by_offset_carry_le_S (w0, w1, w2, w3, c0, c1, c2, c3, pos);
+      ctx->w0[0] |= w0[0];
+      ctx->w0[1] |= w0[1];
+      ctx->w0[2] |= w0[2];
+      ctx->w0[3] |= w0[3];
+      ctx->w1[0] |= w1[0];
+      ctx->w1[1] |= w1[1];
+      ctx->w1[2] |= w1[2];
+      ctx->w1[3] |= w1[3];
+      ctx->w2[0] |= w2[0];
+      ctx->w2[1] |= w2[1];
+      ctx->w2[2] |= w2[2];
+      ctx->w2[3] |= w2[3];
+      ctx->w3[0] |= w3[0];
+      ctx->w3[1] |= w3[1];
+      ctx->w3[2] |= w3[2];
+      ctx->w3[3] |= w3[3];
+    }
+    else
+    {
+      u32 c0[4] = { 0 };
+      u32 c1[4] = { 0 };
+      u32 c2[4] = { 0 };
+      u32 c3[4] = { 0 };
 
-    ctx->w0[0] |= w0[0];
-    ctx->w0[1] |= w0[1];
-    ctx->w0[2] |= w0[2];
-    ctx->w0[3] |= w0[3];
-    ctx->w1[0] |= w1[0];
-    ctx->w1[1] |= w1[1];
-    ctx->w1[2] |= w1[2];
-    ctx->w1[3] |= w1[3];
-    ctx->w2[0] |= w2[0];
-    ctx->w2[1] |= w2[1];
-    ctx->w2[2] |= w2[2];
-    ctx->w2[3] |= w2[3];
-    ctx->w3[0] |= w3[0];
-    ctx->w3[1] |= w3[1];
-    ctx->w3[2] |= w3[2];
-    ctx->w3[3] |= w3[3];
+      switch_buffer_by_offset_carry_le_S (w0, w1, w2, w3, c0, c1, c2, c3, pos);
 
-    ripemd160_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
+      ctx->w0[0] |= w0[0];
+      ctx->w0[1] |= w0[1];
+      ctx->w0[2] |= w0[2];
+      ctx->w0[3] |= w0[3];
+      ctx->w1[0] |= w1[0];
+      ctx->w1[1] |= w1[1];
+      ctx->w1[2] |= w1[2];
+      ctx->w1[3] |= w1[3];
+      ctx->w2[0] |= w2[0];
+      ctx->w2[1] |= w2[1];
+      ctx->w2[2] |= w2[2];
+      ctx->w2[3] |= w2[3];
+      ctx->w3[0] |= w3[0];
+      ctx->w3[1] |= w3[1];
+      ctx->w3[2] |= w3[2];
+      ctx->w3[3] |= w3[3];
 
-    ctx->w0[0] = c0[0];
-    ctx->w0[1] = c0[1];
-    ctx->w0[2] = c0[2];
-    ctx->w0[3] = c0[3];
-    ctx->w1[0] = c1[0];
-    ctx->w1[1] = c1[1];
-    ctx->w1[2] = c1[2];
-    ctx->w1[3] = c1[3];
-    ctx->w2[0] = c2[0];
-    ctx->w2[1] = c2[1];
-    ctx->w2[2] = c2[2];
-    ctx->w2[3] = c2[3];
-    ctx->w3[0] = c3[0];
-    ctx->w3[1] = c3[1];
-    ctx->w3[2] = c3[2];
-    ctx->w3[3] = c3[3];
+      ripemd160_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
+
+      ctx->w0[0] = c0[0];
+      ctx->w0[1] = c0[1];
+      ctx->w0[2] = c0[2];
+      ctx->w0[3] = c0[3];
+      ctx->w1[0] = c1[0];
+      ctx->w1[1] = c1[1];
+      ctx->w1[2] = c1[2];
+      ctx->w1[3] = c1[3];
+      ctx->w2[0] = c2[0];
+      ctx->w2[1] = c2[1];
+      ctx->w2[2] = c2[2];
+      ctx->w2[3] = c2[3];
+      ctx->w3[0] = c3[0];
+      ctx->w3[1] = c3[1];
+      ctx->w3[2] = c3[2];
+      ctx->w3[3] = c3[3];
+    }
   }
 }
 
@@ -888,7 +932,9 @@ DECLSPEC void ripemd160_hmac_init_64 (ripemd160_hmac_ctx_t *ctx, const u32 *w0, 
 
   ripemd160_init (&ctx->ipad);
 
-  ripemd160_update_64 (&ctx->ipad, t0, t1, t2, t3, 64);
+  ripemd160_transform (t0, t1, t2, t3, ctx->ipad.h);
+
+  ctx->ipad.len = 64;
 
   // opad
 
@@ -911,7 +957,9 @@ DECLSPEC void ripemd160_hmac_init_64 (ripemd160_hmac_ctx_t *ctx, const u32 *w0, 
 
   ripemd160_init (&ctx->opad);
 
-  ripemd160_update_64 (&ctx->opad, t0, t1, t2, t3, 64);
+  ripemd160_transform (t0, t1, t2, t3, ctx->opad.h);
+
+  ctx->opad.len = 64;
 }
 
 DECLSPEC void ripemd160_hmac_init (ripemd160_hmac_ctx_t *ctx, const u32 *w, const int len)
@@ -1191,29 +1239,24 @@ DECLSPEC void ripemd160_hmac_final (ripemd160_hmac_ctx_t *ctx)
 {
   ripemd160_final (&ctx->ipad);
 
-  u32 t0[4];
-  u32 t1[4];
-  u32 t2[4];
-  u32 t3[4];
+  ctx->opad.w0[0] = ctx->ipad.h[0];
+  ctx->opad.w0[1] = ctx->ipad.h[1];
+  ctx->opad.w0[2] = ctx->ipad.h[2];
+  ctx->opad.w0[3] = ctx->ipad.h[3];
+  ctx->opad.w1[0] = ctx->ipad.h[4];
+  ctx->opad.w1[1] = 0;
+  ctx->opad.w1[2] = 0;
+  ctx->opad.w1[3] = 0;
+  ctx->opad.w2[0] = 0;
+  ctx->opad.w2[1] = 0;
+  ctx->opad.w2[2] = 0;
+  ctx->opad.w2[3] = 0;
+  ctx->opad.w3[0] = 0;
+  ctx->opad.w3[1] = 0;
+  ctx->opad.w3[2] = 0;
+  ctx->opad.w3[3] = 0;
 
-  t0[0] = ctx->ipad.h[0];
-  t0[1] = ctx->ipad.h[1];
-  t0[2] = ctx->ipad.h[2];
-  t0[3] = ctx->ipad.h[3];
-  t1[0] = ctx->ipad.h[4];
-  t1[1] = 0;
-  t1[2] = 0;
-  t1[3] = 0;
-  t2[0] = 0;
-  t2[1] = 0;
-  t2[2] = 0;
-  t2[3] = 0;
-  t3[0] = 0;
-  t3[1] = 0;
-  t3[2] = 0;
-  t3[3] = 0;
-
-  ripemd160_update_64 (&ctx->opad, t0, t1, t2, t3, 20);
+  ctx->opad.len += 20;
 
   ripemd160_final (&ctx->opad);
 }
@@ -1479,71 +1522,115 @@ DECLSPEC void ripemd160_update_vector_64 (ripemd160_ctx_vector_t *ctx, u32x *w0,
 
   ctx->len += len;
 
-  if ((pos + len) < 64)
+  if (pos == 0)
   {
-    switch_buffer_by_offset_le (w0, w1, w2, w3, pos);
+    ctx->w0[0] = w0[0];
+    ctx->w0[1] = w0[1];
+    ctx->w0[2] = w0[2];
+    ctx->w0[3] = w0[3];
+    ctx->w1[0] = w1[0];
+    ctx->w1[1] = w1[1];
+    ctx->w1[2] = w1[2];
+    ctx->w1[3] = w1[3];
+    ctx->w2[0] = w2[0];
+    ctx->w2[1] = w2[1];
+    ctx->w2[2] = w2[2];
+    ctx->w2[3] = w2[3];
+    ctx->w3[0] = w3[0];
+    ctx->w3[1] = w3[1];
+    ctx->w3[2] = w3[2];
+    ctx->w3[3] = w3[3];
 
-    ctx->w0[0] |= w0[0];
-    ctx->w0[1] |= w0[1];
-    ctx->w0[2] |= w0[2];
-    ctx->w0[3] |= w0[3];
-    ctx->w1[0] |= w1[0];
-    ctx->w1[1] |= w1[1];
-    ctx->w1[2] |= w1[2];
-    ctx->w1[3] |= w1[3];
-    ctx->w2[0] |= w2[0];
-    ctx->w2[1] |= w2[1];
-    ctx->w2[2] |= w2[2];
-    ctx->w2[3] |= w2[3];
-    ctx->w3[0] |= w3[0];
-    ctx->w3[1] |= w3[1];
-    ctx->w3[2] |= w3[2];
-    ctx->w3[3] |= w3[3];
+    if (len == 64)
+    {
+      ripemd160_transform_vector (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
+
+      ctx->w0[0] = 0;
+      ctx->w0[1] = 0;
+      ctx->w0[2] = 0;
+      ctx->w0[3] = 0;
+      ctx->w1[0] = 0;
+      ctx->w1[1] = 0;
+      ctx->w1[2] = 0;
+      ctx->w1[3] = 0;
+      ctx->w2[0] = 0;
+      ctx->w2[1] = 0;
+      ctx->w2[2] = 0;
+      ctx->w2[3] = 0;
+      ctx->w3[0] = 0;
+      ctx->w3[1] = 0;
+      ctx->w3[2] = 0;
+      ctx->w3[3] = 0;
+    }
   }
   else
   {
-    u32x c0[4] = { 0 };
-    u32x c1[4] = { 0 };
-    u32x c2[4] = { 0 };
-    u32x c3[4] = { 0 };
+    if ((pos + len) < 64)
+    {
+      switch_buffer_by_offset_le (w0, w1, w2, w3, pos);
 
-    switch_buffer_by_offset_carry_le (w0, w1, w2, w3, c0, c1, c2, c3, pos);
+      ctx->w0[0] |= w0[0];
+      ctx->w0[1] |= w0[1];
+      ctx->w0[2] |= w0[2];
+      ctx->w0[3] |= w0[3];
+      ctx->w1[0] |= w1[0];
+      ctx->w1[1] |= w1[1];
+      ctx->w1[2] |= w1[2];
+      ctx->w1[3] |= w1[3];
+      ctx->w2[0] |= w2[0];
+      ctx->w2[1] |= w2[1];
+      ctx->w2[2] |= w2[2];
+      ctx->w2[3] |= w2[3];
+      ctx->w3[0] |= w3[0];
+      ctx->w3[1] |= w3[1];
+      ctx->w3[2] |= w3[2];
+      ctx->w3[3] |= w3[3];
+    }
+    else
+    {
+      u32x c0[4] = { 0 };
+      u32x c1[4] = { 0 };
+      u32x c2[4] = { 0 };
+      u32x c3[4] = { 0 };
 
-    ctx->w0[0] |= w0[0];
-    ctx->w0[1] |= w0[1];
-    ctx->w0[2] |= w0[2];
-    ctx->w0[3] |= w0[3];
-    ctx->w1[0] |= w1[0];
-    ctx->w1[1] |= w1[1];
-    ctx->w1[2] |= w1[2];
-    ctx->w1[3] |= w1[3];
-    ctx->w2[0] |= w2[0];
-    ctx->w2[1] |= w2[1];
-    ctx->w2[2] |= w2[2];
-    ctx->w2[3] |= w2[3];
-    ctx->w3[0] |= w3[0];
-    ctx->w3[1] |= w3[1];
-    ctx->w3[2] |= w3[2];
-    ctx->w3[3] |= w3[3];
+      switch_buffer_by_offset_carry_le (w0, w1, w2, w3, c0, c1, c2, c3, pos);
 
-    ripemd160_transform_vector (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
+      ctx->w0[0] |= w0[0];
+      ctx->w0[1] |= w0[1];
+      ctx->w0[2] |= w0[2];
+      ctx->w0[3] |= w0[3];
+      ctx->w1[0] |= w1[0];
+      ctx->w1[1] |= w1[1];
+      ctx->w1[2] |= w1[2];
+      ctx->w1[3] |= w1[3];
+      ctx->w2[0] |= w2[0];
+      ctx->w2[1] |= w2[1];
+      ctx->w2[2] |= w2[2];
+      ctx->w2[3] |= w2[3];
+      ctx->w3[0] |= w3[0];
+      ctx->w3[1] |= w3[1];
+      ctx->w3[2] |= w3[2];
+      ctx->w3[3] |= w3[3];
 
-    ctx->w0[0] = c0[0];
-    ctx->w0[1] = c0[1];
-    ctx->w0[2] = c0[2];
-    ctx->w0[3] = c0[3];
-    ctx->w1[0] = c1[0];
-    ctx->w1[1] = c1[1];
-    ctx->w1[2] = c1[2];
-    ctx->w1[3] = c1[3];
-    ctx->w2[0] = c2[0];
-    ctx->w2[1] = c2[1];
-    ctx->w2[2] = c2[2];
-    ctx->w2[3] = c2[3];
-    ctx->w3[0] = c3[0];
-    ctx->w3[1] = c3[1];
-    ctx->w3[2] = c3[2];
-    ctx->w3[3] = c3[3];
+      ripemd160_transform_vector (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
+
+      ctx->w0[0] = c0[0];
+      ctx->w0[1] = c0[1];
+      ctx->w0[2] = c0[2];
+      ctx->w0[3] = c0[3];
+      ctx->w1[0] = c1[0];
+      ctx->w1[1] = c1[1];
+      ctx->w1[2] = c1[2];
+      ctx->w1[3] = c1[3];
+      ctx->w2[0] = c2[0];
+      ctx->w2[1] = c2[1];
+      ctx->w2[2] = c2[2];
+      ctx->w2[3] = c2[3];
+      ctx->w3[0] = c3[0];
+      ctx->w3[1] = c3[1];
+      ctx->w3[2] = c3[2];
+      ctx->w3[3] = c3[3];
+    }
   }
 }
 
@@ -1867,7 +1954,9 @@ DECLSPEC void ripemd160_hmac_init_vector_64 (ripemd160_hmac_ctx_vector_t *ctx, c
 
   ripemd160_init_vector (&ctx->ipad);
 
-  ripemd160_update_vector_64 (&ctx->ipad, t0, t1, t2, t3, 64);
+  ripemd160_transform_vector (t0, t1, t2, t3, ctx->ipad.h);
+
+  ctx->ipad.len = 64;
 
   // opad
 
@@ -1890,7 +1979,9 @@ DECLSPEC void ripemd160_hmac_init_vector_64 (ripemd160_hmac_ctx_vector_t *ctx, c
 
   ripemd160_init_vector (&ctx->opad);
 
-  ripemd160_update_vector_64 (&ctx->opad, t0, t1, t2, t3, 64);
+  ripemd160_transform_vector (t0, t1, t2, t3, ctx->opad.h);
+
+  ctx->opad.len = 64;
 }
 
 DECLSPEC void ripemd160_hmac_init_vector (ripemd160_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
@@ -1964,29 +2055,24 @@ DECLSPEC void ripemd160_hmac_final_vector (ripemd160_hmac_ctx_vector_t *ctx)
 {
   ripemd160_final_vector (&ctx->ipad);
 
-  u32x t0[4];
-  u32x t1[4];
-  u32x t2[4];
-  u32x t3[4];
+  ctx->opad.w0[0] = ctx->ipad.h[0];
+  ctx->opad.w0[1] = ctx->ipad.h[1];
+  ctx->opad.w0[2] = ctx->ipad.h[2];
+  ctx->opad.w0[3] = ctx->ipad.h[3];
+  ctx->opad.w1[0] = ctx->ipad.h[4];
+  ctx->opad.w1[1] = 0;
+  ctx->opad.w1[2] = 0;
+  ctx->opad.w1[3] = 0;
+  ctx->opad.w2[0] = 0;
+  ctx->opad.w2[1] = 0;
+  ctx->opad.w2[2] = 0;
+  ctx->opad.w2[3] = 0;
+  ctx->opad.w3[0] = 0;
+  ctx->opad.w3[1] = 0;
+  ctx->opad.w3[2] = 0;
+  ctx->opad.w3[3] = 0;
 
-  t0[0] = ctx->ipad.h[0];
-  t0[1] = ctx->ipad.h[1];
-  t0[2] = ctx->ipad.h[2];
-  t0[3] = ctx->ipad.h[3];
-  t1[0] = ctx->ipad.h[4];
-  t1[1] = 0;
-  t1[2] = 0;
-  t1[3] = 0;
-  t2[0] = 0;
-  t2[1] = 0;
-  t2[2] = 0;
-  t2[3] = 0;
-  t3[0] = 0;
-  t3[1] = 0;
-  t3[2] = 0;
-  t3[3] = 0;
-
-  ripemd160_update_vector_64 (&ctx->opad, t0, t1, t2, t3, 20);
+  ctx->opad.len += 20;
 
   ripemd160_final_vector (&ctx->opad);
 }

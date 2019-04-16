@@ -80,13 +80,14 @@
 
 /**
  * function declarations can have a large influence depending on the opencl runtime
+ * fast but pure kernels on rocm is a good example
  */
 
 #if defined IS_CPU
 #define DECLSPEC inline
 #elif defined IS_GPU
 #if defined IS_AMD
-#define DECLSPEC inline
+#define DECLSPEC inline static
 #else
 #define DECLSPEC
 #endif

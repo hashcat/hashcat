@@ -13,7 +13,7 @@
 #include "inc_hash_md5.cl"
 #endif
 
-DECLSPEC static u32x hashCode_w0 (const u32x init, const u32x w0, const u32 *w, const u32 pw_len)
+DECLSPEC u32x hashCode_w0 (const u32x init, const u32x w0, const u32 *w, const u32 pw_len)
 {
   u32x hash = init;
 
@@ -88,7 +88,7 @@ KERNEL_FQ void m18700_mxx (KERN_ATTR_VECTOR ())
 
   u32 w[64] = { 0 };
 
-  for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
     w[idx] = pws[gid].i[idx];
   }
@@ -147,7 +147,7 @@ KERNEL_FQ void m18700_sxx (KERN_ATTR_VECTOR ())
 
   u32 w[64] = { 0 };
 
-  for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
     w[idx] = pws[gid].i[idx];
   }

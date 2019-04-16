@@ -12,23 +12,23 @@
 #include "inc_simd.cl"
 #endif
 
-#define SIPROUND(v0,v1,v2,v3) \
-  (v0) += (v1);               \
-  (v1)  = hc_rotl64 ((v1), 13);  \
-  (v1) ^= (v0);               \
-  (v0)  = hc_rotl64 ((v0), 32);  \
-  (v2) += (v3);               \
-  (v3)  = hc_rotl64 ((v3), 16);  \
-  (v3) ^= (v2);               \
-  (v0) += (v3);               \
-  (v3)  = hc_rotl64 ((v3), 21);  \
-  (v3) ^= (v0);               \
-  (v2) += (v1);               \
-  (v1)  = hc_rotl64 ((v1), 17);  \
-  (v1) ^= (v2);               \
+#define SIPROUND(v0,v1,v2,v3)   \
+  (v0) += (v1);                 \
+  (v1)  = hc_rotl64 ((v1), 13); \
+  (v1) ^= (v0);                 \
+  (v0)  = hc_rotl64 ((v0), 32); \
+  (v2) += (v3);                 \
+  (v3)  = hc_rotl64 ((v3), 16); \
+  (v3) ^= (v2);                 \
+  (v0) += (v3);                 \
+  (v3)  = hc_rotl64 ((v3), 21); \
+  (v3) ^= (v0);                 \
+  (v2) += (v1);                 \
+  (v1)  = hc_rotl64 ((v1), 17); \
+  (v1) ^= (v2);                 \
   (v2)  = hc_rotl64 ((v2), 32)
 
-DECLSPEC static void m10100m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC void m10100m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -51,9 +51,13 @@ DECLSPEC static void m10100m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
   v2p ^= hl32_to_64_S (salt_bufs[salt_pos].salt_buf[1], salt_bufs[salt_pos].salt_buf[0]);
   v3p ^= hl32_to_64_S (salt_bufs[salt_pos].salt_buf[3], salt_bufs[salt_pos].salt_buf[2]);
 
-  u64 *w_ptr = (u64 *) w;
-
-  w_ptr[pw_len / 8] |= (u64) pw_len << 56;
+  switch (pw_len / 8)
+  {
+    case 0: w[1] |= pw_len << 24; break;
+    case 1: w[3] |= pw_len << 24; break;
+    case 2: w[5] |= pw_len << 24; break;
+    case 3: w[7] |= pw_len << 24; break;
+  }
 
   /**
    * loop
@@ -118,7 +122,7 @@ DECLSPEC static void m10100m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
   }
 }
 
-DECLSPEC static void m10100s (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC void m10100s (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -141,9 +145,13 @@ DECLSPEC static void m10100s (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
   v2p ^= hl32_to_64_S (salt_bufs[salt_pos].salt_buf[1], salt_bufs[salt_pos].salt_buf[0]);
   v3p ^= hl32_to_64_S (salt_bufs[salt_pos].salt_buf[3], salt_bufs[salt_pos].salt_buf[2]);
 
-  u64 *w_ptr = (u64 *) w;
-
-  w_ptr[pw_len / 8] |= (u64) pw_len << 56;
+  switch (pw_len / 8)
+  {
+    case 0: w[1] |= pw_len << 24; break;
+    case 1: w[3] |= pw_len << 24; break;
+    case 2: w[5] |= pw_len << 24; break;
+    case 3: w[7] |= pw_len << 24; break;
+  }
 
   /**
    * digest
@@ -246,7 +254,7 @@ KERNEL_FQ void m10100_m04 (KERN_ATTR_VECTOR ())
   w[11] = 0;
   w[12] = 0;
   w[13] = 0;
-  w[14] = pws[gid].i[14];
+  w[14] = 0;
   w[15] = 0;
 
   const u32 pw_len = pws[gid].pw_len & 63;
@@ -284,7 +292,7 @@ KERNEL_FQ void m10100_m08 (KERN_ATTR_VECTOR ())
   w[11] = 0;
   w[12] = 0;
   w[13] = 0;
-  w[14] = pws[gid].i[14];
+  w[14] = 0;
   w[15] = 0;
 
   const u32 pw_len = pws[gid].pw_len & 63;
@@ -360,7 +368,7 @@ KERNEL_FQ void m10100_s04 (KERN_ATTR_VECTOR ())
   w[11] = 0;
   w[12] = 0;
   w[13] = 0;
-  w[14] = pws[gid].i[14];
+  w[14] = 0;
   w[15] = 0;
 
   const u32 pw_len = pws[gid].pw_len & 63;
@@ -398,7 +406,7 @@ KERNEL_FQ void m10100_s08 (KERN_ATTR_VECTOR ())
   w[11] = 0;
   w[12] = 0;
   w[13] = 0;
-  w[14] = pws[gid].i[14];
+  w[14] = 0;
   w[15] = 0;
 
   const u32 pw_len = pws[gid].pw_len & 63;

@@ -60,7 +60,7 @@ typedef struct wpa_pbkdf2_tmp
 
 } wpa_pbkdf2_tmp_t;
 
-DECLSPEC static void make_kn (u32 *k)
+DECLSPEC void make_kn (u32 *k)
 {
   u32 kl[4];
   u32 kr[4];
@@ -90,7 +90,7 @@ DECLSPEC static void make_kn (u32 *k)
   k[3] ^= c * 0x87000000;
 }
 
-DECLSPEC static void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
+DECLSPEC void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
 {
   digest[0] = ipad[0];
   digest[1] = ipad[1];

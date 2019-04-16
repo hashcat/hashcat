@@ -13,7 +13,7 @@
 #include "inc_cipher_des.cl"
 #endif
 
-DECLSPEC static void m03100m (SHM_TYPE u32 (*s_SPtrans)[64], SHM_TYPE u32 (*s_skb)[64], u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC void m03100m (SHM_TYPE u32 (*s_SPtrans)[64], SHM_TYPE u32 (*s_skb)[64], u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -194,7 +194,7 @@ DECLSPEC static void m03100m (SHM_TYPE u32 (*s_SPtrans)[64], SHM_TYPE u32 (*s_sk
   }
 }
 
-DECLSPEC static void m03100s (SHM_TYPE u32 (*s_SPtrans)[64], SHM_TYPE u32 (*s_skb)[64], u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC void m03100s (SHM_TYPE u32 (*s_SPtrans)[64], SHM_TYPE u32 (*s_skb)[64], u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier

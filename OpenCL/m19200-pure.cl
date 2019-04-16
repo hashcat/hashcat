@@ -24,7 +24,7 @@ typedef struct qnx_sha512_tmp
 
 } qnx_sha512_tmp_t;
 
-DECLSPEC static u32 sha512_update_128_qnxbug (sha512_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const int len, u32 sav)
+DECLSPEC u32 sha512_update_128_qnxbug (sha512_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const int len, u32 sav)
 {
   const int pos = ctx->len & 127;
 
@@ -154,7 +154,7 @@ DECLSPEC static u32 sha512_update_128_qnxbug (sha512_ctx_t *ctx, u32 *w0, u32 *w
   return sav;
 }
 
-DECLSPEC static u32 sha512_update_global_swap_qnxbug (sha512_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len, u32 sav)
+DECLSPEC u32 sha512_update_global_swap_qnxbug (sha512_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len, u32 sav)
 {
   u32 w0[4];
   u32 w1[4];
@@ -310,7 +310,7 @@ DECLSPEC static u32 sha512_update_global_swap_qnxbug (sha512_ctx_t *ctx, GLOBAL_
   return sav;
 }
 
-DECLSPEC static void sha512_final_qnxbug (sha512_ctx_t *ctx, u32 sav)
+DECLSPEC void sha512_final_qnxbug (sha512_ctx_t *ctx, u32 sav)
 {
   const int pos = ctx->len & 127;
 

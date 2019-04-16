@@ -36,7 +36,7 @@ typedef struct rar3_tmp
 
 } rar3_tmp_t;
 
-DECLSPEC static void sha1_transform_intern (const u32 *w, u32 *digest)
+DECLSPEC void sha1_transform_intern (const u32 *w, u32 *digest)
 {
   u32 A = digest[0];
   u32 B = digest[1];

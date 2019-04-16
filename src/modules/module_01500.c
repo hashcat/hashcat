@@ -42,6 +42,37 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
+int module_build_plain_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const void *tmps, const u32 *src_buf, MAYBE_UNUSED const size_t src_sz, MAYBE_UNUSED const int src_len, u32 *dst_buf, MAYBE_UNUSED const size_t dst_sz)
+{
+  u8 *ptr_src = (u8 *) src_buf;
+  u8 *ptr_dst = (u8 *) dst_buf;
+
+  for (int i = 0; i < src_len; i++)
+  {
+    char v = ptr_src[i];
+
+    if (v & 0x80)
+    {
+      char v2 = v & 0x7f;
+
+      if (v2 >= 0x20)
+      {
+        ptr_dst[i] = v2;
+      }
+      else
+      {
+        ptr_dst[i] = v;
+      }
+    }
+    else
+    {
+      ptr_dst[i] = v;
+    }
+  }
+
+  return src_len;
+}
+
 u32 module_kernel_loops_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   u32 kernel_loops_max = KERNEL_LOOPS_MAX;
@@ -203,7 +234,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
   module_ctx->module_benchmark_mask           = MODULE_DEFAULT;
   module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
-  module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
+  module_ctx->module_build_plain_postprocess  = module_build_plain_postprocess;
   module_ctx->module_deep_comp_kernel         = MODULE_DEFAULT;
   module_ctx->module_dgst_pos0                = module_dgst_pos0;
   module_ctx->module_dgst_pos1                = module_dgst_pos1;

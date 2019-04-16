@@ -13,12 +13,12 @@
 #include "inc_hash_whirlpool.cl"
 #endif
 
-DECLSPEC static void whirlpool_transform_transport_vector (const u32x *w, u32x *digest, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
+DECLSPEC void whirlpool_transform_transport_vector (const u32x *w, u32x *digest, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
 {
   whirlpool_transform_vector (w + 0, w + 4, w + 8, w + 12, digest, s_Ch, s_Cl);
 }
 
-DECLSPEC static void m06100m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC (), SHM_TYPE u32 (*s_Cl)[256], SHM_TYPE u32 (*s_Ch)[256])
+DECLSPEC void m06100m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC (), SHM_TYPE u32 (*s_Cl)[256], SHM_TYPE u32 (*s_Ch)[256])
 {
   /**
    * modifier
@@ -87,7 +87,7 @@ DECLSPEC static void m06100m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_l
   }
 }
 
-DECLSPEC static void m06100s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC (), SHM_TYPE u32 (*s_Cl)[256], SHM_TYPE u32 (*s_Ch)[256])
+DECLSPEC void m06100s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC (), SHM_TYPE u32 (*s_Cl)[256], SHM_TYPE u32 (*s_Ch)[256])
 {
   /**
    * modifier

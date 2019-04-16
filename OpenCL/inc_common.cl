@@ -377,7 +377,7 @@ DECLSPEC u64 hc_rotr64_S (const u64 a, const int n)
 
 DECLSPEC u64 hc_rotl64_S (const u64 a, const int n)
 {
-  return hc_rotr64_S (a, n);
+  return hc_rotr64_S (a, 64 - n);
 }
 
 #if HAS_VPERM

@@ -19,12 +19,12 @@ typedef struct win8phone
 
 } win8phone_t;
 
-DECLSPEC static void sha256_transform_transport_vector (const u32x *w, u32x *digest)
+DECLSPEC void sha256_transform_transport_vector (const u32x *w, u32x *digest)
 {
   sha256_transform_vector (w + 0, w + 4, w + 8, w + 12, digest);
 }
 
-DECLSPEC static void memcat64c_be (u32x *block, const u32 offset, u32x *carry)
+DECLSPEC void memcat64c_be (u32x *block, const u32 offset, u32x *carry)
 {
   const u32 mod = offset & 3;
   const u32 div = offset / 4;
@@ -399,7 +399,7 @@ DECLSPEC static void memcat64c_be (u32x *block, const u32 offset, u32x *carry)
   }
 }
 
-DECLSPEC static void m13800m (LOCAL_AS u32 *s_esalt, u32 *w, const u32 pw_len, KERN_ATTR_VECTOR_ESALT (win8phone_t))
+DECLSPEC void m13800m (LOCAL_AS u32 *s_esalt, u32 *w, const u32 pw_len, KERN_ATTR_VECTOR_ESALT (win8phone_t))
 {
   /**
    * modifier
@@ -547,7 +547,7 @@ DECLSPEC static void m13800m (LOCAL_AS u32 *s_esalt, u32 *w, const u32 pw_len, K
   }
 }
 
-DECLSPEC static void m13800s (LOCAL_AS u32 *s_esalt, u32 *w, const u32 pw_len, KERN_ATTR_VECTOR_ESALT (win8phone_t))
+DECLSPEC void m13800s (LOCAL_AS u32 *s_esalt, u32 *w, const u32 pw_len, KERN_ATTR_VECTOR_ESALT (win8phone_t))
 {
   /**
    * modifier

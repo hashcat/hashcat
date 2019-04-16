@@ -13,7 +13,7 @@
 #include "inc_hash_sha512.cl"
 #endif
 
-DECLSPEC static void sha512_transform_transport_vector (const u64x *w0, const u64x *w1, const u64x *w2, const u64x *w3, u64x *digest)
+DECLSPEC void sha512_transform_transport_vector (const u64x *w0, const u64x *w1, const u64x *w2, const u64x *w3, u64x *digest)
 {
   u32x t0[4];
   u32x t1[4];
@@ -60,7 +60,7 @@ DECLSPEC static void sha512_transform_transport_vector (const u64x *w0, const u6
   sha512_transform_vector (t0, t1, t2, t3, t4, t5, t6, t7, digest);
 }
 
-DECLSPEC static void hmac_sha512_pad (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u64x *ipad, u64x *opad)
+DECLSPEC void hmac_sha512_pad (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u64x *ipad, u64x *opad)
 {
   u64x w0_t[4];
   u64x w1_t[4];
@@ -124,7 +124,7 @@ DECLSPEC static void hmac_sha512_pad (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u6
   sha512_transform_transport_vector (w0_t, w1_t, w2_t, w3_t, opad);
 }
 
-DECLSPEC static void hmac_sha512_run (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u64x *ipad, u64x *opad, u64x *digest)
+DECLSPEC void hmac_sha512_run (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u64x *ipad, u64x *opad, u64x *digest)
 {
   u64x w0_t[4];
   u64x w1_t[4];
@@ -188,7 +188,7 @@ DECLSPEC static void hmac_sha512_run (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u6
   sha512_transform_transport_vector (w0_t, w1_t, w2_t, w3_t, digest);
 }
 
-DECLSPEC static void m01750m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC ())
+DECLSPEC void m01750m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -298,7 +298,7 @@ DECLSPEC static void m01750m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_l
   }
 }
 
-DECLSPEC static void m01750s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC ())
+DECLSPEC void m01750s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC ())
 {
   /**
    * modifier
