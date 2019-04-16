@@ -81,8 +81,8 @@ sub module_generate_hash
 
   my $b_ke = $cbc->encrypt ($b_nfolded2, $b_key_bytes, $b_iv);
 
-  my $cleartext_ticket = '68c8459f3f10c851b8827118bb459c6e301aa011180f323031'.
-  '32313131363134323835355aa10502030c28a2';
+  my $cleartext_ticket = '';
+  my $check_correct  = 0;
 
   if (defined $enc_timestamp)
   {
@@ -119,19 +119,19 @@ sub module_generate_hash
       
       $check_correct = ($checksum eq byte2hex(substr $b_checksum, 0, 12));
     }
-	  
-    if ($check_correct != 1)
-    {
-      # fake/wrong ticket (otherwise if we just decrypt/encrypt we end
-      #up with false positives all the time)
-      $cleartext_ticket = '68c8459f3f10c851b8827118bb459c6e301aa011180f323031'.
-  '32313131363134323835355aa10502030c28a2';
-	  
-      # we have what is required to compute checksum
-      $checksum = hmac_sha1 (hex2byte($cleartext_ticket), $b_ki);
+  }
+  
+  if ($check_correct != 1)
+  {
+    # fake/wrong ticket (otherwise if we just decrypt/encrypt we end
+    #up with false positives all the time)
+    $cleartext_ticket = '68c8459f3f10c851b8827118bb459c6e301aa011180f323031'.
+'32313131363134323835355aa10502030c28a2';
+  
+    # we have what is required to compute checksum
+    $checksum = hmac_sha1 (hex2byte($cleartext_ticket), $b_ki);
 
-      $checksum = byte2hex(substr $checksum, 0, 12);
-    }
+    $checksum = byte2hex(substr $checksum, 0, 12);
   }
 
   # CTS Encrypt our new block
