@@ -172,7 +172,7 @@ DECLSPEC void sha1_init (sha1_ctx_t *ctx)
 
 DECLSPEC void sha1_update_64 (sha1_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len)
 {
-  const int pos = ctx->len & 63;
+  MAYBE_VOLATILE const int pos = ctx->len & 63;
 
   ctx->len += len;
 
@@ -1038,7 +1038,7 @@ DECLSPEC void sha1_update_global_utf16be_swap (sha1_ctx_t *ctx, GLOBAL_AS const 
 
 DECLSPEC void sha1_final (sha1_ctx_t *ctx)
 {
-  const int pos = ctx->len & 63;
+  MAYBE_VOLATILE const int pos = ctx->len & 63;
 
   append_0x80_4x4_S (ctx->w0, ctx->w1, ctx->w2, ctx->w3, pos ^ 3);
 
@@ -1618,7 +1618,7 @@ DECLSPEC void sha1_init_vector_from_scalar (sha1_ctx_vector_t *ctx, sha1_ctx_t *
 
 DECLSPEC void sha1_update_vector_64 (sha1_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, const int len)
 {
-  const int pos = ctx->len & 63;
+  MAYBE_VOLATILE const int pos = ctx->len & 63;
 
   ctx->len += len;
 
@@ -2076,7 +2076,7 @@ DECLSPEC void sha1_update_vector_utf16beN (sha1_ctx_vector_t *ctx, const u32x *w
 
 DECLSPEC void sha1_final_vector (sha1_ctx_vector_t *ctx)
 {
-  const int pos = ctx->len & 63;
+  MAYBE_VOLATILE const int pos = ctx->len & 63;
 
   append_0x80_4x4 (ctx->w0, ctx->w1, ctx->w2, ctx->w3, pos ^ 3);
 

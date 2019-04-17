@@ -87,7 +87,7 @@ DECLSPEC u32 sha256_update_aes_64 (sha256_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2,
 {
   u32 ex = 0;
 
-  const int pos = ctx->len & 63;
+  MAYBE_VOLATILE const int pos = ctx->len & 63;
 
   ctx->len += len;
 
@@ -258,7 +258,7 @@ DECLSPEC void sha256_final_aes (sha256_ctx_t *ctx, const u32 *aes_ks, u32 *aes_i
 
 DECLSPEC void sha384_update_aes_128 (sha384_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const int len, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
-  const int pos = ctx->len & 127;
+  MAYBE_VOLATILE const int pos = ctx->len & 127;
 
   ctx->len += len;
 
@@ -536,7 +536,7 @@ DECLSPEC void sha384_final_aes (sha384_ctx_t *ctx, const u32 *aes_ks, u32 *aes_i
 
 DECLSPEC void sha512_update_aes_128 (sha512_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const int len, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
-  const int pos = ctx->len & 127;
+  MAYBE_VOLATILE const int pos = ctx->len & 127;
 
   ctx->len += len;
 

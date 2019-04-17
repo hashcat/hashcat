@@ -757,7 +757,7 @@ DECLSPEC void streebog512_transform (streebog512_ctx_t *ctx, const u32 *w0, cons
 
 DECLSPEC void streebog512_update_64 (streebog512_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len)
 {
-  const int pos = ctx->len & 63;
+  MAYBE_VOLATILE const int pos = ctx->len & 63;
 
   ctx->len += len;
 
@@ -1046,7 +1046,7 @@ DECLSPEC void streebog512_update_global_swap (streebog512_ctx_t *ctx, GLOBAL_AS 
 
 DECLSPEC void streebog512_final (streebog512_ctx_t *ctx)
 {
-  const int pos = ctx->len & 63;
+  MAYBE_VOLATILE const int pos = ctx->len & 63;
 
   append_0x01_4x4_S (ctx->w0, ctx->w1, ctx->w2, ctx->w3, pos ^ 3);
 
@@ -1479,7 +1479,7 @@ DECLSPEC void streebog512_transform_vector (streebog512_ctx_vector_t *ctx, const
 
 DECLSPEC void streebog512_update_vector_64 (streebog512_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, const int len)
 {
-  const int pos = ctx->len & 63;
+  MAYBE_VOLATILE const int pos = ctx->len & 63;
 
   ctx->len += len;
 
@@ -1711,7 +1711,7 @@ DECLSPEC void streebog512_update_vector_swap (streebog512_ctx_vector_t *ctx, con
 
 DECLSPEC void streebog512_final_vector (streebog512_ctx_vector_t *ctx)
 {
-  const int pos = ctx->len & 63;
+  MAYBE_VOLATILE const int pos = ctx->len & 63;
 
   append_0x01_4x4_VV (ctx->w0, ctx->w1, ctx->w2, ctx->w3, pos ^ 3);
 
