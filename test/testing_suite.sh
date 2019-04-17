@@ -5,7 +5,7 @@ hash2=password1938
 hash3=0v3rl0rd
 hash4=adsadlajlkdjaldjldkjsakldjklsajdlajdsadsad
 hash5=1285password
-potfile=/home/therek/.hashcat/hashcat.potfile
+potfile=~/.hashcat/hashcat.potfile
 
 function testing {
 	
