@@ -113,7 +113,7 @@ KERNEL_FQ void m11800_sxx (KERN_ATTR_RULES ())
     s_sbob_sl64[2][i] = sbob512_sl64[2][i];
     s_sbob_sl64[3][i] = sbob512_sl64[3][i];
     s_sbob_sl64[4][i] = sbob512_sl64[4][i];
-    s_sbob_sl64[5][i] = sbob512_sl164[5][i];
+    s_sbob_sl64[5][i] = sbob512_sl64[5][i];
     s_sbob_sl64[6][i] = sbob512_sl64[6][i];
     s_sbob_sl64[7][i] = sbob512_sl64[7][i];
   }
