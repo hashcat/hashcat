@@ -376,71 +376,98 @@ KERNEL_FQ void m02500_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_eapol_t)
        | pke[24] >>  8;
   }
 
+  u32 bo_loops = wpa_eapol->detected_le + wpa_eapol->detected_be;
+
+  bo_loops = (bo_loops == 0) ? 2 : bo_loops;
+
   const u32 nonce_error_corrections = wpa_eapol->nonce_error_corrections;
 
   for (u32 nonce_error_correction = 0; nonce_error_correction <= nonce_error_corrections; nonce_error_correction++)
   {
-    u32 t = to;
-
-    if (wpa_eapol->detected_le == 1)
+    for (u32 bo_pos = 0; bo_pos < bo_loops; bo_pos++)
     {
-      t -= nonce_error_corrections / 2;
-      t += nonce_error_correction;
-    }
-    else if (wpa_eapol->detected_be == 1)
-    {
-      t = hc_swap32_S (t);
+      u32 t = to;
 
-      t -= nonce_error_corrections / 2;
-      t += nonce_error_correction;
-
-      t = hc_swap32_S (t);
-    }
-
-    if (wpa_eapol->nonce_compare < 0)
-    {
-      pke[15] = m0 | (t >> 24);
-      pke[16] = m1 | (t <<  8);
-    }
-    else
-    {
-      pke[23] = m0 | (t >> 24);
-      pke[24] = m1 | (t <<  8);
-    }
-
-    sha1_hmac_ctx_t ctx1;
-
-    sha1_hmac_init_64 (&ctx1, out0, out1, z, z);
-
-    sha1_hmac_update (&ctx1, pke, 100);
-
-    sha1_hmac_final (&ctx1);
-
-    ctx1.opad.h[0] = hc_swap32_S (ctx1.opad.h[0]);
-    ctx1.opad.h[1] = hc_swap32_S (ctx1.opad.h[1]);
-    ctx1.opad.h[2] = hc_swap32_S (ctx1.opad.h[2]);
-    ctx1.opad.h[3] = hc_swap32_S (ctx1.opad.h[3]);
-
-    md5_hmac_ctx_t ctx2;
-
-    md5_hmac_init_64 (&ctx2, ctx1.opad.h, z, z, z);
-
-    md5_hmac_update_global (&ctx2, wpa_eapol->eapol, wpa_eapol->eapol_len);
-
-    md5_hmac_final (&ctx2);
-
-    /**
-     * final compare
-     */
-
-    if ((ctx2.opad.h[0] == wpa_eapol->keymic[0])
-     && (ctx2.opad.h[1] == wpa_eapol->keymic[1])
-     && (ctx2.opad.h[2] == wpa_eapol->keymic[2])
-     && (ctx2.opad.h[3] == wpa_eapol->keymic[3]))
-    {
-      if (atomic_inc (&hashes_shown[digest_cur]) == 0)
+      if (bo_loops == 1)
       {
-        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
+        if (wpa_eapol->detected_le == 1)
+        {
+          t -= nonce_error_corrections / 2;
+          t += nonce_error_correction;
+        }
+        else if (wpa_eapol->detected_be == 1)
+        {
+          t = hc_swap32_S (t);
+
+          t -= nonce_error_corrections / 2;
+          t += nonce_error_correction;
+
+          t = hc_swap32_S (t);
+        }
+      }
+      else
+      {
+        if (bo_pos == 0)
+        {
+          t -= nonce_error_corrections / 2;
+          t += nonce_error_correction;
+        }
+        else if (bo_pos == 1)
+        {
+          t = hc_swap32_S (t);
+
+          t -= nonce_error_corrections / 2;
+          t += nonce_error_correction;
+
+          t = hc_swap32_S (t);
+        }
+      }
+
+      if (wpa_eapol->nonce_compare < 0)
+      {
+        pke[15] = m0 | (t >> 24);
+        pke[16] = m1 | (t <<  8);
+      }
+      else
+      {
+        pke[23] = m0 | (t >> 24);
+        pke[24] = m1 | (t <<  8);
+      }
+
+      sha1_hmac_ctx_t ctx1;
+
+      sha1_hmac_init_64 (&ctx1, out0, out1, z, z);
+
+      sha1_hmac_update (&ctx1, pke, 100);
+
+      sha1_hmac_final (&ctx1);
+
+      ctx1.opad.h[0] = hc_swap32_S (ctx1.opad.h[0]);
+      ctx1.opad.h[1] = hc_swap32_S (ctx1.opad.h[1]);
+      ctx1.opad.h[2] = hc_swap32_S (ctx1.opad.h[2]);
+      ctx1.opad.h[3] = hc_swap32_S (ctx1.opad.h[3]);
+
+      md5_hmac_ctx_t ctx2;
+
+      md5_hmac_init_64 (&ctx2, ctx1.opad.h, z, z, z);
+
+      md5_hmac_update_global (&ctx2, wpa_eapol->eapol, wpa_eapol->eapol_len);
+
+      md5_hmac_final (&ctx2);
+
+      /**
+       * final compare
+       */
+
+      if ((ctx2.opad.h[0] == wpa_eapol->keymic[0])
+       && (ctx2.opad.h[1] == wpa_eapol->keymic[1])
+       && (ctx2.opad.h[2] == wpa_eapol->keymic[2])
+       && (ctx2.opad.h[3] == wpa_eapol->keymic[3]))
+      {
+        if (atomic_inc (&hashes_shown[digest_cur]) == 0)
+        {
+          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
+        }
       }
     }
   }
@@ -534,66 +561,93 @@ KERNEL_FQ void m02500_aux2 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_eapol_t)
        | pke[24] >>  8;
   }
 
+  u32 bo_loops = wpa_eapol->detected_le + wpa_eapol->detected_be;
+
+  bo_loops = (bo_loops == 0) ? 2 : bo_loops;
+
   const u32 nonce_error_corrections = wpa_eapol->nonce_error_corrections;
 
   for (u32 nonce_error_correction = 0; nonce_error_correction <= nonce_error_corrections; nonce_error_correction++)
   {
-    u32 t = to;
-
-    if (wpa_eapol->detected_le == 1)
+    for (u32 bo_pos = 0; bo_pos < bo_loops; bo_pos++)
     {
-      t -= nonce_error_corrections / 2;
-      t += nonce_error_correction;
-    }
-    else if (wpa_eapol->detected_be == 1)
-    {
-      t = hc_swap32_S (t);
+      u32 t = to;
 
-      t -= nonce_error_corrections / 2;
-      t += nonce_error_correction;
-
-      t = hc_swap32_S (t);
-    }
-
-    if (wpa_eapol->nonce_compare < 0)
-    {
-      pke[15] = m0 | (t >> 24);
-      pke[16] = m1 | (t <<  8);
-    }
-    else
-    {
-      pke[23] = m0 | (t >> 24);
-      pke[24] = m1 | (t <<  8);
-    }
-
-    sha1_hmac_ctx_t ctx1;
-
-    sha1_hmac_init_64 (&ctx1, out0, out1, z, z);
-
-    sha1_hmac_update (&ctx1, pke, 100);
-
-    sha1_hmac_final (&ctx1);
-
-    sha1_hmac_ctx_t ctx2;
-
-    sha1_hmac_init_64 (&ctx2, ctx1.opad.h, z, z, z);
-
-    sha1_hmac_update_global (&ctx2, wpa_eapol->eapol, wpa_eapol->eapol_len);
-
-    sha1_hmac_final (&ctx2);
-
-    /**
-     * final compare
-     */
-
-    if ((ctx2.opad.h[0] == wpa_eapol->keymic[0])
-     && (ctx2.opad.h[1] == wpa_eapol->keymic[1])
-     && (ctx2.opad.h[2] == wpa_eapol->keymic[2])
-     && (ctx2.opad.h[3] == wpa_eapol->keymic[3]))
-    {
-      if (atomic_inc (&hashes_shown[digest_cur]) == 0)
+      if (bo_loops == 1)
       {
-        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
+        if (wpa_eapol->detected_le == 1)
+        {
+          t -= nonce_error_corrections / 2;
+          t += nonce_error_correction;
+        }
+        else if (wpa_eapol->detected_be == 1)
+        {
+          t = hc_swap32_S (t);
+
+          t -= nonce_error_corrections / 2;
+          t += nonce_error_correction;
+
+          t = hc_swap32_S (t);
+        }
+      }
+      else
+      {
+        if (bo_pos == 0)
+        {
+          t -= nonce_error_corrections / 2;
+          t += nonce_error_correction;
+        }
+        else if (bo_pos == 1)
+        {
+          t = hc_swap32_S (t);
+
+          t -= nonce_error_corrections / 2;
+          t += nonce_error_correction;
+
+          t = hc_swap32_S (t);
+        }
+      }
+
+      if (wpa_eapol->nonce_compare < 0)
+      {
+        pke[15] = m0 | (t >> 24);
+        pke[16] = m1 | (t <<  8);
+      }
+      else
+      {
+        pke[23] = m0 | (t >> 24);
+        pke[24] = m1 | (t <<  8);
+      }
+
+      sha1_hmac_ctx_t ctx1;
+
+      sha1_hmac_init_64 (&ctx1, out0, out1, z, z);
+
+      sha1_hmac_update (&ctx1, pke, 100);
+
+      sha1_hmac_final (&ctx1);
+
+      sha1_hmac_ctx_t ctx2;
+
+      sha1_hmac_init_64 (&ctx2, ctx1.opad.h, z, z, z);
+
+      sha1_hmac_update_global (&ctx2, wpa_eapol->eapol, wpa_eapol->eapol_len);
+
+      sha1_hmac_final (&ctx2);
+
+      /**
+       * final compare
+       */
+
+      if ((ctx2.opad.h[0] == wpa_eapol->keymic[0])
+       && (ctx2.opad.h[1] == wpa_eapol->keymic[1])
+       && (ctx2.opad.h[2] == wpa_eapol->keymic[2])
+       && (ctx2.opad.h[3] == wpa_eapol->keymic[3]))
+      {
+        if (atomic_inc (&hashes_shown[digest_cur]) == 0)
+        {
+          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
+        }
       }
     }
   }
@@ -723,136 +777,163 @@ KERNEL_FQ void m02500_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_eapol_t)
        | pke[24] >>  8;
   }
 
+  u32 bo_loops = wpa_eapol->detected_le + wpa_eapol->detected_be;
+
+  bo_loops = (bo_loops == 0) ? 2 : bo_loops;
+
   const u32 nonce_error_corrections = wpa_eapol->nonce_error_corrections;
 
   for (u32 nonce_error_correction = 0; nonce_error_correction <= nonce_error_corrections; nonce_error_correction++)
   {
-    u32 t = to;
-
-    if (wpa_eapol->detected_le == 1)
+    for (u32 bo_pos = 0; bo_pos < bo_loops; bo_pos++)
     {
-      t -= nonce_error_corrections / 2;
-      t += nonce_error_correction;
-    }
-    else if (wpa_eapol->detected_be == 1)
-    {
-      t = hc_swap32_S (t);
+      u32 t = to;
 
-      t -= nonce_error_corrections / 2;
-      t += nonce_error_correction;
-
-      t = hc_swap32_S (t);
-    }
-
-    if (wpa_eapol->nonce_compare < 0)
-    {
-      pke[15] = m0 | (t >> 24);
-      pke[16] = m1 | (t <<  8);
-    }
-    else
-    {
-      pke[23] = m0 | (t >> 24);
-      pke[24] = m1 | (t <<  8);
-    }
-
-    sha256_hmac_ctx_t ctx1;
-
-    sha256_hmac_init_64 (&ctx1, out0, out1, z, z);
-
-    sha256_hmac_update (&ctx1, pke, 102);
-
-    sha256_hmac_final (&ctx1);
-
-    ctx1.opad.h[0] = hc_swap32_S (ctx1.opad.h[0]);
-    ctx1.opad.h[1] = hc_swap32_S (ctx1.opad.h[1]);
-    ctx1.opad.h[2] = hc_swap32_S (ctx1.opad.h[2]);
-    ctx1.opad.h[3] = hc_swap32_S (ctx1.opad.h[3]);
-
-    // AES CMAC
-
-    u32 ks[44];
-
-    aes128_set_encrypt_key (ks, ctx1.opad.h, s_te0, s_te1, s_te2, s_te3);
-
-    u32 m[4];
-
-    m[0] = 0;
-    m[1] = 0;
-    m[2] = 0;
-    m[3] = 0;
-
-    u32 iv[4];
-
-    iv[0] = 0;
-    iv[1] = 0;
-    iv[2] = 0;
-    iv[3] = 0;
-
-    int eapol_left;
-    int eapol_idx;
-
-    for (eapol_left = wpa_eapol->eapol_len, eapol_idx = 0; eapol_left > 16; eapol_left -= 16, eapol_idx += 4)
-    {
-      m[0] = wpa_eapol->eapol[eapol_idx + 0] ^ iv[0];
-      m[1] = wpa_eapol->eapol[eapol_idx + 1] ^ iv[1];
-      m[2] = wpa_eapol->eapol[eapol_idx + 2] ^ iv[2];
-      m[3] = wpa_eapol->eapol[eapol_idx + 3] ^ iv[3];
-
-      aes128_encrypt (ks, m, iv, s_te0, s_te1, s_te2, s_te3, s_te4);
-    }
-
-    m[0] = wpa_eapol->eapol[eapol_idx + 0];
-    m[1] = wpa_eapol->eapol[eapol_idx + 1];
-    m[2] = wpa_eapol->eapol[eapol_idx + 2];
-    m[3] = wpa_eapol->eapol[eapol_idx + 3];
-
-    u32 k[4];
-
-    k[0] = 0;
-    k[1] = 0;
-    k[2] = 0;
-    k[3] = 0;
-
-    aes128_encrypt (ks, k, k, s_te0, s_te1, s_te2, s_te3, s_te4);
-
-    make_kn (k);
-
-    if (eapol_left < 16)
-    {
-      make_kn (k);
-    }
-
-    m[0] ^= k[0];
-    m[1] ^= k[1];
-    m[2] ^= k[2];
-    m[3] ^= k[3];
-
-    m[0] ^= iv[0];
-    m[1] ^= iv[1];
-    m[2] ^= iv[2];
-    m[3] ^= iv[3];
-
-    u32 keymic[4];
-
-    keymic[0] = 0;
-    keymic[1] = 0;
-    keymic[2] = 0;
-    keymic[3] = 0;
-
-    aes128_encrypt (ks, m, keymic, s_te0, s_te1, s_te2, s_te3, s_te4);
-
-    /**
-     * final compare
-     */
-
-    if ((keymic[0] == wpa_eapol->keymic[0])
-     && (keymic[1] == wpa_eapol->keymic[1])
-     && (keymic[2] == wpa_eapol->keymic[2])
-     && (keymic[3] == wpa_eapol->keymic[3]))
-    {
-      if (atomic_inc (&hashes_shown[digest_cur]) == 0)
+      if (bo_loops == 1)
       {
-        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
+        if (wpa_eapol->detected_le == 1)
+        {
+          t -= nonce_error_corrections / 2;
+          t += nonce_error_correction;
+        }
+        else if (wpa_eapol->detected_be == 1)
+        {
+          t = hc_swap32_S (t);
+
+          t -= nonce_error_corrections / 2;
+          t += nonce_error_correction;
+
+          t = hc_swap32_S (t);
+        }
+      }
+      else
+      {
+        if (bo_pos == 0)
+        {
+          t -= nonce_error_corrections / 2;
+          t += nonce_error_correction;
+        }
+        else if (bo_pos == 1)
+        {
+          t = hc_swap32_S (t);
+
+          t -= nonce_error_corrections / 2;
+          t += nonce_error_correction;
+
+          t = hc_swap32_S (t);
+        }
+      }
+
+      if (wpa_eapol->nonce_compare < 0)
+      {
+        pke[15] = m0 | (t >> 24);
+        pke[16] = m1 | (t <<  8);
+      }
+      else
+      {
+        pke[23] = m0 | (t >> 24);
+        pke[24] = m1 | (t <<  8);
+      }
+
+      sha256_hmac_ctx_t ctx1;
+
+      sha256_hmac_init_64 (&ctx1, out0, out1, z, z);
+
+      sha256_hmac_update (&ctx1, pke, 102);
+
+      sha256_hmac_final (&ctx1);
+
+      ctx1.opad.h[0] = hc_swap32_S (ctx1.opad.h[0]);
+      ctx1.opad.h[1] = hc_swap32_S (ctx1.opad.h[1]);
+      ctx1.opad.h[2] = hc_swap32_S (ctx1.opad.h[2]);
+      ctx1.opad.h[3] = hc_swap32_S (ctx1.opad.h[3]);
+
+      // AES CMAC
+
+      u32 ks[44];
+
+      aes128_set_encrypt_key (ks, ctx1.opad.h, s_te0, s_te1, s_te2, s_te3);
+
+      u32 m[4];
+
+      m[0] = 0;
+      m[1] = 0;
+      m[2] = 0;
+      m[3] = 0;
+
+      u32 iv[4];
+
+      iv[0] = 0;
+      iv[1] = 0;
+      iv[2] = 0;
+      iv[3] = 0;
+
+      int eapol_left;
+      int eapol_idx;
+
+      for (eapol_left = wpa_eapol->eapol_len, eapol_idx = 0; eapol_left > 16; eapol_left -= 16, eapol_idx += 4)
+      {
+        m[0] = wpa_eapol->eapol[eapol_idx + 0] ^ iv[0];
+        m[1] = wpa_eapol->eapol[eapol_idx + 1] ^ iv[1];
+        m[2] = wpa_eapol->eapol[eapol_idx + 2] ^ iv[2];
+        m[3] = wpa_eapol->eapol[eapol_idx + 3] ^ iv[3];
+
+        aes128_encrypt (ks, m, iv, s_te0, s_te1, s_te2, s_te3, s_te4);
+      }
+
+      m[0] = wpa_eapol->eapol[eapol_idx + 0];
+      m[1] = wpa_eapol->eapol[eapol_idx + 1];
+      m[2] = wpa_eapol->eapol[eapol_idx + 2];
+      m[3] = wpa_eapol->eapol[eapol_idx + 3];
+
+      u32 k[4];
+
+      k[0] = 0;
+      k[1] = 0;
+      k[2] = 0;
+      k[3] = 0;
+
+      aes128_encrypt (ks, k, k, s_te0, s_te1, s_te2, s_te3, s_te4);
+
+      make_kn (k);
+
+      if (eapol_left < 16)
+      {
+        make_kn (k);
+      }
+
+      m[0] ^= k[0];
+      m[1] ^= k[1];
+      m[2] ^= k[2];
+      m[3] ^= k[3];
+
+      m[0] ^= iv[0];
+      m[1] ^= iv[1];
+      m[2] ^= iv[2];
+      m[3] ^= iv[3];
+
+      u32 keymic[4];
+
+      keymic[0] = 0;
+      keymic[1] = 0;
+      keymic[2] = 0;
+      keymic[3] = 0;
+
+      aes128_encrypt (ks, m, keymic, s_te0, s_te1, s_te2, s_te3, s_te4);
+
+      /**
+       * final compare
+       */
+
+      if ((keymic[0] == wpa_eapol->keymic[0])
+       && (keymic[1] == wpa_eapol->keymic[1])
+       && (keymic[2] == wpa_eapol->keymic[2])
+       && (keymic[3] == wpa_eapol->keymic[3]))
+      {
+        if (atomic_inc (&hashes_shown[digest_cur]) == 0)
+        {
+          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
+        }
       }
     }
   }
