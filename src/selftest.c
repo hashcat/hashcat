@@ -324,6 +324,10 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   // main : run the kernel
 
+  const u32 spin_damp_sav = device_param->spin_damp;
+
+  device_param->spin_damp = 0;
+
   if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
     if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
@@ -383,7 +387,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     salt_t *salt_buf = &hashes->st_salts_buf[salt_pos];
 
-    const u32 loop_step = hashconfig->kernel_loops_max;
+    const u32 loop_step = hashconfig->kernel_loops_min + ((hashconfig->kernel_loops_max - hashconfig->kernel_loops_min) / 32);
 
     const u32 iter = salt_buf->salt_iter;
 
@@ -481,6 +485,8 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
       if (CL_rc == -1) return -1;
     }
   }
+
+  device_param->spin_damp = spin_damp_sav;
 
   // check : check if cracked
 
