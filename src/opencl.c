@@ -592,7 +592,7 @@ int ocl_init (hashcat_ctx_t *hashcat_ctx)
     #endif
 
     event_log_warning (hashcat_ctx, "* NVIDIA GPUs require this runtime and/or driver:");
-    event_log_warning (hashcat_ctx, "  \"NVIDIA Driver\" (367.x or later)");
+    event_log_warning (hashcat_ctx, "  \"NVIDIA Driver\" (418.56 or later)");
     event_log_warning (hashcat_ctx, NULL);
 
     return -1;
@@ -3060,7 +3060,7 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
     #endif
 
     event_log_warning (hashcat_ctx, "* NVIDIA GPUs require this runtime and/or driver:");
-    event_log_warning (hashcat_ctx, "  \"NVIDIA Driver\" (367.x or later)");
+    event_log_warning (hashcat_ctx, "  \"NVIDIA Driver\" (418.56 or later)");
     event_log_warning (hashcat_ctx, NULL);
 
     FREE_OPENCL_CTX_ON_ERROR;
@@ -3861,7 +3861,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
               if (intel_warn == true)
               {
-                event_log_error (hashcat_ctx, "* Device #%u: Outdated or broken Intel OpenCL runtime detected!", device_id + 1);
+                event_log_error (hashcat_ctx, "* Device #%u: Outdated or broken Intel OpenCL runtime '%s' detected!", device_id + 1, device_param->driver_version);
 
                 event_log_warning (hashcat_ctx, "You are STRONGLY encouraged to use the officially supported NVIDIA driver.");
                 event_log_warning (hashcat_ctx, "See hashcat.net for officially supported NVIDIA drivers.");
@@ -3899,7 +3899,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
               if (amd_warn == true)
               {
-                event_log_error (hashcat_ctx, "* Device #%u: Outdated or broken AMD driver detected!", device_id + 1);
+                event_log_error (hashcat_ctx, "* Device #%u: Outdated or broken AMD driver '%s' detected!", device_id + 1, device_param->driver_version);
 
                 event_log_warning (hashcat_ctx, "You are STRONGLY encouraged to use the officially supported AMD driver.");
                 event_log_warning (hashcat_ctx, "See hashcat.net for officially supported AMD drivers.");
@@ -3915,12 +3915,42 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
             {
               int nv_warn = true;
 
-              // nvidia driver 367.x and higher
-              if (strtoul (device_param->driver_version, NULL, 10) >= 367) nv_warn = false;
+              int version_maj = 0;
+              int version_min = 0;
+
+              const int r = sscanf (device_param->driver_version, "%d.%d", &version_maj, &version_min);
+
+              if (r == 2)
+              {
+                if (version_maj >= 367)
+                {
+                  if (version_maj == 418)
+                  {
+                    // older 418.x versions are known to be broken.
+                    // for instance, NVIDIA-Linux-x86_64-418.43.run
+                    // run ./hashcat -b -m 2501 results in self-test fail
+
+                    if (version_min >= 56)
+                    {
+                      nv_warn = false;
+                    }
+                  }
+                  else
+                  {
+                    nv_warn = false;
+                  }
+                }
+              }
+              else
+              {
+                // unknown version scheme, probably new driver version
+
+                nv_warn = false;
+              }
 
               if (nv_warn == true)
               {
-                event_log_error (hashcat_ctx, "* Device #%u: Outdated or broken NVIDIA driver detected!", device_id + 1);
+                event_log_error (hashcat_ctx, "* Device #%u: Outdated or broken NVIDIA driver '%s' detected!", device_id + 1, device_param->driver_version);
 
                 event_log_warning (hashcat_ctx, "You are STRONGLY encouraged to use the officially supported NVIDIA driver.");
                 event_log_warning (hashcat_ctx, "See hashcat's homepage for officially supported NVIDIA drivers.");
