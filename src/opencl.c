@@ -357,7 +357,7 @@ static bool test_instruction (hashcat_ctx_t *hashcat_ctx, cl_context context, cl
   #endif
   #endif
 
-  CL_rc = ocl->clBuildProgram (program, 1, &device, "-cl-std=CL1.2 -Werror", NULL, NULL); // do not use the wrapper to avoid the error message
+  CL_rc = ocl->clBuildProgram (program, 1, &device, "-cl-std=CL1.0 -Werror", NULL, NULL); // do not use the wrapper to avoid the error message
 
   #ifndef DEBUG
   #ifndef _WIN

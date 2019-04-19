@@ -59,8 +59,7 @@ ERRORS=$((ERRORS+$?))
 
 pip2 install pygost pycryptoplus
 
-# is this needed for pycryptoplus ?
-# pip2 uninstall pycryptodome
+pip2 -y uninstall pycryptodome
 
 ERRORS=$((ERRORS+$?))
 
