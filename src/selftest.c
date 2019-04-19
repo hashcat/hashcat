@@ -324,7 +324,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   // main : run the kernel
 
-  const u32 spin_damp_sav = device_param->spin_damp;
+  const double spin_damp_sav = device_param->spin_damp;
 
   device_param->spin_damp = 0;
 
