@@ -52,6 +52,11 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
     hc_asprintf (&jit_build_options, "-D NO_UNROLL");
   }
 
+  if (device_param->device_vendor_id == VENDOR_ID_AMD)
+  {
+    hc_asprintf (&jit_build_options, "-D NO_UNROLL");
+  }
+
   return jit_build_options;
 }
 
