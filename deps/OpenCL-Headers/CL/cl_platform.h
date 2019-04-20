@@ -67,101 +67,56 @@ extern "C" {
 #define CL_API_SUFFIX__VERSION_2_2
 #define CL_EXT_SUFFIX__VERSION_2_2
 
+
 #ifdef __GNUC__
-    #ifdef CL_USE_DEPRECATED_OPENCL_1_0_APIS
-        #define CL_EXT_SUFFIX__VERSION_1_0_DEPRECATED
-        #define CL_EXT_PREFIX__VERSION_1_0_DEPRECATED
-    #else
-        #define CL_EXT_SUFFIX__VERSION_1_0_DEPRECATED __attribute__((deprecated))
-        #define CL_EXT_PREFIX__VERSION_1_0_DEPRECATED
-    #endif
-
-    #ifdef CL_USE_DEPRECATED_OPENCL_1_1_APIS
-        #define CL_EXT_SUFFIX__VERSION_1_1_DEPRECATED
-        #define CL_EXT_PREFIX__VERSION_1_1_DEPRECATED
-    #else
-        #define CL_EXT_SUFFIX__VERSION_1_1_DEPRECATED __attribute__((deprecated))
-        #define CL_EXT_PREFIX__VERSION_1_1_DEPRECATED
-    #endif
-
-    #ifdef CL_USE_DEPRECATED_OPENCL_1_2_APIS
-        #define CL_EXT_SUFFIX__VERSION_1_2_DEPRECATED
-        #define CL_EXT_PREFIX__VERSION_1_2_DEPRECATED
-    #else
-        #define CL_EXT_SUFFIX__VERSION_1_2_DEPRECATED __attribute__((deprecated))
-        #define CL_EXT_PREFIX__VERSION_1_2_DEPRECATED
-     #endif
-
-    #ifdef CL_USE_DEPRECATED_OPENCL_2_0_APIS
-        #define CL_EXT_SUFFIX__VERSION_2_0_DEPRECATED
-        #define CL_EXT_PREFIX__VERSION_2_0_DEPRECATED
-    #else
-        #define CL_EXT_SUFFIX__VERSION_2_0_DEPRECATED __attribute__((deprecated))
-        #define CL_EXT_PREFIX__VERSION_2_0_DEPRECATED
-    #endif
-
-    #ifdef CL_USE_DEPRECATED_OPENCL_2_1_APIS
-        #define CL_EXT_SUFFIX__VERSION_2_1_DEPRECATED
-        #define CL_EXT_PREFIX__VERSION_2_1_DEPRECATED
-    #else
-        #define CL_EXT_SUFFIX__VERSION_2_1_DEPRECATED __attribute__((deprecated))
-        #define CL_EXT_PREFIX__VERSION_2_1_DEPRECATED
-    #endif
+  #define CL_EXT_SUFFIX_DEPRECATED __attribute__((deprecated))
+  #define CL_EXT_PREFIX_DEPRECATED
 #elif defined(_WIN32)
-    #ifdef CL_USE_DEPRECATED_OPENCL_1_0_APIS
-        #define CL_EXT_SUFFIX__VERSION_1_0_DEPRECATED
-        #define CL_EXT_PREFIX__VERSION_1_0_DEPRECATED
-    #else
-        #define CL_EXT_SUFFIX__VERSION_1_0_DEPRECATED
-        #define CL_EXT_PREFIX__VERSION_1_0_DEPRECATED __declspec(deprecated)
-    #endif
-
-    #ifdef CL_USE_DEPRECATED_OPENCL_1_1_APIS
-        #define CL_EXT_SUFFIX__VERSION_1_1_DEPRECATED
-        #define CL_EXT_PREFIX__VERSION_1_1_DEPRECATED
-    #else
-        #define CL_EXT_SUFFIX__VERSION_1_1_DEPRECATED
-        #define CL_EXT_PREFIX__VERSION_1_1_DEPRECATED __declspec(deprecated)
-    #endif
-
-    #ifdef CL_USE_DEPRECATED_OPENCL_1_2_APIS
-        #define CL_EXT_SUFFIX__VERSION_1_2_DEPRECATED
-        #define CL_EXT_PREFIX__VERSION_1_2_DEPRECATED
-    #else
-        #define CL_EXT_SUFFIX__VERSION_1_2_DEPRECATED
-        #define CL_EXT_PREFIX__VERSION_1_2_DEPRECATED __declspec(deprecated)
-    #endif
-
-    #ifdef CL_USE_DEPRECATED_OPENCL_2_0_APIS
-        #define CL_EXT_SUFFIX__VERSION_2_0_DEPRECATED
-        #define CL_EXT_PREFIX__VERSION_2_0_DEPRECATED
-    #else
-        #define CL_EXT_SUFFIX__VERSION_2_0_DEPRECATED
-        #define CL_EXT_PREFIX__VERSION_2_0_DEPRECATED __declspec(deprecated)
-    #endif
-
-    #ifdef CL_USE_DEPRECATED_OPENCL_2_1_APIS
-        #define CL_EXT_SUFFIX__VERSION_2_1_DEPRECATED
-        #define CL_EXT_PREFIX__VERSION_2_1_DEPRECATED
-    #else
-        #define CL_EXT_SUFFIX__VERSION_2_1_DEPRECATED
-        #define CL_EXT_PREFIX__VERSION_2_1_DEPRECATED __declspec(deprecated)
-    #endif
+  #define CL_EXT_SUFFIX_DEPRECATED
+  #define CL_EXT_PREFIX_DEPRECATED __declspec(deprecated)
 #else
+  #define CL_EXT_SUFFIX_DEPRECATED
+  #define CL_EXT_PREFIX_DEPRECATED
+#endif
+
+#ifdef CL_USE_DEPRECATED_OPENCL_1_0_APIS
     #define CL_EXT_SUFFIX__VERSION_1_0_DEPRECATED
     #define CL_EXT_PREFIX__VERSION_1_0_DEPRECATED
+#else
+    #define CL_EXT_SUFFIX__VERSION_1_0_DEPRECATED CL_EXT_SUFFIX_DEPRECATED
+    #define CL_EXT_PREFIX__VERSION_1_0_DEPRECATED CL_EXT_PREFIX_DEPRECATED
+#endif
 
+#ifdef CL_USE_DEPRECATED_OPENCL_1_1_APIS
     #define CL_EXT_SUFFIX__VERSION_1_1_DEPRECATED
     #define CL_EXT_PREFIX__VERSION_1_1_DEPRECATED
+#else
+    #define CL_EXT_SUFFIX__VERSION_1_1_DEPRECATED CL_EXT_SUFFIX_DEPRECATED
+    #define CL_EXT_PREFIX__VERSION_1_1_DEPRECATED CL_EXT_PREFIX_DEPRECATED
+#endif
 
+#ifdef CL_USE_DEPRECATED_OPENCL_1_2_APIS
     #define CL_EXT_SUFFIX__VERSION_1_2_DEPRECATED
     #define CL_EXT_PREFIX__VERSION_1_2_DEPRECATED
+#else
+    #define CL_EXT_SUFFIX__VERSION_1_2_DEPRECATED CL_EXT_SUFFIX_DEPRECATED
+    #define CL_EXT_PREFIX__VERSION_1_2_DEPRECATED CL_EXT_PREFIX_DEPRECATED
+ #endif
 
+#ifdef CL_USE_DEPRECATED_OPENCL_2_0_APIS
     #define CL_EXT_SUFFIX__VERSION_2_0_DEPRECATED
     #define CL_EXT_PREFIX__VERSION_2_0_DEPRECATED
+#else
+    #define CL_EXT_SUFFIX__VERSION_2_0_DEPRECATED CL_EXT_SUFFIX_DEPRECATED
+    #define CL_EXT_PREFIX__VERSION_2_0_DEPRECATED CL_EXT_PREFIX_DEPRECATED
+#endif
 
+#ifdef CL_USE_DEPRECATED_OPENCL_2_1_APIS
     #define CL_EXT_SUFFIX__VERSION_2_1_DEPRECATED
     #define CL_EXT_PREFIX__VERSION_2_1_DEPRECATED
+#else
+    #define CL_EXT_SUFFIX__VERSION_2_1_DEPRECATED CL_EXT_SUFFIX_DEPRECATED
+    #define CL_EXT_PREFIX__VERSION_2_1_DEPRECATED CL_EXT_PREFIX_DEPRECATED
 #endif
 
 #if (defined (_WIN32) && defined(_MSC_VER))
@@ -271,16 +226,16 @@ typedef double                  cl_double;
 /* scalar types  */
 typedef int8_t          cl_char;
 typedef uint8_t         cl_uchar;
-typedef int16_t         cl_short    __attribute__((aligned(2)));
-typedef uint16_t        cl_ushort   __attribute__((aligned(2)));
-typedef int32_t         cl_int      __attribute__((aligned(4)));
-typedef uint32_t        cl_uint     __attribute__((aligned(4)));
-typedef int64_t         cl_long     __attribute__((aligned(8)));
-typedef uint64_t        cl_ulong    __attribute__((aligned(8)));
+typedef int16_t         cl_short;
+typedef uint16_t        cl_ushort;
+typedef int32_t         cl_int;
+typedef uint32_t        cl_uint;
+typedef int64_t         cl_long;
+typedef uint64_t        cl_ulong;
 
-typedef uint16_t        cl_half     __attribute__((aligned(2)));
-typedef float           cl_float    __attribute__((aligned(4)));
-typedef double          cl_double   __attribute__((aligned(8)));
+typedef uint16_t        cl_half;
+typedef float           cl_float;
+typedef double          cl_double;
 
 /* Macro names and corresponding values defined by OpenCL */
 #define CL_CHAR_BIT         8
@@ -401,13 +356,13 @@ typedef unsigned int cl_GLenum;
 /* Define basic vector types */
 #if defined( __VEC__ )
    #include <altivec.h>   /* may be omitted depending on compiler. AltiVec spec provides no way to detect whether the header is required. */
-   typedef vector unsigned char     __cl_uchar16;
-   typedef vector signed char       __cl_char16;
-   typedef vector unsigned short    __cl_ushort8;
-   typedef vector signed short      __cl_short8;
-   typedef vector unsigned int      __cl_uint4;
-   typedef vector signed int        __cl_int4;
-   typedef vector float             __cl_float4;
+   typedef __vector unsigned char     __cl_uchar16;
+   typedef __vector signed char       __cl_char16;
+   typedef __vector unsigned short    __cl_ushort8;
+   typedef __vector signed short      __cl_short8;
+   typedef __vector unsigned int      __cl_uint4;
+   typedef __vector signed int        __cl_int4;
+   typedef __vector float             __cl_float4;
    #define  __CL_UCHAR16__  1
    #define  __CL_CHAR16__   1
    #define  __CL_USHORT8__  1

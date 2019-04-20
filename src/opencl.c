@@ -741,13 +741,13 @@ int hc_clSetKernelArg (hashcat_ctx_t *hashcat_ctx, cl_kernel kernel, cl_uint arg
   return 0;
 }
 
-int hc_clEnqueueWriteBuffer (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue, cl_mem buffer, cl_bool blocking_write, size_t offset, size_t cb, const void *ptr, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event)
+int hc_clEnqueueWriteBuffer (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue, cl_mem buffer, cl_bool blocking_write, size_t offset, size_t size, const void *ptr, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event)
 {
   opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
 
   OCL_PTR *ocl = opencl_ctx->ocl;
 
-  const cl_int CL_err = ocl->clEnqueueWriteBuffer (command_queue, buffer, blocking_write, offset, cb, ptr, num_events_in_wait_list, event_wait_list, event);
+  const cl_int CL_err = ocl->clEnqueueWriteBuffer (command_queue, buffer, blocking_write, offset, size, ptr, num_events_in_wait_list, event_wait_list, event);
 
   if (CL_err != CL_SUCCESS)
   {
@@ -759,13 +759,13 @@ int hc_clEnqueueWriteBuffer (hashcat_ctx_t *hashcat_ctx, cl_command_queue comman
   return 0;
 }
 
-int hc_clEnqueueCopyBuffer (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue, cl_mem src_buffer, cl_mem dst_buffer, size_t src_offset, size_t dst_offset, size_t cb, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event)
+int hc_clEnqueueCopyBuffer (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue, cl_mem src_buffer, cl_mem dst_buffer, size_t src_offset, size_t dst_offset, size_t size, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event)
 {
   opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
 
   OCL_PTR *ocl = opencl_ctx->ocl;
 
-  const cl_int CL_err = ocl->clEnqueueCopyBuffer (command_queue, src_buffer, dst_buffer, src_offset, dst_offset, cb, num_events_in_wait_list, event_wait_list, event);
+  const cl_int CL_err = ocl->clEnqueueCopyBuffer (command_queue, src_buffer, dst_buffer, src_offset, dst_offset, size, num_events_in_wait_list, event_wait_list, event);
 
   if (CL_err != CL_SUCCESS)
   {
@@ -777,13 +777,13 @@ int hc_clEnqueueCopyBuffer (hashcat_ctx_t *hashcat_ctx, cl_command_queue command
   return 0;
 }
 
-int hc_clEnqueueReadBuffer (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue, cl_mem buffer, cl_bool blocking_read, size_t offset, size_t cb, void *ptr, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event)
+int hc_clEnqueueReadBuffer (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue, cl_mem buffer, cl_bool blocking_read, size_t offset, size_t size, void *ptr, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event)
 {
   opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
 
   OCL_PTR *ocl = opencl_ctx->ocl;
 
-  const cl_int CL_err = ocl->clEnqueueReadBuffer (command_queue, buffer, blocking_read, offset, cb, ptr, num_events_in_wait_list, event_wait_list, event);
+  const cl_int CL_err = ocl->clEnqueueReadBuffer (command_queue, buffer, blocking_read, offset, size, ptr, num_events_in_wait_list, event_wait_list, event);
 
   if (CL_err != CL_SUCCESS)
   {
@@ -867,7 +867,7 @@ int hc_clGetDeviceInfo (hashcat_ctx_t *hashcat_ctx, cl_device_id device, cl_devi
   return 0;
 }
 
-int hc_clCreateContext (hashcat_ctx_t *hashcat_ctx, cl_context_properties *properties, cl_uint num_devices, const cl_device_id *devices, void (CL_CALLBACK *pfn_notify) (const char *, const void *, size_t, void *), void *user_data, cl_context *context)
+int hc_clCreateContext (hashcat_ctx_t *hashcat_ctx, const cl_context_properties *properties, cl_uint num_devices, const cl_device_id *devices, void (CL_CALLBACK *pfn_notify) (const char *errinfo, const void *private_info, size_t cb, void *user_data), void *user_data, cl_context *context)
 {
   opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
 
@@ -947,7 +947,7 @@ int hc_clCreateProgramWithSource (hashcat_ctx_t *hashcat_ctx, cl_context context
   return 0;
 }
 
-int hc_clCreateProgramWithBinary (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_uint num_devices, const cl_device_id *device_list, const size_t *lengths, unsigned char **binaries, cl_int *binary_status, cl_program *program)
+int hc_clCreateProgramWithBinary (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_uint num_devices, const cl_device_id *device_list, const size_t *lengths, const unsigned char **binaries, cl_int *binary_status, cl_program *program)
 {
   opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
 
@@ -5181,7 +5181,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (rc_read_kernel == false) return -1;
 
-        CL_rc = hc_clCreateProgramWithBinary (hashcat_ctx, device_param->context, 1, &device_param->device, kernel_lengths, (unsigned char **) kernel_sources, NULL, &device_param->program);
+        CL_rc = hc_clCreateProgramWithBinary (hashcat_ctx, device_param->context, 1, &device_param->device, kernel_lengths, (const unsigned char **) kernel_sources, NULL, &device_param->program);
 
         if (CL_rc == -1) return -1;
 
@@ -5333,7 +5333,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (rc_read_kernel == false) return -1;
 
-          CL_rc = hc_clCreateProgramWithBinary (hashcat_ctx, device_param->context, 1, &device_param->device, kernel_lengths, (unsigned char **) kernel_sources, NULL, &device_param->program_mp);
+          CL_rc = hc_clCreateProgramWithBinary (hashcat_ctx, device_param->context, 1, &device_param->device, kernel_lengths, (const unsigned char **) kernel_sources, NULL, &device_param->program_mp);
 
           if (CL_rc == -1) return -1;
 
@@ -5488,7 +5488,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (rc_read_kernel == false) return -1;
 
-          CL_rc = hc_clCreateProgramWithBinary (hashcat_ctx, device_param->context, 1, &device_param->device, kernel_lengths, (unsigned char **) kernel_sources, NULL, &device_param->program_amp);
+          CL_rc = hc_clCreateProgramWithBinary (hashcat_ctx, device_param->context, 1, &device_param->device, kernel_lengths, (const unsigned char **) kernel_sources, NULL, &device_param->program_amp);
 
           if (CL_rc == -1) return -1;
 
