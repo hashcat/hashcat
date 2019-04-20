@@ -67,6 +67,7 @@
 - Binary Distribution: Removed 32 bit binary executables
 - Keep Guessing: No longer automatically activate --keep-guessing for modes 9720, 9820, 14900 and 18100
 - Kernel Cache: Reactivate OpenCL runtime specific kernel caches
+- Kernel Compile: Removed -cl-std= from all kernel build options since we're compatible to all OpenCL versions
 - Mode 16800/16801 hash format: Changed separator character from '*' to ':'
 - Requirements: Update runtime check for minimum NVIDIA driver version from 367.x to 418.56 or later
 
