@@ -295,12 +295,6 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
     }
   }
 
-  // amdgpu-pro-18.50-708488-ubuntu-18.04:  self-test failed.
-  if ((device_param->device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
-  {
-    return true;
-  }
-
   return false;
 }
 
@@ -308,10 +302,7 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 {
   char *jit_build_options = NULL;
 
-  if (device_param->device_vendor_id == VENDOR_ID_NV)
-  {
-    hc_asprintf (&jit_build_options, "-D NO_UNROLL");
-  }
+  hc_asprintf (&jit_build_options, "-D NO_UNROLL");
 
   return jit_build_options;
 }
