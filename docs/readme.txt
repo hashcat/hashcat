@@ -122,13 +122,16 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later)
 - NetNTLMv1+ESS
 - NetNTLMv2
 - IPMI2 RAKP HMAC-SHA1
-- Kerberos 5 AS-REQ Pre-Auth etype 23
+- Kerberos 5 AS-REQ Pre-Auth etype 23            
+- Kerberos 5 AS-REP etype 23                     
+- Kerberos 5 TGS-REP etype 23 (RC4-HMAC-MD5)       
+- Kerberos 5 Pre-Auth etype 17/18 (AES128-CTS-HMAC-SHA1-96)
+- Kerberos 5 TGS-REP etype 17/18 (AES128-CTS-HMAC-SHA1-96)
 - DNSSEC (NSEC3)
 - CRAM-MD5
 - PostgreSQL CRAM (MD5)
 - MySQL CRAM (SHA1)
 - SIP digest authentication (MD5)
-- Kerberos 5 TGS-REP etype 23
 - TACACS+
 - JWT (JSON Web Token)
 - SMF (Simple Machines Forum) > v1.1
@@ -266,7 +269,6 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later)
 - Ethereum Wallet, SCRYPT
 - Ethereum Pre-Sale Wallet, PBKDF2-HMAC-SHA256
 - Ansible Vault
-- Kerberos 5 AS-REP etype 23
 - Plaintext
 
 ##

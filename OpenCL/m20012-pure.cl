@@ -91,7 +91,7 @@ DECLSPEC void hmac_sha512_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w
   sha512_transform_vector (w0, w1, w2, w3, w4, w5, w6, w7, digest);
 }
 
-KERNEL_FQ void m19812_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcryptor_esalt_t))
+KERNEL_FQ void m20012_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcryptor_esalt_t))
 {
   /**
    * base
@@ -195,7 +195,7 @@ KERNEL_FQ void m19812_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcrypt
   }
 }
 
-KERNEL_FQ void m19812_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcryptor_esalt_t))
+KERNEL_FQ void m20012_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcryptor_esalt_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -321,7 +321,7 @@ KERNEL_FQ void m19812_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcrypt
   }
 }
 
-KERNEL_FQ void m19812_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcryptor_esalt_t))
+KERNEL_FQ void m20012_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcryptor_esalt_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);

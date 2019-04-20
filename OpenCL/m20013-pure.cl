@@ -91,7 +91,7 @@ DECLSPEC void hmac_sha512_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w
   sha512_transform_vector (w0, w1, w2, w3, w4, w5, w6, w7, digest);
 }
 
-KERNEL_FQ void m19811_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcryptor_esalt_t))
+KERNEL_FQ void m20013_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcryptor_esalt_t))
 {
   /**
    * base
@@ -125,7 +125,7 @@ KERNEL_FQ void m19811_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcrypt
 
   sha512_hmac_update_global_swap (&sha512_hmac_ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
 
-  for (u32 i = 0, j = 1; i < 8; i += 8, j += 1)
+  for (u32 i = 0, j = 1; i < 24; i += 8, j += 1)
   {
     sha512_hmac_ctx_t sha512_hmac_ctx2 = sha512_hmac_ctx;
 
@@ -195,7 +195,7 @@ KERNEL_FQ void m19811_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcrypt
   }
 }
 
-KERNEL_FQ void m19811_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcryptor_esalt_t))
+KERNEL_FQ void m20013_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcryptor_esalt_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -222,7 +222,7 @@ KERNEL_FQ void m19811_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcrypt
   opad[6] = pack64v (tmps, opad, gid, 6);
   opad[7] = pack64v (tmps, opad, gid, 7);
 
-  for (u32 i = 0; i < 8; i += 8)
+  for (u32 i = 0; i < 24; i += 8)
   {
     u64x dgst[8];
     u64x out[8];
@@ -321,7 +321,7 @@ KERNEL_FQ void m19811_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcrypt
   }
 }
 
-KERNEL_FQ void m19811_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcryptor_esalt_t))
+KERNEL_FQ void m20013_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcryptor_esalt_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -421,6 +421,90 @@ KERNEL_FQ void m19811_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcrypt
   }
 
   if (dcrp_verify_header_twofish (digests_buf[digests_offset].digest_buf, ukey1, ukey2) == 1)
+  {
+    if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+    {
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset, gid, il_pos, 0, 0);
+    }
+  }
+
+  u32 ukey3[8];
+
+  ukey3[0] = hc_swap32_S (h32_from_64_S (tmps[gid].out[ 8]));
+  ukey3[1] = hc_swap32_S (l32_from_64_S (tmps[gid].out[ 8]));
+  ukey3[2] = hc_swap32_S (h32_from_64_S (tmps[gid].out[ 9]));
+  ukey3[3] = hc_swap32_S (l32_from_64_S (tmps[gid].out[ 9]));
+  ukey3[4] = hc_swap32_S (h32_from_64_S (tmps[gid].out[10]));
+  ukey3[5] = hc_swap32_S (l32_from_64_S (tmps[gid].out[10]));
+  ukey3[6] = hc_swap32_S (h32_from_64_S (tmps[gid].out[11]));
+  ukey3[7] = hc_swap32_S (l32_from_64_S (tmps[gid].out[11]));
+
+  u32 ukey4[8];
+
+  ukey4[0] = hc_swap32_S (h32_from_64_S (tmps[gid].out[12]));
+  ukey4[1] = hc_swap32_S (l32_from_64_S (tmps[gid].out[12]));
+  ukey4[2] = hc_swap32_S (h32_from_64_S (tmps[gid].out[13]));
+  ukey4[3] = hc_swap32_S (l32_from_64_S (tmps[gid].out[13]));
+  ukey4[4] = hc_swap32_S (h32_from_64_S (tmps[gid].out[14]));
+  ukey4[5] = hc_swap32_S (l32_from_64_S (tmps[gid].out[14]));
+  ukey4[6] = hc_swap32_S (h32_from_64_S (tmps[gid].out[15]));
+  ukey4[7] = hc_swap32_S (l32_from_64_S (tmps[gid].out[15]));
+
+  if (dcrp_verify_header_aes_twofish (digests_buf[digests_offset].digest_buf, ukey1, ukey2, ukey3, ukey4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
+  {
+    if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+    {
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset, gid, il_pos, 0, 0);
+    }
+  }
+
+  if (dcrp_verify_header_serpent_aes (digests_buf[digests_offset].digest_buf, ukey1, ukey2, ukey3, ukey4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
+  {
+    if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+    {
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset, gid, il_pos, 0, 0);
+    }
+  }
+
+  if (dcrp_verify_header_twofish_serpent (digests_buf[digests_offset].digest_buf, ukey1, ukey2, ukey3, ukey4) == 1)
+  {
+    if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+    {
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset, gid, il_pos, 0, 0);
+    }
+  }
+
+  u32 ukey5[8];
+
+  ukey5[0] = hc_swap32_S (h32_from_64_S (tmps[gid].out[16]));
+  ukey5[1] = hc_swap32_S (l32_from_64_S (tmps[gid].out[16]));
+  ukey5[2] = hc_swap32_S (h32_from_64_S (tmps[gid].out[17]));
+  ukey5[3] = hc_swap32_S (l32_from_64_S (tmps[gid].out[17]));
+  ukey5[4] = hc_swap32_S (h32_from_64_S (tmps[gid].out[18]));
+  ukey5[5] = hc_swap32_S (l32_from_64_S (tmps[gid].out[18]));
+  ukey5[6] = hc_swap32_S (h32_from_64_S (tmps[gid].out[19]));
+  ukey5[7] = hc_swap32_S (l32_from_64_S (tmps[gid].out[19]));
+
+  u32 ukey6[8];
+
+  ukey6[0] = hc_swap32_S (h32_from_64_S (tmps[gid].out[20]));
+  ukey6[1] = hc_swap32_S (l32_from_64_S (tmps[gid].out[20]));
+  ukey6[2] = hc_swap32_S (h32_from_64_S (tmps[gid].out[21]));
+  ukey6[3] = hc_swap32_S (l32_from_64_S (tmps[gid].out[21]));
+  ukey6[4] = hc_swap32_S (h32_from_64_S (tmps[gid].out[22]));
+  ukey6[5] = hc_swap32_S (l32_from_64_S (tmps[gid].out[22]));
+  ukey6[6] = hc_swap32_S (h32_from_64_S (tmps[gid].out[23]));
+  ukey6[7] = hc_swap32_S (l32_from_64_S (tmps[gid].out[23]));
+
+  if (dcrp_verify_header_aes_twofish_serpent (digests_buf[digests_offset].digest_buf, ukey1, ukey2, ukey3, ukey4, ukey5, ukey6, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
+  {
+    if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+    {
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset, gid, il_pos, 0, 0);
+    }
+  }
+
+  if (dcrp_verify_header_serpent_twofish_aes (digests_buf[digests_offset].digest_buf, ukey1, ukey2, ukey3, ukey4, ukey5, ukey6, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
   {
     if (atomic_inc (&hashes_shown[digests_offset]) == 0)
     {

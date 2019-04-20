@@ -17,7 +17,7 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_4;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_NETWORK_PROTOCOL;
-static const char *HASH_NAME      = "Kerberos 5 Pre-Auth etype 18 (AES256-CTS-HMAC-SHA1-96)";
+static const char *HASH_NAME      = "Kerberos 5, etype 18, Pre-Auth";
 static const u64   KERN_TYPE      = 19900;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_NOT_ITERATED
@@ -161,7 +161,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   memcpy(account_info_ptr + domain_len, user_pos, user_len);
 
   krb5pa->account_info_len = account_info_len;
-  
+
   // Split checksum
   checksum_pos = data_pos + data_len - 24;
   data_len = data_len - 24;
