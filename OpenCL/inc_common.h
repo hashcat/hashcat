@@ -118,20 +118,12 @@ DECLSPEC u64  hl32_to_64_S (const u32  a, const u32  b);
 // bit operations
 
 DECLSPEC u32x hc_rotl32   (const u32x a, const int n);
-DECLSPEC u32x hc_rotl32   (const u32x a, const int n);
-DECLSPEC u32x hc_rotr32   (const u32x a, const int n);
 DECLSPEC u32x hc_rotr32   (const u32x a, const int n);
 DECLSPEC u32  hc_rotl32_S (const u32  a, const int n);
-DECLSPEC u32  hc_rotl32_S (const u32  a, const int n);
-DECLSPEC u32  hc_rotr32_S (const u32  a, const int n);
 DECLSPEC u32  hc_rotr32_S (const u32  a, const int n);
 DECLSPEC u64x hc_rotl64   (const u64x a, const int n);
-DECLSPEC u64x hc_rotl64   (const u64x a, const int n);
-DECLSPEC u64x hc_rotr64   (const u64x a, const int n);
 DECLSPEC u64x hc_rotr64   (const u64x a, const int n);
 DECLSPEC u64  hc_rotl64_S (const u64  a, const int n);
-DECLSPEC u64  hc_rotl64_S (const u64  a, const int n);
-DECLSPEC u64  hc_rotr64_S (const u64  a, const int n);
 DECLSPEC u64  hc_rotr64_S (const u64  a, const int n);
 
 DECLSPEC u32x hc_swap32   (const u32x v);
