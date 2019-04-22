@@ -347,13 +347,11 @@ bool hc_path_has_bom (const char *path)
 {
   u8 buf[8] = { 0 };
 
-  FILE *fp = fopen (path, "rb");
+  FILE *fp _cleanup_fclose_ = fopen (path, "rb");
 
   if (fp == NULL) return false;
 
   const size_t nread = fread (buf, 1, sizeof (buf), fp);
-
-  fclose (fp);
 
   if (nread < 1) return false;
 
@@ -608,20 +606,13 @@ bool hc_same_files (char *file1, char *file2)
 
     int do_check = 0;
 
-    FILE *fp;
+    FILE *fp _cleanup_fclose_;
 
     fp = fopen (file1, "r");
 
     if (fp)
     {
-      if (fstat (fileno (fp), &tmpstat_file1))
-      {
-        fclose (fp);
-
-        return false;
-      }
-
-      fclose (fp);
+      if (fstat (fileno (fp), &tmpstat_file1)) return false;
 
       do_check++;
     }
@@ -630,14 +621,7 @@ bool hc_same_files (char *file1, char *file2)
 
     if (fp)
     {
-      if (fstat (fileno (fp), &tmpstat_file2))
-      {
-        fclose (fp);
-
-        return false;
-      }
-
-      fclose (fp);
+      if (fstat (fileno (fp), &tmpstat_file2)) return false;
 
       do_check++;
     }

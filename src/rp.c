@@ -733,7 +733,7 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
 
     char *rp_file = user_options->rp_files[i];
 
-    FILE *fp = NULL;
+    FILE *fp _cleanup_fclose_ = NULL;
 
     u32 rule_line = 0;
 
@@ -792,8 +792,6 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
 
       kernel_rules_cnt++;
     }
-
-    fclose (fp);
 
     all_kernel_rules_cnt[i] = kernel_rules_cnt;
     all_kernel_rules_buf[i] = kernel_rules_buf;

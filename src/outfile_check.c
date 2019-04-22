@@ -155,7 +155,7 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
     for (int j = 0; j < out_cnt; j++)
     {
-      FILE *fp = fopen (out_info[j].file_name, "rb");
+      FILE *fp _cleanup_fclose_ = fopen (out_info[j].file_name, "rb");
 
       if (fp == NULL) continue;
 
@@ -163,12 +163,7 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
       struct stat outfile_stat;
 
-      if (fstat (fileno (fp), &outfile_stat))
-      {
-        fclose (fp);
-
-        continue;
-      }
+      if (fstat (fileno (fp), &outfile_stat)) continue;
 
       if (outfile_stat.st_ctime > out_info[j].ctime)
       {
@@ -310,8 +305,6 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
       out_info[j].seek = ftello (fp);
 
       //hc_thread_mutex_unlock (status_ctx->mux_display);
-
-      fclose (fp);
 
       if (status_ctx->shutdown_inner == true) break;
     }

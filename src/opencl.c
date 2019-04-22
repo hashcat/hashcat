@@ -53,20 +53,13 @@ static int ocl_check_dri (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 
   // Now we need to check if this an AMD vendor, because this is when the problems start
 
-  FILE *fd_drm = fopen (drm_card0_vendor_path, "rb");
+  FILE *fd_drm _cleanup_fclose_ = fopen (drm_card0_vendor_path, "rb");
 
   if (fd_drm == NULL) return 0;
 
   u32 vendor = 0;
 
-  if (fscanf (fd_drm, "0x%x", &vendor) != 1)
-  {
-    fclose (fd_drm);
-
-    return 0;
-  }
-
-  fclose (fd_drm);
+  if (fscanf (fd_drm, "0x%x", &vendor) != 1) return 0;
 
   if (vendor != 4098) return 0;
 
@@ -84,7 +77,7 @@ static int ocl_check_dri (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 
   // Now do the real check
 
-  FILE *fd_dri = fopen (dri_card0_path, "rb");
+  FILE *fd_dri _cleanup_fclose_ = fopen (dri_card0_path, "rb");
 
   if (fd_dri == NULL)
   {
@@ -97,8 +90,6 @@ static int ocl_check_dri (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 
     return -1;
   }
-
-  fclose (fd_dri);
 
   #endif // __linux__
 
@@ -239,26 +230,19 @@ static bool setup_device_types_filter (hashcat_ctx_t *hashcat_ctx, const char *o
 
 static bool read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_file, size_t *kernel_lengths, char **kernel_sources, const bool force_recompile)
 {
-  FILE *fp = fopen (kernel_file, "rb");
+  FILE *fp _cleanup_fclose_ = fopen (kernel_file, "rb");
 
   if (fp != NULL)
   {
     struct stat st;
 
-    if (stat (kernel_file, &st))
-    {
-      fclose (fp);
-
-      return false;
-    }
+    if (stat (kernel_file, &st)) return false;
 
     #define EXTRASZ 100
 
     char *buf = (char *) hcmalloc (st.st_size + 1 + EXTRASZ);
 
     size_t num_read = hc_fread (buf, sizeof (char), st.st_size, fp);
-
-    fclose (fp);
 
     if (num_read != (size_t) st.st_size)
     {
@@ -302,7 +286,7 @@ static bool write_kernel_binary (hashcat_ctx_t *hashcat_ctx, char *kernel_file, 
 {
   if (binary_size > 0)
   {
-    FILE *fp = fopen (kernel_file, "wb");
+    FILE *fp _cleanup_fclose_ = fopen (kernel_file, "wb");
 
     if (fp == NULL)
     {
@@ -313,8 +297,6 @@ static bool write_kernel_binary (hashcat_ctx_t *hashcat_ctx, char *kernel_file, 
 
     if (lock_file (fp) == -1)
     {
-      fclose (fp);
-
       event_log_error (hashcat_ctx, "%s: %s", kernel_file, strerror (errno));
 
       return false;
@@ -323,8 +305,6 @@ static bool write_kernel_binary (hashcat_ctx_t *hashcat_ctx, char *kernel_file, 
     hc_fwrite (binary, sizeof (char), binary_size, fp);
 
     fflush (fp);
-
-    fclose (fp);
   }
 
   return true;

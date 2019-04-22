@@ -54,7 +54,7 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
 
   char *eff_restore_file = restore_ctx->eff_restore_file;
 
-  FILE *fp = fopen (eff_restore_file, "rb");
+  FILE *fp _cleanup_fclose_ = fopen (eff_restore_file, "rb");
 
   if (fp == NULL)
   {
@@ -69,8 +69,6 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
   {
     event_log_error (hashcat_ctx, "Cannot read %s", eff_restore_file);
 
-    fclose (fp);
-
     return -1;
   }
 
@@ -80,16 +78,12 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
   {
     event_log_error (hashcat_ctx, "Unusually low number of arguments (argc) within restore file %s", eff_restore_file);
 
-    fclose (fp);
-
     return -1;
   }
 
   if (rd->argc > 250) // some upper bound check is always good (with some dirs/dicts it could be a large string)
   {
     event_log_error (hashcat_ctx, "Unusually high number of arguments (argc) within restore file %s", eff_restore_file);
-
-    fclose (fp);
 
     return -1;
   }
@@ -104,8 +98,6 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
     {
       event_log_error (hashcat_ctx, "Cannot read %s", eff_restore_file);
 
-      fclose (fp);
-
       return -1;
     }
 
@@ -117,8 +109,6 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
   }
 
   hcfree (buf);
-
-  fclose (fp);
 
   if (hc_path_exist (rd->cwd) == false)
   {
@@ -203,7 +193,7 @@ static int write_restore (hashcat_ctx_t *hashcat_ctx)
 
   char *new_restore_file = restore_ctx->new_restore_file;
 
-  FILE *fp = fopen (new_restore_file, "wb");
+  FILE *fp _cleanup_fclose_ = fopen (new_restore_file, "wb");
 
   if (fp == NULL)
   {
@@ -215,8 +205,6 @@ static int write_restore (hashcat_ctx_t *hashcat_ctx)
   if (setvbuf (fp, NULL, _IONBF, 0))
   {
     event_log_error (hashcat_ctx, "setvbuf file '%s': %s", new_restore_file, strerror (errno));
-
-    fclose (fp);
 
     return -1;
   }
@@ -233,8 +221,6 @@ static int write_restore (hashcat_ctx_t *hashcat_ctx)
   fflush (fp);
 
   fsync (fileno (fp));
-
-  fclose (fp);
 
   rd->masks_pos = 0;
   rd->dicts_pos = 0;

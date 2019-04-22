@@ -582,7 +582,7 @@ static void mp_setup_sys (cs_t *mp_sys)
 
 static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr, const char *buf, const u32 userindex)
 {
-  FILE *fp = fopen (buf, "rb");
+  FILE *fp _cleanup_fclose_ = fopen (buf, "rb");
 
   if (fp == NULL) // feof() in case if file is empty
   {
@@ -600,12 +600,8 @@ static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr,
     {
       event_log_error (hashcat_ctx, "%s: Custom charset file is too large.", buf);
 
-      fclose (fp);
-
       return -1;
     }
-
-    fclose (fp);
 
     if (nread == 0)
     {
@@ -710,7 +706,7 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  FILE *fd = fopen (hcstat, "rb");
+  FILE *fd _cleanup_fclose_ = fopen (hcstat, "rb");
 
   if (fd == NULL)
   {
@@ -727,14 +723,10 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
   {
     event_log_error (hashcat_ctx, "%s: Could not read data.", hcstat);
 
-    fclose (fd);
-
     hcfree (inbuf);
 
     return -1;
   }
-
-  fclose (fd);
 
   u8 *outbuf = (u8 *) hcmalloc (SP_FILESZ);
 
@@ -1460,7 +1452,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
             if (hc_path_is_file (arg) == true)
             {
-              FILE *mask_fp = fopen (arg, "r");
+              FILE *mask_fp _cleanup_fclose_ = fopen (arg, "r");
 
               if (mask_fp == NULL)
               {
@@ -1494,17 +1486,12 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
                 const int rc = mask_append (hashcat_ctx, mask_buf, prepend_buf);
 
-                if (rc == -1)
-                {
-                  fclose (mask_fp);
+                if (rc == -1) return -1;
 
-                  return -1;
-                }
               }
 
               hcfree (line_buf);
 
-              fclose (mask_fp);
             }
             else
             {
@@ -1553,7 +1540,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
       {
         mask_ctx->mask_from_file = true;
 
-        FILE *mask_fp = fopen (arg, "r");
+        FILE *mask_fp _cleanup_fclose_ = fopen (arg, "r");
 
         if (mask_fp == NULL)
         {
@@ -1587,17 +1574,12 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
           const int rc = mask_append (hashcat_ctx, mask_buf, prepend_buf);
 
-          if (rc == -1)
-          {
-            fclose (mask_fp);
+          if (rc == -1) return -1;
 
-            return -1;
-          }
         }
 
         hcfree (line_buf);
 
-        fclose (mask_fp);
       }
       else
       {
@@ -1627,7 +1609,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
       {
         mask_ctx->mask_from_file = true;
 
-        FILE *mask_fp = fopen (arg, "r");
+        FILE *mask_fp _cleanup_fclose_ = fopen (arg, "r");
 
         if (mask_fp == NULL)
         {
@@ -1661,17 +1643,10 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
           const int rc = mask_append (hashcat_ctx, mask_buf, prepend_buf);
 
-          if (rc == -1)
-          {
-            fclose (mask_fp);
+          if (rc == -1) return -1;
 
-            return -1;
-          }
         }
-
         hcfree (line_buf);
-
-        fclose (mask_fp);
       }
       else
       {

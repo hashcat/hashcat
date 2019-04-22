@@ -94,4 +94,10 @@ int  generic_salt_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, const u8 
 
 int input_tokenizer (const u8 *input_buf, const int input_len, token_t *token);
 
+static inline void hc_fclose(FILE **f)
+{
+    fclose(*f);
+}
+
+#define _cleanup_fclose_ __attribute__((cleanup(hc_fclose)))
 #endif // _SHARED_H

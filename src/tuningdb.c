@@ -68,7 +68,7 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 
   hc_asprintf (&tuning_db_file, "%s/%s", folder_config->shared_dir, TUNING_DB_FILE);
 
-  FILE *fp = fopen (tuning_db_file, "rb");
+  FILE *fp _cleanup_fclose_ = fopen (tuning_db_file, "rb");
 
   if (fp == NULL)
   {
@@ -269,8 +269,6 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
   }
 
   hcfree (buf);
-
-  fclose (fp);
 
   // todo: print loaded 'cnt' message
 

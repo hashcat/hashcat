@@ -539,7 +539,7 @@ u64 brain_compute_attack_wordlist (const char *filename)
 
   char buf[FBUFSZ];
 
-  FILE *fd = fopen (filename, "rb");
+  FILE *fd _cleanup_fclose_ = fopen (filename, "rb");
 
   while (!feof (fd))
   {
@@ -547,8 +547,6 @@ u64 brain_compute_attack_wordlist (const char *filename)
 
     XXH64_update (state, buf, nread);
   }
-
-  fclose (fd);
 
   const u64 hash = XXH64_digest (state);
 
@@ -609,7 +607,7 @@ u32 brain_auth_challenge (void)
 
   static const char *urandom = "/dev/urandom";
 
-  FILE *fd = fopen (urandom, "rb");
+  FILE *fd _cleanup_fclose_ = fopen (urandom, "rb");
 
   if (fd == NULL)
   {
@@ -622,12 +620,8 @@ u32 brain_auth_challenge (void)
   {
     brain_logging (stderr, 0, "%s: %s\n", urandom, strerror (errno));
 
-    fclose (fd);
-
     return val;
   }
-
-  fclose (fd);
 
   #endif
 
@@ -1595,7 +1589,7 @@ bool brain_server_read_hash_dump (brain_server_db_hash_t *brain_server_db_hash, 
     return false;
   }
 
-  FILE *fd = fopen (file, "rb");
+  FILE *fd _cleanup_fclose_ = fopen (file, "rb");
 
   if (fd == NULL)
   {
@@ -1611,8 +1605,6 @@ bool brain_server_read_hash_dump (brain_server_db_hash_t *brain_server_db_hash, 
     {
       brain_logging (stderr, 0, "%s\n", MSG_ENOMEM);
 
-      fclose (fd);
-
       return false;
     }
 
@@ -1622,16 +1614,12 @@ bool brain_server_read_hash_dump (brain_server_db_hash_t *brain_server_db_hash, 
     {
       brain_logging (stderr, 0, "%s: only %" PRIu64 " bytes read\n", file, (u64) nread * sizeof (brain_server_hash_long_t));
 
-      fclose (fd);
-
       return false;
     }
 
     brain_server_db_hash->long_cnt = temp_cnt;
 
     brain_server_db_hash->write_hashes = false;
-
-    fclose (fd);
   }
 
   const double ms = hc_timer_get (timer_dump);
@@ -1651,7 +1639,7 @@ bool brain_server_write_hash_dump (brain_server_db_hash_t *brain_server_db_hash,
 
   // write to file
 
-  FILE *fd = fopen (file, "wb");
+  FILE *fd _cleanup_fclose_ = fopen (file, "wb");
 
   if (fd == NULL)
   {
@@ -1667,12 +1655,8 @@ bool brain_server_write_hash_dump (brain_server_db_hash_t *brain_server_db_hash,
     {
       brain_logging (stderr, 0, "%s: only %" PRIu64 " bytes written\n", file, (u64) nwrite * sizeof (brain_server_hash_long_t));
 
-      fclose (fd);
-
       return false;
     }
-
-    fclose (fd);
 
     brain_server_db_hash->write_hashes = false;
   }
@@ -1794,7 +1778,7 @@ bool brain_server_read_attack_dump (brain_server_db_attack_t *brain_server_db_at
     return false;
   }
 
-  FILE *fd = fopen (file, "rb");
+  FILE *fd _cleanup_fclose_ = fopen (file, "rb");
 
   if (fd == NULL)
   {
@@ -1810,8 +1794,6 @@ bool brain_server_read_attack_dump (brain_server_db_attack_t *brain_server_db_at
     {
       brain_logging (stderr, 0, "%s\n", MSG_ENOMEM);
 
-      fclose (fd);
-
       return false;
     }
 
@@ -1821,16 +1803,12 @@ bool brain_server_read_attack_dump (brain_server_db_attack_t *brain_server_db_at
     {
       brain_logging (stderr, 0, "%s: only %" PRIu64 " bytes read\n", file, (u64) nread * sizeof (brain_server_attack_long_t));
 
-      fclose (fd);
-
       return false;
     }
 
     brain_server_db_attack->long_cnt = temp_cnt;
 
     brain_server_db_attack->write_attacks = false;
-
-    fclose (fd);
   }
 
   const double ms = hc_timer_get (timer_dump);
@@ -1850,7 +1828,7 @@ bool brain_server_write_attack_dump (brain_server_db_attack_t *brain_server_db_a
 
   // write to file
 
-  FILE *fd = fopen (file, "wb");
+  FILE *fd _cleanup_fclose_ = fopen (file, "wb");
 
   if (fd == NULL)
   {
@@ -1868,12 +1846,8 @@ bool brain_server_write_attack_dump (brain_server_db_attack_t *brain_server_db_a
     {
       brain_logging (stderr, 0, "%s: only %" PRIu64 " bytes written\n", file, (u64) nwrite * sizeof (brain_server_attack_long_t));
 
-      fclose (fd);
-
       return false;
     }
-
-    fclose (fd);
 
     brain_server_db_attack->write_attacks = false;
   }
