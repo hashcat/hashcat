@@ -65,14 +65,17 @@ CONSTANT_AS u32a c_sbox[256] =
 
 DECLSPEC void cam_feistel (const u32 *x, const u32 *k, u32 *y)
 {
-  const u32 b0 = c_sbox1 (unpack_v8a_from_v32_S (x[0]) ^ unpack_v8a_from_v32_S (k[0]));
-  const u32 b1 = c_sbox2 (unpack_v8b_from_v32_S (x[0]) ^ unpack_v8b_from_v32_S (k[0]));
-  const u32 b2 = c_sbox3 (unpack_v8c_from_v32_S (x[0]) ^ unpack_v8c_from_v32_S (k[0]));
-  const u32 b3 = c_sbox4 (unpack_v8d_from_v32_S (x[0]) ^ unpack_v8d_from_v32_S (k[0]));
-  const u32 b4 = c_sbox2 (unpack_v8a_from_v32_S (x[1]) ^ unpack_v8a_from_v32_S (k[1]));
-  const u32 b5 = c_sbox3 (unpack_v8b_from_v32_S (x[1]) ^ unpack_v8b_from_v32_S (k[1]));
-  const u32 b6 = c_sbox4 (unpack_v8c_from_v32_S (x[1]) ^ unpack_v8c_from_v32_S (k[1]));
-  const u32 b7 = c_sbox1 (unpack_v8d_from_v32_S (x[1]) ^ unpack_v8d_from_v32_S (k[1]));
+  const u32 xk0 = x[0] ^ k[0];
+  const u32 xk1 = x[1] ^ k[1];
+
+  const u32 b0 = c_sbox1 (unpack_v8a_from_v32_S (xk0));
+  const u32 b1 = c_sbox2 (unpack_v8b_from_v32_S (xk0));
+  const u32 b2 = c_sbox3 (unpack_v8c_from_v32_S (xk0));
+  const u32 b3 = c_sbox4 (unpack_v8d_from_v32_S (xk0));
+  const u32 b4 = c_sbox2 (unpack_v8a_from_v32_S (xk1));
+  const u32 b5 = c_sbox3 (unpack_v8b_from_v32_S (xk1));
+  const u32 b6 = c_sbox4 (unpack_v8c_from_v32_S (xk1));
+  const u32 b7 = c_sbox1 (unpack_v8d_from_v32_S (xk1));
 
   /*
   const u32 t0a = b0 ^      b2 ^ b3 ^      b5 ^ b6 ^ b7;
@@ -98,12 +101,12 @@ DECLSPEC void cam_feistel (const u32 *x, const u32 *k, u32 *y)
   const u32 t0c = b01234567 ^ b36;
   const u32 t0d = b01234567 ^ b07;
 
-/*
+  /*
   const u32 t1a = b01234567 ^ b2 ^ b3 ^ b4;
   const u32 t1b = b01234567 ^ b0 ^ b3 ^ b5;
   const u32 t1c = b01234567 ^ b0 ^ b1 ^ b6;
   const u32 t1d = b01234567 ^ b1 ^ b2 ^ b7;
-*/
+  */
 
   const u32 b0_234567 = b01234567 ^ b1;
   const u32 b012_4567 = b01234567 ^ b3;
