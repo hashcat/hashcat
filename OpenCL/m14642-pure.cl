@@ -10,6 +10,7 @@
 #include "inc_types.h"
 #include "inc_common.cl"
 #include "inc_simd.cl"
+#include "inc_hash_sha1.cl"
 #include "inc_hash_sha256.cl"
 #include "inc_hash_sha512.cl"
 #include "inc_hash_ripemd160.cl"
