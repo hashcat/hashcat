@@ -6,6 +6,10 @@
 #ifndef _INC_TYPES_H
 #define _INC_TYPES_H
 
+#ifdef IS_CUDA
+typedef unsigned char uchar;
+#endif
+
 #ifdef KERNEL_STATIC
 typedef uchar  u8;
 typedef ushort u16;

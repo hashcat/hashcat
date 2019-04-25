@@ -7,7 +7,7 @@
 #include "types.h"
 #include "event.h"
 #include "memory.h"
-#include "opencl.h"
+#include "backend.h"
 #include "wordlist.h"
 #include "shared.h"
 #include "thread.h"
@@ -23,13 +23,13 @@
 
 static u64 get_highest_words_done (const hashcat_ctx_t *hashcat_ctx)
 {
-  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   u64 words_cur = 0;
 
-  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < backend_ctx->devices_cnt; device_id++)
   {
-    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+    hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
     if (device_param->skipped == true) continue;
 
@@ -45,13 +45,13 @@ static u64 get_highest_words_done (const hashcat_ctx_t *hashcat_ctx)
 
 static u64 get_lowest_words_done (const hashcat_ctx_t *hashcat_ctx)
 {
-  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   u64 words_cur = 0xffffffffffffffff;
 
-  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < backend_ctx->devices_cnt; device_id++)
   {
-    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+    hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
     if (device_param->skipped == true) continue;
 
@@ -76,20 +76,20 @@ static int set_kernel_power_final (hashcat_ctx_t *hashcat_ctx, const u64 kernel_
 {
   EVENT (EVENT_SET_KERNEL_POWER_FINAL);
 
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  opencl_ctx->kernel_power_final = kernel_power_final;
+  backend_ctx->kernel_power_final = kernel_power_final;
 
   return 0;
 }
 
-static u64 get_power (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param)
+static u64 get_power (backend_ctx_t *backend_ctx, hc_device_param_t *device_param)
 {
-  const u64 kernel_power_final = opencl_ctx->kernel_power_final;
+  const u64 kernel_power_final = backend_ctx->kernel_power_final;
 
   if (kernel_power_final)
   {
-    const double device_factor = (double) device_param->hardware_power / opencl_ctx->hardware_power_all;
+    const double device_factor = (double) device_param->hardware_power / backend_ctx->hardware_power_all;
 
     const u64 words_left_device = (u64) CEIL (kernel_power_final * device_factor);
 
@@ -109,7 +109,7 @@ static u64 get_power (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param)
 
 static u64 get_work (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 max)
 {
-  opencl_ctx_t   *opencl_ctx   = hashcat_ctx->opencl_ctx;
+  backend_ctx_t  *backend_ctx  = hashcat_ctx->backend_ctx;
   status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -120,19 +120,19 @@ static u64 get_work (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   device_param->words_off = words_off;
 
-  const u64 kernel_power_all = opencl_ctx->kernel_power_all;
+  const u64 kernel_power_all = backend_ctx->kernel_power_all;
 
   const u64 words_left = words_base - words_off;
 
   if (words_left < kernel_power_all)
   {
-    if (opencl_ctx->kernel_power_final == 0)
+    if (backend_ctx->kernel_power_final == 0)
     {
       set_kernel_power_final (hashcat_ctx, words_left);
     }
   }
 
-  const u64 kernel_power = get_power (opencl_ctx, device_param);
+  const u64 kernel_power = get_power (backend_ctx, device_param);
 
   u64 work = MIN (words_left, kernel_power);
 
@@ -339,11 +339,11 @@ HC_API_CALL void *thread_calc_stdin (void *p)
 
   hashcat_ctx_t *hashcat_ctx = thread_param->hashcat_ctx;
 
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  if (opencl_ctx->enabled == false) return NULL;
+  if (backend_ctx->enabled == false) return NULL;
 
-  hc_device_param_t *device_param = opencl_ctx->devices_param + thread_param->tid;
+  hc_device_param_t *device_param = backend_ctx->devices_param + thread_param->tid;
 
   if (device_param->skipped) return NULL;
 
@@ -370,7 +370,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
   straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
   combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
-  opencl_ctx_t         *opencl_ctx         = hashcat_ctx->opencl_ctx;
+  backend_ctx_t        *backend_ctx        = hashcat_ctx->backend_ctx;
   status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
 
   const u32 attack_mode = user_options->attack_mode;
@@ -468,7 +468,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
         // this greatly reduces spam on hashcat console
 
-        const u64 pre_rejects_ignore = get_power (opencl_ctx, device_param) / 2;
+        const u64 pre_rejects_ignore = get_power (backend_ctx, device_param) / 2;
 
         while (pre_rejects > pre_rejects_ignore)
         {
@@ -801,7 +801,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
         // this greatly reduces spam on hashcat console
 
-        const u64 pre_rejects_ignore = get_power (opencl_ctx, device_param) / 2;
+        const u64 pre_rejects_ignore = get_power (backend_ctx, device_param) / 2;
 
         while (pre_rejects > pre_rejects_ignore)
         {
@@ -1082,7 +1082,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
         // this greatly reduces spam on hashcat console
 
-        const u64 pre_rejects_ignore = get_power (opencl_ctx, device_param) / 2;
+        const u64 pre_rejects_ignore = get_power (backend_ctx, device_param) / 2;
 
         while (pre_rejects > pre_rejects_ignore)
         {
@@ -1658,11 +1658,11 @@ HC_API_CALL void *thread_calc (void *p)
 
   hashcat_ctx_t *hashcat_ctx = thread_param->hashcat_ctx;
 
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  if (opencl_ctx->enabled == false) return NULL;
+  if (backend_ctx->enabled == false) return NULL;
 
-  hc_device_param_t *device_param = opencl_ctx->devices_param + thread_param->tid;
+  hc_device_param_t *device_param = backend_ctx->devices_param + thread_param->tid;
 
   if (device_param->skipped) return NULL;
 

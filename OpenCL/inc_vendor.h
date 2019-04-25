@@ -6,12 +6,25 @@
 #ifndef _INC_VENDOR_H
 #define _INC_VENDOR_H
 
-#ifdef _CPU_OPENCL_EMU_H
+#if defined _CPU_OPENCL_EMU_H
+#define IS_NATIVE
+#elif defined __CUDACC__
+#define IS_CUDA
+#else
+#define IS_OPENCL
+#endif
+
+#if defined IS_NATIVE
 #define CONSTANT_AS
 #define GLOBAL_AS
 #define LOCAL_AS
 #define KERNEL_FQ
-#else
+#elif defined IS_CUDA
+#define CONSTANT_AS
+#define GLOBAL_AS
+#define LOCAL_AS
+#define KERNEL_FQ   __global__
+#elif defined IS_OPENCL
 #define CONSTANT_AS __constant
 #define GLOBAL_AS   __global
 #define LOCAL_AS    __local
@@ -90,10 +103,14 @@
 #if defined IS_CPU
 #define DECLSPEC inline
 #elif defined IS_GPU
+#if defined IS_CUDA
+#define DECLSPEC __device__
+#else
 #if defined IS_AMD
 #define DECLSPEC inline static
 #else
 #define DECLSPEC
+#endif
 #endif
 #else
 #define DECLSPEC

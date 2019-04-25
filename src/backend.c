@@ -22,7 +22,7 @@
 #include "emu_inc_hash_md5.h"
 #include "event.h"
 #include "dynloader.h"
-#include "opencl.h"
+#include "backend.h"
 
 #if defined (__linux__)
 static const char *dri_card0_path = "/dev/dri/card0";
@@ -340,9 +340,9 @@ static bool test_instruction (hashcat_ctx_t *hashcat_ctx, cl_context context, cl
 
   if (CL_rc == -1) return false;
 
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = opencl_ctx->ocl;
+  OCL_PTR *ocl = backend_ctx->ocl;
 
   // LLVM seems to write an error message (if there's an error) directly to stderr
   // and not (as supposted to) into buffer for later request using clGetProgramBuildInfo()
@@ -543,11 +543,120 @@ void generate_cached_kernel_amp_filename (const u32 attack_kern, char *profile_d
   snprintf (cached_file, 255, "%s/kernels/amp_a%u.%s.kernel", profile_dir, attack_kern, device_name_chksum_amp_mp);
 }
 
+int cuda_init (hashcat_ctx_t *hashcat_ctx)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  CUDA_PTR *cuda = backend_ctx->cuda;
+
+  memset (cuda, 0, sizeof (CUDA_PTR));
+
+  #if   defined (_WIN)
+  cuda->lib = hc_dlopen ("cuda");
+  #elif defined (__APPLE__)
+  cuda->lib = hc_dlopen ("/System/Library/Frameworks/CUDA.framework/CUDA");
+  #elif defined (__CYGWIN__)
+  cuda->lib = hc_dlopen ("cuda.dll");
+
+  if (cuda->lib == NULL) cuda->lib = hc_dlopen ("cygcuda-1.dll");
+  #else
+  cuda->lib = hc_dlopen ("libcuda.so");
+
+  if (cuda->lib == NULL) cuda->lib = hc_dlopen ("libcuda.so.1");
+  #endif
+
+  if (cuda->lib == NULL)
+  {
+    event_log_error (hashcat_ctx, "Cannot find CUDA library.");
+
+    event_log_warning (hashcat_ctx, "You are probably missing the native CUDA runtime or driver for your platform.");
+    event_log_warning (hashcat_ctx, "NVIDIA GPUs require this runtime and/or driver:");
+    event_log_warning (hashcat_ctx, "  \"NVIDIA Driver\" (418.56 or later)");
+    event_log_warning (hashcat_ctx, NULL);
+
+    return -1;
+  }
+
+  HC_LOAD_FUNC (cuda, cuCtxCreate,              CUDA_CUCTXCREATE,               CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuCtxDestroy,             CUDA_CUCTXDESTROY,              CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuCtxGetCacheConfig,      CUDA_CUCTXGETCACHECONFIG,       CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuCtxGetCurrent,          CUDA_CUCTXGETCURRENT,           CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuCtxGetSharedMemConfig,  CUDA_CUCTXGETSHAREDMEMCONFIG,   CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuCtxPopCurrent,          CUDA_CUCTXPOPCURRENT,           CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuCtxPushCurrent,         CUDA_CUCTXPUSHCURRENT,          CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuCtxSetCurrent,          CUDA_CUCTXSETCURRENT,           CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuCtxSetSharedMemConfig,  CUDA_CUCTXSETSHAREDMEMCONFIG,   CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuCtxSynchronize,         CUDA_CUCTXSYNCHRONIZE,          CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuDeviceGetAttribute,     CUDA_CUDEVICEGETATTRIBUTE,      CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuDeviceGetCount,         CUDA_CUDEVICEGETCOUNT,          CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuDeviceGet,              CUDA_CUDEVICEGET,               CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuDeviceGetName,          CUDA_CUDEVICEGETNAME,           CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuDeviceTotalMem,         CUDA_CUDEVICETOTALMEM,          CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuDriverGetVersion,       CUDA_CUDRIVERGETVERSION,        CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuEventCreate,            CUDA_CUEVENTCREATE,             CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuEventDestroy,           CUDA_CUEVENTDESTROY,            CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuEventElapsedTime,       CUDA_CUEVENTELAPSEDTIME,        CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuEventQuery,             CUDA_CUEVENTQUERY,              CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuEventRecord,            CUDA_CUEVENTRECORD,             CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuEventSynchronize,       CUDA_CUEVENTSYNCHRONIZE,        CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuFuncGetAttribute,       CUDA_CUFUNCGETATTRIBUTE,        CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuFuncSetAttribute,       CUDA_CUFUNCSETATTRIBUTE,        CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuFuncSetCacheConfig,     CUDA_CUFUNCSETCACHECONFIG,      CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuFuncSetSharedMemConfig, CUDA_CUFUNCSETSHAREDMEMCONFIG,  CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuGetErrorName,           CUDA_CUGETERRORNAME,            CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuGetErrorString,         CUDA_CUGETERRORSTRING,          CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuInit,                   CUDA_CUINIT,                    CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuLaunchKernel,           CUDA_CULAUNCHKERNEL,            CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuMemAlloc,               CUDA_CUMEMALLOC,                CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuMemAllocHost,           CUDA_CUMEMALLOCHOST,            CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuMemcpyDtoD,             CUDA_CUMEMCPYDTOD,              CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuMemcpyDtoH,             CUDA_CUMEMCPYDTOH,              CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuMemcpyHtoD,             CUDA_CUMEMCPYHTOD,              CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuMemFree,                CUDA_CUMEMFREE,                 CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuMemFreeHost,            CUDA_CUMEMFREEHOST,             CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuMemGetInfo,             CUDA_CUMEMGETINFO,              CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuMemsetD32,              CUDA_CUMEMSETD32,               CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuMemsetD8,               CUDA_CUMEMSETD8,                CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuModuleGetFunction,      CUDA_CUMODULEGETFUNCTION,       CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuModuleGetGlobal,        CUDA_CUMODULEGETGLOBAL,         CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuModuleLoad,             CUDA_CUMODULELOAD,              CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuModuleLoadData,         CUDA_CUMODULELOADDATA,          CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuModuleLoadDataEx,       CUDA_CUMODULELOADDATAEX,        CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuModuleUnload,           CUDA_CUMODULEUNLOAD,            CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuProfilerStart,          CUDA_CUPROFILERSTART,           CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuProfilerStop,           CUDA_CUPROFILERSTOP,            CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuStreamCreate,           CUDA_CUSTREAMCREATE,            CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuStreamDestroy,          CUDA_CUSTREAMDESTROY,           CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuStreamSynchronize,      CUDA_CUSTREAMSYNCHRONIZE,       CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuStreamWaitEvent,        CUDA_CUSTREAMWAITEVENT,         CUDA, 1);
+
+  return 0;
+}
+
+void cuda_close (hashcat_ctx_t *hashcat_ctx)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  CUDA_PTR *cuda = backend_ctx->cuda;
+
+  if (cuda)
+  {
+    if (cuda->lib)
+    {
+      hc_dlclose (cuda->lib);
+    }
+
+    hcfree (backend_ctx->cuda);
+
+    backend_ctx->cuda = NULL;
+  }
+}
+
 int ocl_init (hashcat_ctx_t *hashcat_ctx)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = opencl_ctx->ocl;
+  OCL_PTR *ocl = backend_ctx->ocl;
 
   memset (ocl, 0, sizeof (OCL_PTR));
 
@@ -598,47 +707,47 @@ int ocl_init (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  HC_LOAD_FUNC(ocl, clBuildProgram, OCL_CLBUILDPROGRAM, OpenCL, 1)
-  HC_LOAD_FUNC(ocl, clCreateBuffer, OCL_CLCREATEBUFFER, OpenCL, 1)
-  HC_LOAD_FUNC(ocl, clCreateCommandQueue, OCL_CLCREATECOMMANDQUEUE, OpenCL, 1)
-  HC_LOAD_FUNC(ocl, clCreateContext, OCL_CLCREATECONTEXT, OpenCL, 1)
-  HC_LOAD_FUNC(ocl, clCreateKernel, OCL_CLCREATEKERNEL, OpenCL, 1)
-  HC_LOAD_FUNC(ocl, clCreateProgramWithBinary, OCL_CLCREATEPROGRAMWITHBINARY, OpenCL, 1)
-  HC_LOAD_FUNC(ocl, clCreateProgramWithSource, OCL_CLCREATEPROGRAMWITHSOURCE, OpenCL, 1)
-  HC_LOAD_FUNC(ocl, clEnqueueCopyBuffer, OCL_CLENQUEUECOPYBUFFER, OpenCL, 1)
-  HC_LOAD_FUNC(ocl, clEnqueueMapBuffer, OCL_CLENQUEUEMAPBUFFER, OpenCL, 1)
-  HC_LOAD_FUNC(ocl, clEnqueueNDRangeKernel, OCL_CLENQUEUENDRANGEKERNEL, OpenCL, 1)
-  HC_LOAD_FUNC(ocl, clEnqueueReadBuffer, OCL_CLENQUEUEREADBUFFER, OpenCL, 1)
-  HC_LOAD_FUNC(ocl, clEnqueueUnmapMemObject, OCL_CLENQUEUEUNMAPMEMOBJECT, OpenCL, 1)
-  HC_LOAD_FUNC(ocl, clEnqueueWriteBuffer, OCL_CLENQUEUEWRITEBUFFER, OpenCL, 1)
-  HC_LOAD_FUNC(ocl, clFinish, OCL_CLFINISH, OpenCL, 1)
-  HC_LOAD_FUNC(ocl, clFlush, OCL_CLFLUSH, OpenCL, 1)
-  HC_LOAD_FUNC(ocl, clGetDeviceIDs, OCL_CLGETDEVICEIDS, OpenCL, 1)
-  HC_LOAD_FUNC(ocl, clGetDeviceInfo, OCL_CLGETDEVICEINFO, OpenCL, 1)
-  HC_LOAD_FUNC(ocl, clGetEventInfo, OCL_CLGETEVENTINFO, OpenCL, 1)
-  HC_LOAD_FUNC(ocl, clGetKernelWorkGroupInfo, OCL_CLGETKERNELWORKGROUPINFO, OpenCL, 1)
-  HC_LOAD_FUNC(ocl, clGetPlatformIDs, OCL_CLGETPLATFORMIDS, OpenCL, 1)
-  HC_LOAD_FUNC(ocl, clGetPlatformInfo, OCL_CLGETPLATFORMINFO, OpenCL, 1)
-  HC_LOAD_FUNC(ocl, clGetProgramBuildInfo, OCL_CLGETPROGRAMBUILDINFO, OpenCL, 1)
-  HC_LOAD_FUNC(ocl, clGetProgramInfo, OCL_CLGETPROGRAMINFO, OpenCL, 1)
-  HC_LOAD_FUNC(ocl, clReleaseCommandQueue, OCL_CLRELEASECOMMANDQUEUE, OpenCL, 1)
-  HC_LOAD_FUNC(ocl, clReleaseContext, OCL_CLRELEASECONTEXT, OpenCL, 1)
-  HC_LOAD_FUNC(ocl, clReleaseKernel, OCL_CLRELEASEKERNEL, OpenCL, 1)
-  HC_LOAD_FUNC(ocl, clReleaseMemObject, OCL_CLRELEASEMEMOBJECT, OpenCL, 1)
-  HC_LOAD_FUNC(ocl, clReleaseProgram, OCL_CLRELEASEPROGRAM, OpenCL, 1)
-  HC_LOAD_FUNC(ocl, clSetKernelArg, OCL_CLSETKERNELARG, OpenCL, 1)
-  HC_LOAD_FUNC(ocl, clWaitForEvents, OCL_CLWAITFOREVENTS, OpenCL, 1)
-  HC_LOAD_FUNC(ocl, clGetEventProfilingInfo, OCL_CLGETEVENTPROFILINGINFO, OpenCL, 1)
-  HC_LOAD_FUNC(ocl, clReleaseEvent, OCL_CLRELEASEEVENT, OpenCL, 1)
+  HC_LOAD_FUNC (ocl, clBuildProgram,            OCL_CLBUILDPROGRAM,             OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clCreateBuffer,            OCL_CLCREATEBUFFER,             OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clCreateCommandQueue,      OCL_CLCREATECOMMANDQUEUE,       OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clCreateContext,           OCL_CLCREATECONTEXT,            OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clCreateKernel,            OCL_CLCREATEKERNEL,             OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clCreateProgramWithBinary, OCL_CLCREATEPROGRAMWITHBINARY,  OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clCreateProgramWithSource, OCL_CLCREATEPROGRAMWITHSOURCE,  OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clEnqueueCopyBuffer,       OCL_CLENQUEUECOPYBUFFER,        OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clEnqueueMapBuffer,        OCL_CLENQUEUEMAPBUFFER,         OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clEnqueueNDRangeKernel,    OCL_CLENQUEUENDRANGEKERNEL,     OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clEnqueueReadBuffer,       OCL_CLENQUEUEREADBUFFER,        OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clEnqueueUnmapMemObject,   OCL_CLENQUEUEUNMAPMEMOBJECT,    OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clEnqueueWriteBuffer,      OCL_CLENQUEUEWRITEBUFFER,       OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clFinish,                  OCL_CLFINISH,                   OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clFlush,                   OCL_CLFLUSH,                    OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clGetDeviceIDs,            OCL_CLGETDEVICEIDS,             OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clGetDeviceInfo,           OCL_CLGETDEVICEINFO,            OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clGetEventInfo,            OCL_CLGETEVENTINFO,             OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clGetKernelWorkGroupInfo,  OCL_CLGETKERNELWORKGROUPINFO,   OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clGetPlatformIDs,          OCL_CLGETPLATFORMIDS,           OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clGetPlatformInfo,         OCL_CLGETPLATFORMINFO,          OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clGetProgramBuildInfo,     OCL_CLGETPROGRAMBUILDINFO,      OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clGetProgramInfo,          OCL_CLGETPROGRAMINFO,           OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clReleaseCommandQueue,     OCL_CLRELEASECOMMANDQUEUE,      OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clReleaseContext,          OCL_CLRELEASECONTEXT,           OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clReleaseKernel,           OCL_CLRELEASEKERNEL,            OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clReleaseMemObject,        OCL_CLRELEASEMEMOBJECT,         OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clReleaseProgram,          OCL_CLRELEASEPROGRAM,           OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clSetKernelArg,            OCL_CLSETKERNELARG,             OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clWaitForEvents,           OCL_CLWAITFOREVENTS,            OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clGetEventProfilingInfo,   OCL_CLGETEVENTPROFILINGINFO,    OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clReleaseEvent,            OCL_CLRELEASEEVENT,             OpenCL, 1);
 
   return 0;
 }
 
 void ocl_close (hashcat_ctx_t *hashcat_ctx)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = opencl_ctx->ocl;
+  OCL_PTR *ocl = backend_ctx->ocl;
 
   if (ocl)
   {
@@ -647,15 +756,17 @@ void ocl_close (hashcat_ctx_t *hashcat_ctx)
       hc_dlclose (ocl->lib);
     }
 
-    hcfree (opencl_ctx->ocl);
+    hcfree (backend_ctx->ocl);
+
+    backend_ctx->ocl = NULL;
   }
 }
 
 int hc_clEnqueueNDRangeKernel (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue, cl_kernel kernel, cl_uint work_dim, const size_t *global_work_offset, const size_t *global_work_size, const size_t *local_work_size, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = opencl_ctx->ocl;
+  OCL_PTR *ocl = backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clEnqueueNDRangeKernel (command_queue, kernel, work_dim, global_work_offset, global_work_size, local_work_size, num_events_in_wait_list, event_wait_list, event);
 
@@ -671,9 +782,9 @@ int hc_clEnqueueNDRangeKernel (hashcat_ctx_t *hashcat_ctx, cl_command_queue comm
 
 int hc_clGetEventInfo (hashcat_ctx_t *hashcat_ctx, cl_event event, cl_event_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = opencl_ctx->ocl;
+  OCL_PTR *ocl = backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clGetEventInfo (event, param_name, param_value_size, param_value, param_value_size_ret);
 
@@ -689,9 +800,9 @@ int hc_clGetEventInfo (hashcat_ctx_t *hashcat_ctx, cl_event event, cl_event_info
 
 int hc_clFlush (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = opencl_ctx->ocl;
+  OCL_PTR *ocl = backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clFlush (command_queue);
 
@@ -707,9 +818,9 @@ int hc_clFlush (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue)
 
 int hc_clFinish (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = opencl_ctx->ocl;
+  OCL_PTR *ocl = backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clFinish (command_queue);
 
@@ -725,9 +836,9 @@ int hc_clFinish (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue)
 
 int hc_clSetKernelArg (hashcat_ctx_t *hashcat_ctx, cl_kernel kernel, cl_uint arg_index, size_t arg_size, const void *arg_value)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = opencl_ctx->ocl;
+  OCL_PTR *ocl = backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clSetKernelArg (kernel, arg_index, arg_size, arg_value);
 
@@ -743,9 +854,9 @@ int hc_clSetKernelArg (hashcat_ctx_t *hashcat_ctx, cl_kernel kernel, cl_uint arg
 
 int hc_clEnqueueWriteBuffer (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue, cl_mem buffer, cl_bool blocking_write, size_t offset, size_t size, const void *ptr, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = opencl_ctx->ocl;
+  OCL_PTR *ocl = backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clEnqueueWriteBuffer (command_queue, buffer, blocking_write, offset, size, ptr, num_events_in_wait_list, event_wait_list, event);
 
@@ -761,9 +872,9 @@ int hc_clEnqueueWriteBuffer (hashcat_ctx_t *hashcat_ctx, cl_command_queue comman
 
 int hc_clEnqueueCopyBuffer (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue, cl_mem src_buffer, cl_mem dst_buffer, size_t src_offset, size_t dst_offset, size_t size, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = opencl_ctx->ocl;
+  OCL_PTR *ocl = backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clEnqueueCopyBuffer (command_queue, src_buffer, dst_buffer, src_offset, dst_offset, size, num_events_in_wait_list, event_wait_list, event);
 
@@ -779,9 +890,9 @@ int hc_clEnqueueCopyBuffer (hashcat_ctx_t *hashcat_ctx, cl_command_queue command
 
 int hc_clEnqueueReadBuffer (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue, cl_mem buffer, cl_bool blocking_read, size_t offset, size_t size, void *ptr, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = opencl_ctx->ocl;
+  OCL_PTR *ocl = backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clEnqueueReadBuffer (command_queue, buffer, blocking_read, offset, size, ptr, num_events_in_wait_list, event_wait_list, event);
 
@@ -797,9 +908,9 @@ int hc_clEnqueueReadBuffer (hashcat_ctx_t *hashcat_ctx, cl_command_queue command
 
 int hc_clGetPlatformIDs (hashcat_ctx_t *hashcat_ctx, cl_uint num_entries, cl_platform_id *platforms, cl_uint *num_platforms)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = opencl_ctx->ocl;
+  OCL_PTR *ocl = backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clGetPlatformIDs (num_entries, platforms, num_platforms);
 
@@ -815,9 +926,9 @@ int hc_clGetPlatformIDs (hashcat_ctx_t *hashcat_ctx, cl_uint num_entries, cl_pla
 
 int hc_clGetPlatformInfo (hashcat_ctx_t *hashcat_ctx, cl_platform_id platform, cl_platform_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = opencl_ctx->ocl;
+  OCL_PTR *ocl = backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clGetPlatformInfo (platform, param_name, param_value_size, param_value, param_value_size_ret);
 
@@ -833,9 +944,9 @@ int hc_clGetPlatformInfo (hashcat_ctx_t *hashcat_ctx, cl_platform_id platform, c
 
 int hc_clGetDeviceIDs (hashcat_ctx_t *hashcat_ctx, cl_platform_id platform, cl_device_type device_type, cl_uint num_entries, cl_device_id *devices, cl_uint *num_devices)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = opencl_ctx->ocl;
+  OCL_PTR *ocl = backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clGetDeviceIDs (platform, device_type, num_entries, devices, num_devices);
 
@@ -851,9 +962,9 @@ int hc_clGetDeviceIDs (hashcat_ctx_t *hashcat_ctx, cl_platform_id platform, cl_d
 
 int hc_clGetDeviceInfo (hashcat_ctx_t *hashcat_ctx, cl_device_id device, cl_device_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = opencl_ctx->ocl;
+  OCL_PTR *ocl = backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clGetDeviceInfo (device, param_name, param_value_size, param_value, param_value_size_ret);
 
@@ -869,9 +980,9 @@ int hc_clGetDeviceInfo (hashcat_ctx_t *hashcat_ctx, cl_device_id device, cl_devi
 
 int hc_clCreateContext (hashcat_ctx_t *hashcat_ctx, const cl_context_properties *properties, cl_uint num_devices, const cl_device_id *devices, void (CL_CALLBACK *pfn_notify) (const char *errinfo, const void *private_info, size_t cb, void *user_data), void *user_data, cl_context *context)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = opencl_ctx->ocl;
+  OCL_PTR *ocl = backend_ctx->ocl;
 
   cl_int CL_err;
 
@@ -889,9 +1000,9 @@ int hc_clCreateContext (hashcat_ctx_t *hashcat_ctx, const cl_context_properties 
 
 int hc_clCreateCommandQueue (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_device_id device, cl_command_queue_properties properties, cl_command_queue *command_queue)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = opencl_ctx->ocl;
+  OCL_PTR *ocl = backend_ctx->ocl;
 
   cl_int CL_err;
 
@@ -909,9 +1020,9 @@ int hc_clCreateCommandQueue (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_
 
 int hc_clCreateBuffer (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_mem_flags flags, size_t size, void *host_ptr, cl_mem *mem)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = opencl_ctx->ocl;
+  OCL_PTR *ocl = backend_ctx->ocl;
 
   cl_int CL_err;
 
@@ -929,9 +1040,9 @@ int hc_clCreateBuffer (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_mem_fl
 
 int hc_clCreateProgramWithSource (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_uint count, const char **strings, const size_t *lengths, cl_program *program)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = opencl_ctx->ocl;
+  OCL_PTR *ocl = backend_ctx->ocl;
 
   cl_int CL_err;
 
@@ -949,9 +1060,9 @@ int hc_clCreateProgramWithSource (hashcat_ctx_t *hashcat_ctx, cl_context context
 
 int hc_clCreateProgramWithBinary (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_uint num_devices, const cl_device_id *device_list, const size_t *lengths, const unsigned char **binaries, cl_int *binary_status, cl_program *program)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = opencl_ctx->ocl;
+  OCL_PTR *ocl = backend_ctx->ocl;
 
   cl_int CL_err;
 
@@ -969,9 +1080,9 @@ int hc_clCreateProgramWithBinary (hashcat_ctx_t *hashcat_ctx, cl_context context
 
 int hc_clBuildProgram (hashcat_ctx_t *hashcat_ctx, cl_program program, cl_uint num_devices, const cl_device_id *device_list, const char *options, void (CL_CALLBACK *pfn_notify) (cl_program program, void *user_data), void *user_data)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = opencl_ctx->ocl;
+  OCL_PTR *ocl = backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clBuildProgram (program, num_devices, device_list, options, pfn_notify, user_data);
 
@@ -987,9 +1098,9 @@ int hc_clBuildProgram (hashcat_ctx_t *hashcat_ctx, cl_program program, cl_uint n
 
 int hc_clCreateKernel (hashcat_ctx_t *hashcat_ctx, cl_program program, const char *kernel_name, cl_kernel *kernel)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = opencl_ctx->ocl;
+  OCL_PTR *ocl = backend_ctx->ocl;
 
   cl_int CL_err;
 
@@ -1007,9 +1118,9 @@ int hc_clCreateKernel (hashcat_ctx_t *hashcat_ctx, cl_program program, const cha
 
 int hc_clReleaseMemObject (hashcat_ctx_t *hashcat_ctx, cl_mem mem)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = opencl_ctx->ocl;
+  OCL_PTR *ocl = backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clReleaseMemObject (mem);
 
@@ -1025,9 +1136,9 @@ int hc_clReleaseMemObject (hashcat_ctx_t *hashcat_ctx, cl_mem mem)
 
 int hc_clReleaseKernel (hashcat_ctx_t *hashcat_ctx, cl_kernel kernel)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = opencl_ctx->ocl;
+  OCL_PTR *ocl = backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clReleaseKernel (kernel);
 
@@ -1043,9 +1154,9 @@ int hc_clReleaseKernel (hashcat_ctx_t *hashcat_ctx, cl_kernel kernel)
 
 int hc_clReleaseProgram (hashcat_ctx_t *hashcat_ctx, cl_program program)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = opencl_ctx->ocl;
+  OCL_PTR *ocl = backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clReleaseProgram (program);
 
@@ -1061,9 +1172,9 @@ int hc_clReleaseProgram (hashcat_ctx_t *hashcat_ctx, cl_program program)
 
 int hc_clReleaseCommandQueue (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = opencl_ctx->ocl;
+  OCL_PTR *ocl = backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clReleaseCommandQueue (command_queue);
 
@@ -1079,9 +1190,9 @@ int hc_clReleaseCommandQueue (hashcat_ctx_t *hashcat_ctx, cl_command_queue comma
 
 int hc_clReleaseContext (hashcat_ctx_t *hashcat_ctx, cl_context context)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = opencl_ctx->ocl;
+  OCL_PTR *ocl = backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clReleaseContext (context);
 
@@ -1097,9 +1208,9 @@ int hc_clReleaseContext (hashcat_ctx_t *hashcat_ctx, cl_context context)
 
 int hc_clEnqueueMapBuffer (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue, cl_mem buffer, cl_bool blocking_map, cl_map_flags map_flags, size_t offset, size_t size, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event, void **buf)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = opencl_ctx->ocl;
+  OCL_PTR *ocl = backend_ctx->ocl;
 
   cl_int CL_err;
 
@@ -1117,9 +1228,9 @@ int hc_clEnqueueMapBuffer (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_
 
 int hc_clEnqueueUnmapMemObject (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue, cl_mem memobj, void *mapped_ptr, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = opencl_ctx->ocl;
+  OCL_PTR *ocl = backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clEnqueueUnmapMemObject (command_queue, memobj, mapped_ptr, num_events_in_wait_list, event_wait_list, event);
 
@@ -1135,9 +1246,9 @@ int hc_clEnqueueUnmapMemObject (hashcat_ctx_t *hashcat_ctx, cl_command_queue com
 
 int hc_clGetKernelWorkGroupInfo (hashcat_ctx_t *hashcat_ctx, cl_kernel kernel, cl_device_id device, cl_kernel_work_group_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = opencl_ctx->ocl;
+  OCL_PTR *ocl = backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clGetKernelWorkGroupInfo (kernel, device, param_name, param_value_size, param_value, param_value_size_ret);
 
@@ -1153,9 +1264,9 @@ int hc_clGetKernelWorkGroupInfo (hashcat_ctx_t *hashcat_ctx, cl_kernel kernel, c
 
 int hc_clGetProgramBuildInfo (hashcat_ctx_t *hashcat_ctx, cl_program program, cl_device_id device, cl_program_build_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = opencl_ctx->ocl;
+  OCL_PTR *ocl = backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clGetProgramBuildInfo (program, device, param_name, param_value_size, param_value, param_value_size_ret);
 
@@ -1171,9 +1282,9 @@ int hc_clGetProgramBuildInfo (hashcat_ctx_t *hashcat_ctx, cl_program program, cl
 
 int hc_clGetProgramInfo (hashcat_ctx_t *hashcat_ctx, cl_program program, cl_program_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = opencl_ctx->ocl;
+  OCL_PTR *ocl = backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clGetProgramInfo (program, param_name, param_value_size, param_value, param_value_size_ret);
 
@@ -1189,9 +1300,9 @@ int hc_clGetProgramInfo (hashcat_ctx_t *hashcat_ctx, cl_program program, cl_prog
 
 int hc_clWaitForEvents (hashcat_ctx_t *hashcat_ctx, cl_uint num_events, const cl_event *event_list)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = opencl_ctx->ocl;
+  OCL_PTR *ocl = backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clWaitForEvents (num_events, event_list);
 
@@ -1207,9 +1318,9 @@ int hc_clWaitForEvents (hashcat_ctx_t *hashcat_ctx, cl_uint num_events, const cl
 
 int hc_clGetEventProfilingInfo (hashcat_ctx_t *hashcat_ctx, cl_event event, cl_profiling_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = opencl_ctx->ocl;
+  OCL_PTR *ocl = backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clGetEventProfilingInfo (event, param_name, param_value_size, param_value, param_value_size_ret);
 
@@ -1225,9 +1336,9 @@ int hc_clGetEventProfilingInfo (hashcat_ctx_t *hashcat_ctx, cl_event event, cl_p
 
 int hc_clReleaseEvent (hashcat_ctx_t *hashcat_ctx, cl_event event)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = opencl_ctx->ocl;
+  OCL_PTR *ocl = backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clReleaseEvent (event);
 
@@ -2927,12 +3038,12 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
   return 0;
 }
 
-int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
+int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
-  opencl_ctx_t   *opencl_ctx   = hashcat_ctx->opencl_ctx;
+  backend_ctx_t  *backend_ctx  = hashcat_ctx->backend_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
 
-  opencl_ctx->enabled = false;
+  backend_ctx->enabled = false;
 
   if (user_options->example_hashes == true) return 0;
   if (user_options->keyspace       == true) return 0;
@@ -2943,7 +3054,22 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   hc_device_param_t *devices_param = (hc_device_param_t *) hccalloc (DEVICES_MAX, sizeof (hc_device_param_t));
 
-  opencl_ctx->devices_param = devices_param;
+  backend_ctx->devices_param = devices_param;
+
+  /**
+   * Load and map CUDA library calls
+   */
+
+  CUDA_PTR *cuda = (CUDA_PTR *) hcmalloc (sizeof (CUDA_PTR));
+
+  backend_ctx->cuda = cuda;
+
+  const int rc_cuda_init = cuda_init (hashcat_ctx);
+
+  if (rc_cuda_init == -1)
+  {
+    cuda_close (hashcat_ctx);
+  }
 
   /**
    * Load and map OpenCL library calls
@@ -2951,11 +3077,23 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   OCL_PTR *ocl = (OCL_PTR *) hcmalloc (sizeof (OCL_PTR));
 
-  opencl_ctx->ocl = ocl;
+  backend_ctx->ocl = ocl;
 
   const int rc_ocl_init = ocl_init (hashcat_ctx);
 
-  if (rc_ocl_init == -1) return -1;
+  if (rc_ocl_init == -1)
+  {
+    ocl_close (hashcat_ctx);
+  }
+
+  /**
+   * return if both CUDA and OpenCL initialization failed
+   */
+
+  if ((rc_cuda_init == -1) && (rc_ocl_init == -1))
+  {
+    return -1;
+  }
 
   /**
    * Some permission pre-check, because AMDGPU-PRO Driver crashes if the user has no permission to do this
@@ -2975,7 +3113,7 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (rc_platforms_filter == false) return -1;
 
-  opencl_ctx->opencl_platforms_filter = opencl_platforms_filter;
+  backend_ctx->opencl_platforms_filter = opencl_platforms_filter;
 
   /**
    * OpenCL device selection
@@ -2987,7 +3125,7 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (rc_devices_filter == false) return -1;
 
-  opencl_ctx->devices_filter = devices_filter;
+  backend_ctx->devices_filter = devices_filter;
 
   /**
    * OpenCL device type selection
@@ -2999,7 +3137,7 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (rc_device_types_filter == false) return -1;
 
-  opencl_ctx->device_types_filter = device_types_filter;
+  backend_ctx->device_types_filter = device_types_filter;
 
   /**
    * OpenCL platforms: detect
@@ -3139,58 +3277,58 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
       }
     }
 
-    opencl_ctx->device_types_filter = device_types_filter;
+    backend_ctx->device_types_filter = device_types_filter;
   }
 
-  opencl_ctx->enabled = true;
+  backend_ctx->enabled = true;
 
-  opencl_ctx->platforms_vendor      = platforms_vendor;
-  opencl_ctx->platforms_name        = platforms_name;
-  opencl_ctx->platforms_version     = platforms_version;
-  opencl_ctx->platforms_skipped     = platforms_skipped;
-  opencl_ctx->platforms_cnt         = platforms_cnt;
-  opencl_ctx->platforms             = platforms;
-  opencl_ctx->platform_devices_cnt  = platform_devices_cnt;
-  opencl_ctx->platform_devices      = platform_devices;
+  backend_ctx->platforms_vendor      = platforms_vendor;
+  backend_ctx->platforms_name        = platforms_name;
+  backend_ctx->platforms_version     = platforms_version;
+  backend_ctx->platforms_skipped     = platforms_skipped;
+  backend_ctx->platforms_cnt         = platforms_cnt;
+  backend_ctx->platforms             = platforms;
+  backend_ctx->platform_devices_cnt  = platform_devices_cnt;
+  backend_ctx->platform_devices      = platform_devices;
 
   return 0;
 }
 
-void opencl_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
+void backend_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  if (opencl_ctx->enabled == false) return;
+  if (backend_ctx->enabled == false) return;
 
   ocl_close (hashcat_ctx);
 
-  hcfree (opencl_ctx->devices_param);
+  hcfree (backend_ctx->devices_param);
 
-  hcfree (opencl_ctx->platforms);
-  hcfree (opencl_ctx->platform_devices);
-  hcfree (opencl_ctx->platforms_vendor);
-  hcfree (opencl_ctx->platforms_name);
-  hcfree (opencl_ctx->platforms_version);
-  hcfree (opencl_ctx->platforms_skipped);
+  hcfree (backend_ctx->platforms);
+  hcfree (backend_ctx->platform_devices);
+  hcfree (backend_ctx->platforms_vendor);
+  hcfree (backend_ctx->platforms_name);
+  hcfree (backend_ctx->platforms_version);
+  hcfree (backend_ctx->platforms_skipped);
 
-  memset (opencl_ctx, 0, sizeof (opencl_ctx_t));
+  memset (backend_ctx, 0, sizeof (backend_ctx_t));
 }
 
-int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
+int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 {
-  opencl_ctx_t   *opencl_ctx   = hashcat_ctx->opencl_ctx;
+  backend_ctx_t  *backend_ctx  = hashcat_ctx->backend_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
 
-  if (opencl_ctx->enabled == false) return 0;
+  if (backend_ctx->enabled == false) return 0;
 
   /**
    * OpenCL devices: simply push all devices from all platforms into the same device array
    */
 
-  cl_uint         platforms_cnt         = opencl_ctx->platforms_cnt;
-  cl_platform_id *platforms             = opencl_ctx->platforms;
-  cl_uint         platform_devices_cnt  = opencl_ctx->platform_devices_cnt;
-  cl_device_id   *platform_devices      = opencl_ctx->platform_devices;
+  cl_uint         platforms_cnt         = backend_ctx->platforms_cnt;
+  cl_platform_id *platforms             = backend_ctx->platforms;
+  cl_uint         platform_devices_cnt  = backend_ctx->platform_devices_cnt;
+  cl_device_id   *platform_devices      = backend_ctx->platform_devices;
 
   bool need_adl     = false;
   bool need_nvml    = false;
@@ -3221,7 +3359,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
     if (CL_rc == -1) return -1;
 
-    opencl_ctx->platforms_vendor[platform_id] = platform_vendor;
+    backend_ctx->platforms_vendor[platform_id] = platform_vendor;
 
     // platform name
 
@@ -3235,7 +3373,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
     if (CL_rc == -1) return -1;
 
-    opencl_ctx->platforms_name[platform_id] = platform_name;
+    backend_ctx->platforms_name[platform_id] = platform_name;
 
     // platform version
 
@@ -3249,7 +3387,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
     if (CL_rc == -1) return -1;
 
-    opencl_ctx->platforms_version[platform_id] = platform_version;
+    backend_ctx->platforms_version[platform_id] = platform_version;
 
     // find our own platform vendor because pocl and mesa are pushing original vendor_id through opencl
     // this causes trouble with vendor id based macros
@@ -3298,7 +3436,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       platform_vendor_id = VENDOR_ID_GENERIC;
     }
 
-    bool platform_skipped = ((opencl_ctx->opencl_platforms_filter & (1ULL << platform_id)) == 0);
+    bool platform_skipped = ((backend_ctx->opencl_platforms_filter & (1ULL << platform_id)) == 0);
 
     CL_rc = hc_clGetDeviceIDs (hashcat_ctx, platform, CL_DEVICE_TYPE_ALL, DEVICES_MAX, platform_devices, &platform_devices_cnt);
 
@@ -3311,7 +3449,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       platform_skipped = true;
     }
 
-    opencl_ctx->platforms_skipped[platform_id] = platform_skipped;
+    backend_ctx->platforms_skipped[platform_id] = platform_skipped;
 
     if (platform_skipped == true) continue;
 
@@ -3331,7 +3469,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       }
     }
 
-    hc_device_param_t *devices_param = opencl_ctx->devices_param;
+    hc_device_param_t *devices_param = backend_ctx->devices_param;
 
     for (u32 platform_devices_id = 0; platform_devices_id < platform_devices_cnt; platform_devices_id++)
     {
@@ -3710,12 +3848,12 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       // skipped
 
-      if ((opencl_ctx->devices_filter & (1ULL << device_id)) == 0)
+      if ((backend_ctx->devices_filter & (1ULL << device_id)) == 0)
       {
         device_param->skipped = true;
       }
 
-      if ((opencl_ctx->device_types_filter & (device_type)) == 0)
+      if ((backend_ctx->device_types_filter & (device_type)) == 0)
       {
         device_param->skipped = true;
       }
@@ -4091,7 +4229,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
           cl_int CL_err;
 
-          OCL_PTR *ocl = opencl_ctx->ocl;
+          OCL_PTR *ocl = backend_ctx->ocl;
 
           tmp_device[c] = ocl->clCreateBuffer (context, CL_MEM_READ_WRITE, MAX_ALLOC_CHECKS_SIZE, NULL, &CL_err);
 
@@ -4161,11 +4299,11 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
   // additional check to see if the user has chosen a device that is not within the range of available devices (i.e. larger than devices_cnt)
 
-  if (opencl_ctx->devices_filter != (u64) -1)
+  if (backend_ctx->devices_filter != (u64) -1)
   {
     const u64 devices_cnt_mask = ~(((u64) -1 >> devices_cnt) << devices_cnt);
 
-    if (opencl_ctx->devices_filter > devices_cnt_mask)
+    if (backend_ctx->devices_filter > devices_cnt_mask)
     {
       event_log_error (hashcat_ctx, "An invalid device was specified using the --opencl-devices parameter.");
       event_log_error (hashcat_ctx, "The specified device was higher than the number of available devices (%u).", devices_cnt);
@@ -4174,37 +4312,37 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
     }
   }
 
-  opencl_ctx->target_msec     = TARGET_MSEC_PROFILE[user_options->workload_profile - 1];
+  backend_ctx->target_msec     = TARGET_MSEC_PROFILE[user_options->workload_profile - 1];
 
-  opencl_ctx->devices_cnt     = devices_cnt;
-  opencl_ctx->devices_active  = devices_active;
+  backend_ctx->devices_cnt     = devices_cnt;
+  backend_ctx->devices_active  = devices_active;
 
-  opencl_ctx->need_adl        = need_adl;
-  opencl_ctx->need_nvml       = need_nvml;
-  opencl_ctx->need_nvapi      = need_nvapi;
-  opencl_ctx->need_sysfs      = need_sysfs;
+  backend_ctx->need_adl        = need_adl;
+  backend_ctx->need_nvml       = need_nvml;
+  backend_ctx->need_nvapi      = need_nvapi;
+  backend_ctx->need_sysfs      = need_sysfs;
 
-  opencl_ctx->comptime        = comptime;
+  backend_ctx->comptime        = comptime;
 
   return 0;
 }
 
-void opencl_ctx_devices_destroy (hashcat_ctx_t *hashcat_ctx)
+void backend_ctx_devices_destroy (hashcat_ctx_t *hashcat_ctx)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  if (opencl_ctx->enabled == false) return;
+  if (backend_ctx->enabled == false) return;
 
-  for (u32 platform_id = 0; platform_id < opencl_ctx->platforms_cnt; platform_id++)
+  for (u32 platform_id = 0; platform_id < backend_ctx->platforms_cnt; platform_id++)
   {
-    hcfree (opencl_ctx->platforms_vendor[platform_id]);
-    hcfree (opencl_ctx->platforms_name[platform_id]);
-    hcfree (opencl_ctx->platforms_version[platform_id]);
+    hcfree (backend_ctx->platforms_vendor[platform_id]);
+    hcfree (backend_ctx->platforms_name[platform_id]);
+    hcfree (backend_ctx->platforms_version[platform_id]);
   }
 
-  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < backend_ctx->devices_cnt; device_id++)
   {
-    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+    hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
     if (device_param->skipped == true) continue;
 
@@ -4215,13 +4353,13 @@ void opencl_ctx_devices_destroy (hashcat_ctx_t *hashcat_ctx)
     hcfree (device_param->device_vendor);
   }
 
-  opencl_ctx->devices_cnt    = 0;
-  opencl_ctx->devices_active = 0;
+  backend_ctx->devices_cnt    = 0;
+  backend_ctx->devices_active = 0;
 
-  opencl_ctx->need_adl    = false;
-  opencl_ctx->need_nvml   = false;
-  opencl_ctx->need_nvapi  = false;
-  opencl_ctx->need_sysfs  = false;
+  backend_ctx->need_adl    = false;
+  backend_ctx->need_nvml   = false;
+  backend_ctx->need_nvapi  = false;
+  backend_ctx->need_sysfs  = false;
 }
 
 static bool is_same_device_type (const hc_device_param_t *src, const hc_device_param_t *dst)
@@ -4247,23 +4385,23 @@ static bool is_same_device_type (const hc_device_param_t *src, const hc_device_p
   return true;
 }
 
-void opencl_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
+void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  if (opencl_ctx->enabled == false) return;
+  if (backend_ctx->enabled == false) return;
 
-  for (u32 device_id_src = 0; device_id_src < opencl_ctx->devices_cnt; device_id_src++)
+  for (u32 device_id_src = 0; device_id_src < backend_ctx->devices_cnt; device_id_src++)
   {
-    hc_device_param_t *device_param_src = &opencl_ctx->devices_param[device_id_src];
+    hc_device_param_t *device_param_src = &backend_ctx->devices_param[device_id_src];
 
     if (device_param_src->skipped == true) continue;
 
     if (device_param_src->skipped_warning == true) continue;
 
-    for (u32 device_id_dst = device_id_src; device_id_dst < opencl_ctx->devices_cnt; device_id_dst++)
+    for (u32 device_id_dst = device_id_src; device_id_dst < backend_ctx->devices_cnt; device_id_dst++)
     {
-      hc_device_param_t *device_param_dst = &opencl_ctx->devices_param[device_id_dst];
+      hc_device_param_t *device_param_dst = &backend_ctx->devices_param[device_id_dst];
 
       if (device_param_dst->skipped == true) continue;
 
@@ -4286,20 +4424,20 @@ void opencl_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
   }
 }
 
-void opencl_ctx_devices_update_power (hashcat_ctx_t *hashcat_ctx)
+void backend_ctx_devices_update_power (hashcat_ctx_t *hashcat_ctx)
 {
-  opencl_ctx_t         *opencl_ctx          = hashcat_ctx->opencl_ctx;
+  backend_ctx_t        *backend_ctx         = hashcat_ctx->backend_ctx;
   status_ctx_t         *status_ctx          = hashcat_ctx->status_ctx;
   user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
   user_options_t       *user_options        = hashcat_ctx->user_options;
 
-  if (opencl_ctx->enabled == false) return;
+  if (backend_ctx->enabled == false) return;
 
   u32 kernel_power_all = 0;
 
-  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < backend_ctx->devices_cnt; device_id++)
   {
-    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+    hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
     if (device_param->skipped == true) continue;
 
@@ -4308,7 +4446,7 @@ void opencl_ctx_devices_update_power (hashcat_ctx_t *hashcat_ctx)
     kernel_power_all += device_param->kernel_power;
   }
 
-  opencl_ctx->kernel_power_all = kernel_power_all;
+  backend_ctx->kernel_power_all = kernel_power_all;
 
   /*
    * Inform user about possible slow speeds
@@ -4330,22 +4468,22 @@ void opencl_ctx_devices_update_power (hashcat_ctx_t *hashcat_ctx)
   }
 }
 
-void opencl_ctx_devices_kernel_loops (hashcat_ctx_t *hashcat_ctx)
+void backend_ctx_devices_kernel_loops (hashcat_ctx_t *hashcat_ctx)
 {
   combinator_ctx_t     *combinator_ctx      = hashcat_ctx->combinator_ctx;
   hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
   hashes_t             *hashes              = hashcat_ctx->hashes;
   mask_ctx_t           *mask_ctx            = hashcat_ctx->mask_ctx;
-  opencl_ctx_t         *opencl_ctx          = hashcat_ctx->opencl_ctx;
+  backend_ctx_t        *backend_ctx         = hashcat_ctx->backend_ctx;
   straight_ctx_t       *straight_ctx        = hashcat_ctx->straight_ctx;
   user_options_t       *user_options        = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
 
-  if (opencl_ctx->enabled == false) return;
+  if (backend_ctx->enabled == false) return;
 
-  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < backend_ctx->devices_cnt; device_id++)
   {
-    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+    hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
     if (device_param->skipped == true) continue;
 
@@ -4567,23 +4705,23 @@ static u32 get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param
   return kernel_threads;
 }
 
-int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
+int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 {
   const bitmap_ctx_t         *bitmap_ctx          = hashcat_ctx->bitmap_ctx;
   const folder_config_t      *folder_config       = hashcat_ctx->folder_config;
   const hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
   const hashes_t             *hashes              = hashcat_ctx->hashes;
   const module_ctx_t         *module_ctx          = hashcat_ctx->module_ctx;
-        opencl_ctx_t         *opencl_ctx          = hashcat_ctx->opencl_ctx;
+        backend_ctx_t        *backend_ctx         = hashcat_ctx->backend_ctx;
   const straight_ctx_t       *straight_ctx        = hashcat_ctx->straight_ctx;
   const user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
   const user_options_t       *user_options        = hashcat_ctx->user_options;
 
-  if (opencl_ctx->enabled == false) return 0;
+  if (backend_ctx->enabled == false) return 0;
 
   u32 hardware_power_all = 0;
 
-  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < backend_ctx->devices_cnt; device_id++)
   {
     int CL_rc = CL_SUCCESS;
 
@@ -4591,7 +4729,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
      * host buffer
      */
 
-    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+    hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
     if (device_param->skipped == true) continue;
 
@@ -4996,7 +5134,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     char *device_name_chksum_amp_mp = (char *) hcmalloc (HCBUFSIZ_TINY);
 
     const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY, "%d-%u-%s-%s-%s-%d-%u",
-      opencl_ctx->comptime,
+      backend_ctx->comptime,
       device_param->platform_vendor_id,
       device_param->device_name,
       device_param->device_version,
@@ -5005,7 +5143,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       hashconfig->kern_type);
 
     const size_t dnclen_amp_mp = snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%d-%u-%s-%s-%s",
-      opencl_ctx->comptime,
+      backend_ctx->comptime,
       device_param->platform_vendor_id,
       device_param->device_name,
       device_param->device_version,
@@ -6700,7 +6838,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       #endif
 
       // we assume all devices have the same specs here, which is wrong, it's a start
-      if ((size_total_host * opencl_ctx->devices_cnt) > MAX_HOST_MEMORY) memory_limit_hit = 1;
+      if ((size_total_host * backend_ctx->devices_cnt) > MAX_HOST_MEMORY) memory_limit_hit = 1;
 
       if (memory_limit_hit == 1)
       {
@@ -6864,20 +7002,20 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     if (hardware_power_all == 0) return -1;
   }
 
-  opencl_ctx->hardware_power_all = hardware_power_all;
+  backend_ctx->hardware_power_all = hardware_power_all;
 
   return 0;
 }
 
-void opencl_session_destroy (hashcat_ctx_t *hashcat_ctx)
+void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  if (opencl_ctx->enabled == false) return;
+  if (backend_ctx->enabled == false) return;
 
-  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < backend_ctx->devices_cnt; device_id++)
   {
-    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+    hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
     if (device_param->skipped == true) continue;
 
@@ -7035,15 +7173,15 @@ void opencl_session_destroy (hashcat_ctx_t *hashcat_ctx)
   }
 }
 
-void opencl_session_reset (hashcat_ctx_t *hashcat_ctx)
+void backend_session_reset (hashcat_ctx_t *hashcat_ctx)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  if (opencl_ctx->enabled == false) return;
+  if (backend_ctx->enabled == false) return;
 
-  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < backend_ctx->devices_cnt; device_id++)
   {
-    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+    hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
     if (device_param->skipped == true) continue;
 
@@ -7081,22 +7219,22 @@ void opencl_session_reset (hashcat_ctx_t *hashcat_ctx)
     #endif
   }
 
-  opencl_ctx->kernel_power_all   = 0;
-  opencl_ctx->kernel_power_final = 0;
+  backend_ctx->kernel_power_all   = 0;
+  backend_ctx->kernel_power_final = 0;
 }
 
-int opencl_session_update_combinator (hashcat_ctx_t *hashcat_ctx)
+int backend_session_update_combinator (hashcat_ctx_t *hashcat_ctx)
 {
   combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
   hashconfig_t     *hashconfig     = hashcat_ctx->hashconfig;
-  opencl_ctx_t     *opencl_ctx     = hashcat_ctx->opencl_ctx;
+  backend_ctx_t     *backend_ctx     = hashcat_ctx->backend_ctx;
   user_options_t   *user_options   = hashcat_ctx->user_options;
 
-  if (opencl_ctx->enabled == false) return 0;
+  if (backend_ctx->enabled == false) return 0;
 
-  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < backend_ctx->devices_cnt; device_id++)
   {
-    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+    hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
     if (device_param->skipped == true) continue;
 
@@ -7143,19 +7281,19 @@ int opencl_session_update_combinator (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-int opencl_session_update_mp (hashcat_ctx_t *hashcat_ctx)
+int backend_session_update_mp (hashcat_ctx_t *hashcat_ctx)
 {
   mask_ctx_t     *mask_ctx     = hashcat_ctx->mask_ctx;
-  opencl_ctx_t   *opencl_ctx   = hashcat_ctx->opencl_ctx;
+  backend_ctx_t   *backend_ctx   = hashcat_ctx->backend_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
 
-  if (opencl_ctx->enabled == false) return 0;
+  if (backend_ctx->enabled == false) return 0;
 
   if (user_options->slow_candidates == true) return 0;
 
-  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < backend_ctx->devices_cnt; device_id++)
   {
-    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+    hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
     if (device_param->skipped == true) continue;
 
@@ -7176,19 +7314,19 @@ int opencl_session_update_mp (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-int opencl_session_update_mp_rl (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_l, const u32 css_cnt_r)
+int backend_session_update_mp_rl (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_l, const u32 css_cnt_r)
 {
   mask_ctx_t     *mask_ctx     = hashcat_ctx->mask_ctx;
-  opencl_ctx_t   *opencl_ctx   = hashcat_ctx->opencl_ctx;
+  backend_ctx_t   *backend_ctx   = hashcat_ctx->backend_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
 
-  if (opencl_ctx->enabled == false) return 0;
+  if (backend_ctx->enabled == false) return 0;
 
   if (user_options->slow_candidates == true) return 0;
 
-  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < backend_ctx->devices_cnt; device_id++)
   {
-    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+    hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
     if (device_param->skipped == true) continue;
 

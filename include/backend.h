@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _OPENCL_H
-#define _OPENCL_H
+#ifndef _BACKEND_H
+#define _BACKEND_H
 
 #include <stdio.h>
 #include <errno.h>
@@ -22,8 +22,11 @@ static const char CL_VENDOR_MESA[]            = "Mesa";
 static const char CL_VENDOR_NV[]              = "NVIDIA Corporation";
 static const char CL_VENDOR_POCL[]            = "The pocl project";
 
-int  ocl_init  (hashcat_ctx_t *hashcat_ctx);
-void ocl_close (hashcat_ctx_t *hashcat_ctx);
+int  cuda_init  (hashcat_ctx_t *hashcat_ctx);
+void cuda_close (hashcat_ctx_t *hashcat_ctx);
+
+int  ocl_init   (hashcat_ctx_t *hashcat_ctx);
+void ocl_close  (hashcat_ctx_t *hashcat_ctx);
 
 int hc_clBuildProgram            (hashcat_ctx_t *hashcat_ctx, cl_program program, cl_uint num_devices, const cl_device_id *device_list, const char *options, void (CL_CALLBACK *pfn_notify) (cl_program program, void *user_data), void *user_data);
 int hc_clCreateBuffer            (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_mem_flags flags, size_t size, void *host_ptr, cl_mem *mem);
@@ -82,20 +85,20 @@ void generate_cached_kernel_mp_filename  (const u32 opti_type, const u64 opts_ty
 void generate_source_kernel_amp_filename (const u32 attack_kern, char *shared_dir, char *source_file);
 void generate_cached_kernel_amp_filename (const u32 attack_kern, char *profile_dir, const char *device_name_chksum, char *cached_file);
 
-int  opencl_ctx_init                  (hashcat_ctx_t *hashcat_ctx);
-void opencl_ctx_destroy               (hashcat_ctx_t *hashcat_ctx);
+int  backend_ctx_init                  (hashcat_ctx_t *hashcat_ctx);
+void backend_ctx_destroy               (hashcat_ctx_t *hashcat_ctx);
 
-int  opencl_ctx_devices_init          (hashcat_ctx_t *hashcat_ctx, const int comptime);
-void opencl_ctx_devices_destroy       (hashcat_ctx_t *hashcat_ctx);
-void opencl_ctx_devices_sync_tuning   (hashcat_ctx_t *hashcat_ctx);
-void opencl_ctx_devices_update_power  (hashcat_ctx_t *hashcat_ctx);
-void opencl_ctx_devices_kernel_loops  (hashcat_ctx_t *hashcat_ctx);
+int  backend_ctx_devices_init          (hashcat_ctx_t *hashcat_ctx, const int comptime);
+void backend_ctx_devices_destroy       (hashcat_ctx_t *hashcat_ctx);
+void backend_ctx_devices_sync_tuning   (hashcat_ctx_t *hashcat_ctx);
+void backend_ctx_devices_update_power  (hashcat_ctx_t *hashcat_ctx);
+void backend_ctx_devices_kernel_loops  (hashcat_ctx_t *hashcat_ctx);
 
-int  opencl_session_begin             (hashcat_ctx_t *hashcat_ctx);
-void opencl_session_destroy           (hashcat_ctx_t *hashcat_ctx);
-void opencl_session_reset             (hashcat_ctx_t *hashcat_ctx);
-int  opencl_session_update_combinator (hashcat_ctx_t *hashcat_ctx);
-int  opencl_session_update_mp         (hashcat_ctx_t *hashcat_ctx);
-int  opencl_session_update_mp_rl      (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_l, const u32 css_cnt_r);
+int  backend_session_begin             (hashcat_ctx_t *hashcat_ctx);
+void backend_session_destroy           (hashcat_ctx_t *hashcat_ctx);
+void backend_session_reset             (hashcat_ctx_t *hashcat_ctx);
+int  backend_session_update_combinator (hashcat_ctx_t *hashcat_ctx);
+int  backend_session_update_mp         (hashcat_ctx_t *hashcat_ctx);
+int  backend_session_update_mp_rl      (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_l, const u32 css_cnt_r);
 
-#endif // _OPENCL_H
+#endif // _BACKEND_H

@@ -34,7 +34,7 @@
 #include "loopback.h"
 #include "monitor.h"
 #include "mpsp.h"
-#include "opencl.h"
+#include "backend.h"
 #include "outfile_check.h"
 #include "outfile.h"
 #include "pidfile.h"
@@ -59,7 +59,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   hashes_t             *hashes              = hashcat_ctx->hashes;
   induct_ctx_t         *induct_ctx          = hashcat_ctx->induct_ctx;
   logfile_ctx_t        *logfile_ctx         = hashcat_ctx->logfile_ctx;
-  opencl_ctx_t         *opencl_ctx          = hashcat_ctx->opencl_ctx;
+  backend_ctx_t        *backend_ctx         = hashcat_ctx->backend_ctx;
   restore_ctx_t        *restore_ctx         = hashcat_ctx->restore_ctx;
   status_ctx_t         *status_ctx          = hashcat_ctx->status_ctx;
   user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
@@ -109,7 +109,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     user_options->skip = 0;
   }
 
-  opencl_session_reset (hashcat_ctx);
+  backend_session_reset (hashcat_ctx);
 
   cpt_ctx_reset (hashcat_ctx);
 
@@ -174,15 +174,15 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
    * this is required for autotune
    */
 
-  opencl_ctx_devices_kernel_loops (hashcat_ctx);
+  backend_ctx_devices_kernel_loops (hashcat_ctx);
 
   /**
    * prepare thread buffers
    */
 
-  thread_param_t *threads_param = (thread_param_t *) hccalloc (opencl_ctx->devices_cnt, sizeof (thread_param_t));
+  thread_param_t *threads_param = (thread_param_t *) hccalloc (backend_ctx->devices_cnt, sizeof (thread_param_t));
 
-  hc_thread_t *c_threads = (hc_thread_t *) hccalloc (opencl_ctx->devices_cnt, sizeof (hc_thread_t));
+  hc_thread_t *c_threads = (hc_thread_t *) hccalloc (backend_ctx->devices_cnt, sizeof (hc_thread_t));
 
   /**
    * create autotune threads
@@ -192,7 +192,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   status_ctx->devices_status = STATUS_AUTOTUNE;
 
-  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < backend_ctx->devices_cnt; device_id++)
   {
     thread_param_t *thread_param = threads_param + device_id;
 
@@ -202,7 +202,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     hc_thread_create (c_threads[device_id], thread_autotune, thread_param);
   }
 
-  hc_thread_wait (opencl_ctx->devices_cnt, c_threads);
+  hc_thread_wait (backend_ctx->devices_cnt, c_threads);
 
   EVENT (EVENT_AUTOTUNE_FINISHED);
 
@@ -210,13 +210,13 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
    * find same opencl devices and equal results
    */
 
-  opencl_ctx_devices_sync_tuning (hashcat_ctx);
+  backend_ctx_devices_sync_tuning (hashcat_ctx);
 
   /**
-   * autotune modified kernel_accel, which modifies opencl_ctx->kernel_power_all
+   * autotune modified kernel_accel, which modifies backend_ctx->kernel_power_all
    */
 
-  opencl_ctx_devices_update_power (hashcat_ctx);
+  backend_ctx_devices_update_power (hashcat_ctx);
 
   /**
    * Begin loopback recording
@@ -249,7 +249,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   status_ctx->accessible = true;
 
-  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < backend_ctx->devices_cnt; device_id++)
   {
     thread_param_t *thread_param = threads_param + device_id;
 
@@ -266,7 +266,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  hc_thread_wait (opencl_ctx->devices_cnt, c_threads);
+  hc_thread_wait (backend_ctx->devices_cnt, c_threads);
 
   hcfree (c_threads);
 
@@ -438,7 +438,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   hashconfig_t   *hashconfig    = hashcat_ctx->hashconfig;
   hashes_t       *hashes        = hashcat_ctx->hashes;
   mask_ctx_t     *mask_ctx      = hashcat_ctx->mask_ctx;
-  opencl_ctx_t   *opencl_ctx    = hashcat_ctx->opencl_ctx;
+  backend_ctx_t  *backend_ctx   = hashcat_ctx->backend_ctx;
   outcheck_ctx_t *outcheck_ctx  = hashcat_ctx->outcheck_ctx;
   restore_ctx_t  *restore_ctx   = hashcat_ctx->restore_ctx;
   status_ctx_t   *status_ctx    = hashcat_ctx->status_ctx;
@@ -722,7 +722,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   EVENT (EVENT_OPENCL_SESSION_PRE);
 
-  const int rc_session_begin = opencl_session_begin (hashcat_ctx);
+  const int rc_session_begin = backend_session_begin (hashcat_ctx);
 
   if (rc_session_begin == -1) return -1;
 
@@ -736,13 +736,13 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   {
     EVENT (EVENT_SELFTEST_STARTING);
 
-    thread_param_t *threads_param = (thread_param_t *) hccalloc (opencl_ctx->devices_cnt, sizeof (thread_param_t));
+    thread_param_t *threads_param = (thread_param_t *) hccalloc (backend_ctx->devices_cnt, sizeof (thread_param_t));
 
-    hc_thread_t *selftest_threads = (hc_thread_t *) hccalloc (opencl_ctx->devices_cnt, sizeof (hc_thread_t));
+    hc_thread_t *selftest_threads = (hc_thread_t *) hccalloc (backend_ctx->devices_cnt, sizeof (hc_thread_t));
 
     status_ctx->devices_status = STATUS_SELFTEST;
 
-    for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+    for (u32 device_id = 0; device_id < backend_ctx->devices_cnt; device_id++)
     {
       thread_param_t *thread_param = threads_param + device_id;
 
@@ -752,7 +752,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
       hc_thread_create (selftest_threads[device_id], thread_selftest, thread_param);
     }
 
-    hc_thread_wait (opencl_ctx->devices_cnt, selftest_threads);
+    hc_thread_wait (backend_ctx->devices_cnt, selftest_threads);
 
     hcfree (threads_param);
 
@@ -760,11 +760,11 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
     // check for any selftest failures
 
-    for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+    for (u32 device_id = 0; device_id < backend_ctx->devices_cnt; device_id++)
     {
-      if (opencl_ctx->enabled == false) continue;
+      if (backend_ctx->enabled == false) continue;
 
-      hc_device_param_t *device_param = opencl_ctx->devices_param + device_id;
+      hc_device_param_t *device_param = backend_ctx->devices_param + device_id;
 
       if (device_param->skipped == true) continue;
 
@@ -881,7 +881,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   // finalize opencl session
 
-  opencl_session_destroy (hashcat_ctx);
+  backend_session_destroy (hashcat_ctx);
 
   // clean up
 
@@ -930,7 +930,7 @@ int hashcat_init (hashcat_ctx_t *hashcat_ctx, void (*event) (const u32, struct h
   hashcat_ctx->loopback_ctx       = (loopback_ctx_t *)        hcmalloc (sizeof (loopback_ctx_t));
   hashcat_ctx->mask_ctx           = (mask_ctx_t *)            hcmalloc (sizeof (mask_ctx_t));
   hashcat_ctx->module_ctx         = (module_ctx_t *)          hcmalloc (sizeof (module_ctx_t));
-  hashcat_ctx->opencl_ctx         = (opencl_ctx_t *)          hcmalloc (sizeof (opencl_ctx_t));
+  hashcat_ctx->backend_ctx        = (backend_ctx_t *)         hcmalloc (sizeof (backend_ctx_t));
   hashcat_ctx->outcheck_ctx       = (outcheck_ctx_t *)        hcmalloc (sizeof (outcheck_ctx_t));
   hashcat_ctx->outfile_ctx        = (outfile_ctx_t *)         hcmalloc (sizeof (outfile_ctx_t));
   hashcat_ctx->pidfile_ctx        = (pidfile_ctx_t *)         hcmalloc (sizeof (pidfile_ctx_t));
@@ -964,7 +964,7 @@ void hashcat_destroy (hashcat_ctx_t *hashcat_ctx)
   hcfree (hashcat_ctx->loopback_ctx);
   hcfree (hashcat_ctx->mask_ctx);
   hcfree (hashcat_ctx->module_ctx);
-  hcfree (hashcat_ctx->opencl_ctx);
+  hcfree (hashcat_ctx->backend_ctx);
   hcfree (hashcat_ctx->outcheck_ctx);
   hcfree (hashcat_ctx->outfile_ctx);
   hcfree (hashcat_ctx->pidfile_ctx);
@@ -1172,15 +1172,15 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
    * Init OpenCL library loader
    */
 
-  const int rc_opencl_init = opencl_ctx_init (hashcat_ctx);
+  const int rc_backend_init = backend_ctx_init (hashcat_ctx);
 
-  if (rc_opencl_init == -1) return -1;
+  if (rc_backend_init == -1) return -1;
 
   /**
    * Init OpenCL devices
    */
 
-  const int rc_devices_init = opencl_ctx_devices_init (hashcat_ctx, comptime);
+  const int rc_devices_init = backend_ctx_devices_init (hashcat_ctx, comptime);
 
   if (rc_devices_init == -1) return -1;
 
@@ -1341,25 +1341,25 @@ int hashcat_session_destroy (hashcat_ctx_t *hashcat_ctx)
   #endif
   #endif
 
-  debugfile_destroy          (hashcat_ctx);
-  dictstat_destroy           (hashcat_ctx);
-  folder_config_destroy      (hashcat_ctx);
-  hwmon_ctx_destroy          (hashcat_ctx);
-  induct_ctx_destroy         (hashcat_ctx);
-  logfile_destroy            (hashcat_ctx);
-  loopback_destroy           (hashcat_ctx);
-  opencl_ctx_devices_destroy (hashcat_ctx);
-  opencl_ctx_destroy         (hashcat_ctx);
-  outcheck_ctx_destroy       (hashcat_ctx);
-  outfile_destroy            (hashcat_ctx);
-  pidfile_ctx_destroy        (hashcat_ctx);
-  potfile_destroy            (hashcat_ctx);
-  restore_ctx_destroy        (hashcat_ctx);
-  tuning_db_destroy          (hashcat_ctx);
-  user_options_destroy       (hashcat_ctx);
-  user_options_extra_destroy (hashcat_ctx);
-  status_ctx_destroy         (hashcat_ctx);
-  event_ctx_destroy          (hashcat_ctx);
+  debugfile_destroy           (hashcat_ctx);
+  dictstat_destroy            (hashcat_ctx);
+  folder_config_destroy       (hashcat_ctx);
+  hwmon_ctx_destroy           (hashcat_ctx);
+  induct_ctx_destroy          (hashcat_ctx);
+  logfile_destroy             (hashcat_ctx);
+  loopback_destroy            (hashcat_ctx);
+  backend_ctx_devices_destroy (hashcat_ctx);
+  backend_ctx_destroy         (hashcat_ctx);
+  outcheck_ctx_destroy        (hashcat_ctx);
+  outfile_destroy             (hashcat_ctx);
+  pidfile_ctx_destroy         (hashcat_ctx);
+  potfile_destroy             (hashcat_ctx);
+  restore_ctx_destroy         (hashcat_ctx);
+  tuning_db_destroy           (hashcat_ctx);
+  user_options_destroy        (hashcat_ctx);
+  user_options_extra_destroy  (hashcat_ctx);
+  status_ctx_destroy          (hashcat_ctx);
+  event_ctx_destroy           (hashcat_ctx);
 
   return 0;
 }

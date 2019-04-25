@@ -47,9 +47,9 @@ static void sysfs_close (hashcat_ctx_t *hashcat_ctx)
 
 static char *hm_SYSFS_get_syspath_device (hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+  hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
   char *syspath;
 
@@ -1344,16 +1344,16 @@ static int hm_get_adapter_index_nvml (hashcat_ctx_t *hashcat_ctx, HM_ADAPTER_NVM
 
 int hm_get_threshold_slowdown_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 device_id)
 {
-  hwmon_ctx_t  *hwmon_ctx  = hashcat_ctx->hwmon_ctx;
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  hwmon_ctx_t   *hwmon_ctx   = hashcat_ctx->hwmon_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   if (hwmon_ctx->enabled == false) return -1;
 
   if (hwmon_ctx->hm_device[device_id].threshold_slowdown_get_supported == false) return -1;
 
-  if ((opencl_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+  if ((backend_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
-  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
+  if (backend_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
     if (hwmon_ctx->hm_adl)
     {
@@ -1380,7 +1380,7 @@ int hm_get_threshold_slowdown_with_device_id (hashcat_ctx_t *hashcat_ctx, const 
     }
   }
 
-  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+  if (backend_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
     if (hwmon_ctx->hm_nvml)
     {
@@ -1404,16 +1404,16 @@ int hm_get_threshold_slowdown_with_device_id (hashcat_ctx_t *hashcat_ctx, const 
 
 int hm_get_threshold_shutdown_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 device_id)
 {
-  hwmon_ctx_t  *hwmon_ctx  = hashcat_ctx->hwmon_ctx;
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  hwmon_ctx_t   *hwmon_ctx   = hashcat_ctx->hwmon_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   if (hwmon_ctx->enabled == false) return -1;
 
   if (hwmon_ctx->hm_device[device_id].threshold_shutdown_get_supported == false) return -1;
 
-  if ((opencl_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+  if ((backend_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
-  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
+  if (backend_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
     if (hwmon_ctx->hm_adl)
     {
@@ -1428,7 +1428,7 @@ int hm_get_threshold_shutdown_with_device_id (hashcat_ctx_t *hashcat_ctx, const 
     }
   }
 
-  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+  if (backend_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
     if (hwmon_ctx->hm_nvml)
     {
@@ -1452,16 +1452,16 @@ int hm_get_threshold_shutdown_with_device_id (hashcat_ctx_t *hashcat_ctx, const 
 
 int hm_get_temperature_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 device_id)
 {
-  hwmon_ctx_t  *hwmon_ctx  = hashcat_ctx->hwmon_ctx;
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  hwmon_ctx_t   *hwmon_ctx   = hashcat_ctx->hwmon_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   if (hwmon_ctx->enabled == false) return -1;
 
   if (hwmon_ctx->hm_device[device_id].temperature_get_supported == false) return -1;
 
-  if ((opencl_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+  if ((backend_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
-  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
+  if (backend_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
     if (hwmon_ctx->hm_adl)
     {
@@ -1511,7 +1511,7 @@ int hm_get_temperature_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 dev
     }
   }
 
-  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+  if (backend_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
     if (hwmon_ctx->hm_nvml)
     {
@@ -1535,16 +1535,16 @@ int hm_get_temperature_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 dev
 
 int hm_get_fanpolicy_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 device_id)
 {
-  hwmon_ctx_t  *hwmon_ctx  = hashcat_ctx->hwmon_ctx;
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  hwmon_ctx_t   *hwmon_ctx   = hashcat_ctx->hwmon_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   if (hwmon_ctx->enabled == false) return -1;
 
   if (hwmon_ctx->hm_device[device_id].fanpolicy_get_supported == false) return -1;
 
-  if ((opencl_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+  if ((backend_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
-  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
+  if (backend_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
     if (hwmon_ctx->hm_adl)
     {
@@ -1580,7 +1580,7 @@ int hm_get_fanpolicy_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 devic
     }
   }
 
-  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+  if (backend_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
     return 1;
   }
@@ -1593,16 +1593,16 @@ int hm_get_fanpolicy_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 devic
 
 int hm_get_fanspeed_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 device_id)
 {
-  hwmon_ctx_t  *hwmon_ctx  = hashcat_ctx->hwmon_ctx;
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  hwmon_ctx_t   *hwmon_ctx   = hashcat_ctx->hwmon_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   if (hwmon_ctx->enabled == false) return -1;
 
   if (hwmon_ctx->hm_device[device_id].fanspeed_get_supported == false) return -1;
 
-  if ((opencl_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+  if ((backend_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
-  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
+  if (backend_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
     if (hwmon_ctx->hm_adl)
     {
@@ -1658,7 +1658,7 @@ int hm_get_fanspeed_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 device
     }
   }
 
-  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+  if (backend_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
     if (hwmon_ctx->hm_nvml)
     {
@@ -1682,16 +1682,16 @@ int hm_get_fanspeed_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 device
 
 int hm_get_buslanes_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 device_id)
 {
-  hwmon_ctx_t  *hwmon_ctx  = hashcat_ctx->hwmon_ctx;
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  hwmon_ctx_t   *hwmon_ctx   = hashcat_ctx->hwmon_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   if (hwmon_ctx->enabled == false) return -1;
 
   if (hwmon_ctx->hm_device[device_id].buslanes_get_supported == false) return -1;
 
-  if ((opencl_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+  if ((backend_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
-  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
+  if (backend_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
     if (hwmon_ctx->hm_adl)
     {
@@ -1724,7 +1724,7 @@ int hm_get_buslanes_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 device
     }
   }
 
-  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+  if (backend_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
     if (hwmon_ctx->hm_nvml)
     {
@@ -1748,16 +1748,16 @@ int hm_get_buslanes_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 device
 
 int hm_get_utilization_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 device_id)
 {
-  hwmon_ctx_t  *hwmon_ctx  = hashcat_ctx->hwmon_ctx;
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  hwmon_ctx_t   *hwmon_ctx   = hashcat_ctx->hwmon_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   if (hwmon_ctx->enabled == false) return -1;
 
   if (hwmon_ctx->hm_device[device_id].utilization_get_supported == false) return -1;
 
-  if ((opencl_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+  if ((backend_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
-  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
+  if (backend_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
     if (hwmon_ctx->hm_adl)
     {
@@ -1776,7 +1776,7 @@ int hm_get_utilization_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 dev
     }
   }
 
-  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+  if (backend_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
     if (hwmon_ctx->hm_nvml)
     {
@@ -1800,16 +1800,16 @@ int hm_get_utilization_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 dev
 
 int hm_get_memoryspeed_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 device_id)
 {
-  hwmon_ctx_t  *hwmon_ctx  = hashcat_ctx->hwmon_ctx;
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  hwmon_ctx_t   *hwmon_ctx   = hashcat_ctx->hwmon_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   if (hwmon_ctx->enabled == false) return -1;
 
   if (hwmon_ctx->hm_device[device_id].memoryspeed_get_supported == false) return -1;
 
-  if ((opencl_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+  if ((backend_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
-  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
+  if (backend_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
     if (hwmon_ctx->hm_adl)
     {
@@ -1842,7 +1842,7 @@ int hm_get_memoryspeed_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 dev
     }
   }
 
-  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+  if (backend_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
     if (hwmon_ctx->hm_nvml)
     {
@@ -1866,16 +1866,16 @@ int hm_get_memoryspeed_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 dev
 
 int hm_get_corespeed_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 device_id)
 {
-  hwmon_ctx_t  *hwmon_ctx  = hashcat_ctx->hwmon_ctx;
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  hwmon_ctx_t   *hwmon_ctx   = hashcat_ctx->hwmon_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   if (hwmon_ctx->enabled == false) return -1;
 
   if (hwmon_ctx->hm_device[device_id].corespeed_get_supported == false) return -1;
 
-  if ((opencl_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+  if ((backend_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
-  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
+  if (backend_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
     if (hwmon_ctx->hm_adl)
     {
@@ -1908,7 +1908,7 @@ int hm_get_corespeed_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 devic
     }
   }
 
-  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+  if (backend_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
     if (hwmon_ctx->hm_nvml)
     {
@@ -1932,20 +1932,20 @@ int hm_get_corespeed_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 devic
 
 int hm_get_throttle_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 device_id)
 {
-  hwmon_ctx_t  *hwmon_ctx  = hashcat_ctx->hwmon_ctx;
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  hwmon_ctx_t   *hwmon_ctx   = hashcat_ctx->hwmon_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   if (hwmon_ctx->enabled == false) return -1;
 
   if (hwmon_ctx->hm_device[device_id].throttle_get_supported == false) return -1;
 
-  if ((opencl_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+  if ((backend_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
-  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
+  if (backend_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
   }
 
-  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+  if (backend_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
     if (hwmon_ctx->hm_nvml)
     {
@@ -1961,7 +1961,7 @@ int hm_get_throttle_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 device
       clocksThrottleReasons &= ~nvmlClocksThrottleReasonApplicationsClocksSetting;
       clocksThrottleReasons &= ~nvmlClocksThrottleReasonUnknown;
 
-      if (opencl_ctx->kernel_power_final)
+      if (backend_ctx->kernel_power_final)
       {
         clocksThrottleReasons &= ~nvmlClocksThrottleReasonHwSlowdown;
       }
@@ -1999,7 +1999,7 @@ int hm_get_throttle_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 device
 int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
   hwmon_ctx_t    *hwmon_ctx    = hashcat_ctx->hwmon_ctx;
-  opencl_ctx_t   *opencl_ctx   = hashcat_ctx->opencl_ctx;
+  backend_ctx_t  *backend_ctx  = hashcat_ctx->backend_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
 
   hwmon_ctx->enabled = false;
@@ -2037,7 +2037,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
     hcfree (hm_adapters_sysfs); \
   }
 
-  if (opencl_ctx->need_nvml == true)
+  if (backend_ctx->need_nvml == true)
   {
     hwmon_ctx->hm_nvml = (NVML_PTR *) hcmalloc (sizeof (NVML_PTR));
 
@@ -2049,7 +2049,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  if ((opencl_ctx->need_nvapi == true) && (hwmon_ctx->hm_nvml)) // nvapi can't work alone, we need nvml, too
+  if ((backend_ctx->need_nvapi == true) && (hwmon_ctx->hm_nvml)) // nvapi can't work alone, we need nvml, too
   {
     hwmon_ctx->hm_nvapi = (NVAPI_PTR *) hcmalloc (sizeof (NVAPI_PTR));
 
@@ -2061,7 +2061,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  if (opencl_ctx->need_adl == true)
+  if (backend_ctx->need_adl == true)
   {
     hwmon_ctx->hm_adl = (ADL_PTR *) hcmalloc (sizeof (ADL_PTR));
 
@@ -2073,7 +2073,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  if (opencl_ctx->need_sysfs == true)
+  if (backend_ctx->need_sysfs == true)
   {
     hwmon_ctx->hm_sysfs = (SYSFS_PTR *) hcmalloc (sizeof (SYSFS_PTR));
 
@@ -2102,9 +2102,9 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       int tmp_in = hm_get_adapter_index_nvml (hashcat_ctx, nvmlGPUHandle);
 
-      for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+      for (u32 device_id = 0; device_id < backend_ctx->devices_cnt; device_id++)
       {
-        hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+        hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
         if (device_param->skipped == true) continue;
 
@@ -2152,9 +2152,9 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       int tmp_in = hm_get_adapter_index_nvapi (hashcat_ctx, nvGPUHandle);
 
-      for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+      for (u32 device_id = 0; device_id < backend_ctx->devices_cnt; device_id++)
       {
-        hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+        hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
         if (device_param->skipped == true) continue;
 
@@ -2221,9 +2221,9 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
         return -1;
       }
 
-      for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+      for (u32 device_id = 0; device_id < backend_ctx->devices_cnt; device_id++)
       {
-        hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+        hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
         if (device_param->skipped == true) continue;
 
@@ -2271,9 +2271,9 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
     {
       int hm_adapters_id = 0;
 
-      for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+      for (u32 device_id = 0; device_id < backend_ctx->devices_cnt; device_id++)
       {
-        hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+        hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
         if ((device_param->device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
 
@@ -2308,15 +2308,15 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
    * save buffer required for later restores
    */
 
-  hwmon_ctx->od_clock_mem_status = (ADLOD6MemClockState *) hccalloc (opencl_ctx->devices_cnt, sizeof (ADLOD6MemClockState));
+  hwmon_ctx->od_clock_mem_status = (ADLOD6MemClockState *) hccalloc (backend_ctx->devices_cnt, sizeof (ADLOD6MemClockState));
 
   /**
    * HM devices: copy
    */
 
-  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < backend_ctx->devices_cnt; device_id++)
   {
-    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+    hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
     if (device_param->skipped == true) continue;
 

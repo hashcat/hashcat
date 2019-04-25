@@ -200,32 +200,32 @@ double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_en
 
 int status_get_device_info_cnt (const hashcat_ctx_t *hashcat_ctx)
 {
-  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  return opencl_ctx->devices_cnt;
+  return backend_ctx->devices_cnt;
 }
 
 int status_get_device_info_active (const hashcat_ctx_t *hashcat_ctx)
 {
-  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  return opencl_ctx->devices_active;
+  return backend_ctx->devices_active;
 }
 
 bool status_get_skipped_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
-  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+  hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
   return device_param->skipped;
 }
 
 bool status_get_skipped_warning_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
-  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+  hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
   return device_param->skipped_warning;
 }
@@ -836,13 +836,13 @@ int status_get_guess_mask_length (const hashcat_ctx_t *hashcat_ctx)
 char *status_get_guess_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
   const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
-  const opencl_ctx_t         *opencl_ctx         = hashcat_ctx->opencl_ctx;
+  const backend_ctx_t        *backend_ctx        = hashcat_ctx->backend_ctx;
   const status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   if (status_ctx->accessible == false) return NULL;
 
-  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+  hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
   char *display = (char *) hcmalloc (HCBUFSIZ_TINY);
 
@@ -1410,11 +1410,11 @@ u64 status_get_progress_end_relative_skip (const hashcat_ctx_t *hashcat_ctx)
 
 double status_get_hashes_msec_all (const hashcat_ctx_t *hashcat_ctx)
 {
-  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   double hashes_all_msec = 0;
 
-  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < backend_ctx->devices_cnt; device_id++)
   {
     hashes_all_msec += status_get_hashes_msec_dev (hashcat_ctx, device_id);
   }
@@ -1424,12 +1424,12 @@ double status_get_hashes_msec_all (const hashcat_ctx_t *hashcat_ctx)
 
 double status_get_hashes_msec_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
-  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   u64    speed_cnt  = 0;
   double speed_msec = 0;
 
-  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+  hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
   if ((device_param->skipped == false) && (device_param->skipped_warning == false))
   {
@@ -1459,12 +1459,12 @@ double status_get_hashes_msec_dev_benchmark (const hashcat_ctx_t *hashcat_ctx, c
 {
   // this function increases accuracy for benchmark modes
 
-  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   u64    speed_cnt  = 0;
   double speed_msec = 0;
 
-  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+  hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
   if ((device_param->skipped == false) && (device_param->skipped_warning == false))
   {
@@ -1486,11 +1486,11 @@ double status_get_hashes_msec_dev_benchmark (const hashcat_ctx_t *hashcat_ctx, c
 
 double status_get_exec_msec_all (const hashcat_ctx_t *hashcat_ctx)
 {
-  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   double exec_all_msec = 0;
 
-  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < backend_ctx->devices_cnt; device_id++)
   {
     exec_all_msec += status_get_exec_msec_dev (hashcat_ctx, device_id);
   }
@@ -1500,9 +1500,9 @@ double status_get_exec_msec_all (const hashcat_ctx_t *hashcat_ctx)
 
 double status_get_exec_msec_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
-  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+  hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
   double exec_dev_msec = 0;
 
@@ -1700,9 +1700,9 @@ char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
 
 int status_get_salt_pos_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
-  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+  hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
   int salt_pos = 0;
 
@@ -1716,9 +1716,9 @@ int status_get_salt_pos_dev (const hashcat_ctx_t *hashcat_ctx, const int device_
 
 int status_get_innerloop_pos_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
-  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+  hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
   int innerloop_pos = 0;
 
@@ -1732,9 +1732,9 @@ int status_get_innerloop_pos_dev (const hashcat_ctx_t *hashcat_ctx, const int de
 
 int status_get_innerloop_left_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
-  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+  hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
   int innerloop_left = 0;
 
@@ -1748,9 +1748,9 @@ int status_get_innerloop_left_dev (const hashcat_ctx_t *hashcat_ctx, const int d
 
 int status_get_iteration_pos_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
-  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+  hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
   int iteration_pos = 0;
 
@@ -1764,9 +1764,9 @@ int status_get_iteration_pos_dev (const hashcat_ctx_t *hashcat_ctx, const int de
 
 int status_get_iteration_left_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
-  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+  hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
   int iteration_left = 0;
 
@@ -1781,9 +1781,9 @@ int status_get_iteration_left_dev (const hashcat_ctx_t *hashcat_ctx, const int d
 #ifdef WITH_BRAIN
 int status_get_brain_link_client_id_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
-  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+  hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
   int brain_client_id = -1;
 
@@ -1797,9 +1797,9 @@ int status_get_brain_link_client_id_dev (const hashcat_ctx_t *hashcat_ctx, const
 
 int status_get_brain_link_status_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
-  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+  hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
   int brain_link_status_dev = 0;
 
@@ -1815,9 +1815,9 @@ int status_get_brain_link_status_dev (const hashcat_ctx_t *hashcat_ctx, const in
 
 char *status_get_brain_link_recv_bytes_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
-  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+  hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
   u64 brain_link_recv_bytes = 0;
 
@@ -1835,9 +1835,9 @@ char *status_get_brain_link_recv_bytes_dev (const hashcat_ctx_t *hashcat_ctx, co
 
 char *status_get_brain_link_send_bytes_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
-  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+  hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
   u64 brain_link_send_bytes = 0;
 
@@ -1855,9 +1855,9 @@ char *status_get_brain_link_send_bytes_dev (const hashcat_ctx_t *hashcat_ctx, co
 
 char *status_get_brain_link_recv_bytes_sec_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
-  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+  hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
   u64 brain_link_recv_bytes = 0;
 
@@ -1882,9 +1882,9 @@ char *status_get_brain_link_recv_bytes_sec_dev (const hashcat_ctx_t *hashcat_ctx
 
 char *status_get_brain_link_send_bytes_sec_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
-  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+  hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
   u64 brain_link_send_bytes = 0;
 
@@ -1910,9 +1910,9 @@ char *status_get_brain_link_send_bytes_sec_dev (const hashcat_ctx_t *hashcat_ctx
 
 char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
-  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+  hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
   char *output_buf = (char *) hcmalloc (HCBUFSIZ_TINY);
 
@@ -1983,9 +1983,9 @@ char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int device_i
 
 int status_get_corespeed_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
-  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+  hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
   if (device_param->skipped == true) return -1;
 
@@ -2004,9 +2004,9 @@ int status_get_corespeed_dev (const hashcat_ctx_t *hashcat_ctx, const int device
 
 int status_get_memoryspeed_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
-  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+  hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
   if (device_param->skipped == true) return -1;
 
@@ -2025,9 +2025,9 @@ int status_get_memoryspeed_dev (const hashcat_ctx_t *hashcat_ctx, const int devi
 
 u64 status_get_progress_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
-  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+  hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
   if (device_param->skipped == true) return 0;
 
@@ -2038,9 +2038,9 @@ u64 status_get_progress_dev (const hashcat_ctx_t *hashcat_ctx, const int device_
 
 double status_get_runtime_msec_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
-  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+  hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
   if (device_param->skipped == true) return 0;
 
@@ -2051,9 +2051,9 @@ double status_get_runtime_msec_dev (const hashcat_ctx_t *hashcat_ctx, const int 
 
 int status_get_kernel_accel_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
-  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+  hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
   if (device_param->skipped == true) return 0;
 
@@ -2066,9 +2066,9 @@ int status_get_kernel_accel_dev (const hashcat_ctx_t *hashcat_ctx, const int dev
 
 int status_get_kernel_loops_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
-  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+  hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
   if (device_param->skipped == true) return 0;
 
@@ -2081,9 +2081,9 @@ int status_get_kernel_loops_dev (const hashcat_ctx_t *hashcat_ctx, const int dev
 
 int status_get_kernel_threads_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
-  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+  hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
   if (device_param->skipped == true) return 0;
 
@@ -2094,9 +2094,9 @@ int status_get_kernel_threads_dev (const hashcat_ctx_t *hashcat_ctx, const int d
 
 int status_get_vector_width_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
-  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+  hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
   if (device_param->skipped == true) return 0;
 

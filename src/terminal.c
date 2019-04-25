@@ -656,17 +656,17 @@ void example_hashes (hashcat_ctx_t *hashcat_ctx)
 
 void opencl_info (hashcat_ctx_t *hashcat_ctx)
 {
-  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   event_log_info (hashcat_ctx, "OpenCL Info:");
   event_log_info (hashcat_ctx, NULL);
 
-  cl_uint         platforms_cnt         = opencl_ctx->platforms_cnt;
-  cl_platform_id *platforms             = opencl_ctx->platforms;
-  char          **platforms_vendor      = opencl_ctx->platforms_vendor;
-  char          **platforms_name        = opencl_ctx->platforms_name;
-  char          **platforms_version     = opencl_ctx->platforms_version;
-  cl_uint         devices_cnt           = opencl_ctx->devices_cnt;
+  cl_uint         platforms_cnt         = backend_ctx->platforms_cnt;
+  cl_platform_id *platforms             = backend_ctx->platforms;
+  char          **platforms_vendor      = backend_ctx->platforms_vendor;
+  char          **platforms_name        = backend_ctx->platforms_name;
+  char          **platforms_version     = backend_ctx->platforms_version;
+  cl_uint         devices_cnt           = backend_ctx->devices_cnt;
 
   for (cl_uint platforms_idx = 0; platforms_idx < platforms_cnt; platforms_idx++)
   {
@@ -683,7 +683,7 @@ void opencl_info (hashcat_ctx_t *hashcat_ctx)
 
     for (cl_uint devices_idx = 0; devices_idx < devices_cnt; devices_idx++)
     {
-      const hc_device_param_t *device_param = opencl_ctx->devices_param + devices_idx;
+      const hc_device_param_t *device_param = backend_ctx->devices_param + devices_idx;
 
       if (device_param->platform != platform_id) continue;
 
@@ -717,18 +717,18 @@ void opencl_info (hashcat_ctx_t *hashcat_ctx)
 
 void opencl_info_compact (hashcat_ctx_t *hashcat_ctx)
 {
-  const opencl_ctx_t   *opencl_ctx   = hashcat_ctx->opencl_ctx;
+  const backend_ctx_t  *backend_ctx  = hashcat_ctx->backend_ctx;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   if (user_options->quiet            == true) return;
   if (user_options->machine_readable == true) return;
   if (user_options->status_json      == true) return;
 
-  cl_uint         platforms_cnt         = opencl_ctx->platforms_cnt;
-  cl_platform_id *platforms             = opencl_ctx->platforms;
-  char          **platforms_vendor      = opencl_ctx->platforms_vendor;
-  bool           *platforms_skipped     = opencl_ctx->platforms_skipped;
-  cl_uint         devices_cnt           = opencl_ctx->devices_cnt;
+  cl_uint         platforms_cnt         = backend_ctx->platforms_cnt;
+  cl_platform_id *platforms             = backend_ctx->platforms;
+  char          **platforms_vendor      = backend_ctx->platforms_vendor;
+  bool           *platforms_skipped     = backend_ctx->platforms_skipped;
+  cl_uint         devices_cnt           = backend_ctx->devices_cnt;
 
   for (cl_uint platforms_idx = 0; platforms_idx < platforms_cnt; platforms_idx++)
   {
@@ -755,7 +755,7 @@ void opencl_info_compact (hashcat_ctx_t *hashcat_ctx)
 
     for (cl_uint devices_idx = 0; devices_idx < devices_cnt; devices_idx++)
     {
-      const hc_device_param_t *device_param = opencl_ctx->devices_param + devices_idx;
+      const hc_device_param_t *device_param = backend_ctx->devices_param + devices_idx;
 
       if (device_param->platform != platform_id) continue;
 

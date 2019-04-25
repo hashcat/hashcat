@@ -14,7 +14,7 @@
 #include "terminal.h"
 #include "logfile.h"
 #include "loopback.h"
-#include "opencl.h"
+#include "backend.h"
 #include "outfile.h"
 #include "potfile.h"
 #include "rp.h"

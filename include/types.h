@@ -989,6 +989,7 @@ typedef struct link_speed
 
 } link_speed_t;
 
+#include "ext_cuda.h"
 #include "ext_OpenCL.h"
 
 typedef struct hc_device_param
@@ -1328,11 +1329,12 @@ typedef struct hc_device_param
 
 } hc_device_param_t;
 
-typedef struct opencl_ctx
+typedef struct backend_ctx
 {
   bool                enabled;
 
   void               *ocl;
+  void               *cuda;
 
   cl_uint             platforms_cnt;
   cl_platform_id     *platforms;
@@ -1369,7 +1371,7 @@ typedef struct opencl_ctx
 
   int                 force_jit_compilation;
 
-} opencl_ctx_t;
+} backend_ctx_t;
 
 typedef enum kernel_workload
 {
@@ -2299,7 +2301,7 @@ typedef struct hashcat_ctx
   loopback_ctx_t        *loopback_ctx;
   mask_ctx_t            *mask_ctx;
   module_ctx_t          *module_ctx;
-  opencl_ctx_t          *opencl_ctx;
+  backend_ctx_t         *backend_ctx;
   outcheck_ctx_t        *outcheck_ctx;
   outfile_ctx_t         *outfile_ctx;
   pidfile_ctx_t         *pidfile_ctx;

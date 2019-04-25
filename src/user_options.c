@@ -11,7 +11,7 @@
 #include "interface.h"
 #include "shared.h"
 #include "usage.h"
-#include "opencl.h"
+#include "backend.h"
 #include "user_options.h"
 
 #ifdef WITH_BRAIN

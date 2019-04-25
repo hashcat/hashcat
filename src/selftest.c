@@ -8,7 +8,7 @@
 #include "event.h"
 #include "bitops.h"
 #include "convert.h"
-#include "opencl.h"
+#include "backend.h"
 #include "thread.h"
 #include "selftest.h"
 
@@ -572,15 +572,15 @@ HC_API_CALL void *thread_selftest (void *p)
 
   hashcat_ctx_t *hashcat_ctx = thread_param->hashcat_ctx;
 
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  if (opencl_ctx->enabled == false) return NULL;
+  if (backend_ctx->enabled == false) return NULL;
 
   user_options_t *user_options = hashcat_ctx->user_options;
 
   if (user_options->self_test_disable == true) return NULL;
 
-  hc_device_param_t *device_param = opencl_ctx->devices_param + thread_param->tid;
+  hc_device_param_t *device_param = backend_ctx->devices_param + thread_param->tid;
 
   if (device_param->skipped == true) return NULL;
 

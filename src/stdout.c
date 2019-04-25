@@ -10,7 +10,7 @@
 #include "emu_inc_rp.h"
 #include "emu_inc_rp_optimized.h"
 #include "mpsp.h"
-#include "opencl.h"
+#include "backend.h"
 #include "shared.h"
 #include "stdout.h"
 

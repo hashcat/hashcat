@@ -5,6 +5,7 @@
 
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.h"
 #include "inc_common.h"
 
 /**
@@ -1415,8 +1416,8 @@ DECLSPEC int is_valid_hex_8 (const u8 v)
 {
   // direct lookup table is slower thanks to CMOV
 
-  if ((v >= '0') && (v <= '9')) return 1;
-  if ((v >= 'a') && (v <= 'f')) return 1;
+  if ((v >= (u8) '0') && (v <= (u8) '9')) return 1;
+  if ((v >= (u8) 'a') && (v <= (u8) 'f')) return 1;
 
   return 0;
 }
@@ -1433,10 +1434,10 @@ DECLSPEC int is_valid_hex_32 (const u32 v)
 
 DECLSPEC int is_valid_base58_8 (const u8 v)
 {
-  if (v > 'z') return 0;
-  if (v < '1') return 0;
-  if ((v > '9') && (v < 'A')) return 0;
-  if ((v > 'Z') && (v < 'a')) return 0;
+  if (v > (u8) 'z') return 0;
+  if (v < (u8) '1') return 0;
+  if ((v > (u8) '9') && (v < (u8) 'A')) return 0;
+  if ((v > (u8) 'Z') && (v < (u8) 'a')) return 0;
 
   return 1;
 }
@@ -60860,7 +60861,23 @@ KERNEL_FQ void gpu_memset (GLOBAL_AS uint4 *buf, const u32 value, const u64 gid_
 
   if (gid >= gid_max) return;
 
-  buf[gid] = (uint4) (value);
+  uint4 r;
+
+  #if   defined IS_NATIVE
+  r = value;
+  #elif defined IS_OPENCL
+  r.s0 = value;
+  r.s1 = value;
+  r.s2 = value;
+  r.s3 = value;
+  #elif defined IS_CUDA
+  r.x = value;
+  r.y = value;
+  r.z = value;
+  r.w = value;
+  #endif
+
+  buf[gid] = r;
 }
 
 KERNEL_FQ void gpu_atinit (GLOBAL_AS pw_t *buf, const u64 gid_max)

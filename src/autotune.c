@@ -6,7 +6,7 @@
 #include "common.h"
 #include "types.h"
 #include "event.h"
-#include "opencl.h"
+#include "backend.h"
 #include "status.h"
 #include "autotune.h"
 
@@ -50,11 +50,11 @@ static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 {
   const hashconfig_t    *hashconfig   = hashcat_ctx->hashconfig;
-  const opencl_ctx_t    *opencl_ctx   = hashcat_ctx->opencl_ctx;
+  const backend_ctx_t   *backend_ctx  = hashcat_ctx->backend_ctx;
   const straight_ctx_t  *straight_ctx = hashcat_ctx->straight_ctx;
   const user_options_t  *user_options = hashcat_ctx->user_options;
 
-  const double target_msec = opencl_ctx->target_msec;
+  const double target_msec = backend_ctx->target_msec;
 
   const u32 kernel_accel_min = device_param->kernel_accel_min;
   const u32 kernel_accel_max = device_param->kernel_accel_max;
@@ -283,11 +283,11 @@ HC_API_CALL void *thread_autotune (void *p)
 
   hashcat_ctx_t *hashcat_ctx = thread_param->hashcat_ctx;
 
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  if (opencl_ctx->enabled == false) return NULL;
+  if (backend_ctx->enabled == false) return NULL;
 
-  hc_device_param_t *device_param = opencl_ctx->devices_param + thread_param->tid;
+  hc_device_param_t *device_param = backend_ctx->devices_param + thread_param->tid;
 
   if (device_param->skipped == true) return NULL;
 

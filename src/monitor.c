@@ -44,7 +44,7 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 {
   hashes_t       *hashes        = hashcat_ctx->hashes;
   hwmon_ctx_t    *hwmon_ctx     = hashcat_ctx->hwmon_ctx;
-  opencl_ctx_t   *opencl_ctx    = hashcat_ctx->opencl_ctx;
+  backend_ctx_t  *backend_ctx   = hashcat_ctx->backend_ctx;
   restore_ctx_t  *restore_ctx   = hashcat_ctx->restore_ctx;
   status_ctx_t   *status_ctx    = hashcat_ctx->status_ctx;
   user_options_t *user_options  = hashcat_ctx->user_options;
@@ -114,13 +114,13 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
     {
       hc_thread_mutex_lock (status_ctx->mux_hwmon);
 
-      for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+      for (u32 device_id = 0; device_id < backend_ctx->devices_cnt; device_id++)
       {
-        hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+        hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
         if (device_param->skipped == true) continue;
 
-        if ((opencl_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
+        if ((backend_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
 
         const int temperature = hm_get_temperature_with_device_id (hashcat_ctx, device_id);
 
@@ -132,9 +132,9 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
         }
       }
 
-      for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+      for (u32 device_id = 0; device_id < backend_ctx->devices_cnt; device_id++)
       {
-        hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+        hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
         if (device_param->skipped == true) continue;
 
@@ -232,9 +232,9 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
       hc_thread_mutex_lock (status_ctx->mux_hwmon);
 
-      for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+      for (u32 device_id = 0; device_id < backend_ctx->devices_cnt; device_id++)
       {
-        hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+        hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
         if (device_param->skipped == true) continue;
 
