@@ -7,10 +7,11 @@
 #define _INC_TYPES_H
 
 #ifdef IS_CUDA
-typedef unsigned char  uchar;
-typedef unsigned short ushort;
-typedef unsigned int   uint;
-typedef unsigned long  ulong;
+//https://docs.nvidia.com/cuda/nvrtc/index.html#integer-size
+typedef unsigned char      uchar;
+typedef unsigned short     ushort;
+typedef unsigned int       uint;
+typedef unsigned long long ulong;
 #endif
 
 #ifdef KERNEL_STATIC
