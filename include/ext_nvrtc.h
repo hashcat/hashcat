@@ -50,15 +50,16 @@ typedef struct _nvrtcProgram *nvrtcProgram;
 
 #define NVRTC_API_CALL NVRTCAPI
 
-typedef nvrtcResult (NVRTC_API_CALL *NVRTC_NVRTCADDNAMEEXPRESSION)  (nvrtcProgram, const char *);
-typedef nvrtcResult (NVRTC_API_CALL *NVRTC_NVRTCCOMPILEPROGRAM)     (nvrtcProgram, int, const char **);
-typedef nvrtcResult (NVRTC_API_CALL *NVRTC_NVRTCCREATEPROGRAM)      (nvrtcProgram *, const char *, const char *, int, const char **, const char **);
-typedef nvrtcResult (NVRTC_API_CALL *NVRTC_NVRTCDESTROYPROGRAM)     (nvrtcProgram *);
-typedef nvrtcResult (NVRTC_API_CALL *NVRTC_NVRTCGETLOWEREDNAME)     (nvrtcProgram, const char *, const char **);
-typedef nvrtcResult (NVRTC_API_CALL *NVRTC_NVRTCGETPTX)             (nvrtcProgram, char *);
-typedef nvrtcResult (NVRTC_API_CALL *NVRTC_NVRTCGETPTXSIZE)         (nvrtcProgram, size_t *);
-typedef nvrtcResult (NVRTC_API_CALL *NVRTC_NVRTCGETPROGRAMLOG)      (nvrtcProgram, char *);
-typedef nvrtcResult (NVRTC_API_CALL *NVRTC_NVRTCGETPROGRAMLOGSIZE)  (nvrtcProgram, size_t *);
+typedef nvrtcResult  (NVRTC_API_CALL *NVRTC_NVRTCADDNAMEEXPRESSION)  (nvrtcProgram, const char * const);
+typedef nvrtcResult  (NVRTC_API_CALL *NVRTC_NVRTCCOMPILEPROGRAM)     (nvrtcProgram, int, const char * const *);
+typedef nvrtcResult  (NVRTC_API_CALL *NVRTC_NVRTCCREATEPROGRAM)      (nvrtcProgram *, const char *, const char *, int, const char * const *, const char * const *);
+typedef nvrtcResult  (NVRTC_API_CALL *NVRTC_NVRTCDESTROYPROGRAM)     (nvrtcProgram *);
+typedef nvrtcResult  (NVRTC_API_CALL *NVRTC_NVRTCGETLOWEREDNAME)     (nvrtcProgram, const char * const, const char **);
+typedef nvrtcResult  (NVRTC_API_CALL *NVRTC_NVRTCGETPTX)             (nvrtcProgram, char *);
+typedef nvrtcResult  (NVRTC_API_CALL *NVRTC_NVRTCGETPTXSIZE)         (nvrtcProgram, size_t *);
+typedef nvrtcResult  (NVRTC_API_CALL *NVRTC_NVRTCGETPROGRAMLOG)      (nvrtcProgram, char *);
+typedef nvrtcResult  (NVRTC_API_CALL *NVRTC_NVRTCGETPROGRAMLOGSIZE)  (nvrtcProgram, size_t *);
+typedef const char * (NVRTC_API_CALL *NVRTC_NVRTCGETERRORSTRING)     (nvrtcResult);
 
 typedef struct hc_nvrtc_lib
 {
@@ -73,9 +74,12 @@ typedef struct hc_nvrtc_lib
   NVRTC_NVRTCGETPTXSIZE         nvrtcGetPTXSize;
   NVRTC_NVRTCGETPROGRAMLOG      nvrtcGetProgramLog;
   NVRTC_NVRTCGETPROGRAMLOGSIZE  nvrtcGetProgramLogSize;
+  NVRTC_NVRTCGETERRORSTRING     nvrtcGetErrorString;
 
 } hc_nvrtc_lib_t;
 
 typedef hc_nvrtc_lib_t NVRTC_PTR;
+
+int nvrtc_make_options_array_from_string (char *string, char **options);
 
 #endif // _EXT_NVRTC_H

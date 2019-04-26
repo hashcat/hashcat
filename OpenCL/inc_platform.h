@@ -9,6 +9,7 @@
 #ifdef IS_CUDA
 DECLSPEC u32    atomic_dec      (u32 *p);
 DECLSPEC u32    atomic_inc      (u32 *p);
+DECLSPEC u32    atomic_or       (u32 *p, u32 val);
 DECLSPEC size_t get_global_id   (const u32 dimindx __attribute__((unused)));
 DECLSPEC size_t get_local_id    (const u32 dimindx __attribute__((unused)));
 DECLSPEC size_t get_local_size  (const u32 dimindx __attribute__((unused)));

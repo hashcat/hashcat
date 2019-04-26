@@ -22,11 +22,22 @@ static const char CL_VENDOR_MESA[]            = "Mesa";
 static const char CL_VENDOR_NV[]              = "NVIDIA Corporation";
 static const char CL_VENDOR_POCL[]            = "The pocl project";
 
-int  cuda_init  (hashcat_ctx_t *hashcat_ctx);
-void cuda_close (hashcat_ctx_t *hashcat_ctx);
+int  cuda_init   (hashcat_ctx_t *hashcat_ctx);
+void cuda_close  (hashcat_ctx_t *hashcat_ctx);
 
-int  ocl_init   (hashcat_ctx_t *hashcat_ctx);
-void ocl_close  (hashcat_ctx_t *hashcat_ctx);
+int  nvrtc_init  (hashcat_ctx_t *hashcat_ctx);
+void nvrtc_close (hashcat_ctx_t *hashcat_ctx);
+
+int  ocl_init    (hashcat_ctx_t *hashcat_ctx);
+void ocl_close   (hashcat_ctx_t *hashcat_ctx);
+
+int hc_nvrtcCreateProgram        (hashcat_ctx_t *hashcat_ctx, nvrtcProgram *prog, const char *src, const char *name, int numHeaders, const char * const *headers, const char * const *includeNames);
+int hc_nvrtcDestroyProgram       (hashcat_ctx_t *hashcat_ctx, nvrtcProgram *prog);
+int hc_nvrtcCompileProgram       (hashcat_ctx_t *hashcat_ctx, nvrtcProgram prog, int numOptions, const char * const *options);
+int hc_nvrtcGetProgramLogSize    (hashcat_ctx_t *hashcat_ctx, nvrtcProgram prog, size_t *logSizeRet);
+int hc_nvrtcGetProgramLog        (hashcat_ctx_t *hashcat_ctx, nvrtcProgram prog, char *log);
+int hc_nvrtcGetPTXSize           (hashcat_ctx_t *hashcat_ctx, nvrtcProgram prog, size_t *ptxSizeRet);
+int hc_nvrtcGetPTX               (hashcat_ctx_t *hashcat_ctx, nvrtcProgram prog, char *ptx);
 
 int hc_clBuildProgram            (hashcat_ctx_t *hashcat_ctx, cl_program program, cl_uint num_devices, const cl_device_id *device_list, const char *options, void (CL_CALLBACK *pfn_notify) (cl_program program, void *user_data), void *user_data);
 int hc_clCreateBuffer            (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_mem_flags flags, size_t size, void *host_ptr, cl_mem *mem);

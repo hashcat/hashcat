@@ -7,7 +7,10 @@
 #define _INC_TYPES_H
 
 #ifdef IS_CUDA
-typedef unsigned char uchar;
+typedef unsigned char  uchar;
+typedef unsigned short ushort;
+typedef unsigned int   uint;
+typedef unsigned long  ulong;
 #endif
 
 #ifdef KERNEL_STATIC
@@ -62,17 +65,19 @@ typedef union vconv32
 
   struct
   {
-    u16 v16a;
-    u16 v16b;
-  };
+    u16 a;
+    u16 b;
+
+  } v16;
 
   struct
   {
-    u8 v8a;
-    u8 v8b;
-    u8 v8c;
-    u8 v8d;
-  };
+    u8 a;
+    u8 b;
+    u8 c;
+    u8 d;
+
+  } v8;
 
 } vconv32_t;
 
@@ -82,29 +87,32 @@ typedef union vconv64
 
   struct
   {
-    u32 v32a;
-    u32 v32b;
-  };
+    u32 a;
+    u32 b;
+
+  } v32;
 
   struct
   {
-    u16 v16a;
-    u16 v16b;
-    u16 v16c;
-    u16 v16d;
-  };
+    u16 a;
+    u16 b;
+    u16 c;
+    u16 d;
+
+  } v16;
 
   struct
   {
-    u8 v8a;
-    u8 v8b;
-    u8 v8c;
-    u8 v8d;
-    u8 v8e;
-    u8 v8f;
-    u8 v8g;
-    u8 v8h;
-  };
+    u8 a;
+    u8 b;
+    u8 c;
+    u8 d;
+    u8 e;
+    u8 f;
+    u8 g;
+    u8 h;
+
+  } v8;
 
 } vconv64_t;
 

@@ -103,14 +103,10 @@
 #if defined IS_CPU
 #define DECLSPEC inline
 #elif defined IS_GPU
-#if defined IS_CUDA
-#define DECLSPEC __device__
-#else
 #if defined IS_AMD
 #define DECLSPEC inline static
 #else
 #define DECLSPEC
-#endif
 #endif
 #else
 #define DECLSPEC

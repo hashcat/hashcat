@@ -587,6 +587,7 @@ int nvrtc_init (hashcat_ctx_t *hashcat_ctx)
   HC_LOAD_FUNC (nvrtc, nvrtcGetPTXSize,         NVRTC_NVRTCGETPTXSIZE,        NVRTC, 1);
   HC_LOAD_FUNC (nvrtc, nvrtcGetProgramLog,      NVRTC_NVRTCGETPROGRAMLOG,     NVRTC, 1);
   HC_LOAD_FUNC (nvrtc, nvrtcGetProgramLogSize,  NVRTC_NVRTCGETPROGRAMLOGSIZE, NVRTC, 1);
+  HC_LOAD_FUNC (nvrtc, nvrtcGetErrorString,     NVRTC_NVRTCGETERRORSTRING,    NVRTC, 1);
 
   return 0;
 }
@@ -829,6 +830,132 @@ void ocl_close (hashcat_ctx_t *hashcat_ctx)
 
     backend_ctx->ocl = NULL;
   }
+}
+
+int hc_nvrtcCreateProgram (hashcat_ctx_t *hashcat_ctx, nvrtcProgram *prog, const char *src, const char *name, int numHeaders, const char * const *headers, const char * const *includeNames)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  NVRTC_PTR *nvrtc = backend_ctx->nvrtc;
+
+  const nvrtcResult NVRTC_err = nvrtc->nvrtcCreateProgram (prog, src, name, numHeaders, headers, includeNames);
+
+  if (NVRTC_err != NVRTC_SUCCESS)
+  {
+    event_log_error (hashcat_ctx, "nvrtcCreateProgram(): %s", nvrtc->nvrtcGetErrorString (NVRTC_err));
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_nvrtcDestroyProgram (hashcat_ctx_t *hashcat_ctx, nvrtcProgram *prog)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  NVRTC_PTR *nvrtc = backend_ctx->nvrtc;
+
+  const nvrtcResult NVRTC_err = nvrtc->nvrtcDestroyProgram (prog);
+
+  if (NVRTC_err != NVRTC_SUCCESS)
+  {
+    event_log_error (hashcat_ctx, "nvrtcDestroyProgram(): %s", nvrtc->nvrtcGetErrorString (NVRTC_err));
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_nvrtcCompileProgram (hashcat_ctx_t *hashcat_ctx, nvrtcProgram prog, int numOptions, const char * const *options)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  NVRTC_PTR *nvrtc = backend_ctx->nvrtc;
+
+  const nvrtcResult NVRTC_err = nvrtc->nvrtcCompileProgram (prog, numOptions, options);
+
+  if (NVRTC_err != NVRTC_SUCCESS)
+  {
+    event_log_error (hashcat_ctx, "nvrtcCompileProgram(): %s", nvrtc->nvrtcGetErrorString (NVRTC_err));
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_nvrtcGetProgramLogSize (hashcat_ctx_t *hashcat_ctx, nvrtcProgram prog, size_t *logSizeRet)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  NVRTC_PTR *nvrtc = backend_ctx->nvrtc;
+
+  const nvrtcResult NVRTC_err = nvrtc->nvrtcGetProgramLogSize (prog, logSizeRet);
+
+  if (NVRTC_err != NVRTC_SUCCESS)
+  {
+    event_log_error (hashcat_ctx, "nvrtcGetProgramLogSize(): %s", nvrtc->nvrtcGetErrorString (NVRTC_err));
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_nvrtcGetProgramLog (hashcat_ctx_t *hashcat_ctx, nvrtcProgram prog, char *log)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  NVRTC_PTR *nvrtc = backend_ctx->nvrtc;
+
+  const nvrtcResult NVRTC_err = nvrtc->nvrtcGetProgramLog (prog, log);
+
+  if (NVRTC_err != NVRTC_SUCCESS)
+  {
+    event_log_error (hashcat_ctx, "nvrtcGetProgramLog(): %s", nvrtc->nvrtcGetErrorString (NVRTC_err));
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_nvrtcGetPTXSize (hashcat_ctx_t *hashcat_ctx, nvrtcProgram prog, size_t *ptxSizeRet)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  NVRTC_PTR *nvrtc = backend_ctx->nvrtc;
+
+  const nvrtcResult NVRTC_err = nvrtc->nvrtcGetPTXSize (prog, ptxSizeRet);
+
+  if (NVRTC_err != NVRTC_SUCCESS)
+  {
+    event_log_error (hashcat_ctx, "nvrtcGetPTXSize(): %s", nvrtc->nvrtcGetErrorString (NVRTC_err));
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_nvrtcGetPTX (hashcat_ctx_t *hashcat_ctx, nvrtcProgram prog, char *ptx)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  NVRTC_PTR *nvrtc = backend_ctx->nvrtc;
+
+  const nvrtcResult NVRTC_err = nvrtc->nvrtcGetPTX (prog, ptx);
+
+  if (NVRTC_err != NVRTC_SUCCESS)
+  {
+    event_log_error (hashcat_ctx, "nvrtcGetPTX(): %s", nvrtc->nvrtcGetErrorString (NVRTC_err));
+
+    return -1;
+  }
+
+  return 0;
 }
 
 int hc_clEnqueueNDRangeKernel (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue, cl_kernel kernel, cl_uint work_dim, const size_t *global_work_offset, const size_t *global_work_size, const size_t *local_work_size, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event)
@@ -3180,7 +3307,6 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
     ocl_close (hashcat_ctx);
   }
 
-
   /**
    * return if both CUDA and OpenCL initialization failed
    */
@@ -4911,6 +5037,13 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (vector_width > 16) vector_width = 16;
 
+    // CUDA currently support only scalar types
+
+    if (backend_ctx->cuda)
+    {
+      vector_width = 1;
+    }
+
     device_param->vector_width = vector_width;
 
     /**
@@ -5349,65 +5482,145 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (rc_read_kernel == false) return -1;
 
-        CL_rc = hc_clCreateProgramWithSource (hashcat_ctx, device_param->context, 1, (const char **) kernel_sources, NULL, &device_param->program);
-
-        if (CL_rc == -1) return -1;
-
-        CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program, 1, &device_param->device, build_options_module_buf, NULL, NULL);
-
-        //if (CL_rc == -1) return -1;
-
-        size_t build_log_size = 0;
-
-        hc_clGetProgramBuildInfo (hashcat_ctx, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
-
-        //if (CL_rc == -1) return -1;
-
-        #if defined (DEBUG)
-        if ((build_log_size > 1) || (CL_rc == -1))
-        #else
-        if (CL_rc == -1)
-        #endif
+        if (backend_ctx->nvrtc)
         {
-          char *build_log = (char *) hcmalloc (build_log_size + 1);
+          nvrtcProgram program;
 
-          int CL_rc_build = hc_clGetProgramBuildInfo (hashcat_ctx, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
+          const int rc_nvrtcCreateProgram = hc_nvrtcCreateProgram (hashcat_ctx, &program, kernel_sources[0], "main_kernel", 0, NULL, NULL);
 
-          if (CL_rc_build == -1) return -1;
+          if (rc_nvrtcCreateProgram == -1) return -1;
 
-          puts (build_log);
+          char **nvrtc_options = (char **) hccalloc (1 + strlen (build_options_module_buf) + 1, sizeof (char *)); // ...
 
-          hcfree (build_log);
+          nvrtc_options[0] = "--device-as-default-execution-space";
+
+          char *nvrtc_options_string = hcstrdup (build_options_module_buf);
+
+          const int num_options = 1 + nvrtc_make_options_array_from_string (nvrtc_options_string, nvrtc_options + 1);
+
+          const int rc_nvrtcCompileProgram = hc_nvrtcCompileProgram (hashcat_ctx, program, num_options, (const char * const *) nvrtc_options);
+
+          size_t build_log_size = 0;
+
+          hc_nvrtcGetProgramLogSize (hashcat_ctx, program, &build_log_size);
+
+          #if defined (DEBUG)
+          if ((build_log_size > 1) || (rc_nvrtcCompileProgram == -1))
+          #else
+          if (rc_nvrtcCompileProgram == -1)
+          #endif
+          {
+            char *build_log = (char *) hcmalloc (build_log_size + 1);
+
+            const int rc_nvrtcGetProgramLog = hc_nvrtcGetProgramLog (hashcat_ctx, program, build_log);
+
+            if (rc_nvrtcGetProgramLog == -1) return -1;
+
+            puts (build_log);
+
+            hcfree (build_log);
+          }
+
+          if (rc_nvrtcCompileProgram == -1)
+          {
+            device_param->skipped_warning = true;
+
+            event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed - proceeding without this device.", device_id + 1, source_file);
+
+            continue;
+          }
+
+          hcfree (nvrtc_options);
+          hcfree (nvrtc_options_string);
+
+          if (cache_disable == false)
+          {
+            size_t binary_size;
+
+            const int rc_nvrtcGetPTXSize = hc_nvrtcGetPTXSize (hashcat_ctx, program, &binary_size);
+
+            if (rc_nvrtcGetPTXSize == -1) return -1;
+
+            char *binary = (char *) hcmalloc (binary_size);
+
+            const int nvrtcGetPTX = hc_nvrtcGetPTX (hashcat_ctx, program, binary);
+
+            if (nvrtcGetPTX == -1) return -1;
+
+            const bool rc_write = write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size);
+
+            if (rc_write == false) return -1;
+
+            hcfree (binary);
+          }
+
+          const int rc_nvrtcDestroyProgram = hc_nvrtcDestroyProgram (hashcat_ctx, &program);
+
+          if (rc_nvrtcDestroyProgram == -1) return -1;
         }
 
-        if (CL_rc == -1)
+        if (1) // later just else
         {
-          device_param->skipped_warning = true;
-
-          event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed - proceeding without this device.", device_id + 1, source_file);
-
-          continue;
-        }
-
-        if (cache_disable == false)
-        {
-          size_t binary_size;
-
-          CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->program, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
+          CL_rc = hc_clCreateProgramWithSource (hashcat_ctx, device_param->context, 1, (const char **) kernel_sources, NULL, &device_param->program);
 
           if (CL_rc == -1) return -1;
 
-          char *binary = (char *) hcmalloc (binary_size);
+          CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program, 1, &device_param->device, build_options_module_buf, NULL, NULL);
 
-          CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->program, CL_PROGRAM_BINARIES, sizeof (char *), &binary, NULL);
+          //if (CL_rc == -1) return -1;
 
-          if (CL_rc == -1) return -1;
+          size_t build_log_size = 0;
 
-          const bool rc_write = write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size);
+          hc_clGetProgramBuildInfo (hashcat_ctx, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
 
-          if (rc_write == false) return -1;
+          //if (CL_rc == -1) return -1;
 
-          hcfree (binary);
+          #if defined (DEBUG)
+          if ((build_log_size > 1) || (CL_rc == -1))
+          #else
+          if (CL_rc == -1)
+          #endif
+          {
+            char *build_log = (char *) hcmalloc (build_log_size + 1);
+
+            int CL_rc_build = hc_clGetProgramBuildInfo (hashcat_ctx, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
+
+            if (CL_rc_build == -1) return -1;
+
+            puts (build_log);
+
+            hcfree (build_log);
+          }
+
+          if (CL_rc == -1)
+          {
+            device_param->skipped_warning = true;
+
+            event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed - proceeding without this device.", device_id + 1, source_file);
+
+            continue;
+          }
+
+          if (cache_disable == false)
+          {
+            size_t binary_size;
+
+            CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->program, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
+
+            if (CL_rc == -1) return -1;
+
+            char *binary = (char *) hcmalloc (binary_size);
+
+            CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->program, CL_PROGRAM_BINARIES, sizeof (char *), &binary, NULL);
+
+            if (CL_rc == -1) return -1;
+
+            const bool rc_write = write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size);
+
+            if (rc_write == false) return -1;
+
+            hcfree (binary);
+          }
         }
       }
       else
