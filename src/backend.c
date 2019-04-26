@@ -543,6 +543,8 @@ void generate_cached_kernel_amp_filename (const u32 attack_kern, char *profile_d
   snprintf (cached_file, 255, "%s/kernels/amp_a%u.%s.kernel", profile_dir, attack_kern, device_name_chksum_amp_mp);
 }
 
+// NVRTC
+
 int nvrtc_init (hashcat_ctx_t *hashcat_ctx)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
@@ -608,227 +610,6 @@ void nvrtc_close (hashcat_ctx_t *hashcat_ctx)
     hcfree (backend_ctx->nvrtc);
 
     backend_ctx->nvrtc = NULL;
-  }
-}
-
-int cuda_init (hashcat_ctx_t *hashcat_ctx)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = backend_ctx->cuda;
-
-  memset (cuda, 0, sizeof (CUDA_PTR));
-
-  #if   defined (_WIN)
-  cuda->lib = hc_dlopen ("cuda");
-  #elif defined (__APPLE__)
-  cuda->lib = hc_dlopen ("/System/Library/Frameworks/CUDA.framework/CUDA");
-  #elif defined (__CYGWIN__)
-  cuda->lib = hc_dlopen ("cuda.dll");
-
-  if (cuda->lib == NULL) cuda->lib = hc_dlopen ("cygcuda-1.dll");
-  #else
-  cuda->lib = hc_dlopen ("libcuda.so");
-
-  if (cuda->lib == NULL) cuda->lib = hc_dlopen ("libcuda.so.1");
-  #endif
-
-  if (cuda->lib == NULL)
-  {
-    event_log_error (hashcat_ctx, "Cannot find CUDA library.");
-
-    event_log_warning (hashcat_ctx, "You are probably missing the native CUDA runtime or driver for your platform.");
-    event_log_warning (hashcat_ctx, "NVIDIA GPUs require this runtime and/or driver:");
-    event_log_warning (hashcat_ctx, "  \"NVIDIA Driver\" (418.56 or later)");
-    event_log_warning (hashcat_ctx, "  \"CUDA Toolkit\" (10.1 or later)");
-    event_log_warning (hashcat_ctx, NULL);
-
-    return -1;
-  }
-
-  HC_LOAD_FUNC (cuda, cuCtxCreate,              CUDA_CUCTXCREATE,               CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuCtxDestroy,             CUDA_CUCTXDESTROY,              CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuCtxGetCacheConfig,      CUDA_CUCTXGETCACHECONFIG,       CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuCtxGetCurrent,          CUDA_CUCTXGETCURRENT,           CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuCtxGetSharedMemConfig,  CUDA_CUCTXGETSHAREDMEMCONFIG,   CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuCtxPopCurrent,          CUDA_CUCTXPOPCURRENT,           CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuCtxPushCurrent,         CUDA_CUCTXPUSHCURRENT,          CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuCtxSetCurrent,          CUDA_CUCTXSETCURRENT,           CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuCtxSetSharedMemConfig,  CUDA_CUCTXSETSHAREDMEMCONFIG,   CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuCtxSynchronize,         CUDA_CUCTXSYNCHRONIZE,          CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuDeviceGetAttribute,     CUDA_CUDEVICEGETATTRIBUTE,      CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuDeviceGetCount,         CUDA_CUDEVICEGETCOUNT,          CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuDeviceGet,              CUDA_CUDEVICEGET,               CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuDeviceGetName,          CUDA_CUDEVICEGETNAME,           CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuDeviceTotalMem,         CUDA_CUDEVICETOTALMEM,          CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuDriverGetVersion,       CUDA_CUDRIVERGETVERSION,        CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuEventCreate,            CUDA_CUEVENTCREATE,             CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuEventDestroy,           CUDA_CUEVENTDESTROY,            CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuEventElapsedTime,       CUDA_CUEVENTELAPSEDTIME,        CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuEventQuery,             CUDA_CUEVENTQUERY,              CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuEventRecord,            CUDA_CUEVENTRECORD,             CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuEventSynchronize,       CUDA_CUEVENTSYNCHRONIZE,        CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuFuncGetAttribute,       CUDA_CUFUNCGETATTRIBUTE,        CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuFuncSetAttribute,       CUDA_CUFUNCSETATTRIBUTE,        CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuFuncSetCacheConfig,     CUDA_CUFUNCSETCACHECONFIG,      CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuFuncSetSharedMemConfig, CUDA_CUFUNCSETSHAREDMEMCONFIG,  CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuGetErrorName,           CUDA_CUGETERRORNAME,            CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuGetErrorString,         CUDA_CUGETERRORSTRING,          CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuInit,                   CUDA_CUINIT,                    CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuLaunchKernel,           CUDA_CULAUNCHKERNEL,            CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuMemAlloc,               CUDA_CUMEMALLOC,                CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuMemAllocHost,           CUDA_CUMEMALLOCHOST,            CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuMemcpyDtoD,             CUDA_CUMEMCPYDTOD,              CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuMemcpyDtoH,             CUDA_CUMEMCPYDTOH,              CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuMemcpyHtoD,             CUDA_CUMEMCPYHTOD,              CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuMemFree,                CUDA_CUMEMFREE,                 CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuMemFreeHost,            CUDA_CUMEMFREEHOST,             CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuMemGetInfo,             CUDA_CUMEMGETINFO,              CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuMemsetD32,              CUDA_CUMEMSETD32,               CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuMemsetD8,               CUDA_CUMEMSETD8,                CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuModuleGetFunction,      CUDA_CUMODULEGETFUNCTION,       CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuModuleGetGlobal,        CUDA_CUMODULEGETGLOBAL,         CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuModuleLoad,             CUDA_CUMODULELOAD,              CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuModuleLoadData,         CUDA_CUMODULELOADDATA,          CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuModuleLoadDataEx,       CUDA_CUMODULELOADDATAEX,        CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuModuleUnload,           CUDA_CUMODULEUNLOAD,            CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuProfilerStart,          CUDA_CUPROFILERSTART,           CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuProfilerStop,           CUDA_CUPROFILERSTOP,            CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuStreamCreate,           CUDA_CUSTREAMCREATE,            CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuStreamDestroy,          CUDA_CUSTREAMDESTROY,           CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuStreamSynchronize,      CUDA_CUSTREAMSYNCHRONIZE,       CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuStreamWaitEvent,        CUDA_CUSTREAMWAITEVENT,         CUDA, 1);
-
-  return 0;
-}
-
-void cuda_close (hashcat_ctx_t *hashcat_ctx)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = backend_ctx->cuda;
-
-  if (cuda)
-  {
-    if (cuda->lib)
-    {
-      hc_dlclose (cuda->lib);
-    }
-
-    hcfree (backend_ctx->cuda);
-
-    backend_ctx->cuda = NULL;
-  }
-}
-
-int ocl_init (hashcat_ctx_t *hashcat_ctx)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  OCL_PTR *ocl = backend_ctx->ocl;
-
-  memset (ocl, 0, sizeof (OCL_PTR));
-
-  #if   defined (_WIN)
-  ocl->lib = hc_dlopen ("OpenCL");
-  #elif defined (__APPLE__)
-  ocl->lib = hc_dlopen ("/System/Library/Frameworks/OpenCL.framework/OpenCL");
-  #elif defined (__CYGWIN__)
-  ocl->lib = hc_dlopen ("opencl.dll");
-
-  if (ocl->lib == NULL) ocl->lib = hc_dlopen ("cygOpenCL-1.dll");
-  #else
-  ocl->lib = hc_dlopen ("libOpenCL.so");
-
-  if (ocl->lib == NULL) ocl->lib = hc_dlopen ("libOpenCL.so.1");
-  #endif
-
-  if (ocl->lib == NULL)
-  {
-    event_log_error (hashcat_ctx, "Cannot find an OpenCL ICD loader library.");
-
-    event_log_warning (hashcat_ctx, "You are probably missing the native OpenCL runtime or driver for your platform.");
-    event_log_warning (hashcat_ctx, NULL);
-
-    #if defined (__linux__)
-    event_log_warning (hashcat_ctx, "* AMD GPUs on Linux require this runtime and/or driver:");
-    event_log_warning (hashcat_ctx, "  \"RadeonOpenCompute (ROCm)\" Software Platform (1.6.180 or later)");
-    #elif defined (_WIN)
-    event_log_warning (hashcat_ctx, "* AMD GPUs on Windows require this runtime and/or driver:");
-    event_log_warning (hashcat_ctx, "  \"AMD Radeon Software Crimson Edition\" (15.12 or later)");
-    #endif
-
-    event_log_warning (hashcat_ctx, "* Intel CPUs require this runtime and/or driver:");
-    event_log_warning (hashcat_ctx, "  \"OpenCL Runtime for Intel Core and Intel Xeon Processors\" (16.1.1 or later)");
-
-    #if defined (__linux__)
-    event_log_warning (hashcat_ctx, "* Intel GPUs on Linux require this runtime and/or driver:");
-    event_log_warning (hashcat_ctx, "  \"OpenCL 2.0 GPU Driver Package for Linux\" (2.0 or later)");
-    #elif defined (_WIN)
-    event_log_warning (hashcat_ctx, "* Intel GPUs on Windows require this runtime and/or driver:");
-    event_log_warning (hashcat_ctx, "  \"OpenCL Driver for Intel Iris and Intel HD Graphics\"");
-    #endif
-
-    event_log_warning (hashcat_ctx, "* NVIDIA GPUs require this runtime and/or driver:");
-    event_log_warning (hashcat_ctx, "  \"NVIDIA Driver\" (418.56 or later)");
-    event_log_warning (hashcat_ctx, "  \"CUDA Toolkit\" (10.1 or later)");
-    event_log_warning (hashcat_ctx, NULL);
-
-    return -1;
-  }
-
-  HC_LOAD_FUNC (ocl, clBuildProgram,            OCL_CLBUILDPROGRAM,             OpenCL, 1);
-  HC_LOAD_FUNC (ocl, clCreateBuffer,            OCL_CLCREATEBUFFER,             OpenCL, 1);
-  HC_LOAD_FUNC (ocl, clCreateCommandQueue,      OCL_CLCREATECOMMANDQUEUE,       OpenCL, 1);
-  HC_LOAD_FUNC (ocl, clCreateContext,           OCL_CLCREATECONTEXT,            OpenCL, 1);
-  HC_LOAD_FUNC (ocl, clCreateKernel,            OCL_CLCREATEKERNEL,             OpenCL, 1);
-  HC_LOAD_FUNC (ocl, clCreateProgramWithBinary, OCL_CLCREATEPROGRAMWITHBINARY,  OpenCL, 1);
-  HC_LOAD_FUNC (ocl, clCreateProgramWithSource, OCL_CLCREATEPROGRAMWITHSOURCE,  OpenCL, 1);
-  HC_LOAD_FUNC (ocl, clEnqueueCopyBuffer,       OCL_CLENQUEUECOPYBUFFER,        OpenCL, 1);
-  HC_LOAD_FUNC (ocl, clEnqueueMapBuffer,        OCL_CLENQUEUEMAPBUFFER,         OpenCL, 1);
-  HC_LOAD_FUNC (ocl, clEnqueueNDRangeKernel,    OCL_CLENQUEUENDRANGEKERNEL,     OpenCL, 1);
-  HC_LOAD_FUNC (ocl, clEnqueueReadBuffer,       OCL_CLENQUEUEREADBUFFER,        OpenCL, 1);
-  HC_LOAD_FUNC (ocl, clEnqueueUnmapMemObject,   OCL_CLENQUEUEUNMAPMEMOBJECT,    OpenCL, 1);
-  HC_LOAD_FUNC (ocl, clEnqueueWriteBuffer,      OCL_CLENQUEUEWRITEBUFFER,       OpenCL, 1);
-  HC_LOAD_FUNC (ocl, clFinish,                  OCL_CLFINISH,                   OpenCL, 1);
-  HC_LOAD_FUNC (ocl, clFlush,                   OCL_CLFLUSH,                    OpenCL, 1);
-  HC_LOAD_FUNC (ocl, clGetDeviceIDs,            OCL_CLGETDEVICEIDS,             OpenCL, 1);
-  HC_LOAD_FUNC (ocl, clGetDeviceInfo,           OCL_CLGETDEVICEINFO,            OpenCL, 1);
-  HC_LOAD_FUNC (ocl, clGetEventInfo,            OCL_CLGETEVENTINFO,             OpenCL, 1);
-  HC_LOAD_FUNC (ocl, clGetKernelWorkGroupInfo,  OCL_CLGETKERNELWORKGROUPINFO,   OpenCL, 1);
-  HC_LOAD_FUNC (ocl, clGetPlatformIDs,          OCL_CLGETPLATFORMIDS,           OpenCL, 1);
-  HC_LOAD_FUNC (ocl, clGetPlatformInfo,         OCL_CLGETPLATFORMINFO,          OpenCL, 1);
-  HC_LOAD_FUNC (ocl, clGetProgramBuildInfo,     OCL_CLGETPROGRAMBUILDINFO,      OpenCL, 1);
-  HC_LOAD_FUNC (ocl, clGetProgramInfo,          OCL_CLGETPROGRAMINFO,           OpenCL, 1);
-  HC_LOAD_FUNC (ocl, clReleaseCommandQueue,     OCL_CLRELEASECOMMANDQUEUE,      OpenCL, 1);
-  HC_LOAD_FUNC (ocl, clReleaseContext,          OCL_CLRELEASECONTEXT,           OpenCL, 1);
-  HC_LOAD_FUNC (ocl, clReleaseKernel,           OCL_CLRELEASEKERNEL,            OpenCL, 1);
-  HC_LOAD_FUNC (ocl, clReleaseMemObject,        OCL_CLRELEASEMEMOBJECT,         OpenCL, 1);
-  HC_LOAD_FUNC (ocl, clReleaseProgram,          OCL_CLRELEASEPROGRAM,           OpenCL, 1);
-  HC_LOAD_FUNC (ocl, clSetKernelArg,            OCL_CLSETKERNELARG,             OpenCL, 1);
-  HC_LOAD_FUNC (ocl, clWaitForEvents,           OCL_CLWAITFOREVENTS,            OpenCL, 1);
-  HC_LOAD_FUNC (ocl, clGetEventProfilingInfo,   OCL_CLGETEVENTPROFILINGINFO,    OpenCL, 1);
-  HC_LOAD_FUNC (ocl, clReleaseEvent,            OCL_CLRELEASEEVENT,             OpenCL, 1);
-
-  return 0;
-}
-
-void ocl_close (hashcat_ctx_t *hashcat_ctx)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  OCL_PTR *ocl = backend_ctx->ocl;
-
-  if (ocl)
-  {
-    if (ocl->lib)
-    {
-      hc_dlclose (ocl->lib);
-    }
-
-    hcfree (backend_ctx->ocl);
-
-    backend_ctx->ocl = NULL;
   }
 }
 
@@ -956,6 +737,258 @@ int hc_nvrtcGetPTX (hashcat_ctx_t *hashcat_ctx, nvrtcProgram prog, char *ptx)
   }
 
   return 0;
+}
+
+// CUDA
+
+int cuda_init (hashcat_ctx_t *hashcat_ctx)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  CUDA_PTR *cuda = backend_ctx->cuda;
+
+  memset (cuda, 0, sizeof (CUDA_PTR));
+
+  #if   defined (_WIN)
+  cuda->lib = hc_dlopen ("cuda");
+  #elif defined (__APPLE__)
+  cuda->lib = hc_dlopen ("/System/Library/Frameworks/CUDA.framework/CUDA");
+  #elif defined (__CYGWIN__)
+  cuda->lib = hc_dlopen ("cuda.dll");
+
+  if (cuda->lib == NULL) cuda->lib = hc_dlopen ("cygcuda-1.dll");
+  #else
+  cuda->lib = hc_dlopen ("libcuda.so");
+
+  if (cuda->lib == NULL) cuda->lib = hc_dlopen ("libcuda.so.1");
+  #endif
+
+  if (cuda->lib == NULL)
+  {
+    event_log_error (hashcat_ctx, "Cannot find CUDA library.");
+
+    event_log_warning (hashcat_ctx, "You are probably missing the native CUDA runtime or driver for your platform.");
+    event_log_warning (hashcat_ctx, "NVIDIA GPUs require this runtime and/or driver:");
+    event_log_warning (hashcat_ctx, "  \"NVIDIA Driver\" (418.56 or later)");
+    event_log_warning (hashcat_ctx, "  \"CUDA Toolkit\" (10.1 or later)");
+    event_log_warning (hashcat_ctx, NULL);
+
+    return -1;
+  }
+
+  HC_LOAD_FUNC (cuda, cuCtxCreate,              CUDA_CUCTXCREATE,               CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuCtxDestroy,             CUDA_CUCTXDESTROY,              CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuCtxGetCacheConfig,      CUDA_CUCTXGETCACHECONFIG,       CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuCtxGetCurrent,          CUDA_CUCTXGETCURRENT,           CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuCtxGetSharedMemConfig,  CUDA_CUCTXGETSHAREDMEMCONFIG,   CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuCtxPopCurrent,          CUDA_CUCTXPOPCURRENT,           CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuCtxPushCurrent,         CUDA_CUCTXPUSHCURRENT,          CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuCtxSetCurrent,          CUDA_CUCTXSETCURRENT,           CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuCtxSetSharedMemConfig,  CUDA_CUCTXSETSHAREDMEMCONFIG,   CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuCtxSynchronize,         CUDA_CUCTXSYNCHRONIZE,          CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuDeviceGetAttribute,     CUDA_CUDEVICEGETATTRIBUTE,      CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuDeviceGetCount,         CUDA_CUDEVICEGETCOUNT,          CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuDeviceGet,              CUDA_CUDEVICEGET,               CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuDeviceGetName,          CUDA_CUDEVICEGETNAME,           CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuDeviceTotalMem,         CUDA_CUDEVICETOTALMEM,          CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuDriverGetVersion,       CUDA_CUDRIVERGETVERSION,        CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuEventCreate,            CUDA_CUEVENTCREATE,             CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuEventDestroy,           CUDA_CUEVENTDESTROY,            CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuEventElapsedTime,       CUDA_CUEVENTELAPSEDTIME,        CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuEventQuery,             CUDA_CUEVENTQUERY,              CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuEventRecord,            CUDA_CUEVENTRECORD,             CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuEventSynchronize,       CUDA_CUEVENTSYNCHRONIZE,        CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuFuncGetAttribute,       CUDA_CUFUNCGETATTRIBUTE,        CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuFuncSetAttribute,       CUDA_CUFUNCSETATTRIBUTE,        CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuFuncSetCacheConfig,     CUDA_CUFUNCSETCACHECONFIG,      CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuFuncSetSharedMemConfig, CUDA_CUFUNCSETSHAREDMEMCONFIG,  CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuGetErrorName,           CUDA_CUGETERRORNAME,            CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuGetErrorString,         CUDA_CUGETERRORSTRING,          CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuInit,                   CUDA_CUINIT,                    CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuLaunchKernel,           CUDA_CULAUNCHKERNEL,            CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuMemAlloc,               CUDA_CUMEMALLOC,                CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuMemAllocHost,           CUDA_CUMEMALLOCHOST,            CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuMemcpyDtoD,             CUDA_CUMEMCPYDTOD,              CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuMemcpyDtoH,             CUDA_CUMEMCPYDTOH,              CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuMemcpyHtoD,             CUDA_CUMEMCPYHTOD,              CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuMemFree,                CUDA_CUMEMFREE,                 CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuMemFreeHost,            CUDA_CUMEMFREEHOST,             CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuMemGetInfo,             CUDA_CUMEMGETINFO,              CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuMemsetD32,              CUDA_CUMEMSETD32,               CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuMemsetD8,               CUDA_CUMEMSETD8,                CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuModuleGetFunction,      CUDA_CUMODULEGETFUNCTION,       CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuModuleGetGlobal,        CUDA_CUMODULEGETGLOBAL,         CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuModuleLoad,             CUDA_CUMODULELOAD,              CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuModuleLoadData,         CUDA_CUMODULELOADDATA,          CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuModuleLoadDataEx,       CUDA_CUMODULELOADDATAEX,        CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuModuleUnload,           CUDA_CUMODULEUNLOAD,            CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuProfilerStart,          CUDA_CUPROFILERSTART,           CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuProfilerStop,           CUDA_CUPROFILERSTOP,            CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuStreamCreate,           CUDA_CUSTREAMCREATE,            CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuStreamDestroy,          CUDA_CUSTREAMDESTROY,           CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuStreamSynchronize,      CUDA_CUSTREAMSYNCHRONIZE,       CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuStreamWaitEvent,        CUDA_CUSTREAMWAITEVENT,         CUDA, 1);
+
+  return 0;
+}
+
+void cuda_close (hashcat_ctx_t *hashcat_ctx)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  CUDA_PTR *cuda = backend_ctx->cuda;
+
+  if (cuda)
+  {
+    if (cuda->lib)
+    {
+      hc_dlclose (cuda->lib);
+    }
+
+    hcfree (backend_ctx->cuda);
+
+    backend_ctx->cuda = NULL;
+  }
+}
+
+int hc_cuDeviceGetAttribute (hashcat_ctx_t *hashcat_ctx, int *pi, CUdevice_attribute attrib, CUdevice dev)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  CUDA_PTR *cuda = backend_ctx->cuda;
+
+  const CUresult CU_err = cuda->cuDeviceGetAttribute (pi, attrib, dev);
+
+  if (CU_err != CUDA_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "cuDeviceGetAttribute(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "cuDeviceGetAttribute(): %d", CU_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+// OpenCL
+
+int ocl_init (hashcat_ctx_t *hashcat_ctx)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  OCL_PTR *ocl = backend_ctx->ocl;
+
+  memset (ocl, 0, sizeof (OCL_PTR));
+
+  #if   defined (_WIN)
+  ocl->lib = hc_dlopen ("OpenCL");
+  #elif defined (__APPLE__)
+  ocl->lib = hc_dlopen ("/System/Library/Frameworks/OpenCL.framework/OpenCL");
+  #elif defined (__CYGWIN__)
+  ocl->lib = hc_dlopen ("opencl.dll");
+
+  if (ocl->lib == NULL) ocl->lib = hc_dlopen ("cygOpenCL-1.dll");
+  #else
+  ocl->lib = hc_dlopen ("libOpenCL.so");
+
+  if (ocl->lib == NULL) ocl->lib = hc_dlopen ("libOpenCL.so.1");
+  #endif
+
+  if (ocl->lib == NULL)
+  {
+    event_log_error (hashcat_ctx, "Cannot find an OpenCL ICD loader library.");
+
+    event_log_warning (hashcat_ctx, "You are probably missing the native OpenCL runtime or driver for your platform.");
+    event_log_warning (hashcat_ctx, NULL);
+
+    #if defined (__linux__)
+    event_log_warning (hashcat_ctx, "* AMD GPUs on Linux require this runtime and/or driver:");
+    event_log_warning (hashcat_ctx, "  \"RadeonOpenCompute (ROCm)\" Software Platform (1.6.180 or later)");
+    #elif defined (_WIN)
+    event_log_warning (hashcat_ctx, "* AMD GPUs on Windows require this runtime and/or driver:");
+    event_log_warning (hashcat_ctx, "  \"AMD Radeon Software Crimson Edition\" (15.12 or later)");
+    #endif
+
+    event_log_warning (hashcat_ctx, "* Intel CPUs require this runtime and/or driver:");
+    event_log_warning (hashcat_ctx, "  \"OpenCL Runtime for Intel Core and Intel Xeon Processors\" (16.1.1 or later)");
+
+    #if defined (__linux__)
+    event_log_warning (hashcat_ctx, "* Intel GPUs on Linux require this runtime and/or driver:");
+    event_log_warning (hashcat_ctx, "  \"OpenCL 2.0 GPU Driver Package for Linux\" (2.0 or later)");
+    #elif defined (_WIN)
+    event_log_warning (hashcat_ctx, "* Intel GPUs on Windows require this runtime and/or driver:");
+    event_log_warning (hashcat_ctx, "  \"OpenCL Driver for Intel Iris and Intel HD Graphics\"");
+    #endif
+
+    event_log_warning (hashcat_ctx, "* NVIDIA GPUs require this runtime and/or driver:");
+    event_log_warning (hashcat_ctx, "  \"NVIDIA Driver\" (418.56 or later)");
+    event_log_warning (hashcat_ctx, "  \"CUDA Toolkit\" (10.1 or later)");
+    event_log_warning (hashcat_ctx, NULL);
+
+    return -1;
+  }
+
+  HC_LOAD_FUNC (ocl, clBuildProgram,            OCL_CLBUILDPROGRAM,             OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clCreateBuffer,            OCL_CLCREATEBUFFER,             OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clCreateCommandQueue,      OCL_CLCREATECOMMANDQUEUE,       OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clCreateContext,           OCL_CLCREATECONTEXT,            OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clCreateKernel,            OCL_CLCREATEKERNEL,             OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clCreateProgramWithBinary, OCL_CLCREATEPROGRAMWITHBINARY,  OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clCreateProgramWithSource, OCL_CLCREATEPROGRAMWITHSOURCE,  OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clEnqueueCopyBuffer,       OCL_CLENQUEUECOPYBUFFER,        OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clEnqueueMapBuffer,        OCL_CLENQUEUEMAPBUFFER,         OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clEnqueueNDRangeKernel,    OCL_CLENQUEUENDRANGEKERNEL,     OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clEnqueueReadBuffer,       OCL_CLENQUEUEREADBUFFER,        OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clEnqueueUnmapMemObject,   OCL_CLENQUEUEUNMAPMEMOBJECT,    OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clEnqueueWriteBuffer,      OCL_CLENQUEUEWRITEBUFFER,       OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clFinish,                  OCL_CLFINISH,                   OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clFlush,                   OCL_CLFLUSH,                    OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clGetDeviceIDs,            OCL_CLGETDEVICEIDS,             OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clGetDeviceInfo,           OCL_CLGETDEVICEINFO,            OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clGetEventInfo,            OCL_CLGETEVENTINFO,             OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clGetKernelWorkGroupInfo,  OCL_CLGETKERNELWORKGROUPINFO,   OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clGetPlatformIDs,          OCL_CLGETPLATFORMIDS,           OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clGetPlatformInfo,         OCL_CLGETPLATFORMINFO,          OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clGetProgramBuildInfo,     OCL_CLGETPROGRAMBUILDINFO,      OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clGetProgramInfo,          OCL_CLGETPROGRAMINFO,           OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clReleaseCommandQueue,     OCL_CLRELEASECOMMANDQUEUE,      OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clReleaseContext,          OCL_CLRELEASECONTEXT,           OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clReleaseKernel,           OCL_CLRELEASEKERNEL,            OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clReleaseMemObject,        OCL_CLRELEASEMEMOBJECT,         OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clReleaseProgram,          OCL_CLRELEASEPROGRAM,           OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clSetKernelArg,            OCL_CLSETKERNELARG,             OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clWaitForEvents,           OCL_CLWAITFOREVENTS,            OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clGetEventProfilingInfo,   OCL_CLGETEVENTPROFILINGINFO,    OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clReleaseEvent,            OCL_CLRELEASEEVENT,             OpenCL, 1);
+
+  return 0;
+}
+
+void ocl_close (hashcat_ctx_t *hashcat_ctx)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  OCL_PTR *ocl = backend_ctx->ocl;
+
+  if (ocl)
+  {
+    if (ocl->lib)
+    {
+      hc_dlclose (ocl->lib);
+    }
+
+    hcfree (backend_ctx->ocl);
+
+    backend_ctx->ocl = NULL;
+  }
 }
 
 int hc_clEnqueueNDRangeKernel (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue, cl_kernel kernel, cl_uint work_dim, const size_t *global_work_offset, const size_t *global_work_size, const size_t *local_work_size, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event)
@@ -3571,6 +3604,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
     // platform vendor
 
     int CL_rc;
+    int CU_rc;
 
     CL_rc = hc_clGetPlatformInfo (hashcat_ctx, platform, CL_PLATFORM_VENDOR, 0, NULL, &param_value_size);
 
@@ -4150,16 +4184,30 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           device_param->pcie_device   = (u8) (pci_slot_id_nv >> 3);
           device_param->pcie_function = (u8) (pci_slot_id_nv & 7);
 
-          cl_uint sm_minor = 0;
-          cl_uint sm_major = 0;
+          int sm_minor = 0;
+          int sm_major = 0;
 
-          CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV, sizeof (sm_minor), &sm_minor, NULL);
+          //if (backend_ctx->cuda)
+          if (0)
+          {
+            CU_rc = hc_cuDeviceGetAttribute (hashcat_ctx, &sm_minor, CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR, device_param->device_cuda);
 
-          if (CL_rc == -1) return -1;
+            if (CU_rc == -1) return -1;
 
-          CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV, sizeof (sm_major), &sm_major, NULL);
+            CU_rc = hc_cuDeviceGetAttribute (hashcat_ctx, &sm_major, CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR, device_param->device_cuda);
 
-          if (CL_rc == -1) return -1;
+            if (CU_rc == -1) return -1;
+          }
+          else
+          {
+            CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV, sizeof (sm_minor), &sm_minor, NULL);
+
+            if (CL_rc == -1) return -1;
+
+            CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV, sizeof (sm_major), &sm_major, NULL);
+
+            if (CL_rc == -1) return -1;
+          }
 
           device_param->sm_minor = sm_minor;
           device_param->sm_major = sm_major;
@@ -5490,13 +5538,16 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (rc_nvrtcCreateProgram == -1) return -1;
 
-          char **nvrtc_options = (char **) hccalloc (1 + strlen (build_options_module_buf) + 1, sizeof (char *)); // ...
+          char **nvrtc_options = (char **) hccalloc (3 + strlen (build_options_module_buf) + 1, sizeof (char *)); // ...
 
           nvrtc_options[0] = "--device-as-default-execution-space";
+          nvrtc_options[1] = "--gpu-architecture";
+
+          hc_asprintf (&nvrtc_options[2], "compute_%d%d", device_param->sm_major, device_param->sm_minor);
 
           char *nvrtc_options_string = hcstrdup (build_options_module_buf);
 
-          const int num_options = 1 + nvrtc_make_options_array_from_string (nvrtc_options_string, nvrtc_options + 1);
+          const int num_options = 3 + nvrtc_make_options_array_from_string (nvrtc_options_string, nvrtc_options + 3);
 
           const int rc_nvrtcCompileProgram = hc_nvrtcCompileProgram (hashcat_ctx, program, num_options, (const char * const *) nvrtc_options);
 

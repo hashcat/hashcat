@@ -995,6 +995,8 @@ typedef struct link_speed
 
 typedef struct hc_device_param
 {
+  CUdevice        device_cuda;
+
   cl_device_id    device;
   cl_device_type  device_type;
 
@@ -1006,8 +1008,8 @@ typedef struct hc_device_param
 
   st_status_t st_status;
 
-  u32     sm_major;
-  u32     sm_minor;
+  int     sm_major;
+  int     sm_minor;
   u32     kernel_exec_timeout;
 
   u8      pcie_bus;
