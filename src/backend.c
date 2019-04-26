@@ -5085,13 +5085,6 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (vector_width > 16) vector_width = 16;
 
-    // CUDA currently support only scalar types
-
-    if (backend_ctx->cuda)
-    {
-      vector_width = 1;
-    }
-
     device_param->vector_width = vector_width;
 
     /**
