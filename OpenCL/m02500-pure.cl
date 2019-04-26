@@ -682,7 +682,7 @@ KERNEL_FQ void m02500_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_eapol_t)
   #ifdef IS_CUDA
   __syncthreads();
   #else
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
   #endif
 
   #else

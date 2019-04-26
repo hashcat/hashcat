@@ -49,7 +49,7 @@ KERNEL_FQ void m01100_m04 (KERN_ATTR_BASIC ())
     s_salt_buf[0].salt_buf[10] = (16 + s_salt_buf[0].salt_len) * 8;
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -330,7 +330,7 @@ KERNEL_FQ void m01100_s04 (KERN_ATTR_BASIC ())
     s_salt_buf[0].salt_buf[10] = (16 + s_salt_buf[0].salt_len) * 8;
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 

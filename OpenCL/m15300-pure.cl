@@ -407,7 +407,7 @@ KERNEL_FQ void m15300_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
     s_skb[7][i] = c_skb[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 

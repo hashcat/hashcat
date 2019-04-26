@@ -43,7 +43,7 @@ KERNEL_FQ void m11760_mxx (KERN_ATTR_VECTOR ())
     s_sbob_sl64[7][i] = sbob256_sl64[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 
@@ -138,7 +138,7 @@ KERNEL_FQ void m11760_sxx (KERN_ATTR_VECTOR ())
     s_sbob_sl64[7][i] = sbob256_sl64[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 

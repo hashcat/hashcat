@@ -159,7 +159,7 @@ KERNEL_FQ void m06233_init (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
     s_keyboard_layout_mapping_buf[i] = esalt_bufs[digests_offset].keyboard_layout_mapping_buf[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   /**
    * Whirlpool shared
@@ -191,7 +191,7 @@ KERNEL_FQ void m06233_init (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
     s_Cl[7][i] = Cl[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 
@@ -403,7 +403,7 @@ KERNEL_FQ void m06233_loop (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
     s_Cl[7][i] = Cl[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 
@@ -609,7 +609,7 @@ KERNEL_FQ void m06233_comp (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
     s_te4[i] = te4[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 
@@ -657,7 +657,7 @@ KERNEL_FQ void m06233_comp (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
     s_Cl[7][i] = Cl[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 

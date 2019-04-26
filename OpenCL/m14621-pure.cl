@@ -369,7 +369,7 @@ KERNEL_FQ void m14621_comp (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
     s_te4[i] = te4[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 

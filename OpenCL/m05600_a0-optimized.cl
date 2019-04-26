@@ -141,7 +141,7 @@ KERNEL_FQ void m05600_m04 (KERN_ATTR_RULES_ESALT (netntlm_t))
     s_chall_buf[i] = esalt_bufs[digests_offset].chall_buf[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -380,7 +380,7 @@ KERNEL_FQ void m05600_s04 (KERN_ATTR_RULES_ESALT (netntlm_t))
     s_chall_buf[i] = esalt_bufs[digests_offset].chall_buf[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 

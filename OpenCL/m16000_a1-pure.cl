@@ -536,7 +536,7 @@ KERNEL_FQ void m16000_mxx (KERN_ATTR_BASIC ())
     s_tripcode_salt[i] = c_tripcode_salt[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -708,7 +708,7 @@ KERNEL_FQ void m16000_sxx (KERN_ATTR_BASIC ())
     s_tripcode_salt[i] = c_tripcode_salt[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 

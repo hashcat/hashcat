@@ -318,7 +318,7 @@ KERNEL_FQ void m12500_comp (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
     s_te4[i] = te4[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 

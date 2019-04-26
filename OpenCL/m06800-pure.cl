@@ -298,7 +298,7 @@ KERNEL_FQ void m06800_comp (KERN_ATTR_TMPS (lastpass_tmp_t))
     s_te4[i] = te4[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 

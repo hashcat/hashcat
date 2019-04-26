@@ -50,7 +50,7 @@ KERNEL_FQ void m04110_m04 (KERN_ATTR_BASIC ())
                  | ((i1 < 10) ? '0' + i1 : 'a' - 10 + i1) << 0;
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -496,7 +496,7 @@ KERNEL_FQ void m04110_s04 (KERN_ATTR_BASIC ())
                  | ((i1 < 10) ? '0' + i1 : 'a' - 10 + i1) << 0;
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 

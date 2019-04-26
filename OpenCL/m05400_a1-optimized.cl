@@ -140,7 +140,7 @@ KERNEL_FQ void m05400_m04 (KERN_ATTR_ESALT (ikepsk_t))
     s_msg_buf[i] = hc_swap32_S (esalt_bufs[digests_offset].msg_buf[i]);
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -392,7 +392,7 @@ KERNEL_FQ void m05400_s04 (KERN_ATTR_ESALT (ikepsk_t))
     s_msg_buf[i] = hc_swap32_S (esalt_bufs[digests_offset].msg_buf[i]);
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 

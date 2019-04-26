@@ -1079,7 +1079,7 @@ KERNEL_FQ void m06900_m04 (KERN_ATTR_BASIC ())
     s_tables[3][i] = c_tables[3][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -1148,7 +1148,7 @@ KERNEL_FQ void m06900_m08 (KERN_ATTR_BASIC ())
     s_tables[3][i] = c_tables[3][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -1221,7 +1221,7 @@ KERNEL_FQ void m06900_s04 (KERN_ATTR_BASIC ())
     s_tables[3][i] = c_tables[3][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -1290,7 +1290,7 @@ KERNEL_FQ void m06900_s08 (KERN_ATTR_BASIC ())
     s_tables[3][i] = c_tables[3][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 

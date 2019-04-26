@@ -266,7 +266,7 @@ KERNEL_FQ void m14700_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, itunes_back
     s_te4[i] = te4[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 

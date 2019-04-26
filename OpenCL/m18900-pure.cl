@@ -271,7 +271,7 @@ KERNEL_FQ void m18900_comp (KERN_ATTR_TMPS_ESALT (android_backup_tmp_t, android_
     s_te4[i] = te4[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 

@@ -65,7 +65,7 @@ KERNEL_FQ void m16600_mxx (KERN_ATTR_ESALT (electrum_wallet_t))
     s_te4[i] = te4[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 
@@ -254,7 +254,7 @@ KERNEL_FQ void m16600_sxx (KERN_ATTR_ESALT (electrum_wallet_t))
     s_te4[i] = te4[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 

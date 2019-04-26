@@ -231,7 +231,7 @@ KERNEL_FQ void m14900_m04 (KERN_ATTR_BASIC ())
     s_ftable[i] = c_ftable[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -305,7 +305,7 @@ KERNEL_FQ void m14900_s04 (KERN_ATTR_BASIC ())
     s_ftable[i] = c_ftable[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 

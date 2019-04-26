@@ -2128,7 +2128,7 @@ KERNEL_FQ void m05800_loop (KERN_ATTR_TMPS (androidpin_tmp_t))
     s_pc_len[i] = c_pc_len[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 

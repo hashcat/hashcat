@@ -114,7 +114,7 @@ KERNEL_FQ void m11700_m04 (KERN_ATTR_RULES ())
     s_sbob_sl64[7][i] = sbob256_sl64[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -272,7 +272,7 @@ KERNEL_FQ void m11700_s04 (KERN_ATTR_RULES ())
     s_sbob_sl64[7][i] = sbob256_sl64[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 

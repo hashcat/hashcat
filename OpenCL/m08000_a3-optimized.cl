@@ -231,7 +231,7 @@ DECLSPEC void m08000m (LOCAL_AS u32 *w_s1, LOCAL_AS u32 *w_s2, u32 *w, const u32
     w_s2[i] = 0;
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (lid == 0)
   {
@@ -259,7 +259,7 @@ DECLSPEC void m08000m (LOCAL_AS u32 *w_s1, LOCAL_AS u32 *w_s2, u32 *w, const u32
     }
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -353,7 +353,7 @@ DECLSPEC void m08000s (LOCAL_AS u32 *w_s1, LOCAL_AS u32 *w_s2, u32 *w, const u32
     w_s2[i] = 0;
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (lid == 0)
   {
@@ -381,7 +381,7 @@ DECLSPEC void m08000s (LOCAL_AS u32 *w_s1, LOCAL_AS u32 *w_s2, u32 *w, const u32
     }
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 

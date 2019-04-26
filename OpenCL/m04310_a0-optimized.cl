@@ -52,7 +52,7 @@ KERNEL_FQ void m04310_m04 (KERN_ATTR_RULES ())
                  | ((i1 < 10) ? '0' + i1 : 'A' - 10 + i1) << 0;
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -336,7 +336,7 @@ KERNEL_FQ void m04310_s04 (KERN_ATTR_RULES ())
                  | ((i1 < 10) ? '0' + i1 : 'A' - 10 + i1) << 0;
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 

@@ -307,7 +307,7 @@ KERNEL_FQ void m16200_comp (KERN_ATTR_TMPS_ESALT (apple_secure_notes_tmp_t, appl
     s_te4[i] = te4[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 

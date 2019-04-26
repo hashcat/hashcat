@@ -578,7 +578,7 @@ KERNEL_FQ void m14100_mxx (KERN_ATTR_RULES ())
     s_skb[7][i] = c_skb[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -713,7 +713,7 @@ KERNEL_FQ void m14100_sxx (KERN_ATTR_RULES ())
     s_skb[7][i] = c_skb[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 

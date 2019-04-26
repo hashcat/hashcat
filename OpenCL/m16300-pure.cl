@@ -441,7 +441,7 @@ KERNEL_FQ void m16300_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, ethereum_
     s_te4[i] = te4[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 

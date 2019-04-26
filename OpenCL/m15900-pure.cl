@@ -539,7 +539,7 @@ KERNEL_FQ void m15900_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v2_t, dpapimk_t))
     s_te4[i] = te4[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 

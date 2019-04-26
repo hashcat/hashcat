@@ -140,7 +140,7 @@ KERNEL_FQ void m13711_init (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
     s_keyboard_layout_mapping_buf[i] = esalt_bufs[digests_offset].keyboard_layout_mapping_buf[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -287,7 +287,7 @@ KERNEL_FQ void m13711_loop (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
     s_te4[i] = te4[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 
@@ -471,7 +471,7 @@ KERNEL_FQ void m13711_comp (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
     s_te4[i] = te4[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 

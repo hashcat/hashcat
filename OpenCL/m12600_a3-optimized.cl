@@ -648,7 +648,7 @@ KERNEL_FQ void m12600_m04 (KERN_ATTR_BASIC ())
                  | ((i1 < 10) ? '0' + i1 : 'A' - 10 + i1) << 0;
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -718,7 +718,7 @@ KERNEL_FQ void m12600_m08 (KERN_ATTR_BASIC ())
                  | ((i1 < 10) ? '0' + i1 : 'A' - 10 + i1) << 0;
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -788,7 +788,7 @@ KERNEL_FQ void m12600_m16 (KERN_ATTR_BASIC ())
                  | ((i1 < 10) ? '0' + i1 : 'A' - 10 + i1) << 0;
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -858,7 +858,7 @@ KERNEL_FQ void m12600_s04 (KERN_ATTR_BASIC ())
                  | ((i1 < 10) ? '0' + i1 : 'A' - 10 + i1) << 0;
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -928,7 +928,7 @@ KERNEL_FQ void m12600_s08 (KERN_ATTR_BASIC ())
                  | ((i1 < 10) ? '0' + i1 : 'A' - 10 + i1) << 0;
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -998,7 +998,7 @@ KERNEL_FQ void m12600_s16 (KERN_ATTR_BASIC ())
                  | ((i1 < 10) ? '0' + i1 : 'A' - 10 + i1) << 0;
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 

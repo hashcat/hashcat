@@ -263,7 +263,7 @@ KERNEL_FQ void m08800_comp (KERN_ATTR_TMPS_ESALT (androidfde_tmp_t, androidfde_t
     s_te4[i] = te4[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 

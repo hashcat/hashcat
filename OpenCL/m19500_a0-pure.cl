@@ -62,7 +62,7 @@ KERNEL_FQ void m19500_mxx (KERN_ATTR_RULES_ESALT (devise_hash_t))
                  | ((i1 < 10) ? '0' + i1 : 'a' - 10 + i1) << 8;
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -197,7 +197,7 @@ KERNEL_FQ void m19500_sxx (KERN_ATTR_RULES_ESALT (devise_hash_t))
                  | ((i1 < 10) ? '0' + i1 : 'a' - 10 + i1) << 8;
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 

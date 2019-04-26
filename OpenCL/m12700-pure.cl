@@ -276,7 +276,7 @@ KERNEL_FQ void m12700_comp (KERN_ATTR_TMPS (mywallet_tmp_t))
     s_te4[i] = te4[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 

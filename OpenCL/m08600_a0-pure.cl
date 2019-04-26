@@ -250,7 +250,7 @@ KERNEL_FQ void m08600_mxx (KERN_ATTR_RULES ())
     s_lotus_magic_table[i] = lotus_magic_table[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -314,7 +314,7 @@ KERNEL_FQ void m08600_sxx (KERN_ATTR_RULES ())
     s_lotus_magic_table[i] = lotus_magic_table[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 

@@ -163,7 +163,7 @@ KERNEL_FQ void m09500_comp (KERN_ATTR_TMPS_ESALT (office2010_tmp_t, office2010_t
     s_te4[i] = te4[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 

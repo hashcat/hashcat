@@ -303,7 +303,7 @@ KERNEL_FQ void m18400_comp (KERN_ATTR_TMPS_ESALT (odf12_tmp_t, odf12_t))
     s_te4[i] = te4[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 

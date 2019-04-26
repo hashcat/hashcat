@@ -323,7 +323,7 @@ KERNEL_FQ void m19700_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t
     s_te4[i] = te4[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 

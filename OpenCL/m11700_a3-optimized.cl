@@ -281,7 +281,7 @@ KERNEL_FQ void m11700_m04 (KERN_ATTR_BASIC ())
     s_sbob_sl64[7][i] = sbob256_sl64[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -345,7 +345,7 @@ KERNEL_FQ void m11700_m08 (KERN_ATTR_BASIC ())
     s_sbob_sl64[7][i] = sbob256_sl64[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -409,7 +409,7 @@ KERNEL_FQ void m11700_m16 (KERN_ATTR_BASIC ())
     s_sbob_sl64[7][i] = sbob256_sl64[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -473,7 +473,7 @@ KERNEL_FQ void m11700_s04 (KERN_ATTR_BASIC ())
     s_sbob_sl64[7][i] = sbob256_sl64[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -537,7 +537,7 @@ KERNEL_FQ void m11700_s08 (KERN_ATTR_BASIC ())
     s_sbob_sl64[7][i] = sbob256_sl64[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -601,7 +601,7 @@ KERNEL_FQ void m11700_s16 (KERN_ATTR_BASIC ())
     s_sbob_sl64[7][i] = sbob256_sl64[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 

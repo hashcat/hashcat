@@ -246,7 +246,7 @@ KERNEL_FQ void m11300_comp (KERN_ATTR_TMPS_ESALT (bitcoin_wallet_tmp_t, bitcoin_
     s_te4[i] = te4[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 

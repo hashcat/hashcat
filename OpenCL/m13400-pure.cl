@@ -190,7 +190,7 @@ KERNEL_FQ void m13400_loop (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
     s_te4[i] = te4[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 
@@ -290,7 +290,7 @@ KERNEL_FQ void m13400_comp (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
     s_te4[i] = te4[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 

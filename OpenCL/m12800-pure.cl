@@ -100,7 +100,7 @@ KERNEL_FQ void m12800_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
                  | ((i1 < 10) ? '0' + i1 : 'A' - 10 + i1) << 0;
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 

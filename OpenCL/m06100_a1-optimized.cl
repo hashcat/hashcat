@@ -58,7 +58,7 @@ KERNEL_FQ void m06100_m04 (KERN_ATTR_BASIC ())
     s_Cl[7][i] = Cl[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 
@@ -256,7 +256,7 @@ KERNEL_FQ void m06100_s04 (KERN_ATTR_BASIC ())
     s_Cl[7][i] = Cl[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 

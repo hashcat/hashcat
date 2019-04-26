@@ -360,7 +360,7 @@ KERNEL_FQ void m20012_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcrypt
     s_te4[i] = te4[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 

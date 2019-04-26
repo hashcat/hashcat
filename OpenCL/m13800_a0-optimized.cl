@@ -441,7 +441,7 @@ KERNEL_FQ void m13800_m04 (KERN_ATTR_RULES_ESALT (win8phone_t))
     s_esalt[i] = esalt_bufs[digests_offset].salt_buf[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -637,7 +637,7 @@ KERNEL_FQ void m13800_s04 (KERN_ATTR_RULES_ESALT (win8phone_t))
     s_esalt[i] = esalt_bufs[digests_offset].salt_buf[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 

@@ -549,7 +549,7 @@ KERNEL_FQ void m02501_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
     s_te4[i] = te4[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 
