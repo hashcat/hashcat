@@ -989,6 +989,7 @@ typedef struct link_speed
 
 } link_speed_t;
 
+#include "ext_nvrtc.h"
 #include "ext_cuda.h"
 #include "ext_OpenCL.h"
 
@@ -1335,6 +1336,7 @@ typedef struct backend_ctx
 
   void               *ocl;
   void               *cuda;
+  void               *nvrtc;
 
   cl_uint             platforms_cnt;
   cl_platform_id     *platforms;

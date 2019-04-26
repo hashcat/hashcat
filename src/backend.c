@@ -543,6 +543,73 @@ void generate_cached_kernel_amp_filename (const u32 attack_kern, char *profile_d
   snprintf (cached_file, 255, "%s/kernels/amp_a%u.%s.kernel", profile_dir, attack_kern, device_name_chksum_amp_mp);
 }
 
+int nvrtc_init (hashcat_ctx_t *hashcat_ctx)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  NVRTC_PTR *nvrtc = backend_ctx->nvrtc;
+
+  memset (nvrtc, 0, sizeof (NVRTC_PTR));
+
+  #if   defined (_WIN)
+  nvrtc->lib = hc_dlopen ("nvrtc");
+  #elif defined (__APPLE__)
+  nvrtc->lib = hc_dlopen ("/System/Library/Frameworks/NVRTC.framework/NVRTC");
+  #elif defined (__CYGWIN__)
+  nvrtc->lib = hc_dlopen ("nvrtc.dll");
+
+  if (nvrtc->lib == NULL) nvrtc->lib = hc_dlopen ("cygnvrtc-1.dll");
+  #else
+  nvrtc->lib = hc_dlopen ("libnvrtc.so");
+
+  if (nvrtc->lib == NULL) nvrtc->lib = hc_dlopen ("libnvrtc.so.1");
+  #endif
+
+  if (nvrtc->lib == NULL)
+  {
+    event_log_error (hashcat_ctx, "Cannot find NVRTC library.");
+
+    event_log_warning (hashcat_ctx, "You are probably missing the native CUDA SDK and/or driver for your platform.");
+    event_log_warning (hashcat_ctx, "NVIDIA GPUs require this runtime and/or driver:");
+    event_log_warning (hashcat_ctx, "  \"NVIDIA Driver\" (418.56 or later)");
+    event_log_warning (hashcat_ctx, "  \"CUDA Toolkit\" (10.1 or later)");
+    event_log_warning (hashcat_ctx, NULL);
+
+    return -1;
+  }
+
+  HC_LOAD_FUNC (nvrtc, nvrtcAddNameExpression,  NVRTC_NVRTCADDNAMEEXPRESSION, NVRTC, 1);
+  HC_LOAD_FUNC (nvrtc, nvrtcCompileProgram,     NVRTC_NVRTCCOMPILEPROGRAM,    NVRTC, 1);
+  HC_LOAD_FUNC (nvrtc, nvrtcCreateProgram,      NVRTC_NVRTCCREATEPROGRAM,     NVRTC, 1);
+  HC_LOAD_FUNC (nvrtc, nvrtcDestroyProgram,     NVRTC_NVRTCDESTROYPROGRAM,    NVRTC, 1);
+  HC_LOAD_FUNC (nvrtc, nvrtcGetLoweredName,     NVRTC_NVRTCGETLOWEREDNAME,    NVRTC, 1);
+  HC_LOAD_FUNC (nvrtc, nvrtcGetPTX,             NVRTC_NVRTCGETPTX,            NVRTC, 1);
+  HC_LOAD_FUNC (nvrtc, nvrtcGetPTXSize,         NVRTC_NVRTCGETPTXSIZE,        NVRTC, 1);
+  HC_LOAD_FUNC (nvrtc, nvrtcGetProgramLog,      NVRTC_NVRTCGETPROGRAMLOG,     NVRTC, 1);
+  HC_LOAD_FUNC (nvrtc, nvrtcGetProgramLogSize,  NVRTC_NVRTCGETPROGRAMLOGSIZE, NVRTC, 1);
+
+  return 0;
+}
+
+void nvrtc_close (hashcat_ctx_t *hashcat_ctx)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  NVRTC_PTR *nvrtc = backend_ctx->nvrtc;
+
+  if (nvrtc)
+  {
+    if (nvrtc->lib)
+    {
+      hc_dlclose (nvrtc->lib);
+    }
+
+    hcfree (backend_ctx->nvrtc);
+
+    backend_ctx->nvrtc = NULL;
+  }
+}
+
 int cuda_init (hashcat_ctx_t *hashcat_ctx)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
@@ -572,6 +639,7 @@ int cuda_init (hashcat_ctx_t *hashcat_ctx)
     event_log_warning (hashcat_ctx, "You are probably missing the native CUDA runtime or driver for your platform.");
     event_log_warning (hashcat_ctx, "NVIDIA GPUs require this runtime and/or driver:");
     event_log_warning (hashcat_ctx, "  \"NVIDIA Driver\" (418.56 or later)");
+    event_log_warning (hashcat_ctx, "  \"CUDA Toolkit\" (10.1 or later)");
     event_log_warning (hashcat_ctx, NULL);
 
     return -1;
@@ -702,6 +770,7 @@ int ocl_init (hashcat_ctx_t *hashcat_ctx)
 
     event_log_warning (hashcat_ctx, "* NVIDIA GPUs require this runtime and/or driver:");
     event_log_warning (hashcat_ctx, "  \"NVIDIA Driver\" (418.56 or later)");
+    event_log_warning (hashcat_ctx, "  \"CUDA Toolkit\" (10.1 or later)");
     event_log_warning (hashcat_ctx, NULL);
 
     return -1;
@@ -3072,6 +3141,31 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
   }
 
   /**
+   * Load and map NVRTC library calls
+   */
+
+  NVRTC_PTR *nvrtc = (NVRTC_PTR *) hcmalloc (sizeof (NVRTC_PTR));
+
+  backend_ctx->nvrtc = nvrtc;
+
+  const int rc_nvrtc_init = nvrtc_init (hashcat_ctx);
+
+  if (rc_nvrtc_init == -1)
+  {
+    nvrtc_close (hashcat_ctx);
+  }
+
+  /**
+   * Check if both CUDA and NVRTC were load successful
+   */
+
+  if ((rc_cuda_init == -1) || (rc_nvrtc_init == -1))
+  {
+    cuda_close  (hashcat_ctx);
+    nvrtc_close (hashcat_ctx);
+  }
+
+  /**
    * Load and map OpenCL library calls
    */
 
@@ -3085,6 +3179,7 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
   {
     ocl_close (hashcat_ctx);
   }
+
 
   /**
    * return if both CUDA and OpenCL initialization failed
@@ -3199,6 +3294,7 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     event_log_warning (hashcat_ctx, "* NVIDIA GPUs require this runtime and/or driver:");
     event_log_warning (hashcat_ctx, "  \"NVIDIA Driver\" (418.56 or later)");
+    event_log_warning (hashcat_ctx, "  \"CUDA Toolkit\" (10.1 or later)");
     event_log_warning (hashcat_ctx, NULL);
 
     FREE_OPENCL_CTX_ON_ERROR;
@@ -3300,7 +3396,8 @@ void backend_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
   if (backend_ctx->enabled == false) return;
 
-  ocl_close (hashcat_ctx);
+  cuda_close (hashcat_ctx);
+  ocl_close  (hashcat_ctx);
 
   hcfree (backend_ctx->devices_param);
 
