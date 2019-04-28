@@ -986,6 +986,60 @@ int hc_cuDeviceGetName (hashcat_ctx_t *hashcat_ctx, char *name, int len, CUdevic
   return 0;
 }
 
+int hc_cuDeviceTotalMem (hashcat_ctx_t *hashcat_ctx, size_t *bytes, CUdevice dev)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  CUDA_PTR *cuda = backend_ctx->cuda;
+
+  const CUresult CU_err = cuda->cuDeviceTotalMem (bytes, dev);
+
+  if (CU_err != CUDA_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "cuDeviceTotalMem(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "cuDeviceTotalMem(): %d", CU_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_cuDriverGetVersion (hashcat_ctx_t *hashcat_ctx, int *driverVersion)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  CUDA_PTR *cuda = backend_ctx->cuda;
+
+  const CUresult CU_err = cuda->cuDriverGetVersion (driverVersion);
+
+  if (CU_err != CUDA_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "cuDriverGetVersion(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "cuDriverGetVersion(): %d", CU_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
 
 // OpenCL
 
@@ -3719,6 +3773,8 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
   if (backend_ctx->enabled == false) return 0;
 
+  hc_device_param_t *devices_param = backend_ctx->devices_param;
+
   bool need_adl     = false;
   bool need_nvml    = false;
   bool need_nvapi   = false;
@@ -3730,6 +3786,18 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
   if (backend_ctx->cuda)
   {
+    // cuda version
+
+    int cuda_driver_version = 0;
+
+    const int rc_cuDriverGetVersion = hc_cuDriverGetVersion (hashcat_ctx, &cuda_driver_version);
+
+    if (rc_cuDriverGetVersion == -1) return -1;
+
+    backend_ctx->cuda_driver_version = cuda_driver_version;
+
+    // device count
+
     int cuda_devices_cnt = 0;
 
     const int rc_cuDeviceGetCount = hc_cuDeviceGetCount (hashcat_ctx, &cuda_devices_cnt);
@@ -3743,7 +3811,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
     backend_devices_cnt += cuda_devices_cnt;
 
-    hc_device_param_t *devices_param = backend_ctx->devices_param;
+    // device specific
 
     for (int cuda_devices_idx = 0; cuda_devices_idx < cuda_devices_cnt; cuda_devices_idx++, backend_devices_idx++)
     {
@@ -3776,6 +3844,28 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       hc_string_trim_trailing (device_name);
 
+      // max_compute_units
+
+      int device_processors;
+
+      CU_rc = hc_cuDeviceGetAttribute (hashcat_ctx, &device_processors, CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT, device_cuda);
+
+      if (CU_rc == -1) return -1;
+
+      device_param->device_processors = device_processors;
+
+      // device_global_mem
+
+      size_t bytes;
+
+      CU_rc = hc_cuDeviceTotalMem (hashcat_ctx, &bytes, device_cuda);
+
+      if (CU_rc == -1) return -1;
+
+      device_param->device_global_mem = (u64) bytes;
+
+      device_param->device_available_mem = 0;
+
       // sm_minor, sm_major
 
       int sm_major = 0;
@@ -3792,8 +3882,92 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       device_param->sm_major = sm_major;
       device_param->sm_minor = sm_minor;
 
+      // device_maxworkgroup_size
 
-    printf ("%s %d %d\n", device_name, sm_major, sm_minor);
+      int device_maxworkgroup_size;
+
+      CU_rc = hc_cuDeviceGetAttribute (hashcat_ctx, &device_maxworkgroup_size, CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK, device_cuda);
+
+      if (CU_rc == -1) return -1;
+
+      device_param->device_maxworkgroup_size = device_maxworkgroup_size;
+
+      // max_clock_frequency
+
+      int device_maxclock_frequency;
+
+      CU_rc = hc_cuDeviceGetAttribute (hashcat_ctx, &device_maxclock_frequency, CU_DEVICE_ATTRIBUTE_CLOCK_RATE, device_cuda);
+
+      if (CU_rc == -1) return -1;
+
+      device_param->device_maxclock_frequency = device_maxclock_frequency / 1000;
+
+      // pcie_bus, pcie_device, pcie_function
+
+      int pci_bus_id_nv;  // is cl_uint the right type for them??
+      int pci_slot_id_nv;
+
+      CU_rc = hc_cuDeviceGetAttribute (hashcat_ctx, &pci_bus_id_nv, CU_DEVICE_ATTRIBUTE_PCI_BUS_ID, device_cuda);
+
+      if (CU_rc == -1) return -1;
+
+      CU_rc = hc_cuDeviceGetAttribute (hashcat_ctx, &pci_slot_id_nv, CU_DEVICE_ATTRIBUTE_PCI_DEVICE_ID, device_cuda);
+
+      if (CU_rc == -1) return -1;
+
+      device_param->pcie_bus      = (u8) (pci_bus_id_nv);
+      device_param->pcie_device   = (u8) (pci_slot_id_nv >> 3);
+      device_param->pcie_function = (u8) (pci_slot_id_nv & 7);
+
+      // kernel_exec_timeout
+
+      int kernel_exec_timeout;
+
+      CU_rc = hc_cuDeviceGetAttribute (hashcat_ctx, &kernel_exec_timeout, CU_DEVICE_ATTRIBUTE_KERNEL_EXEC_TIMEOUT, device_cuda);
+
+      if (CU_rc == -1) return -1;
+
+      device_param->kernel_exec_timeout = kernel_exec_timeout;
+
+      // max_shared_memory_per_block
+
+      int max_shared_memory_per_block;
+
+      CU_rc = hc_cuDeviceGetAttribute (hashcat_ctx, &max_shared_memory_per_block, CU_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_BLOCK, device_cuda);
+
+      if (CU_rc == -1) return -1;
+
+      if (max_shared_memory_per_block < 32768)
+      {
+        event_log_error (hashcat_ctx, "* Device #%u: This device's shared buffer size is too small.", backend_devices_idx + 1);
+
+        device_param->skipped = true;
+      }
+
+      // device_max_constant_buffer_size
+
+      int device_max_constant_buffer_size;
+
+      CU_rc = hc_cuDeviceGetAttribute (hashcat_ctx, &device_max_constant_buffer_size, CU_DEVICE_ATTRIBUTE_TOTAL_CONSTANT_MEMORY, device_cuda);
+
+      if (CU_rc == -1) return -1;
+
+      if (device_max_constant_buffer_size < 65536)
+      {
+        event_log_error (hashcat_ctx, "* Device #%u: This device's local mem size is too small.", backend_devices_idx + 1);
+
+        device_param->skipped = true;
+      }
+
+      // device_local_mem_type
+
+      cl_device_local_mem_type device_local_mem_type = CL_LOCAL;
+
+      device_param->device_local_mem_type = device_local_mem_type;
+
+      //
+
+
 
     }
   }

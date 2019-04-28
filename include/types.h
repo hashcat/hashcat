@@ -1352,6 +1352,8 @@ typedef struct backend_ctx
   int                 opencl_devices_cnt;
   int                 opencl_devices_active;
 
+  int                 cuda_driver_version;
+
   cl_uint             platforms_cnt;
   cl_platform_id     *platforms;
   char              **platforms_vendor;
