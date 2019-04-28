@@ -1340,6 +1340,18 @@ typedef struct backend_ctx
   void               *cuda;
   void               *nvrtc;
 
+  int                *backend_device_from_cuda;   // from cuda device index to backend device index
+  int                *backend_device_to_cuda;     // from backend device index to cuda device index
+  int                *backend_device_from_opencl; // from opencl device index to backend device index
+  int                *backend_device_to_opencl;   // from backend device index to opencl device index
+
+  int                 backend_devices_cnt;
+  int                 backend_devices_active;
+  int                 cuda_devices_cnt;
+  int                 cuda_devices_active;
+  int                 opencl_devices_cnt;
+  int                 opencl_devices_active;
+
   cl_uint             platforms_cnt;
   cl_platform_id     *platforms;
   char              **platforms_vendor;

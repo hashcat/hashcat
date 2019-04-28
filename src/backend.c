@@ -851,6 +851,33 @@ void cuda_close (hashcat_ctx_t *hashcat_ctx)
   }
 }
 
+int hc_cuInit (hashcat_ctx_t *hashcat_ctx, unsigned int Flags)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  CUDA_PTR *cuda = backend_ctx->cuda;
+
+  const CUresult CU_err = cuda->cuInit (Flags);
+
+  if (CU_err != CUDA_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "cuInit(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "cuInit(): %d", CU_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
 int hc_cuDeviceGetAttribute (hashcat_ctx_t *hashcat_ctx, int *pi, CUdevice_attribute attrib, CUdevice dev)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
@@ -877,6 +904,88 @@ int hc_cuDeviceGetAttribute (hashcat_ctx_t *hashcat_ctx, int *pi, CUdevice_attri
 
   return 0;
 }
+
+int hc_cuDeviceGetCount (hashcat_ctx_t *hashcat_ctx, int *count)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  CUDA_PTR *cuda = backend_ctx->cuda;
+
+  const CUresult CU_err = cuda->cuDeviceGetCount (count);
+
+  if (CU_err != CUDA_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "cuDeviceGetCount(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "cuDeviceGetCount(): %d", CU_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_cuDeviceGet (hashcat_ctx_t *hashcat_ctx, CUdevice* device, int ordinal)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  CUDA_PTR *cuda = backend_ctx->cuda;
+
+  const CUresult CU_err = cuda->cuDeviceGet (device, ordinal);
+
+  if (CU_err != CUDA_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "cuDeviceGet(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "cuDeviceGet(): %d", CU_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_cuDeviceGetName (hashcat_ctx_t *hashcat_ctx, char *name, int len, CUdevice dev)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  CUDA_PTR *cuda = backend_ctx->cuda;
+
+  const CUresult CU_err = cuda->cuDeviceGetName (name, len, dev);
+
+  if (CU_err != CUDA_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "cuDeviceGetName(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "cuDeviceGetName(): %d", CU_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
 
 // OpenCL
 
@@ -3286,7 +3395,7 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
   backend_ctx->devices_param = devices_param;
 
   /**
-   * Load and map CUDA library calls
+   * Load and map CUDA library calls, then init CUDA
    */
 
   CUDA_PTR *cuda = (CUDA_PTR *) hcmalloc (sizeof (CUDA_PTR));
@@ -3296,6 +3405,13 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
   const int rc_cuda_init = cuda_init (hashcat_ctx);
 
   if (rc_cuda_init == -1)
+  {
+    cuda_close (hashcat_ctx);
+  }
+
+  const int rc_cuInit = hc_cuInit (hashcat_ctx, 0);
+
+  if (rc_cuInit == -1)
   {
     cuda_close (hashcat_ctx);
   }
@@ -3394,6 +3510,29 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
   backend_ctx->device_types_filter = device_types_filter;
 
   /**
+   * Backend structures
+   */
+
+  #define FREE_BACKEND_CTX_ON_ERROR       \
+  {                                       \
+    hcfree (backend_device_from_cuda);    \
+    hcfree (backend_device_to_cuda);      \
+    hcfree (backend_device_from_opencl);  \
+    hcfree (backend_device_to_opencl);    \
+    hcfree (platforms_vendor);            \
+    hcfree (platforms_name);              \
+    hcfree (platforms_version);           \
+    hcfree (platforms_skipped);           \
+    hcfree (platforms);                   \
+    hcfree (platform_devices);            \
+  }
+
+  int *backend_device_from_cuda   = (int *) hccalloc (DEVICES_MAX, sizeof (int));
+  int *backend_device_to_cuda     = (int *) hccalloc (DEVICES_MAX, sizeof (int));
+  int *backend_device_from_opencl = (int *) hccalloc (DEVICES_MAX, sizeof (int));
+  int *backend_device_to_opencl   = (int *) hccalloc (DEVICES_MAX, sizeof (int));
+
+  /**
    * OpenCL platforms: detect
    */
 
@@ -3408,19 +3547,9 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   int CL_rc = hc_clGetPlatformIDs (hashcat_ctx, CL_PLATFORMS_MAX, platforms, &platforms_cnt);
 
-  #define FREE_OPENCL_CTX_ON_ERROR \
-  {                                \
-      hcfree (platforms_vendor);   \
-      hcfree (platforms_name);     \
-      hcfree (platforms_version);  \
-      hcfree (platforms_skipped);  \
-      hcfree (platforms);          \
-      hcfree (platform_devices);   \
-  }
-
   if (CL_rc == -1)
   {
-    FREE_OPENCL_CTX_ON_ERROR;
+    FREE_BACKEND_CTX_ON_ERROR;
 
     return -1;
   }
@@ -3456,7 +3585,7 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
     event_log_warning (hashcat_ctx, "  \"CUDA Toolkit\" (10.1 or later)");
     event_log_warning (hashcat_ctx, NULL);
 
-    FREE_OPENCL_CTX_ON_ERROR;
+    FREE_BACKEND_CTX_ON_ERROR;
 
     return -1;
   }
@@ -3470,7 +3599,7 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
       event_log_error (hashcat_ctx, "An invalid platform was specified using the --opencl-platforms parameter.");
       event_log_error (hashcat_ctx, "The specified platform was higher than the number of available platforms (%u).", platforms_cnt);
 
-      FREE_OPENCL_CTX_ON_ERROR;
+      FREE_BACKEND_CTX_ON_ERROR;
 
       return -1;
     }
@@ -3505,7 +3634,7 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         if (CL_rc == -1)
         {
-          FREE_OPENCL_CTX_ON_ERROR;
+          FREE_BACKEND_CTX_ON_ERROR;
 
           return -1;
         }
@@ -3537,6 +3666,11 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   backend_ctx->enabled = true;
 
+  backend_ctx->backend_device_from_cuda   = backend_device_from_cuda;
+  backend_ctx->backend_device_to_cuda     = backend_device_to_cuda;
+  backend_ctx->backend_device_from_opencl = backend_device_from_opencl;
+  backend_ctx->backend_device_to_opencl   = backend_device_to_opencl;
+
   backend_ctx->platforms_vendor      = platforms_vendor;
   backend_ctx->platforms_name        = platforms_name;
   backend_ctx->platforms_version     = platforms_version;
@@ -3545,6 +3679,8 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
   backend_ctx->platforms             = platforms;
   backend_ctx->platform_devices_cnt  = platform_devices_cnt;
   backend_ctx->platform_devices      = platform_devices;
+
+  #undef FREE_BACKEND_CTX_ON_ERROR
 
   return 0;
 }
@@ -3555,10 +3691,16 @@ void backend_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
   if (backend_ctx->enabled == false) return;
 
-  cuda_close (hashcat_ctx);
-  ocl_close  (hashcat_ctx);
+  nvrtc_close (hashcat_ctx);
+  cuda_close  (hashcat_ctx);
+  ocl_close   (hashcat_ctx);
 
   hcfree (backend_ctx->devices_param);
+
+  hcfree (backend_ctx->backend_device_from_cuda);
+  hcfree (backend_ctx->backend_device_to_cuda);
+  hcfree (backend_ctx->backend_device_from_opencl);
+  hcfree (backend_ctx->backend_device_to_opencl);
 
   hcfree (backend_ctx->platforms);
   hcfree (backend_ctx->platform_devices);
@@ -3577,629 +3719,694 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
   if (backend_ctx->enabled == false) return 0;
 
-  /**
-   * OpenCL devices: simply push all devices from all platforms into the same device array
-   */
-
-  cl_uint         platforms_cnt         = backend_ctx->platforms_cnt;
-  cl_platform_id *platforms             = backend_ctx->platforms;
-  cl_uint         platform_devices_cnt  = backend_ctx->platform_devices_cnt;
-  cl_device_id   *platform_devices      = backend_ctx->platform_devices;
-
   bool need_adl     = false;
   bool need_nvml    = false;
   bool need_nvapi   = false;
   bool need_sysfs   = false;
 
+  int backend_devices_idx    = 0;
+  int backend_devices_cnt    = 0;
+  int backend_devices_active = 0;
+
+  if (backend_ctx->cuda)
+  {
+    int cuda_devices_cnt = 0;
+
+    const int rc_cuDeviceGetCount = hc_cuDeviceGetCount (hashcat_ctx, &cuda_devices_cnt);
+
+    if (rc_cuDeviceGetCount == -1)
+    {
+      cuda_close (hashcat_ctx);
+    }
+
+    backend_ctx->cuda_devices_cnt = cuda_devices_cnt;
+
+    backend_devices_cnt += cuda_devices_cnt;
+
+    hc_device_param_t *devices_param = backend_ctx->devices_param;
+
+    for (int cuda_devices_idx = 0; cuda_devices_idx < cuda_devices_cnt; cuda_devices_idx++, backend_devices_idx++)
+    {
+      hc_device_param_t *device_param = &devices_param[backend_devices_idx];
+
+      backend_ctx->backend_device_from_cuda[cuda_devices_idx]  = backend_devices_idx;
+      backend_ctx->backend_device_to_cuda[backend_devices_idx] = cuda_devices_idx;
+
+      CUdevice device_cuda;
+
+      int CU_rc;
+
+      CU_rc = hc_cuDeviceGet (hashcat_ctx, &device_cuda, cuda_devices_idx);
+
+      if (CU_rc == -1) return -1;
+
+      device_param->device_cuda = device_cuda;
+
+      // device_name
+
+      char *device_name = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+      CU_rc = hc_cuDeviceGetName (hashcat_ctx, device_name, HCBUFSIZ_TINY, device_cuda);
+
+      if (CU_rc == -1) return -1;
+
+      device_param->device_name = device_name;
+
+      hc_string_trim_leading (device_name);
+
+      hc_string_trim_trailing (device_name);
+
+      // sm_minor, sm_major
+
+      int sm_major = 0;
+      int sm_minor = 0;
+
+      CU_rc = hc_cuDeviceGetAttribute (hashcat_ctx, &sm_major, CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR, device_cuda);
+
+      if (CU_rc == -1) return -1;
+
+      CU_rc = hc_cuDeviceGetAttribute (hashcat_ctx, &sm_minor, CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR, device_cuda);
+
+      if (CU_rc == -1) return -1;
+
+      device_param->sm_major = sm_major;
+      device_param->sm_minor = sm_minor;
+
+
+    printf ("%s %d %d\n", device_name, sm_major, sm_minor);
+
+    }
+  }
+
+  backend_ctx->backend_devices_cnt    = backend_devices_cnt;
+  backend_ctx->backend_devices_active = backend_devices_active;
+
   u32 devices_cnt = 0;
 
   u32 devices_active = 0;
 
-  for (u32 platform_id = 0; platform_id < platforms_cnt; platform_id++)
+  if (backend_ctx->ocl)
   {
-    size_t param_value_size = 0;
+    /**
+     * OpenCL devices: simply push all devices from all platforms into the same device array
+     */
 
-    cl_platform_id platform = platforms[platform_id];
+    cl_uint         platforms_cnt         = backend_ctx->platforms_cnt;
+    cl_platform_id *platforms             = backend_ctx->platforms;
+    cl_uint         platform_devices_cnt  = backend_ctx->platform_devices_cnt;
+    cl_device_id   *platform_devices      = backend_ctx->platform_devices;
 
-    // platform vendor
-
-    int CL_rc;
-    int CU_rc;
-
-    CL_rc = hc_clGetPlatformInfo (hashcat_ctx, platform, CL_PLATFORM_VENDOR, 0, NULL, &param_value_size);
-
-    if (CL_rc == -1) return -1;
-
-    char *platform_vendor = (char *) hcmalloc (param_value_size);
-
-    CL_rc = hc_clGetPlatformInfo (hashcat_ctx, platform, CL_PLATFORM_VENDOR, param_value_size, platform_vendor, NULL);
-
-    if (CL_rc == -1) return -1;
-
-    backend_ctx->platforms_vendor[platform_id] = platform_vendor;
-
-    // platform name
-
-    CL_rc = hc_clGetPlatformInfo (hashcat_ctx, platform, CL_PLATFORM_NAME, 0, NULL, &param_value_size);
-
-    if (CL_rc == -1) return -1;
-
-    char *platform_name = (char *) hcmalloc (param_value_size);
-
-    CL_rc = hc_clGetPlatformInfo (hashcat_ctx, platform, CL_PLATFORM_NAME, param_value_size, platform_name, NULL);
-
-    if (CL_rc == -1) return -1;
-
-    backend_ctx->platforms_name[platform_id] = platform_name;
-
-    // platform version
-
-    CL_rc = hc_clGetPlatformInfo (hashcat_ctx, platform, CL_PLATFORM_VERSION, 0, NULL, &param_value_size);
-
-    if (CL_rc == -1) return -1;
-
-    char *platform_version = (char *) hcmalloc (param_value_size);
-
-    CL_rc = hc_clGetPlatformInfo (hashcat_ctx, platform, CL_PLATFORM_VERSION, param_value_size, platform_version, NULL);
-
-    if (CL_rc == -1) return -1;
-
-    backend_ctx->platforms_version[platform_id] = platform_version;
-
-    // find our own platform vendor because pocl and mesa are pushing original vendor_id through opencl
-    // this causes trouble with vendor id based macros
-    // we'll assign generic to those without special optimization available
-
-    cl_uint platform_vendor_id = 0;
-
-    if (strcmp (platform_vendor, CL_VENDOR_AMD1) == 0)
+    for (u32 platform_id = 0; platform_id < platforms_cnt; platform_id++)
     {
-      platform_vendor_id = VENDOR_ID_AMD;
-    }
-    else if (strcmp (platform_vendor, CL_VENDOR_AMD2) == 0)
-    {
-      platform_vendor_id = VENDOR_ID_AMD;
-    }
-    else if (strcmp (platform_vendor, CL_VENDOR_AMD_USE_INTEL) == 0)
-    {
-      platform_vendor_id = VENDOR_ID_AMD_USE_INTEL;
-    }
-    else if (strcmp (platform_vendor, CL_VENDOR_APPLE) == 0)
-    {
-      platform_vendor_id = VENDOR_ID_APPLE;
-    }
-    else if (strcmp (platform_vendor, CL_VENDOR_INTEL_BEIGNET) == 0)
-    {
-      platform_vendor_id = VENDOR_ID_INTEL_BEIGNET;
-    }
-    else if (strcmp (platform_vendor, CL_VENDOR_INTEL_SDK) == 0)
-    {
-      platform_vendor_id = VENDOR_ID_INTEL_SDK;
-    }
-    else if (strcmp (platform_vendor, CL_VENDOR_MESA) == 0)
-    {
-      platform_vendor_id = VENDOR_ID_MESA;
-    }
-    else if (strcmp (platform_vendor, CL_VENDOR_NV) == 0)
-    {
-      platform_vendor_id = VENDOR_ID_NV;
-    }
-    else if (strcmp (platform_vendor, CL_VENDOR_POCL) == 0)
-    {
-      platform_vendor_id = VENDOR_ID_POCL;
-    }
-    else
-    {
-      platform_vendor_id = VENDOR_ID_GENERIC;
-    }
+      size_t param_value_size = 0;
 
-    bool platform_skipped = ((backend_ctx->opencl_platforms_filter & (1ULL << platform_id)) == 0);
+      cl_platform_id platform = platforms[platform_id];
 
-    CL_rc = hc_clGetDeviceIDs (hashcat_ctx, platform, CL_DEVICE_TYPE_ALL, DEVICES_MAX, platform_devices, &platform_devices_cnt);
+      // platform vendor
 
-    if (CL_rc == -1)
-    {
-      //event_log_error (hashcat_ctx, "clGetDeviceIDs(): %s", val2cstr_cl (CL_rc));
+      int CL_rc;
 
-      //return -1;
-
-      platform_skipped = true;
-    }
-
-    backend_ctx->platforms_skipped[platform_id] = platform_skipped;
-
-    if (platform_skipped == true) continue;
-
-    if (user_options->force == false)
-    {
-      if (platform_vendor_id == VENDOR_ID_MESA)
-      {
-        event_log_error (hashcat_ctx, "Mesa (Gallium) OpenCL platform detected!");
-
-        event_log_warning (hashcat_ctx, "The Mesa platform can cause errors that are often mistaken for bugs in hashcat.");
-        event_log_warning (hashcat_ctx, "You are STRONGLY encouraged to use the drivers listed in docs/readme.txt.");
-        event_log_warning (hashcat_ctx, "You can use --force to override this, but do not report related errors.");
-        event_log_warning (hashcat_ctx, "You can also use --opencl-platforms to skip the Mesa platform(s).");
-        event_log_warning (hashcat_ctx, NULL);
-
-        return -1;
-      }
-    }
-
-    hc_device_param_t *devices_param = backend_ctx->devices_param;
-
-    for (u32 platform_devices_id = 0; platform_devices_id < platform_devices_cnt; platform_devices_id++)
-    {
-      const u32 device_id = devices_cnt;
-
-      hc_device_param_t *device_param = &devices_param[device_id];
-
-      device_param->platform_vendor_id = platform_vendor_id;
-
-      device_param->device = platform_devices[platform_devices_id];
-
-      device_param->device_id = device_id;
-
-      device_param->platform_devices_id = platform_devices_id;
-
-      device_param->platform = platform;
-
-      // device_type
-
-      cl_device_type device_type;
-
-      CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_TYPE, sizeof (device_type), &device_type, NULL);
+      CL_rc = hc_clGetPlatformInfo (hashcat_ctx, platform, CL_PLATFORM_VENDOR, 0, NULL, &param_value_size);
 
       if (CL_rc == -1) return -1;
 
-      device_type &= ~CL_DEVICE_TYPE_DEFAULT;
+      char *platform_vendor = (char *) hcmalloc (param_value_size);
 
-      device_param->device_type = device_type;
-
-      // device_name
-
-      CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_NAME, 0, NULL, &param_value_size);
+      CL_rc = hc_clGetPlatformInfo (hashcat_ctx, platform, CL_PLATFORM_VENDOR, param_value_size, platform_vendor, NULL);
 
       if (CL_rc == -1) return -1;
 
-      char *device_name = (char *) hcmalloc (param_value_size);
+      backend_ctx->platforms_vendor[platform_id] = platform_vendor;
 
-      CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_NAME, param_value_size, device_name, NULL);
+      // platform name
 
-      if (CL_rc == -1) return -1;
-
-      device_param->device_name = device_name;
-
-      hc_string_trim_leading (device_param->device_name);
-
-      hc_string_trim_trailing (device_param->device_name);
-
-      // device_vendor
-
-      CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_VENDOR, 0, NULL, &param_value_size);
+      CL_rc = hc_clGetPlatformInfo (hashcat_ctx, platform, CL_PLATFORM_NAME, 0, NULL, &param_value_size);
 
       if (CL_rc == -1) return -1;
 
-      char *device_vendor = (char *) hcmalloc (param_value_size);
+      char *platform_name = (char *) hcmalloc (param_value_size);
 
-      CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_VENDOR, param_value_size, device_vendor, NULL);
+      CL_rc = hc_clGetPlatformInfo (hashcat_ctx, platform, CL_PLATFORM_NAME, param_value_size, platform_name, NULL);
 
       if (CL_rc == -1) return -1;
 
-      device_param->device_vendor = device_vendor;
+      backend_ctx->platforms_name[platform_id] = platform_name;
 
-      cl_uint device_vendor_id = 0;
+      // platform version
 
-      if (strcmp (device_vendor, CL_VENDOR_AMD1) == 0)
+      CL_rc = hc_clGetPlatformInfo (hashcat_ctx, platform, CL_PLATFORM_VERSION, 0, NULL, &param_value_size);
+
+      if (CL_rc == -1) return -1;
+
+      char *platform_version = (char *) hcmalloc (param_value_size);
+
+      CL_rc = hc_clGetPlatformInfo (hashcat_ctx, platform, CL_PLATFORM_VERSION, param_value_size, platform_version, NULL);
+
+      if (CL_rc == -1) return -1;
+
+      backend_ctx->platforms_version[platform_id] = platform_version;
+
+      // find our own platform vendor because pocl and mesa are pushing original vendor_id through opencl
+      // this causes trouble with vendor id based macros
+      // we'll assign generic to those without special optimization available
+
+      cl_uint platform_vendor_id = 0;
+
+      if (strcmp (platform_vendor, CL_VENDOR_AMD1) == 0)
       {
-        device_vendor_id = VENDOR_ID_AMD;
+        platform_vendor_id = VENDOR_ID_AMD;
       }
-      else if (strcmp (device_vendor, CL_VENDOR_AMD2) == 0)
+      else if (strcmp (platform_vendor, CL_VENDOR_AMD2) == 0)
       {
-        device_vendor_id = VENDOR_ID_AMD;
+        platform_vendor_id = VENDOR_ID_AMD;
       }
-      else if (strcmp (device_vendor, CL_VENDOR_AMD_USE_INTEL) == 0)
+      else if (strcmp (platform_vendor, CL_VENDOR_AMD_USE_INTEL) == 0)
       {
-        device_vendor_id = VENDOR_ID_AMD_USE_INTEL;
+        platform_vendor_id = VENDOR_ID_AMD_USE_INTEL;
       }
-      else if (strcmp (device_vendor, CL_VENDOR_APPLE) == 0)
+      else if (strcmp (platform_vendor, CL_VENDOR_APPLE) == 0)
       {
-        device_vendor_id = VENDOR_ID_APPLE;
+        platform_vendor_id = VENDOR_ID_APPLE;
       }
-      else if (strcmp (device_vendor, CL_VENDOR_APPLE_USE_AMD) == 0)
+      else if (strcmp (platform_vendor, CL_VENDOR_INTEL_BEIGNET) == 0)
       {
-        device_vendor_id = VENDOR_ID_AMD;
+        platform_vendor_id = VENDOR_ID_INTEL_BEIGNET;
       }
-      else if (strcmp (device_vendor, CL_VENDOR_APPLE_USE_NV) == 0)
+      else if (strcmp (platform_vendor, CL_VENDOR_INTEL_SDK) == 0)
       {
-        device_vendor_id = VENDOR_ID_NV;
+        platform_vendor_id = VENDOR_ID_INTEL_SDK;
       }
-      else if (strcmp (device_vendor, CL_VENDOR_APPLE_USE_INTEL) == 0)
+      else if (strcmp (platform_vendor, CL_VENDOR_MESA) == 0)
       {
-        device_vendor_id = VENDOR_ID_INTEL_SDK;
+        platform_vendor_id = VENDOR_ID_MESA;
       }
-      else if (strcmp (device_vendor, CL_VENDOR_INTEL_BEIGNET) == 0)
+      else if (strcmp (platform_vendor, CL_VENDOR_NV) == 0)
       {
-        device_vendor_id = VENDOR_ID_INTEL_BEIGNET;
+        platform_vendor_id = VENDOR_ID_NV;
       }
-      else if (strcmp (device_vendor, CL_VENDOR_INTEL_SDK) == 0)
+      else if (strcmp (platform_vendor, CL_VENDOR_POCL) == 0)
       {
-        device_vendor_id = VENDOR_ID_INTEL_SDK;
-      }
-      else if (strcmp (device_vendor, CL_VENDOR_MESA) == 0)
-      {
-        device_vendor_id = VENDOR_ID_MESA;
-      }
-      else if (strcmp (device_vendor, CL_VENDOR_NV) == 0)
-      {
-        device_vendor_id = VENDOR_ID_NV;
-      }
-      else if (strcmp (device_vendor, CL_VENDOR_POCL) == 0)
-      {
-        device_vendor_id = VENDOR_ID_POCL;
+        platform_vendor_id = VENDOR_ID_POCL;
       }
       else
       {
-        device_vendor_id = VENDOR_ID_GENERIC;
+        platform_vendor_id = VENDOR_ID_GENERIC;
       }
 
-      device_param->device_vendor_id = device_vendor_id;
+      bool platform_skipped = ((backend_ctx->opencl_platforms_filter & (1ULL << platform_id)) == 0);
 
-      // device_version
+      CL_rc = hc_clGetDeviceIDs (hashcat_ctx, platform, CL_DEVICE_TYPE_ALL, DEVICES_MAX, platform_devices, &platform_devices_cnt);
 
-      CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_VERSION, 0, NULL, &param_value_size);
-
-      if (CL_rc == -1) return -1;
-
-      char *device_version = (char *) hcmalloc (param_value_size);
-
-      CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_VERSION, param_value_size, device_version, NULL);
-
-      if (CL_rc == -1) return -1;
-
-      device_param->device_version = device_version;
-
-      // device_opencl_version
-
-      CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_OPENCL_C_VERSION, 0, NULL, &param_value_size);
-
-      if (CL_rc == -1) return -1;
-
-      char *device_opencl_version = (char *) hcmalloc (param_value_size);
-
-      CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_OPENCL_C_VERSION, param_value_size, device_opencl_version, NULL);
-
-      if (CL_rc == -1) return -1;
-
-      device_param->device_opencl_version = device_opencl_version;
-
-      // max_compute_units
-
-      cl_uint device_processors;
-
-      CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof (device_processors), &device_processors, NULL);
-
-      if (CL_rc == -1) return -1;
-
-      device_param->device_processors = device_processors;
-
-      // device_global_mem
-
-      cl_ulong device_global_mem;
-
-      CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof (device_global_mem), &device_global_mem, NULL);
-
-      if (CL_rc == -1) return -1;
-
-      device_param->device_global_mem = device_global_mem;
-
-      device_param->device_available_mem = 0;
-
-      // device_maxmem_alloc
-
-      cl_ulong device_maxmem_alloc;
-
-      CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof (device_maxmem_alloc), &device_maxmem_alloc, NULL);
-
-      if (CL_rc == -1) return -1;
-
-      device_param->device_maxmem_alloc = device_maxmem_alloc;
-
-      // note we'll limit to 2gb, otherwise this causes all kinds of weird errors because of possible integer overflows in opencl runtimes
-      // testwise disabling that
-      //device_param->device_maxmem_alloc = MIN (device_maxmem_alloc, 0x7fffffff);
-
-      // max_work_group_size
-
-      size_t device_maxworkgroup_size;
-
-      CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof (device_maxworkgroup_size), &device_maxworkgroup_size, NULL);
-
-      if (CL_rc == -1) return -1;
-
-      device_param->device_maxworkgroup_size = device_maxworkgroup_size;
-
-      // max_clock_frequency
-
-      cl_uint device_maxclock_frequency;
-
-      CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof (device_maxclock_frequency), &device_maxclock_frequency, NULL);
-
-      if (CL_rc == -1) return -1;
-
-      device_param->device_maxclock_frequency = device_maxclock_frequency;
-
-      // device_endian_little
-
-      cl_bool device_endian_little;
-
-      CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_ENDIAN_LITTLE, sizeof (device_endian_little), &device_endian_little, NULL);
-
-      if (CL_rc == -1) return -1;
-
-      if (device_endian_little == CL_FALSE)
+      if (CL_rc == -1)
       {
-        event_log_error (hashcat_ctx, "* Device #%u: This device is not little-endian.", device_id + 1);
+        //event_log_error (hashcat_ctx, "clGetDeviceIDs(): %s", val2cstr_cl (CL_rc));
 
-        device_param->skipped = true;
+        //return -1;
+
+        platform_skipped = true;
       }
 
-      // device_available
+      backend_ctx->platforms_skipped[platform_id] = platform_skipped;
 
-      cl_bool device_available;
+      if (platform_skipped == true) continue;
 
-      CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_AVAILABLE, sizeof (device_available), &device_available, NULL);
-
-      if (CL_rc == -1) return -1;
-
-      if (device_available == CL_FALSE)
+      if (user_options->force == false)
       {
-        event_log_error (hashcat_ctx, "* Device #%u: This device is not available.", device_id + 1);
-
-        device_param->skipped = true;
-      }
-
-      // device_compiler_available
-
-      cl_bool device_compiler_available;
-
-      CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_COMPILER_AVAILABLE, sizeof (device_compiler_available), &device_compiler_available, NULL);
-
-      if (CL_rc == -1) return -1;
-
-      if (device_compiler_available == CL_FALSE)
-      {
-        event_log_error (hashcat_ctx, "* Device #%u: No compiler is available for this device.", device_id + 1);
-
-        device_param->skipped = true;
-      }
-
-      // device_execution_capabilities
-
-      cl_device_exec_capabilities device_execution_capabilities;
-
-      CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_EXECUTION_CAPABILITIES, sizeof (device_execution_capabilities), &device_execution_capabilities, NULL);
-
-      if (CL_rc == -1) return -1;
-
-      if ((device_execution_capabilities & CL_EXEC_KERNEL) == 0)
-      {
-        event_log_error (hashcat_ctx, "* Device #%u: This device does not support executing kernels.", device_id + 1);
-
-        device_param->skipped = true;
-      }
-
-      // device_extensions
-
-      size_t device_extensions_size;
-
-      CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_EXTENSIONS, 0, NULL, &device_extensions_size);
-
-      if (CL_rc == -1) return -1;
-
-      char *device_extensions = hcmalloc (device_extensions_size + 1);
-
-      CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_EXTENSIONS, device_extensions_size, device_extensions, NULL);
-
-      if (CL_rc == -1) return -1;
-
-      if (strstr (device_extensions, "base_atomics") == 0)
-      {
-        event_log_error (hashcat_ctx, "* Device #%u: This device does not support base atomics.", device_id + 1);
-
-        device_param->skipped = true;
-      }
-
-      if (strstr (device_extensions, "byte_addressable_store") == 0)
-      {
-        event_log_error (hashcat_ctx, "* Device #%u: This device does not support byte-addressable store.", device_id + 1);
-
-        device_param->skipped = true;
-      }
-
-      hcfree (device_extensions);
-
-      // device_max_constant_buffer_size
-
-      cl_ulong device_max_constant_buffer_size;
-
-      CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof (device_max_constant_buffer_size), &device_max_constant_buffer_size, NULL);
-
-      if (CL_rc == -1) return -1;
-
-      if (device_max_constant_buffer_size < 65536)
-      {
-        event_log_error (hashcat_ctx, "* Device #%u: This device's constant buffer size is too small.", device_id + 1);
-
-        device_param->skipped = true;
-      }
-
-      // device_local_mem_size
-
-      cl_ulong device_local_mem_size;
-
-      CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_LOCAL_MEM_SIZE, sizeof (device_local_mem_size), &device_local_mem_size, NULL);
-
-      if (CL_rc == -1) return -1;
-
-      if (device_local_mem_size < 32768)
-      {
-        event_log_error (hashcat_ctx, "* Device #%u: This device's local mem size is too small.", device_id + 1);
-
-        device_param->skipped = true;
-      }
-
-      device_param->device_local_mem_size = device_local_mem_size;
-
-      // device_local_mem_type
-
-      cl_device_local_mem_type device_local_mem_type;
-
-      CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_LOCAL_MEM_TYPE, sizeof (device_local_mem_type), &device_local_mem_type, NULL);
-
-      if (CL_rc == -1) return -1;
-
-      device_param->device_local_mem_type = device_local_mem_type;
-
-      // If there's both an Intel CPU and an AMD OpenCL runtime it's a tricky situation
-      // Both platforms support CPU device types and therefore both will try to use 100% of the physical resources
-      // This results in both utilizing it for 50%
-      // However, Intel has much better SIMD control over their own hardware
-      // It makes sense to give them full control over their own hardware
-
-      if (device_type & CL_DEVICE_TYPE_CPU)
-      {
-        if (device_param->device_vendor_id == VENDOR_ID_AMD_USE_INTEL)
+        if (platform_vendor_id == VENDOR_ID_MESA)
         {
-          if (user_options->force == false)
-          {
-            if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Not a native Intel OpenCL runtime. Expect massive speed loss.", device_id + 1);
-            if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             You can use --force to override, but do not report related errors.");
+          event_log_error (hashcat_ctx, "Mesa (Gallium) OpenCL platform detected!");
 
-            device_param->skipped = true;
+          event_log_warning (hashcat_ctx, "The Mesa platform can cause errors that are often mistaken for bugs in hashcat.");
+          event_log_warning (hashcat_ctx, "You are STRONGLY encouraged to use the drivers listed in docs/readme.txt.");
+          event_log_warning (hashcat_ctx, "You can use --force to override this, but do not report related errors.");
+          event_log_warning (hashcat_ctx, "You can also use --opencl-platforms to skip the Mesa platform(s).");
+          event_log_warning (hashcat_ctx, NULL);
+
+          return -1;
+        }
+      }
+
+      hc_device_param_t *devices_param = backend_ctx->devices_param;
+
+      for (u32 platform_devices_id = 0; platform_devices_id < platform_devices_cnt; platform_devices_id++)
+      {
+        const u32 device_id = devices_cnt;
+
+        hc_device_param_t *device_param = &devices_param[device_id];
+
+        device_param->platform_vendor_id = platform_vendor_id;
+
+        device_param->device = platform_devices[platform_devices_id];
+
+        device_param->device_id = device_id;
+
+        device_param->platform_devices_id = platform_devices_id;
+
+        device_param->platform = platform;
+
+        // device_type
+
+        cl_device_type device_type;
+
+        CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_TYPE, sizeof (device_type), &device_type, NULL);
+
+        if (CL_rc == -1) return -1;
+
+        device_type &= ~CL_DEVICE_TYPE_DEFAULT;
+
+        device_param->device_type = device_type;
+
+        // device_name
+
+        CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_NAME, 0, NULL, &param_value_size);
+
+        if (CL_rc == -1) return -1;
+
+        char *device_name = (char *) hcmalloc (param_value_size);
+
+        CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_NAME, param_value_size, device_name, NULL);
+
+        if (CL_rc == -1) return -1;
+
+        device_param->device_name = device_name;
+
+        hc_string_trim_leading (device_param->device_name);
+
+        hc_string_trim_trailing (device_param->device_name);
+
+        // device_vendor
+
+        CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_VENDOR, 0, NULL, &param_value_size);
+
+        if (CL_rc == -1) return -1;
+
+        char *device_vendor = (char *) hcmalloc (param_value_size);
+
+        CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_VENDOR, param_value_size, device_vendor, NULL);
+
+        if (CL_rc == -1) return -1;
+
+        device_param->device_vendor = device_vendor;
+
+        cl_uint device_vendor_id = 0;
+
+        if (strcmp (device_vendor, CL_VENDOR_AMD1) == 0)
+        {
+          device_vendor_id = VENDOR_ID_AMD;
+        }
+        else if (strcmp (device_vendor, CL_VENDOR_AMD2) == 0)
+        {
+          device_vendor_id = VENDOR_ID_AMD;
+        }
+        else if (strcmp (device_vendor, CL_VENDOR_AMD_USE_INTEL) == 0)
+        {
+          device_vendor_id = VENDOR_ID_AMD_USE_INTEL;
+        }
+        else if (strcmp (device_vendor, CL_VENDOR_APPLE) == 0)
+        {
+          device_vendor_id = VENDOR_ID_APPLE;
+        }
+        else if (strcmp (device_vendor, CL_VENDOR_APPLE_USE_AMD) == 0)
+        {
+          device_vendor_id = VENDOR_ID_AMD;
+        }
+        else if (strcmp (device_vendor, CL_VENDOR_APPLE_USE_NV) == 0)
+        {
+          device_vendor_id = VENDOR_ID_NV;
+        }
+        else if (strcmp (device_vendor, CL_VENDOR_APPLE_USE_INTEL) == 0)
+        {
+          device_vendor_id = VENDOR_ID_INTEL_SDK;
+        }
+        else if (strcmp (device_vendor, CL_VENDOR_INTEL_BEIGNET) == 0)
+        {
+          device_vendor_id = VENDOR_ID_INTEL_BEIGNET;
+        }
+        else if (strcmp (device_vendor, CL_VENDOR_INTEL_SDK) == 0)
+        {
+          device_vendor_id = VENDOR_ID_INTEL_SDK;
+        }
+        else if (strcmp (device_vendor, CL_VENDOR_MESA) == 0)
+        {
+          device_vendor_id = VENDOR_ID_MESA;
+        }
+        else if (strcmp (device_vendor, CL_VENDOR_NV) == 0)
+        {
+          device_vendor_id = VENDOR_ID_NV;
+        }
+        else if (strcmp (device_vendor, CL_VENDOR_POCL) == 0)
+        {
+          device_vendor_id = VENDOR_ID_POCL;
+        }
+        else
+        {
+          device_vendor_id = VENDOR_ID_GENERIC;
+        }
+
+        device_param->device_vendor_id = device_vendor_id;
+
+        // device_version
+
+        CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_VERSION, 0, NULL, &param_value_size);
+
+        if (CL_rc == -1) return -1;
+
+        char *device_version = (char *) hcmalloc (param_value_size);
+
+        CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_VERSION, param_value_size, device_version, NULL);
+
+        if (CL_rc == -1) return -1;
+
+        device_param->device_version = device_version;
+
+        // device_opencl_version
+
+        CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_OPENCL_C_VERSION, 0, NULL, &param_value_size);
+
+        if (CL_rc == -1) return -1;
+
+        char *device_opencl_version = (char *) hcmalloc (param_value_size);
+
+        CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_OPENCL_C_VERSION, param_value_size, device_opencl_version, NULL);
+
+        if (CL_rc == -1) return -1;
+
+        device_param->device_opencl_version = device_opencl_version;
+
+        // max_compute_units
+
+        cl_uint device_processors;
+
+        CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof (device_processors), &device_processors, NULL);
+
+        if (CL_rc == -1) return -1;
+
+        device_param->device_processors = device_processors;
+
+        // device_global_mem
+
+        cl_ulong device_global_mem;
+
+        CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof (device_global_mem), &device_global_mem, NULL);
+
+        if (CL_rc == -1) return -1;
+
+        device_param->device_global_mem = device_global_mem;
+
+        device_param->device_available_mem = 0;
+
+        // device_maxmem_alloc
+
+        cl_ulong device_maxmem_alloc;
+
+        CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof (device_maxmem_alloc), &device_maxmem_alloc, NULL);
+
+        if (CL_rc == -1) return -1;
+
+        device_param->device_maxmem_alloc = device_maxmem_alloc;
+
+        // note we'll limit to 2gb, otherwise this causes all kinds of weird errors because of possible integer overflows in opencl runtimes
+        // testwise disabling that
+        //device_param->device_maxmem_alloc = MIN (device_maxmem_alloc, 0x7fffffff);
+
+        // max_work_group_size
+
+        size_t device_maxworkgroup_size;
+
+        CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof (device_maxworkgroup_size), &device_maxworkgroup_size, NULL);
+
+        if (CL_rc == -1) return -1;
+
+        device_param->device_maxworkgroup_size = device_maxworkgroup_size;
+
+        // max_clock_frequency
+
+        cl_uint device_maxclock_frequency;
+
+        CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof (device_maxclock_frequency), &device_maxclock_frequency, NULL);
+
+        if (CL_rc == -1) return -1;
+
+        device_param->device_maxclock_frequency = device_maxclock_frequency;
+
+        // device_endian_little
+
+        cl_bool device_endian_little;
+
+        CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_ENDIAN_LITTLE, sizeof (device_endian_little), &device_endian_little, NULL);
+
+        if (CL_rc == -1) return -1;
+
+        if (device_endian_little == CL_FALSE)
+        {
+          event_log_error (hashcat_ctx, "* Device #%u: This device is not little-endian.", device_id + 1);
+
+          device_param->skipped = true;
+        }
+
+        // device_available
+
+        cl_bool device_available;
+
+        CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_AVAILABLE, sizeof (device_available), &device_available, NULL);
+
+        if (CL_rc == -1) return -1;
+
+        if (device_available == CL_FALSE)
+        {
+          event_log_error (hashcat_ctx, "* Device #%u: This device is not available.", device_id + 1);
+
+          device_param->skipped = true;
+        }
+
+        // device_compiler_available
+
+        cl_bool device_compiler_available;
+
+        CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_COMPILER_AVAILABLE, sizeof (device_compiler_available), &device_compiler_available, NULL);
+
+        if (CL_rc == -1) return -1;
+
+        if (device_compiler_available == CL_FALSE)
+        {
+          event_log_error (hashcat_ctx, "* Device #%u: No compiler is available for this device.", device_id + 1);
+
+          device_param->skipped = true;
+        }
+
+        // device_execution_capabilities
+
+        cl_device_exec_capabilities device_execution_capabilities;
+
+        CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_EXECUTION_CAPABILITIES, sizeof (device_execution_capabilities), &device_execution_capabilities, NULL);
+
+        if (CL_rc == -1) return -1;
+
+        if ((device_execution_capabilities & CL_EXEC_KERNEL) == 0)
+        {
+          event_log_error (hashcat_ctx, "* Device #%u: This device does not support executing kernels.", device_id + 1);
+
+          device_param->skipped = true;
+        }
+
+        // device_extensions
+
+        size_t device_extensions_size;
+
+        CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_EXTENSIONS, 0, NULL, &device_extensions_size);
+
+        if (CL_rc == -1) return -1;
+
+        char *device_extensions = hcmalloc (device_extensions_size + 1);
+
+        CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_EXTENSIONS, device_extensions_size, device_extensions, NULL);
+
+        if (CL_rc == -1) return -1;
+
+        if (strstr (device_extensions, "base_atomics") == 0)
+        {
+          event_log_error (hashcat_ctx, "* Device #%u: This device does not support base atomics.", device_id + 1);
+
+          device_param->skipped = true;
+        }
+
+        if (strstr (device_extensions, "byte_addressable_store") == 0)
+        {
+          event_log_error (hashcat_ctx, "* Device #%u: This device does not support byte-addressable store.", device_id + 1);
+
+          device_param->skipped = true;
+        }
+
+        hcfree (device_extensions);
+
+        // device_max_constant_buffer_size
+
+        cl_ulong device_max_constant_buffer_size;
+
+        CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof (device_max_constant_buffer_size), &device_max_constant_buffer_size, NULL);
+
+        if (CL_rc == -1) return -1;
+
+        if (device_max_constant_buffer_size < 65536)
+        {
+          event_log_error (hashcat_ctx, "* Device #%u: This device's constant buffer size is too small.", device_id + 1);
+
+          device_param->skipped = true;
+        }
+
+        // device_local_mem_size
+
+        cl_ulong device_local_mem_size;
+
+        CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_LOCAL_MEM_SIZE, sizeof (device_local_mem_size), &device_local_mem_size, NULL);
+
+        if (CL_rc == -1) return -1;
+
+        if (device_local_mem_size < 32768)
+        {
+          event_log_error (hashcat_ctx, "* Device #%u: This device's local mem size is too small.", device_id + 1);
+
+          device_param->skipped = true;
+        }
+
+        device_param->device_local_mem_size = device_local_mem_size;
+
+        // device_local_mem_type
+
+        cl_device_local_mem_type device_local_mem_type;
+
+        CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_LOCAL_MEM_TYPE, sizeof (device_local_mem_type), &device_local_mem_type, NULL);
+
+        if (CL_rc == -1) return -1;
+
+        device_param->device_local_mem_type = device_local_mem_type;
+
+        // If there's both an Intel CPU and an AMD OpenCL runtime it's a tricky situation
+        // Both platforms support CPU device types and therefore both will try to use 100% of the physical resources
+        // This results in both utilizing it for 50%
+        // However, Intel has much better SIMD control over their own hardware
+        // It makes sense to give them full control over their own hardware
+
+        if (device_type & CL_DEVICE_TYPE_CPU)
+        {
+          if (device_param->device_vendor_id == VENDOR_ID_AMD_USE_INTEL)
+          {
+            if (user_options->force == false)
+            {
+              if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Not a native Intel OpenCL runtime. Expect massive speed loss.", device_id + 1);
+              if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             You can use --force to override, but do not report related errors.");
+
+              device_param->skipped = true;
+            }
           }
         }
-      }
 
-      // Since some times we get reports from users about not working hashcat, dropping error messages like:
-      // CL_INVALID_COMMAND_QUEUE and CL_OUT_OF_RESOURCES
-      // Turns out that this is caused by Intel OpenCL runtime handling their GPU devices
-      // Disable such devices unless the user forces to use it
+        // Since some times we get reports from users about not working hashcat, dropping error messages like:
+        // CL_INVALID_COMMAND_QUEUE and CL_OUT_OF_RESOURCES
+        // Turns out that this is caused by Intel OpenCL runtime handling their GPU devices
+        // Disable such devices unless the user forces to use it
 
-      #if !defined (__APPLE__)
-      if (device_type & CL_DEVICE_TYPE_GPU)
-      {
-        if ((device_param->device_vendor_id == VENDOR_ID_INTEL_SDK) || (device_param->device_vendor_id == VENDOR_ID_INTEL_BEIGNET))
+        #if !defined (__APPLE__)
+        if (device_type & CL_DEVICE_TYPE_GPU)
         {
-          if (user_options->force == false)
+          if ((device_param->device_vendor_id == VENDOR_ID_INTEL_SDK) || (device_param->device_vendor_id == VENDOR_ID_INTEL_BEIGNET))
           {
-            if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Intel's OpenCL runtime (GPU only) is currently broken.", device_id + 1);
-            if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             We are waiting for updated OpenCL drivers from Intel.");
-            if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             You can use --force to override, but do not report related errors.");
+            if (user_options->force == false)
+            {
+              if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Intel's OpenCL runtime (GPU only) is currently broken.", device_id + 1);
+              if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             We are waiting for updated OpenCL drivers from Intel.");
+              if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             You can use --force to override, but do not report related errors.");
 
-            device_param->skipped = true;
+              device_param->skipped = true;
+            }
           }
         }
-      }
-      #endif // __APPLE__
+        #endif // __APPLE__
 
-      // skipped
+        // skipped
 
-      if ((backend_ctx->devices_filter & (1ULL << device_id)) == 0)
-      {
-        device_param->skipped = true;
-      }
-
-      if ((backend_ctx->device_types_filter & (device_type)) == 0)
-      {
-        device_param->skipped = true;
-      }
-
-      // driver_version
-
-      CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DRIVER_VERSION, 0, NULL, &param_value_size);
-
-      if (CL_rc == -1) return -1;
-
-      char *driver_version = (char *) hcmalloc (param_value_size);
-
-      CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DRIVER_VERSION, param_value_size, driver_version, NULL);
-
-      if (CL_rc == -1) return -1;
-
-      device_param->driver_version = driver_version;
-
-      // vendor specific
-
-      if (device_param->device_type & CL_DEVICE_TYPE_GPU)
-      {
-        if ((device_param->platform_vendor_id == VENDOR_ID_AMD) && (device_param->device_vendor_id == VENDOR_ID_AMD))
+        if ((backend_ctx->devices_filter & (1ULL << device_id)) == 0)
         {
-          need_adl = true;
-
-          #if defined (__linux__)
-          need_sysfs = true;
-          #endif
+          device_param->skipped = true;
         }
 
-        if ((device_param->platform_vendor_id == VENDOR_ID_NV) && (device_param->device_vendor_id == VENDOR_ID_NV))
+        if ((backend_ctx->device_types_filter & (device_type)) == 0)
         {
-          need_nvml = true;
-
-          #if defined (_WIN) || defined (__CYGWIN__)
-          need_nvapi = true;
-          #endif
-        }
-      }
-
-      if (device_param->device_type & CL_DEVICE_TYPE_GPU)
-      {
-        if ((device_param->platform_vendor_id == VENDOR_ID_AMD) && (device_param->device_vendor_id == VENDOR_ID_AMD))
-        {
-          cl_device_topology_amd amdtopo;
-
-          CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_TOPOLOGY_AMD, sizeof (amdtopo), &amdtopo, NULL);
-
-          if (CL_rc == -1) return -1;
-
-          device_param->pcie_bus      = amdtopo.pcie.bus;
-          device_param->pcie_device   = amdtopo.pcie.device;
-          device_param->pcie_function = amdtopo.pcie.function;
+          device_param->skipped = true;
         }
 
-        if ((device_param->platform_vendor_id == VENDOR_ID_NV) && (device_param->device_vendor_id == VENDOR_ID_NV))
+        // driver_version
+
+        CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DRIVER_VERSION, 0, NULL, &param_value_size);
+
+        if (CL_rc == -1) return -1;
+
+        char *driver_version = (char *) hcmalloc (param_value_size);
+
+        CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DRIVER_VERSION, param_value_size, driver_version, NULL);
+
+        if (CL_rc == -1) return -1;
+
+        device_param->driver_version = driver_version;
+
+        // vendor specific
+
+        if (device_param->device_type & CL_DEVICE_TYPE_GPU)
         {
-          cl_uint pci_bus_id_nv;  // is cl_uint the right type for them??
-          cl_uint pci_slot_id_nv;
-
-          CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_PCI_BUS_ID_NV, sizeof (pci_bus_id_nv), &pci_bus_id_nv, NULL);
-
-          if (CL_rc == -1) return -1;
-
-          CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_PCI_SLOT_ID_NV, sizeof (pci_slot_id_nv), &pci_slot_id_nv, NULL);
-
-          if (CL_rc == -1) return -1;
-
-          device_param->pcie_bus      = (u8) (pci_bus_id_nv);
-          device_param->pcie_device   = (u8) (pci_slot_id_nv >> 3);
-          device_param->pcie_function = (u8) (pci_slot_id_nv & 7);
-
-          int sm_minor = 0;
-          int sm_major = 0;
-
-          //if (backend_ctx->cuda)
-          if (0)
+          if ((device_param->platform_vendor_id == VENDOR_ID_AMD) && (device_param->device_vendor_id == VENDOR_ID_AMD))
           {
-            CU_rc = hc_cuDeviceGetAttribute (hashcat_ctx, &sm_minor, CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR, device_param->device_cuda);
+            need_adl = true;
 
-            if (CU_rc == -1) return -1;
-
-            CU_rc = hc_cuDeviceGetAttribute (hashcat_ctx, &sm_major, CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR, device_param->device_cuda);
-
-            if (CU_rc == -1) return -1;
+            #if defined (__linux__)
+            need_sysfs = true;
+            #endif
           }
-          else
+
+          if ((device_param->platform_vendor_id == VENDOR_ID_NV) && (device_param->device_vendor_id == VENDOR_ID_NV))
           {
+            need_nvml = true;
+
+            #if defined (_WIN) || defined (__CYGWIN__)
+            need_nvapi = true;
+            #endif
+          }
+        }
+
+        if (device_param->device_type & CL_DEVICE_TYPE_GPU)
+        {
+          if ((device_param->platform_vendor_id == VENDOR_ID_AMD) && (device_param->device_vendor_id == VENDOR_ID_AMD))
+          {
+            cl_device_topology_amd amdtopo;
+
+            CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_TOPOLOGY_AMD, sizeof (amdtopo), &amdtopo, NULL);
+
+            if (CL_rc == -1) return -1;
+
+            device_param->pcie_bus      = amdtopo.pcie.bus;
+            device_param->pcie_device   = amdtopo.pcie.device;
+            device_param->pcie_function = amdtopo.pcie.function;
+          }
+
+          if ((device_param->platform_vendor_id == VENDOR_ID_NV) && (device_param->device_vendor_id == VENDOR_ID_NV))
+          {
+            cl_uint pci_bus_id_nv;  // is cl_uint the right type for them??
+            cl_uint pci_slot_id_nv;
+
+            CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_PCI_BUS_ID_NV, sizeof (pci_bus_id_nv), &pci_bus_id_nv, NULL);
+
+            if (CL_rc == -1) return -1;
+
+            CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_PCI_SLOT_ID_NV, sizeof (pci_slot_id_nv), &pci_slot_id_nv, NULL);
+
+            if (CL_rc == -1) return -1;
+
+            device_param->pcie_bus      = (u8) (pci_bus_id_nv);
+            device_param->pcie_device   = (u8) (pci_slot_id_nv >> 3);
+            device_param->pcie_function = (u8) (pci_slot_id_nv & 7);
+
+            int sm_minor = 0;
+            int sm_major = 0;
+
             CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV, sizeof (sm_minor), &sm_minor, NULL);
 
             if (CL_rc == -1) return -1;
@@ -4207,357 +4414,357 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
             CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV, sizeof (sm_major), &sm_major, NULL);
 
             if (CL_rc == -1) return -1;
+
+            device_param->sm_minor = sm_minor;
+            device_param->sm_major = sm_major;
+
+            cl_uint kernel_exec_timeout = 0;
+
+            CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_KERNEL_EXEC_TIMEOUT_NV, sizeof (kernel_exec_timeout), &kernel_exec_timeout, NULL);
+
+            if (CL_rc == -1) return -1;
+
+            device_param->kernel_exec_timeout = kernel_exec_timeout;
+
+            // CPU burning loop damper
+            // Value is given as number between 0-100
+            // By default 8%
+
+            device_param->spin_damp = (double) user_options->spin_damp / 100;
           }
-
-          device_param->sm_minor = sm_minor;
-          device_param->sm_major = sm_major;
-
-          cl_uint kernel_exec_timeout = 0;
-
-          CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_KERNEL_EXEC_TIMEOUT_NV, sizeof (kernel_exec_timeout), &kernel_exec_timeout, NULL);
-
-          if (CL_rc == -1) return -1;
-
-          device_param->kernel_exec_timeout = kernel_exec_timeout;
-
-          // CPU burning loop damper
-          // Value is given as number between 0-100
-          // By default 8%
-
-          device_param->spin_damp = (double) user_options->spin_damp / 100;
         }
-      }
 
-      // common driver check
+        // common driver check
 
-      if (device_param->skipped == false)
-      {
-        if ((user_options->force == false) && (user_options->opencl_info == false))
+        if (device_param->skipped == false)
         {
-          if (device_type & CL_DEVICE_TYPE_CPU)
+          if ((user_options->force == false) && (user_options->opencl_info == false))
           {
-            if (device_param->platform_vendor_id == VENDOR_ID_INTEL_SDK)
+            if (device_type & CL_DEVICE_TYPE_CPU)
             {
-              bool intel_warn = false;
-
-              // Intel OpenCL runtime 18
-
-              int opencl_driver1 = 0;
-              int opencl_driver2 = 0;
-              int opencl_driver3 = 0;
-              int opencl_driver4 = 0;
-
-              const int res18 = sscanf (device_param->driver_version, "%u.%u.%u.%u", &opencl_driver1, &opencl_driver2, &opencl_driver3, &opencl_driver4);
-
-              if (res18 == 4)
+              if (device_param->platform_vendor_id == VENDOR_ID_INTEL_SDK)
               {
-                // so far all versions 18 are ok
-              }
-              else
-              {
-                // Intel OpenCL runtime 16
+                bool intel_warn = false;
 
-                float opencl_version = 0;
-                int   opencl_build   = 0;
+                // Intel OpenCL runtime 18
 
-                const int res16 = sscanf (device_param->device_version, "OpenCL %f (Build %d)", &opencl_version, &opencl_build);
+                int opencl_driver1 = 0;
+                int opencl_driver2 = 0;
+                int opencl_driver3 = 0;
+                int opencl_driver4 = 0;
 
-                if (res16 == 2)
+                const int res18 = sscanf (device_param->driver_version, "%u.%u.%u.%u", &opencl_driver1, &opencl_driver2, &opencl_driver3, &opencl_driver4);
+
+                if (res18 == 4)
                 {
-                  if (opencl_build < 25) intel_warn = true;
+                  // so far all versions 18 are ok
+                }
+                else
+                {
+                  // Intel OpenCL runtime 16
+
+                  float opencl_version = 0;
+                  int   opencl_build   = 0;
+
+                  const int res16 = sscanf (device_param->device_version, "OpenCL %f (Build %d)", &opencl_version, &opencl_build);
+
+                  if (res16 == 2)
+                  {
+                    if (opencl_build < 25) intel_warn = true;
+                  }
+                }
+
+                if (intel_warn == true)
+                {
+                  event_log_error (hashcat_ctx, "* Device #%u: Outdated or broken Intel OpenCL runtime '%s' detected!", device_id + 1, device_param->driver_version);
+
+                  event_log_warning (hashcat_ctx, "You are STRONGLY encouraged to use the officially supported NVIDIA driver.");
+                  event_log_warning (hashcat_ctx, "See hashcat.net for officially supported NVIDIA drivers.");
+                  event_log_warning (hashcat_ctx, "See also: https://hashcat.net/faq/wrongdriver");
+                  event_log_warning (hashcat_ctx, "You can use --force to override this, but do not report related errors.");
+                  event_log_warning (hashcat_ctx, NULL);
+
+                  return -1;
+                }
+              }
+            }
+            else if (device_type & CL_DEVICE_TYPE_GPU)
+            {
+              if (device_param->platform_vendor_id == VENDOR_ID_AMD)
+              {
+                bool amd_warn = true;
+
+                #if defined (__linux__)
+                // AMDGPU-PRO Driver 16.40 and higher
+                if (strtoul (device_param->driver_version, NULL, 10) >= 2117) amd_warn = false;
+                // AMDGPU-PRO Driver 16.50 is known to be broken
+                if (strtoul (device_param->driver_version, NULL, 10) == 2236) amd_warn = true;
+                // AMDGPU-PRO Driver 16.60 is known to be broken
+                if (strtoul (device_param->driver_version, NULL, 10) == 2264) amd_warn = true;
+                // AMDGPU-PRO Driver 17.10 is known to be broken
+                if (strtoul (device_param->driver_version, NULL, 10) == 2348) amd_warn = true;
+                // AMDGPU-PRO Driver 17.20 (2416) is fine, doesn't need check will match >= 2117
+                #elif defined (_WIN)
+                // AMD Radeon Software 14.9 and higher, should be updated to 15.12
+                if (strtoul (device_param->driver_version, NULL, 10) >= 1573) amd_warn = false;
+                #else
+                // we have no information about other os
+                if (amd_warn == true) amd_warn = false;
+                #endif
+
+                if (amd_warn == true)
+                {
+                  event_log_error (hashcat_ctx, "* Device #%u: Outdated or broken AMD driver '%s' detected!", device_id + 1, device_param->driver_version);
+
+                  event_log_warning (hashcat_ctx, "You are STRONGLY encouraged to use the officially supported AMD driver.");
+                  event_log_warning (hashcat_ctx, "See hashcat.net for officially supported AMD drivers.");
+                  event_log_warning (hashcat_ctx, "See also: https://hashcat.net/faq/wrongdriver");
+                  event_log_warning (hashcat_ctx, "You can use --force to override this, but do not report related errors.");
+                  event_log_warning (hashcat_ctx, NULL);
+
+                  return -1;
                 }
               }
 
-              if (intel_warn == true)
+              if (device_param->platform_vendor_id == VENDOR_ID_NV)
               {
-                event_log_error (hashcat_ctx, "* Device #%u: Outdated or broken Intel OpenCL runtime '%s' detected!", device_id + 1, device_param->driver_version);
+                int nv_warn = true;
 
-                event_log_warning (hashcat_ctx, "You are STRONGLY encouraged to use the officially supported NVIDIA driver.");
-                event_log_warning (hashcat_ctx, "See hashcat.net for officially supported NVIDIA drivers.");
-                event_log_warning (hashcat_ctx, "See also: https://hashcat.net/faq/wrongdriver");
-                event_log_warning (hashcat_ctx, "You can use --force to override this, but do not report related errors.");
-                event_log_warning (hashcat_ctx, NULL);
+                int version_maj = 0;
+                int version_min = 0;
 
-                return -1;
-              }
-            }
-          }
-          else if (device_type & CL_DEVICE_TYPE_GPU)
-          {
-            if (device_param->platform_vendor_id == VENDOR_ID_AMD)
-            {
-              bool amd_warn = true;
+                const int r = sscanf (device_param->driver_version, "%d.%d", &version_maj, &version_min);
 
-              #if defined (__linux__)
-              // AMDGPU-PRO Driver 16.40 and higher
-              if (strtoul (device_param->driver_version, NULL, 10) >= 2117) amd_warn = false;
-              // AMDGPU-PRO Driver 16.50 is known to be broken
-              if (strtoul (device_param->driver_version, NULL, 10) == 2236) amd_warn = true;
-              // AMDGPU-PRO Driver 16.60 is known to be broken
-              if (strtoul (device_param->driver_version, NULL, 10) == 2264) amd_warn = true;
-              // AMDGPU-PRO Driver 17.10 is known to be broken
-              if (strtoul (device_param->driver_version, NULL, 10) == 2348) amd_warn = true;
-              // AMDGPU-PRO Driver 17.20 (2416) is fine, doesn't need check will match >= 2117
-              #elif defined (_WIN)
-              // AMD Radeon Software 14.9 and higher, should be updated to 15.12
-              if (strtoul (device_param->driver_version, NULL, 10) >= 1573) amd_warn = false;
-              #else
-              // we have no information about other os
-              if (amd_warn == true) amd_warn = false;
-              #endif
-
-              if (amd_warn == true)
-              {
-                event_log_error (hashcat_ctx, "* Device #%u: Outdated or broken AMD driver '%s' detected!", device_id + 1, device_param->driver_version);
-
-                event_log_warning (hashcat_ctx, "You are STRONGLY encouraged to use the officially supported AMD driver.");
-                event_log_warning (hashcat_ctx, "See hashcat.net for officially supported AMD drivers.");
-                event_log_warning (hashcat_ctx, "See also: https://hashcat.net/faq/wrongdriver");
-                event_log_warning (hashcat_ctx, "You can use --force to override this, but do not report related errors.");
-                event_log_warning (hashcat_ctx, NULL);
-
-                return -1;
-              }
-            }
-
-            if (device_param->platform_vendor_id == VENDOR_ID_NV)
-            {
-              int nv_warn = true;
-
-              int version_maj = 0;
-              int version_min = 0;
-
-              const int r = sscanf (device_param->driver_version, "%d.%d", &version_maj, &version_min);
-
-              if (r == 2)
-              {
-                if (version_maj >= 367)
+                if (r == 2)
                 {
-                  if (version_maj == 418)
+                  if (version_maj >= 367)
                   {
-                    // older 418.x versions are known to be broken.
-                    // for instance, NVIDIA-Linux-x86_64-418.43.run
-                    // run ./hashcat -b -m 2501 results in self-test fail
+                    if (version_maj == 418)
+                    {
+                      // older 418.x versions are known to be broken.
+                      // for instance, NVIDIA-Linux-x86_64-418.43.run
+                      // run ./hashcat -b -m 2501 results in self-test fail
 
-                    if (version_min >= 56)
+                      if (version_min >= 56)
+                      {
+                        nv_warn = false;
+                      }
+                    }
+                    else
                     {
                       nv_warn = false;
                     }
                   }
-                  else
-                  {
-                    nv_warn = false;
-                  }
+                }
+                else
+                {
+                  // unknown version scheme, probably new driver version
+
+                  nv_warn = false;
+                }
+
+                if (nv_warn == true)
+                {
+                  event_log_error (hashcat_ctx, "* Device #%u: Outdated or broken NVIDIA driver '%s' detected!", device_id + 1, device_param->driver_version);
+
+                  event_log_warning (hashcat_ctx, "You are STRONGLY encouraged to use the officially supported NVIDIA driver.");
+                  event_log_warning (hashcat_ctx, "See hashcat's homepage for officially supported NVIDIA drivers.");
+                  event_log_warning (hashcat_ctx, "See also: https://hashcat.net/faq/wrongdriver");
+                  event_log_warning (hashcat_ctx, "You can use --force to override this, but do not report related errors.");
+                  event_log_warning (hashcat_ctx, NULL);
+
+                  return -1;
+                }
+
+                if (device_param->sm_major < 5)
+                {
+                  if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: This hardware has outdated CUDA compute capability (%u.%u).", device_id + 1, device_param->sm_major, device_param->sm_minor);
+                  if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             For modern OpenCL performance, upgrade to hardware that supports");
+                  if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             CUDA compute capability version 5.0 (Maxwell) or higher.");
+                }
+
+                if (device_param->kernel_exec_timeout != 0)
+                {
+                  if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: WARNING! Kernel exec timeout is not disabled.", device_id + 1);
+                  if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             This may cause \"CL_OUT_OF_RESOURCES\" or related errors.");
+                  if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             To disable the timeout, see: https://hashcat.net/q/timeoutpatch");
                 }
               }
-              else
+
+              if ((strstr (device_param->device_opencl_version, "beignet")) || (strstr (device_param->device_version, "beignet")))
               {
-                // unknown version scheme, probably new driver version
+                event_log_error (hashcat_ctx, "* Device #%u: Intel beignet driver detected!", device_id + 1);
 
-                nv_warn = false;
-              }
-
-              if (nv_warn == true)
-              {
-                event_log_error (hashcat_ctx, "* Device #%u: Outdated or broken NVIDIA driver '%s' detected!", device_id + 1, device_param->driver_version);
-
-                event_log_warning (hashcat_ctx, "You are STRONGLY encouraged to use the officially supported NVIDIA driver.");
-                event_log_warning (hashcat_ctx, "See hashcat's homepage for officially supported NVIDIA drivers.");
-                event_log_warning (hashcat_ctx, "See also: https://hashcat.net/faq/wrongdriver");
+                event_log_warning (hashcat_ctx, "The beignet driver has been marked as likely to fail kernel compilation.");
                 event_log_warning (hashcat_ctx, "You can use --force to override this, but do not report related errors.");
                 event_log_warning (hashcat_ctx, NULL);
 
                 return -1;
               }
-
-              if (device_param->sm_major < 5)
-              {
-                if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: This hardware has outdated CUDA compute capability (%u.%u).", device_id + 1, device_param->sm_major, device_param->sm_minor);
-                if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             For modern OpenCL performance, upgrade to hardware that supports");
-                if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             CUDA compute capability version 5.0 (Maxwell) or higher.");
-              }
-
-              if (device_param->kernel_exec_timeout != 0)
-              {
-                if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: WARNING! Kernel exec timeout is not disabled.", device_id + 1);
-                if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             This may cause \"CL_OUT_OF_RESOURCES\" or related errors.");
-                if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             To disable the timeout, see: https://hashcat.net/q/timeoutpatch");
-              }
-            }
-
-            if ((strstr (device_param->device_opencl_version, "beignet")) || (strstr (device_param->device_version, "beignet")))
-            {
-              event_log_error (hashcat_ctx, "* Device #%u: Intel beignet driver detected!", device_id + 1);
-
-              event_log_warning (hashcat_ctx, "The beignet driver has been marked as likely to fail kernel compilation.");
-              event_log_warning (hashcat_ctx, "You can use --force to override this, but do not report related errors.");
-              event_log_warning (hashcat_ctx, NULL);
-
-              return -1;
             }
           }
+
+          /**
+           * activate device
+           */
+
+          devices_active++;
         }
 
         /**
-         * activate device
+         * create context for each device
          */
 
-        devices_active++;
-      }
+        cl_context context;
 
-      /**
-       * create context for each device
-       */
+        cl_context_properties properties[3];
 
-      cl_context context;
+        properties[0] = CL_CONTEXT_PLATFORM;
+        properties[1] = (cl_context_properties) device_param->platform;
+        properties[2] = 0;
 
-      cl_context_properties properties[3];
+        CL_rc = hc_clCreateContext (hashcat_ctx, properties, 1, &device_param->device, NULL, NULL, &context);
 
-      properties[0] = CL_CONTEXT_PLATFORM;
-      properties[1] = (cl_context_properties) device_param->platform;
-      properties[2] = 0;
+        if (CL_rc == -1) return -1;
 
-      CL_rc = hc_clCreateContext (hashcat_ctx, properties, 1, &device_param->device, NULL, NULL, &context);
+        /**
+         * create command-queue
+         */
 
-      if (CL_rc == -1) return -1;
+        cl_command_queue command_queue;
 
-      /**
-       * create command-queue
-       */
+        CL_rc = hc_clCreateCommandQueue (hashcat_ctx, context, device_param->device, 0, &command_queue);
 
-      cl_command_queue command_queue;
+        if (CL_rc == -1) return -1;
 
-      CL_rc = hc_clCreateCommandQueue (hashcat_ctx, context, device_param->device, 0, &command_queue);
-
-      if (CL_rc == -1) return -1;
-
-      if ((device_param->device_type & CL_DEVICE_TYPE_GPU) && (device_param->platform_vendor_id == VENDOR_ID_AMD))
-      {
-        const bool has_vadd3 = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { uint r; __asm__ __volatile__ (\"V_ADD3_U32 %0, 0, 0, 0;\" : \"=v\"(r)); }");
-
-        device_param->has_vadd3 = has_vadd3;
-
-        const bool has_vbfe = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { uint r; __asm__ __volatile__ (\"V_BFE_U32 %0, 0, 0, 0;\" : \"=v\"(r)); }");
-
-        device_param->has_vbfe = has_vbfe;
-
-        const bool has_vperm = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { uint r; __asm__ __volatile__ (\"V_PERM_B32 %0, 0, 0, 0;\" : \"=v\"(r)); }");
-
-        device_param->has_vperm = has_vperm;
-      }
-
-      if ((device_param->device_type & CL_DEVICE_TYPE_GPU) && (device_param->platform_vendor_id == VENDOR_ID_NV))
-      {
-        const bool has_bfe = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { uint r; asm volatile (\"bfe.u32 %0, 0, 0, 0;\" : \"=r\"(r)); }");
-
-        device_param->has_bfe = has_bfe;
-
-        const bool has_lop3 = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { uint r; asm volatile (\"lop3.b32 %0, 0, 0, 0, 0;\" : \"=r\"(r)); }");
-
-        device_param->has_lop3 = has_lop3;
-
-        const bool has_mov64 = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { ulong r; uint a; uint b; asm volatile (\"mov.b64 %0, {%1, %2};\" : \"=l\"(r) : \"r\"(a), \"r\"(b)); }");
-
-        device_param->has_mov64 = has_mov64;
-
-        const bool has_prmt = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { uint r; asm volatile (\"prmt.b32 %0, 0, 0, 0;\" : \"=r\"(r)); }");
-
-        device_param->has_prmt = has_prmt;
-      }
-
-      // device_available_mem
-
-      #define MAX_ALLOC_CHECKS_CNT  8192
-      #define MAX_ALLOC_CHECKS_SIZE (64 * 1024 * 1024)
-
-      device_param->device_available_mem = device_param->device_global_mem - MAX_ALLOC_CHECKS_SIZE;
-
-      #if defined (_WIN)
-      if ((device_param->device_type & CL_DEVICE_TYPE_GPU) && (device_param->platform_vendor_id == VENDOR_ID_NV))
-      #else
-      if ((device_param->device_type & CL_DEVICE_TYPE_GPU) && ((device_param->platform_vendor_id == VENDOR_ID_NV) || (device_param->platform_vendor_id == VENDOR_ID_AMD)))
-      #endif
-      {
-        // OK, so the problem here is the following:
-        // There's just CL_DEVICE_GLOBAL_MEM_SIZE to ask OpenCL about the total memory on the device,
-        // but there's no way to ask for available memory on the device.
-        // In combination, most OpenCL runtimes implementation of clCreateBuffer()
-        // are doing so called lazy memory allocation on the device.
-        // Now, if the user has X11 (or a game or anything that takes a lot of GPU memory)
-        // running on the host we end up with an error type of this:
-        // clEnqueueNDRangeKernel(): CL_MEM_OBJECT_ALLOCATION_FAILURE
-        // The clEnqueueNDRangeKernel() is because of the lazy allocation
-        // The best way to workaround this problem is if we would be able to ask for available memory,
-        // The idea here is to try to evaluate available memory by allocating it till it errors
-
-        cl_mem *tmp_device = (cl_mem *) hccalloc (MAX_ALLOC_CHECKS_CNT, sizeof (cl_mem));
-
-        u64 c;
-
-        for (c = 0; c < MAX_ALLOC_CHECKS_CNT; c++)
+        if ((device_param->device_type & CL_DEVICE_TYPE_GPU) && (device_param->platform_vendor_id == VENDOR_ID_AMD))
         {
-          if (((c + 1 + 1) * MAX_ALLOC_CHECKS_SIZE) >= device_param->device_global_mem) break;
+          const bool has_vadd3 = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { uint r; __asm__ __volatile__ (\"V_ADD3_U32 %0, 0, 0, 0;\" : \"=v\"(r)); }");
 
-          cl_int CL_err;
+          device_param->has_vadd3 = has_vadd3;
 
-          OCL_PTR *ocl = backend_ctx->ocl;
+          const bool has_vbfe = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { uint r; __asm__ __volatile__ (\"V_BFE_U32 %0, 0, 0, 0;\" : \"=v\"(r)); }");
 
-          tmp_device[c] = ocl->clCreateBuffer (context, CL_MEM_READ_WRITE, MAX_ALLOC_CHECKS_SIZE, NULL, &CL_err);
+          device_param->has_vbfe = has_vbfe;
 
-          if (CL_err != CL_SUCCESS)
-          {
-            c--;
+          const bool has_vperm = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { uint r; __asm__ __volatile__ (\"V_PERM_B32 %0, 0, 0, 0;\" : \"=v\"(r)); }");
 
-            break;
-          }
-
-          // transfer only a few byte should be enough to force the runtime to actually allocate the memory
-
-          u8 tmp_host[8];
-
-          CL_err = ocl->clEnqueueReadBuffer  (command_queue, tmp_device[c], CL_TRUE, 0, sizeof (tmp_host), tmp_host, 0, NULL, NULL);
-
-          if (CL_err != CL_SUCCESS) break;
-
-          CL_err = ocl->clEnqueueWriteBuffer (command_queue, tmp_device[c], CL_TRUE, 0, sizeof (tmp_host), tmp_host, 0, NULL, NULL);
-
-          if (CL_err != CL_SUCCESS) break;
-
-          CL_err = ocl->clEnqueueReadBuffer  (command_queue, tmp_device[c], CL_TRUE, MAX_ALLOC_CHECKS_SIZE - sizeof (tmp_host), sizeof (tmp_host), tmp_host, 0, NULL, NULL);
-
-          if (CL_err != CL_SUCCESS) break;
-
-          CL_err = ocl->clEnqueueWriteBuffer (command_queue, tmp_device[c], CL_TRUE, MAX_ALLOC_CHECKS_SIZE - sizeof (tmp_host), sizeof (tmp_host), tmp_host, 0, NULL, NULL);
-
-          if (CL_err != CL_SUCCESS) break;
+          device_param->has_vperm = has_vperm;
         }
 
-        device_param->device_available_mem = c * MAX_ALLOC_CHECKS_SIZE;
-
-        // clean up
-
-        for (c = 0; c < MAX_ALLOC_CHECKS_CNT; c++)
+        if ((device_param->device_type & CL_DEVICE_TYPE_GPU) && (device_param->platform_vendor_id == VENDOR_ID_NV))
         {
-          if (((c + 1 + 1) * MAX_ALLOC_CHECKS_SIZE) >= device_param->device_global_mem) break;
+          const bool has_bfe = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { uint r; asm volatile (\"bfe.u32 %0, 0, 0, 0;\" : \"=r\"(r)); }");
 
-          if (tmp_device[c] != NULL)
-          {
-            CL_rc = hc_clReleaseMemObject (hashcat_ctx, tmp_device[c]);
+          device_param->has_bfe = has_bfe;
 
-            if (CL_rc == -1) return -1;
-          }
+          const bool has_lop3 = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { uint r; asm volatile (\"lop3.b32 %0, 0, 0, 0, 0;\" : \"=r\"(r)); }");
+
+          device_param->has_lop3 = has_lop3;
+
+          const bool has_mov64 = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { ulong r; uint a; uint b; asm volatile (\"mov.b64 %0, {%1, %2};\" : \"=l\"(r) : \"r\"(a), \"r\"(b)); }");
+
+          device_param->has_mov64 = has_mov64;
+
+          const bool has_prmt = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { uint r; asm volatile (\"prmt.b32 %0, 0, 0, 0;\" : \"=r\"(r)); }");
+
+          device_param->has_prmt = has_prmt;
         }
 
-        hcfree (tmp_device);
+        // device_available_mem
+
+        #define MAX_ALLOC_CHECKS_CNT  8192
+        #define MAX_ALLOC_CHECKS_SIZE (64 * 1024 * 1024)
+
+        device_param->device_available_mem = device_param->device_global_mem - MAX_ALLOC_CHECKS_SIZE;
+
+        #if defined (_WIN)
+        if ((device_param->device_type & CL_DEVICE_TYPE_GPU) && (device_param->platform_vendor_id == VENDOR_ID_NV))
+        #else
+        if ((device_param->device_type & CL_DEVICE_TYPE_GPU) && ((device_param->platform_vendor_id == VENDOR_ID_NV) || (device_param->platform_vendor_id == VENDOR_ID_AMD)))
+        #endif
+        {
+          // OK, so the problem here is the following:
+          // There's just CL_DEVICE_GLOBAL_MEM_SIZE to ask OpenCL about the total memory on the device,
+          // but there's no way to ask for available memory on the device.
+          // In combination, most OpenCL runtimes implementation of clCreateBuffer()
+          // are doing so called lazy memory allocation on the device.
+          // Now, if the user has X11 (or a game or anything that takes a lot of GPU memory)
+          // running on the host we end up with an error type of this:
+          // clEnqueueNDRangeKernel(): CL_MEM_OBJECT_ALLOCATION_FAILURE
+          // The clEnqueueNDRangeKernel() is because of the lazy allocation
+          // The best way to workaround this problem is if we would be able to ask for available memory,
+          // The idea here is to try to evaluate available memory by allocating it till it errors
+
+          cl_mem *tmp_device = (cl_mem *) hccalloc (MAX_ALLOC_CHECKS_CNT, sizeof (cl_mem));
+
+          u64 c;
+
+          for (c = 0; c < MAX_ALLOC_CHECKS_CNT; c++)
+          {
+            if (((c + 1 + 1) * MAX_ALLOC_CHECKS_SIZE) >= device_param->device_global_mem) break;
+
+            cl_int CL_err;
+
+            OCL_PTR *ocl = backend_ctx->ocl;
+
+            tmp_device[c] = ocl->clCreateBuffer (context, CL_MEM_READ_WRITE, MAX_ALLOC_CHECKS_SIZE, NULL, &CL_err);
+
+            if (CL_err != CL_SUCCESS)
+            {
+              c--;
+
+              break;
+            }
+
+            // transfer only a few byte should be enough to force the runtime to actually allocate the memory
+
+            u8 tmp_host[8];
+
+            CL_err = ocl->clEnqueueReadBuffer  (command_queue, tmp_device[c], CL_TRUE, 0, sizeof (tmp_host), tmp_host, 0, NULL, NULL);
+
+            if (CL_err != CL_SUCCESS) break;
+
+            CL_err = ocl->clEnqueueWriteBuffer (command_queue, tmp_device[c], CL_TRUE, 0, sizeof (tmp_host), tmp_host, 0, NULL, NULL);
+
+            if (CL_err != CL_SUCCESS) break;
+
+            CL_err = ocl->clEnqueueReadBuffer  (command_queue, tmp_device[c], CL_TRUE, MAX_ALLOC_CHECKS_SIZE - sizeof (tmp_host), sizeof (tmp_host), tmp_host, 0, NULL, NULL);
+
+            if (CL_err != CL_SUCCESS) break;
+
+            CL_err = ocl->clEnqueueWriteBuffer (command_queue, tmp_device[c], CL_TRUE, MAX_ALLOC_CHECKS_SIZE - sizeof (tmp_host), sizeof (tmp_host), tmp_host, 0, NULL, NULL);
+
+            if (CL_err != CL_SUCCESS) break;
+          }
+
+          device_param->device_available_mem = c * MAX_ALLOC_CHECKS_SIZE;
+
+          // clean up
+
+          for (c = 0; c < MAX_ALLOC_CHECKS_CNT; c++)
+          {
+            if (((c + 1 + 1) * MAX_ALLOC_CHECKS_SIZE) >= device_param->device_global_mem) break;
+
+            if (tmp_device[c] != NULL)
+            {
+              CL_rc = hc_clReleaseMemObject (hashcat_ctx, tmp_device[c]);
+
+              if (CL_rc == -1) return -1;
+            }
+          }
+
+          hcfree (tmp_device);
+        }
+
+        hc_clReleaseCommandQueue (hashcat_ctx, command_queue);
+
+        hc_clReleaseContext (hashcat_ctx, context);
+
+        // next please
+
+        devices_cnt++;
       }
-
-      hc_clReleaseCommandQueue (hashcat_ctx, command_queue);
-
-      hc_clReleaseContext (hashcat_ctx, context);
-
-      // next please
-
-      devices_cnt++;
     }
   }
 
