@@ -1351,7 +1351,7 @@ int hm_get_threshold_slowdown_with_device_id (hashcat_ctx_t *hashcat_ctx, const 
 
   if (hwmon_ctx->hm_device[device_id].threshold_slowdown_get_supported == false) return -1;
 
-  if ((backend_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+  if ((backend_ctx->devices_param[device_id].opencl_device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
   if (backend_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
@@ -1411,7 +1411,7 @@ int hm_get_threshold_shutdown_with_device_id (hashcat_ctx_t *hashcat_ctx, const 
 
   if (hwmon_ctx->hm_device[device_id].threshold_shutdown_get_supported == false) return -1;
 
-  if ((backend_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+  if ((backend_ctx->devices_param[device_id].opencl_device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
   if (backend_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
@@ -1459,7 +1459,7 @@ int hm_get_temperature_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 dev
 
   if (hwmon_ctx->hm_device[device_id].temperature_get_supported == false) return -1;
 
-  if ((backend_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+  if ((backend_ctx->devices_param[device_id].opencl_device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
   if (backend_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
@@ -1542,7 +1542,7 @@ int hm_get_fanpolicy_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 devic
 
   if (hwmon_ctx->hm_device[device_id].fanpolicy_get_supported == false) return -1;
 
-  if ((backend_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+  if ((backend_ctx->devices_param[device_id].opencl_device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
   if (backend_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
@@ -1600,7 +1600,7 @@ int hm_get_fanspeed_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 device
 
   if (hwmon_ctx->hm_device[device_id].fanspeed_get_supported == false) return -1;
 
-  if ((backend_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+  if ((backend_ctx->devices_param[device_id].opencl_device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
   if (backend_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
@@ -1689,7 +1689,7 @@ int hm_get_buslanes_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 device
 
   if (hwmon_ctx->hm_device[device_id].buslanes_get_supported == false) return -1;
 
-  if ((backend_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+  if ((backend_ctx->devices_param[device_id].opencl_device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
   if (backend_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
@@ -1755,7 +1755,7 @@ int hm_get_utilization_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 dev
 
   if (hwmon_ctx->hm_device[device_id].utilization_get_supported == false) return -1;
 
-  if ((backend_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+  if ((backend_ctx->devices_param[device_id].opencl_device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
   if (backend_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
@@ -1807,7 +1807,7 @@ int hm_get_memoryspeed_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 dev
 
   if (hwmon_ctx->hm_device[device_id].memoryspeed_get_supported == false) return -1;
 
-  if ((backend_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+  if ((backend_ctx->devices_param[device_id].opencl_device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
   if (backend_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
@@ -1873,7 +1873,7 @@ int hm_get_corespeed_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 devic
 
   if (hwmon_ctx->hm_device[device_id].corespeed_get_supported == false) return -1;
 
-  if ((backend_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+  if ((backend_ctx->devices_param[device_id].opencl_device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
   if (backend_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
@@ -1939,7 +1939,7 @@ int hm_get_throttle_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 device
 
   if (hwmon_ctx->hm_device[device_id].throttle_get_supported == false) return -1;
 
-  if ((backend_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+  if ((backend_ctx->devices_param[device_id].opencl_device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
   if (backend_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
@@ -2108,7 +2108,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         if (device_param->skipped == true) continue;
 
-        if ((device_param->device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
+        if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
 
         if (device_param->device_vendor_id != VENDOR_ID_NV) continue;
 
@@ -2158,7 +2158,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         if (device_param->skipped == true) continue;
 
-        if ((device_param->device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
+        if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
 
         if (device_param->device_vendor_id != VENDOR_ID_NV) continue;
 
@@ -2227,7 +2227,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         if (device_param->skipped == true) continue;
 
-        if ((device_param->device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
+        if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
 
         if (device_param->device_vendor_id != VENDOR_ID_AMD) continue;
 
@@ -2275,7 +2275,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
       {
         hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
-        if ((device_param->device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
+        if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
 
         hm_adapters_sysfs[hm_adapters_id].sysfs = device_id;
 
@@ -2320,7 +2320,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->skipped == true) continue;
 
-    if ((device_param->device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
+    if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
 
     const u32 platform_devices_id = device_param->platform_devices_id;
 

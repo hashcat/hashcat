@@ -68,7 +68,7 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
   u32 fixed_local_size = 0;
 
-  if (device_param->device_type & CL_DEVICE_TYPE_CPU)
+  if (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU)
   {
     fixed_local_size = 1;
   }

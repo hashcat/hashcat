@@ -289,7 +289,7 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
   if (device_param->platform_vendor_id == VENDOR_ID_APPLE)
   {
     // trap 6
-    if ((device_param->device_vendor_id == VENDOR_ID_INTEL_SDK) && (device_param->device_type & CL_DEVICE_TYPE_GPU))
+    if ((device_param->device_vendor_id == VENDOR_ID_INTEL_SDK) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
     {
       return true;
     }

@@ -687,7 +687,7 @@ void opencl_info (hashcat_ctx_t *hashcat_ctx)
 
       if (device_param->platform != platform_id) continue;
 
-      cl_device_type device_type                = device_param->device_type;
+      cl_device_type opencl_device_type         = device_param->opencl_device_type;
       cl_uint        device_vendor_id           = device_param->device_vendor_id;
       char          *device_vendor              = device_param->device_vendor;
       char          *device_name                = device_param->device_name;
@@ -700,7 +700,7 @@ void opencl_info (hashcat_ctx_t *hashcat_ctx)
       char          *driver_version             = device_param->driver_version;
 
       event_log_info (hashcat_ctx, "  Device ID #%u",         devices_idx + 1);
-      event_log_info (hashcat_ctx, "    Type           : %s", ((device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")));
+      event_log_info (hashcat_ctx, "    Type           : %s", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")));
       event_log_info (hashcat_ctx, "    Vendor ID      : %u", device_vendor_id);
       event_log_info (hashcat_ctx, "    Vendor         : %s", device_vendor);
       event_log_info (hashcat_ctx, "    Name           : %s", device_name);

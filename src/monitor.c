@@ -120,7 +120,7 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
         if (device_param->skipped == true) continue;
 
-        if ((backend_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
+        if ((backend_ctx->devices_param[device_id].opencl_device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
 
         const int temperature = hm_get_temperature_with_device_id (hashcat_ctx, device_id);
 

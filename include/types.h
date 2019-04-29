@@ -76,13 +76,13 @@ typedef struct timespec   hc_timer_t;
 #endif
 
 #if defined (_WIN)
-typedef HANDLE              hc_thread_t;
-typedef HANDLE              hc_thread_mutex_t;
-typedef HANDLE              hc_thread_semaphore_t;
+typedef HANDLE          hc_thread_t;
+typedef HANDLE          hc_thread_mutex_t;
+typedef HANDLE          hc_thread_semaphore_t;
 #else
-typedef pthread_t           hc_thread_t;
-typedef pthread_mutex_t     hc_thread_mutex_t;
-typedef sem_t               hc_thread_semaphore_t;
+typedef pthread_t       hc_thread_t;
+typedef pthread_mutex_t hc_thread_mutex_t;
+typedef sem_t           hc_thread_semaphore_t;
 #endif
 
 // enums
@@ -995,26 +995,16 @@ typedef struct link_speed
 
 typedef struct hc_device_param
 {
-  CUdevice        device_cuda;
-
-  cl_device_id    device;
-  cl_device_type  device_type;
-
   u32     device_id;
-  u32     platform_devices_id;  // for mapping with hms devices
-
-  bool    skipped;              // permanent
-  bool    skipped_warning;      // iteration
-
-  st_status_t st_status;
-
-  int     sm_major;
-  int     sm_minor;
-  u32     kernel_exec_timeout;
 
   u8      pcie_bus;
   u8      pcie_device;
   u8      pcie_function;
+
+  u32     platform_devices_id;  // for mapping with hms devices
+
+  bool    skipped;              // permanent
+  bool    skipped_warning;      // iteration
 
   u32     device_processors;
   u64     device_maxmem_alloc;
@@ -1023,7 +1013,13 @@ typedef struct hc_device_param
   u32     device_maxclock_frequency;
   size_t  device_maxworkgroup_size;
   u64     device_local_mem_size;
-  cl_device_local_mem_type device_local_mem_type;
+  int     device_local_mem_type;
+
+  int     sm_major;
+  int     sm_minor;
+  u32     kernel_exec_timeout;
+
+  st_status_t st_status;
 
   u32     vector_width;
 
@@ -1223,6 +1219,50 @@ typedef struct hc_device_param
 
   double  spin_damp;
 
+
+  void   *kernel_params[PARAMCNT];
+  void   *kernel_params_mp[PARAMCNT];
+  void   *kernel_params_mp_r[PARAMCNT];
+  void   *kernel_params_mp_l[PARAMCNT];
+  void   *kernel_params_amp[PARAMCNT];
+  void   *kernel_params_tm[PARAMCNT];
+  void   *kernel_params_memset[PARAMCNT];
+  void   *kernel_params_atinit[PARAMCNT];
+  void   *kernel_params_decompress[PARAMCNT];
+
+  u32     kernel_params_buf32[PARAMCNT];
+  u64     kernel_params_buf64[PARAMCNT];
+
+  u32     kernel_params_mp_buf32[PARAMCNT];
+  u64     kernel_params_mp_buf64[PARAMCNT];
+
+  u32     kernel_params_mp_r_buf32[PARAMCNT];
+  u64     kernel_params_mp_r_buf64[PARAMCNT];
+
+  u32     kernel_params_mp_l_buf32[PARAMCNT];
+  u64     kernel_params_mp_l_buf64[PARAMCNT];
+
+  u32     kernel_params_amp_buf32[PARAMCNT];
+  u64     kernel_params_amp_buf64[PARAMCNT];
+
+  u32     kernel_params_memset_buf32[PARAMCNT];
+  u64     kernel_params_memset_buf64[PARAMCNT];
+
+  u32     kernel_params_atinit_buf32[PARAMCNT];
+  u64     kernel_params_atinit_buf64[PARAMCNT];
+
+  u32     kernel_params_decompress_buf32[PARAMCNT];
+  u64     kernel_params_decompress_buf64[PARAMCNT];
+
+  // API: cuda
+
+  CUdevice        cuda_device;
+
+  // API: opencl
+
+  cl_device_id    device;
+  cl_device_type  opencl_device_type;
+
   cl_platform_id platform;
 
   cl_uint  device_vendor_id;
@@ -1296,40 +1336,6 @@ typedef struct hc_device_param
   cl_mem  d_st_salts_buf;
   cl_mem  d_st_esalts_buf;
 
-  void   *kernel_params[PARAMCNT];
-  void   *kernel_params_mp[PARAMCNT];
-  void   *kernel_params_mp_r[PARAMCNT];
-  void   *kernel_params_mp_l[PARAMCNT];
-  void   *kernel_params_amp[PARAMCNT];
-  void   *kernel_params_tm[PARAMCNT];
-  void   *kernel_params_memset[PARAMCNT];
-  void   *kernel_params_atinit[PARAMCNT];
-  void   *kernel_params_decompress[PARAMCNT];
-
-  u32     kernel_params_buf32[PARAMCNT];
-  u64     kernel_params_buf64[PARAMCNT];
-
-  u32     kernel_params_mp_buf32[PARAMCNT];
-  u64     kernel_params_mp_buf64[PARAMCNT];
-
-  u32     kernel_params_mp_r_buf32[PARAMCNT];
-  u64     kernel_params_mp_r_buf64[PARAMCNT];
-
-  u32     kernel_params_mp_l_buf32[PARAMCNT];
-  u64     kernel_params_mp_l_buf64[PARAMCNT];
-
-  u32     kernel_params_amp_buf32[PARAMCNT];
-  u64     kernel_params_amp_buf64[PARAMCNT];
-
-  u32     kernel_params_memset_buf32[PARAMCNT];
-  u64     kernel_params_memset_buf64[PARAMCNT];
-
-  u32     kernel_params_atinit_buf32[PARAMCNT];
-  u64     kernel_params_atinit_buf64[PARAMCNT];
-
-  u32     kernel_params_decompress_buf32[PARAMCNT];
-  u64     kernel_params_decompress_buf64[PARAMCNT];
-
 } hc_device_param_t;
 
 typedef struct backend_ctx
@@ -1352,18 +1358,6 @@ typedef struct backend_ctx
   int                 opencl_devices_cnt;
   int                 opencl_devices_active;
 
-  int                 cuda_driver_version;
-
-  cl_uint             platforms_cnt;
-  cl_platform_id     *platforms;
-  char              **platforms_vendor;
-  char              **platforms_name;
-  char              **platforms_version;
-  bool               *platforms_skipped;
-
-  cl_uint             platform_devices_cnt;
-  cl_device_id       *platform_devices;
-
   u32                 devices_cnt;
   u32                 devices_active;
 
@@ -1374,9 +1368,7 @@ typedef struct backend_ctx
   u64                 kernel_power_all;
   u64                 kernel_power_final; // we save that so that all divisions are done from the same base
 
-  u64                 opencl_platforms_filter;
   u64                 devices_filter;
-  cl_device_type      device_types_filter;
 
   double              target_msec;
 
@@ -1388,6 +1380,25 @@ typedef struct backend_ctx
   int                 comptime;
 
   int                 force_jit_compilation;
+
+  // cuda
+
+  int                 cuda_driver_version;
+
+  // opencl
+
+  cl_uint             platforms_cnt;
+  cl_platform_id     *platforms;
+  char              **platforms_vendor;
+  char              **platforms_name;
+  char              **platforms_version;
+  bool               *platforms_skipped;
+
+  cl_uint             platform_devices_cnt;
+  cl_device_id       *platform_devices;
+
+  u64                 opencl_platforms_filter;
+  cl_device_type      opencl_device_types_filter;
 
 } backend_ctx_t;
 
