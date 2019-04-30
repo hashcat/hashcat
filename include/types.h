@@ -693,7 +693,6 @@ typedef enum user_options_map
   IDX_OPENCL_DEVICES            = 'd',
   IDX_OPENCL_DEVICE_TYPES       = 'D',
   IDX_OPENCL_INFO               = 'I',
-  IDX_OPENCL_PLATFORMS          = 0xff26,
   IDX_OPENCL_VECTOR_WIDTH       = 0xff27,
   IDX_OPTIMIZED_KERNEL_ENABLE   = 'O',
   IDX_OUTFILE_AUTOHEX_DISABLE   = 0xff28,
@@ -1389,11 +1388,9 @@ typedef struct backend_ctx
   cl_device_id      **opencl_platforms_devices;
   cl_uint            *opencl_platforms_devices_cnt;
   char              **opencl_platforms_name;
-  bool               *opencl_platforms_skipped;
   char              **opencl_platforms_vendor;
   char              **opencl_platforms_version;
 
-  u64                 opencl_platforms_filter;
   cl_device_type      opencl_device_types_filter;
 
 } backend_ctx_t;
@@ -1783,7 +1780,6 @@ typedef struct user_options
   char        *markov_hcstat2;
   char        *opencl_devices;
   char        *opencl_device_types;
-  char        *opencl_platforms;
   char        *outfile;
   char        *outfile_check_dir;
   char        *potfile_path;

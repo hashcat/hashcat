@@ -37,6 +37,74 @@ static const u32 full80 = 0x80808080;
 
 static double TARGET_MSEC_PROFILE[4] = { 2, 12, 96, 480 };
 
+static bool is_same_device (const hc_device_param_t *src, const hc_device_param_t *dst)
+{
+  if (src->pcie_bus      != dst->pcie_bus)      return false;
+  if (src->pcie_device   != dst->pcie_device)   return false;
+  if (src->pcie_function != dst->pcie_function) return false;
+
+  return true;
+}
+
+static int backend_ctx_find_duplicate_devices (hashcat_ctx_t *hashcat_ctx)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  for (int backend_devices_cnt_src = 0; backend_devices_cnt_src < backend_ctx->backend_devices_cnt; backend_devices_cnt_src++)
+  {
+    hc_device_param_t *device_param_src = &backend_ctx->devices_param[backend_devices_cnt_src];
+
+    if (device_param_src->skipped == true) continue;
+
+    if (device_param_src->skipped_warning == true) continue;
+
+    for (int backend_devices_cnt_dst = backend_devices_cnt_src + 1; backend_devices_cnt_dst < backend_ctx->backend_devices_cnt; backend_devices_cnt_dst++)
+    {
+      hc_device_param_t *device_param_dst = &backend_ctx->devices_param[backend_devices_cnt_dst];
+
+      if (device_param_dst->skipped == true) continue;
+
+      if (device_param_dst->skipped_warning == true) continue;
+
+      if (is_same_device (device_param_src, device_param_dst) == false) continue;
+
+      device_param_dst->skipped = true;
+    }
+  }
+
+  return -1;
+}
+
+static bool is_same_device_type (const hc_device_param_t *src, const hc_device_param_t *dst)
+{
+  if (strcmp (src->device_name, dst->device_name) != 0) return false;
+
+  if (src->is_cuda   != dst->is_cuda)   return false;
+  if (src->is_opencl != dst->is_opencl) return false;
+
+  if (src->is_cuda == true)
+  {
+    if (strcmp (src->opencl_device_vendor,  dst->opencl_device_vendor)  != 0) return false;
+    if (strcmp (src->opencl_device_version, dst->opencl_device_version) != 0) return false;
+    if (strcmp (src->opencl_driver_version, dst->opencl_driver_version) != 0) return false;
+  }
+
+  if (src->device_processors         != dst->device_processors)         return false;
+  if (src->device_maxclock_frequency != dst->device_maxclock_frequency) return false;
+  if (src->device_maxworkgroup_size  != dst->device_maxworkgroup_size)  return false;
+
+  // memory size can be different, depending on which gpu has a monitor connected
+  // if (src->device_maxmem_alloc       != dst->device_maxmem_alloc)       return false;
+  // if (src->device_global_mem         != dst->device_global_mem)         return false;
+
+  if (src->sm_major != dst->sm_major) return false;
+  if (src->sm_minor != dst->sm_minor) return false;
+
+  if (src->kernel_exec_timeout != dst->kernel_exec_timeout) return false;
+
+  return true;
+}
+
 static int ocl_check_dri (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 {
   #if defined (__linux__)
@@ -144,49 +212,6 @@ static bool setup_devices_filter (hashcat_ctx_t *hashcat_ctx, const char *opencl
   }
 
   *out = backend_devices_filter;
-
-  return true;
-}
-
-static bool setup_opencl_platforms_filter (hashcat_ctx_t *hashcat_ctx, const char *opencl_platforms, u64 *out)
-{
-  u64 opencl_platforms_filter = 0;
-
-  if (opencl_platforms)
-  {
-    char *platforms = hcstrdup (opencl_platforms);
-
-    if (platforms == NULL) return false;
-
-    char *saveptr = NULL;
-
-    char *next = strtok_r (platforms, ",", &saveptr);
-
-    do
-    {
-      const int platform = (const int) strtol (next, NULL, 10);
-
-      if (platform <= 0 || platform >= 64)
-      {
-        event_log_error (hashcat_ctx, "Invalid OpenCL platform %d specified.", platform);
-
-        hcfree (platforms);
-
-        return false;
-      }
-
-      opencl_platforms_filter |= 1ULL << (platform - 1);
-
-    } while ((next = strtok_r ((char *) NULL, ",", &saveptr)) != NULL);
-
-    hcfree (platforms);
-  }
-  else
-  {
-    opencl_platforms_filter = -1ULL;
-  }
-
-  *out = opencl_platforms_filter;
 
   return true;
 }
@@ -567,18 +592,7 @@ int nvrtc_init (hashcat_ctx_t *hashcat_ctx)
   if (nvrtc->lib == NULL) nvrtc->lib = hc_dlopen ("libnvrtc.so.1");
   #endif
 
-  if (nvrtc->lib == NULL)
-  {
-    event_log_error (hashcat_ctx, "Cannot find NVRTC library.");
-
-    event_log_warning (hashcat_ctx, "You are probably missing the native CUDA SDK and/or driver for your platform.");
-    event_log_warning (hashcat_ctx, "NVIDIA GPUs require this runtime and/or driver:");
-    event_log_warning (hashcat_ctx, "  \"NVIDIA Driver\" (418.56 or later)");
-    event_log_warning (hashcat_ctx, "  \"CUDA Toolkit\" (10.1 or later)");
-    event_log_warning (hashcat_ctx, NULL);
-
-    return -1;
-  }
+  if (nvrtc->lib == NULL) return -1;
 
   HC_LOAD_FUNC (nvrtc, nvrtcAddNameExpression,  NVRTC_NVRTCADDNAMEEXPRESSION, NVRTC, 1);
   HC_LOAD_FUNC (nvrtc, nvrtcCompileProgram,     NVRTC_NVRTCCOMPILEPROGRAM,    NVRTC, 1);
@@ -763,18 +777,7 @@ int cuda_init (hashcat_ctx_t *hashcat_ctx)
   if (cuda->lib == NULL) cuda->lib = hc_dlopen ("libcuda.so.1");
   #endif
 
-  if (cuda->lib == NULL)
-  {
-    event_log_error (hashcat_ctx, "Cannot find CUDA library.");
-
-    event_log_warning (hashcat_ctx, "You are probably missing the native CUDA runtime or driver for your platform.");
-    event_log_warning (hashcat_ctx, "NVIDIA GPUs require this runtime and/or driver:");
-    event_log_warning (hashcat_ctx, "  \"NVIDIA Driver\" (418.56 or later)");
-    event_log_warning (hashcat_ctx, "  \"CUDA Toolkit\" (10.1 or later)");
-    event_log_warning (hashcat_ctx, NULL);
-
-    return -1;
-  }
+  if (cuda->lib == NULL) return -1;
 
   HC_LOAD_FUNC (cuda, cuCtxCreate,              CUDA_CUCTXCREATE,               CUDA, 1);
   HC_LOAD_FUNC (cuda, cuCtxDestroy,             CUDA_CUCTXDESTROY,              CUDA, 1);
@@ -1064,39 +1067,7 @@ int ocl_init (hashcat_ctx_t *hashcat_ctx)
   if (ocl->lib == NULL) ocl->lib = hc_dlopen ("libOpenCL.so.1");
   #endif
 
-  if (ocl->lib == NULL)
-  {
-    event_log_error (hashcat_ctx, "Cannot find an OpenCL ICD loader library.");
-
-    event_log_warning (hashcat_ctx, "You are probably missing the native OpenCL runtime or driver for your platform.");
-    event_log_warning (hashcat_ctx, NULL);
-
-    #if defined (__linux__)
-    event_log_warning (hashcat_ctx, "* AMD GPUs on Linux require this runtime and/or driver:");
-    event_log_warning (hashcat_ctx, "  \"RadeonOpenCompute (ROCm)\" Software Platform (1.6.180 or later)");
-    #elif defined (_WIN)
-    event_log_warning (hashcat_ctx, "* AMD GPUs on Windows require this runtime and/or driver:");
-    event_log_warning (hashcat_ctx, "  \"AMD Radeon Software Crimson Edition\" (15.12 or later)");
-    #endif
-
-    event_log_warning (hashcat_ctx, "* Intel CPUs require this runtime and/or driver:");
-    event_log_warning (hashcat_ctx, "  \"OpenCL Runtime for Intel Core and Intel Xeon Processors\" (16.1.1 or later)");
-
-    #if defined (__linux__)
-    event_log_warning (hashcat_ctx, "* Intel GPUs on Linux require this runtime and/or driver:");
-    event_log_warning (hashcat_ctx, "  \"OpenCL 2.0 GPU Driver Package for Linux\" (2.0 or later)");
-    #elif defined (_WIN)
-    event_log_warning (hashcat_ctx, "* Intel GPUs on Windows require this runtime and/or driver:");
-    event_log_warning (hashcat_ctx, "  \"OpenCL Driver for Intel Iris and Intel HD Graphics\"");
-    #endif
-
-    event_log_warning (hashcat_ctx, "* NVIDIA GPUs require this runtime and/or driver:");
-    event_log_warning (hashcat_ctx, "  \"NVIDIA Driver\" (418.56 or later)");
-    event_log_warning (hashcat_ctx, "  \"CUDA Toolkit\" (10.1 or later)");
-    event_log_warning (hashcat_ctx, NULL);
-
-    return -1;
-  }
+  if (ocl->lib == NULL) return -1;
 
   HC_LOAD_FUNC (ocl, clBuildProgram,            OCL_CLBUILDPROGRAM,             OpenCL, 1);
   HC_LOAD_FUNC (ocl, clCreateBuffer,            OCL_CLCREATEBUFFER,             OpenCL, 1);
@@ -3457,7 +3428,7 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   backend_ctx->cuda = cuda;
 
-  const int rc_cuda_init = cuda_init (hashcat_ctx);
+  int rc_cuda_init = cuda_init (hashcat_ctx);
 
   if (rc_cuda_init == -1)
   {
@@ -3472,7 +3443,7 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   backend_ctx->nvrtc = nvrtc;
 
-  const int rc_nvrtc_init = nvrtc_init (hashcat_ctx);
+  int rc_nvrtc_init = nvrtc_init (hashcat_ctx);
 
   if (rc_nvrtc_init == -1)
   {
@@ -3497,6 +3468,9 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
+    rc_cuda_init  = -1;
+    rc_nvrtc_init = -1;
+
     cuda_close  (hashcat_ctx);
     nvrtc_close (hashcat_ctx);
   }
@@ -3522,31 +3496,31 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if ((rc_cuda_init == -1) && (rc_ocl_init == -1))
   {
-    event_log_error (hashcat_ctx, "ATTENTION! No CUDA or OpenCL installation found.");
+    event_log_error (hashcat_ctx, "ATTENTION! No OpenCL or CUDA installation found.");
 
     event_log_warning (hashcat_ctx, "You are probably missing the CUDA or OpenCL runtime installation.");
     event_log_warning (hashcat_ctx, NULL);
 
     #if defined (__linux__)
-    event_log_warning (hashcat_ctx, "* AMD GPUs on Linux require this runtime and/or driver:");
+    event_log_warning (hashcat_ctx, "* AMD GPUs on Linux require this driver:");
     event_log_warning (hashcat_ctx, "  \"RadeonOpenCompute (ROCm)\" Software Platform (1.6.180 or later)");
     #elif defined (_WIN)
-    event_log_warning (hashcat_ctx, "* AMD GPUs on Windows require this runtime and/or driver:");
+    event_log_warning (hashcat_ctx, "* AMD GPUs on Windows require this driver:");
     event_log_warning (hashcat_ctx, "  \"AMD Radeon Software Crimson Edition\" (15.12 or later)");
     #endif
 
-    event_log_warning (hashcat_ctx, "* Intel CPUs require this runtime and/or driver:");
+    event_log_warning (hashcat_ctx, "* Intel CPUs require this runtime:");
     event_log_warning (hashcat_ctx, "  \"OpenCL Runtime for Intel Core and Intel Xeon Processors\" (16.1.1 or later)");
 
     #if defined (__linux__)
-    event_log_warning (hashcat_ctx, "* Intel GPUs on Linux require this runtime and/or driver:");
+    event_log_warning (hashcat_ctx, "* Intel GPUs on Linux require this driver:");
     event_log_warning (hashcat_ctx, "  \"OpenCL 2.0 GPU Driver Package for Linux\" (2.0 or later)");
     #elif defined (_WIN)
-    event_log_warning (hashcat_ctx, "* Intel GPUs on Windows require this runtime and/or driver:");
+    event_log_warning (hashcat_ctx, "* Intel GPUs on Windows require this driver:");
     event_log_warning (hashcat_ctx, "  \"OpenCL Driver for Intel Iris and Intel HD Graphics\"");
     #endif
 
-    event_log_warning (hashcat_ctx, "* NVIDIA GPUs require this runtime and/or driver:");
+    event_log_warning (hashcat_ctx, "* NVIDIA GPUs require this runtime and/or driver (both):");
     event_log_warning (hashcat_ctx, "  \"NVIDIA Driver\" (418.56 or later)");
     event_log_warning (hashcat_ctx, "  \"CUDA Toolkit\" (10.1 or later)");
     event_log_warning (hashcat_ctx, NULL);
@@ -3563,7 +3537,7 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
   if (rc_ocl_check == -1) return -1;
 
   /**
-   * OpenCL device selection
+   * OpenCL device selection (tbd rename)
    */
 
   u64 devices_filter;
@@ -3573,6 +3547,18 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
   if (rc_devices_filter == false) return -1;
 
   backend_ctx->devices_filter = devices_filter;
+
+  /**
+   * OpenCL device type selection (tbd rename)
+   */
+
+  cl_device_type opencl_device_types_filter;
+
+  const bool rc_opencl_device_types_filter = setup_opencl_device_types_filter (hashcat_ctx, user_options->opencl_device_types, &opencl_device_types_filter);
+
+  if (rc_opencl_device_types_filter == false) return -1;
+
+  backend_ctx->opencl_device_types_filter = opencl_device_types_filter;
 
   /**
    * CUDA API: init
@@ -3600,7 +3586,6 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
       hcfree (opencl_platforms_devices);      \
       hcfree (opencl_platforms_devices_cnt);  \
       hcfree (opencl_platforms_name);         \
-      hcfree (opencl_platforms_skipped);      \
       hcfree (opencl_platforms_vendor);       \
       hcfree (opencl_platforms_version);      \
     }
@@ -3610,7 +3595,6 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
     cl_device_id  **opencl_platforms_devices     = (cl_device_id **)  hccalloc (CL_PLATFORMS_MAX, sizeof (cl_device_id *));
     cl_uint        *opencl_platforms_devices_cnt = (cl_uint *)        hccalloc (CL_PLATFORMS_MAX, sizeof (cl_uint));
     char          **opencl_platforms_name        = (char **)          hccalloc (CL_PLATFORMS_MAX, sizeof (char *));
-    bool           *opencl_platforms_skipped     = (bool *)           hccalloc (CL_PLATFORMS_MAX, sizeof (bool));
     char          **opencl_platforms_vendor      = (char **)          hccalloc (CL_PLATFORMS_MAX, sizeof (char *));
     char          **opencl_platforms_version     = (char **)          hccalloc (CL_PLATFORMS_MAX, sizeof (char *));
 
@@ -3627,45 +3611,6 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if (opencl_platforms_cnt)
     {
-      /**
-       * OpenCL platform selection
-       */
-
-      u64 opencl_platforms_filter;
-
-      const bool rc_platforms_filter = setup_opencl_platforms_filter (hashcat_ctx, user_options->opencl_platforms, &opencl_platforms_filter);
-
-      if (rc_platforms_filter == false) return -1;
-
-      backend_ctx->opencl_platforms_filter = opencl_platforms_filter;
-
-      if (opencl_platforms_filter != (u64) -1)
-      {
-        u64 opencl_platform_cnt_mask = ~(((u64) -1 >> opencl_platforms_cnt) << opencl_platforms_cnt);
-
-        if (opencl_platforms_filter > opencl_platform_cnt_mask)
-        {
-          event_log_error (hashcat_ctx, "An invalid platform was specified using the --opencl-platforms parameter.");
-          event_log_error (hashcat_ctx, "The specified platform was higher than the number of available platforms (%u).", opencl_platforms_cnt);
-
-          FREE_OPENCL_CTX_ON_ERROR;
-
-          return -1;
-        }
-      }
-
-      /**
-       * OpenCL device type selection
-       */
-
-      cl_device_type opencl_device_types_filter;
-
-      const bool rc_opencl_device_types_filter = setup_opencl_device_types_filter (hashcat_ctx, user_options->opencl_device_types, &opencl_device_types_filter);
-
-      if (rc_opencl_device_types_filter == false) return -1;
-
-      backend_ctx->opencl_device_types_filter = opencl_device_types_filter;
-
       if (user_options->opencl_device_types == NULL)
       {
         /**
@@ -3690,13 +3635,6 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
             hcfree (opencl_platform_devices);
 
             FREE_OPENCL_CTX_ON_ERROR;
-
-            continue;
-          }
-
-          if ((opencl_platforms_filter & (1ULL << opencl_platforms_idx)) == 0)
-          {
-            hcfree (opencl_platform_devices);
 
             continue;
           }
@@ -3749,7 +3687,6 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
     backend_ctx->opencl_platforms_devices     = opencl_platforms_devices;
     backend_ctx->opencl_platforms_devices_cnt = opencl_platforms_devices_cnt;
     backend_ctx->opencl_platforms_name        = opencl_platforms_name;
-    backend_ctx->opencl_platforms_skipped     = opencl_platforms_skipped;
     backend_ctx->opencl_platforms_vendor      = opencl_platforms_vendor;
     backend_ctx->opencl_platforms_version     = opencl_platforms_version;
 
@@ -3762,31 +3699,31 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if ((backend_ctx->cuda == NULL) && (backend_ctx->ocl == NULL))
   {
-    event_log_error (hashcat_ctx, "ATTENTION! No CUDA-compatible or OpenCL-compatible platform found.");
+    event_log_error (hashcat_ctx, "ATTENTION! No OpenCL-compatible or CUDA-compatible platform found.");
 
-    event_log_warning (hashcat_ctx, "You are probably missing the CUDA or OpenCL runtime installation.");
+    event_log_warning (hashcat_ctx, "You are probably missing the OpenCL or CUDA runtime installation.");
     event_log_warning (hashcat_ctx, NULL);
 
     #if defined (__linux__)
-    event_log_warning (hashcat_ctx, "* AMD GPUs on Linux require this runtime and/or driver:");
+    event_log_warning (hashcat_ctx, "* AMD GPUs on Linux require this driver:");
     event_log_warning (hashcat_ctx, "  \"RadeonOpenCompute (ROCm)\" Software Platform (1.6.180 or later)");
     #elif defined (_WIN)
-    event_log_warning (hashcat_ctx, "* AMD GPUs on Windows require this runtime and/or driver:");
+    event_log_warning (hashcat_ctx, "* AMD GPUs on Windows require this driver:");
     event_log_warning (hashcat_ctx, "  \"AMD Radeon Software Crimson Edition\" (15.12 or later)");
     #endif
 
-    event_log_warning (hashcat_ctx, "* Intel CPUs require this runtime and/or driver:");
+    event_log_warning (hashcat_ctx, "* Intel CPUs require this runtime:");
     event_log_warning (hashcat_ctx, "  \"OpenCL Runtime for Intel Core and Intel Xeon Processors\" (16.1.1 or later)");
 
     #if defined (__linux__)
-    event_log_warning (hashcat_ctx, "* Intel GPUs on Linux require this runtime and/or driver:");
+    event_log_warning (hashcat_ctx, "* Intel GPUs on Linux require this driver:");
     event_log_warning (hashcat_ctx, "  \"OpenCL 2.0 GPU Driver Package for Linux\" (2.0 or later)");
     #elif defined (_WIN)
-    event_log_warning (hashcat_ctx, "* Intel GPUs on Windows require this runtime and/or driver:");
+    event_log_warning (hashcat_ctx, "* Intel GPUs on Windows require this driver:");
     event_log_warning (hashcat_ctx, "  \"OpenCL Driver for Intel Iris and Intel HD Graphics\"");
     #endif
 
-    event_log_warning (hashcat_ctx, "* NVIDIA GPUs require this runtime and/or driver:");
+    event_log_warning (hashcat_ctx, "* NVIDIA GPUs require this runtime and/or driver (both):");
     event_log_warning (hashcat_ctx, "  \"NVIDIA Driver\" (418.56 or later)");
     event_log_warning (hashcat_ctx, "  \"CUDA Toolkit\" (10.1 or later)");
     event_log_warning (hashcat_ctx, NULL);
@@ -3815,7 +3752,6 @@ void backend_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
   hcfree (backend_ctx->opencl_platforms_devices);
   hcfree (backend_ctx->opencl_platforms_devices_cnt);
   hcfree (backend_ctx->opencl_platforms_name);
-  hcfree (backend_ctx->opencl_platforms_skipped);
   hcfree (backend_ctx->opencl_platforms_vendor);
   hcfree (backend_ctx->opencl_platforms_version);
 
@@ -3987,7 +3923,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (max_shared_memory_per_block < 32768)
       {
-        event_log_error (hashcat_ctx, "* Device #%u: This device's shared buffer size is too small.", backend_devices_idx + 1);
+        event_log_error (hashcat_ctx, "* Device #%u: This device's shared buffer size is too small.", device_id + 1);
 
         device_param->skipped = true;
       }
@@ -4002,7 +3938,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (device_max_constant_buffer_size < 65536)
       {
-        event_log_error (hashcat_ctx, "* Device #%u: This device's local mem size is too small.", backend_devices_idx + 1);
+        event_log_error (hashcat_ctx, "* Device #%u: This device's local mem size is too small.", device_id + 1);
 
         device_param->skipped = true;
       }
@@ -4013,10 +3949,19 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       device_param->device_local_mem_type = device_local_mem_type;
 
-      //
+      // skipped
+
+      if ((backend_ctx->devices_filter & (1ULL << device_id)) == 0)
+      {
+        device_param->skipped = true;
+      }
+
+      if ((backend_ctx->opencl_device_types_filter & CL_DEVICE_TYPE_GPU) == 0)
+      {
+        device_param->skipped = true;
+      }
 
 
-      device_param->skipped = true; // while developing
     }
   }
 
@@ -4037,7 +3982,6 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
     cl_device_id  **opencl_platforms_devices     = backend_ctx->opencl_platforms_devices;
     cl_uint        *opencl_platforms_devices_cnt = backend_ctx->opencl_platforms_devices_cnt;
     char          **opencl_platforms_name        = backend_ctx->opencl_platforms_name;
-    bool           *opencl_platforms_skipped     = backend_ctx->opencl_platforms_skipped;
     char          **opencl_platforms_vendor      = backend_ctx->opencl_platforms_vendor;
     char          **opencl_platforms_version     = backend_ctx->opencl_platforms_version;
 
@@ -4138,24 +4082,6 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         opencl_platform_vendor_id = VENDOR_ID_GENERIC;
       }
 
-      if (user_options->force == false)
-      {
-        if (opencl_platform_vendor_id == VENDOR_ID_MESA)
-        {
-          event_log_error (hashcat_ctx, "Mesa (Gallium) OpenCL platform detected!");
-
-          event_log_warning (hashcat_ctx, "The Mesa platform can cause errors that are often mistaken for bugs in hashcat.");
-          event_log_warning (hashcat_ctx, "You are STRONGLY encouraged to use the drivers listed in docs/readme.txt.");
-          event_log_warning (hashcat_ctx, "You can use --force to override this, but do not report related errors.");
-          event_log_warning (hashcat_ctx, "You can also use --opencl-platforms to skip the Mesa platform(s).");
-          event_log_warning (hashcat_ctx, NULL);
-
-          return -1;
-        }
-      }
-
-      bool opencl_platform_skipped = ((backend_ctx->opencl_platforms_filter & (1ULL << opencl_platform_idx)) == 0);
-
       cl_device_id *opencl_platform_devices = (cl_device_id *) hccalloc (DEVICES_MAX, sizeof (cl_device_id));
 
       cl_uint opencl_platform_devices_cnt = 0;
@@ -4164,20 +4090,14 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (CL_rc == -1)
       {
-        //event_log_error (hashcat_ctx, "clGetDeviceIDs(): %s", val2cstr_cl (CL_rc));
+        event_log_error (hashcat_ctx, "clGetDeviceIDs(): %s", val2cstr_cl (CL_rc));
 
-        //return -1;
-
-        opencl_platform_skipped = true;
+        return -1;
       }
 
       opencl_platforms_devices[opencl_platform_idx] = opencl_platform_devices;
 
       opencl_platforms_devices_cnt[opencl_platform_idx] = opencl_platform_devices_cnt;
-
-      opencl_platforms_skipped[opencl_platform_idx] = opencl_platform_skipped;
-
-      //if (opencl_platform_skipped == true) continue;
 
       for (u32 opencl_platform_devices_idx = 0; opencl_platform_devices_idx < opencl_platform_devices_cnt; opencl_platform_devices_idx++, backend_devices_idx++, opencl_devices_cnt++)
       {
@@ -4394,7 +4314,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         if (device_endian_little == CL_FALSE)
         {
-          event_log_error (hashcat_ctx, "* Device #%u: This device is not little-endian.", backend_devices_idx + 1);
+          event_log_error (hashcat_ctx, "* Device #%u: This device is not little-endian.", device_id + 1);
 
           device_param->skipped = true;
         }
@@ -4409,7 +4329,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         if (device_available == CL_FALSE)
         {
-          event_log_error (hashcat_ctx, "* Device #%u: This device is not available.", backend_devices_idx + 1);
+          event_log_error (hashcat_ctx, "* Device #%u: This device is not available.", device_id + 1);
 
           device_param->skipped = true;
         }
@@ -4424,7 +4344,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         if (device_compiler_available == CL_FALSE)
         {
-          event_log_error (hashcat_ctx, "* Device #%u: No compiler is available for this device.", backend_devices_idx + 1);
+          event_log_error (hashcat_ctx, "* Device #%u: No compiler is available for this device.", device_id + 1);
 
           device_param->skipped = true;
         }
@@ -4439,7 +4359,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         if ((device_execution_capabilities & CL_EXEC_KERNEL) == 0)
         {
-          event_log_error (hashcat_ctx, "* Device #%u: This device does not support executing kernels.", backend_devices_idx + 1);
+          event_log_error (hashcat_ctx, "* Device #%u: This device does not support executing kernels.", device_id + 1);
 
           device_param->skipped = true;
         }
@@ -4460,14 +4380,14 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         if (strstr (device_extensions, "base_atomics") == 0)
         {
-          event_log_error (hashcat_ctx, "* Device #%u: This device does not support base atomics.", backend_devices_idx + 1);
+          event_log_error (hashcat_ctx, "* Device #%u: This device does not support base atomics.", device_id + 1);
 
           device_param->skipped = true;
         }
 
         if (strstr (device_extensions, "byte_addressable_store") == 0)
         {
-          event_log_error (hashcat_ctx, "* Device #%u: This device does not support byte-addressable store.", backend_devices_idx + 1);
+          event_log_error (hashcat_ctx, "* Device #%u: This device does not support byte-addressable store.", device_id + 1);
 
           device_param->skipped = true;
         }
@@ -4484,7 +4404,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         if (device_max_constant_buffer_size < 65536)
         {
-          event_log_error (hashcat_ctx, "* Device #%u: This device's constant buffer size is too small.", backend_devices_idx + 1);
+          event_log_error (hashcat_ctx, "* Device #%u: This device's constant buffer size is too small.", device_id + 1);
 
           device_param->skipped = true;
         }
@@ -4499,7 +4419,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         if (device_local_mem_size < 32768)
         {
-          event_log_error (hashcat_ctx, "* Device #%u: This device's local mem size is too small.", backend_devices_idx + 1);
+          event_log_error (hashcat_ctx, "* Device #%u: This device's local mem size is too small.", device_id + 1);
 
           device_param->skipped = true;
         }
@@ -4528,7 +4448,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           {
             if (user_options->force == false)
             {
-              if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Not a native Intel OpenCL runtime. Expect massive speed loss.", backend_devices_idx + 1);
+              if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Not a native Intel OpenCL runtime. Expect massive speed loss.", device_id + 1);
               if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             You can use --force to override, but do not report related errors.");
 
               device_param->skipped = true;
@@ -4548,7 +4468,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           {
             if (user_options->force == false)
             {
-              if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Intel's OpenCL runtime (GPU only) is currently broken.", backend_devices_idx + 1);
+              if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Intel's OpenCL runtime (GPU only) is currently broken.", device_id + 1);
               if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             We are waiting for updated OpenCL drivers from Intel.");
               if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             You can use --force to override, but do not report related errors.");
 
@@ -4711,7 +4631,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
                 if (intel_warn == true)
                 {
-                  event_log_error (hashcat_ctx, "* Device #%u: Outdated or broken Intel OpenCL runtime '%s' detected!", backend_devices_idx + 1, device_param->opencl_driver_version);
+                  event_log_error (hashcat_ctx, "* Device #%u: Outdated or broken Intel OpenCL runtime '%s' detected!", device_id + 1, device_param->opencl_driver_version);
 
                   event_log_warning (hashcat_ctx, "You are STRONGLY encouraged to use the officially supported NVIDIA driver.");
                   event_log_warning (hashcat_ctx, "See hashcat.net for officially supported NVIDIA drivers.");
@@ -4749,7 +4669,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
                 if (amd_warn == true)
                 {
-                  event_log_error (hashcat_ctx, "* Device #%u: Outdated or broken AMD driver '%s' detected!", backend_devices_idx + 1, device_param->opencl_driver_version);
+                  event_log_error (hashcat_ctx, "* Device #%u: Outdated or broken AMD driver '%s' detected!", device_id + 1, device_param->opencl_driver_version);
 
                   event_log_warning (hashcat_ctx, "You are STRONGLY encouraged to use the officially supported AMD driver.");
                   event_log_warning (hashcat_ctx, "See hashcat.net for officially supported AMD drivers.");
@@ -4800,7 +4720,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
                 if (nv_warn == true)
                 {
-                  event_log_error (hashcat_ctx, "* Device #%u: Outdated or broken NVIDIA driver '%s' detected!", backend_devices_idx + 1, device_param->opencl_driver_version);
+                  event_log_error (hashcat_ctx, "* Device #%u: Outdated or broken NVIDIA driver '%s' detected!", device_id + 1, device_param->opencl_driver_version);
 
                   event_log_warning (hashcat_ctx, "You are STRONGLY encouraged to use the officially supported NVIDIA driver.");
                   event_log_warning (hashcat_ctx, "See hashcat's homepage for officially supported NVIDIA drivers.");
@@ -4813,14 +4733,14 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
                 if (device_param->sm_major < 5)
                 {
-                  if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: This hardware has outdated CUDA compute capability (%u.%u).", backend_devices_idx + 1, device_param->sm_major, device_param->sm_minor);
+                  if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: This hardware has outdated CUDA compute capability (%u.%u).", device_id + 1, device_param->sm_major, device_param->sm_minor);
                   if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             For modern OpenCL performance, upgrade to hardware that supports");
                   if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             CUDA compute capability version 5.0 (Maxwell) or higher.");
                 }
 
                 if (device_param->kernel_exec_timeout != 0)
                 {
-                  if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: WARNING! Kernel exec timeout is not disabled.", backend_devices_idx + 1);
+                  if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: WARNING! Kernel exec timeout is not disabled.", device_id + 1);
                   if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             This may cause \"CL_OUT_OF_RESOURCES\" or related errors.");
                   if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             To disable the timeout, see: https://hashcat.net/q/timeoutpatch");
                 }
@@ -4828,7 +4748,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
               if ((strstr (device_param->opencl_device_c_version, "beignet")) || (strstr (device_param->opencl_device_version, "beignet")))
               {
-                event_log_error (hashcat_ctx, "* Device #%u: Intel beignet driver detected!", backend_devices_idx + 1);
+                event_log_error (hashcat_ctx, "* Device #%u: Intel beignet driver detected!", device_id + 1);
 
                 event_log_warning (hashcat_ctx, "The beignet driver has been marked as likely to fail kernel compilation.");
                 event_log_warning (hashcat_ctx, "You can use --force to override this, but do not report related errors.");
@@ -5018,6 +4938,13 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
     return -1;
   }
 
+  // find duplicate devices (typically cuda and opencl!)
+
+  if (user_options->force == false)
+  {
+    backend_ctx_find_duplicate_devices (hashcat_ctx);
+  }
+
   // additional check to see if the user has chosen a device that is not within the range of available devices (i.e. larger than devices_cnt)
 
   if (backend_ctx->devices_filter != (u64) -1)
@@ -5084,36 +5011,6 @@ void backend_ctx_devices_destroy (hashcat_ctx_t *hashcat_ctx)
   backend_ctx->need_nvml   = false;
   backend_ctx->need_nvapi  = false;
   backend_ctx->need_sysfs  = false;
-}
-
-static bool is_same_device_type (const hc_device_param_t *src, const hc_device_param_t *dst)
-{
-  if (strcmp (src->device_name, dst->device_name) != 0) return false;
-
-  if (src->is_cuda   != dst->is_cuda)   return false;
-  if (src->is_opencl != dst->is_opencl) return false;
-
-  if (src->is_cuda == true)
-  {
-    if (strcmp (src->opencl_device_vendor,  dst->opencl_device_vendor)  != 0) return false;
-    if (strcmp (src->opencl_device_version, dst->opencl_device_version) != 0) return false;
-    if (strcmp (src->opencl_driver_version, dst->opencl_driver_version) != 0) return false;
-  }
-
-  if (src->device_processors         != dst->device_processors)         return false;
-  if (src->device_maxclock_frequency != dst->device_maxclock_frequency) return false;
-  if (src->device_maxworkgroup_size  != dst->device_maxworkgroup_size)  return false;
-
-  // memory size can be different, depending on which gpu has a monitor connected
-  // if (src->device_maxmem_alloc       != dst->device_maxmem_alloc)       return false;
-  // if (src->device_global_mem         != dst->device_global_mem)         return false;
-
-  if (src->sm_major != dst->sm_major) return false;
-  if (src->sm_minor != dst->sm_minor) return false;
-
-  if (src->kernel_exec_timeout != dst->kernel_exec_timeout) return false;
-
-  return true;
 }
 
 void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
@@ -5466,6 +5363,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     EVENT_DATA (EVENT_OPENCL_DEVICE_INIT_PRE, &backend_devices_idx, sizeof (int));
 
+    const int device_id = device_param->device_id;
+
     /**
      * module depending checks
      */
@@ -5478,7 +5377,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if ((unstable_warning == true) && (user_options->force == false))
       {
-        event_log_warning (hashcat_ctx, "* Device #%u: Skipping hash-mode %u - known OpenCL/Driver issue (not a hashcat issue)", backend_devices_idx + 1, hashconfig->hash_mode);
+        event_log_warning (hashcat_ctx, "* Device #%u: Skipping hash-mode %u - known OpenCL/Driver issue (not a hashcat issue)", device_id + 1, hashconfig->hash_mode);
         event_log_warning (hashcat_ctx, "             You can use --force to override, but do not report related errors.");
 
         device_param->skipped_warning = true;
@@ -5853,8 +5752,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     build_options_module_buf[build_options_module_len] = 0;
 
     #if defined (DEBUG)
-    if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: build_options '%s'", backend_devices_idx + 1, build_options_buf);
-    if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: build_options_module '%s'", backend_devices_idx + 1, build_options_module_buf);
+    if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: build_options '%s'", device_id + 1, build_options_buf);
+    if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: build_options_module '%s'", device_id + 1, build_options_module_buf);
     #endif
 
     /**
@@ -5976,7 +5875,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       if (cached == false)
       {
         #if defined (DEBUG)
-        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s not found in cache! Building may take a while...", backend_devices_idx + 1, filename_from_filepath (cached_file));
+        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
         #endif
 
         const bool rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources, true);
@@ -6029,7 +5928,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
           {
             device_param->skipped_warning = true;
 
-            event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed - proceeding without this device.", backend_devices_idx + 1, source_file);
+            event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed - proceeding without this device.", device_id + 1, source_file);
 
             continue;
           }
@@ -6100,7 +5999,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
           {
             device_param->skipped_warning = true;
 
-            event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed - proceeding without this device.", backend_devices_idx + 1, source_file);
+            event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed - proceeding without this device.", device_id + 1, source_file);
 
             continue;
           }
@@ -6213,7 +6112,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         if (cached == false)
         {
           #if defined (DEBUG)
-          if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s not found in cache! Building may take a while...", backend_devices_idx + 1, filename_from_filepath (cached_file));
+          if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
           #endif
 
           const bool rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources, true);
@@ -6255,7 +6154,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
           {
             device_param->skipped_warning = true;
 
-            event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed - proceeding without this device.", backend_devices_idx + 1, source_file);
+            event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed - proceeding without this device.", device_id + 1, source_file);
 
             continue;
           }
@@ -6368,7 +6267,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         if (cached == false)
         {
           #if defined (DEBUG)
-          if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s not found in cache! Building may take a while...", backend_devices_idx + 1, filename_from_filepath (cached_file));
+          if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
           #endif
 
           const bool rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources, true);
@@ -6410,7 +6309,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
           {
             device_param->skipped_warning = true;
 
-            event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed - proceeding without this device.", backend_devices_idx + 1, source_file);
+            event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed - proceeding without this device.", device_id + 1, source_file);
 
             continue;
           }
@@ -7666,7 +7565,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (kernel_accel_max < kernel_accel_min)
     {
-      event_log_error (hashcat_ctx, "* Device #%u: Not enough allocatable device memory for this attack.", backend_devices_idx + 1);
+      event_log_error (hashcat_ctx, "* Device #%u: Not enough allocatable device memory for this attack.", device_id + 1);
 
       return -1;
     }

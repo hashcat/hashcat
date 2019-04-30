@@ -90,7 +90,6 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "     --cpu-affinity             | Str  | Locks to CPU devices, separated with commas          | --cpu-affinity=1,2,3",
   "     --example-hashes           |      | Show an example hash for each hash-mode              |",
   " -I, --opencl-info              |      | Show info about detected OpenCL platforms/devices    | -I",
-  "     --opencl-platforms         | Str  | OpenCL platforms to use, separated with commas       | --opencl-platforms=2",
   " -d, --opencl-devices           | Str  | OpenCL devices to use, separated with commas         | -d 1",
   " -D, --opencl-device-types      | Str  | OpenCL device-types to use, separated with commas    | -D 1",
   "     --opencl-vector-width      | Num  | Manually override OpenCL vector-width to X           | --opencl-vector=4",

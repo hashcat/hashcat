@@ -74,6 +74,7 @@
 - Mode 16800/16801 hash format: Changed separator character from '*' to ':'
 - Requirements: Update runtime check for minimum NVIDIA driver version from 367.x to 418.56 or later
 - Requirements: Add new requirement for NVIDIA GPU: CUDA Toolkit (10.1 or later)
+- OpenCL Options: Removed --opencl-platforms filter in order to force backend device numbers to stay constant
 
 * changes v5.0.0 -> v5.1.0
 

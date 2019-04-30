@@ -667,7 +667,7 @@ void opencl_info (hashcat_ctx_t *hashcat_ctx)
     int cuda_devices_cnt    = backend_ctx->cuda_devices_cnt;
     int cuda_driver_version = backend_ctx->cuda_driver_version;
 
-    event_log_info (hashcat_ctx, "  CUDA.Version.: %d.%d", cuda_driver_version / 1000, (cuda_driver_version % 100) / 10);
+    event_log_info (hashcat_ctx, "CUDA.Version.: %d.%d", cuda_driver_version / 1000, (cuda_driver_version % 100) / 10);
     event_log_info (hashcat_ctx, NULL);
 
     for (int cuda_devices_idx = 0; cuda_devices_idx < cuda_devices_cnt; cuda_devices_idx++)
@@ -682,11 +682,11 @@ void opencl_info (hashcat_ctx_t *hashcat_ctx)
       u32   device_maxclock_frequency = device_param->device_maxclock_frequency;
       u64   device_global_mem         = device_param->device_global_mem;
 
-      event_log_info (hashcat_ctx, "  Backend Device ID #%d", device_id + 1);
-      event_log_info (hashcat_ctx, "    Name...........: %s", device_name);
-      event_log_info (hashcat_ctx, "    Processor(s)...: %u", device_processors);
-      event_log_info (hashcat_ctx, "    Clock..........: %u", device_maxclock_frequency);
-      event_log_info (hashcat_ctx, "    Memory.........: %" PRIu64 " MB", device_global_mem / 1024 / 1024);
+      event_log_info (hashcat_ctx, "Backend Device ID #%d", device_id + 1);
+      event_log_info (hashcat_ctx, "  Name...........: %s", device_name);
+      event_log_info (hashcat_ctx, "  Processor(s)...: %u", device_processors);
+      event_log_info (hashcat_ctx, "  Clock..........: %u", device_maxclock_frequency);
+      event_log_info (hashcat_ctx, "  Memory.........: %" PRIu64 " MB", device_global_mem / 1024 / 1024);
       event_log_info (hashcat_ctx, NULL);
     }
   }
@@ -761,21 +761,65 @@ void opencl_info_compact (hashcat_ctx_t *hashcat_ctx)
   if (user_options->machine_readable == true) return;
   if (user_options->status_json      == true) return;
 
-  cl_uint         opencl_platforms_cnt         = backend_ctx->opencl_platforms_cnt;
-  cl_platform_id *opencl_platforms             = backend_ctx->opencl_platforms;
-  char          **opencl_platforms_vendor      = backend_ctx->opencl_platforms_vendor;
-  bool           *opencl_platforms_skipped     = backend_ctx->opencl_platforms_skipped;
-  cl_uint         opencl_devices_cnt           = backend_ctx->opencl_devices_cnt;
-
-  for (cl_uint opencl_platforms_idx = 0; opencl_platforms_idx < opencl_platforms_cnt; opencl_platforms_idx++)
+  if (backend_ctx->cuda)
   {
-    cl_platform_id opencl_platform_id       = opencl_platforms[opencl_platforms_idx];
-    char          *opencl_platform_vendor   = opencl_platforms_vendor[opencl_platforms_idx];
-    bool           opencl_platform_skipped  = opencl_platforms_skipped[opencl_platforms_idx];
+    int cuda_devices_cnt    = backend_ctx->cuda_devices_cnt;
+    int cuda_driver_version = backend_ctx->cuda_driver_version;
 
-    if (opencl_platform_skipped == false)
+    const size_t len = event_log_info (hashcat_ctx, "CUDA API (CUDA %d.%d)", cuda_driver_version / 1000, (cuda_driver_version % 100) / 10);
+
+    char line[HCBUFSIZ_TINY];
+
+    memset (line, '=', len);
+
+    line[len] = 0;
+
+    event_log_info (hashcat_ctx, "%s", line);
+
+    for (int cuda_devices_idx = 0; cuda_devices_idx < cuda_devices_cnt; cuda_devices_idx++)
     {
-      const size_t len = event_log_info (hashcat_ctx, "OpenCL Platform #%u: %s", opencl_platforms_idx + 1, opencl_platform_vendor);
+      const int backend_devices_idx = backend_ctx->backend_device_from_cuda[cuda_devices_idx];
+
+      const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
+
+      int   device_id         = device_param->device_id;
+      char *device_name       = device_param->device_name;
+      u32   device_processors = device_param->device_processors;
+      u64   device_global_mem = device_param->device_global_mem;
+
+      if ((device_param->skipped == false) && (device_param->skipped_warning == false))
+      {
+        event_log_info (hashcat_ctx, "* Device #%u: %s, %" PRIu64 " MB allocatable, %uMCU",
+                  device_id + 1,
+                  device_name,
+                  device_global_mem   / 1024 / 1024,
+                  device_processors);
+      }
+      else
+      {
+        event_log_info (hashcat_ctx, "* Device #%u: %s, skipped",
+                  device_id + 1,
+                  device_name);
+      }
+    }
+
+    event_log_info (hashcat_ctx, NULL);
+  }
+
+  if (backend_ctx->ocl)
+  {
+    cl_uint   opencl_platforms_cnt         = backend_ctx->opencl_platforms_cnt;
+    cl_uint  *opencl_platforms_devices_cnt = backend_ctx->opencl_platforms_devices_cnt;
+    char    **opencl_platforms_vendor      = backend_ctx->opencl_platforms_vendor;
+    char    **opencl_platforms_version     = backend_ctx->opencl_platforms_version;
+
+    for (cl_uint opencl_platforms_idx = 0; opencl_platforms_idx < opencl_platforms_cnt; opencl_platforms_idx++)
+    {
+      char     *opencl_platform_vendor       = opencl_platforms_vendor[opencl_platforms_idx];
+      char     *opencl_platform_version      = opencl_platforms_version[opencl_platforms_idx];
+      cl_uint   opencl_platform_devices_cnt  = opencl_platforms_devices_cnt[opencl_platforms_idx];
+
+      const size_t len = event_log_info (hashcat_ctx, "OpenCL API (%s) - Platform #%u [%s]", opencl_platform_version, opencl_platforms_idx + 1, opencl_platform_vendor);
 
       char line[HCBUFSIZ_TINY];
 
@@ -784,41 +828,38 @@ void opencl_info_compact (hashcat_ctx_t *hashcat_ctx)
       line[len] = 0;
 
       event_log_info (hashcat_ctx, "%s", line);
-    }
-    else
-    {
-      event_log_info (hashcat_ctx, "OpenCL Platform #%u: %s, skipped or no OpenCL compatible devices found.", opencl_platforms_idx + 1, opencl_platform_vendor);
-    }
 
-    for (cl_uint opencl_devices_idx = 0; opencl_devices_idx < opencl_devices_cnt; opencl_devices_idx++)
-    {
-      const hc_device_param_t *device_param = backend_ctx->devices_param + opencl_devices_idx;
-
-      if (device_param->opencl_platform != opencl_platform_id) continue;
-
-      char *device_name         = device_param->device_name;
-      u32   device_processors   = device_param->device_processors;
-      u64   device_maxmem_alloc = device_param->device_maxmem_alloc;
-      u64   device_global_mem   = device_param->device_global_mem;
-
-      if ((device_param->skipped == false) && (device_param->skipped_warning == false))
+      for (cl_uint opencl_platform_devices_idx = 0; opencl_platform_devices_idx < opencl_platform_devices_cnt; opencl_platform_devices_idx++)
       {
-        event_log_info (hashcat_ctx, "* Device #%u: %s, %" PRIu64 "/%" PRIu64 " MB allocatable, %uMCU",
-                  opencl_devices_idx + 1,
-                  device_name,
-                  device_maxmem_alloc / 1024 / 1024,
-                  device_global_mem   / 1024 / 1024,
-                  device_processors);
-      }
-      else
-      {
-        event_log_info (hashcat_ctx, "* Device #%u: %s, skipped.",
-                  opencl_devices_idx + 1,
-                  device_name);
-      }
-    }
+        const int backend_devices_idx = backend_ctx->backend_device_from_opencl_platform[opencl_platforms_idx][opencl_platform_devices_idx];
 
-    event_log_info (hashcat_ctx, NULL);
+        const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
+
+        int   device_id           = device_param->device_id;
+        char *device_name         = device_param->device_name;
+        u32   device_processors   = device_param->device_processors;
+        u64   device_maxmem_alloc = device_param->device_maxmem_alloc;
+        u64   device_global_mem   = device_param->device_global_mem;
+
+        if ((device_param->skipped == false) && (device_param->skipped_warning == false))
+        {
+          event_log_info (hashcat_ctx, "* Device #%u: %s, %" PRIu64 "/%" PRIu64 " MB allocatable, %uMCU",
+                    device_id + 1,
+                    device_name,
+                    device_maxmem_alloc / 1024 / 1024,
+                    device_global_mem   / 1024 / 1024,
+                    device_processors);
+        }
+        else
+        {
+          event_log_info (hashcat_ctx, "* Device #%u: %s, skipped",
+                    device_id + 1,
+                    device_name);
+        }
+      }
+
+      event_log_info (hashcat_ctx, NULL);
+    }
   }
 }
 

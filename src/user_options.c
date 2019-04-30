@@ -78,7 +78,6 @@ static const struct option long_options[] =
   {"opencl-devices",            required_argument, NULL, IDX_OPENCL_DEVICES},
   {"opencl-device-types",       required_argument, NULL, IDX_OPENCL_DEVICE_TYPES},
   {"opencl-info",               no_argument,       NULL, IDX_OPENCL_INFO},
-  {"opencl-platforms",          required_argument, NULL, IDX_OPENCL_PLATFORMS},
   {"opencl-vector-width",       required_argument, NULL, IDX_OPENCL_VECTOR_WIDTH},
   {"optimized-kernel-enable",   no_argument,       NULL, IDX_OPTIMIZED_KERNEL_ENABLE},
   {"outfile-autohex-disable",   no_argument,       NULL, IDX_OUTFILE_AUTOHEX_DISABLE},
@@ -206,7 +205,6 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->opencl_devices            = NULL;
   user_options->opencl_device_types       = NULL;
   user_options->opencl_info               = OPENCL_INFO;
-  user_options->opencl_platforms          = NULL;
   user_options->opencl_vector_width       = OPENCL_VECTOR_WIDTH;
   user_options->optimized_kernel_enable   = OPTIMIZED_KERNEL_ENABLE;
   user_options->outfile_autohex           = OUTFILE_AUTOHEX;
@@ -427,7 +425,6 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_CPU_AFFINITY:              user_options->cpu_affinity              = optarg;                          break;
       case IDX_OPENCL_INFO:               user_options->opencl_info               = true;                            break;
       case IDX_OPENCL_DEVICES:            user_options->opencl_devices            = optarg;                          break;
-      case IDX_OPENCL_PLATFORMS:          user_options->opencl_platforms          = optarg;                          break;
       case IDX_OPENCL_DEVICE_TYPES:       user_options->opencl_device_types       = optarg;                          break;
       case IDX_OPENCL_VECTOR_WIDTH:       user_options->opencl_vector_width       = hc_strtoul (optarg, NULL, 10);
                                           user_options->opencl_vector_width_chgd  = true;                            break;
@@ -1090,16 +1087,6 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  if (user_options->opencl_platforms != NULL)
-  {
-    if (strlen (user_options->opencl_platforms) == 0)
-    {
-      event_log_error (hashcat_ctx, "Invalid --opencl-platforms value - must not be empty.");
-
-      return -1;
-    }
-  }
-
   if (user_options->opencl_devices != NULL)
   {
     if (strlen (user_options->opencl_devices) == 0)
@@ -1597,7 +1584,6 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
   {
     user_options->opencl_devices      = NULL;
     user_options->opencl_device_types = hcstrdup ("1,2,3");
-    user_options->opencl_platforms    = NULL;
     user_options->quiet               = true;
   }
 
@@ -1742,11 +1728,6 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
       event_log_info (hashcat_ctx, "* --opencl-device-types=%s", user_options->opencl_device_types);
     }
 
-    if (user_options->opencl_platforms)
-    {
-      event_log_info (hashcat_ctx, "* --opencl-platforms=%s", user_options->opencl_platforms);
-    }
-
     if (user_options->optimized_kernel_enable == true)
     {
       event_log_info (hashcat_ctx, "* --optimized-kernel-enable");
@@ -1799,11 +1780,6 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
     if (user_options->opencl_device_types)
     {
       event_log_info (hashcat_ctx, "# option: --opencl-device-types=%s", user_options->opencl_device_types);
-    }
-
-    if (user_options->opencl_platforms)
-    {
-      event_log_info (hashcat_ctx, "* option: --opencl-platforms=%s", user_options->opencl_platforms);
     }
 
     if (user_options->optimized_kernel_enable == true)
@@ -2720,7 +2696,6 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_string (user_options->markov_hcstat2);
   logfile_top_string (user_options->opencl_devices);
   logfile_top_string (user_options->opencl_device_types);
-  logfile_top_string (user_options->opencl_platforms);
   logfile_top_string (user_options->outfile);
   logfile_top_string (user_options->outfile_check_dir);
   logfile_top_string (user_options->potfile_path);
