@@ -286,10 +286,10 @@ static void drupal7_encode (const u8 digest[64], u8 buf[43])
 
 bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
-  if (device_param->platform_vendor_id == VENDOR_ID_APPLE)
+  if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
   {
     // trap 6
-    if ((device_param->device_vendor_id == VENDOR_ID_INTEL_SDK) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
+    if ((device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
     {
       return true;
     }

@@ -96,7 +96,7 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
   {
     u32 overhead = 0;
 
-    if (device_param->device_vendor_id == VENDOR_ID_NV)
+    if (device_param->opencl_device_vendor_id == VENDOR_ID_NV)
     {
       // note we need to use device_param->device_local_mem_size - 4 because opencl jit returns with:
       // Entry function '...' uses too much shared data (0xc004 bytes, 0xc000 max)

@@ -180,9 +180,9 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
    * prepare thread buffers
    */
 
-  thread_param_t *threads_param = (thread_param_t *) hccalloc (backend_ctx->devices_cnt, sizeof (thread_param_t));
+  thread_param_t *threads_param = (thread_param_t *) hccalloc (backend_ctx->backend_devices_cnt, sizeof (thread_param_t));
 
-  hc_thread_t *c_threads = (hc_thread_t *) hccalloc (backend_ctx->devices_cnt, sizeof (hc_thread_t));
+  hc_thread_t *c_threads = (hc_thread_t *) hccalloc (backend_ctx->backend_devices_cnt, sizeof (hc_thread_t));
 
   /**
    * create autotune threads
@@ -192,17 +192,17 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   status_ctx->devices_status = STATUS_AUTOTUNE;
 
-  for (u32 device_id = 0; device_id < backend_ctx->devices_cnt; device_id++)
+  for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
   {
-    thread_param_t *thread_param = threads_param + device_id;
+    thread_param_t *thread_param = threads_param + backend_devices_idx;
 
     thread_param->hashcat_ctx = hashcat_ctx;
-    thread_param->tid         = device_id;
+    thread_param->tid         = backend_devices_idx;
 
-    hc_thread_create (c_threads[device_id], thread_autotune, thread_param);
+    hc_thread_create (c_threads[backend_devices_idx], thread_autotune, thread_param);
   }
 
-  hc_thread_wait (backend_ctx->devices_cnt, c_threads);
+  hc_thread_wait (backend_ctx->backend_devices_cnt, c_threads);
 
   EVENT (EVENT_AUTOTUNE_FINISHED);
 
@@ -249,24 +249,24 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   status_ctx->accessible = true;
 
-  for (u32 device_id = 0; device_id < backend_ctx->devices_cnt; device_id++)
+  for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
   {
-    thread_param_t *thread_param = threads_param + device_id;
+    thread_param_t *thread_param = threads_param + backend_devices_idx;
 
     thread_param->hashcat_ctx = hashcat_ctx;
-    thread_param->tid         = device_id;
+    thread_param->tid         = backend_devices_idx;
 
     if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
     {
-      hc_thread_create (c_threads[device_id], thread_calc_stdin, thread_param);
+      hc_thread_create (c_threads[backend_devices_idx], thread_calc_stdin, thread_param);
     }
     else
     {
-      hc_thread_create (c_threads[device_id], thread_calc, thread_param);
+      hc_thread_create (c_threads[backend_devices_idx], thread_calc, thread_param);
     }
   }
 
-  hc_thread_wait (backend_ctx->devices_cnt, c_threads);
+  hc_thread_wait (backend_ctx->backend_devices_cnt, c_threads);
 
   hcfree (c_threads);
 
@@ -736,23 +736,23 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   {
     EVENT (EVENT_SELFTEST_STARTING);
 
-    thread_param_t *threads_param = (thread_param_t *) hccalloc (backend_ctx->devices_cnt, sizeof (thread_param_t));
+    thread_param_t *threads_param = (thread_param_t *) hccalloc (backend_ctx->backend_devices_cnt, sizeof (thread_param_t));
 
-    hc_thread_t *selftest_threads = (hc_thread_t *) hccalloc (backend_ctx->devices_cnt, sizeof (hc_thread_t));
+    hc_thread_t *selftest_threads = (hc_thread_t *) hccalloc (backend_ctx->backend_devices_cnt, sizeof (hc_thread_t));
 
     status_ctx->devices_status = STATUS_SELFTEST;
 
-    for (u32 device_id = 0; device_id < backend_ctx->devices_cnt; device_id++)
+    for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
     {
-      thread_param_t *thread_param = threads_param + device_id;
+      thread_param_t *thread_param = threads_param + backend_devices_idx;
 
       thread_param->hashcat_ctx = hashcat_ctx;
-      thread_param->tid         = device_id;
+      thread_param->tid         = backend_devices_idx;
 
-      hc_thread_create (selftest_threads[device_id], thread_selftest, thread_param);
+      hc_thread_create (selftest_threads[backend_devices_idx], thread_selftest, thread_param);
     }
 
-    hc_thread_wait (backend_ctx->devices_cnt, selftest_threads);
+    hc_thread_wait (backend_ctx->backend_devices_cnt, selftest_threads);
 
     hcfree (threads_param);
 
@@ -760,11 +760,11 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
     // check for any selftest failures
 
-    for (u32 device_id = 0; device_id < backend_ctx->devices_cnt; device_id++)
+    for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
     {
       if (backend_ctx->enabled == false) continue;
 
-      hc_device_param_t *device_param = backend_ctx->devices_param + device_id;
+      hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
 
       if (device_param->skipped == true) continue;
 

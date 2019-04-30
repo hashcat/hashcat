@@ -90,7 +90,7 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
     {
       u32 overhead = 0;
 
-      if (device_param->device_vendor_id == VENDOR_ID_NV)
+      if (device_param->opencl_device_vendor_id == VENDOR_ID_NV)
       {
         overhead = 4;
       }
@@ -121,7 +121,7 @@ bool module_potfile_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_
 bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
   // OpenCL 1.2 pocl HSTR: pthread-x86_64-pc-linux-gnu-skylake: Segmentation fault
-  if (device_param->platform_vendor_id == VENDOR_ID_POCL)
+  if (device_param->opencl_platform_vendor_id == VENDOR_ID_POCL)
   {
     return true;
   }

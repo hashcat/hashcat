@@ -27,9 +27,9 @@ static u64 get_highest_words_done (const hashcat_ctx_t *hashcat_ctx)
 
   u64 words_cur = 0;
 
-  for (u32 device_id = 0; device_id < backend_ctx->devices_cnt; device_id++)
+  for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
   {
-    hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
+    hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
 
     if (device_param->skipped == true) continue;
 
@@ -49,9 +49,9 @@ static u64 get_lowest_words_done (const hashcat_ctx_t *hashcat_ctx)
 
   u64 words_cur = 0xffffffffffffffff;
 
-  for (u32 device_id = 0; device_id < backend_ctx->devices_cnt; device_id++)
+  for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
   {
-    hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
+    hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
 
     if (device_param->skipped == true) continue;
 

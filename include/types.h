@@ -995,13 +995,13 @@ typedef struct link_speed
 
 typedef struct hc_device_param
 {
-  u32     device_id;
+  int     device_id;
 
   u8      pcie_bus;
   u8      pcie_device;
   u8      pcie_function;
 
-  u32     platform_devices_id;  // for mapping with hms devices
+  u32     opencl_platform_devices_id;  // for mapping with hms devices
 
   bool    skipped;              // permanent
   bool    skipped_warning;      // iteration
@@ -1014,6 +1014,7 @@ typedef struct hc_device_param
   size_t  device_maxworkgroup_size;
   u64     device_local_mem_size;
   int     device_local_mem_type;
+  char   *device_name;
 
   int     sm_major;
   int     sm_minor;
@@ -1198,14 +1199,6 @@ typedef struct hc_device_param
 
   hc_timer_t timer_speed;
 
-  // device specific attributes starting
-
-  char   *device_name;
-  char   *device_vendor;
-  char   *device_version;
-  char   *driver_version;
-  char   *device_opencl_version;
-
   // AMD
   bool    has_vadd3;
   bool    has_vbfe;
@@ -1256,17 +1249,25 @@ typedef struct hc_device_param
 
   // API: cuda
 
+  bool   is_cuda;
+
   CUdevice        cuda_device;
 
   // API: opencl
 
-  cl_device_id    device;
+  bool   is_opencl;
+
+  cl_device_id    opencl_device;
+
+  char   *opencl_driver_version;
+  char   *opencl_device_vendor;
+  char   *opencl_device_version;
+  char   *opencl_device_c_version;
+
+  cl_platform_id  opencl_platform;
   cl_device_type  opencl_device_type;
-
-  cl_platform_id platform;
-
-  cl_uint  device_vendor_id;
-  cl_uint  platform_vendor_id;
+  cl_uint         opencl_device_vendor_id;
+  cl_uint         opencl_platform_vendor_id;
 
   cl_kernel  kernel1;
   cl_kernel  kernel12;
@@ -1346,10 +1347,9 @@ typedef struct backend_ctx
   void               *cuda;
   void               *nvrtc;
 
-  int                *backend_device_from_cuda;   // from cuda device index to backend device index
-  int                *backend_device_to_cuda;     // from backend device index to cuda device index
-  int                *backend_device_from_opencl; // from opencl device index to backend device index
-  int                *backend_device_to_opencl;   // from backend device index to opencl device index
+  int                 backend_device_from_cuda[DEVICES_MAX];                              // from cuda device index to backend device index
+  int                 backend_device_from_opencl[DEVICES_MAX];                            // from opencl device index to backend device index
+  int                 backend_device_from_opencl_platform[CL_PLATFORMS_MAX][DEVICES_MAX]; // from opencl device index to backend device index (by platform)
 
   int                 backend_devices_cnt;
   int                 backend_devices_active;
@@ -1357,9 +1357,6 @@ typedef struct backend_ctx
   int                 cuda_devices_active;
   int                 opencl_devices_cnt;
   int                 opencl_devices_active;
-
-  u32                 devices_cnt;
-  u32                 devices_active;
 
   hc_device_param_t  *devices_param;
 
@@ -1387,15 +1384,14 @@ typedef struct backend_ctx
 
   // opencl
 
-  cl_uint             platforms_cnt;
-  cl_platform_id     *platforms;
-  char              **platforms_vendor;
-  char              **platforms_name;
-  char              **platforms_version;
-  bool               *platforms_skipped;
-
-  cl_uint             platform_devices_cnt;
-  cl_device_id       *platform_devices;
+  cl_platform_id     *opencl_platforms;
+  cl_uint             opencl_platforms_cnt;
+  cl_device_id      **opencl_platforms_devices;
+  cl_uint            *opencl_platforms_devices_cnt;
+  char              **opencl_platforms_name;
+  bool               *opencl_platforms_skipped;
+  char              **opencl_platforms_vendor;
+  char              **opencl_platforms_version;
 
   u64                 opencl_platforms_filter;
   cl_device_type      opencl_device_types_filter;

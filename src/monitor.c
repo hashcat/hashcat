@@ -114,33 +114,33 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
     {
       hc_thread_mutex_lock (status_ctx->mux_hwmon);
 
-      for (u32 device_id = 0; device_id < backend_ctx->devices_cnt; device_id++)
+      for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
       {
-        hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
+        hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
 
         if (device_param->skipped == true) continue;
 
-        if ((backend_ctx->devices_param[device_id].opencl_device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
+        if ((backend_ctx->devices_param[backend_devices_idx].opencl_device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
 
-        const int temperature = hm_get_temperature_with_device_id (hashcat_ctx, device_id);
+        const int temperature = hm_get_temperature_with_devices_idx (hashcat_ctx, backend_devices_idx);
 
         if (temperature > (int) user_options->hwmon_temp_abort)
         {
-          EVENT_DATA (EVENT_MONITOR_TEMP_ABORT, &device_id, sizeof (u32));
+          EVENT_DATA (EVENT_MONITOR_TEMP_ABORT, &backend_devices_idx, sizeof (int));
 
           myabort (hashcat_ctx);
         }
       }
 
-      for (u32 device_id = 0; device_id < backend_ctx->devices_cnt; device_id++)
+      for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
       {
-        hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
+        hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
 
         if (device_param->skipped == true) continue;
 
         if (device_param->skipped_warning == true) continue;
 
-        const int rc_throttle = hm_get_throttle_with_device_id (hashcat_ctx, device_id);
+        const int rc_throttle = hm_get_throttle_with_devices_idx (hashcat_ctx, backend_devices_idx);
 
         if (rc_throttle == -1) continue;
 
@@ -148,9 +148,9 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
         {
           slowdown_warnings++;
 
-          if (slowdown_warnings == 1) EVENT_DATA (EVENT_MONITOR_THROTTLE1, &device_id, sizeof (u32));
-          if (slowdown_warnings == 2) EVENT_DATA (EVENT_MONITOR_THROTTLE2, &device_id, sizeof (u32));
-          if (slowdown_warnings == 3) EVENT_DATA (EVENT_MONITOR_THROTTLE3, &device_id, sizeof (u32));
+          if (slowdown_warnings == 1) EVENT_DATA (EVENT_MONITOR_THROTTLE1, &backend_devices_idx, sizeof (int));
+          if (slowdown_warnings == 2) EVENT_DATA (EVENT_MONITOR_THROTTLE2, &backend_devices_idx, sizeof (int));
+          if (slowdown_warnings == 3) EVENT_DATA (EVENT_MONITOR_THROTTLE3, &backend_devices_idx, sizeof (int));
         }
         else
         {
@@ -232,9 +232,9 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
       hc_thread_mutex_lock (status_ctx->mux_hwmon);
 
-      for (u32 device_id = 0; device_id < backend_ctx->devices_cnt; device_id++)
+      for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
       {
-        hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
+        hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
 
         if (device_param->skipped == true) continue;
 
@@ -242,11 +242,11 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
         exec_cnt++;
 
-        const double exec = status_get_exec_msec_dev (hashcat_ctx, device_id);
+        const double exec = status_get_exec_msec_dev (hashcat_ctx, backend_devices_idx);
 
         exec_total += exec;
 
-        const int util = hm_get_utilization_with_device_id (hashcat_ctx, device_id);
+        const int util = hm_get_utilization_with_devices_idx (hashcat_ctx, backend_devices_idx);
 
         if (util == -1) continue;
 
