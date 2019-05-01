@@ -996,6 +996,10 @@ typedef struct hc_device_param
 {
   int     device_id;
 
+  // this occurs if the same device (pci address) is used by multiple backend API
+  int     device_id_alias_cnt;
+  int     device_id_alias_buf[DEVICES_MAX];
+
   u8      pcie_bus;
   u8      pcie_device;
   u8      pcie_function;

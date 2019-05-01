@@ -682,7 +682,15 @@ void opencl_info (hashcat_ctx_t *hashcat_ctx)
       u32   device_maxclock_frequency = device_param->device_maxclock_frequency;
       u64   device_global_mem         = device_param->device_global_mem;
 
-      event_log_info (hashcat_ctx, "Backend Device ID #%d", device_id + 1);
+      if (device_param->device_id_alias_cnt)
+      {
+        event_log_info (hashcat_ctx, "Backend Device ID #%d (alias: #%d)", device_id + 1, device_param->device_id_alias_buf[0] + 1);
+      }
+      else
+      {
+        event_log_info (hashcat_ctx, "Backend Device ID #%d", device_id + 1);
+      }
+
       event_log_info (hashcat_ctx, "  Name...........: %s", device_name);
       event_log_info (hashcat_ctx, "  Processor(s)...: %u", device_processors);
       event_log_info (hashcat_ctx, "  Clock..........: %u", device_maxclock_frequency);
@@ -735,7 +743,15 @@ void opencl_info (hashcat_ctx_t *hashcat_ctx)
         char          *opencl_device_version      = device_param->opencl_device_version;
         char          *opencl_driver_version      = device_param->opencl_driver_version;
 
-        event_log_info (hashcat_ctx, "  Backend Device ID #%d", device_id + 1);
+        if (device_param->device_id_alias_cnt)
+        {
+          event_log_info (hashcat_ctx, "  Backend Device ID #%d (alias: #%d)", device_id + 1, device_param->device_id_alias_buf[0] + 1);
+        }
+        else
+        {
+          event_log_info (hashcat_ctx, "  Backend Device ID #%d", device_id + 1);
+        }
+
         event_log_info (hashcat_ctx, "    Type...........: %s", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")));
         event_log_info (hashcat_ctx, "    Vendor.ID......: %u", opencl_device_vendor_id);
         event_log_info (hashcat_ctx, "    Vendor.........: %s", opencl_device_vendor);
@@ -789,7 +805,7 @@ void opencl_info_compact (hashcat_ctx_t *hashcat_ctx)
 
       if ((device_param->skipped == false) && (device_param->skipped_warning == false))
       {
-        event_log_info (hashcat_ctx, "* Device #%u: %s, %" PRIu64 " MB allocatable, %uMCU",
+        event_log_info (hashcat_ctx, "* Device #%u: %s, %" PRIu64 " MB, %uMCU",
                   device_id + 1,
                   device_name,
                   device_global_mem   / 1024 / 1024,

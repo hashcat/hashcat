@@ -46,7 +46,7 @@ static bool is_same_device (const hc_device_param_t *src, const hc_device_param_
   return true;
 }
 
-static int backend_ctx_find_duplicate_devices (hashcat_ctx_t *hashcat_ctx)
+static int backend_ctx_find_alias_devices (hashcat_ctx_t *hashcat_ctx)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
@@ -68,7 +68,16 @@ static int backend_ctx_find_duplicate_devices (hashcat_ctx_t *hashcat_ctx)
 
       if (is_same_device (device_param_src, device_param_dst) == false) continue;
 
-      device_param_dst->skipped = true;
+      device_param_src->device_id_alias_buf[device_param_src->device_id_alias_cnt] = device_param_dst->device_id;
+      device_param_src->device_id_alias_cnt++;
+
+      device_param_dst->device_id_alias_buf[device_param_dst->device_id_alias_cnt] = device_param_src->device_id;
+      device_param_dst->device_id_alias_cnt++;
+
+      if (device_param_dst->is_opencl == true)
+      {
+        device_param_dst->skipped = true;
+      }
     }
   }
 
@@ -579,7 +588,7 @@ int nvrtc_init (hashcat_ctx_t *hashcat_ctx)
   memset (nvrtc, 0, sizeof (NVRTC_PTR));
 
   #if   defined (_WIN)
-  nvrtc->lib = hc_dlopen ("nvrtc");
+  nvrtc->lib = hc_dlopen ("c:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.1\\nvrtc.lib");
   #elif defined (__APPLE__)
   nvrtc->lib = hc_dlopen ("/System/Library/Frameworks/NVRTC.framework/NVRTC");
   #elif defined (__CYGWIN__)
@@ -764,7 +773,7 @@ int cuda_init (hashcat_ctx_t *hashcat_ctx)
   memset (cuda, 0, sizeof (CUDA_PTR));
 
   #if   defined (_WIN)
-  cuda->lib = hc_dlopen ("cuda");
+  cuda->lib = hc_dlopen ("c:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.1\\cuda.lib");
   #elif defined (__APPLE__)
   cuda->lib = hc_dlopen ("/System/Library/Frameworks/CUDA.framework/CUDA");
   #elif defined (__CYGWIN__)
@@ -3812,6 +3821,8 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       device_param->cuda_device = cuda_device;
 
+      device_param->is_cuda = true;
+
       // device_name
 
       char *device_name = (char *) hcmalloc (HCBUFSIZ_TINY);
@@ -4118,6 +4129,8 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         device_param->opencl_platform_devices_id = opencl_platform_devices_idx;
 
         device_param->opencl_platform = opencl_platform;
+
+        device_param->is_opencl = true;
 
         // opencl_device_type
 
@@ -4942,7 +4955,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
   if (user_options->force == false)
   {
-    backend_ctx_find_duplicate_devices (hashcat_ctx);
+    backend_ctx_find_alias_devices (hashcat_ctx);
   }
 
   // additional check to see if the user has chosen a device that is not within the range of available devices (i.e. larger than devices_cnt)
