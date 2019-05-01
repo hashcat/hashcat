@@ -654,7 +654,7 @@ void example_hashes (hashcat_ctx_t *hashcat_ctx)
   }
 }
 
-void opencl_info (hashcat_ctx_t *hashcat_ctx)
+void backend_info (hashcat_ctx_t *hashcat_ctx)
 {
   const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
@@ -684,7 +684,7 @@ void opencl_info (hashcat_ctx_t *hashcat_ctx)
 
       if (device_param->device_id_alias_cnt)
       {
-        event_log_info (hashcat_ctx, "Backend Device ID #%d (alias: #%d)", device_id + 1, device_param->device_id_alias_buf[0] + 1);
+        event_log_info (hashcat_ctx, "Backend Device ID #%d (Alias: #%d)", device_id + 1, device_param->device_id_alias_buf[0] + 1);
       }
       else
       {
@@ -745,7 +745,7 @@ void opencl_info (hashcat_ctx_t *hashcat_ctx)
 
         if (device_param->device_id_alias_cnt)
         {
-          event_log_info (hashcat_ctx, "  Backend Device ID #%d (alias: #%d)", device_id + 1, device_param->device_id_alias_buf[0] + 1);
+          event_log_info (hashcat_ctx, "  Backend Device ID #%d (Alias: #%d)", device_id + 1, device_param->device_id_alias_buf[0] + 1);
         }
         else
         {
@@ -768,7 +768,7 @@ void opencl_info (hashcat_ctx_t *hashcat_ctx)
   }
 }
 
-void opencl_info_compact (hashcat_ctx_t *hashcat_ctx)
+void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
 {
   const backend_ctx_t  *backend_ctx  = hashcat_ctx->backend_ctx;
   const user_options_t *user_options = hashcat_ctx->user_options;

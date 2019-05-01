@@ -207,7 +207,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   EVENT (EVENT_AUTOTUNE_FINISHED);
 
   /**
-   * find same opencl devices and equal results
+   * find same backend devices and equal results
    */
 
   backend_ctx_devices_sync_tuning (hashcat_ctx);
@@ -295,7 +295,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     // however, that can create confusion in hashcats RC, because exhausted translates to RC = 1.
     // but then having RC = 1 does not match our expection if we use for speed-only and progress-only.
     // to get hashcat to return RC = 0 we have to set it to CRACKED or BYPASS
-    // note: other options like --show, --left, --benchmark, --keyspace, --opencl-info, etc.
+    // note: other options like --show, --left, --benchmark, --keyspace, --backend-info, etc.
     // not not reach this section of the code, they've returned already with rc 0.
 
     if ((user_options->speed_only == true) || (user_options->progress_only == true))
@@ -720,13 +720,13 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * inform the user
    */
 
-  EVENT (EVENT_OPENCL_SESSION_PRE);
+  EVENT (EVENT_BACKEND_SESSION_PRE);
 
   const int rc_session_begin = backend_session_begin (hashcat_ctx);
 
   if (rc_session_begin == -1) return -1;
 
-  EVENT (EVENT_OPENCL_SESSION_POST);
+  EVENT (EVENT_BACKEND_SESSION_POST);
 
   /**
    * create self-test threads
@@ -879,7 +879,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   potfile_write_close (hashcat_ctx);
 
-  // finalize opencl session
+  // finalize backend session
 
   backend_session_destroy (hashcat_ctx);
 
@@ -1169,7 +1169,7 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
   if (rc_user_options_check_files == -1) return -1;
 
   /**
-   * Init OpenCL library loader
+   * Init backend library loader
    */
 
   const int rc_backend_init = backend_ctx_init (hashcat_ctx);
@@ -1177,7 +1177,7 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
   if (rc_backend_init == -1) return -1;
 
   /**
-   * Init OpenCL devices
+   * Init backend devices
    */
 
   const int rc_devices_init = backend_ctx_devices_init (hashcat_ctx, comptime);

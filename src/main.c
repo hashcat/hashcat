@@ -190,7 +190,7 @@ static void main_outerloop_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MA
 
   status_ctx->shutdown_outer = false;
 
-  if ((user_options->example_hashes == false) && (user_options->keyspace == false) && (user_options->stdout_flag == false) && (user_options->opencl_info == false) && (user_options->speed_only == false))
+  if ((user_options->example_hashes == false) && (user_options->keyspace == false) && (user_options->stdout_flag == false) && (user_options->backend_info == false) && (user_options->speed_only == false))
   {
     if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
     {
@@ -263,7 +263,7 @@ static void main_cracker_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
 
   if (user_options->example_hashes  == true) return;
   if (user_options->keyspace        == true) return;
-  if (user_options->opencl_info     == true) return;
+  if (user_options->backend_info    == true) return;
   if (user_options->stdout_flag     == true) return;
 
   // if we had a prompt, clear it
@@ -512,9 +512,9 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
   {
     if (hashconfig->has_optimized_kernel == true)
     {
-      event_log_advice (hashcat_ctx, "ATTENTION! Pure (unoptimized) OpenCL kernels selected.");
+      event_log_advice (hashcat_ctx, "ATTENTION! Pure (unoptimized) backend kernels selected.");
       event_log_advice (hashcat_ctx, "Using pure kernels enables cracking longer passwords but for the price of drastically reduced performance.");
-      event_log_advice (hashcat_ctx, "If you want to switch to optimized OpenCL kernels, append -O to your commandline.");
+      event_log_advice (hashcat_ctx, "If you want to switch to optimized backend kernels, append -O to your commandline.");
       event_log_advice (hashcat_ctx, "See the above message to find out about the exact limits.");
       event_log_advice (hashcat_ctx, NULL);
     }
@@ -567,7 +567,7 @@ static void main_backend_session_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
   event_log_info_nn (hashcat_ctx, "Initialized device kernels and memory...");
 }
 
-static void main_opencl_device_init_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+static void main_backend_device_init_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -575,10 +575,10 @@ static void main_opencl_device_init_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx
 
   const u32 *device_id = (const u32 *) buf;
 
-  event_log_info_nn (hashcat_ctx, "Initializing OpenCL runtime for device #%u...", *device_id + 1);
+  event_log_info_nn (hashcat_ctx, "Initializing backend runtime for device #%u...", *device_id + 1);
 }
 
-static void main_opencl_device_init_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+static void main_backend_device_init_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -586,7 +586,7 @@ static void main_opencl_device_init_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ct
 
   const u32 *device_id = (const u32 *) buf;
 
-  event_log_info_nn (hashcat_ctx, "Initialized OpenCL runtime for device #%u...", *device_id + 1);
+  event_log_info_nn (hashcat_ctx, "Initialized backend runtime for device #%u...", *device_id + 1);
 }
 
 static void main_bitmap_init_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -735,7 +735,7 @@ static void main_monitor_performance_hint (MAYBE_UNUSED hashcat_ctx_t *hashcat_c
     event_log_advice (hashcat_ctx, NULL);
   }
 
-  event_log_advice (hashcat_ctx, "* Update your OpenCL runtime / driver the right way:");
+  event_log_advice (hashcat_ctx, "* Update your backend API runtime / driver the right way:");
   event_log_advice (hashcat_ctx, "  https://hashcat.net/faq/wrongdriver");
   event_log_advice (hashcat_ctx, NULL);
   event_log_advice (hashcat_ctx, "* Create more work items to make use of your parallelization power:");
@@ -1022,10 +1022,10 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
     case EVENT_MONITOR_PERFORMANCE_HINT:  main_monitor_performance_hint  (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_NOINPUT_HINT:      main_monitor_noinput_hint      (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_NOINPUT_ABORT:     main_monitor_noinput_abort     (hashcat_ctx, buf, len); break;
-    case EVENT_OPENCL_SESSION_POST:       main_backend_session_post      (hashcat_ctx, buf, len); break;
-    case EVENT_OPENCL_SESSION_PRE:        main_backend_session_pre       (hashcat_ctx, buf, len); break;
-    case EVENT_OPENCL_DEVICE_INIT_POST:   main_opencl_device_init_post   (hashcat_ctx, buf, len); break;
-    case EVENT_OPENCL_DEVICE_INIT_PRE:    main_opencl_device_init_pre    (hashcat_ctx, buf, len); break;
+    case EVENT_BACKEND_SESSION_POST:      main_backend_session_post      (hashcat_ctx, buf, len); break;
+    case EVENT_BACKEND_SESSION_PRE:       main_backend_session_pre       (hashcat_ctx, buf, len); break;
+    case EVENT_BACKEND_DEVICE_INIT_POST:  main_backend_device_init_post  (hashcat_ctx, buf, len); break;
+    case EVENT_BACKEND_DEVICE_INIT_PRE:   main_backend_device_init_pre   (hashcat_ctx, buf, len); break;
     case EVENT_OUTERLOOP_FINISHED:        main_outerloop_finished        (hashcat_ctx, buf, len); break;
     case EVENT_OUTERLOOP_MAINSCREEN:      main_outerloop_mainscreen      (hashcat_ctx, buf, len); break;
     case EVENT_OUTERLOOP_STARTING:        main_outerloop_starting        (hashcat_ctx, buf, len); break;
@@ -1106,7 +1106,7 @@ int main (int argc, char **argv)
     return 0;
   }
 
-  // init a hashcat session; this initializes opencl devices, hwmon, etc
+  // init a hashcat session; this initializes backend devices, hwmon, etc
 
   welcome_screen (hashcat_ctx, VERSION_TAG);
 
@@ -1128,11 +1128,11 @@ int main (int argc, char **argv)
 
       rc_final = 0;
     }
-    else if (user_options->opencl_info == true)
+    else if (user_options->backend_info == true)
     {
-      // if this is just opencl_info, no need to execute some real cracking session
+      // if this is just backend_info, no need to execute some real cracking session
 
-      opencl_info (hashcat_ctx);
+      backend_info (hashcat_ctx);
 
       rc_final = 0;
     }
@@ -1140,7 +1140,7 @@ int main (int argc, char **argv)
     {
       // now execute hashcat
 
-      opencl_info_compact (hashcat_ctx);
+      backend_info_compact (hashcat_ctx);
 
       user_options_info (hashcat_ctx);
 
@@ -1148,7 +1148,7 @@ int main (int argc, char **argv)
     }
   }
 
-  // finish the hashcat session, this shuts down opencl devices, hwmon, etc
+  // finish the hashcat session, this shuts down backend devices, hwmon, etc
 
   hashcat_session_destroy (hashcat_ctx);
 

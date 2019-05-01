@@ -28,6 +28,9 @@ static const struct option long_options[] =
 {
   {"advice-disable",            no_argument,       NULL, IDX_ADVICE_DISABLE},
   {"attack-mode",               required_argument, NULL, IDX_ATTACK_MODE},
+  {"backend-devices",           required_argument, NULL, IDX_BACKEND_DEVICES},
+  {"backend-info",              no_argument,       NULL, IDX_BACKEND_INFO},
+  {"backend-vector-width",      required_argument, NULL, IDX_BACKEND_VECTOR_WIDTH},
   {"benchmark-all",             no_argument,       NULL, IDX_BENCHMARK_ALL},
   {"benchmark",                 no_argument,       NULL, IDX_BENCHMARK},
   {"bitmap-max",                required_argument, NULL, IDX_BITMAP_MAX},
@@ -75,10 +78,7 @@ static const struct option long_options[] =
   {"markov-hcstat2",            required_argument, NULL, IDX_MARKOV_HCSTAT2},
   {"markov-threshold",          required_argument, NULL, IDX_MARKOV_THRESHOLD},
   {"nonce-error-corrections",   required_argument, NULL, IDX_NONCE_ERROR_CORRECTIONS},
-  {"opencl-devices",            required_argument, NULL, IDX_OPENCL_DEVICES},
   {"opencl-device-types",       required_argument, NULL, IDX_OPENCL_DEVICE_TYPES},
-  {"opencl-info",               no_argument,       NULL, IDX_OPENCL_INFO},
-  {"opencl-vector-width",       required_argument, NULL, IDX_OPENCL_VECTOR_WIDTH},
   {"optimized-kernel-enable",   no_argument,       NULL, IDX_OPTIMIZED_KERNEL_ENABLE},
   {"outfile-autohex-disable",   no_argument,       NULL, IDX_OUTFILE_AUTOHEX_DISABLE},
   {"outfile-check-dir",         required_argument, NULL, IDX_OUTFILE_CHECK_DIR},
@@ -151,6 +151,9 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
 
   user_options->advice_disable            = ADVICE_DISABLE;
   user_options->attack_mode               = ATTACK_MODE;
+  user_options->backend_devices           = NULL;
+  user_options->backend_info              = BACKEND_INFO;
+  user_options->backend_vector_width      = BACKEND_VECTOR_WIDTH;
   user_options->benchmark_all             = BENCHMARK_ALL;
   user_options->benchmark                 = BENCHMARK;
   user_options->bitmap_max                = BITMAP_MAX;
@@ -202,10 +205,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->markov_hcstat2            = NULL;
   user_options->markov_threshold          = MARKOV_THRESHOLD;
   user_options->nonce_error_corrections   = NONCE_ERROR_CORRECTIONS;
-  user_options->opencl_devices            = NULL;
   user_options->opencl_device_types       = NULL;
-  user_options->opencl_info               = OPENCL_INFO;
-  user_options->opencl_vector_width       = OPENCL_VECTOR_WIDTH;
   user_options->optimized_kernel_enable   = OPTIMIZED_KERNEL_ENABLE;
   user_options->outfile_autohex           = OUTFILE_AUTOHEX;
   user_options->outfile_check_dir         = NULL;
@@ -304,7 +304,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_MARKOV_THRESHOLD:
       case IDX_OUTFILE_FORMAT:
       case IDX_OUTFILE_CHECK_TIMER:
-      case IDX_OPENCL_VECTOR_WIDTH:
+      case IDX_BACKEND_VECTOR_WIDTH:
       case IDX_WORKLOAD_PROFILE:
       case IDX_KERNEL_ACCEL:
       case IDX_KERNEL_LOOPS:
@@ -423,11 +423,11 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_HEX_SALT:                  user_options->hex_salt                  = true;                            break;
       case IDX_HEX_WORDLIST:              user_options->hex_wordlist              = true;                            break;
       case IDX_CPU_AFFINITY:              user_options->cpu_affinity              = optarg;                          break;
-      case IDX_OPENCL_INFO:               user_options->opencl_info               = true;                            break;
-      case IDX_OPENCL_DEVICES:            user_options->opencl_devices            = optarg;                          break;
+      case IDX_BACKEND_INFO:              user_options->backend_info              = true;                            break;
+      case IDX_BACKEND_DEVICES:           user_options->backend_devices           = optarg;                          break;
+      case IDX_BACKEND_VECTOR_WIDTH:      user_options->backend_vector_width      = hc_strtoul (optarg, NULL, 10);
+                                          user_options->backend_vector_width_chgd = true;                            break;
       case IDX_OPENCL_DEVICE_TYPES:       user_options->opencl_device_types       = optarg;                          break;
-      case IDX_OPENCL_VECTOR_WIDTH:       user_options->opencl_vector_width       = hc_strtoul (optarg, NULL, 10);
-                                          user_options->opencl_vector_width_chgd  = true;                            break;
       case IDX_OPTIMIZED_KERNEL_ENABLE:   user_options->optimized_kernel_enable   = true;                            break;
       case IDX_WORKLOAD_PROFILE:          user_options->workload_profile          = hc_strtoul (optarg, NULL, 10);
                                           user_options->workload_profile_chgd     = true;                            break;
@@ -856,11 +856,11 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  if (user_options->opencl_vector_width_chgd == true)
+  if (user_options->backend_vector_width_chgd == true)
   {
-    if (is_power_of_2 (user_options->opencl_vector_width) == false || user_options->opencl_vector_width > 16)
+    if (is_power_of_2 (user_options->backend_vector_width) == false || user_options->backend_vector_width > 16)
     {
-      event_log_error (hashcat_ctx, "opencl-vector-width %u is not allowed.", user_options->opencl_vector_width);
+      event_log_error (hashcat_ctx, "backend-vector-width %u is not allowed.", user_options->backend_vector_width);
 
       return -1;
     }
@@ -1087,11 +1087,11 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  if (user_options->opencl_devices != NULL)
+  if (user_options->backend_devices != NULL)
   {
-    if (strlen (user_options->opencl_devices) == 0)
+    if (strlen (user_options->backend_devices) == 0)
     {
-      event_log_error (hashcat_ctx, "Invalid --opencl-devices value - must not be empty.");
+      event_log_error (hashcat_ctx, "Invalid --backend-devices value - must not be empty.");
 
       return -1;
     }
@@ -1220,7 +1220,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       show_error = false;
     }
   }
-  else if (user_options->opencl_info == true)
+  else if (user_options->backend_info == true)
   {
     if (user_options->hc_argc == 0)
     {
@@ -1420,9 +1420,9 @@ void user_options_session_auto (hashcat_ctx_t *hashcat_ctx)
       user_options->session = "stdout";
     }
 
-    if (user_options->opencl_info == true)
+    if (user_options->backend_info == true)
     {
-      user_options->session = "opencl_info";
+      user_options->session = "backend_info";
     }
 
     if (user_options->show == true)
@@ -1469,7 +1469,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
   }
 
   if (user_options->example_hashes  == true
-   || user_options->opencl_info     == true
+   || user_options->backend_info    == true
    || user_options->keyspace        == true
    || user_options->speed_only      == true
    || user_options->progress_only   == true
@@ -1546,17 +1546,17 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->slow_candidates == true)
   {
-    user_options->opencl_vector_width = 1;
+    user_options->backend_vector_width = 1;
   }
 
   if (user_options->stdout_flag == true)
   {
-    user_options->force               = true;
-    user_options->hash_mode           = 2000;
-    user_options->kernel_accel        = 1024;
-    user_options->opencl_vector_width = 1;
-    user_options->outfile_format      = OUTFILE_FMT_PLAIN;
-    user_options->quiet               = true;
+    user_options->force                 = true;
+    user_options->hash_mode             = 2000;
+    user_options->kernel_accel          = 1024;
+    user_options->backend_vector_width  = 1;
+    user_options->outfile_format        = OUTFILE_FMT_PLAIN;
+    user_options->quiet                 = true;
 
     if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
     {
@@ -1580,9 +1580,9 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  if (user_options->opencl_info == true)
+  if (user_options->backend_info == true)
   {
-    user_options->opencl_devices      = NULL;
+    user_options->backend_devices     = NULL;
     user_options->opencl_device_types = hcstrdup ("1,2,3");
     user_options->quiet               = true;
   }
@@ -1638,7 +1638,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     {
 
     }
-    else if (user_options->opencl_info == true)
+    else if (user_options->backend_info == true)
     {
 
     }
@@ -1718,9 +1718,9 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
       event_log_info (hashcat_ctx, "* --force");
     }
 
-    if (user_options->opencl_devices)
+    if (user_options->backend_devices)
     {
-      event_log_info (hashcat_ctx, "* --opencl-devices=%s", user_options->opencl_devices);
+      event_log_info (hashcat_ctx, "* --backend-devices=%s", user_options->backend_devices);
     }
 
     if (user_options->opencl_device_types)
@@ -1733,9 +1733,9 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
       event_log_info (hashcat_ctx, "* --optimized-kernel-enable");
     }
 
-    if (user_options->opencl_vector_width_chgd == true)
+    if (user_options->backend_vector_width_chgd == true)
     {
-      event_log_info (hashcat_ctx, "* --opencl-vector-width=%u", user_options->opencl_vector_width);
+      event_log_info (hashcat_ctx, "* --backend-vector-width=%u", user_options->backend_vector_width);
     }
 
     if (user_options->kernel_accel_chgd == true)
@@ -1772,9 +1772,9 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
       event_log_info (hashcat_ctx, "# option: --force");
     }
 
-    if (user_options->opencl_devices)
+    if (user_options->backend_devices)
     {
-      event_log_info (hashcat_ctx, "# option: --opencl-devices=%s", user_options->opencl_devices);
+      event_log_info (hashcat_ctx, "# option: --backend-devices=%s", user_options->backend_devices);
     }
 
     if (user_options->opencl_device_types)
@@ -1787,9 +1787,9 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
       event_log_info (hashcat_ctx, "# option: --optimized-kernel-enable");
     }
 
-    if (user_options->opencl_vector_width_chgd == true)
+    if (user_options->backend_vector_width_chgd == true)
     {
-      event_log_info (hashcat_ctx, "# option: --opencl-vector-width=%u", user_options->opencl_vector_width);
+      event_log_info (hashcat_ctx, "# option: --backend-vector-width=%u", user_options->backend_vector_width);
     }
 
     if (user_options->kernel_accel_chgd == true)
@@ -1851,7 +1851,7 @@ void user_options_extra_init (hashcat_ctx_t *hashcat_ctx)
   {
 
   }
-  else if (user_options->opencl_info == true)
+  else if (user_options->backend_info == true)
   {
 
   }
@@ -2563,7 +2563,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
   hcfree (modulefile);
 
-  // same check but for an OpenCL kernel
+  // same check but for an backend kernel
 
   char *kernelfile = (char *) hcmalloc (HCBUFSIZ_TINY);
 
@@ -2694,7 +2694,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_string (user_options->induction_dir);
   logfile_top_string (user_options->keyboard_layout_mapping);
   logfile_top_string (user_options->markov_hcstat2);
-  logfile_top_string (user_options->opencl_devices);
+  logfile_top_string (user_options->backend_devices);
   logfile_top_string (user_options->opencl_device_types);
   logfile_top_string (user_options->outfile);
   logfile_top_string (user_options->outfile_check_dir);
@@ -2740,8 +2740,8 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->markov_classic);
   logfile_top_uint   (user_options->markov_disable);
   logfile_top_uint   (user_options->markov_threshold);
-  logfile_top_uint   (user_options->opencl_info);
-  logfile_top_uint   (user_options->opencl_vector_width);
+  logfile_top_uint   (user_options->backend_info);
+  logfile_top_uint   (user_options->backend_vector_width);
   logfile_top_uint   (user_options->optimized_kernel_enable);
   logfile_top_uint   (user_options->outfile_autohex);
   logfile_top_uint   (user_options->outfile_check_timer);

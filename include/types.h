@@ -44,13 +44,6 @@ typedef int16_t i16;
 typedef int32_t i32;
 typedef int64_t i64;
 
-// import types from opencl
-
-//typedef uint8_t  uchar;
-//typedef uint16_t ushort;
-//typedef uint32_t uint;
-//typedef uint64_t ulong;
-
 #include "inc_types.h"
 
 // there's no such thing in plain C, therefore all vector operation cannot work in this emu
@@ -133,10 +126,10 @@ typedef enum event_identifier
   EVENT_MONITOR_PERFORMANCE_HINT  = 0x00000086,
   EVENT_MONITOR_NOINPUT_HINT      = 0x00000087,
   EVENT_MONITOR_NOINPUT_ABORT     = 0x00000088,
-  EVENT_OPENCL_SESSION_POST       = 0x00000090,
-  EVENT_OPENCL_SESSION_PRE        = 0x00000091,
-  EVENT_OPENCL_DEVICE_INIT_POST   = 0x00000092,
-  EVENT_OPENCL_DEVICE_INIT_PRE    = 0x00000093,
+  EVENT_BACKEND_SESSION_POST      = 0x00000090,
+  EVENT_BACKEND_SESSION_PRE       = 0x00000091,
+  EVENT_BACKEND_DEVICE_INIT_POST  = 0x00000092,
+  EVENT_BACKEND_DEVICE_INIT_PRE   = 0x00000093,
   EVENT_OUTERLOOP_FINISHED        = 0x000000a0,
   EVENT_OUTERLOOP_MAINSCREEN      = 0x000000a1,
   EVENT_OUTERLOOP_STARTING        = 0x000000a2,
@@ -592,8 +585,8 @@ typedef enum user_options_defaults
   MARKOV_DISABLE           = false,
   MARKOV_THRESHOLD         = 0,
   NONCE_ERROR_CORRECTIONS  = 8,
-  OPENCL_INFO              = false,
-  OPENCL_VECTOR_WIDTH      = 0,
+  BACKEND_INFO             = false,
+  BACKEND_VECTOR_WIDTH     = 0,
   OPTIMIZED_KERNEL_ENABLE  = false,
   OUTFILE_AUTOHEX          = true,
   OUTFILE_CHECK_TIMER      = 5,
@@ -637,6 +630,9 @@ typedef enum user_options_map
 {
   IDX_ADVICE_DISABLE            = 0xff00,
   IDX_ATTACK_MODE               = 'a',
+  IDX_BACKEND_DEVICES           = 'd',
+  IDX_BACKEND_INFO              = 'I',
+  IDX_BACKEND_VECTOR_WIDTH      = 0xff27,
   IDX_BENCHMARK_ALL             = 0xff01,
   IDX_BENCHMARK                 = 'b',
   IDX_BITMAP_MAX                = 0xff02,
@@ -690,10 +686,7 @@ typedef enum user_options_map
   IDX_MARKOV_HCSTAT2            = 0xff24,
   IDX_MARKOV_THRESHOLD          = 't',
   IDX_NONCE_ERROR_CORRECTIONS   = 0xff25,
-  IDX_OPENCL_DEVICES            = 'd',
   IDX_OPENCL_DEVICE_TYPES       = 'D',
-  IDX_OPENCL_INFO               = 'I',
-  IDX_OPENCL_VECTOR_WIDTH       = 0xff27,
   IDX_OPTIMIZED_KERNEL_ENABLE   = 'O',
   IDX_OUTFILE_AUTOHEX_DISABLE   = 0xff28,
   IDX_OUTFILE_CHECK_DIR         = 0xff29,
@@ -1004,8 +997,6 @@ typedef struct hc_device_param
   u8      pcie_device;
   u8      pcie_function;
 
-  u32     opencl_platform_devices_id;  // for mapping with hms devices
-
   bool    skipped;              // permanent
   bool    skipped_warning;      // iteration
 
@@ -1267,7 +1258,7 @@ typedef struct hc_device_param
   char   *opencl_device_version;
   char   *opencl_device_c_version;
 
-  cl_platform_id  opencl_platform;
+  //cl_platform_id  opencl_platform;
   cl_device_type  opencl_device_type;
   cl_uint         opencl_device_vendor_id;
   cl_uint         opencl_platform_vendor_id;
@@ -1361,14 +1352,14 @@ typedef struct backend_ctx
   int                 opencl_devices_cnt;
   int                 opencl_devices_active;
 
+  u64                 backend_devices_filter;
+
   hc_device_param_t  *devices_param;
 
   u32                 hardware_power_all;
 
   u64                 kernel_power_all;
   u64                 kernel_power_final; // we save that so that all divisions are done from the same base
-
-  u64                 devices_filter;
 
   double              target_msec;
 
@@ -1393,6 +1384,7 @@ typedef struct backend_ctx
   cl_uint            *opencl_platforms_devices_cnt;
   char              **opencl_platforms_name;
   char              **opencl_platforms_vendor;
+  cl_uint            *opencl_platforms_vendor_id;
   char              **opencl_platforms_version;
 
   cl_device_type      opencl_device_types_filter;
@@ -1718,7 +1710,7 @@ typedef struct user_options
   bool         kernel_threads_chgd;
   bool         nonce_error_corrections_chgd;
   bool         spin_damp_chgd;
-  bool         opencl_vector_width_chgd;
+  bool         backend_vector_width_chgd;
   bool         outfile_format_chgd;
   bool         remove_timer_chgd;
   bool         rp_gen_seed_chgd;
@@ -1750,7 +1742,7 @@ typedef struct user_options
   bool         machine_readable;
   bool         markov_classic;
   bool         markov_disable;
-  bool         opencl_info;
+  bool         backend_info;
   bool         optimized_kernel_enable;
   bool         outfile_autohex;
   bool         potfile_disable;
@@ -1782,7 +1774,7 @@ typedef struct user_options
   char        *induction_dir;
   char        *keyboard_layout_mapping;
   char        *markov_hcstat2;
-  char        *opencl_devices;
+  char        *backend_devices;
   char        *opencl_device_types;
   char        *outfile;
   char        *outfile_check_dir;
@@ -1821,7 +1813,7 @@ typedef struct user_options
   u32          markov_threshold;
   u32          nonce_error_corrections;
   u32          spin_damp;
-  u32          opencl_vector_width;
+  u32          backend_vector_width;
   u32          outfile_check_timer;
   u32          outfile_format;
   u32          remove_timer;
