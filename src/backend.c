@@ -5404,7 +5404,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     // vector_width
 
-    cl_uint vector_width;
+    int vector_width;
 
     if (user_options->backend_vector_width_chgd == false)
     {
@@ -5425,15 +5425,35 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       {
         if (hashconfig->opti_type & OPTI_TYPE_USES_BITS_64)
         {
-          CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_NATIVE_VECTOR_WIDTH_LONG, sizeof (vector_width), &vector_width, NULL);
+          if (device_param->is_cuda == true)
+          {
+            // cuda does not support this query
 
-          if (CL_rc == -1) return -1;
+            vector_width = 1;
+          }
+
+          if (device_param->is_opencl == true)
+          {
+            CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_NATIVE_VECTOR_WIDTH_LONG, sizeof (vector_width), &vector_width, NULL);
+
+            if (CL_rc == -1) return -1;
+          }
         }
         else
         {
-          CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_NATIVE_VECTOR_WIDTH_INT,  sizeof (vector_width), &vector_width, NULL);
+          if (device_param->is_cuda == true)
+          {
+            // cuda does not support this query
 
-          if (CL_rc == -1) return -1;
+            vector_width = 1;
+          }
+
+          if (device_param->is_opencl == true)
+          {
+            CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_NATIVE_VECTOR_WIDTH_INT,  sizeof (vector_width), &vector_width, NULL);
+
+            if (CL_rc == -1) return -1;
+          }
         }
       }
       else
@@ -5603,30 +5623,38 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
      * create context for each device
      */
 
-    /*
-    cl_context_properties properties[3];
+    if (device_param->is_cuda == true)
+    {
 
-    properties[0] = CL_CONTEXT_PLATFORM;
-    properties[1] = (cl_context_properties) device_param->opencl_platform;
-    properties[2] = 0;
+    }
 
-    CL_rc = hc_clCreateContext (hashcat_ctx, properties, 1, &device_param->opencl_device, NULL, NULL, &device_param->context);
-    */
+    if (device_param->is_opencl == true)
+    {
+      /*
+      cl_context_properties properties[3];
 
-    CL_rc = hc_clCreateContext (hashcat_ctx, NULL, 1, &device_param->opencl_device, NULL, NULL, &device_param->context);
+      properties[0] = CL_CONTEXT_PLATFORM;
+      properties[1] = (cl_context_properties) device_param->opencl_platform;
+      properties[2] = 0;
 
-    if (CL_rc == -1) return -1;
+      CL_rc = hc_clCreateContext (hashcat_ctx, properties, 1, &device_param->opencl_device, NULL, NULL, &device_param->context);
+      */
 
-    /**
-     * create command-queue
-     */
+      CL_rc = hc_clCreateContext (hashcat_ctx, NULL, 1, &device_param->opencl_device, NULL, NULL, &device_param->context);
 
-    // not supported with NV
-    // device_param->command_queue = hc_clCreateCommandQueueWithProperties (hashcat_ctx, device_param->opencl_device, NULL);
+      if (CL_rc == -1) return -1;
 
-    CL_rc = hc_clCreateCommandQueue (hashcat_ctx, device_param->context, device_param->opencl_device, CL_QUEUE_PROFILING_ENABLE, &device_param->command_queue);
+      /**
+       * create command-queue
+       */
 
-    if (CL_rc == -1) return -1;
+      // not supported with NV
+      // device_param->command_queue = hc_clCreateCommandQueueWithProperties (hashcat_ctx, device_param->opencl_device, NULL);
+
+      CL_rc = hc_clCreateCommandQueue (hashcat_ctx, device_param->context, device_param->opencl_device, CL_QUEUE_PROFILING_ENABLE, &device_param->command_queue);
+
+      if (CL_rc == -1) return -1;
+    }
 
     /**
      * create input buffers on device : calculate size of fixed memory buffers
@@ -5902,7 +5930,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (rc_read_kernel == false) return -1;
 
-        if (backend_ctx->nvrtc)
+        if (device_param->is_cuda)
         {
           nvrtcProgram program;
 
@@ -5982,7 +6010,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
           if (rc_nvrtcDestroyProgram == -1) return -1;
         }
 
-        if (1) // later just else
+        if (device_param->is_opencl)
         {
           CL_rc = hc_clCreateProgramWithSource (hashcat_ctx, device_param->context, 1, (const char **) kernel_sources, NULL, &device_param->program);
 
@@ -6052,13 +6080,21 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (rc_read_kernel == false) return -1;
 
-        CL_rc = hc_clCreateProgramWithBinary (hashcat_ctx, device_param->context, 1, &device_param->opencl_device, kernel_lengths, (const unsigned char **) kernel_sources, NULL, &device_param->program);
+        if (device_param->is_cuda)
+        {
 
-        if (CL_rc == -1) return -1;
+        }
 
-        CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program, 1, &device_param->opencl_device, build_options_module_buf, NULL, NULL);
+        if (device_param->is_opencl)
+        {
+          CL_rc = hc_clCreateProgramWithBinary (hashcat_ctx, device_param->context, 1, &device_param->opencl_device, kernel_lengths, (const unsigned char **) kernel_sources, NULL, &device_param->program);
 
-        if (CL_rc == -1) return -1;
+          if (CL_rc == -1) return -1;
+
+          CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program, 1, &device_param->opencl_device, build_options_module_buf, NULL, NULL);
+
+          if (CL_rc == -1) return -1;
+        }
       }
 
       hcfree (kernel_sources[0]);

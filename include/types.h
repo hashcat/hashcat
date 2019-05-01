@@ -1016,7 +1016,7 @@ typedef struct hc_device_param
 
   st_status_t st_status;
 
-  u32     vector_width;
+  int     vector_width;
 
   u32     kernel_wgs1;
   u32     kernel_wgs12;
