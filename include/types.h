@@ -1246,6 +1246,7 @@ typedef struct hc_device_param
   bool   is_cuda;
 
   CUdevice        cuda_device;
+  CUcontext       cuda_context;
 
   // API: opencl
 
@@ -1262,6 +1263,8 @@ typedef struct hc_device_param
   cl_device_type  opencl_device_type;
   cl_uint         opencl_device_vendor_id;
   cl_uint         opencl_platform_vendor_id;
+
+  cl_context opencl_context;
 
   cl_kernel  kernel1;
   cl_kernel  kernel12;
@@ -1283,8 +1286,6 @@ typedef struct hc_device_param
   cl_kernel  kernel_aux2;
   cl_kernel  kernel_aux3;
   cl_kernel  kernel_aux4;
-
-  cl_context context;
 
   cl_program program;
   cl_program program_mp;

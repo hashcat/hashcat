@@ -916,6 +916,23 @@ typedef enum CUfunction_attribute_enum {
     CU_FUNC_ATTRIBUTE_MAX
 } CUfunction_attribute;
 
+/**
+ * Context creation flags
+ */
+typedef enum CUctx_flags_enum {
+    CU_CTX_SCHED_AUTO          = 0x00, /**< Automatic scheduling */
+    CU_CTX_SCHED_SPIN          = 0x01, /**< Set spin as default scheduling */
+    CU_CTX_SCHED_YIELD         = 0x02, /**< Set yield as default scheduling */
+    CU_CTX_SCHED_BLOCKING_SYNC = 0x04, /**< Set blocking synchronization as default scheduling */
+    CU_CTX_BLOCKING_SYNC       = 0x04, /**< Set blocking synchronization as default scheduling
+                                         *  \deprecated This flag was deprecated as of CUDA 4.0
+                                         *  and was replaced with ::CU_CTX_SCHED_BLOCKING_SYNC. */
+    CU_CTX_SCHED_MASK          = 0x07,
+    CU_CTX_MAP_HOST            = 0x08, /**< Support mapped pinned allocations */
+    CU_CTX_LMEM_RESIZE_TO_MAX  = 0x10, /**< Keep local memory allocation after launch */
+    CU_CTX_FLAGS_MASK          = 0x1f
+} CUctx_flags;
+
 #ifdef _WIN32
 #define CUDAAPI __stdcall
 #else
