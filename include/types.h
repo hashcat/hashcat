@@ -1243,93 +1243,91 @@ typedef struct hc_device_param
 
   // API: cuda
 
-  bool   is_cuda;
+  bool              is_cuda;
 
-  CUdevice        cuda_device;
-  CUcontext       cuda_context;
+  CUdevice          cuda_device;
+  CUcontext         cuda_context;
 
   // API: opencl
 
-  bool   is_opencl;
+  bool              is_opencl;
 
-  cl_device_id    opencl_device;
+  char             *opencl_driver_version;
+  char             *opencl_device_vendor;
+  char             *opencl_device_version;
+  char             *opencl_device_c_version;
 
-  char   *opencl_driver_version;
-  char   *opencl_device_vendor;
-  char   *opencl_device_version;
-  char   *opencl_device_c_version;
+  cl_device_type    opencl_device_type;
+  cl_uint           opencl_device_vendor_id;
+  cl_uint           opencl_platform_vendor_id;
 
-  //cl_platform_id  opencl_platform;
-  cl_device_type  opencl_device_type;
-  cl_uint         opencl_device_vendor_id;
-  cl_uint         opencl_platform_vendor_id;
-
+  cl_device_id      opencl_device;
   cl_context        opencl_context;
   cl_command_queue  opencl_command_queue;
 
-  cl_kernel  kernel1;
-  cl_kernel  kernel12;
-  cl_kernel  kernel2;
-  cl_kernel  kernel23;
-  cl_kernel  kernel3;
-  cl_kernel  kernel4;
-  cl_kernel  kernel_init2;
-  cl_kernel  kernel_loop2;
-  cl_kernel  kernel_mp;
-  cl_kernel  kernel_mp_l;
-  cl_kernel  kernel_mp_r;
-  cl_kernel  kernel_amp;
-  cl_kernel  kernel_tm;
-  cl_kernel  kernel_memset;
-  cl_kernel  kernel_atinit;
-  cl_kernel  kernel_decompress;
-  cl_kernel  kernel_aux1;
-  cl_kernel  kernel_aux2;
-  cl_kernel  kernel_aux3;
-  cl_kernel  kernel_aux4;
+  cl_program        opencl_program;
+  cl_program        opencl_program_mp;
+  cl_program        opencl_program_amp;
 
-  cl_program program;
-  cl_program program_mp;
-  cl_program program_amp;
+  cl_kernel         opencl_kernel1;
+  cl_kernel         opencl_kernel12;
+  cl_kernel         opencl_kernel2;
+  cl_kernel         opencl_kernel23;
+  cl_kernel         opencl_kernel3;
+  cl_kernel         opencl_kernel4;
+  cl_kernel         opencl_kernel_init2;
+  cl_kernel         opencl_kernel_loop2;
+  cl_kernel         opencl_kernel_mp;
+  cl_kernel         opencl_kernel_mp_l;
+  cl_kernel         opencl_kernel_mp_r;
+  cl_kernel         opencl_kernel_amp;
+  cl_kernel         opencl_kernel_tm;
+  cl_kernel         opencl_kernel_memset;
+  cl_kernel         opencl_kernel_atinit;
+  cl_kernel         opencl_kernel_decompress;
+  cl_kernel         opencl_kernel_aux1;
+  cl_kernel         opencl_kernel_aux2;
+  cl_kernel         opencl_kernel_aux3;
+  cl_kernel         opencl_kernel_aux4;
 
-  cl_mem  d_pws_buf;
-  cl_mem  d_pws_amp_buf;
-  cl_mem  d_pws_comp_buf;
-  cl_mem  d_pws_idx;
-  cl_mem  d_words_buf_l;
-  cl_mem  d_words_buf_r;
-  cl_mem  d_rules;
-  cl_mem  d_rules_c;
-  cl_mem  d_combs;
-  cl_mem  d_combs_c;
-  cl_mem  d_bfs;
-  cl_mem  d_bfs_c;
-  cl_mem  d_tm_c;
-  cl_mem  d_bitmap_s1_a;
-  cl_mem  d_bitmap_s1_b;
-  cl_mem  d_bitmap_s1_c;
-  cl_mem  d_bitmap_s1_d;
-  cl_mem  d_bitmap_s2_a;
-  cl_mem  d_bitmap_s2_b;
-  cl_mem  d_bitmap_s2_c;
-  cl_mem  d_bitmap_s2_d;
-  cl_mem  d_plain_bufs;
-  cl_mem  d_digests_buf;
-  cl_mem  d_digests_shown;
-  cl_mem  d_salt_bufs;
-  cl_mem  d_esalt_bufs;
-  cl_mem  d_tmps;
-  cl_mem  d_hooks;
-  cl_mem  d_result;
-  cl_mem  d_extra0_buf;
-  cl_mem  d_extra1_buf;
-  cl_mem  d_extra2_buf;
-  cl_mem  d_extra3_buf;
-  cl_mem  d_root_css_buf;
-  cl_mem  d_markov_css_buf;
-  cl_mem  d_st_digests_buf;
-  cl_mem  d_st_salts_buf;
-  cl_mem  d_st_esalts_buf;
+  cl_mem            opencl_d_pws_buf;
+  cl_mem            opencl_d_pws_amp_buf;
+  cl_mem            opencl_d_pws_comp_buf;
+  cl_mem            opencl_d_pws_idx;
+  cl_mem            opencl_d_words_buf_l;
+  cl_mem            opencl_d_words_buf_r;
+  cl_mem            opencl_d_rules;
+  cl_mem            opencl_d_rules_c;
+  cl_mem            opencl_d_combs;
+  cl_mem            opencl_d_combs_c;
+  cl_mem            opencl_d_bfs;
+  cl_mem            opencl_d_bfs_c;
+  cl_mem            opencl_d_tm_c;
+  cl_mem            opencl_d_bitmap_s1_a;
+  cl_mem            opencl_d_bitmap_s1_b;
+  cl_mem            opencl_d_bitmap_s1_c;
+  cl_mem            opencl_d_bitmap_s1_d;
+  cl_mem            opencl_d_bitmap_s2_a;
+  cl_mem            opencl_d_bitmap_s2_b;
+  cl_mem            opencl_d_bitmap_s2_c;
+  cl_mem            opencl_d_bitmap_s2_d;
+  cl_mem            opencl_d_plain_bufs;
+  cl_mem            opencl_d_digests_buf;
+  cl_mem            opencl_d_digests_shown;
+  cl_mem            opencl_d_salt_bufs;
+  cl_mem            opencl_d_esalt_bufs;
+  cl_mem            opencl_d_tmps;
+  cl_mem            opencl_d_hooks;
+  cl_mem            opencl_d_result;
+  cl_mem            opencl_d_extra0_buf;
+  cl_mem            opencl_d_extra1_buf;
+  cl_mem            opencl_d_extra2_buf;
+  cl_mem            opencl_d_extra3_buf;
+  cl_mem            opencl_d_root_css_buf;
+  cl_mem            opencl_d_markov_css_buf;
+  cl_mem            opencl_d_st_digests_buf;
+  cl_mem            opencl_d_st_salts_buf;
+  cl_mem            opencl_d_st_esalts_buf;
 
 } hc_device_param_t;
 
