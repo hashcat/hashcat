@@ -309,7 +309,7 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
   {
     tmps = hcmalloc (hashconfig->tmp_size);
 
-    hc_clEnqueueReadBuffer (hashcat_ctx, device_param->command_queue, device_param->d_tmps, CL_TRUE, plain->gidvid * hashconfig->tmp_size, hashconfig->tmp_size, tmps, 0, NULL, NULL);
+    hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->d_tmps, CL_TRUE, plain->gidvid * hashconfig->tmp_size, hashconfig->tmp_size, tmps, 0, NULL, NULL);
   }
 
   // hash
@@ -462,7 +462,7 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
   cl_int CL_err;
 
-  CL_err = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->command_queue, device_param->d_result, CL_TRUE, 0, sizeof (u32), &num_cracked, 0, NULL, NULL);
+  CL_err = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->d_result, CL_TRUE, 0, sizeof (u32), &num_cracked, 0, NULL, NULL);
 
   if (CL_err != CL_SUCCESS)
   {
@@ -483,7 +483,7 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
   {
     plain_t *cracked = (plain_t *) hccalloc (num_cracked, sizeof (plain_t));
 
-    CL_err = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->command_queue, device_param->d_plain_bufs, CL_TRUE, 0, num_cracked * sizeof (plain_t), cracked, 0, NULL, NULL);
+    CL_err = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->d_plain_bufs, CL_TRUE, 0, num_cracked * sizeof (plain_t), cracked, 0, NULL, NULL);
 
     if (CL_err != CL_SUCCESS)
     {
@@ -553,7 +553,7 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
       memset (hashes->digests_shown_tmp, 0, salt_buf->digests_cnt * sizeof (u32));
 
-      CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_digests_shown, CL_TRUE, salt_buf->digests_offset * sizeof (u32), salt_buf->digests_cnt * sizeof (u32), &hashes->digests_shown_tmp[salt_buf->digests_offset], 0, NULL, NULL);
+      CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->d_digests_shown, CL_TRUE, salt_buf->digests_offset * sizeof (u32), salt_buf->digests_cnt * sizeof (u32), &hashes->digests_shown_tmp[salt_buf->digests_offset], 0, NULL, NULL);
 
       if (CL_err != CL_SUCCESS)
       {
@@ -565,7 +565,7 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
     num_cracked = 0;
 
-    CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_result, CL_TRUE, 0, sizeof (u32), &num_cracked, 0, NULL, NULL);
+    CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->d_result, CL_TRUE, 0, sizeof (u32), &num_cracked, 0, NULL, NULL);
 
     if (CL_err != CL_SUCCESS)
     {

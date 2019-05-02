@@ -1264,7 +1264,8 @@ typedef struct hc_device_param
   cl_uint         opencl_device_vendor_id;
   cl_uint         opencl_platform_vendor_id;
 
-  cl_context opencl_context;
+  cl_context        opencl_context;
+  cl_command_queue  opencl_command_queue;
 
   cl_kernel  kernel1;
   cl_kernel  kernel12;
@@ -1290,8 +1291,6 @@ typedef struct hc_device_param
   cl_program program;
   cl_program program_mp;
   cl_program program_amp;
-
-  cl_command_queue command_queue;
 
   cl_mem  d_pws_buf;
   cl_mem  d_pws_amp_buf;
