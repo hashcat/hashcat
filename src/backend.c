@@ -4249,6 +4249,9 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
   int cuda_devices_cnt    = 0;
   int cuda_devices_active = 0;
 
+  int CL_rc;
+  int CU_rc;
+
   if (backend_ctx->cuda)
   {
     // device count
@@ -4275,8 +4278,6 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       backend_ctx->backend_device_from_cuda[cuda_devices_idx] = backend_devices_idx;
 
       CUdevice cuda_device;
-
-      int CU_rc;
 
       CU_rc = hc_cuDeviceGet (hashcat_ctx, &cuda_device, cuda_devices_idx);
 
@@ -4323,6 +4324,16 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       device_param->device_maxmem_alloc = (u64) bytes;
 
       device_param->device_available_mem = 0;
+
+      // warp size
+
+      int cuda_warp_size = 0;
+
+      CU_rc = hc_cuDeviceGetAttribute (hashcat_ctx, &cuda_warp_size, CU_DEVICE_ATTRIBUTE_WARP_SIZE, cuda_device);
+
+      if (CU_rc == -1) return -1;
+
+      device_param->cuda_warp_size = cuda_warp_size;
 
       // sm_minor, sm_major
 
@@ -4638,8 +4649,6 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         device_param->is_opencl = true;
 
         size_t param_value_size = 0;
-
-        int CL_rc;
 
         // opencl_device_type
 
@@ -5874,6 +5883,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
   u32 hardware_power_all = 0;
 
+  int CU_rc;
+  int CL_rc;
+
   for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
   {
     /**
@@ -5941,7 +5953,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (device_param->is_opencl == true)
           {
-            const int CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_NATIVE_VECTOR_WIDTH_LONG, sizeof (vector_width), &vector_width, NULL);
+            CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_NATIVE_VECTOR_WIDTH_LONG, sizeof (vector_width), &vector_width, NULL);
 
             if (CL_rc == -1) return -1;
           }
@@ -5957,7 +5969,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (device_param->is_opencl == true)
           {
-            const int CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_NATIVE_VECTOR_WIDTH_INT,  sizeof (vector_width), &vector_width, NULL);
+            CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_NATIVE_VECTOR_WIDTH_INT,  sizeof (vector_width), &vector_width, NULL);
 
             if (CL_rc == -1) return -1;
           }
@@ -6132,7 +6144,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->is_cuda == true)
     {
-      int CU_rc = hc_cuCtxCreate (hashcat_ctx, &device_param->cuda_context, CU_CTX_SCHED_YIELD, device_param->cuda_device);
+      CU_rc = hc_cuCtxCreate (hashcat_ctx, &device_param->cuda_context, CU_CTX_SCHED_YIELD, device_param->cuda_device);
 
       if (CU_rc == -1) return -1;
     }
@@ -6149,7 +6161,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       CL_rc = hc_clCreateContext (hashcat_ctx, properties, 1, &device_param->opencl_device, NULL, NULL, &device_param->opencl_context);
       */
 
-      int CL_rc = hc_clCreateContext (hashcat_ctx, NULL, 1, &device_param->opencl_device, NULL, NULL, &device_param->opencl_context);
+      CL_rc = hc_clCreateContext (hashcat_ctx, NULL, 1, &device_param->opencl_device, NULL, NULL, &device_param->opencl_context);
 
       if (CL_rc == -1) return -1;
 
@@ -6443,7 +6455,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (rc_read_kernel == false) return -1;
 
-        if (device_param->is_cuda)
+        if (device_param->is_cuda == true)
         {
           nvrtcProgram program;
 
@@ -6497,35 +6509,41 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
           hcfree (nvrtc_options);
           hcfree (nvrtc_options_string);
 
-          if (cache_disable == false)
-          {
-            size_t binary_size;
+          size_t binary_size;
 
-            const int rc_nvrtcGetPTXSize = hc_nvrtcGetPTXSize (hashcat_ctx, program, &binary_size);
+          const int rc_nvrtcGetPTXSize = hc_nvrtcGetPTXSize (hashcat_ctx, program, &binary_size);
 
-            if (rc_nvrtcGetPTXSize == -1) return -1;
+          if (rc_nvrtcGetPTXSize == -1) return -1;
 
-            char *binary = (char *) hcmalloc (binary_size);
+          char *binary = (char *) hcmalloc (binary_size);
 
-            const int nvrtcGetPTX = hc_nvrtcGetPTX (hashcat_ctx, program, binary);
+          const int nvrtcGetPTX = hc_nvrtcGetPTX (hashcat_ctx, program, binary);
 
-            if (nvrtcGetPTX == -1) return -1;
-
-            const bool rc_write = write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size);
-
-            if (rc_write == false) return -1;
-
-            hcfree (binary);
-          }
+          if (nvrtcGetPTX == -1) return -1;
 
           const int rc_nvrtcDestroyProgram = hc_nvrtcDestroyProgram (hashcat_ctx, &program);
 
           if (rc_nvrtcDestroyProgram == -1) return -1;
+
+          // tbd: check for some useful options
+
+          const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataEx (hashcat_ctx, &device_param->cuda_module, binary, 0, NULL, NULL);
+
+          if (rc_cuModuleLoadDataEx == -1) return -1;
+
+          if (cache_disable == false)
+          {
+            const bool rc_write = write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size);
+
+            if (rc_write == false) return -1;
+          }
+
+          hcfree (binary);
         }
 
-        if (device_param->is_opencl)
+        if (device_param->is_opencl == true)
         {
-          int CL_rc = hc_clCreateProgramWithSource (hashcat_ctx, device_param->opencl_context, 1, (const char **) kernel_sources, NULL, &device_param->opencl_program);
+          CL_rc = hc_clCreateProgramWithSource (hashcat_ctx, device_param->opencl_context, 1, (const char **) kernel_sources, NULL, &device_param->opencl_program);
 
           if (CL_rc == -1) return -1;
 
@@ -6547,9 +6565,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
           {
             char *build_log = (char *) hcmalloc (build_log_size + 1);
 
-            int CL_rc_build = hc_clGetProgramBuildInfo (hashcat_ctx, device_param->opencl_program, device_param->opencl_device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
+            const int rc_clGetProgramBuildInfo = hc_clGetProgramBuildInfo (hashcat_ctx, device_param->opencl_program, device_param->opencl_device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
 
-            if (CL_rc_build == -1) return -1;
+            if (rc_clGetProgramBuildInfo == -1) return -1;
 
             puts (build_log);
 
@@ -6593,14 +6611,16 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (rc_read_kernel == false) return -1;
 
-        if (device_param->is_cuda)
+        if (device_param->is_cuda == true)
         {
+          const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataEx (hashcat_ctx, &device_param->cuda_module, kernel_sources[0], 0, NULL, NULL);
 
+          if (rc_cuModuleLoadDataEx == -1) return -1;
         }
 
-        if (device_param->is_opencl)
+        if (device_param->is_opencl == true)
         {
-          int CL_rc = hc_clCreateProgramWithBinary (hashcat_ctx, device_param->opencl_context, 1, &device_param->opencl_device, kernel_lengths, (const unsigned char **) kernel_sources, NULL, &device_param->opencl_program);
+          CL_rc = hc_clCreateProgramWithBinary (hashcat_ctx, device_param->opencl_context, 1, &device_param->opencl_device, kernel_lengths, (const unsigned char **) kernel_sources, NULL, &device_param->opencl_program);
 
           if (CL_rc == -1) return -1;
 
@@ -6688,63 +6708,152 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (rc_read_kernel == false) return -1;
 
-          int CL_rc = hc_clCreateProgramWithSource (hashcat_ctx, device_param->opencl_context, 1, (const char **) kernel_sources, NULL, &device_param->opencl_program_mp);
-
-          if (CL_rc == -1) return -1;
-
-          CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->opencl_program_mp, 1, &device_param->opencl_device, build_options_buf, NULL, NULL);
-
-          //if (CL_rc == -1) return -1;
-
-          size_t build_log_size = 0;
-
-          hc_clGetProgramBuildInfo (hashcat_ctx, device_param->opencl_program_mp, device_param->opencl_device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
-
-          //if (CL_rc == -1) return -1;
-
-          #if defined (DEBUG)
-          if ((build_log_size > 1) || (CL_rc == -1))
-          #else
-          if (CL_rc == -1)
-          #endif
+          if (device_param->is_cuda == true)
           {
-            char *build_log = (char *) hcmalloc (build_log_size + 1);
+            nvrtcProgram program;
 
-            int CL_rc_build = hc_clGetProgramBuildInfo (hashcat_ctx, device_param->opencl_program_mp, device_param->opencl_device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
+            const int rc_nvrtcCreateProgram = hc_nvrtcCreateProgram (hashcat_ctx, &program, kernel_sources[0], "mp_kernel", 0, NULL, NULL);
 
-            if (CL_rc_build == -1) return -1;
+            if (rc_nvrtcCreateProgram == -1) return -1;
 
-            puts (build_log);
+            char **nvrtc_options = (char **) hccalloc (3 + strlen (build_options_buf) + 1, sizeof (char *)); // ...
 
-            hcfree (build_log);
-          }
+            nvrtc_options[0] = "--device-as-default-execution-space";
+            nvrtc_options[1] = "--gpu-architecture";
 
-          if (CL_rc == -1)
-          {
-            device_param->skipped_warning = true;
+            hc_asprintf (&nvrtc_options[2], "compute_%d%d", device_param->sm_major, device_param->sm_minor);
 
-            event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed - proceeding without this device.", device_id + 1, source_file);
+            char *nvrtc_options_string = hcstrdup (build_options_buf);
 
-            continue;
-          }
+            const int num_options = 3 + nvrtc_make_options_array_from_string (nvrtc_options_string, nvrtc_options + 3);
 
-          if (cache_disable == false)
-          {
+            const int rc_nvrtcCompileProgram = hc_nvrtcCompileProgram (hashcat_ctx, program, num_options, (const char * const *) nvrtc_options);
+
+            size_t build_log_size = 0;
+
+            hc_nvrtcGetProgramLogSize (hashcat_ctx, program, &build_log_size);
+
+            #if defined (DEBUG)
+            if ((build_log_size > 1) || (rc_nvrtcCompileProgram == -1))
+            #else
+            if (rc_nvrtcCompileProgram == -1)
+            #endif
+            {
+              char *build_log = (char *) hcmalloc (build_log_size + 1);
+
+              const int rc_nvrtcGetProgramLog = hc_nvrtcGetProgramLog (hashcat_ctx, program, build_log);
+
+              if (rc_nvrtcGetProgramLog == -1) return -1;
+
+              puts (build_log);
+
+              hcfree (build_log);
+            }
+
+            if (rc_nvrtcCompileProgram == -1)
+            {
+              device_param->skipped_warning = true;
+
+              event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed - proceeding without this device.", device_id + 1, source_file);
+
+              continue;
+            }
+
+            hcfree (nvrtc_options);
+            hcfree (nvrtc_options_string);
+
             size_t binary_size;
 
-            CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->opencl_program_mp, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
+            const int rc_nvrtcGetPTXSize = hc_nvrtcGetPTXSize (hashcat_ctx, program, &binary_size);
 
-            if (CL_rc == -1) return -1;
+            if (rc_nvrtcGetPTXSize == -1) return -1;
 
             char *binary = (char *) hcmalloc (binary_size);
 
-            CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->opencl_program_mp, CL_PROGRAM_BINARIES, sizeof (char *), &binary, NULL);
+            const int nvrtcGetPTX = hc_nvrtcGetPTX (hashcat_ctx, program, binary);
+
+            if (nvrtcGetPTX == -1) return -1;
+
+            const int rc_nvrtcDestroyProgram = hc_nvrtcDestroyProgram (hashcat_ctx, &program);
+
+            if (rc_nvrtcDestroyProgram == -1) return -1;
+
+            // tbd: check for some useful options
+
+            const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataEx (hashcat_ctx, &device_param->cuda_module_mp, binary, 0, NULL, NULL);
+
+            if (rc_cuModuleLoadDataEx == -1) return -1;
+
+            if (cache_disable == false)
+            {
+              const bool rc_write = write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size);
+
+              if (rc_write == false) return -1;
+            }
+
+            hcfree (binary);
+          }
+
+          if (device_param->is_opencl == true)
+          {
+            CL_rc = hc_clCreateProgramWithSource (hashcat_ctx, device_param->opencl_context, 1, (const char **) kernel_sources, NULL, &device_param->opencl_program_mp);
 
             if (CL_rc == -1) return -1;
 
-            write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size);
+            CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->opencl_program_mp, 1, &device_param->opencl_device, build_options_buf, NULL, NULL);
 
-            hcfree (binary);
+            //if (CL_rc == -1) return -1;
+
+            size_t build_log_size = 0;
+
+            hc_clGetProgramBuildInfo (hashcat_ctx, device_param->opencl_program_mp, device_param->opencl_device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
+
+            //if (CL_rc == -1) return -1;
+
+            #if defined (DEBUG)
+            if ((build_log_size > 1) || (CL_rc == -1))
+            #else
+            if (CL_rc == -1)
+            #endif
+            {
+              char *build_log = (char *) hcmalloc (build_log_size + 1);
+
+              const int rc_clGetProgramBuildInfo = hc_clGetProgramBuildInfo (hashcat_ctx, device_param->opencl_program_mp, device_param->opencl_device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
+
+              if (rc_clGetProgramBuildInfo == -1) return -1;
+
+              puts (build_log);
+
+              hcfree (build_log);
+            }
+
+            if (CL_rc == -1)
+            {
+              device_param->skipped_warning = true;
+
+              event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed - proceeding without this device.", device_id + 1, source_file);
+
+              continue;
+            }
+
+            if (cache_disable == false)
+            {
+              size_t binary_size;
+
+              CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->opencl_program_mp, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
+
+              if (CL_rc == -1) return -1;
+
+              char *binary = (char *) hcmalloc (binary_size);
+
+              CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->opencl_program_mp, CL_PROGRAM_BINARIES, sizeof (char *), &binary, NULL);
+
+              if (CL_rc == -1) return -1;
+
+              write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size);
+
+              hcfree (binary);
+            }
           }
         }
         else
@@ -6753,13 +6862,23 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (rc_read_kernel == false) return -1;
 
-          int CL_rc = hc_clCreateProgramWithBinary (hashcat_ctx, device_param->opencl_context, 1, &device_param->opencl_device, kernel_lengths, (const unsigned char **) kernel_sources, NULL, &device_param->opencl_program_mp);
+          if (device_param->is_cuda == true)
+          {
+            const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataEx (hashcat_ctx, &device_param->cuda_module_mp, kernel_sources[0], 0, NULL, NULL);
 
-          if (CL_rc == -1) return -1;
+            if (rc_cuModuleLoadDataEx == -1) return -1;
+          }
 
-          CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->opencl_program_mp, 1, &device_param->opencl_device, build_options_buf, NULL, NULL);
+          if (device_param->is_opencl == true)
+          {
+            CL_rc = hc_clCreateProgramWithBinary (hashcat_ctx, device_param->opencl_context, 1, &device_param->opencl_device, kernel_lengths, (const unsigned char **) kernel_sources, NULL, &device_param->opencl_program_mp);
 
-          if (CL_rc == -1) return -1;
+            if (CL_rc == -1) return -1;
+
+            CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->opencl_program_mp, 1, &device_param->opencl_device, build_options_buf, NULL, NULL);
+
+            if (CL_rc == -1) return -1;
+          }
         }
 
         hcfree (kernel_sources[0]);
@@ -6843,63 +6962,152 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (rc_read_kernel == false) return -1;
 
-          int CL_rc = hc_clCreateProgramWithSource (hashcat_ctx, device_param->opencl_context, 1, (const char **) kernel_sources, NULL, &device_param->opencl_program_amp);
-
-          if (CL_rc == -1) return -1;
-
-          CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->opencl_program_amp, 1, &device_param->opencl_device, build_options_buf, NULL, NULL);
-
-          //if (CL_rc == -1) return -1;
-
-          size_t build_log_size = 0;
-
-          hc_clGetProgramBuildInfo (hashcat_ctx, device_param->opencl_program_amp, device_param->opencl_device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
-
-          //if (CL_rc == -1) return -1;
-
-          #if defined (DEBUG)
-          if ((build_log_size > 1) || (CL_rc == -1))
-          #else
-          if (CL_rc == -1)
-          #endif
+          if (device_param->is_cuda == true)
           {
-            char *build_log = (char *) hcmalloc (build_log_size + 1);
+            nvrtcProgram program;
 
-            int CL_rc_build_info = hc_clGetProgramBuildInfo (hashcat_ctx, device_param->opencl_program_amp, device_param->opencl_device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
+            const int rc_nvrtcCreateProgram = hc_nvrtcCreateProgram (hashcat_ctx, &program, kernel_sources[0], "mp_kernel", 0, NULL, NULL);
 
-            if (CL_rc_build_info == -1) return -1;
+            if (rc_nvrtcCreateProgram == -1) return -1;
 
-            puts (build_log);
+            char **nvrtc_options = (char **) hccalloc (3 + strlen (build_options_buf) + 1, sizeof (char *)); // ...
 
-            hcfree (build_log);
-          }
+            nvrtc_options[0] = "--device-as-default-execution-space";
+            nvrtc_options[1] = "--gpu-architecture";
 
-          if (CL_rc == -1)
-          {
-            device_param->skipped_warning = true;
+            hc_asprintf (&nvrtc_options[2], "compute_%d%d", device_param->sm_major, device_param->sm_minor);
 
-            event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed - proceeding without this device.", device_id + 1, source_file);
+            char *nvrtc_options_string = hcstrdup (build_options_buf);
 
-            continue;
-          }
+            const int num_options = 3 + nvrtc_make_options_array_from_string (nvrtc_options_string, nvrtc_options + 3);
 
-          if (cache_disable == false)
-          {
+            const int rc_nvrtcCompileProgram = hc_nvrtcCompileProgram (hashcat_ctx, program, num_options, (const char * const *) nvrtc_options);
+
+            size_t build_log_size = 0;
+
+            hc_nvrtcGetProgramLogSize (hashcat_ctx, program, &build_log_size);
+
+            #if defined (DEBUG)
+            if ((build_log_size > 1) || (rc_nvrtcCompileProgram == -1))
+            #else
+            if (rc_nvrtcCompileProgram == -1)
+            #endif
+            {
+              char *build_log = (char *) hcmalloc (build_log_size + 1);
+
+              const int rc_nvrtcGetProgramLog = hc_nvrtcGetProgramLog (hashcat_ctx, program, build_log);
+
+              if (rc_nvrtcGetProgramLog == -1) return -1;
+
+              puts (build_log);
+
+              hcfree (build_log);
+            }
+
+            if (rc_nvrtcCompileProgram == -1)
+            {
+              device_param->skipped_warning = true;
+
+              event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed - proceeding without this device.", device_id + 1, source_file);
+
+              continue;
+            }
+
+            hcfree (nvrtc_options);
+            hcfree (nvrtc_options_string);
+
             size_t binary_size;
 
-            CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->opencl_program_amp, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
+            const int rc_nvrtcGetPTXSize = hc_nvrtcGetPTXSize (hashcat_ctx, program, &binary_size);
 
-            if (CL_rc == -1) return -1;
+            if (rc_nvrtcGetPTXSize == -1) return -1;
 
             char *binary = (char *) hcmalloc (binary_size);
 
-            CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->opencl_program_amp, CL_PROGRAM_BINARIES, sizeof (char *), &binary, NULL);
+            const int nvrtcGetPTX = hc_nvrtcGetPTX (hashcat_ctx, program, binary);
+
+            if (nvrtcGetPTX == -1) return -1;
+
+            const int rc_nvrtcDestroyProgram = hc_nvrtcDestroyProgram (hashcat_ctx, &program);
+
+            if (rc_nvrtcDestroyProgram == -1) return -1;
+
+            // tbd: check for some useful options
+
+            const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataEx (hashcat_ctx, &device_param->cuda_module_amp, binary, 0, NULL, NULL);
+
+            if (rc_cuModuleLoadDataEx == -1) return -1;
+
+            if (cache_disable == false)
+            {
+              const bool rc_write = write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size);
+
+              if (rc_write == false) return -1;
+            }
+
+            hcfree (binary);
+          }
+
+          if (device_param->is_opencl == true)
+          {
+            CL_rc = hc_clCreateProgramWithSource (hashcat_ctx, device_param->opencl_context, 1, (const char **) kernel_sources, NULL, &device_param->opencl_program_amp);
 
             if (CL_rc == -1) return -1;
 
-            write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size);
+            CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->opencl_program_amp, 1, &device_param->opencl_device, build_options_buf, NULL, NULL);
 
-            hcfree (binary);
+            //if (CL_rc == -1) return -1;
+
+            size_t build_log_size = 0;
+
+            hc_clGetProgramBuildInfo (hashcat_ctx, device_param->opencl_program_amp, device_param->opencl_device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
+
+            //if (CL_rc == -1) return -1;
+
+            #if defined (DEBUG)
+            if ((build_log_size > 1) || (CL_rc == -1))
+            #else
+            if (CL_rc == -1)
+            #endif
+            {
+              char *build_log = (char *) hcmalloc (build_log_size + 1);
+
+              const int rc_clGetProgramBuildInfo = hc_clGetProgramBuildInfo (hashcat_ctx, device_param->opencl_program_amp, device_param->opencl_device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
+
+              if (rc_clGetProgramBuildInfo == -1) return -1;
+
+              puts (build_log);
+
+              hcfree (build_log);
+            }
+
+            if (CL_rc == -1)
+            {
+              device_param->skipped_warning = true;
+
+              event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed - proceeding without this device.", device_id + 1, source_file);
+
+              continue;
+            }
+
+            if (cache_disable == false)
+            {
+              size_t binary_size;
+
+              CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->opencl_program_amp, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
+
+              if (CL_rc == -1) return -1;
+
+              char *binary = (char *) hcmalloc (binary_size);
+
+              CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->opencl_program_amp, CL_PROGRAM_BINARIES, sizeof (char *), &binary, NULL);
+
+              if (CL_rc == -1) return -1;
+
+              write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size);
+
+              hcfree (binary);
+            }
           }
         }
         else
@@ -6908,13 +7116,23 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (rc_read_kernel == false) return -1;
 
-          int CL_rc = hc_clCreateProgramWithBinary (hashcat_ctx, device_param->opencl_context, 1, &device_param->opencl_device, kernel_lengths, (const unsigned char **) kernel_sources, NULL, &device_param->opencl_program_amp);
+          if (device_param->is_cuda == true)
+          {
+            const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataEx (hashcat_ctx, &device_param->cuda_module_amp, kernel_sources[0], 0, NULL, NULL);
 
-          if (CL_rc == -1) return -1;
+            if (rc_cuModuleLoadDataEx == -1) return -1;
+          }
 
-          CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->opencl_program_amp, 1, &device_param->opencl_device, build_options_buf, NULL, NULL);
+          if (device_param->is_opencl == true)
+          {
+            CL_rc = hc_clCreateProgramWithBinary (hashcat_ctx, device_param->opencl_context, 1, &device_param->opencl_device, kernel_lengths, (const unsigned char **) kernel_sources, NULL, &device_param->opencl_program_amp);
 
-          if (CL_rc == -1) return -1;
+            if (CL_rc == -1) return -1;
+
+            CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->opencl_program_amp, 1, &device_param->opencl_device, build_options_buf, NULL, NULL);
+
+            if (CL_rc == -1) return -1;
+          }
         }
 
         hcfree (kernel_sources[0]);
@@ -6940,98 +7158,195 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
      * global buffers
      */
 
-    int CL_rc;
-
-    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   bitmap_ctx->bitmap_size, NULL, &device_param->opencl_d_bitmap_s1_a);    if (CL_rc == -1) return -1;
-    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   bitmap_ctx->bitmap_size, NULL, &device_param->opencl_d_bitmap_s1_b);    if (CL_rc == -1) return -1;
-    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   bitmap_ctx->bitmap_size, NULL, &device_param->opencl_d_bitmap_s1_c);    if (CL_rc == -1) return -1;
-    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   bitmap_ctx->bitmap_size, NULL, &device_param->opencl_d_bitmap_s1_d);    if (CL_rc == -1) return -1;
-    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   bitmap_ctx->bitmap_size, NULL, &device_param->opencl_d_bitmap_s2_a);    if (CL_rc == -1) return -1;
-    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   bitmap_ctx->bitmap_size, NULL, &device_param->opencl_d_bitmap_s2_b);    if (CL_rc == -1) return -1;
-    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   bitmap_ctx->bitmap_size, NULL, &device_param->opencl_d_bitmap_s2_c);    if (CL_rc == -1) return -1;
-    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   bitmap_ctx->bitmap_size, NULL, &device_param->opencl_d_bitmap_s2_d);    if (CL_rc == -1) return -1;
-    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_WRITE,  size_plains,             NULL, &device_param->opencl_d_plain_bufs);     if (CL_rc == -1) return -1;
-    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   size_digests,            NULL, &device_param->opencl_d_digests_buf);    if (CL_rc == -1) return -1;
-    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_WRITE,  size_shown,              NULL, &device_param->opencl_d_digests_shown);  if (CL_rc == -1) return -1;
-    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   size_salts,              NULL, &device_param->opencl_d_salt_bufs);      if (CL_rc == -1) return -1;
-    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_WRITE,  size_results,            NULL, &device_param->opencl_d_result);         if (CL_rc == -1) return -1;
-    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_WRITE,  size_extra_buffer / 4,   NULL, &device_param->opencl_d_extra0_buf);     if (CL_rc == -1) return -1;
-    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_WRITE,  size_extra_buffer / 4,   NULL, &device_param->opencl_d_extra1_buf);     if (CL_rc == -1) return -1;
-    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_WRITE,  size_extra_buffer / 4,   NULL, &device_param->opencl_d_extra2_buf);     if (CL_rc == -1) return -1;
-    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_WRITE,  size_extra_buffer / 4,   NULL, &device_param->opencl_d_extra3_buf);     if (CL_rc == -1) return -1;
-    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   size_st_digests,         NULL, &device_param->opencl_d_st_digests_buf); if (CL_rc == -1) return -1;
-    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   size_st_salts,           NULL, &device_param->opencl_d_st_salts_buf);   if (CL_rc == -1) return -1;
-
-    CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_bitmap_s1_a,     CL_TRUE, 0, bitmap_ctx->bitmap_size, bitmap_ctx->bitmap_s1_a, 0, NULL, NULL); if (CL_rc == -1) return -1;
-    CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_bitmap_s1_b,     CL_TRUE, 0, bitmap_ctx->bitmap_size, bitmap_ctx->bitmap_s1_b, 0, NULL, NULL); if (CL_rc == -1) return -1;
-    CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_bitmap_s1_c,     CL_TRUE, 0, bitmap_ctx->bitmap_size, bitmap_ctx->bitmap_s1_c, 0, NULL, NULL); if (CL_rc == -1) return -1;
-    CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_bitmap_s1_d,     CL_TRUE, 0, bitmap_ctx->bitmap_size, bitmap_ctx->bitmap_s1_d, 0, NULL, NULL); if (CL_rc == -1) return -1;
-    CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_bitmap_s2_a,     CL_TRUE, 0, bitmap_ctx->bitmap_size, bitmap_ctx->bitmap_s2_a, 0, NULL, NULL); if (CL_rc == -1) return -1;
-    CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_bitmap_s2_b,     CL_TRUE, 0, bitmap_ctx->bitmap_size, bitmap_ctx->bitmap_s2_b, 0, NULL, NULL); if (CL_rc == -1) return -1;
-    CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_bitmap_s2_c,     CL_TRUE, 0, bitmap_ctx->bitmap_size, bitmap_ctx->bitmap_s2_c, 0, NULL, NULL); if (CL_rc == -1) return -1;
-    CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_bitmap_s2_d,     CL_TRUE, 0, bitmap_ctx->bitmap_size, bitmap_ctx->bitmap_s2_d, 0, NULL, NULL); if (CL_rc == -1) return -1;
-    CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_digests_buf,     CL_TRUE, 0, size_digests,            hashes->digests_buf,     0, NULL, NULL); if (CL_rc == -1) return -1;
-    CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_salt_bufs,       CL_TRUE, 0, size_salts,              hashes->salts_buf,       0, NULL, NULL); if (CL_rc == -1) return -1;
-
-    /**
-     * special buffers
-     */
-
-    if (user_options->slow_candidates == true)
+    if (device_param->is_cuda == true)
     {
-      CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY, size_rules_c, NULL, &device_param->opencl_d_rules_c); if (CL_rc == -1) return -1;
-    }
-    else
-    {
-      if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
+      CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_bitmap_s1_a,    bitmap_ctx->bitmap_size); if (CU_rc == -1) return -1;
+      CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_bitmap_s1_b,    bitmap_ctx->bitmap_size); if (CU_rc == -1) return -1;
+      CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_bitmap_s1_c,    bitmap_ctx->bitmap_size); if (CU_rc == -1) return -1;
+      CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_bitmap_s1_d,    bitmap_ctx->bitmap_size); if (CU_rc == -1) return -1;
+      CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_bitmap_s2_a,    bitmap_ctx->bitmap_size); if (CU_rc == -1) return -1;
+      CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_bitmap_s2_b,    bitmap_ctx->bitmap_size); if (CU_rc == -1) return -1;
+      CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_bitmap_s2_c,    bitmap_ctx->bitmap_size); if (CU_rc == -1) return -1;
+      CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_bitmap_s2_d,    bitmap_ctx->bitmap_size); if (CU_rc == -1) return -1;
+      CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_plain_bufs,     size_plains);             if (CU_rc == -1) return -1;
+      CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_digests_buf,    size_digests);            if (CU_rc == -1) return -1;
+      CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_digests_shown,  size_shown);              if (CU_rc == -1) return -1;
+      CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_salt_bufs,      size_salts);              if (CU_rc == -1) return -1;
+      CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_result,         size_results);            if (CU_rc == -1) return -1;
+      CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_extra0_buf,     size_extra_buffer / 4);   if (CU_rc == -1) return -1;
+      CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_extra1_buf,     size_extra_buffer / 4);   if (CU_rc == -1) return -1;
+      CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_extra2_buf,     size_extra_buffer / 4);   if (CU_rc == -1) return -1;
+      CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_extra3_buf,     size_extra_buffer / 4);   if (CU_rc == -1) return -1;
+      CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_st_digests_buf, size_st_digests);         if (CU_rc == -1) return -1;
+      CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_st_salts_buf,   size_st_salts);           if (CU_rc == -1) return -1;
+
+      CU_rc = hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_bitmap_s1_a, bitmap_ctx->bitmap_s1_a, bitmap_ctx->bitmap_size); if (CU_rc == -1) return -1;
+      CU_rc = hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_bitmap_s1_b, bitmap_ctx->bitmap_s1_b, bitmap_ctx->bitmap_size); if (CU_rc == -1) return -1;
+      CU_rc = hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_bitmap_s1_c, bitmap_ctx->bitmap_s1_c, bitmap_ctx->bitmap_size); if (CU_rc == -1) return -1;
+      CU_rc = hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_bitmap_s1_d, bitmap_ctx->bitmap_s1_d, bitmap_ctx->bitmap_size); if (CU_rc == -1) return -1;
+      CU_rc = hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_bitmap_s2_a, bitmap_ctx->bitmap_s2_a, bitmap_ctx->bitmap_size); if (CU_rc == -1) return -1;
+      CU_rc = hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_bitmap_s2_b, bitmap_ctx->bitmap_s2_b, bitmap_ctx->bitmap_size); if (CU_rc == -1) return -1;
+      CU_rc = hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_bitmap_s2_c, bitmap_ctx->bitmap_s2_c, bitmap_ctx->bitmap_size); if (CU_rc == -1) return -1;
+      CU_rc = hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_bitmap_s2_d, bitmap_ctx->bitmap_s2_d, bitmap_ctx->bitmap_size); if (CU_rc == -1) return -1;
+      CU_rc = hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_digests_buf, hashes->digests_buf,     size_digests);            if (CU_rc == -1) return -1;
+      CU_rc = hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_salt_bufs,   hashes->salts_buf,       size_salts);              if (CU_rc == -1) return -1;
+
+      /**
+       * special buffers
+       */
+
+      if (user_options->slow_candidates == true)
       {
-        CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY, size_rules,   NULL, &device_param->opencl_d_rules);   if (CL_rc == -1) return -1;
-        CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY, size_rules_c, NULL, &device_param->opencl_d_rules_c); if (CL_rc == -1) return -1;
-
-        CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_rules, CL_TRUE, 0, size_rules, straight_ctx->kernel_rules_buf, 0, NULL, NULL); if (CL_rc == -1) return -1;
+        CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_rules_c, size_rules_c); if (CU_rc == -1) return -1;
       }
-      else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
+      else
       {
-        CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY, size_combs,      NULL, &device_param->opencl_d_combs);          if (CL_rc == -1) return -1;
-        CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY, size_combs,      NULL, &device_param->opencl_d_combs_c);        if (CL_rc == -1) return -1;
-        CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY, size_root_css,   NULL, &device_param->opencl_d_root_css_buf);   if (CL_rc == -1) return -1;
-        CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY, size_markov_css, NULL, &device_param->opencl_d_markov_css_buf); if (CL_rc == -1) return -1;
+        if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
+        {
+          CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_rules,   size_rules);   if (CU_rc == -1) return -1;
+          CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_rules_c, size_rules_c); if (CU_rc == -1) return -1;
+
+          CU_rc = hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_rules, straight_ctx->kernel_rules_buf, size_rules); if (CU_rc == -1) return -1;
+        }
+        else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
+        {
+          CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_combs,          size_combs);      if (CU_rc == -1) return -1;
+          CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_combs_c,        size_combs);      if (CU_rc == -1) return -1;
+          CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_root_css_buf,   size_root_css);   if (CU_rc == -1) return -1;
+          CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_markov_css_buf, size_markov_css); if (CU_rc == -1) return -1;
+        }
+        else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
+        {
+          CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_bfs,            size_bfs);        if (CU_rc == -1) return -1;
+          CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_bfs_c,          size_bfs);        if (CU_rc == -1) return -1;
+          CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_tm_c,           size_tm);         if (CU_rc == -1) return -1;
+          CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_root_css_buf,   size_root_css);   if (CU_rc == -1) return -1;
+          CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_markov_css_buf, size_markov_css); if (CU_rc == -1) return -1;
+        }
       }
-      else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
-      {
-        CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY, size_bfs,        NULL, &device_param->opencl_d_bfs);            if (CL_rc == -1) return -1;
-        CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY, size_bfs,        NULL, &device_param->opencl_d_bfs_c);          if (CL_rc == -1) return -1;
-        CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY, size_tm,         NULL, &device_param->opencl_d_tm_c);           if (CL_rc == -1) return -1;
-        CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY, size_root_css,   NULL, &device_param->opencl_d_root_css_buf);   if (CL_rc == -1) return -1;
-        CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY, size_markov_css, NULL, &device_param->opencl_d_markov_css_buf); if (CL_rc == -1) return -1;
-      }
-    }
-
-    if (size_esalts)
-    {
-      CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY, size_esalts, NULL, &device_param->opencl_d_esalt_bufs);
-
-      if (CL_rc == -1) return -1;
-
-      CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_esalt_bufs, CL_TRUE, 0, size_esalts, hashes->esalts_buf, 0, NULL, NULL);
-
-      if (CL_rc == -1) return -1;
-    }
-
-    if (hashconfig->st_hash != NULL)
-    {
-      CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_st_digests_buf,  CL_TRUE, 0, size_st_digests,         hashes->st_digests_buf,  0, NULL, NULL); if (CL_rc == -1) return -1;
-      CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_st_salts_buf,    CL_TRUE, 0, size_st_salts,           hashes->st_salts_buf,    0, NULL, NULL); if (CL_rc == -1) return -1;
 
       if (size_esalts)
       {
-        CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY, size_st_esalts, NULL, &device_param->opencl_d_st_esalts_buf);
+        CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_esalt_bufs, size_esalts);
+
+        if (CU_rc == -1) return -1;
+
+        CU_rc = hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_esalt_bufs, hashes->esalts_buf, size_esalts);
+
+        if (CU_rc == -1) return -1;
+      }
+
+      if (hashconfig->st_hash != NULL)
+      {
+        CU_rc = hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_st_digests_buf, hashes->st_digests_buf, size_st_digests); if (CU_rc == -1) return -1;
+        CU_rc = hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_st_salts_buf,   hashes->st_salts_buf,   size_st_salts);   if (CU_rc == -1) return -1;
+
+        if (size_esalts)
+        {
+          CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_st_esalts_buf, size_st_esalts);
+
+          if (CU_rc == -1) return -1;
+
+          CU_rc = hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_st_esalts_buf, hashes->st_esalts_buf, size_st_esalts);
+
+          if (CU_rc == -1) return -1;
+        }
+      }
+    }
+
+    if (device_param->is_opencl == true)
+    {
+      CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   bitmap_ctx->bitmap_size, NULL, &device_param->opencl_d_bitmap_s1_a);    if (CL_rc == -1) return -1;
+      CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   bitmap_ctx->bitmap_size, NULL, &device_param->opencl_d_bitmap_s1_b);    if (CL_rc == -1) return -1;
+      CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   bitmap_ctx->bitmap_size, NULL, &device_param->opencl_d_bitmap_s1_c);    if (CL_rc == -1) return -1;
+      CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   bitmap_ctx->bitmap_size, NULL, &device_param->opencl_d_bitmap_s1_d);    if (CL_rc == -1) return -1;
+      CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   bitmap_ctx->bitmap_size, NULL, &device_param->opencl_d_bitmap_s2_a);    if (CL_rc == -1) return -1;
+      CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   bitmap_ctx->bitmap_size, NULL, &device_param->opencl_d_bitmap_s2_b);    if (CL_rc == -1) return -1;
+      CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   bitmap_ctx->bitmap_size, NULL, &device_param->opencl_d_bitmap_s2_c);    if (CL_rc == -1) return -1;
+      CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   bitmap_ctx->bitmap_size, NULL, &device_param->opencl_d_bitmap_s2_d);    if (CL_rc == -1) return -1;
+      CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_WRITE,  size_plains,             NULL, &device_param->opencl_d_plain_bufs);     if (CL_rc == -1) return -1;
+      CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   size_digests,            NULL, &device_param->opencl_d_digests_buf);    if (CL_rc == -1) return -1;
+      CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_WRITE,  size_shown,              NULL, &device_param->opencl_d_digests_shown);  if (CL_rc == -1) return -1;
+      CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   size_salts,              NULL, &device_param->opencl_d_salt_bufs);      if (CL_rc == -1) return -1;
+      CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_WRITE,  size_results,            NULL, &device_param->opencl_d_result);         if (CL_rc == -1) return -1;
+      CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_WRITE,  size_extra_buffer / 4,   NULL, &device_param->opencl_d_extra0_buf);     if (CL_rc == -1) return -1;
+      CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_WRITE,  size_extra_buffer / 4,   NULL, &device_param->opencl_d_extra1_buf);     if (CL_rc == -1) return -1;
+      CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_WRITE,  size_extra_buffer / 4,   NULL, &device_param->opencl_d_extra2_buf);     if (CL_rc == -1) return -1;
+      CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_WRITE,  size_extra_buffer / 4,   NULL, &device_param->opencl_d_extra3_buf);     if (CL_rc == -1) return -1;
+      CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   size_st_digests,         NULL, &device_param->opencl_d_st_digests_buf); if (CL_rc == -1) return -1;
+      CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   size_st_salts,           NULL, &device_param->opencl_d_st_salts_buf);   if (CL_rc == -1) return -1;
+
+      CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_bitmap_s1_a, CL_TRUE, 0, bitmap_ctx->bitmap_size, bitmap_ctx->bitmap_s1_a, 0, NULL, NULL); if (CL_rc == -1) return -1;
+      CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_bitmap_s1_b, CL_TRUE, 0, bitmap_ctx->bitmap_size, bitmap_ctx->bitmap_s1_b, 0, NULL, NULL); if (CL_rc == -1) return -1;
+      CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_bitmap_s1_c, CL_TRUE, 0, bitmap_ctx->bitmap_size, bitmap_ctx->bitmap_s1_c, 0, NULL, NULL); if (CL_rc == -1) return -1;
+      CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_bitmap_s1_d, CL_TRUE, 0, bitmap_ctx->bitmap_size, bitmap_ctx->bitmap_s1_d, 0, NULL, NULL); if (CL_rc == -1) return -1;
+      CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_bitmap_s2_a, CL_TRUE, 0, bitmap_ctx->bitmap_size, bitmap_ctx->bitmap_s2_a, 0, NULL, NULL); if (CL_rc == -1) return -1;
+      CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_bitmap_s2_b, CL_TRUE, 0, bitmap_ctx->bitmap_size, bitmap_ctx->bitmap_s2_b, 0, NULL, NULL); if (CL_rc == -1) return -1;
+      CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_bitmap_s2_c, CL_TRUE, 0, bitmap_ctx->bitmap_size, bitmap_ctx->bitmap_s2_c, 0, NULL, NULL); if (CL_rc == -1) return -1;
+      CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_bitmap_s2_d, CL_TRUE, 0, bitmap_ctx->bitmap_size, bitmap_ctx->bitmap_s2_d, 0, NULL, NULL); if (CL_rc == -1) return -1;
+      CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_digests_buf, CL_TRUE, 0, size_digests,            hashes->digests_buf,     0, NULL, NULL); if (CL_rc == -1) return -1;
+      CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_salt_bufs,   CL_TRUE, 0, size_salts,              hashes->salts_buf,       0, NULL, NULL); if (CL_rc == -1) return -1;
+
+      /**
+       * special buffers
+       */
+
+      if (user_options->slow_candidates == true)
+      {
+        CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY, size_rules_c, NULL, &device_param->opencl_d_rules_c); if (CL_rc == -1) return -1;
+      }
+      else
+      {
+        if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
+        {
+          CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY, size_rules,   NULL, &device_param->opencl_d_rules);   if (CL_rc == -1) return -1;
+          CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY, size_rules_c, NULL, &device_param->opencl_d_rules_c); if (CL_rc == -1) return -1;
+
+          CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_rules, CL_TRUE, 0, size_rules, straight_ctx->kernel_rules_buf, 0, NULL, NULL); if (CL_rc == -1) return -1;
+        }
+        else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
+        {
+          CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY, size_combs,      NULL, &device_param->opencl_d_combs);          if (CL_rc == -1) return -1;
+          CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY, size_combs,      NULL, &device_param->opencl_d_combs_c);        if (CL_rc == -1) return -1;
+          CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY, size_root_css,   NULL, &device_param->opencl_d_root_css_buf);   if (CL_rc == -1) return -1;
+          CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY, size_markov_css, NULL, &device_param->opencl_d_markov_css_buf); if (CL_rc == -1) return -1;
+        }
+        else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
+        {
+          CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY, size_bfs,        NULL, &device_param->opencl_d_bfs);            if (CL_rc == -1) return -1;
+          CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY, size_bfs,        NULL, &device_param->opencl_d_bfs_c);          if (CL_rc == -1) return -1;
+          CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY, size_tm,         NULL, &device_param->opencl_d_tm_c);           if (CL_rc == -1) return -1;
+          CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY, size_root_css,   NULL, &device_param->opencl_d_root_css_buf);   if (CL_rc == -1) return -1;
+          CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY, size_markov_css, NULL, &device_param->opencl_d_markov_css_buf); if (CL_rc == -1) return -1;
+        }
+      }
+
+      if (size_esalts)
+      {
+        CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY, size_esalts, NULL, &device_param->opencl_d_esalt_bufs);
 
         if (CL_rc == -1) return -1;
 
-        CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_st_esalts_buf, CL_TRUE, 0, size_st_esalts, hashes->st_esalts_buf, 0, NULL, NULL);
+        CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_esalt_bufs, CL_TRUE, 0, size_esalts, hashes->esalts_buf, 0, NULL, NULL);
 
         if (CL_rc == -1) return -1;
+      }
+
+      if (hashconfig->st_hash != NULL)
+      {
+        CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_st_digests_buf,  CL_TRUE, 0, size_st_digests,         hashes->st_digests_buf,  0, NULL, NULL); if (CL_rc == -1) return -1;
+        CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_st_salts_buf,    CL_TRUE, 0, size_st_salts,           hashes->st_salts_buf,    0, NULL, NULL); if (CL_rc == -1) return -1;
+
+        if (size_esalts)
+        {
+          CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY, size_st_esalts, NULL, &device_param->opencl_d_st_esalts_buf);
+
+          if (CL_rc == -1) return -1;
+
+          CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_st_esalts_buf, CL_TRUE, 0, size_st_esalts, hashes->st_esalts_buf, 0, NULL, NULL);
+
+          if (CL_rc == -1) return -1;
+        }
       }
     }
 
@@ -8534,8 +8849,6 @@ int backend_session_update_combinator (hashcat_ctx_t *hashcat_ctx)
     /*
     if (device_param->is_opencl == true)
     {
-      int CL_rc;
-
       CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel1, 33, sizeof (cl_uint), device_param->kernel_params[33]); if (CL_rc == -1) return -1;
       CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel2, 33, sizeof (cl_uint), device_param->kernel_params[33]); if (CL_rc == -1) return -1;
       CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel3, 33, sizeof (cl_uint), device_param->kernel_params[33]); if (CL_rc == -1) return -1;
@@ -8561,11 +8874,9 @@ int backend_session_update_combinator (hashcat_ctx_t *hashcat_ctx)
       {
         if (device_param->is_opencl == true)
         {
-          int CL_rc;
+          const int rc_clSetKernelArg = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_amp, 5, sizeof (cl_uint), device_param->kernel_params_amp[5]);
 
-          CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_amp, 5, sizeof (cl_uint), device_param->kernel_params_amp[5]);
-
-          if (CL_rc == -1) return -1;
+          if (rc_clSetKernelArg == -1) return -1;
         }
       }
     }

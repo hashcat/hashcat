@@ -1245,8 +1245,53 @@ typedef struct hc_device_param
 
   bool              is_cuda;
 
+  int               cuda_warp_size;
+
   CUdevice          cuda_device;
   CUcontext         cuda_context;
+
+  CUmodule          cuda_module;
+  CUmodule          cuda_module_mp;
+  CUmodule          cuda_module_amp;
+
+  CUdeviceptr       cuda_d_pws_buf;
+  CUdeviceptr       cuda_d_pws_amp_buf;
+  CUdeviceptr       cuda_d_pws_comp_buf;
+  CUdeviceptr       cuda_d_pws_idx;
+  CUdeviceptr       cuda_d_words_buf_l;
+  CUdeviceptr       cuda_d_words_buf_r;
+  CUdeviceptr       cuda_d_rules;
+  CUdeviceptr       cuda_d_rules_c;
+  CUdeviceptr       cuda_d_combs;
+  CUdeviceptr       cuda_d_combs_c;
+  CUdeviceptr       cuda_d_bfs;
+  CUdeviceptr       cuda_d_bfs_c;
+  CUdeviceptr       cuda_d_tm_c;
+  CUdeviceptr       cuda_d_bitmap_s1_a;
+  CUdeviceptr       cuda_d_bitmap_s1_b;
+  CUdeviceptr       cuda_d_bitmap_s1_c;
+  CUdeviceptr       cuda_d_bitmap_s1_d;
+  CUdeviceptr       cuda_d_bitmap_s2_a;
+  CUdeviceptr       cuda_d_bitmap_s2_b;
+  CUdeviceptr       cuda_d_bitmap_s2_c;
+  CUdeviceptr       cuda_d_bitmap_s2_d;
+  CUdeviceptr       cuda_d_plain_bufs;
+  CUdeviceptr       cuda_d_digests_buf;
+  CUdeviceptr       cuda_d_digests_shown;
+  CUdeviceptr       cuda_d_salt_bufs;
+  CUdeviceptr       cuda_d_esalt_bufs;
+  CUdeviceptr       cuda_d_tmps;
+  CUdeviceptr       cuda_d_hooks;
+  CUdeviceptr       cuda_d_result;
+  CUdeviceptr       cuda_d_extra0_buf;
+  CUdeviceptr       cuda_d_extra1_buf;
+  CUdeviceptr       cuda_d_extra2_buf;
+  CUdeviceptr       cuda_d_extra3_buf;
+  CUdeviceptr       cuda_d_root_css_buf;
+  CUdeviceptr       cuda_d_markov_css_buf;
+  CUdeviceptr       cuda_d_st_digests_buf;
+  CUdeviceptr       cuda_d_st_salts_buf;
+  CUdeviceptr       cuda_d_st_esalts_buf;
 
   // API: opencl
 
