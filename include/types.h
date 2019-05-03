@@ -1254,6 +1254,27 @@ typedef struct hc_device_param
   CUmodule          cuda_module_mp;
   CUmodule          cuda_module_amp;
 
+  CUfunction        cuda_function1;
+  CUfunction        cuda_function12;
+  CUfunction        cuda_function2;
+  CUfunction        cuda_function23;
+  CUfunction        cuda_function3;
+  CUfunction        cuda_function4;
+  CUfunction        cuda_function_init2;
+  CUfunction        cuda_function_loop2;
+  CUfunction        cuda_function_mp;
+  CUfunction        cuda_function_mp_l;
+  CUfunction        cuda_function_mp_r;
+  CUfunction        cuda_function_amp;
+  CUfunction        cuda_function_tm;
+  CUfunction        cuda_function_memset;
+  CUfunction        cuda_function_atinit;
+  CUfunction        cuda_function_decompress;
+  CUfunction        cuda_function_aux1;
+  CUfunction        cuda_function_aux2;
+  CUfunction        cuda_function_aux3;
+  CUfunction        cuda_function_aux4;
+
   CUdeviceptr       cuda_d_pws_buf;
   CUdeviceptr       cuda_d_pws_amp_buf;
   CUdeviceptr       cuda_d_pws_comp_buf;

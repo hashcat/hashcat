@@ -23,7 +23,7 @@
 #define CONSTANT_AS
 #define GLOBAL_AS
 #define LOCAL_AS
-#define KERNEL_FQ   __global__
+#define KERNEL_FQ   extern "C" __global__
 #elif defined IS_OPENCL
 #define CONSTANT_AS __constant
 #define GLOBAL_AS   __global
