@@ -1248,6 +1248,10 @@ typedef struct hc_device_param
 
   CUdevice          cuda_device;
   CUcontext         cuda_context;
+  CUstream          cuda_stream;
+
+  CUevent           cuda_event1;
+  CUevent           cuda_event2;
 
   CUmodule          cuda_module;
   CUmodule          cuda_module_mp;

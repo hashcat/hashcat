@@ -30,7 +30,7 @@ DECLSPEC u32 atomic_or (u32 *p, u32 val)
 
 DECLSPEC size_t get_global_id  (const u32 dimindx __attribute__((unused)))
 {
-  return blockDim.x * blockIdx.x + threadIdx.x;
+  return (blockIdx.x * blockDim.x) + threadIdx.x;
 }
 
 DECLSPEC size_t get_local_id (const u32 dimindx __attribute__((unused)))

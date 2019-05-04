@@ -933,6 +933,24 @@ typedef enum CUctx_flags_enum {
     CU_CTX_FLAGS_MASK          = 0x1f
 } CUctx_flags;
 
+/**
+ * Stream creation flags
+ */
+typedef enum CUstream_flags_enum {
+    CU_STREAM_DEFAULT      = 0x0, /**< Default stream flag */
+    CU_STREAM_NON_BLOCKING = 0x1  /**< Stream does not synchronize with stream 0 (the NULL stream) */
+} CUstream_flags;
+
+/**
+ * Event creation flags
+ */
+typedef enum CUevent_flags_enum {
+    CU_EVENT_DEFAULT        = 0x0, /**< Default event flag */
+    CU_EVENT_BLOCKING_SYNC  = 0x1, /**< Event uses blocking synchronization */
+    CU_EVENT_DISABLE_TIMING = 0x2, /**< Event will not record timing data */
+    CU_EVENT_INTERPROCESS   = 0x4  /**< Event is suitable for interprocess use. CU_EVENT_DISABLE_TIMING must be set */
+} CUevent_flags;
+
 #ifdef _WIN32
 #define CUDAAPI __stdcall
 #else

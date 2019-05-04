@@ -104,10 +104,21 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   const u32 kernel_power_max = device_param->hardware_power * kernel_accel_max;
 
   int CL_rc;
+  int CU_rc;
 
-  CL_rc = run_opencl_kernel_atinit (hashcat_ctx, device_param, device_param->opencl_d_pws_buf, kernel_power_max);
+  if (device_param->is_cuda == true)
+  {
+    CU_rc = run_cuda_kernel_atinit (hashcat_ctx, device_param, device_param->cuda_d_pws_buf, kernel_power_max);
 
-  if (CL_rc == -1) return -1;
+    if (CU_rc == -1) return -1;
+  }
+
+  if (device_param->is_opencl == true)
+  {
+    CL_rc = run_opencl_kernel_atinit (hashcat_ctx, device_param, device_param->opencl_d_pws_buf, kernel_power_max);
+
+    if (CL_rc == -1) return -1;
+  }
 
   if (user_options->slow_candidates == true)
   {
@@ -118,9 +129,19 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     {
       if (straight_ctx->kernel_rules_cnt > 1)
       {
-        CL_rc = hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_rules, device_param->opencl_d_rules_c, 0, 0, MIN (kernel_loops_max, KERNEL_RULES) * sizeof (kernel_rule_t), 0, NULL, NULL);
+        if (device_param->is_cuda == true)
+        {
+          CU_rc = hc_cuMemcpyDtoD (hashcat_ctx, device_param->cuda_d_rules_c, device_param->cuda_d_rules, MIN (kernel_loops_max, KERNEL_RULES) * sizeof (kernel_rule_t));
 
-        if (CL_rc == -1) return -1;
+          if (CU_rc == -1) return -1;
+        }
+
+        if (device_param->is_opencl == true)
+        {
+          CL_rc = hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_rules, device_param->opencl_d_rules_c, 0, 0, MIN (kernel_loops_max, KERNEL_RULES) * sizeof (kernel_rule_t), 0, NULL, NULL);
+
+          if (CL_rc == -1) return -1;
+        }
       }
     }
   }
@@ -135,7 +156,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     if (exec_msec > 2000)
     {
-      event_log_error (hashcat_ctx, "OpenCL kernel minimum runtime larger than default TDR");
+      event_log_error (hashcat_ctx, "Kernel minimum runtime larger than default TDR");
 
       return -1;
     }
@@ -215,6 +236,8 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   double exec_msec_pre_final = try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops);
 
+printf ("%f\n", exec_msec_pre_final);
+
   const u32 exec_left = (const u32) (target_msec / exec_msec_pre_final);
 
   const u32 accel_left = kernel_accel_max / kernel_accel;
@@ -228,25 +251,51 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     kernel_accel *= exec_accel_min;
   }
 
-  // reset them fake words
+  if (device_param->is_cuda == true)
+  {
+    // reset them fake words
 
-  CL_rc = run_opencl_kernel_memset (hashcat_ctx, device_param, device_param->opencl_d_pws_buf, 0, device_param->size_pws);
+    CL_rc = run_cuda_kernel_memset (hashcat_ctx, device_param, device_param->cuda_d_pws_buf, 0, device_param->size_pws);
 
-  if (CL_rc == -1) return -1;
+    if (CL_rc == -1) return -1;
 
-  // reset other buffers in case autotune cracked something
+    // reset other buffers in case autotune cracked something
 
-  CL_rc = run_opencl_kernel_memset (hashcat_ctx, device_param, device_param->opencl_d_plain_bufs, 0, device_param->size_plains);
+    CL_rc = run_cuda_kernel_memset (hashcat_ctx, device_param, device_param->cuda_d_plain_bufs, 0, device_param->size_plains);
 
-  if (CL_rc == -1) return -1;
+    if (CL_rc == -1) return -1;
 
-  CL_rc = run_opencl_kernel_memset (hashcat_ctx, device_param, device_param->opencl_d_digests_shown, 0, device_param->size_shown);
+    CL_rc = run_cuda_kernel_memset (hashcat_ctx, device_param, device_param->cuda_d_digests_shown, 0, device_param->size_shown);
 
-  if (CL_rc == -1) return -1;
+    if (CL_rc == -1) return -1;
 
-  CL_rc = run_opencl_kernel_memset (hashcat_ctx, device_param, device_param->opencl_d_result, 0, device_param->size_results);
+    CL_rc = run_cuda_kernel_memset (hashcat_ctx, device_param, device_param->cuda_d_result, 0, device_param->size_results);
 
-  if (CL_rc == -1) return -1;
+    if (CL_rc == -1) return -1;
+  }
+
+  if (device_param->is_opencl == true)
+  {
+    // reset them fake words
+
+    CL_rc = run_opencl_kernel_memset (hashcat_ctx, device_param, device_param->opencl_d_pws_buf, 0, device_param->size_pws);
+
+    if (CL_rc == -1) return -1;
+
+    // reset other buffers in case autotune cracked something
+
+    CL_rc = run_opencl_kernel_memset (hashcat_ctx, device_param, device_param->opencl_d_plain_bufs, 0, device_param->size_plains);
+
+    if (CL_rc == -1) return -1;
+
+    CL_rc = run_opencl_kernel_memset (hashcat_ctx, device_param, device_param->opencl_d_digests_shown, 0, device_param->size_shown);
+
+    if (CL_rc == -1) return -1;
+
+    CL_rc = run_opencl_kernel_memset (hashcat_ctx, device_param, device_param->opencl_d_result, 0, device_param->size_results);
+
+    if (CL_rc == -1) return -1;
+  }
 
   // reset timer
 
@@ -292,6 +341,13 @@ HC_API_CALL void *thread_autotune (void *p)
   if (device_param->skipped == true) return NULL;
 
   if (device_param->skipped_warning == true) return NULL;
+
+  if (device_param->is_cuda == true)
+  {
+    const int rc_cuCtxSetCurrent = hc_cuCtxSetCurrent (hashcat_ctx, device_param->cuda_context);
+
+    if (rc_cuCtxSetCurrent == -1) return NULL;
+  }
 
   const int rc_autotune = autotune (hashcat_ctx, device_param);
 

@@ -2775,15 +2775,198 @@ void rebuild_pws_compressed_append (hc_device_param_t *device_param, const u64 p
   hcfree (tmp_pws_idx);
 }
 
+int run_cuda_kernel_atinit (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, CUdeviceptr buf, const u64 num)
+{
+  u64 num_elements = num;
+
+  device_param->kernel_params_atinit[0]       = (void *) &buf;
+  device_param->kernel_params_atinit_buf64[1] = num_elements;
+
+  const u64 kernel_threads = device_param->kernel_wgs_atinit;
+
+  num_elements = CEILDIV (num_elements, kernel_threads);
+
+  CUfunction function = device_param->cuda_function_atinit;
+
+  const int rc_cuLaunchKernel = hc_cuLaunchKernel (hashcat_ctx, function, num_elements, 1, 1, kernel_threads, 1, 1, 0, NULL, device_param->kernel_params_atinit, NULL);
+
+  if (rc_cuLaunchKernel == -1) return -1;
+
+  const int rc_cuCtxSynchronize = hc_cuCtxSynchronize (hashcat_ctx);
+
+  if (rc_cuCtxSynchronize == -1) return -1;
+
+  return 0;
+}
+
+int run_cuda_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, CUdeviceptr buf, const u32 value, const u64 size)
+{
+  const u64 num16d = size / 16;
+  const u64 num16m = size % 16;
+
+  if (num16d)
+  {
+    device_param->kernel_params_memset[0]       = (void *) &buf;
+    device_param->kernel_params_memset_buf32[1] = value;
+    device_param->kernel_params_memset_buf64[2] = num16d;
+
+    const u64 kernel_threads = device_param->kernel_wgs_memset;
+
+    u64 num_elements = num16d;
+
+    num_elements = CEILDIV (num_elements, kernel_threads);
+
+    CUfunction function = device_param->cuda_function_memset;
+
+    //CU_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 0, sizeof (cl_mem),   (void *) &buf);                         if (CU_rc == -1) return -1;
+    //CU_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 1, sizeof (cl_uint),  device_param->kernel_params_memset[1]); if (CU_rc == -1) return -1;
+    //CU_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 2, sizeof (cl_ulong), device_param->kernel_params_memset[2]); if (CU_rc == -1) return -1;
+
+    //const size_t global_work_size[3] = { num_elements,   1, 1 };
+    //const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
+
+    const int rc_cuLaunchKernel = hc_cuLaunchKernel (hashcat_ctx, function, num_elements, 1, 1, kernel_threads, 1, 1, 0, NULL, device_param->kernel_params_memset, NULL);
+
+    if (rc_cuLaunchKernel == -1) return -1;
+
+    const int rc_cuCtxSynchronize = hc_cuCtxSynchronize (hashcat_ctx);
+
+    if (rc_cuCtxSynchronize == -1) return -1;
+  }
+
+  if (num16m)
+  {
+    u32 tmp[4];
+
+    tmp[0] = value;
+    tmp[1] = value;
+    tmp[2] = value;
+    tmp[3] = value;
+
+    // Apparently are allowed to do this: https://devtalk.nvidia.com/default/topic/761515/how-to-copy-to-device-memory-with-offset-/
+
+    const int rc_cuMemcpyHtoD = hc_cuMemcpyHtoD (hashcat_ctx, buf + (num16d * 16), tmp, num16m);
+
+    if (rc_cuMemcpyHtoD == -1) return -1;
+  }
+
+  return 0;
+}
+
+int run_cuda_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, CUdeviceptr buf, const u64 size)
+{
+  return run_cuda_kernel_memset (hashcat_ctx, device_param, buf, 0, size);
+}
+
+int run_opencl_kernel_atinit (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u64 num)
+{
+  u64 num_elements = num;
+
+  device_param->kernel_params_atinit_buf64[1] = num_elements;
+
+  const u64 kernel_threads = device_param->kernel_wgs_atinit;
+
+  num_elements = round_up_multiple_64 (num_elements, kernel_threads);
+
+  cl_kernel kernel = device_param->opencl_kernel_atinit;
+
+  const size_t global_work_size[3] = { num_elements,    1, 1 };
+  const size_t local_work_size[3]  = { kernel_threads,  1, 1 };
+
+  int CL_rc;
+
+  CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 0, sizeof (cl_mem), (void *) &buf);
+
+  if (CL_rc == -1) return -1;
+
+  CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 1, sizeof (cl_ulong), device_param->kernel_params_atinit[1]);
+
+  if (CL_rc == -1) return -1;
+
+  CL_rc = hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
+
+  if (CL_rc == -1) return -1;
+
+  CL_rc = hc_clFlush (hashcat_ctx, device_param->opencl_command_queue);
+
+  if (CL_rc == -1) return -1;
+
+  CL_rc = hc_clFinish (hashcat_ctx, device_param->opencl_command_queue);
+
+  if (CL_rc == -1) return -1;
+
+  return 0;
+}
+
+int run_opencl_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u32 value, const u64 size)
+{
+  const u64 num16d = size / 16;
+  const u64 num16m = size % 16;
+
+  if (num16d)
+  {
+    device_param->kernel_params_memset_buf32[1] = value;
+    device_param->kernel_params_memset_buf64[2] = num16d;
+
+    const u64 kernel_threads = device_param->kernel_wgs_memset;
+
+    u64 num_elements = num16d;
+
+    num_elements = round_up_multiple_64 (num_elements, kernel_threads);
+
+    cl_kernel kernel = device_param->opencl_kernel_memset;
+
+    int CL_rc;
+
+    CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 0, sizeof (cl_mem),   (void *) &buf);                         if (CL_rc == -1) return -1;
+    CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 1, sizeof (cl_uint),  device_param->kernel_params_memset[1]); if (CL_rc == -1) return -1;
+    CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 2, sizeof (cl_ulong), device_param->kernel_params_memset[2]); if (CL_rc == -1) return -1;
+
+    const size_t global_work_size[3] = { num_elements,   1, 1 };
+    const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
+
+    CL_rc = hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
+
+    if (CL_rc == -1) return -1;
+
+    CL_rc = hc_clFlush (hashcat_ctx, device_param->opencl_command_queue);
+
+    if (CL_rc == -1) return -1;
+
+    CL_rc = hc_clFinish (hashcat_ctx, device_param->opencl_command_queue);
+
+    if (CL_rc == -1) return -1;
+  }
+
+  if (num16m)
+  {
+    u32 tmp[4];
+
+    tmp[0] = value;
+    tmp[1] = value;
+    tmp[2] = value;
+    tmp[3] = value;
+
+    int CL_rc;
+
+    CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, buf, CL_TRUE, num16d * 16, num16m, tmp, 0, NULL, NULL);
+
+    if (CL_rc == -1) return -1;
+  }
+
+  return 0;
+}
+
+int run_opencl_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u64 size)
+{
+  return run_opencl_kernel_memset (hashcat_ctx, device_param, buf, 0, size);
+}
+
 int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kern_run, const u64 num, const u32 event_update, const u32 iteration)
 {
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
   const user_options_t *user_options = hashcat_ctx->user_options;
-
-  u64 num_elements = num;
-
-  device_param->kernel_params_buf64[34] = num;
 
   u64 kernel_threads = 0;
 
@@ -2805,20 +2988,9 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
   kernel_threads = MIN (kernel_threads, device_param->kernel_threads);
 
-  // kernel_threads = power_of_two_floor_32 (kernel_threads);
+  device_param->kernel_params_buf64[34] = num;
 
-  if (device_param->is_cuda == true)
-  {
-    num_elements = CEILDIV (num_elements, kernel_threads);
-  }
-
-  if (device_param->is_opencl == true)
-  {
-    num_elements = round_up_multiple_64 (num_elements, kernel_threads);
-  }
-
-  int CL_rc;
-  int CU_rc;
+  u64 num_elements = num;
 
   if (device_param->is_cuda == true)
   {
@@ -2843,17 +3015,21 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
       }
     }
 
-    CUevent cuda_event;
+    num_elements = CEILDIV (num_elements, kernel_threads);
 
-/*
     if ((hashconfig->opts_type & OPTS_TYPE_PT_BITSLICE) && (user_options->attack_mode == ATTACK_MODE_BF))
     {
-      const size_t global_work_size[3] = { num_elements,  32, 1 };
-      const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
+      const int rc_cuEventRecord1 = hc_cuEventRecord (hashcat_ctx, device_param->cuda_event1, device_param->cuda_stream);
 
-      CL_rc = hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, kernel, 2, NULL, global_work_size, local_work_size, 0, NULL, &opencl_event);
+      if (rc_cuEventRecord1 == -1) return -1;
 
-      if (CL_rc == -1) return -1;
+      const int rc_cuLaunchKernel = hc_cuLaunchKernel (hashcat_ctx, cuda_function, num_elements, 32, 1, kernel_threads, 1, 1, 0, device_param->cuda_stream, device_param->kernel_params, NULL);
+
+      if (rc_cuLaunchKernel == -1) return -1;
+
+      const int rc_cuEventRecord2 = hc_cuEventRecord (hashcat_ctx, device_param->cuda_event2, device_param->cuda_stream);
+
+      if (rc_cuEventRecord2 == -1) return -1;
     }
     else
     {
@@ -2879,108 +3055,40 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
         }
       }
 
-      num_elements = round_up_multiple_64 (num_elements, kernel_threads);
+      num_elements = CEILDIV (num_elements, kernel_threads);
 
-      const size_t global_work_size[3] = { num_elements,   1, 1 };
-      const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
+      const int rc_cuEventRecord1 = hc_cuEventRecord (hashcat_ctx, device_param->cuda_event1, device_param->cuda_stream);
 
-      CL_rc = hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, &opencl_event);
+      if (rc_cuEventRecord1 == -1) return -1;
 
-      if (CL_rc == -1) return -1;
+      const int rc_cuLaunchKernel = hc_cuLaunchKernel (hashcat_ctx, cuda_function, num_elements, 1, 1, kernel_threads, 1, 1, 0, device_param->cuda_stream, device_param->kernel_params, NULL);
+
+      if (rc_cuLaunchKernel == -1) return -1;
+
+      const int rc_cuEventRecord2 = hc_cuEventRecord (hashcat_ctx, device_param->cuda_event2, device_param->cuda_stream);
+
+      if (rc_cuEventRecord2 == -1) return -1;
     }
 
-    CL_rc = hc_clFlush (hashcat_ctx, device_param->opencl_command_queue);
+    const int rc_cuEventSynchronize = hc_cuEventSynchronize (hashcat_ctx, device_param->cuda_event2);
 
-    if (CL_rc == -1) return -1;
+    if (rc_cuEventSynchronize == -1) return -1;
 
-    // spin damper section
+    const int rc_cuStreamSynchronize = hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream);
 
-    const u32 iterationm = iteration % EXPECTED_ITERATIONS;
+    if (rc_cuStreamSynchronize == -1) return -1;
 
-    cl_int opencl_event_status;
+    float exec_ms;
 
-    size_t param_value_size_ret;
+    const int rc_cuEventElapsedTime = hc_cuEventElapsedTime (hashcat_ctx, &exec_ms, device_param->cuda_event1, device_param->cuda_event2);
 
-    CL_rc = hc_clGetEventInfo (hashcat_ctx, opencl_event, CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof (opencl_event_status), &opencl_event_status, &param_value_size_ret);
-
-    if (CL_rc == -1) return -1;
-
-    if (device_param->spin_damp > 0)
-    {
-      double spin_total = device_param->spin_damp;
-
-      while (opencl_event_status != CL_COMPLETE)
-      {
-        if (status_ctx->devices_status == STATUS_RUNNING)
-        {
-          switch (kern_run)
-          {
-            case KERN_RUN_1:      if (device_param->exec_us_prev1[iterationm]      > 0) usleep ((useconds_t) (device_param->exec_us_prev1[iterationm]      * device_param->spin_damp)); break;
-            case KERN_RUN_2:      if (device_param->exec_us_prev2[iterationm]      > 0) usleep ((useconds_t) (device_param->exec_us_prev2[iterationm]      * device_param->spin_damp)); break;
-            case KERN_RUN_3:      if (device_param->exec_us_prev3[iterationm]      > 0) usleep ((useconds_t) (device_param->exec_us_prev3[iterationm]      * device_param->spin_damp)); break;
-            case KERN_RUN_4:      if (device_param->exec_us_prev4[iterationm]      > 0) usleep ((useconds_t) (device_param->exec_us_prev4[iterationm]      * device_param->spin_damp)); break;
-            case KERN_RUN_INIT2:  if (device_param->exec_us_prev_init2[iterationm] > 0) usleep ((useconds_t) (device_param->exec_us_prev_init2[iterationm] * device_param->spin_damp)); break;
-            case KERN_RUN_LOOP2:  if (device_param->exec_us_prev_loop2[iterationm] > 0) usleep ((useconds_t) (device_param->exec_us_prev_loop2[iterationm] * device_param->spin_damp)); break;
-            case KERN_RUN_AUX1:   if (device_param->exec_us_prev_aux1[iterationm]  > 0) usleep ((useconds_t) (device_param->exec_us_prev_aux1[iterationm]  * device_param->spin_damp)); break;
-            case KERN_RUN_AUX2:   if (device_param->exec_us_prev_aux2[iterationm]  > 0) usleep ((useconds_t) (device_param->exec_us_prev_aux2[iterationm]  * device_param->spin_damp)); break;
-            case KERN_RUN_AUX3:   if (device_param->exec_us_prev_aux3[iterationm]  > 0) usleep ((useconds_t) (device_param->exec_us_prev_aux3[iterationm]  * device_param->spin_damp)); break;
-            case KERN_RUN_AUX4:   if (device_param->exec_us_prev_aux4[iterationm]  > 0) usleep ((useconds_t) (device_param->exec_us_prev_aux4[iterationm]  * device_param->spin_damp)); break;
-          }
-        }
-        else
-        {
-          // we were told to be nice
-
-          sleep (0);
-        }
-
-        CL_rc = hc_clGetEventInfo (hashcat_ctx, opencl_event, CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof (opencl_event_status), &opencl_event_status, &param_value_size_ret);
-
-        if (CL_rc == -1) return -1;
-
-        spin_total += device_param->spin_damp;
-
-        if (spin_total > 1) break;
-      }
-    }
-
-    CL_rc = hc_clWaitForEvents (hashcat_ctx, 1, &opencl_event);
-
-    if (CL_rc == -1) return -1;
-
-    cl_ulong time_start;
-    cl_ulong time_end;
-
-    CL_rc = hc_clGetEventProfilingInfo (hashcat_ctx, opencl_event, CL_PROFILING_COMMAND_START, sizeof (time_start), &time_start, NULL); if (CL_rc == -1) return -1;
-    CL_rc = hc_clGetEventProfilingInfo (hashcat_ctx, opencl_event, CL_PROFILING_COMMAND_END,   sizeof (time_end),   &time_end,   NULL); if (CL_rc == -1) return -1;
-
-    const double exec_us = (double) (time_end - time_start) / 1000;
-
-    if (device_param->spin_damp > 0)
-    {
-      if (status_ctx->devices_status == STATUS_RUNNING)
-      {
-        switch (kern_run)
-        {
-          case KERN_RUN_1:      device_param->exec_us_prev1[iterationm]      = exec_us; break;
-          case KERN_RUN_2:      device_param->exec_us_prev2[iterationm]      = exec_us; break;
-          case KERN_RUN_3:      device_param->exec_us_prev3[iterationm]      = exec_us; break;
-          case KERN_RUN_4:      device_param->exec_us_prev4[iterationm]      = exec_us; break;
-          case KERN_RUN_INIT2:  device_param->exec_us_prev_init2[iterationm] = exec_us; break;
-          case KERN_RUN_LOOP2:  device_param->exec_us_prev_loop2[iterationm] = exec_us; break;
-          case KERN_RUN_AUX1:   device_param->exec_us_prev_aux1[iterationm]  = exec_us; break;
-          case KERN_RUN_AUX2:   device_param->exec_us_prev_aux2[iterationm]  = exec_us; break;
-          case KERN_RUN_AUX3:   device_param->exec_us_prev_aux3[iterationm]  = exec_us; break;
-          case KERN_RUN_AUX4:   device_param->exec_us_prev_aux4[iterationm]  = exec_us; break;
-        }
-      }
-    }
+    if (rc_cuEventElapsedTime == -1) return -1;
 
     if (event_update)
     {
       u32 exec_pos = device_param->exec_pos;
 
-      device_param->exec_msec[exec_pos] = exec_us / 1000;
+      device_param->exec_msec[exec_pos] = exec_ms;
 
       exec_pos++;
 
@@ -2991,19 +3099,12 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
       device_param->exec_pos = exec_pos;
     }
-
-    CL_rc = hc_clReleaseEvent (hashcat_ctx, opencl_event);
-
-    if (CL_rc == -1) return -1;
-
-    CL_rc = hc_clFinish (hashcat_ctx, device_param->opencl_command_queue);
-
-    if (CL_rc == -1) return -1;
-*/
   }
 
   if (device_param->is_opencl == true)
   {
+    int CL_rc;
+
     cl_kernel opencl_kernel = NULL;
 
     if (device_param->is_opencl == true)
@@ -3045,6 +3146,8 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
       if (CL_rc == -1) return -1;
     }
+
+    num_elements = round_up_multiple_64 (num_elements, kernel_threads);
 
     cl_event opencl_event;
 
@@ -3208,6 +3311,7 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
 int run_kernel_mp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kern_run, const u64 num)
 {
+puts ("run_kernel_mp");
   u64 num_elements = num;
 
   switch (kern_run)
@@ -3289,6 +3393,7 @@ int run_kernel_mp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
 int run_kernel_tm (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 {
+puts ("run_kernel_tm");
   const u64 num_elements = 1024; // fixed
 
   const u64 kernel_threads = MIN (num_elements, device_param->kernel_wgs_tm);
@@ -3317,6 +3422,7 @@ int run_kernel_tm (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
 int run_kernel_amp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 num)
 {
+puts ("run_kernel_amp");
   u64 num_elements = num;
 
   device_param->kernel_params_amp_buf64[6] = num_elements;
@@ -3353,6 +3459,7 @@ int run_kernel_amp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
 int run_kernel_decompress (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 num)
 {
+puts ("run_kernel_decompress");
   u64 num_elements = num;
 
   device_param->kernel_params_decompress_buf64[3] = num_elements;
@@ -3387,171 +3494,9 @@ int run_kernel_decompress (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
   return 0;
 }
 
-int run_opencl_kernel_atinit (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u64 num)
-{
-  u64 num_elements = num;
-
-  device_param->kernel_params_atinit_buf64[1] = num_elements;
-
-  const u64 kernel_threads = device_param->kernel_wgs_atinit;
-
-  num_elements = round_up_multiple_64 (num_elements, kernel_threads);
-
-  cl_kernel kernel = device_param->opencl_kernel_atinit;
-
-  const size_t global_work_size[3] = { num_elements,    1, 1 };
-  const size_t local_work_size[3]  = { kernel_threads,  1, 1 };
-
-  int CL_rc;
-
-  CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 0, sizeof (cl_mem), (void *) &buf);
-
-  if (CL_rc == -1) return -1;
-
-  CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 1, sizeof (cl_ulong), device_param->kernel_params_atinit[1]);
-
-  if (CL_rc == -1) return -1;
-
-  CL_rc = hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
-
-  if (CL_rc == -1) return -1;
-
-  CL_rc = hc_clFlush (hashcat_ctx, device_param->opencl_command_queue);
-
-  if (CL_rc == -1) return -1;
-
-  CL_rc = hc_clFinish (hashcat_ctx, device_param->opencl_command_queue);
-
-  if (CL_rc == -1) return -1;
-
-  return 0;
-}
-
-int run_cuda_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, CUdeviceptr buf, const u32 value, const u64 size)
-{
-  const u64 num16d = size / 16;
-  const u64 num16m = size % 16;
-
-  if (num16d)
-  {
-    device_param->kernel_params_memset[0]       = (void *) &buf;
-    device_param->kernel_params_memset_buf32[1] = value;
-    device_param->kernel_params_memset_buf64[2] = num16d;
-
-    const u64 kernel_threads = device_param->kernel_wgs_memset;
-
-    u64 num_elements = num16d;
-
-    num_elements = CEILDIV (num_elements, kernel_threads);
-
-    CUfunction function = device_param->cuda_function_memset;
-
-    //CU_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 0, sizeof (cl_mem),   (void *) &buf);                         if (CU_rc == -1) return -1;
-    //CU_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 1, sizeof (cl_uint),  device_param->kernel_params_memset[1]); if (CU_rc == -1) return -1;
-    //CU_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 2, sizeof (cl_ulong), device_param->kernel_params_memset[2]); if (CU_rc == -1) return -1;
-
-    //const size_t global_work_size[3] = { num_elements,   1, 1 };
-    //const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
-
-    const int rc_cuLaunchKernel = hc_cuLaunchKernel (hashcat_ctx, function, num_elements, 1, 1, kernel_threads, 1, 1, 0, NULL, device_param->kernel_params_memset, NULL);
-
-    if (rc_cuLaunchKernel == -1) return -1;
-
-    const int rc_cuCtxSynchronize = hc_cuCtxSynchronize (hashcat_ctx);
-
-    if (rc_cuCtxSynchronize == -1) return -1;
-  }
-
-  if (num16m)
-  {
-    u32 tmp[4];
-
-    tmp[0] = value;
-    tmp[1] = value;
-    tmp[2] = value;
-    tmp[3] = value;
-
-    // Apparently are allowed to do this: https://devtalk.nvidia.com/default/topic/761515/how-to-copy-to-device-memory-with-offset-/
-
-    const int rc_cuMemcpyHtoD = hc_cuMemcpyHtoD (hashcat_ctx, buf + (num16d * 16), tmp, num16m);
-
-    if (rc_cuMemcpyHtoD == -1) return -1;
-  }
-
-  return 0;
-}
-
-int run_cuda_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, CUdeviceptr buf, const u64 size)
-{
-  return run_cuda_kernel_memset (hashcat_ctx, device_param, buf, 0, size);
-}
-
-int run_opencl_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u32 value, const u64 size)
-{
-  const u64 num16d = size / 16;
-  const u64 num16m = size % 16;
-
-  if (num16d)
-  {
-    device_param->kernel_params_memset_buf32[1] = value;
-    device_param->kernel_params_memset_buf64[2] = num16d;
-
-    const u64 kernel_threads = device_param->kernel_wgs_memset;
-
-    u64 num_elements = num16d;
-
-    num_elements = round_up_multiple_64 (num_elements, kernel_threads);
-
-    cl_kernel kernel = device_param->opencl_kernel_memset;
-
-    int CL_rc;
-
-    CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 0, sizeof (cl_mem),   (void *) &buf);                         if (CL_rc == -1) return -1;
-    CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 1, sizeof (cl_uint),  device_param->kernel_params_memset[1]); if (CL_rc == -1) return -1;
-    CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 2, sizeof (cl_ulong), device_param->kernel_params_memset[2]); if (CL_rc == -1) return -1;
-
-    const size_t global_work_size[3] = { num_elements,   1, 1 };
-    const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
-
-    CL_rc = hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
-
-    if (CL_rc == -1) return -1;
-
-    CL_rc = hc_clFlush (hashcat_ctx, device_param->opencl_command_queue);
-
-    if (CL_rc == -1) return -1;
-
-    CL_rc = hc_clFinish (hashcat_ctx, device_param->opencl_command_queue);
-
-    if (CL_rc == -1) return -1;
-  }
-
-  if (num16m)
-  {
-    u32 tmp[4];
-
-    tmp[0] = value;
-    tmp[1] = value;
-    tmp[2] = value;
-    tmp[3] = value;
-
-    int CL_rc;
-
-    CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, buf, CL_TRUE, num16d * 16, num16m, tmp, 0, NULL, NULL);
-
-    if (CL_rc == -1) return -1;
-  }
-
-  return 0;
-}
-
-int run_opencl_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u64 size)
-{
-  return run_opencl_kernel_memset (hashcat_ctx, device_param, buf, 0, size);
-}
-
 int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_cnt)
 {
+puts ("run_copy");
   combinator_ctx_t     *combinator_ctx      = hashcat_ctx->combinator_ctx;
   hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
   user_options_t       *user_options        = hashcat_ctx->user_options;
@@ -3755,6 +3700,7 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
 
 int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_cnt)
 {
+puts ("run_cracker");
   combinator_ctx_t      *combinator_ctx     = hashcat_ctx->combinator_ctx;
   hashconfig_t          *hashconfig         = hashcat_ctx->hashconfig;
   hashes_t              *hashes             = hashcat_ctx->hashes;
@@ -6797,6 +6743,32 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       CL_rc = hc_clCreateCommandQueue (hashcat_ctx, device_param->opencl_context, device_param->opencl_device, CL_QUEUE_PROFILING_ENABLE, &device_param->opencl_command_queue);
 
       if (CL_rc == -1) return -1;
+    }
+
+    /**
+     * create stream for CUDA devices
+     */
+
+    if (device_param->is_cuda == true)
+    {
+      const int rc_cuStreamCreate = hc_cuStreamCreate (hashcat_ctx, &device_param->cuda_stream, CU_STREAM_DEFAULT);
+
+      if (rc_cuStreamCreate == -1) return -1;
+    }
+
+    /**
+     * create events for CUDA devices
+     */
+
+    if (device_param->is_cuda == true)
+    {
+      const int rc_cuEventCreate1 = hc_cuEventCreate (hashcat_ctx, &device_param->cuda_event1, CU_EVENT_DEFAULT);
+
+      if (rc_cuEventCreate1 == -1) return -1;
+
+      const int rc_cuEventCreate2 = hc_cuEventCreate (hashcat_ctx, &device_param->cuda_event2, CU_EVENT_DEFAULT);
+
+      if (rc_cuEventCreate2 == -1) return -1;
     }
 
     /**
@@ -10199,6 +10171,121 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
     hcfree (device_param->brain_link_out_buf);
     #endif
 
+    if (device_param->is_cuda == true)
+    {
+      if (device_param->cuda_d_pws_buf)        hc_cuMemFree (hashcat_ctx, device_param->cuda_d_pws_buf);
+      if (device_param->cuda_d_pws_amp_buf)    hc_cuMemFree (hashcat_ctx, device_param->cuda_d_pws_amp_buf);
+      if (device_param->cuda_d_pws_comp_buf)   hc_cuMemFree (hashcat_ctx, device_param->cuda_d_pws_comp_buf);
+      if (device_param->cuda_d_pws_idx)        hc_cuMemFree (hashcat_ctx, device_param->cuda_d_pws_idx);
+      if (device_param->cuda_d_rules)          hc_cuMemFree (hashcat_ctx, device_param->cuda_d_rules);
+      if (device_param->cuda_d_rules_c)        hc_cuMemFree (hashcat_ctx, device_param->cuda_d_rules_c);
+      if (device_param->cuda_d_combs)          hc_cuMemFree (hashcat_ctx, device_param->cuda_d_combs);
+      if (device_param->cuda_d_combs_c)        hc_cuMemFree (hashcat_ctx, device_param->cuda_d_combs_c);
+      if (device_param->cuda_d_bfs)            hc_cuMemFree (hashcat_ctx, device_param->cuda_d_bfs);
+      if (device_param->cuda_d_bfs_c)          hc_cuMemFree (hashcat_ctx, device_param->cuda_d_bfs_c);
+      if (device_param->cuda_d_bitmap_s1_a)    hc_cuMemFree (hashcat_ctx, device_param->cuda_d_bitmap_s1_a);
+      if (device_param->cuda_d_bitmap_s1_b)    hc_cuMemFree (hashcat_ctx, device_param->cuda_d_bitmap_s1_b);
+      if (device_param->cuda_d_bitmap_s1_c)    hc_cuMemFree (hashcat_ctx, device_param->cuda_d_bitmap_s1_c);
+      if (device_param->cuda_d_bitmap_s1_d)    hc_cuMemFree (hashcat_ctx, device_param->cuda_d_bitmap_s1_d);
+      if (device_param->cuda_d_bitmap_s2_a)    hc_cuMemFree (hashcat_ctx, device_param->cuda_d_bitmap_s2_a);
+      if (device_param->cuda_d_bitmap_s2_b)    hc_cuMemFree (hashcat_ctx, device_param->cuda_d_bitmap_s2_b);
+      if (device_param->cuda_d_bitmap_s2_c)    hc_cuMemFree (hashcat_ctx, device_param->cuda_d_bitmap_s2_c);
+      if (device_param->cuda_d_bitmap_s2_d)    hc_cuMemFree (hashcat_ctx, device_param->cuda_d_bitmap_s2_d);
+      if (device_param->cuda_d_plain_bufs)     hc_cuMemFree (hashcat_ctx, device_param->cuda_d_plain_bufs);
+      if (device_param->cuda_d_digests_buf)    hc_cuMemFree (hashcat_ctx, device_param->cuda_d_digests_buf);
+      if (device_param->cuda_d_digests_shown)  hc_cuMemFree (hashcat_ctx, device_param->cuda_d_digests_shown);
+      if (device_param->cuda_d_salt_bufs)      hc_cuMemFree (hashcat_ctx, device_param->cuda_d_salt_bufs);
+      if (device_param->cuda_d_esalt_bufs)     hc_cuMemFree (hashcat_ctx, device_param->cuda_d_esalt_bufs);
+      if (device_param->cuda_d_tmps)           hc_cuMemFree (hashcat_ctx, device_param->cuda_d_tmps);
+      if (device_param->cuda_d_hooks)          hc_cuMemFree (hashcat_ctx, device_param->cuda_d_hooks);
+      if (device_param->cuda_d_result)         hc_cuMemFree (hashcat_ctx, device_param->cuda_d_result);
+      if (device_param->cuda_d_extra0_buf)     hc_cuMemFree (hashcat_ctx, device_param->cuda_d_extra0_buf);
+      if (device_param->cuda_d_extra1_buf)     hc_cuMemFree (hashcat_ctx, device_param->cuda_d_extra1_buf);
+      if (device_param->cuda_d_extra2_buf)     hc_cuMemFree (hashcat_ctx, device_param->cuda_d_extra2_buf);
+      if (device_param->cuda_d_extra3_buf)     hc_cuMemFree (hashcat_ctx, device_param->cuda_d_extra3_buf);
+      if (device_param->cuda_d_root_css_buf)   hc_cuMemFree (hashcat_ctx, device_param->cuda_d_root_css_buf);
+      if (device_param->cuda_d_markov_css_buf) hc_cuMemFree (hashcat_ctx, device_param->cuda_d_markov_css_buf);
+      if (device_param->cuda_d_tm_c)           hc_cuMemFree (hashcat_ctx, device_param->cuda_d_tm_c);
+      if (device_param->cuda_d_st_digests_buf) hc_cuMemFree (hashcat_ctx, device_param->cuda_d_st_digests_buf);
+      if (device_param->cuda_d_st_salts_buf)   hc_cuMemFree (hashcat_ctx, device_param->cuda_d_st_salts_buf);
+      if (device_param->cuda_d_st_esalts_buf)  hc_cuMemFree (hashcat_ctx, device_param->cuda_d_st_esalts_buf);
+
+      if (device_param->cuda_event1)           hc_cuEventDestroy (hashcat_ctx, device_param->cuda_event1);
+      if (device_param->cuda_event2)           hc_cuEventDestroy (hashcat_ctx, device_param->cuda_event2);
+
+      if (device_param->cuda_stream)           hc_cuStreamDestroy (hashcat_ctx, device_param->cuda_stream);
+
+      if (device_param->cuda_module)           hc_cuModuleUnload (hashcat_ctx, device_param->cuda_module);
+      if (device_param->cuda_module_mp)        hc_cuModuleUnload (hashcat_ctx, device_param->cuda_module_mp);
+      if (device_param->cuda_module_amp)       hc_cuModuleUnload (hashcat_ctx, device_param->cuda_module_amp);
+
+      if (device_param->cuda_context)          hc_cuCtxDestroy (hashcat_ctx, device_param->cuda_context);
+
+      device_param->cuda_d_pws_buf            = 0;
+      device_param->cuda_d_pws_amp_buf        = 0;
+      device_param->cuda_d_pws_comp_buf       = 0;
+      device_param->cuda_d_pws_idx            = 0;
+      device_param->cuda_d_rules              = 0;
+      device_param->cuda_d_rules_c            = 0;
+      device_param->cuda_d_combs              = 0;
+      device_param->cuda_d_combs_c            = 0;
+      device_param->cuda_d_bfs                = 0;
+      device_param->cuda_d_bfs_c              = 0;
+      device_param->cuda_d_bitmap_s1_a        = 0;
+      device_param->cuda_d_bitmap_s1_b        = 0;
+      device_param->cuda_d_bitmap_s1_c        = 0;
+      device_param->cuda_d_bitmap_s1_d        = 0;
+      device_param->cuda_d_bitmap_s2_a        = 0;
+      device_param->cuda_d_bitmap_s2_b        = 0;
+      device_param->cuda_d_bitmap_s2_c        = 0;
+      device_param->cuda_d_bitmap_s2_d        = 0;
+      device_param->cuda_d_plain_bufs         = 0;
+      device_param->cuda_d_digests_buf        = 0;
+      device_param->cuda_d_digests_shown      = 0;
+      device_param->cuda_d_salt_bufs          = 0;
+      device_param->cuda_d_esalt_bufs         = 0;
+      device_param->cuda_d_tmps               = 0;
+      device_param->cuda_d_hooks              = 0;
+      device_param->cuda_d_result             = 0;
+      device_param->cuda_d_extra0_buf         = 0;
+      device_param->cuda_d_extra1_buf         = 0;
+      device_param->cuda_d_extra2_buf         = 0;
+      device_param->cuda_d_extra3_buf         = 0;
+      device_param->cuda_d_root_css_buf       = 0;
+      device_param->cuda_d_markov_css_buf     = 0;
+      device_param->cuda_d_tm_c               = 0;
+      device_param->cuda_d_st_digests_buf     = 0;
+      device_param->cuda_d_st_salts_buf       = 0;
+      device_param->cuda_d_st_esalts_buf      = 0;
+
+      device_param->cuda_function1            = NULL;
+      device_param->cuda_function12           = NULL;
+      device_param->cuda_function2            = NULL;
+      device_param->cuda_function23           = NULL;
+      device_param->cuda_function3            = NULL;
+      device_param->cuda_function4            = NULL;
+      device_param->cuda_function_init2       = NULL;
+      device_param->cuda_function_loop2       = NULL;
+      device_param->cuda_function_mp          = NULL;
+      device_param->cuda_function_mp_l        = NULL;
+      device_param->cuda_function_mp_r        = NULL;
+      device_param->cuda_function_tm          = NULL;
+      device_param->cuda_function_amp         = NULL;
+      device_param->cuda_function_memset      = NULL;
+      device_param->cuda_function_atinit      = NULL;
+      device_param->cuda_function_decompress  = NULL;
+      device_param->cuda_function_aux1        = NULL;
+      device_param->cuda_function_aux2        = NULL;
+      device_param->cuda_function_aux3        = NULL;
+      device_param->cuda_function_aux4        = NULL;
+
+      device_param->cuda_module               = NULL;
+      device_param->cuda_module_mp            = NULL;
+      device_param->cuda_module_amp           = NULL;
+
+      device_param->cuda_context              = NULL;
+    }
+
     if (device_param->is_opencl == true)
     {
       if (device_param->opencl_d_pws_buf)        hc_clReleaseMemObject (hashcat_ctx, device_param->opencl_d_pws_buf);
@@ -10266,6 +10353,68 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       if (device_param->opencl_command_queue)    hc_clReleaseCommandQueue (hashcat_ctx, device_param->opencl_command_queue);
 
       if (device_param->opencl_context)          hc_clReleaseContext (hashcat_ctx, device_param->opencl_context);
+
+      device_param->opencl_d_pws_buf           = NULL;
+      device_param->opencl_d_pws_amp_buf       = NULL;
+      device_param->opencl_d_pws_comp_buf      = NULL;
+      device_param->opencl_d_pws_idx           = NULL;
+      device_param->opencl_d_rules             = NULL;
+      device_param->opencl_d_rules_c           = NULL;
+      device_param->opencl_d_combs             = NULL;
+      device_param->opencl_d_combs_c           = NULL;
+      device_param->opencl_d_bfs               = NULL;
+      device_param->opencl_d_bfs_c             = NULL;
+      device_param->opencl_d_bitmap_s1_a       = NULL;
+      device_param->opencl_d_bitmap_s1_b       = NULL;
+      device_param->opencl_d_bitmap_s1_c       = NULL;
+      device_param->opencl_d_bitmap_s1_d       = NULL;
+      device_param->opencl_d_bitmap_s2_a       = NULL;
+      device_param->opencl_d_bitmap_s2_b       = NULL;
+      device_param->opencl_d_bitmap_s2_c       = NULL;
+      device_param->opencl_d_bitmap_s2_d       = NULL;
+      device_param->opencl_d_plain_bufs        = NULL;
+      device_param->opencl_d_digests_buf       = NULL;
+      device_param->opencl_d_digests_shown     = NULL;
+      device_param->opencl_d_salt_bufs         = NULL;
+      device_param->opencl_d_esalt_bufs        = NULL;
+      device_param->opencl_d_tmps              = NULL;
+      device_param->opencl_d_hooks             = NULL;
+      device_param->opencl_d_result            = NULL;
+      device_param->opencl_d_extra0_buf        = NULL;
+      device_param->opencl_d_extra1_buf        = NULL;
+      device_param->opencl_d_extra2_buf        = NULL;
+      device_param->opencl_d_extra3_buf        = NULL;
+      device_param->opencl_d_root_css_buf      = NULL;
+      device_param->opencl_d_markov_css_buf    = NULL;
+      device_param->opencl_d_tm_c              = NULL;
+      device_param->opencl_d_st_digests_buf    = NULL;
+      device_param->opencl_d_st_salts_buf      = NULL;
+      device_param->opencl_d_st_esalts_buf     = NULL;
+      device_param->opencl_kernel1             = NULL;
+      device_param->opencl_kernel12            = NULL;
+      device_param->opencl_kernel2             = NULL;
+      device_param->opencl_kernel23            = NULL;
+      device_param->opencl_kernel3             = NULL;
+      device_param->opencl_kernel4             = NULL;
+      device_param->opencl_kernel_init2        = NULL;
+      device_param->opencl_kernel_loop2        = NULL;
+      device_param->opencl_kernel_mp           = NULL;
+      device_param->opencl_kernel_mp_l         = NULL;
+      device_param->opencl_kernel_mp_r         = NULL;
+      device_param->opencl_kernel_tm           = NULL;
+      device_param->opencl_kernel_amp          = NULL;
+      device_param->opencl_kernel_memset       = NULL;
+      device_param->opencl_kernel_atinit       = NULL;
+      device_param->opencl_kernel_decompress   = NULL;
+      device_param->opencl_kernel_aux1         = NULL;
+      device_param->opencl_kernel_aux2         = NULL;
+      device_param->opencl_kernel_aux3         = NULL;
+      device_param->opencl_kernel_aux4         = NULL;
+      device_param->opencl_program             = NULL;
+      device_param->opencl_program_mp          = NULL;
+      device_param->opencl_program_amp         = NULL;
+      device_param->opencl_command_queue       = NULL;
+      device_param->opencl_context             = NULL;
     }
 
     device_param->pws_comp            = NULL;
@@ -10279,68 +10428,6 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
     device_param->brain_link_in_buf   = NULL;
     device_param->brain_link_out_buf  = NULL;
     #endif
-
-    device_param->opencl_d_pws_buf           = NULL;
-    device_param->opencl_d_pws_amp_buf       = NULL;
-    device_param->opencl_d_pws_comp_buf      = NULL;
-    device_param->opencl_d_pws_idx           = NULL;
-    device_param->opencl_d_rules             = NULL;
-    device_param->opencl_d_rules_c           = NULL;
-    device_param->opencl_d_combs             = NULL;
-    device_param->opencl_d_combs_c           = NULL;
-    device_param->opencl_d_bfs               = NULL;
-    device_param->opencl_d_bfs_c             = NULL;
-    device_param->opencl_d_bitmap_s1_a       = NULL;
-    device_param->opencl_d_bitmap_s1_b       = NULL;
-    device_param->opencl_d_bitmap_s1_c       = NULL;
-    device_param->opencl_d_bitmap_s1_d       = NULL;
-    device_param->opencl_d_bitmap_s2_a       = NULL;
-    device_param->opencl_d_bitmap_s2_b       = NULL;
-    device_param->opencl_d_bitmap_s2_c       = NULL;
-    device_param->opencl_d_bitmap_s2_d       = NULL;
-    device_param->opencl_d_plain_bufs        = NULL;
-    device_param->opencl_d_digests_buf       = NULL;
-    device_param->opencl_d_digests_shown     = NULL;
-    device_param->opencl_d_salt_bufs         = NULL;
-    device_param->opencl_d_esalt_bufs        = NULL;
-    device_param->opencl_d_tmps              = NULL;
-    device_param->opencl_d_hooks             = NULL;
-    device_param->opencl_d_result            = NULL;
-    device_param->opencl_d_extra0_buf        = NULL;
-    device_param->opencl_d_extra1_buf        = NULL;
-    device_param->opencl_d_extra2_buf        = NULL;
-    device_param->opencl_d_extra3_buf        = NULL;
-    device_param->opencl_d_root_css_buf      = NULL;
-    device_param->opencl_d_markov_css_buf    = NULL;
-    device_param->opencl_d_tm_c              = NULL;
-    device_param->opencl_d_st_digests_buf    = NULL;
-    device_param->opencl_d_st_salts_buf      = NULL;
-    device_param->opencl_d_st_esalts_buf     = NULL;
-    device_param->opencl_kernel1             = NULL;
-    device_param->opencl_kernel12            = NULL;
-    device_param->opencl_kernel2             = NULL;
-    device_param->opencl_kernel23            = NULL;
-    device_param->opencl_kernel3             = NULL;
-    device_param->opencl_kernel4             = NULL;
-    device_param->opencl_kernel_init2        = NULL;
-    device_param->opencl_kernel_loop2        = NULL;
-    device_param->opencl_kernel_mp           = NULL;
-    device_param->opencl_kernel_mp_l         = NULL;
-    device_param->opencl_kernel_mp_r         = NULL;
-    device_param->opencl_kernel_tm           = NULL;
-    device_param->opencl_kernel_amp          = NULL;
-    device_param->opencl_kernel_memset       = NULL;
-    device_param->opencl_kernel_atinit       = NULL;
-    device_param->opencl_kernel_decompress   = NULL;
-    device_param->opencl_kernel_aux1         = NULL;
-    device_param->opencl_kernel_aux2         = NULL;
-    device_param->opencl_kernel_aux3         = NULL;
-    device_param->opencl_kernel_aux4         = NULL;
-    device_param->opencl_program             = NULL;
-    device_param->opencl_program_mp          = NULL;
-    device_param->opencl_program_amp         = NULL;
-    device_param->opencl_command_queue       = NULL;
-    device_param->opencl_context             = NULL;
   }
 }
 
