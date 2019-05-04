@@ -1206,7 +1206,6 @@ typedef struct hc_device_param
 
   double  spin_damp;
 
-
   void   *kernel_params[PARAMCNT];
   void   *kernel_params_mp[PARAMCNT];
   void   *kernel_params_mp_r[PARAMCNT];
