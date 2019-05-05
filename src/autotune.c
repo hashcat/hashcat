@@ -236,8 +236,6 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   double exec_msec_pre_final = try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops);
 
-printf ("%f\n", exec_msec_pre_final);
-
   const u32 exec_left = (const u32) (target_msec / exec_msec_pre_final);
 
   const u32 accel_left = kernel_accel_max / kernel_accel;
@@ -255,23 +253,23 @@ printf ("%f\n", exec_msec_pre_final);
   {
     // reset them fake words
 
-    CL_rc = run_cuda_kernel_memset (hashcat_ctx, device_param, device_param->cuda_d_pws_buf, 0, device_param->size_pws);
+    CU_rc = run_cuda_kernel_memset (hashcat_ctx, device_param, device_param->cuda_d_pws_buf, 0, device_param->size_pws);
 
-    if (CL_rc == -1) return -1;
+    if (CU_rc == -1) return -1;
 
     // reset other buffers in case autotune cracked something
 
-    CL_rc = run_cuda_kernel_memset (hashcat_ctx, device_param, device_param->cuda_d_plain_bufs, 0, device_param->size_plains);
+    CU_rc = run_cuda_kernel_memset (hashcat_ctx, device_param, device_param->cuda_d_plain_bufs, 0, device_param->size_plains);
 
-    if (CL_rc == -1) return -1;
+    if (CU_rc == -1) return -1;
 
-    CL_rc = run_cuda_kernel_memset (hashcat_ctx, device_param, device_param->cuda_d_digests_shown, 0, device_param->size_shown);
+    CU_rc = run_cuda_kernel_memset (hashcat_ctx, device_param, device_param->cuda_d_digests_shown, 0, device_param->size_shown);
 
-    if (CL_rc == -1) return -1;
+    if (CU_rc == -1) return -1;
 
-    CL_rc = run_cuda_kernel_memset (hashcat_ctx, device_param, device_param->cuda_d_result, 0, device_param->size_results);
+    CU_rc = run_cuda_kernel_memset (hashcat_ctx, device_param, device_param->cuda_d_result, 0, device_param->size_results);
 
-    if (CL_rc == -1) return -1;
+    if (CU_rc == -1) return -1;
   }
 
   if (device_param->is_opencl == true)

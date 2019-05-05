@@ -349,6 +349,13 @@ HC_API_CALL void *thread_calc_stdin (void *p)
 
   if (device_param->skipped_warning == true) return NULL;
 
+  if (device_param->is_cuda == true)
+  {
+    const int rc_cuCtxSetCurrent = hc_cuCtxSetCurrent (hashcat_ctx, device_param->cuda_context);
+
+    if (rc_cuCtxSetCurrent == -1) return NULL;
+  }
+
   const int rc_calc = calc_stdin (hashcat_ctx, device_param);
 
   if (rc_calc == -1)
@@ -1667,6 +1674,13 @@ HC_API_CALL void *thread_calc (void *p)
   if (device_param->skipped) return NULL;
 
   if (device_param->skipped_warning == true) return NULL;
+
+  if (device_param->is_cuda == true)
+  {
+    const int rc_cuCtxSetCurrent = hc_cuCtxSetCurrent (hashcat_ctx, device_param->cuda_context);
+
+    if (rc_cuCtxSetCurrent == -1) return NULL;
+  }
 
   const int rc_calc = calc (hashcat_ctx, device_param);
 
