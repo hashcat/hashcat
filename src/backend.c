@@ -2590,10 +2590,19 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
     if (run_init == true)
     {
-//tbd
-      CL_rc = hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_amp_buf, device_param->opencl_d_pws_buf, 0, 0, pws_cnt * sizeof (pw_t), 0, NULL, NULL);
+      if (device_param->is_cuda == true)
+      {
+        CU_rc = hc_cuMemcpyDtoD (hashcat_ctx, device_param->cuda_d_pws_buf, device_param->cuda_d_pws_amp_buf, pws_cnt * sizeof (pw_t));
 
-      if (CL_rc == -1) return -1;
+        if (CU_rc == -1) return -1;
+      }
+
+      if (device_param->is_opencl == true)
+      {
+        CL_rc = hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_amp_buf, device_param->opencl_d_pws_buf, 0, 0, pws_cnt * sizeof (pw_t), 0, NULL, NULL);
+
+        if (CL_rc == -1) return -1;
+      }
 
       if (user_options->slow_candidates == true)
       {
@@ -2605,27 +2614,45 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
         if (CL_rc == -1) return -1;
       }
 
-      CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_1, pws_cnt, false, 0);
+      const int rc_kernel = run_kernel (hashcat_ctx, device_param, KERN_RUN_1, pws_cnt, false, 0);
 
-      if (CL_rc == -1) return -1;
+      if (rc_kernel == -1) return -1;
 
       if (hashconfig->opts_type & OPTS_TYPE_HOOK12)
       {
-        CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_12, pws_cnt, false, 0);
+        const int rc_kernel = run_kernel (hashcat_ctx, device_param, KERN_RUN_12, pws_cnt, false, 0);
 
-        if (CL_rc == -1) return -1;
+        if (rc_kernel == -1) return -1;
 
-//tbd
-        CL_rc = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
+        if (device_param->is_cuda == true)
+        {
+          CU_rc = hc_cuMemcpyDtoH (hashcat_ctx, device_param->hooks_buf, device_param->cuda_d_hooks, device_param->size_hooks);
 
-        if (CL_rc == -1) return -1;
+          if (CU_rc == -1) return -1;
+        }
+
+        if (device_param->is_opencl == true)
+        {
+          CL_rc = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
+
+          if (CL_rc == -1) return -1;
+        }
 
         module_ctx->module_hook12 (device_param, hashes->hook_salts_buf, salt_pos, pws_cnt);
 
-//tbd
-        CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
+        if (device_param->is_cuda == true)
+        {
+          CU_rc = hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_hooks, device_param->hooks_buf, device_param->size_hooks);
 
-        if (CL_rc == -1) return -1;
+          if (CU_rc == -1) return -1;
+        }
+
+        if (device_param->is_opencl == true)
+        {
+          CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
+
+          if (CL_rc == -1) return -1;
+        }
       }
     }
 
@@ -2644,9 +2671,9 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
         device_param->kernel_params_buf32[28] = loop_pos;
         device_param->kernel_params_buf32[29] = loop_left;
 
-        CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_2, pws_cnt, true, slow_iteration);
+        const int rc_kernel = run_kernel (hashcat_ctx, device_param, KERN_RUN_2, pws_cnt, true, slow_iteration);
 
-        if (CL_rc == -1) return -1;
+        if (rc_kernel == -1) return -1;
 
         //bug?
         //while (status_ctx->run_thread_level2 == false) break;
@@ -2685,21 +2712,39 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
       if (hashconfig->opts_type & OPTS_TYPE_HOOK23)
       {
-        CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_23, pws_cnt, false, 0);
+        const int rc_kernel = run_kernel (hashcat_ctx, device_param, KERN_RUN_23, pws_cnt, false, 0);
 
-        if (CL_rc == -1) return -1;
+        if (rc_kernel == -1) return -1;
 
-//tbd
-        CL_rc = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
+        if (device_param->is_cuda == true)
+        {
+          CU_rc = hc_cuMemcpyDtoH (hashcat_ctx, device_param->hooks_buf, device_param->cuda_d_hooks, device_param->size_hooks);
 
-        if (CL_rc == -1) return -1;
+          if (CU_rc == -1) return -1;
+        }
+
+        if (device_param->is_opencl == true)
+        {
+          CL_rc = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
+
+          if (CL_rc == -1) return -1;
+        }
 
         module_ctx->module_hook23 (device_param, hashes->hook_salts_buf, salt_pos, pws_cnt);
 
-//tbd
-        CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
+        if (device_param->is_cuda == true)
+        {
+          CU_rc = hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_hooks, device_param->hooks_buf, device_param->size_hooks);
 
-        if (CL_rc == -1) return -1;
+          if (CU_rc == -1) return -1;
+        }
+
+        if (device_param->is_opencl == true)
+        {
+          CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
+
+          if (CL_rc == -1) return -1;
+        }
       }
     }
 
@@ -3470,70 +3515,100 @@ int run_kernel_mp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
   return 0;
 }
 
-//tbd
 int run_kernel_tm (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 {
-puts ("run_kernel_tm");
   const u64 num_elements = 1024; // fixed
 
   const u64 kernel_threads = MIN (num_elements, device_param->kernel_wgs_tm);
 
-  cl_kernel kernel = device_param->opencl_kernel_tm;
+  if (device_param->is_cuda == true)
+  {
+    CUfunction cuda_function = device_param->cuda_function_tm;
 
-  const size_t global_work_size[3] = { num_elements,    1, 1 };
-  const size_t local_work_size[3]  = { kernel_threads,  1, 1 };
+    const int rc_cuLaunchKernel = hc_cuLaunchKernel (hashcat_ctx, cuda_function, num_elements, 1, 1, kernel_threads, 1, 1, 0, NULL, device_param->kernel_params_tm, NULL);
 
-  int CL_rc;
+    if (rc_cuLaunchKernel == -1) return -1;
 
-  CL_rc = hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
+    const int rc_cuCtxSynchronize = hc_cuCtxSynchronize (hashcat_ctx);
 
-  if (CL_rc == -1) return -1;
+    if (rc_cuCtxSynchronize == -1) return -1;
+  }
 
-  CL_rc = hc_clFlush (hashcat_ctx, device_param->opencl_command_queue);
+  if (device_param->is_opencl == true)
+  {
+    cl_kernel cuda_kernel = device_param->opencl_kernel_tm;
 
-  if (CL_rc == -1) return -1;
+    const size_t global_work_size[3] = { num_elements,    1, 1 };
+    const size_t local_work_size[3]  = { kernel_threads,  1, 1 };
 
-  CL_rc = hc_clFinish (hashcat_ctx, device_param->opencl_command_queue);
+    int CL_rc;
 
-  if (CL_rc == -1) return -1;
+    CL_rc = hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, cuda_kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
+
+    if (CL_rc == -1) return -1;
+
+    CL_rc = hc_clFlush (hashcat_ctx, device_param->opencl_command_queue);
+
+    if (CL_rc == -1) return -1;
+
+    CL_rc = hc_clFinish (hashcat_ctx, device_param->opencl_command_queue);
+
+    if (CL_rc == -1) return -1;
+  }
 
   return 0;
 }
 
-//tbd
 int run_kernel_amp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 num)
 {
-puts ("run_kernel_amp");
-  u64 num_elements = num;
+  device_param->kernel_params_amp_buf64[6] = num;
 
-  device_param->kernel_params_amp_buf64[6] = num_elements;
+  u64 num_elements = num;
 
   const u64 kernel_threads = device_param->kernel_wgs_amp;
 
-  num_elements = round_up_multiple_64 (num_elements, kernel_threads);
+  if (device_param->is_cuda == true)
+  {
+    num_elements = CEILDIV (num_elements, kernel_threads);
 
-  cl_kernel kernel = device_param->opencl_kernel_amp;
+    CUfunction cuda_function = device_param->cuda_function_amp;
 
-  int CL_rc;
+    const int rc_cuLaunchKernel = hc_cuLaunchKernel (hashcat_ctx, cuda_function, num_elements, 1, 1, kernel_threads, 1, 1, 0, NULL, device_param->kernel_params_amp, NULL);
 
-  CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 6, sizeof (cl_ulong), device_param->kernel_params_amp[6]);
+    if (rc_cuLaunchKernel == -1) return -1;
 
-  if (CL_rc == -1) return -1;
+    const int rc_cuCtxSynchronize = hc_cuCtxSynchronize (hashcat_ctx);
 
-  const size_t global_work_size[3] = { num_elements,    1, 1 };
-  const size_t local_work_size[3]  = { kernel_threads,  1, 1 };
+    if (rc_cuCtxSynchronize == -1) return -1;
+  }
 
-  CL_rc = hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
+  if (device_param->is_opencl == true)
+  {
+    num_elements = round_up_multiple_64 (num_elements, kernel_threads);
 
-  if (CL_rc == -1) return -1;
+    cl_kernel opencl_kernel = device_param->opencl_kernel_amp;
 
-  CL_rc = hc_clFlush (hashcat_ctx, device_param->opencl_command_queue);
+    int CL_rc;
 
-  if (CL_rc == -1) return -1;
+    CL_rc = hc_clSetKernelArg (hashcat_ctx, opencl_kernel, 6, sizeof (cl_ulong), device_param->kernel_params_amp[6]);
 
-  CL_rc = hc_clFinish (hashcat_ctx, device_param->opencl_command_queue);
+    if (CL_rc == -1) return -1;
 
-  if (CL_rc == -1) return -1;
+    const size_t global_work_size[3] = { num_elements,    1, 1 };
+    const size_t local_work_size[3]  = { kernel_threads,  1, 1 };
+
+    CL_rc = hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, opencl_kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
+
+    if (CL_rc == -1) return -1;
+
+    CL_rc = hc_clFlush (hashcat_ctx, device_param->opencl_command_queue);
+
+    if (CL_rc == -1) return -1;
+
+    CL_rc = hc_clFinish (hashcat_ctx, device_param->opencl_command_queue);
+
+    if (CL_rc == -1) return -1;
+  }
 
   return 0;
 }
