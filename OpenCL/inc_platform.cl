@@ -44,6 +44,46 @@ DECLSPEC size_t get_local_size (const u32 dimindx __attribute__((unused)))
   return blockDim.x;
 }
 
+DECLSPEC u32x rotl32 (const u32x a, const int n)
+{
+  return ((a << n) | ((a >> (32 - n))));
+}
+
+DECLSPEC u32x rotr32 (const u32x a, const int n)
+{
+  return ((a >> n) | ((a << (32 - n))));
+}
+
+DECLSPEC u32 rotl32_S (const u32 a, const int n)
+{
+  return ((a << n) | ((a >> (32 - n))));
+}
+
+DECLSPEC u32 rotr32_S (const u32 a, const int n)
+{
+  return ((a >> n) | ((a << (32 - n))));
+}
+
+DECLSPEC u64x rotl64 (const u64x a, const int n)
+{
+  return ((a << n) | ((a >> (64 - n))));
+}
+
+DECLSPEC u64x rotr64 (const u64x a, const int n)
+{
+  return ((a >> n) | ((a << (64 - n))));
+}
+
+DECLSPEC u64 rotl64_S (const u64 a, const int n)
+{
+  return ((a << n) | ((a >> (64 - n))));
+}
+
+DECLSPEC u64 rotr64_S (const u64 a, const int n)
+{
+  return ((a >> n) | ((a << (64 - n))));
+}
+
 #define SYNC_THREADS() __syncthreads ()
 #endif
 

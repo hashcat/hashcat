@@ -305,7 +305,9 @@ DECLSPEC u64x hl32_to_64 (const u32x a, const u32x b)
 
 DECLSPEC u32x hc_rotl32 (const u32x a, const int n)
 {
-  #ifdef _CPU_OPENCL_EMU_H
+  #if   defined _CPU_OPENCL_EMU_H
+  return rotl32 (a, n);
+  #elif defined IS_CUDA
   return rotl32 (a, n);
   #else
   return rotate (a, (u32x) (n));
@@ -314,7 +316,9 @@ DECLSPEC u32x hc_rotl32 (const u32x a, const int n)
 
 DECLSPEC u32x hc_rotr32 (const u32x a, const int n)
 {
-  #ifdef _CPU_OPENCL_EMU_H
+  #if   defined _CPU_OPENCL_EMU_H
+  return rotr32 (a, n);
+  #elif defined IS_CUDA
   return rotr32 (a, n);
   #else
   return rotate (a, (u32x) (32 - n));
@@ -323,8 +327,10 @@ DECLSPEC u32x hc_rotr32 (const u32x a, const int n)
 
 DECLSPEC u32 hc_rotl32_S (const u32 a, const int n)
 {
-  #ifdef _CPU_OPENCL_EMU_H
+  #if   defined _CPU_OPENCL_EMU_H
   return rotl32 (a, n);
+  #elif defined IS_CUDA
+  return rotl32_S (a, n);
   #else
   return rotate (a, (u32) (n));
   #endif
@@ -332,8 +338,10 @@ DECLSPEC u32 hc_rotl32_S (const u32 a, const int n)
 
 DECLSPEC u32 hc_rotr32_S (const u32 a, const int n)
 {
-  #ifdef _CPU_OPENCL_EMU_H
+  #if   defined _CPU_OPENCL_EMU_H
   return rotr32 (a, n);
+  #elif defined IS_CUDA
+  return rotr32_S (a, n);
   #else
   return rotate (a, (u32) (32 - n));
   #endif
@@ -341,7 +349,9 @@ DECLSPEC u32 hc_rotr32_S (const u32 a, const int n)
 
 DECLSPEC u64x hc_rotl64 (const u64x a, const int n)
 {
-  #ifdef _CPU_OPENCL_EMU_H
+  #if   defined _CPU_OPENCL_EMU_H
+  return rotl64 (a, n);
+  #elif defined IS_CUDA
   return rotl64 (a, n);
   #else
   return rotate (a, (u64x) (n));
@@ -350,7 +360,9 @@ DECLSPEC u64x hc_rotl64 (const u64x a, const int n)
 
 DECLSPEC u64x hc_rotr64 (const u64x a, const int n)
 {
-  #ifdef _CPU_OPENCL_EMU_H
+  #if   defined _CPU_OPENCL_EMU_H
+  return rotr64 (a, n);
+  #elif defined IS_CUDA
   return rotr64 (a, n);
   #else
   return rotate (a, (u64x) (64 - n));
@@ -359,8 +371,10 @@ DECLSPEC u64x hc_rotr64 (const u64x a, const int n)
 
 DECLSPEC u64 hc_rotl64_S (const u64 a, const int n)
 {
-  #ifdef _CPU_OPENCL_EMU_H
+  #if   defined _CPU_OPENCL_EMU_H
   return rotl64 (a, n);
+  #elif defined IS_CUDA
+  return rotl64_S (a, n);
   #else
   return rotate (a, (u64) (n));
   #endif
@@ -368,8 +382,10 @@ DECLSPEC u64 hc_rotl64_S (const u64 a, const int n)
 
 DECLSPEC u64 hc_rotr64_S (const u64 a, const int n)
 {
-  #ifdef _CPU_OPENCL_EMU_H
+  #if   defined _CPU_OPENCL_EMU_H
   return rotr64 (a, n);
+  #elif defined IS_CUDA
+  return rotr64_S (a, n);
   #else
   return rotate (a, (u64) (64 - n));
   #endif

@@ -3166,13 +3166,13 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
       if (rc_cuEventRecord2 == -1) return -1;
     }
 
-    const int rc_cuEventSynchronize = hc_cuEventSynchronize (hashcat_ctx, device_param->cuda_event2);
-
-    if (rc_cuEventSynchronize == -1) return -1;
-
     const int rc_cuStreamSynchronize = hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream);
 
     if (rc_cuStreamSynchronize == -1) return -1;
+
+    const int rc_cuEventSynchronize = hc_cuEventSynchronize (hashcat_ctx, device_param->cuda_event2);
+
+    if (rc_cuEventSynchronize == -1) return -1;
 
     float exec_ms;
 

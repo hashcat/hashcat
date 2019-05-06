@@ -9,7 +9,7 @@
 #include "inc_common.h"
 #include "inc_hash_sha512.h"
 
-CONSTANT_AS u64a k_sha512[80] =
+CONSTANT_VK u64a k_sha512[80] =
 {
   SHA512C00, SHA512C01, SHA512C02, SHA512C03,
   SHA512C04, SHA512C05, SHA512C06, SHA512C07,

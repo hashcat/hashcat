@@ -9,7 +9,7 @@
 #include "inc_common.h"
 #include "inc_hash_whirlpool.h"
 
-CONSTANT_AS u32a Ch[8][256] =
+CONSTANT_VK u32a Ch[8][256] =
 {
   {
     0x18186018, 0x23238c23, 0xc6c63fc6, 0xe8e887e8,
@@ -541,7 +541,7 @@ CONSTANT_AS u32a Ch[8][256] =
   }
 };
 
-CONSTANT_AS u32a Cl[8][256] =
+CONSTANT_VK u32a Cl[8][256] =
 {
   {
     0xc07830d8, 0x05af4626, 0x7ef991b8, 0x136fcdfb,
@@ -1073,7 +1073,7 @@ CONSTANT_AS u32a Cl[8][256] =
   },
 };
 
-CONSTANT_AS u32a rch[R + 1] =
+CONSTANT_VK u32a rch[R + 1] =
 {
   0x00000000,
   0x1823c6e8,
@@ -1088,7 +1088,7 @@ CONSTANT_AS u32a rch[R + 1] =
   0xca2dbf07,
 };
 
-CONSTANT_AS u32a rcl[R + 1] =
+CONSTANT_VK u32a rcl[R + 1] =
 {
   0x00000000,
   0x87b8014f,

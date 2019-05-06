@@ -20,7 +20,7 @@ typedef struct androidpin_tmp
 
 } androidpin_tmp_t;
 
-CONSTANT_AS u32a c_pc_dec[1024] =
+CONSTANT_VK u32a c_pc_dec[1024] =
 {
   0x00000030,
   0x00000031,
@@ -1048,7 +1048,7 @@ CONSTANT_AS u32a c_pc_dec[1024] =
   0x33323031,
 };
 
-CONSTANT_AS u32a c_pc_len[1024] =
+CONSTANT_VK u32a c_pc_len[1024] =
 {
   1,
   1,

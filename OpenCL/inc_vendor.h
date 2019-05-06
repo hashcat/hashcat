@@ -15,16 +15,19 @@
 #endif
 
 #if defined IS_NATIVE
+#define CONSTANT_VK
 #define CONSTANT_AS
 #define GLOBAL_AS
 #define LOCAL_AS
 #define KERNEL_FQ
 #elif defined IS_CUDA
+#define CONSTANT_VK __constant__
 #define CONSTANT_AS
 #define GLOBAL_AS
 #define LOCAL_AS
 #define KERNEL_FQ   extern "C" __global__
 #elif defined IS_OPENCL
+#define CONSTANT_VK __constant
 #define CONSTANT_AS __constant
 #define GLOBAL_AS   __global
 #define LOCAL_AS    __local

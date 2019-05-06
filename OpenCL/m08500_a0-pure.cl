@@ -53,7 +53,7 @@
   PERM_OP (l, r, tt,  4, 0x0f0f0f0f);  \
 }
 
-CONSTANT_AS u32a c_ascii_to_ebcdic_pc[256] =
+CONSTANT_VK u32a c_ascii_to_ebcdic_pc[256] =
 {
   // little hack, can't crack 0-bytes in password, but who cares
   //    0xab, 0xa8, 0xae, 0xad, 0xc4, 0xf1, 0xf7, 0xf4, 0x86, 0xa1, 0xe0, 0xbc, 0xb3, 0xb0, 0xb6, 0xb5,
@@ -75,7 +75,7 @@ CONSTANT_AS u32a c_ascii_to_ebcdic_pc[256] =
   0x13, 0x10, 0x16, 0x15, 0x7f, 0x7c, 0x73, 0x70, 0x76, 0x75, 0x5e, 0x5d, 0x52, 0x51, 0x57, 0x54,
 };
 
-CONSTANT_AS u32a c_SPtrans[8][64] =
+CONSTANT_VK u32a c_SPtrans[8][64] =
 {
   {
     0x02080800, 0x00080000, 0x02000002, 0x02080802,
@@ -223,7 +223,7 @@ CONSTANT_AS u32a c_SPtrans[8][64] =
   }
 };
 
-CONSTANT_AS u32a c_skb[8][64] =
+CONSTANT_VK u32a c_skb[8][64] =
 {
   {
     0x00000000, 0x00000010, 0x20000000, 0x20000010,
