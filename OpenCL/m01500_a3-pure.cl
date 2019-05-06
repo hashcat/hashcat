@@ -1998,7 +1998,11 @@ KERNEL_FQ void m01500_mxx (KERN_ATTR_BITSLICE ())
    * inner loop
    */
 
+  #ifdef IS_CUDA
+  const u32 pc_pos = (blockIdx.y * blockDim.y) + threadIdx.y;
+  #else
   const u32 pc_pos = get_global_id (1);
+  #endif
 
   const u32 il_pos = pc_pos * 32;
 
@@ -2446,7 +2450,11 @@ KERNEL_FQ void m01500_sxx (KERN_ATTR_BITSLICE ())
    * inner loop
    */
 
+  #ifdef IS_CUDA
+  const u32 pc_pos = (blockIdx.y * blockDim.y) + threadIdx.y;
+  #else
   const u32 pc_pos = get_global_id (1);
+  #endif
 
   const u32 il_pos = pc_pos * 32;
 

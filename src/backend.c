@@ -3119,7 +3119,7 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
       if (rc_cuEventRecord1 == -1) return -1;
 
-      const int rc_cuLaunchKernel = hc_cuLaunchKernel (hashcat_ctx, cuda_function, num_elements, 32, 1, kernel_threads, 1, 1, 0, device_param->cuda_stream, device_param->kernel_params, NULL);
+      const int rc_cuLaunchKernel = hc_cuLaunchKernel (hashcat_ctx, cuda_function, num_elements / 32, 32, 1, kernel_threads, 1, 1, 0, device_param->cuda_stream, device_param->kernel_params, NULL);
 
       if (rc_cuLaunchKernel == -1) return -1;
 
@@ -3525,7 +3525,7 @@ int run_kernel_tm (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   {
     CUfunction cuda_function = device_param->cuda_function_tm;
 
-    const int rc_cuLaunchKernel = hc_cuLaunchKernel (hashcat_ctx, cuda_function, num_elements, 1, 1, kernel_threads, 1, 1, 0, device_param->cuda_stream, device_param->kernel_params_tm, NULL);
+    const int rc_cuLaunchKernel = hc_cuLaunchKernel (hashcat_ctx, cuda_function, num_elements / kernel_threads, 1, 1, kernel_threads, 1, 1, 0, device_param->cuda_stream, device_param->kernel_params_tm, NULL);
 
     if (rc_cuLaunchKernel == -1) return -1;
 
@@ -8526,8 +8526,17 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       device_param->kernel_params_amp[5] = &device_param->kernel_params_amp_buf32[5];
       device_param->kernel_params_amp[6] = &device_param->kernel_params_amp_buf64[6];
 
-      device_param->kernel_params_tm[0] = &device_param->opencl_d_bfs_c;
-      device_param->kernel_params_tm[1] = &device_param->opencl_d_tm_c;
+      if (device_param->is_cuda == true)
+      {
+        device_param->kernel_params_tm[0] = &device_param->cuda_d_bfs_c;
+        device_param->kernel_params_tm[1] = &device_param->cuda_d_tm_c;
+      }
+
+      if (device_param->is_opencl == true)
+      {
+        device_param->kernel_params_tm[0] = &device_param->opencl_d_bfs_c;
+        device_param->kernel_params_tm[1] = &device_param->opencl_d_tm_c;
+      }
     }
 
     device_param->kernel_params_memset_buf32[1] = 0; // value
