@@ -2880,7 +2880,7 @@ int run_cuda_kernel_atinit (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devic
 
   const u64 kernel_threads = device_param->kernel_wgs_atinit;
 
-  num_elements = CEILDIV (num_elements, kernel_threads);
+  num_elements = round_up_multiple_64 (num_elements, kernel_threads);
 
   CUfunction function = device_param->cuda_function_atinit;
 
@@ -2910,7 +2910,7 @@ int run_cuda_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devic
 
     u64 num_elements = num16d;
 
-    num_elements = CEILDIV (num_elements, kernel_threads);
+    num_elements = round_up_multiple_64 (num_elements, kernel_threads);
 
     CUfunction function = device_param->cuda_function_memset;
 
@@ -3111,7 +3111,7 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
       }
     }
 
-    num_elements = CEILDIV (num_elements, kernel_threads);
+    num_elements = round_up_multiple_64 (num_elements, kernel_threads);
 
     if ((hashconfig->opts_type & OPTS_TYPE_PT_BITSLICE) && (user_options->attack_mode == ATTACK_MODE_BF))
     {
@@ -3151,7 +3151,7 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
         }
       }
 
-      num_elements = CEILDIV (num_elements, kernel_threads);
+      num_elements = round_up_multiple_64 (num_elements, kernel_threads);
 
       const int rc_cuEventRecord1 = hc_cuEventRecord (hashcat_ctx, device_param->cuda_event1, device_param->cuda_stream);
 
@@ -3444,7 +3444,7 @@ int run_kernel_mp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
                           break;
     }
 
-    num_elements = CEILDIV (num_elements, kernel_threads);
+    num_elements = round_up_multiple_64 (num_elements, kernel_threads);
 
     const int rc_cuLaunchKernel = hc_cuLaunchKernel (hashcat_ctx, cuda_function, num_elements, 1, 1, kernel_threads, 1, 1, 0, NULL, cuda_args, NULL);
 
@@ -3569,7 +3569,7 @@ int run_kernel_amp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
   if (device_param->is_cuda == true)
   {
-    num_elements = CEILDIV (num_elements, kernel_threads);
+    num_elements = round_up_multiple_64 (num_elements, kernel_threads);
 
     CUfunction cuda_function = device_param->cuda_function_amp;
 
@@ -3623,7 +3623,7 @@ int run_kernel_decompress (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
 
   if (device_param->is_cuda == true)
   {
-    num_elements = CEILDIV (num_elements, kernel_threads);
+    num_elements = round_up_multiple_64 (num_elements, kernel_threads);
 
     CUfunction cuda_function = device_param->cuda_function_decompress;
 
