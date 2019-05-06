@@ -2884,13 +2884,13 @@ int run_cuda_kernel_atinit (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devic
 
   CUfunction function = device_param->cuda_function_atinit;
 
-  const int rc_cuLaunchKernel = hc_cuLaunchKernel (hashcat_ctx, function, num_elements, 1, 1, kernel_threads, 1, 1, 0, NULL, device_param->kernel_params_atinit, NULL);
+  const int rc_cuLaunchKernel = hc_cuLaunchKernel (hashcat_ctx, function, num_elements, 1, 1, kernel_threads, 1, 1, 0, device_param->cuda_stream, device_param->kernel_params_atinit, NULL);
 
   if (rc_cuLaunchKernel == -1) return -1;
 
-  const int rc_cuCtxSynchronize = hc_cuCtxSynchronize (hashcat_ctx);
+  const int rc_cuStreamSynchronize = hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream);
 
-  if (rc_cuCtxSynchronize == -1) return -1;
+  if (rc_cuStreamSynchronize == -1) return -1;
 
   return 0;
 }
@@ -2921,13 +2921,13 @@ int run_cuda_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devic
     //const size_t global_work_size[3] = { num_elements,   1, 1 };
     //const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
 
-    const int rc_cuLaunchKernel = hc_cuLaunchKernel (hashcat_ctx, function, num_elements, 1, 1, kernel_threads, 1, 1, 0, NULL, device_param->kernel_params_memset, NULL);
+    const int rc_cuLaunchKernel = hc_cuLaunchKernel (hashcat_ctx, function, num_elements, 1, 1, kernel_threads, 1, 1, 0, device_param->cuda_stream, device_param->kernel_params_memset, NULL);
 
     if (rc_cuLaunchKernel == -1) return -1;
 
-    const int rc_cuCtxSynchronize = hc_cuCtxSynchronize (hashcat_ctx);
+    const int rc_cuStreamSynchronize = hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream);
 
-    if (rc_cuCtxSynchronize == -1) return -1;
+    if (rc_cuStreamSynchronize == -1) return -1;
   }
 
   if (num16m)
@@ -3446,13 +3446,13 @@ int run_kernel_mp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
     num_elements = round_up_multiple_64 (num_elements, kernel_threads);
 
-    const int rc_cuLaunchKernel = hc_cuLaunchKernel (hashcat_ctx, cuda_function, num_elements, 1, 1, kernel_threads, 1, 1, 0, NULL, cuda_args, NULL);
+    const int rc_cuLaunchKernel = hc_cuLaunchKernel (hashcat_ctx, cuda_function, num_elements, 1, 1, kernel_threads, 1, 1, 0, device_param->cuda_stream, cuda_args, NULL);
 
     if (rc_cuLaunchKernel == -1) return -1;
 
-    const int rc_cuCtxSynchronize = hc_cuCtxSynchronize (hashcat_ctx);
+    const int rc_cuStreamSynchronize = hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream);
 
-    if (rc_cuCtxSynchronize == -1) return -1;
+    if (rc_cuStreamSynchronize == -1) return -1;
   }
 
   if (device_param->is_opencl == true)
@@ -3525,13 +3525,13 @@ int run_kernel_tm (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   {
     CUfunction cuda_function = device_param->cuda_function_tm;
 
-    const int rc_cuLaunchKernel = hc_cuLaunchKernel (hashcat_ctx, cuda_function, num_elements, 1, 1, kernel_threads, 1, 1, 0, NULL, device_param->kernel_params_tm, NULL);
+    const int rc_cuLaunchKernel = hc_cuLaunchKernel (hashcat_ctx, cuda_function, num_elements, 1, 1, kernel_threads, 1, 1, 0, device_param->cuda_stream, device_param->kernel_params_tm, NULL);
 
     if (rc_cuLaunchKernel == -1) return -1;
 
-    const int rc_cuCtxSynchronize = hc_cuCtxSynchronize (hashcat_ctx);
+    const int rc_cuStreamSynchronize = hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream);
 
-    if (rc_cuCtxSynchronize == -1) return -1;
+    if (rc_cuStreamSynchronize == -1) return -1;
   }
 
   if (device_param->is_opencl == true)
@@ -3573,13 +3573,13 @@ int run_kernel_amp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
     CUfunction cuda_function = device_param->cuda_function_amp;
 
-    const int rc_cuLaunchKernel = hc_cuLaunchKernel (hashcat_ctx, cuda_function, num_elements, 1, 1, kernel_threads, 1, 1, 0, NULL, device_param->kernel_params_amp, NULL);
+    const int rc_cuLaunchKernel = hc_cuLaunchKernel (hashcat_ctx, cuda_function, num_elements, 1, 1, kernel_threads, 1, 1, 0, device_param->cuda_stream, device_param->kernel_params_amp, NULL);
 
     if (rc_cuLaunchKernel == -1) return -1;
 
-    const int rc_cuCtxSynchronize = hc_cuCtxSynchronize (hashcat_ctx);
+    const int rc_cuStreamSynchronize = hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream);
 
-    if (rc_cuCtxSynchronize == -1) return -1;
+    if (rc_cuStreamSynchronize == -1) return -1;
   }
 
   if (device_param->is_opencl == true)
@@ -3627,13 +3627,13 @@ int run_kernel_decompress (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
 
     CUfunction cuda_function = device_param->cuda_function_decompress;
 
-    const int rc_cuLaunchKernel = hc_cuLaunchKernel (hashcat_ctx, cuda_function, num_elements, 1, 1, kernel_threads, 1, 1, 0, NULL, device_param->kernel_params_decompress, NULL);
+    const int rc_cuLaunchKernel = hc_cuLaunchKernel (hashcat_ctx, cuda_function, num_elements, 1, 1, kernel_threads, 1, 1, 0, device_param->cuda_stream, device_param->kernel_params_decompress, NULL);
 
     if (rc_cuLaunchKernel == -1) return -1;
 
-    const int rc_cuCtxSynchronize = hc_cuCtxSynchronize (hashcat_ctx);
+    const int rc_cuStreamSynchronize = hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream);
 
-    if (rc_cuCtxSynchronize == -1) return -1;
+    if (rc_cuStreamSynchronize == -1) return -1;
   }
 
   if (device_param->is_opencl == true)
@@ -5387,7 +5387,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       CUcontext cuda_context;
 
-      const int rc_cuCtxCreate = hc_cuCtxCreate (hashcat_ctx, &cuda_context, CU_CTX_SCHED_YIELD, device_param->cuda_device);
+      const int rc_cuCtxCreate = hc_cuCtxCreate (hashcat_ctx, &cuda_context, CU_CTX_SCHED_BLOCKING_SYNC, device_param->cuda_device);
 
       if (rc_cuCtxCreate == -1) return -1;
 
@@ -7062,7 +7062,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->is_cuda == true)
     {
-      CU_rc = hc_cuCtxCreate (hashcat_ctx, &device_param->cuda_context, CU_CTX_SCHED_YIELD, device_param->cuda_device);
+      CU_rc = hc_cuCtxCreate (hashcat_ctx, &device_param->cuda_context, CU_CTX_SCHED_BLOCKING_SYNC, device_param->cuda_device);
 
       if (CU_rc == -1) return -1;
     }
