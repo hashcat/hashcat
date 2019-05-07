@@ -70,7 +70,7 @@ DECLSPEC void rc4_init_16 (LOCAL_AS RC4_KEY *rc4_key, const u32 *data)
   u32 v = 0x03020100;
   u32 a = 0x04040404;
 
-  LOCAL_VK u32 *ptr = (LOCAL_AS u32 *) rc4_key->S;
+  LOCAL_AS u32 *ptr = (LOCAL_AS u32 *) rc4_key->S;
 
   #ifdef _unroll
   #pragma unroll
@@ -169,7 +169,7 @@ DECLSPEC void m10400m (LOCAL_AS RC4_KEY *rc4_keys, u32 *w0, u32 *w1, u32 *w2, u3
    * shared
    */
 
-  LOCAL_VK RC4_KEY *rc4_key = &rc4_keys[lid];
+  LOCAL_AS RC4_KEY *rc4_key = &rc4_keys[lid];
 
   /**
    * U_buf
@@ -335,7 +335,7 @@ DECLSPEC void m10400s (LOCAL_AS RC4_KEY *rc4_keys, u32 *w0, u32 *w1, u32 *w2, u3
    * shared
    */
 
-  LOCAL_VK RC4_KEY *rc4_key = &rc4_keys[lid];
+  LOCAL_AS RC4_KEY *rc4_key = &rc4_keys[lid];
 
   /**
    * U_buf

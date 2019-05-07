@@ -47,7 +47,7 @@ DECLSPEC void rc4_init_16 (LOCAL_AS RC4_KEY *rc4_key, const u32 *data)
   u32 v = 0x03020100;
   u32 a = 0x04040404;
 
-  LOCAL_VK u32 *ptr = (LOCAL_AS u32 *) rc4_key->S;
+  LOCAL_AS u32 *ptr = (LOCAL_AS u32 *) rc4_key->S;
 
   #ifdef _unroll
   #pragma unroll
@@ -679,7 +679,7 @@ KERNEL_FQ void m13100_m04 (KERN_ATTR_ESALT (krb5tgs_t))
 
   LOCAL_VK RC4_KEY rc4_keys[64];
 
-  LOCAL_VK RC4_KEY *rc4_key = &rc4_keys[lid];
+  LOCAL_AS RC4_KEY *rc4_key = &rc4_keys[lid];
 
   m13100 (rc4_key, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }
@@ -731,7 +731,7 @@ KERNEL_FQ void m13100_m08 (KERN_ATTR_ESALT (krb5tgs_t))
 
   LOCAL_VK RC4_KEY rc4_keys[64];
 
-  LOCAL_VK RC4_KEY *rc4_key = &rc4_keys[lid];
+  LOCAL_AS RC4_KEY *rc4_key = &rc4_keys[lid];
 
   m13100 (rc4_key, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }
@@ -787,7 +787,7 @@ KERNEL_FQ void m13100_s04 (KERN_ATTR_ESALT (krb5tgs_t))
 
   LOCAL_VK RC4_KEY rc4_keys[64];
 
-  LOCAL_VK RC4_KEY *rc4_key = &rc4_keys[lid];
+  LOCAL_AS RC4_KEY *rc4_key = &rc4_keys[lid];
 
   m13100 (rc4_key, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }
@@ -839,7 +839,7 @@ KERNEL_FQ void m13100_s08 (KERN_ATTR_ESALT (krb5tgs_t))
 
   LOCAL_VK RC4_KEY rc4_keys[64];
 
-  LOCAL_VK RC4_KEY *rc4_key = &rc4_keys[lid];
+  LOCAL_AS RC4_KEY *rc4_key = &rc4_keys[lid];
 
   m13100 (rc4_key, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }

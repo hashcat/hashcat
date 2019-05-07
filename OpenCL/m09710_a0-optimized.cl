@@ -48,7 +48,7 @@ DECLSPEC void rc4_init_16 (LOCAL_AS RC4_KEY *rc4_key, const u32 *data)
   u32 v = 0x03020100;
   u32 a = 0x04040404;
 
-  LOCAL_VK u32 *ptr = (LOCAL_AS u32 *) rc4_key->S;
+  LOCAL_AS u32 *ptr = (LOCAL_AS u32 *) rc4_key->S;
 
   #ifdef _unroll
   #pragma unroll
@@ -185,7 +185,7 @@ KERNEL_FQ void m09710_m04 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
 
   LOCAL_VK RC4_KEY rc4_keys[64];
 
-  LOCAL_VK RC4_KEY *rc4_key = &rc4_keys[lid];
+  LOCAL_AS RC4_KEY *rc4_key = &rc4_keys[lid];
 
   /**
    * esalt
@@ -323,7 +323,7 @@ KERNEL_FQ void m09710_s04 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
 
   LOCAL_VK RC4_KEY rc4_keys[64];
 
-  LOCAL_VK RC4_KEY *rc4_key = &rc4_keys[lid];
+  LOCAL_AS RC4_KEY *rc4_key = &rc4_keys[lid];
 
   /**
    * esalt
