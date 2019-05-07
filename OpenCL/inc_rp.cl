@@ -15,7 +15,7 @@
 
 #ifdef REAL_SHM
 #define COPY_PW(x)                \
-  LOCAL_AS pw_t s_pws[64];         \
+  LOCAL_VK pw_t s_pws[64];         \
   s_pws[get_local_id (0)] = (x);
 #else
 #define COPY_PW(x)                \

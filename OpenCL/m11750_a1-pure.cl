@@ -30,7 +30,7 @@ KERNEL_FQ void m11750_mxx (KERN_ATTR_BASIC ())
 
   #ifdef REAL_SHM
 
-  LOCAL_AS u64a s_sbob_sl64[8][256];
+  LOCAL_VK u64a s_sbob_sl64[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -137,7 +137,7 @@ KERNEL_FQ void m11750_sxx (KERN_ATTR_BASIC ())
 
   #ifdef REAL_SHM
 
-  LOCAL_AS u64a s_sbob_sl64[8][256];
+  LOCAL_VK u64a s_sbob_sl64[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {

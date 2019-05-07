@@ -127,14 +127,14 @@ KERNEL_FQ void m05400_m04 (KERN_ATTR_ESALT (ikepsk_t))
    * s_msg
    */
 
-  LOCAL_AS u32 s_nr_buf[16];
+  LOCAL_VK u32 s_nr_buf[16];
 
   for (u32 i = lid; i < 16; i += lsz)
   {
     s_nr_buf[i] = hc_swap32_S (esalt_bufs[digests_offset].nr_buf[i]);
   }
 
-  LOCAL_AS u32 s_msg_buf[128];
+  LOCAL_VK u32 s_msg_buf[128];
 
   for (u32 i = lid; i < 128; i += lsz)
   {
@@ -379,14 +379,14 @@ KERNEL_FQ void m05400_s04 (KERN_ATTR_ESALT (ikepsk_t))
    * s_msg
    */
 
-  LOCAL_AS u32 s_nr_buf[16];
+  LOCAL_VK u32 s_nr_buf[16];
 
   for (u32 i = lid; i < 16; i += lsz)
   {
     s_nr_buf[i] = hc_swap32_S (esalt_bufs[digests_offset].nr_buf[i]);
   }
 
-  LOCAL_AS u32 s_msg_buf[128];
+  LOCAL_VK u32 s_msg_buf[128];
 
   for (u32 i = lid; i < 128; i += lsz)
   {

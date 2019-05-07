@@ -633,7 +633,7 @@ KERNEL_FQ void m03710_m04 (KERN_ATTR_BASIC ())
    * bin2asc table
    */
 
-  LOCAL_AS u32 l_bin2asc[256];
+  LOCAL_VK u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -737,7 +737,7 @@ KERNEL_FQ void m03710_m08 (KERN_ATTR_BASIC ())
    * bin2asc table
    */
 
-  LOCAL_AS u32 l_bin2asc[256];
+  LOCAL_VK u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -807,7 +807,7 @@ KERNEL_FQ void m03710_m16 (KERN_ATTR_BASIC ())
    * bin2asc table
    */
 
-  LOCAL_AS u32 l_bin2asc[256];
+  LOCAL_VK u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -877,7 +877,7 @@ KERNEL_FQ void m03710_s04 (KERN_ATTR_BASIC ())
    * bin2asc table
    */
 
-  LOCAL_AS u32 l_bin2asc[256];
+  LOCAL_VK u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -947,7 +947,7 @@ KERNEL_FQ void m03710_s08 (KERN_ATTR_BASIC ())
    * bin2asc table
    */
 
-  LOCAL_AS u32 l_bin2asc[256];
+  LOCAL_VK u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -983,7 +983,7 @@ KERNEL_FQ void m03710_s16 (KERN_ATTR_BASIC ())
    * bin2asc table
    */
 
-  LOCAL_AS u32 l_bin2asc[256];
+  LOCAL_VK u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {

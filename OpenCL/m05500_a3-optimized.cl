@@ -847,8 +847,8 @@ KERNEL_FQ void m05500_m04 (KERN_ATTR_VECTOR ())
    * sbox, kbox
    */
 
-  LOCAL_AS u32 s_SPtrans[8][64];
-  LOCAL_AS u32 s_skb[8][64];
+  LOCAL_VK u32 s_SPtrans[8][64];
+  LOCAL_VK u32 s_skb[8][64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
@@ -921,8 +921,8 @@ KERNEL_FQ void m05500_m08 (KERN_ATTR_VECTOR ())
    * sbox, kbox
    */
 
-  LOCAL_AS u32 s_SPtrans[8][64];
-  LOCAL_AS u32 s_skb[8][64];
+  LOCAL_VK u32 s_SPtrans[8][64];
+  LOCAL_VK u32 s_skb[8][64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
@@ -995,8 +995,8 @@ KERNEL_FQ void m05500_m16 (KERN_ATTR_VECTOR ())
    * sbox, kbox
    */
 
-  LOCAL_AS u32 s_SPtrans[8][64];
-  LOCAL_AS u32 s_skb[8][64];
+  LOCAL_VK u32 s_SPtrans[8][64];
+  LOCAL_VK u32 s_skb[8][64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
@@ -1069,8 +1069,8 @@ KERNEL_FQ void m05500_s04 (KERN_ATTR_VECTOR ())
    * sbox, kbox
    */
 
-  LOCAL_AS u32 s_SPtrans[8][64];
-  LOCAL_AS u32 s_skb[8][64];
+  LOCAL_VK u32 s_SPtrans[8][64];
+  LOCAL_VK u32 s_skb[8][64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
@@ -1143,8 +1143,8 @@ KERNEL_FQ void m05500_s08 (KERN_ATTR_VECTOR ())
    * sbox, kbox
    */
 
-  LOCAL_AS u32 s_SPtrans[8][64];
-  LOCAL_AS u32 s_skb[8][64];
+  LOCAL_VK u32 s_SPtrans[8][64];
+  LOCAL_VK u32 s_skb[8][64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
@@ -1217,8 +1217,8 @@ KERNEL_FQ void m05500_s16 (KERN_ATTR_VECTOR ())
    * sbox, kbox
    */
 
-  LOCAL_AS u32 s_SPtrans[8][64];
-  LOCAL_AS u32 s_skb[8][64];
+  LOCAL_VK u32 s_SPtrans[8][64];
+  LOCAL_VK u32 s_skb[8][64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {

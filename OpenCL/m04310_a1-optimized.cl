@@ -40,7 +40,7 @@ KERNEL_FQ void m04310_m04 (KERN_ATTR_BASIC ())
    * bin2asc table
    */
 
-  LOCAL_AS u32 l_bin2asc[256];
+  LOCAL_VK u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -383,7 +383,7 @@ KERNEL_FQ void m04310_s04 (KERN_ATTR_BASIC ())
    * bin2asc table
    */
 
-  LOCAL_AS u32 l_bin2asc[256];
+  LOCAL_VK u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {

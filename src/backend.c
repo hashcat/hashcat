@@ -3090,6 +3090,31 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
   if (device_param->is_cuda == true)
   {
+    u64 local_mem_size = 0;
+
+    switch (kern_run)
+    {
+      case KERN_RUN_1:      local_mem_size  = device_param->kernel_local_mem_size1;       break;
+      case KERN_RUN_12:     local_mem_size  = device_param->kernel_local_mem_size12;      break;
+      case KERN_RUN_2:      local_mem_size  = device_param->kernel_local_mem_size2;       break;
+      case KERN_RUN_23:     local_mem_size  = device_param->kernel_local_mem_size23;      break;
+      case KERN_RUN_3:      local_mem_size  = device_param->kernel_local_mem_size3;       break;
+      case KERN_RUN_4:      local_mem_size  = device_param->kernel_local_mem_size4;       break;
+      case KERN_RUN_INIT2:  local_mem_size  = device_param->kernel_local_mem_size_init2;  break;
+      case KERN_RUN_LOOP2:  local_mem_size  = device_param->kernel_local_mem_size_loop2;  break;
+      case KERN_RUN_AUX1:   local_mem_size  = device_param->kernel_local_mem_size_aux1;   break;
+      case KERN_RUN_AUX2:   local_mem_size  = device_param->kernel_local_mem_size_aux2;   break;
+      case KERN_RUN_AUX3:   local_mem_size  = device_param->kernel_local_mem_size_aux3;   break;
+      case KERN_RUN_AUX4:   local_mem_size  = device_param->kernel_local_mem_size_aux4;   break;
+    }
+
+    if (local_mem_size)
+    {
+      const u32 max_threads_possible = (device_param->device_local_mem_size - 240) / local_mem_size;
+
+      kernel_threads = MIN (kernel_threads, max_threads_possible);
+    }
+
     CUfunction cuda_function = NULL;
 
     if (device_param->is_cuda == true)
@@ -5293,6 +5318,8 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         device_param->skipped = true;
       }
+
+      device_param->device_local_mem_size = max_shared_memory_per_block;
 
       // device_max_constant_buffer_size
 

@@ -489,8 +489,8 @@ KERNEL_FQ void m08000_m04 (KERN_ATTR_VECTOR ())
 
   const u32 pw_len = pws[gid].pw_len & 63;
 
-  LOCAL_AS u32 w_s1[64];
-  LOCAL_AS u32 w_s2[64];
+  LOCAL_VK u32 w_s1[64];
+  LOCAL_VK u32 w_s2[64];
 
   /**
    * main
@@ -528,8 +528,8 @@ KERNEL_FQ void m08000_m08 (KERN_ATTR_VECTOR ())
 
   const u32 pw_len = pws[gid].pw_len & 63;
 
-  LOCAL_AS u32 w_s1[64];
-  LOCAL_AS u32 w_s2[64];
+  LOCAL_VK u32 w_s1[64];
+  LOCAL_VK u32 w_s2[64];
 
   /**
    * main
@@ -567,8 +567,8 @@ KERNEL_FQ void m08000_m16 (KERN_ATTR_VECTOR ())
 
   const u32 pw_len = pws[gid].pw_len & 63;
 
-  LOCAL_AS u32 w_s1[64];
-  LOCAL_AS u32 w_s2[64];
+  LOCAL_VK u32 w_s1[64];
+  LOCAL_VK u32 w_s2[64];
 
   /**
    * main
@@ -606,8 +606,8 @@ KERNEL_FQ void m08000_s04 (KERN_ATTR_VECTOR ())
 
   const u32 pw_len = pws[gid].pw_len & 63;
 
-  LOCAL_AS u32 w_s1[64];
-  LOCAL_AS u32 w_s2[64];
+  LOCAL_VK u32 w_s1[64];
+  LOCAL_VK u32 w_s2[64];
 
   /**
    * main
@@ -645,8 +645,8 @@ KERNEL_FQ void m08000_s08 (KERN_ATTR_VECTOR ())
 
   const u32 pw_len = pws[gid].pw_len & 63;
 
-  LOCAL_AS u32 w_s1[64];
-  LOCAL_AS u32 w_s2[64];
+  LOCAL_VK u32 w_s1[64];
+  LOCAL_VK u32 w_s2[64];
 
   /**
    * main
@@ -684,8 +684,8 @@ KERNEL_FQ void m08000_s16 (KERN_ATTR_VECTOR ())
 
   const u32 pw_len = pws[gid].pw_len & 63;
 
-  LOCAL_AS u32 w_s1[64];
-  LOCAL_AS u32 w_s2[64];
+  LOCAL_VK u32 w_s1[64];
+  LOCAL_VK u32 w_s2[64];
 
   /**
    * main

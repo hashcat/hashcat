@@ -268,7 +268,7 @@ KERNEL_FQ void m11800_m04 (KERN_ATTR_BASIC ())
    * shared lookup table
    */
 
-  LOCAL_AS u64 s_sbob_sl64[8][256];
+  LOCAL_VK u64 s_sbob_sl64[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -332,7 +332,7 @@ KERNEL_FQ void m11800_m08 (KERN_ATTR_BASIC ())
    * shared lookup table
    */
 
-  LOCAL_AS u64 s_sbob_sl64[8][256];
+  LOCAL_VK u64 s_sbob_sl64[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -396,7 +396,7 @@ KERNEL_FQ void m11800_m16 (KERN_ATTR_BASIC ())
    * shared lookup table
    */
 
-  LOCAL_AS u64 s_sbob_sl64[8][256];
+  LOCAL_VK u64 s_sbob_sl64[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -460,7 +460,7 @@ KERNEL_FQ void m11800_s04 (KERN_ATTR_BASIC ())
    * shared lookup table
    */
 
-  LOCAL_AS u64 s_sbob_sl64[8][256];
+  LOCAL_VK u64 s_sbob_sl64[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -524,7 +524,7 @@ KERNEL_FQ void m11800_s08 (KERN_ATTR_BASIC ())
    * shared lookup table
    */
 
-  LOCAL_AS u64 s_sbob_sl64[8][256];
+  LOCAL_VK u64 s_sbob_sl64[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -588,7 +588,7 @@ KERNEL_FQ void m11800_s16 (KERN_ATTR_BASIC ())
    * shared lookup table
    */
 
-  LOCAL_AS u64 s_sbob_sl64[8][256];
+  LOCAL_VK u64 s_sbob_sl64[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {

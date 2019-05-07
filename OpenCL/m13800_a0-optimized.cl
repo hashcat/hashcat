@@ -435,7 +435,7 @@ KERNEL_FQ void m13800_m04 (KERN_ATTR_RULES_ESALT (win8phone_t))
    * shared
    */
 
-  LOCAL_AS u32 s_esalt[32];
+  LOCAL_VK u32 s_esalt[32];
 
   for (u32 i = lid; i < 32; i += lsz)
   {
@@ -631,7 +631,7 @@ KERNEL_FQ void m13800_s04 (KERN_ATTR_RULES_ESALT (win8phone_t))
    * shared
    */
 
-  LOCAL_AS u32 s_esalt[32];
+  LOCAL_VK u32 s_esalt[32];
 
   for (u32 i = lid; i < 32; i += lsz)
   {

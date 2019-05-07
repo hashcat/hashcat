@@ -472,7 +472,7 @@ KERNEL_FQ void m08400_m04 (KERN_ATTR_BASIC ())
    * shared
    */
 
-  LOCAL_AS u32 l_bin2asc[256];
+  LOCAL_VK u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -542,7 +542,7 @@ KERNEL_FQ void m08400_m08 (KERN_ATTR_BASIC ())
    * shared
    */
 
-  LOCAL_AS u32 l_bin2asc[256];
+  LOCAL_VK u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -612,7 +612,7 @@ KERNEL_FQ void m08400_m16 (KERN_ATTR_BASIC ())
    * shared
    */
 
-  LOCAL_AS u32 l_bin2asc[256];
+  LOCAL_VK u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -682,7 +682,7 @@ KERNEL_FQ void m08400_s04 (KERN_ATTR_BASIC ())
    * shared
    */
 
-  LOCAL_AS u32 l_bin2asc[256];
+  LOCAL_VK u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -752,7 +752,7 @@ KERNEL_FQ void m08400_s08 (KERN_ATTR_BASIC ())
    * shared
    */
 
-  LOCAL_AS u32 l_bin2asc[256];
+  LOCAL_VK u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -822,7 +822,7 @@ KERNEL_FQ void m08400_s16 (KERN_ATTR_BASIC ())
    * shared
    */
 
-  LOCAL_AS u32 l_bin2asc[256];
+  LOCAL_VK u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {

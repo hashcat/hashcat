@@ -2300,8 +2300,8 @@ KERNEL_FQ void m05800_loop (KERN_ATTR_TMPS (androidpin_tmp_t))
    * cache precomputed conversion table in shared memory
    */
 
-  LOCAL_AS u32 s_pc_dec[1024];
-  LOCAL_AS u32 s_pc_len[1024];
+  LOCAL_VK u32 s_pc_dec[1024];
+  LOCAL_VK u32 s_pc_len[1024];
 
   for (u32 i = lid; i < 1024; i += lsz)
   {

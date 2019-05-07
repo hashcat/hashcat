@@ -104,7 +104,17 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
       // I did some research on this and it seems to be related with the datatype.
       // For example, if i used u8 instead, there's only 1 byte wasted.
 
-      overhead = 4;
+      if (device_param->is_opencl == true)
+      {
+        overhead = 4;
+      }
+
+      // no clue yet where this is coming from
+
+      if (device_param->is_cuda == true)
+      {
+        overhead = 240;
+      }
     }
 
     if (user_options->kernel_threads_chgd == true)

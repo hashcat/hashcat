@@ -39,7 +39,7 @@ KERNEL_FQ void m18500_mxx (KERN_ATTR_RULES ())
   const u64 gid = get_global_id (0);
   const u64 lsz = get_local_size (0);
 
-  LOCAL_AS u32 l_bin2asc[256];
+  LOCAL_VK u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -155,7 +155,7 @@ KERNEL_FQ void m18500_sxx (KERN_ATTR_RULES ())
   const u64 gid = get_global_id (0);
   const u64 lsz = get_local_size (0);
 
-  LOCAL_AS u32 l_bin2asc[256];
+  LOCAL_VK u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {

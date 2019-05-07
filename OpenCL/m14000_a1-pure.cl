@@ -501,8 +501,8 @@ KERNEL_FQ void m14000_mxx (KERN_ATTR_BASIC ())
    * shared
    */
 
-  LOCAL_AS u32 s_SPtrans[8][64];
-  LOCAL_AS u32 s_skb[8][64];
+  LOCAL_VK u32 s_SPtrans[8][64];
+  LOCAL_VK u32 s_skb[8][64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
@@ -649,8 +649,8 @@ KERNEL_FQ void m14000_sxx (KERN_ATTR_BASIC ())
    * shared
    */
 
-  LOCAL_AS u32 s_SPtrans[8][64];
-  LOCAL_AS u32 s_skb[8][64];
+  LOCAL_VK u32 s_SPtrans[8][64];
+  LOCAL_VK u32 s_skb[8][64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {

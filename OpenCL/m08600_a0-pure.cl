@@ -244,7 +244,7 @@ KERNEL_FQ void m08600_mxx (KERN_ATTR_RULES ())
    * sbox
    */
 
-  LOCAL_AS u32 s_lotus_magic_table[256];
+  LOCAL_VK u32 s_lotus_magic_table[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -308,7 +308,7 @@ KERNEL_FQ void m08600_sxx (KERN_ATTR_RULES ())
    * sbox
    */
 
-  LOCAL_AS u32 s_lotus_magic_table[256];
+  LOCAL_VK u32 s_lotus_magic_table[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {

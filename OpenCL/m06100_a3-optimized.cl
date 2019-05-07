@@ -185,8 +185,8 @@ KERNEL_FQ void m06100_m04 (KERN_ATTR_BASIC ())
 
   #ifdef REAL_SHM
 
-  LOCAL_AS u32 s_Ch[8][256];
-  LOCAL_AS u32 s_Cl[8][256];
+  LOCAL_VK u32 s_Ch[8][256];
+  LOCAL_VK u32 s_Cl[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -277,8 +277,8 @@ KERNEL_FQ void m06100_m08 (KERN_ATTR_BASIC ())
 
   #ifdef REAL_SHM
 
-  LOCAL_AS u32 s_Ch[8][256];
-  LOCAL_AS u32 s_Cl[8][256];
+  LOCAL_VK u32 s_Ch[8][256];
+  LOCAL_VK u32 s_Cl[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -373,8 +373,8 @@ KERNEL_FQ void m06100_s04 (KERN_ATTR_BASIC ())
 
   #ifdef REAL_SHM
 
-  LOCAL_AS u32 s_Ch[8][256];
-  LOCAL_AS u32 s_Cl[8][256];
+  LOCAL_VK u32 s_Ch[8][256];
+  LOCAL_VK u32 s_Cl[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -465,8 +465,8 @@ KERNEL_FQ void m06100_s08 (KERN_ATTR_BASIC ())
 
   #ifdef REAL_SHM
 
-  LOCAL_AS u32 s_Ch[8][256];
-  LOCAL_AS u32 s_Cl[8][256];
+  LOCAL_VK u32 s_Ch[8][256];
+  LOCAL_VK u32 s_Cl[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {

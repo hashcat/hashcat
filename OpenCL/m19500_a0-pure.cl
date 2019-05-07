@@ -52,7 +52,7 @@ KERNEL_FQ void m19500_mxx (KERN_ATTR_RULES_ESALT (devise_hash_t))
    * bin2asc table
    */
 
-  LOCAL_AS u32 l_bin2asc[256];
+  LOCAL_VK u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -187,7 +187,7 @@ KERNEL_FQ void m19500_sxx (KERN_ATTR_RULES_ESALT (devise_hash_t))
    * bin2asc table
    */
 
-  LOCAL_AS u32 l_bin2asc[256];
+  LOCAL_VK u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {

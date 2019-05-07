@@ -228,8 +228,8 @@ KERNEL_FQ void m08000_m04 (KERN_ATTR_RULES ())
    * precompute final msg blocks
    */
 
-  LOCAL_AS u32 w_s1[64];
-  LOCAL_AS u32 w_s2[64];
+  LOCAL_VK u32 w_s1[64];
+  LOCAL_VK u32 w_s2[64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
@@ -399,8 +399,8 @@ KERNEL_FQ void m08000_s04 (KERN_ATTR_RULES ())
    * precompute final msg blocks
    */
 
-  LOCAL_AS u32 w_s1[64];
-  LOCAL_AS u32 w_s2[64];
+  LOCAL_VK u32 w_s1[64];
+  LOCAL_VK u32 w_s2[64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {

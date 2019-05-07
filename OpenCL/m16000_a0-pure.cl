@@ -508,8 +508,8 @@ KERNEL_FQ void m16000_mxx (KERN_ATTR_RULES ())
    * sbox, kbox
    */
 
-  LOCAL_AS u32 s_SPtrans[8][64];
-  LOCAL_AS u32 s_skb[8][64];
+  LOCAL_VK u32 s_SPtrans[8][64];
+  LOCAL_VK u32 s_skb[8][64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
@@ -532,7 +532,7 @@ KERNEL_FQ void m16000_mxx (KERN_ATTR_RULES ())
     s_skb[7][i] = c_skb[7][i];
   }
 
-  LOCAL_AS u32 s_tripcode_salt[128];
+  LOCAL_VK u32 s_tripcode_salt[128];
 
   for (u32 i = lid; i < 128; i += lsz)
   {
@@ -601,8 +601,8 @@ KERNEL_FQ void m16000_sxx (KERN_ATTR_RULES ())
    * sbox, kbox
    */
 
-  LOCAL_AS u32 s_SPtrans[8][64];
-  LOCAL_AS u32 s_skb[8][64];
+  LOCAL_VK u32 s_SPtrans[8][64];
+  LOCAL_VK u32 s_skb[8][64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
@@ -625,7 +625,7 @@ KERNEL_FQ void m16000_sxx (KERN_ATTR_RULES ())
     s_skb[7][i] = c_skb[7][i];
   }
 
-  LOCAL_AS u32 s_tripcode_salt[128];
+  LOCAL_VK u32 s_tripcode_salt[128];
 
   for (u32 i = lid; i < 128; i += lsz)
   {

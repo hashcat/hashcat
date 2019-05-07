@@ -710,7 +710,7 @@ KERNEL_FQ void m06900_m04 (KERN_ATTR_BASIC ())
    * sbox
    */
 
-  LOCAL_AS u32 s_tables[4][256];
+  LOCAL_VK u32 s_tables[4][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -980,7 +980,7 @@ KERNEL_FQ void m06900_s04 (KERN_ATTR_BASIC ())
    * sbox
    */
 
-  LOCAL_AS u32 s_tables[4][256];
+  LOCAL_VK u32 s_tables[4][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {

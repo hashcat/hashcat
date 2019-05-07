@@ -444,15 +444,15 @@ KERNEL_FQ void __attribute__((reqd_work_group_size(FIXED_LOCAL_SIZE, 1, 1))) m03
    * do the key setup
    */
 
-  LOCAL_AS u32 S0_all[FIXED_LOCAL_SIZE][256];
-  LOCAL_AS u32 S1_all[FIXED_LOCAL_SIZE][256];
-  LOCAL_AS u32 S2_all[FIXED_LOCAL_SIZE][256];
-  LOCAL_AS u32 S3_all[FIXED_LOCAL_SIZE][256];
+  LOCAL_VK u32 S0_all[FIXED_LOCAL_SIZE][256];
+  LOCAL_VK u32 S1_all[FIXED_LOCAL_SIZE][256];
+  LOCAL_VK u32 S2_all[FIXED_LOCAL_SIZE][256];
+  LOCAL_VK u32 S3_all[FIXED_LOCAL_SIZE][256];
 
-  LOCAL_AS u32 *S0 = S0_all[lid];
-  LOCAL_AS u32 *S1 = S1_all[lid];
-  LOCAL_AS u32 *S2 = S2_all[lid];
-  LOCAL_AS u32 *S3 = S3_all[lid];
+  LOCAL_VK u32 *S0 = S0_all[lid];
+  LOCAL_VK u32 *S1 = S1_all[lid];
+  LOCAL_VK u32 *S2 = S2_all[lid];
+  LOCAL_VK u32 *S3 = S3_all[lid];
 
   // initstate
 
@@ -613,15 +613,15 @@ KERNEL_FQ void __attribute__((reqd_work_group_size(FIXED_LOCAL_SIZE, 1, 1))) m03
     P[i] = tmps[gid].P[i];
   }
 
-  LOCAL_AS u32 S0_all[FIXED_LOCAL_SIZE][256];
-  LOCAL_AS u32 S1_all[FIXED_LOCAL_SIZE][256];
-  LOCAL_AS u32 S2_all[FIXED_LOCAL_SIZE][256];
-  LOCAL_AS u32 S3_all[FIXED_LOCAL_SIZE][256];
+  LOCAL_VK u32 S0_all[FIXED_LOCAL_SIZE][256];
+  LOCAL_VK u32 S1_all[FIXED_LOCAL_SIZE][256];
+  LOCAL_VK u32 S2_all[FIXED_LOCAL_SIZE][256];
+  LOCAL_VK u32 S3_all[FIXED_LOCAL_SIZE][256];
 
-  LOCAL_AS u32 *S0 = S0_all[lid];
-  LOCAL_AS u32 *S1 = S1_all[lid];
-  LOCAL_AS u32 *S2 = S2_all[lid];
-  LOCAL_AS u32 *S3 = S3_all[lid];
+  LOCAL_VK u32 *S0 = S0_all[lid];
+  LOCAL_VK u32 *S1 = S1_all[lid];
+  LOCAL_VK u32 *S2 = S2_all[lid];
+  LOCAL_VK u32 *S3 = S3_all[lid];
 
   for (u32 i = 0; i < 256; i++)
   {
@@ -798,15 +798,15 @@ KERNEL_FQ void __attribute__((reqd_work_group_size(FIXED_LOCAL_SIZE, 1, 1))) m03
     P[i] = tmps[gid].P[i];
   }
 
-  LOCAL_AS u32 S0_all[FIXED_LOCAL_SIZE][256];
-  LOCAL_AS u32 S1_all[FIXED_LOCAL_SIZE][256];
-  LOCAL_AS u32 S2_all[FIXED_LOCAL_SIZE][256];
-  LOCAL_AS u32 S3_all[FIXED_LOCAL_SIZE][256];
+  LOCAL_VK u32 S0_all[FIXED_LOCAL_SIZE][256];
+  LOCAL_VK u32 S1_all[FIXED_LOCAL_SIZE][256];
+  LOCAL_VK u32 S2_all[FIXED_LOCAL_SIZE][256];
+  LOCAL_VK u32 S3_all[FIXED_LOCAL_SIZE][256];
 
-  LOCAL_AS u32 *S0 = S0_all[lid];
-  LOCAL_AS u32 *S1 = S1_all[lid];
-  LOCAL_AS u32 *S2 = S2_all[lid];
-  LOCAL_AS u32 *S3 = S3_all[lid];
+  LOCAL_VK u32 *S0 = S0_all[lid];
+  LOCAL_VK u32 *S1 = S1_all[lid];
+  LOCAL_VK u32 *S2 = S2_all[lid];
+  LOCAL_VK u32 *S3 = S3_all[lid];
 
   for (u32 i = 0; i < 256; i++)
   {

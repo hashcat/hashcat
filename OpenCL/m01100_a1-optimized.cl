@@ -41,7 +41,7 @@ KERNEL_FQ void m01100_m04 (KERN_ATTR_BASIC ())
    * salt
    */
 
-  LOCAL_AS salt_t s_salt_buf[1];
+  LOCAL_VK salt_t s_salt_buf[1];
 
   if (lid == 0)
   {
@@ -322,7 +322,7 @@ KERNEL_FQ void m01100_s04 (KERN_ATTR_BASIC ())
    * salt
    */
 
-  LOCAL_AS salt_t s_salt_buf[1];
+  LOCAL_VK salt_t s_salt_buf[1];
 
   if (lid == 0)
   {

@@ -76,7 +76,7 @@ DECLSPEC void rc4_init_16 (LOCAL_AS RC4_KEY *rc4_key, const u32 *data)
   u32 v = 0x03020100;
   u32 a = 0x04040404;
 
-  LOCAL_AS u32 *ptr = (LOCAL_AS u32 *) rc4_key->S;
+  LOCAL_VK u32 *ptr = (LOCAL_AS u32 *) rc4_key->S;
 
   #ifdef _unroll
   #pragma unroll
@@ -377,9 +377,9 @@ KERNEL_FQ void m10500_loop (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
    * shared
    */
 
-  LOCAL_AS RC4_KEY rc4_keys[64];
+  LOCAL_VK RC4_KEY rc4_keys[64];
 
-  LOCAL_AS RC4_KEY *rc4_key = &rc4_keys[lid];
+  LOCAL_VK RC4_KEY *rc4_key = &rc4_keys[lid];
 
   /**
    * loop
