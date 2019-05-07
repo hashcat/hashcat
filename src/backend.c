@@ -76,7 +76,14 @@ static int backend_ctx_find_alias_devices (hashcat_ctx_t *hashcat_ctx)
 
       if (device_param_dst->is_opencl == true)
       {
-        device_param_dst->skipped = true;
+        if (device_param_dst->skipped == false)
+        {
+          device_param_dst->skipped = true;
+
+          backend_ctx->opencl_devices_active--;
+
+          backend_ctx->backend_devices_active--;
+        }
       }
     }
   }
@@ -6381,18 +6388,20 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
   backend_ctx->backend_devices_cnt    = cuda_devices_cnt    + opencl_devices_cnt;
   backend_ctx->backend_devices_active = cuda_devices_active + opencl_devices_active;
 
+  // find duplicate devices (typically cuda and opencl!)
+  // using force here enables both devices, which is the worst possible outcome
+  // many users force by default, so this is not a good idea
+
+  //if (user_options->force == false)
+  //{
+  backend_ctx_find_alias_devices (hashcat_ctx);
+  //}
+
   if (backend_ctx->backend_devices_active == 0)
   {
     event_log_error (hashcat_ctx, "No devices found/left.");
 
     return -1;
-  }
-
-  // find duplicate devices (typically cuda and opencl!)
-
-  if (user_options->force == false)
-  {
-    backend_ctx_find_alias_devices (hashcat_ctx);
   }
 
   // additional check to see if the user has chosen a device that is not within the range of available devices (i.e. larger than devices_cnt)
