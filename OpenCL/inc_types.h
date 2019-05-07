@@ -56,11 +56,8 @@ typedef u64  u64x;
 
 #if VECT_SIZE == 2
 
-class u8x
+struct __device_builtin__ __builtin_align__(2) u8x
 {
-  private:
-  public:
-
   u8 s0;
   u8 s1;
 
@@ -71,11 +68,8 @@ class u8x
   inline __device__ ~u8x (void) { }
 };
 
-class u16x
+struct __device_builtin__ __builtin_align__(4) u16x
 {
-  private:
-  public:
-
   u16 s0;
   u16 s1;
 
@@ -86,11 +80,8 @@ class u16x
   inline __device__ ~u16x (void) { }
 };
 
-class u32x
+struct __device_builtin__ __builtin_align__(8) u32x
 {
-  private:
-  public:
-
   u32 s0;
   u32 s1;
 
@@ -101,11 +92,8 @@ class u32x
   inline __device__ ~u32x (void) { }
 };
 
-class u64x
+struct __device_builtin__ __builtin_align__(16) u64x
 {
-  private:
-  public:
-
   u64 s0;
   u64 s1;
 
@@ -208,11 +196,8 @@ inline __device__ u64x operator ~  (const u64x a) { return u64x (~a.s0, ~a.s1); 
 
 #if VECT_SIZE == 4
 
-class u8x
+struct __device_builtin__ __builtin_align__(4) u8x
 {
-  private:
-  public:
-
   u8 s0;
   u8 s1;
   u8 s2;
@@ -225,11 +210,8 @@ class u8x
   inline __device__ ~u8x (void) { }
 };
 
-class u16x
+struct __device_builtin__ __builtin_align__(8) u16x
 {
-  private:
-  public:
-
   u16 s0;
   u16 s1;
   u16 s2;
@@ -242,11 +224,8 @@ class u16x
   inline __device__ ~u16x (void) { }
 };
 
-class u32x
+struct __device_builtin__ __builtin_align__(16) u32x
 {
-  private:
-  public:
-
   u32 s0;
   u32 s1;
   u32 s2;
@@ -259,11 +238,8 @@ class u32x
   inline __device__ ~u32x (void) { }
 };
 
-class u64x
+struct __device_builtin__ __builtin_align__(32) u64x
 {
-  private:
-  public:
-
   u64 s0;
   u64 s1;
   u64 s2;
@@ -368,11 +344,8 @@ inline __device__ u64x operator ~  (const u64x a) { return u64x (~a.s0, ~a.s1, ~
 
 #if VECT_SIZE == 8
 
-class u8x
+struct __device_builtin__ __builtin_align__(8) u8x
 {
-  private:
-  public:
-
   u8 s0;
   u8 s1;
   u8 s2;
@@ -389,11 +362,8 @@ class u8x
   inline __device__ ~u8x (void) { }
 };
 
-class u16x
+struct __device_builtin__ __builtin_align__(16) u16x
 {
-  private:
-  public:
-
   u16 s0;
   u16 s1;
   u16 s2;
@@ -410,11 +380,8 @@ class u16x
   inline __device__ ~u16x (void) { }
 };
 
-class u32x
+struct __device_builtin__ __builtin_align__(32) u32x
 {
-  private:
-  public:
-
   u32 s0;
   u32 s1;
   u32 s2;
@@ -431,11 +398,8 @@ class u32x
   inline __device__ ~u32x (void) { }
 };
 
-class u64x
+struct __device_builtin__ __builtin_align__(64) u64x
 {
-  private:
-  public:
-
   u64 s0;
   u64 s1;
   u64 s2;
@@ -544,11 +508,8 @@ inline __device__ u64x operator ~  (const u64x a) { return u64x (~a.s0, ~a.s1, ~
 
 #if VECT_SIZE == 16
 
-class u8x
+struct __device_builtin__ __builtin_align__(16) u8x
 {
-  private:
-  public:
-
   u8 s0;
   u8 s1;
   u8 s2;
@@ -573,11 +534,8 @@ class u8x
   inline __device__ ~u8x (void) { }
 };
 
-class u16x
+struct __device_builtin__ __builtin_align__(32) u16x
 {
-  private:
-  public:
-
   u16 s0;
   u16 s1;
   u16 s2;
@@ -602,11 +560,8 @@ class u16x
   inline __device__ ~u16x (void) { }
 };
 
-class u32x
+struct __device_builtin__ __builtin_align__(64) u32x
 {
-  private:
-  public:
-
   u32 s0;
   u32 s1;
   u32 s2;
@@ -631,11 +586,8 @@ class u32x
   inline __device__ ~u32x (void) { }
 };
 
-class u64x
+struct __device_builtin__ __builtin_align__(128) u64x
 {
-  private:
-  public:
-
   u64 s0;
   u64 s1;
   u64 s2;
@@ -749,6 +701,11 @@ inline __device__ u64x operator *  (const u64x a, const u64x b) { return u64x ((
 inline __device__ u64x operator ~  (const u64x a) { return u64x (~a.s0, ~a.s1, ~a.s2, ~a.s3, ~a.s4, ~a.s5, ~a.s6, ~a.s7, ~a.s8, ~a.s9, ~a.sa, ~a.sb, ~a.sc, ~a.sd, ~a.se, ~a.sf); }
 
 #endif
+
+typedef __device_builtin__ struct u8x  u8x;
+typedef __device_builtin__ struct u16x u16x;
+typedef __device_builtin__ struct u32x u32x;
+typedef __device_builtin__ struct u64x u64x;
 
 #else
 typedef VTYPE(uchar,  VECT_SIZE)  u8x;
