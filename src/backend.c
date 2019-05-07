@@ -683,13 +683,11 @@ int nvrtc_init (hashcat_ctx_t *hashcat_ctx)
   memset (nvrtc, 0, sizeof (NVRTC_PTR));
 
   #if   defined (_WIN)
-  nvrtc->lib = hc_dlopen ("c:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.1\\nvrtc.lib");
+  nvrtc->lib = hc_dlopen ("nvrtc.dll");
   #elif defined (__APPLE__)
   nvrtc->lib = hc_dlopen ("/System/Library/Frameworks/NVRTC.framework/NVRTC");
   #elif defined (__CYGWIN__)
   nvrtc->lib = hc_dlopen ("nvrtc.dll");
-
-  if (nvrtc->lib == NULL) nvrtc->lib = hc_dlopen ("cygnvrtc-1.dll");
   #else
   nvrtc->lib = hc_dlopen ("libnvrtc.so");
 
@@ -868,13 +866,11 @@ int cuda_init (hashcat_ctx_t *hashcat_ctx)
   memset (cuda, 0, sizeof (CUDA_PTR));
 
   #if   defined (_WIN)
-  cuda->lib = hc_dlopen ("c:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.1\\cuda.lib");
+  cuda->lib = hc_dlopen ("cuda.dll");
   #elif defined (__APPLE__)
   cuda->lib = hc_dlopen ("/System/Library/Frameworks/CUDA.framework/CUDA");
   #elif defined (__CYGWIN__)
   cuda->lib = hc_dlopen ("cuda.dll");
-
-  if (cuda->lib == NULL) cuda->lib = hc_dlopen ("cygcuda-1.dll");
   #else
   cuda->lib = hc_dlopen ("libcuda.so");
 
