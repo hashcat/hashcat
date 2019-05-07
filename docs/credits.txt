@@ -39,6 +39,13 @@ Other contributors to hashcat
 * A full list and their commits can be found here:
   https://github.com/hashcat/hashcat/graphs/contributors
 
+# hashcat relies on some libraries, including:
+
+* xxHash by Yann Collet (@Cyan4973)
+* LZMA-SDK by Igor Pavlov
+* zlib by Jean-loup Gailly and Mark Adler
+* win-iconv by Yukihiro Nakadaira
+
 # Furthermore the following persons helped the project:
 
 Martin "purehate" Bos <purehate@derbycon.com> (@cantcomputer)
