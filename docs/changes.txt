@@ -6,6 +6,7 @@
 
 - Fully modularized hash-mode integration via plugin interface and converted all existing hash-modes
 - Support for inline VeraCrypt PIM Brute-Force
+- Support Deflate decompression for the 7-Zip hash type using zlib
 
 ##
 ## Algorithms

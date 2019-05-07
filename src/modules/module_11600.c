@@ -13,6 +13,7 @@
 #include "emu_inc_cipher_aes.h"
 #include "cpu_crc32.h"
 #include "ext_lzma.h"
+#include "zlib.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -219,6 +220,35 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_salts_buf,
       if (data_type == 1) // LZMA1
       {
         ret = hc_lzma1_decompress (compressed_data, &compressed_data_len, decompressed_data, &decompressed_data_len, coder_attributes);
+      }
+      else if (data_type == 7) // inflate using zlib (DEFLATE compression)
+      {
+        ret = SZ_ERROR_DATA;
+
+        z_stream inf;
+
+        inf.zalloc = Z_NULL;
+        inf.zfree  = Z_NULL;
+        inf.opaque = Z_NULL;
+
+        inf.avail_in  = compressed_data_len;
+        inf.next_in   = compressed_data;
+
+        inf.avail_out = decompressed_data_len;
+        inf.next_out  = decompressed_data;
+
+        // inflate:
+
+        inflateInit2 (&inf, -MAX_WBITS);
+
+        int zlib_ret = inflate (&inf, Z_NO_FLUSH);
+
+        inflateEnd (&inf);
+
+        if ((zlib_ret == Z_OK) || (zlib_ret == Z_STREAM_END))
+        {
+          ret = SZ_OK;
+        }
       }
       else // we only support LZMA2 in addition to LZMA1
       {
@@ -464,7 +494,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
    * verify some data
    */
 
-  if (data_type > 2) // this includes also 0x80 (special case that means "truncated")
+  // this check also returns an error with data_type == 0x80 (special case that means "truncated")
+
+  if ((data_type != 0) && (data_type != 1) && (data_type != 2) && (data_type != 7))
   {
     return (PARSER_SALT_VALUE);
   }
