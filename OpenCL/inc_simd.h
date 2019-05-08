@@ -1050,51 +1050,51 @@
 #define MATCHES_NONE_VS(a,b) !(MATCHES_ONE_VS ((a), (b)))
 
 #if   VECT_SIZE == 1
-#define packv(arr,var,gid,idx) (u32x) ((arr)[((gid) *  1) + 0].var[(idx)])
+#define packv(arr,var,gid,idx) make_u32x ((arr)[((gid) *  1) + 0].var[(idx)])
 #elif VECT_SIZE == 2
-#define packv(arr,var,gid,idx) (u32x) ((arr)[((gid) *  2) + 0].var[(idx)], (arr)[((gid) *  2) + 1].var[(idx)])
+#define packv(arr,var,gid,idx) make_u32x ((arr)[((gid) *  2) + 0].var[(idx)], (arr)[((gid) *  2) + 1].var[(idx)])
 #elif VECT_SIZE == 4
-#define packv(arr,var,gid,idx) (u32x) ((arr)[((gid) *  4) + 0].var[(idx)], (arr)[((gid) *  4) + 1].var[(idx)], (arr)[((gid) *  4) + 2].var[(idx)], (arr)[((gid) *  4) + 3].var[(idx)])
+#define packv(arr,var,gid,idx) make_u32x ((arr)[((gid) *  4) + 0].var[(idx)], (arr)[((gid) *  4) + 1].var[(idx)], (arr)[((gid) *  4) + 2].var[(idx)], (arr)[((gid) *  4) + 3].var[(idx)])
 #elif VECT_SIZE == 8
-#define packv(arr,var,gid,idx) (u32x) ((arr)[((gid) *  8) + 0].var[(idx)], (arr)[((gid) *  8) + 1].var[(idx)], (arr)[((gid) *  8) + 2].var[(idx)], (arr)[((gid) *  8) + 3].var[(idx)], (arr)[((gid) *  8) + 4].var[(idx)], (arr)[((gid) *  8) + 5].var[(idx)], (arr)[((gid) *  8) + 6].var[(idx)], (arr)[((gid) *  8) + 7].var[(idx)])
+#define packv(arr,var,gid,idx) make_u32x ((arr)[((gid) *  8) + 0].var[(idx)], (arr)[((gid) *  8) + 1].var[(idx)], (arr)[((gid) *  8) + 2].var[(idx)], (arr)[((gid) *  8) + 3].var[(idx)], (arr)[((gid) *  8) + 4].var[(idx)], (arr)[((gid) *  8) + 5].var[(idx)], (arr)[((gid) *  8) + 6].var[(idx)], (arr)[((gid) *  8) + 7].var[(idx)])
 #elif VECT_SIZE == 16
-#define packv(arr,var,gid,idx) (u32x) ((arr)[((gid) * 16) + 0].var[(idx)], (arr)[((gid) * 16) + 1].var[(idx)], (arr)[((gid) * 16) + 2].var[(idx)], (arr)[((gid) * 16) + 3].var[(idx)], (arr)[((gid) * 16) + 4].var[(idx)], (arr)[((gid) * 16) + 5].var[(idx)], (arr)[((gid) * 16) + 6].var[(idx)], (arr)[((gid) * 16) + 7].var[(idx)], (arr)[((gid) * 16) + 8].var[(idx)], (arr)[((gid) * 16) + 9].var[(idx)], (arr)[((gid) * 16) + 10].var[(idx)], (arr)[((gid) * 16) + 11].var[(idx)], (arr)[((gid) * 16) + 12].var[(idx)], (arr)[((gid) * 16) + 13].var[(idx)], (arr)[((gid) * 16) + 14].var[(idx)], (arr)[((gid) * 16) + 15].var[(idx)])
+#define packv(arr,var,gid,idx) make_u32x ((arr)[((gid) * 16) + 0].var[(idx)], (arr)[((gid) * 16) + 1].var[(idx)], (arr)[((gid) * 16) + 2].var[(idx)], (arr)[((gid) * 16) + 3].var[(idx)], (arr)[((gid) * 16) + 4].var[(idx)], (arr)[((gid) * 16) + 5].var[(idx)], (arr)[((gid) * 16) + 6].var[(idx)], (arr)[((gid) * 16) + 7].var[(idx)], (arr)[((gid) * 16) + 8].var[(idx)], (arr)[((gid) * 16) + 9].var[(idx)], (arr)[((gid) * 16) + 10].var[(idx)], (arr)[((gid) * 16) + 11].var[(idx)], (arr)[((gid) * 16) + 12].var[(idx)], (arr)[((gid) * 16) + 13].var[(idx)], (arr)[((gid) * 16) + 14].var[(idx)], (arr)[((gid) * 16) + 15].var[(idx)])
 #endif
 
 #if   VECT_SIZE == 1
-#define pack64v(arr,var,gid,idx) (u64x) ((arr)[((gid) *  1) + 0].var[(idx)])
+#define pack64v(arr,var,gid,idx) make_u64x ((arr)[((gid) *  1) + 0].var[(idx)])
 #elif VECT_SIZE == 2
-#define pack64v(arr,var,gid,idx) (u64x) ((arr)[((gid) *  2) + 0].var[(idx)], (arr)[((gid) *  2) + 1].var[(idx)])
+#define pack64v(arr,var,gid,idx) make_u64x ((arr)[((gid) *  2) + 0].var[(idx)], (arr)[((gid) *  2) + 1].var[(idx)])
 #elif VECT_SIZE == 4
-#define pack64v(arr,var,gid,idx) (u64x) ((arr)[((gid) *  4) + 0].var[(idx)], (arr)[((gid) *  4) + 1].var[(idx)], (arr)[((gid) *  4) + 2].var[(idx)], (arr)[((gid) *  4) + 3].var[(idx)])
+#define pack64v(arr,var,gid,idx) make_u64x ((arr)[((gid) *  4) + 0].var[(idx)], (arr)[((gid) *  4) + 1].var[(idx)], (arr)[((gid) *  4) + 2].var[(idx)], (arr)[((gid) *  4) + 3].var[(idx)])
 #elif VECT_SIZE == 8
-#define pack64v(arr,var,gid,idx) (u64x) ((arr)[((gid) *  8) + 0].var[(idx)], (arr)[((gid) *  8) + 1].var[(idx)], (arr)[((gid) *  8) + 2].var[(idx)], (arr)[((gid) *  8) + 3].var[(idx)], (arr)[((gid) *  8) + 4].var[(idx)], (arr)[((gid) *  8) + 5].var[(idx)], (arr)[((gid) *  8) + 6].var[(idx)], (arr)[((gid) *  8) + 7].var[(idx)])
+#define pack64v(arr,var,gid,idx) make_u64x ((arr)[((gid) *  8) + 0].var[(idx)], (arr)[((gid) *  8) + 1].var[(idx)], (arr)[((gid) *  8) + 2].var[(idx)], (arr)[((gid) *  8) + 3].var[(idx)], (arr)[((gid) *  8) + 4].var[(idx)], (arr)[((gid) *  8) + 5].var[(idx)], (arr)[((gid) *  8) + 6].var[(idx)], (arr)[((gid) *  8) + 7].var[(idx)])
 #elif VECT_SIZE == 16
-#define pack64v(arr,var,gid,idx) (u64x) ((arr)[((gid) * 16) + 0].var[(idx)], (arr)[((gid) * 16) + 1].var[(idx)], (arr)[((gid) * 16) + 2].var[(idx)], (arr)[((gid) * 16) + 3].var[(idx)], (arr)[((gid) * 16) + 4].var[(idx)], (arr)[((gid) * 16) + 5].var[(idx)], (arr)[((gid) * 16) + 6].var[(idx)], (arr)[((gid) * 16) + 7].var[(idx)], (arr)[((gid) * 16) + 8].var[(idx)], (arr)[((gid) * 16) + 9].var[(idx)], (arr)[((gid) * 16) + 10].var[(idx)], (arr)[((gid) * 16) + 11].var[(idx)], (arr)[((gid) * 16) + 12].var[(idx)], (arr)[((gid) * 16) + 13].var[(idx)], (arr)[((gid) * 16) + 14].var[(idx)], (arr)[((gid) * 16) + 15].var[(idx)])
+#define pack64v(arr,var,gid,idx) make_u64x ((arr)[((gid) * 16) + 0].var[(idx)], (arr)[((gid) * 16) + 1].var[(idx)], (arr)[((gid) * 16) + 2].var[(idx)], (arr)[((gid) * 16) + 3].var[(idx)], (arr)[((gid) * 16) + 4].var[(idx)], (arr)[((gid) * 16) + 5].var[(idx)], (arr)[((gid) * 16) + 6].var[(idx)], (arr)[((gid) * 16) + 7].var[(idx)], (arr)[((gid) * 16) + 8].var[(idx)], (arr)[((gid) * 16) + 9].var[(idx)], (arr)[((gid) * 16) + 10].var[(idx)], (arr)[((gid) * 16) + 11].var[(idx)], (arr)[((gid) * 16) + 12].var[(idx)], (arr)[((gid) * 16) + 13].var[(idx)], (arr)[((gid) * 16) + 14].var[(idx)], (arr)[((gid) * 16) + 15].var[(idx)])
 #endif
 
 #if   VECT_SIZE == 1
-#define packvf(arr,var,gid) (u32x) ((arr)[((gid) *  1) + 0].var)
+#define packvf(arr,var,gid) make_u32x ((arr)[((gid) *  1) + 0].var)
 #elif VECT_SIZE == 2
-#define packvf(arr,var,gid) (u32x) ((arr)[((gid) *  2) + 0].var, (arr)[((gid) *  2) + 1].var)
+#define packvf(arr,var,gid) make_u32x ((arr)[((gid) *  2) + 0].var, (arr)[((gid) *  2) + 1].var)
 #elif VECT_SIZE == 4
-#define packvf(arr,var,gid) (u32x) ((arr)[((gid) *  4) + 0].var, (arr)[((gid) *  4) + 1].var, (arr)[((gid) *  4) + 2].var, (arr)[((gid) *  4) + 3].var)
+#define packvf(arr,var,gid) make_u32x ((arr)[((gid) *  4) + 0].var, (arr)[((gid) *  4) + 1].var, (arr)[((gid) *  4) + 2].var, (arr)[((gid) *  4) + 3].var)
 #elif VECT_SIZE == 8
-#define packvf(arr,var,gid) (u32x) ((arr)[((gid) *  8) + 0].var, (arr)[((gid) *  8) + 1].var, (arr)[((gid) *  8) + 2].var, (arr)[((gid) *  8) + 3].var, (arr)[((gid) *  8) + 4].var, (arr)[((gid) *  8) + 5].var, (arr)[((gid) *  8) + 6].var, (arr)[((gid) *  8) + 7].var)
+#define packvf(arr,var,gid) make_u32x ((arr)[((gid) *  8) + 0].var, (arr)[((gid) *  8) + 1].var, (arr)[((gid) *  8) + 2].var, (arr)[((gid) *  8) + 3].var, (arr)[((gid) *  8) + 4].var, (arr)[((gid) *  8) + 5].var, (arr)[((gid) *  8) + 6].var, (arr)[((gid) *  8) + 7].var)
 #elif VECT_SIZE == 16
-#define packvf(arr,var,gid) (u32x) ((arr)[((gid) * 16) + 0].var, (arr)[((gid) * 16) + 1].var, (arr)[((gid) * 16) + 2].var, (arr)[((gid) * 16) + 3].var, (arr)[((gid) * 16) + 4].var, (arr)[((gid) * 16) + 5].var, (arr)[((gid) * 16) + 6].var, (arr)[((gid) * 16) + 7].var, (arr)[((gid) * 16) + 8].var, (arr)[((gid) * 16) + 9].var, (arr)[((gid) * 16) + 10].var, (arr)[((gid) * 16) + 11].var, (arr)[((gid) * 16) + 12].var, (arr)[((gid) * 16) + 13].var, (arr)[((gid) * 16) + 14].var, (arr)[((gid) * 16) + 15].var)
+#define packvf(arr,var,gid) make_u32x ((arr)[((gid) * 16) + 0].var, (arr)[((gid) * 16) + 1].var, (arr)[((gid) * 16) + 2].var, (arr)[((gid) * 16) + 3].var, (arr)[((gid) * 16) + 4].var, (arr)[((gid) * 16) + 5].var, (arr)[((gid) * 16) + 6].var, (arr)[((gid) * 16) + 7].var, (arr)[((gid) * 16) + 8].var, (arr)[((gid) * 16) + 9].var, (arr)[((gid) * 16) + 10].var, (arr)[((gid) * 16) + 11].var, (arr)[((gid) * 16) + 12].var, (arr)[((gid) * 16) + 13].var, (arr)[((gid) * 16) + 14].var, (arr)[((gid) * 16) + 15].var)
 #endif
 
 #if   VECT_SIZE == 1
-#define pack64vf(arr,var,gid) (u64x) ((arr)[((gid) *  1) + 0].var)
+#define pack64vf(arr,var,gid) make_u64x ((arr)[((gid) *  1) + 0].var)
 #elif VECT_SIZE == 2
-#define pack64vf(arr,var,gid) (u64x) ((arr)[((gid) *  2) + 0].var, (arr)[((gid) *  2) + 1].var)
+#define pack64vf(arr,var,gid) make_u64x ((arr)[((gid) *  2) + 0].var, (arr)[((gid) *  2) + 1].var)
 #elif VECT_SIZE == 4
-#define pack64vf(arr,var,gid) (u64x) ((arr)[((gid) *  4) + 0].var, (arr)[((gid) *  4) + 1].var, (arr)[((gid) *  4) + 2].var, (arr)[((gid) *  4) + 3].var)
+#define pack64vf(arr,var,gid) make_u64x ((arr)[((gid) *  4) + 0].var, (arr)[((gid) *  4) + 1].var, (arr)[((gid) *  4) + 2].var, (arr)[((gid) *  4) + 3].var)
 #elif VECT_SIZE == 8
-#define pack64vf(arr,var,gid) (u64x) ((arr)[((gid) *  8) + 0].var, (arr)[((gid) *  8) + 1].var, (arr)[((gid) *  8) + 2].var, (arr)[((gid) *  8) + 3].var, (arr)[((gid) *  8) + 4].var, (arr)[((gid) *  8) + 5].var, (arr)[((gid) *  8) + 6].var, (arr)[((gid) *  8) + 7].var)
+#define pack64vf(arr,var,gid) make_u64x ((arr)[((gid) *  8) + 0].var, (arr)[((gid) *  8) + 1].var, (arr)[((gid) *  8) + 2].var, (arr)[((gid) *  8) + 3].var, (arr)[((gid) *  8) + 4].var, (arr)[((gid) *  8) + 5].var, (arr)[((gid) *  8) + 6].var, (arr)[((gid) *  8) + 7].var)
 #elif VECT_SIZE == 16
-#define pack64vf(arr,var,gid) (u64x) ((arr)[((gid) * 16) + 0].var, (arr)[((gid) * 16) + 1].var, (arr)[((gid) * 16) + 2].var, (arr)[((gid) * 16) + 3].var, (arr)[((gid) * 16) + 4].var, (arr)[((gid) * 16) + 5].var, (arr)[((gid) * 16) + 6].var, (arr)[((gid) * 16) + 7].var, (arr)[((gid) * 16) + 8].var, (arr)[((gid) * 16) + 9].var, (arr)[((gid) * 16) + 10].var, (arr)[((gid) * 16) + 11].var, (arr)[((gid) * 16) + 12].var, (arr)[((gid) * 16) + 13].var, (arr)[((gid) * 16) + 14].var, (arr)[((gid) * 16) + 15].var)
+#define pack64vf(arr,var,gid) make_u64x ((arr)[((gid) * 16) + 0].var, (arr)[((gid) * 16) + 1].var, (arr)[((gid) * 16) + 2].var, (arr)[((gid) * 16) + 3].var, (arr)[((gid) * 16) + 4].var, (arr)[((gid) * 16) + 5].var, (arr)[((gid) * 16) + 6].var, (arr)[((gid) * 16) + 7].var, (arr)[((gid) * 16) + 8].var, (arr)[((gid) * 16) + 9].var, (arr)[((gid) * 16) + 10].var, (arr)[((gid) * 16) + 11].var, (arr)[((gid) * 16) + 12].var, (arr)[((gid) * 16) + 13].var, (arr)[((gid) * 16) + 14].var, (arr)[((gid) * 16) + 15].var)
 #endif
 
 #if   VECT_SIZE == 1

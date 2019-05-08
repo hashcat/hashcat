@@ -51,6 +51,12 @@ typedef u8   u8x;
 typedef u16  u16x;
 typedef u32  u32x;
 typedef u64  u64x;
+
+#define make_u8x  (u8)
+#define make_u16x (u16)
+#define make_u32x (u32)
+#define make_u64x (u64)
+
 #else
 #ifdef IS_CUDA
 
@@ -707,11 +713,22 @@ typedef __device_builtin__ struct u16x u16x;
 typedef __device_builtin__ struct u32x u32x;
 typedef __device_builtin__ struct u64x u64x;
 
+#define make_u8x  u8x
+#define make_u16x u16x
+#define make_u32x u32x
+#define make_u64x u64x
+
 #else
 typedef VTYPE(uchar,  VECT_SIZE)  u8x;
 typedef VTYPE(ushort, VECT_SIZE) u16x;
 typedef VTYPE(uint,   VECT_SIZE) u32x;
 typedef VTYPE(ulong,  VECT_SIZE) u64x;
+
+#define make_u8x  (u8x)
+#define make_u16x (u16x)
+#define make_u32x (u32x)
+#define make_u64x (u64x)
+
 #endif
 #endif
 

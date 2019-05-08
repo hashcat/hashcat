@@ -1382,7 +1382,7 @@ DECLSPEC void streebog512_add_vector (u64x *x, const u64x *y)
     const u64x right = hc_swap64 (y[i]);
     const u64x sum   = left + right + carry;
 
-    carry = (sum < left) ? (u64x) 1 : (u64x) 0;
+    carry = (sum < left) ? make_u64x (1) : make_u64x (0);
 
     x[i] = hc_swap64 (sum);
   }
@@ -1730,7 +1730,7 @@ DECLSPEC void streebog512_final_vector (streebog512_ctx_vector_t *ctx)
   streebog512_g_vector (ctx->h, ctx->n, m, ctx->s_sbob_sl64);
 
   u64x sizebuf[8] = { 0 };
-  sizebuf[7] = hc_swap64 ((u64x) (pos << 3));
+  sizebuf[7] = hc_swap64 (make_u64x (pos << 3));
 
   streebog512_add_vector (ctx->n, sizebuf);
 

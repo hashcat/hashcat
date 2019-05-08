@@ -52,13 +52,13 @@ CONSTANT_VK u32a lotus_magic_table[256] =
 #if   VECT_SIZE == 1
 #define BOX1(S,i) (S)[(i)]
 #elif VECT_SIZE == 2
-#define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1])
+#define BOX1(S,i) make_u32x ((S)[(i).s0], (S)[(i).s1])
 #elif VECT_SIZE == 4
-#define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3])
+#define BOX1(S,i) make_u32x ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3])
 #elif VECT_SIZE == 8
-#define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3], (S)[(i).s4], (S)[(i).s5], (S)[(i).s6], (S)[(i).s7])
+#define BOX1(S,i) make_u32x ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3], (S)[(i).s4], (S)[(i).s5], (S)[(i).s6], (S)[(i).s7])
 #elif VECT_SIZE == 16
-#define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3], (S)[(i).s4], (S)[(i).s5], (S)[(i).s6], (S)[(i).s7], (S)[(i).s8], (S)[(i).s9], (S)[(i).sa], (S)[(i).sb], (S)[(i).sc], (S)[(i).sd], (S)[(i).se], (S)[(i).sf])
+#define BOX1(S,i) make_u32x ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3], (S)[(i).s4], (S)[(i).s5], (S)[(i).s6], (S)[(i).s7], (S)[(i).s8], (S)[(i).s9], (S)[(i).sa], (S)[(i).sb], (S)[(i).sc], (S)[(i).sd], (S)[(i).se], (S)[(i).sf])
 #endif
 
 DECLSPEC void lotus_mix (u32x *in, LOCAL_AS u32 *s_lotus_magic_table)
