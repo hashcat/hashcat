@@ -886,6 +886,7 @@ int cuda_init (hashcat_ctx_t *hashcat_ctx)
   HC_LOAD_FUNC (cuda, cuCtxGetSharedMemConfig,  CUDA_CUCTXGETSHAREDMEMCONFIG,   CUDA, 1);
   HC_LOAD_FUNC (cuda, cuCtxPopCurrent,          CUDA_CUCTXPOPCURRENT,           CUDA, 1);
   HC_LOAD_FUNC (cuda, cuCtxPushCurrent,         CUDA_CUCTXPUSHCURRENT,          CUDA, 1);
+  HC_LOAD_FUNC (cuda, cuCtxSetCacheConfig,      CUDA_CUCTXSETCACHECONFIG,       CUDA, 1);
   HC_LOAD_FUNC (cuda, cuCtxSetCurrent,          CUDA_CUCTXSETCURRENT,           CUDA, 1);
   HC_LOAD_FUNC (cuda, cuCtxSetSharedMemConfig,  CUDA_CUCTXSETSHAREDMEMCONFIG,   CUDA, 1);
   HC_LOAD_FUNC (cuda, cuCtxSynchronize,         CUDA_CUCTXSYNCHRONIZE,          CUDA, 1);
@@ -1467,6 +1468,33 @@ int hc_cuFuncGetAttribute (hashcat_ctx_t *hashcat_ctx, int *pi, CUfunction_attri
   return 0;
 }
 
+int hc_cuFuncSetAttribute (hashcat_ctx_t *hashcat_ctx, CUfunction hfunc, CUfunction_attribute attrib, int value)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  CUDA_PTR *cuda = backend_ctx->cuda;
+
+  const CUresult CU_err = cuda->cuFuncSetAttribute (hfunc, attrib, value);
+
+  if (CU_err != CUDA_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "cuFuncSetAttribute(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "cuFuncSetAttribute(): %d", CU_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
 int hc_cuStreamCreate (hashcat_ctx_t *hashcat_ctx, CUstream *phStream, unsigned int Flags)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
@@ -1763,6 +1791,35 @@ int hc_cuEventSynchronize (hashcat_ctx_t *hashcat_ctx, CUevent hEvent)
 
   return 0;
 }
+
+int hc_cuCtxSetCacheConfig (hashcat_ctx_t *hashcat_ctx, CUfunc_cache config)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  CUDA_PTR *cuda = backend_ctx->cuda;
+
+  const CUresult CU_err = cuda->cuCtxSetCacheConfig (config);
+
+  if (CU_err != CUDA_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "cuCtxSetCacheConfig(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "cuCtxSetCacheConfig(): %d", CU_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+
 
 // OpenCL
 
@@ -5397,6 +5454,11 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       const int rc_cuCtxSetCurrent = hc_cuCtxSetCurrent (hashcat_ctx, cuda_context);
 
       if (rc_cuCtxSetCurrent == -1) return -1;
+
+      // bcrypt optimization?
+      //const int rc_cuCtxSetCacheConfig = hc_cuCtxSetCacheConfig (hashcat_ctx, CU_FUNC_CACHE_PREFER_SHARED);
+      //
+      //if (rc_cuCtxSetCacheConfig == -1) return -1;
 
       const bool has_bfe = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned int r; asm volatile (\"bfe.u32 %0, 0, 0, 0;\" : \"=r\"(r)); }");
 

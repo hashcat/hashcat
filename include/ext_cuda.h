@@ -1024,6 +1024,7 @@ typedef struct hc_cuda_lib
   CUDA_CUCTXGETSHAREDMEMCONFIG  cuCtxGetSharedMemConfig;
   CUDA_CUCTXPOPCURRENT          cuCtxPopCurrent;
   CUDA_CUCTXPUSHCURRENT         cuCtxPushCurrent;
+  CUDA_CUCTXSETCACHECONFIG      cuCtxSetCacheConfig;
   CUDA_CUCTXSETCURRENT          cuCtxSetCurrent;
   CUDA_CUCTXSETSHAREDMEMCONFIG  cuCtxSetSharedMemConfig;
   CUDA_CUCTXSYNCHRONIZE         cuCtxSynchronize;
