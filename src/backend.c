@@ -685,7 +685,7 @@ int nvrtc_init (hashcat_ctx_t *hashcat_ctx)
   #if   defined (_WIN)
   nvrtc->lib = hc_dlopen ("nvrtc.dll");
   #elif defined (__APPLE__)
-  nvrtc->lib = hc_dlopen ("/System/Library/Frameworks/NVRTC.framework/NVRTC");
+  nvrtc->lib = hc_dlopen ("nvrtc.dylib");
   #elif defined (__CYGWIN__)
   nvrtc->lib = hc_dlopen ("nvrtc.dll");
   #else
@@ -866,11 +866,11 @@ int cuda_init (hashcat_ctx_t *hashcat_ctx)
   memset (cuda, 0, sizeof (CUDA_PTR));
 
   #if   defined (_WIN)
-  cuda->lib = hc_dlopen ("cuda.dll");
+  cuda->lib = hc_dlopen ("nvcuda.dll");
   #elif defined (__APPLE__)
-  cuda->lib = hc_dlopen ("/System/Library/Frameworks/CUDA.framework/CUDA");
+  cuda->lib = hc_dlopen ("nvcuda.dylib");
   #elif defined (__CYGWIN__)
-  cuda->lib = hc_dlopen ("cuda.dll");
+  cuda->lib = hc_dlopen ("nvcuda.dll");
   #else
   cuda->lib = hc_dlopen ("libcuda.so");
 
@@ -5487,7 +5487,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       device_param->has_lop3 = has_lop3;
 
-      const bool has_mov64 = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned long r; unsigned int a; unsigned int b; asm volatile (\"mov.b64 %0, {%1, %2};\" : \"=l\"(r) : \"r\"(a), \"r\"(b)); }");
+      const bool has_mov64 = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned long long r; unsigned int a; unsigned int b; asm volatile (\"mov.b64 %0, {%1, %2};\" : \"=l\"(r) : \"r\"(a), \"r\"(b)); }");
 
       device_param->has_mov64 = has_mov64;
 
