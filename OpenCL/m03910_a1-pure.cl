@@ -62,7 +62,7 @@ KERNEL_FQ void m03910_mxx (KERN_ATTR_BASIC ())
 
   u32 s[8] = { 0 };
 
-  for (int i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
+  for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
     s[idx] = salt_bufs[salt_pos].salt_buf_pc[idx];
   }
@@ -198,7 +198,7 @@ KERNEL_FQ void m03910_sxx (KERN_ATTR_BASIC ())
 
   u32 s[8] = { 0 };
 
-  for (int i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
+  for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
     s[idx] = salt_bufs[salt_pos].salt_buf_pc[idx];
   }

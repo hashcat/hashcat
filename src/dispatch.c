@@ -5,7 +5,6 @@
 
 #include "common.h"
 #include "types.h"
-#include "convert.h"
 #include "event.h"
 #include "memory.h"
 #include "opencl.h"
@@ -16,7 +15,6 @@
 #include "rp.h"
 #include "rp_cpu.h"
 #include "slow_candidates.h"
-#include "user_options.h"
 #include "dispatch.h"
 
 #ifdef WITH_BRAIN

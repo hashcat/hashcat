@@ -6,7 +6,6 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
-#include "event.h"
 #include "ext_lzma.h"
 
 void *hc_lzma_alloc (MAYBE_UNUSED ISzAllocPtr p, size_t size)

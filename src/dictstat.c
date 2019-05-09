@@ -8,9 +8,9 @@
 #include "memory.h"
 #include "bitops.h"
 #include "event.h"
-#include "dictstat.h"
 #include "locking.h"
 #include "shared.h"
+#include "dictstat.h"
 
 int sort_by_dictstat (const void *s1, const void *s2)
 {

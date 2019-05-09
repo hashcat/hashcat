@@ -21,8 +21,6 @@ static const int MODULE_HASH_MODES_MAXIMUM = 100000;
  * output functions
  */
 
-int ascii_digest (const hashconfig_t *hashconfig, const hashes_t *hashes, const module_ctx_t *module_ctx, char *out_buf, const int out_size, const u32 salt_pos, const u32 digest_pos);
-
 int  module_filename (const folder_config_t *folder_config, const int hash_mode, char *out_buf, const size_t out_size);
 bool module_load     (hashcat_ctx_t *hashcat_ctx, module_ctx_t *module_ctx, const u32 hash_mode);
 void module_unload   (module_ctx_t *module_ctx);

@@ -44,7 +44,7 @@ static void out_push (out_t *out, const u8 *pw_buf, const int pw_len)
 
   #endif
 
-  if (out->len >= HCBUFSIZ_TINY - 300)
+  if (out->len >= HCBUFSIZ_SMALL - 300)
   {
     out_flush (out);
   }

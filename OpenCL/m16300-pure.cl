@@ -35,7 +35,7 @@ typedef struct pbkdf2_sha256_tmp
 
 } pbkdf2_sha256_tmp_t;
 
-CONSTANT_AS CONSTSPEC u64a keccakf_rndc[24] =
+CONSTANT_AS u64a keccakf_rndc[24] =
 {
   0x0000000000000001, 0x0000000000008082, 0x800000000000808a,
   0x8000000080008000, 0x000000000000808b, 0x0000000080000001,
@@ -484,7 +484,7 @@ KERNEL_FQ void m16300_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, ethereum_
 
   u32 ks[KEYLEN];
 
-  AES128_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+  AES128_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
   u32 iv[4];
 

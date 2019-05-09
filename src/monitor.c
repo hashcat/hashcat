@@ -6,13 +6,11 @@
 #include "common.h"
 #include "types.h"
 #include "event.h"
-#include "memory.h"
 #include "hwmon.h"
 #include "timer.h"
 #include "hashes.h"
 #include "thread.h"
 #include "restore.h"
-#include "shared.h"
 #include "status.h"
 #include "monitor.h"
 

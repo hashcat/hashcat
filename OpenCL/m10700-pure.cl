@@ -87,7 +87,7 @@ DECLSPEC u32 sha256_update_aes_64 (sha256_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2,
 {
   u32 ex = 0;
 
-  const int pos = ctx->len & 63;
+  MAYBE_VOLATILE const int pos = ctx->len & 63;
 
   ctx->len += len;
 
@@ -258,7 +258,7 @@ DECLSPEC void sha256_final_aes (sha256_ctx_t *ctx, const u32 *aes_ks, u32 *aes_i
 
 DECLSPEC void sha384_update_aes_128 (sha384_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const int len, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
-  const int pos = ctx->len & 127;
+  MAYBE_VOLATILE const int pos = ctx->len & 127;
 
   ctx->len += len;
 
@@ -536,7 +536,7 @@ DECLSPEC void sha384_final_aes (sha384_ctx_t *ctx, const u32 *aes_ks, u32 *aes_i
 
 DECLSPEC void sha512_update_aes_128 (sha512_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const int len, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
-  const int pos = ctx->len & 127;
+  MAYBE_VOLATILE const int pos = ctx->len & 127;
 
   ctx->len += len;
 
@@ -910,7 +910,7 @@ DECLSPEC u32 do_round (const u32 *w, const u32 pw_len, pdf17l8_tmp_t *tmp, SHM_T
 
   u32 aes_ks[44];
 
-  aes128_set_encrypt_key (aes_ks, aes_key, s_te0, s_te1, s_te2, s_te3, s_te4);
+  aes128_set_encrypt_key (aes_ks, aes_key, s_te0, s_te1, s_te2, s_te3);
 
   u32 aes_iv[4];
 
@@ -1231,7 +1231,7 @@ KERNEL_FQ void m10700_loop (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
 
   u32 w[64] = { 0 };
 
-  for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
     w[idx] = hc_swap32_S (pws[gid].i[idx]);
   }

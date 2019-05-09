@@ -11,7 +11,6 @@
 #include "interface.h"
 #include "shared.h"
 #include "usage.h"
-#include "outfile.h"
 #include "opencl.h"
 #include "user_options.h"
 
@@ -112,6 +111,7 @@ static const struct option long_options[] =
   {"speed-only",                no_argument,       NULL, IDX_SPEED_ONLY},
   {"spin-damp",                 required_argument, NULL, IDX_SPIN_DAMP},
   {"status",                    no_argument,       NULL, IDX_STATUS},
+  {"status-json",               no_argument,       NULL, IDX_STATUS_JSON},
   {"status-timer",              required_argument, NULL, IDX_STATUS_TIMER},
   {"stdout",                    no_argument,       NULL, IDX_STDOUT_FLAG},
   {"stdin-timeout-abort",       required_argument, NULL, IDX_STDIN_TIMEOUT_ABORT},
@@ -242,6 +242,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->speed_only                = SPEED_ONLY;
   user_options->spin_damp                 = SPIN_DAMP;
   user_options->status                    = STATUS;
+  user_options->status_json               = STATUS_JSON;
   user_options->status_timer              = STATUS_TIMER;
   user_options->stdin_timeout_abort       = STDIN_TIMEOUT_ABORT;
   user_options->stdout_flag               = STDOUT_FLAG;
@@ -391,6 +392,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_RESTORE_DISABLE:           user_options->restore_disable           = true;                            break;
       case IDX_RESTORE_FILE_PATH:         user_options->restore_file_path         = optarg;                          break;
       case IDX_STATUS:                    user_options->status                    = true;                            break;
+	    case IDX_STATUS_JSON:               user_options->status_json               = true;                            break;
       case IDX_STATUS_TIMER:              user_options->status_timer              = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_MACHINE_READABLE:          user_options->machine_readable          = true;                            break;
       case IDX_LOOPBACK:                  user_options->loopback                  = true;                            break;
@@ -911,11 +913,21 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
+  if (user_options->machine_readable == true)
+  {
+    if (user_options->status_json == true)
+    {
+      event_log_error (hashcat_ctx, "The --status-json flag can not be used with --machine-readable.");
+
+      return -1;
+    }
+  }
+
   if (user_options->remove_timer_chgd == true)
   {
     if (user_options->remove == false)
     {
-      event_log_error (hashcat_ctx, "The --remove-timer requires --remove.");
+      event_log_error (hashcat_ctx, "The --remove-timer flag requires --remove.");
 
       return -1;
     }
@@ -2569,12 +2581,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
   const int rc = hashconfig_init (hashcat_ctx);
 
-  if (rc == -1)
-  {
-    event_log_error (hashcat_ctx, "%s: module initialization failed", modulefile);
-
-    return -1;
-  }
+  if (rc == -1) return -1;
 
   hashconfig_destroy (hashcat_ctx);
 
@@ -2787,6 +2794,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->speed_only);
   logfile_top_uint   (user_options->spin_damp);
   logfile_top_uint   (user_options->status);
+  logfile_top_uint   (user_options->status_json);
   logfile_top_uint   (user_options->status_timer);
   logfile_top_uint   (user_options->stdout_flag);
   logfile_top_uint   (user_options->usage);

@@ -8,6 +8,26 @@
 #include "inc_common.h"
 #include "inc_hash_sha256.h"
 
+CONSTANT_AS u32a k_sha256[64] =
+{
+  SHA256C00, SHA256C01, SHA256C02, SHA256C03,
+  SHA256C04, SHA256C05, SHA256C06, SHA256C07,
+  SHA256C08, SHA256C09, SHA256C0a, SHA256C0b,
+  SHA256C0c, SHA256C0d, SHA256C0e, SHA256C0f,
+  SHA256C10, SHA256C11, SHA256C12, SHA256C13,
+  SHA256C14, SHA256C15, SHA256C16, SHA256C17,
+  SHA256C18, SHA256C19, SHA256C1a, SHA256C1b,
+  SHA256C1c, SHA256C1d, SHA256C1e, SHA256C1f,
+  SHA256C20, SHA256C21, SHA256C22, SHA256C23,
+  SHA256C24, SHA256C25, SHA256C26, SHA256C27,
+  SHA256C28, SHA256C29, SHA256C2a, SHA256C2b,
+  SHA256C2c, SHA256C2d, SHA256C2e, SHA256C2f,
+  SHA256C30, SHA256C31, SHA256C32, SHA256C33,
+  SHA256C34, SHA256C35, SHA256C36, SHA256C37,
+  SHA256C38, SHA256C39, SHA256C3a, SHA256C3b,
+  SHA256C3c, SHA256C3d, SHA256C3e, SHA256C3f,
+};
+
 // important notes on this:
 // input buf unused bytes needs to be set to zero
 // input buf needs to be in algorithm native byte order (md5 = LE, sha256 = BE, etc)
@@ -137,75 +157,119 @@ DECLSPEC void sha256_init (sha256_ctx_t *ctx)
 
 DECLSPEC void sha256_update_64 (sha256_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len)
 {
-  const int pos = ctx->len & 63;
+  MAYBE_VOLATILE const int pos = ctx->len & 63;
 
   ctx->len += len;
 
-  if ((pos + len) < 64)
+  if (pos == 0)
   {
-    switch_buffer_by_offset_be_S (w0, w1, w2, w3, pos);
+    ctx->w0[0] = w0[0];
+    ctx->w0[1] = w0[1];
+    ctx->w0[2] = w0[2];
+    ctx->w0[3] = w0[3];
+    ctx->w1[0] = w1[0];
+    ctx->w1[1] = w1[1];
+    ctx->w1[2] = w1[2];
+    ctx->w1[3] = w1[3];
+    ctx->w2[0] = w2[0];
+    ctx->w2[1] = w2[1];
+    ctx->w2[2] = w2[2];
+    ctx->w2[3] = w2[3];
+    ctx->w3[0] = w3[0];
+    ctx->w3[1] = w3[1];
+    ctx->w3[2] = w3[2];
+    ctx->w3[3] = w3[3];
 
-    ctx->w0[0] |= w0[0];
-    ctx->w0[1] |= w0[1];
-    ctx->w0[2] |= w0[2];
-    ctx->w0[3] |= w0[3];
-    ctx->w1[0] |= w1[0];
-    ctx->w1[1] |= w1[1];
-    ctx->w1[2] |= w1[2];
-    ctx->w1[3] |= w1[3];
-    ctx->w2[0] |= w2[0];
-    ctx->w2[1] |= w2[1];
-    ctx->w2[2] |= w2[2];
-    ctx->w2[3] |= w2[3];
-    ctx->w3[0] |= w3[0];
-    ctx->w3[1] |= w3[1];
-    ctx->w3[2] |= w3[2];
-    ctx->w3[3] |= w3[3];
+    if (len == 64)
+    {
+      sha256_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
+
+      ctx->w0[0] = 0;
+      ctx->w0[1] = 0;
+      ctx->w0[2] = 0;
+      ctx->w0[3] = 0;
+      ctx->w1[0] = 0;
+      ctx->w1[1] = 0;
+      ctx->w1[2] = 0;
+      ctx->w1[3] = 0;
+      ctx->w2[0] = 0;
+      ctx->w2[1] = 0;
+      ctx->w2[2] = 0;
+      ctx->w2[3] = 0;
+      ctx->w3[0] = 0;
+      ctx->w3[1] = 0;
+      ctx->w3[2] = 0;
+      ctx->w3[3] = 0;
+    }
   }
   else
   {
-    u32 c0[4] = { 0 };
-    u32 c1[4] = { 0 };
-    u32 c2[4] = { 0 };
-    u32 c3[4] = { 0 };
+    if ((pos + len) < 64)
+    {
+      switch_buffer_by_offset_be_S (w0, w1, w2, w3, pos);
 
-    switch_buffer_by_offset_carry_be_S (w0, w1, w2, w3, c0, c1, c2, c3, pos);
+      ctx->w0[0] |= w0[0];
+      ctx->w0[1] |= w0[1];
+      ctx->w0[2] |= w0[2];
+      ctx->w0[3] |= w0[3];
+      ctx->w1[0] |= w1[0];
+      ctx->w1[1] |= w1[1];
+      ctx->w1[2] |= w1[2];
+      ctx->w1[3] |= w1[3];
+      ctx->w2[0] |= w2[0];
+      ctx->w2[1] |= w2[1];
+      ctx->w2[2] |= w2[2];
+      ctx->w2[3] |= w2[3];
+      ctx->w3[0] |= w3[0];
+      ctx->w3[1] |= w3[1];
+      ctx->w3[2] |= w3[2];
+      ctx->w3[3] |= w3[3];
+    }
+    else
+    {
+      u32 c0[4] = { 0 };
+      u32 c1[4] = { 0 };
+      u32 c2[4] = { 0 };
+      u32 c3[4] = { 0 };
 
-    ctx->w0[0] |= w0[0];
-    ctx->w0[1] |= w0[1];
-    ctx->w0[2] |= w0[2];
-    ctx->w0[3] |= w0[3];
-    ctx->w1[0] |= w1[0];
-    ctx->w1[1] |= w1[1];
-    ctx->w1[2] |= w1[2];
-    ctx->w1[3] |= w1[3];
-    ctx->w2[0] |= w2[0];
-    ctx->w2[1] |= w2[1];
-    ctx->w2[2] |= w2[2];
-    ctx->w2[3] |= w2[3];
-    ctx->w3[0] |= w3[0];
-    ctx->w3[1] |= w3[1];
-    ctx->w3[2] |= w3[2];
-    ctx->w3[3] |= w3[3];
+      switch_buffer_by_offset_carry_be_S (w0, w1, w2, w3, c0, c1, c2, c3, pos);
 
-    sha256_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
+      ctx->w0[0] |= w0[0];
+      ctx->w0[1] |= w0[1];
+      ctx->w0[2] |= w0[2];
+      ctx->w0[3] |= w0[3];
+      ctx->w1[0] |= w1[0];
+      ctx->w1[1] |= w1[1];
+      ctx->w1[2] |= w1[2];
+      ctx->w1[3] |= w1[3];
+      ctx->w2[0] |= w2[0];
+      ctx->w2[1] |= w2[1];
+      ctx->w2[2] |= w2[2];
+      ctx->w2[3] |= w2[3];
+      ctx->w3[0] |= w3[0];
+      ctx->w3[1] |= w3[1];
+      ctx->w3[2] |= w3[2];
+      ctx->w3[3] |= w3[3];
 
-    ctx->w0[0] = c0[0];
-    ctx->w0[1] = c0[1];
-    ctx->w0[2] = c0[2];
-    ctx->w0[3] = c0[3];
-    ctx->w1[0] = c1[0];
-    ctx->w1[1] = c1[1];
-    ctx->w1[2] = c1[2];
-    ctx->w1[3] = c1[3];
-    ctx->w2[0] = c2[0];
-    ctx->w2[1] = c2[1];
-    ctx->w2[2] = c2[2];
-    ctx->w2[3] = c2[3];
-    ctx->w3[0] = c3[0];
-    ctx->w3[1] = c3[1];
-    ctx->w3[2] = c3[2];
-    ctx->w3[3] = c3[3];
+      sha256_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
+
+      ctx->w0[0] = c0[0];
+      ctx->w0[1] = c0[1];
+      ctx->w0[2] = c0[2];
+      ctx->w0[3] = c0[3];
+      ctx->w1[0] = c1[0];
+      ctx->w1[1] = c1[1];
+      ctx->w1[2] = c1[2];
+      ctx->w1[3] = c1[3];
+      ctx->w2[0] = c2[0];
+      ctx->w2[1] = c2[1];
+      ctx->w2[2] = c2[2];
+      ctx->w2[3] = c2[3];
+      ctx->w3[0] = c3[0];
+      ctx->w3[1] = c3[1];
+      ctx->w3[2] = c3[2];
+      ctx->w3[3] = c3[3];
+    }
   }
 }
 
@@ -723,7 +787,7 @@ DECLSPEC void sha256_update_global_utf16le_swap (sha256_ctx_t *ctx, GLOBAL_AS co
 
 DECLSPEC void sha256_final (sha256_ctx_t *ctx)
 {
-  const int pos = ctx->len & 63;
+  MAYBE_VOLATILE const int pos = ctx->len & 63;
 
   append_0x80_4x4_S (ctx->w0, ctx->w1, ctx->w2, ctx->w3, pos ^ 3);
 
@@ -785,7 +849,9 @@ DECLSPEC void sha256_hmac_init_64 (sha256_hmac_ctx_t *ctx, const u32 *w0, const 
 
   sha256_init (&ctx->ipad);
 
-  sha256_update_64 (&ctx->ipad, t0, t1, t2, t3, 64);
+  sha256_transform (t0, t1, t2, t3, ctx->ipad.h);
+
+  ctx->ipad.len = 64;
 
   // opad
 
@@ -808,7 +874,9 @@ DECLSPEC void sha256_hmac_init_64 (sha256_hmac_ctx_t *ctx, const u32 *w0, const 
 
   sha256_init (&ctx->opad);
 
-  sha256_update_64 (&ctx->opad, t0, t1, t2, t3, 64);
+  sha256_transform (t0, t1, t2, t3, ctx->opad.h);
+
+  ctx->opad.len = 64;
 }
 
 DECLSPEC void sha256_hmac_init (sha256_hmac_ctx_t *ctx, const u32 *w, const int len)
@@ -1088,29 +1156,24 @@ DECLSPEC void sha256_hmac_final (sha256_hmac_ctx_t *ctx)
 {
   sha256_final (&ctx->ipad);
 
-  u32 t0[4];
-  u32 t1[4];
-  u32 t2[4];
-  u32 t3[4];
+  ctx->opad.w0[0] = ctx->ipad.h[0];
+  ctx->opad.w0[1] = ctx->ipad.h[1];
+  ctx->opad.w0[2] = ctx->ipad.h[2];
+  ctx->opad.w0[3] = ctx->ipad.h[3];
+  ctx->opad.w1[0] = ctx->ipad.h[4];
+  ctx->opad.w1[1] = ctx->ipad.h[5];
+  ctx->opad.w1[2] = ctx->ipad.h[6];
+  ctx->opad.w1[3] = ctx->ipad.h[7];
+  ctx->opad.w2[0] = 0;
+  ctx->opad.w2[1] = 0;
+  ctx->opad.w2[2] = 0;
+  ctx->opad.w2[3] = 0;
+  ctx->opad.w3[0] = 0;
+  ctx->opad.w3[1] = 0;
+  ctx->opad.w3[2] = 0;
+  ctx->opad.w3[3] = 0;
 
-  t0[0] = ctx->ipad.h[0];
-  t0[1] = ctx->ipad.h[1];
-  t0[2] = ctx->ipad.h[2];
-  t0[3] = ctx->ipad.h[3];
-  t1[0] = ctx->ipad.h[4];
-  t1[1] = ctx->ipad.h[5];
-  t1[2] = ctx->ipad.h[6];
-  t1[3] = ctx->ipad.h[7];
-  t2[0] = 0;
-  t2[1] = 0;
-  t2[2] = 0;
-  t2[3] = 0;
-  t3[0] = 0;
-  t3[1] = 0;
-  t3[2] = 0;
-  t3[3] = 0;
-
-  sha256_update_64 (&ctx->opad, t0, t1, t2, t3, 32);
+  ctx->opad.len += 32;
 
   sha256_final (&ctx->opad);
 }
@@ -1272,75 +1335,119 @@ DECLSPEC void sha256_init_vector_from_scalar (sha256_ctx_vector_t *ctx, sha256_c
 
 DECLSPEC void sha256_update_vector_64 (sha256_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, const int len)
 {
-  const int pos = ctx->len & 63;
+  MAYBE_VOLATILE const int pos = ctx->len & 63;
 
   ctx->len += len;
 
-  if ((pos + len) < 64)
+  if (pos == 0)
   {
-    switch_buffer_by_offset_be (w0, w1, w2, w3, pos);
+    ctx->w0[0] = w0[0];
+    ctx->w0[1] = w0[1];
+    ctx->w0[2] = w0[2];
+    ctx->w0[3] = w0[3];
+    ctx->w1[0] = w1[0];
+    ctx->w1[1] = w1[1];
+    ctx->w1[2] = w1[2];
+    ctx->w1[3] = w1[3];
+    ctx->w2[0] = w2[0];
+    ctx->w2[1] = w2[1];
+    ctx->w2[2] = w2[2];
+    ctx->w2[3] = w2[3];
+    ctx->w3[0] = w3[0];
+    ctx->w3[1] = w3[1];
+    ctx->w3[2] = w3[2];
+    ctx->w3[3] = w3[3];
 
-    ctx->w0[0] |= w0[0];
-    ctx->w0[1] |= w0[1];
-    ctx->w0[2] |= w0[2];
-    ctx->w0[3] |= w0[3];
-    ctx->w1[0] |= w1[0];
-    ctx->w1[1] |= w1[1];
-    ctx->w1[2] |= w1[2];
-    ctx->w1[3] |= w1[3];
-    ctx->w2[0] |= w2[0];
-    ctx->w2[1] |= w2[1];
-    ctx->w2[2] |= w2[2];
-    ctx->w2[3] |= w2[3];
-    ctx->w3[0] |= w3[0];
-    ctx->w3[1] |= w3[1];
-    ctx->w3[2] |= w3[2];
-    ctx->w3[3] |= w3[3];
+    if (len == 64)
+    {
+      sha256_transform_vector (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
+
+      ctx->w0[0] = 0;
+      ctx->w0[1] = 0;
+      ctx->w0[2] = 0;
+      ctx->w0[3] = 0;
+      ctx->w1[0] = 0;
+      ctx->w1[1] = 0;
+      ctx->w1[2] = 0;
+      ctx->w1[3] = 0;
+      ctx->w2[0] = 0;
+      ctx->w2[1] = 0;
+      ctx->w2[2] = 0;
+      ctx->w2[3] = 0;
+      ctx->w3[0] = 0;
+      ctx->w3[1] = 0;
+      ctx->w3[2] = 0;
+      ctx->w3[3] = 0;
+    }
   }
   else
   {
-    u32x c0[4] = { 0 };
-    u32x c1[4] = { 0 };
-    u32x c2[4] = { 0 };
-    u32x c3[4] = { 0 };
+    if ((pos + len) < 64)
+    {
+      switch_buffer_by_offset_be (w0, w1, w2, w3, pos);
 
-    switch_buffer_by_offset_carry_be (w0, w1, w2, w3, c0, c1, c2, c3, pos);
+      ctx->w0[0] |= w0[0];
+      ctx->w0[1] |= w0[1];
+      ctx->w0[2] |= w0[2];
+      ctx->w0[3] |= w0[3];
+      ctx->w1[0] |= w1[0];
+      ctx->w1[1] |= w1[1];
+      ctx->w1[2] |= w1[2];
+      ctx->w1[3] |= w1[3];
+      ctx->w2[0] |= w2[0];
+      ctx->w2[1] |= w2[1];
+      ctx->w2[2] |= w2[2];
+      ctx->w2[3] |= w2[3];
+      ctx->w3[0] |= w3[0];
+      ctx->w3[1] |= w3[1];
+      ctx->w3[2] |= w3[2];
+      ctx->w3[3] |= w3[3];
+    }
+    else
+    {
+      u32x c0[4] = { 0 };
+      u32x c1[4] = { 0 };
+      u32x c2[4] = { 0 };
+      u32x c3[4] = { 0 };
 
-    ctx->w0[0] |= w0[0];
-    ctx->w0[1] |= w0[1];
-    ctx->w0[2] |= w0[2];
-    ctx->w0[3] |= w0[3];
-    ctx->w1[0] |= w1[0];
-    ctx->w1[1] |= w1[1];
-    ctx->w1[2] |= w1[2];
-    ctx->w1[3] |= w1[3];
-    ctx->w2[0] |= w2[0];
-    ctx->w2[1] |= w2[1];
-    ctx->w2[2] |= w2[2];
-    ctx->w2[3] |= w2[3];
-    ctx->w3[0] |= w3[0];
-    ctx->w3[1] |= w3[1];
-    ctx->w3[2] |= w3[2];
-    ctx->w3[3] |= w3[3];
+      switch_buffer_by_offset_carry_be (w0, w1, w2, w3, c0, c1, c2, c3, pos);
 
-    sha256_transform_vector (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
+      ctx->w0[0] |= w0[0];
+      ctx->w0[1] |= w0[1];
+      ctx->w0[2] |= w0[2];
+      ctx->w0[3] |= w0[3];
+      ctx->w1[0] |= w1[0];
+      ctx->w1[1] |= w1[1];
+      ctx->w1[2] |= w1[2];
+      ctx->w1[3] |= w1[3];
+      ctx->w2[0] |= w2[0];
+      ctx->w2[1] |= w2[1];
+      ctx->w2[2] |= w2[2];
+      ctx->w2[3] |= w2[3];
+      ctx->w3[0] |= w3[0];
+      ctx->w3[1] |= w3[1];
+      ctx->w3[2] |= w3[2];
+      ctx->w3[3] |= w3[3];
 
-    ctx->w0[0] = c0[0];
-    ctx->w0[1] = c0[1];
-    ctx->w0[2] = c0[2];
-    ctx->w0[3] = c0[3];
-    ctx->w1[0] = c1[0];
-    ctx->w1[1] = c1[1];
-    ctx->w1[2] = c1[2];
-    ctx->w1[3] = c1[3];
-    ctx->w2[0] = c2[0];
-    ctx->w2[1] = c2[1];
-    ctx->w2[2] = c2[2];
-    ctx->w2[3] = c2[3];
-    ctx->w3[0] = c3[0];
-    ctx->w3[1] = c3[1];
-    ctx->w3[2] = c3[2];
-    ctx->w3[3] = c3[3];
+      sha256_transform_vector (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
+
+      ctx->w0[0] = c0[0];
+      ctx->w0[1] = c0[1];
+      ctx->w0[2] = c0[2];
+      ctx->w0[3] = c0[3];
+      ctx->w1[0] = c1[0];
+      ctx->w1[1] = c1[1];
+      ctx->w1[2] = c1[2];
+      ctx->w1[3] = c1[3];
+      ctx->w2[0] = c2[0];
+      ctx->w2[1] = c2[1];
+      ctx->w2[2] = c2[2];
+      ctx->w2[3] = c2[3];
+      ctx->w3[0] = c3[0];
+      ctx->w3[1] = c3[1];
+      ctx->w3[2] = c3[2];
+      ctx->w3[3] = c3[3];
+    }
   }
 }
 
@@ -1644,7 +1751,7 @@ DECLSPEC void sha256_update_vector_utf16beN (sha256_ctx_vector_t *ctx, const u32
 
 DECLSPEC void sha256_final_vector (sha256_ctx_vector_t *ctx)
 {
-  const int pos = ctx->len & 63;
+  MAYBE_VOLATILE const int pos = ctx->len & 63;
 
   append_0x80_4x4 (ctx->w0, ctx->w1, ctx->w2, ctx->w3, pos ^ 3);
 
@@ -1706,7 +1813,9 @@ DECLSPEC void sha256_hmac_init_vector_64 (sha256_hmac_ctx_vector_t *ctx, const u
 
   sha256_init_vector (&ctx->ipad);
 
-  sha256_update_vector_64 (&ctx->ipad, t0, t1, t2, t3, 64);
+  sha256_transform_vector (t0, t1, t2, t3, ctx->ipad.h);
+
+  ctx->ipad.len = 64;
 
   // opad
 
@@ -1729,7 +1838,9 @@ DECLSPEC void sha256_hmac_init_vector_64 (sha256_hmac_ctx_vector_t *ctx, const u
 
   sha256_init_vector (&ctx->opad);
 
-  sha256_update_vector_64 (&ctx->opad, t0, t1, t2, t3, 64);
+  sha256_transform_vector (t0, t1, t2, t3, ctx->opad.h);
+
+  ctx->opad.len = 64;
 }
 
 DECLSPEC void sha256_hmac_init_vector (sha256_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
@@ -1803,29 +1914,24 @@ DECLSPEC void sha256_hmac_final_vector (sha256_hmac_ctx_vector_t *ctx)
 {
   sha256_final_vector (&ctx->ipad);
 
-  u32x t0[4];
-  u32x t1[4];
-  u32x t2[4];
-  u32x t3[4];
+  ctx->opad.w0[0] = ctx->ipad.h[0];
+  ctx->opad.w0[1] = ctx->ipad.h[1];
+  ctx->opad.w0[2] = ctx->ipad.h[2];
+  ctx->opad.w0[3] = ctx->ipad.h[3];
+  ctx->opad.w1[0] = ctx->ipad.h[4];
+  ctx->opad.w1[1] = ctx->ipad.h[5];
+  ctx->opad.w1[2] = ctx->ipad.h[6];
+  ctx->opad.w1[3] = ctx->ipad.h[7];
+  ctx->opad.w2[0] = 0;
+  ctx->opad.w2[1] = 0;
+  ctx->opad.w2[2] = 0;
+  ctx->opad.w2[3] = 0;
+  ctx->opad.w3[0] = 0;
+  ctx->opad.w3[1] = 0;
+  ctx->opad.w3[2] = 0;
+  ctx->opad.w3[3] = 0;
 
-  t0[0] = ctx->ipad.h[0];
-  t0[1] = ctx->ipad.h[1];
-  t0[2] = ctx->ipad.h[2];
-  t0[3] = ctx->ipad.h[3];
-  t1[0] = ctx->ipad.h[4];
-  t1[1] = ctx->ipad.h[5];
-  t1[2] = ctx->ipad.h[6];
-  t1[3] = ctx->ipad.h[7];
-  t2[0] = 0;
-  t2[1] = 0;
-  t2[2] = 0;
-  t2[3] = 0;
-  t3[0] = 0;
-  t3[1] = 0;
-  t3[2] = 0;
-  t3[3] = 0;
-
-  sha256_update_vector_64 (&ctx->opad, t0, t1, t2, t3, 32);
+  ctx->opad.len += 32;
 
   sha256_final_vector (&ctx->opad);
 }

@@ -5,10 +5,8 @@
 
 #include "common.h"
 #include "types.h"
-#include "bitops.h"
 #include "convert.h"
 #include "shared.h"
-#include "cpu_des.h"
 
 #if defined (__CYGWIN__)
 #include <sys/cygwin.h>
@@ -56,8 +54,6 @@ static const char *PA_255 = "Unknown error";
 static const char *OPTI_STR_OPTIMIZED_KERNEL     = "Optimized-Kernel";
 static const char *OPTI_STR_ZERO_BYTE            = "Zero-Byte";
 static const char *OPTI_STR_PRECOMPUTE_INIT      = "Precompute-Init";
-static const char *OPTI_STR_PRECOMPUTE_MERKLE    = "Precompute-Merkle-Demgard";
-static const char *OPTI_STR_PRECOMPUTE_PERMUT    = "Precompute-Final-Permutation";
 static const char *OPTI_STR_MEET_IN_MIDDLE       = "Meet-In-The-Middle";
 static const char *OPTI_STR_EARLY_SKIP           = "Early-Skip";
 static const char *OPTI_STR_NOT_SALTED           = "Not-Salted";
@@ -231,13 +227,13 @@ void naive_escape (char *s, size_t s_max, const char key_char, const char escape
   strncpy (s, s_escaped, s_max - 1);
 }
 
-void hc_asprintf (char **strp, const char *fmt, ...)
+int hc_asprintf (char **strp, const char *fmt, ...)
 {
   va_list args;
   va_start (args, fmt);
-  int rc __attribute__((unused));
-  rc = vasprintf (strp, fmt, args);
+  int rc = vasprintf (strp, fmt, args);
   va_end (args);
+  return rc;
 }
 
 #if defined (_WIN)
@@ -490,6 +486,7 @@ void setup_environment_variables ()
       putenv ((char *) "DISPLAY=:0");
   }
 
+  /*
   if (getenv ("OCL_CODE_CACHE_ENABLE") == NULL)
     putenv ((char *) "OCL_CODE_CACHE_ENABLE=0");
 
@@ -498,6 +495,7 @@ void setup_environment_variables ()
 
   if (getenv ("POCL_KERNEL_CACHE") == NULL)
     putenv ((char *) "POCL_KERNEL_CACHE=0");
+  */
 
   if (getenv ("CL_CONFIG_USE_VECTORIZER") == NULL)
     putenv ((char *) "CL_CONFIG_USE_VECTORIZER=False");
@@ -596,11 +594,9 @@ size_t hc_fread (void *ptr, size_t size, size_t nmemb, FILE *stream)
   return fread (ptr, size, nmemb, stream);
 }
 
-void hc_fwrite (const void *ptr, size_t size, size_t nmemb, FILE *stream)
+size_t hc_fwrite (const void *ptr, size_t size, size_t nmemb, FILE *stream)
 {
-  size_t rc = fwrite (ptr, size, nmemb, stream);
-
-  if (rc == 0) rc = 0;
+  return fwrite (ptr, size, nmemb, stream);
 }
 
 bool hc_same_files (char *file1, char *file2)
@@ -1231,8 +1227,6 @@ int generic_salt_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, const u8 *
   {
     for (int i = 0, j = 0; i < in_len; i += 1, j += 2)
     {
-      const u8 p = in_buf[i];
-
       u8_to_hex (in_buf[i], tmp_u8 + j);
     }
 

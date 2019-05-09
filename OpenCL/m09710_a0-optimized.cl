@@ -190,8 +190,6 @@ KERNEL_FQ void m09710_m04 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
    * esalt
    */
 
-  const u32 version = esalt_bufs[digests_offset].version;
-
   u32 encryptedVerifier[4];
 
   encryptedVerifier[0] = esalt_bufs[digests_offset].encryptedVerifier[0];
@@ -329,8 +327,6 @@ KERNEL_FQ void m09710_s04 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
   /**
    * esalt
    */
-
-  const u32 version = esalt_bufs[digests_offset].version;
 
   u32 encryptedVerifier[4];
 

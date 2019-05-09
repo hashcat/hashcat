@@ -340,7 +340,7 @@ KERNEL_FQ void m18400_comp (KERN_ATTR_TMPS_ESALT (odf12_tmp_t, odf12_t))
 
   u32 ks[60];
 
-  aes256_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+  aes256_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
   GLOBAL_AS const odf12_t *es = &esalt_bufs[digests_offset];
 

@@ -223,8 +223,6 @@ DECLSPEC void m01760m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
   salt_buf3[2] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[14]);
   salt_buf3[3] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[15]);
 
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
-
   /**
    * pads
    */
@@ -332,8 +330,6 @@ DECLSPEC void m01760s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
   salt_buf3[1] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[13]);
   salt_buf3[2] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[14]);
   salt_buf3[3] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[15]);
-
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
   /**
    * pads

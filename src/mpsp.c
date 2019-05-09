@@ -11,7 +11,6 @@
 #include "logfile.h"
 #include "convert.h"
 #include "filehandling.h"
-#include "interface.h"
 #include "opencl.h"
 #include "shared.h"
 #include "ext_lzma.h"

@@ -5,11 +5,10 @@
 
 #include "common.h"
 #include "types.h"
-#include "memory.h"
 #include "event.h"
-#include "debugfile.h"
 #include "shared.h"
 #include "locking.h"
+#include "debugfile.h"
 
 static void debugfile_format_plain (hashcat_ctx_t *hashcat_ctx, const u8 *plain_ptr, const u32 plain_len)
 {

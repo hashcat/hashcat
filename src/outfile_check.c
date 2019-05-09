@@ -7,15 +7,12 @@
 #include "types.h"
 #include "memory.h"
 #include "event.h"
-#include "outfile_check.h"
 #include "filehandling.h"
-#include "convert.h"
 #include "folder.h"
 #include "hashes.h"
-#include "interface.h"
 #include "shared.h"
 #include "thread.h"
-#include "bitops.h"
+#include "outfile_check.h"
 
 static int sort_by_salt_buf (const void *v1, const void *v2, MAYBE_UNUSED void * v3)
 {
@@ -33,11 +30,9 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
   status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
 
-  size_t dgst_size      = hashconfig->dgst_size;
-  bool   is_salted      = hashconfig->is_salted;
-  size_t esalt_size     = hashconfig->esalt_size;
-  size_t hook_salt_size = hashconfig->hook_salt_size;
-  char   separator      = hashconfig->separator;
+  const size_t dgst_size = hashconfig->dgst_size;
+  const bool   is_salted = hashconfig->is_salted;
+  const char   separator = hashconfig->separator;
 
   salt_t    *salts_buf   = hashes->salts_buf;
   const u32  salts_cnt   = hashes->salts_cnt;
@@ -206,10 +201,6 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
           if (last_separator == NULL) break;
 
-          char *line_pw_buf = last_separator + 1;
-
-          size_t line_pw_len = line_buf + line_len - line_pw_buf;
-
           char *line_hash_buf = line_buf;
 
           int line_hash_len = last_separator - line_buf;
@@ -218,32 +209,36 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
           if (line_hash_len == 0) continue;
 
-          if (hashconfig->is_salted == true)
+          if (hash_buf.salt)
           {
             memset (hash_buf.salt, 0, sizeof (salt_t));
           }
 
-          if (hashconfig->esalt_size > 0)
+          if (hash_buf.esalt)
           {
             memset (hash_buf.esalt, 0, hashconfig->esalt_size);
           }
 
-          if (hashconfig->hook_salt_size > 0)
+          if (hash_buf.hook_salt)
           {
             memset (hash_buf.hook_salt, 0, hashconfig->hook_salt_size);
           }
 
           int parser_status = PARSER_HASH_LENGTH;
 
-          if (module_ctx->module_hash_decode_outfile != MODULE_DEFAULT)
+          if (module_ctx->module_hash_decode_potfile != MODULE_DEFAULT)
           {
-            parser_status = module_ctx->module_hash_decode_outfile (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, hash_buf.hook_salt, hash_buf.hash_info, line_buf, line_len - 1);
+            void *tmps = hcmalloc (hashconfig->tmp_size);
+
+            parser_status = module_ctx->module_hash_decode_potfile (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, hash_buf.hook_salt, hash_buf.hash_info, line_buf, line_hash_len, tmps);
+
+            hcfree (tmps);
           }
           else
           {
             // "normal" case: hash in the outfile is the same as the hash in the original hash file
 
-            parser_status = module_ctx->module_hash_decode (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, hash_buf.hook_salt, hash_buf.hash_info, line_buf, line_len - 1);
+            parser_status = module_ctx->module_hash_decode (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, hash_buf.hook_salt, hash_buf.hash_info, line_buf, line_hash_len);
           }
 
           if (parser_status != PARSER_OK) continue;

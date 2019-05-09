@@ -6,9 +6,9 @@
 #include "common.h"
 #include "types.h"
 #include "interface.h"
-#include "benchmark.h"
 #include "memory.h"
 #include "shared.h"
+#include "benchmark.h"
 
 static const int DEFAULT_BENCHMARK_ALGORITHMS_BUF[] =
 {
@@ -43,7 +43,6 @@ static const int DEFAULT_BENCHMARK_ALGORITHMS_BUF[] =
 int benchmark_next (hashcat_ctx_t *hashcat_ctx)
 {
   const folder_config_t *folder_config = hashcat_ctx->folder_config;
-  const module_ctx_t    *module_ctx    = hashcat_ctx->module_ctx;
   const user_options_t  *user_options  = hashcat_ctx->user_options;
 
   static int cur = 0;

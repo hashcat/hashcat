@@ -269,7 +269,7 @@ KERNEL_FQ void m09400_comp (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t
 
   u32 ks[60];
 
-  AES128_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+  AES128_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
   u32 verifier[4];
 
@@ -316,7 +316,7 @@ KERNEL_FQ void m09400_comp (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t
 
   // encrypt it again for verify
 
-  AES128_set_encrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_te4);
+  AES128_set_encrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3);
 
   data[0] = ctx.h[0];
   data[1] = ctx.h[1];
@@ -378,7 +378,7 @@ KERNEL_FQ void m09400_comp (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t
   ukey[6] = ctx.h[1];
   ukey[7] = ctx.h[2];
 
-  AES256_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+  AES256_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
   data[0] = verifier[0];
   data[1] = verifier[1];
@@ -414,7 +414,7 @@ KERNEL_FQ void m09400_comp (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t
 
   // encrypt it again for verify
 
-  AES256_set_encrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_te4);
+  AES256_set_encrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3);
 
   data[0] = ctx.h[0];
   data[1] = ctx.h[1];

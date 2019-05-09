@@ -13,16 +13,13 @@
 #include "rp.h"
 #include "rp_cpu.h"
 #include "mpsp.h"
-#include "straight.h"
-#include "combinator.h"
 #include "convert.h"
 #include "stdout.h"
 #include "filehandling.h"
-#include "interface.h"
 #include "wordlist.h"
 #include "shared.h"
 #include "hashes.h"
-#include "cpu_md5.h"
+#include "emu_inc_hash_md5.h"
 #include "event.h"
 #include "dynloader.h"
 #include "opencl.h"
@@ -347,15 +344,61 @@ static bool test_instruction (hashcat_ctx_t *hashcat_ctx, cl_context context, cl
 
   OCL_PTR *ocl = opencl_ctx->ocl;
 
-  CL_rc = ocl->clBuildProgram (program, 1, &device, NULL, NULL, NULL); // do not use the wrapper to avoid the error message
+  // LLVM seems to write an error message (if there's an error) directly to stderr
+  // and not (as supposted to) into buffer for later request using clGetProgramBuildInfo()
 
-  const bool r = (CL_rc == CL_SUCCESS) ? true : false;
+  #ifndef DEBUG
+  #ifndef _WIN
+  fflush (stderr);
+  int bak = dup (2);
+  int tmp = open ("/dev/null", O_WRONLY);
+  dup2 (tmp, 2);
+  close (tmp);
+  #endif
+  #endif
+
+  CL_rc = ocl->clBuildProgram (program, 1, &device, "-Werror", NULL, NULL); // do not use the wrapper to avoid the error message
+
+  #ifndef DEBUG
+  #ifndef _WIN
+  fflush (stderr);
+  dup2 (bak, 2);
+  close (bak);
+  #endif
+  #endif
+
+  if (CL_rc != CL_SUCCESS)
+  {
+    #if defined (DEBUG)
+
+    event_log_error (hashcat_ctx, "clBuildProgram(): %s", val2cstr_cl (CL_rc));
+
+    size_t build_log_size = 0;
+
+    hc_clGetProgramBuildInfo (hashcat_ctx, program, device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
+
+    char *build_log = (char *) hcmalloc (build_log_size + 1);
+
+    hc_clGetProgramBuildInfo (hashcat_ctx, program, device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
+
+    build_log[build_log_size] = 0;
+
+    puts (build_log);
+
+    hcfree (build_log);
+
+    #endif
+
+    hc_clReleaseProgram (hashcat_ctx, program);
+
+    return false;
+  }
 
   CL_rc = hc_clReleaseProgram (hashcat_ctx, program);
 
   if (CL_rc == -1) return false;
 
-  return r;
+  return true;
 }
 
 void generate_source_kernel_filename (const bool slow_candidates, const u32 attack_exec, const u32 attack_kern, const u32 kern_type, const u32 opti_type, char *shared_dir, char *source_file)
@@ -549,7 +592,7 @@ int ocl_init (hashcat_ctx_t *hashcat_ctx)
     #endif
 
     event_log_warning (hashcat_ctx, "* NVIDIA GPUs require this runtime and/or driver:");
-    event_log_warning (hashcat_ctx, "  \"NVIDIA Driver\" (367.x or later)");
+    event_log_warning (hashcat_ctx, "  \"NVIDIA Driver\" (418.56 or later)");
     event_log_warning (hashcat_ctx, NULL);
 
     return -1;
@@ -698,13 +741,13 @@ int hc_clSetKernelArg (hashcat_ctx_t *hashcat_ctx, cl_kernel kernel, cl_uint arg
   return 0;
 }
 
-int hc_clEnqueueWriteBuffer (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue, cl_mem buffer, cl_bool blocking_write, size_t offset, size_t cb, const void *ptr, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event)
+int hc_clEnqueueWriteBuffer (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue, cl_mem buffer, cl_bool blocking_write, size_t offset, size_t size, const void *ptr, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event)
 {
   opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
 
   OCL_PTR *ocl = opencl_ctx->ocl;
 
-  const cl_int CL_err = ocl->clEnqueueWriteBuffer (command_queue, buffer, blocking_write, offset, cb, ptr, num_events_in_wait_list, event_wait_list, event);
+  const cl_int CL_err = ocl->clEnqueueWriteBuffer (command_queue, buffer, blocking_write, offset, size, ptr, num_events_in_wait_list, event_wait_list, event);
 
   if (CL_err != CL_SUCCESS)
   {
@@ -716,13 +759,13 @@ int hc_clEnqueueWriteBuffer (hashcat_ctx_t *hashcat_ctx, cl_command_queue comman
   return 0;
 }
 
-int hc_clEnqueueCopyBuffer (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue, cl_mem src_buffer, cl_mem dst_buffer, size_t src_offset, size_t dst_offset, size_t cb, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event)
+int hc_clEnqueueCopyBuffer (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue, cl_mem src_buffer, cl_mem dst_buffer, size_t src_offset, size_t dst_offset, size_t size, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event)
 {
   opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
 
   OCL_PTR *ocl = opencl_ctx->ocl;
 
-  const cl_int CL_err = ocl->clEnqueueCopyBuffer (command_queue, src_buffer, dst_buffer, src_offset, dst_offset, cb, num_events_in_wait_list, event_wait_list, event);
+  const cl_int CL_err = ocl->clEnqueueCopyBuffer (command_queue, src_buffer, dst_buffer, src_offset, dst_offset, size, num_events_in_wait_list, event_wait_list, event);
 
   if (CL_err != CL_SUCCESS)
   {
@@ -734,13 +777,13 @@ int hc_clEnqueueCopyBuffer (hashcat_ctx_t *hashcat_ctx, cl_command_queue command
   return 0;
 }
 
-int hc_clEnqueueReadBuffer (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue, cl_mem buffer, cl_bool blocking_read, size_t offset, size_t cb, void *ptr, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event)
+int hc_clEnqueueReadBuffer (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue, cl_mem buffer, cl_bool blocking_read, size_t offset, size_t size, void *ptr, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event)
 {
   opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
 
   OCL_PTR *ocl = opencl_ctx->ocl;
 
-  const cl_int CL_err = ocl->clEnqueueReadBuffer (command_queue, buffer, blocking_read, offset, cb, ptr, num_events_in_wait_list, event_wait_list, event);
+  const cl_int CL_err = ocl->clEnqueueReadBuffer (command_queue, buffer, blocking_read, offset, size, ptr, num_events_in_wait_list, event_wait_list, event);
 
   if (CL_err != CL_SUCCESS)
   {
@@ -824,7 +867,7 @@ int hc_clGetDeviceInfo (hashcat_ctx_t *hashcat_ctx, cl_device_id device, cl_devi
   return 0;
 }
 
-int hc_clCreateContext (hashcat_ctx_t *hashcat_ctx, cl_context_properties *properties, cl_uint num_devices, const cl_device_id *devices, void (CL_CALLBACK *pfn_notify) (const char *, const void *, size_t, void *), void *user_data, cl_context *context)
+int hc_clCreateContext (hashcat_ctx_t *hashcat_ctx, const cl_context_properties *properties, cl_uint num_devices, const cl_device_id *devices, void (CL_CALLBACK *pfn_notify) (const char *errinfo, const void *private_info, size_t cb, void *user_data), void *user_data, cl_context *context)
 {
   opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
 
@@ -904,7 +947,7 @@ int hc_clCreateProgramWithSource (hashcat_ctx_t *hashcat_ctx, cl_context context
   return 0;
 }
 
-int hc_clCreateProgramWithBinary (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_uint num_devices, const cl_device_id *device_list, const size_t *lengths, unsigned char **binaries, cl_int *binary_status, cl_program *program)
+int hc_clCreateProgramWithBinary (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_uint num_devices, const cl_device_id *device_list, const size_t *lengths, const unsigned char **binaries, cl_int *binary_status, cl_program *program)
 {
   opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
 
@@ -3017,7 +3060,7 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
     #endif
 
     event_log_warning (hashcat_ctx, "* NVIDIA GPUs require this runtime and/or driver:");
-    event_log_warning (hashcat_ctx, "  \"NVIDIA Driver\" (367.x or later)");
+    event_log_warning (hashcat_ctx, "  \"NVIDIA Driver\" (418.56 or later)");
     event_log_warning (hashcat_ctx, NULL);
 
     FREE_OPENCL_CTX_ON_ERROR;
@@ -3818,7 +3861,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
               if (intel_warn == true)
               {
-                event_log_error (hashcat_ctx, "* Device #%u: Outdated or broken Intel OpenCL runtime detected!", device_id + 1);
+                event_log_error (hashcat_ctx, "* Device #%u: Outdated or broken Intel OpenCL runtime '%s' detected!", device_id + 1, device_param->driver_version);
 
                 event_log_warning (hashcat_ctx, "You are STRONGLY encouraged to use the officially supported NVIDIA driver.");
                 event_log_warning (hashcat_ctx, "See hashcat.net for officially supported NVIDIA drivers.");
@@ -3856,7 +3899,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
               if (amd_warn == true)
               {
-                event_log_error (hashcat_ctx, "* Device #%u: Outdated or broken AMD driver detected!", device_id + 1);
+                event_log_error (hashcat_ctx, "* Device #%u: Outdated or broken AMD driver '%s' detected!", device_id + 1, device_param->driver_version);
 
                 event_log_warning (hashcat_ctx, "You are STRONGLY encouraged to use the officially supported AMD driver.");
                 event_log_warning (hashcat_ctx, "See hashcat.net for officially supported AMD drivers.");
@@ -3872,12 +3915,42 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
             {
               int nv_warn = true;
 
-              // nvidia driver 367.x and higher
-              if (strtoul (device_param->driver_version, NULL, 10) >= 367) nv_warn = false;
+              int version_maj = 0;
+              int version_min = 0;
+
+              const int r = sscanf (device_param->driver_version, "%d.%d", &version_maj, &version_min);
+
+              if (r == 2)
+              {
+                if (version_maj >= 367)
+                {
+                  if (version_maj == 418)
+                  {
+                    // older 418.x versions are known to be broken.
+                    // for instance, NVIDIA-Linux-x86_64-418.43.run
+                    // run ./hashcat -b -m 2501 results in self-test fail
+
+                    if (version_min >= 56)
+                    {
+                      nv_warn = false;
+                    }
+                  }
+                  else
+                  {
+                    nv_warn = false;
+                  }
+                }
+              }
+              else
+              {
+                // unknown version scheme, probably new driver version
+
+                nv_warn = false;
+              }
 
               if (nv_warn == true)
               {
-                event_log_error (hashcat_ctx, "* Device #%u: Outdated or broken NVIDIA driver detected!", device_id + 1);
+                event_log_error (hashcat_ctx, "* Device #%u: Outdated or broken NVIDIA driver '%s' detected!", device_id + 1, device_param->driver_version);
 
                 event_log_warning (hashcat_ctx, "You are STRONGLY encouraged to use the officially supported NVIDIA driver.");
                 event_log_warning (hashcat_ctx, "See hashcat's homepage for officially supported NVIDIA drivers.");
@@ -3951,17 +4024,36 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if ((device_param->device_type & CL_DEVICE_TYPE_GPU) && (device_param->platform_vendor_id == VENDOR_ID_AMD))
       {
-        const bool has_vperm = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { uint r; __asm__ (\"V_PERM_B32 %0, 0, 0, 0;\" : \"=v\"(r)); }");
-
-        device_param->has_vperm = has_vperm;
-
-        const bool has_vadd3 = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { uint r; __asm__ (\"V_ADD3_U32 %0, 0, 0, 0;\" : \"=v\"(r)); }");
+        const bool has_vadd3 = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { uint r; __asm__ __volatile__ (\"V_ADD3_U32 %0, 0, 0, 0;\" : \"=v\"(r)); }");
 
         device_param->has_vadd3 = has_vadd3;
 
-        const bool has_vbfe = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { uint r; __asm__ (\"V_BFE_U32 %0, 0, 0, 0;\" : \"=v\"(r)); }");
+        const bool has_vbfe = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { uint r; __asm__ __volatile__ (\"V_BFE_U32 %0, 0, 0, 0;\" : \"=v\"(r)); }");
 
         device_param->has_vbfe = has_vbfe;
+
+        const bool has_vperm = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { uint r; __asm__ __volatile__ (\"V_PERM_B32 %0, 0, 0, 0;\" : \"=v\"(r)); }");
+
+        device_param->has_vperm = has_vperm;
+      }
+
+      if ((device_param->device_type & CL_DEVICE_TYPE_GPU) && (device_param->platform_vendor_id == VENDOR_ID_NV))
+      {
+        const bool has_bfe = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { uint r; asm volatile (\"bfe.u32 %0, 0, 0, 0;\" : \"=r\"(r)); }");
+
+        device_param->has_bfe = has_bfe;
+
+        const bool has_lop3 = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { uint r; asm volatile (\"lop3.b32 %0, 0, 0, 0, 0;\" : \"=r\"(r)); }");
+
+        device_param->has_lop3 = has_lop3;
+
+        const bool has_mov64 = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { ulong r; uint a; uint b; asm volatile (\"mov.b64 %0, {%1, %2};\" : \"=l\"(r) : \"r\"(a), \"r\"(b)); }");
+
+        device_param->has_mov64 = has_mov64;
+
+        const bool has_prmt = test_instruction (hashcat_ctx, context, device_param->device, "__kernel void test () { uint r; asm volatile (\"prmt.b32 %0, 0, 0, 0;\" : \"=r\"(r)); }");
+
+        device_param->has_prmt = has_prmt;
       }
 
       // device_available_mem
@@ -3971,7 +4063,11 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       device_param->device_available_mem = device_param->device_global_mem - MAX_ALLOC_CHECKS_SIZE;
 
+      #if defined (_WIN)
+      if ((device_param->device_type & CL_DEVICE_TYPE_GPU) && (device_param->platform_vendor_id == VENDOR_ID_NV))
+      #else
       if ((device_param->device_type & CL_DEVICE_TYPE_GPU) && ((device_param->platform_vendor_id == VENDOR_ID_NV) || (device_param->platform_vendor_id == VENDOR_ID_AMD)))
+      #endif
       {
         // OK, so the problem here is the following:
         // There's just CL_DEVICE_GLOBAL_MEM_SIZE to ask OpenCL about the total memory on the device,
@@ -4378,6 +4474,8 @@ static u32 get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param
     kernel_threads_max = device_maxworkgroup_size;
   }
 
+  u32 kernel_threads = kernel_threads_max;
+
   // complicated kernel tend to confuse OpenCL runtime suggestions for maximum thread size
   // let's workaround that by sticking to their device specific preferred thread size
 
@@ -4393,8 +4491,7 @@ static u32 get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param
 
           if ((kernel_preferred_wgs_multiple1 >= kernel_threads_min) && (kernel_preferred_wgs_multiple1 <= kernel_threads_max))
           {
-            kernel_threads_min = kernel_preferred_wgs_multiple1;
-            kernel_threads_max = kernel_preferred_wgs_multiple1;
+            kernel_threads = kernel_preferred_wgs_multiple1;
           }
         }
       }
@@ -4406,8 +4503,7 @@ static u32 get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param
 
           if ((kernel_preferred_wgs_multiple4 >= kernel_threads_min) && (kernel_preferred_wgs_multiple4 <= kernel_threads_max))
           {
-            kernel_threads_min = kernel_preferred_wgs_multiple4;
-            kernel_threads_max = kernel_preferred_wgs_multiple4;
+            kernel_threads = kernel_preferred_wgs_multiple4;
           }
         }
       }
@@ -4420,8 +4516,7 @@ static u32 get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param
 
         if ((kernel_preferred_wgs_multiple2 >= kernel_threads_min) && (kernel_preferred_wgs_multiple2 <= kernel_threads_max))
         {
-          kernel_threads_min = kernel_preferred_wgs_multiple2;
-          kernel_threads_max = kernel_preferred_wgs_multiple2;
+          kernel_threads = kernel_preferred_wgs_multiple2;
         }
       }
     }
@@ -4438,8 +4533,7 @@ static u32 get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param
 
           if ((kernel_preferred_wgs_multiple1 >= kernel_threads_min) && (kernel_preferred_wgs_multiple1 <= kernel_threads_max))
           {
-            kernel_threads_min = kernel_preferred_wgs_multiple1;
-            kernel_threads_max = kernel_preferred_wgs_multiple1;
+            kernel_threads = kernel_preferred_wgs_multiple1;
           }
         }
       }
@@ -4451,8 +4545,7 @@ static u32 get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param
 
           if ((kernel_preferred_wgs_multiple4 >= kernel_threads_min) && (kernel_preferred_wgs_multiple4 <= kernel_threads_max))
           {
-            kernel_threads_min = kernel_preferred_wgs_multiple4;
-            kernel_threads_max = kernel_preferred_wgs_multiple4;
+            kernel_threads = kernel_preferred_wgs_multiple4;
           }
         }
       }
@@ -4465,14 +4558,13 @@ static u32 get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param
 
         if ((kernel_preferred_wgs_multiple2 >= kernel_threads_min) && (kernel_preferred_wgs_multiple2 <= kernel_threads_max))
         {
-          kernel_threads_min = kernel_preferred_wgs_multiple2;
-          kernel_threads_max = kernel_preferred_wgs_multiple2;
+          kernel_threads = kernel_preferred_wgs_multiple2;
         }
       }
     }
   }
 
-  return kernel_threads_max;
+  return kernel_threads;
 }
 
 int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
@@ -4848,18 +4940,20 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     int build_options_len = 0;
 
     #if defined (_WIN)
-    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D KERNEL_STATIC -cl-std=CL1.2 -I OpenCL -I \"%s\" ", folder_config->cpath_real);
+    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D KERNEL_STATIC -I OpenCL -I \"%s\" ", folder_config->cpath_real);
     #else
-    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D KERNEL_STATIC -cl-std=CL1.2 -I OpenCL -I %s ", folder_config->cpath_real);
+    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D KERNEL_STATIC -I OpenCL -I %s ", folder_config->cpath_real);
     #endif
 
     // we don't have sm_* on vendors not NV but it doesn't matter
 
     #if defined (DEBUG)
-    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D LOCAL_MEM_TYPE=%u -D VENDOR_ID=%u -D CUDA_ARCH=%u -D HAS_VPERM=%u -D HAS_VADD3=%u -D HAS_VBFE=%u -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll ", device_param->device_local_mem_type, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->has_vperm, device_param->has_vadd3, device_param->has_vbfe, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, kern_type);
+    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D LOCAL_MEM_TYPE=%u -D VENDOR_ID=%u -D CUDA_ARCH=%u -D HAS_VPERM=%u -D HAS_VADD3=%u -D HAS_VBFE=%u -D HAS_BFE=%u -D HAS_LOP3=%u -D HAS_MOV64=%u -D HAS_PRMT=%u -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll ", device_param->device_local_mem_type, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->has_vperm, device_param->has_vadd3, device_param->has_vbfe, device_param->has_bfe, device_param->has_lop3, device_param->has_mov64, device_param->has_prmt, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, kern_type);
     #else
-    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D LOCAL_MEM_TYPE=%u -D VENDOR_ID=%u -D CUDA_ARCH=%u -D HAS_VPERM=%u -D HAS_VADD3=%u -D HAS_VBFE=%u -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -w ", device_param->device_local_mem_type, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->has_vperm, device_param->has_vadd3, device_param->has_vbfe, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, kern_type);
+    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D LOCAL_MEM_TYPE=%u -D VENDOR_ID=%u -D CUDA_ARCH=%u -D HAS_VPERM=%u -D HAS_VADD3=%u -D HAS_VBFE=%u -D HAS_BFE=%u -D HAS_LOP3=%u -D HAS_MOV64=%u -D HAS_PRMT=%u -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -w ", device_param->device_local_mem_type, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->has_vperm, device_param->has_vadd3, device_param->has_vbfe, device_param->has_bfe, device_param->has_lop3, device_param->has_mov64, device_param->has_prmt, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, kern_type);
     #endif
+
+    build_options_buf[build_options_len] = 0;
 
     /*
     if (device_param->device_type & CL_DEVICE_TYPE_CPU)
@@ -4887,6 +4981,8 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
     }
 
+    build_options_module_buf[build_options_module_len] = 0;
+
     #if defined (DEBUG)
     if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: build_options '%s'", device_id + 1, build_options_buf);
     if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: build_options_module '%s'", device_id + 1, build_options_module_buf);
@@ -4899,26 +4995,35 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     char *device_name_chksum        = (char *) hcmalloc (HCBUFSIZ_TINY);
     char *device_name_chksum_amp_mp = (char *) hcmalloc (HCBUFSIZ_TINY);
 
-    const size_t dnclen        = snprintf (device_name_chksum,        HCBUFSIZ_TINY, "%u-%u-%s-%s-%s-%d-%u-%u", device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, opencl_ctx->comptime, user_options->opencl_vector_width, hashconfig->hash_mode);
-    const size_t dnclen_amp_mp = snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%u-%s-%s-%s-%d",          device_param->platform_vendor_id,                             device_param->device_name, device_param->device_version, device_param->driver_version, opencl_ctx->comptime);
+    const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY, "%d-%u-%s-%s-%s-%d-%u",
+      opencl_ctx->comptime,
+      device_param->platform_vendor_id,
+      device_param->device_name,
+      device_param->device_version,
+      device_param->driver_version,
+      device_param->vector_width,
+      hashconfig->kern_type);
 
-    u32 device_name_digest[4] = { 0 };
+    const size_t dnclen_amp_mp = snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%d-%u-%s-%s-%s",
+      opencl_ctx->comptime,
+      device_param->platform_vendor_id,
+      device_param->device_name,
+      device_param->device_version,
+      device_param->driver_version);
 
-    for (size_t i = 0; i < dnclen; i += 64)
-    {
-      md5_64 ((u32 *) (device_name_chksum + i), device_name_digest);
-    }
+    md5_ctx_t md5_ctx;
 
-    snprintf (device_name_chksum, HCBUFSIZ_TINY, "%08x", device_name_digest[0]);
+    md5_init (&md5_ctx);
+    md5_update (&md5_ctx, (u32 *) device_name_chksum, dnclen);
+    md5_final (&md5_ctx);
 
-    u32 device_name_digest_amp_mp[4] = { 0 };
+    snprintf (device_name_chksum, HCBUFSIZ_TINY, "%08x", md5_ctx.h[0]);
 
-    for (size_t i = 0; i < dnclen_amp_mp; i += 64)
-    {
-      md5_64 ((u32 *) (device_name_chksum_amp_mp + i), device_name_digest_amp_mp);
-    }
+    md5_init (&md5_ctx);
+    md5_update (&md5_ctx, (u32 *) device_name_chksum_amp_mp, dnclen_amp_mp);
+    md5_final (&md5_ctx);
 
-    snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%08x", device_name_digest_amp_mp[0]);
+    snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%08x", md5_ctx.h[0]);
 
     /**
      * kernel cache
@@ -5076,7 +5181,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (rc_read_kernel == false) return -1;
 
-        CL_rc = hc_clCreateProgramWithBinary (hashcat_ctx, device_param->context, 1, &device_param->device, kernel_lengths, (unsigned char **) kernel_sources, NULL, &device_param->program);
+        CL_rc = hc_clCreateProgramWithBinary (hashcat_ctx, device_param->context, 1, &device_param->device, kernel_lengths, (const unsigned char **) kernel_sources, NULL, &device_param->program);
 
         if (CL_rc == -1) return -1;
 
@@ -5228,7 +5333,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (rc_read_kernel == false) return -1;
 
-          CL_rc = hc_clCreateProgramWithBinary (hashcat_ctx, device_param->context, 1, &device_param->device, kernel_lengths, (unsigned char **) kernel_sources, NULL, &device_param->program_mp);
+          CL_rc = hc_clCreateProgramWithBinary (hashcat_ctx, device_param->context, 1, &device_param->device, kernel_lengths, (const unsigned char **) kernel_sources, NULL, &device_param->program_mp);
 
           if (CL_rc == -1) return -1;
 
@@ -5383,7 +5488,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (rc_read_kernel == false) return -1;
 
-          CL_rc = hc_clCreateProgramWithBinary (hashcat_ctx, device_param->context, 1, &device_param->device, kernel_lengths, (unsigned char **) kernel_sources, NULL, &device_param->program_amp);
+          CL_rc = hc_clCreateProgramWithBinary (hashcat_ctx, device_param->context, 1, &device_param->device, kernel_lengths, (const unsigned char **) kernel_sources, NULL, &device_param->program_amp);
 
           if (CL_rc == -1) return -1;
 

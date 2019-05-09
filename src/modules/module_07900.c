@@ -302,10 +302,7 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 {
   char *jit_build_options = NULL;
 
-  if (device_param->device_vendor_id == VENDOR_ID_NV)
-  {
-    hc_asprintf (&jit_build_options, "-D NO_UNROLL");
-  }
+  hc_asprintf (&jit_build_options, "-D NO_UNROLL");
 
   return jit_build_options;
 }
@@ -391,7 +388,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u64 *digest = (const u64 *) digest_buf;
 
-  u64 tmp[8];
+  u64 tmp[8] = { 0 }; // this (useless?) initialization makes scan-build happy
 
   tmp[0] = byte_swap_64 (digest[0]);
   tmp[1] = byte_swap_64 (digest[1]);
@@ -404,7 +401,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   char ptr_plain[128] = { 0 };
 
-  drupal7_encode ((unsigned char *) tmp, (unsigned char *) ptr_plain);
+  drupal7_encode ((const u8 *) tmp, (u8 *) ptr_plain);
 
   // ugly hack start
 
@@ -446,10 +443,11 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_binary_count        = MODULE_DEFAULT;
   module_ctx->module_hash_binary_parse        = MODULE_DEFAULT;
   module_ctx->module_hash_binary_save         = MODULE_DEFAULT;
-  module_ctx->module_hash_decode_outfile      = MODULE_DEFAULT;
+  module_ctx->module_hash_decode_potfile      = MODULE_DEFAULT;
   module_ctx->module_hash_decode_zero_hash    = MODULE_DEFAULT;
   module_ctx->module_hash_decode              = module_hash_decode;
   module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
+  module_ctx->module_hash_encode_potfile      = MODULE_DEFAULT;
   module_ctx->module_hash_encode              = module_hash_encode;
   module_ctx->module_hash_init_selftest       = MODULE_DEFAULT;
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
@@ -474,6 +472,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_opts_type                = module_opts_type;
   module_ctx->module_outfile_check_disable    = MODULE_DEFAULT;
   module_ctx->module_outfile_check_nocomp     = MODULE_DEFAULT;
+  module_ctx->module_potfile_custom_check     = MODULE_DEFAULT;
   module_ctx->module_potfile_disable          = MODULE_DEFAULT;
   module_ctx->module_potfile_keep_all_hashes  = MODULE_DEFAULT;
   module_ctx->module_pwdump_column            = MODULE_DEFAULT;

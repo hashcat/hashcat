@@ -34,7 +34,7 @@
   a  = a ^ tt;              \
 }
 
-CONSTANT_AS CONSTSPEC u32a c_SPtrans[8][64] =
+CONSTANT_AS u32a c_SPtrans[8][64] =
 {
   {
     0x00820200, 0x00020000, 0x80800000, 0x80820200,
@@ -182,7 +182,7 @@ CONSTANT_AS CONSTSPEC u32a c_SPtrans[8][64] =
   },
 };
 
-CONSTANT_AS CONSTSPEC u32a c_skb[8][64] =
+CONSTANT_AS u32a c_skb[8][64] =
 {
   {
     0x00000000, 0x00000010, 0x20000000, 0x20000010,

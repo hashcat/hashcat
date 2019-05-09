@@ -326,7 +326,7 @@ DECLSPEC u32 do_round (const u32 *pw, const u32 pw_len, ctx_t *ctx, SHM_TYPE u32
 
   u32 ks[44];
 
-  aes128_set_encrypt_key (ks, ctx->dgst32, s_te0, s_te1, s_te2, s_te3, s_te4);
+  aes128_set_encrypt_key (ks, ctx->dgst32, s_te0, s_te1, s_te2, s_te3);
 
   // first call is special as the hash depends on the result of it
   // but since we do not know about the outcome at this time

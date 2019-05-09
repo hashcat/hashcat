@@ -9,7 +9,6 @@
 
 #include "types.h"
 #include "folder.h"
-#include "locking.h"
 #include "memory.h"
 #include "shared.h"
 #include "thread.h"
@@ -27,7 +26,6 @@
 #include "dictstat.h"
 #include "dispatch.h"
 #include "event.h"
-#include "hashcat.h"
 #include "hashes.h"
 #include "hwmon.h"
 #include "induct.h"
@@ -42,14 +40,13 @@
 #include "pidfile.h"
 #include "potfile.h"
 #include "restore.h"
-#include "rp.h"
 #include "selftest.h"
 #include "status.h"
 #include "straight.h"
 #include "tuningdb.h"
-#include "usage.h"
 #include "user_options.h"
 #include "wordlist.h"
+#include "hashcat.h"
 
 #ifdef WITH_BRAIN
 #include "brain.h"

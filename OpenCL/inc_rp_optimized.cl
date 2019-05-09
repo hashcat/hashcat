@@ -27,11 +27,7 @@ DECLSPEC void truncate_right_optimized (u32 *buf0, u32 *buf1, const u32 offset)
 {
   const u32 tmp = (1u << ((offset & 3u) * 8u)) - 1u;
 
-  #ifdef IS_AMD
   const int offset_switch = offset / 4;
-  #else
-  const int offset_switch = offset / 4;
-  #endif
 
   switch (offset_switch)
   {
@@ -86,11 +82,7 @@ DECLSPEC void truncate_left_optimized (u32 *buf0, u32 *buf1, const u32 offset)
 {
   const u32 tmp = ~((1u << ((offset & 3u) * 8u)) - 1u);
 
-  #ifdef IS_AMD
   const int offset_switch = offset / 4;
-  #else
-  const int offset_switch = offset / 4;
-  #endif
 
   switch (offset_switch)
   {
@@ -143,26 +135,26 @@ DECLSPEC void truncate_left_optimized (u32 *buf0, u32 *buf1, const u32 offset)
 
 DECLSPEC void lshift_block_optimized (const u32 *in0, const u32 *in1, u32 *out0, u32 *out1)
 {
-  out0[0] = hc_bytealign_S (in0[1], in0[0], 1);
-  out0[1] = hc_bytealign_S (in0[2], in0[1], 1);
-  out0[2] = hc_bytealign_S (in0[3], in0[2], 1);
-  out0[3] = hc_bytealign_S (in1[0], in0[3], 1);
-  out1[0] = hc_bytealign_S (in1[1], in1[0], 1);
-  out1[1] = hc_bytealign_S (in1[2], in1[1], 1);
-  out1[2] = hc_bytealign_S (in1[3], in1[2], 1);
-  out1[3] = hc_bytealign_S (     0, in1[3], 1);
+  out0[0] = hc_bytealign_S (in0[0], in0[1], 3);
+  out0[1] = hc_bytealign_S (in0[1], in0[2], 3);
+  out0[2] = hc_bytealign_S (in0[2], in0[3], 3);
+  out0[3] = hc_bytealign_S (in0[3], in1[0], 3);
+  out1[0] = hc_bytealign_S (in1[0], in1[1], 3);
+  out1[1] = hc_bytealign_S (in1[1], in1[2], 3);
+  out1[2] = hc_bytealign_S (in1[2], in1[3], 3);
+  out1[3] = hc_bytealign_S (in1[3],      0, 3);
 }
 
 DECLSPEC void rshift_block_optimized (const u32 *in0, const u32 *in1, u32 *out0, u32 *out1)
 {
-  out1[3] = hc_bytealign_S (in1[3], in1[2], 3);
-  out1[2] = hc_bytealign_S (in1[2], in1[1], 3);
-  out1[1] = hc_bytealign_S (in1[1], in1[0], 3);
-  out1[0] = hc_bytealign_S (in1[0], in0[3], 3);
-  out0[3] = hc_bytealign_S (in0[3], in0[2], 3);
-  out0[2] = hc_bytealign_S (in0[2], in0[1], 3);
-  out0[1] = hc_bytealign_S (in0[1], in0[0], 3);
-  out0[0] = hc_bytealign_S (in0[0],      0, 3);
+  out1[3] = hc_bytealign_S (in1[2], in1[3], 1);
+  out1[2] = hc_bytealign_S (in1[1], in1[2], 1);
+  out1[1] = hc_bytealign_S (in1[0], in1[1], 1);
+  out1[0] = hc_bytealign_S (in0[3], in1[0], 1);
+  out0[3] = hc_bytealign_S (in0[2], in0[3], 1);
+  out0[2] = hc_bytealign_S (in0[1], in0[2], 1);
+  out0[1] = hc_bytealign_S (in0[0], in0[1], 1);
+  out0[0] = hc_bytealign_S (     0, in0[0], 1);
 }
 
 DECLSPEC void lshift_block_optimized_N (const u32 *in0, const u32 *in1, u32 *out0, u32 *out1, const u32 num)
@@ -178,32 +170,32 @@ DECLSPEC void lshift_block_optimized_N (const u32 *in0, const u32 *in1, u32 *out
               out1[2] = in1[2];
               out1[3] = in1[3];
               break;
-    case  1:  out0[0] = hc_bytealign_S (in0[1], in0[0], 1);
-              out0[1] = hc_bytealign_S (in0[2], in0[1], 1);
-              out0[2] = hc_bytealign_S (in0[3], in0[2], 1);
-              out0[3] = hc_bytealign_S (in1[0], in0[3], 1);
-              out1[0] = hc_bytealign_S (in1[1], in1[0], 1);
-              out1[1] = hc_bytealign_S (in1[2], in1[1], 1);
-              out1[2] = hc_bytealign_S (in1[3], in1[2], 1);
-              out1[3] = hc_bytealign_S (     0, in1[3], 1);
+    case  1:  out0[0] = hc_bytealign_S (in0[0], in0[1], 3);
+              out0[1] = hc_bytealign_S (in0[1], in0[2], 3);
+              out0[2] = hc_bytealign_S (in0[2], in0[3], 3);
+              out0[3] = hc_bytealign_S (in0[3], in1[0], 3);
+              out1[0] = hc_bytealign_S (in1[0], in1[1], 3);
+              out1[1] = hc_bytealign_S (in1[1], in1[2], 3);
+              out1[2] = hc_bytealign_S (in1[2], in1[3], 3);
+              out1[3] = hc_bytealign_S (in1[3],      0, 3);
               break;
-    case  2:  out0[0] = hc_bytealign_S (in0[1], in0[0], 2);
-              out0[1] = hc_bytealign_S (in0[2], in0[1], 2);
-              out0[2] = hc_bytealign_S (in0[3], in0[2], 2);
-              out0[3] = hc_bytealign_S (in1[0], in0[3], 2);
-              out1[0] = hc_bytealign_S (in1[1], in1[0], 2);
-              out1[1] = hc_bytealign_S (in1[2], in1[1], 2);
-              out1[2] = hc_bytealign_S (in1[3], in1[2], 2);
-              out1[3] = hc_bytealign_S (     0, in1[3], 2);
+    case  2:  out0[0] = hc_bytealign_S (in0[0], in0[1], 2);
+              out0[1] = hc_bytealign_S (in0[1], in0[2], 2);
+              out0[2] = hc_bytealign_S (in0[2], in0[3], 2);
+              out0[3] = hc_bytealign_S (in0[3], in1[0], 2);
+              out1[0] = hc_bytealign_S (in1[0], in1[1], 2);
+              out1[1] = hc_bytealign_S (in1[1], in1[2], 2);
+              out1[2] = hc_bytealign_S (in1[2], in1[3], 2);
+              out1[3] = hc_bytealign_S (in1[3],      0, 2);
               break;
-    case  3:  out0[0] = hc_bytealign_S (in0[1], in0[0], 3);
-              out0[1] = hc_bytealign_S (in0[2], in0[1], 3);
-              out0[2] = hc_bytealign_S (in0[3], in0[2], 3);
-              out0[3] = hc_bytealign_S (in1[0], in0[3], 3);
-              out1[0] = hc_bytealign_S (in1[1], in1[0], 3);
-              out1[1] = hc_bytealign_S (in1[2], in1[1], 3);
-              out1[2] = hc_bytealign_S (in1[3], in1[2], 3);
-              out1[3] = hc_bytealign_S (     0, in1[3], 3);
+    case  3:  out0[0] = hc_bytealign_S (in0[0], in0[1], 1);
+              out0[1] = hc_bytealign_S (in0[1], in0[2], 1);
+              out0[2] = hc_bytealign_S (in0[2], in0[3], 1);
+              out0[3] = hc_bytealign_S (in0[3], in1[0], 1);
+              out1[0] = hc_bytealign_S (in1[0], in1[1], 1);
+              out1[1] = hc_bytealign_S (in1[1], in1[2], 1);
+              out1[2] = hc_bytealign_S (in1[2], in1[3], 1);
+              out1[3] = hc_bytealign_S (in1[3],      0, 1);
               break;
     case  4:  out0[0] = in0[1];
               out0[1] = in0[2];
@@ -214,31 +206,31 @@ DECLSPEC void lshift_block_optimized_N (const u32 *in0, const u32 *in1, u32 *out
               out1[2] = in1[3];
               out1[3] = 0;
               break;
-    case  5:  out0[0] = hc_bytealign_S (in0[2], in0[1], 1);
-              out0[1] = hc_bytealign_S (in0[3], in0[2], 1);
-              out0[2] = hc_bytealign_S (in1[0], in0[3], 1);
-              out0[3] = hc_bytealign_S (in1[1], in1[0], 1);
-              out1[0] = hc_bytealign_S (in1[2], in1[1], 1);
-              out1[1] = hc_bytealign_S (in1[3], in1[2], 1);
-              out1[2] = hc_bytealign_S (     0, in1[3], 1);
+    case  5:  out0[0] = hc_bytealign_S (in0[1], in0[2], 3);
+              out0[1] = hc_bytealign_S (in0[2], in0[3], 3);
+              out0[2] = hc_bytealign_S (in0[3], in1[0], 3);
+              out0[3] = hc_bytealign_S (in1[0], in1[1], 3);
+              out1[0] = hc_bytealign_S (in1[1], in1[2], 3);
+              out1[1] = hc_bytealign_S (in1[2], in1[3], 3);
+              out1[2] = hc_bytealign_S (in1[3],      0, 3);
               out1[3] = 0;
               break;
-    case  6:  out0[0] = hc_bytealign_S (in0[2], in0[1], 2);
-              out0[1] = hc_bytealign_S (in0[3], in0[2], 2);
-              out0[2] = hc_bytealign_S (in1[0], in0[3], 2);
-              out0[3] = hc_bytealign_S (in1[1], in1[0], 2);
-              out1[0] = hc_bytealign_S (in1[2], in1[1], 2);
-              out1[1] = hc_bytealign_S (in1[3], in1[2], 2);
-              out1[2] = hc_bytealign_S (     0, in1[3], 2);
+    case  6:  out0[0] = hc_bytealign_S (in0[1], in0[2], 2);
+              out0[1] = hc_bytealign_S (in0[2], in0[3], 2);
+              out0[2] = hc_bytealign_S (in0[3], in1[0], 2);
+              out0[3] = hc_bytealign_S (in1[0], in1[1], 2);
+              out1[0] = hc_bytealign_S (in1[1], in1[2], 2);
+              out1[1] = hc_bytealign_S (in1[2], in1[3], 2);
+              out1[2] = hc_bytealign_S (in1[3],      0, 2);
               out1[3] = 0;
               break;
-    case  7:  out0[0] = hc_bytealign_S (in0[2], in0[1], 3);
-              out0[1] = hc_bytealign_S (in0[3], in0[2], 3);
-              out0[2] = hc_bytealign_S (in1[0], in0[3], 3);
-              out0[3] = hc_bytealign_S (in1[1], in1[0], 3);
-              out1[0] = hc_bytealign_S (in1[2], in1[1], 3);
-              out1[1] = hc_bytealign_S (in1[3], in1[2], 3);
-              out1[2] = hc_bytealign_S (     0, in1[3], 3);
+    case  7:  out0[0] = hc_bytealign_S (in0[1], in0[2], 1);
+              out0[1] = hc_bytealign_S (in0[2], in0[3], 1);
+              out0[2] = hc_bytealign_S (in0[3], in1[0], 1);
+              out0[3] = hc_bytealign_S (in1[0], in1[1], 1);
+              out1[0] = hc_bytealign_S (in1[1], in1[2], 1);
+              out1[1] = hc_bytealign_S (in1[2], in1[3], 1);
+              out1[2] = hc_bytealign_S (in1[3],      0, 1);
               out1[3] = 0;
               break;
     case  8:  out0[0] = in0[2];
@@ -250,30 +242,30 @@ DECLSPEC void lshift_block_optimized_N (const u32 *in0, const u32 *in1, u32 *out
               out1[2] = 0;
               out1[3] = 0;
               break;
-    case  9:  out0[0] = hc_bytealign_S (in0[3], in0[2], 1);
-              out0[1] = hc_bytealign_S (in1[0], in0[3], 1);
-              out0[2] = hc_bytealign_S (in1[1], in1[0], 1);
-              out0[3] = hc_bytealign_S (in1[2], in1[1], 1);
-              out1[0] = hc_bytealign_S (in1[3], in1[2], 1);
-              out1[1] = hc_bytealign_S (     0, in1[3], 1);
+    case  9:  out0[0] = hc_bytealign_S (in0[2], in0[3], 3);
+              out0[1] = hc_bytealign_S (in0[3], in1[0], 3);
+              out0[2] = hc_bytealign_S (in1[0], in1[1], 3);
+              out0[3] = hc_bytealign_S (in1[1], in1[2], 3);
+              out1[0] = hc_bytealign_S (in1[2], in1[3], 3);
+              out1[1] = hc_bytealign_S (in1[3],      0, 3);
               out1[2] = 0;
               out1[3] = 0;
               break;
-    case 10:  out0[0] = hc_bytealign_S (in0[3], in0[2], 2);
-              out0[1] = hc_bytealign_S (in1[0], in0[3], 2);
-              out0[2] = hc_bytealign_S (in1[1], in1[0], 2);
-              out0[3] = hc_bytealign_S (in1[2], in1[1], 2);
-              out1[0] = hc_bytealign_S (in1[3], in1[2], 2);
-              out1[1] = hc_bytealign_S (     0, in1[3], 2);
+    case 10:  out0[0] = hc_bytealign_S (in0[2], in0[3], 2);
+              out0[1] = hc_bytealign_S (in0[3], in1[0], 2);
+              out0[2] = hc_bytealign_S (in1[0], in1[1], 2);
+              out0[3] = hc_bytealign_S (in1[1], in1[2], 2);
+              out1[0] = hc_bytealign_S (in1[2], in1[3], 2);
+              out1[1] = hc_bytealign_S (in1[3],      0, 2);
               out1[2] = 0;
               out1[3] = 0;
               break;
-    case 11:  out0[0] = hc_bytealign_S (in0[3], in0[2], 3);
-              out0[1] = hc_bytealign_S (in1[0], in0[3], 3);
-              out0[2] = hc_bytealign_S (in1[1], in1[0], 3);
-              out0[3] = hc_bytealign_S (in1[2], in1[1], 3);
-              out1[0] = hc_bytealign_S (in1[3], in1[2], 3);
-              out1[1] = hc_bytealign_S (     0, in1[3], 3);
+    case 11:  out0[0] = hc_bytealign_S (in0[2], in0[3], 1);
+              out0[1] = hc_bytealign_S (in0[3], in1[0], 1);
+              out0[2] = hc_bytealign_S (in1[0], in1[1], 1);
+              out0[3] = hc_bytealign_S (in1[1], in1[2], 1);
+              out1[0] = hc_bytealign_S (in1[2], in1[3], 1);
+              out1[1] = hc_bytealign_S (in1[3],      0, 1);
               out1[2] = 0;
               out1[3] = 0;
               break;
@@ -286,29 +278,29 @@ DECLSPEC void lshift_block_optimized_N (const u32 *in0, const u32 *in1, u32 *out
               out1[2] = 0;
               out1[3] = 0;
               break;
-    case 13:  out0[0] = hc_bytealign_S (in1[0], in0[3], 1);
-              out0[1] = hc_bytealign_S (in1[1], in1[0], 1);
-              out0[2] = hc_bytealign_S (in1[2], in1[1], 1);
-              out0[3] = hc_bytealign_S (in1[3], in1[2], 1);
-              out1[0] = hc_bytealign_S (     0, in1[3], 1);
+    case 13:  out0[0] = hc_bytealign_S (in0[3], in1[0], 3);
+              out0[1] = hc_bytealign_S (in1[0], in1[1], 3);
+              out0[2] = hc_bytealign_S (in1[1], in1[2], 3);
+              out0[3] = hc_bytealign_S (in1[2], in1[3], 3);
+              out1[0] = hc_bytealign_S (in1[3],      0, 3);
               out1[1] = 0;
               out1[2] = 0;
               out1[3] = 0;
               break;
-    case 14:  out0[0] = hc_bytealign_S (in1[0], in0[3], 2);
-              out0[1] = hc_bytealign_S (in1[1], in1[0], 2);
-              out0[2] = hc_bytealign_S (in1[2], in1[1], 2);
-              out0[3] = hc_bytealign_S (in1[3], in1[2], 2);
-              out1[0] = hc_bytealign_S (     0, in1[3], 2);
+    case 14:  out0[0] = hc_bytealign_S (in0[3], in1[0], 2);
+              out0[1] = hc_bytealign_S (in1[0], in1[1], 2);
+              out0[2] = hc_bytealign_S (in1[1], in1[2], 2);
+              out0[3] = hc_bytealign_S (in1[2], in1[3], 2);
+              out1[0] = hc_bytealign_S (in1[3],      0, 2);
               out1[1] = 0;
               out1[2] = 0;
               out1[3] = 0;
               break;
-    case 15:  out0[0] = hc_bytealign_S (in1[0], in0[3], 3);
-              out0[1] = hc_bytealign_S (in1[1], in1[0], 3);
-              out0[2] = hc_bytealign_S (in1[2], in1[1], 3);
-              out0[3] = hc_bytealign_S (in1[3], in1[2], 3);
-              out1[0] = hc_bytealign_S (     0, in1[3], 3);
+    case 15:  out0[0] = hc_bytealign_S (in0[3], in1[0], 1);
+              out0[1] = hc_bytealign_S (in1[0], in1[1], 1);
+              out0[2] = hc_bytealign_S (in1[1], in1[2], 1);
+              out0[3] = hc_bytealign_S (in1[2], in1[3], 1);
+              out1[0] = hc_bytealign_S (in1[3],      0, 1);
               out1[1] = 0;
               out1[2] = 0;
               out1[3] = 0;
@@ -322,28 +314,28 @@ DECLSPEC void lshift_block_optimized_N (const u32 *in0, const u32 *in1, u32 *out
               out1[2] = 0;
               out1[3] = 0;
               break;
-    case 17:  out0[0] = hc_bytealign_S (in1[1], in1[0], 1);
-              out0[1] = hc_bytealign_S (in1[2], in1[1], 1);
-              out0[2] = hc_bytealign_S (in1[3], in1[2], 1);
-              out0[3] = hc_bytealign_S (     0, in1[3], 1);
+    case 17:  out0[0] = hc_bytealign_S (in1[0], in1[1], 3);
+              out0[1] = hc_bytealign_S (in1[1], in1[2], 3);
+              out0[2] = hc_bytealign_S (in1[2], in1[3], 3);
+              out0[3] = hc_bytealign_S (in1[3],      0, 3);
               out1[0] = 0;
               out1[1] = 0;
               out1[2] = 0;
               out1[3] = 0;
               break;
-    case 18:  out0[0] = hc_bytealign_S (in1[1], in1[0], 2);
-              out0[1] = hc_bytealign_S (in1[2], in1[1], 2);
-              out0[2] = hc_bytealign_S (in1[3], in1[2], 2);
-              out0[3] = hc_bytealign_S (     0, in1[3], 2);
+    case 18:  out0[0] = hc_bytealign_S (in1[0], in1[1], 2);
+              out0[1] = hc_bytealign_S (in1[1], in1[2], 2);
+              out0[2] = hc_bytealign_S (in1[2], in1[3], 2);
+              out0[3] = hc_bytealign_S (in1[3],      0, 2);
               out1[0] = 0;
               out1[1] = 0;
               out1[2] = 0;
               out1[3] = 0;
               break;
-    case 19:  out0[0] = hc_bytealign_S (in1[1], in1[0], 3);
-              out0[1] = hc_bytealign_S (in1[2], in1[1], 3);
-              out0[2] = hc_bytealign_S (in1[3], in1[2], 3);
-              out0[3] = hc_bytealign_S (     0, in1[3], 3);
+    case 19:  out0[0] = hc_bytealign_S (in1[0], in1[1], 1);
+              out0[1] = hc_bytealign_S (in1[1], in1[2], 1);
+              out0[2] = hc_bytealign_S (in1[2], in1[3], 1);
+              out0[3] = hc_bytealign_S (in1[3],      0, 1);
               out1[0] = 0;
               out1[1] = 0;
               out1[2] = 0;
@@ -358,27 +350,27 @@ DECLSPEC void lshift_block_optimized_N (const u32 *in0, const u32 *in1, u32 *out
               out1[2] = 0;
               out1[3] = 0;
               break;
-    case 21:  out0[0] = hc_bytealign_S (in1[2], in1[1], 1);
-              out0[1] = hc_bytealign_S (in1[3], in1[2], 1);
-              out0[2] = hc_bytealign_S (     0, in1[3], 1);
+    case 21:  out0[0] = hc_bytealign_S (in1[1], in1[2], 3);
+              out0[1] = hc_bytealign_S (in1[2], in1[3], 3);
+              out0[2] = hc_bytealign_S (in1[3],      0, 3);
               out0[3] = 0;
               out1[0] = 0;
               out1[1] = 0;
               out1[2] = 0;
               out1[3] = 0;
               break;
-    case 22:  out0[0] = hc_bytealign_S (in1[2], in1[1], 2);
-              out0[1] = hc_bytealign_S (in1[3], in1[2], 2);
-              out0[2] = hc_bytealign_S (     0, in1[3], 2);
+    case 22:  out0[0] = hc_bytealign_S (in1[1], in1[2], 2);
+              out0[1] = hc_bytealign_S (in1[2], in1[3], 2);
+              out0[2] = hc_bytealign_S (in1[3],      0, 2);
               out0[3] = 0;
               out1[0] = 0;
               out1[1] = 0;
               out1[2] = 0;
               out1[3] = 0;
               break;
-    case 23:  out0[0] = hc_bytealign_S (in1[2], in1[1], 3);
-              out0[1] = hc_bytealign_S (in1[3], in1[2], 3);
-              out0[2] = hc_bytealign_S (     0, in1[3], 3);
+    case 23:  out0[0] = hc_bytealign_S (in1[1], in1[2], 1);
+              out0[1] = hc_bytealign_S (in1[2], in1[3], 1);
+              out0[2] = hc_bytealign_S (in1[3],      0, 1);
               out0[3] = 0;
               out1[0] = 0;
               out1[1] = 0;
@@ -394,8 +386,8 @@ DECLSPEC void lshift_block_optimized_N (const u32 *in0, const u32 *in1, u32 *out
               out1[2] = 0;
               out1[3] = 0;
               break;
-    case 25:  out0[0] = hc_bytealign_S (in1[3], in1[2], 1);
-              out0[1] = hc_bytealign_S (     0, in1[3], 1);
+    case 25:  out0[0] = hc_bytealign_S (in1[2], in1[3], 3);
+              out0[1] = hc_bytealign_S (in1[3],      0, 3);
               out0[2] = 0;
               out0[3] = 0;
               out1[0] = 0;
@@ -403,8 +395,8 @@ DECLSPEC void lshift_block_optimized_N (const u32 *in0, const u32 *in1, u32 *out
               out1[2] = 0;
               out1[3] = 0;
               break;
-    case 26:  out0[0] = hc_bytealign_S (in1[3], in1[2], 2);
-              out0[1] = hc_bytealign_S (     0, in1[3], 2);
+    case 26:  out0[0] = hc_bytealign_S (in1[2], in1[3], 2);
+              out0[1] = hc_bytealign_S (in1[3],      0, 2);
               out0[2] = 0;
               out0[3] = 0;
               out1[0] = 0;
@@ -412,8 +404,8 @@ DECLSPEC void lshift_block_optimized_N (const u32 *in0, const u32 *in1, u32 *out
               out1[2] = 0;
               out1[3] = 0;
               break;
-    case 27:  out0[0] = hc_bytealign_S (in1[3], in1[2], 3);
-              out0[1] = hc_bytealign_S (     0, in1[3], 3);
+    case 27:  out0[0] = hc_bytealign_S (in1[2], in1[3], 1);
+              out0[1] = hc_bytealign_S (in1[3],      0, 1);
               out0[2] = 0;
               out0[3] = 0;
               out1[0] = 0;
@@ -430,7 +422,7 @@ DECLSPEC void lshift_block_optimized_N (const u32 *in0, const u32 *in1, u32 *out
               out1[2] = 0;
               out1[3] = 0;
               break;
-    case 29:  out0[0] = hc_bytealign_S (     0, in1[3], 1);
+    case 29:  out0[0] = hc_bytealign_S (in1[3],      0, 3);
               out0[1] = 0;
               out0[2] = 0;
               out0[3] = 0;
@@ -439,7 +431,7 @@ DECLSPEC void lshift_block_optimized_N (const u32 *in0, const u32 *in1, u32 *out
               out1[2] = 0;
               out1[3] = 0;
               break;
-    case 30:  out0[0] = hc_bytealign_S (     0, in1[3], 2);
+    case 30:  out0[0] = hc_bytealign_S (in1[3],      0, 2);
               out0[1] = 0;
               out0[2] = 0;
               out0[3] = 0;
@@ -448,7 +440,7 @@ DECLSPEC void lshift_block_optimized_N (const u32 *in0, const u32 *in1, u32 *out
               out1[2] = 0;
               out1[3] = 0;
               break;
-    case 31:  out0[0] = hc_bytealign_S (     0, in1[3], 3);
+    case 31:  out0[0] = hc_bytealign_S (in1[3],      0, 1);
               out0[1] = 0;
               out0[2] = 0;
               out0[3] = 0;
@@ -473,32 +465,32 @@ DECLSPEC void rshift_block_optimized_N (const u32 *in0, const u32 *in1, u32 *out
               out0[1] = in0[1];
               out0[0] = in0[0];
               break;
-    case  1:  out1[3] = hc_bytealign_S (in1[3], in1[2], 3);
-              out1[2] = hc_bytealign_S (in1[2], in1[1], 3);
-              out1[1] = hc_bytealign_S (in1[1], in1[0], 3);
-              out1[0] = hc_bytealign_S (in1[0], in0[3], 3);
-              out0[3] = hc_bytealign_S (in0[3], in0[2], 3);
-              out0[2] = hc_bytealign_S (in0[2], in0[1], 3);
-              out0[1] = hc_bytealign_S (in0[1], in0[0], 3);
-              out0[0] = hc_bytealign_S (in0[0],      0, 3);
+    case  1:  out1[3] = hc_bytealign_S (in1[2], in1[3], 1);
+              out1[2] = hc_bytealign_S (in1[1], in1[2], 1);
+              out1[1] = hc_bytealign_S (in1[0], in1[1], 1);
+              out1[0] = hc_bytealign_S (in0[3], in1[0], 1);
+              out0[3] = hc_bytealign_S (in0[2], in0[3], 1);
+              out0[2] = hc_bytealign_S (in0[1], in0[2], 1);
+              out0[1] = hc_bytealign_S (in0[0], in0[1], 1);
+              out0[0] = hc_bytealign_S (     0, in0[0], 1);
               break;
-    case  2:  out1[3] = hc_bytealign_S (in1[3], in1[2], 2);
-              out1[2] = hc_bytealign_S (in1[2], in1[1], 2);
-              out1[1] = hc_bytealign_S (in1[1], in1[0], 2);
-              out1[0] = hc_bytealign_S (in1[0], in0[3], 2);
-              out0[3] = hc_bytealign_S (in0[3], in0[2], 2);
-              out0[2] = hc_bytealign_S (in0[2], in0[1], 2);
-              out0[1] = hc_bytealign_S (in0[1], in0[0], 2);
-              out0[0] = hc_bytealign_S (in0[0],      0, 2);
+    case  2:  out1[3] = hc_bytealign_S (in1[2], in1[3], 2);
+              out1[2] = hc_bytealign_S (in1[1], in1[2], 2);
+              out1[1] = hc_bytealign_S (in1[0], in1[1], 2);
+              out1[0] = hc_bytealign_S (in0[3], in1[0], 2);
+              out0[3] = hc_bytealign_S (in0[2], in0[3], 2);
+              out0[2] = hc_bytealign_S (in0[1], in0[2], 2);
+              out0[1] = hc_bytealign_S (in0[0], in0[1], 2);
+              out0[0] = hc_bytealign_S (     0, in0[0], 2);
               break;
-    case  3:  out1[3] = hc_bytealign_S (in1[3], in1[2], 1);
-              out1[2] = hc_bytealign_S (in1[2], in1[1], 1);
-              out1[1] = hc_bytealign_S (in1[1], in1[0], 1);
-              out1[0] = hc_bytealign_S (in1[0], in0[3], 1);
-              out0[3] = hc_bytealign_S (in0[3], in0[2], 1);
-              out0[2] = hc_bytealign_S (in0[2], in0[1], 1);
-              out0[1] = hc_bytealign_S (in0[1], in0[0], 1);
-              out0[0] = hc_bytealign_S (in0[0],      0, 1);
+    case  3:  out1[3] = hc_bytealign_S (in1[2], in1[3], 3);
+              out1[2] = hc_bytealign_S (in1[1], in1[2], 3);
+              out1[1] = hc_bytealign_S (in1[0], in1[1], 3);
+              out1[0] = hc_bytealign_S (in0[3], in1[0], 3);
+              out0[3] = hc_bytealign_S (in0[2], in0[3], 3);
+              out0[2] = hc_bytealign_S (in0[1], in0[2], 3);
+              out0[1] = hc_bytealign_S (in0[0], in0[1], 3);
+              out0[0] = hc_bytealign_S (     0, in0[0], 3);
               break;
     case  4:  out1[3] = in1[2];
               out1[2] = in1[1];
@@ -509,31 +501,31 @@ DECLSPEC void rshift_block_optimized_N (const u32 *in0, const u32 *in1, u32 *out
               out0[1] = in0[0];
               out0[0] = 0;
               break;
-    case  5:  out1[3] = hc_bytealign_S (in1[2], in1[1], 3);
-              out1[2] = hc_bytealign_S (in1[1], in1[0], 3);
-              out1[1] = hc_bytealign_S (in1[0], in0[3], 3);
-              out1[0] = hc_bytealign_S (in0[3], in0[2], 3);
-              out0[3] = hc_bytealign_S (in0[2], in0[1], 3);
-              out0[2] = hc_bytealign_S (in0[1], in0[0], 3);
-              out0[1] = hc_bytealign_S (in0[0],      0, 3);
+    case  5:  out1[3] = hc_bytealign_S (in1[1], in1[2], 1);
+              out1[2] = hc_bytealign_S (in1[0], in1[1], 1);
+              out1[1] = hc_bytealign_S (in0[3], in1[0], 1);
+              out1[0] = hc_bytealign_S (in0[2], in0[3], 1);
+              out0[3] = hc_bytealign_S (in0[1], in0[2], 1);
+              out0[2] = hc_bytealign_S (in0[0], in0[1], 1);
+              out0[1] = hc_bytealign_S (     0, in0[0], 1);
               out0[0] = 0;
               break;
-    case  6:  out1[3] = hc_bytealign_S (in1[2], in1[1], 2);
-              out1[2] = hc_bytealign_S (in1[1], in1[0], 2);
-              out1[1] = hc_bytealign_S (in1[0], in0[3], 2);
-              out1[0] = hc_bytealign_S (in0[3], in0[2], 2);
-              out0[3] = hc_bytealign_S (in0[2], in0[1], 2);
-              out0[2] = hc_bytealign_S (in0[1], in0[0], 2);
-              out0[1] = hc_bytealign_S (in0[0],      0, 2);
+    case  6:  out1[3] = hc_bytealign_S (in1[1], in1[2], 2);
+              out1[2] = hc_bytealign_S (in1[0], in1[1], 2);
+              out1[1] = hc_bytealign_S (in0[3], in1[0], 2);
+              out1[0] = hc_bytealign_S (in0[2], in0[3], 2);
+              out0[3] = hc_bytealign_S (in0[1], in0[2], 2);
+              out0[2] = hc_bytealign_S (in0[0], in0[1], 2);
+              out0[1] = hc_bytealign_S (     0, in0[0], 2);
               out0[0] = 0;
               break;
-    case  7:  out1[3] = hc_bytealign_S (in1[2], in1[1], 1);
-              out1[2] = hc_bytealign_S (in1[1], in1[0], 1);
-              out1[1] = hc_bytealign_S (in1[0], in0[3], 1);
-              out1[0] = hc_bytealign_S (in0[3], in0[2], 1);
-              out0[3] = hc_bytealign_S (in0[2], in0[1], 1);
-              out0[2] = hc_bytealign_S (in0[1], in0[0], 1);
-              out0[1] = hc_bytealign_S (in0[0],      0, 1);
+    case  7:  out1[3] = hc_bytealign_S (in1[1], in1[2], 3);
+              out1[2] = hc_bytealign_S (in1[0], in1[1], 3);
+              out1[1] = hc_bytealign_S (in0[3], in1[0], 3);
+              out1[0] = hc_bytealign_S (in0[2], in0[3], 3);
+              out0[3] = hc_bytealign_S (in0[1], in0[2], 3);
+              out0[2] = hc_bytealign_S (in0[0], in0[1], 3);
+              out0[1] = hc_bytealign_S (     0, in0[0], 3);
               out0[0] = 0;
               break;
     case  8:  out1[3] = in1[1];
@@ -545,30 +537,30 @@ DECLSPEC void rshift_block_optimized_N (const u32 *in0, const u32 *in1, u32 *out
               out0[1] = 0;
               out0[0] = 0;
               break;
-    case  9:  out1[3] = hc_bytealign_S (in1[1], in1[0], 3);
-              out1[2] = hc_bytealign_S (in1[0], in0[3], 3);
-              out1[1] = hc_bytealign_S (in0[3], in0[2], 3);
-              out1[0] = hc_bytealign_S (in0[2], in0[1], 3);
-              out0[3] = hc_bytealign_S (in0[1], in0[0], 3);
-              out0[2] = hc_bytealign_S (in0[0],      0, 3);
+    case  9:  out1[3] = hc_bytealign_S (in1[0], in1[1], 1);
+              out1[2] = hc_bytealign_S (in0[3], in1[0], 1);
+              out1[1] = hc_bytealign_S (in0[2], in0[3], 1);
+              out1[0] = hc_bytealign_S (in0[1], in0[2], 1);
+              out0[3] = hc_bytealign_S (in0[0], in0[1], 1);
+              out0[2] = hc_bytealign_S (     0, in0[0], 1);
               out0[1] = 0;
               out0[0] = 0;
               break;
-    case 10:  out1[3] = hc_bytealign_S (in1[1], in1[0], 2);
-              out1[2] = hc_bytealign_S (in1[0], in0[3], 2);
-              out1[1] = hc_bytealign_S (in0[3], in0[2], 2);
-              out1[0] = hc_bytealign_S (in0[2], in0[1], 2);
-              out0[3] = hc_bytealign_S (in0[1], in0[0], 2);
-              out0[2] = hc_bytealign_S (in0[0],      0, 2);
+    case 10:  out1[3] = hc_bytealign_S (in1[0], in1[1], 2);
+              out1[2] = hc_bytealign_S (in0[3], in1[0], 2);
+              out1[1] = hc_bytealign_S (in0[2], in0[3], 2);
+              out1[0] = hc_bytealign_S (in0[1], in0[2], 2);
+              out0[3] = hc_bytealign_S (in0[0], in0[1], 2);
+              out0[2] = hc_bytealign_S (     0, in0[0], 2);
               out0[1] = 0;
               out0[0] = 0;
               break;
-    case 11:  out1[3] = hc_bytealign_S (in1[1], in1[0], 1);
-              out1[2] = hc_bytealign_S (in1[0], in0[3], 1);
-              out1[1] = hc_bytealign_S (in0[3], in0[2], 1);
-              out1[0] = hc_bytealign_S (in0[2], in0[1], 1);
-              out0[3] = hc_bytealign_S (in0[1], in0[0], 1);
-              out0[2] = hc_bytealign_S (in0[0],      0, 1);
+    case 11:  out1[3] = hc_bytealign_S (in1[0], in1[1], 3);
+              out1[2] = hc_bytealign_S (in0[3], in1[0], 3);
+              out1[1] = hc_bytealign_S (in0[2], in0[3], 3);
+              out1[0] = hc_bytealign_S (in0[1], in0[2], 3);
+              out0[3] = hc_bytealign_S (in0[0], in0[1], 3);
+              out0[2] = hc_bytealign_S (     0, in0[0], 3);
               out0[1] = 0;
               out0[0] = 0;
               break;
@@ -581,29 +573,29 @@ DECLSPEC void rshift_block_optimized_N (const u32 *in0, const u32 *in1, u32 *out
               out0[1] = 0;
               out0[0] = 0;
               break;
-    case 13:  out1[3] = hc_bytealign_S (in1[0], in0[3], 3);
-              out1[2] = hc_bytealign_S (in0[3], in0[2], 3);
-              out1[1] = hc_bytealign_S (in0[2], in0[1], 3);
-              out1[0] = hc_bytealign_S (in0[1], in0[0], 3);
-              out0[3] = hc_bytealign_S (in0[0],      0, 3);
+    case 13:  out1[3] = hc_bytealign_S (in0[3], in1[0], 1);
+              out1[2] = hc_bytealign_S (in0[2], in0[3], 1);
+              out1[1] = hc_bytealign_S (in0[1], in0[2], 1);
+              out1[0] = hc_bytealign_S (in0[0], in0[1], 1);
+              out0[3] = hc_bytealign_S (     0, in0[0], 1);
               out0[2] = 0;
               out0[1] = 0;
               out0[0] = 0;
               break;
-    case 14:  out1[3] = hc_bytealign_S (in1[0], in0[3], 2);
-              out1[2] = hc_bytealign_S (in0[3], in0[2], 2);
-              out1[1] = hc_bytealign_S (in0[2], in0[1], 2);
-              out1[0] = hc_bytealign_S (in0[1], in0[0], 2);
-              out0[3] = hc_bytealign_S (in0[0],      0, 2);
+    case 14:  out1[3] = hc_bytealign_S (in0[3], in1[0], 2);
+              out1[2] = hc_bytealign_S (in0[2], in0[3], 2);
+              out1[1] = hc_bytealign_S (in0[1], in0[2], 2);
+              out1[0] = hc_bytealign_S (in0[0], in0[1], 2);
+              out0[3] = hc_bytealign_S (     0, in0[0], 2);
               out0[2] = 0;
               out0[1] = 0;
               out0[0] = 0;
               break;
-    case 15:  out1[3] = hc_bytealign_S (in1[0], in0[3], 1);
-              out1[2] = hc_bytealign_S (in0[3], in0[2], 1);
-              out1[1] = hc_bytealign_S (in0[2], in0[1], 1);
-              out1[0] = hc_bytealign_S (in0[1], in0[0], 1);
-              out0[3] = hc_bytealign_S (in0[0],      0, 1);
+    case 15:  out1[3] = hc_bytealign_S (in0[3], in1[0], 3);
+              out1[2] = hc_bytealign_S (in0[2], in0[3], 3);
+              out1[1] = hc_bytealign_S (in0[1], in0[2], 3);
+              out1[0] = hc_bytealign_S (in0[0], in0[1], 3);
+              out0[3] = hc_bytealign_S (     0, in0[0], 3);
               out0[2] = 0;
               out0[1] = 0;
               out0[0] = 0;
@@ -617,28 +609,28 @@ DECLSPEC void rshift_block_optimized_N (const u32 *in0, const u32 *in1, u32 *out
               out0[1] = 0;
               out0[0] = 0;
               break;
-    case 17:  out1[3] = hc_bytealign_S (in0[3], in0[2], 3);
-              out1[2] = hc_bytealign_S (in0[2], in0[1], 3);
-              out1[1] = hc_bytealign_S (in0[1], in0[0], 3);
-              out1[0] = hc_bytealign_S (in0[0],      0, 3);
+    case 17:  out1[3] = hc_bytealign_S (in0[2], in0[3], 1);
+              out1[2] = hc_bytealign_S (in0[1], in0[2], 1);
+              out1[1] = hc_bytealign_S (in0[0], in0[1], 1);
+              out1[0] = hc_bytealign_S (     0, in0[0], 1);
               out0[3] = 0;
               out0[2] = 0;
               out0[1] = 0;
               out0[0] = 0;
               break;
-    case 18:  out1[3] = hc_bytealign_S (in0[3], in0[2], 2);
-              out1[2] = hc_bytealign_S (in0[2], in0[1], 2);
-              out1[1] = hc_bytealign_S (in0[1], in0[0], 2);
-              out1[0] = hc_bytealign_S (in0[0],      0, 2);
+    case 18:  out1[3] = hc_bytealign_S (in0[2], in0[3], 2);
+              out1[2] = hc_bytealign_S (in0[1], in0[2], 2);
+              out1[1] = hc_bytealign_S (in0[0], in0[1], 2);
+              out1[0] = hc_bytealign_S (     0, in0[0], 2);
               out0[3] = 0;
               out0[2] = 0;
               out0[1] = 0;
               out0[0] = 0;
               break;
-    case 19:  out1[3] = hc_bytealign_S (in0[3], in0[2], 1);
-              out1[2] = hc_bytealign_S (in0[2], in0[1], 1);
-              out1[1] = hc_bytealign_S (in0[1], in0[0], 1);
-              out1[0] = hc_bytealign_S (in0[0],      0, 1);
+    case 19:  out1[3] = hc_bytealign_S (in0[2], in0[3], 3);
+              out1[2] = hc_bytealign_S (in0[1], in0[2], 3);
+              out1[1] = hc_bytealign_S (in0[0], in0[1], 3);
+              out1[0] = hc_bytealign_S (     0, in0[0], 3);
               out0[3] = 0;
               out0[2] = 0;
               out0[1] = 0;
@@ -653,27 +645,27 @@ DECLSPEC void rshift_block_optimized_N (const u32 *in0, const u32 *in1, u32 *out
               out0[1] = 0;
               out0[0] = 0;
               break;
-    case 21:  out1[3] = hc_bytealign_S (in0[2], in0[1], 3);
-              out1[2] = hc_bytealign_S (in0[1], in0[0], 3);
-              out1[1] = hc_bytealign_S (in0[0],      0, 3);
+    case 21:  out1[3] = hc_bytealign_S (in0[1], in0[2], 1);
+              out1[2] = hc_bytealign_S (in0[0], in0[1], 1);
+              out1[1] = hc_bytealign_S (     0, in0[0], 1);
               out1[0] = 0;
               out0[3] = 0;
               out0[2] = 0;
               out0[1] = 0;
               out0[0] = 0;
               break;
-    case 22:  out1[3] = hc_bytealign_S (in0[2], in0[1], 2);
-              out1[2] = hc_bytealign_S (in0[1], in0[0], 2);
-              out1[1] = hc_bytealign_S (in0[0],      0, 2);
+    case 22:  out1[3] = hc_bytealign_S (in0[1], in0[2], 2);
+              out1[2] = hc_bytealign_S (in0[0], in0[1], 2);
+              out1[1] = hc_bytealign_S (     0, in0[0], 2);
               out1[0] = 0;
               out0[3] = 0;
               out0[2] = 0;
               out0[1] = 0;
               out0[0] = 0;
               break;
-    case 23:  out1[3] = hc_bytealign_S (in0[2], in0[1], 1);
-              out1[2] = hc_bytealign_S (in0[1], in0[0], 1);
-              out1[1] = hc_bytealign_S (in0[0],      0, 1);
+    case 23:  out1[3] = hc_bytealign_S (in0[1], in0[2], 3);
+              out1[2] = hc_bytealign_S (in0[0], in0[1], 3);
+              out1[1] = hc_bytealign_S (     0, in0[0], 3);
               out1[0] = 0;
               out0[3] = 0;
               out0[2] = 0;
@@ -689,8 +681,8 @@ DECLSPEC void rshift_block_optimized_N (const u32 *in0, const u32 *in1, u32 *out
               out0[1] = 0;
               out0[0] = 0;
               break;
-    case 25:  out1[3] = hc_bytealign_S (in0[1], in0[0], 3);
-              out1[2] = hc_bytealign_S (in0[0],      0, 3);
+    case 25:  out1[3] = hc_bytealign_S (in0[0], in0[1], 1);
+              out1[2] = hc_bytealign_S (     0, in0[0], 1);
               out1[1] = 0;
               out1[0] = 0;
               out0[3] = 0;
@@ -698,8 +690,8 @@ DECLSPEC void rshift_block_optimized_N (const u32 *in0, const u32 *in1, u32 *out
               out0[1] = 0;
               out0[0] = 0;
               break;
-    case 26:  out1[3] = hc_bytealign_S (in0[1], in0[0], 2);
-              out1[2] = hc_bytealign_S (in0[0],      0, 2);
+    case 26:  out1[3] = hc_bytealign_S (in0[0], in0[1], 2);
+              out1[2] = hc_bytealign_S (     0, in0[0], 2);
               out1[1] = 0;
               out1[0] = 0;
               out0[3] = 0;
@@ -707,8 +699,8 @@ DECLSPEC void rshift_block_optimized_N (const u32 *in0, const u32 *in1, u32 *out
               out0[1] = 0;
               out0[0] = 0;
               break;
-    case 27:  out1[3] = hc_bytealign_S (in0[1], in0[0], 1);
-              out1[2] = hc_bytealign_S (in0[0],      0, 1);
+    case 27:  out1[3] = hc_bytealign_S (in0[0], in0[1], 3);
+              out1[2] = hc_bytealign_S (     0, in0[0], 3);
               out1[1] = 0;
               out1[0] = 0;
               out0[3] = 0;
@@ -725,7 +717,7 @@ DECLSPEC void rshift_block_optimized_N (const u32 *in0, const u32 *in1, u32 *out
               out0[1] = 0;
               out0[0] = 0;
               break;
-    case 29:  out1[3] = hc_bytealign_S (in0[0],      0, 3);
+    case 29:  out1[3] = hc_bytealign_S (     0, in0[0], 1);
               out1[2] = 0;
               out1[1] = 0;
               out1[0] = 0;
@@ -734,7 +726,7 @@ DECLSPEC void rshift_block_optimized_N (const u32 *in0, const u32 *in1, u32 *out
               out0[1] = 0;
               out0[0] = 0;
               break;
-    case 30:  out1[3] = hc_bytealign_S (in0[0],      0, 2);
+    case 30:  out1[3] = hc_bytealign_S (     0, in0[0], 2);
               out1[2] = 0;
               out1[1] = 0;
               out1[0] = 0;
@@ -743,7 +735,7 @@ DECLSPEC void rshift_block_optimized_N (const u32 *in0, const u32 *in1, u32 *out
               out0[1] = 0;
               out0[0] = 0;
               break;
-    case 31:  out1[3] = hc_bytealign_S (in0[0],      0, 1);
+    case 31:  out1[3] = hc_bytealign_S (     0, in0[0], 3);
               out1[2] = 0;
               out1[1] = 0;
               out1[0] = 0;
@@ -786,21 +778,17 @@ DECLSPEC void append_block8_optimized (const u32 offset, u32 *buf0, u32 *buf1, c
   u32 s6 = 0;
   u32 s7 = 0;
 
-  #ifdef IS_AMD
   const int offset_switch = offset / 4;
-  #else
-  const int offset_switch = offset / 4;
-  #endif
 
   #if (defined IS_AMD && HAS_VPERM == 0) || defined IS_GENERIC
-  const u32 src_r00 = hc_swap32_S (src_r0[0]);
-  const u32 src_r01 = hc_swap32_S (src_r0[1]);
-  const u32 src_r02 = hc_swap32_S (src_r0[2]);
-  const u32 src_r03 = hc_swap32_S (src_r0[3]);
-  const u32 src_r10 = hc_swap32_S (src_r1[0]);
-  const u32 src_r11 = hc_swap32_S (src_r1[1]);
-  const u32 src_r12 = hc_swap32_S (src_r1[2]);
-  const u32 src_r13 = hc_swap32_S (src_r1[3]);
+  const u32 src_r00 = src_r0[0];
+  const u32 src_r01 = src_r0[1];
+  const u32 src_r02 = src_r0[2];
+  const u32 src_r03 = src_r0[3];
+  const u32 src_r10 = src_r1[0];
+  const u32 src_r11 = src_r1[1];
+  const u32 src_r12 = src_r1[2];
+  const u32 src_r13 = src_r1[3];
 
   switch (offset_switch)
   {
@@ -893,15 +881,6 @@ DECLSPEC void append_block8_optimized (const u32 offset, u32 *buf0, u32 *buf1, c
       s0 = 0;
       break;
   }
-
-  s0 = hc_swap32_S (s0);
-  s1 = hc_swap32_S (s1);
-  s2 = hc_swap32_S (s2);
-  s3 = hc_swap32_S (s3);
-  s4 = hc_swap32_S (s4);
-  s5 = hc_swap32_S (s5);
-  s6 = hc_swap32_S (s6);
-  s7 = hc_swap32_S (s7);
   #endif
 
   #if (defined IS_AMD && HAS_VPERM == 1) || defined IS_NV
@@ -2297,10 +2276,10 @@ DECLSPEC u32 rule_op_mangle_title_sep (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED c
   buf0[1] = toggle_on_register (buf0[1], r1);
   buf0[2] = toggle_on_register (buf0[2], r2);
   buf0[3] = toggle_on_register (buf0[3], r3);
-  buf1[0] = toggle_on_register (buf1[0], r0);
-  buf1[1] = toggle_on_register (buf1[1], r1);
-  buf1[2] = toggle_on_register (buf1[2], r2);
-  buf1[3] = toggle_on_register (buf1[3], r3);
+  buf1[0] = toggle_on_register (buf1[0], r4);
+  buf1[1] = toggle_on_register (buf1[1], r5);
+  buf1[2] = toggle_on_register (buf1[2], r6);
+  buf1[3] = toggle_on_register (buf1[3], r7);
 
   return in_len;
 }
@@ -2357,7 +2336,7 @@ DECLSPEC u32 apply_rule_optimized (const u32 name, const u32 p0, const u32 p1, u
   return out_len;
 }
 
-DECLSPEC u32 apply_rules_optimized (CONSTANT_AS u32 *cmds, u32 *buf0, u32 *buf1, const u32 len)
+DECLSPEC u32 apply_rules_optimized (CONSTANT_AS const u32 *cmds, u32 *buf0, u32 *buf1, const u32 len)
 {
   u32 out_len = len;
 
@@ -2375,7 +2354,7 @@ DECLSPEC u32 apply_rules_optimized (CONSTANT_AS u32 *cmds, u32 *buf0, u32 *buf1,
   return out_len;
 }
 
-DECLSPEC u32x apply_rules_vect_optimized (const u32 *pw_buf0, const u32 *pw_buf1, const u32 pw_len, CONSTANT_AS kernel_rule_t *rules_buf, const u32 il_pos, u32x *buf0, u32x *buf1)
+DECLSPEC u32x apply_rules_vect_optimized (const u32 *pw_buf0, const u32 *pw_buf1, const u32 pw_len, CONSTANT_AS const kernel_rule_t *rules_buf, const u32 il_pos, u32x *buf0, u32x *buf1)
 {
   #if VECT_SIZE == 1
 

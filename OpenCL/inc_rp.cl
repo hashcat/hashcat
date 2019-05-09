@@ -8,6 +8,10 @@
 #include "inc_common.h"
 #include "inc_rp.h"
 
+#ifndef MAYBE_UNUSED
+#define MAYBE_UNUSED
+#endif
+
 #ifdef REAL_SHM
 #define COPY_PW(x)                \
   LOCAL_AS pw_t s_pws[64];         \
@@ -676,23 +680,27 @@ DECLSPEC int mangle_title_sep (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p
 {
   if ((len + 4) >= RP_PASSWORD_SIZE) return (len); // cheap way to not need to check for overflow of i + 1
 
-  mangle_lrest_ufirst (0, 0, buf, len);
-
   for (int i = 0, idx = 0; i < len; i += 4, idx += 1)
   {
-    const u32 v = buf[idx];
+    const u32 t = buf[idx];
+
+    buf[idx] = t | generate_cmask (t);
 
     u32 out0 = 0;
     u32 out1 = 0;
 
-    if (((v >>  0) & 0xff) == p0) out0 |= 0x0000ff00;
-    if (((v >>  8) & 0xff) == p0) out0 |= 0x00ff0000;
-    if (((v >> 16) & 0xff) == p0) out0 |= 0xff000000;
-    if (((v >> 24) & 0xff) == p0) out1 |= 0x000000ff;
+    if (((t >>  0) & 0xff) == p0) out0 |= 0x0000ff00;
+    if (((t >>  8) & 0xff) == p0) out0 |= 0x00ff0000;
+    if (((t >> 16) & 0xff) == p0) out0 |= 0xff000000;
+    if (((t >> 24) & 0xff) == p0) out1 |= 0x000000ff;
 
     buf[idx + 0] &= ~(generate_cmask (buf[idx + 0]) & out0);
     buf[idx + 1] &= ~(generate_cmask (buf[idx + 1]) & out1);
   }
+
+  const u32 t = buf[0];
+
+  buf[0] = t & ~(0x00000020 & generate_cmask (t));
 
   return (len);
 }
@@ -748,7 +756,7 @@ DECLSPEC int apply_rule (const u32 name, MAYBE_UNUSED const u8 p0, MAYBE_UNUSED 
   return out_len;
 }
 
-DECLSPEC int apply_rules (CONSTANT_AS u32 *cmds, u32 *buf, const int in_len)
+DECLSPEC int apply_rules (CONSTANT_AS const u32 *cmds, u32 *buf, const int in_len)
 {
   int out_len = in_len;
 

@@ -77,7 +77,7 @@ typedef struct vc
 static const int   ROUNDS_VERACRYPT_327661     = 327661;
 static const float MIN_SUFFICIENT_ENTROPY_FILE = 7.0f;
 
-int module_build_plain_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const plain_t *plain, const u32 *src_buf, MAYBE_UNUSED const size_t src_sz, MAYBE_UNUSED const int src_len, u32 *dst_buf, MAYBE_UNUSED const size_t dst_sz)
+int module_build_plain_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const void *tmps, const u32 *src_buf, MAYBE_UNUSED const size_t src_sz, MAYBE_UNUSED const int src_len, u32 *dst_buf, MAYBE_UNUSED const size_t dst_sz)
 {
   const vc_t *vc = (const vc_t *) hashes->esalts_buf;
 
@@ -87,13 +87,15 @@ int module_build_plain_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig,
 
   execute_keyboard_layout_mapping (tmp_buf, src_len, vc->keyboard_layout_mapping_buf, vc->keyboard_layout_mapping_cnt);
 
-  if (plain->extra1 == 0)
+  const vc_tmp_t *vc_tmp = (const vc_tmp_t *) tmps;
+
+  if (vc_tmp->pim == 0)
   {
     return snprintf ((char *) dst_buf, dst_sz, "%s", (char *) tmp_buf);
   }
   else
   {
-    return snprintf ((char *) dst_buf, dst_sz, "%s   (PIM=%d)", (char *) tmp_buf, plain->extra1);
+    return snprintf ((char *) dst_buf, dst_sz, "%s   (PIM=%d)", (char *) tmp_buf, vc_tmp->pim);
   }
 }
 
@@ -291,10 +293,11 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_binary_count        = MODULE_DEFAULT;
   module_ctx->module_hash_binary_parse        = module_hash_binary_parse;
   module_ctx->module_hash_binary_save         = MODULE_DEFAULT;
-  module_ctx->module_hash_decode_outfile      = MODULE_DEFAULT;
+  module_ctx->module_hash_decode_potfile      = MODULE_DEFAULT;
   module_ctx->module_hash_decode_zero_hash    = MODULE_DEFAULT;
   module_ctx->module_hash_decode              = module_hash_decode;
   module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
+  module_ctx->module_hash_encode_potfile      = MODULE_DEFAULT;
   module_ctx->module_hash_encode              = MODULE_DEFAULT;
   module_ctx->module_hash_init_selftest       = module_hash_init_selftest;
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
@@ -319,6 +322,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_opts_type                = module_opts_type;
   module_ctx->module_outfile_check_disable    = module_outfile_check_disable;
   module_ctx->module_outfile_check_nocomp     = MODULE_DEFAULT;
+  module_ctx->module_potfile_custom_check     = MODULE_DEFAULT;
   module_ctx->module_potfile_disable          = module_potfile_disable;
   module_ctx->module_potfile_keep_all_hashes  = MODULE_DEFAULT;
   module_ctx->module_pwdump_column            = MODULE_DEFAULT;

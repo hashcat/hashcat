@@ -6,19 +6,17 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
-#include "event.h"
 #include "convert.h"
-#include "restore.h"
 #include "thread.h"
 #include "timer.h"
-#include "interface.h"
+#include "hashes.h"
 #include "hwmon.h"
 #include "outfile.h"
 #include "monitor.h"
 #include "mpsp.h"
 #include "terminal.h"
-#include "status.h"
 #include "shared.h"
+#include "status.h"
 
 static const char *ST_0000 = "Initializing";
 static const char *ST_0001 = "Autotuning";
@@ -339,7 +337,7 @@ char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
       {
         char *tmp_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
-        const int tmp_len = ascii_digest (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, tmp_buf, HCBUFSIZ_LARGE, 0, 0);
+        const int tmp_len = hash_encode (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, tmp_buf, HCBUFSIZ_LARGE, 0, 0);
 
         tmp_buf[tmp_len] = 0;
 

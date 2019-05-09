@@ -10,9 +10,10 @@
 #include "convert.h"
 #include "shared.h"
 #include "memory.h"
-#include "cpu_aes.h"
+#include "emu_inc_cipher_aes.h"
 #include "cpu_crc32.h"
 #include "ext_lzma.h"
+#include "zlib.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -110,7 +111,7 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_salts_buf,
 
     seven_zip_hook_t *hook_item = &hook_items[pw_pos];
 
-    const u8 *ukey = (const u8 *) hook_item->ukey;
+    const u32 *ukey = (const u32 *) hook_item->ukey;
 
     // init AES
 
@@ -118,13 +119,13 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_salts_buf,
 
     memset (&aes_key, 0, sizeof (aes_key));
 
-    AES_set_decrypt_key (ukey, 256, &aes_key);
+    aes256_set_decrypt_key (aes_key.rdk, ukey, (u32 *) te0, (u32 *) te1, (u32 *) te2, (u32 *) te3, (u32 *) td0, (u32 *) td1, (u32 *) td2, (u32 *) td3);
 
     int aes_len = seven_zip->aes_len;
 
     u32 data[4];
-    u32 out [4];
-    u32 iv  [4];
+    u32 out[4];
+    u32 iv[4];
 
     iv[0] = seven_zip->iv_buf[0];
     iv[1] = seven_zip->iv_buf[1];
@@ -145,7 +146,7 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_salts_buf,
       data[2] = data_buf[j + 2];
       data[3] = data_buf[j + 3];
 
-      AES_decrypt (&aes_key, (u8*) data, (u8*) out);
+      aes256_decrypt (aes_key.rdk, data, out, (u32 *) td0, (u32 *) td1, (u32 *) td2, (u32 *) td3, (u32 *) td4);
 
       out[0] ^= iv[0];
       out[1] ^= iv[1];
@@ -170,7 +171,7 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_salts_buf,
     data[2] = data_buf[j + 2];
     data[3] = data_buf[j + 3];
 
-    AES_decrypt (&aes_key, (u8*) data, (u8*) out);
+    aes256_decrypt (aes_key.rdk, data, out, (u32 *) td0, (u32 *) td1, (u32 *) td2, (u32 *) td3, (u32 *) td4);
 
     out[0] ^= iv[0];
     out[1] ^= iv[1];
@@ -219,6 +220,35 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_salts_buf,
       if (data_type == 1) // LZMA1
       {
         ret = hc_lzma1_decompress (compressed_data, &compressed_data_len, decompressed_data, &decompressed_data_len, coder_attributes);
+      }
+      else if (data_type == 7) // inflate using zlib (DEFLATE compression)
+      {
+        ret = SZ_ERROR_DATA;
+
+        z_stream inf;
+
+        inf.zalloc = Z_NULL;
+        inf.zfree  = Z_NULL;
+        inf.opaque = Z_NULL;
+
+        inf.avail_in  = compressed_data_len;
+        inf.next_in   = compressed_data;
+
+        inf.avail_out = decompressed_data_len;
+        inf.next_out  = decompressed_data;
+
+        // inflate:
+
+        inflateInit2 (&inf, -MAX_WBITS);
+
+        int zlib_ret = inflate (&inf, Z_NO_FLUSH);
+
+        inflateEnd (&inf);
+
+        if ((zlib_ret == Z_OK) || (zlib_ret == Z_STREAM_END))
+        {
+          ret = SZ_OK;
+        }
       }
       else // we only support LZMA2 in addition to LZMA1
       {
@@ -269,6 +299,13 @@ u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED c
   const u64 tmp_size = (const u64) sizeof (seven_zip_tmp_t);
 
   return tmp_size;
+}
+
+u32 module_kernel_accel_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 kernel_accel_max = 128; // password length affects total performance, this limits the wait times for threads with short password lengths if there's at least one thread with long password length
+
+  return kernel_accel_max;
 }
 
 u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -457,7 +494,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
    * verify some data
    */
 
-  if (data_type > 2) // this includes also 0x80 (special case that means "truncated")
+  // this check also returns an error with data_type == 0x80 (special case that means "truncated")
+
+  if ((data_type != 0) && (data_type != 1) && (data_type != 2) && (data_type != 7))
   {
     return (PARSER_SALT_VALUE);
   }
@@ -678,10 +717,11 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_binary_count        = MODULE_DEFAULT;
   module_ctx->module_hash_binary_parse        = MODULE_DEFAULT;
   module_ctx->module_hash_binary_save         = MODULE_DEFAULT;
-  module_ctx->module_hash_decode_outfile      = MODULE_DEFAULT;
+  module_ctx->module_hash_decode_potfile      = MODULE_DEFAULT;
   module_ctx->module_hash_decode_zero_hash    = MODULE_DEFAULT;
   module_ctx->module_hash_decode              = module_hash_decode;
   module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
+  module_ctx->module_hash_encode_potfile      = MODULE_DEFAULT;
   module_ctx->module_hash_encode              = module_hash_encode;
   module_ctx->module_hash_init_selftest       = MODULE_DEFAULT;
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
@@ -694,7 +734,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hook_size                = module_hook_size;
   module_ctx->module_jit_build_options        = module_jit_build_options;
   module_ctx->module_jit_cache_disable        = MODULE_DEFAULT;
-  module_ctx->module_kernel_accel_max         = MODULE_DEFAULT;
+  module_ctx->module_kernel_accel_max         = module_kernel_accel_max;
   module_ctx->module_kernel_accel_min         = MODULE_DEFAULT;
   module_ctx->module_kernel_loops_max         = MODULE_DEFAULT;
   module_ctx->module_kernel_loops_min         = MODULE_DEFAULT;
@@ -706,6 +746,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_opts_type                = module_opts_type;
   module_ctx->module_outfile_check_disable    = MODULE_DEFAULT;
   module_ctx->module_outfile_check_nocomp     = MODULE_DEFAULT;
+  module_ctx->module_potfile_custom_check     = MODULE_DEFAULT;
   module_ctx->module_potfile_disable          = MODULE_DEFAULT;
   module_ctx->module_potfile_keep_all_hashes  = MODULE_DEFAULT;
   module_ctx->module_pwdump_column            = MODULE_DEFAULT;

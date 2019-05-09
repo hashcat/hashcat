@@ -1,5 +1,5 @@
 /**********************************************************************************
- * Copyright (c) 2008-2015 The Khronos Group Inc.
+ * Copyright (c) 2008-2019 The Khronos Group Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and/or associated documentation files (the
@@ -26,11 +26,6 @@
  * MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
  **********************************************************************************/
 
-/* $Revision: 11708 $ on $Date: 2010-06-13 23:36:24 -0700 (Sun, 13 Jun 2010) $ */
-
-/* cl_gl_ext.h contains vendor (non-KHR) OpenCL extensions which have           */
-/* OpenGL dependencies.                                                         */
-
 #ifndef __OPENCL_CL_GL_EXT_H
 #define __OPENCL_CL_GL_EXT_H
 
@@ -40,28 +35,15 @@ extern "C" {
 
 #include <CL/cl_gl.h>
 
-/*
- * For each extension, follow this template
- *  cl_VEN_extname extension  */
-/* #define cl_VEN_extname 1
- * ... define new types, if any
- * ... define new tokens, if any
- * ... define new APIs, if any
- *
- *  If you need GLtypes here, mirror them with a cl_GLtype, rather than including a GL header
- *  This allows us to avoid having to decide whether to include GL headers or GLES here.
- */
-
 /* 
- *  cl_khr_gl_event  extension
- *  See section 9.9 in the OpenCL 1.1 spec for more information
+ *  cl_khr_gl_event extension
  */
 #define CL_COMMAND_GL_FENCE_SYNC_OBJECT_KHR     0x200D
 
 extern CL_API_ENTRY cl_event CL_API_CALL
-clCreateEventFromGLsyncKHR(cl_context           /* context */,
-                           cl_GLsync            /* cl_GLsync */,
-                           cl_int *             /* errcode_ret */) CL_EXT_SUFFIX__VERSION_1_1;
+clCreateEventFromGLsyncKHR(cl_context context,
+                           cl_GLsync  cl_GLsync,
+                           cl_int *   errcode_ret) CL_EXT_SUFFIX__VERSION_1_1;
 
 #ifdef __cplusplus
 }

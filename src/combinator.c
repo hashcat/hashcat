@@ -6,10 +6,9 @@
 #include "common.h"
 #include "types.h"
 #include "event.h"
-#include "memory.h"
-#include "combinator.h"
 #include "shared.h"
 #include "wordlist.h"
+#include "combinator.h"
 
 int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {

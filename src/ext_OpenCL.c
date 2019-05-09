@@ -5,8 +5,6 @@
 
 #include "common.h"
 #include "types.h"
-#include "memory.h"
-#include "event.h"
 #include "ext_OpenCL.h"
 
 const char *val2cstr_cl (cl_int CL_err)

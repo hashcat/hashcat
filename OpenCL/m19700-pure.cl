@@ -382,7 +382,7 @@ KERNEL_FQ void m19700_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t
 
   u32 aes_ks[60];
 
-  aes256_set_encrypt_key (aes_ks, aes_key, s_te0, s_te1, s_te2, s_te3, s_te4);
+  aes256_set_encrypt_key (aes_ks, aes_key, s_te0, s_te1, s_te2, s_te3);
 
   u32 key_bytes[8];
 
@@ -431,7 +431,7 @@ KERNEL_FQ void m19700_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t
   key_bytes[7] = hc_swap32_S (key_bytes[7]);
 
   // then aes_cbc encrypt this nfolded value with 'key_bytes' as key along with a null IV
-  aes256_set_encrypt_key (aes_ks, key_bytes, s_te0, s_te1, s_te2, s_te3, s_te4);
+  aes256_set_encrypt_key (aes_ks, key_bytes, s_te0, s_te1, s_te2, s_te3);
 
   aes256_encrypt_cbc (aes_ks, aes_iv, nfolded, out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
@@ -536,7 +536,7 @@ KERNEL_FQ void m19700_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t
 
   u32 aes_cts_decrypt_ks[60];
 
-  AES256_set_decrypt_key (aes_cts_decrypt_ks, ke, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+  AES256_set_decrypt_key (aes_cts_decrypt_ks, ke, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
   aes_iv[0] = 0;
   aes_iv[1] = 0;

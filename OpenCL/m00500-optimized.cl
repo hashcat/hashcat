@@ -31,10 +31,6 @@ DECLSPEC void memcat16 (u32 *block0, u32 *block1, u32 *block2, u32 *block3, cons
   u32 tmp3;
   u32 tmp4;
 
-  const int offset_mod_4 = offset & 3;
-
-  const int offset_minus_4 = 4 - offset_mod_4;
-
   #if defined IS_AMD || defined IS_GENERIC
   u32 in0 = append[0];
   u32 in1 = append[1];
@@ -49,6 +45,10 @@ DECLSPEC void memcat16 (u32 *block0, u32 *block1, u32 *block2, u32 *block3, cons
   #endif
 
   #ifdef IS_NV
+  const int offset_mod_4 = offset & 3;
+
+  const int offset_minus_4 = 4 - offset_mod_4;
+
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
 
   u32 in0 = append[0];
@@ -138,10 +138,6 @@ DECLSPEC void memcat16_x80 (u32 *block0, u32 *block1, u32 *block2, u32 *block3, 
   u32 tmp3;
   u32 tmp4;
 
-  const int offset_mod_4 = offset & 3;
-
-  const int offset_minus_4 = 4 - offset_mod_4;
-
   #if defined IS_AMD || defined IS_GENERIC
   u32 in0 = append[0];
   u32 in1 = append[1];
@@ -157,6 +153,10 @@ DECLSPEC void memcat16_x80 (u32 *block0, u32 *block1, u32 *block2, u32 *block3, 
   #endif
 
   #ifdef IS_NV
+  const int offset_mod_4 = offset & 3;
+
+  const int offset_minus_4 = 4 - offset_mod_4;
+
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
 
   u32 in0 = append[0];
@@ -245,10 +245,6 @@ DECLSPEC void memcat8 (u32 *block0, u32 *block1, u32 *block2, u32 *block3, const
   u32 tmp1;
   u32 tmp2;
 
-  const int offset_mod_4 = offset & 3;
-
-  const int offset_minus_4 = 4 - offset_mod_4;
-
   #if defined IS_AMD || defined IS_GENERIC
   u32 in0 = append[0];
   u32 in1 = append[1];
@@ -259,6 +255,10 @@ DECLSPEC void memcat8 (u32 *block0, u32 *block1, u32 *block2, u32 *block3, const
   #endif
 
   #ifdef IS_NV
+  const int offset_mod_4 = offset & 3;
+
+  const int offset_minus_4 = 4 - offset_mod_4;
+
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
 
   u32 in0 = append[0];

@@ -19,7 +19,7 @@ typedef struct androidpin_tmp
 
 } androidpin_tmp_t;
 
-CONSTANT_AS CONSTSPEC u32a c_pc_dec[1024] =
+CONSTANT_AS u32a c_pc_dec[1024] =
 {
   0x00000030,
   0x00000031,
@@ -1047,7 +1047,7 @@ CONSTANT_AS CONSTSPEC u32a c_pc_dec[1024] =
   0x33323031,
 };
 
-CONSTANT_AS CONSTSPEC u32a c_pc_len[1024] =
+CONSTANT_AS u32a c_pc_len[1024] =
 {
   1,
   1,
@@ -2118,10 +2118,6 @@ DECLSPEC void append_salt (u32 *w0, u32 *w1, u32 *w2, const u32 *append, const u
   u32 tmp4;
   u32 tmp5;
 
-  const int offset_mod_4 = offset & 3;
-
-  const int offset_minus_4 = 4 - offset_mod_4;
-
   #if defined IS_AMD || defined IS_GENERIC
   u32 in0 = append[0];
   u32 in1 = append[1];
@@ -2138,6 +2134,10 @@ DECLSPEC void append_salt (u32 *w0, u32 *w1, u32 *w2, const u32 *append, const u
   #endif
 
   #ifdef IS_NV
+  const int offset_mod_4 = offset & 3;
+
+  const int offset_minus_4 = 4 - offset_mod_4;
+
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
 
   u32 in0 = append[0];

@@ -100,8 +100,6 @@ KERNEL_FQ void m02810_m04 (KERN_ATTR_RULES ())
   salt_buf3[2] = 0;
   salt_buf3[3] = 0;
 
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
-
   /**
    * loop
    */
@@ -469,8 +467,6 @@ KERNEL_FQ void m02810_s04 (KERN_ATTR_RULES ())
   salt_buf3[1] = 0;
   salt_buf3[2] = 0;
   salt_buf3[3] = 0;
-
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
   /**
    * digest

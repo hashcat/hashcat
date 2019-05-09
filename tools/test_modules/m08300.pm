@@ -45,11 +45,9 @@ sub module_generate_hash
 
   my $hashalg = Net::DNS::SEC->digtype ("SHA1");
 
-  my $salt_bin = pack ("H*", $salt_hex);
-
   my $name = lc ($word . $domain);
 
-  my $hash_buf = Net::DNS::RR::NSEC3::name2hash ($hashalg, $name, $iter, $salt_bin);
+  my $hash_buf = Net::DNS::RR::NSEC3::name2hash ($hashalg, $name, $iter, $salt_hex);
 
   my $hash = sprintf ("%s:%s:%s:%d", $hash_buf, $domain, $salt_hex, $iter);
 

@@ -8,7 +8,6 @@
 #include "event.h"
 #include "opencl.h"
 #include "status.h"
-#include "terminal.h"
 #include "autotune.h"
 
 static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kernel_accel, const u32 kernel_loops)
@@ -21,7 +20,7 @@ static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
   const u32 kernel_power_try = device_param->hardware_power * kernel_accel;
 
-  float spin_damp_sav = device_param->spin_damp;
+  const double spin_damp_sav = device_param->spin_damp;
 
   device_param->spin_damp = 0;
 

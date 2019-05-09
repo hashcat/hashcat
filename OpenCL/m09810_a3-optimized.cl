@@ -165,8 +165,6 @@ DECLSPEC void m09810m (LOCAL_AS RC4_KEY *rc4_keys, u32 *w0, u32 *w1, u32 *w2, u3
    * esalt
    */
 
-  const u32 version = esalt_bufs[digests_offset].version;
-
   u32 encryptedVerifier[4];
 
   encryptedVerifier[0] = esalt_bufs[digests_offset].encryptedVerifier[0];
@@ -260,8 +258,6 @@ DECLSPEC void m09810s (LOCAL_AS RC4_KEY *rc4_keys, u32 *w0, u32 *w1, u32 *w2, u3
   /**
    * esalt
    */
-
-  const u32 version = esalt_bufs[digests_offset].version;
 
   u32 encryptedVerifier[4];
 

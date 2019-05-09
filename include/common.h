@@ -104,6 +104,7 @@ but this is nededed for VS compiler which doesn't have inline keyword but has __
 #define SALT_MAX_OLD        51
 
 #define HCBUFSIZ_TINY       0x1000
+#define HCBUFSIZ_SMALL      0x2000
 #define HCBUFSIZ_LARGE      0xb0000
 
 #define CPT_CACHE           0x20000

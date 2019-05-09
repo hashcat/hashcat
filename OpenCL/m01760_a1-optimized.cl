@@ -244,8 +244,6 @@ KERNEL_FQ void m01760_m04 (KERN_ATTR_BASIC ())
   salt_buf3[2] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[14]);
   salt_buf3[3] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[15]);
 
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
-
   /**
    * pads
    */
@@ -445,8 +443,6 @@ KERNEL_FQ void m01760_s04 (KERN_ATTR_BASIC ())
   salt_buf3[1] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[13]);
   salt_buf3[2] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[14]);
   salt_buf3[3] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[15]);
-
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
   /**
    * pads

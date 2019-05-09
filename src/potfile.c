@@ -5,17 +5,16 @@
 
 #include "common.h"
 #include "types.h"
-#include "bitops.h"
 #include "convert.h"
 #include "memory.h"
 #include "event.h"
-#include "interface.h"
+#include "hashes.h"
 #include "filehandling.h"
 #include "loopback.h"
 #include "outfile.h"
-#include "potfile.h"
 #include "locking.h"
 #include "shared.h"
+#include "potfile.h"
 
 static const char MASKED_PLAIN[] = "[notfound]";
 
@@ -26,6 +25,7 @@ int sort_by_hash_no_salt (const void *v1, const void *v2, void *v3);
 
 // this function is for potfile comparison where the potfile does not contain all the
 // information requires to do a true sort_by_hash() bsearch
+/*
 static int sort_by_hash_t_salt (const void *v1, const void *v2)
 {
   const hash_t *h1 = (const hash_t *) v1;
@@ -56,6 +56,7 @@ static int sort_by_hash_t_salt (const void *v1, const void *v2)
 
   return 0;
 }
+*/
 
 // this function is special and only used whenever --username and --show are used together:
 // it will sort all tree entries according to the settings stored in hashconfig
@@ -263,7 +264,7 @@ void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, cons
     tmp_len += 1;
   }
 
-  if (1)
+  if ((hashconfig->opts_type & OPTS_TYPE_POTFILE_NOPASS) == 0)
   {
     const bool always_ascii = (hashconfig->opts_type & OPTS_TYPE_PT_ALWAYS_ASCII) ? true : false;
 
@@ -315,9 +316,12 @@ void potfile_update_hash (hashcat_ctx_t *hashcat_ctx, hash_t *found, char *line_
   found->pw_buf = (char *) hcmalloc (pw_len + 1);
   found->pw_len = pw_len;
 
-  memcpy (found->pw_buf, pw_buf, pw_len);
+  if (pw_buf)
+  {
+    memcpy (found->pw_buf, pw_buf, pw_len);
 
-  found->pw_buf[found->pw_len] = 0;
+    found->pw_buf[found->pw_len] = 0;
+  }
 
   found->cracked = 1;
 
@@ -373,12 +377,11 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
   const hashes_t       *hashes       = hashcat_ctx->hashes;
   const module_ctx_t   *module_ctx   = hashcat_ctx->module_ctx;
   const potfile_ctx_t  *potfile_ctx  = hashcat_ctx->potfile_ctx;
-  const user_options_t *user_options = hashcat_ctx->user_options;
 
   if (potfile_ctx->enabled == false) return 0;
 
   if (hashconfig->potfile_disable == true) return 0;
-  
+
   if (hashconfig->opts_type & OPTS_TYPE_PT_NEVERCRACK) return 0;
 
   // if no potfile exists yet we don't need to do anything here
@@ -515,6 +518,13 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
   if (rc == -1) return -1;
 
+  void *tmps = NULL;
+
+  if (hashconfig->tmp_size > 0)
+  {
+    tmps = hcmalloc (hashconfig->tmp_size);
+  }
+
   char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
   while (!feof (potfile_ctx->fp))
@@ -539,26 +549,47 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
     if (line_hash_len == 0) continue;
 
-    if (hashconfig->is_salted == true)
+    if (hash_buf.salt)
     {
       memset (hash_buf.salt, 0, sizeof (salt_t));
     }
 
-    if (hashconfig->esalt_size > 0)
+    if (hash_buf.esalt)
     {
       memset (hash_buf.esalt, 0, hashconfig->esalt_size);
     }
 
-    if (hashconfig->hook_salt_size > 0)
+    if (hash_buf.hook_salt)
     {
       memset (hash_buf.hook_salt, 0, hashconfig->hook_salt_size);
     }
 
-    if (module_ctx->module_hash_decode_outfile != MODULE_DEFAULT)
+    if (module_ctx->module_hash_decode_potfile != MODULE_DEFAULT)
     {
-      const int parser_status = module_ctx->module_hash_decode_outfile (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, hash_buf.hook_salt, hash_buf.hash_info, line_hash_buf, line_hash_len);
+      if (module_ctx->module_potfile_custom_check != MODULE_DEFAULT)
+      {
+        const int parser_status = module_ctx->module_hash_decode_potfile (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, hash_buf.hook_salt, hash_buf.hash_info, line_hash_buf, line_hash_len, tmps);
 
-      if (parser_status != PARSER_OK) continue;
+        if (parser_status != PARSER_OK) continue;
+
+        for (u32 hashes_pos = 0; hashes_pos < hashes_cnt; hashes_pos++)
+        {
+          const bool cracked = module_ctx->module_potfile_custom_check (hashconfig, &hashes_buf[hashes_pos], &hash_buf, tmps);
+
+          if (cracked == true)
+          {
+            potfile_update_hash (hashcat_ctx, &hashes_buf[hashes_pos], line_pw_buf, (u32) line_pw_len);
+          }
+        }
+
+        continue;
+      }
+      else
+      {
+        // should be rejected?
+        //const int parser_status = module_ctx->module_hash_decode_potfile (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, hash_buf.hook_salt, hash_buf.hash_info, line_hash_buf, line_hash_len, NULL);
+        //if (parser_status != PARSER_OK) continue;
+      }
     }
     else
     {
@@ -572,14 +603,19 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
         continue;
       }
+
+      hash_t *found = (hash_t *) hc_bsearch_r (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash, (void *) hashconfig);
+
+      potfile_update_hash (hashcat_ctx, found, line_pw_buf, (u32) line_pw_len);
     }
-
-    hash_t *found = (hash_t *) hc_bsearch_r (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash, (void *) hashconfig);
-
-    potfile_update_hash (hashcat_ctx, found, line_pw_buf, (u32) line_pw_len);
   }
 
   hcfree (line_buf);
+
+  if (hashconfig->tmp_size > 0)
+  {
+    hcfree (tmps);
+  }
 
   potfile_read_close (hashcat_ctx);
 
@@ -667,11 +703,11 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
 
         u8 *out_buf = potfile_ctx->out_buf;
 
-        int out_len = ascii_digest (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf + 0, HCBUFSIZ_LARGE - 0, salt_idx, digest_idx);
+        int out_len = hash_encode (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf + 0, HCBUFSIZ_LARGE - 0, salt_idx, digest_idx);
 
         if (hash2)
         {
-          out_len += ascii_digest (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf + 16, HCBUFSIZ_LARGE - 16, salt_idx, split_neighbor);
+          out_len += hash_encode (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf + 16, HCBUFSIZ_LARGE - 16, salt_idx, split_neighbor);
         }
 
         out_buf[out_len] = 0;
@@ -755,7 +791,7 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
 
         u8 *out_buf = potfile_ctx->out_buf;
 
-        const int out_len = ascii_digest (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf, HCBUFSIZ_LARGE, salt_idx, digest_idx);
+        const int out_len = hash_encode (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf, HCBUFSIZ_LARGE, salt_idx, digest_idx);
 
         out_buf[out_len] = 0;
 
@@ -800,7 +836,7 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
 
         if (is_collider_hex_password == true)
         {
-          u8 pass_unhexified[HCBUFSIZ_TINY] = { 0 };
+          u8 pass_unhexified[HCBUFSIZ_SMALL] = { 0 };
 
           const size_t pass_unhexified_len = exec_unhexify ((u8 *) hash->pw_buf, hash->pw_len, pass_unhexified, sizeof (pass_unhexified));
 
@@ -823,6 +859,7 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
 {
   hashconfig_t  *hashconfig  = hashcat_ctx->hashconfig;
   hashes_t      *hashes      = hashcat_ctx->hashes;
+  module_ctx_t  *module_ctx  = hashcat_ctx->module_ctx;
   potfile_ctx_t *potfile_ctx = hashcat_ctx->potfile_ctx;
 
   hash_t *hashes_buf = hashes->hashes_buf;
@@ -875,11 +912,11 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
 
         u8 *out_buf = potfile_ctx->out_buf;
 
-        int out_len = ascii_digest (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf + 0, HCBUFSIZ_LARGE - 0, salt_idx, digest_idx);
+        int out_len = hash_encode (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf + 0, HCBUFSIZ_LARGE - 0, salt_idx, digest_idx);
 
         if (hash2)
         {
-          out_len += ascii_digest (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf + 16, HCBUFSIZ_LARGE - 16, salt_idx, split_neighbor);
+          out_len += hash_encode (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf + 16, HCBUFSIZ_LARGE - 16, salt_idx, split_neighbor);
         }
 
         out_buf[out_len] = 0;
@@ -928,7 +965,29 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
 
         u8 *out_buf = potfile_ctx->out_buf;
 
-        const int out_len = ascii_digest (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf, HCBUFSIZ_LARGE, salt_idx, digest_idx);
+        int out_len;
+
+        if (module_ctx->module_hash_binary_save != MODULE_DEFAULT)
+        {
+          char *binary_buf = NULL;
+
+          int binary_len = module_ctx->module_hash_binary_save (hashes, salt_idx, digest_idx, &binary_buf);
+
+          if ((hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE) == 0)
+          {
+            binary_len--; // no need for the newline
+          }
+
+          memcpy (out_buf, binary_buf, binary_len);
+
+          out_len = binary_len;
+
+          hcfree (binary_buf);
+        }
+        else
+        {
+          out_len = hash_encode (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf, HCBUFSIZ_LARGE, salt_idx, digest_idx);
+        }
 
         out_buf[out_len] = 0;
 

@@ -7,7 +7,6 @@
 #include "types.h"
 #include "memory.h"
 #include "event.h"
-#include "user_options.h"
 #include "shared.h"
 #include "pidfile.h"
 

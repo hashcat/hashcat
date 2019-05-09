@@ -221,7 +221,7 @@ KERNEL_FQ void m13400_loop (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
 
   u32 ks[KEYLEN];
 
-  AES256_set_encrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_te4);
+  AES256_set_encrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3);
 
   u32 data0[4];
   u32 data1[4];
@@ -575,7 +575,7 @@ KERNEL_FQ void m13400_comp (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
 
       u32 ks[KEYLEN];
 
-      AES256_set_decrypt_key (ks, digest, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      AES256_set_decrypt_key (ks, digest, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
       u32 contents_len = esalt_bufs[digests_offset].contents_len;
 
@@ -672,7 +672,7 @@ KERNEL_FQ void m13400_comp (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
 
     u32 ks[KEYLEN];
 
-    AES256_set_decrypt_key (ks, digest, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+    AES256_set_decrypt_key (ks, digest, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
     u32 data[4];
 

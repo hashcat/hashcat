@@ -9,15 +9,12 @@
 #include "event.h"
 #include "convert.h"
 #include "thread.h"
-#include "timer.h"
 #include "status.h"
-#include "restore.h"
 #include "shared.h"
 #include "hwmon.h"
 #include "interface.h"
-#include "outfile.h"
-#include "terminal.h"
 #include "hashcat.h"
+#include "terminal.h"
 
 static const size_t TERMINAL_LINE_LENGTH = 79;
 
@@ -725,6 +722,7 @@ void opencl_info_compact (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->quiet            == true) return;
   if (user_options->machine_readable == true) return;
+  if (user_options->status_json      == true) return;
 
   cl_uint         platforms_cnt         = opencl_ctx->platforms_cnt;
   cl_platform_id *platforms             = opencl_ctx->platforms;
@@ -887,6 +885,93 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
   hcfree (hashcat_status);
 }
 
+void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
+{
+  const hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
+
+  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
+
+  const int rc_status = hashcat_get_status (hashcat_ctx, hashcat_status);
+
+  if (rc_status == -1)
+  {
+    hcfree (hashcat_status);
+
+    return;
+  }
+
+  time_t time_now;
+
+  time (&time_now);
+
+  time_t end;
+
+  time_t sec_etc = status_get_sec_etc (hashcat_ctx);
+
+  if (overflow_check_u64_add (time_now, sec_etc) == false)
+  {
+    end = 1;
+  }
+  else
+  {
+    end = time_now + sec_etc;
+  }
+
+  printf ("{ \"session\": \"%s\",", hashcat_status->session);
+  printf (" \"status\": %d,", hashcat_status->status_number);
+  printf (" \"target\": \"%s\",", hashcat_status->hash_target);
+  printf (" \"progress\": [%" PRIu64 ", %" PRIu64 "],", hashcat_status->progress_cur_relative_skip, hashcat_status->progress_end_relative_skip);
+  printf (" \"restore_point\": %" PRIu64 ",", hashcat_status->restore_point);
+  printf (" \"recovered_hashes\": [%d, %d],", hashcat_status->digests_done, hashcat_status->digests_cnt);
+  printf (" \"recovered_salts\": [%d, %d],", hashcat_status->salts_done, hashcat_status->salts_cnt);
+  printf (" \"rejected\": %" PRIu64 ",", hashcat_status->progress_rejected);
+  printf (" \"devices\": [");
+
+  int device_num = 0;
+
+  for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+  {
+    const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
+
+    if (device_info->skipped_dev == true) continue;
+
+    if (device_info->skipped_warning_dev == true) continue;
+
+    if (device_num != 0)
+    {
+      printf(",");
+    }
+    printf (" { \"device_id\": %d,", device_id + 1);
+    printf (" \"speed\": %" PRIu64 ",", (u64) (device_info->hashes_msec_dev * 1000));
+
+    if (hwmon_ctx->enabled == true)
+    {
+      const int temp = hm_get_temperature_with_device_id (hashcat_ctx, device_id);
+
+      printf (" \"temp\": %d,", temp);
+    }
+
+    const int util = hm_get_utilization_with_device_id (hashcat_ctx, device_id);
+
+    printf (" \"util\": %d }", util);
+
+    device_num++;
+  }
+  printf (" ],");
+  printf (" \"time_start\": %" PRIu64 ",", (u64) status_ctx->runtime_start);
+  printf (" \"estimated_stop\": %" PRIu64 " }", (u64) end);
+
+  hc_fwrite (EOL, strlen (EOL), 1, stdout);
+
+  fflush (stdout);
+
+  status_status_destroy (hashcat_ctx, hashcat_status);
+
+  hcfree (hashcat_status);
+}
+
 void status_display (hashcat_ctx_t *hashcat_ctx)
 {
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
@@ -896,6 +981,13 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   if (user_options->machine_readable == true)
   {
     status_display_machine_readable (hashcat_ctx);
+
+    return;
+  }
+
+  if (user_options->status_json == true)
+  {
+    status_display_status_json (hashcat_ctx);
 
     return;
   }
@@ -1564,6 +1656,47 @@ void status_speed_machine_readable (hashcat_ctx_t *hashcat_ctx)
   hcfree (hashcat_status);
 }
 
+void status_speed_json (hashcat_ctx_t *hashcat_ctx)
+{
+  hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
+
+  const int rc_status = hashcat_get_status (hashcat_ctx, hashcat_status);
+
+  if (rc_status == -1)
+  {
+    hcfree (hashcat_status);
+
+    return;
+  }
+
+  printf ("{ \"devices\": [");
+
+  int device_num = 0;
+
+  for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+  {
+    const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
+
+    if (device_info->skipped_dev == true) continue;
+
+    if (device_info->skipped_warning_dev == true) continue;
+
+    if (device_num != 0)
+    {
+      printf(",");
+    }
+
+    printf (" { \"device_id\": %d,", device_id + 1);
+    printf (" \"speed\": %" PRIu64 " }", (u64) (device_info->hashes_msec_dev_benchmark * 1000));
+    device_num++;
+  }
+  printf(" ] }");
+
+  status_status_destroy (hashcat_ctx, hashcat_status);
+
+  hcfree (hashcat_status);
+}
+
 void status_speed (hashcat_ctx_t *hashcat_ctx)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
@@ -1571,6 +1704,13 @@ void status_speed (hashcat_ctx_t *hashcat_ctx)
   if (user_options->machine_readable == true)
   {
     status_speed_machine_readable (hashcat_ctx);
+
+    return;
+  }
+
+  if (user_options->status_json == true)
+  {
+    status_speed_json (hashcat_ctx);
 
     return;
   }
@@ -1641,6 +1781,48 @@ void status_progress_machine_readable (hashcat_ctx_t *hashcat_ctx)
   hcfree (hashcat_status);
 }
 
+void status_progress_json (hashcat_ctx_t *hashcat_ctx)
+{
+  hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
+
+  const int rc_status = hashcat_get_status (hashcat_ctx, hashcat_status);
+
+  if (rc_status == -1)
+  {
+    hcfree (hashcat_status);
+
+    return;
+  }
+
+  printf ("{ \"devices\": [");
+
+  int device_num = 0;
+
+  for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+  {
+    const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
+
+    if (device_info->skipped_dev == true) continue;
+
+    if (device_info->skipped_warning_dev == true) continue;
+
+    if (device_num != 0)
+    {
+      printf(",");
+    }
+
+    printf (" { \"device_id\": %d,", device_id + 1);
+    printf (" \"progress\": %" PRIu64 ",", device_info->progress_dev);
+    printf (" \"runtime\": %0.2f }", device_info->runtime_msec_dev);
+    device_num++;
+  }
+  printf(" ] }");
+
+  status_status_destroy (hashcat_ctx, hashcat_status);
+
+  hcfree (hashcat_status);
+}
+
 void status_progress (hashcat_ctx_t *hashcat_ctx)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
@@ -1648,6 +1830,13 @@ void status_progress (hashcat_ctx_t *hashcat_ctx)
   if (user_options->machine_readable == true)
   {
     status_progress_machine_readable (hashcat_ctx);
+
+    return;
+  }
+
+  if (user_options->status_json == true)
+  {
+    status_progress_json (hashcat_ctx);
 
     return;
   }

@@ -7,17 +7,23 @@
 #define _INC_VENDOR_H
 
 #ifdef _CPU_OPENCL_EMU_H
-#define CONSTSPEC static const
 #define CONSTANT_AS
 #define GLOBAL_AS
 #define LOCAL_AS
 #define KERNEL_FQ
 #else
-#define CONSTSPEC const
 #define CONSTANT_AS __constant
 #define GLOBAL_AS   __global
 #define LOCAL_AS    __local
 #define KERNEL_FQ   __kernel
+#endif
+
+#ifndef MAYBE_VOLATILE
+#define MAYBE_VOLATILE
+#endif
+
+#ifndef MAYBE_UNUSED
+#define MAYBE_UNUSED
 #endif
 
 /**
@@ -78,13 +84,14 @@
 
 /**
  * function declarations can have a large influence depending on the opencl runtime
+ * fast but pure kernels on rocm is a good example
  */
 
 #if defined IS_CPU
 #define DECLSPEC inline
 #elif defined IS_GPU
 #if defined IS_AMD
-#define DECLSPEC inline
+#define DECLSPEC inline static
 #else
 #define DECLSPEC
 #endif

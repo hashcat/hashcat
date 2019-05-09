@@ -5,9 +5,9 @@
 
 #include "common.h"
 #include "types.h"
+#include "memory.h"
 #include "shared.h"
 #include "interface.h"
-#include "memory.h"
 #include "usage.h"
 
 static const char *const USAGE_MINI[] =
@@ -36,6 +36,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "     --hex-wordlist             |      | Assume words in wordlist are given in hex            |",
   "     --force                    |      | Ignore warnings                                      |",
   "     --status                   |      | Enable automatic update of the status screen         |",
+  "     --status-json              |      | Enable JSON format for status ouput                  |",
   "     --status-timer             | Num  | Sets seconds between status screen updates to X      | --status-timer=1",
   "     --stdin-timeout-abort      | Num  | Abort if there is no input from stdin for X seconds  | --stdin-timeout-abort=300",
   "     --machine-readable         |      | Display the status view in a machine-readable format |",
@@ -275,10 +276,9 @@ void usage_mini_print (const char *progname)
 
 void usage_big_print (hashcat_ctx_t *hashcat_ctx)
 {
-  folder_config_t *folder_config = hashcat_ctx->folder_config;
-  hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
-  module_ctx_t    *module_ctx    = hashcat_ctx->module_ctx;
-  user_options_t  *user_options  = hashcat_ctx->user_options;
+  const folder_config_t *folder_config = hashcat_ctx->folder_config;
+  const hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
+        user_options_t  *user_options  = hashcat_ctx->user_options;
 
   char *modulefile = (char *) hcmalloc (HCBUFSIZ_TINY);
 
