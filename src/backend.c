@@ -879,59 +879,78 @@ int cuda_init (hashcat_ctx_t *hashcat_ctx)
 
   if (cuda->lib == NULL) return -1;
 
-  HC_LOAD_FUNC (cuda, cuCtxCreate,              CUDA_CUCTXCREATE,               CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuCtxDestroy,             CUDA_CUCTXDESTROY,              CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuCtxGetCacheConfig,      CUDA_CUCTXGETCACHECONFIG,       CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuCtxGetCurrent,          CUDA_CUCTXGETCURRENT,           CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuCtxGetSharedMemConfig,  CUDA_CUCTXGETSHAREDMEMCONFIG,   CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuCtxPopCurrent,          CUDA_CUCTXPOPCURRENT,           CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuCtxPushCurrent,         CUDA_CUCTXPUSHCURRENT,          CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuCtxSetCacheConfig,      CUDA_CUCTXSETCACHECONFIG,       CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuCtxSetCurrent,          CUDA_CUCTXSETCURRENT,           CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuCtxSetSharedMemConfig,  CUDA_CUCTXSETSHAREDMEMCONFIG,   CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuCtxSynchronize,         CUDA_CUCTXSYNCHRONIZE,          CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuDeviceGetAttribute,     CUDA_CUDEVICEGETATTRIBUTE,      CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuDeviceGetCount,         CUDA_CUDEVICEGETCOUNT,          CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuDeviceGet,              CUDA_CUDEVICEGET,               CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuDeviceGetName,          CUDA_CUDEVICEGETNAME,           CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuDeviceTotalMem,         CUDA_CUDEVICETOTALMEM,          CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuDriverGetVersion,       CUDA_CUDRIVERGETVERSION,        CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuEventCreate,            CUDA_CUEVENTCREATE,             CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuEventDestroy,           CUDA_CUEVENTDESTROY,            CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuEventElapsedTime,       CUDA_CUEVENTELAPSEDTIME,        CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuEventQuery,             CUDA_CUEVENTQUERY,              CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuEventRecord,            CUDA_CUEVENTRECORD,             CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuEventSynchronize,       CUDA_CUEVENTSYNCHRONIZE,        CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuFuncGetAttribute,       CUDA_CUFUNCGETATTRIBUTE,        CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuFuncSetAttribute,       CUDA_CUFUNCSETATTRIBUTE,        CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuFuncSetCacheConfig,     CUDA_CUFUNCSETCACHECONFIG,      CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuFuncSetSharedMemConfig, CUDA_CUFUNCSETSHAREDMEMCONFIG,  CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuGetErrorName,           CUDA_CUGETERRORNAME,            CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuGetErrorString,         CUDA_CUGETERRORSTRING,          CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuInit,                   CUDA_CUINIT,                    CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuLaunchKernel,           CUDA_CULAUNCHKERNEL,            CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuMemAlloc,               CUDA_CUMEMALLOC,                CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuMemAllocHost,           CUDA_CUMEMALLOCHOST,            CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuMemcpyDtoD,             CUDA_CUMEMCPYDTOD,              CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuMemcpyDtoH,             CUDA_CUMEMCPYDTOH,              CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuMemcpyHtoD,             CUDA_CUMEMCPYHTOD,              CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuMemFree,                CUDA_CUMEMFREE,                 CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuMemFreeHost,            CUDA_CUMEMFREEHOST,             CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuMemGetInfo,             CUDA_CUMEMGETINFO,              CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuMemsetD32,              CUDA_CUMEMSETD32,               CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuMemsetD8,               CUDA_CUMEMSETD8,                CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuModuleGetFunction,      CUDA_CUMODULEGETFUNCTION,       CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuModuleGetGlobal,        CUDA_CUMODULEGETGLOBAL,         CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuModuleLoad,             CUDA_CUMODULELOAD,              CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuModuleLoadData,         CUDA_CUMODULELOADDATA,          CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuModuleLoadDataEx,       CUDA_CUMODULELOADDATAEX,        CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuModuleUnload,           CUDA_CUMODULEUNLOAD,            CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuProfilerStart,          CUDA_CUPROFILERSTART,           CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuProfilerStop,           CUDA_CUPROFILERSTOP,            CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuStreamCreate,           CUDA_CUSTREAMCREATE,            CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuStreamDestroy,          CUDA_CUSTREAMDESTROY,           CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuStreamSynchronize,      CUDA_CUSTREAMSYNCHRONIZE,       CUDA, 1);
-  HC_LOAD_FUNC (cuda, cuStreamWaitEvent,        CUDA_CUSTREAMWAITEVENT,         CUDA, 1);
+  #define HC_LOAD_FUNC_CUDA(ptr,name,cudaname,type,libname,noerr) \
+    ptr->name = (type) hc_dlsym (ptr->lib, #cudaname); \
+    if (noerr != -1) { \
+      if (!ptr->name) { \
+        if (noerr == 1) { \
+          event_log_error (hashcat_ctx, "%s is missing from %s shared library.", #name, #libname); \
+          return -1; \
+        } \
+        if (noerr != 1) { \
+          event_log_warning (hashcat_ctx, "%s is missing from %s shared library.", #name, #libname); \
+          return 0; \
+        } \
+      } \
+    }
+
+  // finding the right symbol is a PITA, because of the _v2 suffix
+  // a good reference is cuda.h itself
+  // this needs to be verified for each new cuda release
+
+  HC_LOAD_FUNC_CUDA (cuda, cuCtxCreate,              cuCtxCreate_v2,            CUDA_CUCTXCREATE,               CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuCtxDestroy,             cuCtxDestroy_v2,           CUDA_CUCTXDESTROY,              CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuCtxGetCacheConfig,      cuCtxGetCacheConfig,       CUDA_CUCTXGETCACHECONFIG,       CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuCtxGetCurrent,          cuCtxGetCurrent,           CUDA_CUCTXGETCURRENT,           CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuCtxGetSharedMemConfig,  cuCtxGetSharedMemConfig,   CUDA_CUCTXGETSHAREDMEMCONFIG,   CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuCtxPopCurrent,          cuCtxPopCurrent_v2,        CUDA_CUCTXPOPCURRENT,           CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuCtxPushCurrent,         cuCtxPushCurrent_v2,       CUDA_CUCTXPUSHCURRENT,          CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuCtxSetCacheConfig,      cuCtxSetCacheConfig,       CUDA_CUCTXSETCACHECONFIG,       CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuCtxSetCurrent,          cuCtxSetCurrent,           CUDA_CUCTXSETCURRENT,           CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuCtxSetSharedMemConfig,  cuCtxSetSharedMemConfig,   CUDA_CUCTXSETSHAREDMEMCONFIG,   CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuCtxSynchronize,         cuCtxSynchronize,          CUDA_CUCTXSYNCHRONIZE,          CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuDeviceGetAttribute,     cuDeviceGetAttribute,      CUDA_CUDEVICEGETATTRIBUTE,      CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuDeviceGetCount,         cuDeviceGetCount,          CUDA_CUDEVICEGETCOUNT,          CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuDeviceGet,              cuDeviceGet,               CUDA_CUDEVICEGET,               CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuDeviceGetName,          cuDeviceGetName,           CUDA_CUDEVICEGETNAME,           CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuDeviceTotalMem,         cuDeviceTotalMem_v2,       CUDA_CUDEVICETOTALMEM,          CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuDriverGetVersion,       cuDriverGetVersion,        CUDA_CUDRIVERGETVERSION,        CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuEventCreate,            cuEventCreate,             CUDA_CUEVENTCREATE,             CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuEventDestroy,           cuEventDestroy_v2,         CUDA_CUEVENTDESTROY,            CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuEventElapsedTime,       cuEventElapsedTime,        CUDA_CUEVENTELAPSEDTIME,        CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuEventQuery,             cuEventQuery,              CUDA_CUEVENTQUERY,              CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuEventRecord,            cuEventRecord,             CUDA_CUEVENTRECORD,             CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuEventSynchronize,       cuEventSynchronize,        CUDA_CUEVENTSYNCHRONIZE,        CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuFuncGetAttribute,       cuFuncGetAttribute,        CUDA_CUFUNCGETATTRIBUTE,        CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuFuncSetAttribute,       cuFuncSetAttribute,        CUDA_CUFUNCSETATTRIBUTE,        CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuFuncSetCacheConfig,     cuFuncSetCacheConfig,      CUDA_CUFUNCSETCACHECONFIG,      CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuFuncSetSharedMemConfig, cuFuncSetSharedMemConfig,  CUDA_CUFUNCSETSHAREDMEMCONFIG,  CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuGetErrorName,           cuGetErrorName,            CUDA_CUGETERRORNAME,            CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuGetErrorString,         cuGetErrorString,          CUDA_CUGETERRORSTRING,          CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuInit,                   cuInit,                    CUDA_CUINIT,                    CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuLaunchKernel,           cuLaunchKernel,            CUDA_CULAUNCHKERNEL,            CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuMemAlloc,               cuMemAlloc_v2,             CUDA_CUMEMALLOC,                CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuMemAllocHost,           cuMemAllocHost_v2,         CUDA_CUMEMALLOCHOST,            CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuMemcpyDtoD,             cuMemcpyDtoD_v2,           CUDA_CUMEMCPYDTOD,              CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuMemcpyDtoH,             cuMemcpyDtoH_v2,           CUDA_CUMEMCPYDTOH,              CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuMemcpyHtoD,             cuMemcpyHtoD_v2,           CUDA_CUMEMCPYHTOD,              CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuMemFree,                cuMemFree_v2,              CUDA_CUMEMFREE,                 CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuMemFreeHost,            cuMemFreeHost,             CUDA_CUMEMFREEHOST,             CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuMemGetInfo,             cuMemGetInfo_v2,           CUDA_CUMEMGETINFO,              CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuMemsetD32,              cuMemsetD32_v2,            CUDA_CUMEMSETD32,               CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuMemsetD8,               cuMemsetD8_v2,             CUDA_CUMEMSETD8,                CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuModuleGetFunction,      cuModuleGetFunction,       CUDA_CUMODULEGETFUNCTION,       CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuModuleGetGlobal,        cuModuleGetGlobal_v2,      CUDA_CUMODULEGETGLOBAL,         CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuModuleLoad,             cuModuleLoad,              CUDA_CUMODULELOAD,              CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuModuleLoadData,         cuModuleLoadData,          CUDA_CUMODULELOADDATA,          CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuModuleLoadDataEx,       cuModuleLoadDataEx,        CUDA_CUMODULELOADDATAEX,        CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuModuleUnload,           cuModuleUnload,            CUDA_CUMODULEUNLOAD,            CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuProfilerStart,          cuProfilerStart,           CUDA_CUPROFILERSTART,           CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuProfilerStop,           cuProfilerStop,            CUDA_CUPROFILERSTOP,            CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuStreamCreate,           cuStreamCreate,            CUDA_CUSTREAMCREATE,            CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuStreamDestroy,          cuStreamDestroy_v2,        CUDA_CUSTREAMDESTROY,           CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuStreamSynchronize,      cuStreamSynchronize,       CUDA_CUSTREAMSYNCHRONIZE,       CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuStreamWaitEvent,        cuStreamWaitEvent,         CUDA_CUSTREAMWAITEVENT,         CUDA, 1);
 
   return 0;
 }
