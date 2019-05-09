@@ -684,6 +684,36 @@ int nvrtc_init (hashcat_ctx_t *hashcat_ctx)
 
   #if   defined (_WIN)
   nvrtc->lib = hc_dlopen ("nvrtc.dll");
+
+  if (nvrtc->lib == NULL)
+  {
+    // super annoying: nvidia is using the CUDA version in nvrtc???.dll filename!
+    // however, the cuda version string comes from nvcuda.dll which is from nvidia driver, but
+    // the driver version and the installed CUDA toolkit version can be different, so it cannot be used as a reference.
+    // brute force to the rescue
+
+    char dllname[100];
+
+    for (int major = 20; major >= 0; major--)
+    {
+      for (int minor = 20; minor >= 0; minor--)
+      {
+        snprintf (dllname, sizeof (dllname), "nvrtc64_%d%d.dll", major, minor);
+
+        nvrtc->lib = hc_dlopen (dllname);
+
+        if (nvrtc->lib) break;
+
+        snprintf (dllname, sizeof (dllname), "nvrtc64_%d%d_0.dll", major, minor);
+
+        nvrtc->lib = hc_dlopen (dllname);
+
+        if (nvrtc->lib) break;
+      }
+
+      if (nvrtc->lib) break;
+    }
+  }
   #elif defined (__APPLE__)
   nvrtc->lib = hc_dlopen ("nvrtc.dylib");
   #elif defined (__CYGWIN__)
