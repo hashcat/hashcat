@@ -296,13 +296,6 @@ DECLSPEC void base64_encode (u8 *base64_hash, const u32 len, const u8 *base64_pl
 
 DECLSPEC void lotus6_base64_encode (u8 *base64_hash, const u32 salt0, const u32 salt1, const u32 a, const u32 b, const u32 c)
 {
-  const uchar4 salt0c = as_uchar4 (salt0);
-  const uchar4 salt1c = as_uchar4 (salt1);
-
-  const uchar4 ac = as_uchar4 (a);
-  const uchar4 bc = as_uchar4 (b);
-  const uchar4 cc = as_uchar4 (c);
-
   u8 tmp[24]; // size 22 (=pw_len) is needed but base64 needs size divisible by 4
 
   /*
@@ -311,23 +304,23 @@ DECLSPEC void lotus6_base64_encode (u8 *base64_hash, const u32 salt0, const u32 
 
   u8 base64_plain[16];
 
-  base64_plain[ 0] = salt0c.s0;
-  base64_plain[ 1] = salt0c.s1;
-  base64_plain[ 2] = salt0c.s2;
-  base64_plain[ 3] = salt0c.s3;
+  base64_plain[ 0] = unpack_v8a_from_v32_S (salt0);
+  base64_plain[ 1] = unpack_v8b_from_v32_S (salt0);
+  base64_plain[ 2] = unpack_v8c_from_v32_S (salt0);
+  base64_plain[ 3] = unpack_v8d_from_v32_S (salt0);
   base64_plain[ 3] -= -4; // dont ask!
-  base64_plain[ 4] = salt1c.s0;
-  base64_plain[ 5] = ac.s0;
-  base64_plain[ 6] = ac.s1;
-  base64_plain[ 7] = ac.s2;
-  base64_plain[ 8] = ac.s3;
-  base64_plain[ 9] = bc.s0;
-  base64_plain[10] = bc.s1;
-  base64_plain[11] = bc.s2;
-  base64_plain[12] = bc.s3;
-  base64_plain[13] = cc.s0;
-  base64_plain[14] = cc.s1;
-  base64_plain[15] = cc.s2;
+  base64_plain[ 4] = unpack_v8a_from_v32_S (salt1);
+  base64_plain[ 5] = unpack_v8a_from_v32_S (a);
+  base64_plain[ 6] = unpack_v8b_from_v32_S (a);
+  base64_plain[ 7] = unpack_v8c_from_v32_S (a);
+  base64_plain[ 8] = unpack_v8d_from_v32_S (a);
+  base64_plain[ 9] = unpack_v8a_from_v32_S (b);
+  base64_plain[10] = unpack_v8b_from_v32_S (b);
+  base64_plain[11] = unpack_v8c_from_v32_S (b);
+  base64_plain[12] = unpack_v8d_from_v32_S (b);
+  base64_plain[13] = unpack_v8a_from_v32_S (c);
+  base64_plain[14] = unpack_v8b_from_v32_S (c);
+  base64_plain[15] = unpack_v8c_from_v32_S (c);
 
   /*
    * base64 encode the $salt.$digest string
