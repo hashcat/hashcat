@@ -151,7 +151,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u8 *salt_pos = token.buf[3];
   const int salt_len = token.len[3];
   
-  u8 tmp_buf[100] = { 0 };
+  u8 tmp_buf[256] = { 0 };
   
   const size_t salt_len_decoded = base64_decode (alternate_base64_to_int, (const u8 *) salt_pos, salt_len, tmp_buf);
 
@@ -200,7 +200,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   tmp[7] = byte_swap_64 (digest[7]);
   tmp[8] = 0;
 
-  char salt_enc[128] = { 0 };
+  char salt_enc[256] = { 0 };
   char hash_enc[128] = { 0 };
 
   const size_t salt_len_enc = base64_encode (int_to_alternate_base64, (const u8 *) pbkdf2_sha512->salt_buf, salt->salt_len, (u8 *) salt_enc);
