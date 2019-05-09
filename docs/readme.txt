@@ -270,6 +270,9 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later)
 - Ethereum Pre-Sale Wallet, PBKDF2-HMAC-SHA256
 - Ansible Vault
 - Plaintext
+- Python passlib pbkdf2-sha1
+- Python passlib pbkdf2-sha256
+- Python passlib pbkdf2-sha512
 
 ##
 ## Attack-Modes

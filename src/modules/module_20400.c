@@ -151,43 +151,20 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const int salt_len = token.len[3];
   
   u8 tmp_buf[100] = { 0 };
-  u8 tmp_buf2[100] = { 0 };
 
-  // replace . with + for proper base64 decoding
-  memcpy(tmp_buf2, salt_pos, salt_len);
-  for (int i = 0; i < salt_len; i++)
-  {
-    if (tmp_buf2[i] == '.')
-    {
-      tmp_buf2[i] = '+';
-    }
-  }
-
-  
-  const int salt_len_decoded = base64_decode (base64_to_int, (const u8 *) tmp_buf2, salt_len, tmp_buf);
+  const size_t salt_len_decoded = base64_decode (alternate_base64_to_int, (const u8 *) salt_pos, salt_len, tmp_buf);
 
   u8 *salt_buf_ptr = (u8 *) pbkdf2_sha1->salt_buf;
   memcpy (salt_buf_ptr, tmp_buf, salt_len_decoded);
   memcpy (salt->salt_buf, salt_buf_ptr, salt_len_decoded);
   
-  salt->salt_len    = salt_len_decoded;
-  
+  salt->salt_len = salt_len_decoded;
 
   // base64 decode hash
   const u8 *hash_pos = token.buf[4];
   const int hash_len = token.len[4];
 
-  // replace . with + for proper base64 decoding
-  memcpy(tmp_buf2, hash_pos, hash_len);
-  for (int i = 0; i < hash_len; i++)
-  {
-    if (tmp_buf2[i] == '.')
-    {
-      tmp_buf2[i] = '+';
-    }
-  }
-
-  base64_decode (base64_to_int, (const u8 *) tmp_buf2, hash_len, tmp_buf);
+  base64_decode (alternate_base64_to_int, (const u8 *) hash_pos, hash_len, tmp_buf);
   memcpy (digest, tmp_buf, HASH_LEN_RAW);
 
   digest[0] = byte_swap_32 (digest[0]);
@@ -218,33 +195,24 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   char salt_enc[128] = { 0 };
   char hash_enc[128] = { 0 };
 
-  int salt_len_enc = base64_encode (int_to_base64, (const u8 *) pbkdf2_sha1->salt_buf, salt->salt_len, (u8 *) salt_enc);
-  int hash_len_enc = base64_encode (int_to_base64, (const u8 *) tmp, HASH_LEN_RAW, (u8 *) hash_enc);
-  
+  const size_t salt_len_enc = base64_encode (int_to_alternate_base64, (const u8 *) pbkdf2_sha1->salt_buf, salt->salt_len, (u8 *) salt_enc);
+  const size_t hash_len_enc = base64_encode (int_to_alternate_base64, (const u8 *) tmp, HASH_LEN_RAW, (u8 *) hash_enc);
   
   // substitute + with . and remove padding =
-  for (int i = 0; i < salt_len_enc; i++) 
+  for (size_t i = 0; i < salt_len_enc; i++) 
   {
-    if (salt_enc[i] == '+')
-    { 
-      salt_enc[i] = '.';
-    }
     if (salt_enc[i] == '=') 
     {
-	  salt_enc[i] = '\0';
-	}
+      salt_enc[i] = '\0';
+    }
   }
 
-  for (int i = 0; i < hash_len_enc; i++) 
+  for (size_t i = 0; i < hash_len_enc; i++) 
   {
-    if (hash_enc[i] == '+') 
-    {
-	  hash_enc[i] = '.';
-	}
     if (hash_enc[i] == '=') 
     {
-	  hash_enc[i] = '\0';
-	}  
+      hash_enc[i] = '\0';
+    }  
   }
   
   // output
