@@ -36,7 +36,7 @@ inline __device__ uint4 operator ^= (      uint4 &a, const uint4 b) {           
 
 inline __device__ uint4 rotate (const uint4 a, const int n)
 {
-  return ((a >> n) | ((a >> (32 - n))));
+  return ((a << n) | ((a >> (32 - n))));
 }
 
 #endif
