@@ -80,7 +80,8 @@ NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES
 WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-Author: Sein Coray
+Author:              Sein Coray
+Related publication: https://scitepress.org/PublicationsDetail.aspx?ID=KLPzPqStp5g=
 
 */
 
@@ -92,24 +93,60 @@ Author: Sein Coray
 #include "shared.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
-static const u32   DGST_POS0      = 1;
-static const u32   DGST_POS1      = 2;
-static const u32   DGST_POS2      = 3;
-static const u32   DGST_POS3      = 4;
+static const u32   DGST_POS0      = 0;
+static const u32   DGST_POS1      = 1;
+static const u32   DGST_POS2      = 2;
+static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_4;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_ARCHIVE;
 static const char *HASH_NAME      = "PKZIP (Uncompressed)";
 static const u64   KERN_TYPE      = 17210;
 static const u32   OPTI_TYPE      = 0;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_NEVERCRACK;
+static const u64   OPTS_TYPE      = OPTS_TYPE_PT_NEVERCRACK; // nevercrack is required because it's quite likely that a collision is found which will not necessarily work as password for the archive
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$pkzip2$1*1*2*0*1d1*1c5*eda7a8de*0*28*0*1d1*eda7*5096*1dea673da43d9fc7e2be1a1f4f664269fceb6cb88723a97408ae1fe07f774d31d1442ea8485081e63f919851ca0b7588d5e3442317fff19fe547a4ef97492ed75417c427eea3c4e146e16c100a2f8b6abd7e5988dc967e5a0e51f641401605d673630ea52ebb04da4b388489901656532c9aa474ca090dbac7cf8a21428d57b42a71da5f3d83fed927361e5d385ca8e480a6d42dea5b4bf497d3a24e79fc7be37c8d1721238cbe9e1ea3ae1eb91fc02aabdf33070d718d5105b70b3d7f3d2c28b3edd822e89a5abc0c8fee117c7fbfbfd4b4c8e130977b75cb0b1da080bfe1c0859e6483c42f459c8069d45a76220e046e6c2a2417392fd87e4aa4a2559eaab3baf78a77a1b94d8c8af16a977b4bb45e3da211838ad044f209428dba82666bf3d54d4eed82c64a9b3444a44746b9e398d0516a2596d84243b4a1d7e87d9843f38e45b6be67fd980107f3ad7b8453d87300e6c51ac9f5e3f6c3b702654440c543b1d808b62f7a313a83b31a6faaeedc2620de7057cd0df80f70346fe2d4dccc318f0b5ed128bcf0643e63d754bb05f53afb2b0fa90b34b538b2ad3648209dff587df4fa18698e4fa6d858ad44aa55d2bba3b08dfdedd3e28b8b7caf394d5d9d95e452c2ab1c836b9d74538c2f0d24b9b577*$/pkzip2$";
 
+#define MAX_DATA (16 * 1024 * 1024)
+
+// this is required to force mingw to accept the packed attribute
+#pragma pack(push,1)
+
+struct pkzip_hash
+{
+  u8  data_type_enum;
+  u8  magic_type_enum;
+  u32 compressed_length;
+  u32 uncompressed_length;
+  u32 crc32;
+  u8  offset;
+  u8  additional_offset;
+  u8  compression_type;
+  u32 data_length;
+  u16 checksum_from_crc;
+  u16 checksum_from_timestamp;
+  u8  data[MAX_DATA];
+
+} __attribute__((packed));
+
+typedef struct pkzip_hash pkzip_hash_t;
+
+struct pkzip
+{
+  u8 hash_count;
+  u8 checksum_size;
+  u8 version;
+
+  pkzip_hash_t hash;
+
+} __attribute__((packed));
+
+typedef struct pkzip pkzip_t;
+
+#pragma pack(pop)
+
 static const char *SIGNATURE_PKZIP_V1 = "$pkzip$";
 static const char *SIGNATURE_PKZIP_V2 = "$pkzip2$";
-
-#define MAX_UNCOMPRESSED_LENGTH 4096
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -125,30 +162,6 @@ u64         module_opts_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return SALT_TYPE;       }
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
-
-typedef struct pkzip_hash
-{
-  u8  data_type_enum;
-  u8  magic_type_enum;
-  u32 compressed_length;
-  u32 uncompressed_length;
-  u32 crc32;
-  u8  offset;
-  u8  additional_offset;
-  u8  compression_type;
-  u32 data_length;
-  u16 checksum_from_crc;
-  u16 checksum_from_timestamp;
-  u8  data[MAX_UNCOMPRESSED_LENGTH];
-} pkzip_hash_t;
-
-typedef struct pkzip
-{
-  u8 hash_count;
-  u8 checksum_size;
-  u8 version;
-  pkzip_hash_t hash;
-} pkzip_t;
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -214,7 +227,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     p = strtok(NULL, "*");
     if (p == NULL) return PARSER_HASH_LENGTH;
     pkzip->hash.uncompressed_length = strtoul(p, NULL, 16);
-    if (pkzip->hash.uncompressed_length > MAX_UNCOMPRESSED_LENGTH)
+    if (pkzip->hash.uncompressed_length > MAX_DATA)
     {
       return PARSER_TOKEN_LENGTH;
     }
@@ -261,18 +274,19 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   hex_to_binary(p, strlen(p), (char *) &(pkzip->hash.data));
 
   // fake salt
-  salt->salt_buf[0] = pkzip->hash.data[ 3] << 24 | pkzip->hash.data[ 2] << 16 | pkzip->hash.data[ 1] << 8 | pkzip->hash.data[ 0];
-  salt->salt_buf[1] = pkzip->hash.data[ 7] << 24 | pkzip->hash.data[ 6] << 16 | pkzip->hash.data[ 5] << 8 | pkzip->hash.data[ 4];
-  salt->salt_buf[2] = pkzip->hash.data[11] << 24 | pkzip->hash.data[10] << 16 | pkzip->hash.data[ 9] << 8 | pkzip->hash.data[ 8];
-  salt->salt_buf[3] = pkzip->hash.data[15] << 24 | pkzip->hash.data[14] << 16 | pkzip->hash.data[13] << 8 | pkzip->hash.data[ 12];
+  u32 *ptr = (u32 *) pkzip->hash.data;
+
+  salt->salt_buf[0] = ptr[0];
+  salt->salt_buf[1] = ptr[1];
+  salt->salt_buf[2] = ptr[2];
+  salt->salt_buf[3] = ptr[3];
 
   salt->salt_len = 16;
 
-  // fake hash
-  digest[0] = pkzip->hash.data[ 0] << 24 | pkzip->hash.data[ 1] << 16 | pkzip->hash.data[ 2] << 8 | pkzip->hash.data[ 3];
-  digest[1] = pkzip->hash.data[ 4] << 24 | pkzip->hash.data[ 5] << 16 | pkzip->hash.data[ 6] << 8 | pkzip->hash.data[ 7];
-  digest[2] = pkzip->hash.data[ 8] << 24 | pkzip->hash.data[ 9] << 16 | pkzip->hash.data[10] << 8 | pkzip->hash.data[11];
-  digest[3] = pkzip->hash.data[12] << 24 | pkzip->hash.data[13] << 16 | pkzip->hash.data[14] << 8 | pkzip->hash.data[15];
+  digest[0] = pkzip->hash.crc32;
+  digest[1] = 0;
+  digest[2] = 0;
+  digest[3] = 0;
 
   return (PARSER_OK);
 }
@@ -354,10 +368,11 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_binary_count        = MODULE_DEFAULT;
   module_ctx->module_hash_binary_parse        = MODULE_DEFAULT;
   module_ctx->module_hash_binary_save         = MODULE_DEFAULT;
-  module_ctx->module_hash_decode_outfile      = MODULE_DEFAULT;
+  module_ctx->module_hash_decode_potfile      = MODULE_DEFAULT;
   module_ctx->module_hash_decode_zero_hash    = MODULE_DEFAULT;
   module_ctx->module_hash_decode              = module_hash_decode;
   module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
+  module_ctx->module_hash_encode_potfile      = MODULE_DEFAULT;
   module_ctx->module_hash_encode              = module_hash_encode;
   module_ctx->module_hash_init_selftest       = MODULE_DEFAULT;
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
@@ -382,6 +397,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_opts_type                = module_opts_type;
   module_ctx->module_outfile_check_disable    = MODULE_DEFAULT;
   module_ctx->module_outfile_check_nocomp     = MODULE_DEFAULT;
+  module_ctx->module_potfile_custom_check     = MODULE_DEFAULT;
   module_ctx->module_potfile_disable          = MODULE_DEFAULT;
   module_ctx->module_potfile_keep_all_hashes  = MODULE_DEFAULT;
   module_ctx->module_pwdump_column            = MODULE_DEFAULT;
