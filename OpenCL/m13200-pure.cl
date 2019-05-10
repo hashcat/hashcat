@@ -165,7 +165,7 @@ KERNEL_FQ void m13200_loop (KERN_ATTR_TMPS (axcrypt_tmp_t))
    * aes decrypt key
    */
 
-  AES128_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+  AES128_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
   const u32 wrapping_rounds = salt_bufs[salt_pos].salt_iter - 1;
 

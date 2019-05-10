@@ -9,12 +9,10 @@
 #include "event.h"
 #include "logfile.h"
 #include "shared.h"
-#include "filehandling.h"
 #include "folder.h"
 #include "rp.h"
-#include "rp_cpu.h"
-#include "straight.h"
 #include "wordlist.h"
+#include "straight.h"
 
 static int straight_ctx_add_wl (hashcat_ctx_t *hashcat_ctx, const char *dict)
 {

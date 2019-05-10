@@ -96,7 +96,7 @@ DECLSPEC void rc4_init_16 (LOCAL_AS RC4_KEY *rc4_key, const u32 *data)
   }
 }
 
-DECLSPEC u8 rc4_next_16 (LOCAL_AS RC4_KEY *rc4_key, u8 i, u8 j, const GLOBAL_AS u32 *in, u32 *out)
+DECLSPEC u8 rc4_next_16 (LOCAL_AS RC4_KEY *rc4_key, u8 i, u8 j, GLOBAL_AS const u32 *in, u32 *out)
 {
   #ifdef _unroll
   #pragma unroll
@@ -633,7 +633,7 @@ KERNEL_FQ void m18200_m04 (KERN_ATTR_RULES_ESALT (krb5asrep_t))
     u32x w2[4] = { 0 };
     u32x w3[4] = { 0 };
 
-    const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+    const u32x out_len = apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     /**
      * kerberos
@@ -731,7 +731,7 @@ KERNEL_FQ void m18200_s04 (KERN_ATTR_RULES_ESALT (krb5asrep_t))
     u32x w2[4] = { 0 };
     u32x w3[4] = { 0 };
 
-    const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+    const u32x out_len = apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     /**
      * kerberos

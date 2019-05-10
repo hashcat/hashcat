@@ -5,9 +5,6 @@
 
 //#define NEW_SIMD_CODE
 
-//#undef  LOCAL_MEM_TYPE
-//#define LOCAL_MEM_TYPE LOCAL_MEM_TYPE_GLOBAL
-
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
@@ -942,7 +939,7 @@ KERNEL_FQ void m13733_comp (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
   {
     if (atomic_inc (&hashes_shown[0]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0, tmps[gid].pim, 0);
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0, 0, 0);
     }
   }
   else

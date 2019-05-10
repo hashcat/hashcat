@@ -60,8 +60,6 @@ DECLSPEC void m02810m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
   salt_buf3[2] = 0;
   salt_buf3[3] = 0;
 
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
-
   /**
    * loop
    */
@@ -403,8 +401,6 @@ DECLSPEC void m02810s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
   salt_buf3[1] = 0;
   salt_buf3[2] = 0;
   salt_buf3[3] = 0;
-
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
   /**
    * digest

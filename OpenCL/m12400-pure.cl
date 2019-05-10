@@ -428,8 +428,6 @@ DECLSPEC void _des_crypt_keysetup (u32 c, u32 d, u32 *Kc, u32 *Kd, LOCAL_AS u32 
 
 DECLSPEC void _des_crypt_encrypt (u32 *iv, u32 mask, u32 rounds, u32 *Kc, u32 *Kd, LOCAL_AS u32 (*s_SPtrans)[64])
 {
-  u32 tt;
-
   const u32 E0 = ((mask >>  0) & 0x003f)
                | ((mask >>  4) & 0x3f00);
   const u32 E1 = ((mask >>  2) & 0x03f0)
@@ -548,7 +546,7 @@ KERNEL_FQ void m12400_init (KERN_ATTR_TMPS (bsdicrypt_tmp_t))
 
   u32 w[64] = { 0 };
 
-  for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
     w[idx] = pws[gid].i[idx];
   }

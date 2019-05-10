@@ -839,6 +839,42 @@ void uppercase (u8 *buf, const size_t len)
   for (size_t i = 0; i < len; i++) buf[i] = (u8) toupper ((int) buf[i]);
 }
 
+u8 v8a_from_v32 (const u32 v32)
+{
+  vconv32_t v;
+
+  v.v32 = v32;
+
+  return v.v8a;
+}
+
+u8 v8b_from_v32 (const u32 v32)
+{
+  vconv32_t v;
+
+  v.v32 = v32;
+
+  return v.v8b;
+}
+
+u8 v8c_from_v32 (const u32 v32)
+{
+  vconv32_t v;
+
+  v.v32 = v32;
+
+  return v.v8c;
+}
+
+u8 v8d_from_v32 (const u32 v32)
+{
+  vconv32_t v;
+
+  v.v32 = v32;
+
+  return v.v8d;
+}
+
 u16 v16a_from_v32 (const u32 v32)
 {
   vconv32_t v;
@@ -893,4 +929,24 @@ u64 v64_from_v32ab (const u32 v32a, const u32 v32b)
   v.v32b = v32b;
 
   return v.v64;
+}
+
+int hex_decode (const u8 *in_buf, const int in_len, u8 *out_buf)
+{
+  for (int i = 0, j = 0; i < in_len; i += 2, j += 1)
+  {
+    out_buf[j] = hex_to_u8 (&in_buf[i]);
+  }
+
+  return in_len / 2;
+}
+
+int hex_encode (const u8 *in_buf, const int in_len, u8 *out_buf)
+{
+  for (int i = 0, j = 0; i < in_len; i += 1, j += 2)
+  {
+    u8_to_hex (in_buf[i], &out_buf[j]);
+  }
+
+  return in_len * 2;
 }

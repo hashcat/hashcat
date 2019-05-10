@@ -10,7 +10,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
-#include "cpu_md4.h"
+#include "emu_inc_hash_md4.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -81,25 +81,16 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memcpy (w, pw_buf, pw_len);
 
-  u8 *w_ptr = (u8 *) w;
+  md4_ctx_t ctx;
 
-  w_ptr[line_len] = 0x80;
+  md4_init (&ctx);
+  md4_update (&ctx, w, pw_len);
+  md4_final (&ctx);
 
-  w[14] = line_len * 8;
-
-  u32 dgst[4];
-
-  dgst[0] = MD4M_A;
-  dgst[1] = MD4M_B;
-  dgst[2] = MD4M_C;
-  dgst[3] = MD4M_D;
-
-  md4_64 (w, dgst);
-
-  digest[0] = dgst[0];
-  digest[1] = dgst[1];
-  digest[2] = dgst[2];
-  digest[3] = dgst[3];
+  digest[0] = ctx.h[0];
+  digest[1] = ctx.h[1];
+  digest[2] = ctx.h[2];
+  digest[3] = ctx.h[3];
 
   if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
   {
@@ -146,10 +137,11 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_binary_save         = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;
   module_ctx->module_hash_decode              = module_hash_decode;
-  module_ctx->module_hash_decode_outfile      = MODULE_DEFAULT;
+  module_ctx->module_hash_decode_potfile      = MODULE_DEFAULT;
   module_ctx->module_hash_decode_zero_hash    = MODULE_DEFAULT;
   module_ctx->module_hash_encode              = module_hash_encode;
   module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
+  module_ctx->module_hash_encode_potfile      = MODULE_DEFAULT;
   module_ctx->module_hash_init_selftest       = MODULE_DEFAULT;
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_name                = module_hash_name;
@@ -172,6 +164,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_opts_type                = module_opts_type;
   module_ctx->module_outfile_check_disable    = MODULE_DEFAULT;
   module_ctx->module_outfile_check_nocomp     = MODULE_DEFAULT;
+  module_ctx->module_potfile_custom_check     = MODULE_DEFAULT;
   module_ctx->module_potfile_disable          = MODULE_DEFAULT;
   module_ctx->module_potfile_keep_all_hashes  = MODULE_DEFAULT;
   module_ctx->module_pwdump_column            = MODULE_DEFAULT;

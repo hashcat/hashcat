@@ -35,21 +35,21 @@ KERNEL_FQ void m11850_mxx (KERN_ATTR_RULES ())
 
   for (u32 i = lid; i < 256; i += lsz)
   {
-    s_sbob_sl64[0][i] = sbob_sl64[0][i];
-    s_sbob_sl64[1][i] = sbob_sl64[1][i];
-    s_sbob_sl64[2][i] = sbob_sl64[2][i];
-    s_sbob_sl64[3][i] = sbob_sl64[3][i];
-    s_sbob_sl64[4][i] = sbob_sl64[4][i];
-    s_sbob_sl64[5][i] = sbob_sl64[5][i];
-    s_sbob_sl64[6][i] = sbob_sl64[6][i];
-    s_sbob_sl64[7][i] = sbob_sl64[7][i];
+    s_sbob_sl64[0][i] = sbob512_sl64[0][i];
+    s_sbob_sl64[1][i] = sbob512_sl64[1][i];
+    s_sbob_sl64[2][i] = sbob512_sl64[2][i];
+    s_sbob_sl64[3][i] = sbob512_sl64[3][i];
+    s_sbob_sl64[4][i] = sbob512_sl64[4][i];
+    s_sbob_sl64[5][i] = sbob512_sl64[5][i];
+    s_sbob_sl64[6][i] = sbob512_sl64[6][i];
+    s_sbob_sl64[7][i] = sbob512_sl64[7][i];
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
 
   #else
 
-  CONSTANT_AS u64a (*s_sbob_sl64)[256] = sbob_sl64;
+  CONSTANT_AS u64a (*s_sbob_sl64)[256] = sbob512_sl64;
 
   #endif
 
@@ -65,7 +65,7 @@ KERNEL_FQ void m11850_mxx (KERN_ATTR_RULES ())
 
   u32 s[64] = { 0 };
 
-  for (int i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
+  for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
     s[idx] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[idx]);
   }
@@ -117,21 +117,21 @@ KERNEL_FQ void m11850_sxx (KERN_ATTR_RULES ())
 
   for (u32 i = lid; i < 256; i += lsz)
   {
-    s_sbob_sl64[0][i] = sbob_sl64[0][i];
-    s_sbob_sl64[1][i] = sbob_sl64[1][i];
-    s_sbob_sl64[2][i] = sbob_sl64[2][i];
-    s_sbob_sl64[3][i] = sbob_sl64[3][i];
-    s_sbob_sl64[4][i] = sbob_sl64[4][i];
-    s_sbob_sl64[5][i] = sbob_sl64[5][i];
-    s_sbob_sl64[6][i] = sbob_sl64[6][i];
-    s_sbob_sl64[7][i] = sbob_sl64[7][i];
+    s_sbob_sl64[0][i] = sbob512_sl64[0][i];
+    s_sbob_sl64[1][i] = sbob512_sl64[1][i];
+    s_sbob_sl64[2][i] = sbob512_sl64[2][i];
+    s_sbob_sl64[3][i] = sbob512_sl64[3][i];
+    s_sbob_sl64[4][i] = sbob512_sl64[4][i];
+    s_sbob_sl64[5][i] = sbob512_sl64[5][i];
+    s_sbob_sl64[6][i] = sbob512_sl64[6][i];
+    s_sbob_sl64[7][i] = sbob512_sl64[7][i];
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
 
   #else
 
-  CONSTANT_AS u64a (*s_sbob_sl64)[256] = sbob_sl64;
+  CONSTANT_AS u64a (*s_sbob_sl64)[256] = sbob512_sl64;
 
   #endif
 
@@ -159,7 +159,7 @@ KERNEL_FQ void m11850_sxx (KERN_ATTR_RULES ())
 
   u32 s[64] = { 0 };
 
-  for (int i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
+  for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
     s[idx] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[idx]);
   }

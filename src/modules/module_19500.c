@@ -9,6 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "emu_inc_hash_md5.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 3;
@@ -115,9 +116,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[3] = byte_swap_32 (digest[3]);
   digest[4] = byte_swap_32 (digest[4]);
 
-  const u8 *salt_pos = token.buf[1];
-  const int salt_len = token.len[1];
-
   const bool parse_rc1 = generic_salt_decode (hashconfig, token.buf[1], token.len[1], (u8 *) devise_double_salt->salt_buf, (int *) &devise_double_salt->salt_len);
 
   if (parse_rc1 == false) return (PARSER_SALT_LENGTH);
@@ -128,10 +126,19 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // make salt sorter happy
 
-  salt->salt_buf[0] = devise_double_salt->salt_buf[0];
-  salt->salt_buf[1] = devise_double_salt->salt_buf[1];
+  md5_ctx_t md5_ctx;
 
-  salt->salt_len = 8;
+  md5_init   (&md5_ctx);
+  md5_update (&md5_ctx, devise_double_salt->salt_buf,     devise_double_salt->salt_len);
+  md5_update (&md5_ctx, devise_double_salt->site_key_buf, devise_double_salt->site_key_len);
+  md5_final  (&md5_ctx);
+
+  salt->salt_buf[0] = md5_ctx.h[0];
+  salt->salt_buf[1] = md5_ctx.h[1];
+  salt->salt_buf[2] = md5_ctx.h[2];
+  salt->salt_buf[3] = md5_ctx.h[3];
+
+  salt->salt_len = 16;
 
   return (PARSER_OK);
 }
@@ -209,10 +216,11 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_binary_count        = MODULE_DEFAULT;
   module_ctx->module_hash_binary_parse        = MODULE_DEFAULT;
   module_ctx->module_hash_binary_save         = MODULE_DEFAULT;
-  module_ctx->module_hash_decode_outfile      = MODULE_DEFAULT;
+  module_ctx->module_hash_decode_potfile      = MODULE_DEFAULT;
   module_ctx->module_hash_decode_zero_hash    = MODULE_DEFAULT;
   module_ctx->module_hash_decode              = module_hash_decode;
   module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
+  module_ctx->module_hash_encode_potfile      = MODULE_DEFAULT;
   module_ctx->module_hash_encode              = module_hash_encode;
   module_ctx->module_hash_init_selftest       = MODULE_DEFAULT;
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
@@ -237,6 +245,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_opts_type                = module_opts_type;
   module_ctx->module_outfile_check_disable    = MODULE_DEFAULT;
   module_ctx->module_outfile_check_nocomp     = MODULE_DEFAULT;
+  module_ctx->module_potfile_custom_check     = MODULE_DEFAULT;
   module_ctx->module_potfile_disable          = MODULE_DEFAULT;
   module_ctx->module_potfile_keep_all_hashes  = MODULE_DEFAULT;
   module_ctx->module_pwdump_column            = MODULE_DEFAULT;

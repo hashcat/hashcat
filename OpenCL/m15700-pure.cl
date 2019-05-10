@@ -142,7 +142,7 @@ DECLSPEC void salsa_r (uint4 *TI)
   }
 }
 
-DECLSPEC void scrypt_smix (uint4 *X, uint4 *T, GLOBAL_AS uint4 * restrict V0, GLOBAL_AS uint4 * restrict V1, GLOBAL_AS uint4 * restrict V2, GLOBAL_AS uint4 * restrict V3)
+DECLSPEC void scrypt_smix (uint4 *X, uint4 *T, GLOBAL_AS uint4 *V0, GLOBAL_AS uint4 *V1, GLOBAL_AS uint4 *V2, GLOBAL_AS uint4 *V3)
 {
   #define Coord(xd4,y,z) (((xd4) * ySIZE * zSIZE) + ((y) * zSIZE) + (z))
   #define CO Coord(xd4,y,z)
@@ -155,7 +155,7 @@ DECLSPEC void scrypt_smix (uint4 *X, uint4 *T, GLOBAL_AS uint4 * restrict V0, GL
   const u32 xd4 = x / 4;
   const u32 xm4 = x & 3;
 
-  GLOBAL_AS uint4 * restrict V;
+  GLOBAL_AS uint4 *V;
 
   switch (xm4)
   {
@@ -424,10 +424,10 @@ KERNEL_FQ void m15700_loop (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, ethereum_scrypt_
 
   if (gid >= gid_max) return;
 
-  GLOBAL_AS uint4 * restrict d_scrypt0_buf = d_extra0_buf;
-  GLOBAL_AS uint4 * restrict d_scrypt1_buf = d_extra1_buf;
-  GLOBAL_AS uint4 * restrict d_scrypt2_buf = d_extra2_buf;
-  GLOBAL_AS uint4 * restrict d_scrypt3_buf = d_extra3_buf;
+  GLOBAL_AS uint4 *d_scrypt0_buf = d_extra0_buf;
+  GLOBAL_AS uint4 *d_scrypt1_buf = d_extra1_buf;
+  GLOBAL_AS uint4 *d_scrypt2_buf = d_extra2_buf;
+  GLOBAL_AS uint4 *d_scrypt3_buf = d_extra3_buf;
 
   uint4 X[STATE_CNT4];
   uint4 T[STATE_CNT4];

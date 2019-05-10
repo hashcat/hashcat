@@ -5,7 +5,6 @@
 
 #include "common.h"
 #include "types.h"
-#include "event.h"
 #include "locking.h"
 
 #if defined (F_SETLKW)

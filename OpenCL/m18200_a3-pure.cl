@@ -93,7 +93,7 @@ DECLSPEC void rc4_init_16 (LOCAL_AS RC4_KEY *rc4_key, const u32 *data)
   }
 }
 
-DECLSPEC u8 rc4_next_16 (LOCAL_AS RC4_KEY *rc4_key, u8 i, u8 j, const GLOBAL_AS u32 *in, u32 *out)
+DECLSPEC u8 rc4_next_16 (LOCAL_AS RC4_KEY *rc4_key, u8 i, u8 j, GLOBAL_AS const u32 *in, u32 *out)
 {
   #ifdef _unroll
   #pragma unroll
@@ -401,7 +401,7 @@ KERNEL_FQ void m18200_mxx (KERN_ATTR_VECTOR_ESALT (krb5asrep_t))
 
   u32x w[64] = { 0 };
 
-  for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
     w[idx] = pws[gid].i[idx];
   }
@@ -474,7 +474,7 @@ KERNEL_FQ void m18200_sxx (KERN_ATTR_VECTOR_ESALT (krb5asrep_t))
 
   u32x w[64] = { 0 };
 
-  for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
     w[idx] = pws[gid].i[idx];
   }

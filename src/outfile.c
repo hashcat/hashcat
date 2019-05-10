@@ -5,29 +5,25 @@
 
 #include "common.h"
 #include "types.h"
-#include "memory.h"
 #include "event.h"
 #include "convert.h"
-#include "interface.h"
-#include "hashes.h"
 #include "mpsp.h"
 #include "rp.h"
-#include "rp_kernel_on_cpu.h"
-#include "rp_kernel_on_cpu_optimized.h"
+#include "emu_inc_rp.h"
+#include "emu_inc_rp_optimized.h"
 #include "opencl.h"
 #include "shared.h"
-#include "outfile.h"
 #include "locking.h"
+#include "outfile.h"
 
 int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain, u32 *plain_buf, int *out_len)
 {
-  const combinator_ctx_t     *combinator_ctx      = hashcat_ctx->combinator_ctx;
-  const hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
-  const hashes_t             *hashes              = hashcat_ctx->hashes;
-  const mask_ctx_t           *mask_ctx            = hashcat_ctx->mask_ctx;
-  const straight_ctx_t       *straight_ctx        = hashcat_ctx->straight_ctx;
-  const user_options_t       *user_options        = hashcat_ctx->user_options;
-  const user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
+  const combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
+  const hashconfig_t     *hashconfig     = hashcat_ctx->hashconfig;
+  const hashes_t         *hashes         = hashcat_ctx->hashes;
+  const mask_ctx_t       *mask_ctx       = hashcat_ctx->mask_ctx;
+  const straight_ctx_t   *straight_ctx   = hashcat_ctx->straight_ctx;
+  const user_options_t   *user_options   = hashcat_ctx->user_options;
 
   const u64 gidvid = plain->gidvid;
   const u32 il_pos = plain->il_pos;

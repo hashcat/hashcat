@@ -9,6 +9,7 @@ PRODUCTION              := 0
 PRODUCTION_VERSION      := v5.1.0
 ENABLE_BRAIN            := 1
 USE_SYSTEM_LZMA         := 0
+USE_SYSTEM_ZLIB         := 0
 USE_SYSTEM_OPENCL       := 0
 USE_SYSTEM_XXHASH       := 0
 
@@ -55,6 +56,7 @@ MODULE_INTERFACE_VERSION := 520
 ##
 
 CC                      := gcc
+AR                      := ar
 FIND                    := find
 INSTALL                 := install
 RM                      := rm
@@ -109,6 +111,12 @@ ifeq ($(USE_SYSTEM_LZMA),0)
 DEPS_LZMA_PATH          := deps/LZMA-SDK/C
 else
 DEPS_LZMA_PATH          := $(LIBRARY_DEV_ROOT_FOLDER)/
+endif
+
+ifeq ($(USE_SYSTEM_ZLIB),0)
+DEPS_ZLIB_PATH          := deps/zlib/
+else
+DEPS_ZLIB_PATH          := $(LIBRARY_DEV_ROOT_FOLDER)/
 endif
 
 ifeq ($(USE_SYSTEM_OPENCL),0)
@@ -167,9 +175,10 @@ ifeq ($(CC),clang)
 CFLAGS                  += -Wno-enum-conversion
 endif
 
-## is very annoying during refactor
-CFLAGS                  += -Wno-unused-variable
-CFLAGS                  += -Wno-unused-function
+## because ZLIB
+ifeq ($(USE_SYSTEM_ZLIB),0)
+CFLAGS_ZLIB             += -Wno-implicit-fallthrough
+endif
 
 ifeq ($(DEBUG),0)
 CFLAGS                  += -O2
@@ -201,6 +210,12 @@ CFLAGS                  += -pipe -std=gnu99 -Iinclude/ -IOpenCL/
 CFLAGS                  += -I$(DEPS_LZMA_PATH)
 ifeq ($(USE_SYSTEM_LZMA),1)
 LFLAGS                  += -llzmasdk
+endif
+
+# ZLIB
+CFLAGS                  += -I$(DEPS_ZLIB_PATH)
+ifeq ($(USE_SYSTEM_ZLIB),1)
+LFLAGS                  += -lz
 endif
 
 # OpenCL
@@ -277,51 +292,47 @@ endif # MSYS2
 ## Objects
 ##
 
-OBJS_ALL                := affinity autotune benchmark bitmap bitops combinator common convert cpt cpu_aes cpu_crc32 cpu_des cpu_md4 cpu_md5 cpu_sha1 cpu_sha256 debugfile dictstat dispatch dynloader event ext_ADL ext_nvapi ext_nvml ext_OpenCL ext_sysfs ext_lzma filehandling folder hashcat hashes hlfmt hwmon induct interface keyboard_layout locking logfile loopback memory monitor mpsp opencl outfile_check outfile pidfile potfile restore rp rp_cpu rp_kernel_on_cpu rp_kernel_on_cpu_optimized selftest slow_candidates shared status stdout straight terminal thread timer tuningdb usage user_options wordlist
+EMU_OBJS_ALL            := emu_general emu_inc_common emu_inc_scalar emu_inc_simd
+EMU_OBJS_ALL            += emu_inc_rp emu_inc_rp_optimized
+EMU_OBJS_ALL            += emu_inc_truecrypt_crc32 emu_inc_truecrypt_keyfile emu_inc_truecrypt_xts emu_inc_veracrypt_xts
+EMU_OBJS_ALL            += emu_inc_hash_md4 emu_inc_hash_md5 emu_inc_hash_ripemd160 emu_inc_hash_sha1 emu_inc_hash_sha256 emu_inc_hash_sha384 emu_inc_hash_sha512 emu_inc_hash_streebog256 emu_inc_hash_streebog512
+EMU_OBJS_ALL            += emu_inc_cipher_aes emu_inc_cipher_camellia emu_inc_cipher_des emu_inc_cipher_kuznyechik emu_inc_cipher_serpent emu_inc_cipher_twofish
+
+OBJS_ALL                := affinity autotune benchmark bitmap bitops combinator common convert cpt cpu_crc32 debugfile dictstat dispatch dynloader event ext_ADL ext_nvapi ext_nvml ext_OpenCL ext_sysfs ext_lzma filehandling folder hashcat hashes hlfmt hwmon induct interface keyboard_layout locking logfile loopback memory monitor mpsp opencl outfile_check outfile pidfile potfile restore rp rp_cpu selftest slow_candidates shared status stdout straight terminal thread timer tuningdb usage user_options wordlist $(EMU_OBJS_ALL)
 
 ifeq ($(ENABLE_BRAIN),1)
 OBJS_ALL                += brain
 endif
 
-NATIVE_STATIC_OBJS      := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).NATIVE.STATIC.o)
-NATIVE_SHARED_OBJS      := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).NATIVE.SHARED.o)
-
+NATIVE_OBJS             := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).NATIVE.o)
 LINUX_OBJS              := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).LINUX.o)
 WIN_OBJS                := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).WIN.o)
 
 ifeq ($(USE_SYSTEM_LZMA),0)
 OBJS_LZMA               := Alloc Lzma2Dec LzmaDec
 
-NATIVE_STATIC_OBJS      += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).NATIVE.STATIC.o)
-NATIVE_SHARED_OBJS      += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).NATIVE.SHARED.o)
-
+NATIVE_OBJS             += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).NATIVE.o)
 LINUX_OBJS              += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).LINUX.o)
 WIN_OBJS                += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).WIN.o)
+endif
+
+ifeq ($(USE_SYSTEM_ZLIB),0)
+OBJS_ZLIB               := adler32 crc32 zutil inftrees inffast inflate
+
+NATIVE_OBJS             += $(foreach OBJ,$(OBJS_ZLIB),obj/$(OBJ).NATIVE.o)
+LINUX_OBJS              += $(foreach OBJ,$(OBJS_ZLIB),obj/$(OBJ).LINUX.o)
+WIN_OBJS                += $(foreach OBJ,$(OBJS_ZLIB),obj/$(OBJ).WIN.o)
 endif
 
 ifeq ($(USE_SYSTEM_XXHASH),0)
 ifeq ($(ENABLE_BRAIN),1)
 OBJS_XXHASH             := xxhash
 
-NATIVE_STATIC_OBJS      += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).NATIVE.STATIC.o)
-NATIVE_SHARED_OBJS      += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).NATIVE.SHARED.o)
-
+NATIVE_OBJS             += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).NATIVE.o)
 LINUX_OBJS              += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).LINUX.o)
 WIN_OBJS                += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).WIN.o)
 endif
 endif
-
-MODULE_OBJS_ALL                 := bitops convert cpu_aes cpu_crc32 cpu_des cpu_md4 cpu_md5 cpu_sha1 cpu_sha256 ext_lzma filehandling keyboard_layout memory shared
-
-ifeq ($(USE_SYSTEM_LZMA),0)
-MODULE_OBJS_ALL                 += Alloc Lzma2Dec LzmaDec
-endif
-
-MODULE_NATIVE_STATIC_OBJS       := $(foreach OBJ,$(MODULE_OBJS_ALL),obj/$(OBJ).NATIVE.STATIC.o)
-MODULE_NATIVE_SHARED_OBJS       := $(foreach OBJ,$(MODULE_OBJS_ALL),obj/$(OBJ).NATIVE.SHARED.o)
-
-MODULE_LINUX_OBJS               := $(foreach OBJ,$(MODULE_OBJS_ALL),obj/$(OBJ).LINUX.o)
-MODULE_WIN_OBJS                 := $(foreach OBJ,$(MODULE_OBJS_ALL),obj/$(OBJ).WIN.o)
 
 ##
 ## Targets: Native Compilation
@@ -453,35 +464,34 @@ uninstall:
 ## native compiled hashcat library and frontend
 ##
 
-obj/%.NATIVE.STATIC.o: src/%.c
-	$(CC) -c $(CFLAGS_NATIVE) $< -o $@
-
-obj/%.NATIVE.SHARED.o: src/%.c
+obj/%.NATIVE.o: src/%.c
 	$(CC) -c $(CFLAGS_NATIVE) $< -o $@ -fpic
 
 ifeq ($(USE_SYSTEM_LZMA),0)
-obj/%.NATIVE.STATIC.o: $(DEPS_LZMA_PATH)/%.c
-	$(CC) -c $(CFLAGS_NATIVE) $< -o $@
-
-obj/%.NATIVE.SHARED.o: $(DEPS_LZMA_PATH)/%.c
+obj/%.NATIVE.o: $(DEPS_LZMA_PATH)/%.c
 	$(CC) -c $(CFLAGS_NATIVE) $< -o $@ -fpic
+endif
+
+ifeq ($(USE_SYSTEM_ZLIB),0)
+obj/%.NATIVE.o: $(DEPS_ZLIB_PATH)/%.c
+	$(CC) -c $(CFLAGS_NATIVE) $(CFLAGS_ZLIB) $< -o $@ -fpic
 endif
 
 ifeq ($(USE_SYSTEM_XXHASH),0)
 ifeq ($(ENABLE_BRAIN),1)
-obj/%.NATIVE.STATIC.o: $(DEPS_XXHASH_PATH)/%.c
-	$(CC) -c $(CFLAGS_NATIVE) $< -o $@
-
-obj/%.NATIVE.SHARED.o: $(DEPS_XXHASH_PATH)/%.c
+obj/%.NATIVE.o: $(DEPS_XXHASH_PATH)/%.c
 	$(CC) -c $(CFLAGS_NATIVE) $< -o $@ -fpic
 endif
 endif
 
+obj/combined.NATIVE.a: $(NATIVE_OBJS)
+	$(AR) rcs $@ $^
+
 ifeq ($(UNAME),Darwin)
-$(HASHCAT_LIBRARY): $(NATIVE_SHARED_OBJS)
+$(HASHCAT_LIBRARY): $(NATIVE_OBJS)
 	$(CC)                     $^ -o $@                    $(LFLAGS_NATIVE) -shared -install_name $(DESTDIR)$(LIBRARY_FOLDER)/$(HASHCAT_LIBRARY) -current_version $(VERSION_PURE) -compatibility_version $(VERSION_PURE)
 else
-$(HASHCAT_LIBRARY): $(NATIVE_SHARED_OBJS)
+$(HASHCAT_LIBRARY): $(NATIVE_OBJS)
 	$(CC)                     $^ -o $@                    $(LFLAGS_NATIVE) -shared -Wl,-soname,$(HASHCAT_LIBRARY)
 endif
 
@@ -489,7 +499,7 @@ ifeq ($(SHARED),1)
 $(HASHCAT_FRONTEND): src/main.c $(HASHCAT_LIBRARY)
 	$(CC)    $(CFLAGS_NATIVE) $^ -o $@ $(HASHCAT_LIBRARY) $(LFLAGS_NATIVE) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 else
-$(HASHCAT_FRONTEND): src/main.c $(NATIVE_STATIC_OBJS)
+$(HASHCAT_FRONTEND): src/main.c obj/combined.NATIVE.a
 	$(CC)    $(CFLAGS_NATIVE) $^ -o $@                    $(LFLAGS_NATIVE) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 endif
 
@@ -510,8 +520,13 @@ endif
 MODULES_SRC   := $(wildcard src/modules/*.c)
 MODULES_LIB   := $(patsubst src/modules/module_%.c, modules/module_%.$(MODULE_SUFFIX), $(MODULES_SRC))
 
-modules/module_%.$(MODULE_SUFFIX): src/modules/module_%.c $(MODULE_NATIVE_SHARED_OBJS)
+ifeq ($(SHARED),1)
+modules/module_%.$(MODULE_SUFFIX): src/modules/module_%.c $(HASHCAT_LIBRARY)
 	$(CC)    $(CFLAGS_NATIVE) $^ -o $@ $(LFLAGS_NATIVE) -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
+else
+modules/module_%.$(MODULE_SUFFIX): src/modules/module_%.c obj/combined.NATIVE.a
+	$(CC)    $(CFLAGS_NATIVE) $^ -o $@ $(LFLAGS_NATIVE) -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
+endif
 
 modules: $(MODULES_LIB)
 
@@ -527,6 +542,9 @@ ifeq ($(UNAME),Linux)
 
 CC_LINUX                := gcc
 CC_WIN                  := x86_64-w64-mingw32-gcc
+
+AR_LINUX                := ar
+AR_WIN                  := x86_64-w64-mingw32-ar
 
 ## To compile win-iconv with mingw clone from here: https://github.com/win-iconv/win-iconv
 ##
@@ -579,10 +597,10 @@ MODULES_LIB_WIN     := $(patsubst src/modules/module_%.c, modules/module_%.dll, 
 modules_linux: $(MODULES_LIB_LINUX)
 modules_win:   $(MODULES_LIB_WIN)
 
-modules/module_%.so:  src/modules/module_%.c $(MODULE_LINUX_OBJS)
+modules/module_%.so:  src/modules/module_%.c obj/combined.LINUX.a
 	$(CC_LINUX)  $(CFLAGS_CROSS_LINUX) $^ -o $@ $(LFLAGS_CROSS_LINUX) -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
 
-modules/module_%.dll: src/modules/module_%.c $(MODULE_WIN_OBJS)
+modules/module_%.dll: src/modules/module_%.c obj/combined.WIN.a
 	$(CC_WIN)    $(CFLAGS_CROSS_WIN)   $^ -o $@ $(LFLAGS_CROSS_WIN)   -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
 
 ##
@@ -603,6 +621,14 @@ obj/%.WIN.o:   $(DEPS_LZMA_PATH)/%.c
 	$(CC_WIN)   $(CFLAGS_CROSS_WIN)   -c -o $@ $<
 endif
 
+ifeq ($(USE_SYSTEM_ZLIB),0)
+obj/%.LINUX.o: $(DEPS_ZLIB_PATH)/%.c
+	$(CC_LINUX) $(CFLAGS_CROSS_LINUX) $(CFLAGS_ZLIB) -c -o $@ $<
+
+obj/%.WIN.o:   $(DEPS_ZLIB_PATH)/%.c
+	$(CC_WIN)   $(CFLAGS_CROSS_WIN) $(CFLAGS_ZLIB) -c -o $@ $<
+endif
+
 ifeq ($(USE_SYSTEM_XXHASH),0)
 ifeq ($(ENABLE_BRAIN),1)
 obj/%.LINUX.o: $(DEPS_XXHASH_PATH)/%.c
@@ -613,13 +639,19 @@ obj/%.WIN.o:   $(DEPS_XXHASH_PATH)/%.c
 endif
 endif
 
-hashcat.bin: src/main.c $(LINUX_OBJS)
+obj/combined.LINUX.a: $(LINUX_OBJS)
+	$(AR_LINUX) rcs $@ $^
+
+obj/combined.WIN.a: $(WIN_OBJS)
+	$(AR_WIN) rcs $@ $^
+
+hashcat.bin: src/main.c obj/combined.LINUX.a
 	$(CC_LINUX) $(CFLAGS_CROSS_LINUX)    -o $@ $^ $(LFLAGS_CROSS_LINUX) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 
-hashcat.exe: src/main.c $(WIN_OBJS) $(WIN_ICONV)/lib/libiconv.a
+hashcat.exe: src/main.c obj/combined.WIN.a $(WIN_ICONV)/lib/libiconv.a
 	$(CC_WIN)   $(CFLAGS_CROSS_WIN)      -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\"
 
-hashcat.dll: src/main.c $(WIN_OBJS) $(WIN_ICONV)/lib/libiconv.a
+hashcat.dll: src/main.c obj/combined.WIN.a $(WIN_ICONV)/lib/libiconv.a
 	$(CC_WIN)   $(CFLAGS_CROSS_WIN)      -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -shared
 
 endif

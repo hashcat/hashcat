@@ -18,6 +18,14 @@
 #define KERNEL_FQ   __kernel
 #endif
 
+#ifndef MAYBE_VOLATILE
+#define MAYBE_VOLATILE
+#endif
+
+#ifndef MAYBE_UNUSED
+#define MAYBE_UNUSED
+#endif
+
 /**
  * device type
  */
@@ -76,13 +84,14 @@
 
 /**
  * function declarations can have a large influence depending on the opencl runtime
+ * fast but pure kernels on rocm is a good example
  */
 
 #if defined IS_CPU
 #define DECLSPEC inline
 #elif defined IS_GPU
 #if defined IS_AMD
-#define DECLSPEC inline
+#define DECLSPEC inline static
 #else
 #define DECLSPEC
 #endif

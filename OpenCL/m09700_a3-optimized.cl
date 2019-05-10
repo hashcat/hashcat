@@ -193,13 +193,9 @@ DECLSPEC void m09700m (LOCAL_AS RC4_KEY *rc4_keys, u32 *w0, u32 *w1, u32 *w2, u3
   salt_buf_t3[3] = salt_buf_t0[2] >>  8 | salt_buf_t0[3] << 24;
   salt_buf_t3[4] = salt_buf_t0[3] >>  8;
 
-  const u32 salt_len = 16;
-
   /**
    * esalt
    */
-
-  const u32 version = esalt_bufs[digests_offset].version;
 
   u32 encryptedVerifier[4];
 
@@ -603,13 +599,9 @@ DECLSPEC void m09700s (LOCAL_AS RC4_KEY *rc4_keys, u32 *w0, u32 *w1, u32 *w2, u3
   salt_buf_t3[3] = salt_buf_t0[2] >>  8 | salt_buf_t0[3] << 24;
   salt_buf_t3[4] = salt_buf_t0[3] >>  8;
 
-  const u32 salt_len = 16;
-
   /**
    * esalt
    */
-
-  const u32 version = esalt_bufs[digests_offset].version;
 
   u32 encryptedVerifier[4];
 

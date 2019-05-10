@@ -55,7 +55,7 @@ sub module_generate_hash
 
   my $pmkid = hmac_hex ($data, $pmk, \&sha1);
 
-  my $hash = sprintf ("%s*%s*%s*%s", substr ($pmkid, 0, 32), $macap, $macsta, $essid);
+  my $hash = sprintf ("%s:%s:%s:%s", substr ($pmkid, 0, 32), $macap, $macsta, $essid);
 
   return $hash;
 }
@@ -69,7 +69,7 @@ sub module_verify_hash
   return unless defined $hash;
   return unless defined $word;
 
-  my @data = split (/\*/, $hash);
+  my @data = split (/\:/, $hash);
 
   return unless scalar @data == 4;
 

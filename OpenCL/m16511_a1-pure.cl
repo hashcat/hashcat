@@ -41,7 +41,7 @@ KERNEL_FQ void m16511_mxx (KERN_ATTR_ESALT (jwt_t))
 
   u32 w[64] = { 0 };
 
-  for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
     w[idx] = hc_swap32_S (pws[gid].i[idx]);
   }
@@ -122,7 +122,7 @@ KERNEL_FQ void m16511_sxx (KERN_ATTR_ESALT (jwt_t))
 
   u32 w[64] = { 0 };
 
-  for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
     w[idx] = hc_swap32_S (pws[gid].i[idx]);
   }

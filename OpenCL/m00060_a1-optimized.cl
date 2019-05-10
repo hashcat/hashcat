@@ -154,8 +154,6 @@ KERNEL_FQ void m00060_m04 (KERN_ATTR_BASIC ())
   salt_buf3[2] = salt_bufs[salt_pos].salt_buf[14];
   salt_buf3[3] = salt_bufs[salt_pos].salt_buf[15];
 
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
-
   /**
    * pads
    */
@@ -331,8 +329,6 @@ KERNEL_FQ void m00060_s04 (KERN_ATTR_BASIC ())
   salt_buf3[1] = salt_bufs[salt_pos].salt_buf[13];
   salt_buf3[2] = salt_bufs[salt_pos].salt_buf[14];
   salt_buf3[3] = salt_bufs[salt_pos].salt_buf[15];
-
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
   /**
    * pads

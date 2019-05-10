@@ -545,8 +545,6 @@ KERNEL_FQ void m09700_m04 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
    * esalt
    */
 
-  const u32 version = esalt_bufs[digests_offset].version;
-
   u32 encryptedVerifier[4];
 
   encryptedVerifier[0] = esalt_bufs[digests_offset].encryptedVerifier[0];
@@ -565,7 +563,7 @@ KERNEL_FQ void m09700_m04 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
     u32x w2[4] = { 0 };
     u32x w3[4] = { 0 };
 
-    const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+    const u32x out_len = apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     append_0x80_2x4_VV (w0, w1, out_len);
 
@@ -734,8 +732,6 @@ KERNEL_FQ void m09700_s04 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
    * esalt
    */
 
-  const u32 version = esalt_bufs[digests_offset].version;
-
   u32 encryptedVerifier[4];
 
   encryptedVerifier[0] = esalt_bufs[digests_offset].encryptedVerifier[0];
@@ -766,7 +762,7 @@ KERNEL_FQ void m09700_s04 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
     u32x w2[4] = { 0 };
     u32x w3[4] = { 0 };
 
-    const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+    const u32x out_len = apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     append_0x80_2x4_VV (w0, w1, out_len);
 

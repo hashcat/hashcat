@@ -5,9 +5,6 @@
 
 //#define NEW_SIMD_CODE
 
-#undef  LOCAL_MEM_TYPE
-#define LOCAL_MEM_TYPE LOCAL_MEM_TYPE_GLOBAL
-
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
@@ -315,21 +312,21 @@ KERNEL_FQ void m13773_init (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, vc_t))
 
   for (u32 i = lid; i < 256; i += lsz)
   {
-    s_sbob_sl64[0][i] = sbob_sl64[0][i];
-    s_sbob_sl64[1][i] = sbob_sl64[1][i];
-    s_sbob_sl64[2][i] = sbob_sl64[2][i];
-    s_sbob_sl64[3][i] = sbob_sl64[3][i];
-    s_sbob_sl64[4][i] = sbob_sl64[4][i];
-    s_sbob_sl64[5][i] = sbob_sl64[5][i];
-    s_sbob_sl64[6][i] = sbob_sl64[6][i];
-    s_sbob_sl64[7][i] = sbob_sl64[7][i];
+    s_sbob_sl64[0][i] = sbob512_sl64[0][i];
+    s_sbob_sl64[1][i] = sbob512_sl64[1][i];
+    s_sbob_sl64[2][i] = sbob512_sl64[2][i];
+    s_sbob_sl64[3][i] = sbob512_sl64[3][i];
+    s_sbob_sl64[4][i] = sbob512_sl64[4][i];
+    s_sbob_sl64[5][i] = sbob512_sl64[5][i];
+    s_sbob_sl64[6][i] = sbob512_sl64[6][i];
+    s_sbob_sl64[7][i] = sbob512_sl64[7][i];
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
 
   #else
 
-  CONSTANT_AS u64a (*s_sbob_sl64)[256] = sbob_sl64;
+  CONSTANT_AS u64a (*s_sbob_sl64)[256] = sbob512_sl64;
 
   #endif
 
@@ -529,14 +526,14 @@ KERNEL_FQ void m13773_loop (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, vc_t))
 
   for (u32 i = lid; i < 256; i += lsz)
   {
-    s_sbob_sl64[0][i] = sbob_sl64[0][i];
-    s_sbob_sl64[1][i] = sbob_sl64[1][i];
-    s_sbob_sl64[2][i] = sbob_sl64[2][i];
-    s_sbob_sl64[3][i] = sbob_sl64[3][i];
-    s_sbob_sl64[4][i] = sbob_sl64[4][i];
-    s_sbob_sl64[5][i] = sbob_sl64[5][i];
-    s_sbob_sl64[6][i] = sbob_sl64[6][i];
-    s_sbob_sl64[7][i] = sbob_sl64[7][i];
+    s_sbob_sl64[0][i] = sbob512_sl64[0][i];
+    s_sbob_sl64[1][i] = sbob512_sl64[1][i];
+    s_sbob_sl64[2][i] = sbob512_sl64[2][i];
+    s_sbob_sl64[3][i] = sbob512_sl64[3][i];
+    s_sbob_sl64[4][i] = sbob512_sl64[4][i];
+    s_sbob_sl64[5][i] = sbob512_sl64[5][i];
+    s_sbob_sl64[6][i] = sbob512_sl64[6][i];
+    s_sbob_sl64[7][i] = sbob512_sl64[7][i];
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
@@ -555,7 +552,7 @@ KERNEL_FQ void m13773_loop (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, vc_t))
   CONSTANT_AS u32a *s_te3 = te3;
   CONSTANT_AS u32a *s_te4 = te4;
 
-  CONSTANT_AS u64a (*s_sbob_sl64)[256] = sbob_sl64;
+  CONSTANT_AS u64a (*s_sbob_sl64)[256] = sbob512_sl64;
 
   #endif
 
@@ -796,7 +793,7 @@ KERNEL_FQ void m13773_comp (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, vc_t))
   {
     if (atomic_inc (&hashes_shown[0]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0, tmps[gid].pim, 0);
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0, 0, 0);
     }
   }
   else

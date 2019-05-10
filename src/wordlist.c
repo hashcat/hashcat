@@ -9,7 +9,6 @@
 #include "event.h"
 #include "convert.h"
 #include "dictstat.h"
-#include "thread.h"
 #include "rp.h"
 #include "rp_cpu.h"
 #include "shared.h"

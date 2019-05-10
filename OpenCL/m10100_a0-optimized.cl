@@ -15,20 +15,20 @@
 #include "inc_simd.cl"
 #endif
 
-#define SIPROUND(v0,v1,v2,v3) \
-  (v0) += (v1);               \
-  (v1)  = hc_rotl64 ((v1), 13);  \
-  (v1) ^= (v0);               \
-  (v0)  = hc_rotl64 ((v0), 32);  \
-  (v2) += (v3);               \
-  (v3)  = hc_rotl64 ((v3), 16);  \
-  (v3) ^= (v2);               \
-  (v0) += (v3);               \
-  (v3)  = hc_rotl64 ((v3), 21);  \
-  (v3) ^= (v0);               \
-  (v2) += (v1);               \
-  (v1)  = hc_rotl64 ((v1), 17);  \
-  (v1) ^= (v2);               \
+#define SIPROUND(v0,v1,v2,v3)   \
+  (v0) += (v1);                 \
+  (v1)  = hc_rotl64 ((v1), 13); \
+  (v1) ^= (v0);                 \
+  (v0)  = hc_rotl64 ((v0), 32); \
+  (v2) += (v3);                 \
+  (v3)  = hc_rotl64 ((v3), 16); \
+  (v3) ^= (v2);                 \
+  (v0) += (v3);                 \
+  (v3)  = hc_rotl64 ((v3), 21); \
+  (v3) ^= (v0);                 \
+  (v2) += (v1);                 \
+  (v1)  = hc_rotl64 ((v1), 17); \
+  (v1) ^= (v2);                 \
   (v2)  = hc_rotl64 ((v2), 32)
 
 KERNEL_FQ void m10100_m04 (KERN_ATTR_RULES ())
@@ -86,7 +86,7 @@ KERNEL_FQ void m10100_m04 (KERN_ATTR_RULES ())
     u32x w2[4] = { 0 };
     u32x w3[4] = { 0 };
 
-    const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+    const u32x out_len = apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     /**
      * siphash
@@ -225,7 +225,7 @@ KERNEL_FQ void m10100_s04 (KERN_ATTR_RULES ())
     u32x w2[4] = { 0 };
     u32x w3[4] = { 0 };
 
-    const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+    const u32x out_len = apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     /**
      * siphash

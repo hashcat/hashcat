@@ -116,9 +116,9 @@ DECLSPEC void cram_md5_transform (const u32 *w0, const u32 *w1, const u32 *w2, c
 DECLSPEC void cram_md5_update_64 (md5_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len)
 {
   #ifdef IS_AMD
-  const int pos = ctx->len & 63;
+  MAYBE_VOLATILE const int pos = ctx->len & 63;
   #else
-  const int pos = ctx->len & 63;
+  MAYBE_VOLATILE const int pos = ctx->len & 63;
   #endif
 
   ctx->len += len;
@@ -143,7 +143,7 @@ DECLSPEC void cram_md5_update_64 (md5_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32
   ctx->w3[3] |= w3[3];
 }
 
-DECLSPEC void cram_md5_update_global (md5_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len)
+DECLSPEC void cram_md5_update_global (md5_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];

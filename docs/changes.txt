@@ -6,6 +6,7 @@
 
 - Fully modularized hash-mode integration via plugin interface and converted all existing hash-modes
 - Support for inline VeraCrypt PIM Brute-Force
+- Support Deflate decompression for the 7-Zip hash type using zlib
 
 ##
 ## Algorithms
@@ -21,9 +22,12 @@
 - Added hash-mode: QNX /etc/shadow (SHA512)
 - Added hash-mode: Kerberos 5 TGS-REP etype 17 (AES128-CTS-HMAC-SHA1-96)
 - Added hash-mode: Kerberos 5 TGS-REP etype 18 (AES256-CTS-HMAC-SHA1-96)
+- Added hash-mode: Kerberos 5 Pre-Auth etype 17 (AES128-CTS-HMAC-SHA1-96)
+- Added hash-mode: Kerberos 5 Pre-Auth etype 18 (AES256-CTS-HMAC-SHA1-96)
 - Added hash-mode: sha1(md5(md5($pass)))
 - Added hash-mode: sha1($salt1.$pass.$salt2)
 - Added hash-mode: Ruby on Rails Restful-Authentication
+- Added hash-mode: DiskCryptor
 
 ##
 ## Bugs
@@ -37,6 +41,7 @@
 - Fixed incorrect progress-only result in a special race condition
 - Fixed maximum password length limit which was announced as 256 but actually was 255
 - Fixed output of IKE PSK (mode 5300 and 5400) hashes to have separators at right position
+- Fixed output password of "e" rule in pure and cpu rule engine if separator character is also the first letter
 - Fixed the 7-Zip parser to allow the entire supported range of encrypted and decrypted data lengths
 - Fixed the validation of the --brain-client-features command line argument (only values 1, 2 or 3 are allowed)
 
@@ -53,14 +58,22 @@
 - OpenCL Runtime: Not using amd_bytealign (amd_bitalign is fine) on AMDGPU driver drastically reduces JiT segfaults
 - OpenCL Runtime: Update unstable mode warnings for Apple and AMDGPU drivers
 - OpenCL Runtime: Workaround JiT compiler error on AMDGPU driver compiling WPA-EAPOL-PBKDF2 OpenCL kernel
+- OpenCL Runtime: Workaround JiT compiler error on ROCM 2.3 driver if the 'inline' keyword is used in function declaration
+- OpenCL Runtime: Workaround memory allocation error on AMD driver on Windows leading to CL_MEM_OBJECT_ALLOCATION_FAILURE
 - Tuning Database: Updated hashcat.hctune with new models and refreshed vector width values
+- WPA/WPA2 cracking: In the potfile, replace password with PMK in order to detect already cracked networks across all WPA modes
 
 ##
 ## Technical
 ##
 
 - Binary Distribution: Removed 32 bit binary executables
+- Dependencies: Updated OpenCL-Headers to latest version from GitHub master repository
 - Keep Guessing: No longer automatically activate --keep-guessing for modes 9720, 9820, 14900 and 18100
+- Kernel Cache: Reactivate OpenCL runtime specific kernel caches
+- Kernel Compile: Removed -cl-std= from all kernel build options since we're compatible to all OpenCL versions
+- Mode 16800/16801 hash format: Changed separator character from '*' to ':'
+- Requirements: Update runtime check for minimum NVIDIA driver version from 367.x to 418.56 or later
 
 * changes v5.0.0 -> v5.1.0
 

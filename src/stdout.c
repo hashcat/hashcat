@@ -7,8 +7,8 @@
 #include "types.h"
 #include "event.h"
 #include "locking.h"
-#include "rp_kernel_on_cpu.h"
-#include "rp_kernel_on_cpu_optimized.h"
+#include "emu_inc_rp.h"
+#include "emu_inc_rp_optimized.h"
 #include "mpsp.h"
 #include "opencl.h"
 #include "shared.h"
@@ -44,7 +44,7 @@ static void out_push (out_t *out, const u8 *pw_buf, const int pw_len)
 
   #endif
 
-  if (out->len >= HCBUFSIZ_TINY - 300)
+  if (out->len >= HCBUFSIZ_SMALL - 300)
   {
     out_flush (out);
   }

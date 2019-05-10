@@ -32,7 +32,7 @@ KERNEL_FQ void m00050_mxx (KERN_ATTR_BASIC ())
 
   u32 w[64] = { 0 };
 
-  for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
     w[idx] = pws[gid].i[idx];
   }
@@ -41,7 +41,7 @@ KERNEL_FQ void m00050_mxx (KERN_ATTR_BASIC ())
 
   u32 s[64] = { 0 };
 
-  for (int i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
+  for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
     s[idx] = salt_bufs[salt_pos].salt_buf[idx];
   }
@@ -122,7 +122,7 @@ KERNEL_FQ void m00050_sxx (KERN_ATTR_BASIC ())
 
   u32 w[64] = { 0 };
 
-  for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
     w[idx] = pws[gid].i[idx];
   }
@@ -131,7 +131,7 @@ KERNEL_FQ void m00050_sxx (KERN_ATTR_BASIC ())
 
   u32 s[64] = { 0 };
 
-  for (int i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
+  for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
     s[idx] = salt_bufs[salt_pos].salt_buf[idx];
   }

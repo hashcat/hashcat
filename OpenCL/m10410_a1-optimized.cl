@@ -102,7 +102,7 @@ DECLSPEC void rc4_init_16 (LOCAL_AS RC4_KEY *rc4_key, const u32 *data)
   j += rc4_key->S[255] + d0; swap (rc4_key, 255, j);
 }
 
-DECLSPEC u8 rc4_next_16 (LOCAL_AS RC4_KEY *rc4_key, u8 i, u8 j, CONSTANT_AS u32 *in, u32 *out)
+DECLSPEC u8 rc4_next_16 (LOCAL_AS RC4_KEY *rc4_key, u8 i, u8 j, CONSTANT_AS u32a *in, u32 *out)
 {
   #ifdef _unroll
   #pragma unroll

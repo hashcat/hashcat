@@ -26,42 +26,42 @@
  *   - P19: Type of the esalt_bufs structure with additional data, or void.
  */
 
-#define KERN_ATTR(p2,p4,p5,p6,p19)                            \
-  GLOBAL_AS       pw_t          * restrict pws,               \
-  p2        const kernel_rule_t * restrict rules_buf,         \
-  GLOBAL_AS const pw_t          * restrict combs_buf,         \
-  p4,                                                         \
-  GLOBAL_AS p5                  * restrict tmps,              \
-  GLOBAL_AS p6                  * restrict hooks,             \
-  GLOBAL_AS const u32           * restrict bitmaps_buf_s1_a,  \
-  GLOBAL_AS const u32           * restrict bitmaps_buf_s1_b,  \
-  GLOBAL_AS const u32           * restrict bitmaps_buf_s1_c,  \
-  GLOBAL_AS const u32           * restrict bitmaps_buf_s1_d,  \
-  GLOBAL_AS const u32           * restrict bitmaps_buf_s2_a,  \
-  GLOBAL_AS const u32           * restrict bitmaps_buf_s2_b,  \
-  GLOBAL_AS const u32           * restrict bitmaps_buf_s2_c,  \
-  GLOBAL_AS const u32           * restrict bitmaps_buf_s2_d,  \
-  GLOBAL_AS       plain_t       * restrict plains_buf,        \
-  GLOBAL_AS const digest_t      * restrict digests_buf,       \
-  GLOBAL_AS       u32           * restrict hashes_shown,      \
-  GLOBAL_AS const salt_t        * restrict salt_bufs,         \
-  GLOBAL_AS const p19           * restrict esalt_bufs,        \
-  GLOBAL_AS       u32           * restrict d_return_buf,      \
-  GLOBAL_AS       void          * restrict d_extra0_buf,      \
-  GLOBAL_AS       void          * restrict d_extra1_buf,      \
-  GLOBAL_AS       void          * restrict d_extra2_buf,      \
-  GLOBAL_AS       void          * restrict d_extra3_buf,      \
-  const u32 bitmap_mask,    \
-  const u32 bitmap_shift1,  \
-  const u32 bitmap_shift2,  \
-  const u32 salt_pos,       \
-  const u32 loop_pos,       \
-  const u32 loop_cnt,       \
-  const u32 il_cnt,         \
-  const u32 digests_cnt,    \
-  const u32 digests_offset, \
-  const u32 combs_mode,     \
-  const u64 gid_max
+#define KERN_ATTR(p2,p4,p5,p6,p19)                              \
+  MAYBE_UNUSED GLOBAL_AS       pw_t          *pws,              \
+  MAYBE_UNUSED p2        const kernel_rule_t *rules_buf,        \
+  MAYBE_UNUSED GLOBAL_AS const pw_t          *combs_buf,        \
+  MAYBE_UNUSED p4,                                              \
+  MAYBE_UNUSED GLOBAL_AS p5                  *tmps,             \
+  MAYBE_UNUSED GLOBAL_AS p6                  *hooks,            \
+  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s1_a, \
+  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s1_b, \
+  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s1_c, \
+  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s1_d, \
+  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s2_a, \
+  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s2_b, \
+  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s2_c, \
+  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s2_d, \
+  MAYBE_UNUSED GLOBAL_AS       plain_t       *plains_buf,       \
+  MAYBE_UNUSED GLOBAL_AS const digest_t      *digests_buf,      \
+  MAYBE_UNUSED GLOBAL_AS       u32           *hashes_shown,     \
+  MAYBE_UNUSED GLOBAL_AS const salt_t        *salt_bufs,        \
+  MAYBE_UNUSED GLOBAL_AS const p19           *esalt_bufs,       \
+  MAYBE_UNUSED GLOBAL_AS       u32           *d_return_buf,     \
+  MAYBE_UNUSED GLOBAL_AS       void          *d_extra0_buf,     \
+  MAYBE_UNUSED GLOBAL_AS       void          *d_extra1_buf,     \
+  MAYBE_UNUSED GLOBAL_AS       void          *d_extra2_buf,     \
+  MAYBE_UNUSED GLOBAL_AS       void          *d_extra3_buf,     \
+  MAYBE_UNUSED           const u32            bitmap_mask,      \
+  MAYBE_UNUSED           const u32            bitmap_shift1,    \
+  MAYBE_UNUSED           const u32            bitmap_shift2,    \
+  MAYBE_UNUSED           const u32            salt_pos,         \
+  MAYBE_UNUSED           const u32            loop_pos,         \
+  MAYBE_UNUSED           const u32            loop_cnt,         \
+  MAYBE_UNUSED           const u32            il_cnt,           \
+  MAYBE_UNUSED           const u32            digests_cnt,      \
+  MAYBE_UNUSED           const u32            digests_offset,   \
+  MAYBE_UNUSED           const u32            combs_mode,       \
+  MAYBE_UNUSED           const u64            gid_max
 
 /*
  * Shortcut macros for usage in the actual kernels
@@ -71,16 +71,16 @@
  * do not use rules or tmps, etc.
  */
 
-#define KERN_ATTR_BASIC()         KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      * restrict bfs_buf,     void, void, void)
-#define KERN_ATTR_BITSLICE()      KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bs_word_t * restrict words_buf_r, void, void, void)
-#define KERN_ATTR_ESALT(e)        KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      * restrict bfs_buf,     void, void, e)
-#define KERN_ATTR_RULES()         KERN_ATTR (CONSTANT_AS, GLOBAL_AS   const bf_t      * restrict bfs_buf,     void, void, void)
-#define KERN_ATTR_RULES_ESALT(e)  KERN_ATTR (CONSTANT_AS, GLOBAL_AS   const bf_t      * restrict bfs_buf,     void, void, e)
-#define KERN_ATTR_TMPS(t)         KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      * restrict bfs_buf,     t,    void, void)
-#define KERN_ATTR_TMPS_ESALT(t,e) KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      * restrict bfs_buf,     t,    void, e)
-#define KERN_ATTR_TMPS_HOOKS(t,h) KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      * restrict bfs_buf,     t,    h,    void)
-#define KERN_ATTR_VECTOR()        KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const u32x      * restrict words_buf_r, void, void, void)
-#define KERN_ATTR_VECTOR_ESALT(e) KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const u32x      * restrict words_buf_r, void, void, e)
+#define KERN_ATTR_BASIC()         KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *bfs_buf,     void, void, void)
+#define KERN_ATTR_BITSLICE()      KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bs_word_t *words_buf_r, void, void, void)
+#define KERN_ATTR_ESALT(e)        KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *bfs_buf,     void, void, e)
+#define KERN_ATTR_RULES()         KERN_ATTR (CONSTANT_AS, GLOBAL_AS   const bf_t      *bfs_buf,     void, void, void)
+#define KERN_ATTR_RULES_ESALT(e)  KERN_ATTR (CONSTANT_AS, GLOBAL_AS   const bf_t      *bfs_buf,     void, void, e)
+#define KERN_ATTR_TMPS(t)         KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *bfs_buf,     t,    void, void)
+#define KERN_ATTR_TMPS_ESALT(t,e) KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *bfs_buf,     t,    void, e)
+#define KERN_ATTR_TMPS_HOOKS(t,h) KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *bfs_buf,     t,    h,    void)
+#define KERN_ATTR_VECTOR()        KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const u32x      *words_buf_r, void, void, void)
+#define KERN_ATTR_VECTOR_ESALT(e) KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const u32x      *words_buf_r, void, void, e)
 
 // union based packing
 
@@ -118,20 +118,12 @@ DECLSPEC u64  hl32_to_64_S (const u32  a, const u32  b);
 // bit operations
 
 DECLSPEC u32x hc_rotl32   (const u32x a, const int n);
-DECLSPEC u32x hc_rotl32   (const u32x a, const int n);
-DECLSPEC u32x hc_rotr32   (const u32x a, const int n);
 DECLSPEC u32x hc_rotr32   (const u32x a, const int n);
 DECLSPEC u32  hc_rotl32_S (const u32  a, const int n);
-DECLSPEC u32  hc_rotl32_S (const u32  a, const int n);
-DECLSPEC u32  hc_rotr32_S (const u32  a, const int n);
 DECLSPEC u32  hc_rotr32_S (const u32  a, const int n);
 DECLSPEC u64x hc_rotl64   (const u64x a, const int n);
-DECLSPEC u64x hc_rotl64   (const u64x a, const int n);
-DECLSPEC u64x hc_rotr64   (const u64x a, const int n);
 DECLSPEC u64x hc_rotr64   (const u64x a, const int n);
 DECLSPEC u64  hc_rotl64_S (const u64  a, const int n);
-DECLSPEC u64  hc_rotl64_S (const u64  a, const int n);
-DECLSPEC u64  hc_rotr64_S (const u64  a, const int n);
 DECLSPEC u64  hc_rotr64_S (const u64  a, const int n);
 
 DECLSPEC u32x hc_swap32   (const u32x v);
@@ -158,8 +150,12 @@ DECLSPEC u32  hc_lop_0x96_S     (const u32  a, const u32  b, const u32  c);
 // legacy common code
 
 DECLSPEC int ffz (const u32 v);
+
+#ifdef KERNEL_STATIC
 DECLSPEC int hash_comp (const u32 *d1, GLOBAL_AS const u32 *d2);
 DECLSPEC int find_hash (const u32 *digest, const u32 digests_cnt, GLOBAL_AS const digest_t *digests_buf);
+#endif
+
 DECLSPEC u32 check_bitmap (GLOBAL_AS const u32 *bitmap, const u32 bitmap_mask, const u32 bitmap_shift, const u32 digest);
 DECLSPEC u32 check (const u32 *digest, GLOBAL_AS const u32 *bitmap_s1_a, GLOBAL_AS const u32 *bitmap_s1_b, GLOBAL_AS const u32 *bitmap_s1_c, GLOBAL_AS const u32 *bitmap_s1_d, GLOBAL_AS const u32 *bitmap_s2_a, GLOBAL_AS const u32 *bitmap_s2_b, GLOBAL_AS const u32 *bitmap_s2_c, GLOBAL_AS const u32 *bitmap_s2_d, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2);
 DECLSPEC void mark_hash (GLOBAL_AS plain_t *plains_buf, GLOBAL_AS u32 *d_result, const u32 salt_pos, const u32 digests_cnt, const u32 digest_pos, const u32 hash_pos, const u64 gid, const u32 il_pos, const u32 extra1, const u32 extra2);

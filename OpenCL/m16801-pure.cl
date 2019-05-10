@@ -11,6 +11,12 @@
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha1.cl"
+#else
+#include "inc_vendor.h"
+#include "inc_types.h"
+#include "inc_common.h"
+#include "inc_simd.h"
+#include "inc_hash_sha1.h"
 #endif
 
 #define COMPARE_S "inc_comp_single.cl"
@@ -33,6 +39,7 @@ typedef struct wpa_pmkid
 
 } wpa_pmkid_t;
 
+#ifdef KERNEL_STATIC
 DECLSPEC u8 hex_convert (const u8 c)
 {
   return (c & 15) + (c >> 6) * 9;
@@ -47,6 +54,7 @@ DECLSPEC u8 hex_to_u8 (const u8 *hex)
 
   return (v);
 }
+#endif
 
 KERNEL_FQ void m16801_init (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_pmkid_t))
 {
@@ -109,7 +117,6 @@ KERNEL_FQ void m16801_comp (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_pmkid_t))
 KERNEL_FQ void m16801_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_pmkid_t))
 {
   const u64 gid = get_global_id (0);
-  const u64 lid = get_local_id (0);
 
   if (gid >= gid_max) return;
 
@@ -151,9 +158,23 @@ KERNEL_FQ void m16801_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_pmkid_t))
   const u32 r2 = sha1_hmac_ctx.opad.h[2];
   const u32 r3 = sha1_hmac_ctx.opad.h[3];
 
-  #define il_pos 0
-
   #ifdef KERNEL_STATIC
+
+  #define il_pos 0
   #include COMPARE_M
+
+  #else
+
+  if ((hc_swap32_S (r0) == wpa_pmkid->pmkid[0])
+   && (hc_swap32_S (r1) == wpa_pmkid->pmkid[1])
+   && (hc_swap32_S (r2) == wpa_pmkid->pmkid[2])
+   && (hc_swap32_S (r3) == wpa_pmkid->pmkid[3]))
+  {
+    if (atomic_inc (&hashes_shown[digest_cur]) == 0)
+    {
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
+    }
+  }
+
   #endif
 }

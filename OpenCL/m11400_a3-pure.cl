@@ -72,7 +72,7 @@ KERNEL_FQ void m11400_mxx (KERN_ATTR_VECTOR_ESALT (sip_t))
 
   u32x w[64] = { 0 };
 
-  for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
     w[idx] = pws[gid].i[idx];
   }
@@ -81,7 +81,7 @@ KERNEL_FQ void m11400_mxx (KERN_ATTR_VECTOR_ESALT (sip_t))
 
   u32x esalt_buf[256] = { 0 };
 
-  for (int i = 0, idx = 0; i < esalt_len; i += 4, idx += 1)
+  for (u32 i = 0, idx = 0; i < esalt_len; i += 4, idx += 1)
   {
     esalt_buf[idx] = esalt_bufs[digests_offset].esalt_buf[idx];
   }
@@ -204,7 +204,7 @@ KERNEL_FQ void m11400_sxx (KERN_ATTR_VECTOR_ESALT (sip_t))
 
   u32x w[64] = { 0 };
 
-  for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
     w[idx] = pws[gid].i[idx];
   }
@@ -213,7 +213,7 @@ KERNEL_FQ void m11400_sxx (KERN_ATTR_VECTOR_ESALT (sip_t))
 
   u32x esalt_buf[256] = { 0 };
 
-  for (int i = 0, idx = 0; i < esalt_len; i += 4, idx += 1)
+  for (u32 i = 0, idx = 0; i < esalt_len; i += 4, idx += 1)
   {
     esalt_buf[idx] = esalt_bufs[digests_offset].esalt_buf[idx];
   }

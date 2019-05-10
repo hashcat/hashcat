@@ -17,7 +17,6 @@
 #include "terminal.h"
 #include "thread.h"
 #include "status.h"
-#include "interface.h"
 #include "shared.h"
 #include "event.h"
 
@@ -520,7 +519,7 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
       event_log_advice (hashcat_ctx, NULL);
     }
   }
-  
+
   if (user_options->keep_guessing == true)
   {
     event_log_advice (hashcat_ctx, "ATTENTION! --keep-guessing mode is enabled.");

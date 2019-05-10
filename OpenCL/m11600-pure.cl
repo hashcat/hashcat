@@ -35,7 +35,7 @@ DECLSPEC void memcat8c_be (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 len, co
 {
   const u32 func_len = len & 63;
 
-  const u32 mod = func_len & 3;
+  //const u32 mod = func_len & 3;
   const u32 div = func_len / 4;
 
   u32 tmp0;
@@ -193,7 +193,7 @@ KERNEL_FQ void m11600_loop (KERN_ATTR_TMPS_HOOKS (seven_zip_tmp_t, seven_zip_hoo
 
   u32 w[64] = { 0 };
 
-  for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
     w[idx] = pws[gid].i[idx];
   }
@@ -281,8 +281,6 @@ KERNEL_FQ void m11600_loop (KERN_ATTR_TMPS_HOOKS (seven_zip_tmp_t, seven_zip_hoo
 KERNEL_FQ void m11600_hook23 (KERN_ATTR_TMPS_HOOKS (seven_zip_tmp_t, seven_zip_hook_t))
 {
   const u64 gid = get_global_id (0);
-  const u64 lid = get_local_id (0);
-  const u64 lsz = get_local_size (0);
 
   if (gid >= gid_max) return;
 

@@ -26,7 +26,7 @@ typedef struct qnx_sha512_tmp
 
 DECLSPEC u32 sha512_update_128_qnxbug (sha512_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const int len, u32 sav)
 {
-  const int pos = ctx->len & 127;
+  MAYBE_VOLATILE const int pos = ctx->len & 127;
 
   ctx->len += len;
 
@@ -154,7 +154,7 @@ DECLSPEC u32 sha512_update_128_qnxbug (sha512_ctx_t *ctx, u32 *w0, u32 *w1, u32 
   return sav;
 }
 
-DECLSPEC u32 sha512_update_global_swap_qnxbug (sha512_ctx_t *ctx, const GLOBAL_AS u32 *w, const int len, u32 sav)
+DECLSPEC u32 sha512_update_global_swap_qnxbug (sha512_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len, u32 sav)
 {
   u32 w0[4];
   u32 w1[4];
@@ -312,7 +312,7 @@ DECLSPEC u32 sha512_update_global_swap_qnxbug (sha512_ctx_t *ctx, const GLOBAL_A
 
 DECLSPEC void sha512_final_qnxbug (sha512_ctx_t *ctx, u32 sav)
 {
-  const int pos = ctx->len & 127;
+  MAYBE_VOLATILE const int pos = ctx->len & 127;
 
   append_0x80_8x4_S (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->w4, ctx->w5, ctx->w6, ctx->w7, pos ^ 3);
 

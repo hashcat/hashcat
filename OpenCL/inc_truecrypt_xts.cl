@@ -31,7 +31,7 @@ DECLSPEC void aes256_decrypt_xts_first (const u32 *ukey1, const u32 *ukey2, cons
   out[2] = in[2];
   out[3] = in[3];
 
-  aes256_set_encrypt_key (ks, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4);
+  aes256_set_encrypt_key (ks, ukey2, s_te0, s_te1, s_te2, s_te3);
   aes256_encrypt (ks, S, T, s_te0, s_te1, s_te2, s_te3, s_te4);
 
   out[0] ^= T[0];
@@ -39,7 +39,7 @@ DECLSPEC void aes256_decrypt_xts_first (const u32 *ukey1, const u32 *ukey2, cons
   out[2] ^= T[2];
   out[3] ^= T[3];
 
-  aes256_set_decrypt_key (ks, ukey1, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+  aes256_set_decrypt_key (ks, ukey1, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
   aes256_decrypt (ks, out, out, s_td0, s_td1, s_td2, s_td3, s_td4);
 
   out[0] ^= T[0];

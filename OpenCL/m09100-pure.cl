@@ -26,7 +26,7 @@ typedef struct lotus8_tmp
 
 } lotus8_tmp_t;
 
-CONSTANT_AS u32 lotus64_table[64] =
+CONSTANT_AS u32a lotus64_table[64] =
 {
   '0', '1', '2', '3', '4', '5', '6', '7',
   '8', '9', 'A', 'B', 'C', 'D', 'E', 'F',
@@ -38,7 +38,7 @@ CONSTANT_AS u32 lotus64_table[64] =
   'u', 'v', 'w', 'x', 'y', 'z', '+', '/',
 };
 
-CONSTANT_AS u32 lotus_magic_table[256] =
+CONSTANT_AS u32a lotus_magic_table[256] =
 {
   0xbd, 0x56, 0xea, 0xf2, 0xa2, 0xf1, 0xac, 0x2a,
   0xb0, 0x93, 0xd1, 0x9c, 0x1b, 0x33, 0xfd, 0xd0,
@@ -78,7 +78,7 @@ CONSTANT_AS u32 lotus_magic_table[256] =
 
 #define BOX1(S,i) (S)[(i)]
 
-DECLSPEC void lotus_mix (u32 *in, const LOCAL_AS u32 *s_lotus_magic_table)
+DECLSPEC void lotus_mix (u32 *in, LOCAL_AS const u32 *s_lotus_magic_table)
 {
   u8 p = 0;
 
@@ -101,7 +101,7 @@ DECLSPEC void lotus_mix (u32 *in, const LOCAL_AS u32 *s_lotus_magic_table)
   }
 }
 
-DECLSPEC void lotus_transform_password (const u32 *in, u32 *out, const LOCAL_AS u32 *s_lotus_magic_table)
+DECLSPEC void lotus_transform_password (const u32 *in, u32 *out, LOCAL_AS const u32 *s_lotus_magic_table)
 {
   u8 t = (u8) (out[3] >> 24);
 
@@ -198,7 +198,7 @@ DECLSPEC void pad (u32 *w, const u32 len)
   }
 }
 
-DECLSPEC void mdtransform_norecalc (u32 *state, const u32 *block, const LOCAL_AS u32 *s_lotus_magic_table)
+DECLSPEC void mdtransform_norecalc (u32 *state, const u32 *block, LOCAL_AS const u32 *s_lotus_magic_table)
 {
   u32 x[12];
 
@@ -223,14 +223,14 @@ DECLSPEC void mdtransform_norecalc (u32 *state, const u32 *block, const LOCAL_AS
   state[3] = x[3];
 }
 
-DECLSPEC void mdtransform (u32 *state, u32 *checksum, const u32 *block, const LOCAL_AS u32 *s_lotus_magic_table)
+DECLSPEC void mdtransform (u32 *state, u32 *checksum, const u32 *block, LOCAL_AS const u32 *s_lotus_magic_table)
 {
   mdtransform_norecalc (state, block, s_lotus_magic_table);
 
   lotus_transform_password (block, checksum, s_lotus_magic_table);
 }
 
-DECLSPEC void domino_big_md (const u32 *saved_key, const u32 size, u32 *state, const LOCAL_AS u32 *s_lotus_magic_table)
+DECLSPEC void domino_big_md (const u32 *saved_key, const u32 size, u32 *state, LOCAL_AS const u32 *s_lotus_magic_table)
 {
   u32 checksum[4];
 

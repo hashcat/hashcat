@@ -5,15 +5,13 @@
 
 #include "common.h"
 #include "types.h"
+#include "bitops.h"
 #include "timer.h"
 #include "memory.h"
 #include "thread.h"
-#include "bitops.h"
 #include "convert.h"
 #include "shared.h"
-#include "interface.h"
 #include "hashes.h"
-#include "shared.h"
 #include "brain.h"
 
 static bool keep_running = true;
@@ -96,7 +94,7 @@ u32 brain_compute_session (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
-    // using ascii_digest is an easy workaround for dealing with optimizations
+    // using hash_encode is an easy workaround for dealing with optimizations
     // like OPTI_TYPE_PRECOMPUTE_MERKLE which cause diffrent hashes in digests_buf
     // in case -O is used
 
@@ -114,7 +112,7 @@ u32 brain_compute_session (hashcat_ctx_t *hashcat_ctx)
 
       for (u32 digest_idx = 0; digest_idx < salt_buf->digests_cnt; digest_idx++)
       {
-        const int out_len = ascii_digest (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf, HCBUFSIZ_LARGE, salts_idx, digest_idx);
+        const int out_len = hash_encode (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf, HCBUFSIZ_LARGE, salts_idx, digest_idx);
 
         out_buf[out_len] = 0;
 

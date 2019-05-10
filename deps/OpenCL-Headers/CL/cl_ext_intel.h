@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008-2017 The Khronos Group Inc.
+ * Copyright (c) 2008-2019 The Khronos Group Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and/or associated documentation files (the
@@ -27,7 +27,7 @@
  ******************************************************************************/
 /*****************************************************************************\
 
-Copyright (c) 2013-2017 Intel Corporation All Rights Reserved.
+Copyright (c) 2013-2019 Intel Corporation All Rights Reserved.
 
 THESE MATERIALS ARE PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -179,47 +179,47 @@ typedef struct _cl_motion_estimation_desc_intel {
 
 extern CL_API_ENTRY cl_accelerator_intel CL_API_CALL
 clCreateAcceleratorINTEL(
-    cl_context                  /* context */,
-    cl_accelerator_type_intel   /* accelerator_type */,
-    size_t                      /* descriptor_size */,
-    const void*                 /* descriptor */,
-    cl_int*                     /* errcode_ret */) CL_EXT_SUFFIX__VERSION_1_2;
+    cl_context                   context,
+    cl_accelerator_type_intel    accelerator_type,
+    size_t                       descriptor_size,
+    const void*                  descriptor,
+    cl_int*                      errcode_ret) CL_EXT_SUFFIX__VERSION_1_2;
 
 typedef CL_API_ENTRY cl_accelerator_intel (CL_API_CALL *clCreateAcceleratorINTEL_fn)(
-    cl_context                  /* context */,
-    cl_accelerator_type_intel   /* accelerator_type */,
-    size_t                      /* descriptor_size */,
-    const void*                 /* descriptor */,
-    cl_int*                     /* errcode_ret */) CL_EXT_SUFFIX__VERSION_1_2;
+    cl_context                   context,
+    cl_accelerator_type_intel    accelerator_type,
+    size_t                       descriptor_size,
+    const void*                  descriptor,
+    cl_int*                      errcode_ret) CL_EXT_SUFFIX__VERSION_1_2;
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clGetAcceleratorInfoINTEL(
-    cl_accelerator_intel        /* accelerator */,
-    cl_accelerator_info_intel   /* param_name */,
-    size_t                      /* param_value_size */,
-    void*                       /* param_value */,
-    size_t*                     /* param_value_size_ret */) CL_EXT_SUFFIX__VERSION_1_2;
+    cl_accelerator_intel         accelerator,
+    cl_accelerator_info_intel    param_name,
+    size_t                       param_value_size,
+    void*                        param_value,
+    size_t*                      param_value_size_ret) CL_EXT_SUFFIX__VERSION_1_2;
 
 typedef CL_API_ENTRY cl_int (CL_API_CALL *clGetAcceleratorInfoINTEL_fn)(
-    cl_accelerator_intel        /* accelerator */,
-    cl_accelerator_info_intel   /* param_name */,
-    size_t                      /* param_value_size */,
-    void*                       /* param_value */,
-    size_t*                     /* param_value_size_ret */) CL_EXT_SUFFIX__VERSION_1_2;
+    cl_accelerator_intel         accelerator,
+    cl_accelerator_info_intel    param_name,
+    size_t                       param_value_size,
+    void*                        param_value,
+    size_t*                      param_value_size_ret) CL_EXT_SUFFIX__VERSION_1_2;
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clRetainAcceleratorINTEL(
-    cl_accelerator_intel        /* accelerator */) CL_EXT_SUFFIX__VERSION_1_2;
+    cl_accelerator_intel         accelerator) CL_EXT_SUFFIX__VERSION_1_2;
 
 typedef CL_API_ENTRY cl_int (CL_API_CALL *clRetainAcceleratorINTEL_fn)(
-    cl_accelerator_intel        /* accelerator */) CL_EXT_SUFFIX__VERSION_1_2;
+    cl_accelerator_intel         accelerator) CL_EXT_SUFFIX__VERSION_1_2;
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clReleaseAcceleratorINTEL(
-    cl_accelerator_intel        /* accelerator */) CL_EXT_SUFFIX__VERSION_1_2;
+    cl_accelerator_intel         accelerator) CL_EXT_SUFFIX__VERSION_1_2;
 
 typedef CL_API_ENTRY cl_int (CL_API_CALL *clReleaseAcceleratorINTEL_fn)(
-    cl_accelerator_intel        /* accelerator */) CL_EXT_SUFFIX__VERSION_1_2;
+    cl_accelerator_intel         accelerator) CL_EXT_SUFFIX__VERSION_1_2;
 
 /******************************************
 * cl_intel_simultaneous_sharing extension *
@@ -383,7 +383,7 @@ typedef cl_uint cl_diagnostics_verbose_level;
 
 #define CL_AVC_ME_INTRA_LUMA_PARTITION_MASK_16x16_INTEL     0x6
 #define CL_AVC_ME_INTRA_LUMA_PARTITION_MASK_8x8_INTEL       0x5
-#define CL_AVC_ME_INTRA_LUMA_PARTITION_MASK_4x4_INTEL       0x3 
+#define CL_AVC_ME_INTRA_LUMA_PARTITION_MASK_4x4_INTEL       0x3
 
 #define CL_AVC_ME_INTRA_NEIGHBOR_LEFT_MASK_ENABLE_INTEL         0x60
 #define CL_AVC_ME_INTRA_NEIGHBOR_UPPER_MASK_ENABLE_INTEL        0x10
@@ -414,7 +414,7 @@ typedef cl_uint cl_diagnostics_verbose_level;
 #define CL_AVC_ME_SLICE_TYPE_INTRA_INTEL                    0x2
 
 #define CL_AVC_ME_INTERLACED_SCAN_TOP_FIELD_INTEL           0x0
-#define CL_AVC_ME_INTERLACED_SCAN_BOTTOM_FIELD_INTEL        0x1  
+#define CL_AVC_ME_INTERLACED_SCAN_BOTTOM_FIELD_INTEL        0x1
 
 #ifdef __cplusplus
 }

@@ -29,6 +29,7 @@ Gabriele "matrix" Gristina <matrix@hashcat.net> (@gm4tr1x)
 Jean-Christophe "Fist0urs" Delaunay <jean-christophe.delaunay@synacktiv.com> (@Fist0urs)
 
 * Kerberos TGS Rep enctype 23 kernel module
+* Kerberos TGS Rep enctype 17/18 kernel module
 * AxCrypt kernel module
 * KeePass kernel module
 * DPAPImk v1 and v2 kernel module
@@ -37,6 +38,13 @@ Other contributors to hashcat
 
 * A full list and their commits can be found here:
   https://github.com/hashcat/hashcat/graphs/contributors
+
+# hashcat relies on some libraries, including:
+
+* xxHash by Yann Collet (@Cyan4973)
+* LZMA-SDK by Igor Pavlov
+* zlib by Jean-loup Gailly and Mark Adler
+* win-iconv by Yukihiro Nakadaira
 
 # Furthermore the following persons helped the project:
 
@@ -60,6 +68,9 @@ Rick "Minga" Redman and KoreLogic <mingakore@gmail.com> (@CrackMeIfYouCan)
 
 * For running the "Crack Me If You Can" password cracking contest, first of its kind
 * For pushing password cracking techniques forward
+
+Brandon Chalk <brandon@casaba.com> (@brandoncasaba)
+* Kerberos Pre-Auth 17/18 kernel module, ported from @Fist0urs TGS kernel modules
 
 !!! All the package maintainer of hashcat !!!
 
