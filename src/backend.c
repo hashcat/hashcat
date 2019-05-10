@@ -694,7 +694,7 @@ int nvrtc_init (hashcat_ctx_t *hashcat_ctx)
 
     char dllname[100];
 
-    for (int major = 20; major >= 0; major--)
+    for (int major = 20; major >= 3; major--) // older than 3.x do not ship _v2 functions anyway
     {
       for (int minor = 20; minor >= 0; minor--)
       {
