@@ -192,7 +192,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   tmp[4] = byte_swap_32 (digest[4]);
   tmp[5] = 0;
 
-  char salt_enc[256] = { 0 };
+  char salt_enc[257] = { 0 };
   char hash_enc[128] = { 0 };
 
   const size_t salt_len_enc = base64_encode (int_to_alternate_base64, (const u8 *) pbkdf2_sha1->salt_buf, salt->salt_len, (u8 *) salt_enc);
