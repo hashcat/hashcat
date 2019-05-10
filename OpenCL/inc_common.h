@@ -26,6 +26,44 @@
  *   - P19: Type of the esalt_bufs structure with additional data, or void.
  */
 
+#ifdef IS_CUDA
+#define KERN_ATTR(p2,p4,p5,p6,p19)                              \
+  MAYBE_UNUSED GLOBAL_AS       pw_t          *pws,              \
+  MAYBE_UNUSED p2        const kernel_rule_t *g_rules_buf,      \
+  MAYBE_UNUSED GLOBAL_AS const pw_t          *combs_buf,        \
+  MAYBE_UNUSED p4,                                              \
+  MAYBE_UNUSED GLOBAL_AS p5                  *tmps,             \
+  MAYBE_UNUSED GLOBAL_AS p6                  *hooks,            \
+  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s1_a, \
+  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s1_b, \
+  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s1_c, \
+  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s1_d, \
+  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s2_a, \
+  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s2_b, \
+  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s2_c, \
+  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s2_d, \
+  MAYBE_UNUSED GLOBAL_AS       plain_t       *plains_buf,       \
+  MAYBE_UNUSED GLOBAL_AS const digest_t      *digests_buf,      \
+  MAYBE_UNUSED GLOBAL_AS       u32           *hashes_shown,     \
+  MAYBE_UNUSED GLOBAL_AS const salt_t        *salt_bufs,        \
+  MAYBE_UNUSED GLOBAL_AS const p19           *esalt_bufs,       \
+  MAYBE_UNUSED GLOBAL_AS       u32           *d_return_buf,     \
+  MAYBE_UNUSED GLOBAL_AS       void          *d_extra0_buf,     \
+  MAYBE_UNUSED GLOBAL_AS       void          *d_extra1_buf,     \
+  MAYBE_UNUSED GLOBAL_AS       void          *d_extra2_buf,     \
+  MAYBE_UNUSED GLOBAL_AS       void          *d_extra3_buf,     \
+  MAYBE_UNUSED           const u32            bitmap_mask,      \
+  MAYBE_UNUSED           const u32            bitmap_shift1,    \
+  MAYBE_UNUSED           const u32            bitmap_shift2,    \
+  MAYBE_UNUSED           const u32            salt_pos,         \
+  MAYBE_UNUSED           const u32            loop_pos,         \
+  MAYBE_UNUSED           const u32            loop_cnt,         \
+  MAYBE_UNUSED           const u32            il_cnt,           \
+  MAYBE_UNUSED           const u32            digests_cnt,      \
+  MAYBE_UNUSED           const u32            digests_offset,   \
+  MAYBE_UNUSED           const u32            combs_mode,       \
+  MAYBE_UNUSED           const u64            gid_max
+#else
 #define KERN_ATTR(p2,p4,p5,p6,p19)                              \
   MAYBE_UNUSED GLOBAL_AS       pw_t          *pws,              \
   MAYBE_UNUSED p2        const kernel_rule_t *rules_buf,        \
@@ -62,7 +100,7 @@
   MAYBE_UNUSED           const u32            digests_offset,   \
   MAYBE_UNUSED           const u32            combs_mode,       \
   MAYBE_UNUSED           const u64            gid_max
-
+#endif
 /*
  * Shortcut macros for usage in the actual kernels
  *
@@ -71,8 +109,20 @@
  * do not use rules or tmps, etc.
  */
 
+#ifdef IS_CUDA
+#define KERN_ATTR_BASIC()         KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *bfs_buf,       void, void, void)
+#define KERN_ATTR_BITSLICE()      KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bs_word_t *g_words_buf_s, void, void, void)
+#define KERN_ATTR_ESALT(e)        KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *bfs_buf,       void, void, e)
+#define KERN_ATTR_RULES()         KERN_ATTR (CONSTANT_AS, GLOBAL_AS   const bf_t      *bfs_buf,       void, void, void)
+#define KERN_ATTR_RULES_ESALT(e)  KERN_ATTR (CONSTANT_AS, GLOBAL_AS   const bf_t      *bfs_buf,       void, void, e)
+#define KERN_ATTR_TMPS(t)         KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *bfs_buf,       t,    void, void)
+#define KERN_ATTR_TMPS_ESALT(t,e) KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *bfs_buf,       t,    void, e)
+#define KERN_ATTR_TMPS_HOOKS(t,h) KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *bfs_buf,       t,    h,    void)
+#define KERN_ATTR_VECTOR()        KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const u32x      *g_words_buf_r, void, void, void)
+#define KERN_ATTR_VECTOR_ESALT(e) KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const u32x      *g_words_buf_r, void, void, e)
+#else
 #define KERN_ATTR_BASIC()         KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *bfs_buf,     void, void, void)
-#define KERN_ATTR_BITSLICE()      KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bs_word_t *words_buf_r, void, void, void)
+#define KERN_ATTR_BITSLICE()      KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bs_word_t *words_buf_s, void, void, void)
 #define KERN_ATTR_ESALT(e)        KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *bfs_buf,     void, void, e)
 #define KERN_ATTR_RULES()         KERN_ATTR (CONSTANT_AS, GLOBAL_AS   const bf_t      *bfs_buf,     void, void, void)
 #define KERN_ATTR_RULES_ESALT(e)  KERN_ATTR (CONSTANT_AS, GLOBAL_AS   const bf_t      *bfs_buf,     void, void, e)
@@ -81,6 +131,7 @@
 #define KERN_ATTR_TMPS_HOOKS(t,h) KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *bfs_buf,     t,    h,    void)
 #define KERN_ATTR_VECTOR()        KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const u32x      *words_buf_r, void, void, void)
 #define KERN_ATTR_VECTOR_ESALT(e) KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const u32x      *words_buf_r, void, void, e)
+#endif
 
 // union based packing
 

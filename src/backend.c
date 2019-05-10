@@ -1490,6 +1490,34 @@ int hc_cuModuleGetFunction (hashcat_ctx_t *hashcat_ctx, CUfunction *hfunc, CUmod
   return 0;
 }
 
+int hc_cuModuleGetGlobal (hashcat_ctx_t *hashcat_ctx, CUdeviceptr *dptr, size_t *bytes, CUmodule hmod, const char *name)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  CUDA_PTR *cuda = backend_ctx->cuda;
+
+  const CUresult CU_err = cuda->cuModuleGetGlobal (dptr, bytes, hmod, name);
+
+  if (CU_err != CUDA_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "cuModuleGetGlobal(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "cuModuleGetGlobal(): %d", CU_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+
 int hc_cuFuncGetAttribute (hashcat_ctx_t *hashcat_ctx, int *pi, CUfunction_attribute attrib, CUfunction hfunc)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
@@ -7346,9 +7374,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     // we don't have sm_* on vendors not NV but it doesn't matter
 
     #if defined (DEBUG)
-    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D LOCAL_MEM_TYPE=%u -D VENDOR_ID=%u -D CUDA_ARCH=%u -D HAS_VPERM=%u -D HAS_VADD3=%u -D HAS_VBFE=%u -D HAS_BFE=%u -D HAS_LOP3=%u -D HAS_MOV64=%u -D HAS_PRMT=%u -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll ", device_param->device_local_mem_type, device_param->opencl_platform_vendor_id, (device_param->sm_major * 100) + (device_param->sm_minor * 10), device_param->has_vperm, device_param->has_vadd3, device_param->has_vbfe, device_param->has_bfe, device_param->has_lop3, device_param->has_mov64, device_param->has_prmt, device_param->vector_width, (u32) device_param->opencl_device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, kern_type);
+    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D LOCAL_MEM_TYPE=%u -D VENDOR_ID=%u -D CUDA_ARCH=%u -D HAS_VPERM=%u -D HAS_VADD3=%u -D HAS_VBFE=%u -D HAS_BFE=%u -D HAS_LOP3=%u -D HAS_MOV64=%u -D HAS_PRMT=%u -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D ATTACK_EXEC=%u -D ATTACK_KERN=%u -D _unroll ", device_param->device_local_mem_type, device_param->opencl_platform_vendor_id, (device_param->sm_major * 100) + (device_param->sm_minor * 10), device_param->has_vperm, device_param->has_vadd3, device_param->has_vbfe, device_param->has_bfe, device_param->has_lop3, device_param->has_mov64, device_param->has_prmt, device_param->vector_width, (u32) device_param->opencl_device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, kern_type, hashconfig->attack_exec, user_options_extra->attack_kern);
     #else
-    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D LOCAL_MEM_TYPE=%u -D VENDOR_ID=%u -D CUDA_ARCH=%u -D HAS_VPERM=%u -D HAS_VADD3=%u -D HAS_VBFE=%u -D HAS_BFE=%u -D HAS_LOP3=%u -D HAS_MOV64=%u -D HAS_PRMT=%u -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -w ", device_param->device_local_mem_type, device_param->opencl_platform_vendor_id, (device_param->sm_major * 100) + (device_param->sm_minor * 10), device_param->has_vperm, device_param->has_vadd3, device_param->has_vbfe, device_param->has_bfe, device_param->has_lop3, device_param->has_mov64, device_param->has_prmt, device_param->vector_width, (u32) device_param->opencl_device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, kern_type);
+    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D LOCAL_MEM_TYPE=%u -D VENDOR_ID=%u -D CUDA_ARCH=%u -D HAS_VPERM=%u -D HAS_VADD3=%u -D HAS_VBFE=%u -D HAS_BFE=%u -D HAS_LOP3=%u -D HAS_MOV64=%u -D HAS_PRMT=%u -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D ATTACK_EXEC=%u -D ATTACK_KERN=%u -D _unroll -w ", device_param->device_local_mem_type, device_param->opencl_platform_vendor_id, (device_param->sm_major * 100) + (device_param->sm_minor * 10), device_param->has_vperm, device_param->has_vadd3, device_param->has_vbfe, device_param->has_bfe, device_param->has_lop3, device_param->has_mov64, device_param->has_prmt, device_param->vector_width, (u32) device_param->opencl_device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, kern_type, hashconfig->attack_exec, user_options_extra->attack_kern);
     #endif
 
     build_options_buf[build_options_len] = 0;
@@ -8276,7 +8304,17 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
         {
           CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_rules,   size_rules);   if (CU_rc == -1) return -1;
-          CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_rules_c, size_rules_c); if (CU_rc == -1) return -1;
+
+          if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+          {
+            size_t dummy;
+
+            CU_rc = hc_cuModuleGetGlobal (hashcat_ctx, &device_param->cuda_d_rules_c, &dummy, device_param->cuda_module, "generic_constant"); if (CU_rc == -1) return -1;
+          }
+          else
+          {
+            CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_rules_c, size_rules_c); if (CU_rc == -1) return -1;
+          }
 
           CU_rc = hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_rules, straight_ctx->kernel_rules_buf, size_rules); if (CU_rc == -1) return -1;
         }
@@ -8290,10 +8328,21 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
         {
           CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_bfs,            size_bfs);        if (CU_rc == -1) return -1;
-          CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_bfs_c,          size_bfs);        if (CU_rc == -1) return -1;
-          CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_tm_c,           size_tm);         if (CU_rc == -1) return -1;
           CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_root_css_buf,   size_root_css);   if (CU_rc == -1) return -1;
           CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_markov_css_buf, size_markov_css); if (CU_rc == -1) return -1;
+
+          if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+          {
+            size_t dummy;
+
+            CU_rc = hc_cuModuleGetGlobal (hashcat_ctx, &device_param->cuda_d_bfs_c, &dummy, device_param->cuda_module, "generic_constant"); if (CU_rc == -1) return -1;
+            CU_rc = hc_cuModuleGetGlobal (hashcat_ctx, &device_param->cuda_d_tm_c,  &dummy, device_param->cuda_module, "generic_constant"); if (CU_rc == -1) return -1;
+          }
+          else
+          {
+            CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_bfs_c,          size_bfs);        if (CU_rc == -1) return -1;
+            CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_tm_c,           size_tm);         if (CU_rc == -1) return -1;
+          }
         }
       }
 
@@ -10665,11 +10714,11 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       if (device_param->cuda_d_pws_comp_buf)   hc_cuMemFree (hashcat_ctx, device_param->cuda_d_pws_comp_buf);
       if (device_param->cuda_d_pws_idx)        hc_cuMemFree (hashcat_ctx, device_param->cuda_d_pws_idx);
       if (device_param->cuda_d_rules)          hc_cuMemFree (hashcat_ctx, device_param->cuda_d_rules);
-      if (device_param->cuda_d_rules_c)        hc_cuMemFree (hashcat_ctx, device_param->cuda_d_rules_c);
+      //if (device_param->cuda_d_rules_c)        hc_cuMemFree (hashcat_ctx, device_param->cuda_d_rules_c);
       if (device_param->cuda_d_combs)          hc_cuMemFree (hashcat_ctx, device_param->cuda_d_combs);
       if (device_param->cuda_d_combs_c)        hc_cuMemFree (hashcat_ctx, device_param->cuda_d_combs_c);
       if (device_param->cuda_d_bfs)            hc_cuMemFree (hashcat_ctx, device_param->cuda_d_bfs);
-      if (device_param->cuda_d_bfs_c)          hc_cuMemFree (hashcat_ctx, device_param->cuda_d_bfs_c);
+      //if (device_param->cuda_d_bfs_c)          hc_cuMemFree (hashcat_ctx, device_param->cuda_d_bfs_c);
       if (device_param->cuda_d_bitmap_s1_a)    hc_cuMemFree (hashcat_ctx, device_param->cuda_d_bitmap_s1_a);
       if (device_param->cuda_d_bitmap_s1_b)    hc_cuMemFree (hashcat_ctx, device_param->cuda_d_bitmap_s1_b);
       if (device_param->cuda_d_bitmap_s1_c)    hc_cuMemFree (hashcat_ctx, device_param->cuda_d_bitmap_s1_c);
@@ -10692,7 +10741,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       if (device_param->cuda_d_extra3_buf)     hc_cuMemFree (hashcat_ctx, device_param->cuda_d_extra3_buf);
       if (device_param->cuda_d_root_css_buf)   hc_cuMemFree (hashcat_ctx, device_param->cuda_d_root_css_buf);
       if (device_param->cuda_d_markov_css_buf) hc_cuMemFree (hashcat_ctx, device_param->cuda_d_markov_css_buf);
-      if (device_param->cuda_d_tm_c)           hc_cuMemFree (hashcat_ctx, device_param->cuda_d_tm_c);
+      //if (device_param->cuda_d_tm_c)           hc_cuMemFree (hashcat_ctx, device_param->cuda_d_tm_c);
       if (device_param->cuda_d_st_digests_buf) hc_cuMemFree (hashcat_ctx, device_param->cuda_d_st_digests_buf);
       if (device_param->cuda_d_st_salts_buf)   hc_cuMemFree (hashcat_ctx, device_param->cuda_d_st_salts_buf);
       if (device_param->cuda_d_st_esalts_buf)  hc_cuMemFree (hashcat_ctx, device_param->cuda_d_st_esalts_buf);
