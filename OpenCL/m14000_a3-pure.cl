@@ -1731,7 +1731,7 @@ DECLSPEC void transpose32c (u32 *data)
 // transpose bitslice mod : attention race conditions, need different buffers for *in and *out
 //
 
-KERNEL_FQ void m14000_tm (GLOBAL_AS u32 *mod, GLOBAL_AS bs_word_t *words_buf_r)
+KERNEL_FQ void m14000_tm (GLOBAL_AS u32 *mod, GLOBAL_AS bs_word_t *words_buf_b)
 {
   const u64 gid = get_global_id (0);
 
@@ -1745,13 +1745,13 @@ KERNEL_FQ void m14000_tm (GLOBAL_AS u32 *mod, GLOBAL_AS bs_word_t *words_buf_r)
   #endif
   for (int i = 0, j = 0; i < 32; i += 8, j += 7)
   {
-    atomic_or (&words_buf_r[block].b[j + 0], (((w0 >> (i + 7)) & 1) << slice));
-    atomic_or (&words_buf_r[block].b[j + 1], (((w0 >> (i + 6)) & 1) << slice));
-    atomic_or (&words_buf_r[block].b[j + 2], (((w0 >> (i + 5)) & 1) << slice));
-    atomic_or (&words_buf_r[block].b[j + 3], (((w0 >> (i + 4)) & 1) << slice));
-    atomic_or (&words_buf_r[block].b[j + 4], (((w0 >> (i + 3)) & 1) << slice));
-    atomic_or (&words_buf_r[block].b[j + 5], (((w0 >> (i + 2)) & 1) << slice));
-    atomic_or (&words_buf_r[block].b[j + 6], (((w0 >> (i + 1)) & 1) << slice));
+    atomic_or (&words_buf_b[block].b[j + 0], (((w0 >> (i + 7)) & 1) << slice));
+    atomic_or (&words_buf_b[block].b[j + 1], (((w0 >> (i + 6)) & 1) << slice));
+    atomic_or (&words_buf_b[block].b[j + 2], (((w0 >> (i + 5)) & 1) << slice));
+    atomic_or (&words_buf_b[block].b[j + 3], (((w0 >> (i + 4)) & 1) << slice));
+    atomic_or (&words_buf_b[block].b[j + 4], (((w0 >> (i + 3)) & 1) << slice));
+    atomic_or (&words_buf_b[block].b[j + 5], (((w0 >> (i + 2)) & 1) << slice));
+    atomic_or (&words_buf_b[block].b[j + 6], (((w0 >> (i + 1)) & 1) << slice));
   }
 }
 
@@ -2080,34 +2080,34 @@ KERNEL_FQ void m14000_mxx (KERN_ATTR_BITSLICE ())
   u32 k26 = K26;
   u32 k27 = K27;
 
-  k00 |= words_buf_r[pc_pos].b[ 0];
-  k01 |= words_buf_r[pc_pos].b[ 1];
-  k02 |= words_buf_r[pc_pos].b[ 2];
-  k03 |= words_buf_r[pc_pos].b[ 3];
-  k04 |= words_buf_r[pc_pos].b[ 4];
-  k05 |= words_buf_r[pc_pos].b[ 5];
-  k06 |= words_buf_r[pc_pos].b[ 6];
-  k07 |= words_buf_r[pc_pos].b[ 7];
-  k08 |= words_buf_r[pc_pos].b[ 8];
-  k09 |= words_buf_r[pc_pos].b[ 9];
-  k10 |= words_buf_r[pc_pos].b[10];
-  k11 |= words_buf_r[pc_pos].b[11];
-  k12 |= words_buf_r[pc_pos].b[12];
-  k13 |= words_buf_r[pc_pos].b[13];
-  k14 |= words_buf_r[pc_pos].b[14];
-  k15 |= words_buf_r[pc_pos].b[15];
-  k16 |= words_buf_r[pc_pos].b[16];
-  k17 |= words_buf_r[pc_pos].b[17];
-  k18 |= words_buf_r[pc_pos].b[18];
-  k19 |= words_buf_r[pc_pos].b[19];
-  k20 |= words_buf_r[pc_pos].b[20];
-  k21 |= words_buf_r[pc_pos].b[21];
-  k22 |= words_buf_r[pc_pos].b[22];
-  k23 |= words_buf_r[pc_pos].b[23];
-  k24 |= words_buf_r[pc_pos].b[24];
-  k25 |= words_buf_r[pc_pos].b[25];
-  k26 |= words_buf_r[pc_pos].b[26];
-  k27 |= words_buf_r[pc_pos].b[27];
+  k00 |= words_buf_s[pc_pos].b[ 0];
+  k01 |= words_buf_s[pc_pos].b[ 1];
+  k02 |= words_buf_s[pc_pos].b[ 2];
+  k03 |= words_buf_s[pc_pos].b[ 3];
+  k04 |= words_buf_s[pc_pos].b[ 4];
+  k05 |= words_buf_s[pc_pos].b[ 5];
+  k06 |= words_buf_s[pc_pos].b[ 6];
+  k07 |= words_buf_s[pc_pos].b[ 7];
+  k08 |= words_buf_s[pc_pos].b[ 8];
+  k09 |= words_buf_s[pc_pos].b[ 9];
+  k10 |= words_buf_s[pc_pos].b[10];
+  k11 |= words_buf_s[pc_pos].b[11];
+  k12 |= words_buf_s[pc_pos].b[12];
+  k13 |= words_buf_s[pc_pos].b[13];
+  k14 |= words_buf_s[pc_pos].b[14];
+  k15 |= words_buf_s[pc_pos].b[15];
+  k16 |= words_buf_s[pc_pos].b[16];
+  k17 |= words_buf_s[pc_pos].b[17];
+  k18 |= words_buf_s[pc_pos].b[18];
+  k19 |= words_buf_s[pc_pos].b[19];
+  k20 |= words_buf_s[pc_pos].b[20];
+  k21 |= words_buf_s[pc_pos].b[21];
+  k22 |= words_buf_s[pc_pos].b[22];
+  k23 |= words_buf_s[pc_pos].b[23];
+  k24 |= words_buf_s[pc_pos].b[24];
+  k25 |= words_buf_s[pc_pos].b[25];
+  k26 |= words_buf_s[pc_pos].b[26];
+  k27 |= words_buf_s[pc_pos].b[27];
 
   DES
   (
@@ -2596,34 +2596,34 @@ KERNEL_FQ void m14000_sxx (KERN_ATTR_BITSLICE ())
   u32 k26 = K26;
   u32 k27 = K27;
 
-  k00 |= words_buf_r[pc_pos].b[ 0];
-  k01 |= words_buf_r[pc_pos].b[ 1];
-  k02 |= words_buf_r[pc_pos].b[ 2];
-  k03 |= words_buf_r[pc_pos].b[ 3];
-  k04 |= words_buf_r[pc_pos].b[ 4];
-  k05 |= words_buf_r[pc_pos].b[ 5];
-  k06 |= words_buf_r[pc_pos].b[ 6];
-  k07 |= words_buf_r[pc_pos].b[ 7];
-  k08 |= words_buf_r[pc_pos].b[ 8];
-  k09 |= words_buf_r[pc_pos].b[ 9];
-  k10 |= words_buf_r[pc_pos].b[10];
-  k11 |= words_buf_r[pc_pos].b[11];
-  k12 |= words_buf_r[pc_pos].b[12];
-  k13 |= words_buf_r[pc_pos].b[13];
-  k14 |= words_buf_r[pc_pos].b[14];
-  k15 |= words_buf_r[pc_pos].b[15];
-  k16 |= words_buf_r[pc_pos].b[16];
-  k17 |= words_buf_r[pc_pos].b[17];
-  k18 |= words_buf_r[pc_pos].b[18];
-  k19 |= words_buf_r[pc_pos].b[19];
-  k20 |= words_buf_r[pc_pos].b[20];
-  k21 |= words_buf_r[pc_pos].b[21];
-  k22 |= words_buf_r[pc_pos].b[22];
-  k23 |= words_buf_r[pc_pos].b[23];
-  k24 |= words_buf_r[pc_pos].b[24];
-  k25 |= words_buf_r[pc_pos].b[25];
-  k26 |= words_buf_r[pc_pos].b[26];
-  k27 |= words_buf_r[pc_pos].b[27];
+  k00 |= words_buf_s[pc_pos].b[ 0];
+  k01 |= words_buf_s[pc_pos].b[ 1];
+  k02 |= words_buf_s[pc_pos].b[ 2];
+  k03 |= words_buf_s[pc_pos].b[ 3];
+  k04 |= words_buf_s[pc_pos].b[ 4];
+  k05 |= words_buf_s[pc_pos].b[ 5];
+  k06 |= words_buf_s[pc_pos].b[ 6];
+  k07 |= words_buf_s[pc_pos].b[ 7];
+  k08 |= words_buf_s[pc_pos].b[ 8];
+  k09 |= words_buf_s[pc_pos].b[ 9];
+  k10 |= words_buf_s[pc_pos].b[10];
+  k11 |= words_buf_s[pc_pos].b[11];
+  k12 |= words_buf_s[pc_pos].b[12];
+  k13 |= words_buf_s[pc_pos].b[13];
+  k14 |= words_buf_s[pc_pos].b[14];
+  k15 |= words_buf_s[pc_pos].b[15];
+  k16 |= words_buf_s[pc_pos].b[16];
+  k17 |= words_buf_s[pc_pos].b[17];
+  k18 |= words_buf_s[pc_pos].b[18];
+  k19 |= words_buf_s[pc_pos].b[19];
+  k20 |= words_buf_s[pc_pos].b[20];
+  k21 |= words_buf_s[pc_pos].b[21];
+  k22 |= words_buf_s[pc_pos].b[22];
+  k23 |= words_buf_s[pc_pos].b[23];
+  k24 |= words_buf_s[pc_pos].b[24];
+  k25 |= words_buf_s[pc_pos].b[25];
+  k26 |= words_buf_s[pc_pos].b[26];
+  k27 |= words_buf_s[pc_pos].b[27];
 
   DES
   (
