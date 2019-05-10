@@ -6944,6 +6944,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
   if (backend_ctx->enabled == false) return 0;
 
+  u64 size_total_host_all = 0;
+
   u32 hardware_power_all = 0;
 
   int CU_rc;
@@ -10315,12 +10317,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     // this value should represent a reasonable amount of memory a host system has per GPU.
     // note we're allocating 3 blocks of that size.
 
-    #define PWS_SPACE (1024 * 1024 * 1024)
+    const u64 PWS_SPACE = 4ull * 1024ull * 1024ull * 1024ull;
 
     // sometimes device_available_mem and device_maxmem_alloc reported back from the opencl runtime are a bit inaccurate.
     // let's add some extra space just to be sure.
 
-    #define EXTRA_SPACE (64 * 1024 * 1024)
+    const u64 EXTRA_SPACE = 64ull * 1024ull * 1024ull;
 
     while (kernel_accel_max >= kernel_accel_min)
     {
@@ -10412,6 +10414,13 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if ((size_total + EXTRA_SPACE) > device_param->device_available_mem) memory_limit_hit = 1;
 
+      if (memory_limit_hit == 1)
+      {
+        kernel_accel_max--;
+
+        continue;
+      }
+
       const u64 size_total_host
         = size_pws_comp
         + size_pws_idx
@@ -10423,23 +10432,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         + size_pws_pre
         + size_pws_base;
 
-      if ((size_total_host + EXTRA_SPACE) > device_param->device_maxmem_alloc) memory_limit_hit = 1;
-
-      #if defined (__x86_x64__)
-      const u64 MAX_HOST_MEMORY = 16ull * 1024ull * 1024ull * 1024ull; // don't be too memory hungry
-      #else
-      const u64 MAX_HOST_MEMORY =  2ull * 1024ull * 1024ull * 1024ull; // windows 7 starter limits to 2gb instead of 4gb
-      #endif
-
-      // we assume all devices have the same specs here, which is wrong, it's a start
-      if ((size_total_host * backend_ctx->backend_devices_cnt) > MAX_HOST_MEMORY) memory_limit_hit = 1;
-
-      if (memory_limit_hit == 1)
-      {
-        kernel_accel_max--;
-
-        continue;
-      }
+      size_total_host_all += size_total_host + EXTRA_SPACE;
 
       break;
     }
@@ -10679,6 +10672,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
   }
 
   backend_ctx->hardware_power_all = hardware_power_all;
+
+  EVENT_DATA (EVENT_BACKEND_SESSION_HOSTMEM, &size_total_host_all, sizeof (u64));
 
   return 0;
 }
