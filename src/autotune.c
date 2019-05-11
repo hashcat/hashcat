@@ -47,6 +47,53 @@ static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
   return exec_msec_prev;
 }
 
+static double try_run_preferred (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kernel_accel, const u32 kernel_loops)
+{
+  hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+
+  device_param->kernel_params_buf32[28] = 0;
+  device_param->kernel_params_buf32[29] = kernel_loops; // not a bug, both need to be set
+  device_param->kernel_params_buf32[30] = kernel_loops; // because there's two variables for inner iters for slow and fast hashes
+
+  const u32 kernel_power_try = device_param->hardware_power * kernel_accel;
+
+  const u32 kernel_threads_sav = device_param->kernel_threads;
+
+  const double spin_damp_sav = device_param->spin_damp;
+
+  device_param->spin_damp = 0;
+
+  if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+  {
+    if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+    {
+      device_param->kernel_threads = device_param->kernel_preferred_wgs_multiple1;
+
+      run_kernel (hashcat_ctx, device_param, KERN_RUN_1, kernel_power_try, true, 0);
+    }
+    else
+    {
+      device_param->kernel_threads = device_param->kernel_preferred_wgs_multiple4;
+
+      run_kernel (hashcat_ctx, device_param, KERN_RUN_4, kernel_power_try, true, 0);
+    }
+  }
+  else
+  {
+    device_param->kernel_threads = device_param->kernel_preferred_wgs_multiple2;
+
+    run_kernel (hashcat_ctx, device_param, KERN_RUN_2, kernel_power_try, true, 0);
+  }
+
+  device_param->kernel_threads = kernel_threads_sav;
+
+  device_param->spin_damp = spin_damp_sav;
+
+  const double exec_msec_prev = get_avg_exec_time (device_param, 1);
+
+  return exec_msec_prev;
+}
+
 static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 {
   const hashconfig_t    *hashconfig   = hashcat_ctx->hashconfig;
@@ -247,6 +294,45 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     // this is safe to not overflow kernel_accel_max because of accel_left
 
     kernel_accel *= exec_accel_min;
+  }
+
+  // start finding best thread count is easier.
+  // it's either the preferred or the maximum thread count
+
+  const u32 kernel_threads_min = device_param->kernel_threads_min;
+  const u32 kernel_threads_max = device_param->kernel_threads_max;
+
+  if (kernel_threads_min < kernel_threads_max)
+  {
+    const double exec_msec_max = try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops);
+
+    u32 preferred_threads = 0;
+
+    if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+    {
+      if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+      {
+        preferred_threads = device_param->kernel_preferred_wgs_multiple1;
+      }
+      else
+      {
+        preferred_threads = device_param->kernel_preferred_wgs_multiple4;
+      }
+    }
+    else
+    {
+      preferred_threads = device_param->kernel_preferred_wgs_multiple2;
+    }
+
+    if ((preferred_threads >= kernel_threads_min) && (preferred_threads <= kernel_threads_max))
+    {
+      const double exec_msec_preferred = try_run_preferred (hashcat_ctx, device_param, kernel_accel, kernel_loops);
+
+      if (exec_msec_preferred < exec_msec_max)
+      {
+        device_param->kernel_threads = preferred_threads;
+      }
+    }
   }
 
   if (device_param->is_cuda == true)

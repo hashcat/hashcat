@@ -6808,10 +6808,8 @@ static int get_opencl_kernel_local_mem_size (hashcat_ctx_t *hashcat_ctx, hc_devi
   return 0;
 }
 
-static u32 get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param)
+static u32 get_kernel_threads (const hc_device_param_t *device_param)
 {
-  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
-
   // a module can force a fixed value
 
   u32 kernel_threads_min = device_param->kernel_threads_min;
@@ -6841,7 +6839,9 @@ static u32 get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param
 
   // complicated kernel tend to confuse OpenCL runtime suggestions for maximum thread size
   // let's workaround that by sticking to their device specific preferred thread size
+  // this section was replaced by autotune
 
+  /*
   if (hashconfig->opts_type & OPTS_TYPE_PREFERED_THREAD)
   {
     if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
@@ -6926,6 +6926,7 @@ static u32 get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param
       }
     }
   }
+  */
 
   return kernel_threads;
 }
@@ -8782,7 +8783,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
             if (CL_rc == -1) return -1;
 
-            device_param->kernel_preferred_wgs_multiple1 = device_param->device_maxworkgroup_size;
+            device_param->kernel_preferred_wgs_multiple1 = device_param->cuda_warp_size;
 
             if (CL_rc == -1) return -1;
 
@@ -8802,7 +8803,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
             if (CL_rc == -1) return -1;
 
-            device_param->kernel_preferred_wgs_multiple2 = device_param->device_maxworkgroup_size;
+            device_param->kernel_preferred_wgs_multiple2 = device_param->cuda_warp_size;
 
             if (CL_rc == -1) return -1;
 
@@ -8822,7 +8823,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
             if (CL_rc == -1) return -1;
 
-            device_param->kernel_preferred_wgs_multiple3 = device_param->device_maxworkgroup_size;
+            device_param->kernel_preferred_wgs_multiple3 = device_param->cuda_warp_size;
 
             if (CL_rc == -1) return -1;
           }
@@ -8842,7 +8843,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
             if (CL_rc == -1) return -1;
 
-            device_param->kernel_preferred_wgs_multiple4 = device_param->device_maxworkgroup_size;
+            device_param->kernel_preferred_wgs_multiple4 = device_param->cuda_warp_size;
 
             if (CL_rc == -1) return -1;
           }
@@ -8867,7 +8868,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
             if (CL_rc == -1) return -1;
 
-            device_param->kernel_preferred_wgs_multiple1 = device_param->device_maxworkgroup_size;
+            device_param->kernel_preferred_wgs_multiple1 = device_param->cuda_warp_size;
 
             if (CL_rc == -1) return -1;
 
@@ -8887,7 +8888,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
             if (CL_rc == -1) return -1;
 
-            device_param->kernel_preferred_wgs_multiple2 = device_param->device_maxworkgroup_size;
+            device_param->kernel_preferred_wgs_multiple2 = device_param->cuda_warp_size;
 
             if (CL_rc == -1) return -1;
 
@@ -8907,7 +8908,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
             if (CL_rc == -1) return -1;
 
-            device_param->kernel_preferred_wgs_multiple3 = device_param->device_maxworkgroup_size;
+            device_param->kernel_preferred_wgs_multiple3 = device_param->cuda_warp_size;
 
             if (CL_rc == -1) return -1;
           }
@@ -8927,7 +8928,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
             if (CL_rc == -1) return -1;
 
-            device_param->kernel_preferred_wgs_multiple4 = device_param->device_maxworkgroup_size;
+            device_param->kernel_preferred_wgs_multiple4 = device_param->cuda_warp_size;
 
             if (CL_rc == -1) return -1;
           }
@@ -8956,7 +8957,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
               if (CL_rc == -1) return -1;
 
-              device_param->kernel_preferred_wgs_multiple_tm = device_param->device_maxworkgroup_size;
+              device_param->kernel_preferred_wgs_multiple_tm = device_param->cuda_warp_size;
 
               if (CL_rc == -1) return -1;
             }
@@ -8981,7 +8982,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (CL_rc == -1) return -1;
 
-        device_param->kernel_preferred_wgs_multiple1 = device_param->device_maxworkgroup_size;
+        device_param->kernel_preferred_wgs_multiple1 = device_param->cuda_warp_size;
 
         if (CL_rc == -1) return -1;
 
@@ -9001,7 +9002,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (CL_rc == -1) return -1;
 
-        device_param->kernel_preferred_wgs_multiple2 = device_param->device_maxworkgroup_size;
+        device_param->kernel_preferred_wgs_multiple2 = device_param->cuda_warp_size;
 
         if (CL_rc == -1) return -1;
 
@@ -9021,7 +9022,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (CL_rc == -1) return -1;
 
-        device_param->kernel_preferred_wgs_multiple3 = device_param->device_maxworkgroup_size;
+        device_param->kernel_preferred_wgs_multiple3 = device_param->cuda_warp_size;
 
         if (CL_rc == -1) return -1;
 
@@ -9043,7 +9044,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (CL_rc == -1) return -1;
 
-          device_param->kernel_preferred_wgs_multiple12 = device_param->device_maxworkgroup_size;
+          device_param->kernel_preferred_wgs_multiple12 = device_param->cuda_warp_size;
 
           if (CL_rc == -1) return -1;
         }
@@ -9066,7 +9067,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (CL_rc == -1) return -1;
 
-          device_param->kernel_preferred_wgs_multiple23 = device_param->device_maxworkgroup_size;
+          device_param->kernel_preferred_wgs_multiple23 = device_param->cuda_warp_size;
 
           if (CL_rc == -1) return -1;
         }
@@ -9089,7 +9090,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (CL_rc == -1) return -1;
 
-          device_param->kernel_preferred_wgs_multiple_init2 = device_param->device_maxworkgroup_size;
+          device_param->kernel_preferred_wgs_multiple_init2 = device_param->cuda_warp_size;
 
           if (CL_rc == -1) return -1;
         }
@@ -9112,7 +9113,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (CL_rc == -1) return -1;
 
-          device_param->kernel_preferred_wgs_multiple_loop2 = device_param->device_maxworkgroup_size;
+          device_param->kernel_preferred_wgs_multiple_loop2 = device_param->cuda_warp_size;
 
           if (CL_rc == -1) return -1;
         }
@@ -9135,7 +9136,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (CL_rc == -1) return -1;
 
-          device_param->kernel_preferred_wgs_multiple_aux1 = device_param->device_maxworkgroup_size;
+          device_param->kernel_preferred_wgs_multiple_aux1 = device_param->cuda_warp_size;
 
           if (CL_rc == -1) return -1;
         }
@@ -9158,7 +9159,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (CL_rc == -1) return -1;
 
-          device_param->kernel_preferred_wgs_multiple_aux2 = device_param->device_maxworkgroup_size;
+          device_param->kernel_preferred_wgs_multiple_aux2 = device_param->cuda_warp_size;
 
           if (CL_rc == -1) return -1;
         }
@@ -9181,7 +9182,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (CL_rc == -1) return -1;
 
-          device_param->kernel_preferred_wgs_multiple_aux3 = device_param->device_maxworkgroup_size;
+          device_param->kernel_preferred_wgs_multiple_aux3 = device_param->cuda_warp_size;
 
           if (CL_rc == -1) return -1;
         }
@@ -9204,7 +9205,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (CL_rc == -1) return -1;
 
-          device_param->kernel_preferred_wgs_multiple_aux4 = device_param->device_maxworkgroup_size;
+          device_param->kernel_preferred_wgs_multiple_aux4 = device_param->cuda_warp_size;
 
           if (CL_rc == -1) return -1;
         }
@@ -9224,7 +9225,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (CL_rc == -1) return -1;
 
-      device_param->kernel_preferred_wgs_multiple_memset = device_param->device_maxworkgroup_size;
+      device_param->kernel_preferred_wgs_multiple_memset = device_param->cuda_warp_size;
 
       if (CL_rc == -1) return -1;
 
@@ -9246,7 +9247,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (CL_rc == -1) return -1;
 
-      device_param->kernel_preferred_wgs_multiple_atinit = device_param->device_maxworkgroup_size;
+      device_param->kernel_preferred_wgs_multiple_atinit = device_param->cuda_warp_size;
 
       if (CL_rc == -1) return -1;
 
@@ -9267,7 +9268,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (CL_rc == -1) return -1;
 
-      device_param->kernel_preferred_wgs_multiple_decompress = device_param->device_maxworkgroup_size;
+      device_param->kernel_preferred_wgs_multiple_decompress = device_param->cuda_warp_size;
 
       if (CL_rc == -1) return -1;
 
@@ -9299,7 +9300,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (CL_rc == -1) return -1;
 
-          device_param->kernel_preferred_wgs_multiple_mp_l = device_param->device_maxworkgroup_size;
+          device_param->kernel_preferred_wgs_multiple_mp_l = device_param->cuda_warp_size;
 
           if (CL_rc == -1) return -1;
 
@@ -9317,7 +9318,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (CL_rc == -1) return -1;
 
-          device_param->kernel_preferred_wgs_multiple_mp_r = device_param->device_maxworkgroup_size;
+          device_param->kernel_preferred_wgs_multiple_mp_r = device_param->cuda_warp_size;
 
           if (CL_rc == -1) return -1;
 
@@ -9341,7 +9342,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (CL_rc == -1) return -1;
 
-          device_param->kernel_preferred_wgs_multiple_mp = device_param->device_maxworkgroup_size;
+          device_param->kernel_preferred_wgs_multiple_mp = device_param->cuda_warp_size;
 
           if (CL_rc == -1) return -1;
         }
@@ -9359,7 +9360,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (CL_rc == -1) return -1;
 
-          device_param->kernel_preferred_wgs_multiple_mp = device_param->device_maxworkgroup_size;
+          device_param->kernel_preferred_wgs_multiple_mp = device_param->cuda_warp_size;
 
           if (CL_rc == -1) return -1;
         }
@@ -9388,7 +9389,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (CL_rc == -1) return -1;
 
-          device_param->kernel_preferred_wgs_multiple_amp = device_param->device_maxworkgroup_size;
+          device_param->kernel_preferred_wgs_multiple_amp = device_param->cuda_warp_size;
 
           if (CL_rc == -1) return -1;
         }
@@ -10270,12 +10271,6 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
     }
 
-    /**
-     * now everything that depends on threads and accel, basically dynamic workload
-     */
-
-    u32 kernel_threads = get_kernel_threads (hashcat_ctx, device_param);
-
     // this is required because inside the kernels there is this:
     // __local pw_t s_pws[64];
 
@@ -10287,9 +10282,15 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        kernel_threads = MIN (kernel_threads, 64);
+        device_param->kernel_threads_max = MIN (device_param->kernel_threads_max, 64);
       }
     }
+
+    /**
+     * now everything that depends on threads and accel, basically dynamic workload
+     */
+
+    const u32 kernel_threads = get_kernel_threads (device_param);
 
     device_param->kernel_threads = kernel_threads;
 
