@@ -84,6 +84,11 @@ DECLSPEC void sha256_transform_m (u32x *digest, const u32x *w)
 
   ROUND_STEP (0);
 
+  #ifdef IS_CUDA
+  ROUND_EXPAND (); ROUND_STEP (16);
+  ROUND_EXPAND (); ROUND_STEP (32);
+  ROUND_EXPAND (); ROUND_STEP (48);
+  #else
   #ifdef _unroll
   #pragma unroll
   #endif
@@ -91,6 +96,7 @@ DECLSPEC void sha256_transform_m (u32x *digest, const u32x *w)
   {
     ROUND_EXPAND (); ROUND_STEP (i);
   }
+  #endif
 
   digest[0] += a;
   digest[1] += b;
@@ -135,6 +141,11 @@ DECLSPEC void sha256_transform_z (u32x *digest)
 
   ROUND_STEP_Z (0);
 
+  #ifdef IS_CUDA
+  ROUND_STEP_Z (16);
+  ROUND_STEP_Z (32);
+  ROUND_STEP_Z (48);
+  #else
   #ifdef _unroll
   #pragma unroll
   #endif
@@ -142,6 +153,7 @@ DECLSPEC void sha256_transform_z (u32x *digest)
   {
     ROUND_STEP_Z (i);
   }
+  #endif
 
   digest[0] += a;
   digest[1] += b;

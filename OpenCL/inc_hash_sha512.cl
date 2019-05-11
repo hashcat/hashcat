@@ -108,6 +108,12 @@ DECLSPEC void sha512_transform (const u32 *w0, const u32 *w1, const u32 *w2, con
 
   ROUND_STEP_S (0);
 
+  #ifdef IS_CUDA
+  ROUND_EXPAND_S (); ROUND_STEP_S (16);
+  ROUND_EXPAND_S (); ROUND_STEP_S (32);
+  ROUND_EXPAND_S (); ROUND_STEP_S (48);
+  ROUND_EXPAND_S (); ROUND_STEP_S (64);
+  #else
   #ifdef _unroll
   #pragma unroll
   #endif
@@ -115,6 +121,7 @@ DECLSPEC void sha512_transform (const u32 *w0, const u32 *w1, const u32 *w2, con
   {
     ROUND_EXPAND_S (); ROUND_STEP_S (i);
   }
+  #endif
 
   #undef ROUND_EXPAND_S
   #undef ROUND_STEP_S

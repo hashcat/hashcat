@@ -47,6 +47,7 @@ static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
   return exec_msec_prev;
 }
 
+/*
 static double try_run_preferred (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kernel_accel, const u32 kernel_loops)
 {
   hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
@@ -93,6 +94,7 @@ static double try_run_preferred (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
 
   return exec_msec_prev;
 }
+*/
 
 static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 {
@@ -261,6 +263,8 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     const u32 kernel_accel_orig = kernel_accel;
     const u32 kernel_loops_orig = kernel_loops;
 
+    double exec_msec_prev = try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops);
+
     for (int i = 1; i < STEPS_CNT; i++)
     {
       const u32 kernel_accel_try = kernel_accel_orig * (1u << i);
@@ -271,6 +275,16 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       if (kernel_loops_try > kernel_loops_max) continue;
       if (kernel_loops_try < kernel_loops_min) break;
+
+      // do a real test
+
+      const double exec_msec = try_run (hashcat_ctx, device_param, kernel_accel_try, kernel_loops_try);
+
+      if (exec_msec_prev < exec_msec) break;
+
+      exec_msec_prev = exec_msec;
+
+      // so far, so good! save
 
       kernel_accel = kernel_accel_try;
       kernel_loops = kernel_loops_try;
@@ -299,6 +313,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   // start finding best thread count is easier.
   // it's either the preferred or the maximum thread count
 
+  /*
   const u32 kernel_threads_min = device_param->kernel_threads_min;
   const u32 kernel_threads_max = device_param->kernel_threads_max;
 
@@ -334,6 +349,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
       }
     }
   }
+  */
 
   if (device_param->is_cuda == true)
   {

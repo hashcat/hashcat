@@ -86,6 +86,12 @@ DECLSPEC void sha384_transform_intern (const u32x *w0, const u32x *w1, const u32
 
   ROUND_STEP (0);
 
+  #ifdef IS_CUDA
+  ROUND_EXPAND (); ROUND_STEP (16);
+  ROUND_EXPAND (); ROUND_STEP (32);
+  ROUND_EXPAND (); ROUND_STEP (48);
+  ROUND_EXPAND (); ROUND_STEP (64);
+  #else
   #ifdef _unroll
   #pragma unroll
   #endif
@@ -93,6 +99,7 @@ DECLSPEC void sha384_transform_intern (const u32x *w0, const u32x *w1, const u32
   {
     ROUND_EXPAND (); ROUND_STEP (i);
   }
+  #endif
 
   /* rev
   digest[0] += a;
