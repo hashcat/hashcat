@@ -298,6 +298,14 @@ CONSTANT_AS u32a c_sbox3[256] =
   0x90d4f869, 0xa65cdea0, 0x3f09252d, 0xc208e69f,
   0xb74e6132, 0xce77e25b, 0x578fdfe3, 0x3ac372e6
 };
+CONSTANT_AS u32a c_parray[18] =
+{
+    0x243f6a88, 0x85a308d3, 0x13198a2e, 0x03707344,
+    0xa4093822, 0x299f31d0, 0x082efa98, 0xec4e6c89,
+    0x452821e6, 0x38d01377, 0xbe5466cf, 0x34e90c6c,
+    0xc0ac29b7, 0xc97c50dd, 0x3f84d5b5, 0xb5470917,
+    0x9216d5d9, 0x8979fb1b
+};
 
 #define BF_ROUND(L,R,N)                       \
 {                                             \
@@ -455,14 +463,11 @@ KERNEL_FQ void __attribute__((reqd_work_group_size(FIXED_LOCAL_SIZE, 1, 1))) m03
 
   // initstate
 
-  u32 P[18] =
+  u32 P[18];
+  for (u32 i = 0; i < 18; i++)
   {
-    0x243f6a88, 0x85a308d3, 0x13198a2e, 0x03707344,
-    0xa4093822, 0x299f31d0, 0x082efa98, 0xec4e6c89,
-    0x452821e6, 0x38d01377, 0xbe5466cf, 0x34e90c6c,
-    0xc0ac29b7, 0xc97c50dd, 0x3f84d5b5, 0xb5470917,
-    0x9216d5d9, 0x8979fb1b
-  };
+    P[i] = c_parray[i];
+  }
 
   for (u32 i = 0; i < 256; i++)
   {
