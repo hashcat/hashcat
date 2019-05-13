@@ -201,7 +201,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   if (1)
   {
-    const double exec_msec = try_run (hashcat_ctx, device_param, kernel_accel_min, kernel_loops_min);
+    double exec_msec = try_run (hashcat_ctx, device_param, kernel_accel_min, kernel_loops_min);
 
     if (exec_msec > 2000)
     {
@@ -209,6 +209,8 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       return -1;
     }
+
+    exec_msec = try_run (hashcat_ctx, device_param, kernel_accel_min, kernel_loops_min);
 
     const u32 mm = kernel_loops_max / kernel_loops_min;
 
