@@ -70,7 +70,7 @@ struct __device_builtin__ __builtin_align__(2) u8x
   inline __device__  u8x (const u8 a, const u8 b) : s0(a), s1(b) { }
   inline __device__  u8x (const u8 a)             : s0(a), s1(a) { }
 
-  inline __device__  u8x (void) { }
+  inline __device__  u8x (void) : s0(0), s1(0) { }
   inline __device__ ~u8x (void) { }
 };
 
@@ -82,7 +82,7 @@ struct __device_builtin__ __builtin_align__(4) u16x
   inline __device__  u16x (const u16 a, const u16 b) : s0(a), s1(b) { }
   inline __device__  u16x (const u16 a)              : s0(a), s1(a) { }
 
-  inline __device__  u16x (void) { }
+  inline __device__  u16x (void) : s0(0), s1(0) { }
   inline __device__ ~u16x (void) { }
 };
 
@@ -94,7 +94,7 @@ struct __device_builtin__ __builtin_align__(8) u32x
   inline __device__  u32x (const u32 a, const u32 b) : s0(a), s1(b) { }
   inline __device__  u32x (const u32 a)              : s0(a), s1(a) { }
 
-  inline __device__  u32x (void) { }
+  inline __device__  u32x (void) : s0(0), s1(0) { }
   inline __device__ ~u32x (void) { }
 };
 
@@ -106,7 +106,7 @@ struct __device_builtin__ __builtin_align__(16) u64x
   inline __device__  u64x (const u64 a, const u64 b) : s0(a), s1(b) { }
   inline __device__  u64x (const u64 a)              : s0(a), s1(a) { }
 
-  inline __device__  u64x (void) { }
+  inline __device__  u64x (void) : s0(0), s1(0) { }
   inline __device__ ~u64x (void) { }
 };
 
@@ -230,7 +230,7 @@ struct __device_builtin__ __builtin_align__(4) u8x
   inline __device__  u8x (const u8 a, const u8 b, const u8 c, const u8 d) : s0(a), s1(b), s2(c), s3(d) { }
   inline __device__  u8x (const u8 a)                                     : s0(a), s1(a), s2(a), s3(a) { }
 
-  inline __device__  u8x (void) { }
+  inline __device__  u8x (void) : s0(0), s1(0), s2(0), s3(0) { }
   inline __device__ ~u8x (void) { }
 };
 
@@ -244,7 +244,7 @@ struct __device_builtin__ __builtin_align__(8) u16x
   inline __device__  u16x (const u16 a, const u16 b, const u16 c, const u16 d) : s0(a), s1(b), s2(c), s3(d) { }
   inline __device__  u16x (const u16 a)                                        : s0(a), s1(a), s2(a), s3(a) { }
 
-  inline __device__  u16x (void) { }
+  inline __device__  u16x (void) : s0(0), s1(0), s2(0), s3(0) { }
   inline __device__ ~u16x (void) { }
 };
 
@@ -258,7 +258,7 @@ struct __device_builtin__ __builtin_align__(16) u32x
   inline __device__  u32x (const u32 a, const u32 b, const u32 c, const u32 d) : s0(a), s1(b), s2(c), s3(d) { }
   inline __device__  u32x (const u32 a)                                        : s0(a), s1(a), s2(a), s3(a) { }
 
-  inline __device__  u32x (void) { }
+  inline __device__  u32x (void) : s0(0), s1(0), s2(0), s3(0) { }
   inline __device__ ~u32x (void) { }
 };
 
@@ -272,7 +272,7 @@ struct __device_builtin__ __builtin_align__(32) u64x
   inline __device__  u64x (const u64 a, const u64 b, const u64 c, const u64 d) : s0(a), s1(b), s2(c), s3(d) { }
   inline __device__  u64x (const u64 a)                                        : s0(a), s1(a), s2(a), s3(a) { }
 
-  inline __device__  u64x (void) { }
+  inline __device__  u64x (void) : s0(0), s1(0), s2(0), s3(0) { }
   inline __device__ ~u64x (void) { }
 };
 
@@ -400,7 +400,7 @@ struct __device_builtin__ __builtin_align__(8) u8x
   inline __device__  u8x (const u8 a, const u8 b, const u8 c, const u8 d, const u8 e, const u8 f, const u8 g, const u8 h) : s0(a), s1(b), s2(c), s3(d), s4(e), s5(f), s6(g), s7(h) { }
   inline __device__  u8x (const u8 a)                                                                                     : s0(a), s1(a), s2(a), s3(a), s4(a), s5(a), s6(a), s7(a) { }
 
-  inline __device__  u8x (void) { }
+  inline __device__  u8x (void) : s0(0), s1(0), s2(0), s3(0), s4(0), s5(0), s6(0), s7(0) { }
   inline __device__ ~u8x (void) { }
 };
 
@@ -418,7 +418,7 @@ struct __device_builtin__ __builtin_align__(16) u16x
   inline __device__  u16x (const u16 a, const u16 b, const u16 c, const u16 d, const u16 e, const u16 f, const u16 g, const u16 h) : s0(a), s1(b), s2(c), s3(d), s4(e), s5(f), s6(g), s7(h) { }
   inline __device__  u16x (const u16 a)                                                                                            : s0(a), s1(a), s2(a), s3(a), s4(a), s5(a), s6(a), s7(a) { }
 
-  inline __device__  u16x (void) { }
+  inline __device__  u16x (void) : s0(0), s1(0), s2(0), s3(0), s4(0), s5(0), s6(0), s7(0) { }
   inline __device__ ~u16x (void) { }
 };
 
@@ -436,7 +436,7 @@ struct __device_builtin__ __builtin_align__(32) u32x
   inline __device__  u32x (const u32 a, const u32 b, const u32 c, const u32 d, const u32 e, const u32 f, const u32 g, const u32 h) : s0(a), s1(b), s2(c), s3(d), s4(e), s5(f), s6(g), s7(h) { }
   inline __device__  u32x (const u32 a)                                                                                            : s0(a), s1(a), s2(a), s3(a), s4(a), s5(a), s6(a), s7(a) { }
 
-  inline __device__  u32x (void) { }
+  inline __device__  u32x (void) : s0(0), s1(0), s2(0), s3(0), s4(0), s5(0), s6(0), s7(0) { }
   inline __device__ ~u32x (void) { }
 };
 
@@ -454,7 +454,7 @@ struct __device_builtin__ __builtin_align__(64) u64x
   inline __device__  u64x (const u64 a, const u64 b, const u64 c, const u64 d, const u64 e, const u64 f, const u64 g, const u64 h) : s0(a), s1(b), s2(c), s3(d), s4(e), s5(f), s6(g), s7(h) { }
   inline __device__  u64x (const u64 a)                                                                                            : s0(a), s1(a), s2(a), s3(a), s4(a), s5(a), s6(a), s7(a) { }
 
-  inline __device__  u64x (void) { }
+  inline __device__  u64x (void) : s0(0), s1(0), s2(0), s3(0), s4(0), s5(0), s6(0), s7(0) { }
   inline __device__ ~u64x (void) { }
 };
 
@@ -590,7 +590,7 @@ struct __device_builtin__ __builtin_align__(16) u8x
   inline __device__  u8x (const u8 a, const u8 b, const u8 c, const u8 d, const u8 e, const u8 f, const u8 g, const u8 h, const u8 i, const u8 j, const u8 k, const u8 l, const u8 m, const u8 n, const u8 o, const u8 p) : s0(a), s1(b), s2(c), s3(d), s4(e), s5(f), s6(g), s7(h), s8(i), s9(j), sa(k), sb(l), sc(m), sd(n), se(o), sf(p) { }
   inline __device__  u8x (const u8 a)                                                                                                                                                                                     : s0(a), s1(a), s2(a), s3(a), s4(a), s5(a), s6(a), s7(a), s8(a), s9(a), sa(a), sb(a), sc(a), sd(a), se(a), sf(a) { }
 
-  inline __device__  u8x (void) { }
+  inline __device__  u8x (void) : s0(0), s1(0), s2(0), s3(0), s4(0), s5(0), s6(0), s7(0), s8(0), s9(0), sa(0), sb(0), sc(0), sd(0), se(0), sf(0) { }
   inline __device__ ~u8x (void) { }
 };
 
@@ -616,7 +616,7 @@ struct __device_builtin__ __builtin_align__(32) u16x
   inline __device__  u16x (const u16 a, const u16 b, const u16 c, const u16 d, const u16 e, const u16 f, const u16 g, const u16 h, const u16 i, const u16 j, const u16 k, const u16 l, const u16 m, const u16 n, const u16 o, const u16 p) : s0(a), s1(b), s2(c), s3(d), s4(e), s5(f), s6(g), s7(h), s8(i), s9(j), sa(k), sb(l), sc(m), sd(n), se(o), sf(p) { }
   inline __device__  u16x (const u16 a)                                                                                                                                                                                     : s0(a), s1(a), s2(a), s3(a), s4(a), s5(a), s6(a), s7(a), s8(a), s9(a), sa(a), sb(a), sc(a), sd(a), se(a), sf(a) { }
 
-  inline __device__  u16x (void) { }
+  inline __device__  u16x (void) : s0(0), s1(0), s2(0), s3(0), s4(0), s5(0), s6(0), s7(0), s8(0), s9(0), sa(0), sb(0), sc(0), sd(0), se(0), sf(0){ }
   inline __device__ ~u16x (void) { }
 };
 
@@ -642,7 +642,7 @@ struct __device_builtin__ __builtin_align__(64) u32x
   inline __device__  u32x (const u32 a, const u32 b, const u32 c, const u32 d, const u32 e, const u32 f, const u32 g, const u32 h, const u32 i, const u32 j, const u32 k, const u32 l, const u32 m, const u32 n, const u32 o, const u32 p) : s0(a), s1(b), s2(c), s3(d), s4(e), s5(f), s6(g), s7(h), s8(i), s9(j), sa(k), sb(l), sc(m), sd(n), se(o), sf(p) { }
   inline __device__  u32x (const u32 a)                                                                                                                                                                                     : s0(a), s1(a), s2(a), s3(a), s4(a), s5(a), s6(a), s7(a), s8(a), s9(a), sa(a), sb(a), sc(a), sd(a), se(a), sf(a) { }
 
-  inline __device__  u32x (void) { }
+  inline __device__  u32x (void) : s0(0), s1(0), s2(0), s3(0), s4(0), s5(0), s6(0), s7(0), s8(0), s9(0), sa(0), sb(0), sc(0), sd(0), se(0), sf(0){ }
   inline __device__ ~u32x (void) { }
 };
 
@@ -668,7 +668,7 @@ struct __device_builtin__ __builtin_align__(128) u64x
   inline __device__  u64x (const u64 a, const u64 b, const u64 c, const u64 d, const u64 e, const u64 f, const u64 g, const u64 h, const u64 i, const u64 j, const u64 k, const u64 l, const u64 m, const u64 n, const u64 o, const u64 p) : s0(a), s1(b), s2(c), s3(d), s4(e), s5(f), s6(g), s7(h), s8(i), s9(j), sa(k), sb(l), sc(m), sd(n), se(o), sf(p) { }
   inline __device__  u64x (const u64 a)                                                                                                                                                                                     : s0(a), s1(a), s2(a), s3(a), s4(a), s5(a), s6(a), s7(a), s8(a), s9(a), sa(a), sb(a), sc(a), sd(a), se(a), sf(a) { }
 
-  inline __device__  u64x (void) { }
+  inline __device__  u64x (void) : s0(0), s1(0), s2(0), s3(0), s4(0), s5(0), s6(0), s7(0), s8(0), s9(0), sa(0), sb(0), sc(0), sd(0), se(0), sf(0) { }
   inline __device__ ~u64x (void) { }
 };
 
