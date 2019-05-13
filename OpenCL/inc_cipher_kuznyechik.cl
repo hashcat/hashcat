@@ -92,12 +92,23 @@ CONSTANT_VK u32a k_sbox_inv[256] =
 
 #define extract_byte(x,n) (((x) >> (8 * (n))) & 0xff)
 
-#define k_lookup(w,sbox)                      \
-  for (int i = 0; i < 4; i++)                 \
-    w[i] = sbox[extract_byte (w[i], 0)] <<  0 \
-         | sbox[extract_byte (w[i], 1)] <<  8 \
-         | sbox[extract_byte (w[i], 2)] << 16 \
-         | sbox[extract_byte (w[i], 3)] << 24
+#define k_lookup(w,sbox)                        \
+    w[0] = sbox[extract_byte (w[0], 0)] <<  0   \
+         | sbox[extract_byte (w[0], 1)] <<  8   \
+         | sbox[extract_byte (w[0], 2)] << 16   \
+         | sbox[extract_byte (w[0], 3)] << 24;  \
+    w[1] = sbox[extract_byte (w[1], 0)] <<  0   \
+         | sbox[extract_byte (w[1], 1)] <<  8   \
+         | sbox[extract_byte (w[1], 2)] << 16   \
+         | sbox[extract_byte (w[1], 3)] << 24;  \
+    w[2] = sbox[extract_byte (w[2], 0)] <<  0   \
+         | sbox[extract_byte (w[2], 1)] <<  8   \
+         | sbox[extract_byte (w[2], 2)] << 16   \
+         | sbox[extract_byte (w[2], 3)] << 24;  \
+    w[3] = sbox[extract_byte (w[3], 0)] <<  0   \
+         | sbox[extract_byte (w[3], 1)] <<  8   \
+         | sbox[extract_byte (w[3], 2)] << 16   \
+         | sbox[extract_byte (w[3], 3)] << 24;
 
 #define k_xor(n)                      \
   for (int i = (n); i > 0; i /= 2)    \

@@ -393,6 +393,9 @@ DECLSPEC void twofish128_set_key (u32 *sk, u32 *lk, const u32 *ukey)
   sk[1] = mds_rem (me_key[0], mo_key[0]);
   sk[0] = mds_rem (me_key[1], mo_key[1]);
 
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (int i = 0; i < 40; i += 2)
   {
     u32 a = 0x01010101 * i;
@@ -518,6 +521,9 @@ DECLSPEC void twofish256_set_key (u32 *sk, u32 *lk, const u32 *ukey)
   sk[1] = mds_rem (me_key[2], mo_key[2]);
   sk[0] = mds_rem (me_key[3], mo_key[3]);
 
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (int i = 0; i < 40; i += 2)
   {
     u32 a = 0x01010101 * i;

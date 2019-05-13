@@ -77,11 +77,11 @@ DECLSPEC int check_header_0512 (GLOBAL_AS const vc_t *esalt_bufs, GLOBAL_AS u32 
   key2[6] = hc_swap32_S (key[14]);
   key2[7] = hc_swap32_S (key[15]);
 
-  if (verify_header_aes        (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1) return 0;
   if (verify_header_serpent    (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2) == 1) return 0;
   if (verify_header_twofish    (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2) == 1) return 0;
   if (verify_header_camellia   (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2) == 1) return 0;
   if (verify_header_kuznyechik (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2) == 1) return 0;
+  if (verify_header_aes        (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1) return 0;
 
   return -1;
 }

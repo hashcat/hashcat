@@ -77,11 +77,11 @@ DECLSPEC int check_header_0512 (GLOBAL_AS const vc_t *esalt_bufs, GLOBAL_AS u32 
   key2[6] = key[14];
   key2[7] = key[15];
 
-  if (verify_header_aes        (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1) return 0;
   if (verify_header_serpent    (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2) == 1) return 0;
   if (verify_header_twofish    (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2) == 1) return 0;
   if (verify_header_camellia   (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2) == 1) return 0;
   if (verify_header_kuznyechik (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2) == 1) return 0;
+  if (verify_header_aes        (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1) return 0;
 
   return -1;
 }
@@ -126,13 +126,13 @@ DECLSPEC int check_header_1024 (GLOBAL_AS const vc_t *esalt_bufs, GLOBAL_AS u32 
   key4[6] = key[30];
   key4[7] = key[31];
 
-  if (verify_header_aes_twofish         (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2, key3, key4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1) return 0;
   if (verify_header_serpent_aes         (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2, key3, key4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1) return 0;
   if (verify_header_twofish_serpent     (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2, key3, key4) == 1) return 0;
+  if (verify_header_aes_twofish         (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2, key3, key4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1) return 0;
   if (verify_header_camellia_kuznyechik (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2, key3, key4) == 1) return 0;
   if (verify_header_camellia_serpent    (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2, key3, key4) == 1) return 0;
-  if (verify_header_kuznyechik_aes      (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2, key3, key4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1) return 0;
   if (verify_header_kuznyechik_twofish  (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2, key3, key4) == 1) return 0;
+  if (verify_header_kuznyechik_aes      (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2, key3, key4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1) return 0;
 
   return -1;
 }
@@ -195,9 +195,9 @@ DECLSPEC int check_header_1536 (GLOBAL_AS const vc_t *esalt_bufs, GLOBAL_AS u32 
   key6[6] = key[46];
   key6[7] = key[47];
 
-  if (verify_header_aes_twofish_serpent         (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2, key3, key4, key5, key6, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1) return 0;
   if (verify_header_serpent_twofish_aes         (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2, key3, key4, key5, key6, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1) return 0;
   if (verify_header_kuznyechik_serpent_camellia (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2, key3, key4, key5, key6) == 1) return 0;
+  if (verify_header_aes_twofish_serpent         (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2, key3, key4, key5, key6, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1) return 0;
 
   return -1;
 }

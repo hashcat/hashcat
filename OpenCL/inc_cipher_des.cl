@@ -323,6 +323,9 @@ DECLSPEC void _des_crypt_encrypt (u32 *out, const u32 *in, const u32 *Kc, const 
   r = hc_rotl32_S (r, 3u);
   l = hc_rotl32_S (l, 3u);
 
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (u32 i = 0; i < 16; i += 2)
   {
     u32 u;
@@ -372,6 +375,9 @@ DECLSPEC void _des_crypt_decrypt (u32 *out, const u32 *in, const u32 *Kc, const 
   r = hc_rotl32_S (r, 3u);
   l = hc_rotl32_S (l, 3u);
 
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (u32 i = 16; i > 0; i -= 2)
   {
     u32 u;
@@ -427,6 +433,9 @@ DECLSPEC void _des_crypt_keysetup (u32 c, u32 d, u32 *Kc, u32 *Kd, SHM_TYPE u32 
 
   c = c & 0x0fffffff;
 
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (u32 i = 0; i < 16; i++)
   {
     if ((i < 2) || (i == 8) || (i == 15))
@@ -488,6 +497,9 @@ DECLSPEC void _des_crypt_encrypt_vect (u32x *out, const u32x *in, const u32x *Kc
   r = hc_rotl32 (r, 3u);
   l = hc_rotl32 (l, 3u);
 
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (u32 i = 0; i < 16; i += 2)
   {
     u32x u;
@@ -537,6 +549,9 @@ DECLSPEC void _des_crypt_decrypt_vect (u32x *out, const u32x *in, const u32x *Kc
   r = hc_rotl32 (r, 3u);
   l = hc_rotl32 (l, 3u);
 
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (u32 i = 16; i > 0; i -= 2)
   {
     u32x u;
@@ -592,6 +607,9 @@ DECLSPEC void _des_crypt_keysetup_vect (u32x c, u32x d, u32x *Kc, u32x *Kd, SHM_
 
   c = c & 0x0fffffff;
 
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (u32 i = 0; i < 16; i++)
   {
     if ((i < 2) || (i == 8) || (i == 15))
