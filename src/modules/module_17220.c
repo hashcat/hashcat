@@ -308,6 +308,10 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (int cnt = 0; cnt < pkzip->hash_count; cnt++)
   {
+    if (cnt > 0)
+    {
+      out_len += sprintf (line_buf + out_len, "*");
+    }
     out_len += sprintf (line_buf + out_len, "%i*%i*", pkzip->hashes[cnt].data_type_enum, pkzip->hashes[cnt].magic_type_enum);
     if (pkzip->hashes[cnt].data_type_enum > 1)
     {
@@ -320,9 +324,13 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
       out_len += sprintf (line_buf + out_len, "%x*", pkzip->hashes[cnt].checksum_from_timestamp);
     }
 
-    for (u32 i = 0; i < pkzip->hashes[cnt].data_length; i++)
+    for (u32 i = 0; i < pkzip->hashes[cnt].data_length / 4; i++)
     {
-      out_len += sprintf (line_buf + out_len, "%02x", pkzip->hashes[cnt].data[i]);
+      out_len += sprintf (line_buf + out_len, "%08x", byte_swap_32 (pkzip->hashes[cnt].data[i]));
+    }
+    for (u32 i = 0; i < pkzip->hashes[cnt].data_length % 4; i++)
+    {
+      out_len += sprintf (line_buf + out_len, "%02x", (pkzip->hashes[cnt].data[pkzip->hashes[cnt].data_length / 4] >> i*8) & 0xff);
     }
   }
 
