@@ -228,7 +228,7 @@ TITAN_Xp                                        ALIAS_nv_sm50_or_higher
 TITAN_V                                         ALIAS_nv_sm50_or_higher
 TITAN_RTX                                       ALIAS_nv_sm50_or_higher
 
-Tegra_X1                                        ALIAS_nv_sm50_or_higher
+NVIDIA_Tegra_X1                                 ALIAS_nv_sm50_or_higher
 
 GeForce_910M                                    ALIAS_nv_sm50_or_higher
 GeForce_920M                                    ALIAS_nv_sm50_or_higher
