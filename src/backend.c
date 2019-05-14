@@ -1517,6 +1517,32 @@ int hc_cuModuleGetGlobal (hashcat_ctx_t *hashcat_ctx, CUdeviceptr *dptr, size_t 
   return 0;
 }
 
+int hc_cuMemGetInfo (hashcat_ctx_t *hashcat_ctx, size_t *free, size_t *total)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  CUDA_PTR *cuda = backend_ctx->cuda;
+
+  const CUresult CU_err = cuda->cuMemGetInfo (free, total);
+
+  if (CU_err != CUDA_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "cuMemGetInfo(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "cuMemGetInfo(): %d", CU_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
 
 int hc_cuFuncGetAttribute (hashcat_ctx_t *hashcat_ctx, int *pi, CUfunction_attribute attrib, CUfunction hfunc)
 {
@@ -5555,72 +5581,14 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       // device_available_mem
 
-      #define MAX_ALLOC_CHECKS_CNT  8192
-      #define MAX_ALLOC_CHECKS_SIZE (64 * 1024 * 1024)
+      size_t free  = 0;
+      size_t total = 0;
 
-      device_param->device_available_mem = device_param->device_global_mem - MAX_ALLOC_CHECKS_SIZE;
+      const int rc_cuMemGetInfo = hc_cuMemGetInfo (hashcat_ctx, &free, &total);
 
-      // OK, so the problem here is the following:
-      // There's just CL_DEVICE_GLOBAL_MEM_SIZE to ask OpenCL about the total memory on the device,
-      // but there's no way to ask for available memory on the device.
-      // In combination, most OpenCL runtimes implementation of clCreateBuffer()
-      // are doing so called lazy memory allocation on the device.
-      // Now, if the user has X11 (or a game or anything that takes a lot of GPU memory)
-      // running on the host we end up with an error type of this:
-      // clEnqueueNDRangeKernel(): CL_MEM_OBJECT_ALLOCATION_FAILURE
-      // The clEnqueueNDRangeKernel() is because of the lazy allocation
-      // The best way to workaround this problem is if we would be able to ask for available memory,
-      // The idea here is to try to evaluate available memory by allocating it till it errors
+      if (rc_cuMemGetInfo == -1) return -1;
 
-      CUdeviceptr *tmp_device = (CUdeviceptr *) hccalloc (MAX_ALLOC_CHECKS_CNT, sizeof (CUdeviceptr));
-
-      u64 c;
-
-      for (c = 0; c < MAX_ALLOC_CHECKS_CNT; c++)
-      {
-        if (((c + 1 + 1) * MAX_ALLOC_CHECKS_SIZE) >= device_param->device_global_mem) break;
-
-        CUresult rc_tmp;
-
-        CUDA_PTR *cuda = backend_ctx->cuda;
-
-        rc_tmp = cuda->cuMemAlloc (&tmp_device[c], MAX_ALLOC_CHECKS_SIZE);
-
-        if (rc_tmp != CUDA_SUCCESS)
-        {
-          c--;
-
-          break;
-        }
-
-        char tmp_host[8];
-
-        rc_tmp = cuda->cuMemcpyDtoH (tmp_host, tmp_device[c], sizeof (tmp_host));
-
-        if (rc_tmp != CUDA_SUCCESS) break;
-
-        rc_tmp = cuda->cuMemcpyHtoD (tmp_device[c], tmp_host, sizeof (tmp_host));
-
-        if (rc_tmp != CUDA_SUCCESS) break;
-      }
-
-      device_param->device_available_mem = c * MAX_ALLOC_CHECKS_SIZE;
-
-      // clean up
-
-      for (c = 0; c < MAX_ALLOC_CHECKS_CNT; c++)
-      {
-        if (((c + 1 + 1) * MAX_ALLOC_CHECKS_SIZE) >= device_param->device_global_mem) break;
-
-        if (tmp_device[c] != 0)
-        {
-          const int rc_cuMemFree = hc_cuMemFree (hashcat_ctx, tmp_device[c]);
-
-          if (rc_cuMemFree == -1) return -1;
-        }
-      }
-
-      hcfree (tmp_device);
+      device_param->device_available_mem = (u64) free;
 
       const int rc_cuCtxDestroy = hc_cuCtxDestroy (hashcat_ctx, cuda_context);
 
