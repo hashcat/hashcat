@@ -409,31 +409,31 @@ DECLSPEC u32x hc_swap32 (const u32x v)
   #endif
 
   #if VECT_SIZE >= 2
-  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=r"(r.s0) : "r"(v.s0), "v"(m));
-  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=r"(r.s1) : "r"(v.s1), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.s0) : "v"(v.s0), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.s1) : "v"(v.s1), "v"(m));
   #endif
 
   #if VECT_SIZE >= 4
-  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=r"(r.s2) : "r"(v.s2), "v"(m));
-  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=r"(r.s3) : "r"(v.s3), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.s2) : "v"(v.s2), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.s3) : "v"(v.s3), "v"(m));
   #endif
 
   #if VECT_SIZE >= 8
-  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=r"(r.s4) : "r"(v.s4), "v"(m));
-  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=r"(r.s5) : "r"(v.s5), "v"(m));
-  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=r"(r.s6) : "r"(v.s6), "v"(m));
-  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=r"(r.s7) : "r"(v.s7), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.s4) : "v"(v.s4), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.s5) : "v"(v.s5), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.s6) : "v"(v.s6), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.s7) : "v"(v.s7), "v"(m));
   #endif
 
   #if VECT_SIZE >= 16
-  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=r"(r.s8) : "r"(v.s8), "v"(m));
-  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=r"(r.s9) : "r"(v.s9), "v"(m));
-  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=r"(r.sa) : "r"(v.sa), "v"(m));
-  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=r"(r.sb) : "r"(v.sb), "v"(m));
-  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=r"(r.sc) : "r"(v.sc), "v"(m));
-  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=r"(r.sd) : "r"(v.sd), "v"(m));
-  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=r"(r.se) : "r"(v.se), "v"(m));
-  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=r"(r.sf) : "r"(v.sf), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.s8) : "v"(v.s8), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.s9) : "v"(v.s9), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.sa) : "v"(v.sa), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.sb) : "v"(v.sb), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.sc) : "v"(v.sc), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.sd) : "v"(v.sd), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.se) : "v"(v.se), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.sf) : "v"(v.sf), "v"(m));
   #endif
 
   #elif defined IS_NV  && HAS_PRMT  == 1
