@@ -87,6 +87,7 @@ Related publication: https://scitepress.org/PublicationsDetail.aspx?ID=KLPzPqStp
 
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_rp.h"
@@ -131,7 +132,7 @@ struct pkzip_hash
   u32 data_length;
   u16 checksum_from_crc;
   u16 checksum_from_timestamp;
-  u8  data[MAX_DATA];
+  u32 data[MAX_DATA];
 
 } __attribute__((packed));
 
@@ -219,7 +220,7 @@ CONSTANT_AS u32a crc32tab[256] =
   0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
 };
 
-__kernel void m17210_sxx (KERN_ATTR_RULES_ESALT (pkzip_t))
+KERNEL_FQ void m17210_sxx (KERN_ATTR_RULES_ESALT (pkzip_t))
 {
   /**
    * modifier
@@ -233,25 +234,23 @@ __kernel void m17210_sxx (KERN_ATTR_RULES_ESALT (pkzip_t))
    * sbox, kbox
    */
 
-  LOCAL_AS u32 l_crc32tab[256];
+  LOCAL_VK u32 l_crc32tab[256];
 
   for (u64 i = lid; i < 256; i += lsz)
   {
     l_crc32tab[i] = crc32tab[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS();
 
-  __global u32 *data_ptr = (__global u32 *) esalt_bufs[digests_offset].hash.data;
-
-  LOCAL_AS u32 l_data[MAX_LOCAL];
+  LOCAL_VK u32 l_data[MAX_LOCAL];
 
   for (u64 i = lid; i < MAX_LOCAL; i += lsz)
   {
-    l_data[i] = data_ptr[i];
+    l_data[i] = esalt_bufs[digests_offset].hash.data[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS();
 
   if (gid >= gid_max) return;
 
@@ -428,7 +427,7 @@ __kernel void m17210_sxx (KERN_ATTR_RULES_ESALT (pkzip_t))
   }
 }
 
-__kernel void m17210_mxx (KERN_ATTR_RULES_ESALT (pkzip_t))
+KERNEL_FQ void m17210_mxx (KERN_ATTR_RULES_ESALT (pkzip_t))
 {
   /**
    * modifier
@@ -442,25 +441,23 @@ __kernel void m17210_mxx (KERN_ATTR_RULES_ESALT (pkzip_t))
    * sbox, kbox
    */
 
-  LOCAL_AS u32 l_crc32tab[256];
+  LOCAL_VK u32 l_crc32tab[256];
 
   for (u64 i = lid; i < 256; i += lsz)
   {
     l_crc32tab[i] = crc32tab[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS();
 
-  __global u32 *data_ptr = (__global u32 *) esalt_bufs[digests_offset].hash.data;
-
-  LOCAL_AS u32 l_data[MAX_LOCAL];
+  LOCAL_VK u32 l_data[MAX_LOCAL];
 
   for (u64 i = lid; i < MAX_LOCAL; i += lsz)
   {
-    l_data[i] = data_ptr[i];
+    l_data[i] = esalt_bufs[digests_offset].hash.data[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS();
 
   if (gid >= gid_max) return;
 
