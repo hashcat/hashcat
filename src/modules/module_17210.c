@@ -125,7 +125,7 @@ struct pkzip_hash
   u32 data_length;
   u16 checksum_from_crc;
   u16 checksum_from_timestamp;
-  u8  data[MAX_DATA];
+  u32 data[MAX_DATA];
 
 } __attribute__((packed));
 
@@ -227,7 +227,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     p = strtok(NULL, "*");
     if (p == NULL) return PARSER_HASH_LENGTH;
     pkzip->hash.uncompressed_length = strtoul(p, NULL, 16);
-    if (pkzip->hash.uncompressed_length > MAX_DATA)
+    if (pkzip->hash.uncompressed_length > MAX_DATA * 4)
     {
       return PARSER_TOKEN_LENGTH;
     }
@@ -309,24 +309,25 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   }
   out_len += sprintf (line_buf + out_len, "%i*%i*", pkzip->hash_count, pkzip->checksum_size);
 
-  for (int cnt = 0; cnt < pkzip->hash_count; cnt++)
+  out_len += sprintf (line_buf + out_len, "%i*%i*", pkzip->hash.data_type_enum, pkzip->hash.magic_type_enum);
+  if (pkzip->hash.data_type_enum > 1)
   {
-    out_len += sprintf (line_buf + out_len, "%i*%i*", pkzip->hash.data_type_enum, pkzip->hash.magic_type_enum);
-    if (pkzip->hash.data_type_enum > 1)
-    {
-      out_len += sprintf (line_buf + out_len, "%x*%x*%x*%x*%x*", pkzip->hash.compressed_length, pkzip->hash.uncompressed_length, pkzip->hash.crc32, pkzip->hash.offset, pkzip->hash.additional_offset);
-    }
+    out_len += sprintf (line_buf + out_len, "%x*%x*%x*%x*%x*", pkzip->hash.compressed_length, pkzip->hash.uncompressed_length, pkzip->hash.crc32, pkzip->hash.offset, pkzip->hash.additional_offset);
+  }
 
-    out_len += sprintf (line_buf + out_len, "%i*%x*%x*", pkzip->hash.compression_type, pkzip->hash.data_length, pkzip->hash.checksum_from_crc);
-    if (pkzip->version == 2)
-    {
-      out_len += sprintf (line_buf + out_len, "%x*", pkzip->hash.checksum_from_timestamp);
-    }
+  out_len += sprintf (line_buf + out_len, "%i*%x*%x*", pkzip->hash.compression_type, pkzip->hash.data_length, pkzip->hash.checksum_from_crc);
+  if (pkzip->version == 2)
+  {
+    out_len += sprintf (line_buf + out_len, "%x*", pkzip->hash.checksum_from_timestamp);
+  }
 
-    for (u32 i = 0; i < pkzip->hash.data_length; i++)
-    {
-      out_len += sprintf (line_buf + out_len, "%02x", pkzip->hash.data[i]);
-    }
+  for (u32 i = 0; i < pkzip->hash.data_length / 4; i++)
+  {
+    out_len += sprintf (line_buf + out_len, "%08x", byte_swap_32 (pkzip->hash.data[i]));
+  }
+  for (u32 i = 0; i < pkzip->hash.data_length % 4; i++)
+  {
+    out_len += sprintf (line_buf + out_len, "%02x", (pkzip->hash.data[pkzip->hash.data_length / 4] >> i*8) & 0xff);
   }
 
   if (pkzip->version == 1)

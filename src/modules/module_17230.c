@@ -125,7 +125,7 @@ struct pkzip_hash
   u32 data_length;
   u16 checksum_from_crc;
   u16 checksum_from_timestamp;
-  u8  data[MAX_DATA];
+  u32 data[MAX_DATA];
 
 } __attribute__((packed));
 
@@ -230,7 +230,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
       p = strtok(NULL, "*");
       if (p == NULL) return PARSER_HASH_LENGTH;
       pkzip->hashes[i].uncompressed_length = strtoul(p, NULL, 16);
-      if (pkzip->hashes[i].compressed_length > MAX_DATA)
+      if (pkzip->hashes[i].compressed_length > MAX_DATA * 4)
       {
         return PARSER_TOKEN_LENGTH;
       }
