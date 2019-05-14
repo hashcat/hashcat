@@ -180,7 +180,7 @@ typedef int mz_bool;
 
 typedef mz_uint64 tinfl_bit_buf_t;
 
-void memcpy(void *dest, const void *src, size_t n){
+void memcpy(void *dest, const void *src, u32 n){
   char *csrc = (char *)src;
   char *cdest = (char *)dest;
   for (int i=0; i<n; i++){
@@ -189,7 +189,7 @@ void memcpy(void *dest, const void *src, size_t n){
 }
 
 
-void *memset(void *s, int c, u32 len){
+void *memset(u8 *s, int c, u32 len){
   u8 *dst = s;
   while (len > 0) {
       *dst = (u8) c;
@@ -206,7 +206,7 @@ void *memset(void *s, int c, u32 len){
 #define TINFL_LZ_DICT_SIZE 32768
 #define TINFL_MEMCPY(d, s, l) memcpy(d, s, l)
 #define TINFL_MEMCPY_G(d, s, l, p) memcpy_g(d, s, l, p)
-#define TINFL_MEMSET(p, c, l) memset(p, c, l)
+#define TINFL_MEMSET(p, c, l) memset(p, c, (u32)l)
 #define MZ_CLEAR_OBJ(obj) memset(&(obj), 0, sizeof(obj))
 
 #define TINFL_CR_FINISH }
@@ -418,7 +418,7 @@ typedef struct
 
 typedef struct mz_stream_s
 {
-    __global const unsigned char *next_in; /* pointer to next byte to read */
+    GLOBAL_AS const unsigned char *next_in; /* pointer to next byte to read */
     unsigned int avail_in;        /* number of bytes available at next_in */
     mz_ulong total_in;            /* total number of bytes consumed so far */
 
@@ -427,7 +427,7 @@ typedef struct mz_stream_s
     mz_ulong total_out;      /* total number of bytes produced so far */
 
     char *msg;                       /* error msg (unused) */
-    struct inflate_state *state; /* internal state, allocated by zalloc/zfree */
+    inflate_state *state; /* internal state, allocated by zalloc/zfree */
 
     void *opaque;         /* heap alloc function user pointer */
 
@@ -472,15 +472,15 @@ const mz_uint8 pIn_xor_byte (const mz_uint8 c, mz_streamp pStream)
 }
 
 
-void memcpy_g(void *dest, __global const void *src, size_t n, mz_streamp pStream){
-  __global char *csrc = (__global char *)src;
+void memcpy_g(void *dest, GLOBAL_AS const void *src, size_t n, mz_streamp pStream){
+  GLOBAL_AS char *csrc = (GLOBAL_AS char *)src;
   char *cdest = (char *)dest;
   for (int i=0; i<n; i++){
     cdest[i] = pIn_xor_byte (csrc[i], pStream);
   }
 }
 
-tinfl_status tinfl_decompress(tinfl_decompressor *r, __global const mz_uint8 *pIn_buf_next, size_t *pIn_buf_size, mz_uint8 *pOut_buf_start, mz_uint8 *pOut_buf_next, size_t *pOut_buf_size, const mz_uint32 decomp_flags, mz_streamp pStream)
+tinfl_status tinfl_decompress(tinfl_decompressor *r, GLOBAL_AS const mz_uint8 *pIn_buf_next, size_t *pIn_buf_size, mz_uint8 *pOut_buf_start, mz_uint8 *pOut_buf_next, size_t *pOut_buf_size, const mz_uint32 decomp_flags, mz_streamp pStream)
 {
 
     const int s_length_base[31] = { 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258, 0, 0 };
@@ -493,8 +493,8 @@ tinfl_status tinfl_decompress(tinfl_decompressor *r, __global const mz_uint8 *pI
     tinfl_status status = TINFL_STATUS_FAILED;
     mz_uint32 num_bits, dist, counter, num_extra;
     tinfl_bit_buf_t bit_buf;
-    __global const mz_uint8 *pIn_buf_cur = pIn_buf_next;
-    __global const mz_uint8 *pIn_buf_end = pIn_buf_next + *pIn_buf_size;
+    GLOBAL_AS const mz_uint8 *pIn_buf_cur = pIn_buf_next;
+    GLOBAL_AS const mz_uint8 *pIn_buf_end = pIn_buf_next + *pIn_buf_size;
     mz_uint8 *pOut_buf_cur = pOut_buf_next, *const pOut_buf_end = pOut_buf_next + *pOut_buf_size;
     size_t out_buf_size_mask = (decomp_flags & TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF) ? (size_t)-1 : ((pOut_buf_next - pOut_buf_start) + *pOut_buf_size) - 1, dist_from_out_buf_start;
 
@@ -959,7 +959,7 @@ int mz_inflateInit2(mz_streamp pStream, int window_bits, inflate_state *pDecomp)
     pStream->reserved = 0;
 
     //pStream->state = (struct mz_internal_state *)pDecomp;
-    pStream->state = (struct inflate_state *) pDecomp;
+    pStream->state = (inflate_state *) pDecomp;
 
     tinfl_init(&pDecomp->m_decomp);
     pDecomp->m_dict_ofs = 0;
