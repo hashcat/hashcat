@@ -827,6 +827,15 @@ KERNEL_FQ void m17220_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
 
   SYNC_THREADS();
 
+  LOCAL_VK u32 l_data[MAX_LOCAL];
+
+  for (u64 i = lid; i < MAX_LOCAL; i += lsz)
+  {
+    l_data[i] = esalt_bufs[digests_offset].hashes[0].data[i];
+  }
+
+  SYNC_THREADS();
+
   if (gid >= gid_max) return;
 
   /**
