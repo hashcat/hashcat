@@ -87,6 +87,7 @@ Related publication: https://scitepress.org/PublicationsDetail.aspx?ID=KLPzPqStp
 
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 
@@ -129,7 +130,7 @@ struct pkzip_hash
   u32 data_length;
   u16 checksum_from_crc;
   u16 checksum_from_timestamp;
-  u8  data[MAX_DATA];
+  u32 data[MAX_DATA];
 
 } __attribute__((packed));
 
@@ -229,7 +230,7 @@ typedef struct
 
 } code;
 
-CONSTANT_AS code lenfix[512] =
+CONSTANT_VK code lenfix[512] =
 {
     {96,7,0},{0,8,80},{0,8,16},{20,8,115},{18,7,31},{0,8,112},{0,8,48},
     {0,9,192},{16,7,10},{0,8,96},{0,8,32},{0,9,160},{0,8,0},{0,8,128},
@@ -307,7 +308,7 @@ CONSTANT_AS code lenfix[512] =
     {0,9,255}
 };
 
-CONSTANT_AS code distfix[32] =
+CONSTANT_VK code distfix[32] =
 {
     {16,5,1},{23,5,257},{19,5,17},{27,5,4097},{17,5,5},{25,5,1025},
     {21,5,65},{29,5,16385},{16,5,3},{24,5,513},{20,5,33},{28,5,8193},
@@ -527,7 +528,7 @@ DECLSPEC int check_inflate_code1 (u8 *next, int left)
   }
 }
 
-__kernel void m17200_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
+KERNEL_FQ void m17200_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
 {
   /**
    * modifier
@@ -541,25 +542,23 @@ __kernel void m17200_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
    * sbox, kbox
    */
 
-  LOCAL_AS u32 l_crc32tab[256];
+  LOCAL_VK u32 l_crc32tab[256];
 
   for (u64 i = lid; i < 256; i += lsz)
   {
     l_crc32tab[i] = crc32tab[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS();
 
-  __global u32 *data_ptr = (__global u32 *) esalt_bufs[digests_offset].hash.data;
-
-  LOCAL_AS u32 l_data[MAX_LOCAL];
+  LOCAL_VK u32 l_data[MAX_LOCAL];
 
   for (u64 i = lid; i < MAX_LOCAL; i += lsz)
   {
-    l_data[i] = data_ptr[i];
+    l_data[i] = esalt_bufs[digests_offset].hash.data[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS();
 
   if (gid >= gid_max) return;
 
@@ -749,8 +748,8 @@ __kernel void m17200_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
     inflate_state pStream;
 
     infstream.opaque    = Z_NULL;
-    infstream.avail_in  = esalt_bufs[digests_offset].hash.data_length - 12; // size of input
-    infstream.next_in   = esalt_bufs[digests_offset].hash.data        + 12; // input char array
+    infstream.avail_in  = esalt_bufs[digests_offset].hash.data_length           - 12; // size of input
+    infstream.next_in   = (GLOBAL_AS u8 *) esalt_bufs[digests_offset].hash.data + 12; // input char array
     infstream.avail_out = TMPSIZ; // size of output
     infstream.next_out  = tmp; // output char array
 
@@ -783,7 +782,7 @@ __kernel void m17200_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
   }
 }
 
-__kernel void m17200_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
+KERNEL_FQ void m17200_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
 {
   /**
    * modifier
@@ -797,25 +796,23 @@ __kernel void m17200_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
    * sbox, kbox
    */
 
-  LOCAL_AS u32 l_crc32tab[256];
+  LOCAL_VK u32 l_crc32tab[256];
 
   for (u64 i = lid; i < 256; i += lsz)
   {
     l_crc32tab[i] = crc32tab[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS();
 
-  __global u32 *data_ptr = (__global u32 *) esalt_bufs[digests_offset].hash.data;
-
-  LOCAL_AS u32 l_data[MAX_LOCAL];
+  LOCAL_VK u32 l_data[MAX_LOCAL];
 
   for (u64 i = lid; i < MAX_LOCAL; i += lsz)
   {
-    l_data[i] = data_ptr[i];
+    l_data[i] = esalt_bufs[digests_offset].hash.data[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS();
 
   if (gid >= gid_max) return;
 
@@ -993,8 +990,8 @@ __kernel void m17200_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
     inflate_state pStream;
 
     infstream.opaque    = Z_NULL;
-    infstream.avail_in  = esalt_bufs[digests_offset].hash.data_length - 12; // size of input
-    infstream.next_in   = esalt_bufs[digests_offset].hash.data        + 12; // input char array
+    infstream.avail_in  = esalt_bufs[digests_offset].hash.data_length           - 12; // size of input
+    infstream.next_in   = (GLOBAL_AS u8 *) esalt_bufs[digests_offset].hash.data + 12; // input char array
     infstream.avail_out = TMPSIZ; // size of output
     infstream.next_out  = tmp; // output char array
 
