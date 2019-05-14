@@ -9,6 +9,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_rp_optimized.h"
 #include "inc_rp_optimized.cl"
@@ -16,7 +17,7 @@
 #include "inc_hash_md5.cl"
 #endif
 
-CONSTANT_AS u32a padding[8] =
+CONSTANT_VK u32a padding[8] =
 {
   0x5e4ebf28,
   0x418a754e,
@@ -191,7 +192,7 @@ KERNEL_FQ void m10410_m04 (KERN_ATTR_RULES_ESALT (pdf_t))
    * shared
    */
 
-  LOCAL_AS RC4_KEY rc4_keys[64];
+  LOCAL_VK RC4_KEY rc4_keys[64];
   LOCAL_AS RC4_KEY *rc4_key = &rc4_keys[lid];
 
   /**
@@ -263,7 +264,7 @@ KERNEL_FQ void m10410_s04 (KERN_ATTR_RULES_ESALT (pdf_t))
    * shared
    */
 
-  LOCAL_AS RC4_KEY rc4_keys[64];
+  LOCAL_VK RC4_KEY rc4_keys[64];
   LOCAL_AS RC4_KEY *rc4_key = &rc4_keys[lid];
 
   /**

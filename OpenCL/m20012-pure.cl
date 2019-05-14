@@ -8,6 +8,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha512.cl"
@@ -333,17 +334,17 @@ KERNEL_FQ void m20012_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcrypt
 
   #ifdef REAL_SHM
 
-  LOCAL_AS u32 s_td0[256];
-  LOCAL_AS u32 s_td1[256];
-  LOCAL_AS u32 s_td2[256];
-  LOCAL_AS u32 s_td3[256];
-  LOCAL_AS u32 s_td4[256];
+  LOCAL_VK u32 s_td0[256];
+  LOCAL_VK u32 s_td1[256];
+  LOCAL_VK u32 s_td2[256];
+  LOCAL_VK u32 s_td3[256];
+  LOCAL_VK u32 s_td4[256];
 
-  LOCAL_AS u32 s_te0[256];
-  LOCAL_AS u32 s_te1[256];
-  LOCAL_AS u32 s_te2[256];
-  LOCAL_AS u32 s_te3[256];
-  LOCAL_AS u32 s_te4[256];
+  LOCAL_VK u32 s_te0[256];
+  LOCAL_VK u32 s_te1[256];
+  LOCAL_VK u32 s_te2[256];
+  LOCAL_VK u32 s_te3[256];
+  LOCAL_VK u32 s_te4[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -360,7 +361,7 @@ KERNEL_FQ void m20012_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcrypt
     s_te4[i] = te4[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 
@@ -404,14 +405,6 @@ KERNEL_FQ void m20012_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcrypt
   ukey2[6] = hc_swap32_S (h32_from_64_S (tmps[gid].out[7]));
   ukey2[7] = hc_swap32_S (l32_from_64_S (tmps[gid].out[7]));
 
-  if (dcrp_verify_header_aes (digests_buf[digests_offset].digest_buf, ukey1, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
-  {
-    if (atomic_inc (&hashes_shown[digests_offset]) == 0)
-    {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset, gid, il_pos, 0, 0);
-    }
-  }
-
   if (dcrp_verify_header_serpent (digests_buf[digests_offset].digest_buf, ukey1, ukey2) == 1)
   {
     if (atomic_inc (&hashes_shown[digests_offset]) == 0)
@@ -421,6 +414,14 @@ KERNEL_FQ void m20012_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcrypt
   }
 
   if (dcrp_verify_header_twofish (digests_buf[digests_offset].digest_buf, ukey1, ukey2) == 1)
+  {
+    if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+    {
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset, gid, il_pos, 0, 0);
+    }
+  }
+
+  if (dcrp_verify_header_aes (digests_buf[digests_offset].digest_buf, ukey1, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
   {
     if (atomic_inc (&hashes_shown[digests_offset]) == 0)
     {
@@ -450,14 +451,6 @@ KERNEL_FQ void m20012_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcrypt
   ukey4[6] = hc_swap32_S (h32_from_64_S (tmps[gid].out[15]));
   ukey4[7] = hc_swap32_S (l32_from_64_S (tmps[gid].out[15]));
 
-  if (dcrp_verify_header_aes_twofish (digests_buf[digests_offset].digest_buf, ukey1, ukey2, ukey3, ukey4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
-  {
-    if (atomic_inc (&hashes_shown[digests_offset]) == 0)
-    {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset, gid, il_pos, 0, 0);
-    }
-  }
-
   if (dcrp_verify_header_serpent_aes (digests_buf[digests_offset].digest_buf, ukey1, ukey2, ukey3, ukey4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
   {
     if (atomic_inc (&hashes_shown[digests_offset]) == 0)
@@ -467,6 +460,14 @@ KERNEL_FQ void m20012_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcrypt
   }
 
   if (dcrp_verify_header_twofish_serpent (digests_buf[digests_offset].digest_buf, ukey1, ukey2, ukey3, ukey4) == 1)
+  {
+    if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+    {
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset, gid, il_pos, 0, 0);
+    }
+  }
+
+  if (dcrp_verify_header_aes_twofish (digests_buf[digests_offset].digest_buf, ukey1, ukey2, ukey3, ukey4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
   {
     if (atomic_inc (&hashes_shown[digests_offset]) == 0)
     {

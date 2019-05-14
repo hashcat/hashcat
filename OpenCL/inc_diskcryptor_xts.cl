@@ -1,3 +1,17 @@
+/**
+ * Author......: See docs/credits.txt
+ * License.....: MIT
+ */
+
+#include "inc_vendor.h"
+#include "inc_types.h"
+#include "inc_platform.h"
+#include "inc_common.h"
+#include "inc_cipher_aes.h"
+#include "inc_cipher_serpent.h"
+#include "inc_cipher_twofish.h"
+#include "inc_diskcryptor_xts.h"
+
 DECLSPEC void dcrp_xts_mul2 (u32 *in, u32 *out)
 {
   const u32 c = in[3] >> 31;

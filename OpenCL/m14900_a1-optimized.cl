@@ -9,11 +9,12 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #endif
 
-CONSTANT_AS u8a c_ftable[256] =
+CONSTANT_VK u8a c_ftable[256] =
 {
   0xa3, 0xd7, 0x09, 0x83, 0xf8, 0x48, 0xf6, 0xf4,
   0xb3, 0x21, 0x15, 0x78, 0x99, 0xb1, 0xaf, 0xf9,
@@ -116,14 +117,14 @@ KERNEL_FQ void m14900_m04 (KERN_ATTR_BASIC ())
    * s_ftable
    */
 
-  LOCAL_AS u8 s_ftable[256];
+  LOCAL_VK u8 s_ftable[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
     s_ftable[i] = c_ftable[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -271,14 +272,14 @@ KERNEL_FQ void m14900_s04 (KERN_ATTR_BASIC ())
    * s_ftable
    */
 
-  LOCAL_AS u8 s_ftable[256];
+  LOCAL_VK u8 s_ftable[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
     s_ftable[i] = c_ftable[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 

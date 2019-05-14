@@ -8,7 +8,7 @@
 #include "memory.h"
 #include "event.h"
 #include "shared.h"
-#include "opencl.h"
+#include "backend.h"
 #include "modules.h"
 #include "dynloader.h"
 #include "interface.h"

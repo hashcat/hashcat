@@ -11,7 +11,7 @@
 #include "logfile.h"
 #include "convert.h"
 #include "filehandling.h"
-#include "opencl.h"
+#include "backend.h"
 #include "shared.h"
 #include "ext_lzma.h"
 #include "mpsp.h"
@@ -1224,7 +1224,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
           return -1;
         }
 
-        const int rc_update_mp = opencl_session_update_mp (hashcat_ctx);
+        const int rc_update_mp = backend_session_update_mp (hashcat_ctx);
 
         if (rc_update_mp == -1) return -1;
       }
@@ -1257,13 +1257,13 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
           return -1;
         }
 
-        const int rc_update_mp = opencl_session_update_mp (hashcat_ctx);
+        const int rc_update_mp = backend_session_update_mp (hashcat_ctx);
 
         if (rc_update_mp == -1) return -1;
       }
     }
 
-    const int rc_update_combinator = opencl_session_update_combinator (hashcat_ctx);
+    const int rc_update_combinator = backend_session_update_combinator (hashcat_ctx);
 
     if (rc_update_combinator == -1) return -1;
   }
@@ -1378,7 +1378,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
         return -1;
       }
 
-      const int rc_update_mp_rl = opencl_session_update_mp_rl (hashcat_ctx, css_cnt_lr[0], css_cnt_lr[1]);
+      const int rc_update_mp_rl = backend_session_update_mp_rl (hashcat_ctx, css_cnt_lr[0], css_cnt_lr[1]);
 
       if (rc_update_mp_rl == -1) return -1;
     }
@@ -1398,7 +1398,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->example_hashes == true) return 0;
   if (user_options->left           == true) return 0;
-  if (user_options->opencl_info    == true) return 0;
+  if (user_options->backend_info   == true) return 0;
   if (user_options->show           == true) return 0;
   if (user_options->usage          == true) return 0;
   if (user_options->version        == true) return 0;

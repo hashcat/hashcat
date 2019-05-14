@@ -5,10 +5,11 @@
 
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.h"
 #include "inc_common.h"
 #include "inc_cipher_des.h"
 
-CONSTANT_AS u32a c_SPtrans[8][64] =
+CONSTANT_VK u32a c_SPtrans[8][64] =
 {
   {
     /* nibble 0 */
@@ -164,7 +165,7 @@ CONSTANT_AS u32a c_SPtrans[8][64] =
   },
 };
 
-CONSTANT_AS u32a c_skb[8][64] =
+CONSTANT_VK u32a c_skb[8][64] =
 {
   {
     0x00000000, 0x00000010, 0x20000000, 0x20000010,
@@ -322,6 +323,9 @@ DECLSPEC void _des_crypt_encrypt (u32 *out, const u32 *in, const u32 *Kc, const 
   r = hc_rotl32_S (r, 3u);
   l = hc_rotl32_S (l, 3u);
 
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (u32 i = 0; i < 16; i += 2)
   {
     u32 u;
@@ -371,6 +375,9 @@ DECLSPEC void _des_crypt_decrypt (u32 *out, const u32 *in, const u32 *Kc, const 
   r = hc_rotl32_S (r, 3u);
   l = hc_rotl32_S (l, 3u);
 
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (u32 i = 16; i > 0; i -= 2)
   {
     u32 u;
@@ -426,6 +433,9 @@ DECLSPEC void _des_crypt_keysetup (u32 c, u32 d, u32 *Kc, u32 *Kd, SHM_TYPE u32 
 
   c = c & 0x0fffffff;
 
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (u32 i = 0; i < 16; i++)
   {
     if ((i < 2) || (i == 8) || (i == 15))
@@ -487,6 +497,9 @@ DECLSPEC void _des_crypt_encrypt_vect (u32x *out, const u32x *in, const u32x *Kc
   r = hc_rotl32 (r, 3u);
   l = hc_rotl32 (l, 3u);
 
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (u32 i = 0; i < 16; i += 2)
   {
     u32x u;
@@ -536,6 +549,9 @@ DECLSPEC void _des_crypt_decrypt_vect (u32x *out, const u32x *in, const u32x *Kc
   r = hc_rotl32 (r, 3u);
   l = hc_rotl32 (l, 3u);
 
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (u32 i = 16; i > 0; i -= 2)
   {
     u32x u;
@@ -591,6 +607,9 @@ DECLSPEC void _des_crypt_keysetup_vect (u32x c, u32x d, u32x *Kc, u32x *Kd, SHM_
 
   c = c & 0x0fffffff;
 
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (u32 i = 0; i < 16; i++)
   {
     if ((i < 2) || (i == 8) || (i == 15))

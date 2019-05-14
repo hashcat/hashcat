@@ -5,6 +5,7 @@
 
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.h"
 #include "inc_common.h"
 #include "inc_rp_optimized.h"
 
@@ -2354,7 +2355,7 @@ DECLSPEC u32 apply_rules_optimized (CONSTANT_AS const u32 *cmds, u32 *buf0, u32 
   return out_len;
 }
 
-DECLSPEC u32x apply_rules_vect_optimized (const u32 *pw_buf0, const u32 *pw_buf1, const u32 pw_len, CONSTANT_AS const kernel_rule_t *rules_buf, const u32 il_pos, u32x *buf0, u32x *buf1)
+DECLSPEC u32x apply_rules_vect_optimized (const u32 *pw_buf0, const u32 *pw_buf1, const u32 pw_len, CONSTANT_AS const kernel_rule_t *kernel_rules, const u32 il_pos, u32x *buf0, u32x *buf1)
 {
   #if VECT_SIZE == 1
 
@@ -2367,7 +2368,7 @@ DECLSPEC u32x apply_rules_vect_optimized (const u32 *pw_buf0, const u32 *pw_buf1
   buf1[2] = pw_buf1[2];
   buf1[3] = pw_buf1[3];
 
-  return apply_rules_optimized (rules_buf[il_pos].cmds, buf0, buf1, pw_len);
+  return apply_rules_optimized (kernel_rules[il_pos].cmds, buf0, buf1, pw_len);
 
   #else
 
@@ -2390,7 +2391,7 @@ DECLSPEC u32x apply_rules_vect_optimized (const u32 *pw_buf0, const u32 *pw_buf1
     tmp1[2] = pw_buf1[2];
     tmp1[3] = pw_buf1[3];
 
-    const u32 tmp_len = apply_rules_optimized (rules_buf[il_pos + i].cmds, tmp0, tmp1, pw_len);
+    const u32 tmp_len = apply_rules_optimized (kernel_rules[il_pos + i].cmds, tmp0, tmp1, pw_len);
 
     switch (i)
     {

@@ -8,6 +8,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_md5.cl"
@@ -15,15 +16,15 @@
 #endif
 
 #if   VECT_SIZE == 1
-#define uint_to_hex_lower8_le(i) (u32x) (l_bin2asc[(i)])
+#define uint_to_hex_lower8_le(i) make_u32x (l_bin2asc[(i)])
 #elif VECT_SIZE == 2
-#define uint_to_hex_lower8_le(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1])
+#define uint_to_hex_lower8_le(i) make_u32x (l_bin2asc[(i).s0], l_bin2asc[(i).s1])
 #elif VECT_SIZE == 4
-#define uint_to_hex_lower8_le(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3])
+#define uint_to_hex_lower8_le(i) make_u32x (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3])
 #elif VECT_SIZE == 8
-#define uint_to_hex_lower8_le(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7])
+#define uint_to_hex_lower8_le(i) make_u32x (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7])
 #elif VECT_SIZE == 16
-#define uint_to_hex_lower8_le(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7], l_bin2asc[(i).s8], l_bin2asc[(i).s9], l_bin2asc[(i).sa], l_bin2asc[(i).sb], l_bin2asc[(i).sc], l_bin2asc[(i).sd], l_bin2asc[(i).se], l_bin2asc[(i).sf])
+#define uint_to_hex_lower8_le(i) make_u32x (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7], l_bin2asc[(i).s8], l_bin2asc[(i).s9], l_bin2asc[(i).sa], l_bin2asc[(i).sb], l_bin2asc[(i).sc], l_bin2asc[(i).sd], l_bin2asc[(i).se], l_bin2asc[(i).sf])
 #endif
 
 DECLSPEC void m04700m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC (), LOCAL_AS u32 *l_bin2asc)
@@ -577,7 +578,7 @@ KERNEL_FQ void m04700_m04 (KERN_ATTR_BASIC ())
    * bin2asc table
    */
 
-  LOCAL_AS u32 l_bin2asc[256];
+  LOCAL_VK u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -588,7 +589,7 @@ KERNEL_FQ void m04700_m04 (KERN_ATTR_BASIC ())
                  | ((i1 < 10) ? '0' + i1 : 'a' - 10 + i1) << 8;
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -647,7 +648,7 @@ KERNEL_FQ void m04700_m08 (KERN_ATTR_BASIC ())
    * bin2asc table
    */
 
-  LOCAL_AS u32 l_bin2asc[256];
+  LOCAL_VK u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -658,7 +659,7 @@ KERNEL_FQ void m04700_m08 (KERN_ATTR_BASIC ())
                  | ((i1 < 10) ? '0' + i1 : 'a' - 10 + i1) << 8;
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -717,7 +718,7 @@ KERNEL_FQ void m04700_m16 (KERN_ATTR_BASIC ())
    * bin2asc table
    */
 
-  LOCAL_AS u32 l_bin2asc[256];
+  LOCAL_VK u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -728,7 +729,7 @@ KERNEL_FQ void m04700_m16 (KERN_ATTR_BASIC ())
                  | ((i1 < 10) ? '0' + i1 : 'a' - 10 + i1) << 8;
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -787,7 +788,7 @@ KERNEL_FQ void m04700_s04 (KERN_ATTR_BASIC ())
    * bin2asc table
    */
 
-  LOCAL_AS u32 l_bin2asc[256];
+  LOCAL_VK u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -798,7 +799,7 @@ KERNEL_FQ void m04700_s04 (KERN_ATTR_BASIC ())
                  | ((i1 < 10) ? '0' + i1 : 'a' - 10 + i1) << 8;
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -857,7 +858,7 @@ KERNEL_FQ void m04700_s08 (KERN_ATTR_BASIC ())
    * bin2asc table
    */
 
-  LOCAL_AS u32 l_bin2asc[256];
+  LOCAL_VK u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -868,7 +869,7 @@ KERNEL_FQ void m04700_s08 (KERN_ATTR_BASIC ())
                  | ((i1 < 10) ? '0' + i1 : 'a' - 10 + i1) << 8;
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -927,7 +928,7 @@ KERNEL_FQ void m04700_s16 (KERN_ATTR_BASIC ())
    * bin2asc table
    */
 
-  LOCAL_AS u32 l_bin2asc[256];
+  LOCAL_VK u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -938,7 +939,7 @@ KERNEL_FQ void m04700_s16 (KERN_ATTR_BASIC ())
                  | ((i1 < 10) ? '0' + i1 : 'a' - 10 + i1) << 8;
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 

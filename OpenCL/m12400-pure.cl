@@ -6,6 +6,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #endif
 
@@ -59,7 +60,7 @@ typedef struct bsdicrypt_tmp
   PERM_OP (l, r, tt,  4, 0x0f0f0f0f);  \
 }
 
-CONSTANT_AS u32a c_SPtrans[8][64] =
+CONSTANT_VK u32a c_SPtrans[8][64] =
 {
   {
     0x00820200, 0x00020000, 0x80800000, 0x80820200,
@@ -207,7 +208,7 @@ CONSTANT_AS u32a c_SPtrans[8][64] =
   },
 };
 
-CONSTANT_AS u32a c_skb[8][64] =
+CONSTANT_VK u32a c_skb[8][64] =
 {
   {
     0x00000000, 0x00000010, 0x20000000, 0x20000010,
@@ -510,8 +511,8 @@ KERNEL_FQ void m12400_init (KERN_ATTR_TMPS (bsdicrypt_tmp_t))
    * sbox
    */
 
-  LOCAL_AS u32 s_SPtrans[8][64];
-  LOCAL_AS u32 s_skb[8][64];
+  LOCAL_VK u32 s_SPtrans[8][64];
+  LOCAL_VK u32 s_skb[8][64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
@@ -534,7 +535,7 @@ KERNEL_FQ void m12400_init (KERN_ATTR_TMPS (bsdicrypt_tmp_t))
     s_skb[7][i] = c_skb[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -646,8 +647,8 @@ KERNEL_FQ void m12400_loop (KERN_ATTR_TMPS (bsdicrypt_tmp_t))
    * sbox
    */
 
-  LOCAL_AS u32 s_SPtrans[8][64];
-  LOCAL_AS u32 s_skb[8][64];
+  LOCAL_VK u32 s_SPtrans[8][64];
+  LOCAL_VK u32 s_skb[8][64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
@@ -670,7 +671,7 @@ KERNEL_FQ void m12400_loop (KERN_ATTR_TMPS (bsdicrypt_tmp_t))
     s_skb[7][i] = c_skb[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 

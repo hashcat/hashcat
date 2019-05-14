@@ -8,6 +8,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha1.cl"
@@ -126,21 +127,21 @@ KERNEL_FQ void m05400_m04 (KERN_ATTR_ESALT (ikepsk_t))
    * s_msg
    */
 
-  LOCAL_AS u32 s_nr_buf[16];
+  LOCAL_VK u32 s_nr_buf[16];
 
   for (u32 i = lid; i < 16; i += lsz)
   {
     s_nr_buf[i] = hc_swap32_S (esalt_bufs[digests_offset].nr_buf[i]);
   }
 
-  LOCAL_AS u32 s_msg_buf[128];
+  LOCAL_VK u32 s_msg_buf[128];
 
   for (u32 i = lid; i < 128; i += lsz)
   {
     s_msg_buf[i] = hc_swap32_S (esalt_bufs[digests_offset].msg_buf[i]);
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -378,21 +379,21 @@ KERNEL_FQ void m05400_s04 (KERN_ATTR_ESALT (ikepsk_t))
    * s_msg
    */
 
-  LOCAL_AS u32 s_nr_buf[16];
+  LOCAL_VK u32 s_nr_buf[16];
 
   for (u32 i = lid; i < 16; i += lsz)
   {
     s_nr_buf[i] = hc_swap32_S (esalt_bufs[digests_offset].nr_buf[i]);
   }
 
-  LOCAL_AS u32 s_msg_buf[128];
+  LOCAL_VK u32 s_msg_buf[128];
 
   for (u32 i = lid; i < 128; i += lsz)
   {
     s_msg_buf[i] = hc_swap32_S (esalt_bufs[digests_offset].msg_buf[i]);
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 

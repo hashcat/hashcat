@@ -8,6 +8,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha1.cl"
@@ -26,7 +27,7 @@ typedef struct lotus8_tmp
 
 } lotus8_tmp_t;
 
-CONSTANT_AS u32a lotus64_table[64] =
+CONSTANT_VK u32a lotus64_table[64] =
 {
   '0', '1', '2', '3', '4', '5', '6', '7',
   '8', '9', 'A', 'B', 'C', 'D', 'E', 'F',
@@ -38,7 +39,7 @@ CONSTANT_AS u32a lotus64_table[64] =
   'u', 'v', 'w', 'x', 'y', 'z', '+', '/',
 };
 
-CONSTANT_AS u32a lotus_magic_table[256] =
+CONSTANT_VK u32a lotus_magic_table[256] =
 {
   0xbd, 0x56, 0xea, 0xf2, 0xa2, 0xf1, 0xac, 0x2a,
   0xb0, 0x93, 0xd1, 0x9c, 0x1b, 0x33, 0xfd, 0xd0,
@@ -295,13 +296,6 @@ DECLSPEC void base64_encode (u8 *base64_hash, const u32 len, const u8 *base64_pl
 
 DECLSPEC void lotus6_base64_encode (u8 *base64_hash, const u32 salt0, const u32 salt1, const u32 a, const u32 b, const u32 c)
 {
-  const uchar4 salt0c = as_uchar4 (salt0);
-  const uchar4 salt1c = as_uchar4 (salt1);
-
-  const uchar4 ac = as_uchar4 (a);
-  const uchar4 bc = as_uchar4 (b);
-  const uchar4 cc = as_uchar4 (c);
-
   u8 tmp[24]; // size 22 (=pw_len) is needed but base64 needs size divisible by 4
 
   /*
@@ -310,23 +304,23 @@ DECLSPEC void lotus6_base64_encode (u8 *base64_hash, const u32 salt0, const u32 
 
   u8 base64_plain[16];
 
-  base64_plain[ 0] = salt0c.s0;
-  base64_plain[ 1] = salt0c.s1;
-  base64_plain[ 2] = salt0c.s2;
-  base64_plain[ 3] = salt0c.s3;
+  base64_plain[ 0] = unpack_v8a_from_v32_S (salt0);
+  base64_plain[ 1] = unpack_v8b_from_v32_S (salt0);
+  base64_plain[ 2] = unpack_v8c_from_v32_S (salt0);
+  base64_plain[ 3] = unpack_v8d_from_v32_S (salt0);
   base64_plain[ 3] -= -4; // dont ask!
-  base64_plain[ 4] = salt1c.s0;
-  base64_plain[ 5] = ac.s0;
-  base64_plain[ 6] = ac.s1;
-  base64_plain[ 7] = ac.s2;
-  base64_plain[ 8] = ac.s3;
-  base64_plain[ 9] = bc.s0;
-  base64_plain[10] = bc.s1;
-  base64_plain[11] = bc.s2;
-  base64_plain[12] = bc.s3;
-  base64_plain[13] = cc.s0;
-  base64_plain[14] = cc.s1;
-  base64_plain[15] = cc.s2;
+  base64_plain[ 4] = unpack_v8a_from_v32_S (salt1);
+  base64_plain[ 5] = unpack_v8a_from_v32_S (a);
+  base64_plain[ 6] = unpack_v8b_from_v32_S (a);
+  base64_plain[ 7] = unpack_v8c_from_v32_S (a);
+  base64_plain[ 8] = unpack_v8d_from_v32_S (a);
+  base64_plain[ 9] = unpack_v8a_from_v32_S (b);
+  base64_plain[10] = unpack_v8b_from_v32_S (b);
+  base64_plain[11] = unpack_v8c_from_v32_S (b);
+  base64_plain[12] = unpack_v8d_from_v32_S (b);
+  base64_plain[13] = unpack_v8a_from_v32_S (c);
+  base64_plain[14] = unpack_v8b_from_v32_S (c);
+  base64_plain[15] = unpack_v8c_from_v32_S (c);
 
   /*
    * base64 encode the $salt.$digest string
@@ -408,14 +402,14 @@ KERNEL_FQ void m09100_init (KERN_ATTR_TMPS (lotus8_tmp_t))
    * sbox
    */
 
-  LOCAL_AS u32 s_lotus_magic_table[256];
+  LOCAL_VK u32 s_lotus_magic_table[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
     s_lotus_magic_table[i] = lotus_magic_table[i];
   }
 
-  LOCAL_AS u32 l_bin2asc[256];
+  LOCAL_VK u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -426,7 +420,7 @@ KERNEL_FQ void m09100_init (KERN_ATTR_TMPS (lotus8_tmp_t))
                  | ((i1 < 10) ? '0' + i1 : 'A' - 10 + i1) << 0;
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 

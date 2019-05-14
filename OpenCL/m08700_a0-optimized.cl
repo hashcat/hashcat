@@ -9,13 +9,14 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_rp_optimized.h"
 #include "inc_rp_optimized.cl"
 #include "inc_simd.cl"
 #endif
 
-CONSTANT_AS u32a lotus_magic_table[256] =
+CONSTANT_VK u32a lotus_magic_table[256] =
 {
   0xbd, 0x56, 0xea, 0xf2, 0xa2, 0xf1, 0xac, 0x2a,
   0xb0, 0x93, 0xd1, 0x9c, 0x1b, 0x33, 0xfd, 0xd0,
@@ -52,27 +53,27 @@ CONSTANT_AS u32a lotus_magic_table[256] =
 };
 
 #if   VECT_SIZE == 1
-#define uint_to_hex_upper8(i) (u32x) (l_bin2asc[(i)])
+#define uint_to_hex_upper8(i) make_u32x (l_bin2asc[(i)])
 #elif VECT_SIZE == 2
-#define uint_to_hex_upper8(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1])
+#define uint_to_hex_upper8(i) make_u32x (l_bin2asc[(i).s0], l_bin2asc[(i).s1])
 #elif VECT_SIZE == 4
-#define uint_to_hex_upper8(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3])
+#define uint_to_hex_upper8(i) make_u32x (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3])
 #elif VECT_SIZE == 8
-#define uint_to_hex_upper8(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7])
+#define uint_to_hex_upper8(i) make_u32x (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7])
 #elif VECT_SIZE == 16
-#define uint_to_hex_upper8(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7], l_bin2asc[(i).s8], l_bin2asc[(i).s9], l_bin2asc[(i).sa], l_bin2asc[(i).sb], l_bin2asc[(i).sc], l_bin2asc[(i).sd], l_bin2asc[(i).se], l_bin2asc[(i).sf])
+#define uint_to_hex_upper8(i) make_u32x (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7], l_bin2asc[(i).s8], l_bin2asc[(i).s9], l_bin2asc[(i).sa], l_bin2asc[(i).sb], l_bin2asc[(i).sc], l_bin2asc[(i).sd], l_bin2asc[(i).se], l_bin2asc[(i).sf])
 #endif
 
 #if   VECT_SIZE == 1
 #define BOX1(S,i) (S)[(i)]
 #elif VECT_SIZE == 2
-#define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1])
+#define BOX1(S,i) make_u32x ((S)[(i).s0], (S)[(i).s1])
 #elif VECT_SIZE == 4
-#define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3])
+#define BOX1(S,i) make_u32x ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3])
 #elif VECT_SIZE == 8
-#define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3], (S)[(i).s4], (S)[(i).s5], (S)[(i).s6], (S)[(i).s7])
+#define BOX1(S,i) make_u32x ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3], (S)[(i).s4], (S)[(i).s5], (S)[(i).s6], (S)[(i).s7])
 #elif VECT_SIZE == 16
-#define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3], (S)[(i).s4], (S)[(i).s5], (S)[(i).s6], (S)[(i).s7], (S)[(i).s8], (S)[(i).s9], (S)[(i).sa], (S)[(i).sb], (S)[(i).sc], (S)[(i).sd], (S)[(i).se], (S)[(i).sf])
+#define BOX1(S,i) make_u32x ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3], (S)[(i).s4], (S)[(i).s5], (S)[(i).s6], (S)[(i).s7], (S)[(i).s8], (S)[(i).s9], (S)[(i).sa], (S)[(i).sb], (S)[(i).sc], (S)[(i).sd], (S)[(i).se], (S)[(i).sf])
 #endif
 
 DECLSPEC void lotus_mix (u32x *in, LOCAL_AS u32 *s_lotus_magic_table)
@@ -280,14 +281,14 @@ KERNEL_FQ void m08700_m04 (KERN_ATTR_RULES ())
    * sbox
    */
 
-  LOCAL_AS u32 s_lotus_magic_table[256];
+  LOCAL_VK u32 s_lotus_magic_table[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
     s_lotus_magic_table[i] = lotus_magic_table[i];
   }
 
-  LOCAL_AS u32 l_bin2asc[256];
+  LOCAL_VK u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -298,7 +299,7 @@ KERNEL_FQ void m08700_m04 (KERN_ATTR_RULES ())
                  | ((i1 < 10) ? '0' + i1 : 'A' - 10 + i1) << 0;
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -467,14 +468,14 @@ KERNEL_FQ void m08700_s04 (KERN_ATTR_RULES ())
    * sbox
    */
 
-  LOCAL_AS u32 s_lotus_magic_table[256];
+  LOCAL_VK u32 s_lotus_magic_table[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
     s_lotus_magic_table[i] = lotus_magic_table[i];
   }
 
-  LOCAL_AS u32 l_bin2asc[256];
+  LOCAL_VK u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -485,7 +486,7 @@ KERNEL_FQ void m08700_s04 (KERN_ATTR_RULES ())
                  | ((i1 < 10) ? '0' + i1 : 'A' - 10 + i1) << 0;
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 

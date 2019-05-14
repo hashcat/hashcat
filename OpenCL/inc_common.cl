@@ -5,6 +5,7 @@
 
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.h"
 #include "inc_common.h"
 
 /**
@@ -17,7 +18,7 @@ DECLSPEC u8 v8a_from_v32_S (const u32 v32)
 
   v.v32 = v32;
 
-  return v.v8a;
+  return v.v8.a;
 }
 
 DECLSPEC u8 v8b_from_v32_S (const u32 v32)
@@ -26,7 +27,7 @@ DECLSPEC u8 v8b_from_v32_S (const u32 v32)
 
   v.v32 = v32;
 
-  return v.v8b;
+  return v.v8.b;
 }
 
 DECLSPEC u8 v8c_from_v32_S (const u32 v32)
@@ -35,7 +36,7 @@ DECLSPEC u8 v8c_from_v32_S (const u32 v32)
 
   v.v32 = v32;
 
-  return v.v8c;
+  return v.v8.c;
 }
 
 DECLSPEC u8 v8d_from_v32_S (const u32 v32)
@@ -44,7 +45,7 @@ DECLSPEC u8 v8d_from_v32_S (const u32 v32)
 
   v.v32 = v32;
 
-  return v.v8d;
+  return v.v8.d;
 }
 
 DECLSPEC u16 v16a_from_v32_S (const u32 v32)
@@ -53,7 +54,7 @@ DECLSPEC u16 v16a_from_v32_S (const u32 v32)
 
   v.v32 = v32;
 
-  return v.v16a;
+  return v.v16.a;
 }
 
 DECLSPEC u16 v16b_from_v32_S (const u32 v32)
@@ -62,15 +63,15 @@ DECLSPEC u16 v16b_from_v32_S (const u32 v32)
 
   v.v32 = v32;
 
-  return v.v16b;
+  return v.v16.b;
 }
 
 DECLSPEC u32 v32_from_v16ab_S (const u16 v16a, const u16 v16b)
 {
   vconv32_t v;
 
-  v.v16a = v16a;
-  v.v16b = v16b;
+  v.v16.a = v16a;
+  v.v16.b = v16b;
 
   return v.v32;
 }
@@ -81,7 +82,7 @@ DECLSPEC u32 v32a_from_v64_S (const u64 v64)
 
   v.v64 = v64;
 
-  return v.v32a;
+  return v.v32.a;
 }
 
 DECLSPEC u32 v32b_from_v64_S (const u64 v64)
@@ -90,15 +91,15 @@ DECLSPEC u32 v32b_from_v64_S (const u64 v64)
 
   v.v64 = v64;
 
-  return v.v32b;
+  return v.v32.b;
 }
 
 DECLSPEC u64 v64_from_v32ab_S (const u32 v32a, const u32 v32b)
 {
   vconv64_t v;
 
-  v.v32a = v32a;
-  v.v32b = v32b;
+  v.v32.a = v32a;
+  v.v32.b = v32b;
 
   return v.v64;
 }
@@ -304,26 +305,32 @@ DECLSPEC u64x hl32_to_64 (const u32x a, const u32x b)
 
 DECLSPEC u32x hc_rotl32 (const u32x a, const int n)
 {
-  #ifdef _CPU_OPENCL_EMU_H
+  #if   defined _CPU_OPENCL_EMU_H
+  return rotl32 (a, n);
+  #elif defined IS_CUDA
   return rotl32 (a, n);
   #else
-  return rotate (a, (u32x) (n));
+  return rotate (a, make_u32x (n));
   #endif
 }
 
 DECLSPEC u32x hc_rotr32 (const u32x a, const int n)
 {
-  #ifdef _CPU_OPENCL_EMU_H
+  #if   defined _CPU_OPENCL_EMU_H
+  return rotr32 (a, n);
+  #elif defined IS_CUDA
   return rotr32 (a, n);
   #else
-  return rotate (a, (u32x) (32 - n));
+  return rotate (a, make_u32x (32 - n));
   #endif
 }
 
 DECLSPEC u32 hc_rotl32_S (const u32 a, const int n)
 {
-  #ifdef _CPU_OPENCL_EMU_H
+  #if   defined _CPU_OPENCL_EMU_H
   return rotl32 (a, n);
+  #elif defined IS_CUDA
+  return rotl32_S (a, n);
   #else
   return rotate (a, (u32) (n));
   #endif
@@ -331,8 +338,10 @@ DECLSPEC u32 hc_rotl32_S (const u32 a, const int n)
 
 DECLSPEC u32 hc_rotr32_S (const u32 a, const int n)
 {
-  #ifdef _CPU_OPENCL_EMU_H
+  #if   defined _CPU_OPENCL_EMU_H
   return rotr32 (a, n);
+  #elif defined IS_CUDA
+  return rotr32_S (a, n);
   #else
   return rotate (a, (u32) (32 - n));
   #endif
@@ -340,26 +349,32 @@ DECLSPEC u32 hc_rotr32_S (const u32 a, const int n)
 
 DECLSPEC u64x hc_rotl64 (const u64x a, const int n)
 {
-  #ifdef _CPU_OPENCL_EMU_H
+  #if   defined _CPU_OPENCL_EMU_H
+  return rotl64 (a, n);
+  #elif defined IS_CUDA
   return rotl64 (a, n);
   #else
-  return rotate (a, (u64x) (n));
+  return rotate (a, make_u64x (n));
   #endif
 }
 
 DECLSPEC u64x hc_rotr64 (const u64x a, const int n)
 {
-  #ifdef _CPU_OPENCL_EMU_H
+  #if   defined _CPU_OPENCL_EMU_H
+  return rotr64 (a, n);
+  #elif defined IS_CUDA
   return rotr64 (a, n);
   #else
-  return rotate (a, (u64x) (64 - n));
+  return rotate (a, make_u64x (64 - n));
   #endif
 }
 
 DECLSPEC u64 hc_rotl64_S (const u64 a, const int n)
 {
-  #ifdef _CPU_OPENCL_EMU_H
+  #if   defined _CPU_OPENCL_EMU_H
   return rotl64 (a, n);
+  #elif defined IS_CUDA
+  return rotl64_S (a, n);
   #else
   return rotate (a, (u64) (n));
   #endif
@@ -367,8 +382,10 @@ DECLSPEC u64 hc_rotl64_S (const u64 a, const int n)
 
 DECLSPEC u64 hc_rotr64_S (const u64 a, const int n)
 {
-  #ifdef _CPU_OPENCL_EMU_H
+  #if   defined _CPU_OPENCL_EMU_H
   return rotr64 (a, n);
+  #elif defined IS_CUDA
+  return rotr64_S (a, n);
   #else
   return rotate (a, (u64) (64 - n));
   #endif
@@ -454,9 +471,9 @@ DECLSPEC u32x hc_swap32 (const u32x v)
   #endif
 
   #else
-  r = bitselect (rotate (v, (u32x) (24)),
-                 rotate (v, (u32x) ( 8)),
-                            (u32x) (0x00ff00ff));
+  r = bitselect (rotate (v, make_u32x (24)),
+                 rotate (v, make_u32x ( 8)),
+                            make_u32x (0x00ff00ff));
   #endif
   #endif
 
@@ -672,13 +689,13 @@ DECLSPEC u64x hc_swap64 (const u64x v)
   #endif
 
   #else
-  r = bitselect (bitselect (rotate (v, (u64x) (24)),
-                            rotate (v, (u64x) ( 8)),
-                                       (u64x) (0x000000ff000000ff)),
-                 bitselect (rotate (v, (u64x) (56)),
-                            rotate (v, (u64x) (40)),
-                                       (u64x) (0x00ff000000ff0000)),
-                                       (u64x) (0xffff0000ffff0000));
+  r = bitselect (bitselect (rotate (v, make_u64x (24)),
+                            rotate (v, make_u64x ( 8)),
+                                       make_u64x (0x000000ff000000ff)),
+                 bitselect (rotate (v, make_u64x (56)),
+                            rotate (v, make_u64x (40)),
+                                       make_u64x (0x00ff000000ff0000)),
+                                       make_u64x (0xffff0000ffff0000));
   #endif
   #endif
 
@@ -730,7 +747,7 @@ DECLSPEC u64 hc_swap64_S (const u64 v)
 
 DECLSPEC u32x hc_bfe (const u32x a, const u32x b, const u32x c)
 {
-  #define BIT(x)      ((u32x) (1u) << (x))
+  #define BIT(x)      (make_u32x (1u) << (x))
   #define BIT_MASK(x) (BIT (x) - 1)
   #define BFE(x,y,z)  (((x) >> (y)) & BIT_MASK (z))
 
@@ -1164,7 +1181,7 @@ DECLSPEC u32 hc_lop_0x96_S (const u32 a, const u32 b, const u32 c)
 
 DECLSPEC u32x hc_bfe (const u32x a, const u32x b, const u32x c)
 {
-  #define BIT(x)      ((u32x) (1u) << (x))
+  #define BIT(x)      (make_u32x (1u) << (x))
   #define BIT_MASK(x) (BIT (x) - 1)
   #define BFE(x,y,z)  (((x) >> (y)) & BIT_MASK (z))
 
@@ -1415,8 +1432,8 @@ DECLSPEC int is_valid_hex_8 (const u8 v)
 {
   // direct lookup table is slower thanks to CMOV
 
-  if ((v >= '0') && (v <= '9')) return 1;
-  if ((v >= 'a') && (v <= 'f')) return 1;
+  if ((v >= (u8) '0') && (v <= (u8) '9')) return 1;
+  if ((v >= (u8) 'a') && (v <= (u8) 'f')) return 1;
 
   return 0;
 }
@@ -1433,10 +1450,10 @@ DECLSPEC int is_valid_hex_32 (const u32 v)
 
 DECLSPEC int is_valid_base58_8 (const u8 v)
 {
-  if (v > 'z') return 0;
-  if (v < '1') return 0;
-  if ((v > '9') && (v < 'A')) return 0;
-  if ((v > 'Z') && (v < 'a')) return 0;
+  if (v > (u8) 'z') return 0;
+  if (v < (u8) '1') return 0;
+  if ((v > (u8) '9') && (v < (u8) 'A')) return 0;
+  if ((v > (u8) 'Z') && (v < (u8) 'a')) return 0;
 
   return 1;
 }
@@ -60860,7 +60877,23 @@ KERNEL_FQ void gpu_memset (GLOBAL_AS uint4 *buf, const u32 value, const u64 gid_
 
   if (gid >= gid_max) return;
 
-  buf[gid] = (uint4) (value);
+  uint4 r;
+
+  #if   defined IS_NATIVE
+  r = value;
+  #elif defined IS_OPENCL
+  r.s0 = value;
+  r.s1 = value;
+  r.s2 = value;
+  r.s3 = value;
+  #elif defined IS_CUDA
+  r.x = value;
+  r.y = value;
+  r.z = value;
+  r.w = value;
+  #endif
+
+  buf[gid] = r;
 }
 
 KERNEL_FQ void gpu_atinit (GLOBAL_AS pw_t *buf, const u64 gid_max)

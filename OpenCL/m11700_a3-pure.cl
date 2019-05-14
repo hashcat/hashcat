@@ -8,6 +8,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_streebog256.cl"
@@ -29,7 +30,7 @@ KERNEL_FQ void m11700_mxx (KERN_ATTR_VECTOR ())
 
   #ifdef REAL_SHM
 
-  LOCAL_AS u64a s_sbob_sl64[8][256];
+  LOCAL_VK u64a s_sbob_sl64[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -43,7 +44,7 @@ KERNEL_FQ void m11700_mxx (KERN_ATTR_VECTOR ())
     s_sbob_sl64[7][i] = sbob256_sl64[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 
@@ -113,7 +114,7 @@ KERNEL_FQ void m11700_sxx (KERN_ATTR_VECTOR ())
 
   #ifdef REAL_SHM
 
-  LOCAL_AS u64a s_sbob_sl64[8][256];
+  LOCAL_VK u64a s_sbob_sl64[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -127,7 +128,7 @@ KERNEL_FQ void m11700_sxx (KERN_ATTR_VECTOR ())
     s_sbob_sl64[7][i] = sbob256_sl64[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 

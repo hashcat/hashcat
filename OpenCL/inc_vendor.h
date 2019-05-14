@@ -6,14 +6,33 @@
 #ifndef _INC_VENDOR_H
 #define _INC_VENDOR_H
 
-#ifdef _CPU_OPENCL_EMU_H
+#if defined _CPU_OPENCL_EMU_H
+#define IS_NATIVE
+#elif defined __CUDACC__
+#define IS_CUDA
+#else
+#define IS_OPENCL
+#endif
+
+#if defined IS_NATIVE
+#define CONSTANT_VK
 #define CONSTANT_AS
 #define GLOBAL_AS
+#define LOCAL_VK
 #define LOCAL_AS
 #define KERNEL_FQ
-#else
+#elif defined IS_CUDA
+#define CONSTANT_VK __constant__
+#define CONSTANT_AS
+#define GLOBAL_AS
+#define LOCAL_VK    __shared__
+#define LOCAL_AS
+#define KERNEL_FQ   extern "C" __global__
+#elif defined IS_OPENCL
+#define CONSTANT_VK __constant
 #define CONSTANT_AS __constant
 #define GLOBAL_AS   __global
+#define LOCAL_VK    __local
 #define LOCAL_AS    __local
 #define KERNEL_FQ   __kernel
 #endif

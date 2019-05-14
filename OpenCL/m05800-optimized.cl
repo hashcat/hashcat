@@ -6,6 +6,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_hash_sha1.cl"
 #endif
@@ -19,7 +20,7 @@ typedef struct androidpin_tmp
 
 } androidpin_tmp_t;
 
-CONSTANT_AS u32a c_pc_dec[1024] =
+CONSTANT_VK u32a c_pc_dec[1024] =
 {
   0x00000030,
   0x00000031,
@@ -1047,7 +1048,7 @@ CONSTANT_AS u32a c_pc_dec[1024] =
   0x33323031,
 };
 
-CONSTANT_AS u32a c_pc_len[1024] =
+CONSTANT_VK u32a c_pc_len[1024] =
 {
   1,
   1,
@@ -2299,8 +2300,8 @@ KERNEL_FQ void m05800_loop (KERN_ATTR_TMPS (androidpin_tmp_t))
    * cache precomputed conversion table in shared memory
    */
 
-  LOCAL_AS u32 s_pc_dec[1024];
-  LOCAL_AS u32 s_pc_len[1024];
+  LOCAL_VK u32 s_pc_dec[1024];
+  LOCAL_VK u32 s_pc_len[1024];
 
   for (u32 i = lid; i < 1024; i += lsz)
   {
@@ -2308,7 +2309,7 @@ KERNEL_FQ void m05800_loop (KERN_ATTR_TMPS (androidpin_tmp_t))
     s_pc_len[i] = c_pc_len[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
