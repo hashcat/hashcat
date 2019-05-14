@@ -2680,7 +2680,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
       {
         if (hashconfig->opts_type & OPTS_TYPE_PT_BITSLICE)
         {
-          const u32 size_tm = 32 * sizeof (bs_word_t);
+          const u32 size_tm = device_param->size_tm;
 
           if (device_param->is_cuda == true)
           {
@@ -8310,7 +8310,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
             size_t dummy;
 
             CU_rc = hc_cuModuleGetGlobal (hashcat_ctx, &device_param->cuda_d_bfs_c, &dummy, device_param->cuda_module, "generic_constant"); if (CU_rc == -1) return -1;
-            CU_rc = hc_cuModuleGetGlobal (hashcat_ctx, &device_param->cuda_d_tm_c,  &dummy, device_param->cuda_module, "generic_constant"); if (CU_rc == -1) return -1;
+
+            CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_tm_c,           size_tm);         if (CU_rc == -1) return -1;
           }
           else
           {
@@ -10708,7 +10709,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       if (device_param->cuda_d_extra3_buf)     hc_cuMemFree (hashcat_ctx, device_param->cuda_d_extra3_buf);
       if (device_param->cuda_d_root_css_buf)   hc_cuMemFree (hashcat_ctx, device_param->cuda_d_root_css_buf);
       if (device_param->cuda_d_markov_css_buf) hc_cuMemFree (hashcat_ctx, device_param->cuda_d_markov_css_buf);
-      //if (device_param->cuda_d_tm_c)           hc_cuMemFree (hashcat_ctx, device_param->cuda_d_tm_c);
+      if (device_param->cuda_d_tm_c)           hc_cuMemFree (hashcat_ctx, device_param->cuda_d_tm_c);
       if (device_param->cuda_d_st_digests_buf) hc_cuMemFree (hashcat_ctx, device_param->cuda_d_st_digests_buf);
       if (device_param->cuda_d_st_salts_buf)   hc_cuMemFree (hashcat_ctx, device_param->cuda_d_st_salts_buf);
       if (device_param->cuda_d_st_esalts_buf)  hc_cuMemFree (hashcat_ctx, device_param->cuda_d_st_esalts_buf);
