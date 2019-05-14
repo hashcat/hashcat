@@ -20,8 +20,7 @@ static const u32   HASH_CATEGORY  = HASH_CATEGORY_OS;
 static const char *HASH_NAME      = "AIX {smd5}";
 static const u64   KERN_TYPE      = 6300;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_PREFERED_THREAD;
+static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "{smd5}17800721$WkGka7tXcrfpUQS6WOQyw/";

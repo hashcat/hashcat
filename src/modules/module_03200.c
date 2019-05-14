@@ -88,7 +88,7 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
   u32 fixed_local_size = 0;
 
-  if (device_param->device_type & CL_DEVICE_TYPE_CPU)
+  if (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU)
   {
     fixed_local_size = 1;
   }
@@ -96,7 +96,7 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
   {
     u32 overhead = 0;
 
-    if (device_param->device_vendor_id == VENDOR_ID_NV)
+    if (device_param->opencl_device_vendor_id == VENDOR_ID_NV)
     {
       // note we need to use device_param->device_local_mem_size - 4 because opencl jit returns with:
       // Entry function '...' uses too much shared data (0xc004 bytes, 0xc000 max)
@@ -104,7 +104,10 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
       // I did some research on this and it seems to be related with the datatype.
       // For example, if i used u8 instead, there's only 1 byte wasted.
 
-      overhead = 4;
+      if (device_param->is_opencl == true)
+      {
+        overhead = 4;
+      }
     }
 
     if (user_options->kernel_threads_chgd == true)

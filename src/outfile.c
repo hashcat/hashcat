@@ -11,7 +11,7 @@
 #include "rp.h"
 #include "emu_inc_rp.h"
 #include "emu_inc_rp_optimized.h"
-#include "opencl.h"
+#include "backend.h"
 #include "shared.h"
 #include "locking.h"
 #include "outfile.h"

@@ -2477,7 +2477,7 @@ cat << EOF
 
 OPTIONS:
 
-  -V    OpenCL vector-width (either 1, 2, 4 or 8), overrides value from device query :
+  -V    Backend vector-width (either 1, 2, 4 or 8), overrides value from device query :
         '1'         => vector-width 1
         '2'         => vector-width 2 (default)
         '4'         => vector-width 4
@@ -2507,7 +2507,7 @@ OPTIONS:
         'linux'     => Linux operating system (use .bin file extension)
         'macos'     => macOS operating system (use .app file extension)
 
-  -d    Select the OpenCL device :
+  -d    Select the Backend device :
         (int)[,int] => comma separated list of devices (default : 1)
 
   -D    Select the OpenCL device types :
@@ -2866,7 +2866,7 @@ if [ "${PACKAGE}" -eq 0 -o -z "${PACKAGE_FOLDER}" ]; then
           fi
 
           VECTOR=${CUR_WIDTH}
-          OPTS="${OPTS_OLD} --opencl-vector-width ${VECTOR}"
+          OPTS="${OPTS_OLD} --backend-vector-width ${VECTOR}"
 
           if [[ ${IS_SLOW} -eq 1 ]]; then
 

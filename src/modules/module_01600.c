@@ -20,8 +20,7 @@ static const u32   HASH_CATEGORY  = HASH_CATEGORY_NETWORK_SERVER;
 static const char *HASH_NAME      = "Apache $apr1$ MD5, md5apr1, MD5 (APR)";
 static const u64   KERN_TYPE      = 1600;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_PREFERED_THREAD;
+static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$apr1$62722340$zGjeAwVP2KwY6MtumUI1N/";

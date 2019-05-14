@@ -5,10 +5,11 @@
 
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.h"
 #include "inc_common.h"
 #include "inc_hash_sha224.h"
 
-CONSTANT_AS u32a k_sha224[64] =
+CONSTANT_VK u32a k_sha224[64] =
 {
   SHA224C00, SHA224C01, SHA224C02, SHA224C03,
   SHA224C04, SHA224C05, SHA224C06, SHA224C07,

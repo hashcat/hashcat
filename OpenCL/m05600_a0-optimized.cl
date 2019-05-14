@@ -8,6 +8,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_rp_optimized.h"
 #include "inc_rp_optimized.cl"
@@ -127,21 +128,21 @@ KERNEL_FQ void m05600_m04 (KERN_ATTR_RULES_ESALT (netntlm_t))
    * salt
    */
 
-  LOCAL_AS u32 s_userdomain_buf[64];
+  LOCAL_VK u32 s_userdomain_buf[64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
     s_userdomain_buf[i] = esalt_bufs[digests_offset].userdomain_buf[i];
   }
 
-  LOCAL_AS u32 s_chall_buf[256];
+  LOCAL_VK u32 s_chall_buf[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
     s_chall_buf[i] = esalt_bufs[digests_offset].chall_buf[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -366,21 +367,21 @@ KERNEL_FQ void m05600_s04 (KERN_ATTR_RULES_ESALT (netntlm_t))
    * salt
    */
 
-  LOCAL_AS u32 s_userdomain_buf[64];
+  LOCAL_VK u32 s_userdomain_buf[64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
     s_userdomain_buf[i] = esalt_bufs[digests_offset].userdomain_buf[i];
   }
 
-  LOCAL_AS u32 s_chall_buf[256];
+  LOCAL_VK u32 s_chall_buf[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
     s_chall_buf[i] = esalt_bufs[digests_offset].chall_buf[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 

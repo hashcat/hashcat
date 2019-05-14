@@ -109,13 +109,13 @@ u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
 bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
   // OpenCL 1.2 pocl HSTR: pthread-x86_64-pc-linux-gnu-skylake: Segmentation fault
-  if (device_param->platform_vendor_id == VENDOR_ID_POCL)
+  if (device_param->opencl_platform_vendor_id == VENDOR_ID_POCL)
   {
     return true;
   }
 
   // l_opencl_p_18.1.0.013: password not found
-  if (device_param->device_vendor_id == VENDOR_ID_INTEL_SDK)
+  if (device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK)
   {
     if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0)
     {
@@ -124,7 +124,7 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
   }
 
   // amdgpu-pro-18.50-708488-ubuntu-18.04: Segmentation fault
-  if ((device_param->device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
+  if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
   {
     if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 1)
     {
@@ -133,7 +133,7 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
   }
 
   // amdgpu-pro-18.50-708488-ubuntu-18.04: self-test failed.
-  if ((device_param->device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
+  if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
   {
     if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0)
     {

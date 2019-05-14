@@ -845,7 +845,7 @@ u8 v8a_from_v32 (const u32 v32)
 
   v.v32 = v32;
 
-  return v.v8a;
+  return v.v8.a;
 }
 
 u8 v8b_from_v32 (const u32 v32)
@@ -854,7 +854,7 @@ u8 v8b_from_v32 (const u32 v32)
 
   v.v32 = v32;
 
-  return v.v8b;
+  return v.v8.b;
 }
 
 u8 v8c_from_v32 (const u32 v32)
@@ -863,7 +863,7 @@ u8 v8c_from_v32 (const u32 v32)
 
   v.v32 = v32;
 
-  return v.v8c;
+  return v.v8.c;
 }
 
 u8 v8d_from_v32 (const u32 v32)
@@ -872,7 +872,7 @@ u8 v8d_from_v32 (const u32 v32)
 
   v.v32 = v32;
 
-  return v.v8d;
+  return v.v8.d;
 }
 
 u16 v16a_from_v32 (const u32 v32)
@@ -881,7 +881,7 @@ u16 v16a_from_v32 (const u32 v32)
 
   v.v32 = v32;
 
-  return v.v16a;
+  return v.v16.a;
 }
 
 u16 v16b_from_v32 (const u32 v32)
@@ -890,15 +890,15 @@ u16 v16b_from_v32 (const u32 v32)
 
   v.v32 = v32;
 
-  return v.v16b;
+  return v.v16.b;
 }
 
 u32 v32_from_v16ab (const u16 v16a, const u16 v16b)
 {
   vconv32_t v;
 
-  v.v16a = v16a;
-  v.v16b = v16b;
+  v.v16.a = v16a;
+  v.v16.b = v16b;
 
   return v.v32;
 }
@@ -909,7 +909,7 @@ u32 v32a_from_v64 (const u64 v64)
 
   v.v64 = v64;
 
-  return v.v32a;
+  return v.v32.a;
 }
 
 u32 v32b_from_v64 (const u64 v64)
@@ -918,15 +918,15 @@ u32 v32b_from_v64 (const u64 v64)
 
   v.v64 = v64;
 
-  return v.v32b;
+  return v.v32.b;
 }
 
 u64 v64_from_v32ab (const u32 v32a, const u32 v32b)
 {
   vconv64_t v;
 
-  v.v32a = v32a;
-  v.v32b = v32b;
+  v.v32.a = v32a;
+  v.v32.b = v32b;
 
   return v.v64;
 }

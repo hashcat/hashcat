@@ -6,6 +6,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_hash_md5.cl"
 #endif
@@ -13,7 +14,7 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
-CONSTANT_AS u32a padding[8] =
+CONSTANT_VK u32a padding[8] =
 {
   0x5e4ebf28,
   0x418a754e,
@@ -376,7 +377,7 @@ KERNEL_FQ void m10500_loop (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
    * shared
    */
 
-  LOCAL_AS RC4_KEY rc4_keys[64];
+  LOCAL_VK RC4_KEY rc4_keys[64];
 
   LOCAL_AS RC4_KEY *rc4_key = &rc4_keys[lid];
 

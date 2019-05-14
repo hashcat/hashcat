@@ -21,10 +21,11 @@
 
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.h"
 #include "inc_common.h"
 #include "inc_cipher_twofish.h"
 
-CONSTANT_AS u32a q_tab[2][256] =
+CONSTANT_VK u32a q_tab[2][256] =
 {
   {
     0xA9, 0x67, 0xB3, 0xE8, 0x04, 0xFD, 0xA3, 0x76, 0x9A, 0x92, 0x80, 0x78,
@@ -76,7 +77,7 @@ CONSTANT_AS u32a q_tab[2][256] =
   }
 };
 
-CONSTANT_AS u32a  m_tab[4][256] =
+CONSTANT_VK u32a  m_tab[4][256] =
 {
   { 0xBCBC3275, 0xECEC21F3, 0x202043C6, 0xB3B3C9F4, 0xDADA03DB, 0x02028B7B,
     0xE2E22BFB, 0x9E9EFAC8, 0xC9C9EC4A, 0xD4D409D3, 0x18186BE6, 0x1E1E9F6B,
@@ -392,6 +393,9 @@ DECLSPEC void twofish128_set_key (u32 *sk, u32 *lk, const u32 *ukey)
   sk[1] = mds_rem (me_key[0], mo_key[0]);
   sk[0] = mds_rem (me_key[1], mo_key[1]);
 
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (int i = 0; i < 40; i += 2)
   {
     u32 a = 0x01010101 * i;
@@ -517,6 +521,9 @@ DECLSPEC void twofish256_set_key (u32 *sk, u32 *lk, const u32 *ukey)
   sk[1] = mds_rem (me_key[2], mo_key[2]);
   sk[0] = mds_rem (me_key[3], mo_key[3]);
 
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (int i = 0; i < 40; i += 2)
   {
     u32 a = 0x01010101 * i;

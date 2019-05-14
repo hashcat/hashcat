@@ -8,6 +8,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #endif
 
@@ -1730,7 +1731,7 @@ DECLSPEC void transpose32c (u32 *data)
 // transpose bitslice mod  : attention race conditions, need different buffers for *in and *out
 //
 
-KERNEL_FQ void m03000_tm (GLOBAL_AS u32 *mod, GLOBAL_AS bs_word_t *words_buf_r)
+KERNEL_FQ void m03000_tm (GLOBAL_AS u32 *mod, GLOBAL_AS bs_word_t *words_buf_b)
 {
   const u64 gid = get_global_id (0);
 
@@ -1741,14 +1742,14 @@ KERNEL_FQ void m03000_tm (GLOBAL_AS u32 *mod, GLOBAL_AS bs_word_t *words_buf_r)
 
   for (int i = 0; i < 32; i += 8)
   {
-    atomic_or (&words_buf_r[block].b[i + 0], (((w0 >> (i + 7)) & 1) << slice));
-    atomic_or (&words_buf_r[block].b[i + 1], (((w0 >> (i + 6)) & 1) << slice));
-    atomic_or (&words_buf_r[block].b[i + 2], (((w0 >> (i + 5)) & 1) << slice));
-    atomic_or (&words_buf_r[block].b[i + 3], (((w0 >> (i + 4)) & 1) << slice));
-    atomic_or (&words_buf_r[block].b[i + 4], (((w0 >> (i + 3)) & 1) << slice));
-    atomic_or (&words_buf_r[block].b[i + 5], (((w0 >> (i + 2)) & 1) << slice));
-    atomic_or (&words_buf_r[block].b[i + 6], (((w0 >> (i + 1)) & 1) << slice));
-    atomic_or (&words_buf_r[block].b[i + 7], (((w0 >> (i + 0)) & 1) << slice));
+    atomic_or (&words_buf_b[block].b[i + 0], (((w0 >> (i + 7)) & 1) << slice));
+    atomic_or (&words_buf_b[block].b[i + 1], (((w0 >> (i + 6)) & 1) << slice));
+    atomic_or (&words_buf_b[block].b[i + 2], (((w0 >> (i + 5)) & 1) << slice));
+    atomic_or (&words_buf_b[block].b[i + 3], (((w0 >> (i + 4)) & 1) << slice));
+    atomic_or (&words_buf_b[block].b[i + 4], (((w0 >> (i + 3)) & 1) << slice));
+    atomic_or (&words_buf_b[block].b[i + 5], (((w0 >> (i + 2)) & 1) << slice));
+    atomic_or (&words_buf_b[block].b[i + 6], (((w0 >> (i + 1)) & 1) << slice));
+    atomic_or (&words_buf_b[block].b[i + 7], (((w0 >> (i + 0)) & 1) << slice));
   }
 }
 
@@ -1829,7 +1830,11 @@ KERNEL_FQ void m03000_mxx (KERN_ATTR_BITSLICE ())
    * inner loop
    */
 
+  #ifdef IS_CUDA
+  const u32 pc_pos = (blockIdx.y * blockDim.y) + threadIdx.y;
+  #else
   const u32 pc_pos = get_global_id (1);
+  #endif
 
   const u32 il_pos = pc_pos * 32;
 
@@ -1866,38 +1871,38 @@ KERNEL_FQ void m03000_mxx (KERN_ATTR_BITSLICE ())
   u32 k30 = K30;
   u32 k31 = K31;
 
-  k00 |= words_buf_r[pc_pos].b[ 0];
-  k01 |= words_buf_r[pc_pos].b[ 1];
-  k02 |= words_buf_r[pc_pos].b[ 2];
-  k03 |= words_buf_r[pc_pos].b[ 3];
-  k04 |= words_buf_r[pc_pos].b[ 4];
-  k05 |= words_buf_r[pc_pos].b[ 5];
-  k06 |= words_buf_r[pc_pos].b[ 6];
-  k07 |= words_buf_r[pc_pos].b[ 7];
-  k08 |= words_buf_r[pc_pos].b[ 8];
-  k09 |= words_buf_r[pc_pos].b[ 9];
-  k10 |= words_buf_r[pc_pos].b[10];
-  k11 |= words_buf_r[pc_pos].b[11];
-  k12 |= words_buf_r[pc_pos].b[12];
-  k13 |= words_buf_r[pc_pos].b[13];
-  k14 |= words_buf_r[pc_pos].b[14];
-  k15 |= words_buf_r[pc_pos].b[15];
-  k16 |= words_buf_r[pc_pos].b[16];
-  k17 |= words_buf_r[pc_pos].b[17];
-  k18 |= words_buf_r[pc_pos].b[18];
-  k19 |= words_buf_r[pc_pos].b[19];
-  k20 |= words_buf_r[pc_pos].b[20];
-  k21 |= words_buf_r[pc_pos].b[21];
-  k22 |= words_buf_r[pc_pos].b[22];
-  k23 |= words_buf_r[pc_pos].b[23];
-  k24 |= words_buf_r[pc_pos].b[24];
-  k25 |= words_buf_r[pc_pos].b[25];
-  k26 |= words_buf_r[pc_pos].b[26];
-  k27 |= words_buf_r[pc_pos].b[27];
-  k28 |= words_buf_r[pc_pos].b[28];
-  k29 |= words_buf_r[pc_pos].b[29];
-  k30 |= words_buf_r[pc_pos].b[30];
-  k31 |= words_buf_r[pc_pos].b[31];
+  k00 |= words_buf_s[pc_pos].b[ 0];
+  k01 |= words_buf_s[pc_pos].b[ 1];
+  k02 |= words_buf_s[pc_pos].b[ 2];
+  k03 |= words_buf_s[pc_pos].b[ 3];
+  k04 |= words_buf_s[pc_pos].b[ 4];
+  k05 |= words_buf_s[pc_pos].b[ 5];
+  k06 |= words_buf_s[pc_pos].b[ 6];
+  k07 |= words_buf_s[pc_pos].b[ 7];
+  k08 |= words_buf_s[pc_pos].b[ 8];
+  k09 |= words_buf_s[pc_pos].b[ 9];
+  k10 |= words_buf_s[pc_pos].b[10];
+  k11 |= words_buf_s[pc_pos].b[11];
+  k12 |= words_buf_s[pc_pos].b[12];
+  k13 |= words_buf_s[pc_pos].b[13];
+  k14 |= words_buf_s[pc_pos].b[14];
+  k15 |= words_buf_s[pc_pos].b[15];
+  k16 |= words_buf_s[pc_pos].b[16];
+  k17 |= words_buf_s[pc_pos].b[17];
+  k18 |= words_buf_s[pc_pos].b[18];
+  k19 |= words_buf_s[pc_pos].b[19];
+  k20 |= words_buf_s[pc_pos].b[20];
+  k21 |= words_buf_s[pc_pos].b[21];
+  k22 |= words_buf_s[pc_pos].b[22];
+  k23 |= words_buf_s[pc_pos].b[23];
+  k24 |= words_buf_s[pc_pos].b[24];
+  k25 |= words_buf_s[pc_pos].b[25];
+  k26 |= words_buf_s[pc_pos].b[26];
+  k27 |= words_buf_s[pc_pos].b[27];
+  k28 |= words_buf_s[pc_pos].b[28];
+  k29 |= words_buf_s[pc_pos].b[29];
+  k30 |= words_buf_s[pc_pos].b[30];
+  k31 |= words_buf_s[pc_pos].b[31];
 
   // KGS!@#$% including IP
 
@@ -2277,7 +2282,11 @@ KERNEL_FQ void m03000_sxx (KERN_ATTR_BITSLICE ())
    * inner loop
    */
 
+  #ifdef IS_CUDA
+  const u32 pc_pos = (blockIdx.y * blockDim.y) + threadIdx.y;
+  #else
   const u32 pc_pos = get_global_id (1);
+  #endif
 
   const u32 il_pos = pc_pos * 32;
 
@@ -2314,38 +2323,38 @@ KERNEL_FQ void m03000_sxx (KERN_ATTR_BITSLICE ())
   u32 k30 = K30;
   u32 k31 = K31;
 
-  k00 |= words_buf_r[pc_pos].b[ 0];
-  k01 |= words_buf_r[pc_pos].b[ 1];
-  k02 |= words_buf_r[pc_pos].b[ 2];
-  k03 |= words_buf_r[pc_pos].b[ 3];
-  k04 |= words_buf_r[pc_pos].b[ 4];
-  k05 |= words_buf_r[pc_pos].b[ 5];
-  k06 |= words_buf_r[pc_pos].b[ 6];
-  k07 |= words_buf_r[pc_pos].b[ 7];
-  k08 |= words_buf_r[pc_pos].b[ 8];
-  k09 |= words_buf_r[pc_pos].b[ 9];
-  k10 |= words_buf_r[pc_pos].b[10];
-  k11 |= words_buf_r[pc_pos].b[11];
-  k12 |= words_buf_r[pc_pos].b[12];
-  k13 |= words_buf_r[pc_pos].b[13];
-  k14 |= words_buf_r[pc_pos].b[14];
-  k15 |= words_buf_r[pc_pos].b[15];
-  k16 |= words_buf_r[pc_pos].b[16];
-  k17 |= words_buf_r[pc_pos].b[17];
-  k18 |= words_buf_r[pc_pos].b[18];
-  k19 |= words_buf_r[pc_pos].b[19];
-  k20 |= words_buf_r[pc_pos].b[20];
-  k21 |= words_buf_r[pc_pos].b[21];
-  k22 |= words_buf_r[pc_pos].b[22];
-  k23 |= words_buf_r[pc_pos].b[23];
-  k24 |= words_buf_r[pc_pos].b[24];
-  k25 |= words_buf_r[pc_pos].b[25];
-  k26 |= words_buf_r[pc_pos].b[26];
-  k27 |= words_buf_r[pc_pos].b[27];
-  k28 |= words_buf_r[pc_pos].b[28];
-  k29 |= words_buf_r[pc_pos].b[29];
-  k30 |= words_buf_r[pc_pos].b[30];
-  k31 |= words_buf_r[pc_pos].b[31];
+  k00 |= words_buf_s[pc_pos].b[ 0];
+  k01 |= words_buf_s[pc_pos].b[ 1];
+  k02 |= words_buf_s[pc_pos].b[ 2];
+  k03 |= words_buf_s[pc_pos].b[ 3];
+  k04 |= words_buf_s[pc_pos].b[ 4];
+  k05 |= words_buf_s[pc_pos].b[ 5];
+  k06 |= words_buf_s[pc_pos].b[ 6];
+  k07 |= words_buf_s[pc_pos].b[ 7];
+  k08 |= words_buf_s[pc_pos].b[ 8];
+  k09 |= words_buf_s[pc_pos].b[ 9];
+  k10 |= words_buf_s[pc_pos].b[10];
+  k11 |= words_buf_s[pc_pos].b[11];
+  k12 |= words_buf_s[pc_pos].b[12];
+  k13 |= words_buf_s[pc_pos].b[13];
+  k14 |= words_buf_s[pc_pos].b[14];
+  k15 |= words_buf_s[pc_pos].b[15];
+  k16 |= words_buf_s[pc_pos].b[16];
+  k17 |= words_buf_s[pc_pos].b[17];
+  k18 |= words_buf_s[pc_pos].b[18];
+  k19 |= words_buf_s[pc_pos].b[19];
+  k20 |= words_buf_s[pc_pos].b[20];
+  k21 |= words_buf_s[pc_pos].b[21];
+  k22 |= words_buf_s[pc_pos].b[22];
+  k23 |= words_buf_s[pc_pos].b[23];
+  k24 |= words_buf_s[pc_pos].b[24];
+  k25 |= words_buf_s[pc_pos].b[25];
+  k26 |= words_buf_s[pc_pos].b[26];
+  k27 |= words_buf_s[pc_pos].b[27];
+  k28 |= words_buf_s[pc_pos].b[28];
+  k29 |= words_buf_s[pc_pos].b[29];
+  k30 |= words_buf_s[pc_pos].b[30];
+  k31 |= words_buf_s[pc_pos].b[31];
 
   // KGS!@#$% including IP
 

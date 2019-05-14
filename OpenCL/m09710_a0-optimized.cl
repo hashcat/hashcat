@@ -9,6 +9,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_rp_optimized.h"
 #include "inc_rp_optimized.cl"
@@ -182,7 +183,7 @@ KERNEL_FQ void m09710_m04 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
    * shared
    */
 
-  LOCAL_AS RC4_KEY rc4_keys[64];
+  LOCAL_VK RC4_KEY rc4_keys[64];
 
   LOCAL_AS RC4_KEY *rc4_key = &rc4_keys[lid];
 
@@ -320,7 +321,7 @@ KERNEL_FQ void m09710_s04 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
    * shared
    */
 
-  LOCAL_AS RC4_KEY rc4_keys[64];
+  LOCAL_VK RC4_KEY rc4_keys[64];
 
   LOCAL_AS RC4_KEY *rc4_key = &rc4_keys[lid];
 

@@ -9,6 +9,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_hash_md4.cl"
 #include "inc_hash_md5.cl"
@@ -291,7 +292,7 @@ KERNEL_FQ void m07500_mxx (KERN_ATTR_ESALT (krb5pa_t))
    * base
    */
 
-  LOCAL_AS RC4_KEY rc4_keys[64];
+  LOCAL_VK RC4_KEY rc4_keys[64];
 
   LOCAL_AS RC4_KEY *rc4_key = &rc4_keys[lid];
 
@@ -360,7 +361,7 @@ KERNEL_FQ void m07500_sxx (KERN_ATTR_ESALT (krb5pa_t))
    * base
    */
 
-  LOCAL_AS RC4_KEY rc4_keys[64];
+  LOCAL_VK RC4_KEY rc4_keys[64];
 
   LOCAL_AS RC4_KEY *rc4_key = &rc4_keys[lid];
 

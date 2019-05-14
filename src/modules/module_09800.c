@@ -88,7 +88,7 @@ u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
 bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
   // OpenCL 1.2 pocl HSTR: pthread-x86_64-pc-linux-gnu-skylake: Segmentation fault
-  if (device_param->platform_vendor_id == VENDOR_ID_POCL)
+  if (device_param->opencl_platform_vendor_id == VENDOR_ID_POCL)
   {
     return true;
   }

@@ -5,10 +5,11 @@
 
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.h"
 #include "inc_common.h"
 #include "inc_hash_streebog256.h"
 
-CONSTANT_AS u64a sbob256_sl64[8][256] =
+CONSTANT_VK u64a sbob256_sl64[8][256] =
 {
   {
     0xd031c397ce553fe6, 0x16ba5b01b006b525, 0xa89bade6296e70c8, 0x6a1f525d77d3435b,
@@ -540,7 +541,7 @@ CONSTANT_AS u64a sbob256_sl64[8][256] =
   },
 };
 
-CONSTANT_AS u64a sbob256_rc64[12][8] =
+CONSTANT_VK u64a sbob256_rc64[12][8] =
 {
   {
     0xe9daca1eda5b08b1, 0x1f7c65c0812fcbeb, 0x16d0452e43766a2f, 0xfcc485758db84e71,
@@ -1362,7 +1363,7 @@ DECLSPEC void streebog256_add_vector (u64x *x, const u64x *y)
     const u64x right = hc_swap64 (y[i]);
     const u64x sum   = left + right + carry;
 
-    carry = (sum < left) ? (u64x) 1 : (u64x) 0;
+    carry = (sum < left) ? make_u64x (1) : make_u64x (0);
 
     x[i] = hc_swap64 (sum);
   }
@@ -1710,7 +1711,7 @@ DECLSPEC void streebog256_final_vector (streebog256_ctx_vector_t *ctx)
   streebog256_g_vector (ctx->h, ctx->n, m, ctx->s_sbob_sl64);
 
   u64x sizebuf[8] = { 0 };
-  sizebuf[7] = hc_swap64 ((u64x) (pos << 3));
+  sizebuf[7] = hc_swap64 (make_u64x (pos << 3));
 
   streebog256_add_vector (ctx->n, sizebuf);
 

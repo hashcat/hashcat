@@ -8,6 +8,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_whirlpool.cl"
@@ -152,14 +153,14 @@ KERNEL_FQ void m06231_init (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
 
   const int keyboard_layout_mapping_cnt = esalt_bufs[digests_offset].keyboard_layout_mapping_cnt;
 
-  LOCAL_AS keyboard_layout_mapping_t s_keyboard_layout_mapping_buf[256];
+  LOCAL_VK keyboard_layout_mapping_t s_keyboard_layout_mapping_buf[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
     s_keyboard_layout_mapping_buf[i] = esalt_bufs[digests_offset].keyboard_layout_mapping_buf[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   /**
    * Whirlpool shared
@@ -167,8 +168,8 @@ KERNEL_FQ void m06231_init (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
 
   #ifdef REAL_SHM
 
-  LOCAL_AS u32 s_Ch[8][256];
-  LOCAL_AS u32 s_Cl[8][256];
+  LOCAL_VK u32 s_Ch[8][256];
+  LOCAL_VK u32 s_Cl[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -191,7 +192,7 @@ KERNEL_FQ void m06231_init (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
     s_Cl[7][i] = Cl[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 
@@ -379,8 +380,8 @@ KERNEL_FQ void m06231_loop (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
 
   #ifdef REAL_SHM
 
-  LOCAL_AS u32 s_Ch[8][256];
-  LOCAL_AS u32 s_Cl[8][256];
+  LOCAL_VK u32 s_Ch[8][256];
+  LOCAL_VK u32 s_Cl[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -403,7 +404,7 @@ KERNEL_FQ void m06231_loop (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
     s_Cl[7][i] = Cl[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 
@@ -582,17 +583,17 @@ KERNEL_FQ void m06231_comp (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
 
   #ifdef REAL_SHM
 
-  LOCAL_AS u32 s_td0[256];
-  LOCAL_AS u32 s_td1[256];
-  LOCAL_AS u32 s_td2[256];
-  LOCAL_AS u32 s_td3[256];
-  LOCAL_AS u32 s_td4[256];
+  LOCAL_VK u32 s_td0[256];
+  LOCAL_VK u32 s_td1[256];
+  LOCAL_VK u32 s_td2[256];
+  LOCAL_VK u32 s_td3[256];
+  LOCAL_VK u32 s_td4[256];
 
-  LOCAL_AS u32 s_te0[256];
-  LOCAL_AS u32 s_te1[256];
-  LOCAL_AS u32 s_te2[256];
-  LOCAL_AS u32 s_te3[256];
-  LOCAL_AS u32 s_te4[256];
+  LOCAL_VK u32 s_te0[256];
+  LOCAL_VK u32 s_te1[256];
+  LOCAL_VK u32 s_te2[256];
+  LOCAL_VK u32 s_te3[256];
+  LOCAL_VK u32 s_te4[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -609,7 +610,7 @@ KERNEL_FQ void m06231_comp (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
     s_te4[i] = te4[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 
@@ -633,8 +634,8 @@ KERNEL_FQ void m06231_comp (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
 
   #ifdef REAL_SHM
 
-  LOCAL_AS u32 s_Ch[8][256];
-  LOCAL_AS u32 s_Cl[8][256];
+  LOCAL_VK u32 s_Ch[8][256];
+  LOCAL_VK u32 s_Cl[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -657,7 +658,7 @@ KERNEL_FQ void m06231_comp (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
     s_Cl[7][i] = Cl[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 
@@ -690,14 +691,6 @@ KERNEL_FQ void m06231_comp (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
   ukey2[6] = hc_swap32_S (tmps[gid].out[14]);
   ukey2[7] = hc_swap32_S (tmps[gid].out[15]);
 
-  if (verify_header_aes (esalt_bufs[0].data_buf, esalt_bufs[0].signature, ukey1, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
-  {
-    if (atomic_inc (&hashes_shown[0]) == 0)
-    {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0, 0, 0);
-    }
-  }
-
   if (verify_header_serpent (esalt_bufs[0].data_buf, esalt_bufs[0].signature, ukey1, ukey2) == 1)
   {
     if (atomic_inc (&hashes_shown[0]) == 0)
@@ -707,6 +700,14 @@ KERNEL_FQ void m06231_comp (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
   }
 
   if (verify_header_twofish (esalt_bufs[0].data_buf, esalt_bufs[0].signature, ukey1, ukey2) == 1)
+  {
+    if (atomic_inc (&hashes_shown[0]) == 0)
+    {
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0, 0, 0);
+    }
+  }
+
+  if (verify_header_aes (esalt_bufs[0].data_buf, esalt_bufs[0].signature, ukey1, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
   {
     if (atomic_inc (&hashes_shown[0]) == 0)
     {

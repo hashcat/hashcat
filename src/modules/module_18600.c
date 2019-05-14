@@ -66,27 +66,48 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 {
   char *jit_build_options = NULL;
 
+  // this uses some nice feedback effect.
+  // based on the device_local_mem_size the reqd_work_group_size in the kernel is set to some value
+  // which is then is read from the opencl host in the kernel_preferred_wgs_multiple1/2/3 result.
+  // therefore we do not need to set module_kernel_threads_min/max except for CPU, where the threads are set to fixed 1.
+
   u32 fixed_local_size = 0;
 
-  if (device_param->device_type & CL_DEVICE_TYPE_CPU)
+  if (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU)
   {
     fixed_local_size = 1;
   }
   else
   {
-    if (user_options->kernel_threads_chgd == true)
-    {
-      fixed_local_size = user_options->kernel_threads;
-    }
-    else
-    {
-      u32 overhead = 0;
+    u32 overhead = 0;
 
-      if (device_param->device_vendor_id == VENDOR_ID_NV)
+    if (device_param->opencl_device_vendor_id == VENDOR_ID_NV)
+    {
+      // note we need to use device_param->device_local_mem_size - 4 because opencl jit returns with:
+      // Entry function '...' uses too much shared data (0xc004 bytes, 0xc000 max)
+      // on my development system. no clue where the 4 bytes are spent.
+      // I did some research on this and it seems to be related with the datatype.
+      // For example, if i used u8 instead, there's only 1 byte wasted.
+
+      if (device_param->is_opencl == true)
       {
         overhead = 4;
       }
+    }
 
+    if (user_options->kernel_threads_chgd == true)
+    {
+      fixed_local_size = user_options->kernel_threads;
+
+      // otherwise out-of-bound reads
+
+      if ((fixed_local_size * 4096) > (device_param->device_local_mem_size - overhead))
+      {
+        fixed_local_size = (device_param->device_local_mem_size - overhead) / 4096;
+      }
+    }
+    else
+    {
       fixed_local_size = (device_param->device_local_mem_size - overhead) / 4096;
     }
   }
@@ -123,7 +144,7 @@ u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
 bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
   // OpenCL 1.2 pocl HSTR: pthread-x86_64-pc-linux-gnu-skylake: self-test failed
-  if (device_param->platform_vendor_id == VENDOR_ID_POCL)
+  if (device_param->opencl_platform_vendor_id == VENDOR_ID_POCL)
   {
     return true;
   }

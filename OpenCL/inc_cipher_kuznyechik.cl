@@ -14,10 +14,11 @@
 
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.h"
 #include "inc_common.h"
 #include "inc_cipher_kuznyechik.h"
 
-CONSTANT_AS u32a k_sbox[256] =
+CONSTANT_VK u32a k_sbox[256] =
 {
   0xfc, 0xee, 0xdd, 0x11, 0xcf, 0x6e, 0x31, 0x16,
   0xfb, 0xc4, 0xfa, 0xda, 0x23, 0xc5, 0x04, 0x4d,
@@ -53,7 +54,7 @@ CONSTANT_AS u32a k_sbox[256] =
   0xd1, 0x66, 0xaf, 0xc2, 0x39, 0x4b, 0x63, 0xb6
 };
 
-CONSTANT_AS u32a k_sbox_inv[256] =
+CONSTANT_VK u32a k_sbox_inv[256] =
 {
   0xa5, 0x2d, 0x32, 0x8f, 0x0e, 0x30, 0x38, 0xc0,
   0x54, 0xe6, 0x9e, 0x39, 0x55, 0x7e, 0x52, 0x91,
@@ -91,12 +92,23 @@ CONSTANT_AS u32a k_sbox_inv[256] =
 
 #define extract_byte(x,n) (((x) >> (8 * (n))) & 0xff)
 
-#define k_lookup(w,sbox)                      \
-  for (int i = 0; i < 4; i++)                 \
-    w[i] = sbox[extract_byte (w[i], 0)] <<  0 \
-         | sbox[extract_byte (w[i], 1)] <<  8 \
-         | sbox[extract_byte (w[i], 2)] << 16 \
-         | sbox[extract_byte (w[i], 3)] << 24
+#define k_lookup(w,sbox)                        \
+    w[0] = sbox[extract_byte (w[0], 0)] <<  0   \
+         | sbox[extract_byte (w[0], 1)] <<  8   \
+         | sbox[extract_byte (w[0], 2)] << 16   \
+         | sbox[extract_byte (w[0], 3)] << 24;  \
+    w[1] = sbox[extract_byte (w[1], 0)] <<  0   \
+         | sbox[extract_byte (w[1], 1)] <<  8   \
+         | sbox[extract_byte (w[1], 2)] << 16   \
+         | sbox[extract_byte (w[1], 3)] << 24;  \
+    w[2] = sbox[extract_byte (w[2], 0)] <<  0   \
+         | sbox[extract_byte (w[2], 1)] <<  8   \
+         | sbox[extract_byte (w[2], 2)] << 16   \
+         | sbox[extract_byte (w[2], 3)] << 24;  \
+    w[3] = sbox[extract_byte (w[3], 0)] <<  0   \
+         | sbox[extract_byte (w[3], 1)] <<  8   \
+         | sbox[extract_byte (w[3], 2)] << 16   \
+         | sbox[extract_byte (w[3], 3)] << 24;
 
 #define k_xor(n)                      \
   for (int i = (n); i > 0; i /= 2)    \

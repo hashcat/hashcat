@@ -126,7 +126,7 @@ _hashcat_get_permutations ()
   fi
 }
 
-_hashcat_opencl_devices ()
+_hashcat_backend_devices ()
 {
   local num_devices=0
 
@@ -180,7 +180,7 @@ _hashcat ()
   local HCCAPX_MESSAGE_PAIRS="0 1 2 3 4 5"
   local OUTFILE_FORMATS="1 2 3 4 5 6 7 8 9 10 11 12 13 14 15"
   local OPENCL_DEVICE_TYPES="1 2 3"
-  local OPENCL_VECTOR_WIDTH="1 2 4 8 16"
+  local BACKEND_VECTOR_WIDTH="1 2 4 8 16"
   local DEBUG_MODE="1 2 3 4"
   local WORKLOAD_PROFILE="1 2 3 4"
   local BRAIN_CLIENT_FEATURES="1 2 3"
@@ -189,8 +189,8 @@ _hashcat ()
   local BUILD_IN_CHARSETS='?l ?u ?d ?a ?b ?s ?h ?H'
 
   local SHORT_OPTS="-m -a -V -v -h -b -t -o -p -c -d -w -n -u -j -k -r -g -1 -2 -3 -4 -i -I -s -l -O -S -z"
-  local LONG_OPTS="--hash-type --attack-mode --version --help --quiet --benchmark --benchmark-all --hex-salt --hex-wordlist --hex-charset --force --status --status-json --status-timer --machine-readable --loopback --markov-hcstat2 --markov-disable --markov-classic --markov-threshold --runtime --session --speed-only --progress-only --restore --restore-file-path --restore-disable --outfile --outfile-format --outfile-autohex-disable --outfile-check-timer --outfile-check-dir --wordlist-autohex-disable --separator --show --left --username --remove --remove-timer --potfile-disable --potfile-path --debug-mode --debug-file --induction-dir --segment-size --bitmap-min --bitmap-max --cpu-affinity --example-hashes --opencl-info --opencl-devices --opencl-platforms --opencl-device-types --opencl-vector-width --workload-profile --kernel-accel --kernel-loops --kernel-threads --spin-damp --hwmon-disable --hwmon-temp-abort --skip --limit --keyspace --rule-left --rule-right --rules-file --generate-rules --generate-rules-func-min --generate-rules-func-max --generate-rules-seed --custom-charset1 --custom-charset2 --custom-charset3 --custom-charset4 --increment --increment-min --increment-max --logfile-disable --scrypt-tmto --keyboard-layout-mapping --truecrypt-keyfiles --veracrypt-keyfiles --veracrypt-pim-start --veracrypt-pim-stop --stdout --keep-guessing --hccapx-message-pair --nonce-error-corrections --encoding-from --encoding-to --optimized-kernel-enable --self-test-disable  --slow-candidates --brain-server --brain-client --brain-client-features --brain-host --brain-port --brain-session --brain-session-whitelist --brain-password"
-  local OPTIONS="-m -a -t -o -p -c -d -w -n -u -j -k -r -g -1 -2 -3 -4 -s -l --hash-type --attack-mode --status-timer --markov-hcstat2 --markov-threshold --runtime --session --timer --outfile --outfile-format --outfile-check-timer --outfile-check-dir --separator --remove-timer --potfile-path --restore-file-path --debug-mode --debug-file --induction-dir --segment-size --bitmap-min --bitmap-max --cpu-affinity --opencl-devices --opencl-platforms --opencl-device-types --opencl-vector-width --workload-profile --kernel-accel --kernel-loops --kernel-threads --spin-damp --hwmon-temp-abort --skip --limit --rule-left --rule-right --rules-file --generate-rules --generate-rules-func-min --generate-rules-func-max --generate-rules-seed --custom-charset1 --custom-charset2 --custom-charset3 --custom-charset4 --increment-min --increment-max --scrypt-tmto --keyboard-layout-mapping --truecrypt-keyfiles --veracrypt-keyfiles --veracrypt-pim-start --veracrypt-pim-stop --hccapx-message-pair --nonce-error-corrections --encoding-from --encoding-to --brain-client-features --brain-host --brain-password --brain-port --brain-session --brain-whitelist-session --stdin-timeout-abort"
+  local LONG_OPTS="--hash-type --attack-mode --version --help --quiet --benchmark --benchmark-all --hex-salt --hex-wordlist --hex-charset --force --status --status-json --status-timer --machine-readable --loopback --markov-hcstat2 --markov-disable --markov-classic --markov-threshold --runtime --session --speed-only --progress-only --restore --restore-file-path --restore-disable --outfile --outfile-format --outfile-autohex-disable --outfile-check-timer --outfile-check-dir --wordlist-autohex-disable --separator --show --left --username --remove --remove-timer --potfile-disable --potfile-path --debug-mode --debug-file --induction-dir --segment-size --bitmap-min --bitmap-max --cpu-affinity --example-hashes --backend-info --backend-devices --opencl-device-types --backend-vector-width --workload-profile --kernel-accel --kernel-loops --kernel-threads --spin-damp --hwmon-disable --hwmon-temp-abort --skip --limit --keyspace --rule-left --rule-right --rules-file --generate-rules --generate-rules-func-min --generate-rules-func-max --generate-rules-seed --custom-charset1 --custom-charset2 --custom-charset3 --custom-charset4 --increment --increment-min --increment-max --logfile-disable --scrypt-tmto --keyboard-layout-mapping --truecrypt-keyfiles --veracrypt-keyfiles --veracrypt-pim-start --veracrypt-pim-stop --stdout --keep-guessing --hccapx-message-pair --nonce-error-corrections --encoding-from --encoding-to --optimized-kernel-enable --self-test-disable  --slow-candidates --brain-server --brain-client --brain-client-features --brain-host --brain-port --brain-session --brain-session-whitelist --brain-password"
+  local OPTIONS="-m -a -t -o -p -c -d -w -n -u -j -k -r -g -1 -2 -3 -4 -s -l --hash-type --attack-mode --status-timer --markov-hcstat2 --markov-threshold --runtime --session --timer --outfile --outfile-format --outfile-check-timer --outfile-check-dir --separator --remove-timer --potfile-path --restore-file-path --debug-mode --debug-file --induction-dir --segment-size --bitmap-min --bitmap-max --cpu-affinity --backend-devices --opencl-device-types --backend-vector-width --workload-profile --kernel-accel --kernel-loops --kernel-threads --spin-damp --hwmon-temp-abort --skip --limit --rule-left --rule-right --rules-file --generate-rules --generate-rules-func-min --generate-rules-func-max --generate-rules-seed --custom-charset1 --custom-charset2 --custom-charset3 --custom-charset4 --increment-min --increment-max --scrypt-tmto --keyboard-layout-mapping --truecrypt-keyfiles --veracrypt-keyfiles --veracrypt-pim-start --veracrypt-pim-stop --hccapx-message-pair --nonce-error-corrections --encoding-from --encoding-to --brain-client-features --brain-host --brain-password --brain-port --brain-session --brain-whitelist-session --stdin-timeout-abort"
 
   COMPREPLY=()
   local cur="${COMP_WORDS[COMP_CWORD]}"
@@ -250,8 +250,8 @@ _hashcat ()
       return 0
       ;;
 
-     -d|--opencl-devices)
-      _hashcat_opencl_devices
+     -d|--backend-devices)
+      _hashcat_backend_devices
       local num_devices=${?}
 
       _hashcat_get_permutations ${num_devices}
@@ -265,36 +265,8 @@ _hashcat ()
       return 0
       ;;
 
-    --opencl-vector-width)
-      COMPREPLY=($(compgen -W "${OPENCL_VECTOR_WIDTH}" -- ${cur}))
-      return 0
-      ;;
-
-    --opencl-platforms)
-      local icd_list=$(ls -1 /etc/OpenCL/vendors/*.icd 2> /dev/null)
-
-      local architecture=$(getconf LONG_BIT 2> /dev/null)
-
-      if [ -z "${architecture}" ]; then
-        return 0
-      fi
-
-      # filter the icd_list (do not show 32 bit on 64bit systems and vice versa)
-
-      if [ "${architecture}" -eq 64 ]; then
-
-        icd_list=$(echo "${icd_list}" | grep -v "32.icd")
-
-      else
-
-        icd_list=$(echo "${icd_list}" | grep -v "64.icd")
-
-      fi
-
-      local number_icds=$(seq 1 $(echo "${icd_list}" | wc -l))
-
-      COMPREPLY=($(compgen -W "${number_icds}" -- ${cur}))
-
+    --backend-vector-width)
+      COMPREPLY=($(compgen -W "${BACKEND_VECTOR_WIDTH}" -- ${cur}))
       return 0
       ;;
 
@@ -471,13 +443,13 @@ _hashcat ()
       ;;
 
     -d*)
-      _hashcat_opencl_devices
+      _hashcat_backend_devices
       local num_devices=${?}
 
       _hashcat_get_permutations ${num_devices}
 
-      local opencl_devices_var="$(echo "  "${hashcat_devices_permutation} | sed 's/ / -d/g')"
-      COMPREPLY=($(compgen -W "${opencl_devices_var}" -- ${cur}))
+      local backend_devices_var="$(echo "  "${hashcat_devices_permutation} | sed 's/ / -d/g')"
+      COMPREPLY=($(compgen -W "${backend_devices_var}" -- ${cur}))
       return 0
       ;;
   esac

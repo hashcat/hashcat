@@ -8,6 +8,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_cipher_des.cl"
@@ -428,8 +429,8 @@ KERNEL_FQ void m03100_m04 (KERN_ATTR_VECTOR ())
 
   #ifdef REAL_SHM
 
-  LOCAL_AS u32 s_SPtrans[8][64];
-  LOCAL_AS u32 s_skb[8][64];
+  LOCAL_VK u32 s_SPtrans[8][64];
+  LOCAL_VK u32 s_skb[8][64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
@@ -452,7 +453,7 @@ KERNEL_FQ void m03100_m04 (KERN_ATTR_VECTOR ())
     s_skb[7][i] = c_skb[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 
@@ -511,8 +512,8 @@ KERNEL_FQ void m03100_m08 (KERN_ATTR_VECTOR ())
 
   #ifdef REAL_SHM
 
-  LOCAL_AS u32 s_SPtrans[8][64];
-  LOCAL_AS u32 s_skb[8][64];
+  LOCAL_VK u32 s_SPtrans[8][64];
+  LOCAL_VK u32 s_skb[8][64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
@@ -535,7 +536,7 @@ KERNEL_FQ void m03100_m08 (KERN_ATTR_VECTOR ())
     s_skb[7][i] = c_skb[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 
@@ -598,8 +599,8 @@ KERNEL_FQ void m03100_s04 (KERN_ATTR_VECTOR ())
 
   #ifdef REAL_SHM
 
-  LOCAL_AS u32 s_SPtrans[8][64];
-  LOCAL_AS u32 s_skb[8][64];
+  LOCAL_VK u32 s_SPtrans[8][64];
+  LOCAL_VK u32 s_skb[8][64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
@@ -622,7 +623,7 @@ KERNEL_FQ void m03100_s04 (KERN_ATTR_VECTOR ())
     s_skb[7][i] = c_skb[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 
@@ -681,8 +682,8 @@ KERNEL_FQ void m03100_s08 (KERN_ATTR_VECTOR ())
 
   #ifdef REAL_SHM
 
-  LOCAL_AS u32 s_SPtrans[8][64];
-  LOCAL_AS u32 s_skb[8][64];
+  LOCAL_VK u32 s_SPtrans[8][64];
+  LOCAL_VK u32 s_skb[8][64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
@@ -705,7 +706,7 @@ KERNEL_FQ void m03100_s08 (KERN_ATTR_VECTOR ())
     s_skb[7][i] = c_skb[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 
