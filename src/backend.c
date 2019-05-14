@@ -5255,19 +5255,22 @@ void backend_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
   if (backend_ctx->enabled == false) return;
 
+  hcfree (backend_ctx->devices_param);
+
+  if (backend_ctx->ocl)
+  {
+    hcfree (backend_ctx->opencl_platforms);
+    hcfree (backend_ctx->opencl_platforms_devices);
+    hcfree (backend_ctx->opencl_platforms_devices_cnt);
+    hcfree (backend_ctx->opencl_platforms_name);
+    hcfree (backend_ctx->opencl_platforms_vendor);
+    hcfree (backend_ctx->opencl_platforms_vendor_id);
+    hcfree (backend_ctx->opencl_platforms_version);
+  }
+
   nvrtc_close (hashcat_ctx);
   cuda_close  (hashcat_ctx);
   ocl_close   (hashcat_ctx);
-
-  hcfree (backend_ctx->devices_param);
-
-  hcfree (backend_ctx->opencl_platforms);
-  hcfree (backend_ctx->opencl_platforms_devices);
-  hcfree (backend_ctx->opencl_platforms_devices_cnt);
-  hcfree (backend_ctx->opencl_platforms_name);
-  hcfree (backend_ctx->opencl_platforms_vendor);
-  hcfree (backend_ctx->opencl_platforms_vendor_id);
-  hcfree (backend_ctx->opencl_platforms_version);
 
   memset (backend_ctx, 0, sizeof (backend_ctx_t));
 }
