@@ -87,6 +87,7 @@ Related publication: https://scitepress.org/PublicationsDetail.aspx?ID=KLPzPqStp
 
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 
@@ -129,7 +130,7 @@ struct pkzip_hash
   u32 data_length;
   u16 checksum_from_crc;
   u16 checksum_from_timestamp;
-  u8  data[MAX_DATA];
+  u32 data[MAX_DATA];
 
 } __attribute__((packed));
 
@@ -217,7 +218,7 @@ CONSTANT_AS u32a crc32tab[256] =
   0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
 };
 
-__kernel void m17230_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
+KERNEL_FQ void m17230_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
 {
   /**
    * modifier
@@ -231,14 +232,14 @@ __kernel void m17230_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
    * sbox, kbox
    */
 
-  LOCAL_AS u32 l_crc32tab[256];
+  LOCAL_VK u32 l_crc32tab[256];
 
   for (u64 i = lid; i < 256; i += lsz)
   {
     l_crc32tab[i] = crc32tab[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS();
 
   if (gid >= gid_max) return;
 
@@ -299,13 +300,11 @@ __kernel void m17230_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
 
     for (u32 idx = 0; idx < hash_count; idx++)
     {
-      __global u32 *data_ptr = (__global u32 *) esalt_bufs[digests_offset].hashes[idx].data;
-
       u32x key0 = key0init;
       u32x key1 = key1init;
       u32x key2 = key2init;
 
-      next = data_ptr[0];
+      next = esalt_bufs[digests_offset].hashes[idx].data[0];
 
       update_key3 (key2, key3);
       plain = unpack_v8a_from_v32_S (next) ^ key3;
@@ -323,7 +322,7 @@ __kernel void m17230_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       plain = unpack_v8d_from_v32_S (next) ^ key3;
       update_key012 (key0, key1, key2, plain, l_crc32tab);
 
-      next = data_ptr[1];
+      next = esalt_bufs[digests_offset].hashes[idx].data[1];
 
       update_key3 (key2, key3);
       plain = unpack_v8a_from_v32_S (next) ^ key3;
@@ -341,7 +340,7 @@ __kernel void m17230_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       plain = unpack_v8d_from_v32_S (next) ^ key3;
       update_key012 (key0, key1, key2, plain, l_crc32tab);
 
-      next = data_ptr[2];
+      next = esalt_bufs[digests_offset].hashes[idx].data[2];
 
       update_key3 (key2, key3);
       plain = unpack_v8a_from_v32_S (next) ^ key3;
@@ -361,7 +360,7 @@ __kernel void m17230_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       if ((plain != (esalt_bufs[digests_offset].hashes[idx].checksum_from_crc >> 8)) && (plain != (esalt_bufs[digests_offset].hashes[idx].checksum_from_timestamp >> 8))) break;
       update_key012 (key0, key1, key2, plain, l_crc32tab);
 
-      next = data_ptr[3];
+      next = esalt_bufs[digests_offset].hashes[idx].data[3];
 
       update_key3 (key2, key3);
       plain = unpack_v8a_from_v32_S (next) ^ key3;
@@ -392,7 +391,7 @@ __kernel void m17230_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
   }
 }
 
-__kernel void m17230_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
+KERNEL_FQ void m17230_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
 {
   /**
    * modifier
@@ -406,14 +405,14 @@ __kernel void m17230_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
    * sbox, kbox
    */
 
-  LOCAL_AS u32 l_crc32tab[256];
+  LOCAL_VK u32 l_crc32tab[256];
 
   for (u64 i = lid; i < 256; i += lsz)
   {
     l_crc32tab[i] = crc32tab[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS();
 
   if (gid >= gid_max) return;
 
@@ -474,13 +473,11 @@ __kernel void m17230_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
 
     for (u32 idx = 0; idx < hash_count; idx++)
     {
-      __global u32 *data_ptr = (__global u32 *) esalt_bufs[digests_offset].hashes[idx].data;
-
       u32x key0 = key0init;
       u32x key1 = key1init;
       u32x key2 = key2init;
 
-      next = data_ptr[0];
+      next = esalt_bufs[digests_offset].hashes[idx].data[0];
 
       update_key3 (key2, key3);
       plain = unpack_v8a_from_v32_S (next) ^ key3;
@@ -498,7 +495,7 @@ __kernel void m17230_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       plain = unpack_v8d_from_v32_S (next) ^ key3;
       update_key012 (key0, key1, key2, plain, l_crc32tab);
 
-      next = data_ptr[1];
+      next = esalt_bufs[digests_offset].hashes[idx].data[1];
 
       update_key3 (key2, key3);
       plain = unpack_v8a_from_v32_S (next) ^ key3;
@@ -516,7 +513,7 @@ __kernel void m17230_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       plain = unpack_v8d_from_v32_S (next) ^ key3;
       update_key012 (key0, key1, key2, plain, l_crc32tab);
 
-      next = data_ptr[2];
+      next = esalt_bufs[digests_offset].hashes[idx].data[2];
 
       update_key3 (key2, key3);
       plain = unpack_v8a_from_v32_S (next) ^ key3;
@@ -536,7 +533,7 @@ __kernel void m17230_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       if ((plain != (esalt_bufs[digests_offset].hashes[idx].checksum_from_crc >> 8)) && (plain != (esalt_bufs[digests_offset].hashes[idx].checksum_from_timestamp >> 8))) break;
       update_key012 (key0, key1, key2, plain, l_crc32tab);
 
-      next = data_ptr[3];
+      next = esalt_bufs[digests_offset].hashes[idx].data[3];
 
       update_key3 (key2, key3);
       plain = unpack_v8a_from_v32_S (next) ^ key3;
