@@ -525,7 +525,7 @@ DECLSPEC int check_inflate_code1 (u8 *next, int left)
   }
 }
 
-__kernel void m17220_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
+KERNEL_FQ void m17220_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
 {
   /**
    * modifier
@@ -732,8 +732,8 @@ __kernel void m17220_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       inflate_state pStream;
 
       infstream.opaque    = Z_NULL;
-      infstream.avail_in  = esalt_bufs[digests_offset].hashes[idx].data_length - 12; // size of input
-      infstream.next_in   = (GLOBAL_AS u8 *) esalt_bufs[digests_offset].hashes[idx].data        + 12; // input char array
+      infstream.avail_in  = esalt_bufs[digests_offset].hashes[idx].data_length           - 12; // size of input
+      infstream.next_in   = (GLOBAL_AS u8 *) esalt_bufs[digests_offset].hashes[idx].data + 12; // input char array
       infstream.avail_out = TMPSIZ; // size of output
       infstream.next_out  = tmp; // output char array
 
@@ -790,7 +790,7 @@ __kernel void m17220_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
   }
 }
 
-__kernel void m17220_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
+KERNEL_FQ void m17220_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
 {
   /**
    * modifier
@@ -997,8 +997,8 @@ __kernel void m17220_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       inflate_state pStream;
 
       infstream.opaque    = Z_NULL;
-      infstream.avail_in  = esalt_bufs[digests_offset].hashes[idx].data_length - 12; // size of input
-      infstream.next_in   = (GLOBAL_AS u8 *) esalt_bufs[digests_offset].hashes[idx].data        + 12; // input char array
+      infstream.avail_in  = esalt_bufs[digests_offset].hashes[idx].data_length           - 12; // size of input
+      infstream.next_in   = (GLOBAL_AS u8 *) esalt_bufs[digests_offset].hashes[idx].data + 12; // input char array
       infstream.avail_out = TMPSIZ; // size of output
       infstream.next_out  = tmp; // output char array
 
