@@ -548,6 +548,15 @@ KERNEL_FQ void m17220_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
 
   SYNC_THREADS();
 
+  LOCAL_VK u32 l_data[MAX_LOCAL];
+
+  for (u64 i = lid; i < MAX_LOCAL; i += lsz)
+  {
+    l_data[i] = esalt_bufs[digests_offset].hashes[0].data[i];
+  }
+
+  SYNC_THREADS();
+
   if (gid >= gid_max) return;
 
   /**
@@ -609,7 +618,8 @@ KERNEL_FQ void m17220_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       u32x key1 = key1init;
       u32x key2 = key2init;
 
-      next = esalt_bufs[digests_offset].hashes[idx].data[0];
+      if (idx == 0) next = l_data[0];
+      else          next = esalt_bufs[digests_offset].hashes[idx].data[0];
 
       update_key3 (key2, key3);
       plain = unpack_v8a_from_v32_S (next) ^ key3;
@@ -627,7 +637,8 @@ KERNEL_FQ void m17220_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       plain = unpack_v8d_from_v32_S (next) ^ key3;
       update_key012 (key0, key1, key2, plain, l_crc32tab);
 
-      next = esalt_bufs[digests_offset].hashes[idx].data[1];
+      if (idx == 0) next = l_data[1];
+      else          next = esalt_bufs[digests_offset].hashes[idx].data[1];
 
       update_key3 (key2, key3);
       plain = unpack_v8a_from_v32_S (next) ^ key3;
@@ -645,7 +656,8 @@ KERNEL_FQ void m17220_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       plain = unpack_v8d_from_v32_S (next) ^ key3;
       update_key012 (key0, key1, key2, plain, l_crc32tab);
 
-      next = esalt_bufs[digests_offset].hashes[idx].data[2];
+      if (idx == 0) next = l_data[2];
+      else          next = esalt_bufs[digests_offset].hashes[idx].data[2];
 
       update_key3 (key2, key3);
       plain = unpack_v8a_from_v32_S (next) ^ key3;
@@ -671,7 +683,8 @@ KERNEL_FQ void m17220_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
 
       u8 tmp[TMPSIZ];
 
-      next = esalt_bufs[digests_offset].hashes[idx].data[3];
+      if (idx == 0) next = l_data[3];
+      else          next = esalt_bufs[digests_offset].hashes[idx].data[3];
 
       update_key3 (key2, key3);
       plain = unpack_v8a_from_v32_S (next) ^ key3;
@@ -696,7 +709,8 @@ KERNEL_FQ void m17220_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
 
       for (int i = 16; i < 36; i += 4)
       {
-        next = esalt_bufs[digests_offset].hashes[idx].data[i / 4];
+        if (idx == 0) next = l_data[i / 4];
+        else          next = esalt_bufs[digests_offset].hashes[idx].data[i / 4];
 
         update_key3 (key2, key3);
         plain = unpack_v8a_from_v32_S (next) ^ key3;
@@ -874,7 +888,8 @@ KERNEL_FQ void m17220_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       u32x key1 = key1init;
       u32x key2 = key2init;
 
-      next = esalt_bufs[digests_offset].hashes[idx].data[0];
+      if (idx == 0) next = l_data[0];
+      else          next = esalt_bufs[digests_offset].hashes[idx].data[0];
 
       update_key3 (key2, key3);
       plain = unpack_v8a_from_v32_S (next) ^ key3;
@@ -892,7 +907,8 @@ KERNEL_FQ void m17220_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       plain = unpack_v8d_from_v32_S (next) ^ key3;
       update_key012 (key0, key1, key2, plain, l_crc32tab);
 
-      next = esalt_bufs[digests_offset].hashes[idx].data[1];
+      if (idx == 0) next = l_data[1];
+      else          next = esalt_bufs[digests_offset].hashes[idx].data[1];
 
       update_key3 (key2, key3);
       plain = unpack_v8a_from_v32_S (next) ^ key3;
@@ -910,7 +926,8 @@ KERNEL_FQ void m17220_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       plain = unpack_v8d_from_v32_S (next) ^ key3;
       update_key012 (key0, key1, key2, plain, l_crc32tab);
 
-      next = esalt_bufs[digests_offset].hashes[idx].data[2];
+      if (idx == 0) next = l_data[2];
+      else          next = esalt_bufs[digests_offset].hashes[idx].data[2];
 
       update_key3 (key2, key3);
       plain = unpack_v8a_from_v32_S (next) ^ key3;
@@ -936,7 +953,8 @@ KERNEL_FQ void m17220_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
 
       u8 tmp[TMPSIZ];
 
-      next = esalt_bufs[digests_offset].hashes[idx].data[3];
+      if (idx == 0) next = l_data[3];
+      else          next = esalt_bufs[digests_offset].hashes[idx].data[3];
 
       update_key3 (key2, key3);
       plain = unpack_v8a_from_v32_S (next) ^ key3;
@@ -961,7 +979,8 @@ KERNEL_FQ void m17220_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
 
       for (int i = 16; i < 36; i += 4)
       {
-        next = esalt_bufs[digests_offset].hashes[idx].data[i / 4];
+        if (idx == 0) next = l_data[i / 4];
+        else          next = esalt_bufs[digests_offset].hashes[idx].data[i / 4];
 
         update_key3 (key2, key3);
         plain = unpack_v8a_from_v32_S (next) ^ key3;

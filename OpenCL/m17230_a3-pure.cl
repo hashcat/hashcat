@@ -241,175 +241,11 @@ KERNEL_FQ void m17230_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
 
   SYNC_THREADS();
 
-  if (gid >= gid_max) return;
+  LOCAL_VK u32 l_data[MAX_LOCAL];
 
-  /**
-   * base
-   */
-
-  const u32 pw_len = pws[gid].pw_len;
-
-  u32x w[64] = { 0 };
-
-  for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  for (u64 i = lid; i < MAX_LOCAL; i += lsz)
   {
-    w[idx] = pws[gid].i[idx];
-  }
-
-  /**
-   * prefetch from global memory
-   */
-
-  const u32 checksum_size = esalt_bufs[digests_offset].checksum_size;
-  const u32 hash_count    = esalt_bufs[digests_offset].hash_count;
-
-  /**
-   * loop
-   */
-
-  u32 w0l = w[0];
-
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
-  {
-    const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
-
-    const u32x w0 = w0l | w0r;
-
-    w[0] = w0;
-
-    u32x key0init = 0x12345678;
-    u32x key1init = 0x23456789;
-    u32x key2init = 0x34567890;
-
-    if (pw_len >=  1) update_key012 (key0init, key1init, key2init, unpack_v8a_from_v32_S (w0), l_crc32tab);
-    if (pw_len >=  2) update_key012 (key0init, key1init, key2init, unpack_v8b_from_v32_S (w0), l_crc32tab);
-    if (pw_len >=  3) update_key012 (key0init, key1init, key2init, unpack_v8c_from_v32_S (w0), l_crc32tab);
-    if (pw_len >=  4) update_key012 (key0init, key1init, key2init, unpack_v8d_from_v32_S (w0), l_crc32tab);
-
-    for (u32 i = 4, j = 1; i < pw_len; i += 4, j += 1)
-    {
-      if (pw_len >= (i + 1)) update_key012 (key0init, key1init, key2init, unpack_v8a_from_v32_S (w[j]), l_crc32tab);
-      if (pw_len >= (i + 2)) update_key012 (key0init, key1init, key2init, unpack_v8b_from_v32_S (w[j]), l_crc32tab);
-      if (pw_len >= (i + 3)) update_key012 (key0init, key1init, key2init, unpack_v8c_from_v32_S (w[j]), l_crc32tab);
-      if (pw_len >= (i + 4)) update_key012 (key0init, key1init, key2init, unpack_v8d_from_v32_S (w[j]), l_crc32tab);
-    }
-
-    u32 plain;
-    u32 key3;
-    u32 next;
-
-    for (u32 idx = 0; idx < hash_count; idx++)
-    {
-      u32x key0 = key0init;
-      u32x key1 = key1init;
-      u32x key2 = key2init;
-
-      next = esalt_bufs[digests_offset].hashes[idx].data[0];
-
-      update_key3 (key2, key3);
-      plain = unpack_v8a_from_v32_S (next) ^ key3;
-      update_key012 (key0, key1, key2, plain, l_crc32tab);
-
-      update_key3 (key2, key3);
-      plain = unpack_v8b_from_v32_S (next) ^ key3;
-      update_key012 (key0, key1, key2, plain, l_crc32tab);
-
-      update_key3 (key2, key3);
-      plain = unpack_v8c_from_v32_S (next) ^ key3;
-      update_key012 (key0, key1, key2, plain, l_crc32tab);
-
-      update_key3 (key2, key3);
-      plain = unpack_v8d_from_v32_S (next) ^ key3;
-      update_key012 (key0, key1, key2, plain, l_crc32tab);
-
-      next = esalt_bufs[digests_offset].hashes[idx].data[1];
-
-      update_key3 (key2, key3);
-      plain = unpack_v8a_from_v32_S (next) ^ key3;
-      update_key012 (key0, key1, key2, plain, l_crc32tab);
-
-      update_key3 (key2, key3);
-      plain = unpack_v8b_from_v32_S (next) ^ key3;
-      update_key012 (key0, key1, key2, plain, l_crc32tab);
-
-      update_key3 (key2, key3);
-      plain = unpack_v8c_from_v32_S (next) ^ key3;
-      update_key012 (key0, key1, key2, plain, l_crc32tab);
-
-      update_key3 (key2, key3);
-      plain = unpack_v8d_from_v32_S (next) ^ key3;
-      update_key012 (key0, key1, key2, plain, l_crc32tab);
-
-      next = esalt_bufs[digests_offset].hashes[idx].data[2];
-
-      update_key3 (key2, key3);
-      plain = unpack_v8a_from_v32_S (next) ^ key3;
-      update_key012 (key0, key1, key2, plain, l_crc32tab);
-
-      update_key3 (key2, key3);
-      plain = unpack_v8b_from_v32_S (next) ^ key3;
-      update_key012 (key0, key1, key2, plain, l_crc32tab);
-
-      update_key3 (key2, key3);
-      plain = unpack_v8c_from_v32_S (next) ^ key3;
-      if ((checksum_size == 2) && ((esalt_bufs[digests_offset].hashes[idx].checksum_from_crc & 0xff) != plain) && ((esalt_bufs[digests_offset].hashes[idx].checksum_from_timestamp & 0xff) != plain)) break;
-      update_key012 (key0, key1, key2, plain, l_crc32tab);
-
-      update_key3 (key2, key3);
-      plain = unpack_v8d_from_v32_S (next) ^ key3;
-      if ((plain != (esalt_bufs[digests_offset].hashes[idx].checksum_from_crc >> 8)) && (plain != (esalt_bufs[digests_offset].hashes[idx].checksum_from_timestamp >> 8))) break;
-      update_key012 (key0, key1, key2, plain, l_crc32tab);
-
-      next = esalt_bufs[digests_offset].hashes[idx].data[3];
-
-      update_key3 (key2, key3);
-      plain = unpack_v8a_from_v32_S (next) ^ key3;
-      if ((plain & 6) == 0 || (plain & 6) == 6) break;
-
-      if (idx + 1 == esalt_bufs[digests_offset].hash_count)
-      {
-        /**
-         * digest
-         */
-
-        const u32 search[4] =
-        {
-          esalt_bufs[digests_offset].hashes[0].checksum_from_crc,
-          0,
-          0,
-          0
-        };
-
-        const u32 r0 = esalt_bufs[digests_offset].hashes[0].checksum_from_crc;
-        const u32 r1 = 0;
-        const u32 r2 = 0;
-        const u32 r3 = 0;
-
-        COMPARE_S_SIMD (r0, r1, r2, r3);
-      }
-    }
-  }
-}
-
-KERNEL_FQ void m17230_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
-{
-  /**
-   * modifier
-   */
-
-  const u64 gid = get_global_id (0);
-  const u64 lid = get_local_id (0);
-  const u64 lsz = get_local_size (0);
-
-  /**
-   * sbox, kbox
-   */
-
-  LOCAL_VK u32 l_crc32tab[256];
-
-  for (u64 i = lid; i < 256; i += lsz)
-  {
-    l_crc32tab[i] = crc32tab[i];
+    l_data[i] = esalt_bufs[digests_offset].hashes[0].data[i];
   }
 
   SYNC_THREADS();
@@ -477,7 +313,8 @@ KERNEL_FQ void m17230_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       u32x key1 = key1init;
       u32x key2 = key2init;
 
-      next = esalt_bufs[digests_offset].hashes[idx].data[0];
+      if (idx == 0) next = l_data[0];
+      else          next = esalt_bufs[digests_offset].hashes[idx].data[0];
 
       update_key3 (key2, key3);
       plain = unpack_v8a_from_v32_S (next) ^ key3;
@@ -495,7 +332,8 @@ KERNEL_FQ void m17230_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       plain = unpack_v8d_from_v32_S (next) ^ key3;
       update_key012 (key0, key1, key2, plain, l_crc32tab);
 
-      next = esalt_bufs[digests_offset].hashes[idx].data[1];
+      if (idx == 0) next = l_data[1];
+      else          next = esalt_bufs[digests_offset].hashes[idx].data[1];
 
       update_key3 (key2, key3);
       plain = unpack_v8a_from_v32_S (next) ^ key3;
@@ -513,7 +351,8 @@ KERNEL_FQ void m17230_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       plain = unpack_v8d_from_v32_S (next) ^ key3;
       update_key012 (key0, key1, key2, plain, l_crc32tab);
 
-      next = esalt_bufs[digests_offset].hashes[idx].data[2];
+      if (idx == 0) next = l_data[2];
+      else          next = esalt_bufs[digests_offset].hashes[idx].data[2];
 
       update_key3 (key2, key3);
       plain = unpack_v8a_from_v32_S (next) ^ key3;
@@ -533,7 +372,194 @@ KERNEL_FQ void m17230_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       if ((plain != (esalt_bufs[digests_offset].hashes[idx].checksum_from_crc >> 8)) && (plain != (esalt_bufs[digests_offset].hashes[idx].checksum_from_timestamp >> 8))) break;
       update_key012 (key0, key1, key2, plain, l_crc32tab);
 
-      next = esalt_bufs[digests_offset].hashes[idx].data[3];
+      if (idx == 0) next = l_data[3];
+      else          next = esalt_bufs[digests_offset].hashes[idx].data[3];
+
+      update_key3 (key2, key3);
+      plain = unpack_v8a_from_v32_S (next) ^ key3;
+      if ((plain & 6) == 0 || (plain & 6) == 6) break;
+
+      if (idx + 1 == hash_count)
+      {
+        /**
+         * digest
+         */
+
+        const u32 search[4] =
+        {
+          esalt_bufs[digests_offset].hashes[0].checksum_from_crc,
+          0,
+          0,
+          0
+        };
+
+        const u32 r0 = esalt_bufs[digests_offset].hashes[0].checksum_from_crc;
+        const u32 r1 = 0;
+        const u32 r2 = 0;
+        const u32 r3 = 0;
+
+        COMPARE_S_SIMD (r0, r1, r2, r3);
+      }
+    }
+  }
+}
+
+KERNEL_FQ void m17230_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
+{
+  /**
+   * modifier
+   */
+
+  const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
+
+  /**
+   * sbox, kbox
+   */
+
+  LOCAL_VK u32 l_crc32tab[256];
+
+  for (u64 i = lid; i < 256; i += lsz)
+  {
+    l_crc32tab[i] = crc32tab[i];
+  }
+
+  SYNC_THREADS();
+
+  LOCAL_VK u32 l_data[MAX_LOCAL];
+
+  for (u64 i = lid; i < MAX_LOCAL; i += lsz)
+  {
+    l_data[i] = esalt_bufs[digests_offset].hashes[0].data[i];
+  }
+
+  SYNC_THREADS();
+
+  if (gid >= gid_max) return;
+
+  /**
+   * base
+   */
+
+  const u32 pw_len = pws[gid].pw_len;
+
+  u32x w[64] = { 0 };
+
+  for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  {
+    w[idx] = pws[gid].i[idx];
+  }
+
+  /**
+   * prefetch from global memory
+   */
+
+  const u32 checksum_size = esalt_bufs[digests_offset].checksum_size;
+  const u32 hash_count    = esalt_bufs[digests_offset].hash_count;
+
+  /**
+   * loop
+   */
+
+  u32 w0l = w[0];
+
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  {
+    const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
+
+    const u32x w0 = w0l | w0r;
+
+    w[0] = w0;
+
+    u32x key0init = 0x12345678;
+    u32x key1init = 0x23456789;
+    u32x key2init = 0x34567890;
+
+    if (pw_len >=  1) update_key012 (key0init, key1init, key2init, unpack_v8a_from_v32_S (w0), l_crc32tab);
+    if (pw_len >=  2) update_key012 (key0init, key1init, key2init, unpack_v8b_from_v32_S (w0), l_crc32tab);
+    if (pw_len >=  3) update_key012 (key0init, key1init, key2init, unpack_v8c_from_v32_S (w0), l_crc32tab);
+    if (pw_len >=  4) update_key012 (key0init, key1init, key2init, unpack_v8d_from_v32_S (w0), l_crc32tab);
+
+    for (u32 i = 4, j = 1; i < pw_len; i += 4, j += 1)
+    {
+      if (pw_len >= (i + 1)) update_key012 (key0init, key1init, key2init, unpack_v8a_from_v32_S (w[j]), l_crc32tab);
+      if (pw_len >= (i + 2)) update_key012 (key0init, key1init, key2init, unpack_v8b_from_v32_S (w[j]), l_crc32tab);
+      if (pw_len >= (i + 3)) update_key012 (key0init, key1init, key2init, unpack_v8c_from_v32_S (w[j]), l_crc32tab);
+      if (pw_len >= (i + 4)) update_key012 (key0init, key1init, key2init, unpack_v8d_from_v32_S (w[j]), l_crc32tab);
+    }
+
+    u32 plain;
+    u32 key3;
+    u32 next;
+
+    for (u32 idx = 0; idx < hash_count; idx++)
+    {
+      u32x key0 = key0init;
+      u32x key1 = key1init;
+      u32x key2 = key2init;
+
+      if (idx == 0) next = l_data[0];
+      else          next = esalt_bufs[digests_offset].hashes[idx].data[0];
+
+      update_key3 (key2, key3);
+      plain = unpack_v8a_from_v32_S (next) ^ key3;
+      update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+      update_key3 (key2, key3);
+      plain = unpack_v8b_from_v32_S (next) ^ key3;
+      update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+      update_key3 (key2, key3);
+      plain = unpack_v8c_from_v32_S (next) ^ key3;
+      update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+      update_key3 (key2, key3);
+      plain = unpack_v8d_from_v32_S (next) ^ key3;
+      update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+      if (idx == 0) next = l_data[1];
+      else          next = esalt_bufs[digests_offset].hashes[idx].data[1];
+
+      update_key3 (key2, key3);
+      plain = unpack_v8a_from_v32_S (next) ^ key3;
+      update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+      update_key3 (key2, key3);
+      plain = unpack_v8b_from_v32_S (next) ^ key3;
+      update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+      update_key3 (key2, key3);
+      plain = unpack_v8c_from_v32_S (next) ^ key3;
+      update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+      update_key3 (key2, key3);
+      plain = unpack_v8d_from_v32_S (next) ^ key3;
+      update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+      if (idx == 0) next = l_data[2];
+      else          next = esalt_bufs[digests_offset].hashes[idx].data[2];
+
+      update_key3 (key2, key3);
+      plain = unpack_v8a_from_v32_S (next) ^ key3;
+      update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+      update_key3 (key2, key3);
+      plain = unpack_v8b_from_v32_S (next) ^ key3;
+      update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+      update_key3 (key2, key3);
+      plain = unpack_v8c_from_v32_S (next) ^ key3;
+      if ((checksum_size == 2) && ((esalt_bufs[digests_offset].hashes[idx].checksum_from_crc & 0xff) != plain) && ((esalt_bufs[digests_offset].hashes[idx].checksum_from_timestamp & 0xff) != plain)) break;
+      update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+      update_key3 (key2, key3);
+      plain = unpack_v8d_from_v32_S (next) ^ key3;
+      if ((plain != (esalt_bufs[digests_offset].hashes[idx].checksum_from_crc >> 8)) && (plain != (esalt_bufs[digests_offset].hashes[idx].checksum_from_timestamp >> 8))) break;
+      update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+      if (idx == 0) next = l_data[3];
+      else          next = esalt_bufs[digests_offset].hashes[idx].data[3];
 
       update_key3 (key2, key3);
       plain = unpack_v8a_from_v32_S (next) ^ key3;
