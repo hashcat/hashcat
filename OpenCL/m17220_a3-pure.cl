@@ -733,7 +733,7 @@ KERNEL_FQ void m17220_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
         update_key012 (key0, key1, key2, plain, l_crc32tab);
       }
 
-      if (((tmp[0]) & 6) == 2 && !check_inflate_code1 (tmp, 36)) break;
+      if (((tmp[0]) & 6) == 2 && !check_inflate_code1 (tmp, 24)) break;
       if (((tmp[0]) & 6) == 4 && !check_inflate_code2 (tmp))     break;
 
       if (esalt_bufs[digests_offset].hashes[idx].data_type_enum == 1)
@@ -1012,7 +1012,7 @@ KERNEL_FQ void m17220_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
         update_key012 (key0, key1, key2, plain, l_crc32tab);
       }
 
-      if (((tmp[0]) & 6) == 2 && !check_inflate_code1 (tmp, 36)) break;
+      if (((tmp[0]) & 6) == 2 && !check_inflate_code1 (tmp, 24)) break;
       if (((tmp[0]) & 6) == 4 && !check_inflate_code2 (tmp))     break;
 
       if (esalt_bufs[digests_offset].hashes[idx].data_type_enum == 1)

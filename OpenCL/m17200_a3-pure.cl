@@ -569,9 +569,9 @@ KERNEL_FQ void m17200_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
   const u32 search[4] =
   {
     digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    0,
+    0,
+    0
   };
 
   /**
@@ -740,7 +740,7 @@ KERNEL_FQ void m17200_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       update_key012 (key0, key1, key2, plain, l_crc32tab);
     }
 
-    if (((tmp[0]) & 6) == 2 && !check_inflate_code1 (tmp, 36)) continue;
+    if (((tmp[0]) & 6) == 2 && !check_inflate_code1 (tmp, 24)) continue;
     if (((tmp[0]) & 6) == 4 && !check_inflate_code2 (tmp))     continue;
 
     mz_stream infstream;
@@ -982,7 +982,7 @@ KERNEL_FQ void m17200_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       update_key012 (key0, key1, key2, plain, l_crc32tab);
     }
 
-    if (((tmp[0]) & 6) == 2 && !check_inflate_code1 (tmp, 36)) continue;
+    if (((tmp[0]) & 6) == 2 && !check_inflate_code1 (tmp, 24)) continue;
     if (((tmp[0]) & 6) == 4 && !check_inflate_code2 (tmp))     continue;
 
     mz_stream infstream;

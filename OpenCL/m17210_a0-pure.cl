@@ -261,9 +261,9 @@ KERNEL_FQ void m17210_sxx (KERN_ATTR_RULES_ESALT (pkzip_t))
   const u32 search[4] =
   {
     digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    0,
+    0,
+    0
   };
 
   /**
