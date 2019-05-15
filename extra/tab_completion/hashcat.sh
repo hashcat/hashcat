@@ -6,154 +6,207 @@
 HASHCAT_ROOT="."
 
 # helper functions
-_hashcat_get_permutations ()
-{
-  local num_devices=${1}
-  hashcat_devices_permutation=""
-
-  # Formula: Sum (k=1...num_devices) (num_devices! / (k! * (num_devices - k)!))
-  # or ofc (2 ^ num_devices) - 1
-  if [ "${num_devices}" -gt 0 ]; then
-
-    hashcat_devices_permutation=$(seq 1 $num_devices)
-
-    local k
-
-    for k in $(seq 2 $num_devices); do
-
-      if [ "${k}" -eq ${num_devices} ];then
-
-        hashcat_devices_permutation="${hashcat_devices_permutation} $(seq 1 $num_devices | tr '\n' ',' | sed 's/, *$//')"
-
-      else
-
-        local j
-        local max_pos=$((num_devices - ${k} + 1))
-
-        for j in $(seq 1 ${max_pos}); do
-
-          local max_value=$((j + ${k} - 1))
-
-          # init
-          local out_str=""
-
-          local l
-          for l in $(seq ${j} ${max_value}); do
-
-            if [ ${l} -gt ${j} ]; then
-              out_str=${out_str},
-            fi
-
-            out_str=${out_str}${l}
-
-          done
-
-          local chg_len=0
-          local last=$((k - 1))
-          local max_device=$((num_devices + 1))
-          local pos_changed=0
-
-          while [ "${chg_len}" -lt ${last} ]; do
-
-            local had_pos_changed=${pos_changed}
-            local old_chg_len=${chg_len}
-
-            local idx=$(((k - chg_len)))
-            local cur_num=$(echo ${out_str} | cut -d, -f ${idx})
-            local next_num=$((cur_num + 1))
-
-            if [ "${pos_changed}" -eq 0 ]; then
-
-              hashcat_devices_permutation="${hashcat_devices_permutation} ${out_str}"
-
-            else
-
-              pos_changed=0
-
-            fi
-
-            if [ "${next_num}" -lt ${max_device} -a "${next_num}" -le "${num_devices}" ]; then
-
-              out_str=$(echo ${out_str} | sed "s/,${cur_num},/,${next_num},/;s/,${cur_num}\$/,${next_num}/")
-
-            else
-
-              pos_changed=1
-              max_device=${cur_num}
-              chg_len=$((chg_len + 1))
-
-            fi
-
-            if [ "${had_pos_changed}" -eq 1 ];then
-
-              local changed=0
-              local m
-
-              for m in $(seq 1 ${old_chg_len}); do
-
-                local reset_idx=$((k - ${old_chg_len} + ${m}))
-                local last_num=$(echo ${out_str} | cut -d, -f ${reset_idx})
-                next_num=$((next_num + 1))
-
-                if [ "${next_num}" -lt ${max_device} -a "${next_num}" -le "${num_devices}" ]; then
-
-                  out_str=$(echo ${out_str} | sed "s/,${last_num},/,${next_num},/;s/,${last_num}\$/,${next_num}/")
-                  max_device=$((next_num + 2))
-                  changed=$((changed + 1))
-
-                else
-                  break
-                fi
-
-              done
-
-              if [ "${changed}" -gt 0 ]; then
-
-                max_device=$((num_devices + 1))
-                chg_len=0
-
-              fi
-
-            fi
-
-          done
-
-        done
-
-      fi
-
-    done
-  fi
-}
 
 _hashcat_backend_devices ()
 {
-  local num_devices=0
+  local cur_selection="${1}"
+  hashcat_device_list=""
 
-  if which clinfo >/dev/null 2>/dev/null; then
+  local executable="${HASHCAT_ROOT}"/hashcat
 
-    num_devices=$(clinfo 2>/dev/null 2> /dev/null)
-
-  elif which nvidia-smi >/dev/null 2>/dev/null; then
-
-    num_devices=$(nvidia-smi --list-gpus | wc -l)
-
+  if [ ! -x "${executable}" ]; then
+    executable="${HASHCAT_ROOT}"/hashcat.bin
   fi
 
-  return ${num_devices}
+  if [ ! -x "${executable}" ]; then
+    return ""
+  fi
+
+  # remove separator at the end (if present)
+
+  cur_selection=$(echo "${cur_selection}" | sed 's/,$//')
+
+  # sanity check, all device ids must be numerical
+
+  if [ -n "${cur_selection}" ]; then
+    if echo "${cur_selection}" | sed 's/,/\n/g' | grep -q -v '^[0-9]\+$'
+    then
+      return
+    fi
+  fi
+
+  local hashcat_I=$("${executable}" -I 2>/dev/null | grep "Backend Device ID #[0-9]\+" | sed 's/^ *Backend Device ID #//')
+
+  if [ -z "${hashcat_I}" ]; then
+    return
+  fi
+
+  local aliases=$(echo "${hashcat_I}" | grep "(Alias: #[0-9]\+)" | sed 's/ *(Alias: #\([0-9]\+\))/ \1/')
+
+  local aliases_num=$(echo "${aliases}" | wc -l)
+
+  local aliases_deduplicate=""
+
+  local alias_pos=""
+
+  for alias_pos in $(seq 1 ${aliases_num}); do
+    local alias_sorted=$(echo "${aliases}" | sed -n "${alias_pos}p" | tr ' ' '\n' | sort -n | tr '\n' ' ' | sed 's/ *$//')
+
+    if [ -n "${aliases_deduplicate}" ]; then
+      aliases_deduplicate=$(echo -e "${aliases_deduplicate}\n${alias_sorted}")
+    else
+      aliases_deduplicate="${alias_sorted}"
+    fi
+  done
+
+  aliases_deduplicate=$(echo "${aliases_deduplicate}" | sort -u)
+
+  aliases_num=$(echo "${aliases_deduplicate}" | wc -l)
+
+  local device_list=$(echo "${hashcat_I}" | grep -o "^[0-9]*" | sort -n -u)
+
+  local cur_device_list=$(echo "${cur_selection}" | sed 's/,/\n/g' | grep "^[0-9]\+\$" | sort -nu)
+
+  # make sure that every device in the current selected device list (parameter) is within our backend device list
+
+  local device=""
+
+  for device in ${cur_device_list}; do
+    if ! echo "${device_list}" | grep -q "^${device}\$" 2>/dev/null; then
+      return # error
+    fi
+  done
+
+  local appended_device_list=${device_list}
+
+  for device in ${cur_device_list}; do
+    appended_device_list=$(echo "${appended_device_list}" | grep -v "^${device}\$")
+  done
+
+  local hashcat_backend_list=""
+
+  if [ -n "${cur_selection}" ]; then
+    hashcat_backend_list="${cur_selection}"
+  fi
+
+  for device in ${appended_device_list}; do
+    if [ -z "${hashcat_backend_list}" ]; then
+      if [ -z "${cur_selection}" ]; then
+        hashcat_backend_list="${device}"
+      else
+        hashcat_backend_list="${cur_selection},${device}"
+      fi
+    else
+      if [ -z "${cur_selection}" ]; then
+        hashcat_backend_list=$(echo -e "${hashcat_backend_list}\n${device}")
+      else
+        hashcat_backend_list=$(echo -e "${hashcat_backend_list}\n${cur_selection},${device}")
+      fi
+    fi
+  done
+
+  # finally, blacklist all devices that are just aliases
+
+  local device_str=""
+
+  for device_str in ${hashcat_backend_list}; do
+    local devices=$(echo "${device_str}" | tr ',' '\n')
+
+    local conflict=0
+
+    for alias_pos in $(seq 1 ${aliases_num}); do
+      local alias=$(echo "${aliases_deduplicate}" | sed -n "${alias_pos}p" | tr ' ' '\n')
+
+      # currently, an alias always consists of 2 devices:
+
+      local alias1=$(echo "${alias}" | sed -n "1p") # head -n 1
+      local alias2=$(echo "${alias}" | sed -n "2p") # tail -n 1
+
+      if echo "${devices}" | grep -q "^${alias1}\$"; then
+        if echo "${devices}" | grep -q "^${alias2}\$"; then
+          conflict=1
+          break
+        fi
+      fi
+    done
+
+    if [ "${conflict}" -eq 1 ]; then
+      continue
+    fi
+
+    # we add it because we didn't find any conflict:
+
+    if [ -z "${hashcat_device_list}" ]; then
+      hashcat_device_list="${device_str}"
+    else
+      hashcat_device_list=$(echo -e "${hashcat_device_list}\n${device_str}")
+    fi
+  done
 }
 
 _hashcat_cpu_devices ()
 {
-  local num_devices=0
+  local cur_selection="${1}"
+  hashcat_device_list=""
 
-  if [ -f "/proc/cpuinfo" ]; then
-
-    num_devices=$(cat /proc/cpuinfo | grep -c processor 2> /dev/null)
-
+  if [ ! -f "/proc/cpuinfo" ]; then
+    return
   fi
 
-  return ${num_devices}
+  local num_devices=$(cat /proc/cpuinfo 2> /dev/null | grep -c processor 2> /dev/null)
+
+  local device_list=$(seq 1 ${num_devices})
+
+  # remove separator at the end (if present)
+
+  cur_selection=$(echo "${cur_selection}" | sed 's/,$//')
+
+  # sanity check, all device ids must be numerical
+
+  if [ -n "${cur_selection}" ]; then
+    if echo "${cur_selection}" | sed 's/,/\n/g' | grep -q -v '^[0-9]\+$'
+    then
+      return
+    fi
+  fi
+
+  local cur_device_list=$(echo "${cur_selection}" | sed 's/,/\n/g' | grep "^[0-9]\+\$" | sort -nu)
+
+  # make sure that every device in the current selected device list (parameter) is within our cpu device list
+
+  local device=""
+
+  for device in ${cur_device_list}; do
+    if ! echo "${device_list}" | grep -q "^${device}\$" 2>/dev/null; then
+      return # error
+    fi
+  done
+
+  local appended_device_list=${device_list}
+
+  for device in ${cur_device_list}; do
+    appended_device_list=$(echo "${appended_device_list}" | grep -v "^${device}\$")
+  done
+
+  if [ -n "${cur_selection}" ]; then
+    hashcat_device_list="${cur_selection}"
+  fi
+
+  for device in ${appended_device_list}; do
+    if [ -z "${hashcat_device_list}" ]; then
+      if [ -z "${cur_selection}" ]; then
+        hashcat_device_list="${device}"
+      else
+        hashcat_device_list="${cur_selection},${device}"
+      fi
+    else
+      if [ -z "${cur_selection}" ]; then
+        hashcat_device_list=$(echo -e "${hashcat_device_list}\n${device}")
+      else
+        hashcat_device_list=$(echo -e "${hashcat_device_list}\n${cur_selection},${device}")
+      fi
+    fi
+  done
 }
 
 _hashcat_contains ()
@@ -188,9 +241,9 @@ _hashcat ()
   local HIDDEN_FILES_AGGRESIVE="${HIDDEN_FILES}|hcmask|hcchr"
   local BUILD_IN_CHARSETS='?l ?u ?d ?a ?b ?s ?h ?H'
 
-  local SHORT_OPTS="-m -a -V -v -h -b -t -o -p -c -d -w -n -u -j -k -r -g -1 -2 -3 -4 -i -I -s -l -O -S -z"
-  local LONG_OPTS="--hash-type --attack-mode --version --help --quiet --benchmark --benchmark-all --hex-salt --hex-wordlist --hex-charset --force --status --status-json --status-timer --machine-readable --loopback --markov-hcstat2 --markov-disable --markov-classic --markov-threshold --runtime --session --speed-only --progress-only --restore --restore-file-path --restore-disable --outfile --outfile-format --outfile-autohex-disable --outfile-check-timer --outfile-check-dir --wordlist-autohex-disable --separator --show --left --username --remove --remove-timer --potfile-disable --potfile-path --debug-mode --debug-file --induction-dir --segment-size --bitmap-min --bitmap-max --cpu-affinity --example-hashes --backend-info --backend-devices --opencl-device-types --backend-vector-width --workload-profile --kernel-accel --kernel-loops --kernel-threads --spin-damp --hwmon-disable --hwmon-temp-abort --skip --limit --keyspace --rule-left --rule-right --rules-file --generate-rules --generate-rules-func-min --generate-rules-func-max --generate-rules-seed --custom-charset1 --custom-charset2 --custom-charset3 --custom-charset4 --increment --increment-min --increment-max --logfile-disable --scrypt-tmto --keyboard-layout-mapping --truecrypt-keyfiles --veracrypt-keyfiles --veracrypt-pim-start --veracrypt-pim-stop --stdout --keep-guessing --hccapx-message-pair --nonce-error-corrections --encoding-from --encoding-to --optimized-kernel-enable --self-test-disable  --slow-candidates --brain-server --brain-client --brain-client-features --brain-host --brain-port --brain-session --brain-session-whitelist --brain-password"
-  local OPTIONS="-m -a -t -o -p -c -d -w -n -u -j -k -r -g -1 -2 -3 -4 -s -l --hash-type --attack-mode --status-timer --markov-hcstat2 --markov-threshold --runtime --session --timer --outfile --outfile-format --outfile-check-timer --outfile-check-dir --separator --remove-timer --potfile-path --restore-file-path --debug-mode --debug-file --induction-dir --segment-size --bitmap-min --bitmap-max --cpu-affinity --backend-devices --opencl-device-types --backend-vector-width --workload-profile --kernel-accel --kernel-loops --kernel-threads --spin-damp --hwmon-temp-abort --skip --limit --rule-left --rule-right --rules-file --generate-rules --generate-rules-func-min --generate-rules-func-max --generate-rules-seed --custom-charset1 --custom-charset2 --custom-charset3 --custom-charset4 --increment-min --increment-max --scrypt-tmto --keyboard-layout-mapping --truecrypt-keyfiles --veracrypt-keyfiles --veracrypt-pim-start --veracrypt-pim-stop --hccapx-message-pair --nonce-error-corrections --encoding-from --encoding-to --brain-client-features --brain-host --brain-password --brain-port --brain-session --brain-whitelist-session --stdin-timeout-abort"
+  local SHORT_OPTS="-m -a -V -h -b -t -T -o -p -c -d -D -w -n -u -j -k -r -g -1 -2 -3 -4 -i -I -s -l -O -S -z"
+  local LONG_OPTS="--hash-type --attack-mode --version --help --quiet --benchmark --benchmark-all --hex-salt --hex-wordlist --hex-charset --force --status --status-json --status-timer --stdin-timeout-abort --machine-readable --loopback --markov-hcstat2 --markov-disable --markov-classic --markov-threshold --runtime --session --speed-only --progress-only --restore --restore-file-path --restore-disable --outfile --outfile-format --outfile-autohex-disable --outfile-check-timer --outfile-check-dir --wordlist-autohex-disable --separator --show --left --username --remove --remove-timer --potfile-disable --potfile-path --debug-mode --debug-file --induction-dir --segment-size --bitmap-min --bitmap-max --cpu-affinity --example-hashes --backend-info --backend-devices --opencl-device-types --backend-vector-width --workload-profile --kernel-accel --kernel-loops --kernel-threads --spin-damp --hwmon-disable --hwmon-temp-abort --skip --limit --keyspace --rule-left --rule-right --rules-file --generate-rules --generate-rules-func-min --generate-rules-func-max --generate-rules-seed --custom-charset1 --custom-charset2 --custom-charset3 --custom-charset4 --increment --increment-min --increment-max --logfile-disable --scrypt-tmto --keyboard-layout-mapping --truecrypt-keyfiles --veracrypt-keyfiles --veracrypt-pim-start --veracrypt-pim-stop --stdout --keep-guessing --hccapx-message-pair --nonce-error-corrections --encoding-from --encoding-to --optimized-kernel-enable --self-test-disable  --slow-candidates --brain-server --brain-client --brain-client-features --brain-host --brain-port --brain-session --brain-session-whitelist --brain-password"
+  local OPTIONS="-m -a -t -o -p -c -d -w -n -u -j -k -r -g -1 -2 -3 -4 -s -l --hash-type --attack-mode --status-timer --stdin-timeout-abort --markov-hcstat2 --markov-threshold --runtime --session --timer --outfile --outfile-format --outfile-check-timer --outfile-check-dir --separator --remove-timer --potfile-path --restore-file-path --debug-mode --debug-file --induction-dir --segment-size --bitmap-min --bitmap-max --cpu-affinity --backend-devices --opencl-device-types --backend-vector-width --workload-profile --kernel-accel --kernel-loops --kernel-threads --spin-damp --hwmon-temp-abort --skip --limit --rule-left --rule-right --rules-file --generate-rules --generate-rules-func-min --generate-rules-func-max --generate-rules-seed --custom-charset1 --custom-charset2 --custom-charset3 --custom-charset4 --increment-min --increment-max --scrypt-tmto --keyboard-layout-mapping --truecrypt-keyfiles --veracrypt-keyfiles --veracrypt-pim-start --veracrypt-pim-stop --hccapx-message-pair --nonce-error-corrections --encoding-from --encoding-to --brain-client-features --brain-host --brain-password --brain-port --brain-session --brain-session-whitelist"
 
   COMPREPLY=()
   local cur="${COMP_WORDS[COMP_CWORD]}"
@@ -251,12 +304,9 @@ _hashcat ()
       ;;
 
      -d|--backend-devices)
-      _hashcat_backend_devices
-      local num_devices=${?}
+      _hashcat_backend_devices ${cur}
 
-      _hashcat_get_permutations ${num_devices}
-
-      COMPREPLY=($(compgen -W "${hashcat_devices_permutation}" -- ${cur}))
+      COMPREPLY=($(compgen -W "${hashcat_device_list}" -- ${cur}))
       return 0
       ;;
 
@@ -271,12 +321,9 @@ _hashcat ()
       ;;
 
     --cpu-affinity)
-      _hashcat_cpu_devices
-      local num_devices=${?}
+      _hashcat_cpu_devices ${cur}
 
-      _hashcat_get_permutations ${num_devices}
-
-      COMPREPLY=($(compgen -W "${hashcat_devices_permutation}" -- ${cur}))
+      COMPREPLY=($(compgen -W "${hashcat_device_list}" -- ${cur}))
       return 0
       ;;
 
@@ -334,14 +381,6 @@ _hashcat ()
       mask="${mask} ${files}"
 
       COMPREPLY=($(compgen -W "${mask}" -- ${cur}))
-      return 0
-      ;;
-
-    -t|-p|-c|-j|-k|-g| \
-      --status-timer|--markov-threshold|--runtime|--session|--separator|--segment-size|--rule-left|--rule-right| \
-      --spin-damp|--hwmon-temp-abort|--generate-rules|--generate-rules-func-min|--generate-rules-func-max| \
-      --increment-min|--increment-max|--remove-timer|--bitmap-min|--bitmap-max|--skip|--limit|--generate-rules-seed| \
-      --outfile-check-timer|--outfile-check-dir|--induction-dir|--scrypt-tmto|--encoding-from|--encoding-to|--optimized-kernel-enable|--brain-host|--brain-port|--brain-password|--stdin-timeout-abort)
       return 0
       ;;
 
@@ -430,26 +469,23 @@ _hashcat ()
 
     -o*)
       local outfile_var=$(ls -d ${cur:2}* 2> /dev/null | grep -Eiv '*\.('${HIDDEN_FILES_AGGRESIVE}')' 2> /dev/null)
-      outfile_var="$(echo -e "\n${outfile_var}" | sed 's/^/-o/g')"
+      outfile_var="$(echo -e "\n${outfile_var}" | sed 's/^/-o/')"
       COMPREPLY=($(compgen -W "${outfile_var}" -- ${cur}))
       return 0
       ;;
 
     -r*)
       local outfile_var=$(ls -d ${cur:2}* 2> /dev/null | grep -Eiv '*\.('${HIDDEN_FILES_AGGRESIVE}')' 2> /dev/null)
-      outfile_var="$(echo -e "\n${outfile_var}" | sed 's/^/-r/g')"
+      outfile_var="$(echo -e "\n${outfile_var}" | sed 's/^/-r/')"
       COMPREPLY=($(compgen -W "${outfile_var}" -- ${cur}))
       return 0
       ;;
 
     -d*)
-      _hashcat_backend_devices
-      local num_devices=${?}
+      _hashcat_backend_devices $(echo ${cur} | sed 's/^-d//')
 
-      _hashcat_get_permutations ${num_devices}
-
-      local backend_devices_var="$(echo "  "${hashcat_devices_permutation} | sed 's/ / -d/g')"
-      COMPREPLY=($(compgen -W "${backend_devices_var}" -- ${cur}))
+      local hashcat_devices_permutation="$(echo -e "\n${hashcat_device_list}" | sed 's/^/-d/')"
+      COMPREPLY=($(compgen -W "${hashcat_devices_permutation}" -- ${cur}))
       return 0
       ;;
   esac
@@ -780,4 +816,4 @@ _hashcat ()
     esac
 }
 
-complete -F _hashcat -o filenames "${HASHCAT_ROOT}"/hashcat64.bin "${HASHCAT_ROOT}"/hashcat32.bin "${HASHCAT_ROOT}"/hashcat hashcat
+complete -F _hashcat -o filenames "${HASHCAT_ROOT}"/hashcat.bin  "${HASHCAT_ROOT}"/hashcat hashcat
