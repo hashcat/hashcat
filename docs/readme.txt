@@ -110,6 +110,9 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (10.1 o
 - PBKDF2-HMAC-SHA1
 - PBKDF2-HMAC-SHA256
 - PBKDF2-HMAC-SHA512
+- Python passlib pbkdf2-sha1
+- Python passlib pbkdf2-sha256
+- Python passlib pbkdf2-sha512
 - Skype
 - WPA-EAPOL-PBKDF2
 - WPA-EAPOL-PMK
