@@ -198,7 +198,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const size_t salt_len_enc = base64_encode (int_to_ab64, (const u8 *) pbkdf2_sha1->salt_buf, salt->salt_len, (u8 *) salt_enc);
   const size_t hash_len_enc = base64_encode (int_to_ab64, (const u8 *) tmp, HASH_LEN_RAW, (u8 *) hash_enc);
   
-  // substitute + with . and remove padding =
+  // remove padding =
   for (size_t i = 0; i < salt_len_enc; i++) 
   {
     if (salt_enc[i] == '=') 
