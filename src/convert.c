@@ -556,7 +556,7 @@ u8 base64_to_int (const u8 c)
 }
 
 // alternate base64 using ./ instead of +/, used in python passlib hashes
-u8 int_to_alternate_base64 (const u8 c)
+u8 int_to_ab64 (const u8 c)
 {
   const u8 tbl[0x40] =
   {
@@ -569,7 +569,7 @@ u8 int_to_alternate_base64 (const u8 c)
   return tbl[c];
 }
 
-u8 alternate_base64_to_int (const u8 c)
+u8 ab64_to_int (const u8 c)
 {
   const u8 tbl[0x100] =
   {

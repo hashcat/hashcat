@@ -16,7 +16,7 @@ static const u32   DGST_POS1      = 1;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_32;
-static const u32   HASH_CATEGORY  = HASH_CATEGORY_FORUM_SOFTWARE;
+static const u32   HASH_CATEGORY  = HASH_CATEGORY_GENERIC_KDF;
 static const char *HASH_NAME      = "Python passlib pbkdf2-sha256";
 static const u64   KERN_TYPE      = 10900;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
@@ -152,7 +152,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   
   u8 tmp_buf[256] = { 0 };
  
-  const size_t salt_len_decoded = base64_decode (alternate_base64_to_int, (const u8 *) salt_pos, salt_len, tmp_buf);
+  const size_t salt_len_decoded = base64_decode (ab64_to_int, (const u8 *) salt_pos, salt_len, tmp_buf);
 
   u8 *salt_buf_ptr = (u8 *) pbkdf2_sha256->salt_buf;
   memcpy (salt_buf_ptr, tmp_buf, salt_len_decoded);
@@ -165,7 +165,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u8 *hash_pos = token.buf[4];
   const int hash_len = token.len[4];
 
-  base64_decode (alternate_base64_to_int, (const u8 *) hash_pos, hash_len, tmp_buf);
+  base64_decode (ab64_to_int, (const u8 *) hash_pos, hash_len, tmp_buf);
   memcpy (digest, tmp_buf, HASH_LEN_RAW);
 
   digest[0] = byte_swap_32 (digest[0]);
@@ -202,8 +202,8 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   char salt_enc[257] = { 0 };
   char hash_enc[128] = { 0 };
 
-  const size_t salt_len_enc = base64_encode (int_to_alternate_base64, (const u8 *) pbkdf2_sha256->salt_buf, salt->salt_len, (u8 *) salt_enc);
-  const size_t hash_len_enc = base64_encode (int_to_alternate_base64, (const u8 *) tmp, HASH_LEN_RAW, (u8 *) hash_enc);
+  const size_t salt_len_enc = base64_encode (int_to_ab64, (const u8 *) pbkdf2_sha256->salt_buf, salt->salt_len, (u8 *) salt_enc);
+  const size_t hash_len_enc = base64_encode (int_to_ab64, (const u8 *) tmp, HASH_LEN_RAW, (u8 *) hash_enc);
   
   // remove padding =
   for (size_t i = 0; i < salt_len_enc; i++) 
