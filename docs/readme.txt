@@ -110,6 +110,9 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (10.1 o
 - PBKDF2-HMAC-SHA1
 - PBKDF2-HMAC-SHA256
 - PBKDF2-HMAC-SHA512
+- Python passlib pbkdf2-sha1
+- Python passlib pbkdf2-sha256
+- Python passlib pbkdf2-sha512
 - Skype
 - WPA-EAPOL-PBKDF2
 - WPA-EAPOL-PMK
@@ -262,7 +265,7 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (10.1 o
 - Blockchain, My Wallet
 - Blockchain, My Wallet, V2
 - Blockchain, My Wallet, Second Password (SHA256)
-- Electrum Wallet (Salt-Type 1-2)
+- Electrum Wallet (Salt-Type 1-3)
 - KeePass 1 (AES/Twofish) and KeePass 2 (AES)
 - JKS Java Key Store Private Keys (SHA1)
 - Ethereum Wallet, PBKDF2-HMAC-SHA256

@@ -1922,6 +1922,59 @@ int hc_cuCtxSetCacheConfig (hashcat_ctx_t *hashcat_ctx, CUfunc_cache config)
   return 0;
 }
 
+int hc_cuCtxPushCurrent (hashcat_ctx_t *hashcat_ctx, CUcontext ctx)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  CUDA_PTR *cuda = backend_ctx->cuda;
+
+  const CUresult CU_err = cuda->cuCtxPushCurrent (ctx);
+
+  if (CU_err != CUDA_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "cuCtxPushCurrent(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "cuCtxPushCurrent(): %d", CU_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_cuCtxPopCurrent (hashcat_ctx_t *hashcat_ctx, CUcontext *pctx)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  CUDA_PTR *cuda = backend_ctx->cuda;
+
+  const CUresult CU_err = cuda->cuCtxPopCurrent (pctx);
+
+  if (CU_err != CUDA_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "cuCtxPopCurrent(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "cuCtxPopCurrent(): %d", CU_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
 
 
 // OpenCL
@@ -2607,7 +2660,17 @@ int gidd_to_pw_t (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, c
 
   if (device_param->is_cuda == true)
   {
-    const int CU_rc = hc_cuMemcpyDtoH (hashcat_ctx, &pw_idx, device_param->cuda_d_pws_idx + (gidd * sizeof (pw_idx_t)), sizeof (pw_idx_t));
+    int CU_rc;
+
+    CU_rc = hc_cuCtxPushCurrent (hashcat_ctx, device_param->cuda_context);
+
+    if (CU_rc == -1) return -1;
+
+    CU_rc = hc_cuMemcpyDtoH (hashcat_ctx, &pw_idx, device_param->cuda_d_pws_idx + (gidd * sizeof (pw_idx_t)), sizeof (pw_idx_t));
+
+    if (CU_rc == -1) return -1;
+
+    CU_rc = hc_cuCtxPopCurrent (hashcat_ctx, &device_param->cuda_context);
 
     if (CU_rc == -1) return -1;
   }
@@ -2627,7 +2690,17 @@ int gidd_to_pw_t (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, c
   {
     if (cnt > 0)
     {
-      const int CU_rc = hc_cuMemcpyDtoH (hashcat_ctx,pw->i, device_param->cuda_d_pws_comp_buf + (off * sizeof (u32)), cnt * sizeof (u32));
+      int CU_rc;
+
+      CU_rc = hc_cuCtxPushCurrent (hashcat_ctx, device_param->cuda_context);
+
+      if (CU_rc == -1) return -1;
+
+      CU_rc = hc_cuMemcpyDtoH (hashcat_ctx,pw->i, device_param->cuda_d_pws_comp_buf + (off * sizeof (u32)), cnt * sizeof (u32));
+
+      if (CU_rc == -1) return -1;
+
+      CU_rc = hc_cuCtxPopCurrent (hashcat_ctx, &device_param->cuda_context);
 
       if (CU_rc == -1) return -1;
     }
@@ -2680,7 +2753,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
       {
         if (hashconfig->opts_type & OPTS_TYPE_PT_BITSLICE)
         {
-          const u32 size_tm = 32 * sizeof (bs_word_t);
+          const u32 size_tm = device_param->size_tm;
 
           if (device_param->is_cuda == true)
           {
@@ -8310,7 +8383,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
             size_t dummy;
 
             CU_rc = hc_cuModuleGetGlobal (hashcat_ctx, &device_param->cuda_d_bfs_c, &dummy, device_param->cuda_module, "generic_constant"); if (CU_rc == -1) return -1;
-            CU_rc = hc_cuModuleGetGlobal (hashcat_ctx, &device_param->cuda_d_tm_c,  &dummy, device_param->cuda_module, "generic_constant"); if (CU_rc == -1) return -1;
+
+            CU_rc = hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_tm_c,           size_tm);         if (CU_rc == -1) return -1;
           }
           else
           {
@@ -10708,7 +10782,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       if (device_param->cuda_d_extra3_buf)     hc_cuMemFree (hashcat_ctx, device_param->cuda_d_extra3_buf);
       if (device_param->cuda_d_root_css_buf)   hc_cuMemFree (hashcat_ctx, device_param->cuda_d_root_css_buf);
       if (device_param->cuda_d_markov_css_buf) hc_cuMemFree (hashcat_ctx, device_param->cuda_d_markov_css_buf);
-      //if (device_param->cuda_d_tm_c)           hc_cuMemFree (hashcat_ctx, device_param->cuda_d_tm_c);
+      if (device_param->cuda_d_tm_c)           hc_cuMemFree (hashcat_ctx, device_param->cuda_d_tm_c);
       if (device_param->cuda_d_st_digests_buf) hc_cuMemFree (hashcat_ctx, device_param->cuda_d_st_digests_buf);
       if (device_param->cuda_d_st_salts_buf)   hc_cuMemFree (hashcat_ctx, device_param->cuda_d_st_salts_buf);
       if (device_param->cuda_d_st_esalts_buf)  hc_cuMemFree (hashcat_ctx, device_param->cuda_d_st_esalts_buf);

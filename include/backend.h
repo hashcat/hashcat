@@ -71,6 +71,8 @@ int hc_cuModuleUnload            (hashcat_ctx_t *hashcat_ctx, CUmodule hmod);
 int hc_cuStreamCreate            (hashcat_ctx_t *hashcat_ctx, CUstream *phStream, unsigned int Flags);
 int hc_cuStreamDestroy           (hashcat_ctx_t *hashcat_ctx, CUstream hStream);
 int hc_cuStreamSynchronize       (hashcat_ctx_t *hashcat_ctx, CUstream hStream);
+int hc_cuCtxPushCurrent          (hashcat_ctx_t *hashcat_ctx, CUcontext ctx);
+int hc_cuCtxPopCurrent           (hashcat_ctx_t *hashcat_ctx, CUcontext *pctx);
 
 int hc_clBuildProgram            (hashcat_ctx_t *hashcat_ctx, cl_program program, cl_uint num_devices, const cl_device_id *device_list, const char *options, void (CL_CALLBACK *pfn_notify) (cl_program program, void *user_data), void *user_data);
 int hc_clCreateBuffer            (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_mem_flags flags, size_t size, void *host_ptr, cl_mem *mem);

@@ -16,6 +16,7 @@
 - Added hash-mode: Open Document Format (ODF) 1.1 (SHA-1, Blowfish)
 - Added hash-mode: Java Object hashCode()
 - Added hash-mode: Blockchain, My Wallet, Second Password (SHA256)
+- Added hash-mode: Electrum Wallet (Salt-Type 3)
 - Added hash-mode: Android Backup
 - Added hash-mode: QNX /etc/shadow (MD5)
 - Added hash-mode: QNX /etc/shadow (SHA256)
@@ -29,6 +30,9 @@
 - Added hash-mode: Ruby on Rails Restful-Authentication
 - Added hash-mode: PKZIP archive encryption
 - Added hash-mode: DiskCryptor
+- Added hash-mode: Python passlib pbkdf2-sha1
+- Added hash-mode: Python passlib pbkdf2-sha256
+- Added hash-mode: Python passlib pbkdf2-sha512
 
 ##
 ## Bugs

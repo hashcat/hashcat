@@ -209,6 +209,27 @@ KERNEL_FQ void m16600_mxx (KERN_ATTR_ESALT (electrum_wallet_t))
         mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos, 0, 0);
       }
     }
+
+    if (esalt_bufs[digests_offset].salt_type == 3)
+    {
+      // check PKCS7 padding (either 13 times 0x0d or 12 times 0x0c at the end, we only check 12 bytes, it's enough):
+
+      if ((out[1] == 0x0c0c0c0c) && (out[2] == 0x0c0c0c0c) && (out[3] == 0x0c0c0c0c))
+      {
+        if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+        {
+          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos, 0, 0);
+        }
+      }
+
+      if ((out[1] == 0x0d0d0d0d) && (out[2] == 0x0d0d0d0d) && (out[3] == 0x0d0d0d0d))
+      {
+        if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+        {
+          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos, 0, 0);
+        }
+      }
+    }
   }
 }
 
@@ -396,6 +417,27 @@ KERNEL_FQ void m16600_sxx (KERN_ATTR_ESALT (electrum_wallet_t))
       if (atomic_inc (&hashes_shown[digests_offset]) == 0)
       {
         mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos, 0, 0);
+      }
+    }
+
+    if (esalt_bufs[digests_offset].salt_type == 3)
+    {
+      // check PKCS7 padding (either 13 times 0x0d or 12 times 0x0c at the end, we only check 12 bytes, it's enough):
+
+      if ((out[1] == 0x0c0c0c0c) && (out[2] == 0x0c0c0c0c) && (out[3] == 0x0c0c0c0c))
+      {
+        if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+        {
+          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos, 0, 0);
+        }
+      }
+
+      if ((out[1] == 0x0d0d0d0d) && (out[2] == 0x0d0d0d0d) && (out[3] == 0x0d0d0d0d))
+      {
+        if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+        {
+          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos, 0, 0);
+        }
       }
     }
   }
