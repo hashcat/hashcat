@@ -8,6 +8,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_rp_optimized.h"
 #include "inc_rp_optimized.cl"
@@ -15,7 +16,7 @@
 #include "inc_hash_whirlpool.cl"
 #endif
 
-DECLSPEC static void whirlpool_transform_transport_vector (const u32x *w, u32x *digest, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
+DECLSPEC void whirlpool_transform_transport_vector (const u32x *w, u32x *digest, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
 {
   whirlpool_transform_vector (w + 0, w + 4, w + 8, w + 12, digest, s_Ch, s_Cl);
 }
@@ -36,8 +37,8 @@ KERNEL_FQ void m06100_m04 (KERN_ATTR_RULES ())
 
   #ifdef REAL_SHM
 
-  LOCAL_AS u32 s_Ch[8][256];
-  LOCAL_AS u32 s_Cl[8][256];
+  LOCAL_VK u32 s_Ch[8][256];
+  LOCAL_VK u32 s_Cl[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -60,7 +61,7 @@ KERNEL_FQ void m06100_m04 (KERN_ATTR_RULES ())
     s_Cl[7][i] = Cl[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 
@@ -176,8 +177,8 @@ KERNEL_FQ void m06100_s04 (KERN_ATTR_RULES ())
 
   #ifdef REAL_SHM
 
-  LOCAL_AS u32 s_Ch[8][256];
-  LOCAL_AS u32 s_Cl[8][256];
+  LOCAL_VK u32 s_Ch[8][256];
+  LOCAL_VK u32 s_Cl[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -200,7 +201,7 @@ KERNEL_FQ void m06100_s04 (KERN_ATTR_RULES ())
     s_Cl[7][i] = Cl[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 

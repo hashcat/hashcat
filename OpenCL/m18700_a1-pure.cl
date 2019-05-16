@@ -8,12 +8,13 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_scalar.cl"
 #include "inc_hash_md5.cl"
 #endif
 
-DECLSPEC static u32 hashCode_g (const u32 init, GLOBAL_AS u32 *w, const u32 pw_len)
+DECLSPEC u32 hashCode_g (const u32 init, GLOBAL_AS u32 *w, const u32 pw_len)
 {
   u32 hash = init;
 

@@ -21,8 +21,7 @@ static const char *HASH_NAME      = "sha512crypt $6$, SHA512 (Unix)";
 static const u64   KERN_TYPE      = 1800;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_USES_BITS_64;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_PREFERED_THREAD;
+static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$6$72820166$U4DVzpcYxgw7MVVDGGvB2/H5lRistD5.Ah4upwENR5UtffLR4X4SxSzfREv8z6wVl0jRFX40/KnYVvK4829kD1";
@@ -435,43 +434,9 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 {
   char *jit_build_options = NULL;
 
-  if (device_param->device_vendor_id == VENDOR_ID_NV)
-  {
-    hc_asprintf (&jit_build_options, "-D NO_UNROLL");
-  }
-
-  if ((device_param->device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
-  {
-    hc_asprintf (&jit_build_options, "-D NO_UNROLL");
-  }
+  hc_asprintf (&jit_build_options, "-D NO_UNROLL");
 
   return jit_build_options;
-}
-
-bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
-{
-  // amdgpu-pro-18.50-708488-ubuntu-18.04: self-test failed
-  if ((device_param->device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
-  {
-    if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0)
-    {
-      return true;
-    }
-  }
-
-  if (device_param->platform_vendor_id == VENDOR_ID_APPLE)
-  {
-    // trap 6
-    if ((device_param->device_vendor_id == VENDOR_ID_INTEL_SDK) && (device_param->device_type & CL_DEVICE_TYPE_GPU))
-    {
-      if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0)
-      {
-        return true;
-      }
-    }
-  }
-
-  return false;
 }
 
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
@@ -617,6 +582,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_hash                  = module_st_hash;
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
-  module_ctx->module_unstable_warning         = module_unstable_warning;
+  module_ctx->module_unstable_warning         = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

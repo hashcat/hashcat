@@ -9,6 +9,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_md5.cl"
@@ -31,7 +32,7 @@ typedef struct
 
 } RC4_KEY;
 
-DECLSPEC static void swap (LOCAL_AS RC4_KEY *rc4_key, const u8 i, const u8 j)
+DECLSPEC void swap (LOCAL_AS RC4_KEY *rc4_key, const u8 i, const u8 j)
 {
   u8 tmp;
 
@@ -40,7 +41,7 @@ DECLSPEC static void swap (LOCAL_AS RC4_KEY *rc4_key, const u8 i, const u8 j)
   rc4_key->S[j] = tmp;
 }
 
-DECLSPEC static void rc4_init_16 (LOCAL_AS RC4_KEY *rc4_key, const u32 *data)
+DECLSPEC void rc4_init_16 (LOCAL_AS RC4_KEY *rc4_key, const u32 *data)
 {
   u32 v = 0x03020100;
   u32 a = 0x04040404;
@@ -93,7 +94,7 @@ DECLSPEC static void rc4_init_16 (LOCAL_AS RC4_KEY *rc4_key, const u32 *data)
   }
 }
 
-DECLSPEC static u8 rc4_next_16 (LOCAL_AS RC4_KEY *rc4_key, u8 i, u8 j, const u32 *in, u32 *out)
+DECLSPEC u8 rc4_next_16 (LOCAL_AS RC4_KEY *rc4_key, u8 i, u8 j, const u32 *in, u32 *out)
 {
   #ifdef _unroll
   #pragma unroll
@@ -180,7 +181,7 @@ KERNEL_FQ void m09710_m04 (KERN_ATTR_ESALT (oldoffice01_t))
    * shared
    */
 
-  LOCAL_AS RC4_KEY rc4_keys[64];
+  LOCAL_VK RC4_KEY rc4_keys[64];
 
   LOCAL_AS RC4_KEY *rc4_key = &rc4_keys[lid];
 
@@ -364,7 +365,7 @@ KERNEL_FQ void m09710_s04 (KERN_ATTR_ESALT (oldoffice01_t))
    * shared
    */
 
-  LOCAL_AS RC4_KEY rc4_keys[64];
+  LOCAL_VK RC4_KEY rc4_keys[64];
 
   LOCAL_AS RC4_KEY *rc4_key = &rc4_keys[lid];
 

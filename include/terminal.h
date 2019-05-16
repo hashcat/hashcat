@@ -43,8 +43,8 @@ void compress_terminal_line_length (char *out_buf, const size_t keep_from_beginn
 
 void example_hashes                     (hashcat_ctx_t *hashcat_ctx);
 
-void opencl_info                        (hashcat_ctx_t *hashcat_ctx);
-void opencl_info_compact                (hashcat_ctx_t *hashcat_ctx);
+void backend_info                       (hashcat_ctx_t *hashcat_ctx);
+void backend_info_compact               (hashcat_ctx_t *hashcat_ctx);
 
 void status_progress_machine_readable   (hashcat_ctx_t *hashcat_ctx);
 void status_progress                    (hashcat_ctx_t *hashcat_ctx);

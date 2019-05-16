@@ -8,6 +8,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha256.cl"
@@ -35,7 +36,7 @@ typedef struct pbkdf2_sha256_tmp
 
 } pbkdf2_sha256_tmp_t;
 
-CONSTANT_AS u64a keccakf_rndc[24] =
+CONSTANT_VK u64a keccakf_rndc[24] =
 {
   0x0000000000000001, 0x0000000000008082, 0x800000000000808a,
   0x8000000080008000, 0x000000000000808b, 0x0000000080000001,
@@ -85,7 +86,7 @@ CONSTANT_AS u64a keccakf_rndc[24] =
   st[4 + s] ^= ~bc0 & bc1;      \
 }
 
-DECLSPEC static void keccak_transform_S (u64 *st)
+DECLSPEC void keccak_transform_S (u64 *st)
 {
   const u8 keccakf_rotc[24] =
   {
@@ -166,7 +167,7 @@ DECLSPEC static void keccak_transform_S (u64 *st)
   }
 }
 
-DECLSPEC static void hmac_sha256_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
+DECLSPEC void hmac_sha256_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
 {
   digest[0] = ipad[0];
   digest[1] = ipad[1];
@@ -414,17 +415,17 @@ KERNEL_FQ void m16300_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, ethereum_
 
   #ifdef REAL_SHM
 
-  LOCAL_AS u32 s_td0[256];
-  LOCAL_AS u32 s_td1[256];
-  LOCAL_AS u32 s_td2[256];
-  LOCAL_AS u32 s_td3[256];
-  LOCAL_AS u32 s_td4[256];
+  LOCAL_VK u32 s_td0[256];
+  LOCAL_VK u32 s_td1[256];
+  LOCAL_VK u32 s_td2[256];
+  LOCAL_VK u32 s_td3[256];
+  LOCAL_VK u32 s_td4[256];
 
-  LOCAL_AS u32 s_te0[256];
-  LOCAL_AS u32 s_te1[256];
-  LOCAL_AS u32 s_te2[256];
-  LOCAL_AS u32 s_te3[256];
-  LOCAL_AS u32 s_te4[256];
+  LOCAL_VK u32 s_te0[256];
+  LOCAL_VK u32 s_te1[256];
+  LOCAL_VK u32 s_te2[256];
+  LOCAL_VK u32 s_te3[256];
+  LOCAL_VK u32 s_te4[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -441,7 +442,7 @@ KERNEL_FQ void m16300_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, ethereum_
     s_te4[i] = te4[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 

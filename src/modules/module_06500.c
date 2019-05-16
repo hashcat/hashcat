@@ -530,39 +530,11 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   return line_len;
 }
 
-bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
-{
-  if (device_param->platform_vendor_id == VENDOR_ID_APPLE)
-  {
-    // trap 6
-    if ((device_param->device_vendor_id == VENDOR_ID_INTEL_SDK) && (device_param->device_type & CL_DEVICE_TYPE_GPU))
-    {
-      return true;
-    }
-  }
-
-  // amdgpu-pro-18.50-708488-ubuntu-18.04:  password not found
-  if ((device_param->device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
-  {
-    return true;
-  }
-
-  return false;
-}
-
 char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
   char *jit_build_options = NULL;
 
-  if (device_param->device_vendor_id == VENDOR_ID_NV)
-  {
-    hc_asprintf (&jit_build_options, "-D NO_UNROLL");
-  }
-
-  if (device_param->device_vendor_id == VENDOR_ID_AMD)
-  {
-    hc_asprintf (&jit_build_options, "-D NO_UNROLL");
-  }
+  hc_asprintf (&jit_build_options, "-D NO_UNROLL");
 
   return jit_build_options;
 }
@@ -634,6 +606,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_hash                  = module_st_hash;
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
-  module_ctx->module_unstable_warning         = module_unstable_warning;
+  module_ctx->module_unstable_warning         = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

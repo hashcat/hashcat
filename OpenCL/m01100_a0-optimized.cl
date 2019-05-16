@@ -8,6 +8,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_rp_optimized.h"
 #include "inc_rp_optimized.cl"
@@ -42,7 +43,7 @@ KERNEL_FQ void m01100_m04 (KERN_ATTR_RULES ())
    * salt
    */
 
-  LOCAL_AS salt_t s_salt_buf[1];
+  LOCAL_VK salt_t s_salt_buf[1];
 
   if (lid == 0)
   {
@@ -51,7 +52,7 @@ KERNEL_FQ void m01100_m04 (KERN_ATTR_RULES ())
     s_salt_buf[0].salt_buf[10] = (16 + s_salt_buf[0].salt_len) * 8;
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -261,7 +262,7 @@ KERNEL_FQ void m01100_s04 (KERN_ATTR_RULES ())
    * salt
    */
 
-  LOCAL_AS salt_t s_salt_buf[1];
+  LOCAL_VK salt_t s_salt_buf[1];
 
   if (lid == 0)
   {
@@ -270,7 +271,7 @@ KERNEL_FQ void m01100_s04 (KERN_ATTR_RULES ())
     s_salt_buf[0].salt_buf[10] = (16 + s_salt_buf[0].salt_len) * 8;
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 

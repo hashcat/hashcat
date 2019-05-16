@@ -17,7 +17,7 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_8;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_PASSWORD_MANAGER;
-static const char *HASH_NAME      = "Electrum Wallet (Salt-Type 1-2)";
+static const char *HASH_NAME      = "Electrum Wallet (Salt-Type 1-3)";
 static const u64   KERN_TYPE      = 16600;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_PRECOMPUTE_INIT;
@@ -105,7 +105,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u32 salt_type = hc_strtoul ((const char *) salt_type_pos, NULL, 10);
 
-  if ((salt_type == 1) || (salt_type == 2))
+  if ((salt_type == 1) || (salt_type == 2) || (salt_type == 3))
   {
     // all ok
   }

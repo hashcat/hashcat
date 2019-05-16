@@ -228,7 +228,7 @@ TITAN_Xp                                        ALIAS_nv_sm50_or_higher
 TITAN_V                                         ALIAS_nv_sm50_or_higher
 TITAN_RTX                                       ALIAS_nv_sm50_or_higher
 
-Tegra_X1                                        ALIAS_nv_sm50_or_higher
+NVIDIA_Tegra_X1                                 ALIAS_nv_sm50_or_higher
 
 GeForce_910M                                    ALIAS_nv_sm50_or_higher
 GeForce_920M                                    ALIAS_nv_sm50_or_higher
@@ -312,10 +312,10 @@ ALIAS_nv_real_simd                              3       11900   2       A       
 ALIAS_nv_real_simd                              3       13300   4       A       A
 ALIAS_nv_real_simd                              3       18700   8       A       A
 
-ALIAS_nv_sm50_or_higher                         3       0       4       A       A
-ALIAS_nv_sm50_or_higher                         3       10      4       A       A
-ALIAS_nv_sm50_or_higher                         3       11      4       A       A
-ALIAS_nv_sm50_or_higher                         3       12      4       A       A
+ALIAS_nv_sm50_or_higher                         3       0       8       A       A
+ALIAS_nv_sm50_or_higher                         3       10      8       A       A
+ALIAS_nv_sm50_or_higher                         3       11      8       A       A
+ALIAS_nv_sm50_or_higher                         3       12      8       A       A
 ALIAS_nv_sm50_or_higher                         3       20      4       A       A
 ALIAS_nv_sm50_or_higher                         3       21      4       A       A
 ALIAS_nv_sm50_or_higher                         3       22      4       A       A
@@ -323,18 +323,16 @@ ALIAS_nv_sm50_or_higher                         3       23      4       A       
 ALIAS_nv_sm50_or_higher                         3       30      4       A       A
 ALIAS_nv_sm50_or_higher                         3       40      4       A       A
 ALIAS_nv_sm50_or_higher                         3       200     8       A       A
-ALIAS_nv_sm50_or_higher                         3       900     4       A       A
-ALIAS_nv_sm50_or_higher                         3       1000    4       A       A
-ALIAS_nv_sm50_or_higher                         3       1100    2       A       A
-ALIAS_nv_sm50_or_higher                         3       2400    4       A       A
+ALIAS_nv_sm50_or_higher                         3       900     8       A       A
+ALIAS_nv_sm50_or_higher                         3       1000    8       A       A
+ALIAS_nv_sm50_or_higher                         3       1100    4       A       A
+ALIAS_nv_sm50_or_higher                         3       2400    8       A       A
 ALIAS_nv_sm50_or_higher                         3       2410    4       A       A
 ALIAS_nv_sm50_or_higher                         3       3800    4       A       A
-ALIAS_nv_sm50_or_higher                         3       4800    4       A       A
-ALIAS_nv_sm50_or_higher                         3       5500    4       A       A
-ALIAS_nv_sm50_or_higher                         3       7300    2       A       A
-ALIAS_nv_sm50_or_higher                         3       8000    2       A       A
+ALIAS_nv_sm50_or_higher                         3       4800    8       A       A
+ALIAS_nv_sm50_or_higher                         3       5500    2       A       A
 ALIAS_nv_sm50_or_higher                         3       9900    4       A       A
-ALIAS_nv_sm50_or_higher                         3       16400   4       A       A
+ALIAS_nv_sm50_or_higher                         3       16400   8       A       A
 ALIAS_nv_sm50_or_higher                         3       18700   8       A       A
 
 ##

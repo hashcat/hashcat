@@ -9,6 +9,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_streebog512.cl"
@@ -16,7 +17,7 @@
 
 #define INITVAL 0
 
-DECLSPEC static void streebog_g (u64x *h, const u64x *m, LOCAL_AS u64 (*s_sbob_sl64)[256])
+DECLSPEC void streebog_g (u64x *h, const u64x *m, LOCAL_AS u64 (*s_sbob_sl64)[256])
 {
   u64x k[8];
   u64x s[8];
@@ -57,7 +58,7 @@ DECLSPEC static void streebog_g (u64x *h, const u64x *m, LOCAL_AS u64 (*s_sbob_s
 
     for (int i = 0; i < 8; i++)
     {
-      t[i] = k[i] ^ sbob_rc64[r][i];
+      t[i] = k[i] ^ sbob512_rc64[r][i];
     }
 
     #ifdef _unroll
@@ -75,7 +76,7 @@ DECLSPEC static void streebog_g (u64x *h, const u64x *m, LOCAL_AS u64 (*s_sbob_s
   }
 }
 
-DECLSPEC static void m11800m (LOCAL_AS u64 (*s_sbob_sl64)[256], u32 *w, const u32 pw_len, KERN_ATTR_BASIC ())
+DECLSPEC void m11800m (LOCAL_AS u64 (*s_sbob_sl64)[256], u32 *w, const u32 pw_len, KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -158,7 +159,7 @@ DECLSPEC static void m11800m (LOCAL_AS u64 (*s_sbob_sl64)[256], u32 *w, const u3
   }
 }
 
-DECLSPEC static void m11800s (LOCAL_AS u64 (*s_sbob_sl64)[256], u32 *w, const u32 pw_len, KERN_ATTR_BASIC ())
+DECLSPEC void m11800s (LOCAL_AS u64 (*s_sbob_sl64)[256], u32 *w, const u32 pw_len, KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -267,21 +268,21 @@ KERNEL_FQ void m11800_m04 (KERN_ATTR_BASIC ())
    * shared lookup table
    */
 
-  LOCAL_AS u64 s_sbob_sl64[8][256];
+  LOCAL_VK u64 s_sbob_sl64[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
-    s_sbob_sl64[0][i] = sbob_sl64[0][i];
-    s_sbob_sl64[1][i] = sbob_sl64[1][i];
-    s_sbob_sl64[2][i] = sbob_sl64[2][i];
-    s_sbob_sl64[3][i] = sbob_sl64[3][i];
-    s_sbob_sl64[4][i] = sbob_sl64[4][i];
-    s_sbob_sl64[5][i] = sbob_sl64[5][i];
-    s_sbob_sl64[6][i] = sbob_sl64[6][i];
-    s_sbob_sl64[7][i] = sbob_sl64[7][i];
+    s_sbob_sl64[0][i] = sbob512_sl64[0][i];
+    s_sbob_sl64[1][i] = sbob512_sl64[1][i];
+    s_sbob_sl64[2][i] = sbob512_sl64[2][i];
+    s_sbob_sl64[3][i] = sbob512_sl64[3][i];
+    s_sbob_sl64[4][i] = sbob512_sl64[4][i];
+    s_sbob_sl64[5][i] = sbob512_sl64[5][i];
+    s_sbob_sl64[6][i] = sbob512_sl64[6][i];
+    s_sbob_sl64[7][i] = sbob512_sl64[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -331,21 +332,21 @@ KERNEL_FQ void m11800_m08 (KERN_ATTR_BASIC ())
    * shared lookup table
    */
 
-  LOCAL_AS u64 s_sbob_sl64[8][256];
+  LOCAL_VK u64 s_sbob_sl64[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
-    s_sbob_sl64[0][i] = sbob_sl64[0][i];
-    s_sbob_sl64[1][i] = sbob_sl64[1][i];
-    s_sbob_sl64[2][i] = sbob_sl64[2][i];
-    s_sbob_sl64[3][i] = sbob_sl64[3][i];
-    s_sbob_sl64[4][i] = sbob_sl64[4][i];
-    s_sbob_sl64[5][i] = sbob_sl64[5][i];
-    s_sbob_sl64[6][i] = sbob_sl64[6][i];
-    s_sbob_sl64[7][i] = sbob_sl64[7][i];
+    s_sbob_sl64[0][i] = sbob512_sl64[0][i];
+    s_sbob_sl64[1][i] = sbob512_sl64[1][i];
+    s_sbob_sl64[2][i] = sbob512_sl64[2][i];
+    s_sbob_sl64[3][i] = sbob512_sl64[3][i];
+    s_sbob_sl64[4][i] = sbob512_sl64[4][i];
+    s_sbob_sl64[5][i] = sbob512_sl64[5][i];
+    s_sbob_sl64[6][i] = sbob512_sl64[6][i];
+    s_sbob_sl64[7][i] = sbob512_sl64[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -395,21 +396,21 @@ KERNEL_FQ void m11800_m16 (KERN_ATTR_BASIC ())
    * shared lookup table
    */
 
-  LOCAL_AS u64 s_sbob_sl64[8][256];
+  LOCAL_VK u64 s_sbob_sl64[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
-    s_sbob_sl64[0][i] = sbob_sl64[0][i];
-    s_sbob_sl64[1][i] = sbob_sl64[1][i];
-    s_sbob_sl64[2][i] = sbob_sl64[2][i];
-    s_sbob_sl64[3][i] = sbob_sl64[3][i];
-    s_sbob_sl64[4][i] = sbob_sl64[4][i];
-    s_sbob_sl64[5][i] = sbob_sl64[5][i];
-    s_sbob_sl64[6][i] = sbob_sl64[6][i];
-    s_sbob_sl64[7][i] = sbob_sl64[7][i];
+    s_sbob_sl64[0][i] = sbob512_sl64[0][i];
+    s_sbob_sl64[1][i] = sbob512_sl64[1][i];
+    s_sbob_sl64[2][i] = sbob512_sl64[2][i];
+    s_sbob_sl64[3][i] = sbob512_sl64[3][i];
+    s_sbob_sl64[4][i] = sbob512_sl64[4][i];
+    s_sbob_sl64[5][i] = sbob512_sl64[5][i];
+    s_sbob_sl64[6][i] = sbob512_sl64[6][i];
+    s_sbob_sl64[7][i] = sbob512_sl64[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -459,21 +460,21 @@ KERNEL_FQ void m11800_s04 (KERN_ATTR_BASIC ())
    * shared lookup table
    */
 
-  LOCAL_AS u64 s_sbob_sl64[8][256];
+  LOCAL_VK u64 s_sbob_sl64[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
-    s_sbob_sl64[0][i] = sbob_sl64[0][i];
-    s_sbob_sl64[1][i] = sbob_sl64[1][i];
-    s_sbob_sl64[2][i] = sbob_sl64[2][i];
-    s_sbob_sl64[3][i] = sbob_sl64[3][i];
-    s_sbob_sl64[4][i] = sbob_sl64[4][i];
-    s_sbob_sl64[5][i] = sbob_sl64[5][i];
-    s_sbob_sl64[6][i] = sbob_sl64[6][i];
-    s_sbob_sl64[7][i] = sbob_sl64[7][i];
+    s_sbob_sl64[0][i] = sbob512_sl64[0][i];
+    s_sbob_sl64[1][i] = sbob512_sl64[1][i];
+    s_sbob_sl64[2][i] = sbob512_sl64[2][i];
+    s_sbob_sl64[3][i] = sbob512_sl64[3][i];
+    s_sbob_sl64[4][i] = sbob512_sl64[4][i];
+    s_sbob_sl64[5][i] = sbob512_sl64[5][i];
+    s_sbob_sl64[6][i] = sbob512_sl64[6][i];
+    s_sbob_sl64[7][i] = sbob512_sl64[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -523,21 +524,21 @@ KERNEL_FQ void m11800_s08 (KERN_ATTR_BASIC ())
    * shared lookup table
    */
 
-  LOCAL_AS u64 s_sbob_sl64[8][256];
+  LOCAL_VK u64 s_sbob_sl64[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
-    s_sbob_sl64[0][i] = sbob_sl64[0][i];
-    s_sbob_sl64[1][i] = sbob_sl64[1][i];
-    s_sbob_sl64[2][i] = sbob_sl64[2][i];
-    s_sbob_sl64[3][i] = sbob_sl64[3][i];
-    s_sbob_sl64[4][i] = sbob_sl64[4][i];
-    s_sbob_sl64[5][i] = sbob_sl64[5][i];
-    s_sbob_sl64[6][i] = sbob_sl64[6][i];
-    s_sbob_sl64[7][i] = sbob_sl64[7][i];
+    s_sbob_sl64[0][i] = sbob512_sl64[0][i];
+    s_sbob_sl64[1][i] = sbob512_sl64[1][i];
+    s_sbob_sl64[2][i] = sbob512_sl64[2][i];
+    s_sbob_sl64[3][i] = sbob512_sl64[3][i];
+    s_sbob_sl64[4][i] = sbob512_sl64[4][i];
+    s_sbob_sl64[5][i] = sbob512_sl64[5][i];
+    s_sbob_sl64[6][i] = sbob512_sl64[6][i];
+    s_sbob_sl64[7][i] = sbob512_sl64[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -587,21 +588,21 @@ KERNEL_FQ void m11800_s16 (KERN_ATTR_BASIC ())
    * shared lookup table
    */
 
-  LOCAL_AS u64 s_sbob_sl64[8][256];
+  LOCAL_VK u64 s_sbob_sl64[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
-    s_sbob_sl64[0][i] = sbob_sl64[0][i];
-    s_sbob_sl64[1][i] = sbob_sl64[1][i];
-    s_sbob_sl64[2][i] = sbob_sl64[2][i];
-    s_sbob_sl64[3][i] = sbob_sl64[3][i];
-    s_sbob_sl64[4][i] = sbob_sl64[4][i];
-    s_sbob_sl64[5][i] = sbob_sl64[5][i];
-    s_sbob_sl64[6][i] = sbob_sl64[6][i];
-    s_sbob_sl64[7][i] = sbob_sl64[7][i];
+    s_sbob_sl64[0][i] = sbob512_sl64[0][i];
+    s_sbob_sl64[1][i] = sbob512_sl64[1][i];
+    s_sbob_sl64[2][i] = sbob512_sl64[2][i];
+    s_sbob_sl64[3][i] = sbob512_sl64[3][i];
+    s_sbob_sl64[4][i] = sbob512_sl64[4][i];
+    s_sbob_sl64[5][i] = sbob512_sl64[5][i];
+    s_sbob_sl64[6][i] = sbob512_sl64[6][i];
+    s_sbob_sl64[7][i] = sbob512_sl64[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 

@@ -8,6 +8,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha1.cl"
@@ -22,7 +23,7 @@ typedef struct oldoffice34
 
 } oldoffice34_t;
 
-DECLSPEC static void m09820m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_ESALT (oldoffice34_t))
+DECLSPEC void m09820m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_ESALT (oldoffice34_t))
 {
   /**
    * modifier
@@ -124,7 +125,7 @@ DECLSPEC static void m09820m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_l
   }
 }
 
-DECLSPEC static void m09820s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_ESALT (oldoffice34_t))
+DECLSPEC void m09820s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_ESALT (oldoffice34_t))
 {
   /**
    * modifier

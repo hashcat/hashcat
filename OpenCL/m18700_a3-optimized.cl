@@ -8,12 +8,13 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_md5.cl"
 #endif
 
-DECLSPEC static u32x hashCode_w0 (const u32x init, const u32x w0, const u32 *w, const u32 pw_len)
+DECLSPEC u32x hashCode_w0 (const u32x init, const u32x w0, const u32 *w, const u32 pw_len)
 {
   u32x hash = init;
 
@@ -69,7 +70,7 @@ DECLSPEC static u32x hashCode_w0 (const u32x init, const u32x w0, const u32 *w, 
   return hash;
 }
 
-DECLSPEC static void m18700m (const u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC void m18700m (const u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -101,7 +102,7 @@ DECLSPEC static void m18700m (const u32 *w, const u32 pw_len, KERN_ATTR_VECTOR (
   }
 }
 
-DECLSPEC static void m18700s (const u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC void m18700s (const u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier

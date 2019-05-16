@@ -9,6 +9,7 @@ PRODUCTION              := 0
 PRODUCTION_VERSION      := v5.1.0
 ENABLE_BRAIN            := 1
 USE_SYSTEM_LZMA         := 0
+USE_SYSTEM_ZLIB         := 0
 USE_SYSTEM_OPENCL       := 0
 USE_SYSTEM_XXHASH       := 0
 
@@ -112,6 +113,12 @@ else
 DEPS_LZMA_PATH          := $(LIBRARY_DEV_ROOT_FOLDER)/
 endif
 
+ifeq ($(USE_SYSTEM_ZLIB),0)
+DEPS_ZLIB_PATH          := deps/zlib/
+else
+DEPS_ZLIB_PATH          := $(LIBRARY_DEV_ROOT_FOLDER)/
+endif
+
 ifeq ($(USE_SYSTEM_OPENCL),0)
 DEPS_OPENCL_PATH        := deps/OpenCL-Headers
 else
@@ -168,6 +175,11 @@ ifeq ($(CC),clang)
 CFLAGS                  += -Wno-enum-conversion
 endif
 
+## because ZLIB
+ifeq ($(USE_SYSTEM_ZLIB),0)
+CFLAGS_ZLIB             += -Wno-implicit-fallthrough
+endif
+
 ifeq ($(DEBUG),0)
 CFLAGS                  += -O2
 ifneq ($(UNAME),Darwin)
@@ -198,6 +210,12 @@ CFLAGS                  += -pipe -std=gnu99 -Iinclude/ -IOpenCL/
 CFLAGS                  += -I$(DEPS_LZMA_PATH)
 ifeq ($(USE_SYSTEM_LZMA),1)
 LFLAGS                  += -llzmasdk
+endif
+
+# ZLIB
+CFLAGS                  += -I$(DEPS_ZLIB_PATH)
+ifeq ($(USE_SYSTEM_ZLIB),1)
+LFLAGS                  += -lz
 endif
 
 # OpenCL
@@ -274,13 +292,13 @@ endif # MSYS2
 ## Objects
 ##
 
-EMU_OBJS_ALL            := emu_general emu_inc_common emu_inc_scalar emu_inc_simd
+EMU_OBJS_ALL            := emu_general emu_inc_common emu_inc_platform emu_inc_scalar emu_inc_simd
 EMU_OBJS_ALL            += emu_inc_rp emu_inc_rp_optimized
 EMU_OBJS_ALL            += emu_inc_truecrypt_crc32 emu_inc_truecrypt_keyfile emu_inc_truecrypt_xts emu_inc_veracrypt_xts
 EMU_OBJS_ALL            += emu_inc_hash_md4 emu_inc_hash_md5 emu_inc_hash_ripemd160 emu_inc_hash_sha1 emu_inc_hash_sha256 emu_inc_hash_sha384 emu_inc_hash_sha512 emu_inc_hash_streebog256 emu_inc_hash_streebog512
 EMU_OBJS_ALL            += emu_inc_cipher_aes emu_inc_cipher_camellia emu_inc_cipher_des emu_inc_cipher_kuznyechik emu_inc_cipher_serpent emu_inc_cipher_twofish
 
-OBJS_ALL                := affinity autotune benchmark bitmap bitops combinator common convert cpt cpu_crc32 debugfile dictstat dispatch dynloader event ext_ADL ext_nvapi ext_nvml ext_OpenCL ext_sysfs ext_lzma filehandling folder hashcat hashes hlfmt hwmon induct interface keyboard_layout locking logfile loopback memory monitor mpsp opencl outfile_check outfile pidfile potfile restore rp rp_cpu selftest slow_candidates shared status stdout straight terminal thread timer tuningdb usage user_options wordlist $(EMU_OBJS_ALL)
+OBJS_ALL                := affinity autotune backend benchmark bitmap bitops combinator common convert cpt cpu_crc32 debugfile dictstat dispatch dynloader event ext_ADL ext_cuda ext_nvapi ext_nvml ext_nvrtc ext_OpenCL ext_sysfs ext_lzma filehandling folder hashcat hashes hlfmt hwmon induct interface keyboard_layout locking logfile loopback memory monitor mpsp outfile_check outfile pidfile potfile restore rp rp_cpu selftest slow_candidates shared status stdout straight terminal thread timer tuningdb usage user_options wordlist $(EMU_OBJS_ALL)
 
 ifeq ($(ENABLE_BRAIN),1)
 OBJS_ALL                += brain
@@ -296,6 +314,14 @@ OBJS_LZMA               := Alloc Lzma2Dec LzmaDec
 NATIVE_OBJS             += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).NATIVE.o)
 LINUX_OBJS              += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).LINUX.o)
 WIN_OBJS                += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).WIN.o)
+endif
+
+ifeq ($(USE_SYSTEM_ZLIB),0)
+OBJS_ZLIB               := adler32 crc32 zutil inftrees inffast inflate
+
+NATIVE_OBJS             += $(foreach OBJ,$(OBJS_ZLIB),obj/$(OBJ).NATIVE.o)
+LINUX_OBJS              += $(foreach OBJ,$(OBJS_ZLIB),obj/$(OBJ).LINUX.o)
+WIN_OBJS                += $(foreach OBJ,$(OBJS_ZLIB),obj/$(OBJ).WIN.o)
 endif
 
 ifeq ($(USE_SYSTEM_XXHASH),0)
@@ -446,6 +472,11 @@ obj/%.NATIVE.o: $(DEPS_LZMA_PATH)/%.c
 	$(CC) -c $(CFLAGS_NATIVE) $< -o $@ -fpic
 endif
 
+ifeq ($(USE_SYSTEM_ZLIB),0)
+obj/%.NATIVE.o: $(DEPS_ZLIB_PATH)/%.c
+	$(CC) -c $(CFLAGS_NATIVE) $(CFLAGS_ZLIB) $< -o $@ -fpic
+endif
+
 ifeq ($(USE_SYSTEM_XXHASH),0)
 ifeq ($(ENABLE_BRAIN),1)
 obj/%.NATIVE.o: $(DEPS_XXHASH_PATH)/%.c
@@ -588,6 +619,14 @@ obj/%.LINUX.o: $(DEPS_LZMA_PATH)/%.c
 
 obj/%.WIN.o:   $(DEPS_LZMA_PATH)/%.c
 	$(CC_WIN)   $(CFLAGS_CROSS_WIN)   -c -o $@ $<
+endif
+
+ifeq ($(USE_SYSTEM_ZLIB),0)
+obj/%.LINUX.o: $(DEPS_ZLIB_PATH)/%.c
+	$(CC_LINUX) $(CFLAGS_CROSS_LINUX) $(CFLAGS_ZLIB) -c -o $@ $<
+
+obj/%.WIN.o:   $(DEPS_ZLIB_PATH)/%.c
+	$(CC_WIN)   $(CFLAGS_CROSS_WIN) $(CFLAGS_ZLIB) -c -o $@ $<
 endif
 
 ifeq ($(USE_SYSTEM_XXHASH),0)

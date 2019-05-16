@@ -5,10 +5,11 @@
 
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.h"
 #include "inc_common.h"
 #include "inc_hash_whirlpool.h"
 
-CONSTANT_AS u32a Ch[8][256] =
+CONSTANT_VK u32a Ch[8][256] =
 {
   {
     0x18186018, 0x23238c23, 0xc6c63fc6, 0xe8e887e8,
@@ -540,7 +541,7 @@ CONSTANT_AS u32a Ch[8][256] =
   }
 };
 
-CONSTANT_AS u32a Cl[8][256] =
+CONSTANT_VK u32a Cl[8][256] =
 {
   {
     0xc07830d8, 0x05af4626, 0x7ef991b8, 0x136fcdfb,
@@ -1072,7 +1073,7 @@ CONSTANT_AS u32a Cl[8][256] =
   },
 };
 
-CONSTANT_AS u32a rch[R + 1] =
+CONSTANT_VK u32a rch[R + 1] =
 {
   0x00000000,
   0x1823c6e8,
@@ -1087,7 +1088,7 @@ CONSTANT_AS u32a rch[R + 1] =
   0xca2dbf07,
 };
 
-CONSTANT_AS u32a rcl[R + 1] =
+CONSTANT_VK u32a rcl[R + 1] =
 {
   0x00000000,
   0x87b8014f,
@@ -1321,75 +1322,119 @@ DECLSPEC void whirlpool_init (whirlpool_ctx_t *ctx, SHM_TYPE u32 (*s_Ch)[256], S
 
 DECLSPEC void whirlpool_update_64 (whirlpool_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len)
 {
-  const int pos = ctx->len & 63;
+  MAYBE_VOLATILE const int pos = ctx->len & 63;
 
   ctx->len += len;
 
-  if ((pos + len) < 64)
+  if (pos == 0)
   {
-    switch_buffer_by_offset_be_S (w0, w1, w2, w3, pos);
+    ctx->w0[0] = w0[0];
+    ctx->w0[1] = w0[1];
+    ctx->w0[2] = w0[2];
+    ctx->w0[3] = w0[3];
+    ctx->w1[0] = w1[0];
+    ctx->w1[1] = w1[1];
+    ctx->w1[2] = w1[2];
+    ctx->w1[3] = w1[3];
+    ctx->w2[0] = w2[0];
+    ctx->w2[1] = w2[1];
+    ctx->w2[2] = w2[2];
+    ctx->w2[3] = w2[3];
+    ctx->w3[0] = w3[0];
+    ctx->w3[1] = w3[1];
+    ctx->w3[2] = w3[2];
+    ctx->w3[3] = w3[3];
 
-    ctx->w0[0] |= w0[0];
-    ctx->w0[1] |= w0[1];
-    ctx->w0[2] |= w0[2];
-    ctx->w0[3] |= w0[3];
-    ctx->w1[0] |= w1[0];
-    ctx->w1[1] |= w1[1];
-    ctx->w1[2] |= w1[2];
-    ctx->w1[3] |= w1[3];
-    ctx->w2[0] |= w2[0];
-    ctx->w2[1] |= w2[1];
-    ctx->w2[2] |= w2[2];
-    ctx->w2[3] |= w2[3];
-    ctx->w3[0] |= w3[0];
-    ctx->w3[1] |= w3[1];
-    ctx->w3[2] |= w3[2];
-    ctx->w3[3] |= w3[3];
+    if (len == 64)
+    {
+      whirlpool_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h, ctx->s_Ch, ctx->s_Cl);
+
+      ctx->w0[0] = 0;
+      ctx->w0[1] = 0;
+      ctx->w0[2] = 0;
+      ctx->w0[3] = 0;
+      ctx->w1[0] = 0;
+      ctx->w1[1] = 0;
+      ctx->w1[2] = 0;
+      ctx->w1[3] = 0;
+      ctx->w2[0] = 0;
+      ctx->w2[1] = 0;
+      ctx->w2[2] = 0;
+      ctx->w2[3] = 0;
+      ctx->w3[0] = 0;
+      ctx->w3[1] = 0;
+      ctx->w3[2] = 0;
+      ctx->w3[3] = 0;
+    }
   }
   else
   {
-    u32 c0[4] = { 0 };
-    u32 c1[4] = { 0 };
-    u32 c2[4] = { 0 };
-    u32 c3[4] = { 0 };
+    if ((pos + len) < 64)
+    {
+      switch_buffer_by_offset_be_S (w0, w1, w2, w3, pos);
 
-    switch_buffer_by_offset_carry_be_S (w0, w1, w2, w3, c0, c1, c2, c3, pos);
+      ctx->w0[0] |= w0[0];
+      ctx->w0[1] |= w0[1];
+      ctx->w0[2] |= w0[2];
+      ctx->w0[3] |= w0[3];
+      ctx->w1[0] |= w1[0];
+      ctx->w1[1] |= w1[1];
+      ctx->w1[2] |= w1[2];
+      ctx->w1[3] |= w1[3];
+      ctx->w2[0] |= w2[0];
+      ctx->w2[1] |= w2[1];
+      ctx->w2[2] |= w2[2];
+      ctx->w2[3] |= w2[3];
+      ctx->w3[0] |= w3[0];
+      ctx->w3[1] |= w3[1];
+      ctx->w3[2] |= w3[2];
+      ctx->w3[3] |= w3[3];
+    }
+    else
+    {
+      u32 c0[4] = { 0 };
+      u32 c1[4] = { 0 };
+      u32 c2[4] = { 0 };
+      u32 c3[4] = { 0 };
 
-    ctx->w0[0] |= w0[0];
-    ctx->w0[1] |= w0[1];
-    ctx->w0[2] |= w0[2];
-    ctx->w0[3] |= w0[3];
-    ctx->w1[0] |= w1[0];
-    ctx->w1[1] |= w1[1];
-    ctx->w1[2] |= w1[2];
-    ctx->w1[3] |= w1[3];
-    ctx->w2[0] |= w2[0];
-    ctx->w2[1] |= w2[1];
-    ctx->w2[2] |= w2[2];
-    ctx->w2[3] |= w2[3];
-    ctx->w3[0] |= w3[0];
-    ctx->w3[1] |= w3[1];
-    ctx->w3[2] |= w3[2];
-    ctx->w3[3] |= w3[3];
+      switch_buffer_by_offset_carry_be_S (w0, w1, w2, w3, c0, c1, c2, c3, pos);
 
-    whirlpool_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h, ctx->s_Ch, ctx->s_Cl);
+      ctx->w0[0] |= w0[0];
+      ctx->w0[1] |= w0[1];
+      ctx->w0[2] |= w0[2];
+      ctx->w0[3] |= w0[3];
+      ctx->w1[0] |= w1[0];
+      ctx->w1[1] |= w1[1];
+      ctx->w1[2] |= w1[2];
+      ctx->w1[3] |= w1[3];
+      ctx->w2[0] |= w2[0];
+      ctx->w2[1] |= w2[1];
+      ctx->w2[2] |= w2[2];
+      ctx->w2[3] |= w2[3];
+      ctx->w3[0] |= w3[0];
+      ctx->w3[1] |= w3[1];
+      ctx->w3[2] |= w3[2];
+      ctx->w3[3] |= w3[3];
 
-    ctx->w0[0] = c0[0];
-    ctx->w0[1] = c0[1];
-    ctx->w0[2] = c0[2];
-    ctx->w0[3] = c0[3];
-    ctx->w1[0] = c1[0];
-    ctx->w1[1] = c1[1];
-    ctx->w1[2] = c1[2];
-    ctx->w1[3] = c1[3];
-    ctx->w2[0] = c2[0];
-    ctx->w2[1] = c2[1];
-    ctx->w2[2] = c2[2];
-    ctx->w2[3] = c2[3];
-    ctx->w3[0] = c3[0];
-    ctx->w3[1] = c3[1];
-    ctx->w3[2] = c3[2];
-    ctx->w3[3] = c3[3];
+      whirlpool_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h, ctx->s_Ch, ctx->s_Cl);
+
+      ctx->w0[0] = c0[0];
+      ctx->w0[1] = c0[1];
+      ctx->w0[2] = c0[2];
+      ctx->w0[3] = c0[3];
+      ctx->w1[0] = c1[0];
+      ctx->w1[1] = c1[1];
+      ctx->w1[2] = c1[2];
+      ctx->w1[3] = c1[3];
+      ctx->w2[0] = c2[0];
+      ctx->w2[1] = c2[1];
+      ctx->w2[2] = c2[2];
+      ctx->w2[3] = c2[3];
+      ctx->w3[0] = c3[0];
+      ctx->w3[1] = c3[1];
+      ctx->w3[2] = c3[2];
+      ctx->w3[3] = c3[3];
+    }
   }
 }
 
@@ -1907,7 +1952,7 @@ DECLSPEC void whirlpool_update_global_utf16le_swap (whirlpool_ctx_t *ctx, GLOBAL
 
 DECLSPEC void whirlpool_final (whirlpool_ctx_t *ctx)
 {
-  const int pos = ctx->len & 63;
+  MAYBE_VOLATILE const int pos = ctx->len & 63;
 
   append_0x80_4x4_S (ctx->w0, ctx->w1, ctx->w2, ctx->w3, pos ^ 3);
 
@@ -1969,7 +2014,9 @@ DECLSPEC void whirlpool_hmac_init_64 (whirlpool_hmac_ctx_t *ctx, const u32 *w0, 
 
   whirlpool_init (&ctx->ipad, s_Ch, s_Cl);
 
-  whirlpool_update_64 (&ctx->ipad, t0, t1, t2, t3, 64);
+  whirlpool_transform (t0, t1, t2, t3, ctx->ipad.h, ctx->ipad.s_Ch, ctx->ipad.s_Cl);
+
+  ctx->ipad.len = 64;
 
   // opad
 
@@ -1992,7 +2039,9 @@ DECLSPEC void whirlpool_hmac_init_64 (whirlpool_hmac_ctx_t *ctx, const u32 *w0, 
 
   whirlpool_init (&ctx->opad, s_Ch, s_Cl);
 
-  whirlpool_update_64 (&ctx->opad, t0, t1, t2, t3, 64);
+  whirlpool_transform (t0, t1, t2, t3, ctx->opad.h, ctx->opad.s_Ch, ctx->opad.s_Cl);
+
+  ctx->opad.len = 64;
 }
 
 DECLSPEC void whirlpool_hmac_init (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
@@ -2272,29 +2321,43 @@ DECLSPEC void whirlpool_hmac_final (whirlpool_hmac_ctx_t *ctx)
 {
   whirlpool_final (&ctx->ipad);
 
-  u32 t0[4];
-  u32 t1[4];
-  u32 t2[4];
-  u32 t3[4];
+  ctx->opad.w0[0] = ctx->ipad.h[ 0];
+  ctx->opad.w0[1] = ctx->ipad.h[ 1];
+  ctx->opad.w0[2] = ctx->ipad.h[ 2];
+  ctx->opad.w0[3] = ctx->ipad.h[ 3];
+  ctx->opad.w1[0] = ctx->ipad.h[ 4];
+  ctx->opad.w1[1] = ctx->ipad.h[ 5];
+  ctx->opad.w1[2] = ctx->ipad.h[ 6];
+  ctx->opad.w1[3] = ctx->ipad.h[ 7];
+  ctx->opad.w2[0] = ctx->ipad.h[ 8];
+  ctx->opad.w2[1] = ctx->ipad.h[ 9];
+  ctx->opad.w2[2] = ctx->ipad.h[10];
+  ctx->opad.w2[3] = ctx->ipad.h[11];
+  ctx->opad.w3[0] = ctx->ipad.h[12];
+  ctx->opad.w3[1] = ctx->ipad.h[13];
+  ctx->opad.w3[2] = ctx->ipad.h[14];
+  ctx->opad.w3[3] = ctx->ipad.h[15];
 
-  t0[0] = ctx->ipad.h[ 0];
-  t0[1] = ctx->ipad.h[ 1];
-  t0[2] = ctx->ipad.h[ 2];
-  t0[3] = ctx->ipad.h[ 3];
-  t1[0] = ctx->ipad.h[ 4];
-  t1[1] = ctx->ipad.h[ 5];
-  t1[2] = ctx->ipad.h[ 6];
-  t1[3] = ctx->ipad.h[ 7];
-  t2[0] = ctx->ipad.h[ 8];
-  t2[1] = ctx->ipad.h[ 9];
-  t2[2] = ctx->ipad.h[10];
-  t2[3] = ctx->ipad.h[11];
-  t3[0] = ctx->ipad.h[12];
-  t3[1] = ctx->ipad.h[13];
-  t3[2] = ctx->ipad.h[14];
-  t3[3] = ctx->ipad.h[15];
+  ctx->opad.len += 64;
 
-  whirlpool_update_64 (&ctx->opad, t0, t1, t2, t3, 64);
+  whirlpool_transform (ctx->opad.w0, ctx->opad.w1, ctx->opad.w2, ctx->opad.w3, ctx->opad.h, ctx->opad.s_Ch, ctx->opad.s_Cl);
+
+  ctx->opad.w0[0] = 0;
+  ctx->opad.w0[1] = 0;
+  ctx->opad.w0[2] = 0;
+  ctx->opad.w0[3] = 0;
+  ctx->opad.w1[0] = 0;
+  ctx->opad.w1[1] = 0;
+  ctx->opad.w1[2] = 0;
+  ctx->opad.w1[3] = 0;
+  ctx->opad.w2[0] = 0;
+  ctx->opad.w2[1] = 0;
+  ctx->opad.w2[2] = 0;
+  ctx->opad.w2[3] = 0;
+  ctx->opad.w3[0] = 0;
+  ctx->opad.w3[1] = 0;
+  ctx->opad.w3[2] = 0;
+  ctx->opad.w3[3] = 0;
 
   whirlpool_final (&ctx->opad);
 }
@@ -2557,75 +2620,119 @@ DECLSPEC void whirlpool_init_vector_from_scalar (whirlpool_ctx_vector_t *ctx, wh
 
 DECLSPEC void whirlpool_update_vector_64 (whirlpool_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, const int len)
 {
-  const int pos = ctx->len & 63;
+  MAYBE_VOLATILE const int pos = ctx->len & 63;
 
   ctx->len += len;
 
-  if ((pos + len) < 64)
+  if (pos == 0)
   {
-    switch_buffer_by_offset_be (w0, w1, w2, w3, pos);
+    ctx->w0[0] = w0[0];
+    ctx->w0[1] = w0[1];
+    ctx->w0[2] = w0[2];
+    ctx->w0[3] = w0[3];
+    ctx->w1[0] = w1[0];
+    ctx->w1[1] = w1[1];
+    ctx->w1[2] = w1[2];
+    ctx->w1[3] = w1[3];
+    ctx->w2[0] = w2[0];
+    ctx->w2[1] = w2[1];
+    ctx->w2[2] = w2[2];
+    ctx->w2[3] = w2[3];
+    ctx->w3[0] = w3[0];
+    ctx->w3[1] = w3[1];
+    ctx->w3[2] = w3[2];
+    ctx->w3[3] = w3[3];
 
-    ctx->w0[0] |= w0[0];
-    ctx->w0[1] |= w0[1];
-    ctx->w0[2] |= w0[2];
-    ctx->w0[3] |= w0[3];
-    ctx->w1[0] |= w1[0];
-    ctx->w1[1] |= w1[1];
-    ctx->w1[2] |= w1[2];
-    ctx->w1[3] |= w1[3];
-    ctx->w2[0] |= w2[0];
-    ctx->w2[1] |= w2[1];
-    ctx->w2[2] |= w2[2];
-    ctx->w2[3] |= w2[3];
-    ctx->w3[0] |= w3[0];
-    ctx->w3[1] |= w3[1];
-    ctx->w3[2] |= w3[2];
-    ctx->w3[3] |= w3[3];
+    if (len == 64)
+    {
+      whirlpool_transform_vector (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h, ctx->s_Ch, ctx->s_Cl);
+
+      ctx->w0[0] = 0;
+      ctx->w0[1] = 0;
+      ctx->w0[2] = 0;
+      ctx->w0[3] = 0;
+      ctx->w1[0] = 0;
+      ctx->w1[1] = 0;
+      ctx->w1[2] = 0;
+      ctx->w1[3] = 0;
+      ctx->w2[0] = 0;
+      ctx->w2[1] = 0;
+      ctx->w2[2] = 0;
+      ctx->w2[3] = 0;
+      ctx->w3[0] = 0;
+      ctx->w3[1] = 0;
+      ctx->w3[2] = 0;
+      ctx->w3[3] = 0;
+    }
   }
   else
   {
-    u32x c0[4] = { 0 };
-    u32x c1[4] = { 0 };
-    u32x c2[4] = { 0 };
-    u32x c3[4] = { 0 };
+    if ((pos + len) < 64)
+    {
+      switch_buffer_by_offset_be (w0, w1, w2, w3, pos);
 
-    switch_buffer_by_offset_carry_be (w0, w1, w2, w3, c0, c1, c2, c3, pos);
+      ctx->w0[0] |= w0[0];
+      ctx->w0[1] |= w0[1];
+      ctx->w0[2] |= w0[2];
+      ctx->w0[3] |= w0[3];
+      ctx->w1[0] |= w1[0];
+      ctx->w1[1] |= w1[1];
+      ctx->w1[2] |= w1[2];
+      ctx->w1[3] |= w1[3];
+      ctx->w2[0] |= w2[0];
+      ctx->w2[1] |= w2[1];
+      ctx->w2[2] |= w2[2];
+      ctx->w2[3] |= w2[3];
+      ctx->w3[0] |= w3[0];
+      ctx->w3[1] |= w3[1];
+      ctx->w3[2] |= w3[2];
+      ctx->w3[3] |= w3[3];
+    }
+    else
+    {
+      u32x c0[4] = { 0 };
+      u32x c1[4] = { 0 };
+      u32x c2[4] = { 0 };
+      u32x c3[4] = { 0 };
 
-    ctx->w0[0] |= w0[0];
-    ctx->w0[1] |= w0[1];
-    ctx->w0[2] |= w0[2];
-    ctx->w0[3] |= w0[3];
-    ctx->w1[0] |= w1[0];
-    ctx->w1[1] |= w1[1];
-    ctx->w1[2] |= w1[2];
-    ctx->w1[3] |= w1[3];
-    ctx->w2[0] |= w2[0];
-    ctx->w2[1] |= w2[1];
-    ctx->w2[2] |= w2[2];
-    ctx->w2[3] |= w2[3];
-    ctx->w3[0] |= w3[0];
-    ctx->w3[1] |= w3[1];
-    ctx->w3[2] |= w3[2];
-    ctx->w3[3] |= w3[3];
+      switch_buffer_by_offset_carry_be (w0, w1, w2, w3, c0, c1, c2, c3, pos);
 
-    whirlpool_transform_vector (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h, ctx->s_Ch, ctx->s_Cl);
+      ctx->w0[0] |= w0[0];
+      ctx->w0[1] |= w0[1];
+      ctx->w0[2] |= w0[2];
+      ctx->w0[3] |= w0[3];
+      ctx->w1[0] |= w1[0];
+      ctx->w1[1] |= w1[1];
+      ctx->w1[2] |= w1[2];
+      ctx->w1[3] |= w1[3];
+      ctx->w2[0] |= w2[0];
+      ctx->w2[1] |= w2[1];
+      ctx->w2[2] |= w2[2];
+      ctx->w2[3] |= w2[3];
+      ctx->w3[0] |= w3[0];
+      ctx->w3[1] |= w3[1];
+      ctx->w3[2] |= w3[2];
+      ctx->w3[3] |= w3[3];
 
-    ctx->w0[0] = c0[0];
-    ctx->w0[1] = c0[1];
-    ctx->w0[2] = c0[2];
-    ctx->w0[3] = c0[3];
-    ctx->w1[0] = c1[0];
-    ctx->w1[1] = c1[1];
-    ctx->w1[2] = c1[2];
-    ctx->w1[3] = c1[3];
-    ctx->w2[0] = c2[0];
-    ctx->w2[1] = c2[1];
-    ctx->w2[2] = c2[2];
-    ctx->w2[3] = c2[3];
-    ctx->w3[0] = c3[0];
-    ctx->w3[1] = c3[1];
-    ctx->w3[2] = c3[2];
-    ctx->w3[3] = c3[3];
+      whirlpool_transform_vector (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h, ctx->s_Ch, ctx->s_Cl);
+
+      ctx->w0[0] = c0[0];
+      ctx->w0[1] = c0[1];
+      ctx->w0[2] = c0[2];
+      ctx->w0[3] = c0[3];
+      ctx->w1[0] = c1[0];
+      ctx->w1[1] = c1[1];
+      ctx->w1[2] = c1[2];
+      ctx->w1[3] = c1[3];
+      ctx->w2[0] = c2[0];
+      ctx->w2[1] = c2[1];
+      ctx->w2[2] = c2[2];
+      ctx->w2[3] = c2[3];
+      ctx->w3[0] = c3[0];
+      ctx->w3[1] = c3[1];
+      ctx->w3[2] = c3[2];
+      ctx->w3[3] = c3[3];
+    }
   }
 }
 
@@ -2887,7 +2994,7 @@ DECLSPEC void whirlpool_update_vector_utf16le_swap (whirlpool_ctx_vector_t *ctx,
 
 DECLSPEC void whirlpool_final_vector (whirlpool_ctx_vector_t *ctx)
 {
-  const int pos = ctx->len & 63;
+  MAYBE_VOLATILE const int pos = ctx->len & 63;
 
   append_0x80_4x4 (ctx->w0, ctx->w1, ctx->w2, ctx->w3, pos ^ 3);
 
@@ -2949,7 +3056,9 @@ DECLSPEC void whirlpool_hmac_init_vector_64 (whirlpool_hmac_ctx_vector_t *ctx, c
 
   whirlpool_init_vector (&ctx->ipad, s_Ch, s_Cl);
 
-  whirlpool_update_vector_64 (&ctx->ipad, t0, t1, t2, t3, 64);
+  whirlpool_transform_vector (t0, t1, t2, t3, ctx->ipad.h, ctx->ipad.s_Ch, ctx->ipad.s_Cl);
+
+  ctx->ipad.len = 64;
 
   // opad
 
@@ -2972,7 +3081,9 @@ DECLSPEC void whirlpool_hmac_init_vector_64 (whirlpool_hmac_ctx_vector_t *ctx, c
 
   whirlpool_init_vector (&ctx->opad, s_Ch, s_Cl);
 
-  whirlpool_update_vector_64 (&ctx->opad, t0, t1, t2, t3, 64);
+  whirlpool_transform_vector (t0, t1, t2, t3, ctx->opad.h, ctx->opad.s_Ch, ctx->opad.s_Cl);
+
+  ctx->opad.len = 64;
 }
 
 DECLSPEC void whirlpool_hmac_init_vector (whirlpool_hmac_ctx_vector_t *ctx, const u32x *w, const int len, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
@@ -3046,29 +3157,43 @@ DECLSPEC void whirlpool_hmac_final_vector (whirlpool_hmac_ctx_vector_t *ctx)
 {
   whirlpool_final_vector (&ctx->ipad);
 
-  u32x t0[4];
-  u32x t1[4];
-  u32x t2[4];
-  u32x t3[4];
+  ctx->opad.w0[0] = ctx->ipad.h[ 0];
+  ctx->opad.w0[1] = ctx->ipad.h[ 1];
+  ctx->opad.w0[2] = ctx->ipad.h[ 2];
+  ctx->opad.w0[3] = ctx->ipad.h[ 3];
+  ctx->opad.w1[0] = ctx->ipad.h[ 4];
+  ctx->opad.w1[1] = ctx->ipad.h[ 5];
+  ctx->opad.w1[2] = ctx->ipad.h[ 6];
+  ctx->opad.w1[3] = ctx->ipad.h[ 7];
+  ctx->opad.w2[0] = ctx->ipad.h[ 8];
+  ctx->opad.w2[1] = ctx->ipad.h[ 9];
+  ctx->opad.w2[2] = ctx->ipad.h[10];
+  ctx->opad.w2[3] = ctx->ipad.h[11];
+  ctx->opad.w3[0] = ctx->ipad.h[12];
+  ctx->opad.w3[1] = ctx->ipad.h[13];
+  ctx->opad.w3[2] = ctx->ipad.h[14];
+  ctx->opad.w3[3] = ctx->ipad.h[15];
 
-  t0[0] = ctx->ipad.h[ 0];
-  t0[1] = ctx->ipad.h[ 1];
-  t0[2] = ctx->ipad.h[ 2];
-  t0[3] = ctx->ipad.h[ 3];
-  t1[0] = ctx->ipad.h[ 4];
-  t1[1] = ctx->ipad.h[ 5];
-  t1[2] = ctx->ipad.h[ 6];
-  t1[3] = ctx->ipad.h[ 7];
-  t2[0] = ctx->ipad.h[ 8];
-  t2[1] = ctx->ipad.h[ 9];
-  t2[2] = ctx->ipad.h[10];
-  t2[3] = ctx->ipad.h[11];
-  t3[0] = ctx->ipad.h[12];
-  t3[1] = ctx->ipad.h[13];
-  t3[2] = ctx->ipad.h[14];
-  t3[3] = ctx->ipad.h[15];
+  ctx->opad.len += 64;
 
-  whirlpool_update_vector_64 (&ctx->opad, t0, t1, t2, t3, 64);
+  whirlpool_transform_vector (ctx->opad.w0, ctx->opad.w1, ctx->opad.w2, ctx->opad.w3, ctx->opad.h, ctx->opad.s_Ch, ctx->opad.s_Cl);
+
+  ctx->opad.w0[0] = 0;
+  ctx->opad.w0[1] = 0;
+  ctx->opad.w0[2] = 0;
+  ctx->opad.w0[3] = 0;
+  ctx->opad.w1[0] = 0;
+  ctx->opad.w1[1] = 0;
+  ctx->opad.w1[2] = 0;
+  ctx->opad.w1[3] = 0;
+  ctx->opad.w2[0] = 0;
+  ctx->opad.w2[1] = 0;
+  ctx->opad.w2[2] = 0;
+  ctx->opad.w2[3] = 0;
+  ctx->opad.w3[0] = 0;
+  ctx->opad.w3[1] = 0;
+  ctx->opad.w3[2] = 0;
+  ctx->opad.w3[3] = 0;
 
   whirlpool_final_vector (&ctx->opad);
 }

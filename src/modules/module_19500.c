@@ -9,6 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "emu_inc_hash_md5.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 3;
@@ -125,10 +126,19 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // make salt sorter happy
 
-  salt->salt_buf[0] = devise_double_salt->salt_buf[0];
-  salt->salt_buf[1] = devise_double_salt->salt_buf[1];
+  md5_ctx_t md5_ctx;
 
-  salt->salt_len = 8;
+  md5_init   (&md5_ctx);
+  md5_update (&md5_ctx, devise_double_salt->salt_buf,     devise_double_salt->salt_len);
+  md5_update (&md5_ctx, devise_double_salt->site_key_buf, devise_double_salt->site_key_len);
+  md5_final  (&md5_ctx);
+
+  salt->salt_buf[0] = md5_ctx.h[0];
+  salt->salt_buf[1] = md5_ctx.h[1];
+  salt->salt_buf[2] = md5_ctx.h[2];
+  salt->salt_buf[3] = md5_ctx.h[3];
+
+  salt->salt_len = 16;
 
   return (PARSER_OK);
 }

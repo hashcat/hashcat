@@ -8,6 +8,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_rp_optimized.h"
 #include "inc_rp_optimized.cl"
@@ -15,7 +16,7 @@
 #include "inc_hash_md5.cl"
 #endif
 
-CONSTANT_AS u32a padding[8] =
+CONSTANT_VK u32a padding[8] =
 {
   0x5e4ebf28,
   0x418a754e,

@@ -8,6 +8,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_streebog512.cl"
@@ -57,7 +58,7 @@ typedef struct vc64_sbog_tmp
 
 } vc64_sbog_tmp_t;
 
-DECLSPEC static int check_header_0512 (GLOBAL_AS const vc_t *esalt_bufs, GLOBAL_AS u64 *key, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC int check_header_0512 (GLOBAL_AS const vc_t *esalt_bufs, GLOBAL_AS u64 *key, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 key1[8];
   u32 key2[8];
@@ -79,16 +80,16 @@ DECLSPEC static int check_header_0512 (GLOBAL_AS const vc_t *esalt_bufs, GLOBAL_
   key2[6] = hc_swap32_S (h32_from_64_S (key[0]));
   key2[7] = hc_swap32_S (l32_from_64_S (key[0]));
 
-  if (verify_header_aes        (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1) return 0;
   if (verify_header_serpent    (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2) == 1) return 0;
   if (verify_header_twofish    (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2) == 1) return 0;
   if (verify_header_camellia   (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2) == 1) return 0;
   if (verify_header_kuznyechik (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2) == 1) return 0;
+  if (verify_header_aes        (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1) return 0;
 
   return -1;
 }
 
-DECLSPEC static int check_header_1024 (GLOBAL_AS const vc_t *esalt_bufs, GLOBAL_AS u64 *key, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC int check_header_1024 (GLOBAL_AS const vc_t *esalt_bufs, GLOBAL_AS u64 *key, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 key1[8];
   u32 key2[8];
@@ -128,18 +129,18 @@ DECLSPEC static int check_header_1024 (GLOBAL_AS const vc_t *esalt_bufs, GLOBAL_
   key4[6] = hc_swap32_S (h32_from_64_S (key[ 8]));
   key4[7] = hc_swap32_S (l32_from_64_S (key[ 8]));
 
-  if (verify_header_aes_twofish         (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2, key3, key4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1) return 0;
   if (verify_header_serpent_aes         (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2, key3, key4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1) return 0;
   if (verify_header_twofish_serpent     (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2, key3, key4) == 1) return 0;
+  if (verify_header_aes_twofish         (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2, key3, key4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1) return 0;
   if (verify_header_camellia_kuznyechik (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2, key3, key4) == 1) return 0;
   if (verify_header_camellia_serpent    (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2, key3, key4) == 1) return 0;
-  if (verify_header_kuznyechik_aes      (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2, key3, key4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1) return 0;
   if (verify_header_kuznyechik_twofish  (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2, key3, key4) == 1) return 0;
+  if (verify_header_kuznyechik_aes      (esalt_bufs[0].data_buf, esalt_bufs[0].signature, key1, key2, key3, key4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1) return 0;
 
   return -1;
 }
 
-DECLSPEC static void hmac_streebog512_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u64x *ipad_hash, u64x *opad_hash, u64x *ipad_raw, u64x *opad_raw, u64x *digest, SHM_TYPE u64a (*s_sbob_sl64)[256])
+DECLSPEC void hmac_streebog512_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u64x *ipad_hash, u64x *opad_hash, u64x *ipad_raw, u64x *opad_raw, u64x *digest, SHM_TYPE u64a (*s_sbob_sl64)[256])
 {
   const u64x nullbuf[8] = { 0 };
   u64x counterbuf[8]    = { 0 };
@@ -232,36 +233,36 @@ KERNEL_FQ void m13772_init (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, vc_t))
 
   const int keyboard_layout_mapping_cnt = esalt_bufs[digests_offset].keyboard_layout_mapping_cnt;
 
-  LOCAL_AS keyboard_layout_mapping_t s_keyboard_layout_mapping_buf[256];
+  LOCAL_VK keyboard_layout_mapping_t s_keyboard_layout_mapping_buf[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
     s_keyboard_layout_mapping_buf[i] = esalt_bufs[digests_offset].keyboard_layout_mapping_buf[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #ifdef REAL_SHM
 
-  LOCAL_AS u64a s_sbob_sl64[8][256];
+  LOCAL_VK u64a s_sbob_sl64[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
-    s_sbob_sl64[0][i] = sbob_sl64[0][i];
-    s_sbob_sl64[1][i] = sbob_sl64[1][i];
-    s_sbob_sl64[2][i] = sbob_sl64[2][i];
-    s_sbob_sl64[3][i] = sbob_sl64[3][i];
-    s_sbob_sl64[4][i] = sbob_sl64[4][i];
-    s_sbob_sl64[5][i] = sbob_sl64[5][i];
-    s_sbob_sl64[6][i] = sbob_sl64[6][i];
-    s_sbob_sl64[7][i] = sbob_sl64[7][i];
+    s_sbob_sl64[0][i] = sbob512_sl64[0][i];
+    s_sbob_sl64[1][i] = sbob512_sl64[1][i];
+    s_sbob_sl64[2][i] = sbob512_sl64[2][i];
+    s_sbob_sl64[3][i] = sbob512_sl64[3][i];
+    s_sbob_sl64[4][i] = sbob512_sl64[4][i];
+    s_sbob_sl64[5][i] = sbob512_sl64[5][i];
+    s_sbob_sl64[6][i] = sbob512_sl64[6][i];
+    s_sbob_sl64[7][i] = sbob512_sl64[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 
-  CONSTANT_AS u64a (*s_sbob_sl64)[256] = sbob_sl64;
+  CONSTANT_AS u64a (*s_sbob_sl64)[256] = sbob512_sl64;
 
   #endif
 
@@ -430,17 +431,17 @@ KERNEL_FQ void m13772_loop (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, vc_t))
 
   #ifdef REAL_SHM
 
-  LOCAL_AS u32 s_td0[256];
-  LOCAL_AS u32 s_td1[256];
-  LOCAL_AS u32 s_td2[256];
-  LOCAL_AS u32 s_td3[256];
-  LOCAL_AS u32 s_td4[256];
+  LOCAL_VK u32 s_td0[256];
+  LOCAL_VK u32 s_td1[256];
+  LOCAL_VK u32 s_td2[256];
+  LOCAL_VK u32 s_td3[256];
+  LOCAL_VK u32 s_td4[256];
 
-  LOCAL_AS u32 s_te0[256];
-  LOCAL_AS u32 s_te1[256];
-  LOCAL_AS u32 s_te2[256];
-  LOCAL_AS u32 s_te3[256];
-  LOCAL_AS u32 s_te4[256];
+  LOCAL_VK u32 s_te0[256];
+  LOCAL_VK u32 s_te1[256];
+  LOCAL_VK u32 s_te2[256];
+  LOCAL_VK u32 s_te3[256];
+  LOCAL_VK u32 s_te4[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -457,21 +458,21 @@ KERNEL_FQ void m13772_loop (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, vc_t))
     s_te4[i] = te4[i];
   }
 
-  LOCAL_AS u64a s_sbob_sl64[8][256];
+  LOCAL_VK u64a s_sbob_sl64[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
-    s_sbob_sl64[0][i] = sbob_sl64[0][i];
-    s_sbob_sl64[1][i] = sbob_sl64[1][i];
-    s_sbob_sl64[2][i] = sbob_sl64[2][i];
-    s_sbob_sl64[3][i] = sbob_sl64[3][i];
-    s_sbob_sl64[4][i] = sbob_sl64[4][i];
-    s_sbob_sl64[5][i] = sbob_sl64[5][i];
-    s_sbob_sl64[6][i] = sbob_sl64[6][i];
-    s_sbob_sl64[7][i] = sbob_sl64[7][i];
+    s_sbob_sl64[0][i] = sbob512_sl64[0][i];
+    s_sbob_sl64[1][i] = sbob512_sl64[1][i];
+    s_sbob_sl64[2][i] = sbob512_sl64[2][i];
+    s_sbob_sl64[3][i] = sbob512_sl64[3][i];
+    s_sbob_sl64[4][i] = sbob512_sl64[4][i];
+    s_sbob_sl64[5][i] = sbob512_sl64[5][i];
+    s_sbob_sl64[6][i] = sbob512_sl64[6][i];
+    s_sbob_sl64[7][i] = sbob512_sl64[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 
@@ -487,7 +488,7 @@ KERNEL_FQ void m13772_loop (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, vc_t))
   CONSTANT_AS u32a *s_te3 = te3;
   CONSTANT_AS u32a *s_te4 = te4;
 
-  CONSTANT_AS u64a (*s_sbob_sl64)[256] = sbob_sl64;
+  CONSTANT_AS u64a (*s_sbob_sl64)[256] = sbob512_sl64;
 
   #endif
 
@@ -676,17 +677,17 @@ KERNEL_FQ void m13772_comp (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, vc_t))
 
   #ifdef REAL_SHM
 
-  LOCAL_AS u32 s_td0[256];
-  LOCAL_AS u32 s_td1[256];
-  LOCAL_AS u32 s_td2[256];
-  LOCAL_AS u32 s_td3[256];
-  LOCAL_AS u32 s_td4[256];
+  LOCAL_VK u32 s_td0[256];
+  LOCAL_VK u32 s_td1[256];
+  LOCAL_VK u32 s_td2[256];
+  LOCAL_VK u32 s_td3[256];
+  LOCAL_VK u32 s_td4[256];
 
-  LOCAL_AS u32 s_te0[256];
-  LOCAL_AS u32 s_te1[256];
-  LOCAL_AS u32 s_te2[256];
-  LOCAL_AS u32 s_te3[256];
-  LOCAL_AS u32 s_te4[256];
+  LOCAL_VK u32 s_te0[256];
+  LOCAL_VK u32 s_te1[256];
+  LOCAL_VK u32 s_te2[256];
+  LOCAL_VK u32 s_te3[256];
+  LOCAL_VK u32 s_te4[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -703,7 +704,7 @@ KERNEL_FQ void m13772_comp (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, vc_t))
     s_te4[i] = te4[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 

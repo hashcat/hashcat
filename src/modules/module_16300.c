@@ -77,33 +77,16 @@ u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED c
   return tmp_size;
 }
 
-bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
-{
-  // amdgpu-pro-18.50-708488-ubuntu-18.04:  self-test failed.
-  if ((device_param->device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
-  {
-    return true;
-  }
-
-  // rocm 1.2.0-20190: self-test failed
-  if ((device_param->device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == true))
-  {
-    return true;
-  }
-
-  return false;
-}
-
 char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
   char *jit_build_options = NULL;
 
-  if (device_param->device_vendor_id == VENDOR_ID_NV)
+  if (device_param->opencl_device_vendor_id == VENDOR_ID_NV)
   {
     hc_asprintf (&jit_build_options, "-D NO_UNROLL");
   }
 
-  if ((device_param->device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
+  if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
   {
     hc_asprintf (&jit_build_options, "-D NO_UNROLL");
   }
@@ -332,6 +315,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_hash                  = module_st_hash;
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
-  module_ctx->module_unstable_warning         = module_unstable_warning;
+  module_ctx->module_unstable_warning         = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

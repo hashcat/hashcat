@@ -8,6 +8,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha1.cl"
@@ -36,7 +37,7 @@ typedef struct krb5tgs_18_tmp
 
 } krb5tgs_18_tmp_t;
 
-DECLSPEC static void aes256_encrypt_cbc (const u32 *aes_ks, u32 *aes_iv, const u32 *in, u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void aes256_encrypt_cbc (const u32 *aes_ks, u32 *aes_iv, const u32 *in, u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 data[4];
 
@@ -63,7 +64,7 @@ DECLSPEC static void aes256_encrypt_cbc (const u32 *aes_ks, u32 *aes_iv, const u
   out[3] = hc_swap32_S (out[3]);
 }
 
-DECLSPEC static void aes256_decrypt_cbc (const u32 *ks1, const u32 *in, u32 *out, u32 *essiv, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void aes256_decrypt_cbc (const u32 *ks1, const u32 *in, u32 *out, u32 *essiv, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   aes256_decrypt (ks1, in, out, s_td0, s_td1, s_td2, s_td3, s_td4);
 
@@ -78,7 +79,7 @@ DECLSPEC static void aes256_decrypt_cbc (const u32 *ks1, const u32 *in, u32 *out
   essiv[3] = in[3];
 }
 
-DECLSPEC static void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
+DECLSPEC void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
 {
   digest[0] = ipad[0];
   digest[1] = ipad[1];
@@ -296,17 +297,17 @@ KERNEL_FQ void m19700_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t
 
   #ifdef REAL_SHM
 
-  LOCAL_AS u32 s_td0[256];
-  LOCAL_AS u32 s_td1[256];
-  LOCAL_AS u32 s_td2[256];
-  LOCAL_AS u32 s_td3[256];
-  LOCAL_AS u32 s_td4[256];
+  LOCAL_VK u32 s_td0[256];
+  LOCAL_VK u32 s_td1[256];
+  LOCAL_VK u32 s_td2[256];
+  LOCAL_VK u32 s_td3[256];
+  LOCAL_VK u32 s_td4[256];
 
-  LOCAL_AS u32 s_te0[256];
-  LOCAL_AS u32 s_te1[256];
-  LOCAL_AS u32 s_te2[256];
-  LOCAL_AS u32 s_te3[256];
-  LOCAL_AS u32 s_te4[256];
+  LOCAL_VK u32 s_te0[256];
+  LOCAL_VK u32 s_te1[256];
+  LOCAL_VK u32 s_te2[256];
+  LOCAL_VK u32 s_te3[256];
+  LOCAL_VK u32 s_te4[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -323,7 +324,7 @@ KERNEL_FQ void m19700_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t
     s_te4[i] = te4[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 

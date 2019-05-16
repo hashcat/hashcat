@@ -8,12 +8,14 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha1.cl"
 #else
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.h"
 #include "inc_common.h"
 #include "inc_simd.h"
 #include "inc_hash_sha1.h"
@@ -40,12 +42,12 @@ typedef struct wpa_pmkid
 } wpa_pmkid_t;
 
 #ifdef KERNEL_STATIC
-DECLSPEC static u8 hex_convert (const u8 c)
+DECLSPEC u8 hex_convert (const u8 c)
 {
   return (c & 15) + (c >> 6) * 9;
 }
 
-DECLSPEC static u8 hex_to_u8 (const u8 *hex)
+DECLSPEC u8 hex_to_u8 (const u8 *hex)
 {
   u8 v = 0;
 

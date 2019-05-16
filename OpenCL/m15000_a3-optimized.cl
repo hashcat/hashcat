@@ -8,12 +8,13 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha512.cl"
 #endif
 
-DECLSPEC static void sha512_transform_intern (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, const u32x *w4, const u32x *w5, const u32x *w6, const u32x *w7, u64x *digest)
+DECLSPEC void sha512_transform_intern (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, const u32x *w4, const u32x *w5, const u32x *w6, const u32x *w7, u64x *digest)
 {
   u64x w0_t = hl32_to_64 (w0[0], w0[1]);
   u64x w1_t = hl32_to_64 (w0[2], w0[3]);
@@ -112,7 +113,7 @@ DECLSPEC static void sha512_transform_intern (const u32x *w0, const u32x *w1, co
   digest[7] = h;
 }
 
-DECLSPEC static void m15000m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC void m15000m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -273,7 +274,7 @@ DECLSPEC static void m15000m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
   }
 }
 
-DECLSPEC static void m15000s (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC void m15000s (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier

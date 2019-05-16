@@ -17,10 +17,11 @@
 
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.h"
 #include "inc_common.h"
 #include "inc_cipher_camellia.h"
 
-CONSTANT_AS u32a c_sbox[256] =
+CONSTANT_VK u32a c_sbox[256] =
 {
   0x70, 0x82, 0x2c, 0xec, 0xb3, 0x27, 0xc0, 0xe5,
   0xe4, 0x85, 0x57, 0x35, 0xea, 0x0c, 0xae, 0x41,
@@ -63,35 +64,71 @@ CONSTANT_AS u32a c_sbox[256] =
 
 #define cam_rotate(a,b,n) hc_swap32_S ((u[(a)] << (n)) ^ (u[(b)] >> (32 - (n))))
 
-#define extract_byte(x,n) (((x) >> (8 * (n))) & 0xff)
-
 DECLSPEC void cam_feistel (const u32 *x, const u32 *k, u32 *y)
 {
-  u32 b[8];
+  const u32 xk0 = x[0] ^ k[0];
+  const u32 xk1 = x[1] ^ k[1];
 
-  b[0] = c_sbox1 (extract_byte (x[0], 0) ^ extract_byte (k[0], 0));
-  b[1] = c_sbox2 (extract_byte (x[0], 1) ^ extract_byte (k[0], 1));
-  b[2] = c_sbox3 (extract_byte (x[0], 2) ^ extract_byte (k[0], 2));
-  b[3] = c_sbox4 (extract_byte (x[0], 3) ^ extract_byte (k[0], 3));
-  b[4] = c_sbox2 (extract_byte (x[1], 0) ^ extract_byte (k[1], 0));
-  b[5] = c_sbox3 (extract_byte (x[1], 1) ^ extract_byte (k[1], 1));
-  b[6] = c_sbox4 (extract_byte (x[1], 2) ^ extract_byte (k[1], 2));
-  b[7] = c_sbox1 (extract_byte (x[1], 3) ^ extract_byte (k[1], 3));
+  const u32 b0 = c_sbox1 (unpack_v8a_from_v32_S (xk0));
+  const u32 b1 = c_sbox2 (unpack_v8b_from_v32_S (xk0));
+  const u32 b2 = c_sbox3 (unpack_v8c_from_v32_S (xk0));
+  const u32 b3 = c_sbox4 (unpack_v8d_from_v32_S (xk0));
+  const u32 b4 = c_sbox2 (unpack_v8a_from_v32_S (xk1));
+  const u32 b5 = c_sbox3 (unpack_v8b_from_v32_S (xk1));
+  const u32 b6 = c_sbox4 (unpack_v8c_from_v32_S (xk1));
+  const u32 b7 = c_sbox1 (unpack_v8d_from_v32_S (xk1));
 
-  u32 tmp[2];
+  /*
+  const u32 t0a = b0 ^      b2 ^ b3 ^      b5 ^ b6 ^ b7;
+  const u32 t0b = b0 ^ b1 ^      b3 ^ b4 ^      b6 ^ b7;
+  const u32 t0c = b0 ^ b1 ^ b2 ^      b4 ^ b5 ^      b7;
+  const u32 t0d =      b1 ^ b2 ^ b3 ^ b4 ^ b5 ^ b6     ;
 
-  tmp[0] = (b[0] ^ b[2] ^ b[3] ^ b[5] ^ b[6] ^ b[7]) << 0
-         | (b[0] ^ b[1] ^ b[3] ^ b[4] ^ b[6] ^ b[7]) << 8
-         | (b[0] ^ b[1] ^ b[2] ^ b[4] ^ b[5] ^ b[7]) << 16
-         | (b[1] ^ b[2] ^ b[3] ^ b[4] ^ b[5] ^ b[6]) << 24;
+  const u32 t1a = b0 ^ b1 ^                b5 ^ b6 ^ b7;
+  const u32 t1b =      b1 ^ b2 ^      b4 ^      b6 ^ b7;
+  const u32 t1c =           b2 ^ b3 ^ b4 ^ b5 ^      b7;
+  const u32 t1d = b0 ^           b3 ^ b4 ^ b5 ^ b6     ;
+  */
 
-  tmp[1] = (b[0] ^ b[1] ^ b[5] ^ b[6] ^ b[7]) << 0
-         | (b[1] ^ b[2] ^ b[4] ^ b[6] ^ b[7]) << 8
-         | (b[2] ^ b[3] ^ b[4] ^ b[5] ^ b[7]) << 16
-         | (b[0] ^ b[3] ^ b[4] ^ b[5] ^ b[6]) << 24;
+  const u32 b14 = b1 ^ b4;
+  const u32 b25 = b2 ^ b5;
+  const u32 b36 = b3 ^ b6;
+  const u32 b07 = b0 ^ b7;
 
-  y[0] ^= tmp[0];
-  y[1] ^= tmp[1];
+  const u32 b01234567 = b14 ^ b25 ^ b36 ^ b07;
+
+  const u32 t0a = b01234567 ^ b14;
+  const u32 t0b = b01234567 ^ b25;
+  const u32 t0c = b01234567 ^ b36;
+  const u32 t0d = b01234567 ^ b07;
+
+  /*
+  const u32 t1a = b01234567 ^ b2 ^ b3 ^ b4;
+  const u32 t1b = b01234567 ^ b0 ^ b3 ^ b5;
+  const u32 t1c = b01234567 ^ b0 ^ b1 ^ b6;
+  const u32 t1d = b01234567 ^ b1 ^ b2 ^ b7;
+  */
+
+  const u32 b0_234567 = b01234567 ^ b1;
+  const u32 b012_4567 = b01234567 ^ b3;
+
+  const u32 t1a = b012_4567 ^ b2 ^ b4;
+  const u32 t1b = b012_4567 ^ b0 ^ b5;
+  const u32 t1c = b0_234567 ^ b0 ^ b6;
+  const u32 t1d = b0_234567 ^ b2 ^ b7;
+
+  const u32 t0 = (t0a <<  0)
+               | (t0b <<  8)
+               | (t0c << 16)
+               | (t0d << 24);
+
+  const u32 t1 = (t1a <<  0)
+               | (t1b <<  8)
+               | (t1c << 16)
+               | (t1d << 24);
+
+  y[0] ^= t0;
+  y[1] ^= t1;
 }
 
 DECLSPEC void cam_fl (u32 *x, const u32 *kl, const u32 *kr)
@@ -375,5 +412,3 @@ DECLSPEC void camellia256_decrypt (const u32 *ks, const u32 *in, u32 *out)
 #undef c_sbox4
 
 #undef cam_rotate
-
-#undef extract_byte

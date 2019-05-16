@@ -9,6 +9,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_rp_optimized.h"
 #include "inc_rp_optimized.cl"
@@ -28,7 +29,7 @@
   (a)[((n)/4)+1]  = x >> 32;        \
 }
 
-CONSTANT_AS u32a sapb_trans_tbl[256] =
+CONSTANT_VK u32a sapb_trans_tbl[256] =
 {
   // first value hack for 0 byte as part of an optimization
   0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
@@ -49,14 +50,14 @@ CONSTANT_AS u32a sapb_trans_tbl[256] =
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
 };
 
-CONSTANT_AS u32a bcodeArray[48] =
+CONSTANT_VK u32a bcodeArray[48] =
 {
   0x14, 0x77, 0xf3, 0xd4, 0xbb, 0x71, 0x23, 0xd0, 0x03, 0xff, 0x47, 0x93, 0x55, 0xaa, 0x66, 0x91,
   0xf2, 0x88, 0x6b, 0x99, 0xbf, 0xcb, 0x32, 0x1a, 0x19, 0xd9, 0xa7, 0x82, 0x22, 0x49, 0xa2, 0x51,
   0xe2, 0xb7, 0x33, 0x71, 0x8b, 0x9f, 0x5d, 0x01, 0x44, 0x70, 0xae, 0x11, 0xef, 0x28, 0xf0, 0x0d
 };
 
-DECLSPEC static u32 sapb_trans (const u32 in)
+DECLSPEC u32 sapb_trans (const u32 in)
 {
   u32 out = 0;
 
@@ -68,7 +69,7 @@ DECLSPEC static u32 sapb_trans (const u32 in)
   return out;
 }
 
-DECLSPEC static u32 walld0rf_magic (const u32 *w0, const u32 pw_len, const u32 *salt_buf0, const u32 salt_len, const u32 a, const u32 b, const u32 c, const u32 d, u32 *t)
+DECLSPEC u32 walld0rf_magic (const u32 *w0, const u32 pw_len, const u32 *salt_buf0, const u32 salt_len, const u32 a, const u32 b, const u32 c, const u32 d, u32 *t)
 {
   t[ 0] = 0;
   t[ 1] = 0;

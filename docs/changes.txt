@@ -6,6 +6,7 @@
 
 - Fully modularized hash-mode integration via plugin interface and converted all existing hash-modes
 - Support for inline VeraCrypt PIM Brute-Force
+- Support Deflate decompression for the 7-Zip hash type using zlib
 
 ##
 ## Algorithms
@@ -15,16 +16,23 @@
 - Added hash-mode: Open Document Format (ODF) 1.1 (SHA-1, Blowfish)
 - Added hash-mode: Java Object hashCode()
 - Added hash-mode: Blockchain, My Wallet, Second Password (SHA256)
+- Added hash-mode: Electrum Wallet (Salt-Type 3)
 - Added hash-mode: Android Backup
 - Added hash-mode: QNX /etc/shadow (MD5)
 - Added hash-mode: QNX /etc/shadow (SHA256)
 - Added hash-mode: QNX /etc/shadow (SHA512)
 - Added hash-mode: Kerberos 5 TGS-REP etype 17 (AES128-CTS-HMAC-SHA1-96)
 - Added hash-mode: Kerberos 5 TGS-REP etype 18 (AES256-CTS-HMAC-SHA1-96)
+- Added hash-mode: Kerberos 5 Pre-Auth etype 17 (AES128-CTS-HMAC-SHA1-96)
+- Added hash-mode: Kerberos 5 Pre-Auth etype 18 (AES256-CTS-HMAC-SHA1-96)
 - Added hash-mode: sha1(md5(md5($pass)))
 - Added hash-mode: sha1($salt1.$pass.$salt2)
 - Added hash-mode: Ruby on Rails Restful-Authentication
+- Added hash-mode: PKZIP archive encryption
 - Added hash-mode: DiskCryptor
+- Added hash-mode: Python passlib pbkdf2-sha1
+- Added hash-mode: Python passlib pbkdf2-sha256
+- Added hash-mode: Python passlib pbkdf2-sha512
 
 ##
 ## Bugs
@@ -53,10 +61,12 @@
 - OpenCL Runtime: Disable OpenCL kernel cache on Apple for Intel CPU (throws CL_BUILD_PROGRAM_FAILURE for no reason)
 - OpenCL Runtime: Improve ROCM detection and make sure to not confuse with recent AMDGPU drivers
 - OpenCL Runtime: Not using amd_bytealign (amd_bitalign is fine) on AMDGPU driver drastically reduces JiT segfaults
+- OpenCL Runtime: Unlocked maximum thread count
 - OpenCL Runtime: Update unstable mode warnings for Apple and AMDGPU drivers
 - OpenCL Runtime: Workaround JiT compiler error on AMDGPU driver compiling WPA-EAPOL-PBKDF2 OpenCL kernel
 - OpenCL Runtime: Workaround JiT compiler error on ROCM 2.3 driver if the 'inline' keyword is used in function declaration
 - OpenCL Runtime: Workaround memory allocation error on AMD driver on Windows leading to CL_MEM_OBJECT_ALLOCATION_FAILURE
+- Startup Screen: Provide an estimate of host memory requirements for the requested attack
 - Tuning Database: Updated hashcat.hctune with new models and refreshed vector width values
 - WPA/WPA2 cracking: In the potfile, replace password with PMK in order to detect already cracked networks across all WPA modes
 
@@ -65,9 +75,14 @@
 ##
 
 - Binary Distribution: Removed 32 bit binary executables
+- Dependencies: Updated OpenCL-Headers to latest version from GitHub master repository
 - Keep Guessing: No longer automatically activate --keep-guessing for modes 9720, 9820, 14900 and 18100
 - Kernel Cache: Reactivate OpenCL runtime specific kernel caches
+- Kernel Compile: Removed -cl-std= from all kernel build options since we're compatible to all OpenCL versions
 - Mode 16800/16801 hash format: Changed separator character from '*' to ':'
+- Requirements: Update runtime check for minimum NVIDIA driver version from 367.x to 418.56 or later
+- Requirements: Add new requirement for NVIDIA GPU: CUDA Toolkit (10.1 or later)
+- OpenCL Options: Removed --opencl-platforms filter in order to force backend device numbers to stay constant
 
 * changes v5.0.0 -> v5.1.0
 

@@ -48,7 +48,7 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
   char *jit_build_options = NULL;
 
   // -Wpass-failed=transform-warning
-  if ((device_param->device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == true))
+  if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == true))
   {
     hc_asprintf (&jit_build_options, "-D NO_UNROLL");
   }

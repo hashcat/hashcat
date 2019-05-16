@@ -8,17 +8,18 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_ripemd160.cl"
 #endif
 
-DECLSPEC static void ripemd160_transform_transport_vector (const u32x *w, u32x *dgst)
+DECLSPEC void ripemd160_transform_transport_vector (const u32x *w, u32x *dgst)
 {
   ripemd160_transform_vector (w + 0, w + 4, w + 8, w + 12, dgst);
 }
 
-DECLSPEC static void m06000m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC ())
+DECLSPEC void m06000m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -76,7 +77,7 @@ DECLSPEC static void m06000m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_l
   }
 }
 
-DECLSPEC static void m06000s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC ())
+DECLSPEC void m06000s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC ())
 {
   /**
    * modifier

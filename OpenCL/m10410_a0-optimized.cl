@@ -9,6 +9,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_rp_optimized.h"
 #include "inc_rp_optimized.cl"
@@ -16,7 +17,7 @@
 #include "inc_hash_md5.cl"
 #endif
 
-CONSTANT_AS u32a padding[8] =
+CONSTANT_VK u32a padding[8] =
 {
   0x5e4ebf28,
   0x418a754e,
@@ -57,7 +58,7 @@ typedef struct
 
 } RC4_KEY;
 
-DECLSPEC static void swap (LOCAL_AS RC4_KEY *rc4_key, const u8 i, const u8 j)
+DECLSPEC void swap (LOCAL_AS RC4_KEY *rc4_key, const u8 i, const u8 j)
 {
   u8 tmp;
 
@@ -66,7 +67,7 @@ DECLSPEC static void swap (LOCAL_AS RC4_KEY *rc4_key, const u8 i, const u8 j)
   rc4_key->S[j] = tmp;
 }
 
-DECLSPEC static void rc4_init_16 (LOCAL_AS RC4_KEY *rc4_key, const u32 *data)
+DECLSPEC void rc4_init_16 (LOCAL_AS RC4_KEY *rc4_key, const u32 *data)
 {
   u32 v = 0x03020100;
   u32 a = 0x04040404;
@@ -104,7 +105,7 @@ DECLSPEC static void rc4_init_16 (LOCAL_AS RC4_KEY *rc4_key, const u32 *data)
   j += rc4_key->S[255] + d0; swap (rc4_key, 255, j);
 }
 
-DECLSPEC static u8 rc4_next_16 (LOCAL_AS RC4_KEY *rc4_key, u8 i, u8 j, CONSTANT_AS u32a *in, u32 *out)
+DECLSPEC u8 rc4_next_16 (LOCAL_AS RC4_KEY *rc4_key, u8 i, u8 j, CONSTANT_AS u32a *in, u32 *out)
 {
   #ifdef _unroll
   #pragma unroll
@@ -191,7 +192,7 @@ KERNEL_FQ void m10410_m04 (KERN_ATTR_RULES_ESALT (pdf_t))
    * shared
    */
 
-  LOCAL_AS RC4_KEY rc4_keys[64];
+  LOCAL_VK RC4_KEY rc4_keys[64];
   LOCAL_AS RC4_KEY *rc4_key = &rc4_keys[lid];
 
   /**
@@ -263,7 +264,7 @@ KERNEL_FQ void m10410_s04 (KERN_ATTR_RULES_ESALT (pdf_t))
    * shared
    */
 
-  LOCAL_AS RC4_KEY rc4_keys[64];
+  LOCAL_VK RC4_KEY rc4_keys[64];
   LOCAL_AS RC4_KEY *rc4_key = &rc4_keys[lid];
 
   /**

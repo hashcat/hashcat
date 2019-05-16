@@ -13,6 +13,7 @@
 #include "emu_inc_cipher_aes.h"
 #include "cpu_crc32.h"
 #include "ext_lzma.h"
+#include "zlib.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -220,6 +221,35 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_salts_buf,
       {
         ret = hc_lzma1_decompress (compressed_data, &compressed_data_len, decompressed_data, &decompressed_data_len, coder_attributes);
       }
+      else if (data_type == 7) // inflate using zlib (DEFLATE compression)
+      {
+        ret = SZ_ERROR_DATA;
+
+        z_stream inf;
+
+        inf.zalloc = Z_NULL;
+        inf.zfree  = Z_NULL;
+        inf.opaque = Z_NULL;
+
+        inf.avail_in  = compressed_data_len;
+        inf.next_in   = compressed_data;
+
+        inf.avail_out = decompressed_data_len;
+        inf.next_out  = decompressed_data;
+
+        // inflate:
+
+        inflateInit2 (&inf, -MAX_WBITS);
+
+        int zlib_ret = inflate (&inf, Z_NO_FLUSH);
+
+        inflateEnd (&inf);
+
+        if ((zlib_ret == Z_OK) || (zlib_ret == Z_STREAM_END))
+        {
+          ret = SZ_OK;
+        }
+      }
       else // we only support LZMA2 in addition to LZMA1
       {
         ret = hc_lzma2_decompress (compressed_data, &compressed_data_len, decompressed_data, &decompressed_data_len, coder_attributes);
@@ -271,6 +301,13 @@ u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED c
   return tmp_size;
 }
 
+u32 module_kernel_accel_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 kernel_accel_max = 128; // password length affects total performance, this limits the wait times for threads with short password lengths if there's at least one thread with long password length
+
+  return kernel_accel_max;
+}
+
 u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   // this overrides the reductions of PW_MAX in case optimized kernel is selected
@@ -285,7 +322,7 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 {
   char *jit_build_options = NULL;
 
-  if (device_param->device_vendor_id == VENDOR_ID_NV)
+  if (device_param->opencl_device_vendor_id == VENDOR_ID_NV)
   {
     hc_asprintf (&jit_build_options, "-D NO_UNROLL");
   }
@@ -296,7 +333,7 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
   // amdgpu-pro-18.50-708488-ubuntu-18.04: Segmentation fault
-  if ((device_param->device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
+  if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
   {
     return true;
   }
@@ -457,7 +494,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
    * verify some data
    */
 
-  if (data_type > 2) // this includes also 0x80 (special case that means "truncated")
+  // this check also returns an error with data_type == 0x80 (special case that means "truncated")
+
+  if ((data_type != 0) && (data_type != 1) && (data_type != 2) && (data_type != 7))
   {
     return (PARSER_SALT_VALUE);
   }
@@ -695,7 +734,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hook_size                = module_hook_size;
   module_ctx->module_jit_build_options        = module_jit_build_options;
   module_ctx->module_jit_cache_disable        = MODULE_DEFAULT;
-  module_ctx->module_kernel_accel_max         = MODULE_DEFAULT;
+  module_ctx->module_kernel_accel_max         = module_kernel_accel_max;
   module_ctx->module_kernel_accel_min         = MODULE_DEFAULT;
   module_ctx->module_kernel_loops_max         = MODULE_DEFAULT;
   module_ctx->module_kernel_loops_min         = MODULE_DEFAULT;

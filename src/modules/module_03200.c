@@ -72,6 +72,11 @@ u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED c
   return tmp_size;
 }
 
+bool module_jit_cache_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
+{
+  return true;
+}
+
 char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
   char *jit_build_options = NULL;
@@ -83,31 +88,41 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
   u32 fixed_local_size = 0;
 
-  if (device_param->device_type & CL_DEVICE_TYPE_CPU)
+  if (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU)
   {
     fixed_local_size = 1;
   }
   else
   {
+    u32 overhead = 0;
+
+    if (device_param->opencl_device_vendor_id == VENDOR_ID_NV)
+    {
+      // note we need to use device_param->device_local_mem_size - 4 because opencl jit returns with:
+      // Entry function '...' uses too much shared data (0xc004 bytes, 0xc000 max)
+      // on my development system. no clue where the 4 bytes are spent.
+      // I did some research on this and it seems to be related with the datatype.
+      // For example, if i used u8 instead, there's only 1 byte wasted.
+
+      if (device_param->is_opencl == true)
+      {
+        overhead = 4;
+      }
+    }
+
     if (user_options->kernel_threads_chgd == true)
     {
       fixed_local_size = user_options->kernel_threads;
+
+      // otherwise out-of-bound reads
+
+      if ((fixed_local_size * 4096) > (device_param->device_local_mem_size - overhead))
+      {
+        fixed_local_size = (device_param->device_local_mem_size - overhead) / 4096;
+      }
     }
     else
     {
-      u32 overhead = 0;
-
-      if (device_param->device_vendor_id == VENDOR_ID_NV)
-      {
-        // note we need to use device_param->device_local_mem_size - 4 because opencl jit returns with:
-        // Entry function '...' uses too much shared data (0xc004 bytes, 0xc000 max)
-        // on my development system. no clue where the 4 bytes are spent.
-        // I did some research on this and it seems to be related with the datatype.
-        // For example, if i used u8 instead, there's only 1 byte wasted.
-
-        overhead = 4;
-      }
-
       fixed_local_size = (device_param->device_local_mem_size - overhead) / 4096;
     }
   }
@@ -269,7 +284,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hook_salt_size           = MODULE_DEFAULT;
   module_ctx->module_hook_size                = MODULE_DEFAULT;
   module_ctx->module_jit_build_options        = module_jit_build_options;
-  module_ctx->module_jit_cache_disable        = MODULE_DEFAULT;
+  module_ctx->module_jit_cache_disable        = module_jit_cache_disable;
   module_ctx->module_kernel_accel_max         = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_min         = MODULE_DEFAULT;
   module_ctx->module_kernel_loops_max         = MODULE_DEFAULT;

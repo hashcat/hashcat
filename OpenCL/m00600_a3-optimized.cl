@@ -8,6 +8,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #endif
@@ -49,7 +50,7 @@ typedef struct blake2
     BLAKE2B_G (r,7,v[ 3],v[ 4],v[ 9],v[14]); \
 } while(0)
 
-DECLSPEC static void blake2b_transform (u64x *h, u64x *t, u64x *f, u64x *m, u64x *v, const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, const u32x out_len, const u8 isFinal)
+DECLSPEC void blake2b_transform (u64x *h, u64x *t, u64x *f, u64x *m, u64x *v, const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, const u32x out_len, const u8 isFinal)
 {
   if (isFinal)
     f[0] = -1;

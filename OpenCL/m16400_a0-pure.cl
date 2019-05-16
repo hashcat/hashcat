@@ -8,6 +8,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_rp.h"
 #include "inc_rp.cl"
@@ -15,7 +16,7 @@
 #include "inc_hash_md5.cl"
 #endif
 
-DECLSPEC static void cram_md5_transform (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest)
+DECLSPEC void cram_md5_transform (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest)
 {
   u32 a = digest[0];
   u32 b = digest[1];
@@ -115,12 +116,12 @@ DECLSPEC static void cram_md5_transform (const u32 *w0, const u32 *w1, const u32
   digest[3] += d;
 }
 
-DECLSPEC static void cram_md5_update_64 (md5_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len)
+DECLSPEC void cram_md5_update_64 (md5_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len)
 {
   #ifdef IS_AMD
-  const int pos = ctx->len & 63;
+  MAYBE_VOLATILE const int pos = ctx->len & 63;
   #else
-  const int pos = ctx->len & 63;
+  MAYBE_VOLATILE const int pos = ctx->len & 63;
   #endif
 
   ctx->len += len;
@@ -145,7 +146,7 @@ DECLSPEC static void cram_md5_update_64 (md5_ctx_t *ctx, u32 *w0, u32 *w1, u32 *
   ctx->w3[3] |= w3[3];
 }
 
-DECLSPEC static void cram_md5_update (md5_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void cram_md5_update (md5_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -172,7 +173,7 @@ DECLSPEC static void cram_md5_update (md5_ctx_t *ctx, const u32 *w, const int le
   cram_md5_update_64 (ctx, w0, w1, w2, w3, len);
 }
 
-DECLSPEC static void cram_md5_final (md5_ctx_t *ctx)
+DECLSPEC void cram_md5_final (md5_ctx_t *ctx)
 {
   cram_md5_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
 }

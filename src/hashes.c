@@ -14,7 +14,7 @@
 #include "terminal.h"
 #include "logfile.h"
 #include "loopback.h"
-#include "opencl.h"
+#include "backend.h"
 #include "outfile.h"
 #include "potfile.h"
 #include "rp.h"
@@ -309,7 +309,15 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
   {
     tmps = hcmalloc (hashconfig->tmp_size);
 
-    hc_clEnqueueReadBuffer (hashcat_ctx, device_param->command_queue, device_param->d_tmps, CL_TRUE, plain->gidvid * hashconfig->tmp_size, hashconfig->tmp_size, tmps, 0, NULL, NULL);
+    if (device_param->is_cuda == true)
+    {
+      hc_cuMemcpyDtoH (hashcat_ctx, tmps, device_param->cuda_d_tmps + (plain->gidvid * hashconfig->tmp_size), hashconfig->tmp_size);
+    }
+
+    if (device_param->is_opencl == true)
+    {
+      hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_tmps, CL_TRUE, plain->gidvid * hashconfig->tmp_size, hashconfig->tmp_size, tmps, 0, NULL, NULL);
+    }
   }
 
   // hash
@@ -460,15 +468,21 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
   u32 num_cracked;
 
-  cl_int CL_err;
+  int CU_rc;
+  int CL_rc;
 
-  CL_err = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->command_queue, device_param->d_result, CL_TRUE, 0, sizeof (u32), &num_cracked, 0, NULL, NULL);
-
-  if (CL_err != CL_SUCCESS)
+  if (device_param->is_cuda == true)
   {
-    event_log_error (hashcat_ctx, "clEnqueueReadBuffer(): %s", val2cstr_cl (CL_err));
+    CU_rc = hc_cuMemcpyDtoH (hashcat_ctx, &num_cracked, device_param->cuda_d_result, sizeof (u32));
 
-    return -1;
+    if (CU_rc == -1) return -1;
+  }
+
+  if (device_param->is_opencl == true)
+  {
+    CL_rc = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_result, CL_TRUE, 0, sizeof (u32), &num_cracked, 0, NULL, NULL);
+
+    if (CL_rc == -1) return -1;
   }
 
   if (user_options->speed_only == true)
@@ -483,13 +497,18 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
   {
     plain_t *cracked = (plain_t *) hccalloc (num_cracked, sizeof (plain_t));
 
-    CL_err = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->command_queue, device_param->d_plain_bufs, CL_TRUE, 0, num_cracked * sizeof (plain_t), cracked, 0, NULL, NULL);
-
-    if (CL_err != CL_SUCCESS)
+    if (device_param->is_cuda == true)
     {
-      event_log_error (hashcat_ctx, "clEnqueueReadBuffer(): %s", val2cstr_cl (CL_err));
+      CU_rc = hc_cuMemcpyDtoH (hashcat_ctx, cracked, device_param->cuda_d_plain_bufs, num_cracked * sizeof (plain_t));
 
-      return -1;
+      if (CU_rc == -1) return -1;
+    }
+
+    if (device_param->is_opencl == true)
+    {
+      CL_rc = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_plain_bufs, CL_TRUE, 0, num_cracked * sizeof (plain_t), cracked, 0, NULL, NULL);
+
+      if (CL_rc == -1) return -1;
     }
 
     u32 cpt_cracked = 0;
@@ -553,25 +572,35 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
       memset (hashes->digests_shown_tmp, 0, salt_buf->digests_cnt * sizeof (u32));
 
-      CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_digests_shown, CL_TRUE, salt_buf->digests_offset * sizeof (u32), salt_buf->digests_cnt * sizeof (u32), &hashes->digests_shown_tmp[salt_buf->digests_offset], 0, NULL, NULL);
-
-      if (CL_err != CL_SUCCESS)
+      if (device_param->is_cuda == true)
       {
-        event_log_error (hashcat_ctx, "clEnqueueWriteBuffer(): %s", val2cstr_cl (CL_err));
+        CU_rc = hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_digests_shown + (salt_buf->digests_offset * sizeof (u32)), &hashes->digests_shown_tmp[salt_buf->digests_offset], salt_buf->digests_cnt * sizeof (u32));
 
-        return -1;
+        if (CU_rc == -1) return -1;
+      }
+
+      if (device_param->is_opencl == true)
+      {
+        CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_digests_shown, CL_TRUE, salt_buf->digests_offset * sizeof (u32), salt_buf->digests_cnt * sizeof (u32), &hashes->digests_shown_tmp[salt_buf->digests_offset], 0, NULL, NULL);
+
+        if (CL_rc == -1) return -1;
       }
     }
 
     num_cracked = 0;
 
-    CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_result, CL_TRUE, 0, sizeof (u32), &num_cracked, 0, NULL, NULL);
-
-    if (CL_err != CL_SUCCESS)
+    if (device_param->is_cuda == true)
     {
-      event_log_error (hashcat_ctx, "clEnqueueWriteBuffer(): %s", val2cstr_cl (CL_err));
+      CU_rc = hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_result, &num_cracked, sizeof (u32));
 
-      return -1;
+      if (CU_rc == -1) return -1;
+    }
+
+    if (device_param->is_opencl == true)
+    {
+      CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_result, CL_TRUE, 0, sizeof (u32), &num_cracked, 0, NULL, NULL);
+
+      if (CL_rc == -1) return -1;
     }
   }
 
@@ -840,7 +869,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
   else if (user_options->stdout_flag == true)
   {
   }
-  else if (user_options->opencl_info == true)
+  else if (user_options->backend_info == true)
   {
   }
   else

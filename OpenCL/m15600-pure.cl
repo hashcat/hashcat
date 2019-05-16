@@ -8,6 +8,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha256.cl"
@@ -33,7 +34,7 @@ typedef struct ethereum_pbkdf2
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
-CONSTANT_AS u64a keccakf_rndc[24] =
+CONSTANT_VK u64a keccakf_rndc[24] =
 {
   0x0000000000000001, 0x0000000000008082, 0x800000000000808a,
   0x8000000080008000, 0x000000000000808b, 0x0000000080000001,
@@ -83,7 +84,7 @@ CONSTANT_AS u64a keccakf_rndc[24] =
   st[4 + s] ^= ~bc0 & bc1;      \
 }
 
-DECLSPEC static void keccak_transform_S (u64 *st)
+DECLSPEC void keccak_transform_S (u64 *st)
 {
   const u8 keccakf_rotc[24] =
   {
@@ -164,7 +165,7 @@ DECLSPEC static void keccak_transform_S (u64 *st)
   }
 }
 
-DECLSPEC static void hmac_sha256_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
+DECLSPEC void hmac_sha256_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
 {
   digest[0] = ipad[0];
   digest[1] = ipad[1];

@@ -9,11 +9,12 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #endif
 
-CONSTANT_AS u32a lotus_magic_table[256] =
+CONSTANT_VK u32a lotus_magic_table[256] =
 {
   0xbd, 0x56, 0xea, 0xf2, 0xa2, 0xf1, 0xac, 0x2a,
   0xb0, 0x93, 0xd1, 0x9c, 0x1b, 0x33, 0xfd, 0xd0,
@@ -52,16 +53,16 @@ CONSTANT_AS u32a lotus_magic_table[256] =
 #if   VECT_SIZE == 1
 #define BOX1(S,i) (S)[(i)]
 #elif VECT_SIZE == 2
-#define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1])
+#define BOX1(S,i) make_u32x ((S)[(i).s0], (S)[(i).s1])
 #elif VECT_SIZE == 4
-#define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3])
+#define BOX1(S,i) make_u32x ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3])
 #elif VECT_SIZE == 8
-#define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3], (S)[(i).s4], (S)[(i).s5], (S)[(i).s6], (S)[(i).s7])
+#define BOX1(S,i) make_u32x ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3], (S)[(i).s4], (S)[(i).s5], (S)[(i).s6], (S)[(i).s7])
 #elif VECT_SIZE == 16
-#define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3], (S)[(i).s4], (S)[(i).s5], (S)[(i).s6], (S)[(i).s7], (S)[(i).s8], (S)[(i).s9], (S)[(i).sa], (S)[(i).sb], (S)[(i).sc], (S)[(i).sd], (S)[(i).se], (S)[(i).sf])
+#define BOX1(S,i) make_u32x ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3], (S)[(i).s4], (S)[(i).s5], (S)[(i).s6], (S)[(i).s7], (S)[(i).s8], (S)[(i).s9], (S)[(i).sa], (S)[(i).sb], (S)[(i).sc], (S)[(i).sd], (S)[(i).se], (S)[(i).sf])
 #endif
 
-DECLSPEC static void lotus_mix (u32 *in, LOCAL_AS u32 *s_lotus_magic_table)
+DECLSPEC void lotus_mix (u32 *in, LOCAL_AS u32 *s_lotus_magic_table)
 {
   u32 p = 0;
 
@@ -84,7 +85,7 @@ DECLSPEC static void lotus_mix (u32 *in, LOCAL_AS u32 *s_lotus_magic_table)
   }
 }
 
-DECLSPEC static void lotus_transform_password (const u32 *in, u32x *out, LOCAL_AS u32 *s_lotus_magic_table)
+DECLSPEC void lotus_transform_password (const u32 *in, u32x *out, LOCAL_AS u32 *s_lotus_magic_table)
 {
   u32 t = out[3] >> 24;
 
@@ -102,7 +103,7 @@ DECLSPEC static void lotus_transform_password (const u32 *in, u32x *out, LOCAL_A
   }
 }
 
-DECLSPEC static void pad (u32 *w, const u32 len)
+DECLSPEC void pad (u32 *w, const u32 len)
 {
   const u32 val = 16 - len;
 
@@ -181,7 +182,7 @@ DECLSPEC static void pad (u32 *w, const u32 len)
   }
 }
 
-DECLSPEC static void mdtransform_norecalc (u32 *state, const u32x *block, LOCAL_AS u32 *s_lotus_magic_table)
+DECLSPEC void mdtransform_norecalc (u32 *state, const u32x *block, LOCAL_AS u32 *s_lotus_magic_table)
 {
   u32 x[12];
 
@@ -206,14 +207,14 @@ DECLSPEC static void mdtransform_norecalc (u32 *state, const u32x *block, LOCAL_
   state[3] = x[3];
 }
 
-DECLSPEC static void mdtransform (u32 *state, u32x *checksum, const u32x *block, LOCAL_AS u32 *s_lotus_magic_table)
+DECLSPEC void mdtransform (u32 *state, u32x *checksum, const u32x *block, LOCAL_AS u32 *s_lotus_magic_table)
 {
   mdtransform_norecalc (state, block, s_lotus_magic_table);
 
   lotus_transform_password (block, checksum, s_lotus_magic_table);
 }
 
-DECLSPEC static void domino_big_md (const u32 *saved_key, const u32 size, u32x *state, LOCAL_AS u32 *s_lotus_magic_table)
+DECLSPEC void domino_big_md (const u32 *saved_key, const u32 size, u32x *state, LOCAL_AS u32 *s_lotus_magic_table)
 {
   u32 checksum[4];
 
@@ -241,14 +242,14 @@ KERNEL_FQ void m08600_mxx (KERN_ATTR_BASIC ())
    * sbox
    */
 
-  LOCAL_AS u32 s_lotus_magic_table[256];
+  LOCAL_VK u32 s_lotus_magic_table[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
     s_lotus_magic_table[i] = lotus_magic_table[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -365,14 +366,14 @@ KERNEL_FQ void m08600_sxx (KERN_ATTR_BASIC ())
    * sbox
    */
 
-  LOCAL_AS u32 s_lotus_magic_table[256];
+  LOCAL_VK u32 s_lotus_magic_table[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
     s_lotus_magic_table[i] = lotus_magic_table[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 

@@ -5,6 +5,7 @@
 
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.h"
 #include "inc_common.h"
 
 /**
@@ -17,7 +18,7 @@ DECLSPEC u8 v8a_from_v32_S (const u32 v32)
 
   v.v32 = v32;
 
-  return v.v8a;
+  return v.v8.a;
 }
 
 DECLSPEC u8 v8b_from_v32_S (const u32 v32)
@@ -26,7 +27,7 @@ DECLSPEC u8 v8b_from_v32_S (const u32 v32)
 
   v.v32 = v32;
 
-  return v.v8b;
+  return v.v8.b;
 }
 
 DECLSPEC u8 v8c_from_v32_S (const u32 v32)
@@ -35,7 +36,7 @@ DECLSPEC u8 v8c_from_v32_S (const u32 v32)
 
   v.v32 = v32;
 
-  return v.v8c;
+  return v.v8.c;
 }
 
 DECLSPEC u8 v8d_from_v32_S (const u32 v32)
@@ -44,7 +45,7 @@ DECLSPEC u8 v8d_from_v32_S (const u32 v32)
 
   v.v32 = v32;
 
-  return v.v8d;
+  return v.v8.d;
 }
 
 DECLSPEC u16 v16a_from_v32_S (const u32 v32)
@@ -53,7 +54,7 @@ DECLSPEC u16 v16a_from_v32_S (const u32 v32)
 
   v.v32 = v32;
 
-  return v.v16a;
+  return v.v16.a;
 }
 
 DECLSPEC u16 v16b_from_v32_S (const u32 v32)
@@ -62,15 +63,15 @@ DECLSPEC u16 v16b_from_v32_S (const u32 v32)
 
   v.v32 = v32;
 
-  return v.v16b;
+  return v.v16.b;
 }
 
 DECLSPEC u32 v32_from_v16ab_S (const u16 v16a, const u16 v16b)
 {
   vconv32_t v;
 
-  v.v16a = v16a;
-  v.v16b = v16b;
+  v.v16.a = v16a;
+  v.v16.b = v16b;
 
   return v.v32;
 }
@@ -81,7 +82,7 @@ DECLSPEC u32 v32a_from_v64_S (const u64 v64)
 
   v.v64 = v64;
 
-  return v.v32a;
+  return v.v32.a;
 }
 
 DECLSPEC u32 v32b_from_v64_S (const u64 v64)
@@ -90,15 +91,15 @@ DECLSPEC u32 v32b_from_v64_S (const u64 v64)
 
   v.v64 = v64;
 
-  return v.v32b;
+  return v.v32.b;
 }
 
 DECLSPEC u64 v64_from_v32ab_S (const u32 v32a, const u32 v32b)
 {
   vconv64_t v;
 
-  v.v32a = v32a;
-  v.v32b = v32b;
+  v.v32.a = v32a;
+  v.v32.b = v32b;
 
   return v.v64;
 }
@@ -109,14 +110,10 @@ DECLSPEC u32 unpack_v8a_from_v32_S (const u32 v32)
 {
   u32 r = 0;
 
-  #if defined IS_NV
+  #if   defined IS_NV  && HAS_BFE  == 1
   asm volatile ("bfe.u32 %0, %1, 0, 8;" : "=r"(r) : "r"(v32));
-  #elif defined IS_AMD
-    #if HAS_VBFE
-    __asm__ __volatile__ ("V_BFE_U32 %0, %1, 0, 8;" : "=v"(r) : "v"(v32));
-    #else
-    r = (v32 >> 0) & 0xff;
-    #endif
+  #elif defined IS_AMD && HAS_VBFE == 1
+  __asm__ __volatile__ ("V_BFE_U32 %0, %1, 0, 8;" : "=v"(r) : "v"(v32));
   #else
   r = (v32 >> 0) & 0xff;
   #endif
@@ -128,14 +125,10 @@ DECLSPEC u32 unpack_v8b_from_v32_S (const u32 v32)
 {
   u32 r = 0;
 
-  #if defined IS_NV
+  #if   defined IS_NV  && HAS_BFE  == 1
   asm volatile ("bfe.u32 %0, %1, 8, 8;" : "=r"(r) : "r"(v32));
-  #elif defined IS_AMD
-    #if HAS_VBFE
-    __asm__ __volatile__ ("V_BFE_U32 %0, %1, 8, 8;" : "=v"(r) : "v"(v32));
-    #else
-    r = (v32 >> 8) & 0xff;
-    #endif
+  #elif defined IS_AMD && HAS_VBFE == 1
+  __asm__ __volatile__ ("V_BFE_U32 %0, %1, 8, 8;" : "=v"(r) : "v"(v32));
   #else
   r = (v32 >> 8) & 0xff;
   #endif
@@ -147,14 +140,10 @@ DECLSPEC u32 unpack_v8c_from_v32_S (const u32 v32)
 {
   u32 r = 0;
 
-  #if defined IS_NV
+  #if   defined IS_NV  && HAS_BFE  == 1
   asm volatile ("bfe.u32 %0, %1, 16, 8;" : "=r"(r) : "r"(v32));
-  #elif defined IS_AMD
-    #if HAS_VBFE
-    __asm__ __volatile__ ("V_BFE_U32 %0, %1, 16, 8;" : "=v"(r) : "v"(v32));
-    #else
-    r = (v32 >> 16) & 0xff;
-    #endif
+  #elif defined IS_AMD && HAS_VBFE == 1
+  __asm__ __volatile__ ("V_BFE_U32 %0, %1, 16, 8;" : "=v"(r) : "v"(v32));
   #else
   r = (v32 >> 16) & 0xff;
   #endif
@@ -166,14 +155,10 @@ DECLSPEC u32 unpack_v8d_from_v32_S (const u32 v32)
 {
   u32 r = 0;
 
-  #if defined IS_NV
+  #if   defined IS_NV  && HAS_BFE  == 1
   asm volatile ("bfe.u32 %0, %1, 24, 8;" : "=r"(r) : "r"(v32));
-  #elif defined IS_AMD
-    #if HAS_VBFE
-    __asm__ __volatile__ ("V_BFE_U32 %0, %1, 24, 8;" : "=v"(r) : "v"(v32));
-    #else
-    r = (v32 >> 24) & 0xff;
-    #endif
+  #elif defined IS_AMD && HAS_VBFE == 1
+  __asm__ __volatile__ ("V_BFE_U32 %0, %1, 24, 8;" : "=v"(r) : "v"(v32));
   #else
   r = (v32 >> 24) & 0xff;
   #endif
@@ -313,81 +298,218 @@ DECLSPEC u64x hl32_to_64 (const u32x a, const u32x b)
   return r;
 }
 
-#ifdef IS_AMD
+// bit rotates
+//
+// For _CPU_OPENCL_EMU_H we dont need to care about vector functions
+// The VECT_SIZE is guaranteed to be set to 1 from cpu_opencl_emu.h
 
-#if HAS_VPERM
-DECLSPEC u32 hc_swap32_S (const u32 v)
+DECLSPEC u32x hc_rotl32 (const u32x a, const int n)
 {
-  u32 r = 0;
-
-  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r) : "v"(v), "v"(0x00010203));
-
-  return r;
+  #if   defined _CPU_OPENCL_EMU_H
+  return rotl32 (a, n);
+  #elif defined IS_CUDA
+  return rotl32 (a, n);
+  #else
+  return rotate (a, make_u32x (n));
+  #endif
 }
 
-DECLSPEC u64 hc_swap64_S (const u64 v)
+DECLSPEC u32x hc_rotr32 (const u32x a, const int n)
 {
-  const u32 v0 = h32_from_64_S (v);
-  const u32 v1 = l32_from_64_S (v);
-
-  u32 t0;
-  u32 t1;
-
-  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(t0) : "v"(v0), "v"(0x00010203));
-  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(t1) : "v"(v1), "v"(0x00010203));
-
-  const u64 r = hl32_to_64_S (t1, t0);
-
-  return r;
-}
-#else
-DECLSPEC u32 hc_swap32_S (const u32 v)
-{
-  return as_uint (as_uchar4 (v).s3210);
-}
-
-DECLSPEC u64 hc_swap64_S (const u64 v)
-{
-  return (as_ulong (as_uchar8 (v).s76543210));
-}
-#endif
-
-DECLSPEC u32 hc_rotr32_S (const u32 a, const int n)
-{
-  return rotate (a, (u32) 32 - n);
+  #if   defined _CPU_OPENCL_EMU_H
+  return rotr32 (a, n);
+  #elif defined IS_CUDA
+  return rotr32 (a, n);
+  #else
+  return rotate (a, make_u32x (32 - n));
+  #endif
 }
 
 DECLSPEC u32 hc_rotl32_S (const u32 a, const int n)
 {
-  return rotate (a, (u32) n);
+  #if   defined _CPU_OPENCL_EMU_H
+  return rotl32 (a, n);
+  #elif defined IS_CUDA
+  return rotl32_S (a, n);
+  #else
+  return rotate (a, (u32) (n));
+  #endif
 }
 
-DECLSPEC u64 hc_rotr64_S (const u64 a, const int n)
+DECLSPEC u32 hc_rotr32_S (const u32 a, const int n)
 {
-  const u32 a0 = h32_from_64_S (a);
-  const u32 a1 = l32_from_64_S (a);
+  #if   defined _CPU_OPENCL_EMU_H
+  return rotr32 (a, n);
+  #elif defined IS_CUDA
+  return rotr32_S (a, n);
+  #else
+  return rotate (a, (u32) (32 - n));
+  #endif
+}
 
-  const u32 t0 = (n >= 32) ? amd_bitalign (a0, a1, n - 32) : amd_bitalign (a1, a0, n);
-  const u32 t1 = (n >= 32) ? amd_bitalign (a1, a0, n - 32) : amd_bitalign (a0, a1, n);
+DECLSPEC u64x hc_rotl64 (const u64x a, const int n)
+{
+  #if   defined _CPU_OPENCL_EMU_H
+  return rotl64 (a, n);
+  #elif defined IS_CUDA
+  return rotl64 (a, n);
+  #else
+  return rotate (a, make_u64x (n));
+  #endif
+}
 
-  const u64 r = hl32_to_64_S (t0, t1);
-
-  return r;
+DECLSPEC u64x hc_rotr64 (const u64x a, const int n)
+{
+  #if   defined _CPU_OPENCL_EMU_H
+  return rotr64 (a, n);
+  #elif defined IS_CUDA
+  return rotr64 (a, n);
+  #else
+  return rotate (a, make_u64x (64 - n));
+  #endif
 }
 
 DECLSPEC u64 hc_rotl64_S (const u64 a, const int n)
 {
-  return hc_rotr64_S (a, n);
+  #if   defined _CPU_OPENCL_EMU_H
+  return rotl64 (a, n);
+  #elif defined IS_CUDA
+  return rotl64_S (a, n);
+  #else
+  return rotate (a, (u64) (n));
+  #endif
 }
 
-#if HAS_VPERM
+DECLSPEC u64 hc_rotr64_S (const u64 a, const int n)
+{
+  #if   defined _CPU_OPENCL_EMU_H
+  return rotr64 (a, n);
+  #elif defined IS_CUDA
+  return rotr64_S (a, n);
+  #else
+  return rotate (a, (u64) (64 - n));
+  #endif
+}
+
+// bitwise swap
+
 DECLSPEC u32x hc_swap32 (const u32x v)
 {
-  return bitselect (rotate (v, 24u), rotate (v, 8u), 0x00ff00ffu);
+  u32x r;
+
+  #ifdef _CPU_OPENCL_EMU_H
+  r = byte_swap_32 (v);
+  #else
+  #if   defined IS_AMD && HAS_VPERM == 1
+
+  const u32 m = 0x00010203;
+
+  #if VECT_SIZE == 1
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r) : "v"(v), "v"(m));
+  #endif
+
+  #if VECT_SIZE >= 2
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.s0) : "v"(v.s0), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.s1) : "v"(v.s1), "v"(m));
+  #endif
+
+  #if VECT_SIZE >= 4
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.s2) : "v"(v.s2), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.s3) : "v"(v.s3), "v"(m));
+  #endif
+
+  #if VECT_SIZE >= 8
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.s4) : "v"(v.s4), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.s5) : "v"(v.s5), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.s6) : "v"(v.s6), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.s7) : "v"(v.s7), "v"(m));
+  #endif
+
+  #if VECT_SIZE >= 16
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.s8) : "v"(v.s8), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.s9) : "v"(v.s9), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.sa) : "v"(v.sa), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.sb) : "v"(v.sb), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.sc) : "v"(v.sc), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.sd) : "v"(v.sd), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.se) : "v"(v.se), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.sf) : "v"(v.sf), "v"(m));
+  #endif
+
+  #elif defined IS_NV  && HAS_PRMT  == 1
+
+  #if VECT_SIZE == 1
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r) : "r"(v));
+  #endif
+
+  #if VECT_SIZE >= 2
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s0) : "r"(v.s0));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s1) : "r"(v.s1));
+  #endif
+
+  #if VECT_SIZE >= 4
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s2) : "r"(v.s2));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s3) : "r"(v.s3));
+  #endif
+
+  #if VECT_SIZE >= 8
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s4) : "r"(v.s4));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s5) : "r"(v.s5));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s6) : "r"(v.s6));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s7) : "r"(v.s7));
+  #endif
+
+  #if VECT_SIZE >= 16
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s8) : "r"(v.s8));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s9) : "r"(v.s9));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.sa) : "r"(v.sa));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.sb) : "r"(v.sb));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.sc) : "r"(v.sc));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.sd) : "r"(v.sd));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.se) : "r"(v.se));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.sf) : "r"(v.sf));
+  #endif
+
+  #else
+  r = bitselect (rotate (v, make_u32x (24)),
+                 rotate (v, make_u32x ( 8)),
+                            make_u32x (0x00ff00ff));
+  #endif
+  #endif
+
+  return r;
+}
+
+DECLSPEC u32 hc_swap32_S (const u32 v)
+{
+  u32 r;
+
+  #ifdef _CPU_OPENCL_EMU_H
+  r = byte_swap_32 (v);
+  #else
+  #if   defined IS_AMD && HAS_VPERM == 1
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r) : "v"(v), "v"(0x00010203));
+  #elif defined IS_NV  && HAS_PRMT  == 1
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r) : "r"(v));
+  #else
+  r = as_uint (as_uchar4 (v).s3210);
+  #endif
+  #endif
+
+  return r;
 }
 
 DECLSPEC u64x hc_swap64 (const u64x v)
 {
+  u64x r;
+
+  #ifdef _CPU_OPENCL_EMU_H
+  r = byte_swap_64 (v);
+  #else
+  #if   defined IS_AMD && HAS_VPERM == 1
+
+  const u32 m = 0x00010203;
+
   const u32x a0 = h32_from_64 (v);
   const u32x a1 = l32_from_64 (v);
 
@@ -395,105 +517,237 @@ DECLSPEC u64x hc_swap64 (const u64x v)
   u32x t1;
 
   #if VECT_SIZE == 1
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0) : "v"(0), "v"(a0), "v"(0x00010203));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1) : "v"(0), "v"(a1), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0) : "v"(0), "v"(a0), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1) : "v"(0), "v"(a1), "v"(m));
   #endif
 
   #if VECT_SIZE >= 2
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s0) : "v"(0), "v"(a0.s0), "v"(0x00010203));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s0) : "v"(0), "v"(a1.s0), "v"(0x00010203));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s1) : "v"(0), "v"(a0.s1), "v"(0x00010203));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s1) : "v"(0), "v"(a1.s1), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s0) : "v"(0), "v"(a0.s0), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s0) : "v"(0), "v"(a1.s0), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s1) : "v"(0), "v"(a0.s1), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s1) : "v"(0), "v"(a1.s1), "v"(m));
   #endif
 
   #if VECT_SIZE >= 4
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s2) : "v"(0), "v"(a0.s2), "v"(0x00010203));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s2) : "v"(0), "v"(a1.s2), "v"(0x00010203));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s3) : "v"(0), "v"(a0.s3), "v"(0x00010203));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s3) : "v"(0), "v"(a1.s3), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s2) : "v"(0), "v"(a0.s2), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s2) : "v"(0), "v"(a1.s2), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s3) : "v"(0), "v"(a0.s3), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s3) : "v"(0), "v"(a1.s3), "v"(m));
   #endif
 
   #if VECT_SIZE >= 8
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s4) : "v"(0), "v"(a0.s4), "v"(0x00010203));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s4) : "v"(0), "v"(a1.s4), "v"(0x00010203));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s5) : "v"(0), "v"(a0.s5), "v"(0x00010203));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s5) : "v"(0), "v"(a1.s5), "v"(0x00010203));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s6) : "v"(0), "v"(a0.s6), "v"(0x00010203));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s6) : "v"(0), "v"(a1.s6), "v"(0x00010203));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s7) : "v"(0), "v"(a0.s7), "v"(0x00010203));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s7) : "v"(0), "v"(a1.s7), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s4) : "v"(0), "v"(a0.s4), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s4) : "v"(0), "v"(a1.s4), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s5) : "v"(0), "v"(a0.s5), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s5) : "v"(0), "v"(a1.s5), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s6) : "v"(0), "v"(a0.s6), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s6) : "v"(0), "v"(a1.s6), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s7) : "v"(0), "v"(a0.s7), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s7) : "v"(0), "v"(a1.s7), "v"(m));
   #endif
 
   #if VECT_SIZE >= 16
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s8) : "v"(0), "v"(a0.s8), "v"(0x00010203));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s8) : "v"(0), "v"(a1.s8), "v"(0x00010203));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s9) : "v"(0), "v"(a0.s9), "v"(0x00010203));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s9) : "v"(0), "v"(a1.s9), "v"(0x00010203));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.sa) : "v"(0), "v"(a0.sa), "v"(0x00010203));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.sa) : "v"(0), "v"(a1.sa), "v"(0x00010203));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.sb) : "v"(0), "v"(a0.sb), "v"(0x00010203));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.sb) : "v"(0), "v"(a1.sb), "v"(0x00010203));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.sc) : "v"(0), "v"(a0.sc), "v"(0x00010203));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.sc) : "v"(0), "v"(a1.sc), "v"(0x00010203));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.sd) : "v"(0), "v"(a0.sd), "v"(0x00010203));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.sd) : "v"(0), "v"(a1.sd), "v"(0x00010203));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.se) : "v"(0), "v"(a0.se), "v"(0x00010203));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.se) : "v"(0), "v"(a1.se), "v"(0x00010203));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.sf) : "v"(0), "v"(a0.sf), "v"(0x00010203));
-  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.sf) : "v"(0), "v"(a1.sf), "v"(0x00010203));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s8) : "v"(0), "v"(a0.s8), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s8) : "v"(0), "v"(a1.s8), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s9) : "v"(0), "v"(a0.s9), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s9) : "v"(0), "v"(a1.s9), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.sa) : "v"(0), "v"(a0.sa), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.sa) : "v"(0), "v"(a1.sa), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.sb) : "v"(0), "v"(a0.sb), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.sb) : "v"(0), "v"(a1.sb), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.sc) : "v"(0), "v"(a0.sc), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.sc) : "v"(0), "v"(a1.sc), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.sd) : "v"(0), "v"(a0.sd), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.sd) : "v"(0), "v"(a1.sd), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.se) : "v"(0), "v"(a0.se), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.se) : "v"(0), "v"(a1.se), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.sf) : "v"(0), "v"(a0.sf), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.sf) : "v"(0), "v"(a1.sf), "v"(m));
   #endif
 
-  const u64x r = hl32_to_64 (t1, t0);
+  r = hl32_to_64 (t1, t0);
+
+  #elif defined IS_NV && HAS_MOV64 == 1 && HAS_PRMT == 1
+
+  u32x il;
+  u32x ir;
+
+  #if VECT_SIZE == 1
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il), "=r"(ir) : "l"(v));
+  #endif
+
+  #if VECT_SIZE >= 2
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s0), "=r"(ir.s0) : "l"(v.s0));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s1), "=r"(ir.s1) : "l"(v.s1));
+  #endif
+
+  #if VECT_SIZE >= 4
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s2), "=r"(ir.s2) : "l"(v.s2));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s3), "=r"(ir.s3) : "l"(v.s3));
+  #endif
+
+  #if VECT_SIZE >= 8
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s4), "=r"(ir.s4) : "l"(v.s4));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s5), "=r"(ir.s5) : "l"(v.s5));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s6), "=r"(ir.s6) : "l"(v.s6));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s7), "=r"(ir.s7) : "l"(v.s7));
+  #endif
+
+  #if VECT_SIZE >= 16
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s8), "=r"(ir.s8) : "l"(v.s8));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s9), "=r"(ir.s9) : "l"(v.s9));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.sa), "=r"(ir.sa) : "l"(v.sa));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.sb), "=r"(ir.sb) : "l"(v.sb));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.sc), "=r"(ir.sc) : "l"(v.sc));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.sd), "=r"(ir.sd) : "l"(v.sd));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.se), "=r"(ir.se) : "l"(v.se));
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.sf), "=r"(ir.sf) : "l"(v.sf));
+  #endif
+
+  u32x tl;
+  u32x tr;
+
+  #if VECT_SIZE == 1
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl) : "r"(il));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr) : "r"(ir));
+  #endif
+
+  #if VECT_SIZE >= 2
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s0) : "r"(il.s0));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s0) : "r"(ir.s0));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s1) : "r"(il.s1));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s1) : "r"(ir.s1));
+  #endif
+
+  #if VECT_SIZE >= 4
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s2) : "r"(il.s2));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s2) : "r"(ir.s2));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s3) : "r"(il.s3));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s3) : "r"(ir.s3));
+  #endif
+
+  #if VECT_SIZE >= 8
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s4) : "r"(il.s4));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s4) : "r"(ir.s4));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s5) : "r"(il.s5));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s5) : "r"(ir.s5));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s6) : "r"(il.s6));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s6) : "r"(ir.s6));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s7) : "r"(il.s7));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s7) : "r"(ir.s7));
+  #endif
+
+  #if VECT_SIZE >= 16
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s8) : "r"(il.s8));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s8) : "r"(ir.s8));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s9) : "r"(il.s9));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s9) : "r"(ir.s9));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.sa) : "r"(il.sa));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.sa) : "r"(ir.sa));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.sb) : "r"(il.sb));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.sb) : "r"(ir.sb));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.sc) : "r"(il.sc));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.sc) : "r"(ir.sc));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.sd) : "r"(il.sd));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.sd) : "r"(ir.sd));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.se) : "r"(il.se));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.se) : "r"(ir.se));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.sf) : "r"(il.sf));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.sf) : "r"(ir.sf));
+  #endif
+
+  #if VECT_SIZE == 1
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r) : "r"(tr), "r"(tl));
+  #endif
+
+  #if VECT_SIZE >= 2
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s0) : "r"(tr.s0), "r"(tl.s0));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s1) : "r"(tr.s1), "r"(tl.s1));
+  #endif
+
+  #if VECT_SIZE >= 4
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s2) : "r"(tr.s2), "r"(tl.s2));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s3) : "r"(tr.s3), "r"(tl.s3));
+  #endif
+
+  #if VECT_SIZE >= 8
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s4) : "r"(tr.s4), "r"(tl.s4));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s5) : "r"(tr.s5), "r"(tl.s5));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s6) : "r"(tr.s6), "r"(tl.s6));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s7) : "r"(tr.s7), "r"(tl.s7));
+  #endif
+
+  #if VECT_SIZE >= 16
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s8) : "r"(tr.s8), "r"(tl.s8));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s9) : "r"(tr.s9), "r"(tl.s9));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.sa) : "r"(tr.sa), "r"(tl.sa));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.sb) : "r"(tr.sb), "r"(tl.sb));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.sc) : "r"(tr.sc), "r"(tl.sc));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.sd) : "r"(tr.sd), "r"(tl.sd));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.se) : "r"(tr.se), "r"(tl.se));
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.sf) : "r"(tr.sf), "r"(tl.sf));
+  #endif
+
+  #else
+  r = bitselect (bitselect (rotate (v, make_u64x (24)),
+                            rotate (v, make_u64x ( 8)),
+                                       make_u64x (0x000000ff000000ff)),
+                 bitselect (rotate (v, make_u64x (56)),
+                            rotate (v, make_u64x (40)),
+                                       make_u64x (0x00ff000000ff0000)),
+                                       make_u64x (0xffff0000ffff0000));
+  #endif
+  #endif
 
   return r;
 }
-#else
-DECLSPEC u32x hc_swap32 (const u32x v)
+
+DECLSPEC u64 hc_swap64_S (const u64 v)
 {
-  return bitselect (rotate (v, 24u), rotate (v, 8u), 0x00ff00ffu);
-}
+  u64 r;
 
-DECLSPEC u64x hc_swap64 (const u64x v)
-{
-  return bitselect (bitselect (rotate (v, 24ul),
-                               rotate (v,  8ul), 0x000000ff000000fful),
-                    bitselect (rotate (v, 56ul),
-                               rotate (v, 40ul), 0x00ff000000ff0000ul),
-                                                 0xffff0000ffff0000ul);
-}
-#endif
+  #ifdef _CPU_OPENCL_EMU_H
+  r = byte_swap_64 (v);
+  #else
+  #if   defined IS_AMD && HAS_VPERM == 1
+  const u32 m = 0x00010203;
 
-DECLSPEC u32x hc_rotr32 (const u32x a, const int n)
-{
-  return rotate (a, (u32) 32 - n);
-}
+  const u32 v0 = h32_from_64_S (v);
+  const u32 v1 = l32_from_64_S (v);
 
-DECLSPEC u32x hc_rotl32 (const u32x a, const int n)
-{
-  return rotate (a, (u32)  n);
-}
+  u32 t0;
+  u32 t1;
 
-DECLSPEC u64x hc_rotr64 (const u64x a, const int n)
-{
-  const u32x a0 = h32_from_64 (a);
-  const u32x a1 = l32_from_64 (a);
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(t0) : "v"(v0), "v"(m));
+  __asm__ __volatile__ ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(t1) : "v"(v1), "v"(m));
 
-  const u32x t0 = (n >= 32) ? amd_bitalign (a0, a1, n - 32) : amd_bitalign (a1, a0, n);
-  const u32x t1 = (n >= 32) ? amd_bitalign (a1, a0, n - 32) : amd_bitalign (a0, a1, n);
+  r = hl32_to_64_S (t1, t0);
+  #elif defined IS_NV  && HAS_PRMT  == 1
+  u32 il;
+  u32 ir;
 
-  const u64x r = hl32_to_64 (t0, t1);
+  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il), "=r"(ir) : "l"(v));
+
+  u32 tl;
+  u32 tr;
+
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl) : "r"(il));
+  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr) : "r"(ir));
+
+  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r) : "r"(tr), "r"(tl));
+  #else
+  r = as_ulong (as_uchar8 (v).s76543210);
+  #endif
+  #endif
 
   return r;
 }
 
-DECLSPEC u64x hc_rotl64 (const u64x a, const int n)
-{
-  return hc_rotr64 (a, 64 - n);
-}
+#ifdef IS_AMD
 
 DECLSPEC u32x hc_bfe (const u32x a, const u32x b, const u32x c)
 {
-  #define BIT(x)      ((u32x) (1u) << (x))
+  #define BIT(x)      (make_u32x (1u) << (x))
   #define BIT_MASK(x) (BIT (x) - 1)
   #define BFE(x,y,z)  (((x) >> (y)) & BIT_MASK (z))
 
@@ -728,239 +982,6 @@ DECLSPEC u32 hc_lop_0x96_S (const u32 a, const u32 b, const u32 c)
 #endif
 
 #ifdef IS_NV
-DECLSPEC u32 hc_swap32_S (const u32 v)
-{
-  u32 r = 0;
-
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r) : "r"(v));
-
-  return r;
-}
-
-DECLSPEC u64 hc_swap64_S (const u64 v)
-{
-  u32 il;
-  u32 ir;
-
-  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il), "=r"(ir) : "l"(v));
-
-  u32 tl;
-  u32 tr;
-
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl) : "r"(il));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr) : "r"(ir));
-
-  u64 r;
-
-  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r) : "r"(tr), "r"(tl));
-
-  return r;
-}
-
-DECLSPEC u32 hc_rotr32_S (const u32 a, const int n)
-{
-  return rotate (a, (u32) 32 - n);
-}
-
-DECLSPEC u32 hc_rotl32_S (const u32 a, const int n)
-{
-  return rotate (a, (u32) n);
-}
-
-DECLSPEC u64 hc_rotr64_S (const u64 a, const int n)
-{
-  return rotate (a, (u64) 64 - n);
-}
-
-DECLSPEC u64 hc_rotl64_S (const u64 a, const int n)
-{
-  return rotate (a, (u64) n);
-}
-
-DECLSPEC u32x hc_swap32 (const u32x v)
-{
-  u32x r = 0;
-
-  #if VECT_SIZE == 1
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r) : "r"(v));
-  #endif
-
-  #if VECT_SIZE >= 2
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s0) : "r"(v.s0));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s1) : "r"(v.s1));
-  #endif
-
-  #if VECT_SIZE >= 4
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s2) : "r"(v.s2));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s3) : "r"(v.s3));
-  #endif
-
-  #if VECT_SIZE >= 8
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s4) : "r"(v.s4));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s5) : "r"(v.s5));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s6) : "r"(v.s6));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s7) : "r"(v.s7));
-  #endif
-
-  #if VECT_SIZE >= 16
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s8) : "r"(v.s8));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s9) : "r"(v.s9));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.sa) : "r"(v.sa));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.sb) : "r"(v.sb));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.sc) : "r"(v.sc));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.sd) : "r"(v.sd));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.se) : "r"(v.se));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.sf) : "r"(v.sf));
-  #endif
-
-  return r;
-}
-
-DECLSPEC u64x hc_swap64 (const u64x v)
-{
-  u32x il;
-  u32x ir;
-
-  #if VECT_SIZE == 1
-  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il), "=r"(ir) : "l"(v));
-  #endif
-
-  #if VECT_SIZE >= 2
-  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s0), "=r"(ir.s0) : "l"(v.s0));
-  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s1), "=r"(ir.s1) : "l"(v.s1));
-  #endif
-
-  #if VECT_SIZE >= 4
-  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s2), "=r"(ir.s2) : "l"(v.s2));
-  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s3), "=r"(ir.s3) : "l"(v.s3));
-  #endif
-
-  #if VECT_SIZE >= 8
-  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s4), "=r"(ir.s4) : "l"(v.s4));
-  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s5), "=r"(ir.s5) : "l"(v.s5));
-  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s6), "=r"(ir.s6) : "l"(v.s6));
-  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s7), "=r"(ir.s7) : "l"(v.s7));
-  #endif
-
-  #if VECT_SIZE >= 16
-  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s8), "=r"(ir.s8) : "l"(v.s8));
-  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s9), "=r"(ir.s9) : "l"(v.s9));
-  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.sa), "=r"(ir.sa) : "l"(v.sa));
-  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.sb), "=r"(ir.sb) : "l"(v.sb));
-  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.sc), "=r"(ir.sc) : "l"(v.sc));
-  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.sd), "=r"(ir.sd) : "l"(v.sd));
-  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.se), "=r"(ir.se) : "l"(v.se));
-  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.sf), "=r"(ir.sf) : "l"(v.sf));
-  #endif
-
-  u32x tl;
-  u32x tr;
-
-  #if VECT_SIZE == 1
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl) : "r"(il));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr) : "r"(ir));
-  #endif
-
-  #if VECT_SIZE >= 2
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s0) : "r"(il.s0));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s0) : "r"(ir.s0));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s1) : "r"(il.s1));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s1) : "r"(ir.s1));
-  #endif
-
-  #if VECT_SIZE >= 4
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s2) : "r"(il.s2));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s2) : "r"(ir.s2));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s3) : "r"(il.s3));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s3) : "r"(ir.s3));
-  #endif
-
-  #if VECT_SIZE >= 8
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s4) : "r"(il.s4));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s4) : "r"(ir.s4));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s5) : "r"(il.s5));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s5) : "r"(ir.s5));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s6) : "r"(il.s6));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s6) : "r"(ir.s6));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s7) : "r"(il.s7));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s7) : "r"(ir.s7));
-  #endif
-
-  #if VECT_SIZE >= 16
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s8) : "r"(il.s8));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s8) : "r"(ir.s8));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s9) : "r"(il.s9));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s9) : "r"(ir.s9));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.sa) : "r"(il.sa));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.sa) : "r"(ir.sa));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.sb) : "r"(il.sb));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.sb) : "r"(ir.sb));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.sc) : "r"(il.sc));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.sc) : "r"(ir.sc));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.sd) : "r"(il.sd));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.sd) : "r"(ir.sd));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.se) : "r"(il.se));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.se) : "r"(ir.se));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.sf) : "r"(il.sf));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.sf) : "r"(ir.sf));
-  #endif
-
-  u64x r;
-
-  #if VECT_SIZE == 1
-  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r) : "r"(tr), "r"(tl));
-  #endif
-
-  #if VECT_SIZE >= 2
-  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s0) : "r"(tr.s0), "r"(tl.s0));
-  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s1) : "r"(tr.s1), "r"(tl.s1));
-  #endif
-
-  #if VECT_SIZE >= 4
-  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s2) : "r"(tr.s2), "r"(tl.s2));
-  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s3) : "r"(tr.s3), "r"(tl.s3));
-  #endif
-
-  #if VECT_SIZE >= 8
-  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s4) : "r"(tr.s4), "r"(tl.s4));
-  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s5) : "r"(tr.s5), "r"(tl.s5));
-  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s6) : "r"(tr.s6), "r"(tl.s6));
-  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s7) : "r"(tr.s7), "r"(tl.s7));
-  #endif
-
-  #if VECT_SIZE >= 16
-  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s8) : "r"(tr.s8), "r"(tl.s8));
-  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s9) : "r"(tr.s9), "r"(tl.s9));
-  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.sa) : "r"(tr.sa), "r"(tl.sa));
-  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.sb) : "r"(tr.sb), "r"(tl.sb));
-  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.sc) : "r"(tr.sc), "r"(tl.sc));
-  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.sd) : "r"(tr.sd), "r"(tl.sd));
-  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.se) : "r"(tr.se), "r"(tl.se));
-  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.sf) : "r"(tr.sf), "r"(tl.sf));
-  #endif
-
-  return r;
-}
-
-DECLSPEC u32x hc_rotr32 (const u32x a, const int n)
-{
-  return rotate (a, (u32x) 32 - n);
-}
-
-DECLSPEC u32x hc_rotl32 (const u32x a, const int n)
-{
-  return rotate (a, (u32x) n);
-}
-
-DECLSPEC u64x hc_rotr64 (const u64x a, const int n)
-{
-  return rotate (a, (u64x) 64 - n);
-}
-
-DECLSPEC u64x hc_rotl64 (const u64x a, const int n)
-{
-  return rotate (a, (u64x) n);
-}
 
 DECLSPEC u32x hc_byte_perm (const u32x a, const u32x b, const int c)
 {
@@ -1157,122 +1178,10 @@ DECLSPEC u32 hc_lop_0x96_S (const u32 a, const u32 b, const u32 c)
 #endif
 
 #ifdef IS_GENERIC
-DECLSPEC u32 hc_swap32_S (const u32 v)
-{
-  #ifdef _CPU_OPENCL_EMU_H
-  return byte_swap_32 (v);
-  #else
-  return (as_uint (as_uchar4 (v).s3210));
-  #endif
-}
-
-DECLSPEC u64 hc_swap64_S (const u64 v)
-{
-  #ifdef _CPU_OPENCL_EMU_H
-  return byte_swap_64 (v);
-  #else
-  return (as_ulong (as_uchar8 (v).s76543210));
-  #endif
-}
-
-DECLSPEC u32 hc_rotr32_S (const u32 a, const int n)
-{
-  #ifdef _CPU_OPENCL_EMU_H
-  return rotr32 (a, n);
-  #else
-  return rotate (a, (u32) 32 - n);
-  #endif
-}
-
-DECLSPEC u32 hc_rotl32_S (const u32 a, const int n)
-{
-  #ifdef _CPU_OPENCL_EMU_H
-  return rotl32 (a, n);
-  #else
-  return rotate (a, (u32) n);
-  #endif
-}
-
-DECLSPEC u64 hc_rotr64_S (const u64 a, const int n)
-{
-  #ifdef _CPU_OPENCL_EMU_H
-  return rotr64 (a, n);
-  #else
-  return rotate (a, (u64) 64 - n);
-  #endif
-}
-
-DECLSPEC u64 hc_rotl64_S (const u64 a, const int n)
-{
-  #ifdef _CPU_OPENCL_EMU_H
-  return rotl64 (a, n);
-  #else
-  return rotate (a, (u64) n);
-  #endif
-}
-
-DECLSPEC u32x hc_swap32 (const u32x v)
-{
-  return ((v >> 24) & 0x000000ff)
-       | ((v >>  8) & 0x0000ff00)
-       | ((v <<  8) & 0x00ff0000)
-       | ((v << 24) & 0xff000000);
-}
-
-DECLSPEC u64x hc_swap64 (const u64x v)
-{
-  return ((v >> 56) & 0x00000000000000ff)
-       | ((v >> 40) & 0x000000000000ff00)
-       | ((v >> 24) & 0x0000000000ff0000)
-       | ((v >>  8) & 0x00000000ff000000)
-       | ((v <<  8) & 0x000000ff00000000)
-       | ((v << 24) & 0x0000ff0000000000)
-       | ((v << 40) & 0x00ff000000000000)
-       | ((v << 56) & 0xff00000000000000);
-}
-
-// For _CPU_OPENCL_EMU_H we dont need to care about vector functions
-// The VECT_SIZE is guaranteed to be set to 1 from cpu_opencl_emu.h
-
-DECLSPEC u32x hc_rotr32 (const u32x a, const int n)
-{
-  #ifdef _CPU_OPENCL_EMU_H
-  return rotr32 (a, n);
-  #else
-  return rotate (a, (u32x) 32 - n);
-  #endif
-}
-
-DECLSPEC u32x hc_rotl32 (const u32x a, const int n)
-{
-  #ifdef _CPU_OPENCL_EMU_H
-  return rotl32 (a, n);
-  #else
-  return rotate (a, (u32x) n);
-  #endif
-}
-
-DECLSPEC u64x hc_rotr64 (const u64x a, const int n)
-{
-  #ifdef _CPU_OPENCL_EMU_H
-  return rotr64 (a, n);
-  #else
-  return rotate (a, (u64x) 64 - n);
-  #endif
-}
-
-DECLSPEC u64x hc_rotl64 (const u64x a, const int n)
-{
-  #ifdef _CPU_OPENCL_EMU_H
-  return rotl64 (a, n);
-  #else
-  return rotate (a, (u64x) n);
-  #endif
-}
 
 DECLSPEC u32x hc_bfe (const u32x a, const u32x b, const u32x c)
 {
-  #define BIT(x)      ((u32x) (1u) << (x))
+  #define BIT(x)      (make_u32x (1u) << (x))
   #define BIT_MASK(x) (BIT (x) - 1)
   #define BFE(x,y,z)  (((x) >> (y)) & BIT_MASK (z))
 
@@ -1523,8 +1432,8 @@ DECLSPEC int is_valid_hex_8 (const u8 v)
 {
   // direct lookup table is slower thanks to CMOV
 
-  if ((v >= '0') && (v <= '9')) return 1;
-  if ((v >= 'a') && (v <= 'f')) return 1;
+  if ((v >= (u8) '0') && (v <= (u8) '9')) return 1;
+  if ((v >= (u8) 'a') && (v <= (u8) 'f')) return 1;
 
   return 0;
 }
@@ -1541,10 +1450,10 @@ DECLSPEC int is_valid_hex_32 (const u32 v)
 
 DECLSPEC int is_valid_base58_8 (const u8 v)
 {
-  if (v > 'z') return 0;
-  if (v < '1') return 0;
-  if ((v > '9') && (v < 'A')) return 0;
-  if ((v > 'Z') && (v < 'a')) return 0;
+  if (v > (u8) 'z') return 0;
+  if (v < (u8) '1') return 0;
+  if ((v > (u8) '9') && (v < (u8) 'A')) return 0;
+  if ((v > (u8) 'Z') && (v < (u8) 'a')) return 0;
 
   return 1;
 }
@@ -60968,7 +60877,23 @@ KERNEL_FQ void gpu_memset (GLOBAL_AS uint4 *buf, const u32 value, const u64 gid_
 
   if (gid >= gid_max) return;
 
-  buf[gid] = (uint4) (value);
+  uint4 r;
+
+  #if   defined IS_NATIVE
+  r = value;
+  #elif defined IS_OPENCL
+  r.s0 = value;
+  r.s1 = value;
+  r.s2 = value;
+  r.s3 = value;
+  #elif defined IS_CUDA
+  r.x = value;
+  r.y = value;
+  r.z = value;
+  r.w = value;
+  #endif
+
+  buf[gid] = r;
 }
 
 KERNEL_FQ void gpu_atinit (GLOBAL_AS pw_t *buf, const u64 gid_max)

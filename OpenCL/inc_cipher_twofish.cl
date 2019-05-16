@@ -21,10 +21,11 @@
 
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.h"
 #include "inc_common.h"
 #include "inc_cipher_twofish.h"
 
-CONSTANT_AS u32a q_tab[2][256] =
+CONSTANT_VK u32a q_tab[2][256] =
 {
   {
     0xA9, 0x67, 0xB3, 0xE8, 0x04, 0xFD, 0xA3, 0x76, 0x9A, 0x92, 0x80, 0x78,
@@ -76,7 +77,7 @@ CONSTANT_AS u32a q_tab[2][256] =
   }
 };
 
-CONSTANT_AS u32a  m_tab[4][256] =
+CONSTANT_VK u32a  m_tab[4][256] =
 {
   { 0xBCBC3275, 0xECEC21F3, 0x202043C6, 0xB3B3C9F4, 0xDADA03DB, 0x02028B7B,
     0xE2E22BFB, 0x9E9EFAC8, 0xC9C9EC4A, 0xD4D409D3, 0x18186BE6, 0x1E1E9F6B,
@@ -255,64 +256,62 @@ CONSTANT_AS u32a  m_tab[4][256] =
     0xECC94AEC, 0xFDD25EFD, 0xAB7FC1AB, 0xD8A8E0D8 }
 };
 
-#define extract_byte(x,n) (((x) >> (8 * (n))) & 0xff)
+#define g1_fun128(x)                              \
+  (mds (0, q20 (unpack_v8d_from_v32_S (x), sk)) ^ \
+   mds (1, q21 (unpack_v8a_from_v32_S (x), sk)) ^ \
+   mds (2, q22 (unpack_v8b_from_v32_S (x), sk)) ^ \
+   mds (3, q23 (unpack_v8c_from_v32_S (x), sk)))
 
-#define g1_fun128(x)                        \
-  (mds (0, q20 (extract_byte (x, 3), sk)) ^ \
-   mds (1, q21 (extract_byte (x, 0), sk)) ^ \
-   mds (2, q22 (extract_byte (x, 1), sk)) ^ \
-   mds (3, q23 (extract_byte (x, 2), sk)))
+#define g0_fun128(x)                              \
+  (mds (0, q20 (unpack_v8a_from_v32_S (x), sk)) ^ \
+   mds (1, q21 (unpack_v8b_from_v32_S (x), sk)) ^ \
+   mds (2, q22 (unpack_v8c_from_v32_S (x), sk)) ^ \
+   mds (3, q23 (unpack_v8d_from_v32_S (x), sk)))
 
-#define g0_fun128(x)                        \
-  (mds (0, q20 (extract_byte (x, 0), sk)) ^ \
-   mds (1, q21 (extract_byte (x, 1), sk)) ^ \
-   mds (2, q22 (extract_byte (x, 2), sk)) ^ \
-   mds (3, q23 (extract_byte (x, 3), sk)))
-
-#define f_rnd128(i)                                                   \
-{                                                                     \
-  u32 t0 = g0_fun128 (data[0]);                                       \
-  u32 t1 = g1_fun128 (data[1]);                                       \
+#define f_rnd128(i)                                                      \
+{                                                                        \
+  const u32 t0 = g0_fun128 (data[0]);                                    \
+  const u32 t1 = g1_fun128 (data[1]);                                    \
   data[2] = hc_rotr32_S (data[2] ^ (t0 + t1 + lk[4 * (i) + 8]), 1);      \
   data[3] = hc_rotl32_S (data[3], 1) ^ (t0 + 2 * t1 + lk[4 * (i) + 9]);  \
-  u32 t2 = g0_fun128 (data[2]);                                       \
-  u32 t3 = g1_fun128 (data[3]);                                       \
+  const u32 t2 = g0_fun128 (data[2]);                                    \
+  const u32 t3 = g1_fun128 (data[3]);                                    \
   data[0] = hc_rotr32_S (data[0] ^ (t2 + t3 + lk[4 * (i) + 10]), 1);     \
   data[1] = hc_rotl32_S (data[1], 1) ^ (t2 + 2 * t3 + lk[4 * (i) + 11]); \
 }
 
-#define i_rnd128(i)                                                   \
-{                                                                     \
-  u32 t0 = g0_fun128 (data[0]);                                       \
-  u32 t1 = g1_fun128 (data[1]);                                       \
+#define i_rnd128(i)                                                      \
+{                                                                        \
+  const u32 t0 = g0_fun128 (data[0]);                                    \
+  const u32 t1 = g1_fun128 (data[1]);                                    \
   data[2] = hc_rotl32_S (data[2], 1) ^ (t0 + t1 + lk[4 * (i) + 10]);     \
   data[3] = hc_rotr32_S (data[3] ^ (t0 + 2 * t1 + lk[4 * (i) + 11]), 1); \
-  u32 t2 = g0_fun128 (data[2]);                                       \
-  u32 t3 = g1_fun128 (data[3]);                                       \
+  const u32 t2 = g0_fun128 (data[2]);                                    \
+  const u32 t3 = g1_fun128 (data[3]);                                    \
   data[0] = hc_rotl32_S (data[0], 1) ^ (t2 + t3 + lk[4 * (i) +  8]);     \
   data[1] = hc_rotr32_S (data[1] ^ (t2 + 2 * t3 + lk[4 * (i) +  9]), 1); \
 }
 
-#define f_rnd256(i)                                                   \
-{                                                                     \
-  u32 t0 = g0_fun256 (data[0]);                                       \
-  u32 t1 = g1_fun256 (data[1]);                                       \
+#define f_rnd256(i)                                                      \
+{                                                                        \
+  const u32 t0 = g0_fun256 (data[0]);                                    \
+  const u32 t1 = g1_fun256 (data[1]);                                    \
   data[2] = hc_rotr32_S (data[2] ^ (t0 + t1 + lk[4 * (i) + 8]), 1);      \
   data[3] = hc_rotl32_S (data[3], 1) ^ (t0 + 2 * t1 + lk[4 * (i) + 9]);  \
-  u32 t2 = g0_fun256 (data[2]);                                       \
-  u32 t3 = g1_fun256 (data[3]);                                       \
+  const u32 t2 = g0_fun256 (data[2]);                                    \
+  const u32 t3 = g1_fun256 (data[3]);                                    \
   data[0] = hc_rotr32_S (data[0] ^ (t2 + t3 + lk[4 * (i) + 10]), 1);     \
   data[1] = hc_rotl32_S (data[1], 1) ^ (t2 + 2 * t3 + lk[4 * (i) + 11]); \
 }
 
-#define i_rnd256(i)                                                   \
-{                                                                     \
-  u32 t0 = g0_fun256 (data[0]);                                       \
-  u32 t1 = g1_fun256 (data[1]);                                       \
+#define i_rnd256(i)                                                      \
+{                                                                        \
+  const u32 t0 = g0_fun256 (data[0]);                                    \
+  const u32 t1 = g1_fun256 (data[1]);                                    \
   data[2] = hc_rotl32_S (data[2], 1) ^ (t0 + t1 + lk[4 * (i) + 10]);     \
   data[3] = hc_rotr32_S (data[3] ^ (t0 + 2 * t1 + lk[4 * (i) + 11]), 1); \
-  u32 t2 = g0_fun256 (data[2]);                                       \
-  u32 t3 = g1_fun256 (data[3]);                                       \
+  const u32 t2 = g0_fun256 (data[2]);                                    \
+  const u32 t3 = g1_fun256 (data[3]);                                    \
   data[0] = hc_rotl32_S (data[0], 1) ^ (t2 + t3 + lk[4 * (i) +  8]);     \
   data[1] = hc_rotr32_S (data[1] ^ (t2 + 2 * t3 + lk[4 * (i) +  9]), 1); \
 }
@@ -321,15 +320,15 @@ CONSTANT_AS u32a  m_tab[4][256] =
 
 #define mds(n,x) m_tab[n][x]
 
-#define q20(x,k) q (0, q (0, x) ^ extract_byte (k[1], 0)) ^ extract_byte (k[0], 0)
-#define q21(x,k) q (0, q (1, x) ^ extract_byte (k[1], 1)) ^ extract_byte (k[0], 1)
-#define q22(x,k) q (1, q (0, x) ^ extract_byte (k[1], 2)) ^ extract_byte (k[0], 2)
-#define q23(x,k) q (1, q (1, x) ^ extract_byte (k[1], 3)) ^ extract_byte (k[0], 3)
+#define q20(x,k) q (0, q (0, x) ^ unpack_v8a_from_v32_S (k[1])) ^ unpack_v8a_from_v32_S (k[0])
+#define q21(x,k) q (0, q (1, x) ^ unpack_v8b_from_v32_S (k[1])) ^ unpack_v8b_from_v32_S (k[0])
+#define q22(x,k) q (1, q (0, x) ^ unpack_v8c_from_v32_S (k[1])) ^ unpack_v8c_from_v32_S (k[0])
+#define q23(x,k) q (1, q (1, x) ^ unpack_v8d_from_v32_S (k[1])) ^ unpack_v8d_from_v32_S (k[0])
 
-#define q40(x,k) q (0, q (0, q (1, q (1, x) ^ extract_byte (k[3], 0)) ^ extract_byte (k[2], 0)) ^ extract_byte (k[1], 0)) ^ extract_byte (k[0], 0)
-#define q41(x,k) q (0, q (1, q (1, q (0, x) ^ extract_byte (k[3], 1)) ^ extract_byte (k[2], 1)) ^ extract_byte (k[1], 1)) ^ extract_byte (k[0], 1)
-#define q42(x,k) q (1, q (0, q (0, q (0, x) ^ extract_byte (k[3], 2)) ^ extract_byte (k[2], 2)) ^ extract_byte (k[1], 2)) ^ extract_byte (k[0], 2)
-#define q43(x,k) q (1, q (1, q (0, q (1, x) ^ extract_byte (k[3], 3)) ^ extract_byte (k[2], 3)) ^ extract_byte (k[1], 3)) ^ extract_byte (k[0], 3)
+#define q40(x,k) q (0, q (0, q (1, q (1, x) ^ unpack_v8a_from_v32_S (k[3])) ^ unpack_v8a_from_v32_S (k[2])) ^ unpack_v8a_from_v32_S (k[1])) ^ unpack_v8a_from_v32_S (k[0])
+#define q41(x,k) q (0, q (1, q (1, q (0, x) ^ unpack_v8b_from_v32_S (k[3])) ^ unpack_v8b_from_v32_S (k[2])) ^ unpack_v8b_from_v32_S (k[1])) ^ unpack_v8b_from_v32_S (k[0])
+#define q42(x,k) q (1, q (0, q (0, q (0, x) ^ unpack_v8c_from_v32_S (k[3])) ^ unpack_v8c_from_v32_S (k[2])) ^ unpack_v8c_from_v32_S (k[1])) ^ unpack_v8c_from_v32_S (k[0])
+#define q43(x,k) q (1, q (1, q (0, q (1, x) ^ unpack_v8d_from_v32_S (k[3])) ^ unpack_v8d_from_v32_S (k[2])) ^ unpack_v8d_from_v32_S (k[1])) ^ unpack_v8d_from_v32_S (k[0])
 
 DECLSPEC u32 mds_rem (u32 p0, u32 p1)
 {
@@ -337,7 +336,7 @@ DECLSPEC u32 mds_rem (u32 p0, u32 p1)
 
   #define MDS_REM_ROUND()           \
   {                                 \
-    u32 t = p1 >> 24;               \
+    const u32 t = p1 >> 24;         \
     p1 = (p1 << 8) | (p0 >> 24);    \
     p0 <<= 8;                       \
     u32 u = (t << 1);               \
@@ -366,15 +365,15 @@ DECLSPEC u32 h_fun128 (const u32 x, const u32 *key)
 {
   u32  b0, b1, b2, b3;
 
-  b0 = extract_byte (x, 0);
-  b1 = extract_byte (x, 1);
-  b2 = extract_byte (x, 2);
-  b3 = extract_byte (x, 3);
+  b0 = unpack_v8a_from_v32_S (x);
+  b1 = unpack_v8b_from_v32_S (x);
+  b2 = unpack_v8c_from_v32_S (x);
+  b3 = unpack_v8d_from_v32_S (x);
 
-  b0 = q (0, (q (0, b0) ^ extract_byte (key[1], 0))) ^ extract_byte (key[0], 0);
-  b1 = q (0, (q (1, b1) ^ extract_byte (key[1], 1))) ^ extract_byte (key[0], 1);
-  b2 = q (1, (q (0, b2) ^ extract_byte (key[1], 2))) ^ extract_byte (key[0], 2);
-  b3 = q (1, (q (1, b3) ^ extract_byte (key[1], 3))) ^ extract_byte (key[0], 3);
+  b0 = q (0, (q (0, b0) ^ unpack_v8a_from_v32_S (key[1]))) ^ unpack_v8a_from_v32_S (key[0]);
+  b1 = q (0, (q (1, b1) ^ unpack_v8b_from_v32_S (key[1]))) ^ unpack_v8b_from_v32_S (key[0]);
+  b2 = q (1, (q (0, b2) ^ unpack_v8c_from_v32_S (key[1]))) ^ unpack_v8c_from_v32_S (key[0]);
+  b3 = q (1, (q (1, b3) ^ unpack_v8d_from_v32_S (key[1]))) ^ unpack_v8d_from_v32_S (key[0]);
 
   return mds (0, b0) ^ mds (1, b1) ^ mds (2, b2) ^ mds (3, b3);
 }
@@ -394,6 +393,9 @@ DECLSPEC void twofish128_set_key (u32 *sk, u32 *lk, const u32 *ukey)
   sk[1] = mds_rem (me_key[0], mo_key[0]);
   sk[0] = mds_rem (me_key[1], mo_key[1]);
 
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (int i = 0; i < 40; i += 2)
   {
     u32 a = 0x01010101 * i;
@@ -459,41 +461,41 @@ DECLSPEC void twofish128_decrypt (const u32 *sk, const u32 *lk, const u32 *in, u
 
 // 256 bit key
 
-#define g1_fun256(x)                        \
-  (mds (0, q40 (extract_byte (x, 3), sk)) ^ \
-   mds (1, q41 (extract_byte (x, 0), sk)) ^ \
-   mds (2, q42 (extract_byte (x, 1), sk)) ^ \
-   mds (3, q43 (extract_byte (x, 2), sk)))
+#define g1_fun256(x)                              \
+  (mds (0, q40 (unpack_v8d_from_v32_S (x), sk)) ^ \
+   mds (1, q41 (unpack_v8a_from_v32_S (x), sk)) ^ \
+   mds (2, q42 (unpack_v8b_from_v32_S (x), sk)) ^ \
+   mds (3, q43 (unpack_v8c_from_v32_S (x), sk)))
 
-#define g0_fun256(x)                        \
-  (mds (0, q40 (extract_byte (x, 0), sk)) ^ \
-   mds (1, q41 (extract_byte (x, 1), sk)) ^ \
-   mds (2, q42 (extract_byte (x, 2), sk)) ^ \
-   mds (3, q43 (extract_byte (x, 3), sk)))
+#define g0_fun256(x)                              \
+  (mds (0, q40 (unpack_v8a_from_v32_S (x), sk)) ^ \
+   mds (1, q41 (unpack_v8b_from_v32_S (x), sk)) ^ \
+   mds (2, q42 (unpack_v8c_from_v32_S (x), sk)) ^ \
+   mds (3, q43 (unpack_v8d_from_v32_S (x), sk)))
 
 DECLSPEC u32 h_fun256 (const u32 x, const u32 *key)
 {
   u32  b0, b1, b2, b3;
 
-  b0 = extract_byte (x, 0);
-  b1 = extract_byte (x, 1);
-  b2 = extract_byte (x, 2);
-  b3 = extract_byte (x, 3);
+  b0 = unpack_v8a_from_v32_S (x);
+  b1 = unpack_v8b_from_v32_S (x);
+  b2 = unpack_v8c_from_v32_S (x);
+  b3 = unpack_v8d_from_v32_S (x);
 
-  b0 = q (1, b0) ^ extract_byte (key[3], 0);
-  b1 = q (0, b1) ^ extract_byte (key[3], 1);
-  b2 = q (0, b2) ^ extract_byte (key[3], 2);
-  b3 = q (1, b3) ^ extract_byte (key[3], 3);
+  b0 = q (1, b0) ^ unpack_v8a_from_v32_S (key[3]);
+  b1 = q (0, b1) ^ unpack_v8b_from_v32_S (key[3]);
+  b2 = q (0, b2) ^ unpack_v8c_from_v32_S (key[3]);
+  b3 = q (1, b3) ^ unpack_v8d_from_v32_S (key[3]);
 
-  b0 = q (1, b0) ^ extract_byte (key[2], 0);
-  b1 = q (1, b1) ^ extract_byte (key[2], 1);
-  b2 = q (0, b2) ^ extract_byte (key[2], 2);
-  b3 = q (0, b3) ^ extract_byte (key[2], 3);
+  b0 = q (1, b0) ^ unpack_v8a_from_v32_S (key[2]);
+  b1 = q (1, b1) ^ unpack_v8b_from_v32_S (key[2]);
+  b2 = q (0, b2) ^ unpack_v8c_from_v32_S (key[2]);
+  b3 = q (0, b3) ^ unpack_v8d_from_v32_S (key[2]);
 
-  b0 = q (0, (q (0, b0) ^ extract_byte (key[1], 0))) ^ extract_byte (key[0], 0);
-  b1 = q (0, (q (1, b1) ^ extract_byte (key[1], 1))) ^ extract_byte (key[0], 1);
-  b2 = q (1, (q (0, b2) ^ extract_byte (key[1], 2))) ^ extract_byte (key[0], 2);
-  b3 = q (1, (q (1, b3) ^ extract_byte (key[1], 3))) ^ extract_byte (key[0], 3);
+  b0 = q (0, (q (0, b0) ^ unpack_v8a_from_v32_S (key[1]))) ^ unpack_v8a_from_v32_S (key[0]);
+  b1 = q (0, (q (1, b1) ^ unpack_v8b_from_v32_S (key[1]))) ^ unpack_v8b_from_v32_S (key[0]);
+  b2 = q (1, (q (0, b2) ^ unpack_v8c_from_v32_S (key[1]))) ^ unpack_v8c_from_v32_S (key[0]);
+  b3 = q (1, (q (1, b3) ^ unpack_v8d_from_v32_S (key[1]))) ^ unpack_v8d_from_v32_S (key[0]);
 
   return mds (0, b0) ^ mds (1, b1) ^ mds (2, b2) ^ mds (3, b3);
 }
@@ -519,6 +521,9 @@ DECLSPEC void twofish256_set_key (u32 *sk, u32 *lk, const u32 *ukey)
   sk[1] = mds_rem (me_key[2], mo_key[2]);
   sk[0] = mds_rem (me_key[3], mo_key[3]);
 
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (int i = 0; i < 40; i += 2)
   {
     u32 a = 0x01010101 * i;

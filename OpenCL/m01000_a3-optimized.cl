@@ -8,6 +8,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_md4.cl"
@@ -28,7 +29,7 @@
   a -= t;                               \
 }
 
-DECLSPEC static void m01000m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC void m01000m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -164,7 +165,7 @@ DECLSPEC static void m01000m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
   }
 }
 
-DECLSPEC static void m01000s (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC void m01000s (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier

@@ -8,6 +8,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha1.cl"
@@ -31,7 +32,7 @@ typedef struct androidfde
 
 } androidfde_t;
 
-DECLSPEC static void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
+DECLSPEC void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
 {
   digest[0] = ipad[0];
   digest[1] = ipad[1];
@@ -236,17 +237,17 @@ KERNEL_FQ void m08800_comp (KERN_ATTR_TMPS_ESALT (androidfde_tmp_t, androidfde_t
 
   #ifdef REAL_SHM
 
-  LOCAL_AS u32 s_td0[256];
-  LOCAL_AS u32 s_td1[256];
-  LOCAL_AS u32 s_td2[256];
-  LOCAL_AS u32 s_td3[256];
-  LOCAL_AS u32 s_td4[256];
+  LOCAL_VK u32 s_td0[256];
+  LOCAL_VK u32 s_td1[256];
+  LOCAL_VK u32 s_td2[256];
+  LOCAL_VK u32 s_td3[256];
+  LOCAL_VK u32 s_td4[256];
 
-  LOCAL_AS u32 s_te0[256];
-  LOCAL_AS u32 s_te1[256];
-  LOCAL_AS u32 s_te2[256];
-  LOCAL_AS u32 s_te3[256];
-  LOCAL_AS u32 s_te4[256];
+  LOCAL_VK u32 s_te0[256];
+  LOCAL_VK u32 s_te1[256];
+  LOCAL_VK u32 s_te2[256];
+  LOCAL_VK u32 s_te3[256];
+  LOCAL_VK u32 s_te4[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -263,7 +264,7 @@ KERNEL_FQ void m08800_comp (KERN_ATTR_TMPS_ESALT (androidfde_tmp_t, androidfde_t
     s_te4[i] = te4[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 

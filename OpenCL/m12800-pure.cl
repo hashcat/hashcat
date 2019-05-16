@@ -8,6 +8,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_md4.cl"
@@ -33,7 +34,7 @@ typedef struct pbkdf2_sha256
 
 } pbkdf2_sha256_t;
 
-DECLSPEC static void hmac_sha256_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
+DECLSPEC void hmac_sha256_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
 {
   digest[0] = ipad[0];
   digest[1] = ipad[1];
@@ -89,7 +90,7 @@ KERNEL_FQ void m12800_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
    * lookup ascii table
    */
 
-  LOCAL_AS u32 l_bin2asc[256];
+  LOCAL_VK u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -100,7 +101,7 @@ KERNEL_FQ void m12800_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
                  | ((i1 < 10) ? '0' + i1 : 'A' - 10 + i1) << 0;
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 

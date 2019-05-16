@@ -8,11 +8,12 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #endif
 
-CONSTANT_AS u64a keccakf_rndc[24] =
+CONSTANT_VK u64a keccakf_rndc[24] =
 {
   0x0000000000000001, 0x0000000000008082, 0x800000000000808a,
   0x8000000080008000, 0x000000000000808b, 0x0000000080000001,
@@ -28,7 +29,7 @@ CONSTANT_AS u64a keccakf_rndc[24] =
 #define KECCAK_ROUNDS 24
 #endif
 
-DECLSPEC static void m17400m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC ())
+DECLSPEC void m17400m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -214,7 +215,7 @@ DECLSPEC static void m17400m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_l
   }
 }
 
-DECLSPEC static void m17400s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC ())
+DECLSPEC void m17400s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC ())
 {
   /**
    * modifier

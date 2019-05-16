@@ -8,6 +8,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_md4.cl"
@@ -45,7 +46,7 @@ typedef struct netntlm
   a  = a ^ tt;              \
 }
 
-CONSTANT_AS u32a c_SPtrans[8][64] =
+CONSTANT_VK u32a c_SPtrans[8][64] =
 {
   {
     0x02080800, 0x00080000, 0x02000002, 0x02080802,
@@ -193,7 +194,7 @@ CONSTANT_AS u32a c_SPtrans[8][64] =
   }
 };
 
-CONSTANT_AS u32a c_skb[8][64] =
+CONSTANT_VK u32a c_skb[8][64] =
 {
   {
     0x00000000, 0x00000010, 0x20000000, 0x20000010,
@@ -344,16 +345,16 @@ CONSTANT_AS u32a c_skb[8][64] =
 #if   VECT_SIZE == 1
 #define BOX(i,n,S) (S)[(n)][(i)]
 #elif VECT_SIZE == 2
-#define BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1])
+#define BOX(i,n,S) make_u32x ((S)[(n)][(i).s0], (S)[(n)][(i).s1])
 #elif VECT_SIZE == 4
-#define BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3])
+#define BOX(i,n,S) make_u32x ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3])
 #elif VECT_SIZE == 8
-#define BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3], (S)[(n)][(i).s4], (S)[(n)][(i).s5], (S)[(n)][(i).s6], (S)[(n)][(i).s7])
+#define BOX(i,n,S) make_u32x ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3], (S)[(n)][(i).s4], (S)[(n)][(i).s5], (S)[(n)][(i).s6], (S)[(n)][(i).s7])
 #elif VECT_SIZE == 16
-#define BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3], (S)[(n)][(i).s4], (S)[(n)][(i).s5], (S)[(n)][(i).s6], (S)[(n)][(i).s7], (S)[(n)][(i).s8], (S)[(n)][(i).s9], (S)[(n)][(i).sa], (S)[(n)][(i).sb], (S)[(n)][(i).sc], (S)[(n)][(i).sd], (S)[(n)][(i).se], (S)[(n)][(i).sf])
+#define BOX(i,n,S) make_u32x ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3], (S)[(n)][(i).s4], (S)[(n)][(i).s5], (S)[(n)][(i).s6], (S)[(n)][(i).s7], (S)[(n)][(i).s8], (S)[(n)][(i).s9], (S)[(n)][(i).sa], (S)[(n)][(i).sb], (S)[(n)][(i).sc], (S)[(n)][(i).sd], (S)[(n)][(i).se], (S)[(n)][(i).sf])
 #endif
 
-DECLSPEC static void _des_crypt_encrypt (u32x *iv, u32x *data, u32x *Kc, u32x *Kd, LOCAL_AS u32 (*s_SPtrans)[64])
+DECLSPEC void _des_crypt_encrypt (u32x *iv, u32x *data, u32x *Kc, u32x *Kd, LOCAL_AS u32 (*s_SPtrans)[64])
 {
   u32x r = data[0];
   u32x l = data[1];
@@ -395,7 +396,7 @@ DECLSPEC static void _des_crypt_encrypt (u32x *iv, u32x *data, u32x *Kc, u32x *K
   iv[1] = r;
 }
 
-DECLSPEC static void _des_crypt_keysetup (u32x c, u32x d, u32x *Kc, u32x *Kd, LOCAL_AS u32 (*s_skb)[64])
+DECLSPEC void _des_crypt_keysetup (u32x c, u32x d, u32x *Kc, u32x *Kd, LOCAL_AS u32 (*s_skb)[64])
 {
   u32x tt;
 
@@ -464,7 +465,7 @@ DECLSPEC static void _des_crypt_keysetup (u32x c, u32x d, u32x *Kc, u32x *Kd, LO
   }
 }
 
-DECLSPEC static void transform_netntlmv1_key (const u32x w0, const u32x w1, u32x *out)
+DECLSPEC void transform_netntlmv1_key (const u32x w0, const u32x w1, u32x *out)
 {
   u32x t[8];
 
@@ -499,7 +500,7 @@ DECLSPEC static void transform_netntlmv1_key (const u32x w0, const u32x w1, u32x
          | ((k[7] & 0xff) << 24);
 }
 
-DECLSPEC static void m05500m (LOCAL_AS u32 (*s_SPtrans)[64], LOCAL_AS u32 (*s_skb)[64], u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC void m05500m (LOCAL_AS u32 (*s_SPtrans)[64], LOCAL_AS u32 (*s_skb)[64], u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -656,7 +657,7 @@ DECLSPEC static void m05500m (LOCAL_AS u32 (*s_SPtrans)[64], LOCAL_AS u32 (*s_sk
   }
 }
 
-DECLSPEC static void m05500s (LOCAL_AS u32 (*s_SPtrans)[64], LOCAL_AS u32 (*s_skb)[64], u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC void m05500s (LOCAL_AS u32 (*s_SPtrans)[64], LOCAL_AS u32 (*s_skb)[64], u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -846,8 +847,8 @@ KERNEL_FQ void m05500_m04 (KERN_ATTR_VECTOR ())
    * sbox, kbox
    */
 
-  LOCAL_AS u32 s_SPtrans[8][64];
-  LOCAL_AS u32 s_skb[8][64];
+  LOCAL_VK u32 s_SPtrans[8][64];
+  LOCAL_VK u32 s_skb[8][64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
@@ -870,7 +871,7 @@ KERNEL_FQ void m05500_m04 (KERN_ATTR_VECTOR ())
     s_skb[7][i] = c_skb[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -920,8 +921,8 @@ KERNEL_FQ void m05500_m08 (KERN_ATTR_VECTOR ())
    * sbox, kbox
    */
 
-  LOCAL_AS u32 s_SPtrans[8][64];
-  LOCAL_AS u32 s_skb[8][64];
+  LOCAL_VK u32 s_SPtrans[8][64];
+  LOCAL_VK u32 s_skb[8][64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
@@ -944,7 +945,7 @@ KERNEL_FQ void m05500_m08 (KERN_ATTR_VECTOR ())
     s_skb[7][i] = c_skb[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -994,8 +995,8 @@ KERNEL_FQ void m05500_m16 (KERN_ATTR_VECTOR ())
    * sbox, kbox
    */
 
-  LOCAL_AS u32 s_SPtrans[8][64];
-  LOCAL_AS u32 s_skb[8][64];
+  LOCAL_VK u32 s_SPtrans[8][64];
+  LOCAL_VK u32 s_skb[8][64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
@@ -1018,7 +1019,7 @@ KERNEL_FQ void m05500_m16 (KERN_ATTR_VECTOR ())
     s_skb[7][i] = c_skb[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -1068,8 +1069,8 @@ KERNEL_FQ void m05500_s04 (KERN_ATTR_VECTOR ())
    * sbox, kbox
    */
 
-  LOCAL_AS u32 s_SPtrans[8][64];
-  LOCAL_AS u32 s_skb[8][64];
+  LOCAL_VK u32 s_SPtrans[8][64];
+  LOCAL_VK u32 s_skb[8][64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
@@ -1092,7 +1093,7 @@ KERNEL_FQ void m05500_s04 (KERN_ATTR_VECTOR ())
     s_skb[7][i] = c_skb[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -1142,8 +1143,8 @@ KERNEL_FQ void m05500_s08 (KERN_ATTR_VECTOR ())
    * sbox, kbox
    */
 
-  LOCAL_AS u32 s_SPtrans[8][64];
-  LOCAL_AS u32 s_skb[8][64];
+  LOCAL_VK u32 s_SPtrans[8][64];
+  LOCAL_VK u32 s_skb[8][64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
@@ -1166,7 +1167,7 @@ KERNEL_FQ void m05500_s08 (KERN_ATTR_VECTOR ())
     s_skb[7][i] = c_skb[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -1216,8 +1217,8 @@ KERNEL_FQ void m05500_s16 (KERN_ATTR_VECTOR ())
    * sbox, kbox
    */
 
-  LOCAL_AS u32 s_SPtrans[8][64];
-  LOCAL_AS u32 s_skb[8][64];
+  LOCAL_VK u32 s_SPtrans[8][64];
+  LOCAL_VK u32 s_skb[8][64];
 
   for (u32 i = lid; i < 64; i += lsz)
   {
@@ -1240,7 +1241,7 @@ KERNEL_FQ void m05500_s16 (KERN_ATTR_VECTOR ())
     s_skb[7][i] = c_skb[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 

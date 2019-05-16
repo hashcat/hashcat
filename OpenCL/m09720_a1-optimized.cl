@@ -8,6 +8,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_md5.cl"
@@ -22,7 +23,7 @@ typedef struct oldoffice01
 
 } oldoffice01_t;
 
-DECLSPEC static void gen336 (u32x *digest_pre, u32 *salt_buf, u32x *digest)
+DECLSPEC void gen336 (u32x *digest_pre, u32 *salt_buf, u32x *digest)
 {
   u32x digest_t0[2];
   u32x digest_t1[2];

@@ -9,24 +9,25 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #endif
 
-#define SIPROUND(v0,v1,v2,v3) \
-  (v0) += (v1);               \
-  (v1)  = hc_rotl64 ((v1), 13);  \
-  (v1) ^= (v0);               \
-  (v0)  = hc_rotl64 ((v0), 32);  \
-  (v2) += (v3);               \
-  (v3)  = hc_rotl64 ((v3), 16);  \
-  (v3) ^= (v2);               \
-  (v0) += (v3);               \
-  (v3)  = hc_rotl64 ((v3), 21);  \
-  (v3) ^= (v0);               \
-  (v2) += (v1);               \
-  (v1)  = hc_rotl64 ((v1), 17);  \
-  (v1) ^= (v2);               \
+#define SIPROUND(v0,v1,v2,v3)   \
+  (v0) += (v1);                 \
+  (v1)  = hc_rotl64 ((v1), 13); \
+  (v1) ^= (v0);                 \
+  (v0)  = hc_rotl64 ((v0), 32); \
+  (v2) += (v3);                 \
+  (v3)  = hc_rotl64 ((v3), 16); \
+  (v3) ^= (v2);                 \
+  (v0) += (v3);                 \
+  (v3)  = hc_rotl64 ((v3), 21); \
+  (v3) ^= (v0);                 \
+  (v2) += (v1);                 \
+  (v1)  = hc_rotl64 ((v1), 17); \
+  (v1) ^= (v2);                 \
   (v2)  = hc_rotl64 ((v2), 32)
 
 KERNEL_FQ void m10100_m04 (KERN_ATTR_BASIC ())

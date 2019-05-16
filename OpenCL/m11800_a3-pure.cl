@@ -8,6 +8,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_streebog512.cl"
@@ -29,25 +30,25 @@ KERNEL_FQ void m11800_mxx (KERN_ATTR_VECTOR ())
 
   #ifdef REAL_SHM
 
-  LOCAL_AS u64a s_sbob_sl64[8][256];
+  LOCAL_VK u64a s_sbob_sl64[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
-    s_sbob_sl64[0][i] = sbob_sl64[0][i];
-    s_sbob_sl64[1][i] = sbob_sl64[1][i];
-    s_sbob_sl64[2][i] = sbob_sl64[2][i];
-    s_sbob_sl64[3][i] = sbob_sl64[3][i];
-    s_sbob_sl64[4][i] = sbob_sl64[4][i];
-    s_sbob_sl64[5][i] = sbob_sl64[5][i];
-    s_sbob_sl64[6][i] = sbob_sl64[6][i];
-    s_sbob_sl64[7][i] = sbob_sl64[7][i];
+    s_sbob_sl64[0][i] = sbob512_sl64[0][i];
+    s_sbob_sl64[1][i] = sbob512_sl64[1][i];
+    s_sbob_sl64[2][i] = sbob512_sl64[2][i];
+    s_sbob_sl64[3][i] = sbob512_sl64[3][i];
+    s_sbob_sl64[4][i] = sbob512_sl64[4][i];
+    s_sbob_sl64[5][i] = sbob512_sl64[5][i];
+    s_sbob_sl64[6][i] = sbob512_sl64[6][i];
+    s_sbob_sl64[7][i] = sbob512_sl64[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 
-  CONSTANT_AS u64a (*s_sbob_sl64)[256] = sbob_sl64;
+  CONSTANT_AS u64a (*s_sbob_sl64)[256] = sbob512_sl64;
 
   #endif
 
@@ -113,25 +114,25 @@ KERNEL_FQ void m11800_sxx (KERN_ATTR_VECTOR ())
 
   #ifdef REAL_SHM
 
-  LOCAL_AS u64a s_sbob_sl64[8][256];
+  LOCAL_VK u64a s_sbob_sl64[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
-    s_sbob_sl64[0][i] = sbob_sl64[0][i];
-    s_sbob_sl64[1][i] = sbob_sl64[1][i];
-    s_sbob_sl64[2][i] = sbob_sl64[2][i];
-    s_sbob_sl64[3][i] = sbob_sl64[3][i];
-    s_sbob_sl64[4][i] = sbob_sl64[4][i];
-    s_sbob_sl64[5][i] = sbob_sl64[5][i];
-    s_sbob_sl64[6][i] = sbob_sl64[6][i];
-    s_sbob_sl64[7][i] = sbob_sl64[7][i];
+    s_sbob_sl64[0][i] = sbob512_sl64[0][i];
+    s_sbob_sl64[1][i] = sbob512_sl64[1][i];
+    s_sbob_sl64[2][i] = sbob512_sl64[2][i];
+    s_sbob_sl64[3][i] = sbob512_sl64[3][i];
+    s_sbob_sl64[4][i] = sbob512_sl64[4][i];
+    s_sbob_sl64[5][i] = sbob512_sl64[5][i];
+    s_sbob_sl64[6][i] = sbob512_sl64[6][i];
+    s_sbob_sl64[7][i] = sbob512_sl64[7][i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 
-  CONSTANT_AS u64a (*s_sbob_sl64)[256] = sbob_sl64;
+  CONSTANT_AS u64a (*s_sbob_sl64)[256] = sbob512_sl64;
 
   #endif
 

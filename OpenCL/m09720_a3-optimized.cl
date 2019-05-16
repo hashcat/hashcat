@@ -8,6 +8,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_md5.cl"
@@ -22,7 +23,7 @@ typedef struct oldoffice01
 
 } oldoffice01_t;
 
-DECLSPEC static void gen336 (u32x *digest_pre, u32 *salt_buf, u32x *digest)
+DECLSPEC void gen336 (u32x *digest_pre, u32 *salt_buf, u32x *digest)
 {
   u32x digest_t0[2];
   u32x digest_t1[2];
@@ -366,7 +367,7 @@ DECLSPEC static void gen336 (u32x *digest_pre, u32 *salt_buf, u32x *digest)
   md5_transform_vector (w0_t, w1_t, w2_t, w3_t, digest);
 }
 
-DECLSPEC static void m09720m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_ESALT (oldoffice01_t))
+DECLSPEC void m09720m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_ESALT (oldoffice01_t))
 {
   /**
    * modifier
@@ -456,7 +457,7 @@ DECLSPEC static void m09720m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_l
   }
 }
 
-DECLSPEC static void m09720s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_ESALT (oldoffice01_t))
+DECLSPEC void m09720s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_ESALT (oldoffice01_t))
 {
   /**
    * modifier

@@ -8,12 +8,13 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_md5.cl"
 #endif
 
-DECLSPEC static void m09900m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC void m09900m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -294,7 +295,7 @@ DECLSPEC static void m09900m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
   }
 }
 
-DECLSPEC static void m09900s (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC void m09900s (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier

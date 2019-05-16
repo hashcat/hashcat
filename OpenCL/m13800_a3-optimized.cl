@@ -8,6 +8,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha256.cl"
@@ -19,12 +20,12 @@ typedef struct win8phone
 
 } win8phone_t;
 
-DECLSPEC static void sha256_transform_transport_vector (const u32x *w, u32x *digest)
+DECLSPEC void sha256_transform_transport_vector (const u32x *w, u32x *digest)
 {
   sha256_transform_vector (w + 0, w + 4, w + 8, w + 12, digest);
 }
 
-DECLSPEC static void memcat64c_be (u32x *block, const u32 offset, u32x *carry)
+DECLSPEC void memcat64c_be (u32x *block, const u32 offset, u32x *carry)
 {
   const u32 mod = offset & 3;
   const u32 div = offset / 4;
@@ -399,7 +400,7 @@ DECLSPEC static void memcat64c_be (u32x *block, const u32 offset, u32x *carry)
   }
 }
 
-DECLSPEC static void m13800m (LOCAL_AS u32 *s_esalt, u32 *w, const u32 pw_len, KERN_ATTR_VECTOR_ESALT (win8phone_t))
+DECLSPEC void m13800m (LOCAL_AS u32 *s_esalt, u32 *w, const u32 pw_len, KERN_ATTR_VECTOR_ESALT (win8phone_t))
 {
   /**
    * modifier
@@ -547,7 +548,7 @@ DECLSPEC static void m13800m (LOCAL_AS u32 *s_esalt, u32 *w, const u32 pw_len, K
   }
 }
 
-DECLSPEC static void m13800s (LOCAL_AS u32 *s_esalt, u32 *w, const u32 pw_len, KERN_ATTR_VECTOR_ESALT (win8phone_t))
+DECLSPEC void m13800s (LOCAL_AS u32 *s_esalt, u32 *w, const u32 pw_len, KERN_ATTR_VECTOR_ESALT (win8phone_t))
 {
   /**
    * modifier
@@ -746,14 +747,14 @@ KERNEL_FQ void m13800_m04 (KERN_ATTR_VECTOR_ESALT (win8phone_t))
    * shared
    */
 
-  LOCAL_AS u32 s_esalt[32];
+  LOCAL_VK u32 s_esalt[32];
 
   for (u32 i = lid; i < 32; i += lsz)
   {
     s_esalt[i] = esalt_bufs[digests_offset].salt_buf[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -803,14 +804,14 @@ KERNEL_FQ void m13800_m08 (KERN_ATTR_VECTOR_ESALT (win8phone_t))
    * shared
    */
 
-  LOCAL_AS u32 s_esalt[32];
+  LOCAL_VK u32 s_esalt[32];
 
   for (u32 i = lid; i < 32; i += lsz)
   {
     s_esalt[i] = esalt_bufs[digests_offset].salt_buf[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -860,14 +861,14 @@ KERNEL_FQ void m13800_m16 (KERN_ATTR_VECTOR_ESALT (win8phone_t))
    * shared
    */
 
-  LOCAL_AS u32 s_esalt[32];
+  LOCAL_VK u32 s_esalt[32];
 
   for (u32 i = lid; i < 32; i += lsz)
   {
     s_esalt[i] = esalt_bufs[digests_offset].salt_buf[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -917,14 +918,14 @@ KERNEL_FQ void m13800_s04 (KERN_ATTR_VECTOR_ESALT (win8phone_t))
    * shared
    */
 
-  LOCAL_AS u32 s_esalt[32];
+  LOCAL_VK u32 s_esalt[32];
 
   for (u32 i = lid; i < 32; i += lsz)
   {
     s_esalt[i] = esalt_bufs[digests_offset].salt_buf[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -974,14 +975,14 @@ KERNEL_FQ void m13800_s08 (KERN_ATTR_VECTOR_ESALT (win8phone_t))
    * shared
    */
 
-  LOCAL_AS u32 s_esalt[32];
+  LOCAL_VK u32 s_esalt[32];
 
   for (u32 i = lid; i < 32; i += lsz)
   {
     s_esalt[i] = esalt_bufs[digests_offset].salt_buf[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -1031,14 +1032,14 @@ KERNEL_FQ void m13800_s16 (KERN_ATTR_VECTOR_ESALT (win8phone_t))
    * shared
    */
 
-  LOCAL_AS u32 s_esalt[32];
+  LOCAL_VK u32 s_esalt[32];
 
   for (u32 i = lid; i < 32; i += lsz)
   {
     s_esalt[i] = esalt_bufs[digests_offset].salt_buf[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 

@@ -8,12 +8,13 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_md5.cl"
 #endif
 
-CONSTANT_AS u32a padding[8] =
+CONSTANT_VK u32a padding[8] =
 {
   0x5e4ebf28,
   0x418a754e,
@@ -46,7 +47,7 @@ typedef struct pdf
 
 } pdf_t;
 
-DECLSPEC static void m10420m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_ESALT (pdf_t))
+DECLSPEC void m10420m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_ESALT (pdf_t))
 {
   /**
    * modifier
@@ -199,7 +200,7 @@ DECLSPEC static void m10420m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_l
   }
 }
 
-DECLSPEC static void m10420s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_ESALT (pdf_t))
+DECLSPEC void m10420s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_ESALT (pdf_t))
 {
   /**
    * modifier

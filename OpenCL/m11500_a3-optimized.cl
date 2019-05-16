@@ -9,11 +9,12 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #endif
 
-CONSTANT_AS u32a crc32tab[0x100] =
+CONSTANT_VK u32a crc32tab[0x100] =
 {
   0x00000000, 0x77073096, 0xee0e612c, 0x990951ba,
   0x076dc419, 0x706af48f, 0xe963a535, 0x9e6495a3,
@@ -81,22 +82,22 @@ CONSTANT_AS u32a crc32tab[0x100] =
   0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
 };
 
-DECLSPEC static u32x round_crc32 (u32x a, const u32x v)
+DECLSPEC u32x round_crc32 (u32x a, const u32x v)
 {
   const u32x k = (a ^ v) & 0xff;
 
   const u32x s = a >> 8;
 
   #if   VECT_SIZE == 1
-  a = (u32x) crc32tab[k];
+  a = make_u32x crc32tab[k];
   #elif VECT_SIZE == 2
-  a = (u32x) (crc32tab[k.s0], crc32tab[k.s1]);
+  a = make_u32x (crc32tab[k.s0], crc32tab[k.s1]);
   #elif VECT_SIZE == 4
-  a = (u32x) (crc32tab[k.s0], crc32tab[k.s1], crc32tab[k.s2], crc32tab[k.s3]);
+  a = make_u32x (crc32tab[k.s0], crc32tab[k.s1], crc32tab[k.s2], crc32tab[k.s3]);
   #elif VECT_SIZE == 8
-  a = (u32x) (crc32tab[k.s0], crc32tab[k.s1], crc32tab[k.s2], crc32tab[k.s3], crc32tab[k.s4], crc32tab[k.s5], crc32tab[k.s6], crc32tab[k.s7]);
+  a = make_u32x (crc32tab[k.s0], crc32tab[k.s1], crc32tab[k.s2], crc32tab[k.s3], crc32tab[k.s4], crc32tab[k.s5], crc32tab[k.s6], crc32tab[k.s7]);
   #elif VECT_SIZE == 16
-  a = (u32x) (crc32tab[k.s0], crc32tab[k.s1], crc32tab[k.s2], crc32tab[k.s3], crc32tab[k.s4], crc32tab[k.s5], crc32tab[k.s6], crc32tab[k.s7], crc32tab[k.s8], crc32tab[k.s9], crc32tab[k.sa], crc32tab[k.sb], crc32tab[k.sc], crc32tab[k.sd], crc32tab[k.se], crc32tab[k.sf]);
+  a = make_u32x (crc32tab[k.s0], crc32tab[k.s1], crc32tab[k.s2], crc32tab[k.s3], crc32tab[k.s4], crc32tab[k.s5], crc32tab[k.s6], crc32tab[k.s7], crc32tab[k.s8], crc32tab[k.s9], crc32tab[k.sa], crc32tab[k.sb], crc32tab[k.sc], crc32tab[k.sd], crc32tab[k.se], crc32tab[k.sf]);
   #endif
 
   a ^= s;
@@ -104,7 +105,7 @@ DECLSPEC static u32x round_crc32 (u32x a, const u32x v)
   return a;
 }
 
-DECLSPEC static u32x crc32 (const u32x *w, const u32 pw_len, const u32 iv)
+DECLSPEC u32x crc32 (const u32x *w, const u32 pw_len, const u32 iv)
 {
   u32x a = iv ^ ~0;
 
@@ -124,7 +125,7 @@ DECLSPEC static u32x crc32 (const u32x *w, const u32 pw_len, const u32 iv)
   return ~a;
 }
 
-DECLSPEC static void m11500m (u32 *w, const u32 pw_len, KERN_ATTR_BASIC ())
+DECLSPEC void m11500m (u32 *w, const u32 pw_len, KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -182,7 +183,7 @@ DECLSPEC static void m11500m (u32 *w, const u32 pw_len, KERN_ATTR_BASIC ())
   }
 }
 
-DECLSPEC static void m11500s (u32 *w, const u32 pw_len, KERN_ATTR_BASIC ())
+DECLSPEC void m11500s (u32 *w, const u32 pw_len, KERN_ATTR_BASIC ())
 {
   /**
    * modifier

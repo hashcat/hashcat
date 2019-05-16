@@ -8,12 +8,13 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha512.cl"
 #endif
 
-DECLSPEC static void sha512_transform_transport_vector (const u64x *w0, const u64x *w1, const u64x *w2, const u64x *w3, u64x *digest)
+DECLSPEC void sha512_transform_transport_vector (const u64x *w0, const u64x *w1, const u64x *w2, const u64x *w3, u64x *digest)
 {
   u32x t0[4];
   u32x t1[4];
@@ -60,29 +61,29 @@ DECLSPEC static void sha512_transform_transport_vector (const u64x *w0, const u6
   sha512_transform_vector (t0, t1, t2, t3, t4, t5, t6, t7, digest);
 }
 
-DECLSPEC static void hmac_sha512_pad (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u64x *ipad, u64x *opad)
+DECLSPEC void hmac_sha512_pad (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u64x *ipad, u64x *opad)
 {
   u64x w0_t[4];
   u64x w1_t[4];
   u64x w2_t[4];
   u64x w3_t[4];
 
-  w0_t[0] = hl32_to_64 (w0[0], w0[1]) ^ (u64x) 0x3636363636363636;
-  w0_t[1] = hl32_to_64 (w0[2], w0[3]) ^ (u64x) 0x3636363636363636;
-  w0_t[2] = hl32_to_64 (w1[0], w1[1]) ^ (u64x) 0x3636363636363636;
-  w0_t[3] = hl32_to_64 (w1[2], w1[3]) ^ (u64x) 0x3636363636363636;
-  w1_t[0] = hl32_to_64 (w2[0], w2[1]) ^ (u64x) 0x3636363636363636;
-  w1_t[1] = hl32_to_64 (w2[2], w2[3]) ^ (u64x) 0x3636363636363636;
-  w1_t[2] = hl32_to_64 (w3[0], w3[1]) ^ (u64x) 0x3636363636363636;
-  w1_t[3] = hl32_to_64 (w3[2], w3[3]) ^ (u64x) 0x3636363636363636;
-  w2_t[0] =                             (u64x) 0x3636363636363636;
-  w2_t[1] =                             (u64x) 0x3636363636363636;
-  w2_t[2] =                             (u64x) 0x3636363636363636;
-  w2_t[3] =                             (u64x) 0x3636363636363636;
-  w3_t[0] =                             (u64x) 0x3636363636363636;
-  w3_t[1] =                             (u64x) 0x3636363636363636;
-  w3_t[2] =                             (u64x) 0x3636363636363636;
-  w3_t[3] =                             (u64x) 0x3636363636363636;
+  w0_t[0] = hl32_to_64 (w0[0], w0[1]) ^ make_u64x (0x3636363636363636);
+  w0_t[1] = hl32_to_64 (w0[2], w0[3]) ^ make_u64x (0x3636363636363636);
+  w0_t[2] = hl32_to_64 (w1[0], w1[1]) ^ make_u64x (0x3636363636363636);
+  w0_t[3] = hl32_to_64 (w1[2], w1[3]) ^ make_u64x (0x3636363636363636);
+  w1_t[0] = hl32_to_64 (w2[0], w2[1]) ^ make_u64x (0x3636363636363636);
+  w1_t[1] = hl32_to_64 (w2[2], w2[3]) ^ make_u64x (0x3636363636363636);
+  w1_t[2] = hl32_to_64 (w3[0], w3[1]) ^ make_u64x (0x3636363636363636);
+  w1_t[3] = hl32_to_64 (w3[2], w3[3]) ^ make_u64x (0x3636363636363636);
+  w2_t[0] =                             make_u64x (0x3636363636363636);
+  w2_t[1] =                             make_u64x (0x3636363636363636);
+  w2_t[2] =                             make_u64x (0x3636363636363636);
+  w2_t[3] =                             make_u64x (0x3636363636363636);
+  w3_t[0] =                             make_u64x (0x3636363636363636);
+  w3_t[1] =                             make_u64x (0x3636363636363636);
+  w3_t[2] =                             make_u64x (0x3636363636363636);
+  w3_t[3] =                             make_u64x (0x3636363636363636);
 
   ipad[0] = SHA512M_A;
   ipad[1] = SHA512M_B;
@@ -95,22 +96,22 @@ DECLSPEC static void hmac_sha512_pad (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u6
 
   sha512_transform_transport_vector (w0_t, w1_t, w2_t, w3_t, ipad);
 
-  w0_t[0] = hl32_to_64 (w0[0], w0[1]) ^ (u64x) 0x5c5c5c5c5c5c5c5c;
-  w0_t[1] = hl32_to_64 (w0[2], w0[3]) ^ (u64x) 0x5c5c5c5c5c5c5c5c;
-  w0_t[2] = hl32_to_64 (w1[0], w1[1]) ^ (u64x) 0x5c5c5c5c5c5c5c5c;
-  w0_t[3] = hl32_to_64 (w1[2], w1[3]) ^ (u64x) 0x5c5c5c5c5c5c5c5c;
-  w1_t[0] = hl32_to_64 (w2[0], w2[1]) ^ (u64x) 0x5c5c5c5c5c5c5c5c;
-  w1_t[1] = hl32_to_64 (w2[2], w2[3]) ^ (u64x) 0x5c5c5c5c5c5c5c5c;
-  w1_t[2] = hl32_to_64 (w3[0], w3[1]) ^ (u64x) 0x5c5c5c5c5c5c5c5c;
-  w1_t[3] = hl32_to_64 (w3[2], w3[3]) ^ (u64x) 0x5c5c5c5c5c5c5c5c;
-  w2_t[0] =                             (u64x) 0x5c5c5c5c5c5c5c5c;
-  w2_t[1] =                             (u64x) 0x5c5c5c5c5c5c5c5c;
-  w2_t[2] =                             (u64x) 0x5c5c5c5c5c5c5c5c;
-  w2_t[3] =                             (u64x) 0x5c5c5c5c5c5c5c5c;
-  w3_t[0] =                             (u64x) 0x5c5c5c5c5c5c5c5c;
-  w3_t[1] =                             (u64x) 0x5c5c5c5c5c5c5c5c;
-  w3_t[2] =                             (u64x) 0x5c5c5c5c5c5c5c5c;
-  w3_t[3] =                             (u64x) 0x5c5c5c5c5c5c5c5c;
+  w0_t[0] = hl32_to_64 (w0[0], w0[1]) ^ make_u64x (0x5c5c5c5c5c5c5c5c);
+  w0_t[1] = hl32_to_64 (w0[2], w0[3]) ^ make_u64x (0x5c5c5c5c5c5c5c5c);
+  w0_t[2] = hl32_to_64 (w1[0], w1[1]) ^ make_u64x (0x5c5c5c5c5c5c5c5c);
+  w0_t[3] = hl32_to_64 (w1[2], w1[3]) ^ make_u64x (0x5c5c5c5c5c5c5c5c);
+  w1_t[0] = hl32_to_64 (w2[0], w2[1]) ^ make_u64x (0x5c5c5c5c5c5c5c5c);
+  w1_t[1] = hl32_to_64 (w2[2], w2[3]) ^ make_u64x (0x5c5c5c5c5c5c5c5c);
+  w1_t[2] = hl32_to_64 (w3[0], w3[1]) ^ make_u64x (0x5c5c5c5c5c5c5c5c);
+  w1_t[3] = hl32_to_64 (w3[2], w3[3]) ^ make_u64x (0x5c5c5c5c5c5c5c5c);
+  w2_t[0] =                             make_u64x (0x5c5c5c5c5c5c5c5c);
+  w2_t[1] =                             make_u64x (0x5c5c5c5c5c5c5c5c);
+  w2_t[2] =                             make_u64x (0x5c5c5c5c5c5c5c5c);
+  w2_t[3] =                             make_u64x (0x5c5c5c5c5c5c5c5c);
+  w3_t[0] =                             make_u64x (0x5c5c5c5c5c5c5c5c);
+  w3_t[1] =                             make_u64x (0x5c5c5c5c5c5c5c5c);
+  w3_t[2] =                             make_u64x (0x5c5c5c5c5c5c5c5c);
+  w3_t[3] =                             make_u64x (0x5c5c5c5c5c5c5c5c);
 
   opad[0] = SHA512M_A;
   opad[1] = SHA512M_B;
@@ -124,7 +125,7 @@ DECLSPEC static void hmac_sha512_pad (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u6
   sha512_transform_transport_vector (w0_t, w1_t, w2_t, w3_t, opad);
 }
 
-DECLSPEC static void hmac_sha512_run (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u64x *ipad, u64x *opad, u64x *digest)
+DECLSPEC void hmac_sha512_run (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u64x *ipad, u64x *opad, u64x *digest)
 {
   u64x w0_t[4];
   u64x w1_t[4];

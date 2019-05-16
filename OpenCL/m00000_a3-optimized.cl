@@ -8,6 +8,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_md5.cl"
@@ -16,7 +17,7 @@
 #define MD5_STEP_REV(f,a,b,c,d,x,t,s)   \
 {                                       \
   a -= b;                               \
-  a  = hc_rotr32_S (a, s);                 \
+  a  = hc_rotr32_S (a, s);              \
   a -= f (b, c, d);                     \
   a -= x;                               \
   a -= t;                               \
@@ -25,12 +26,12 @@
 #define MD5_STEP_REV1(f,a,b,c,d,x,t,s)  \
 {                                       \
   a -= b;                               \
-  a  = hc_rotr32_S (a, s);                 \
+  a  = hc_rotr32_S (a, s);              \
   a -= x;                               \
   a -= t;                               \
 }
 
-DECLSPEC static void m00000m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC void m00000m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -202,7 +203,7 @@ DECLSPEC static void m00000m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
   }
 }
 
-DECLSPEC static void m00000s (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC void m00000s (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier

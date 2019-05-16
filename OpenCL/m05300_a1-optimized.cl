@@ -8,6 +8,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_md5.cl"
@@ -23,7 +24,7 @@ typedef struct ikepsk
 
 } ikepsk_t;
 
-DECLSPEC static void hmac_md5_pad (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad)
+DECLSPEC void hmac_md5_pad (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad)
 {
   w0[0] = w0[0] ^ 0x36363636;
   w0[1] = w0[1] ^ 0x36363636;
@@ -74,7 +75,7 @@ DECLSPEC static void hmac_md5_pad (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x 
   md5_transform_vector (w0, w1, w2, w3, opad);
 }
 
-DECLSPEC static void hmac_md5_run (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
+DECLSPEC void hmac_md5_run (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
 {
   digest[0] = ipad[0];
   digest[1] = ipad[1];
@@ -122,21 +123,21 @@ KERNEL_FQ void m05300_m04 (KERN_ATTR_ESALT (ikepsk_t))
    * s_msg
    */
 
-  LOCAL_AS u32 s_nr_buf[16];
+  LOCAL_VK u32 s_nr_buf[16];
 
   for (u32 i = lid; i < 16; i += lsz)
   {
     s_nr_buf[i] = esalt_bufs[digests_offset].nr_buf[i];
   }
 
-  LOCAL_AS u32 s_msg_buf[128];
+  LOCAL_VK u32 s_msg_buf[128];
 
   for (u32 i = lid; i < 128; i += lsz)
   {
     s_msg_buf[i] = esalt_bufs[digests_offset].msg_buf[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -357,21 +358,21 @@ KERNEL_FQ void m05300_s04 (KERN_ATTR_ESALT (ikepsk_t))
    * s_msg
    */
 
-  LOCAL_AS u32 s_nr_buf[16];
+  LOCAL_VK u32 s_nr_buf[16];
 
   for (u32 i = lid; i < 16; i += lsz)
   {
     s_nr_buf[i] = esalt_bufs[digests_offset].nr_buf[i];
   }
 
-  LOCAL_AS u32 s_msg_buf[128];
+  LOCAL_VK u32 s_msg_buf[128];
 
   for (u32 i = lid; i < 128; i += lsz)
   {
     s_msg_buf[i] = esalt_bufs[digests_offset].msg_buf[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 

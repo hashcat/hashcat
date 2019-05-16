@@ -6,6 +6,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_hash_sha256.cl"
 #endif
@@ -31,7 +32,7 @@ typedef struct
 
 } seven_zip_hook_t;
 
-DECLSPEC static void memcat8c_be (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 len, const u32 append, u32 *digest)
+DECLSPEC void memcat8c_be (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 len, const u32 append, u32 *digest)
 {
   const u32 func_len = len & 63;
 

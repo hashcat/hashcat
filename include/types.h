@@ -44,13 +44,6 @@ typedef int16_t i16;
 typedef int32_t i32;
 typedef int64_t i64;
 
-// import types from opencl
-
-//typedef uint8_t  uchar;
-//typedef uint16_t ushort;
-//typedef uint32_t uint;
-//typedef uint64_t ulong;
-
 #include "inc_types.h"
 
 // there's no such thing in plain C, therefore all vector operation cannot work in this emu
@@ -76,13 +69,13 @@ typedef struct timespec   hc_timer_t;
 #endif
 
 #if defined (_WIN)
-typedef HANDLE              hc_thread_t;
-typedef HANDLE              hc_thread_mutex_t;
-typedef HANDLE              hc_thread_semaphore_t;
+typedef HANDLE          hc_thread_t;
+typedef HANDLE          hc_thread_mutex_t;
+typedef HANDLE          hc_thread_semaphore_t;
 #else
-typedef pthread_t           hc_thread_t;
-typedef pthread_mutex_t     hc_thread_mutex_t;
-typedef sem_t               hc_thread_semaphore_t;
+typedef pthread_t       hc_thread_t;
+typedef pthread_mutex_t hc_thread_mutex_t;
+typedef sem_t           hc_thread_semaphore_t;
 #endif
 
 // enums
@@ -133,10 +126,11 @@ typedef enum event_identifier
   EVENT_MONITOR_PERFORMANCE_HINT  = 0x00000086,
   EVENT_MONITOR_NOINPUT_HINT      = 0x00000087,
   EVENT_MONITOR_NOINPUT_ABORT     = 0x00000088,
-  EVENT_OPENCL_SESSION_POST       = 0x00000090,
-  EVENT_OPENCL_SESSION_PRE        = 0x00000091,
-  EVENT_OPENCL_DEVICE_INIT_POST   = 0x00000092,
-  EVENT_OPENCL_DEVICE_INIT_PRE    = 0x00000093,
+  EVENT_BACKEND_SESSION_POST      = 0x00000090,
+  EVENT_BACKEND_SESSION_PRE       = 0x00000091,
+  EVENT_BACKEND_SESSION_HOSTMEM   = 0x00000092,
+  EVENT_BACKEND_DEVICE_INIT_POST  = 0x00000093,
+  EVENT_BACKEND_DEVICE_INIT_PRE   = 0x00000094,
   EVENT_OUTERLOOP_FINISHED        = 0x000000a0,
   EVENT_OUTERLOOP_MAINSCREEN      = 0x000000a1,
   EVENT_OUTERLOOP_STARTING        = 0x000000a2,
@@ -592,8 +586,8 @@ typedef enum user_options_defaults
   MARKOV_DISABLE           = false,
   MARKOV_THRESHOLD         = 0,
   NONCE_ERROR_CORRECTIONS  = 8,
-  OPENCL_INFO              = false,
-  OPENCL_VECTOR_WIDTH      = 0,
+  BACKEND_INFO             = false,
+  BACKEND_VECTOR_WIDTH     = 0,
   OPTIMIZED_KERNEL_ENABLE  = false,
   OUTFILE_AUTOHEX          = true,
   OUTFILE_CHECK_TIMER      = 5,
@@ -637,6 +631,9 @@ typedef enum user_options_map
 {
   IDX_ADVICE_DISABLE            = 0xff00,
   IDX_ATTACK_MODE               = 'a',
+  IDX_BACKEND_DEVICES           = 'd',
+  IDX_BACKEND_INFO              = 'I',
+  IDX_BACKEND_VECTOR_WIDTH      = 0xff27,
   IDX_BENCHMARK_ALL             = 0xff01,
   IDX_BENCHMARK                 = 'b',
   IDX_BITMAP_MAX                = 0xff02,
@@ -690,11 +687,7 @@ typedef enum user_options_map
   IDX_MARKOV_HCSTAT2            = 0xff24,
   IDX_MARKOV_THRESHOLD          = 't',
   IDX_NONCE_ERROR_CORRECTIONS   = 0xff25,
-  IDX_OPENCL_DEVICES            = 'd',
   IDX_OPENCL_DEVICE_TYPES       = 'D',
-  IDX_OPENCL_INFO               = 'I',
-  IDX_OPENCL_PLATFORMS          = 0xff26,
-  IDX_OPENCL_VECTOR_WIDTH       = 0xff27,
   IDX_OPTIMIZED_KERNEL_ENABLE   = 'O',
   IDX_OUTFILE_AUTOHEX_DISABLE   = 0xff28,
   IDX_OUTFILE_CHECK_DIR         = 0xff29,
@@ -989,28 +982,24 @@ typedef struct link_speed
 
 } link_speed_t;
 
+#include "ext_nvrtc.h"
+#include "ext_cuda.h"
 #include "ext_OpenCL.h"
 
 typedef struct hc_device_param
 {
-  cl_device_id    device;
-  cl_device_type  device_type;
+  int     device_id;
 
-  u32     device_id;
-  u32     platform_devices_id;  // for mapping with hms devices
-
-  bool    skipped;              // permanent
-  bool    skipped_warning;      // iteration
-
-  st_status_t st_status;
-
-  u32     sm_major;
-  u32     sm_minor;
-  u32     kernel_exec_timeout;
+  // this occurs if the same device (pci address) is used by multiple backend API
+  int     device_id_alias_cnt;
+  int     device_id_alias_buf[DEVICES_MAX];
 
   u8      pcie_bus;
   u8      pcie_device;
   u8      pcie_function;
+
+  bool    skipped;              // permanent
+  bool    skipped_warning;      // iteration
 
   u32     device_processors;
   u64     device_maxmem_alloc;
@@ -1019,9 +1008,16 @@ typedef struct hc_device_param
   u32     device_maxclock_frequency;
   size_t  device_maxworkgroup_size;
   u64     device_local_mem_size;
-  cl_device_local_mem_type device_local_mem_type;
+  int     device_local_mem_type;
+  char   *device_name;
 
-  u32     vector_width;
+  int     sm_major;
+  int     sm_minor;
+  u32     kernel_exec_timeout;
+
+  st_status_t st_status;
+
+  int     vector_width;
 
   u32     kernel_wgs1;
   u32     kernel_wgs12;
@@ -1198,14 +1194,6 @@ typedef struct hc_device_param
 
   hc_timer_t timer_speed;
 
-  // device specific attributes starting
-
-  char   *device_name;
-  char   *device_vendor;
-  char   *device_version;
-  char   *driver_version;
-  char   *device_opencl_version;
-
   // AMD
   bool    has_vadd3;
   bool    has_vbfe;
@@ -1218,79 +1206,6 @@ typedef struct hc_device_param
   bool    has_prmt;
 
   double  spin_damp;
-
-  cl_platform_id platform;
-
-  cl_uint  device_vendor_id;
-  cl_uint  platform_vendor_id;
-
-  cl_kernel  kernel1;
-  cl_kernel  kernel12;
-  cl_kernel  kernel2;
-  cl_kernel  kernel23;
-  cl_kernel  kernel3;
-  cl_kernel  kernel4;
-  cl_kernel  kernel_init2;
-  cl_kernel  kernel_loop2;
-  cl_kernel  kernel_mp;
-  cl_kernel  kernel_mp_l;
-  cl_kernel  kernel_mp_r;
-  cl_kernel  kernel_amp;
-  cl_kernel  kernel_tm;
-  cl_kernel  kernel_memset;
-  cl_kernel  kernel_atinit;
-  cl_kernel  kernel_decompress;
-  cl_kernel  kernel_aux1;
-  cl_kernel  kernel_aux2;
-  cl_kernel  kernel_aux3;
-  cl_kernel  kernel_aux4;
-
-  cl_context context;
-
-  cl_program program;
-  cl_program program_mp;
-  cl_program program_amp;
-
-  cl_command_queue command_queue;
-
-  cl_mem  d_pws_buf;
-  cl_mem  d_pws_amp_buf;
-  cl_mem  d_pws_comp_buf;
-  cl_mem  d_pws_idx;
-  cl_mem  d_words_buf_l;
-  cl_mem  d_words_buf_r;
-  cl_mem  d_rules;
-  cl_mem  d_rules_c;
-  cl_mem  d_combs;
-  cl_mem  d_combs_c;
-  cl_mem  d_bfs;
-  cl_mem  d_bfs_c;
-  cl_mem  d_tm_c;
-  cl_mem  d_bitmap_s1_a;
-  cl_mem  d_bitmap_s1_b;
-  cl_mem  d_bitmap_s1_c;
-  cl_mem  d_bitmap_s1_d;
-  cl_mem  d_bitmap_s2_a;
-  cl_mem  d_bitmap_s2_b;
-  cl_mem  d_bitmap_s2_c;
-  cl_mem  d_bitmap_s2_d;
-  cl_mem  d_plain_bufs;
-  cl_mem  d_digests_buf;
-  cl_mem  d_digests_shown;
-  cl_mem  d_salt_bufs;
-  cl_mem  d_esalt_bufs;
-  cl_mem  d_tmps;
-  cl_mem  d_hooks;
-  cl_mem  d_result;
-  cl_mem  d_extra0_buf;
-  cl_mem  d_extra1_buf;
-  cl_mem  d_extra2_buf;
-  cl_mem  d_extra3_buf;
-  cl_mem  d_root_css_buf;
-  cl_mem  d_markov_css_buf;
-  cl_mem  d_st_digests_buf;
-  cl_mem  d_st_salts_buf;
-  cl_mem  d_st_esalts_buf;
 
   void   *kernel_params[PARAMCNT];
   void   *kernel_params_mp[PARAMCNT];
@@ -1326,26 +1241,186 @@ typedef struct hc_device_param
   u32     kernel_params_decompress_buf32[PARAMCNT];
   u64     kernel_params_decompress_buf64[PARAMCNT];
 
+  // API: cuda
+
+  bool              is_cuda;
+
+  int               cuda_warp_size;
+
+  CUdevice          cuda_device;
+  CUcontext         cuda_context;
+  CUstream          cuda_stream;
+
+  CUevent           cuda_event1;
+  CUevent           cuda_event2;
+
+  CUmodule          cuda_module;
+  CUmodule          cuda_module_mp;
+  CUmodule          cuda_module_amp;
+
+  CUfunction        cuda_function1;
+  CUfunction        cuda_function12;
+  CUfunction        cuda_function2;
+  CUfunction        cuda_function23;
+  CUfunction        cuda_function3;
+  CUfunction        cuda_function4;
+  CUfunction        cuda_function_init2;
+  CUfunction        cuda_function_loop2;
+  CUfunction        cuda_function_mp;
+  CUfunction        cuda_function_mp_l;
+  CUfunction        cuda_function_mp_r;
+  CUfunction        cuda_function_amp;
+  CUfunction        cuda_function_tm;
+  CUfunction        cuda_function_memset;
+  CUfunction        cuda_function_atinit;
+  CUfunction        cuda_function_decompress;
+  CUfunction        cuda_function_aux1;
+  CUfunction        cuda_function_aux2;
+  CUfunction        cuda_function_aux3;
+  CUfunction        cuda_function_aux4;
+
+  CUdeviceptr       cuda_d_pws_buf;
+  CUdeviceptr       cuda_d_pws_amp_buf;
+  CUdeviceptr       cuda_d_pws_comp_buf;
+  CUdeviceptr       cuda_d_pws_idx;
+  CUdeviceptr       cuda_d_words_buf_l;
+  CUdeviceptr       cuda_d_words_buf_r;
+  CUdeviceptr       cuda_d_rules;
+  CUdeviceptr       cuda_d_rules_c;
+  CUdeviceptr       cuda_d_combs;
+  CUdeviceptr       cuda_d_combs_c;
+  CUdeviceptr       cuda_d_bfs;
+  CUdeviceptr       cuda_d_bfs_c;
+  CUdeviceptr       cuda_d_tm_c;
+  CUdeviceptr       cuda_d_bitmap_s1_a;
+  CUdeviceptr       cuda_d_bitmap_s1_b;
+  CUdeviceptr       cuda_d_bitmap_s1_c;
+  CUdeviceptr       cuda_d_bitmap_s1_d;
+  CUdeviceptr       cuda_d_bitmap_s2_a;
+  CUdeviceptr       cuda_d_bitmap_s2_b;
+  CUdeviceptr       cuda_d_bitmap_s2_c;
+  CUdeviceptr       cuda_d_bitmap_s2_d;
+  CUdeviceptr       cuda_d_plain_bufs;
+  CUdeviceptr       cuda_d_digests_buf;
+  CUdeviceptr       cuda_d_digests_shown;
+  CUdeviceptr       cuda_d_salt_bufs;
+  CUdeviceptr       cuda_d_esalt_bufs;
+  CUdeviceptr       cuda_d_tmps;
+  CUdeviceptr       cuda_d_hooks;
+  CUdeviceptr       cuda_d_result;
+  CUdeviceptr       cuda_d_extra0_buf;
+  CUdeviceptr       cuda_d_extra1_buf;
+  CUdeviceptr       cuda_d_extra2_buf;
+  CUdeviceptr       cuda_d_extra3_buf;
+  CUdeviceptr       cuda_d_root_css_buf;
+  CUdeviceptr       cuda_d_markov_css_buf;
+  CUdeviceptr       cuda_d_st_digests_buf;
+  CUdeviceptr       cuda_d_st_salts_buf;
+  CUdeviceptr       cuda_d_st_esalts_buf;
+
+  // API: opencl
+
+  bool              is_opencl;
+
+  char             *opencl_driver_version;
+  char             *opencl_device_vendor;
+  char             *opencl_device_version;
+  char             *opencl_device_c_version;
+
+  cl_device_type    opencl_device_type;
+  cl_uint           opencl_device_vendor_id;
+  cl_uint           opencl_platform_vendor_id;
+
+  cl_device_id      opencl_device;
+  cl_context        opencl_context;
+  cl_command_queue  opencl_command_queue;
+
+  cl_program        opencl_program;
+  cl_program        opencl_program_mp;
+  cl_program        opencl_program_amp;
+
+  cl_kernel         opencl_kernel1;
+  cl_kernel         opencl_kernel12;
+  cl_kernel         opencl_kernel2;
+  cl_kernel         opencl_kernel23;
+  cl_kernel         opencl_kernel3;
+  cl_kernel         opencl_kernel4;
+  cl_kernel         opencl_kernel_init2;
+  cl_kernel         opencl_kernel_loop2;
+  cl_kernel         opencl_kernel_mp;
+  cl_kernel         opencl_kernel_mp_l;
+  cl_kernel         opencl_kernel_mp_r;
+  cl_kernel         opencl_kernel_amp;
+  cl_kernel         opencl_kernel_tm;
+  cl_kernel         opencl_kernel_memset;
+  cl_kernel         opencl_kernel_atinit;
+  cl_kernel         opencl_kernel_decompress;
+  cl_kernel         opencl_kernel_aux1;
+  cl_kernel         opencl_kernel_aux2;
+  cl_kernel         opencl_kernel_aux3;
+  cl_kernel         opencl_kernel_aux4;
+
+  cl_mem            opencl_d_pws_buf;
+  cl_mem            opencl_d_pws_amp_buf;
+  cl_mem            opencl_d_pws_comp_buf;
+  cl_mem            opencl_d_pws_idx;
+  cl_mem            opencl_d_words_buf_l;
+  cl_mem            opencl_d_words_buf_r;
+  cl_mem            opencl_d_rules;
+  cl_mem            opencl_d_rules_c;
+  cl_mem            opencl_d_combs;
+  cl_mem            opencl_d_combs_c;
+  cl_mem            opencl_d_bfs;
+  cl_mem            opencl_d_bfs_c;
+  cl_mem            opencl_d_tm_c;
+  cl_mem            opencl_d_bitmap_s1_a;
+  cl_mem            opencl_d_bitmap_s1_b;
+  cl_mem            opencl_d_bitmap_s1_c;
+  cl_mem            opencl_d_bitmap_s1_d;
+  cl_mem            opencl_d_bitmap_s2_a;
+  cl_mem            opencl_d_bitmap_s2_b;
+  cl_mem            opencl_d_bitmap_s2_c;
+  cl_mem            opencl_d_bitmap_s2_d;
+  cl_mem            opencl_d_plain_bufs;
+  cl_mem            opencl_d_digests_buf;
+  cl_mem            opencl_d_digests_shown;
+  cl_mem            opencl_d_salt_bufs;
+  cl_mem            opencl_d_esalt_bufs;
+  cl_mem            opencl_d_tmps;
+  cl_mem            opencl_d_hooks;
+  cl_mem            opencl_d_result;
+  cl_mem            opencl_d_extra0_buf;
+  cl_mem            opencl_d_extra1_buf;
+  cl_mem            opencl_d_extra2_buf;
+  cl_mem            opencl_d_extra3_buf;
+  cl_mem            opencl_d_root_css_buf;
+  cl_mem            opencl_d_markov_css_buf;
+  cl_mem            opencl_d_st_digests_buf;
+  cl_mem            opencl_d_st_salts_buf;
+  cl_mem            opencl_d_st_esalts_buf;
+
 } hc_device_param_t;
 
-typedef struct opencl_ctx
+typedef struct backend_ctx
 {
   bool                enabled;
 
   void               *ocl;
+  void               *cuda;
+  void               *nvrtc;
 
-  cl_uint             platforms_cnt;
-  cl_platform_id     *platforms;
-  char              **platforms_vendor;
-  char              **platforms_name;
-  char              **platforms_version;
-  bool               *platforms_skipped;
+  int                 backend_device_from_cuda[DEVICES_MAX];                              // from cuda device index to backend device index
+  int                 backend_device_from_opencl[DEVICES_MAX];                            // from opencl device index to backend device index
+  int                 backend_device_from_opencl_platform[CL_PLATFORMS_MAX][DEVICES_MAX]; // from opencl device index to backend device index (by platform)
 
-  cl_uint             platform_devices_cnt;
-  cl_device_id       *platform_devices;
+  int                 backend_devices_cnt;
+  int                 backend_devices_active;
+  int                 cuda_devices_cnt;
+  int                 cuda_devices_active;
+  int                 opencl_devices_cnt;
+  int                 opencl_devices_active;
 
-  u32                 devices_cnt;
-  u32                 devices_active;
+  u64                 backend_devices_filter;
 
   hc_device_param_t  *devices_param;
 
@@ -1353,10 +1428,6 @@ typedef struct opencl_ctx
 
   u64                 kernel_power_all;
   u64                 kernel_power_final; // we save that so that all divisions are done from the same base
-
-  u64                 opencl_platforms_filter;
-  u64                 devices_filter;
-  cl_device_type      device_types_filter;
 
   double              target_msec;
 
@@ -1369,7 +1440,24 @@ typedef struct opencl_ctx
 
   int                 force_jit_compilation;
 
-} opencl_ctx_t;
+  // cuda
+
+  int                 cuda_driver_version;
+
+  // opencl
+
+  cl_platform_id     *opencl_platforms;
+  cl_uint             opencl_platforms_cnt;
+  cl_device_id      **opencl_platforms_devices;
+  cl_uint            *opencl_platforms_devices_cnt;
+  char              **opencl_platforms_name;
+  char              **opencl_platforms_vendor;
+  cl_uint            *opencl_platforms_vendor_id;
+  char              **opencl_platforms_version;
+
+  cl_device_type      opencl_device_types_filter;
+
+} backend_ctx_t;
 
 typedef enum kernel_workload
 {
@@ -1690,7 +1778,7 @@ typedef struct user_options
   bool         kernel_threads_chgd;
   bool         nonce_error_corrections_chgd;
   bool         spin_damp_chgd;
-  bool         opencl_vector_width_chgd;
+  bool         backend_vector_width_chgd;
   bool         outfile_format_chgd;
   bool         remove_timer_chgd;
   bool         rp_gen_seed_chgd;
@@ -1722,7 +1810,7 @@ typedef struct user_options
   bool         machine_readable;
   bool         markov_classic;
   bool         markov_disable;
-  bool         opencl_info;
+  bool         backend_info;
   bool         optimized_kernel_enable;
   bool         outfile_autohex;
   bool         potfile_disable;
@@ -1754,9 +1842,8 @@ typedef struct user_options
   char        *induction_dir;
   char        *keyboard_layout_mapping;
   char        *markov_hcstat2;
-  char        *opencl_devices;
+  char        *backend_devices;
   char        *opencl_device_types;
-  char        *opencl_platforms;
   char        *outfile;
   char        *outfile_check_dir;
   char        *potfile_path;
@@ -1794,7 +1881,7 @@ typedef struct user_options
   u32          markov_threshold;
   u32          nonce_error_corrections;
   u32          spin_damp;
-  u32          opencl_vector_width;
+  u32          backend_vector_width;
   u32          outfile_check_timer;
   u32          outfile_format;
   u32          remove_timer;
@@ -2299,7 +2386,7 @@ typedef struct hashcat_ctx
   loopback_ctx_t        *loopback_ctx;
   mask_ctx_t            *mask_ctx;
   module_ctx_t          *module_ctx;
-  opencl_ctx_t          *opencl_ctx;
+  backend_ctx_t         *backend_ctx;
   outcheck_ctx_t        *outcheck_ctx;
   outfile_ctx_t         *outfile_ctx;
   pidfile_ctx_t         *pidfile_ctx;

@@ -9,6 +9,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_md4.cl"
@@ -33,7 +34,7 @@ typedef struct
 
 } RC4_KEY;
 
-DECLSPEC static void swap (LOCAL_AS RC4_KEY *rc4_key, const u8 i, const u8 j)
+DECLSPEC void swap (LOCAL_AS RC4_KEY *rc4_key, const u8 i, const u8 j)
 {
   u8 tmp;
 
@@ -42,7 +43,7 @@ DECLSPEC static void swap (LOCAL_AS RC4_KEY *rc4_key, const u8 i, const u8 j)
   rc4_key->S[j] = tmp;
 }
 
-DECLSPEC static void rc4_init_16 (LOCAL_AS RC4_KEY *rc4_key, const u32 *data)
+DECLSPEC void rc4_init_16 (LOCAL_AS RC4_KEY *rc4_key, const u32 *data)
 {
   u32 v = 0x03020100;
   u32 a = 0x04040404;
@@ -95,7 +96,7 @@ DECLSPEC static void rc4_init_16 (LOCAL_AS RC4_KEY *rc4_key, const u32 *data)
   }
 }
 
-DECLSPEC static u8 rc4_next_16 (LOCAL_AS RC4_KEY *rc4_key, u8 i, u8 j, const u32 *in, u32 *out)
+DECLSPEC u8 rc4_next_16 (LOCAL_AS RC4_KEY *rc4_key, u8 i, u8 j, const u32 *in, u32 *out)
 {
   #ifdef _unroll
   #pragma unroll
@@ -148,7 +149,7 @@ DECLSPEC static u8 rc4_next_16 (LOCAL_AS RC4_KEY *rc4_key, u8 i, u8 j, const u32
   return j;
 }
 
-DECLSPEC static int decrypt_and_check (LOCAL_AS RC4_KEY *rc4_key, u32 *data, u32 *timestamp_ct)
+DECLSPEC int decrypt_and_check (LOCAL_AS RC4_KEY *rc4_key, u32 *data, u32 *timestamp_ct)
 {
   rc4_init_16 (rc4_key, data);
 
@@ -178,7 +179,7 @@ DECLSPEC static int decrypt_and_check (LOCAL_AS RC4_KEY *rc4_key, u32 *data, u32
   return 1;
 }
 
-DECLSPEC static void hmac_md5_pad (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *ipad, u32 *opad)
+DECLSPEC void hmac_md5_pad (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *ipad, u32 *opad)
 {
   w0[0] = w0[0] ^ 0x36363636;
   w0[1] = w0[1] ^ 0x36363636;
@@ -229,7 +230,7 @@ DECLSPEC static void hmac_md5_pad (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *ipad
   md5_transform (w0, w1, w2, w3, opad);
 }
 
-DECLSPEC static void hmac_md5_run (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *ipad, u32 *opad, u32 *digest)
+DECLSPEC void hmac_md5_run (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *ipad, u32 *opad, u32 *digest)
 {
   digest[0] = ipad[0];
   digest[1] = ipad[1];
@@ -263,7 +264,7 @@ DECLSPEC static void hmac_md5_run (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *ipad
   md5_transform (w0, w1, w2, w3, digest);
 }
 
-DECLSPEC static void kerb_prepare (const u32 *w0, const u32 *w1, const u32 pw_len, const u32 *checksum, u32 *digest)
+DECLSPEC void kerb_prepare (const u32 *w0, const u32 *w1, const u32 pw_len, const u32 *checksum, u32 *digest)
 {
   /**
    * pads
@@ -448,7 +449,7 @@ KERNEL_FQ void m07500_m04 (KERN_ATTR_ESALT (krb5pa_t))
    * shared
    */
 
-  LOCAL_AS RC4_KEY rc4_keys[64];
+  LOCAL_VK RC4_KEY rc4_keys[64];
 
   LOCAL_AS RC4_KEY *rc4_key = &rc4_keys[lid];
 
@@ -604,7 +605,7 @@ KERNEL_FQ void m07500_s04 (KERN_ATTR_ESALT (krb5pa_t))
    * shared
    */
 
-  LOCAL_AS RC4_KEY rc4_keys[64];
+  LOCAL_VK RC4_KEY rc4_keys[64];
 
   LOCAL_AS RC4_KEY *rc4_key = &rc4_keys[lid];
 

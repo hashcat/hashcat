@@ -8,12 +8,13 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha384.cl"
 #endif
 
-DECLSPEC static void sha384_transform_intern (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u64x *digest)
+DECLSPEC void sha384_transform_intern (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u64x *digest)
 {
   u64x w0_t = hl32_to_64 (w0[0], w0[1]);
   u64x w1_t = hl32_to_64 (w0[2], w0[3]);
@@ -83,6 +84,12 @@ DECLSPEC static void sha384_transform_intern (const u32x *w0, const u32x *w1, co
 
   ROUND_STEP (0);
 
+  #ifdef IS_CUDA
+  ROUND_EXPAND (); ROUND_STEP (16);
+  ROUND_EXPAND (); ROUND_STEP (32);
+  ROUND_EXPAND (); ROUND_STEP (48);
+  ROUND_EXPAND (); ROUND_STEP (64);
+  #else
   #ifdef _unroll
   #pragma unroll
   #endif
@@ -90,6 +97,7 @@ DECLSPEC static void sha384_transform_intern (const u32x *w0, const u32x *w1, co
   {
     ROUND_EXPAND (); ROUND_STEP (i);
   }
+  #endif
 
   /* rev
   digest[0] += a;
@@ -112,7 +120,7 @@ DECLSPEC static void sha384_transform_intern (const u32x *w0, const u32x *w1, co
   digest[7] = 0;
 }
 
-DECLSPEC static void m10800m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC void m10800m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -177,7 +185,7 @@ DECLSPEC static void m10800m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
   }
 }
 
-DECLSPEC static void m10800s (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC void m10800s (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier

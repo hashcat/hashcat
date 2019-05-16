@@ -8,6 +8,7 @@
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
+#include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha512.cl"
@@ -44,7 +45,7 @@ typedef struct tc64_tmp
 
 } tc64_tmp_t;
 
-DECLSPEC static void hmac_sha512_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, u64x *ipad, u64x *opad, u64x *digest)
+DECLSPEC void hmac_sha512_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, u64x *ipad, u64x *opad, u64x *digest)
 {
   digest[0] = ipad[0];
   digest[1] = ipad[1];
@@ -114,14 +115,14 @@ KERNEL_FQ void m06221_init (KERN_ATTR_TMPS_ESALT (tc64_tmp_t, tc_t))
 
   const int keyboard_layout_mapping_cnt = esalt_bufs[digests_offset].keyboard_layout_mapping_cnt;
 
-  LOCAL_AS keyboard_layout_mapping_t s_keyboard_layout_mapping_buf[256];
+  LOCAL_VK keyboard_layout_mapping_t s_keyboard_layout_mapping_buf[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
     s_keyboard_layout_mapping_buf[i] = esalt_bufs[digests_offset].keyboard_layout_mapping_buf[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -448,17 +449,17 @@ KERNEL_FQ void m06221_comp (KERN_ATTR_TMPS_ESALT (tc64_tmp_t, tc_t))
 
   #ifdef REAL_SHM
 
-  LOCAL_AS u32 s_td0[256];
-  LOCAL_AS u32 s_td1[256];
-  LOCAL_AS u32 s_td2[256];
-  LOCAL_AS u32 s_td3[256];
-  LOCAL_AS u32 s_td4[256];
+  LOCAL_VK u32 s_td0[256];
+  LOCAL_VK u32 s_td1[256];
+  LOCAL_VK u32 s_td2[256];
+  LOCAL_VK u32 s_td3[256];
+  LOCAL_VK u32 s_td4[256];
 
-  LOCAL_AS u32 s_te0[256];
-  LOCAL_AS u32 s_te1[256];
-  LOCAL_AS u32 s_te2[256];
-  LOCAL_AS u32 s_te3[256];
-  LOCAL_AS u32 s_te4[256];
+  LOCAL_VK u32 s_te0[256];
+  LOCAL_VK u32 s_te1[256];
+  LOCAL_VK u32 s_te2[256];
+  LOCAL_VK u32 s_te3[256];
+  LOCAL_VK u32 s_te4[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -475,7 +476,7 @@ KERNEL_FQ void m06221_comp (KERN_ATTR_TMPS_ESALT (tc64_tmp_t, tc_t))
     s_te4[i] = te4[i];
   }
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+  SYNC_THREADS ();
 
   #else
 
@@ -517,14 +518,6 @@ KERNEL_FQ void m06221_comp (KERN_ATTR_TMPS_ESALT (tc64_tmp_t, tc_t))
   ukey2[6] = hc_swap32_S (h32_from_64_S (tmps[gid].out[7]));
   ukey2[7] = hc_swap32_S (l32_from_64_S (tmps[gid].out[7]));
 
-  if (verify_header_aes (esalt_bufs[0].data_buf, esalt_bufs[0].signature, ukey1, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
-  {
-    if (atomic_inc (&hashes_shown[0]) == 0)
-    {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0, 0, 0);
-    }
-  }
-
   if (verify_header_serpent (esalt_bufs[0].data_buf, esalt_bufs[0].signature, ukey1, ukey2) == 1)
   {
     if (atomic_inc (&hashes_shown[0]) == 0)
@@ -534,6 +527,14 @@ KERNEL_FQ void m06221_comp (KERN_ATTR_TMPS_ESALT (tc64_tmp_t, tc_t))
   }
 
   if (verify_header_twofish (esalt_bufs[0].data_buf, esalt_bufs[0].signature, ukey1, ukey2) == 1)
+  {
+    if (atomic_inc (&hashes_shown[0]) == 0)
+    {
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0, 0, 0);
+    }
+  }
+
+  if (verify_header_aes (esalt_bufs[0].data_buf, esalt_bufs[0].signature, ukey1, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
   {
     if (atomic_inc (&hashes_shown[0]) == 0)
     {
