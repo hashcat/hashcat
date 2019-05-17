@@ -26,7 +26,7 @@ LUKS_MODE="14600"
 
 # missing hash types: 5200
 
-HASH_TYPES=$(ls ${TDIR}/test_modules/*.pm | sed 's/.*m0*\([0-9]\+\)\.pm/\1/')
+HASH_TYPES=$(ls ${TDIR}/test_modules/*.pm | sed -E 's/.*m0*([0-9]+).pm/\1/')
 HASH_TYPES="${HASH_TYPES} ${TC_MODES} ${VC_MODES} ${LUKS_MODE}"
 HASH_TYPES="$(echo -n ${HASH_TYPES} | tr ' ' '\n' | sort -u -n | tr '\n' ' ')"
 
@@ -2547,7 +2547,7 @@ TYPE="null"
 VECTOR="default"
 HT=0
 PACKAGE=0
-OPTIMIZED=1
+OPTIMIZED=0
 
 while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:" opt; do
 
