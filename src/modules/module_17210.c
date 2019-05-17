@@ -248,7 +248,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   p = strtok(NULL, "*");
   if (p == NULL) return PARSER_HASH_LENGTH;
   pkzip->hash.compression_type = atoi(p);
-  if (pkzip->hash.compression_type != 0) return PARSER_HASH_VALUE;
+  if (pkzip->hash.compression_type != 0) return PARSER_PKZIP_CT_UNMATCHED;
 
   p = strtok(NULL, "*");
   if (p == NULL) return PARSER_HASH_LENGTH;
