@@ -124,8 +124,8 @@ struct pkzip_hash
   u32 compressed_length;
   u32 uncompressed_length;
   u32 crc32;
-  u8  offset;
-  u8  additional_offset;
+  u32 offset;
+  u32 additional_offset;
   u8  compression_type;
   u32 data_length;
   u16 checksum_from_crc;
