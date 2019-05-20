@@ -233,6 +233,8 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (10.1 o
 - AxCrypt
 - AxCrypt in-memory SHA1
 - WinZip
+- PKZIP archive encryption
+- PKZIP Master Key
 - iTunes backup < 10.0
 - iTunes backup >= 10.0
 - Android Backup

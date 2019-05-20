@@ -29,11 +29,11 @@
 - Added hash-mode: sha1($salt1.$pass.$salt2)
 - Added hash-mode: Ruby on Rails Restful-Authentication
 - Added hash-mode: PKZIP archive encryption
+- Added hash-mode: PKZIP Master Key
 - Added hash-mode: DiskCryptor
 - Added hash-mode: Python passlib pbkdf2-sha1
 - Added hash-mode: Python passlib pbkdf2-sha256
 - Added hash-mode: Python passlib pbkdf2-sha512
-- Added hash-mode: PKZIP Stream Cipher
 
 ##
 ## Bugs
