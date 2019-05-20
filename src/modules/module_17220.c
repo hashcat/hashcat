@@ -318,10 +318,10 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
       out_len += sprintf (line_buf + out_len, "%x*%x*%x*%x*%x*", pkzip->hashes[cnt].compressed_length, pkzip->hashes[cnt].uncompressed_length, pkzip->hashes[cnt].crc32, pkzip->hashes[cnt].offset, pkzip->hashes[cnt].additional_offset);
     }
 
-    out_len += sprintf (line_buf + out_len, "%i*%x*%x*", pkzip->hashes[cnt].compression_type, pkzip->hashes[cnt].data_length, pkzip->hashes[cnt].checksum_from_crc);
+    out_len += sprintf (line_buf + out_len, "%i*%x*%04x*", pkzip->hashes[cnt].compression_type, pkzip->hashes[cnt].data_length, pkzip->hashes[cnt].checksum_from_crc);
     if (pkzip->version == 2)
     {
-      out_len += sprintf (line_buf + out_len, "%x*", pkzip->hashes[cnt].checksum_from_timestamp);
+      out_len += sprintf (line_buf + out_len, "%04x*", pkzip->hashes[cnt].checksum_from_timestamp);
     }
 
     for (u32 i = 0; i < pkzip->hashes[cnt].data_length / 4; i++)
