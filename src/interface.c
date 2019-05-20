@@ -87,6 +87,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   hashconfig->esalt_size              = default_esalt_size              (hashconfig, user_options, user_options_extra);
   hashconfig->forced_outfile_format   = default_forced_outfile_format   (hashconfig, user_options, user_options_extra);
   hashconfig->hash_mode               = default_hash_mode               (hashconfig, user_options, user_options_extra);
+  hashconfig->hashes_count_min        = default_hashes_count_min        (hashconfig, user_options, user_options_extra);
+  hashconfig->hashes_count_max        = default_hashes_count_max        (hashconfig, user_options, user_options_extra);
   hashconfig->hlfmt_disable           = default_hlfmt_disable           (hashconfig, user_options, user_options_extra);
   hashconfig->hook_salt_size          = default_hook_salt_size          (hashconfig, user_options, user_options_extra);
   hashconfig->hook_size               = default_hook_size               (hashconfig, user_options, user_options_extra);
@@ -142,28 +144,48 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_DEFINED (module_ctx->module_benchmark_hook_salt);
   CHECK_DEFINED (module_ctx->module_benchmark_mask);
   CHECK_DEFINED (module_ctx->module_benchmark_salt);
-  CHECK_DEFINED (module_ctx->module_dictstat_disable);
+  CHECK_DEFINED (module_ctx->module_build_plain_postprocess);
+  CHECK_DEFINED (module_ctx->module_deep_comp_kernel);
   CHECK_DEFINED (module_ctx->module_dgst_pos0);
   CHECK_DEFINED (module_ctx->module_dgst_pos1);
   CHECK_DEFINED (module_ctx->module_dgst_pos2);
   CHECK_DEFINED (module_ctx->module_dgst_pos3);
   CHECK_DEFINED (module_ctx->module_dgst_size);
+  CHECK_DEFINED (module_ctx->module_dictstat_disable);
   CHECK_DEFINED (module_ctx->module_esalt_size);
+  CHECK_DEFINED (module_ctx->module_extra_buffer_size);
+  CHECK_DEFINED (module_ctx->module_extra_tmp_size);
   CHECK_DEFINED (module_ctx->module_forced_outfile_format);
+  CHECK_DEFINED (module_ctx->module_hash_binary_count);
+  CHECK_DEFINED (module_ctx->module_hash_binary_parse);
+  CHECK_DEFINED (module_ctx->module_hash_binary_save);
   CHECK_DEFINED (module_ctx->module_hash_category);
-  CHECK_DEFINED (module_ctx->module_hash_name);
+  CHECK_DEFINED (module_ctx->module_hash_decode);
+  CHECK_DEFINED (module_ctx->module_hash_decode_potfile);
+  CHECK_DEFINED (module_ctx->module_hash_decode_zero_hash);
+  CHECK_DEFINED (module_ctx->module_hash_encode);
+  CHECK_DEFINED (module_ctx->module_hash_encode_potfile);
+  CHECK_DEFINED (module_ctx->module_hash_encode_status);
+  CHECK_DEFINED (module_ctx->module_hash_init_selftest);
   CHECK_DEFINED (module_ctx->module_hash_mode);
+  CHECK_DEFINED (module_ctx->module_hash_name);
+  CHECK_DEFINED (module_ctx->module_hashes_count_max);
+  CHECK_DEFINED (module_ctx->module_hashes_count_min);
   CHECK_DEFINED (module_ctx->module_hlfmt_disable);
+  CHECK_DEFINED (module_ctx->module_hook12);
+  CHECK_DEFINED (module_ctx->module_hook23);
   CHECK_DEFINED (module_ctx->module_hook_salt_size);
   CHECK_DEFINED (module_ctx->module_hook_size);
-  CHECK_DEFINED (module_ctx->module_kernel_accel_min);
-  CHECK_DEFINED (module_ctx->module_kernel_accel_max);
-  CHECK_DEFINED (module_ctx->module_kernel_loops_min);
-  CHECK_DEFINED (module_ctx->module_kernel_loops_max);
-  CHECK_DEFINED (module_ctx->module_kernel_threads_min);
-  CHECK_DEFINED (module_ctx->module_kernel_threads_max);
+  CHECK_DEFINED (module_ctx->module_jit_build_options);
+  CHECK_DEFINED (module_ctx->module_jit_cache_disable);
   CHECK_DEFINED (module_ctx->module_kern_type);
   CHECK_DEFINED (module_ctx->module_kern_type_dynamic);
+  CHECK_DEFINED (module_ctx->module_kernel_accel_max);
+  CHECK_DEFINED (module_ctx->module_kernel_accel_min);
+  CHECK_DEFINED (module_ctx->module_kernel_loops_max);
+  CHECK_DEFINED (module_ctx->module_kernel_loops_min);
+  CHECK_DEFINED (module_ctx->module_kernel_threads_max);
+  CHECK_DEFINED (module_ctx->module_kernel_threads_min);
   CHECK_DEFINED (module_ctx->module_opti_type);
   CHECK_DEFINED (module_ctx->module_opts_type);
   CHECK_DEFINED (module_ctx->module_outfile_check_disable);
@@ -171,11 +193,11 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_DEFINED (module_ctx->module_potfile_custom_check);
   CHECK_DEFINED (module_ctx->module_potfile_disable);
   CHECK_DEFINED (module_ctx->module_potfile_keep_all_hashes);
-  CHECK_DEFINED (module_ctx->module_pwdump_column);
-  CHECK_DEFINED (module_ctx->module_pw_min);
   CHECK_DEFINED (module_ctx->module_pw_max);
-  CHECK_DEFINED (module_ctx->module_salt_min);
+  CHECK_DEFINED (module_ctx->module_pw_min);
+  CHECK_DEFINED (module_ctx->module_pwdump_column);
   CHECK_DEFINED (module_ctx->module_salt_max);
+  CHECK_DEFINED (module_ctx->module_salt_min);
   CHECK_DEFINED (module_ctx->module_salt_type);
   CHECK_DEFINED (module_ctx->module_separator);
   CHECK_DEFINED (module_ctx->module_st_hash);
@@ -183,24 +205,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_DEFINED (module_ctx->module_tmp_size);
   CHECK_DEFINED (module_ctx->module_unstable_warning);
   CHECK_DEFINED (module_ctx->module_warmup_disable);
-  CHECK_DEFINED (module_ctx->module_hash_binary_count);
-  CHECK_DEFINED (module_ctx->module_hash_binary_parse);
-  CHECK_DEFINED (module_ctx->module_hash_binary_save);
-  CHECK_DEFINED (module_ctx->module_hash_decode_potfile);
-  CHECK_DEFINED (module_ctx->module_hash_decode_zero_hash);
-  CHECK_DEFINED (module_ctx->module_hash_decode);
-  CHECK_DEFINED (module_ctx->module_hash_encode_potfile);
-  CHECK_DEFINED (module_ctx->module_hash_encode_status);
-  CHECK_DEFINED (module_ctx->module_hash_encode);
-  CHECK_DEFINED (module_ctx->module_extra_buffer_size);
-  CHECK_DEFINED (module_ctx->module_extra_tmp_size);
-  CHECK_DEFINED (module_ctx->module_jit_build_options);
-  CHECK_DEFINED (module_ctx->module_jit_cache_disable);
-  CHECK_DEFINED (module_ctx->module_deep_comp_kernel);
-  CHECK_DEFINED (module_ctx->module_hash_init_selftest);
-  CHECK_DEFINED (module_ctx->module_hook12);
-  CHECK_DEFINED (module_ctx->module_hook23);
-  CHECK_DEFINED (module_ctx->module_build_plain_postprocess);
 
   #undef CHECK_DEFINED
 
@@ -258,6 +262,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   if (module_ctx->module_esalt_size               != MODULE_DEFAULT) hashconfig->esalt_size              = module_ctx->module_esalt_size               (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_forced_outfile_format    != MODULE_DEFAULT) hashconfig->forced_outfile_format   = module_ctx->module_forced_outfile_format    (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hash_mode                != MODULE_DEFAULT) hashconfig->hash_mode               = module_ctx->module_hash_mode                (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_hashes_count_min         != MODULE_DEFAULT) hashconfig->hashes_count_min        = module_ctx->module_hashes_count_min         (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_hashes_count_max         != MODULE_DEFAULT) hashconfig->hashes_count_max        = module_ctx->module_hashes_count_max         (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hlfmt_disable            != MODULE_DEFAULT) hashconfig->hlfmt_disable           = module_ctx->module_hlfmt_disable            (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hook_salt_size           != MODULE_DEFAULT) hashconfig->hook_salt_size          = module_ctx->module_hook_salt_size           (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hook_size                != MODULE_DEFAULT) hashconfig->hook_size               = module_ctx->module_hook_size                (hashconfig, user_options, user_options_extra);
@@ -587,6 +593,20 @@ bool default_potfile_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
   const bool potfile_disable = false;
 
   return potfile_disable;
+}
+
+u32 default_hashes_count_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 hashes_count_min = 1;
+
+  return hashes_count_min;
+}
+
+u32 default_hashes_count_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 hashes_count_max = 0xffffffff;
+
+  return hashes_count_max;
 }
 
 u32 default_pw_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)

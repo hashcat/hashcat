@@ -8,7 +8,7 @@
 use strict;
 use warnings;
 
-sub module_constraints { [[0, 250], [-1, -1], [-1, -1], [-1, -1], [-1, -1]] }
+sub module_constraints { [[6, 250], [-1, -1], [-1, -1], [-1, -1], [-1, -1]] }
 
 my @crc32tab =
 (

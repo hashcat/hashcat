@@ -568,6 +568,24 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   }
 
   /**
+   * check global hash count in case module developer sets a them to a specific limit
+   */
+
+  if (hashes->digests_cnt < hashconfig->hashes_count_min)
+  {
+    event_log_error (hashcat_ctx, "Not enough hashes loaded - minimum is %u for this hash-mode.", hashconfig->hashes_count_min);
+
+    return -1;
+  }
+
+  if (hashes->digests_cnt > hashconfig->hashes_count_max)
+  {
+    event_log_error (hashcat_ctx, "Too many hashes loaded - maximum is %u for this hash-mode.", hashconfig->hashes_count_max);
+
+    return -1;
+  }
+
+  /**
    * maybe all hashes were cracked, we can exit here
    */
 

@@ -50,6 +50,7 @@
 - Fixed output password of "e" rule in pure and cpu rule engine if separator character is also the first letter
 - Fixed the 7-Zip parser to allow the entire supported range of encrypted and decrypted data lengths
 - Fixed the validation of the --brain-client-features command line argument (only values 1, 2 or 3 are allowed)
+- Fixed problem with the usage of the hexadecimal notations (\x00-\xff) within rules
 
 ##
 ## Improvements
