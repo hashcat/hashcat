@@ -49,6 +49,7 @@ static const char *PA_033 = "Invalid hccapx message pair";
 static const char *PA_034 = "Token encoding exception";
 static const char *PA_035 = "Token length exception";
 static const char *PA_036 = "Insufficient entropy exception";
+static const char *PA_037 = "Hash contains unsupported compression type for current mode";
 static const char *PA_255 = "Unknown error";
 
 static const char *OPTI_STR_OPTIMIZED_KERNEL     = "Optimized-Kernel";
@@ -973,6 +974,7 @@ const char *strparser (const u32 parser_status)
     case PARSER_TOKEN_ENCODING:       return PA_034;
     case PARSER_TOKEN_LENGTH:         return PA_035;
     case PARSER_INSUFFICIENT_ENTROPY: return PA_036;
+    case PARSER_PKZIP_CT_UNMATCHED:   return PA_037;
   }
 
   return PA_255;

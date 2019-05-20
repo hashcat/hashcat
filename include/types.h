@@ -512,6 +512,7 @@ typedef enum parser_rc
   PARSER_TOKEN_ENCODING       = -34,
   PARSER_TOKEN_LENGTH         = -35,
   PARSER_INSUFFICIENT_ENTROPY = -36,
+  PARSER_PKZIP_CT_UNMATCHED   = -37,
   PARSER_UNKNOWN_ERROR        = -255
 
 } parser_rc_t;
