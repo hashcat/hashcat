@@ -17,9 +17,17 @@ _hashcat_backend_devices ()
   if [ ! -x "${executable}" ]; then
     executable="${HASHCAT_ROOT}"/hashcat.bin
   fi
+  
+  if [ ! -x "${executable}" ]; then
+    local which_hashcat=$(which hashcat 2>/dev/null)
+    
+    if [ -n "${which_hashcat}" ]; then
+      executable="${which_hashcat}"
+    fi
+  fi
 
   if [ ! -x "${executable}" ]; then
-    return ""
+    return
   fi
 
   # remove separator at the end (if present)
@@ -134,7 +142,7 @@ _hashcat_backend_devices ()
       continue
     fi
 
-    # we add it because we didn't find any conflict:
+    # we add it because we didn't find any conflicts:
 
     if [ -z "${hashcat_device_list}" ]; then
       hashcat_device_list="${device_str}"

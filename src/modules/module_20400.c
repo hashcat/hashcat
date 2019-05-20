@@ -47,7 +47,7 @@ const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 typedef struct pbkdf2_sha1
 {
   u32 salt_buf[64];
-  
+
 } pbkdf2_sha1_t;
 
 typedef struct pbkdf2_sha1_tmp
@@ -57,7 +57,7 @@ typedef struct pbkdf2_sha1_tmp
 
   u32  dgst[32];
   u32  out[32];
-  
+
 } pbkdf2_sha1_tmp_t;
 
 static const char *SIGNATURE_PASSLIB_PBKDF2_SHA1 = "pbkdf2";
@@ -65,21 +65,21 @@ static const char *SIGNATURE_PASSLIB_PBKDF2_SHA1 = "pbkdf2";
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   const u64 esalt_size = (const u64) sizeof (pbkdf2_sha1_t);
-  
+
   return esalt_size;
 }
 
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   const u64 tmp_size = (const u64) sizeof (pbkdf2_sha1_tmp_t);
-  
+
   return tmp_size;
 }
 
 u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   const u32 pw_max = PW_MAX;
-  
+
   return pw_max;
 }
 
@@ -87,7 +87,7 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 {
   char *jit_build_options = NULL;
   hc_asprintf (&jit_build_options, "-D NO_UNROLL");
-  
+
   return jit_build_options;
 }
 
@@ -149,7 +149,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   // base64 decode salt
   const u8 *salt_pos = token.buf[3];
   const int salt_len = token.len[3];
-  
+
   u8 tmp_buf[256] = { 0 };
 
   const size_t salt_len_decoded = base64_decode (ab64_to_int, (const u8 *) salt_pos, salt_len, tmp_buf);
@@ -157,7 +157,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   u8 *salt_buf_ptr = (u8 *) pbkdf2_sha1->salt_buf;
   memcpy (salt_buf_ptr, tmp_buf, salt_len_decoded);
   memcpy (salt->salt_buf, salt_buf_ptr, salt_len_decoded);
-  
+
   salt->salt_len = salt_len_decoded;
 
   // base64 decode hash
@@ -172,7 +172,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[2] = byte_swap_32 (digest[2]);
   digest[3] = byte_swap_32 (digest[3]);
   digest[4] = byte_swap_32 (digest[4]);
-  
+
   return (PARSER_OK);
 }
 
@@ -197,24 +197,24 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const size_t salt_len_enc = base64_encode (int_to_ab64, (const u8 *) pbkdf2_sha1->salt_buf, salt->salt_len, (u8 *) salt_enc);
   const size_t hash_len_enc = base64_encode (int_to_ab64, (const u8 *) tmp, HASH_LEN_RAW, (u8 *) hash_enc);
-  
+
   // remove padding =
-  for (size_t i = 0; i < salt_len_enc; i++) 
+  for (size_t i = 0; i < salt_len_enc; i++)
   {
-    if (salt_enc[i] == '=') 
+    if (salt_enc[i] == '=')
     {
       salt_enc[i] = '\0';
     }
   }
 
-  for (size_t i = 0; i < hash_len_enc; i++) 
+  for (size_t i = 0; i < hash_len_enc; i++)
   {
-    if (hash_enc[i] == '=') 
+    if (hash_enc[i] == '=')
     {
       hash_enc[i] = '\0';
-    }  
+    }
   }
-  
+
   // output
   const int line_len = snprintf (line_buf, line_size, "$%s$%u$%s$%s", SIGNATURE_PASSLIB_PBKDF2_SHA1, salt->salt_iter + 1, salt_enc, hash_enc);
   return line_len;
@@ -255,6 +255,8 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;
   module_ctx->module_hash_name                = module_hash_name;
+  module_ctx->module_hashes_count_min         = MODULE_DEFAULT;
+  module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
   module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;
   module_ctx->module_hook12                   = MODULE_DEFAULT;
   module_ctx->module_hook23                   = MODULE_DEFAULT;

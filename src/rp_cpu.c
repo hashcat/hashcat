@@ -557,7 +557,7 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
 
       case RULE_OP_MANGLE_TOGGLE_AT:
         NEXT_RULEPOS (rule_pos);
-        NEXT_RPTOI (rule, rule_pos, upos);
+        NEXT_RPTOI (rule_new, rule_pos, upos);
         if (upos < out_len) MANGLE_TOGGLE_AT (out, upos);
         break;
 
@@ -571,7 +571,7 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
 
       case RULE_OP_MANGLE_DUPEWORD_TIMES:
         NEXT_RULEPOS (rule_pos);
-        NEXT_RPTOI (rule, rule_pos, ulen);
+        NEXT_RPTOI (rule_new, rule_pos, ulen);
         out_len = mangle_double_times (out, out_len, ulen);
         break;
 
@@ -607,43 +607,43 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
 
       case RULE_OP_MANGLE_DELETE_AT:
         NEXT_RULEPOS (rule_pos);
-        NEXT_RPTOI (rule, rule_pos, upos);
+        NEXT_RPTOI (rule_new, rule_pos, upos);
         out_len = mangle_delete_at (out, out_len, upos);
         break;
 
       case RULE_OP_MANGLE_EXTRACT:
         NEXT_RULEPOS (rule_pos);
-        NEXT_RPTOI (rule, rule_pos, upos);
+        NEXT_RPTOI (rule_new, rule_pos, upos);
         NEXT_RULEPOS (rule_pos);
-        NEXT_RPTOI (rule, rule_pos, ulen);
+        NEXT_RPTOI (rule_new, rule_pos, ulen);
         out_len = mangle_extract (out, out_len, upos, ulen);
         break;
 
       case RULE_OP_MANGLE_OMIT:
         NEXT_RULEPOS (rule_pos);
-        NEXT_RPTOI (rule, rule_pos, upos);
+        NEXT_RPTOI (rule_new, rule_pos, upos);
         NEXT_RULEPOS (rule_pos);
-        NEXT_RPTOI (rule, rule_pos, ulen);
+        NEXT_RPTOI (rule_new, rule_pos, ulen);
         out_len = mangle_omit (out, out_len, upos, ulen);
         break;
 
       case RULE_OP_MANGLE_INSERT:
         NEXT_RULEPOS (rule_pos);
-        NEXT_RPTOI (rule, rule_pos, upos);
+        NEXT_RPTOI (rule_new, rule_pos, upos);
         NEXT_RULEPOS (rule_pos);
         out_len = mangle_insert (out, out_len, upos, rule_new[rule_pos]);
         break;
 
       case RULE_OP_MANGLE_OVERSTRIKE:
         NEXT_RULEPOS (rule_pos);
-        NEXT_RPTOI (rule, rule_pos, upos);
+        NEXT_RPTOI (rule_new, rule_pos, upos);
         NEXT_RULEPOS (rule_pos);
         out_len = mangle_overstrike (out, out_len, upos, rule_new[rule_pos]);
         break;
 
       case RULE_OP_MANGLE_TRUNCATE_AT:
         NEXT_RULEPOS (rule_pos);
-        NEXT_RPTOI (rule, rule_pos, upos);
+        NEXT_RPTOI (rule_new, rule_pos, upos);
         out_len = mangle_truncate_at (out, out_len, upos);
         break;
 
@@ -664,13 +664,13 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
 
       case RULE_OP_MANGLE_DUPECHAR_FIRST:
         NEXT_RULEPOS (rule_pos);
-        NEXT_RPTOI (rule, rule_pos, ulen);
+        NEXT_RPTOI (rule_new, rule_pos, ulen);
         out_len = mangle_dupechar_at (out, out_len, 0, ulen);
         break;
 
       case RULE_OP_MANGLE_DUPECHAR_LAST:
         NEXT_RULEPOS (rule_pos);
-        NEXT_RPTOI (rule, rule_pos, ulen);
+        NEXT_RPTOI (rule_new, rule_pos, ulen);
         out_len = mangle_dupechar_at (out, out_len, out_len - 1, ulen);
         break;
 
@@ -680,13 +680,13 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
 
       case RULE_OP_MANGLE_DUPEBLOCK_FIRST:
         NEXT_RULEPOS (rule_pos);
-        NEXT_RPTOI (rule, rule_pos, ulen);
+        NEXT_RPTOI (rule_new, rule_pos, ulen);
         out_len = mangle_dupeblock_prepend (out, out_len, ulen);
         break;
 
       case RULE_OP_MANGLE_DUPEBLOCK_LAST:
         NEXT_RULEPOS (rule_pos);
-        NEXT_RPTOI (rule, rule_pos, ulen);
+        NEXT_RPTOI (rule_new, rule_pos, ulen);
         out_len = mangle_dupeblock_append (out, out_len, ulen);
         break;
 
@@ -700,45 +700,45 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
 
       case RULE_OP_MANGLE_SWITCH_AT:
         NEXT_RULEPOS (rule_pos);
-        NEXT_RPTOI (rule, rule_pos, upos);
+        NEXT_RPTOI (rule_new, rule_pos, upos);
         NEXT_RULEPOS (rule_pos);
-        NEXT_RPTOI (rule, rule_pos, upos2);
+        NEXT_RPTOI (rule_new, rule_pos, upos2);
         out_len = mangle_switch_at_check (out, out_len, upos, upos2);
         break;
 
       case RULE_OP_MANGLE_CHR_SHIFTL:
         NEXT_RULEPOS (rule_pos);
-        NEXT_RPTOI (rule, rule_pos, upos);
+        NEXT_RPTOI (rule_new, rule_pos, upos);
         mangle_chr_shiftl (out, out_len, upos);
         break;
 
       case RULE_OP_MANGLE_CHR_SHIFTR:
         NEXT_RULEPOS (rule_pos);
-        NEXT_RPTOI (rule, rule_pos, upos);
+        NEXT_RPTOI (rule_new, rule_pos, upos);
         mangle_chr_shiftr (out, out_len, upos);
         break;
 
       case RULE_OP_MANGLE_CHR_INCR:
         NEXT_RULEPOS (rule_pos);
-        NEXT_RPTOI (rule, rule_pos, upos);
+        NEXT_RPTOI (rule_new, rule_pos, upos);
         mangle_chr_incr (out, out_len, upos);
         break;
 
       case RULE_OP_MANGLE_CHR_DECR:
         NEXT_RULEPOS (rule_pos);
-        NEXT_RPTOI (rule, rule_pos, upos);
+        NEXT_RPTOI (rule_new, rule_pos, upos);
         mangle_chr_decr (out, out_len, upos);
         break;
 
       case RULE_OP_MANGLE_REPLACE_NP1:
         NEXT_RULEPOS (rule_pos);
-        NEXT_RPTOI (rule, rule_pos, upos);
+        NEXT_RPTOI (rule_new, rule_pos, upos);
         if ((upos >= 0) && ((upos + 1) < out_len)) mangle_overstrike (out, out_len, upos, out[upos + 1]);
         break;
 
       case RULE_OP_MANGLE_REPLACE_NM1:
         NEXT_RULEPOS (rule_pos);
-        NEXT_RPTOI (rule, rule_pos, upos);
+        NEXT_RPTOI (rule_new, rule_pos, upos);
         if ((upos >= 1) && ((upos + 0) < out_len)) mangle_overstrike (out, out_len, upos, out[upos - 1]);
         break;
 
@@ -754,11 +754,11 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
       case RULE_OP_MANGLE_EXTRACT_MEMORY:
         if (mem_len < 1) return (RULE_RC_REJECT_ERROR);
         NEXT_RULEPOS (rule_pos);
-        NEXT_RPTOI (rule, rule_pos, upos);
+        NEXT_RPTOI (rule_new, rule_pos, upos);
         NEXT_RULEPOS (rule_pos);
-        NEXT_RPTOI (rule, rule_pos, ulen);
+        NEXT_RPTOI (rule_new, rule_pos, ulen);
         NEXT_RULEPOS (rule_pos);
-        NEXT_RPTOI (rule, rule_pos, upos2);
+        NEXT_RPTOI (rule_new, rule_pos, upos2);
         if ((out_len = mangle_insert_multi (out, out_len, upos2, mem, mem_len, upos, ulen)) < 1) return (out_len);
         break;
 
@@ -784,19 +784,19 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
 
       case RULE_OP_REJECT_LESS:
         NEXT_RULEPOS (rule_pos);
-        NEXT_RPTOI (rule, rule_pos, upos);
+        NEXT_RPTOI (rule_new, rule_pos, upos);
         if (out_len > upos) return (RULE_RC_REJECT_ERROR);
         break;
 
       case RULE_OP_REJECT_GREATER:
         NEXT_RULEPOS (rule_pos);
-        NEXT_RPTOI (rule, rule_pos, upos);
+        NEXT_RPTOI (rule_new, rule_pos, upos);
         if (out_len < upos) return (RULE_RC_REJECT_ERROR);
         break;
 
       case RULE_OP_REJECT_EQUAL:
         NEXT_RULEPOS (rule_pos);
-        NEXT_RPTOI (rule, rule_pos, upos);
+        NEXT_RPTOI (rule_new, rule_pos, upos);
         if (out_len != upos) return (RULE_RC_REJECT_ERROR);
         break;
 
@@ -830,7 +830,7 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
 
       case RULE_OP_REJECT_EQUAL_AT:
         NEXT_RULEPOS (rule_pos);
-        NEXT_RPTOI (rule, rule_pos, upos);
+        NEXT_RPTOI (rule_new, rule_pos, upos);
         if ((upos + 1) > out_len) return (RULE_RC_REJECT_ERROR);
         NEXT_RULEPOS (rule_pos);
         if (out[upos] != rule_new[rule_pos]) return (RULE_RC_REJECT_ERROR);
@@ -838,7 +838,7 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
 
       case RULE_OP_REJECT_CONTAINS:
         NEXT_RULEPOS (rule_pos);
-        NEXT_RPTOI (rule, rule_pos, upos);
+        NEXT_RPTOI (rule_new, rule_pos, upos);
         if ((upos + 1) > out_len) return (RULE_RC_REJECT_ERROR);
         NEXT_RULEPOS (rule_pos);
         int c; int cnt;
