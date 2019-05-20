@@ -725,8 +725,8 @@ KERNEL_FQ void m17200_sxx (KERN_ATTR_RULES_ESALT (pkzip_t))
       update_key012 (key0, key1, key2, plain, l_crc32tab);
     }
 
-    if (((tmp[0]) & 6) == 2 && !check_inflate_code1 (tmp, 24)) continue;
-    if (((tmp[0]) & 6) == 4 && !check_inflate_code2 (tmp))     continue;
+    if (esalt_bufs[digests_offset].hash.data_length >= 24 && ((tmp[0]) & 6) == 2 && !check_inflate_code1 (tmp, 24)) continue;
+    if (esalt_bufs[digests_offset].hash.data_length >= 24 && ((tmp[0]) & 6) == 4 && !check_inflate_code2 (tmp))     continue;
 
     mz_stream infstream;
 
@@ -951,8 +951,8 @@ KERNEL_FQ void m17200_mxx (KERN_ATTR_RULES_ESALT (pkzip_t))
       update_key012 (key0, key1, key2, plain, l_crc32tab);
     }
 
-    if (((tmp[0]) & 6) == 2 && !check_inflate_code1 (tmp, 24)) continue;
-    if (((tmp[0]) & 6) == 4 && !check_inflate_code2 (tmp))     continue;
+    if (esalt_bufs[digests_offset].hash.data_length >= 24 && ((tmp[0]) & 6) == 2 && !check_inflate_code1 (tmp, 24)) continue;
+    if (esalt_bufs[digests_offset].hash.data_length >= 24 && ((tmp[0]) & 6) == 4 && !check_inflate_code2 (tmp))     continue;
 
     mz_stream infstream;
 
