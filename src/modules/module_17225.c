@@ -99,13 +99,13 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_8;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_ARCHIVE;
-static const char *HASH_NAME      = "PKZIP (Compressed Multi-File Checksum-Only)";
-static const u64   KERN_TYPE      = 17230;
+static const char *HASH_NAME      = "PKZIP (Compressed Multi-File)";
+static const u64   KERN_TYPE      = 17225;
 static const u32   OPTI_TYPE      = 0;
 static const u64   OPTS_TYPE      = 0;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$pkzip2$8*1*1*0*8*24*a425*8827*3bd479d541019c2f32395046b8fbca7e1dca218b9b5414975be49942c3536298e9cc939e*1*0*8*24*2a74*882a*537af57c30fd9fd4b3eefa9ce55b6bff3bbfada237a7c1dace8ebf3bb0de107426211da3*1*0*8*24*2a74*882a*5f406b4858d3489fd4a6a6788798ac9b924b5d0ca8b8e5a6371739c9edcfd28c82f75316*1*0*8*24*2a74*882a*1843aca546b2ea68bd844d1e99d4f74d86417248eb48dd5e956270e42a331c18ea13f5ed*1*0*8*24*2a74*882a*aca3d16543bbfb2e5d2659f63802e0fa5b33e0a1f8ae47334019b4f0b6045d3d8eda3af1*1*0*8*24*2a74*882a*fbe0efc9e10ae1fc9b169bd060470bf3e39f09f8d83bebecd5216de02b81e35fe7e7b2f2*1*0*8*24*2a74*882a*537886dbabffbb7cac77deb01dc84760894524e6966183b4478a4ef56f0c657375a235a1*1*0*8*24*eda7*5096*40eb30ef1ddd9b77b894ed46abf199b480f1e5614fde510855f92ae7b8026a11f80e4d5f*$/pkzip2$";
+static const char *ST_HASH        = "$pkzip2$3*1*1*0*0*24*3e2c*3ef8*0619e9d17ff3f994065b99b1fa8aef41c056edf9fa4540919c109742dcb32f797fc90ce0*1*0*8*24*431a*3f26*18e2461c0dbad89bd9cc763067a020c89b5e16195b1ac5fa7fb13bd246d000b6833a2988*2*0*23*17*1e3c1a16*2e4*2f*0*23*1e3c*3f2d*54ea4dbc711026561485bbd191bf300ae24fa0997f3779b688cdad323985f8d3bb8b0c*$/pkzip2$";
 
 #define MAX_DATA (16 * 1024 * 1024)
 
@@ -202,7 +202,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // check here that the hash_count is valid for the attack type
   if(pkzip->hash_count > 8) return PARSER_HASH_VALUE;
-  if(pkzip->hash_count < 3) return PARSER_HASH_VALUE;
 
   p = strtok(NULL, "*");
   if (p == NULL) return PARSER_HASH_LENGTH;
@@ -229,7 +228,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
       p = strtok(NULL, "*");
       if (p == NULL) return PARSER_HASH_LENGTH;
       pkzip->hashes[i].uncompressed_length = strtoul(p, NULL, 16);
-      if (pkzip->hashes[i].compressed_length > MAX_DATA * 4)
+      if (pkzip->hashes[i].compressed_length > MAX_DATA)
       {
         return PARSER_TOKEN_LENGTH;
       }
@@ -250,7 +249,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     p = strtok(NULL, "*");
     if (p == NULL) return PARSER_HASH_LENGTH;
     pkzip->hashes[i].compression_type = atoi(p);
-    if (pkzip->hashes[i].compression_type != 8 && pkzip->hashes[i].compression_type != 0) return PARSER_PKZIP_CT_UNMATCHED;
+    if (pkzip->hashes[i].compression_type != 8 && pkzip->hashes[i].compression_type != 0) return PARSER_HASH_VALUE;
 
     p = strtok(NULL, "*");
     if (p == NULL) return PARSER_HASH_LENGTH;
