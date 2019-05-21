@@ -32,8 +32,8 @@ HASH_TYPES="$(echo -n ${HASH_TYPES} | tr ' ' '\n' | sort -u -n | tr '\n' ' ')"
 
 VECTOR_WIDTHS="1 2 4 8 16"
 
-HASHFILE_ONLY=$(grep -l OPTS_TYPE_BINARY_HASHFILE ${TDIR}/../src/modules/module_*.c | sed 's/.*module_0*\([0-9]\+\)\.c/\1/' | tr '\n' ' ')
-SLOW_ALGOS=$(grep -l ATTACK_EXEC_OUTSIDE_KERNEL ${TDIR}/../src/modules/module_*.c | sed 's/.*module_0*\([0-9]\+\)\.c/\1/' | tr '\n' ' ')
+HASHFILE_ONLY=$(grep -l OPTS_TYPE_BINARY_HASHFILE ${TDIR}/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+).c/\1/' | tr '\n' ' ')
+SLOW_ALGOS=$(grep -l ATTACK_EXEC_OUTSIDE_KERNEL ${TDIR}/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+).c/\1/' | tr '\n' ' ')
 
 OUTD="test_$(date +%s)"
 
@@ -1457,7 +1457,7 @@ function attack_6()
 
         rm -f ${dict1_a6}.txt # temporary file
 
-        line_num=$(wc -l ${dict1_a6} | sed 's/ .*$//')
+        line_num=$(wc -l ${dict1_a6} | sed -E 's/ *([0-9]+) .*$/\1/')
 
         sorted_lines=$(seq 1 ${line_num})
 
@@ -2547,7 +2547,7 @@ TYPE="null"
 VECTOR="default"
 HT=0
 PACKAGE=0
-OPTIMIZED=0
+OPTIMIZED=1
 
 while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:" opt; do
 
