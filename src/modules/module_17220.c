@@ -172,10 +172,9 @@ u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED
 
 void hex_to_binary (const char *source, int len, char* out)
 {
-  const char *pos = source;
-  for (size_t count = 0; count < (size_t) len/2; count++) {
-    sscanf(pos, "%2hhx", &out[count]);
-    pos += 2;
+  for (int i = 0, j = 0; j < len; i += 1, j += 2)
+  {
+    out[i] = hex_to_u8 ((const u8 *) &source[j]);
   }
 }
 
