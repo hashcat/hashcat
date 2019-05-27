@@ -128,6 +128,8 @@ endif
 ## Filenames for library and frontend
 ##
 
+CPPUNIT			:= cppunit
+
 HASHCAT_FRONTEND        := hashcat
 HASHCAT_LIBRARY         := libhashcat.so.$(VERSION_PURE)
 
@@ -280,7 +282,7 @@ EMU_OBJS_ALL            += emu_inc_truecrypt_crc32 emu_inc_truecrypt_keyfile emu
 EMU_OBJS_ALL            += emu_inc_hash_md4 emu_inc_hash_md5 emu_inc_hash_ripemd160 emu_inc_hash_sha1 emu_inc_hash_sha256 emu_inc_hash_sha384 emu_inc_hash_sha512 emu_inc_hash_streebog256 emu_inc_hash_streebog512
 EMU_OBJS_ALL            += emu_inc_cipher_aes emu_inc_cipher_camellia emu_inc_cipher_des emu_inc_cipher_kuznyechik emu_inc_cipher_serpent emu_inc_cipher_twofish
 
-OBJS_ALL                := affinity autotune benchmark bitmap bitops combinator common convert cpt cpu_crc32 debugfile dictstat dispatch dynloader event ext_ADL ext_nvapi ext_nvml ext_OpenCL ext_sysfs ext_lzma filehandling folder hashcat hashes hlfmt hwmon induct interface keyboard_layout locking logfile loopback memory monitor mpsp opencl outfile_check outfile pidfile potfile restore rp rp_cpu selftest slow_candidates shared status stdout straight terminal thread timer tuningdb usage user_options wordlist $(EMU_OBJS_ALL)
+OBJS_ALL                := affinity autotune benchmark bitmap bitops combinator common convert cpt cpu_crc32 debugfile dictstat dispatch dynloader event ext_ADL ext_nvapi ext_nvml ext_OpenCL ext_sysfs ext_lzma filehandling folder hashcat hashcat_cunit hashes hlfmt hwmon induct interface keyboard_layout locking logfile loopback memory monitor mpsp opencl outfile_check outfile pidfile potfile restore rp rp_cpu selftest slow_candidates shared status stdout straight terminal thread timer tuningdb usage user_options wordlist $(EMU_OBJS_ALL)
 
 ifeq ($(ENABLE_BRAIN),1)
 OBJS_ALL                += brain
@@ -616,3 +618,28 @@ hashcat.dll: src/main.c obj/combined.WIN.a $(WIN_ICONV)/lib/libiconv.a
 	$(CC_WIN)   $(CFLAGS_CROSS_WIN)      -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -shared
 
 endif
+
+CPPUNIT = tests
+CPPUNIT_CLEAN = clean_cppunit
+
+CPPUNIT_SRC_DIR = test/cppunit/src/
+CPPUNIT_OBJ_DIR = test/cppunit/obj/
+CPPUNIT_INCLUDE_DIR = test/cppunit/include/
+CPPUNIT_INCLUDES = -I $(CPPUNIT_INCLUDE_DIR) -I include -I OpenCL -I $(DEPS_XXHASH_PATH) -I $(DEPS_LZMA_PATH) -I $(DEPS_OPENCL_PATH)
+
+CPPUNIT_SRC = $(wildcard $(CPPUNIT_SRC_DIR)*.cpp)
+CPPUNIT_OBJ = $(patsubst $(CPPUNIT_SRC_DIR)%.cpp, $(CPPUNIT_OBJ_DIR)%.o, $(CPPUNIT_SRC))
+
+$(CPPUNIT_OBJ_DIR)%.o: $(CPPUNIT_SRC_DIR)%.cpp
+	g++ $(CPPUNIT_INCLUDES) -c $< -o $@
+
+ifeq ($(SHARED),1)
+$(CPPUNIT): $(CPPUNIT_OBJ) $(HASHCAT_LIBRARY)
+	g++    $(CFLAGS_NATIVE) $^ -o $@ $(HASHCAT_LIBRARY) -lcppunit $(LFLAGS_NATIVE) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
+else
+$(CPPUNIT): $(CPPUNIT_OBJ) obj/combined.NATIVE.a
+	g++    $(CFLAGS_NATIVE) $^ -o $@                    $(LFLAGS_NATIVE) -lcppunit -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
+endif
+
+$(CPPUNIT_CLEAN):
+	rm -f test/cppunit/obj/* cppunit
