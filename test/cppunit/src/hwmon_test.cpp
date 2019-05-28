@@ -6,8 +6,11 @@
 #include <cppunit/TestSuite.h>
 
 #include "hwmon_test.h"
-#include "hwmon.h"
-#include "memory.h"
+
+extern "C" {
+	#include "hwmon.h"
+	#include "memory.h"
+}
 
 using std::cout;
 using std::string;

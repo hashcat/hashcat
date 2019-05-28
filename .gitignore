@@ -22,3 +22,4 @@ obj/*.o
 obj/*.a
 include/CL
 tests
+test/cunit/obj/*

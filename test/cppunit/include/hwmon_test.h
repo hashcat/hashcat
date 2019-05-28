@@ -6,11 +6,8 @@
 #include <cppunit/TestFixture.h>
 #include <cppunit/TestSuite.h>
 
-#include "types.h"
-
 extern "C" {
-	int hwmon_ctx_init(hashcat_ctx_t *);
-	void *hcmalloc (const size_t sz);
+	#include "types.h"
 }
 
 class HwmonTest : public CppUnit::TestFixture{
