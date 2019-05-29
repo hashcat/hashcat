@@ -1998,15 +1998,6 @@ int hm_get_throttle_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 device
 
 int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
-  printf("%d\n", hashcat_ctx->user_options->example_hashes);
-  printf("%d\n", hashcat_ctx->user_options->keyspace);
-  printf("%d\n", hashcat_ctx->user_options->left);
-  printf("%d\n", hashcat_ctx->user_options->opencl_info);
-  printf("%d\n", hashcat_ctx->user_options->show);
-  printf("%d\n", hashcat_ctx->user_options->stdout_flag);
-  printf("%d\n", hashcat_ctx->user_options->usage);
-  printf("%d\n", hashcat_ctx->user_options->version);
-  printf("%d\n", hashcat_ctx->user_options->hwmon_disable);
   hwmon_ctx_t    *hwmon_ctx    = hashcat_ctx->hwmon_ctx;
   opencl_ctx_t   *opencl_ctx   = hashcat_ctx->opencl_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
