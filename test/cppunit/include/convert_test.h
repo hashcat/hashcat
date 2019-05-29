@@ -23,6 +23,7 @@ private:
     void isValidBase64InvalidLength();
     void isValidBase64InvalidPadding();
     void isValidBase64InvalidEmpty();
+    void isValidBase64InvalidSingleChar();
     void assertBase64Validity(const char *s, bool valid);
 public:
     static CppUnit::TestSuite *suite();

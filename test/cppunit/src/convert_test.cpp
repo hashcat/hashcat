@@ -15,6 +15,7 @@ CppUnit::TestSuite *ConvertTest::suite(){
     suite->addTest(new CppUnit::TestCaller<ConvertTest>("isValidBase64InvalidLength", &ConvertTest::isValidBase64InvalidLength));
     suite->addTest(new CppUnit::TestCaller<ConvertTest>("isValidBase64InvalidPadding", &ConvertTest::isValidBase64InvalidPadding));
     suite->addTest(new CppUnit::TestCaller<ConvertTest>("isValidBase64InvalidEmpty", &ConvertTest::isValidBase64InvalidEmpty));
+    suite->addTest(new CppUnit::TestCaller<ConvertTest>("isValidBase64InvalidSingleChar", &ConvertTest::isValidBase64InvalidSingleChar));
 	return suite;
 }
 
@@ -54,6 +55,11 @@ void ConvertTest::isValidBase64InvalidPadding(){
 // Test with invalid, empty string
 void ConvertTest::isValidBase64InvalidEmpty(){
     assertBase64Validity("", false);
+}
+
+// Test with invalid, single character string, for a 1-iteration loop test
+void ConvertTest::isValidBase64InvalidSingleChar(){
+    assertBase64Validity("1", false);
 }
 
 /*
