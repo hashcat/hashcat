@@ -1042,32 +1042,6 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
   }
 }
 
-void test_hwmon_disable(hashcat_ctx_t *ctx){
-	printf("%s\n", "First");
-	printf("%d\n", ctx->user_options->example_hashes);
-	printf("%d\n", ctx->user_options->keyspace);
-	printf("%d\n", ctx->user_options->left);
-	printf("%d\n", ctx->user_options->opencl_info);
-	printf("%d\n", ctx->user_options->show);
-	printf("%d\n", ctx->user_options->stdout_flag);
-	printf("%d\n", ctx->user_options->usage);
-	printf("%d\n", ctx->user_options->version);
-	printf("%d\n", ctx->user_options->hwmon_disable);
-	ctx->user_options->hwmon_disable = true;
-	printf("%s\n", "Second");
-	printf("%d\n", ctx->user_options->example_hashes);
-	printf("%d\n", ctx->user_options->keyspace);
-	printf("%d\n", ctx->user_options->left);
-	printf("%d\n", ctx->user_options->opencl_info);
-	printf("%d\n", ctx->user_options->show);
-	printf("%d\n", ctx->user_options->stdout_flag);
-	printf("%d\n", ctx->user_options->usage);
-	printf("%d\n", ctx->user_options->version);
-	printf("%d\n", ctx->user_options->hwmon_disable);
-	printf("%s\n", "Passing");
-	hwmon_ctx_init(ctx);
-}
-
 int main (int argc, char **argv)
 {
   hashcat_ctx_t *ctx = (hashcat_ctx_t *) hcmalloc (sizeof (hashcat_ctx_t));
