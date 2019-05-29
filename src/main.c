@@ -19,7 +19,6 @@
 #include "status.h"
 #include "shared.h"
 #include "event.h"
-#include "hwmon.h"
 
 #ifdef WITH_BRAIN
 #include "brain.h"
@@ -1044,9 +1043,6 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
 
 int main (int argc, char **argv)
 {
-  hashcat_ctx_t *ctx = (hashcat_ctx_t *) hcmalloc (sizeof (hashcat_ctx_t));
-  hashcat_init(ctx, event);
-  test_hwmon_disable(ctx);
   // this increases the size on windows dos boxes
 
   setup_console ();
