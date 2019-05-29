@@ -39,7 +39,7 @@ void ConvertTest::isValidBase64ValidPadding(){
 
 // Test with invalid character, Z
 void ConvertTest::isValidBase64InvalidChars(){
-    assertBase64Validity("ABCZ1234", false);
+    assertBase64Validity("ABC^1234", false);
 }
 
 // Test with invalid length (not multiple of 4, so does not resolve to integer byte count)
