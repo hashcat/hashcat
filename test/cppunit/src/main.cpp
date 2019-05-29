@@ -13,12 +13,10 @@ int main(){
 
 	/*
 	 * Unit:        Convert
-	 * Test state:  Four tests fail. The base64 string
+	 * Test state:  Three tests fail. The base64 string
 	 *              validity checker is not robust at all.
 	 *              It fails to check for valid lengths and
-	 *              valid alphabetical characters. Base64
-	 *              characters should be hexadecimal, not just
-	 *              any alphanumeric character.
+	 *              padding.
 	 */
 	runner.addTest(ConvertTest::suite());
 
