@@ -52,9 +52,9 @@ void ConvertTest::isValidBase64InvalidPadding(){
     assertBase64Validity("ABCD1234====", false);
 }
 
-// Test with invalid, empty string
+// Test with invalid, empty string. According to RFC 4648, Base64("") = "", so "" is valid.
 void ConvertTest::isValidBase64InvalidEmpty(){
-    assertBase64Validity("", false);
+    assertBase64Validity("", true);
 }
 
 // Test with invalid, single character string, for a 1-iteration loop test
