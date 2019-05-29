@@ -6,19 +6,19 @@ int main(){
 	CppUnit::TextUi::TestRunner runner;
 
 	/*
-	 * Unit: 		Hwmon
-	 * Test state:	All tests pass
+	 * Unit:        Hwmon
+	 * Test state:  All tests pass
 	 */
 	runner.addTest(HwmonTest::suite());
 
 	/*
-	 * Unit: 		Convert
-	 * Test state:	Four tests fail. The base64 string
-	 * 				validity checker is not robust at all.
-	 * 				It fails to check for valid lengths and
-	 * 				valid alphabetical characters. Base64
-	 * 				characters should be hexadecimal, not just
-	 * 				any alphanumeric character.
+	 * Unit:        Convert
+	 * Test state:  Four tests fail. The base64 string
+	 *              validity checker is not robust at all.
+	 *              It fails to check for valid lengths and
+	 *              valid alphabetical characters. Base64
+	 *              characters should be hexadecimal, not just
+	 *              any alphanumeric character.
 	 */
 	runner.addTest(ConvertTest::suite());
 

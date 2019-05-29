@@ -6,20 +6,18 @@
 
 extern "C" {
 	#ifndef _TYPES_H
-    #include "types.h"
-    #endif
+	#include "types.h"
+	#endif
 }
 
 /*
- *
  * Class:   HwmonTest
  * Desc:    Tests hashcat hwmon context initialization.
- * 			This is really all that can be unit tested,
- * 			as all of the other public interface methods
- *			vary depending on the hardware, OS, and system
- * 			libraries available. Only the context initialization
- * 			has multiple platform-independent test cases.
- *
+ *          This is really all that can be unit tested,
+ *          as all of the other public interface methods
+ *          vary depending on the hardware, OS, and system
+ *          libraries available. Only the context initialization
+ *          has multiple platform-independent test cases.
  */
 class HwmonTest : public CppUnit::TestFixture{
 private:

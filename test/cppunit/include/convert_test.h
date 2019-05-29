@@ -11,11 +11,9 @@ extern "C" {
 }
 
 /*
- *
  * Class:   ConvertTest
  * Desc:    Tests hashcat validity checks of base64 strings,
  *          often used to represent various types of hashes.
- *
  */
 class ConvertTest : public CppUnit::TestFixture {
 private:
