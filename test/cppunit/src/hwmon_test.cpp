@@ -40,6 +40,7 @@ void HwmonTest::freeCtx(){
 	}
 	if(ctx->opencl_ctx != NULL){
 		free(ctx->opencl_ctx);
+		
 		ctx->opencl_ctx = NULL;
 	}
 

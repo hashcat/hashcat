@@ -1,0 +1,77 @@
+hashcat (v5.1.0-895-g8121073) starting...
+
+OpenCL Platform #1: Intel(R) Corporation
+========================================
+* Device #1: Intel(R) Core(TM) i5-7200U CPU @ 2.50GHz, 2970/11881 MB allocatable, 4MCU
+
+Sorting hashes...[2KSorted hashes...[2KRemoving duplicate hashes...[2KRemoved duplicate hashes...[2KSorting salts...[2KSorted salts...[2KComparing hashes with potfile entries...[2KCompared hashes with potfile entries...[2KGenerating bitmap tables...[2KGenerated bitmap tables...[2KHashes: 2 digests; 1 unique digests, 1 unique salts
+Bitmaps: 16 bits, 65536 entries, 0x0000ffff mask, 262144 bytes, 5/13 rotates
+Rules: 1
+
+Applicable optimizers:
+* Zero-Byte
+* Single-Hash
+* Single-Salt
+* Slow-Hash-SIMD-LOOP
+
+Minimum password length supported by kernel: 8
+Maximum password length supported by kernel: 63
+
+Watchdog: Hardware monitoring interface not found on your system.
+Watchdog: Temperature abort trigger disabled.
+
+Initializing device kernels and memory...[2KInitializing OpenCL runtime for device #1...[2KInitialized OpenCL runtime for device #1...[2KInitialized device kernels and memory...[2KDictionary cache hit:
+* Filename..: passwords_10000_num_b_f.txt
+* Passwords.: 1009910
+* Bytes.....: 9726268
+* Keyspace..: 1009910
+
+[s]tatus [p]ause [b]ypass [c]heckpoint [q]uit =>                                                  [33mApproaching final keyspace - workload adjusted.[0m
+[33m[0m
+[s]tatus [p]ause [b]ypass [c]heckpoint [q]uit =>                                                  Session..........: hashcat
+Status...........: Exhausted
+Hash.Name........: WPA-EAPOL-PBKDF2
+Hash.Target......: SpeedRacer3 (AP:dc:eb:69:a8:ca:65 STA:10:98:c3:18:14:0f)
+Time.Started.....: Tue Apr 30 21:38:18 2019 (2 mins, 25 secs)
+Time.Estimated...: Tue Apr 30 21:40:43 2019 (0 secs)
+Guess.Base.......: File (passwords_10000_num_b_f.txt)
+Guess.Queue......: 1/1 (100.00%)
+Speed.#1.........:     5749 H/s (8.43ms) @ Accel:512 Loops:128 Thr:1 Vec:8
+Recovered........: 0/1 (0.00%) Digests, 0/1 (0.00%) Salts
+Progress.........: 1009910/1009910 (100.00%)
+Rejected.........: 178273/1009910 (17.65%)
+Restore.Point....: 1009910/1009910 (100.00%)
+Restore.Sub.#1...: Salt:0 Amplifier:0-1 Iteration:0-1
+Candidates.#1....: 28071985 -> bubbles1
+
+Started: Tue Apr 30 21:38:16 2019
+[2KStopped: Tue Apr 30 21:40:44 2019
+hashcat (v5.1.0-895-g8121073) starting...
+
+OpenCL Platform #1: Intel(R) Corporation
+========================================
+* Device #1: Intel(R) Core(TM) i5-7200U CPU @ 2.50GHz, 2970/11881 MB allocatable, 4MCU
+
+Sorting hashes...[2KSorted hashes...[2KRemoving duplicate hashes...[2KRemoved duplicate hashes...[2KSorting salts...[2KSorted salts...[2KComparing hashes with potfile entries...[2KCompared hashes with potfile entries...[2KGenerating bitmap tables...[2KGenerated bitmap tables...[2KHashes: 1 digests; 1 unique digests, 1 unique salts
+Bitmaps: 16 bits, 65536 entries, 0x0000ffff mask, 262144 bytes, 5/13 rotates
+Rules: 1
+
+Applicable optimizers:
+* Zero-Byte
+* Single-Hash
+* Single-Salt
+* Slow-Hash-SIMD-LOOP
+
+Minimum password length supported by kernel: 8
+Maximum password length supported by kernel: 63
+
+Watchdog: Hardware monitoring interface not found on your system.
+Watchdog: Temperature abort trigger disabled.
+
+Initializing device kernels and memory...[2KInitializing OpenCL runtime for device #1...[2KInitialized OpenCL runtime for device #1...[2KInitialized device kernels and memory...[2KDictionary cache hit:
+* Filename..: passwords_10000_num_b_f.txt
+* Passwords.: 1009910
+* Bytes.....: 9726268
+* Keyspace..: 1009910
+
+[s]tatus [p]ause [b]ypass [c]heckpoint [q]uit => 

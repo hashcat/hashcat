@@ -20,6 +20,9 @@ int main(){
 	 */
 	runner.addTest(ConvertTest::suite());
 
+
+	runner.addTest(ShaTest::suite());
+
 	// Run tests
 	runner.run();
 	return 0;
