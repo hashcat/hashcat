@@ -1,0 +1,36 @@
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+# On branch REK
+# Your branch is up-to-date with 'origin/REK'.
+#
+# Changes to be committed:
+#	new file:   .vscode/ipch/13e5065341e1d6e4/folder.ipch
+#	new file:   .vscode/ipch/1d62d7f13420e432/keyboard_layout.ipch
+#	new file:   .vscode/ipch/30feccd09c36f200/thread.ipch
+#	new file:   .vscode/ipch/3fabf6f42c332dc9/usage.ipch
+#	new file:   .vscode/ipch/46b9e16bb2150c02/status.ipch
+#	new file:   .vscode/ipch/49e36e29862d883d/convert.ipch
+#	new file:   .vscode/ipch/62e49dd68426d52e/ext_nvapi.ipch
+#	new file:   .vscode/ipch/696ddef948c31e9a/hashcat.ipch
+#	new file:   .vscode/ipch/76170351d5a3fb5f/ext_OpenCL.ipch
+#	new file:   .vscode/ipch/9861a75fad0c050e/event.ipch
+#	new file:   .vscode/ipch/9bda18ada596b05a/user_options.ipch
+#	new file:   .vscode/ipch/a04c45da9dba1847/timer.ipch
+#	new file:   .vscode/ipch/a4710d0856067cb0/module_01400.ipch
+#	new file:   .vscode/ipch/ae43b1482161781b/stdout.ipch
+#	new file:   .vscode/ipch/b545c1d3b0d873a9/main.ipch
+#	new file:   .vscode/ipch/b8db0e2d5e0e19e0/ext_lzma.ipch
+#	new file:   .vscode/ipch/c472bcd555ca50a2/module_00023.ipch
+#	new file:   .vscode/ipch/de8a6c7df6368b25/loopback.ipch
+	new file:   test/cppunit/include/sha_test.h
+#	modified:   test/cppunit/src/hwmon_test.cpp
+	modified:   test/cppunit/src/main.cpp
+	new file:   test/cppunit/src/sha_test.cpp
+	modified:   test/hash.txt
+	new file:   test/hashcat.hccapx
+	new file:   test/output.txt
+	new file:   test/passwords_10000_num_b_f.txt
+	new file:   test/sha2-256_hash.txt
+	modified:   test/testing_suite.sh
+	new file:   test/wifi.hccapx

@@ -1,6 +1,9 @@
 #include <cppunit/ui/text/TestRunner.h>
 #include "hwmon_test.h"
 #include "convert_test.h"
+#include "hashes_test.h"
+#include "sort_test.h"
+#include "salt_test.h"
 
 int main(){
 	CppUnit::TextUi::TestRunner runner;
@@ -22,6 +25,9 @@ int main(){
 
 
 	runner.addTest(ShaTest::suite());
+        runner.addTest(HashesTest::suite());
+        runner.addTest(SortTest::suite());
+        runner.addTest(SaltTest::suite());
 
 	// Run tests
 	runner.run();
