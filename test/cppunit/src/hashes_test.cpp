@@ -93,15 +93,22 @@ void HashesTest::testRemoveDuplicates() {
     setDefaultCtx(8);
 
     // Set Hash list
-    setHash(0, (u32 []) {0, 0, 0, 0});
-    setHash(1, (u32 []) {1, 0, 5, 0});
-    setHash(2, (u32 []) {1, 0, 5, 0});
-    setHash(3, (u32 []) {5, 1, 2, 0});
-    setHash(4, (u32 []) {5, 1, 3, 0});
-    setHash(5, (u32 []) {6, 8, 2, 1});
-    setHash(6, (u32 []) {10, 10, 10, 10});
-    setHash(7, (u32 []) {10, 10, 10, 10});
-
+    u32 arr1[] = {0, 0, 0, 0};
+    u32 arr2[] = {1, 0, 5, 0};
+    u32 arr3[] = {5, 1, 2, 0};
+    u32 arr4[] = {5, 1, 3, 0};
+    u32 arr5[] = {6, 8, 2, 1};
+    u32 arr6[] = {10, 10, 10, 10};
+    
+    setHash(0, arr1);
+    setHash(1, arr2);
+    setHash(2, arr2);
+    setHash(3, arr3);
+    setHash(4, arr4);
+    setHash(5, arr5);
+    setHash(6, arr6);
+    setHash(7, arr6);
+    
     CPPUNIT_ASSERT(hashes_init_stage2(ctx) == 0);
 
     // Verify that 2 hashes were removed
@@ -121,14 +128,21 @@ void HashesTest::testKeepAllHashes() {
     ctx->hashconfig->potfile_keep_all_hashes = true;
 
     // Set Hash list
-    setHash(0, (u32 []) {0, 0, 0, 0});
-    setHash(1, (u32 []) {1, 0, 5, 0});
-    setHash(2, (u32 []) {1, 0, 5, 0});
-    setHash(3, (u32 []) {5, 1, 2, 0});
-    setHash(4, (u32 []) {5, 1, 3, 0});
-    setHash(5, (u32 []) {6, 8, 2, 1});
-    setHash(6, (u32 []) {10, 10, 10, 10});
-    setHash(7, (u32 []) {10, 10, 10, 10});
+    u32 arr1[] = {0, 0, 0, 0};
+    u32 arr2[] = {1, 0, 5, 0};
+    u32 arr3[] = {5, 1, 2, 0};
+    u32 arr4[] = {5, 1, 3, 0};
+    u32 arr5[] = {6, 8, 2, 1};
+    u32 arr6[] = {10, 10, 10, 10};
+    
+    setHash(0, arr1);
+    setHash(1, arr2);
+    setHash(2, arr2);
+    setHash(3, arr3);
+    setHash(4, arr4);
+    setHash(5, arr5);
+    setHash(6, arr6);
+    setHash(7, arr6);
 
     CPPUNIT_ASSERT(hashes_init_stage2(ctx) == 0);
     CPPUNIT_ASSERT(ctx->hashes->hashes_cnt == 8);
@@ -141,14 +155,18 @@ void HashesTest::testRemoveDuplicatesWithSalt() {
     ctx->hashconfig->is_salted = true;
 
     // Set Hash list
-    setHash(0, (u32 []) {1, 0, 0, 0});
-    setHash(1, (u32 []) {1, 0, 0, 0});
-    setHash(2, (u32 []) {1, 0, 0, 0});
-    setHash(3, (u32 []) {1, 0, 0, 0});
-    setHash(4, (u32 []) {2, 0, 3, 0});
-    setHash(5, (u32 []) {1, 0, 0, 0});
-    setHash(6, (u32 []) {10, 0, 0, 35});
-    setHash(7, (u32 []) {10, 0, 0, 35});
+    u32 arr1[] = {1, 0, 0, 0};
+    u32 arr2[] = {2, 0, 3, 0};
+    u32 arr3[] = {10, 0, 0, 35};
+    
+    setHash(0, arr1);
+    setHash(1, arr1);
+    setHash(2, arr1);
+    setHash(3, arr1);
+    setHash(4, arr2);
+    setHash(5, arr1);
+    setHash(6, arr3);
+    setHash(7, arr3);
 
     // Set Salts
     ctx->hashes->hashes_buf[0].salt->salt_len = 10;
@@ -183,14 +201,18 @@ void HashesTest::testKeepAllHashesWithSalt() {
     ctx->hashconfig->potfile_keep_all_hashes = true;
 
     // Set Hash list
-    setHash(0, (u32 []) {1, 0, 0, 0});
-    setHash(1, (u32 []) {1, 0, 0, 0});
-    setHash(2, (u32 []) {1, 0, 0, 0});
-    setHash(3, (u32 []) {1, 0, 0, 0});
-    setHash(4, (u32 []) {2, 0, 3, 0});
-    setHash(5, (u32 []) {1, 0, 0, 0});
-    setHash(6, (u32 []) {10, 0, 0, 35});
-    setHash(7, (u32 []) {10, 0, 0, 35});
+    u32 arr1[] = {1, 0, 0, 0};
+    u32 arr2[] = {2, 0, 3, 0};
+    u32 arr3[] = {10, 0, 0, 35};
+    
+    setHash(0, arr1);
+    setHash(1, arr1);
+    setHash(2, arr1);
+    setHash(3, arr1);
+    setHash(4, arr2);
+    setHash(5, arr1);
+    setHash(6, arr3);
+    setHash(7, arr3);
 
     // Set Salts
     ctx->hashes->hashes_buf[0].salt->salt_len = 10;
@@ -227,14 +249,21 @@ void HashesTest::testUsernameOption() {
     ctx->hashconfig->potfile_keep_all_hashes = true;
 
     // Set Hash list
-    setHash(0, (u32 []) {0, 0, 0, 0});
-    setHash(1, (u32 []) {1, 0, 5, 0});
-    setHash(2, (u32 []) {1, 0, 5, 0});
-    setHash(3, (u32 []) {5, 1, 2, 0});
-    setHash(4, (u32 []) {5, 1, 3, 0});
-    setHash(5, (u32 []) {6, 8, 2, 1});
-    setHash(6, (u32 []) {10, 10, 10, 10});
-    setHash(7, (u32 []) {10, 10, 10, 10});
+    u32 arr1[] = {0, 0, 0, 0};
+    u32 arr2[] = {1, 0, 5, 0};
+    u32 arr3[] = {5, 1, 2, 0};
+    u32 arr4[] = {5, 1, 3, 0};
+    u32 arr5[] = {6, 8, 2, 1};
+    u32 arr6[] = {10, 10, 10, 10};
+    
+    setHash(0, arr1);
+    setHash(1, arr2);
+    setHash(2, arr2);
+    setHash(3, arr3);
+    setHash(4, arr4);
+    setHash(5, arr5);
+    setHash(6, arr6);
+    setHash(7, arr6);
 
     // Set all hash_info for all hashes to NULL except for hash 5
     for (int i = 0; i < 8; i++) {

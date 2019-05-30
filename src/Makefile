@@ -624,7 +624,7 @@ CPPUNIT_SRC_DIR = test/cppunit/src/
 CPPUNIT_OBJ_DIR = test/cppunit/obj/
 CPPUNIT_INCLUDE_DIR = test/cppunit/include/
 CPPUNIT_INCLUDES = -I$(CPPUNIT_INCLUDE_DIR)
-CPPUNIT_FLAGS = -W -Wall -Wextra -O2 -pipe -Iinclude/ -IOpenCL/ -Ideps/LZMA-SDK/C -Ideps/OpenCL-Headers $(CPPUNIT_INCLUDES) -DWITH_BRAIN -Ideps/xxHash -DWITH_HWMON
+CPPUNIT_FLAGS = -std=c++11 -W -Wall -Wextra -O2 -pipe -Iinclude/ -IOpenCL/ -Ideps/LZMA-SDK/C -Ideps/OpenCL-Headers $(CPPUNIT_INCLUDES) -DWITH_BRAIN -Ideps/xxHash -DWITH_HWMON
 
 CPPUNIT_SRC = $(wildcard $(CPPUNIT_SRC_DIR)*.cpp)
 CPPUNIT_OBJ = $(patsubst $(CPPUNIT_SRC_DIR)%.cpp, $(CPPUNIT_OBJ_DIR)%.o, $(CPPUNIT_SRC))
