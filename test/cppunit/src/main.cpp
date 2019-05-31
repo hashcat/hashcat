@@ -1,5 +1,6 @@
 #include <cppunit/ui/text/TestRunner.h>
 #include "hwmon_test.h"
+#include "sha_test.h"
 #include "convert_test.h"
 #include "hashes_test.h"
 #include "sort_test.h"

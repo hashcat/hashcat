@@ -12,6 +12,7 @@ extern "C" {
 
 class ShaTest : public CppUnit::TestFixture{
     private:
+        hashcat_ctx_t * ctx;
         
     public:
         void tryCall();

@@ -4,7 +4,21 @@
 #include "sha_test.h"
 
 extern "C" {
-	#include "modules/module_01400.c";
+    #include "types.h"
+    #include "folder.h"
+    #include "memory.h"
+    #include "shared.h"
+    #include "thread.h"
+    #include "timer.h"
+    #include "common.h"
+    #include "types.h"
+    #include "memory.h"
+    #include "event.h"
+    #include "shared.h"
+    #include "opencl.h"
+    #include "modules.h"
+    #include "dynloader.h"
+    #include "interface.h"
 }
 
 
@@ -12,9 +26,15 @@ using std::cout;
 using std::string;
 
 void ShaTest::tryCall(){
-    char x[65] = "hashcat";
-    module_hash_encode(x);
-    cout <<"\n" << x << "\n";
+    
+  ctx = (hashcat_ctx_t *) hcmalloc (sizeof (hashcat_ctx_t));
+
+  const int rc_hashcat_init = hashcat_init (hashcat_ctx, event);
+
+  if (rc_hashcat_init == -1) cout << "BAD\n\n";
+
+  free(ctx);
+  return;
 
 
 }
