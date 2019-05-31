@@ -35,7 +35,10 @@ bool module_load (hashcat_ctx_t *hashcat_ctx, module_ctx_t *module_ctx, const u3
 
   char *module_file = (char *) hcmalloc (HCBUFSIZ_TINY);
 
+
+
   module_filename (folder_config, hash_mode, module_file, HCBUFSIZ_TINY);
+
 
   module_ctx->module_handle = hc_dlopen (module_file);
 
@@ -46,7 +49,6 @@ bool module_load (hashcat_ctx_t *hashcat_ctx, module_ctx_t *module_ctx, const u3
     #else
     event_log_error (hashcat_ctx, "%s", dlerror ());
     #endif
-
     return false;
   }
 
@@ -55,7 +57,6 @@ bool module_load (hashcat_ctx_t *hashcat_ctx, module_ctx_t *module_ctx, const u3
   if (module_ctx->module_init == NULL)
   {
     event_log_error (hashcat_ctx, "Cannot load symbol 'module_init' in module %s", module_file);
-
     return false;
   }
 
@@ -109,7 +110,10 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   const bool rc_load = module_load (hashcat_ctx, module_ctx, user_options->hash_mode);
 
-  if (rc_load == false) return -1;
+  if(rc_load == false){
+      event_log_error(hashcat_ctx, "Probably the hash mode you used doesnt exist");
+      return -1;
+  }
 
   module_ctx->module_init (module_ctx);
 

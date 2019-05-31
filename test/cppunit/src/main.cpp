@@ -1,6 +1,6 @@
 #include <cppunit/ui/text/TestRunner.h>
 #include "hwmon_test.h"
-#include "sha_test.h"
+#include "mode_test.h"
 #include "convert_test.h"
 #include "hashes_test.h"
 #include "sort_test.h"
@@ -25,10 +25,10 @@ int main(){
 	runner.addTest(ConvertTest::suite());
 
 
-	runner.addTest(ShaTest::suite());
-        runner.addTest(HashesTest::suite());
-        runner.addTest(SortTest::suite());
-        runner.addTest(SaltTest::suite());
+	runner.addTest(ModeTest::suite());
+	runner.addTest(HashesTest::suite());
+	runner.addTest(SortTest::suite());
+	runner.addTest(SaltTest::suite());
 
 	// Run tests
 	runner.run();
