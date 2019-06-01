@@ -1274,6 +1274,50 @@ int hc_cuModuleLoadDataEx (hashcat_ctx_t *hashcat_ctx, CUmodule *module, const v
   return 0;
 }
 
+int hc_cuModuleLoadDataExLog (hashcat_ctx_t *hashcat_ctx, CUmodule *module, const void *image)
+{
+  #define LOG_SIZE 8192
+
+  char *info_log  = hcmalloc (LOG_SIZE);
+  char *error_log = hcmalloc (LOG_SIZE);
+
+  CUjit_option opts[6];
+
+  opts[0] = CU_JIT_TARGET_FROM_CUCONTEXT;
+  opts[1] = CU_JIT_LOG_VERBOSE;
+  opts[2] = CU_JIT_INFO_LOG_BUFFER;
+  opts[3] = CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES;
+  opts[4] = CU_JIT_ERROR_LOG_BUFFER;
+  opts[5] = CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES;
+
+  void *vals[6];
+
+  vals[0] = (void *) 0;
+  vals[1] = (void *) 1;
+  vals[2] = (void *) info_log;
+  vals[3] = (void *) LOG_SIZE;
+  vals[4] = (void *) error_log;
+  vals[5] = (void *) LOG_SIZE;
+
+  const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataEx (hashcat_ctx, module, image, 6, opts, vals);
+
+  #if defined (DEBUG)
+  printf ("cuModuleLoadDataEx() Info Log (%ld):\n%s\n\n", strlen (info_log), info_log);
+  printf ("cuModuleLoadDataEx() Error Log (%ld):\n%s\n\n", strlen (error_log), error_log);
+  #else
+  if (rc_cuModuleLoadDataEx == -1)
+  {
+    printf ("cuModuleLoadDataEx() Info Log (%ld):\n%s\n\n", strlen (info_log), info_log);
+    printf ("cuModuleLoadDataEx() Error Log (%ld):\n%s\n\n", strlen (error_log), error_log);
+  }
+  #endif
+
+  hcfree (info_log);
+  hcfree (error_log);
+
+  return rc_cuModuleLoadDataEx;
+}
+
 int hc_cuModuleUnload (hashcat_ctx_t *hashcat_ctx, CUmodule hmod)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
@@ -7674,7 +7718,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           // tbd: check for some useful options
 
-          const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataEx (hashcat_ctx, &device_param->cuda_module, binary, 0, NULL, NULL);
+          const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataExLog (hashcat_ctx, &device_param->cuda_module, binary);
 
           if (rc_cuModuleLoadDataEx == -1) return -1;
 
@@ -7760,7 +7804,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (device_param->is_cuda == true)
         {
-          const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataEx (hashcat_ctx, &device_param->cuda_module, kernel_sources[0], 0, NULL, NULL);
+          const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataExLog (hashcat_ctx, &device_param->cuda_module, kernel_sources[0]);
 
           if (rc_cuModuleLoadDataEx == -1) return -1;
         }
@@ -7927,7 +7971,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
             // tbd: check for some useful options
 
-            const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataEx (hashcat_ctx, &device_param->cuda_module_mp, binary, 0, NULL, NULL);
+            const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataExLog (hashcat_ctx, &device_param->cuda_module_mp, binary);
 
             if (rc_cuModuleLoadDataEx == -1) return -1;
 
@@ -8011,7 +8055,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (device_param->is_cuda == true)
           {
-            const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataEx (hashcat_ctx, &device_param->cuda_module_mp, kernel_sources[0], 0, NULL, NULL);
+            const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataExLog (hashcat_ctx, &device_param->cuda_module_mp, kernel_sources[0]);
 
             if (rc_cuModuleLoadDataEx == -1) return -1;
           }
@@ -8181,7 +8225,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
             // tbd: check for some useful options
 
-            const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataEx (hashcat_ctx, &device_param->cuda_module_amp, binary, 0, NULL, NULL);
+            const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataExLog (hashcat_ctx, &device_param->cuda_module_amp, binary);
 
             if (rc_cuModuleLoadDataEx == -1) return -1;
 
@@ -8265,7 +8309,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (device_param->is_cuda == true)
           {
-            const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataEx (hashcat_ctx, &device_param->cuda_module_amp, kernel_sources[0], 0, NULL, NULL);
+            const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataExLog (hashcat_ctx, &device_param->cuda_module_amp, kernel_sources[0]);
 
             if (rc_cuModuleLoadDataEx == -1) return -1;
           }

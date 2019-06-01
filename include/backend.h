@@ -67,6 +67,7 @@ int hc_cuMemcpyHtoD              (hashcat_ctx_t *hashcat_ctx, CUdeviceptr dstDev
 int hc_cuMemFree                 (hashcat_ctx_t *hashcat_ctx, CUdeviceptr dptr);
 int hc_cuModuleGetFunction       (hashcat_ctx_t *hashcat_ctx, CUfunction *hfunc, CUmodule hmod, const char *name);
 int hc_cuModuleLoadDataEx        (hashcat_ctx_t *hashcat_ctx, CUmodule *module, const void *image, unsigned int numOptions, CUjit_option *options, void **optionValues);
+int hc_cuModuleLoadDataExLog     (hashcat_ctx_t *hashcat_ctx, CUmodule *module, const void *image);
 int hc_cuModuleUnload            (hashcat_ctx_t *hashcat_ctx, CUmodule hmod);
 int hc_cuStreamCreate            (hashcat_ctx_t *hashcat_ctx, CUstream *phStream, unsigned int Flags);
 int hc_cuStreamDestroy           (hashcat_ctx_t *hashcat_ctx, CUstream hStream);
