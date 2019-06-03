@@ -15,8 +15,8 @@
 #include "inc_hash_md5.cl"
 #endif
 
-#define GETCHAR(a,p)  (((a)[(p) / 4] >> (((p) & 3) * 8)) & 0xff)
-#define PUTCHAR(a,p,c) ((a)[(p) / 4] = (((a)[(p) / 4] & ~(0xff << (((p) & 3) * 8))) | ((c) << (((p) & 3) * 8))))
+#define GETCHAR(a,p)   ((u8 *)(a))[(p)]
+#define PUTCHAR(a,p,c) ((u8 *)(a))[(p)] = (u8) (c)
 
 CONSTANT_VK u32a sapb_trans_tbl[256] =
 {
