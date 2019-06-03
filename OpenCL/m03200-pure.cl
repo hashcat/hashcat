@@ -300,6 +300,15 @@ CONSTANT_VK u32a c_sbox3[256] =
   0xb74e6132, 0xce77e25b, 0x578fdfe3, 0x3ac372e6
 };
 
+CONSTANT_VK u32a c_pbox[18] =
+{
+  0x243f6a88, 0x85a308d3, 0x13198a2e, 0x03707344,
+  0xa4093822, 0x299f31d0, 0x082efa98, 0xec4e6c89,
+  0x452821e6, 0x38d01377, 0xbe5466cf, 0x34e90c6c,
+  0xc0ac29b7, 0xc97c50dd, 0x3f84d5b5, 0xb5470917,
+  0x9216d5d9, 0x8979fb1b
+};
+
 #define BF_ROUND(L,R,N)                       \
 {                                             \
   u32 tmp;                                    \
@@ -440,9 +449,12 @@ KERNEL_FQ void __attribute__((reqd_work_group_size(FIXED_LOCAL_SIZE, 1, 1))) m03
   salt_buf[2] = salt_bufs[salt_pos].salt_buf[2];
   salt_buf[3] = salt_bufs[salt_pos].salt_buf[3];
 
-  /**
-   * do the key setup
-   */
+  u32 P[18];
+
+  for (u32 i = 0; i < 18; i++)
+  {
+    P[i] = c_pbox[i];
+  }
 
   LOCAL_VK u32 S0_all[FIXED_LOCAL_SIZE][256];
   LOCAL_VK u32 S1_all[FIXED_LOCAL_SIZE][256];
@@ -453,17 +465,6 @@ KERNEL_FQ void __attribute__((reqd_work_group_size(FIXED_LOCAL_SIZE, 1, 1))) m03
   LOCAL_AS u32 *S1 = S1_all[lid];
   LOCAL_AS u32 *S2 = S2_all[lid];
   LOCAL_AS u32 *S3 = S3_all[lid];
-
-  // initstate
-
-  u32 P[18] =
-  {
-    0x243f6a88, 0x85a308d3, 0x13198a2e, 0x03707344,
-    0xa4093822, 0x299f31d0, 0x082efa98, 0xec4e6c89,
-    0x452821e6, 0x38d01377, 0xbe5466cf, 0x34e90c6c,
-    0xc0ac29b7, 0xc97c50dd, 0x3f84d5b5, 0xb5470917,
-    0x9216d5d9, 0x8979fb1b
-  };
 
   for (u32 i = 0; i < 256; i++)
   {
