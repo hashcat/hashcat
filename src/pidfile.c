@@ -72,17 +72,46 @@ static int check_running_process (hashcat_ctx_t *hashcat_ctx)
 
     char *pidbin;
 
-    hc_asprintf (&pidbin, "/proc/%u/cmdline", pd->pid);
+    hc_asprintf (&pidbin, "/proc/%u/exe", pd->pid);
 
     if (hc_path_exist (pidbin) == true)
     {
-      event_log_error (hashcat_ctx, "Already an instance running on pid %u", pd->pid);
+      // pid info
+
+      char *pidexe = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+      const ssize_t pidexe_len = readlink (pidbin, pidexe, HCBUFSIZ_TINY - 1);
+
+      pidexe[pidexe_len] = 0;
+
+      // self info
+
+      char *selfexe = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+      const ssize_t selfexe_len = readlink ("/proc/self/exe", selfexe, HCBUFSIZ_TINY - 1);
+
+      selfexe[selfexe_len] = 0;
+
+      // compare
+
+      const int r = strncmp (pidexe, selfexe, selfexe_len);
+
+      if (r == 0)
+      {
+        event_log_error (hashcat_ctx, "Already an instance '%s' running on pid %u", pidexe, pd->pid);
+      }
+
+      hcfree (selfexe);
+
+      hcfree (pidexe);
 
       hcfree (pd);
 
       hcfree (pidbin);
 
-      return -1;
+      if (r == 0) return -1;
+
+      return 0;
     }
 
     hcfree (pidbin);

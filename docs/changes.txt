@@ -56,6 +56,7 @@
 ## Improvements
 ##
 
+- Startup Checks: Improved the pidfile check: Do not just check for existing PID but also check executable filename
 - Cracking bcrypt and Password Safe v2: Use a feedback from the OpenCL runtime to dynamically find out optimal thread count
 - Bitcoin Wallet: Be more user friendly by allowing a larger data range for ckey and public_key
 - Building: Updated BUILD.md

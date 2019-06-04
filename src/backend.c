@@ -1302,13 +1302,13 @@ int hc_cuModuleLoadDataExLog (hashcat_ctx_t *hashcat_ctx, CUmodule *module, cons
   const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataEx (hashcat_ctx, module, image, 6, opts, vals);
 
   #if defined (DEBUG)
-  printf ("cuModuleLoadDataEx() Info Log (%ld):\n%s\n\n", strlen (info_log), info_log);
-  printf ("cuModuleLoadDataEx() Error Log (%ld):\n%s\n\n", strlen (error_log), error_log);
+  printf ("cuModuleLoadDataEx() Info Log (%d):\n%s\n\n",  (int) strlen (info_log),  info_log);
+  printf ("cuModuleLoadDataEx() Error Log (%d):\n%s\n\n", (int) strlen (error_log), error_log);
   #else
   if (rc_cuModuleLoadDataEx == -1)
   {
-    printf ("cuModuleLoadDataEx() Info Log (%ld):\n%s\n\n", strlen (info_log), info_log);
-    printf ("cuModuleLoadDataEx() Error Log (%ld):\n%s\n\n", strlen (error_log), error_log);
+    printf ("cuModuleLoadDataEx() Info Log (%d):\n%s\n\n",  (int) strlen (info_log),  info_log);
+    printf ("cuModuleLoadDataEx() Error Log (%d):\n%s\n\n", (int) strlen (error_log), error_log);
   }
   #endif
 
