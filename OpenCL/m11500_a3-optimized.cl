@@ -113,8 +113,16 @@ DECLSPEC u32x crc32 (const u32x *w, const u32 pw_len, const u32 iv)
   if (pw_len >=  2) a = round_crc32 (a, w[0] >>  8);
   if (pw_len >=  3) a = round_crc32 (a, w[0] >> 16);
   if (pw_len >=  4) a = round_crc32 (a, w[0] >> 24);
+  if (pw_len >=  5) a = round_crc32 (a, w[1] >>  0);
+  if (pw_len >=  6) a = round_crc32 (a, w[1] >>  8);
+  if (pw_len >=  7) a = round_crc32 (a, w[1] >> 16);
+  if (pw_len >=  8) a = round_crc32 (a, w[1] >> 24);
+  if (pw_len >=  9) a = round_crc32 (a, w[2] >>  0);
+  if (pw_len >= 10) a = round_crc32 (a, w[2] >>  8);
+  if (pw_len >= 11) a = round_crc32 (a, w[2] >> 16);
+  if (pw_len >= 12) a = round_crc32 (a, w[2] >> 24);
 
-  for (u32 i = 4, j = 1; i < pw_len; i += 4, j += 1)
+  for (u32 i = 12, j = 3; i < pw_len; i += 4, j += 1)
   {
     if (pw_len >= (i + 1)) a = round_crc32 (a, w[j] >>  0);
     if (pw_len >= (i + 2)) a = round_crc32 (a, w[j] >>  8);
