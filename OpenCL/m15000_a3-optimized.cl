@@ -212,8 +212,8 @@ DECLSPEC void m15000m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
   w6_t[3] = hc_swap32 (salt_buf6[3]);
   w7_t[0] = hc_swap32 (salt_buf7[0]);
   w7_t[1] = hc_swap32 (salt_buf7[1]);
-  w7_t[2] = hc_swap32 (salt_buf7[2]);
-  w7_t[3] = hc_swap32 (salt_buf7[3]);
+  w7_t[2] = 0;
+  w7_t[3] = pw_salt_len * 8;
 
   w0_t[0] |= w[ 0];
   w0_t[1] |= w[ 1];
@@ -231,8 +231,6 @@ DECLSPEC void m15000m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
   w3_t[1] |= w[13];
   w3_t[2] |= w[14];
   w3_t[3] |= w[15];
-
-  w7_t[3] = pw_salt_len * 8;
 
   /**
    * loop
@@ -385,8 +383,8 @@ DECLSPEC void m15000s (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
   w6_t[3] = hc_swap32 (salt_buf6[3]);
   w7_t[0] = hc_swap32 (salt_buf7[0]);
   w7_t[1] = hc_swap32 (salt_buf7[1]);
-  w7_t[2] = hc_swap32 (salt_buf7[2]);
-  w7_t[3] = hc_swap32 (salt_buf7[3]);
+  w7_t[2] = 0;
+  w7_t[3] = pw_salt_len * 8;
 
   w0_t[0] |= w[ 0];
   w0_t[1] |= w[ 1];
@@ -404,8 +402,6 @@ DECLSPEC void m15000s (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
   w3_t[1] |= w[13];
   w3_t[2] |= w[14];
   w3_t[3] |= w[15];
-
-  w7_t[3] = pw_salt_len * 8;
 
   /**
    * loop
