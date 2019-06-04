@@ -286,21 +286,22 @@ static bool cuda_test_instruction (hashcat_ctx_t *hashcat_ctx, const int sm_majo
 
   if (rc_nvrtcCreateProgram == -1) return false;
 
-  char *nvrtc_options[3];
+  char *nvrtc_options[4];
 
-  nvrtc_options[0] = "--gpu-architecture";
+  nvrtc_options[0] = "--restrict";
+  nvrtc_options[1] = "--gpu-architecture";
 
-  hc_asprintf (&nvrtc_options[1], "compute_%d%d", sm_major, sm_minor);
+  hc_asprintf (&nvrtc_options[2], "compute_%d%d", sm_major, sm_minor);
 
-  nvrtc_options[2] = NULL;
+  nvrtc_options[3] = NULL;
 
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   NVRTC_PTR *nvrtc = backend_ctx->nvrtc;
 
-  const nvrtcResult NVRTC_err = nvrtc->nvrtcCompileProgram (program, 2, (const char * const *) nvrtc_options);
+  const nvrtcResult NVRTC_err = nvrtc->nvrtcCompileProgram (program, 3, (const char * const *) nvrtc_options);
 
-  hcfree (nvrtc_options[1]);
+  hcfree (nvrtc_options[2]);
 
   size_t build_log_size = 0;
 
