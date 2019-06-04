@@ -208,6 +208,16 @@ DECLSPEC void chacha20_transform (const u32x *w0, const u32x *w1, const u32 *pos
 
 KERNEL_FQ void m15400_m04 (KERN_ATTR_VECTOR_ESALT (chacha20_t))
 {
+  // fixed size 32
+}
+
+KERNEL_FQ void m15400_m08 (KERN_ATTR_VECTOR_ESALT (chacha20_t))
+{
+  // fixed size 32
+}
+
+KERNEL_FQ void m15400_m16 (KERN_ATTR_VECTOR_ESALT (chacha20_t))
+{
   /**
    * modifier
    */
@@ -227,27 +237,26 @@ KERNEL_FQ void m15400_m04 (KERN_ATTR_VECTOR_ESALT (chacha20_t))
   w1[2] = pws[gid].i[6];
   w1[3] = pws[gid].i[7];
 
-  u32x out_len = pws[gid].pw_len;
-
   /**
    * Salt prep
    */
 
-  u32 iv[2]       = { 0 };
-  u32 plain[2]    = { 0 };
-  u32 position[2] = { 0 };
-  u32 offset      = 0;
-
-  position[0] = esalt_bufs[digests_offset].position[0];
-  position[1] = esalt_bufs[digests_offset].position[1];
-
-  offset = esalt_bufs[digests_offset].offset;
+  u32 iv[2];
 
   iv[0] = esalt_bufs[digests_offset].iv[0];
   iv[1] = esalt_bufs[digests_offset].iv[1];
 
+  u32 plain[2];
+
   plain[0] = esalt_bufs[digests_offset].plain[0];
   plain[1] = esalt_bufs[digests_offset].plain[1];
+
+  u32 position[2];
+
+  position[0] = esalt_bufs[digests_offset].position[0];
+  position[1] = esalt_bufs[digests_offset].position[1];
+
+  u32 offset = esalt_bufs[digests_offset].offset;
 
   /**
    * loop
@@ -285,15 +294,17 @@ KERNEL_FQ void m15400_m04 (KERN_ATTR_VECTOR_ESALT (chacha20_t))
   }
 }
 
-KERNEL_FQ void m15400_m08 (KERN_ATTR_ESALT (chacha20_t))
-{
-}
-
-KERNEL_FQ void m15400_m16 (KERN_ATTR_ESALT (chacha20_t))
-{
-}
-
 KERNEL_FQ void m15400_s04 (KERN_ATTR_VECTOR_ESALT (chacha20_t))
+{
+  // fixed size 32
+}
+
+KERNEL_FQ void m15400_s08 (KERN_ATTR_VECTOR_ESALT (chacha20_t))
+{
+  // fixed size 32
+}
+
+KERNEL_FQ void m15400_s16 (KERN_ATTR_VECTOR_ESALT (chacha20_t))
 {
   /**
    * modifier
@@ -314,27 +325,26 @@ KERNEL_FQ void m15400_s04 (KERN_ATTR_VECTOR_ESALT (chacha20_t))
   w1[2] = pws[gid].i[6];
   w1[3] = pws[gid].i[7];
 
-  u32 out_len = pws[gid].pw_len;
-
   /**
    * Salt prep
    */
 
-  u32 iv[2]       = { 0 };
-  u32 plain[2]    = { 0 };
-  u32 position[2] = { 0 };
-  u32 offset      = 0;
-
-  position[0] = esalt_bufs[digests_offset].position[0];
-  position[1] = esalt_bufs[digests_offset].position[1];
-
-  offset = esalt_bufs[digests_offset].offset;
+  u32 iv[2];
 
   iv[0] = esalt_bufs[digests_offset].iv[0];
   iv[1] = esalt_bufs[digests_offset].iv[1];
 
+  u32 plain[2];
+
   plain[0] = esalt_bufs[digests_offset].plain[0];
   plain[1] = esalt_bufs[digests_offset].plain[1];
+
+  u32 position[2];
+
+  position[0] = esalt_bufs[digests_offset].position[0];
+  position[1] = esalt_bufs[digests_offset].position[1];
+
+  u32 offset = esalt_bufs[digests_offset].offset;
 
   /**
    * digest
@@ -382,12 +392,4 @@ KERNEL_FQ void m15400_s04 (KERN_ATTR_VECTOR_ESALT (chacha20_t))
 
     COMPARE_S_SIMD(r0, r1, r2, r3);
   }
-}
-
-KERNEL_FQ void m15400_s08 (KERN_ATTR_ESALT (chacha20_t))
-{
-}
-
-KERNEL_FQ void m15400_s16 (KERN_ATTR_ESALT (chacha20_t))
-{
 }
