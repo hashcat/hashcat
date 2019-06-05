@@ -1448,6 +1448,7 @@ typedef struct backend_ctx
 
   // cuda
 
+  int                 nvrtc_driver_version;
   int                 cuda_driver_version;
 
   // opencl

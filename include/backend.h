@@ -38,6 +38,7 @@ int hc_nvrtcGetProgramLogSize    (hashcat_ctx_t *hashcat_ctx, nvrtcProgram prog,
 int hc_nvrtcGetProgramLog        (hashcat_ctx_t *hashcat_ctx, nvrtcProgram prog, char *log);
 int hc_nvrtcGetPTXSize           (hashcat_ctx_t *hashcat_ctx, nvrtcProgram prog, size_t *ptxSizeRet);
 int hc_nvrtcGetPTX               (hashcat_ctx_t *hashcat_ctx, nvrtcProgram prog, char *ptx);
+int hc_nvrtcVersion              (hashcat_ctx_t *hashcat_ctx, int *major, int *minor);
 
 int hc_cuCtxCreate               (hashcat_ctx_t *hashcat_ctx, CUcontext *pctx, unsigned int flags, CUdevice dev);
 int hc_cuCtxDestroy              (hashcat_ctx_t *hashcat_ctx, CUcontext ctx);
