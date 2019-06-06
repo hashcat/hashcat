@@ -48,21 +48,20 @@ KERNEL_FQ void m19300_mxx (KERN_ATTR_VECTOR_ESALT (sha1_double_salt_t))
     w[idx] = pws[gid].i[idx];
   }
 
-  const int salt1_len = esalt_bufs[digests_offset].salt1_len;
   const int salt2_len = esalt_bufs[digests_offset].salt2_len;
 
-  u32x s1[64] = { 0 };
   u32x s2[64] = { 0 };
-
-  for (int i = 0, idx = 0; i < salt1_len; i += 4, idx += 1)
-  {
-    s1[idx] = hc_swap32_S (esalt_bufs[digests_offset].salt1_buf[idx]);
-  }
 
   for (int i = 0, idx = 0; i < salt2_len; i += 4, idx += 1)
   {
     s2[idx] = hc_swap32_S (esalt_bufs[digests_offset].salt2_buf[idx]);
   }
+
+  sha1_ctx_t ctx0;
+
+  sha1_init (&ctx0);
+
+  sha1_update_global_swap (&ctx0, esalt_bufs[digests_offset].salt1_buf, esalt_bufs[digests_offset].salt1_len);
 
   /**
    * loop
@@ -80,9 +79,7 @@ KERNEL_FQ void m19300_mxx (KERN_ATTR_VECTOR_ESALT (sha1_double_salt_t))
 
     sha1_ctx_vector_t ctx;
 
-    sha1_init_vector (&ctx);
-
-    sha1_update_vector (&ctx, s1, salt1_len);
+    sha1_init_vector_from_scalar (&ctx, &ctx0);
 
     sha1_update_vector (&ctx, w, pw_len);
 
@@ -135,21 +132,20 @@ KERNEL_FQ void m19300_sxx (KERN_ATTR_VECTOR_ESALT (sha1_double_salt_t))
     w[idx] = pws[gid].i[idx];
   }
 
-  const int salt1_len = esalt_bufs[digests_offset].salt1_len;
   const int salt2_len = esalt_bufs[digests_offset].salt2_len;
 
-  u32x s1[64] = { 0 };
   u32x s2[64] = { 0 };
-
-  for (int i = 0, idx = 0; i < salt1_len; i += 4, idx += 1)
-  {
-    s1[idx] = hc_swap32_S (esalt_bufs[digests_offset].salt1_buf[idx]);
-  }
 
   for (int i = 0, idx = 0; i < salt2_len; i += 4, idx += 1)
   {
     s2[idx] = hc_swap32_S (esalt_bufs[digests_offset].salt2_buf[idx]);
   }
+
+  sha1_ctx_t ctx0;
+
+  sha1_init (&ctx0);
+
+  sha1_update_global_swap (&ctx0, esalt_bufs[digests_offset].salt1_buf, esalt_bufs[digests_offset].salt1_len);
 
   /**
    * loop
@@ -167,9 +163,7 @@ KERNEL_FQ void m19300_sxx (KERN_ATTR_VECTOR_ESALT (sha1_double_salt_t))
 
     sha1_ctx_vector_t ctx;
 
-    sha1_init_vector (&ctx);
-
-    sha1_update_vector (&ctx, s1, salt1_len);
+    sha1_init_vector_from_scalar (&ctx, &ctx0);
 
     sha1_update_vector (&ctx, w, pw_len);
 

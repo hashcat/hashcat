@@ -43,21 +43,20 @@ KERNEL_FQ void m19300_mxx (KERN_ATTR_RULES_ESALT (sha1_double_salt_t))
 
   COPY_PW (pws[gid]);
 
-  const int salt1_len = esalt_bufs[digests_offset].salt1_len;
   const int salt2_len = esalt_bufs[digests_offset].salt2_len;
 
-  u32 s1[64] = { 0 };
   u32 s2[64] = { 0 };
-
-  for (int i = 0, idx = 0; i < salt1_len; i += 4, idx += 1)
-  {
-    s1[idx] = hc_swap32_S (esalt_bufs[digests_offset].salt1_buf[idx]);
-  }
 
   for (int i = 0, idx = 0; i < salt2_len; i += 4, idx += 1)
   {
     s2[idx] = hc_swap32_S (esalt_bufs[digests_offset].salt2_buf[idx]);
   }
+
+  sha1_ctx_t ctx0;
+
+  sha1_init (&ctx0);
+
+  sha1_update_global_swap (&ctx0, esalt_bufs[digests_offset].salt1_buf, esalt_bufs[digests_offset].salt1_len);
 
   /**
    * loop
@@ -69,11 +68,7 @@ KERNEL_FQ void m19300_mxx (KERN_ATTR_RULES_ESALT (sha1_double_salt_t))
 
     tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
 
-    sha1_ctx_t ctx;
-
-    sha1_init (&ctx);
-
-    sha1_update (&ctx, s1, salt1_len);
+    sha1_ctx_t ctx = ctx0;
 
     sha1_update_swap (&ctx, tmp.i, tmp.pw_len);
 
@@ -119,21 +114,20 @@ KERNEL_FQ void m19300_sxx (KERN_ATTR_RULES_ESALT (sha1_double_salt_t))
 
   COPY_PW (pws[gid]);
 
-  const int salt1_len = esalt_bufs[digests_offset].salt1_len;
   const int salt2_len = esalt_bufs[digests_offset].salt2_len;
 
-  u32 s1[64] = { 0 };
   u32 s2[64] = { 0 };
-
-  for (int i = 0, idx = 0; i < salt1_len; i += 4, idx += 1)
-  {
-    s1[idx] = hc_swap32_S (esalt_bufs[digests_offset].salt1_buf[idx]);
-  }
 
   for (int i = 0, idx = 0; i < salt2_len; i += 4, idx += 1)
   {
     s2[idx] = hc_swap32_S (esalt_bufs[digests_offset].salt2_buf[idx]);
   }
+
+  sha1_ctx_t ctx0;
+
+  sha1_init (&ctx0);
+
+  sha1_update_global_swap (&ctx0, esalt_bufs[digests_offset].salt1_buf, esalt_bufs[digests_offset].salt1_len);
 
   /**
    * loop
@@ -145,11 +139,7 @@ KERNEL_FQ void m19300_sxx (KERN_ATTR_RULES_ESALT (sha1_double_salt_t))
 
     tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
 
-    sha1_ctx_t ctx;
-
-    sha1_init (&ctx);
-
-    sha1_update (&ctx, s1, salt1_len);
+    sha1_ctx_t ctx = ctx0;
 
     sha1_update_swap (&ctx, tmp.i, tmp.pw_len);
 
