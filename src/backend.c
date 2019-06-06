@@ -1327,7 +1327,7 @@ int hc_cuModuleLoadDataExLog (hashcat_ctx_t *hashcat_ctx, CUmodule *module, cons
 
   int opts_cnt = 6;
 
-  if (threads_per_block)
+  if ((threads_per_block > 0) && (threads_per_block < 1024))
   {
     opts[6] = CU_JIT_THREADS_PER_BLOCK;
     vals[6] = (void *) threads_per_block;
