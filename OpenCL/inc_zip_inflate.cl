@@ -263,13 +263,13 @@ enum
     }                                        \
     MZ_MACRO_END
 
-//case state_index:;
 #define TINFL_CR_RETURN(state_index, result) \
     do                                       \
     {                                        \
         status = result;                     \
         r->m_state = state_index;            \
         goto common_exit;                    \
+        case state_index:;                   \
     }                                        \
     MZ_MACRO_END
 
@@ -411,7 +411,7 @@ typedef struct
     tinfl_decompressor m_decomp;
     mz_uint m_dict_ofs, m_dict_avail, m_first_call, m_has_flushed;
     int m_window_bits;
-    mz_uint8 m_dict[TINFL_LZ_DICT_SIZE];
+    mz_uint8 m_dict[1]; // hashcat-patched: we do not need m_dict because we have our own output buffer
     tinfl_status m_last_status;
 
 } inflate_state;
@@ -458,7 +458,7 @@ int mz_inflateEnd(mz_streamp pStream);
 int mz_inflateInit2(mz_streamp pStream, int window_bits, inflate_state*);
 
 
-const mz_uint8 pIn_xor_byte (const mz_uint8 c, mz_streamp pStream)
+DECLSPEC const mz_uint8 pIn_xor_byte (const mz_uint8 c, mz_streamp pStream)
 {
   mz_uint8 r = c;
 
@@ -472,7 +472,7 @@ const mz_uint8 pIn_xor_byte (const mz_uint8 c, mz_streamp pStream)
 }
 
 
-void memcpy_g(void *dest, GLOBAL_AS const void *src, size_t n, mz_streamp pStream){
+DECLSPEC void memcpy_g(void *dest, GLOBAL_AS const void *src, size_t n, mz_streamp pStream){
   GLOBAL_AS char *csrc = (GLOBAL_AS char *)src;
   char *cdest = (char *)dest;
   for (int i=0; i<n; i++){
@@ -480,7 +480,7 @@ void memcpy_g(void *dest, GLOBAL_AS const void *src, size_t n, mz_streamp pStrea
   }
 }
 
-tinfl_status tinfl_decompress(tinfl_decompressor *r, GLOBAL_AS const mz_uint8 *pIn_buf_next, size_t *pIn_buf_size, mz_uint8 *pOut_buf_start, mz_uint8 *pOut_buf_next, size_t *pOut_buf_size, const mz_uint32 decomp_flags, mz_streamp pStream)
+DECLSPEC tinfl_status tinfl_decompress(tinfl_decompressor *r, GLOBAL_AS const mz_uint8 *pIn_buf_next, size_t *pIn_buf_size, mz_uint8 *pOut_buf_start, mz_uint8 *pOut_buf_next, size_t *pOut_buf_size, const mz_uint32 decomp_flags, mz_streamp pStream)
 {
 
     const int s_length_base[31] = { 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258, 0, 0 };
@@ -944,7 +944,7 @@ common_exit:
 }
 
 
-int mz_inflateInit2(mz_streamp pStream, int window_bits, inflate_state *pDecomp)
+DECLSPEC int mz_inflateInit2(mz_streamp pStream, int window_bits, inflate_state *pDecomp)
 {
     if (pStream == 0)
         return MZ_STREAM_ERROR;
@@ -972,7 +972,7 @@ int mz_inflateInit2(mz_streamp pStream, int window_bits, inflate_state *pDecomp)
     return MZ_OK;
 }
 
-int mz_inflate(mz_streamp pStream, int flush)
+DECLSPEC int mz_inflate(mz_streamp pStream, int flush)
 {
     inflate_state *pState;
     mz_uint n, first_call, decomp_flags = TINFL_FLAG_COMPUTE_ADLER32;
@@ -1101,4 +1101,102 @@ int mz_inflate(mz_streamp pStream, int flush)
     }
 
     return ((status == TINFL_STATUS_DONE) && (!pState->m_dict_avail)) ? MZ_STREAM_END : MZ_OK;
+}
+
+// hashcat-patched: helper function for shifted u32
+
+DECLSPEC u32 GETSHIFTEDINT (u32 *a, const int n)
+{
+  const int d = n / 4;
+  const int m = n & 3;
+
+  u64 tmp = hl32_to_64_S (a[d + 1], a[d + 0]);
+
+  tmp >>= m * 8;
+
+  return l32_from_64_S (tmp);
+}
+
+// hashcat-patched: faster memcpy for our large (TINFL_LZ_DICT_SIZE) move of bytes from the old output to the window/lookup table
+
+DECLSPEC void hc_shift_inflate_dict (u8 *buf, const u32 offset, const u32 len)
+{
+  u32 *ptr = (u32 *) buf;
+
+  // we need to use len - 4 here to avoid buffer overflows caused by the u64 type in GETSHIFTEDINT
+
+  u32 i, j;
+
+  for (i = 0, j = 0; i < len - 4; i += 4, j++)
+  {
+    ptr[j] = GETSHIFTEDINT (ptr, offset + i);
+  }
+
+  // final step (last 4 bytes are special):
+
+  ptr[j] = (buf[offset + i + 3] << 24) | (buf[offset + i + 2] << 16) | (buf[offset + i + 1] << 8) | buf[offset + i];
+}
+
+// hashcat-patched: the mz_inflate () function from above doesn't work for us because we need to allow larger input/output and
+// we only need the crc32 checksum actually
+
+DECLSPEC int hc_inflate (mz_streamp pStream)
+{
+  // we can't use the full TINFL_LZ_DICT_SIZE buffer because even with only 16 input bytes
+  // we can get pretty close to our max available output buffer:
+
+  // size_t in_bytes = MZ_MIN (TINFL_LZ_DICT_SIZE, pStream->avail_in);
+  size_t in_bytes = MZ_MIN (16, pStream->avail_in);
+
+  mz_uint decomp_flags = ((pStream->avail_in - in_bytes) > 0) ? TINFL_FLAG_HAS_MORE_INPUT : 0;
+
+  decomp_flags |= TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF;
+
+  inflate_state *pState = pStream->state;
+
+  size_t out_bytes = pStream->avail_out;
+
+  tinfl_status status = tinfl_decompress (&pState->m_decomp, pStream->next_in, &in_bytes, pStream->next_out, pStream->next_out + pStream->total_out, &out_bytes, decomp_flags, pStream);
+
+  for (int i = 0; i < out_bytes; i++)
+  {
+    pStream->crc32 = CRC32 (pStream->crc32, pStream->next_out[pStream->total_out + i], pStream->crc32tab);
+  }
+
+  pStream->next_in  += (mz_uint) in_bytes;
+  pStream->avail_in -= (mz_uint) in_bytes;
+  pStream->total_in += (mz_uint) in_bytes;
+
+  pStream->avail_out -= out_bytes;
+  pStream->total_out += out_bytes;
+
+  if (pStream->avail_out < TINFL_LZ_DICT_SIZE)
+  {
+    // reset:
+
+    // move the last TINFL_LZ_DICT_SIZE bytes to the start of the output buffer
+
+    // memcpy (pStream->next_out, pStream->next_out + pStream->total_out - TINFL_LZ_DICT_SIZE, TINFL_LZ_DICT_SIZE);
+    hc_shift_inflate_dict (pStream->next_out, pStream->total_out - TINFL_LZ_DICT_SIZE, TINFL_LZ_DICT_SIZE);
+
+    pStream->avail_out = TINFL_LZ_DICT_SIZE;
+    pStream->total_out = TINFL_LZ_DICT_SIZE;
+  }
+
+  if (status < 0)
+  {
+    return MZ_DATA_ERROR;
+  }
+
+  if (in_bytes == 0)
+  {
+    return MZ_STREAM_END;
+  }
+
+  if (pStream->avail_in == 0)
+  {
+    return MZ_STREAM_END;
+  }
+
+  return (status == TINFL_STATUS_DONE) ? MZ_STREAM_END : MZ_OK;
 }

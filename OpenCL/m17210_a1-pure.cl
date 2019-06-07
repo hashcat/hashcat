@@ -98,7 +98,7 @@ Related publication: https://scitepress.org/PublicationsDetail.aspx?ID=KLPzPqStp
 #define MSB(x)       ((x) >> 24)
 #define CONST        0x08088405
 
-#define MAX_DATA (16 * 1024 * 1024)
+#define MAX_DATA (320 * 1024)
 
 #define update_key012(k0,k1,k2,c,t)           \
 {                                             \

@@ -94,13 +94,13 @@ Related publication: https://scitepress.org/PublicationsDetail.aspx?ID=KLPzPqStp
 #include "inc_rp.cl"
 
 #define MAX_LOCAL 512 // too much leaves no room for compiler optimizations, simply benchmark to find a good trade-off - make it as big as possible
-#define TMPSIZ    32
+#define TMPSIZ    (2 * TINFL_LZ_DICT_SIZE)
 
 #define CRC32(x,c,t) (((x) >> 8) ^ (t)[((x) ^ (c)) & 0xff])
 #define MSB(x)       ((x) >> 24)
 #define CONST        0x08088405
 
-#define MAX_DATA (16 * 1024 * 1024)
+#define MAX_DATA (320 * 1024)
 
 #define update_key012(k0,k1,k2,c,t)           \
 {                                             \
@@ -759,11 +759,11 @@ KERNEL_FQ void m17225_sxx (KERN_ATTR_RULES_ESALT (pkzip_t))
         // inflateinit2 is needed because otherwise it checks for headers by default
         mz_inflateInit2 (&infstream, -MAX_WBITS, &pStream);
 
-        int ret = mz_inflate (&infstream, Z_SYNC_FLUSH);
+        int ret = hc_inflate (&infstream);
 
         while (ret == MZ_OK)
         {
-          ret = mz_inflate (&infstream, Z_SYNC_FLUSH);
+          ret = hc_inflate (&infstream);
         }
 
         if (ret != MZ_STREAM_END) break; // failed to inflate
@@ -1087,11 +1087,11 @@ KERNEL_FQ void m17225_mxx (KERN_ATTR_RULES_ESALT (pkzip_t))
         // inflateinit2 is needed because otherwise it checks for headers by default
         mz_inflateInit2 (&infstream, -MAX_WBITS, &pStream);
 
-        int ret = mz_inflate (&infstream, Z_SYNC_FLUSH);
+        int ret = hc_inflate (&infstream);
 
         while (ret == MZ_OK)
         {
-          ret = mz_inflate (&infstream, Z_SYNC_FLUSH);
+          ret = hc_inflate (&infstream);
         }
 
         if (ret != MZ_STREAM_END) break; // failed to inflate

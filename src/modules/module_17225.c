@@ -107,8 +107,7 @@ static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$pkzip2$3*1*1*0*0*24*3e2c*3ef8*0619e9d17ff3f994065b99b1fa8aef41c056edf9fa4540919c109742dcb32f797fc90ce0*1*0*8*24*431a*3f26*18e2461c0dbad89bd9cc763067a020c89b5e16195b1ac5fa7fb13bd246d000b6833a2988*2*0*23*17*1e3c1a16*2e4*2f*0*23*1e3c*3f2d*54ea4dbc711026561485bbd191bf300ae24fa0997f3779b688cdad323985f8d3bb8b0c*$/pkzip2$";
 
-#define MAX_DATA (16 * 1024 * 1024)
-#define MAX_LEN  (32 * 1024)
+#define MAX_DATA (320 * 1024)
 
 // this is required to force mingw to accept the packed attribute
 #pragma pack(push,1)
@@ -232,10 +231,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
       if (pkzip->hashes[i].compressed_length > MAX_DATA)
       {
         return PARSER_TOKEN_LENGTH;
-      }
-      if (pkzip->hashes[i].uncompressed_length > MAX_LEN)
-      {
-        return PARSER_HASH_LENGTH;
       }
 
       p = strtok(NULL, "*");
