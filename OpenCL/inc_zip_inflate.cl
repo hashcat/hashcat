@@ -180,7 +180,7 @@ typedef int mz_bool;
 
 typedef mz_uint64 tinfl_bit_buf_t;
 
-void memcpy(void *dest, const void *src, u32 n){
+DECLSPEC void memcpy(void *dest, const void *src, u32 n){
   char *csrc = (char *)src;
   char *cdest = (char *)dest;
   for (int i=0; i<n; i++){
@@ -189,7 +189,7 @@ void memcpy(void *dest, const void *src, u32 n){
 }
 
 
-void *memset(u8 *s, int c, u32 len){
+DECLSPEC void *memset(u8 *s, int c, u32 len){
   u8 *dst = s;
   while (len > 0) {
       *dst = (u8) c;
@@ -447,15 +447,15 @@ typedef struct mz_stream_s
 
 typedef mz_stream *mz_streamp;
 
+// hashcat-patched: not needed functions:
+// void miniz_def_free_func(void *opaque, void *address);
+// void *miniz_def_alloc_func(void *opaque, size_t items, size_t size);
+DECLSPEC int mz_inflate(mz_streamp pStream, int flush);
+DECLSPEC int mz_inflateEnd(mz_streamp pStream);
 
-void miniz_def_free_func(void *opaque, void *address);
-void *miniz_def_alloc_func(void *opaque, size_t items, size_t size);
-int mz_inflate(mz_streamp pStream, int flush);
-int mz_inflateEnd(mz_streamp pStream);
 
 
-
-int mz_inflateInit2(mz_streamp pStream, int window_bits, inflate_state*);
+DECLSPEC int mz_inflateInit2(mz_streamp pStream, int window_bits, inflate_state*);
 
 
 DECLSPEC const mz_uint8 pIn_xor_byte (const mz_uint8 c, mz_streamp pStream)
