@@ -88,6 +88,11 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 {
   char *jit_build_options = NULL;
 
+  if (device_param->is_cuda == true)
+  {
+    hc_asprintf (&jit_build_options, "-D NO_UNROLL");
+  }
+
   if (device_param->opencl_device_vendor_id == VENDOR_ID_NV)
   {
     hc_asprintf (&jit_build_options, "-D NO_UNROLL");
