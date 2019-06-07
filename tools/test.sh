@@ -472,11 +472,19 @@ function attack_0()
 
       fi
 
+      pass_old=${pass}
+
+      if [ "${hash_type}" -eq 20510 ]; then # special case for PKZIP Master Key
+        pass=$(echo "${pass}" | cut -b 7-) # skip the first 6 chars
+      fi
+
       CMD="echo "${pass}" | ./${BIN} ${OPTS} -a 0 -m ${hash_type} '${hash}'"
 
       echo -n "[ len $((i + 1)) ] " >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
 
       output=$(echo "${pass}" | ./${BIN} ${OPTS} -a 0 -m ${hash_type} "${hash}" 2>&1)
+
+      pass=${pass_old}
 
       ret=${?}
 
@@ -652,23 +660,74 @@ function attack_1()
 
         fi
 
-        CMD="./${BIN} ${OPTS} -a 1 -m ${hash_type} '${hash}' ${OUTD}/${hash_type}_dict1 ${OUTD}/${hash_type}_dict2"
+        line_nr=1
+
+        if [ "${i}" -gt 1 ]; then
+          line_nr=$((${i} - 1))
+        fi
+
+        dict1="${OUTD}/${hash_type}_dict1"
+        dict2="${OUTD}/${hash_type}_dict2"
+
+        if [ "${hash_type}" -eq 20510 ]; then # special case for PKZIP Master Key
+          line_dict1=$(sed -n ${line_nr}p ${dict1})
+          line_dict2=$(sed -n ${line_nr}p ${dict2})
+          line_num=$(wc -l ${dict1} | sed -E 's/ *([0-9]+) .*$/\1/')
+
+          line_dict1_orig=${line_dict1}
+          line_dict2_orig=${line_dict2}
+
+          if [ "${#line_dict1}" -ge 6 ]; then
+            line_dict1=$(echo "${line_dict1}" | cut -b 7-) # skip the first 6 chars
+          else
+            # we need to also "steal" some chars from the second dict
+            num_to_steal=$((6 - ${#line_dict1}))
+            num_steal_start=$((${num_to_steal} + 1))
+
+            if [ "${#line_dict2}" -ge 6 ]; then
+              num_to_steal_new=$(((${#line_dict2} - ${num_to_steal}) / 2))
+
+              if [ "${num_to_steal_new}" -gt ${num_to_steal} ]; then
+                num_to_steal=${num_to_steal_new}
+              fi
+            fi
+
+            line_chars_stolen=$(echo "${line_dict2}" | cut -b -${num_to_steal} | cut -b ${num_steal_start}-)
+
+            line_dict1="${line_chars_stolen}"
+            line_dict2=$(echo "${line_dict2}" | cut -b $((${num_to_steal} + 1))-)
+          fi
+
+          # finally, modify the dicts accordingly:
+
+          tmp_file="${dict1}_mod"
+
+          head -n $((${line_nr} - 1)) ${dict1} > ${tmp_file}
+          echo "${line_dict1}" >> ${tmp_file}
+          tail -n $((${line_num} - ${line_nr} - 1)) ${dict1} >> ${tmp_file}
+
+          dict1=${tmp_file}
+
+          tmp_file="${dict2}_mod"
+
+          head -n $((${line_nr} - 1)) ${dict2} > ${tmp_file}
+          echo "${line_dict2}" >> ${tmp_file}
+          tail -n $((${line_num} - ${line_nr} - 1)) ${dict2} >> ${tmp_file}
+
+          dict2=${tmp_file}
+        fi
+
+        CMD="./${BIN} ${OPTS} -a 1 -m ${hash_type} '${hash}' ${dict1} ${dict2}"
 
         echo -n "[ len $i ] " >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
 
-        output=$(./${BIN} ${OPTS} -a 1 -m ${hash_type} "${hash}" ${OUTD}/${hash_type}_dict1 ${OUTD}/${hash_type}_dict2 2>&1)
+        output=$(./${BIN} ${OPTS} -a 1 -m ${hash_type} "${hash}" ${dict1} ${dict2} 2>&1)
 
         ret=${?}
 
         echo "${output}" >> ${OUTD}/logfull.txt
 
         if [ "${ret}" -eq 0 ]; then
-
-          line_nr=1
-
-          if [ "${i}" -gt 1 ]; then
-            line_nr=$((${i} - 1))
-          fi
 
           line_dict1=$(sed -n ${line_nr}p ${OUTD}/${hash_type}_dict1)
           line_dict2=$(sed -n ${line_nr}p ${OUTD}/${hash_type}_dict2)
@@ -922,6 +981,21 @@ function attack_3()
 
         mask="${mask}${pass_part_2}"
 
+      fi
+
+      if [ "${hash_type}" -eq 20510 ]; then # special case for PKZIP Master Key
+        if [ "${i}" -le 1 ]; then
+          ((i++))
+          continue
+        fi
+
+        cut_pos=$((${i} * 2 + 6 - ${i} + 1)) # skip it in groups of 2 ("?d"), at least 6, offset +1 for cut to work
+
+        if [ "${i}" -gt 6 ]; then
+          cut_pos=13 # 6 * ?d + 1 (6 * 2 + 1)
+        fi
+
+        mask=$(echo "${mask}" | cut -b ${cut_pos}-)
       fi
 
       CMD="./${BIN} ${OPTS} -a 3 -m ${hash_type} '${hash}' ${mask}"
@@ -1445,6 +1519,10 @@ function attack_6()
 
         pass=$(sed -n ${i}p ${OUTD}/${hash_type}_passwords.txt)
 
+        if [ "${hash_type}" -eq 20510 ]; then # special case for PKZIP Master Key
+          pass=$(echo "${pass}" | cut -b 7-) # skip the first 6 chars
+        fi
+
         if [ ${#pass} -le ${i} ]; then
           ((i++))
           continue
@@ -1787,13 +1865,34 @@ function attack_7()
 
         # adjust mask if needed
 
+        line_nr=1
+
+        if [ "${i}" -gt 1 ]; then
+          line_nr=$((${i} - 1))
+        fi
+
         if [ "${hash_type}" -eq 2500 ]; then
 
-          line_nr=1
+          pass_part_1=$(sed -n ${line_nr}p ${OUTD}/${hash_type}_dict1)
+          pass_part_2=$(sed -n ${line_nr}p ${OUTD}/${hash_type}_dict2)
 
-          if [ "${i}" -gt 1 ]; then
-            line_nr=$((${i} - 1))
-          fi
+          pass_part_2_len=${#pass_part_2}
+
+          pass=${pass_part_1}${pass_part_2}
+
+          pass_len=${#pass}
+
+          # add first x chars of password to mask and append the (old) mask
+
+          mask_len=${#mask}
+          mask_len=$((mask_len / 2))
+
+          mask_prefix=$(echo ${pass} | cut -b -$((pass_len - ${mask_len} - ${pass_part_2_len})))
+          mask=${mask_prefix}${mask}
+
+        fi
+
+        if [ "${hash_type}" -eq 16800 ]; then
 
           pass_part_1=$(sed -n ${line_nr}p ${OUTD}/${hash_type}_dict1)
           pass_part_2=$(sed -n ${line_nr}p ${OUTD}/${hash_type}_dict2)
@@ -1813,29 +1912,31 @@ function attack_7()
 
         fi
 
-        if [ "${hash_type}" -eq 16800 ]; then
-
-          line_nr=1
-
-          if [ "${i}" -gt 1 ]; then
-            line_nr=$((${i} - 1))
-          fi
+        if [ "${hash_type}" -eq 20510 ]; then
 
           pass_part_1=$(sed -n ${line_nr}p ${OUTD}/${hash_type}_dict1)
           pass_part_2=$(sed -n ${line_nr}p ${OUTD}/${hash_type}_dict2)
 
-          pass_part_2_len=${#pass_part_2}
-
           pass=${pass_part_1}${pass_part_2}
+
           pass_len=${#pass}
 
-          # add first x chars of password to mask and append the (old) mask
+          if [ "${pass_len}" -le 6 ]; then
+            ((i++))
+            continue
+          fi
 
-          mask_len=${#mask}
-          mask_len=$((mask_len / 2))
+          pass_old=${pass}
 
-          mask_prefix=$(echo ${pass} | cut -b -$((pass_len - ${mask_len} - ${pass_part_2_len})))
-          mask=${mask_prefix}${mask}
+          pass=$(echo "${pass}" | cut -b 7-) # skip the first 6 chars
+
+          mask_len=$((${#mask} / 2))
+
+          echo "${pass_old}" | cut -b -$((6 + ${mask_len})) > ${OUTD}/${hash_type}_dict1_custom
+          echo "${pass}"     | cut -b $((${mask_len} + 1))- > ${OUTD}/${hash_type}_dict2_custom
+
+          min=0 # hack to use the custom dict
+          mask_custom=${mask}
 
         fi
 
@@ -2698,6 +2799,13 @@ if [ "${TYPE}" == "null" ]; then
   TYPE="Gpu"
 fi
 
+if [ "${HT}" -eq 20510 ]; then # special case for PKZIP Master Key
+  if [ "${MODE}" -eq 1 ]; then # if "multi" was forced we need to exit
+    echo "ERROR: -m 20510 = PKZIP Master Key can only be run with a single hash"
+    exit 1
+  fi
+fi
+
 if [ -n "${ARCHITECTURE}" ]; then
 
   BIN="${BIN}${ARCHITECTURE}"
@@ -2854,6 +2962,16 @@ if [ "${PACKAGE}" -eq 0 -o -z "${PACKAGE_FOLDER}" ]; then
 
       OPTS_OLD=${OPTS}
       VECTOR_OLD=${VECTOR}
+      MODE_OLD=${MODE}
+
+      if [ "${hash_type}" -eq 20510 ]; then # special case for PKZIP Master Key
+        if [ "${MODE}" -eq 1 ]; then # if "multi" was forced we need to skip it
+          continue
+        fi
+
+        MODE=0 # force single only
+      fi
+
       for CUR_WIDTH in $(echo $VECTOR_WIDTHS); do
 
         if [ "${VECTOR_OLD}" == "all" ] || [ "${VECTOR_OLD}" == "default" ] || [ "${VECTOR_OLD}" == "${CUR_WIDTH}" ]; then
@@ -2915,6 +3033,7 @@ if [ "${PACKAGE}" -eq 0 -o -z "${PACKAGE_FOLDER}" ]; then
       done
       OPTS="${OPTS_OLD}"
       VECTOR="${VECTOR_OLD}"
+      MODE=${MODE_OLD}
     fi
   done
 
