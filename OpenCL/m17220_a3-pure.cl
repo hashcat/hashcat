@@ -321,22 +321,22 @@ DECLSPEC int check_inflate_code2 (u8 *next)
   u32 ncode;
   u32 ncount[2];  // ends up being an array of 8 u8 count values.  But we can clear it, and later 'check' it with 2 u32 instructions.
   u8 *count;    // this will point to ncount array. NOTE, this is alignment required 'safe' for Sparc systems or others requiring alignment.
-  hold = *next + (((u32)next[1])<<8) + (((u32)next[2])<<16) + (((u32)next[3])<<24);
+  hold = *next + (((u32) next[1]) << 8) + (((u32) next[2]) << 16) + (((u32) next[3]) << 24);
   next += 3;  // we pre-increment when pulling it in the loop, thus we need to be 1 byte back.
   hold >>= 3;  // we already processed 3 bits
   count = (u8*)ncount;
 
-  if (257+(hold&0x1F) > 286)
+  if (257 + (hold & 0x1F) > 286)
   {
     return 0;  // nlen, but we do not use it.
   }
   hold >>= 5;
-  if (1+(hold&0x1F) > 30)
+  if (1 + (hold & 0x1F) > 30)
   {
     return 0;    // ndist, but we do not use it.
   }
   hold >>= 5;
-  ncode = 4+(hold&0xF);
+  ncode = 4 + (hold & 0xF);
   hold >>= 4;
 
   // we have 15 bits left.
@@ -406,7 +406,7 @@ DECLSPEC int check_inflate_code1 (u8 *next, int left)
   u32 whave = 0, op, bits, hold,len;
   code here1;
 
-  hold = *next + (((u32)next[1])<<8) + (((u32)next[2])<<16) + (((u32)next[3])<<24);
+  hold = *next + (((u32) next[1]) << 8) + (((u32) next[2]) << 16) + (((u32) next[3]) << 24);
   next += 3; // we pre-increment when pulling it in the loop, thus we need to be 1 byte back.
   left -= 4;
   hold >>= 3;  // we already processed 3 bits
@@ -546,7 +546,7 @@ KERNEL_FQ void m17220_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
     l_crc32tab[i] = crc32tab[i];
   }
 
-  SYNC_THREADS();
+  SYNC_THREADS ();
 
   LOCAL_VK u32 l_data[MAX_LOCAL];
 
@@ -555,7 +555,7 @@ KERNEL_FQ void m17220_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
     l_data[i] = esalt_bufs[digests_offset].hashes[0].data[i];
   }
 
-  SYNC_THREADS();
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -825,7 +825,7 @@ KERNEL_FQ void m17220_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
     l_crc32tab[i] = crc32tab[i];
   }
 
-  SYNC_THREADS();
+  SYNC_THREADS ();
 
   LOCAL_VK u32 l_data[MAX_LOCAL];
 
@@ -834,7 +834,7 @@ KERNEL_FQ void m17220_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
     l_data[i] = esalt_bufs[digests_offset].hashes[0].data[i];
   }
 
-  SYNC_THREADS();
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 

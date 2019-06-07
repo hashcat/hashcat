@@ -239,7 +239,7 @@ KERNEL_FQ void m17230_sxx (KERN_ATTR_ESALT (pkzip_t))
     l_crc32tab[i] = crc32tab[i];
   }
 
-  SYNC_THREADS();
+  SYNC_THREADS ();
 
   LOCAL_VK u32 l_data[MAX_LOCAL];
 
@@ -248,7 +248,7 @@ KERNEL_FQ void m17230_sxx (KERN_ATTR_ESALT (pkzip_t))
     l_data[i] = esalt_bufs[digests_offset].hashes[0].data[i];
   }
 
-  SYNC_THREADS();
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -411,7 +411,7 @@ KERNEL_FQ void m17230_mxx (KERN_ATTR_ESALT (pkzip_t))
     l_crc32tab[i] = crc32tab[i];
   }
 
-  SYNC_THREADS();
+  SYNC_THREADS ();
 
   LOCAL_VK u32 l_data[MAX_LOCAL];
 
@@ -420,7 +420,7 @@ KERNEL_FQ void m17230_mxx (KERN_ATTR_ESALT (pkzip_t))
     l_data[i] = esalt_bufs[digests_offset].hashes[0].data[i];
   }
 
-  SYNC_THREADS();
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
