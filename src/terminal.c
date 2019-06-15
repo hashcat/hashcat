@@ -1511,6 +1511,10 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   #ifdef WITH_BRAIN
   if (user_options->brain_client == true)
   {
+    event_log_info (hashcat_ctx,
+      "Brain.Link.All...: RX: %sB, TX: %sB",
+      hashcat_status->brain_rx_all,
+      hashcat_status->brain_tx_all);
     for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
     {
       const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
