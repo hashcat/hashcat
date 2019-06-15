@@ -507,7 +507,7 @@ KERNEL_FQ void m20510_sxx (KERN_ATTR_VECTOR ())
     l_lsbk0_count1[i] = lsbk0_count1[i];
   }
 
-  SYNC_THREADS();
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 

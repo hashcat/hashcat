@@ -266,7 +266,7 @@ KERNEL_FQ void m20500_sxx (KERN_ATTR_VECTOR ())
     l_icrc32tab[i] = icrc32tab[i];
   }
 
-  SYNC_THREADS();
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -380,7 +380,7 @@ KERNEL_FQ void m20500_mxx (KERN_ATTR_VECTOR ())
     l_crc32tab[i] = crc32tab[i];
   }
 
-  SYNC_THREADS();
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 

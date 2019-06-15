@@ -92,13 +92,13 @@ Related publication: https://scitepress.org/PublicationsDetail.aspx?ID=KLPzPqStp
 #include "inc_simd.cl"
 
 #define MAX_LOCAL 512 // too much leaves no room for compiler optimizations, simply benchmark to find a good trade-off - make it as big as possible
-#define TMPSIZ    32
+#define TMPSIZ    (2 * TINFL_LZ_DICT_SIZE)
 
 #define CRC32(x,c,t) (((x) >> 8) ^ (t)[((x) ^ (c)) & 0xff])
 #define MSB(x)       ((x) >> 24)
 #define CONST        0x08088405
 
-#define MAX_DATA (16 * 1024 * 1024)
+#define MAX_DATA (320 * 1024)
 
 #define update_key012(k0,k1,k2,c,t)           \
 {                                             \
@@ -130,7 +130,7 @@ struct pkzip_hash
   u32 data_length;
   u16 checksum_from_crc;
   u16 checksum_from_timestamp;
-  u32 data[MAX_DATA];
+  u32 data[MAX_DATA / 4]; // a quarter because of the u32 type
 
 } __attribute__((packed));
 
@@ -323,22 +323,22 @@ DECLSPEC int check_inflate_code2 (u8 *next)
   u32 ncode;
   u32 ncount[2];  // ends up being an array of 8 u8 count values.  But we can clear it, and later 'check' it with 2 u32 instructions.
   u8 *count;    // this will point to ncount array. NOTE, this is alignment required 'safe' for Sparc systems or others requiring alignment.
-  hold = *next + (((u32)next[1])<<8) + (((u32)next[2])<<16) + (((u32)next[3])<<24);
+  hold = *next + (((u32) next[1]) << 8) + (((u32) next[2]) << 16) + (((u32) next[3]) << 24);
   next += 3;  // we pre-increment when pulling it in the loop, thus we need to be 1 byte back.
   hold >>= 3;  // we already processed 3 bits
   count = (u8*)ncount;
 
-  if (257+(hold&0x1F) > 286)
+  if (257 + (hold & 0x1F) > 286)
   {
     return 0;  // nlen, but we do not use it.
   }
   hold >>= 5;
-  if (1+(hold&0x1F) > 30)
+  if (1 + (hold & 0x1F) > 30)
   {
     return 0;    // ndist, but we do not use it.
   }
   hold >>= 5;
-  ncode = 4+(hold&0xF);
+  ncode = 4 + (hold & 0xF);
   hold >>= 4;
 
   // we have 15 bits left.
@@ -408,7 +408,7 @@ DECLSPEC int check_inflate_code1 (u8 *next, int left)
   u32 whave = 0, op, bits, hold,len;
   code here1;
 
-  hold = *next + (((u32)next[1])<<8) + (((u32)next[2])<<16) + (((u32)next[3])<<24);
+  hold = *next + (((u32) next[1]) << 8) + (((u32) next[2]) << 16) + (((u32) next[3]) << 24);
   next += 3; // we pre-increment when pulling it in the loop, thus we need to be 1 byte back.
   left -= 4;
   hold >>= 3;  // we already processed 3 bits
@@ -548,7 +548,7 @@ KERNEL_FQ void m17200_sxx (KERN_ATTR_ESALT (pkzip_t))
     l_crc32tab[i] = crc32tab[i];
   }
 
-  SYNC_THREADS();
+  SYNC_THREADS ();
 
   LOCAL_VK u32 l_data[MAX_LOCAL];
 
@@ -557,7 +557,7 @@ KERNEL_FQ void m17200_sxx (KERN_ATTR_ESALT (pkzip_t))
     l_data[i] = esalt_bufs[digests_offset].hash.data[i];
   }
 
-  SYNC_THREADS();
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -751,11 +751,11 @@ KERNEL_FQ void m17200_sxx (KERN_ATTR_ESALT (pkzip_t))
     // inflateinit2 is needed because otherwise it checks for headers by default
     mz_inflateInit2 (&infstream, -MAX_WBITS, &pStream);
 
-    int ret = mz_inflate (&infstream, Z_SYNC_FLUSH);
+    int ret = hc_inflate (&infstream);
 
     while (ret == MZ_OK)
     {
-      ret = mz_inflate (&infstream, Z_SYNC_FLUSH);
+      ret = hc_inflate (&infstream);
     }
 
     if (ret != MZ_STREAM_END) continue; // failed to inflate
@@ -790,7 +790,7 @@ KERNEL_FQ void m17200_mxx (KERN_ATTR_ESALT (pkzip_t))
     l_crc32tab[i] = crc32tab[i];
   }
 
-  SYNC_THREADS();
+  SYNC_THREADS ();
 
   LOCAL_VK u32 l_data[MAX_LOCAL];
 
@@ -799,7 +799,7 @@ KERNEL_FQ void m17200_mxx (KERN_ATTR_ESALT (pkzip_t))
     l_data[i] = esalt_bufs[digests_offset].hash.data[i];
   }
 
-  SYNC_THREADS();
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -981,11 +981,11 @@ KERNEL_FQ void m17200_mxx (KERN_ATTR_ESALT (pkzip_t))
     // inflateinit2 is needed because otherwise it checks for headers by default
     mz_inflateInit2 (&infstream, -MAX_WBITS, &pStream);
 
-    int ret = mz_inflate (&infstream, Z_SYNC_FLUSH);
+    int ret = hc_inflate (&infstream);
 
     while (ret == MZ_OK)
     {
-      ret = mz_inflate (&infstream, Z_SYNC_FLUSH);
+      ret = hc_inflate (&infstream);
     }
 
     if (ret != MZ_STREAM_END) continue; // failed to inflate

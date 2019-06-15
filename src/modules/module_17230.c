@@ -107,7 +107,7 @@ static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$pkzip2$8*1*1*0*8*24*a425*8827*3bd479d541019c2f32395046b8fbca7e1dca218b9b5414975be49942c3536298e9cc939e*1*0*8*24*2a74*882a*537af57c30fd9fd4b3eefa9ce55b6bff3bbfada237a7c1dace8ebf3bb0de107426211da3*1*0*8*24*2a74*882a*5f406b4858d3489fd4a6a6788798ac9b924b5d0ca8b8e5a6371739c9edcfd28c82f75316*1*0*8*24*2a74*882a*1843aca546b2ea68bd844d1e99d4f74d86417248eb48dd5e956270e42a331c18ea13f5ed*1*0*8*24*2a74*882a*aca3d16543bbfb2e5d2659f63802e0fa5b33e0a1f8ae47334019b4f0b6045d3d8eda3af1*1*0*8*24*2a74*882a*fbe0efc9e10ae1fc9b169bd060470bf3e39f09f8d83bebecd5216de02b81e35fe7e7b2f2*1*0*8*24*2a74*882a*537886dbabffbb7cac77deb01dc84760894524e6966183b4478a4ef56f0c657375a235a1*1*0*8*24*eda7*5096*40eb30ef1ddd9b77b894ed46abf199b480f1e5614fde510855f92ae7b8026a11f80e4d5f*$/pkzip2$";
 
-#define MAX_DATA (16 * 1024 * 1024)
+#define MAX_DATA (320 * 1024)
 
 // this is required to force mingw to accept the packed attribute
 #pragma pack(push,1)
@@ -125,7 +125,7 @@ struct pkzip_hash
   u32 data_length;
   u16 checksum_from_crc;
   u16 checksum_from_timestamp;
-  u32 data[MAX_DATA];
+  u32 data[MAX_DATA / 4]; // a quarter because of the u32 type
 
 } __attribute__((packed));
 
@@ -186,94 +186,95 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   char input[line_len + 1];
   input[line_len] = '\0';
-  memcpy(&input, line_buf, line_len);
+  memcpy (&input, line_buf, line_len);
 
-  char *p = strtok(input, "*");
+  char *p = strtok (input, "*");
   if (p == NULL) return PARSER_HASH_LENGTH;
-  if (strncmp(p, SIGNATURE_PKZIP_V1, 7) != 0 && strncmp(p, SIGNATURE_PKZIP_V2, 8) != 0) return PARSER_SIGNATURE_UNMATCHED;
+  if (strncmp (p, SIGNATURE_PKZIP_V1, 7) != 0 && strncmp (p, SIGNATURE_PKZIP_V2, 8) != 0) return PARSER_SIGNATURE_UNMATCHED;
 
   pkzip->version = 1;
-  if(strlen(p) == 9) pkzip->version = 2;
+
+  if (strlen (p) == 9) pkzip->version = 2;
 
   char sub[2];
-  sub[0] = p[strlen(p) - 1];
+  sub[0] = p[strlen (p) - 1];
   sub[1] = '\0';
-  pkzip->hash_count = atoi(sub);
+  pkzip->hash_count = atoi (sub);
 
   // check here that the hash_count is valid for the attack type
-  if(pkzip->hash_count > 8) return PARSER_HASH_VALUE;
-  if(pkzip->hash_count < 3) return PARSER_HASH_VALUE;
+  if (pkzip->hash_count > 8) return PARSER_HASH_VALUE;
+  if (pkzip->hash_count < 3) return PARSER_HASH_VALUE;
 
-  p = strtok(NULL, "*");
+  p = strtok (NULL, "*");
   if (p == NULL) return PARSER_HASH_LENGTH;
-  pkzip->checksum_size = atoi(p);
+  pkzip->checksum_size = atoi (p);
   if (pkzip->checksum_size != 1 && pkzip->checksum_size != 2) return PARSER_HASH_LENGTH;
 
-  for(int i = 0; i < pkzip->hash_count; i++)
+  for (int i = 0; i < pkzip->hash_count; i++)
   {
-    p = strtok(NULL, "*");
+    p = strtok (NULL, "*");
     if (p == NULL) return PARSER_HASH_LENGTH;
-    pkzip->hashes[i].data_type_enum = atoi(p);
+    pkzip->hashes[i].data_type_enum = atoi (p);
     if (pkzip->hashes[i].data_type_enum > 3) return PARSER_HASH_LENGTH;
 
-    p = strtok(NULL, "*");
+    p = strtok (NULL, "*");
     if (p == NULL) return PARSER_HASH_LENGTH;
-    pkzip->hashes[i].magic_type_enum = atoi(p);
+    pkzip->hashes[i].magic_type_enum = atoi (p);
 
-    if(pkzip->hashes[i].data_type_enum > 1)
+    if (pkzip->hashes[i].data_type_enum > 1)
     {
-      p = strtok(NULL, "*");
+      p = strtok (NULL, "*");
       if (p == NULL) return PARSER_HASH_LENGTH;
-      pkzip->hashes[i].compressed_length = strtoul(p, NULL, 16);
+      pkzip->hashes[i].compressed_length = strtoul (p, NULL, 16);
 
-      p = strtok(NULL, "*");
+      p = strtok (NULL, "*");
       if (p == NULL) return PARSER_HASH_LENGTH;
-      pkzip->hashes[i].uncompressed_length = strtoul(p, NULL, 16);
-      if (pkzip->hashes[i].compressed_length > MAX_DATA * 4)
+      pkzip->hashes[i].uncompressed_length = strtoul (p, NULL, 16);
+      if (pkzip->hashes[i].compressed_length > MAX_DATA)
       {
         return PARSER_TOKEN_LENGTH;
       }
 
-      p = strtok(NULL, "*");
+      p = strtok (NULL, "*");
       if (p == NULL) return PARSER_HASH_LENGTH;
-      sscanf(p, "%x", &(pkzip->hashes[i].crc32));
+      sscanf (p, "%x", &(pkzip->hashes[i].crc32));
 
-      p = strtok(NULL, "*");
+      p = strtok (NULL, "*");
       if (p == NULL) return PARSER_HASH_LENGTH;
-      pkzip->hashes[i].offset = strtoul(p, NULL, 16);
+      pkzip->hashes[i].offset = strtoul (p, NULL, 16);
 
-      p = strtok(NULL, "*");
+      p = strtok (NULL, "*");
       if (p == NULL) return PARSER_HASH_LENGTH;
-      pkzip->hashes[i].additional_offset = strtoul(p, NULL, 16);
+      pkzip->hashes[i].additional_offset = strtoul (p, NULL, 16);
     }
 
-    p = strtok(NULL, "*");
+    p = strtok (NULL, "*");
     if (p == NULL) return PARSER_HASH_LENGTH;
-    pkzip->hashes[i].compression_type = atoi(p);
+    pkzip->hashes[i].compression_type = atoi (p);
     if (pkzip->hashes[i].compression_type != 8 && pkzip->hashes[i].compression_type != 0) return PARSER_PKZIP_CT_UNMATCHED;
 
-    p = strtok(NULL, "*");
+    p = strtok (NULL, "*");
     if (p == NULL) return PARSER_HASH_LENGTH;
-    pkzip->hashes[i].data_length = strtoul(p, NULL, 16);
+    pkzip->hashes[i].data_length = strtoul (p, NULL, 16);
 
-    p = strtok(NULL, "*");
+    p = strtok (NULL, "*");
     if (p == NULL) return PARSER_HASH_LENGTH;
-    sscanf(p, "%hx", &(pkzip->hashes[i].checksum_from_crc));
-    if(pkzip->version == 2)
+    sscanf (p, "%hx", &(pkzip->hashes[i].checksum_from_crc));
+    if (pkzip->version == 2)
     {
-      p = strtok(NULL, "*");
+      p = strtok (NULL, "*");
       if (p == NULL) return PARSER_HASH_LENGTH;
-      sscanf(p, "%hx", &(pkzip->hashes[i].checksum_from_timestamp));
+      sscanf (p, "%hx", &(pkzip->hashes[i].checksum_from_timestamp));
     }
     else
     {
       pkzip->hashes[i].checksum_from_timestamp = pkzip->hashes[i].checksum_from_crc;
     }
 
-    p = strtok(NULL, "*");
+    p = strtok (NULL, "*");
     if (p == NULL) return PARSER_HASH_LENGTH;
 
-    hex_to_binary(p, strlen(p), (char *) &(pkzip->hashes[i].data));
+    hex_to_binary (p, strlen (p), (char *) &(pkzip->hashes[i].data));
 
     // fake salt
     u32 *ptr = (u32 *) pkzip->hashes[i].data;

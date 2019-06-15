@@ -98,7 +98,7 @@ Related publication: https://scitepress.org/PublicationsDetail.aspx?ID=KLPzPqStp
 #define MSB(x)       ((x) >> 24)
 #define CONST        0x08088405
 
-#define MAX_DATA (16 * 1024 * 1024)
+#define MAX_DATA (320 * 1024)
 
 #define update_key012(k0,k1,k2,c,t)           \
 {                                             \
@@ -130,7 +130,7 @@ struct pkzip_hash
   u32 data_length;
   u16 checksum_from_crc;
   u16 checksum_from_timestamp;
-  u32 data[MAX_DATA];
+  u32 data[MAX_DATA / 4]; // a quarter because of the u32 type
 
 } __attribute__((packed));
 
@@ -239,7 +239,7 @@ KERNEL_FQ void m17210_sxx (KERN_ATTR_ESALT (pkzip_t))
     l_crc32tab[i] = crc32tab[i];
   }
 
-  SYNC_THREADS();
+  SYNC_THREADS ();
 
   LOCAL_VK u32 l_data[MAX_LOCAL];
 
@@ -248,7 +248,7 @@ KERNEL_FQ void m17210_sxx (KERN_ATTR_ESALT (pkzip_t))
     l_data[i] = esalt_bufs[digests_offset].hash.data[i];
   }
 
-  SYNC_THREADS();
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -480,7 +480,7 @@ KERNEL_FQ void m17210_mxx (KERN_ATTR_ESALT (pkzip_t))
     l_crc32tab[i] = crc32tab[i];
   }
 
-  SYNC_THREADS();
+  SYNC_THREADS ();
 
   LOCAL_VK u32 l_data[MAX_LOCAL];
 
@@ -489,7 +489,7 @@ KERNEL_FQ void m17210_mxx (KERN_ATTR_ESALT (pkzip_t))
     l_data[i] = esalt_bufs[digests_offset].hash.data[i];
   }
 
-  SYNC_THREADS();
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
