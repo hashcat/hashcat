@@ -72,6 +72,7 @@
 - Startup Screen: Provide an estimate of host memory requirements for the requested attack
 - Tuning Database: Updated hashcat.hctune with new models and refreshed vector width values
 - WPA/WPA2 cracking: In the potfile, replace password with PMK in order to detect already cracked networks across all WPA modes
+- WipZip cracking: Added two byte early reject, resulting in higher cracking speed
 
 ##
 ## Technical

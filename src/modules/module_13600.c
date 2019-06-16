@@ -19,8 +19,7 @@ static const u32   DGST_SIZE      = DGST_SIZE_4_4;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_ARCHIVE;
 static const char *HASH_NAME      = "WinZip";
 static const u64   KERN_TYPE      = 13600;
-static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
-                                  | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
+static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
@@ -83,6 +82,20 @@ u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED c
   const u64 tmp_size = (const u64) sizeof (pbkdf2_sha1_tmp_t);
 
   return tmp_size;
+}
+
+u32 module_kernel_loops_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 kernel_loops_min = ROUNDS_ZIP2 - 1;
+
+  return kernel_loops_min;
+}
+
+u32 module_kernel_loops_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 kernel_loops_max = ROUNDS_ZIP2 - 1;
+
+  return kernel_loops_max;
 }
 
 u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -432,8 +445,8 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_jit_cache_disable        = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_max         = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_min         = MODULE_DEFAULT;
-  module_ctx->module_kernel_loops_max         = MODULE_DEFAULT;
-  module_ctx->module_kernel_loops_min         = MODULE_DEFAULT;
+  module_ctx->module_kernel_loops_max         = module_kernel_loops_max;
+  module_ctx->module_kernel_loops_min         = module_kernel_loops_min;
   module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
   module_ctx->module_kern_type                = module_kern_type;
