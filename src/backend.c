@@ -1297,15 +1297,15 @@ int hc_cuModuleLoadDataEx (hashcat_ctx_t *hashcat_ctx, CUmodule *module, const v
   return 0;
 }
 
-int hc_cuModuleLoadDataExLog (hashcat_ctx_t *hashcat_ctx, CUmodule *module, const void *image, const u64 threads_per_block)
+int hc_cuModuleLoadDataExLog (hashcat_ctx_t *hashcat_ctx, CUmodule *module, const void *image)
 {
   #define LOG_SIZE 8192
 
   char *info_log  = hcmalloc (LOG_SIZE);
   char *error_log = hcmalloc (LOG_SIZE);
 
-  CUjit_option opts[7];
-  void *vals[7];
+  CUjit_option opts[6];
+  void *vals[6];
 
   opts[0] = CU_JIT_TARGET_FROM_CUCONTEXT;
   vals[0] = (void *) 0;
@@ -1325,17 +1325,7 @@ int hc_cuModuleLoadDataExLog (hashcat_ctx_t *hashcat_ctx, CUmodule *module, cons
   opts[5] = CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES;
   vals[5] = (void *) LOG_SIZE;
 
-  int opts_cnt = 6;
-
-  if ((threads_per_block > 0) && (threads_per_block < 1024))
-  {
-    opts[6] = CU_JIT_THREADS_PER_BLOCK;
-    vals[6] = (void *) threads_per_block;
-
-    opts_cnt++;
-  }
-
-  const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataEx (hashcat_ctx, module, image, opts_cnt, opts, vals);
+  const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataEx (hashcat_ctx, module, image, 6, opts, vals);
 
   #if defined (DEBUG)
   printf ("cuModuleLoadDataEx() Info Log (%d):\n%s\n\n",  (int) strlen (info_log),  info_log);
@@ -7778,7 +7768,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (rc_nvrtcDestroyProgram == -1) return -1;
 
-          const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataExLog (hashcat_ctx, &device_param->cuda_module, binary, device_param->kernel_threads_max);
+          const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataExLog (hashcat_ctx, &device_param->cuda_module, binary);
 
           if (rc_cuModuleLoadDataEx == -1) return -1;
 
@@ -7864,7 +7854,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (device_param->is_cuda == true)
         {
-          const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataExLog (hashcat_ctx, &device_param->cuda_module, kernel_sources[0], device_param->kernel_threads_max);
+          const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataExLog (hashcat_ctx, &device_param->cuda_module, kernel_sources[0]);
 
           if (rc_cuModuleLoadDataEx == -1) return -1;
         }
@@ -8032,7 +8022,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
             // tbd: check for some useful options
 
-            const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataExLog (hashcat_ctx, &device_param->cuda_module_mp, binary, 0);
+            const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataExLog (hashcat_ctx, &device_param->cuda_module_mp, binary);
 
             if (rc_cuModuleLoadDataEx == -1) return -1;
 
@@ -8116,7 +8106,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (device_param->is_cuda == true)
           {
-            const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataExLog (hashcat_ctx, &device_param->cuda_module_mp, kernel_sources[0], 0);
+            const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataExLog (hashcat_ctx, &device_param->cuda_module_mp, kernel_sources[0]);
 
             if (rc_cuModuleLoadDataEx == -1) return -1;
           }
@@ -8287,7 +8277,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
             // tbd: check for some useful options
 
-            const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataExLog (hashcat_ctx, &device_param->cuda_module_amp, binary, 0);
+            const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataExLog (hashcat_ctx, &device_param->cuda_module_amp, binary);
 
             if (rc_cuModuleLoadDataEx == -1) return -1;
 
@@ -8371,7 +8361,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (device_param->is_cuda == true)
           {
-            const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataExLog (hashcat_ctx, &device_param->cuda_module_amp, kernel_sources[0], 0);
+            const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataExLog (hashcat_ctx, &device_param->cuda_module_amp, kernel_sources[0]);
 
             if (rc_cuModuleLoadDataEx == -1) return -1;
           }

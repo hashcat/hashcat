@@ -357,7 +357,7 @@ CONSTANT_VK u32a c_pbox[18] =
   L ^= P[17];           \
 }
 
-KERNEL_FQ void __attribute__((reqd_work_group_size(FIXED_LOCAL_SIZE, 1, 1))) m09000_init (KERN_ATTR_TMPS (pwsafe2_tmp_t))
+KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m09000_init (KERN_ATTR_TMPS (pwsafe2_tmp_t))
 {
   /**
    * base
@@ -576,7 +576,7 @@ KERNEL_FQ void __attribute__((reqd_work_group_size(FIXED_LOCAL_SIZE, 1, 1))) m09
   }
 }
 
-KERNEL_FQ void __attribute__((reqd_work_group_size(FIXED_LOCAL_SIZE, 1, 1))) m09000_loop (KERN_ATTR_TMPS (pwsafe2_tmp_t))
+KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m09000_loop (KERN_ATTR_TMPS (pwsafe2_tmp_t))
 {
   /**
    * base

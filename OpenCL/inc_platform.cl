@@ -8,6 +8,7 @@
 #include "inc_platform.h"
 
 #ifdef IS_NATIVE
+#define FIXED_THREAD_COUNT(n)
 #define SYNC_THREADS()
 #endif
 
@@ -107,9 +108,11 @@ DECLSPEC u64 rotr64_S (const u64 a, const int n)
   return ((a >> n) | ((a << (64 - n))));
 }
 
+#define FIXED_THREAD_COUNT(n) __launch_bounds__((n), 0)
 #define SYNC_THREADS() __syncthreads ()
 #endif
 
 #ifdef IS_OPENCL
+#define FIXED_THREAD_COUNT(n) __attribute__((reqd_work_group_size((n), 1, 1)))
 #define SYNC_THREADS() barrier (CLK_LOCAL_MEM_FENCE)
 #endif

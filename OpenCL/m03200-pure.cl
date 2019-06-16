@@ -376,7 +376,7 @@ DECLSPEC void expand_key (u32 *E, u32 *W, const int len)
   }
 }
 
-KERNEL_FQ void __attribute__((reqd_work_group_size(FIXED_LOCAL_SIZE, 1, 1))) m03200_init (KERN_ATTR_TMPS (bcrypt_tmp_t))
+KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m03200_init (KERN_ATTR_TMPS (bcrypt_tmp_t))
 {
   /**
    * base
@@ -587,7 +587,7 @@ KERNEL_FQ void __attribute__((reqd_work_group_size(FIXED_LOCAL_SIZE, 1, 1))) m03
   }
 }
 
-KERNEL_FQ void __attribute__((reqd_work_group_size(FIXED_LOCAL_SIZE, 1, 1))) m03200_loop (KERN_ATTR_TMPS (bcrypt_tmp_t))
+KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m03200_loop (KERN_ATTR_TMPS (bcrypt_tmp_t))
 {
   /**
    * base
@@ -779,7 +779,7 @@ KERNEL_FQ void __attribute__((reqd_work_group_size(FIXED_LOCAL_SIZE, 1, 1))) m03
   }
 }
 
-KERNEL_FQ void __attribute__((reqd_work_group_size(FIXED_LOCAL_SIZE, 1, 1))) m03200_comp (KERN_ATTR_TMPS (bcrypt_tmp_t))
+KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m03200_comp (KERN_ATTR_TMPS (bcrypt_tmp_t))
 {
   /**
    * base
