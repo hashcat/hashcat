@@ -7,6 +7,7 @@
 #include "types.h"
 #include "convert.h"
 #include "shared.h"
+#include "memory.h"
 
 #if defined (__CYGWIN__)
 #include <sys/cygwin.h>
@@ -467,7 +468,7 @@ bool hc_string_is_digit (const char *s)
   return true;
 }
 
-void setup_environment_variables ()
+void setup_environment_variables (const folder_config_t *folder_config)
 {
   char *compute = getenv ("COMPUTE");
 
@@ -497,6 +498,17 @@ void setup_environment_variables ()
   if (getenv ("POCL_KERNEL_CACHE") == NULL)
     putenv ((char *) "POCL_KERNEL_CACHE=0");
   */
+
+  if (getenv ("TMPDIR") == NULL)
+  {
+    char *tmpdir = NULL;
+
+    hc_asprintf (&tmpdir, "TMPDIR=%s", folder_config->profile_dir);
+
+    putenv (tmpdir);
+
+    // we can't free tmpdir at this point!
+  }
 
   if (getenv ("CL_CONFIG_USE_VECTORIZER") == NULL)
     putenv ((char *) "CL_CONFIG_USE_VECTORIZER=False");
