@@ -1833,6 +1833,28 @@ char *status_get_brain_link_recv_bytes_dev (const hashcat_ctx_t *hashcat_ctx, co
   return display;
 }
 
+char *status_get_brain_rx_all (const hashcat_ctx_t *hashcat_ctx)
+{
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+  double brain_rx_all = 0;
+
+  for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+  {
+    hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+    if ((device_param->skipped == false) && (device_param->skipped_warning == false))
+    {
+      brain_rx_all += device_param->brain_link_recv_bytes;
+    }
+  }
+
+  char *display = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+  format_speed_display_1k (brain_rx_all, display, HCBUFSIZ_TINY);
+
+  return display;
+
+}
+
 char *status_get_brain_link_send_bytes_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx)
 {
   const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
@@ -1851,6 +1873,28 @@ char *status_get_brain_link_send_bytes_dev (const hashcat_ctx_t *hashcat_ctx, co
   format_speed_display_1k (brain_link_send_bytes, display, HCBUFSIZ_TINY);
 
   return display;
+}
+
+char *status_get_brain_tx_all (const hashcat_ctx_t *hashcat_ctx)
+{
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+  double brain_tx_all = 0;
+
+  for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+  {
+    hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+    if ((device_param->skipped == false) && (device_param->skipped_warning == false))
+    {
+      brain_tx_all += device_param->brain_link_send_bytes;
+    }
+  }
+
+  char *display = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+  format_speed_display_1k (brain_tx_all, display, HCBUFSIZ_TINY);
+
+  return display;
+
 }
 
 char *status_get_brain_link_recv_bytes_sec_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx)
