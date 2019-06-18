@@ -34,6 +34,15 @@ Jean-Christophe "Fist0urs" Delaunay <jean-christophe.delaunay@synacktiv.com> (@F
 * KeePass kernel module
 * DPAPImk v1 and v2 kernel module
 
+Jeremi "epixoip" Gosney <jgosney@terahash.com> (@jmgosney)
+
+* Oracle Transportation Manager SHA256 kernel module
+* Continuous work pushing hashcat to run on large clusters
+* Conducting Hashcat trainings
+* Moderating the hashcat forum
+* Helping tons of new users find their way into the hashcat universe
+
+
 Other contributors to hashcat
 
 * A full list and their commits can be found here:
@@ -52,12 +61,6 @@ Martin "purehate" Bos <purehate@derbycon.com> (@cantcomputer)
 
 * For the first person presenting hashcat in his talks and tutorials to a larger audience
 * For pushing hashcat to Kali
-
-Jeremi "epixoip" Gosney <jgosney@sagittahpc.com (@jmgosney)
-
-* For his continuous work pushing hashcat to run on large clusters
-* For moderating the hashcat forum
-* For helping tons of new users find their way into the hashcat universe
 
 Per Thorsheim <per@thorsheim.net> (@thorsheim)
 
