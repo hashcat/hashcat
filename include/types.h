@@ -2105,6 +2105,8 @@ typedef struct hashcat_status
   #ifdef WITH_BRAIN
   int         brain_session;
   int         brain_attack;
+  char       *brain_rx_all;
+  char       *brain_tx_all;
   #endif
   const char *status_string;
   int         status_number;
