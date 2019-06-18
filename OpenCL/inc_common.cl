@@ -898,6 +898,7 @@ DECLSPEC u32 hc_byte_perm_S (const u32 a, const u32 b, const int c)
 #if HAS_VADD3
 DECLSPEC u32x hc_add3 (const u32x a, const u32x b, const u32x c)
 {
+  /*
   u32x r = 0;
 
   #if VECT_SIZE == 1
@@ -947,15 +948,22 @@ DECLSPEC u32x hc_add3 (const u32x a, const u32x b, const u32x c)
   #endif
 
   return r;
+  */
+
+  return a + b + c;
 }
 
 DECLSPEC u32 hc_add3_S (const u32 a, const u32 b, const u32 c)
 {
+  /*
   u32 r = 0;
 
   __asm__ __volatile__ ("V_ADD3_U32 %0, %1, %2, %3;" : "=v"(r) : "v"(b), "v"(a), "v"(c));
 
   return r;
+  */
+
+  return a + b + c;
 }
 #else
 DECLSPEC u32x hc_add3 (const u32x a, const u32x b, const u32x c)
