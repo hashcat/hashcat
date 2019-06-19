@@ -6949,123 +6949,30 @@ static int get_opencl_kernel_local_mem_size (hashcat_ctx_t *hashcat_ctx, hc_devi
 
 static u32 get_kernel_threads (const hc_device_param_t *device_param)
 {
-  // a module can force a fixed value
+  // this is an upper limit, a good start, since our strategy is to reduce thread counts only.
 
   u32 kernel_threads_min = device_param->kernel_threads_min;
   u32 kernel_threads_max = device_param->kernel_threads_max;
+
+  // the changes we do here are just optimizations, since the module always has priority.
+
+  const u32 device_maxworkgroup_size = (const u32) device_param->device_maxworkgroup_size;
+
+  kernel_threads_max = MIN (kernel_threads_max, device_maxworkgroup_size);
 
   // for CPU we just do 1 ...
 
   if (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU)
   {
-    if ((1 >= kernel_threads_min) && (1 <= kernel_threads_max))
-    {
-      kernel_threads_min = 1;
-      kernel_threads_max = 1;
-    }
+    const u32 cpu_prefered_thread_count = 1;
+
+    kernel_threads_max = MIN (kernel_threads_max, cpu_prefered_thread_count);
   }
 
-  // this is an upper limit, a good start, since our strategy is to reduce thread counts only
+  // this is intenionally! at this point, kernel_threads_min can be higher than kernel_threads_max.
+  // in this case we actually want kernel_threads_min selected.
 
-  const u32 device_maxworkgroup_size = (u32) device_param->device_maxworkgroup_size;
-
-  if (device_maxworkgroup_size < kernel_threads_max)
-  {
-    kernel_threads_max = device_maxworkgroup_size;
-  }
-
-  u32 kernel_threads = kernel_threads_max;
-
-  // complicated kernel tend to confuse OpenCL runtime suggestions for maximum thread size
-  // let's workaround that by sticking to their device specific preferred thread size
-  // this section was replaced by autotune
-
-  /*
-  if (hashconfig->opts_type & OPTS_TYPE_PREFERED_THREAD)
-  {
-    if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
-    {
-      if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
-      {
-        if (device_param->kernel_preferred_wgs_multiple1)
-        {
-          const u32 kernel_preferred_wgs_multiple1 = device_param->kernel_preferred_wgs_multiple1;
-
-          if ((kernel_preferred_wgs_multiple1 >= kernel_threads_min) && (kernel_preferred_wgs_multiple1 <= kernel_threads_max))
-          {
-            kernel_threads = kernel_preferred_wgs_multiple1;
-          }
-        }
-      }
-      else
-      {
-        if (device_param->kernel_preferred_wgs_multiple4)
-        {
-          const u32 kernel_preferred_wgs_multiple4 = device_param->kernel_preferred_wgs_multiple4;
-
-          if ((kernel_preferred_wgs_multiple4 >= kernel_threads_min) && (kernel_preferred_wgs_multiple4 <= kernel_threads_max))
-          {
-            kernel_threads = kernel_preferred_wgs_multiple4;
-          }
-        }
-      }
-    }
-    else
-    {
-      if (device_param->kernel_preferred_wgs_multiple2)
-      {
-        const u32 kernel_preferred_wgs_multiple2 = device_param->kernel_preferred_wgs_multiple2;
-
-        if ((kernel_preferred_wgs_multiple2 >= kernel_threads_min) && (kernel_preferred_wgs_multiple2 <= kernel_threads_max))
-        {
-          kernel_threads = kernel_preferred_wgs_multiple2;
-        }
-      }
-    }
-  }
-  else
-  {
-    if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
-    {
-      if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
-      {
-        if (device_param->kernel_preferred_wgs_multiple1)
-        {
-          const u32 kernel_preferred_wgs_multiple1 = device_param->kernel_preferred_wgs_multiple1;
-
-          if ((kernel_preferred_wgs_multiple1 >= kernel_threads_min) && (kernel_preferred_wgs_multiple1 <= kernel_threads_max))
-          {
-            kernel_threads = kernel_preferred_wgs_multiple1;
-          }
-        }
-      }
-      else
-      {
-        if (device_param->kernel_preferred_wgs_multiple4)
-        {
-          const u32 kernel_preferred_wgs_multiple4 = device_param->kernel_preferred_wgs_multiple4;
-
-          if ((kernel_preferred_wgs_multiple4 >= kernel_threads_min) && (kernel_preferred_wgs_multiple4 <= kernel_threads_max))
-          {
-            kernel_threads = kernel_preferred_wgs_multiple4;
-          }
-        }
-      }
-    }
-    else
-    {
-      if (device_param->kernel_preferred_wgs_multiple2)
-      {
-        const u32 kernel_preferred_wgs_multiple2 = device_param->kernel_preferred_wgs_multiple2;
-
-        if ((kernel_preferred_wgs_multiple2 >= kernel_threads_min) && (kernel_preferred_wgs_multiple2 <= kernel_threads_max))
-        {
-          kernel_threads = kernel_preferred_wgs_multiple2;
-        }
-      }
-    }
-  }
-  */
+  const u32 kernel_threads = MAX (kernel_threads_min, kernel_threads_max);
 
   return kernel_threads;
 }
