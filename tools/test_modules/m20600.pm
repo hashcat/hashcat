@@ -11,7 +11,7 @@ use warnings;
 use Digest::SHA qw (sha256);
 use MIME::Base64;
 
-sub module_constraints { [[0, 256], [0, 256], [0, 55], [0, 55], [0, 55]] }
+sub module_constraints { [[0, 256], [0, 16], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub module_generate_hash
 {
