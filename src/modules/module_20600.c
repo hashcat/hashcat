@@ -133,22 +133,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  const u32 *digest = (const u32 *) digest_buf;
-
-  u32 tmp[8];
-
-  tmp[0] = byte_swap_32 (digest[0]);
-  tmp[1] = byte_swap_32 (digest[1]);
-  tmp[2] = byte_swap_32 (digest[2]);
-  tmp[3] = byte_swap_32 (digest[3]);
-  tmp[4] = byte_swap_32 (digest[4]);
-  tmp[5] = byte_swap_32 (digest[5]);
-  tmp[6] = byte_swap_32 (digest[6]);
-  tmp[7] = byte_swap_32 (digest[7]);
-
   u8 ptr_plain[100] = { 0 };
   
-  base64_encode (int_to_base64, (const u8 *) tmp, 32, (u8 *) ptr_plain);
+  base64_encode (int_to_base64, (const u8 *) digest_buf, 32, (u8 *) ptr_plain);
   
   const int out_len = snprintf (line_buf, line_size, "otm_sha256:%d:%s:%s", salt->salt_iter + 1, (char *) salt->salt_buf, (char *) ptr_plain);
 
