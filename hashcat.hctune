@@ -366,8 +366,8 @@ GeForce_GTX_TITAN                               3       9900    2       A       
 ## SCRYPT #
 ###########
 
-DEVICE_TYPE_CPU                                 *       8900    1       1       1
-DEVICE_TYPE_CPU                                 *       9300    1       1       1
+DEVICE_TYPE_CPU                                 *       8900    1       16      1
+DEVICE_TYPE_CPU                                 *       9300    1       16      1
 DEVICE_TYPE_CPU                                 *       15700   1       1       1
 
 DEVICE_TYPE_GPU                                 *       8900    1       16      1
