@@ -353,6 +353,8 @@ DECLSPEC u64x hc_rotl64 (const u64x a, const int n)
   return rotl64 (a, n);
   #elif defined IS_CUDA
   return rotl64 (a, n);
+  #elif defined IS_AMD
+  return rotl64 (a, n);
   #else
   return rotate (a, make_u64x (n));
   #endif
@@ -363,6 +365,8 @@ DECLSPEC u64x hc_rotr64 (const u64x a, const int n)
   #if   defined _CPU_OPENCL_EMU_H
   return rotr64 (a, n);
   #elif defined IS_CUDA
+  return rotr64 (a, n);
+  #elif defined IS_AMD
   return rotr64 (a, n);
   #else
   return rotate (a, make_u64x (64 - n));
@@ -375,6 +379,8 @@ DECLSPEC u64 hc_rotl64_S (const u64 a, const int n)
   return rotl64 (a, n);
   #elif defined IS_CUDA
   return rotl64_S (a, n);
+  #elif defined IS_AMD
+  return rotl64_S (a, n);
   #else
   return rotate (a, (u64) (n));
   #endif
@@ -385,6 +391,8 @@ DECLSPEC u64 hc_rotr64_S (const u64 a, const int n)
   #if   defined _CPU_OPENCL_EMU_H
   return rotr64 (a, n);
   #elif defined IS_CUDA
+  return rotr64_S (a, n);
+  #elif defined IS_AMD
   return rotr64_S (a, n);
   #else
   return rotate (a, (u64) (64 - n));

@@ -12,6 +12,54 @@
 #define SYNC_THREADS()
 #endif
 
+#ifdef IS_AMD
+
+DECLSPEC u64x rotl64 (const u64x a, const int n)
+{
+  return rotr64 (a, 64 - n);
+}
+
+DECLSPEC u64x rotr64 (const u64x a, const int n)
+{
+  #if VECT_SIZE == 1
+  return rotr64_S (a, n);
+  #else
+  return ((a >> n) | ((a << (64 - n))));
+  #endif
+}
+
+DECLSPEC u64 rotl64_S (const u64 a, const int n)
+{
+  return rotr64_S (a, 64 - n);
+}
+
+DECLSPEC u64 rotr64_S (const u64 a, const int n)
+{
+  vconv64_t in;
+
+  in.v64 = a;
+
+  const u32 a0 = in.v32.a;
+  const u32 a1 = in.v32.b;
+
+  vconv64_t out;
+
+  if (n < 32)
+  {
+    out.v32.a = amd_bitalign (a1, a0, n);
+    out.v32.b = amd_bitalign (a0, a1, n);
+  }
+  else
+  {
+    out.v32.a = amd_bitalign (a0, a1, n - 32);
+    out.v32.b = amd_bitalign (a1, a0, n - 32);
+  }
+
+  return out.v64;
+}
+
+#endif
+
 #ifdef IS_CUDA
 
 #if ATTACK_EXEC == 11

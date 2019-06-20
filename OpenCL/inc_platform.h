@@ -6,6 +6,13 @@
 #ifndef _INC_PLATFORM_H
 #define _INC_PLATFORM_H
 
+#ifdef IS_AMD
+DECLSPEC u64x rotl64   (const u64x a, const int n);
+DECLSPEC u64x rotr64   (const u64x a, const int n);
+DECLSPEC u64  rotl64_S (const u64  a, const int n);
+DECLSPEC u64  rotr64_S (const u64  a, const int n);
+#endif
+
 #ifdef IS_CUDA
 DECLSPEC u32    atomic_dec      (u32 *p);
 DECLSPEC u32    atomic_inc      (u32 *p);
