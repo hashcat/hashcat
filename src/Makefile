@@ -69,6 +69,7 @@ CC                      := clang
 SED                     := /usr/bin/sed
 SED_IN_PLACE            := -i ""
 PROD_VERS               := $(shell sw_vers -productVersion | cut -d. -f2)
+AR                      := /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ar
 endif
 
 ifeq ($(UNAME),FreeBSD)
