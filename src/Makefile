@@ -66,6 +66,7 @@ SED_IN_PLACE            := -i
 ifeq ($(UNAME),Darwin)
 CC                      := clang
 # the sed -i option of macOS requires a parameter for the backup file (we just use "")
+AR                      := /usr/bin/ar
 SED                     := /usr/bin/sed
 SED_IN_PLACE            := -i ""
 PROD_VERS               := $(shell sw_vers -productVersion | cut -d. -f2)
