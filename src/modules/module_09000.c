@@ -156,17 +156,21 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (line_len == 0) return (PARSER_HASH_LENGTH);
 
-  FILE *fp = fopen ((const char *) line_buf, "rb");
+//  FILE *fp = fopen ((const char *) line_buf, "rb");
+  fp_tmp_t fp_t;
 
-  if (fp == NULL) return (PARSER_HASH_FILE);
+//  if (fp == NULL) return (PARSER_HASH_FILE);
+  if (hc_fopen (&fp_t, (const char *) line_buf, "rb") == false) return (PARSER_HASH_FILE);
 
   psafe2_hdr buf;
 
   memset (&buf, 0, sizeof (psafe2_hdr));
 
-  const size_t n = hc_fread (&buf, sizeof (psafe2_hdr), 1, fp);
+//  const size_t n = hc_fread (&buf, sizeof (psafe2_hdr), 1, fp);
+  const size_t n = hc_fread (&buf, sizeof (psafe2_hdr), 1, &fp_t);
 
-  fclose (fp);
+//  fclose (fp);
+  hc_fclose (&fp_t);
 
   if (n != 1) return (PARSER_PSAFE2_FILE_SIZE);
 

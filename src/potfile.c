@@ -527,9 +527,15 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
   char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
+  // workaround for new fgetl
+  fp_tmp_t fp_t;
+  fp_t.is_gzip = 0;
+  fp_t.f.fp = potfile_ctx->fp;
+
   while (!feof (potfile_ctx->fp))
   {
-    size_t line_len = fgetl (potfile_ctx->fp, line_buf);
+//    size_t line_len = fgetl (potfile_ctx->fp, line_buf);
+    size_t line_len = fgetl (&fp_t, line_buf);
 
     if (line_len == 0) continue;
 

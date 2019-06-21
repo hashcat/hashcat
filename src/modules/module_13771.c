@@ -176,17 +176,21 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 {
   // note: if module_hash_binary_parse exists, then module_hash_decode is not called
 
-  FILE *fp = fopen (hashes->hashfile, "rb");
+//  FILE *fp = fopen (hashes->hashfile, "rb");
+  fp_tmp_t fp_t;
 
-  if (fp == NULL) return (PARSER_HASH_FILE);
+//  if (fp == NULL) return (PARSER_HASH_FILE);
+  if (hc_fopen (&fp_t, hashes->hashfile, "rb") == false) return (PARSER_HASH_FILE);
 
   #define VC_HEADER_SIZE 512
 
   char *in = (char *) hcmalloc (VC_HEADER_SIZE);
 
-  const size_t n = hc_fread (in, 1, VC_HEADER_SIZE, fp);
+//  const size_t n = hc_fread (in, 1, VC_HEADER_SIZE, fp);
+  const size_t n = hc_fread (in, 1, VC_HEADER_SIZE, &fp_t);
 
-  fclose (fp);
+//  fclose (fp);
+  hc_fclose (&fp_t);
 
   if (n != VC_HEADER_SIZE) return (PARSER_VC_FILE_SIZE);
 

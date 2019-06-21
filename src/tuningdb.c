@@ -68,9 +68,11 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 
   hc_asprintf (&tuning_db_file, "%s/%s", folder_config->shared_dir, TUNING_DB_FILE);
 
-  FILE *fp = fopen (tuning_db_file, "rb");
+//  FILE *fp = fopen (tuning_db_file, "rb");
+  fp_tmp_t fp_t;
 
-  if (fp == NULL)
+//  if (fp == NULL)
+  if (hc_fopen (&fp_t, tuning_db_file, "rb") == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", tuning_db_file, strerror (errno));
 
@@ -79,7 +81,8 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 
   hcfree (tuning_db_file);
 
-  const size_t num_lines = count_lines (fp);
+//  const size_t num_lines = count_lines (fp);
+  const size_t num_lines = count_lines (&fp_t);
 
   // a bit over-allocated
 
@@ -89,15 +92,18 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
   tuning_db->entry_buf = (tuning_db_entry_t *) hccalloc (num_lines + 1, sizeof (tuning_db_entry_t));
   tuning_db->entry_cnt = 0;
 
-  rewind (fp);
+//  rewind (fp);
+  hc_rewind (&fp_t);
 
   int line_num = 0;
 
   char *buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
-  while (!feof (fp))
+//  while (!feof (fp))
+  while (!hc_feof (&fp_t))
   {
-    char *line_buf = fgets (buf, HCBUFSIZ_LARGE - 1, fp);
+//    char *line_buf = fgets (buf, HCBUFSIZ_LARGE - 1, fp);
+    char *line_buf = hc_fgets (buf, HCBUFSIZ_LARGE - 1, &fp_t);
 
     if (line_buf == NULL) break;
 
@@ -270,7 +276,8 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 
   hcfree (buf);
 
-  fclose (fp);
+//  fclose (fp);
+  hc_fclose (&fp_t);
 
   // todo: print loaded 'cnt' message
 

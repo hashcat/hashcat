@@ -60,21 +60,26 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
         return -1;
       }
 
-      FILE *fp1 = NULL;
-      FILE *fp2 = NULL;
+//      FILE *fp1 = NULL;
+//      FILE *fp2 = NULL;
+      fp_tmp_t fp1_t;
+      fp_tmp_t fp2_t;
 
-      if ((fp1 = fopen (dictfile1, "rb")) == NULL)
+//      if ((fp1 = fopen (dictfile1, "rb")) == NULL)
+      if (hc_fopen (&fp1_t, dictfile1, "rb") == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", dictfile1, strerror (errno));
 
         return -1;
       }
 
-      if ((fp2 = fopen (dictfile2, "rb")) == NULL)
+//      if ((fp2 = fopen (dictfile2, "rb")) == NULL)
+      if (hc_fopen (&fp2_t, dictfile2, "rb") == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", dictfile2, strerror (errno));
 
-        fclose (fp1);
+//        fclose (fp1);
+        hc_fclose (&fp1_t);
 
         return -1;
       }
@@ -83,14 +88,17 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       u64 words1_cnt = 0;
 
-      const int rc1 = count_words (hashcat_ctx, fp1, dictfile1, &words1_cnt);
+//      const int rc1 = count_words (hashcat_ctx, fp1, dictfile1, &words1_cnt);
+      const int rc1 = count_words (hashcat_ctx, &fp1_t, dictfile1, &words1_cnt);
 
       if (rc1 == -1)
       {
         event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of wordlist: %s", dictfile1);
 
-        fclose (fp1);
-        fclose (fp2);
+//        fclose (fp1);
+//        fclose (fp2);
+        hc_fclose (&fp1_t);
+        hc_fclose (&fp2_t);
 
         return -1;
       }
@@ -99,8 +107,10 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "%s: empty file.", dictfile1);
 
-        fclose (fp1);
-        fclose (fp2);
+//        fclose (fp1);
+//        fclose (fp2);
+        hc_fclose (&fp1_t);
+        hc_fclose (&fp2_t);
 
         return -1;
       }
@@ -109,10 +119,13 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       u64 words2_cnt = 0;
 
-      const int rc2 = count_words (hashcat_ctx, fp2, dictfile2, &words2_cnt);
+//      const int rc2 = count_words (hashcat_ctx, fp2, dictfile2, &words2_cnt);
+      const int rc2 = count_words (hashcat_ctx, &fp2_t, dictfile2, &words2_cnt);
 
-      fclose (fp1);
-      fclose (fp2);
+//      fclose (fp1);
+//      fclose (fp2);
+      hc_fclose (&fp1_t);
+      hc_fclose (&fp2_t);
 
       if (rc2 == -1)
       {
@@ -163,21 +176,26 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
           return -1;
         }
 
-        FILE *fp1 = NULL;
-        FILE *fp2 = NULL;
+//        FILE *fp1 = NULL;
+//        FILE *fp2 = NULL;
+        fp_tmp_t fp1_t;
+        fp_tmp_t fp2_t;
 
-        if ((fp1 = fopen (dictfile1, "rb")) == NULL)
+//        if ((fp1 = fopen (dictfile1, "rb")) == NULL)
+        if (hc_fopen (&fp1_t, dictfile1, "rb") == false)
         {
           event_log_error (hashcat_ctx, "%s: %s", dictfile1, strerror (errno));
 
           return -1;
         }
 
-        if ((fp2 = fopen (dictfile2, "rb")) == NULL)
+//        if ((fp2 = fopen (dictfile2, "rb")) == NULL)
+        if (hc_fopen (&fp2_t, dictfile2, "rb") == false)
         {
           event_log_error (hashcat_ctx, "%s: %s", dictfile2, strerror (errno));
 
-          fclose (fp1);
+//          fclose (fp1);
+          hc_fclose (&fp1_t);
 
           return -1;
         }
@@ -186,14 +204,17 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         u64 words1_cnt = 0;
 
-        const int rc1 = count_words (hashcat_ctx, fp1, dictfile1, &words1_cnt);
+//        const int rc1 = count_words (hashcat_ctx, fp1, dictfile1, &words1_cnt);
+        const int rc1 = count_words (hashcat_ctx, &fp1_t, dictfile1, &words1_cnt);
 
         if (rc1 == -1)
         {
           event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of wordlist: %s", dictfile1);
 
-          fclose (fp1);
-          fclose (fp2);
+//          fclose (fp1);
+//          fclose (fp2);
+          hc_fclose (&fp1_t);
+          hc_fclose (&fp2_t);
 
           return -1;
         }
@@ -202,8 +223,10 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
         {
           event_log_error (hashcat_ctx, "%s: empty file.", dictfile1);
 
-          fclose (fp1);
-          fclose (fp2);
+//          fclose (fp1);
+//          fclose (fp2);
+          hc_fclose (&fp1_t);
+          hc_fclose (&fp2_t);
 
           return -1;
         }
@@ -212,10 +235,13 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         u64 words2_cnt = 0;
 
-        const int rc2 = count_words (hashcat_ctx, fp2, dictfile2, &words2_cnt);
+//        const int rc2 = count_words (hashcat_ctx, fp2, dictfile2, &words2_cnt);
+        const int rc2 = count_words (hashcat_ctx, &fp2_t, dictfile2, &words2_cnt);
 
-        fclose (fp1);
-        fclose (fp2);
+//        fclose (fp1);
+//        fclose (fp2);
+        hc_fclose (&fp1_t);
+        hc_fclose (&fp2_t);
 
         if (rc2 == -1)
         {
@@ -294,21 +320,26 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
           return -1;
         }
 
-        FILE *fp1 = NULL;
-        FILE *fp2 = NULL;
+//        FILE *fp1 = NULL;
+//        FILE *fp2 = NULL;
+        fp_tmp_t fp1_t;
+        fp_tmp_t fp2_t;
 
-        if ((fp1 = fopen (dictfile1, "rb")) == NULL)
+//        if ((fp1 = fopen (dictfile1, "rb")) == NULL)
+        if (hc_fopen (&fp1_t, dictfile1, "rb") == false)
         {
           event_log_error (hashcat_ctx, "%s: %s", dictfile1, strerror (errno));
 
           return -1;
         }
 
-        if ((fp2 = fopen (dictfile2, "rb")) == NULL)
+//        if ((fp2 = fopen (dictfile2, "rb")) == NULL)
+        if (hc_fopen (&fp2_t, dictfile2, "rb") == false)
         {
           event_log_error (hashcat_ctx, "%s: %s", dictfile2, strerror (errno));
 
-          fclose (fp1);
+//          fclose (fp1);
+          hc_fclose (&fp1_t);
 
           return -1;
         }
@@ -317,14 +348,17 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         u64 words1_cnt = 0;
 
-        const int rc1 = count_words (hashcat_ctx, fp1, dictfile1, &words1_cnt);
+//        const int rc1 = count_words (hashcat_ctx, fp1, dictfile1, &words1_cnt);
+        const int rc1 = count_words (hashcat_ctx, &fp1_t, dictfile1, &words1_cnt);
 
         if (rc1 == -1)
         {
           event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of wordlist: %s", dictfile1);
 
-          fclose (fp1);
-          fclose (fp2);
+//          fclose (fp1);
+//          fclose (fp2);
+          hc_fclose (&fp1_t);
+          hc_fclose (&fp2_t);
 
           return -1;
         }
@@ -333,8 +367,10 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
         {
           event_log_error (hashcat_ctx, "%s: empty file.", dictfile1);
 
-          fclose (fp1);
-          fclose (fp2);
+//          fclose (fp1);
+//          fclose (fp2);
+          hc_fclose (&fp1_t);
+          hc_fclose (&fp2_t);
 
           return -1;
         }
@@ -343,10 +379,13 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         u64 words2_cnt = 0;
 
-        const int rc2 = count_words (hashcat_ctx, fp2, dictfile2, &words2_cnt);
+//        const int rc2 = count_words (hashcat_ctx, fp2, dictfile2, &words2_cnt);
+        const int rc2 = count_words (hashcat_ctx, &fp2_t, dictfile2, &words2_cnt);
 
-        fclose (fp1);
-        fclose (fp2);
+//        fclose (fp1);
+//        fclose (fp2);
+        hc_fclose (&fp1_t);
+        hc_fclose (&fp2_t);
 
         if (rc2 == -1)
         {
@@ -387,9 +426,11 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
           return -1;
         }
 
-        FILE *fp = NULL;
+//        FILE *fp = NULL;
+        fp_tmp_t fp_t;
 
-        if ((fp = fopen (dictfile, "rb")) == NULL)
+//        if ((fp = fopen (dictfile, "rb")) == NULL)
+        if (hc_fopen (&fp_t, dictfile, "rb") == false)
         {
           event_log_error (hashcat_ctx, "%s: %s", dictfile, strerror (errno));
 
@@ -400,18 +441,21 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         u64 words_cnt = 0;
 
-        const int rc = count_words (hashcat_ctx, fp, dictfile, &words_cnt);
+//        const int rc = count_words (hashcat_ctx, fp, dictfile, &words_cnt);
+        const int rc = count_words (hashcat_ctx, &fp_t, dictfile, &words_cnt);
+
+        hc_fclose (&fp_t);
 
         if (rc == -1)
         {
           event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of wordlist: %s", dictfile);
 
-          fclose (fp);
+//          fclose (fp);
 
           return -1;
         }
 
-        fclose (fp);
+//        fclose (fp);
 
         combinator_ctx->combs_cnt  = words_cnt;
         combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_LEFT;

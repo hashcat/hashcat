@@ -351,17 +351,21 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (line_len == 0) return (PARSER_HASH_LENGTH);
 
-  FILE *fp = fopen ((const char *) line_buf, "rb");
+//  FILE *fp = fopen ((const char *) line_buf, "rb");
+  fp_tmp_t fp_t;
 
-  if (fp == NULL) return (PARSER_HASH_FILE);
+//  if (fp == NULL) return (PARSER_HASH_FILE);
+  if (hc_fopen (&fp_t, (const char *) line_buf, "rb") == false) return (PARSER_HASH_FILE);
 
   struct luks_phdr hdr;
 
-  const size_t nread = hc_fread (&hdr, sizeof (hdr), 1, fp);
+//  const size_t nread = hc_fread (&hdr, sizeof (hdr), 1, fp);
+  const size_t nread = hc_fread (&hdr, sizeof (hdr), 1, &fp_t);
 
   if (nread != 1)
   {
-    fclose (fp);
+//    fclose (fp);
+    hc_fclose (&fp_t);
 
     return (PARSER_LUKS_FILE_SIZE);
   }
@@ -385,14 +389,16 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (memcmp (hdr.magic, luks_magic, LUKS_MAGIC_L) != 0)
   {
-    fclose (fp);
+//    fclose (fp);
+    hc_fclose (&fp_t);
 
     return (PARSER_LUKS_MAGIC);
   }
 
   if (byte_swap_16 (hdr.version) != 1)
   {
-    fclose (fp);
+//    fclose (fp);
+    hc_fclose (&fp_t);
 
     return (PARSER_LUKS_VERSION);
   }
@@ -411,7 +417,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   }
   else
   {
-    fclose (fp);
+//    fclose (fp);
+    hc_fclose (&fp_t);
 
     return (PARSER_LUKS_CIPHER_TYPE);
   }
@@ -438,7 +445,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   }
   else
   {
-    fclose (fp);
+//    fclose (fp);
+    hc_fclose (&fp_t);
 
     return (PARSER_LUKS_CIPHER_MODE);
   }
@@ -465,7 +473,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   }
   else
   {
-    fclose (fp);
+//    fclose (fp);
+    hc_fclose (&fp_t);
 
     return (PARSER_LUKS_HASH_TYPE);
   }
@@ -486,7 +495,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   }
   else
   {
-    fclose (fp);
+//    fclose (fp);
+    hc_fclose (&fp_t);
 
     return (PARSER_LUKS_KEY_SIZE);
   }
@@ -498,14 +508,16 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (active != LUKS_KEY_ENABLED)
   {
-    fclose (fp);
+//    fclose (fp);
+    hc_fclose (&fp_t);
 
     return (PARSER_LUKS_KEY_DISABLED);
   }
 
   if (stripes != LUKS_STRIPES)
   {
-    fclose (fp);
+//    fclose (fp);
+    hc_fclose (&fp_t);
 
     return (PARSER_LUKS_KEY_STRIPES);
   }
@@ -533,20 +545,24 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u32 keyMaterialOffset = byte_swap_32 (hdr.keyblock[keyslot_idx].keyMaterialOffset);
 
-  const int rc_seek1 = fseeko (fp, keyMaterialOffset * 512, SEEK_SET);
+//  const int rc_seek1 = fseeko (fp, keyMaterialOffset * 512, SEEK_SET);
+  const int rc_seek1 = hc_fseek (&fp_t, keyMaterialOffset * 512, SEEK_SET);
 
   if (rc_seek1 == -1)
   {
-    fclose (fp);
+//    fclose (fp);
+      hc_fclose (&fp_t);
 
     return (PARSER_LUKS_FILE_SIZE);
   }
 
-  const size_t nread2 = hc_fread (luks->af_src_buf, keyBytes, stripes, fp);
+//  const size_t nread2 = hc_fread (luks->af_src_buf, keyBytes, stripes, fp);
+  const size_t nread2 = hc_fread (luks->af_src_buf, keyBytes, stripes, &fp_t);
 
   if (nread2 != stripes)
   {
-    fclose (fp);
+//    fclose (fp);
+    hc_fclose (&fp_t);
 
     return (PARSER_LUKS_FILE_SIZE);
   }
@@ -555,27 +571,32 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u32 payloadOffset = byte_swap_32 (hdr.payloadOffset);
 
-  const int rc_seek2 = fseeko (fp, payloadOffset * 512, SEEK_SET);
+//  const int rc_seek2 = fseeko (fp, payloadOffset * 512, SEEK_SET);
+  const int rc_seek2 = hc_fseek (&fp_t, payloadOffset * 512, SEEK_SET);
 
   if (rc_seek2 == -1)
   {
-    fclose (fp);
+//    fclose (fp);
+    hc_fclose (&fp_t);
 
     return (PARSER_LUKS_FILE_SIZE);
   }
 
-  const size_t nread3 = hc_fread (luks->ct_buf, sizeof (u32), 128, fp);
+//  const size_t nread3 = hc_fread (luks->ct_buf, sizeof (u32), 128, fp);
+  const size_t nread3 = hc_fread (luks->ct_buf, sizeof (u32), 128, &fp_t);
 
   if (nread3 != 128)
   {
-    fclose (fp);
+//    fclose (fp);
+    hc_fclose (&fp_t);
 
     return (PARSER_LUKS_FILE_SIZE);
   }
 
   // that should be it, close the fp
 
-  fclose (fp);
+//  fclose (fp);
+  hc_fclose (&fp_t);
 
   return (PARSER_OK);
 }

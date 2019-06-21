@@ -48,7 +48,8 @@ static void debugfile_format_plain (hashcat_ctx_t *hashcat_ctx, const u8 *plain_
   }
   else
   {
-    hc_fwrite (plain_ptr, plain_len, 1, debugfile_ctx->fp);
+//    hc_fwrite (plain_ptr, plain_len, 1, debugfile_ctx->fp);
+    hc_fwrite_direct (plain_ptr, plain_len, 1, debugfile_ctx->fp);
   }
 }
 
@@ -67,7 +68,8 @@ void debugfile_write_append (hashcat_ctx_t *hashcat_ctx, const u8 *rule_buf, con
     if ((debug_mode == 3) || (debug_mode == 4)) fputc (':', debugfile_ctx->fp);
   }
 
-  hc_fwrite (rule_buf, rule_len, 1, debugfile_ctx->fp);
+//  hc_fwrite (rule_buf, rule_len, 1, debugfile_ctx->fp);
+  hc_fwrite_direct (rule_buf, rule_len, 1, debugfile_ctx->fp);
 
   if (debug_mode == 4)
   {
@@ -76,7 +78,8 @@ void debugfile_write_append (hashcat_ctx_t *hashcat_ctx, const u8 *rule_buf, con
     debugfile_format_plain (hashcat_ctx, mod_plain_ptr, mod_plain_len);
   }
 
-  hc_fwrite (EOL, strlen (EOL), 1, debugfile_ctx->fp);
+//  hc_fwrite (EOL, strlen (EOL), 1, debugfile_ctx->fp);
+  hc_fwrite_direct (EOL, strlen (EOL), 1, debugfile_ctx->fp);
 }
 
 int debugfile_init (hashcat_ctx_t *hashcat_ctx)

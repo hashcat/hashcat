@@ -14,6 +14,7 @@
 #include <fcntl.h>
 #include <ctype.h>
 #include <math.h>
+#include "zlib.h"
 
 #if defined (_WIN)
 #include <winsock2.h> // needed for select()
@@ -61,8 +62,23 @@ bool hc_string_is_digit (const char *s);
 void hc_string_trim_trailing (char *s);
 void hc_string_trim_leading (char *s);
 
-size_t hc_fread (void *ptr, size_t size, size_t nmemb, FILE *stream);
-size_t hc_fwrite (const void *ptr, size_t size, size_t nmemb, FILE *stream);
+//size_t hc_fread (void *ptr, size_t size, size_t nmemb, FILE *stream);
+//size_t hc_fwrite (const void *ptr, size_t size, size_t nmemb, FILE *stream);
+bool   hc_fopen(fp_tmp_t *fp_t, const char *path, char *mode);
+size_t hc_fread (void *ptr, size_t size, size_t nmemb, fp_tmp_t *fp_t);
+size_t hc_fread_direct (void *ptr, size_t size, size_t nmemb, FILE *stream);
+size_t hc_fwrite (void *ptr, size_t size, size_t nmemb, fp_tmp_t *fp_t);
+void   hc_fwrite_direct (const void *ptr, size_t size, size_t nmemb, FILE *stream);
+int    hc_fseek (fp_tmp_t *fp_t, off_t offset, int whence);
+void   hc_rewind (fp_tmp_t *fp_t);
+off_t  hc_ftell (fp_tmp_t *fp_t);
+int    hc_fgetc (fp_tmp_t *fp_t);
+int    hc_fputc (int c, fp_tmp_t *fp_t);
+char  *hc_fgets (char *buf, int len, fp_tmp_t *fp_t);
+int    hc_fileno (fp_tmp_t *fp_t);
+int    hc_feof (fp_tmp_t *fp_t);
+//void   hc_fflush (fp_tmp_t *fp_t);
+void   hc_fclose (fp_tmp_t *fp_t);
 
 bool hc_same_files (char *file1, char *file2);
 

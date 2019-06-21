@@ -183,9 +183,15 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
       // large portion of the following code is the same as in potfile_remove_parse
       // maybe subject of a future optimization
 
+      // workaround for new fgetl
+      fp_tmp_t fp_t;
+      fp_t.is_gzip = 0;
+      fp_t.f.fp = fp;
+
       while (!feof (fp))
       {
-        size_t line_len = fgetl (fp, line_buf);
+//        size_t line_len = fgetl (fp, line_buf);
+        size_t line_len = fgetl (&fp_t, line_buf);
 
         if (line_len == 0) continue;
 

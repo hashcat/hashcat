@@ -374,15 +374,19 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
   int hashes_cnt = 0;
 
-  FILE *fp = fopen (hashes->hashfile, "rb");
+//  FILE *fp = fopen (hashes->hashfile, "rb");
+  fp_tmp_t fp_t;
 
-  if (fp == NULL) return -1;
+//  if (fp == NULL) return -1;
+  if (hc_fopen (&fp_t, hashes->hashfile, "rb") == false) return (PARSER_HASH_FILE);
 
   char *in = (char *) hcmalloc (sizeof (hccapx_t));
 
-  while (!feof (fp))
+//  while (!feof (fp))
+  while (!hc_feof (&fp_t))
   {
-    const size_t nread = hc_fread (in, sizeof (hccapx_t), 1, fp);
+//    const size_t nread = hc_fread (in, sizeof (hccapx_t), 1, fp);
+    const size_t nread = hc_fread (in, sizeof (hccapx_t), 1, &fp_t);
 
     if (nread == 0) break;
 
@@ -458,7 +462,8 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
   hcfree (in);
 
-  fclose (fp);
+//  fclose (fp);
+  hc_fclose (&fp_t);
 
   return hashes_cnt;
 }
