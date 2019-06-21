@@ -234,7 +234,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     p = strtok (NULL, "*");
     if (p == NULL) return PARSER_HASH_LENGTH;
-    sscanf (p, "%x", & (pkzip->hash.crc32));
+    u32 crc32 = 0;
+    sscanf (p, "%x", &crc32);
+    pkzip->hash.crc32 = crc32;
 
     p = strtok (NULL, "*");
     if (p == NULL) return PARSER_HASH_LENGTH;
@@ -256,12 +258,17 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   p = strtok (NULL, "*");
   if (p == NULL) return PARSER_HASH_LENGTH;
-  sscanf (p, "%hx", &(pkzip->hash.checksum_from_crc));
+  u16 checksum_from_crc = 0;
+  sscanf (p, "%hx", &checksum_from_crc);
+  pkzip->hash.checksum_from_crc = checksum_from_crc;
+
   if (pkzip->version == 2)
   {
     p = strtok (NULL, "*");
     if (p == NULL) return PARSER_HASH_LENGTH;
-    sscanf (p, "%hx", &(pkzip->hash.checksum_from_timestamp));
+    u16 checksum_from_timestamp = 0;
+    sscanf (p, "%hx", &checksum_from_timestamp);
+    pkzip->hash.checksum_from_timestamp = checksum_from_timestamp;
   }
   else
   {
