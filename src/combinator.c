@@ -111,12 +111,12 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       const int rc2 = count_words (hashcat_ctx, fp2, dictfile2, &words2_cnt);
 
+      fclose (fp1);
+      fclose (fp2);
+
       if (rc2 == -1)
       {
         event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of wordlist: %s", dictfile2);
-
-        fclose (fp1);
-        fclose (fp2);
 
         return -1;
       }
@@ -125,14 +125,8 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "%s: empty file.", dictfile2);
 
-        fclose (fp1);
-        fclose (fp2);
-
         return -1;
       }
-
-      fclose (fp1);
-      fclose (fp2);
 
       combinator_ctx->dict1 = dictfile1;
       combinator_ctx->dict2 = dictfile2;
@@ -220,12 +214,12 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         const int rc2 = count_words (hashcat_ctx, fp2, dictfile2, &words2_cnt);
 
+        fclose (fp1);
+        fclose (fp2);
+
         if (rc2 == -1)
         {
           event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of wordlist: %s", dictfile2);
-
-          fclose (fp1);
-          fclose (fp2);
 
           return -1;
         }
@@ -234,14 +228,8 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
         {
           event_log_error (hashcat_ctx, "%s: empty file.", dictfile2);
 
-          fclose (fp1);
-          fclose (fp2);
-
           return -1;
         }
-
-        fclose (fp1);
-        fclose (fp2);
 
         combinator_ctx->dict1 = dictfile1;
         combinator_ctx->dict2 = dictfile2;
@@ -357,12 +345,12 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         const int rc2 = count_words (hashcat_ctx, fp2, dictfile2, &words2_cnt);
 
+        fclose (fp1);
+        fclose (fp2);
+
         if (rc2 == -1)
         {
           event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of wordlist: %s", dictfile2);
-
-          fclose (fp1);
-          fclose (fp2);
 
           return -1;
         }
@@ -371,14 +359,8 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
         {
           event_log_error (hashcat_ctx, "%s: empty file.", dictfile2);
 
-          fclose (fp1);
-          fclose (fp2);
-
           return -1;
         }
-
-        fclose (fp1);
-        fclose (fp2);
 
         combinator_ctx->dict1 = dictfile1;
         combinator_ctx->dict2 = dictfile2;
