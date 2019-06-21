@@ -1425,7 +1425,7 @@ DECLSPEC float hc_get_entropy (const u32 *buf, const int elems)
 {
   const int length = elems * 4;
 
-  float entropy = 0.0;
+  float entropy = 0.0f;
 
   #ifdef _unroll
   #pragma unroll
