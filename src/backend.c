@@ -6123,11 +6123,14 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         if (CL_rc == -1) return -1;
 
-        if (device_local_mem_size < 32768)
+        if (device_local_mem_type == CL_LOCAL)
         {
-          event_log_error (hashcat_ctx, "* Device #%u: This device's local mem size is too small.", device_id + 1);
+          if (device_local_mem_size < 32768)
+          {
+            event_log_error (hashcat_ctx, "* Device #%u: This device's local mem size is too small.", device_id + 1);
 
-          device_param->skipped = true;
+            device_param->skipped = true;
+          }
         }
 
         device_param->device_local_mem_size = device_local_mem_size;
