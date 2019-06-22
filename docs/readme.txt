@@ -227,6 +227,7 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (10.1 o
 - Lotus Notes/Domino 8
 - PeopleSoft
 - PeopleSoft PS_TOKEN
+- Oracle Transportation Management (SHA256)
 - 7-Zip
 - RAR3-hp
 - RAR5

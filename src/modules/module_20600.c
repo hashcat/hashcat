@@ -17,7 +17,7 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_8;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_EAS;
-static const char *HASH_NAME      = "Oracle Transportation Management SHA256";
+static const char *HASH_NAME      = "Oracle Transportation Management (SHA256)";
 static const u64   KERN_TYPE      = 20600;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
@@ -73,7 +73,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  // iter 
+  // iter
 
   token.sep[1]     = ':';
   token.len_min[1] = 1;
@@ -134,9 +134,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
   u8 ptr_plain[100] = { 0 };
-  
+
   base64_encode (int_to_base64, (const u8 *) digest_buf, 32, (u8 *) ptr_plain);
-  
+
   const int out_len = snprintf (line_buf, line_size, "otm_sha256:%d:%s:%s", salt->salt_iter + 1, (char *) salt->salt_buf, (char *) ptr_plain);
 
   return out_len;

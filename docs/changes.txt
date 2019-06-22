@@ -34,6 +34,7 @@
 - Added hash-mode: Python passlib pbkdf2-sha1
 - Added hash-mode: Python passlib pbkdf2-sha256
 - Added hash-mode: Python passlib pbkdf2-sha512
+- Added hash-mode: Oracle Transportation Management (SHA256)
 
 ##
 ## Bugs
