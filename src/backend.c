@@ -6087,6 +6087,16 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         hcfree (device_extensions);
 
+        // device_local_mem_type
+
+        cl_device_local_mem_type device_local_mem_type;
+
+        CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_LOCAL_MEM_TYPE, sizeof (device_local_mem_type), &device_local_mem_type, NULL);
+
+        if (CL_rc == -1) return -1;
+
+        device_param->device_local_mem_type = device_local_mem_type;
+
         // device_max_constant_buffer_size
 
         cl_ulong device_max_constant_buffer_size;
@@ -6095,11 +6105,14 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         if (CL_rc == -1) return -1;
 
-        if (device_max_constant_buffer_size < 65536)
+        if (device_local_mem_type == CL_LOCAL)
         {
-          event_log_error (hashcat_ctx, "* Device #%u: This device's constant buffer size is too small.", device_id + 1);
+          if (device_max_constant_buffer_size < 65536)
+          {
+            event_log_error (hashcat_ctx, "* Device #%u: This device's constant buffer size is too small.", device_id + 1);
 
-          device_param->skipped = true;
+            device_param->skipped = true;
+          }
         }
 
         // device_local_mem_size
@@ -6118,16 +6131,6 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         }
 
         device_param->device_local_mem_size = device_local_mem_size;
-
-        // device_local_mem_type
-
-        cl_device_local_mem_type device_local_mem_type;
-
-        CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_LOCAL_MEM_TYPE, sizeof (device_local_mem_type), &device_local_mem_type, NULL);
-
-        if (CL_rc == -1) return -1;
-
-        device_param->device_local_mem_type = device_local_mem_type;
 
         // If there's both an Intel CPU and an AMD OpenCL runtime it's a tricky situation
         // Both platforms support CPU device types and therefore both will try to use 100% of the physical resources
