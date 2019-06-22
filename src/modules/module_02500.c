@@ -378,7 +378,7 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
   fp_tmp_t fp_t;
 
 //  if (fp == NULL) return -1;
-  if (hc_fopen (&fp_t, hashes->hashfile, "rb") == false) return (PARSER_HASH_FILE);
+  if (hc_fopen (&fp_t, hashes->hashfile, "rb") == false) return -1;
 
   char *in = (char *) hcmalloc (sizeof (hccapx_t));
 
