@@ -678,25 +678,12 @@ size_t hc_fread_direct (void *ptr, size_t size, size_t nmemb, FILE *stream)
   return fread (ptr, size, nmemb, stream);
 }
 
-/*
-size_t hc_fread (void *ptr, size_t size, size_t nmemb, FILE *stream)
-{
-  return fread (ptr, size, nmemb, stream);
-}
-*/
-
 void hc_fwrite_direct (const void *ptr, size_t size, size_t nmemb, FILE *stream)
 {
   size_t rc = fwrite (ptr, size, nmemb, stream);
 
   if (rc == 0) rc = 0;
 }
-/*
-size_t hc_fwrite (const void *ptr, size_t size, size_t nmemb, FILE *stream)
-{
-  return fwrite (ptr, size, nmemb, stream);
-}
-*/
 
 int hc_fseek (fp_tmp_t *fp_t, off_t offset, int whence)
 {

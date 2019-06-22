@@ -62,8 +62,6 @@ bool hc_string_is_digit (const char *s);
 void hc_string_trim_trailing (char *s);
 void hc_string_trim_leading (char *s);
 
-//size_t hc_fread (void *ptr, size_t size, size_t nmemb, FILE *stream);
-//size_t hc_fwrite (const void *ptr, size_t size, size_t nmemb, FILE *stream);
 bool   hc_fopen(fp_tmp_t *fp_t, const char *path, char *mode);
 size_t hc_fread (void *ptr, size_t size, size_t nmemb, fp_tmp_t *fp_t);
 size_t hc_fread_direct (void *ptr, size_t size, size_t nmemb, FILE *stream);

@@ -221,7 +221,6 @@ static int write_restore (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-//  hc_fwrite (rd, sizeof (restore_data_t), 1, fp);
   hc_fwrite_direct (rd, sizeof (restore_data_t), 1, fp);
 
   for (u32 i = 0; i < rd->argc; i++)

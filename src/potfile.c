@@ -456,7 +456,6 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
       // to sort by salt and we also need to have the correct order of dgst_pos0...dgst_pos3:
       new_entry->hashconfig = (hashconfig_t *) hashconfig; // "const hashconfig_t" gives a warning
 
-
       // the following function searches if the "key" is already present and if not inserts the new entry:
 
       void **found = tsearch (new_entry, (void **) &all_hashes_tree, sort_pot_tree_by_hash);
@@ -534,7 +533,6 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
   while (!feof (potfile_ctx->fp))
   {
-//    size_t line_len = fgetl (potfile_ctx->fp, line_buf);
     size_t line_len = fgetl (&fp_t, line_buf);
 
     if (line_len == 0) continue;

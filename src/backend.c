@@ -457,7 +457,6 @@ static bool read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_f
 
     char *buf = (char *) hcmalloc (st.st_size + 1 + EXTRASZ);
 
-//    size_t num_read = hc_fread (buf, sizeof (char), st.st_size, fp);
     size_t num_read = hc_fread_direct (buf, sizeof (char), st.st_size, fp);
 
     fclose (fp);
@@ -522,7 +521,6 @@ static bool write_kernel_binary (hashcat_ctx_t *hashcat_ctx, char *kernel_file, 
       return false;
     }
 
-//    hc_fwrite (binary, sizeof (char), binary_size, fp);
     hc_fwrite_direct (binary, sizeof (char), binary_size, fp);
 
     fflush (fp);
@@ -4377,7 +4375,6 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
     device_param->kernel_params_buf32[31] = salt_buf->digests_cnt;
     device_param->kernel_params_buf32[32] = salt_buf->digests_offset;
 
-//    FILE *combs_fp = device_param->combs_fp;
     fp_tmp_t *combs_fp_t = device_param->combs_fp_t;
 
     if (user_options->slow_candidates == true)
@@ -4387,7 +4384,6 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
     {
       if ((user_options->attack_mode == ATTACK_MODE_COMBI) || (((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0) && (user_options->attack_mode == ATTACK_MODE_HYBRID2)))
       {
-//      rewind (combs_fp);
         hc_rewind (combs_fp_t);
       }
     }
@@ -4482,10 +4478,8 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
               while (i < innerloop_left)
               {
-//                if (feof (combs_fp)) break;
                 if (hc_feof (combs_fp_t)) break;
 
-//                size_t line_len = fgetl (combs_fp, line_buf);
                 size_t line_len = fgetl (combs_fp_t, line_buf);
 
                 line_len = convert_from_hex (hashcat_ctx, line_buf, line_len);
@@ -4649,10 +4643,8 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
               while (i < innerloop_left)
               {
-//                if (feof (combs_fp)) break;
                 if (hc_feof (combs_fp_t)) break;
 
-//                size_t line_len = fgetl (combs_fp, line_buf);
                 size_t line_len = fgetl (combs_fp_t, line_buf);
 
                 line_len = convert_from_hex (hashcat_ctx, line_buf, line_len);

@@ -334,7 +334,6 @@ void hlfmt_user (hashcat_ctx_t *hashcat_ctx, u32 hashfile_format, char *line_buf
   }
 }
 
-//u32 hlfmt_detect (hashcat_ctx_t *hashcat_ctx, FILE *fp, u32 max_check)
 u32 hlfmt_detect (hashcat_ctx_t *hashcat_ctx, fp_tmp_t *fp_t, u32 max_check)
 {
   const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
@@ -349,10 +348,8 @@ u32 hlfmt_detect (hashcat_ctx_t *hashcat_ctx, fp_tmp_t *fp_t, u32 max_check)
 
   char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
-//  while (!feof (fp))
   while (!hc_feof (fp_t))
   {
-//    const size_t line_len = fgetl (fp, line_buf);
     const size_t line_len = fgetl (fp_t, line_buf);
 
     if (line_len == 0) continue;

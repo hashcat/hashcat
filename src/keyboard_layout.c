@@ -22,18 +22,14 @@ bool initialize_keyboard_layout_mapping (const char *filename, keyboard_layout_m
 {
   char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
-//  FILE *fp = fopen (filename, "r");
   fp_tmp_t fp_t;
 
   if (hc_fopen(&fp_t, filename, "r") == false) return false;
-//  if (fp == NULL) return false;
 
   int maps_cnt = 0;
 
-//  while (!feof (fp))
   while (!hc_feof (&fp_t))
   {
-//    const size_t line_len = fgetl (fp, line_buf);
     const size_t line_len = fgetl (&fp_t, line_buf);
 
     if (line_len == 0) continue;
@@ -56,7 +52,6 @@ bool initialize_keyboard_layout_mapping (const char *filename, keyboard_layout_m
 
     if (rc_tokenizer != PARSER_OK)
     {
-//      fclose (fp);
       hc_fclose (&fp_t);
 
       free (line_buf);
@@ -72,7 +67,6 @@ bool initialize_keyboard_layout_mapping (const char *filename, keyboard_layout_m
 
     if (maps_cnt == 256)
     {
-//      fclose (fp);
       hc_fclose (&fp_t);
 
       free (line_buf);
@@ -85,7 +79,6 @@ bool initialize_keyboard_layout_mapping (const char *filename, keyboard_layout_m
 
   *keyboard_layout_mapping_cnt = maps_cnt;
 
-//  fclose (fp);
   hc_fclose (&fp_t);
 
   free (line_buf);

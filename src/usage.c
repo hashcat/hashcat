@@ -269,7 +269,6 @@ void usage_mini_print (const char *progname)
   {
     printf (USAGE_MINI[i], progname);
 
-//    hc_fwrite (EOL, strlen (EOL), 1, stdout);
     hc_fwrite_direct (EOL, strlen (EOL), 1, stdout);
   }
 }
@@ -316,7 +315,6 @@ void usage_big_print (hashcat_ctx_t *hashcat_ctx)
   {
     printf ("%s", USAGE_BIG_PRE_HASHMODES[i]);
 
-//    hc_fwrite (EOL, strlen (EOL), 1, stdout);
     hc_fwrite_direct (EOL, strlen (EOL), 1, stdout);
   }
 
@@ -326,11 +324,9 @@ void usage_big_print (hashcat_ctx_t *hashcat_ctx)
   {
     printf ("%7d | %-48s | %s", usage_sort_buf[i].hash_mode, usage_sort_buf[i].hash_name, strhashcategory (usage_sort_buf[i].hash_category));
 
-//    hc_fwrite (EOL, strlen (EOL), 1, stdout);
     hc_fwrite_direct (EOL, strlen (EOL), 1, stdout);
   }
 
-//  hc_fwrite (EOL, strlen (EOL), 1, stdout);
   hc_fwrite_direct (EOL, strlen (EOL), 1, stdout);
 
   for (int i = 0; i < usage_sort_cnt; i++)
@@ -344,10 +340,8 @@ void usage_big_print (hashcat_ctx_t *hashcat_ctx)
   {
     printf ("%s", USAGE_BIG_POST_HASHMODES[i]);
 
-//    hc_fwrite (EOL, strlen (EOL), 1, stdout);
     hc_fwrite_direct (EOL, strlen (EOL), 1, stdout);
   }
 
-//  hc_fwrite (EOL, strlen (EOL), 1, stdout);
   hc_fwrite_direct (EOL, strlen (EOL), 1, stdout);
 }

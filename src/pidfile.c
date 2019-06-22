@@ -22,7 +22,6 @@ static int check_running_process (hashcat_ctx_t *hashcat_ctx)
 
   pidfile_data_t *pd = (pidfile_data_t *) hcmalloc (sizeof (pidfile_data_t));
 
-//  const size_t nread = hc_fread (pd, sizeof (pidfile_data_t), 1, fp);
   const size_t nread = hc_fread_direct (pd, sizeof (pidfile_data_t), 1, fp);
 
   fclose (fp);
@@ -163,7 +162,6 @@ static int write_pidfile (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-//  hc_fwrite (pd, sizeof (pidfile_data_t), 1, fp);
   hc_fwrite_direct (pd, sizeof (pidfile_data_t), 1, fp);
 
   fflush (fp);

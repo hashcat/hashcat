@@ -1165,7 +1165,6 @@ typedef struct hc_device_param
 
   char   *scratch_buf;
 
-//  FILE   *combs_fp;
   fp_tmp_t *combs_fp_t;
   pw_t   *combs_buf;
 
