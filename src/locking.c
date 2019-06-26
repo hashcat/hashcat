@@ -11,6 +11,8 @@
 
 int lock_file (FILE *fp)
 {
+  if (!fp) return -1;
+
   struct flock lock;
 
   memset (&lock, 0, sizeof (struct flock));
@@ -28,6 +30,8 @@ int lock_file (FILE *fp)
 
 int unlock_file (FILE *fp)
 {
+  if (!fp) return -1;
+
   struct flock lock;
 
   memset (&lock, 0, sizeof (struct flock));

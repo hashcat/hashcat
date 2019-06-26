@@ -991,7 +991,7 @@ typedef struct link_speed
 
 // handling gzip files
 
-typedef struct fp_tmp
+typedef struct hc_fp
 {
   union
   {
@@ -1002,7 +1002,7 @@ typedef struct fp_tmp
   short is_gzip;
   const char *path;
   char *mode;
-} fp_tmp_t;
+} HCFILE;
 
 #include "ext_nvrtc.h"
 #include "ext_cuda.h"
@@ -1165,7 +1165,7 @@ typedef struct hc_device_param
 
   char   *scratch_buf;
 
-  fp_tmp_t *combs_fp_t;
+  HCFILE *combs_fp;
   pw_t   *combs_buf;
 
   void   *hooks_buf;
@@ -1559,7 +1559,8 @@ typedef struct debugfile_ctx
 {
   bool enabled;
 
-  FILE *fp;
+//  FILE *fp;
+  HCFILE *fp;
   char *filename;
   u32   mode;
 
@@ -1605,7 +1606,8 @@ typedef struct loopback_ctx
   bool enabled;
   bool unused;
 
-  FILE *fp;
+//  FILE *fp;
+  HCFILE *fp;
   char *filename;
 
 } loopback_ctx_t;
@@ -1621,7 +1623,8 @@ typedef struct outfile_ctx
 {
   char *filename;
 
-  FILE *fp;
+//  FILE *fp;
+  HCFILE *fp;
 
   u32   outfile_format;
   bool  outfile_autohex;
@@ -1642,6 +1645,7 @@ typedef struct potfile_ctx
   bool     enabled;
 
   FILE    *fp;
+//  HCFILE    *fp;
   char    *filename;
 
   u8      *out_buf; // allocates [HCBUFSIZ_LARGE];
@@ -1723,7 +1727,8 @@ typedef struct pidfile_ctx
 
 typedef struct out
 {
-  FILE *fp;
+//  FILE *fp;
+  HCFILE *fp;
 
   char  buf[HCBUFSIZ_SMALL];
   int   len;

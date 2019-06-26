@@ -733,11 +733,11 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
 
     char *rp_file = user_options->rp_files[i];
 
-    fp_tmp_t fp_t;
+    HCFILE fp;
 
     u32 rule_line = 0;
 
-    if (hc_fopen (&fp_t, rp_file, "rb") == false)
+    if (hc_fopen (&fp, rp_file, "rb") == false)
     {
       event_log_error (hashcat_ctx, "%s: %s", rp_file, strerror (errno));
 
@@ -749,9 +749,9 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
       return -1;
     }
 
-    while (!hc_feof (&fp_t))
+    while (!hc_feof (&fp))
     {
-      rule_len = (u32) fgetl (&fp_t, rule_buf);
+      rule_len = (u32) fgetl (&fp, rule_buf);
 
       rule_line++;
 
@@ -793,7 +793,7 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
       kernel_rules_cnt++;
     }
 
-    hc_fclose (&fp_t);
+    hc_fclose (&fp);
 
     all_kernel_rules_cnt[i] = kernel_rules_cnt;
     all_kernel_rules_buf[i] = kernel_rules_buf;

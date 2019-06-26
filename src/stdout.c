@@ -18,7 +18,8 @@ static void out_flush (out_t *out)
 {
   if (out->len == 0) return;
 
-  hc_fwrite_direct (out->buf, 1, out->len, out->fp);
+//  hc_fwrite (out->buf, 1, out->len, out->fp);
+  hc_fwrite_compress (out->buf, 1, out->len, out->fp);
 
   out->len = 0;
 }
@@ -61,31 +62,44 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
   out_t out;
 
-  out.fp = stdout;
+  HCFILE fp_tmp;
+  fp_tmp.is_gzip = 0;
+  fp_tmp.f.fp = stdout;
+
+//  out.fp = stdout;
+  out.fp = &fp_tmp;
+
+  /// PORKODIO
 
   char *filename = outfile_ctx->filename;
 
   if (filename)
   {
-    FILE *fp = fopen (filename, "ab");
+//    FILE *fp = fopen (filename, "ab");
+    HCFILE fp;
 
-    if (fp == NULL)
+//    if (fp == NULL)
+    if (hc_fopen (&fp, filename, "ab") == false)
     {
       event_log_error (hashcat_ctx, "%s: %s", filename, strerror (errno));
 
       return -1;
     }
 
-    if (lock_file (fp) == -1)
+    fp.is_gzip = 0;
+
+//    if (lock_file (fp) == -1)
+    if (lock_file (fp.f.fp) == -1)
     {
-      fclose (fp);
+//      fclose (fp);
+      hc_fclose (&fp);
 
       event_log_error (hashcat_ctx, "%s: %s", filename, strerror (errno));
 
       return -1;
     }
 
-    out.fp = fp;
+    out.fp = &fp;
   }
 
   out.len = 0;
@@ -108,7 +122,8 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
       if (rc == -1)
       {
-        if (filename) fclose (out.fp);
+//        if (filename) fclose (out.fp);
+        if (filename) hc_fclose (out.fp);
 
         return -1;
       }
@@ -152,7 +167,8 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
       if (rc == -1)
       {
-        if (filename) fclose (out.fp);
+//        if (filename) fclose (out.fp);
+        if (filename) hc_fclose (out.fp);
 
         return -1;
       }
@@ -222,7 +238,8 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
       if (rc == -1)
       {
-        if (filename) fclose (out.fp);
+//        if (filename) fclose (out.fp);
+        if (filename) hc_fclose (out.fp);
 
         return -1;
       }
@@ -259,7 +276,8 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
       if (rc == -1)
       {
-        if (filename) fclose (out.fp);
+//        if (filename) fclose (out.fp);
+        if (filename) hc_fclose (out.fp);
 
         return -1;
       }
@@ -291,7 +309,8 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
   out_flush (&out);
 
-  if (filename) fclose (out.fp);
+//  if (filename) fclose (out.fp);
+  if (filename) hc_fclose (out.fp);
 
   return 0;
 }

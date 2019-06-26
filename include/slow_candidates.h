@@ -10,7 +10,7 @@ typedef struct extra_info_straight
 {
   u64 pos;
 
-  fp_tmp_t *fp_t;
+  HCFILE *fp;
 
   u64 rule_pos_prev;
   u64 rule_pos;
@@ -27,8 +27,8 @@ typedef struct extra_info_combi
 {
   u64 pos;
 
-  fp_tmp_t *base_fp_t;
-  fp_tmp_t *combs_fp_t;
+  HCFILE *base_fp;
+  HCFILE *combs_fp;
 
   u64 comb_pos_prev;
   u64 comb_pos;

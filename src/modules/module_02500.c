@@ -192,7 +192,7 @@ static int check_old_hccap (const char *hashfile)
 
   u32 signature;
 
-  const size_t nread = hc_fread (&signature, sizeof (u32), 1, fp);
+  const size_t nread = hc_fread_compress (&signature, sizeof (u32), 1, fp);
 
   fclose (fp);
 
@@ -374,15 +374,15 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
   int hashes_cnt = 0;
 
-  fp_tmp_t fp_t;
+  HCFILE fp;
 
-  if (hc_fopen (&fp_t, hashes->hashfile, "rb") == false) return -1;
+  if (hc_fopen (&fp, hashes->hashfile, "rb") == false) return -1;
 
   char *in = (char *) hcmalloc (sizeof (hccapx_t));
 
-  while (!hc_feof (&fp_t))
+  while (!hc_feof (&fp))
   {
-    const size_t nread = hc_fread (in, sizeof (hccapx_t), 1, &fp_t);
+    const size_t nread = hc_fread_compress (in, sizeof (hccapx_t), 1, &fp);
 
     if (nread == 0) break;
 
@@ -458,7 +458,7 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
   hcfree (in);
 
-  hc_fclose (&fp_t);
+  hc_fclose (&fp);
 
   return hashes_cnt;
 }

@@ -977,7 +977,7 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
     printf ("%d\t", util);
   }
 
-  hc_fwrite_direct (EOL, strlen (EOL), 1, stdout);
+  hc_fwrite (EOL, strlen (EOL), 1, stdout);
 
   fflush (stdout);
 
@@ -1064,7 +1064,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
   printf (" \"time_start\": %" PRIu64 ",", (u64) status_ctx->runtime_start);
   printf (" \"estimated_stop\": %" PRIu64 " }", (u64) end);
 
-  hc_fwrite_direct (EOL, strlen (EOL), 1, stdout);
+  hc_fwrite (EOL, strlen (EOL), 1, stdout);
 
   fflush (stdout);
 

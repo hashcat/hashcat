@@ -70,18 +70,18 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
         logfile_sub_var_string ("rulefile", user_options->rp_files[i]);
       }
 
-      fp_tmp_t fp_t;
+      HCFILE fp;
 
-      if (hc_fopen (&fp_t, straight_ctx->dict, "rb") == false)
+      if (hc_fopen (&fp, straight_ctx->dict, "rb") == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", straight_ctx->dict, strerror (errno));
 
         return -1;
       }
 
-      const int rc = count_words (hashcat_ctx, &fp_t, straight_ctx->dict, &status_ctx->words_cnt);
+      const int rc = count_words (hashcat_ctx, &fp, straight_ctx->dict, &status_ctx->words_cnt);
 
-      hc_fclose (&fp_t);
+      hc_fclose (&fp);
 
       if (rc == -1)
       {
@@ -105,18 +105,18 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
     if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
-      fp_tmp_t fp_t;
+      HCFILE fp;
 
-      if (hc_fopen (&fp_t, combinator_ctx->dict1, "rb") == false)
+      if (hc_fopen (&fp, combinator_ctx->dict1, "rb") == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", combinator_ctx->dict1, strerror (errno));
 
         return -1;
       }
 
-      const int rc = count_words (hashcat_ctx, &fp_t, combinator_ctx->dict1, &status_ctx->words_cnt);
+      const int rc = count_words (hashcat_ctx, &fp, combinator_ctx->dict1, &status_ctx->words_cnt);
 
-      hc_fclose (&fp_t);
+      hc_fclose (&fp);
 
       if (rc == -1)
       {
@@ -127,18 +127,18 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
     }
     else if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_RIGHT)
     {
-      fp_tmp_t fp_t;
+      HCFILE fp;
 
-      if (hc_fopen (&fp_t, combinator_ctx->dict2, "rb") == false)
+      if (hc_fopen (&fp, combinator_ctx->dict2, "rb") == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", combinator_ctx->dict2, strerror (errno));
 
         return -1;
       }
 
-      const int rc = count_words (hashcat_ctx, &fp_t, combinator_ctx->dict2, &status_ctx->words_cnt);
+      const int rc = count_words (hashcat_ctx, &fp, combinator_ctx->dict2, &status_ctx->words_cnt);
 
-      hc_fclose (&fp_t);
+      hc_fclose (&fp);
 
       if (rc == -1)
       {
@@ -173,18 +173,18 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
     logfile_sub_string (straight_ctx->dict);
     logfile_sub_string (mask_ctx->mask);
 
-    fp_tmp_t fp_t;
+    HCFILE fp;
 
-    if (hc_fopen (&fp_t, straight_ctx->dict, "rb") == false)
+    if (hc_fopen (&fp, straight_ctx->dict, "rb") == false)
     {
       event_log_error (hashcat_ctx, "%s: %s", straight_ctx->dict, strerror (errno));
 
       return -1;
     }
 
-    const int rc = count_words (hashcat_ctx, &fp_t, straight_ctx->dict, &status_ctx->words_cnt);
+    const int rc = count_words (hashcat_ctx, &fp, straight_ctx->dict, &status_ctx->words_cnt);
 
-    hc_fclose (&fp_t);
+    hc_fclose (&fp);
 
     if (rc == -1)
     {

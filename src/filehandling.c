@@ -9,7 +9,7 @@
 #include "shared.h"
 #include "filehandling.h"
 
-u64 count_lines (fp_tmp_t *fp_t)
+u64 count_lines (HCFILE *fp)
 {
   u64 cnt = 0;
 
@@ -17,9 +17,9 @@ u64 count_lines (fp_tmp_t *fp_t)
 
   char prev = '\n';
 
-  while (!hc_feof (fp_t))
+  while (!hc_feof (fp))
   {
-    size_t nread = hc_fread (buf, sizeof (char), HCBUFSIZ_LARGE, fp_t);
+    size_t nread = hc_fread_compress (buf, sizeof (char), HCBUFSIZ_LARGE, fp);
 
     if (nread < 1) continue;
 
@@ -38,13 +38,13 @@ u64 count_lines (fp_tmp_t *fp_t)
   return cnt;
 }
 
-size_t fgetl (fp_tmp_t *fp_t, char *line_buf)
+size_t fgetl (HCFILE *fp, char *line_buf)
 {
   size_t line_len = 0;
 
-  while (!hc_feof (fp_t))
+  while (!hc_feof (fp))
   {
-    const int c = hc_fgetc (fp_t);
+    const int c = hc_fgetc (fp);
 
     if (c == EOF) break;
 

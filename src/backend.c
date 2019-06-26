@@ -137,26 +137,31 @@ static int ocl_check_dri (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 
   // Now we need to check if this an AMD vendor, because this is when the problems start
 
-  FILE *fd_drm = fopen (drm_card0_vendor_path, "rb");
+  HCFILE fp_drm;
+//  FILE *fd_drm = fopen (drm_card0_vendor_path, "rb");
 
-  if (fd_drm == NULL) return 0;
+  if (hc_fopen (&fp_drm, drm_card0_vendor_path, "rb") == false) return 0;
+//  if (fd_drm == NULL) return 0;
 
   u32 vendor = 0;
 
-  if (fscanf (fd_drm, "0x%x", &vendor) != 1)
+//  if (fscanf (fd_drm, "0x%x", &vendor) != 1)
+  if (hc_fscanf (&fp_drm, "0x%x", &vendor) != 1)
   {
-    fclose (fd_drm);
+//    fclose (fd_drm);
+    hc_fclose (&fp_drm);
 
     return 0;
   }
 
-  fclose (fd_drm);
+//  fclose (fd_drm);
+  hc_fclose (&fp_drm);
 
   if (vendor != 4098) return 0;
 
   // Now the problem is only with AMDGPU-PRO, not with oldschool AMD driver
 
-  char buf[HCBUFSIZ_TINY];
+  char buf[HCBUFSIZ_TINY] = { 0 };
 
   const ssize_t len = readlink (drm_card0_driver_path, buf, HCBUFSIZ_TINY - 1);
 
@@ -168,9 +173,11 @@ static int ocl_check_dri (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 
   // Now do the real check
 
-  FILE *fd_dri = fopen (dri_card0_path, "rb");
+  HCFILE fp_dri;
+//  FILE *fd_dri = fopen (dri_card0_path, "rb");
 
-  if (fd_dri == NULL)
+  if (hc_fopen (&fp_dri, dri_card0_path, "rb") == false)
+//  if (fd_dri == NULL)
   {
     event_log_error (hashcat_ctx, "Cannot access %s: %m.", dri_card0_path);
 
@@ -182,7 +189,8 @@ static int ocl_check_dri (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  fclose (fd_dri);
+//  fclose (fd_dri);
+  hc_fclose (&fp_drm);
 
   #endif // __linux__
 
@@ -440,15 +448,18 @@ static bool opencl_test_instruction (hashcat_ctx_t *hashcat_ctx, cl_context cont
 
 static bool read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_file, size_t *kernel_lengths, char **kernel_sources, const bool force_recompile)
 {
-  FILE *fp = fopen (kernel_file, "rb");
+//  FILE *fp = fopen (kernel_file, "rb");
+  HCFILE fp;
 
-  if (fp != NULL)
+//  if (fp != NULL)
+  if (hc_fopen (&fp, kernel_file, "rb") != false)
   {
     struct stat st;
 
     if (stat (kernel_file, &st))
     {
-      fclose (fp);
+//      fclose (fp);
+      hc_fclose (&fp);
 
       return false;
     }
@@ -457,9 +468,11 @@ static bool read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_f
 
     char *buf = (char *) hcmalloc (st.st_size + 1 + EXTRASZ);
 
-    size_t num_read = hc_fread_direct (buf, sizeof (char), st.st_size, fp);
+//    size_t num_read = hc_fread (buf, sizeof (char), st.st_size, fp);
+    size_t num_read = hc_fread_compress (buf, sizeof (char), st.st_size, &fp);
 
-    fclose (fp);
+//    fclose (fp);
+    hc_fclose (&fp);
 
     if (num_read != (size_t) st.st_size)
     {
@@ -503,29 +516,39 @@ static bool write_kernel_binary (hashcat_ctx_t *hashcat_ctx, char *kernel_file, 
 {
   if (binary_size > 0)
   {
-    FILE *fp = fopen (kernel_file, "wb");
+//    FILE *fp = fopen (kernel_file, "wb");
+    HCFILE fp;
 
-    if (fp == NULL)
+//    if (fp == NULL)
+    if (hc_fopen (&fp, kernel_file, "wb") == false)
     {
       event_log_error (hashcat_ctx, "%s: %s", kernel_file, strerror (errno));
 
       return false;
     }
 
-    if (lock_file (fp) == -1)
+    // set gzip to false
+    fp.is_gzip = 0;
+
+//    if (lock_file (fp) == -1)
+    if (lock_file (fp.f.fp) == -1)
     {
-      fclose (fp);
+//      fclose (fp);
+      hc_fclose (&fp);
 
       event_log_error (hashcat_ctx, "%s: %s", kernel_file, strerror (errno));
 
       return false;
     }
 
-    hc_fwrite_direct (binary, sizeof (char), binary_size, fp);
+//    hc_fwrite (binary, sizeof (char), binary_size, fp);
+    hc_fwrite_compress (binary, sizeof (char), binary_size, &fp);
 
-    fflush (fp);
+//    fflush (fp);
+    hc_fflush (&fp);
 
-    fclose (fp);
+//    fclose (fp);
+    hc_fclose (&fp);
   }
 
   return true;
@@ -4375,7 +4398,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
     device_param->kernel_params_buf32[31] = salt_buf->digests_cnt;
     device_param->kernel_params_buf32[32] = salt_buf->digests_offset;
 
-    fp_tmp_t *combs_fp_t = device_param->combs_fp_t;
+    HCFILE *combs_fp = device_param->combs_fp;
 
     if (user_options->slow_candidates == true)
     {
@@ -4384,7 +4407,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
     {
       if ((user_options->attack_mode == ATTACK_MODE_COMBI) || (((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0) && (user_options->attack_mode == ATTACK_MODE_HYBRID2)))
       {
-        hc_rewind (combs_fp_t);
+        hc_rewind (combs_fp);
       }
     }
 
@@ -4478,9 +4501,9 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
               while (i < innerloop_left)
               {
-                if (hc_feof (combs_fp_t)) break;
+                if (hc_feof (combs_fp)) break;
 
-                size_t line_len = fgetl (combs_fp_t, line_buf);
+                size_t line_len = fgetl (combs_fp, line_buf);
 
                 line_len = convert_from_hex (hashcat_ctx, line_buf, line_len);
 
@@ -4643,9 +4666,9 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
               while (i < innerloop_left)
               {
-                if (hc_feof (combs_fp_t)) break;
+                if (hc_feof (combs_fp)) break;
 
-                size_t line_len = fgetl (combs_fp_t, line_buf);
+                size_t line_len = fgetl (combs_fp, line_buf);
 
                 line_len = convert_from_hex (hashcat_ctx, line_buf, line_len);
 

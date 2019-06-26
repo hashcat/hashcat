@@ -28,27 +28,34 @@
 int _dowildcard = -1;
 #endif
 
-static void main_log_clear_line (MAYBE_UNUSED const size_t prev_len, MAYBE_UNUSED FILE *fp)
+//static void main_log_clear_line (MAYBE_UNUSED const size_t prev_len, MAYBE_UNUSED FILE *fp)
+static void main_log_clear_line (MAYBE_UNUSED const size_t prev_len, MAYBE_UNUSED HCFILE *fp)
 {
   #if defined (_WIN)
 
-  fputc ('\r', fp);
+//  fputc ('\r', fp);
+  hc_fputc ('\r', fp);
 
   for (size_t i = 0; i < prev_len; i++)
   {
-    fputc (' ', fp);
+//    fputc (' ', fp);
+    hc_fputc (' ', fp);
   }
 
-  fputc ('\r', fp);
+//  fputc ('\r', fp);
+  hc_fputc ('\r', fp);
 
   #else
 
-  fputs ("\033[2K\r", fp);
+//  fputs ("\033[2K\r", fp);
+  hc_fprintf(fp, "\033[2K\r");
+//  fputs ("\033[2K\r", fp);
 
   #endif
 }
 
-static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp, const int loglevel)
+//static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp, const int loglevel)
+static void main_log (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, const int loglevel)
 {
   event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
 
@@ -101,15 +108,16 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp, const int loglevel)
   switch (loglevel)
   {
     case LOGLEVEL_INFO:                                             break;
-    case LOGLEVEL_WARNING: hc_fwrite_direct ("\033[33m", 5, 1, fp); break;
-    case LOGLEVEL_ERROR:   hc_fwrite_direct ("\033[31m", 5, 1, fp); break;
-    case LOGLEVEL_ADVICE:  hc_fwrite_direct ("\033[33m", 5, 1, fp); break;
+    case LOGLEVEL_WARNING: hc_fwrite_compress ("\033[33m", 5, 1, fp); break;
+    case LOGLEVEL_ERROR:   hc_fwrite_compress ("\033[31m", 5, 1, fp); break;
+    case LOGLEVEL_ADVICE:  hc_fwrite_compress ("\033[33m", 5, 1, fp); break;
   }
   #endif
 
   // finally, print
 
-  hc_fwrite_direct (msg_buf, msg_len, 1, fp);
+//  hc_fwrite (msg_buf, msg_len, 1, fp);
+  hc_fwrite_compress ((void *)msg_buf, msg_len, 1, fp);
 
   // color stuff post
 
@@ -125,9 +133,9 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp, const int loglevel)
   switch (loglevel)
   {
     case LOGLEVEL_INFO:                                            break;
-    case LOGLEVEL_WARNING: hc_fwrite_direct ("\033[0m", 4, 1, fp); break;
-    case LOGLEVEL_ERROR:   hc_fwrite_direct ("\033[0m", 4, 1, fp); break;
-    case LOGLEVEL_ADVICE:  hc_fwrite_direct ("\033[0m", 4, 1, fp); break;
+    case LOGLEVEL_WARNING: hc_fwrite_compress ("\033[0m", 4, 1, fp); break;
+    case LOGLEVEL_ERROR:   hc_fwrite_compress ("\033[0m", 4, 1, fp); break;
+    case LOGLEVEL_ADVICE:  hc_fwrite_compress ("\033[0m", 4, 1, fp); break;
   }
   #endif
 
@@ -135,17 +143,20 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp, const int loglevel)
 
   if (msg_newline == true)
   {
-    hc_fwrite_direct (EOL, strlen (EOL), 1, fp);
+//    hc_fwrite (EOL, strlen (EOL), 1, fp);
+    hc_fwrite_compress (EOL, strlen (EOL), 1, fp);
 
     // on error, add another newline
 
     if (loglevel == LOGLEVEL_ERROR)
     {
-      hc_fwrite_direct (EOL, strlen (EOL), 1, fp);
+//      hc_fwrite (EOL, strlen (EOL), 1, fp);
+      hc_fwrite_compress (EOL, strlen (EOL), 1, fp);
     }
   }
 
-  fflush (fp);
+//  fflush (fp);
+  hc_fflush (fp);
 }
 
 static void main_log_advice (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -154,22 +165,42 @@ static void main_log_advice (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUS
 
   if (user_options->advice_disable == true) return;
 
-  main_log (hashcat_ctx, stdout, LOGLEVEL_ADVICE);
+  HCFILE fp;
+  fp.is_gzip = 0;
+  fp.f.fp = stdout;
+
+//  main_log (hashcat_ctx, stdout, LOGLEVEL_ADVICE);
+  main_log (hashcat_ctx, &fp, LOGLEVEL_ADVICE);
 }
 
 static void main_log_info (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
-  main_log (hashcat_ctx, stdout, LOGLEVEL_INFO);
+  HCFILE fp;
+  fp.is_gzip = 0;
+  fp.f.fp = stdout;
+
+//  main_log (hashcat_ctx, stdout, LOGLEVEL_INFO);
+  main_log (hashcat_ctx, &fp, LOGLEVEL_INFO);
 }
 
 static void main_log_warning (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
-  main_log (hashcat_ctx, stdout, LOGLEVEL_WARNING);
+  HCFILE fp;
+  fp.is_gzip = 0;
+  fp.f.fp = stdout;
+
+//  main_log (hashcat_ctx, stdout, LOGLEVEL_WARNING);
+  main_log (hashcat_ctx, &fp, LOGLEVEL_WARNING);
 }
 
 static void main_log_error (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
-  main_log (hashcat_ctx, stderr, LOGLEVEL_ERROR);
+  HCFILE fp;
+  fp.is_gzip = 0;
+  fp.f.fp = stderr;
+
+//  main_log (hashcat_ctx, stderr, LOGLEVEL_ERROR);
+  main_log (hashcat_ctx, &fp, LOGLEVEL_ERROR);
 }
 
 static void main_outerloop_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -340,8 +371,8 @@ static void main_cracker_hash_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
     if (outfile_ctx->filename == NULL) if (user_options->quiet == false) clear_prompt (hashcat_ctx);
   }
 
-  hc_fwrite_direct (buf, len,          1, stdout);
-  hc_fwrite_direct (EOL, strlen (EOL), 1, stdout);
+  hc_fwrite (buf, len,          1, stdout);
+  hc_fwrite (EOL, strlen (EOL), 1, stdout);
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
@@ -386,8 +417,8 @@ static void main_potfile_hash_show (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
 
   if (outfile_ctx->fp != NULL) return; // cracked hash was not written to an outfile
 
-  hc_fwrite_direct (buf, len,          1, stdout);
-  hc_fwrite_direct (EOL, strlen (EOL), 1, stdout);
+  hc_fwrite (buf, len,          1, stdout);
+  hc_fwrite (EOL, strlen (EOL), 1, stdout);
 }
 
 static void main_potfile_hash_left (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -396,8 +427,8 @@ static void main_potfile_hash_left (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
 
   if (outfile_ctx->fp != NULL) return; // cracked hash was not written to an outfile
 
-  hc_fwrite_direct (buf, len,          1, stdout);
-  hc_fwrite_direct (EOL, strlen (EOL), 1, stdout);
+  hc_fwrite (buf, len,          1, stdout);
+  hc_fwrite (EOL, strlen (EOL), 1, stdout);
 }
 
 static void main_potfile_num_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)

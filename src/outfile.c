@@ -390,25 +390,32 @@ int outfile_write_open (hashcat_ctx_t *hashcat_ctx)
 
   if (outfile_ctx->filename == NULL) return 0;
 
-  FILE *fp = fopen (outfile_ctx->filename, "ab");
+//  FILE *fp = fopen (outfile_ctx->filename, "ab");
+  HCFILE fp;
 
-  if (fp == NULL)
+//  if (fp == NULL)
+  if (hc_fopen (&fp, outfile_ctx->filename, "ab") == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", outfile_ctx->filename, strerror (errno));
 
     return -1;
   }
 
-  if (lock_file (fp) == -1)
+  fp.is_gzip = 0;
+
+//  if (lock_file (fp) == -1)
+  if (lock_file (fp.f.fp) == -1)
   {
-    fclose (fp);
+//    fclose (fp);
+    hc_fclose (&fp);
 
     event_log_error (hashcat_ctx, "%s: %s", outfile_ctx->filename, strerror (errno));
 
     return -1;
   }
 
-  outfile_ctx->fp = fp;
+//  outfile_ctx->fp = fp;
+  outfile_ctx->fp = &fp;
 
   return 0;
 }
@@ -419,7 +426,8 @@ void outfile_write_close (hashcat_ctx_t *hashcat_ctx)
 
   if (outfile_ctx->fp == NULL) return;
 
-  fclose (outfile_ctx->fp);
+//  fclose (outfile_ctx->fp);
+  hc_fclose (outfile_ctx->fp);
 }
 
 int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const int out_len, const unsigned char *plain_ptr, const u32 plain_len, const u64 crackpos, const unsigned char *username, const u32 user_len, char tmp_buf[HCBUFSIZ_LARGE])
@@ -529,8 +537,10 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const int ou
 
   if (outfile_ctx->fp != NULL)
   {
-    hc_fwrite_direct (tmp_buf, tmp_len,      1, outfile_ctx->fp);
-    hc_fwrite_direct (EOL,     strlen (EOL), 1, outfile_ctx->fp);
+//    hc_fwrite (tmp_buf, tmp_len,      1, outfile_ctx->fp);
+    hc_fwrite_compress (tmp_buf, tmp_len,      1, outfile_ctx->fp);
+//    hc_fwrite (EOL,     strlen (EOL), 1, outfile_ctx->fp);
+    hc_fwrite_compress (EOL,     strlen (EOL), 1, outfile_ctx->fp);
   }
 
   return tmp_len;

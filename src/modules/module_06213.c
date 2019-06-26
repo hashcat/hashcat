@@ -144,17 +144,17 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 {
   // note: if module_hash_binary_parse exists, then module_hash_decode is not called
 
-  fp_tmp_t fp_t;
+  HCFILE fp;
 
-  if (hc_fopen (&fp_t, hashes->hashfile, "rb") == false) return (PARSER_HASH_FILE);
+  if (hc_fopen (&fp, hashes->hashfile, "rb") == false) return (PARSER_HASH_FILE);
 
   #define TC_HEADER_SIZE 512
 
   char *in = (char *) hcmalloc (TC_HEADER_SIZE);
 
-  const size_t n = hc_fread (in, 1, TC_HEADER_SIZE, &fp_t);
+  const size_t n = hc_fread_compress (in, 1, TC_HEADER_SIZE, &fp);
 
-  hc_fclose (&fp_t);
+  hc_fclose (&fp);
 
   if (n != TC_HEADER_SIZE) return (PARSER_TC_FILE_SIZE);
 

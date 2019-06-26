@@ -344,6 +344,7 @@ default: $(HASHCAT_FRONTEND) modules
 clean:
 	$(RM) -f $(HASHCAT_FRONTEND)
 	$(RM) -f $(HASHCAT_LIBRARY)
+	$(RM) -rf modules/*.dSYM
 	$(RM) -f modules/*.dll
 	$(RM) -f modules/*.so
 	$(RM) -f obj/*.o
