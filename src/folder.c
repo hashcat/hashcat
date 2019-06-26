@@ -329,7 +329,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
   if (resolved_exec_path == NULL)
   {
-    event_log_error (hashcat_ctx, "%s: %s", resolved_exec_path, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", exec_path, strerror (errno));
 
     hcfree (cwd);
 
