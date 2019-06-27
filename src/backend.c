@@ -526,8 +526,7 @@ static bool write_kernel_binary (hashcat_ctx_t *hashcat_ctx, char *kernel_file, 
       return false;
     }
 
-    // set gzip to false
-    fp.is_gzip = 0;
+    fp.is_gzip = false;
 
 //    if (lock_file (fp) == -1)
     if (lock_file (fp.f.fp) == -1)

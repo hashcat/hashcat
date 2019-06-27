@@ -203,7 +203,7 @@ int dictstat_write (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  fp.is_gzip = 0;
+  fp.is_gzip = false;
 
 //  if (lock_file (fp) == -1)
   if (lock_file (fp.f.fp) == -1)

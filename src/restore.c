@@ -223,7 +223,7 @@ static int write_restore (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  fp.is_gzip = 0;
+  fp.is_gzip = false;
 
 //  if (setvbuf (fp, NULL, _IONBF, 0))
   if (setvbuf (fp.f.fp, NULL, _IONBF, 0))

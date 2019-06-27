@@ -62,7 +62,7 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
   out_t out;
 
   HCFILE fp_tmp;
-  fp_tmp.is_gzip = 0;
+  fp_tmp.is_gzip = false;
   fp_tmp.f.fp = stdout;
 
 //  out.fp = stdout;
@@ -85,7 +85,7 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
       return -1;
     }
 
-    fp.is_gzip = 0;
+    fp.is_gzip = false;
 
 //    if (lock_file (fp) == -1)
     if (lock_file (fp.f.fp) == -1)

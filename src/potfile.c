@@ -222,10 +222,7 @@ int potfile_write_open (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-//  fp->is_gzip = 0;
-
   potfile_ctx->fp = fp;
-//  potfile_ctx->fp = &fp;
 
   return 0;
 }
@@ -530,7 +527,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
   // workaround for new fgetl
   HCFILE fp;
-  fp.is_gzip = 0;
+  fp.is_gzip = false;
   fp.f.fp = potfile_ctx->fp;
 
   while (!feof (potfile_ctx->fp))

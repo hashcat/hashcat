@@ -1680,8 +1680,7 @@ bool brain_server_write_hash_dump (brain_server_db_hash_t *brain_server_db_hash,
   }
   else
   {
-    // force gzip to false
-    fp.is_gzip = 0;
+    fp.is_gzip = false;
 
 //    const size_t nwrite = fwrite (brain_server_db_hash->long_buf, sizeof (brain_server_hash_long_t), brain_server_db_hash->long_cnt, fd);
     const size_t nwrite = hc_fwrite (brain_server_db_hash->long_buf, sizeof (brain_server_hash_long_t), brain_server_db_hash->long_cnt, &fp);
@@ -1893,8 +1892,7 @@ bool brain_server_write_attack_dump (brain_server_db_attack_t *brain_server_db_a
   }
   else
   {
-    // force gzip to false
-    fp.is_gzip = 0;
+    fp.is_gzip = false;
 
     // storing should not include reserved attacks only finished
 

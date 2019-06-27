@@ -167,7 +167,7 @@ static int write_pidfile (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  fp.is_gzip = 0;
+  fp.is_gzip = false;
 
   hc_fwrite (pd, sizeof (pidfile_data_t), 1, &fp);
 

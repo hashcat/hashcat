@@ -123,8 +123,7 @@ int debugfile_init (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
 
-    // force gzip to false
-    fp.is_gzip = 0;
+    fp.is_gzip = false;
 
 //    if (lock_file (fp) == -1)
     if (lock_file (fp.f.fp) == -1)
@@ -143,7 +142,7 @@ int debugfile_init (hashcat_ctx_t *hashcat_ctx)
   else
   {
     HCFILE fp_tmp;
-    fp_tmp.is_gzip = 0;
+    fp_tmp.is_gzip = false;
     fp_tmp.f.fp = stdout;
 
 //    debugfile_ctx->fp = stdout;

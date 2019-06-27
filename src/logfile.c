@@ -54,7 +54,7 @@ void logfile_append (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
     return;
   }
 
-  fp.is_gzip = 0;
+  fp.is_gzip = false;
 
 //  lock_file (fp);
   lock_file (fp.f.fp);

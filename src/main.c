@@ -163,7 +163,7 @@ static void main_log_advice (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUS
   if (user_options->advice_disable == true) return;
 
   HCFILE fp;
-  fp.is_gzip = 0;
+  fp.is_gzip = false;
   fp.f.fp = stdout;
 
 //  main_log (hashcat_ctx, stdout, LOGLEVEL_ADVICE);
@@ -173,7 +173,7 @@ static void main_log_advice (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUS
 static void main_log_info (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   HCFILE fp;
-  fp.is_gzip = 0;
+  fp.is_gzip = false;
   fp.f.fp = stdout;
 
 //  main_log (hashcat_ctx, stdout, LOGLEVEL_INFO);
@@ -183,7 +183,7 @@ static void main_log_info (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED
 static void main_log_warning (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   HCFILE fp;
-  fp.is_gzip = 0;
+  fp.is_gzip = false;
   fp.f.fp = stdout;
 
 //  main_log (hashcat_ctx, stdout, LOGLEVEL_WARNING);
@@ -193,7 +193,7 @@ static void main_log_warning (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNU
 static void main_log_error (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   HCFILE fp;
-  fp.is_gzip = 0;
+  fp.is_gzip = false;
   fp.f.fp = stderr;
 
 //  main_log (hashcat_ctx, stderr, LOGLEVEL_ERROR);

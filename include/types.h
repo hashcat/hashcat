@@ -999,7 +999,7 @@ typedef struct hc_fp
     gzFile gfp;
   } f;
 
-  short is_gzip;
+  bool is_gzip;
   const char *path;
   char *mode;
 } HCFILE;
