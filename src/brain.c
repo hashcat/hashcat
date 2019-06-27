@@ -548,7 +548,7 @@ u64 brain_compute_attack_wordlist (const char *filename)
   while (!hc_feof (&fp))
   {
 //    const size_t nread = fread (buf, 1, FBUFSZ, fd);
-    const size_t nread = hc_fread_compress (buf, 1, FBUFSZ, &fp);
+    const size_t nread = hc_fread (buf, 1, FBUFSZ, &fp);
 
     XXH64_update (state, buf, nread);
   }
@@ -627,7 +627,7 @@ u32 brain_auth_challenge (void)
   }
 
 //  if (fread (&val, sizeof (val), 1, fd) != 1)
-  if (hc_fread_compress (&val, sizeof (val), 1, &fp) != 1)
+  if (hc_fread (&val, sizeof (val), 1, &fp) != 1)
   {
     brain_logging (stderr, 0, "%s: %s\n", urandom, strerror (errno));
 
@@ -1631,7 +1631,7 @@ bool brain_server_read_hash_dump (brain_server_db_hash_t *brain_server_db_hash, 
     }
 
 //    const size_t nread = fread (brain_server_db_hash->long_buf, sizeof (brain_server_hash_long_t), temp_cnt, fd);
-    const size_t nread = hc_fread_compress (brain_server_db_hash->long_buf, sizeof (brain_server_hash_long_t), temp_cnt, &fp);
+    const size_t nread = hc_fread (brain_server_db_hash->long_buf, sizeof (brain_server_hash_long_t), temp_cnt, &fp);
 
     if (nread != (size_t) temp_cnt)
     {
@@ -1684,7 +1684,7 @@ bool brain_server_write_hash_dump (brain_server_db_hash_t *brain_server_db_hash,
     fp.is_gzip = 0;
 
 //    const size_t nwrite = fwrite (brain_server_db_hash->long_buf, sizeof (brain_server_hash_long_t), brain_server_db_hash->long_cnt, fd);
-    const size_t nwrite = hc_fwrite_compress (brain_server_db_hash->long_buf, sizeof (brain_server_hash_long_t), brain_server_db_hash->long_cnt, &fp);
+    const size_t nwrite = hc_fwrite (brain_server_db_hash->long_buf, sizeof (brain_server_hash_long_t), brain_server_db_hash->long_cnt, &fp);
 
     if (nwrite != (size_t) brain_server_db_hash->long_cnt)
     {
@@ -1844,7 +1844,7 @@ bool brain_server_read_attack_dump (brain_server_db_attack_t *brain_server_db_at
     }
 
 //    const size_t nread = fread (brain_server_db_attack->long_buf, sizeof (brain_server_attack_long_t), temp_cnt, fd);
-    const size_t nread = hc_fread_compress (brain_server_db_attack->long_buf, sizeof (brain_server_attack_long_t), temp_cnt, &fp);
+    const size_t nread = hc_fread (brain_server_db_attack->long_buf, sizeof (brain_server_attack_long_t), temp_cnt, &fp);
 
     if (nread != (size_t) temp_cnt)
     {
@@ -1899,7 +1899,7 @@ bool brain_server_write_attack_dump (brain_server_db_attack_t *brain_server_db_a
     // storing should not include reserved attacks only finished
 
 //    const size_t nwrite = fwrite (brain_server_db_attack->long_buf, sizeof (brain_server_attack_long_t), brain_server_db_attack->long_cnt, fd);
-    const size_t nwrite = hc_fwrite_compress (brain_server_db_attack->long_buf, sizeof (brain_server_attack_long_t), brain_server_db_attack->long_cnt, &fp);
+    const size_t nwrite = hc_fwrite (brain_server_db_attack->long_buf, sizeof (brain_server_attack_long_t), brain_server_db_attack->long_cnt, &fp);
 
     if (nwrite != (size_t) brain_server_db_attack->long_cnt)
     {

@@ -154,7 +154,7 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
   char *in = (char *) hcmalloc (TC_HEADER_SIZE);
 
-  const size_t n = hc_fread_compress (in, 1, TC_HEADER_SIZE, &fp);
+  const size_t n = hc_fread (in, 1, TC_HEADER_SIZE, &fp);
 
   hc_fclose (&fp);
 

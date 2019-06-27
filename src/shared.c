@@ -356,7 +356,7 @@ bool hc_path_has_bom (const char *path)
   if (hc_fopen (&fp, path, "rb") == false) return false;
 
 //  const size_t nread = fread (buf, 1, sizeof (buf), fp);
-  const size_t nread = hc_fread_compress (buf, 1, sizeof (buf), &fp);
+  const size_t nread = hc_fread (buf, 1, sizeof (buf), &fp);
 
 //  fclose (fp);
   hc_fclose (&fp);
@@ -643,7 +643,7 @@ bool hc_fopen (HCFILE *fp, const char *path, char *mode)
   return true;
 }
 
-size_t hc_fread_compress (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
+size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
 {
   size_t n = 0;
 
@@ -657,7 +657,7 @@ size_t hc_fread_compress (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
   return n;
 }
 
-size_t hc_fwrite_compress (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
+size_t hc_fwrite (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
 {
   size_t n = 0;
 
@@ -671,18 +671,6 @@ size_t hc_fwrite_compress (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
   if (n != nmemb) return -1;
 
   return n;
-}
-
-size_t hc_fread (void *ptr, size_t size, size_t nmemb, FILE *stream)
-{
-  return fread (ptr, size, nmemb, stream);
-}
-
-void hc_fwrite (const void *ptr, size_t size, size_t nmemb, FILE *stream)
-{
-  size_t rc = fwrite (ptr, size, nmemb, stream);
-
-  if (rc == 0) rc = 0;
 }
 
 int hc_fseek (HCFILE *fp, off_t offset, int whence)

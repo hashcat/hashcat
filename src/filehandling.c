@@ -19,7 +19,7 @@ u64 count_lines (HCFILE *fp)
 
   while (!hc_feof (fp))
   {
-    size_t nread = hc_fread_compress (buf, sizeof (char), HCBUFSIZ_LARGE, fp);
+    size_t nread = hc_fread (buf, sizeof (char), HCBUFSIZ_LARGE, fp);
 
     if (nread < 1) continue;
 

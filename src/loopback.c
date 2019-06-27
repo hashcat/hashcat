@@ -52,8 +52,7 @@ static void loopback_format_plain (hashcat_ctx_t *hashcat_ctx, const u8 *plain_p
   }
   else
   {
-//    hc_fwrite (plain_ptr, plain_len, 1, loopback_ctx->fp);
-    hc_fwrite_compress ((void *)plain_ptr, plain_len, 1, loopback_ctx->fp);
+    hc_fwrite ((void *)plain_ptr, plain_len, 1, loopback_ctx->fp);
   }
 }
 
@@ -172,8 +171,7 @@ void loopback_write_append (hashcat_ctx_t *hashcat_ctx, const u8 *plain_ptr, con
 //  lock_file (fp);
   lock_file (fp->f.fp);
 
-//  hc_fwrite (EOL, strlen (EOL), 1, fp);
-  hc_fwrite_compress (EOL, strlen (EOL), 1, fp);
+  hc_fwrite (EOL, strlen (EOL), 1, fp);
 
 //  fflush (fp);
   hc_fflush (fp);

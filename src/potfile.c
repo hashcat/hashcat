@@ -205,7 +205,6 @@ void potfile_read_close (hashcat_ctx_t *hashcat_ctx)
   if (potfile_ctx->fp == NULL) return;
 
   fclose (potfile_ctx->fp);
-//  hc_fclose (potfile_ctx->fp);
 }
 
 int potfile_write_open (hashcat_ctx_t *hashcat_ctx)
@@ -215,10 +214,8 @@ int potfile_write_open (hashcat_ctx_t *hashcat_ctx)
   if (potfile_ctx->enabled == false) return 0;
 
   FILE *fp = fopen (potfile_ctx->filename, "ab");
-///  HCFILE *fp = (HCFILE *) hcmalloc (sizeof(HCFILE));
 
   if (fp == NULL)
-//  if (hc_fopen (fp, potfile_ctx->filename, "ab") == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", potfile_ctx->filename, strerror (errno));
 
@@ -243,7 +240,6 @@ void potfile_write_close (hashcat_ctx_t *hashcat_ctx)
   if (hashconfig->potfile_disable == true) return;
 
   fclose (potfile_ctx->fp);
-//  hc_fclose (potfile_ctx->fp);
 }
 
 void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const int out_len, u8 *plain_ptr, unsigned int plain_len)
@@ -300,16 +296,12 @@ void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, cons
   tmp_buf[tmp_len] = 0;
 
   lock_file (potfile_ctx->fp);
-//  lock_file (potfile_ctx->fp->f.fp);
 
   fprintf (potfile_ctx->fp, "%s" EOL, tmp_buf);
-//  hc_fprintf (potfile_ctx->fp, "%s" EOL, tmp_buf);
 
   fflush (potfile_ctx->fp);
-//  hc_fflush (potfile_ctx->fp);
 
   if (unlock_file (potfile_ctx->fp))
-//  if (unlock_file (potfile_ctx->fp->f.fp))
   {
     event_log_error (hashcat_ctx, "%s: Failed to unlock file.", potfile_ctx->filename);
   }
@@ -542,7 +534,6 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
   fp.f.fp = potfile_ctx->fp;
 
   while (!feof (potfile_ctx->fp))
-//  while (!hc_feof (potfile_ctx->fp))
   {
     size_t line_len = fgetl (&fp, line_buf);
 

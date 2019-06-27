@@ -101,7 +101,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memset (&in, 0, sizeof (psafe3_t));
 
-  const size_t n = hc_fread_compress (&in, sizeof (psafe3_t), 1, &fp);
+  const size_t n = hc_fread (&in, sizeof (psafe3_t), 1, &fp);
 
   hc_fclose (&fp);
 

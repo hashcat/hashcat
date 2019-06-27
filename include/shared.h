@@ -63,8 +63,6 @@ void hc_string_trim_trailing (char *s);
 void hc_string_trim_leading (char *s);
 
 bool   hc_fopen    (HCFILE *fp, const char *path, char *mode);
-size_t hc_fread    (void *ptr, size_t size, size_t nmemb, FILE *stream);
-void   hc_fwrite   (const void *ptr, size_t size, size_t nmemb, FILE *stream);
 int    hc_fscanf   (HCFILE *fp, const char *format, void *ptr);
 int    hc_fprintf  (HCFILE *fp, const char *format, ...);
 int    hc_vfprintf (HCFILE *fp, const char *format, va_list ap);
@@ -72,14 +70,14 @@ int    hc_fseek    (HCFILE *fp, off_t offset, int whence);
 void   hc_rewind   (HCFILE *fp);
 off_t  hc_ftell    (HCFILE *fp);
 int    hc_fgetc    (HCFILE *fp);
-int    hc_fputc    (int c, HCFILE *fp);
-char  *hc_fgets    (char *buf, int len, HCFILE *fp);
 int    hc_fileno   (HCFILE *fp);
 int    hc_feof     (HCFILE *fp);
 void   hc_fflush   (HCFILE *fp);
 void   hc_fclose   (HCFILE *fp);
-size_t hc_fwrite_compress (void *ptr, size_t size, size_t nmemb, HCFILE *fp);
-size_t hc_fread_compress  (void *ptr, size_t size, size_t nmemb, HCFILE *fp);
+int    hc_fputc    (int c, HCFILE *fp);
+char  *hc_fgets    (char *buf, int len, HCFILE *fp);
+size_t hc_fwrite   (void *ptr, size_t size, size_t nmemb, HCFILE *fp);
+size_t hc_fread    (void *ptr, size_t size, size_t nmemb, HCFILE *fp);
 
 bool hc_same_files (char *file1, char *file2);
 

@@ -68,7 +68,7 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
   restore_data_t *rd = restore_ctx->rd;
 
 //  if (fread (rd, sizeof (restore_data_t), 1, fp) != 1)
-  if (hc_fread_compress (rd, sizeof (restore_data_t), 1, &fp) != 1)
+  if (hc_fread (rd, sizeof (restore_data_t), 1, &fp) != 1)
   {
     event_log_error (hashcat_ctx, "Cannot read %s", eff_restore_file);
 
@@ -236,8 +236,7 @@ static int write_restore (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-//  hc_fwrite (rd, sizeof (restore_data_t), 1, fp);
-  hc_fwrite_compress (rd, sizeof (restore_data_t), 1, &fp);
+  hc_fwrite (rd, sizeof (restore_data_t), 1, &fp);
 
   for (u32 i = 0; i < rd->argc; i++)
   {

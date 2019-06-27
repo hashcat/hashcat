@@ -596,8 +596,7 @@ static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr,
   {
     char mp_file[1024];
 
-//    const size_t nread = hc_fread (mp_file, 1, sizeof (mp_file) - 1, fp);
-    const size_t nread = hc_fread_compress (mp_file, 1, sizeof (mp_file) - 1, &fp);
+    const size_t nread = hc_fread (mp_file, 1, sizeof (mp_file) - 1, &fp);
 
 //    if (!feof (fp))
     if (!hc_feof (&fp))
@@ -729,8 +728,7 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
 
   u8 *inbuf = (u8 *) hcmalloc (s.st_size);
 
-//  SizeT inlen = (SizeT) hc_fread (inbuf, 1, s.st_size, fd);
-  SizeT inlen = (SizeT) hc_fread_compress (inbuf, 1, s.st_size, &fp);
+  SizeT inlen = (SizeT) hc_fread (inbuf, 1, s.st_size, &fp);
 
   if (inlen != (SizeT) s.st_size)
   {

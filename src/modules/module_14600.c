@@ -357,7 +357,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   struct luks_phdr hdr;
 
-  const size_t nread = hc_fread_compress (&hdr, sizeof (hdr), 1, &fp);
+  const size_t nread = hc_fread (&hdr, sizeof (hdr), 1, &fp);
 
   if (nread != 1)
   {
@@ -542,7 +542,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     return (PARSER_LUKS_FILE_SIZE);
   }
 
-  const size_t nread2 = hc_fread_compress (luks->af_src_buf, keyBytes, stripes, &fp);
+  const size_t nread2 = hc_fread (luks->af_src_buf, keyBytes, stripes, &fp);
 
   if (nread2 != stripes)
   {
@@ -564,7 +564,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     return (PARSER_LUKS_FILE_SIZE);
   }
 
-  const size_t nread3 = hc_fread_compress (luks->ct_buf, sizeof (u32), 128, &fp);
+  const size_t nread3 = hc_fread (luks->ct_buf, sizeof (u32), 128, &fp);
 
   if (nread3 != 128)
   {

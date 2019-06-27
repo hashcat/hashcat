@@ -112,10 +112,8 @@ void dictstat_read (hashcat_ctx_t *hashcat_ctx)
   u64 v;
   u64 z;
 
-//  const size_t nread1 = hc_fread (&v, sizeof (u64), 1, fp);
-  const size_t nread1 = hc_fread_compress (&v, sizeof (u64), 1, &fp);
-//  const size_t nread2 = hc_fread (&z, sizeof (u64), 1, fp);
-  const size_t nread2 = hc_fread_compress (&z, sizeof (u64), 1, &fp);
+  const size_t nread1 = hc_fread (&v, sizeof (u64), 1, &fp);
+  const size_t nread2 = hc_fread (&z, sizeof (u64), 1, &fp);
 
   if ((nread1 != 1) || (nread2 != 1))
   {
@@ -167,8 +165,7 @@ void dictstat_read (hashcat_ctx_t *hashcat_ctx)
   {
     dictstat_t d;
 
-//    const size_t nread = hc_fread (&d, sizeof (dictstat_t), 1, fp);
-    const size_t nread = hc_fread_compress (&d, sizeof (dictstat_t), 1, &fp);
+    const size_t nread = hc_fread (&d, sizeof (dictstat_t), 1, &fp);
 
     if (nread == 0) continue;
 
@@ -227,15 +224,12 @@ int dictstat_write (hashcat_ctx_t *hashcat_ctx)
   v = byte_swap_64 (v);
   z = byte_swap_64 (z);
 
-//  hc_fwrite (&v, sizeof (u64), 1, fp);
-  hc_fwrite_compress (&v, sizeof (u64), 1, &fp);
-//  hc_fwrite (&z, sizeof (u64), 1, fp);
-  hc_fwrite_compress (&z, sizeof (u64), 1, &fp);
+  hc_fwrite (&v, sizeof (u64), 1, &fp);
+  hc_fwrite (&z, sizeof (u64), 1, &fp);
 
   // data
 
-//  hc_fwrite (dictstat_ctx->base, sizeof (dictstat_t), dictstat_ctx->cnt, fp);
-  hc_fwrite_compress (dictstat_ctx->base, sizeof (dictstat_t), dictstat_ctx->cnt, &fp);
+  hc_fwrite (dictstat_ctx->base, sizeof (dictstat_t), dictstat_ctx->cnt, &fp);
 
 //  fclose (fp);
   hc_fclose (&fp);

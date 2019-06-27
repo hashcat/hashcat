@@ -164,7 +164,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memset (&buf, 0, sizeof (psafe2_hdr));
 
-  const size_t n = hc_fread_compress (&buf, sizeof (psafe2_hdr), 1, &fp);
+  const size_t n = hc_fread (&buf, sizeof (psafe2_hdr), 1, &fp);
 
   hc_fclose (&fp);
 

@@ -18,8 +18,7 @@ static void out_flush (out_t *out)
 {
   if (out->len == 0) return;
 
-//  hc_fwrite (out->buf, 1, out->len, out->fp);
-  hc_fwrite_compress (out->buf, 1, out->len, out->fp);
+  hc_fwrite (out->buf, 1, out->len, out->fp);
 
   out->len = 0;
 }

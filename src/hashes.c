@@ -234,8 +234,7 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
 
         const int binary_len = module_ctx->module_hash_binary_save (hashes, salt_pos, digest_pos, &binary_buf);
 
-//        hc_fwrite (binary_buf, binary_len, 1, fp);
-        hc_fwrite_compress (binary_buf, binary_len, 1, &fp);
+        hc_fwrite (binary_buf, binary_len, 1, &fp);
 
         hcfree (binary_buf);
       }

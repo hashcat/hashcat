@@ -24,8 +24,7 @@ static int check_running_process (hashcat_ctx_t *hashcat_ctx)
 
   pidfile_data_t *pd = (pidfile_data_t *) hcmalloc (sizeof (pidfile_data_t));
 
-//  const size_t nread = hc_fread (pd, sizeof (pidfile_data_t), 1, fp);
-  const size_t nread = hc_fread_compress (pd, sizeof (pidfile_data_t), 1, &fp);
+  const size_t nread = hc_fread (pd, sizeof (pidfile_data_t), 1, &fp);
 
 //  fclose (fp);
   hc_fclose (&fp);
@@ -170,8 +169,7 @@ static int write_pidfile (hashcat_ctx_t *hashcat_ctx)
 
   fp.is_gzip = 0;
 
-//  hc_fwrite (pd, sizeof (pidfile_data_t), 1, fp);
-  hc_fwrite_compress (pd, sizeof (pidfile_data_t), 1, &fp);
+  hc_fwrite (pd, sizeof (pidfile_data_t), 1, &fp);
 
 //  fflush (fp);
   hc_fflush (&fp);
