@@ -1556,7 +1556,6 @@ typedef struct debugfile_ctx
 {
   bool enabled;
 
-//  FILE *fp;
   HCFILE *fp;
   char *filename;
   u32   mode;
@@ -1603,7 +1602,6 @@ typedef struct loopback_ctx
   bool enabled;
   bool unused;
 
-//  FILE *fp;
   HCFILE *fp;
   char *filename;
 
@@ -1620,7 +1618,6 @@ typedef struct outfile_ctx
 {
   char *filename;
 
-//  FILE *fp;
   HCFILE *fp;
 
   u32   outfile_format;
@@ -1642,7 +1639,6 @@ typedef struct potfile_ctx
   bool     enabled;
 
   FILE    *fp;
-//  HCFILE    *fp;
   char    *filename;
 
   u8      *out_buf; // allocates [HCBUFSIZ_LARGE];
@@ -1724,7 +1720,6 @@ typedef struct pidfile_ctx
 
 typedef struct out
 {
-//  FILE *fp;
   HCFILE *fp;
 
   char  buf[HCBUFSIZ_SMALL];
