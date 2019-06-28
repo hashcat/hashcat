@@ -137,25 +137,20 @@ static int ocl_check_dri (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 
   // Now we need to check if this an AMD vendor, because this is when the problems start
 
-  HCFILE fp_drm;
-//  FILE *fd_drm = fopen (drm_card0_vendor_path, "rb");
+  FILE *fd_drm = fopen (drm_card0_vendor_path, "rb");
 
-  if (hc_fopen (&fp_drm, drm_card0_vendor_path, "rb") == false) return 0;
-//  if (fd_drm == NULL) return 0;
+  if (fd_drm == NULL) return 0;
 
   u32 vendor = 0;
 
-//  if (fscanf (fd_drm, "0x%x", &vendor) != 1)
-  if (hc_fscanf (&fp_drm, "0x%x", &vendor) != 1)
+  if (fscanf (fd_drm, "0x%x", &vendor) != 1)
   {
-//    fclose (fd_drm);
-    hc_fclose (&fp_drm);
+    fclose (fd_drm);
 
     return 0;
   }
 
-//  fclose (fd_drm);
-  hc_fclose (&fp_drm);
+  fclose (fd_drm);
 
   if (vendor != 4098) return 0;
 
@@ -173,11 +168,9 @@ static int ocl_check_dri (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 
   // Now do the real check
 
-  HCFILE fp_dri;
-//  FILE *fd_dri = fopen (dri_card0_path, "rb");
+  FILE *fd_dri = fopen (dri_card0_path, "rb");
 
-  if (hc_fopen (&fp_dri, dri_card0_path, "rb") == false)
-//  if (fd_dri == NULL)
+  if (fd_dri == NULL)
   {
     event_log_error (hashcat_ctx, "Cannot access %s: %m.", dri_card0_path);
 
@@ -189,8 +182,7 @@ static int ocl_check_dri (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-//  fclose (fd_dri);
-  hc_fclose (&fp_drm);
+  fclose (fd_dri);
 
   #endif // __linux__
 
@@ -448,17 +440,14 @@ static bool opencl_test_instruction (hashcat_ctx_t *hashcat_ctx, cl_context cont
 
 static bool read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_file, size_t *kernel_lengths, char **kernel_sources, const bool force_recompile)
 {
-//  FILE *fp = fopen (kernel_file, "rb");
   HCFILE fp;
 
-//  if (fp != NULL)
   if (hc_fopen (&fp, kernel_file, "rb") != false)
   {
     struct stat st;
 
     if (stat (kernel_file, &st))
     {
-//      fclose (fp);
       hc_fclose (&fp);
 
       return false;
@@ -470,7 +459,6 @@ static bool read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_f
 
     size_t num_read = hc_fread (buf, sizeof (char), st.st_size, &fp);
 
-//    fclose (fp);
     hc_fclose (&fp);
 
     if (num_read != (size_t) st.st_size)
@@ -515,10 +503,8 @@ static bool write_kernel_binary (hashcat_ctx_t *hashcat_ctx, char *kernel_file, 
 {
   if (binary_size > 0)
   {
-//    FILE *fp = fopen (kernel_file, "wb");
     HCFILE fp;
 
-//    if (fp == NULL)
     if (hc_fopen (&fp, kernel_file, "wb") == false)
     {
       event_log_error (hashcat_ctx, "%s: %s", kernel_file, strerror (errno));
@@ -528,10 +514,8 @@ static bool write_kernel_binary (hashcat_ctx_t *hashcat_ctx, char *kernel_file, 
 
     fp.is_gzip = false;
 
-//    if (lock_file (fp) == -1)
-    if (lock_file (fp.f.fp) == -1)
+    if (lock_file (fp.pfp) == -1)
     {
-//      fclose (fp);
       hc_fclose (&fp);
 
       event_log_error (hashcat_ctx, "%s: %s", kernel_file, strerror (errno));
@@ -541,10 +525,8 @@ static bool write_kernel_binary (hashcat_ctx_t *hashcat_ctx, char *kernel_file, 
 
     hc_fwrite (binary, sizeof (char), binary_size, &fp);
 
-//    fflush (fp);
     hc_fflush (&fp);
 
-//    fclose (fp);
     hc_fclose (&fp);
   }
 

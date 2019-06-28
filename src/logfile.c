@@ -43,10 +43,8 @@ void logfile_append (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
 
   if (logfile_ctx->enabled == false) return;
 
-//  FILE *fp = fopen (logfile_ctx->logfile, "ab");
   HCFILE fp;
 
-//  if (fp == NULL)
   if (hc_fopen (&fp, logfile_ctx->logfile, "ab") == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", logfile_ctx->logfile, strerror (errno));
@@ -56,24 +54,20 @@ void logfile_append (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
 
   fp.is_gzip = false;
 
-//  lock_file (fp);
-  lock_file (fp.f.fp);
+  lock_file (fp.pfp);
 
   va_list ap;
 
   va_start (ap, fmt);
 
-//  vfprintf (fp, fmt, ap);
   hc_vfprintf (&fp, fmt, ap);
 
   va_end (ap);
 
   hc_fwrite (EOL, strlen (EOL), 1, &fp);
 
-//  fflush (fp);
   hc_fflush (&fp);
 
-//  fclose (fp);
   hc_fclose (&fp);
 }
 

@@ -528,7 +528,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
   // workaround for new fgetl
   HCFILE fp;
   fp.is_gzip = false;
-  fp.f.fp = potfile_ctx->fp;
+  fp.pfp = potfile_ctx->fp;
 
   while (!feof (potfile_ctx->fp))
   {

@@ -390,10 +390,8 @@ int outfile_write_open (hashcat_ctx_t *hashcat_ctx)
 
   if (outfile_ctx->filename == NULL) return 0;
 
-//  FILE *fp = fopen (outfile_ctx->filename, "ab");
   HCFILE fp;
 
-//  if (fp == NULL)
   if (hc_fopen (&fp, outfile_ctx->filename, "ab") == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", outfile_ctx->filename, strerror (errno));
@@ -403,10 +401,8 @@ int outfile_write_open (hashcat_ctx_t *hashcat_ctx)
 
   fp.is_gzip = false;
 
-//  if (lock_file (fp) == -1)
-  if (lock_file (fp.f.fp) == -1)
+  if (lock_file (fp.pfp) == -1)
   {
-//    fclose (fp);
     hc_fclose (&fp);
 
     event_log_error (hashcat_ctx, "%s: %s", outfile_ctx->filename, strerror (errno));
@@ -414,7 +410,6 @@ int outfile_write_open (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-//  outfile_ctx->fp = fp;
   outfile_ctx->fp = &fp;
 
   return 0;
@@ -426,7 +421,6 @@ void outfile_write_close (hashcat_ctx_t *hashcat_ctx)
 
   if (outfile_ctx->fp == NULL) return;
 
-//  fclose (outfile_ctx->fp);
   hc_fclose (outfile_ctx->fp);
 }
 

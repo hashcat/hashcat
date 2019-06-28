@@ -993,15 +993,12 @@ typedef struct link_speed
 
 typedef struct hc_fp
 {
-  union
-  {
-    FILE *fp;
-    gzFile gfp;
-  } f;
+  FILE       *pfp;
+  gzFile      gfp;
 
-  bool is_gzip;
+  bool        is_gzip;
+  char       *mode;
   const char *path;
-  char *mode;
 } HCFILE;
 
 #include "ext_nvrtc.h"

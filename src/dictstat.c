@@ -96,10 +96,8 @@ void dictstat_read (hashcat_ctx_t *hashcat_ctx)
 
   if (hashconfig->dictstat_disable == true) return;
 
-//  FILE *fp = fopen (dictstat_ctx->filename, "rb");
   HCFILE fp;
 
-//  if (fp == NULL)
   if (hc_fopen (&fp, dictstat_ctx->filename, "rb") == false)
   {
     // first run, file does not exist, do not error out
@@ -119,7 +117,6 @@ void dictstat_read (hashcat_ctx_t *hashcat_ctx)
   {
     event_log_error (hashcat_ctx, "%s: Invalid header", dictstat_ctx->filename);
 
-//    fclose (fp);
     hc_fclose (&fp);
 
     return;
@@ -132,7 +129,6 @@ void dictstat_read (hashcat_ctx_t *hashcat_ctx)
   {
     event_log_error (hashcat_ctx, "%s: Invalid header, ignoring content", dictstat_ctx->filename);
 
-//    fclose (fp);
     hc_fclose (&fp);
 
     return;
@@ -142,7 +138,6 @@ void dictstat_read (hashcat_ctx_t *hashcat_ctx)
   {
     event_log_error (hashcat_ctx, "%s: Invalid header, ignoring content", dictstat_ctx->filename);
 
-//    fclose (fp);
     hc_fclose (&fp);
 
     return;
@@ -152,7 +147,6 @@ void dictstat_read (hashcat_ctx_t *hashcat_ctx)
   {
     event_log_warning (hashcat_ctx, "%s: Outdated header version, ignoring content", dictstat_ctx->filename);
 
-//    fclose (fp);
     hc_fclose (&fp);
 
     return;
@@ -160,7 +154,6 @@ void dictstat_read (hashcat_ctx_t *hashcat_ctx)
 
   // parse data
 
-//  while (!feof (fp))
   while (!hc_feof (&fp))
   {
     dictstat_t d;
@@ -179,7 +172,6 @@ void dictstat_read (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-//  fclose (fp);
   hc_fclose (&fp);
 }
 
@@ -192,10 +184,8 @@ int dictstat_write (hashcat_ctx_t *hashcat_ctx)
 
   if (hashconfig->dictstat_disable == true) return 0;
 
-//  FILE *fp = fopen (dictstat_ctx->filename, "wb");
   HCFILE fp;
 
-//  if (fp == NULL)
   if (hc_fopen (&fp, dictstat_ctx->filename, "wb") == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", dictstat_ctx->filename, strerror (errno));
@@ -205,10 +195,8 @@ int dictstat_write (hashcat_ctx_t *hashcat_ctx)
 
   fp.is_gzip = false;
 
-//  if (lock_file (fp) == -1)
-  if (lock_file (fp.f.fp) == -1)
+  if (lock_file (fp.pfp) == -1)
   {
-//    fclose (fp);
     hc_fclose (&fp);
 
     event_log_error (hashcat_ctx, "%s: %s", dictstat_ctx->filename, strerror (errno));
@@ -231,7 +219,6 @@ int dictstat_write (hashcat_ctx_t *hashcat_ctx)
 
   hc_fwrite (dictstat_ctx->base, sizeof (dictstat_t), dictstat_ctx->cnt, &fp);
 
-//  fclose (fp);
   hc_fclose (&fp);
 
   return 0;

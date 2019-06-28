@@ -184,10 +184,8 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
 
   char separator = hashconfig->separator;
 
-//  FILE *fp = fopen (new_hashfile, "wb");
   HCFILE fp;
 
-//  if (fp == NULL)
   if (hc_fopen (&fp, new_hashfile, "wb") == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", new_hashfile, strerror (errno));
@@ -200,10 +198,8 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
 
   fp.is_gzip = false;
 
-//  if (lock_file (fp) == -1)
-  if (lock_file (fp.f.fp) == -1)
+  if (lock_file (fp.pfp) == -1)
   {
-//    fclose (fp);
     hc_fclose (&fp);
 
     event_log_error (hashcat_ctx, "%s: %s", new_hashfile, strerror (errno));
@@ -246,10 +242,8 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
 
           u32 i;
 
-//          for (i = 0; i < user->user_len; i++) fputc (user->user_name[i], fp);
           for (i = 0; i < user->user_len; i++) hc_fputc (user->user_name[i], &fp);
 
-//          fputc (separator, fp);
           hc_fputc (separator, &fp);
         }
 
@@ -257,7 +251,6 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
 
         out_buf[out_len] = 0;
 
-//        fprintf (fp, "%s" EOL, out_buf);
         hc_fprintf (&fp, "%s" EOL, out_buf);
       }
     }
@@ -265,10 +258,8 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
 
   hcfree (out_buf);
 
-//  fflush (fp);
   hc_fflush (&fp);
 
-//  fclose (fp);
   hc_fclose (&fp);
 
   unlink (old_hashfile);
@@ -1804,6 +1795,8 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
       HCFILE fp;
 
       hc_fopen (&fp, tmpfile_bin, "wb");
+
+      fp.is_gzip = false;
 
       const size_t st_hash_len = strlen (hashconfig->st_hash);
 

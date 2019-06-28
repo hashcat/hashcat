@@ -582,10 +582,8 @@ static void mp_setup_sys (cs_t *mp_sys)
 
 static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr, const char *buf, const u32 userindex)
 {
-//  FILE *fp = fopen (buf, "rb");
   HCFILE fp;
 
-//  if (fp == NULL) // feof() in case if file is empty
   if (hc_fopen (&fp, buf, "rb") == false)
   {
     const int rc = mp_expand (hashcat_ctx, buf, strlen (buf), mp_sys, mp_usr, userindex, 1);
@@ -598,18 +596,15 @@ static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr,
 
     const size_t nread = hc_fread (mp_file, 1, sizeof (mp_file) - 1, &fp);
 
-//    if (!feof (fp))
     if (!hc_feof (&fp))
     {
       event_log_error (hashcat_ctx, "%s: Custom charset file is too large.", buf);
 
-//      fclose (fp);
       hc_fclose (&fp);
 
       return -1;
     }
 
-//    fclose (fp);
     hc_fclose (&fp);
 
     if (nread == 0)
@@ -715,10 +710,8 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-//  FILE *fd = fopen (hcstat, "rb");
   HCFILE fp;
 
-//  if (fd == NULL)
   if (hc_fopen (&fp, hcstat, "rb") == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", hcstat, strerror (errno));
@@ -734,7 +727,6 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
   {
     event_log_error (hashcat_ctx, "%s: Could not read data.", hcstat);
 
-//    fclose (fd);
     hc_fclose (&fp);
 
     hcfree (inbuf);
@@ -742,7 +734,6 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-//  fclose (fd);
   hc_fclose (&fp);
 
   u8 *outbuf = (u8 *) hcmalloc (SP_FILESZ);
@@ -1469,10 +1460,8 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
             if (hc_path_is_file (arg) == true)
             {
-//              FILE *mask_fp = fopen (arg, "r");
               HCFILE mask_fp;
 
-//              if (mask_fp == NULL)
               if (hc_fopen (&mask_fp, arg, "r") == false)
               {
                 event_log_error (hashcat_ctx, "%s: %s", arg, strerror (errno));
@@ -1482,12 +1471,6 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
               char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
-              // workaround for new fgetl
-/*              HCFILE fp;
-              fp.is_gzip = 0;
-              fp.f.fp = mask_fp;
-*/
-//              while (!feof (mask_fp))
               while (!hc_feof (&mask_fp))
               {
                 const size_t line_len = fgetl (&mask_fp, line_buf);
@@ -1513,7 +1496,6 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
                 if (rc == -1)
                 {
-//                  fclose (mask_fp);
                   hc_fclose (&mask_fp);
 
                   return -1;
@@ -1522,7 +1504,6 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
               hcfree (line_buf);
 
-//              fclose (mask_fp);
               hc_fclose (&mask_fp);
             }
             else
@@ -1572,10 +1553,8 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
       {
         mask_ctx->mask_from_file = true;
 
-//        FILE *mask_fp = fopen (arg, "r");
         HCFILE mask_fp;
 
-//        if (mask_fp == NULL)
         if (hc_fopen (&mask_fp, arg, "r") == false)
         {
           event_log_error (hashcat_ctx, "%s: %s", arg, strerror (errno));
@@ -1584,14 +1563,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
         }
 
         char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
-/*
-        // workaround for new fgetl
-        HCFILE fp;
-        fp.is_gzip = 0;
-        fp.f.fp = mask_fp;
 
-        while (!feof (mask_fp))
-*/
         while (!hc_feof (&mask_fp))
         {
           const size_t line_len = fgetl (&mask_fp, line_buf);
@@ -1617,7 +1589,6 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
           if (rc == -1)
           {
-//            fclose (mask_fp);
             hc_fclose (&mask_fp);
 
             return -1;
@@ -1626,7 +1597,6 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         hcfree (line_buf);
 
-//        fclose (mask_fp);
         hc_fclose (&mask_fp);
       }
       else
@@ -1657,10 +1627,8 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
       {
         mask_ctx->mask_from_file = true;
 
-//        FILE *mask_fp = fopen (arg, "r");
         HCFILE mask_fp;
 
-//        if (mask_fp == NULL)
         if (hc_fopen (&mask_fp, arg, "r") == false)
         {
           event_log_error (hashcat_ctx, "%s: %s", arg, strerror (errno));
@@ -1669,14 +1637,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
         }
 
         char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
-/*
-        // workaround for new fgetl
-        HCFILE fp;
-        fp.is_gzip = 0;
-        fp.f.fp = mask_fp;
 
-        while (!feof (mask_fp))
-*/
         while (!hc_feof (&mask_fp))
         {
           const size_t line_len = fgetl (&mask_fp, line_buf);
@@ -1702,7 +1663,6 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
           if (rc == -1)
           {
-//            fclose (mask_fp);
             hc_fclose (&mask_fp);
 
             return -1;
@@ -1711,7 +1671,6 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         hcfree (line_buf);
 
-//        fclose (mask_fp);
         hc_fclose (&mask_fp);
       }
       else

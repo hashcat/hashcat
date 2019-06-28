@@ -16,17 +16,14 @@ static int check_running_process (hashcat_ctx_t *hashcat_ctx)
 
   char *pidfile_filename = pidfile_ctx->filename;
 
-//  FILE *fp = fopen (pidfile_filename, "rb");
   HCFILE fp;
 
-//  if (fp == NULL) return 0;
   if (hc_fopen (&fp, pidfile_filename, "rb") == false) return 0;
 
   pidfile_data_t *pd = (pidfile_data_t *) hcmalloc (sizeof (pidfile_data_t));
 
   const size_t nread = hc_fread (pd, sizeof (pidfile_data_t), 1, &fp);
 
-//  fclose (fp);
   hc_fclose (&fp);
 
   if (nread != 1)
@@ -156,10 +153,8 @@ static int write_pidfile (hashcat_ctx_t *hashcat_ctx)
 
   char *pidfile_filename = pidfile_ctx->filename;
 
-//  FILE *fp = fopen (pidfile_filename, "wb");
   HCFILE fp;
 
-//  if (fp == NULL)
   if (hc_fopen (&fp, pidfile_filename, "wb") == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", pidfile_filename, strerror (errno));
@@ -171,10 +166,8 @@ static int write_pidfile (hashcat_ctx_t *hashcat_ctx)
 
   hc_fwrite (pd, sizeof (pidfile_data_t), 1, &fp);
 
-//  fflush (fp);
   hc_fflush (&fp);
 
-//  fclose (fp);
   hc_fclose (&fp);
 
   return 0;

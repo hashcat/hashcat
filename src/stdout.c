@@ -63,21 +63,16 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
   HCFILE fp_tmp;
   fp_tmp.is_gzip = false;
-  fp_tmp.f.fp = stdout;
+  fp_tmp.pfp = stdout;
 
-//  out.fp = stdout;
   out.fp = &fp_tmp;
-
-  /// PORKODIO
 
   char *filename = outfile_ctx->filename;
 
   if (filename)
   {
-//    FILE *fp = fopen (filename, "ab");
     HCFILE fp;
 
-//    if (fp == NULL)
     if (hc_fopen (&fp, filename, "ab") == false)
     {
       event_log_error (hashcat_ctx, "%s: %s", filename, strerror (errno));
@@ -87,10 +82,8 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
     fp.is_gzip = false;
 
-//    if (lock_file (fp) == -1)
-    if (lock_file (fp.f.fp) == -1)
+    if (lock_file (fp.pfp) == -1)
     {
-//      fclose (fp);
       hc_fclose (&fp);
 
       event_log_error (hashcat_ctx, "%s: %s", filename, strerror (errno));
@@ -121,7 +114,6 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
       if (rc == -1)
       {
-//        if (filename) fclose (out.fp);
         if (filename) hc_fclose (out.fp);
 
         return -1;
@@ -166,7 +158,6 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
       if (rc == -1)
       {
-//        if (filename) fclose (out.fp);
         if (filename) hc_fclose (out.fp);
 
         return -1;
@@ -237,7 +228,6 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
       if (rc == -1)
       {
-//        if (filename) fclose (out.fp);
         if (filename) hc_fclose (out.fp);
 
         return -1;
@@ -275,7 +265,6 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
       if (rc == -1)
       {
-//        if (filename) fclose (out.fp);
         if (filename) hc_fclose (out.fp);
 
         return -1;
@@ -308,7 +297,6 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
   out_flush (&out);
 
-//  if (filename) fclose (out.fp);
   if (filename) hc_fclose (out.fp);
 
   return 0;

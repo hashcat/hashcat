@@ -155,20 +155,16 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
     for (int j = 0; j < out_cnt; j++)
     {
-//      FILE *fp = fopen (out_info[j].file_name, "rb");
       HCFILE fp;
 
-//      if (fp == NULL) continue;
       if (hc_fopen (&fp, out_info[j].file_name, "rb") == false) continue;
 
       //hc_thread_mutex_lock (status_ctx->mux_display);
 
       struct stat outfile_stat;
 
-//      if (fstat (fileno (fp), &outfile_stat))
       if (fstat (hc_fileno (&fp), &outfile_stat))
       {
-//        fclose (fp);
         hc_fclose (&fp);
 
         continue;
@@ -180,21 +176,13 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
         out_info[j].seek  = 0;
       }
 
-//      fseeko (fp, out_info[j].seek, SEEK_SET);
       hc_fseek (&fp, out_info[j].seek, SEEK_SET);
 
       char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
       // large portion of the following code is the same as in potfile_remove_parse
       // maybe subject of a future optimization
-/*
-      // workaround for new fgetl
-      HCFILE fp_tmp;
-      fp_tmp.is_gzip = 0;
-      fp_tmp.f.fp = fp;
 
-      while (!feof (fp))
-*/
       while (!hc_feof (&fp))
       {
         size_t line_len = fgetl (&fp, line_buf);
@@ -319,12 +307,10 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
       hcfree (line_buf);
 
-//      out_info[j].seek = ftello (fp);
       out_info[j].seek = hc_ftell (&fp);
 
       //hc_thread_mutex_unlock (status_ctx->mux_display);
 
-//      fclose (fp);
       hc_fclose (&fp);
 
       if (status_ctx->shutdown_inner == true) break;

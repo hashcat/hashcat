@@ -38,16 +38,13 @@ static void loopback_format_plain (hashcat_ctx_t *hashcat_ctx, const u8 *plain_p
 
   if (needs_hexify == 1)
   {
-//    fprintf (loopback_ctx->fp, "$HEX[");
     hc_fprintf (loopback_ctx->fp, "$HEX[");
 
     for (u32 i = 0; i < plain_len; i++)
     {
-//      fprintf (loopback_ctx->fp, "%02x", plain_ptr[i]);
       hc_fprintf (loopback_ctx->fp, "%02x", plain_ptr[i]);
     }
 
-//    fprintf (loopback_ctx->fp, "]");
     hc_fprintf (loopback_ctx->fp, "]");
   }
   else
@@ -108,10 +105,8 @@ int loopback_write_open (hashcat_ctx_t *hashcat_ctx)
 
   hc_asprintf (&loopback_ctx->filename, "%s/%s.%d_%u", induct_ctx->root_directory, LOOPBACK_FILE, (int) now, random_num);
 
-//  FILE *fp = fopen (loopback_ctx->filename, "ab");
   HCFILE fp;
 
-//  if (fp == NULL)
   if (hc_fopen (&fp, loopback_ctx->filename, "ab") == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", loopback_ctx->filename, strerror (errno));
@@ -121,7 +116,6 @@ int loopback_write_open (hashcat_ctx_t *hashcat_ctx)
 
   fp.is_gzip = false;
 
-//  loopback_ctx->fp = fp;
   loopback_ctx->fp = &fp;
 
   loopback_ctx->unused = true;
@@ -148,7 +142,6 @@ void loopback_write_close (hashcat_ctx_t *hashcat_ctx)
 
   if (loopback_ctx->fp == NULL) return;
 
-//  fclose (loopback_ctx->fp);
   hc_fclose (loopback_ctx->fp);
 
   if (loopback_ctx->unused == true)
@@ -163,21 +156,17 @@ void loopback_write_append (hashcat_ctx_t *hashcat_ctx, const u8 *plain_ptr, con
 
   if (loopback_ctx->enabled == false) return;
 
-//  FILE *fp = loopback_ctx->fp;
   HCFILE *fp = loopback_ctx->fp;
 
   loopback_format_plain (hashcat_ctx, plain_ptr, plain_len);
 
-//  lock_file (fp);
-  lock_file (fp->f.fp);
+  lock_file (fp->pfp);
 
   hc_fwrite (EOL, strlen (EOL), 1, fp);
 
-//  fflush (fp);
   hc_fflush (fp);
 
-//  if (unlock_file (fp))
-  if (unlock_file (fp->f.fp))
+  if (unlock_file (fp->pfp))
   {
     event_log_error (hashcat_ctx, "%s: Failed to unlock file", loopback_ctx->filename);
   }
