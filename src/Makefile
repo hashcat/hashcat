@@ -179,6 +179,7 @@ endif
 ## because ZLIB
 ifeq ($(USE_SYSTEM_ZLIB),0)
 CFLAGS_ZLIB             += -Wno-implicit-fallthrough
+CFLAGS_ZLIB             += -Wno-implicit-function-declaration
 endif
 
 ifeq ($(DEBUG),0)
