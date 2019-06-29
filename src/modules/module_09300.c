@@ -112,7 +112,7 @@ u64 module_extra_buffer_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
   const u32 scrypt_r = 1;
   //const u32 scrypt_p = 1;
 
-  const u64 kernel_power_max = device_param->device_processors * hashconfig->kernel_threads_max * hashconfig->kernel_accel_max;
+  const u64 kernel_power_max = (u64)(device_param->device_processors * hashconfig->kernel_threads_max * hashconfig->kernel_accel_max);
 
   u32 tmto_start = 1;
   u32 tmto_stop  = 6;
@@ -231,13 +231,13 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
   const u64 extra_buffer_size = device_param->extra_buffer_size;
 
-  const u64 kernel_power_max = device_param->device_processors * hashconfig->kernel_threads_max * hashconfig->kernel_accel_max;
+  const u64 kernel_power_max = (u64)(device_param->device_processors * hashconfig->kernel_threads_max * hashconfig->kernel_accel_max);
 
-  const u64 size_scrypt = (128 * scrypt_r) * scrypt_N;
+  const u64 size_scrypt = (u64)(128 * scrypt_r * scrypt_N);
 
   const u64 scrypt_tmto_final = (kernel_power_max * size_scrypt) / extra_buffer_size;
 
-  const u64 tmp_size = (128 * scrypt_r) * scrypt_p;
+  const u64 tmp_size = (u64)(128 * scrypt_r * scrypt_p);
 
   char *jit_build_options = NULL;
 
