@@ -160,15 +160,15 @@ typedef enum amplifier_count
 
 typedef enum vendor_id
 {
-  VENDOR_ID_AMD           = (1 << 0),
-  VENDOR_ID_APPLE         = (1 << 1),
-  VENDOR_ID_INTEL_BEIGNET = (1 << 2),
-  VENDOR_ID_INTEL_SDK     = (1 << 3),
-  VENDOR_ID_MESA          = (1 << 4),
-  VENDOR_ID_NV            = (1 << 5),
-  VENDOR_ID_POCL          = (1 << 6),
-  VENDOR_ID_AMD_USE_INTEL = (1 << 7),
-  VENDOR_ID_GENERIC       = (1 << 31)
+  VENDOR_ID_AMD           = (1U << 0),
+  VENDOR_ID_APPLE         = (1U << 1),
+  VENDOR_ID_INTEL_BEIGNET = (1U << 2),
+  VENDOR_ID_INTEL_SDK     = (1U << 3),
+  VENDOR_ID_MESA          = (1U << 4),
+  VENDOR_ID_NV            = (1U << 5),
+  VENDOR_ID_POCL          = (1U << 6),
+  VENDOR_ID_AMD_USE_INTEL = (1U << 7),
+  VENDOR_ID_GENERIC       = (1U << 31)
 
 } vendor_id_t;
 
