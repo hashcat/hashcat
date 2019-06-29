@@ -154,7 +154,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   tmp_salt[salt_len] = 0;
 
-  return snprintf (line_buf, line_size, "%08x%08x%08x%08x:%d:%s",
+  return snprintf (line_buf, line_size, "%08x%08x%08x%08x:%u:%s",
     digest[0],
     digest[1],
     digest[2],

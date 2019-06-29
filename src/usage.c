@@ -322,7 +322,7 @@ void usage_big_print (hashcat_ctx_t *hashcat_ctx)
 
   for (int i = 0; i < usage_sort_cnt; i++)
   {
-    printf ("%7d | %-48s | %s", usage_sort_buf[i].hash_mode, usage_sort_buf[i].hash_name, strhashcategory (usage_sort_buf[i].hash_category));
+    printf ("%7u | %-48s | %s", usage_sort_buf[i].hash_mode, usage_sort_buf[i].hash_name, strhashcategory (usage_sort_buf[i].hash_category));
 
     hc_fwrite (EOL, strlen (EOL), 1, stdout);
   }

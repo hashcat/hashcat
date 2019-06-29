@@ -154,7 +154,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     line_buf[line_len++] = 'm';
     line_buf[line_len++] = ',';
 
-    line_len += snprintf (line_buf + line_len, line_size - line_len, "%u", iter);
+    line_len += snprintf (line_buf + line_len, line_size - line_len, "%d", iter);
 
     line_buf[line_len++] = '@';
   }

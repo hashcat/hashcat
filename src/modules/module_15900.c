@@ -374,7 +374,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     memcpy (hash_algorithm, "sha512", strlen ("sha512"));
   }
 
-  const int line_len = snprintf (line_buf, line_size, "%s%d*%d*%s*%s*%s*%d*%s*%d*%s",
+  const int line_len = snprintf (line_buf, line_size, "%s%u*%u*%s*%s*%s*%u*%s*%u*%s",
     SIGNATURE_DPAPIMK,
     version,
     context,

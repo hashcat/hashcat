@@ -210,7 +210,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const oldoffice01_t *oldoffice01 = (const oldoffice01_t *) esalt_buf;
 
-  const int line_len = snprintf (line_buf, line_size, "%s%d*%08x%08x%08x%08x*%08x%08x%08x%08x*%08x%08x%08x%08x",
+  const int line_len = snprintf (line_buf, line_size, "%s%u*%08x%08x%08x%08x*%08x%08x%08x%08x*%08x%08x%08x%08x",
     SIGNATURE_OLDOFFICE,
     oldoffice01->version,
     byte_swap_32 (salt->salt_buf[0]),
