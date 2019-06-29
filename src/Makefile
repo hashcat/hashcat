@@ -178,7 +178,11 @@ endif
 
 ## because ZLIB
 ifeq ($(USE_SYSTEM_ZLIB),0)
+ifeq ($(UNAME),CYGWIN)
+CFLAGS_ZLIB             += -Wno-implicit-fallthrough -UWIDECHAR
+else
 CFLAGS_ZLIB             += -Wno-implicit-fallthrough
+endif
 endif
 
 ifeq ($(DEBUG),0)
