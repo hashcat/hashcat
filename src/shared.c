@@ -602,6 +602,18 @@ void hc_string_trim_trailing (char *s)
   s[new_len] = 0;
 }
 
+#if defined (__CYGWIN__)
+// workaround for zlib with cygwin build
+int _wopen(const char *path, int oflag, ...)
+{
+  va_list ap;
+  va_start (ap, oflag);
+  int r = open (path, oflag, ap);
+  va_end (ap);
+  return r;
+}
+#endif
+
 bool hc_fopen (HCFILE *fp, const char *path, char *mode)
 {
   unsigned char check[3] = { 0 };

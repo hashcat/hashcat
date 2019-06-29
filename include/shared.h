@@ -62,6 +62,10 @@ bool hc_string_is_digit (const char *s);
 void hc_string_trim_trailing (char *s);
 void hc_string_trim_leading (char *s);
 
+#if defined (__CYGWIN__)
+int    _wopen(const char *path, int oflag, ...);
+#endif
+
 bool   hc_fopen    (HCFILE *fp, const char *path, char *mode);
 int    hc_fscanf   (HCFILE *fp, const char *format, void *ptr);
 int    hc_fprintf  (HCFILE *fp, const char *format, ...);
