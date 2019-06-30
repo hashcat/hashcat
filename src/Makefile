@@ -319,7 +319,7 @@ WIN_OBJS                += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).WIN.o)
 endif
 
 ifeq ($(USE_SYSTEM_ZLIB),0)
-OBJS_ZLIB               := adler32 crc32 zutil inftrees inffast inflate compress deflate gzclose gzlib gzread gzwrite infback inftrees trees uncompr zutil
+OBJS_ZLIB               := adler32 crc32 deflate inflate inffast inftrees trees gzread gzwrite gzclose zutil gzlib
 
 NATIVE_OBJS             += $(foreach OBJ,$(OBJS_ZLIB),obj/$(OBJ).NATIVE.o)
 LINUX_OBJS              += $(foreach OBJ,$(OBJS_ZLIB),obj/$(OBJ).LINUX.o)
