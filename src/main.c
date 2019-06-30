@@ -28,24 +28,24 @@
 int _dowildcard = -1;
 #endif
 
-static void main_log_clear_line (MAYBE_UNUSED const size_t prev_len, MAYBE_UNUSED HCFILE *fp)
+static void main_log_clear_line (MAYBE_UNUSED const size_t prev_len, MAYBE_UNUSED FILE *fp)
 {
   #if defined (_WIN)
 
-  hc_fputc ('\r', fp);
+  fputc ('\r', fp);
 
-  for (size_t i = 0; i < prev_len; i++) hc_fputc (' ', fp);
+  for (size_t i = 0; i < prev_len; i++) fputc (' ', fp);
 
-  hc_fputc ('\r', fp);
+  fputc ('\r', fp);
 
   #else
 
-  hc_fprintf(fp, "\033[2K\r");
+  fputs ("\033[2K\r", fp);
 
   #endif
 }
 
-static void main_log (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, const int loglevel)
+static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp, const int loglevel)
 {
   event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
 
@@ -57,19 +57,9 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, const int loglevel
 
   const size_t prev_len = event_ctx->prev_len;
 
-  if (prev_len)
-  {
-    main_log_clear_line (prev_len, fp);
-  }
+  if (prev_len) main_log_clear_line (prev_len, fp);
 
-  if (msg_newline == true)
-  {
-    event_ctx->prev_len = 0;
-  }
-  else
-  {
-    event_ctx->prev_len = msg_len;
-  }
+  event_ctx->prev_len = (msg_newline == true) ? 0 : msg_len;
 
   // color stuff pre
 
@@ -97,16 +87,16 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, const int loglevel
   #else
   switch (loglevel)
   {
-    case LOGLEVEL_INFO:                                      break;
-    case LOGLEVEL_WARNING: hc_fwrite ("\033[33m", 5, 1, fp); break;
-    case LOGLEVEL_ERROR:   hc_fwrite ("\033[31m", 5, 1, fp); break;
-    case LOGLEVEL_ADVICE:  hc_fwrite ("\033[33m", 5, 1, fp); break;
+    case LOGLEVEL_INFO:                                   break;
+    case LOGLEVEL_WARNING: fwrite ("\033[33m", 5, 1, fp); break;
+    case LOGLEVEL_ERROR:   fwrite ("\033[31m", 5, 1, fp); break;
+    case LOGLEVEL_ADVICE:  fwrite ("\033[33m", 5, 1, fp); break;
   }
   #endif
 
   // finally, print
 
-  hc_fwrite ((void *)msg_buf, msg_len, 1, fp);
+  fwrite (msg_buf, msg_len, 1, fp);
 
   // color stuff post
 
@@ -121,10 +111,10 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, const int loglevel
   #else
   switch (loglevel)
   {
-    case LOGLEVEL_INFO:                                     break;
-    case LOGLEVEL_WARNING: hc_fwrite ("\033[0m", 4, 1, fp); break;
-    case LOGLEVEL_ERROR:   hc_fwrite ("\033[0m", 4, 1, fp); break;
-    case LOGLEVEL_ADVICE:  hc_fwrite ("\033[0m", 4, 1, fp); break;
+    case LOGLEVEL_INFO:                                  break;
+    case LOGLEVEL_WARNING: fwrite ("\033[0m", 4, 1, fp); break;
+    case LOGLEVEL_ERROR:   fwrite ("\033[0m", 4, 1, fp); break;
+    case LOGLEVEL_ADVICE:  fwrite ("\033[0m", 4, 1, fp); break;
   }
   #endif
 
@@ -132,17 +122,17 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, const int loglevel
 
   if (msg_newline == true)
   {
-    hc_fwrite (EOL, strlen (EOL), 1, fp);
+    fwrite (EOL, strlen (EOL), 1, fp);
 
     // on error, add another newline
 
     if (loglevel == LOGLEVEL_ERROR)
     {
-      hc_fwrite (EOL, strlen (EOL), 1, fp);
+      fwrite (EOL, strlen (EOL), 1, fp);
     }
   }
 
-  hc_fflush (fp);
+  fflush (fp);
 }
 
 static void main_log_advice (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -151,38 +141,22 @@ static void main_log_advice (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUS
 
   if (user_options->advice_disable == true) return;
 
-  HCFILE fp;
-  fp.is_gzip = false;
-  fp.pfp = stdout;
-
-  main_log (hashcat_ctx, &fp, LOGLEVEL_ADVICE);
+  main_log (hashcat_ctx, stdout, LOGLEVEL_ADVICE);
 }
 
 static void main_log_info (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
-  HCFILE fp;
-  fp.is_gzip = false;
-  fp.pfp = stdout;
-
-  main_log (hashcat_ctx, &fp, LOGLEVEL_INFO);
+  main_log (hashcat_ctx, stdout, LOGLEVEL_INFO);
 }
 
 static void main_log_warning (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
-  HCFILE fp;
-  fp.is_gzip = false;
-  fp.pfp = stdout;
-
-  main_log (hashcat_ctx, &fp, LOGLEVEL_WARNING);
+  main_log (hashcat_ctx, stdout, LOGLEVEL_WARNING);
 }
 
 static void main_log_error (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
-  HCFILE fp;
-  fp.is_gzip = false;
-  fp.pfp = stderr;
-
-  main_log (hashcat_ctx, &fp, LOGLEVEL_ERROR);
+  main_log (hashcat_ctx, stderr, LOGLEVEL_ERROR);
 }
 
 static void main_outerloop_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
