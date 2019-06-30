@@ -392,16 +392,14 @@ int outfile_write_open (hashcat_ctx_t *hashcat_ctx)
 
   HCFILE fp;
 
-  if (hc_fopen (&fp, outfile_ctx->filename, "ab") == false)
+  if (hc_fopen (&fp, outfile_ctx->filename, "ab", HCFILE_FORMAT_PLAIN) == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", outfile_ctx->filename, strerror (errno));
 
     return -1;
   }
 
-  fp.is_gzip = false;
-
-  if (lock_file (fp.pfp) == -1)
+  if (hc_lockfile (&fp) == -1)
   {
     hc_fclose (&fp);
 

@@ -146,7 +146,7 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
   HCFILE fp;
 
-  if (hc_fopen (&fp, hashes->hashfile, "rb") == false) return (PARSER_HASH_FILE);
+  if (hc_fopen (&fp, hashes->hashfile, "rb", HCFILE_FORMAT_PLAIN) == false) return (PARSER_HASH_FILE);
 
   #define TC_HEADER_SIZE 512
 

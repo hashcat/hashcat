@@ -8,6 +8,7 @@
 #include "convert.h"
 #include "shared.h"
 #include "memory.h"
+#include <errno.h>
 
 #if defined (__CYGWIN__)
 #include <sys/cygwin.h>
@@ -351,7 +352,7 @@ bool hc_path_has_bom (const char *path)
 
   HCFILE fp;
 
-  if (hc_fopen (&fp, path, "rb") == false) return false;
+  if (hc_fopen (&fp, path, "rb", HCFILE_FORMAT_PLAIN) == false) return false;
 
   const size_t nread = hc_fread (buf, 1, sizeof (buf), &fp);
 
@@ -614,33 +615,76 @@ int _wopen(const char *path, int oflag, ...)
 }
 #endif
 
-bool hc_fopen (HCFILE *fp, const char *path, char *mode)
+bool hc_fopen (HCFILE *fp, const char *path, char *mode, int file_format)
 {
-  unsigned char check[3] = { 0 };
+  if (!path || !mode) return false;
 
-  FILE *fp_tmp = fopen (path, mode);
+  int oflag = -1;
 
-  if (fp_tmp == NULL) return false;
+  int fmode = S_IRUSR|S_IWUSR;
 
-  check[0] = fgetc (fp_tmp);
-  check[1] = fgetc (fp_tmp);
-  check[2] = fgetc (fp_tmp);
-
-  fp->is_gzip = false;
-
-  if (check[0] == 0x1f && check[1] == 0x8b && check[2] == 0x08)
+  if (!strncmp (mode, "a", 1) || !strncmp (mode, "ab", 2))
   {
-    fclose (fp_tmp);
+    oflag = O_WRONLY | O_CREAT | O_APPEND;
 
-    if (!(fp->gfp = gzopen (path, mode))) return false;
+    #if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__)
+    if (!strncmp (mode, "ab", 2)) oflag |= O_BINARY;
+    #endif
+  }
+  else if (!strncmp (mode, "r", 1) || !strncmp (mode, "rb", 2))
+  {
+    oflag = O_RDONLY;
+    fmode = -1;
 
-    fp->is_gzip = true;
+    #if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__)
+    if (!strncmp (mode, "rb", 2)) oflag |= O_BINARY;
+    #endif
+  }
+  else if (!strncmp (mode, "w", 1) || !strncmp (mode, "wb", 2))
+  {
+    oflag = O_WRONLY | O_CREAT | O_TRUNC;
+
+    #if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__)
+    if (!strncmp (mode, "wb", 2)) oflag |= O_BINARY;
+    #endif
   }
   else
   {
-    fp->pfp = fp_tmp;
+    // ADD more strncmp to handle more "mode"
+    return false;
+  }
 
-    rewind (fp->pfp);
+  if (file_format == HCFILE_FORMAT_PLAIN)
+  {
+    unsigned char check[3] = { 0 };
+
+    int fd_tmp = open (path, O_RDONLY);
+
+    lseek (fd_tmp, 0, SEEK_SET);
+
+    size_t s = read (fd_tmp, check, sizeof(check));
+
+    if (s == 3 && (check[0] == 0x1f && check[1] == 0x8b && check[2] == 0x08)) file_format = HCFILE_FORMAT_GZIP;
+
+    close (fd_tmp);
+  }
+
+  fp->fd = (fmode == -1) ? open (path, oflag) : open (path, oflag, fmode);
+
+  if (fp->fd == -1) return false;
+
+  if (file_format == HCFILE_FORMAT_PLAIN)
+  {
+    if (!(fp->pfp = fdopen (fp->fd, mode)))  return false;
+
+    fp->is_gzip = false;
+  }
+  else // HCFILE_FORMAT_GZIP
+  {
+    if (!(fp->gfp = gzdopen (fp->fd, mode))) return false;
+
+    fp->is_gzip = true;
+    fp->pfp     = NULL;
   }
 
   fp->path = path;
@@ -651,9 +695,9 @@ bool hc_fopen (HCFILE *fp, const char *path, char *mode)
 
 size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
 {
-  size_t n = 0;
+  size_t n = -1;
 
-  if (fp == NULL) return -1;
+  if (fp == NULL) return n;
 
   if (fp->is_gzip)
     n = gzfread (ptr, size, nmemb, fp->gfp);
@@ -665,9 +709,9 @@ size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
 
 size_t hc_fwrite (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
 {
-  size_t n = 0;
+  size_t n = -1;
 
-  if (fp == NULL) return -1;
+  if (fp == NULL) return n;
 
   if (fp->is_gzip)
     n = gzfwrite (ptr, size, nmemb, fp->gfp);
@@ -681,9 +725,9 @@ size_t hc_fwrite (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
 
 int hc_fseek (HCFILE *fp, off_t offset, int whence)
 {
-  int r = 0;
+  int r = -1;
 
-  if (fp == NULL) return -1;
+  if (fp == NULL) return r;
 
   if (fp->is_gzip)
     r = gzseek (fp->gfp, (z_off_t) offset, whence);
@@ -719,9 +763,9 @@ off_t hc_ftell (HCFILE *fp)
 
 int hc_fputc (int c, HCFILE *fp)
 {
-  int r = 0;
+  int r = -1;
 
-  if (fp == NULL) return -1;
+  if (fp == NULL) return r;
 
   if (fp->is_gzip)
     r = gzputc (fp->gfp, c);
@@ -733,9 +777,9 @@ int hc_fputc (int c, HCFILE *fp)
 
 int hc_fgetc (HCFILE *fp)
 {
-  int r = 0;
+  int r = -1;
 
-  if (fp == NULL) return -1;
+  if (fp == NULL) return r;
 
   if (fp->is_gzip)
     r = gzgetc (fp->gfp);
@@ -763,7 +807,7 @@ int hc_vfprintf (HCFILE *fp, const char *format, va_list ap)
 {
   int r = -1;
 
-  if (fp == NULL) return -1;
+  if (fp == NULL) return r;
 
   if (fp->is_gzip)
     r = gzvprintf (fp->gfp, format, ap);
@@ -775,10 +819,11 @@ int hc_vfprintf (HCFILE *fp, const char *format, va_list ap)
 
 int hc_fprintf (HCFILE *fp, const char *format, ...)
 {
-  va_list ap;
   int r = -1;
 
-  if (fp == NULL) return -1;
+  if (fp == NULL) return r;
+
+  va_list ap;
 
   va_start (ap, format);
 
@@ -818,29 +863,16 @@ int hc_fscanf (HCFILE *fp, const char *format, void *ptr)
 
 int hc_fileno (HCFILE *fp)
 {
-  int r = -1;
+  if (fp == NULL) return 1;
 
-  if (fp == NULL) return -1;
-
-  if (fp->is_gzip)
-  {
-    int rdup = fileno (fopen (fp->path, fp->mode));
-
-    r = dup (rdup);
-
-    close (rdup);
-  }
-  else
-    r = fileno (fp->pfp);
-
-  return r;
+  return fp->fd;
 }
 
 int hc_feof (HCFILE *fp)
 {
   int r = -1;
 
-  if (fp == NULL) return -1;
+  if (fp == NULL) return r;
 
   if (fp->is_gzip)
     r = gzeof (fp->gfp);
@@ -869,6 +901,9 @@ void hc_fclose (HCFILE *fp)
   else
     fclose (fp->pfp);
 
+  close (fp->fd);
+
+  fp->fd = -1;
   fp->is_gzip = false;
 
   fp->path = NULL;
@@ -886,7 +921,7 @@ bool hc_same_files (char *file1, char *file2)
 
     HCFILE fp;
 
-    if (hc_fopen (&fp, file1, "r") == true)
+    if (hc_fopen (&fp, file1, "r", HCFILE_FORMAT_PLAIN) == true)
     {
       if (fstat (hc_fileno (&fp), &tmpstat_file1))
       {
@@ -900,7 +935,7 @@ bool hc_same_files (char *file1, char *file2)
       do_check++;
     }
 
-    if (hc_fopen (&fp, file2, "r") == true)
+    if (hc_fopen (&fp, file2, "r", HCFILE_FORMAT_PLAIN) == true)
     {
       if (fstat (hc_fileno (&fp), &tmpstat_file2))
       {

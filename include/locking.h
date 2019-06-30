@@ -13,7 +13,7 @@
 #include <errno.h>
 #include <fcntl.h>
 
-int lock_file   (FILE *fp);
-int unlock_file (FILE *fp);
+int hc_lockfile   (HCFILE *fp);
+int hc_unlockfile (HCFILE *fp);
 
 #endif // _LOCKING_H

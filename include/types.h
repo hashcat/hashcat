@@ -993,6 +993,7 @@ typedef struct link_speed
 
 typedef struct hc_fp
 {
+  int         fd;
   FILE       *pfp;
   gzFile      gfp;
 
@@ -1000,6 +1001,13 @@ typedef struct hc_fp
   char       *mode;
   const char *path;
 } HCFILE;
+
+typedef enum hcfile_format
+{
+  HCFILE_FORMAT_PLAIN = 0,
+  HCFILE_FORMAT_GZIP = 1,
+
+} hcfile_format_t;
 
 #include "ext_nvrtc.h"
 #include "ext_cuda.h"

@@ -429,7 +429,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       HCFILE fp;
 
-      if (hc_fopen (&fp, dictfile, "rb") == false)
+      if (hc_fopen (&fp, dictfile, "rb", HCFILE_FORMAT_PLAIN) == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", dictfile, strerror (errno));
 
@@ -749,7 +749,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       HCFILE base_fp;
 
-      if (hc_fopen (&base_fp, base_file, "rb") == false)
+      if (hc_fopen (&base_fp, base_file, "rb", HCFILE_FORMAT_PLAIN) == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", base_file, strerror (errno));
 
@@ -758,7 +758,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       HCFILE combs_fp;
 
-      if (hc_fopen (&combs_fp, combs_file, "rb") == false)
+      if (hc_fopen (&combs_fp, combs_file, "rb", HCFILE_FORMAT_PLAIN) == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", combs_file, strerror (errno));
 
@@ -1324,7 +1324,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
         HCFILE combs_fp;
 
-        if (hc_fopen (&combs_fp, dictfile, "rb") == false)
+        if (hc_fopen (&combs_fp, dictfile, "rb", HCFILE_FORMAT_PLAIN) == false)
         {
           event_log_error (hashcat_ctx, "%s: %s", dictfile, strerror (errno));
 
@@ -1390,7 +1390,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
           HCFILE combs_fp;
 
-          if (hc_fopen (&combs_fp, dictfilec, "rb") == false)
+          if (hc_fopen (&combs_fp, dictfilec, "rb", HCFILE_FORMAT_PLAIN) == false)
           {
             event_log_error (hashcat_ctx, "%s: %s", combinator_ctx->dict2, strerror (errno));
 
@@ -1405,7 +1405,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
           HCFILE combs_fp;
 
-          if (hc_fopen (&combs_fp, dictfilec, "rb") == false)
+          if (hc_fopen (&combs_fp, dictfilec, "rb", HCFILE_FORMAT_PLAIN) == false)
           {
             event_log_error (hashcat_ctx, "%s: %s", dictfilec, strerror (errno));
 
@@ -1418,7 +1418,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       HCFILE fp;
 
-      if (hc_fopen (&fp, dictfile, "rb") == false)
+      if (hc_fopen (&fp, dictfile, "rb", HCFILE_FORMAT_PLAIN) == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", dictfile, strerror (errno));
 

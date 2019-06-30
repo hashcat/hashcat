@@ -73,7 +73,7 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
   {
     HCFILE fp;
 
-    if (hc_fopen (&fp, filename, "ab") == false)
+    if (hc_fopen (&fp, filename, "ab", HCFILE_FORMAT_PLAIN) == false)
     {
       event_log_error (hashcat_ctx, "%s: %s", filename, strerror (errno));
 
@@ -82,7 +82,7 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
     fp.is_gzip = false;
 
-    if (lock_file (fp.pfp) == -1)
+    if (hc_lockfile (&fp) == -1)
     {
       hc_fclose (&fp);
 

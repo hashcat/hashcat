@@ -157,7 +157,7 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
     {
       HCFILE fp;
 
-      if (hc_fopen (&fp, out_info[j].file_name, "rb") == false) continue;
+      if (hc_fopen (&fp, out_info[j].file_name, "rb", HCFILE_FORMAT_PLAIN) == false) continue;
 
       //hc_thread_mutex_lock (status_ctx->mux_display);
 

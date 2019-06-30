@@ -56,7 +56,7 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
 
   HCFILE fp;
 
-  if (hc_fopen (&fp, eff_restore_file, "rb") == false)
+  if (hc_fopen (&fp, eff_restore_file, "rb", HCFILE_FORMAT_PLAIN) == false)
   {
     event_log_error (hashcat_ctx, "Restore file '%s': %s", eff_restore_file, strerror (errno));
 
@@ -205,14 +205,12 @@ static int write_restore (hashcat_ctx_t *hashcat_ctx)
 
   HCFILE fp;
 
-  if (hc_fopen (&fp, new_restore_file, "wb") == false)
+  if (hc_fopen (&fp, new_restore_file, "wb", HCFILE_FORMAT_PLAIN) == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", new_restore_file, strerror (errno));
 
     return -1;
   }
-
-  fp.is_gzip = false;
 
   if (setvbuf (fp.pfp, NULL, _IONBF, 0))
   {

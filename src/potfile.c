@@ -292,13 +292,18 @@ void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, cons
 
   tmp_buf[tmp_len] = 0;
 
-  lock_file (potfile_ctx->fp);
+  HCFILE fp;
+  fp.is_gzip = false;
+  fp.pfp = potfile_ctx->fp;
+  fp.fd = fileno (fp.pfp);
+
+  hc_lockfile (&fp);
 
   fprintf (potfile_ctx->fp, "%s" EOL, tmp_buf);
 
   fflush (potfile_ctx->fp);
 
-  if (unlock_file (potfile_ctx->fp))
+  if (hc_unlockfile (&fp))
   {
     event_log_error (hashcat_ctx, "%s: Failed to unlock file.", potfile_ctx->filename);
   }
@@ -529,6 +534,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
   HCFILE fp;
   fp.is_gzip = false;
   fp.pfp = potfile_ctx->fp;
+  fp.fd = fileno (fp.pfp);
 
   while (!feof (potfile_ctx->fp))
   {

@@ -18,7 +18,7 @@ static int check_running_process (hashcat_ctx_t *hashcat_ctx)
 
   HCFILE fp;
 
-  if (hc_fopen (&fp, pidfile_filename, "rb") == false) return 0;
+  if (hc_fopen (&fp, pidfile_filename, "rb", HCFILE_FORMAT_PLAIN) == false) return 0;
 
   pidfile_data_t *pd = (pidfile_data_t *) hcmalloc (sizeof (pidfile_data_t));
 
@@ -155,14 +155,12 @@ static int write_pidfile (hashcat_ctx_t *hashcat_ctx)
 
   HCFILE fp;
 
-  if (hc_fopen (&fp, pidfile_filename, "wb") == false)
+  if (hc_fopen (&fp, pidfile_filename, "wb", HCFILE_FORMAT_PLAIN) == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", pidfile_filename, strerror (errno));
 
     return -1;
   }
-
-  fp.is_gzip = false;
 
   hc_fwrite (pd, sizeof (pidfile_data_t), 1, &fp);
 

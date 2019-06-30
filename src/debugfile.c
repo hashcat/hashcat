@@ -105,20 +105,18 @@ int debugfile_init (hashcat_ctx_t *hashcat_ctx)
 
   debugfile_ctx->filename = user_options->debug_file;
 
+  HCFILE fp;
+
   if (debugfile_ctx->filename)
   {
-    HCFILE fp;
-
-    if (hc_fopen (&fp, debugfile_ctx->filename, "ab") == false)
+    if (hc_fopen (&fp, debugfile_ctx->filename, "ab", HCFILE_FORMAT_PLAIN) == false)
     {
       event_log_error (hashcat_ctx, "Could not open --debug-file file for writing.");
 
       return -1;
     }
 
-    fp.is_gzip = false;
-
-    if (lock_file (fp.pfp) == -1)
+    if (hc_lockfile (&fp) == -1)
     {
       hc_fclose (&fp);
 
@@ -131,11 +129,11 @@ int debugfile_init (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
-    HCFILE fp_tmp;
-    fp_tmp.is_gzip = false;
-    fp_tmp.pfp = stdout;
+    fp.is_gzip = false;
+    fp.pfp = stdout;
+    fp.fd = fileno (stdout);
 
-    debugfile_ctx->fp = &fp_tmp;
+    debugfile_ctx->fp = &fp;
   }
 
   return 0;

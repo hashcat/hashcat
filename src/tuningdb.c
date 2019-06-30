@@ -70,7 +70,7 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 
   HCFILE fp;
 
-  if (hc_fopen (&fp, tuning_db_file, "rb") == false)
+  if (hc_fopen (&fp, tuning_db_file, "rb", HCFILE_FORMAT_PLAIN) == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", tuning_db_file, strerror (errno));
 

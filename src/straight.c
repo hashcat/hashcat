@@ -72,7 +72,7 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       HCFILE fp;
 
-      if (hc_fopen (&fp, straight_ctx->dict, "rb") == false)
+      if (hc_fopen (&fp, straight_ctx->dict, "rb", HCFILE_FORMAT_PLAIN) == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", straight_ctx->dict, strerror (errno));
 
@@ -107,7 +107,7 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
     {
       HCFILE fp;
 
-      if (hc_fopen (&fp, combinator_ctx->dict1, "rb") == false)
+      if (hc_fopen (&fp, combinator_ctx->dict1, "rb", HCFILE_FORMAT_PLAIN) == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", combinator_ctx->dict1, strerror (errno));
 
@@ -129,7 +129,7 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
     {
       HCFILE fp;
 
-      if (hc_fopen (&fp, combinator_ctx->dict2, "rb") == false)
+      if (hc_fopen (&fp, combinator_ctx->dict2, "rb", HCFILE_FORMAT_PLAIN) == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", combinator_ctx->dict2, strerror (errno));
 
@@ -175,7 +175,7 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
     HCFILE fp;
 
-    if (hc_fopen (&fp, straight_ctx->dict, "rb") == false)
+    if (hc_fopen (&fp, straight_ctx->dict, "rb", HCFILE_FORMAT_PLAIN) == false)
     {
       event_log_error (hashcat_ctx, "%s: %s", straight_ctx->dict, strerror (errno));
 

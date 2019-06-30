@@ -107,14 +107,12 @@ int loopback_write_open (hashcat_ctx_t *hashcat_ctx)
 
   HCFILE fp;
 
-  if (hc_fopen (&fp, loopback_ctx->filename, "ab") == false)
+  if (hc_fopen (&fp, loopback_ctx->filename, "ab", HCFILE_FORMAT_PLAIN) == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", loopback_ctx->filename, strerror (errno));
 
     return -1;
   }
-
-  fp.is_gzip = false;
 
   loopback_ctx->fp = &fp;
 
@@ -160,13 +158,13 @@ void loopback_write_append (hashcat_ctx_t *hashcat_ctx, const u8 *plain_ptr, con
 
   loopback_format_plain (hashcat_ctx, plain_ptr, plain_len);
 
-  lock_file (fp->pfp);
+  hc_lockfile (fp);
 
   hc_fwrite (EOL, strlen (EOL), 1, fp);
 
   hc_fflush (fp);
 
-  if (unlock_file (fp->pfp))
+  if (hc_unlockfile (fp))
   {
     event_log_error (hashcat_ctx, "%s: Failed to unlock file", loopback_ctx->filename);
   }

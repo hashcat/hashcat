@@ -45,16 +45,14 @@ void logfile_append (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
 
   HCFILE fp;
 
-  if (hc_fopen (&fp, logfile_ctx->logfile, "ab") == false)
+  if (hc_fopen (&fp, logfile_ctx->logfile, "ab", HCFILE_FORMAT_PLAIN) == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", logfile_ctx->logfile, strerror (errno));
 
     return;
   }
 
-  fp.is_gzip = false;
-
-  lock_file (fp.pfp);
+  hc_lockfile (&fp);
 
   va_list ap;
 
