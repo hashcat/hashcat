@@ -60,6 +60,7 @@ test_script:
 only_commits:
   files:
     - src/**/*
-    - include/*
     - deps/**/*
+    - include/*
+    - OpenCL/inc_*
     - Makefile
