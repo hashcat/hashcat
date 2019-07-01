@@ -584,7 +584,7 @@ static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr,
 {
   HCFILE fp;
 
-  if (hc_fopen (&fp, buf, "rb", HCFILE_FORMAT_PLAIN) == false)
+  if (hc_fopen (&fp, buf, "rb") == false)
   {
     const int rc = mp_expand (hashcat_ctx, buf, strlen (buf), mp_sys, mp_usr, userindex, 1);
 
@@ -712,7 +712,7 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
 
   HCFILE fp;
 
-  if (hc_fopen (&fp, hcstat, "rb", HCFILE_FORMAT_PLAIN) == false)
+  if (hc_fopen (&fp, hcstat, "rb") == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", hcstat, strerror (errno));
 
@@ -1462,7 +1462,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
             {
               HCFILE mask_fp;
 
-              if (hc_fopen (&mask_fp, arg, "r", HCFILE_FORMAT_PLAIN) == false)
+              if (hc_fopen (&mask_fp, arg, "r") == false)
               {
                 event_log_error (hashcat_ctx, "%s: %s", arg, strerror (errno));
 
@@ -1555,7 +1555,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         HCFILE mask_fp;
 
-        if (hc_fopen (&mask_fp, arg, "r", HCFILE_FORMAT_PLAIN) == false)
+        if (hc_fopen (&mask_fp, arg, "r") == false)
         {
           event_log_error (hashcat_ctx, "%s: %s", arg, strerror (errno));
 
@@ -1629,7 +1629,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         HCFILE mask_fp;
 
-        if (hc_fopen (&mask_fp, arg, "r", HCFILE_FORMAT_PLAIN) == false)
+        if (hc_fopen (&mask_fp, arg, "r") == false)
         {
           event_log_error (hashcat_ctx, "%s: %s", arg, strerror (errno));
 

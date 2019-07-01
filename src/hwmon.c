@@ -112,7 +112,7 @@ static int hm_SYSFS_get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, const int
 
   HCFILE fp_cur;
 
-  if (hc_fopen (&fp_cur, path_cur, "r", HCFILE_FORMAT_PLAIN) == false)
+  if (hc_fopen (&fp_cur, path_cur, "r") == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", path_cur, strerror (errno));
 
@@ -140,7 +140,7 @@ static int hm_SYSFS_get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, const int
 
   HCFILE fp_max;
 
-  if (hc_fopen (&fp_max, path_max, "r", HCFILE_FORMAT_PLAIN) == false)
+  if (hc_fopen (&fp_max, path_max, "r") == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", path_max, strerror (errno));
 
@@ -202,7 +202,7 @@ static int hm_SYSFS_get_temperature_current (hashcat_ctx_t *hashcat_ctx, const i
 
   HCFILE fp;
 
-  if (hc_fopen (&fp, path, "r", HCFILE_FORMAT_PLAIN) == false)
+  if (hc_fopen (&fp, path, "r") == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
 
@@ -247,7 +247,7 @@ static int hm_SYSFS_get_pp_dpm_sclk (hashcat_ctx_t *hashcat_ctx, const int backe
 
   HCFILE fp;
 
-  if (hc_fopen (&fp, path, "r", HCFILE_FORMAT_PLAIN) == false)
+  if (hc_fopen (&fp, path, "r") == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
 
@@ -302,7 +302,7 @@ static int hm_SYSFS_get_pp_dpm_mclk (hashcat_ctx_t *hashcat_ctx, const int backe
 
   HCFILE fp;
 
-  if (hc_fopen (&fp, path, "r", HCFILE_FORMAT_PLAIN) == false)
+  if (hc_fopen (&fp, path, "r") == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
 
@@ -357,7 +357,7 @@ static int hm_SYSFS_get_pp_dpm_pcie (hashcat_ctx_t *hashcat_ctx, const int backe
 
   HCFILE fp;
 
-  if (hc_fopen (&fp, path, "r", HCFILE_FORMAT_PLAIN) == false)
+  if (hc_fopen (&fp, path, "r") == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
 
@@ -462,7 +462,7 @@ static int nvml_init (hashcat_ctx_t *hashcat_ctx)
   {
     HCFILE nvml_lib;
 
-    if (hc_fopen (&nvml_lib, "/proc/registry/HKEY_LOCAL_MACHINE/SOFTWARE/NVIDIA Corporation/Global/NVSMI/NVSMIPATH", "rb", HCFILE_FORMAT_PLAIN) == false)
+    if (hc_fopen (&nvml_lib, "/proc/registry/HKEY_LOCAL_MACHINE/SOFTWARE/NVIDIA Corporation/Global/NVSMI/NVSMIPATH", "rb") == false)
     {
       //if (user_options->quiet == false)
       //  event_log_error (hashcat_ctx, "NVML library load failed: %m. Proceeding without NVML HWMon enabled.");

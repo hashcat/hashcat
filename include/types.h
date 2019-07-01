@@ -1002,13 +1002,6 @@ typedef struct hc_fp
   const char *path;
 } HCFILE;
 
-typedef enum hcfile_format
-{
-  HCFILE_FORMAT_PLAIN = 0,
-  HCFILE_FORMAT_GZIP = 1,
-
-} hcfile_format_t;
-
 #include "ext_nvrtc.h"
 #include "ext_cuda.h"
 #include "ext_OpenCL.h"

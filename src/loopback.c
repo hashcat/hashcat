@@ -107,7 +107,7 @@ int loopback_write_open (hashcat_ctx_t *hashcat_ctx)
 
   HCFILE fp;
 
-  if (hc_fopen (&fp, loopback_ctx->filename, "ab", HCFILE_FORMAT_PLAIN) == false)
+  if (hc_fopen (&fp, loopback_ctx->filename, "ab") == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", loopback_ctx->filename, strerror (errno));
 

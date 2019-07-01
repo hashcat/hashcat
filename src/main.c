@@ -59,7 +59,14 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp, const int loglevel)
 
   if (prev_len) main_log_clear_line (prev_len, fp);
 
-  event_ctx->prev_len = (msg_newline == true) ? 0 : msg_len;
+  if (msg_newline == true)
+  {
+    event_ctx->prev_len = 0;
+  }
+  else
+  {
+    event_ctx->prev_len = msg_len;
+  }
 
   // color stuff pre
 

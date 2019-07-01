@@ -94,7 +94,7 @@ int cpu_crc32 (const char *filename, u8 keytab[64])
 
   HCFILE fp;
 
-  hc_fopen (&fp, filename, "rb", HCFILE_FORMAT_PLAIN);
+  hc_fopen (&fp, filename, "rb");
 
   #define MAX_KEY_SIZE (1024 * 1024)
 

@@ -541,7 +541,7 @@ u64 brain_compute_attack_wordlist (const char *filename)
 
   HCFILE fp;
 
-  hc_fopen (&fp, filename, "rb", false);
+  hc_fopen (&fp, filename, "rb");
 
   while (!hc_feof (&fp))
   {
@@ -613,7 +613,7 @@ u32 brain_auth_challenge (void)
 
   HCFILE fp;
 
-  if (hc_fopen (&fp, urandom, "rb", HCFILE_FORMAT_PLAIN) == false)
+  if (hc_fopen (&fp, urandom, "rb") == false)
   {
     brain_logging (stderr, 0, "%s: %s\n", urandom, strerror (errno));
 
@@ -1599,7 +1599,7 @@ bool brain_server_read_hash_dump (brain_server_db_hash_t *brain_server_db_hash, 
 
   HCFILE fp;
 
-  if (hc_fopen (&fp, file, "rb", HCFILE_FORMAT_PLAIN) == false)
+  if (hc_fopen (&fp, file, "rb") == false)
   {
     brain_logging (stderr, 0, "%s: %s\n", file, strerror (errno));
 
@@ -1655,7 +1655,7 @@ bool brain_server_write_hash_dump (brain_server_db_hash_t *brain_server_db_hash,
 
   HCFILE fp;
 
-  if (hc_fopen (&fp, file, "wb", HCFILE_FORMAT_PLAIN) == false)
+  if (hc_fopen (&fp, file, "wb") == false)
   {
     brain_logging (stderr, 0, "%s: %s\n", file, strerror (errno));
 
@@ -1798,7 +1798,7 @@ bool brain_server_read_attack_dump (brain_server_db_attack_t *brain_server_db_at
 
   HCFILE fp;
 
-  if (hc_fopen (&fp, file, "rb", HCFILE_FORMAT_PLAIN) == false)
+  if (hc_fopen (&fp, file, "rb") == false)
   {
     brain_logging (stderr, 0, "%s: %s\n", file, strerror (errno));
 
@@ -1854,7 +1854,7 @@ bool brain_server_write_attack_dump (brain_server_db_attack_t *brain_server_db_a
 
   HCFILE fp;
 
-  if (hc_fopen (&fp, file, "wb", HCFILE_FORMAT_PLAIN) == false)
+  if (hc_fopen (&fp, file, "wb") == false)
   {
     brain_logging (stderr, 0, "%s: %s\n", file, strerror (errno));
 

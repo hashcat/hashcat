@@ -24,7 +24,7 @@ bool initialize_keyboard_layout_mapping (const char *filename, keyboard_layout_m
 
   HCFILE fp;
 
-  if (hc_fopen (&fp, filename, "r", HCFILE_FORMAT_PLAIN) == false) return false;
+  if (hc_fopen (&fp, filename, "r") == false) return false;
 
   int maps_cnt = 0;
 

@@ -98,7 +98,7 @@ void dictstat_read (hashcat_ctx_t *hashcat_ctx)
 
   HCFILE fp;
 
-  if (hc_fopen (&fp, dictstat_ctx->filename, "rb", HCFILE_FORMAT_PLAIN) == false)
+  if (hc_fopen (&fp, dictstat_ctx->filename, "rb") == false)
   {
     // first run, file does not exist, do not error out
 
@@ -186,7 +186,7 @@ int dictstat_write (hashcat_ctx_t *hashcat_ctx)
 
   HCFILE fp;
 
-  if (hc_fopen (&fp, dictstat_ctx->filename, "wb", HCFILE_FORMAT_PLAIN) == false)
+  if (hc_fopen (&fp, dictstat_ctx->filename, "wb") == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", dictstat_ctx->filename, strerror (errno));
 

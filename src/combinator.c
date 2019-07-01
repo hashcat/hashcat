@@ -63,14 +63,14 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
       HCFILE fp1;
       HCFILE fp2;
 
-      if (hc_fopen (&fp1, dictfile1, "rb", HCFILE_FORMAT_PLAIN) == false)
+      if (hc_fopen (&fp1, dictfile1, "rb") == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", dictfile1, strerror (errno));
 
         return -1;
       }
 
-      if (hc_fopen (&fp2, dictfile2, "rb", HCFILE_FORMAT_PLAIN) == false)
+      if (hc_fopen (&fp2, dictfile2, "rb") == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", dictfile2, strerror (errno));
 
@@ -166,14 +166,14 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
         HCFILE fp1;
         HCFILE fp2;
 
-        if (hc_fopen (&fp1, dictfile1, "rb", HCFILE_FORMAT_PLAIN) == false)
+        if (hc_fopen (&fp1, dictfile1, "rb") == false)
         {
           event_log_error (hashcat_ctx, "%s: %s", dictfile1, strerror (errno));
 
           return -1;
         }
 
-        if (hc_fopen (&fp2, dictfile2, "rb", HCFILE_FORMAT_PLAIN) == false)
+        if (hc_fopen (&fp2, dictfile2, "rb") == false)
         {
           event_log_error (hashcat_ctx, "%s: %s", dictfile2, strerror (errno));
 
@@ -297,14 +297,14 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
         HCFILE fp1;
         HCFILE fp2;
 
-        if (hc_fopen (&fp1, dictfile1, "rb", HCFILE_FORMAT_PLAIN) == false)
+        if (hc_fopen (&fp1, dictfile1, "rb") == false)
         {
           event_log_error (hashcat_ctx, "%s: %s", dictfile1, strerror (errno));
 
           return -1;
         }
 
-        if (hc_fopen (&fp2, dictfile2, "rb", HCFILE_FORMAT_PLAIN) == false)
+        if (hc_fopen (&fp2, dictfile2, "rb") == false)
         {
           event_log_error (hashcat_ctx, "%s: %s", dictfile2, strerror (errno));
 
@@ -389,7 +389,7 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         HCFILE fp;
 
-        if (hc_fopen (&fp, dictfile, "rb", HCFILE_FORMAT_PLAIN) == false)
+        if (hc_fopen (&fp, dictfile, "rb") == false)
         {
           event_log_error (hashcat_ctx, "%s: %s", dictfile, strerror (errno));
 

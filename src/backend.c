@@ -441,9 +441,8 @@ static bool opencl_test_instruction (hashcat_ctx_t *hashcat_ctx, cl_context cont
 static bool read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_file, size_t *kernel_lengths, char **kernel_sources, const bool force_recompile)
 {
   HCFILE fp;
-  bool is_gzip = false;
 
-  if (hc_fopen (&fp, kernel_file, "rb", false) != false)
+  if (hc_fopen (&fp, kernel_file, "rb") != false)
   {
     struct stat st;
 
@@ -454,21 +453,15 @@ static bool read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_f
       return false;
     }
 
-    is_gzip = fp.is_gzip;
-
     #define EXTRASZ 100
 
     size_t klen = st.st_size;
-
-    if (is_gzip) klen *= 10; // must be >= of uncompress len
 
     char *buf = (char *) hcmalloc (klen + 1 + EXTRASZ);
 
     size_t num_read = hc_fread (buf, sizeof (char), klen, &fp);
 
     hc_fclose (&fp);
-
-    if (is_gzip && klen > num_read) klen = num_read;
 
     if (num_read != (size_t) klen)
     {
@@ -514,8 +507,7 @@ static bool write_kernel_binary (hashcat_ctx_t *hashcat_ctx, char *kernel_file, 
   {
     HCFILE fp;
 
-    // change HCFILE_FORMAT_GZIP to HCFILE_FORMAT_PLAIN to write kernel binary uncompressed
-    if (hc_fopen (&fp, kernel_file, "wb", HCFILE_FORMAT_GZIP) == false)
+    if (hc_fopen (&fp, kernel_file, "wb") == false)
     {
       event_log_error (hashcat_ctx, "%s: %s", kernel_file, strerror (errno));
 

@@ -12,7 +12,7 @@
 
 int hc_lockfile (HCFILE *fp)
 {
-  if (!fp) return -1;
+  if (fp == NULL) return -1;
 
   struct flock lock;
 
@@ -31,7 +31,7 @@ int hc_lockfile (HCFILE *fp)
 
 int hc_unlockfile (HCFILE *fp)
 {
-  if (!fp) return -1;
+  if (fp == NULL) return -1;
 
   struct flock lock;
 
@@ -39,10 +39,7 @@ int hc_unlockfile (HCFILE *fp)
 
   lock.l_type = F_UNLCK;
 
-  if (fcntl (hc_fileno (fp), F_SETLK, &lock))
-  {
-    return -1;
-  }
+  if (fcntl (hc_fileno (fp), F_SETLK, &lock)) return -1;
 
   return 0;
 }

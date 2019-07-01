@@ -109,7 +109,7 @@ int debugfile_init (hashcat_ctx_t *hashcat_ctx)
 
   if (debugfile_ctx->filename)
   {
-    if (hc_fopen (&fp, debugfile_ctx->filename, "ab", HCFILE_FORMAT_PLAIN) == false)
+    if (hc_fopen (&fp, debugfile_ctx->filename, "ab") == false)
     {
       event_log_error (hashcat_ctx, "Could not open --debug-file file for writing.");
 

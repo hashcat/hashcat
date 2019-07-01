@@ -186,7 +186,7 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
 
   HCFILE fp;
 
-  if (hc_fopen (&fp, new_hashfile, "wb", HCFILE_FORMAT_PLAIN) == false)
+  if (hc_fopen (&fp, new_hashfile, "wb") == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", new_hashfile, strerror (errno));
 
@@ -676,7 +676,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
     {
       HCFILE fp;
 
-      if (hc_fopen (&fp, hashfile, "rb", HCFILE_FORMAT_PLAIN) == false)
+      if (hc_fopen (&fp, hashfile, "rb") == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", hashfile, strerror (errno));
 
@@ -996,7 +996,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
     {
       HCFILE fp;
 
-      if (hc_fopen (&fp, hashfile, "rb", HCFILE_FORMAT_PLAIN) == false)
+      if (hc_fopen (&fp, hashfile, "rb") == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", hashfile, strerror (errno));
 
@@ -1792,7 +1792,7 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
 
       HCFILE fp;
 
-      hc_fopen (&fp, tmpfile_bin, "wb", false);
+      hc_fopen (&fp, tmpfile_bin, "wb");
 
       const size_t st_hash_len = strlen (hashconfig->st_hash);
 
