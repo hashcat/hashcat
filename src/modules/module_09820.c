@@ -208,7 +208,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *rc4key = (const u8 *) oldoffice34->rc4key;
 
-  const int line_len = snprintf (line_buf, line_size, "%s%d*%08x%08x%08x%08x*%08x%08x%08x%08x*%08x%08x%08x%08x%08x:%02x%02x%02x%02x%02x",
+  const int line_len = snprintf (line_buf, line_size, "%s%u*%08x%08x%08x%08x*%08x%08x%08x%08x*%08x%08x%08x%08x%08x:%02x%02x%02x%02x%02x",
     SIGNATURE_OLDOFFICE,
     oldoffice34->version,
     salt->salt_buf[0],

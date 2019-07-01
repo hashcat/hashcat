@@ -247,7 +247,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const odf12_t *odf12 = (const odf12_t *) esalt_buf;
 
-  int out_len = snprintf (line_buf, line_size, "%s*1*1*%d*32*%08x%08x%08x%08x%08x%08x%08x%08x*16*%08x%08x%08x%08x*16*%08x%08x%08x%08x*0*",
+  int out_len = snprintf (line_buf, line_size, "%s*1*1*%u*32*%08x%08x%08x%08x%08x%08x%08x%08x*16*%08x%08x%08x%08x*16*%08x%08x%08x%08x*0*",
     SIGNATURE_ODF,
     odf12->iterations,
     byte_swap_32 (odf12->checksum[0]),

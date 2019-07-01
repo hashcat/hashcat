@@ -32,7 +32,7 @@ int brain_logging (FILE *stream, const int client_idx, const char *format, ...)
 
   gettimeofday (&v, NULL);
 
-  fprintf (stream, "%d.%06d | %6.2fs | %3d | ", (u32) v.tv_sec, (u32) v.tv_usec, ms / 1000, client_idx);
+  fprintf (stream, "%u.%06u | %6.2fs | %3d | ", (u32) v.tv_sec, (u32) v.tv_usec, ms / 1000, client_idx);
 
   va_list ap;
 

@@ -312,7 +312,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const odf11_t *odf11 = (const odf11_t *) esalt_buf;
 
-  int out_len = snprintf (line_buf, line_size, "%s*0*0*%d*16*%08x%08x%08x%08x%08x*8*%08x%08x*16*%08x%08x%08x%08x*0*",
+  int out_len = snprintf (line_buf, line_size, "%s*0*0*%u*16*%08x%08x%08x%08x%08x*8*%08x%08x*16*%08x%08x%08x%08x*0*",
     SIGNATURE_ODF,
     odf11->iterations,
     byte_swap_32 (odf11->checksum[0]),
