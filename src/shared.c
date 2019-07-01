@@ -665,9 +665,10 @@ bool hc_fopen (HCFILE *fp, const char *path, char *mode)
   {
     lseek (fd_tmp, 0, SEEK_SET);
 
-    read (fd_tmp, check, sizeof(check));
-
-    if (check[0] == 0x1f && check[1] == 0x8b && check[2] == 0x08) fp->is_gzip = true;
+    if (read (fd_tmp, check, sizeof(check)) > 0)
+    {
+      if (check[0] == 0x1f && check[1] == 0x8b && check[2] == 0x08) fp->is_gzip = true;
+    }
 
     close (fd_tmp);
   }
