@@ -1163,7 +1163,7 @@ typedef struct hc_device_param
 
   char   *scratch_buf;
 
-  HCFILE *combs_fp;
+  HCFILE  combs_fp;
   pw_t   *combs_buf;
 
   void   *hooks_buf;
@@ -1639,7 +1639,7 @@ typedef struct potfile_ctx
 {
   bool     enabled;
 
-  FILE    *fp;
+  HCFILE  fp;
   char    *filename;
 
   u8      *out_buf; // allocates [HCBUFSIZ_LARGE];

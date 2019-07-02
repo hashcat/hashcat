@@ -747,30 +747,26 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         combs_file = combinator_ctx->dict1;
       }
 
-      HCFILE base_fp;
+      extra_info_combi_t extra_info_combi;
 
-      if (hc_fopen (&base_fp, base_file, "rb") == false)
+      memset (&extra_info_combi, 0, sizeof (extra_info_combi));
+
+      if (hc_fopen (&extra_info_combi.base_fp, base_file, "rb") == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", base_file, strerror (errno));
 
         return -1;
       }
 
-      HCFILE combs_fp;
-
-      if (hc_fopen (&combs_fp, combs_file, "rb") == false)
+      if (hc_fopen (&extra_info_combi.combs_fp, combs_file, "rb") == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", combs_file, strerror (errno));
+
+        hc_fclose (&extra_info_combi.base_fp);
 
         return -1;
       }
 
-      extra_info_combi_t extra_info_combi;
-
-      memset (&extra_info_combi, 0, sizeof (extra_info_combi));
-
-      extra_info_combi.base_fp     = &base_fp;
-      extra_info_combi.combs_fp    = &combs_fp;
       extra_info_combi.scratch_buf = device_param->scratch_buf;
 
       hashcat_ctx_t *hashcat_ctx_tmp = (hashcat_ctx_t *) hcmalloc (sizeof (hashcat_ctx_t));
@@ -783,12 +779,10 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       if (rc_wl_data_init == -1)
       {
-        hc_fclose (&combs_fp);
-
-        hc_fclose (&base_fp);
+        hc_fclose (&extra_info_combi.base_fp);
+        hc_fclose (&extra_info_combi.combs_fp);
 
         hcfree (hashcat_ctx_tmp->wl_data);
-
         hcfree (hashcat_ctx_tmp);
 
         return -1;
@@ -996,12 +990,10 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
           if (CL_rc == -1)
           {
-            hc_fclose (&combs_fp);
-
-            hc_fclose (&base_fp);
+            hc_fclose (&extra_info_combi.base_fp);
+            hc_fclose (&extra_info_combi.combs_fp);
 
             hcfree (hashcat_ctx_tmp->wl_data);
-
             hcfree (hashcat_ctx_tmp);
 
             return -1;
@@ -1011,12 +1003,10 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
           if (CL_rc == -1)
           {
-            hc_fclose (&combs_fp);
-
-            hc_fclose (&base_fp);
+            hc_fclose (&extra_info_combi.base_fp);
+            hc_fclose (&extra_info_combi.combs_fp);
 
             hcfree (hashcat_ctx_tmp->wl_data);
-
             hcfree (hashcat_ctx_tmp);
 
             return -1;
@@ -1058,14 +1048,12 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         if (words_fin == 0) break;
       }
 
-      hc_fclose (&combs_fp);
-
-      hc_fclose (&base_fp);
+      hc_fclose (&extra_info_combi.base_fp);
+      hc_fclose (&extra_info_combi.combs_fp);
 
       wl_data_destroy (hashcat_ctx_tmp);
 
       hcfree (hashcat_ctx_tmp->wl_data);
-
       hcfree (hashcat_ctx_tmp);
     }
     else if (attack_mode == ATTACK_MODE_BF)
@@ -1322,16 +1310,12 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       {
         char *dictfile = straight_ctx->dict;
 
-        HCFILE combs_fp;
-
-        if (hc_fopen (&combs_fp, dictfile, "rb") == false)
+        if (hc_fopen (&device_param->combs_fp, dictfile, "rb") == false)
         {
           event_log_error (hashcat_ctx, "%s: %s", dictfile, strerror (errno));
 
           return -1;
         }
-
-        device_param->combs_fp = &combs_fp;
       }
 
       while (status_ctx->run_thread_level1 == true)
@@ -1388,31 +1372,23 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         {
           const char *dictfilec = combinator_ctx->dict2;
 
-          HCFILE combs_fp;
-
-          if (hc_fopen (&combs_fp, dictfilec, "rb") == false)
+          if (hc_fopen (&device_param->combs_fp, dictfilec, "rb") == false)
           {
             event_log_error (hashcat_ctx, "%s: %s", combinator_ctx->dict2, strerror (errno));
 
             return -1;
           }
-
-          device_param->combs_fp = &combs_fp;
         }
         else if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
         {
           const char *dictfilec = combinator_ctx->dict1;
 
-          HCFILE combs_fp;
-
-          if (hc_fopen (&combs_fp, dictfilec, "rb") == false)
+          if (hc_fopen (&device_param->combs_fp, dictfilec, "rb") == false)
           {
             event_log_error (hashcat_ctx, "%s: %s", dictfilec, strerror (errno));
 
             return -1;
           }
-
-          device_param->combs_fp = &combs_fp;
         }
       }
 
@@ -1435,7 +1411,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       if (rc_wl_data_init == -1)
       {
-        if (attack_mode == ATTACK_MODE_COMBI) hc_fclose (device_param->combs_fp);
+        if (attack_mode == ATTACK_MODE_COMBI) hc_fclose (&device_param->combs_fp);
 
         hc_fclose (&fp);
 
@@ -1567,7 +1543,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
           if (CL_rc == -1)
           {
-            if (attack_mode == ATTACK_MODE_COMBI) hc_fclose (device_param->combs_fp);
+            if (attack_mode == ATTACK_MODE_COMBI) hc_fclose (&device_param->combs_fp);
 
             hc_fclose (&fp);
 
@@ -1582,7 +1558,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
           if (CL_rc == -1)
           {
-            if (attack_mode == ATTACK_MODE_COMBI) hc_fclose (device_param->combs_fp);
+            if (attack_mode == ATTACK_MODE_COMBI) hc_fclose (&device_param->combs_fp);
 
             hc_fclose (&fp);
 
@@ -1638,7 +1614,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         if (words_fin == 0) break;
       }
 
-      if (attack_mode == ATTACK_MODE_COMBI) hc_fclose (device_param->combs_fp);
+      if (attack_mode == ATTACK_MODE_COMBI) hc_fclose (&device_param->combs_fp);
 
       hc_fclose (&fp);
 

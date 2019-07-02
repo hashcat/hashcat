@@ -4377,7 +4377,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
     device_param->kernel_params_buf32[31] = salt_buf->digests_cnt;
     device_param->kernel_params_buf32[32] = salt_buf->digests_offset;
 
-    HCFILE *combs_fp = device_param->combs_fp;
+    HCFILE *combs_fp = &device_param->combs_fp;
 
     if (user_options->slow_candidates == true)
     {

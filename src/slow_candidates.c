@@ -76,8 +76,8 @@ void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, const u
   {
     extra_info_combi_t *extra_info_combi = (extra_info_combi_t *) extra_info;
 
-    HCFILE *base_fp = extra_info_combi->base_fp;
-    HCFILE *combs_fp = extra_info_combi->combs_fp;
+    HCFILE *base_fp = &extra_info_combi->base_fp;
+    HCFILE *combs_fp = &extra_info_combi->combs_fp;
 
     for (u64 i = cur; i < end; i++)
     {
@@ -238,8 +238,8 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
   {
     extra_info_combi_t *extra_info_combi = (extra_info_combi_t *) extra_info;
 
-    HCFILE *base_fp = extra_info_combi->base_fp;
-    HCFILE *combs_fp = extra_info_combi->combs_fp;
+    HCFILE *base_fp = &extra_info_combi->base_fp;
+    HCFILE *combs_fp = &extra_info_combi->combs_fp;
 
     if ((extra_info_combi->pos % combinator_ctx->combs_cnt) == 0)
     {

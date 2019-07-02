@@ -27,8 +27,8 @@ typedef struct extra_info_combi
 {
   u64 pos;
 
-  HCFILE *base_fp;
-  HCFILE *combs_fp;
+  HCFILE base_fp;
+  HCFILE combs_fp;
 
   u64 comb_pos_prev;
   u64 comb_pos;

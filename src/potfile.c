@@ -117,14 +117,14 @@ int potfile_init (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->potfile_path == NULL)
   {
-    potfile_ctx->fp       = NULL;
+    potfile_ctx->fp.pfp   = NULL;
 
     hc_asprintf (&potfile_ctx->filename, "%s/hashcat.potfile", folder_config->profile_dir);
   }
   else
   {
     potfile_ctx->filename = hcstrdup (user_options->potfile_path);
-    potfile_ctx->fp       = NULL;
+    potfile_ctx->fp.pfp   = NULL;
   }
 
   // starting from here, we should allocate some scratch buffer for later use
@@ -181,9 +181,7 @@ int potfile_read_open (hashcat_ctx_t *hashcat_ctx)
 
   if (potfile_ctx->enabled == false) return 0;
 
-  potfile_ctx->fp = fopen (potfile_ctx->filename, "rb");
-
-  if (potfile_ctx->fp == NULL)
+  if (hc_fopen (&potfile_ctx->fp, potfile_ctx->filename, "rb") == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", potfile_ctx->filename, strerror (errno));
 
@@ -202,9 +200,9 @@ void potfile_read_close (hashcat_ctx_t *hashcat_ctx)
 
   if (hashconfig->potfile_disable == true) return;
 
-  if (potfile_ctx->fp == NULL) return;
+  if (potfile_ctx->fp.pfp == NULL) return;
 
-  fclose (potfile_ctx->fp);
+  hc_fclose (&potfile_ctx->fp);
 }
 
 int potfile_write_open (hashcat_ctx_t *hashcat_ctx)
@@ -213,16 +211,12 @@ int potfile_write_open (hashcat_ctx_t *hashcat_ctx)
 
   if (potfile_ctx->enabled == false) return 0;
 
-  FILE *fp = fopen (potfile_ctx->filename, "ab");
-
-  if (fp == NULL)
+  if (hc_fopen (&potfile_ctx->fp, potfile_ctx->filename, "ab") == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", potfile_ctx->filename, strerror (errno));
 
     return -1;
   }
-
-  potfile_ctx->fp = fp;
 
   return 0;
 }
@@ -236,14 +230,14 @@ void potfile_write_close (hashcat_ctx_t *hashcat_ctx)
 
   if (hashconfig->potfile_disable == true) return;
 
-  fclose (potfile_ctx->fp);
+  hc_fclose (&potfile_ctx->fp);
 }
 
 void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const int out_len, u8 *plain_ptr, unsigned int plain_len)
 {
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
-  const potfile_ctx_t  *potfile_ctx  = hashcat_ctx->potfile_ctx;
   const user_options_t *user_options = hashcat_ctx->user_options;
+  potfile_ctx_t        *potfile_ctx  = hashcat_ctx->potfile_ctx;
 
   if (potfile_ctx->enabled == false) return;
 
@@ -292,18 +286,13 @@ void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, cons
 
   tmp_buf[tmp_len] = 0;
 
-  HCFILE fp;
-  fp.is_gzip = false;
-  fp.pfp = potfile_ctx->fp;
-  fp.fd = fileno (fp.pfp);
+  hc_lockfile (&potfile_ctx->fp);
 
-  hc_lockfile (&fp);
+  hc_fprintf (&potfile_ctx->fp, "%s" EOL, tmp_buf);
 
-  fprintf (potfile_ctx->fp, "%s" EOL, tmp_buf);
+  hc_fflush (&potfile_ctx->fp);
 
-  fflush (potfile_ctx->fp);
-
-  if (hc_unlockfile (&fp))
+  if (hc_unlockfile (&potfile_ctx->fp))
   {
     event_log_error (hashcat_ctx, "%s: Failed to unlock file.", potfile_ctx->filename);
   }
@@ -380,7 +369,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const hashes_t       *hashes       = hashcat_ctx->hashes;
   const module_ctx_t   *module_ctx   = hashcat_ctx->module_ctx;
-  const potfile_ctx_t  *potfile_ctx  = hashcat_ctx->potfile_ctx;
+  potfile_ctx_t        *potfile_ctx  = hashcat_ctx->potfile_ctx;
 
   if (potfile_ctx->enabled == false) return 0;
 
@@ -530,15 +519,9 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
   char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
-  // workaround for new fgetl
-  HCFILE fp;
-  fp.is_gzip = false;
-  fp.pfp = potfile_ctx->fp;
-  fp.fd = fileno (fp.pfp);
-
-  while (!feof (potfile_ctx->fp))
+  while (!hc_feof (&potfile_ctx->fp))
   {
-    size_t line_len = fgetl (&fp, line_buf);
+    size_t line_len = fgetl (&potfile_ctx->fp, line_buf);
 
     if (line_len == 0) continue;
 
