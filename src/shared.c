@@ -617,35 +617,35 @@ int _wopen(const char *path, int oflag, ...)
 
 bool hc_fopen (HCFILE *fp, const char *path, char *mode)
 {
-  if (!path || !mode) return false;
+  if (path == NULL || mode == NULL) return false;
 
   int oflag = -1;
 
   int fmode = S_IRUSR|S_IWUSR;
 
-  if (!strncmp (mode, "a", 1) || !strncmp (mode, "ab", 2))
+  if (strncmp (mode, "a", 1) == 0 || strncmp (mode, "ab", 2) == 0)
   {
     oflag = O_WRONLY | O_CREAT | O_APPEND;
 
     #if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__)
-    if (!strncmp (mode, "ab", 2)) oflag |= O_BINARY;
+    if (strncmp (mode, "ab", 2) == 0) oflag |= O_BINARY;
     #endif
   }
-  else if (!strncmp (mode, "r", 1) || !strncmp (mode, "rb", 2))
+  else if (strncmp (mode, "r", 1) == 0 || strncmp (mode, "rb", 2) == 0)
   {
     oflag = O_RDONLY;
     fmode = -1;
 
     #if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__)
-    if (!strncmp (mode, "rb", 2)) oflag |= O_BINARY;
+    if (strncmp (mode, "rb", 2) == 0) oflag |= O_BINARY;
     #endif
   }
-  else if (!strncmp (mode, "w", 1) || !strncmp (mode, "wb", 2))
+  else if (strncmp (mode, "w", 1) == 0 || strncmp (mode, "wb", 2) == 0)
   {
     oflag = O_WRONLY | O_CREAT | O_TRUNC;
 
     #if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__)
-    if (!strncmp (mode, "wb", 2)) oflag |= O_BINARY;
+    if (strncmp (mode, "wb", 2) == 0) oflag |= O_BINARY;
     #endif
   }
   else
@@ -686,11 +686,11 @@ bool hc_fopen (HCFILE *fp, const char *path, char *mode)
 
   if (fp->is_gzip)
   {
-    if (!(fp->gfp = gzdopen (fp->fd, mode))) return false;
+    if ((fp->gfp = gzdopen (fp->fd, mode)) == NULL) return false;
   }
   else
   {
-    if (!(fp->pfp = fdopen (fp->fd, mode)))  return false;
+    if ((fp->pfp = fdopen (fp->fd, mode)) == NULL)  return false;
   }
 
   fp->path = path;

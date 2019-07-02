@@ -442,7 +442,7 @@ static bool read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_f
 {
   HCFILE fp;
 
-  if (hc_fopen (&fp, kernel_file, "rb") != false)
+  if (hc_fopen (&fp, kernel_file, "rb") == true)
   {
     struct stat st;
 
