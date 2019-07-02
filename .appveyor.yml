@@ -56,3 +56,11 @@ test_script:
       }
 
       & $env:BASH -lc "cd '$env:APPVEYOR_BUILD_FOLDER' && ./hashcat.exe -m 0 --show *ple0.hash"
+
+only_commits:
+  files:
+    - src/**/*
+    - deps/**/*
+    - include/*
+    - OpenCL/inc_*
+    - Makefile
