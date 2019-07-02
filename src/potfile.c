@@ -321,7 +321,7 @@ void potfile_update_hash (hashcat_ctx_t *hashcat_ctx, hash_t *found, char *line_
 
   // if enabled, update also the loopback file
 
-  if (loopback_ctx->fp != NULL)
+  if (loopback_ctx->fp.pfp != NULL)
   {
     loopback_write_append (hashcat_ctx, (u8 *) pw_buf, (unsigned int) pw_len);
   }

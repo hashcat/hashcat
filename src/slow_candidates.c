@@ -37,7 +37,7 @@ void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, const u
 
         while (1)
         {
-          HCFILE *fp = extra_info_straight->fp;
+          HCFILE *fp = &extra_info_straight->fp;
 
           get_next_word (hashcat_ctx, fp, &line_buf, &line_len);
 
@@ -176,7 +176,7 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
 
       while (1)
       {
-        HCFILE *fp = extra_info_straight->fp;
+        HCFILE *fp = &extra_info_straight->fp;
 
         get_next_word (hashcat_ctx, fp, &line_buf, &line_len);
 

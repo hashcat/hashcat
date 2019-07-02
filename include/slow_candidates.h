@@ -10,7 +10,7 @@ typedef struct extra_info_straight
 {
   u64 pos;
 
-  HCFILE *fp;
+  HCFILE fp;
 
   u64 rule_pos_prev;
   u64 rule_pos;

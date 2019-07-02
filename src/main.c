@@ -327,7 +327,7 @@ static void main_cracker_hash_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
   user_options_t        *user_options       = hashcat_ctx->user_options;
   user_options_extra_t  *user_options_extra = hashcat_ctx->user_options_extra;
 
-  if (outfile_ctx->fp != NULL) return; // cracked hash was not written to an outfile
+  if (outfile_ctx->fp.pfp != NULL) return; // cracked hash was not written to an outfile
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
@@ -378,7 +378,7 @@ static void main_potfile_hash_show (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
 {
   outfile_ctx_t *outfile_ctx = hashcat_ctx->outfile_ctx;
 
-  if (outfile_ctx->fp != NULL) return; // cracked hash was not written to an outfile
+  if (outfile_ctx->fp.pfp != NULL) return; // cracked hash was not written to an outfile
 
   fwrite (buf, len,          1, stdout);
   fwrite (EOL, strlen (EOL), 1, stdout);
@@ -388,7 +388,7 @@ static void main_potfile_hash_left (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
 {
   outfile_ctx_t *outfile_ctx = hashcat_ctx->outfile_ctx;
 
-  if (outfile_ctx->fp != NULL) return; // cracked hash was not written to an outfile
+  if (outfile_ctx->fp.pfp != NULL) return; // cracked hash was not written to an outfile
 
   fwrite (buf, len,          1, stdout);
   fwrite (EOL, strlen (EOL), 1, stdout);

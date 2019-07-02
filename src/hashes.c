@@ -431,14 +431,14 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   // if enabled, update also the loopback file
 
-  if (loopback_ctx->fp != NULL)
+  if (loopback_ctx->fp.pfp != NULL)
   {
     loopback_write_append (hashcat_ctx, plain_ptr, plain_len);
   }
 
   // if enabled, update also the (rule) debug file
 
-  if (debugfile_ctx->fp != NULL)
+  if (debugfile_ctx->fp.pfp != NULL)
   {
     // the next check implies that:
     // - (user_options->attack_mode == ATTACK_MODE_STRAIGHT)

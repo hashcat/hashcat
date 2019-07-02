@@ -427,20 +427,16 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
     {
       char *dictfile = straight_ctx->dict;
 
-      HCFILE fp;
+      extra_info_straight_t extra_info_straight;
 
-      if (hc_fopen (&fp, dictfile, "rb") == false)
+      memset (&extra_info_straight, 0, sizeof (extra_info_straight));
+
+      if (hc_fopen (&extra_info_straight.fp, dictfile, "rb") == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", dictfile, strerror (errno));
 
         return -1;
       }
-
-      extra_info_straight_t extra_info_straight;
-
-      memset (&extra_info_straight, 0, sizeof (extra_info_straight));
-
-      extra_info_straight.fp = &fp;
 
       hashcat_ctx_t *hashcat_ctx_tmp = (hashcat_ctx_t *) hcmalloc (sizeof (hashcat_ctx_t));
 
@@ -452,7 +448,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       if (rc_wl_data_init == -1)
       {
-        hc_fclose (&fp);
+        hc_fclose (&extra_info_straight.fp);
 
         hcfree (hashcat_ctx_tmp->wl_data);
 
@@ -663,7 +659,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
           if (CL_rc == -1)
           {
-            hc_fclose (&fp);
+            hc_fclose (&extra_info_straight.fp);
 
             hcfree (hashcat_ctx_tmp->wl_data);
 
@@ -676,7 +672,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
           if (CL_rc == -1)
           {
-            hc_fclose (&fp);
+            hc_fclose (&extra_info_straight.fp);
 
             hcfree (hashcat_ctx_tmp->wl_data);
 
@@ -721,7 +717,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         if (words_fin == 0) break;
       }
 
-      hc_fclose (&fp);
+      hc_fclose (&extra_info_straight.fp);
 
       wl_data_destroy (hashcat_ctx_tmp);
 
