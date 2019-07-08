@@ -5456,6 +5456,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
   bool need_nvml    = false;
   bool need_nvapi   = false;
   bool need_sysfs   = false;
+  bool need_iokit   = false;
 
   int backend_devices_idx = 0;
 
@@ -6207,22 +6208,32 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
         {
-          if ((device_param->opencl_platform_vendor_id == VENDOR_ID_AMD) && (device_param->opencl_device_vendor_id == VENDOR_ID_AMD))
+          if (device_param->skipped == false)
           {
-            need_adl = true;
+            if ((device_param->opencl_platform_vendor_id == VENDOR_ID_AMD) && (device_param->opencl_device_vendor_id == VENDOR_ID_AMD))
+            {
+              need_adl = true;
 
-            #if defined (__linux__)
-            need_sysfs = true;
-            #endif
-          }
+              #if defined (__linux__)
+              need_sysfs = true;
+              #endif
+            }
 
-          if ((device_param->opencl_platform_vendor_id == VENDOR_ID_NV) && (device_param->opencl_device_vendor_id == VENDOR_ID_NV))
-          {
-            need_nvml = true;
+            if ((device_param->opencl_platform_vendor_id == VENDOR_ID_NV) && (device_param->opencl_device_vendor_id == VENDOR_ID_NV))
+            {
+              need_nvml = true;
 
-            #if defined (_WIN) || defined (__CYGWIN__)
-            need_nvapi = true;
-            #endif
+              #if defined (_WIN) || defined (__CYGWIN__)
+              need_nvapi = true;
+              #endif
+            }
+
+            if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
+            {
+              #if defined (__APPLE__)
+              need_iokit = true;
+              #endif
+            }
           }
         }
 
@@ -6679,6 +6690,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
   backend_ctx->need_nvml    = need_nvml;
   backend_ctx->need_nvapi   = need_nvapi;
   backend_ctx->need_sysfs   = need_sysfs;
+  backend_ctx->need_iokit   = need_iokit;
 
   backend_ctx->comptime     = comptime;
 
@@ -6727,6 +6739,7 @@ void backend_ctx_devices_destroy (hashcat_ctx_t *hashcat_ctx)
   backend_ctx->need_nvml   = false;
   backend_ctx->need_nvapi  = false;
   backend_ctx->need_sysfs  = false;
+  backend_ctx->need_iokit  = false;
 }
 
 void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)

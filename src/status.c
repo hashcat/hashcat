@@ -1956,6 +1956,10 @@ char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_
 {
   const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
+  const hwmon_ctx_t   *hwmon_ctx   = hashcat_ctx->hwmon_ctx;
+
+  if (hwmon_ctx->enabled == false) return NULL;
+
   hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
 
   char *output_buf = (char *) hcmalloc (HCBUFSIZ_TINY);
@@ -2029,6 +2033,10 @@ int status_get_corespeed_dev (const hashcat_ctx_t *hashcat_ctx, const int backen
 {
   const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
+  const hwmon_ctx_t   *hwmon_ctx   = hashcat_ctx->hwmon_ctx;
+
+  if (hwmon_ctx->enabled == false) return -1;
+
   hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
 
   if (device_param->skipped == true) return -1;
@@ -2049,6 +2057,10 @@ int status_get_corespeed_dev (const hashcat_ctx_t *hashcat_ctx, const int backen
 int status_get_memoryspeed_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx)
 {
   const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  const hwmon_ctx_t   *hwmon_ctx   = hashcat_ctx->hwmon_ctx;
+
+  if (hwmon_ctx->enabled == false) return -1;
 
   hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
 

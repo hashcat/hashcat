@@ -122,7 +122,7 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
         if ((backend_ctx->devices_param[backend_devices_idx].opencl_device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
 
-        const int temperature = hm_get_temperature_with_devices_idx (hashcat_ctx, backend_devices_idx);
+        int temperature = hm_get_temperature_with_devices_idx (hashcat_ctx, backend_devices_idx);
 
         if (temperature > (int) user_options->hwmon_temp_abort)
         {

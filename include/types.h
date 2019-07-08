@@ -564,7 +564,11 @@ typedef enum user_options_defaults
   EXAMPLE_HASHES           = false,
   FORCE                    = false,
   HWMON_DISABLE            = false,
+  #if defined (__APPLE__)
+  HWMON_TEMP_ABORT         = 100,
+  #else
   HWMON_TEMP_ABORT         = 90,
+  #endif
   HASH_MODE                = 0,
   HCCAPX_MESSAGE_PAIR      = 0,
   HEX_CHARSET              = false,
@@ -622,7 +626,7 @@ typedef enum user_options_defaults
   STDOUT_FLAG              = false,
   USAGE                    = false,
   USERNAME                 = false,
-  VERSION                  = false,
+  SHOW_VERSION             = false,
   WORDLIST_AUTOHEX_DISABLE = false,
   WORKLOAD_PROFILE         = 2,
 
@@ -1441,6 +1445,7 @@ typedef struct backend_ctx
   bool                need_nvml;
   bool                need_nvapi;
   bool                need_sysfs;
+  bool                need_iokit;
 
   int                 comptime;
 
@@ -1481,6 +1486,7 @@ typedef enum kernel_workload
 #include "ext_nvapi.h"
 #include "ext_nvml.h"
 #include "ext_sysfs.h"
+#include "ext_iokit.h"
 
 typedef struct hm_attrs
 {
@@ -1488,6 +1494,7 @@ typedef struct hm_attrs
   HM_ADAPTER_NVML    nvml;
   HM_ADAPTER_NVAPI   nvapi;
   HM_ADAPTER_SYSFS   sysfs;
+  HM_ADAPTER_IOKIT   iokit;
 
   int od_version;
 
@@ -1512,6 +1519,7 @@ typedef struct hwmon_ctx
   void *hm_nvml;
   void *hm_nvapi;
   void *hm_sysfs;
+  void *hm_iokit;
 
   hm_attrs_t *hm_device;
 
