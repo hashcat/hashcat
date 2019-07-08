@@ -6646,10 +6646,10 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
   // using force here enables both devices, which is the worst possible outcome
   // many users force by default, so this is not a good idea
 
-  //if (user_options->force == false)
-  //{
-  backend_ctx_find_alias_devices (hashcat_ctx);
-  //}
+  if (user_options->force == false)
+  {
+    backend_ctx_find_alias_devices (hashcat_ctx);
+  }
 
   if (backend_ctx->backend_devices_active == 0)
   {
