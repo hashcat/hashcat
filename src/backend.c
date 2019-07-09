@@ -43,6 +43,10 @@ static bool is_same_device (const hc_device_param_t *src, const hc_device_param_
   if (src->pcie_device   != dst->pcie_device)   return false;
   if (src->pcie_function != dst->pcie_function) return false;
 
+  if (src->device_processors         != dst->device_processors)         return false;
+  if (src->device_maxclock_frequency != dst->device_maxclock_frequency) return false;
+  if (src->device_maxworkgroup_size  != dst->device_maxworkgroup_size)  return false;
+
   return true;
 }
 
@@ -6226,6 +6230,10 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           }
         }
 
+        device_param->pcie_bus      = 0;
+        device_param->pcie_device   = 0;
+        device_param->pcie_function = 0;
+
         if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
         {
           if ((device_param->opencl_platform_vendor_id == VENDOR_ID_AMD) && (device_param->opencl_device_vendor_id == VENDOR_ID_AMD))
@@ -6646,10 +6654,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
   // using force here enables both devices, which is the worst possible outcome
   // many users force by default, so this is not a good idea
 
-  if (user_options->force == false)
-  {
-    backend_ctx_find_alias_devices (hashcat_ctx);
-  }
+  backend_ctx_find_alias_devices (hashcat_ctx);
 
   if (backend_ctx->backend_devices_active == 0)
   {
