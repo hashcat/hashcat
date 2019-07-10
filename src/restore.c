@@ -106,6 +106,8 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
 
       hc_fclose (&fp);
 
+      hcfree (buf);
+
       return -1;
     }
 

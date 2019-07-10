@@ -20,11 +20,11 @@ static int sort_by_src_len (const void *p1, const void *p2)
 
 bool initialize_keyboard_layout_mapping (const char *filename, keyboard_layout_mapping_t *keyboard_layout_mapping, int *keyboard_layout_mapping_cnt)
 {
-  char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
-
   HCFILE fp;
 
   if (hc_fopen (&fp, filename, "r") == false) return false;
+
+  char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
   int maps_cnt = 0;
 

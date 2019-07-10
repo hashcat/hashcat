@@ -168,7 +168,12 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
     iconv_ctx = iconv_open (user_options->encoding_to, user_options->encoding_from);
 
-    if (iconv_ctx == (iconv_t) -1) return -1;
+    if (iconv_ctx == (iconv_t) -1)
+    {
+      hcfree (buf);
+
+      return -1;
+    }
 
     iconv_tmp = (char *) hcmalloc (HCBUFSIZ_TINY);
   }
