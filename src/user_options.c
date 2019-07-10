@@ -250,7 +250,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->veracrypt_keyfiles        = NULL;
   user_options->veracrypt_pim_start       = 0;
   user_options->veracrypt_pim_stop        = 0;
-  user_options->version                   = SHOW_VERSION;
+  user_options->version                   = VERSION;
   user_options->wordlist_autohex_disable  = WORDLIST_AUTOHEX_DISABLE;
   user_options->workload_profile          = WORKLOAD_PROFILE;
   user_options->rp_files_cnt              = 0;

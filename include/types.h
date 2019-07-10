@@ -626,7 +626,7 @@ typedef enum user_options_defaults
   STDOUT_FLAG              = false,
   USAGE                    = false,
   USERNAME                 = false,
-  SHOW_VERSION             = false,
+  VERSION                  = false,
   WORDLIST_AUTOHEX_DISABLE = false,
   WORKLOAD_PROFILE         = 2,
 

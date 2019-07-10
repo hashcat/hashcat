@@ -133,6 +133,36 @@ kern_return_t hm_IOKIT_SMCReadKey (UInt32Char_t key, SMCVal_t *val, io_connect_t
   return kIOReturnSuccess;
 }
 
+int hm_IOKIT_SMCGetSensorGraphicHot (void *ctx)
+{
+  hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) ctx;
+
+  hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
+
+  IOKIT_PTR *iokit = hwmon_ctx->hm_iokit;
+
+  SMCVal_t val;
+
+  memset (&val, 0, sizeof (SMCVal_t));
+
+  int alarm = -1;
+
+  if (hm_IOKIT_SMCReadKey (HM_IOKIT_SMC_SENSOR_GRAPHICS_HOT, &val, iokit->conn) == kIOReturnSuccess)
+  {
+    if (val.dataSize > 0)
+    {
+      if (strcmp(val.dataType, DATATYPE_UINT8) == 0)
+      {
+        alarm = hm_IOKIT_strtoul ((char *)val.bytes, val.dataSize, 10);
+      }
+    }
+
+    return alarm;
+  }
+
+  return -1;
+}
+
 int hm_IOKIT_SMCGetTemperature (hashcat_ctx_t *hashcat_ctx, char *key, double *temp)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
@@ -1860,9 +1890,16 @@ int hm_get_temperature_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int b
     {
       if (hwmon_ctx->hm_iokit)
       {
-        double temperature;
+        double temperature = 0.0;
 
-        if (hm_IOKIT_SMCGetTemperature(hashcat_ctx, SMC_KEY_GPU_INT_TEMP, &temperature) == -1)
+        char *key = HM_IOKIT_SMC_GPU_PROXIMITY;
+
+        if (backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_INTEL_BEIGNET)
+        {
+          key = HM_IOKIT_SMC_PECI_GPU;
+        }
+
+        if (hm_IOKIT_SMCGetTemperature(hashcat_ctx, key, &temperature) == -1)
         {
           hwmon_ctx->hm_device[backend_device_idx].temperature_get_supported = false;
 

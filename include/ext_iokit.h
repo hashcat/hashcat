@@ -6,31 +6,33 @@
 #ifndef _EXT_IOKIT_H
 #define _EXT_IOKIT_H
 
-// key values
-#define SMC_KEY_CPU_TEMP "TC0P"
-#define SMC_KEY_GPU_TEMP "TG0P"
-#define SMC_KEY_GPU_INT_TEMP "TCGC"
-#define SMC_KEY_FAN0_RPM_CUR "F0Ac"
-
 #ifdef __APPLE__
 #include <IOKit/IOKitLib.h>
 
-#define VERSION "0.01"
+// Apple SMC Keys
+#define HM_IOKIT_SMC_SENSOR_GRAPHICS_HOT "SGHT"
+#define HM_IOKIT_SMC_CPU_PROXIMITY       "TC0P"
+#define HM_IOKIT_SMC_GPU_PROXIMITY       "TG0P"
+#define HM_IOKIT_SMC_PECI_GPU            "TCGC"
 
 #define KERNEL_INDEX_SMC 2
 
-#define SMC_CMD_READ_BYTES 5
-#define SMC_CMD_WRITE_BYTES 6
-#define SMC_CMD_READ_INDEX 8
-#define SMC_CMD_READ_KEYINFO 9
-#define SMC_CMD_READ_PLIMIT 11
-#define SMC_CMD_READ_VERS 12
-
-#define DATATYPE_FPE2 "fpe2"
-#define DATATYPE_UINT8 "ui8 "
+#define DATATYPE_FPE2   "fpe2"
+#define DATATYPE_UINT8  "ui8 "
 #define DATATYPE_UINT16 "ui16"
 #define DATATYPE_UINT32 "ui32"
-#define DATATYPE_SP78 "sp78"
+#define DATATYPE_SP78   "sp78"
+
+typedef enum
+{
+  SMC_CMD_READ_BYTES   =  5,
+  SMC_CMD_WRITE_BYTES  =  6,
+  SMC_CMD_READ_INDEX   =  8,
+  SMC_CMD_READ_KEYINFO =  9,
+  SMC_CMD_READ_PLIMIT  = 11,
+  SMC_CMD_READ_VERS    = 12
+
+} SMCCommands_t;
 
 typedef struct
 {
@@ -106,5 +108,7 @@ typedef struct hm_iokit_lib
 } hm_iokit_lib_t;
 
 typedef hm_iokit_lib_t IOKIT_PTR;
+
+int hm_IOKIT_SMCGetSensorGraphicHot (void *hashcat_ctx);
 
 #endif // _EXT_IOKIT_H
