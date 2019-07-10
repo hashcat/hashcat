@@ -110,9 +110,9 @@ static int hm_SYSFS_get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, const int
 
   hcfree (syspath);
 
-  FILE *fd_cur = fopen (path_cur, "r");
+  HCFILE fp_cur;
 
-  if (fd_cur == NULL)
+  if (hc_fopen (&fp_cur, path_cur, "r") == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", path_cur, strerror (errno));
 
@@ -124,9 +124,9 @@ static int hm_SYSFS_get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, const int
 
   int pwm1_cur = 0;
 
-  if (fscanf (fd_cur, "%d", &pwm1_cur) != 1)
+  if (hc_fscanf (&fp_cur, "%d", &pwm1_cur) != 1)
   {
-    fclose (fd_cur);
+    hc_fclose (&fp_cur);
 
     event_log_error (hashcat_ctx, "%s: unexpected data.", path_cur);
 
@@ -136,11 +136,11 @@ static int hm_SYSFS_get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, const int
     return -1;
   }
 
-  fclose (fd_cur);
+  hc_fclose (&fp_cur);
 
-  FILE *fd_max = fopen (path_max, "r");
+  HCFILE fp_max;
 
-  if (fd_max == NULL)
+  if (hc_fopen (&fp_max, path_max, "r") == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", path_max, strerror (errno));
 
@@ -152,9 +152,9 @@ static int hm_SYSFS_get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, const int
 
   int pwm1_max = 0;
 
-  if (fscanf (fd_max, "%d", &pwm1_max) != 1)
+  if (hc_fscanf (&fp_max, "%d", &pwm1_max) != 1)
   {
-    fclose (fd_max);
+    hc_fclose (&fp_max);
 
     event_log_error (hashcat_ctx, "%s: unexpected data.", path_max);
 
@@ -164,7 +164,7 @@ static int hm_SYSFS_get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, const int
     return -1;
   }
 
-  fclose (fd_max);
+  hc_fclose (&fp_max);
 
   if (pwm1_max == 0)
   {
@@ -200,9 +200,9 @@ static int hm_SYSFS_get_temperature_current (hashcat_ctx_t *hashcat_ctx, const i
 
   hcfree (syspath);
 
-  FILE *fd = fopen (path, "r");
+  HCFILE fp;
 
-  if (fd == NULL)
+  if (hc_fopen (&fp, path, "r") == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
 
@@ -213,9 +213,9 @@ static int hm_SYSFS_get_temperature_current (hashcat_ctx_t *hashcat_ctx, const i
 
   int temperature = 0;
 
-  if (fscanf (fd, "%d", &temperature) != 1)
+  if (hc_fscanf (&fp, "%d", &temperature) != 1)
   {
-    fclose (fd);
+    hc_fclose (&fp);
 
     event_log_error (hashcat_ctx, "%s: unexpected data.", path);
 
@@ -224,7 +224,7 @@ static int hm_SYSFS_get_temperature_current (hashcat_ctx_t *hashcat_ctx, const i
     return -1;
   }
 
-  fclose (fd);
+  hc_fclose (&fp);
 
   *val = temperature / 1000;
 
@@ -245,9 +245,9 @@ static int hm_SYSFS_get_pp_dpm_sclk (hashcat_ctx_t *hashcat_ctx, const int backe
 
   hcfree (syspath);
 
-  FILE *fd = fopen (path, "r");
+  HCFILE fp;
 
-  if (fd == NULL)
+  if (hc_fopen (&fp, path, "r") == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
 
@@ -258,11 +258,11 @@ static int hm_SYSFS_get_pp_dpm_sclk (hashcat_ctx_t *hashcat_ctx, const int backe
 
   int clockfreq = 0;
 
-  while (!feof (fd))
+  while (!hc_feof (&fp))
   {
-    char buf[HCBUFSIZ_TINY];
+    char buf[HCBUFSIZ_TINY] = { 0 };
 
-    char *ptr = fgets (buf, sizeof (buf), fd);
+    char *ptr = hc_fgets (buf, sizeof (buf), &fp);
 
     if (ptr == NULL) continue;
 
@@ -279,7 +279,7 @@ static int hm_SYSFS_get_pp_dpm_sclk (hashcat_ctx_t *hashcat_ctx, const int backe
     if (rc == 2) break;
   }
 
-  fclose (fd);
+  hc_fclose (&fp);
 
   *val = clockfreq;
 
@@ -300,9 +300,9 @@ static int hm_SYSFS_get_pp_dpm_mclk (hashcat_ctx_t *hashcat_ctx, const int backe
 
   hcfree (syspath);
 
-  FILE *fd = fopen (path, "r");
+  HCFILE fp;
 
-  if (fd == NULL)
+  if (hc_fopen (&fp, path, "r") == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
 
@@ -313,11 +313,11 @@ static int hm_SYSFS_get_pp_dpm_mclk (hashcat_ctx_t *hashcat_ctx, const int backe
 
   int clockfreq = 0;
 
-  while (!feof (fd))
+  while (!hc_feof (&fp))
   {
     char buf[HCBUFSIZ_TINY];
 
-    char *ptr = fgets (buf, sizeof (buf), fd);
+    char *ptr = hc_fgets (buf, sizeof (buf), &fp);
 
     if (ptr == NULL) continue;
 
@@ -334,7 +334,7 @@ static int hm_SYSFS_get_pp_dpm_mclk (hashcat_ctx_t *hashcat_ctx, const int backe
     if (rc == 2) break;
   }
 
-  fclose (fd);
+  hc_fclose (&fp);
 
   *val = clockfreq;
 
@@ -355,9 +355,9 @@ static int hm_SYSFS_get_pp_dpm_pcie (hashcat_ctx_t *hashcat_ctx, const int backe
 
   hcfree (syspath);
 
-  FILE *fd = fopen (path, "r");
+  HCFILE fp;
 
-  if (fd == NULL)
+  if (hc_fopen (&fp, path, "r") == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
 
@@ -368,11 +368,11 @@ static int hm_SYSFS_get_pp_dpm_pcie (hashcat_ctx_t *hashcat_ctx, const int backe
 
   int lanes = 0;
 
-  while (!feof (fd))
+  while (!hc_feof (&fp))
   {
     char buf[HCBUFSIZ_TINY];
 
-    char *ptr = fgets (buf, sizeof (buf), fd);
+    char *ptr = hc_fgets (buf, sizeof (buf), &fp);
 
     if (ptr == NULL) continue;
 
@@ -390,7 +390,7 @@ static int hm_SYSFS_get_pp_dpm_pcie (hashcat_ctx_t *hashcat_ctx, const int backe
     if (rc == 3) break;
   }
 
-  fclose (fd);
+  hc_fclose (&fp);
 
   *val = lanes;
 
@@ -460,9 +460,9 @@ static int nvml_init (hashcat_ctx_t *hashcat_ctx)
 
   if (!nvml->lib)
   {
-    FILE *nvml_lib = fopen ("/proc/registry/HKEY_LOCAL_MACHINE/SOFTWARE/NVIDIA Corporation/Global/NVSMI/NVSMIPATH", "rb");
+    HCFILE nvml_lib;
 
-    if (nvml_lib == NULL)
+    if (hc_fopen (&nvml_lib, "/proc/registry/HKEY_LOCAL_MACHINE/SOFTWARE/NVIDIA Corporation/Global/NVSMI/NVSMIPATH", "rb") == false)
     {
       //if (user_options->quiet == false)
       //  event_log_error (hashcat_ctx, "NVML library load failed: %m. Proceeding without NVML HWMon enabled.");
@@ -474,9 +474,9 @@ static int nvml_init (hashcat_ctx_t *hashcat_ctx)
 
     nvml_winpath = (char *) hcmalloc (100);
 
-    hc_fread (nvml_winpath, 100, 1, nvml_lib);
+    hc_fread (nvml_winpath, 100, 1, &nvml_lib);
 
-    fclose (nvml_lib);
+    hc_fclose (&nvml_lib);
 
     ssize_t size = cygwin_conv_path (CCP_WIN_A_TO_POSIX | CCP_PROC_CYGDRIVE, nvml_winpath, NULL, 0);
 

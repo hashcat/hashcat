@@ -54,9 +54,9 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
 
   char *eff_restore_file = restore_ctx->eff_restore_file;
 
-  FILE *fp = fopen (eff_restore_file, "rb");
+  HCFILE fp;
 
-  if (fp == NULL)
+  if (hc_fopen (&fp, eff_restore_file, "rb") == false)
   {
     event_log_error (hashcat_ctx, "Restore file '%s': %s", eff_restore_file, strerror (errno));
 
@@ -65,11 +65,11 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
 
   restore_data_t *rd = restore_ctx->rd;
 
-  if (fread (rd, sizeof (restore_data_t), 1, fp) != 1)
+  if (hc_fread (rd, sizeof (restore_data_t), 1, &fp) != 1)
   {
     event_log_error (hashcat_ctx, "Cannot read %s", eff_restore_file);
 
-    fclose (fp);
+    hc_fclose (&fp);
 
     return -1;
   }
@@ -80,7 +80,7 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
   {
     event_log_error (hashcat_ctx, "Unusually low number of arguments (argc) within restore file %s", eff_restore_file);
 
-    fclose (fp);
+    hc_fclose (&fp);
 
     return -1;
   }
@@ -89,7 +89,7 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
   {
     event_log_error (hashcat_ctx, "Unusually high number of arguments (argc) within restore file %s", eff_restore_file);
 
-    fclose (fp);
+    hc_fclose (&fp);
 
     return -1;
   }
@@ -100,11 +100,11 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
 
   for (u32 i = 0; i < rd->argc; i++)
   {
-    if (fgets (buf, HCBUFSIZ_LARGE - 1, fp) == NULL)
+    if (hc_fgets (buf, HCBUFSIZ_LARGE - 1, &fp) == NULL)
     {
       event_log_error (hashcat_ctx, "Cannot read %s", eff_restore_file);
 
-      fclose (fp);
+      hc_fclose (&fp);
 
       return -1;
     }
@@ -118,7 +118,7 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
 
   hcfree (buf);
 
-  fclose (fp);
+  hc_fclose (&fp);
 
   if (hc_path_exist (rd->cwd) == false)
   {
@@ -203,38 +203,38 @@ static int write_restore (hashcat_ctx_t *hashcat_ctx)
 
   char *new_restore_file = restore_ctx->new_restore_file;
 
-  FILE *fp = fopen (new_restore_file, "wb");
+  HCFILE fp;
 
-  if (fp == NULL)
+  if (hc_fopen (&fp, new_restore_file, "wb") == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", new_restore_file, strerror (errno));
 
     return -1;
   }
 
-  if (setvbuf (fp, NULL, _IONBF, 0))
+  if (setvbuf (fp.pfp, NULL, _IONBF, 0))
   {
     event_log_error (hashcat_ctx, "setvbuf file '%s': %s", new_restore_file, strerror (errno));
 
-    fclose (fp);
+    hc_fclose (&fp);
 
     return -1;
   }
 
-  hc_fwrite (rd, sizeof (restore_data_t), 1, fp);
+  hc_fwrite (rd, sizeof (restore_data_t), 1, &fp);
 
   for (u32 i = 0; i < rd->argc; i++)
   {
-    fprintf (fp, "%s", rd->argv[i]);
+    hc_fprintf (&fp, "%s", rd->argv[i]);
 
-    fputc ('\n', fp);
+    hc_fputc ('\n', &fp);
   }
 
-  fflush (fp);
+  hc_fflush (&fp);
 
-  fsync (fileno (fp));
+  fsync (hc_fileno (&fp));
 
-  fclose (fp);
+  hc_fclose (&fp);
 
   rd->masks_pos = 0;
   rd->dicts_pos = 0;

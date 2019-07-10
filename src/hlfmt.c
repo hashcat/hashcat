@@ -8,6 +8,7 @@
 #include "memory.h"
 #include "filehandling.h"
 #include "hlfmt.h"
+#include "shared.h"
 
 static const char *HLFMT_TEXT_HASHCAT  = "native hashcat";
 static const char *HLFMT_TEXT_PWDUMP   = "pwdump";
@@ -333,7 +334,7 @@ void hlfmt_user (hashcat_ctx_t *hashcat_ctx, u32 hashfile_format, char *line_buf
   }
 }
 
-u32 hlfmt_detect (hashcat_ctx_t *hashcat_ctx, FILE *fp, u32 max_check)
+u32 hlfmt_detect (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, u32 max_check)
 {
   const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
@@ -347,7 +348,7 @@ u32 hlfmt_detect (hashcat_ctx_t *hashcat_ctx, FILE *fp, u32 max_check)
 
   char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
-  while (!feof (fp))
+  while (!hc_feof (fp))
   {
     const size_t line_len = fgetl (fp, line_buf);
 

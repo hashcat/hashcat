@@ -93,17 +93,17 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (line_len == 0) return (PARSER_HASH_LENGTH);
 
-  FILE *fp = fopen ((const char *) line_buf, "rb");
+  HCFILE fp;
 
-  if (fp == NULL) return (PARSER_HASH_FILE);
+  if (hc_fopen (&fp, (const char *) line_buf, "rb") == false) return (PARSER_HASH_FILE);
 
   psafe3_t in;
 
   memset (&in, 0, sizeof (psafe3_t));
 
-  const size_t n = hc_fread (&in, sizeof (psafe3_t), 1, fp);
+  const size_t n = hc_fread (&in, sizeof (psafe3_t), 1, &fp);
 
-  fclose (fp);
+  hc_fclose (&fp);
 
   if (n != 1) return (PARSER_PSAFE3_FILE_SIZE);
 

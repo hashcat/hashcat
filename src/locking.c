@@ -6,11 +6,14 @@
 #include "common.h"
 #include "types.h"
 #include "locking.h"
+#include "shared.h"
 
 #if defined (F_SETLKW)
 
-int lock_file (FILE *fp)
+int hc_lockfile (HCFILE *fp)
 {
+  if (fp == NULL) return -1;
+
   struct flock lock;
 
   memset (&lock, 0, sizeof (struct flock));
@@ -18,7 +21,7 @@ int lock_file (FILE *fp)
   lock.l_type = F_WRLCK;
 
   /* Needs this loop because a signal may interrupt a wait for lock */
-  while (fcntl (fileno (fp), F_SETLKW, &lock))
+  while (fcntl (hc_fileno (fp), F_SETLKW, &lock))
   {
     if (errno != EINTR) return -1;
   }
@@ -26,32 +29,31 @@ int lock_file (FILE *fp)
   return 0;
 }
 
-int unlock_file (FILE *fp)
+int hc_unlockfile (HCFILE *fp)
 {
+  if (fp == NULL) return -1;
+
   struct flock lock;
 
   memset (&lock, 0, sizeof (struct flock));
 
   lock.l_type = F_UNLCK;
 
-  if (fcntl (fileno (fp), F_SETLK, &lock))
-  {
-    return -1;
-  }
+  if (fcntl (hc_fileno (fp), F_SETLK, &lock)) return -1;
 
   return 0;
 }
 
 #else
 
-int lock_file (MAYBE_UNUSED FILE *fp)
+int hc_lockfile (MAYBE_UNUSED HCFILE *fp)
 {
   // we should put windows specific code here
 
   return 0;
 }
 
-int unlock_file (MAYBE_UNUSED FILE *fp)
+int hc_unlockfile (MAYBE_UNUSED HCFILE *fp)
 {
   // we should put windows specific code here
 

@@ -37,18 +37,18 @@ static void debugfile_format_plain (hashcat_ctx_t *hashcat_ctx, const u8 *plain_
 
   if (needs_hexify == 1)
   {
-    fprintf (debugfile_ctx->fp, "$HEX[");
+    hc_fprintf (&debugfile_ctx->fp, "$HEX[");
 
     for (u32 i = 0; i < plain_len; i++)
     {
-      fprintf (debugfile_ctx->fp, "%02x", plain_ptr[i]);
+      hc_fprintf (&debugfile_ctx->fp, "%02x", plain_ptr[i]);
     }
 
-    fprintf (debugfile_ctx->fp, "]");
+    hc_fprintf (&debugfile_ctx->fp, "]");
   }
   else
   {
-    hc_fwrite (plain_ptr, plain_len, 1, debugfile_ctx->fp);
+    hc_fwrite ((void *)plain_ptr, plain_len, 1, &debugfile_ctx->fp);
   }
 }
 
@@ -64,19 +64,19 @@ void debugfile_write_append (hashcat_ctx_t *hashcat_ctx, const u8 *rule_buf, con
   {
     debugfile_format_plain (hashcat_ctx, orig_plain_ptr, orig_plain_len);
 
-    if ((debug_mode == 3) || (debug_mode == 4)) fputc (':', debugfile_ctx->fp);
+    if ((debug_mode == 3) || (debug_mode == 4)) hc_fputc (':', &debugfile_ctx->fp);
   }
 
-  hc_fwrite (rule_buf, rule_len, 1, debugfile_ctx->fp);
+  hc_fwrite ((void *)rule_buf, rule_len, 1, &debugfile_ctx->fp);
 
   if (debug_mode == 4)
   {
-    fputc (':', debugfile_ctx->fp);
+    hc_fputc (':', &debugfile_ctx->fp);
 
     debugfile_format_plain (hashcat_ctx, mod_plain_ptr, mod_plain_len);
   }
 
-  hc_fwrite (EOL, strlen (EOL), 1, debugfile_ctx->fp);
+  hc_fwrite (EOL, strlen (EOL), 1, &debugfile_ctx->fp);
 }
 
 int debugfile_init (hashcat_ctx_t *hashcat_ctx)
@@ -107,29 +107,27 @@ int debugfile_init (hashcat_ctx_t *hashcat_ctx)
 
   if (debugfile_ctx->filename)
   {
-    FILE *fp = fopen (debugfile_ctx->filename, "ab");
-
-    if (fp == NULL)
+    if (hc_fopen (&debugfile_ctx->fp, debugfile_ctx->filename, "ab") == false)
     {
       event_log_error (hashcat_ctx, "Could not open --debug-file file for writing.");
 
       return -1;
     }
 
-    if (lock_file (fp) == -1)
+    if (hc_lockfile (&debugfile_ctx->fp) == -1)
     {
-      fclose (fp);
+      hc_fclose (&debugfile_ctx->fp);
 
       event_log_error (hashcat_ctx, "%s: %s", debugfile_ctx->filename, strerror (errno));
 
       return -1;
     }
-
-    debugfile_ctx->fp = fp;
   }
   else
   {
-    debugfile_ctx->fp = stdout;
+    debugfile_ctx->fp.is_gzip = false;
+    debugfile_ctx->fp.pfp = stdout;
+    debugfile_ctx->fp.fd = fileno (stdout);
   }
 
   return 0;
@@ -143,7 +141,7 @@ void debugfile_destroy (hashcat_ctx_t *hashcat_ctx)
 
   if (debugfile_ctx->filename)
   {
-    fclose (debugfile_ctx->fp);
+    hc_fclose (&debugfile_ctx->fp);
   }
 
   memset (debugfile_ctx, 0, sizeof (debugfile_ctx_t));

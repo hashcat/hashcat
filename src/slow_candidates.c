@@ -13,6 +13,7 @@
 #include "mpsp.h"
 #include "filehandling.h"
 #include "slow_candidates.h"
+#include "shared.h"
 
 void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, const u64 cur, const u64 end)
 {
@@ -36,7 +37,7 @@ void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, const u
 
         while (1)
         {
-          FILE *fp = extra_info_straight->fp;
+          HCFILE *fp = &extra_info_straight->fp;
 
           get_next_word (hashcat_ctx, fp, &line_buf, &line_len);
 
@@ -75,8 +76,8 @@ void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, const u
   {
     extra_info_combi_t *extra_info_combi = (extra_info_combi_t *) extra_info;
 
-    FILE *base_fp  = extra_info_combi->base_fp;
-    FILE *combs_fp = extra_info_combi->combs_fp;
+    HCFILE *base_fp = &extra_info_combi->base_fp;
+    HCFILE *combs_fp = &extra_info_combi->combs_fp;
 
     for (u64 i = cur; i < end; i++)
     {
@@ -114,7 +115,7 @@ void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, const u
 
         extra_info_combi->base_len = line_len;
 
-        rewind (combs_fp);
+        hc_rewind (combs_fp);
       }
 
       char *line_buf = extra_info_combi->scratch_buf;
@@ -175,7 +176,7 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
 
       while (1)
       {
-        FILE *fp = extra_info_straight->fp;
+        HCFILE *fp = &extra_info_straight->fp;
 
         get_next_word (hashcat_ctx, fp, &line_buf, &line_len);
 
@@ -237,8 +238,8 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
   {
     extra_info_combi_t *extra_info_combi = (extra_info_combi_t *) extra_info;
 
-    FILE *base_fp  = extra_info_combi->base_fp;
-    FILE *combs_fp = extra_info_combi->combs_fp;
+    HCFILE *base_fp = &extra_info_combi->base_fp;
+    HCFILE *combs_fp = &extra_info_combi->combs_fp;
 
     if ((extra_info_combi->pos % combinator_ctx->combs_cnt) == 0)
     {
@@ -273,7 +274,7 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
 
       extra_info_combi->base_len = line_len;
 
-      rewind (combs_fp);
+      hc_rewind (combs_fp);
     }
 
     memcpy (extra_info_combi->out_buf, extra_info_combi->base_buf, extra_info_combi->base_len);

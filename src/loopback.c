@@ -38,18 +38,18 @@ static void loopback_format_plain (hashcat_ctx_t *hashcat_ctx, const u8 *plain_p
 
   if (needs_hexify == 1)
   {
-    fprintf (loopback_ctx->fp, "$HEX[");
+    hc_fprintf (&loopback_ctx->fp, "$HEX[");
 
     for (u32 i = 0; i < plain_len; i++)
     {
-      fprintf (loopback_ctx->fp, "%02x", plain_ptr[i]);
+      hc_fprintf (&loopback_ctx->fp, "%02x", plain_ptr[i]);
     }
 
-    fprintf (loopback_ctx->fp, "]");
+    hc_fprintf (&loopback_ctx->fp, "]");
   }
   else
   {
-    hc_fwrite (plain_ptr, plain_len, 1, loopback_ctx->fp);
+    hc_fwrite ((void *)plain_ptr, plain_len, 1, &loopback_ctx->fp);
   }
 }
 
@@ -73,7 +73,7 @@ int loopback_init (hashcat_ctx_t *hashcat_ctx)
   if (user_options->version        == true) return 0;
 
   loopback_ctx->enabled  = true;
-  loopback_ctx->fp       = NULL;
+  loopback_ctx->fp.pfp   = NULL;
   loopback_ctx->filename = (char *) hcmalloc (HCBUFSIZ_TINY);
 
   return 0;
@@ -105,16 +105,12 @@ int loopback_write_open (hashcat_ctx_t *hashcat_ctx)
 
   hc_asprintf (&loopback_ctx->filename, "%s/%s.%d_%u", induct_ctx->root_directory, LOOPBACK_FILE, (int) now, random_num);
 
-  FILE *fp = fopen (loopback_ctx->filename, "ab");
-
-  if (fp == NULL)
+  if (hc_fopen (&loopback_ctx->fp, loopback_ctx->filename, "ab") == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", loopback_ctx->filename, strerror (errno));
 
     return -1;
   }
-
-  loopback_ctx->fp = fp;
 
   loopback_ctx->unused = true;
 
@@ -138,9 +134,9 @@ void loopback_write_close (hashcat_ctx_t *hashcat_ctx)
 
   if (loopback_ctx->enabled == false) return;
 
-  if (loopback_ctx->fp == NULL) return;
+  if (loopback_ctx->fp.pfp == NULL) return;
 
-  fclose (loopback_ctx->fp);
+  hc_fclose (&loopback_ctx->fp);
 
   if (loopback_ctx->unused == true)
   {
@@ -154,17 +150,15 @@ void loopback_write_append (hashcat_ctx_t *hashcat_ctx, const u8 *plain_ptr, con
 
   if (loopback_ctx->enabled == false) return;
 
-  FILE *fp = loopback_ctx->fp;
-
   loopback_format_plain (hashcat_ctx, plain_ptr, plain_len);
 
-  lock_file (fp);
+  hc_lockfile (&loopback_ctx->fp);
 
-  hc_fwrite (EOL, strlen (EOL), 1, fp);
+  hc_fwrite (EOL, strlen (EOL), 1, &loopback_ctx->fp);
 
-  fflush (fp);
+  hc_fflush (&loopback_ctx->fp);
 
-  if (unlock_file (fp))
+  if (hc_unlockfile (&loopback_ctx->fp))
   {
     event_log_error (hashcat_ctx, "%s: Failed to unlock file", loopback_ctx->filename);
   }

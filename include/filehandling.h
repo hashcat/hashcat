@@ -10,9 +10,9 @@
 #include <string.h>
 #include <errno.h>
 
-u64 count_lines (FILE *fd);
+u64 count_lines (HCFILE *fp);
 
-size_t fgetl (FILE *fp, char *line_buf);
+size_t fgetl (HCFILE *fp, char *line_buf);
 
 size_t superchop_with_length (char *buf, const size_t len);
 

@@ -18,13 +18,20 @@ Philipp "philsmd" Schmidt <philsmd@hashcat.net> (@philsmd)
 
 Gabriele "matrix" Gristina <matrix@hashcat.net> (@gm4tr1x)
 
+* gzip wordlists feature
+* SHA-224 kernel module + optimizations
+* Some AES OpenCL kernel module optimizations
+* OpenCL Info feature
 * Apple macOS port
 * Hardware monitor initial code base
 * Test suite initial code base
 * Makefiles initial code base
 * Multithreading initial code base
+* MultiGPU initial code base
 * Benchmarks initial code base
 * Offline OpenCL Kernel Compiler support
+* SHA-512 initial code base
+* Some MD5 and SHA1 OpenCL optimizations
 
 Jean-Christophe "Fist0urs" Delaunay <jean-christophe.delaunay@synacktiv.com> (@Fist0urs)
 

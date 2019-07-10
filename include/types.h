@@ -17,6 +17,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <math.h>
+#include "zlib.h"
 
 #if defined (_WIN)
 #define WINICONV_CONST
@@ -988,6 +989,19 @@ typedef struct link_speed
 
 } link_speed_t;
 
+// handling gzip files
+
+typedef struct hc_fp
+{
+  int         fd;
+  FILE       *pfp;
+  gzFile      gfp;
+
+  bool        is_gzip;
+  char       *mode;
+  const char *path;
+} HCFILE;
+
 #include "ext_nvrtc.h"
 #include "ext_cuda.h"
 #include "ext_OpenCL.h"
@@ -1147,12 +1161,12 @@ typedef struct hc_device_param
   u32          *brain_link_out_buf;
   #endif
 
-  char   *scratch_buf;
+  char     *scratch_buf;
 
-  FILE   *combs_fp;
-  pw_t   *combs_buf;
+  HCFILE    combs_fp;
+  pw_t     *combs_buf;
 
-  void   *hooks_buf;
+  void     *hooks_buf;
 
   pw_idx_t *pws_idx;
   u32      *pws_comp;
@@ -1541,11 +1555,12 @@ typedef aes_context_t aes_ctx;
 
 typedef struct debugfile_ctx
 {
-  bool enabled;
+  HCFILE  fp;
 
-  FILE *fp;
-  char *filename;
-  u32   mode;
+  bool    enabled;
+
+  char   *filename;
+  u32     mode;
 
 } debugfile_ctx_t;
 
@@ -1586,11 +1601,12 @@ typedef struct dictstat_ctx
 
 typedef struct loopback_ctx
 {
-  bool enabled;
-  bool unused;
+  HCFILE  fp;
 
-  FILE *fp;
-  char *filename;
+  bool    enabled;
+  bool    unused;
+
+  char   *filename;
 
 } loopback_ctx_t;
 
@@ -1603,12 +1619,12 @@ typedef struct mf
 
 typedef struct outfile_ctx
 {
-  char *filename;
+  HCFILE  fp;
 
-  FILE *fp;
+  u32     outfile_format;
+  bool    outfile_autohex;
 
-  u32   outfile_format;
-  bool  outfile_autohex;
+  char   *filename;
 
 } outfile_ctx_t;
 
@@ -1623,9 +1639,10 @@ typedef struct pot
 
 typedef struct potfile_ctx
 {
+  HCFILE   fp;
+
   bool     enabled;
 
-  FILE    *fp;
   char    *filename;
 
   u8      *out_buf; // allocates [HCBUFSIZ_LARGE];
@@ -1707,10 +1724,10 @@ typedef struct pidfile_ctx
 
 typedef struct out
 {
-  FILE *fp;
+  HCFILE fp;
 
-  char  buf[HCBUFSIZ_SMALL];
-  int   len;
+  char   buf[HCBUFSIZ_SMALL];
+  int    len;
 
 } out_t;
 

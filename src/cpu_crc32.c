@@ -92,15 +92,17 @@ int cpu_crc32 (const char *filename, u8 keytab[64])
 {
   u32 crc = ~0u;
 
-  FILE *fd = fopen (filename, "rb");
+  HCFILE fp;
+
+  hc_fopen (&fp, filename, "rb");
 
   #define MAX_KEY_SIZE (1024 * 1024)
 
   u8 *buf = (u8 *) hcmalloc (MAX_KEY_SIZE + 1);
 
-  size_t nread = hc_fread (buf, sizeof (u8), MAX_KEY_SIZE, fd);
+  size_t nread = hc_fread (buf, sizeof (u8), MAX_KEY_SIZE, &fp);
 
-  fclose (fd);
+  hc_fclose (&fp);
 
   size_t kpos = 0;
 
