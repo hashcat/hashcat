@@ -15,10 +15,11 @@
 #if defined (__APPLE__)
 #include <IOKit/IOKitLib.h>
 
-UInt32 _strtoul(char *str, int size, int base)
+UInt32 hm_IOKIT_strtoul (char *str, int size, int base)
 {
-  UInt32 total = 0;
   int i;
+
+  UInt32 total = 0;
 
   for (i = 0; i < size; i++)
   {
@@ -34,26 +35,26 @@ UInt32 _strtoul(char *str, int size, int base)
   return total;
 }
 
-void _ultostr(char* str, UInt32 val)
+void hm_IOKIT_ultostr (char *str, UInt32 val)
 {
   str[0] = '\0';
 
-  sprintf(str, "%c%c%c%c", (unsigned int)val >> 24, (unsigned int)val >> 16, (unsigned int)val >> 8, (unsigned int)val);
+  sprintf (str, "%c%c%c%c", (unsigned int)(val >> 24), (unsigned int)(val >> 16), (unsigned int)(val >> 8), (unsigned int)(val));
 }
 
-kern_return_t SMCOpen(hashcat_ctx_t *hashcat_ctx, io_connect_t *conn)
+kern_return_t hm_IOKIT_SMCOpen (hashcat_ctx_t *hashcat_ctx, io_connect_t *conn)
 {
   kern_return_t result;
   io_iterator_t iterator;
   io_object_t device;
 
-  CFMutableDictionaryRef matchingDictionary = IOServiceMatching("AppleSMC");
+  CFMutableDictionaryRef matchingDictionary = IOServiceMatching ("AppleSMC");
 
-  result = IOServiceGetMatchingServices(kIOMasterPortDefault, matchingDictionary, &iterator);
+  result = IOServiceGetMatchingServices (kIOMasterPortDefault, matchingDictionary, &iterator);
 
   if (result != kIOReturnSuccess)
   {
-    event_log_error (hashcat_ctx, "IOServiceGetMatchingServices() failed : %08x.", result);
+    event_log_error (hashcat_ctx, "IOServiceGetMatchingServices(): %08x", result);
 
     return 1;
   }
@@ -64,18 +65,18 @@ kern_return_t SMCOpen(hashcat_ctx_t *hashcat_ctx, io_connect_t *conn)
 
   if (device == 0)
   {
-    event_log_error (hashcat_ctx, "no SMC found.");
+    event_log_error (hashcat_ctx, "hm_IOKIT_SMCOpen(): no SMC found.");
 
     return 1;
   }
 
-  result = IOServiceOpen(device, mach_task_self(), 0, conn);
+  result = IOServiceOpen (device, mach_task_self(), 0, conn);
 
-  IOObjectRelease(device);
+  IOObjectRelease (device);
 
   if (result != kIOReturnSuccess)
   {
-    event_log_error (hashcat_ctx, "IOServiceOpen() failed : %08x.", result);
+    event_log_error (hashcat_ctx, "IOServiceOpen(): %08x", result);
 
     return 1;
   }
@@ -83,53 +84,56 @@ kern_return_t SMCOpen(hashcat_ctx_t *hashcat_ctx, io_connect_t *conn)
   return kIOReturnSuccess;
 }
 
-kern_return_t SMCClose(io_connect_t conn)
+kern_return_t hm_IOKIT_SMCClose (io_connect_t conn)
 {
-  return IOServiceClose(conn);
+  return IOServiceClose (conn);
 }
 
-kern_return_t SMCCall(int index, SMCKeyData_t* inData, SMCKeyData_t* outData, io_connect_t conn)
+kern_return_t hm_IOKIT_SMCCall (int index, SMCKeyData_t *inData, SMCKeyData_t *outData, io_connect_t conn)
 {
-  size_t inDataSize  = sizeof(SMCKeyData_t);
-  size_t outDataSize = sizeof(SMCKeyData_t);
+  size_t inDataSize  = sizeof (SMCKeyData_t);
+  size_t outDataSize = sizeof (SMCKeyData_t);
 
   #if MAC_OS_X_VERSION_10_5
-  return IOConnectCallStructMethod(conn, index, inData, inDataSize, outData, &outDataSize);
+  return IOConnectCallStructMethod (conn, index, inData, inDataSize, outData, &outDataSize);
   #else
-  return IOConnectMethodStructureIStructureO(conn, index, inDataSize, &outDataSize, inData, outData);
+  return IOConnectMethodStructureIStructureO (conn, index, inDataSize, &outDataSize, inData, outData);
   #endif
 }
 
-kern_return_t SMCReadKey(UInt32Char_t key, SMCVal_t* val, io_connect_t conn)
+kern_return_t hm_IOKIT_SMCReadKey (UInt32Char_t key, SMCVal_t *val, io_connect_t conn)
 {
   SMCKeyData_t inData;
   SMCKeyData_t outData;
 
-  memset(&inData, 0, sizeof(SMCKeyData_t));
-  memset(&outData, 0, sizeof(SMCKeyData_t));
-  memset(val, 0, sizeof(SMCVal_t));
+  memset (&inData,  0, sizeof (SMCKeyData_t));
+  memset (&outData, 0, sizeof (SMCKeyData_t));
+  memset (val,      0, sizeof (SMCVal_t));
 
-  inData.key = _strtoul(key, 4, 16);
+  inData.key = hm_IOKIT_strtoul (key, 4, 16);
+
   inData.data8 = SMC_CMD_READ_KEYINFO;
 
-  if (SMCCall(KERNEL_INDEX_SMC, &inData, &outData, conn) != kIOReturnSuccess) return 1;
+  if (hm_IOKIT_SMCCall (KERNEL_INDEX_SMC, &inData, &outData, conn) != kIOReturnSuccess) return 1;
 
-  if (SMCCall(KERNEL_INDEX_SMC, &inData, &outData, conn) != kIOReturnSuccess) return 1;
+  if (hm_IOKIT_SMCCall (KERNEL_INDEX_SMC, &inData, &outData, conn) != kIOReturnSuccess) return 1;
 
   val->dataSize = outData.keyInfo.dataSize;
-  _ultostr(val->dataType, outData.keyInfo.dataType);
+
+  hm_IOKIT_ultostr (val->dataType, outData.keyInfo.dataType);
 
   inData.keyInfo.dataSize = val->dataSize;
+
   inData.data8 = SMC_CMD_READ_BYTES;
 
-  if (SMCCall(KERNEL_INDEX_SMC, &inData, &outData, conn) != kIOReturnSuccess) return 1;
+  if (hm_IOKIT_SMCCall (KERNEL_INDEX_SMC, &inData, &outData, conn) != kIOReturnSuccess) return 1;
 
   memcpy(val->bytes, outData.bytes, sizeof(outData.bytes));
 
   return kIOReturnSuccess;
 }
 
-int SMCGetTemperature(hashcat_ctx_t *hashcat_ctx, char* key, double *temp)
+int hm_IOKIT_SMCGetTemperature (hashcat_ctx_t *hashcat_ctx, char *key, double *temp)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -137,39 +141,45 @@ int SMCGetTemperature(hashcat_ctx_t *hashcat_ctx, char* key, double *temp)
 
   SMCVal_t val;
 
-  if (SMCReadKey (key, &val, iokit->conn) == kIOReturnSuccess)
+  memset (&val, 0, sizeof (SMCVal_t));
+
+  if (hm_IOKIT_SMCReadKey (key, &val, iokit->conn) == kIOReturnSuccess)
   {
-    // read succeeded - check returned value
     if (val.dataSize > 0)
     {
       if (strcmp(val.dataType, DATATYPE_SP78) == 0)
       {
         // convert sp78 value to temperature
         int intValue = val.bytes[0] * 256 + (unsigned char)val.bytes[1];
+
         *temp = (intValue / 256.0);
+
         return 1;
       }
     }
   }
 
   // read failed
+
   *temp = 0.0;
+
   return -1;
 }
 
-bool SMCGetFanRPM(char *key, io_connect_t conn, float *ret)
+bool hm_IOKIT_SMCGetFanRPM (char *key, io_connect_t conn, float *ret)
 {
   SMCVal_t val;
 
-  if (SMCReadKey(key, &val, conn) == kIOReturnSuccess)
+  memset (&val, 0, sizeof (SMCVal_t));
+
+  if (hm_IOKIT_SMCReadKey (key, &val, conn) == kIOReturnSuccess)
   {
-    // read succeeded - check returned value
     if (val.dataSize > 0)
     {
       if (strcmp(val.dataType, DATATYPE_FPE2) == 0)
       {
         // convert fpe2 value to RPM
-        *ret = ntohs(*(UInt16*)val.bytes) / 4.0;
+        *ret = ntohs (*(UInt16*)val.bytes) / 4.0;
 
         return true;
       }
@@ -191,13 +201,16 @@ static int hm_IOKIT_get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, int *fan_
   IOKIT_PTR *iokit = hwmon_ctx->hm_iokit;
 
   SMCVal_t val;
+
   UInt32Char_t key;
 
-  int totalFans, i;
+  int i, totalFans = 0;
 
-  if (SMCReadKey("FNum", &val, iokit->conn) == kIOReturnSuccess)
+  memset (&val, 0, sizeof (SMCVal_t));
+
+  if (hm_IOKIT_SMCReadKey ("FNum", &val, iokit->conn) == kIOReturnSuccess)
   {
-    totalFans = _strtoul((char *)val.bytes, val.dataSize, 10);
+    totalFans = hm_IOKIT_strtoul ((char *)val.bytes, val.dataSize, 10);
 
     for (i = 0; i < totalFans; i++)
     {
@@ -207,16 +220,19 @@ static int hm_IOKIT_get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, int *fan_
       float rpm = 0.0f;
       float pct = 0.0f;
 
-      sprintf(key, "F%dAc", i);
-      SMCGetFanRPM(key, iokit->conn, &actual_speed);
+      memset (&key, 0, sizeof (UInt32Char_t));
+      sprintf (key, "F%dAc", i);
+      hm_IOKIT_SMCGetFanRPM (key, iokit->conn, &actual_speed);
       if (actual_speed < 0.f) continue;
 
+      memset (&key, 0, sizeof (UInt32Char_t));
       sprintf(key, "F%dMn", i);
-      SMCGetFanRPM(key, iokit->conn, &minimum_speed);
+      hm_IOKIT_SMCGetFanRPM (key, iokit->conn, &minimum_speed);
       if (minimum_speed < 0.f) continue;
 
-      sprintf(key, "F%dMx", i);
-      SMCGetFanRPM(key, iokit->conn, &maximum_speed);
+      memset (&key, 0, sizeof (UInt32Char_t));
+      sprintf (key, "F%dMx", i);
+      hm_IOKIT_SMCGetFanRPM (key, iokit->conn, &maximum_speed);
       if (maximum_speed < 0.f) continue;
 
       rpm = actual_speed - minimum_speed;
@@ -224,7 +240,10 @@ static int hm_IOKIT_get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, int *fan_
 
       pct = rpm / (maximum_speed - minimum_speed);
       pct *= 100.f;
+
       *fan_speed = pct;
+
+      break;
     }
   }
 
@@ -239,9 +258,13 @@ static bool iokit_init (hashcat_ctx_t *hashcat_ctx)
 
   memset (iokit, 0, sizeof (IOKIT_PTR));
 
-  SMCOpen (hashcat_ctx, &iokit->conn);
+  if (hm_IOKIT_SMCOpen (hashcat_ctx, &iokit->conn) == kIOReturnSuccess) return true;
 
-  return true;
+  hcfree (hwmon_ctx->hm_iokit);
+
+  hwmon_ctx->hm_iokit = NULL;
+
+  return false;
 }
 
 static bool iokit_close (hashcat_ctx_t *hashcat_ctx)
@@ -250,7 +273,7 @@ static bool iokit_close (hashcat_ctx_t *hashcat_ctx)
 
   IOKIT_PTR *iokit = hwmon_ctx->hm_iokit;
 
-  SMCClose (iokit->conn);
+  hm_IOKIT_SMCClose (iokit->conn);
 
   return true;
 }
@@ -309,7 +332,7 @@ static char *hm_SYSFS_get_syspath_hwmon (hashcat_ctx_t *hashcat_ctx, const int b
 
   if (syspath == NULL)
   {
-    event_log_error (hashcat_ctx, "hm_SYSFS_get_syspath_device() failed.");
+    event_log_error (hashcat_ctx, "hm_SYSFS_get_syspath_device(): failed");
 
     return NULL;
   }
@@ -322,7 +345,7 @@ static char *hm_SYSFS_get_syspath_hwmon (hashcat_ctx_t *hashcat_ctx, const int b
 
   if (hwmonN == NULL)
   {
-    event_log_error (hashcat_ctx, "First_file_in_directory() failed.");
+    event_log_error (hashcat_ctx, "first_file_in_directory(): failed");
 
     hcfree (syspath);
 
@@ -335,7 +358,6 @@ static char *hm_SYSFS_get_syspath_hwmon (hashcat_ctx_t *hashcat_ctx, const int b
   snprintf (hwmon, HCBUFSIZ_TINY, "%s/hwmon/%s", syspath, hwmonN);
 
   hcfree (syspath);
-
   hcfree (hwmonN);
 
   return hwmon;
@@ -373,7 +395,7 @@ static int hm_SYSFS_get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, const int
   {
     fclose (fd_cur);
 
-    event_log_error (hashcat_ctx, "%s: unexpected data.", path_cur);
+    event_log_error (hashcat_ctx, "%s: unexpected data", path_cur);
 
     hcfree (path_cur);
     hcfree (path_max);
@@ -401,7 +423,7 @@ static int hm_SYSFS_get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, const int
   {
     fclose (fd_max);
 
-    event_log_error (hashcat_ctx, "%s: unexpected data.", path_max);
+    event_log_error (hashcat_ctx, "%s: unexpected data", path_max);
 
     hcfree (path_cur);
     hcfree (path_max);
@@ -413,7 +435,7 @@ static int hm_SYSFS_get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, const int
 
   if (pwm1_max == 0)
   {
-    event_log_error (hashcat_ctx, "%s: pwm1_max cannot be 0.", path_max);
+    event_log_error (hashcat_ctx, "%s: pwm1_max cannot be 0", path_max);
 
     hcfree (path_cur);
     hcfree (path_max);
@@ -462,7 +484,7 @@ static int hm_SYSFS_get_temperature_current (hashcat_ctx_t *hashcat_ctx, const i
   {
     fclose (fd);
 
-    event_log_error (hashcat_ctx, "%s: unexpected data.", path);
+    event_log_error (hashcat_ctx, "%s: unexpected data", path);
 
     hcfree (path);
 
@@ -1538,7 +1560,7 @@ static int get_adapters_num_adl (hashcat_ctx_t *hashcat_ctx, int *iNumberAdapter
 
   if (iNumberAdapters == NULL)
   {
-    event_log_error (hashcat_ctx, "No ADL adapters found.");
+    event_log_error (hashcat_ctx, "get_adapters_num_adl(): No ADL adapters found.");
 
     return -1;
   }
@@ -1554,7 +1576,7 @@ static int hm_get_adapter_index_nvapi (hashcat_ctx_t *hashcat_ctx, HM_ADAPTER_NV
 
   if (pGpuCount == 0)
   {
-    event_log_error (hashcat_ctx, "No NvAPI adapters found.");
+    event_log_error (hashcat_ctx, "hm_get_adapter_index_nvapi(): No NvAPI adapters found.");
 
     return 0;
   }
@@ -1570,7 +1592,7 @@ static int hm_get_adapter_index_nvml (hashcat_ctx_t *hashcat_ctx, HM_ADAPTER_NVM
 
   if (deviceCount == 0)
   {
-    event_log_error (hashcat_ctx, "No NVML adapters found.");
+    event_log_error (hashcat_ctx, "hm_get_adapter_index_nvml(): No NVML adapters found.");
 
     return 0;
   }
@@ -1840,7 +1862,7 @@ int hm_get_temperature_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int b
       {
         double temperature;
 
-        if (SMCGetTemperature(hashcat_ctx, SMC_KEY_GPU_INT_TEMP, &temperature) == -1)
+        if (hm_IOKIT_SMCGetTemperature(hashcat_ctx, SMC_KEY_GPU_INT_TEMP, &temperature) == -1)
         {
           hwmon_ctx->hm_device[backend_device_idx].temperature_get_supported = false;
 
