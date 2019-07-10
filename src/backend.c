@@ -82,7 +82,7 @@ static int backend_ctx_find_alias_devices (hashcat_ctx_t *hashcat_ctx)
       {
         if (device_param_dst->skipped == false)
         {
-          device_param_dst->skipped = true;
+          device_param_src->skipped = true;
 
           backend_ctx->opencl_devices_active--;
 
