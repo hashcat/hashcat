@@ -71,6 +71,8 @@ int benchmark_next (hashcat_ctx_t *hashcat_ctx)
 
         cur = hash_mode + 1;
 
+        hcfree (modulefile);
+
         return hash_mode;
       }
     }

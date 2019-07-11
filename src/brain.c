@@ -2996,6 +2996,8 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
   {
     brain_logging (stderr, 0, "socket: %s\n", strerror (errno));
 
+    if (brain_password == NULL) hcfree (auth_password);
+
     return -1;
   }
 
@@ -3006,12 +3008,16 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
   {
     brain_logging (stderr, 0, "setsockopt: %s\n", strerror (errno));
 
+    if (brain_password == NULL) hcfree (auth_password);
+
     return -1;
   }
 
   if (setsockopt (server_fd, SOL_TCP, TCP_NODELAY, &one, sizeof (one)) == -1)
   {
     brain_logging (stderr, 0, "setsockopt: %s\n", strerror (errno));
+
+    if (brain_password == NULL) hcfree (auth_password);
 
     return -1;
   }
@@ -3054,6 +3060,8 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
     {
       brain_logging (stderr, 0, "%s: %s\n", listen_host, gai_strerror (rc_getaddrinfo));
 
+      if (brain_password == NULL) hcfree (auth_password);
+
       return -1;
     }
   }
@@ -3062,12 +3070,16 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
   {
     brain_logging (stderr, 0, "bind: %s\n", strerror (errno));
 
+    if (brain_password == NULL) hcfree (auth_password);
+
     return -1;
   }
 
   if (listen (server_fd, 5) == -1)
   {
     brain_logging (stderr, 0, "listen: %s\n", strerror (errno));
+
+    if (brain_password == NULL) hcfree (auth_password);
 
     return -1;
   }
@@ -3077,6 +3089,8 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
   if (brain_server_dbs == NULL)
   {
     brain_logging (stderr, 0, "%s\n", MSG_ENOMEM);
+
+    if (brain_password == NULL) hcfree (auth_password);
 
     return -1;
   }
@@ -3090,11 +3104,15 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
   {
     brain_logging (stderr, 0, "%s\n", MSG_ENOMEM);
 
+    if (brain_password == NULL) hcfree (auth_password);
+
     return -1;
   }
 
   if (brain_server_read_hash_dumps (brain_server_dbs, ".") == false)
   {
+    if (brain_password == NULL) hcfree (auth_password);
+
     return -1;
   }
 
@@ -3105,11 +3123,15 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
   {
     brain_logging (stderr, 0, "%s\n", MSG_ENOMEM);
 
+    if (brain_password == NULL) hcfree (auth_password);
+
     return -1;
   }
 
   if (brain_server_read_attack_dumps (brain_server_dbs, ".") == false)
   {
+    if (brain_password == NULL) hcfree (auth_password);
+
     return -1;
   }
 
@@ -3118,6 +3140,8 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
   if (brain_server_dbs->client_slots == NULL)
   {
     brain_logging (stderr, 0, "%s\n", MSG_ENOMEM);
+
+    if (brain_password == NULL) hcfree (auth_password);
 
     return -1;
   }
@@ -3134,6 +3158,8 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
     if (sessions == NULL)
     {
       brain_logging (stderr, 0, "%s\n", MSG_ENOMEM);
+
+      if (brain_password == NULL) hcfree (auth_password);
 
       return -1;
     }
@@ -3163,6 +3189,8 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
   {
     brain_logging (stderr, 0, "%s\n", MSG_ENOMEM);
 
+    if (brain_password == NULL) hcfree (auth_password);
+
     return -1;
   }
 
@@ -3184,6 +3212,8 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
   if (signal (SIGINT, brain_server_handle_signal) == SIG_ERR)
   {
     brain_logging (stderr, 0, "signal: %s\n", strerror (errno));
+
+    if (brain_password == NULL) hcfree (auth_password);
 
     return -1;
   }
@@ -3258,11 +3288,15 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
 
   if (brain_server_write_hash_dumps (brain_server_dbs, ".") == false)
   {
+    if (brain_password == NULL) hcfree (auth_password);
+
     return -1;
   }
 
   if (brain_server_write_attack_dumps (brain_server_dbs, ".") == false)
   {
+    if (brain_password == NULL) hcfree (auth_password);
+
     return -1;
   }
 
@@ -3286,6 +3320,8 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
   hcfree (brain_server_dbs);
 
   hcfree (brain_server_client_options);
+
+  if (brain_password == NULL) hcfree (auth_password);
 
   close (server_fd);
 

@@ -1062,8 +1062,12 @@ int main (int argc, char **argv)
 
   const int rc_hashcat_init = hashcat_init (hashcat_ctx, event);
 
-  if (rc_hashcat_init == -1) return -1;
+  if (rc_hashcat_init == -1)
+  {
+    hcfree (hashcat_ctx);
 
+    return -1;
+  }
   // install and shared folder need to be set to recognize "make install" use
 
   const char *install_folder = NULL;
@@ -1081,17 +1085,32 @@ int main (int argc, char **argv)
 
   const int rc_options_init = user_options_init (hashcat_ctx);
 
-  if (rc_options_init == -1) return -1;
+  if (rc_options_init == -1)
+  {
+    hcfree (hashcat_ctx);
+
+    return -1;
+  }
 
   // parse commandline parameters and check them
 
   const int rc_options_getopt = user_options_getopt (hashcat_ctx, argc, argv);
 
-  if (rc_options_getopt == -1) return -1;
+  if (rc_options_getopt == -1)
+  {
+    hcfree (hashcat_ctx);
+
+    return -1;
+  }
 
   const int rc_options_sanity = user_options_sanity (hashcat_ctx);
 
-  if (rc_options_sanity == -1) return -1;
+  if (rc_options_sanity == -1)
+  {
+    hcfree (hashcat_ctx);
+
+    return -1;
+  }
 
   // some early exits
 
@@ -1102,6 +1121,8 @@ int main (int argc, char **argv)
   {
     const int rc = brain_server (user_options->brain_host, user_options->brain_port, user_options->brain_password, user_options->brain_session_whitelist);
 
+    hcfree (hashcat_ctx);
+
     return rc;
   }
   #endif
@@ -1109,6 +1130,8 @@ int main (int argc, char **argv)
   if (user_options->version == true)
   {
     printf ("%s\n", VERSION_TAG);
+
+    hcfree (hashcat_ctx);
 
     return 0;
   }
@@ -1167,7 +1190,7 @@ int main (int argc, char **argv)
 
   hashcat_destroy (hashcat_ctx);
 
-  free (hashcat_ctx);
+  hcfree (hashcat_ctx);
 
   return rc_final;
 }
