@@ -379,9 +379,9 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   const int tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, out_len, plain_ptr, plain_len, crackpos, NULL, 0, (char *) tmp_buf);
 
-  outfile_write_close (hashcat_ctx);
-
   EVENT_DATA (EVENT_CRACKER_HASH_CRACKED, tmp_buf, tmp_len);
+
+  outfile_write_close (hashcat_ctx);
 
   // potfile
   // we can have either used-defined hooks or reuse the same format as input format
