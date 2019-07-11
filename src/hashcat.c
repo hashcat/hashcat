@@ -117,17 +117,13 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
    * Update attack-mode specific stuff based on mask
    */
 
-  const int rc_mask_ctx_update_loop = mask_ctx_update_loop (hashcat_ctx);
-
-  if (rc_mask_ctx_update_loop == -1) return 0;
+  if (mask_ctx_update_loop (hashcat_ctx) == -1) return 0;
 
   /**
    * Update attack-mode specific stuff based on wordlist
    */
 
-  const int rc_straight_ctx_update_loop = straight_ctx_update_loop (hashcat_ctx);
-
-  if (rc_straight_ctx_update_loop == -1) return 0;
+  if (straight_ctx_update_loop (hashcat_ctx) == -1) return 0;
 
   // words base
 
@@ -349,9 +345,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
       {
         if (status_ctx->devices_status == STATUS_EXHAUSTED)
         {
-          const int rc_inner2_loop = inner2_loop (hashcat_ctx);
-
-          if (rc_inner2_loop == -1) myabort (hashcat_ctx);
+          if (inner2_loop (hashcat_ctx) == -1) myabort (hashcat_ctx);
 
           if (status_ctx->run_main_level3 == false) break;
         }
@@ -406,9 +400,7 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
     {
       straight_ctx->dicts_pos = dicts_pos;
 
-      const int rc_inner2_loop = inner2_loop (hashcat_ctx);
-
-      if (rc_inner2_loop == -1) myabort (hashcat_ctx);
+      if (inner2_loop (hashcat_ctx) == -1) myabort (hashcat_ctx);
 
       if (status_ctx->run_main_level3 == false) break;
     }
@@ -420,9 +412,7 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
-    const int rc_inner2_loop = inner2_loop (hashcat_ctx);
-
-    if (rc_inner2_loop == -1) myabort (hashcat_ctx);
+    if (inner2_loop (hashcat_ctx) == -1) myabort (hashcat_ctx);
   }
 
   EVENT (EVENT_INNERLOOP2_FINISHED);
@@ -457,9 +447,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * setup variables and buffers depending on hash_mode
    */
 
-  const int rc_hashconfig = hashconfig_init (hashcat_ctx);
-
-  if (rc_hashconfig == -1)
+  if (hashconfig_init (hashcat_ctx) == -1)
   {
     event_log_error (hashcat_ctx, "Invalid hash-mode '%u' selected.", user_options->hash_mode);
 
@@ -470,17 +458,13 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * generate hashlist filename for later use
    */
 
-  const int rc_hashes_init_filename = hashes_init_filename (hashcat_ctx);
-
-  if (rc_hashes_init_filename == -1) return -1;
+  if (hashes_init_filename (hashcat_ctx) == -1) return -1;
 
   /**
    * load hashes, stage 1
    */
 
-  const int rc_hashes_init_stage1 = hashes_init_stage1 (hashcat_ctx);
-
-  if (rc_hashes_init_stage1 == -1) return -1;
+  if (hashes_init_stage1 (hashcat_ctx) == -1) return -1;
 
   if ((user_options->keyspace == false) && (user_options->stdout_flag == false))
   {
@@ -498,9 +482,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   hashes->hashes_cnt_orig = hashes->hashes_cnt;
 
-  const int rc_hashes_init_stage2 = hashes_init_stage2 (hashcat_ctx);
-
-  if (rc_hashes_init_stage2 == -1) return -1;
+  if (hashes_init_stage2 (hashcat_ctx) == -1) return -1;
 
   /**
    * potfile removes
@@ -529,9 +511,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * load hashes, stage 3, update cracked results from potfile
    */
 
-  const int rc_hashes_init_stage3 = hashes_init_stage3 (hashcat_ctx);
-
-  if (rc_hashes_init_stage3 == -1) return -1;
+  if (hashes_init_stage3 (hashcat_ctx) == -1) return -1;
 
   /**
    * potfile show/left handling
@@ -543,9 +523,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
     outfile_write_open (hashcat_ctx);
 
-    const int rc = potfile_handle_show (hashcat_ctx);
-
-    if (rc == -1) return -1;
+    if (potfile_handle_show (hashcat_ctx) == -1) return -1;
 
     outfile_write_close (hashcat_ctx);
 
@@ -558,9 +536,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
     outfile_write_open (hashcat_ctx);
 
-    const int rc = potfile_handle_left (hashcat_ctx);
-
-    if (rc == -1) return -1;
+    if (potfile_handle_left (hashcat_ctx) == -1) return -1;
 
     outfile_write_close (hashcat_ctx);
 
@@ -610,25 +586,19 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * load hashes, stage 4, automatic Optimizers
    */
 
-  const int rc_hashes_init_stage4 = hashes_init_stage4 (hashcat_ctx);
-
-  if (rc_hashes_init_stage4 == -1) return -1;
+  if (hashes_init_stage4 (hashcat_ctx) == -1) return -1;
 
   /**
    * load hashes, selftest
    */
 
-  const int rc_hashes_init_selftest = hashes_init_selftest (hashcat_ctx);
-
-  if (rc_hashes_init_selftest == -1) return -1;
+  if (hashes_init_selftest (hashcat_ctx) == -1) return -1;
 
   /**
    * load hashes, benchmark
    */
 
-  const int rc_hashes_init_benchmark = hashes_init_benchmark (hashcat_ctx);
-
-  if (rc_hashes_init_benchmark == -1) return -1;
+  if (hashes_init_benchmark (hashcat_ctx) == -1) return -1;
 
   /**
    * Done loading hashes, log results
@@ -642,9 +612,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   EVENT (EVENT_BITMAP_INIT_PRE);
 
-  const int rc_bitmap_init = bitmap_ctx_init (hashcat_ctx);
-
-  if (rc_bitmap_init == -1) return -1;
+  if (bitmap_ctx_init (hashcat_ctx) == -1) return -1;
 
   EVENT (EVENT_BITMAP_INIT_POST);
 
@@ -658,33 +626,25 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * Wordlist allocate buffer
    */
 
-  const int rc_wl_data_init = wl_data_init (hashcat_ctx);
-
-  if (rc_wl_data_init == -1) return -1;
+  if (wl_data_init (hashcat_ctx) == -1) return -1;
 
   /**
    * straight mode init
    */
 
-  const int rc_straight_init = straight_ctx_init (hashcat_ctx);
-
-  if (rc_straight_init == -1) return -1;
+  if (straight_ctx_init (hashcat_ctx) == -1) return -1;
 
   /**
    * straight mode init
    */
 
-  const int rc_combinator_init = combinator_ctx_init (hashcat_ctx);
-
-  if (rc_combinator_init == -1) return -1;
+  if (combinator_ctx_init (hashcat_ctx) == -1) return -1;
 
   /**
    * charsets : keep them together for more easy maintainnce
    */
 
-  const int rc_mask_init = mask_ctx_init (hashcat_ctx);
-
-  if (rc_mask_init == -1) return -1;
+  if (mask_ctx_init (hashcat_ctx) == -1) return -1;
 
   /**
    * prevent the user from using --skip/--limit together with maskfile and/or multiple word lists
@@ -718,9 +678,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * status progress init; needs hashes that's why we have to do it here and separate from status_ctx_init
    */
 
-  const int rc_status_init = status_progress_init (hashcat_ctx);
-
-  if (rc_status_init == -1) return -1;
+  if (status_progress_init (hashcat_ctx) == -1) return -1;
 
   /**
    * main screen
@@ -740,9 +698,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   EVENT (EVENT_BACKEND_SESSION_PRE);
 
-  const int rc_session_begin = backend_session_begin (hashcat_ctx);
-
-  if (rc_session_begin == -1) return -1;
+  if (backend_session_begin (hashcat_ctx) == -1) return -1;
 
   EVENT (EVENT_BACKEND_SESSION_POST);
 
@@ -807,9 +763,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * the weak hash check was removed maybe we can move this more to the bottom now
    */
 
-  const int rc_potfile_write = potfile_write_open (hashcat_ctx);
-
-  if (rc_potfile_write == -1) return -1;
+  if (potfile_write_open (hashcat_ctx) == -1) return -1;
 
   /**
    * status and monitor threads
@@ -861,9 +815,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
     {
       mask_ctx->masks_pos = masks_pos;
 
-      const int rc_inner1_loop = inner1_loop (hashcat_ctx);
-
-      if (rc_inner1_loop == -1) myabort (hashcat_ctx);
+      if (inner1_loop (hashcat_ctx) == -1) myabort (hashcat_ctx);
 
       if (status_ctx->run_main_level2 == false) break;
     }
@@ -875,9 +827,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
-    const int rc_inner1_loop = inner1_loop (hashcat_ctx);
-
-    if (rc_inner1_loop == -1) myabort (hashcat_ctx);
+    if (inner1_loop (hashcat_ctx) == -1) myabort (hashcat_ctx);
   }
 
   // wait for inner threads
@@ -1012,41 +962,31 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
    * event init (needed for logging so should be first)
    */
 
-  const int rc_event_init = event_ctx_init (hashcat_ctx);
-
-  if (rc_event_init == -1) return -1;
+  if (event_ctx_init (hashcat_ctx) == -1) return -1;
 
   /**
    * status init
    */
 
-  const int rc_status_init = status_ctx_init (hashcat_ctx);
-
-  if (rc_status_init == -1) return -1;
+  if (status_ctx_init (hashcat_ctx) == -1) return -1;
 
   /**
    * folder
    */
 
-  const int rc_folder_config_init = folder_config_init (hashcat_ctx, install_folder, shared_folder);
-
-  if (rc_folder_config_init == -1) return -1;
+  if (folder_config_init (hashcat_ctx, install_folder, shared_folder) == -1) return -1;
 
   /**
    * pidfile
    */
 
-  const int rc_pidfile_init = pidfile_ctx_init (hashcat_ctx);
-
-  if (rc_pidfile_init == -1) return -1;
+  if (pidfile_ctx_init (hashcat_ctx) == -1) return -1;
 
   /**
    * restore
    */
 
-  const int rc_restore_init = restore_ctx_init (hashcat_ctx, argc, argv);
-
-  if (rc_restore_init == -1) return -1;
+  if (restore_ctx_init (hashcat_ctx, argc, argv) == -1) return -1;
 
   /**
    * process user input
@@ -1070,9 +1010,7 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
 
     WORD wVersionRequested = MAKEWORD (2,2);
 
-    const int iResult = WSAStartup (wVersionRequested, &wsaData);
-
-    if (iResult != NO_ERROR)
+    if (WSAStartup (wVersionRequested, &wsaData) != NO_ERROR)
     {
       fprintf (stderr, "WSAStartup: %s\n", strerror (errno));
 
@@ -1086,17 +1024,13 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
    * logfile
    */
 
-  const int rc_logfile_init = logfile_init (hashcat_ctx);
-
-  if (rc_logfile_init == -1) return -1;
+  if (logfile_init (hashcat_ctx) == -1) return -1;
 
   /**
    * cpu affinity
    */
 
-  const int rc_affinity = set_cpu_affinity (hashcat_ctx);
-
-  if (rc_affinity == -1) return -1;
+  if (set_cpu_affinity (hashcat_ctx) == -1) return -1;
 
   /**
    * prepare seeding for random number generator, required by logfile and rules generator
@@ -1116,33 +1050,25 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
    * tuning db
    */
 
-  const int rc_tuning_db = tuning_db_init (hashcat_ctx);
-
-  if (rc_tuning_db == -1) return -1;
+  if (tuning_db_init (hashcat_ctx) == -1) return -1;
 
   /**
    * induction directory
    */
 
-  const int rc_induct_ctx_init = induct_ctx_init (hashcat_ctx);
-
-  if (rc_induct_ctx_init == -1) return -1;
+  if (induct_ctx_init (hashcat_ctx) == -1) return -1;
 
   /**
    * outfile-check directory
    */
 
-  const int rc_outcheck_ctx_init = outcheck_ctx_init (hashcat_ctx);
-
-  if (rc_outcheck_ctx_init == -1) return -1;
+  if (outcheck_ctx_init (hashcat_ctx) == -1) return -1;
 
   /**
    * outfile itself
    */
 
-  const int rc_outfile_init = outfile_init (hashcat_ctx);
-
-  if (rc_outfile_init == -1) return -1;
+  if (outfile_init (hashcat_ctx) == -1) return -1;
 
   /**
    * potfile init
@@ -1150,65 +1076,49 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
    * plus it depends on hash_mode, so we continue using it in outer_loop
    */
 
-  const int rc_potfile_init = potfile_init (hashcat_ctx);
-
-  if (rc_potfile_init == -1) return -1;
+  if (potfile_init (hashcat_ctx) == -1) return -1;
 
   /**
    * dictstat init
    */
 
-  const int rc_dictstat_init = dictstat_init (hashcat_ctx);
-
-  if (rc_dictstat_init == -1) return -1;
+  if (dictstat_init (hashcat_ctx) == -1) return -1;
 
   /**
    * loopback init
    */
 
-  const int rc_loopback_init = loopback_init (hashcat_ctx);
-
-  if (rc_loopback_init == -1) return -1;
+  if (loopback_init (hashcat_ctx) == -1) return -1;
 
   /**
    * debugfile init
    */
 
-  const int rc_debugfile_init = debugfile_init (hashcat_ctx);
-
-  if (rc_debugfile_init == -1) return -1;
+  if (debugfile_init (hashcat_ctx) == -1) return -1;
 
   /**
    * Try to detect if all the files we're going to use are accessible in the mode we want them
    */
 
-  const int rc_user_options_check_files = user_options_check_files (hashcat_ctx);
-
-  if (rc_user_options_check_files == -1) return -1;
+  if (user_options_check_files (hashcat_ctx) == -1) return -1;
 
   /**
    * Init backend library loader
    */
 
-  const int rc_backend_init = backend_ctx_init (hashcat_ctx);
-
-  if (rc_backend_init == -1) return -1;
+  if (backend_ctx_init (hashcat_ctx) == -1) return -1;
 
   /**
    * Init backend devices
    */
 
-  const int rc_devices_init = backend_ctx_devices_init (hashcat_ctx, comptime);
-
-  if (rc_devices_init == -1) return -1;
+  if (backend_ctx_devices_init (hashcat_ctx, comptime) == -1) return -1;
 
   /**
    * HM devices: init
    */
 
-  const int rc_hwmon_init = hwmon_ctx_init (hashcat_ctx);
-
-  if (rc_hwmon_init == -1) return -1;
+  if (hwmon_ctx_init (hashcat_ctx) == -1) return -1;
 
   // done
 
@@ -1257,7 +1167,7 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      int hash_mode;
+      int hash_mode = 0;
 
       while ((hash_mode = benchmark_next (hashcat_ctx)) != -1)
       {
@@ -1307,12 +1217,12 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
   if (rc_final == 0)
   {
-    if (status_ctx->devices_status == STATUS_ABORTED_RUNTIME)     rc_final = 4;
-    if (status_ctx->devices_status == STATUS_ABORTED_CHECKPOINT)  rc_final = 3;
-    if (status_ctx->devices_status == STATUS_ABORTED)             rc_final = 2;
-    if (status_ctx->devices_status == STATUS_QUIT)                rc_final = 2;
-    if (status_ctx->devices_status == STATUS_EXHAUSTED)           rc_final = 1;
-    if (status_ctx->devices_status == STATUS_CRACKED)             rc_final = 0;
+    if (status_ctx->devices_status == STATUS_ABORTED_RUNTIME)     rc_final =  4;
+    if (status_ctx->devices_status == STATUS_ABORTED_CHECKPOINT)  rc_final =  3;
+    if (status_ctx->devices_status == STATUS_ABORTED)             rc_final =  2;
+    if (status_ctx->devices_status == STATUS_QUIT)                rc_final =  2;
+    if (status_ctx->devices_status == STATUS_EXHAUSTED)           rc_final =  1;
+    if (status_ctx->devices_status == STATUS_CRACKED)             rc_final =  0;
     if (status_ctx->devices_status == STATUS_ERROR)               rc_final = -1;
   }
 
