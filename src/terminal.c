@@ -73,7 +73,7 @@ void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
     event_log_info (hashcat_ctx, "%s (%s) starting...", PROGNAME, version_tag);
     event_log_info (hashcat_ctx, NULL);
   }
-  
+
   if (user_options->force == true)
   {
     event_log_warning (hashcat_ctx, "You have enabled --force to bypass dangerous warnings and errors!");
@@ -113,14 +113,14 @@ int setup_console ()
 
   if (_setmode (_fileno (stdout), _O_BINARY) == -1)
   {
-    __mingw_fprintf (stderr, "%s: %m", "stdin");
+    __mingw_fprintf (stderr, "%s: %m", "stdin"); // stdout ?
 
     return -1;
   }
 
   if (_setmode (_fileno (stderr), _O_BINARY) == -1)
   {
-    __mingw_fprintf (stderr, "%s: %m", "stdin");
+    __mingw_fprintf (stderr, "%s: %m", "stdin"); // stderr ?
 
     return -1;
   }
@@ -544,9 +544,7 @@ void example_hashes (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->hash_mode_chgd == true)
   {
-    const int rc = hashconfig_init (hashcat_ctx);
-
-    if (rc == 0)
+    if (hashconfig_init (hashcat_ctx) == 0)
     {
       hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
@@ -559,7 +557,7 @@ void example_hashes (hashcat_ctx_t *hashcat_ctx)
 
         if (need_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), user_options->separator, 0))
         {
-          char tmp_buf[HCBUFSIZ_LARGE];
+          char tmp_buf[HCBUFSIZ_LARGE] = { 0 };
 
           int tmp_len = 0;
 
@@ -606,9 +604,7 @@ void example_hashes (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_exist (modulefile) == false) continue;
 
-      const int rc = hashconfig_init (hashcat_ctx);
-
-      if (rc == 0)
+      if (hashconfig_init (hashcat_ctx) == 0)
       {
         hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
@@ -621,7 +617,7 @@ void example_hashes (hashcat_ctx_t *hashcat_ctx)
 
           if (need_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), user_options->separator, 0))
           {
-            char tmp_buf[HCBUFSIZ_LARGE];
+            char tmp_buf[HCBUFSIZ_LARGE] = { 0 };
 
             int tmp_len = 0;
 
@@ -791,7 +787,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
 
     const size_t len = event_log_info (hashcat_ctx, "CUDA API (CUDA %d.%d)", cuda_driver_version / 1000, (cuda_driver_version % 100) / 10);
 
-    char line[HCBUFSIZ_TINY];
+    char line[HCBUFSIZ_TINY] = { 0 };
 
     memset (line, '=', len);
 
@@ -844,7 +840,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
 
       const size_t len = event_log_info (hashcat_ctx, "OpenCL API (%s) - Platform #%u [%s]", opencl_platform_version, opencl_platforms_idx + 1, opencl_platform_vendor);
 
-      char line[HCBUFSIZ_TINY];
+      char line[HCBUFSIZ_TINY] = { 0 };
 
       memset (line, '=', len);
 
@@ -892,9 +888,7 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
 
   hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
 
-  const int rc_status = hashcat_get_status (hashcat_ctx, hashcat_status);
-
-  if (rc_status == -1)
+  if (hashcat_get_status (hashcat_ctx, hashcat_status) == -1)
   {
     hcfree (hashcat_status);
 
@@ -994,9 +988,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
 
   hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
 
-  const int rc_status = hashcat_get_status (hashcat_ctx, hashcat_status);
-
-  if (rc_status == -1)
+  if (hashcat_get_status (hashcat_ctx, hashcat_status) == -1)
   {
     hcfree (hashcat_status);
 
@@ -1095,9 +1087,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
   hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
 
-  const int rc_status = hashcat_get_status (hashcat_ctx, hashcat_status);
-
-  if (rc_status == -1)
+  if (hashcat_get_status (hashcat_ctx, hashcat_status) == -1)
   {
     hcfree (hashcat_status);
 
@@ -1515,6 +1505,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       "Brain.Link.All...: RX: %sB, TX: %sB",
       hashcat_status->brain_rx_all,
       hashcat_status->brain_tx_all);
+
     for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
     {
       const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
@@ -1655,9 +1646,7 @@ void status_benchmark_machine_readable (hashcat_ctx_t *hashcat_ctx)
 
   hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
 
-  const int rc_status = hashcat_get_status (hashcat_ctx, hashcat_status);
-
-  if (rc_status == -1)
+  if (hashcat_get_status (hashcat_ctx, hashcat_status) == -1)
   {
     hcfree (hashcat_status);
 
@@ -1693,9 +1682,7 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
 
   hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
 
-  const int rc_status = hashcat_get_status (hashcat_ctx, hashcat_status);
-
-  if (rc_status == -1)
+  if (hashcat_get_status (hashcat_ctx, hashcat_status) == -1)
   {
     hcfree (hashcat_status);
 
@@ -1736,9 +1723,7 @@ void status_speed_machine_readable (hashcat_ctx_t *hashcat_ctx)
 {
   hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
 
-  const int rc_status = hashcat_get_status (hashcat_ctx, hashcat_status);
-
-  if (rc_status == -1)
+  if (hashcat_get_status (hashcat_ctx, hashcat_status) == -1)
   {
     hcfree (hashcat_status);
 
@@ -1765,9 +1750,7 @@ void status_speed_json (hashcat_ctx_t *hashcat_ctx)
 {
   hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
 
-  const int rc_status = hashcat_get_status (hashcat_ctx, hashcat_status);
-
-  if (rc_status == -1)
+  if (hashcat_get_status (hashcat_ctx, hashcat_status) == -1)
   {
     hcfree (hashcat_status);
 
@@ -1822,9 +1805,7 @@ void status_speed (hashcat_ctx_t *hashcat_ctx)
 
   hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
 
-  const int rc_status = hashcat_get_status (hashcat_ctx, hashcat_status);
-
-  if (rc_status == -1)
+  if (hashcat_get_status (hashcat_ctx, hashcat_status) == -1)
   {
     hcfree (hashcat_status);
 
@@ -1861,9 +1842,7 @@ void status_progress_machine_readable (hashcat_ctx_t *hashcat_ctx)
 {
   hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
 
-  const int rc_status = hashcat_get_status (hashcat_ctx, hashcat_status);
-
-  if (rc_status == -1)
+  if (hashcat_get_status (hashcat_ctx, hashcat_status) == -1)
   {
     hcfree (hashcat_status);
 
@@ -1890,9 +1869,7 @@ void status_progress_json (hashcat_ctx_t *hashcat_ctx)
 {
   hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
 
-  const int rc_status = hashcat_get_status (hashcat_ctx, hashcat_status);
-
-  if (rc_status == -1)
+  if (hashcat_get_status (hashcat_ctx, hashcat_status) == -1)
   {
     hcfree (hashcat_status);
 
@@ -1921,6 +1898,7 @@ void status_progress_json (hashcat_ctx_t *hashcat_ctx)
     printf (" \"runtime\": %0.2f }", device_info->runtime_msec_dev);
     device_num++;
   }
+
   printf(" ] }");
 
   status_status_destroy (hashcat_ctx, hashcat_status);
@@ -1948,9 +1926,7 @@ void status_progress (hashcat_ctx_t *hashcat_ctx)
 
   hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
 
-  const int rc_status = hashcat_get_status (hashcat_ctx, hashcat_status);
-
-  if (rc_status == -1)
+  if (hashcat_get_status (hashcat_ctx, hashcat_status) == -1)
   {
     hcfree (hashcat_status);
 
