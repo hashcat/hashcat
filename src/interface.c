@@ -351,7 +351,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
       {
         if (hashconfig->has_optimized_kernel == false)
         {
-          if (user_options->quiet == false) event_log_warning (hashcat_ctx, "%s: Optimized OpenCL kernel requested but not needed - falling back to pure OpenCL kernel", source_file);
+          if (user_options->quiet == false) event_log_warning (hashcat_ctx, "%s: Optimized kernel requested but not needed - falling back to pure kernel", source_file);
         }
         else
         {
@@ -362,7 +362,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
       {
         if (hashconfig->has_pure_kernel == false)
         {
-          if (user_options->quiet == false) event_log_warning (hashcat_ctx, "%s: Pure OpenCL kernel not found, falling back to optimized OpenCL kernel", source_file);
+          if (user_options->quiet == false) event_log_warning (hashcat_ctx, "%s: Pure kernel not found, falling back to optimized kernel", source_file);
 
           hashconfig->opti_type |= OPTI_TYPE_OPTIMIZED_KERNEL;
         }
