@@ -1060,9 +1060,7 @@ int main (int argc, char **argv)
 
   hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) hcmalloc (sizeof (hashcat_ctx_t));
 
-  const int rc_hashcat_init = hashcat_init (hashcat_ctx, event);
-
-  if (rc_hashcat_init == -1)
+  if (hashcat_init (hashcat_ctx, event) == -1)
   {
     hcfree (hashcat_ctx);
 
@@ -1083,9 +1081,7 @@ int main (int argc, char **argv)
 
   // initialize the user options with some defaults (you can override them later)
 
-  const int rc_options_init = user_options_init (hashcat_ctx);
-
-  if (rc_options_init == -1)
+  if (user_options_init (hashcat_ctx) == -1)
   {
     hcfree (hashcat_ctx);
 
@@ -1094,18 +1090,14 @@ int main (int argc, char **argv)
 
   // parse commandline parameters and check them
 
-  const int rc_options_getopt = user_options_getopt (hashcat_ctx, argc, argv);
-
-  if (rc_options_getopt == -1)
+  if (user_options_getopt (hashcat_ctx, argc, argv) == -1)
   {
     hcfree (hashcat_ctx);
 
     return -1;
   }
 
-  const int rc_options_sanity = user_options_sanity (hashcat_ctx);
-
-  if (rc_options_sanity == -1)
+  if (user_options_sanity (hashcat_ctx) == -1)
   {
     hcfree (hashcat_ctx);
 
@@ -1140,11 +1132,9 @@ int main (int argc, char **argv)
 
   welcome_screen (hashcat_ctx, VERSION_TAG);
 
-  const int rc_session_init = hashcat_session_init (hashcat_ctx, install_folder, shared_folder, argc, argv, COMPTIME);
-
   int rc_final = -1;
 
-  if (rc_session_init == 0)
+  if (hashcat_session_init (hashcat_ctx, install_folder, shared_folder, argc, argv, COMPTIME) == 0)
   {
     if (user_options->usage == true)
     {
