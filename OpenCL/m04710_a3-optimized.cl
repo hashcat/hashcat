@@ -604,7 +604,7 @@ KERNEL_FQ void m04710_m04 (KERN_ATTR_BASIC ())
 
   w3[0] = 0;
   w3[1] = 0;
-  w3[2] = pws[gid].i[14];
+  w3[2] = pws[gid].i[15];
   w3[3] = 0;
 
   const u32 pw_len = pws[gid].pw_len & 63;
@@ -674,7 +674,7 @@ KERNEL_FQ void m04710_m08 (KERN_ATTR_BASIC ())
 
   w3[0] = 0;
   w3[1] = 0;
-  w3[2] = pws[gid].i[14];
+  w3[2] = pws[gid].i[15];
   w3[3] = 0;
 
   const u32 pw_len = pws[gid].pw_len & 63;
@@ -814,7 +814,7 @@ KERNEL_FQ void m04710_s04 (KERN_ATTR_BASIC ())
 
   w3[0] = 0;
   w3[1] = 0;
-  w3[2] = pws[gid].i[14];
+  w3[2] = pws[gid].i[15];
   w3[3] = 0;
 
   const u32 pw_len = pws[gid].pw_len & 63;
@@ -884,7 +884,7 @@ KERNEL_FQ void m04710_s08 (KERN_ATTR_BASIC ())
 
   w3[0] = 0;
   w3[1] = 0;
-  w3[2] = pws[gid].i[14];
+  w3[2] = pws[gid].i[15];
   w3[3] = 0;
 
   const u32 pw_len = pws[gid].pw_len & 63;
