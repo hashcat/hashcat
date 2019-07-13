@@ -180,9 +180,7 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
 
     pidfile_ctx_destroy (hashcat_ctx);
 
-    const int rc_pidfile_init = pidfile_ctx_init (hashcat_ctx);
-
-    if (rc_pidfile_init == -1) return -1;
+    if (pidfile_ctx_init (hashcat_ctx) == -1) return -1;
   }
 
   return 0;
@@ -254,9 +252,7 @@ int cycle_restore (hashcat_ctx_t *hashcat_ctx)
   const char *eff_restore_file = restore_ctx->eff_restore_file;
   const char *new_restore_file = restore_ctx->new_restore_file;
 
-  const int rc_write_restore = write_restore (hashcat_ctx);
-
-  if (rc_write_restore == -1) return -1;
+  if (write_restore (hashcat_ctx) == -1) return -1;
 
   if (hc_path_exist (eff_restore_file) == true)
   {
@@ -332,17 +328,13 @@ int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
   restore_ctx->argc = argc;
   restore_ctx->argv = argv;
 
-  const int rc_init_restore = init_restore (hashcat_ctx);
-
-  if (rc_init_restore == -1) return -1;
+  if (init_restore (hashcat_ctx) == -1) return -1;
 
   restore_ctx->enabled = true;
 
   if (user_options->restore == true)
   {
-    const int rc_read_restore = read_restore (hashcat_ctx);
-
-    if (rc_read_restore == -1) return -1;
+    if (read_restore (hashcat_ctx) == -1) return -1;
 
     restore_data_t *rd = restore_ctx->rd;
 
@@ -355,9 +347,7 @@ int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 
     user_options_init (hashcat_ctx);
 
-    const int rc_options_getopt = user_options_getopt (hashcat_ctx, rd->argc, rd->argv);
-
-    if (rc_options_getopt == -1) return -1;
+    if (user_options_getopt (hashcat_ctx, rd->argc, rd->argv) == -1) return -1;
   }
 
   return 0;
@@ -371,7 +361,6 @@ void restore_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
   hcfree (restore_ctx->eff_restore_file);
   hcfree (restore_ctx->new_restore_file);
-
   hcfree (restore_ctx->rd);
 
   memset (restore_ctx, 0, sizeof (restore_ctx_t));
