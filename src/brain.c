@@ -545,6 +545,8 @@ u64 brain_compute_attack_wordlist (const char *filename)
 
   while (!hc_feof (&fp))
   {
+    memset (buf, 0, sizeof (buf));
+
     const size_t nread = hc_fread (buf, 1, FBUFSZ, &fp);
 
     XXH64_update (state, buf, nread);
@@ -645,13 +647,13 @@ int brain_connect (int sockfd, const struct sockaddr *addr, socklen_t addrlen, c
     // timeout not support on windows
   }
 
-  const int rc_connect = connect (sockfd, addr, addrlen);
-
-  if (rc_connect == SOCKET_ERROR)
+  if (connect (sockfd, addr, addrlen) == SOCKET_ERROR)
   {
     int err = WSAGetLastError ();
 
-    char msg[256] = { 0 };
+    char msg[256];
+
+    memset (msg, 0, sizeof (msg));
 
     FormatMessage (FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,   // flags
                    NULL,                // lpsource
@@ -690,7 +692,7 @@ int brain_connect (int sockfd, const struct sockaddr *addr, socklen_t addrlen, c
     return -1;
   }
 
-  int so_error;
+  int so_error = 0;
 
   socklen_t len = sizeof (so_error);
 
@@ -786,7 +788,7 @@ bool brain_send_all (int sockfd, void *buf, size_t len, int flags, hc_device_par
 
   if (nsend <= 0) return false;
 
-  if (status_ctx) if (status_ctx->run_thread_level1 == false) return false;
+  if (status_ctx && status_ctx->run_thread_level1 == false) return false;
 
   while (nsend < (ssize_t) len)
   {
@@ -810,7 +812,7 @@ bool brain_send_all (int sockfd, void *buf, size_t len, int flags, hc_device_par
 
     if (nsend_new <= 0) return false;
 
-    if (status_ctx) if (status_ctx->run_thread_level1 == false) break;
+    if (status_ctx && status_ctx->run_thread_level1 == false) break;
 
     nsend += nsend_new;
   }
@@ -847,7 +849,7 @@ bool brain_recv_all (int sockfd, void *buf, size_t len, int flags, hc_device_par
 
   if (nrecv <= 0) return false;
 
-  if (status_ctx) if (status_ctx->run_thread_level1 == false) return false;
+  if (status_ctx && status_ctx->run_thread_level1 == false) return false;
 
   while (nrecv < (ssize_t) len)
   {
@@ -871,7 +873,7 @@ bool brain_recv_all (int sockfd, void *buf, size_t len, int flags, hc_device_par
 
     if (nrecv_new <= 0) return false;
 
-    if (status_ctx) if (status_ctx->run_thread_level1 == false) break;
+    if (status_ctx && status_ctx->run_thread_level1 == false) break;
 
     nrecv += nrecv_new;
   }
@@ -928,6 +930,8 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   char port_str[8];
 
+  memset (port_str, 0, sizeof (port_str));
+
   snprintf (port_str, sizeof (port_str), "%i", port);
 
   const char *host_real = (host == NULL) ? "127.0.0.1" : (const char *) host;
@@ -983,7 +987,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
     return false;
   }
 
-  u32 brain_link_version_ok;
+  u32 brain_link_version_ok = 0;
 
   if (brain_recv (brain_link_client_fd, &brain_link_version_ok, sizeof (brain_link_version_ok), 0, NULL, NULL) == false)
   {
@@ -1003,7 +1007,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
     return false;
   }
 
-  u32 challenge;
+  u32 challenge = 0;
 
   if (brain_recv (brain_link_client_fd, &challenge, sizeof (challenge), 0, NULL, NULL) == false)
   {
@@ -1025,7 +1029,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
     return false;
   }
 
-  u32 password_ok;
+  u32 password_ok = 0;
 
   if (brain_recv (brain_link_client_fd, &password_ok, sizeof (password_ok), 0, NULL, NULL) == false)
   {
@@ -1103,12 +1107,10 @@ bool brain_client_reserve (hc_device_param_t *device_param, const status_ctx_t *
   u8 operation = BRAIN_OPERATION_ATTACK_RESERVE;
 
   if (brain_send (brain_link_client_fd, &operation, sizeof (operation), SEND_FLAGS, device_param, status_ctx) == false) return false;
+  if (brain_send (brain_link_client_fd, &words_off, sizeof (words_off),          0, device_param, status_ctx) == false) return false;
+  if (brain_send (brain_link_client_fd, &work,           sizeof (work),          0, device_param, status_ctx) == false) return false;
 
-  if (brain_send (brain_link_client_fd, &words_off, sizeof (words_off), 0, device_param, status_ctx) == false) return false;
-
-  if (brain_send (brain_link_client_fd, &work, sizeof (work), 0, device_param, status_ctx) == false) return false;
-
-  if (brain_recv (brain_link_client_fd, overlap, sizeof (u64), 0, device_param, status_ctx) == false) return false;
+  if (brain_recv (brain_link_client_fd, overlap,          sizeof (u64),          0, device_param, status_ctx) == false) return false;
 
   return true;
 }
@@ -1139,23 +1141,20 @@ bool brain_client_lookup (hc_device_param_t *device_param, const status_ctx_t *s
   char *recvbuf = (char *) device_param->brain_link_in_buf;
   char *sendbuf = (char *) device_param->brain_link_out_buf;
 
+  int in_size  = 0;
   int out_size = device_param->pws_pre_cnt * BRAIN_HASH_SIZE;
 
   u8 operation = BRAIN_OPERATION_HASH_LOOKUP;
 
   if (brain_send (brain_link_client_fd, &operation, sizeof (operation), SEND_FLAGS, device_param, status_ctx) == false) return false;
+  if (brain_send (brain_link_client_fd, &out_size,   sizeof (out_size), SEND_FLAGS, device_param, status_ctx) == false) return false;
+  if (brain_send (brain_link_client_fd, sendbuf,              out_size, SEND_FLAGS, device_param, status_ctx) == false) return false;
 
-  if (brain_send (brain_link_client_fd, &out_size, sizeof (out_size), SEND_FLAGS, device_param, status_ctx) == false) return false;
-
-  if (brain_send (brain_link_client_fd, sendbuf, out_size, SEND_FLAGS, device_param, status_ctx) == false) return false;
-
-  int in_size;
-
-  if (brain_recv (brain_link_client_fd, &in_size, sizeof (in_size), 0, device_param, status_ctx) == false) return false;
+  if (brain_recv (brain_link_client_fd, &in_size,     sizeof (in_size),          0, device_param, status_ctx) == false) return false;
 
   if (in_size > (int) device_param->size_brain_link_in) return false;
 
-  if (brain_recv (brain_link_client_fd, recvbuf, (size_t) in_size, 0, device_param, status_ctx) == false) return false;
+  if (brain_recv (brain_link_client_fd, recvbuf,      (size_t) in_size,          0, device_param, status_ctx) == false) return false;
 
   return true;
 }
@@ -1171,13 +1170,11 @@ void brain_server_db_hash_init (brain_server_db_hash_t *brain_server_db_hash, co
 {
   brain_server_db_hash->brain_session = brain_session;
 
-  brain_server_db_hash->long_alloc = 0;
-  brain_server_db_hash->long_cnt   = 0;
-  brain_server_db_hash->long_buf   = NULL;
-
+  brain_server_db_hash->hb           = 0;
+  brain_server_db_hash->long_cnt     = 0;
+  brain_server_db_hash->long_buf     = NULL;
+  brain_server_db_hash->long_alloc   = 0;
   brain_server_db_hash->write_hashes = false;
-
-  brain_server_db_hash->hb = 0;
 
   hc_thread_mutex_init (brain_server_db_hash->mux_hr);
   hc_thread_mutex_init (brain_server_db_hash->mux_hg);
@@ -1193,8 +1190,7 @@ bool brain_server_db_hash_realloc (brain_server_db_hash_t *brain_server_db_hash,
 
     if (long_buf == NULL) return false;
 
-    brain_server_db_hash->long_buf = long_buf;
-
+    brain_server_db_hash->long_buf    = long_buf;
     brain_server_db_hash->long_alloc += realloc_size_total;
   }
 
@@ -1206,16 +1202,13 @@ void brain_server_db_hash_free (brain_server_db_hash_t *brain_server_db_hash)
   hc_thread_mutex_delete (brain_server_db_hash->mux_hg);
   hc_thread_mutex_delete (brain_server_db_hash->mux_hr);
 
-  brain_server_db_hash->hb = 0;
-
   hcfree (brain_server_db_hash->long_buf);
 
-  brain_server_db_hash->long_alloc = 0;
-  brain_server_db_hash->long_cnt   = 0;
-  brain_server_db_hash->long_buf   = NULL;
-
-  brain_server_db_hash->write_hashes = false;
-
+  brain_server_db_hash->hb            = 0;
+  brain_server_db_hash->long_cnt      = 0;
+  brain_server_db_hash->long_buf      = NULL;
+  brain_server_db_hash->long_alloc    = 0;
+  brain_server_db_hash->write_hashes  = false;
   brain_server_db_hash->brain_session = 0;
 }
 
@@ -1223,17 +1216,14 @@ void brain_server_db_attack_init (brain_server_db_attack_t *brain_server_db_atta
 {
   brain_server_db_attack->brain_attack = brain_attack;
 
-  brain_server_db_attack->short_alloc = 0;
-  brain_server_db_attack->short_cnt   = 0;
-  brain_server_db_attack->short_buf   = NULL;
-
-  brain_server_db_attack->long_alloc = 0;
-  brain_server_db_attack->long_cnt   = 0;
-  brain_server_db_attack->long_buf   = NULL;
-
+  brain_server_db_attack->ab            = 0;
+  brain_server_db_attack->short_cnt     = 0;
+  brain_server_db_attack->short_buf     = NULL;
+  brain_server_db_attack->short_alloc   = 0;
+  brain_server_db_attack->long_cnt      = 0;
+  brain_server_db_attack->long_buf      = NULL;
+  brain_server_db_attack->long_alloc    = 0;
   brain_server_db_attack->write_attacks = false;
-
-  brain_server_db_attack->ab = 0;
 
   hc_thread_mutex_init (brain_server_db_attack->mux_ar);
   hc_thread_mutex_init (brain_server_db_attack->mux_ag);
@@ -1249,8 +1239,7 @@ bool brain_server_db_attack_realloc (brain_server_db_attack_t *brain_server_db_a
 
     if (long_buf == NULL) return false;
 
-    brain_server_db_attack->long_buf = long_buf;
-
+    brain_server_db_attack->long_buf    = long_buf;
     brain_server_db_attack->long_alloc += realloc_size_total;
   }
 
@@ -1262,8 +1251,7 @@ bool brain_server_db_attack_realloc (brain_server_db_attack_t *brain_server_db_a
 
     if (short_buf == NULL) return false;
 
-    brain_server_db_attack->short_buf = short_buf;
-
+    brain_server_db_attack->short_buf    = short_buf;
     brain_server_db_attack->short_alloc += realloc_size_total;
   }
 
@@ -1275,23 +1263,18 @@ void brain_server_db_attack_free (brain_server_db_attack_t *brain_server_db_atta
   hc_thread_mutex_delete (brain_server_db_attack->mux_ag);
   hc_thread_mutex_delete (brain_server_db_attack->mux_ar);
 
-  brain_server_db_attack->ab = 0;
-
   hcfree (brain_server_db_attack->long_buf);
-
-  brain_server_db_attack->long_alloc = 0;
-  brain_server_db_attack->long_cnt   = 0;
-  brain_server_db_attack->long_buf   = NULL;
-
   hcfree (brain_server_db_attack->short_buf);
 
-  brain_server_db_attack->short_alloc = 0;
-  brain_server_db_attack->short_cnt   = 0;
-  brain_server_db_attack->short_buf   = NULL;
-
+  brain_server_db_attack->ab            = 0;
+  brain_server_db_attack->long_cnt      = 0;
+  brain_server_db_attack->long_buf      = NULL;
+  brain_server_db_attack->long_alloc    = 0;
+  brain_server_db_attack->short_cnt     = 0;
+  brain_server_db_attack->short_buf     = NULL;
+  brain_server_db_attack->short_alloc   = 0;
+  brain_server_db_attack->brain_attack  = 0;
   brain_server_db_attack->write_attacks = false;
-
-  brain_server_db_attack->brain_attack = 0;
 }
 
 u64 brain_server_highest_attack (const brain_server_db_attack_t *buf)
@@ -1547,10 +1530,7 @@ bool brain_server_read_hash_dumps (brain_server_dbs_t *brain_server_dbs, const c
 
     brain_server_db_hash_init (brain_server_db_hash, brain_session);
 
-    if (brain_server_read_hash_dump (brain_server_db_hash, file) == false)
-    {
-      continue;
-    }
+    if (brain_server_read_hash_dump (brain_server_db_hash, file) == false) continue;
 
     brain_server_dbs->hash_cnt++;
   }
@@ -1569,6 +1549,8 @@ bool brain_server_write_hash_dumps (brain_server_dbs_t *brain_server_dbs, const 
     hc_thread_mutex_lock (brain_server_db_hash->mux_hg);
 
     char file[100];
+
+    memset (file, 0, sizeof (file));
 
     snprintf (file, sizeof (file), "%s/brain.%08x.ldmp", path, brain_server_db_hash->brain_session);
 
@@ -1589,6 +1571,8 @@ bool brain_server_read_hash_dump (brain_server_db_hash_t *brain_server_db_hash, 
   // read from file
 
   struct stat sb;
+
+  memset (&sb, 0, sizeof (struct stat));
 
   if (stat (file, &sb) == -1)
   {
@@ -1629,8 +1613,7 @@ bool brain_server_read_hash_dump (brain_server_db_hash_t *brain_server_db_hash, 
       return false;
     }
 
-    brain_server_db_hash->long_cnt = temp_cnt;
-
+    brain_server_db_hash->long_cnt     = temp_cnt;
     brain_server_db_hash->write_hashes = false;
 
     hc_fclose (&fp);
@@ -1685,6 +1668,8 @@ bool brain_server_write_hash_dump (brain_server_db_hash_t *brain_server_db_hash,
 
   struct stat sb;
 
+  memset (&sb, 0, sizeof (struct stat));
+
   if (stat (file, &sb) == -1)
   {
     brain_logging (stderr, 0, "%s: %s\n", file, strerror (errno));
@@ -1717,7 +1702,7 @@ bool brain_server_read_attack_dumps (brain_server_dbs_t *brain_server_dbs, const
     return false;
   }
 
-  struct dirent *entry;
+  struct dirent *entry = NULL;
 
   while ((entry = readdir (dirp)) != NULL)
   {
@@ -1746,10 +1731,7 @@ bool brain_server_read_attack_dumps (brain_server_dbs_t *brain_server_dbs, const
 
     brain_server_db_attack_init (brain_server_db_attack, brain_attack);
 
-    if (brain_server_read_attack_dump (brain_server_db_attack, file) == false)
-    {
-      continue;
-    }
+    if (brain_server_read_attack_dump (brain_server_db_attack, file) == false) continue;
 
     brain_server_dbs->attack_cnt++;
   }
@@ -1768,6 +1750,8 @@ bool brain_server_write_attack_dumps (brain_server_dbs_t *brain_server_dbs, cons
     hc_thread_mutex_lock (brain_server_db_attack->mux_ag);
 
     char file[100];
+
+    memset (file, 0, sizeof (file));
 
     snprintf (file, sizeof (file), "%s/brain.%08x.admp", path, brain_server_db_attack->brain_attack);
 
@@ -1788,6 +1772,8 @@ bool brain_server_read_attack_dump (brain_server_db_attack_t *brain_server_db_at
   // read from file
 
   struct stat sb;
+
+  memset (&sb, 0, sizeof (struct stat));
 
   if (stat (file, &sb) == -1)
   {
@@ -1828,8 +1814,7 @@ bool brain_server_read_attack_dump (brain_server_db_attack_t *brain_server_db_at
       return false;
     }
 
-    brain_server_db_attack->long_cnt = temp_cnt;
-
+    brain_server_db_attack->long_cnt      = temp_cnt;
     brain_server_db_attack->write_attacks = false;
 
     hc_fclose (&fp);
@@ -1886,6 +1871,8 @@ bool brain_server_write_attack_dump (brain_server_db_attack_t *brain_server_db_a
 
   struct stat sb;
 
+  memset (&sb, 0, sizeof (struct stat));
+
   if (stat (file, &sb) == -1)
   {
     brain_logging (stderr, 0, "%s: %s\n", file, strerror (errno));
@@ -1918,7 +1905,6 @@ i64 brain_server_find_hash_long (const u32 *search, const brain_server_hash_long
   for (i64 l = 0, r = cnt; r; r >>= 1)
   {
     const i64 m = r >> 1;
-
     const i64 c = l + m;
 
     const int cmp = brain_server_sort_hash_long (search, buf + c);
@@ -1930,10 +1916,10 @@ i64 brain_server_find_hash_long (const u32 *search, const brain_server_hash_long
       r--;
     }
 
-    if (cmp == 0) return (c);
+    if (cmp == 0) return c;
   }
 
-  return (-1);
+  return -1;
 }
 
 i64 brain_server_find_hash_short (const u32 *search, const brain_server_hash_short_t *buf, const i64 cnt)
@@ -1941,7 +1927,6 @@ i64 brain_server_find_hash_short (const u32 *search, const brain_server_hash_sho
   for (i64 l = 0, r = cnt; r; r >>= 1)
   {
     const i64 m = r >> 1;
-
     const i64 c = l + m;
 
     const int cmp = brain_server_sort_hash_short (search, buf + c);
@@ -1953,10 +1938,10 @@ i64 brain_server_find_hash_short (const u32 *search, const brain_server_hash_sho
       r--;
     }
 
-    if (cmp == 0) return (c);
+    if (cmp == 0) return c;
   }
 
-  return (-1);
+  return -1;
 }
 
 void brain_server_handle_signal (int signo)
@@ -2026,7 +2011,7 @@ void *brain_server_handle_client (void *p)
 
   #endif
 
-  u32 brain_link_version;
+  u32 brain_link_version = 0;
 
   if (brain_recv (client_fd, &brain_link_version, sizeof (brain_link_version), 0, NULL, NULL) == false)
   {
@@ -2076,7 +2061,7 @@ void *brain_server_handle_client (void *p)
     return NULL;
   }
 
-  u64 response;
+  u64 response = 0;
 
   if (brain_recv (client_fd, &response, sizeof (response), 0, NULL, NULL) == false)
   {
@@ -2115,7 +2100,7 @@ void *brain_server_handle_client (void *p)
     return NULL;
   }
 
-  u32 brain_session;
+  u32 brain_session = 0;
 
   if (brain_recv (client_fd, &brain_session, sizeof (brain_session), 0, NULL, NULL) == false)
   {
@@ -2154,7 +2139,7 @@ void *brain_server_handle_client (void *p)
     }
   }
 
-  u32 brain_attack;
+  u32 brain_attack = 0;
 
   if (brain_recv (client_fd, &brain_attack, sizeof (brain_attack), 0, NULL, NULL) == false)
   {
@@ -2167,7 +2152,7 @@ void *brain_server_handle_client (void *p)
     return NULL;
   }
 
-  i64 passwords_max;
+  i64 passwords_max = 0;
 
   if (brain_recv (client_fd, &passwords_max, sizeof (passwords_max), 0, NULL, NULL) == false)
   {
@@ -2359,7 +2344,7 @@ void *brain_server_handle_client (void *p)
 
     // there's data
 
-    u8 operation;
+    u8 operation = 0;
 
     if (brain_recv (client_fd, &operation, sizeof (operation), 0, NULL, NULL) == false) break;
 
@@ -2545,7 +2530,6 @@ void *brain_server_handle_client (void *p)
 
             i64 long_left  = brain_server_db_hash->long_cnt - 1;
             i64 short_left = brain_server_db_short->short_cnt - 1;
-
             i64 long_dupes = 0;
 
             for (i64 idx = cnt_total - 1; idx >= long_dupes; idx--)
@@ -2903,8 +2887,7 @@ void *brain_server_handle_client (void *p)
       int out_size = hashes_cnt;
 
       if (brain_send (client_fd, &out_size, sizeof (out_size), SEND_FLAGS, NULL, NULL) == false) break;
-
-      if (brain_send (client_fd, send_buf, out_size, SEND_FLAGS, NULL, NULL) == false) break;
+      if (brain_send (client_fd, send_buf,           out_size, SEND_FLAGS, NULL, NULL) == false) break;
     }
     else
     {
@@ -2955,9 +2938,7 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
 
   WORD wVersionRequested = MAKEWORD (2,2);
 
-  const int iResult = WSAStartup (wVersionRequested, &wsaData);
-
-  if (iResult != NO_ERROR)
+  if (WSAStartup (wVersionRequested, &wsaData) != NO_ERROR)
   {
     fprintf (stderr, "WSAStartup: %s\n", strerror (errno));
 
@@ -3198,9 +3179,9 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
   {
     // none of these value change
 
-    brain_server_client_options[client_idx].brain_server_dbs      = brain_server_dbs;
-    brain_server_client_options[client_idx].auth_password         = auth_password;
     brain_server_client_options[client_idx].client_idx            = client_idx;
+    brain_server_client_options[client_idx].auth_password         = auth_password;
+    brain_server_client_options[client_idx].brain_server_dbs      = brain_server_dbs;
     brain_server_client_options[client_idx].session_whitelist_buf = session_whitelist_buf;
     brain_server_client_options[client_idx].session_whitelist_cnt = session_whitelist_cnt;
   }
@@ -3316,9 +3297,7 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
 
   hcfree (brain_server_dbs->hash_buf);
   hcfree (brain_server_dbs->attack_buf);
-
   hcfree (brain_server_dbs);
-
   hcfree (brain_server_client_options);
 
   if (brain_password == NULL) hcfree (auth_password);
