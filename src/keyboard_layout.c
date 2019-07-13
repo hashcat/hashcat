@@ -48,13 +48,11 @@ bool initialize_keyboard_layout_mapping (const char *filename, keyboard_layout_m
     token.sep[1]     = 0x09;
     token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-    const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, (const int) line_len, &token);
-
-    if (rc_tokenizer != PARSER_OK)
+    if (input_tokenizer ((const u8 *) line_buf, (const int) line_len, &token) != PARSER_OK)
     {
       hc_fclose (&fp);
 
-      free (line_buf);
+      hcfree (line_buf);
 
       return false;
     }
@@ -69,7 +67,7 @@ bool initialize_keyboard_layout_mapping (const char *filename, keyboard_layout_m
     {
       hc_fclose (&fp);
 
-      free (line_buf);
+      hcfree (line_buf);
 
       return false;
     }
@@ -81,7 +79,7 @@ bool initialize_keyboard_layout_mapping (const char *filename, keyboard_layout_m
 
   hc_fclose (&fp);
 
-  free (line_buf);
+  hcfree (line_buf);
 
   // we need to sort this by length to ensure the largest blocks come first in mapping
 
