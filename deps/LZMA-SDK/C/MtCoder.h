@@ -1,5 +1,5 @@
 /* MtCoder.h -- Multi-thread Coder
-2018-02-21 : Igor Pavlov : Public domain */
+2018-07-04 : Igor Pavlov : Public domain */
 
 #ifndef __MT_CODER_H
 #define __MT_CODER_H
@@ -67,7 +67,7 @@ typedef struct
 {
   SRes res;
   unsigned bufIndex;
-  Bool finished;
+  BoolInt finished;
 } CMtCoderBlock;
 
 
@@ -97,7 +97,7 @@ typedef struct _CMtCoder
   CAutoResetEvent readEvent;
   CSemaphore blocksSemaphore;
 
-  Bool stopReading;
+  BoolInt stopReading;
   SRes readRes;
 
   #ifdef MTCODER__USE_WRITE_THREAD

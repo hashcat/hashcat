@@ -1,5 +1,5 @@
 /* Ppmd7.c -- PPMdH codec
-2017-04-03 : Igor Pavlov : Public domain
+2018-07-04 : Igor Pavlov : Public domain
 This code is based on PPMd var.H (2001): Dmitry Shkarin : Public domain */
 
 #include "Precomp.h"
@@ -95,7 +95,7 @@ void Ppmd7_Free(CPpmd7 *p, ISzAllocPtr alloc)
   p->Base = 0;
 }
 
-Bool Ppmd7_Alloc(CPpmd7 *p, UInt32 size, ISzAllocPtr alloc)
+BoolInt Ppmd7_Alloc(CPpmd7 *p, UInt32 size, ISzAllocPtr alloc)
 {
   if (!p->Base || p->Size != size)
   {
@@ -342,7 +342,7 @@ void Ppmd7_Init(CPpmd7 *p, unsigned maxOrder)
   p->DummySee.Count = 64; /* unused */
 }
 
-static CTX_PTR CreateSuccessors(CPpmd7 *p, Bool skip)
+static CTX_PTR CreateSuccessors(CPpmd7 *p, BoolInt skip)
 {
   CPpmd_State upState;
   CTX_PTR c = p->MinContext;

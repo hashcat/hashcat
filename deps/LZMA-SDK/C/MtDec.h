@@ -1,5 +1,5 @@
 /* MtDec.h -- Multi-thread Decoder
-2018-03-02 : Igor Pavlov : Public domain */
+2018-07-04 : Igor Pavlov : Public domain */
 
 #ifndef __MT_DEC_H
 #define __MT_DEC_H
@@ -76,7 +76,7 @@ typedef struct
 
   // out
   EMtDecParseState state;
-  Bool canCreateNewThread;
+  BoolInt canCreateNewThread;
   UInt64 outPos; // check it (size_t)
 } CMtDecCallbackInfo;
 
@@ -107,11 +107,11 @@ typedef struct
       if (*canRecode), we didn't flush current block data, so we still can decode current block later.
   */
   SRes (*Write)(void *p, unsigned coderIndex,
-      Bool needWriteToStream,
+      BoolInt needWriteToStream,
       const Byte *src, size_t srcSize,
       // int srcFinished,
-      Bool *needContinue,
-      Bool *canRecode);
+      BoolInt *needContinue,
+      BoolInt *canRecode);
 } IMtDecCallback;
 
 
@@ -140,22 +140,22 @@ typedef struct _CMtDec
   
   size_t allocatedBufsSize;
 
-  Bool exitThread;
+  BoolInt exitThread;
   WRes exitThreadWRes;
 
   UInt64 blockIndex;
-  Bool isAllocError;
-  Bool overflow;
+  BoolInt isAllocError;
+  BoolInt overflow;
   SRes threadingErrorSRes;
 
-  Bool needContinue;
+  BoolInt needContinue;
 
   // CAutoResetEvent finishedEvent;
 
   SRes readRes;
   SRes codeRes;
 
-  Bool wasInterrupted;
+  BoolInt wasInterrupted;
 
   unsigned numStartedThreads_Limit;
   unsigned numStartedThreads;
@@ -164,14 +164,14 @@ typedef struct _CMtDec
   size_t crossStart;
   size_t crossEnd;
   UInt64 readProcessed;
-  Bool readWasFinished;
+  BoolInt readWasFinished;
   UInt64 inProcessed;
 
   unsigned filledThreadStart;
   unsigned numFilledThreads;
 
   #ifndef _7ZIP_ST
-  Bool needInterrupt;
+  BoolInt needInterrupt;
   UInt64 interruptIndex;
   CMtProgress mtProgress;
   CMtDecThread threads[MTDEC__THREADS_MAX];
