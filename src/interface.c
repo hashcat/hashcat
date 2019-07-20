@@ -683,8 +683,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
           {
             case ATTACK_KERN_STRAIGHT:  pw_max = MIN (pw_max, PW_DICTMAX);
                                         break;
-            case ATTACK_KERN_COMBI:     pw_max = MIN (pw_max, PW_DICTMAX);
-                                        break;
           }
         }
         else
