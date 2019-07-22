@@ -1,4 +1,4 @@
-OpenCL/m01470_a* changes v5.1.0 -> v5.x.x
+* changes v5.1.0 -> v5.x.x
 
 ##
 ## Feature
