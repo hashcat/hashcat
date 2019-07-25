@@ -18,6 +18,7 @@ Philipp "philsmd" Schmidt <philsmd@hashcat.net> (@philsmd)
 
 Gabriele "matrix" Gristina <matrix@hashcat.net> (@gm4tr1x)
 
+* AuthMe - sha256(sha256($pass).$salt) kernel module (thanks to @0xbsec)
 * gzip wordlists feature
 * SHA-224 kernel module + optimizations
 * Some AES OpenCL kernel module optimizations
