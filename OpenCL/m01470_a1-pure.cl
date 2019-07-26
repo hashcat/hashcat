@@ -39,6 +39,11 @@ KERNEL_FQ void m01470_mxx (KERN_ATTR_BASIC ())
    * loop
    */
 
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
     sha256_ctx_t ctx0 = ctx1;
@@ -51,14 +56,25 @@ KERNEL_FQ void m01470_mxx (KERN_ATTR_BASIC ())
 
     sha256_init (&ctx);
 
-    u32 _w0[4];
-    _w0[0] = ctx0.h[0]; _w0[1] = ctx0.h[1]; _w0[2] = ctx0.h[2]; _w0[3] = ctx0.h[3];
-    u32 _w1[4];
-    _w1[0] = ctx0.h[4]; _w1[1] = ctx0.h[5]; _w1[2] = ctx0.h[6]; _w1[3] = ctx0.h[7];
-    u32 _w2[4] = { 0, 0, 0, 0 };
-    u32 _w3[4] = { 0, 0, 0, 0 };
+    w0[0] = ctx0.h[0];
+    w0[1] = ctx0.h[1];
+    w0[2] = ctx0.h[2];
+    w0[3] = ctx0.h[3];
+    w1[0] = ctx0.h[4];
+    w1[1] = ctx0.h[5];
+    w1[2] = ctx0.h[6];
+    w1[3] = ctx0.h[7];
 
-    sha256_update_64 (&ctx, _w0, _w1, _w2, _w3, 32);
+    w2[0] = 0;
+    w2[1] = 0;
+    w2[2] = 0;
+    w2[3] = 0;
+    w3[0] = 0;
+    w3[1] = 0;
+    w3[2] = 0;
+    w3[3] = 0;
+
+    sha256_update_64 (&ctx, w0, w1, w2, w3, 32);
 
     sha256_final (&ctx);
 
@@ -108,6 +124,11 @@ KERNEL_FQ void m01470_sxx (KERN_ATTR_BASIC ())
    * loop
    */
 
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
     sha256_ctx_t ctx0 = ctx1;
@@ -120,14 +141,25 @@ KERNEL_FQ void m01470_sxx (KERN_ATTR_BASIC ())
 
     sha256_init (&ctx);
 
-    u32 _w0[4];
-    _w0[0] = ctx0.h[0]; _w0[1] = ctx0.h[1]; _w0[2] = ctx0.h[2]; _w0[3] = ctx0.h[3];
-    u32 _w1[4];
-    _w1[0] = ctx0.h[4]; _w1[1] = ctx0.h[5]; _w1[2] = ctx0.h[6]; _w1[3] = ctx0.h[7];
-    u32 _w2[4] = { 0, 0, 0, 0 };
-    u32 _w3[4] = { 0, 0, 0, 0 };
+    w0[0] = ctx0.h[0];
+    w0[1] = ctx0.h[1];
+    w0[2] = ctx0.h[2];
+    w0[3] = ctx0.h[3];
+    w1[0] = ctx0.h[4];
+    w1[1] = ctx0.h[5];
+    w1[2] = ctx0.h[6];
+    w1[3] = ctx0.h[7];
 
-    sha256_update_64 (&ctx, _w0, _w1, _w2, _w3, 32);
+    w2[0] = 0;
+    w2[1] = 0;
+    w2[2] = 0;
+    w2[3] = 0;
+    w3[0] = 0;
+    w3[1] = 0;
+    w3[2] = 0;
+    w3[3] = 0;
+
+    sha256_update_64 (&ctx, w0, w1, w2, w3, 32);
 
     sha256_final (&ctx);
 

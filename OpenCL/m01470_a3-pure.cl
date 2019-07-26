@@ -42,6 +42,11 @@ KERNEL_FQ void m01470_mxx (KERN_ATTR_VECTOR ())
    * loop
    */
 
+  u32x _w0[4];
+  u32x _w1[4];
+  u32x _w2[4];
+  u32x _w3[4];
+
   u32x w0l = w[0];
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
@@ -64,14 +69,23 @@ KERNEL_FQ void m01470_mxx (KERN_ATTR_VECTOR ())
 
     sha256_init_vector (&ctx);
 
-    u32x _w0[4];
-    _w0[0] = ctx0.h[0]; _w0[1] = ctx0.h[1]; _w0[2] = ctx0.h[2]; _w0[3] = ctx0.h[3];
-    u32x _w1[4];
-    _w1[0] = ctx0.h[4]; _w1[1] = ctx0.h[5]; _w1[2] = ctx0.h[6]; _w1[3] = ctx0.h[7];
-    u32x _w2[4];
-    _w2[0] = 0; _w2[1] = 0; _w2[2] = 0; _w2[3] = 0;
-    u32x _w3[4];
-    _w3[0] = 0; _w3[1] = 0; _w3[2] = 0; _w3[3] = 0;
+    _w0[0] = ctx0.h[0];
+    _w0[1] = ctx0.h[1];
+    _w0[2] = ctx0.h[2];
+    _w0[3] = ctx0.h[3];
+    _w1[0] = ctx0.h[4];
+    _w1[1] = ctx0.h[5];
+    _w1[2] = ctx0.h[6];
+    _w1[3] = ctx0.h[7];
+
+    _w2[0] = 0;
+    _w2[1] = 0;
+    _w2[2] = 0;
+    _w2[3] = 0;
+    _w3[0] = 0;
+    _w3[1] = 0;
+    _w3[2] = 0;
+    _w3[3] = 0;
 
     sha256_update_vector_64 (&ctx, _w0, _w1, _w2, _w3, 32);
 
@@ -126,6 +140,11 @@ KERNEL_FQ void m01470_sxx (KERN_ATTR_VECTOR ())
    * loop
    */
 
+  u32x _w0[4];
+  u32x _w1[4];
+  u32x _w2[4];
+  u32x _w3[4];
+
   u32x w0l = w[0];
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
@@ -148,14 +167,23 @@ KERNEL_FQ void m01470_sxx (KERN_ATTR_VECTOR ())
 
     sha256_init_vector (&ctx);
 
-    u32x _w0[4];
-    _w0[0] = ctx0.h[0]; _w0[1] = ctx0.h[1]; _w0[2] = ctx0.h[2]; _w0[3] = ctx0.h[3];
-    u32x _w1[4];
-    _w1[0] = ctx0.h[4]; _w1[1] = ctx0.h[5]; _w1[2] = ctx0.h[6]; _w1[3] = ctx0.h[7];
-    u32x _w2[4];
-    _w2[0] = 0; _w2[1] = 0; _w2[2] = 0; _w2[3] = 0;
-    u32x _w3[4];
-    _w3[0] = 0; _w3[1] = 0; _w3[2] = 0; _w3[3] = 0;
+    _w0[0] = ctx0.h[0];
+    _w0[1] = ctx0.h[1];
+    _w0[2] = ctx0.h[2];
+    _w0[3] = ctx0.h[3];
+    _w1[0] = ctx0.h[4];
+    _w1[1] = ctx0.h[5];
+    _w1[2] = ctx0.h[6];
+    _w1[3] = ctx0.h[7];
+
+    _w2[0] = 0;
+    _w2[1] = 0;
+    _w2[2] = 0;
+    _w2[3] = 0;
+    _w3[0] = 0;
+    _w3[1] = 0;
+    _w3[2] = 0;
+    _w3[3] = 0;
 
     sha256_update_vector_64 (&ctx, _w0, _w1, _w2, _w3, 32);
 
