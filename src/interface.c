@@ -353,7 +353,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
         {
           if (user_options->quiet == false) event_log_warning (hashcat_ctx, "%s: Optimized OpenCL kernel requested but not needed - falling back to pure OpenCL kernel", source_file);
         }
-        else if (user_options->slow_candidates == false)
+        else
         {
           hashconfig->opti_type |= OPTI_TYPE_OPTIMIZED_KERNEL;
         }

@@ -1297,13 +1297,16 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
         return -1;
       }
 
-      if (hashconfig->opts_type & OPTS_TYPE_PT_UTF16LE)
+      if (user_options->slow_candidates == false)
       {
-        if (mp_css_utf16le_expand (hashcat_ctx) == -1) return -1;
-      }
-      else if (hashconfig->opts_type & OPTS_TYPE_PT_UTF16BE)
-      {
-        if (mp_css_utf16be_expand (hashcat_ctx) == -1) return -1;
+        if (hashconfig->opts_type & OPTS_TYPE_PT_UTF16LE)
+        {
+          if (mp_css_utf16le_expand (hashcat_ctx) == -1) return -1;
+        }
+        else if (hashconfig->opts_type & OPTS_TYPE_PT_UTF16BE)
+        {
+          if (mp_css_utf16be_expand (hashcat_ctx) == -1) return -1;
+        }
       }
 
       u32 css_cnt_orig = mask_ctx->css_cnt;
