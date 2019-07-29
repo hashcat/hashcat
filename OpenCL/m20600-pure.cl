@@ -150,10 +150,10 @@ KERNEL_FQ void m20600_comp (KERN_ATTR_TMPS (omt_sha256_tmp_t))
    * digest
    */
 
-  const u32x r0 = hc_swap32_S (tmps[gid].digest_buf[DGST_R0]);
-  const u32x r1 = hc_swap32_S (tmps[gid].digest_buf[DGST_R1]);
-  const u32x r2 = hc_swap32_S (tmps[gid].digest_buf[DGST_R2]);
-  const u32x r3 = hc_swap32_S (tmps[gid].digest_buf[DGST_R3]);
+  const u32 r0 = hc_swap32_S (tmps[gid].digest_buf[DGST_R0]);
+  const u32 r1 = hc_swap32_S (tmps[gid].digest_buf[DGST_R1]);
+  const u32 r2 = hc_swap32_S (tmps[gid].digest_buf[DGST_R2]);
+  const u32 r3 = hc_swap32_S (tmps[gid].digest_buf[DGST_R3]);
 
   #define il_pos 0
 
