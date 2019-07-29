@@ -1,5 +1,5 @@
 /* 7zTypes.h -- Basic types
-2017-07-17 : Igor Pavlov : Public domain */
+2018-08-04 : Igor Pavlov : Public domain */
 
 #ifndef __7Z_TYPES_H
 #define __7Z_TYPES_H
@@ -103,7 +103,8 @@ typedef UInt32 SizeT;
 typedef size_t SizeT;
 #endif
 
-typedef int Bool;
+typedef int BoolInt;
+/* typedef BoolInt Bool; */
 #define True 1
 #define False 0
 

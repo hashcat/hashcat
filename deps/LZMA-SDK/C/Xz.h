@@ -1,5 +1,5 @@
 /* Xz.h - Xz interface
-2018-02-28 : Igor Pavlov : Public domain */
+2018-07-04 : Igor Pavlov : Public domain */
 
 #ifndef __XZ_H
 #define __XZ_H
@@ -53,7 +53,7 @@ typedef struct
 #define XzBlock_HasUnsupportedFlags(p) (((p)->flags & ~(XZ_BF_NUM_FILTERS_MASK | XZ_BF_PACK_SIZE | XZ_BF_UNPACK_SIZE)) != 0)
 
 SRes XzBlock_Parse(CXzBlock *p, const Byte *header);
-SRes XzBlock_ReadHeader(CXzBlock *p, ISeqInStream *inStream, Bool *isIndex, UInt32 *headerSizeRes);
+SRes XzBlock_ReadHeader(CXzBlock *p, ISeqInStream *inStream, BoolInt *isIndex, UInt32 *headerSizeRes);
 
 /* ---------- xz stream ---------- */
 
@@ -186,10 +186,10 @@ typedef struct
   Byte *outBuf;
   size_t outBufSize;
   size_t outWritten; // is equal to lzmaDecoder.dicPos (in outBuf mode)
-  Bool wasFinished;
+  BoolInt wasFinished;
   SRes res;
   ECoderStatus status;
-  // Bool SingleBufMode;
+  // BoolInt SingleBufMode;
   
   int finished[MIXCODER_NUM_FILTERS_MAX - 1];
   size_t pos[MIXCODER_NUM_FILTERS_MAX - 1];
@@ -241,9 +241,9 @@ typedef struct
   CXzCheck check;
   CSha256 sha;
 
-  Bool parseMode;
-  Bool headerParsedOk;
-  Bool decodeToStreamSignature;
+  BoolInt parseMode;
+  BoolInt headerParsedOk;
+  BoolInt decodeToStreamSignature;
   unsigned decodeOnlyOneBlock;
 
   Byte *outBuf;
@@ -335,7 +335,7 @@ SRes XzUnpacker_CodeFull(CXzUnpacker *p, Byte *dest, SizeT *destLen,
     const Byte *src, SizeT *srcLen,
     ECoderFinishMode finishMode, ECoderStatus *status);
 
-Bool XzUnpacker_IsStreamWasFinished(const CXzUnpacker *p);
+BoolInt XzUnpacker_IsStreamWasFinished(const CXzUnpacker *p);
 
 /*
 XzUnpacker_GetExtraSize() returns then number of uncofirmed bytes,
@@ -365,7 +365,7 @@ UInt64 XzUnpacker_GetExtraSize(const CXzUnpacker *p);
 */
 
 void XzUnpacker_PrepareToRandomBlockDecoding(CXzUnpacker *p);
-Bool XzUnpacker_IsBlockFinished(const CXzUnpacker *p);
+BoolInt XzUnpacker_IsBlockFinished(const CXzUnpacker *p);
 
 #define XzUnpacker_GetPackSizeForIndex(p) ((p)->packSize + (p)->blockHeaderSize + XzFlags_GetCheckSize((p)->streamFlags))
 
@@ -378,7 +378,7 @@ typedef struct
 {
   size_t inBufSize_ST;
   size_t outStep_ST;
-  Bool ignoreErrors;
+  BoolInt ignoreErrors;
   
   #ifndef _7ZIP_ST
   unsigned numThreads;

@@ -1,5 +1,5 @@
 /* LzFindMt.h -- multithreaded Match finder for LZ algorithms
-2017-04-03 : Igor Pavlov : Public domain */
+2018-07-04 : Igor Pavlov : Public domain */
 
 #ifndef __LZ_FIND_MT_H
 #define __LZ_FIND_MT_H
@@ -19,10 +19,10 @@ EXTERN_C_BEGIN
 
 typedef struct _CMtSync
 {
-  Bool wasCreated;
-  Bool needStart;
-  Bool exit;
-  Bool stopWriting;
+  BoolInt wasCreated;
+  BoolInt needStart;
+  BoolInt exit;
+  BoolInt stopWriting;
 
   CThread thread;
   CAutoResetEvent canStart;
@@ -30,8 +30,8 @@ typedef struct _CMtSync
   CAutoResetEvent wasStopped;
   CSemaphore freeSemaphore;
   CSemaphore filledSemaphore;
-  Bool csWasInitialized;
-  Bool csWasEntered;
+  BoolInt csWasInitialized;
+  BoolInt csWasEntered;
   CCriticalSection cs;
   UInt32 numProcessedBlocks;
 } CMtSync;

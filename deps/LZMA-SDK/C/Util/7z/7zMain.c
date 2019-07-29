@@ -1,5 +1,5 @@
 /* 7zMain.c - Test application for 7z Decoder
-2018-04-19 : Igor Pavlov : Public domain */
+2019-02-02 : Igor Pavlov : Public domain */
 
 #include "Precomp.h"
 
@@ -176,7 +176,7 @@ static SRes Utf16_To_Char(CBuf *buf, const UInt16 *s
         char defaultChar = '_';
         BOOL defUsed;
         unsigned numChars = 0;
-        numChars = WideCharToMultiByte(codePage, 0, s, len, (char *)buf->data, size, &defaultChar, &defUsed);
+        numChars = WideCharToMultiByte(codePage, 0, (LPCWSTR)s, len, (char *)buf->data, size, &defaultChar, &defUsed);
         if (numChars == 0 || numChars >= size)
           return SZ_ERROR_FAIL;
         buf->data[numChars] = 0;
@@ -202,7 +202,7 @@ static WRes MyCreateDir(const UInt16 *name)
 {
   #ifdef USE_WINDOWS_FILE
   
-  return CreateDirectoryW(name, NULL) ? 0 : GetLastError();
+  return CreateDirectoryW((LPCWSTR)name, NULL) ? 0 : GetLastError();
   
   #else
 
@@ -227,7 +227,7 @@ static WRes MyCreateDir(const UInt16 *name)
 static WRes OutFile_OpenUtf16(CSzFile *p, const UInt16 *name)
 {
   #ifdef USE_WINDOWS_FILE
-  return OutFile_OpenW(p, name);
+  return OutFile_OpenW(p, (LPCWSTR)name);
   #else
   CBuf buf;
   WRes res;
@@ -354,7 +354,7 @@ static void PrintError(char *s)
   PrintLF();
 }
 
-static void GetAttribString(UInt32 wa, Bool isDir, char *s)
+static void GetAttribString(UInt32 wa, BoolInt isDir, char *s)
 {
   #ifdef USE_WINDOWS_FILE
   s[0] = (char)(((wa & FILE_ATTRIBUTE_DIRECTORY) != 0 || isDir) ? 'D' : '.');
@@ -430,7 +430,7 @@ int MY_CDECL main(int numargs, char *args[])
   res = SZ_OK;
 
   {
-    lookStream.buf = ISzAlloc_Alloc(&allocImp, kInputBufSize);
+    lookStream.buf = (Byte *)ISzAlloc_Alloc(&allocImp, kInputBufSize);
     if (!lookStream.buf)
       res = SZ_ERROR_MEM;
     else
@@ -647,7 +647,7 @@ int MY_CDECL main(int numargs, char *args[])
                We remove posix bits, if we detect posix mode field */
             if ((attrib & 0xF0000000) != 0)
               attrib &= 0x7FFF;
-            SetFileAttributesW(destPath, attrib);
+            SetFileAttributesW((LPCWSTR)destPath, attrib);
           }
           #endif
         }

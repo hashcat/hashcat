@@ -1,5 +1,5 @@
 /* Ppmd7.h -- PPMdH compression codec
-2017-04-03 : Igor Pavlov : Public domain
+2018-07-04 : Igor Pavlov : Public domain
 This code is based on PPMd var.H (2001): Dmitry Shkarin : Public domain */
 
 /* This code supports virtual RangeDecoder and includes the implementation
@@ -60,7 +60,7 @@ typedef struct
 } CPpmd7;
 
 void Ppmd7_Construct(CPpmd7 *p);
-Bool Ppmd7_Alloc(CPpmd7 *p, UInt32 size, ISzAllocPtr alloc);
+BoolInt Ppmd7_Alloc(CPpmd7 *p, UInt32 size, ISzAllocPtr alloc);
 void Ppmd7_Free(CPpmd7 *p, ISzAllocPtr alloc);
 void Ppmd7_Init(CPpmd7 *p, unsigned maxOrder);
 #define Ppmd7_WasAllocated(p) ((p)->Base != NULL)
@@ -115,7 +115,7 @@ typedef struct
 } CPpmd7z_RangeDec;
 
 void Ppmd7z_RangeDec_CreateVTable(CPpmd7z_RangeDec *p);
-Bool Ppmd7z_RangeDec_Init(CPpmd7z_RangeDec *p);
+BoolInt Ppmd7z_RangeDec_Init(CPpmd7z_RangeDec *p);
 #define Ppmd7z_RangeDec_IsFinishedOK(p) ((p)->Code == 0)
 
 int Ppmd7_DecodeSymbol(CPpmd7 *p, const IPpmd7_RangeDec *rc);

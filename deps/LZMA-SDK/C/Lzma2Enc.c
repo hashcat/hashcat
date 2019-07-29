@@ -1,5 +1,5 @@
 /* Lzma2Enc.c -- LZMA2 Encoder
-2018-04-27 : Igor Pavlov : Public domain */
+2018-07-04 : Igor Pavlov : Public domain */
 
 #include "Precomp.h"
 
@@ -115,7 +115,7 @@ SRes LzmaEnc_PrepareForLzma2(CLzmaEncHandle pp, ISeqInStream *inStream, UInt32 k
     ISzAllocPtr alloc, ISzAllocPtr allocBig);
 SRes LzmaEnc_MemPrepare(CLzmaEncHandle pp, const Byte *src, SizeT srcLen,
     UInt32 keepWindowSize, ISzAllocPtr alloc, ISzAllocPtr allocBig);
-SRes LzmaEnc_CodeOneMemBlock(CLzmaEncHandle pp, Bool reInit,
+SRes LzmaEnc_CodeOneMemBlock(CLzmaEncHandle pp, BoolInt reInit,
     Byte *dest, size_t *destLen, UInt32 desiredPackSize, UInt32 *unpackSize);
 const Byte *LzmaEnc_GetCurBuf(CLzmaEncHandle pp);
 void LzmaEnc_Finish(CLzmaEncHandle pp);
@@ -133,7 +133,7 @@ static SRes Lzma2EncInt_EncodeSubblock(CLzma2EncInt *p, Byte *outBuf,
   size_t packSize = packSizeLimit;
   UInt32 unpackSize = LZMA2_UNPACK_SIZE_MAX;
   unsigned lzHeaderSize = 5 + (p->needInitProp ? 1 : 0);
-  Bool useCopyBlock;
+  BoolInt useCopyBlock;
   SRes res;
 
   *packSizeRes = 0;
@@ -373,7 +373,7 @@ typedef struct
 
   size_t outBufSize;   /* size of allocated outBufs[i] */
   size_t outBufsDataSizes[MTCODER__BLOCKS_MAX];
-  Bool mtCoder_WasConstructed;
+  BoolInt mtCoder_WasConstructed;
   CMtCoder mtCoder;
   Byte *outBufs[MTCODER__BLOCKS_MAX];
 

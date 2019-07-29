@@ -1,5 +1,5 @@
 /* 7zArcIn.c -- 7z Input functions
-2017-04-03 : Igor Pavlov : Public domain */
+2018-12-31 : Igor Pavlov : Public domain */
 
 #include "Precomp.h"
 
@@ -19,7 +19,7 @@
   { MY_ALLOC(Byte, to, size, alloc); memcpy(to, from, size); }
 
 #define MY_ALLOC_ZE_AND_CPY(to, size, from, alloc) \
-  { if ((size) == 0) p = NULL; else { MY_ALLOC_AND_CPY(to, size, from, alloc) } }
+  { if ((size) == 0) to = NULL; else { MY_ALLOC_AND_CPY(to, size, from, alloc) } }
 
 #define k7zMajorVersion 0
 
@@ -666,7 +666,7 @@ static SRes ReadUnpackInfo(CSzAr *p,
   MY_ALLOC(size_t, p->FoCodersOffsets, (size_t)numFolders + 1, alloc);
   MY_ALLOC(UInt32, p->FoStartPackStreamIndex, (size_t)numFolders + 1, alloc);
   MY_ALLOC(UInt32, p->FoToCoderUnpackSizes, (size_t)numFolders + 1, alloc);
-  MY_ALLOC(Byte, p->FoToMainUnpackSizeIndex, (size_t)numFolders, alloc);
+  MY_ALLOC_ZE(Byte, p->FoToMainUnpackSizeIndex, (size_t)numFolders, alloc);
   
   startBufPtr = sd.Data;
   
@@ -1744,7 +1744,7 @@ size_t SzArEx_GetFullNameLen(const CSzArEx *p, size_t fileIndex)
 
 UInt16 *SzArEx_GetFullNameUtf16_Back(const CSzArEx *p, size_t fileIndex, UInt16 *dest)
 {
-  Bool needSlash;
+  BoolInt needSlash;
   if (!p->FileNameOffsets)
   {
     *(--dest) = 0;

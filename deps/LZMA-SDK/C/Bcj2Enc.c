@@ -1,5 +1,5 @@
 /* Bcj2Enc.c -- BCJ2 Encoder (Converter for x86 code)
-2017-04-28 : Igor Pavlov : Public domain */
+2019-02-02 : Igor Pavlov : Public domain */
 
 #include "Precomp.h"
 
@@ -52,7 +52,7 @@ void Bcj2Enc_Init(CBcj2Enc *p)
     p->probs[i] = kBitModelTotal >> 1;
 }
 
-static Bool MY_FAST_CALL RangeEnc_ShiftLow(CBcj2Enc *p)
+static BoolInt MY_FAST_CALL RangeEnc_ShiftLow(CBcj2Enc *p)
 {
   if ((UInt32)p->low < (UInt32)0xFF000000 || (UInt32)(p->low >> 32) != 0)
   {
@@ -165,7 +165,7 @@ static void Bcj2Enc_Encode_2(CBcj2Enc *p)
  
         {
           Byte context = (Byte)(num == 0 ? p->prevByte : src[-1]);
-          Bool needConvert;
+          BoolInt needConvert;
 
           p->bufs[BCJ2_STREAM_MAIN] = dest + 1;
           p->ip += (UInt32)num + 1;
@@ -253,7 +253,7 @@ void Bcj2Enc_Encode(CBcj2Enc *p)
     {
       const Byte *src = p->src;
       const Byte *srcLim = p->srcLim;
-      unsigned finishMode = p->finishMode;
+      EBcj2Enc_FinishMode finishMode = p->finishMode;
       
       p->src = p->temp;
       p->srcLim = p->temp + p->tempPos;

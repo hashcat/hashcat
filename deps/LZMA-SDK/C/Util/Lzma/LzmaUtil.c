@@ -1,5 +1,5 @@
 /* LzmaUtil.c -- Test application for LZMA compression
-2017-04-27 : Igor Pavlov : Public domain */
+2018-07-04 : Igor Pavlov : Public domain */
 
 #include "../../Precomp.h"
 
@@ -177,7 +177,7 @@ static int main2(int numArgs, const char *args[], char *rs)
   char c;
   int res;
   int encodeMode;
-  Bool useOutFile = False;
+  BoolInt useOutFile = False;
 
   FileSeqInStream_CreateVTable(&inStream);
   File_Construct(&inStream.file);
