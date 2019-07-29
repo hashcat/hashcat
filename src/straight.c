@@ -239,15 +239,11 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->rp_files_cnt)
     {
-      const int rc_kernel_load = kernel_rules_load (hashcat_ctx, &straight_ctx->kernel_rules_buf, &straight_ctx->kernel_rules_cnt);
-
-      if (rc_kernel_load == -1) return -1;
+      if (kernel_rules_load (hashcat_ctx, &straight_ctx->kernel_rules_buf, &straight_ctx->kernel_rules_cnt) == -1) return -1;
     }
     else if (user_options->rp_gen)
     {
-      const int rc_kernel_generate = kernel_rules_generate (hashcat_ctx, &straight_ctx->kernel_rules_buf, &straight_ctx->kernel_rules_cnt);
-
-      if (rc_kernel_generate == -1) return -1;
+      if (kernel_rules_generate (hashcat_ctx, &straight_ctx->kernel_rules_buf, &straight_ctx->kernel_rules_cnt) == -1) return -1;
     }
   }
 
@@ -290,9 +286,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
               if (hc_path_is_file (l1_filename) == true)
               {
-                const int rc = straight_ctx_add_wl (hashcat_ctx, l1_filename);
-
-                if (rc == -1)
+                if (straight_ctx_add_wl (hashcat_ctx, l1_filename) == -1)
                 {
                   hcfree (dictionary_files);
 
@@ -306,9 +300,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
         }
         else
         {
-          const int rc = straight_ctx_add_wl (hashcat_ctx, l0_filename);
-
-          if (rc == -1) return -1;
+          if (straight_ctx_add_wl (hashcat_ctx, l0_filename) == -1) return -1;
         }
       }
 
@@ -361,9 +353,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
             if (hc_path_is_file (l1_filename) == true)
             {
-              const int rc = straight_ctx_add_wl (hashcat_ctx, l1_filename);
-
-              if (rc == -1)
+              if (straight_ctx_add_wl (hashcat_ctx, l1_filename) == -1)
               {
                 hcfree (dictionary_files);
 
@@ -377,9 +367,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        const int rc = straight_ctx_add_wl (hashcat_ctx, l0_filename);
-
-        if (rc == -1) return -1;
+        if (straight_ctx_add_wl (hashcat_ctx, l0_filename) == -1) return -1;
       }
     }
 
@@ -423,9 +411,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
             if (hc_path_is_file (l1_filename) == true)
             {
-              const int rc = straight_ctx_add_wl (hashcat_ctx, l1_filename);
-
-              if (rc == -1)
+              if (straight_ctx_add_wl (hashcat_ctx, l1_filename) == -1)
               {
                 hcfree (dictionary_files);
 
@@ -439,9 +425,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        const int rc = straight_ctx_add_wl (hashcat_ctx, l0_filename);
-
-        if (rc == -1) return -1;
+        if (straight_ctx_add_wl (hashcat_ctx, l0_filename) == -1) return -1;
       }
     }
 
