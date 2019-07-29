@@ -17,7 +17,18 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <math.h>
+
+// workaround to get the rid of "redefinition of typedef 'Byte'" build warning
+#if !defined (__APPLE__)
 #include "zlib.h"
+#endif
+
+#if !defined(__MACTYPES__)
+#define __MACTYPES__
+#include "ext_lzma.h"
+#undef __MACTYPES__
+#endif
+// end of workaround
 
 #if defined (_WIN)
 #define WINICONV_CONST
@@ -989,15 +1000,19 @@ typedef struct link_speed
 
 } link_speed_t;
 
-// handling gzip files
+// file handling
 
 typedef struct hc_fp
 {
   int         fd;
-  FILE       *pfp;
-  gzFile      gfp;
+
+  FILE       *pfp; // plain fp
+  gzFile      gfp; //  gzip fp
+  unzFile     ufp; //   zip fp
 
   bool        is_gzip;
+  bool        is_zip;
+
   char       *mode;
   const char *path;
 } HCFILE;
