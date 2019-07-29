@@ -79,6 +79,21 @@ typedef pthread_mutex_t hc_thread_mutex_t;
 typedef sem_t           hc_thread_semaphore_t;
 #endif
 
+// hwmon
+
+#if defined (_WIN)
+typedef HMODULE hc_dynlib_t;
+typedef FARPROC hc_dynfunc_t;
+#else
+typedef void * hc_dynlib_t;
+typedef void * hc_dynfunc_t;
+#endif
+
+#include "ext_ADL.h"
+#include "ext_nvapi.h"
+#include "ext_nvml.h"
+#include "ext_sysfs.h"
+
 // enums
 
 typedef enum loglevel
@@ -762,14 +777,6 @@ typedef enum brain_link_status
   BRAIN_LINK_STATUS_SENDING     = 1 << 2,
 
 } brain_link_status_t;
-#endif
-
-#ifdef _WIN
-typedef HMODULE hc_dynlib_t;
-typedef FARPROC hc_dynfunc_t;
-#else
-typedef void * hc_dynlib_t;
-typedef void * hc_dynfunc_t;
 #endif
 
 /**
@@ -1490,11 +1497,6 @@ typedef enum kernel_workload
   KERNEL_THREADS_MAX = 1024,
 
 } kernel_workload_t;
-
-#include "ext_ADL.h"
-#include "ext_nvapi.h"
-#include "ext_nvml.h"
-#include "ext_sysfs.h"
 
 typedef struct hm_attrs
 {

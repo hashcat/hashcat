@@ -14,32 +14,35 @@ typedef struct nvmlDevice_st* nvmlDevice_t;
 
 typedef struct nvmlPciInfo_st
 {
-    char busId[16];                  //!< The tuple domain:bus:device.function PCI identifier (&amp; NULL terminator)
-    unsigned int domain;             //!< The PCI domain on which the device's bus resides, 0 to 0xffff
-    unsigned int bus;                //!< The bus on which the device resides, 0 to 0xff
-    unsigned int device;             //!< The device's id on the bus, 0 to 31
-    unsigned int pciDeviceId;        //!< The combined 16-bit device id and 16-bit vendor id
+  char busId[16];                  //!< The tuple domain:bus:device.function PCI identifier (&amp; NULL terminator)
+  unsigned int domain;             //!< The PCI domain on which the device's bus resides, 0 to 0xffff
+  unsigned int bus;                //!< The bus on which the device resides, 0 to 0xff
+  unsigned int device;             //!< The device's id on the bus, 0 to 31
+  unsigned int pciDeviceId;        //!< The combined 16-bit device id and 16-bit vendor id
 
-    // Added in NVML 2.285 API
-    unsigned int pciSubSystemId;     //!< The 32-bit Sub System Device ID
+  // Added in NVML 2.285 API
+  unsigned int pciSubSystemId;     //!< The 32-bit Sub System Device ID
 
-    // NVIDIA reserved for internal use only
-    unsigned int reserved0;
-    unsigned int reserved1;
-    unsigned int reserved2;
-    unsigned int reserved3;
+  // NVIDIA reserved for internal use only
+  unsigned int reserved0;
+  unsigned int reserved1;
+  unsigned int reserved2;
+  unsigned int reserved3;
 } nvmlPciInfo_t;
 
-typedef struct nvmlUtilization_st {
+typedef struct nvmlUtilization_st
+{
   unsigned int gpu;    // GPU kernel execution last second, percent
   unsigned int memory; // GPU memory read/write last second, percent
 } nvmlUtilization_t;
 
-typedef enum nvmlTemperatureSensors_enum {
+typedef enum nvmlTemperatureSensors_enum
+{
   NVML_TEMPERATURE_GPU = 0     // Temperature sensor for the GPU die
 } nvmlTemperatureSensors_t;
 
-typedef enum nvmlReturn_enum {
+typedef enum nvmlReturn_enum
+{
   NVML_SUCCESS = 0,                   // The operation was successful
   NVML_ERROR_UNINITIALIZED = 1,       // NVML was not first initialized with nvmlInit()
   NVML_ERROR_INVALID_ARGUMENT = 2,    // A supplied argument is invalid
@@ -54,7 +57,8 @@ typedef enum nvmlReturn_enum {
   NVML_ERROR_UNKNOWN = 999            // An internal driver error occurred
 } nvmlReturn_t;
 
-typedef enum nvmlClockType_enum {
+typedef enum nvmlClockType_enum
+{
   NVML_CLOCK_GRAPHICS = 0,
   NVML_CLOCK_SM = 1,
   NVML_CLOCK_MEM = 2
@@ -114,20 +118,20 @@ typedef enum nvmlGom_enum
 /** Nothing is running on the GPU and the clocks are dropping to Idle state
  * \note This limiter may be removed in a later release
  */
-#define nvmlClocksThrottleReasonGpuIdle                   0x0000000000000001LL
+#define nvmlClocksThrottleReasonGpuIdle                    0x0000000000000001LL
 
 /** GPU clocks are limited by current setting of applications clocks
  *
  * @see nvmlDeviceSetApplicationsClocks
  * @see nvmlDeviceGetApplicationsClock
  */
-#define nvmlClocksThrottleReasonApplicationsClocksSetting   0x0000000000000002LL
+#define nvmlClocksThrottleReasonApplicationsClocksSetting  0x0000000000000002LL
 
 /**
  * @deprecated Renamed to \ref nvmlClocksThrottleReasonApplicationsClocksSetting
  *             as the name describes the situation more accurately.
  */
-#define nvmlClocksThrottleReasonUserDefinedClocks         nvmlClocksThrottleReasonApplicationsClocksSetting
+#define nvmlClocksThrottleReasonUserDefinedClocks          nvmlClocksThrottleReasonApplicationsClocksSetting
 
 /** SW Power Scaling algorithm is reducing the clocks below requested clocks
  *
@@ -135,7 +139,7 @@ typedef enum nvmlGom_enum
  * @see nvmlDeviceSetPowerManagementLimit
  * @see nvmlDeviceGetPowerManagementLimit
  */
-#define nvmlClocksThrottleReasonSwPowerCap                0x0000000000000004LL
+#define nvmlClocksThrottleReasonSwPowerCap                 0x0000000000000004LL
 
 /** HW Slowdown (reducing the core clocks by a factor of 2 or more) is engaged
  *
@@ -150,16 +154,16 @@ typedef enum nvmlGom_enum
  * @see nvmlDeviceGetTemperatureThreshold
  * @see nvmlDeviceGetPowerUsage
  */
-#define nvmlClocksThrottleReasonHwSlowdown                0x0000000000000008LL
+#define nvmlClocksThrottleReasonHwSlowdown                 0x0000000000000008LL
 
 /** Some other unspecified factor is reducing the clocks */
-#define nvmlClocksThrottleReasonUnknown                   0x8000000000000000LL
+#define nvmlClocksThrottleReasonUnknown                    0x8000000000000000LL
 
 /** Bit mask representing no clocks throttling
  *
  * Clocks are as high as possible.
  * */
-#define nvmlClocksThrottleReasonNone                      0x0000000000000000LL
+#define nvmlClocksThrottleReasonNone                       0x0000000000000000LL
 
 /*
  * End of declarations from nvml.h
@@ -216,5 +220,23 @@ typedef struct hm_nvml_lib
 } hm_nvml_lib_t;
 
 typedef hm_nvml_lib_t NVML_PTR;
+
+// functions
+
+int  nvml_init                                 (void *hashcat_ctx);
+void nvml_close                                (void *hashcat_ctx);
+const char *hm_NVML_nvmlErrorString            (NVML_PTR *nvml, const nvmlReturn_t nvml_rc);
+int  hm_NVML_nvmlInit                          (void *hashcat_ctx);
+int  hm_NVML_nvmlShutdown                      (void *hashcat_ctx);
+int  hm_NVML_nvmlDeviceGetCount                (void *hashcat_ctx, unsigned int *deviceCount);
+int  hm_NVML_nvmlDeviceGetHandleByIndex        (void *hashcat_ctx, unsigned int device_index, nvmlDevice_t *device);
+int  hm_NVML_nvmlDeviceGetTemperature          (void *hashcat_ctx, nvmlDevice_t device, nvmlTemperatureSensors_t sensorType, unsigned int *temp);
+int  hm_NVML_nvmlDeviceGetFanSpeed             (void *hashcat_ctx, nvmlDevice_t device, unsigned int *speed);
+int  hm_NVML_nvmlDeviceGetUtilizationRates     (void *hashcat_ctx, nvmlDevice_t device, nvmlUtilization_t *utilization);
+int  hm_NVML_nvmlDeviceGetClockInfo            (void *hashcat_ctx, nvmlDevice_t device, nvmlClockType_t type, unsigned int *clockfreq);
+int  hm_NVML_nvmlDeviceGetTemperatureThreshold (void *hashcat_ctx, nvmlDevice_t device, nvmlTemperatureThresholds_t thresholdType, unsigned int *temp);
+int  hm_NVML_nvmlDeviceGetCurrPcieLinkWidth    (void *hashcat_ctx, nvmlDevice_t device, unsigned int *currLinkWidth);
+int  hm_NVML_nvmlDeviceGetPciInfo              (void *hashcat_ctx, nvmlDevice_t device, nvmlPciInfo_t *pci);
+int  hm_get_adapter_index_nvml                 (void *hashcat_ctx, HM_ADAPTER_NVML *nvmlGPUHandle);
 
 #endif // _NVML_H

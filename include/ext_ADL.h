@@ -13,6 +13,11 @@
 #include <windows.h>
 #endif // _WIN
 
+#include "memory.h"
+#include "event.h"
+
+#include "dynloader.h"
+
 /**
  * Declarations from adl_sdk.h and subheaders
  */
@@ -312,6 +317,25 @@ typedef struct hm_adl_lib
 
 typedef hm_adl_lib_t ADL_PTR;
 
+// functions
+
 void *HC_API_CALL ADL_Main_Memory_Alloc (const int iSize);
+
+int  adl_init  (void *hashcat_ctx_0);
+void adl_close (void *hashcat_ctx_0);
+
+int  hm_ADL_Main_Control_Destroy (void *hashcat_ctx_0);
+int  hm_ADL_Main_Control_Create (void *hashcat_ctx_0, ADL_MAIN_MALLOC_CALLBACK callback, int iEnumConnectedAdapters);
+int  hm_ADL_Adapter_NumberOfAdapters_Get (void *hashcat_ctx_0, int *lpNumAdapters);
+int  hm_ADL_Adapter_AdapterInfo_Get (void *hashcat_ctx_0, LPAdapterInfo lpInfo, int iInputSize);
+int  hm_ADL_Overdrive5_Temperature_Get (void *hashcat_ctx_0, int iAdapterIndex, int iThermalControllerIndex, ADLTemperature *lpTemperature);
+int  hm_ADL_Overdrive6_Temperature_Get (void *hashcat_ctx_0, int iAdapterIndex, int *iTemperature);
+int  hm_ADL_Overdrive_CurrentActivity_Get (void *hashcat_ctx_0, int iAdapterIndex, ADLPMActivity *lpActivity);
+int  hm_ADL_Overdrive5_FanSpeed_Get (void *hashcat_ctx_0, int iAdapterIndex, int iThermalControllerIndex, ADLFanSpeedValue *lpFanSpeedValue);
+int  hm_ADL_Overdrive6_FanSpeed_Get (void *hashcat_ctx_0, int iAdapterIndex, ADLOD6FanSpeedInfo *lpFanSpeedInfo);
+int  hm_ADL_Overdrive_Caps (void *hashcat_ctx_0, int iAdapterIndex, int *od_supported, int *od_enabled, int *od_version);
+int  hm_ADL_Overdrive6_TargetTemperatureData_Get (void *hashcat_ctx_0, int iAdapterIndex, int *cur_temp, int *default_temp);
+
+int  get_adapters_num_adl (void *hashcat_ctx_0, int *iNumberAdapters);
 
 #endif // _EXT_ADL_H
