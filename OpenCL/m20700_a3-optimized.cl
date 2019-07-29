@@ -10,8 +10,6 @@
 #include "inc_types.h"
 #include "inc_platform.cl"
 #include "inc_common.cl"
-#include "inc_rp_optimized.h"
-#include "inc_rp_optimized.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha256.cl"
 #endif
@@ -42,7 +40,7 @@
   h = 0;                                        \
 }
 
-KERNEL_FQ void m19400_m04 (KERN_ATTR_RULES ())
+DECLSPEC void m20700m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR (), LOCAL_AS u32 *l_bin2asc)
 {
   /**
    * modifier
@@ -50,44 +48,6 @@ KERNEL_FQ void m19400_m04 (KERN_ATTR_RULES ())
 
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
-  const u64 lsz = get_local_size (0);
-
-  /**
-   * bin2asc table
-   */
-
-  LOCAL_VK u32 l_bin2asc[256];
-
-  for (u32 i = lid; i < 256; i += lsz)
-  {
-    const u32 i0 = (i >> 0) & 15;
-    const u32 i1 = (i >> 4) & 15;
-
-    l_bin2asc[i] = ((i0 < 10) ? '0' + i0 : 'a' - 10 + i0) << 0
-                 | ((i1 < 10) ? '0' + i1 : 'a' - 10 + i1) << 8;
-  }
-
-  SYNC_THREADS ();
-
-  if (gid >= gid_max) return;
-
-  /**
-   * base
-   */
-
-  u32 pw_buf0[4];
-  u32 pw_buf1[4];
-
-  pw_buf0[0] = pws[gid].i[0];
-  pw_buf0[1] = pws[gid].i[1];
-  pw_buf0[2] = pws[gid].i[2];
-  pw_buf0[3] = pws[gid].i[3];
-  pw_buf1[0] = pws[gid].i[4];
-  pw_buf1[1] = pws[gid].i[5];
-  pw_buf1[2] = pws[gid].i[6];
-  pw_buf1[3] = pws[gid].i[7];
-
-  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * salt
@@ -106,37 +66,34 @@ KERNEL_FQ void m19400_m04 (KERN_ATTR_RULES ())
    * loop
    */
 
+  u32 w0l = w[0];
+
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    u32x w0[4] = { 0 };
-    u32x w1[4] = { 0 };
-    u32x w2[4] = { 0 };
-    u32x w3[4] = { 0 };
+    const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
-    const u32x out_len = apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
-
-    append_0x80_2x4_VV (w0, w1, out_len);
+    const u32x w0 = w0l | w0r;
 
     /**
      * sha256(pass)
      */
 
-    u32x w0_t = hc_swap32 (w0[0]);
-    u32x w1_t = hc_swap32 (w0[1]);
-    u32x w2_t = hc_swap32 (w0[2]);
-    u32x w3_t = hc_swap32 (w0[3]);
-    u32x w4_t = hc_swap32 (w1[0]);
-    u32x w5_t = hc_swap32 (w1[1]);
-    u32x w6_t = hc_swap32 (w1[2]);
-    u32x w7_t = hc_swap32 (w1[3]);
-    u32x w8_t = hc_swap32 (w2[0]);
-    u32x w9_t = hc_swap32 (w2[1]);
-    u32x wa_t = hc_swap32 (w2[2]);
-    u32x wb_t = hc_swap32 (w2[3]);
-    u32x wc_t = hc_swap32 (w3[0]);
-    u32x wd_t = hc_swap32 (w3[1]);
-    u32x we_t = 0;
-    u32x wf_t = out_len * 8;
+    u32x w0_t = w0;
+    u32x w1_t = w[ 1];
+    u32x w2_t = w[ 2];
+    u32x w3_t = w[ 3];
+    u32x w4_t = w[ 4];
+    u32x w5_t = w[ 5];
+    u32x w6_t = w[ 6];
+    u32x w7_t = w[ 7];
+    u32x w8_t = w[ 8];
+    u32x w9_t = w[ 9];
+    u32x wa_t = w[10];
+    u32x wb_t = w[11];
+    u32x wc_t = w[12];
+    u32x wd_t = w[13];
+    u32x we_t = w[14];
+    u32x wf_t = w[15];
 
     u32x a = SHA256M_A;
     u32x b = SHA256M_B;
@@ -493,15 +450,7 @@ KERNEL_FQ void m19400_m04 (KERN_ATTR_RULES ())
   }
 }
 
-KERNEL_FQ void m19400_m08 (KERN_ATTR_RULES ())
-{
-}
-
-KERNEL_FQ void m19400_m16 (KERN_ATTR_RULES ())
-{
-}
-
-KERNEL_FQ void m19400_s04 (KERN_ATTR_RULES ())
+DECLSPEC void m20700s (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR (), LOCAL_AS u32 *l_bin2asc)
 {
   /**
    * modifier
@@ -509,44 +458,18 @@ KERNEL_FQ void m19400_s04 (KERN_ATTR_RULES ())
 
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
-  const u64 lsz = get_local_size (0);
 
   /**
-   * bin2asc table
+   * digest
    */
 
-  LOCAL_VK u32 l_bin2asc[256];
-
-  for (u32 i = lid; i < 256; i += lsz)
+  const u32 search[4] =
   {
-    const u32 i0 = (i >> 0) & 15;
-    const u32 i1 = (i >> 4) & 15;
-
-    l_bin2asc[i] = ((i0 < 10) ? '0' + i0 : 'a' - 10 + i0) << 0
-                 | ((i1 < 10) ? '0' + i1 : 'a' - 10 + i1) << 8;
-  }
-
-  SYNC_THREADS ();
-
-  if (gid >= gid_max) return;
-
-  /**
-   * base
-   */
-
-  u32 pw_buf0[4];
-  u32 pw_buf1[4];
-
-  pw_buf0[0] = pws[gid].i[0];
-  pw_buf0[1] = pws[gid].i[1];
-  pw_buf0[2] = pws[gid].i[2];
-  pw_buf0[3] = pws[gid].i[3];
-  pw_buf1[0] = pws[gid].i[4];
-  pw_buf1[1] = pws[gid].i[5];
-  pw_buf1[2] = pws[gid].i[6];
-  pw_buf1[3] = pws[gid].i[7];
-
-  const u32 pw_len = pws[gid].pw_len & 63;
+    digests_buf[digests_offset].digest_buf[DGST_R0],
+    digests_buf[digests_offset].digest_buf[DGST_R1],
+    digests_buf[digests_offset].digest_buf[DGST_R2],
+    digests_buf[digests_offset].digest_buf[DGST_R3]
+  };
 
   /**
    * salt
@@ -562,52 +485,37 @@ KERNEL_FQ void m19400_s04 (KERN_ATTR_RULES ())
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
   /**
-   * digest
-   */
-
-  const u32 search[4] =
-  {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
-  };
-
-  /**
    * loop
    */
 
+  u32 w0l = w[0];
+
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    u32x w0[4] = { 0 };
-    u32x w1[4] = { 0 };
-    u32x w2[4] = { 0 };
-    u32x w3[4] = { 0 };
+    const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
-    const u32x out_len = apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
-
-    append_0x80_2x4_VV (w0, w1, out_len);
+    const u32x w0 = w0l | w0r;
 
     /**
      * sha256(pass)
      */
 
-    u32x w0_t = hc_swap32 (w0[0]);
-    u32x w1_t = hc_swap32 (w0[1]);
-    u32x w2_t = hc_swap32 (w0[2]);
-    u32x w3_t = hc_swap32 (w0[3]);
-    u32x w4_t = hc_swap32 (w1[0]);
-    u32x w5_t = hc_swap32 (w1[1]);
-    u32x w6_t = hc_swap32 (w1[2]);
-    u32x w7_t = hc_swap32 (w1[3]);
-    u32x w8_t = hc_swap32 (w2[0]);
-    u32x w9_t = hc_swap32 (w2[1]);
-    u32x wa_t = hc_swap32 (w2[2]);
-    u32x wb_t = hc_swap32 (w2[3]);
-    u32x wc_t = hc_swap32 (w3[0]);
-    u32x wd_t = hc_swap32 (w3[1]);
-    u32x we_t = 0;
-    u32x wf_t = out_len * 8;
+    u32x w0_t = w0;
+    u32x w1_t = w[ 1];
+    u32x w2_t = w[ 2];
+    u32x w3_t = w[ 3];
+    u32x w4_t = w[ 4];
+    u32x w5_t = w[ 5];
+    u32x w6_t = w[ 6];
+    u32x w7_t = w[ 7];
+    u32x w8_t = w[ 8];
+    u32x w9_t = w[ 9];
+    u32x wa_t = w[10];
+    u32x wb_t = w[11];
+    u32x wc_t = w[12];
+    u32x wd_t = w[13];
+    u32x we_t = w[14];
+    u32x wf_t = w[15];
 
     u32x a = SHA256M_A;
     u32x b = SHA256M_B;
@@ -737,6 +645,15 @@ KERNEL_FQ void m19400_s04 (KERN_ATTR_RULES ())
     digest[5] = f;
     digest[6] = g;
     digest[7] = h;
+
+    a = digest[0];
+    b = digest[1];
+    c = digest[2];
+    d = digest[3];
+    e = digest[4];
+    f = digest[5];
+    g = digest[6];
+    h = digest[7];
 
     SHA256_STEP (SHA256_F0o, SHA256_F1o, a, b, c, d, e, f, g, h, w0_t, SHA256C00);
     SHA256_STEP (SHA256_F0o, SHA256_F1o, h, a, b, c, d, e, f, g, w1_t, SHA256C01);
@@ -934,9 +851,6 @@ KERNEL_FQ void m19400_s04 (KERN_ATTR_RULES ())
     w6_t = SHA256_EXPAND (w4_t, wf_t, w7_t, w6_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, c, d, e, f, g, h, a, b, w6_t, SHA256C36);
     w7_t = SHA256_EXPAND (w5_t, w0_t, w8_t, w7_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, b, c, d, e, f, g, h, a, w7_t, SHA256C37);
     w8_t = SHA256_EXPAND (w6_t, w1_t, w9_t, w8_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, a, b, c, d, e, f, g, h, w8_t, SHA256C38);
-
-    // if (MATCHES_NONE_VS (h+digest[7]-SHA256M_H, d_rev)) continue;
-
     w9_t = SHA256_EXPAND (w7_t, w2_t, wa_t, w9_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, h, a, b, c, d, e, f, g, w9_t, SHA256C39);
     wa_t = SHA256_EXPAND (w8_t, w3_t, wb_t, wa_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, g, h, a, b, c, d, e, f, wa_t, SHA256C3a);
     wb_t = SHA256_EXPAND (w9_t, w4_t, wc_t, wb_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, f, g, h, a, b, c, d, e, wb_t, SHA256C3b);
@@ -961,10 +875,368 @@ KERNEL_FQ void m19400_s04 (KERN_ATTR_RULES ())
   }
 }
 
-KERNEL_FQ void m19400_s08 (KERN_ATTR_RULES ())
+KERNEL_FQ void m20700_m04 (KERN_ATTR_VECTOR ())
 {
+  /**
+   * base
+   */
+
+  const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
+
+  /**
+   * bin2asc table
+   */
+
+  LOCAL_VK u32 l_bin2asc[256];
+
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    const u32 i0 = (i >> 0) & 15;
+    const u32 i1 = (i >> 4) & 15;
+
+    l_bin2asc[i] = ((i0 < 10) ? '0' + i0 : 'a' - 10 + i0) << 0
+                 | ((i1 < 10) ? '0' + i1 : 'a' - 10 + i1) << 8;
+  }
+
+  SYNC_THREADS ();
+
+  if (gid >= gid_max) return;
+
+  /**
+   * modifier
+   */
+
+  u32 w[16];
+
+  w[ 0] = pws[gid].i[ 0];
+  w[ 1] = pws[gid].i[ 1];
+  w[ 2] = pws[gid].i[ 2];
+  w[ 3] = pws[gid].i[ 3];
+  w[ 4] = 0;
+  w[ 5] = 0;
+  w[ 6] = 0;
+  w[ 7] = 0;
+  w[ 8] = 0;
+  w[ 9] = 0;
+  w[10] = 0;
+  w[11] = 0;
+  w[12] = 0;
+  w[13] = 0;
+  w[14] = 0;
+  w[15] = pws[gid].i[15];
+
+  const u32 pw_len = pws[gid].pw_len & 63;
+
+  /**
+   * main
+   */
+
+  m20700m (w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max, l_bin2asc);
 }
 
-KERNEL_FQ void m19400_s16 (KERN_ATTR_RULES ())
+KERNEL_FQ void m20700_m08 (KERN_ATTR_VECTOR ())
 {
+  /**
+   * base
+   */
+
+  const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
+
+  /**
+   * bin2asc table
+   */
+
+  LOCAL_VK u32 l_bin2asc[256];
+
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    const u32 i0 = (i >> 0) & 15;
+    const u32 i1 = (i >> 4) & 15;
+
+    l_bin2asc[i] = ((i0 < 10) ? '0' + i0 : 'a' - 10 + i0) << 0
+                 | ((i1 < 10) ? '0' + i1 : 'a' - 10 + i1) << 8;
+  }
+
+  SYNC_THREADS ();
+
+  if (gid >= gid_max) return;
+
+  /**
+   * modifier
+   */
+
+  u32 w[16];
+
+  w[ 0] = pws[gid].i[ 0];
+  w[ 1] = pws[gid].i[ 1];
+  w[ 2] = pws[gid].i[ 2];
+  w[ 3] = pws[gid].i[ 3];
+  w[ 4] = pws[gid].i[ 4];
+  w[ 5] = pws[gid].i[ 5];
+  w[ 6] = pws[gid].i[ 6];
+  w[ 7] = pws[gid].i[ 7];
+  w[ 8] = 0;
+  w[ 9] = 0;
+  w[10] = 0;
+  w[11] = 0;
+  w[12] = 0;
+  w[13] = 0;
+  w[14] = 0;
+  w[15] = pws[gid].i[15];
+
+  const u32 pw_len = pws[gid].pw_len & 63;
+
+  /**
+   * main
+   */
+
+  m20700m (w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max, l_bin2asc);
+}
+
+KERNEL_FQ void m20700_m16 (KERN_ATTR_VECTOR ())
+{
+  /**
+   * base
+   */
+
+  const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
+
+  /**
+   * bin2asc table
+   */
+
+  LOCAL_VK u32 l_bin2asc[256];
+
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    const u32 i0 = (i >> 0) & 15;
+    const u32 i1 = (i >> 4) & 15;
+
+    l_bin2asc[i] = ((i0 < 10) ? '0' + i0 : 'a' - 10 + i0) << 0
+                 | ((i1 < 10) ? '0' + i1 : 'a' - 10 + i1) << 8;
+  }
+
+  SYNC_THREADS ();
+
+  if (gid >= gid_max) return;
+
+  /**
+   * modifier
+   */
+
+  u32 w[16];
+
+  w[ 0] = pws[gid].i[ 0];
+  w[ 1] = pws[gid].i[ 1];
+  w[ 2] = pws[gid].i[ 2];
+  w[ 3] = pws[gid].i[ 3];
+  w[ 4] = pws[gid].i[ 4];
+  w[ 5] = pws[gid].i[ 5];
+  w[ 6] = pws[gid].i[ 6];
+  w[ 7] = pws[gid].i[ 7];
+  w[ 8] = pws[gid].i[ 8];
+  w[ 9] = pws[gid].i[ 9];
+  w[10] = pws[gid].i[10];
+  w[11] = pws[gid].i[11];
+  w[12] = pws[gid].i[12];
+  w[13] = pws[gid].i[13];
+  w[14] = pws[gid].i[14];
+  w[15] = pws[gid].i[15];
+
+  const u32 pw_len = pws[gid].pw_len & 63;
+
+  /**
+   * main
+   */
+
+  m20700m (w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max, l_bin2asc);
+}
+
+KERNEL_FQ void m20700_s04 (KERN_ATTR_VECTOR ())
+{
+  /**
+   * base
+   */
+
+  const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
+
+  /**
+   * bin2asc table
+   */
+
+  LOCAL_VK u32 l_bin2asc[256];
+
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    const u32 i0 = (i >> 0) & 15;
+    const u32 i1 = (i >> 4) & 15;
+
+    l_bin2asc[i] = ((i0 < 10) ? '0' + i0 : 'a' - 10 + i0) << 0
+                 | ((i1 < 10) ? '0' + i1 : 'a' - 10 + i1) << 8;
+  }
+
+  SYNC_THREADS ();
+
+  if (gid >= gid_max) return;
+
+  /**
+   * modifier
+   */
+
+  u32 w[16];
+
+  w[ 0] = pws[gid].i[ 0];
+  w[ 1] = pws[gid].i[ 1];
+  w[ 2] = pws[gid].i[ 2];
+  w[ 3] = pws[gid].i[ 3];
+  w[ 4] = 0;
+  w[ 5] = 0;
+  w[ 6] = 0;
+  w[ 7] = 0;
+  w[ 8] = 0;
+  w[ 9] = 0;
+  w[10] = 0;
+  w[11] = 0;
+  w[12] = 0;
+  w[13] = 0;
+  w[14] = 0;
+  w[15] = pws[gid].i[15];
+
+  const u32 pw_len = pws[gid].pw_len & 63;
+
+  /**
+   * main
+   */
+
+  m20700s (w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max, l_bin2asc);
+}
+
+KERNEL_FQ void m20700_s08 (KERN_ATTR_VECTOR ())
+{
+  /**
+   * base
+   */
+
+  const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
+
+  /**
+   * bin2asc table
+   */
+
+  LOCAL_VK u32 l_bin2asc[256];
+
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    const u32 i0 = (i >> 0) & 15;
+    const u32 i1 = (i >> 4) & 15;
+
+    l_bin2asc[i] = ((i0 < 10) ? '0' + i0 : 'a' - 10 + i0) << 0
+                 | ((i1 < 10) ? '0' + i1 : 'a' - 10 + i1) << 8;
+  }
+
+  SYNC_THREADS ();
+
+  if (gid >= gid_max) return;
+
+  /**
+   * modifier
+   */
+
+  u32 w[16];
+
+  w[ 0] = pws[gid].i[ 0];
+  w[ 1] = pws[gid].i[ 1];
+  w[ 2] = pws[gid].i[ 2];
+  w[ 3] = pws[gid].i[ 3];
+  w[ 4] = pws[gid].i[ 4];
+  w[ 5] = pws[gid].i[ 5];
+  w[ 6] = pws[gid].i[ 6];
+  w[ 7] = pws[gid].i[ 7];
+  w[ 8] = 0;
+  w[ 9] = 0;
+  w[10] = 0;
+  w[11] = 0;
+  w[12] = 0;
+  w[13] = 0;
+  w[14] = 0;
+  w[15] = pws[gid].i[15];
+
+  const u32 pw_len = pws[gid].pw_len & 63;
+
+  /**
+   * main
+   */
+
+  m20700s (w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max, l_bin2asc);
+}
+
+KERNEL_FQ void m20700_s16 (KERN_ATTR_VECTOR ())
+{
+  /**
+   * base
+   */
+
+  const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
+
+  /**
+   * bin2asc table
+   */
+
+  LOCAL_VK u32 l_bin2asc[256];
+
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    const u32 i0 = (i >> 0) & 15;
+    const u32 i1 = (i >> 4) & 15;
+
+    l_bin2asc[i] = ((i0 < 10) ? '0' + i0 : 'a' - 10 + i0) << 0
+                 | ((i1 < 10) ? '0' + i1 : 'a' - 10 + i1) << 8;
+  }
+
+  SYNC_THREADS ();
+
+  if (gid >= gid_max) return;
+
+  /**
+   * modifier
+   */
+
+  u32 w[16];
+
+  w[ 0] = pws[gid].i[ 0];
+  w[ 1] = pws[gid].i[ 1];
+  w[ 2] = pws[gid].i[ 2];
+  w[ 3] = pws[gid].i[ 3];
+  w[ 4] = pws[gid].i[ 4];
+  w[ 5] = pws[gid].i[ 5];
+  w[ 6] = pws[gid].i[ 6];
+  w[ 7] = pws[gid].i[ 7];
+  w[ 8] = pws[gid].i[ 8];
+  w[ 9] = pws[gid].i[ 9];
+  w[10] = pws[gid].i[10];
+  w[11] = pws[gid].i[11];
+  w[12] = pws[gid].i[12];
+  w[13] = pws[gid].i[13];
+  w[14] = pws[gid].i[14];
+  w[15] = pws[gid].i[15];
+
+  const u32 pw_len = pws[gid].pw_len & 63;
+
+  /**
+   * main
+   */
+
+  m20700s (w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max, l_bin2asc);
 }
