@@ -3,14 +3,14 @@
  * License.....: MIT
  */
 
-#define NEW_SIMD_CODE
+//#define NEW_SIMD_CODE
 
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
 #include "inc_platform.cl"
 #include "inc_common.cl"
-#include "inc_simd.cl"
+#include "inc_scalar.cl"
 #include "inc_hash_md5.cl"
 #include "inc_hash_sha256.cl"
 #endif
@@ -27,7 +27,7 @@
 #define uint_to_hex_lower8_le(i) make_u32x (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7], l_bin2asc[(i).s8], l_bin2asc[(i).s9], l_bin2asc[(i).sa], l_bin2asc[(i).sb], l_bin2asc[(i).sc], l_bin2asc[(i).sd], l_bin2asc[(i).se], l_bin2asc[(i).sf])
 #endif
 
-KERNEL_FQ void m04710_mxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m20800_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -60,45 +60,32 @@ KERNEL_FQ void m04710_mxx (KERN_ATTR_VECTOR ())
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len;
+  md5_ctx_t ctx0;
 
-  u32x w[64] = { 0 };
+  md5_init (&ctx0);
 
-  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
-  {
-    w[idx] = pws[gid].i[idx];
-  }
+  md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
    */
 
-  u32x w0l = w[0];
-
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
+    md5_ctx_t ctx1 = ctx0;
 
-    const u32x w0 = w0l | w0r;
+    md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
-    w[0] = w0;
+    md5_final (&ctx1);
 
-    md5_ctx_vector_t ctx0;
+    const u32 a = ctx1.h[0];
+    const u32 b = ctx1.h[1];
+    const u32 c = ctx1.h[2];
+    const u32 d = ctx1.h[3];
 
-    md5_init_vector (&ctx0);
+    sha256_ctx_t ctx;
 
-    md5_update_vector (&ctx0, w, pw_len);
-
-    md5_final_vector (&ctx0);
-
-    const u32x a = ctx0.h[0];
-    const u32x b = ctx0.h[1];
-    const u32x c = ctx0.h[2];
-    const u32x d = ctx0.h[3];
-
-    sha256_ctx_vector_t ctx;
-
-    sha256_init_vector (&ctx);
+    sha256_init (&ctx);
 
     ctx.w0[0] = uint_to_hex_lower8_le ((a >>  8) & 255) <<  0
               | uint_to_hex_lower8_le ((a >>  0) & 255) << 16;
@@ -128,18 +115,18 @@ KERNEL_FQ void m04710_mxx (KERN_ATTR_VECTOR ())
 
     ctx.len = 32;
 
-    sha256_final_vector (&ctx);
+    sha256_final (&ctx);
 
-    const u32x r0 = ctx.h[DGST_R0];
-    const u32x r1 = ctx.h[DGST_R1];
-    const u32x r2 = ctx.h[DGST_R2];
-    const u32x r3 = ctx.h[DGST_R3];
+    const u32 r0 = ctx.h[DGST_R0];
+    const u32 r1 = ctx.h[DGST_R1];
+    const u32 r2 = ctx.h[DGST_R2];
+    const u32 r3 = ctx.h[DGST_R3];
 
-    COMPARE_M_SIMD (r0, r1, r2, r3);
+    COMPARE_M_SCALAR (r0, r1, r2, r3);
   }
 }
 
-KERNEL_FQ void m04710_sxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m20800_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -184,45 +171,32 @@ KERNEL_FQ void m04710_sxx (KERN_ATTR_VECTOR ())
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len;
+  md5_ctx_t ctx0;
 
-  u32x w[64] = { 0 };
+  md5_init (&ctx0);
 
-  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
-  {
-    w[idx] = pws[gid].i[idx];
-  }
+  md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
    */
 
-  u32x w0l = w[0];
-
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
+    md5_ctx_t ctx1 = ctx0;
 
-    const u32x w0 = w0l | w0r;
+    md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
-    w[0] = w0;
+    md5_final (&ctx1);
 
-    md5_ctx_vector_t ctx0;
+    const u32 a = ctx1.h[0];
+    const u32 b = ctx1.h[1];
+    const u32 c = ctx1.h[2];
+    const u32 d = ctx1.h[3];
 
-    md5_init_vector (&ctx0);
+    sha256_ctx_t ctx;
 
-    md5_update_vector (&ctx0, w, pw_len);
-
-    md5_final_vector (&ctx0);
-
-    const u32x a = ctx0.h[0];
-    const u32x b = ctx0.h[1];
-    const u32x c = ctx0.h[2];
-    const u32x d = ctx0.h[3];
-
-    sha256_ctx_vector_t ctx;
-
-    sha256_init_vector (&ctx);
+    sha256_init (&ctx);
 
     ctx.w0[0] = uint_to_hex_lower8_le ((a >>  8) & 255) <<  0
               | uint_to_hex_lower8_le ((a >>  0) & 255) << 16;
@@ -252,13 +226,13 @@ KERNEL_FQ void m04710_sxx (KERN_ATTR_VECTOR ())
 
     ctx.len = 32;
 
-    sha256_final_vector (&ctx);
+    sha256_final (&ctx);
 
-    const u32x r0 = ctx.h[DGST_R0];
-    const u32x r1 = ctx.h[DGST_R1];
-    const u32x r2 = ctx.h[DGST_R2];
-    const u32x r3 = ctx.h[DGST_R3];
+    const u32 r0 = ctx.h[DGST_R0];
+    const u32 r1 = ctx.h[DGST_R1];
+    const u32 r2 = ctx.h[DGST_R2];
+    const u32 r3 = ctx.h[DGST_R3];
 
-    COMPARE_S_SIMD (r0, r1, r2, r3);
+    COMPARE_S_SCALAR (r0, r1, r2, r3);
   }
 }

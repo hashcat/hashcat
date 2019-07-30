@@ -10,6 +10,8 @@
 #include "inc_types.h"
 #include "inc_platform.cl"
 #include "inc_common.cl"
+#include "inc_rp_optimized.h"
+#include "inc_rp_optimized.cl"
 #include "inc_simd.cl"
 #include "inc_hash_md5.cl"
 #include "inc_hash_sha256.cl"
@@ -41,7 +43,7 @@
   h = 0;                                        \
 }
 
-KERNEL_FQ void m04710_m04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m20800_m04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -86,7 +88,7 @@ KERNEL_FQ void m04710_m04 (KERN_ATTR_BASIC ())
   pw_buf1[2] = pws[gid].i[6];
   pw_buf1[3] = pws[gid].i[7];
 
-  const u32 pw_l_len = pws[gid].pw_len & 63;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * loop
@@ -94,71 +96,16 @@ KERNEL_FQ void m04710_m04 (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos) & 63;
+    u32x w0[4] = { 0 };
+    u32x w1[4] = { 0 };
+    u32x w2[4] = { 0 };
+    u32x w3[4] = { 0 };
 
-    const u32x pw_len = (pw_l_len + pw_r_len) & 63;
+    const u32x out_len = apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
-    /**
-     * concat password candidate
-     */
+    append_0x80_2x4_VV (w0, w1, out_len);
 
-    u32x wordl0[4] = { 0 };
-    u32x wordl1[4] = { 0 };
-    u32x wordl2[4] = { 0 };
-    u32x wordl3[4] = { 0 };
-
-    wordl0[0] = pw_buf0[0];
-    wordl0[1] = pw_buf0[1];
-    wordl0[2] = pw_buf0[2];
-    wordl0[3] = pw_buf0[3];
-    wordl1[0] = pw_buf1[0];
-    wordl1[1] = pw_buf1[1];
-    wordl1[2] = pw_buf1[2];
-    wordl1[3] = pw_buf1[3];
-
-    u32x wordr0[4] = { 0 };
-    u32x wordr1[4] = { 0 };
-    u32x wordr2[4] = { 0 };
-    u32x wordr3[4] = { 0 };
-
-    wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
-    wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
-    wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
-    wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
-    wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
-    wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
-    wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
-    wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
-
-    if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
-    {
-      switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
-    }
-    else
-    {
-      switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
-    }
-
-    u32x w0[4];
-    u32x w1[4];
-    u32x w2[4];
-    u32x w3[4];
-
-    w0[0] = wordl0[0] | wordr0[0];
-    w0[1] = wordl0[1] | wordr0[1];
-    w0[2] = wordl0[2] | wordr0[2];
-    w0[3] = wordl0[3] | wordr0[3];
-    w1[0] = wordl1[0] | wordr1[0];
-    w1[1] = wordl1[1] | wordr1[1];
-    w1[2] = wordl1[2] | wordr1[2];
-    w1[3] = wordl1[3] | wordr1[3];
-    w2[0] = wordl2[0] | wordr2[0];
-    w2[1] = wordl2[1] | wordr2[1];
-    w2[2] = wordl2[2] | wordr2[2];
-    w2[3] = wordl2[3] | wordr2[3];
-    w3[0] = wordl3[0] | wordr3[0];
-    w3[1] = wordl3[1] | wordr3[1];
-    w3[2] = pw_len * 8;
+    w3[2] = out_len * 8;
     w3[3] = 0;
 
     /**
@@ -359,15 +306,15 @@ KERNEL_FQ void m04710_m04 (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m04710_m08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m20800_m08 (KERN_ATTR_RULES ())
 {
 }
 
-KERNEL_FQ void m04710_m16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m20800_m16 (KERN_ATTR_RULES ())
 {
 }
 
-KERNEL_FQ void m04710_s04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m20800_s04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -412,7 +359,7 @@ KERNEL_FQ void m04710_s04 (KERN_ATTR_BASIC ())
   pw_buf1[2] = pws[gid].i[6];
   pw_buf1[3] = pws[gid].i[7];
 
-  const u32 pw_l_len = pws[gid].pw_len & 63;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * digest
@@ -450,71 +397,16 @@ KERNEL_FQ void m04710_s04 (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos) & 63;
+    u32x w0[4] = { 0 };
+    u32x w1[4] = { 0 };
+    u32x w2[4] = { 0 };
+    u32x w3[4] = { 0 };
 
-    const u32x pw_len = (pw_l_len + pw_r_len) & 63;
+    const u32x out_len = apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
-    /**
-     * concat password candidate
-     */
+    append_0x80_2x4_VV (w0, w1, out_len);
 
-    u32x wordl0[4] = { 0 };
-    u32x wordl1[4] = { 0 };
-    u32x wordl2[4] = { 0 };
-    u32x wordl3[4] = { 0 };
-
-    wordl0[0] = pw_buf0[0];
-    wordl0[1] = pw_buf0[1];
-    wordl0[2] = pw_buf0[2];
-    wordl0[3] = pw_buf0[3];
-    wordl1[0] = pw_buf1[0];
-    wordl1[1] = pw_buf1[1];
-    wordl1[2] = pw_buf1[2];
-    wordl1[3] = pw_buf1[3];
-
-    u32x wordr0[4] = { 0 };
-    u32x wordr1[4] = { 0 };
-    u32x wordr2[4] = { 0 };
-    u32x wordr3[4] = { 0 };
-
-    wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
-    wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
-    wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
-    wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
-    wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
-    wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
-    wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
-    wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
-
-    if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
-    {
-      switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
-    }
-    else
-    {
-      switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
-    }
-
-    u32x w0[4];
-    u32x w1[4];
-    u32x w2[4];
-    u32x w3[4];
-
-    w0[0] = wordl0[0] | wordr0[0];
-    w0[1] = wordl0[1] | wordr0[1];
-    w0[2] = wordl0[2] | wordr0[2];
-    w0[3] = wordl0[3] | wordr0[3];
-    w1[0] = wordl1[0] | wordr1[0];
-    w1[1] = wordl1[1] | wordr1[1];
-    w1[2] = wordl1[2] | wordr1[2];
-    w1[3] = wordl1[3] | wordr1[3];
-    w2[0] = wordl2[0] | wordr2[0];
-    w2[1] = wordl2[1] | wordr2[1];
-    w2[2] = wordl2[2] | wordr2[2];
-    w2[3] = wordl2[3] | wordr2[3];
-    w3[0] = wordl3[0] | wordr3[0];
-    w3[1] = wordl3[1] | wordr3[1];
-    w3[2] = pw_len * 8;
+    w3[2] = out_len * 8;
     w3[3] = 0;
 
     /**
@@ -718,10 +610,10 @@ KERNEL_FQ void m04710_s04 (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m04710_s08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m20800_s08 (KERN_ATTR_RULES ())
 {
 }
 
-KERNEL_FQ void m04710_s16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m20800_s16 (KERN_ATTR_RULES ())
 {
 }
