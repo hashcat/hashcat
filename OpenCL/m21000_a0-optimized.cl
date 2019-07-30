@@ -125,7 +125,7 @@ DECLSPEC void sha512_transform_opt (const u32x *w0, const u32x *w1, const u32x *
   digest[7] = h;
 }
 
-KERNEL_FQ void m01770_m04 (KERN_ATTR_RULES ())
+KERNEL_FQ void m21000_m04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -266,15 +266,15 @@ KERNEL_FQ void m01770_m04 (KERN_ATTR_RULES ())
   }
 }
 
-KERNEL_FQ void m01770_m08 (KERN_ATTR_RULES ())
+KERNEL_FQ void m21000_m08 (KERN_ATTR_RULES ())
 {
 }
 
-KERNEL_FQ void m01770_m16 (KERN_ATTR_RULES ())
+KERNEL_FQ void m21000_m16 (KERN_ATTR_RULES ())
 {
 }
 
-KERNEL_FQ void m01770_s04 (KERN_ATTR_RULES ())
+KERNEL_FQ void m21000_s04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -427,10 +427,10 @@ KERNEL_FQ void m01770_s04 (KERN_ATTR_RULES ())
   }
 }
 
-KERNEL_FQ void m01770_s08 (KERN_ATTR_RULES ())
+KERNEL_FQ void m21000_s08 (KERN_ATTR_RULES ())
 {
 }
 
-KERNEL_FQ void m01770_s16 (KERN_ATTR_RULES ())
+KERNEL_FQ void m21000_s16 (KERN_ATTR_RULES ())
 {
 }

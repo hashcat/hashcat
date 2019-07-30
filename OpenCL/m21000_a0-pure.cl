@@ -3,18 +3,20 @@
  * License.....: MIT
  */
 
-#define NEW_SIMD_CODE
+//#define NEW_SIMD_CODE
 
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
 #include "inc_platform.cl"
 #include "inc_common.cl"
-#include "inc_simd.cl"
+#include "inc_rp.h"
+#include "inc_rp.cl"
+#include "inc_scalar.cl"
 #include "inc_hash_sha512.cl"
 #endif
 
-KERNEL_FQ void m01770_mxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m21000_mxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -29,42 +31,31 @@ KERNEL_FQ void m01770_mxx (KERN_ATTR_VECTOR ())
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len;
-
-  u32x w[64] = { 0 };
-
-  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
-  {
-    w[idx] = pws[gid].i[idx];
-  }
+  COPY_PW (pws[gid]);
 
   /**
    * loop
    */
 
-  u32x w0l = w[0];
-
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
+    pw_t tmp = PASTE_PW;
 
-    const u32x w0 = w0l | w0r;
+    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
 
-    w[0] = w0;
+    sha512_ctx_t ctx0;
 
-    sha512_ctx_vector_t ctx0;
+    sha512_init (&ctx0);
 
-    sha512_init_vector (&ctx0);
+    sha512_update_swap (&ctx0, tmp.i, tmp.pw_len);
 
-    sha512_update_vector (&ctx0, w, pw_len);
-
-    sha512_final_vector (&ctx0);
+    sha512_final (&ctx0);
 
     sha512_ctx_t ctx;
 
-    sha512_init_vector (&ctx);
+    sha512_init (&ctx);
 
-    u32x final[32] = { 0 };
+    u32 final[32] = { 0 };
 
     final[ 0] = h32_from_64_S (ctx0.h[0]);
     final[ 1] = l32_from_64_S (ctx0.h[0]);
@@ -83,20 +74,20 @@ KERNEL_FQ void m01770_mxx (KERN_ATTR_VECTOR ())
     final[14] = h32_from_64_S (ctx0.h[7]);
     final[15] = l32_from_64_S (ctx0.h[7]);
 
-    sha512_update_vector (&ctx, final, 64);
+    sha512_update (&ctx, final, 64);
 
-    sha512_final_vector (&ctx);
+    sha512_final (&ctx);
 
-    const u32x r0 = l32_from_64 (ctx.h[7]);
-    const u32x r1 = h32_from_64 (ctx.h[7]);
-    const u32x r2 = l32_from_64 (ctx.h[3]);
-    const u32x r3 = h32_from_64 (ctx.h[3]);
+    const u32 r0 = l32_from_64_S (ctx.h[7]);
+    const u32 r1 = h32_from_64_S (ctx.h[7]);
+    const u32 r2 = l32_from_64_S (ctx.h[3]);
+    const u32 r3 = h32_from_64_S (ctx.h[3]);
 
-    COMPARE_M_SIMD (r0, r1, r2, r3);
+    COMPARE_M_SCALAR (r0, r1, r2, r3);
   }
 }
 
-KERNEL_FQ void m01770_sxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m21000_sxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -123,42 +114,31 @@ KERNEL_FQ void m01770_sxx (KERN_ATTR_VECTOR ())
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len;
-
-  u32x w[64] = { 0 };
-
-  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
-  {
-    w[idx] = pws[gid].i[idx];
-  }
+  COPY_PW (pws[gid]);
 
   /**
    * loop
    */
 
-  u32x w0l = w[0];
-
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
+    pw_t tmp = PASTE_PW;
 
-    const u32x w0 = w0l | w0r;
+    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
 
-    w[0] = w0;
+    sha512_ctx_t ctx0;
 
-    sha512_ctx_vector_t ctx0;
+    sha512_init (&ctx0);
 
-    sha512_init_vector (&ctx0);
+    sha512_update_swap (&ctx0, tmp.i, tmp.pw_len);
 
-    sha512_update_vector (&ctx0, w, pw_len);
-
-    sha512_final_vector (&ctx0);
+    sha512_final (&ctx0);
 
     sha512_ctx_t ctx;
 
-    sha512_init_vector (&ctx);
+    sha512_init (&ctx);
 
-    u32x final[32] = { 0 };
+    u32 final[32] = { 0 };
 
     final[ 0] = h32_from_64_S (ctx0.h[0]);
     final[ 1] = l32_from_64_S (ctx0.h[0]);
@@ -177,15 +157,15 @@ KERNEL_FQ void m01770_sxx (KERN_ATTR_VECTOR ())
     final[14] = h32_from_64_S (ctx0.h[7]);
     final[15] = l32_from_64_S (ctx0.h[7]);
 
-    sha512_update_vector (&ctx, final, 64);
+    sha512_update (&ctx, final, 64);
 
-    sha512_final_vector (&ctx);
+    sha512_final (&ctx);
 
-    const u32x r0 = l32_from_64 (ctx.h[7]);
-    const u32x r1 = h32_from_64 (ctx.h[7]);
-    const u32x r2 = l32_from_64 (ctx.h[3]);
-    const u32x r3 = h32_from_64 (ctx.h[3]);
+    const u32 r0 = l32_from_64_S (ctx.h[7]);
+    const u32 r1 = h32_from_64_S (ctx.h[7]);
+    const u32 r2 = l32_from_64_S (ctx.h[3]);
+    const u32 r3 = h32_from_64_S (ctx.h[3]);
 
-    COMPARE_S_SIMD (r0, r1, r2, r3);
+    COMPARE_S_SCALAR (r0, r1, r2, r3);
   }
 }

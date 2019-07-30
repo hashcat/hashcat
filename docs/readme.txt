@@ -92,7 +92,6 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (10.1 o
 - sha512($salt.$pass)
 - sha512(utf16le($pass).$salt)
 - sha512($salt.utf16le($pass))
-- BitShares v0.x - sha512(sha512(pass))
 - HMAC-MD5 (key = $pass)
 - HMAC-MD5 (key = $salt)
 - HMAC-SHA1 (key = $pass)
