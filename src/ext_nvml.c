@@ -7,6 +7,7 @@
 #include "types.h"
 #include "memory.h"
 #include "event.h"
+#include "filehandling.h"
 #include "ext_nvml.h"
 
 #include "dynloader.h"
