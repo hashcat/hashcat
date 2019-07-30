@@ -10,8 +10,6 @@
 #include "inc_types.h"
 #include "inc_platform.cl"
 #include "inc_common.cl"
-#include "inc_rp.h"
-#include "inc_rp.cl"
 #include "inc_scalar.cl"
 #include "inc_hash_md5.cl"
 #include "inc_hash_sha1.cl"
@@ -29,7 +27,7 @@
 #define uint_to_hex_lower8(i) make_u32x (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7], l_bin2asc[(i).s8], l_bin2asc[(i).s9], l_bin2asc[(i).sa], l_bin2asc[(i).sb], l_bin2asc[(i).sc], l_bin2asc[(i).sd], l_bin2asc[(i).se], l_bin2asc[(i).sf])
 #endif
 
-KERNEL_FQ void m04410_mxx (KERN_ATTR_RULES ())
+KERNEL_FQ void m20900_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -62,7 +60,17 @@ KERNEL_FQ void m04410_mxx (KERN_ATTR_RULES ())
    * base
    */
 
-  COPY_PW (pws[gid]);
+  sha1_ctx_t ctx00;
+
+  sha1_init (&ctx00);
+
+  sha1_update_global_swap (&ctx00, pws[gid].i, pws[gid].pw_len);
+
+  md5_ctx_t ctx11;
+
+  md5_init (&ctx11);
+
+  md5_update_global (&ctx11, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
@@ -72,18 +80,12 @@ KERNEL_FQ void m04410_mxx (KERN_ATTR_RULES ())
   u32 w1[4];
   u32 w2[4];
   u32 w3[4];
-
+	
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    pw_t tmp = PASTE_PW;
+    sha1_ctx_t ctx0 = ctx00;
 
-    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
-
-    sha1_ctx_t ctx0;
-
-    sha1_init (&ctx0);
-
-    sha1_update_swap (&ctx0, tmp.i, tmp.pw_len);
+    sha1_update_global_swap (&ctx0, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
     sha1_final (&ctx0);
 
@@ -93,11 +95,9 @@ KERNEL_FQ void m04410_mxx (KERN_ATTR_RULES ())
     const u32 d0 = ctx0.h[3];
     const u32 e0 = ctx0.h[4];
 
-    md5_ctx_t ctx1;
+    md5_ctx_t ctx1 = ctx11;
 
-    md5_init (&ctx1);
-
-    md5_update (&ctx1, tmp.i, tmp.pw_len);
+    md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
     md5_final (&ctx1);
 
@@ -209,7 +209,7 @@ KERNEL_FQ void m04410_mxx (KERN_ATTR_RULES ())
   }
 }
 
-KERNEL_FQ void m04410_sxx (KERN_ATTR_RULES ())
+KERNEL_FQ void m20900_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -254,7 +254,17 @@ KERNEL_FQ void m04410_sxx (KERN_ATTR_RULES ())
    * base
    */
 
-  COPY_PW (pws[gid]);
+  sha1_ctx_t ctx00;
+
+  sha1_init (&ctx00);
+
+  sha1_update_global_swap (&ctx00, pws[gid].i, pws[gid].pw_len);
+
+  md5_ctx_t ctx11;
+
+  md5_init (&ctx11);
+
+  md5_update_global (&ctx11, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
@@ -267,15 +277,9 @@ KERNEL_FQ void m04410_sxx (KERN_ATTR_RULES ())
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    pw_t tmp = PASTE_PW;
+    sha1_ctx_t ctx0 = ctx00;
 
-    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
-
-    sha1_ctx_t ctx0;
-
-    sha1_init (&ctx0);
-
-    sha1_update_swap (&ctx0, tmp.i, tmp.pw_len);
+    sha1_update_global_swap (&ctx0, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
     sha1_final (&ctx0);
 
@@ -285,11 +289,9 @@ KERNEL_FQ void m04410_sxx (KERN_ATTR_RULES ())
     const u32 d0 = ctx0.h[3];
     const u32 e0 = ctx0.h[4];
 
-    md5_ctx_t ctx1;
+    md5_ctx_t ctx1 = ctx11;
 
-    md5_init (&ctx1);
-
-    md5_update (&ctx1, tmp.i, tmp.pw_len);
+    md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
     md5_final (&ctx1);
 

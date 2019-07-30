@@ -35,7 +35,6 @@
 - Added hash-mode: Python passlib pbkdf2-sha256
 - Added hash-mode: Python passlib pbkdf2-sha512
 - Added hash-mode: Oracle Transportation Management (SHA256)
-- Added hash-mode: md5(sha1($pass).md5($pass).sha1($pass))
 
 ##
 ## Bugs

@@ -27,7 +27,7 @@
 #define uint_to_hex_lower8(i) make_u32x (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7], l_bin2asc[(i).s8], l_bin2asc[(i).s9], l_bin2asc[(i).sa], l_bin2asc[(i).sb], l_bin2asc[(i).sc], l_bin2asc[(i).sd], l_bin2asc[(i).se], l_bin2asc[(i).sf])
 #endif
 
-KERNEL_FQ void m04410_mxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m20900_mxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -218,7 +218,7 @@ KERNEL_FQ void m04410_mxx (KERN_ATTR_VECTOR ())
   }
 }
 
-KERNEL_FQ void m04410_sxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m20900_sxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
