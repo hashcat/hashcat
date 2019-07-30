@@ -8,6 +8,7 @@
 #include "convert.h"
 #include "shared.h"
 #include "memory.h"
+#include "ext_lzma.h"
 #include <errno.h>
 
 #if defined (__CYGWIN__)
