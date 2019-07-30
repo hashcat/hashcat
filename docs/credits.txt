@@ -18,7 +18,6 @@ Philipp "philsmd" Schmidt <philsmd@hashcat.net> (@philsmd)
 
 Gabriele "matrix" Gristina <matrix@hashcat.net> (@gm4tr1x)
 
-* BitShares v0.x - sha512(sha512(pass)) kernel module
 * gzip wordlists feature
 * SHA-224 kernel module + optimizations
 * Some AES OpenCL kernel module optimizations
