@@ -70,7 +70,6 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (10.1 o
 - md5($salt.md5($pass))
 - md5($salt.md5($salt.$pass))
 - md5($salt.md5($pass.$salt))
-- md5($salt.sha1($salt.$pass))
 - md5(md5($pass))
 - md5(md5($pass).md5($salt))
 - md5(strtoupper(md5($pass)))
