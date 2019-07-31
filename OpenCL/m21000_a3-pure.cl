@@ -60,7 +60,7 @@ KERNEL_FQ void m21000_mxx (KERN_ATTR_VECTOR ())
 
     sha512_final_vector (&ctx0);
 
-    sha512_ctx_t ctx;
+    sha512_ctx_vector_t ctx;
 
     sha512_init_vector (&ctx);
 
@@ -154,7 +154,7 @@ KERNEL_FQ void m21000_sxx (KERN_ATTR_VECTOR ())
 
     sha512_final_vector (&ctx0);
 
-    sha512_ctx_t ctx;
+    sha512_ctx_vector_t ctx;
 
     sha512_init_vector (&ctx);
 
