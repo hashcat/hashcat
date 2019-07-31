@@ -10,13 +10,11 @@
 #include "inc_types.h"
 #include "inc_platform.cl"
 #include "inc_common.cl"
-#include "inc_rp.h"
-#include "inc_rp.cl"
 #include "inc_scalar.cl"
 #include "inc_hash_sha256.cl"
 #endif
 
-KERNEL_FQ void m01470_mxx (KERN_ATTR_RULES ())
+KERNEL_FQ void m21400_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -31,7 +29,11 @@ KERNEL_FQ void m01470_mxx (KERN_ATTR_RULES ())
    * base
    */
 
-  COPY_PW (pws[gid]);
+  sha256_ctx_t ctx1;
+
+  sha256_init (&ctx1);
+
+  sha256_update_global_swap (&ctx1, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
@@ -44,15 +46,9 @@ KERNEL_FQ void m01470_mxx (KERN_ATTR_RULES ())
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    pw_t tmp = PASTE_PW;
+    sha256_ctx_t ctx0 = ctx1;
 
-    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
-
-    sha256_ctx_t ctx0;
-
-    sha256_init (&ctx0);
-
-    sha256_update_swap (&ctx0, tmp.i, tmp.pw_len);
+    sha256_update_global_swap (&ctx0, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
     sha256_final (&ctx0);
 
@@ -91,7 +87,7 @@ KERNEL_FQ void m01470_mxx (KERN_ATTR_RULES ())
   }
 }
 
-KERNEL_FQ void m01470_sxx (KERN_ATTR_RULES ())
+KERNEL_FQ void m21400_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -118,7 +114,11 @@ KERNEL_FQ void m01470_sxx (KERN_ATTR_RULES ())
    * base
    */
 
-  COPY_PW (pws[gid]);
+  sha256_ctx_t ctx1;
+
+  sha256_init (&ctx1);
+
+  sha256_update_global_swap (&ctx1, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
@@ -131,15 +131,9 @@ KERNEL_FQ void m01470_sxx (KERN_ATTR_RULES ())
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    pw_t tmp = PASTE_PW;
+    sha256_ctx_t ctx0 = ctx1;
 
-    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
-
-    sha256_ctx_t ctx0;
-
-    sha256_init (&ctx0);
-
-    sha256_update_swap (&ctx0, tmp.i, tmp.pw_len);
+    sha256_update_global_swap (&ctx0, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
     sha256_final (&ctx0);
 

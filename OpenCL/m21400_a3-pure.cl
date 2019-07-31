@@ -14,7 +14,7 @@
 #include "inc_hash_sha256.cl"
 #endif
 
-KERNEL_FQ void m01470_mxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m21400_mxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -100,7 +100,7 @@ KERNEL_FQ void m01470_mxx (KERN_ATTR_VECTOR ())
   }
 }
 
-KERNEL_FQ void m01470_sxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m21400_sxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier

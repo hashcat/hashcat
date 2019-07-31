@@ -17,8 +17,8 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 6;
 static const u32   DGST_SIZE      = DGST_SIZE_4_8;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_RAW_HASH;
-static const char *HASH_NAME      = "Double sha256";
-static const u64   KERN_TYPE      = 1470;
+static const char *HASH_NAME      = "sha256(sha256_bin(pass))";
+static const u64   KERN_TYPE      = 21400;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_PRECOMPUTE_INIT
                                   | OPTI_TYPE_EARLY_SKIP
