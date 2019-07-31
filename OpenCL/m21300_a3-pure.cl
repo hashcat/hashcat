@@ -116,7 +116,7 @@ KERNEL_FQ void m21300_mxx (KERN_ATTR_VECTOR ())
 
     md5_ctx_vector_t ctx;
 
-    sha1_init_vector_from_scalar (&ctx, &ctx11);
+    md5_init_vector_from_scalar (&ctx, &ctx11);
 
     _w0[0] = uint_to_hex_lower8 ((a >> 24) & 255) <<  0
            | uint_to_hex_lower8 ((a >> 16) & 255) << 16;
@@ -260,7 +260,7 @@ KERNEL_FQ void m21300_sxx (KERN_ATTR_VECTOR ())
 
     md5_ctx_vector_t ctx;
 
-    sha1_init_vector_from_scalar (&ctx, &ctx11);
+    md5_init_vector_from_scalar (&ctx, &ctx11);
 
     _w0[0] = uint_to_hex_lower8 ((a >> 24) & 255) <<  0
            | uint_to_hex_lower8 ((a >> 16) & 255) << 16;
