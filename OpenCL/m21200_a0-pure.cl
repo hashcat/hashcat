@@ -73,6 +73,20 @@ KERNEL_FQ void m21200_mxx (KERN_ATTR_RULES ())
     s[idx] = salt_bufs[salt_pos].salt_buf[idx];
   }
 
+  sha1_ctx_t ctx0;
+
+  sha1_init (&ctx0);
+
+  sha1_update_swap (&ctx0, s, salt_len);
+
+  sha1_final (&ctx0);
+
+  const u32 a0 = ctx0.h[0];
+  const u32 b0 = ctx0.h[1];
+  const u32 c0 = ctx0.h[2];
+  const u32 d0 = ctx0.h[3];
+  const u32 e0 = ctx0.h[4];
+
   /**
    * loop
    */
@@ -87,20 +101,6 @@ KERNEL_FQ void m21200_mxx (KERN_ATTR_RULES ())
     pw_t tmp = PASTE_PW;
 
     tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
-
-    sha1_ctx_t ctx0;
-
-    sha1_init (&ctx0);
-
-    sha1_update_swap (&ctx0, s, salt_len);
-
-    sha1_final (&ctx0);
-
-    const u32 a0 = ctx0.h[0];
-    const u32 b0 = ctx0.h[1];
-    const u32 c0 = ctx0.h[2];
-    const u32 d0 = ctx0.h[3];
-    const u32 e0 = ctx0.h[4];
 
     md5_ctx_t ctx1;
 
@@ -244,6 +244,20 @@ KERNEL_FQ void m21200_sxx (KERN_ATTR_RULES ())
     s[idx] = salt_bufs[salt_pos].salt_buf[idx];
   }
 
+  sha1_ctx_t ctx0;
+
+  sha1_init (&ctx0);
+
+  sha1_update_swap (&ctx0, s, salt_len);
+
+  sha1_final (&ctx0);
+
+  const u32 a0 = ctx0.h[0];
+  const u32 b0 = ctx0.h[1];
+  const u32 c0 = ctx0.h[2];
+  const u32 d0 = ctx0.h[3];
+  const u32 e0 = ctx0.h[4];
+
   /**
    * loop
    */
@@ -258,20 +272,6 @@ KERNEL_FQ void m21200_sxx (KERN_ATTR_RULES ())
     pw_t tmp = PASTE_PW;
 
     tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
-
-    sha1_ctx_t ctx0;
-
-    sha1_init (&ctx0);
-
-    sha1_update_swap (&ctx0, s, salt_len);
-
-    sha1_final (&ctx0);
-
-    const u32 a0 = ctx0.h[0];
-    const u32 b0 = ctx0.h[1];
-    const u32 c0 = ctx0.h[2];
-    const u32 d0 = ctx0.h[3];
-    const u32 e0 = ctx0.h[4];
 
     md5_ctx_t ctx1;
 
