@@ -18,7 +18,7 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 6;
 static const u32   DGST_SIZE      = DGST_SIZE_4_8;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_EAS;
-static const char *HASH_NAME      = "AuthMe - sha256(sha256($pass).$salt)";
+static const char *HASH_NAME      = "AuthMe sha256";
 static const u64   KERN_TYPE      = 20710;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_PRECOMPUTE_INIT

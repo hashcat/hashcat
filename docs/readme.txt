@@ -92,7 +92,8 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (10.1 o
 - sha512($salt.$pass)
 - sha512(utf16le($pass).$salt)
 - sha512($salt.utf16le($pass))
-- AuthMe - sha256(sha256($pass).$salt)
+- sha256(sha256($pass).$salt)
+- AuthMe sha256
 - HMAC-MD5 (key = $pass)
 - HMAC-MD5 (key = $salt)
 - HMAC-SHA1 (key = $pass)

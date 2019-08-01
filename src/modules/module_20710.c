@@ -17,8 +17,8 @@ static const u32   DGST_POS1      = 7;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 6;
 static const u32   DGST_SIZE      = DGST_SIZE_4_8;
-static const u32   HASH_CATEGORY  = HASH_CATEGORY_EAS;
-static const char *HASH_NAME      = "AuthMe - sha256(sha256($pass).$salt)";
+static const u32   HASH_CATEGORY  = HASH_CATEGORY_RAW_HASH_SALTED;
+static const char *HASH_NAME      = "sha256(sha256($pass).$salt)";
 static const u64   KERN_TYPE      = 20710;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_PRECOMPUTE_INIT
@@ -30,7 +30,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_BE
                                   | OPTS_TYPE_PT_ADDBITS15;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$SHA$7218532375810603$bfede293ecf6539211a7305ea218b9f3f608953130405cda9eaba6fb6250f824";
+static const char *ST_HASH        = "bfede293ecf6539211a7305ea218b9f3f608953130405cda9eaba6fb6250f824:7218532375810603";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -54,51 +54,37 @@ u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
   return pw_max;
 }
 
-static const char *SIGNATURE_AUTHME = "$SHA$";
-
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
   u32 *digest = (u32 *) digest_buf;
 
   token_t token;
 
-  token.token_cnt  = 3;
+  token.token_cnt  = 2;
 
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_AUTHME;
-
-  token.len[0]     = 5;
-  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.sep[1]     = '$';
-  token.len_min[1] = 16;
-  token.len_max[1] = 16;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.sep[0]     = hashconfig->separator;
+  token.len_min[0] = 64;
+  token.len_max[0] = 64;
+  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
-  token.sep[2]     = '$';
-  token.len_min[2] = 64;
-  token.len_max[2] = 64;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
+  token.len_min[1] = SALT_MIN;
+  token.len_max[1] = SALT_MAX;
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+  if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
+  {
+    token.len_min[1] *= 2;
+    token.len_max[1] *= 2;
+
+    token.attr[1] |= TOKEN_ATTR_VERIFY_HEX;
+  }
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  // salt
-
-  const u8 *salt_pos = token.buf[1];
-  const int salt_len = token.len[1];
-
-  memcpy ((u8 *) salt->salt_buf, salt_pos, salt_len);
-
-  salt->salt_len = salt_len;
-
-  // hash
-
-  const u8 *hash_pos = token.buf[2];
+  const u8 *hash_pos = token.buf[0];
 
   digest[0] = hex_to_u32 (hash_pos +  0);
   digest[1] = hex_to_u32 (hash_pos +  8);
@@ -130,32 +116,19 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     digest[7] -= SHA256M_H;
   }
 
+  const u8 *salt_pos = token.buf[1];
+  const int salt_len = token.len[1];
+
+  const bool parse_rc = generic_salt_decode (hashconfig, salt_pos, salt_len, (u8 *) salt->salt_buf, (int *) &salt->salt_len);
+
+  if (parse_rc == false) return (PARSER_SALT_LENGTH);
+
   return (PARSER_OK);
 }
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
   const u32 *digest = (const u32 *) digest_buf;
-
-  int line_len = 0;
-
-  // signature
-
-  line_buf[line_len++] = '$';
-  line_buf[line_len++] = 'S';
-  line_buf[line_len++] = 'H';
-  line_buf[line_len++] = 'A';
-  line_buf[line_len++] = '$';
-
-  // salt
-
-  memcpy (line_buf + line_len, salt->salt_buf, salt->salt_len);
-
-  line_len += salt->salt_len;
-
-  line_buf[line_len++] = '$';
-
-  // digest
 
   u32 tmp[8];
 
@@ -191,18 +164,24 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 *out_buf = (u8 *) line_buf;
 
-  u32_to_hex (tmp[0], out_buf + line_len); line_len += 8;
-  u32_to_hex (tmp[1], out_buf + line_len); line_len += 8;
-  u32_to_hex (tmp[2], out_buf + line_len); line_len += 8;
-  u32_to_hex (tmp[3], out_buf + line_len); line_len += 8;
-  u32_to_hex (tmp[4], out_buf + line_len); line_len += 8;
-  u32_to_hex (tmp[5], out_buf + line_len); line_len += 8;
-  u32_to_hex (tmp[6], out_buf + line_len); line_len += 8;
-  u32_to_hex (tmp[7], out_buf + line_len); line_len += 8;
+  int out_len = 0;
 
-  line_buf[line_len] = 0;
+  u32_to_hex (tmp[0], out_buf + out_len); out_len += 8;
+  u32_to_hex (tmp[1], out_buf + out_len); out_len += 8;
+  u32_to_hex (tmp[2], out_buf + out_len); out_len += 8;
+  u32_to_hex (tmp[3], out_buf + out_len); out_len += 8;
+  u32_to_hex (tmp[4], out_buf + out_len); out_len += 8;
+  u32_to_hex (tmp[5], out_buf + out_len); out_len += 8;
+  u32_to_hex (tmp[6], out_buf + out_len); out_len += 8;
+  u32_to_hex (tmp[7], out_buf + out_len); out_len += 8;
 
-  return line_len;
+  out_buf[out_len] = hashconfig->separator;
+
+  out_len += 1;
+
+  out_len += generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, (const int) salt->salt_len, out_buf + out_len);
+
+  return out_len;
 }
 
 void module_init (module_ctx_t *module_ctx)
