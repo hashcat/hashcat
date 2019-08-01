@@ -69,6 +69,20 @@ KERNEL_FQ void m21200_mxx (KERN_ATTR_BASIC ())
     s[idx] = salt_bufs[salt_pos].salt_buf[idx];
   }
 
+  sha1_ctx_t ctx0;
+
+  sha1_init (&ctx0);
+
+  sha1_update_swap (&ctx0, s, salt_len);
+
+  sha1_final (&ctx0);
+
+  const u32 a0 = ctx0.h[0];
+  const u32 b0 = ctx0.h[1];
+  const u32 c0 = ctx0.h[2];
+  const u32 d0 = ctx0.h[3];
+  const u32 e0 = ctx0.h[4];
+
   md5_ctx_t ctx11;
 
   md5_init (&ctx11);
@@ -86,20 +100,6 @@ KERNEL_FQ void m21200_mxx (KERN_ATTR_BASIC ())
 	
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    sha1_ctx_t ctx0;
-
-    sha1_init (&ctx0);
-
-    sha1_update_swap (&ctx0, s, salt_len);
-
-    sha1_final (&ctx0);
-
-    const u32 a0 = ctx0.h[0];
-    const u32 b0 = ctx0.h[1];
-    const u32 c0 = ctx0.h[2];
-    const u32 d0 = ctx0.h[3];
-    const u32 e0 = ctx0.h[4];
-
     md5_ctx_t ctx1 = ctx11;
 
     md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
@@ -238,6 +238,20 @@ KERNEL_FQ void m21200_sxx (KERN_ATTR_BASIC ())
     s[idx] = salt_bufs[salt_pos].salt_buf[idx];
   }
 
+  sha1_ctx_t ctx0;
+
+  sha1_init (&ctx0);
+
+  sha1_update_swap (&ctx0, s, salt_len);
+
+  sha1_final (&ctx0);
+
+  const u32 a0 = ctx0.h[0];
+  const u32 b0 = ctx0.h[1];
+  const u32 c0 = ctx0.h[2];
+  const u32 d0 = ctx0.h[3];
+  const u32 e0 = ctx0.h[4];
+
   md5_ctx_t ctx11;
 
   md5_init (&ctx11);
@@ -255,20 +269,6 @@ KERNEL_FQ void m21200_sxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    sha1_ctx_t ctx0;
-
-    sha1_init (&ctx0);
-
-    sha1_update_swap (&ctx0, s, salt_len);
-
-    sha1_final (&ctx0);
-
-    const u32 a0 = ctx0.h[0];
-    const u32 b0 = ctx0.h[1];
-    const u32 c0 = ctx0.h[2];
-    const u32 d0 = ctx0.h[3];
-    const u32 e0 = ctx0.h[4];
-
     md5_ctx_t ctx1 = ctx11;
 
     md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);

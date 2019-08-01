@@ -78,6 +78,20 @@ KERNEL_FQ void m21200_mxx (KERN_ATTR_VECTOR ())
     s[idx] = salt_bufs[salt_pos].salt_buf[idx];
   }
 
+  sha1_ctx_t ctx0;
+
+  sha1_init (&ctx0);
+
+  sha1_update_swap (&ctx0, s, salt_len);
+
+  sha1_final (&ctx0);
+
+  const u32x a0 = ctx0.h[0];
+  const u32x b0 = ctx0.h[1];
+  const u32x c0 = ctx0.h[2];
+  const u32x d0 = ctx0.h[3];
+  const u32x e0 = ctx0.h[4];
+
   /**
    * loop
    */
@@ -96,20 +110,6 @@ KERNEL_FQ void m21200_mxx (KERN_ATTR_VECTOR ())
     const u32x w0 = w0l | w0r;
 
     w[0] = w0;
-
-    sha1_ctx_vector_t ctx0;
-
-    sha1_init_vector (&ctx0);
-
-    sha1_update_vector_swap (&ctx0, s, salt_len);
-
-    sha1_final_vector (&ctx0);
-
-    const u32x a0 = ctx0.h[0];
-    const u32x b0 = ctx0.h[1];
-    const u32x c0 = ctx0.h[2];
-    const u32x d0 = ctx0.h[3];
-    const u32x e0 = ctx0.h[4];
 
     md5_ctx_vector_t ctx1;
 
@@ -260,6 +260,20 @@ KERNEL_FQ void m21200_sxx (KERN_ATTR_VECTOR ())
     s[idx] = salt_bufs[salt_pos].salt_buf[idx];
   }
 
+  sha1_ctx_t ctx0;
+
+  sha1_init (&ctx0);
+
+  sha1_update_swap (&ctx0, s, salt_len);
+
+  sha1_final (&ctx0);
+
+  const u32x a0 = ctx0.h[0];
+  const u32x b0 = ctx0.h[1];
+  const u32x c0 = ctx0.h[2];
+  const u32x d0 = ctx0.h[3];
+  const u32x e0 = ctx0.h[4];
+
   /**
    * loop
    */
@@ -278,20 +292,6 @@ KERNEL_FQ void m21200_sxx (KERN_ATTR_VECTOR ())
     const u32x w0 = w0l | w0r;
 
     w[0] = w0;
-
-    sha1_ctx_vector_t ctx0;
-
-    sha1_init_vector (&ctx0);
-
-    sha1_update_vector_swap (&ctx0, s, salt_len);
-
-    sha1_final_vector (&ctx0);
-
-    const u32x a0 = ctx0.h[0];
-    const u32x b0 = ctx0.h[1];
-    const u32x c0 = ctx0.h[2];
-    const u32x d0 = ctx0.h[3];
-    const u32x e0 = ctx0.h[4];
 
     md5_ctx_vector_t ctx1;
 
