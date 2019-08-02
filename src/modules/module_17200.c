@@ -284,12 +284,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   hex_to_binary (p, strlen (p), (char *) &(pkzip->hash.data));
 
   // fake salt
-  u32 *ptr = (u32 *) pkzip->hash.data;
-
-  salt->salt_buf[0] = ptr[0];
-  salt->salt_buf[1] = ptr[1];
-  salt->salt_buf[2] = ptr[2];
-  salt->salt_buf[3] = ptr[3];
+  salt->salt_buf[0] = pkzip->hash.data[0];
+  salt->salt_buf[1] = pkzip->hash.data[1];
+  salt->salt_buf[2] = pkzip->hash.data[2];
+  salt->salt_buf[3] = pkzip->hash.data[3];
 
   salt->salt_len = 16;
 
