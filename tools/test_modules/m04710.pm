@@ -11,12 +11,12 @@ use warnings;
 use Digest::MD5 qw (md5_hex);
 use Digest::SHA qw (sha1_hex);
 
-sub module_constraints { [[0, 256], [-1, -1], [0, 55], [-1, -1], [-1, -1]] }
+sub module_constraints { [[0, 256], [0, 223], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub module_generate_hash
 {
-  my $salt = random_hex_string (8, 8);
   my $word = shift;
+  my $salt = shift;
 
   my $digest = sha1_hex (md5_hex ($word) . $salt);
 
