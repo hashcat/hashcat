@@ -11,7 +11,7 @@ use warnings;
 use Digest::MD5 qw (md5_hex);
 use Digest::SHA qw (sha1_hex);
 
-sub module_constraints { [[0, 256], [0, 256], [0, 55], [8, 8], [-1, -1]] }
+sub module_constraints { [[0, 256], [8, 8], [0, 55], [8, 8], [-1, -1]] }
 
 sub module_generate_hash
 {
@@ -34,6 +34,8 @@ sub module_verify_hash
   return unless defined $hash;
   return unless defined $salt;
   return unless defined $word;
+
+  return unless length ($salt) == 8;
 
   my $word_packed = pack_if_HEX_notation ($word);
 
