@@ -794,7 +794,7 @@ float get_entropy (const u8 *buf, const int len)
 
     float w = (float) r / len;
 
-    entropy += -w * log2 (w);
+    entropy += -w * log2f (w);
   }
 
   return entropy;
