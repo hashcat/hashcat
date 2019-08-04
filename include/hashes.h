@@ -6,7 +6,7 @@
 #ifndef _HASHES_H
 #define _HASHES_H
 
-int sort_by_string       (const void *v1, const void *v2);
+int sort_by_string       (const void *p1, const void *p2);
 int sort_by_digest_p0p1  (const void *v1, const void *v2, void *v3);
 int sort_by_salt         (const void *v1, const void *v2);
 int sort_by_hash         (const void *v1, const void *v2, void *v3);
