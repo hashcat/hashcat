@@ -1147,7 +1147,7 @@ bool generic_salt_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, const u8 
     if (in_len < (int) (((hashconfig->salt_min * 8) / 6) + 0)) return false;
     if (in_len > (int) (((hashconfig->salt_max * 8) / 6) + 3)) return false;
 
-    tmp_len = base64_decode (base64_to_int, (const u8 *) in_buf, in_len, tmp_u8);
+    tmp_len = base64_decode (base64_to_int, in_buf, in_len, tmp_u8);
   }
   else
   {

@@ -934,7 +934,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   snprintf (port_str, sizeof (port_str), "%i", port);
 
-  const char *host_real = (host == NULL) ? "127.0.0.1" : (const char *) host;
+  const char *host_real = (host == NULL) ? "127.0.0.1" : host;
 
   bool connected = false;
 

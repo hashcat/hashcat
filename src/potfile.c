@@ -69,7 +69,7 @@ int sort_pot_tree_by_hash (const void *v1, const void *v2)
   const hash_t *h1 = (const hash_t *) t1->nodes->hash_buf;
   const hash_t *h2 = (const hash_t *) t2->nodes->hash_buf;
 
-  hashconfig_t *hc = (hashconfig_t *) t1->hashconfig; // is same as t2->hashconfig
+  hashconfig_t *hc = t1->hashconfig; // is same as t2->hashconfig
 
   return sort_by_hash (h1, h2, hc);
 }

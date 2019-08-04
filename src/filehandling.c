@@ -168,7 +168,7 @@ int hc_fseek (HCFILE *fp, off_t offset, int whence)
 
   if (fp->is_gzip)
   {
-    r = gzseek (fp->gfp, (z_off_t) offset, whence);
+    r = gzseek (fp->gfp, offset, whence);
   }
   else if (fp->is_zip)
   {
@@ -371,7 +371,7 @@ int hc_fscanf (HCFILE *fp, const char *format, void *ptr)
     return -1;
   }
 
-  sscanf (b, format, (void *) ptr);
+  sscanf (b, format, ptr);
 
   hcfree (buf);
 

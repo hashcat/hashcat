@@ -449,7 +449,7 @@ static bool read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_f
 
     hc_fclose (&fp);
 
-    if (num_read != (size_t) klen)
+    if (num_read != klen)
     {
       event_log_error (hashcat_ctx, "%s: %s", kernel_file, strerror (errno));
 
@@ -473,7 +473,7 @@ static bool read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_f
       klen += extra_len;
     }
 
-    kernel_lengths[0] = (size_t) klen;
+    kernel_lengths[0] = klen;
 
     kernel_sources[0] = buf;
   }
@@ -2420,7 +2420,7 @@ int hc_clCreateProgramWithBinary (hashcat_ctx_t *hashcat_ctx, cl_context context
 
   cl_int CL_err;
 
-  *program = ocl->clCreateProgramWithBinary (context, num_devices, device_list, lengths, (const unsigned char **) binaries, binary_status, &CL_err);
+  *program = ocl->clCreateProgramWithBinary (context, num_devices, device_list, lengths, binaries, binary_status, &CL_err);
 
   if (CL_err != CL_SUCCESS)
   {
@@ -4110,7 +4110,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
       if   (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL) innerloop_step = device_param->kernel_loops;
       else                                                        innerloop_step = 1;
 
-      if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)  innerloop_cnt = (u32) straight_ctx->kernel_rules_cnt;
+      if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)  innerloop_cnt = straight_ctx->kernel_rules_cnt;
       else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)     innerloop_cnt = (u32) combinator_ctx->combs_cnt;
       else if (user_options_extra->attack_kern == ATTACK_KERN_BF)        innerloop_cnt = (u32) mask_ctx->bfs_cnt;
     }
@@ -4137,7 +4137,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
       device_param->innerloop_pos  = innerloop_pos;
       device_param->innerloop_left = innerloop_left;
 
-      device_param->kernel_params_buf32[30] = (u32) innerloop_left;
+      device_param->kernel_params_buf32[30] = innerloop_left;
 
       device_param->outerloop_multi = (double) innerloop_cnt / (double) (innerloop_pos + innerloop_left);
 
@@ -4145,7 +4145,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
       if (hashes->salts_shown[salt_pos] == 1)
       {
-        status_ctx->words_progress_done[salt_pos] += (u64) pws_cnt * innerloop_left;
+        status_ctx->words_progress_done[salt_pos] += pws_cnt * innerloop_left;
 
         continue;
       }
@@ -4484,7 +4484,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
         if (status_ctx->run_thread_level2 == true)
         {
-          const u64 perf_sum_all = (u64) pws_cnt * innerloop_left;
+          const u64 perf_sum_all = pws_cnt * innerloop_left;
 
           const double speed_msec = hc_timer_get (device_param->timer_speed);
 
@@ -6796,7 +6796,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     u64 size_plains  = (u64) hashes->digests_cnt * sizeof (plain_t);
     u64 size_salts   = (u64) hashes->salts_cnt   * sizeof (salt_t);
-    u64 size_esalts  = (u64) hashes->digests_cnt * (u64) hashconfig->esalt_size;
+    u64 size_esalts  = (u64) hashes->digests_cnt * hashconfig->esalt_size;
     u64 size_shown   = (u64) hashes->digests_cnt * sizeof (u32);
     u64 size_digests = (u64) hashes->digests_cnt * (u64) hashconfig->dgst_size;
 
@@ -6842,7 +6842,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     // kern type
 
-    u32 kern_type = (u32) hashconfig->kern_type;
+    u32 kern_type = hashconfig->kern_type;
 
     if (module_ctx->module_kern_type_dynamic != MODULE_DEFAULT)
     {
@@ -9288,13 +9288,13 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       // size_pws
 
-      size_pws = (u64) kernel_power_max * sizeof (pw_t);
+      size_pws = kernel_power_max * sizeof (pw_t);
 
       size_pws_amp = (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL) ? 1 : size_pws;
 
       // size_pws_comp
 
-      size_pws_comp = (u64) kernel_power_max * (sizeof (u32) * 64);
+      size_pws_comp = kernel_power_max * (sizeof (u32) * 64);
 
       // size_pws_idx
 
@@ -9302,28 +9302,28 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       // size_tmps
 
-      size_tmps = (u64) kernel_power_max * (hashconfig->tmp_size + hashconfig->extra_tmp_size);
+      size_tmps = kernel_power_max * (hashconfig->tmp_size + hashconfig->extra_tmp_size);
 
       // size_hooks
 
-      size_hooks = (u64) kernel_power_max * hashconfig->hook_size;
+      size_hooks = kernel_power_max * hashconfig->hook_size;
 
       #ifdef WITH_BRAIN
       // size_brains
 
-      size_brain_link_in  = (u64) kernel_power_max * 1;
-      size_brain_link_out = (u64) kernel_power_max * 8;
+      size_brain_link_in  = kernel_power_max * 1;
+      size_brain_link_out = kernel_power_max * 8;
       #endif
 
       if (user_options->slow_candidates == true)
       {
         // size_pws_pre
 
-        size_pws_pre = (u64) kernel_power_max * sizeof (pw_pre_t);
+        size_pws_pre = kernel_power_max * sizeof (pw_pre_t);
 
         // size_pws_base
 
-        size_pws_base = (u64) kernel_power_max * sizeof (pw_pre_t);
+        size_pws_base = kernel_power_max * sizeof (pw_pre_t);
       }
 
       // now check if all device-memory sizes which depend on the kernel_accel_max amplifier are within its boundaries
