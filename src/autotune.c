@@ -244,7 +244,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   {
     for (int i = 0; i < STEPS_CNT; i++)
     {
-      const u32 kernel_accel_try = 1u << i;
+      const u32 kernel_accel_try = 1U << i;
 
       if (kernel_accel_try < kernel_accel_min) continue;
       if (kernel_accel_try > kernel_accel_max) break;
@@ -269,8 +269,8 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     for (int i = 1; i < STEPS_CNT; i++)
     {
-      const u32 kernel_accel_try = kernel_accel_orig * (1u << i);
-      const u32 kernel_loops_try = kernel_loops_orig / (1u << i);
+      const u32 kernel_accel_try = kernel_accel_orig * (1U << i);
+      const u32 kernel_loops_try = kernel_loops_orig / (1U << i);
 
       if (kernel_accel_try < kernel_accel_min) continue;
       if (kernel_accel_try > kernel_accel_max) break;

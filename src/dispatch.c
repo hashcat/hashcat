@@ -1362,7 +1362,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       {
         u64 words_off = 0;
         u64 words_fin = 0;
-        u64 words_extra = -1u;
+        u64 words_extra = -1U;
         u64 words_extra_total = 0;
 
         memset (device_param->pws_comp, 0, device_param->size_pws_comp);

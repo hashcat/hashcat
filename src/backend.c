@@ -259,7 +259,7 @@ static bool setup_opencl_device_types_filter (hashcat_ctx_t *hashcat_ctx, const 
         return false;
       }
 
-      opencl_device_types_filter |= 1u << device_type;
+      opencl_device_types_filter |= 1U << device_type;
 
     } while ((next = strtok_r (NULL, ",", &saveptr)) != NULL);
 
@@ -7671,10 +7671,10 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (user_options->benchmark == true)
     {
-      ((u32 *) hashes->digests_buf)[0] = -1u;
-      ((u32 *) hashes->digests_buf)[1] = -1u;
-      ((u32 *) hashes->digests_buf)[2] = -1u;
-      ((u32 *) hashes->digests_buf)[3] = -1u;
+      ((u32 *) hashes->digests_buf)[0] = -1U;
+      ((u32 *) hashes->digests_buf)[1] = -1U;
+      ((u32 *) hashes->digests_buf)[2] = -1U;
+      ((u32 *) hashes->digests_buf)[3] = -1U;
     }
 
     /**
@@ -9271,12 +9271,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     // this value should represent a reasonable amount of memory a host system has per GPU.
     // note we're allocating 3 blocks of that size.
 
-    const u64 PWS_SPACE = 1024ull * 1024ull * 1024ull;
+    const u64 PWS_SPACE = 1024ULL * 1024ULL * 1024ULL;
 
     // sometimes device_available_mem and device_maxmem_alloc reported back from the opencl runtime are a bit inaccurate.
     // let's add some extra space just to be sure.
 
-    const u64 EXTRA_SPACE = 64ull * 1024ull * 1024ull;
+    const u64 EXTRA_SPACE = 64ULL * 1024ULL * 1024ULL;
 
     while (kernel_accel_max >= kernel_accel_min)
     {
