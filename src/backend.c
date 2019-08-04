@@ -371,8 +371,8 @@ static bool opencl_test_instruction (hashcat_ctx_t *hashcat_ctx, cl_context cont
   #ifndef DEBUG
   #ifndef _WIN
   fflush (stderr);
-  int bak = dup (2);
-  int tmp = open ("/dev/null", O_WRONLY);
+  int bak = fcntl(2, F_DUPFD_CLOEXEC);
+  int tmp = open ("/dev/null", O_WRONLY | O_CLOEXEC);
   dup2 (tmp, 2);
   close (tmp);
   #endif
@@ -383,7 +383,11 @@ static bool opencl_test_instruction (hashcat_ctx_t *hashcat_ctx, cl_context cont
   #ifndef DEBUG
   #ifndef _WIN
   fflush (stderr);
+  #ifndef __APPLE__
+  dup3 (bak, 2, O_CLOEXEC);
+  #else
   dup2 (bak, 2);
+  #endif
   close (bak);
   #endif
   #endif

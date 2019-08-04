@@ -336,7 +336,11 @@ bool hc_path_create (const char *path)
 {
   if (hc_path_exist (path) == true) return false;
 
-  const int fd = creat (path, S_IRUSR | S_IWUSR);
+#ifdef O_CLOEXEC
+  const int fd = open (path, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, S_IRUSR | S_IWUSR);
+#else
+  const int fd = open (path, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+#endif
 
   if (fd == -1) return false;
 
