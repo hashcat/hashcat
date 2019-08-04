@@ -26,14 +26,14 @@ LUKS_MODE="14600"
 
 # missing hash types: 5200
 
-HASH_TYPES=$(ls ${TDIR}/test_modules/*.pm | sed -E 's/.*m0*([0-9]+).pm/\1/')
+HASH_TYPES=$(ls "${TDIR}/test_modules/*.pm" | sed -E 's/.*m0*([0-9]+).pm/\1/')
 HASH_TYPES="${HASH_TYPES} ${TC_MODES} ${VC_MODES} ${LUKS_MODE}"
-HASH_TYPES="$(echo -n ${HASH_TYPES} | tr ' ' '\n' | sort -u -n | tr '\n' ' ')"
+HASH_TYPES=$(echo -n "${HASH_TYPES}" | tr ' ' '\n' | sort -u -n | tr '\n' ' ')
 
 VECTOR_WIDTHS="1 2 4 8 16"
 
-HASHFILE_ONLY=$(grep -l OPTS_TYPE_BINARY_HASHFILE ${TDIR}/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+).c/\1/' | tr '\n' ' ')
-SLOW_ALGOS=$(grep -l ATTACK_EXEC_OUTSIDE_KERNEL ${TDIR}/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+).c/\1/' | tr '\n' ' ')
+HASHFILE_ONLY=$(grep -l OPTS_TYPE_BINARY_HASHFILE "${TDIR}/../src/modules/module_*.c" | sed -E 's/.*module_0*([0-9]+).c/\1/' | tr '\n' ' ')
+SLOW_ALGOS=$(grep -l ATTACK_EXEC_OUTSIDE_KERNEL "${TDIR}/../src/modules/module_*.c" | sed -E 's/.*module_0*([0-9]+).c/\1/' | tr '\n' ' ')
 
 OUTD="test_$(date +%s)"
 
@@ -165,13 +165,13 @@ function init()
 
   fi
 
-  rm -rf ${OUTD}/${hash_type}.sh ${OUTD}/${hash_type}_passwords.txt ${OUTD}/${hash_type}_hashes.txt
+  rm -rf "${OUTD}/${hash_type}.sh" "${OUTD}/${hash_type}_passwords.txt" "${OUTD}/${hash_type}_hashes.txt"
 
   # Exclude TrueCrypt and VeraCrypt testing modes
-  if is_in_array ${hash_type} ${TC_MODES}; then
+  if is_in_array "${hash_type}" "${TC_MODES}"; then
     return 0
   fi
-  if is_in_array ${hash_type} ${VC_MODES}; then
+  if is_in_array "${hash_type} ${VC_MODES}"; then
     return 0
   fi
 
@@ -189,7 +189,7 @@ function init()
       luks_tests="hashcat_luks_testfiles.7z"
       luks_tests_url="https://hashcat.net/misc/example_hashes/${luks_tests}"
 
-      cd ${TDIR}
+      cd "${TDIR}" || exit
 
       # if the file already exists, but was not successfully extracted, we assume it's a broken
       # downloaded file and therefore it should be deleted
@@ -221,7 +221,7 @@ function init()
       # cleanup:
 
       rm -f "${luks_tests}"
-      cd - >/dev/null
+      cd - >/dev/null || exit
 
       # just to be very sure, check again that (one of) the files now exist:
 
@@ -245,7 +245,7 @@ function init()
 
   if [ "${hash_type}" -eq 10300 ]; then
     #cat ${OUTD}/${hash_type}.sh | cut -d' ' -f11- | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes.txt
-    cat ${OUTD}/${hash_type}.sh | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes.txt
+    cut -d"'" -f2 ${OUTD}/${hash_type}.sh > ${OUTD}/${hash_type}_hashes.txt
   fi
 
   # truncate dicts
@@ -279,7 +279,7 @@ function init()
 
   i=1
 
-  while read -u 9 pass; do
+  while read -r -u 9 pass; do
 
     if [ ${i} -gt ${min} ]; then
 
@@ -293,8 +293,8 @@ function init()
       if [ "${pass_len}" -gt 1 ]
       then
 
-        p1=$((p1 + ${min_offset}))
-        p0=$((p0 + ${min_offset}))
+        p1=$((p1 + min_offset))
+        p0=$((p0 + min_offset))
 
         if [ "${p1}" -gt ${pass_len} ]; then
 
@@ -354,17 +354,17 @@ function init()
 
       if [ "${hash_type}" -eq 10300 ]; then
         #cat ${OUTD}/${hash_type}_multi_${i}.txt | cut -d' ' -f11- | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes_multi_${i}.txt
-        cat ${OUTD}/${hash_type}_multi_${i}.txt | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes_multi_${i}.txt
+        cut -d"'" -f2 ${OUTD}/${hash_type}_multi_${i}.txt > ${OUTD}/${hash_type}_hashes_multi_${i}.txt
       fi
 
       # split password, 'i' is the len
       p0=$((i / 2))
       p1=$((p0 + 1))
 
-      p0=$((p0 + ${min_len}))
-      p1=$((p1 + ${min_len}))
+      p0=$((p0 + min_len))
+      p1=$((p1 + min_len))
 
-      while read -u 9 pass; do
+      while read -r -u 9 pass; do
 
         # add splitted password to dicts
         echo ${pass} | cut -c -${p0} >> ${OUTD}/${hash_type}_dict1_multi_${i}
@@ -447,7 +447,7 @@ function attack_0()
 
     i=0
 
-    while read -u 9 line; do
+    while read -r -u 9 line; do
 
       if [ "${i}" -ge ${max} ]; then
 
@@ -478,7 +478,7 @@ function attack_0()
         pass=$(echo "${pass}" | cut -b 7-) # skip the first 6 chars
       fi
 
-      CMD="echo "${pass}" | ./${BIN} ${OPTS} -a 0 -m ${hash_type} '${hash}'"
+      CMD="echo ${pass} | ./${BIN} ${OPTS} -a 0 -m ${hash_type} '${hash}'"
 
       echo -n "[ len $((i + 1)) ] " >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
 
@@ -516,7 +516,7 @@ function attack_0()
 
     msg="OK"
 
-    if [ "${e_nf}" -ne 0 -o "${e_nm}" -ne 0 ]; then
+    if [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ]; then
 
       msg="Error"
 
@@ -551,7 +551,7 @@ function attack_0()
 
       hash_file=${temp_file}
 
-      while read base64_hash; do
+      while read -r base64_hash; do
 
         echo -n ${base64_hash} | base64 -d >> ${temp_file}
 
@@ -561,7 +561,7 @@ function attack_0()
 
     CMD="cat ${OUTD}/${hash_type}_passwords.txt | ./${BIN} ${OPTS} -a 0 -m ${hash_type} ${hash_file}"
 
-    output=$(cat ${OUTD}/${hash_type}_passwords.txt | ./${BIN} ${OPTS} -a 0 -m ${hash_type} ${hash_file} 2>&1)
+    output=$(./${BIN} ${OPTS} -a 0 -m ${hash_type} ${hash_file} < ${OUTD}/${hash_type}_passwords.txt 2>&1)
 
     ret=${?}
 
@@ -571,7 +571,7 @@ function attack_0()
 
       i=1
 
-      while read -u 9 hash; do
+      while read -r -u 9 hash; do
 
         pass=$(sed -n ${i}p ${OUTD}/${hash_type}_passwords.txt)
 
@@ -601,7 +601,7 @@ function attack_0()
 
     msg="OK"
 
-    if [ "${e_nf}" -ne 0 -o "${e_nm}" -ne 0 ]; then
+    if [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ]; then
 
       msg="Error"
 
@@ -648,7 +648,7 @@ function attack_1()
 
     echo "> Testing hash type $hash_type with attack mode 1, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}." >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
     i=1
-    while read -u 9 hash; do
+    while read -r -u 9 hash; do
 
       if [ $i -gt ${min} ]; then
 
@@ -663,7 +663,7 @@ function attack_1()
         line_nr=1
 
         if [ "${i}" -gt 1 ]; then
-          line_nr=$((${i} - 1))
+          line_nr=$((i - 1))
         fi
 
         dict1="${OUTD}/${hash_type}_dict1"
@@ -682,10 +682,10 @@ function attack_1()
           else
             # we need to also "steal" some chars from the second dict
             num_to_steal=$((6 - ${#line_dict1}))
-            num_steal_start=$((${num_to_steal} + 1))
+            num_steal_start=$((num_to_steal + 1))
 
             if [ "${#line_dict2}" -ge 6 ]; then
-              num_to_steal_new=$(((${#line_dict2} - ${num_to_steal}) / 2))
+              num_to_steal_new=$(((${#line_dict2} - num_to_steal) / 2))
 
               if [ "${num_to_steal_new}" -gt ${num_to_steal} ]; then
                 num_to_steal=${num_to_steal_new}
@@ -695,24 +695,24 @@ function attack_1()
             line_chars_stolen=$(echo "${line_dict2}" | cut -b -${num_to_steal} | cut -b ${num_steal_start}-)
 
             line_dict1="${line_chars_stolen}"
-            line_dict2=$(echo "${line_dict2}" | cut -b $((${num_to_steal} + 1))-)
+            line_dict2=$(echo "${line_dict2}" | cut -b $((num_to_steal + 1))-)
           fi
 
           # finally, modify the dicts accordingly:
 
           tmp_file="${dict1}_mod"
 
-          head -n $((${line_nr} - 1)) ${dict1} > ${tmp_file}
+          head -n $((line_nr - 1)) ${dict1} > ${tmp_file}
           echo "${line_dict1}" >> ${tmp_file}
-          tail -n $((${line_num} - ${line_nr} - 1)) ${dict1} >> ${tmp_file}
+          tail -n $((line_num - line_nr - 1)) ${dict1} >> ${tmp_file}
 
           dict1=${tmp_file}
 
           tmp_file="${dict2}_mod"
 
-          head -n $((${line_nr} - 1)) ${dict2} > ${tmp_file}
+          head -n $((line_nr - 1)) ${dict2} > ${tmp_file}
           echo "${line_dict2}" >> ${tmp_file}
-          tail -n $((${line_num} - ${line_nr} - 1)) ${dict2} >> ${tmp_file}
+          tail -n $((line_num - line_nr - 1)) ${dict2} >> ${tmp_file}
 
           dict2=${tmp_file}
         fi
@@ -758,7 +758,7 @@ function attack_1()
 
     msg="OK"
 
-    if [ "${e_nf}" -ne 0 -o "${e_nm}" -ne 0 ]; then
+    if [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ]; then
 
       msg="Error"
 
@@ -813,7 +813,7 @@ function attack_1()
 
       hash_file=${temp_file}
 
-      while read base64_hash; do
+      while read -r base64_hash; do
 
         echo -n ${base64_hash} | base64 -d >> ${temp_file}
 
@@ -835,12 +835,12 @@ function attack_1()
 
       i=0
 
-      while read -u 9 hash; do
+      while read -r -u 9 hash; do
 
         line_nr=1
 
         if [ "${offset}" -gt ${i} ]; then
-          line_nr=$((${offset} - ${i}))
+          line_nr=$((offset - i))
         fi
 
         line_dict1=$(tail -n ${line_nr} ${OUTD}/${hash_type}_dict1 | head -1)
@@ -872,7 +872,7 @@ function attack_1()
 
     msg="OK"
 
-    if [ "${e_nf}" -ne 0 -o "${e_nm}" -ne 0 ]; then
+    if [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ]; then
 
       msg="Error"
 
@@ -927,7 +927,7 @@ function attack_3()
 
     i=1
 
-    while read -u 9 hash; do
+    while read -r -u 9 hash; do
 
       if [ "${i}" -gt 6 ]; then
 
@@ -961,7 +961,7 @@ function attack_3()
         continue
       fi
 
-      pass_part_2=$(echo -n ${pass} | cut -b  $((${i} + 1))-)
+      pass_part_2=$(echo -n ${pass} | cut -b  $((i + 1))-)
 
       mask=""
 
@@ -989,7 +989,7 @@ function attack_3()
           continue
         fi
 
-        cut_pos=$((${i} * 2 + 6 - ${i} + 1)) # skip it in groups of 2 ("?d"), at least 6, offset +1 for cut to work
+        cut_pos=$((i * 2 + 6 - i + 1)) # skip it in groups of 2 ("?d"), at least 6, offset +1 for cut to work
 
         if [ "${i}" -gt 6 ]; then
           cut_pos=13 # 6 * ?d + 1 (6 * 2 + 1)
@@ -1038,7 +1038,7 @@ function attack_3()
 
     msg="OK"
 
-    if [ "${e_nf}" -ne 0 -o "${e_nm}" -ne 0 ]; then
+    if [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ]; then
 
       msg="Error"
 
@@ -1101,7 +1101,7 @@ function attack_3()
 
       hash_file=${temp_file}
 
-      while read base64_hash; do
+      while read -r base64_hash; do
 
         echo -n ${base64_hash} | base64 -d >> ${temp_file}
 
@@ -1149,12 +1149,12 @@ function attack_3()
     cracks_offset=0
 
     if [ ${need_hcmask} -eq 0 ]; then
-      cracks_offset=$((${head_hashes} - ${tail_hashes}))
+      cracks_offset=$((head_hashes - tail_hashes))
 
       mask=${mask_3[${mask_pos}]}
     else
-      num_hashes=$(cat ${OUTD}/${hash_type}_hashes.txt | wc -l)
-      cracks_offset=$((${num_hashes} - ${tail_hashes}))
+      num_hashes=$(wc -l < ${OUTD}/${hash_type}_hashes.txt)
+      cracks_offset=$((num_hashes - tail_hashes))
 
       mask=${OUTD}/${hash_type}_passwords.txt # fake hcmask file (i.e. the original dict)
     fi
@@ -1188,25 +1188,25 @@ function attack_3()
 
       i=1
 
-      while read -u 9 hash; do
+      while read -r -u 9 hash; do
 
         pass=$(sed -n ${i}p ${OUTD}/${hash_type}_passwords.txt)
 
         # charset 1
         char=$(echo "${pass}" | cut -b ${charset_1_pos})
-        charset_1=$(echo -e "${charset_1}\n${char}")
+        charset_1=$(printf "%s\n%s\n" "${charset_1}" "${char}")
 
         # charset 2
         char=$(echo "${pass}" | cut -b ${charset_2_pos})
-        charset_2=$(echo -e "${charset_2}\n${char}")
+        charset_2=$(printf "%s\n%s\n" "${charset_2}" "${char}")
 
         # charset 3
         char=$(echo "${pass}" | cut -b ${charset_3_pos})
-        charset_3=$(echo -e "${charset_3}\n${char}")
+        charset_3=$(printf "%s\n%s\n" "${charset_3}" "${char}")
 
         # charset 4
         char=$(echo "${pass}" | cut -b ${charset_4_pos})
-        charset_4=$(echo -e "${charset_4}\n${char}")
+        charset_4=$(printf "%s\n%s\n" "${charset_4}" "${char}")
 
         i=$((i + 1))
 
@@ -1273,7 +1273,7 @@ function attack_3()
 
       i=1
 
-      while read -u 9 hash; do
+      while read -r -u 9 hash; do
 
         pass=$(sed -n ${i}p ${OUTD}/${hash_type}_passwords.txt)
 
@@ -1357,8 +1357,8 @@ function attack_3()
 
       i=1
 
-      while read -u 9 hash; do
-        line_nr=$((${i} + ${cracks_offset}))
+      while read -r -u 9 hash; do
+        line_nr=$((i + cracks_offset))
 
         pass=$(sed -n ${line_nr}p ${OUTD}/${hash_type}_passwords.txt)
 
@@ -1388,7 +1388,7 @@ function attack_3()
 
     msg="OK"
 
-    if [ "${e_nf}" -ne 0 -o "${e_nm}" -ne 0 ]; then
+    if [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ]; then
 
       msg="Error"
 
@@ -1458,21 +1458,21 @@ function attack_6()
 
       pass="${pass_part_1}${pass_part_2}"
 
-      echo -n ${pass} | cut -b -$((${mask_offset} + 0))  > ${OUTD}/${hash_type}_dict1_custom
-      echo -n ${pass} | cut -b  $((${mask_offset} + 1))- > ${OUTD}/${hash_type}_dict2_custom
+      echo -n ${pass} | cut -b -$((mask_offset + 0))  > ${OUTD}/${hash_type}_dict1_custom
+      echo -n ${pass} | cut -b  $((mask_offset + 1))- > ${OUTD}/${hash_type}_dict2_custom
 
       mask_custom=""
 
-      for i in $(seq 1 $((${#pass} - ${mask_offset}))); do
+      for i in $(seq 1 $((${#pass} - mask_offset))); do
 
         if   [ "${hash_type}" -eq 14000 ]; then
 
-          char=$(echo -n ${pass} | cut -b $((${i} + ${mask_offset})))
+          char=$(echo -n ${pass} | cut -b $((i + mask_offset)))
           mask_custom="${mask_custom}${char}"
 
         elif [ "${hash_type}" -eq 14100 ]; then
 
-          char=$(echo -n ${pass} | cut -b $((${i} + ${mask_offset})))
+          char=$(echo -n ${pass} | cut -b $((i + mask_offset)))
           mask_custom="${mask_custom}${char}"
 
         else
@@ -1488,7 +1488,7 @@ function attack_6()
 
     i=1
 
-    while read -u 9 hash; do
+    while read -r -u 9 hash; do
 
       if [ "${i}" -gt 6 ]; then
 
@@ -1528,7 +1528,7 @@ function attack_6()
           continue
         fi
 
-        echo ${pass} | cut -b -$((${#pass} - ${i})) >> ${dict1_a6}
+        echo ${pass} | cut -b -$((${#pass} - i)) >> ${dict1_a6}
 
         # the block below is just a fancy way to do a "shuf" (or sort -R) because macOS doesn't really support it natively
         # we do not really need a shuf, but it's actually better for testing purposes
@@ -1541,8 +1541,8 @@ function attack_6()
 
         for lines in $(seq 1 ${line_num}); do
 
-          random_num=$((${RANDOM} % ${line_num}))
-          random_num=$((${random_num} + 1)) # sed -n [n]p starts counting with 1 (not 0)
+          random_num=$((RANDOM % line_num))
+          random_num=$((random_num + 1)) # sed -n [n]p starts counting with 1 (not 0)
 
           random_line=$(echo -n "${sorted_lines}" | sed -n ${random_num}p)
 
@@ -1552,7 +1552,7 @@ function attack_6()
 
           sorted_lines=$(echo -n "${sorted_lines}" | grep -v "^${random_line}$")
 
-          line_num=$((${line_num} - 1))
+          line_num=$((line_num - 1))
 
         done
 
@@ -1582,7 +1582,7 @@ function attack_6()
           line_nr=1
 
           if [ "${i}" -gt 1 ]; then
-            line_nr=$((${i} - 1))
+            line_nr=$((i - 1))
           fi
 
           line_dict1=$(sed -n ${line_nr}p ${dict1})
@@ -1616,7 +1616,7 @@ function attack_6()
 
     msg="OK"
 
-    if [ "${e_nf}" -ne 0 -o "${e_nm}" -ne 0 ]; then
+    if [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ]; then
 
       msg="Error"
 
@@ -1679,7 +1679,7 @@ function attack_6()
 
     fi
 
-    for ((i = 2; i < ${max}; i++)); do
+    for ((i = 2; i < max; i++)); do
 
       hash_file=${OUTD}/${hash_type}_hashes_multi_${i}.txt
 
@@ -1692,7 +1692,7 @@ function attack_6()
 
         hash_file=${temp_file}
 
-        while read base64_hash; do
+        while read -r base64_hash; do
 
           echo -n ${base64_hash} | base64 -d >> ${temp_file}
 
@@ -1716,7 +1716,7 @@ function attack_6()
 
         j=1
 
-        while read -u 9 hash; do
+        while read -r -u 9 hash; do
 
           line_dict1=$(sed -n ${j}p ${OUTD}/${hash_type}_dict1_multi_${i})
           line_dict2=$(sed -n ${j}p ${OUTD}/${hash_type}_dict2_multi_${i})
@@ -1749,7 +1749,7 @@ function attack_6()
 
     msg="OK"
 
-    if [ "${e_nf}" -ne 0 -o "${e_nm}" -ne 0 ]; then
+    if [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ]; then
 
       msg="Error"
 
@@ -1820,8 +1820,8 @@ function attack_7()
 
       pass="${pass_part_1}${pass_part_2}"
 
-      echo -n ${pass} | cut -b -$((${mask_offset} + 0))  > ${OUTD}/${hash_type}_dict1_custom
-      echo -n ${pass} | cut -b  $((${mask_offset} + 1))- > ${OUTD}/${hash_type}_dict2_custom
+      echo -n ${pass} | cut -b -$((mask_offset + 0))  > ${OUTD}/${hash_type}_dict1_custom
+      echo -n ${pass} | cut -b  $((mask_offset + 1))- > ${OUTD}/${hash_type}_dict2_custom
 
       mask_custom=""
 
@@ -1849,7 +1849,7 @@ function attack_7()
 
     i=1
 
-    while read -u 9 hash; do
+    while read -r -u 9 hash; do
 
       if [ ${i} -gt ${min} ]; then
 
@@ -1868,7 +1868,7 @@ function attack_7()
         line_nr=1
 
         if [ "${i}" -gt 1 ]; then
-          line_nr=$((${i} - 1))
+          line_nr=$((i - 1))
         fi
 
         if [ "${hash_type}" -eq 2500 ]; then
@@ -1887,7 +1887,7 @@ function attack_7()
           mask_len=${#mask}
           mask_len=$((mask_len / 2))
 
-          mask_prefix=$(echo ${pass} | cut -b -$((pass_len - ${mask_len} - ${pass_part_2_len})))
+          mask_prefix=$(echo ${pass} | cut -b -$((pass_len - mask_len - pass_part_2_len)))
           mask=${mask_prefix}${mask}
 
         fi
@@ -1907,7 +1907,7 @@ function attack_7()
           mask_len=${#mask}
           mask_len=$((mask_len / 2))
 
-          mask_prefix=$(echo ${pass} | cut -b -$((pass_len - ${mask_len} - ${pass_part_2_len})))
+          mask_prefix=$(echo ${pass} | cut -b -$((pass_len - mask_len - pass_part_2_len)))
           mask=${mask_prefix}${mask}
 
         fi
@@ -1932,8 +1932,8 @@ function attack_7()
 
           mask_len=$((${#mask} / 2))
 
-          echo "${pass_old}" | cut -b -$((6 + ${mask_len})) > ${OUTD}/${hash_type}_dict1_custom
-          echo "${pass}"     | cut -b $((${mask_len} + 1))- > ${OUTD}/${hash_type}_dict2_custom
+          echo "${pass_old}" | cut -b -$((6 + mask_len)) > ${OUTD}/${hash_type}_dict1_custom
+          echo "${pass}"     | cut -b $((mask_len + 1))- > ${OUTD}/${hash_type}_dict2_custom
 
           min=0 # hack to use the custom dict
           mask_custom=${mask}
@@ -1965,7 +1965,7 @@ function attack_7()
           line_nr=1
 
           if [ "${i}" -gt 1 ]; then
-            line_nr=$((${i} - 1))
+            line_nr=$((i - 1))
           fi
 
           line_dict1=$(sed -n ${line_nr}p ${dict1})
@@ -1999,7 +1999,7 @@ function attack_7()
 
     msg="OK"
 
-    if [ "${e_nf}" -ne 0 -o "${e_nm}" -ne 0 ]; then
+    if [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ]; then
 
       msg="Error"
 
@@ -2070,7 +2070,7 @@ function attack_7()
 
     fi
 
-    for ((i = 2; i < ${max}; i++)); do
+    for ((i = 2; i < max; i++)); do
 
       hash_file=${OUTD}/${hash_type}_hashes_multi_${i}.txt
       dict_file=${OUTD}/${hash_type}_dict2_multi_${i}
@@ -2086,7 +2086,7 @@ function attack_7()
 
         hash_file=${temp_file}
 
-        while read base64_hash; do
+        while read -r base64_hash; do
 
           echo -n ${base64_hash} | base64 -d >> ${temp_file}
 
@@ -2103,7 +2103,7 @@ function attack_7()
 
         j=1
 
-        while read -u 9 hash; do
+        while read -r -u 9 hash; do
 
           pass_part_1=$(sed -n ${j}p ${OUTD}/${hash_type}_dict1_multi_${i})
           pass_part_2=$(sed -n ${j}p ${OUTD}/${hash_type}_dict2_multi_${i})
@@ -2134,7 +2134,7 @@ function attack_7()
 
         j=1
 
-        while read -u 9 hash; do
+        while read -r -u 9 hash; do
 
           line_dict1=$(sed -n ${j}p ${OUTD}/${hash_type}_dict1_multi_${i})
           line_dict2=$(sed -n ${j}p ${OUTD}/${hash_type}_dict2_multi_${i})
@@ -2167,7 +2167,7 @@ function attack_7()
 
     msg="OK"
 
-    if [ "${e_nf}" -ne 0 -o "${e_nm}" -ne 0 ]; then
+    if [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ]; then
 
       msg="Error"
 
@@ -2515,7 +2515,7 @@ function luks_test()
               ;;
             1)
               luks_pass_part1_len=$((${#LUKS_PASSWORD} / 2))
-              luks_pass_part2_start=$((${luks_pass_part1_len} + 1))
+              luks_pass_part2_start=$((luks_pass_part1_len + 1))
 
               echo "${LUKS_PASSWORD}" | cut -c-${luks_pass_part1_len} > "${luks_pass_part_file1}"
               echo "${LUKS_PASSWORD}" | cut -c${luks_pass_part2_start}- > "${luks_pass_part_file2}"
@@ -2654,17 +2654,17 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:" opt; do
 
   case ${opt} in
     "V")
-      if [ ${OPTARG} == "1" ]; then
+      if [ ${OPTARG} = "1" ]; then
         VECTOR=1
-      elif [ ${OPTARG} == "2" ]; then
+      elif [ ${OPTARG} = "2" ]; then
         VECTOR=2
-      elif [ ${OPTARG} == "4" ]; then
+      elif [ ${OPTARG} = "4" ]; then
         VECTOR=4
-      elif [ ${OPTARG} == "8" ]; then
+      elif [ ${OPTARG} = "8" ]; then
         VECTOR=8
-      elif [ ${OPTARG} == "16" ]; then
+      elif [ ${OPTARG} = "16" ]; then
         VECTOR=16
-      elif [ ${OPTARG} == "all" ]; then
+      elif [ ${OPTARG} = "all" ]; then
         VECTOR="all"
       else
         usage
@@ -2672,11 +2672,11 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:" opt; do
       ;;
 
     "t")
-      if [ ${OPTARG} == "single" ]; then
+      if [ ${OPTARG} = "single" ]; then
         MODE=0
-      elif [ ${OPTARG} == "multi" ]; then
+      elif [ ${OPTARG} = "multi" ]; then
         MODE=1
-      elif [ ${OPTARG} == "all" ]; then
+      elif [ ${OPTARG} = "all" ]; then
         MODE=2
       else
         usage
@@ -2684,7 +2684,7 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:" opt; do
       ;;
 
     "m")
-      if [ ${OPTARG} == "all" ]; then
+      if [ ${OPTARG} = "all" ]; then
         HT=65535
       else
         HT=${OPTARG}
@@ -2692,17 +2692,17 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:" opt; do
       ;;
 
     "a")
-      if [ ${OPTARG} == "all" ]; then
+      if [ ${OPTARG} = "all" ]; then
         ATTACK=65535
-      elif [ ${OPTARG} == "0" ]; then
+      elif [ ${OPTARG} = "0" ]; then
         ATTACK=0
-      elif [ ${OPTARG} == "1" ]; then
+      elif [ ${OPTARG} = "1" ]; then
         ATTACK=1
-      elif [ ${OPTARG} == "3" ]; then
+      elif [ ${OPTARG} = "3" ]; then
         ATTACK=3
-      elif [ ${OPTARG} == "6" ]; then
+      elif [ ${OPTARG} = "6" ]; then
         ATTACK=6
-      elif [ ${OPTARG} == "7" ]; then
+      elif [ ${OPTARG} = "7" ]; then
         ATTACK=7
       else
         usage
@@ -2727,9 +2727,9 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:" opt; do
       ;;
 
     "x")
-      if [ ${OPTARG} == "32" ]; then
+      if [ ${OPTARG} = "32" ]; then
         ARCHITECTURE=32
-      elif [ ${OPTARG} == "64" ]; then
+      elif [ ${OPTARG} = "64" ]; then
         ARCHITECTURE=64
       else
         usage
@@ -2737,11 +2737,11 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:" opt; do
       ;;
 
     "o")
-      if [ ${OPTARG} == "win" ]; then
+      if [ ${OPTARG} = "win" ]; then
         EXTENSION="exe"
-      elif [ ${OPTARG} == "linux" ]; then
+      elif [ ${OPTARG} = "linux" ]; then
         EXTENSION="bin"
-      elif [ ${OPTARG} == "macos" ]; then
+      elif [ ${OPTARG} = "macos" ]; then
         EXTENSION="app"
       else
         usage
@@ -2757,10 +2757,10 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:" opt; do
       ;;
 
     "D")
-      if [ ${OPTARG} == "1" ]; then
+      if [ ${OPTARG} = "1" ]; then
         OPTS="${OPTS} -D 1"
         TYPE="Cpu"
-      elif [ ${OPTARG} == "2" ]; then
+      elif [ ${OPTARG} = "2" ]; then
         OPTS="${OPTS} -D 2"
         TYPE="Gpu"
       else
@@ -2794,7 +2794,7 @@ if [ "${OPTIMIZED}" -eq 1 ]; then
   OPTS="${OPTS} -O"
 fi
 
-if [ "${TYPE}" == "null" ]; then
+if [ "${TYPE}" = "null" ]; then
   OPTS="${OPTS} -D 2"
   TYPE="Gpu"
 fi
@@ -2827,7 +2827,7 @@ if [ -n "${PACKAGE_FOLDER}" ]; then
 
 fi
 
-if [ "${PACKAGE}" -eq 0 -o -z "${PACKAGE_FOLDER}" ]; then
+if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
 
   # check existence of binary
   if [ ! -e "${BIN}" ]; then
@@ -2923,7 +2923,7 @@ if [ "${PACKAGE}" -eq 0 -o -z "${PACKAGE_FOLDER}" ]; then
   # for these particular algos we need to save the output to a temporary file
   IFS=';' read -ra FILE_BASED_ALGOS <<< "${HASHFILE_ONLY}"
 
-  for hash_type in $(echo $HASH_TYPES); do
+  for hash_type in $HASH_TYPES; do
 
     if [ "${HT}" -ne 65535 ]; then
 
@@ -2972,11 +2972,11 @@ if [ "${PACKAGE}" -eq 0 -o -z "${PACKAGE_FOLDER}" ]; then
         MODE=0 # force single only
       fi
 
-      for CUR_WIDTH in $(echo $VECTOR_WIDTHS); do
+      for CUR_WIDTH in $VECTOR_WIDTHS; do
 
-        if [ "${VECTOR_OLD}" == "all" ] || [ "${VECTOR_OLD}" == "default" ] || [ "${VECTOR_OLD}" == "${CUR_WIDTH}" ]; then
+        if [ "${VECTOR_OLD}" = "all" ] || [ "${VECTOR_OLD}" = "default" ] || [ "${VECTOR_OLD}" = "${CUR_WIDTH}" ]; then
 
-          if [ "${VECTOR_OLD}" == "default" ] && \
+          if [ "${VECTOR_OLD}" = "default" ] && \
              [ "${CUR_WIDTH}" != "1" ] && \
              [ "${CUR_WIDTH}" != "4" ]; then
 
@@ -3132,7 +3132,7 @@ if [ "${PACKAGE}" -eq 1 ]; then
   UNAME=$(uname -s)
 
   # of course macOS requires us to implement a special case (sed -i "" for the backup file)
-  if [ "${UNAME}" == "Darwin" ] ; then
+  if [ "${UNAME}" = "Darwin" ] ; then
     SED_IN_PLACE='-i ""'
   fi
 
