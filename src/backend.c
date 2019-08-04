@@ -921,14 +921,14 @@ int cuda_init (hashcat_ctx_t *hashcat_ctx)
   if (cuda->lib == NULL) return -1;
 
   #define HC_LOAD_FUNC_CUDA(ptr,name,cudaname,type,libname,noerr) \
-    ptr->name = (type) hc_dlsym (ptr->lib, #cudaname); \
-    if (noerr != -1) { \
-      if (!ptr->name) { \
-        if (noerr == 1) { \
+    ptr->name = (type) hc_dlsym ((ptr)->lib, #cudaname); \
+    if ((noerr) != -1) { \
+      if (!(ptr)->name) { \
+        if ((noerr) == 1) { \
           event_log_error (hashcat_ctx, "%s is missing from %s shared library.", #name, #libname); \
           return -1; \
         } \
-        if (noerr != 1) { \
+        if ((noerr) != 1) { \
           event_log_warning (hashcat_ctx, "%s is missing from %s shared library.", #name, #libname); \
           return 0; \
         } \
