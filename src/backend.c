@@ -4532,44 +4532,42 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
           break;
         }
+
+        double total_msec = device_param->speed_msec[0];
+
+        for (u32 speed_pos = 1; speed_pos < device_param->speed_pos; speed_pos++)
+        {
+          total_msec += device_param->speed_msec[speed_pos];
+        }
+
+        if (user_options->slow_candidates == true)
+        {
+          if ((total_msec > 4000) || (device_param->speed_pos == SPEED_CACHE - 1))
+          {
+            const u32 speed_pos = device_param->speed_pos;
+
+            if (speed_pos)
+            {
+              device_param->speed_cnt[0]  = device_param->speed_cnt[speed_pos - 1];
+              device_param->speed_msec[0] = device_param->speed_msec[speed_pos - 1];
+            }
+
+            device_param->speed_pos = 0;
+
+            device_param->speed_only_finish = true;
+
+            break;
+          }
+        }
         else
         {
-          double total_msec = device_param->speed_msec[0];
+          // it's unclear if 4s is enough to turn on boost mode for all backend device
 
-          for (u32 speed_pos = 1; speed_pos < device_param->speed_pos; speed_pos++)
+          if ((total_msec > 4000) || (device_param->speed_pos == SPEED_CACHE - 1))
           {
-            total_msec += device_param->speed_msec[speed_pos];
-          }
+            device_param->speed_only_finish = true;
 
-          if (user_options->slow_candidates == true)
-          {
-            if ((total_msec > 4000) || (device_param->speed_pos == SPEED_CACHE - 1))
-            {
-              const u32 speed_pos = device_param->speed_pos;
-
-              if (speed_pos)
-              {
-                device_param->speed_cnt[0]  = device_param->speed_cnt[speed_pos - 1];
-                device_param->speed_msec[0] = device_param->speed_msec[speed_pos - 1];
-              }
-
-              device_param->speed_pos = 0;
-
-              device_param->speed_only_finish = true;
-
-              break;
-            }
-          }
-          else
-          {
-            // it's unclear if 4s is enough to turn on boost mode for all backend device
-
-            if ((total_msec > 4000) || (device_param->speed_pos == SPEED_CACHE - 1))
-            {
-              device_param->speed_only_finish = true;
-
-              break;
-            }
+            break;
           }
         }
       }

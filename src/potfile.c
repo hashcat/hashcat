@@ -576,12 +576,10 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
         continue;
       }
-      else
-      {
-        // should be rejected?
-        //const int parser_status = module_ctx->module_hash_decode_potfile (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, hash_buf.hook_salt, hash_buf.hash_info, line_hash_buf, line_hash_len, NULL);
-        //if (parser_status != PARSER_OK) continue;
-      }
+
+      // should be rejected?
+      //const int parser_status = module_ctx->module_hash_decode_potfile (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, hash_buf.hook_salt, hash_buf.hash_info, line_hash_buf, line_hash_len, NULL);
+      //if (parser_status != PARSER_OK) continue;
     }
     else
     {

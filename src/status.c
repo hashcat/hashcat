@@ -327,34 +327,28 @@ char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
 
       return tmp_buf2;
     }
-    else
+
+    if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
     {
-      if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
-      {
-        return hcstrdup (hashes->hashfile);
-      }
-      else
-      {
-        char *tmp_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
-
-        const int tmp_len = hash_encode (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, tmp_buf, HCBUFSIZ_LARGE, 0, 0);
-
-        tmp_buf[tmp_len] = 0;
-
-        compress_terminal_line_length (tmp_buf, 19, 6); // 19 = strlen ("Hash.Target......: ")
-
-        char *tmp_buf2 = strdup (tmp_buf);
-
-        free (tmp_buf);
-
-        return tmp_buf2;
-      }
+      return hcstrdup (hashes->hashfile);
     }
+
+    char *tmp_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
+
+    const int tmp_len = hash_encode (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, tmp_buf, HCBUFSIZ_LARGE, 0, 0);
+
+    tmp_buf[tmp_len] = 0;
+
+    compress_terminal_line_length (tmp_buf, 19, 6); // 19 = strlen ("Hash.Target......: ")
+
+    char *tmp_buf2 = strdup (tmp_buf);
+
+    free (tmp_buf);
+
+    return tmp_buf2;
   }
-  else
-  {
-    return hcstrdup (hashes->hashfile);
-  }
+
+  return hcstrdup (hashes->hashfile);
 }
 
 int status_get_guess_mode (const hashcat_ctx_t *hashcat_ctx)
@@ -389,30 +383,21 @@ int status_get_guess_mode (const hashcat_ctx_t *hashcat_ctx)
       {
         return GUESS_MODE_STRAIGHT_FILE_RULES_FILE;
       }
-      else if (has_rule_gen == true)
+      if (has_rule_gen == true)
       {
         return GUESS_MODE_STRAIGHT_FILE_RULES_GEN;
       }
-      else
-      {
-        return GUESS_MODE_STRAIGHT_FILE;
-      }
+      return GUESS_MODE_STRAIGHT_FILE;
     }
-    else
+    if (has_rule_file == true)
     {
-      if (has_rule_file == true)
-      {
-        return GUESS_MODE_STRAIGHT_STDIN_RULES_FILE;
-      }
-      else if (has_rule_gen == true)
-      {
-        return GUESS_MODE_STRAIGHT_STDIN_RULES_GEN;
-      }
-      else
-      {
-        return GUESS_MODE_STRAIGHT_STDIN;
-      }
+      return GUESS_MODE_STRAIGHT_STDIN_RULES_FILE;
     }
+    if (has_rule_gen == true)
+    {
+      return GUESS_MODE_STRAIGHT_STDIN_RULES_GEN;
+    }
+    return GUESS_MODE_STRAIGHT_STDIN;
   }
 
   if (user_options->attack_mode == ATTACK_MODE_COMBI)
@@ -421,10 +406,7 @@ int status_get_guess_mode (const hashcat_ctx_t *hashcat_ctx)
     {
       return GUESS_MODE_COMBINATOR_BASE_LEFT;
     }
-    else
-    {
-      return GUESS_MODE_COMBINATOR_BASE_RIGHT;
-    }
+    return GUESS_MODE_COMBINATOR_BASE_RIGHT;
   }
 
   if (user_options->attack_mode == ATTACK_MODE_BF)
@@ -433,10 +415,7 @@ int status_get_guess_mode (const hashcat_ctx_t *hashcat_ctx)
     {
       return GUESS_MODE_MASK_CS;
     }
-    else
-    {
-      return GUESS_MODE_MASK;
-    }
+    return GUESS_MODE_MASK;
   }
 
   if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
@@ -445,10 +424,7 @@ int status_get_guess_mode (const hashcat_ctx_t *hashcat_ctx)
     {
       return GUESS_MODE_HYBRID1_CS;
     }
-    else
-    {
-      return GUESS_MODE_HYBRID1;
-    }
+    return GUESS_MODE_HYBRID1;
   }
 
   if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
@@ -457,10 +433,7 @@ int status_get_guess_mode (const hashcat_ctx_t *hashcat_ctx)
     {
       return GUESS_MODE_HYBRID2_CS;
     }
-    else
-    {
-      return GUESS_MODE_HYBRID2;
-    }
+    return GUESS_MODE_HYBRID2;
   }
 
   return GUESS_MODE_NONE;
@@ -490,10 +463,7 @@ char *status_get_guess_base (const hashcat_ctx_t *hashcat_ctx)
     {
       return strdup (combinator_ctx->dict1);
     }
-    else
-    {
-      return strdup (combinator_ctx->dict2);
-    }
+    return strdup (combinator_ctx->dict2);
   }
 
   if (user_options->attack_mode == ATTACK_MODE_BF)
@@ -518,14 +488,11 @@ char *status_get_guess_base (const hashcat_ctx_t *hashcat_ctx)
 
       return strdup (mask_ctx->mask);
     }
-    else
-    {
-      const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
-      return strdup (straight_ctx->dict);
-    }
+    const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+
+    return strdup (straight_ctx->dict);
   }
-
   return NULL;
 }
 
@@ -568,12 +535,10 @@ int status_get_guess_base_offset (const hashcat_ctx_t *hashcat_ctx)
 
       return mask_ctx->masks_pos + 1;
     }
-    else
-    {
-      const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
-      return straight_ctx->dicts_pos + 1;
-    }
+    const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+
+    return straight_ctx->dicts_pos + 1;
   }
 
   return 0;
@@ -618,12 +583,10 @@ int status_get_guess_base_count (const hashcat_ctx_t *hashcat_ctx)
 
       return mask_ctx->masks_cnt;
     }
-    else
-    {
-      const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
-      return straight_ctx->dicts_cnt;
-    }
+    const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+
+    return straight_ctx->dicts_cnt;
   }
 
   return 0;
@@ -657,10 +620,7 @@ char *status_get_guess_mod (const hashcat_ctx_t *hashcat_ctx)
     {
       return strdup (combinator_ctx->dict2);
     }
-    else
-    {
-      return strdup (combinator_ctx->dict1);
-    }
+    return strdup (combinator_ctx->dict1);
   }
 
   if (user_options->attack_mode == ATTACK_MODE_BF)
@@ -683,12 +643,10 @@ char *status_get_guess_mod (const hashcat_ctx_t *hashcat_ctx)
 
       return strdup (straight_ctx->dict);
     }
-    else
-    {
-      const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
 
-      return strdup (mask_ctx->mask);
-    }
+    const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+    return strdup (mask_ctx->mask);
   }
 
   return NULL;
@@ -729,12 +687,10 @@ int status_get_guess_mod_offset (const hashcat_ctx_t *hashcat_ctx)
 
       return straight_ctx->dicts_pos + 1;
     }
-    else
-    {
-      const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
 
-      return mask_ctx->masks_pos + 1;
-    }
+    const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+    return mask_ctx->masks_pos + 1;
   }
 
   return 0;
@@ -775,12 +731,10 @@ int status_get_guess_mod_count (const hashcat_ctx_t *hashcat_ctx)
 
       return straight_ctx->dicts_cnt;
     }
-    else
-    {
-      const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
 
-      return mask_ctx->masks_cnt;
-    }
+    const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+    return mask_ctx->masks_cnt;
   }
 
   return 0;
@@ -1196,10 +1150,7 @@ int status_get_progress_mode (const hashcat_ctx_t *hashcat_ctx)
   {
     return PROGRESS_MODE_KEYSPACE_KNOWN;
   }
-  else
-  {
-    return PROGRESS_MODE_KEYSPACE_UNKNOWN;
-  }
+  return PROGRESS_MODE_KEYSPACE_UNKNOWN;
 }
 
 double status_get_progress_finished_percent (const hashcat_ctx_t *hashcat_ctx)
