@@ -773,8 +773,6 @@ DECLSPEC void m21200s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
   const u32x d0 = d;
   const u32x e0 = e;
 
-if (gid == 0) printf("sha1(salt): %08x %08x %08x %08x %08x\n", a0, b0, c0, d0, e0);
-
   /**
    * digest
    */
