@@ -26,14 +26,14 @@ LUKS_MODE="14600"
 
 # missing hash types: 5200
 
-HASH_TYPES=$(ls "${TDIR}/test_modules/*.pm" | sed -E 's/.*m0*([0-9]+).pm/\1/')
+HASH_TYPES=$(ls ${TDIR}/test_modules/*.pm | sed -E 's/.*m0*([0-9]+).pm/\1/')
 HASH_TYPES="${HASH_TYPES} ${TC_MODES} ${VC_MODES} ${LUKS_MODE}"
 HASH_TYPES=$(echo -n "${HASH_TYPES}" | tr ' ' '\n' | sort -u -n | tr '\n' ' ')
 
 VECTOR_WIDTHS="1 2 4 8 16"
 
-HASHFILE_ONLY=$(grep -l OPTS_TYPE_BINARY_HASHFILE "${TDIR}/../src/modules/module_*.c" | sed -E 's/.*module_0*([0-9]+).c/\1/' | tr '\n' ' ')
-SLOW_ALGOS=$(grep -l ATTACK_EXEC_OUTSIDE_KERNEL "${TDIR}/../src/modules/module_*.c" | sed -E 's/.*module_0*([0-9]+).c/\1/' | tr '\n' ' ')
+HASHFILE_ONLY=$(grep -l OPTS_TYPE_BINARY_HASHFILE ${TDIR}/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+).c/\1/' | tr '\n' ' ')
+SLOW_ALGOS=$(grep -l ATTACK_EXEC_OUTSIDE_KERNEL ${TDIR}/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+).c/\1/' | tr '\n' ' ')
 
 OUTD="test_$(date +%s)"
 
