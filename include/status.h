@@ -115,6 +115,6 @@ void        status_progress_reset                     (hashcat_ctx_t *hashcat_ct
 int         status_ctx_init                           (hashcat_ctx_t *hashcat_ctx);
 void        status_ctx_destroy                        (hashcat_ctx_t *hashcat_ctx);
 
-void        status_status_destroy                     (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *status_ctx);
+void        status_status_destroy                     (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_status);
 
 #endif // _STATUS_H

@@ -365,8 +365,8 @@ static int mp_gen_css (hashcat_ctx_t *hashcat_ctx, char *mask_buf, size_t mask_l
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
-  u32 mask_pos;
-  u32 css_pos;
+  size_t mask_pos;
+  size_t css_pos;
 
   for (mask_pos = 0, css_pos = 0; mask_pos < mask_len; mask_pos++, css_pos++)
   {

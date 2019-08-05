@@ -541,7 +541,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
                 brain_client_generate_hash ((u64 *) hash, (const char *) extra_info_straight.out_buf, extra_info_straight.out_len);
 
-                u32 *ptr = (u32 *) device_param->brain_link_out_buf;
+                u32 *ptr = device_param->brain_link_out_buf;
 
                 ptr[(device_param->pws_pre_cnt * 2) + 0] = hash[0];
                 ptr[(device_param->pws_pre_cnt * 2) + 1] = hash[1];
@@ -853,7 +853,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
                 brain_client_generate_hash ((u64 *) hash, (const char *) extra_info_combi.out_buf, extra_info_combi.out_len);
 
-                u32 *ptr = (u32 *) device_param->brain_link_out_buf;
+                u32 *ptr = device_param->brain_link_out_buf;
 
                 ptr[(device_param->pws_pre_cnt * 2) + 0] = hash[0];
                 ptr[(device_param->pws_pre_cnt * 2) + 1] = hash[1];
@@ -1108,7 +1108,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
                 brain_client_generate_hash ((u64 *) hash, (const char *) extra_info_mask.out_buf, extra_info_mask.out_len);
 
-                u32 *ptr = (u32 *) device_param->brain_link_out_buf;
+                u32 *ptr = device_param->brain_link_out_buf;
 
                 ptr[(device_param->pws_pre_cnt * 2) + 0] = hash[0];
                 ptr[(device_param->pws_pre_cnt * 2) + 1] = hash[1];
@@ -1362,7 +1362,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       {
         u64 words_off = 0;
         u64 words_fin = 0;
-        u64 words_extra = -1u;
+        u64 words_extra = -1U;
         u64 words_extra_total = 0;
 
         memset (device_param->pws_comp, 0, device_param->size_pws_comp);

@@ -57,28 +57,26 @@ int benchmark_next (hashcat_ctx_t *hashcat_ctx)
 
     return hash_mode;
   }
-  else
+
+  char *modulefile = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+  for (int i = cur; i < MODULE_HASH_MODES_MAXIMUM; i++)
   {
-    char *modulefile = (char *) hcmalloc (HCBUFSIZ_TINY);
+    module_filename (folder_config, i, modulefile, HCBUFSIZ_TINY);
 
-    for (int i = cur; i < MODULE_HASH_MODES_MAXIMUM; i++)
+    if (hc_path_exist (modulefile) == true)
     {
-      module_filename (folder_config, i, modulefile, HCBUFSIZ_TINY);
+      const int hash_mode = i;
 
-      if (hc_path_exist (modulefile) == true)
-      {
-        const int hash_mode = i;
+      cur = hash_mode + 1;
 
-        cur = hash_mode + 1;
+      hcfree (modulefile);
 
-        hcfree (modulefile);
-
-        return hash_mode;
-      }
+      return hash_mode;
     }
-
-    hcfree (modulefile);
   }
+
+  hcfree (modulefile);
 
   return -1;
 }

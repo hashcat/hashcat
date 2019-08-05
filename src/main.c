@@ -476,7 +476,7 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
 
     for (u32 i = 0; i < 32; i++)
     {
-      const u32 opti_bit = 1u << i;
+      const u32 opti_bit = 1U << i;
 
       if (hashconfig->opti_type & opti_bit) event_log_info (hashcat_ctx, "* %s", stroptitype (opti_bit));
     }

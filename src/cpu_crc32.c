@@ -78,7 +78,7 @@ static const u32 crc32tab[256] =
 
 u32 cpu_crc32_buffer (const u8 *buf, const size_t length)
 {
-  u32 crc = ~0u;
+  u32 crc = ~0U;
 
   for (size_t pos = 0; pos < length; pos++)
   {
@@ -90,7 +90,7 @@ u32 cpu_crc32_buffer (const u8 *buf, const size_t length)
 
 int cpu_crc32 (const char *filename, u8 keytab[64])
 {
-  u32 crc = ~0u;
+  u32 crc = ~0U;
 
   HCFILE fp;
 

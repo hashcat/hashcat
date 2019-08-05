@@ -69,7 +69,7 @@ int sort_pot_tree_by_hash (const void *v1, const void *v2)
   const hash_t *h1 = (const hash_t *) t1->nodes->hash_buf;
   const hash_t *h2 = (const hash_t *) t2->nodes->hash_buf;
 
-  hashconfig_t *hc = (hashconfig_t *) t1->hashconfig; // is same as t2->hashconfig
+  hashconfig_t *hc = t1->hashconfig; // is same as t2->hashconfig
 
   return sort_by_hash (h1, h2, hc);
 }
@@ -576,12 +576,10 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
         continue;
       }
-      else
-      {
-        // should be rejected?
-        //const int parser_status = module_ctx->module_hash_decode_potfile (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, hash_buf.hook_salt, hash_buf.hash_info, line_hash_buf, line_hash_len, NULL);
-        //if (parser_status != PARSER_OK) continue;
-      }
+
+      // should be rejected?
+      //const int parser_status = module_ctx->module_hash_decode_potfile (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, hash_buf.hook_salt, hash_buf.hash_info, line_hash_buf, line_hash_len, NULL);
+      //if (parser_status != PARSER_OK) continue;
     }
     else
     {

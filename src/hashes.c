@@ -773,7 +773,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
   if ((user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY) || (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT))
   {
-    u32 hash_pos;
+    u64 hash_pos;
 
     for (hash_pos = 0; hash_pos < hashes_avail; hash_pos++)
     {
@@ -820,7 +820,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
     salts_buf = (salt_t *) hccalloc (1, sizeof (salt_t));
   }
 
-  for (u32 hash_pos = 0; hash_pos < hashes_avail; hash_pos++)
+  for (u64 hash_pos = 0; hash_pos < hashes_avail; hash_pos++)
   {
     hashes_buf[hash_pos].digest = ((char *) digests_buf) + (hash_pos * hashconfig->dgst_size);
 

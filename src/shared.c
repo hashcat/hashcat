@@ -336,7 +336,11 @@ bool hc_path_create (const char *path)
 {
   if (hc_path_exist (path) == true) return false;
 
-  const int fd = creat (path, S_IRUSR | S_IWUSR);
+#ifdef O_CLOEXEC
+  const int fd = open (path, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, S_IRUSR | S_IWUSR);
+#else
+  const int fd = open (path, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+#endif
 
   if (fd == -1) return false;
 
@@ -790,7 +794,7 @@ float get_entropy (const u8 *buf, const int len)
 
     float w = (float) r / len;
 
-    entropy += -w * log2 (w);
+    entropy += -w * log2f (w);
   }
 
   return entropy;
@@ -1143,7 +1147,7 @@ bool generic_salt_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, const u8 
     if (in_len < (int) (((hashconfig->salt_min * 8) / 6) + 0)) return false;
     if (in_len > (int) (((hashconfig->salt_max * 8) / 6) + 3)) return false;
 
-    tmp_len = base64_decode (base64_to_int, (const u8 *) in_buf, in_len, tmp_u8);
+    tmp_len = base64_decode (base64_to_int, in_buf, in_len, tmp_u8);
   }
   else
   {
