@@ -332,6 +332,8 @@ int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 
   restore_ctx->enabled = true;
 
+  restore_ctx->restore_execute = false;
+
   if (user_options->restore == true)
   {
     if (read_restore (hashcat_ctx) == -1) return -1;
@@ -348,6 +350,8 @@ int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
     user_options_init (hashcat_ctx);
 
     if (user_options_getopt (hashcat_ctx, rd->argc, rd->argv) == -1) return -1;
+
+    restore_ctx->restore_execute = true;
   }
 
   return 0;

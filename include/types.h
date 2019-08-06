@@ -1716,6 +1716,8 @@ typedef struct restore_ctx
 {
   bool    enabled;
 
+  bool    restore_execute;
+
   int     argc;
   char  **argv;
 
