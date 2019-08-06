@@ -1450,51 +1450,53 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       "Speed.#*.........: %9sH/s",
       hashcat_status->speed_sec_all);
   }
-  
+
   if (hashcat_status->salts_cnt > 1)
   {
-  event_log_info (hashcat_ctx,
-    "Recovered........: %d/%d (%.2f%%) Digests, %d/%d (%.2f%%) Salts",
-    hashcat_status->digests_done,
-    hashcat_status->digests_cnt,
-    hashcat_status->digests_percent,
-    hashcat_status->salts_done,
-    hashcat_status->salts_cnt,
-    hashcat_status->salts_percent);
+    event_log_info (hashcat_ctx,
+      "Recovered........: %d/%d (%.2f%%) Digests, %d/%d (%.2f%%) Salts",
+      hashcat_status->digests_done,
+      hashcat_status->digests_cnt,
+      hashcat_status->digests_percent,
+      hashcat_status->salts_done,
+      hashcat_status->salts_cnt,
+      hashcat_status->salts_percent);
   }
   else
   {
-  event_log_info (hashcat_ctx,
-    "Recovered........: %d/%d (%.2f%%) Digests",
-    hashcat_status->digests_done,
-    hashcat_status->digests_cnt,
-    hashcat_status->digests_percent);
+    event_log_info (hashcat_ctx,
+      "Recovered........: %d/%d (%.2f%%) Digests",
+      hashcat_status->digests_done,
+      hashcat_status->digests_cnt,
+      hashcat_status->digests_percent);
   }
-  
+
   if (hashcat_status->digests_cnt > 1000)
   {
-    int digests_remain = hashcat_status->digests_cnt - hashcat_status->digests_done;
-    double digests_remain_percent = (double) digests_remain / (double) hashcat_status->digests_cnt * 100;
-    int salts_remain = hashcat_status->salts_cnt - hashcat_status->salts_done;
-    double salts_remain_percent =  (double) salts_remain / (double) hashcat_status->salts_cnt * 100;
+    const int    digests_remain         = hashcat_status->digests_cnt - hashcat_status->digests_done;
+    const double digests_remain_percent = (double) digests_remain / (double) hashcat_status->digests_cnt * 100;
+
+    const int    salts_remain           = hashcat_status->salts_cnt - hashcat_status->salts_done;
+    const double salts_remain_percent   = (double) salts_remain / (double) hashcat_status->salts_cnt * 100;
+
     if (hashcat_status->salts_cnt > 1)
     {
-    event_log_info (hashcat_ctx,
-      "Remaining........: %d (%.2f%%) Digests, %d (%.2f%%) Salts",
-      digests_remain,
-      digests_remain_percent,
-      salts_remain,
-      salts_remain_percent);
+      event_log_info (hashcat_ctx,
+        "Remaining........: %d (%.2f%%) Digests, %d (%.2f%%) Salts",
+        digests_remain,
+        digests_remain_percent,
+        salts_remain,
+        salts_remain_percent);
     }
     else
     {
-    event_log_info (hashcat_ctx,
-      "Remaining........: %d (%.2f%%) Digests",
-      digests_remain,
-      digests_remain_percent);
+      event_log_info (hashcat_ctx,
+        "Remaining........: %d (%.2f%%) Digests",
+        digests_remain,
+        digests_remain_percent);
     }
   }
-  
+
   if (hashcat_status->digests_cnt > 1000)
   {
     event_log_info (hashcat_ctx,
