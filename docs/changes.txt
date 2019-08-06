@@ -37,7 +37,6 @@
 - Added hash-mode: Python passlib pbkdf2-sha512
 - Added hash-mode: Oracle Transportation Management (SHA256)
 - Added hash-mode: sha1(md5($pass).$salt)
-- Added hash-mode: SolarWinds Orion, SHA512(PBKDF2-HMAC-SHA1)
 
 ##
 ## Bugs
