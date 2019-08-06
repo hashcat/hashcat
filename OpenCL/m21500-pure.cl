@@ -30,7 +30,7 @@ typedef struct pbkdf2_sha1_tmp
 
 typedef struct pbkdf2_sha1
 {
-  u32 salt_buf[4];
+  u32 salt_buf[5];
 
 } pbkdf2_sha1_t;
 

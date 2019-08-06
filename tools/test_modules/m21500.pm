@@ -32,9 +32,7 @@ sub module_generate_hash
 
   my $key_b64 = encode_base64 (sha512($key), "");
 
-  my $salt_b64 = encode_base64 ($salt, "");
-
-  my $hash = sprintf ("sha1:%i:%s:%s", $iter, $salt_b64, $key_b64);
+  my $hash = sprintf ("\$solarwinds\$0\$%s\$%s", $salt, $key_b64);
 
   return $hash;
 }
@@ -43,38 +41,31 @@ sub module_verify_hash
 {
   my $line = shift;
 
-  return unless (substr ($line, 0, 5) eq 'sha1:');
+  my ($hash, $word) = split (':', $line);
 
-  # iterations
-  my $index1 = index ($line, ":", 5);
+  return unless defined $hash;
+  return unless defined $word;
 
-  return if $index1 < 1;
+  my @data = split ('\$', $hash);
 
-  my $iter = substr ($line, 5, $index1 - 5);
+  return unless scalar @data == 4;
 
-  # salt
+  shift @data;
 
-  my $index2 = index ($line, ":", $index1 + 1);
+  my $signature = shift @data;
+  my $sig_dec   = shift @data;
+  my $salt      = shift @data;
+  my $hash_b64  = shift @data;
+  my $hash_raw  = decode_base64 ($hash_b64);
 
-  return if $index2 < 1;
-
-  my $salt = substr ($line, $index1 + 1,  $index2 - $index1 - 1);
-
-  $salt = decode_base64 ($salt);
-
-  # end of digest
-
-  $index1 = index ($line, ":", $index2 + 1);
-
-  return if $index1 < 1;
-
-  # word / hash
-
-  my $word = substr ($line, $index1 + 1);
+  return unless ($signature eq "solarwinds");
+  return unless ($sig_dec eq "0");
+  return unless (length ($salt) > 16);
+  return unless (length ($hash_raw) != 128);
 
   my $word_packed = pack_if_HEX_notation ($word);
 
-  my $new_hash = module_generate_hash ($word_packed, $salt, $iter);
+  my $new_hash = module_generate_hash ($word_packed, $salt);
 
   return ($new_hash, $word);
 }

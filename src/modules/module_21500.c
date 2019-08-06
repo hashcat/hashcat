@@ -16,7 +16,7 @@ static const u32   DGST_POS1      = 15;
 static const u32   DGST_POS2      = 6;
 static const u32   DGST_POS3      = 7;
 static const u32   DGST_SIZE      = DGST_SIZE_8_8;
-static const u32   HASH_CATEGORY  = HASH_CATEGORY_GENERIC_KDF;
+static const u32   HASH_CATEGORY  = HASH_CATEGORY_EAS;
 static const char *HASH_NAME      = "SolarWinds Orion";
 static const u64   KERN_TYPE      = 21500;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
@@ -58,9 +58,11 @@ typedef struct pbkdf2_sha1_tmp
 
 typedef struct pbkdf2_sha1
 {
-  u32 salt_buf[64];
+  u32 salt_buf[5];
 
 } pbkdf2_sha1_t;
+
+static const u32 ROUNDS_SOLARWINDS_ORION = 1000;
 
 static const char *SIGNATURE_SOLARWINDS_ORION = "$solarwinds$0$";
 
@@ -134,16 +136,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // iter
 
-  const u32 iter = 1000;
-
-  salt->salt_iter = iter - 1;
+  salt->salt_iter = ROUNDS_SOLARWINDS_ORION - 1;
 
   // salt
 
-  char *salt_pos = (char *) token.buf[1];
-  int salt_len = token.len[1];
+  const u8 *salt_pos = token.buf[1];
 
-  if (salt_len > 16) return (PARSER_SALT_LENGTH);
+  int salt_len = token.len[1];
 
   char custom_salt[17];
 
@@ -164,17 +163,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     salt_len = 8;
   }
 
-  salt_pos = custom_salt;
-
-  memcpy (pbkdf2_sha1->salt_buf, salt_pos, salt_len);
+  memcpy (pbkdf2_sha1->salt_buf, custom_salt, salt_len);
 
   salt->salt_len = salt_len;
-
-  salt->salt_buf[0] = pbkdf2_sha1->salt_buf[0];
-  salt->salt_buf[1] = pbkdf2_sha1->salt_buf[1];
-  salt->salt_buf[2] = pbkdf2_sha1->salt_buf[2];
-  salt->salt_buf[3] = pbkdf2_sha1->salt_buf[3];
-  salt->salt_buf[4] = salt->salt_iter;
 
   // hash
 
