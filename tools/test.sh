@@ -168,10 +168,10 @@ function init()
   rm -rf "${OUTD}/${hash_type}.sh" "${OUTD}/${hash_type}_passwords.txt" "${OUTD}/${hash_type}_hashes.txt"
 
   # Exclude TrueCrypt and VeraCrypt testing modes
-  if is_in_array "${hash_type}" "${TC_MODES}"; then
+  if is_in_array "${hash_type}" ${TC_MODES}; then
     return 0
   fi
-  if is_in_array "${hash_type} ${VC_MODES}"; then
+  if is_in_array "${hash_type}" ${VC_MODES}; then
     return 0
   fi
 
