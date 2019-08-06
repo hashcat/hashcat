@@ -1018,7 +1018,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       {
         line_num++;
 
-        const size_t line_len = fgetl (&fp, line_buf);
+        const size_t line_len = fgetl (&fp, line_buf, HCBUFSIZ_LARGE);
 
         if (line_len == 0) continue;
 

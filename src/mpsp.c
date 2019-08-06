@@ -1434,7 +1434,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
               while (!hc_feof (&mask_fp))
               {
-                const size_t line_len = fgetl (&mask_fp, line_buf);
+                const size_t line_len = fgetl (&mask_fp, line_buf, HCBUFSIZ_LARGE);
 
                 if (line_len == 0) continue;
 
@@ -1519,7 +1519,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         while (!hc_feof (&mask_fp))
         {
-          const size_t line_len = fgetl (&mask_fp, line_buf);
+          const size_t line_len = fgetl (&mask_fp, line_buf, HCBUFSIZ_LARGE);
 
           if (line_len == 0) continue;
 
@@ -1589,7 +1589,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         while (!hc_feof (&mask_fp))
         {
-          const size_t line_len = fgetl (&mask_fp, line_buf);
+          const size_t line_len = fgetl (&mask_fp, line_buf, HCBUFSIZ_LARGE);
 
           if (line_len == 0) continue;
 

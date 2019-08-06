@@ -30,7 +30,7 @@ bool initialize_keyboard_layout_mapping (const char *filename, keyboard_layout_m
 
   while (!hc_feof (&fp))
   {
-    const size_t line_len = fgetl (&fp, line_buf);
+    const size_t line_len = fgetl (&fp, line_buf, HCBUFSIZ_LARGE);
 
     if (line_len == 0) continue;
 

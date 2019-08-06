@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <inttypes.h>
 
 #if defined (__CYGWIN__)
 int    _wopen       (const char *path, int oflag, ...);
@@ -31,7 +32,7 @@ char  *hc_fgets     (char *buf, int len, HCFILE *fp);
 size_t hc_fwrite    (void *ptr, size_t size, size_t nmemb, HCFILE *fp);
 size_t hc_fread     (void *ptr, size_t size, size_t nmemb, HCFILE *fp);
 
-size_t fgetl        (HCFILE *fp, char *line_buf);
+size_t fgetl        (HCFILE *fp, char *line_buf, const size_t line_sz);
 u64    count_lines  (HCFILE *fp);
 size_t in_superchop (char *buf);
 size_t superchop_with_length (char *buf, const size_t len);

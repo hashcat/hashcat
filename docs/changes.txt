@@ -82,6 +82,7 @@
 - Building: Updated BUILD.md
 - Cracking bcrypt and Password Safe v2: Use a feedback from the compute API backend to dynamically find out optimal thread count
 - Documents: Added README on how to build hashcat on MSYS2
+- Filehandling: Print a truncation warning in case an oversized line was detected
 - My Wallet: Added additional plaintext pattern used in newer versions
 - OpenCL Runtime: Disable OpenCL kernel cache on Apple for Intel CPU (throws CL_BUILD_PROGRAM_FAILURE for no reason)
 - OpenCL Runtime: Do not run a shared- and constant-memory size check if their memory type is of type global memory (typically CPU)

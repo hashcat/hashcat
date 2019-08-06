@@ -185,7 +185,7 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
       while (!hc_feof (&fp))
       {
-        size_t line_len = fgetl (&fp, line_buf);
+        size_t line_len = fgetl (&fp, line_buf, HCBUFSIZ_LARGE);
 
         if (line_len == 0) continue;
 

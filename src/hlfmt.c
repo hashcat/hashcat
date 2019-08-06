@@ -350,7 +350,7 @@ u32 hlfmt_detect (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, u32 max_check)
 
   while (!hc_feof (fp))
   {
-    const size_t line_len = fgetl (fp, line_buf);
+    const size_t line_len = fgetl (fp, line_buf, HCBUFSIZ_LARGE);
 
     if (line_len == 0) continue;
 

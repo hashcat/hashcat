@@ -521,7 +521,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
   while (!hc_feof (&potfile_ctx->fp))
   {
-    size_t line_len = fgetl (&potfile_ctx->fp, line_buf);
+    size_t line_len = fgetl (&potfile_ctx->fp, line_buf, HCBUFSIZ_LARGE);
 
     if (line_len == 0) continue;
 

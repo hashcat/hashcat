@@ -4183,7 +4183,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
               {
                 if (hc_feof (combs_fp)) break;
 
-                size_t line_len = fgetl (combs_fp, line_buf);
+                size_t line_len = fgetl (combs_fp, line_buf, HCBUFSIZ_LARGE);
 
                 line_len = convert_from_hex (hashcat_ctx, line_buf, line_len);
 
@@ -4328,7 +4328,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
               {
                 if (hc_feof (combs_fp)) break;
 
-                size_t line_len = fgetl (combs_fp, line_buf);
+                size_t line_len = fgetl (combs_fp, line_buf, HCBUFSIZ_LARGE);
 
                 line_len = convert_from_hex (hashcat_ctx, line_buf, line_len);
 
