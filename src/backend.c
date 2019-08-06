@@ -6130,14 +6130,18 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
   backend_ctx->backend_devices_cnt    = cuda_devices_cnt    + opencl_devices_cnt;
   backend_ctx->backend_devices_active = cuda_devices_active + opencl_devices_active;
 
-  // find duplicate devices (typically cuda and opencl!)
-  // using force here enables both devices, which is the worst possible outcome
-  // many users force by default, so this is not a good idea
+  // find duplicate devices (typically CUDA and OpenCL)
 
-  //if (user_options->force == false)
-  //{
-  backend_ctx_find_alias_devices (hashcat_ctx);
-  //}
+  if ((cuda_devices_cnt > 0) && (opencl_devices_cnt > 0))
+  {
+    // using force here enables both devices, which is the worst possible outcome
+    // many users force by default, so this is not a good idea
+
+    //if (user_options->force == false)
+    //{
+    backend_ctx_find_alias_devices (hashcat_ctx);
+    //{
+  }
 
   if (backend_ctx->backend_devices_active == 0)
   {
