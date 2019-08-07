@@ -2051,7 +2051,7 @@ typedef struct mask_ctx
 
   u64    bfs_cnt;
 
-  cs_t  *css_buf;
+  cs_t   css_buf[256];
   u32    css_cnt;
 
   hcstat_table_t *root_table_buf;

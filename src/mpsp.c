@@ -117,22 +117,15 @@ static int mp_css_append_salt (hashcat_ctx_t *hashcat_ctx, salt_t *salt_buf)
   u32  salt_len     =        salt_buf->salt_len;
   u8  *salt_buf_ptr = (u8 *) salt_buf->salt_buf;
 
-  u32 css_cnt_salt = mask_ctx->css_cnt + salt_len;
-
-  cs_t *css_buf_salt = (cs_t *) hccalloc (css_cnt_salt, sizeof (cs_t));
-
-  memcpy (css_buf_salt, mask_ctx->css_buf, mask_ctx->css_cnt * sizeof (cs_t));
+  if ((mask_ctx->css_cnt + salt_len) > 256) return -1;
 
   for (u32 i = 0, j = mask_ctx->css_cnt; i < salt_len; i++, j++)
   {
-    css_buf_salt[j].cs_buf[0] = salt_buf_ptr[i];
-    css_buf_salt[j].cs_len    = 1;
+    mask_ctx->css_buf[j].cs_buf[0] = salt_buf_ptr[i];
+    mask_ctx->css_buf[j].cs_len    = 1;
+
+    mask_ctx->css_cnt++;
   }
-
-  hcfree (mask_ctx->css_buf);
-
-  mask_ctx->css_buf = css_buf_salt;
-  mask_ctx->css_cnt = css_cnt_salt;
 
   return 0;
 }
@@ -142,6 +135,8 @@ static int mp_css_utf16le_expand (hashcat_ctx_t *hashcat_ctx)
   mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
 
   u32 css_cnt_utf16le = mask_ctx->css_cnt * 2;
+
+  if (css_cnt_utf16le > 256) return -1;
 
   cs_t *css_buf_utf16le = (cs_t *) hccalloc (css_cnt_utf16le, sizeof (cs_t));
 
@@ -153,10 +148,11 @@ static int mp_css_utf16le_expand (hashcat_ctx_t *hashcat_ctx)
     css_buf_utf16le[j + 1].cs_len    = 1;
   }
 
-  hcfree (mask_ctx->css_buf);
+  memcpy (mask_ctx->css_buf, css_buf_utf16le, css_cnt_utf16le * sizeof (cs_t));
 
-  mask_ctx->css_buf = css_buf_utf16le;
   mask_ctx->css_cnt = css_cnt_utf16le;
+
+  hcfree (css_buf_utf16le);
 
   return 0;
 }
@@ -166,6 +162,8 @@ static int mp_css_utf16be_expand (hashcat_ctx_t *hashcat_ctx)
   mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
 
   u32 css_cnt_utf16be = mask_ctx->css_cnt * 2;
+
+  if (css_cnt_utf16be > 256) return -1;
 
   cs_t *css_buf_utf16be = (cs_t *) hccalloc (css_cnt_utf16be, sizeof (cs_t));
 
@@ -177,10 +175,11 @@ static int mp_css_utf16be_expand (hashcat_ctx_t *hashcat_ctx)
     memcpy (&css_buf_utf16be[j + 1], &mask_ctx->css_buf[i], sizeof (cs_t));
   }
 
-  hcfree (mask_ctx->css_buf);
+  memcpy (mask_ctx->css_buf, css_buf_utf16be, css_cnt_utf16be * sizeof (cs_t));
 
-  mask_ctx->css_buf = css_buf_utf16be;
   mask_ctx->css_cnt = css_cnt_utf16be;
+
+  hcfree (css_buf_utf16be);
 
   return 0;
 }
@@ -1197,7 +1196,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
         if (mask_ctx_parse_maskfile (hashcat_ctx) == -1) return -1;
 
-        mask_ctx->css_buf = (cs_t *) hccalloc (256, sizeof (cs_t));
+        //mask_ctx->css_buf = (cs_t *) hccalloc (256, sizeof (cs_t));
 
         if (mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, mask_ctx->css_buf, &mask_ctx->css_cnt) == -1) return -1;
 
@@ -1222,7 +1221,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
         if (mask_ctx_parse_maskfile (hashcat_ctx) == -1) return -1;
 
-        mask_ctx->css_buf = (cs_t *) hccalloc (256, sizeof (cs_t));
+        //mask_ctx->css_buf = (cs_t *) hccalloc (256, sizeof (cs_t));
 
         if (mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, mask_ctx->css_buf, &mask_ctx->css_cnt) == -1) return -1;
 
@@ -1253,7 +1252,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
     if (user_options->attack_mode == ATTACK_MODE_BF) // always true
     {
-      mask_ctx->css_buf = (cs_t *) hccalloc (256, sizeof (cs_t));
+      //mask_ctx->css_buf = (cs_t *) hccalloc (256, sizeof (cs_t));
 
       if (mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, mask_ctx->css_buf, &mask_ctx->css_cnt) == -1) return -1;
 
@@ -1382,7 +1381,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
   mask_ctx->markov_css_buf = (cs_t *) hccalloc (SP_PW_MAX * CHARSIZ, sizeof (cs_t));
 
   mask_ctx->css_cnt = 0;
-  mask_ctx->css_buf = NULL;
+  //mask_ctx->css_buf = NULL;
 
   mask_ctx->mask_from_file = false;
 
@@ -1647,7 +1646,7 @@ void mask_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
   if (mask_ctx->enabled == false) return;
 
-  hcfree (mask_ctx->css_buf);
+  //hcfree (mask_ctx->css_buf);
 
   hcfree (mask_ctx->root_css_buf);
   hcfree (mask_ctx->markov_css_buf);
