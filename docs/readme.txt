@@ -279,7 +279,6 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (10.1 o
 - Ethereum Wallet, SCRYPT
 - Ethereum Pre-Sale Wallet, PBKDF2-HMAC-SHA256
 - Ansible Vault
-- SolarWinds Orion, SHA512(PBKDF2-HMAC-SHA1)
 - Plaintext
 
 ##

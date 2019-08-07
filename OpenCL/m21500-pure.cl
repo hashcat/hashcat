@@ -30,7 +30,7 @@ typedef struct pbkdf2_sha1_tmp
 
 typedef struct pbkdf2_sha1
 {
-  u32 salt_buf[5];
+  u32 salt_buf[64];
 
 } pbkdf2_sha1_t;
 
@@ -243,7 +243,7 @@ KERNEL_FQ void m21500_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, pbkdf2_sha1
 
   sha512_init (&ctx);
 
-  sha512_update (&ctx, (const u32 *)tmps[gid].out, 1024);
+  sha512_update_global (&ctx, tmps[gid].out, 1024);
 
   sha512_final (&ctx);
 
