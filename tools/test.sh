@@ -26,14 +26,14 @@ LUKS_MODE="14600"
 
 # missing hash types: 5200
 
-HASH_TYPES=$(ls ${TDIR}/test_modules/*.pm | sed -E 's/.*m0*([0-9]+).pm/\1/')
+HASH_TYPES=$(ls "${TDIR}"/test_modules/*.pm | sed -E 's/.*m0*([0-9]+).pm/\1/')
 HASH_TYPES="${HASH_TYPES} ${TC_MODES} ${VC_MODES} ${LUKS_MODE}"
 HASH_TYPES=$(echo -n "${HASH_TYPES}" | tr ' ' '\n' | sort -u -n | tr '\n' ' ')
 
 VECTOR_WIDTHS="1 2 4 8 16"
 
-HASHFILE_ONLY=$(grep -l OPTS_TYPE_BINARY_HASHFILE ${TDIR}/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+).c/\1/' | tr '\n' ' ')
-SLOW_ALGOS=$(grep -l ATTACK_EXEC_OUTSIDE_KERNEL ${TDIR}/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+).c/\1/' | tr '\n' ' ')
+HASHFILE_ONLY=$(grep -l OPTS_TYPE_BINARY_HASHFILE "${TDIR}"/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+).c/\1/' | tr '\n' ' ')
+SLOW_ALGOS=$(grep -l ATTACK_EXEC_OUTSIDE_KERNEL "${TDIR}"/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+).c/\1/' | tr '\n' ' ')
 
 OUTD="test_$(date +%s)"
 
@@ -148,7 +148,7 @@ mask_7[31]="?d?d?d?d?d?d?d?d0000000"
 function is_in_array()
 {
   for e in "${@:2}"; do
-    [[ "$e" == "$1" ]] && return 0
+    [ "$e" = "$1" ] && return 0
   done
   return 1
 }
@@ -168,14 +168,14 @@ function init()
   rm -rf "${OUTD}/${hash_type}.sh" "${OUTD}/${hash_type}_passwords.txt" "${OUTD}/${hash_type}_hashes.txt"
 
   # Exclude TrueCrypt and VeraCrypt testing modes
-  if is_in_array "${hash_type}" "${TC_MODES}"; then
+  if is_in_array "${hash_type}" ${TC_MODES}; then
     return 0
   fi
-  if is_in_array "${hash_type} ${VC_MODES}"; then
+  if is_in_array "${hash_type}" ${VC_MODES}; then
     return 0
   fi
 
-  if [[ ${hash_type} -eq ${LUKS_MODE} ]]; then
+  if [ "${hash_type}" -eq ${LUKS_MODE} ]; then
 
     luks_tests_folder="${TDIR}/luks_tests/"
 
@@ -237,20 +237,20 @@ function init()
   # create list of password and hashes of same type
   cmd_file=${OUTD}/${hash_type}.sh
 
-  grep " ${hash_type} '" ${OUTD}/all.sh > ${cmd_file} 2>/dev/null
+  grep " ${hash_type} '" "${OUTD}/all.sh" > "${cmd_file}" 2>/dev/null
 
   # create separate list of password and hashes
-  sed 's/^echo *|.*$//'       ${cmd_file} | awk '{print $2}'                  > ${OUTD}/${hash_type}_passwords.txt
-  sed 's/^echo *|/echo "" |/' ${cmd_file} | awk '{print $10}' | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes.txt
+  sed 's/^echo *|.*$//'       "${cmd_file}" | awk '{print $2}'                  > "${OUTD}/${hash_type}_passwords.txt"
+  sed 's/^echo *|/echo "" |/' "${cmd_file}" | awk '{print $10}' | cut -d"'" -f2 > "${OUTD}/${hash_type}_hashes.txt"
 
   if [ "${hash_type}" -eq 10300 ]; then
     #cat ${OUTD}/${hash_type}.sh | cut -d' ' -f11- | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes.txt
-    cut -d"'" -f2 ${OUTD}/${hash_type}.sh > ${OUTD}/${hash_type}_hashes.txt
+    cut -d"'" -f2 "${OUTD}/${hash_type}.sh" > "${OUTD}/${hash_type}_hashes.txt"
   fi
 
   # truncate dicts
-  rm -rf ${OUTD}/${hash_type}_dict1 ${OUTD}/${hash_type}_dict2
-  touch ${OUTD}/${hash_type}_dict1 ${OUTD}/${hash_type}_dict2
+  rm -rf "${OUTD}/${hash_type}_dict1" "${OUTD}/${hash_type}_dict2"
+  touch "${OUTD}/${hash_type}_dict1" "${OUTD}/${hash_type}_dict2"
 
   # minimum password length
 
@@ -296,7 +296,7 @@ function init()
         p1=$((p1 + min_offset))
         p0=$((p0 + min_offset))
 
-        if [ "${p1}" -gt ${pass_len} ]; then
+        if [ "${p1}" -gt "${pass_len}" ]; then
 
           p1=${pass_len}
           p0=$((p1 - 1))
@@ -304,21 +304,21 @@ function init()
         fi
 
         # add splitted password to dicts
-        echo ${pass} | cut -c -${p0} >> ${OUTD}/${hash_type}_dict1
-        echo ${pass} | cut -c ${p1}- >> ${OUTD}/${hash_type}_dict2
+        echo "${pass}" | cut -c -${p0} >> "${OUTD}/${hash_type}_dict1"
+        echo "${pass}" | cut -c ${p1}- >> "${OUTD}/${hash_type}_dict2"
       elif [ "${pass_len}" -eq 1 ]; then
-        echo ${pass} >> ${OUTD}/${hash_type}_dict1
-        echo >> ${OUTD}/${hash_type}_dict2
+        echo "${pass}" >> "${OUTD}/${hash_type}_dict1"
+        echo >> "${OUTD}/${hash_type}_dict2"
       else
-        echo >> ${OUTD}/${hash_type}_dict1
-        echo >> ${OUTD}/${hash_type}_dict2
+        echo >> "${OUTD}/${hash_type}_dict1"
+        echo >> "${OUTD}/${hash_type}_dict2"
       fi
 
     fi
 
     ((i++))
 
-  done 9< ${OUTD}/${hash_type}_passwords.txt
+  done 9< "${OUTD}/${hash_type}_passwords.txt"
 
   min_len=0
 
@@ -337,24 +337,24 @@ function init()
   fi
 
   # generate multiple pass/hash foreach len (2 to 8)
-  if [ ${MODE} -ge 1 ]; then
+  if [ "${MODE}" -ge 1 ]; then
 
     for ((i = 2; i < 9; i++)); do
 
       cmd_file=${OUTD}/${hash_type}_multi_${i}.txt
 
-      rm -rf ${cmd_file} ${OUTD}/${hash_type}_passwords_multi_${i}.txt ${OUTD}/${hash_type}_hashes_multi_${i}.txt
-      rm -rf ${OUTD}/${hash_type}_dict1_multi_${i} ${OUTD}/${hash_type}_dict2_multi_${i}
-      touch ${OUTD}/${hash_type}_dict1_multi_${i} ${OUTD}/${hash_type}_dict2_multi_${i}
+      rm -rf "${cmd_file}" "${OUTD}/${hash_type}_passwords_multi_${i}.txt" "${OUTD}/${hash_type}_hashes_multi_${i}.txt"
+      rm -rf "${OUTD}/${hash_type}_dict1_multi_${i}" "${OUTD}/${hash_type}_dict2_multi_${i}"
+      touch "${OUTD}/${hash_type}_dict1_multi_${i}" "${OUTD}/${hash_type}_dict2_multi_${i}"
 
-      perl tools/test.pl single ${hash_type} ${i} > ${cmd_file}
+      perl tools/test.pl single "${hash_type}" ${i} > "${cmd_file}"
 
-      sed 's/^echo *|.*$//'       ${cmd_file} | awk '{print $2}'                  > ${OUTD}/${hash_type}_passwords_multi_${i}.txt
-      sed 's/^echo *|/echo "" |/' ${cmd_file} | awk '{print $10}' | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes_multi_${i}.txt
+      sed 's/^echo *|.*$//'       "${cmd_file}" | awk '{print $2}'                  > "${OUTD}/${hash_type}_passwords_multi_${i}.txt"
+      sed 's/^echo *|/echo "" |/' "${cmd_file}" | awk '{print $10}' | cut -d"'" -f2 > "${OUTD}/${hash_type}_hashes_multi_${i}.txt"
 
       if [ "${hash_type}" -eq 10300 ]; then
         #cat ${OUTD}/${hash_type}_multi_${i}.txt | cut -d' ' -f11- | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes_multi_${i}.txt
-        cut -d"'" -f2 ${OUTD}/${hash_type}_multi_${i}.txt > ${OUTD}/${hash_type}_hashes_multi_${i}.txt
+        cut -d"'" -f2 "${OUTD}/${hash_type}_multi_${i}.txt" > "${OUTD}/${hash_type}_hashes_multi_${i}.txt"
       fi
 
       # split password, 'i' is the len
@@ -367,10 +367,10 @@ function init()
       while read -r -u 9 pass; do
 
         # add splitted password to dicts
-        echo ${pass} | cut -c -${p0} >> ${OUTD}/${hash_type}_dict1_multi_${i}
-        echo ${pass} | cut -c ${p1}- >> ${OUTD}/${hash_type}_dict2_multi_${i}
+        echo "${pass}" | cut -c -${p0} >> "${OUTD}/${hash_type}_dict1_multi_${i}"
+        echo "${pass}" | cut -c ${p1}- >> "${OUTD}/${hash_type}_dict2_multi_${i}"
 
-      done 9< ${OUTD}/${hash_type}_passwords_multi_${i}.txt
+      done 9< "${OUTD}/${hash_type}_passwords_multi_${i}.txt"
 
     done
 
@@ -383,33 +383,33 @@ function status()
 
   ((cnt++))
 
-  if [ ${RET} -ne 0 ]; then
+  if [ "${RET}" -ne 0 ]; then
     case ${RET} in
       1)
-        if ! is_in_array ${hash_type} ${NEVER_CRACK_ALGOS}; then
+        if ! is_in_array "${hash_type}" ${NEVER_CRACK_ALGOS}; then
 
-           echo "password not found, cmdline : ${CMD}" >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
+           echo "password not found, cmdline : ${CMD}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
            ((e_nf++))
 
         fi
 
         ;;
       4)
-        echo "timeout reached, cmdline : ${CMD}" >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
+        echo "timeout reached, cmdline : ${CMD}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
         ((e_to++))
 
         ;;
       10)
         if [ "${pass_only}" -eq 1 ]; then
-          echo "plains not found in output, cmdline : ${CMD}" >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
+          echo "plains not found in output, cmdline : ${CMD}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
         else
-          echo "hash:plains not matched in output, cmdline : ${CMD}" >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
+          echo "hash:plains not matched in output, cmdline : ${CMD}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.tx"t
         fi
         ((e_nm++))
 
         ;;
       *)
-        echo "! unhandled return code ${RET}, cmdline : ${CMD}" >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
+        echo "! unhandled return code ${RET}, cmdline : ${CMD}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
         echo "! unhandled return code, see ${OUTD}/logfull.txt for details."
         ((e_nf++))
         ;;
@@ -421,25 +421,25 @@ function attack_0()
 {
   file_only=0
 
-  if is_in_array ${hash_type} ${FILE_BASED_ALGOS}; then
+  if is_in_array "${hash_type}" ${FILE_BASED_ALGOS}; then
 
     file_only=1
 
   fi
 
   # single hash
-  if [ ${MODE} -ne 1 ]; then
+  if [ "${MODE}" -ne 1 ]; then
 
     e_to=0
     e_nf=0
     e_nm=0
     cnt=0
 
-    echo "> Testing hash type $hash_type with attack mode 0, markov ${MARKOV}, single hash, device-type ${TYPE}, vector-width ${VECTOR}." >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
+    echo "> Testing hash type $hash_type with attack mode 0, markov ${MARKOV}, single hash, device-type ${TYPE}, vector-width ${VECTOR}." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
     max=32
 
-    if is_in_array ${hash_type} ${TIMEOUT_ALGOS}; then
+    if is_in_array "${hash_type}" ${TIMEOUT_ALGOS}; then
 
       max=12
 
@@ -467,7 +467,7 @@ function attack_0()
       if [ "${file_only}" -eq 1 ]; then
 
         temp_file="${OUTD}/${hash_type}_filebased_only_temp.txt"
-        echo ${hash} | base64 -d > ${temp_file}
+        echo "${hash}" | base64 -d > "${temp_file}"
         hash="${temp_file}"
 
       fi
@@ -480,7 +480,7 @@ function attack_0()
 
       CMD="echo ${pass} | ./${BIN} ${OPTS} -a 0 -m ${hash_type} '${hash}'"
 
-      echo -n "[ len $((i + 1)) ] " >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
+      echo -n "[ len $((i + 1)) ] " >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
       output=$(echo "${pass}" | ./${BIN} ${OPTS} -a 0 -m ${hash_type} "${hash}" 2>&1)
 
@@ -488,11 +488,11 @@ function attack_0()
 
       ret=${?}
 
-      echo "${output}" >> ${OUTD}/logfull.txt
+      echo "${output}" >> "${OUTD}/logfull.txt"
 
       if [ "${ret}" -eq 0 ]; then
 
-        if [ ${pass_only} -eq 1 ]; then
+        if [ "${pass_only}" -eq 1 ]; then
           search=":${pass}"
         else
           search="${hash}:${pass}"
@@ -512,7 +512,7 @@ function attack_0()
 
       i=$((i + 1))
 
-    done 9< ${OUTD}/${hash_type}.sh
+    done 9< "${OUTD}/${hash_type}.sh"
 
     msg="OK"
 
@@ -531,14 +531,14 @@ function attack_0()
   fi
 
   # multihash
-  if [ ${MODE} -ne 0 ]; then
+  if [ "${MODE}" -ne 0 ]; then
 
     e_to=0
     e_nf=0
     e_nm=0
     cnt=0
 
-    echo "> Testing hash type $hash_type with attack mode 0, markov ${MARKOV}, multi hash, Device-Type ${TYPE}, vector-width ${VECTOR}." >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
+    echo "> Testing hash type $hash_type with attack mode 0, markov ${MARKOV}, multi hash, Device-Type ${TYPE}, vector-width ${VECTOR}." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
     hash_file=${OUTD}/${hash_type}_hashes.txt
 
@@ -547,15 +547,15 @@ function attack_0()
     if [ "${file_only}" -eq 1 ]; then
 
       temp_file="${OUTD}/${hash_type}_filebased_only_temp.txt"
-      rm -f ${temp_file}
+      rm -f "${temp_file}"
 
       hash_file=${temp_file}
 
       while read -r base64_hash; do
 
-        echo -n ${base64_hash} | base64 -d >> ${temp_file}
+        echo -n "${base64_hash}" | base64 -d >> "${temp_file}"
 
-      done < ${OUTD}/${hash_type}_hashes.txt
+      done < "${OUTD}/${hash_type}_hashes.txt"
 
     fi
 
@@ -565,7 +565,7 @@ function attack_0()
 
     ret=${?}
 
-    echo "${output}" >> ${OUTD}/logfull.txt
+    echo "${output}" >> "${OUTD}/logfull.txt"
 
     if [ "${ret}" -eq 0 ]; then
 
@@ -573,9 +573,9 @@ function attack_0()
 
       while read -r -u 9 hash; do
 
-        pass=$(sed -n ${i}p ${OUTD}/${hash_type}_passwords.txt)
+        pass=$(sed -n ${i}p "${OUTD}/${hash_type}_passwords.txt")
 
-        if [ ${pass_only} -eq 1 ]; then
+        if [ "${pass_only}" -eq 1 ]; then
           search=":${pass}"
         else
           search="${hash}:${pass}"
@@ -593,7 +593,7 @@ function attack_0()
 
         i=$((i + 1))
 
-      done 9< ${OUTD}/${hash_type}_hashes.txt
+      done 9< "${OUTD}/${hash_type}_hashes.txt"
 
     fi
 
@@ -620,14 +620,14 @@ function attack_1()
 {
   file_only=0
 
-  if is_in_array ${hash_type} ${FILE_BASED_ALGOS}; then
+  if is_in_array "${hash_type}" ${FILE_BASED_ALGOS}; then
 
     file_only=1
 
   fi
 
   # single hash
-  if [ ${MODE} -ne 1 ]; then
+  if [ "${MODE}" -ne 1 ]; then
 
     e_to=0
     e_nf=0
@@ -646,7 +646,7 @@ function attack_1()
       min=0
     fi
 
-    echo "> Testing hash type $hash_type with attack mode 1, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}." >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
+    echo "> Testing hash type $hash_type with attack mode 1, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
     i=1
     while read -r -u 9 hash; do
 
@@ -655,7 +655,7 @@ function attack_1()
         if [ "${file_only}" -eq 1 ]; then
 
           temp_file="${OUTD}/${hash_type}_filebased_only_temp.txt"
-          echo ${hash} | base64 -d > ${temp_file}
+          echo "${hash}" | base64 -d > "${temp_file}"
           hash="${temp_file}"
 
         fi
@@ -670,9 +670,9 @@ function attack_1()
         dict2="${OUTD}/${hash_type}_dict2"
 
         if [ "${hash_type}" -eq 20510 ]; then # special case for PKZIP Master Key
-          line_dict1=$(sed -n ${line_nr}p ${dict1})
-          line_dict2=$(sed -n ${line_nr}p ${dict2})
-          line_num=$(wc -l ${dict1} | sed -E 's/ *([0-9]+) .*$/\1/')
+          line_dict1=$(sed -n ${line_nr}p "${dict1}")
+          line_dict2=$(sed -n ${line_nr}p "${dict2}")
+          line_num=$(wc -l "${dict1}" | sed -E 's/ *([0-9]+) .*$/\1/')
 
           line_dict1_orig=${line_dict1}
           line_dict2_orig=${line_dict2}
@@ -702,37 +702,37 @@ function attack_1()
 
           tmp_file="${dict1}_mod"
 
-          head -n $((line_nr - 1)) ${dict1} > ${tmp_file}
-          echo "${line_dict1}" >> ${tmp_file}
-          tail -n $((line_num - line_nr - 1)) ${dict1} >> ${tmp_file}
+          head -n $((line_nr - 1)) "${dict1}" > "${tmp_file}"
+          echo "${line_dict1}" >> "${tmp_file}"
+          tail -n $((line_num - line_nr - 1)) "${dict1}" >> "${tmp_file}"
 
           dict1=${tmp_file}
 
           tmp_file="${dict2}_mod"
 
-          head -n $((line_nr - 1)) ${dict2} > ${tmp_file}
-          echo "${line_dict2}" >> ${tmp_file}
-          tail -n $((line_num - line_nr - 1)) ${dict2} >> ${tmp_file}
+          head -n $((line_nr - 1)) "${dict2}" > "${tmp_file}"
+          echo "${line_dict2}" >> "${tmp_file}"
+          tail -n $((line_num - line_nr - 1)) "${dict2}" >> "${tmp_file}"
 
           dict2=${tmp_file}
         fi
 
         CMD="./${BIN} ${OPTS} -a 1 -m ${hash_type} '${hash}' ${dict1} ${dict2}"
 
-        echo -n "[ len $i ] " >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
+        echo -n "[ len $i ] " >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
         output=$(./${BIN} ${OPTS} -a 1 -m ${hash_type} "${hash}" ${dict1} ${dict2} 2>&1)
 
         ret=${?}
 
-        echo "${output}" >> ${OUTD}/logfull.txt
+        echo "${output}" >> "${OUTD}/logfull.txt"
 
         if [ "${ret}" -eq 0 ]; then
 
-          line_dict1=$(sed -n ${line_nr}p ${OUTD}/${hash_type}_dict1)
-          line_dict2=$(sed -n ${line_nr}p ${OUTD}/${hash_type}_dict2)
+          line_dict1=$(sed -n ${line_nr}p "${OUTD}/${hash_type}_dict1")
+          line_dict2=$(sed -n ${line_nr}p "${OUTD}/${hash_type}_dict2")
 
-          if [ ${pass_only} -eq 1 ]; then
+          if [ "${pass_only}" -eq 1 ]; then
             search=":${line_dict1}${line_dict2}"
           else
             search="${hash}:${line_dict1}${line_dict2}"
@@ -754,7 +754,7 @@ function attack_1()
 
       ((i++))
 
-    done 9< ${OUTD}/${hash_type}_hashes.txt
+    done 9< "${OUTD}/${hash_type}_hashes.txt"
 
     msg="OK"
 
@@ -773,7 +773,7 @@ function attack_1()
   fi
 
   # multihash
-  if [ ${MODE} -ne 0 ]; then
+  if [ "${MODE}" -ne 0 ]; then
 
     # no multi hash checks for these modes (because we only have 1 hash for each of them)
 
@@ -794,42 +794,42 @@ function attack_1()
 
     offset=7
 
-    if [ ${hash_type} -eq  5800 ]; then
+    if [ "${hash_type}" -eq  5800 ]; then
       offset=6
-    elif [ ${hash_type} -eq  3000 ]; then
+    elif [ "${hash_type}" -eq  3000 ]; then
       offset=6
     fi
 
     hash_file=${OUTD}/${hash_type}_multihash_combi.txt
 
-    tail -n ${offset} ${OUTD}/${hash_type}_hashes.txt > ${hash_file}
+    tail -n ${offset} "${OUTD}/${hash_type}_hashes.txt" > "${hash_file}"
 
     # if file_only -> decode all base64 "hashes" and put them in the temporary file
 
     if [ "${file_only}" -eq 1 ]; then
 
       temp_file="${OUTD}/${hash_type}_filebased_only_temp.txt"
-      rm -f ${temp_file}
+      rm -f "${temp_file}"
 
       hash_file=${temp_file}
 
       while read -r base64_hash; do
 
-        echo -n ${base64_hash} | base64 -d >> ${temp_file}
+        echo -n "${base64_hash}" | base64 -d >> "${temp_file}"
 
-      done < ${OUTD}/${hash_type}_multihash_combi.txt
+      done < "${OUTD}/${hash_type}_multihash_combi.txt"
 
     fi
 
     CMD="./${BIN} ${OPTS} -a 1 -m ${hash_type} ${hash_file} ${OUTD}/${hash_type}_dict1 ${OUTD}/${hash_type}_dict2"
 
-    echo "> Testing hash type $hash_type with attack mode 1, markov ${MARKOV}, multi hash, Device-Type ${TYPE}, vector-width ${VECTOR}." >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
+    echo "> Testing hash type $hash_type with attack mode 1, markov ${MARKOV}, multi hash, Device-Type ${TYPE}, vector-width ${VECTOR}." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
     output=$(./${BIN} ${OPTS} -a 1 -m ${hash_type} ${hash_file} ${OUTD}/${hash_type}_dict1 ${OUTD}/${hash_type}_dict2 2>&1)
 
     ret=${?}
 
-    echo "${output}" >> ${OUTD}/logfull.txt
+    echo "${output}" >> "${OUTD}/logfull.txt"
 
     if [ "${ret}" -eq 0 ]; then
 
@@ -843,10 +843,10 @@ function attack_1()
           line_nr=$((offset - i))
         fi
 
-        line_dict1=$(tail -n ${line_nr} ${OUTD}/${hash_type}_dict1 | head -1)
-        line_dict2=$(tail -n ${line_nr} ${OUTD}/${hash_type}_dict2 | head -1)
+        line_dict1=$(tail -n ${line_nr} "${OUTD}/${hash_type}_dict1" | head -1)
+        line_dict2=$(tail -n ${line_nr} "${OUTD}/${hash_type}_dict2" | head -1)
 
-        if [ ${pass_only} -eq 1 ]; then
+        if [ "${pass_only}" -eq 1 ]; then
           search=":${line_dict1}${line_dict2}"
         else
           search="${hash}:${line_dict1}${line_dict2}"
@@ -864,7 +864,7 @@ function attack_1()
 
         i=$((i + 1))
 
-      done 9< ${OUTD}/${hash_type}_multihash_combi.txt
+      done 9< "${OUTD}/${hash_type}_multihash_combi.txt"
 
     fi
 
@@ -891,21 +891,21 @@ function attack_3()
 {
   file_only=0
 
-  if is_in_array ${hash_type} ${FILE_BASED_ALGOS}; then
+  if is_in_array "${hash_type}" ${FILE_BASED_ALGOS}; then
 
     file_only=1
 
   fi
 
   # single hash
-  if [ ${MODE} -ne 1 ]; then
+  if [ "${MODE}" -ne 1 ]; then
 
     e_to=0
     e_nf=0
     e_nm=0
     cnt=0
 
-    echo "> Testing hash type $hash_type with attack mode 3, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}." >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
+    echo "> Testing hash type $hash_type with attack mode 3, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
     max=8
 
@@ -931,7 +931,7 @@ function attack_3()
 
       if [ "${i}" -gt 6 ]; then
 
-        if is_in_array ${hash_type} ${TIMEOUT_ALGOS}; then
+        if is_in_array "${hash_type}" ${TIMEOUT_ALGOS}; then
 
           break
 
@@ -942,7 +942,7 @@ function attack_3()
       if [ "${file_only}" -eq 1 ]; then
 
         temp_file="${OUTD}/${hash_type}_filebased_only_temp.txt"
-        echo ${hash} | base64 -d > ${temp_file}
+        echo "${hash}" | base64 -d > "${temp_file}"
         hash="${temp_file}"
 
       fi
@@ -952,7 +952,7 @@ function attack_3()
 
       dict="${OUTD}/${hash_type}_passwords.txt"
 
-      pass=$(sed -n ${i}p ${dict})
+      pass=$(sed -n ${i}p "${dict}")
 
       # passwords can't be smaller than mask in -a 3 = mask attack
 
@@ -961,7 +961,7 @@ function attack_3()
         continue
       fi
 
-      pass_part_2=$(echo -n ${pass} | cut -b  $((i + 1))-)
+      pass_part_2=$(echo -n "${pass}" | cut -b  $((i + 1))-)
 
       mask=""
 
@@ -1000,19 +1000,19 @@ function attack_3()
 
       CMD="./${BIN} ${OPTS} -a 3 -m ${hash_type} '${hash}' ${mask}"
 
-      echo -n "[ len $i ] " >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
+      echo -n "[ len $i ] " >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
       output=$(./${BIN} ${OPTS} -a 3 -m ${hash_type} "${hash}" ${mask} 2>&1)
 
       ret=${?}
 
-      echo "${output}" >> ${OUTD}/logfull.txt
+      echo "${output}" >> "${OUTD}/logfull.txt"
 
       if [ "${ret}" -eq 0 ]; then
 
-        line_dict=$(sed -n ${i}p ${dict})
+        line_dict=$(sed -n ${i}p "${dict}")
 
-        if [ ${pass_only} -eq 1 ]; then
+        if [ "${pass_only}" -eq 1 ]; then
           search=":${line_dict}"
         else
           search="${hash}:${line_dict}"
@@ -1034,7 +1034,7 @@ function attack_3()
 
       ((i++))
 
-    done 9< ${OUTD}/${hash_type}_hashes.txt
+    done 9< "${OUTD}/${hash_type}_hashes.txt"
 
     msg="OK"
 
@@ -1053,7 +1053,7 @@ function attack_3()
   fi
 
   # multihash
-  if [ ${MODE} -ne 0 ]; then
+  if [ "${MODE}" -ne 0 ]; then
 
     # no multi hash checks for these modes (because we only have 1 hash for each of them)
 
@@ -1074,7 +1074,7 @@ function attack_3()
 
     increment_max=8
 
-    if is_in_array ${hash_type} ${TIMEOUT_ALGOS}; then
+    if is_in_array "${hash_type}" ${TIMEOUT_ALGOS}; then
 
       increment_max=5
 
@@ -1097,46 +1097,46 @@ function attack_3()
     if [ "${file_only}" -eq 1 ]; then
 
       temp_file="${OUTD}/${hash_type}_filebased_only_temp.txt"
-      rm -f ${temp_file}
+      rm -f "${temp_file}"
 
       hash_file=${temp_file}
 
       while read -r base64_hash; do
 
-        echo -n ${base64_hash} | base64 -d >> ${temp_file}
+        echo -n "${base64_hash}" | base64 -d >> "${temp_file}"
 
-      done < ${OUTD}/${hash_type}_multihash_bruteforce.txt
+      done < "${OUTD}/${hash_type}_multihash_bruteforce.txt"
 
     fi
 
     hash_file=${OUTD}/${hash_type}_multihash_bruteforce.txt
 
-    tail_hashes=$(awk "length >= ${increment_min} && length <= ${increment_max}" ${OUTD}/${hash_type}_passwords.txt | wc -l)
-    head_hashes=$(awk                               "length <= ${increment_max}" ${OUTD}/${hash_type}_passwords.txt | wc -l)
+    tail_hashes=$(awk "length >= ${increment_min} && length <= ${increment_max}" "${OUTD}/${hash_type}_passwords.txt" | wc -l)
+    head_hashes=$(awk                               "length <= ${increment_max}" "${OUTD}/${hash_type}_passwords.txt" | wc -l)
 
     # in very rare cases (e.g. without -O and long passwords) we need to use .hcmask files with the passwords in it
     # otherwise there are no good masks we can test for such long passwords
 
     need_hcmask=0
 
-    if [ ${tail_hashes} -gt ${head_hashes} ]; then
+    if [ "${tail_hashes}" -gt "${head_hashes}" ]; then
       need_hcmask=1
     fi
 
-    if [ ${tail_hashes} -lt 1 ]; then
+    if [ "${tail_hashes}" -lt 1 ]; then
       need_hcmask=1
     fi
 
     if [ ${need_hcmask} -eq 0 ]; then
-      head -n ${head_hashes} ${OUTD}/${hash_type}_hashes.txt | tail -n ${tail_hashes} > ${hash_file}
+      head -n "${head_hashes}" "${OUTD}/${hash_type}_hashes.txt" | tail -n "${tail_hashes}" > "${hash_file}"
     else
-      tail_hashes=$(awk "length >= ${increment_min}" ${OUTD}/${hash_type}_passwords.txt | wc -l)
+      tail_hashes=$(awk "length >= ${increment_min}" "${OUTD}/${hash_type}_passwords.txt" | wc -l)
 
-      if [ ${tail_hashes} -lt 1 ]; then
+      if [ "${tail_hashes}" -lt 1 ]; then
         return
       fi
 
-      tail -n ${tail_hashes} ${OUTD}/${hash_type}_hashes.txt  > ${hash_file}
+      tail -n "${tail_hashes}" "${OUTD}/${hash_type}_hashes.txt"  > "${hash_file}"
     fi
 
     mask_pos=8
@@ -1153,7 +1153,7 @@ function attack_3()
 
       mask=${mask_3[${mask_pos}]}
     else
-      num_hashes=$(wc -l < ${OUTD}/${hash_type}_hashes.txt)
+      num_hashes=$(wc -l < "${OUTD}/${hash_type}_hashes.txt")
       cracks_offset=$((num_hashes - tail_hashes))
 
       mask=${OUTD}/${hash_type}_passwords.txt # fake hcmask file (i.e. the original dict)
@@ -1190,7 +1190,7 @@ function attack_3()
 
       while read -r -u 9 hash; do
 
-        pass=$(sed -n ${i}p ${OUTD}/${hash_type}_passwords.txt)
+        pass=$(sed -n ${i}p "${OUTD}/${hash_type}_passwords.txt")
 
         # charset 1
         char=$(echo "${pass}" | cut -b ${charset_1_pos})
@@ -1210,7 +1210,7 @@ function attack_3()
 
         i=$((i + 1))
 
-      done 9< ${OUTD}/${hash_type}_multihash_bruteforce.txt
+      done 9< "${OUTD}/${hash_type}_multihash_bruteforce.txt"
 
       # just make sure that all custom charset fields are initialized
 
@@ -1275,27 +1275,28 @@ function attack_3()
 
       while read -r -u 9 hash; do
 
-        pass=$(sed -n ${i}p ${OUTD}/${hash_type}_passwords.txt)
+        pass=$(sed -n ${i}p "${OUTD}/${hash_type}_passwords.txt")
 
         # charset 1
         char=$(echo "${pass}" | cut -b ${charset_1_pos})
         charset_1=$(echo -e "${charset_1}\n${char}")
+        charset_1=$(printf "%s\n%s\n" "${charset_1}" "${char}")
 
         # charset 2
         char=$(echo "${pass}" | cut -b ${charset_2_pos})
-        charset_2=$(echo -e "${charset_2}\n${char}")
+        charset_2=$(printf "%s\n%s\n" "${charset_2}" "${char}")
 
         # charset 3
         char=$(echo "${pass}" | cut -b ${charset_3_pos})
-        charset_3=$(echo -e "${charset_3}\n${char}")
+        charset_3=$(printf "%s\n%s\n" "${charset_3}" "${char}")
 
         # charset 4
         char=$(echo "${pass}" | cut -b ${charset_4_pos})
-        charset_4=$(echo -e "${charset_4}\n${char}")
+        charset_4=$(printf "%s\n%s\n" "${charset_4}" "${char}")
 
         i=$((i + 1))
 
-      done 9< ${OUTD}/${hash_type}_multihash_bruteforce.txt
+      done 9< "${OUTD}/${hash_type}_multihash_bruteforce.txt"
 
       # just make sure that all custom charset fields are initialized
 
@@ -1345,13 +1346,13 @@ function attack_3()
 
     CMD="./${BIN} ${OPTS} -a 3 -m ${hash_type} ${increment_charset_opts} ${hash_file} ${mask} "
 
-    echo "> Testing hash type $hash_type with attack mode 3, markov ${MARKOV}, multi hash, Device-Type ${TYPE}, vector-width ${VECTOR}." >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
+    echo "> Testing hash type $hash_type with attack mode 3, markov ${MARKOV}, multi hash, Device-Type ${TYPE}, vector-width ${VECTOR}." >> "${OUTD}/logfull.txt"  2>> "${OUTD}/logfull.txt"
 
     output=$(./${BIN} ${OPTS} -a 3 -m ${hash_type} ${increment_charset_opts} ${hash_file} ${mask} 2>&1)
 
     ret=${?}
 
-    echo "${output}" >> ${OUTD}/logfull.txt
+    echo "${output}" >> "${OUTD}/logfull.txt"
 
     if [ "${ret}" -eq 0 ]; then
 
@@ -1360,9 +1361,9 @@ function attack_3()
       while read -r -u 9 hash; do
         line_nr=$((i + cracks_offset))
 
-        pass=$(sed -n ${line_nr}p ${OUTD}/${hash_type}_passwords.txt)
+        pass=$(sed -n ${line_nr}p "${OUTD}/${hash_type}_passwords.txt")
 
-        if [ ${pass_only} -eq 1 ]; then
+        if [ "${pass_only}" -eq 1 ]; then
           search=":${pass}"
         else
           search="${hash}:${pass}"
@@ -1380,7 +1381,7 @@ function attack_3()
 
         i=$((i + 1))
 
-      done 9< ${OUTD}/${hash_type}_multihash_bruteforce.txt
+      done 9< "${OUTD}/${hash_type}_multihash_bruteforce.txt"
 
     fi
 
@@ -1407,21 +1408,21 @@ function attack_6()
 {
   file_only=0
 
-  if is_in_array ${hash_type} ${FILE_BASED_ALGOS}; then
+  if is_in_array "${hash_type}" ${FILE_BASED_ALGOS}; then
 
     file_only=1
 
   fi
 
   # single hash
-  if [ ${MODE} -ne 1 ]; then
+  if [ "${MODE}" -ne 1 ]; then
 
     e_to=0
     e_nf=0
     e_nm=0
     cnt=0
 
-    echo "> Testing hash type $hash_type with attack mode 6, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}." >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
+    echo "> Testing hash type $hash_type with attack mode 6, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
     min=1
     max=8
@@ -1453,13 +1454,13 @@ function attack_6()
 
     if [ "${min}" -eq 0 ]; then
 
-      pass_part_1=$(sed -n 1p ${OUTD}/${hash_type}_dict1)
-      pass_part_2=$(sed -n 1p ${OUTD}/${hash_type}_dict2)
+      pass_part_1=$(sed -n 1p "${OUTD}/${hash_type}_dict1")
+      pass_part_2=$(sed -n 1p "${OUTD}/${hash_type}_dict2")
 
       pass="${pass_part_1}${pass_part_2}"
 
-      echo -n ${pass} | cut -b -$((mask_offset + 0))  > ${OUTD}/${hash_type}_dict1_custom
-      echo -n ${pass} | cut -b  $((mask_offset + 1))- > ${OUTD}/${hash_type}_dict2_custom
+      echo -n "${pass}" | cut -b -$((mask_offset + 0))  > "${OUTD}/${hash_type}_dict1_custom"
+      echo -n "${pass}" | cut -b  $((mask_offset + 1))- > "${OUTD}/${hash_type}_dict2_custom"
 
       mask_custom=""
 
@@ -1467,12 +1468,12 @@ function attack_6()
 
         if   [ "${hash_type}" -eq 14000 ]; then
 
-          char=$(echo -n ${pass} | cut -b $((i + mask_offset)))
+          char=$(echo -n "${pass}" | cut -b $((i + mask_offset)))
           mask_custom="${mask_custom}${char}"
 
         elif [ "${hash_type}" -eq 14100 ]; then
 
-          char=$(echo -n ${pass} | cut -b $((i + mask_offset)))
+          char=$(echo -n "${pass}" | cut -b $((i + mask_offset)))
           mask_custom="${mask_custom}${char}"
 
         else
@@ -1492,7 +1493,7 @@ function attack_6()
 
       if [ "${i}" -gt 6 ]; then
 
-        if is_in_array ${hash_type} ${TIMEOUT_ALGOS}; then
+        if is_in_array "${hash_type}" ${TIMEOUT_ALGOS}; then
 
           break
 
@@ -1505,7 +1506,7 @@ function attack_6()
         if [ "${file_only}" -eq 1 ]; then
 
           temp_file="${OUTD}/${hash_type}_filebased_only_temp.txt"
-          echo ${hash} | base64 -d > ${temp_file}
+          echo "${hash}" | base64 -d > "${temp_file}"
           hash="${temp_file}"
 
         fi
@@ -1515,9 +1516,9 @@ function attack_6()
 
         dict1_a6=${OUTD}/${hash_type}_dict1_a6
 
-        cp ${dict1} ${dict1_a6}
+        cp "${dict1}" "${dict1_a6}"
 
-        pass=$(sed -n ${i}p ${OUTD}/${hash_type}_passwords.txt)
+        pass=$(sed -n ${i}p "${OUTD}/${hash_type}_passwords.txt")
 
         if [ "${hash_type}" -eq 20510 ]; then # special case for PKZIP Master Key
           pass=$(echo "${pass}" | cut -b 7-) # skip the first 6 chars
@@ -1528,25 +1529,25 @@ function attack_6()
           continue
         fi
 
-        echo ${pass} | cut -b -$((${#pass} - i)) >> ${dict1_a6}
+        echo "${pass}" | cut -b -$((${#pass} - i)) >> "${dict1_a6}"
 
         # the block below is just a fancy way to do a "shuf" (or sort -R) because macOS doesn't really support it natively
         # we do not really need a shuf, but it's actually better for testing purposes
 
-        rm -f ${dict1_a6}.txt # temporary file
+        rm -f "${dict1_a6}.txt" # temporary file
 
-        line_num=$(wc -l ${dict1_a6} | sed -E 's/ *([0-9]+) .*$/\1/')
+        line_num=$(wc -l "${dict1_a6}" | sed -E 's/ *([0-9]+) .*$/\1/')
 
-        sorted_lines=$(seq 1 ${line_num})
+        sorted_lines=$(seq 1 "${line_num}")
 
-        for lines in $(seq 1 ${line_num}); do
+        for lines in $(seq 1 "${line_num}"); do
 
           random_num=$((RANDOM % line_num))
           random_num=$((random_num + 1)) # sed -n [n]p starts counting with 1 (not 0)
 
           random_line=$(echo -n "${sorted_lines}" | sed -n ${random_num}p)
 
-          sed -n ${random_line}p ${dict1_a6} >> ${dict1_a6}.txt
+          sed -n ${random_line}p "${dict1_a6}" >> "${dict1_a6}.txt"
 
           # update the temp list of lines
 
@@ -1556,7 +1557,7 @@ function attack_6()
 
         done
 
-        mv ${dict1_a6}.txt ${dict1_a6}
+        mv "${dict1_a6}.txt" "${dict1_a6}"
 
         # end of shuf/sort -R
 
@@ -1569,13 +1570,13 @@ function attack_6()
 
         CMD="./${BIN} ${OPTS} -a 6 -m ${hash_type} '${hash}' ${dict1_a6} ${mask}"
 
-        echo -n "[ len $i ] " >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
+        echo -n "[ len $i ] " >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
         output=$(./${BIN} ${OPTS} -a 6 -m ${hash_type} "${hash}" ${dict1_a6} ${mask} 2>&1)
 
         ret=${?}
 
-        echo "${output}" >> ${OUTD}/logfull.txt
+        echo "${output}" >> "${OUTD}/logfull.txt"
 
         if [ "${ret}" -eq 0 ]; then
 
@@ -1585,10 +1586,10 @@ function attack_6()
             line_nr=$((i - 1))
           fi
 
-          line_dict1=$(sed -n ${line_nr}p ${dict1})
-          line_dict2=$(sed -n ${line_nr}p ${dict2})
+          line_dict1=$(sed -n ${line_nr}p "${dict1}")
+          line_dict2=$(sed -n ${line_nr}p "${dict2}")
 
-          if [ ${pass_only} -eq 1 ]; then
+          if [ "${pass_only}" -eq 1 ]; then
             search=":${line_dict1}${line_dict2}"
           else
             search="${hash}:${line_dict1}${line_dict2}"
@@ -1612,7 +1613,7 @@ function attack_6()
 
       ((i++))
 
-    done 9< ${OUTD}/${hash_type}_hashes.txt
+    done 9< "${OUTD}/${hash_type}_hashes.txt"
 
     msg="OK"
 
@@ -1628,13 +1629,13 @@ function attack_6()
 
     echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 6, Mode single, Device-Type ${TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
 
-    rm -f ${OUTD}/${hash_type}_dict1_custom
-    rm -f ${OUTD}/${hash_type}_dict2_custom
+    rm -f "${OUTD}/${hash_type}_dict1_custom"
+    rm -f "${OUTD}/${hash_type}_dict2_custom"
 
   fi
 
   # multihash
-  if [ ${MODE} -ne 0 ]; then
+  if [ "${MODE}" -ne 0 ]; then
 
     # no multi hash checks for these modes (because we only have 1 hash for each of them)
 
@@ -1655,19 +1656,19 @@ function attack_6()
 
     max=9
 
-    if   [ ${hash_type} -eq  2500 ]; then
+    if   [ "${hash_type}" -eq  2500 ]; then
       max=5
-    elif [ ${hash_type} -eq  3000 ]; then
+    elif [ "${hash_type}" -eq  3000 ]; then
       max=8
-    elif [ ${hash_type} -eq  7700 ] || [ ${hash_type} -eq  7701 ]; then
+    elif [ "${hash_type}" -eq  7700 ] || [ "${hash_type}" -eq  7701 ]; then
       max=8
-    elif [ ${hash_type} -eq  8500 ]; then
+    elif [ "${hash_type}" -eq  8500 ]; then
       max=8
-    elif [ ${hash_type} -eq 16800 ]; then
+    elif [ "${hash_type}" -eq 16800 ]; then
       max=5
     fi
 
-    if is_in_array ${hash_type} ${TIMEOUT_ALGOS}; then
+    if is_in_array "${hash_type}" ${TIMEOUT_ALGOS}; then
 
       max=5
 
@@ -1688,15 +1689,15 @@ function attack_6()
       if [ "${file_only}" -eq 1 ]; then
 
         temp_file="${OUTD}/${hash_type}_filebased_only_temp.txt"
-        rm -f ${temp_file}
+        rm -f "${temp_file}"
 
         hash_file=${temp_file}
 
         while read -r base64_hash; do
 
-          echo -n ${base64_hash} | base64 -d >> ${temp_file}
+          echo -n "${base64_hash}" | base64 -d >> "${temp_file}"
 
-        done < ${OUTD}/${hash_type}_hashes_multi_${i}.txt
+        done < "${OUTD}/${hash_type}_hashes_multi_${i}.txt"
 
       fi
 
@@ -1704,13 +1705,13 @@ function attack_6()
 
       CMD="./${BIN} ${OPTS} -a 6 -m ${hash_type} ${hash_file} ${OUTD}/${hash_type}_dict1_multi_${i} ${mask}"
 
-      echo "> Testing hash type $hash_type with attack mode 6, markov ${MARKOV}, multi hash with word len ${i}." >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
+      echo "> Testing hash type $hash_type with attack mode 6, markov ${MARKOV}, multi hash with word len ${i}." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
       output=$(./${BIN} ${OPTS} -a 6 -m ${hash_type} ${hash_file} ${OUTD}/${hash_type}_dict1_multi_${i} ${mask} 2>&1)
 
       ret=${?}
 
-      echo "${output}" >> ${OUTD}/logfull.txt
+      echo "${output}" >> "${OUTD}/logfull.txt"
 
       if [ "${ret}" -eq 0 ]; then
 
@@ -1718,10 +1719,10 @@ function attack_6()
 
         while read -r -u 9 hash; do
 
-          line_dict1=$(sed -n ${j}p ${OUTD}/${hash_type}_dict1_multi_${i})
-          line_dict2=$(sed -n ${j}p ${OUTD}/${hash_type}_dict2_multi_${i})
+          line_dict1=$(sed -n ${j}p "${OUTD}/${hash_type}_dict1_multi_${i}")
+          line_dict2=$(sed -n ${j}p "${OUTD}/${hash_type}_dict2_multi_${i}")
 
-          if [ ${pass_only} -eq 1 ]; then
+          if [ "${pass_only}" -eq 1 ]; then
             search=":${line_dict1}${line_dict2}"
           else
             search="${hash}:${line_dict1}${line_dict2}"
@@ -1739,7 +1740,7 @@ function attack_6()
 
           j=$((j + 1))
 
-        done 9< ${OUTD}/${hash_type}_hashes_multi_${i}.txt
+        done 9< "${OUTD}/${hash_type}_hashes_multi_${i}.txt"
 
       fi
 
@@ -1768,21 +1769,21 @@ function attack_7()
 {
   file_only=0
 
-  if is_in_array ${hash_type} ${FILE_BASED_ALGOS}; then
+  if is_in_array "${hash_type}" ${FILE_BASED_ALGOS}; then
 
     file_only=1
 
   fi
 
   # single hash
-  if [ ${MODE} -ne 1 ]; then
+  if [ "${MODE}" -ne 1 ]; then
 
     e_to=0
     e_nf=0
     e_nm=0
     cnt=0
 
-    echo "> Testing hash type $hash_type with attack mode 7, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}." >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
+    echo "> Testing hash type $hash_type with attack mode 7, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
     min=1
     max=8
@@ -1815,13 +1816,13 @@ function attack_7()
 
     if [ "${min}" -eq 0 ]; then
 
-      pass_part_1=$(sed -n 1p ${OUTD}/${hash_type}_dict1)
-      pass_part_2=$(sed -n 1p ${OUTD}/${hash_type}_dict2)
+      pass_part_1=$(sed -n 1p "${OUTD}/${hash_type}_dict1")
+      pass_part_2=$(sed -n 1p "${OUTD}/${hash_type}_dict2")
 
       pass="${pass_part_1}${pass_part_2}"
 
-      echo -n ${pass} | cut -b -$((mask_offset + 0))  > ${OUTD}/${hash_type}_dict1_custom
-      echo -n ${pass} | cut -b  $((mask_offset + 1))- > ${OUTD}/${hash_type}_dict2_custom
+      echo -n "${pass}" | cut -b -$((mask_offset + 0))  > "${OUTD}/${hash_type}_dict1_custom"
+      echo -n "${pass}" | cut -b  $((mask_offset + 1))- > "${OUTD}/${hash_type}_dict2_custom"
 
       mask_custom=""
 
@@ -1829,12 +1830,12 @@ function attack_7()
 
         if   [ "${hash_type}" -eq 14000 ]; then
 
-          char=$(echo -n ${pass} | cut -b ${i})
+          char=$(echo -n "${pass}" | cut -b ${i})
           mask_custom="${mask_custom}${char}"
 
         elif [ "${hash_type}" -eq 14100 ]; then
 
-          char=$(echo -n ${pass} | cut -b ${i})
+          char=$(echo -n "${pass}" | cut -b ${i})
           mask_custom="${mask_custom}${char}"
 
         else
@@ -1856,7 +1857,7 @@ function attack_7()
         if [ "${file_only}" -eq 1 ]; then
 
           temp_file="${OUTD}/${hash_type}_filebased_only_temp.txt"
-          echo ${hash} | base64 -d > ${temp_file}
+          echo "${hash}" | base64 -d > "${temp_file}"
           hash="${temp_file}"
 
         fi
@@ -1873,8 +1874,8 @@ function attack_7()
 
         if [ "${hash_type}" -eq 2500 ]; then
 
-          pass_part_1=$(sed -n ${line_nr}p ${OUTD}/${hash_type}_dict1)
-          pass_part_2=$(sed -n ${line_nr}p ${OUTD}/${hash_type}_dict2)
+          pass_part_1=$(sed -n ${line_nr}p "${OUTD}/${hash_type}_dict1")
+          pass_part_2=$(sed -n ${line_nr}p "${OUTD}/${hash_type}_dict2")
 
           pass_part_2_len=${#pass_part_2}
 
@@ -1894,8 +1895,8 @@ function attack_7()
 
         if [ "${hash_type}" -eq 16800 ]; then
 
-          pass_part_1=$(sed -n ${line_nr}p ${OUTD}/${hash_type}_dict1)
-          pass_part_2=$(sed -n ${line_nr}p ${OUTD}/${hash_type}_dict2)
+          pass_part_1=$(sed -n ${line_nr}p "${OUTD}/${hash_type}_dict1")
+          pass_part_2=$(sed -n ${line_nr}p "${OUTD}/${hash_type}_dict2")
 
           pass_part_2_len=${#pass_part_2}
 
@@ -1907,15 +1908,15 @@ function attack_7()
           mask_len=${#mask}
           mask_len=$((mask_len / 2))
 
-          mask_prefix=$(echo ${pass} | cut -b -$((pass_len - mask_len - pass_part_2_len)))
+          mask_prefix=$(echo "${pass}" | cut -b -$((pass_len - mask_len - pass_part_2_len)))
           mask=${mask_prefix}${mask}
 
         fi
 
         if [ "${hash_type}" -eq 20510 ]; then
 
-          pass_part_1=$(sed -n ${line_nr}p ${OUTD}/${hash_type}_dict1)
-          pass_part_2=$(sed -n ${line_nr}p ${OUTD}/${hash_type}_dict2)
+          pass_part_1=$(sed -n ${line_nr}p "${OUTD}/${hash_type}_dict1")
+          pass_part_2=$(sed -n ${line_nr}p "${OUTD}/${hash_type}_dict2")
 
           pass=${pass_part_1}${pass_part_2}
 
@@ -1932,8 +1933,8 @@ function attack_7()
 
           mask_len=$((${#mask} / 2))
 
-          echo "${pass_old}" | cut -b -$((6 + mask_len)) > ${OUTD}/${hash_type}_dict1_custom
-          echo "${pass}"     | cut -b $((mask_len + 1))- > ${OUTD}/${hash_type}_dict2_custom
+          echo "${pass_old}" | cut -b -$((6 + mask_len)) > "${OUTD}/${hash_type}_dict1_custom"
+          echo "${pass}"     | cut -b $((mask_len + 1))- > "${OUTD}/${hash_type}_dict2_custom"
 
           min=0 # hack to use the custom dict
           mask_custom=${mask}
@@ -1952,13 +1953,13 @@ function attack_7()
 
         CMD="./${BIN} ${OPTS} -a 7 -m ${hash_type} '${hash}' ${mask} ${dict2}"
 
-        echo -n "[ len $i ] " >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
+        echo -n "[ len $i ] " >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
         output=$(./${BIN} ${OPTS} -a 7 -m ${hash_type} "${hash}" ${mask} ${dict2} 2>&1)
 
         ret=${?}
 
-        echo "${output}" >> ${OUTD}/logfull.txt
+        echo "${output}" >> "${OUTD}/logfull.txt"
 
         if [ "${ret}" -eq 0 ]; then
 
@@ -1968,10 +1969,10 @@ function attack_7()
             line_nr=$((i - 1))
           fi
 
-          line_dict1=$(sed -n ${line_nr}p ${dict1})
-          line_dict2=$(sed -n ${line_nr}p ${dict2})
+          line_dict1=$(sed -n ${line_nr}p "${dict1}")
+          line_dict2=$(sed -n ${line_nr}p "${dict2}")
 
-          if [ ${pass_only} -eq 1 ]; then
+          if [ "${pass_only}" -eq 1 ]; then
             search=":${line_dict1}${line_dict2}"
           else
             search="${hash}:${line_dict1}${line_dict2}"
@@ -1995,7 +1996,7 @@ function attack_7()
 
       ((i++))
 
-    done 9< ${OUTD}/${hash_type}_hashes.txt
+    done 9< "${OUTD}/${hash_type}_hashes.txt"
 
     msg="OK"
 
@@ -2011,13 +2012,13 @@ function attack_7()
 
     echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 7, Mode single, Device-Type ${TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
 
-    rm -f ${OUTD}/${hash_type}_dict1_custom
-    rm -f ${OUTD}/${hash_type}_dict2_custom
+    rm -f "${OUTD}/${hash_type}_dict1_custom"
+    rm -f "${OUTD}/${hash_type}_dict2_custom"
 
   fi
 
   # multihash
-  if [ ${MODE} -ne 0 ]; then
+  if [ "${MODE}" -ne 0 ]; then
 
     # no multi hash checks for these modes (because we only have 1 hash for each of them)
 
@@ -2038,27 +2039,27 @@ function attack_7()
 
     max=9
 
-    if   [ ${hash_type} -eq  2500 ]; then
+    if   [ "${hash_type}" -eq  2500 ]; then
       max=5
-    elif [ ${hash_type} -eq  3000 ]; then
+    elif [ "${hash_type}" -eq  3000 ]; then
       max=8
-    elif [ ${hash_type} -eq  7700 ] || [ ${hash_type} -eq  7701 ]; then
+    elif [ "${hash_type}" -eq  7700 ] || [ "${hash_type}" -eq  7701 ]; then
       max=8
-    elif [ ${hash_type} -eq  8500 ]; then
+    elif [ "${hash_type}" -eq  8500 ]; then
       max=8
-    elif [ ${hash_type} -eq 14000 ]; then
+    elif [ "${hash_type}" -eq 14000 ]; then
       max=5
-    elif [ ${hash_type} -eq 14100 ]; then
+    elif [ "${hash_type}" -eq 14100 ]; then
       max=5
-    elif [ ${hash_type} -eq 14900 ]; then
+    elif [ "${hash_type}" -eq 14900 ]; then
       max=5
-    elif [ ${hash_type} -eq 15400 ]; then
+    elif [ "${hash_type}" -eq 15400 ]; then
       max=5
-    elif [ ${hash_type} -eq 16800 ]; then
+    elif [ "${hash_type}" -eq 16800 ]; then
       max=5
     fi
 
-    if is_in_array ${hash_type} ${TIMEOUT_ALGOS}; then
+    if is_in_array "${hash_type}" ${TIMEOUT_ALGOS}; then
 
       max=7
 
@@ -2082,21 +2083,21 @@ function attack_7()
       if [ "${file_only}" -eq 1 ]; then
 
         temp_file="${OUTD}/${hash_type}_filebased_only_temp.txt"
-        rm -f ${temp_file}
+        rm -f "${temp_file}"
 
         hash_file=${temp_file}
 
         while read -r base64_hash; do
 
-          echo -n ${base64_hash} | base64 -d >> ${temp_file}
+          echo -n "${base64_hash}" | base64 -d >> "${temp_file}"
 
-        done < ${OUTD}/${hash_type}_hashes_multi_${i}.txt
+        done < "${OUTD}/${hash_type}_hashes_multi_${i}.txt"
 
         # a little hack: since we don't want to have a very large mask (and wpa has minimum length of 8),
         # we need to create a temporary dict file on-the-fly and use it like this: [small mask] [long(er) words in dict]
 
         dict_file=${OUTD}/${hash_type}_dict2_multi_${i}_longer
-        rm -f ${dict_file}
+        rm -f "${dict_file}"
 
         mask_len=${#mask}
         mask_len=$((mask_len / 2))
@@ -2105,30 +2106,30 @@ function attack_7()
 
         while read -r -u 9 hash; do
 
-          pass_part_1=$(sed -n ${j}p ${OUTD}/${hash_type}_dict1_multi_${i})
-          pass_part_2=$(sed -n ${j}p ${OUTD}/${hash_type}_dict2_multi_${i})
+          pass_part_1=$(sed -n ${j}p "${OUTD}/${hash_type}_dict1_multi_${i}")
+          pass_part_2=$(sed -n ${j}p "${OUTD}/${hash_type}_dict2_multi_${i}")
 
           pass="${pass_part_1}${pass_part_2}"
 
           pass_suffix=$(echo "${pass}" | cut -b $((mask_len + 1))-)
 
-          echo "${pass_suffix}" >> ${dict_file}
+          echo "${pass_suffix}" >> "${dict_file}"
 
           j=$((j + 1))
 
-        done 9< ${OUTD}/${hash_type}_hashes_multi_${i}.txt
+        done 9< "${OUTD}/${hash_type}_hashes_multi_${i}.txt"
 
       fi
 
       CMD="./${BIN} ${OPTS} -a 7 -m ${hash_type} ${hash_file} ${mask} ${dict_file}"
 
-      echo "> Testing hash type $hash_type with attack mode 7, markov ${MARKOV}, multi hash with word len ${i}." >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
+      echo "> Testing hash type $hash_type with attack mode 7, markov ${MARKOV}, multi hash with word len ${i}." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
       output=$(./${BIN} ${OPTS} -a 7 -m ${hash_type} ${hash_file} ${mask} ${dict_file} 2>&1)
 
       ret=${?}
 
-      echo "${output}" >> ${OUTD}/logfull.txt
+      echo "${output}" >> "${OUTD}/logfull.txt"
 
       if [ "${ret}" -eq 0 ]; then
 
@@ -2136,10 +2137,10 @@ function attack_7()
 
         while read -r -u 9 hash; do
 
-          line_dict1=$(sed -n ${j}p ${OUTD}/${hash_type}_dict1_multi_${i})
-          line_dict2=$(sed -n ${j}p ${OUTD}/${hash_type}_dict2_multi_${i})
+          line_dict1=$(sed -n ${j}p "${OUTD}/${hash_type}_dict1_multi_${i}")
+          line_dict2=$(sed -n ${j}p "${OUTD}/${hash_type}_dict2_multi_${i}")
 
-          if [ ${pass_only} -eq 1 ]; then
+          if [ "${pass_only}" -eq 1 ]; then
             search=":${line_dict1}${line_dict2}"
           else
             search="${hash}:${line_dict1}${line_dict2}"
@@ -2157,7 +2158,7 @@ function attack_7()
 
           j=$((j + 1))
 
-        done 9< ${OUTD}/${hash_type}_hashes_multi_${i}.txt
+        done 9< "${OUTD}/${hash_type}_hashes_multi_${i}.txt"
 
       fi
 
@@ -2342,13 +2343,13 @@ function truecrypt_test()
   esac
 
   if [ ${#CMD} -gt 5 ]; then
-    echo "> Testing hash type $hashType with attack mode 3, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}, tcMode ${tcMode}" >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
+    echo "> Testing hash type $hashType with attack mode 3, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}, tcMode ${tcMode}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
     output=$(${CMD} 2>&1)
 
     ret=${?}
 
-    echo "${output}" >> ${OUTD}/logfull.txt
+    echo "${output}" >> "${OUTD}/logfull.txt"
 
     cnt=1
     e_nf=0
@@ -2388,25 +2389,25 @@ function veracrypt_test()
   cipher_digit="${hash_type:4:1}"
   case $cipher_digit in
     1)
-      [ $cipher_variation -eq "0" ] && cipher_cascade="aes"
-      [ $cipher_variation -eq "1" ] && cipher_cascade="serpent"
-      [ $cipher_variation -eq "2" ] && cipher_cascade="twofish"
-      [ $cipher_variation -eq "3" ] && cipher_cascade="camellia"
-      [ $cipher_variation -eq "5" ] && cipher_cascade="kuznyechik"
+      [ "$cipher_variation" -eq "0" ] && cipher_cascade="aes"
+      [ "$cipher_variation" -eq "1" ] && cipher_cascade="serpent"
+      [ "$cipher_variation" -eq "2" ] && cipher_cascade="twofish"
+      [ "$cipher_variation" -eq "3" ] && cipher_cascade="camellia"
+      [ "$cipher_variation" -eq "5" ] && cipher_cascade="kuznyechik"
       ;;
     2)
-      [ $cipher_variation -eq "0" ] && cipher_cascade="aes-twofish"
-      [ $cipher_variation -eq "1" ] && cipher_cascade="serpent-aes"
-      [ $cipher_variation -eq "2" ] && cipher_cascade="twofish-serpent"
-      [ $cipher_variation -eq "3" ] && cipher_cascade="camellia-kuznyechik"
-      [ $cipher_variation -eq "4" ] && cipher_cascade="camellia-serpent"
-      [ $cipher_variation -eq "5" ] && cipher_cascade="kuznyechik-aes"
-      [ $cipher_variation -eq "6" ] && cipher_cascade="kuznyechik-twofish"
+      [ "$cipher_variation" -eq "0" ] && cipher_cascade="aes-twofish"
+      [ "$cipher_variation" -eq "1" ] && cipher_cascade="serpent-aes"
+      [ "$cipher_variation" -eq "2" ] && cipher_cascade="twofish-serpent"
+      [ "$cipher_variation" -eq "3" ] && cipher_cascade="camellia-kuznyechik"
+      [ "$cipher_variation" -eq "4" ] && cipher_cascade="camellia-serpent"
+      [ "$cipher_variation" -eq "5" ] && cipher_cascade="kuznyechik-aes"
+      [ "$cipher_variation" -eq "6" ] && cipher_cascade="kuznyechik-twofish"
       ;;
     3)
-      [ $cipher_variation -eq "0" ] && cipher_cascade="aes-twofish-serpent"
-      [ $cipher_variation -eq "1" ] && cipher_cascade="serpent-twofish-aes"
-      [ $cipher_variation -eq "5" ] && cipher_cascade="kuznyechik-serpent-camellia"
+      [ "$cipher_variation" -eq "0" ] && cipher_cascade="aes-twofish-serpent"
+      [ "$cipher_variation" -eq "1" ] && cipher_cascade="serpent-twofish-aes"
+      [ "$cipher_variation" -eq "5" ] && cipher_cascade="kuznyechik-serpent-camellia"
       ;;
   esac
 
@@ -2419,13 +2420,13 @@ function veracrypt_test()
 
   CMD="echo hashca{a..z} | ./${BIN} ${OPTS} -a 0 -m ${hash_type} ${filename}"
 
-  echo "> Testing hash type ${hash_type} with attack mode 0, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}, cipher ${cipher_cascade}" >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
+  echo "> Testing hash type ${hash_type} with attack mode 0, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}, cipher ${cipher_cascade}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
   output=$(${CMD} 2>&1)
 
   ret=${?}
 
-  echo "${output}" >> ${OUTD}/logfull.txt
+  echo "${output}" >> "${OUTD}/logfull.txt"
 
   cnt=1
   e_nf=0
@@ -2545,12 +2546,12 @@ function luks_test()
           esac
 
           if [ -n "${CMD}" ]; then
-            echo "> Testing hash type ${hashType} with attack mode ${attackType}, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}, luksMode ${luks_mode}" >>${OUTD}/logfull.txt 2>>${OUTD}/logfull.txt
+            echo "> Testing hash type ${hashType} with attack mode ${attackType}, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}, luksMode ${luks_mode}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
             output=$(${CMD} 2>&1)
             ret=${?}
 
-            echo "${output}" >> ${OUTD}/logfull.txt
+            echo "${output}" >> "${OUTD}/logfull.txt"
 
             cnt=1
             e_nf=0
@@ -2654,17 +2655,17 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:" opt; do
 
   case ${opt} in
     "V")
-      if [ ${OPTARG} = "1" ]; then
+      if [ "${OPTARG}" = "1" ]; then
         VECTOR=1
-      elif [ ${OPTARG} = "2" ]; then
+      elif [ "${OPTARG}" = "2" ]; then
         VECTOR=2
-      elif [ ${OPTARG} = "4" ]; then
+      elif [ "${OPTARG}" = "4" ]; then
         VECTOR=4
-      elif [ ${OPTARG} = "8" ]; then
+      elif [ "${OPTARG}" = "8" ]; then
         VECTOR=8
-      elif [ ${OPTARG} = "16" ]; then
+      elif [ "${OPTARG}" = "16" ]; then
         VECTOR=16
-      elif [ ${OPTARG} = "all" ]; then
+      elif [ "${OPTARG}" = "all" ]; then
         VECTOR="all"
       else
         usage
@@ -2672,11 +2673,11 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:" opt; do
       ;;
 
     "t")
-      if [ ${OPTARG} = "single" ]; then
+      if [ "${OPTARG}" = "single" ]; then
         MODE=0
-      elif [ ${OPTARG} = "multi" ]; then
+      elif [ "${OPTARG}" = "multi" ]; then
         MODE=1
-      elif [ ${OPTARG} = "all" ]; then
+      elif [ "${OPTARG}" = "all" ]; then
         MODE=2
       else
         usage
@@ -2684,7 +2685,7 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:" opt; do
       ;;
 
     "m")
-      if [ ${OPTARG} = "all" ]; then
+      if [ "${OPTARG}" = "all" ]; then
         HT=65535
       else
         HT=${OPTARG}
@@ -2692,17 +2693,17 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:" opt; do
       ;;
 
     "a")
-      if [ ${OPTARG} = "all" ]; then
+      if [ "${OPTARG}" = "all" ]; then
         ATTACK=65535
-      elif [ ${OPTARG} = "0" ]; then
+      elif [ "${OPTARG}" = "0" ]; then
         ATTACK=0
-      elif [ ${OPTARG} = "1" ]; then
+      elif [ "${OPTARG}" = "1" ]; then
         ATTACK=1
-      elif [ ${OPTARG} = "3" ]; then
+      elif [ "${OPTARG}" = "3" ]; then
         ATTACK=3
-      elif [ ${OPTARG} = "6" ]; then
+      elif [ "${OPTARG}" = "6" ]; then
         ATTACK=6
-      elif [ ${OPTARG} = "7" ]; then
+      elif [ "${OPTARG}" = "7" ]; then
         ATTACK=7
       else
         usage
@@ -2715,7 +2716,7 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:" opt; do
       ;;
 
     "I")
-      PACKAGE_FOLDER=$( echo ${OPTARG} | sed 's!/$!!g' )
+      PACKAGE_FOLDER=$( echo "${OPTARG}" | sed 's!/$!!g' )
       ;;
 
     "s")
@@ -2727,9 +2728,9 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:" opt; do
       ;;
 
     "x")
-      if [ ${OPTARG} = "32" ]; then
+      if [ "${OPTARG}" = "32" ]; then
         ARCHITECTURE=32
-      elif [ ${OPTARG} = "64" ]; then
+      elif [ "${OPTARG}" = "64" ]; then
         ARCHITECTURE=64
       else
         usage
@@ -2737,11 +2738,11 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:" opt; do
       ;;
 
     "o")
-      if [ ${OPTARG} = "win" ]; then
+      if [ "${OPTARG}" = "win" ]; then
         EXTENSION="exe"
-      elif [ ${OPTARG} = "linux" ]; then
+      elif [ "${OPTARG}" = "linux" ]; then
         EXTENSION="bin"
-      elif [ ${OPTARG} = "macos" ]; then
+      elif [ "${OPTARG}" = "macos" ]; then
         EXTENSION="app"
       else
         usage
@@ -2757,10 +2758,10 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:" opt; do
       ;;
 
     "D")
-      if [ ${OPTARG} = "1" ]; then
+      if [ "${OPTARG}" = "1" ]; then
         OPTS="${OPTS} -D 1"
         TYPE="Cpu"
-      elif [ ${OPTARG} = "2" ]; then
+      elif [ "${OPTARG}" = "2" ]; then
         OPTS="${OPTS} -D 2"
         TYPE="Gpu"
       else
@@ -2770,7 +2771,7 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:" opt; do
       ;;
 
     "F")
-        OUTD=$( echo ${OPTARG} | sed 's!/$!!g' )
+        OUTD=$( echo "${OPTARG}" | sed 's!/$!!g' )
       ;;
 
     "P")
@@ -2838,15 +2839,15 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
   HT_MIN=0
   HT_MAX=0
 
-  if echo -n ${HT} | grep -q '^[0-9]\+$'; then
+  if echo -n "${HT}" | grep -q '^[0-9]\+$'; then
     HT_MIN=${HT}
     HT_MAX=${HT}
-  elif echo -n ${HT} | grep -q '^[0-9]\+-[1-9][0-9]*$'; then
+  elif echo -n "${HT}" | grep -q '^[0-9]\+-[1-9][0-9]*$'; then
 
     HT_MIN=$(echo -n ${HT} | sed "s/-.*//")
     HT_MAX=$(echo -n ${HT} | sed "s/.*-//")
 
-    if [ "${HT_MIN}" -gt ${HT_MAX} ]; then
+    if [ "${HT_MIN}" -gt "${HT_MAX}" ]; then
       echo "! hash type range -m ${HT} is not valid ..."
       usage
     fi
@@ -2858,16 +2859,16 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
   HT=${HT_MIN}
 
   # filter by hash_type
-  if [ ${HT} -ne 65535 ]; then
+  if [ "${HT}" -ne 65535 ]; then
 
     # validate filter
 
-    if ! is_in_array ${HT_MIN} ${HASH_TYPES}; then
+    if ! is_in_array "${HT_MIN}" ${HASH_TYPES}; then
       echo "! invalid hash type selected ..."
       usage
     fi
 
-    if ! is_in_array ${HT_MAX} ${HASH_TYPES}; then
+    if ! is_in_array "${HT_MAX}" ${HASH_TYPES}; then
       echo "! invalid hash type selected ..."
       usage
     fi
@@ -2876,30 +2877,30 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
   if [ -z "${PACKAGE_FOLDER}" ]; then
 
     # make new dir
-    mkdir -p ${OUTD}
+    mkdir -p "${OUTD}"
 
     # generate random test entry
-    if [ ${HT} -eq 65535 ]; then
+    if [ "${HT}" -eq 65535 ]; then
       for TMP_HT in ${HASH_TYPES}; do
-        if [[ ${TMP_HT} -ne ${LUKS_MODE} ]]; then
-          if ! is_in_array ${TMP_HT} ${TC_MODES}; then
-            if ! is_in_array ${TMP_HT} ${VC_MODES}; then
-              perl tools/test.pl single ${TMP_HT} >> ${OUTD}/all.sh
+        if [ "${TMP_HT}" -ne ${LUKS_MODE} ]; then
+          if ! is_in_array "${TMP_HT}" ${TC_MODES}; then
+            if ! is_in_array "${TMP_HT}" ${VC_MODES}; then
+              perl tools/test.pl single "${TMP_HT}" >> "${OUTD}/all.sh"
             fi
           fi
         fi
       done
     else
-      for TMP_HT in $(seq ${HT_MIN} ${HT_MAX}); do
-        if ! is_in_array ${TMP_HT} ${HASH_TYPES}; then
+      for TMP_HT in $(seq "${HT_MIN}" "${HT_MAX}"); do
+        if ! is_in_array "${TMP_HT}" ${HASH_TYPES}; then
           continue
         fi
 
-        if [[ ${TMP_HT} -ne ${LUKS_MODE} ]]; then
+        if [ "${TMP_HT}" -ne ${LUKS_MODE} ]; then
           # Exclude TrueCrypt and VeraCrypt testing modes
-          if ! is_in_array ${TMP_HT} ${TC_MODES}; then
-            if ! is_in_array ${TMP_HT} ${VC_MODES}; then
-              perl tools/test.pl single ${TMP_HT} >> ${OUTD}/all.sh
+          if ! is_in_array "${TMP_HT}" ${TC_MODES}; then
+            if ! is_in_array "${TMP_HT}" ${VC_MODES}; then
+              perl tools/test.pl single "${TMP_HT}" >> "${OUTD}/all.sh"
             fi
           fi
         fi
@@ -2912,7 +2913,7 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
 
   fi
 
-  rm -rf ${OUTD}/logfull.txt && touch ${OUTD}/logfull.txt
+  rm -rf "${OUTD}/logfull.txt" && touch "${OUTD}/logfull.txt"
 
   # populate array of hash types where we only should check if pass is in output (not both hash:pass)
   IFS=';' read -ra PASS_ONLY <<< "${HASHFILE_ONLY} ${NOCHECK_ENCODING}"
@@ -2929,9 +2930,9 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
 
       # check if the loop variable "hash_type" is between HT_MIN and HT_MAX (both included)
 
-      if   [ "${hash_type}" -lt ${HT_MIN} ]; then
+      if   [ "${hash_type}" -lt "${HT_MIN}" ]; then
         continue
-      elif [ "${hash_type}" -gt ${HT_MAX} ]; then
+      elif [ "${hash_type}" -gt "${HT_MAX}" ]; then
         # we are done because hash_type is larger than range:
         break
       fi
@@ -2952,13 +2953,13 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
 
       # should we check only the pass?
       pass_only=0
-      is_in_array ${hash_type}  ${PASS_ONLY} && pass_only=1
+      is_in_array "${hash_type}"  ${PASS_ONLY} && pass_only=1
 
       IS_SLOW=0
-      is_in_array ${hash_type} ${SLOW_ALGOS} && IS_SLOW=1
+      is_in_array "${hash_type}" ${SLOW_ALGOS} && IS_SLOW=1
 
       # we use phpass as slow hash for testing the AMP kernel
-      [[ ${hash_type} -eq 400 ]] && IS_SLOW=0
+      [ "${hash_type}" -eq 400 ] && IS_SLOW=0
 
       OPTS_OLD=${OPTS}
       VECTOR_OLD=${VECTOR}
@@ -2986,10 +2987,10 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
           VECTOR=${CUR_WIDTH}
           OPTS="${OPTS_OLD} --backend-vector-width ${VECTOR}"
 
-          if [[ ${IS_SLOW} -eq 1 ]]; then
+          if [ ${IS_SLOW} -eq 1 ]; then
 
             # Look up if this is one of supported VeraCrypt modes
-            if is_in_array ${hash_type} ${VC_MODES}; then
+            if is_in_array "${hash_type}" ${VC_MODES}; then
               veracrypt_test 0 # aes
               veracrypt_test 1 # serpent
               veracrypt_test 2 # twofish
@@ -2998,35 +2999,35 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
               veracrypt_test 5 # kuznyechik
               veracrypt_test 6 # kuznyechik (alternative cascade)
 
-            elif is_in_array ${hash_type} ${TC_MODES}; then
+            elif is_in_array "${hash_type}" ${TC_MODES}; then
               # run truecrypt tests
-              truecrypt_test ${hash_type} 0
-              truecrypt_test ${hash_type} 1
-              truecrypt_test ${hash_type} 2
-            elif [[ ${hash_type} -eq ${LUKS_MODE} ]]; then
+              truecrypt_test "${hash_type}" 0
+              truecrypt_test "${hash_type}" 1
+              truecrypt_test "${hash_type}" 2
+            elif [ "${hash_type}" -eq ${LUKS_MODE} ]; then
               # run luks tests
-              luks_test ${hash_type} ${ATTACK}
+              luks_test "${hash_type}" ${ATTACK}
             else
               # run attack mode 0 (stdin)
-              if [[ ${ATTACK} -eq 65535 ]] || [[ ${ATTACK} -eq 0 ]]; then attack_0; fi
+              if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 0 ]; then attack_0; fi
             fi
 
           else
 
             # run attack mode 0 (stdin)
-            if [[ ${ATTACK} -eq 65535 ]] || [[ ${ATTACK} -eq 0 ]]; then attack_0; fi
+            if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 0 ]; then attack_0; fi
 
             # run attack mode 1 (combinator)
-            if [[ ${ATTACK} -eq 65535 ]] || [[ ${ATTACK} -eq 1 ]]; then attack_1; fi
+            if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 1 ]; then attack_1; fi
 
             # run attack mode 3 (bruteforce)
-            if [[ ${ATTACK} -eq 65535 ]] || [[ ${ATTACK} -eq 3 ]]; then attack_3; fi
+            if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 3 ]; then attack_3; fi
 
             # run attack mode 6 (dict+mask)
-            if [[ ${ATTACK} -eq 65535 ]] || [[ ${ATTACK} -eq 6 ]]; then attack_6; fi
+            if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 6 ]; then attack_6; fi
 
             # run attack mode 7 (mask+dict)
-            if [[ ${ATTACK} -eq 65535 ]] || [[ ${ATTACK} -eq 7 ]]; then attack_7; fi
+            if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 7 ]; then attack_7; fi
 
           fi
         fi
@@ -3046,51 +3047,51 @@ fi
 # fix logfile
 if [ "${PACKAGE}" -eq 0 ]; then
 
-  cat -vet ${OUTD}/logfull.txt | sed -e 's/\^M                                             \^M//g' | sed -e 's/\$$//g' > ${OUTD}/test_report.log
+  cat -vet "${OUTD}/logfull.txt" | sed -e 's/\^M                                             \^M//g' | sed -e 's/\$$//g' > "${OUTD}/test_report.log"
 
 fi
 
-rm -rf ${OUTD}/logfull.txt
+rm -rf "${OUTD}/logfull.txt"
 
 if [ "${PACKAGE}" -eq 1 ]; then
 
   echo "[ ${OUTD} ] > Generate package ${OUTD}/${OUTD}.7z"
 
-  cp "${BASH_SOURCE[0]}" ${OUTD}/test.sh
+  cp "${BASH_SOURCE[0]}" "${OUTD}/test.sh"
 
   copy_luks_dir=0
   copy_tc_dir=0
   copy_vc_dir=0
 
-  if [ ${HT} -eq 65535 ]; then
+  if [ "${HT}" -eq 65535 ]; then
     copy_luks_dir=1
     copy_tc_dir=1
     copy_vc_dir=1
   else
-    for TMP_HT in $(seq ${HT_MIN} ${HT_MAX}); do
-      if [[ ${TMP_HT} -eq ${LUKS_MODE} ]]; then
+    for TMP_HT in $(seq "${HT_MIN}" "${HT_MAX}"); do
+      if [ "${TMP_HT}" -eq "${LUKS_MODE}" ]; then
         copy_luks_dir=1
-      elif is_in_array ${TMP_HT} ${TC_MODES}; then
+      elif is_in_array "${TMP_HT}" ${TC_MODES}; then
         copy_tc_dir=1
-      elif is_in_array ${TMP_HT} ${VC_MODES}; then
+      elif is_in_array "${TMP_HT}" ${VC_MODES}; then
         copy_vc_dir=1
       fi
     done
   fi
 
   if [ "${copy_luks_dir}" -eq 1 ]; then
-    mkdir ${OUTD}/luks_tests/
-    cp ${TDIR}/luks_tests/* ${OUTD}/luks_tests/
+    mkdir "${OUTD}/luks_tests/"
+    cp ${TDIR}/luks_tests/* "${OUTD}/luks_tests/"
   fi
 
   if [ "${copy_tc_dir}" -eq 1 ]; then
-    mkdir ${OUTD}/tc_tests/
-    cp ${TDIR}/tc_tests/* ${OUTD}/tc_tests/
+    mkdir "${OUTD}/tc_tests/"
+    cp ${TDIR}/tc_tests/* "${OUTD}/tc_tests/"
   fi
 
   if [ "${copy_vc_dir}" -eq 1 ]; then
-    mkdir ${OUTD}/vc_tests/
-    cp ${TDIR}/vc_tests/* ${OUTD}/vc_tests/
+    mkdir "${OUTD}/vc_tests/"
+    cp ${TDIR}/vc_tests/* "${OUTD}/vc_tests/"
   fi
 
   # if we package from a given folder, we need to check if e.g. the files needed for multi mode are there
@@ -3108,7 +3109,7 @@ if [ "${PACKAGE}" -eq 1 ]; then
 
     fi
 
-    HT=$(grep -o -- "-m  *[0-9]*" ${PACKAGE_FOLDER}/all.sh | sort -u | sed 's/-m  //' 2> /dev/null)
+    HT=$(grep -o -- "-m  *[0-9]*" "${PACKAGE_FOLDER}/all.sh" | sort -u | sed 's/-m  //' 2> /dev/null)
 
     if [ -n "${HT}" ]; then
 
@@ -3142,10 +3143,10 @@ if [ "${PACKAGE}" -eq 1 ]; then
     HT_PACKAGED=${HT_MIN}-${HT_MAX}
   fi
 
-  HASH_TYPES_PACKAGED=$(   echo ${HASH_TYPES}    | tr '\n' ' ' | sed 's/ $//')
-  HASHFILE_ONLY_PACKAGED=$(echo ${HASHFILE_ONLY} | tr '\n' ' ' | sed 's/ $//')
-  NEVER_CRACK_PACKAGED=$(  echo ${NEVER_CRACK}   | tr '\n' ' ' | sed 's/ $//')
-  SLOW_ALGOS_PACKAGED=$(   echo ${SLOW_ALGOS}    | tr '\n' ' ' | sed 's/ $//')
+  HASH_TYPES_PACKAGED=$(   echo "${HASH_TYPES}"    | tr '\n' ' ' | sed 's/ $//')
+  HASHFILE_ONLY_PACKAGED=$(echo "${HASHFILE_ONLY}" | tr '\n' ' ' | sed 's/ $//')
+  NEVER_CRACK_PACKAGED=$(  echo "${NEVER_CRACK}"   | tr '\n' ' ' | sed 's/ $//')
+  SLOW_ALGOS_PACKAGED=$(   echo "${SLOW_ALGOS}"    | tr '\n' ' ' | sed 's/ $//')
 
   sed "${SED_IN_PLACE}" -e 's/^\(PACKAGE_FOLDER\)=""/\1="$( echo "${BASH_SOURCE[0]}" | sed \"s!test.sh\\$!!\" )"/' \
     -e "s/^\(HASH_TYPES\)=\$(.*/\1=\"${HASH_TYPES_PACKAGED}\"/" \
@@ -3155,8 +3156,8 @@ if [ "${PACKAGE}" -eq 1 ]; then
     -e "s/^\(HT\)=0/\1=${HT_PACKAGED}/" \
     -e "s/^\(MODE\)=0/\1=${MODE}/" \
     -e "s/^\(ATTACK\)=0/\1=${ATTACK}/" \
-    ${OUTD}/test.sh
+    "${OUTD}/test.sh"
 
-  ${PACKAGE_CMD} ${OUTD}/${OUTD}.7z ${OUTD}/ >/dev/null 2>/dev/null
+  "${PACKAGE_CMD}" "${OUTD}/${OUTD}.7z" "${OUTD}/" >/dev/null 2>/dev/null
 
 fi
