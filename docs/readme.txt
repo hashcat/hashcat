@@ -232,6 +232,7 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (10.1 o
 - SAP CODVN H (PWDSALTEDHASH) iSSHA-1
 - PeopleSoft
 - PeopleSoft PS_TOKEN
+- SolarWinds Orion
 - Lotus Notes/Domino 5
 - Lotus Notes/Domino 6
 - Lotus Notes/Domino 8

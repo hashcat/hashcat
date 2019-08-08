@@ -40,6 +40,7 @@
 - Added hash-mode: QNX /etc/shadow (SHA256)
 - Added hash-mode: QNX /etc/shadow (SHA512)
 - Added hash-mode: Ruby on Rails Restful-Authentication
+- Added hash-mode: SolarWinds Orion
 - Added hash-mode: md5($salt.sha1($salt.$pass))
 - Added hash-mode: md5(sha1($pass).md5($pass).sha1($pass))
 - Added hash-mode: md5(sha1($salt).md5($pass))
