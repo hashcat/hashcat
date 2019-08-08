@@ -18,7 +18,7 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
-typedef struct pbkdf2_sha1_tmp
+typedef struct solarwinds_tmp
 {
   u32  ipad[5];
   u32  opad[5];
@@ -26,13 +26,13 @@ typedef struct pbkdf2_sha1_tmp
   u32  dgst[260];
   u32  out[260];
 
-} pbkdf2_sha1_tmp_t;
+} solarwinds_tmp_t;
 
-typedef struct pbkdf2_sha1
+typedef struct solarwinds
 {
-  u32 salt_buf[64];
+  u32 salt_buf[64 + 1];
 
-} pbkdf2_sha1_t;
+} solarwinds_t;
 
 DECLSPEC void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
 {
@@ -70,7 +70,7 @@ DECLSPEC void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipa
   sha1_transform_vector (w0, w1, w2, w3, digest);
 }
 
-KERNEL_FQ void m21500_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, pbkdf2_sha1_t))
+KERNEL_FQ void m21500_init (KERN_ATTR_TMPS_ESALT (solarwinds_tmp_t, solarwinds_t))
 {
   /**
    * base
@@ -96,7 +96,7 @@ KERNEL_FQ void m21500_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, pbkdf2_sha1
   tmps[gid].opad[3] = sha1_hmac_ctx.opad.h[3];
   tmps[gid].opad[4] = sha1_hmac_ctx.opad.h[4];
 
-  sha1_hmac_update_global_swap (&sha1_hmac_ctx, esalt_bufs[digests_offset].salt_buf, salt_bufs[salt_pos].salt_len);
+  sha1_hmac_update_global_swap (&sha1_hmac_ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
 
   for (u32 i = 0, j = 1; i < 256; i += 5, j += 1)
   {
@@ -142,7 +142,7 @@ KERNEL_FQ void m21500_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, pbkdf2_sha1
   }
 }
 
-KERNEL_FQ void m21500_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, pbkdf2_sha1_t))
+KERNEL_FQ void m21500_loop (KERN_ATTR_TMPS_ESALT (solarwinds_tmp_t, solarwinds_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -227,7 +227,7 @@ KERNEL_FQ void m21500_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, pbkdf2_sha1
   }
 }
 
-KERNEL_FQ void m21500_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, pbkdf2_sha1_t))
+KERNEL_FQ void m21500_comp (KERN_ATTR_TMPS_ESALT (solarwinds_tmp_t, solarwinds_t))
 {
   /**
    * base

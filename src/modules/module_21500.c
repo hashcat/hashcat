@@ -22,14 +22,10 @@ static const u64   KERN_TYPE      = 21500;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_USES_BITS_64
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_ST_BASE64
-                                  | OPTS_TYPE_HASH_COPY;
+static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$solarwinds$0$hashcat1$Dnz04T9ptYINnj9mckXTuk80w6f1vkZLwv02HiufklgnDw53BU1bgn4gsHia/Q6kxYSqK4PDbxRMwa6HB5KA/w==";
-
-static const char *SALT_PADDING   = "1244352345234";
+static const char *ST_HASH        = "$solarwinds$0$admin$fj4EBQewCQUZ7IYHl0qL8uj9kQSBb3m7N4u0crkKK0Uj9rbbAnSrBZMXO7oWx9KqL3sCzwncvPZ9hyDV9QCFTg==";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -46,7 +42,7 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
-typedef struct pbkdf2_sha1_tmp
+typedef struct solarwinds_tmp
 {
   u32  ipad[5];
   u32  opad[5];
@@ -54,13 +50,13 @@ typedef struct pbkdf2_sha1_tmp
   u32  dgst[260];
   u32  out[260];
 
-} pbkdf2_sha1_tmp_t;
+} solarwinds_tmp_t;
 
-typedef struct pbkdf2_sha1
+typedef struct solarwinds
 {
-  u32 salt_buf[64];
+  u32 salt_buf[64 + 1];
 
-} pbkdf2_sha1_t;
+} solarwinds_t;
 
 static const u32 ROUNDS_SOLARWINDS_ORION = 1000;
 
@@ -68,14 +64,14 @@ static const char *SIGNATURE_SOLARWINDS_ORION = "$solarwinds$0$";
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u64 esalt_size = (const u64) sizeof (pbkdf2_sha1_t);
+  const u64 esalt_size = (const u64) sizeof (solarwinds_t);
 
   return esalt_size;
 }
 
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u64 tmp_size = (const u64) sizeof (pbkdf2_sha1_tmp_t);
+  const u64 tmp_size = (const u64) sizeof (solarwinds_tmp_t);
 
   return tmp_size;
 }
@@ -106,7 +102,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   u64 *digest = (u64 *) digest_buf;
 
-  pbkdf2_sha1_t *pbkdf2_sha1 = (pbkdf2_sha1_t *) esalt_buf;
+  solarwinds_t *solarwinds = (solarwinds_t *) esalt_buf;
 
   token_t token;
 
@@ -121,12 +117,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.sep[1]     = '$';
   token.len_min[1] = 0;
-  token.len_max[1] = 16;
+  token.len_max[1] = 256;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.sep[2]     = '$';
-  token.len_min[2] = 64;
-  token.len_max[2] = 256;
+  token.len_min[2] = 88;
+  token.len_max[2] = 88;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64A;
 
@@ -138,30 +134,34 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   salt->salt_iter = ROUNDS_SOLARWINDS_ORION - 1;
 
-  // salt
+  // save original salt for encode function
+  // this is the only reason why we have an esalt in this hash-mode
 
   const char *salt_pos = (char *) token.buf[1];
+  const int   salt_len = token.len[1];
 
-  int salt_len = token.len[1];
+  memcpy (solarwinds->salt_buf, salt_pos, salt_len);
 
-  char custom_salt[17];
+  // for pbkdf2 salt we need to do hash-mode specific modifications
 
-  memset (custom_salt, 0, sizeof (custom_salt));
+  #define FIXED_SALT_LEN 8
 
-  strncpy (custom_salt, salt_pos, salt_len);
+  char custom_salt[FIXED_SALT_LEN];
 
-  lowercase ((u8 *) custom_salt, salt_len);
+  memcpy (custom_salt, salt_pos, MIN (FIXED_SALT_LEN, salt_len));
 
-  if (salt_len < 8)
+  if (salt_len < FIXED_SALT_LEN)
   {
-    strncat (custom_salt, SALT_PADDING, 8 - salt_len);
-    salt_len = 8;
+    static const char *SALT_PADDING = "1244352345234";
+
+    memcpy (custom_salt + salt_len, SALT_PADDING, FIXED_SALT_LEN - salt_len);
   }
 
-  memcpy ((char *) pbkdf2_sha1->salt_buf, custom_salt, salt_len);
-  memcpy (salt->salt_buf, custom_salt, salt_len);
+  lowercase ((u8 *) custom_salt, FIXED_SALT_LEN);
 
-  salt->salt_len = salt_len;
+  memcpy (salt->salt_buf, custom_salt, FIXED_SALT_LEN);
+
+  salt->salt_len = FIXED_SALT_LEN;
 
   // hash
 
@@ -192,7 +192,32 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  return snprintf (line_buf, line_size, "%s", hash_info->orighash);
+  const u64 *digest = (u64 *) digest_buf;
+
+  const solarwinds_t *solarwinds = (const solarwinds_t *) esalt_buf;
+
+  // hash
+
+  u64 tmp[9];
+
+  tmp[0] = byte_swap_64 (digest[0]);
+  tmp[1] = byte_swap_64 (digest[1]);
+  tmp[2] = byte_swap_64 (digest[2]);
+  tmp[3] = byte_swap_64 (digest[3]);
+  tmp[4] = byte_swap_64 (digest[4]);
+  tmp[5] = byte_swap_64 (digest[5]);
+  tmp[6] = byte_swap_64 (digest[6]);
+  tmp[7] = byte_swap_64 (digest[7]);
+  tmp[8] = 0;
+
+  char hash_enc[256] = { 0 };
+
+  base64_encode (int_to_base64, (const u8 *) tmp, 64, (u8 *) hash_enc);
+
+  // output
+  const int line_len = snprintf (line_buf, line_size, "%s%s$%s", SIGNATURE_SOLARWINDS_ORION, (const char *) solarwinds->salt_buf, hash_enc);
+
+  return line_len;
 }
 
 void module_init (module_ctx_t *module_ctx)
