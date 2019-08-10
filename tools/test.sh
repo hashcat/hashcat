@@ -316,7 +316,7 @@ function init()
 
     fi
 
-    ((i++))
+    i=$((i + 1))
 
   done 9< "${OUTD}/${hash_type}_passwords.txt"
 
@@ -339,7 +339,8 @@ function init()
   # generate multiple pass/hash foreach len (2 to 8)
   if [ "${MODE}" -ge 1 ]; then
 
-    for ((i = 2; i < 9; i++)); do
+    i=2
+    while [ "$i" -lt 9 ]; do
 
       cmd_file=${OUTD}/${hash_type}_multi_${i}.txt
 
@@ -371,6 +372,7 @@ function init()
         echo "${pass}" | cut -c ${p1}- >> "${OUTD}/${hash_type}_dict2_multi_${i}"
 
       done 9< "${OUTD}/${hash_type}_passwords_multi_${i}.txt"
+      i=$((i + 1))
 
     done
 
@@ -381,7 +383,7 @@ function status()
 {
   RET=$1
 
-  ((cnt++))
+  cnt=$((cnt + 1))
 
   if [ "${RET}" -ne 0 ]; then
     case ${RET} in
@@ -389,14 +391,14 @@ function status()
         if ! is_in_array "${hash_type}" ${NEVER_CRACK_ALGOS}; then
 
            echo "password not found, cmdline : ${CMD}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
-           ((e_nf++))
+           e_nf=$((e_nf + 1))
 
         fi
 
         ;;
       4)
         echo "timeout reached, cmdline : ${CMD}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
-        ((e_to++))
+        e_to=$((e_to + 1))
 
         ;;
       10)
@@ -405,13 +407,13 @@ function status()
         else
           echo "hash:plains not matched in output, cmdline : ${CMD}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.tx"t
         fi
-        ((e_nm++))
+        e_nm=$((e_nm + 1))
 
         ;;
       *)
         echo "! unhandled return code ${RET}, cmdline : ${CMD}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
         echo "! unhandled return code, see ${OUTD}/logfull.txt for details."
-        ((e_nf++))
+        e_nf=$((e_nf + 1))
         ;;
     esac
   fi
@@ -752,7 +754,7 @@ function attack_1()
 
       fi
 
-      ((i++))
+      i=$((i + 1))
 
     done 9< "${OUTD}/${hash_type}_hashes.txt"
 
@@ -957,7 +959,7 @@ function attack_3()
       # passwords can't be smaller than mask in -a 3 = mask attack
 
       if [ "${#pass}" -lt ${i} ]; then
-        ((i++))
+        i=$((i + 1))
         continue
       fi
 
@@ -985,7 +987,7 @@ function attack_3()
 
       if [ "${hash_type}" -eq 20510 ]; then # special case for PKZIP Master Key
         if [ "${i}" -le 1 ]; then
-          ((i++))
+          i=$((i + 1))
           continue
         fi
 
@@ -1032,7 +1034,7 @@ function attack_3()
 
       if [ $i -eq ${max} ]; then break; fi
 
-      ((i++))
+      i=$((i + 1))
 
     done 9< "${OUTD}/${hash_type}_hashes.txt"
 
@@ -1525,7 +1527,7 @@ function attack_6()
         fi
 
         if [ ${#pass} -le ${i} ]; then
-          ((i++))
+          i=$((i + 1))
           continue
         fi
 
@@ -1611,7 +1613,7 @@ function attack_6()
 
       if [ "${i}" -eq ${max} ]; then break; fi
 
-      ((i++))
+      i=$((i + 1))
 
     done 9< "${OUTD}/${hash_type}_hashes.txt"
 
@@ -1680,7 +1682,8 @@ function attack_6()
 
     fi
 
-    for ((i = 2; i < max; i++)); do
+    i=2
+    while [ "$i" -lt "$max" ]; do
 
       hash_file=${OUTD}/${hash_type}_hashes_multi_${i}.txt
 
@@ -1745,6 +1748,7 @@ function attack_6()
       fi
 
       status ${ret}
+      i=$((i + 1))
 
     done
 
@@ -1923,7 +1927,7 @@ function attack_7()
           pass_len=${#pass}
 
           if [ "${pass_len}" -le 6 ]; then
-            ((i++))
+            i=$((i + 1))
             continue
           fi
 
@@ -1994,7 +1998,7 @@ function attack_7()
 
       if [ $i -eq ${max} ]; then break; fi
 
-      ((i++))
+      i=$((i + 1))
 
     done 9< "${OUTD}/${hash_type}_hashes.txt"
 
@@ -2071,7 +2075,8 @@ function attack_7()
 
     fi
 
-    for ((i = 2; i < max; i++)); do
+    i=2
+    while [ "$i" -lt "$max" ]; do
 
       hash_file=${OUTD}/${hash_type}_hashes_multi_${i}.txt
       dict_file=${OUTD}/${hash_type}_dict2_multi_${i}
@@ -2163,6 +2168,7 @@ function attack_7()
       fi
 
       status ${ret}
+      i=$((i + 1))
 
     done
 
