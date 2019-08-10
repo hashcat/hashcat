@@ -1281,7 +1281,6 @@ function attack_3()
 
         # charset 1
         char=$(echo "${pass}" | cut -b ${charset_1_pos})
-        charset_1=$(echo -e "${charset_1}\n${char}")
         charset_1=$(printf "%s\n%s\n" "${charset_1}" "${char}")
 
         # charset 2
