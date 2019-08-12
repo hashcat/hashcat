@@ -95,6 +95,7 @@ static const char *HASH_CATEGORY_DOCUMENTS_STR              = "Documents";
 static const char *HASH_CATEGORY_PASSWORD_MANAGER_STR       = "Password Managers";
 static const char *HASH_CATEGORY_OTP_STR                    = "One-Time Passwords";
 static const char *HASH_CATEGORY_PLAIN_STR                  = "Plaintext";
+static const char *HASH_CATEGORY_FRAMEWORK_STR              = "Framework";
 
 static inline int get_msb32 (const u32 v)
 {
@@ -903,6 +904,7 @@ const char *strhashcategory (const u32 hash_category)
     case HASH_CATEGORY_PASSWORD_MANAGER:        return HASH_CATEGORY_PASSWORD_MANAGER_STR;
     case HASH_CATEGORY_OTP:                     return HASH_CATEGORY_OTP_STR;
     case HASH_CATEGORY_PLAIN:                   return HASH_CATEGORY_PLAIN_STR;
+    case HASH_CATEGORY_FRAMEWORK:               return HASH_CATEGORY_FRAMEWORK_STR;
   }
 
   return NULL;
