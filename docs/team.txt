@@ -22,6 +22,7 @@ We're a group of people participating in the yearly repeating password cracking 
 | PCrack              | SAINTCON, Utah             | 2017 | 1st    |
 | Crack Me If You Can | DEF CON, Las Vegas         | 2018 | 2nd    |
 | CracktheCon         | Cyphercon, Milwaukee       | 2019 | 1st    |
+| Crack Me If You Can | DEF CON, Las Vegas         | 2019 | 1st    |
 
 * Special recognition for team hashcat goes to:
 
@@ -34,8 +35,8 @@ abaco           alotdv          atom            blandyuk        blaz
 BlowCane        chancas         Chick3nman      coolbry95       dakykilla
 deutsch         dropdead        epixoip         EvilMog         franky
 gpufreak        hashtka         Hydraze         J0hnnyBrav0     K9
-kontrast23      legion          m3g9tr0n        matrix          minga
-N|IGHT5         NSAKEY          NullMode        philsmd         purehate
-radix           Rolf            rurapenthe      s3in!c          SuperJames
-Szul            tehnlulz        The_Mechanic    T0XlC           TychoTithonus
-undeath         unix-ninja      Xanadrel        xmisery
+kontrast23      Kryczek         legion          m3g9tr0n        matrix
+minga           N|IGHT5         NSAKEY          NullMode        philsmd
+purehate        radix           Rolf            rurapenthe      s3in!c
+SuperJames      Szul            tehnlulz        The_Mechanic    T0XlC
+TychoTithonus   undeath         unix-ninja      Xanadrel        xmisery
