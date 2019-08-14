@@ -1,4 +1,4 @@
-## Hashcat has a new generic password candidate interface called "slow candidates" ##
+## Generic password candidate interface, aka "slow candidates" mode ##
 
 The first goal of this new interface is to allow attachment of advanced password candidate generators in the future (for example hashcat's table attack, kwprocessor, OMEN, PassGAN, PCFG, princeprocessor, etc.). At this time, the only attack modes that have been added are hashcat's straight attack (including rules engine), combinator attack, and mask attack (AKA brute-force with Markov optimizer). You can enable this new general password-candidate interface by using the new -S/--slow-candidates option.
 
