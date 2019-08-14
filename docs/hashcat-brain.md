@@ -208,14 +208,14 @@ Lookup times are pretty good. The hashcat brain uses two binary trees, which mea
 
 ## Technical details on the hashcat brain server ##
 
-The hashcat brain server saves the long-term memory to disc every 5 minutes automatically
-The server also saves the long-term memory if the hashcat brain server is killed using Ctrl-C
-There's no mitigation against database poisoning - this would cost too many resources
-There's currently no mitigation against an evil client requesting the server to allocate too much memory
-Make sure your hashcat brain server is protected with a good password, because you have to trust your clients
-I'll add a standalone hashcat brain seeding tool later which enables you to easily push all the words from an entire wordlist or a mask very fast. At this time you can use the --hashcat-session option to do so with hashcat itself
-You can use --brain-server-whitelist in order to force the clients to use a specific hashlist
-The protocol used is pretty simple and does not contain hashcat specific information, which should make it possible for other cracking tools to utilize the server, too
+* The hashcat brain server saves the long-term memory to disk every 5 minutes automatically
+* The server also saves the long-term memory if the hashcat brain server is killed using Ctrl-C
+* There's no mitigation against database poisoning - this would cost too many resources
+* There's currently no mitigation against an evil client requesting the server to allocate too much memory
+* Make sure your hashcat brain server is protected with a good password, because you have to trust your clients
+* I'll add a standalone hashcat brain seeding tool later which enables you to easily push all the words from an entire wordlist or a mask very fast. At this time you can use the --hashcat-session option to do so with hashcat itself
+* You can use --brain-server-whitelist in order to force the clients to use a specific hashlist
+* The protocol used is pretty simple and does not contain hashcat specific information, which should make it possible for other cracking tools to utilize the server, too
 
 ## Technical details on the hashcat brain client ##
 
@@ -294,10 +294,10 @@ If you think that this new feature is a nice way to get a native hashcat multi-s
 
 Most of the commands are self-explaining. I'm just adding them here to inform you which ones exist:
 
-- Add new option --brain-server to start a hashcat brain server
-- Add new option --brain-client to start a hashcat brain client, automatically activates --slow-candidates
-- Add new option --brain-host and --brain-port to specify ip and port of brain server, both listening and connecting
-- Add new option --brain-session to override automatically calculated brain session ID
-- Add new option --brain-session-whitelist to allow only explicit written session ID on brain server
-- Add new option --brain-password to specify the brain server authentication password
-- Add new option --brain-client-features which allows enable and disable certain features of the hashcat brain
+- `--brain-server` to start a hashcat brain server
+- `--brain-client` to start a hashcat brain client, automatically activates --slow-candidates
+- `--brain-host` and `--brain-port` to specify ip and port of brain server, both listening and connecting
+- `--brain-session` to override automatically calculated brain session ID
+- `--brain-session-whitelist` to allow only explicit written session ID on brain server
+- `--brain-password` to specify the brain server authentication password
+- `--brain-client-features` which allows enable and disable certain features of the hashcat brain
