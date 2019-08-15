@@ -16,15 +16,13 @@ static const u32   DGST_POS1      = 1;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_8_16;
-static const u32   HASH_CATEGORY  = HASH_CATEGORY_GENERIC_KDF;
+static const u32   HASH_CATEGORY  = HASH_CATEGORY_FRAMEWORK;
 static const char *HASH_NAME      = "web2py PBKDF2-HMAC-SHA512";
 static const u64   KERN_TYPE      = 7100;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_USES_BITS_64
-                                  | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_ST_BASE64
-                                  | OPTS_TYPE_HASH_COPY;
+                                  | OPTI_TYPE_SLOW_HASH_SIMD_LOOP ;
+static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE ;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "mysecret";
 static const char *ST_HASH        = "pbkdf2(1000,20,sha512)$a2a2ca127df6bc19$77bb5a3d129e2ce710daaefeefef8356c4c827ff";
@@ -47,6 +45,10 @@ const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 typedef struct pbkdf2_sha512
 {
   u32 salt_buf[64];
+  u32 hash_buf[64];
+  u32 salt_iter;
+  u32 salt_len;
+  u32 hash_len;
 
 } pbkdf2_sha512_t;
 
@@ -59,8 +61,6 @@ typedef struct pbkdf2_sha512_tmp
   u64  out[16];
 
 } pbkdf2_sha512_tmp_t;
-
-//static const char *SIGNATURE_PBKDF2_SHA512 = "pbkdf2(1000,20,sha512)$";
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -127,7 +127,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  // iter
+  // iteration count
 
   const u8 *iter_pos = token.buf[0]+7; 
 
@@ -135,12 +135,16 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   salt->salt_iter = iter - 1;
 
+  pbkdf2_sha512->salt_iter = salt->salt_iter;
+
   // salt
 
   const u8 *salt_pos = token.buf[1];
   const int salt_len = token.len[1];
 
   memcpy (pbkdf2_sha512->salt_buf, salt_pos, salt_len);
+
+  pbkdf2_sha512->salt_len=salt_len;
 
   salt->salt_len = salt_len;
 
@@ -156,7 +160,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   // hash
 
   const u8 *hash_pos = token.buf[2];
-  //const int hash_len = token.len[2];
+  const int hash_len = token.len[2];
 
   digest[0] = hex_to_u64 (hash_pos +   0);
   digest[1] = hex_to_u64 (hash_pos +  16);
@@ -176,13 +180,37 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[6] = byte_swap_64 (digest[6]);
   digest[7] = byte_swap_64 (digest[7]);
 
+  memcpy (pbkdf2_sha512->hash_buf, hash_pos, hash_len);
+
+  pbkdf2_sha512->hash_len=hash_len; 
 
   return (PARSER_OK);
 }
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  return snprintf (line_buf, line_size, "%s", hash_info->orighash);
+
+  pbkdf2_sha512_t *pbkdf2_sha512 = (pbkdf2_sha512_t *) esalt_buf;   
+  
+  int line_len = snprintf(line_buf, line_size, "pbkdf2(%d,20,sha512)$", pbkdf2_sha512->salt_iter+1);
+
+  u8 *salt_pos = (u8*) pbkdf2_sha512->salt_buf;
+
+  for (u32 i = 0; i < pbkdf2_sha512->salt_len; i++) {
+    line_len += snprintf (line_buf + line_len, line_size, "%c", *salt_pos++);
+  }
+
+  line_len += snprintf (line_buf + line_len, line_size, "$");
+
+  u8 *hash_pos = (u8*) pbkdf2_sha512->hash_buf;
+  
+  for (u32 i = 0; i < pbkdf2_sha512->hash_len; i++)
+  {
+    line_len += snprintf (line_buf + line_len, line_size - line_len, "%c", *hash_pos++);
+  }
+
+  return line_len;
+  
 }
 
 void module_init (module_ctx_t *module_ctx)
