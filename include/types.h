@@ -2046,12 +2046,12 @@ typedef struct mask_ctx
 {
   bool   enabled;
 
-  cs_t   mp_sys[8];
-  cs_t   mp_usr[4];
+  cs_t  *mp_sys;
+  cs_t  *mp_usr;
 
   u64    bfs_cnt;
 
-  cs_t   css_buf[256];
+  cs_t  *css_buf;
   u32    css_cnt;
 
   hcstat_table_t *root_table_buf;
@@ -2067,7 +2067,7 @@ typedef struct mask_ctx
   u32    masks_cnt;
   u32    masks_avail;
 
-  char *mask;
+  char  *mask;
 
   mf_t  *mfs;
 
