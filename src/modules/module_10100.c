@@ -68,10 +68,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
-  token.sep[3]     = '$';
-  token.len_min[3] = 32;
-  token.len_max[3] = 32;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH;
+  token.len[3]     = 32;
+  token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
