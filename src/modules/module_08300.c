@@ -61,7 +61,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.sep[2]     = ':';
-  token.len_min[2] = 1;
+  token.len_min[2] = 0;
   token.len_max[2] = 32;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 

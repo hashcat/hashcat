@@ -1,5 +1,5 @@
 /* XzDec.c -- Xz Decode
-2018-04-24 : Igor Pavlov : Public domain */
+2019-02-02 : Igor Pavlov : Public domain */
 
 #include "Precomp.h"
 
@@ -245,7 +245,7 @@ SRes BraState_SetFromMethod(IStateCoder *p, UInt64 id, int encodeMode, ISzAllocP
   CBraState *decoder;
   if (id < XZ_ID_Delta || id > XZ_ID_SPARC)
     return SZ_ERROR_UNSUPPORTED;
-  decoder = p->p;
+  decoder = (CBraState *)p->p;
   if (!decoder)
   {
     decoder = (CBraState *)ISzAlloc_Alloc(alloc, sizeof(CBraState));
@@ -341,7 +341,7 @@ static SRes SbState_SetFromMethod(IStateCoder *p, ISzAllocPtr alloc)
 typedef struct
 {
   CLzma2Dec decoder;
-  Bool outBufMode;
+  BoolInt outBufMode;
 } CLzma2Dec_Spec;
 
 
@@ -400,7 +400,7 @@ static SRes Lzma2State_Code2(void *pp, Byte *dest, SizeT *destLen, const Byte *s
     res = Lzma2Dec_DecodeToBuf(&spec->decoder, dest, destLen, src, srcLen, (ELzmaFinishMode)finishMode, &status2);
   // *wasFinished = (status2 == LZMA_STATUS_FINISHED_WITH_MARK);
   // ECoderStatus values are identical to ELzmaStatus values of LZMA2 decoder
-  *status = status2;
+  *status = (ECoderStatus)status2;
   return res;
 }
 
@@ -637,8 +637,8 @@ static SRes MixCoder_Code(CMixCoder *p,
 
   for (;;)
   {
-    Bool processed = False;
-    Bool allFinished = True;
+    BoolInt processed = False;
+    BoolInt allFinished = True;
     SRes resMain = SZ_OK;
     unsigned i;
 
@@ -761,7 +761,7 @@ SRes Xz_ParseHeader(CXzStreamFlags *p, const Byte *buf)
   return XzFlags_IsSupported(*p) ? SZ_OK : SZ_ERROR_UNSUPPORTED;
 }
 
-static Bool Xz_CheckFooter(CXzStreamFlags flags, UInt64 indexSize, const Byte *buf)
+static BoolInt Xz_CheckFooter(CXzStreamFlags flags, UInt64 indexSize, const Byte *buf)
 {
   return indexSize == (((UInt64)GetUi32(buf + 4) + 1) << 2)
       && GetUi32(buf) == CrcCalc(buf + 4, 6)
@@ -775,7 +775,7 @@ static Bool Xz_CheckFooter(CXzStreamFlags flags, UInt64 indexSize, const Byte *b
   if (s == 0) return SZ_ERROR_ARCHIVE; pos += s; }
 
 
-static Bool XzBlock_AreSupportedFilters(const CXzBlock *p)
+static BoolInt XzBlock_AreSupportedFilters(const CXzBlock *p)
 {
   unsigned numFilters = XzBlock_GetNumFilters(p) - 1;
   unsigned i;
@@ -866,7 +866,7 @@ SRes XzBlock_Parse(CXzBlock *p, const Byte *header)
 static SRes XzDecMix_Init(CMixCoder *p, const CXzBlock *block, Byte *outBuf, size_t outBufSize)
 {
   unsigned i;
-  Bool needReInit = True;
+  BoolInt needReInit = True;
   unsigned numFilters = XzBlock_GetNumFilters(block);
 
   if (numFilters == p->numCoders && ((p->outBuf && outBuf) || (!p->outBuf && !outBuf)))
@@ -999,8 +999,8 @@ SRes XzUnpacker_Code(CXzUnpacker *p, Byte *dest, SizeT *destLen,
       SRes res;
 
       ECoderFinishMode finishMode2 = finishMode;
-      Bool srcFinished2 = srcFinished;
-      Bool destFinish = False;
+      BoolInt srcFinished2 = srcFinished;
+      BoolInt destFinish = False;
 
       if (p->block.packSize != (UInt64)(Int64)-1)
       {
@@ -1346,12 +1346,12 @@ SRes XzUnpacker_CodeFull(CXzUnpacker *p, Byte *dest, SizeT *destLen,
 }
 
 
-Bool XzUnpacker_IsBlockFinished(const CXzUnpacker *p)
+BoolInt XzUnpacker_IsBlockFinished(const CXzUnpacker *p)
 {
   return (p->state == XZ_STATE_BLOCK_HEADER) && (p->pos == 0);
 }
 
-Bool XzUnpacker_IsStreamWasFinished(const CXzUnpacker *p)
+BoolInt XzUnpacker_IsStreamWasFinished(const CXzUnpacker *p)
 {
   return (p->state == XZ_STATE_STREAM_PADDING) && (((UInt32)p->padSize & 3) == 0);
 }
@@ -1423,18 +1423,18 @@ typedef struct
   size_t outCodeSize;
   ECoderStatus status;
   SRes codeRes;
-  Bool skipMode;
-  // Bool finishedWithMark;
+  BoolInt skipMode;
+  // BoolInt finishedWithMark;
   EMtDecParseState parseState;
-  Bool parsing_Truncated;
-  Bool atBlockHeader;
+  BoolInt parsing_Truncated;
+  BoolInt atBlockHeader;
   CXzStreamFlags streamFlags;
   // UInt64 numFinishedStreams
   UInt64 numStreams;
   UInt64 numTotalBlocks;
   UInt64 numBlocks;
 
-  Bool dec_created;
+  BoolInt dec_created;
   CXzUnpacker dec;
 
   Byte mtPad[1 << 7];
@@ -1458,14 +1458,14 @@ typedef struct
   ICompressProgress *progress;
   // CXzStatInfo *stat;
 
-  Bool finishMode;
-  Bool outSize_Defined;
+  BoolInt finishMode;
+  BoolInt outSize_Defined;
   UInt64 outSize;
 
   UInt64 outProcessed;
   UInt64 inProcessed;
   UInt64 readProcessed;
-  Bool readWasFinished;
+  BoolInt readWasFinished;
   SRes readRes;
   SRes writeRes;
 
@@ -1473,14 +1473,14 @@ typedef struct
   size_t outBufSize;
   Byte *inBuf;
   size_t inBufSize;
-  Bool dec_created;
+
   CXzUnpacker dec;
 
   ECoderStatus status;
   SRes codeRes;
 
   #ifndef _7ZIP_ST
-  Bool mainDecoderWasCalled;
+  BoolInt mainDecoderWasCalled;
   // int statErrorDefined;
   int finishedDecoderIndex;
 
@@ -1494,12 +1494,12 @@ typedef struct
   // UInt64 numBadBlocks;
   SRes mainErrorCode;
 
-  Bool isBlockHeaderState_Parse;
-  Bool isBlockHeaderState_Write;
+  BoolInt isBlockHeaderState_Parse;
+  BoolInt isBlockHeaderState_Write;
   UInt64 outProcessed_Parse;
-  Bool parsing_Truncated;
+  BoolInt parsing_Truncated;
 
-  Bool mtc_WasConstructed;
+  BoolInt mtc_WasConstructed;
   CMtDec mtc;
   CXzDecMtThread coders[MTDEC__THREADS_MAX];
   #endif
@@ -1525,7 +1525,8 @@ CXzDecMtHandle XzDecMt_Create(ISzAllocPtr alloc, ISzAllocPtr allocMid)
   p->outBufSize = 0;
   p->inBuf = NULL;
   p->inBufSize = 0;
-  p->dec_created = False;
+
+  XzUnpacker_Construct(&p->dec, &p->alignOffsetAlloc.vt);
 
   p->unpackBlockMaxSize = 0;
 
@@ -1573,11 +1574,7 @@ static void XzDecMt_FreeOutBufs(CXzDecMt *p)
 
 static void XzDecMt_FreeSt(CXzDecMt *p)
 {
-  if (p->dec_created)
-  {
-    XzUnpacker_Free(&p->dec);
-    p->dec_created = False;
-  }
+  XzUnpacker_Free(&p->dec);
   
   if (p->outBuf)
   {
@@ -1968,11 +1965,11 @@ static SRes XzDecMt_Callback_Code(void *pp, unsigned coderIndex,
 #define XZDECMT_STREAM_WRITE_STEP (1 << 24)
 
 static SRes XzDecMt_Callback_Write(void *pp, unsigned coderIndex,
-    Bool needWriteToStream,
+    BoolInt needWriteToStream,
     const Byte *src, size_t srcSize,
     // int srcFinished,
-    Bool *needContinue,
-    Bool *canRecode)
+    BoolInt *needContinue,
+    BoolInt *canRecode)
 {
   CXzDecMt *me = (CXzDecMt *)pp;
   const CXzDecMtThread *coder = &me->coders[coderIndex];
@@ -2302,7 +2299,7 @@ void XzStatInfo_Clear(CXzStatInfo *p)
 
 static SRes XzDecMt_Decode_ST(CXzDecMt *p
     #ifndef _7ZIP_ST
-    , Bool tMode
+    , BoolInt tMode
     #endif
     , CXzStatInfo *stat)
 {
@@ -2358,7 +2355,7 @@ static SRes XzDecMt_Decode_ST(CXzDecMt *p
   for (;;)
   {
     SizeT outSize;
-    Bool finished;
+    BoolInt finished;
     ECoderFinishMode finishMode;
     SizeT inProcessed;
     ECoderStatus status;
@@ -2466,7 +2463,7 @@ static SRes XzStatInfo_SetStat(const CXzUnpacker *dec,
     int finishMode,
     UInt64 readProcessed, UInt64 inProcessed,
     SRes res, ECoderStatus status,
-    Bool decodingTruncated,
+    BoolInt decodingTruncated,
     CXzStatInfo *stat)
 {
   UInt64 extraSize;
@@ -2531,7 +2528,7 @@ SRes XzDecMt_Decode(CXzDecMtHandle pp,
 {
   CXzDecMt *p = (CXzDecMt *)pp;
   #ifndef _7ZIP_ST
-  Bool tMode;
+  BoolInt tMode;
   #endif
 
   XzStatInfo_Clear(stat);
@@ -2564,13 +2561,7 @@ SRes XzDecMt_Decode(CXzDecMtHandle pp,
   p->codeRes = 0;
   p->status = CODER_STATUS_NOT_SPECIFIED;
 
-  if (!p->dec_created)
-  {
-    XzUnpacker_Construct(&p->dec, &p->alignOffsetAlloc.vt);
-    p->dec_created = True;
-  }
   XzUnpacker_Init(&p->dec);
-  
 
   *isMT = False;
 
@@ -2600,6 +2591,8 @@ SRes XzDecMt_Decode(CXzDecMtHandle pp,
   {
     IMtDecCallback vt;
 
+    // we just free ST buffers here
+    // but we still keep state variables, that was set in XzUnpacker_Init()
     XzDecMt_FreeSt(p);
 
     p->outProcessed_Parse = 0;
@@ -2636,7 +2629,7 @@ SRes XzDecMt_Decode(CXzDecMtHandle pp,
     vt.Write = XzDecMt_Callback_Write;
 
     {
-      Bool needContinue;
+      BoolInt needContinue;
       
       SRes res = MtDec_Code(&p->mtc);
 
@@ -2665,7 +2658,7 @@ SRes XzDecMt_Decode(CXzDecMtHandle pp,
       if (!needContinue)
       {
         SRes codeRes;
-        Bool truncated = False;
+        BoolInt truncated = False;
         ECoderStatus status;
         CXzUnpacker *dec;
 

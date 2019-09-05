@@ -18,12 +18,13 @@
 
 int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain, u32 *plain_buf, int *out_len)
 {
-  const combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
-  const hashconfig_t     *hashconfig     = hashcat_ctx->hashconfig;
-  const hashes_t         *hashes         = hashcat_ctx->hashes;
-  const mask_ctx_t       *mask_ctx       = hashcat_ctx->mask_ctx;
-  const straight_ctx_t   *straight_ctx   = hashcat_ctx->straight_ctx;
-  const user_options_t   *user_options   = hashcat_ctx->user_options;
+  const combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
+  const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  const hashes_t             *hashes             = hashcat_ctx->hashes;
+  const mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
+  const straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   const u64 gidvid = plain->gidvid;
   const u32 il_pos = plain->il_pos;
@@ -234,7 +235,28 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
     }
   }
 
-  const int pw_max = (const int) hashconfig->pw_max;
+  int pw_max = (const int) hashconfig->pw_max;
+
+  // pw_max is per pw_t element but in combinator we have two pw_t elements.
+  // therefore we can support up to 64 in combinator in optimized mode (but limited by general hash limit 55)
+  // or full 512 in pure mode (but limited by hashcat buffer size limit 256).
+  // some algorithms do not support general default pw_max = 31,
+  // therefore we need to use pw_max as a base and not hardcode it.
+
+  if (plain_len > pw_max)
+  {
+    if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
+    {
+      if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+      {
+        pw_max = MIN ((pw_max * 2), 55);
+      }
+      else
+      {
+        pw_max = MIN ((pw_max * 2), 256);
+      }
+    }
+  }
 
   if (plain_len > pw_max) plain_len = MIN (plain_len, pw_max);
 

@@ -1,68 +1,95 @@
-* changes v5.1.0 -> v5.x.x
+* changes v5.1.0 -> v6.0.0
 
 ##
 ## Feature
 ##
 
 - Fully modularized hash-mode integration via plugin interface and converted all existing hash-modes
+- Refactor hashcat backend interface to allow adding compute API other than OpenCL
+- Added CUDA as a new compute API to hashcat backend (enables hashcat to run on NVIDIA Jetson or IBM POWER9)
+- Support use of all available GPU memory using CUDA backend
+- Support on-the-fly loading of compressed wordlists in zip and gzip format
 - Support for inline VeraCrypt PIM Brute-Force
-- Support Deflate decompression for the 7-Zip hash type using zlib
+- Support deflate decompression for the 7-Zip hash-mode using zlib hook
+- Added documentation on hashcat brain, slow-candidate and keyboard-layout mapping features
 
 ##
 ## Algorithms
 ##
 
-- Added hash-mode: Open Document Format (ODF) 1.2 (SHA-256, AES)
-- Added hash-mode: Open Document Format (ODF) 1.1 (SHA-1, Blowfish)
-- Added hash-mode: Java Object hashCode()
-- Added hash-mode: Blockchain, My Wallet, Second Password (SHA256)
-- Added hash-mode: Electrum Wallet (Salt-Type 3)
 - Added hash-mode: Android Backup
-- Added hash-mode: QNX /etc/shadow (MD5)
-- Added hash-mode: QNX /etc/shadow (SHA256)
-- Added hash-mode: QNX /etc/shadow (SHA512)
-- Added hash-mode: Kerberos 5 TGS-REP etype 17 (AES128-CTS-HMAC-SHA1-96)
-- Added hash-mode: Kerberos 5 TGS-REP etype 18 (AES256-CTS-HMAC-SHA1-96)
+- Added hash-mode: AuthMe sha256
+- Added hash-mode: BitShares v0.x
+- Added hash-mode: Blockchain, My Wallet, Second Password (SHA256)
+- Added hash-mode: DiskCryptor
+- Added hash-mode: Electrum Wallet (Salt-Type 3)
+- Added hash-mode: Huawei Router sha1(md5($pass).$salt)
+- Added hash-mode: Java Object hashCode()
 - Added hash-mode: Kerberos 5 Pre-Auth etype 17 (AES128-CTS-HMAC-SHA1-96)
 - Added hash-mode: Kerberos 5 Pre-Auth etype 18 (AES256-CTS-HMAC-SHA1-96)
-- Added hash-mode: sha1(md5(md5($pass)))
-- Added hash-mode: sha1($salt1.$pass.$salt2)
-- Added hash-mode: Ruby on Rails Restful-Authentication
+- Added hash-mode: Kerberos 5 TGS-REP etype 17 (AES128-CTS-HMAC-SHA1-96)
+- Added hash-mode: Kerberos 5 TGS-REP etype 18 (AES256-CTS-HMAC-SHA1-96)
+- Added hash-mode: Open Document Format (ODF) 1.1 (SHA-1, Blowfish)
+- Added hash-mode: Open Document Format (ODF) 1.2 (SHA-256, AES)
+- Added hash-mode: Oracle Transportation Management (SHA256)
 - Added hash-mode: PKZIP archive encryption
 - Added hash-mode: PKZIP Master Key
-- Added hash-mode: DiskCryptor
 - Added hash-mode: Python passlib pbkdf2-sha1
 - Added hash-mode: Python passlib pbkdf2-sha256
 - Added hash-mode: Python passlib pbkdf2-sha512
-- Added hash-mode: Oracle Transportation Management (SHA256)
+- Added hash-mode: QNX /etc/shadow (MD5)
+- Added hash-mode: QNX /etc/shadow (SHA256)
+- Added hash-mode: QNX /etc/shadow (SHA512)
+- Added hash-mode: Ruby on Rails Restful-Authentication
+- Added hash-mode: SolarWinds Orion
+- Added hash-mode: md5($salt.sha1($salt.$pass))
+- Added hash-mode: md5(sha1($pass).md5($pass).sha1($pass))
+- Added hash-mode: md5(sha1($salt).md5($pass))
+- Added hash-mode: sha1(md5(md5($pass)))
+- Added hash-mode: sha1(md5($pass.$salt))
+- Added hash-mode: sha1(md5($pass).$salt)
+- Added hash-mode: sha1($salt1.$pass.$salt2)
+- Added hash-mode: sha256(md5($pass))
+- Added hash-mode: sha256(sha256_bin(pass))
+- Added hash-mode: sha256(sha256($pass).$salt)
 
 ##
 ## Bugs
 ##
 
+- Fixed buffer overflow in build_plain() function
+- Fixed copy/paste error leading to invalid "Integer overflow detected in keyspace of mask" in attack-mode 6 and 7
 - Fixed cracking of Cisco-PIX and Cisco-ASA MD5 passwords in mask-attack mode if mask > length 16
 - Fixed cracking of Electrum Wallet Salt-Type 2 hashes
 - Fixed cracking of NetNTLMv1 passwords in mask-attack mode if mask > length 16 (optimized kernels only)
 - Fixed cracking raw Streebog-HMAC 256 and 512 hashes with password of length >= 64
 - Fixed cracking raw Whirlpool hashes cracking with password of length >= 32
 - Fixed incorrect progress-only result in a special race condition
+- Fixed invalid call of mp_css_utf16le_expand()/mp_css_utf16be_expand() in a slow-candidate session
+- Fixed invalid password truncation in attack-mode 1 if final password is longer than 32 character
 - Fixed maximum password length limit which was announced as 256 but actually was 255
 - Fixed output of IKE PSK (mode 5300 and 5400) hashes to have separators at right position
 - Fixed output password of "e" rule in pure and cpu rule engine if separator character is also the first letter
+- Fixed problem with the usage of the hexadecimal notations (\x00-\xff) within rules
+- Fixed race condition in maskfile mode by using a dedicated flag for restore execution
+- Fixed some memory leaks in case hashcat is shutting down due to some file error
+- Fixed some memory leaks in case mask-files are used in optimized mode
 - Fixed the 7-Zip parser to allow the entire supported range of encrypted and decrypted data lengths
 - Fixed the validation of the --brain-client-features command line argument (only values 1, 2 or 3 are allowed)
-- Fixed problem with the usage of the hexadecimal notations (\x00-\xff) within rules
 
 ##
 ## Improvements
 ##
 
-- Startup Checks: Improved the pidfile check: Do not just check for existing PID but also check executable filename
-- Cracking bcrypt and Password Safe v2: Use a feedback from the OpenCL runtime to dynamically find out optimal thread count
 - Bitcoin Wallet: Be more user friendly by allowing a larger data range for ckey and public_key
+- Building: Fix for library compilation failure due to multiple defenition of sbob_xx64()
 - Building: Updated BUILD.md
+- Cracking bcrypt and Password Safe v2: Use a feedback from the compute API backend to dynamically find out optimal thread count
+- Documents: Added README on how to build hashcat on MSYS2
+- Filehandling: Print a truncation warning in case an oversized line was detected
 - My Wallet: Added additional plaintext pattern used in newer versions
 - OpenCL Runtime: Disable OpenCL kernel cache on Apple for Intel CPU (throws CL_BUILD_PROGRAM_FAILURE for no reason)
+- OpenCL Runtime: Do not run a shared- and constant-memory size check if their memory type is of type global memory (typically CPU)
 - OpenCL Runtime: Improve ROCM detection and make sure to not confuse with recent AMDGPU drivers
 - OpenCL Runtime: Not using amd_bytealign (amd_bitalign is fine) on AMDGPU driver drastically reduces JiT segfaults
 - OpenCL Runtime: Unlocked maximum thread count
@@ -71,25 +98,44 @@
 - OpenCL Runtime: Workaround JiT compiler error on ROCM 2.3 driver if the 'inline' keyword is used in function declaration
 - OpenCL Runtime: Workaround memory allocation error on AMD driver on Windows leading to CL_MEM_OBJECT_ALLOCATION_FAILURE
 - OpenCL Runtime: Workaround ROCm OpenCL driver problem trying to write temporary file into readonly folder by setting TMPDIR
-- OpenCL Runtime: Do not run a shared- and constant-memory size check if their memory type is of type global memory (typically CPU)
+- Startup Checks: Improved the pidfile check: Do not just check for existing PID but also check executable filename
+- Startup Screen: Add extra warning when using --force
 - Startup Screen: Provide an estimate of host memory requirements for the requested attack
+- Status Screen: Added brain status for all devices
+- Status Screen: Added remaining counts and changed recovered count logic
+- Status Screen: Added --status-json flag for easier machine reading of hashcat status output
+- Tab Completion: Allow using "make install" version of hashcat
 - Tuning Database: Updated hashcat.hctune with new models and refreshed vector width values
-- WPA/WPA2 cracking: In the potfile, replace password with PMK in order to detect already cracked networks across all WPA modes
 - WipZip cracking: Added two byte early reject, resulting in higher cracking speed
+- WPA/WPA2 cracking: In the potfile, replace password with PMK in order to detect already cracked networks across all WPA modes
 
 ##
 ## Technical
 ##
 
 - Binary Distribution: Removed 32 bit binary executables
+- Building: On macOS, switch from ar to /usr/bin/ar to improve building compatibility
+- Building: Skipping Travis/Appveyor build for non-code changes
+- Codebase: Cleanup of many unused rc_* variables
+- Codebase: Fixed some printf() format arguments
+- Codebase: Fixed some type casting to avoid truncLongCastAssignment warnings
+- Codebase: Moved hc_* file functions from shared.c to filehandling.c
+- Codebase: Ran through a bunch of clang-tidy checkers and updated code accordingly
+- Codebase: Remove redundant calls to fclose()
+- Dependencies: Updated LZMA-Headers from 18.05 to 19.00
 - Dependencies: Updated OpenCL-Headers to latest version from GitHub master repository
+- Hash-mode 1460 (HMAC-SHA256 (key = $salt)): Allow up to 64 byte of salt
+- Hash-Mode 1680x (WPA-PMKID) specific: Changed separator character from '*' to ':'
+- Hash-Mode 8300 (DNSSEC (NSEC3)) specific: Allow empty salt
 - Keep Guessing: No longer automatically activate --keep-guessing for modes 9720, 9820, 14900 and 18100
 - Kernel Cache: Reactivate OpenCL runtime specific kernel caches
 - Kernel Compile: Removed -cl-std= from all kernel build options since we're compatible to all OpenCL versions
-- Mode 16800/16801 hash format: Changed separator character from '*' to ':'
-- Requirements: Update runtime check for minimum NVIDIA driver version from 367.x to 418.56 or later
-- Requirements: Add new requirement for NVIDIA GPU: CUDA Toolkit (10.1 or later)
+- OpenCL Kernels: Fix OpenCL compiler warning on double precision constants
 - OpenCL Options: Removed --opencl-platforms filter in order to force backend device numbers to stay constant
+- Parsers: switched from strtok() to strtok_r() for thread safety
+- Requirements: Add new requirement for NVIDIA GPU: CUDA Toolkit (10.1 or later)
+- Requirements: Update runtime check for minimum NVIDIA driver version from 367.x to 418.56 or later
+- Test Script: Switched from /bin/bash to generic /bin/sh and updated code accordingly
 
 * changes v5.0.0 -> v5.1.0
 

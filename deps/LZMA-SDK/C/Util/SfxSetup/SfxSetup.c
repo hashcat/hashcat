@@ -1,5 +1,5 @@
 /* SfxSetup.c - 7z SFX Setup
-2017-04-04 : Igor Pavlov : Public domain */
+2019-02-02 : Igor Pavlov : Public domain */
 
 #include "Precomp.h"
 
@@ -127,7 +127,7 @@ static WRes MyCreateDir(const WCHAR *name)
 
 #define kSignatureSearchLimit (1 << 22)
 
-static Bool FindSignature(CSzFile *stream, UInt64 *resPos)
+static BoolInt FindSignature(CSzFile *stream, UInt64 *resPos)
 {
   Byte buf[kBufferSize];
   size_t numPrevBytes = 0;
@@ -163,7 +163,7 @@ static Bool FindSignature(CSzFile *stream, UInt64 *resPos)
   }
 }
 
-static Bool DoesFileOrDirExist(const WCHAR *path)
+static BoolInt DoesFileOrDirExist(const WCHAR *path)
 {
   WIN32_FIND_DATAW fd;
   HANDLE handle;
@@ -254,7 +254,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
   DWORD winRes;
   const wchar_t *cmdLineParams;
   const char *errorMessage = NULL;
-  Bool useShellExecute = True;
+  BoolInt useShellExecute = True;
   DWORD exitCode = 0;
 
   LoadSecurityDlls();
@@ -287,7 +287,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     cmdLineParams = GetCommandLineW();
     #ifndef UNDER_CE
     {
-      Bool quoteMode = False;
+      BoolInt quoteMode = False;
       for (;; cmdLineParams++)
       {
         wchar_t c = *cmdLineParams;
@@ -379,7 +379,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
   if (res == SZ_OK)
   {
-    lookStream.buf = ISzAlloc_Alloc(&allocImp, kInputBufSize);
+    lookStream.buf = (Byte *)ISzAlloc_Alloc(&allocImp, kInputBufSize);
     if (!lookStream.buf)
       res = SZ_ERROR_MEM;
     else
@@ -420,7 +420,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
       
       temp = path + pathLen;
       
-      SzArEx_GetFileNameUtf16(&db, i, temp);
+      SzArEx_GetFileNameUtf16(&db, i, (UInt16 *)temp);
       {
         res = SzArEx_Extract(&db, &lookStream.vt, i,
           &blockIndex, &outBuffer, &outBufferSize,
@@ -527,7 +527,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
       {
         WCHAR *temp = path + pathLen;
         UInt32 j;
-        SzArEx_GetFileNameUtf16(&db, executeFileIndex, temp);
+        SzArEx_GetFileNameUtf16(&db, executeFileIndex, (UInt16 *)temp);
         for (j = 0; temp[j] != 0; j++)
           if (temp[j] == '/')
             temp[j] = CHAR_PATH_SEPARATOR;

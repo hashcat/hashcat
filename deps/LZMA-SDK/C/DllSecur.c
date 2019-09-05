@@ -1,5 +1,5 @@
 /* DllSecur.c -- DLL loading security
-2016-10-04 : Igor Pavlov : Public domain */
+2018-02-21 : Igor Pavlov : Public domain */
 
 #include "Precomp.h"
 
@@ -28,9 +28,30 @@ static const char * const g_Dlls =
   "CRYPTBASE\0"
   "OLEACC\0"
   "CLBCATQ\0"
+  "VERSION\0"
   ;
 
 #endif
+
+void My_SetDefaultDllDirectories()
+{
+  #ifndef UNDER_CE
+  
+    OSVERSIONINFO vi;
+    vi.dwOSVersionInfoSize = sizeof(vi);
+    GetVersionEx(&vi);
+    if (!GetVersionEx(&vi) || vi.dwMajorVersion != 6 || vi.dwMinorVersion != 0)
+    {
+      Func_SetDefaultDllDirectories setDllDirs = (Func_SetDefaultDllDirectories)
+          GetProcAddress(GetModuleHandle(TEXT("kernel32.dll")), "SetDefaultDllDirectories");
+      if (setDllDirs)
+        if (setDllDirs(MY_LOAD_LIBRARY_SEARCH_SYSTEM32 | MY_LOAD_LIBRARY_SEARCH_USER_DIRS))
+          return;
+    }
+
+  #endif
+}
+
 
 void LoadSecurityDlls()
 {
@@ -70,7 +91,7 @@ void LoadSecurityDlls()
       for (;;)
       {
         char c = *dll++;
-        buf[pos + k] = c;
+        buf[pos + k] = (Byte)c;
         k++;
         if (c == 0)
           break;

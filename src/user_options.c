@@ -1909,28 +1909,26 @@ u64 user_options_extra_amplifier (hashcat_ctx_t *hashcat_ctx)
   {
     return 1;
   }
-  else
+
+  if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
   {
-    if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
+    if (straight_ctx->kernel_rules_cnt)
     {
-      if (straight_ctx->kernel_rules_cnt)
-      {
-        return straight_ctx->kernel_rules_cnt;
-      }
+      return straight_ctx->kernel_rules_cnt;
     }
-    else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
+  }
+  else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
+  {
+    if (combinator_ctx->combs_cnt)
     {
-      if (combinator_ctx->combs_cnt)
-      {
-        return combinator_ctx->combs_cnt;
-      }
+      return combinator_ctx->combs_cnt;
     }
-    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
+  }
+  else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
+  {
+    if (mask_ctx->bfs_cnt)
     {
-      if (mask_ctx->bfs_cnt)
-      {
-        return mask_ctx->bfs_cnt;
-      }
+      return mask_ctx->bfs_cnt;
     }
   }
 

@@ -84,21 +84,18 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   status_ctx->words_off = 0;
   status_ctx->words_cur = 0;
 
-  if (restore_ctx->rd)
+  if (restore_ctx->restore_execute == true)
   {
+    restore_ctx->restore_execute = false;
+
     restore_data_t *rd = restore_ctx->rd;
 
-    if (rd->words_cur > 0)
-    {
-      status_ctx->words_off = rd->words_cur;
-      status_ctx->words_cur = status_ctx->words_off;
+    status_ctx->words_off = rd->words_cur;
+    status_ctx->words_cur = status_ctx->words_off;
 
-      rd->words_cur = 0;
+    // --restore always overrides --skip
 
-      // --restore always overrides --skip
-
-      user_options->skip = 0;
-    }
+    user_options->skip = 0;
   }
 
   if (user_options->skip > 0)

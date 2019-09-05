@@ -226,9 +226,7 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
         char  *iconv_ptr = iconv_tmp;
         size_t iconv_sz  = HCBUFSIZ_TINY;
 
-        const size_t iconv_rc = iconv (iconv_ctx, &line_buf, &line_len, &iconv_ptr, &iconv_sz);
-
-        if (iconv_rc == (size_t) -1) continue;
+        if (iconv (iconv_ctx, &line_buf, &line_len, &iconv_ptr, &iconv_sz) == (size_t) -1) continue;
 
         line_buf = iconv_tmp;
         line_len = HCBUFSIZ_TINY - iconv_sz;
@@ -293,20 +291,14 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
     // flush
 
-    int CL_rc;
-
-    CL_rc = run_copy (hashcat_ctx, device_param, device_param->pws_cnt);
-
-    if (CL_rc == -1)
+    if (run_copy (hashcat_ctx, device_param, device_param->pws_cnt) == -1)
     {
       hcfree (buf);
 
       return -1;
     }
 
-    CL_rc = run_cracker (hashcat_ctx, device_param, device_param->pws_cnt);
-
-    if (CL_rc == -1)
+    if (run_cracker (hashcat_ctx, device_param, device_param->pws_cnt) == -1)
     {
       hcfree (buf);
 
@@ -343,7 +335,6 @@ HC_API_CALL void *thread_calc_stdin (void *p)
   thread_param_t *thread_param = (thread_param_t *) p;
 
   hashcat_ctx_t *hashcat_ctx = thread_param->hashcat_ctx;
-
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   if (backend_ctx->enabled == false) return NULL;
@@ -356,14 +347,10 @@ HC_API_CALL void *thread_calc_stdin (void *p)
 
   if (device_param->is_cuda == true)
   {
-    const int rc_cuCtxSetCurrent = hc_cuCtxSetCurrent (hashcat_ctx, device_param->cuda_context);
-
-    if (rc_cuCtxSetCurrent == -1) return NULL;
+    if (hc_cuCtxSetCurrent (hashcat_ctx, device_param->cuda_context) == -1) return NULL;
   }
 
-  const int rc_calc = calc_stdin (hashcat_ctx, device_param);
-
-  if (rc_calc == -1)
+  if (calc_stdin (hashcat_ctx, device_param) == -1)
   {
     status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
@@ -449,9 +436,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       hashcat_ctx_tmp->wl_data = (wl_data_t *) hcmalloc (sizeof (wl_data_t));
 
-      const int rc_wl_data_init = wl_data_init (hashcat_ctx_tmp);
-
-      if (rc_wl_data_init == -1)
+      if (wl_data_init (hashcat_ctx_tmp) == -1)
       {
         hc_fclose (&extra_info_straight.fp);
 
@@ -520,13 +505,10 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
                   brain_client_disconnect (device_param);
                 }
 
-                words_extra = overlap;
-
+                words_extra        = overlap;
                 words_extra_total += overlap;
-
-                words_off += overlap;
-
-                work -= overlap;
+                words_off         += overlap;
+                work              -= overlap;
               }
             }
             #endif
@@ -559,7 +541,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
                 brain_client_generate_hash ((u64 *) hash, (const char *) extra_info_straight.out_buf, extra_info_straight.out_len);
 
-                u32 *ptr = (u32 *) device_param->brain_link_out_buf;
+                u32 *ptr = device_param->brain_link_out_buf;
 
                 ptr[(device_param->pws_pre_cnt * 2) + 0] = hash[0];
                 ptr[(device_param->pws_pre_cnt * 2) + 1] = hash[1];
@@ -658,29 +640,21 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
         if (pws_cnt)
         {
-          int CL_rc;
-
-          CL_rc = run_copy (hashcat_ctx, device_param, pws_cnt);
-
-          if (CL_rc == -1)
+          if (run_copy (hashcat_ctx, device_param, pws_cnt) == -1)
           {
             hc_fclose (&extra_info_straight.fp);
 
             hcfree (hashcat_ctx_tmp->wl_data);
-
             hcfree (hashcat_ctx_tmp);
 
             return -1;
           }
 
-          CL_rc = run_cracker (hashcat_ctx, device_param, pws_cnt);
-
-          if (CL_rc == -1)
+          if (run_cracker (hashcat_ctx, device_param, pws_cnt) == -1)
           {
             hc_fclose (&extra_info_straight.fp);
 
             hcfree (hashcat_ctx_tmp->wl_data);
-
             hcfree (hashcat_ctx_tmp);
 
             return -1;
@@ -703,8 +677,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
           }
           #endif
 
-          device_param->pws_cnt = 0;
-
+          device_param->pws_cnt      = 0;
           device_param->pws_base_cnt = 0;
         }
 
@@ -727,7 +700,6 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       wl_data_destroy (hashcat_ctx_tmp);
 
       hcfree (hashcat_ctx_tmp->wl_data);
-
       hcfree (hashcat_ctx_tmp);
     }
     else if (attack_mode == ATTACK_MODE_COMBI)
@@ -776,9 +748,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       hashcat_ctx_tmp->wl_data = (wl_data_t *) hcmalloc (sizeof (wl_data_t));
 
-      const int rc_wl_data_init = wl_data_init (hashcat_ctx_tmp);
-
-      if (rc_wl_data_init == -1)
+      if (wl_data_init (hashcat_ctx_tmp) == -1)
       {
         hc_fclose (&extra_info_combi.base_fp);
         hc_fclose (&extra_info_combi.combs_fp);
@@ -849,13 +819,10 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
                   brain_client_disconnect (device_param);
                 }
 
-                words_extra = overlap;
-
+                words_extra        = overlap;
                 words_extra_total += overlap;
-
-                words_off += overlap;
-
-                work -= overlap;
+                words_off         += overlap;
+                work              -= overlap;
               }
             }
             #endif
@@ -886,7 +853,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
                 brain_client_generate_hash ((u64 *) hash, (const char *) extra_info_combi.out_buf, extra_info_combi.out_len);
 
-                u32 *ptr = (u32 *) device_param->brain_link_out_buf;
+                u32 *ptr = device_param->brain_link_out_buf;
 
                 ptr[(device_param->pws_pre_cnt * 2) + 0] = hash[0];
                 ptr[(device_param->pws_pre_cnt * 2) + 1] = hash[1];
@@ -985,11 +952,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
         if (pws_cnt)
         {
-          int CL_rc;
-
-          CL_rc = run_copy (hashcat_ctx, device_param, pws_cnt);
-
-          if (CL_rc == -1)
+          if (run_copy (hashcat_ctx, device_param, pws_cnt) == -1)
           {
             hc_fclose (&extra_info_combi.base_fp);
             hc_fclose (&extra_info_combi.combs_fp);
@@ -1000,9 +963,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
             return -1;
           }
 
-          CL_rc = run_cracker (hashcat_ctx, device_param, pws_cnt);
-
-          if (CL_rc == -1)
+          if (run_cracker (hashcat_ctx, device_param, pws_cnt) == -1)
           {
             hc_fclose (&extra_info_combi.base_fp);
             hc_fclose (&extra_info_combi.combs_fp);
@@ -1030,8 +991,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
           }
           #endif
 
-          device_param->pws_cnt = 0;
-
+          device_param->pws_cnt      = 0;
           device_param->pws_base_cnt = 0;
         }
 
@@ -1124,19 +1084,15 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
                   brain_client_disconnect (device_param);
                 }
 
-                words_extra = overlap;
-
+                words_extra        = overlap;
                 words_extra_total += overlap;
-
-                words_off += overlap;
-
-                work -= overlap;
+                words_off         += overlap;
+                work              -= overlap;
               }
             }
             #endif
 
             words_fin = words_off + work;
-
             words_cur = words_off;
 
             for (u64 i = words_cur; i < words_fin; i++)
@@ -1152,7 +1108,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
                 brain_client_generate_hash ((u64 *) hash, (const char *) extra_info_mask.out_buf, extra_info_mask.out_len);
 
-                u32 *ptr = (u32 *) device_param->brain_link_out_buf;
+                u32 *ptr = device_param->brain_link_out_buf;
 
                 ptr[(device_param->pws_pre_cnt * 2) + 0] = hash[0];
                 ptr[(device_param->pws_pre_cnt * 2) + 1] = hash[1];
@@ -1245,21 +1201,8 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
         if (pws_cnt)
         {
-          int CL_rc;
-
-          CL_rc = run_copy (hashcat_ctx, device_param, pws_cnt);
-
-          if (CL_rc == -1)
-          {
-            return -1;
-          }
-
-          CL_rc = run_cracker (hashcat_ctx, device_param, pws_cnt);
-
-          if (CL_rc == -1)
-          {
-            return -1;
-          }
+          if (run_copy    (hashcat_ctx, device_param, pws_cnt) == -1) return -1;
+          if (run_cracker (hashcat_ctx, device_param, pws_cnt) == -1) return -1;
 
           #ifdef WITH_BRAIN
           if (user_options->brain_client == true)
@@ -1330,15 +1273,8 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
         device_param->pws_cnt = work;
 
-        int CL_rc;
-
-        CL_rc = run_copy (hashcat_ctx, device_param, device_param->pws_cnt);
-
-        if (CL_rc == -1) return -1;
-
-        CL_rc = run_cracker (hashcat_ctx, device_param, device_param->pws_cnt);
-
-        if (CL_rc == -1) return -1;
+        if (run_copy    (hashcat_ctx, device_param, device_param->pws_cnt) == -1) return -1;
+        if (run_cracker (hashcat_ctx, device_param, device_param->pws_cnt) == -1) return -1;
 
         device_param->pws_cnt = 0;
 
@@ -1408,16 +1344,13 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       hashcat_ctx_tmp->wl_data = (wl_data_t *) hcmalloc (sizeof (wl_data_t));
 
-      const int rc_wl_data_init = wl_data_init (hashcat_ctx_tmp);
-
-      if (rc_wl_data_init == -1)
+      if (wl_data_init (hashcat_ctx_tmp) == -1)
       {
         if (attack_mode == ATTACK_MODE_COMBI) hc_fclose (&device_param->combs_fp);
 
         hc_fclose (&fp);
 
         hcfree (hashcat_ctx_tmp->wl_data);
-
         hcfree (hashcat_ctx_tmp);
 
         return -1;
@@ -1429,9 +1362,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       {
         u64 words_off = 0;
         u64 words_fin = 0;
-
-        u64 words_extra = -1u;
-
+        u64 words_extra = -1U;
         u64 words_extra_total = 0;
 
         memset (device_param->pws_comp, 0, device_param->size_pws_comp);
@@ -1538,33 +1469,25 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
         if (pws_cnt)
         {
-          int CL_rc;
-
-          CL_rc = run_copy (hashcat_ctx, device_param, pws_cnt);
-
-          if (CL_rc == -1)
+          if (run_copy (hashcat_ctx, device_param, pws_cnt) == -1)
           {
             if (attack_mode == ATTACK_MODE_COMBI) hc_fclose (&device_param->combs_fp);
 
             hc_fclose (&fp);
 
             hcfree (hashcat_ctx_tmp->wl_data);
-
             hcfree (hashcat_ctx_tmp);
 
             return -1;
           }
 
-          CL_rc = run_cracker (hashcat_ctx, device_param, pws_cnt);
-
-          if (CL_rc == -1)
+          if (run_cracker (hashcat_ctx, device_param, pws_cnt) == -1)
           {
             if (attack_mode == ATTACK_MODE_COMBI) hc_fclose (&device_param->combs_fp);
 
             hc_fclose (&fp);
 
             hcfree (hashcat_ctx_tmp->wl_data);
-
             hcfree (hashcat_ctx_tmp);
 
             return -1;
@@ -1622,7 +1545,6 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       wl_data_destroy (hashcat_ctx_tmp);
 
       hcfree (hashcat_ctx_tmp->wl_data);
-
       hcfree (hashcat_ctx_tmp);
     }
   }
@@ -1641,7 +1563,6 @@ HC_API_CALL void *thread_calc (void *p)
   thread_param_t *thread_param = (thread_param_t *) p;
 
   hashcat_ctx_t *hashcat_ctx = thread_param->hashcat_ctx;
-
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   if (backend_ctx->enabled == false) return NULL;
@@ -1654,14 +1575,10 @@ HC_API_CALL void *thread_calc (void *p)
 
   if (device_param->is_cuda == true)
   {
-    const int rc_cuCtxSetCurrent = hc_cuCtxSetCurrent (hashcat_ctx, device_param->cuda_context);
-
-    if (rc_cuCtxSetCurrent == -1) return NULL;
+    if (hc_cuCtxSetCurrent (hashcat_ctx, device_param->cuda_context) == -1) return NULL;
   }
 
-  const int rc_calc = calc (hashcat_ctx, device_param);
-
-  if (rc_calc == -1)
+  if (calc (hashcat_ctx, device_param) == -1)
   {
     status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 

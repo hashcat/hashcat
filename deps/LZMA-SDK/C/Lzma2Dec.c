@@ -1,5 +1,5 @@
 /* Lzma2Dec.c -- LZMA2 Decoder
-2018-02-19 : Igor Pavlov : Public domain */
+2019-02-02 : Igor Pavlov : Public domain */
 
 /* #define SHOW_DEBUG_INFO */
 
@@ -169,7 +169,7 @@ static void LzmaDec_UpdateWithUncompressed(CLzmaDec *p, const Byte *src, SizeT s
   p->processedPos += (UInt32)size;
 }
 
-void LzmaDec_InitDicAndState(CLzmaDec *p, Bool initDic, Bool initState);
+void LzmaDec_InitDicAndState(CLzmaDec *p, BoolInt initDic, BoolInt initState);
 
 
 SRes Lzma2Dec_DecodeToDic(CLzma2Dec *p, SizeT dicLimit,
@@ -232,7 +232,7 @@ SRes Lzma2Dec_DecodeToDic(CLzma2Dec *p, SizeT dicLimit,
 
         if (p->state == LZMA2_STATE_DATA)
         {
-          Bool initDic = (p->control == LZMA2_CONTROL_COPY_RESET_DIC);
+          BoolInt initDic = (p->control == LZMA2_CONTROL_COPY_RESET_DIC);
           LzmaDec_InitDicAndState(&p->decoder, initDic, False);
         }
 
@@ -254,8 +254,8 @@ SRes Lzma2Dec_DecodeToDic(CLzma2Dec *p, SizeT dicLimit,
 
         if (p->state == LZMA2_STATE_DATA)
         {
-          Bool initDic = (p->control >= 0xE0);
-          Bool initState = (p->control >= 0xA0);
+          BoolInt initDic = (p->control >= 0xE0);
+          BoolInt initState = (p->control >= 0xA0);
           LzmaDec_InitDicAndState(&p->decoder, initDic, initState);
           p->state = LZMA2_STATE_DATA_CONT;
         }
@@ -314,15 +314,15 @@ ELzma2ParseStatus Lzma2Dec_Parse(CLzma2Dec *p,
   while (p->state != LZMA2_STATE_ERROR)
   {
     if (p->state == LZMA2_STATE_FINISHED)
-      return LZMA_STATUS_FINISHED_WITH_MARK;
+      return (ELzma2ParseStatus)LZMA_STATUS_FINISHED_WITH_MARK;
 
     if (outSize == 0 && !checkFinishBlock)
-      return LZMA_STATUS_NOT_FINISHED;
+      return (ELzma2ParseStatus)LZMA_STATUS_NOT_FINISHED;
     
     if (p->state != LZMA2_STATE_DATA && p->state != LZMA2_STATE_DATA_CONT)
     {
       if (*srcLen == inSize)
-        return LZMA_STATUS_NEEDS_MORE_INPUT;
+        return (ELzma2ParseStatus)LZMA_STATUS_NEEDS_MORE_INPUT;
       (*srcLen)++;
 
       p->state = Lzma2Dec_UpdateState(p, *src++);
@@ -344,7 +344,7 @@ ELzma2ParseStatus Lzma2Dec_Parse(CLzma2Dec *p,
         // checkFinishBlock is true. So we expect that block must be finished,
         // We can return LZMA_STATUS_NOT_SPECIFIED or LZMA_STATUS_NOT_FINISHED here
         // break;
-        return LZMA_STATUS_NOT_FINISHED;
+        return (ELzma2ParseStatus)LZMA_STATUS_NOT_FINISHED;
       }
 
       if (p->state == LZMA2_STATE_DATA)
@@ -354,7 +354,7 @@ ELzma2ParseStatus Lzma2Dec_Parse(CLzma2Dec *p,
     }
 
     if (outSize == 0)
-      return LZMA_STATUS_NOT_FINISHED;
+      return (ELzma2ParseStatus)LZMA_STATUS_NOT_FINISHED;
 
     {
       SizeT inCur = inSize - *srcLen;
@@ -362,7 +362,7 @@ ELzma2ParseStatus Lzma2Dec_Parse(CLzma2Dec *p,
       if (LZMA2_IS_UNCOMPRESSED_STATE(p))
       {
         if (inCur == 0)
-          return LZMA_STATUS_NEEDS_MORE_INPUT;
+          return (ELzma2ParseStatus)LZMA_STATUS_NEEDS_MORE_INPUT;
         if (inCur > p->unpackSize)
           inCur = p->unpackSize;
         if (inCur > outSize)
@@ -381,7 +381,7 @@ ELzma2ParseStatus Lzma2Dec_Parse(CLzma2Dec *p,
         if (inCur == 0)
         {
           if (p->packSize != 0)
-            return LZMA_STATUS_NEEDS_MORE_INPUT;
+            return (ELzma2ParseStatus)LZMA_STATUS_NEEDS_MORE_INPUT;
         }
         else if (p->state == LZMA2_STATE_DATA)
         {
@@ -418,7 +418,7 @@ ELzma2ParseStatus Lzma2Dec_Parse(CLzma2Dec *p,
   }
   
   p->state = LZMA2_STATE_ERROR;
-  return LZMA_STATUS_NOT_SPECIFIED;
+  return (ELzma2ParseStatus)LZMA_STATUS_NOT_SPECIFIED;
 }
 
 

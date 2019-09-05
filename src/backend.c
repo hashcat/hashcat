@@ -259,7 +259,7 @@ static bool setup_opencl_device_types_filter (hashcat_ctx_t *hashcat_ctx, const 
         return false;
       }
 
-      opencl_device_types_filter |= 1u << device_type;
+      opencl_device_types_filter |= 1U << device_type;
 
     } while ((next = strtok_r (NULL, ",", &saveptr)) != NULL);
 
@@ -371,8 +371,8 @@ static bool opencl_test_instruction (hashcat_ctx_t *hashcat_ctx, cl_context cont
   #ifndef DEBUG
   #ifndef _WIN
   fflush (stderr);
-  int bak = dup (2);
-  int tmp = open ("/dev/null", O_WRONLY);
+  int bak = fcntl(2, F_DUPFD_CLOEXEC);
+  int tmp = open ("/dev/null", O_WRONLY | O_CLOEXEC);
   dup2 (tmp, 2);
   close (tmp);
   #endif
@@ -383,7 +383,11 @@ static bool opencl_test_instruction (hashcat_ctx_t *hashcat_ctx, cl_context cont
   #ifndef DEBUG
   #ifndef _WIN
   fflush (stderr);
+  #ifndef __APPLE__
+  dup3 (bak, 2, O_CLOEXEC);
+  #else
   dup2 (bak, 2);
+  #endif
   close (bak);
   #endif
   #endif
@@ -445,7 +449,7 @@ static bool read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_f
 
     hc_fclose (&fp);
 
-    if (num_read != (size_t) klen)
+    if (num_read != klen)
     {
       event_log_error (hashcat_ctx, "%s: %s", kernel_file, strerror (errno));
 
@@ -469,7 +473,7 @@ static bool read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_f
       klen += extra_len;
     }
 
-    kernel_lengths[0] = (size_t) klen;
+    kernel_lengths[0] = klen;
 
     kernel_sources[0] = buf;
   }
@@ -917,14 +921,14 @@ int cuda_init (hashcat_ctx_t *hashcat_ctx)
   if (cuda->lib == NULL) return -1;
 
   #define HC_LOAD_FUNC_CUDA(ptr,name,cudaname,type,libname,noerr) \
-    ptr->name = (type) hc_dlsym (ptr->lib, #cudaname); \
-    if (noerr != -1) { \
-      if (!ptr->name) { \
-        if (noerr == 1) { \
+    ptr->name = (type) hc_dlsym ((ptr)->lib, #cudaname); \
+    if ((noerr) != -1) { \
+      if (!(ptr)->name) { \
+        if ((noerr) == 1) { \
           event_log_error (hashcat_ctx, "%s is missing from %s shared library.", #name, #libname); \
           return -1; \
         } \
-        if (noerr != 1) { \
+        if ((noerr) != 1) { \
           event_log_warning (hashcat_ctx, "%s is missing from %s shared library.", #name, #libname); \
           return 0; \
         } \
@@ -2416,7 +2420,7 @@ int hc_clCreateProgramWithBinary (hashcat_ctx_t *hashcat_ctx, cl_context context
 
   cl_int CL_err;
 
-  *program = ocl->clCreateProgramWithBinary (context, num_devices, device_list, lengths, (const unsigned char **) binaries, binary_status, &CL_err);
+  *program = ocl->clCreateProgramWithBinary (context, num_devices, device_list, lengths, binaries, binary_status, &CL_err);
 
   if (CL_err != CL_SUCCESS)
   {
@@ -4106,7 +4110,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
       if   (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL) innerloop_step = device_param->kernel_loops;
       else                                                        innerloop_step = 1;
 
-      if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)  innerloop_cnt = (u32) straight_ctx->kernel_rules_cnt;
+      if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)  innerloop_cnt = straight_ctx->kernel_rules_cnt;
       else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)     innerloop_cnt = (u32) combinator_ctx->combs_cnt;
       else if (user_options_extra->attack_kern == ATTACK_KERN_BF)        innerloop_cnt = (u32) mask_ctx->bfs_cnt;
     }
@@ -4133,7 +4137,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
       device_param->innerloop_pos  = innerloop_pos;
       device_param->innerloop_left = innerloop_left;
 
-      device_param->kernel_params_buf32[30] = (u32) innerloop_left;
+      device_param->kernel_params_buf32[30] = innerloop_left;
 
       device_param->outerloop_multi = (double) innerloop_cnt / (double) (innerloop_pos + innerloop_left);
 
@@ -4141,7 +4145,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
       if (hashes->salts_shown[salt_pos] == 1)
       {
-        status_ctx->words_progress_done[salt_pos] += (u64) pws_cnt * innerloop_left;
+        status_ctx->words_progress_done[salt_pos] += pws_cnt * innerloop_left;
 
         continue;
       }
@@ -4179,7 +4183,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
               {
                 if (hc_feof (combs_fp)) break;
 
-                size_t line_len = fgetl (combs_fp, line_buf);
+                size_t line_len = fgetl (combs_fp, line_buf, HCBUFSIZ_LARGE);
 
                 line_len = convert_from_hex (hashcat_ctx, line_buf, line_len);
 
@@ -4324,7 +4328,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
               {
                 if (hc_feof (combs_fp)) break;
 
-                size_t line_len = fgetl (combs_fp, line_buf);
+                size_t line_len = fgetl (combs_fp, line_buf, HCBUFSIZ_LARGE);
 
                 line_len = convert_from_hex (hashcat_ctx, line_buf, line_len);
 
@@ -4480,7 +4484,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
         if (status_ctx->run_thread_level2 == true)
         {
-          const u64 perf_sum_all = (u64) pws_cnt * innerloop_left;
+          const u64 perf_sum_all = pws_cnt * innerloop_left;
 
           const double speed_msec = hc_timer_get (device_param->timer_speed);
 
@@ -4528,44 +4532,42 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
           break;
         }
+
+        double total_msec = device_param->speed_msec[0];
+
+        for (u32 speed_pos = 1; speed_pos < device_param->speed_pos; speed_pos++)
+        {
+          total_msec += device_param->speed_msec[speed_pos];
+        }
+
+        if (user_options->slow_candidates == true)
+        {
+          if ((total_msec > 4000) || (device_param->speed_pos == SPEED_CACHE - 1))
+          {
+            const u32 speed_pos = device_param->speed_pos;
+
+            if (speed_pos)
+            {
+              device_param->speed_cnt[0]  = device_param->speed_cnt[speed_pos - 1];
+              device_param->speed_msec[0] = device_param->speed_msec[speed_pos - 1];
+            }
+
+            device_param->speed_pos = 0;
+
+            device_param->speed_only_finish = true;
+
+            break;
+          }
+        }
         else
         {
-          double total_msec = device_param->speed_msec[0];
+          // it's unclear if 4s is enough to turn on boost mode for all backend device
 
-          for (u32 speed_pos = 1; speed_pos < device_param->speed_pos; speed_pos++)
+          if ((total_msec > 4000) || (device_param->speed_pos == SPEED_CACHE - 1))
           {
-            total_msec += device_param->speed_msec[speed_pos];
-          }
+            device_param->speed_only_finish = true;
 
-          if (user_options->slow_candidates == true)
-          {
-            if ((total_msec > 4000) || (device_param->speed_pos == SPEED_CACHE - 1))
-            {
-              const u32 speed_pos = device_param->speed_pos;
-
-              if (speed_pos)
-              {
-                device_param->speed_cnt[0]  = device_param->speed_cnt[speed_pos - 1];
-                device_param->speed_msec[0] = device_param->speed_msec[speed_pos - 1];
-              }
-
-              device_param->speed_pos = 0;
-
-              device_param->speed_only_finish = true;
-
-              break;
-            }
-          }
-          else
-          {
-            // it's unclear if 4s is enough to turn on boost mode for all backend device
-
-            if ((total_msec > 4000) || (device_param->speed_pos == SPEED_CACHE - 1))
-            {
-              device_param->speed_only_finish = true;
-
-              break;
-            }
+            break;
           }
         }
       }
@@ -6128,14 +6130,18 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
   backend_ctx->backend_devices_cnt    = cuda_devices_cnt    + opencl_devices_cnt;
   backend_ctx->backend_devices_active = cuda_devices_active + opencl_devices_active;
 
-  // find duplicate devices (typically cuda and opencl!)
-  // using force here enables both devices, which is the worst possible outcome
-  // many users force by default, so this is not a good idea
+  // find duplicate devices (typically CUDA and OpenCL)
 
-  //if (user_options->force == false)
-  //{
-  backend_ctx_find_alias_devices (hashcat_ctx);
-  //}
+  if ((cuda_devices_cnt > 0) && (opencl_devices_cnt > 0))
+  {
+    // using force here enables both devices, which is the worst possible outcome
+    // many users force by default, so this is not a good idea
+
+    //if (user_options->force == false)
+    //{
+    backend_ctx_find_alias_devices (hashcat_ctx);
+    //{
+  }
 
   if (backend_ctx->backend_devices_active == 0)
   {
@@ -6792,7 +6798,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     u64 size_plains  = (u64) hashes->digests_cnt * sizeof (plain_t);
     u64 size_salts   = (u64) hashes->salts_cnt   * sizeof (salt_t);
-    u64 size_esalts  = (u64) hashes->digests_cnt * (u64) hashconfig->esalt_size;
+    u64 size_esalts  = (u64) hashes->digests_cnt * hashconfig->esalt_size;
     u64 size_shown   = (u64) hashes->digests_cnt * sizeof (u32);
     u64 size_digests = (u64) hashes->digests_cnt * (u64) hashconfig->dgst_size;
 
@@ -6838,7 +6844,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     // kern type
 
-    u32 kern_type = (u32) hashconfig->kern_type;
+    u32 kern_type = hashconfig->kern_type;
 
     if (module_ctx->module_kern_type_dynamic != MODULE_DEFAULT)
     {
@@ -7671,10 +7677,10 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (user_options->benchmark == true)
     {
-      ((u32 *) hashes->digests_buf)[0] = -1u;
-      ((u32 *) hashes->digests_buf)[1] = -1u;
-      ((u32 *) hashes->digests_buf)[2] = -1u;
-      ((u32 *) hashes->digests_buf)[3] = -1u;
+      ((u32 *) hashes->digests_buf)[0] = -1U;
+      ((u32 *) hashes->digests_buf)[1] = -1U;
+      ((u32 *) hashes->digests_buf)[2] = -1U;
+      ((u32 *) hashes->digests_buf)[3] = -1U;
     }
 
     /**
@@ -9271,12 +9277,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     // this value should represent a reasonable amount of memory a host system has per GPU.
     // note we're allocating 3 blocks of that size.
 
-    const u64 PWS_SPACE = 1024ull * 1024ull * 1024ull;
+    const u64 PWS_SPACE = 1024ULL * 1024ULL * 1024ULL;
 
     // sometimes device_available_mem and device_maxmem_alloc reported back from the opencl runtime are a bit inaccurate.
     // let's add some extra space just to be sure.
 
-    const u64 EXTRA_SPACE = 64ull * 1024ull * 1024ull;
+    const u64 EXTRA_SPACE = 64ULL * 1024ULL * 1024ULL;
 
     while (kernel_accel_max >= kernel_accel_min)
     {
@@ -9284,13 +9290,13 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       // size_pws
 
-      size_pws = (u64) kernel_power_max * sizeof (pw_t);
+      size_pws = kernel_power_max * sizeof (pw_t);
 
       size_pws_amp = (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL) ? 1 : size_pws;
 
       // size_pws_comp
 
-      size_pws_comp = (u64) kernel_power_max * (sizeof (u32) * 64);
+      size_pws_comp = kernel_power_max * (sizeof (u32) * 64);
 
       // size_pws_idx
 
@@ -9298,28 +9304,28 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       // size_tmps
 
-      size_tmps = (u64) kernel_power_max * (hashconfig->tmp_size + hashconfig->extra_tmp_size);
+      size_tmps = kernel_power_max * (hashconfig->tmp_size + hashconfig->extra_tmp_size);
 
       // size_hooks
 
-      size_hooks = (u64) kernel_power_max * hashconfig->hook_size;
+      size_hooks = kernel_power_max * hashconfig->hook_size;
 
       #ifdef WITH_BRAIN
       // size_brains
 
-      size_brain_link_in  = (u64) kernel_power_max * 1;
-      size_brain_link_out = (u64) kernel_power_max * 8;
+      size_brain_link_in  = kernel_power_max * 1;
+      size_brain_link_out = kernel_power_max * 8;
       #endif
 
       if (user_options->slow_candidates == true)
       {
         // size_pws_pre
 
-        size_pws_pre = (u64) kernel_power_max * sizeof (pw_pre_t);
+        size_pws_pre = kernel_power_max * sizeof (pw_pre_t);
 
         // size_pws_base
 
-        size_pws_base = (u64) kernel_power_max * sizeof (pw_pre_t);
+        size_pws_base = kernel_power_max * sizeof (pw_pre_t);
       }
 
       // now check if all device-memory sizes which depend on the kernel_accel_max amplifier are within its boundaries

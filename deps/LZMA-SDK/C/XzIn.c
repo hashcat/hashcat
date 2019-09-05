@@ -1,5 +1,5 @@
 /* XzIn.c - Xz input
-2018-02-02 : Igor Pavlov : Public domain */
+2018-07-04 : Igor Pavlov : Public domain */
 
 #include "Precomp.h"
 
@@ -28,7 +28,7 @@ SRes Xz_ReadHeader(CXzStreamFlags *p, ISeqInStream *inStream)
   { unsigned s = Xz_ReadVarInt(buf + pos, size - pos, res); \
   if (s == 0) return SZ_ERROR_ARCHIVE; pos += s; }
 
-SRes XzBlock_ReadHeader(CXzBlock *p, ISeqInStream *inStream, Bool *isIndex, UInt32 *headerSizeRes)
+SRes XzBlock_ReadHeader(CXzBlock *p, ISeqInStream *inStream, BoolInt *isIndex, UInt32 *headerSizeRes)
 {
   Byte header[XZ_BLOCK_HEADER_SIZE_MAX];
   unsigned headerSize;

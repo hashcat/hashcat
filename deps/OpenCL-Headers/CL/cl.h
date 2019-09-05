@@ -137,19 +137,23 @@ typedef struct _cl_image_desc {
     size_t                  image_slice_pitch;
     cl_uint                 num_mip_levels;
     cl_uint                 num_samples;
+#ifdef CL_VERSION_2_0
 #ifdef __GNUC__
     __extension__   /* Prevents warnings about anonymous union in -pedantic builds */
 #endif
 #ifdef _MSC_VER
-#pragma warning( push )  
+#pragma warning( push )
 #pragma warning( disable : 4201 ) /* Prevents warning about nameless struct/union in /W4 /Za builds */
 #endif
     union {
+#endif
       cl_mem                  buffer;
+#ifdef CL_VERSION_2_0
       cl_mem                  mem_object;
     };
 #ifdef _MSC_VER
-#pragma warning( pop )  
+#pragma warning( pop )
+#endif
 #endif
 } cl_image_desc;
 

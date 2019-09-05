@@ -285,9 +285,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     hex_to_binary (p, strlen (p), (char *) &(pkzip->hashes[i].data));
 
     // fake salt
-    u32 *ptr = (u32 *) pkzip->hashes[i].data;
-
-    salt->salt_buf[i] = ptr[0];
+    salt->salt_buf[i] = pkzip->hashes[i].data[0];
 
     if (i == 0) digest[i] = pkzip->hashes[i].checksum_from_crc;
   }

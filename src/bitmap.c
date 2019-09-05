@@ -13,10 +13,10 @@ static void selftest_to_bitmap (const u32 dgst_shifts, char *digests_buf_ptr, co
 {
   u32 *digest_ptr = (u32 *) digests_buf_ptr;
 
-  const u32 val0 = 1u << (digest_ptr[dgst_pos0] & 0x1f);
-  const u32 val1 = 1u << (digest_ptr[dgst_pos1] & 0x1f);
-  const u32 val2 = 1u << (digest_ptr[dgst_pos2] & 0x1f);
-  const u32 val3 = 1u << (digest_ptr[dgst_pos3] & 0x1f);
+  const u32 val0 = 1U << (digest_ptr[dgst_pos0] & 0x1f);
+  const u32 val1 = 1U << (digest_ptr[dgst_pos1] & 0x1f);
+  const u32 val2 = 1U << (digest_ptr[dgst_pos2] & 0x1f);
+  const u32 val3 = 1U << (digest_ptr[dgst_pos3] & 0x1f);
 
   const u32 idx0 = (digest_ptr[dgst_pos0] >> dgst_shifts) & bitmap_mask;
   const u32 idx1 = (digest_ptr[dgst_pos1] >> dgst_shifts) & bitmap_mask;
@@ -44,10 +44,10 @@ static bool generate_bitmaps (const u32 digests_cnt, const u32 dgst_size, const 
 
     digests_buf_ptr += dgst_size;
 
-    const u32 val0 = 1u << (digest_ptr[dgst_pos0] & 0x1f);
-    const u32 val1 = 1u << (digest_ptr[dgst_pos1] & 0x1f);
-    const u32 val2 = 1u << (digest_ptr[dgst_pos2] & 0x1f);
-    const u32 val3 = 1u << (digest_ptr[dgst_pos3] & 0x1f);
+    const u32 val0 = 1U << (digest_ptr[dgst_pos0] & 0x1f);
+    const u32 val1 = 1U << (digest_ptr[dgst_pos1] & 0x1f);
+    const u32 val2 = 1U << (digest_ptr[dgst_pos2] & 0x1f);
+    const u32 val3 = 1U << (digest_ptr[dgst_pos3] & 0x1f);
 
     const u32 idx0 = (digest_ptr[dgst_pos0] >> dgst_shifts) & bitmap_mask;
     const u32 idx1 = (digest_ptr[dgst_pos1] >> dgst_shifts) & bitmap_mask;
@@ -99,14 +99,14 @@ int bitmap_ctx_init (hashcat_ctx_t *hashcat_ctx)
   const u32 bitmap_min = user_options->bitmap_min;
   const u32 bitmap_max = user_options->bitmap_max;
 
-  u32 *bitmap_s1_a = (u32 *) hcmalloc ((1u << bitmap_max) * sizeof (u32));
-  u32 *bitmap_s1_b = (u32 *) hcmalloc ((1u << bitmap_max) * sizeof (u32));
-  u32 *bitmap_s1_c = (u32 *) hcmalloc ((1u << bitmap_max) * sizeof (u32));
-  u32 *bitmap_s1_d = (u32 *) hcmalloc ((1u << bitmap_max) * sizeof (u32));
-  u32 *bitmap_s2_a = (u32 *) hcmalloc ((1u << bitmap_max) * sizeof (u32));
-  u32 *bitmap_s2_b = (u32 *) hcmalloc ((1u << bitmap_max) * sizeof (u32));
-  u32 *bitmap_s2_c = (u32 *) hcmalloc ((1u << bitmap_max) * sizeof (u32));
-  u32 *bitmap_s2_d = (u32 *) hcmalloc ((1u << bitmap_max) * sizeof (u32));
+  u32 *bitmap_s1_a = (u32 *) hcmalloc ((1U << bitmap_max) * sizeof (u32));
+  u32 *bitmap_s1_b = (u32 *) hcmalloc ((1U << bitmap_max) * sizeof (u32));
+  u32 *bitmap_s1_c = (u32 *) hcmalloc ((1U << bitmap_max) * sizeof (u32));
+  u32 *bitmap_s1_d = (u32 *) hcmalloc ((1U << bitmap_max) * sizeof (u32));
+  u32 *bitmap_s2_a = (u32 *) hcmalloc ((1U << bitmap_max) * sizeof (u32));
+  u32 *bitmap_s2_b = (u32 *) hcmalloc ((1U << bitmap_max) * sizeof (u32));
+  u32 *bitmap_s2_c = (u32 *) hcmalloc ((1U << bitmap_max) * sizeof (u32));
+  u32 *bitmap_s2_d = (u32 *) hcmalloc ((1U << bitmap_max) * sizeof (u32));
 
   u32 bitmap_bits;
   u32 bitmap_nums;
@@ -115,7 +115,7 @@ int bitmap_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   for (bitmap_bits = bitmap_min; bitmap_bits < bitmap_max; bitmap_bits++)
   {
-    bitmap_nums = 1u << bitmap_bits;
+    bitmap_nums = 1U << bitmap_bits;
 
     bitmap_mask = bitmap_nums - 1;
 
@@ -134,7 +134,7 @@ int bitmap_ctx_init (hashcat_ctx_t *hashcat_ctx)
     EVENT_DATA (EVENT_BITMAP_FINAL_OVERFLOW, NULL, 0);
   }
 
-  bitmap_nums = 1u << bitmap_bits;
+  bitmap_nums = 1U << bitmap_bits;
 
   bitmap_mask = bitmap_nums - 1;
 

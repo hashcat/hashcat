@@ -330,18 +330,22 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   // plain
 
-  u32 plain_buf[64] = { 0 };
+  u8 plain_buf[256+1];
 
-  u8 *plain_ptr = (u8 *) plain_buf;
+  memset (plain_buf, 0, sizeof (plain_buf));
+
+  u8 *plain_ptr = plain_buf;
   int plain_len = 0;
 
-  build_plain (hashcat_ctx, device_param, plain, plain_buf, &plain_len);
+  build_plain (hashcat_ctx, device_param, plain, (u32 *)plain_buf, &plain_len);
 
   if (module_ctx->module_build_plain_postprocess != MODULE_DEFAULT)
   {
-    u32 temp_buf[64] = { 0 };
+    u8 temp_buf[256+1] = { 0 };
 
-    const int temp_len = module_ctx->module_build_plain_postprocess (hashcat_ctx->hashconfig, hashcat_ctx->hashes, tmps, plain_buf, sizeof (plain_buf), plain_len, temp_buf, sizeof (temp_buf));
+    memset (temp_buf, 0, sizeof (temp_buf));
+
+    const int temp_len = module_ctx->module_build_plain_postprocess (hashcat_ctx->hashconfig, hashcat_ctx->hashes, tmps, (u32 *)plain_buf, sizeof (plain_buf), plain_len, (u32 *)temp_buf, sizeof (temp_buf));
 
     if (temp_len < (int) sizeof (plain_buf))
     {
@@ -769,7 +773,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
   if ((user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY) || (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT))
   {
-    u32 hash_pos;
+    u64 hash_pos;
 
     for (hash_pos = 0; hash_pos < hashes_avail; hash_pos++)
     {
@@ -816,7 +820,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
     salts_buf = (salt_t *) hccalloc (1, sizeof (salt_t));
   }
 
-  for (u32 hash_pos = 0; hash_pos < hashes_avail; hash_pos++)
+  for (u64 hash_pos = 0; hash_pos < hashes_avail; hash_pos++)
   {
     hashes_buf[hash_pos].digest = ((char *) digests_buf) + (hash_pos * hashconfig->dgst_size);
 
@@ -1014,7 +1018,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       {
         line_num++;
 
-        const size_t line_len = fgetl (&fp, line_buf);
+        const size_t line_len = fgetl (&fp, line_buf, HCBUFSIZ_LARGE);
 
         if (line_len == 0) continue;
 

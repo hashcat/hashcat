@@ -751,7 +751,7 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
 
     while (!hc_feof (&fp))
     {
-      rule_len = (u32) fgetl (&fp, rule_buf);
+      rule_len = (u32) fgetl (&fp, rule_buf, HCBUFSIZ_LARGE);
 
       rule_line++;
 

@@ -1,5 +1,5 @@
 /* CpuArch.c -- CPU specific code
-2016-02-25: Igor Pavlov : Public domain */
+2018-02-18: Igor Pavlov : Public domain */
 
 #include "Precomp.h"
 
@@ -115,7 +115,7 @@ void MyCPUID(UInt32 function, UInt32 *a, UInt32 *b, UInt32 *c, UInt32 *d)
   #endif
 }
 
-Bool x86cpuid_CheckAndRead(Cx86cpuid *p)
+BoolInt x86cpuid_CheckAndRead(Cx86cpuid *p)
 {
   CHECK_CPUID_IS_SUPPORTED
   MyCPUID(0, &p->maxFunc, &p->vendor[0], &p->vendor[2], &p->vendor[1]);
@@ -144,7 +144,7 @@ int x86cpuid_GetFirm(const Cx86cpuid *p)
   return -1;
 }
 
-Bool CPU_Is_InOrder()
+BoolInt CPU_Is_InOrder()
 {
   Cx86cpuid p;
   int firm;
@@ -175,7 +175,7 @@ Bool CPU_Is_InOrder()
 
 #if !defined(MY_CPU_AMD64) && defined(_WIN32)
 #include <windows.h>
-static Bool CPU_Sys_Is_SSE_Supported()
+static BoolInt CPU_Sys_Is_SSE_Supported()
 {
   OSVERSIONINFO vi;
   vi.dwOSVersionInfoSize = sizeof(vi);
@@ -188,13 +188,31 @@ static Bool CPU_Sys_Is_SSE_Supported()
 #define CHECK_SYS_SSE_SUPPORT
 #endif
 
-Bool CPU_Is_Aes_Supported()
+BoolInt CPU_Is_Aes_Supported()
 {
   Cx86cpuid p;
   CHECK_SYS_SSE_SUPPORT
   if (!x86cpuid_CheckAndRead(&p))
     return False;
   return (p.c >> 25) & 1;
+}
+
+BoolInt CPU_IsSupported_PageGB()
+{
+  Cx86cpuid cpuid;
+  if (!x86cpuid_CheckAndRead(&cpuid))
+    return False;
+  {
+    UInt32 d[4] = { 0 };
+    MyCPUID(0x80000000, &d[0], &d[1], &d[2], &d[3]);
+    if (d[0] < 0x80000001)
+      return False;
+  }
+  {
+    UInt32 d[4] = { 0 };
+    MyCPUID(0x80000001, &d[0], &d[1], &d[2], &d[3]);
+    return (d[3] >> 26) & 1;
+  }
 }
 
 #endif

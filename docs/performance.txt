@@ -3,6 +3,8 @@ Performance Notes:
 
 - Always Use the latest display driver
 - To significantly improve performance use -w 3
+- Cracking with a mask with a fixed prefix can be slow.
+  Consider instead using a mode with salt as a prefix and set salt to that fixed prefix.
 
 Also read this:
 

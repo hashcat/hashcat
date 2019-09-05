@@ -1,5 +1,5 @@
 /* Ppmd7Dec.c -- PPMdH Decoder
-2017-04-03 : Igor Pavlov : Public domain
+2018-07-04 : Igor Pavlov : Public domain
 This code is based on PPMd var.H (2001): Dmitry Shkarin : Public domain */
 
 #include "Precomp.h"
@@ -8,7 +8,7 @@ This code is based on PPMd var.H (2001): Dmitry Shkarin : Public domain */
 
 #define kTopValue (1 << 24)
 
-Bool Ppmd7z_RangeDec_Init(CPpmd7z_RangeDec *p)
+BoolInt Ppmd7z_RangeDec_Init(CPpmd7z_RangeDec *p)
 {
   unsigned i;
   p->Code = 0;

@@ -123,7 +123,7 @@ void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, const u
 
       while (1)
       {
-        line_len = (u32) fgetl (combs_fp, line_buf);
+        line_len = (u32) fgetl (combs_fp, line_buf, HCBUFSIZ_LARGE);
 
         // post-process rule engine
 
@@ -286,7 +286,7 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
 
     while (1)
     {
-      line_len = (u32) fgetl (combs_fp, line_buf);
+      line_len = (u32) fgetl (combs_fp, line_buf, HCBUFSIZ_LARGE);
 
       // post-process rule engine
 

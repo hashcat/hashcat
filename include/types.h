@@ -17,7 +17,18 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <math.h>
+
+// workaround to get the rid of "redefinition of typedef 'Byte'" build warning
+#if !defined (__APPLE__)
 #include "zlib.h"
+#endif
+
+#if !defined(__MACTYPES__)
+#define __MACTYPES__
+#include "ext_lzma.h"
+#undef __MACTYPES__
+#endif
+// end of workaround
 
 #if defined (_WIN)
 #define WINICONV_CONST
@@ -989,15 +1000,19 @@ typedef struct link_speed
 
 } link_speed_t;
 
-// handling gzip files
+// file handling
 
 typedef struct hc_fp
 {
   int         fd;
-  FILE       *pfp;
-  gzFile      gfp;
+
+  FILE       *pfp; // plain fp
+  gzFile      gfp; //  gzip fp
+  unzFile     ufp; //   zip fp
 
   bool        is_gzip;
+  bool        is_zip;
+
   char       *mode;
   const char *path;
 } HCFILE;
@@ -1701,6 +1716,8 @@ typedef struct restore_ctx
 {
   bool    enabled;
 
+  bool    restore_execute;
+
   int     argc;
   char  **argv;
 
@@ -2029,8 +2046,8 @@ typedef struct mask_ctx
 {
   bool   enabled;
 
-  cs_t   mp_sys[8];
-  cs_t   mp_usr[4];
+  cs_t  *mp_sys;
+  cs_t  *mp_usr;
 
   u64    bfs_cnt;
 
@@ -2050,7 +2067,7 @@ typedef struct mask_ctx
   u32    masks_cnt;
   u32    masks_avail;
 
-  char *mask;
+  char  *mask;
 
   mf_t  *mfs;
 
@@ -2491,6 +2508,7 @@ typedef enum hash_category
   HASH_CATEGORY_FORUM_SOFTWARE          = 16,
   HASH_CATEGORY_OTP                     = 17,
   HASH_CATEGORY_PLAIN                   = 18,
+  HASH_CATEGORY_FRAMEWORK               = 19,
 
 } hash_category_t;
 

@@ -18,6 +18,7 @@ kernels/**
 lib/*.a
 modules/*.dll
 modules/*.so
+obj/*/*/*.o
 obj/*.o
 obj/*.a
 include/CL
