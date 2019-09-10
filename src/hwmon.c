@@ -2557,7 +2557,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (hwmon_ctx->hm_sysfs)
   {
-    if (1)
+    if (true)
     {
       int hm_adapters_id = 0;
 
