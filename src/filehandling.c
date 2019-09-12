@@ -137,7 +137,7 @@ size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
   return n;
 }
 
-size_t hc_fwrite (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
+size_t hc_fwrite (const void *ptr, size_t size, size_t nmemb, HCFILE *fp)
 {
   size_t n = -1;
 

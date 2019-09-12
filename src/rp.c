@@ -872,7 +872,7 @@ int kernel_rules_generate (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, 
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   u32            kernel_rules_cnt = 0;
-  kernel_rule_t *kernel_rules_buf = hccalloc (user_options->rp_gen, sizeof (kernel_rule_t));
+  kernel_rule_t *kernel_rules_buf = (kernel_rule_t *) hccalloc (user_options->rp_gen, sizeof (kernel_rule_t));
 
   char *rule_buf = (char *) hcmalloc (RP_RULE_SIZE);
 

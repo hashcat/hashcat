@@ -807,14 +807,16 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
 
       case RULE_OP_REJECT_NOT_CONTAIN:
         NEXT_RULEPOS (rule_pos);
-        char *match = strchr (out, rule_new[rule_pos]);
-        if (match != NULL)
         {
-          pos_mem = (int)(match - out);
-        }
-        else
-        {
-          return (RULE_RC_REJECT_ERROR);
+          const char *match = strchr (out, rule_new[rule_pos]);
+          if (match != NULL)
+          {
+            pos_mem = (int)(match - out);
+          }
+          else
+          {
+            return (RULE_RC_REJECT_ERROR);
+          }
         }
         break;
 

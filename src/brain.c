@@ -66,7 +66,7 @@ u32 brain_compute_session (hashcat_ctx_t *hashcat_ctx)
     // digest
 
     u32  digests_cnt = hashes->digests_cnt;
-    u32 *digests_buf = hashes->digests_buf;
+    u32 *digests_buf = (u32 *) hashes->digests_buf;
 
     XXH64_update (state, digests_buf, digests_cnt * hashconfig->dgst_size);
 
@@ -2306,7 +2306,7 @@ void *brain_server_handle_client (void *p)
 
   // short global alloc
 
-  brain_server_db_short_t *brain_server_db_short = hcmalloc (sizeof (brain_server_db_short_t));
+  brain_server_db_short_t *brain_server_db_short = (brain_server_db_short_t *) hcmalloc (sizeof (brain_server_db_short_t));
 
   brain_server_db_short->short_cnt = 0;
   brain_server_db_short->short_buf = (brain_server_hash_short_t *) hccalloc (passwords_max, sizeof (brain_server_hash_short_t));
