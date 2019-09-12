@@ -462,7 +462,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *iter_pos = token.buf[1];
 
-  char salt_iter[3] = { iter_pos[0], iter_pos[1], 0 };
+  u8 salt_iter[3] = { iter_pos[0], iter_pos[1], 0 };
 
   salt->salt_sign[0] = hc_strtoul ((const char *) salt_iter, NULL, 10);
 
