@@ -758,10 +758,11 @@ typedef enum token_attr
   TOKEN_ATTR_VERIFY_SIGNATURE   = 1 << 2,
   TOKEN_ATTR_VERIFY_LENGTH      = 1 << 3,
   TOKEN_ATTR_VERIFY_DIGIT       = 1 << 4,
-  TOKEN_ATTR_VERIFY_HEX         = 1 << 5,
-  TOKEN_ATTR_VERIFY_BASE64A     = 1 << 6,
-  TOKEN_ATTR_VERIFY_BASE64B     = 1 << 7,
-  TOKEN_ATTR_VERIFY_BASE64C     = 1 << 8
+  TOKEN_ATTR_VERIFY_FLOAT       = 1 << 5,
+  TOKEN_ATTR_VERIFY_HEX         = 1 << 6,
+  TOKEN_ATTR_VERIFY_BASE64A     = 1 << 7,
+  TOKEN_ATTR_VERIFY_BASE64B     = 1 << 8,
+  TOKEN_ATTR_VERIFY_BASE64C     = 1 << 9
 
 } token_attr_t;
 

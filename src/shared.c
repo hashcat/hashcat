@@ -1092,6 +1092,16 @@ int input_tokenizer (const u8 *input_buf, const int input_len, token_t *token)
       if (token->len[token_idx] > token->len_max[token_idx]) return (PARSER_TOKEN_LENGTH);
     }
 
+    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_DIGIT)
+    {
+      if (is_valid_digit_string (token->buf[token_idx], token->len[token_idx]) == false) return (PARSER_TOKEN_ENCODING);
+    }
+
+    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_FLOAT)
+    {
+      if (is_valid_float_string (token->buf[token_idx], token->len[token_idx]) == false) return (PARSER_TOKEN_ENCODING);
+    }
+
     if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_HEX)
     {
       if (is_valid_hex_string (token->buf[token_idx], token->len[token_idx]) == false) return (PARSER_TOKEN_ENCODING);
