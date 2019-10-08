@@ -67,6 +67,7 @@
 - Fixed incorrect progress-only result in a special race condition
 - Fixed invalid call of mp_css_utf16le_expand()/mp_css_utf16be_expand() in a slow-candidate session
 - Fixed invalid password truncation in attack-mode 1 if final password is longer than 32 character
+- Fixed invalid use of --hex-wordlist if encoded wordlist string is larger than length 256
 - Fixed maximum password length limit which was announced as 256 but actually was 255
 - Fixed output of IKE PSK (mode 5300 and 5400) hashes to have separators at right position
 - Fixed output password of "e" rule in pure and cpu rule engine if separator character is also the first letter

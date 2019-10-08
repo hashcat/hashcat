@@ -187,7 +187,13 @@ void get_next_word (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, char **out_buf, u32 
 
     wl_data->pos += off;
 
+    // do the on-the-fly hex decode using original buffer
+    // this is safe as length only decreases in size
+
+    len = (u32) convert_from_hex (hashcat_ctx, ptr, len);
+
     // do the on-the-fly encoding
+    // needs to write into new buffer because size case both decrease and increase
 
     if (wl_data->iconv_enabled == true)
     {
@@ -203,6 +209,8 @@ void get_next_word (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, char **out_buf, u32 
       ptr = wl_data->iconv_tmp;
       len = HCBUFSIZ_TINY - iconv_sz;
     }
+
+    // this is only a test for length, not writing into output buffer
 
     if (run_rule_engine (user_options_extra->rule_len_l, user_options->rule_buf_l))
     {
@@ -443,6 +451,11 @@ int count_words (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, const char *dictfile, u
       wl_data->func (ptr, wl_data->cnt - i, &len, &off);
 
       i += off;
+
+      // do the on-the-fly hex decode using original buffer
+      // this is safe as length only decreases in size
+
+      len = (u32) convert_from_hex (hashcat_ctx, ptr, len);
 
       // do the on-the-fly encoding
 
