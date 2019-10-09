@@ -254,7 +254,7 @@ static int mp_add_cs_buf (hashcat_ctx_t *hashcat_ctx, const u32 *in_buf, size_t 
 
 static int mp_expand (hashcat_ctx_t *hashcat_ctx, const char *in_buf, size_t in_len, cs_t *mp_sys, cs_t *mp_usr, u32 mp_usr_offset, int interpret)
 {
-  const user_options_t *user_options = hashcat_ctx->user_options;
+  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
   size_t in_pos;
 
@@ -317,7 +317,7 @@ static int mp_expand (hashcat_ctx_t *hashcat_ctx, const char *in_buf, size_t in_
     }
     else
     {
-      if (user_options->hex_charset == true)
+      if (hashconfig->opts_type & OPTS_TYPE_PT_HEX)
       {
         in_pos++;
 
@@ -362,7 +362,7 @@ static int mp_expand (hashcat_ctx_t *hashcat_ctx, const char *in_buf, size_t in_
 
 static int mp_gen_css (hashcat_ctx_t *hashcat_ctx, char *mask_buf, size_t mask_len, cs_t *mp_sys, cs_t *mp_usr, cs_t *css_buf, u32 *css_cnt)
 {
-  const user_options_t *user_options = hashcat_ctx->user_options;
+  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
   memset (css_buf, 0, 256 * sizeof (cs_t));
 
@@ -430,7 +430,7 @@ static int mp_gen_css (hashcat_ctx_t *hashcat_ctx, char *mask_buf, size_t mask_l
     }
     else
     {
-      if (user_options->hex_charset == true)
+      if (hashconfig->opts_type & OPTS_TYPE_PT_HEX)
       {
         mask_pos++;
 
@@ -488,7 +488,7 @@ static int mp_gen_css (hashcat_ctx_t *hashcat_ctx, char *mask_buf, size_t mask_l
 
 static int mp_get_truncated_mask (hashcat_ctx_t *hashcat_ctx, const char *mask_buf, const size_t mask_len, const u32 len, char *new_mask_buf)
 {
-  const user_options_t *user_options = hashcat_ctx->user_options;
+  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
   u32 mask_pos;
 
@@ -512,7 +512,7 @@ static int mp_get_truncated_mask (hashcat_ctx_t *hashcat_ctx, const char *mask_b
     }
     else
     {
-      if (user_options->hex_charset == true)
+      if (hashconfig->opts_type & OPTS_TYPE_PT_HEX)
       {
         mask_pos++;
 

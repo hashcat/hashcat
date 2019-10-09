@@ -16,11 +16,12 @@
 
 size_t convert_from_hex (hashcat_ctx_t *hashcat_ctx, char *line_buf, const size_t line_len)
 {
+  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   if (line_len & 1) return (line_len); // not in hex
 
-  if (user_options->hex_wordlist == true)
+  if (hashconfig->opts_type & OPTS_TYPE_PT_HEX)
   {
     size_t i, j;
 
