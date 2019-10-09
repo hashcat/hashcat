@@ -44,6 +44,8 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   // password : move the known password into a fake buffer
 
+  const u32 module_opts_type = module_ctx->module_opts_type (hashconfig, user_options, user_options_extra);
+
   pw_t tmp;
 
   memset (&tmp, 0, sizeof (tmp));
@@ -52,7 +54,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   const size_t tmp_len = strlen (hashconfig->st_pass);
 
-  if (hashconfig->opts_type & OPTS_TYPE_PT_HEX)
+  if (module_opts_type & OPTS_TYPE_PT_HEX)
   {
     tmp.pw_len = hex_decode ((const u8 *) hashconfig->st_pass, (const int) tmp_len, (u8 *) tmp_ptr);
   }
