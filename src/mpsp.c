@@ -1061,7 +1061,7 @@ static int mask_append (hashcat_ctx_t *hashcat_ctx, const char *mask, const char
 
   if (user_options->increment == true)
   {
-    const u32 mask_length = mp_get_length (mask);
+    const u32 mask_length = mp_get_length (mask, hashconfig->opts_type);
 
     u32 increment_min = user_options->increment_min;
     u32 increment_max = user_options->increment_max;
@@ -1129,17 +1129,34 @@ static int mask_append (hashcat_ctx_t *hashcat_ctx, const char *mask, const char
   return 0;
 }
 
-u32 mp_get_length (const char *mask)
+u32 mp_get_length (const char *mask, const u32 opts_type)
 {
+  bool ignore_next = false;
+
   u32 len = 0;
 
   const size_t mask_len = strlen (mask);
 
   for (size_t i = 0; i < mask_len; i++)
   {
-    if (mask[i] == '?') i++;
+    if (ignore_next == true)
+    {
+      ignore_next = false;
+    }
+    else
+    {
+      if (mask[i] == '?')
+      {
+        ignore_next = true;
+      }
 
-    len++;
+      if (opts_type & OPTS_TYPE_PT_HEX)
+      {
+        ignore_next = true;
+      }
+
+      len++;
+    }
   }
 
   return len;
@@ -1260,7 +1277,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       if (user_options->benchmark == true)
       {
-        pw_min = mp_get_length (mask_ctx->mask);
+        pw_min = mp_get_length (mask_ctx->mask, hashconfig->opts_type);
         pw_max = pw_min;
       }
 

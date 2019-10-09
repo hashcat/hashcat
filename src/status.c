@@ -778,13 +778,14 @@ char *status_get_guess_charset (const hashcat_ctx_t *hashcat_ctx)
 
 int status_get_guess_mask_length (const hashcat_ctx_t *hashcat_ctx)
 {
-  const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+  const mask_ctx_t   *mask_ctx   = hashcat_ctx->mask_ctx;
 
   if (mask_ctx == NULL) return -1;
 
   if (mask_ctx->mask == NULL) return -1;
 
-  return mp_get_length (mask_ctx->mask);
+  return mp_get_length (mask_ctx->mask, hashconfig->opts_type);
 }
 
 char *status_get_guess_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx)
