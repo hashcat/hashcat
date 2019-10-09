@@ -1629,7 +1629,7 @@ typedef struct loopback_ctx
 
 typedef struct mf
 {
-  char mf_buf[0x100];
+  char mf_buf[0x400];
   int  mf_len;
 
 } mf_t;
