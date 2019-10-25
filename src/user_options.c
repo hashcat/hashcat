@@ -1112,13 +1112,6 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
 
-    if (user_options->workload_profile_chgd == true)
-    {
-      event_log_error (hashcat_ctx, "Can't change --workload-profile (-w) in benchmark mode.");
-
-      return -1;
-    }
-
     if ((user_options->custom_charset_1 != NULL)
      || (user_options->custom_charset_2 != NULL)
      || (user_options->custom_charset_3 != NULL)
