@@ -1007,20 +1007,126 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  if ((user_options->spin_damp_chgd == true) && (user_options->benchmark == true))
-  {
-    event_log_error (hashcat_ctx, "Values of --spin-damp cannot be used in combination with --benchmark.");
-
-    return -1;
-  }
-
   if (user_options->benchmark == true)
   {
+    // sanity checks based on automatically overwritten configuration variables by
+    // benchmark mode section in user_options_preprocess()
+
+    #ifdef WITH_BRAIN
+    if (user_options->brain_client == true)
+    {
+      event_log_error (hashcat_ctx, "Brain client (-z) is not allowed in benchmark mode.");
+
+      return -1;
+    }
+
+    if (user_options->brain_server == true)
+    {
+      event_log_error (hashcat_ctx, "Brain server is not allowed in benchmark mode.");
+
+      return -1;
+    }
+    #endif
+
     if (user_options->attack_mode_chgd == true)
     {
-      if (user_options->attack_mode != ATTACK_MODE_BF)
+      event_log_error (hashcat_ctx, "Can't change --attack-mode (-a) in benchmark mode.");
+
+      return -1;
+    }
+
+    if (user_options->bitmap_min != BITMAP_MIN)
+    {
+      event_log_error (hashcat_ctx, "Can't change --bitmap-min in benchmark mode.");
+
+      return -1;
+    }
+
+    if (user_options->bitmap_max != BITMAP_MAX)
+    {
+      event_log_error (hashcat_ctx, "Can't change --bitmap-max in benchmark mode.");
+
+      return -1;
+    }
+
+    if (user_options->hwmon_temp_abort != HWMON_TEMP_ABORT)
+    {
+      event_log_error (hashcat_ctx, "Can't change --hwmon-temp-abort in benchmark mode.");
+
+      return -1;
+    }
+
+    if (user_options->left == true)
+    {
+      event_log_error (hashcat_ctx, "Can't change --left in benchmark mode.");
+
+      return -1;
+    }
+
+    if (user_options->show == true)
+    {
+      event_log_error (hashcat_ctx, "Can't change --show in benchmark mode.");
+
+      return -1;
+    }
+
+    if (user_options->speed_only == true)
+    {
+      event_log_error (hashcat_ctx, "Can't change --speed-only in benchmark mode.");
+
+      return -1;
+    }
+
+    if (user_options->progress_only == true)
+    {
+      event_log_error (hashcat_ctx, "Can't change --progress-only in benchmark mode.");
+
+      return -1;
+    }
+
+    if (user_options->increment == true)
+    {
+      event_log_error (hashcat_ctx, "Can't change --increment (-i) in benchmark mode.");
+
+      return -1;
+    }
+
+    if (user_options->restore == true)
+    {
+      event_log_error (hashcat_ctx, "Can't change --restore in benchmark mode.");
+
+      return -1;
+    }
+
+    if (user_options->status == true)
+    {
+      event_log_error (hashcat_ctx, "Can't change --status in benchmark mode.");
+
+      return -1;
+    }
+
+    if (user_options->spin_damp_chgd == true)
+    {
+      event_log_error (hashcat_ctx, "Can't change --spin-damp in benchmark mode.");
+
+      return -1;
+    }
+
+    if (user_options->workload_profile_chgd == true)
+    {
+      event_log_error (hashcat_ctx, "Can't change --workload-profile (-w) in benchmark mode.");
+
+      return -1;
+    }
+
+    if ((user_options->custom_charset_1 != NULL)
+     || (user_options->custom_charset_2 != NULL)
+     || (user_options->custom_charset_3 != NULL)
+     || (user_options->custom_charset_4 != NULL))
+    {
+      if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
       {
-        event_log_error (hashcat_ctx, "Benchmark mode is only allowed in attack mode 3 (brute-force).");
+        event_log_error (hashcat_ctx, "Custom charsets are not supported in benchmark mode.");
 
         return -1;
       }

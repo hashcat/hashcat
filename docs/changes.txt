@@ -99,6 +99,7 @@
 - OpenCL Runtime: Workaround JiT compiler error on ROCM 2.3 driver if the 'inline' keyword is used in function declaration
 - OpenCL Runtime: Workaround memory allocation error on AMD driver on Windows leading to CL_MEM_OBJECT_ALLOCATION_FAILURE
 - OpenCL Runtime: Workaround ROCm OpenCL driver problem trying to write temporary file into readonly folder by setting TMPDIR
+- Startup Checks: Prevent the user to modify options which are overwritten automatically in benchmark mode
 - Startup Checks: Improved the pidfile check: Do not just check for existing PID but also check executable filename
 - Startup Screen: Add extra warning when using --force
 - Startup Screen: Provide an estimate of host memory requirements for the requested attack
