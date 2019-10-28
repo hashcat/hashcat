@@ -406,7 +406,7 @@ KERNEL_FQ void m12700_comp (KERN_ATTR_TMPS (mywallet_tmp_t))
     }
 
     // "addre
-    if ((pt[i + 0] == '"') && (pt[i + 1] == 'a') && (pt[i + 2] == 'd') && (pt[i + 3] == 'd') && (pt[i + 4] == 'r') && (pt[i + 5] == 'a'))
+    if ((pt[i + 0] == '"') && (pt[i + 1] == 'a') && (pt[i + 2] == 'd') && (pt[i + 3] == 'd') && (pt[i + 4] == 'r') && (pt[i + 5] == 'e'))
     {
       const u32 r0 = data[0];
       const u32 r1 = data[1];
