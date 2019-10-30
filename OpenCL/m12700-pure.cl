@@ -353,11 +353,11 @@ KERNEL_FQ void m12700_comp (KERN_ATTR_TMPS (mywallet_tmp_t))
       const u32 r2 = data[2];
       const u32 r3 = data[3];
 
-      #ifdef KERNEL_STATIC
       #define il_pos 0
-      #endif
 
+      #ifdef KERNEL_STATIC
       #include COMPARE_M
+      #endif
     }
 
     // "tx_no
@@ -383,11 +383,11 @@ KERNEL_FQ void m12700_comp (KERN_ATTR_TMPS (mywallet_tmp_t))
       const u32 r2 = data[2];
       const u32 r3 = data[3];
 
-      #ifdef KERNEL_STATIC
       #define il_pos 0
-      #endif
 
+      #ifdef KERNEL_STATIC
       #include COMPARE_M
+      #endif
     }
 
     // "doubl
