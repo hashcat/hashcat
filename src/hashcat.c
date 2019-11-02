@@ -1044,6 +1044,12 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
   setup_umask ();
 
   /**
+   * Find number of physical CPU cores
+   */
+
+  user_options->hook_threads = hc_get_processor_count ();
+
+  /**
    * tuning db
    */
 

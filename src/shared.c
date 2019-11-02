@@ -609,6 +609,27 @@ void hc_string_trim_trailing (char *s)
   s[new_len] = 0;
 }
 
+int hc_get_processor_count ()
+{
+  int cnt = 0;
+
+  #if defined (_WIN)
+
+  SYSTEM_INFO info;
+
+  GetSystemInfo (&info);
+
+  cnt = (int) info.dwNumberOfProcessors;
+
+  #else
+
+  cnt = (int) sysconf (_SC_NPROCESSORS_ONLN);
+
+  #endif
+
+  return cnt;
+}
+
 bool hc_same_files (char *file1, char *file2)
 {
   if ((file1 != NULL) && (file2 != NULL))

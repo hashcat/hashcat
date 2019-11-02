@@ -58,6 +58,7 @@ static const struct option long_options[] =
   {"hex-charset",               no_argument,       NULL, IDX_HEX_CHARSET},
   {"hex-salt",                  no_argument,       NULL, IDX_HEX_SALT},
   {"hex-wordlist",              no_argument,       NULL, IDX_HEX_WORDLIST},
+  {"hook-threads",              required_argument, NULL, IDX_HOOK_THREADS},
   {"increment-max",             required_argument, NULL, IDX_INCREMENT_MAX},
   {"increment-min",             required_argument, NULL, IDX_INCREMENT_MIN},
   {"increment",                 no_argument,       NULL, IDX_INCREMENT},
@@ -185,6 +186,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->hex_charset               = HEX_CHARSET;
   user_options->hex_salt                  = HEX_SALT;
   user_options->hex_wordlist              = HEX_WORDLIST;
+  user_options->hook_threads              = HOOK_THREADS;
   user_options->increment                 = INCREMENT;
   user_options->increment_max             = INCREMENT_MAX;
   user_options->increment_min             = INCREMENT_MIN;
@@ -321,6 +323,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_BITMAP_MAX:
       case IDX_INCREMENT_MIN:
       case IDX_INCREMENT_MAX:
+      case IDX_HOOK_THREADS:
       #ifdef WITH_BRAIN
       case IDX_BRAIN_PORT:
       #endif
@@ -457,6 +460,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_SEPARATOR:                 user_options->separator                 = optarg[0];                       break;
       case IDX_BITMAP_MIN:                user_options->bitmap_min                = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_BITMAP_MAX:                user_options->bitmap_max                = hc_strtoul (optarg, NULL, 10);   break;
+      case IDX_HOOK_THREADS:              user_options->hook_threads              = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_INCREMENT:                 user_options->increment                 = true;                            break;
       case IDX_INCREMENT_MIN:             user_options->increment_min             = hc_strtoul (optarg, NULL, 10);
                                           user_options->increment_min_chgd        = true;                            break;
@@ -2822,6 +2826,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->hex_charset);
   logfile_top_uint   (user_options->hex_salt);
   logfile_top_uint   (user_options->hex_wordlist);
+  logfile_top_uint   (user_options->hook_threads);
   logfile_top_uint   (user_options->increment);
   logfile_top_uint   (user_options->increment_max);
   logfile_top_uint   (user_options->increment_min);
