@@ -455,7 +455,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
         if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL) == -1) return -1;
       }
 
-      module_ctx->module_hook12 (device_param, hashes->st_hook_salts_buf, 0, 1);
+      module_ctx->module_hook12 (device_param, hashes->st_hook_salts_buf, 0, 0);
 
       if (device_param->is_cuda == true)
       {
@@ -502,7 +502,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
         if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL) == -1) return -1;
       }
 
-      module_ctx->module_hook23 (device_param, hashes->st_hook_salts_buf, 0, 1);
+      module_ctx->module_hook23 (device_param, hashes->st_hook_salts_buf, 0, 0);
 
       if (device_param->is_cuda == true)
       {

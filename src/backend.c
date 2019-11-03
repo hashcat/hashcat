@@ -2877,7 +2877,42 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
           if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL) == -1) return -1;
         }
 
-        module_ctx->module_hook12 (device_param, hashes->hook_salts_buf, salt_pos, pws_cnt);
+        const int hook_threads = (int) user_options->hook_threads;
+
+        hook_thread_param_t *hook_threads_param = (hook_thread_param_t *) hccalloc (hook_threads, sizeof (hook_thread_param_t));
+
+        for (int i = 0; i < hook_threads; i++)
+        {
+          hook_thread_param_t *hook_thread_param = hook_threads_param + i;
+
+          hook_thread_param->tid = i;
+          hook_thread_param->tsz = hook_threads;
+
+          hook_thread_param->module_ctx = module_ctx;
+
+          hook_thread_param->device_param = device_param;
+
+          hook_thread_param->hook_salts_buf = hashes->hook_salts_buf;
+
+          hook_thread_param->salt_pos = salt_pos;
+
+          hook_thread_param->pws_cnt = pws_cnt;
+        }
+
+        hc_thread_t *c_threads = (hc_thread_t *) calloc (hook_threads, sizeof (hc_thread_t));
+
+        for (int i = 0; i < hook_threads; i++)
+        {
+          hook_thread_param_t *hook_thread_param = hook_threads_param + i;
+
+          hc_thread_create (c_threads[i], hook12_thread, hook_thread_param);
+        }
+
+        hc_thread_wait (hook_threads, c_threads);
+
+        hcfree (c_threads);
+
+        hcfree (hook_threads_param);
 
         if (device_param->is_cuda == true)
         {
@@ -2957,7 +2992,42 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
           if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL) == -1) return -1;
         }
 
-        module_ctx->module_hook23 (device_param, hashes->hook_salts_buf, salt_pos, pws_cnt);
+        const int hook_threads = (int) user_options->hook_threads;
+
+        hook_thread_param_t *hook_threads_param = (hook_thread_param_t *) hccalloc (hook_threads, sizeof (hook_thread_param_t));
+
+        for (int i = 0; i < hook_threads; i++)
+        {
+          hook_thread_param_t *hook_thread_param = hook_threads_param + i;
+
+          hook_thread_param->tid = i;
+          hook_thread_param->tsz = hook_threads;
+
+          hook_thread_param->module_ctx = module_ctx;
+
+          hook_thread_param->device_param = device_param;
+
+          hook_thread_param->hook_salts_buf = hashes->hook_salts_buf;
+
+          hook_thread_param->salt_pos = salt_pos;
+
+          hook_thread_param->pws_cnt = pws_cnt;
+        }
+
+        hc_thread_t *c_threads = (hc_thread_t *) calloc (hook_threads, sizeof (hc_thread_t));
+
+        for (int i = 0; i < hook_threads; i++)
+        {
+          hook_thread_param_t *hook_thread_param = hook_threads_param + i;
+
+          hc_thread_create (c_threads[i], hook23_thread, hook_thread_param);
+        }
+
+        hc_thread_wait (hook_threads, c_threads);
+
+        hcfree (c_threads);
+
+        hcfree (hook_threads_param);
 
         if (device_param->is_cuda == true)
         {
@@ -10130,4 +10200,40 @@ int backend_session_update_mp_rl (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_
   }
 
   return 0;
+}
+
+void *hook12_thread (void *p)
+{
+  hook_thread_param_t *hook_thread_param = (hook_thread_param_t *) p;
+
+  module_ctx_t *module_ctx = hook_thread_param->module_ctx;
+
+  const u64 tid     = hook_thread_param->tid;
+  const u64 tsz     = hook_thread_param->tsz;
+  const u64 pws_cnt = hook_thread_param->pws_cnt;
+
+  for (u64 pw_pos = tid; pw_pos < pws_cnt; pw_pos += tsz)
+  {
+    module_ctx->module_hook12 (hook_thread_param->device_param, hook_thread_param->hook_salts_buf, hook_thread_param->salt_pos, pw_pos);
+  }
+
+  return NULL;
+}
+
+void *hook23_thread (void *p)
+{
+  hook_thread_param_t *hook_thread_param = (hook_thread_param_t *) p;
+
+  module_ctx_t *module_ctx = hook_thread_param->module_ctx;
+
+  const u64 tid     = hook_thread_param->tid;
+  const u64 tsz     = hook_thread_param->tsz;
+  const u64 pws_cnt = hook_thread_param->pws_cnt;
+
+  for (u64 pw_pos = tid; pw_pos < pws_cnt; pw_pos += tsz)
+  {
+    module_ctx->module_hook23 (hook_thread_param->device_param, hook_thread_param->hook_salts_buf, hook_thread_param->salt_pos, pw_pos);
+  }
+
+  return NULL;
 }

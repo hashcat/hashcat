@@ -154,4 +154,7 @@ int  backend_session_update_combinator (hashcat_ctx_t *hashcat_ctx);
 int  backend_session_update_mp         (hashcat_ctx_t *hashcat_ctx);
 int  backend_session_update_mp_rl      (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_l, const u32 css_cnt_r);
 
+void *hook12_thread (void *p);
+void *hook23_thread (void *p);
+
 #endif // _BACKEND_H

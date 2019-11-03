@@ -8,6 +8,7 @@
 - Refactor hashcat backend interface to allow adding compute API other than OpenCL
 - Added CUDA as a new compute API to hashcat backend (enables hashcat to run on NVIDIA Jetson or IBM POWER9)
 - Support use of all available GPU memory using CUDA backend
+- Support use of all available CPU cores for hash-mode specific hooks
 - Support on-the-fly loading of compressed wordlists in zip and gzip format
 - Support for inline VeraCrypt PIM Brute-Force
 - Support deflate decompression for the 7-Zip hash-mode using zlib hook

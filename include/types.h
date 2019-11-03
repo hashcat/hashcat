@@ -2461,6 +2461,22 @@ typedef struct thread_param
 
 } thread_param_t;
 
+typedef struct hook_thread_param
+{
+  int tid;
+  int tsz;
+
+  module_ctx_t *module_ctx;
+
+  hc_device_param_t *device_param;
+
+  void *hook_salts_buf;
+
+  u32 salt_pos;
+  u64 pws_cnt;
+
+} hook_thread_param_t;
+
 #define MAX_TOKENS     128
 #define MAX_SIGNATURES 16
 
