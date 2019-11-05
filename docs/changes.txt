@@ -13,6 +13,7 @@
 - Support for inline VeraCrypt PIM Brute-Force
 - Support deflate decompression for the 7-Zip hash-mode using zlib hook
 - Added documentation on hashcat brain, slow-candidate and keyboard-layout mapping features
+- Keep output of --show and --left in the original ordering of the input hash file
 
 ##
 ## Algorithms
