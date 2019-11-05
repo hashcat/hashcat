@@ -834,6 +834,7 @@ typedef struct hash
   hashinfo_t *hash_info;
   char       *pw_buf;
   int         pw_len;
+  u64         orig_line_pos;
 
 } hash_t;
 
@@ -1694,6 +1695,14 @@ typedef struct pot_tree_entry
   hashconfig_t *hashconfig;
 
 } pot_tree_entry_t;
+
+typedef struct pot_orig_line_entry
+{
+  u8 *hash_buf;
+  int hash_len;
+  int line_pos;
+
+} pot_orig_line_entry_t;
 
 typedef struct restore_data
 {

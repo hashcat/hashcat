@@ -74,6 +74,16 @@ int sort_pot_tree_by_hash (const void *v1, const void *v2)
   return sort_by_hash (h1, h2, hc);
 }
 
+// this function is used to reproduce the hash ordering based on the original input hash file
+
+int sort_pot_orig_line (const void *v1, const void *v2)
+{
+  const pot_orig_line_entry_t *t1 = (const pot_orig_line_entry_t *) v1;
+  const pot_orig_line_entry_t *t2 = (const pot_orig_line_entry_t *) v2;
+
+  return t1->line_pos > t2->line_pos;
+}
+
 // the problem with the GNU tdestroy () function is that it doesn't work with mingw etc
 // there are 2 alternatives:
 // 1. recursively delete the entries with entry->left and entry->right
@@ -648,6 +658,9 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
   u32     salts_cnt = hashes->salts_cnt;
   salt_t *salts_buf = hashes->salts_buf;
 
+  pot_orig_line_entry_t *final_buf = (pot_orig_line_entry_t *) hccalloc (hashes->hashes_cnt, sizeof (pot_orig_line_entry_t));
+  u32                    final_cnt = 0;
+
   if (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT)
   {
     // this implementation will work for LM only
@@ -757,7 +770,17 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
 
         const int tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, out_len, (u8 *) mixed_buf, mixed_len, 0, username, user_len, (char *) tmp_buf);
 
-        EVENT_DATA (EVENT_POTFILE_HASH_SHOW, tmp_buf, tmp_len);
+        //EVENT_DATA (EVENT_POTFILE_HASH_SHOW, tmp_buf, tmp_len);
+
+        final_buf[final_cnt].hash_buf = (u8 *) hcmalloc (tmp_len);
+
+        memcpy (final_buf[final_cnt].hash_buf, tmp_buf, tmp_len);
+
+        final_buf[final_cnt].hash_len = tmp_len;
+
+        final_buf[final_cnt].line_pos = hash1->orig_line_pos;
+
+        final_cnt++;
       }
     }
   }
@@ -808,7 +831,6 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
 
         tmp_buf[0] = 0;
 
-
         // special case for collider modes: we do not use the $HEX[] format within the hash itself
         // therefore we need to convert the $HEX[] password into hexadecimal (without "$HEX[" and "]")
 
@@ -837,10 +859,31 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
           tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, out_len, (u8 *) hash->pw_buf, hash->pw_len, 0, username, user_len, (char *) tmp_buf);
         }
 
-        EVENT_DATA (EVENT_POTFILE_HASH_SHOW, tmp_buf, tmp_len);
+        //EVENT_DATA (EVENT_POTFILE_HASH_SHOW, tmp_buf, tmp_len);
+
+        final_buf[final_cnt].hash_buf = (u8 *) hcmalloc (tmp_len);
+
+        memcpy (final_buf[final_cnt].hash_buf, tmp_buf, tmp_len);
+
+        final_buf[final_cnt].hash_len = tmp_len;
+
+        final_buf[final_cnt].line_pos = hash->orig_line_pos;
+
+        final_cnt++;
       }
     }
   }
+
+  qsort (final_buf, final_cnt, sizeof (pot_orig_line_entry_t), sort_pot_orig_line);
+
+  for (u32 final_pos = 0; final_pos < final_cnt; final_pos++)
+  {
+    EVENT_DATA (EVENT_POTFILE_HASH_SHOW, final_buf[final_pos].hash_buf, final_buf[final_pos].hash_len);
+
+    hcfree (final_buf[final_pos].hash_buf);
+  }
+
+  hcfree (final_buf);
 
   return 0;
 }
@@ -856,6 +899,9 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
 
   u32     salts_cnt = hashes->salts_cnt;
   salt_t *salts_buf = hashes->salts_buf;
+
+  pot_orig_line_entry_t *final_buf = (pot_orig_line_entry_t *) hccalloc (hashes->hashes_cnt, sizeof (pot_orig_line_entry_t));
+  u32                    final_cnt = 0;
 
   if (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT)
   {
@@ -933,7 +979,17 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
 
         const int tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, out_len, NULL, 0, 0, username, user_len, (char *) tmp_buf);
 
-        EVENT_DATA (EVENT_POTFILE_HASH_LEFT, tmp_buf, tmp_len);
+        //EVENT_DATA (EVENT_POTFILE_HASH_LEFT, tmp_buf, tmp_len);
+
+        final_buf[final_cnt].hash_buf = (u8 *) hcmalloc (tmp_len);
+
+        memcpy (final_buf[final_cnt].hash_buf, tmp_buf, tmp_len);
+
+        final_buf[final_cnt].hash_len = tmp_len;
+
+        final_buf[final_cnt].line_pos = hash1->orig_line_pos;
+
+        final_cnt++;
       }
     }
   }
@@ -1008,10 +1064,31 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
 
         const int tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, out_len, NULL, 0, 0, username, user_len, (char *) tmp_buf);
 
-        EVENT_DATA (EVENT_POTFILE_HASH_LEFT, tmp_buf, tmp_len);
+        //EVENT_DATA (EVENT_POTFILE_HASH_LEFT, tmp_buf, tmp_len);
+
+        final_buf[final_cnt].hash_buf = (u8 *) hcmalloc (tmp_len);
+
+        memcpy (final_buf[final_cnt].hash_buf, tmp_buf, tmp_len);
+
+        final_buf[final_cnt].hash_len = tmp_len;
+
+        final_buf[final_cnt].line_pos = hash->orig_line_pos;
+
+        final_cnt++;
       }
     }
   }
+
+  qsort (final_buf, final_cnt, sizeof (pot_orig_line_entry_t), sort_pot_orig_line);
+
+  for (u32 final_pos = 0; final_pos < final_cnt; final_pos++)
+  {
+    EVENT_DATA (EVENT_POTFILE_HASH_LEFT, final_buf[final_pos].hash_buf, final_buf[final_pos].hash_len);
+
+    hcfree (final_buf[final_pos].hash_buf);
+  }
+
+  hcfree (final_buf);
 
   return 0;
 }

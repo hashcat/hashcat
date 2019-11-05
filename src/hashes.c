@@ -822,6 +822,12 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
   for (u64 hash_pos = 0; hash_pos < hashes_avail; hash_pos++)
   {
+    /**
+     * Initialize some values for later use
+     */
+
+    hashes_buf[hash_pos].orig_line_pos = hash_pos;
+
     hashes_buf[hash_pos].digest = ((char *) digests_buf) + (hash_pos * hashconfig->dgst_size);
 
     if (hashconfig->is_salted == true)
