@@ -555,7 +555,7 @@ void example_hashes (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_info (hashcat_ctx, "HASH: %s", hashconfig->st_hash);
 
-        if (need_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), user_options->separator, 0))
+        if (need_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), user_options->separator, false))
         {
           char tmp_buf[HCBUFSIZ_LARGE] = { 0 };
 
@@ -615,7 +615,7 @@ void example_hashes (hashcat_ctx_t *hashcat_ctx)
         {
           event_log_info (hashcat_ctx, "HASH: %s", hashconfig->st_hash);
 
-          if (need_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), user_options->separator, 0))
+          if (need_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), user_options->separator, false))
           {
             char tmp_buf[HCBUFSIZ_LARGE] = { 0 };
 

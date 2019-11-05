@@ -887,10 +887,10 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
       hlfmt_hash (hashcat_ctx, hashlist_format, input_buf, input_len, &hash_buf, &hash_len);
 
-      bool hash_fmt_error = 0;
+      bool hash_fmt_error = false;
 
-      if (hash_len < 1)     hash_fmt_error = 1;
-      if (hash_buf == NULL) hash_fmt_error = 1;
+      if (hash_len < 1)     hash_fmt_error = true;
+      if (hash_buf == NULL) hash_fmt_error = true;
 
       if (hash_fmt_error)
       {
@@ -1034,10 +1034,10 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
         hlfmt_hash (hashcat_ctx, hashlist_format, line_buf, line_len, &hash_buf, &hash_len);
 
-        bool hash_fmt_error = 0;
+        bool hash_fmt_error = false;
 
-        if (hash_len < 1)     hash_fmt_error = 1;
-        if (hash_buf == NULL) hash_fmt_error = 1;
+        if (hash_len < 1)     hash_fmt_error = true;
+        if (hash_buf == NULL) hash_fmt_error = true;
 
         if (hash_fmt_error)
         {

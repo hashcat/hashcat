@@ -35,7 +35,7 @@ void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, const u
         char *line_buf = NULL;
         u32   line_len = 0;
 
-        while (1)
+        while (true)
         {
           HCFILE *fp = &extra_info_straight->fp;
 
@@ -86,7 +86,7 @@ void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, const u
         char *line_buf = NULL;
         u32   line_len = 0;
 
-        while (1)
+        while (true)
         {
           get_next_word (hashcat_ctx, base_fp, &line_buf, &line_len);
 
@@ -121,7 +121,7 @@ void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, const u
       char *line_buf = extra_info_combi->scratch_buf;
       u32   line_len = 0;
 
-      while (1)
+      while (true)
       {
         line_len = (u32) fgetl (combs_fp, line_buf, HCBUFSIZ_LARGE);
 
@@ -176,7 +176,7 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
       char *line_buf = NULL;
       u32   line_len = 0;
 
-      while (1)
+      while (true)
       {
         HCFILE *fp = &extra_info_straight->fp;
 
@@ -246,7 +246,7 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
       char *line_buf = NULL;
       u32   line_len = 0;
 
-      while (1)
+      while (true)
       {
         get_next_word (hashcat_ctx, base_fp, &line_buf, &line_len);
 
@@ -285,7 +285,7 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
     char *line_buf = extra_info_combi->scratch_buf;
     u32   line_len = 0;
 
-    while (1)
+    while (true)
     {
       line_len = (u32) fgetl (combs_fp, line_buf, HCBUFSIZ_LARGE);
 

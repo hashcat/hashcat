@@ -247,7 +247,7 @@ void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, cons
 
   int tmp_len = 0;
 
-  if (1)
+  if (true)
   {
     memcpy (tmp_buf + tmp_len, out_buf, out_len);
 

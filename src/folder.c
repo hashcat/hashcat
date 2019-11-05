@@ -458,7 +458,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
   hcfree (cpath);
 
   //if (getenv ("TMP") == NULL)
-  if (1)
+  if (true)
   {
     char *tmp;
 
