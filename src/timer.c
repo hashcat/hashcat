@@ -9,12 +9,12 @@
 
 #if defined (_WIN)
 
-inline void hc_timer_set (hc_timer_t *a)
+void hc_timer_set (hc_timer_t *a)
 {
   QueryPerformanceCounter (a);
 }
 
-inline double hc_timer_get (hc_timer_t a)
+double hc_timer_get (hc_timer_t a)
 {
   hc_timer_t hr_freq;
 
@@ -31,7 +31,7 @@ inline double hc_timer_get (hc_timer_t a)
 
 #else
 
-inline void hc_timer_set (hc_timer_t* a)
+void hc_timer_set (hc_timer_t* a)
 {
   #if defined(__APPLE__) && defined(MISSING_CLOCK_GETTIME)
   gettimeofday (a, NULL);
@@ -40,7 +40,7 @@ inline void hc_timer_set (hc_timer_t* a)
   #endif
 }
 
-inline double hc_timer_get (hc_timer_t a)
+double hc_timer_get (hc_timer_t a)
 {
   hc_timer_t hr_tmp;
 
