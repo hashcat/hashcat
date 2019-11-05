@@ -347,7 +347,7 @@ void potfile_update_hashes (hashcat_ctx_t *hashcat_ctx, hash_t *hash_buf, char *
 
   // the main search function is this:
 
-  void **found = tfind (&search_entry, (void **) &tree, sort_pot_tree_by_hash);
+  void **found = (void **) tfind (&search_entry, (void **) &tree, sort_pot_tree_by_hash);
 
   if (found)
   {
@@ -451,7 +451,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
       // the following function searches if the "key" is already present and if not inserts the new entry:
 
-      void **found = tsearch (new_entry, (void **) &all_hashes_tree, sort_pot_tree_by_hash);
+      void **found = (void **) tsearch (new_entry, (void **) &all_hashes_tree, sort_pot_tree_by_hash);
 
       pot_tree_entry_t *found_entry = (pot_tree_entry_t *) *found;
 

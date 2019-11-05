@@ -1015,7 +1015,7 @@ static int rounds_count_length (const char *input_buf, const int input_len)
 
     if (memcmp (input_buf, rounds, 7) == 0)
     {
-      char *next_pos = strchr (input_buf + 8, '$');
+      const char *next_pos = strchr (input_buf + 8, '$');
 
       if (next_pos == NULL) return -1;
 

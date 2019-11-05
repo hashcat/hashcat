@@ -29,7 +29,7 @@ void   hc_fflush    (HCFILE *fp);
 void   hc_fclose    (HCFILE *fp);
 int    hc_fputc     (int c, HCFILE *fp);
 char  *hc_fgets     (char *buf, int len, HCFILE *fp);
-size_t hc_fwrite    (void *ptr, size_t size, size_t nmemb, HCFILE *fp);
+size_t hc_fwrite    (const void *ptr, size_t size, size_t nmemb, HCFILE *fp);
 size_t hc_fread     (void *ptr, size_t size, size_t nmemb, HCFILE *fp);
 
 size_t fgetl        (HCFILE *fp, char *line_buf, const size_t line_sz);
