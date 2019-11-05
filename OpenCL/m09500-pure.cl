@@ -271,12 +271,15 @@ KERNEL_FQ void m09500_comp (KERN_ATTR_TMPS_ESALT (office2010_tmp_t, office2010_t
 
   AES128_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
+  const u32 digest_cur = digests_offset + loop_pos;
+
   u32 data[4];
 
-  data[0] = esalt_bufs[digests_offset].encryptedVerifier[0];
-  data[1] = esalt_bufs[digests_offset].encryptedVerifier[1];
-  data[2] = esalt_bufs[digests_offset].encryptedVerifier[2];
-  data[3] = esalt_bufs[digests_offset].encryptedVerifier[3];
+  data[0] = esalt_bufs[digest_cur].encryptedVerifier[0];
+  data[1] = esalt_bufs[digest_cur].encryptedVerifier[1];
+  data[2] = esalt_bufs[digest_cur].encryptedVerifier[2];
+  data[3] = esalt_bufs[digest_cur].encryptedVerifier[3];
+
 
   u32 out[4];
 
