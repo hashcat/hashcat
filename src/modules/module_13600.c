@@ -156,7 +156,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.len_max[5] = 6;
   token.sep[5]     = '*';
   token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
+                   | TOKEN_ATTR_VERIFY_HEX;
 
   token.len_min[6] = 1;
   token.len_max[6] = 6;
