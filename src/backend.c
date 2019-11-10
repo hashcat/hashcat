@@ -921,19 +921,21 @@ int cuda_init (hashcat_ctx_t *hashcat_ctx)
   if (cuda->lib == NULL) return -1;
 
   #define HC_LOAD_FUNC_CUDA(ptr,name,cudaname,type,libname,noerr) \
-    ptr->name = (type) hc_dlsym ((ptr)->lib, #cudaname); \
-    if ((noerr) != -1) { \
-      if (!(ptr)->name) { \
-        if ((noerr) == 1) { \
-          event_log_error (hashcat_ctx, "%s is missing from %s shared library.", #name, #libname); \
-          return -1; \
-        } \
-        if ((noerr) != 1) { \
-          event_log_warning (hashcat_ctx, "%s is missing from %s shared library.", #name, #libname); \
-          return 0; \
+    do { \
+      ptr->name = (type) hc_dlsym ((ptr)->lib, #cudaname); \
+      if ((noerr) != -1) { \
+        if (!(ptr)->name) { \
+          if ((noerr) == 1) { \
+            event_log_error (hashcat_ctx, "%s is missing from %s shared library.", #name, #libname); \
+            return -1; \
+          } \
+          if ((noerr) != 1) { \
+            event_log_warning (hashcat_ctx, "%s is missing from %s shared library.", #name, #libname); \
+            return 0; \
+          } \
         } \
       } \
-    }
+    } while (0)
 
   // finding the right symbol is a PITA, because of the _v2 suffix
   // a good reference is cuda.h itself
@@ -4877,7 +4879,7 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
   if (backend_ctx->ocl)
   {
     #define FREE_OPENCL_CTX_ON_ERROR          \
-    {                                         \
+    do {                                      \
       hcfree (opencl_platforms);              \
       hcfree (opencl_platforms_devices);      \
       hcfree (opencl_platforms_devices_cnt);  \
@@ -4885,7 +4887,7 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
       hcfree (opencl_platforms_vendor);       \
       hcfree (opencl_platforms_vendor_id);    \
       hcfree (opencl_platforms_version);      \
-    }
+    } while(0)
 
     cl_platform_id *opencl_platforms             = (cl_platform_id *) hccalloc (CL_PLATFORMS_MAX, sizeof (cl_platform_id));
     cl_uint         opencl_platforms_cnt         = 0;
