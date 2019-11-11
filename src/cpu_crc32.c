@@ -85,7 +85,7 @@ u32 cpu_crc32_buffer (const u8 *buf, const size_t length)
     crc = crc32tab[(crc ^ buf[pos]) & 0xff] ^ (crc >> 8);
   }
 
-  return crc ^ 0xffffffff;;
+  return crc ^ 0xffffffff;
 }
 
 int cpu_crc32 (const char *filename, u8 keytab[64])
