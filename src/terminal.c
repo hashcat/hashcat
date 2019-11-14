@@ -683,6 +683,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       char *device_name               = device_param->device_name;
       u32   device_processors         = device_param->device_processors;
       u32   device_maxclock_frequency = device_param->device_maxclock_frequency;
+      u64   device_available_mem      = device_param->device_available_mem;
       u64   device_global_mem         = device_param->device_global_mem;
 
       if (device_param->device_id_alias_cnt)
@@ -697,7 +698,8 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       event_log_info (hashcat_ctx, "  Name...........: %s", device_name);
       event_log_info (hashcat_ctx, "  Processor(s)...: %u", device_processors);
       event_log_info (hashcat_ctx, "  Clock..........: %u", device_maxclock_frequency);
-      event_log_info (hashcat_ctx, "  Memory.........: %" PRIu64 " MB", device_global_mem / 1024 / 1024);
+      event_log_info (hashcat_ctx, "  Memory.Total...: %" PRIu64 " MB", device_global_mem / 1024 / 1024);
+      event_log_info (hashcat_ctx, "  Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
       event_log_info (hashcat_ctx, NULL);
     }
   }
@@ -738,6 +740,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         u32            device_processors          = device_param->device_processors;
         u32            device_maxclock_frequency  = device_param->device_maxclock_frequency;
         u64            device_maxmem_alloc        = device_param->device_maxmem_alloc;
+        u64            device_available_mem       = device_param->device_available_mem;
         u64            device_global_mem          = device_param->device_global_mem;
         cl_device_type opencl_device_type         = device_param->opencl_device_type;
         cl_uint        opencl_device_vendor_id    = device_param->opencl_device_vendor_id;
@@ -762,7 +765,8 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         event_log_info (hashcat_ctx, "    Version........: %s", opencl_device_version);
         event_log_info (hashcat_ctx, "    Processor(s)...: %u", device_processors);
         event_log_info (hashcat_ctx, "    Clock..........: %u", device_maxclock_frequency);
-        event_log_info (hashcat_ctx, "    Memory.........: %" PRIu64 "/%" PRIu64 " MB allocatable", device_maxmem_alloc / 1024 / 1024, device_global_mem / 1024 / 1024);
+        event_log_info (hashcat_ctx, "    Memory.Total...: %" PRIu64 " MB (limited to %" PRIu64 " MB allocatable in one block)", device_global_mem / 1024 / 1024, device_maxmem_alloc / 1024 / 1024);
+        event_log_info (hashcat_ctx, "    Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
         event_log_info (hashcat_ctx, "    OpenCL.Version.: %s", opencl_device_c_version);
         event_log_info (hashcat_ctx, "    Driver.Version.: %s", opencl_driver_version);
         event_log_info (hashcat_ctx, NULL);
@@ -801,17 +805,19 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
 
       const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
 
-      int   device_id         = device_param->device_id;
-      char *device_name       = device_param->device_name;
-      u32   device_processors = device_param->device_processors;
-      u64   device_global_mem = device_param->device_global_mem;
+      int   device_id            = device_param->device_id;
+      char *device_name          = device_param->device_name;
+      u32   device_processors    = device_param->device_processors;
+      u64   device_global_mem    = device_param->device_global_mem;
+      u64   device_available_mem = device_param->device_available_mem;
 
       if ((device_param->skipped == false) && (device_param->skipped_warning == false))
       {
-        event_log_info (hashcat_ctx, "* Device #%u: %s, %" PRIu64 " MB, %uMCU",
+        event_log_info (hashcat_ctx, "* Device #%u: %s, %" PRIu64 "/%" PRIu64 " MB, %uMCU",
                   device_id + 1,
                   device_name,
-                  device_global_mem   / 1024 / 1024,
+                  device_available_mem / 1024 / 1024,
+                  device_global_mem    / 1024 / 1024,
                   device_processors);
       }
       else
@@ -854,19 +860,21 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
 
         const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
 
-        int   device_id           = device_param->device_id;
-        char *device_name         = device_param->device_name;
-        u32   device_processors   = device_param->device_processors;
-        u64   device_maxmem_alloc = device_param->device_maxmem_alloc;
-        u64   device_global_mem   = device_param->device_global_mem;
+        int   device_id            = device_param->device_id;
+        char *device_name          = device_param->device_name;
+        u32   device_processors    = device_param->device_processors;
+        u64   device_maxmem_alloc  = device_param->device_maxmem_alloc;
+        u64   device_global_mem    = device_param->device_global_mem;
+        u64   device_available_mem = device_param->device_available_mem;
 
         if ((device_param->skipped == false) && (device_param->skipped_warning == false))
         {
-          event_log_info (hashcat_ctx, "* Device #%u: %s, %" PRIu64 "/%" PRIu64 " MB allocatable, %uMCU",
+          event_log_info (hashcat_ctx, "* Device #%u: %s, %" PRIu64 "/%" PRIu64 " MB (%" PRIu64 " MB allocatable), %uMCU",
                     device_id + 1,
                     device_name,
-                    device_maxmem_alloc / 1024 / 1024,
-                    device_global_mem   / 1024 / 1024,
+                    device_available_mem / 1024 / 1024,
+                    device_global_mem    / 1024 / 1024,
+                    device_maxmem_alloc  / 1024 / 1024,
                     device_processors);
         }
         else
