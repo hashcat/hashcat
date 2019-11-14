@@ -7759,6 +7759,38 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
      * global buffers
      */
 
+    const u64 size_total_fixed
+      = bitmap_ctx->bitmap_size
+      + bitmap_ctx->bitmap_size
+      + bitmap_ctx->bitmap_size
+      + bitmap_ctx->bitmap_size
+      + bitmap_ctx->bitmap_size
+      + bitmap_ctx->bitmap_size
+      + bitmap_ctx->bitmap_size
+      + bitmap_ctx->bitmap_size
+      + size_plains
+      + size_digests
+      + size_shown
+      + size_salts
+      + size_results
+      + size_extra_buffer
+      + size_st_digests
+      + size_st_salts
+      + size_st_esalts
+      + size_esalts
+      + size_markov_css
+      + size_root_css
+      + size_rules
+      + size_rules_c
+      + size_tm;
+
+    if (size_total_fixed > device_param->device_available_mem)
+    {
+      event_log_error (hashcat_ctx, "* Device #%u: Not enough allocatable device memory for this hashlist and/or ruleset.", device_id + 1);
+
+      return -1;
+    }
+
     if (device_param->is_cuda == true)
     {
       if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_bitmap_s1_a,    bitmap_ctx->bitmap_size) == -1) return -1;
