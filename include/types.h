@@ -2476,6 +2476,7 @@ typedef struct hook_thread_param
   int tsz;
 
   module_ctx_t *module_ctx;
+  status_ctx_t *status_ctx;
 
   hc_device_param_t *device_param;
 

@@ -2891,6 +2891,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
           hook_thread_param->tsz = hook_threads;
 
           hook_thread_param->module_ctx = module_ctx;
+          hook_thread_param->status_ctx = status_ctx;
 
           hook_thread_param->device_param = device_param;
 
@@ -3006,6 +3007,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
           hook_thread_param->tsz = hook_threads;
 
           hook_thread_param->module_ctx = module_ctx;
+          hook_thread_param->status_ctx = status_ctx;
 
           hook_thread_param->device_param = device_param;
 
@@ -10269,6 +10271,7 @@ void *hook12_thread (void *p)
   hook_thread_param_t *hook_thread_param = (hook_thread_param_t *) p;
 
   module_ctx_t *module_ctx = hook_thread_param->module_ctx;
+  status_ctx_t *status_ctx = hook_thread_param->status_ctx;
 
   const u64 tid     = hook_thread_param->tid;
   const u64 tsz     = hook_thread_param->tsz;
@@ -10276,7 +10279,12 @@ void *hook12_thread (void *p)
 
   for (u64 pw_pos = tid; pw_pos < pws_cnt; pw_pos += tsz)
   {
-    module_ctx->module_hook12 (hook_thread_param->device_param, hook_thread_param->hook_salts_buf, hook_thread_param->salt_pos, pw_pos);
+    while (status_ctx->devices_status == STATUS_PAUSED) sleep (1);
+
+    if (status_ctx->devices_status == STATUS_RUNNING)
+    {
+      module_ctx->module_hook12 (hook_thread_param->device_param, hook_thread_param->hook_salts_buf, hook_thread_param->salt_pos, pw_pos);
+    }
   }
 
   return NULL;
@@ -10287,6 +10295,7 @@ void *hook23_thread (void *p)
   hook_thread_param_t *hook_thread_param = (hook_thread_param_t *) p;
 
   module_ctx_t *module_ctx = hook_thread_param->module_ctx;
+  status_ctx_t *status_ctx = hook_thread_param->status_ctx;
 
   const u64 tid     = hook_thread_param->tid;
   const u64 tsz     = hook_thread_param->tsz;
@@ -10294,7 +10303,12 @@ void *hook23_thread (void *p)
 
   for (u64 pw_pos = tid; pw_pos < pws_cnt; pw_pos += tsz)
   {
-    module_ctx->module_hook23 (hook_thread_param->device_param, hook_thread_param->hook_salts_buf, hook_thread_param->salt_pos, pw_pos);
+    while (status_ctx->devices_status == STATUS_PAUSED) sleep (1);
+
+    if (status_ctx->devices_status == STATUS_RUNNING)
+    {
+      module_ctx->module_hook23 (hook_thread_param->device_param, hook_thread_param->hook_salts_buf, hook_thread_param->salt_pos, pw_pos);
+    }
   }
 
   return NULL;
