@@ -26,6 +26,9 @@ typedef struct bitcoin_wallet
   u32 cry_master_buf[64];
   u32 cry_master_len;
 
+  u32 cry_salt_buf[16];
+  u32 cry_salt_len;
+
 } bitcoin_wallet_t;
 
 DECLSPEC void hmac_sha512_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, u64x *ipad, u64x *opad, u64x *digest)
@@ -102,7 +105,7 @@ KERNEL_FQ void m11300_init (KERN_ATTR_TMPS_ESALT (bitcoin_wallet_tmp_t, bitcoin_
 
   sha512_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
-  sha512_update_global_swap (&ctx, salt_bufs[salt_pos].salt_buf, 8);
+  sha512_update_global_swap (&ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
 
   sha512_final (&ctx);
 
@@ -305,6 +308,7 @@ KERNEL_FQ void m11300_comp (KERN_ATTR_TMPS_ESALT (bitcoin_wallet_tmp_t, bitcoin_
     u32 i = esalt_bufs[digests_offset].cry_master_len - 32;
 
     u32 iv[4];
+
     iv[0] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 0]);
     iv[1] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 1]);
     iv[2] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 2]);
@@ -313,6 +317,7 @@ KERNEL_FQ void m11300_comp (KERN_ATTR_TMPS_ESALT (bitcoin_wallet_tmp_t, bitcoin_
     i += 16;
 
     u32 data[4];
+
     data[0] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 0]);
     data[1] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 1]);
     data[2] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 2]);
@@ -326,13 +331,19 @@ KERNEL_FQ void m11300_comp (KERN_ATTR_TMPS_ESALT (bitcoin_wallet_tmp_t, bitcoin_
     out[3] ^= iv[3];
   }
 
-  u32 pad;
-  if (salt_bufs[salt_pos].salt_len != 18) /* most wallets */
+  u32 pad = 0;
+
+  if (esalt_bufs[digests_offset].cry_salt_len != 18)
   {
+    /* most wallets */
     pad = 0x10101010;
-    if (out[0] != pad || out[1] != pad)
-      return;
-  } else { /* Nexus legacy wallet */
+
+    if (out[0] != pad) return;
+    if (out[1] != pad) return;
+  }
+  else
+  {
+    /* Nexus legacy wallet */
     pad = 0x08080808;
   }
 

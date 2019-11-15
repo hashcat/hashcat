@@ -51,6 +51,9 @@ typedef struct bitcoin_wallet
   u32 cry_master_buf[64];
   u32 cry_master_len;
 
+  u32 cry_salt_buf[16];
+  u32 cry_salt_len;
+
 } bitcoin_wallet_t;
 
 typedef struct bitcoin_wallet_tmp
@@ -235,12 +238,18 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   salt->salt_iter = cry_rounds - 1;
 
-  // salt
+  // esalt
 
-  const bool parse_rc = generic_salt_decode (hashconfig, cry_salt_buf_pos, 16 /* instead of cry_salt_buf_len */, (u8 *) salt->salt_buf, (int *) &salt->salt_len);
-  salt->salt_len = cry_salt_buf_len / 2; /* communicate original salt size to the kernel */
+  const bool parse_rc = generic_salt_decode (hashconfig, cry_salt_buf_pos, cry_salt_buf_len, (u8 *) bitcoin_wallet->cry_salt_buf, (int *) &bitcoin_wallet->cry_salt_len);
 
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
+
+  // salt
+
+  salt->salt_buf[0] = bitcoin_wallet->cry_salt_buf[0];
+  salt->salt_buf[1] = bitcoin_wallet->cry_salt_buf[1];
+
+  salt->salt_len = 8;
 
   return (PARSER_OK);
 }
