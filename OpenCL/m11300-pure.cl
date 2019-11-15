@@ -102,7 +102,7 @@ KERNEL_FQ void m11300_init (KERN_ATTR_TMPS_ESALT (bitcoin_wallet_tmp_t, bitcoin_
 
   sha512_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
-  sha512_update_global_swap (&ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  sha512_update_global_swap (&ctx, salt_bufs[salt_pos].salt_buf, 8);
 
   sha512_final (&ctx);
 
@@ -293,13 +293,6 @@ KERNEL_FQ void m11300_comp (KERN_ATTR_TMPS_ESALT (bitcoin_wallet_tmp_t, bitcoin_
   key[6] = h32_from_64_S (dgst[3]);
   key[7] = l32_from_64_S (dgst[3]);
 
-  u32 iv[4];
-
-  iv[0] = h32_from_64_S (dgst[4]);
-  iv[1] = l32_from_64_S (dgst[4]);
-  iv[2] = h32_from_64_S (dgst[5]);
-  iv[3] = l32_from_64_S (dgst[5]);
-
   #define KEYLEN 60
 
   u32 ks[KEYLEN];
@@ -308,10 +301,18 @@ KERNEL_FQ void m11300_comp (KERN_ATTR_TMPS_ESALT (bitcoin_wallet_tmp_t, bitcoin_
 
   u32 out[4];
 
-  for (u32 i = 0; i < esalt_bufs[digests_offset].cry_master_len; i += 16)
   {
-    u32 data[4];
+    u32 i = esalt_bufs[digests_offset].cry_master_len - 32;
 
+    u32 iv[4];
+    iv[0] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 0]);
+    iv[1] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 1]);
+    iv[2] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 2]);
+    iv[3] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 3]);
+
+    i += 16;
+
+    u32 data[4];
     data[0] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 0]);
     data[1] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 1]);
     data[2] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 2]);
@@ -323,17 +324,19 @@ KERNEL_FQ void m11300_comp (KERN_ATTR_TMPS_ESALT (bitcoin_wallet_tmp_t, bitcoin_
     out[1] ^= iv[1];
     out[2] ^= iv[2];
     out[3] ^= iv[3];
-
-    iv[0] = data[0];
-    iv[1] = data[1];
-    iv[2] = data[2];
-    iv[3] = data[3];
   }
 
-  if ((out[0] == 0x10101010)
-   && (out[1] == 0x10101010)
-   && (out[2] == 0x10101010)
-   && (out[3] == 0x10101010))
+  u32 pad;
+  if (salt_bufs[salt_pos].salt_len != 18) /* most wallets */
+  {
+    pad = 0x10101010;
+    if (out[0] != pad || out[1] != pad)
+      return;
+  } else { /* Nexus legacy wallet */
+    pad = 0x08080808;
+  }
+
+  if (out[2] == pad && out[3] == pad)
   {
     if (atomic_inc (&hashes_shown[digests_offset]) == 0)
     {
