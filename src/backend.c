@@ -3102,6 +3102,34 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
         if (run_kernel (hashcat_ctx, device_param, KERN_RUN_3, pws_cnt, false, 0) == -1) return -1;
       }
     }
+
+    /*
+     * maybe we should add this zero of temporary buffers
+     * however it drops the performance from 7055338 to 7010621
+
+    if (device_param->is_cuda == true)
+    {
+      if (run_cuda_kernel_bzero   (hashcat_ctx, device_param, device_param->cuda_d_tmps,   device_param->size_tmps) == -1) return -1;
+    }
+
+    if (device_param->is_opencl == true)
+    {
+      if (run_opencl_kernel_bzero (hashcat_ctx, device_param, device_param->opencl_d_tmps, device_param->size_tmps) == -1) return -1;
+    }
+    */
+
+    if ((hashconfig->opts_type & OPTS_TYPE_HOOK12) || (hashconfig->opts_type & OPTS_TYPE_HOOK23))
+    {
+      if (device_param->is_cuda == true)
+      {
+        if (run_cuda_kernel_bzero   (hashcat_ctx, device_param, device_param->cuda_d_hooks,   device_param->size_hooks) == -1) return -1;
+      }
+
+      if (device_param->is_opencl == true)
+      {
+        if (run_opencl_kernel_bzero (hashcat_ctx, device_param, device_param->opencl_d_hooks, device_param->size_hooks) == -1) return -1;
+      }
+    }
   }
 
   return 0;
