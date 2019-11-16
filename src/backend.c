@@ -6252,6 +6252,19 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
     return -1;
   }
 
+  // now we can calculate the number of parallel running hook threads based on
+  // the number cpu cores and the number of active compute devices
+  // unless overwritten by the user
+
+  if (user_options->hook_threads == HOOK_THREADS)
+  {
+    const u32 processor_count = hc_get_processor_count ();
+
+    const u32 processor_count_cu = CEILDIV (processor_count, backend_ctx->backend_devices_active); // should never reach 0
+
+    user_options->hook_threads = processor_count_cu;
+  }
+
   // additional check to see if the user has chosen a device that is not within the range of available devices (i.e. larger than devices_cnt)
 
   if (backend_ctx->backend_devices_filter != (u64) -1)
