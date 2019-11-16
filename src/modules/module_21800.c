@@ -79,8 +79,8 @@ typedef struct electrum_hook_salt
 
 static const char *SIGNATURE_ELECTRUM = "$electrum$5*";
 
-#define M21800_MAX_ACCEL   1
-#define M21800_MAX_THREADS 8
+#define M21800_MAX_ACCEL   16
+#define M21800_MAX_THREADS 64
 
 u32 module_kernel_accel_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
