@@ -60,17 +60,45 @@ bool hc_secp256k1_pubkey_parse (secp256k1_pubkey *pubkey, u8 *buf, size_t length
 
 bool hc_secp256k1_pubkey_tweak_mul (secp256k1_pubkey *pubkey, u8 *buf, size_t length)
 {
-  secp256k1_context *sctx = secp256k1_context_create (SECP256K1_CONTEXT_VERIFY);
+  secp256k1_context *sctx = secp256k1_context_create (SECP256K1_CONTEXT_NONE);
 
-  if (secp256k1_ec_pubkey_tweak_mul (sctx, pubkey, buf) == 0)
-  {
-    secp256k1_context_destroy (sctx);
+  secp256k1_gej res;
+  secp256k1_ge  pt;
 
-    return false;
-  }
+  // load the public key:
 
-  secp256k1_ec_pubkey_serialize (sctx, buf, &length, pubkey, SECP256K1_EC_COMPRESSED);
+  secp256k1_pubkey_load (sctx, &pt, pubkey);
 
+  int overflow = 0;
+
+  secp256k1_scalar s;
+
+  secp256k1_scalar_set_b32 (&s, buf, &overflow);
+
+  if (overflow) return false;
+  if (secp256k1_scalar_is_zero (&s)) return false;
+
+
+  // main multiply operation:
+
+  const size_t scalar_size = (length - 1) * 8;
+
+  secp256k1_ecmult_const (&res, &pt, &s, scalar_size);
+  secp256k1_ge_set_gej   (&pt, &res);
+  secp256k1_fe_normalize (&pt.x);
+  secp256k1_fe_normalize (&pt.y);
+
+
+  // output:
+
+  buf[0] = 0x02 | secp256k1_fe_is_odd (&pt.y);
+
+  secp256k1_fe_get_b32 (buf + 1, &pt.x);
+
+
+  // cleanup:
+
+  secp256k1_scalar_clear (&s);
   secp256k1_context_destroy (sctx);
 
   return true;
