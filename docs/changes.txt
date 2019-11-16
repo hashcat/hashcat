@@ -24,7 +24,7 @@
 - Added hash-mode: BitShares v0.x
 - Added hash-mode: Blockchain, My Wallet, Second Password (SHA256)
 - Added hash-mode: DiskCryptor
-- Added hash-mode: Electrum Wallet (Salt-Type 3)
+- Added hash-mode: Electrum Wallet (Salt-Type 3-5)
 - Added hash-mode: Huawei Router sha1(md5($pass).$salt)
 - Added hash-mode: Java Object hashCode()
 - Added hash-mode: Kerberos 5 Pre-Auth etype 17 (AES128-CTS-HMAC-SHA1-96)
