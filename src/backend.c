@@ -4792,7 +4792,7 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     // some pre-check
 
-    if ((nvrtc_driver_version < 10010) || (cuda_driver_version < 10010))
+    if ((nvrtc_driver_version < 10000) || (cuda_driver_version < 10000))
     {
       event_log_error (hashcat_ctx, "Outdated NVIDIA CUDA Toolkit version '%d' detected!", cuda_driver_version);
 
