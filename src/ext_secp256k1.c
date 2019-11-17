@@ -14,7 +14,7 @@
 // some macros needed for secp256k1 header and source code includes:
 
 // is this a good 64-bit support check ?
-#if !defined(__LP64__) && !defined(_WIN64) && !defined(__x86_64__)
+#if !defined (__LP64__) && !defined (_WIN64) && !defined (__x86_64__)
 
 #define USE_SCALAR_8X32
 #define USE_FIELD_10X26
@@ -60,12 +60,14 @@ bool hc_secp256k1_pubkey_parse (secp256k1_pubkey *pubkey, u8 *buf, size_t length
 
 bool hc_secp256k1_pubkey_tweak_mul (secp256k1_pubkey *pubkey, u8 *buf, size_t length)
 {
+  #if !defined (WITH_LIBSECP256K1)
+
   secp256k1_context *sctx = secp256k1_context_create (SECP256K1_CONTEXT_NONE);
 
   secp256k1_gej res;
   secp256k1_ge  pt;
 
-  // load the public key:
+  // load the public key and 32 byte scalar:
 
   secp256k1_pubkey_load (sctx, &pt, pubkey);
 
@@ -75,8 +77,23 @@ bool hc_secp256k1_pubkey_tweak_mul (secp256k1_pubkey *pubkey, u8 *buf, size_t le
 
   secp256k1_scalar_set_b32 (&s, buf, &overflow);
 
-  if (overflow) return false;
-  if (secp256k1_scalar_is_zero (&s)) return false;
+  if (overflow != 0)
+  {
+    secp256k1_scalar_clear (&s);
+
+    secp256k1_context_destroy (sctx);
+
+    return false;
+  }
+
+  if (secp256k1_scalar_is_zero (&s))
+  {
+    secp256k1_scalar_clear (&s);
+
+    secp256k1_context_destroy (sctx);
+
+    return false;
+  }
 
 
   // main multiply operation:
@@ -99,7 +116,36 @@ bool hc_secp256k1_pubkey_tweak_mul (secp256k1_pubkey *pubkey, u8 *buf, size_t le
   // cleanup:
 
   secp256k1_scalar_clear (&s);
+
   secp256k1_context_destroy (sctx);
+
+  #else
+
+  // ATTENTION: this way to multiply was much slower in our tests
+
+  secp256k1_context *sctx = secp256k1_context_create (SECP256K1_CONTEXT_VERIFY);
+
+
+  // main multiply operation:
+
+  if (secp256k1_ec_pubkey_tweak_mul (sctx, pubkey, buf) == 0)
+  {
+    secp256k1_context_destroy (sctx);
+
+    return false;
+  }
+
+
+  // output:
+
+  secp256k1_ec_pubkey_serialize (sctx, buf, &length, pubkey, SECP256K1_EC_COMPRESSED);
+
+
+  // cleanup:
+
+  secp256k1_context_destroy (sctx);
+
+  #endif
 
   return true;
 }
