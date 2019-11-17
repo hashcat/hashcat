@@ -14,6 +14,9 @@ USE_SYSTEM_LIBSECP256K1 := 0
 USE_SYSTEM_OPENCL       := 0
 USE_SYSTEM_XXHASH       := 0
 
+# NOTE: USE_SYSTEM_LIBSECP256K1 set to 1 can come with a huge performance hit for Electrum 4-5
+# this is due to the public API (secp256k1.h) not exposing all the faster ECC operations we need
+
 ##
 ## Detect Operating System
 ##
