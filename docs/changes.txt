@@ -8,10 +8,12 @@
 - Refactor hashcat backend interface to allow adding compute API other than OpenCL
 - Added CUDA as a new compute API to hashcat backend (enables hashcat to run on NVIDIA Jetson or IBM POWER9)
 - Support use of all available GPU memory using CUDA backend
+- Support use of all available CPU cores for hash-mode specific hooks
 - Support on-the-fly loading of compressed wordlists in zip and gzip format
 - Support for inline VeraCrypt PIM Brute-Force
 - Support deflate decompression for the 7-Zip hash-mode using zlib hook
 - Added documentation on hashcat brain, slow-candidate and keyboard-layout mapping features
+- Keep output of --show and --left in the original ordering of the input hash file
 
 ##
 ## Algorithms
@@ -22,7 +24,7 @@
 - Added hash-mode: BitShares v0.x
 - Added hash-mode: Blockchain, My Wallet, Second Password (SHA256)
 - Added hash-mode: DiskCryptor
-- Added hash-mode: Electrum Wallet (Salt-Type 3)
+- Added hash-mode: Electrum Wallet (Salt-Type 3-5)
 - Added hash-mode: Huawei Router sha1(md5($pass).$salt)
 - Added hash-mode: Java Object hashCode()
 - Added hash-mode: Kerberos 5 Pre-Auth etype 17 (AES128-CTS-HMAC-SHA1-96)
@@ -67,6 +69,7 @@
 - Fixed incorrect progress-only result in a special race condition
 - Fixed invalid call of mp_css_utf16le_expand()/mp_css_utf16be_expand() in a slow-candidate session
 - Fixed invalid password truncation in attack-mode 1 if final password is longer than 32 character
+- Fixed invalid use of --hex-wordlist if encoded wordlist string is larger than length 256
 - Fixed maximum password length limit which was announced as 256 but actually was 255
 - Fixed output of IKE PSK (mode 5300 and 5400) hashes to have separators at right position
 - Fixed output password of "e" rule in pure and cpu rule engine if separator character is also the first letter
@@ -98,6 +101,7 @@
 - OpenCL Runtime: Workaround JiT compiler error on ROCM 2.3 driver if the 'inline' keyword is used in function declaration
 - OpenCL Runtime: Workaround memory allocation error on AMD driver on Windows leading to CL_MEM_OBJECT_ALLOCATION_FAILURE
 - OpenCL Runtime: Workaround ROCm OpenCL driver problem trying to write temporary file into readonly folder by setting TMPDIR
+- Startup Checks: Prevent the user to modify options which are overwritten automatically in benchmark mode
 - Startup Checks: Improved the pidfile check: Do not just check for existing PID but also check executable filename
 - Startup Screen: Add extra warning when using --force
 - Startup Screen: Provide an estimate of host memory requirements for the requested attack

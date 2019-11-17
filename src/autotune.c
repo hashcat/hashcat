@@ -199,7 +199,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   u32 kernel_loops_max_reduced = kernel_loops_max;
 
-  if (1)
+  if (true)
   {
     double exec_msec = try_run (hashcat_ctx, device_param, kernel_accel_min, kernel_loops_min);
 

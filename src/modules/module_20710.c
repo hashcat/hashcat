@@ -59,7 +59,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.len_min[0] = 64;
   token.len_max[0] = 64;
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
+                   | TOKEN_ATTR_VERIFY_HEX;
 
   token.len_min[1] = SALT_MIN;
   token.len_max[1] = SALT_MAX;

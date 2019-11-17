@@ -609,6 +609,27 @@ void hc_string_trim_trailing (char *s)
   s[new_len] = 0;
 }
 
+int hc_get_processor_count ()
+{
+  int cnt = 0;
+
+  #if defined (_WIN)
+
+  SYSTEM_INFO info;
+
+  GetSystemInfo (&info);
+
+  cnt = (int) info.dwNumberOfProcessors;
+
+  #else
+
+  cnt = (int) sysconf (_SC_NPROCESSORS_ONLN);
+
+  #endif
+
+  return cnt;
+}
+
 bool hc_same_files (char *file1, char *file2)
 {
   if ((file1 != NULL) && (file2 != NULL))
@@ -994,7 +1015,7 @@ static int rounds_count_length (const char *input_buf, const int input_len)
 
     if (memcmp (input_buf, rounds, 7) == 0)
     {
-      char *next_pos = strchr (input_buf + 8, '$');
+      const char *next_pos = strchr (input_buf + 8, '$');
 
       if (next_pos == NULL) return -1;
 
@@ -1090,6 +1111,16 @@ int input_tokenizer (const u8 *input_buf, const int input_len, token_t *token)
     {
       if (token->len[token_idx] < token->len_min[token_idx]) return (PARSER_TOKEN_LENGTH);
       if (token->len[token_idx] > token->len_max[token_idx]) return (PARSER_TOKEN_LENGTH);
+    }
+
+    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_DIGIT)
+    {
+      if (is_valid_digit_string (token->buf[token_idx], token->len[token_idx]) == false) return (PARSER_TOKEN_ENCODING);
+    }
+
+    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_FLOAT)
+    {
+      if (is_valid_float_string (token->buf[token_idx], token->len[token_idx]) == false) return (PARSER_TOKEN_ENCODING);
     }
 
     if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_HEX)

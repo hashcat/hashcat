@@ -58,6 +58,7 @@ static const struct option long_options[] =
   {"hex-charset",               no_argument,       NULL, IDX_HEX_CHARSET},
   {"hex-salt",                  no_argument,       NULL, IDX_HEX_SALT},
   {"hex-wordlist",              no_argument,       NULL, IDX_HEX_WORDLIST},
+  {"hook-threads",              required_argument, NULL, IDX_HOOK_THREADS},
   {"increment-max",             required_argument, NULL, IDX_INCREMENT_MAX},
   {"increment-min",             required_argument, NULL, IDX_INCREMENT_MIN},
   {"increment",                 no_argument,       NULL, IDX_INCREMENT},
@@ -185,6 +186,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->hex_charset               = HEX_CHARSET;
   user_options->hex_salt                  = HEX_SALT;
   user_options->hex_wordlist              = HEX_WORDLIST;
+  user_options->hook_threads              = HOOK_THREADS;
   user_options->increment                 = INCREMENT;
   user_options->increment_max             = INCREMENT_MAX;
   user_options->increment_min             = INCREMENT_MIN;
@@ -321,6 +323,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_BITMAP_MAX:
       case IDX_INCREMENT_MIN:
       case IDX_INCREMENT_MAX:
+      case IDX_HOOK_THREADS:
       #ifdef WITH_BRAIN
       case IDX_BRAIN_PORT:
       #endif
@@ -457,6 +460,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_SEPARATOR:                 user_options->separator                 = optarg[0];                       break;
       case IDX_BITMAP_MIN:                user_options->bitmap_min                = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_BITMAP_MAX:                user_options->bitmap_max                = hc_strtoul (optarg, NULL, 10);   break;
+      case IDX_HOOK_THREADS:              user_options->hook_threads              = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_INCREMENT:                 user_options->increment                 = true;                            break;
       case IDX_INCREMENT_MIN:             user_options->increment_min             = hc_strtoul (optarg, NULL, 10);
                                           user_options->increment_min_chgd        = true;                            break;
@@ -1007,20 +1011,119 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  if ((user_options->spin_damp_chgd == true) && (user_options->benchmark == true))
-  {
-    event_log_error (hashcat_ctx, "Values of --spin-damp cannot be used in combination with --benchmark.");
-
-    return -1;
-  }
-
   if (user_options->benchmark == true)
   {
+    // sanity checks based on automatically overwritten configuration variables by
+    // benchmark mode section in user_options_preprocess()
+
+    #ifdef WITH_BRAIN
+    if (user_options->brain_client == true)
+    {
+      event_log_error (hashcat_ctx, "Brain client (-z) is not allowed in benchmark mode.");
+
+      return -1;
+    }
+
+    if (user_options->brain_server == true)
+    {
+      event_log_error (hashcat_ctx, "Brain server is not allowed in benchmark mode.");
+
+      return -1;
+    }
+    #endif
+
     if (user_options->attack_mode_chgd == true)
     {
-      if (user_options->attack_mode != ATTACK_MODE_BF)
+      event_log_error (hashcat_ctx, "Can't change --attack-mode (-a) in benchmark mode.");
+
+      return -1;
+    }
+
+    if (user_options->bitmap_min != BITMAP_MIN)
+    {
+      event_log_error (hashcat_ctx, "Can't change --bitmap-min in benchmark mode.");
+
+      return -1;
+    }
+
+    if (user_options->bitmap_max != BITMAP_MAX)
+    {
+      event_log_error (hashcat_ctx, "Can't change --bitmap-max in benchmark mode.");
+
+      return -1;
+    }
+
+    if (user_options->hwmon_temp_abort != HWMON_TEMP_ABORT)
+    {
+      event_log_error (hashcat_ctx, "Can't change --hwmon-temp-abort in benchmark mode.");
+
+      return -1;
+    }
+
+    if (user_options->left == true)
+    {
+      event_log_error (hashcat_ctx, "Can't change --left in benchmark mode.");
+
+      return -1;
+    }
+
+    if (user_options->show == true)
+    {
+      event_log_error (hashcat_ctx, "Can't change --show in benchmark mode.");
+
+      return -1;
+    }
+
+    if (user_options->speed_only == true)
+    {
+      event_log_error (hashcat_ctx, "Can't change --speed-only in benchmark mode.");
+
+      return -1;
+    }
+
+    if (user_options->progress_only == true)
+    {
+      event_log_error (hashcat_ctx, "Can't change --progress-only in benchmark mode.");
+
+      return -1;
+    }
+
+    if (user_options->increment == true)
+    {
+      event_log_error (hashcat_ctx, "Can't change --increment (-i) in benchmark mode.");
+
+      return -1;
+    }
+
+    if (user_options->restore == true)
+    {
+      event_log_error (hashcat_ctx, "Can't change --restore in benchmark mode.");
+
+      return -1;
+    }
+
+    if (user_options->status == true)
+    {
+      event_log_error (hashcat_ctx, "Can't change --status in benchmark mode.");
+
+      return -1;
+    }
+
+    if (user_options->spin_damp_chgd == true)
+    {
+      event_log_error (hashcat_ctx, "Can't change --spin-damp in benchmark mode.");
+
+      return -1;
+    }
+
+    if ((user_options->custom_charset_1 != NULL)
+     || (user_options->custom_charset_2 != NULL)
+     || (user_options->custom_charset_3 != NULL)
+     || (user_options->custom_charset_4 != NULL))
+    {
+      if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
       {
-        event_log_error (hashcat_ctx, "Benchmark mode is only allowed in attack mode 3 (brute-force).");
+        event_log_error (hashcat_ctx, "Custom charsets are not supported in benchmark mode.");
 
         return -1;
       }
@@ -2723,6 +2826,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->hex_charset);
   logfile_top_uint   (user_options->hex_salt);
   logfile_top_uint   (user_options->hex_wordlist);
+  logfile_top_uint   (user_options->hook_threads);
   logfile_top_uint   (user_options->increment);
   logfile_top_uint   (user_options->increment_max);
   logfile_top_uint   (user_options->increment_min);

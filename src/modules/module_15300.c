@@ -113,6 +113,12 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
     return true;
   }
 
+  //l_opencl_p_18.1.0.013.tgz: self-test failed
+  if ((device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK) && (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU))
+  {
+    return true;
+  }
+
   return false;
 }
 

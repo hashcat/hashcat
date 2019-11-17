@@ -51,6 +51,9 @@ typedef struct bitcoin_wallet
   u32 cry_master_buf[64];
   u32 cry_master_len;
 
+  u32 cry_salt_buf[16];
+  u32 cry_salt_len;
+
 } bitcoin_wallet_t;
 
 typedef struct bitcoin_wallet_tmp
@@ -127,12 +130,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.sep[1]     = '$';
   token.len_min[1] = 2;
-  token.len_max[1] = 2;
+  token.len_max[1] = 3;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[2]     = '$';
-  token.len_min[2] = 16;
+  token.len_min[2] = 64;
   token.len_max[2] = 256;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
@@ -145,7 +148,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.sep[4]     = '$';
   token.len_min[4] = 16;
-  token.len_max[4] = 16;
+  token.len_max[4] = 36;
   token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
@@ -208,7 +211,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   if (ckey_buf_len       != ckey_len)       return (PARSER_SALT_VALUE);
   if (public_key_buf_len != public_key_len) return (PARSER_SALT_VALUE);
 
-  if (cry_master_len % 16) return (PARSER_SALT_VALUE);
+  if (cry_master_len < 64) return (PARSER_SALT_VALUE);
+  if (cry_master_len % 32) return (PARSER_SALT_VALUE);
+
+  if (cry_salt_len != 16 && cry_salt_len != 36) return (PARSER_SALT_VALUE);
 
   // esalt
 
@@ -232,11 +238,18 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   salt->salt_iter = cry_rounds - 1;
 
-  // salt
+  // esalt
 
-  const bool parse_rc = generic_salt_decode (hashconfig, cry_salt_buf_pos, cry_salt_buf_len, (u8 *) salt->salt_buf, (int *) &salt->salt_len);
+  const bool parse_rc = generic_salt_decode (hashconfig, cry_salt_buf_pos, cry_salt_buf_len, (u8 *) bitcoin_wallet->cry_salt_buf, (int *) &bitcoin_wallet->cry_salt_len);
 
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
+
+  // salt
+
+  salt->salt_buf[0] = bitcoin_wallet->cry_salt_buf[0];
+  salt->salt_buf[1] = bitcoin_wallet->cry_salt_buf[1];
+
+  salt->salt_len = 8;
 
   return (PARSER_OK);
 }

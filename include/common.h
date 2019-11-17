@@ -36,6 +36,9 @@
 #define _FILE_OFFSET_BITS 64
 #endif
 
+// _FORTIFY_SOURCE needs string.h
+#include <string.h>
+
 #ifndef _FORTIFY_SOURCE
 #define _FORTIFY_SOURCE 2
 #endif

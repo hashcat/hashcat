@@ -822,6 +822,12 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
   for (u64 hash_pos = 0; hash_pos < hashes_avail; hash_pos++)
   {
+    /**
+     * Initialize some values for later use
+     */
+
+    hashes_buf[hash_pos].orig_line_pos = hash_pos;
+
     hashes_buf[hash_pos].digest = ((char *) digests_buf) + (hash_pos * hashconfig->dgst_size);
 
     if (hashconfig->is_salted == true)
@@ -887,10 +893,10 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
       hlfmt_hash (hashcat_ctx, hashlist_format, input_buf, input_len, &hash_buf, &hash_len);
 
-      bool hash_fmt_error = 0;
+      bool hash_fmt_error = false;
 
-      if (hash_len < 1)     hash_fmt_error = 1;
-      if (hash_buf == NULL) hash_fmt_error = 1;
+      if (hash_len < 1)     hash_fmt_error = true;
+      if (hash_buf == NULL) hash_fmt_error = true;
 
       if (hash_fmt_error)
       {
@@ -1034,10 +1040,10 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
         hlfmt_hash (hashcat_ctx, hashlist_format, line_buf, line_len, &hash_buf, &hash_len);
 
-        bool hash_fmt_error = 0;
+        bool hash_fmt_error = false;
 
-        if (hash_len < 1)     hash_fmt_error = 1;
-        if (hash_buf == NULL) hash_fmt_error = 1;
+        if (hash_len < 1)     hash_fmt_error = true;
+        if (hash_buf == NULL) hash_fmt_error = true;
 
         if (hash_fmt_error)
         {

@@ -295,7 +295,7 @@ static bool cuda_test_instruction (hashcat_ctx_t *hashcat_ctx, const int sm_majo
 
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  NVRTC_PTR *nvrtc = backend_ctx->nvrtc;
+  NVRTC_PTR *nvrtc = (NVRTC_PTR *) backend_ctx->nvrtc;
 
   const nvrtcResult NVRTC_err = nvrtc->nvrtcCompileProgram (program, 3, (const char * const *) nvrtc_options);
 
@@ -333,7 +333,7 @@ static bool cuda_test_instruction (hashcat_ctx_t *hashcat_ctx, const int sm_majo
     return false;
   }
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   CUmodule cuda_module;
 
@@ -363,7 +363,7 @@ static bool opencl_test_instruction (hashcat_ctx_t *hashcat_ctx, cl_context cont
 
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = backend_ctx->ocl;
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
   // LLVM seems to write an error message (if there's an error) directly to stderr
   // and not (as supposted to) into buffer for later request using clGetProgramBuildInfo()
@@ -667,7 +667,7 @@ int nvrtc_init (hashcat_ctx_t *hashcat_ctx)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  NVRTC_PTR *nvrtc = backend_ctx->nvrtc;
+  NVRTC_PTR *nvrtc = (NVRTC_PTR *) backend_ctx->nvrtc;
 
   memset (nvrtc, 0, sizeof (NVRTC_PTR));
 
@@ -737,7 +737,7 @@ void nvrtc_close (hashcat_ctx_t *hashcat_ctx)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  NVRTC_PTR *nvrtc = backend_ctx->nvrtc;
+  NVRTC_PTR *nvrtc = (NVRTC_PTR *) backend_ctx->nvrtc;
 
   if (nvrtc)
   {
@@ -756,7 +756,7 @@ int hc_nvrtcCreateProgram (hashcat_ctx_t *hashcat_ctx, nvrtcProgram *prog, const
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  NVRTC_PTR *nvrtc = backend_ctx->nvrtc;
+  NVRTC_PTR *nvrtc = (NVRTC_PTR *) backend_ctx->nvrtc;
 
   const nvrtcResult NVRTC_err = nvrtc->nvrtcCreateProgram (prog, src, name, numHeaders, headers, includeNames);
 
@@ -774,7 +774,7 @@ int hc_nvrtcDestroyProgram (hashcat_ctx_t *hashcat_ctx, nvrtcProgram *prog)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  NVRTC_PTR *nvrtc = backend_ctx->nvrtc;
+  NVRTC_PTR *nvrtc = (NVRTC_PTR *) backend_ctx->nvrtc;
 
   const nvrtcResult NVRTC_err = nvrtc->nvrtcDestroyProgram (prog);
 
@@ -792,7 +792,7 @@ int hc_nvrtcCompileProgram (hashcat_ctx_t *hashcat_ctx, nvrtcProgram prog, int n
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  NVRTC_PTR *nvrtc = backend_ctx->nvrtc;
+  NVRTC_PTR *nvrtc = (NVRTC_PTR *) backend_ctx->nvrtc;
 
   const nvrtcResult NVRTC_err = nvrtc->nvrtcCompileProgram (prog, numOptions, options);
 
@@ -810,7 +810,7 @@ int hc_nvrtcGetProgramLogSize (hashcat_ctx_t *hashcat_ctx, nvrtcProgram prog, si
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  NVRTC_PTR *nvrtc = backend_ctx->nvrtc;
+  NVRTC_PTR *nvrtc = (NVRTC_PTR *) backend_ctx->nvrtc;
 
   const nvrtcResult NVRTC_err = nvrtc->nvrtcGetProgramLogSize (prog, logSizeRet);
 
@@ -828,7 +828,7 @@ int hc_nvrtcGetProgramLog (hashcat_ctx_t *hashcat_ctx, nvrtcProgram prog, char *
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  NVRTC_PTR *nvrtc = backend_ctx->nvrtc;
+  NVRTC_PTR *nvrtc = (NVRTC_PTR *) backend_ctx->nvrtc;
 
   const nvrtcResult NVRTC_err = nvrtc->nvrtcGetProgramLog (prog, log);
 
@@ -846,7 +846,7 @@ int hc_nvrtcGetPTXSize (hashcat_ctx_t *hashcat_ctx, nvrtcProgram prog, size_t *p
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  NVRTC_PTR *nvrtc = backend_ctx->nvrtc;
+  NVRTC_PTR *nvrtc = (NVRTC_PTR *) backend_ctx->nvrtc;
 
   const nvrtcResult NVRTC_err = nvrtc->nvrtcGetPTXSize (prog, ptxSizeRet);
 
@@ -864,7 +864,7 @@ int hc_nvrtcGetPTX (hashcat_ctx_t *hashcat_ctx, nvrtcProgram prog, char *ptx)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  NVRTC_PTR *nvrtc = backend_ctx->nvrtc;
+  NVRTC_PTR *nvrtc = (NVRTC_PTR *) backend_ctx->nvrtc;
 
   const nvrtcResult NVRTC_err = nvrtc->nvrtcGetPTX (prog, ptx);
 
@@ -882,7 +882,7 @@ int hc_nvrtcVersion (hashcat_ctx_t *hashcat_ctx, int *major, int *minor)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  NVRTC_PTR *nvrtc = backend_ctx->nvrtc;
+  NVRTC_PTR *nvrtc = (NVRTC_PTR *) backend_ctx->nvrtc;
 
   const nvrtcResult NVRTC_err = nvrtc->nvrtcVersion (major, minor);
 
@@ -902,7 +902,7 @@ int cuda_init (hashcat_ctx_t *hashcat_ctx)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   memset (cuda, 0, sizeof (CUDA_PTR));
 
@@ -921,19 +921,21 @@ int cuda_init (hashcat_ctx_t *hashcat_ctx)
   if (cuda->lib == NULL) return -1;
 
   #define HC_LOAD_FUNC_CUDA(ptr,name,cudaname,type,libname,noerr) \
-    ptr->name = (type) hc_dlsym ((ptr)->lib, #cudaname); \
-    if ((noerr) != -1) { \
-      if (!(ptr)->name) { \
-        if ((noerr) == 1) { \
-          event_log_error (hashcat_ctx, "%s is missing from %s shared library.", #name, #libname); \
-          return -1; \
-        } \
-        if ((noerr) != 1) { \
-          event_log_warning (hashcat_ctx, "%s is missing from %s shared library.", #name, #libname); \
-          return 0; \
+    do { \
+      ptr->name = (type) hc_dlsym ((ptr)->lib, #cudaname); \
+      if ((noerr) != -1) { \
+        if (!(ptr)->name) { \
+          if ((noerr) == 1) { \
+            event_log_error (hashcat_ctx, "%s is missing from %s shared library.", #name, #libname); \
+            return -1; \
+          } \
+          if ((noerr) != 1) { \
+            event_log_warning (hashcat_ctx, "%s is missing from %s shared library.", #name, #libname); \
+            return 0; \
+          } \
         } \
       } \
-    }
+    } while (0)
 
   // finding the right symbol is a PITA, because of the _v2 suffix
   // a good reference is cuda.h itself
@@ -1000,7 +1002,7 @@ void cuda_close (hashcat_ctx_t *hashcat_ctx)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   if (cuda)
   {
@@ -1019,7 +1021,7 @@ int hc_cuInit (hashcat_ctx_t *hashcat_ctx, unsigned int Flags)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   const CUresult CU_err = cuda->cuInit (Flags);
 
@@ -1046,7 +1048,7 @@ int hc_cuDeviceGetAttribute (hashcat_ctx_t *hashcat_ctx, int *pi, CUdevice_attri
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   const CUresult CU_err = cuda->cuDeviceGetAttribute (pi, attrib, dev);
 
@@ -1073,7 +1075,7 @@ int hc_cuDeviceGetCount (hashcat_ctx_t *hashcat_ctx, int *count)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   const CUresult CU_err = cuda->cuDeviceGetCount (count);
 
@@ -1100,7 +1102,7 @@ int hc_cuDeviceGet (hashcat_ctx_t *hashcat_ctx, CUdevice* device, int ordinal)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   const CUresult CU_err = cuda->cuDeviceGet (device, ordinal);
 
@@ -1127,7 +1129,7 @@ int hc_cuDeviceGetName (hashcat_ctx_t *hashcat_ctx, char *name, int len, CUdevic
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   const CUresult CU_err = cuda->cuDeviceGetName (name, len, dev);
 
@@ -1154,7 +1156,7 @@ int hc_cuDeviceTotalMem (hashcat_ctx_t *hashcat_ctx, size_t *bytes, CUdevice dev
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   const CUresult CU_err = cuda->cuDeviceTotalMem (bytes, dev);
 
@@ -1181,7 +1183,7 @@ int hc_cuDriverGetVersion (hashcat_ctx_t *hashcat_ctx, int *driverVersion)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   const CUresult CU_err = cuda->cuDriverGetVersion (driverVersion);
 
@@ -1208,7 +1210,7 @@ int hc_cuCtxCreate (hashcat_ctx_t *hashcat_ctx, CUcontext *pctx, unsigned int fl
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   const CUresult CU_err = cuda->cuCtxCreate (pctx, flags, dev);
 
@@ -1235,7 +1237,7 @@ int hc_cuCtxDestroy (hashcat_ctx_t *hashcat_ctx, CUcontext ctx)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   const CUresult CU_err = cuda->cuCtxDestroy (ctx);
 
@@ -1262,7 +1264,7 @@ int hc_cuModuleLoadDataEx (hashcat_ctx_t *hashcat_ctx, CUmodule *module, const v
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   const CUresult CU_err = cuda->cuModuleLoadDataEx (module, image, numOptions, options, optionValues);
 
@@ -1289,8 +1291,8 @@ int hc_cuModuleLoadDataExLog (hashcat_ctx_t *hashcat_ctx, CUmodule *module, cons
 {
   #define LOG_SIZE 8192
 
-  char *info_log  = hcmalloc (LOG_SIZE);
-  char *error_log = hcmalloc (LOG_SIZE);
+  char *info_log  = (char *) hcmalloc (LOG_SIZE);
+  char *error_log = (char *) hcmalloc (LOG_SIZE);
 
   CUjit_option opts[6];
   void *vals[6];
@@ -1336,7 +1338,7 @@ int hc_cuModuleUnload (hashcat_ctx_t *hashcat_ctx, CUmodule hmod)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   const CUresult CU_err = cuda->cuModuleUnload (hmod);
 
@@ -1363,7 +1365,7 @@ int hc_cuCtxSetCurrent (hashcat_ctx_t *hashcat_ctx, CUcontext ctx)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   const CUresult CU_err = cuda->cuCtxSetCurrent (ctx);
 
@@ -1390,7 +1392,7 @@ int hc_cuMemAlloc (hashcat_ctx_t *hashcat_ctx, CUdeviceptr *dptr, size_t bytesiz
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   const CUresult CU_err = cuda->cuMemAlloc (dptr, bytesize);
 
@@ -1417,7 +1419,7 @@ int hc_cuMemFree (hashcat_ctx_t *hashcat_ctx, CUdeviceptr dptr)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   const CUresult CU_err = cuda->cuMemFree (dptr);
 
@@ -1444,7 +1446,7 @@ int hc_cuMemcpyDtoH (hashcat_ctx_t *hashcat_ctx, void *dstHost, CUdeviceptr srcD
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   const CUresult CU_err = cuda->cuMemcpyDtoH (dstHost, srcDevice, ByteCount);
 
@@ -1471,7 +1473,7 @@ int hc_cuMemcpyDtoD (hashcat_ctx_t *hashcat_ctx, CUdeviceptr dstDevice, CUdevice
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   const CUresult CU_err = cuda->cuMemcpyDtoD (dstDevice, srcDevice, ByteCount);
 
@@ -1498,7 +1500,7 @@ int hc_cuMemcpyHtoD (hashcat_ctx_t *hashcat_ctx, CUdeviceptr dstDevice, const vo
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   const CUresult CU_err = cuda->cuMemcpyHtoD (dstDevice, srcHost, ByteCount);
 
@@ -1525,7 +1527,7 @@ int hc_cuModuleGetFunction (hashcat_ctx_t *hashcat_ctx, CUfunction *hfunc, CUmod
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   const CUresult CU_err = cuda->cuModuleGetFunction (hfunc, hmod, name);
 
@@ -1552,7 +1554,7 @@ int hc_cuModuleGetGlobal (hashcat_ctx_t *hashcat_ctx, CUdeviceptr *dptr, size_t 
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   const CUresult CU_err = cuda->cuModuleGetGlobal (dptr, bytes, hmod, name);
 
@@ -1579,7 +1581,7 @@ int hc_cuMemGetInfo (hashcat_ctx_t *hashcat_ctx, size_t *free, size_t *total)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   const CUresult CU_err = cuda->cuMemGetInfo (free, total);
 
@@ -1606,7 +1608,7 @@ int hc_cuFuncGetAttribute (hashcat_ctx_t *hashcat_ctx, int *pi, CUfunction_attri
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   const CUresult CU_err = cuda->cuFuncGetAttribute (pi, attrib, hfunc);
 
@@ -1633,7 +1635,7 @@ int hc_cuFuncSetAttribute (hashcat_ctx_t *hashcat_ctx, CUfunction hfunc, CUfunct
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   const CUresult CU_err = cuda->cuFuncSetAttribute (hfunc, attrib, value);
 
@@ -1660,7 +1662,7 @@ int hc_cuStreamCreate (hashcat_ctx_t *hashcat_ctx, CUstream *phStream, unsigned 
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   const CUresult CU_err = cuda->cuStreamCreate (phStream, Flags);
 
@@ -1687,7 +1689,7 @@ int hc_cuStreamDestroy (hashcat_ctx_t *hashcat_ctx, CUstream hStream)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   const CUresult CU_err = cuda->cuStreamDestroy (hStream);
 
@@ -1714,7 +1716,7 @@ int hc_cuStreamSynchronize (hashcat_ctx_t *hashcat_ctx, CUstream hStream)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   const CUresult CU_err = cuda->cuStreamSynchronize (hStream);
 
@@ -1741,7 +1743,7 @@ int hc_cuLaunchKernel (hashcat_ctx_t *hashcat_ctx, CUfunction f, unsigned int gr
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   const CUresult CU_err = cuda->cuLaunchKernel (f, gridDimX, gridDimY, gridDimZ, blockDimX, blockDimY, blockDimZ, sharedMemBytes, hStream, kernelParams, extra);
 
@@ -1768,7 +1770,7 @@ int hc_cuCtxSynchronize (hashcat_ctx_t *hashcat_ctx)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   const CUresult CU_err = cuda->cuCtxSynchronize ();
 
@@ -1795,7 +1797,7 @@ int hc_cuEventCreate (hashcat_ctx_t *hashcat_ctx, CUevent *phEvent, unsigned int
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   const CUresult CU_err = cuda->cuEventCreate (phEvent, Flags);
 
@@ -1822,7 +1824,7 @@ int hc_cuEventDestroy (hashcat_ctx_t *hashcat_ctx, CUevent hEvent)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   const CUresult CU_err = cuda->cuEventDestroy (hEvent);
 
@@ -1849,7 +1851,7 @@ int hc_cuEventElapsedTime (hashcat_ctx_t *hashcat_ctx, float *pMilliseconds, CUe
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   const CUresult CU_err = cuda->cuEventElapsedTime (pMilliseconds, hStart, hEnd);
 
@@ -1876,7 +1878,7 @@ int hc_cuEventQuery (hashcat_ctx_t *hashcat_ctx, CUevent hEvent)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   const CUresult CU_err = cuda->cuEventQuery (hEvent);
 
@@ -1903,7 +1905,7 @@ int hc_cuEventRecord (hashcat_ctx_t *hashcat_ctx, CUevent hEvent, CUstream hStre
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   const CUresult CU_err = cuda->cuEventRecord (hEvent, hStream);
 
@@ -1930,7 +1932,7 @@ int hc_cuEventSynchronize (hashcat_ctx_t *hashcat_ctx, CUevent hEvent)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   const CUresult CU_err = cuda->cuEventSynchronize (hEvent);
 
@@ -1957,7 +1959,7 @@ int hc_cuCtxSetCacheConfig (hashcat_ctx_t *hashcat_ctx, CUfunc_cache config)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   const CUresult CU_err = cuda->cuCtxSetCacheConfig (config);
 
@@ -1984,7 +1986,7 @@ int hc_cuCtxPushCurrent (hashcat_ctx_t *hashcat_ctx, CUcontext ctx)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   const CUresult CU_err = cuda->cuCtxPushCurrent (ctx);
 
@@ -2011,7 +2013,7 @@ int hc_cuCtxPopCurrent (hashcat_ctx_t *hashcat_ctx, CUcontext *pctx)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
 
   const CUresult CU_err = cuda->cuCtxPopCurrent (pctx);
 
@@ -2041,7 +2043,7 @@ int ocl_init (hashcat_ctx_t *hashcat_ctx)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = backend_ctx->ocl;
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
   memset (ocl, 0, sizeof (OCL_PTR));
 
@@ -2101,7 +2103,7 @@ void ocl_close (hashcat_ctx_t *hashcat_ctx)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = backend_ctx->ocl;
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
   if (ocl)
   {
@@ -2120,7 +2122,7 @@ int hc_clEnqueueNDRangeKernel (hashcat_ctx_t *hashcat_ctx, cl_command_queue comm
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = backend_ctx->ocl;
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clEnqueueNDRangeKernel (command_queue, kernel, work_dim, global_work_offset, global_work_size, local_work_size, num_events_in_wait_list, event_wait_list, event);
 
@@ -2138,7 +2140,7 @@ int hc_clGetEventInfo (hashcat_ctx_t *hashcat_ctx, cl_event event, cl_event_info
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = backend_ctx->ocl;
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clGetEventInfo (event, param_name, param_value_size, param_value, param_value_size_ret);
 
@@ -2156,7 +2158,7 @@ int hc_clFlush (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = backend_ctx->ocl;
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clFlush (command_queue);
 
@@ -2174,7 +2176,7 @@ int hc_clFinish (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = backend_ctx->ocl;
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clFinish (command_queue);
 
@@ -2192,7 +2194,7 @@ int hc_clSetKernelArg (hashcat_ctx_t *hashcat_ctx, cl_kernel kernel, cl_uint arg
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = backend_ctx->ocl;
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clSetKernelArg (kernel, arg_index, arg_size, arg_value);
 
@@ -2210,7 +2212,7 @@ int hc_clEnqueueWriteBuffer (hashcat_ctx_t *hashcat_ctx, cl_command_queue comman
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = backend_ctx->ocl;
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clEnqueueWriteBuffer (command_queue, buffer, blocking_write, offset, size, ptr, num_events_in_wait_list, event_wait_list, event);
 
@@ -2228,7 +2230,7 @@ int hc_clEnqueueCopyBuffer (hashcat_ctx_t *hashcat_ctx, cl_command_queue command
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = backend_ctx->ocl;
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clEnqueueCopyBuffer (command_queue, src_buffer, dst_buffer, src_offset, dst_offset, size, num_events_in_wait_list, event_wait_list, event);
 
@@ -2246,7 +2248,7 @@ int hc_clEnqueueReadBuffer (hashcat_ctx_t *hashcat_ctx, cl_command_queue command
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = backend_ctx->ocl;
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clEnqueueReadBuffer (command_queue, buffer, blocking_read, offset, size, ptr, num_events_in_wait_list, event_wait_list, event);
 
@@ -2264,7 +2266,7 @@ int hc_clGetPlatformIDs (hashcat_ctx_t *hashcat_ctx, cl_uint num_entries, cl_pla
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = backend_ctx->ocl;
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clGetPlatformIDs (num_entries, platforms, num_platforms);
 
@@ -2282,7 +2284,7 @@ int hc_clGetPlatformInfo (hashcat_ctx_t *hashcat_ctx, cl_platform_id platform, c
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = backend_ctx->ocl;
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clGetPlatformInfo (platform, param_name, param_value_size, param_value, param_value_size_ret);
 
@@ -2300,7 +2302,7 @@ int hc_clGetDeviceIDs (hashcat_ctx_t *hashcat_ctx, cl_platform_id platform, cl_d
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = backend_ctx->ocl;
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clGetDeviceIDs (platform, device_type, num_entries, devices, num_devices);
 
@@ -2318,7 +2320,7 @@ int hc_clGetDeviceInfo (hashcat_ctx_t *hashcat_ctx, cl_device_id device, cl_devi
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = backend_ctx->ocl;
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clGetDeviceInfo (device, param_name, param_value_size, param_value, param_value_size_ret);
 
@@ -2336,7 +2338,7 @@ int hc_clCreateContext (hashcat_ctx_t *hashcat_ctx, const cl_context_properties 
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = backend_ctx->ocl;
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
   cl_int CL_err;
 
@@ -2356,7 +2358,7 @@ int hc_clCreateCommandQueue (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = backend_ctx->ocl;
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
   cl_int CL_err;
 
@@ -2376,7 +2378,7 @@ int hc_clCreateBuffer (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_mem_fl
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = backend_ctx->ocl;
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
   cl_int CL_err;
 
@@ -2396,7 +2398,7 @@ int hc_clCreateProgramWithSource (hashcat_ctx_t *hashcat_ctx, cl_context context
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = backend_ctx->ocl;
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
   cl_int CL_err;
 
@@ -2416,7 +2418,7 @@ int hc_clCreateProgramWithBinary (hashcat_ctx_t *hashcat_ctx, cl_context context
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = backend_ctx->ocl;
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
   cl_int CL_err;
 
@@ -2436,7 +2438,7 @@ int hc_clBuildProgram (hashcat_ctx_t *hashcat_ctx, cl_program program, cl_uint n
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = backend_ctx->ocl;
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clBuildProgram (program, num_devices, device_list, options, pfn_notify, user_data);
 
@@ -2454,7 +2456,7 @@ int hc_clCreateKernel (hashcat_ctx_t *hashcat_ctx, cl_program program, const cha
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = backend_ctx->ocl;
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
   cl_int CL_err;
 
@@ -2474,7 +2476,7 @@ int hc_clReleaseMemObject (hashcat_ctx_t *hashcat_ctx, cl_mem mem)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = backend_ctx->ocl;
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clReleaseMemObject (mem);
 
@@ -2492,7 +2494,7 @@ int hc_clReleaseKernel (hashcat_ctx_t *hashcat_ctx, cl_kernel kernel)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = backend_ctx->ocl;
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clReleaseKernel (kernel);
 
@@ -2510,7 +2512,7 @@ int hc_clReleaseProgram (hashcat_ctx_t *hashcat_ctx, cl_program program)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = backend_ctx->ocl;
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clReleaseProgram (program);
 
@@ -2528,7 +2530,7 @@ int hc_clReleaseCommandQueue (hashcat_ctx_t *hashcat_ctx, cl_command_queue comma
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = backend_ctx->ocl;
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clReleaseCommandQueue (command_queue);
 
@@ -2546,7 +2548,7 @@ int hc_clReleaseContext (hashcat_ctx_t *hashcat_ctx, cl_context context)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = backend_ctx->ocl;
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clReleaseContext (context);
 
@@ -2564,7 +2566,7 @@ int hc_clEnqueueMapBuffer (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = backend_ctx->ocl;
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
   cl_int CL_err;
 
@@ -2584,7 +2586,7 @@ int hc_clEnqueueUnmapMemObject (hashcat_ctx_t *hashcat_ctx, cl_command_queue com
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = backend_ctx->ocl;
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clEnqueueUnmapMemObject (command_queue, memobj, mapped_ptr, num_events_in_wait_list, event_wait_list, event);
 
@@ -2602,7 +2604,7 @@ int hc_clGetKernelWorkGroupInfo (hashcat_ctx_t *hashcat_ctx, cl_kernel kernel, c
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = backend_ctx->ocl;
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clGetKernelWorkGroupInfo (kernel, device, param_name, param_value_size, param_value, param_value_size_ret);
 
@@ -2620,7 +2622,7 @@ int hc_clGetProgramBuildInfo (hashcat_ctx_t *hashcat_ctx, cl_program program, cl
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = backend_ctx->ocl;
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clGetProgramBuildInfo (program, device, param_name, param_value_size, param_value, param_value_size_ret);
 
@@ -2638,7 +2640,7 @@ int hc_clGetProgramInfo (hashcat_ctx_t *hashcat_ctx, cl_program program, cl_prog
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = backend_ctx->ocl;
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clGetProgramInfo (program, param_name, param_value_size, param_value, param_value_size_ret);
 
@@ -2656,7 +2658,7 @@ int hc_clWaitForEvents (hashcat_ctx_t *hashcat_ctx, cl_uint num_events, const cl
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = backend_ctx->ocl;
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clWaitForEvents (num_events, event_list);
 
@@ -2674,7 +2676,7 @@ int hc_clGetEventProfilingInfo (hashcat_ctx_t *hashcat_ctx, cl_event event, cl_p
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = backend_ctx->ocl;
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clGetEventProfilingInfo (event, param_name, param_value_size, param_value, param_value_size_ret);
 
@@ -2692,7 +2694,7 @@ int hc_clReleaseEvent (hashcat_ctx_t *hashcat_ctx, cl_event event)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = backend_ctx->ocl;
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
   const cl_int CL_err = ocl->clReleaseEvent (event);
 
@@ -2877,7 +2879,43 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
           if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL) == -1) return -1;
         }
 
-        module_ctx->module_hook12 (device_param, hashes->hook_salts_buf, salt_pos, pws_cnt);
+        const int hook_threads = (int) user_options->hook_threads;
+
+        hook_thread_param_t *hook_threads_param = (hook_thread_param_t *) hccalloc (hook_threads, sizeof (hook_thread_param_t));
+
+        for (int i = 0; i < hook_threads; i++)
+        {
+          hook_thread_param_t *hook_thread_param = hook_threads_param + i;
+
+          hook_thread_param->tid = i;
+          hook_thread_param->tsz = hook_threads;
+
+          hook_thread_param->module_ctx = module_ctx;
+          hook_thread_param->status_ctx = status_ctx;
+
+          hook_thread_param->device_param = device_param;
+
+          hook_thread_param->hook_salts_buf = hashes->hook_salts_buf;
+
+          hook_thread_param->salt_pos = salt_pos;
+
+          hook_thread_param->pws_cnt = pws_cnt;
+        }
+
+        hc_thread_t *c_threads = (hc_thread_t *) hccalloc (hook_threads, sizeof (hc_thread_t));
+
+        for (int i = 0; i < hook_threads; i++)
+        {
+          hook_thread_param_t *hook_thread_param = hook_threads_param + i;
+
+          hc_thread_create (c_threads[i], hook12_thread, hook_thread_param);
+        }
+
+        hc_thread_wait (hook_threads, c_threads);
+
+        hcfree (c_threads);
+
+        hcfree (hook_threads_param);
 
         if (device_param->is_cuda == true)
         {
@@ -2957,7 +2995,43 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
           if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL) == -1) return -1;
         }
 
-        module_ctx->module_hook23 (device_param, hashes->hook_salts_buf, salt_pos, pws_cnt);
+        const int hook_threads = (int) user_options->hook_threads;
+
+        hook_thread_param_t *hook_threads_param = (hook_thread_param_t *) hccalloc (hook_threads, sizeof (hook_thread_param_t));
+
+        for (int i = 0; i < hook_threads; i++)
+        {
+          hook_thread_param_t *hook_thread_param = hook_threads_param + i;
+
+          hook_thread_param->tid = i;
+          hook_thread_param->tsz = hook_threads;
+
+          hook_thread_param->module_ctx = module_ctx;
+          hook_thread_param->status_ctx = status_ctx;
+
+          hook_thread_param->device_param = device_param;
+
+          hook_thread_param->hook_salts_buf = hashes->hook_salts_buf;
+
+          hook_thread_param->salt_pos = salt_pos;
+
+          hook_thread_param->pws_cnt = pws_cnt;
+        }
+
+        hc_thread_t *c_threads = (hc_thread_t *) hccalloc (hook_threads, sizeof (hc_thread_t));
+
+        for (int i = 0; i < hook_threads; i++)
+        {
+          hook_thread_param_t *hook_thread_param = hook_threads_param + i;
+
+          hc_thread_create (c_threads[i], hook23_thread, hook_thread_param);
+        }
+
+        hc_thread_wait (hook_threads, c_threads);
+
+        hcfree (c_threads);
+
+        hcfree (hook_threads_param);
 
         if (device_param->is_cuda == true)
         {
@@ -3028,6 +3102,34 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
       else
       {
         if (run_kernel (hashcat_ctx, device_param, KERN_RUN_3, pws_cnt, false, 0) == -1) return -1;
+      }
+    }
+
+    /*
+     * maybe we should add this zero of temporary buffers
+     * however it drops the performance from 7055338 to 7010621
+
+    if (device_param->is_cuda == true)
+    {
+      if (run_cuda_kernel_bzero   (hashcat_ctx, device_param, device_param->cuda_d_tmps,   device_param->size_tmps) == -1) return -1;
+    }
+
+    if (device_param->is_opencl == true)
+    {
+      if (run_opencl_kernel_bzero (hashcat_ctx, device_param, device_param->opencl_d_tmps, device_param->size_tmps) == -1) return -1;
+    }
+    */
+
+    if ((hashconfig->opts_type & OPTS_TYPE_HOOK12) || (hashconfig->opts_type & OPTS_TYPE_HOOK23))
+    {
+      if (device_param->is_cuda == true)
+      {
+        if (run_cuda_kernel_bzero   (hashcat_ctx, device_param, device_param->cuda_d_hooks,   device_param->size_hooks) == -1) return -1;
+      }
+
+      if (device_param->is_opencl == true)
+      {
+        if (run_opencl_kernel_bzero (hashcat_ctx, device_param, device_param->opencl_d_hooks, device_param->size_hooks) == -1) return -1;
       }
     }
   }
@@ -4690,7 +4792,7 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     // some pre-check
 
-    if ((nvrtc_driver_version < 10010) || (cuda_driver_version < 10010))
+    if ((nvrtc_driver_version < 10000) || (cuda_driver_version < 10000))
     {
       event_log_error (hashcat_ctx, "Outdated NVIDIA CUDA Toolkit version '%d' detected!", cuda_driver_version);
 
@@ -4807,7 +4909,7 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
   if (backend_ctx->ocl)
   {
     #define FREE_OPENCL_CTX_ON_ERROR          \
-    {                                         \
+    do {                                      \
       hcfree (opencl_platforms);              \
       hcfree (opencl_platforms_devices);      \
       hcfree (opencl_platforms_devices_cnt);  \
@@ -4815,7 +4917,7 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
       hcfree (opencl_platforms_vendor);       \
       hcfree (opencl_platforms_vendor_id);    \
       hcfree (opencl_platforms_version);      \
-    }
+    } while(0)
 
     cl_platform_id *opencl_platforms             = (cl_platform_id *) hccalloc (CL_PLATFORMS_MAX, sizeof (cl_platform_id));
     cl_uint         opencl_platforms_cnt         = 0;
@@ -5606,7 +5708,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         if (hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_EXTENSIONS, 0, NULL, &device_extensions_size) == -1) return -1;
 
-        char *device_extensions = hcmalloc (device_extensions_size + 1);
+        char *device_extensions = (char *) hcmalloc (device_extensions_size + 1);
 
         if (hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_EXTENSIONS, device_extensions_size, device_extensions, NULL) == -1) return -1;
 
@@ -6070,7 +6172,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
             cl_int CL_err;
 
-            OCL_PTR *ocl = backend_ctx->ocl;
+            OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
             tmp_device[c] = ocl->clCreateBuffer (context, CL_MEM_READ_WRITE, MAX_ALLOC_CHECKS_SIZE, NULL, &CL_err);
 
@@ -6148,6 +6250,19 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
     event_log_error (hashcat_ctx, "No devices found/left.");
 
     return -1;
+  }
+
+  // now we can calculate the number of parallel running hook threads based on
+  // the number cpu cores and the number of active compute devices
+  // unless overwritten by the user
+
+  if (user_options->hook_threads == HOOK_THREADS)
+  {
+    const u32 processor_count = hc_get_processor_count ();
+
+    const u32 processor_count_cu = CEILDIV (processor_count, backend_ctx->backend_devices_active); // should never reach 0
+
+    user_options->hook_threads = processor_count_cu;
   }
 
   // additional check to see if the user has chosen a device that is not within the range of available devices (i.e. larger than devices_cnt)
@@ -7686,6 +7801,38 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     /**
      * global buffers
      */
+
+    const u64 size_total_fixed
+      = bitmap_ctx->bitmap_size
+      + bitmap_ctx->bitmap_size
+      + bitmap_ctx->bitmap_size
+      + bitmap_ctx->bitmap_size
+      + bitmap_ctx->bitmap_size
+      + bitmap_ctx->bitmap_size
+      + bitmap_ctx->bitmap_size
+      + bitmap_ctx->bitmap_size
+      + size_plains
+      + size_digests
+      + size_shown
+      + size_salts
+      + size_results
+      + size_extra_buffer
+      + size_st_digests
+      + size_st_salts
+      + size_st_esalts
+      + size_esalts
+      + size_markov_css
+      + size_root_css
+      + size_rules
+      + size_rules_c
+      + size_tm;
+
+    if (size_total_fixed > device_param->device_available_mem)
+    {
+      event_log_error (hashcat_ctx, "* Device #%u: Not enough allocatable device memory for this hashlist and/or ruleset.", device_id + 1);
+
+      return -1;
+    }
 
     if (device_param->is_cuda == true)
     {
@@ -10130,4 +10277,52 @@ int backend_session_update_mp_rl (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_
   }
 
   return 0;
+}
+
+void *hook12_thread (void *p)
+{
+  hook_thread_param_t *hook_thread_param = (hook_thread_param_t *) p;
+
+  module_ctx_t *module_ctx = hook_thread_param->module_ctx;
+  status_ctx_t *status_ctx = hook_thread_param->status_ctx;
+
+  const u64 tid     = hook_thread_param->tid;
+  const u64 tsz     = hook_thread_param->tsz;
+  const u64 pws_cnt = hook_thread_param->pws_cnt;
+
+  for (u64 pw_pos = tid; pw_pos < pws_cnt; pw_pos += tsz)
+  {
+    while (status_ctx->devices_status == STATUS_PAUSED) sleep (1);
+
+    if (status_ctx->devices_status == STATUS_RUNNING)
+    {
+      module_ctx->module_hook12 (hook_thread_param->device_param, hook_thread_param->hook_salts_buf, hook_thread_param->salt_pos, pw_pos);
+    }
+  }
+
+  return NULL;
+}
+
+void *hook23_thread (void *p)
+{
+  hook_thread_param_t *hook_thread_param = (hook_thread_param_t *) p;
+
+  module_ctx_t *module_ctx = hook_thread_param->module_ctx;
+  status_ctx_t *status_ctx = hook_thread_param->status_ctx;
+
+  const u64 tid     = hook_thread_param->tid;
+  const u64 tsz     = hook_thread_param->tsz;
+  const u64 pws_cnt = hook_thread_param->pws_cnt;
+
+  for (u64 pw_pos = tid; pw_pos < pws_cnt; pw_pos += tsz)
+  {
+    while (status_ctx->devices_status == STATUS_PAUSED) sleep (1);
+
+    if (status_ctx->devices_status == STATUS_RUNNING)
+    {
+      module_ctx->module_hook23 (hook_thread_param->device_param, hook_thread_param->hook_salts_buf, hook_thread_param->salt_pos, pw_pos);
+    }
+  }
+
+  return NULL;
 }

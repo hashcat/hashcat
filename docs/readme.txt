@@ -274,7 +274,7 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (10.1 o
 - LastPass + LastPass sniffed
 - KeePass 1 (AES/Twofish) and KeePass 2 (AES)
 - Bitcoin/Litecoin wallet.dat
-- Electrum Wallet (Salt-Type 1-3)
+- Electrum Wallet (Salt-Type 1-5)
 - Blockchain, My Wallet
 - Blockchain, My Wallet, V2
 - Blockchain, My Wallet, Second Password (SHA256)

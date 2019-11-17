@@ -88,6 +88,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "     --bitmap-min               | Num  | Sets minimum bits allowed for bitmaps to X           | --bitmap-min=24",
   "     --bitmap-max               | Num  | Sets maximum bits allowed for bitmaps to X           | --bitmap-max=24",
   "     --cpu-affinity             | Str  | Locks to CPU devices, separated with commas          | --cpu-affinity=1,2,3",
+  "     --hook-threads             | Num  | Sets number of threads for a hook (per compute unit) | --hook-threads=8",
   "     --example-hashes           |      | Show an example hash for each hash-mode              |",
   " -I, --backend-info             |      | Show info about detected backend API devices         | -I",
   " -d, --backend-devices          | Str  | Backend devices to use, separated with commas        | -d 1",

@@ -292,6 +292,16 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
+  if (user_options->hex_charset)
+  {
+    hashconfig->opts_type |= OPTS_TYPE_PT_HEX;
+  }
+
+  if (user_options->hex_wordlist)
+  {
+    hashconfig->opts_type |= OPTS_TYPE_PT_HEX;
+  }
+
   if (user_options->hex_salt)
   {
     if (hashconfig->salt_type == SALT_TYPE_GENERIC)

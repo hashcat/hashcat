@@ -392,36 +392,37 @@ typedef enum opts_type
   OPTS_TYPE_PT_ALWAYS_ASCII   = (1ULL << 13),
   OPTS_TYPE_PT_ALWAYS_HEXIFY  = (1ULL << 14),
   OPTS_TYPE_PT_LM             = (1ULL << 15), // special handling: all lower, 7 max, ...
-  OPTS_TYPE_ST_UTF16LE        = (1ULL << 16),
-  OPTS_TYPE_ST_UTF16BE        = (1ULL << 17),
-  OPTS_TYPE_ST_UPPER          = (1ULL << 18),
-  OPTS_TYPE_ST_LOWER          = (1ULL << 19),
-  OPTS_TYPE_ST_ADD01          = (1ULL << 20),
-  OPTS_TYPE_ST_ADD02          = (1ULL << 21),
-  OPTS_TYPE_ST_ADD80          = (1ULL << 22),
-  OPTS_TYPE_ST_ADDBITS14      = (1ULL << 23),
-  OPTS_TYPE_ST_ADDBITS15      = (1ULL << 24),
-  OPTS_TYPE_ST_HEX            = (1ULL << 25),
-  OPTS_TYPE_ST_BASE64         = (1ULL << 26),
-  OPTS_TYPE_ST_HASH_MD5       = (1ULL << 27),
-  OPTS_TYPE_HASH_COPY         = (1ULL << 28),
-  OPTS_TYPE_HASH_SPLIT        = (1ULL << 29),
-  OPTS_TYPE_HOOK12            = (1ULL << 30),
-  OPTS_TYPE_HOOK23            = (1ULL << 31),
-  OPTS_TYPE_INIT2             = (1ULL << 32),
-  OPTS_TYPE_LOOP2             = (1ULL << 33),
-  OPTS_TYPE_AUX1              = (1ULL << 34),
-  OPTS_TYPE_AUX2              = (1ULL << 35),
-  OPTS_TYPE_AUX3              = (1ULL << 36),
-  OPTS_TYPE_AUX4              = (1ULL << 37),
-  OPTS_TYPE_BINARY_HASHFILE   = (1ULL << 38),
-  OPTS_TYPE_PREFERED_THREAD   = (1ULL << 39), // some algorithms (complicated ones with many branches) benefit from this
-  OPTS_TYPE_PT_ADD06          = (1ULL << 40),
-  OPTS_TYPE_KEYBOARD_MAPPING  = (1ULL << 41),
-  OPTS_TYPE_DEEP_COMP_KERNEL  = (1ULL << 42), // if we have to iterate through each hash inside the comp kernel, for example if each hash has to be decrypted separately
-  OPTS_TYPE_SUGGEST_KG        = (1ULL << 43), // suggest keep guessing for modules the user maybe wants to use --keep-guessing
-  OPTS_TYPE_COPY_TMPS         = (1ULL << 44), // if we want to use data from tmps buffer (for example get the PMK in WPA)
-  OPTS_TYPE_POTFILE_NOPASS    = (1ULL << 45), // sometimes the password should not be printed to potfile
+  OPTS_TYPE_PT_HEX            = (1ULL << 16), // input wordlist (and masks!) are always in hex
+  OPTS_TYPE_ST_UTF16LE        = (1ULL << 17),
+  OPTS_TYPE_ST_UTF16BE        = (1ULL << 18),
+  OPTS_TYPE_ST_UPPER          = (1ULL << 19),
+  OPTS_TYPE_ST_LOWER          = (1ULL << 20),
+  OPTS_TYPE_ST_ADD01          = (1ULL << 21),
+  OPTS_TYPE_ST_ADD02          = (1ULL << 22),
+  OPTS_TYPE_ST_ADD80          = (1ULL << 23),
+  OPTS_TYPE_ST_ADDBITS14      = (1ULL << 24),
+  OPTS_TYPE_ST_ADDBITS15      = (1ULL << 25),
+  OPTS_TYPE_ST_HEX            = (1ULL << 26),
+  OPTS_TYPE_ST_BASE64         = (1ULL << 27),
+  OPTS_TYPE_ST_HASH_MD5       = (1ULL << 28),
+  OPTS_TYPE_HASH_COPY         = (1ULL << 29),
+  OPTS_TYPE_HASH_SPLIT        = (1ULL << 30),
+  OPTS_TYPE_HOOK12            = (1ULL << 31),
+  OPTS_TYPE_HOOK23            = (1ULL << 32),
+  OPTS_TYPE_INIT2             = (1ULL << 33),
+  OPTS_TYPE_LOOP2             = (1ULL << 34),
+  OPTS_TYPE_AUX1              = (1ULL << 35),
+  OPTS_TYPE_AUX2              = (1ULL << 36),
+  OPTS_TYPE_AUX3              = (1ULL << 37),
+  OPTS_TYPE_AUX4              = (1ULL << 38),
+  OPTS_TYPE_BINARY_HASHFILE   = (1ULL << 39),
+  OPTS_TYPE_PREFERED_THREAD   = (1ULL << 40), // some algorithms (complicated ones with many branches) benefit from this
+  OPTS_TYPE_PT_ADD06          = (1ULL << 41),
+  OPTS_TYPE_KEYBOARD_MAPPING  = (1ULL << 42),
+  OPTS_TYPE_DEEP_COMP_KERNEL  = (1ULL << 43), // if we have to iterate through each hash inside the comp kernel, for example if each hash has to be decrypted separately
+  OPTS_TYPE_SUGGEST_KG        = (1ULL << 44), // suggest keep guessing for modules the user maybe wants to use --keep-guessing
+  OPTS_TYPE_COPY_TMPS         = (1ULL << 45), // if we want to use data from tmps buffer (for example get the PMK in WPA)
+  OPTS_TYPE_POTFILE_NOPASS    = (1ULL << 46), // sometimes the password should not be printed to potfile
 
 } opts_type_t;
 
@@ -582,6 +583,7 @@ typedef enum user_options_defaults
   HEX_CHARSET              = false,
   HEX_SALT                 = false,
   HEX_WORDLIST             = false,
+  HOOK_THREADS             = 0,
   INCREMENT                = false,
   INCREMENT_MAX            = PW_MAX,
   INCREMENT_MIN            = 1,
@@ -646,60 +648,61 @@ typedef enum user_options_map
   IDX_ATTACK_MODE               = 'a',
   IDX_BACKEND_DEVICES           = 'd',
   IDX_BACKEND_INFO              = 'I',
-  IDX_BACKEND_VECTOR_WIDTH      = 0xff27,
-  IDX_BENCHMARK_ALL             = 0xff01,
+  IDX_BACKEND_VECTOR_WIDTH      = 0xff01,
+  IDX_BENCHMARK_ALL             = 0xff02,
   IDX_BENCHMARK                 = 'b',
-  IDX_BITMAP_MAX                = 0xff02,
-  IDX_BITMAP_MIN                = 0xff03,
+  IDX_BITMAP_MAX                = 0xff03,
+  IDX_BITMAP_MIN                = 0xff04,
   #ifdef WITH_BRAIN
   IDX_BRAIN_CLIENT              = 'z',
-  IDX_BRAIN_CLIENT_FEATURES     = 0xff04,
-  IDX_BRAIN_HOST                = 0xff05,
-  IDX_BRAIN_PASSWORD            = 0xff06,
-  IDX_BRAIN_PORT                = 0xff07,
-  IDX_BRAIN_SERVER              = 0xff08,
-  IDX_BRAIN_SESSION             = 0xff09,
-  IDX_BRAIN_SESSION_WHITELIST   = 0xff0a,
+  IDX_BRAIN_CLIENT_FEATURES     = 0xff05,
+  IDX_BRAIN_HOST                = 0xff06,
+  IDX_BRAIN_PASSWORD            = 0xff07,
+  IDX_BRAIN_PORT                = 0xff08,
+  IDX_BRAIN_SERVER              = 0xff09,
+  IDX_BRAIN_SESSION             = 0xff0a,
+  IDX_BRAIN_SESSION_WHITELIST   = 0xff0b,
   #endif
-  IDX_CPU_AFFINITY              = 0xff0b,
+  IDX_CPU_AFFINITY              = 0xff0c,
   IDX_CUSTOM_CHARSET_1          = '1',
   IDX_CUSTOM_CHARSET_2          = '2',
   IDX_CUSTOM_CHARSET_3          = '3',
   IDX_CUSTOM_CHARSET_4          = '4',
-  IDX_DEBUG_FILE                = 0xff0c,
-  IDX_DEBUG_MODE                = 0xff0d,
-  IDX_ENCODING_FROM             = 0xff0e,
-  IDX_ENCODING_TO               = 0xff0f,
-  IDX_EXAMPLE_HASHES            = 0xff10,
-  IDX_FORCE                     = 0xff11,
-  IDX_HWMON_DISABLE             = 0xff12,
-  IDX_HWMON_TEMP_ABORT          = 0xff13,
+  IDX_DEBUG_FILE                = 0xff0d,
+  IDX_DEBUG_MODE                = 0xff0e,
+  IDX_ENCODING_FROM             = 0xff0f,
+  IDX_ENCODING_TO               = 0xff10,
+  IDX_EXAMPLE_HASHES            = 0xff11,
+  IDX_FORCE                     = 0xff12,
+  IDX_HWMON_DISABLE             = 0xff13,
+  IDX_HWMON_TEMP_ABORT          = 0xff14,
   IDX_HASH_MODE                 = 'm',
-  IDX_HCCAPX_MESSAGE_PAIR       = 0xff14,
+  IDX_HCCAPX_MESSAGE_PAIR       = 0xff15,
   IDX_HELP                      = 'h',
-  IDX_HEX_CHARSET               = 0xff15,
-  IDX_HEX_SALT                  = 0xff16,
-  IDX_HEX_WORDLIST              = 0xff17,
+  IDX_HEX_CHARSET               = 0xff16,
+  IDX_HEX_SALT                  = 0xff17,
+  IDX_HEX_WORDLIST              = 0xff18,
+  IDX_HOOK_THREADS              = 0xff19,
   IDX_INCREMENT                 = 'i',
-  IDX_INCREMENT_MAX             = 0xff18,
-  IDX_INCREMENT_MIN             = 0xff19,
-  IDX_INDUCTION_DIR             = 0xff1a,
-  IDX_KEEP_GUESSING             = 0xff1b,
+  IDX_INCREMENT_MAX             = 0xff1a,
+  IDX_INCREMENT_MIN             = 0xff1b,
+  IDX_INDUCTION_DIR             = 0xff1c,
+  IDX_KEEP_GUESSING             = 0xff1d,
   IDX_KERNEL_ACCEL              = 'n',
   IDX_KERNEL_LOOPS              = 'u',
   IDX_KERNEL_THREADS            = 'T',
-  IDX_KEYBOARD_LAYOUT_MAPPING   = 0xff1c,
-  IDX_KEYSPACE                  = 0xff1d,
-  IDX_LEFT                      = 0xff1e,
+  IDX_KEYBOARD_LAYOUT_MAPPING   = 0xff1e,
+  IDX_KEYSPACE                  = 0xff1f,
+  IDX_LEFT                      = 0xff20,
   IDX_LIMIT                     = 'l',
-  IDX_LOGFILE_DISABLE           = 0xff1f,
-  IDX_LOOPBACK                  = 0xff20,
-  IDX_MACHINE_READABLE          = 0xff21,
-  IDX_MARKOV_CLASSIC            = 0xff22,
-  IDX_MARKOV_DISABLE            = 0xff23,
-  IDX_MARKOV_HCSTAT2            = 0xff24,
+  IDX_LOGFILE_DISABLE           = 0xff21,
+  IDX_LOOPBACK                  = 0xff22,
+  IDX_MACHINE_READABLE          = 0xff23,
+  IDX_MARKOV_CLASSIC            = 0xff24,
+  IDX_MARKOV_DISABLE            = 0xff25,
+  IDX_MARKOV_HCSTAT2            = 0xff26,
   IDX_MARKOV_THRESHOLD          = 't',
-  IDX_NONCE_ERROR_CORRECTIONS   = 0xff25,
+  IDX_NONCE_ERROR_CORRECTIONS   = 0xff27,
   IDX_OPENCL_DEVICE_TYPES       = 'D',
   IDX_OPTIMIZED_KERNEL_ENABLE   = 'O',
   IDX_OUTFILE_AUTOHEX_DISABLE   = 0xff28,
@@ -758,10 +761,11 @@ typedef enum token_attr
   TOKEN_ATTR_VERIFY_SIGNATURE   = 1 << 2,
   TOKEN_ATTR_VERIFY_LENGTH      = 1 << 3,
   TOKEN_ATTR_VERIFY_DIGIT       = 1 << 4,
-  TOKEN_ATTR_VERIFY_HEX         = 1 << 5,
-  TOKEN_ATTR_VERIFY_BASE64A     = 1 << 6,
-  TOKEN_ATTR_VERIFY_BASE64B     = 1 << 7,
-  TOKEN_ATTR_VERIFY_BASE64C     = 1 << 8
+  TOKEN_ATTR_VERIFY_FLOAT       = 1 << 5,
+  TOKEN_ATTR_VERIFY_HEX         = 1 << 6,
+  TOKEN_ATTR_VERIFY_BASE64A     = 1 << 7,
+  TOKEN_ATTR_VERIFY_BASE64B     = 1 << 8,
+  TOKEN_ATTR_VERIFY_BASE64C     = 1 << 9
 
 } token_attr_t;
 
@@ -830,6 +834,7 @@ typedef struct hash
   hashinfo_t *hash_info;
   char       *pw_buf;
   int         pw_len;
+  u64         orig_line_pos;
 
 } hash_t;
 
@@ -1627,7 +1632,7 @@ typedef struct loopback_ctx
 
 typedef struct mf
 {
-  char mf_buf[0x100];
+  char mf_buf[0x400];
   int  mf_len;
 
 } mf_t;
@@ -1690,6 +1695,14 @@ typedef struct pot_tree_entry
   hashconfig_t *hashconfig;
 
 } pot_tree_entry_t;
+
+typedef struct pot_orig_line_entry
+{
+  u8 *hash_buf;
+  int hash_len;
+  int line_pos;
+
+} pot_orig_line_entry_t;
 
 typedef struct restore_data
 {
@@ -1914,6 +1927,7 @@ typedef struct user_options
   u32          hwmon_temp_abort;
   int          hash_mode;
   u32          hccapx_message_pair;
+  u32          hook_threads;
   u32          increment_max;
   u32          increment_min;
   u32          kernel_accel;
@@ -2455,6 +2469,23 @@ typedef struct thread_param
   hashcat_ctx_t *hashcat_ctx;
 
 } thread_param_t;
+
+typedef struct hook_thread_param
+{
+  int tid;
+  int tsz;
+
+  module_ctx_t *module_ctx;
+  status_ctx_t *status_ctx;
+
+  hc_device_param_t *device_param;
+
+  void *hook_salts_buf;
+
+  u32 salt_pos;
+  u64 pws_cnt;
+
+} hook_thread_param_t;
 
 #define MAX_TOKENS     128
 #define MAX_SIGNATURES 16

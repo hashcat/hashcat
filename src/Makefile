@@ -10,8 +10,12 @@ PRODUCTION_VERSION      := v5.1.0
 ENABLE_BRAIN            := 1
 USE_SYSTEM_LZMA         := 0
 USE_SYSTEM_ZLIB         := 0
+USE_SYSTEM_LIBSECP256K1 := 0
 USE_SYSTEM_OPENCL       := 0
 USE_SYSTEM_XXHASH       := 0
+
+# NOTE: USE_SYSTEM_LIBSECP256K1 set to 1 can come with a huge performance hit for Electrum 4-5
+# this is due to the public API (secp256k1.h) not exposing all the faster ECC operations we need
 
 ##
 ## Detect Operating System
@@ -120,6 +124,12 @@ else
 DEPS_ZLIB_PATH          := $(LIBRARY_DEV_ROOT_FOLDER)/
 endif
 
+ifeq ($(USE_SYSTEM_LIBSECP256K1),0)
+DEPS_LIBSECP256K1_PATH  := deps/secp256k1/
+else
+DEPS_LIBSECP256K1_PATH  := $(LIBRARY_DEV_ROOT_FOLDER)/
+endif
+
 ifeq ($(USE_SYSTEM_OPENCL),0)
 DEPS_OPENCL_PATH        := deps/OpenCL-Headers
 else
@@ -184,6 +194,11 @@ CFLAGS_ZLIB             += -Wno-unused-parameter
 CFLAGS_ZLIB             += -DIOAPI_NO_64
 endif
 
+## because LIBSECP256K1 (Electrum 4/5)
+CFLAGS_LIBSECP256K1     += -Wno-unused-parameter
+CFLAGS_LIBSECP256K1     += -Wno-unused-function
+CFLAGS_LIBSECP256K1     += -Wno-nonnull-compare
+
 ifeq ($(DEBUG),0)
 CFLAGS                  += -O2
 ifneq ($(UNAME),Darwin)
@@ -220,6 +235,24 @@ endif
 CFLAGS                  += -I$(DEPS_ZLIB_PATH)
 ifeq ($(USE_SYSTEM_ZLIB),1)
 LFLAGS                  += -lz
+endif
+
+# LIBSECP256K1
+
+ifeq ($(USE_SYSTEM_LIBSECP256K1),1)
+LFLAGS                  += -lsecp256k1
+CFLAGS_LIBSECP256K1     += -DWITH_LIBSECP256K1
+
+# NOT working if used only in CFLAGS_LIBSECP256K1 because we need to include secp256k1.h in the module too
+CFLAGS                  += -I$(DEPS_LIBSECP256K1_PATH)
+else
+CFLAGS_LIBSECP256K1     += -I$(DEPS_LIBSECP256K1_PATH)/src/
+
+# files in deps/secp256k1/ include "include/secp256k1.h" so we need the parent folder too
+CFLAGS_LIBSECP256K1     += -I$(DEPS_LIBSECP256K1_PATH)
+
+# NOT working if used only in CFLAGS_LIBSECP256K1 because we need to include secp256k1.h in the module too
+CFLAGS                  += -I$(DEPS_LIBSECP256K1_PATH)/include/
 endif
 
 # OpenCL
@@ -302,7 +335,7 @@ EMU_OBJS_ALL            += emu_inc_truecrypt_crc32 emu_inc_truecrypt_keyfile emu
 EMU_OBJS_ALL            += emu_inc_hash_md4 emu_inc_hash_md5 emu_inc_hash_ripemd160 emu_inc_hash_sha1 emu_inc_hash_sha256 emu_inc_hash_sha384 emu_inc_hash_sha512 emu_inc_hash_streebog256 emu_inc_hash_streebog512
 EMU_OBJS_ALL            += emu_inc_cipher_aes emu_inc_cipher_camellia emu_inc_cipher_des emu_inc_cipher_kuznyechik emu_inc_cipher_serpent emu_inc_cipher_twofish
 
-OBJS_ALL                := affinity autotune backend benchmark bitmap bitops combinator common convert cpt cpu_crc32 debugfile dictstat dispatch dynloader event ext_ADL ext_cuda ext_nvapi ext_nvml ext_nvrtc ext_OpenCL ext_sysfs ext_lzma filehandling folder hashcat hashes hlfmt hwmon induct interface keyboard_layout locking logfile loopback memory monitor mpsp outfile_check outfile pidfile potfile restore rp rp_cpu selftest slow_candidates shared status stdout straight terminal thread timer tuningdb usage user_options wordlist $(EMU_OBJS_ALL)
+OBJS_ALL                := affinity autotune backend benchmark bitmap bitops combinator common convert cpt cpu_crc32 debugfile dictstat dispatch dynloader event ext_ADL ext_cuda ext_nvapi ext_nvml ext_nvrtc ext_OpenCL ext_sysfs ext_lzma ext_secp256k1 filehandling folder hashcat hashes hlfmt hwmon induct interface keyboard_layout locking logfile loopback memory monitor mpsp outfile_check outfile pidfile potfile restore rp rp_cpu selftest slow_candidates shared status stdout straight terminal thread timer tuningdb usage user_options wordlist $(EMU_OBJS_ALL)
 
 ifeq ($(ENABLE_BRAIN),1)
 OBJS_ALL                += brain
@@ -483,6 +516,9 @@ obj/%.NATIVE.o: $(DEPS_ZLIB_PATH)/%.c
 	$(CC) -c $(CFLAGS_NATIVE) $(CFLAGS_ZLIB) $< -o $@ -fpic
 endif
 
+obj/ext_secp256k1.NATIVE.o: src/ext_secp256k1.c
+	$(CC) -c $(CFLAGS_NATIVE) $(CFLAGS_LIBSECP256K1) $< -o $@ -fpic
+
 ifeq ($(USE_SYSTEM_XXHASH),0)
 ifeq ($(ENABLE_BRAIN),1)
 obj/%.NATIVE.o: $(DEPS_XXHASH_PATH)/%.c
@@ -644,6 +680,12 @@ obj/%.WIN.o:   $(DEPS_XXHASH_PATH)/%.c
 	$(CC_WIN)   $(CFLAGS_CROSS_WIN)   -c -o $@ $<
 endif
 endif
+
+obj/ext_secp256k1.LINUX.o: src/ext_secp256k1.c
+	$(CC_LINUX) $(CFLAGS_CROSS_LINUX) $(CFLAGS_LIBSECP256K1) -c -o $@ $<
+
+obj/ext_secp256k1.WIN.o: src/ext_secp256k1.c
+	$(CC_WIN) $(CFLAGS_CROSS_WIN) $(CFLAGS_LIBSECP256K1) -c -o $@ $<
 
 obj/combined.LINUX.a: $(LINUX_OBJS)
 	$(AR_LINUX) rcs $@ $^
