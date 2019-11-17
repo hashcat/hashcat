@@ -2902,7 +2902,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
           hook_thread_param->pws_cnt = pws_cnt;
         }
 
-        hc_thread_t *c_threads = (hc_thread_t *) calloc (hook_threads, sizeof (hc_thread_t));
+        hc_thread_t *c_threads = (hc_thread_t *) hccalloc (hook_threads, sizeof (hc_thread_t));
 
         for (int i = 0; i < hook_threads; i++)
         {
@@ -3018,7 +3018,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
           hook_thread_param->pws_cnt = pws_cnt;
         }
 
-        hc_thread_t *c_threads = (hc_thread_t *) calloc (hook_threads, sizeof (hc_thread_t));
+        hc_thread_t *c_threads = (hc_thread_t *) hccalloc (hook_threads, sizeof (hc_thread_t));
 
         for (int i = 0; i < hook_threads; i++)
         {
