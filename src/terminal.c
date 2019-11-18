@@ -1138,17 +1138,36 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   event_log_info (hashcat_ctx,
     "Hash.Target......: %s",
     hashcat_status->hash_target);
-
-  event_log_info (hashcat_ctx,
+  
+  if (user_options->force == true)
+  {
+    event_log_info (hashcat_ctx,
+    "Time.Started.....: %s, (%s)",
+    hashcat_status->time_started_absolute,
+    hashcat_status->time_started_relative);
+  }
+  else
+  {
+    event_log_info (hashcat_ctx,
     "Time.Started.....: %s (%s)",
     hashcat_status->time_started_absolute,
     hashcat_status->time_started_relative);
-
-  event_log_info (hashcat_ctx,
+  }  
+  if (user_options->force == true)
+  {
+    event_log_info (hashcat_ctx,
+    "Time.Estimated...: %s, (%s)",
+    hashcat_status->time_estimated_absolute,
+    hashcat_status->time_estimated_relative);
+  }
+  else
+  {
+    event_log_info (hashcat_ctx,
     "Time.Estimated...: %s (%s)",
     hashcat_status->time_estimated_absolute,
     hashcat_status->time_estimated_relative);
-
+  }
+  
   switch (hashcat_status->guess_mode)
   {
     case GUESS_MODE_STRAIGHT_FILE:
