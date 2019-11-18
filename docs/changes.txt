@@ -66,6 +66,7 @@
 - Fixed cracking of NetNTLMv1 passwords in mask-attack mode if mask > length 16 (optimized kernels only)
 - Fixed cracking raw Streebog-HMAC 256 and 512 hashes with password of length >= 64
 - Fixed cracking raw Whirlpool hashes cracking with password of length >= 32
+- Fixed cracking multiple Office hashes(modes 9500, 9600) with the same salt
 - Fixed incorrect progress-only result in a special race condition
 - Fixed invalid call of mp_css_utf16le_expand()/mp_css_utf16be_expand() in a slow-candidate session
 - Fixed invalid password truncation in attack-mode 1 if final password is longer than 32 character
@@ -104,6 +105,7 @@
 - Startup Checks: Prevent the user to modify options which are overwritten automatically in benchmark mode
 - Startup Checks: Improved the pidfile check: Do not just check for existing PID but also check executable filename
 - Startup Screen: Add extra warning when using --force
+- Startup Screen: Add extra warning when using --keep-guessing
 - Startup Screen: Provide an estimate of host memory requirements for the requested attack
 - Status Screen: Added brain status for all devices
 - Status Screen: Added remaining counts and changed recovered count logic
@@ -133,6 +135,7 @@
 - Hash-Mode 8300 (DNSSEC (NSEC3)) specific: Allow empty salt
 - Keep Guessing: No longer automatically activate --keep-guessing for modes 9720, 9820, 14900 and 18100
 - Kernel Cache: Reactivate OpenCL runtime specific kernel caches
+- Keep Guessing: No longer mark hashes as cracked/removed when in potfile
 - Kernel Compile: Removed -cl-std= from all kernel build options since we're compatible to all OpenCL versions
 - OpenCL Kernels: Fix OpenCL compiler warning on double precision constants
 - OpenCL Options: Removed --opencl-platforms filter in order to force backend device numbers to stay constant
