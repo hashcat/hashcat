@@ -9414,7 +9414,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     kernel_accel_max = MIN (kernel_accel_max, accel_limit);
 
-    kernel_accel_min = MIN (kernel_accel_min, kernel_accel_max);
+    if (kernel_accel_min > kernel_accel_max)
+    {
+      event_log_error (hashcat_ctx, "* Device #%u: Too many compute units to keep minimum kernel accel limit. Retry with lower --backend-kernel-threads value.", device_id + 1);
+
+      return -1;
+    }
 
     // find out if we would request too much memory on memory blocks which are based on kernel_accel
 
