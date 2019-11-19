@@ -9405,6 +9405,17 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     u32 kernel_accel_min = device_param->kernel_accel_min;
     u32 kernel_accel_max = device_param->kernel_accel_max;
 
+    /**
+     * We need a kernel accel limiter otherwise we will allocate too much memory (Example 4* GTX1080):
+     * 4 (gpus) * 260 (sizeof pw_t) * 3 (pws, pws_comp, pw_pre) * 20 (MCU) * 1024 (threads) * 1024 (accel) = 65,431,142,400 bytes RAM!!
+     */
+
+    const u32 accel_limit = CEILDIV ((64 * 1024), kernel_threads); // this should result in less than 4GB per GPU, but allow higher accel in case user reduces the threads manually using -T
+
+    kernel_accel_max = MIN (kernel_accel_max, accel_limit);
+
+    kernel_accel_min = MIN (kernel_accel_min, kernel_accel_max);
+
     // find out if we would request too much memory on memory blocks which are based on kernel_accel
 
     u64 size_pws      = 4;
