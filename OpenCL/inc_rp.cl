@@ -769,7 +769,8 @@ DECLSPEC int apply_rules (CONSTANT_AS const u32 *cmds, u32 *buf, const int in_le
     const u8 p0   = (cmd >>  8) & 0xff;
     const u8 p1   = (cmd >> 16) & 0xff;
 
-    out_len = apply_rule (name, p0, p1, buf, out_len);
+    // we need to guarantee input length < 256 otherwise functions like rule_op_mangle_switch_last() and others will read out of boundary
+    out_len = apply_rule (name, p0, p1, buf, out_len & 255);
   }
 
   return out_len;
