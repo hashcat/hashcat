@@ -10,7 +10,7 @@ use warnings;
 
 use Crypt::OpenSSH::ChachaPoly;
 
-sub module_constraints { [[-1, -1], [-1, -1], [32, 32], [-1, -1], [-1, -1]] }
+sub module_constraints { [[32, 32], [-1, -1], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub module_generate_hash
 {
@@ -40,8 +40,9 @@ sub module_generate_hash
   my $plaintext = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz0a2b4c6d8e";
   my $eight_byte_iv = pack ("H*", $iv);
   my $eight_byte_counter = pack ("H*", $counter);
-  my $pad_len = 32 - length ($word);
-  my $key = $word . "\0" x $pad_len;
+  #my $pad_len = 32 - length ($word);
+  #my $key = $word . "\0" x $pad_len;
+  my $key = $word;
 
   my $cipher = Crypt::OpenSSH::ChachaPoly->new ($key);
 
