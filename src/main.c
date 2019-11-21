@@ -484,24 +484,6 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
 
   event_log_info (hashcat_ctx, NULL);
 
-  /**
-   * Optimizer constraints
-   */
-
-  event_log_info (hashcat_ctx, "Minimum password length supported by kernel: %u", hashconfig->pw_min);
-  event_log_info (hashcat_ctx, "Maximum password length supported by kernel: %u", hashconfig->pw_max);
-
-  if (hashconfig->is_salted == true)
-  {
-    if (hashconfig->opti_type & OPTI_TYPE_RAW_HASH)
-    {
-      event_log_info (hashcat_ctx, "Minimim salt length supported by kernel: %u", hashconfig->salt_min);
-      event_log_info (hashcat_ctx, "Maximum salt length supported by kernel: %u", hashconfig->salt_max);
-    }
-  }
-
-  event_log_info (hashcat_ctx, NULL);
-
   if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0)
   {
     if (hashconfig->has_optimized_kernel == true)
@@ -898,6 +880,34 @@ static void main_wordlist_cache_generate (MAYBE_UNUSED hashcat_ctx_t *hashcat_ct
   }
 }
 
+static void main_hashconfig_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+
+}
+
+static void main_hashconfig_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+
+  /**
+   * Optimizer constraints
+   */
+
+  event_log_info (hashcat_ctx, "Minimum password length supported by kernel: %u", hashconfig->pw_min);
+  event_log_info (hashcat_ctx, "Maximum password length supported by kernel: %u", hashconfig->pw_max);
+
+  if (hashconfig->is_salted == true)
+  {
+    if (hashconfig->opti_type & OPTI_TYPE_RAW_HASH)
+    {
+      event_log_info (hashcat_ctx, "Minimim salt length supported by kernel: %u", hashconfig->salt_min);
+      event_log_info (hashcat_ctx, "Maximum salt length supported by kernel: %u", hashconfig->salt_max);
+    }
+  }
+
+  event_log_info (hashcat_ctx, NULL);
+}
+
 static void main_hashlist_count_lines_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
@@ -1006,6 +1016,8 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
     case EVENT_CRACKER_FINISHED:          main_cracker_finished          (hashcat_ctx, buf, len); break;
     case EVENT_CRACKER_HASH_CRACKED:      main_cracker_hash_cracked      (hashcat_ctx, buf, len); break;
     case EVENT_CRACKER_STARTING:          main_cracker_starting          (hashcat_ctx, buf, len); break;
+    case EVENT_HASHCONFIG_PRE:            main_hashconfig_pre            (hashcat_ctx, buf, len); break;
+    case EVENT_HASHCONFIG_POST:           main_hashconfig_post           (hashcat_ctx, buf, len); break;
     case EVENT_HASHLIST_COUNT_LINES_POST: main_hashlist_count_lines_post (hashcat_ctx, buf, len); break;
     case EVENT_HASHLIST_COUNT_LINES_PRE:  main_hashlist_count_lines_pre  (hashcat_ctx, buf, len); break;
     case EVENT_HASHLIST_PARSE_HASH:       main_hashlist_parse_hash       (hashcat_ctx, buf, len); break;

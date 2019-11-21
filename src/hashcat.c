@@ -444,12 +444,16 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * setup variables and buffers depending on hash_mode
    */
 
+  EVENT (EVENT_HASHCONFIG_PRE);
+
   if (hashconfig_init (hashcat_ctx) == -1)
   {
     event_log_error (hashcat_ctx, "Invalid hash-mode '%u' selected.", user_options->hash_mode);
 
     return -1;
   }
+
+  EVENT (EVENT_HASHCONFIG_POST);
 
   /**
    * generate hashlist filename for later use
