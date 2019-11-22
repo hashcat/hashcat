@@ -882,12 +882,14 @@ static void main_wordlist_cache_generate (MAYBE_UNUSED hashcat_ctx_t *hashcat_ct
 
 static void main_hashconfig_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
-
 }
 
 static void main_hashconfig_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
-  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
 
   /**
    * Optimizer constraints
