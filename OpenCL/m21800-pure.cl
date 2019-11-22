@@ -416,21 +416,59 @@ KERNEL_FQ void m21800_hook23 (KERN_ATTR_TMPS_HOOKS (electrum_tmp_t, electrum_hoo
 
   while (a[0] >= b[0])
   {
-    if (a[ 0] == b[ 0]) if (a[ 1] < b[ 1]) break;
-    if (a[ 1] == b[ 1]) if (a[ 2] < b[ 2]) break;
-    if (a[ 2] == b[ 2]) if (a[ 3] < b[ 3]) break;
-    if (a[ 3] == b[ 3]) if (a[ 4] < b[ 4]) break;
-    if (a[ 4] == b[ 4]) if (a[ 5] < b[ 5]) break;
-    if (a[ 5] == b[ 5]) if (a[ 6] < b[ 6]) break;
-    if (a[ 6] == b[ 6]) if (a[ 7] < b[ 7]) break;
-    if (a[ 7] == b[ 7]) if (a[ 8] < b[ 8]) break;
-    if (a[ 8] == b[ 8]) if (a[ 9] < b[ 9]) break;
-    if (a[ 9] == b[ 9]) if (a[10] < b[10]) break;
-    if (a[10] == b[10]) if (a[11] < b[11]) break;
-    if (a[11] == b[11]) if (a[12] < b[12]) break;
-    if (a[12] == b[12]) if (a[13] < b[13]) break;
-    if (a[13] == b[13]) if (a[14] < b[14]) break;
-    if (a[14] == b[14]) if (a[15] < b[15]) break;
+    const u32 l1 = (a[ 0]  < b[ 0]) <<  0
+                 | (a[ 1]  < b[ 1]) <<  1
+                 | (a[ 2]  < b[ 2]) <<  2
+                 | (a[ 3]  < b[ 3]) <<  3
+                 | (a[ 4]  < b[ 4]) <<  4
+                 | (a[ 5]  < b[ 5]) <<  5
+                 | (a[ 6]  < b[ 6]) <<  6
+                 | (a[ 7]  < b[ 7]) <<  7
+                 | (a[ 8]  < b[ 8]) <<  8
+                 | (a[ 9]  < b[ 9]) <<  9
+                 | (a[10]  < b[10]) << 10
+                 | (a[11]  < b[11]) << 11
+                 | (a[12]  < b[12]) << 12
+                 | (a[13]  < b[13]) << 13
+                 | (a[14]  < b[14]) << 14
+                 | (a[15]  < b[15]) << 15;
+
+    const u32 e1 = (a[ 0] == b[ 0]) <<  0
+                 | (a[ 1] == b[ 1]) <<  1
+                 | (a[ 2] == b[ 2]) <<  2
+                 | (a[ 3] == b[ 3]) <<  3
+                 | (a[ 4] == b[ 4]) <<  4
+                 | (a[ 5] == b[ 5]) <<  5
+                 | (a[ 6] == b[ 6]) <<  6
+                 | (a[ 7] == b[ 7]) <<  7
+                 | (a[ 8] == b[ 8]) <<  8
+                 | (a[ 9] == b[ 9]) <<  9
+                 | (a[10] == b[10]) << 10
+                 | (a[11] == b[11]) << 11
+                 | (a[12] == b[12]) << 12
+                 | (a[13] == b[13]) << 13
+                 | (a[14] == b[14]) << 14
+                 | (a[15] == b[15]) << 15;
+
+    if (l1)
+    {
+      if (l1 & 0x0001)                              break;
+      if (l1 & 0x0002) if ((e1 & 0x0001) == 0x0001) break;
+      if (l1 & 0x0004) if ((e1 & 0x0003) == 0x0003) break;
+      if (l1 & 0x0008) if ((e1 & 0x0007) == 0x0007) break;
+      if (l1 & 0x0010) if ((e1 & 0x000f) == 0x000f) break;
+      if (l1 & 0x0020) if ((e1 & 0x001f) == 0x001f) break;
+      if (l1 & 0x0040) if ((e1 & 0x003f) == 0x003f) break;
+      if (l1 & 0x0080) if ((e1 & 0x007f) == 0x007f) break;
+      if (l1 & 0x0100) if ((e1 & 0x00ff) == 0x00ff) break;
+      if (l1 & 0x0200) if ((e1 & 0x01ff) == 0x01ff) break;
+      if (l1 & 0x0400) if ((e1 & 0x03ff) == 0x03ff) break;
+      if (l1 & 0x0800) if ((e1 & 0x07ff) == 0x07ff) break;
+      if (l1 & 0x1000) if ((e1 & 0x0fff) == 0x0fff) break;
+      if (l1 & 0x2000) if ((e1 & 0x1fff) == 0x1fff) break;
+      if (l1 & 0x4000) if ((e1 & 0x3fff) == 0x3fff) break;
+      if (l1 & 0x8000) if ((e1 & 0x7fff) == 0x7fff) break;
+    }
 
     // r = x (copy it to have the original values for the subtraction)
 
@@ -474,22 +512,59 @@ KERNEL_FQ void m21800_hook23 (KERN_ATTR_TMPS_HOOKS (electrum_tmp_t, electrum_hoo
 
     // if (a >= r) a -= r;
 
-                        if (a[ 0] < r[ 0]) continue;
-    if (a[ 0] == r[ 0]) if (a[ 1] < r[ 1]) continue;
-    if (a[ 1] == r[ 1]) if (a[ 2] < r[ 2]) continue;
-    if (a[ 2] == r[ 2]) if (a[ 3] < r[ 3]) continue;
-    if (a[ 3] == r[ 3]) if (a[ 4] < r[ 4]) continue;
-    if (a[ 4] == r[ 4]) if (a[ 5] < r[ 5]) continue;
-    if (a[ 5] == r[ 5]) if (a[ 6] < r[ 6]) continue;
-    if (a[ 6] == r[ 6]) if (a[ 7] < r[ 7]) continue;
-    if (a[ 7] == r[ 7]) if (a[ 8] < r[ 8]) continue;
-    if (a[ 8] == r[ 8]) if (a[ 9] < r[ 9]) continue;
-    if (a[ 9] == r[ 9]) if (a[10] < r[10]) continue;
-    if (a[10] == r[10]) if (a[11] < r[11]) continue;
-    if (a[11] == r[11]) if (a[12] < r[12]) continue;
-    if (a[12] == r[12]) if (a[13] < r[13]) continue;
-    if (a[13] == r[13]) if (a[14] < r[14]) continue;
-    if (a[14] == r[14]) if (a[15] < r[15]) continue;
+    const u32 l2 = (a[ 0]  < r[ 0]) <<  0
+                 | (a[ 1]  < r[ 1]) <<  1
+                 | (a[ 2]  < r[ 2]) <<  2
+                 | (a[ 3]  < r[ 3]) <<  3
+                 | (a[ 4]  < r[ 4]) <<  4
+                 | (a[ 5]  < r[ 5]) <<  5
+                 | (a[ 6]  < r[ 6]) <<  6
+                 | (a[ 7]  < r[ 7]) <<  7
+                 | (a[ 8]  < r[ 8]) <<  8
+                 | (a[ 9]  < r[ 9]) <<  9
+                 | (a[10]  < r[10]) << 10
+                 | (a[11]  < r[11]) << 11
+                 | (a[12]  < r[12]) << 12
+                 | (a[13]  < r[13]) << 13
+                 | (a[14]  < r[14]) << 14
+                 | (a[15]  < r[15]) << 15;
+
+    const u32 e2 = (a[ 0] == r[ 0]) <<  0
+                 | (a[ 1] == r[ 1]) <<  1
+                 | (a[ 2] == r[ 2]) <<  2
+                 | (a[ 3] == r[ 3]) <<  3
+                 | (a[ 4] == r[ 4]) <<  4
+                 | (a[ 5] == r[ 5]) <<  5
+                 | (a[ 6] == r[ 6]) <<  6
+                 | (a[ 7] == r[ 7]) <<  7
+                 | (a[ 8] == r[ 8]) <<  8
+                 | (a[ 9] == r[ 9]) <<  9
+                 | (a[10] == r[10]) << 10
+                 | (a[11] == r[11]) << 11
+                 | (a[12] == r[12]) << 12
+                 | (a[13] == r[13]) << 13
+                 | (a[14] == r[14]) << 14
+                 | (a[15] == r[15]) << 15;
+
+    if (l2)
+    {
+      if (l2 & 0x0001)                              continue;
+      if (l2 & 0x0002) if ((e2 & 0x0001) == 0x0001) continue;
+      if (l2 & 0x0004) if ((e2 & 0x0003) == 0x0003) continue;
+      if (l2 & 0x0008) if ((e2 & 0x0007) == 0x0007) continue;
+      if (l2 & 0x0010) if ((e2 & 0x000f) == 0x000f) continue;
+      if (l2 & 0x0020) if ((e2 & 0x001f) == 0x001f) continue;
+      if (l2 & 0x0040) if ((e2 & 0x003f) == 0x003f) continue;
+      if (l2 & 0x0080) if ((e2 & 0x007f) == 0x007f) continue;
+      if (l2 & 0x0100) if ((e2 & 0x00ff) == 0x00ff) continue;
+      if (l2 & 0x0200) if ((e2 & 0x01ff) == 0x01ff) continue;
+      if (l2 & 0x0400) if ((e2 & 0x03ff) == 0x03ff) continue;
+      if (l2 & 0x0800) if ((e2 & 0x07ff) == 0x07ff) continue;
+      if (l2 & 0x1000) if ((e2 & 0x0fff) == 0x0fff) continue;
+      if (l2 & 0x2000) if ((e2 & 0x1fff) == 0x1fff) continue;
+      if (l2 & 0x4000) if ((e2 & 0x3fff) == 0x3fff) continue;
+      if (l2 & 0x8000) if ((e2 & 0x7fff) == 0x7fff) continue;
+    }
 
     // substract (a -= r):
 
