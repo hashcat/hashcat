@@ -302,34 +302,32 @@ KERNEL_FQ void m11300_comp (KERN_ATTR_TMPS_ESALT (bitcoin_wallet_tmp_t, bitcoin_
 
   AES256_set_decrypt_key (ks, key, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
+  u32 i = esalt_bufs[digests_offset].cry_master_len - 32;
+
+  u32 iv[4];
+
+  iv[0] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 0]);
+  iv[1] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 1]);
+  iv[2] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 2]);
+  iv[3] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 3]);
+
+  i += 16;
+
+  u32 data[4];
+
+  data[0] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 0]);
+  data[1] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 1]);
+  data[2] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 2]);
+  data[3] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 3]);
+
   u32 out[4];
 
-  {
-    u32 i = esalt_bufs[digests_offset].cry_master_len - 32;
+  AES256_decrypt (ks, data, out, s_td0, s_td1, s_td2, s_td3, s_td4);
 
-    u32 iv[4];
-
-    iv[0] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 0]);
-    iv[1] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 1]);
-    iv[2] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 2]);
-    iv[3] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 3]);
-
-    i += 16;
-
-    u32 data[4];
-
-    data[0] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 0]);
-    data[1] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 1]);
-    data[2] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 2]);
-    data[3] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 3]);
-
-    AES256_decrypt (ks, data, out, s_td0, s_td1, s_td2, s_td3, s_td4);
-
-    out[0] ^= iv[0];
-    out[1] ^= iv[1];
-    out[2] ^= iv[2];
-    out[3] ^= iv[3];
-  }
+  out[0] ^= iv[0];
+  out[1] ^= iv[1];
+  out[2] ^= iv[2];
+  out[3] ^= iv[3];
 
   u32 pad = 0;
 
