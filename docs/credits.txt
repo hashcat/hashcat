@@ -78,4 +78,7 @@ Rick "Minga" Redman and KoreLogic <mingakore@gmail.com> (@CrackMeIfYouCan)
 Brandon Chalk <brandon@casaba.com> (@brandoncasaba)
 * Kerberos Pre-Auth 17/18 kernel module, ported from @Fist0urs TGS kernel modules
 
+Jamie Riden <jamie@blacktraffic.co.uk>
+* module_21600.c - web2py pbkdf2 variant
+
 !!! All the package maintainer of hashcat !!!
