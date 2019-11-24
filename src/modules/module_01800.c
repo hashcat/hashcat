@@ -434,7 +434,14 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 {
   char *jit_build_options = NULL;
 
-  hc_asprintf (&jit_build_options, "-D NO_UNROLL");
+  if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == true))
+  {
+    // unroll is faster on rocm in this kernel
+  }
+  else
+  {
+    hc_asprintf (&jit_build_options, "-D NO_UNROLL");
+  }
 
   return jit_build_options;
 }
