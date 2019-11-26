@@ -54,6 +54,7 @@
 - Added hash-mode: sha256(md5($pass))
 - Added hash-mode: sha256(sha256_bin(pass))
 - Added hash-mode: sha256(sha256($pass).$salt)
+- Added hash-mode: pbkdf2(iter,20,sha512) (web2py variant)
 
 ##
 ## Bugs
