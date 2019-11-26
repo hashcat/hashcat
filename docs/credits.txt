@@ -79,6 +79,6 @@ Brandon Chalk <brandon@casaba.com> (@brandoncasaba)
 * Kerberos Pre-Auth 17/18 kernel module, ported from @Fist0urs TGS kernel modules
 
 Jamie Riden <jamie@blacktraffic.co.uk>
-* module_21600.c - web2py pbkdf2 variant
+* Web2py pbkdf2-sha512 plugin
 
 !!! All the package maintainer of hashcat !!!

@@ -15,17 +15,17 @@ static const u32   DGST_POS0      = 0;
 static const u32   DGST_POS1      = 1;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
-static const u32   DGST_SIZE      = DGST_SIZE_8_16;
+static const u32   DGST_SIZE      = DGST_SIZE_8_2;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_FRAMEWORK;
-static const char *HASH_NAME      = "web2py PBKDF2-HMAC-SHA512";
+static const char *HASH_NAME      = "Web2py pbkdf2-sha512";
 static const u64   KERN_TYPE      = 21600;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_USES_BITS_64
-                                  | OPTI_TYPE_SLOW_HASH_SIMD_LOOP ;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE ;
+                                  | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
+static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
-static const char *ST_PASS        = "mysecret";
-static const char *ST_HASH        = "pbkdf2(1000,20,sha512)$a2a2ca127df6bc19$77bb5a3d129e2ce710daaefeefef8356c4c827ff";
+static const char *ST_PASS        = "hashcat";
+static const char *ST_HASH        = "pbkdf2(1000,20,sha512)$29$6899d434e831b6332b415019ba9b893f";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -42,20 +42,10 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
-static const char *SIGNATURE_WEB2PY = "pbkdf2";
-static const char *SIGNATURE_WEB2PY_PARAMS = "20,sha512)";
+static const char *SIGNATURE_WEB2PY_START = "pbkdf2";
+static const char *SIGNATURE_WEB2PY_STOP  = "20,sha512)";
 
-typedef struct pbkdf2_sha512
-{
-  u32 salt_buf[64];
-  u32 hash_buf[64];
-  u32 salt_iter;
-  u32 salt_len;
-  u32 hash_len;
-
-} pbkdf2_sha512_t;
-
-typedef struct pbkdf2_sha512_tmp
+typedef struct web2py_sha512_tmp
 {
   u64  ipad[8];
   u64  opad[8];
@@ -63,18 +53,11 @@ typedef struct pbkdf2_sha512_tmp
   u64  dgst[16];
   u64  out[16];
 
-} pbkdf2_sha512_tmp_t;
-
-u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u64 esalt_size = (const u64) sizeof (pbkdf2_sha512_t);
-
-  return esalt_size;
-}
+} web2py_sha512_tmp_t;
 
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u64 tmp_size = (const u64) sizeof (pbkdf2_sha512_tmp_t);
+  const u64 tmp_size = (const u64) sizeof (web2py_sha512_tmp_t);
 
   return tmp_size;
 }
@@ -105,133 +88,96 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   u64 *digest = (u64 *) digest_buf;
 
-  pbkdf2_sha512_t *pbkdf2_sha512 = (pbkdf2_sha512_t *) esalt_buf;
-
   token_t token;
 
-  token.token_cnt  = 4;
+  token.token_cnt  = 5;
 
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_WEB2PY;
+  token.signatures_cnt    = 2;
+  token.signatures_buf[0] = SIGNATURE_WEB2PY_START;
+  token.signatures_buf[1] = SIGNATURE_WEB2PY_STOP;
 
+  token.sep[0]     = '(';
   token.len_min[0] = 6;
   token.len_max[0] = 6;
-  token.sep[0]     = '(';
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  // skip the rest 
-  token.sep[1]     = '$';
-  token.len_min[1] = 2;
-  token.len_max[1] = 280;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH ;
+  token.sep[1]     = ',';
+  token.len_min[1] = 1;
+  token.len_max[1] = 8;
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[2]     = '$';
-  token.len_min[2] = SALT_MIN;
-  token.len_max[2] = SALT_MAX;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH ;
+  token.len_min[2] = 10;
+  token.len_max[2] = 10;
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  token.len_min[3] = 16;
-  token.len_max[3] = 256;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                     | TOKEN_ATTR_VERIFY_HEX;
+  token.sep[3]     = '$';
+  token.len_min[3] = SALT_MIN;
+  token.len_max[3] = SALT_MAX;
+  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+  token.len_min[4] = 32;
+  token.len_max[4] = 32;
+  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  // iteration count
-
-  const u8 *iter_pos = token.buf[0] + 7; 
-
-  u8* trail;
-
-  const u32 iter = hc_strtoul ((const char *) iter_pos, (char**) &trail, 10);
-
-  salt->salt_iter = iter - 1;
-
-  pbkdf2_sha512->salt_iter = salt->salt_iter;
-
-  // match "20,sha512" for next bit after the iterator
-  if (strncmp((const char*) trail+1,SIGNATURE_WEB2PY_PARAMS,10)!=0)
-  {
-      return (PARSER_SIGNATURE_UNMATCHED);
-  }
-
   // salt
 
-  const u8 *salt_pos = token.buf[2];
-  const int salt_len = token.len[2];
+  const u8 *salt_pos = token.buf[3];
+  const int salt_len = token.len[3];
 
-  memcpy (pbkdf2_sha512->salt_buf, salt_pos, salt_len);
+  const bool parse_rc = generic_salt_decode (hashconfig, salt_pos, salt_len, (u8 *) salt->salt_buf, (int *) &salt->salt_len);
 
-  pbkdf2_sha512->salt_len=salt_len;
+  if (parse_rc == false) return (PARSER_SALT_LENGTH);
 
-  salt->salt_len = salt_len;
-
-  salt->salt_buf[0] = pbkdf2_sha512->salt_buf[0];
-  salt->salt_buf[1] = pbkdf2_sha512->salt_buf[1];
-  salt->salt_buf[2] = pbkdf2_sha512->salt_buf[2];
-  salt->salt_buf[3] = pbkdf2_sha512->salt_buf[3];
-  salt->salt_buf[4] = pbkdf2_sha512->salt_buf[4];
-  salt->salt_buf[5] = pbkdf2_sha512->salt_buf[5];
-  salt->salt_buf[6] = pbkdf2_sha512->salt_buf[6];
-  salt->salt_buf[7] = pbkdf2_sha512->salt_buf[7];
+  salt->salt_iter = hc_strtoul ((const char *) token.buf[1], NULL, 10) - 1;
 
   // hash
 
-  const u8 *hash_pos = token.buf[3];
-  const int hash_len = token.len[3];
+  const u8 *hash_pos = token.buf[4];
 
-  digest[0] = hex_to_u64 (hash_pos +   0);
-  digest[1] = hex_to_u64 (hash_pos +  16);
-  digest[2] = hex_to_u64 (hash_pos +  32);
-  digest[3] = hex_to_u64 (hash_pos +  48);
-  digest[4] = hex_to_u64 (hash_pos +  64);
-  digest[5] = hex_to_u64 (hash_pos +  80);
-  digest[6] = hex_to_u64 (hash_pos +  96);
-  digest[7] = hex_to_u64 (hash_pos + 112);
+  digest[0] = hex_to_u64 (hash_pos +  0);
+  digest[1] = hex_to_u64 (hash_pos + 16);
 
   digest[0] = byte_swap_64 (digest[0]);
   digest[1] = byte_swap_64 (digest[1]);
-  digest[2] = byte_swap_64 (digest[2]);
-  digest[3] = byte_swap_64 (digest[3]);
-  digest[4] = byte_swap_64 (digest[4]);
-  digest[5] = byte_swap_64 (digest[5]);
-  digest[6] = byte_swap_64 (digest[6]);
-  digest[7] = byte_swap_64 (digest[7]);
-
-  memcpy (pbkdf2_sha512->hash_buf, hash_pos, hash_len);
-
-  pbkdf2_sha512->hash_len=hash_len;
 
   return (PARSER_OK);
 }
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
+  const u64 *digest = (const u64 *) digest_buf;
 
-  pbkdf2_sha512_t *pbkdf2_sha512 = (pbkdf2_sha512_t *) esalt_buf;
+  u8 *out_buf = (u8 *) line_buf;
 
-  int line_len = snprintf(line_buf, line_size, "pbkdf2(%d,20,sha512)$", pbkdf2_sha512->salt_iter+1);
+  int out_len = snprintf ((char *) out_buf, line_size, "%s(%d,%s$", SIGNATURE_WEB2PY_START, salt->salt_iter + 1, SIGNATURE_WEB2PY_STOP);
 
-  u8 *salt_pos = (u8*) pbkdf2_sha512->salt_buf;
+  out_len += generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, (const int) salt->salt_len, out_buf + out_len);
 
-  for (u32 i = 0; i < pbkdf2_sha512->salt_len; i++)
-  {
-    line_len += snprintf (line_buf + line_len, line_size, "%c", *salt_pos++);
-  }
+  out_buf[out_len] = '$';
 
-  line_len += snprintf (line_buf + line_len, line_size, "$");
+  out_len += 1;
 
-  u8 *hash_pos = (u8*) pbkdf2_sha512->hash_buf;
-  
-  for (u32 i = 0; i < pbkdf2_sha512->hash_len; i++)
-  {
-    line_len += snprintf (line_buf + line_len, line_size - line_len, "%c", *hash_pos++);
-  }
+  u64 tmp[2];
 
-  return line_len;
+  tmp[0] = digest[0];
+  tmp[1] = digest[1];
+
+  tmp[0] = byte_swap_64 (tmp[0]);
+  tmp[1] = byte_swap_64 (tmp[1]);
+
+  u64_to_hex (tmp[0], out_buf + out_len); out_len += 16;
+  u64_to_hex (tmp[1], out_buf + out_len); out_len += 16;
+
+  return out_len;
 }
 
 void module_init (module_ctx_t *module_ctx)
@@ -252,7 +198,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_pos3                = module_dgst_pos3;
   module_ctx->module_dgst_size                = module_dgst_size;
   module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
-  module_ctx->module_esalt_size               = module_esalt_size;
+  module_ctx->module_esalt_size               = MODULE_DEFAULT;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
   module_ctx->module_forced_outfile_format    = MODULE_DEFAULT;

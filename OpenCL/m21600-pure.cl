@@ -17,7 +17,7 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
-typedef struct pbkdf2_sha512_tmp
+typedef struct web2py_sha512_tmp
 {
   u64  ipad[8];
   u64  opad[8];
@@ -25,17 +25,7 @@ typedef struct pbkdf2_sha512_tmp
   u64  dgst[16];
   u64  out[16];
 
-} pbkdf2_sha512_tmp_t;
-
-typedef struct pbkdf2_sha512
-{
-  u32 salt_buf[64];
-  u32 hash_buf[64];
-  u32 salt_iter;
-  u32 salt_len;
-  u32 hash_len;
-
-} pbkdf2_sha512_t;
+} web2py_sha512_tmp_t;
 
 DECLSPEC void hmac_sha512_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, u64x *ipad, u64x *opad, u64x *digest)
 {
@@ -95,7 +85,7 @@ DECLSPEC void hmac_sha512_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w
   sha512_transform_vector (w0, w1, w2, w3, w4, w5, w6, w7, digest);
 }
 
-KERNEL_FQ void m21600_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, pbkdf2_sha512_t))
+KERNEL_FQ void m21600_init (KERN_ATTR_TMPS (web2py_sha512_tmp_t))
 {
   /**
    * base
@@ -127,7 +117,7 @@ KERNEL_FQ void m21600_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, pbkdf2_sh
   tmps[gid].opad[6] = sha512_hmac_ctx.opad.h[6];
   tmps[gid].opad[7] = sha512_hmac_ctx.opad.h[7];
 
-  sha512_hmac_update_global_swap (&sha512_hmac_ctx, esalt_bufs[digests_offset].salt_buf, salt_bufs[salt_pos].salt_len);
+  sha512_hmac_update_global_swap (&sha512_hmac_ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
 
   for (u32 i = 0, j = 1; i < 8; i += 8, j += 1)
   {
@@ -199,7 +189,7 @@ KERNEL_FQ void m21600_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, pbkdf2_sh
   }
 }
 
-KERNEL_FQ void m21600_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, pbkdf2_sha512_t))
+KERNEL_FQ void m21600_loop (KERN_ATTR_TMPS (web2py_sha512_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -325,7 +315,7 @@ KERNEL_FQ void m21600_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, pbkdf2_sh
   }
 }
 
-KERNEL_FQ void m21600_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, pbkdf2_sha512_t))
+KERNEL_FQ void m21600_comp (KERN_ATTR_TMPS (web2py_sha512_tmp_t))
 {
   /**
    * base

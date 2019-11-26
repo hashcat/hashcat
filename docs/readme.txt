@@ -133,7 +133,6 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (10.1 o
 - PBKDF2-HMAC-SHA1
 - PBKDF2-HMAC-SHA256
 - PBKDF2-HMAC-SHA512
-- web2py variant of PBKDF2-HMAC-SHA512
 - scrypt
 - phpass
 - Ansible Vault
@@ -305,8 +304,6 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (10.1 o
 - SMF (Simple Machines Forum) > v1.1
 - MediaWiki B type
 - Redmine
-- Django (PBKDF2-SHA256)
-- Django (SHA-1)
 - Joomla < 2.5.18
 - OpenCart
 - PrestaShop
@@ -315,6 +312,9 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (10.1 o
 - osCommerce, xt:Commerce
 - PunBB
 - MyBB 1.2+, IPB2+ (Invision Power Board)
+- Django (PBKDF2-SHA256)
+- Django (SHA-1)
+- Web2py pbkdf2-sha512
 - TOTP (HMAC-SHA1)
 
 ##
