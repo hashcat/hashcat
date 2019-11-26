@@ -569,7 +569,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   // check : check if cracked
 
-  u32 num_cracked;
+  u32 num_cracked = 0;
 
   if (device_param->is_cuda == true)
   {
@@ -677,6 +677,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   if (num_cracked == 0)
   {
     hc_thread_mutex_lock (status_ctx->mux_display);
+
     if (device_param->is_opencl == true)
     {
       event_log_error (hashcat_ctx, "* Device #%u: ATTENTION! OpenCL kernel self-test failed.", device_param->device_id + 1);

@@ -3394,6 +3394,8 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
       }
     }
 
+    if (kernel_threads == 0) kernel_threads = 1;
+
     num_elements = CEILDIV (num_elements, kernel_threads);
 
     if ((hashconfig->opts_type & OPTS_TYPE_PT_BITSLICE) && (user_options->attack_mode == ATTACK_MODE_BF))

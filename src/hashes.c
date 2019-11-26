@@ -470,7 +470,7 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
   salt_t *salt_buf = &hashes->salts_buf[salt_pos];
 
-  u32 num_cracked;
+  u32 num_cracked = 0;
 
   int CU_rc;
   int CL_rc;
