@@ -218,10 +218,14 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
 
     if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
     {
+      extra_info_straight->out_len = MIN (extra_info_straight->out_len, 31); // max length supported by apply_rules_optimized()
+
       extra_info_straight->out_len = apply_rules_optimized (straight_ctx->kernel_rules_buf[extra_info_straight->rule_pos].cmds, &out_ptr[0], &out_ptr[4], extra_info_straight->out_len);
     }
     else
     {
+      extra_info_straight->out_len = MIN (extra_info_straight->out_len, 256); // max length supported by apply_rules()
+
       extra_info_straight->out_len = apply_rules (straight_ctx->kernel_rules_buf[extra_info_straight->rule_pos].cmds, out_ptr, extra_info_straight->out_len);
     }
 
