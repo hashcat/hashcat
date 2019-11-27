@@ -25,7 +25,7 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "pbkdf2(1000,20,sha512)$29$6899d434e831b6332b415019ba9b893f";
+static const char *ST_HASH        = "pbkdf2(1000,20,sha512)$744943$c5f8cdef76e3327c908d8d96d4abdb3d8caba14c";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -119,8 +119,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.len_max[3] = SALT_MAX;
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-  token.len_min[4] = 32;
-  token.len_max[4] = 32;
+  token.len_min[4] = 40;
+  token.len_max[4] = 40;
   token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
@@ -141,13 +141,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // hash
 
-  const u8 *hash_pos = token.buf[4];
-
-  digest[0] = hex_to_u64 (hash_pos +  0);
-  digest[1] = hex_to_u64 (hash_pos + 16);
-
-  digest[0] = byte_swap_64 (digest[0]);
-  digest[1] = byte_swap_64 (digest[1]);
+  hex_decode ((const u8 *) token.buf[4], 40, (u8 *) digest);
 
   return (PARSER_OK);
 }
@@ -166,16 +160,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   out_len += 1;
 
-  u64 tmp[2];
-
-  tmp[0] = digest[0];
-  tmp[1] = digest[1];
-
-  tmp[0] = byte_swap_64 (tmp[0]);
-  tmp[1] = byte_swap_64 (tmp[1]);
-
-  u64_to_hex (tmp[0], out_buf + out_len); out_len += 16;
-  u64_to_hex (tmp[1], out_buf + out_len); out_len += 16;
+  out_len += hex_encode ((const u8 *) digest, 20, (u8 *) out_buf + out_len);
 
   return out_len;
 }

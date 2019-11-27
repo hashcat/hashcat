@@ -20,7 +20,7 @@ sub module_generate_hash
   my $word       = shift;
   my $salt       = shift;
   my $iterations = shift // 1000;
-  my $out_len    = shift // 16;
+  my $out_len    = shift // 20;
 
   my $pbkdf2 = Crypt::PBKDF2->new
   (

@@ -327,8 +327,8 @@ KERNEL_FQ void m21600_comp (KERN_ATTR_TMPS (web2py_sha512_tmp_t))
 
   const u64 lid = get_local_id (0);
 
-  const u64 a = tmps[gid].out[0];
-  const u64 b = tmps[gid].out[1];
+  const u64 a = hc_swap64_S (tmps[gid].out[0]);
+  const u64 b = hc_swap64_S (tmps[gid].out[1]);
 
   const u32 r0 = l32_from_64_S (a);
   const u32 r1 = h32_from_64_S (a);
