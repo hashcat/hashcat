@@ -5796,7 +5796,12 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         // CL_INVALID_COMMAND_QUEUE and CL_OUT_OF_RESOURCES
         // Turns out that this is caused by Intel OpenCL runtime handling their GPU devices
         // Disable such devices unless the user forces to use it
+        // This is successfully workaround with new threading model and new memory management
+        // Tested on Windows 10
+        // OpenCL.Version.: OpenCL C 2.1
+        // Driver.Version.: 23.20.16.4973
 
+        /*
         #if !defined (__APPLE__)
         if (opencl_device_type & CL_DEVICE_TYPE_GPU)
         {
@@ -5813,6 +5818,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           }
         }
         #endif // __APPLE__
+        */
 
         // skipped
 
