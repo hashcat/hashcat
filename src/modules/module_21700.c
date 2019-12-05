@@ -10,7 +10,7 @@
 #include "convert.h"
 #include "shared.h"
 #include "memory.h"
-#include "ext_secp256k1.h"
+#include "emu_inc_ecc_secp256k1.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -24,8 +24,7 @@ static const u64   KERN_TYPE      = 21700;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_USES_BITS_64
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_HOOK23;
+static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$electrum$4*03eae309d8bda5dcbddaae8145469193152763894b7260a6c4ba181b3ac2ed5653*8c594086a64dc87a9c1f8a69f646e31e8d3182c3c722def4427aa20684776ac26092c6f60bf2762e27adfa93fe1e952dcb8d6362224b9a371953aa3a2edb596ce5eb4c0879c4353f2cc515ec6c9e7a6defa26c5df346d18a62e9d40fcc606bc8c34322bf2212f77770a683788db0baf4cb43595c2a27fe5ff8bdcb1fd915bcd725149d8ee8f14c71635fecb04da5dde97584f4581ceb7d907dceed80ae5daa8352dda20b25fd6001e99a96b7cf839a36cd3f5656304e6998c18e03dd2fb720cb41386c52910c9cb83272c3d50f3a6ff362ab8389b0c21c75133c971df0a75b331796371b060b32fe1673f4a041d7ae08bbdeffb45d706eaf65f99573c07972701c97766b4d7a8a03bba0f885eb3845dfd9152286e1de1f93e25ce04c54712509166dda80a84c2d34652f68e6c01e662f8b1cc7c15103a4502c29332a4fdbdda470c875809e15aab3f2fcb061ee96992ad7e8ab9da88203e35f47d6e88b07a13b0e70ef76de3be20dc06facbddc1e47206b16b44573f57396265116b4d243e77d1c98bc2b28aa3ec0f8d959764a54ecdd03d8360ff2823577fe2183e618aac15b30c1d20986841e3d83c0bfabcedb7c27ddc436eb7113db927e0beae7522b04566631a090b214660152a4f4a90e19356e66ee7309a0671b2e7bfde82667538d193fc7e397442052c6c611b6bf0a04f629a1dc7fa9eb44bfad1bfc6a0bce9f0564c3b483737e447720b7fd038c9a961a25e9594b76bf8c8071c83fcacd689c7469f698ee4aee4d4f626a73e21ce4967e705e4d83e1145b4260330367d8341c84723a1b02567ffbab26aac3afd1079887b4391f05d09780fc65f8b4f68cd51391c06593919d7eafd0775f83045b8f5c2e59cef902ff500654ea29b7623c7594ab2cc0e05ffe3f10abc46c9c5dac824673c307dcbff5bc5f3774141ff99f6a34ec4dd8a58d154a1c72636a2422b8fafdef399dec350d2b91947448582d52291f2261d264d29399ae3c92dc61769a49224af9e7c98d74190f93eb49a44db7587c1a2afb5e1a4bec5cdeb8ad2aac9728d5ae95600c52e9f063c11cdb32b7c1d8435ce76fcf1fa562bd38f14bf6c303c70fb373d951b8a691ab793f12c0f3336d6191378bccaed32923bba81868148f029e3d5712a2fb9f610997549710716db37f7400690c8dfbed12ff0a683d8e4d0079b380e2fd856eeafb8c6eedfac8fb54dacd6bd8a96e9f8d23ea87252c1a7c2b53efc6e6aa1f0cc30fbaaf68ee7d46666afc15856669cd9baebf9397ff9f322cce5285e68a985f3b6aadce5e8f14e9f9dd16764bc4e9f62168aa265d8634ab706ed40b0809023f141c36717bd6ccef9ec6aa6bfd2d00bda9375c2fee9ebba49590a166*1b0997cf64bb2c2ff88cb87bcacd9729d404bd46db18117c20d94e67c946fedc";
@@ -47,6 +46,8 @@ const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 
 typedef struct electrum
 {
+  secp256k1_t coords;
+
   u32 data_buf[4096];
   u32 data_len;
 
@@ -62,101 +63,7 @@ typedef struct electrum_tmp
 
 } electrum_tmp_t;
 
-typedef struct
-{
-  u32 ukey[8];
-
-  u32 pubkey[9]; // 32 + 1 bytes (for sign of the curve point)
-
-  u32 hook_success;
-
-} electrum_hook_t;
-
-typedef struct electrum_hook_salt
-{
-  u8 ephemeral_pubkey_raw[33];
-
-  secp256k1_pubkey ephemeral_pubkey_struct;
-
-} electrum_hook_salt_t;
-
 static const char *SIGNATURE_ELECTRUM = "$electrum$4*";
-
-#define M21700_MAX_ACCEL   16
-#define M21700_MAX_THREADS 64
-
-u32 module_kernel_accel_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u32 kernel_accel_max = (user_options->kernel_accel_chgd == true) ? user_options->kernel_accel : M21700_MAX_ACCEL;
-
-  return kernel_accel_max;
-}
-
-u32 module_kernel_threads_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u32 kernel_threads_max = (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : M21700_MAX_THREADS;
-
-  return kernel_threads_max;
-}
-
-void module_hook23 (hc_device_param_t *device_param, const void *hook_salts_buf, const u32 salt_pos, const u64 pw_pos)
-{
-  electrum_hook_t *hook_items = (electrum_hook_t *) device_param->hooks_buf;
-
-  electrum_hook_salt_t *electrums = (electrum_hook_salt_t *) hook_salts_buf;
-  electrum_hook_salt_t *electrum  = &electrums[salt_pos];
-
-  // we need to copy it because the secp256k1_ec_pubkey_tweak_mul () function has side effects
-
-  secp256k1_pubkey ephemeral_pubkey = electrum->ephemeral_pubkey_struct; // shallow copy is safe !
-
-  // this hook data needs to be updated (the "hook_success" variable):
-
-  electrum_hook_t *hook_item = &hook_items[pw_pos];
-
-  hook_item->hook_success = 0;
-
-  u32 *hook_pubkey = hook_item->pubkey;
-
-  hook_pubkey[0] = hook_item->ukey[0];
-  hook_pubkey[1] = hook_item->ukey[1];
-  hook_pubkey[2] = hook_item->ukey[2];
-  hook_pubkey[3] = hook_item->ukey[3];
-  hook_pubkey[4] = hook_item->ukey[4];
-  hook_pubkey[5] = hook_item->ukey[5];
-  hook_pubkey[6] = hook_item->ukey[6];
-  hook_pubkey[7] = hook_item->ukey[7];
-  hook_pubkey[8] = 0;
-
-  /*
-   * Start with Elliptic Curve Cryptography (ECC)
-   */
-
-  const size_t length = 33; // NOT a bug (32 + 1 for the sign)
-
-  bool multiply_success = hc_secp256k1_pubkey_tweak_mul (&ephemeral_pubkey, (u8 *) hook_pubkey, length);
-
-  if (multiply_success == false) return;
-
-  // in this case hook_success set to 1 doesn't mean that we've cracked it, but just that there were
-  // no problems detected by secp256k1_ec_pubkey_tweak_mul ()
-
-  hook_item->hook_success = 1;
-}
-
-u64 module_hook_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u64 hook_size = (const u64) sizeof (electrum_hook_t);
-
-  return hook_size;
-}
-
-u64 module_hook_salt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u64 hook_salt_size = (const u64) sizeof (electrum_hook_salt_t);
-
-  return hook_salt_size;
-}
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -193,8 +100,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   u32 *digest = (u32 *) digest_buf;
 
   electrum_t *esalt = (electrum_t *) esalt_buf;
-
-  electrum_hook_salt_t *hook = (electrum_hook_salt_t *) hook_salt_buf;
 
   token_t token;
 
@@ -245,16 +150,20 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // ephemeral pubkey:
 
+  u32 ephemeral_pubkey[9] = { 0 };
+
+  u8 *ephemeral_pubkey_ptr = (u8 *) ephemeral_pubkey;
+
   for (u32 i = 0, j = 0; j < 66; i += 1, j += 2)
   {
-    hook->ephemeral_pubkey_raw[i] = hex_to_u8 (ephemeral_pos + j);
+    ephemeral_pubkey_ptr[i] = hex_to_u8 (ephemeral_pos + j);
   }
 
-  size_t length = 33;
+  secp256k1_t *coords = &esalt->coords;
 
-  bool parse_success = hc_secp256k1_pubkey_parse (&hook->ephemeral_pubkey_struct, hook->ephemeral_pubkey_raw, length);
+  u32 parse_success = parse_public (coords, ephemeral_pubkey);
 
-  if (parse_success == false) return (PARSER_SALT_VALUE);
+  if (parse_success != 0) return (PARSER_SALT_VALUE);
 
   // data buf:
 
@@ -296,17 +205,19 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   electrum_t *esalt = (electrum_t *) esalt_buf;
 
-  electrum_hook_salt_t *hook = (electrum_hook_salt_t *) hook_salt_buf;
-
   // ephemeral pubkey:
 
   char ephemeral[66 + 1];
 
   memset (ephemeral, 0, sizeof (ephemeral));
 
-  for (u32 i = 0, j = 0; i < 33; i += 1, j += 2)
+  u8 type = 0x02 | (esalt->coords.xy[8] & 1); // odd or even y coordinate
+
+  snprintf (ephemeral, 66 + 1, "%02x", type);
+
+  for (int i = 31, j = 2; i >= 0; i -= 1, j += 2)
   {
-    const u8 *ptr = (const u8 *) hook->ephemeral_pubkey_raw;
+    const u8 *ptr = (const u8 *) esalt->coords.xy;
 
     snprintf (ephemeral + j, 66 + 1 - j, "%02x", ptr[i]);
   }
@@ -383,16 +294,16 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
   module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;
   module_ctx->module_hook12                   = MODULE_DEFAULT;
-  module_ctx->module_hook23                   = module_hook23;
-  module_ctx->module_hook_salt_size           = module_hook_salt_size;
-  module_ctx->module_hook_size                = module_hook_size;
+  module_ctx->module_hook23                   = MODULE_DEFAULT;
+  module_ctx->module_hook_salt_size           = MODULE_DEFAULT;
+  module_ctx->module_hook_size                = MODULE_DEFAULT;
   module_ctx->module_jit_build_options        = module_jit_build_options;
   module_ctx->module_jit_cache_disable        = MODULE_DEFAULT;
-  module_ctx->module_kernel_accel_max         = module_kernel_accel_max;
+  module_ctx->module_kernel_accel_max         = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_min         = MODULE_DEFAULT;
   module_ctx->module_kernel_loops_max         = MODULE_DEFAULT;
   module_ctx->module_kernel_loops_min         = MODULE_DEFAULT;
-  module_ctx->module_kernel_threads_max       = module_kernel_threads_max;
+  module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;

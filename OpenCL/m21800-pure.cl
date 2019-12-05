@@ -12,7 +12,18 @@
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha512.cl"
+#include "inc_ecc_secp256k1.cl"
+#include "inc_cipher_aes.cl"
+#include "inc_zip_inflate.cl"
 #endif
+
+typedef struct electrum
+{
+  secp256k1_t coords;
+
+  u32 data_buf[256];
+
+} electrum_t;
 
 typedef struct electrum_tmp
 {
@@ -23,14 +34,6 @@ typedef struct electrum_tmp
   u64  out[8];
 
 } electrum_tmp_t;
-
-typedef struct
-{
-  u32 ukey[8];
-
-  u32 hook_success;
-
-} electrum_hook_t;
 
 DECLSPEC void hmac_sha512_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, u64x *ipad, u64x *opad, u64x *digest)
 {
@@ -90,7 +93,7 @@ DECLSPEC void hmac_sha512_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w
   sha512_transform_vector (w0, w1, w2, w3, w4, w5, w6, w7, digest);
 }
 
-KERNEL_FQ void m21800_init (KERN_ATTR_TMPS_HOOKS (electrum_tmp_t, electrum_hook_t))
+KERNEL_FQ void m21800_init (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
 {
   /**
    * base
@@ -187,7 +190,7 @@ KERNEL_FQ void m21800_init (KERN_ATTR_TMPS_HOOKS (electrum_tmp_t, electrum_hook_
   tmps[gid].out[7] = tmps[gid].dgst[7];
 }
 
-KERNEL_FQ void m21800_loop (KERN_ATTR_TMPS_HOOKS (electrum_tmp_t, electrum_hook_t))
+KERNEL_FQ void m21800_loop (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -310,11 +313,69 @@ KERNEL_FQ void m21800_loop (KERN_ATTR_TMPS_HOOKS (electrum_tmp_t, electrum_hook_
   unpack64v (tmps, out, gid, 7, out[7]);
 }
 
-KERNEL_FQ void m21800_hook23 (KERN_ATTR_TMPS_HOOKS (electrum_tmp_t, electrum_hook_t))
+KERNEL_FQ void m21800_comp (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
 {
-  const u64 gid = get_global_id (0);
+  const u64 gid = get_global_id  (0);
+  const u64 lid = get_local_id   (0);
+  const u64 lsz = get_local_size (0);
+
+  /**
+   * aes shared
+   */
+
+  #ifdef REAL_SHM
+
+  LOCAL_VK u32 s_td0[256];
+  LOCAL_VK u32 s_td1[256];
+  LOCAL_VK u32 s_td2[256];
+  LOCAL_VK u32 s_td3[256];
+  LOCAL_VK u32 s_td4[256];
+
+  LOCAL_VK u32 s_te0[256];
+  LOCAL_VK u32 s_te1[256];
+  LOCAL_VK u32 s_te2[256];
+  LOCAL_VK u32 s_te3[256];
+  LOCAL_VK u32 s_te4[256];
+
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    s_td0[i] = td0[i];
+    s_td1[i] = td1[i];
+    s_td2[i] = td2[i];
+    s_td3[i] = td3[i];
+    s_td4[i] = td4[i];
+
+    s_te0[i] = te0[i];
+    s_te1[i] = te1[i];
+    s_te2[i] = te2[i];
+    s_te3[i] = te3[i];
+    s_te4[i] = te4[i];
+  }
+
+  SYNC_THREADS ();
+
+  #else
+
+  CONSTANT_AS u32a *s_td0 = td0;
+  CONSTANT_AS u32a *s_td1 = td1;
+  CONSTANT_AS u32a *s_td2 = td2;
+  CONSTANT_AS u32a *s_td3 = td3;
+  CONSTANT_AS u32a *s_td4 = td4;
+
+  CONSTANT_AS u32a *s_te0 = te0;
+  CONSTANT_AS u32a *s_te1 = te1;
+  CONSTANT_AS u32a *s_te2 = te2;
+  CONSTANT_AS u32a *s_te3 = te3;
+  CONSTANT_AS u32a *s_te4 = te4;
+
+  #endif
 
   if (gid >= gid_max) return;
+
+
+  /*
+   * Start by copying/aligning the data
+   */
 
   u64 out[8];
 
@@ -327,27 +388,9 @@ KERNEL_FQ void m21800_hook23 (KERN_ATTR_TMPS_HOOKS (electrum_tmp_t, electrum_hoo
   out[6] = tmps[gid].out[6];
   out[7] = tmps[gid].out[7];
 
-  // we need to perform a modulo operation with 512-bit % 256-bit (bignum modulo):
-  // the modulus is the secp256k1 group order
-
   /*
-    the general modulo by shift and substract code (a = a % b):
-
-    x = b;
-
-    t = a >> 1;
-
-    while (x <= t) x <<= 1;
-
-    while (a >= b)
-    {
-      if (a >= x) a -= x;
-
-      x >>= 1;
-    }
-
-    return a; // remainder
-  */
+   * First calculate the modulo of the pbkdf2 hash with SECP256K1_N:
+   */
 
   u32 a[16];
 
@@ -368,284 +411,199 @@ KERNEL_FQ void m21800_hook23 (KERN_ATTR_TMPS_HOOKS (electrum_tmp_t, electrum_hoo
   a[14] = h32_from_64_S (out[7]);
   a[15] = l32_from_64_S (out[7]);
 
-  u32 b[16];
+  mod_512 (a);
 
-  b[ 0] = 0x00000000;
-  b[ 1] = 0x00000000;
-  b[ 2] = 0x00000000;
-  b[ 3] = 0x00000000;
-  b[ 4] = 0x00000000;
-  b[ 5] = 0x00000000;
-  b[ 6] = 0x00000000;
-  b[ 7] = 0x00000000;
-  b[ 8] = 0xffffffff;
-  b[ 9] = 0xffffffff;
-  b[10] = 0xffffffff;
-  b[11] = 0xfffffffe;
-  b[12] = 0xbaaedce6;
-  b[13] = 0xaf48a03b;
-  b[14] = 0xbfd25e8c;
-  b[15] = 0xd0364141;
+  // copy the last 256 bit (32 bytes) of modulo (a):
+
+  u32 tweak[8];
+
+  tweak[0] = a[15];
+  tweak[1] = a[14];
+  tweak[2] = a[13];
+  tweak[3] = a[12];
+  tweak[4] = a[11];
+  tweak[5] = a[10];
+  tweak[6] = a[ 9];
+  tweak[7] = a[ 8];
+
 
   /*
-   * Start:
+   * the main secp256k1 point multiplication by a scalar/tweak:
    */
 
-  // x = b (but with a fast "shift" trick to avoid the while loop)
+  GLOBAL_AS secp256k1_t *coords = (GLOBAL_AS secp256k1_t *) &esalt_bufs[digests_offset].coords;
 
-  u32 x[16];
+  u32 pubkey[64] = { 0 }; // for point_mul () we need: 1 + 32 bytes (for sha512 () we need more)
 
-  x[ 0] = b[ 8]; // this is a trick: we just put the group order's most significant bit all the
-  x[ 1] = b[ 9]; // way to the top to avoid doing the initial: while (x <= t) x <<= 1
-  x[ 2] = b[10];
-  x[ 3] = b[11];
-  x[ 4] = b[12];
-  x[ 5] = b[13];
-  x[ 6] = b[14];
-  x[ 7] = b[15];
-  x[ 8] = 0x00000000;
-  x[ 9] = 0x00000000;
-  x[10] = 0x00000000;
-  x[11] = 0x00000000;
-  x[12] = 0x00000000;
-  x[13] = 0x00000000;
-  x[14] = 0x00000000;
-  x[15] = 0x00000000;
+  point_mul (pubkey, tweak, coords);
 
-  // a >= b
 
-  while (a[0] >= b[0])
+  /*
+   * sha512 () of the pubkey:
+   */
+
+  sha512_ctx_t sha512_ctx;
+
+  sha512_init   (&sha512_ctx);
+  sha512_update (&sha512_ctx, pubkey, 33); // 33 because of 32 byte curve point + sign
+  sha512_final  (&sha512_ctx);
+
+  // ... now we have the result in sha512_ctx.h[0]...sha512_ctx.h[7]
+
+  u32 iv[4];
+
+  iv[0] = h32_from_64_S (sha512_ctx.h[0]);
+  iv[1] = l32_from_64_S (sha512_ctx.h[0]);
+  iv[2] = h32_from_64_S (sha512_ctx.h[1]);
+  iv[3] = l32_from_64_S (sha512_ctx.h[1]);
+
+  iv[0] = hc_swap32_S (iv[0]);
+  iv[1] = hc_swap32_S (iv[1]);
+  iv[2] = hc_swap32_S (iv[2]);
+  iv[3] = hc_swap32_S (iv[3]);
+
+  u32 key[4];
+
+  key[0] = h32_from_64_S (sha512_ctx.h[2]);
+  key[1] = l32_from_64_S (sha512_ctx.h[2]);
+  key[2] = h32_from_64_S (sha512_ctx.h[3]);
+  key[3] = l32_from_64_S (sha512_ctx.h[3]);
+
+  key[0] = hc_swap32_S (key[0]);
+  key[1] = hc_swap32_S (key[1]);
+  key[2] = hc_swap32_S (key[2]);
+  key[3] = hc_swap32_S (key[3]);
+
+
+  /*
+   * AES decrypt the data_buf
+   */
+
+  // init AES
+
+  #define KEYLEN 44
+
+  u32 ks[KEYLEN];
+
+  aes128_set_decrypt_key (ks, key, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+
+  // #define AES_LEN 1024
+  // in my tests it also worked with only 128 input bytes !
+  #define AES_LEN       128
+  #define AES_LEN_DIV_4  32
+
+  u32 buf_full[AES_LEN_DIV_4];
+
+  // we need to run it at least once:
+
+  GLOBAL_AS u32 *data_buf = (GLOBAL_AS u32 *) esalt_bufs[digests_offset].data_buf;
+
+  u32 data[4];
+
+  data[0] = data_buf[0];
+  data[1] = data_buf[1];
+  data[2] = data_buf[2];
+  data[3] = data_buf[3];
+
+  u32 buf[4];
+
+  aes128_decrypt (ks, data, buf, s_td0, s_td1, s_td2, s_td3, s_td4);
+
+  buf[0] ^= iv[0];
+
+  // early reject
+
+  if ((buf[0] & 0x0007ffff) != 0x00059c78) return;
+
+  buf[1] ^= iv[1];
+  buf[2] ^= iv[2];
+  buf[3] ^= iv[3];
+
+  buf_full[0] = buf[0];
+  buf_full[1] = buf[1];
+  buf_full[2] = buf[2];
+  buf_full[3] = buf[3];
+
+  iv[0] = data[0];
+  iv[1] = data[1];
+  iv[2] = data[2];
+  iv[3] = data[3];
+
+  // for AES_LEN > 16 we need to loop
+
+  for (int i = 16, j = 4; i < AES_LEN; i += 16, j += 4)
   {
-    const u32 l1 = (a[ 0]  < b[ 0]) <<  0
-                 | (a[ 1]  < b[ 1]) <<  1
-                 | (a[ 2]  < b[ 2]) <<  2
-                 | (a[ 3]  < b[ 3]) <<  3
-                 | (a[ 4]  < b[ 4]) <<  4
-                 | (a[ 5]  < b[ 5]) <<  5
-                 | (a[ 6]  < b[ 6]) <<  6
-                 | (a[ 7]  < b[ 7]) <<  7
-                 | (a[ 8]  < b[ 8]) <<  8
-                 | (a[ 9]  < b[ 9]) <<  9
-                 | (a[10]  < b[10]) << 10
-                 | (a[11]  < b[11]) << 11
-                 | (a[12]  < b[12]) << 12
-                 | (a[13]  < b[13]) << 13
-                 | (a[14]  < b[14]) << 14
-                 | (a[15]  < b[15]) << 15;
+    data[0] = data_buf[j + 0];
+    data[1] = data_buf[j + 1];
+    data[2] = data_buf[j + 2];
+    data[3] = data_buf[j + 3];
 
-    const u32 e1 = (a[ 0] == b[ 0]) <<  0
-                 | (a[ 1] == b[ 1]) <<  1
-                 | (a[ 2] == b[ 2]) <<  2
-                 | (a[ 3] == b[ 3]) <<  3
-                 | (a[ 4] == b[ 4]) <<  4
-                 | (a[ 5] == b[ 5]) <<  5
-                 | (a[ 6] == b[ 6]) <<  6
-                 | (a[ 7] == b[ 7]) <<  7
-                 | (a[ 8] == b[ 8]) <<  8
-                 | (a[ 9] == b[ 9]) <<  9
-                 | (a[10] == b[10]) << 10
-                 | (a[11] == b[11]) << 11
-                 | (a[12] == b[12]) << 12
-                 | (a[13] == b[13]) << 13
-                 | (a[14] == b[14]) << 14
-                 | (a[15] == b[15]) << 15;
+    aes128_decrypt (ks, data, buf, s_td0, s_td1, s_td2, s_td3, s_td4);
 
-    if (l1)
-    {
-      if (l1 & 0x0001)                              break;
-      if (l1 & 0x0002) if ((e1 & 0x0001) == 0x0001) break;
-      if (l1 & 0x0004) if ((e1 & 0x0003) == 0x0003) break;
-      if (l1 & 0x0008) if ((e1 & 0x0007) == 0x0007) break;
-      if (l1 & 0x0010) if ((e1 & 0x000f) == 0x000f) break;
-      if (l1 & 0x0020) if ((e1 & 0x001f) == 0x001f) break;
-      if (l1 & 0x0040) if ((e1 & 0x003f) == 0x003f) break;
-      if (l1 & 0x0080) if ((e1 & 0x007f) == 0x007f) break;
-      if (l1 & 0x0100) if ((e1 & 0x00ff) == 0x00ff) break;
-      if (l1 & 0x0200) if ((e1 & 0x01ff) == 0x01ff) break;
-      if (l1 & 0x0400) if ((e1 & 0x03ff) == 0x03ff) break;
-      if (l1 & 0x0800) if ((e1 & 0x07ff) == 0x07ff) break;
-      if (l1 & 0x1000) if ((e1 & 0x0fff) == 0x0fff) break;
-      if (l1 & 0x2000) if ((e1 & 0x1fff) == 0x1fff) break;
-      if (l1 & 0x4000) if ((e1 & 0x3fff) == 0x3fff) break;
-      if (l1 & 0x8000) if ((e1 & 0x7fff) == 0x7fff) break;
-    }
+    buf[0] ^= iv[0];
+    buf[1] ^= iv[1];
+    buf[2] ^= iv[2];
+    buf[3] ^= iv[3];
 
-    // r = x (copy it to have the original values for the subtraction)
+    iv[0] = data[0];
+    iv[1] = data[1];
+    iv[2] = data[2];
+    iv[3] = data[3];
 
-    u32 r[16];
-
-    r[ 0] = x[ 0];
-    r[ 1] = x[ 1];
-    r[ 2] = x[ 2];
-    r[ 3] = x[ 3];
-    r[ 4] = x[ 4];
-    r[ 5] = x[ 5];
-    r[ 6] = x[ 6];
-    r[ 7] = x[ 7];
-    r[ 8] = x[ 8];
-    r[ 9] = x[ 9];
-    r[10] = x[10];
-    r[11] = x[11];
-    r[12] = x[12];
-    r[13] = x[13];
-    r[14] = x[14];
-    r[15] = x[15];
-
-    // x >>= 1
-
-    x[15] = x[15] >> 1 | (x[14] & 1) << 31;
-    x[14] = x[14] >> 1 | (x[13] & 1) << 31;
-    x[13] = x[13] >> 1 | (x[12] & 1) << 31;
-    x[12] = x[12] >> 1 | (x[11] & 1) << 31;
-    x[11] = x[11] >> 1 | (x[10] & 1) << 31;
-    x[10] = x[10] >> 1 | (x[ 9] & 1) << 31;
-    x[ 9] = x[ 9] >> 1 | (x[ 8] & 1) << 31;
-    x[ 8] = x[ 8] >> 1 | (x[ 7] & 1) << 31;
-    x[ 7] = x[ 7] >> 1 | (x[ 6] & 1) << 31;
-    x[ 6] = x[ 6] >> 1 | (x[ 5] & 1) << 31;
-    x[ 5] = x[ 5] >> 1 | (x[ 4] & 1) << 31;
-    x[ 4] = x[ 4] >> 1 | (x[ 3] & 1) << 31;
-    x[ 3] = x[ 3] >> 1 | (x[ 2] & 1) << 31;
-    x[ 2] = x[ 2] >> 1 | (x[ 1] & 1) << 31;
-    x[ 1] = x[ 1] >> 1 | (x[ 0] & 1) << 31;
-    x[ 0] = x[ 0] >> 1;
-
-    // if (a >= r) a -= r;
-
-    const u32 l2 = (a[ 0]  < r[ 0]) <<  0
-                 | (a[ 1]  < r[ 1]) <<  1
-                 | (a[ 2]  < r[ 2]) <<  2
-                 | (a[ 3]  < r[ 3]) <<  3
-                 | (a[ 4]  < r[ 4]) <<  4
-                 | (a[ 5]  < r[ 5]) <<  5
-                 | (a[ 6]  < r[ 6]) <<  6
-                 | (a[ 7]  < r[ 7]) <<  7
-                 | (a[ 8]  < r[ 8]) <<  8
-                 | (a[ 9]  < r[ 9]) <<  9
-                 | (a[10]  < r[10]) << 10
-                 | (a[11]  < r[11]) << 11
-                 | (a[12]  < r[12]) << 12
-                 | (a[13]  < r[13]) << 13
-                 | (a[14]  < r[14]) << 14
-                 | (a[15]  < r[15]) << 15;
-
-    const u32 e2 = (a[ 0] == r[ 0]) <<  0
-                 | (a[ 1] == r[ 1]) <<  1
-                 | (a[ 2] == r[ 2]) <<  2
-                 | (a[ 3] == r[ 3]) <<  3
-                 | (a[ 4] == r[ 4]) <<  4
-                 | (a[ 5] == r[ 5]) <<  5
-                 | (a[ 6] == r[ 6]) <<  6
-                 | (a[ 7] == r[ 7]) <<  7
-                 | (a[ 8] == r[ 8]) <<  8
-                 | (a[ 9] == r[ 9]) <<  9
-                 | (a[10] == r[10]) << 10
-                 | (a[11] == r[11]) << 11
-                 | (a[12] == r[12]) << 12
-                 | (a[13] == r[13]) << 13
-                 | (a[14] == r[14]) << 14
-                 | (a[15] == r[15]) << 15;
-
-    if (l2)
-    {
-      if (l2 & 0x0001)                              continue;
-      if (l2 & 0x0002) if ((e2 & 0x0001) == 0x0001) continue;
-      if (l2 & 0x0004) if ((e2 & 0x0003) == 0x0003) continue;
-      if (l2 & 0x0008) if ((e2 & 0x0007) == 0x0007) continue;
-      if (l2 & 0x0010) if ((e2 & 0x000f) == 0x000f) continue;
-      if (l2 & 0x0020) if ((e2 & 0x001f) == 0x001f) continue;
-      if (l2 & 0x0040) if ((e2 & 0x003f) == 0x003f) continue;
-      if (l2 & 0x0080) if ((e2 & 0x007f) == 0x007f) continue;
-      if (l2 & 0x0100) if ((e2 & 0x00ff) == 0x00ff) continue;
-      if (l2 & 0x0200) if ((e2 & 0x01ff) == 0x01ff) continue;
-      if (l2 & 0x0400) if ((e2 & 0x03ff) == 0x03ff) continue;
-      if (l2 & 0x0800) if ((e2 & 0x07ff) == 0x07ff) continue;
-      if (l2 & 0x1000) if ((e2 & 0x0fff) == 0x0fff) continue;
-      if (l2 & 0x2000) if ((e2 & 0x1fff) == 0x1fff) continue;
-      if (l2 & 0x4000) if ((e2 & 0x3fff) == 0x3fff) continue;
-      if (l2 & 0x8000) if ((e2 & 0x7fff) == 0x7fff) continue;
-    }
-
-    // substract (a -= r):
-
-    r[ 0] = a[ 0] - r[ 0];
-    r[ 1] = a[ 1] - r[ 1];
-    r[ 2] = a[ 2] - r[ 2];
-    r[ 3] = a[ 3] - r[ 3];
-    r[ 4] = a[ 4] - r[ 4];
-    r[ 5] = a[ 5] - r[ 5];
-    r[ 6] = a[ 6] - r[ 6];
-    r[ 7] = a[ 7] - r[ 7];
-    r[ 8] = a[ 8] - r[ 8];
-    r[ 9] = a[ 9] - r[ 9];
-    r[10] = a[10] - r[10];
-    r[11] = a[11] - r[11];
-    r[12] = a[12] - r[12];
-    r[13] = a[13] - r[13];
-    r[14] = a[14] - r[14];
-    r[15] = a[15] - r[15];
-
-    // take care of the "borrow" (we can't do it the other way around 15...1 because r[x] is changed!)
-
-    if (r[ 1] > a[ 1]) r[ 0]--;
-    if (r[ 2] > a[ 2]) r[ 1]--;
-    if (r[ 3] > a[ 3]) r[ 2]--;
-    if (r[ 4] > a[ 4]) r[ 3]--;
-    if (r[ 5] > a[ 5]) r[ 4]--;
-    if (r[ 6] > a[ 6]) r[ 5]--;
-    if (r[ 7] > a[ 7]) r[ 6]--;
-    if (r[ 8] > a[ 8]) r[ 7]--;
-    if (r[ 9] > a[ 9]) r[ 8]--;
-    if (r[10] > a[10]) r[ 9]--;
-    if (r[11] > a[11]) r[10]--;
-    if (r[12] > a[12]) r[11]--;
-    if (r[13] > a[13]) r[12]--;
-    if (r[14] > a[14]) r[13]--;
-    if (r[15] > a[15]) r[14]--;
-
-    a[ 0] = r[ 0];
-    a[ 1] = r[ 1];
-    a[ 2] = r[ 2];
-    a[ 3] = r[ 3];
-    a[ 4] = r[ 4];
-    a[ 5] = r[ 5];
-    a[ 6] = r[ 6];
-    a[ 7] = r[ 7];
-    a[ 8] = r[ 8];
-    a[ 9] = r[ 9];
-    a[10] = r[10];
-    a[11] = r[11];
-    a[12] = r[12];
-    a[13] = r[13];
-    a[14] = r[14];
-    a[15] = r[15];
+    buf_full[j + 0] = buf[0];
+    buf_full[j + 1] = buf[1];
+    buf_full[j + 2] = buf[2];
+    buf_full[j + 3] = buf[3];
   }
 
-  /**
-   * copy the last 256 bit (32 bytes) of modulo (a) to the hook buffer
+
+  /*
+   * zlib inflate/decompress:
    */
 
-  hooks[gid].ukey[0] = hc_swap32_S (a[ 8]);
-  hooks[gid].ukey[1] = hc_swap32_S (a[ 9]);
-  hooks[gid].ukey[2] = hc_swap32_S (a[10]);
-  hooks[gid].ukey[3] = hc_swap32_S (a[11]);
-  hooks[gid].ukey[4] = hc_swap32_S (a[12]);
-  hooks[gid].ukey[5] = hc_swap32_S (a[13]);
-  hooks[gid].ukey[6] = hc_swap32_S (a[14]);
-  hooks[gid].ukey[7] = hc_swap32_S (a[15]);
-}
+  mz_stream infstream;
 
-KERNEL_FQ void m21800_comp (KERN_ATTR_TMPS_HOOKS (electrum_tmp_t, electrum_hook_t))
-{
-  /**
-   * base
+  infstream.opaque    = Z_NULL;
+
+  // input:
+
+  infstream.avail_in  = AES_LEN;
+  infstream.next_in   = (u8 *) buf_full;
+
+  // output:
+
+  #define OUT_SIZE 16
+
+  u8 tmp[OUT_SIZE];
+
+  infstream.avail_out = OUT_SIZE;
+  infstream.next_out  = tmp;
+
+
+  // decompress it:
+
+  inflate_state pStream;
+
+  mz_inflateInit2 (&infstream, MAX_WBITS, &pStream);
+
+  const int zlib_ret = inflate (&infstream, Z_NO_FLUSH);
+
+  if ((zlib_ret != MZ_OK) && (zlib_ret != MZ_STREAM_END))
+  {
+    return;
+  }
+
+
+  /*
+   * Verify if decompressed data is either:
+   * - "{\n    \"" or
+   * - "{\r\n    \""
    */
 
-  const u64 gid = get_global_id (0);
-
-  if (gid >= gid_max) return;
-
-  if (hooks[gid].hook_success == 1)
+  if (((tmp[0] == 0x7b) && (tmp[1] == 0x0a) && (tmp[2] == 0x20) && (tmp[3] == 0x20) &&
+       (tmp[4] == 0x20) && (tmp[5] == 0x20) && (tmp[6] == 0x22)) ||
+      ((tmp[0] == 0x7b) && (tmp[1] == 0x0d) && (tmp[2] == 0x0a) && (tmp[3] == 0x20) &&
+       (tmp[4] == 0x20) && (tmp[5] == 0x20) && (tmp[6] == 0x20) && (tmp[7] == 0x22)))
   {
     if (atomic_inc (&hashes_shown[digests_offset]) == 0)
     {

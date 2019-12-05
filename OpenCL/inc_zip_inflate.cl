@@ -209,6 +209,15 @@ DECLSPEC void *memset(u8 *s, int c, u32 len){
 #define TINFL_MEMSET(p, c, l) memset(p, c, (u32)l)
 #define MZ_CLEAR_OBJ(obj) memset(&(obj), 0, sizeof(obj))
 
+// hashcat-patched/hashcat-specific:
+#ifdef CRC32_IN_INFLATE
+#define M_DICT_SIZE 1
+#define MAYBE_GLOBAL GLOBAL_AS
+#else
+#define M_DICT_SIZE TINFL_LZ_DICT_SIZE
+#define MAYBE_GLOBAL
+#endif
+
 #define TINFL_CR_FINISH }
 #define TINFL_CR_BEGIN  \
     switch (r->m_state) \
@@ -411,14 +420,16 @@ typedef struct
     tinfl_decompressor m_decomp;
     mz_uint m_dict_ofs, m_dict_avail, m_first_call, m_has_flushed;
     int m_window_bits;
-    mz_uint8 m_dict[1]; // hashcat-patched: we do not need m_dict because we have our own output buffer
+    // hashcat-patched: we do not need m_dict in case of CRC32 checksums,
+    // because we have our own output buffer:
+    mz_uint8 m_dict[M_DICT_SIZE];
     tinfl_status m_last_status;
 
 } inflate_state;
 
 typedef struct mz_stream_s
 {
-    GLOBAL_AS const unsigned char *next_in; /* pointer to next byte to read */
+    MAYBE_GLOBAL const unsigned char *next_in; /* pointer to next byte to read */
     unsigned int avail_in;        /* number of bytes available at next_in */
     mz_ulong total_in;            /* total number of bytes consumed so far */
 
@@ -457,9 +468,10 @@ DECLSPEC int mz_inflateEnd(mz_streamp pStream);
 
 DECLSPEC int mz_inflateInit2(mz_streamp pStream, int window_bits, inflate_state*);
 
-
+// hashcat-patched/hashcat-specific:
 DECLSPEC const mz_uint8 pIn_xor_byte (const mz_uint8 c, mz_streamp pStream)
 {
+  #ifdef CRC32_IN_INFLATE
   mz_uint8 r = c;
 
   u32 key3;
@@ -469,18 +481,21 @@ DECLSPEC const mz_uint8 pIn_xor_byte (const mz_uint8 c, mz_streamp pStream)
   update_key012 (pStream->key0, pStream->key1, pStream->key2, plain, pStream->crc32tab);
 
   return (mz_uint8) plain;
+  #else
+  return c;
+  #endif
 }
 
 
-DECLSPEC void memcpy_g(void *dest, GLOBAL_AS const void *src, size_t n, mz_streamp pStream){
-  GLOBAL_AS char *csrc = (GLOBAL_AS char *)src;
+DECLSPEC void memcpy_g(void *dest, MAYBE_GLOBAL const void *src, size_t n, mz_streamp pStream){
+  MAYBE_GLOBAL char *csrc = (MAYBE_GLOBAL char *)src;
   char *cdest = (char *)dest;
   for (int i=0; i<n; i++){
     cdest[i] = pIn_xor_byte (csrc[i], pStream);
   }
 }
 
-DECLSPEC tinfl_status tinfl_decompress(tinfl_decompressor *r, GLOBAL_AS const mz_uint8 *pIn_buf_next, size_t *pIn_buf_size, mz_uint8 *pOut_buf_start, mz_uint8 *pOut_buf_next, size_t *pOut_buf_size, const mz_uint32 decomp_flags, mz_streamp pStream)
+DECLSPEC tinfl_status tinfl_decompress(tinfl_decompressor *r, MAYBE_GLOBAL const mz_uint8 *pIn_buf_next, size_t *pIn_buf_size, mz_uint8 *pOut_buf_start, mz_uint8 *pOut_buf_next, size_t *pOut_buf_size, const mz_uint32 decomp_flags, mz_streamp pStream)
 {
 
     const int s_length_base[31] = { 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258, 0, 0 };
@@ -493,8 +508,8 @@ DECLSPEC tinfl_status tinfl_decompress(tinfl_decompressor *r, GLOBAL_AS const mz
     tinfl_status status = TINFL_STATUS_FAILED;
     mz_uint32 num_bits, dist, counter, num_extra;
     tinfl_bit_buf_t bit_buf;
-    GLOBAL_AS const mz_uint8 *pIn_buf_cur = pIn_buf_next;
-    GLOBAL_AS const mz_uint8 *pIn_buf_end = pIn_buf_next + *pIn_buf_size;
+    MAYBE_GLOBAL const mz_uint8 *pIn_buf_cur = pIn_buf_next;
+    MAYBE_GLOBAL const mz_uint8 *pIn_buf_end = pIn_buf_next + *pIn_buf_size;
     mz_uint8 *pOut_buf_cur = pOut_buf_next, *const pOut_buf_end = pOut_buf_next + *pOut_buf_size;
     size_t out_buf_size_mask = (decomp_flags & TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF) ? (size_t)-1 : ((pOut_buf_next - pOut_buf_start) + *pOut_buf_size) - 1, dist_from_out_buf_start;
 
@@ -1008,10 +1023,12 @@ DECLSPEC int mz_inflate(mz_streamp pStream, int flush)
         out_bytes = pStream->avail_out;
         status = tinfl_decompress(&pState->m_decomp, pStream->next_in, &in_bytes, pStream->next_out, pStream->next_out, &out_bytes, decomp_flags, pStream);
 
+        #ifdef CRC32_IN_INFLATE
         for (int i = 0; i < out_bytes; i++)
         {
           pStream->crc32 = CRC32 (pStream->crc32, pStream->next_out[i], pStream->crc32tab);
         }
+        #endif
 
         pState->m_last_status = status;
         pStream->next_in += (mz_uint)in_bytes;
@@ -1040,10 +1057,12 @@ DECLSPEC int mz_inflate(mz_streamp pStream, int flush)
         n = MZ_MIN(pState->m_dict_avail, pStream->avail_out);
         memcpy(pStream->next_out, pState->m_dict + pState->m_dict_ofs, n);
 
+        #ifdef CRC32_IN_INFLATE
         for (int i = 0; i < n; i++)
         {
           pStream->crc32 = CRC32 (pStream->crc32, pStream->next_out[i], pStream->crc32tab);
         }
+        #endif
 
         //pStream->next_out += n;
         //pStream->avail_out -= n;
@@ -1072,10 +1091,12 @@ DECLSPEC int mz_inflate(mz_streamp pStream, int flush)
         n = MZ_MIN(pState->m_dict_avail, pStream->avail_out);
         memcpy(pStream->next_out, pState->m_dict + pState->m_dict_ofs, n);
 
+        #ifdef CRC32_IN_INFLATE
         for (int i = 0; i < n; i++)
         {
           pStream->crc32 = CRC32 (pStream->crc32, pStream->next_out[i], pStream->crc32tab);
         }
+        #endif
 
         //pStream->next_out += n;
         //pStream->avail_out -= n;
@@ -1158,10 +1179,12 @@ DECLSPEC int hc_inflate (mz_streamp pStream)
 
   tinfl_status status = tinfl_decompress (&pState->m_decomp, pStream->next_in, &in_bytes, pStream->next_out, pStream->next_out + pStream->total_out, &out_bytes, decomp_flags, pStream);
 
+  #ifdef CRC32_IN_INFLATE
   for (int i = 0; i < out_bytes; i++)
   {
     pStream->crc32 = CRC32 (pStream->crc32, pStream->next_out[pStream->total_out + i], pStream->crc32tab);
   }
+  #endif
 
   pStream->next_in  += (mz_uint) in_bytes;
   pStream->avail_in -= (mz_uint) in_bytes;

@@ -56,7 +56,7 @@ Other contributors to hashcat
 * LZMA-SDK by Igor Pavlov
 * zlib by Jean-loup Gailly and Mark Adler
 * win-iconv by Yukihiro Nakadaira
-* secp256k1 library by Pieter Wuille
+* micro-ecc by Ken MacKay (used as reference for some secp256k1 operations)
 
 # Furthermore the following persons helped the project:
 
