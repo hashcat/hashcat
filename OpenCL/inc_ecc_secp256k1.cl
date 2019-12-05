@@ -108,6 +108,21 @@ DECLSPEC u32 sub (u32 r[8], const u32 a[8], const u32 b[8])
 {
   u32 c = 0; // carry/borrow
 
+  #ifdef IS_NV
+  asm("sub.cc.u32   %0,  %9, %17;"
+      "subc.cc.u32  %1, %10, %18;"
+      "subc.cc.u32  %2, %11, %19;"
+      "subc.cc.u32  %3, %12, %20;"
+      "subc.cc.u32  %4, %13, %21;"
+      "subc.cc.u32  %5, %14, %22;"
+      "subc.cc.u32  %6, %15, %23;"
+      "subc.cc.u32  %7, %16, %24;"
+      "subc.u32     %8,   0,   0;"
+      : "=r"(r[0]), "=r"(r[1]), "=r"(r[2]), "=r"(r[3]), "=r"(r[4]), "=r"(r[5]), "=r"(r[6]), "=r"(r[7]),
+        "=r"(c)
+      :  "r"(a[0]),  "r"(a[1]),  "r"(a[2]),  "r"(a[3]),  "r"(a[4]),  "r"(a[5]),  "r"(a[6]),  "r"(a[7]),
+         "r"(b[0]),  "r"(b[1]),  "r"(b[2]),  "r"(b[3]),  "r"(b[4]),  "r"(b[5]),  "r"(b[6]),  "r"(b[7]));
+  #else
   for (u32 i = 0; i < 8; i++)
   {
     const u32 diff = a[i] - b[i] - c;
@@ -115,15 +130,31 @@ DECLSPEC u32 sub (u32 r[8], const u32 a[8], const u32 b[8])
     if (diff != a[i]) c = (diff > a[i]);
 
     r[i] = diff;
- }
+  }
+  #endif
 
- return c;
+  return c;
 }
 
 DECLSPEC u32 add (u32 r[8], const u32 a[8], const u32 b[8])
 {
   u32 c = 0; // carry/borrow
 
+  #ifdef IS_NV
+  asm("add.cc.u32   %0,  %9, %17;"
+      "addc.cc.u32  %1, %10, %18;"
+      "addc.cc.u32  %2, %11, %19;"
+      "addc.cc.u32  %3, %12, %20;"
+      "addc.cc.u32  %4, %13, %21;"
+      "addc.cc.u32  %5, %14, %22;"
+      "addc.cc.u32  %6, %15, %23;"
+      "addc.cc.u32  %7, %16, %24;"
+      "addc.u32     %8,   0,   0;"
+      : "=r"(r[0]), "=r"(r[1]), "=r"(r[2]), "=r"(r[3]), "=r"(r[4]), "=r"(r[5]), "=r"(r[6]), "=r"(r[7]),
+        "=r"(c)
+      :  "r"(a[0]),  "r"(a[1]),  "r"(a[2]),  "r"(a[3]),  "r"(a[4]),  "r"(a[5]),  "r"(a[6]),  "r"(a[7]),
+         "r"(b[0]),  "r"(b[1]),  "r"(b[2]),  "r"(b[3]),  "r"(b[4]),  "r"(b[5]),  "r"(b[6]),  "r"(b[7]));
+  #else
   for (u32 i = 0; i < 8; i++)
   {
     const u32 t = a[i] + b[i] + c;
@@ -132,6 +163,7 @@ DECLSPEC u32 add (u32 r[8], const u32 a[8], const u32 b[8])
 
     r[i] = t;
   }
+  #endif
 
   return c;
 }
