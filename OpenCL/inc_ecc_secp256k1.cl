@@ -74,7 +74,7 @@
  *  // Example with window size w = 2 (i.e. mod 4 => & 3):
  *  // 173 => 1 0 -1 0 -1 0 -1 0 1 = 2^8 - 2^6 - 2^4 - 2^2 + 1
  *  int e = 0b10101101;   // 173
- *  int z[8 + 1] = { 0 }; // our zi/di, we need one extra slot to make the substract work
+ *  int z[8 + 1] = { 0 }; // our zi/di, we need one extra slot to make the subtraction work
  *
  *  int i = 0;
  *
@@ -1356,7 +1356,7 @@ DECLSPEC void point_get_coords (secp256k1_t *r, const u32 x[8], const u32 y[8])
   t1[7] = y[7];
 
   // we use jacobian forms and the convertion with z = 1 is basically a NO-OP:
-  // X = X1 * z^2 = X1, Y = Y1 * z^3 = Y
+  // X = X1 * z^2 = X1, Y = Y1 * z^3 = Y1
 
   // https://eprint.iacr.org/2011/338.pdf
 
@@ -1501,7 +1501,7 @@ DECLSPEC void point_get_coords (secp256k1_t *r, const u32 x[8], const u32 y[8])
   mul_mod (t2, t1, t1); // t2 = t1^2
   mul_mod (t3, t1, t2); // t3 = t1^3
 
-  // output to y1
+  // output to y2
 
   mul_mod (t3, t3, x1);
 
@@ -1514,7 +1514,7 @@ DECLSPEC void point_get_coords (secp256k1_t *r, const u32 x[8], const u32 y[8])
   r->xy[41] = t3[1];
   r->xy[40] = t3[0];
 
-  // output to x1
+  // output to x2
 
   mul_mod (t3, t2, t4);
 
