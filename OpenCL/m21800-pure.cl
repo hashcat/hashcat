@@ -513,7 +513,9 @@ KERNEL_FQ void m21800_comp (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
 
   // early reject
 
-  if ((buf[0] & 0x0007ffff) != 0x00059c78) return;
+  u32 zlib_header = buf[0] & 0x0007ffff;
+
+  if ((zlib_header != 0x00049c78) && (zlib_header != 0x00059c78)) return;
 
   buf[1] ^= iv[1];
   buf[2] ^= iv[2];
