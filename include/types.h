@@ -1238,11 +1238,19 @@ typedef struct hc_device_param
   hc_timer_t timer_speed;
 
   // AMD
+  bool    has_vadd;
+  bool    has_vaddc;
+  bool    has_vsub;
+  bool    has_vsubb;
   bool    has_vadd3;
   bool    has_vbfe;
   bool    has_vperm;
 
   // NV
+  bool    has_add;
+  bool    has_addc;
+  bool    has_sub;
+  bool    has_subc;
   bool    has_bfe;
   bool    has_lop3;
   bool    has_mov64;
