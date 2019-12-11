@@ -168,7 +168,7 @@ sub module_generate_hash
 
     my $zlib_rate = ord (substr ($compressed_data, 2, 1)) & 0x07;
 
-    if ($zlib_rate != 0x05)
+    if (($zlib_rate != 0x04) && ($zlib_rate != 0x05))
     {
       next;
     }
