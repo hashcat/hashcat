@@ -28,6 +28,20 @@ typedef struct mywallet_tmp
 
 } mywallet_tmp_t;
 
+DECLSPEC int is_valid_char (const u32 v)
+{
+  if ((v & 0xff000000) < 0x09000000) return 0;
+  if ((v & 0xff000000) > 0x7e000000) return 0;
+  if ((v & 0x00ff0000) < 0x00090000) return 0;
+  if ((v & 0x00ff0000) > 0x007e0000) return 0;
+  if ((v & 0x0000ff00) < 0x00000900) return 0;
+  if ((v & 0x0000ff00) > 0x00007e00) return 0;
+  if ((v & 0x000000ff) < 0x00000009) return 0;
+  if ((v & 0x000000ff) > 0x0000007e) return 0;
+
+  return 1;
+}
+
 DECLSPEC void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
 {
   digest[0] = ipad[0];
@@ -318,40 +332,48 @@ KERNEL_FQ void m12700_comp (KERN_ATTR_TMPS (mywallet_tmp_t))
 
   AES256_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
-  u32 data[4];
+  u32 iv[4];
 
-  data[0] = salt_bufs[salt_pos].salt_buf[4];
-  data[1] = salt_bufs[salt_pos].salt_buf[5];
-  data[2] = salt_bufs[salt_pos].salt_buf[6];
-  data[3] = salt_bufs[salt_pos].salt_buf[7];
-
-  u32 out[4];
-
-  AES256_decrypt (ks, data, out, s_td0, s_td1, s_td2, s_td3, s_td4);
+  iv[0] = salt_bufs[salt_pos].salt_buf[0];
+  iv[1] = salt_bufs[salt_pos].salt_buf[1];
+  iv[2] = salt_bufs[salt_pos].salt_buf[2];
+  iv[3] = salt_bufs[salt_pos].salt_buf[3];
 
   // decrypted data should be a JSON string consisting only of ASCII chars (0x09-0x7e)
 
-  for (u32 i = 0; i < 4; i++)
+  for (u32 i = 4; i < 12; i += 4)
   {
-    out[i] ^= salt_bufs[salt_pos].salt_buf[i];
+    u32 data[4];
 
-    if ((out[i] & 0xff000000) < 0x09000000) return;
-    if ((out[i] & 0xff000000) > 0x7e000000) return;
+    data[0] = salt_bufs[salt_pos].salt_buf[i + 0];
+    data[1] = salt_bufs[salt_pos].salt_buf[i + 1];
+    data[2] = salt_bufs[salt_pos].salt_buf[i + 2];
+    data[3] = salt_bufs[salt_pos].salt_buf[i + 3];
 
-    if ((out[i] & 0x00ff0000) < 0x00090000) return;
-    if ((out[i] & 0x00ff0000) > 0x007e0000) return;
+    u32 out[4];
 
-    if ((out[i] & 0x0000ff00) < 0x00000900) return;
-    if ((out[i] & 0x0000ff00) > 0x00007e00) return;
+    AES256_decrypt (ks, data, out, s_td0, s_td1, s_td2, s_td3, s_td4);
 
-    if ((out[i] & 0x000000ff) < 0x00000009) return;
-    if ((out[i] & 0x000000ff) > 0x0000007e) return;
+    out[0] ^= iv[0];
+    out[1] ^= iv[1];
+    out[2] ^= iv[2];
+    out[3] ^= iv[3];
+
+    if (is_valid_char (out[0]) == 0) return;
+    if (is_valid_char (out[1]) == 0) return;
+    if (is_valid_char (out[2]) == 0) return;
+    if (is_valid_char (out[3]) == 0) return;
+
+    iv[0] = data[0];
+    iv[1] = data[1];
+    iv[2] = data[2];
+    iv[3] = data[3];
   }
 
-  const u32 r0 = data[0];
-  const u32 r1 = data[1];
-  const u32 r2 = data[2];
-  const u32 r3 = data[3];
+  const u32 r0 = salt_bufs[salt_pos].salt_buf[4];
+  const u32 r1 = salt_bufs[salt_pos].salt_buf[5];
+  const u32 r2 = salt_bufs[salt_pos].salt_buf[6];
+  const u32 r3 = salt_bufs[salt_pos].salt_buf[7];
 
   #define il_pos 0
 
