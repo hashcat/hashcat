@@ -329,110 +329,33 @@ KERNEL_FQ void m12700_comp (KERN_ATTR_TMPS (mywallet_tmp_t))
 
   AES256_decrypt (ks, data, out, s_td0, s_td1, s_td2, s_td3, s_td4);
 
-  out[0] ^= salt_bufs[salt_pos].salt_buf[0];
-  out[1] ^= salt_bufs[salt_pos].salt_buf[1];
-  out[2] ^= salt_bufs[salt_pos].salt_buf[2];
-  out[3] ^= salt_bufs[salt_pos].salt_buf[3];
+  // decrypted data should be a JSON string consisting only of ASCII chars (0x09-0x7e)
 
-  out[0] = hc_swap32_S (out[0]);
-  out[1] = hc_swap32_S (out[1]);
-  out[2] = hc_swap32_S (out[2]);
-  out[3] = hc_swap32_S (out[3]);
-
-  if ((out[0] & 0xff) != '{') return;
-
-  char *pt = (char *) out;
-
-  for (int i = 1; i < 16 - 6; i++)
+  for (u32 i = 0; i < 4; i++)
   {
-    // "guid"
-    if ((pt[i + 0] == '"') && (pt[i + 1] == 'g') && (pt[i + 2] == 'u') && (pt[i + 3] == 'i') && (pt[i + 4] == 'd') && (pt[i + 5] == '"'))
-    {
-      const u32 r0 = data[0];
-      const u32 r1 = data[1];
-      const u32 r2 = data[2];
-      const u32 r3 = data[3];
+    out[i] ^= salt_bufs[salt_pos].salt_buf[i];
 
-      #define il_pos 0
+    if ((out[i] & 0xff000000) < 0x09000000) return;
+    if ((out[i] & 0xff000000) > 0x7e000000) return;
 
-      #ifdef KERNEL_STATIC
-      #include COMPARE_M
-      #endif
-    }
+    if ((out[i] & 0x00ff0000) < 0x00090000) return;
+    if ((out[i] & 0x00ff0000) > 0x007e0000) return;
 
-    // "tx_no
-    if ((pt[i + 0] == '"') && (pt[i + 1] == 't') && (pt[i + 2] == 'x') && (pt[i + 3] == '_') && (pt[i + 4] == 'n') && (pt[i + 5] == 'o'))
-    {
-      const u32 r0 = data[0];
-      const u32 r1 = data[1];
-      const u32 r2 = data[2];
-      const u32 r3 = data[3];
+    if ((out[i] & 0x0000ff00) < 0x00000900) return;
+    if ((out[i] & 0x0000ff00) > 0x00007e00) return;
 
-      #define il_pos 0
-
-      #ifdef KERNEL_STATIC
-      #include COMPARE_M
-      #endif
-    }
-
-    // "share
-    if ((pt[i + 0] == '"') && (pt[i + 1] == 's') && (pt[i + 2] == 'h') && (pt[i + 3] == 'a') && (pt[i + 4] == 'r') && (pt[i + 5] == 'e'))
-    {
-      const u32 r0 = data[0];
-      const u32 r1 = data[1];
-      const u32 r2 = data[2];
-      const u32 r3 = data[3];
-
-      #define il_pos 0
-
-      #ifdef KERNEL_STATIC
-      #include COMPARE_M
-      #endif
-    }
-
-    // "doubl
-    if ((pt[i + 0] == '"') && (pt[i + 1] == 'd') && (pt[i + 2] == 'o') && (pt[i + 3] == 'u') && (pt[i + 4] == 'b') && (pt[i + 5] == 'l'))
-    {
-      const u32 r0 = data[0];
-      const u32 r1 = data[1];
-      const u32 r2 = data[2];
-      const u32 r3 = data[3];
-
-      #define il_pos 0
-
-      #ifdef KERNEL_STATIC
-      #include COMPARE_M
-      #endif
-    }
-
-    // "addre
-    if ((pt[i + 0] == '"') && (pt[i + 1] == 'a') && (pt[i + 2] == 'd') && (pt[i + 3] == 'd') && (pt[i + 4] == 'r') && (pt[i + 5] == 'e'))
-    {
-      const u32 r0 = data[0];
-      const u32 r1 = data[1];
-      const u32 r2 = data[2];
-      const u32 r3 = data[3];
-
-      #define il_pos 0
-
-      #ifdef KERNEL_STATIC
-      #include COMPARE_M
-      #endif
-    }
-
-    // "keys"
-    if ((pt[i + 0] == '"') && (pt[i + 1] == 'k') && (pt[i + 2] == 'e') && (pt[i + 3] == 'y') && (pt[i + 4] == 's') && (pt[i + 5] == '"'))
-    {
-      const u32 r0 = data[0];
-      const u32 r1 = data[1];
-      const u32 r2 = data[2];
-      const u32 r3 = data[3];
-
-      #define il_pos 0
-
-      #ifdef KERNEL_STATIC
-      #include COMPARE_M
-      #endif
-    }
+    if ((out[i] & 0x000000ff) < 0x00000009) return;
+    if ((out[i] & 0x000000ff) > 0x0000007e) return;
   }
+
+  const u32 r0 = data[0];
+  const u32 r1 = data[1];
+  const u32 r2 = data[2];
+  const u32 r3 = data[3];
+
+  #define il_pos 0
+
+  #ifdef KERNEL_STATIC
+  #include COMPARE_M
+  #endif
 }
