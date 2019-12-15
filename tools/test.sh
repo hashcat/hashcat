@@ -19,7 +19,7 @@ VC_MODES="13711 13712 13713 13721 13722 13723 13731 13732 13733 13741 13742 1374
 NEVER_CRACK="9720 9820 14900 18100"
 
 # List of modes which return a different output hash format than the input hash format
-NOCHECK_ENCODING="16800"
+NOCHECK_ENCODING="16800 22000"
 
 # LUKS mode has test containers
 LUKS_MODE="14600"
@@ -273,6 +273,8 @@ function init()
     min_offset=3
   elif [ "${hash_type}" -eq 16800 ]; then
     min_offset=7 # means length 8, since we start with 0
+  elif [ "${hash_type}" -eq 22000 ]; then
+    min_offset=7 # means length 8, since we start with 0
   fi
 
   # foreach password entry split password in 2 (skip first entry, is len 1)
@@ -333,6 +335,8 @@ function init()
   elif [ "${hash_type}" -eq 15400 ]; then
     min_len=31
   elif [ "${hash_type}" -eq 16800 ]; then
+    min_len=7 # means length 8, since we start with 0
+  elif [ "${hash_type}" -eq 22000 ]; then
     min_len=7 # means length 8, since we start with 0
   fi
 
@@ -925,6 +929,8 @@ function attack_3()
       max=1
     elif [ "${hash_type}" -eq 16800 ]; then
       max=7
+    elif [ "${hash_type}" -eq 22000 ]; then
+      max=7
     fi
 
     i=1
@@ -1090,6 +1096,11 @@ function attack_3()
     fi
 
     if   [ "${hash_type}" -eq 16800 ]; then
+      increment_min=8
+      increment_max=9
+    fi
+
+    if   [ "${hash_type}" -eq 22000 ]; then
       increment_min=8
       increment_max=9
     fi
@@ -1335,6 +1346,91 @@ function attack_3()
       custom_charsets="-1 ${charset_1} -2 ${charset_2} -3 ${charset_3} -4 ${charset_4}"
     fi
 
+    if [ "${hash_type}" -eq 22000 ]; then
+
+      mask="?d?d?d?d?d?1?2?3?4"
+
+      charset_1=""
+      charset_2=""
+      charset_3=""
+      charset_4=""
+
+      # check positions (here we assume that mask is always composed of non literal chars
+      # i.e. something like ?d?l?u?s?1 is possible, but ?d?dsuffix not
+      charset_1_pos=$(expr index "${mask}" 1)
+      charset_2_pos=$(expr index "${mask}" 2)
+      charset_3_pos=$(expr index "${mask}" 3)
+      charset_4_pos=$(expr index "${mask}" 4)
+
+      # divide each charset position by 2 since each of them occupies 2 positions in the mask
+
+      charset_1_pos=$((charset_1_pos / 2))
+      charset_2_pos=$((charset_2_pos / 2))
+      charset_3_pos=$((charset_3_pos / 2))
+      charset_4_pos=$((charset_4_pos / 2))
+
+      i=1
+
+      while read -r -u 9 hash; do
+
+        pass=$(sed -n ${i}p "${OUTD}/${hash_type}_passwords.txt")
+
+        # charset 1
+        char=$(echo "${pass}" | cut -b ${charset_1_pos})
+        charset_1=$(printf "%s\n%s\n" "${charset_1}" "${char}")
+
+        # charset 2
+        char=$(echo "${pass}" | cut -b ${charset_2_pos})
+        charset_2=$(printf "%s\n%s\n" "${charset_2}" "${char}")
+
+        # charset 3
+        char=$(echo "${pass}" | cut -b ${charset_3_pos})
+        charset_3=$(printf "%s\n%s\n" "${charset_3}" "${char}")
+
+        # charset 4
+        char=$(echo "${pass}" | cut -b ${charset_4_pos})
+        charset_4=$(printf "%s\n%s\n" "${charset_4}" "${char}")
+
+        i=$((i + 1))
+
+      done 9< "${OUTD}/${hash_type}_multihash_bruteforce.txt"
+
+      # just make sure that all custom charset fields are initialized
+
+      if [ -z "${charset_1}" ]; then
+
+        charset_1="1"
+
+      fi
+
+      if [ -z "${charset_2}" ]; then
+
+        charset_2="2"
+
+      fi
+
+      if [ -z "${charset_3}" ]; then
+
+        charset_3="3"
+
+      fi
+
+      if [ -z "${charset_4}" ]; then
+
+        charset_4="4"
+
+      fi
+
+      # unique and remove new lines
+
+      charset_1=$(echo "${charset_1}" | sort -u | tr -d '\n')
+      charset_2=$(echo "${charset_2}" | sort -u | tr -d '\n')
+      charset_3=$(echo "${charset_3}" | sort -u | tr -d '\n')
+      charset_4=$(echo "${charset_4}" | sort -u | tr -d '\n')
+
+      custom_charsets="-1 ${charset_1} -2 ${charset_2} -3 ${charset_3} -4 ${charset_4}"
+    fi
+
     increment_charset_opts=""
 
     if [ ${need_hcmask} -eq 0 ]; then # the "normal" case without .hcmask file
@@ -1448,6 +1544,8 @@ function attack_6()
       max=1
       mask_offset=29
     elif [ "${hash_type}" -eq 16800 ]; then
+      max=6
+    elif [ "${hash_type}" -eq 22000 ]; then
       max=6
     fi
 
@@ -1667,6 +1765,8 @@ function attack_6()
       max=8
     elif [ "${hash_type}" -eq 16800 ]; then
       max=5
+    elif [ "${hash_type}" -eq 22000 ]; then
+      max=5
     fi
 
     if is_in_array "${hash_type}" ${TIMEOUT_ALGOS}; then
@@ -1813,6 +1913,8 @@ function attack_7()
       max=1
     elif [ "${hash_type}" -eq 16800 ]; then
       max=5
+    elif [ "${hash_type}" -eq 22000 ]; then
+      max=5
     fi
 
     # special case: we need to split the first line
@@ -1897,6 +1999,26 @@ function attack_7()
         fi
 
         if [ "${hash_type}" -eq 16800 ]; then
+
+          pass_part_1=$(sed -n ${line_nr}p "${OUTD}/${hash_type}_dict1")
+          pass_part_2=$(sed -n ${line_nr}p "${OUTD}/${hash_type}_dict2")
+
+          pass_part_2_len=${#pass_part_2}
+
+          pass=${pass_part_1}${pass_part_2}
+          pass_len=${#pass}
+
+          # add first x chars of password to mask and append the (old) mask
+
+          mask_len=${#mask}
+          mask_len=$((mask_len / 2))
+
+          mask_prefix=$(echo "${pass}" | cut -b -$((pass_len - mask_len - pass_part_2_len)))
+          mask=${mask_prefix}${mask}
+
+        fi
+
+        if [ "${hash_type}" -eq 22000 ]; then
 
           pass_part_1=$(sed -n ${line_nr}p "${OUTD}/${hash_type}_dict1")
           pass_part_2=$(sed -n ${line_nr}p "${OUTD}/${hash_type}_dict2")
@@ -2059,6 +2181,8 @@ function attack_7()
     elif [ "${hash_type}" -eq 15400 ]; then
       max=5
     elif [ "${hash_type}" -eq 16800 ]; then
+      max=5
+    elif [ "${hash_type}" -eq 22000 ]; then
       max=5
     fi
 
