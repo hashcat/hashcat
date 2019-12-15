@@ -542,26 +542,9 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
       device_param->kernel_params_buf32[28] = 0;
       device_param->kernel_params_buf32[29] = 1;
 
-      if (hashconfig->opts_type & OPTS_TYPE_AUX1)
-      {
-        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX1, 1, false, 0) == -1) return -1;
-      }
-      else if (hashconfig->opts_type & OPTS_TYPE_AUX2)
-      {
-        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX2, 1, false, 0) == -1) return -1;
-      }
-      else if (hashconfig->opts_type & OPTS_TYPE_AUX3)
-      {
-        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX3, 1, false, 0) == -1) return -1;
-      }
-      else if (hashconfig->opts_type & OPTS_TYPE_AUX4)
-      {
-        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX4, 1, false, 0) == -1) return -1;
-      }
-      else
-      {
-        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_3, 1, false, 0) == -1) return -1;
-      }
+      const u32 deep_comp_kernel = module_ctx->module_deep_comp_kernel (hashes, 0, 0);
+
+      if (run_kernel (hashcat_ctx, device_param, deep_comp_kernel, 1, false, 0) == -1) return -1;
     }
     else
     {
