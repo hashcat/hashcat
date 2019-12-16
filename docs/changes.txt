@@ -55,6 +55,7 @@
 - Added hash-mode: sha256(sha256_bin(pass))
 - Added hash-mode: sha256(sha256($pass).$salt)
 - Added hash-mode: Web2py pbkdf2-sha512
+- Added hash-mode: WPA-PBKDF2-PMKID+EAPOL
 
 ##
 ## Bugs

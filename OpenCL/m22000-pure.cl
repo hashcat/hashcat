@@ -67,9 +67,13 @@ typedef struct wpa
 
   u32  pke[32];
 
+  int  message_pair_chgd;
   u32  message_pair;
-  int  nonce_compare;
+
+  int  nonce_error_corrections_chgd;
   int  nonce_error_corrections;
+
+  int  nonce_compare;
   int  detected_le;
   int  detected_be;
 

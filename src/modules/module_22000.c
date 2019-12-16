@@ -34,6 +34,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_AUX2
                                   | OPTS_TYPE_AUX3
                                   | OPTS_TYPE_AUX4
+                                  | OPTS_TYPE_BINARY_HASHFILE
                                   | OPTS_TYPE_DEEP_COMP_KERNEL
                                   | OPTS_TYPE_COPY_TMPS;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
@@ -57,6 +58,9 @@ const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 
 static const u32 ROUNDS_WPA_PBKDF2 = 4096;
 
+// this is required to force mingw to accept the packed attribute
+#pragma pack(push,1)
+
 struct auth_packet
 {
   u8  version;
@@ -75,7 +79,37 @@ struct auth_packet
 
 } __attribute__((packed));
 
+#pragma pack(pop)
+
 typedef struct auth_packet auth_packet_t;
+
+#define HCCAPX_VERSION   4
+#define HCCAPX_SIGNATURE 0x58504348 // HCPX
+
+// this is required to force mingw to accept the packed attribute
+#pragma pack(push,1)
+
+struct hccapx
+{
+  u32 signature;
+  u32 version;
+  u8  message_pair;
+  u8  essid_len;
+  u8  essid[32];
+  u8  keyver;
+  u8  keymic[16];
+  u8  mac_ap[6];
+  u8  nonce_ap[32];
+  u8  mac_sta[6];
+  u8  nonce_sta[32];
+  u16 eapol_len;
+  u8  eapol[256];
+
+} __attribute__((packed));
+
+typedef struct hccapx hccapx_t;
+
+#pragma pack(pop)
 
 const char *module_benchmark_mask (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -96,6 +130,158 @@ u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED
   const u64 esalt_size = (const u64) sizeof (wpa_t);
 
   return esalt_size;
+}
+
+static bool is_hccapx (HCFILE *fp)
+{
+  hccapx_t hccapx;
+
+  const size_t nread = hc_fread (&hccapx, sizeof (hccapx_t), 1, fp);
+
+  if (nread == 1)
+  {
+    if (hccapx.signature == HCCAPX_SIGNATURE)
+    {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+int module_hash_init_selftest (MAYBE_UNUSED const hashconfig_t *hashconfig, hash_t *hash)
+{
+  const int parser_status = module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, hashconfig->st_hash, strlen (hashconfig->st_hash));
+
+  wpa_t *wpa = (wpa_t *) hash->esalt;
+
+  wpa->detected_le = 1;
+  wpa->detected_be = 0;
+
+  wpa->nonce_error_corrections = 3;
+
+  return parser_status;
+}
+
+int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, hashes_t *hashes)
+{
+  hash_t *hashes_buf = hashes->hashes_buf;
+
+  int hashes_cnt = 0;
+
+  HCFILE fp;
+
+  if (hc_fopen (&fp, hashes->hashfile, "rb") == false) return -1;
+
+  const bool r = is_hccapx (&fp);
+
+  hc_rewind (&fp);
+
+  if (r == true)
+  {
+    char *in = (char *) hcmalloc (sizeof (hccapx_t));
+
+    while (!hc_feof (&fp))
+    {
+      const size_t nread = hc_fread (in, sizeof (hccapx_t), 1, &fp);
+
+      if (nread == 0) break;
+
+      memset (hashes_buf[hashes_cnt].salt, 0, sizeof (salt_t));
+
+      memset (hashes_buf[hashes_cnt].esalt, 0, sizeof (wpa_t));
+
+      wpa_t *wpa = (wpa_t *) hashes_buf[hashes_cnt].esalt;
+
+      wpa->message_pair_chgd = user_options->hccapx_message_pair_chgd;
+      wpa->message_pair      = user_options->hccapx_message_pair;
+
+      wpa->nonce_error_corrections_chgd = user_options->nonce_error_corrections_chgd;
+      wpa->nonce_error_corrections      = user_options->nonce_error_corrections;
+
+      hash_t *hash = &hashes_buf[hashes_cnt];
+
+      const int parser_status = module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, in, sizeof (hccapx_t));
+
+      if (parser_status != PARSER_OK) continue;
+
+      hashes_cnt++;
+    }
+
+    hcfree (in);
+  }
+  else
+  {
+    char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
+
+    while (!hc_feof (&fp))
+    {
+      const size_t line_len = fgetl (&fp, line_buf, HCBUFSIZ_LARGE);
+
+      if (line_len == 0) continue;
+
+      memset (hashes_buf[hashes_cnt].salt, 0, sizeof (salt_t));
+
+      memset (hashes_buf[hashes_cnt].esalt, 0, sizeof (wpa_t));
+
+      wpa_t *wpa = (wpa_t *) hashes_buf[hashes_cnt].esalt;
+
+      wpa->message_pair_chgd = user_options->hccapx_message_pair_chgd;
+      wpa->message_pair      = user_options->hccapx_message_pair;
+
+      wpa->nonce_error_corrections_chgd = user_options->nonce_error_corrections_chgd;
+      wpa->nonce_error_corrections      = user_options->nonce_error_corrections;
+
+      hash_t *hash = &hashes_buf[hashes_cnt];
+
+      const int parser_status = module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, line_buf, line_len);
+
+      if (parser_status != PARSER_OK) continue;
+
+      hashes_cnt++;
+    }
+
+    hcfree (line_buf);
+  }
+
+  hc_fclose (&fp);
+
+  return hashes_cnt;
+}
+
+int module_hash_binary_count (MAYBE_UNUSED const hashes_t *hashes)
+{
+  // this mode actually works on a plaintext file
+  // but to stay in a .hccapx backward compatibility mode we have to tell the module
+  // the file is in binary.
+  // we then have to iterated through the file ourself
+
+  HCFILE fp;
+
+  if (hc_fopen (&fp, hashes->hashfile, "rb") == false) return -1;
+
+  const bool r = is_hccapx (&fp);
+
+  hc_rewind (&fp);
+
+  int count = 0;
+
+  if (r == true)
+  {
+    struct stat st;
+
+    stat (hashes->hashfile, &st);
+
+    count = st.st_size / sizeof (hccapx_t);
+  }
+  else
+  {
+    count = count_lines (&fp);
+  }
+
+  hc_fclose (&fp);
+
+  return count;
 }
 
 bool module_hlfmt_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -209,7 +395,7 @@ int module_hash_binary_save (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED c
 
   if (wpa->type == 1)
   {
-    const int len = hc_asprintf (buf, "WPA:01:%08x%08x%08x%08x:%02x%02x%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x:%s:::" EOL,
+    const int len = hc_asprintf (buf, "WPA:01:%08x%08x%08x%08x:%02x%02x%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x:%s:::",
       byte_swap_32 (wpa->pmkid[0]),
       byte_swap_32 (wpa->pmkid[1]),
       byte_swap_32 (wpa->pmkid[2]),
@@ -427,6 +613,133 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   wpa_t *wpa = (wpa_t *) esalt_buf;
 
+  char *input_buf = (char *) line_buf;
+  int   input_len = line_len;
+
+  // start old pmkid/hccapx compatibility parsing
+  // idea is to find out if parsing succeeds and in this case to build a
+  // valid 22000 hash line and replace line_buf pointer
+
+  char tmp_buf[1024];
+  int  tmp_len;
+
+  // hccapx parser
+
+  if (line_len == sizeof (hccapx_t))
+  {
+    hccapx_t *hccapx = (hccapx_t *) line_buf;
+
+    if ((hccapx->signature == HCCAPX_SIGNATURE) && (hccapx->version == HCCAPX_VERSION))
+    {
+      tmp_len = 0;
+
+      tmp_len += snprintf (tmp_buf, sizeof (tmp_buf) - tmp_len, "WPA:02:");
+
+      tmp_len += hex_encode ((const u8 *) hccapx->keymic, 16, (u8 *) tmp_buf + tmp_len);
+
+      tmp_buf[tmp_len] = ':';
+
+      tmp_len++;
+
+      tmp_len += hex_encode ((const u8 *) hccapx->mac_ap, 6, (u8 *) tmp_buf + tmp_len);
+
+      tmp_buf[tmp_len] = ':';
+
+      tmp_len++;
+
+      tmp_len += hex_encode ((const u8 *) hccapx->mac_sta, 6, (u8 *) tmp_buf + tmp_len);
+
+      tmp_buf[tmp_len] = ':';
+
+      tmp_len++;
+
+      tmp_len += hex_encode ((const u8 *) hccapx->essid, hccapx->essid_len, (u8 *) tmp_buf + tmp_len);
+
+      tmp_buf[tmp_len] = ':';
+
+      tmp_len++;
+
+      tmp_len += hex_encode ((const u8 *) hccapx->nonce_ap, 32, (u8 *) tmp_buf + tmp_len);
+
+      tmp_buf[tmp_len] = ':';
+
+      tmp_len++;
+
+      tmp_len += hex_encode ((const u8 *) hccapx->eapol, hccapx->eapol_len, (u8 *) tmp_buf + tmp_len);
+
+      tmp_buf[tmp_len] = ':';
+
+      tmp_len++;
+
+      tmp_len += hex_encode ((const u8 *) &hccapx->message_pair, 1, (u8 *) tmp_buf + tmp_len);
+
+      tmp_buf[tmp_len] = 0;
+
+      input_buf = tmp_buf;
+      input_len = tmp_len;
+    }
+  }
+
+  // pmkid parser
+
+  if (1)
+  {
+    // detect super-old/old format
+
+    int old_sep = 0;
+    int new_sep = 0;
+
+    for (int i = 0; i < line_len; i++)
+    {
+      const char c = line_buf[i];
+
+      if (c == '*') old_sep++;
+      if (c == ':') new_sep++;
+    }
+
+    const u8 sep = (new_sep > old_sep) ? ':' : '*';
+
+    // start normal parsing
+
+    token_t token;
+
+    token.token_cnt  = 4;
+
+    token.sep[0]     = sep;
+    token.len_min[0] = 32;
+    token.len_max[0] = 32;
+    token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    token.sep[1]     = sep;
+    token.len_min[1] = 12;
+    token.len_max[1] = 12;
+    token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    token.sep[2]     = sep;
+    token.len_min[2] = 12;
+    token.len_max[2] = 12;
+    token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    token.sep[3]     = sep;
+    token.len_min[3] = 0;
+    token.len_max[3] = 64;
+    token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
+
+    if (rc_tokenizer == PARSER_OK)
+    {
+      tmp_len = snprintf (tmp_buf, sizeof (tmp_buf), "WPA:01:%s:::", line_buf);
+
+      input_buf = tmp_buf;
+      input_len = tmp_len;
+    }
+  }
+
   // start normal parsing
 
   token_t token;
@@ -490,7 +803,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[8]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
+  const int rc_tokenizer = input_tokenizer ((const u8 *) input_buf, input_len, &token);
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
@@ -723,29 +1036,51 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     // message_pair
 
-    const u8 *extra_pos = token.buf[8];
+    const u8 *message_pair_pos = token.buf[8];
 
-    wpa->message_pair = hex_to_u8 (extra_pos);
+    const u8 message_pair = hex_to_u8 (message_pair_pos);
 
-    if (wpa->message_pair & (1 << 4))
+    if (wpa->message_pair_chgd == true)
     {
-      // ap-less attack detected, nc not needed
+      // we can filter some message types here
 
-      wpa->nonce_error_corrections = 0;
+      if (wpa->message_pair != (message_pair & 0x7f)) return (PARSER_HCCAPX_MESSAGE_PAIR);
     }
     else
     {
-      if (wpa->message_pair & (1 << 7))
-      {
-        // replaycount not checked, nc needed
+      wpa->message_pair = message_pair;
+    }
 
-        wpa->nonce_error_corrections = NONCE_ERROR_CORRECTIONS;
+    if (wpa->nonce_error_corrections_chgd == true)
+    {
+      // value was set in module_hash_binary_parse()
+    }
+    else
+    {
+      if (wpa->message_pair & (1 << 4))
+      {
+        // ap-less attack detected, nc not needed
+
+        wpa->nonce_error_corrections = 0;
       }
       else
       {
-        wpa->nonce_error_corrections = 0;
+        if (wpa->message_pair & (1 << 7))
+        {
+          // replaycount not checked, nc needed
+        }
+        else
+        {
+          wpa->nonce_error_corrections = 0;
+        }
       }
     }
+
+    // now some optimization related to replay counter endianess
+    // hcxtools has techniques to detect them
+    // since we can not guarantee to get our handshakes from hcxtools we enable both by default
+    // this means that we check both even if both are not set!
+    // however if one of them is set, we can assume that the endianess has been checked and the other one is not needed
 
     wpa->detected_le = 1;
     wpa->detected_be = 1;
@@ -936,8 +1271,8 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
   module_ctx->module_forced_outfile_format    = MODULE_DEFAULT;
-  module_ctx->module_hash_binary_count        = MODULE_DEFAULT;
-  module_ctx->module_hash_binary_parse        = MODULE_DEFAULT;
+  module_ctx->module_hash_binary_count        = module_hash_binary_count;
+  module_ctx->module_hash_binary_parse        = module_hash_binary_parse;
   module_ctx->module_hash_binary_save         = module_hash_binary_save;
   module_ctx->module_hash_decode_potfile      = module_hash_decode_potfile;
   module_ctx->module_hash_decode_zero_hash    = MODULE_DEFAULT;
@@ -945,7 +1280,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
   module_ctx->module_hash_encode_potfile      = module_hash_encode_potfile;
   module_ctx->module_hash_encode              = module_hash_encode;
-  module_ctx->module_hash_init_selftest       = MODULE_DEFAULT;
+  module_ctx->module_hash_init_selftest       = module_hash_init_selftest;
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;
   module_ctx->module_hash_name                = module_hash_name;
