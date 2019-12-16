@@ -42,13 +42,13 @@ typedef struct wpa_pbkdf2_tmp
 
 typedef struct wpa
 {
-  u8   orig_mac_ap[6];
-  u8   orig_mac_sta[6];
-  u8   essid_len;
   u32  essid_buf[16];
+  u32  essid_len;
 
-  u8   type;            // 1 = PMKID, 2 = EAPOL
-  u8   extra;
+  u32  mac_ap[2];
+  u32  mac_sta[2];
+
+  u32  type;            // 1 = PMKID, 2 = EAPOL
 
   // PMKID specific
 
@@ -60,15 +60,14 @@ typedef struct wpa
   u32  keymic[4];
   u32  anonce[8];
 
-  u8   keyver;
+  u32  keyver;
 
   u32  eapol[64 + 16];
-  u16  eapol_len;
+  u32  eapol_len;
 
   u32  pke[32];
 
-  u8   message_pair;
-  int  message_pair_chgd;
+  u32  message_pair;
   int  nonce_compare;
   int  nonce_error_corrections;
   int  detected_le;

@@ -27,7 +27,7 @@ sub module_generate_hash
   my $essid  = shift;
   my $anonce = shift;
   my $eapol  = shift;
-  my $extra  = shift;
+  my $mp     = shift;
 
   my $hash;
 
@@ -88,13 +88,13 @@ sub module_generate_hash
       $macsta = pack ("H*", $macsta);
     }
 
-    if (!defined ($extra))
+    if (!defined ($mp))
     {
-      $extra = "\x00";
+      $mp = "\x00";
     }
     else
     {
-      $extra = pack ("H*", $extra);
+      $mp = pack ("H*", $mp);
     }
 
     my $keyver;
@@ -172,7 +172,7 @@ sub module_generate_hash
 
     $mic = substr ($mic, 0, 16);
 
-    $hash = sprintf ("WPA:%02x:%s:%s:%s:%s:%s:%s:%s", $type, unpack ("H*", $mic), unpack ("H*", $macap), unpack ("H*", $macsta), $essid, unpack ("H*", $anonce), unpack ("H*", $eapol), unpack ("H*", $extra));
+    $hash = sprintf ("WPA:%02x:%s:%s:%s:%s:%s:%s:%s", $type, unpack ("H*", $mic), unpack ("H*", $macap), unpack ("H*", $macsta), $essid, unpack ("H*", $anonce), unpack ("H*", $eapol), unpack ("H*", $mp));
   }
 
   return $hash;
@@ -186,13 +186,13 @@ sub module_verify_hash
 
   return unless scalar @data == 10;
 
-  my ($signature, $type, undef, $macap, $macsta, $essid, $anonce, $eapol, $extra, $word) = @data;
+  my ($signature, $type, undef, $macap, $macsta, $essid, $anonce, $eapol, $mp, $word) = @data;
 
   return unless ($signature eq "WPA");
 
   my $word_packed = pack_if_HEX_notation ($word);
 
-  my $new_hash = module_generate_hash ($word_packed, undef, $type, $macap, $macsta, $essid, $anonce, $eapol, $extra);
+  my $new_hash = module_generate_hash ($word_packed, undef, $type, $macap, $macsta, $essid, $anonce, $eapol, $mp);
 
   return ($new_hash, $word);
 }

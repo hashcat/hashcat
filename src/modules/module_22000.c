@@ -204,6 +204,9 @@ int module_hash_binary_save (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED c
 
   tmp_buf[tmp_len] = 0;
 
+  const u8 *mac_ap  = (const u8 *) wpa->mac_ap;
+  const u8 *mac_sta = (const u8 *) wpa->mac_sta;
+
   if (wpa->type == 1)
   {
     const int len = hc_asprintf (buf, "WPA:01:%08x%08x%08x%08x:%02x%02x%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x:%s:::" EOL,
@@ -211,18 +214,18 @@ int module_hash_binary_save (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED c
       byte_swap_32 (wpa->pmkid[1]),
       byte_swap_32 (wpa->pmkid[2]),
       byte_swap_32 (wpa->pmkid[3]),
-      wpa->orig_mac_ap[0],
-      wpa->orig_mac_ap[1],
-      wpa->orig_mac_ap[2],
-      wpa->orig_mac_ap[3],
-      wpa->orig_mac_ap[4],
-      wpa->orig_mac_ap[5],
-      wpa->orig_mac_sta[0],
-      wpa->orig_mac_sta[1],
-      wpa->orig_mac_sta[2],
-      wpa->orig_mac_sta[3],
-      wpa->orig_mac_sta[4],
-      wpa->orig_mac_sta[5],
+      mac_ap[0],
+      mac_ap[1],
+      mac_ap[2],
+      mac_ap[3],
+      mac_ap[4],
+      mac_ap[5],
+      mac_sta[0],
+      mac_sta[1],
+      mac_sta[2],
+      mac_sta[3],
+      mac_sta[4],
+      mac_sta[5],
       tmp_buf);
 
     return len;
@@ -255,18 +258,18 @@ int module_hash_binary_save (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED c
       wpa->keymic[1],
       wpa->keymic[2],
       wpa->keymic[3],
-      wpa->orig_mac_ap[0],
-      wpa->orig_mac_ap[1],
-      wpa->orig_mac_ap[2],
-      wpa->orig_mac_ap[3],
-      wpa->orig_mac_ap[4],
-      wpa->orig_mac_ap[5],
-      wpa->orig_mac_sta[0],
-      wpa->orig_mac_sta[1],
-      wpa->orig_mac_sta[2],
-      wpa->orig_mac_sta[3],
-      wpa->orig_mac_sta[4],
-      wpa->orig_mac_sta[5],
+      mac_ap[0],
+      mac_ap[1],
+      mac_ap[2],
+      mac_ap[3],
+      mac_ap[4],
+      mac_ap[5],
+      mac_sta[0],
+      mac_sta[1],
+      mac_sta[2],
+      mac_sta[3],
+      mac_sta[4],
+      mac_sta[5],
       tmp_buf,
       byte_swap_32 (wpa->anonce[0]),
       byte_swap_32 (wpa->anonce[1]),
@@ -277,7 +280,7 @@ int module_hash_binary_save (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED c
       byte_swap_32 (wpa->anonce[6]),
       byte_swap_32 (wpa->anonce[7]),
       tmp2_buf,
-      wpa->extra);
+      wpa->message_pair);
 
     return len;
   }
@@ -493,25 +496,28 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // mac_ap
 
+  u8 *mac_ap  = (u8 *) wpa->mac_ap;
+  u8 *mac_sta = (u8 *) wpa->mac_sta;
+
   const u8 *macap_buf = token.buf[3];
 
-  wpa->orig_mac_ap[0] = hex_to_u8 (macap_buf +  0);
-  wpa->orig_mac_ap[1] = hex_to_u8 (macap_buf +  2);
-  wpa->orig_mac_ap[2] = hex_to_u8 (macap_buf +  4);
-  wpa->orig_mac_ap[3] = hex_to_u8 (macap_buf +  6);
-  wpa->orig_mac_ap[4] = hex_to_u8 (macap_buf +  8);
-  wpa->orig_mac_ap[5] = hex_to_u8 (macap_buf + 10);
+  mac_ap[0] = hex_to_u8 (macap_buf +  0);
+  mac_ap[1] = hex_to_u8 (macap_buf +  2);
+  mac_ap[2] = hex_to_u8 (macap_buf +  4);
+  mac_ap[3] = hex_to_u8 (macap_buf +  6);
+  mac_ap[4] = hex_to_u8 (macap_buf +  8);
+  mac_ap[5] = hex_to_u8 (macap_buf + 10);
 
   // mac_sta
 
   const u8 *macsta_buf = token.buf[4];
 
-  wpa->orig_mac_sta[0] = hex_to_u8 (macsta_buf +  0);
-  wpa->orig_mac_sta[1] = hex_to_u8 (macsta_buf +  2);
-  wpa->orig_mac_sta[2] = hex_to_u8 (macsta_buf +  4);
-  wpa->orig_mac_sta[3] = hex_to_u8 (macsta_buf +  6);
-  wpa->orig_mac_sta[4] = hex_to_u8 (macsta_buf +  8);
-  wpa->orig_mac_sta[5] = hex_to_u8 (macsta_buf + 10);
+  mac_sta[0] = hex_to_u8 (macsta_buf +  0);
+  mac_sta[1] = hex_to_u8 (macsta_buf +  2);
+  mac_sta[2] = hex_to_u8 (macsta_buf +  4);
+  mac_sta[3] = hex_to_u8 (macsta_buf +  6);
+  mac_sta[4] = hex_to_u8 (macsta_buf +  8);
+  mac_sta[5] = hex_to_u8 (macsta_buf + 10);
 
   // essid
 
@@ -557,18 +563,18 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     wpa->pmkid_data[0] = 0x204b4d50; // "PMK "
     wpa->pmkid_data[1] = 0x656d614e; // "Name"
-    wpa->pmkid_data[2] = (wpa->orig_mac_ap[0]  <<  0)
-                       | (wpa->orig_mac_ap[1]  <<  8)
-                       | (wpa->orig_mac_ap[2]  << 16)
-                       | (wpa->orig_mac_ap[3]  << 24);
-    wpa->pmkid_data[3] = (wpa->orig_mac_ap[4]  <<  0)
-                       | (wpa->orig_mac_ap[5]  <<  8)
-                       | (wpa->orig_mac_sta[0] << 16)
-                       | (wpa->orig_mac_sta[1] << 24);
-    wpa->pmkid_data[4] = (wpa->orig_mac_sta[2] <<  0)
-                       | (wpa->orig_mac_sta[3] <<  8)
-                       | (wpa->orig_mac_sta[4] << 16)
-                       | (wpa->orig_mac_sta[5] << 24);
+    wpa->pmkid_data[2] = (mac_ap[0]  <<  0)
+                       | (mac_ap[1]  <<  8)
+                       | (mac_ap[2]  << 16)
+                       | (mac_ap[3]  << 24);
+    wpa->pmkid_data[3] = (mac_ap[4]  <<  0)
+                       | (mac_ap[5]  <<  8)
+                       | (mac_sta[0] << 16)
+                       | (mac_sta[1] << 24);
+    wpa->pmkid_data[4] = (mac_sta[2] <<  0)
+                       | (mac_sta[3] <<  8)
+                       | (mac_sta[4] << 16)
+                       | (mac_sta[5] << 24);
 
     // hash
 
@@ -638,15 +644,15 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     {
       memcpy (pke_ptr, "Pairwise key expansion\x00", 23);
 
-      if (memcmp (wpa->orig_mac_ap, wpa->orig_mac_sta, 6) < 0)
+      if (memcmp (mac_ap, mac_sta, 6) < 0)
       {
-        memcpy (pke_ptr + 23, wpa->orig_mac_ap,  6);
-        memcpy (pke_ptr + 29, wpa->orig_mac_sta, 6);
+        memcpy (pke_ptr + 23, mac_ap,  6);
+        memcpy (pke_ptr + 29, mac_sta, 6);
       }
       else
       {
-        memcpy (pke_ptr + 23, wpa->orig_mac_sta, 6);
-        memcpy (pke_ptr + 29, wpa->orig_mac_ap,  6);
+        memcpy (pke_ptr + 23, mac_sta, 6);
+        memcpy (pke_ptr + 29, mac_ap,  6);
       }
 
       wpa->nonce_compare = memcmp (wpa->anonce, auth_packet->wpa_key_nonce, 32);
@@ -669,15 +675,15 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
       memcpy (pke_ptr + 2, "Pairwise key expansion", 22);
 
-      if (memcmp (wpa->orig_mac_ap, wpa->orig_mac_sta, 6) < 0)
+      if (memcmp (mac_ap, mac_sta, 6) < 0)
       {
-        memcpy (pke_ptr + 24, wpa->orig_mac_ap,  6);
-        memcpy (pke_ptr + 30, wpa->orig_mac_sta, 6);
+        memcpy (pke_ptr + 24, mac_ap,  6);
+        memcpy (pke_ptr + 30, mac_sta, 6);
       }
       else
       {
-        memcpy (pke_ptr + 24, wpa->orig_mac_sta, 6);
-        memcpy (pke_ptr + 30, wpa->orig_mac_ap,  6);
+        memcpy (pke_ptr + 24, mac_sta, 6);
+        memcpy (pke_ptr + 30, mac_ap,  6);
       }
 
       wpa->nonce_compare = memcmp (wpa->anonce, auth_packet->wpa_key_nonce, 32);
@@ -715,19 +721,45 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
       eapol_ptr[wpa->eapol_len] = 0x80;
     }
 
-    // extra
+    // message_pair
 
     const u8 *extra_pos = token.buf[8];
 
-    wpa->extra = hex_to_u8 (extra_pos);
+    wpa->message_pair = hex_to_u8 (extra_pos);
 
-    // todo stuff
+    if (wpa->message_pair & (1 << 4))
+    {
+      // ap-less attack detected, nc not needed
 
-    wpa->message_pair = wpa->extra;
-    wpa->message_pair_chgd = 0;
-    wpa->nonce_error_corrections = 0;
-    wpa->detected_le = 0;
-    wpa->detected_be = 0;
+      wpa->nonce_error_corrections = 0;
+    }
+    else
+    {
+      if (wpa->message_pair & (1 << 7))
+      {
+        // replaycount not checked, nc needed
+
+        wpa->nonce_error_corrections = NONCE_ERROR_CORRECTIONS;
+      }
+      else
+      {
+        wpa->nonce_error_corrections = 0;
+      }
+    }
+
+    wpa->detected_le = 1;
+    wpa->detected_be = 1;
+
+    if (wpa->message_pair & (1 << 5))
+    {
+      wpa->detected_le = 1;
+      wpa->detected_be = 0;
+    }
+    else if (wpa->message_pair & (1 << 6))
+    {
+      wpa->detected_le = 0;
+      wpa->detected_be = 1;
+    }
 
     // mic
 
@@ -788,8 +820,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     md5_transform (block + 0, block + 4, block + 8, block + 12, hash);
 
-    memcpy (block_ptr +  0, wpa->orig_mac_ap,  6);
-    memcpy (block_ptr +  6, wpa->orig_mac_sta, 6);
+    for (int i = 0; i <  2; i++) block[0 + i] = wpa->mac_ap[i];
+    for (int i = 0; i <  2; i++) block[2 + i] = wpa->mac_ap[i];
+    for (int i = 0; i < 12; i++) block[4 + i] = 0;
 
     md5_transform (block + 0, block + 4, block + 8, block + 12, hash);
 
@@ -822,6 +855,9 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   int line_len = 0;
 
+  const u8 *mac_ap  = (const u8 *) wpa->mac_ap;
+  const u8 *mac_sta = (const u8 *) wpa->mac_sta;
+
   if (need_hexify ((const u8 *) wpa->essid_buf, wpa->essid_len, ':', 0) == true)
   {
     char tmp_buf[128];
@@ -843,35 +879,35 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     tmp_buf[tmp_len++] = 0;
 
     line_len = snprintf (line_buf, line_size, "%02x%02x%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x:%s",
-      wpa->orig_mac_ap[0],
-      wpa->orig_mac_ap[1],
-      wpa->orig_mac_ap[2],
-      wpa->orig_mac_ap[3],
-      wpa->orig_mac_ap[4],
-      wpa->orig_mac_ap[5],
-      wpa->orig_mac_sta[0],
-      wpa->orig_mac_sta[1],
-      wpa->orig_mac_sta[2],
-      wpa->orig_mac_sta[3],
-      wpa->orig_mac_sta[4],
-      wpa->orig_mac_sta[5],
+      mac_ap[0],
+      mac_ap[1],
+      mac_ap[2],
+      mac_ap[3],
+      mac_ap[4],
+      mac_ap[5],
+      mac_sta[0],
+      mac_sta[1],
+      mac_sta[2],
+      mac_sta[3],
+      mac_sta[4],
+      mac_sta[5],
       tmp_buf);
   }
   else
   {
     line_len = snprintf (line_buf, line_size, "%02x%02x%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x:%s",
-      wpa->orig_mac_ap[0],
-      wpa->orig_mac_ap[1],
-      wpa->orig_mac_ap[2],
-      wpa->orig_mac_ap[3],
-      wpa->orig_mac_ap[4],
-      wpa->orig_mac_ap[5],
-      wpa->orig_mac_sta[0],
-      wpa->orig_mac_sta[1],
-      wpa->orig_mac_sta[2],
-      wpa->orig_mac_sta[3],
-      wpa->orig_mac_sta[4],
-      wpa->orig_mac_sta[5],
+      mac_ap[0],
+      mac_ap[1],
+      mac_ap[2],
+      mac_ap[3],
+      mac_ap[4],
+      mac_ap[5],
+      mac_sta[0],
+      mac_sta[1],
+      mac_sta[2],
+      mac_sta[3],
+      mac_sta[4],
+      mac_sta[5],
       (const char *) wpa->essid_buf);
   }
 
