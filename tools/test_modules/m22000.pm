@@ -13,7 +13,6 @@ use Digest::MD5  qw (md5);
 use Digest::SHA  qw (sha1 sha256);
 use Digest::HMAC qw (hmac hmac_hex);
 use Digest::CMAC;
-use MIME::Base64 qw (encode_base64);
 
 sub module_constraints { [[8, 63], [-1, -1], [-1, -1], [-1, -1], [-1, -1]] }
 

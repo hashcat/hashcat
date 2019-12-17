@@ -473,7 +473,13 @@ function attack_0()
       if [ "${file_only}" -eq 1 ]; then
 
         temp_file="${OUTD}/${hash_type}_filebased_only_temp.txt"
-        echo "${hash}" | base64 -d > "${temp_file}"
+
+        if [ "${hash_type}" -ne 22000 ]; then
+          echo "${hash}" | base64 -d > "${temp_file}"
+        else
+          echo "${hash}" > "${temp_file}"
+        fi
+
         hash="${temp_file}"
 
       fi
@@ -557,9 +563,13 @@ function attack_0()
 
       hash_file=${temp_file}
 
-      while read -r base64_hash; do
+      while read -r file_only_hash; do
 
-        echo -n "${base64_hash}" | base64 -d >> "${temp_file}"
+        if [ "${hash_type}" -ne 22000 ]; then
+          echo -n "${file_only_hash}" | base64 -d >> "${temp_file}"
+        else
+          echo "${file_only_hash}" >> "${temp_file}"
+        fi
 
       done < "${OUTD}/${hash_type}_hashes.txt"
 
@@ -661,7 +671,13 @@ function attack_1()
         if [ "${file_only}" -eq 1 ]; then
 
           temp_file="${OUTD}/${hash_type}_filebased_only_temp.txt"
-          echo "${hash}" | base64 -d > "${temp_file}"
+
+          if [ "${hash_type}" -ne 22000 ]; then
+            echo "${hash}" | base64 -d > "${temp_file}"
+          else
+            echo "${hash}" > "${temp_file}"
+          fi
+
           hash="${temp_file}"
 
         fi
@@ -819,9 +835,13 @@ function attack_1()
 
       hash_file=${temp_file}
 
-      while read -r base64_hash; do
+      while read -r file_only_hash; do
 
-        echo -n "${base64_hash}" | base64 -d >> "${temp_file}"
+        if [ "${hash_type}" -ne 22000 ]; then
+          echo -n "${file_only_hash}" | base64 -d >> "${temp_file}"
+        else
+          echo "${file_only_hash}" >> "${temp_file}"
+        fi
 
       done < "${OUTD}/${hash_type}_multihash_combi.txt"
 
@@ -950,7 +970,13 @@ function attack_3()
       if [ "${file_only}" -eq 1 ]; then
 
         temp_file="${OUTD}/${hash_type}_filebased_only_temp.txt"
-        echo "${hash}" | base64 -d > "${temp_file}"
+
+        if [ "${hash_type}" -ne 22000 ]; then
+          echo "${hash}" | base64 -d > "${temp_file}"
+        else
+          echo "${hash}" > "${temp_file}"
+        fi
+
         hash="${temp_file}"
 
       fi
@@ -1114,9 +1140,13 @@ function attack_3()
 
       hash_file=${temp_file}
 
-      while read -r base64_hash; do
+      while read -r file_only_hash; do
 
-        echo -n "${base64_hash}" | base64 -d >> "${temp_file}"
+        if [ "${hash_type}" -ne 22000 ]; then
+          echo -n "${file_only_hash}" | base64 -d >> "${temp_file}"
+        else
+          echo "${file_only_hash}" >> "${temp_file}"
+        fi
 
       done < "${OUTD}/${hash_type}_multihash_bruteforce.txt"
 
@@ -1605,7 +1635,13 @@ function attack_6()
         if [ "${file_only}" -eq 1 ]; then
 
           temp_file="${OUTD}/${hash_type}_filebased_only_temp.txt"
-          echo "${hash}" | base64 -d > "${temp_file}"
+
+          if [ "${hash_type}" -ne 22000 ]; then
+            echo "${hash}" | base64 -d > "${temp_file}"
+          else
+            echo "${hash}" > "${temp_file}"
+          fi
+
           hash="${temp_file}"
 
         fi
@@ -1795,9 +1831,13 @@ function attack_6()
 
         hash_file=${temp_file}
 
-        while read -r base64_hash; do
+        while read -r file_only_hash; do
 
-          echo -n "${base64_hash}" | base64 -d >> "${temp_file}"
+          if [ "${hash_type}" -ne 22000 ]; then
+            echo -n "${file_only_hash}" | base64 -d >> "${temp_file}"
+          else
+            echo "${file_only_hash}" >> "${temp_file}"
+          fi
 
         done < "${OUTD}/${hash_type}_hashes_multi_${i}.txt"
 
@@ -1962,7 +2002,13 @@ function attack_7()
         if [ "${file_only}" -eq 1 ]; then
 
           temp_file="${OUTD}/${hash_type}_filebased_only_temp.txt"
-          echo "${hash}" | base64 -d > "${temp_file}"
+
+          if [ "${hash_type}" -ne 22000 ]; then
+            echo "${hash}" | base64 -d > "${temp_file}"
+          else
+            echo "${hash}" > "${temp_file}"
+          fi
+
           hash="${temp_file}"
 
         fi
@@ -2215,9 +2261,13 @@ function attack_7()
 
         hash_file=${temp_file}
 
-        while read -r base64_hash; do
+        while read -r file_only_hash; do
 
-          echo -n "${base64_hash}" | base64 -d >> "${temp_file}"
+          if [ "${hash_type}" -ne 22000 ]; then
+            echo -n "${file_only_hash}" | base64 -d >> "${temp_file}"
+          else
+            echo "${file_only_hash}" >> "${temp_file}"
+          fi
 
         done < "${OUTD}/${hash_type}_hashes_multi_${i}.txt"
 
