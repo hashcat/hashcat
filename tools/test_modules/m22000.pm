@@ -181,11 +181,24 @@ sub module_verify_hash
 {
   my $line = shift;
 
-  my @data = split (':', $line);
+  my $index1 = index ($line, ":");
 
-  return unless scalar @data == 10;
+  return if $index1 < 1;
 
-  my ($signature, $type, undef, $macap, $macsta, $essid, $anonce, $eapol, $mp, $word) = @data;
+  my $word = substr ($line, $index1 + 1);
+
+  my $hash_in = substr ($line, 0, $index1);
+
+  my @data = split ('\*', $hash_in);
+
+  my ($signature, $type, $pmkidmic, $macap, $macsta, $essid, $anonce, $eapol, $mp) = @data;
+
+  return unless defined $signature;
+  return unless defined $type;
+  return unless defined $pmkidmic;
+  return unless defined $macap;
+  return unless defined $macsta;
+  return unless defined $essid;
 
   return unless ($signature eq "WPA");
 
