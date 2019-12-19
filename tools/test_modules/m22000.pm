@@ -65,7 +65,7 @@ sub module_generate_hash
 
     my $pmkid = hmac_hex ($data, $pmk, \&sha1);
 
-    $hash = sprintf ("WPA:%02x:%s:%s:%s:%s:::", $type, substr ($pmkid, 0, 32), $macap, $macsta, $essid);
+    $hash = sprintf ("WPA*%02x*%s*%s*%s*%s***", $type, substr ($pmkid, 0, 32), $macap, $macsta, $essid);
   }
   elsif ($type == 2)
   {
@@ -171,7 +171,7 @@ sub module_generate_hash
 
     $mic = substr ($mic, 0, 16);
 
-    $hash = sprintf ("WPA:%02x:%s:%s:%s:%s:%s:%s:%s", $type, unpack ("H*", $mic), unpack ("H*", $macap), unpack ("H*", $macsta), $essid, unpack ("H*", $anonce), unpack ("H*", $eapol), unpack ("H*", $mp));
+    $hash = sprintf ("WPA*%02x*%s*%s*%s*%s*%s*%s*%s", $type, unpack ("H*", $mic), unpack ("H*", $macap), unpack ("H*", $macsta), $essid, unpack ("H*", $anonce), unpack ("H*", $eapol), unpack ("H*", $mp));
   }
 
   return $hash;

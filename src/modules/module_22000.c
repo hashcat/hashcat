@@ -39,7 +39,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_COPY_TMPS;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat!";
-static const char *ST_HASH        = "WPA:01:9d42bfc4ab79cf3a3a85761efd2a0cf0:e8e61d2bfe07:e21f445660bb:3c3429452aba22e9a7a6:::";
+static const char *ST_HASH        = "WPA*01*9d42bfc4ab79cf3a3a85761efd2a0cf0*e8e61d2bfe07*e21f445660bb*3c3429452aba22e9a7a6***";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -395,7 +395,7 @@ int module_hash_binary_save (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED c
 
   if (wpa->type == 1)
   {
-    const int len = hc_asprintf (buf, "WPA:01:%08x%08x%08x%08x:%02x%02x%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x:%s:::",
+    const int len = hc_asprintf (buf, "WPA*01*%08x%08x%08x%08x*%02x%02x%02x%02x%02x%02x*%02x%02x%02x%02x%02x%02x*%s***",
       byte_swap_32 (wpa->pmkid[0]),
       byte_swap_32 (wpa->pmkid[1]),
       byte_swap_32 (wpa->pmkid[2]),
@@ -439,7 +439,7 @@ int module_hash_binary_save (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED c
 
     tmp2_buf[tmp2_len] = 0;
 
-    const int len = hc_asprintf (buf, "WPA:02:%08x%08x%08x%08x:%02x%02x%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x:%s:%08x%08x%08x%08x%08x%08x%08x%08x:%s:%02x" EOL,
+    const int len = hc_asprintf (buf, "WPA*02*%08x%08x%08x%08x*%02x%02x%02x%02x%02x%02x*%02x%02x%02x%02x%02x%02x*%s*%08x%08x%08x%08x%08x%08x%08x%08x*%s*%02x" EOL,
       wpa->keymic[0],
       wpa->keymic[1],
       wpa->keymic[2],
@@ -633,41 +633,41 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     {
       tmp_len = 0;
 
-      tmp_len += snprintf (tmp_buf, sizeof (tmp_buf) - tmp_len, "WPA:02:");
+      tmp_len += snprintf (tmp_buf, sizeof (tmp_buf) - tmp_len, "WPA*02*");
 
       tmp_len += hex_encode ((const u8 *) hccapx->keymic, 16, (u8 *) tmp_buf + tmp_len);
 
-      tmp_buf[tmp_len] = ':';
+      tmp_buf[tmp_len] = '*';
 
       tmp_len++;
 
       tmp_len += hex_encode ((const u8 *) hccapx->mac_ap, 6, (u8 *) tmp_buf + tmp_len);
 
-      tmp_buf[tmp_len] = ':';
+      tmp_buf[tmp_len] = '*';
 
       tmp_len++;
 
       tmp_len += hex_encode ((const u8 *) hccapx->mac_sta, 6, (u8 *) tmp_buf + tmp_len);
 
-      tmp_buf[tmp_len] = ':';
+      tmp_buf[tmp_len] = '*';
 
       tmp_len++;
 
       tmp_len += hex_encode ((const u8 *) hccapx->essid, hccapx->essid_len, (u8 *) tmp_buf + tmp_len);
 
-      tmp_buf[tmp_len] = ':';
+      tmp_buf[tmp_len] = '*';
 
       tmp_len++;
 
       tmp_len += hex_encode ((const u8 *) hccapx->nonce_ap, 32, (u8 *) tmp_buf + tmp_len);
 
-      tmp_buf[tmp_len] = ':';
+      tmp_buf[tmp_len] = '*';
 
       tmp_len++;
 
       tmp_len += hex_encode ((const u8 *) hccapx->eapol, hccapx->eapol_len, (u8 *) tmp_buf + tmp_len);
 
-      tmp_buf[tmp_len] = ':';
+      tmp_buf[tmp_len] = '*';
 
       tmp_len++;
 
@@ -733,7 +733,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     if (rc_tokenizer == PARSER_OK)
     {
-      tmp_len = snprintf (tmp_buf, sizeof (tmp_buf), "WPA:01:%s:::", line_buf);
+      tmp_len = snprintf (tmp_buf, sizeof (tmp_buf), "WPA*01*%s***", line_buf);
 
       input_buf = tmp_buf;
       input_len = tmp_len;
@@ -749,55 +749,55 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = "WPA";
 
-  token.sep[0]     = ':';
+  token.sep[0]     = '*';
   token.len_min[0] = 3;
   token.len_max[0] = 3;
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  token.sep[1]     = ':';
+  token.sep[1]     = '*';
   token.len_min[1] = 2;
   token.len_max[1] = 2;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.sep[2]     = ':';
+  token.sep[2]     = '*';
   token.len_min[2] = 32;
   token.len_max[2] = 32;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.sep[3]     = ':';
+  token.sep[3]     = '*';
   token.len_min[3] = 12;
   token.len_max[3] = 12;
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.sep[4]     = ':';
+  token.sep[4]     = '*';
   token.len_min[4] = 12;
   token.len_max[4] = 12;
   token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.sep[5]     = ':';
+  token.sep[5]     = '*';
   token.len_min[5] = 0;
   token.len_max[5] = 64;
   token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.sep[6]     = ':';
+  token.sep[6]     = '*';
   token.len_min[6] = 0;
   token.len_max[6] = 64;
   token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.sep[7]     = ':';
+  token.sep[7]     = '*';
   token.len_min[7] = 0;
   token.len_max[7] = 512;
   token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.sep[8]     = ':';
+  token.sep[8]     = '*';
   token.len_min[8] = 0;
   token.len_max[8] = 2;
   token.attr[8]    = TOKEN_ATTR_VERIFY_LENGTH
