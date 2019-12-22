@@ -434,7 +434,7 @@ int module_hash_binary_save (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED c
     eapol_swapped[64] = 0;
     eapol_swapped[65] = 0;
 
-    char tmp2_buf[384];
+    char tmp2_buf[1024];
 
     const int tmp2_len = hex_encode ((const u8 *) eapol_swapped, wpa->eapol_len, (u8 *) tmp2_buf);
 
