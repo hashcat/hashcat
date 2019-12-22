@@ -396,7 +396,7 @@ int module_hash_binary_save (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED c
 
   if (wpa->type == 1)
   {
-    const int len = hc_asprintf (buf, "WPA*01*%08x%08x%08x%08x*%02x%02x%02x%02x%02x%02x*%02x%02x%02x%02x%02x%02x*%s***",
+    const int len = hc_asprintf (buf, "WPA*01*%08x%08x%08x%08x*%02x%02x%02x%02x%02x%02x*%02x%02x%02x%02x%02x%02x*%s***" EOL,
       byte_swap_32 (wpa->pmkid[0]),
       byte_swap_32 (wpa->pmkid[1]),
       byte_swap_32 (wpa->pmkid[2]),
