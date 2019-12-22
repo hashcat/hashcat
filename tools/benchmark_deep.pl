@@ -35,7 +35,7 @@ else
   system ("nvidia-smi -rac");
   system ("nvidia-smi -pm ENABLED");
   system ("nvidia-smi -acp UNRESTRICTED");
-  system ("nvidia-smi -pl 1"); ## needs per-gpu adjust
+  system ("nvidia-smi -pl 225"); ## needs per-gpu adjust
   system ("nvidia-settings -a GPUPowerMizerMode=1 -a GPUFanControlState=1 -a GPUTargetFanSpeed=100");
 }
 
@@ -433,7 +433,14 @@ sub get_module
 
     if ($line =~ /OPTS_TYPE_BINARY_HASHFILE/)
     {
-      $is_binary = 1;
+      if (($hash_type == 22000) || ($hash_type == 22001))
+      {
+        ## problem while in -m 2500 backward compatiblity mode
+      }
+      else
+      {
+        $is_binary = 1;
+      }
     }
 
     if ($line =~ /ST_HASH *= \"(.*)\"/)
