@@ -65,6 +65,7 @@
 - Fixed buffer overflow in build_plain() function
 - Fixed copy/paste error leading to invalid "Integer overflow detected in keyspace of mask" in attack-mode 6 and 7
 - Fixed cracking multiple Office hashes (modes 9500, 9600) with the same salt
+- Fixed cracking of Blockchain, My Wallet (V1 and V2) hashes with unexpected decrypted data
 - Fixed cracking of Cisco-PIX and Cisco-ASA MD5 passwords in mask-attack mode if mask > length 16
 - Fixed cracking of Electrum Wallet Salt-Type 2 hashes
 - Fixed cracking of NetNTLMv1 passwords in mask-attack mode if mask > length 16 (optimized kernels only)
