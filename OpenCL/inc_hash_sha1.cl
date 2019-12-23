@@ -1165,9 +1165,7 @@ DECLSPEC void sha1_hmac_init_64 (sha1_hmac_ctx_t *ctx, const u32 *w0, const u32 
 
   sha1_init (&ctx->ipad);
 
-  sha1_transform (t0, t1, t2, t3, ctx->ipad.h);
-
-  ctx->ipad.len = 64;
+  sha1_update_64 (&ctx->ipad, t0, t1, t2, t3, 64);
 
   // opad
 
@@ -1190,9 +1188,7 @@ DECLSPEC void sha1_hmac_init_64 (sha1_hmac_ctx_t *ctx, const u32 *w0, const u32 
 
   sha1_init (&ctx->opad);
 
-  sha1_transform (t0, t1, t2, t3, ctx->opad.h);
-
-  ctx->opad.len = 64;
+  sha1_update_64 (&ctx->opad, t0, t1, t2, t3, 64);
 }
 
 DECLSPEC void sha1_hmac_init (sha1_hmac_ctx_t *ctx, const u32 *w, const int len)
@@ -2267,9 +2263,7 @@ DECLSPEC void sha1_hmac_init_vector_64 (sha1_hmac_ctx_vector_t *ctx, const u32x 
 
   sha1_init_vector (&ctx->ipad);
 
-  sha1_transform_vector (t0, t1, t2, t3, ctx->ipad.h);
-
-  ctx->ipad.len = 64;
+  sha1_update_vector_64 (&ctx->ipad, t0, t1, t2, t3, 64);
 
   // opad
 
@@ -2292,9 +2286,7 @@ DECLSPEC void sha1_hmac_init_vector_64 (sha1_hmac_ctx_vector_t *ctx, const u32x 
 
   sha1_init_vector (&ctx->opad);
 
-  sha1_transform_vector (t0, t1, t2, t3, ctx->opad.h);
-
-  ctx->opad.len = 64;
+  sha1_update_vector_64 (&ctx->opad, t0, t1, t2, t3, 64);
 }
 
 DECLSPEC void sha1_hmac_init_vector (sha1_hmac_ctx_vector_t *ctx, const u32x *w, const int len)

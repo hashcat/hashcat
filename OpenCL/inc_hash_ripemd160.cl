@@ -933,9 +933,7 @@ DECLSPEC void ripemd160_hmac_init_64 (ripemd160_hmac_ctx_t *ctx, const u32 *w0, 
 
   ripemd160_init (&ctx->ipad);
 
-  ripemd160_transform (t0, t1, t2, t3, ctx->ipad.h);
-
-  ctx->ipad.len = 64;
+  ripemd160_update_64 (&ctx->ipad, t0, t1, t2, t3, 64);
 
   // opad
 
@@ -958,9 +956,7 @@ DECLSPEC void ripemd160_hmac_init_64 (ripemd160_hmac_ctx_t *ctx, const u32 *w0, 
 
   ripemd160_init (&ctx->opad);
 
-  ripemd160_transform (t0, t1, t2, t3, ctx->opad.h);
-
-  ctx->opad.len = 64;
+  ripemd160_update_64 (&ctx->opad, t0, t1, t2, t3, 64);
 }
 
 DECLSPEC void ripemd160_hmac_init (ripemd160_hmac_ctx_t *ctx, const u32 *w, const int len)
@@ -1955,9 +1951,7 @@ DECLSPEC void ripemd160_hmac_init_vector_64 (ripemd160_hmac_ctx_vector_t *ctx, c
 
   ripemd160_init_vector (&ctx->ipad);
 
-  ripemd160_transform_vector (t0, t1, t2, t3, ctx->ipad.h);
-
-  ctx->ipad.len = 64;
+  ripemd160_update_vector_64 (&ctx->ipad, t0, t1, t2, t3, 64);
 
   // opad
 
@@ -1980,9 +1974,7 @@ DECLSPEC void ripemd160_hmac_init_vector_64 (ripemd160_hmac_ctx_vector_t *ctx, c
 
   ripemd160_init_vector (&ctx->opad);
 
-  ripemd160_transform_vector (t0, t1, t2, t3, ctx->opad.h);
-
-  ctx->opad.len = 64;
+  ripemd160_update_vector_64 (&ctx->opad, t0, t1, t2, t3, 64);
 }
 
 DECLSPEC void ripemd160_hmac_init_vector (ripemd160_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
