@@ -27,6 +27,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_PT_ALWAYS_ASCII
                                   | OPTS_TYPE_PT_LM
                                   | OPTS_TYPE_HASH_SPLIT;
+static const u32   PWDUMP_COLUMN  = PWDUMP_COLUMN_LM_HASH;
 static const u32   SALT_TYPE      = SALT_TYPE_NONE;
 static const char *ST_PASS        = "hashcat1";
 static const char *ST_HASH        = "299bd128c1101fd6";
@@ -42,6 +43,7 @@ const char *module_hash_name      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 u64         module_kern_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return KERN_TYPE;       }
 u32         module_opti_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTI_TYPE;       }
 u64         module_opts_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTS_TYPE;       }
+u32         module_pwdump_column  (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return PWDUMP_COLUMN;   }
 u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return SALT_TYPE;       }
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
@@ -227,7 +229,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_potfile_custom_check     = MODULE_DEFAULT;
   module_ctx->module_potfile_disable          = MODULE_DEFAULT;
   module_ctx->module_potfile_keep_all_hashes  = module_potfile_keep_all_hashes;
-  module_ctx->module_pwdump_column            = MODULE_DEFAULT;
+  module_ctx->module_pwdump_column            = module_pwdump_column;
   module_ctx->module_pw_max                   = module_pw_max;
   module_ctx->module_pw_min                   = MODULE_DEFAULT;
   module_ctx->module_salt_max                 = MODULE_DEFAULT;
