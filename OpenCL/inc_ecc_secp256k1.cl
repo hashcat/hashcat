@@ -1815,9 +1815,9 @@ DECLSPEC void point_mul (u32 r[9], const u32 k[8], GLOBAL_AS const secp256k1_t *
         }
       }
 
-      // update start/stop:
+      // update start:
 
-      if (i > loop_start) loop_start = i;
+      loop_start = i;
     }
 
     // n = n / 2:
