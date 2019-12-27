@@ -63,12 +63,11 @@
  * ladder. Of course, this claim would need to be verified and tested to see which one is faster
  * for our specific scenario at the end.
  *
- * A speedup could also be possible by using scalars converted to (w)NAF (non-adjacent form) or by
- * just using the windowed (precomputed zi) method or similar improvements:
- * The general idea of w-NAF would be to pre-compute some zi coefficients like below to reduce the
+ * We accomplish a "little" speedup by using scalars converted to w-NAF (non-adjacent form):
+ * The general idea of w-NAF is to pre-compute some zi coefficients like below to reduce the
  * costly point additions by using a non-binary ("signed") number system (values other than just
- * 0 and 1, but ranging from -2^(w-1)-1 to 2^(w-1)-1). This would work best with the left-to-right
- * binary algorithm such that we could just add zi * P when adding point P (pre-compute all the
+ * 0 and 1, but ranging from -2^(w-1)-1 to 2^(w-1)-1). This works best with the left-to-right
+ * binary algorithm such that we just add zi * P when adding point P (we pre-compute all the
  * possible zi * P values because the x/y coordinates are known before the kernel starts):
  *
  *  // Example with window size w = 2 (i.e. mod 4 => & 3):
@@ -1202,7 +1201,30 @@ DECLSPEC void point_double (u32 x[8], u32 y[8], u32 z[8])
   z[7] = t3[7];
 }
 
-DECLSPEC void point_add (u32 x1[8], u32 y1[8], u32 z1[8], const u32 x2[8], const u32 y2[8], const u32 z2[8])
+/*
+ * madd-2004-hmv:
+ * (from https://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html)
+ * t1 = z1^2
+ * t2 = t1*z1
+ * t1 = t1*x2
+ * t2 = t2*y2
+ * t1 = t1-x1
+ * t2 = t2-y1
+ * z3 = z1*t1
+ * t3 = t1^2
+ * t4 = t3*t1
+ * t3 = t3*x1
+ * t1 = 2*t3
+ * x3 = t2^2
+ * x3 = x3-t1
+ * x3 = x3-t4
+ * t3 = t3-x3
+ * t3 = t3*t2
+ * t4 = t4*y1
+ * y3 = t3-t4
+ */
+
+void point_add (u32 x1[8], u32 y1[8], u32 z1[8], u32 x2[8], u32 y2[8]) // z2 = 1
 {
   // How often does this really happen? it should "almost" never happen (but would be safer)
 
@@ -1279,7 +1301,7 @@ DECLSPEC void point_add (u32 x1[8], u32 y1[8], u32 z1[8], const u32 x2[8], const
   t3[6] = z1[6];
   t3[7] = z1[7];
 
-  // x2/y2/z2:
+  // x2/y2:
 
   u32 t4[8];
 
@@ -1304,468 +1326,623 @@ DECLSPEC void point_add (u32 x1[8], u32 y1[8], u32 z1[8], const u32 x2[8], const
   t5[7] = y2[7];
 
   u32 t6[8];
-
-  t6[0] = z2[0];
-  t6[1] = z2[1];
-  t6[2] = z2[2];
-  t6[3] = z2[3];
-  t6[4] = z2[4];
-  t6[5] = z2[5];
-  t6[6] = z2[6];
-  t6[7] = z2[7];
-
   u32 t7[8];
+  u32 t8[8];
+  u32 t9[8];
 
-  mul_mod (t7, t3, t3); // t7 = z1^2
-  mul_mod (t4, t4, t7); // t4 = x2 * z1^2 = B
+  mul_mod (t6, t3, t3); // t6 = t3^2
 
-  mul_mod (t5, t5, t3); // t5 = y2 * z1
-  mul_mod (t5, t5, t7); // t5 = y2 * z1^3 = D
+  mul_mod (t7, t6, t3); // t7 = t6*t3
+  mul_mod (t6, t6, t4); // t6 = t6*t4
+  mul_mod (t7, t7, t5); // t7 = t7*t5
 
-  mul_mod (t7, t6, t6); // t7 = z2^2
+  sub_mod (t6, t6, t1); // t6 = t6-t1
+  sub_mod (t7, t7, t2); // t7 = t7-t2
 
-  mul_mod (t1, t1, t7); // t1 = x1 * z2^2
+  mul_mod (t8, t3, t6); // t8 = t3*t6
+  mul_mod (t4, t6, t6); // t4 = t6^2
+  mul_mod (t9, t4, t6); // t9 = t4*t6
+  mul_mod (t4, t4, t1); // t4 = t4*t1
 
-  mul_mod (t2, t2, t6); // t2 = y1 * z2
-  mul_mod (t2, t2, t7); // t2 = y1 * z2^3 = C
+  // left shift (t4 * 2):
 
-  sub_mod (t1, t1, t4); // t1 = A - B = E
+  t6[7] = t4[7] << 1 | t4[6] >> 31;
+  t6[6] = t4[6] << 1 | t4[5] >> 31;
+  t6[5] = t4[5] << 1 | t4[4] >> 31;
+  t6[4] = t4[4] << 1 | t4[3] >> 31;
+  t6[3] = t4[3] << 1 | t4[2] >> 31;
+  t6[2] = t4[2] << 1 | t4[1] >> 31;
+  t6[1] = t4[1] << 1 | t4[0] >> 31;
+  t6[0] = t4[0] << 1;
 
-  mul_mod (t3, t6, t3); // t3 = z1 * z2
-  mul_mod (t3, t1, t3); // t3 = z1 * z2 * E = Z3
+  // don't discard the most significant bit, it's important too!
 
-  sub_mod (t2, t2, t5); // t2 = C - D = F
+  if (t4[7] & 0x80000000)
+  {
+    // use most significant bit and perform mod P, since we have: t4 * 2 % P
 
-  mul_mod (t7, t1, t1); // t7 = E^2
-  mul_mod (t6, t2, t2); // t6 = F^2
+    u32 a[8] = { 0 };
 
-  mul_mod (t4, t4, t7); // t4 = B * E^2
-  mul_mod (t1, t7, t1); // t1 = E^3
+    a[1] = 1;
+    a[0] = 0x000003d1; // omega (see: mul_mod ())
 
-  sub_mod (t6, t6, t1); // t6 = F^2 - E^3
+    add (t6, t6, a);
+  }
 
-  add_mod (t7, t4, t4); // t7 = 2 * B * E^2
+  mul_mod (t5, t7, t7); // t5 = t7*t7
 
-  sub_mod (t6, t6, t7); // t6 = F^2 - E^2 - 2 * B * E^2 = X3
-  sub_mod (t4, t4, t6); // t4 = B * E^2 - X3
+  sub_mod (t5, t5, t6); // t5 = t5-t6
+  sub_mod (t5, t5, t9); // t5 = t5-t9
+  sub_mod (t4, t4, t5); // t4 = t4-t5
 
-  mul_mod (t2, t2, t4); // t2 = F * (B * E^2 - X3)
-  mul_mod (t7, t5, t1); // t7 = D * E^3
+  mul_mod (t4, t4, t7); // t4 = t4*t7
+  mul_mod (t9, t9, t2); // t9 = t9*t2
 
-  sub_mod (t7, t2, t7); // t7 = F * (B * E^2 - X3) - D * E^3 = Y3
+  sub_mod (t9, t4, t9); // t9 = t4-t9
 
-  x1[0] = t6[0];
-  x1[1] = t6[1];
-  x1[2] = t6[2];
-  x1[3] = t6[3];
-  x1[4] = t6[4];
-  x1[5] = t6[5];
-  x1[6] = t6[6];
-  x1[7] = t6[7];
+  x1[0] = t5[0];
+  x1[1] = t5[1];
+  x1[2] = t5[2];
+  x1[3] = t5[3];
+  x1[4] = t5[4];
+  x1[5] = t5[5];
+  x1[6] = t5[6];
+  x1[7] = t5[7];
 
-  y1[0] = t7[0];
-  y1[1] = t7[1];
-  y1[2] = t7[2];
-  y1[3] = t7[3];
-  y1[4] = t7[4];
-  y1[5] = t7[5];
-  y1[6] = t7[6];
-  y1[7] = t7[7];
+  y1[0] = t9[0];
+  y1[1] = t9[1];
+  y1[2] = t9[2];
+  y1[3] = t9[3];
+  y1[4] = t9[4];
+  y1[5] = t9[5];
+  y1[6] = t9[6];
+  y1[7] = t9[7];
 
-  z1[0] = t3[0];
-  z1[1] = t3[1];
-  z1[2] = t3[2];
-  z1[3] = t3[3];
-  z1[4] = t3[4];
-  z1[5] = t3[5];
-  z1[6] = t3[6];
-  z1[7] = t3[7];
+  z1[0] = t8[0];
+  z1[1] = t8[1];
+  z1[2] = t8[2];
+  z1[3] = t8[3];
+  z1[4] = t8[4];
+  z1[5] = t8[5];
+  z1[6] = t8[6];
+  z1[7] = t8[7];
 }
 
 DECLSPEC void point_get_coords (secp256k1_t *r, const u32 x[8], const u32 y[8])
 {
-  // init the values with x and y:
+  /*
+    pre-compute 1/-1, 3/-3, 5/-5, 7/-7 times P (x, y)
+    for wNAF with window size 4 (max/min: +/- 2^3-1): -7, -5, -3, -1, 1, 3, 5, 7
 
-  u32 x1[8];
+    +x1 ( 0)
+    +y1 ( 8)
+    -y1 (16)
 
-  x1[0] = x[0];
-  x1[1] = x[1];
-  x1[2] = x[2];
-  x1[3] = x[3];
-  x1[4] = x[4];
-  x1[5] = x[5];
-  x1[6] = x[6];
-  x1[7] = x[7];
+    +x3 (24)
+    +y3 (32)
+    -y3 (40)
 
-  u32 y1[8];
+    +x5 (48)
+    +y5 (56)
+    -y5 (64)
 
-  y1[0] = y[0];
-  y1[1] = y[1];
-  y1[2] = y[2];
-  y1[3] = y[3];
-  y1[4] = y[4];
-  y1[5] = y[5];
-  y1[6] = y[6];
-  y1[7] = y[7];
+    +x7 (72)
+    +y7 (80)
+    -y7 (88)
+   */
 
-  u32 t1[8];
+  // note: we use jacobian forms with (x, y, z) for computation, but affine
+  // (or just converted to z = 1) for storage
 
-  t1[0] = y[0];
-  t1[1] = y[1];
-  t1[2] = y[2];
-  t1[3] = y[3];
-  t1[4] = y[4];
-  t1[5] = y[5];
-  t1[6] = y[6];
-  t1[7] = y[7];
+  // 1:
 
-  // we use jacobian forms and the convertion with z = 1 is basically a NO-OP:
-  // X = X1 * z^2 = X1, Y = Y1 * z^3 = Y1
-
-  // https://eprint.iacr.org/2011/338.pdf
-
-  // initial jacobian doubling
-
-  u32 t2[8];
-  u32 t3[8];
-  u32 t4[8];
-
-  mul_mod (t2, x1, x1); // t2 = x1^2
-  mul_mod (t3, y1, y1); // t3 = y1^2
-
-  mul_mod (x1, x1, t3); // x1 = x1*y1^2
-
-  mul_mod (t3, t3, t3); // t3 = t3^2 = y1^4
-
-  // here the z^2 and z^4 is not needed for a = 0 (and furthermore we have z = 1)
-
-  add_mod (y1, t2, t2); // y1 = 2 * t2 = 2 * x1^2
-  add_mod (t2, y1, t2); // t2 = 3 * t2 = 3 * x1^2
-
-  // a * z^4 = 0 * 1^4 = 0
-
-  // don't discard the least significant bit it's important too!
-
-  u32 c = 0;
-
-  if (t2[0] & 1)
-  {
-    u32 t[8];
-
-    t[0] = SECP256K1_P0;
-    t[1] = SECP256K1_P1;
-    t[2] = SECP256K1_P2;
-    t[3] = SECP256K1_P3;
-    t[4] = SECP256K1_P4;
-    t[5] = SECP256K1_P5;
-    t[6] = SECP256K1_P6;
-    t[7] = SECP256K1_P7;
-
-    c = add (t2, t2, t); // t2 + SECP256K1_P
-  }
-
-  // right shift (t2 / 2):
-
-  t2[0] = t2[0] >> 1 | t2[1] << 31;
-  t2[1] = t2[1] >> 1 | t2[2] << 31;
-  t2[2] = t2[2] >> 1 | t2[3] << 31;
-  t2[3] = t2[3] >> 1 | t2[4] << 31;
-  t2[4] = t2[4] >> 1 | t2[5] << 31;
-  t2[5] = t2[5] >> 1 | t2[6] << 31;
-  t2[6] = t2[6] >> 1 | t2[7] << 31;
-  t2[7] = t2[7] >> 1 | c     << 31;
-
-  mul_mod (t4, t2, t2); // t4 = t2^2 = (3/2*x1^2)^2
-
-  add_mod (y1, x1, x1); // y1 = 2 * x1_new
-
-  sub_mod (t4, t4, y1); // t4 = t4 - y1_new
-  sub_mod (x1, x1, t4); // x1 = x1 - t4
-
-  mul_mod (t2, t2, x1); // t2 = t2 * x1_new
-
-  sub_mod (x1, t2, t3); // x1 = t2 - t3
-
-  // => X = t4, Y = x1, Z = t1:
-  // (and t2, t3 can now be safely reused)
-
-  // convert to affine coordinates (to save some bytes copied around) and store it:
-
-  u32 inv[8];
-
-  inv[0] = t1[0];
-  inv[1] = t1[1];
-  inv[2] = t1[2];
-  inv[3] = t1[3];
-  inv[4] = t1[4];
-  inv[5] = t1[5];
-  inv[6] = t1[6];
-  inv[7] = t1[7];
-
-  inv_mod (inv);
-
-  mul_mod (t2, inv, inv); // t2 = inv^2
-  mul_mod (t3, inv, t2);  // t3 = inv^3
-
-  // output to y1
-
-  mul_mod (t3, t3, x1);
-
-  r->xy[31] = t3[7];
-  r->xy[30] = t3[6];
-  r->xy[29] = t3[5];
-  r->xy[28] = t3[4];
-  r->xy[27] = t3[3];
-  r->xy[26] = t3[2];
-  r->xy[25] = t3[1];
-  r->xy[24] = t3[0];
-
-  // output to x1
-
-  mul_mod (t3, t2, t4);
-
-  r->xy[23] = t3[7];
-  r->xy[22] = t3[6];
-  r->xy[21] = t3[5];
-  r->xy[20] = t3[4];
-  r->xy[19] = t3[3];
-  r->xy[18] = t3[2];
-  r->xy[17] = t3[1];
-  r->xy[16] = t3[0];
-
-  // also store orginal x/y:
-
-  r->xy[15] = y[7];
-  r->xy[14] = y[6];
-  r->xy[13] = y[5];
-  r->xy[12] = y[4];
-  r->xy[11] = y[3];
-  r->xy[10] = y[2];
-  r->xy[ 9] = y[1];
-  r->xy[ 8] = y[0];
-
-  r->xy[ 7] = x[7];
-  r->xy[ 6] = x[6];
-  r->xy[ 5] = x[5];
-  r->xy[ 4] = x[4];
-  r->xy[ 3] = x[3];
-  r->xy[ 2] = x[2];
-  r->xy[ 1] = x[1];
   r->xy[ 0] = x[0];
+  r->xy[ 1] = x[1];
+  r->xy[ 2] = x[2];
+  r->xy[ 3] = x[3];
+  r->xy[ 4] = x[4];
+  r->xy[ 5] = x[5];
+  r->xy[ 6] = x[6];
+  r->xy[ 7] = x[7];
+
+  r->xy[ 8] = y[0];
+  r->xy[ 9] = y[1];
+  r->xy[10] = y[2];
+  r->xy[11] = y[3];
+  r->xy[12] = y[4];
+  r->xy[13] = y[5];
+  r->xy[14] = y[6];
+  r->xy[15] = y[7];
+
+  // -1:
+
+  u32 p[8];
+
+  p[0] = SECP256K1_P0;
+  p[1] = SECP256K1_P1;
+  p[2] = SECP256K1_P2;
+  p[3] = SECP256K1_P3;
+  p[4] = SECP256K1_P4;
+  p[5] = SECP256K1_P5;
+  p[6] = SECP256K1_P6;
+  p[7] = SECP256K1_P7;
+
+  u32 neg[8];
+
+  neg[0] = y[0];
+  neg[1] = y[1];
+  neg[2] = y[2];
+  neg[3] = y[3];
+  neg[4] = y[4];
+  neg[5] = y[5];
+  neg[6] = y[6];
+  neg[7] = y[7];
+
+  sub_mod (neg, p, neg); // -y = p - y
+
+  r->xy[16] = neg[0];
+  r->xy[17] = neg[1];
+  r->xy[18] = neg[2];
+  r->xy[19] = neg[3];
+  r->xy[20] = neg[4];
+  r->xy[21] = neg[5];
+  r->xy[22] = neg[6];
+  r->xy[23] = neg[7];
 
 
-  // do the double of the double (i.e. "triple") too, just in case we need it in the main loop:
+  // copy of 1:
 
-  point_double (t4, x1, t1);
+  u32 tx[8];
 
-  // convert to affine coordinates and store it:
+  tx[0] = x[0];
+  tx[1] = x[1];
+  tx[2] = x[2];
+  tx[3] = x[3];
+  tx[4] = x[4];
+  tx[5] = x[5];
+  tx[6] = x[6];
+  tx[7] = x[7];
 
-  inv_mod (t1);
+  u32 ty[8];
 
-  mul_mod (t2, t1, t1); // t2 = t1^2
-  mul_mod (t3, t1, t2); // t3 = t1^3
+  ty[0] = y[0];
+  ty[1] = y[1];
+  ty[2] = y[2];
+  ty[3] = y[3];
+  ty[4] = y[4];
+  ty[5] = y[5];
+  ty[6] = y[6];
+  ty[7] = y[7];
 
-  // output to y2
+  u32 rx[8];
 
-  mul_mod (t3, t3, x1);
+  rx[0] = x[0];
+  rx[1] = x[1];
+  rx[2] = x[2];
+  rx[3] = x[3];
+  rx[4] = x[4];
+  rx[5] = x[5];
+  rx[6] = x[6];
+  rx[7] = x[7];
 
-  r->xy[47] = t3[7];
-  r->xy[46] = t3[6];
-  r->xy[45] = t3[5];
-  r->xy[44] = t3[4];
-  r->xy[43] = t3[3];
-  r->xy[42] = t3[2];
-  r->xy[41] = t3[1];
-  r->xy[40] = t3[0];
+  u32 ry[8];
 
-  // output to x2
+  ry[0] = y[0];
+  ry[1] = y[1];
+  ry[2] = y[2];
+  ry[3] = y[3];
+  ry[4] = y[4];
+  ry[5] = y[5];
+  ry[6] = y[6];
+  ry[7] = y[7];
 
-  mul_mod (t3, t2, t4);
+  u32 rz[8] = { 0 };
 
-  r->xy[39] = t3[7];
-  r->xy[38] = t3[6];
-  r->xy[37] = t3[5];
-  r->xy[36] = t3[4];
-  r->xy[35] = t3[3];
-  r->xy[34] = t3[2];
-  r->xy[33] = t3[1];
-  r->xy[32] = t3[0];
+  rz[0] = 1;
+
+
+  // 3:
+
+  point_double (rx, ry, rz);          // 2
+  point_add    (rx, ry, rz, tx, ty);  // 3
+
+  // to affine:
+
+  inv_mod (rz);
+
+  mul_mod (neg, rz, rz); // neg is temporary variable (z^2)
+  mul_mod (rx,  rx, neg);
+
+  mul_mod (rz, neg, rz);
+  mul_mod (ry, ry, rz);
+
+  r->xy[24] = rx[0];
+  r->xy[25] = rx[1];
+  r->xy[26] = rx[2];
+  r->xy[27] = rx[3];
+  r->xy[28] = rx[4];
+  r->xy[29] = rx[5];
+  r->xy[30] = rx[6];
+  r->xy[31] = rx[7];
+
+  r->xy[32] = ry[0];
+  r->xy[33] = ry[1];
+  r->xy[34] = ry[2];
+  r->xy[35] = ry[3];
+  r->xy[36] = ry[4];
+  r->xy[37] = ry[5];
+  r->xy[38] = ry[6];
+  r->xy[39] = ry[7];
+
+  // -3:
+
+  neg[0] = ry[0];
+  neg[1] = ry[1];
+  neg[2] = ry[2];
+  neg[3] = ry[3];
+  neg[4] = ry[4];
+  neg[5] = ry[5];
+  neg[6] = ry[6];
+  neg[7] = ry[7];
+
+  sub_mod (neg, p, neg);
+
+  r->xy[40] = neg[0];
+  r->xy[41] = neg[1];
+  r->xy[42] = neg[2];
+  r->xy[43] = neg[3];
+  r->xy[44] = neg[4];
+  r->xy[45] = neg[5];
+  r->xy[46] = neg[6];
+  r->xy[47] = neg[7];
+
+
+  // 5:
+
+  rz[0] = 1; // actually we could take advantage of rz being 1 too (alternative point_add ()),
+  rz[1] = 0; // but it is not important because this is performed only once per "hash"
+  rz[2] = 0;
+  rz[3] = 0;
+  rz[4] = 0;
+  rz[5] = 0;
+  rz[6] = 0;
+  rz[7] = 0;
+
+  point_add (rx, ry, rz, tx, ty); // 4
+  point_add (rx, ry, rz, tx, ty); // 5
+
+  // to affine:
+
+  inv_mod (rz);
+
+  mul_mod (neg, rz, rz);
+  mul_mod (rx,  rx, neg);
+
+  mul_mod (rz, neg, rz);
+  mul_mod (ry, ry, rz);
+
+  r->xy[48] = rx[0];
+  r->xy[49] = rx[1];
+  r->xy[50] = rx[2];
+  r->xy[51] = rx[3];
+  r->xy[52] = rx[4];
+  r->xy[53] = rx[5];
+  r->xy[54] = rx[6];
+  r->xy[55] = rx[7];
+
+  r->xy[56] = ry[0];
+  r->xy[57] = ry[1];
+  r->xy[58] = ry[2];
+  r->xy[59] = ry[3];
+  r->xy[60] = ry[4];
+  r->xy[61] = ry[5];
+  r->xy[62] = ry[6];
+  r->xy[63] = ry[7];
+
+  // -5:
+
+  neg[0] = ry[0];
+  neg[1] = ry[1];
+  neg[2] = ry[2];
+  neg[3] = ry[3];
+  neg[4] = ry[4];
+  neg[5] = ry[5];
+  neg[6] = ry[6];
+  neg[7] = ry[7];
+
+  sub_mod (neg, p, neg);
+
+  r->xy[64] = neg[0];
+  r->xy[65] = neg[1];
+  r->xy[66] = neg[2];
+  r->xy[67] = neg[3];
+  r->xy[68] = neg[4];
+  r->xy[69] = neg[5];
+  r->xy[70] = neg[6];
+  r->xy[71] = neg[7];
+
+
+  // 7:
+
+  rz[0] = 1;
+  rz[1] = 0;
+  rz[2] = 0;
+  rz[3] = 0;
+  rz[4] = 0;
+  rz[5] = 0;
+  rz[6] = 0;
+  rz[7] = 0;
+
+  point_add (rx, ry, rz, tx, ty); // 6
+  point_add (rx, ry, rz, tx, ty); // 7
+
+  // to affine:
+
+  inv_mod (rz);
+
+  mul_mod (neg, rz, rz);
+  mul_mod (rx,  rx, neg);
+
+  mul_mod (rz, neg, rz);
+  mul_mod (ry, ry, rz);
+
+  r->xy[72] = rx[0];
+  r->xy[73] = rx[1];
+  r->xy[74] = rx[2];
+  r->xy[75] = rx[3];
+  r->xy[76] = rx[4];
+  r->xy[77] = rx[5];
+  r->xy[78] = rx[6];
+  r->xy[79] = rx[7];
+
+  r->xy[80] = ry[0];
+  r->xy[81] = ry[1];
+  r->xy[82] = ry[2];
+  r->xy[83] = ry[3];
+  r->xy[84] = ry[4];
+  r->xy[85] = ry[5];
+  r->xy[86] = ry[6];
+  r->xy[87] = ry[7];
+
+  // -7:
+
+  neg[0] = ry[0];
+  neg[1] = ry[1];
+  neg[2] = ry[2];
+  neg[3] = ry[3];
+  neg[4] = ry[4];
+  neg[5] = ry[5];
+  neg[6] = ry[6];
+  neg[7] = ry[7];
+
+  sub_mod (neg, p, neg);
+
+  r->xy[88] = neg[0];
+  r->xy[89] = neg[1];
+  r->xy[90] = neg[2];
+  r->xy[91] = neg[3];
+  r->xy[92] = neg[4];
+  r->xy[93] = neg[5];
+  r->xy[94] = neg[6];
+  r->xy[95] = neg[7];
 }
 
 DECLSPEC void point_mul (u32 r[9], const u32 k[8], GLOBAL_AS const secp256k1_t *tmps)
 {
-  // first check the position of the least significant bit
+  /*
+   * Convert the tweak/scalar k to w-NAF (window size is 4)
+   */
 
-  // the following fancy shift operation just checks the last 2 bits, finds the
-  // least significant bit (set to 1) and updates idx according to this table:
-  // last bits  | idx
-  // 0bxxxxxx00 | 2
-  // 0bxxxxxx01 | 0
-  // 0bxxxxxx10 | 1
-  // 0bxxxxxx11 | 0
+  u32 n[9];
 
-  const u32 idx = (0x0102 >> ((k[0] & 3) << 2)) & 3;
+  n[0] =    0; // we need this extra slot sometimes for the subtraction to work
+  n[1] = k[7];
+  n[2] = k[6];
+  n[3] = k[5];
+  n[4] = k[4];
+  n[5] = k[3];
+  n[6] = k[2];
+  n[7] = k[1];
+  n[8] = k[0];
 
-  const u32 offset = idx << 4; // * (8 + 8) = 16 (=> offset of 16 u32 = 16 * 4 bytes)
+  u32 naf[32 + 1] = { 0 }; // we need one extra slot
+
+  int loop_start = 0;
+
+  for (int i = 0; i <= 256; i++)
+  {
+    if (n[8] & 1)
+    {
+      // for window size w = 4:
+      // => 2^(w-0) = 2^4 = 16 (0x10)
+      // => 2^(w-1) = 2^3 =  8 (0x08)
+
+      int diff = n[8] & 0x0f; // n % 2^w == n & (2^w - 1)
+
+      // convert diff to val according to this table:
+      //  1 -> +1 -> 1
+      //  3 -> +3 -> 3
+      //  5 -> +5 -> 5
+      //  7 -> +7 -> 7
+      //  9 -> -7 -> 8
+      // 11 -> -5 -> 6
+      // 13 -> -3 -> 4
+      // 15 -> -1 -> 2
+
+      int val = diff;
+
+      if (diff >= 0x08)
+      {
+        diff -= 0x10;
+
+        val = 0x11 - val;
+      }
+
+      naf[i >> 3] |= val << ((i & 7) << 2);
+
+      u32 t = n[8]; // t is the (temporary) old/unmodified value
+
+      n[8] -= diff;
+
+      // we need to take care of the carry/borrow:
+
+      u32 k = 8;
+
+      if (diff > 0)
+      {
+        while (n[k] > t) // overflow propagation
+        {
+          if (k == 0) break; // needed ?
+
+          k--;
+
+          t = n[k];
+
+          n[k]--;
+        }
+      }
+      else // if (diff < 0)
+      {
+        while (t > n[k]) // overflow propagation
+        {
+          if (k == 0) break;
+
+          k--;
+
+          t = n[k];
+
+          n[k]++;
+        }
+      }
+
+      // update start/stop:
+
+      if (i > loop_start) loop_start = i;
+    }
+
+    // n = n / 2:
+
+    n[8] = n[8] >> 1 | n[7] << 31;
+    n[7] = n[7] >> 1 | n[6] << 31;
+    n[6] = n[6] >> 1 | n[5] << 31;
+    n[5] = n[5] >> 1 | n[4] << 31;
+    n[4] = n[4] >> 1 | n[3] << 31;
+    n[3] = n[3] >> 1 | n[2] << 31;
+    n[2] = n[2] >> 1 | n[1] << 31;
+    n[1] = n[1] >> 1 | n[0] << 31;
+    n[0] = n[0] >> 1;
+  }
+
+
+  // first set:
+
+  const u32 multiplier = (naf[loop_start >> 3] >> ((loop_start & 7) << 2)) & 0x0f; // or use u8 ?
+
+  const u32 odd = multiplier & 1;
+
+  const u32 x_pos = ((multiplier - 1 + odd) >> 1) * 24;
+  const u32 y_pos = odd ? (x_pos + 8) : (x_pos + 16);
 
   u32 x1[8];
 
-  x1[0] = tmps->xy[offset +  0];
-  x1[1] = tmps->xy[offset +  1];
-  x1[2] = tmps->xy[offset +  2];
-  x1[3] = tmps->xy[offset +  3];
-  x1[4] = tmps->xy[offset +  4];
-  x1[5] = tmps->xy[offset +  5];
-  x1[6] = tmps->xy[offset +  6];
-  x1[7] = tmps->xy[offset +  7];
+  x1[0] = tmps->xy[x_pos + 0];
+  x1[1] = tmps->xy[x_pos + 1];
+  x1[2] = tmps->xy[x_pos + 2];
+  x1[3] = tmps->xy[x_pos + 3];
+  x1[4] = tmps->xy[x_pos + 4];
+  x1[5] = tmps->xy[x_pos + 5];
+  x1[6] = tmps->xy[x_pos + 6];
+  x1[7] = tmps->xy[x_pos + 7];
 
   u32 y1[8];
 
-  y1[0] = tmps->xy[offset +  8];
-  y1[1] = tmps->xy[offset +  9];
-  y1[2] = tmps->xy[offset + 10];
-  y1[3] = tmps->xy[offset + 11];
-  y1[4] = tmps->xy[offset + 12];
-  y1[5] = tmps->xy[offset + 13];
-  y1[6] = tmps->xy[offset + 14];
-  y1[7] = tmps->xy[offset + 15];
+  y1[0] = tmps->xy[y_pos + 0];
+  y1[1] = tmps->xy[y_pos + 1];
+  y1[2] = tmps->xy[y_pos + 2];
+  y1[3] = tmps->xy[y_pos + 3];
+  y1[4] = tmps->xy[y_pos + 4];
+  y1[5] = tmps->xy[y_pos + 5];
+  y1[6] = tmps->xy[y_pos + 6];
+  y1[7] = tmps->xy[y_pos + 7];
 
   u32 z1[8] = { 0 };
 
   z1[0] = 1;
 
-  // do NOT allow to overflow the tmps->xy buffer:
-
-  u32 final_offset = offset;
-
-  if (final_offset > 16) final_offset = 16;
-
-  u32 x2[8];
-
-  x2[0] = tmps->xy[final_offset + 16];
-  x2[1] = tmps->xy[final_offset + 17];
-  x2[2] = tmps->xy[final_offset + 18];
-  x2[3] = tmps->xy[final_offset + 19];
-  x2[4] = tmps->xy[final_offset + 20];
-  x2[5] = tmps->xy[final_offset + 21];
-  x2[6] = tmps->xy[final_offset + 22];
-  x2[7] = tmps->xy[final_offset + 23];
-
-  u32 y2[8];
-
-  y2[0] = tmps->xy[final_offset + 24];
-  y2[1] = tmps->xy[final_offset + 25];
-  y2[2] = tmps->xy[final_offset + 26];
-  y2[3] = tmps->xy[final_offset + 27];
-  y2[4] = tmps->xy[final_offset + 28];
-  y2[5] = tmps->xy[final_offset + 29];
-  y2[6] = tmps->xy[final_offset + 30];
-  y2[7] = tmps->xy[final_offset + 31];
-
-  u32 z2[8] = { 0 };
-
-  z2[0] = 1;
-
-  // ... then find out the position of the most significant bit
-
-  int loop_start = idx;
-  int loop_end   = 255;
-
-  for (int i = 255; i > 0; i--) // or use: i > idx
-  {
-    u32 idx = i >> 5; // the current u32 (each consisting of 2^5 = 32 bits) to inspect
-
-    u32 mask = 1 << (i & 0x1f);
-
-    if (k[idx] & mask) break; // found it !
-
-    loop_end--;
-  }
-
   /*
-   * Start
+   * Start:
    */
 
-  // "just" double until we find the first add (where the first bit is set):
+  // main loop (left-to-right binary algorithm):
 
-  for (int pos = loop_start; pos < loop_end; pos++)
+  for (int pos = loop_start - 1; pos >= 0; pos--) // -1 because we've set/add the point already
   {
-    const u32 idx = pos >> 5;
+    // always double:
 
-    const u32 mask = 1 << (pos & 0x1f);
-
-    if (k[idx] & mask) break;
-
-    point_double (x2, y2, z2);
-
-    loop_start++;
-  }
-
-  // for case 0 and 1 we can skip the double (we already did it in the host)
-
-  if (idx > 1)
-  {
-    x1[0] = x2[0];
-    x1[1] = x2[1];
-    x1[2] = x2[2];
-    x1[3] = x2[3];
-    x1[4] = x2[4];
-    x1[5] = x2[5];
-    x1[6] = x2[6];
-    x1[7] = x2[7];
-
-    y1[0] = y2[0];
-    y1[1] = y2[1];
-    y1[2] = y2[2];
-    y1[3] = y2[3];
-    y1[4] = y2[4];
-    y1[5] = y2[5];
-    y1[6] = y2[6];
-    y1[7] = y2[7];
-
-    z1[0] = z2[0];
-    z1[1] = z2[1];
-    z1[2] = z2[2];
-    z1[3] = z2[3];
-    z1[4] = z2[4];
-    z1[5] = z2[5];
-    z1[6] = z2[6];
-    z1[7] = z2[7];
-
-    point_double (x2, y2, z2);
-  }
-
-  // main loop (right-to-left binary algorithm):
-
-  for (int pos = loop_start + 1; pos < loop_end; pos++)
-  {
-    u32 idx = pos >> 5;
-
-    u32 mask = 1 << (pos & 0x1f);
+    point_double (x1, y1, z1);
 
     // add only if needed:
 
-    if (k[idx] & mask)
+    const u32 multiplier = (naf[pos >> 3] >> ((pos & 7) << 2)) & 0x0f;
+
+    if (multiplier)
     {
-      point_add (x1, y1, z1, x2, y2, z2);
+      /*
+        m ->  y | y = ((m - (m & 1)) / 2) * 24
+        ----------------------------------
+        1 ->  0 | 1/2 * 24 = 0
+        2 -> 16
+        3 -> 24 | 3/2 * 24 = 24
+        4 -> 40
+        5 -> 48 | 5/2 * 24 = 2*24
+        6 -> 64
+        7 -> 72 | 7/2 * 24 = 3*24
+        8 -> 88
+       */
+
+      const u32 odd = multiplier & 1;
+
+      const u32 x_pos = ((multiplier - 1 + odd) >> 1) * 24;
+      const u32 y_pos = odd ? (x_pos + 8) : (x_pos + 16);
+
+      u32 x2[8];
+
+      x2[0] = tmps->xy[x_pos + 0];
+      x2[1] = tmps->xy[x_pos + 1];
+      x2[2] = tmps->xy[x_pos + 2];
+      x2[3] = tmps->xy[x_pos + 3];
+      x2[4] = tmps->xy[x_pos + 4];
+      x2[5] = tmps->xy[x_pos + 5];
+      x2[6] = tmps->xy[x_pos + 6];
+      x2[7] = tmps->xy[x_pos + 7];
+
+      u32 y2[8];
+
+      y2[0] = tmps->xy[y_pos + 0];
+      y2[1] = tmps->xy[y_pos + 1];
+      y2[2] = tmps->xy[y_pos + 2];
+      y2[3] = tmps->xy[y_pos + 3];
+      y2[4] = tmps->xy[y_pos + 4];
+      y2[5] = tmps->xy[y_pos + 5];
+      y2[6] = tmps->xy[y_pos + 6];
+      y2[7] = tmps->xy[y_pos + 7];
+
+      // (x1, y1, z1) + multiplier * (x, y, z) = (x1, y1, z1) + (x2, y2, z2)
+
+      point_add (x1, y1, z1, x2, y2);
+
+      // optimization (there can't be any adds after an add for w-1 times):
+      // (but it seems to be faster without this manipulation of "pos")
+
+      //for (u32 i = 0; i < 3; i++)
+      //{
+      //  if (pos == 0) break;
+      //  point_double (x1, y1, z1);
+      //  pos--;
+      //}
     }
-
-    // always double:
-
-    point_double (x2, y2, z2);
   }
 
-  // handle last one:
-
-  //const u32 final_idx = loop_end >> 5;
-  //const u32 mask      = 1 << (loop_end & 0x1f);
-
-  //if (k[final_idx] & mask)
-  //{
-  // here we just assume that we have at least 2 bits set (an initial one and one additional bit)
-  // this could be dangerous/wrong in some situations, but very, very, very unlikely
-  point_add (x1, y1, z1, x2, y2, z2);
-  //}
 
   /*
    * Get the corresponding affine coordinates x/y:
@@ -1778,7 +1955,7 @@ DECLSPEC void point_mul (u32 r[9], const u32 k[8], GLOBAL_AS const secp256k1_t *
 
   inv_mod (z1);
 
-  // z2 is just used as temporary storage to keep the unmodified z1 for calculating z1^3:
+  u32 z2[8];
 
   mul_mod (z2, z1, z1); // z1^2
   mul_mod (x1, x1, z2); // x1_affine
