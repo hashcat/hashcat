@@ -30,7 +30,7 @@
 
 typedef struct secp256k1
 {
-  u32 xy[48]; // all 3 pairs of 32+32 bytes: x,y, x1,y1, x2,y2
+  u32 xy[96]; // pre-computed points: (x1,y1,-y1),(x3,y3,-y3),(x5,y5,-y5),(x7,y7,-y7)
 
 } secp256k1_t;
 
