@@ -21,6 +21,7 @@
 
 - Added hash-mode: Android Backup
 - Added hash-mode: AuthMe sha256
+- Added hash-mode: BitLocker
 - Added hash-mode: BitShares v0.x
 - Added hash-mode: Blockchain, My Wallet, Second Password (SHA256)
 - Added hash-mode: DiskCryptor
