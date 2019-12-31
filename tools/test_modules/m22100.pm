@@ -12,7 +12,7 @@ use Digest::SHA qw (sha256);
 use Crypt::Mode::ECB;
 use Encode;
 
-sub module_constraints { [[0, 256], [16, 16], [-1, -1], [-1, -1], [-1, -1]] }
+sub module_constraints { [[4, 256], [16, 16], [-1, -1], [-1, -1], [-1, -1]] }
 
 my $ITER     = 1048576; # 0x100000
 my $SALT_LEN = 16;
