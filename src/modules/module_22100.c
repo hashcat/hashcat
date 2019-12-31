@@ -79,13 +79,6 @@ u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED c
   return tmp_size;
 }
 
-u32 module_kernel_threads_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u32 kernel_threads_min = 256;
-
-  return kernel_threads_min;
-}
-
 u32 module_kernel_threads_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   const u32 kernel_threads_max = 256;
@@ -399,7 +392,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_kernel_loops_max         = MODULE_DEFAULT;
   module_ctx->module_kernel_loops_min         = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_max       = module_kernel_threads_max;
-  module_ctx->module_kernel_threads_min       = module_kernel_threads_min;
+  module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
   module_ctx->module_opti_type                = module_opti_type;
