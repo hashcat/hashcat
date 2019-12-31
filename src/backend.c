@@ -9402,13 +9402,16 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
     {
-      if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+      if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
       {
-        // not required
-      }
-      else
-      {
-        device_param->kernel_threads_max = MIN (device_param->kernel_threads_max, 64);
+        if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+        {
+          // not required
+        }
+        else
+        {
+          device_param->kernel_threads_max = MIN (device_param->kernel_threads_max, 64);
+        }
       }
     }
 
