@@ -107,61 +107,88 @@ KERNEL_FQ void m22100_loop (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
 
   // init
 
-  u32x w[32] = { 0 }; // 64 bytes blocks/aligned, 88 bytes needed (22 u32 = 22 * 4)
+  u32x wa0[4];
+  u32x wa1[4];
+  u32x wa2[4];
+  u32x wa3[4];
 
-  w[ 0] = packv (tmps, last_hash, gid, 0);
-  w[ 1] = packv (tmps, last_hash, gid, 1);
-  w[ 2] = packv (tmps, last_hash, gid, 2);
-  w[ 3] = packv (tmps, last_hash, gid, 3);
-  w[ 4] = packv (tmps, last_hash, gid, 4);
-  w[ 5] = packv (tmps, last_hash, gid, 5);
-  w[ 6] = packv (tmps, last_hash, gid, 6);
-  w[ 7] = packv (tmps, last_hash, gid, 7);
+  wa0[0] = packv (tmps, last_hash, gid, 0); // last_hash
+  wa0[1] = packv (tmps, last_hash, gid, 1);
+  wa0[2] = packv (tmps, last_hash, gid, 2);
+  wa0[3] = packv (tmps, last_hash, gid, 3);
+  wa1[0] = packv (tmps, last_hash, gid, 4);
+  wa1[1] = packv (tmps, last_hash, gid, 5);
+  wa1[2] = packv (tmps, last_hash, gid, 6);
+  wa1[3] = packv (tmps, last_hash, gid, 7);
+  wa2[0] = packv (tmps, init_hash, gid, 0); // init_hash
+  wa2[1] = packv (tmps, init_hash, gid, 1);
+  wa2[2] = packv (tmps, init_hash, gid, 2);
+  wa2[3] = packv (tmps, init_hash, gid, 3);
+  wa3[0] = packv (tmps, init_hash, gid, 4);
+  wa3[1] = packv (tmps, init_hash, gid, 5);
+  wa3[2] = packv (tmps, init_hash, gid, 6);
+  wa3[3] = packv (tmps, init_hash, gid, 7);
 
-  w[ 8] = packv (tmps, init_hash, gid, 0);
-  w[ 9] = packv (tmps, init_hash, gid, 1);
-  w[10] = packv (tmps, init_hash, gid, 2);
-  w[11] = packv (tmps, init_hash, gid, 3);
-  w[12] = packv (tmps, init_hash, gid, 4);
-  w[13] = packv (tmps, init_hash, gid, 5);
-  w[14] = packv (tmps, init_hash, gid, 6);
-  w[15] = packv (tmps, init_hash, gid, 7);
+  u32x wb0[4];
+  u32x wb1[4];
+  u32x wb2[4];
+  u32x wb3[4];
 
-  w[16] = packv (tmps, salt, gid, 0);
-  w[17] = packv (tmps, salt, gid, 1);
-  w[18] = packv (tmps, salt, gid, 2);
-  w[19] = packv (tmps, salt, gid, 3);
+  wb0[0] = packv (tmps, salt, gid, 0);
+  wb0[1] = packv (tmps, salt, gid, 1);
+  wb0[2] = packv (tmps, salt, gid, 2);
+  wb0[3] = packv (tmps, salt, gid, 3);
+  wb1[0] = 0;
+  wb1[1] = 0;
+  wb1[2] = 0x80000000;
+  wb1[3] = 0;
+  wb2[0] = 0;
+  wb2[1] = 0;
+  wb2[2] = 0;
+  wb2[3] = 0;
+  wb3[0] = 0;
+  wb3[1] = 0;
+  wb3[2] = 0;
+  wb3[3] = 88 * 8;
 
   // main loop
 
   for (u32 i = 0, j = loop_pos; i < loop_cnt; i++, j++)
   {
-    w[20] = hc_swap32 (j);
+    wb1[0] = hc_swap32 (j);
 
-    sha256_ctx_vector_t ctx;
+    u32 digest[8];
 
-    sha256_init_vector   (&ctx);
-    sha256_update_vector (&ctx, w, 88);
-    sha256_final_vector  (&ctx);
+    digest[0] = SHA256M_A;
+    digest[1] = SHA256M_B;
+    digest[2] = SHA256M_C;
+    digest[3] = SHA256M_D;
+    digest[4] = SHA256M_E;
+    digest[5] = SHA256M_F;
+    digest[6] = SHA256M_G;
+    digest[7] = SHA256M_H;
 
-    w[0] = ctx.h[0];
-    w[1] = ctx.h[1];
-    w[2] = ctx.h[2];
-    w[3] = ctx.h[3];
-    w[4] = ctx.h[4];
-    w[5] = ctx.h[5];
-    w[6] = ctx.h[6];
-    w[7] = ctx.h[7];
+    sha256_transform_vector (wa0, wa1, wa2, wa3, digest);
+    sha256_transform_vector (wb0, wb1, wb2, wb3, digest); // this one gives the boost
+
+    wa0[0] = digest[0];
+    wa0[1] = digest[1];
+    wa0[2] = digest[2];
+    wa0[3] = digest[3];
+    wa1[0] = digest[4];
+    wa1[1] = digest[5];
+    wa1[2] = digest[6];
+    wa1[3] = digest[7];
   }
 
-  unpackv (tmps, last_hash, gid, 0, w[0]);
-  unpackv (tmps, last_hash, gid, 1, w[1]);
-  unpackv (tmps, last_hash, gid, 2, w[2]);
-  unpackv (tmps, last_hash, gid, 3, w[3]);
-  unpackv (tmps, last_hash, gid, 4, w[4]);
-  unpackv (tmps, last_hash, gid, 5, w[5]);
-  unpackv (tmps, last_hash, gid, 6, w[6]);
-  unpackv (tmps, last_hash, gid, 7, w[7]);
+  unpackv (tmps, last_hash, gid, 0, wa0[0]);
+  unpackv (tmps, last_hash, gid, 1, wa0[1]);
+  unpackv (tmps, last_hash, gid, 2, wa0[2]);
+  unpackv (tmps, last_hash, gid, 3, wa0[3]);
+  unpackv (tmps, last_hash, gid, 4, wa1[0]);
+  unpackv (tmps, last_hash, gid, 5, wa1[1]);
+  unpackv (tmps, last_hash, gid, 6, wa1[2]);
+  unpackv (tmps, last_hash, gid, 7, wa1[3]);
 }
 
 KERNEL_FQ void m22100_comp (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
