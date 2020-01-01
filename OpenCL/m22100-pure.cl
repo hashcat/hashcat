@@ -219,7 +219,7 @@ KERNEL_FQ void m22100_loop (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
 
   for (u32 i = 0, j = loop_pos; i < loop_cnt; i++, j++)
   {
-    u32 digest[8];
+    u32x digest[8];
 
     digest[0] = SHA256M_A;
     digest[1] = SHA256M_B;
