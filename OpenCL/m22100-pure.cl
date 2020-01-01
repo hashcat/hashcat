@@ -25,7 +25,7 @@ typedef struct bitlocker
   u32 type;
   u32 iv[4];
   u32 data[15];
-  u32 wb_ke_pc[ITERATION_BITLOCKER][64]; // only 48 needed
+  u32 wb_ke_pc[ITERATION_BITLOCKER][48];
 
 } bitlocker_t;
 
@@ -36,7 +36,13 @@ typedef struct bitlocker_tmp
 
 } bitlocker_tmp_t;
 
-DECLSPEC void sha256_transform_vector_pc (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u32x *digest, const GLOBAL_AS u32 wb_ke_pc[64])
+#ifdef REAL_SHM
+#define SHM_TYPE2 LOCAL_AS
+#else
+#define SHM_TYPE2 GLOBAL_AS
+#endif
+
+DECLSPEC void sha256_transform_vector_pc (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u32x *digest, SHM_TYPE2 u32 s_wb_ke_pc[48])
 {
   u32x a = digest[0];
   u32x b = digest[1];
@@ -64,24 +70,24 @@ DECLSPEC void sha256_transform_vector_pc (const u32x *w0, const u32x *w1, const 
   u32x we_t = w3[2];
   u32x wf_t = w3[3];
 
-  #define ROUND_EXPAND_PC(i)  \
-  {                           \
-    w0_t = wb_ke_pc[i +  0];  \
-    w1_t = wb_ke_pc[i +  1];  \
-    w2_t = wb_ke_pc[i +  2];  \
-    w3_t = wb_ke_pc[i +  3];  \
-    w4_t = wb_ke_pc[i +  4];  \
-    w5_t = wb_ke_pc[i +  5];  \
-    w6_t = wb_ke_pc[i +  6];  \
-    w7_t = wb_ke_pc[i +  7];  \
-    w8_t = wb_ke_pc[i +  8];  \
-    w9_t = wb_ke_pc[i +  9];  \
-    wa_t = wb_ke_pc[i + 10];  \
-    wb_t = wb_ke_pc[i + 11];  \
-    wc_t = wb_ke_pc[i + 12];  \
-    wd_t = wb_ke_pc[i + 13];  \
-    we_t = wb_ke_pc[i + 14];  \
-    wf_t = wb_ke_pc[i + 15];  \
+  #define ROUND_EXPAND_PC(i)    \
+  {                             \
+    w0_t = s_wb_ke_pc[i +  0];  \
+    w1_t = s_wb_ke_pc[i +  1];  \
+    w2_t = s_wb_ke_pc[i +  2];  \
+    w3_t = s_wb_ke_pc[i +  3];  \
+    w4_t = s_wb_ke_pc[i +  4];  \
+    w5_t = s_wb_ke_pc[i +  5];  \
+    w6_t = s_wb_ke_pc[i +  6];  \
+    w7_t = s_wb_ke_pc[i +  7];  \
+    w8_t = s_wb_ke_pc[i +  8];  \
+    w9_t = s_wb_ke_pc[i +  9];  \
+    wa_t = s_wb_ke_pc[i + 10];  \
+    wb_t = s_wb_ke_pc[i + 11];  \
+    wc_t = s_wb_ke_pc[i + 12];  \
+    wd_t = s_wb_ke_pc[i + 13];  \
+    we_t = s_wb_ke_pc[i + 14];  \
+    wf_t = s_wb_ke_pc[i + 15];  \
   }
 
   #define ROUND_STEP(i)                                                                   \
@@ -104,12 +110,14 @@ DECLSPEC void sha256_transform_vector_pc (const u32x *w0, const u32x *w1, const 
     SHA256_STEP (SHA256_F0o, SHA256_F1o, b, c, d, e, f, g, h, a, wf_t, k_sha256[i + 15]); \
   }
 
+  ROUND_STEP (0);
+
   #ifdef _unroll
   #pragma unroll
   #endif
-  for (int i = 0; i < 64; i += 16)
+  for (int i = 16; i < 64; i += 16)
   {
-    ROUND_EXPAND_PC (i); ROUND_STEP (i);
+    ROUND_EXPAND_PC (i - 16); ROUND_STEP (i);
   }
 
   #undef ROUND_EXPAND_PC
@@ -188,8 +196,59 @@ KERNEL_FQ void m22100_init (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
 KERNEL_FQ void m22100_loop (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
 {
   const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
+
+  /**
+   * load 256 full w[] precomputed KE buffers into shared memory since its all static data
+   * in order for this to work we need to set a fixed loop count to 256
+   */
+
+  #ifdef REAL_SHM
+
+  LOCAL_VK u32 s_wb_ke_pc[256][48];
+
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    for (u32 j = 0; j < 48; j++) // first 16 set to register
+    {
+      s_wb_ke_pc[i][j] = esalt_bufs[digests_offset].wb_ke_pc[loop_pos + i][j];
+    }
+  }
+
+  SYNC_THREADS ();
+
+  #else
+
+  GLOBAL_AS u32 (*s_wb_ke_pc)[48] = &esalt_bufs[digests_offset].wb_ke_pc[loop_pos];
+
+  #endif
 
   if ((gid * VECT_SIZE) >= gid_max) return;
+
+  // salt to register
+
+  u32x t0[4];
+  u32x t1[4];
+  u32x t2[4];
+  u32x t3[4];
+
+  t0[0] = salt_bufs[salt_pos].salt_buf[0];
+  t0[1] = salt_bufs[salt_pos].salt_buf[1];
+  t0[2] = salt_bufs[salt_pos].salt_buf[2];
+  t0[3] = salt_bufs[salt_pos].salt_buf[3];
+  t1[0] = 0;
+  t1[1] = 0;
+  t1[2] = 0x80000000;
+  t1[3] = 0;
+  t2[0] = 0;
+  t2[1] = 0;
+  t2[2] = 0;
+  t2[3] = 0;
+  t3[0] = 0;
+  t3[1] = 0;
+  t3[2] = 0;
+  t3[3] = 88 * 8;
 
   // init
 
@@ -230,8 +289,11 @@ KERNEL_FQ void m22100_loop (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
     digest[6] = SHA256M_G;
     digest[7] = SHA256M_H;
 
-    sha256_transform_vector    (w0, w1, w2, w3, digest);
-    sha256_transform_vector_pc (w0, w1, w2, w3, digest, esalt_bufs[digests_offset].wb_ke_pc[j]);
+    sha256_transform_vector (w0, w1, w2, w3, digest);
+
+    t1[0] = hc_swap32_S (j); // only moving part
+
+    sha256_transform_vector_pc (t0, t1, t2, t3, digest, s_wb_ke_pc[i]);
 
     w0[0] = digest[0];
     w0[1] = digest[1];

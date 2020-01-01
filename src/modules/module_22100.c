@@ -51,7 +51,7 @@ typedef struct bitlocker
   u32 type;
   u32 iv[4];
   u32 data[15];
-  u32 wb_ke_pc[ITERATION_BITLOCKER][64]; // only 48 needed
+  u32 wb_ke_pc[ITERATION_BITLOCKER][48];
 
 } bitlocker_t;
 
@@ -78,11 +78,18 @@ u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED c
   return tmp_size;
 }
 
-u32 module_kernel_threads_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+u32 module_kernel_loops_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 kernel_threads_max = (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : 256;
+  const u32 kernel_loops_min = 256;
 
-  return kernel_threads_max;
+  return kernel_loops_min;
+}
+
+u32 module_kernel_loops_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 kernel_loops_max = 256;
+
+  return kernel_loops_max;
 }
 
 u32 module_pw_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -210,34 +217,35 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (int i = 0; i < ITERATION_BITLOCKER; i++)
   {
-    bitlocker->wb_ke_pc[i][ 0] = salt->salt_buf[0];
-    bitlocker->wb_ke_pc[i][ 1] = salt->salt_buf[1];
-    bitlocker->wb_ke_pc[i][ 2] = salt->salt_buf[2];
-    bitlocker->wb_ke_pc[i][ 3] = salt->salt_buf[3];
-    bitlocker->wb_ke_pc[i][ 4] = byte_swap_32 (i);
-    bitlocker->wb_ke_pc[i][ 5] = 0;
-    bitlocker->wb_ke_pc[i][ 6] = 0x80000000;
-    bitlocker->wb_ke_pc[i][ 7] = 0;
-    bitlocker->wb_ke_pc[i][ 8] = 0;
-    bitlocker->wb_ke_pc[i][ 9] = 0;
-    bitlocker->wb_ke_pc[i][10] = 0;
-    bitlocker->wb_ke_pc[i][11] = 0;
-    bitlocker->wb_ke_pc[i][12] = 0;
-    bitlocker->wb_ke_pc[i][13] = 0;
-    bitlocker->wb_ke_pc[i][14] = 0;
-    bitlocker->wb_ke_pc[i][15] = 88 * 8;
+    u32 tmp[64];
+
+    tmp[ 0] = salt->salt_buf[0];
+    tmp[ 1] = salt->salt_buf[1];
+    tmp[ 2] = salt->salt_buf[2];
+    tmp[ 3] = salt->salt_buf[3];
+    tmp[ 4] = byte_swap_32 (i);
+    tmp[ 5] = 0;
+    tmp[ 6] = 0x80000000;
+    tmp[ 7] = 0;
+    tmp[ 8] = 0;
+    tmp[ 9] = 0;
+    tmp[10] = 0;
+    tmp[11] = 0;
+    tmp[12] = 0;
+    tmp[13] = 0;
+    tmp[14] = 0;
+    tmp[15] = 88 * 8;
 
     #define hc_rotl32_S rotl32
 
     for (int j = 16; j < 64; j++)
     {
-      bitlocker->wb_ke_pc[i][j] = SHA256_EXPAND_S
-      (
-        bitlocker->wb_ke_pc[i][j -  2],
-        bitlocker->wb_ke_pc[i][j -  7],
-        bitlocker->wb_ke_pc[i][j - 15],
-        bitlocker->wb_ke_pc[i][j - 16]
-      );
+      tmp[j] = SHA256_EXPAND_S (tmp[j - 2], tmp[j - 7], tmp[j - 15], tmp[j - 16]);
+    }
+
+    for (int j = 0; j < 48; j++)
+    {
+      bitlocker->wb_ke_pc[i][j] = tmp[16 + j];
     }
   }
 
@@ -423,9 +431,9 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_jit_cache_disable        = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_max         = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_min         = MODULE_DEFAULT;
-  module_ctx->module_kernel_loops_max         = MODULE_DEFAULT;
-  module_ctx->module_kernel_loops_min         = MODULE_DEFAULT;
-  module_ctx->module_kernel_threads_max       = module_kernel_threads_max;
+  module_ctx->module_kernel_loops_max         = module_kernel_loops_max;
+  module_ctx->module_kernel_loops_min         = module_kernel_loops_min;
+  module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
