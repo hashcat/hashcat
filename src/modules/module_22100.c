@@ -9,6 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "emu_inc_hash_sha256.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -20,8 +21,6 @@ static const u32   HASH_CATEGORY  = HASH_CATEGORY_FDE;
 static const char *HASH_NAME      = "BitLocker";
 static const u64   KERN_TYPE      = 22100;
 static const u32   OPTI_TYPE      = OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-//static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
-//                                  | OPTI_TYPE_EARLY_SKIP
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
@@ -42,11 +41,17 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
+#define ITERATION_BITLOCKER 0x100000
+#define SALT_LEN_BITLOCKER  16
+#define IV_LEN_BITLOCKER    12
+#define DATA_LEN_BITLOCKER  60
+
 typedef struct bitlocker
 {
   u32 type;
   u32 iv[4];
   u32 data[15];
+  u32 wb_ke_pc[ITERATION_BITLOCKER][64]; // only 48 needed
 
 } bitlocker_t;
 
@@ -54,16 +59,10 @@ typedef struct bitlocker_tmp
 {
   u32 last_hash[8];
   u32 init_hash[8];
-  u32 salt[4];
 
 } bitlocker_tmp_t;
 
 static const char *SIGNATURE_BITLOCKER = "$bitlocker$";
-
-#define ITERATION_BITLOCKER 0x100000
-#define SALT_LEN_BITLOCKER  16
-#define IV_LEN_BITLOCKER    12
-#define DATA_LEN_BITLOCKER  60
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -206,6 +205,41 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   salt->salt_buf[3] = byte_swap_32 (salt->salt_buf[3]);
 
   salt->salt_len = SALT_LEN_BITLOCKER;
+
+  // wb_ke_pc
+
+  for (int i = 0; i < ITERATION_BITLOCKER; i++)
+  {
+    bitlocker->wb_ke_pc[i][ 0] = salt->salt_buf[0];
+    bitlocker->wb_ke_pc[i][ 1] = salt->salt_buf[1];
+    bitlocker->wb_ke_pc[i][ 2] = salt->salt_buf[2];
+    bitlocker->wb_ke_pc[i][ 3] = salt->salt_buf[3];
+    bitlocker->wb_ke_pc[i][ 4] = byte_swap_32 (i);
+    bitlocker->wb_ke_pc[i][ 5] = 0;
+    bitlocker->wb_ke_pc[i][ 6] = 0x80000000;
+    bitlocker->wb_ke_pc[i][ 7] = 0;
+    bitlocker->wb_ke_pc[i][ 8] = 0;
+    bitlocker->wb_ke_pc[i][ 9] = 0;
+    bitlocker->wb_ke_pc[i][10] = 0;
+    bitlocker->wb_ke_pc[i][11] = 0;
+    bitlocker->wb_ke_pc[i][12] = 0;
+    bitlocker->wb_ke_pc[i][13] = 0;
+    bitlocker->wb_ke_pc[i][14] = 0;
+    bitlocker->wb_ke_pc[i][15] = 88 * 8;
+
+    #define hc_rotl32_S rotl32
+
+    for (int j = 16; j < 64; j++)
+    {
+      bitlocker->wb_ke_pc[i][j] = SHA256_EXPAND_S
+      (
+        bitlocker->wb_ke_pc[i][j -  2],
+        bitlocker->wb_ke_pc[i][j -  7],
+        bitlocker->wb_ke_pc[i][j - 15],
+        bitlocker->wb_ke_pc[i][j - 16]
+      );
+    }
+  }
 
   // iter
 

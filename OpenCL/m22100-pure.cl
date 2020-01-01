@@ -15,11 +15,17 @@
 #include "inc_cipher_aes.cl"
 #endif
 
+#define ITERATION_BITLOCKER 0x100000
+#define SALT_LEN_BITLOCKER  16
+#define IV_LEN_BITLOCKER    12
+#define DATA_LEN_BITLOCKER  60
+
 typedef struct bitlocker
 {
   u32 type;
   u32 iv[4];
   u32 data[15];
+  u32 wb_ke_pc[ITERATION_BITLOCKER][64]; // only 48 needed
 
 } bitlocker_t;
 
@@ -27,9 +33,97 @@ typedef struct bitlocker_tmp
 {
   u32 last_hash[8];
   u32 init_hash[8];
-  u32 salt[4];
 
 } bitlocker_tmp_t;
+
+DECLSPEC void sha256_transform_vector_pc (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u32x *digest, const GLOBAL_AS u32 wb_ke_pc[64])
+{
+  u32x a = digest[0];
+  u32x b = digest[1];
+  u32x c = digest[2];
+  u32x d = digest[3];
+  u32x e = digest[4];
+  u32x f = digest[5];
+  u32x g = digest[6];
+  u32x h = digest[7];
+
+  u32x w0_t = w0[0];
+  u32x w1_t = w0[1];
+  u32x w2_t = w0[2];
+  u32x w3_t = w0[3];
+  u32x w4_t = w1[0];
+  u32x w5_t = w1[1];
+  u32x w6_t = w1[2];
+  u32x w7_t = w1[3];
+  u32x w8_t = w2[0];
+  u32x w9_t = w2[1];
+  u32x wa_t = w2[2];
+  u32x wb_t = w2[3];
+  u32x wc_t = w3[0];
+  u32x wd_t = w3[1];
+  u32x we_t = w3[2];
+  u32x wf_t = w3[3];
+
+  #define ROUND_EXPAND_PC(i)  \
+  {                           \
+    w0_t = wb_ke_pc[i +  0];  \
+    w1_t = wb_ke_pc[i +  1];  \
+    w2_t = wb_ke_pc[i +  2];  \
+    w3_t = wb_ke_pc[i +  3];  \
+    w4_t = wb_ke_pc[i +  4];  \
+    w5_t = wb_ke_pc[i +  5];  \
+    w6_t = wb_ke_pc[i +  6];  \
+    w7_t = wb_ke_pc[i +  7];  \
+    w8_t = wb_ke_pc[i +  8];  \
+    w9_t = wb_ke_pc[i +  9];  \
+    wa_t = wb_ke_pc[i + 10];  \
+    wb_t = wb_ke_pc[i + 11];  \
+    wc_t = wb_ke_pc[i + 12];  \
+    wd_t = wb_ke_pc[i + 13];  \
+    we_t = wb_ke_pc[i + 14];  \
+    wf_t = wb_ke_pc[i + 15];  \
+  }
+
+  #define ROUND_STEP(i)                                                                   \
+  {                                                                                       \
+    SHA256_STEP (SHA256_F0o, SHA256_F1o, a, b, c, d, e, f, g, h, w0_t, k_sha256[i +  0]); \
+    SHA256_STEP (SHA256_F0o, SHA256_F1o, h, a, b, c, d, e, f, g, w1_t, k_sha256[i +  1]); \
+    SHA256_STEP (SHA256_F0o, SHA256_F1o, g, h, a, b, c, d, e, f, w2_t, k_sha256[i +  2]); \
+    SHA256_STEP (SHA256_F0o, SHA256_F1o, f, g, h, a, b, c, d, e, w3_t, k_sha256[i +  3]); \
+    SHA256_STEP (SHA256_F0o, SHA256_F1o, e, f, g, h, a, b, c, d, w4_t, k_sha256[i +  4]); \
+    SHA256_STEP (SHA256_F0o, SHA256_F1o, d, e, f, g, h, a, b, c, w5_t, k_sha256[i +  5]); \
+    SHA256_STEP (SHA256_F0o, SHA256_F1o, c, d, e, f, g, h, a, b, w6_t, k_sha256[i +  6]); \
+    SHA256_STEP (SHA256_F0o, SHA256_F1o, b, c, d, e, f, g, h, a, w7_t, k_sha256[i +  7]); \
+    SHA256_STEP (SHA256_F0o, SHA256_F1o, a, b, c, d, e, f, g, h, w8_t, k_sha256[i +  8]); \
+    SHA256_STEP (SHA256_F0o, SHA256_F1o, h, a, b, c, d, e, f, g, w9_t, k_sha256[i +  9]); \
+    SHA256_STEP (SHA256_F0o, SHA256_F1o, g, h, a, b, c, d, e, f, wa_t, k_sha256[i + 10]); \
+    SHA256_STEP (SHA256_F0o, SHA256_F1o, f, g, h, a, b, c, d, e, wb_t, k_sha256[i + 11]); \
+    SHA256_STEP (SHA256_F0o, SHA256_F1o, e, f, g, h, a, b, c, d, wc_t, k_sha256[i + 12]); \
+    SHA256_STEP (SHA256_F0o, SHA256_F1o, d, e, f, g, h, a, b, c, wd_t, k_sha256[i + 13]); \
+    SHA256_STEP (SHA256_F0o, SHA256_F1o, c, d, e, f, g, h, a, b, we_t, k_sha256[i + 14]); \
+    SHA256_STEP (SHA256_F0o, SHA256_F1o, b, c, d, e, f, g, h, a, wf_t, k_sha256[i + 15]); \
+  }
+
+  #ifdef _unroll
+  #pragma unroll
+  #endif
+  for (int i = 0; i < 64; i += 16)
+  {
+    ROUND_EXPAND_PC (i); ROUND_STEP (i);
+  }
+
+  #undef ROUND_EXPAND_PC
+  #undef ROUND_STEP
+
+  digest[0] += a;
+  digest[1] += b;
+  digest[2] += c;
+  digest[3] += d;
+  digest[4] += e;
+  digest[5] += f;
+  digest[6] += g;
+  digest[7] += h;
+}
 
 KERNEL_FQ void m22100_init (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
 {
@@ -40,7 +134,6 @@ KERNEL_FQ void m22100_init (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
   const u64 gid = get_global_id (0);
 
   if (gid >= gid_max) return;
-
 
   // sha256 of utf16le converted password:
 
@@ -63,7 +156,6 @@ KERNEL_FQ void m22100_init (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
   w[6] = ctx0.h[6];
   w[7] = ctx0.h[7];
 
-
   // sha256 of sha256:
 
   sha256_ctx_t ctx1;
@@ -71,7 +163,6 @@ KERNEL_FQ void m22100_init (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
   sha256_init   (&ctx1);
   sha256_update (&ctx1, w, 32);
   sha256_final  (&ctx1);
-
 
   // set tmps:
 
@@ -92,11 +183,6 @@ KERNEL_FQ void m22100_init (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
   tmps[gid].last_hash[5] = 0;
   tmps[gid].last_hash[6] = 0;
   tmps[gid].last_hash[7] = 0;
-
-  tmps[gid].salt[0] = salt_bufs[salt_pos].salt_buf[0];
-  tmps[gid].salt[1] = salt_bufs[salt_pos].salt_buf[1];
-  tmps[gid].salt[2] = salt_bufs[salt_pos].salt_buf[2];
-  tmps[gid].salt[3] = salt_bufs[salt_pos].salt_buf[3];
 }
 
 KERNEL_FQ void m22100_loop (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
@@ -107,56 +193,32 @@ KERNEL_FQ void m22100_loop (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
 
   // init
 
-  u32x wa0[4];
-  u32x wa1[4];
-  u32x wa2[4];
-  u32x wa3[4];
+  u32x w0[4];
+  u32x w1[4];
+  u32x w2[4];
+  u32x w3[4];
 
-  wa0[0] = packv (tmps, last_hash, gid, 0); // last_hash
-  wa0[1] = packv (tmps, last_hash, gid, 1);
-  wa0[2] = packv (tmps, last_hash, gid, 2);
-  wa0[3] = packv (tmps, last_hash, gid, 3);
-  wa1[0] = packv (tmps, last_hash, gid, 4);
-  wa1[1] = packv (tmps, last_hash, gid, 5);
-  wa1[2] = packv (tmps, last_hash, gid, 6);
-  wa1[3] = packv (tmps, last_hash, gid, 7);
-  wa2[0] = packv (tmps, init_hash, gid, 0); // init_hash
-  wa2[1] = packv (tmps, init_hash, gid, 1);
-  wa2[2] = packv (tmps, init_hash, gid, 2);
-  wa2[3] = packv (tmps, init_hash, gid, 3);
-  wa3[0] = packv (tmps, init_hash, gid, 4);
-  wa3[1] = packv (tmps, init_hash, gid, 5);
-  wa3[2] = packv (tmps, init_hash, gid, 6);
-  wa3[3] = packv (tmps, init_hash, gid, 7);
-
-  u32x wb0[4];
-  u32x wb1[4];
-  u32x wb2[4];
-  u32x wb3[4];
-
-  wb0[0] = packv (tmps, salt, gid, 0);
-  wb0[1] = packv (tmps, salt, gid, 1);
-  wb0[2] = packv (tmps, salt, gid, 2);
-  wb0[3] = packv (tmps, salt, gid, 3);
-  wb1[0] = 0;
-  wb1[1] = 0;
-  wb1[2] = 0x80000000;
-  wb1[3] = 0;
-  wb2[0] = 0;
-  wb2[1] = 0;
-  wb2[2] = 0;
-  wb2[3] = 0;
-  wb3[0] = 0;
-  wb3[1] = 0;
-  wb3[2] = 0;
-  wb3[3] = 88 * 8;
+  w0[0] = packv (tmps, last_hash, gid, 0); // last_hash
+  w0[1] = packv (tmps, last_hash, gid, 1);
+  w0[2] = packv (tmps, last_hash, gid, 2);
+  w0[3] = packv (tmps, last_hash, gid, 3);
+  w1[0] = packv (tmps, last_hash, gid, 4);
+  w1[1] = packv (tmps, last_hash, gid, 5);
+  w1[2] = packv (tmps, last_hash, gid, 6);
+  w1[3] = packv (tmps, last_hash, gid, 7);
+  w2[0] = packv (tmps, init_hash, gid, 0); // init_hash
+  w2[1] = packv (tmps, init_hash, gid, 1);
+  w2[2] = packv (tmps, init_hash, gid, 2);
+  w2[3] = packv (tmps, init_hash, gid, 3);
+  w3[0] = packv (tmps, init_hash, gid, 4);
+  w3[1] = packv (tmps, init_hash, gid, 5);
+  w3[2] = packv (tmps, init_hash, gid, 6);
+  w3[3] = packv (tmps, init_hash, gid, 7);
 
   // main loop
 
   for (u32 i = 0, j = loop_pos; i < loop_cnt; i++, j++)
   {
-    wb1[0] = hc_swap32 (j);
-
     u32 digest[8];
 
     digest[0] = SHA256M_A;
@@ -168,27 +230,27 @@ KERNEL_FQ void m22100_loop (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
     digest[6] = SHA256M_G;
     digest[7] = SHA256M_H;
 
-    sha256_transform_vector (wa0, wa1, wa2, wa3, digest);
-    sha256_transform_vector (wb0, wb1, wb2, wb3, digest); // this one gives the boost
+    sha256_transform_vector    (w0, w1, w2, w3, digest);
+    sha256_transform_vector_pc (w0, w1, w2, w3, digest, esalt_bufs[digests_offset].wb_ke_pc[j]);
 
-    wa0[0] = digest[0];
-    wa0[1] = digest[1];
-    wa0[2] = digest[2];
-    wa0[3] = digest[3];
-    wa1[0] = digest[4];
-    wa1[1] = digest[5];
-    wa1[2] = digest[6];
-    wa1[3] = digest[7];
+    w0[0] = digest[0];
+    w0[1] = digest[1];
+    w0[2] = digest[2];
+    w0[3] = digest[3];
+    w1[0] = digest[4];
+    w1[1] = digest[5];
+    w1[2] = digest[6];
+    w1[3] = digest[7];
   }
 
-  unpackv (tmps, last_hash, gid, 0, wa0[0]);
-  unpackv (tmps, last_hash, gid, 1, wa0[1]);
-  unpackv (tmps, last_hash, gid, 2, wa0[2]);
-  unpackv (tmps, last_hash, gid, 3, wa0[3]);
-  unpackv (tmps, last_hash, gid, 4, wa1[0]);
-  unpackv (tmps, last_hash, gid, 5, wa1[1]);
-  unpackv (tmps, last_hash, gid, 6, wa1[2]);
-  unpackv (tmps, last_hash, gid, 7, wa1[3]);
+  unpackv (tmps, last_hash, gid, 0, w0[0]);
+  unpackv (tmps, last_hash, gid, 1, w0[1]);
+  unpackv (tmps, last_hash, gid, 2, w0[2]);
+  unpackv (tmps, last_hash, gid, 3, w0[3]);
+  unpackv (tmps, last_hash, gid, 4, w1[0]);
+  unpackv (tmps, last_hash, gid, 5, w1[1]);
+  unpackv (tmps, last_hash, gid, 6, w1[2]);
+  unpackv (tmps, last_hash, gid, 7, w1[3]);
 }
 
 KERNEL_FQ void m22100_comp (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
@@ -250,7 +312,6 @@ KERNEL_FQ void m22100_comp (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
 
   if (gid >= gid_max) return;
 
-
   /*
    * AES decrypt the data_buf
    */
@@ -274,7 +335,6 @@ KERNEL_FQ void m22100_comp (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
 
   AES256_set_encrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3);
 
-
   // decrypt:
 
   u32 iv[4];
@@ -284,7 +344,6 @@ KERNEL_FQ void m22100_comp (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
   iv[2] = esalt_bufs[digests_offset].iv[2];
   iv[3] = esalt_bufs[digests_offset].iv[3];
 
-
   // in total we've 60 bytes: we need out0 (16 bytes) to out3 (16 bytes) for MAC verification
 
   // 1
@@ -292,7 +351,6 @@ KERNEL_FQ void m22100_comp (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
   u32 out1[4];
 
   AES256_encrypt (ks, iv, out1, s_te0, s_te1, s_te2, s_te3, s_te4);
-
 
   // some early reject:
 
@@ -310,10 +368,7 @@ KERNEL_FQ void m22100_comp (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
 
   if ((out1[2] & 0x00ff0000) != 0x00200000) return; // v2 must be 0x20
 
-
   if ((out1[2] >> 24) > 0x05) return; // v1 must be <= 5
-
-
 
   // if no MAC verification should be performed, we are already done:
 
@@ -330,7 +385,6 @@ KERNEL_FQ void m22100_comp (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
   }
 
   out1[3] ^= esalt_bufs[digests_offset].data[7];
-
 
   /*
    * Decrypt the whole data buffer for MAC verification (type == 1):
@@ -376,7 +430,6 @@ KERNEL_FQ void m22100_comp (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
   out3[1] ^= esalt_bufs[digests_offset].data[13];
   out3[2] ^= esalt_bufs[digests_offset].data[14];
 
-
   // compute MAC:
 
   // out1
@@ -419,7 +472,6 @@ KERNEL_FQ void m22100_comp (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
   if (mac[1] != out0[1]) return;
   if (mac[2] != out0[2]) return;
   if (mac[3] != out0[3]) return;
-
 
   // if we end up here, we are sure to have found the correct password:
 
