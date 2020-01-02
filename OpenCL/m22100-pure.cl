@@ -252,7 +252,7 @@ KERNEL_FQ void m22100_loop (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
    * in order for this to work we need to set a fixed loop count to FIXED_ITER_TOTAL in module
    */
 
-  #define FIXED_ITER_TOTAL 1024
+  #define FIXED_ITER_TOTAL 4096
   #define FIXED_ITER_INCR  8    // seems to be a good trade-off between memory reads and available registers
 
   #ifdef REAL_SHM
