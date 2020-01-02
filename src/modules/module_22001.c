@@ -328,7 +328,7 @@ int module_hash_decode_potfile (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
   // essid
 
-  char *sep_pos = strrchr (line_buf, ':');
+  char *sep_pos = strrchr (line_buf, '*');
 
   if (sep_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -1194,7 +1194,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u8 *mac_ap  = (const u8 *) wpa->mac_ap;
   const u8 *mac_sta = (const u8 *) wpa->mac_sta;
 
-  if (need_hexify ((const u8 *) wpa->essid_buf, wpa->essid_len, ':', 0) == true)
+  if (need_hexify ((const u8 *) wpa->essid_buf, wpa->essid_len, '*', 0) == true)
   {
     char tmp_buf[128];
 
