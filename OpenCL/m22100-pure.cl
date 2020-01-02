@@ -248,126 +248,70 @@ KERNEL_FQ void m22100_loop (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
   t3[3] = 88 * 8;
 
   /**
-   * load FIXED_ITER_COUNT full w[] precomputed KE buffers into shared memory since its all static data
-   * in order for this to work we need to set a fixed loop count to FIXED_ITER_COUNT
-   * We also need to handle OpenCL and CUDA differently because of:
-   * ptxas error   : Entry function 'm22100_loop' uses too much shared data (0xc004 bytes, 0xc000 max)
+   * load FIXED_ITER_INCR full w[] precomputed KE buffers into shared memory since its all static data
+   * in order for this to work we need to set a fixed loop count to FIXED_ITER_TOTAL in module
    */
 
-  #ifdef IS_CUDA
-  #define FIXED_ITER_COUNT 256
-  #else
-  #define FIXED_ITER_COUNT 128
-  #endif
+  #define FIXED_ITER_TOTAL 1024
+  #define FIXED_ITER_INCR  8    // seems to be a good trade-off between memory reads and available registers
 
   #ifdef REAL_SHM
-  LOCAL_VK u32 s_wb_ke_pc[FIXED_ITER_COUNT][48];
+  LOCAL_VK u32 s_wb_ke_pc[FIXED_ITER_INCR][48];
   #else
   GLOBAL_AS u32 (*s_wb_ke_pc)[48] = NULL;
   #endif
 
-  #ifdef REAL_SHM
-
-  for (u32 i = lid; i < FIXED_ITER_COUNT; i += lsz)
+  for (u32 t = 0; t < FIXED_ITER_TOTAL; t += FIXED_ITER_INCR)
   {
-    for (u32 j = 0; j < 48; j++) // first 16 set to register
+    #ifdef REAL_SHM
+
+    for (u32 i = lid; i < FIXED_ITER_INCR; i += lsz)
     {
-      s_wb_ke_pc[i][j] = esalt_bufs[digests_offset].wb_ke_pc[loop_pos + i][j];
+      for (u32 j = 0; j < 48; j++) // first 16 set to register
+      {
+        s_wb_ke_pc[i][j] = esalt_bufs[digests_offset].wb_ke_pc[loop_pos + t + i][j];
+      }
+    }
+
+    SYNC_THREADS ();
+
+    #else
+
+    s_wb_ke_pc = &esalt_bufs[digests_offset].wb_ke_pc[loop_pos + t];
+
+    #endif
+
+    // main loop
+
+    for (u32 i = 0, j = loop_pos + t; i < FIXED_ITER_INCR; i++, j++)
+    {
+      u32x digest[8];
+
+      digest[0] = SHA256M_A;
+      digest[1] = SHA256M_B;
+      digest[2] = SHA256M_C;
+      digest[3] = SHA256M_D;
+      digest[4] = SHA256M_E;
+      digest[5] = SHA256M_F;
+      digest[6] = SHA256M_G;
+      digest[7] = SHA256M_H;
+
+      sha256_transform_vector (w0, w1, w2, w3, digest);
+
+      t1[0] = hc_swap32_S (j); // only moving part
+
+      sha256_transform_vector_pc (t0, t1, t2, t3, digest, s_wb_ke_pc[i]);
+
+      w0[0] = digest[0];
+      w0[1] = digest[1];
+      w0[2] = digest[2];
+      w0[3] = digest[3];
+      w1[0] = digest[4];
+      w1[1] = digest[5];
+      w1[2] = digest[6];
+      w1[3] = digest[7];
     }
   }
-
-  SYNC_THREADS ();
-
-  #else
-
-  s_wb_ke_pc = &esalt_bufs[digests_offset].wb_ke_pc[loop_pos];
-
-  #endif
-
-  // main loop
-
-  for (u32 i = 0, j = loop_pos; i < FIXED_ITER_COUNT; i++, j++)
-  {
-    u32x digest[8];
-
-    digest[0] = SHA256M_A;
-    digest[1] = SHA256M_B;
-    digest[2] = SHA256M_C;
-    digest[3] = SHA256M_D;
-    digest[4] = SHA256M_E;
-    digest[5] = SHA256M_F;
-    digest[6] = SHA256M_G;
-    digest[7] = SHA256M_H;
-
-    sha256_transform_vector (w0, w1, w2, w3, digest);
-
-    t1[0] = hc_swap32_S (j); // only moving part
-
-    sha256_transform_vector_pc (t0, t1, t2, t3, digest, s_wb_ke_pc[i]);
-
-    w0[0] = digest[0];
-    w0[1] = digest[1];
-    w0[2] = digest[2];
-    w0[3] = digest[3];
-    w1[0] = digest[4];
-    w1[1] = digest[5];
-    w1[2] = digest[6];
-    w1[3] = digest[7];
-  }
-
-  #ifdef IS_CUDA
-  // nothing to do
-  #else
-  // remaining 128 iterations for non-cuda devices
-  #ifdef REAL_SHM
-
-  for (u32 i = lid; i < FIXED_ITER_COUNT; i += lsz)
-  {
-    for (u32 j = 0; j < 48; j++) // first 16 set to register
-    {
-      s_wb_ke_pc[i][j] = esalt_bufs[digests_offset].wb_ke_pc[loop_pos + 128 + i][j];
-    }
-  }
-
-  SYNC_THREADS ();
-
-  #else
-
-  s_wb_ke_pc = &esalt_bufs[digests_offset].wb_ke_pc[loop_pos + 128];
-
-  #endif
-
-  // main loop
-
-  for (u32 i = 0, j = loop_pos + 128; i < FIXED_ITER_COUNT; i++, j++)
-  {
-    u32x digest[8];
-
-    digest[0] = SHA256M_A;
-    digest[1] = SHA256M_B;
-    digest[2] = SHA256M_C;
-    digest[3] = SHA256M_D;
-    digest[4] = SHA256M_E;
-    digest[5] = SHA256M_F;
-    digest[6] = SHA256M_G;
-    digest[7] = SHA256M_H;
-
-    sha256_transform_vector (w0, w1, w2, w3, digest);
-
-    t1[0] = hc_swap32_S (j); // only moving part
-
-    sha256_transform_vector_pc (t0, t1, t2, t3, digest, s_wb_ke_pc[i]);
-
-    w0[0] = digest[0];
-    w0[1] = digest[1];
-    w0[2] = digest[2];
-    w0[3] = digest[3];
-    w1[0] = digest[4];
-    w1[1] = digest[5];
-    w1[2] = digest[6];
-    w1[3] = digest[7];
-  }
-  #endif
 
   unpackv (tmps, last_hash, gid, 0, w0[0]);
   unpackv (tmps, last_hash, gid, 1, w0[1]);
