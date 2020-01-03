@@ -5432,14 +5432,42 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       //
       //if (rc_cuCtxSetCacheConfig == -1) return -1;
 
-      device_param->has_add   = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned int r; asm volatile (\"add.cc.u32 %0, 0, 0;\" : \"=r\"(r)); }");
-      device_param->has_addc  = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned int r; asm volatile (\"addc.cc.u32 %0, 0, 0;\" : \"=r\"(r)); }");
-      device_param->has_sub   = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned int r; asm volatile (\"sub.cc.u32 %0, 0, 0;\" : \"=r\"(r)); }");
-      device_param->has_subc  = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned int r; asm volatile (\"subc.cc.u32 %0, 0, 0;\" : \"=r\"(r)); }");
-      device_param->has_bfe   = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned int r; asm volatile (\"bfe.u32 %0, 0, 0, 0;\" : \"=r\"(r)); }");
-      device_param->has_lop3  = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned int r; asm volatile (\"lop3.b32 %0, 0, 0, 0, 0;\" : \"=r\"(r)); }");
-      device_param->has_mov64 = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned long long r; unsigned int a; unsigned int b; asm volatile (\"mov.b64 %0, {%1, %2};\" : \"=l\"(r) : \"r\"(a), \"r\"(b)); }");
-      device_param->has_prmt  = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned int r; asm volatile (\"prmt.b32 %0, 0, 0, 0;\" : \"=r\"(r)); }");
+      #define RUN_INSTRUCTION_CHECKS()                                                                                                                                                                                                                      \
+        device_param->has_add   = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned int r; asm volatile (\"add.cc.u32 %0, 0, 0;\" : \"=r\"(r)); }");                                                              \
+        device_param->has_addc  = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned int r; asm volatile (\"addc.cc.u32 %0, 0, 0;\" : \"=r\"(r)); }");                                                             \
+        device_param->has_sub   = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned int r; asm volatile (\"sub.cc.u32 %0, 0, 0;\" : \"=r\"(r)); }");                                                              \
+        device_param->has_subc  = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned int r; asm volatile (\"subc.cc.u32 %0, 0, 0;\" : \"=r\"(r)); }");                                                             \
+        device_param->has_bfe   = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned int r; asm volatile (\"bfe.u32 %0, 0, 0, 0;\" : \"=r\"(r)); }");                                                              \
+        device_param->has_lop3  = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned int r; asm volatile (\"lop3.b32 %0, 0, 0, 0, 0;\" : \"=r\"(r)); }");                                                          \
+        device_param->has_mov64 = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned long long r; unsigned int a; unsigned int b; asm volatile (\"mov.b64 %0, {%1, %2};\" : \"=l\"(r) : \"r\"(a), \"r\"(b)); }");  \
+        device_param->has_prmt  = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned int r; asm volatile (\"prmt.b32 %0, 0, 0, 0;\" : \"=r\"(r)); }");                                                             \
+
+      if (backend_devices_idx > 0)
+      {
+        hc_device_param_t *device_param_prev = &devices_param[backend_devices_idx - 1];
+
+        if (is_same_device_type (device_param, device_param_prev) == true)
+        {
+          device_param->has_add   = device_param_prev->has_add;
+          device_param->has_addc  = device_param_prev->has_addc;
+          device_param->has_sub   = device_param_prev->has_sub;
+          device_param->has_subc  = device_param_prev->has_subc;
+          device_param->has_bfe   = device_param_prev->has_bfe;
+          device_param->has_lop3  = device_param_prev->has_lop3;
+          device_param->has_mov64 = device_param_prev->has_mov64;
+          device_param->has_prmt  = device_param_prev->has_prmt;
+        }
+        else
+        {
+          RUN_INSTRUCTION_CHECKS();
+        }
+      }
+      else
+      {
+        RUN_INSTRUCTION_CHECKS();
+      }
+
+      #undef RUN_INSTRUCTION_CHECKS
 
       // device_available_mem
 
