@@ -98,7 +98,9 @@ static bool is_same_device_type (const hc_device_param_t *src, const hc_device_p
   if (src->is_cuda   != dst->is_cuda)   return false;
   if (src->is_opencl != dst->is_opencl) return false;
 
-  if (src->is_cuda == true)
+  if (strcmp (src->device_name, dst->device_name) != 0) return false;
+
+  if (src->is_opencl == true)
   {
     if (strcmp (src->opencl_device_vendor,  dst->opencl_device_vendor)  != 0) return false;
     if (strcmp (src->opencl_device_version, dst->opencl_device_version) != 0) return false;
@@ -6164,25 +6166,80 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) && (device_param->opencl_platform_vendor_id == VENDOR_ID_AMD))
         {
-          device_param->has_vadd  = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; __asm__ __volatile__ (\"V_ADD_U32 %0, 0, 0;\" : \"=v\"(r)); }");
-          device_param->has_vaddc = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; __asm__ __volatile__ (\"V_ADDC_U32 %0, 0, 0;\" : \"=v\"(r)); }");
-          device_param->has_vsub  = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; __asm__ __volatile__ (\"V_SUB_U32 %0, 0, 0;\" : \"=v\"(r)); }");
-          device_param->has_vsubb = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; __asm__ __volatile__ (\"V_SUBB_U32 %0, 0, 0;\" : \"=v\"(r)); }");
-          device_param->has_vadd3 = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; __asm__ __volatile__ (\"V_ADD3_U32 %0, 0, 0, 0;\" : \"=v\"(r)); }");
-          device_param->has_vbfe  = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; __asm__ __volatile__ (\"V_BFE_U32 %0, 0, 0, 0;\" : \"=v\"(r)); }");
-          device_param->has_vperm = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; __asm__ __volatile__ (\"V_PERM_B32 %0, 0, 0, 0;\" : \"=v\"(r)); }");
+          #define RUN_INSTRUCTION_CHECKS()                                                                                                                                                                              \
+            device_param->has_vadd  = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; __asm__ __volatile__ (\"V_ADD_U32 %0, 0, 0;\" : \"=v\"(r)); }");     \
+            device_param->has_vaddc = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; __asm__ __volatile__ (\"V_ADDC_U32 %0, 0, 0;\" : \"=v\"(r)); }");    \
+            device_param->has_vsub  = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; __asm__ __volatile__ (\"V_SUB_U32 %0, 0, 0;\" : \"=v\"(r)); }");     \
+            device_param->has_vsubb = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; __asm__ __volatile__ (\"V_SUBB_U32 %0, 0, 0;\" : \"=v\"(r)); }");    \
+            device_param->has_vadd3 = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; __asm__ __volatile__ (\"V_ADD3_U32 %0, 0, 0, 0;\" : \"=v\"(r)); }"); \
+            device_param->has_vbfe  = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; __asm__ __volatile__ (\"V_BFE_U32 %0, 0, 0, 0;\" : \"=v\"(r)); }");  \
+            device_param->has_vperm = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; __asm__ __volatile__ (\"V_PERM_B32 %0, 0, 0, 0;\" : \"=v\"(r)); }"); \
+
+          if (backend_devices_idx > 0)
+          {
+            hc_device_param_t *device_param_prev = &devices_param[backend_devices_idx - 1];
+
+            if (is_same_device_type (device_param, device_param_prev) == true)
+            {
+              device_param->has_vadd  = device_param_prev->has_vadd;
+              device_param->has_vaddc = device_param_prev->has_vaddc;
+              device_param->has_vsub  = device_param_prev->has_vsub;
+              device_param->has_vsubb = device_param_prev->has_vsubb;
+              device_param->has_vadd3 = device_param_prev->has_vadd3;
+              device_param->has_vbfe  = device_param_prev->has_vbfe;
+              device_param->has_vperm = device_param_prev->has_vperm;
+            }
+            else
+            {
+              RUN_INSTRUCTION_CHECKS();
+            }
+          }
+          else
+          {
+            RUN_INSTRUCTION_CHECKS();
+          }
+
+          #undef RUN_INSTRUCTION_CHECKS
         }
 
         if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) && (device_param->opencl_platform_vendor_id == VENDOR_ID_NV))
         {
-          device_param->has_add   = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; asm volatile (\"add.cc.u32 %0, 0, 0;\" : \"=r\"(r)); }");
-          device_param->has_addc  = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; asm volatile (\"addc.cc.u32 %0, 0, 0;\" : \"=r\"(r)); }");
-          device_param->has_sub   = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; asm volatile (\"sub.cc.u32 %0, 0, 0;\" : \"=r\"(r)); }");
-          device_param->has_subc  = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; asm volatile (\"subc.cc.u32 %0, 0, 0;\" : \"=r\"(r)); }");
-          device_param->has_bfe   = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; asm volatile (\"bfe.u32 %0, 0, 0, 0;\" : \"=r\"(r)); }");
-          device_param->has_lop3  = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; asm volatile (\"lop3.b32 %0, 0, 0, 0, 0;\" : \"=r\"(r)); }");
-          device_param->has_mov64 = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { ulong r; uint a; uint b; asm volatile (\"mov.b64 %0, {%1, %2};\" : \"=l\"(r) : \"r\"(a), \"r\"(b)); }");
-          device_param->has_prmt  = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; asm volatile (\"prmt.b32 %0, 0, 0, 0;\" : \"=r\"(r)); }");
+          #define RUN_INSTRUCTION_CHECKS()                                                                                                                                                                                                          \
+            device_param->has_add   = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; asm volatile (\"add.cc.u32 %0, 0, 0;\" : \"=r\"(r)); }");                                        \
+            device_param->has_addc  = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; asm volatile (\"addc.cc.u32 %0, 0, 0;\" : \"=r\"(r)); }");                                       \
+            device_param->has_sub   = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; asm volatile (\"sub.cc.u32 %0, 0, 0;\" : \"=r\"(r)); }");                                        \
+            device_param->has_subc  = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; asm volatile (\"subc.cc.u32 %0, 0, 0;\" : \"=r\"(r)); }");                                       \
+            device_param->has_bfe   = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; asm volatile (\"bfe.u32 %0, 0, 0, 0;\" : \"=r\"(r)); }");                                        \
+            device_param->has_lop3  = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; asm volatile (\"lop3.b32 %0, 0, 0, 0, 0;\" : \"=r\"(r)); }");                                    \
+            device_param->has_mov64 = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { ulong r; uint a; uint b; asm volatile (\"mov.b64 %0, {%1, %2};\" : \"=l\"(r) : \"r\"(a), \"r\"(b)); }"); \
+            device_param->has_prmt  = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; asm volatile (\"prmt.b32 %0, 0, 0, 0;\" : \"=r\"(r)); }");                                       \
+
+          if (backend_devices_idx > 0)
+          {
+            hc_device_param_t *device_param_prev = &devices_param[backend_devices_idx - 1];
+
+            if (is_same_device_type (device_param, device_param_prev) == true)
+            {
+              device_param->has_add   = device_param_prev->has_add;
+              device_param->has_addc  = device_param_prev->has_addc;
+              device_param->has_sub   = device_param_prev->has_sub;
+              device_param->has_subc  = device_param_prev->has_subc;
+              device_param->has_bfe   = device_param_prev->has_bfe;
+              device_param->has_lop3  = device_param_prev->has_lop3;
+              device_param->has_mov64 = device_param_prev->has_mov64;
+              device_param->has_prmt  = device_param_prev->has_prmt;
+            }
+            else
+            {
+              RUN_INSTRUCTION_CHECKS();
+            }
+          }
+          else
+          {
+            RUN_INSTRUCTION_CHECKS();
+          }
+
+          #undef RUN_INSTRUCTION_CHECKS
         }
 
         // device_available_mem
