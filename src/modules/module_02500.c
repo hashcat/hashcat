@@ -261,7 +261,7 @@ int module_hash_decode_potfile (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
   // essid
 
-  char *sep_pos = strrchr (line_buf, ':');
+  char *sep_pos = strrchr (line_buf, '*');
 
   if (sep_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -292,7 +292,7 @@ int module_hash_encode_potfile (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
   tmp_buf[tmp_len] = 0;
 
-  const int line_len = snprintf (line_buf, line_size, "%08x%08x%08x%08x%08x%08x%08x%08x:%s",
+  const int line_len = snprintf (line_buf, line_size, "%08x%08x%08x%08x%08x%08x%08x%08x*%s",
     wpa_pbkdf2_tmp->out[0],
     wpa_pbkdf2_tmp->out[1],
     wpa_pbkdf2_tmp->out[2],
