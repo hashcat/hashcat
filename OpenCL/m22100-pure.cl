@@ -39,7 +39,7 @@ typedef struct bitlocker_tmp
 #ifdef REAL_SHM
 #define SHM_TYPE2 LOCAL_AS
 #else
-#define SHM_TYPE2 GLOBAL_AS
+#define SHM_TYPE2 GLOBAL_AS const
 #endif
 
 DECLSPEC void sha256_transform_vector_pc (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u32x *digest, SHM_TYPE2 u32 s_wb_ke_pc[48])
@@ -258,7 +258,7 @@ KERNEL_FQ void m22100_loop (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
   #ifdef REAL_SHM
   LOCAL_VK u32 s_wb_ke_pc[FIXED_ITER_INCR][48];
   #else
-  GLOBAL_AS u32 (*s_wb_ke_pc)[48];
+  GLOBAL_AS const u32 (*s_wb_ke_pc)[48];
   #endif
 
   for (u32 t = 0; t < FIXED_ITER_TOTAL; t += FIXED_ITER_INCR)
