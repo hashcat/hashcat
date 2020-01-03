@@ -162,7 +162,7 @@ static const char *const USAGE_BIG_POST_HASHMODES[] =
   "  5 | hash[:salt]:hex_plain",
   "  6 | plain:hex_plain",
   "  7 | hash[:salt]:plain:hex_plain",
-  "  8 | crackpos",
+  "  8 | crack_pos",
   "  9 | hash[:salt]:crack_pos",
   " 10 | plain:crack_pos",
   " 11 | hash[:salt]:plain:crack_pos",
