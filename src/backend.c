@@ -4743,136 +4743,146 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
    * Load and map CUDA library calls, then init CUDA
    */
 
-  CUDA_PTR *cuda = (CUDA_PTR *) hcmalloc (sizeof (CUDA_PTR));
+  int rc_cuda_init = -1;
 
-  backend_ctx->cuda = cuda;
-
-  int rc_cuda_init = cuda_init (hashcat_ctx);
-
-  if (rc_cuda_init == -1)
+  if (user_options->backend_ignore_cuda == false)
   {
-    cuda_close (hashcat_ctx);
-  }
+    CUDA_PTR *cuda = (CUDA_PTR *) hcmalloc (sizeof (CUDA_PTR));
 
-  /**
-   * Load and map NVRTC library calls
-   */
+    backend_ctx->cuda = cuda;
 
-  NVRTC_PTR *nvrtc = (NVRTC_PTR *) hcmalloc (sizeof (NVRTC_PTR));
+    rc_cuda_init = cuda_init (hashcat_ctx);
 
-  backend_ctx->nvrtc = nvrtc;
-
-  int rc_nvrtc_init = nvrtc_init (hashcat_ctx);
-
-  if (rc_nvrtc_init == -1)
-  {
-    nvrtc_close (hashcat_ctx);
-  }
-
-  /**
-   * Check if both CUDA and NVRTC were load successful
-   */
-
-  if ((rc_cuda_init == 0) && (rc_nvrtc_init == 0))
-  {
-    // nvrtc version
-
-    int nvrtc_major = 0;
-    int nvrtc_minor = 0;
-
-    if (hc_nvrtcVersion (hashcat_ctx, &nvrtc_major, &nvrtc_minor) == -1) return -1;
-
-    int nvrtc_driver_version = (nvrtc_major * 1000) + (nvrtc_minor * 10);
-
-    backend_ctx->nvrtc_driver_version = nvrtc_driver_version;
-
-    // cuda version
-
-    int cuda_driver_version = 0;
-
-    if (hc_cuDriverGetVersion (hashcat_ctx, &cuda_driver_version) == -1) return -1;
-
-    backend_ctx->cuda_driver_version = cuda_driver_version;
-
-    // some pre-check
-
-    if ((nvrtc_driver_version < 10000) || (cuda_driver_version < 10000))
+    if (rc_cuda_init == -1)
     {
-      event_log_error (hashcat_ctx, "Outdated NVIDIA CUDA Toolkit version '%d' detected!", cuda_driver_version);
-
-      event_log_warning (hashcat_ctx, "See hashcat.net for officially supported NVIDIA CUDA Toolkit versions.");
-      event_log_warning (hashcat_ctx, NULL);
-
-      return -1;
+      cuda_close (hashcat_ctx);
     }
-  }
-  else
-  {
-    rc_cuda_init  = -1;
-    rc_nvrtc_init = -1;
 
-    cuda_close  (hashcat_ctx);
-    nvrtc_close (hashcat_ctx);
+    /**
+     * Load and map NVRTC library calls
+     */
+
+    NVRTC_PTR *nvrtc = (NVRTC_PTR *) hcmalloc (sizeof (NVRTC_PTR));
+
+    backend_ctx->nvrtc = nvrtc;
+
+    int rc_nvrtc_init = nvrtc_init (hashcat_ctx);
+
+    if (rc_nvrtc_init == -1)
+    {
+      nvrtc_close (hashcat_ctx);
+    }
+
+    /**
+     * Check if both CUDA and NVRTC were load successful
+     */
+
+    if ((rc_cuda_init == 0) && (rc_nvrtc_init == 0))
+    {
+      // nvrtc version
+
+      int nvrtc_major = 0;
+      int nvrtc_minor = 0;
+
+      if (hc_nvrtcVersion (hashcat_ctx, &nvrtc_major, &nvrtc_minor) == -1) return -1;
+
+      int nvrtc_driver_version = (nvrtc_major * 1000) + (nvrtc_minor * 10);
+
+      backend_ctx->nvrtc_driver_version = nvrtc_driver_version;
+
+      // cuda version
+
+      int cuda_driver_version = 0;
+
+      if (hc_cuDriverGetVersion (hashcat_ctx, &cuda_driver_version) == -1) return -1;
+
+      backend_ctx->cuda_driver_version = cuda_driver_version;
+
+      // some pre-check
+
+      if ((nvrtc_driver_version < 10000) || (cuda_driver_version < 10000))
+      {
+        event_log_error (hashcat_ctx, "Outdated NVIDIA CUDA Toolkit version '%d' detected!", cuda_driver_version);
+
+        event_log_warning (hashcat_ctx, "See hashcat.net for officially supported NVIDIA CUDA Toolkit versions.");
+        event_log_warning (hashcat_ctx, NULL);
+
+        return -1;
+      }
+    }
+    else
+    {
+      rc_cuda_init  = -1;
+      rc_nvrtc_init = -1;
+
+      cuda_close  (hashcat_ctx);
+      nvrtc_close (hashcat_ctx);
+    }
   }
 
   /**
    * Load and map OpenCL library calls
    */
 
-  OCL_PTR *ocl = (OCL_PTR *) hcmalloc (sizeof (OCL_PTR));
+  int rc_ocl_init = -1;
 
-  backend_ctx->ocl = ocl;
-
-  const int rc_ocl_init = ocl_init (hashcat_ctx);
-
-  if (rc_ocl_init == -1)
+  if (user_options->backend_ignore_opencl == false)
   {
-    ocl_close (hashcat_ctx);
+    OCL_PTR *ocl = (OCL_PTR *) hcmalloc (sizeof (OCL_PTR));
+
+    backend_ctx->ocl = ocl;
+
+    rc_ocl_init = ocl_init (hashcat_ctx);
+
+    if (rc_ocl_init == -1)
+    {
+      ocl_close (hashcat_ctx);
+    }
+
+    /**
+     * return if both CUDA and OpenCL initialization failed
+     */
+
+    if ((rc_cuda_init == -1) && (rc_ocl_init == -1))
+    {
+      event_log_error (hashcat_ctx, "ATTENTION! No OpenCL or CUDA installation found.");
+
+      event_log_warning (hashcat_ctx, "You are probably missing the CUDA or OpenCL runtime installation.");
+      event_log_warning (hashcat_ctx, NULL);
+
+      #if defined (__linux__)
+      event_log_warning (hashcat_ctx, "* AMD GPUs on Linux require this driver:");
+      event_log_warning (hashcat_ctx, "  \"RadeonOpenCompute (ROCm)\" Software Platform (1.6.180 or later)");
+      #elif defined (_WIN)
+      event_log_warning (hashcat_ctx, "* AMD GPUs on Windows require this driver:");
+      event_log_warning (hashcat_ctx, "  \"AMD Radeon Software Crimson Edition\" (15.12 or later)");
+      #endif
+
+      event_log_warning (hashcat_ctx, "* Intel CPUs require this runtime:");
+      event_log_warning (hashcat_ctx, "  \"OpenCL Runtime for Intel Core and Intel Xeon Processors\" (16.1.1 or later)");
+
+      #if defined (__linux__)
+      event_log_warning (hashcat_ctx, "* Intel GPUs on Linux require this driver:");
+      event_log_warning (hashcat_ctx, "  \"OpenCL 2.0 GPU Driver Package for Linux\" (2.0 or later)");
+      #elif defined (_WIN)
+      event_log_warning (hashcat_ctx, "* Intel GPUs on Windows require this driver:");
+      event_log_warning (hashcat_ctx, "  \"OpenCL Driver for Intel Iris and Intel HD Graphics\"");
+      #endif
+
+      event_log_warning (hashcat_ctx, "* NVIDIA GPUs require this runtime and/or driver (both):");
+      event_log_warning (hashcat_ctx, "  \"NVIDIA Driver\" (418.56 or later)");
+      event_log_warning (hashcat_ctx, "  \"CUDA Toolkit\" (10.1 or later)");
+      event_log_warning (hashcat_ctx, NULL);
+
+      return -1;
+    }
+
+    /**
+     * Some permission pre-check, because AMDGPU-PRO Driver crashes if the user has no permission to do this
+     */
+
+    if (ocl_check_dri (hashcat_ctx) == -1) return -1;
   }
-
-  /**
-   * return if both CUDA and OpenCL initialization failed
-   */
-
-  if ((rc_cuda_init == -1) && (rc_ocl_init == -1))
-  {
-    event_log_error (hashcat_ctx, "ATTENTION! No OpenCL or CUDA installation found.");
-
-    event_log_warning (hashcat_ctx, "You are probably missing the CUDA or OpenCL runtime installation.");
-    event_log_warning (hashcat_ctx, NULL);
-
-    #if defined (__linux__)
-    event_log_warning (hashcat_ctx, "* AMD GPUs on Linux require this driver:");
-    event_log_warning (hashcat_ctx, "  \"RadeonOpenCompute (ROCm)\" Software Platform (1.6.180 or later)");
-    #elif defined (_WIN)
-    event_log_warning (hashcat_ctx, "* AMD GPUs on Windows require this driver:");
-    event_log_warning (hashcat_ctx, "  \"AMD Radeon Software Crimson Edition\" (15.12 or later)");
-    #endif
-
-    event_log_warning (hashcat_ctx, "* Intel CPUs require this runtime:");
-    event_log_warning (hashcat_ctx, "  \"OpenCL Runtime for Intel Core and Intel Xeon Processors\" (16.1.1 or later)");
-
-    #if defined (__linux__)
-    event_log_warning (hashcat_ctx, "* Intel GPUs on Linux require this driver:");
-    event_log_warning (hashcat_ctx, "  \"OpenCL 2.0 GPU Driver Package for Linux\" (2.0 or later)");
-    #elif defined (_WIN)
-    event_log_warning (hashcat_ctx, "* Intel GPUs on Windows require this driver:");
-    event_log_warning (hashcat_ctx, "  \"OpenCL Driver for Intel Iris and Intel HD Graphics\"");
-    #endif
-
-    event_log_warning (hashcat_ctx, "* NVIDIA GPUs require this runtime and/or driver (both):");
-    event_log_warning (hashcat_ctx, "  \"NVIDIA Driver\" (418.56 or later)");
-    event_log_warning (hashcat_ctx, "  \"CUDA Toolkit\" (10.1 or later)");
-    event_log_warning (hashcat_ctx, NULL);
-
-    return -1;
-  }
-
-  /**
-   * Some permission pre-check, because AMDGPU-PRO Driver crashes if the user has no permission to do this
-   */
-
-  if (ocl_check_dri (hashcat_ctx) == -1) return -1;
 
   /**
    * Backend device selection

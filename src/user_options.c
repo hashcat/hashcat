@@ -29,6 +29,8 @@ static const struct option long_options[] =
   {"advice-disable",            no_argument,       NULL, IDX_ADVICE_DISABLE},
   {"attack-mode",               required_argument, NULL, IDX_ATTACK_MODE},
   {"backend-devices",           required_argument, NULL, IDX_BACKEND_DEVICES},
+  {"backend-ignore-cuda",       no_argument,       NULL, IDX_BACKEND_IGNORE_CUDA},
+  {"backend-ignore-opencl",     no_argument,       NULL, IDX_BACKEND_IGNORE_OPENCL},
   {"backend-info",              no_argument,       NULL, IDX_BACKEND_INFO},
   {"backend-vector-width",      required_argument, NULL, IDX_BACKEND_VECTOR_WIDTH},
   {"benchmark-all",             no_argument,       NULL, IDX_BENCHMARK_ALL},
@@ -153,6 +155,8 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->advice_disable            = ADVICE_DISABLE;
   user_options->attack_mode               = ATTACK_MODE;
   user_options->backend_devices           = NULL;
+  user_options->backend_ignore_cuda       = BACKEND_IGNORE_CUDA;
+  user_options->backend_ignore_opencl     = BACKEND_IGNORE_OPENCL;
   user_options->backend_info              = BACKEND_INFO;
   user_options->backend_vector_width      = BACKEND_VECTOR_WIDTH;
   user_options->benchmark_all             = BENCHMARK_ALL;
@@ -426,6 +430,8 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_HEX_SALT:                  user_options->hex_salt                  = true;                            break;
       case IDX_HEX_WORDLIST:              user_options->hex_wordlist              = true;                            break;
       case IDX_CPU_AFFINITY:              user_options->cpu_affinity              = optarg;                          break;
+      case IDX_BACKEND_IGNORE_CUDA:       user_options->backend_ignore_cuda       = true;                            break;
+      case IDX_BACKEND_IGNORE_OPENCL:     user_options->backend_ignore_opencl     = true;                            break;
       case IDX_BACKEND_INFO:              user_options->backend_info              = true;                            break;
       case IDX_BACKEND_DEVICES:           user_options->backend_devices           = optarg;                          break;
       case IDX_BACKEND_VECTOR_WIDTH:      user_options->backend_vector_width      = hc_strtoul (optarg, NULL, 10);

@@ -90,6 +90,8 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "     --cpu-affinity             | Str  | Locks to CPU devices, separated with commas          | --cpu-affinity=1,2,3",
   "     --hook-threads             | Num  | Sets number of threads for a hook (per compute unit) | --hook-threads=8",
   "     --example-hashes           |      | Show an example hash for each hash-mode              |",
+  "     --backend-ignore-cuda      |      | Do not try to open CUDA interface on startup         |",
+  "     --backend-ignore-opencl    |      | Do not try to open OpenCL interface on startup       |",
   " -I, --backend-info             |      | Show info about detected backend API devices         | -I",
   " -d, --backend-devices          | Str  | Backend devices to use, separated with commas        | -d 1",
   " -D, --opencl-device-types      | Str  | OpenCL device-types to use, separated with commas    | -D 1",
