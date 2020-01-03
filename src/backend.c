@@ -280,6 +280,7 @@ static bool setup_opencl_device_types_filter (hashcat_ctx_t *hashcat_ctx, const 
   return true;
 }
 
+/*
 static bool cuda_test_instruction (hashcat_ctx_t *hashcat_ctx, const int sm_major, const int sm_minor, const char *kernel_buf)
 {
   nvrtcProgram program;
@@ -356,6 +357,7 @@ static bool cuda_test_instruction (hashcat_ctx_t *hashcat_ctx, const int sm_majo
 
   return true;
 }
+*/
 
 static bool opencl_test_instruction (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_device_id device, const char *kernel_buf)
 {
@@ -5444,6 +5446,18 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       //
       //if (rc_cuCtxSetCacheConfig == -1) return -1;
 
+      const int sm = (device_param->sm_major * 10) + device_param->sm_minor;
+
+      device_param->has_add   = (sm >= 12) ? true : false;
+      device_param->has_addc  = (sm >= 12) ? true : false;
+      device_param->has_sub   = (sm >= 12) ? true : false;
+      device_param->has_subc  = (sm >= 12) ? true : false;
+      device_param->has_bfe   = (sm >= 20) ? true : false;
+      device_param->has_lop3  = (sm >= 50) ? true : false;
+      device_param->has_mov64 = (sm >= 10) ? true : false;
+      device_param->has_prmt  = (sm >= 20) ? true : false;
+
+      /*
       #define RUN_INSTRUCTION_CHECKS()                                                                                                                                                                                                                      \
         device_param->has_add   = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned int r; asm volatile (\"add.cc.u32 %0, 0, 0;\" : \"=r\"(r)); }");                                                              \
         device_param->has_addc  = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned int r; asm volatile (\"addc.cc.u32 %0, 0, 0;\" : \"=r\"(r)); }");                                                             \
@@ -5480,6 +5494,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       }
 
       #undef RUN_INSTRUCTION_CHECKS
+      */
 
       // device_available_mem
 
@@ -6214,6 +6229,18 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) && (device_param->opencl_platform_vendor_id == VENDOR_ID_NV))
         {
+          const int sm = (device_param->sm_major * 10) + device_param->sm_minor;
+
+          device_param->has_add   = (sm >= 12) ? true : false;
+          device_param->has_addc  = (sm >= 12) ? true : false;
+          device_param->has_sub   = (sm >= 12) ? true : false;
+          device_param->has_subc  = (sm >= 12) ? true : false;
+          device_param->has_bfe   = (sm >= 20) ? true : false;
+          device_param->has_lop3  = (sm >= 50) ? true : false;
+          device_param->has_mov64 = (sm >= 10) ? true : false;
+          device_param->has_prmt  = (sm >= 20) ? true : false;
+
+          /*
           #define RUN_INSTRUCTION_CHECKS()                                                                                                                                                                                                          \
             device_param->has_add   = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; asm volatile (\"add.cc.u32 %0, 0, 0;\" : \"=r\"(r)); }");                                        \
             device_param->has_addc  = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; asm volatile (\"addc.cc.u32 %0, 0, 0;\" : \"=r\"(r)); }");                                       \
@@ -6250,6 +6277,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           }
 
           #undef RUN_INSTRUCTION_CHECKS
+          */
         }
 
         // device_available_mem
