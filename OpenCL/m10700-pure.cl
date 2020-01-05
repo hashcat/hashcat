@@ -257,8 +257,10 @@ DECLSPEC void sha256_final_aes (sha256_ctx_t *ctx, const u32 *aes_ks, u32 *aes_i
   sha256_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
 }
 
-DECLSPEC void sha384_update_aes_128 (sha384_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const int len, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC u32 sha384_update_aes_128 (sha384_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const int len, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
+  u32 ex = 0;
+
   MAYBE_VOLATILE const int pos = ctx->len & 127;
 
   ctx->len += len;
@@ -355,6 +357,8 @@ DECLSPEC void sha384_update_aes_128 (sha384_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w
     aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w6, ctx->w6, s_te0, s_te1, s_te2, s_te3, s_te4);
     aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w7, ctx->w7, s_te0, s_te1, s_te2, s_te3, s_te4);
 
+    ex = ctx->w7[3] & 0xff;
+
     sha384_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->w4, ctx->w5, ctx->w6, ctx->w7, ctx->h);
 
     ctx->w0[0] = c0[0];
@@ -390,6 +394,8 @@ DECLSPEC void sha384_update_aes_128 (sha384_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w
     ctx->w7[2] = c7[2];
     ctx->w7[3] = c7[3];
   }
+
+  return ex;
 }
 
 DECLSPEC void sha384_update_aes (sha384_ctx_t *ctx, const u32 *w, const int len, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
@@ -480,14 +486,21 @@ DECLSPEC void sha384_update_aes (sha384_ctx_t *ctx, const u32 *w, const int len,
   sha384_update_aes_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, len - pos1, aes_ks, aes_iv, s_te0, s_te1, s_te2, s_te3, s_te4);
 }
 
-DECLSPEC void sha384_final_aes (sha384_ctx_t *ctx, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC u32 sha384_final_aes (sha384_ctx_t *ctx, const u32 ex, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
+  u32 ret = ex;
+
   int pos = ctx->len & 127;
 
-  aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w0, ctx->w0, s_te0, s_te1, s_te2, s_te3, s_te4);
-  aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w1, ctx->w1, s_te0, s_te1, s_te2, s_te3, s_te4);
-  aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w2, ctx->w2, s_te0, s_te1, s_te2, s_te3, s_te4);
-  aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w3, ctx->w3, s_te0, s_te1, s_te2, s_te3, s_te4);
+  if (pos)
+  {
+    aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w0, ctx->w0, s_te0, s_te1, s_te2, s_te3, s_te4);
+    aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w1, ctx->w1, s_te0, s_te1, s_te2, s_te3, s_te4);
+    aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w2, ctx->w2, s_te0, s_te1, s_te2, s_te3, s_te4);
+    aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w3, ctx->w3, s_te0, s_te1, s_te2, s_te3, s_te4);
+
+    ret = ctx->w3[3] & 0xff;
+  }
 
   append_0x80_8x4_S (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->w4, ctx->w5, ctx->w6, ctx->w7, pos ^ 3);
 
@@ -533,10 +546,14 @@ DECLSPEC void sha384_final_aes (sha384_ctx_t *ctx, const u32 *aes_ks, u32 *aes_i
   ctx->w7[3] = ctx->len * 8;
 
   sha384_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->w4, ctx->w5, ctx->w6, ctx->w7, ctx->h);
+
+  return ret;
 }
 
-DECLSPEC void sha512_update_aes_128 (sha512_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const int len, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC u32 sha512_update_aes_128 (sha512_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const int len, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
+  u32 ex = 0;
+
   MAYBE_VOLATILE const int pos = ctx->len & 127;
 
   ctx->len += len;
@@ -633,6 +650,8 @@ DECLSPEC void sha512_update_aes_128 (sha512_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w
     aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w6, ctx->w6, s_te0, s_te1, s_te2, s_te3, s_te4);
     aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w7, ctx->w7, s_te0, s_te1, s_te2, s_te3, s_te4);
 
+    ex = ctx->w7[3] & 0xff;
+
     sha512_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->w4, ctx->w5, ctx->w6, ctx->w7, ctx->h);
 
     ctx->w0[0] = c0[0];
@@ -668,6 +687,8 @@ DECLSPEC void sha512_update_aes_128 (sha512_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w
     ctx->w7[2] = c7[2];
     ctx->w7[3] = c7[3];
   }
+
+  return ex;
 }
 
 DECLSPEC void sha512_update_aes (sha512_ctx_t *ctx, const u32 *w, const int len, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
@@ -758,14 +779,21 @@ DECLSPEC void sha512_update_aes (sha512_ctx_t *ctx, const u32 *w, const int len,
   sha512_update_aes_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, len - pos1, aes_ks, aes_iv, s_te0, s_te1, s_te2, s_te3, s_te4);
 }
 
-DECLSPEC void sha512_final_aes (sha512_ctx_t *ctx, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC u32 sha512_final_aes (sha512_ctx_t *ctx, const u32 ex, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
+  u32 ret = ex;
+
   int pos = ctx->len & 127;
 
-  aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w0, ctx->w0, s_te0, s_te1, s_te2, s_te3, s_te4);
-  aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w1, ctx->w1, s_te0, s_te1, s_te2, s_te3, s_te4);
-  aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w2, ctx->w2, s_te0, s_te1, s_te2, s_te3, s_te4);
-  aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w3, ctx->w3, s_te0, s_te1, s_te2, s_te3, s_te4);
+  if (pos)
+  {
+    aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w0, ctx->w0, s_te0, s_te1, s_te2, s_te3, s_te4);
+    aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w1, ctx->w1, s_te0, s_te1, s_te2, s_te3, s_te4);
+    aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w2, ctx->w2, s_te0, s_te1, s_te2, s_te3, s_te4);
+    aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w3, ctx->w3, s_te0, s_te1, s_te2, s_te3, s_te4);
+
+    ret = ctx->w3[3] & 0xff;
+  }
 
   append_0x80_8x4_S (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->w4, ctx->w5, ctx->w6, ctx->w7, pos ^ 3);
 
@@ -811,6 +839,8 @@ DECLSPEC void sha512_final_aes (sha512_ctx_t *ctx, const u32 *aes_ks, u32 *aes_i
   ctx->w7[3] = ctx->len * 8;
 
   sha512_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->w4, ctx->w5, ctx->w6, ctx->w7, ctx->h);
+
+  return ret;
 }
 
 DECLSPEC int find_sum (const u32 *w, const u32 pw_len, u32 *bb, const u32 *aes_ks, const u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
@@ -1040,12 +1070,10 @@ DECLSPEC u32 do_round (const u32 *w, const u32 pw_len, pdf17l8_tmp_t *tmp, SHM_T
       w7[2] = 0;
       w7[3] = 0;
 
-      sha384_update_aes_128 (&ctx384, w0, w1, w2, w3, w4, w5, w6, w7, tmp->dgst_len, aes_ks, aes_iv, s_te0, s_te1, s_te2, s_te3, s_te4);
+      ex = sha384_update_aes_128 (&ctx384, w0, w1, w2, w3, w4, w5, w6, w7, tmp->dgst_len, aes_ks, aes_iv, s_te0, s_te1, s_te2, s_te3, s_te4);
     }
 
-    sha384_final_aes (&ctx384, aes_ks, aes_iv, s_te0, s_te1, s_te2, s_te3, s_te4);
-
-    ex = ctx384.w3[3] & 0xff;
+    ex = sha384_final_aes (&ctx384, ex, aes_ks, aes_iv, s_te0, s_te1, s_te2, s_te3, s_te4);
 
     tmp->dgst32[ 0] = h32_from_64_S (ctx384.h[0]);
     tmp->dgst32[ 1] = l32_from_64_S (ctx384.h[0]);
@@ -1109,12 +1137,10 @@ DECLSPEC u32 do_round (const u32 *w, const u32 pw_len, pdf17l8_tmp_t *tmp, SHM_T
       w7[2] = 0;
       w7[3] = 0;
 
-      sha512_update_aes_128 (&ctx512, w0, w1, w2, w3, w4, w5, w6, w7, tmp->dgst_len, aes_ks, aes_iv, s_te0, s_te1, s_te2, s_te3, s_te4);
+      ex = sha512_update_aes_128 (&ctx512, w0, w1, w2, w3, w4, w5, w6, w7, tmp->dgst_len, aes_ks, aes_iv, s_te0, s_te1, s_te2, s_te3, s_te4);
     }
 
-    sha512_final_aes (&ctx512, aes_ks, aes_iv, s_te0, s_te1, s_te2, s_te3, s_te4);
-
-    ex = ctx512.w3[3] & 0xff;
+    ex = sha512_final_aes (&ctx512, ex, aes_ks, aes_iv, s_te0, s_te1, s_te2, s_te3, s_te4);
 
     tmp->dgst32[ 0] = h32_from_64_S (ctx512.h[0]);
     tmp->dgst32[ 1] = l32_from_64_S (ctx512.h[0]);
@@ -1229,6 +1255,8 @@ KERNEL_FQ void m10700_loop (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
    */
 
   const u32 pw_len = pws[gid].pw_len;
+
+  if (pw_len == 0) return;
 
   u32 w[64] = { 0 };
 
