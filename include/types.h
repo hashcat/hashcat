@@ -1244,8 +1244,12 @@ typedef struct hc_device_param
   // AMD
   bool    has_vadd;
   bool    has_vaddc;
+  bool    has_vadd_co;
+  bool    has_vaddc_co;
   bool    has_vsub;
   bool    has_vsubb;
+  bool    has_vsub_co;
+  bool    has_vsubb_co;
   bool    has_vadd3;
   bool    has_vbfe;
   bool    has_vperm;
