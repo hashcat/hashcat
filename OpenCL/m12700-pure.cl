@@ -341,7 +341,7 @@ KERNEL_FQ void m12700_comp (KERN_ATTR_TMPS (mywallet_tmp_t))
 
   // decrypted data should be a JSON string consisting only of ASCII chars (0x09-0x7e)
 
-  for (u32 i = 4; i < 12; i += 4)
+  for (u32 i = 4; i < 16; i += 4)
   {
     u32 data[4];
 
