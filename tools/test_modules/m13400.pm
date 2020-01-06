@@ -299,6 +299,8 @@ sub module_generate_hash
 
     $expected_bytes = $cipher->decrypt ($contents_hash);
 
+    $expected_bytes = substr ($expected_bytes . "\x00" x 32, 0, 32); # padding
+
     $hash = sprintf ('$keepass$*%d*%d*%d*%s*%s*%s*%s*%s%s',
           $version,
           $iteration,
