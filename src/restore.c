@@ -160,17 +160,19 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
      * updated folders
      */
 
-    // copy the paths of INSTALL_FOLDER and SHARED_FOLDER from the folder config:
+    // copy the paths of INSTALL_FOLDER, SHARED_FOLDER and LIBRARY_FOLDER from the folder config:
 
     char *install_folder = hcstrdup (folder_config->install_dir);
     char *shared_folder  = hcstrdup (folder_config->shared_dir);
+    char *library_folder = hcstrdup (folder_config->library_dir);
 
     folder_config_destroy (hashcat_ctx);
 
-    const int rc_folder_config_init = folder_config_init (hashcat_ctx, install_folder, shared_folder);
+    const int rc_folder_config_init = folder_config_init (hashcat_ctx, install_folder, shared_folder, library_folder);
 
     hcfree (install_folder);
     hcfree (shared_folder);
+    hcfree (library_folder);
 
     if (rc_folder_config_init == -1) return -1;
 

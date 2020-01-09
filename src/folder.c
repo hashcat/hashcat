@@ -257,7 +257,7 @@ char **scan_directory (const char *path)
   return (files);
 }
 
-int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *install_folder, MAYBE_UNUSED const char *shared_folder)
+int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *install_folder, MAYBE_UNUSED const char *shared_folder, MAYBE_UNUSED const char *library_folder)
 {
   folder_config_t *folder_config = hashcat_ctx->folder_config;
 
@@ -347,6 +347,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
   char *profile_dir = NULL;
   char *session_dir = NULL;
   char *shared_dir  = NULL;
+  char *library_dir = NULL;
 
   if (strcmp (install_dir, resolved_install_folder) == 0)
   {
@@ -366,6 +367,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
     get_session_dir (session_dir, profile_dir);
 
     shared_dir = hcstrdup (shared_folder);
+    library_dir = hcstrdup (library_folder);
 
     hc_mkdir (profile_dir, 0700);
     hc_mkdir (session_dir, 0700);
@@ -375,6 +377,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
     profile_dir = install_dir;
     session_dir = install_dir;
     shared_dir  = install_dir;
+    library_dir = install_dir;
   }
 
   hcfree (resolved_install_folder);
@@ -389,6 +392,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
   char *profile_dir = install_dir;
   char *session_dir = install_dir;
   char *shared_dir  = install_dir;
+  char *library_dir = install_dir;
 
   #endif
 
@@ -425,6 +429,8 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
     hcfree (shared_dir);
 
+    hcfree (library_dir);
+
     // Attention: since hcfree () doesn't set the pointer to NULL, we need to do it externally such that
     // we prevent double-freeing the same memory address (this happens if e.g. profile_dir == session_dir)
 
@@ -432,6 +438,8 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
     if (session_dir == shared_dir) session_dir = NULL;
 
     shared_dir = NULL;
+
+    library_dir = NULL;
 
 
     hcfree (profile_dir);
@@ -501,6 +509,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
   folder_config->profile_dir  = profile_dir;
   folder_config->session_dir  = session_dir;
   folder_config->shared_dir   = shared_dir;
+  folder_config->library_dir  = library_dir;
   folder_config->cpath_real   = cpath_real;
 
   return 0;

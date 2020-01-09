@@ -2025,6 +2025,7 @@ typedef struct folder_config
   char *profile_dir;
   char *session_dir;
   char *shared_dir;
+  char *library_dir;
   char *cpath_real;
 
 } folder_config_t;

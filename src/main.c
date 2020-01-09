@@ -1080,10 +1080,11 @@ int main (int argc, char **argv)
 
     return -1;
   }
-  // install and shared folder need to be set to recognize "make install" use
+  // install, library and shared folder need to be set to recognize "make install" use
 
   const char *install_folder = NULL;
   const char *shared_folder  = NULL;
+  const char *library_folder  = NULL;
 
   #if defined (INSTALL_FOLDER)
   install_folder = INSTALL_FOLDER;
@@ -1091,6 +1092,10 @@ int main (int argc, char **argv)
 
   #if defined (SHARED_FOLDER)
   shared_folder = SHARED_FOLDER;
+  #endif
+
+  #if defined (LIBRARY_FOLDER)
+  library_folder = LIBRARY_FOLDER;
   #endif
 
   // initialize the user options with some defaults (you can override them later)
@@ -1148,7 +1153,7 @@ int main (int argc, char **argv)
 
   int rc_final = -1;
 
-  if (hashcat_session_init (hashcat_ctx, install_folder, shared_folder, argc, argv, COMPTIME) == 0)
+  if (hashcat_session_init (hashcat_ctx, install_folder, shared_folder, library_folder, argc, argv, COMPTIME) == 0)
   {
     if (user_options->usage == true)
     {

@@ -949,7 +949,7 @@ void hashcat_destroy (hashcat_ctx_t *hashcat_ctx)
   memset (hashcat_ctx, 0, sizeof (hashcat_ctx_t));
 }
 
-int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder, const char *shared_folder, int argc, char **argv, const int comptime)
+int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder, const char *shared_folder, const char *library_folder, int argc, char **argv, const int comptime)
 {
   user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -975,7 +975,7 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
    * folder
    */
 
-  if (folder_config_init (hashcat_ctx, install_folder, shared_folder) == -1) return -1;
+  if (folder_config_init (hashcat_ctx, install_folder, shared_folder, library_folder) == -1) return -1;
 
   /**
    * pidfile

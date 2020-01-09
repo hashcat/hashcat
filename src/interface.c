@@ -21,9 +21,9 @@ int module_filename (const folder_config_t *folder_config, const int hash_mode, 
 {
   // native compiled
   #if defined (_WIN) || defined (__CYGWIN__)
-  return snprintf (out_buf, out_size, "%s/modules/module_%05d.dll", folder_config->shared_dir, hash_mode);
+  return snprintf (out_buf, out_size, "%s/modules/module_%05d.dll", folder_config->library_dir, hash_mode);
   #else
-  return snprintf (out_buf, out_size, "%s/modules/module_%05d.so", folder_config->shared_dir, hash_mode);
+  return snprintf (out_buf, out_size, "%s/modules/module_%05d.so", folder_config->library_dir, hash_mode);
   #endif
 }
 
