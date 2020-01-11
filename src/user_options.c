@@ -129,6 +129,7 @@ static const struct option long_options[] =
   {"brain-client",              no_argument,       NULL, IDX_BRAIN_CLIENT},
   {"brain-client-features",     required_argument, NULL, IDX_BRAIN_CLIENT_FEATURES},
   {"brain-server",              no_argument,       NULL, IDX_BRAIN_SERVER},
+  {"brain-server-timer",        required_argument, NULL, IDX_BRAIN_SERVER_TIMER},
   {"brain-host",                required_argument, NULL, IDX_BRAIN_HOST},
   {"brain-port",                required_argument, NULL, IDX_BRAIN_PORT},
   {"brain-password",            required_argument, NULL, IDX_BRAIN_PASSWORD},
@@ -169,6 +170,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->brain_host                = NULL;
   user_options->brain_port                = BRAIN_PORT;
   user_options->brain_server              = BRAIN_SERVER;
+  user_options->brain_server_timer        = BRAIN_SERVER_DUMP_EVERY;
   user_options->brain_session             = BRAIN_SESSION;
   user_options->brain_session_whitelist   = NULL;
   #endif
@@ -481,6 +483,8 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_BRAIN_CLIENT:              user_options->brain_client              = true;                            break;
       case IDX_BRAIN_CLIENT_FEATURES:     user_options->brain_client_features     = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_BRAIN_SERVER:              user_options->brain_server              = true;                            break;
+      case IDX_BRAIN_SERVER_TIMER:        user_options->brain_server_timer        = hc_strtoul (optarg, NULL, 10);
+                                          user_options->brain_server_timer_chgd   = true;                            break;
       case IDX_BRAIN_PASSWORD:            user_options->brain_password            = optarg;
                                           user_options->brain_password_chgd       = true;                            break;
       case IDX_BRAIN_HOST:                user_options->brain_host                = optarg;
@@ -539,6 +543,26 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     event_log_error (hashcat_ctx, "Brain clients need to set --brain-password");
 
     return -1;
+  }
+
+  if (user_options->brain_server_timer_chgd)
+  {
+    if (user_options->brain_server == false)
+    {
+      event_log_error (hashcat_ctx, "The --brain-server-timer flag requires --brain-server.");
+
+      return -1;
+    }
+
+    if (user_options->brain_server_timer != 0) // special case (no intermediate dumps)
+    {
+      if (user_options->brain_server_timer < 60)
+      {
+        event_log_error (hashcat_ctx, "Brain server backup timer must be at least 60 seconds.");
+
+        return -1;
+      }
+    }
   }
   #endif
 
@@ -2890,6 +2914,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->brain_client);
   logfile_top_uint   (user_options->brain_client_features);
   logfile_top_uint   (user_options->brain_server);
+  logfile_top_uint   (user_options->brain_server_timer);
   logfile_top_uint   (user_options->brain_port);
   logfile_top_uint   (user_options->brain_session);
   #endif
