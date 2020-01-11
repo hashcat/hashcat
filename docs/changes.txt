@@ -7,7 +7,8 @@
 - Fully modularized hash-mode integration via plugin interface and conversion of all existing hash-modes
 - Refactor hashcat backend interface to allow adding compute API other than OpenCL
 - Added CUDA as a new compute API to hashcat backend (enables hashcat to run on NVIDIA Jetson, IBM POWER9 w/ Nvidia V100, etc.)
-- Added new options --backend-ignore-cuda and --backend-ingore-opencl, to ignore CUDA and/or OpenCL interface from being load on startup
+- Added new options --backend-ignore-cuda and --backend-ingore-opencl to ignore CUDA and/or OpenCL interface from being load on startup
+- Added new parameter --brain-server-timer to specify the seconds for the next scheduled backup
 - Support use of all available GPU memory using CUDA backend
 - Support use of all available CPU cores for hash-mode specific hooks
 - Support on-the-fly loading of compressed wordlists in zip and gzip format

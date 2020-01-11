@@ -125,6 +125,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   " -S, --slow-candidates          |      | Enable slower (but advanced) candidate generators    |",
   #ifdef WITH_BRAIN
   "     --brain-server             |      | Enable brain server                                  |",
+  "     --brain-server-timer       | Num  | Update the brain server dump each X seconds (min:60) | --brain-server-timer=300",
   " -z, --brain-client             |      | Enable brain client, activates -S                    |",
   "     --brain-client-features    | Num  | Define brain client features, see below              | --brain-client-features=3",
   "     --brain-host               | Str  | Brain server host (IP or domain)                     | --brain-host=127.0.0.1",
