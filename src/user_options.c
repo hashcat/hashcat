@@ -170,7 +170,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->brain_host                = NULL;
   user_options->brain_port                = BRAIN_PORT;
   user_options->brain_server              = BRAIN_SERVER;
-  user_options->brain_server_timer        = BRAIN_SERVER_DUMP_EVERY;
+  user_options->brain_server_timer        = BRAIN_SERVER_TIMER;
   user_options->brain_session             = BRAIN_SESSION;
   user_options->brain_session_whitelist   = NULL;
   #endif
