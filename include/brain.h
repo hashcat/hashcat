@@ -41,7 +41,7 @@
 #include "xxhash.h"
 
 static const int BRAIN_CLIENT_CONNECT_TIMEOUT     = 5;
-static const int BRAIN_SERVER_DUMP_EVERY          = 5 * 60;
+static const int BRAIN_SERVER_TIMER               = 5 * 60;
 static const int BRAIN_SERVER_SESSIONS_MAX        = 64;
 static const int BRAIN_SERVER_ATTACKS_MAX         = 64 * 1024;
 static const int BRAIN_SERVER_CLIENTS_MAX         = 256;
