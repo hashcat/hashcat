@@ -103,7 +103,7 @@
 
 #include "inc_ecc_secp256k1.h"
 
-DECLSPEC u32 sub (u32 r[8], const u32 a[8], const u32 b[8])
+DECLSPEC u32 sub (u32 *r, const u32 *a, const u32 *b)
 {
   u32 c = 0; // carry/borrow
 
@@ -155,7 +155,7 @@ DECLSPEC u32 sub (u32 r[8], const u32 a[8], const u32 b[8])
   return c;
 }
 
-DECLSPEC u32 add (u32 r[8], const u32 a[8], const u32 b[8])
+DECLSPEC u32 add (u32 *r, const u32 *a, const u32 *b)
 {
   u32 c = 0; // carry/borrow
 
@@ -207,7 +207,7 @@ DECLSPEC u32 add (u32 r[8], const u32 a[8], const u32 b[8])
   return c;
 }
 
-DECLSPEC void sub_mod (u32 r[8], const u32 a[8], const u32 b[8])
+DECLSPEC void sub_mod (u32 *r, const u32 *a, const u32 *b)
 {
   const u32 c = sub (r, a, b); // carry
 
@@ -228,7 +228,7 @@ DECLSPEC void sub_mod (u32 r[8], const u32 a[8], const u32 b[8])
   }
 }
 
-DECLSPEC void add_mod (u32 r[8], const u32 a[8], const u32 b[8])
+DECLSPEC void add_mod (u32 *r, const u32 *a, const u32 *b)
 {
   const u32 c = add (r, a, b); // carry
 
@@ -274,7 +274,7 @@ DECLSPEC void add_mod (u32 r[8], const u32 a[8], const u32 b[8])
   }
 }
 
-DECLSPEC void mod_512 (u32 n[16])
+DECLSPEC void mod_512 (u32 *n)
 {
   // we need to perform a modulo operation with 512-bit % 256-bit (bignum modulo):
   // the modulus is the secp256k1 group order
@@ -583,7 +583,7 @@ DECLSPEC void mod_512 (u32 n[16])
   n[15] = a[15];
 }
 
-DECLSPEC void mul_mod (u32 r[8], const u32 a[8], const u32 b[8]) // TODO get rid of u64 ?
+DECLSPEC void mul_mod (u32 *r, const u32 *a, const u32 *b) // TODO get rid of u64 ?
 {
   u32 t[16] = { 0 }; // we need up to double the space (2 * 8)
 
@@ -736,7 +736,7 @@ DECLSPEC void mul_mod (u32 r[8], const u32 a[8], const u32 b[8]) // TODO get rid
   }
 }
 
-DECLSPEC void sqrt_mod (u32 r[8])
+DECLSPEC void sqrt_mod (u32 *r)
 {
   // Fermat's Little Theorem
   // secp256k1: y^2 = x^3 + 7 % p
@@ -788,7 +788,7 @@ DECLSPEC void sqrt_mod (u32 r[8])
 
 // (inverse (a, p) * a) % p == 1 (or think of a * a^-1 = a / a = 1)
 
-DECLSPEC void inv_mod (u32 a[8])
+DECLSPEC void inv_mod (u32 *a)
 {
   // How often does this really happen? it should "almost" never happen (but would be safer)
   // if ((a[0] | a[1] | a[2] | a[3] | a[4] | a[5] | a[6] | a[7]) == 0) return;
@@ -1037,7 +1037,7 @@ DECLSPEC void inv_mod (u32 a[8])
   Z =  2 * y * z
 */
 
-DECLSPEC void point_double (u32 x[8], u32 y[8], u32 z[8])
+DECLSPEC void point_double (u32 *x, u32 *y, u32 *z)
 {
   // How often does this really happen? it should "almost" never happen (but would be safer)
 
@@ -1224,7 +1224,7 @@ DECLSPEC void point_double (u32 x[8], u32 y[8], u32 z[8])
  * y3 = t3-t4
  */
 
-void point_add (u32 x1[8], u32 y1[8], u32 z1[8], u32 x2[8], u32 y2[8]) // z2 = 1
+DECLSPEC void point_add (u32 *x1, u32 *y1, u32 *z1, u32 *x2, u32 *y2) // z2 = 1
 {
   // How often does this really happen? it should "almost" never happen (but would be safer)
 
@@ -1408,7 +1408,7 @@ void point_add (u32 x1[8], u32 y1[8], u32 z1[8], u32 x2[8], u32 y2[8]) // z2 = 1
   z1[7] = t8[7];
 }
 
-DECLSPEC void point_get_coords (secp256k1_t *r, const u32 x[8], const u32 y[8])
+DECLSPEC void point_get_coords (secp256k1_t *r, const u32 *x, const u32 *y)
 {
   /*
     pre-compute 1/-1, 3/-3, 5/-5, 7/-7 times P (x, y)
@@ -1727,7 +1727,7 @@ DECLSPEC void point_get_coords (secp256k1_t *r, const u32 x[8], const u32 y[8])
   r->xy[95] = neg[7];
 }
 
-DECLSPEC void point_mul (u32 r[9], const u32 k[8], GLOBAL_AS const secp256k1_t *tmps)
+DECLSPEC void point_mul (u32 *r, const u32 *k, GLOBAL_AS const secp256k1_t *tmps)
 {
   /*
    * Convert the tweak/scalar k to w-NAF (window size is 4)
@@ -1984,7 +1984,7 @@ DECLSPEC void point_mul (u32 r[9], const u32 k[8], GLOBAL_AS const secp256k1_t *
   r[0] = r[0] | type << 24; // 0x02 or 0x03
 }
 
-DECLSPEC u32 parse_public (secp256k1_t *r, const u32 k[9])
+DECLSPEC u32 parse_public (secp256k1_t *r, const u32 *k)
 {
   // verify:
 

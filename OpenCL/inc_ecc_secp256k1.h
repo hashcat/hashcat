@@ -34,8 +34,8 @@ typedef struct secp256k1
 
 } secp256k1_t;
 
-DECLSPEC u32  parse_public (secp256k1_t *r, const u32 k[9]);
+DECLSPEC u32  parse_public (secp256k1_t *r, const u32 *k);
 
-DECLSPEC void point_mul (u32 r[9], const u32 k[8], GLOBAL_AS const secp256k1_t *tmps);
+DECLSPEC void point_mul (u32 *r, const u32 *k, GLOBAL_AS const secp256k1_t *tmps);
 
 #endif // _INC_ECC_SECP256K1_H
