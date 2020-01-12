@@ -21,17 +21,10 @@
 #define SHA512_F0(x,y,z) ((z) ^ ((x) & ((y) ^ (z))))
 #define SHA512_F1(x,y,z) (((x) & (y)) | ((z) & ((x) ^ (y))))
 
-#ifdef IS_NV
+#ifdef USE_BITSELECT
 #define SHA512_F0o(x,y,z) (bitselect ((z), (y), (x)))
 #define SHA512_F1o(x,y,z) (bitselect ((x), (y), ((x) ^ (z))))
-#endif
-
-#ifdef IS_AMD
-#define SHA512_F0o(x,y,z) (bitselect ((z), (y), (x)))
-#define SHA512_F1o(x,y,z) (bitselect ((x), (y), ((x) ^ (z))))
-#endif
-
-#ifdef IS_GENERIC
+#else
 #define SHA512_F0o(x,y,z) (SHA512_F0 ((x), (y), (z)))
 #define SHA512_F1o(x,y,z) (SHA512_F1 ((x), (y), (z)))
 #endif

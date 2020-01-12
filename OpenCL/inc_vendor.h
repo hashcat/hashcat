@@ -144,4 +144,13 @@
 #undef _unroll
 #endif
 
+// Whitelist some OpenCL specific functions
+// This could create more stable kernels on systems with bad OpenCL drivers
+
+#ifdef IS_NV
+#define USE_BITSELECT
+#define USE_ROTATE
+#define USE_SWIZZLE
+#endif
+
 #endif

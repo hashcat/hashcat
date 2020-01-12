@@ -6,26 +6,14 @@
 #ifndef _INC_HASH_SHA1_H
 #define _INC_HASH_SHA1_H
 
-#ifdef IS_NV
 #define SHA1_F0(x,y,z)  ((z) ^ ((x) & ((y) ^ (z))))
 #define SHA1_F1(x,y,z)  ((x) ^ (y) ^ (z))
 #define SHA1_F2(x,y,z)  (((x) & (y)) | ((z) & ((x) ^ (y))))
+
+#ifdef USE_BITSELECT
 #define SHA1_F0o(x,y,z) (bitselect ((z), (y), (x)))
 #define SHA1_F2o(x,y,z) (bitselect ((x), (y), ((x) ^ (z))))
-#endif
-
-#ifdef IS_AMD
-#define SHA1_F0(x,y,z)  ((z) ^ ((x) & ((y) ^ (z))))
-#define SHA1_F1(x,y,z)  ((x) ^ (y) ^ (z))
-#define SHA1_F2(x,y,z)  (((x) & (y)) | ((z) & ((x) ^ (y))))
-#define SHA1_F0o(x,y,z) (bitselect ((z), (y), (x)))
-#define SHA1_F2o(x,y,z) (bitselect ((x), (y), ((x) ^ (z))))
-#endif
-
-#ifdef IS_GENERIC
-#define SHA1_F0(x,y,z)  ((z) ^ ((x) & ((y) ^ (z))))
-#define SHA1_F1(x,y,z)  ((x) ^ (y) ^ (z))
-#define SHA1_F2(x,y,z)  (((x) & (y)) | ((z) & ((x) ^ (y))))
+#else
 #define SHA1_F0o(x,y,z) (SHA1_F0 ((x), (y), (z)))
 #define SHA1_F2o(x,y,z) (SHA1_F2 ((x), (y), (z)))
 #endif

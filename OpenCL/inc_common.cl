@@ -310,7 +310,11 @@ DECLSPEC u32x hc_rotl32 (const u32x a, const int n)
   #elif defined IS_CUDA
   return rotl32 (a, n);
   #else
+  #ifdef USE_ROTATE
   return rotate (a, make_u32x (n));
+  #else
+  return ((a << n) | (a >> (32 - n)));
+  #endif
   #endif
 }
 
@@ -321,7 +325,11 @@ DECLSPEC u32x hc_rotr32 (const u32x a, const int n)
   #elif defined IS_CUDA
   return rotr32 (a, n);
   #else
+  #ifdef USE_ROTATE
   return rotate (a, make_u32x (32 - n));
+  #else
+  return ((a >> n) | (a << (32 - n)));
+  #endif
   #endif
 }
 
@@ -332,7 +340,11 @@ DECLSPEC u32 hc_rotl32_S (const u32 a, const int n)
   #elif defined IS_CUDA
   return rotl32_S (a, n);
   #else
+  #ifdef USE_ROTATE
   return rotate (a, (u32) (n));
+  #else
+  return ((a << n) | (a >> (32 - n)));
+  #endif
   #endif
 }
 
@@ -343,7 +355,11 @@ DECLSPEC u32 hc_rotr32_S (const u32 a, const int n)
   #elif defined IS_CUDA
   return rotr32_S (a, n);
   #else
+  #ifdef USE_ROTATE
   return rotate (a, (u32) (32 - n));
+  #else
+  return ((a >> n) | (a << (32 - n)));
+  #endif
   #endif
 }
 
@@ -356,7 +372,11 @@ DECLSPEC u64x hc_rotl64 (const u64x a, const int n)
   #elif defined IS_AMD
   return rotl64 (a, n);
   #else
+  #ifdef USE_ROTATE
   return rotate (a, make_u64x (n));
+  #else
+  return ((a << n) | (a >> (64 - n)));
+  #endif
   #endif
 }
 
@@ -369,7 +389,11 @@ DECLSPEC u64x hc_rotr64 (const u64x a, const int n)
   #elif defined IS_AMD
   return rotr64 (a, n);
   #else
+  #ifdef USE_ROTATE
   return rotate (a, make_u64x (64 - n));
+  #else
+  return ((a >> n) | (a << (64 - n)));
+  #endif
   #endif
 }
 
@@ -382,7 +406,11 @@ DECLSPEC u64 hc_rotl64_S (const u64 a, const int n)
   #elif defined IS_AMD
   return rotl64_S (a, n);
   #else
+  #ifdef USE_ROTATE
   return rotate (a, (u64) (n));
+  #else
+  return ((a << n) | (a >> (64 - n)));
+  #endif
   #endif
 }
 
@@ -395,7 +423,11 @@ DECLSPEC u64 hc_rotr64_S (const u64 a, const int n)
   #elif defined IS_AMD
   return rotr64_S (a, n);
   #else
+  #ifdef USE_ROTATE
   return rotate (a, (u64) (64 - n));
+  #else
+  return ((a >> n) | (a << (64 - n)));
+  #endif
   #endif
 }
 
@@ -479,10 +511,20 @@ DECLSPEC u32x hc_swap32 (const u32x v)
   #endif
 
   #else
+
+  #if defined USE_BITSELECT && defined USE_ROTATE
   r = bitselect (rotate (v, make_u32x (24)),
                  rotate (v, make_u32x ( 8)),
                             make_u32x (0x00ff00ff));
+  #else
+  r = ((v & make_u32x (0xff000000)) >> 24)
+    | ((v & make_u32x (0x00ff0000)) >>  8)
+    | ((v & make_u32x (0x0000ff00)) <<  8)
+    | ((v & make_u32x (0x000000ff)) << 24);
   #endif
+
+  #endif
+
   #endif
 
   return r;
@@ -500,7 +542,14 @@ DECLSPEC u32 hc_swap32_S (const u32 v)
   #elif defined IS_NV  && HAS_PRMT  == 1
   asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r) : "r"(v));
   #else
+  #ifdef USE_SWIZZLE
   r = as_uint (as_uchar4 (v).s3210);
+  #else
+  r = ((v & 0xff000000) >> 24)
+    | ((v & 0x00ff0000) >>  8)
+    | ((v & 0x0000ff00) <<  8)
+    | ((v & 0x000000ff) << 24);
+  #endif
   #endif
   #endif
 
@@ -697,6 +746,9 @@ DECLSPEC u64x hc_swap64 (const u64x v)
   #endif
 
   #else
+
+  #if defined USE_BITSELECT && defined USE_ROTATE
+
   r = bitselect (bitselect (rotate (v, make_u64x (24)),
                             rotate (v, make_u64x ( 8)),
                                        make_u64x (0x000000ff000000ff)),
@@ -704,6 +756,19 @@ DECLSPEC u64x hc_swap64 (const u64x v)
                             rotate (v, make_u64x (40)),
                                        make_u64x (0x00ff000000ff0000)),
                                        make_u64x (0xffff0000ffff0000));
+  #else
+
+  r = ((v & make_u64x (0xff00000000000000ULL)) >> 56)
+    | ((v & make_u64x (0x00ff000000000000ULL)) >> 40)
+    | ((v & make_u64x (0x0000ff0000000000ULL)) >> 24)
+    | ((v & make_u64x (0x000000ff00000000ULL)) >>  8)
+    | ((v & make_u64x (0x00000000ff000000ULL)) <<  8)
+    | ((v & make_u64x (0x0000000000ff0000ULL)) << 24)
+    | ((v & make_u64x (0x000000000000ff00ULL)) << 40)
+    | ((v & make_u64x (0x00000000000000ffULL)) << 56);
+
+  #endif
+
   #endif
   #endif
 
@@ -744,7 +809,18 @@ DECLSPEC u64 hc_swap64_S (const u64 v)
 
   asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r) : "r"(tr), "r"(tl));
   #else
+  #ifdef USE_SWIZZLE
   r = as_ulong (as_uchar8 (v).s76543210);
+  #else
+  r = ((v & 0xff00000000000000ULL) >> 56)
+    | ((v & 0x00ff000000000000ULL) >> 40)
+    | ((v & 0x0000ff0000000000ULL) >> 24)
+    | ((v & 0x000000ff00000000ULL) >>  8)
+    | ((v & 0x00000000ff000000ULL) <<  8)
+    | ((v & 0x0000000000ff0000ULL) << 24)
+    | ((v & 0x000000000000ff00ULL) << 40)
+    | ((v & 0x00000000000000ffULL) << 56);
+  #endif
   #endif
   #endif
 
