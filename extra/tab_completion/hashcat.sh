@@ -17,10 +17,10 @@ _hashcat_backend_devices ()
   if [ ! -x "${executable}" ]; then
     executable="${HASHCAT_ROOT}"/hashcat.bin
   fi
-  
+
   if [ ! -x "${executable}" ]; then
     local which_hashcat=$(which hashcat 2>/dev/null)
-    
+
     if [ -n "${which_hashcat}" ]; then
       executable="${which_hashcat}"
     fi
@@ -217,6 +217,69 @@ _hashcat_cpu_devices ()
   done
 }
 
+_hashcat_files_replace_home ()
+{
+  local cur_select="${1}"
+  local cur_files="${2}"
+
+  hashcat_select="${cur_select}"
+  hashcat_file_list="${cur_files}"
+
+  if echo ${cur_select} | grep -q "^~/"; then
+    home_dir="${HOME}"
+
+    if [ -n "${home_dir}" ]; then
+      hashcat_file_list=$(echo -n "${cur_files}" | sed "s!^${home_dir}!~\\\\!")
+      hashcat_select=$(echo -n "${cur_select}" | sed "s!^~/!~\\\\/!")
+    fi
+  fi
+}
+
+_hashcat_files_include ()
+{
+  local cur_select="${1}"
+  local cur_filter="${2}"
+
+  # allow starting/ending quotes (" and '):
+
+  cur_select=$(echo -n "${cur_select}" | sed 's/^["'"'"']//' | sed 's/["'"'"']\$//')
+
+  hashcat_file_list=$(bash -c "ls -d ${cur_select}*" 2> /dev/null | grep -Ei "${cur_filter}" 2> /dev/null)
+
+
+  # special case: add all folders/directories (ending with "/")
+
+  local all_dirs=$(bash -c "ls -d ${cur_select}*/" 2> /dev/null)
+
+  hashcat_file_list="${hashcat_file_list} ${all_dirs}"
+
+
+  # special case: $HOME directory (~/)
+
+  _hashcat_files_replace_home "${cur_select}" "${hashcat_file_list}"
+
+  # (hashcat_select and hashcat_file_list are modified and "returned")
+}
+
+_hashcat_files_exclude ()
+{
+  local cur_select="${1}"
+  local cur_filter="${2}"
+
+  # allow starting/ending quotes (" and '):
+
+  cur_select=$(echo -n "${cur_select}" | sed 's/^["'"'"']//' | sed 's/["'"'"']\$//')
+
+  hashcat_file_list=$(bash -c "ls -d ${cur_select}*" 2> /dev/null | grep -Eiv '*\.('${cur_filter}')' 2> /dev/null)
+
+
+  # handle special case for $HOME directory (~/)
+
+  _hashcat_files_replace_home "${cur_select}" "${hashcat_file_list}"
+
+  # (hashcat_select and hashcat_file_list are modified and "returned")
+}
+
 _hashcat_contains ()
 {
   local haystack=${1}
@@ -246,7 +309,7 @@ _hashcat ()
   local WORKLOAD_PROFILE="1 2 3 4"
   local BRAIN_CLIENT_FEATURES="1 2 3"
   local HIDDEN_FILES="exe|bin|potfile|hcstat2|dictstat2|sh|cmd|bat|restore"
-  local HIDDEN_FILES_AGGRESIVE="${HIDDEN_FILES}|hcmask|hcchr"
+  local HIDDEN_FILES_AGGRESSIVE="${HIDDEN_FILES}|hcmask|hcchr"
   local BUILD_IN_CHARSETS='?l ?u ?d ?a ?b ?s ?h ?H'
 
   local SHORT_OPTS="-m -a -V -h -b -t -T -o -p -c -d -D -w -n -u -j -k -r -g -1 -2 -3 -4 -i -I -s -l -O -S -z"
@@ -300,14 +363,14 @@ _hashcat ()
       ;;
 
     -o|--outfile|-r|--rules-file|--debug-file|--potfile-path| --restore-file-path)
-      local files=$(ls -d ${cur}* 2> /dev/null | grep -Eiv '*\.('${HIDDEN_FILES_AGGRESIVE}')' 2> /dev/null)
-      COMPREPLY=($(compgen -W "${files}" -- ${cur})) # or $(compgen -f -X '*.+('${HIDDEN_FILES_AGGRESIVE}')' -- ${cur})
+      _hashcat_files_exclude "${cur}" "${HIDDEN_FILES_AGGRESSIVE}"
+      COMPREPLY=($(compgen -W "${hashcat_file_list}" -- ${hashcat_select})) # or $(compgen -f -X '*.+('${HIDDEN_FILES_AGGRESSIVE}')' -- ${cur})
       return 0
       ;;
 
     --markov-hcstat2)
-      local files=$(ls -d ${cur}* 2> /dev/null | grep '.*\.hcstat2$' 2> /dev/null)
-      COMPREPLY=($(compgen -W "${files}" -- ${cur})) # or $(compgen -f -X '*.+('${HIDDEN_FILES_AGGRESIVE}')' -- ${cur})
+      _hashcat_files_include "${cur}" '.*\.hcstat2$'
+      COMPREPLY=($(compgen -W "${hashcat_file_list}" -- ${hashcat_select}))
       return 0
       ;;
 
@@ -336,8 +399,8 @@ _hashcat ()
       ;;
 
     --keyboard-layout-mapping)
-      local files=$(ls -d ${cur}* 2> /dev/null | grep '.*\.hckmap$' 2> /dev/null)
-      COMPREPLY=($(compgen -W "${files}" -- ${cur})) # or $(compgen -f -X '*.+('${HIDDEN_FILES_AGGRESIVE}')' -- ${cur})
+      _hashcat_files_include "${cur}" '.*\.hckmap$'
+      COMPREPLY=($(compgen -W "${hashcat_file_list}" -- ${hashcat_select}))
       return 0
       ;;
 
@@ -355,7 +418,6 @@ _hashcat ()
 
         local cur_var=$(echo "${cur}" | sed 's/\?$//')
 
-        mask="${mask} ${cur_var}"
         local h
         for h in ${mask}; do
 
@@ -378,17 +440,18 @@ _hashcat ()
             fi
 
             mask="${mask} ${cur_var}${h}"
-
           fi
 
         done
+
+        mask="${mask} ${cur_var}"
       fi
 
-      local files=$(ls -d ${cur}* 2> /dev/null | grep -Eiv '*\.('${HIDDEN_FILES}')' 2> /dev/null)
+      _hashcat_files_exclude "${cur}" "${HIDDEN_FILES}"
 
-      mask="${mask} ${files}"
+      mask="${mask} ${hashcat_file_list}"
 
-      COMPREPLY=($(compgen -W "${mask}" -- ${cur}))
+      COMPREPLY=($(compgen -W "${mask}" -- ${hashcat_select}))
       return 0
       ;;
 
@@ -446,16 +509,26 @@ _hashcat ()
 
       local cur_part0=$(echo "${cur}" | grep -Eo '^("|'"'"')')
 
-      local cur_mod=$(echo "${cur}" | sed 's/^["'"'"']//')
-      local cur_part1=$(echo "${cur_mod}" | grep ',' 2> /dev/null | sed 's/^\(.*, *\)[^,]*$/\1/')
-      local cur_part2=$(echo "${cur_mod}" | sed 's/^.*, *\([^,]*\)$/\1/')
+      local cur_sel=$(echo "${cur}" | sed 's/["'"'"']//g')
+
+      local cur_part1=$(echo "${cur_sel}" | grep ',' 2> /dev/null | sed 's/^\(.*, *\)[^,]*$/\1/')
+      local cur_part2=$(echo "${cur_sel}" | sed 's/^.*, *\([^,]*\)$/\1/')
+
+      _hashcat_files_exclude "${cur_part2}" "${HIDDEN_FILES_AGGRESSIVE}"
+
 
       # generate lines with the file name and a duplicate of it with a comma at the end
 
-      local files=$(ls -d ${cur_part2}* 2> /dev/null | grep -Eiv '*\.('${HIDDEN_FILES_AGGRESIVE}')' 2> /dev/null | sed 's/^\(.*\)$/\1\n\1,\n/' | sed "s/^/${cur_part0}${cur_part1}/" | sed "s/$/${cur_part0}/")
-      COMPREPLY=($(compgen -W "${files}" -- ${cur}))
-      return 0
+      hashcat_file_list=$(echo "${hashcat_file_list}"  | \
+                          sed  "s/^/${cur_part1}/"     | \
+                          sed  "s/^/${cur_part0}/"     | \
+                          sed  's/^\(.*\)$/\1\n\1,\n/' | \
+                          sed  's/,\+$/,/g'            | \
+                          sed  's/^\(.*\)$/\1\n\1"/'   | \
+                          sed  's/,\+"$/"/')
 
+      COMPREPLY=($(compgen -W "${hashcat_file_list}" -- ${cur_sel}))
+      return 0
   esac
 
   # allow also the VARIANTS w/o spaces
@@ -476,14 +549,14 @@ _hashcat ()
       ;;
 
     -o*)
-      local outfile_var=$(ls -d ${cur:2}* 2> /dev/null | grep -Eiv '*\.('${HIDDEN_FILES_AGGRESIVE}')' 2> /dev/null)
+      local outfile_var=$(ls -d ${cur:2}* 2> /dev/null | grep -Eiv '*\.('${HIDDEN_FILES_AGGRESSIVE}')' 2> /dev/null)
       outfile_var="$(echo -e "\n${outfile_var}" | sed 's/^/-o/')"
       COMPREPLY=($(compgen -W "${outfile_var}" -- ${cur}))
       return 0
       ;;
 
     -r*)
-      local outfile_var=$(ls -d ${cur:2}* 2> /dev/null | grep -Eiv '*\.('${HIDDEN_FILES_AGGRESIVE}')' 2> /dev/null)
+      local outfile_var=$(ls -d ${cur:2}* 2> /dev/null | grep -Eiv '*\.('${HIDDEN_FILES_AGGRESSIVE}')' 2> /dev/null)
       outfile_var="$(echo -e "\n${outfile_var}" | sed 's/^/-r/')"
       COMPREPLY=($(compgen -W "${outfile_var}" -- ${cur}))
       return 0
@@ -607,8 +680,8 @@ _hashcat ()
       ;;
 
     1)
-      local files=$(ls -d ${cur}* 2> /dev/null | grep -Eiv '*\.('${HIDDEN_FILES_AGGRESIVE}')' 2> /dev/null)
-      COMPREPLY=($(compgen -W "${files}" -- ${cur}))
+      _hashcat_files_exclude "${cur}" "${HIDDEN_FILES_AGGRESSIVE}"
+      COMPREPLY=($(compgen -W "${hashcat_file_list}" -- ${hashcat_select}))
       return 0
       ;;
 
@@ -617,8 +690,8 @@ _hashcat ()
 
         0)
           # dict/directory are files here
-          local files=$(ls -d ${cur}* 2> /dev/null | grep -Eiv '*\.('${HIDDEN_FILES_AGGRESIVE}')' 2> /dev/null)
-          COMPREPLY=($(compgen -W "${files}" -- ${cur}))
+          _hashcat_files_exclude "${cur}" "${HIDDEN_FILES_AGGRESSIVE}"
+          COMPREPLY=($(compgen -W "${hashcat_file_list}" -- ${hashcat_select}))
           return 0
           ;;
 
@@ -627,8 +700,8 @@ _hashcat ()
             return 0
           fi
 
-          local files=$(ls -d ${cur}* 2> /dev/null | grep -Eiv '*\.('${HIDDEN_FILES_AGGRESIVE}')' 2> /dev/null)
-          COMPREPLY=($(compgen -W "${files}" -- ${cur}))
+          _hashcat_files_exclude "${cur}" "${HIDDEN_FILES_AGGRESSIVE}"
+          COMPREPLY=($(compgen -W "${hashcat_file_list}" -- ${hashcat_select}))
           return 0
           ;;
 
@@ -637,27 +710,19 @@ _hashcat ()
             local mask=${BUILD_IN_CHARSETS}
 
             if [ "${has_charset_1}" -eq 1 ]; then
-
               mask="${mask} ?1"
-
             fi
 
             if [ "${has_charset_2}" -eq 1 ]; then
-
               mask="${mask} ?2"
-
             fi
 
             if [ "${has_charset_3}" -eq 1 ]; then
-
               mask="${mask} ?3"
-
             fi
 
             if [ "${has_charset_4}" -eq 1 ]; then
-
               mask="${mask} ?4"
-
             fi
 
             if [ -e "${cur}" ]; then # should be hcmask file (but not enforced)
@@ -671,21 +736,20 @@ _hashcat ()
 
               local cur_var=$(echo "${cur}" | sed 's/\?$//')
 
-              mask="${mask} ${cur_var}"
-
               local h
               for h in ${mask}; do
-
-                  mask="${mask} ${cur_var}${h}"
-
+                mask="${mask} ${cur_var}${h}"
               done
+
+              mask="${mask} ${cur_var}"
             fi
 
-            local files=$(ls -d ${cur}* 2> /dev/null | grep -Eiv '*\.('${HIDDEN_FILES}')' 2> /dev/null)
+            _hashcat_files_exclude "${cur}" "${HIDDEN_FILES}"
 
-            mask="${mask} ${files}"
+            mask="${mask} ${hashcat_file_list}"
 
-            COMPREPLY=($(compgen -W "${mask}" -- ${cur}))
+            COMPREPLY=($(compgen -W "${mask}" -- ${hashcat_select}))
+
             return 0
           fi
           ;;
@@ -693,34 +757,26 @@ _hashcat ()
         6)
           if [ "${no_opts}" -eq 2 ]; then
 
-            local files=$(ls -d ${cur}* 2> /dev/null | grep -Eiv '*\.('${HIDDEN_FILES_AGGRESIVE}')' 2> /dev/null)
-            COMPREPLY=($(compgen -W "${files}" -- ${cur}))
+            _hashcat_files_exclude "${cur}" "${HIDDEN_FILES_AGGRESSIVE}"
+            COMPREPLY=($(compgen -W "${hashcat_file_list}" -- ${hashcat_select}))
 
           elif [ "${no_opts}" -eq 3 ]; then
             local mask=${BUILD_IN_CHARSETS}
 
             if [ "${has_charset_1}" -eq 1 ]; then
-
               mask="${mask} ?1"
-
             fi
 
             if [ "${has_charset_2}" -eq 1 ]; then
-
               mask="${mask} ?2"
-
             fi
 
             if [ "${has_charset_3}" -eq 1 ]; then
-
               mask="${mask} ?3"
-
             fi
 
             if [ "${has_charset_4}" -eq 1 ]; then
-
               mask="${mask} ?4"
-
             fi
 
             if [ -e "${cur}" ]; then # should be hcmask file (but not enforced)
@@ -734,21 +790,19 @@ _hashcat ()
 
               local cur_var=$(echo "${cur}" | sed 's/\?$//')
 
-              mask="${mask} ${cur_var}"
-
               local h
               for h in ${mask}; do
-
-                  mask="${mask} ${cur_var}${h}"
-
+                mask="${mask} ${cur_var}${h}"
               done
+
+              mask="${mask} ${cur_var}"
             fi
 
-            local files=$(ls -d ${cur}* 2> /dev/null | grep -Eiv '*\.('${HIDDEN_FILES}')' 2> /dev/null)
+            _hashcat_files_exclude "${cur}" "${HIDDEN_FILES}"
 
-            mask="${mask} ${files}"
+            mask="${mask} ${hashcat_file_list}"
 
-            COMPREPLY=($(compgen -W "${mask}" -- ${cur}))
+            COMPREPLY=($(compgen -W "${mask}" -- ${hashcat_select}))
             return 0
 
           fi
@@ -759,27 +813,19 @@ _hashcat ()
             local mask=${BUILD_IN_CHARSETS}
 
             if [ "${has_charset_1}" -eq 1 ]; then
-
               mask="${mask} ?1"
-
             fi
 
             if [ "${has_charset_2}" -eq 1 ]; then
-
               mask="${mask} ?2"
-
             fi
 
             if [ "${has_charset_3}" -eq 1 ]; then
-
               mask="${mask} ?3"
-
             fi
 
             if [ "${has_charset_4}" -eq 1 ]; then
-
               mask="${mask} ?4"
-
             fi
 
             if [ -e "${cur}" ]; then # should be hcmask file (but not enforced)
@@ -793,28 +839,26 @@ _hashcat ()
 
               local cur_var=$(echo "${cur}" | sed 's/\?$//')
 
-              mask="${mask} ${cur_var}"
-
               local h
               for h in ${mask}; do
-
-                  mask="${mask} ${cur_var}${h}"
-
+                mask="${mask} ${cur_var}${h}"
               done
+
+              mask="${mask} ${cur_var}"
             fi
 
-            local files=$(ls -d ${cur}* 2> /dev/null | grep -Eiv '*\.('${HIDDEN_FILES}')' 2> /dev/null)
+            _hashcat_files_exclude "${cur}" "${HIDDEN_FILES}"
 
-            mask="${mask} ${files}"
+            mask="${mask} ${hashcat_file_list}"
 
-            COMPREPLY=($(compgen -W "${mask}" -- ${cur}))
+            COMPREPLY=($(compgen -W "${mask}" -- ${hashcat_select}))
             return 0
 
           elif [ "${no_opts}" -eq 3 ]; then
 
-            local files=$(ls -d ${cur}* 2> /dev/null | grep -Eiv '*\.('${HIDDEN_FILES_AGGRESIVE}')' 2> /dev/null)
-            COMPREPLY=($(compgen -W "${files}" -- ${cur}))
-            return
+            _hashcat_files_exclude "${cur}" "${HIDDEN_FILES_AGGRESSIVE}"
+            COMPREPLY=($(compgen -W "${hashcat_file_list}" -- ${hashcat_select}))
+            return 0
 
           fi
           ;;
@@ -824,4 +868,4 @@ _hashcat ()
     esac
 }
 
-complete -F _hashcat -o filenames "${HASHCAT_ROOT}"/hashcat.bin  "${HASHCAT_ROOT}"/hashcat hashcat
+complete -F _hashcat "${HASHCAT_ROOT}"/hashcat.bin  "${HASHCAT_ROOT}"/hashcat hashcat
