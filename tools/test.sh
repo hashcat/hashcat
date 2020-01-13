@@ -406,6 +406,10 @@ function status()
 
         ;;
       10)
+        if is_in_array "${hash_type}" ${NEVER_CRACK_ALGOS}; then
+          return
+        fi
+
         if [ "${pass_only}" -eq 1 ]; then
           echo "plains not found in output, cmdline : ${CMD}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
         else
