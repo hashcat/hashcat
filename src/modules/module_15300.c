@@ -107,13 +107,13 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
     }
   }
 
-  // amdgpu-pro-18.50-708488-ubuntu-18.04: self-test failed
+  // amdgpu-pro-19.30-934563-ubuntu-18.04: self-test failed
   if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
   {
     return true;
   }
 
-  //l_opencl_p_18.1.0.013.tgz: self-test failed
+  // l_opencl_p_18.1.0.013.tgz: self-test failed
   if ((device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK) && (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU))
   {
     return true;
