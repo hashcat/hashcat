@@ -2979,13 +2979,6 @@ if [ "${TYPE}" = "null" ]; then
   TYPE="Gpu"
 fi
 
-if [ "${HT}" -eq 20510 ]; then # special case for PKZIP Master Key
-  if [ "${MODE}" -eq 1 ]; then # if "multi" was forced we need to exit
-    echo "ERROR: -m 20510 = PKZIP Master Key can only be run with a single hash"
-    exit 1
-  fi
-fi
-
 if [ -n "${ARCHITECTURE}" ]; then
 
   BIN="${BIN}${ARCHITECTURE}"
@@ -3114,6 +3107,18 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
       elif [ "${hash_type}" -gt "${HT_MAX}" ]; then
         # we are done because hash_type is larger than range:
         break
+      fi
+    fi
+
+    if [ "${hash_type}" -eq 20510 ]; then # special case for PKZIP Master Key
+      if [ "${MODE}" -eq 1 ]; then # if "multi" was forced we need to skip it
+        if [ "${HT_MIN}" -lt "${HT_MAX}" ]; then
+          echo "WARNING: -m 20510 = PKZIP Master Key can only be run with a single hash"
+        else
+          echo "ERROR: -m 20510 = PKZIP Master Key can only be run with a single hash"
+        fi
+
+        continue
       fi
     fi
 
