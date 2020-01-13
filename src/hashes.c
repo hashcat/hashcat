@@ -330,22 +330,23 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   // plain
 
-  u8 plain_buf[256+1];
+  u8 plain_buf[0x1000]; // while the password itself can have only length 256, the module could encode it with something like base64 which inflates the requires buffer size
 
   memset (plain_buf, 0, sizeof (plain_buf));
 
   u8 *plain_ptr = plain_buf;
+
   int plain_len = 0;
 
-  build_plain (hashcat_ctx, device_param, plain, (u32 *)plain_buf, &plain_len);
+  build_plain (hashcat_ctx, device_param, plain, (u32 *) plain_buf, &plain_len);
 
   if (module_ctx->module_build_plain_postprocess != MODULE_DEFAULT)
   {
-    u8 temp_buf[256+1] = { 0 };
+    u8 temp_buf[0x1000];
 
     memset (temp_buf, 0, sizeof (temp_buf));
 
-    const int temp_len = module_ctx->module_build_plain_postprocess (hashcat_ctx->hashconfig, hashcat_ctx->hashes, tmps, (u32 *)plain_buf, sizeof (plain_buf), plain_len, (u32 *)temp_buf, sizeof (temp_buf));
+    const int temp_len = module_ctx->module_build_plain_postprocess (hashcat_ctx->hashconfig, hashcat_ctx->hashes, tmps, (u32 *) plain_buf, sizeof (plain_buf), plain_len, (u32 *)temp_buf, sizeof (temp_buf));
 
     if (temp_len < (int) sizeof (plain_buf))
     {
