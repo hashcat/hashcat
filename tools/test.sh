@@ -3112,10 +3112,10 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
 
     if [ "${hash_type}" -eq 20510 ]; then # special case for PKZIP Master Key
       if [ "${MODE}" -eq 1 ]; then # if "multi" was forced we need to skip it
-        if [ "${HT_MIN}" -lt "${HT_MAX}" ]; then
-          echo "WARNING: -m 20510 = PKZIP Master Key can only be run with a single hash"
-        else
-          echo "ERROR: -m 20510 = PKZIP Master Key can only be run with a single hash"
+        if [ "${HT_MIN}" -eq 20510 ]; then
+          if [ "${HT_MAX}" -eq 20510 ]; then
+            echo "ERROR: -m 20510 = PKZIP Master Key can only be run with a single hash"
+          fi
         fi
 
         continue
