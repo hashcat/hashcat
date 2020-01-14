@@ -482,7 +482,7 @@ size_t fgetl (HCFILE *fp, char *line_buf, const size_t line_sz)
 
   if (line_truncated > 0)
   {
-    fprintf (stderr, "\nOversized line detected! Truncated %" PRIu64 " bytes\n", line_truncated);
+    fprintf (stderr, "\nOversized line detected! Truncated %" PRIu64 " bytes\n", (u64) line_truncated);
   }
 
   if (line_len == 0) return 0;
