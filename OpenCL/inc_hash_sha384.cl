@@ -219,7 +219,7 @@ DECLSPEC void sha384_update_128 (sha384_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u
 
     if (len == 128)
     {
-      sha384_transform_vector (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->w4, ctx->w5, ctx->w6, ctx->w7, ctx->h);
+      sha384_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->w4, ctx->w5, ctx->w6, ctx->w7, ctx->h);
 
       ctx->w0[0] = 0;
       ctx->w0[1] = 0;
@@ -2089,7 +2089,7 @@ DECLSPEC void sha384_update_vector_128 (sha384_ctx_vector_t *ctx, u32x *w0, u32x
 
     if (len == 128)
     {
-      sha384_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->w4, ctx->w5, ctx->w6, ctx->w7, ctx->h);
+      sha384_transform_vector (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->w4, ctx->w5, ctx->w6, ctx->w7, ctx->h);
 
       ctx->w0[0] = 0;
       ctx->w0[1] = 0;
