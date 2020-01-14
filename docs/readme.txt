@@ -193,7 +193,8 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (10.1 o
 - Cisco-IOS $9$ (scrypt)
 - Cisco-IOS type 4 (SHA256)
 - Cisco-PIX MD5
-- Citrix NetScaler
+- Citrix NetScaler (SHA1)
+- Citrix NetScaler (SHA512)
 - Domain Cached Credentials (DCC), MS Cache
 - Domain Cached Credentials 2 (DCC2), MS Cache 2
 - FortiGate (FortiOS)
