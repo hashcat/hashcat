@@ -169,7 +169,6 @@ ifeq ($(PRODUCTION),0)
 CFLAGS                  += -W
 CFLAGS                  += -Wall
 CFLAGS                  += -Wextra
-CFLAGS                  += -Wno-cast-function-type
 endif
 
 ## because LZMA SDK

@@ -95,6 +95,17 @@ but this is nededed for VS compiler which doesn't have inline keyword but has __
 #define STAT_NANOSECONDS_ACCESS_TIME st_atimespec.tv_nsec
 #endif
 
+/**
+ * Disable this picky gcc-8 compiler warning
+ * We're in good company:
+ * https://github.com/curl/curl/blob/fc3743c31bb3c84e31a2eff99e958337571eb5f0/lib/md5.c#L487-L490
+ * https://github.com/kivadiu/thread/blob/ee607c86d4acd1d7733304526eb25d742b533071/src/win32/thread_primitives.cpp#L105-L113
+ */
+
+#if defined (__GNUC__) && (__GNUC__ >= 8)
+#pragma GCC diagnostic ignored "-Wcast-function-type"
+#endif
+
 // config section
 // do not try to simply change this, it will not work
 
