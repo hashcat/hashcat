@@ -161,6 +161,7 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (10.1 o
 - NetNTLMv1 / NetNTLMv1+ESS
 - NetNTLMv2
 - Skype
+- Telegram (SHA256)
 - PostgreSQL CRAM (MD5)
 - MySQL CRAM (SHA1)
 - RACF
