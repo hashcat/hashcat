@@ -69,7 +69,6 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (10.1 o
 - Keccak-256
 - Keccak-384
 - Keccak-512
-- sha256(sha256_bin(pass))
 - Whirlpool
 - SipHash
 - BitShares v0.x - sha512(sha512_bin(pass))
@@ -103,9 +102,11 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (10.1 o
 - sha1(utf16le($pass).$salt)
 - sha256($pass.$salt)
 - sha256($salt.$pass)
+- sha256($salt.$pass.$salt)
 - sha256($salt.utf16le($pass))
 - sha256(md5($pass))
 - sha256(sha256($pass).$salt)
+- sha256(sha256_bin($pass))
 - sha256(utf16le($pass).$salt)
 - sha512($pass.$salt)
 - sha512($salt.$pass)

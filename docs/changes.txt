@@ -55,7 +55,8 @@
 - Added hash-mode: sha1(md5($pass).$salt)
 - Added hash-mode: sha1($salt1.$pass.$salt2)
 - Added hash-mode: sha256(md5($pass))
-- Added hash-mode: sha256(sha256_bin(pass))
+- Added hash-mode: sha256($salt.$pass.$salt)
+- Added hash-mode: sha256(sha256_bin($pass))
 - Added hash-mode: sha256(sha256($pass).$salt)
 - Added hash-mode: SolarWinds Orion
 - Added hash-mode: Web2py pbkdf2-sha512
