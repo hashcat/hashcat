@@ -142,14 +142,14 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 *out_buf = (u8 *) line_buf;
 
-	u64_to_hex (tmp[0], out_buf +    0);
-	u64_to_hex (tmp[1], out_buf +   16);
-	u64_to_hex (tmp[2], out_buf +   32);
-	u64_to_hex (tmp[3], out_buf +   48);
-	u64_to_hex (tmp[4], out_buf +   64);
-	u64_to_hex (tmp[5], out_buf +   80);
-	u64_to_hex (tmp[6], out_buf +   96);
-	u64_to_hex (tmp[7], out_buf +  112);
+  u64_to_hex (tmp[0], out_buf +    0);
+  u64_to_hex (tmp[1], out_buf +   16);
+  u64_to_hex (tmp[2], out_buf +   32);
+  u64_to_hex (tmp[3], out_buf +   48);
+  u64_to_hex (tmp[4], out_buf +   64);
+  u64_to_hex (tmp[5], out_buf +   80);
+  u64_to_hex (tmp[6], out_buf +   96);
+  u64_to_hex (tmp[7], out_buf +  112);
 
   const int out_len = 128;
 

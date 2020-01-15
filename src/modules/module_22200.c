@@ -175,14 +175,14 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memcpy (out_buf + out_len, tmp_salt, 8); out_len += 8;
 
-	u64_to_hex (tmp[0], out_buf + out_len); out_len += 16;
-	u64_to_hex (tmp[1], out_buf + out_len); out_len += 16;
-	u64_to_hex (tmp[2], out_buf + out_len); out_len += 16;
-	u64_to_hex (tmp[3], out_buf + out_len); out_len += 16;
-	u64_to_hex (tmp[4], out_buf + out_len); out_len += 16;
-	u64_to_hex (tmp[5], out_buf + out_len); out_len += 16;
-	u64_to_hex (tmp[6], out_buf + out_len); out_len += 16;
-	u64_to_hex (tmp[7], out_buf + out_len); out_len += 16;
+  u64_to_hex (tmp[0], out_buf + out_len); out_len += 16;
+  u64_to_hex (tmp[1], out_buf + out_len); out_len += 16;
+  u64_to_hex (tmp[2], out_buf + out_len); out_len += 16;
+  u64_to_hex (tmp[3], out_buf + out_len); out_len += 16;
+  u64_to_hex (tmp[4], out_buf + out_len); out_len += 16;
+  u64_to_hex (tmp[5], out_buf + out_len); out_len += 16;
+  u64_to_hex (tmp[6], out_buf + out_len); out_len += 16;
+  u64_to_hex (tmp[7], out_buf + out_len); out_len += 16;
 
   return out_len;
 }
