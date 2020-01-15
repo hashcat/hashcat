@@ -16,21 +16,18 @@ static const u32   DGST_POS1      = 7;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 6;
 static const u32   DGST_SIZE      = DGST_SIZE_4_8;
-static const u32   HASH_CATEGORY  = HASH_CATEGORY_RAW_HASH;
-static const char *HASH_NAME      = "sha256(sha256_bin($pass))";
-static const u64   KERN_TYPE      = 21400;
+static const u32   HASH_CATEGORY  = HASH_CATEGORY_RAW_HASH_SALTED;
+static const char *HASH_NAME      = "Telegram (SHA256)";
+static const u64   KERN_TYPE      = 22300;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_PRECOMPUTE_INIT
                                   | OPTI_TYPE_EARLY_SKIP
                                   | OPTI_TYPE_NOT_ITERATED
-                                  | OPTI_TYPE_NOT_SALTED
                                   | OPTI_TYPE_RAW_HASH;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_BE
-                                  | OPTS_TYPE_PT_ADD80
-                                  | OPTS_TYPE_PT_ADDBITS15;
-static const u32   SALT_TYPE      = SALT_TYPE_NONE;
+static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_BE;
+static const u32   SALT_TYPE      = SALT_TYPE_GENERIC;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "0cc1b58a543f372327aa0281e97ab56e345267ee46feabf7709515debb7ec43c";
+static const char *ST_HASH        = "$telegram$1*518c001aeb3b4ae96c6173be4cebe60a85f67b1e087b045935849e2f815b5e41*25184098058621950709328221838128";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -47,24 +44,49 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
+static const char *SIGNATURE_TELEGRAM = "$telegram$";
+
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
   u32 *digest = (u32 *) digest_buf;
 
   token_t token;
 
-  token.token_cnt  = 1;
+  token.token_cnt  = 4;
 
-  token.len_min[0] = 64;
-  token.len_max[0] = 64;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.signatures_cnt    = 1;
+  token.signatures_buf[0] = SIGNATURE_TELEGRAM;
+
+  token.len[0]     = 10;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_SIGNATURE;
+
+  token.len_min[1] = 1;
+  token.len_max[1] = 1;
+  token.sep[1]     = '*';
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
+
+  token.len_min[2] = 64;
+  token.len_max[2] = 64;
+  token.sep[2]     = '*';
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
+
+  token.len_min[3] = 32;
+  token.len_max[3] = 32;
+  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  const u8 *hash_pos = token.buf[0];
+  const u8 *version_pos = token.buf[1];
+
+  if (version_pos[0] != '1') return (PARSER_SALT_VALUE);
+
+  const u8 *hash_pos = token.buf[2];
 
   digest[0] = hex_to_u32 (hash_pos +  0);
   digest[1] = hex_to_u32 (hash_pos +  8);
@@ -95,6 +117,15 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     digest[6] -= SHA256M_G;
     digest[7] -= SHA256M_H;
   }
+
+  const u8 *salt_pos = token.buf[3];
+
+  salt->salt_buf[0] = hex_to_u32 (salt_pos +  0);
+  salt->salt_buf[1] = hex_to_u32 (salt_pos +  8);
+  salt->salt_buf[2] = hex_to_u32 (salt_pos + 16);
+  salt->salt_buf[3] = hex_to_u32 (salt_pos + 24);
+
+  salt->salt_len = 16;
 
   return (PARSER_OK);
 }
@@ -129,29 +160,23 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     tmp[7] += SHA256M_H;
   }
 
-  tmp[0] = byte_swap_32 (tmp[0]);
-  tmp[1] = byte_swap_32 (tmp[1]);
-  tmp[2] = byte_swap_32 (tmp[2]);
-  tmp[3] = byte_swap_32 (tmp[3]);
-  tmp[4] = byte_swap_32 (tmp[4]);
-  tmp[5] = byte_swap_32 (tmp[5]);
-  tmp[6] = byte_swap_32 (tmp[6]);
-  tmp[7] = byte_swap_32 (tmp[7]);
+  const int line_len = snprintf (line_buf, line_size, "%s%i*%08x%08x%08x%08x%08x%08x%08x%08x*%08x%08x%08x%08x",
+    SIGNATURE_TELEGRAM,
+    1,
+    tmp[0],
+    tmp[1],
+    tmp[2],
+    tmp[3],
+    tmp[4],
+    tmp[5],
+    tmp[6],
+    tmp[7],
+    byte_swap_32 (salt->salt_buf[0]),
+    byte_swap_32 (salt->salt_buf[1]),
+    byte_swap_32 (salt->salt_buf[2]),
+    byte_swap_32 (salt->salt_buf[3]));
 
-  u8 *out_buf = (u8 *) line_buf;
-
-  u32_to_hex (tmp[0], out_buf +  0);
-  u32_to_hex (tmp[1], out_buf +  8);
-  u32_to_hex (tmp[2], out_buf + 16);
-  u32_to_hex (tmp[3], out_buf + 24);
-  u32_to_hex (tmp[4], out_buf + 32);
-  u32_to_hex (tmp[5], out_buf + 40);
-  u32_to_hex (tmp[6], out_buf + 48);
-  u32_to_hex (tmp[7], out_buf + 56);
-
-  const int out_len = 64;
-
-  return out_len;
+  return line_len;
 }
 
 void module_init (module_ctx_t *module_ctx)

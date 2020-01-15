@@ -16,21 +16,18 @@ static const u32   DGST_POS1      = 7;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 6;
 static const u32   DGST_SIZE      = DGST_SIZE_4_8;
-static const u32   HASH_CATEGORY  = HASH_CATEGORY_RAW_HASH;
-static const char *HASH_NAME      = "sha256(sha256_bin($pass))";
-static const u64   KERN_TYPE      = 21400;
+static const u32   HASH_CATEGORY  = HASH_CATEGORY_RAW_HASH_SALTED;
+static const char *HASH_NAME      = "sha256($salt.$pass.$salt)";
+static const u64   KERN_TYPE      = 22300;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_PRECOMPUTE_INIT
                                   | OPTI_TYPE_EARLY_SKIP
                                   | OPTI_TYPE_NOT_ITERATED
-                                  | OPTI_TYPE_NOT_SALTED
                                   | OPTI_TYPE_RAW_HASH;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_BE
-                                  | OPTS_TYPE_PT_ADD80
-                                  | OPTS_TYPE_PT_ADDBITS15;
-static const u32   SALT_TYPE      = SALT_TYPE_NONE;
+static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_BE;
+static const u32   SALT_TYPE      = SALT_TYPE_GENERIC;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "0cc1b58a543f372327aa0281e97ab56e345267ee46feabf7709515debb7ec43c";
+static const char *ST_HASH        = "755a8ce4e0cf0baee41d714aa35c9fca803106608f718f973eab006578285007:11265";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -53,12 +50,25 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token_t token;
 
-  token.token_cnt  = 1;
+  token.token_cnt  = 2;
 
+  token.sep[0]     = hashconfig->separator;
   token.len_min[0] = 64;
   token.len_max[0] = 64;
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
+
+  token.len_min[1] = SALT_MIN;
+  token.len_max[1] = SALT_MAX;
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+  if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
+  {
+    token.len_min[1] *= 2;
+    token.len_max[1] *= 2;
+
+    token.attr[1] |= TOKEN_ATTR_VERIFY_HEX;
+  }
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
@@ -95,6 +105,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     digest[6] -= SHA256M_G;
     digest[7] -= SHA256M_H;
   }
+
+  const u8 *salt_pos = token.buf[1];
+  const int salt_len = token.len[1];
+
+  const bool parse_rc = generic_salt_decode (hashconfig, salt_pos, salt_len, (u8 *) salt->salt_buf, (int *) &salt->salt_len);
+
+  if (parse_rc == false) return (PARSER_SALT_LENGTH);
 
   return (PARSER_OK);
 }
@@ -140,16 +157,22 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 *out_buf = (u8 *) line_buf;
 
-  u32_to_hex (tmp[0], out_buf +  0);
-  u32_to_hex (tmp[1], out_buf +  8);
-  u32_to_hex (tmp[2], out_buf + 16);
-  u32_to_hex (tmp[3], out_buf + 24);
-  u32_to_hex (tmp[4], out_buf + 32);
-  u32_to_hex (tmp[5], out_buf + 40);
-  u32_to_hex (tmp[6], out_buf + 48);
-  u32_to_hex (tmp[7], out_buf + 56);
+  int out_len = 0;
 
-  const int out_len = 64;
+  u32_to_hex (tmp[0], out_buf + out_len); out_len += 8;
+  u32_to_hex (tmp[1], out_buf + out_len); out_len += 8;
+  u32_to_hex (tmp[2], out_buf + out_len); out_len += 8;
+  u32_to_hex (tmp[3], out_buf + out_len); out_len += 8;
+  u32_to_hex (tmp[4], out_buf + out_len); out_len += 8;
+  u32_to_hex (tmp[5], out_buf + out_len); out_len += 8;
+  u32_to_hex (tmp[6], out_buf + out_len); out_len += 8;
+  u32_to_hex (tmp[7], out_buf + out_len); out_len += 8;
+
+  out_buf[out_len] = hashconfig->separator;
+
+  out_len += 1;
+
+  out_len += generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, (const int) salt->salt_len, out_buf + out_len);
 
   return out_len;
 }
