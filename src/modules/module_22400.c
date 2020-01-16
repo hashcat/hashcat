@@ -54,9 +54,8 @@ typedef struct aescrypt
 
 typedef struct aescrypt_tmp
 {
-  u32 dgst[8];
-  u32 pass[128];
-  u32 len;
+  u32 pass[144];
+  int len;
 
 } aescrypt_tmp_t;
 

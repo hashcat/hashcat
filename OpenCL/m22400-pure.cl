@@ -26,9 +26,8 @@ typedef struct aescrypt
 
 typedef struct aescrypt_tmp
 {
-  u32 dgst[8];
-  u32 pass[128];
-  u32 len;
+  u32 pass[144];
+  int len;
 
 } aescrypt_tmp_t;
 
@@ -57,7 +56,7 @@ KERNEL_FQ void m22400_init (KERN_ATTR_TMPS_ESALT (aescrypt_tmp_t, aescrypt_t))
 
   const u32 pw_len_utf16le = pw_len * 2;
 
-  u32 w[128] = { 0 };
+  u32 w[144] = { 0 };
 
   for (u32 i = 0, j = 0; i < 64; i += 4, j += 8)
   {
@@ -77,7 +76,6 @@ KERNEL_FQ void m22400_init (KERN_ATTR_TMPS_ESALT (aescrypt_tmp_t, aescrypt_t))
     w[j + 1] = hc_swap32_S (out0[1]);
     w[j + 2] = hc_swap32_S (out0[2]);
     w[j + 3] = hc_swap32_S (out0[3]);
-
     w[j + 4] = hc_swap32_S (out1[0]);
     w[j + 5] = hc_swap32_S (out1[1]);
     w[j + 6] = hc_swap32_S (out1[2]);
@@ -95,24 +93,42 @@ KERNEL_FQ void m22400_init (KERN_ATTR_TMPS_ESALT (aescrypt_tmp_t, aescrypt_t))
 
   // set tmps:
 
-  tmps[gid].dgst[0] = ctx.h[0];
-  tmps[gid].dgst[1] = ctx.h[1];
-  tmps[gid].dgst[2] = ctx.h[2];
-  tmps[gid].dgst[3] = ctx.h[3];
-  tmps[gid].dgst[4] = ctx.h[4];
-  tmps[gid].dgst[5] = ctx.h[5];
-  tmps[gid].dgst[6] = ctx.h[6];
-  tmps[gid].dgst[7] = ctx.h[7];
+  #ifdef _unroll
+  #pragma unroll
+  #endif
+  for (int i = 127; i >= 0; i--) // create some space for the first digest without extra buffer
+  {
+    w[8 + i] = w[i];
+  }
+
+  w[0] = ctx.h[0];
+  w[1] = ctx.h[1];
+  w[2] = ctx.h[2];
+  w[3] = ctx.h[3];
+  w[4] = ctx.h[4];
+  w[5] = ctx.h[5];
+  w[6] = ctx.h[6];
+  w[7] = ctx.h[7];
+
+  const u32 final_len = 32 + pw_len_utf16le;
+
+  const u32 idx_floor = (final_len / 64) * 16;
+  const u32 idx_ceil  = ((final_len & 63) >= 56) ? idx_floor + 16 : idx_floor;
+
+  append_0x80_4x4_S (&w[idx_floor + 0], &w[idx_floor + 4], &w[idx_floor + 8], &w[idx_floor + 12], (final_len & 63) ^ 3);
+
+  w[idx_ceil + 14] = 0;
+  w[idx_ceil + 15] = final_len * 8;
 
   #ifdef _unroll
   #pragma unroll
   #endif
-  for (u32 i = 0; i < 128; i++)
+  for (u32 i = 0; i < 144; i++)
   {
     tmps[gid].pass[i] = w[i];
   }
 
-  tmps[gid].len = 32 + pw_len_utf16le;
+  tmps[gid].len = final_len;
 }
 
 KERNEL_FQ void m22400_loop (KERN_ATTR_TMPS_ESALT (aescrypt_tmp_t, aescrypt_t))
@@ -123,55 +139,100 @@ KERNEL_FQ void m22400_loop (KERN_ATTR_TMPS_ESALT (aescrypt_tmp_t, aescrypt_t))
 
   // init
 
-  u32 w[144] = { 0 }; // we only need max 136*4, but it's 16-byte-aligned
-
-  w[0] = tmps[gid].dgst[0];
-  w[1] = tmps[gid].dgst[1];
-  w[2] = tmps[gid].dgst[2];
-  w[3] = tmps[gid].dgst[3];
-  w[4] = tmps[gid].dgst[4];
-  w[5] = tmps[gid].dgst[5];
-  w[6] = tmps[gid].dgst[6];
-  w[7] = tmps[gid].dgst[7];
+  u32 w[144];
 
   #ifdef _unroll
   #pragma unroll
   #endif
-  for (u32 i = 0; i < 128; i++)
+  for (u32 i = 0; i < 144; i++)
   {
-    w[8 + i] = tmps[gid].pass[i];
+    w[i] = tmps[gid].pass[i];
   }
 
-  const u32 pw_len = tmps[gid].len;
+  const int pw_len = tmps[gid].len;
 
   // main loop
 
   for (u32 i = 0; i < loop_cnt; i++)
   {
-    sha256_ctx_t ctx;
+    u32 h[8];
 
-    sha256_init   (&ctx);
-    sha256_update (&ctx, w, pw_len);
-    sha256_final  (&ctx);
+    h[0] = SHA256M_A;
+    h[1] = SHA256M_B;
+    h[2] = SHA256M_C;
+    h[3] = SHA256M_D;
+    h[4] = SHA256M_E;
+    h[5] = SHA256M_F;
+    h[6] = SHA256M_G;
+    h[7] = SHA256M_H;
 
-    w[0] = ctx.h[0];
-    w[1] = ctx.h[1];
-    w[2] = ctx.h[2];
-    w[3] = ctx.h[3];
-    w[4] = ctx.h[4];
-    w[5] = ctx.h[5];
-    w[6] = ctx.h[6];
-    w[7] = ctx.h[7];
+    u32 w0[4];
+    u32 w1[4];
+    u32 w2[4];
+    u32 w3[4];
+
+    int left;
+    int idx;
+
+    for (left = pw_len, idx = 0; left >= 56; left -= 64, idx += 16)
+    {
+      w0[0] = w[idx +  0];
+      w0[1] = w[idx +  1];
+      w0[2] = w[idx +  2];
+      w0[3] = w[idx +  3];
+      w1[0] = w[idx +  4];
+      w1[1] = w[idx +  5];
+      w1[2] = w[idx +  6];
+      w1[3] = w[idx +  7];
+      w2[0] = w[idx +  8];
+      w2[1] = w[idx +  9];
+      w2[2] = w[idx + 10];
+      w2[3] = w[idx + 11];
+      w3[0] = w[idx + 12];
+      w3[1] = w[idx + 13];
+      w3[2] = w[idx + 14];
+      w3[3] = w[idx + 15];
+
+      sha256_transform (w0, w1, w2, w3, h);
+    }
+
+    w0[0] = w[idx +  0];
+    w0[1] = w[idx +  1];
+    w0[2] = w[idx +  2];
+    w0[3] = w[idx +  3];
+    w1[0] = w[idx +  4];
+    w1[1] = w[idx +  5];
+    w1[2] = w[idx +  6];
+    w1[3] = w[idx +  7];
+    w2[0] = w[idx +  8];
+    w2[1] = w[idx +  9];
+    w2[2] = w[idx + 10];
+    w2[3] = w[idx + 11];
+    w3[0] = w[idx + 12];
+    w3[1] = w[idx + 13];
+    w3[2] = w[idx + 14];
+    w3[3] = w[idx + 15];
+
+    sha256_transform (w0, w1, w2, w3, h);
+
+    w[0] = h[0];
+    w[1] = h[1];
+    w[2] = h[2];
+    w[3] = h[3];
+    w[4] = h[4];
+    w[5] = h[5];
+    w[6] = h[6];
+    w[7] = h[7];
   }
 
-  tmps[gid].dgst[0] = w[0];
-  tmps[gid].dgst[1] = w[1];
-  tmps[gid].dgst[2] = w[2];
-  tmps[gid].dgst[3] = w[3];
-  tmps[gid].dgst[4] = w[4];
-  tmps[gid].dgst[5] = w[5];
-  tmps[gid].dgst[6] = w[6];
-  tmps[gid].dgst[7] = w[7];
+  tmps[gid].pass[0] = w[0];
+  tmps[gid].pass[1] = w[1];
+  tmps[gid].pass[2] = w[2];
+  tmps[gid].pass[3] = w[3];
+  tmps[gid].pass[4] = w[4];
+  tmps[gid].pass[5] = w[5];
+  tmps[gid].pass[6] = w[6];
+  tmps[gid].pass[7] = w[7];
 }
 
 KERNEL_FQ void m22400_comp (KERN_ATTR_TMPS_ESALT (aescrypt_tmp_t, aescrypt_t))
@@ -184,14 +245,14 @@ KERNEL_FQ void m22400_comp (KERN_ATTR_TMPS_ESALT (aescrypt_tmp_t, aescrypt_t))
 
   u32 dgst[16] = { 0 };
 
-  dgst[0] = tmps[gid].dgst[0];
-  dgst[1] = tmps[gid].dgst[1];
-  dgst[2] = tmps[gid].dgst[2];
-  dgst[3] = tmps[gid].dgst[3];
-  dgst[4] = tmps[gid].dgst[4];
-  dgst[5] = tmps[gid].dgst[5];
-  dgst[6] = tmps[gid].dgst[6];
-  dgst[7] = tmps[gid].dgst[7];
+  dgst[0] = tmps[gid].pass[0];
+  dgst[1] = tmps[gid].pass[1];
+  dgst[2] = tmps[gid].pass[2];
+  dgst[3] = tmps[gid].pass[3];
+  dgst[4] = tmps[gid].pass[4];
+  dgst[5] = tmps[gid].pass[5];
+  dgst[6] = tmps[gid].pass[6];
+  dgst[7] = tmps[gid].pass[7];
 
   // IV
 
