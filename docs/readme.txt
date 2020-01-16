@@ -240,6 +240,7 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (10.1 o
 - Oracle Transportation Management (SHA256)
 - Huawei sha1(md5($pass).$salt)
 - AuthMe sha256
+- AES Crypt (SHA256)
 - BitLocker
 - eCryptfs
 - LUKS

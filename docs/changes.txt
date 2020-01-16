@@ -21,6 +21,7 @@
 ## Algorithms
 ##
 
+- Added hash-mode: AES Crypt (SHA256)
 - Added hash-mode: Android Backup
 - Added hash-mode: AuthMe sha256
 - Added hash-mode: BitLocker
