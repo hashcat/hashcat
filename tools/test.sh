@@ -500,9 +500,9 @@ function attack_0()
 
       output=$(echo "${pass}" | ./${BIN} ${OPTS} -a 0 -m ${hash_type} "${hash}" 2>&1)
 
-      pass=${pass_old}
-
       ret=${?}
+
+      pass=${pass_old}
 
       echo "${output}" >> "${OUTD}/logfull.txt"
 
