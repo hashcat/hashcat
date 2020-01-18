@@ -39,7 +39,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_COPY_TMPS;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat!";
-static const char *ST_HASH        = "WPA*01*9d42bfc4ab79cf3a3a85761efd2a0cf0*e8e61d2bfe07*e21f445660bb*3c3429452aba22e9a7a6***";
+static const char *ST_HASH        = "WPA*01*4d4fe7aac3a2cecab195321ceb99a7d0*fc690c158264*f4747f87f9f4*686173686361742d6573736964***";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
