@@ -16,7 +16,7 @@ static const int DEFAULT_BENCHMARK_ALGORITHMS_BUF[] =
   100,
   1400,
   1700,
-  2500,
+  22000,
   1000,
   3000,
   5500,
