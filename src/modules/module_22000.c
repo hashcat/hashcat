@@ -1193,7 +1193,26 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u8 *mac_ap  = (const u8 *) wpa->mac_ap;
   const u8 *mac_sta = (const u8 *) wpa->mac_sta;
 
-  if (need_hexify ((const u8 *) wpa->essid_buf, wpa->essid_len, '*', 0) == true)
+  if (wpa->type == 1)
+  {
+    u32_to_hex (wpa->pmkid[0], (u8 *) line_buf + line_len); line_len += 8;
+    u32_to_hex (wpa->pmkid[1], (u8 *) line_buf + line_len); line_len += 8;
+    u32_to_hex (wpa->pmkid[2], (u8 *) line_buf + line_len); line_len += 8;
+    u32_to_hex (wpa->pmkid[3], (u8 *) line_buf + line_len); line_len += 8;
+  }
+  else if (wpa->type == 2)
+  {
+    u32_to_hex (wpa->keymic[0], (u8 *) line_buf + line_len); line_len += 8;
+    u32_to_hex (wpa->keymic[1], (u8 *) line_buf + line_len); line_len += 8;
+    u32_to_hex (wpa->keymic[2], (u8 *) line_buf + line_len); line_len += 8;
+    u32_to_hex (wpa->keymic[3], (u8 *) line_buf + line_len); line_len += 8;
+  }
+
+  line_buf[line_len] = ':';
+
+  line_len++;
+
+  if (need_hexify ((const u8 *) wpa->essid_buf, wpa->essid_len, ':', 0) == true)
   {
     char tmp_buf[128];
 
@@ -1213,7 +1232,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     tmp_buf[tmp_len++] = 0;
 
-    line_len = snprintf (line_buf, line_size, "%02x%02x%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x:%s",
+    line_len += snprintf (line_buf + line_len, line_size - line_len, "%02x%02x%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x:%s",
       mac_ap[0],
       mac_ap[1],
       mac_ap[2],
@@ -1230,7 +1249,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   }
   else
   {
-    line_len = snprintf (line_buf, line_size, "%02x%02x%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x:%s",
+    line_len += snprintf (line_buf + line_len, line_size - line_len, "%02x%02x%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x:%s",
       mac_ap[0],
       mac_ap[1],
       mac_ap[2],
