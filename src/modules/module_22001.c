@@ -39,8 +39,8 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_COPY_TMPS
                                   | OPTS_TYPE_POTFILE_NOPASS;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
-static const char *ST_PASS        = "4189cd288e84c91adc4cc076a68f6004bff528b3112ed20b31d43b9e453bdc31";
-static const char *ST_HASH        = "WPA*01*9d42bfc4ab79cf3a3a85761efd2a0cf0*e8e61d2bfe07*e21f445660bb*3c3429452aba22e9a7a6***";
+static const char *ST_PASS        = "88f43854ae7b1624fc2ab7724859e795130f4843c7535729e819cf92f39535dc";
+static const char *ST_HASH        = "WPA*01*5ce7ebe97a1bbfeb2822ae627b726d5b*27462da350ac*accd10fb464e*686173686361742d6573736964***";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
