@@ -147,7 +147,12 @@
 // Whitelist some OpenCL specific functions
 // This could create more stable kernels on systems with bad OpenCL drivers
 
-#ifdef IS_NV
+#ifdef IS_CUDA
+#define USE_BITSELECT
+#define USE_ROTATE
+#endif
+
+#ifdef IS_OPENCL
 #define USE_BITSELECT
 #define USE_ROTATE
 #define USE_SWIZZLE
