@@ -153,9 +153,9 @@
 #endif
 
 #ifdef IS_OPENCL
-#define USE_BITSELECT
-#define USE_ROTATE
-#define USE_SWIZZLE
+//#define USE_BITSELECT
+//#define USE_ROTATE
+//#define USE_SWIZZLE
 #endif
 
 #endif
