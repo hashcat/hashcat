@@ -92,14 +92,14 @@ KERNEL_FQ void m21920_mxx (KERN_ATTR_RULES ())
 
     sha256_final (&ctx_mid);
 
-    v0[0] = ctx_mid.h[0];
-    v0[1] = ctx_mid.h[1];
-    v0[2] = ctx_mid.h[2];
-    v0[3] = ctx_mid.h[3];
-    v1[0] = ctx_mid.h[4];
-    v1[1] = ctx_mid.h[5];
-    v1[2] = ctx_mid.h[6];
-    v1[3] = ctx_mid.h[7];
+    v0[0] = hc_swap32_S(ctx_mid.h[0]);
+    v0[1] = hc_swap32_S(ctx_mid.h[1]);
+    v0[2] = hc_swap32_S(ctx_mid.h[2]);
+    v0[3] = hc_swap32_S(ctx_mid.h[3]);
+    v1[0] = hc_swap32_S(ctx_mid.h[4]);
+    v1[1] = hc_swap32_S(ctx_mid.h[5]);
+    v1[2] = hc_swap32_S(ctx_mid.h[6]);
+    v1[3] = hc_swap32_S(ctx_mid.h[7]);
 
     v2[0] = 0;
     v2[1] = 0;
@@ -210,8 +210,6 @@ KERNEL_FQ void m21920_sxx (KERN_ATTR_RULES ())
     w3[2] = 0;
     w3[3] = 0;
 
-    printf("w0[0] = %x\n", w0[0]);
-
     sha256_update_64 (&ctx_mid, w0, w1, w2, w3, 32);
 
     sha256_final (&ctx_mid);
@@ -234,8 +232,6 @@ KERNEL_FQ void m21920_sxx (KERN_ATTR_RULES ())
     v3[2] = 0;
     v3[3] = 0;
 
-    printf("v0[0] = %x\n", v0[0]);
-
     ripemd160_ctx_t ctx;
 
     ripemd160_init (&ctx);
@@ -249,8 +245,6 @@ KERNEL_FQ void m21920_sxx (KERN_ATTR_RULES ())
     const u32 r2 = ctx.h[DGST_R2];
     const u32 r3 = ctx.h[DGST_R3];
     
-    printf("r0 = %x\n", r0);
-
     COMPARE_S_SCALAR (r0, r1, r2, r3);
   }
 }
