@@ -12,6 +12,7 @@
 #include "modules.h"
 #include "dynloader.h"
 #include "interface.h"
+#include "outfile.h"
 
 /**
  * parsing
@@ -515,7 +516,7 @@ u32 default_kernel_threads_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
 u32 default_forced_outfile_format (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 forced_outfile_format = user_options->outfile_format;
+  const u32 forced_outfile_format = outfile_format_parse (user_options->outfile_format);
 
   return forced_outfile_format;
 }
