@@ -1925,7 +1925,6 @@ typedef struct user_options
   char        *opencl_device_types;
   char        *outfile;
   char        *outfile_check_dir;
-  char        *outfile_format;
   char        *potfile_path;
   char        *restore_file_path;
   char       **rp_files;
@@ -1965,6 +1964,7 @@ typedef struct user_options
   u32          spin_damp;
   u32          backend_vector_width;
   u32          outfile_check_timer;
+  u32          outfile_format;
   u32          remove_timer;
   u32          restore_timer;
   u32          rp_files_cnt;

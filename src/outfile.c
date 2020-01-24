@@ -19,7 +19,7 @@
 
 u32 outfile_format_parse (const char *format_string)
 {
-  if (format_string == NULL) return OUTFILE_FORMAT; // default outfile format
+  if (format_string == NULL) return 0;
 
   char *format = hcstrdup (format_string);
 
@@ -29,7 +29,12 @@ u32 outfile_format_parse (const char *format_string)
 
   char *next = strtok_r (format, ",", &saveptr);
 
-  if (next == NULL) return 0;
+  if (next == NULL)
+  {
+    hcfree (format);
+
+    return 0;
+  }
 
   u32 outfile_format = 0;
 
@@ -484,7 +489,7 @@ int outfile_init (hashcat_ctx_t *hashcat_ctx)
 
   outfile_ctx->fp.pfp          = NULL;
   outfile_ctx->filename        = user_options->outfile;
-  outfile_ctx->outfile_format  = outfile_format_parse (user_options->outfile_format);
+  outfile_ctx->outfile_format  = user_options->outfile_format;
   outfile_ctx->outfile_autohex = user_options->outfile_autohex;
 
   return 0;

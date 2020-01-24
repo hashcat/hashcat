@@ -219,7 +219,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->outfile_autohex           = OUTFILE_AUTOHEX;
   user_options->outfile_check_dir         = NULL;
   user_options->outfile_check_timer       = OUTFILE_CHECK_TIMER;
-  user_options->outfile_format            = NULL;
+  user_options->outfile_format            = OUTFILE_FORMAT;
   user_options->outfile                   = NULL;
   user_options->potfile_disable           = POTFILE_DISABLE;
   user_options->potfile_path              = NULL;
@@ -423,7 +423,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_MARKOV_THRESHOLD:          user_options->markov_threshold          = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_MARKOV_HCSTAT2:            user_options->markov_hcstat2            = optarg;                          break;
       case IDX_OUTFILE:                   user_options->outfile                   = optarg;                          break;
-      case IDX_OUTFILE_FORMAT:            user_options->outfile_format            = optarg;
+      case IDX_OUTFILE_FORMAT:            user_options->outfile_format            = outfile_format_parse (optarg);
                                           user_options->outfile_format_chgd       = true;                            break;
       case IDX_OUTFILE_AUTOHEX_DISABLE:   user_options->outfile_autohex           = false;                           break;
       case IDX_OUTFILE_CHECK_TIMER:       user_options->outfile_check_timer       = hc_strtoul (optarg, NULL, 10);   break;
@@ -659,9 +659,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  const u32 outfile_format = outfile_format_parse (user_options->outfile_format);
-
-  if (outfile_format == 0)
+  if (user_options->outfile_format == 0)
   {
     event_log_error (hashcat_ctx, "Invalid --outfile-format value specified.");
 
@@ -672,7 +670,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->outfile_format_chgd == true)
     {
-      if (outfile_format > 1)
+      if (user_options->outfile_format > 1)
       {
         event_log_error (hashcat_ctx, "Combining --outfile-format > 1 with --left is not allowed.");
 
@@ -685,21 +683,21 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->outfile_format_chgd == true)
     {
-      if (outfile_format & OUTFILE_FMT_CRACKPOS)
+      if (user_options->outfile_format & OUTFILE_FMT_CRACKPOS)
       {
         event_log_error (hashcat_ctx, "Using crack_pos in --outfile-format for --show is not allowed.");
 
         return -1;
       }
 
-      if (outfile_format & OUTFILE_FMT_TIME_ABS)
+      if (user_options->outfile_format & OUTFILE_FMT_TIME_ABS)
       {
         event_log_error (hashcat_ctx, "Using the absolute timestamp in --outfile-format for --show is not allowed.");
 
         return -1;
       }
 
-      if (outfile_format & OUTFILE_FMT_TIME_REL)
+      if (user_options->outfile_format & OUTFILE_FMT_TIME_REL)
       {
         event_log_error (hashcat_ctx, "Using the relative timestamp in --outfile-format for --show is not allowed.");
 
@@ -1704,7 +1702,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->hash_mode             = 2000;
     user_options->kernel_accel          = 1024;
     user_options->backend_vector_width  = 1;
-    user_options->outfile_format        = hcstrdup ("2");
+    user_options->outfile_format        = OUTFILE_FMT_PLAIN;
     user_options->quiet                 = true;
 
     if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
@@ -1738,7 +1736,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->left == true)
   {
-    user_options->outfile_format = hcstrdup ("1");
+    user_options->outfile_format = OUTFILE_FMT_HASH;
   }
 
   if (user_options->show == true || user_options->left == true)
@@ -2845,7 +2843,6 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_string (user_options->opencl_device_types);
   logfile_top_string (user_options->outfile);
   logfile_top_string (user_options->outfile_check_dir);
-  logfile_top_string (user_options->outfile_format);
   logfile_top_string (user_options->potfile_path);
   logfile_top_string (user_options->restore_file_path);
   logfile_top_string (user_options->rp_files[0]);
@@ -2894,6 +2891,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->optimized_kernel_enable);
   logfile_top_uint   (user_options->outfile_autohex);
   logfile_top_uint   (user_options->outfile_check_timer);
+  logfile_top_uint   (user_options->outfile_format);
   logfile_top_uint   (user_options->wordlist_autohex_disable);
   logfile_top_uint   (user_options->potfile_disable);
   logfile_top_uint   (user_options->progress_only);
