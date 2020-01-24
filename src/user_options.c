@@ -13,6 +13,7 @@
 #include "usage.h"
 #include "backend.h"
 #include "user_options.h"
+#include "outfile.h"
 
 #ifdef WITH_BRAIN
 #include "brain.h"
@@ -310,7 +311,6 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_RP_GEN_FUNC_MAX:
       case IDX_RP_GEN_SEED:
       case IDX_MARKOV_THRESHOLD:
-      case IDX_OUTFILE_FORMAT:
       case IDX_OUTFILE_CHECK_TIMER:
       case IDX_BACKEND_VECTOR_WIDTH:
       case IDX_WORKLOAD_PROFILE:
@@ -423,7 +423,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_MARKOV_THRESHOLD:          user_options->markov_threshold          = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_MARKOV_HCSTAT2:            user_options->markov_hcstat2            = optarg;                          break;
       case IDX_OUTFILE:                   user_options->outfile                   = optarg;                          break;
-      case IDX_OUTFILE_FORMAT:            user_options->outfile_format            = hc_strtoul (optarg, NULL, 10);
+      case IDX_OUTFILE_FORMAT:            user_options->outfile_format            = outfile_format_parse (optarg);
                                           user_options->outfile_format_chgd       = true;                            break;
       case IDX_OUTFILE_AUTOHEX_DISABLE:   user_options->outfile_autohex           = false;                           break;
       case IDX_OUTFILE_CHECK_TIMER:       user_options->outfile_check_timer       = hc_strtoul (optarg, NULL, 10);   break;
@@ -659,7 +659,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  if (user_options->outfile_format > 16)
+  if (user_options->outfile_format == 0)
   {
     event_log_error (hashcat_ctx, "Invalid --outfile-format value specified.");
 
@@ -683,9 +683,23 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->outfile_format_chgd == true)
     {
-      if (user_options->outfile_format > 7)
+      if (user_options->outfile_format & OUTFILE_FMT_CRACKPOS)
       {
-        event_log_error (hashcat_ctx, "Combining --outfile-format > 7 with --show is not allowed.");
+        event_log_error (hashcat_ctx, "Using crack_pos in --outfile-format for --show is not allowed.");
+
+        return -1;
+      }
+
+      if (user_options->outfile_format & OUTFILE_FMT_TIME_ABS)
+      {
+        event_log_error (hashcat_ctx, "Using the absolute timestamp in --outfile-format for --show is not allowed.");
+
+        return -1;
+      }
+
+      if (user_options->outfile_format & OUTFILE_FMT_TIME_REL)
+      {
+        event_log_error (hashcat_ctx, "Using the relative timestamp in --outfile-format for --show is not allowed.");
 
         return -1;
       }

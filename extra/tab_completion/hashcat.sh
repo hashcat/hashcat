@@ -302,7 +302,7 @@ _hashcat ()
 
   local ATTACK_MODES="0 1 3 6 7"
   local HCCAPX_MESSAGE_PAIRS="0 1 2 3 4 5"
-  local OUTFILE_FORMATS="1 2 3 4 5 6 7 8 9 10 11 12 13 14 15"
+  local OUTFILE_FORMATS="1 2 3 4 5 6"
   local OPENCL_DEVICE_TYPES="1 2 3"
   local BACKEND_VECTOR_WIDTH="1 2 4 8 16"
   local DEBUG_MODE="1 2 3 4"
@@ -348,7 +348,29 @@ _hashcat ()
       ;;
 
     --outfile-format)
-      COMPREPLY=($(compgen -W "${OUTFILE_FORMATS}" -- ${cur}))
+      local outfile_format_list=""
+
+      local filter_list=$(echo -n "${OUTFILE_FORMATS}" | sed 's/ //g')
+
+      if echo "${cur}" | grep -q "^[,${filter_list}]*$"; then
+        outfile_format_list="${cur}"
+
+        # remove formats already used in the command line:
+        local formats_used=$(echo -n "${cur}" | sed 's/,/\n/g')
+        local allowed_formats=$(echo -n "${OUTFILE_FORMATS}" | sed 's/ /\n/g')
+
+        local i
+        for i in $formats_used; do
+          allowed_formats=$(echo -n "${allowed_formats}" | grep -v "${formats_used}")
+        done
+
+        outfile_format_list="${cur}"
+        for i in $allowed_formats; do
+          outfile_format_list="${outfile_format_list} ${cur},${i}"
+        done
+      fi
+
+      COMPREPLY=($(compgen -W "${outfile_format_list}" -- ${cur}))
       return 0
       ;;
 

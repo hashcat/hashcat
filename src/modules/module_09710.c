@@ -99,7 +99,7 @@ const char *module_benchmark_mask (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 
 u32 module_forced_outfile_format (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 forced_outfile_format = 5;
+  const u32 forced_outfile_format = OUTFILE_FMT_HASH | OUTFILE_FMT_HEXPLAIN;
 
   return forced_outfile_format;
 }

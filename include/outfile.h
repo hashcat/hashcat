@@ -14,6 +14,8 @@ int  build_plain     (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
 int  build_crackpos  (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain, u64 *out_pos);
 int  build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain, u8 *debug_rule_buf, int *debug_rule_len, u8 *debug_plain_ptr, int *debug_plain_len);
 
+u32 outfile_format_parse (const char *format_string);
+
 int  outfile_init           (hashcat_ctx_t *hashcat_ctx);
 void outfile_destroy        (hashcat_ctx_t *hashcat_ctx);
 int  outfile_write_open     (hashcat_ctx_t *hashcat_ctx);
