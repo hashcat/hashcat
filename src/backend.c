@@ -6722,13 +6722,30 @@ static u32 get_kernel_threads (const hc_device_param_t *device_param)
 
   kernel_threads_max = MIN (kernel_threads_max, device_maxworkgroup_size);
 
-  // for CPU we just do 1 ...
-
   if (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU)
   {
+    // for all CPU we just do 1 ...
+
     const u32 cpu_prefered_thread_count = 1;
 
     kernel_threads_max = MIN (kernel_threads_max, cpu_prefered_thread_count);
+  }
+  else if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
+  {
+    // for GPU we need to distinguish by vendor
+
+    if (device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK)
+    {
+      const u32 gpu_prefered_thread_count = 8;
+
+      kernel_threads_max = MIN (kernel_threads_max, gpu_prefered_thread_count);
+    }
+    else if (device_param->opencl_device_vendor_id == VENDOR_ID_AMD)
+    {
+      const u32 gpu_prefered_thread_count = 64;
+
+      kernel_threads_max = MIN (kernel_threads_max, gpu_prefered_thread_count);
+    }
   }
 
   // this is intenionally! at this point, kernel_threads_min can be higher than kernel_threads_max.

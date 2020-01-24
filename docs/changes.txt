@@ -108,7 +108,7 @@
 - OpenCL Runtime: Improve ROCm detection and make sure to not confuse with recent AMDGPU drivers
 - OpenCL Runtime: Not using amd_bytealign (amd_bitalign is fine) on AMDGPU driver drastically reduces JiT segfaults
 - OpenCL Runtime: Reenabled support for Intel GPU OpenCL runtime (Beignet and NEO) because a workaround was found (force -cl-std=CL2.0)
-- OpenCL Runtime: Unlocked maximum thread count
+- OpenCL Runtime: Unlocked maximum thread count for NVIDIA GPU
 - OpenCL Runtime: Update unstable mode warnings for Apple and AMDGPU drivers
 - OpenCL Runtime: Workaround JiT compiler error on AMDGPU driver compiling WPA-EAPOL-PBKDF2 OpenCL kernel
 - OpenCL Runtime: Workaround JiT compiler error on ROCm 2.3 driver if the 'inline' keyword is used in function declaration
