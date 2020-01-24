@@ -5242,6 +5242,11 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       device_param->is_cuda = true;
 
+      device_param->is_opencl = false;
+
+      device_param->use_opencl12 = false;
+      device_param->use_opencl20 = false;
+
       // device_name
 
       char *device_name = (char *) hcmalloc (HCBUFSIZ_TINY);
@@ -5550,7 +5555,12 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         //device_param->opencl_platform = opencl_platform;
 
+        device_param->is_cuda = false;
+
         device_param->is_opencl = true;
+
+        device_param->use_opencl12 = false;
+        device_param->use_opencl20 = false;
 
         size_t param_value_size = 0;
 
@@ -5664,6 +5674,23 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         if (hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_OPENCL_C_VERSION, param_value_size, opencl_device_c_version, NULL) == -1) return -1;
 
         device_param->opencl_device_c_version = opencl_device_c_version;
+
+        // check OpenCL version
+
+        int opencl_version_min = 0;
+        int opencl_version_maj = 0;
+
+        if (sscanf (opencl_device_c_version, "OpenCL C %d.%d", &opencl_version_min, &opencl_version_maj) == 2)
+        {
+          if ((opencl_version_min == 1) && (opencl_version_maj == 2))
+          {
+            device_param->use_opencl12 = true;
+          }
+          else if ((opencl_version_min == 2) && (opencl_version_maj == 0))
+          {
+            device_param->use_opencl20 = true;
+          }
+        }
 
         // max_compute_units
 
@@ -6141,17 +6168,6 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
                   if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             This may cause \"CL_OUT_OF_RESOURCES\" or related errors.");
                   if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             To disable the timeout, see: https://hashcat.net/q/timeoutpatch");
                 }
-              }
-
-              if ((strstr (device_param->opencl_device_c_version, "beignet")) || (strstr (device_param->opencl_device_version, "beignet")))
-              {
-                event_log_error (hashcat_ctx, "* Device #%u: Intel beignet driver detected!", device_id + 1);
-
-                event_log_warning (hashcat_ctx, "The beignet driver has been marked as likely to fail kernel compilation.");
-                event_log_warning (hashcat_ctx, "You can use --force to override this, but do not report related errors.");
-                event_log_warning (hashcat_ctx, NULL);
-
-                return -1;
               }
             }
           }
@@ -7146,6 +7162,21 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     #else
     build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D KERNEL_STATIC -I OpenCL -I %s ", folder_config->cpath_real);
     #endif
+
+    // workarounds reproduceable bugs on some OpenCL runtimes (Beignet and NEO)
+    // ex: remove empty code in m04, m08 and m16 in OpenCL/m05600_a3-optimized.cl will break s04 kernel (not cracking anymore)
+
+    if (device_param->is_opencl == true)
+    {
+      if (device_param->use_opencl12 == true)
+      {
+        build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-cl-std=CL1.2 ");
+      }
+      else if (device_param->use_opencl20 == true)
+      {
+        build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-cl-std=CL2.0 ");
+      }
+    }
 
     // we don't have sm_* on vendors not NV but it doesn't matter
 

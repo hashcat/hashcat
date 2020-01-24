@@ -1242,6 +1242,11 @@ typedef struct hc_device_param
 
   hc_timer_t timer_speed;
 
+  // Some more attributes
+
+  bool    use_opencl12;
+  bool    use_opencl20;
+
   // AMD
   bool    has_vadd;
   bool    has_vaddc;
