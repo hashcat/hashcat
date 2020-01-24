@@ -29,6 +29,8 @@ u32 outfile_format_parse (const char *format_string)
 
   char *next = strtok_r (format, ",", &saveptr);
 
+  if (next == NULL) return 0;
+
   u32 outfile_format = 0;
 
   do
