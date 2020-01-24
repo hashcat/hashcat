@@ -12,7 +12,6 @@
 #include "modules.h"
 #include "dynloader.h"
 #include "interface.h"
-#include "outfile.h"
 
 /**
  * parsing
