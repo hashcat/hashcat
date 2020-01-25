@@ -55,6 +55,7 @@
 - Added hash-mode: QNX /etc/shadow (SHA256)
 - Added hash-mode: QNX /etc/shadow (SHA512)
 - Added hash-mode: RedHat 389-DS LDAP (PBKDF2-HMAC-SHA256)
+- Added hash-mode: ripemd160(sha256_bin($salt.sha256_bin($pass)))
 - Added hash-mode: Ruby on Rails Restful-Authentication
 - Added hash-mode: sha1(md5(md5($pass)))
 - Added hash-mode: sha1(md5($pass.$salt))
