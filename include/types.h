@@ -485,7 +485,9 @@ typedef enum outfile_fmt
   OUTFILE_FMT_HASH      = (1 << 0),
   OUTFILE_FMT_PLAIN     = (1 << 1),
   OUTFILE_FMT_HEXPLAIN  = (1 << 2),
-  OUTFILE_FMT_CRACKPOS  = (1 << 3)
+  OUTFILE_FMT_CRACKPOS  = (1 << 3),
+  OUTFILE_FMT_TIME_ABS  = (1 << 4),
+  OUTFILE_FMT_TIME_REL  = (1 << 5)
 
 } outfile_fmt_t;
 
