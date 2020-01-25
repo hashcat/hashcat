@@ -79,6 +79,12 @@ static const float MIN_SUFFICIENT_ENTROPY_FILE = 7.0f;
 
 bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
+  // allocate SGPR spill should have worked.. UNREACHABLE executed at..
+  if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == true))
+  {
+    return true;
+  }
+
   if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
   {
     // self-test failed
