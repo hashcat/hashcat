@@ -1203,10 +1203,10 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   }
   else if (wpa->type == 2)
   {
-    u32_to_hex (wpa->keymic[0], (u8 *) line_buf + line_len); line_len += 8;
-    u32_to_hex (wpa->keymic[1], (u8 *) line_buf + line_len); line_len += 8;
-    u32_to_hex (wpa->keymic[2], (u8 *) line_buf + line_len); line_len += 8;
-    u32_to_hex (wpa->keymic[3], (u8 *) line_buf + line_len); line_len += 8;
+    u32_to_hex (byte_swap_32 (wpa->keymic[0]), (u8 *) line_buf + line_len); line_len += 8;
+    u32_to_hex (byte_swap_32 (wpa->keymic[1]), (u8 *) line_buf + line_len); line_len += 8;
+    u32_to_hex (byte_swap_32 (wpa->keymic[2]), (u8 *) line_buf + line_len); line_len += 8;
+    u32_to_hex (byte_swap_32 (wpa->keymic[3]), (u8 *) line_buf + line_len); line_len += 8;
   }
 
   line_buf[line_len] = ':';
