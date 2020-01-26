@@ -92,12 +92,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   hashconfig->hlfmt_disable           = default_hlfmt_disable           (hashconfig, user_options, user_options_extra);
   hashconfig->hook_salt_size          = default_hook_salt_size          (hashconfig, user_options, user_options_extra);
   hashconfig->hook_size               = default_hook_size               (hashconfig, user_options, user_options_extra);
-  hashconfig->kernel_accel_min        = default_kernel_accel_min        (hashconfig, user_options, user_options_extra);
-  hashconfig->kernel_accel_max        = default_kernel_accel_max        (hashconfig, user_options, user_options_extra);
-  hashconfig->kernel_loops_min        = default_kernel_loops_min        (hashconfig, user_options, user_options_extra);
-  hashconfig->kernel_loops_max        = default_kernel_loops_max        (hashconfig, user_options, user_options_extra);
-  hashconfig->kernel_threads_min      = default_kernel_threads_min      (hashconfig, user_options, user_options_extra);
-  hashconfig->kernel_threads_max      = default_kernel_threads_max      (hashconfig, user_options, user_options_extra);
   hashconfig->outfile_check_disable   = default_outfile_check_disable   (hashconfig, user_options, user_options_extra);
   hashconfig->outfile_check_nocomp    = default_outfile_check_nocomp    (hashconfig, user_options, user_options_extra);
   hashconfig->potfile_disable         = default_potfile_disable         (hashconfig, user_options, user_options_extra);
@@ -267,12 +261,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   if (module_ctx->module_hlfmt_disable            != MODULE_DEFAULT) hashconfig->hlfmt_disable           = module_ctx->module_hlfmt_disable            (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hook_salt_size           != MODULE_DEFAULT) hashconfig->hook_salt_size          = module_ctx->module_hook_salt_size           (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hook_size                != MODULE_DEFAULT) hashconfig->hook_size               = module_ctx->module_hook_size                (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_kernel_accel_min         != MODULE_DEFAULT) hashconfig->kernel_accel_min        = module_ctx->module_kernel_accel_min         (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_kernel_accel_max         != MODULE_DEFAULT) hashconfig->kernel_accel_max        = module_ctx->module_kernel_accel_max         (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_kernel_loops_min         != MODULE_DEFAULT) hashconfig->kernel_loops_min        = module_ctx->module_kernel_loops_min         (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_kernel_loops_max         != MODULE_DEFAULT) hashconfig->kernel_loops_max        = module_ctx->module_kernel_loops_max         (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_kernel_threads_min       != MODULE_DEFAULT) hashconfig->kernel_threads_min      = module_ctx->module_kernel_threads_min       (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_kernel_threads_max       != MODULE_DEFAULT) hashconfig->kernel_threads_max      = module_ctx->module_kernel_threads_max       (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_outfile_check_disable    != MODULE_DEFAULT) hashconfig->outfile_check_disable   = module_ctx->module_outfile_check_disable    (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_outfile_check_nocomp     != MODULE_DEFAULT) hashconfig->outfile_check_nocomp    = module_ctx->module_outfile_check_nocomp     (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_potfile_disable          != MODULE_DEFAULT) hashconfig->potfile_disable         = module_ctx->module_potfile_disable          (hashconfig, user_options, user_options_extra);
@@ -416,15 +404,27 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   // those depend on some previously defined values
 
-  hashconfig->pw_max    = default_pw_max    (hashconfig, user_options, user_options_extra);
-  hashconfig->pw_min    = default_pw_min    (hashconfig, user_options, user_options_extra);
-  hashconfig->salt_max  = default_salt_max  (hashconfig, user_options, user_options_extra);
-  hashconfig->salt_min  = default_salt_min  (hashconfig, user_options, user_options_extra);
+  hashconfig->pw_max              = default_pw_max              (hashconfig, user_options, user_options_extra);
+  hashconfig->pw_min              = default_pw_min              (hashconfig, user_options, user_options_extra);
+  hashconfig->salt_max            = default_salt_max            (hashconfig, user_options, user_options_extra);
+  hashconfig->salt_min            = default_salt_min            (hashconfig, user_options, user_options_extra);
+  hashconfig->kernel_accel_min    = default_kernel_accel_min    (hashconfig, user_options, user_options_extra);
+  hashconfig->kernel_accel_max    = default_kernel_accel_max    (hashconfig, user_options, user_options_extra);
+  hashconfig->kernel_loops_min    = default_kernel_loops_min    (hashconfig, user_options, user_options_extra);
+  hashconfig->kernel_loops_max    = default_kernel_loops_max    (hashconfig, user_options, user_options_extra);
+  hashconfig->kernel_threads_min  = default_kernel_threads_min  (hashconfig, user_options, user_options_extra);
+  hashconfig->kernel_threads_max  = default_kernel_threads_max  (hashconfig, user_options, user_options_extra);
 
-  if (module_ctx->module_pw_max   != MODULE_DEFAULT) hashconfig->pw_max    = module_ctx->module_pw_max   (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_pw_min   != MODULE_DEFAULT) hashconfig->pw_min    = module_ctx->module_pw_min   (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_salt_max != MODULE_DEFAULT) hashconfig->salt_max  = module_ctx->module_salt_max (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_salt_min != MODULE_DEFAULT) hashconfig->salt_min  = module_ctx->module_salt_min (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_pw_max             != MODULE_DEFAULT) hashconfig->pw_max             = module_ctx->module_pw_max             (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_pw_min             != MODULE_DEFAULT) hashconfig->pw_min             = module_ctx->module_pw_min             (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_salt_max           != MODULE_DEFAULT) hashconfig->salt_max           = module_ctx->module_salt_max           (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_salt_min           != MODULE_DEFAULT) hashconfig->salt_min           = module_ctx->module_salt_min           (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_kernel_accel_min   != MODULE_DEFAULT) hashconfig->kernel_accel_min   = module_ctx->module_kernel_accel_min   (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_kernel_accel_max   != MODULE_DEFAULT) hashconfig->kernel_accel_max   = module_ctx->module_kernel_accel_max   (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_kernel_loops_min   != MODULE_DEFAULT) hashconfig->kernel_loops_min   = module_ctx->module_kernel_loops_min   (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_kernel_loops_max   != MODULE_DEFAULT) hashconfig->kernel_loops_max   = module_ctx->module_kernel_loops_max   (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_kernel_threads_min != MODULE_DEFAULT) hashconfig->kernel_threads_min = module_ctx->module_kernel_threads_min (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_kernel_threads_max != MODULE_DEFAULT) hashconfig->kernel_threads_max = module_ctx->module_kernel_threads_max (hashconfig, user_options, user_options_extra);
 
   return 0;
 }

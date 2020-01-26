@@ -13,7 +13,7 @@ use Digest::CRC qw (crc32);
 use Digest::SHA qw (sha256);
 use Encode;
 
-sub module_constraints { [[0, 256], [0, 16], [-1, -1], [-1, -1], [-1, -1]] }
+sub module_constraints { [[0, 256], [0, 16], [0, 20], [0, 16], [-1, -1]] }
 
 sub module_generate_hash
 {
