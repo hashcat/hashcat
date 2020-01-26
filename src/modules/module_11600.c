@@ -300,7 +300,7 @@ u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED c
 
 u32 module_kernel_accel_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 kernel_accel_max = 128; // password length affects total performance, this limits the wait times for threads with short password lengths if there's at least one thread with long password length
+  const u32 kernel_accel_max = 8; // password length affects total performance, this limits the wait times for threads with short password lengths if there's at least one thread with long password length
 
   return kernel_accel_max;
 }
