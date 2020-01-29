@@ -998,6 +998,10 @@ int cuda_init (hashcat_ctx_t *hashcat_ctx)
   HC_LOAD_FUNC_CUDA (cuda, cuStreamDestroy,          cuStreamDestroy_v2,        CUDA_CUSTREAMDESTROY,           CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuStreamSynchronize,      cuStreamSynchronize,       CUDA_CUSTREAMSYNCHRONIZE,       CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuStreamWaitEvent,        cuStreamWaitEvent,         CUDA_CUSTREAMWAITEVENT,         CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuLinkCreate,             cuLinkCreate_v2,           CUDA_CULINKCREATE,              CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuLinkAddData,            cuLinkAddData_v2,          CUDA_CULINKADDDATA,             CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuLinkDestroy,            cuLinkDestroy,             CUDA_CULINKDESTROY,             CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuLinkComplete,           cuLinkComplete,            CUDA_CULINKCOMPLETE,            CUDA, 1);
 
   return 0;
 }
@@ -2040,6 +2044,113 @@ int hc_cuCtxPopCurrent (hashcat_ctx_t *hashcat_ctx, CUcontext *pctx)
   return 0;
 }
 
+int hc_cuLinkCreate (hashcat_ctx_t *hashcat_ctx, unsigned int numOptions, CUjit_option *options, void **optionValues, CUlinkState *stateOut)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
+
+  const CUresult CU_err = cuda->cuLinkCreate (numOptions, options, optionValues, stateOut);
+
+  if (CU_err != CUDA_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "cuLinkCreate(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "cuLinkCreate(): %d", CU_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_cuLinkAddData (hashcat_ctx_t *hashcat_ctx, CUlinkState state, CUjitInputType type, void *data, size_t size, const char *name, unsigned int numOptions, CUjit_option *options, void **optionValues)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
+
+  const CUresult CU_err = cuda->cuLinkAddData (state, type, data, size, name, numOptions, options, optionValues);
+
+  if (CU_err != CUDA_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "cuLinkAddData(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "cuLinkAddData(): %d", CU_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_cuLinkDestroy (hashcat_ctx_t *hashcat_ctx, CUlinkState state)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
+
+  const CUresult CU_err = cuda->cuLinkDestroy (state);
+
+  if (CU_err != CUDA_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "cuLinkDestroy(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "cuLinkDestroy(): %d", CU_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_cuLinkComplete (hashcat_ctx_t *hashcat_ctx, CUlinkState state, void **cubinOut, size_t *sizeOut)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
+
+  const CUresult CU_err = cuda->cuLinkComplete (state, cubinOut, sizeOut);
+
+  if (CU_err != CUDA_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "cuLinkComplete(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "cuLinkComplete(): %d", CU_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
 
 // OpenCL
 
@@ -7438,18 +7549,41 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (hc_nvrtcDestroyProgram (hashcat_ctx, &program) == -1) return -1;
 
-          const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataExLog (hashcat_ctx, &device_param->cuda_module, binary);
+          CUlinkState state;
 
-          if (rc_cuModuleLoadDataEx == -1) return -1;
+          if (hc_cuLinkCreate (hashcat_ctx, 0, NULL, NULL, &state) == -1) return -1;
+
+          if (hc_cuLinkAddData (hashcat_ctx, state, CU_JIT_INPUT_PTX, binary, binary_size, "kernel", 0, NULL, NULL) == -1) return -1;
+
+          void *cubin = NULL;
+
+          size_t cubin_size = 0;
+
+          if (hc_cuLinkComplete (hashcat_ctx, state, &cubin, &cubin_size) == -1) return -1;
+
+          #ifdef DEBUG
+
+          if (hc_cuModuleLoadDataExLog (hashcat_ctx, &device_param->cuda_module, binary) == -1) return -1;
 
           if (cache_disable == false)
           {
-            const bool rc_write = write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size);
-
-            if (rc_write == false) return -1;
+            if (write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size) == false) return -1;
           }
 
+          #else
+
+          if (hc_cuModuleLoadDataExLog (hashcat_ctx, &device_param->cuda_module, cubin) == -1) return -1;
+
+          if (cache_disable == false)
+          {
+            if (write_kernel_binary (hashcat_ctx, cached_file, cubin, cubin_size) == false) return -1;
+          }
+
+          #endif
+
           hcfree (binary);
+
+          if (hc_cuLinkDestroy (hashcat_ctx, state) == -1) return -1;
         }
 
         if (device_param->is_opencl == true)
@@ -7662,20 +7796,41 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
             if (hc_nvrtcDestroyProgram (hashcat_ctx, &program) == -1) return -1;
 
-            // tbd: check for some useful options
+            CUlinkState state;
 
-            const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataExLog (hashcat_ctx, &device_param->cuda_module_mp, binary);
+            if (hc_cuLinkCreate (hashcat_ctx, 0, NULL, NULL, &state) == -1) return -1;
 
-            if (rc_cuModuleLoadDataEx == -1) return -1;
+            if (hc_cuLinkAddData (hashcat_ctx, state, CU_JIT_INPUT_PTX, binary, binary_size, "mp_kernel", 0, NULL, NULL) == -1) return -1;
+
+            void *cubin = NULL;
+
+            size_t cubin_size = 0;
+
+            if (hc_cuLinkComplete (hashcat_ctx, state, &cubin, &cubin_size) == -1) return -1;
+
+            #ifdef DEBUG
+
+            if (hc_cuModuleLoadDataExLog (hashcat_ctx, &device_param->cuda_module_mp, binary) == -1) return -1;
 
             if (cache_disable == false)
             {
-              const bool rc_write = write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size);
-
-              if (rc_write == false) return -1;
+              if (write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size) == false) return -1;
             }
 
+            #else
+
+            if (hc_cuModuleLoadDataExLog (hashcat_ctx, &device_param->cuda_module_mp, cubin) == -1) return -1;
+
+            if (cache_disable == false)
+            {
+              if (write_kernel_binary (hashcat_ctx, cached_file, cubin, cubin_size) == false) return -1;
+            }
+
+            #endif
+
             hcfree (binary);
+
+            if (hc_cuLinkDestroy (hashcat_ctx, state) == -1) return -1;
           }
 
           if (device_param->is_opencl == true)
@@ -7836,7 +7991,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
           {
             nvrtcProgram program;
 
-            if (hc_nvrtcCreateProgram (hashcat_ctx, &program, kernel_sources[0], "mp_kernel", 0, NULL, NULL) == -1) return -1;
+            if (hc_nvrtcCreateProgram (hashcat_ctx, &program, kernel_sources[0], "amp_kernel", 0, NULL, NULL) == -1) return -1;
 
             char **nvrtc_options = (char **) hccalloc (4 + strlen (build_options_buf) + 1, sizeof (char *)); // ...
 
@@ -7893,7 +8048,25 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
             if (hc_nvrtcDestroyProgram (hashcat_ctx, &program) == -1) return -1;
 
-            // tbd: check for some useful options
+            CUlinkState state;
+
+            const int rc_cuLinkCreate = hc_cuLinkCreate (hashcat_ctx, 0, NULL, NULL, &state);
+
+            if (rc_cuLinkCreate == -1) return -1;
+
+            const int rc_cuLinkAddData = hc_cuLinkAddData (hashcat_ctx, state, CU_JIT_INPUT_PTX, binary, binary_size, "kernel_amp", 0, NULL, NULL);
+
+            if (rc_cuLinkAddData == -1) return -1;
+
+            void *cubin = NULL;
+
+            size_t cubin_size = 0;
+
+            const int rc_cuLinkComplete = hc_cuLinkComplete (hashcat_ctx, state, &cubin, &cubin_size);
+
+            if (rc_cuLinkComplete == -1) return -1;
+
+            #ifdef DEBUG
 
             if (hc_cuModuleLoadDataExLog (hashcat_ctx, &device_param->cuda_module_amp, binary) == -1) return -1;
 
@@ -7902,7 +8075,20 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
               if (write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size) == false) return -1;
             }
 
+            #else
+
+            if (hc_cuModuleLoadDataExLog (hashcat_ctx, &device_param->cuda_module_amp, cubin) == -1) return -1;
+
+            if (cache_disable == false)
+            {
+              if (write_kernel_binary (hashcat_ctx, cached_file, cubin, cubin_size) == false) return -1;
+            }
+
+            #endif
+
             hcfree (binary);
+
+            if (hc_cuLinkDestroy (hashcat_ctx, state) == -1) return -1;
           }
 
           if (device_param->is_opencl == true)

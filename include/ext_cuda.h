@@ -32,6 +32,7 @@ typedef struct CUevent_st *CUevent;                       /**< CUDA event */
 typedef struct CUfunc_st *CUfunction;                     /**< CUDA function */
 typedef struct CUmod_st *CUmodule;                        /**< CUDA module */
 typedef struct CUstream_st *CUstream;                     /**< CUDA stream */
+typedef struct CUlinkState_st *CUlinkState;
 
 typedef enum cudaError_enum {
     /**
@@ -951,6 +952,41 @@ typedef enum CUevent_flags_enum {
     CU_EVENT_INTERPROCESS   = 0x4  /**< Event is suitable for interprocess use. CU_EVENT_DISABLE_TIMING must be set */
 } CUevent_flags;
 
+typedef enum CUjitInputType_enum
+{
+    /**
+     * Compiled device-class-specific device code\n
+     * Applicable options: none
+     */
+    CU_JIT_INPUT_CUBIN = 0,
+
+    /**
+     * PTX source code\n
+     * Applicable options: PTX compiler options
+     */
+    CU_JIT_INPUT_PTX,
+
+    /**
+     * Bundle of multiple cubins and/or PTX of some device code\n
+     * Applicable options: PTX compiler options, ::CU_JIT_FALLBACK_STRATEGY
+     */
+    CU_JIT_INPUT_FATBINARY,
+
+    /**
+     * Host object with embedded device code\n
+     * Applicable options: PTX compiler options, ::CU_JIT_FALLBACK_STRATEGY
+     */
+    CU_JIT_INPUT_OBJECT,
+
+    /**
+     * Archive of host objects with embedded device code\n
+     * Applicable options: PTX compiler options, ::CU_JIT_FALLBACK_STRATEGY
+     */
+    CU_JIT_INPUT_LIBRARY,
+
+    CU_JIT_NUM_INPUT_TYPES
+} CUjitInputType;
+
 #ifdef _WIN32
 #define CUDAAPI __stdcall
 #else
@@ -1012,6 +1048,10 @@ typedef CUresult (CUDA_API_CALL *CUDA_CUSTREAMCREATE)           (CUstream *, uns
 typedef CUresult (CUDA_API_CALL *CUDA_CUSTREAMDESTROY)          (CUstream);
 typedef CUresult (CUDA_API_CALL *CUDA_CUSTREAMSYNCHRONIZE)      (CUstream);
 typedef CUresult (CUDA_API_CALL *CUDA_CUSTREAMWAITEVENT)        (CUstream, CUevent, unsigned int);
+typedef CUresult (CUDA_API_CALL *CUDA_CULINKCREATE)             (unsigned int, CUjit_option *, void **, CUlinkState *);
+typedef CUresult (CUDA_API_CALL *CUDA_CULINKADDDATA)            (CUlinkState, CUjitInputType, void *, size_t, const char *, unsigned int, CUjit_option *, void **);
+typedef CUresult (CUDA_API_CALL *CUDA_CULINKDESTROY)            (CUlinkState);
+typedef CUresult (CUDA_API_CALL *CUDA_CULINKCOMPLETE)           (CUlinkState, void **, size_t *);
 
 typedef struct hc_cuda_lib
 {
@@ -1070,6 +1110,10 @@ typedef struct hc_cuda_lib
   CUDA_CUSTREAMDESTROY          cuStreamDestroy;
   CUDA_CUSTREAMSYNCHRONIZE      cuStreamSynchronize;
   CUDA_CUSTREAMWAITEVENT        cuStreamWaitEvent;
+  CUDA_CULINKCREATE             cuLinkCreate;
+  CUDA_CULINKADDDATA            cuLinkAddData;
+  CUDA_CULINKDESTROY            cuLinkDestroy;
+  CUDA_CULINKCOMPLETE           cuLinkComplete;
 
 } hc_cuda_lib_t;
 
