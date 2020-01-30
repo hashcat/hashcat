@@ -1295,53 +1295,6 @@ int hc_cuModuleLoadDataEx (hashcat_ctx_t *hashcat_ctx, CUmodule *module, const v
   return 0;
 }
 
-int hc_cuModuleLoadDataExLog (hashcat_ctx_t *hashcat_ctx, CUmodule *module, const void *image)
-{
-  #define LOG_SIZE 8192
-
-  char *info_log  = (char *) hcmalloc (LOG_SIZE);
-  char *error_log = (char *) hcmalloc (LOG_SIZE);
-
-  CUjit_option opts[6];
-  void *vals[6];
-
-  opts[0] = CU_JIT_TARGET_FROM_CUCONTEXT;
-  vals[0] = (void *) 0;
-
-  opts[1] = CU_JIT_LOG_VERBOSE;
-  vals[1] = (void *) 1;
-
-  opts[2] = CU_JIT_INFO_LOG_BUFFER;
-  vals[2] = (void *) info_log;
-
-  opts[3] = CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES;
-  vals[3] = (void *) LOG_SIZE;
-
-  opts[4] = CU_JIT_ERROR_LOG_BUFFER;
-  vals[4] = (void *) error_log;
-
-  opts[5] = CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES;
-  vals[5] = (void *) LOG_SIZE;
-
-  const int rc_cuModuleLoadDataEx = hc_cuModuleLoadDataEx (hashcat_ctx, module, image, 6, opts, vals);
-
-  #if defined (DEBUG)
-  printf ("cuModuleLoadDataEx() Info Log (%d):\n%s\n\n",  (int) strlen (info_log),  info_log);
-  printf ("cuModuleLoadDataEx() Error Log (%d):\n%s\n\n", (int) strlen (error_log), error_log);
-  #else
-  if (rc_cuModuleLoadDataEx == -1)
-  {
-    printf ("cuModuleLoadDataEx() Info Log (%d):\n%s\n\n",  (int) strlen (info_log),  info_log);
-    printf ("cuModuleLoadDataEx() Error Log (%d):\n%s\n\n", (int) strlen (error_log), error_log);
-  }
-  #endif
-
-  hcfree (info_log);
-  hcfree (error_log);
-
-  return rc_cuModuleLoadDataEx;
-}
-
 int hc_cuModuleUnload (hashcat_ctx_t *hashcat_ctx, CUmodule hmod)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
@@ -7424,6 +7377,37 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     }
 
     /**
+     * Prepare some logging buffer (CUDA only) but we need to do it on this level of the scope
+     * Other backends just dont use this
+     */
+
+    #define LOG_SIZE 8192
+
+    char cujit_info_log[LOG_SIZE];
+    char cujit_error_log[LOG_SIZE];
+
+    CUjit_option cujit_opts[6];
+    void *cujit_vals[6];
+
+    cujit_opts[0] = CU_JIT_TARGET_FROM_CUCONTEXT;
+    cujit_vals[0] = (void *) 0;
+
+    cujit_opts[1] = CU_JIT_LOG_VERBOSE;
+    cujit_vals[1] = (void *) 1;
+
+    cujit_opts[2] = CU_JIT_INFO_LOG_BUFFER;
+    cujit_vals[2] = (void *) cujit_info_log;
+
+    cujit_opts[3] = CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES;
+    cujit_vals[3] = (void *) LOG_SIZE;
+
+    cujit_opts[4] = CU_JIT_ERROR_LOG_BUFFER;
+    cujit_vals[4] = (void *) cujit_error_log;
+
+    cujit_opts[5] = CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES;
+    cujit_vals[5] = (void *) LOG_SIZE;
+
+    /**
      * main kernel
      */
 
@@ -7551,19 +7535,46 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           CUlinkState state;
 
-          if (hc_cuLinkCreate (hashcat_ctx, 0, NULL, NULL, &state) == -1) return -1;
+          if (hc_cuLinkCreate (hashcat_ctx, 6, cujit_opts, cujit_vals, &state) == -1)
+          {
+            event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
+            event_log_error (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
 
-          if (hc_cuLinkAddData (hashcat_ctx, state, CU_JIT_INPUT_PTX, binary, binary_size, "kernel", 0, NULL, NULL) == -1) return -1;
+            return -1;
+          }
+
+          if (hc_cuLinkAddData (hashcat_ctx, state, CU_JIT_INPUT_PTX, binary, binary_size, "kernel", 0, NULL, NULL) == -1)
+          {
+            event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
+            event_log_error (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
+
+            return -1;
+          }
 
           void *cubin = NULL;
 
           size_t cubin_size = 0;
 
-          if (hc_cuLinkComplete (hashcat_ctx, state, &cubin, &cubin_size) == -1) return -1;
+          if (hc_cuLinkComplete (hashcat_ctx, state, &cubin, &cubin_size) == -1)
+          {
+            event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
+            event_log_error (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
+
+            return -1;
+          }
 
           #ifdef DEBUG
 
-          if (hc_cuModuleLoadDataExLog (hashcat_ctx, &device_param->cuda_module, binary) == -1) return -1;
+          event_log_info (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
+          event_log_info (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
+
+          if (hc_cuModuleLoadDataEx (hashcat_ctx, &device_param->cuda_module, binary, 6, cujit_opts, cujit_vals) == -1)
+          {
+            event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
+            event_log_error (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
+
+            return -1;
+          }
 
           if (cache_disable == false)
           {
@@ -7572,7 +7583,13 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           #else
 
-          if (hc_cuModuleLoadDataExLog (hashcat_ctx, &device_param->cuda_module, cubin) == -1) return -1;
+          if (hc_cuModuleLoadDataEx (hashcat_ctx, &device_param->cuda_module, cubin, 6, cujit_opts, cujit_vals) == -1)
+          {
+            event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
+            event_log_error (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
+
+            return -1;
+          }
 
           if (cache_disable == false)
           {
@@ -7648,7 +7665,13 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (device_param->is_cuda == true)
         {
-          if (hc_cuModuleLoadDataExLog (hashcat_ctx, &device_param->cuda_module, kernel_sources[0]) == -1) return -1;
+          if (hc_cuModuleLoadDataEx (hashcat_ctx, &device_param->cuda_module, kernel_sources[0], 6, cujit_opts, cujit_vals) == -1)
+          {
+            event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
+            event_log_error (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
+
+            return -1;
+          }
         }
 
         if (device_param->is_opencl == true)
@@ -7798,19 +7821,46 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
             CUlinkState state;
 
-            if (hc_cuLinkCreate (hashcat_ctx, 0, NULL, NULL, &state) == -1) return -1;
+            if (hc_cuLinkCreate (hashcat_ctx, 6, cujit_opts, cujit_vals, &state) == -1)
+            {
+              event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
+              event_log_error (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
 
-            if (hc_cuLinkAddData (hashcat_ctx, state, CU_JIT_INPUT_PTX, binary, binary_size, "mp_kernel", 0, NULL, NULL) == -1) return -1;
+              return -1;
+            }
+
+            if (hc_cuLinkAddData (hashcat_ctx, state, CU_JIT_INPUT_PTX, binary, binary_size, "mp_kernel", 0, NULL, NULL) == -1)
+            {
+              event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
+              event_log_error (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
+
+              return -1;
+            }
 
             void *cubin = NULL;
 
             size_t cubin_size = 0;
 
-            if (hc_cuLinkComplete (hashcat_ctx, state, &cubin, &cubin_size) == -1) return -1;
+            if (hc_cuLinkComplete (hashcat_ctx, state, &cubin, &cubin_size) == -1)
+            {
+              event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
+              event_log_error (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
+
+              return -1;
+            }
 
             #ifdef DEBUG
 
-            if (hc_cuModuleLoadDataExLog (hashcat_ctx, &device_param->cuda_module_mp, binary) == -1) return -1;
+            event_log_info (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
+            event_log_info (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
+
+            if (hc_cuModuleLoadDataEx (hashcat_ctx, &device_param->cuda_module_mp, binary, 6, cujit_opts, cujit_vals) == -1)
+            {
+              event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
+              event_log_error (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
+
+              return -1;
+            }
 
             if (cache_disable == false)
             {
@@ -7819,7 +7869,13 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
             #else
 
-            if (hc_cuModuleLoadDataExLog (hashcat_ctx, &device_param->cuda_module_mp, cubin) == -1) return -1;
+            if (hc_cuModuleLoadDataEx (hashcat_ctx, &device_param->cuda_module_mp, cubin, 6, cujit_opts, cujit_vals) == -1)
+            {
+              event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
+              event_log_error (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
+
+              return -1;
+            }
 
             if (cache_disable == false)
             {
@@ -7895,7 +7951,13 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (device_param->is_cuda == true)
           {
-            if (hc_cuModuleLoadDataExLog (hashcat_ctx, &device_param->cuda_module_mp, kernel_sources[0]) == -1) return -1;
+            if (hc_cuModuleLoadDataEx (hashcat_ctx, &device_param->cuda_module_mp, kernel_sources[0], 6, cujit_opts, cujit_vals) == -1)
+            {
+              event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
+              event_log_error (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
+
+              return -1;
+            }
           }
 
           if (device_param->is_opencl == true)
@@ -8050,25 +8112,46 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
             CUlinkState state;
 
-            const int rc_cuLinkCreate = hc_cuLinkCreate (hashcat_ctx, 0, NULL, NULL, &state);
+            if (hc_cuLinkCreate (hashcat_ctx, 6, cujit_opts, cujit_vals, &state) == -1)
+            {
+              event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
+              event_log_error (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
 
-            if (rc_cuLinkCreate == -1) return -1;
+              return -1;
+            }
 
-            const int rc_cuLinkAddData = hc_cuLinkAddData (hashcat_ctx, state, CU_JIT_INPUT_PTX, binary, binary_size, "kernel_amp", 0, NULL, NULL);
+            if (hc_cuLinkAddData (hashcat_ctx, state, CU_JIT_INPUT_PTX, binary, binary_size, "amp_kernel", 0, NULL, NULL) == -1)
+            {
+              event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
+              event_log_error (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
 
-            if (rc_cuLinkAddData == -1) return -1;
+              return -1;
+            }
 
             void *cubin = NULL;
 
             size_t cubin_size = 0;
 
-            const int rc_cuLinkComplete = hc_cuLinkComplete (hashcat_ctx, state, &cubin, &cubin_size);
+            if (hc_cuLinkComplete (hashcat_ctx, state, &cubin, &cubin_size) == -1)
+            {
+              event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
+              event_log_error (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
 
-            if (rc_cuLinkComplete == -1) return -1;
+              return -1;
+            }
 
             #ifdef DEBUG
 
-            if (hc_cuModuleLoadDataExLog (hashcat_ctx, &device_param->cuda_module_amp, binary) == -1) return -1;
+            event_log_info (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
+            event_log_info (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
+
+            if (hc_cuModuleLoadDataEx (hashcat_ctx, &device_param->cuda_module_amp, binary, 6, cujit_opts, cujit_vals) == -1)
+            {
+              event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
+              event_log_error (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
+
+              return -1;
+            }
 
             if (cache_disable == false)
             {
@@ -8077,7 +8160,13 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
             #else
 
-            if (hc_cuModuleLoadDataExLog (hashcat_ctx, &device_param->cuda_module_amp, cubin) == -1) return -1;
+            if (hc_cuModuleLoadDataEx (hashcat_ctx, &device_param->cuda_module_amp, cubin, 6, cujit_opts, cujit_vals) == -1)
+            {
+              event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
+              event_log_error (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
+
+              return -1;
+            }
 
             if (cache_disable == false)
             {
@@ -8153,7 +8242,13 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (device_param->is_cuda == true)
           {
-            if (hc_cuModuleLoadDataExLog (hashcat_ctx, &device_param->cuda_module_amp, kernel_sources[0]) == -1) return -1;
+            if (hc_cuModuleLoadDataEx (hashcat_ctx, &device_param->cuda_module_amp, kernel_sources[0], 6, cujit_opts, cujit_vals) == -1)
+            {
+              event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
+              event_log_error (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
+
+              return -1;
+            }
           }
 
           if (device_param->is_opencl == true)
