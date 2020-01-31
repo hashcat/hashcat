@@ -7381,32 +7381,6 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
      * Other backends just dont use this
      */
 
-    #define LOG_SIZE 8192
-
-    char cujit_info_log[LOG_SIZE];
-    char cujit_error_log[LOG_SIZE];
-
-    CUjit_option cujit_opts[6];
-    void *cujit_vals[6];
-
-    cujit_opts[0] = CU_JIT_TARGET_FROM_CUCONTEXT;
-    cujit_vals[0] = (void *) 0;
-
-    cujit_opts[1] = CU_JIT_LOG_VERBOSE;
-    cujit_vals[1] = (void *) 1;
-
-    cujit_opts[2] = CU_JIT_INFO_LOG_BUFFER;
-    cujit_vals[2] = (void *) cujit_info_log;
-
-    cujit_opts[3] = CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES;
-    cujit_vals[3] = (void *) LOG_SIZE;
-
-    cujit_opts[4] = CU_JIT_ERROR_LOG_BUFFER;
-    cujit_vals[4] = (void *) cujit_error_log;
-
-    cujit_opts[5] = CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES;
-    cujit_vals[5] = (void *) LOG_SIZE;
-
     /**
      * main kernel
      */
@@ -7523,7 +7497,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
           hcfree (nvrtc_options);
           hcfree (nvrtc_options_string);
 
-          size_t binary_size;
+          size_t binary_size = 0;
 
           if (hc_nvrtcGetPTXSize (hashcat_ctx, program, &binary_size) == -1) return -1;
 
@@ -7532,6 +7506,32 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
           if (hc_nvrtcGetPTX (hashcat_ctx, program, binary) == -1) return -1;
 
           if (hc_nvrtcDestroyProgram (hashcat_ctx, &program) == -1) return -1;
+
+          #define LOG_SIZE 8192
+
+          char *cujit_info_log  = (char *) hcmalloc (LOG_SIZE + 1);
+          char *cujit_error_log = (char *) hcmalloc (LOG_SIZE + 1);
+
+          CUjit_option cujit_opts[6];
+          void *cujit_vals[6];
+
+          cujit_opts[0] = CU_JIT_TARGET_FROM_CUCONTEXT;
+          cujit_vals[0] = (void *) 0;
+
+          cujit_opts[1] = CU_JIT_LOG_VERBOSE;
+          cujit_vals[1] = (void *) 1;
+
+          cujit_opts[2] = CU_JIT_INFO_LOG_BUFFER;
+          cujit_vals[2] = (void *) cujit_info_log;
+
+          cujit_opts[3] = CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES;
+          cujit_vals[3] = (void *) LOG_SIZE;
+
+          cujit_opts[4] = CU_JIT_ERROR_LOG_BUFFER;
+          cujit_vals[4] = (void *) cujit_error_log;
+
+          cujit_opts[5] = CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES;
+          cujit_vals[5] = (void *) LOG_SIZE;
 
           CUlinkState state;
 
@@ -7597,6 +7597,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
           }
 
           #endif
+
+          hcfree (cujit_info_log);
+          hcfree (cujit_error_log);
 
           hcfree (binary);
 
@@ -7665,6 +7668,32 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (device_param->is_cuda == true)
         {
+          #define LOG_SIZE 8192
+
+          char *cujit_info_log  = (char *) hcmalloc (LOG_SIZE + 1);
+          char *cujit_error_log = (char *) hcmalloc (LOG_SIZE + 1);
+
+          CUjit_option cujit_opts[6];
+          void *cujit_vals[6];
+
+          cujit_opts[0] = CU_JIT_TARGET_FROM_CUCONTEXT;
+          cujit_vals[0] = (void *) 0;
+
+          cujit_opts[1] = CU_JIT_LOG_VERBOSE;
+          cujit_vals[1] = (void *) 1;
+
+          cujit_opts[2] = CU_JIT_INFO_LOG_BUFFER;
+          cujit_vals[2] = (void *) cujit_info_log;
+
+          cujit_opts[3] = CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES;
+          cujit_vals[3] = (void *) LOG_SIZE;
+
+          cujit_opts[4] = CU_JIT_ERROR_LOG_BUFFER;
+          cujit_vals[4] = (void *) cujit_error_log;
+
+          cujit_opts[5] = CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES;
+          cujit_vals[5] = (void *) LOG_SIZE;
+
           if (hc_cuModuleLoadDataEx (hashcat_ctx, &device_param->cuda_module, kernel_sources[0], 6, cujit_opts, cujit_vals) == -1)
           {
             event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
@@ -7672,6 +7701,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
             return -1;
           }
+
+          hcfree (cujit_info_log);
+          hcfree (cujit_error_log);
         }
 
         if (device_param->is_opencl == true)
@@ -7819,6 +7851,32 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
             if (hc_nvrtcDestroyProgram (hashcat_ctx, &program) == -1) return -1;
 
+            #define LOG_SIZE 8192
+
+            char *cujit_info_log  = (char *) hcmalloc (LOG_SIZE + 1);
+            char *cujit_error_log = (char *) hcmalloc (LOG_SIZE + 1);
+
+            CUjit_option cujit_opts[6];
+            void *cujit_vals[6];
+
+            cujit_opts[0] = CU_JIT_TARGET_FROM_CUCONTEXT;
+            cujit_vals[0] = (void *) 0;
+
+            cujit_opts[1] = CU_JIT_LOG_VERBOSE;
+            cujit_vals[1] = (void *) 1;
+
+            cujit_opts[2] = CU_JIT_INFO_LOG_BUFFER;
+            cujit_vals[2] = (void *) cujit_info_log;
+
+            cujit_opts[3] = CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES;
+            cujit_vals[3] = (void *) LOG_SIZE;
+
+            cujit_opts[4] = CU_JIT_ERROR_LOG_BUFFER;
+            cujit_vals[4] = (void *) cujit_error_log;
+
+            cujit_opts[5] = CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES;
+            cujit_vals[5] = (void *) LOG_SIZE;
+
             CUlinkState state;
 
             if (hc_cuLinkCreate (hashcat_ctx, 6, cujit_opts, cujit_vals, &state) == -1)
@@ -7886,6 +7944,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
             hcfree (binary);
 
+            hcfree (cujit_info_log);
+            hcfree (cujit_error_log);
+
             if (hc_cuLinkDestroy (hashcat_ctx, state) == -1) return -1;
           }
 
@@ -7951,6 +8012,32 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (device_param->is_cuda == true)
           {
+            #define LOG_SIZE 8192
+
+            char *cujit_info_log  = (char *) hcmalloc (LOG_SIZE + 1);
+            char *cujit_error_log = (char *) hcmalloc (LOG_SIZE + 1);
+
+            CUjit_option cujit_opts[6];
+            void *cujit_vals[6];
+
+            cujit_opts[0] = CU_JIT_TARGET_FROM_CUCONTEXT;
+            cujit_vals[0] = (void *) 0;
+
+            cujit_opts[1] = CU_JIT_LOG_VERBOSE;
+            cujit_vals[1] = (void *) 1;
+
+            cujit_opts[2] = CU_JIT_INFO_LOG_BUFFER;
+            cujit_vals[2] = (void *) cujit_info_log;
+
+            cujit_opts[3] = CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES;
+            cujit_vals[3] = (void *) LOG_SIZE;
+
+            cujit_opts[4] = CU_JIT_ERROR_LOG_BUFFER;
+            cujit_vals[4] = (void *) cujit_error_log;
+
+            cujit_opts[5] = CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES;
+            cujit_vals[5] = (void *) LOG_SIZE;
+
             if (hc_cuModuleLoadDataEx (hashcat_ctx, &device_param->cuda_module_mp, kernel_sources[0], 6, cujit_opts, cujit_vals) == -1)
             {
               event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
@@ -7958,6 +8045,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
               return -1;
             }
+
+            hcfree (cujit_info_log);
+            hcfree (cujit_error_log);
           }
 
           if (device_param->is_opencl == true)
@@ -8110,6 +8200,32 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
             if (hc_nvrtcDestroyProgram (hashcat_ctx, &program) == -1) return -1;
 
+            #define LOG_SIZE 8192
+
+            char *cujit_info_log  = (char *) hcmalloc (LOG_SIZE + 1);
+            char *cujit_error_log = (char *) hcmalloc (LOG_SIZE + 1);
+
+            CUjit_option cujit_opts[6];
+            void *cujit_vals[6];
+
+            cujit_opts[0] = CU_JIT_TARGET_FROM_CUCONTEXT;
+            cujit_vals[0] = (void *) 0;
+
+            cujit_opts[1] = CU_JIT_LOG_VERBOSE;
+            cujit_vals[1] = (void *) 1;
+
+            cujit_opts[2] = CU_JIT_INFO_LOG_BUFFER;
+            cujit_vals[2] = (void *) cujit_info_log;
+
+            cujit_opts[3] = CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES;
+            cujit_vals[3] = (void *) LOG_SIZE;
+
+            cujit_opts[4] = CU_JIT_ERROR_LOG_BUFFER;
+            cujit_vals[4] = (void *) cujit_error_log;
+
+            cujit_opts[5] = CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES;
+            cujit_vals[5] = (void *) LOG_SIZE;
+
             CUlinkState state;
 
             if (hc_cuLinkCreate (hashcat_ctx, 6, cujit_opts, cujit_vals, &state) == -1)
@@ -8174,6 +8290,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
             }
 
             #endif
+
+            hcfree (cujit_info_log);
+            hcfree (cujit_error_log);
 
             hcfree (binary);
 
@@ -8242,6 +8361,32 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (device_param->is_cuda == true)
           {
+            #define LOG_SIZE 8192
+
+            char *cujit_info_log  = (char *) hcmalloc (LOG_SIZE + 1);
+            char *cujit_error_log = (char *) hcmalloc (LOG_SIZE + 1);
+
+            CUjit_option cujit_opts[6];
+            void *cujit_vals[6];
+
+            cujit_opts[0] = CU_JIT_TARGET_FROM_CUCONTEXT;
+            cujit_vals[0] = (void *) 0;
+
+            cujit_opts[1] = CU_JIT_LOG_VERBOSE;
+            cujit_vals[1] = (void *) 1;
+
+            cujit_opts[2] = CU_JIT_INFO_LOG_BUFFER;
+            cujit_vals[2] = (void *) cujit_info_log;
+
+            cujit_opts[3] = CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES;
+            cujit_vals[3] = (void *) LOG_SIZE;
+
+            cujit_opts[4] = CU_JIT_ERROR_LOG_BUFFER;
+            cujit_vals[4] = (void *) cujit_error_log;
+
+            cujit_opts[5] = CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES;
+            cujit_vals[5] = (void *) LOG_SIZE;
+
             if (hc_cuModuleLoadDataEx (hashcat_ctx, &device_param->cuda_module_amp, kernel_sources[0], 6, cujit_opts, cujit_vals) == -1)
             {
               event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
@@ -8249,6 +8394,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
               return -1;
             }
+
+            hcfree (cujit_info_log);
+            hcfree (cujit_error_log);
           }
 
           if (device_param->is_opencl == true)
