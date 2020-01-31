@@ -7,6 +7,7 @@ SHARED                  := 0
 DEBUG                   := 0
 PRODUCTION              := 0
 PRODUCTION_VERSION      := v5.1.0
+ENABLE_CUBIN            := 1
 ENABLE_BRAIN            := 1
 USE_SYSTEM_LZMA         := 0
 USE_SYSTEM_ZLIB         := 0
@@ -232,6 +233,11 @@ CFLAGS                  += -I$(DEPS_XXHASH_PATH)
 ifeq ($(USE_SYSTEM_XXHASH),1)
 LFLAGS                  += -lxxhash
 endif
+endif
+
+# CUDA binary cache
+ifeq ($(ENABLE_CUBIN),1)
+CFLAGS                  += -DWITH_CUBIN
 endif
 
 ##

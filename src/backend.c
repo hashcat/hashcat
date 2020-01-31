@@ -491,7 +491,7 @@ static bool read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_f
   return true;
 }
 
-static bool write_kernel_binary (hashcat_ctx_t *hashcat_ctx, char *kernel_file, char *binary, size_t binary_size)
+static bool write_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_file, char *binary, size_t binary_size)
 {
   if (binary_size > 0)
   {
@@ -998,10 +998,12 @@ int cuda_init (hashcat_ctx_t *hashcat_ctx)
   HC_LOAD_FUNC_CUDA (cuda, cuStreamDestroy,          cuStreamDestroy_v2,        CUDA_CUSTREAMDESTROY,           CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuStreamSynchronize,      cuStreamSynchronize,       CUDA_CUSTREAMSYNCHRONIZE,       CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuStreamWaitEvent,        cuStreamWaitEvent,         CUDA_CUSTREAMWAITEVENT,         CUDA, 1);
+  #if defined (WITH_CUBIN)
   HC_LOAD_FUNC_CUDA (cuda, cuLinkCreate,             cuLinkCreate_v2,           CUDA_CULINKCREATE,              CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuLinkAddData,            cuLinkAddData_v2,          CUDA_CULINKADDDATA,             CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuLinkDestroy,            cuLinkDestroy,             CUDA_CULINKDESTROY,             CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuLinkComplete,           cuLinkComplete,            CUDA_CULINKCOMPLETE,            CUDA, 1);
+  #endif
 
   return 0;
 }
@@ -6820,6 +6822,365 @@ static u32 get_kernel_threads (const hc_device_param_t *device_param)
   return kernel_threads;
 }
 
+static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const char *kernel_name, char *source_file, char *cached_file, const char *build_options_buf, const bool cache_disable, cl_program *opencl_program, CUmodule *cuda_module)
+{
+  bool cached = true;
+
+  if (cache_disable == true)
+  {
+    cached = false;
+  }
+
+  if (hc_path_read (cached_file) == false)
+  {
+    cached = false;
+  }
+
+  if (hc_path_is_empty (cached_file) == true)
+  {
+    cached = false;
+  }
+
+  /**
+   * kernel compile or load
+   */
+
+  size_t kernel_lengths_buf = 0;
+
+  size_t *kernel_lengths = &kernel_lengths_buf;
+
+  char *kernel_sources_buf = NULL;
+
+  char **kernel_sources = &kernel_sources_buf;
+
+  if (cached == false)
+  {
+    #if defined (DEBUG)
+    const user_options_t *user_options = hashcat_ctx->user_options;
+
+    if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s not found in cache! Building may take a while...", device_param->device_id + 1, filename_from_filepath (cached_file));
+    #endif
+
+    if (read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources, true) == false) return false;
+
+    if (device_param->is_cuda == true)
+    {
+      nvrtcProgram program;
+
+      if (hc_nvrtcCreateProgram (hashcat_ctx, &program, kernel_sources[0], kernel_name, 0, NULL, NULL) == -1) return false;
+
+      char **nvrtc_options = (char **) hccalloc (4 + strlen (build_options_buf) + 1, sizeof (char *)); // ...
+
+      nvrtc_options[0] = "--restrict";
+      nvrtc_options[1] = "--device-as-default-execution-space";
+      nvrtc_options[2] = "--gpu-architecture";
+
+      hc_asprintf (&nvrtc_options[3], "compute_%d%d", device_param->sm_major, device_param->sm_minor);
+
+      char *nvrtc_options_string = hcstrdup (build_options_buf);
+
+      const int num_options = 4 + nvrtc_make_options_array_from_string (nvrtc_options_string, nvrtc_options + 4);
+
+      const int rc_nvrtcCompileProgram = hc_nvrtcCompileProgram (hashcat_ctx, program, num_options, (const char * const *) nvrtc_options);
+
+      size_t build_log_size = 0;
+
+      hc_nvrtcGetProgramLogSize (hashcat_ctx, program, &build_log_size);
+
+      #if defined (DEBUG)
+      if ((build_log_size > 1) || (rc_nvrtcCompileProgram == -1))
+      #else
+      if (rc_nvrtcCompileProgram == -1)
+      #endif
+      {
+        char *build_log = (char *) hcmalloc (build_log_size + 1);
+
+        if (hc_nvrtcGetProgramLog (hashcat_ctx, program, build_log) == -1) return false;
+
+        puts (build_log);
+
+        hcfree (build_log);
+      }
+
+      if (rc_nvrtcCompileProgram == -1)
+      {
+        event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed.", device_param->device_id + 1, source_file);
+
+        return false;
+      }
+
+      hcfree (nvrtc_options);
+      hcfree (nvrtc_options_string);
+
+      size_t binary_size = 0;
+
+      if (hc_nvrtcGetPTXSize (hashcat_ctx, program, &binary_size) == -1) return false;
+
+      char *binary = (char *) hcmalloc (binary_size);
+
+      if (hc_nvrtcGetPTX (hashcat_ctx, program, binary) == -1) return false;
+
+      if (hc_nvrtcDestroyProgram (hashcat_ctx, &program) == -1) return false;
+
+      #define LOG_SIZE 8192
+
+      char *mod_info_log  = (char *) hcmalloc (LOG_SIZE + 1);
+      char *mod_error_log = (char *) hcmalloc (LOG_SIZE + 1);
+
+      CUjit_option mod_opts[6];
+      void *mod_vals[6];
+
+      mod_opts[0] = CU_JIT_TARGET_FROM_CUCONTEXT;
+      mod_vals[0] = (void *) 0;
+
+      mod_opts[1] = CU_JIT_LOG_VERBOSE;
+      mod_vals[1] = (void *) 1;
+
+      mod_opts[2] = CU_JIT_INFO_LOG_BUFFER;
+      mod_vals[2] = (void *) mod_info_log;
+
+      mod_opts[3] = CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES;
+      mod_vals[3] = (void *) LOG_SIZE;
+
+      mod_opts[4] = CU_JIT_ERROR_LOG_BUFFER;
+      mod_vals[4] = (void *) mod_error_log;
+
+      mod_opts[5] = CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES;
+      mod_vals[5] = (void *) LOG_SIZE;
+
+      #if defined (WITH_CUBIN)
+
+      char *jit_info_log  = (char *) hcmalloc (LOG_SIZE + 1);
+      char *jit_error_log = (char *) hcmalloc (LOG_SIZE + 1);
+
+      CUjit_option jit_opts[6];
+      void *jit_vals[6];
+
+      jit_opts[0] = CU_JIT_TARGET_FROM_CUCONTEXT;
+      jit_vals[0] = (void *) 0;
+
+      jit_opts[1] = CU_JIT_LOG_VERBOSE;
+      jit_vals[1] = (void *) 1;
+
+      jit_opts[2] = CU_JIT_INFO_LOG_BUFFER;
+      jit_vals[2] = (void *) jit_info_log;
+
+      jit_opts[3] = CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES;
+      jit_vals[3] = (void *) LOG_SIZE;
+
+      jit_opts[4] = CU_JIT_ERROR_LOG_BUFFER;
+      jit_vals[4] = (void *) jit_error_log;
+
+      jit_opts[5] = CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES;
+      jit_vals[5] = (void *) LOG_SIZE;
+
+      CUlinkState state;
+
+      if (hc_cuLinkCreate (hashcat_ctx, 6, jit_opts, jit_vals, &state) == -1)
+      {
+        event_log_error (hashcat_ctx, "* Device #%u: Kernel %s link failed. Error Log:", device_param->device_id + 1, source_file);
+        event_log_error (hashcat_ctx, "%s", jit_error_log);
+        event_log_error (hashcat_ctx, NULL);
+
+        return false;
+      }
+
+      if (hc_cuLinkAddData (hashcat_ctx, state, CU_JIT_INPUT_PTX, binary, binary_size, kernel_name, 0, NULL, NULL) == -1)
+      {
+        event_log_error (hashcat_ctx, "* Device #%u: Kernel %s link failed. Error Log:", device_param->device_id + 1, source_file);
+        event_log_error (hashcat_ctx, "%s", jit_error_log);
+        event_log_error (hashcat_ctx, NULL);
+
+        return false;
+      }
+
+      void *cubin = NULL;
+
+      size_t cubin_size = 0;
+
+      if (hc_cuLinkComplete (hashcat_ctx, state, &cubin, &cubin_size) == -1)
+      {
+        event_log_error (hashcat_ctx, "* Device #%u: Kernel %s link failed. Error Log:", device_param->device_id + 1, source_file);
+        event_log_error (hashcat_ctx, "%s", jit_error_log);
+        event_log_error (hashcat_ctx, NULL);
+
+        return false;
+      }
+
+      #if defined (DEBUG)
+      event_log_info (hashcat_ctx, "* Device #%u: Kernel %s link successful. Info Log:", device_param->device_id + 1, source_file);
+      event_log_info (hashcat_ctx, "%s", jit_info_log);
+      event_log_info (hashcat_ctx, NULL);
+      #endif
+
+      if (hc_cuModuleLoadDataEx (hashcat_ctx, cuda_module, cubin, 6, mod_opts, mod_vals) == -1)
+      {
+        event_log_error (hashcat_ctx, "* Device #%u: Kernel %s load failed. Error Log:", device_param->device_id + 1, source_file);
+        event_log_error (hashcat_ctx, "%s", mod_error_log);
+        event_log_error (hashcat_ctx, NULL);
+
+        return false;
+      }
+
+      #if defined (DEBUG)
+      event_log_info (hashcat_ctx, "* Device #%u: Kernel %s load successful. Info Log:", device_param->device_id + 1, source_file);
+      event_log_info (hashcat_ctx, "%s", mod_info_log);
+      event_log_info (hashcat_ctx, NULL);
+      #endif
+
+      if (cache_disable == false)
+      {
+        if (write_kernel_binary (hashcat_ctx, cached_file, cubin, cubin_size) == false) return false;
+      }
+
+      if (hc_cuLinkDestroy (hashcat_ctx, state) == -1) return false;
+
+      hcfree (jit_info_log);
+      hcfree (jit_error_log);
+
+      #else
+
+      if (hc_cuModuleLoadDataEx (hashcat_ctx, cuda_module, binary, 6, mod_opts, mod_vals) == -1)
+      {
+        event_log_error (hashcat_ctx, "* Device #%u: Kernel %s load failed. Error Log:", device_param->device_id + 1, source_file);
+        event_log_error (hashcat_ctx, "%s", mod_error_log);
+        event_log_error (hashcat_ctx, NULL);
+
+        return false;
+      }
+
+      #if defined (DEBUG)
+      event_log_info (hashcat_ctx, "* Device #%u: Kernel %s load successful. Info Log:", device_param->device_id + 1, source_file);
+      event_log_info (hashcat_ctx, "%s", mod_info_log);
+      event_log_info (hashcat_ctx, NULL);
+      #endif
+
+      if (cache_disable == false)
+      {
+        if (write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size) == false) return false;
+      }
+
+      #endif
+
+      hcfree (mod_info_log);
+      hcfree (mod_error_log);
+
+      hcfree (binary);
+    }
+
+    if (device_param->is_opencl == true)
+    {
+      if (hc_clCreateProgramWithSource (hashcat_ctx, device_param->opencl_context, 1, (const char **) kernel_sources, NULL, opencl_program) == -1) return false;
+
+      const int CL_rc = hc_clBuildProgram (hashcat_ctx, *opencl_program, 1, &device_param->opencl_device, build_options_buf, NULL, NULL);
+
+      //if (CL_rc == -1) return -1;
+
+      size_t build_log_size = 0;
+
+      hc_clGetProgramBuildInfo (hashcat_ctx, *opencl_program, device_param->opencl_device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
+
+      //if (CL_rc == -1) return -1;
+
+      #if defined (DEBUG)
+      if ((build_log_size > 1) || (CL_rc == -1))
+      #else
+      if (CL_rc == -1)
+      #endif
+      {
+        char *build_log = (char *) hcmalloc (build_log_size + 1);
+
+        const int rc_clGetProgramBuildInfo = hc_clGetProgramBuildInfo (hashcat_ctx, *opencl_program, device_param->opencl_device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
+
+        if (rc_clGetProgramBuildInfo == -1) return false;
+
+        puts (build_log);
+
+        hcfree (build_log);
+      }
+
+      if (CL_rc == -1) return false;
+
+      if (cache_disable == false)
+      {
+        size_t binary_size;
+
+        if (hc_clGetProgramInfo (hashcat_ctx, *opencl_program, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL) == -1) return false;
+
+        char *binary = (char *) hcmalloc (binary_size);
+
+        if (hc_clGetProgramInfo (hashcat_ctx, *opencl_program, CL_PROGRAM_BINARIES, sizeof (char *), &binary, NULL) == -1) return false;
+
+        if (write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size) == false) return false;
+
+        hcfree (binary);
+      }
+    }
+  }
+  else
+  {
+    if (read_kernel_binary (hashcat_ctx, cached_file, kernel_lengths, kernel_sources, false) == false) return false;
+
+    if (device_param->is_cuda == true)
+    {
+      #define LOG_SIZE 8192
+
+      char *mod_info_log  = (char *) hcmalloc (LOG_SIZE + 1);
+      char *mod_error_log = (char *) hcmalloc (LOG_SIZE + 1);
+
+      CUjit_option mod_opts[6];
+      void *mod_vals[6];
+
+      mod_opts[0] = CU_JIT_TARGET_FROM_CUCONTEXT;
+      mod_vals[0] = (void *) 0;
+
+      mod_opts[1] = CU_JIT_LOG_VERBOSE;
+      mod_vals[1] = (void *) 1;
+
+      mod_opts[2] = CU_JIT_INFO_LOG_BUFFER;
+      mod_vals[2] = (void *) mod_info_log;
+
+      mod_opts[3] = CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES;
+      mod_vals[3] = (void *) LOG_SIZE;
+
+      mod_opts[4] = CU_JIT_ERROR_LOG_BUFFER;
+      mod_vals[4] = (void *) mod_error_log;
+
+      mod_opts[5] = CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES;
+      mod_vals[5] = (void *) LOG_SIZE;
+
+      if (hc_cuModuleLoadDataEx (hashcat_ctx, cuda_module, kernel_sources[0], 6, mod_opts, mod_vals) == -1)
+      {
+        event_log_error (hashcat_ctx, "* Device #%u: Kernel %s load failed. Error Log:", device_param->device_id + 1, source_file);
+        event_log_error (hashcat_ctx, "%s", mod_error_log);
+        event_log_error (hashcat_ctx, NULL);
+
+        return false;
+      }
+
+      #if defined (DEBUG)
+      event_log_info (hashcat_ctx, "* Device #%u: Kernel %s load successful. Info Log:", device_param->device_id + 1, source_file);
+      event_log_info (hashcat_ctx, "%s", mod_info_log);
+      event_log_info (hashcat_ctx, NULL);
+      #endif
+
+      hcfree (mod_info_log);
+      hcfree (mod_error_log);
+    }
+
+    if (device_param->is_opencl == true)
+    {
+      if (hc_clCreateProgramWithBinary (hashcat_ctx, device_param->opencl_context, 1, &device_param->opencl_device, kernel_lengths, (const unsigned char **) kernel_sources, NULL, opencl_program) == -1) return false;
+
+      if (hc_clBuildProgram (hashcat_ctx, *opencl_program, 1, &device_param->opencl_device, build_options_buf, NULL, NULL) == -1) return false;
+    }
+  }
+
+  hcfree (kernel_sources[0]);
+
+  return true;
+}
+
 int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 {
   const bitmap_ctx_t         *bitmap_ctx          = hashcat_ctx->bitmap_ctx;
@@ -7409,312 +7770,18 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       generate_cached_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, user_options_extra->attack_kern, kern_type, hashconfig->opti_type, folder_config->profile_dir, device_name_chksum, cached_file);
 
-      bool cached = true;
-
-      if (cache_disable == true)
-      {
-        cached = false;
-      }
-
-      if (hc_path_read (cached_file) == false)
-      {
-        cached = false;
-      }
-
-      if (hc_path_is_empty (cached_file) == true)
-      {
-        cached = false;
-      }
-
       /**
-       * kernel compile or load
+       * load kernel
        */
 
-      size_t kernel_lengths_buf = 0;
+      const bool rc_load_kernel = load_kernel (hashcat_ctx, device_param, "main_kernel", source_file, cached_file, build_options_module_buf, cache_disable, &device_param->opencl_program, &device_param->cuda_module);
 
-      size_t *kernel_lengths = &kernel_lengths_buf;
-
-      char *kernel_sources_buf = NULL;
-
-      char **kernel_sources = &kernel_sources_buf;
-
-      if (cached == false)
+      if (rc_load_kernel == false)
       {
-        #if defined (DEBUG)
-        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
-        #endif
+        event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed.", device_param->device_id + 1, source_file);
 
-        if (read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources, true) == false) return -1;
-
-        if (device_param->is_cuda == true)
-        {
-          nvrtcProgram program;
-
-          if (hc_nvrtcCreateProgram (hashcat_ctx, &program, kernel_sources[0], "main_kernel", 0, NULL, NULL) == -1) return -1;
-
-          char **nvrtc_options = (char **) hccalloc (4 + strlen (build_options_module_buf) + 1, sizeof (char *)); // ...
-
-          nvrtc_options[0] = "--restrict";
-          nvrtc_options[1] = "--device-as-default-execution-space";
-          nvrtc_options[2] = "--gpu-architecture";
-
-          hc_asprintf (&nvrtc_options[3], "compute_%d%d", device_param->sm_major, device_param->sm_minor);
-
-          char *nvrtc_options_string = hcstrdup (build_options_module_buf);
-
-          const int num_options = 4 + nvrtc_make_options_array_from_string (nvrtc_options_string, nvrtc_options + 4);
-
-          const int rc_nvrtcCompileProgram = hc_nvrtcCompileProgram (hashcat_ctx, program, num_options, (const char * const *) nvrtc_options);
-
-          size_t build_log_size = 0;
-
-          hc_nvrtcGetProgramLogSize (hashcat_ctx, program, &build_log_size);
-
-          #if defined (DEBUG)
-          if ((build_log_size > 1) || (rc_nvrtcCompileProgram == -1))
-          #else
-          if (rc_nvrtcCompileProgram == -1)
-          #endif
-          {
-            char *build_log = (char *) hcmalloc (build_log_size + 1);
-
-            if (hc_nvrtcGetProgramLog (hashcat_ctx, program, build_log) == -1) return -1;
-
-            puts (build_log);
-
-            hcfree (build_log);
-          }
-
-          if (rc_nvrtcCompileProgram == -1)
-          {
-            device_param->skipped_warning = true;
-
-            event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed - proceeding without this device.", device_id + 1, source_file);
-
-            continue;
-          }
-
-          hcfree (nvrtc_options);
-          hcfree (nvrtc_options_string);
-
-          size_t binary_size = 0;
-
-          if (hc_nvrtcGetPTXSize (hashcat_ctx, program, &binary_size) == -1) return -1;
-
-          char *binary = (char *) hcmalloc (binary_size);
-
-          if (hc_nvrtcGetPTX (hashcat_ctx, program, binary) == -1) return -1;
-
-          if (hc_nvrtcDestroyProgram (hashcat_ctx, &program) == -1) return -1;
-
-          #define LOG_SIZE 8192
-
-          char *cujit_info_log  = (char *) hcmalloc (LOG_SIZE + 1);
-          char *cujit_error_log = (char *) hcmalloc (LOG_SIZE + 1);
-
-          CUjit_option cujit_opts[6];
-          void *cujit_vals[6];
-
-          cujit_opts[0] = CU_JIT_TARGET_FROM_CUCONTEXT;
-          cujit_vals[0] = (void *) 0;
-
-          cujit_opts[1] = CU_JIT_LOG_VERBOSE;
-          cujit_vals[1] = (void *) 1;
-
-          cujit_opts[2] = CU_JIT_INFO_LOG_BUFFER;
-          cujit_vals[2] = (void *) cujit_info_log;
-
-          cujit_opts[3] = CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES;
-          cujit_vals[3] = (void *) LOG_SIZE;
-
-          cujit_opts[4] = CU_JIT_ERROR_LOG_BUFFER;
-          cujit_vals[4] = (void *) cujit_error_log;
-
-          cujit_opts[5] = CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES;
-          cujit_vals[5] = (void *) LOG_SIZE;
-
-          CUlinkState state;
-
-          if (hc_cuLinkCreate (hashcat_ctx, 6, cujit_opts, cujit_vals, &state) == -1)
-          {
-            event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
-            event_log_error (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
-
-            return -1;
-          }
-
-          if (hc_cuLinkAddData (hashcat_ctx, state, CU_JIT_INPUT_PTX, binary, binary_size, "kernel", 0, NULL, NULL) == -1)
-          {
-            event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
-            event_log_error (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
-
-            return -1;
-          }
-
-          void *cubin = NULL;
-
-          size_t cubin_size = 0;
-
-          if (hc_cuLinkComplete (hashcat_ctx, state, &cubin, &cubin_size) == -1)
-          {
-            event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
-            event_log_error (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
-
-            return -1;
-          }
-
-          #ifdef DEBUG
-
-          event_log_info (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
-          event_log_info (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
-
-          if (hc_cuModuleLoadDataEx (hashcat_ctx, &device_param->cuda_module, binary, 6, cujit_opts, cujit_vals) == -1)
-          {
-            event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
-            event_log_error (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
-
-            return -1;
-          }
-
-          if (cache_disable == false)
-          {
-            if (write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size) == false) return -1;
-          }
-
-          #else
-
-          if (hc_cuModuleLoadDataEx (hashcat_ctx, &device_param->cuda_module, cubin, 6, cujit_opts, cujit_vals) == -1)
-          {
-            event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
-            event_log_error (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
-
-            return -1;
-          }
-
-          if (cache_disable == false)
-          {
-            if (write_kernel_binary (hashcat_ctx, cached_file, cubin, cubin_size) == false) return -1;
-          }
-
-          #endif
-
-          hcfree (cujit_info_log);
-          hcfree (cujit_error_log);
-
-          hcfree (binary);
-
-          if (hc_cuLinkDestroy (hashcat_ctx, state) == -1) return -1;
-        }
-
-        if (device_param->is_opencl == true)
-        {
-          if (hc_clCreateProgramWithSource (hashcat_ctx, device_param->opencl_context, 1, (const char **) kernel_sources, NULL, &device_param->opencl_program) == -1) return -1;
-
-          const int CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->opencl_program, 1, &device_param->opencl_device, build_options_module_buf, NULL, NULL);
-
-          //if (CL_rc == -1) return -1;
-
-          size_t build_log_size = 0;
-
-          hc_clGetProgramBuildInfo (hashcat_ctx, device_param->opencl_program, device_param->opencl_device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
-
-          //if (CL_rc == -1) return -1;
-
-          #if defined (DEBUG)
-          if ((build_log_size > 1) || (CL_rc == -1))
-          #else
-          if (CL_rc == -1)
-          #endif
-          {
-            char *build_log = (char *) hcmalloc (build_log_size + 1);
-
-            const int rc_clGetProgramBuildInfo = hc_clGetProgramBuildInfo (hashcat_ctx, device_param->opencl_program, device_param->opencl_device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
-
-            if (rc_clGetProgramBuildInfo == -1) return -1;
-
-            puts (build_log);
-
-            hcfree (build_log);
-          }
-
-          if (CL_rc == -1)
-          {
-            device_param->skipped_warning = true;
-
-            event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed - proceeding without this device.", device_id + 1, source_file);
-
-            continue;
-          }
-
-          if (cache_disable == false)
-          {
-            size_t binary_size;
-
-            if (hc_clGetProgramInfo (hashcat_ctx, device_param->opencl_program, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL) == -1) return -1;
-
-            char *binary = (char *) hcmalloc (binary_size);
-
-            if (hc_clGetProgramInfo (hashcat_ctx, device_param->opencl_program, CL_PROGRAM_BINARIES, sizeof (char *), &binary, NULL) == -1) return -1;
-
-            if (write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size) == false) return -1;
-
-            hcfree (binary);
-          }
-        }
+        return -1;
       }
-      else
-      {
-        if (read_kernel_binary (hashcat_ctx, cached_file, kernel_lengths, kernel_sources, false) == false) return -1;
-
-        if (device_param->is_cuda == true)
-        {
-          #define LOG_SIZE 8192
-
-          char *cujit_info_log  = (char *) hcmalloc (LOG_SIZE + 1);
-          char *cujit_error_log = (char *) hcmalloc (LOG_SIZE + 1);
-
-          CUjit_option cujit_opts[6];
-          void *cujit_vals[6];
-
-          cujit_opts[0] = CU_JIT_TARGET_FROM_CUCONTEXT;
-          cujit_vals[0] = (void *) 0;
-
-          cujit_opts[1] = CU_JIT_LOG_VERBOSE;
-          cujit_vals[1] = (void *) 1;
-
-          cujit_opts[2] = CU_JIT_INFO_LOG_BUFFER;
-          cujit_vals[2] = (void *) cujit_info_log;
-
-          cujit_opts[3] = CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES;
-          cujit_vals[3] = (void *) LOG_SIZE;
-
-          cujit_opts[4] = CU_JIT_ERROR_LOG_BUFFER;
-          cujit_vals[4] = (void *) cujit_error_log;
-
-          cujit_opts[5] = CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES;
-          cujit_vals[5] = (void *) LOG_SIZE;
-
-          if (hc_cuModuleLoadDataEx (hashcat_ctx, &device_param->cuda_module, kernel_sources[0], 6, cujit_opts, cujit_vals) == -1)
-          {
-            event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
-            event_log_error (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
-
-            return -1;
-          }
-
-          hcfree (cujit_info_log);
-          hcfree (cujit_error_log);
-        }
-
-        if (device_param->is_opencl == true)
-        {
-          if (hc_clCreateProgramWithBinary (hashcat_ctx, device_param->opencl_context, 1, &device_param->opencl_device, kernel_lengths, (const unsigned char **) kernel_sources, NULL, &device_param->opencl_program) == -1) return -1;
-
-          if (hc_clBuildProgram (hashcat_ctx, device_param->opencl_program, 1, &device_param->opencl_device, build_options_module_buf, NULL, NULL) == -1) return -1;
-        }
-      }
-
-      hcfree (kernel_sources[0]);
     }
 
     hcfree (build_options_module_buf);
@@ -7753,312 +7820,14 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         generate_cached_kernel_mp_filename (hashconfig->opti_type, hashconfig->opts_type, folder_config->profile_dir, device_name_chksum_amp_mp, cached_file);
 
-        bool cached = true;
+        const bool rc_load_kernel = load_kernel (hashcat_ctx, device_param, "mp_kernel", source_file, cached_file, build_options_buf, cache_disable, &device_param->opencl_program_mp, &device_param->cuda_module_mp);
 
-        if (cache_disable == true)
+        if (rc_load_kernel == false)
         {
-          cached = false;
+          event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed.", device_param->device_id + 1, source_file);
+
+          return -1;
         }
-
-        if (hc_path_read (cached_file) == false)
-        {
-          cached = false;
-        }
-
-        if (hc_path_is_empty (cached_file) == true)
-        {
-          cached = false;
-        }
-
-        /**
-         * kernel compile or load
-         */
-
-        size_t kernel_lengths_buf = 0;
-
-        size_t *kernel_lengths = &kernel_lengths_buf;
-
-        char *kernel_sources_buf = NULL;
-
-        char **kernel_sources = &kernel_sources_buf;
-
-        if (cached == false)
-        {
-          #if defined (DEBUG)
-          if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
-          #endif
-
-          if (read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources, true) == false) return -1;
-
-          if (device_param->is_cuda == true)
-          {
-            nvrtcProgram program;
-
-            if (hc_nvrtcCreateProgram (hashcat_ctx, &program, kernel_sources[0], "mp_kernel", 0, NULL, NULL) == -1) return -1;
-
-            char **nvrtc_options = (char **) hccalloc (4 + strlen (build_options_buf) + 1, sizeof (char *)); // ...
-
-            nvrtc_options[0] = "--restrict";
-            nvrtc_options[1] = "--device-as-default-execution-space";
-            nvrtc_options[2] = "--gpu-architecture";
-
-            hc_asprintf (&nvrtc_options[3], "compute_%d%d", device_param->sm_major, device_param->sm_minor);
-
-            char *nvrtc_options_string = hcstrdup (build_options_buf);
-
-            const int num_options = 4 + nvrtc_make_options_array_from_string (nvrtc_options_string, nvrtc_options + 4);
-
-            const int rc_nvrtcCompileProgram = hc_nvrtcCompileProgram (hashcat_ctx, program, num_options, (const char * const *) nvrtc_options);
-
-            size_t build_log_size = 0;
-
-            hc_nvrtcGetProgramLogSize (hashcat_ctx, program, &build_log_size);
-
-            #if defined (DEBUG)
-            if ((build_log_size > 1) || (rc_nvrtcCompileProgram == -1))
-            #else
-            if (rc_nvrtcCompileProgram == -1)
-            #endif
-            {
-              char *build_log = (char *) hcmalloc (build_log_size + 1);
-
-              if (hc_nvrtcGetProgramLog (hashcat_ctx, program, build_log) == -1) return -1;
-
-              puts (build_log);
-
-              hcfree (build_log);
-            }
-
-            if (rc_nvrtcCompileProgram == -1)
-            {
-              device_param->skipped_warning = true;
-
-              event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed - proceeding without this device.", device_id + 1, source_file);
-
-              continue;
-            }
-
-            hcfree (nvrtc_options);
-            hcfree (nvrtc_options_string);
-
-            size_t binary_size = 0;
-
-            if (hc_nvrtcGetPTXSize (hashcat_ctx, program, &binary_size) == -1) return -1;
-
-            char *binary = (char *) hcmalloc (binary_size);
-
-            if (hc_nvrtcGetPTX (hashcat_ctx, program, binary) == -1) return -1;
-
-            if (hc_nvrtcDestroyProgram (hashcat_ctx, &program) == -1) return -1;
-
-            #define LOG_SIZE 8192
-
-            char *cujit_info_log  = (char *) hcmalloc (LOG_SIZE + 1);
-            char *cujit_error_log = (char *) hcmalloc (LOG_SIZE + 1);
-
-            CUjit_option cujit_opts[6];
-            void *cujit_vals[6];
-
-            cujit_opts[0] = CU_JIT_TARGET_FROM_CUCONTEXT;
-            cujit_vals[0] = (void *) 0;
-
-            cujit_opts[1] = CU_JIT_LOG_VERBOSE;
-            cujit_vals[1] = (void *) 1;
-
-            cujit_opts[2] = CU_JIT_INFO_LOG_BUFFER;
-            cujit_vals[2] = (void *) cujit_info_log;
-
-            cujit_opts[3] = CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES;
-            cujit_vals[3] = (void *) LOG_SIZE;
-
-            cujit_opts[4] = CU_JIT_ERROR_LOG_BUFFER;
-            cujit_vals[4] = (void *) cujit_error_log;
-
-            cujit_opts[5] = CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES;
-            cujit_vals[5] = (void *) LOG_SIZE;
-
-            CUlinkState state;
-
-            if (hc_cuLinkCreate (hashcat_ctx, 6, cujit_opts, cujit_vals, &state) == -1)
-            {
-              event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
-              event_log_error (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
-
-              return -1;
-            }
-
-            if (hc_cuLinkAddData (hashcat_ctx, state, CU_JIT_INPUT_PTX, binary, binary_size, "mp_kernel", 0, NULL, NULL) == -1)
-            {
-              event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
-              event_log_error (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
-
-              return -1;
-            }
-
-            void *cubin = NULL;
-
-            size_t cubin_size = 0;
-
-            if (hc_cuLinkComplete (hashcat_ctx, state, &cubin, &cubin_size) == -1)
-            {
-              event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
-              event_log_error (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
-
-              return -1;
-            }
-
-            #ifdef DEBUG
-
-            event_log_info (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
-            event_log_info (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
-
-            if (hc_cuModuleLoadDataEx (hashcat_ctx, &device_param->cuda_module_mp, binary, 6, cujit_opts, cujit_vals) == -1)
-            {
-              event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
-              event_log_error (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
-
-              return -1;
-            }
-
-            if (cache_disable == false)
-            {
-              if (write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size) == false) return -1;
-            }
-
-            #else
-
-            if (hc_cuModuleLoadDataEx (hashcat_ctx, &device_param->cuda_module_mp, cubin, 6, cujit_opts, cujit_vals) == -1)
-            {
-              event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
-              event_log_error (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
-
-              return -1;
-            }
-
-            if (cache_disable == false)
-            {
-              if (write_kernel_binary (hashcat_ctx, cached_file, cubin, cubin_size) == false) return -1;
-            }
-
-            #endif
-
-            hcfree (binary);
-
-            hcfree (cujit_info_log);
-            hcfree (cujit_error_log);
-
-            if (hc_cuLinkDestroy (hashcat_ctx, state) == -1) return -1;
-          }
-
-          if (device_param->is_opencl == true)
-          {
-            if (hc_clCreateProgramWithSource (hashcat_ctx, device_param->opencl_context, 1, (const char **) kernel_sources, NULL, &device_param->opencl_program_mp) == -1) return -1;
-
-            const int CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->opencl_program_mp, 1, &device_param->opencl_device, build_options_buf, NULL, NULL);
-
-            //if (CL_rc == -1) return -1;
-
-            size_t build_log_size = 0;
-
-            hc_clGetProgramBuildInfo (hashcat_ctx, device_param->opencl_program_mp, device_param->opencl_device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
-
-            //if (CL_rc == -1) return -1;
-
-            #if defined (DEBUG)
-            if ((build_log_size > 1) || (CL_rc == -1))
-            #else
-            if (CL_rc == -1)
-            #endif
-            {
-              char *build_log = (char *) hcmalloc (build_log_size + 1);
-
-              const int rc_clGetProgramBuildInfo = hc_clGetProgramBuildInfo (hashcat_ctx, device_param->opencl_program_mp, device_param->opencl_device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
-
-              if (rc_clGetProgramBuildInfo == -1) return -1;
-
-              puts (build_log);
-
-              hcfree (build_log);
-            }
-
-            if (CL_rc == -1)
-            {
-              device_param->skipped_warning = true;
-
-              event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed - proceeding without this device.", device_id + 1, source_file);
-
-              continue;
-            }
-
-            if (cache_disable == false)
-            {
-              size_t binary_size = 0;
-
-              if (hc_clGetProgramInfo (hashcat_ctx, device_param->opencl_program_mp, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL) == -1) return -1;
-
-              char *binary = (char *) hcmalloc (binary_size);
-
-              if (hc_clGetProgramInfo (hashcat_ctx, device_param->opencl_program_mp, CL_PROGRAM_BINARIES, sizeof (char *), &binary, NULL) == -1) return -1;
-
-              write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size);
-
-              hcfree (binary);
-            }
-          }
-        }
-        else
-        {
-          if (read_kernel_binary (hashcat_ctx, cached_file, kernel_lengths, kernel_sources, false) == false) return -1;
-
-          if (device_param->is_cuda == true)
-          {
-            #define LOG_SIZE 8192
-
-            char *cujit_info_log  = (char *) hcmalloc (LOG_SIZE + 1);
-            char *cujit_error_log = (char *) hcmalloc (LOG_SIZE + 1);
-
-            CUjit_option cujit_opts[6];
-            void *cujit_vals[6];
-
-            cujit_opts[0] = CU_JIT_TARGET_FROM_CUCONTEXT;
-            cujit_vals[0] = (void *) 0;
-
-            cujit_opts[1] = CU_JIT_LOG_VERBOSE;
-            cujit_vals[1] = (void *) 1;
-
-            cujit_opts[2] = CU_JIT_INFO_LOG_BUFFER;
-            cujit_vals[2] = (void *) cujit_info_log;
-
-            cujit_opts[3] = CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES;
-            cujit_vals[3] = (void *) LOG_SIZE;
-
-            cujit_opts[4] = CU_JIT_ERROR_LOG_BUFFER;
-            cujit_vals[4] = (void *) cujit_error_log;
-
-            cujit_opts[5] = CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES;
-            cujit_vals[5] = (void *) LOG_SIZE;
-
-            if (hc_cuModuleLoadDataEx (hashcat_ctx, &device_param->cuda_module_mp, kernel_sources[0], 6, cujit_opts, cujit_vals) == -1)
-            {
-              event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
-              event_log_error (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
-
-              return -1;
-            }
-
-            hcfree (cujit_info_log);
-            hcfree (cujit_error_log);
-          }
-
-          if (device_param->is_opencl == true)
-          {
-            if (hc_clCreateProgramWithBinary (hashcat_ctx, device_param->opencl_context, 1, &device_param->opencl_device, kernel_lengths, (const unsigned char **) kernel_sources, NULL, &device_param->opencl_program_mp) == -1) return -1;
-
-            if (hc_clBuildProgram (hashcat_ctx, device_param->opencl_program_mp, 1, &device_param->opencl_device, build_options_buf, NULL, NULL) == -1) return -1;
-          }
-        }
-
-        hcfree (kernel_sources[0]);
       }
     }
 
@@ -8100,314 +7869,14 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         generate_cached_kernel_amp_filename (user_options_extra->attack_kern, folder_config->profile_dir, device_name_chksum_amp_mp, cached_file);
 
-        bool cached = true;
+        const bool rc_load_kernel = load_kernel (hashcat_ctx, device_param, "amp_kernel", source_file, cached_file, build_options_buf, cache_disable, &device_param->opencl_program_amp, &device_param->cuda_module_amp);
 
-        if (cache_disable == true)
+        if (rc_load_kernel == false)
         {
-          cached = false;
+          event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed.", device_param->device_id + 1, source_file);
+
+          return -1;
         }
-
-        if (hc_path_read (cached_file) == false)
-        {
-          cached = false;
-        }
-
-        if (hc_path_is_empty (cached_file) == true)
-        {
-          cached = false;
-        }
-
-        /**
-         * kernel compile or load
-         */
-
-        size_t kernel_lengths_buf = 0;
-
-        size_t *kernel_lengths = &kernel_lengths_buf;
-
-        char *kernel_sources_buf = NULL;
-
-        char **kernel_sources = &kernel_sources_buf;
-
-        if (cached == false)
-        {
-          #if defined (DEBUG)
-          if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
-          #endif
-
-          const bool rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources, true);
-
-          if (rc_read_kernel == false) return -1;
-
-          if (device_param->is_cuda == true)
-          {
-            nvrtcProgram program;
-
-            if (hc_nvrtcCreateProgram (hashcat_ctx, &program, kernel_sources[0], "amp_kernel", 0, NULL, NULL) == -1) return -1;
-
-            char **nvrtc_options = (char **) hccalloc (4 + strlen (build_options_buf) + 1, sizeof (char *)); // ...
-
-            nvrtc_options[0] = "--restrict";
-            nvrtc_options[1] = "--device-as-default-execution-space";
-            nvrtc_options[2] = "--gpu-architecture";
-
-            hc_asprintf (&nvrtc_options[3], "compute_%d%d", device_param->sm_major, device_param->sm_minor);
-
-            char *nvrtc_options_string = hcstrdup (build_options_buf);
-
-            const int num_options = 4 + nvrtc_make_options_array_from_string (nvrtc_options_string, nvrtc_options + 4);
-
-            const int rc_nvrtcCompileProgram = hc_nvrtcCompileProgram (hashcat_ctx, program, num_options, (const char * const *) nvrtc_options);
-
-            size_t build_log_size = 0;
-
-            hc_nvrtcGetProgramLogSize (hashcat_ctx, program, &build_log_size);
-
-            #if defined (DEBUG)
-            if ((build_log_size > 1) || (rc_nvrtcCompileProgram == -1))
-            #else
-            if (rc_nvrtcCompileProgram == -1)
-            #endif
-            {
-              char *build_log = (char *) hcmalloc (build_log_size + 1);
-
-              if (hc_nvrtcGetProgramLog (hashcat_ctx, program, build_log) == -1) return -1;
-
-              puts (build_log);
-
-              hcfree (build_log);
-            }
-
-            if (rc_nvrtcCompileProgram == -1)
-            {
-              device_param->skipped_warning = true;
-
-              event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed - proceeding without this device.", device_id + 1, source_file);
-
-              continue;
-            }
-
-            hcfree (nvrtc_options);
-            hcfree (nvrtc_options_string);
-
-            size_t binary_size = 0;
-
-            if (hc_nvrtcGetPTXSize (hashcat_ctx, program, &binary_size) == -1) return -1;
-
-            char *binary = (char *) hcmalloc (binary_size);
-
-            if (hc_nvrtcGetPTX (hashcat_ctx, program, binary) == -1) return -1;
-
-            if (hc_nvrtcDestroyProgram (hashcat_ctx, &program) == -1) return -1;
-
-            #define LOG_SIZE 8192
-
-            char *cujit_info_log  = (char *) hcmalloc (LOG_SIZE + 1);
-            char *cujit_error_log = (char *) hcmalloc (LOG_SIZE + 1);
-
-            CUjit_option cujit_opts[6];
-            void *cujit_vals[6];
-
-            cujit_opts[0] = CU_JIT_TARGET_FROM_CUCONTEXT;
-            cujit_vals[0] = (void *) 0;
-
-            cujit_opts[1] = CU_JIT_LOG_VERBOSE;
-            cujit_vals[1] = (void *) 1;
-
-            cujit_opts[2] = CU_JIT_INFO_LOG_BUFFER;
-            cujit_vals[2] = (void *) cujit_info_log;
-
-            cujit_opts[3] = CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES;
-            cujit_vals[3] = (void *) LOG_SIZE;
-
-            cujit_opts[4] = CU_JIT_ERROR_LOG_BUFFER;
-            cujit_vals[4] = (void *) cujit_error_log;
-
-            cujit_opts[5] = CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES;
-            cujit_vals[5] = (void *) LOG_SIZE;
-
-            CUlinkState state;
-
-            if (hc_cuLinkCreate (hashcat_ctx, 6, cujit_opts, cujit_vals, &state) == -1)
-            {
-              event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
-              event_log_error (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
-
-              return -1;
-            }
-
-            if (hc_cuLinkAddData (hashcat_ctx, state, CU_JIT_INPUT_PTX, binary, binary_size, "amp_kernel", 0, NULL, NULL) == -1)
-            {
-              event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
-              event_log_error (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
-
-              return -1;
-            }
-
-            void *cubin = NULL;
-
-            size_t cubin_size = 0;
-
-            if (hc_cuLinkComplete (hashcat_ctx, state, &cubin, &cubin_size) == -1)
-            {
-              event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
-              event_log_error (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
-
-              return -1;
-            }
-
-            #ifdef DEBUG
-
-            event_log_info (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
-            event_log_info (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
-
-            if (hc_cuModuleLoadDataEx (hashcat_ctx, &device_param->cuda_module_amp, binary, 6, cujit_opts, cujit_vals) == -1)
-            {
-              event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
-              event_log_error (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
-
-              return -1;
-            }
-
-            if (cache_disable == false)
-            {
-              if (write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size) == false) return -1;
-            }
-
-            #else
-
-            if (hc_cuModuleLoadDataEx (hashcat_ctx, &device_param->cuda_module_amp, cubin, 6, cujit_opts, cujit_vals) == -1)
-            {
-              event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
-              event_log_error (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
-
-              return -1;
-            }
-
-            if (cache_disable == false)
-            {
-              if (write_kernel_binary (hashcat_ctx, cached_file, cubin, cubin_size) == false) return -1;
-            }
-
-            #endif
-
-            hcfree (cujit_info_log);
-            hcfree (cujit_error_log);
-
-            hcfree (binary);
-
-            if (hc_cuLinkDestroy (hashcat_ctx, state) == -1) return -1;
-          }
-
-          if (device_param->is_opencl == true)
-          {
-            if (hc_clCreateProgramWithSource (hashcat_ctx, device_param->opencl_context, 1, (const char **) kernel_sources, NULL, &device_param->opencl_program_amp) == -1) return -1;
-
-            const int CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->opencl_program_amp, 1, &device_param->opencl_device, build_options_buf, NULL, NULL);
-
-            //if (CL_rc == -1) return -1;
-
-            size_t build_log_size = 0;
-
-            hc_clGetProgramBuildInfo (hashcat_ctx, device_param->opencl_program_amp, device_param->opencl_device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
-
-            //if (CL_rc == -1) return -1;
-
-            #if defined (DEBUG)
-            if ((build_log_size > 1) || (CL_rc == -1))
-            #else
-            if (CL_rc == -1)
-            #endif
-            {
-              char *build_log = (char *) hcmalloc (build_log_size + 1);
-
-              const int rc_clGetProgramBuildInfo = hc_clGetProgramBuildInfo (hashcat_ctx, device_param->opencl_program_amp, device_param->opencl_device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
-
-              if (rc_clGetProgramBuildInfo == -1) return -1;
-
-              puts (build_log);
-
-              hcfree (build_log);
-            }
-
-            if (CL_rc == -1)
-            {
-              device_param->skipped_warning = true;
-
-              event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed - proceeding without this device.", device_id + 1, source_file);
-
-              continue;
-            }
-
-            if (cache_disable == false)
-            {
-              size_t binary_size;
-
-              if (hc_clGetProgramInfo (hashcat_ctx, device_param->opencl_program_amp, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL) == -1) return -1;
-
-              char *binary = (char *) hcmalloc (binary_size);
-
-              if (hc_clGetProgramInfo (hashcat_ctx, device_param->opencl_program_amp, CL_PROGRAM_BINARIES, sizeof (char *), &binary, NULL) == -1) return -1;
-
-              write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size);
-
-              hcfree (binary);
-            }
-          }
-        }
-        else
-        {
-          if (read_kernel_binary (hashcat_ctx, cached_file, kernel_lengths, kernel_sources, false) == false) return -1;
-
-          if (device_param->is_cuda == true)
-          {
-            #define LOG_SIZE 8192
-
-            char *cujit_info_log  = (char *) hcmalloc (LOG_SIZE + 1);
-            char *cujit_error_log = (char *) hcmalloc (LOG_SIZE + 1);
-
-            CUjit_option cujit_opts[6];
-            void *cujit_vals[6];
-
-            cujit_opts[0] = CU_JIT_TARGET_FROM_CUCONTEXT;
-            cujit_vals[0] = (void *) 0;
-
-            cujit_opts[1] = CU_JIT_LOG_VERBOSE;
-            cujit_vals[1] = (void *) 1;
-
-            cujit_opts[2] = CU_JIT_INFO_LOG_BUFFER;
-            cujit_vals[2] = (void *) cujit_info_log;
-
-            cujit_opts[3] = CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES;
-            cujit_vals[3] = (void *) LOG_SIZE;
-
-            cujit_opts[4] = CU_JIT_ERROR_LOG_BUFFER;
-            cujit_vals[4] = (void *) cujit_error_log;
-
-            cujit_opts[5] = CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES;
-            cujit_vals[5] = (void *) LOG_SIZE;
-
-            if (hc_cuModuleLoadDataEx (hashcat_ctx, &device_param->cuda_module_amp, kernel_sources[0], 6, cujit_opts, cujit_vals) == -1)
-            {
-              event_log_error (hashcat_ctx, "cujit() Info Log (%d):\n%s\n\n",  (int) strlen (cujit_info_log),  cujit_info_log);
-              event_log_error (hashcat_ctx, "cujit() Error Log (%d):\n%s\n\n", (int) strlen (cujit_error_log), cujit_error_log);
-
-              return -1;
-            }
-
-            hcfree (cujit_info_log);
-            hcfree (cujit_error_log);
-          }
-
-          if (device_param->is_opencl == true)
-          {
-            if (hc_clCreateProgramWithBinary (hashcat_ctx, device_param->opencl_context, 1, &device_param->opencl_device, kernel_lengths, (const unsigned char **) kernel_sources, NULL, &device_param->opencl_program_amp) == -1) return -1;
-
-            if (hc_clBuildProgram (hashcat_ctx, device_param->opencl_program_amp, 1, &device_param->opencl_device, build_options_buf, NULL, NULL) == -1) return -1;
-          }
-        }
-
-        hcfree (kernel_sources[0]);
 
         hcfree (build_options_buf);
       }
