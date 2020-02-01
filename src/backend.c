@@ -697,10 +697,10 @@ int nvrtc_init (hashcat_ctx_t *hashcat_ctx)
 
     char dllname[100];
 
-    for (int major = 20; major >= 10; major--) // older than 3.x do not ship _v2 functions anyway
-                                               // older than 7.x does not support sm 5.x
-                                               // older than 8.x does not have documentation archive online, no way to check if nvrtc support whatever we need
-                                               // older than 10.x is just a theoretical limit since we define 10.1 as the minimum required version
+    for (int major = 20; major >= 9; major--) // older than 3.x do not ship _v2 functions anyway
+                                              // older than 7.x does not support sm 5.x
+                                              // older than 8.x does not have documentation archive online, no way to check if nvrtc support whatever we need
+                                              // older than 9.x is just a theoretical limit since we define 9.0 as the minimum required version
     {
       for (int minor = 20; minor >= 0; minor--)
       {
@@ -4920,6 +4920,16 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       backend_ctx->nvrtc_driver_version = nvrtc_driver_version;
 
+      if (nvrtc_driver_version < 9000)
+      {
+        event_log_error (hashcat_ctx, "Outdated NVIDIA NVRTC driver version '%d' detected!", nvrtc_driver_version);
+
+        event_log_warning (hashcat_ctx, "See hashcat.net for officially supported NVIDIA CUDA Toolkit versions.");
+        event_log_warning (hashcat_ctx, NULL);
+
+        return -1;
+      }
+
       // cuda version
 
       int cuda_driver_version = 0;
@@ -4928,11 +4938,9 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       backend_ctx->cuda_driver_version = cuda_driver_version;
 
-      // some pre-check
-
-      if ((nvrtc_driver_version < 10000) || (cuda_driver_version < 10000))
+      if (cuda_driver_version < 9000)
       {
-        event_log_error (hashcat_ctx, "Outdated NVIDIA CUDA Toolkit version '%d' detected!", cuda_driver_version);
+        event_log_error (hashcat_ctx, "Outdated NVIDIA CUDA driver version '%d' detected!", cuda_driver_version);
 
         event_log_warning (hashcat_ctx, "See hashcat.net for officially supported NVIDIA CUDA Toolkit versions.");
         event_log_warning (hashcat_ctx, NULL);
@@ -5001,7 +5009,7 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       event_log_warning (hashcat_ctx, "* NVIDIA GPUs require this runtime and/or driver (both):");
       event_log_warning (hashcat_ctx, "  \"NVIDIA Driver\" (418.56 or later)");
-      event_log_warning (hashcat_ctx, "  \"CUDA Toolkit\" (10.1 or later)");
+      event_log_warning (hashcat_ctx, "  \"CUDA Toolkit\" (9.0 or later)");
       event_log_warning (hashcat_ctx, NULL);
 
       return -1;
@@ -5283,7 +5291,7 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     event_log_warning (hashcat_ctx, "* NVIDIA GPUs require this runtime and/or driver (both):");
     event_log_warning (hashcat_ctx, "  \"NVIDIA Driver\" (418.56 or later)");
-    event_log_warning (hashcat_ctx, "  \"CUDA Toolkit\" (10.1 or later)");
+    event_log_warning (hashcat_ctx, "  \"CUDA Toolkit\" (9.0 or later)");
     event_log_warning (hashcat_ctx, NULL);
 
     return -1;

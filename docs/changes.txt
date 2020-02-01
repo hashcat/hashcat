@@ -155,7 +155,7 @@
 - OpenCL Kernels: Moved "gpu_decompress", "gpu_memset" and "gpu_atinit" into shared.cl in order to reduce compile time
 - OpenCL Options: Removed --opencl-platforms filter in order to force backend device numbers to stay constant
 - Parsers: switched from strtok() to strtok_r() for thread safety
-- Requirements: Add new requirement for NVIDIA GPU: CUDA Toolkit (10.1 or later)
+- Requirements: Add new requirement for NVIDIA GPU: CUDA Toolkit (9.0 or later)
 - Requirements: Update runtime check for minimum NVIDIA driver version from 367.x to 418.56 or later
 - Test Script: Switched from /bin/bash to generic /bin/sh and updated code accordingly
 
