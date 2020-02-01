@@ -1132,6 +1132,27 @@ typedef struct hc_device_param
   u64     kernel_local_mem_size_aux3;
   u64     kernel_local_mem_size_aux4;
 
+  u64     kernel_dynamic_local_mem_size1;
+  u64     kernel_dynamic_local_mem_size12;
+  u64     kernel_dynamic_local_mem_size2;
+  u64     kernel_dynamic_local_mem_size23;
+  u64     kernel_dynamic_local_mem_size3;
+  u64     kernel_dynamic_local_mem_size4;
+  u64     kernel_dynamic_local_mem_size_init2;
+  u64     kernel_dynamic_local_mem_size_loop2;
+  u64     kernel_dynamic_local_mem_size_mp;
+  u64     kernel_dynamic_local_mem_size_mp_l;
+  u64     kernel_dynamic_local_mem_size_mp_r;
+  u64     kernel_dynamic_local_mem_size_amp;
+  u64     kernel_dynamic_local_mem_size_tm;
+  u64     kernel_dynamic_local_mem_size_memset;
+  u64     kernel_dynamic_local_mem_size_atinit;
+  u64     kernel_dynamic_local_mem_size_decompress;
+  u64     kernel_dynamic_local_mem_size_aux1;
+  u64     kernel_dynamic_local_mem_size_aux2;
+  u64     kernel_dynamic_local_mem_size_aux3;
+  u64     kernel_dynamic_local_mem_size_aux4;
+
   u32     kernel_accel;
   u32     kernel_accel_prev;
   u32     kernel_accel_min;

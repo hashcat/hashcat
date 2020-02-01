@@ -91,6 +91,8 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
   if (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU)
   {
     fixed_local_size = 1;
+
+    hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u", fixed_local_size);
   }
   else
   {
@@ -120,14 +122,36 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
       {
         fixed_local_size = (device_param->device_local_mem_size - overhead) / 4096;
       }
+
+      if (device_param->is_cuda == true)
+      {
+        hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u -D DYNAMIC_LOCAL", fixed_local_size);
+      }
+      else
+      {
+        hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u", fixed_local_size);
+      }
     }
     else
     {
-      fixed_local_size = (device_param->device_local_mem_size - overhead) / 4096;
+      if (device_param->is_cuda == true)
+      {
+        // using kernel_dynamic_local_mem_size_memset is a bit hackish.
+        // we had to brute-force this value out of an already loaded CUDA function.
+        // there's no official way to query for this value.
+
+        fixed_local_size = device_param->kernel_dynamic_local_mem_size_memset / 4096;
+
+        hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u -D DYNAMIC_LOCAL", fixed_local_size);
+      }
+      else
+      {
+        fixed_local_size = (device_param->device_local_mem_size - overhead) / 4096;
+
+        hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u", fixed_local_size);
+      }
     }
   }
-
-  hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u", fixed_local_size);
 
   return jit_build_options;
 }
