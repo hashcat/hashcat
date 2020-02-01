@@ -277,6 +277,5 @@ DECLSPEC void append_0x01_4x4_VV (u32x *w0, u32x *w1, u32x *w2, u32x *w3, const 
 DECLSPEC void append_0x06_2x4_VV (u32x *w0, u32x *w1, const u32x offset);
 DECLSPEC void append_0x80_2x4_VV (u32x *w0, u32x *w1, const u32x offset);
 DECLSPEC void append_0x80_4x4_VV (u32x *w0, u32x *w1, u32x *w2, u32x *w3, const u32x offset);
-DECLSPEC void gpu_decompress_entry (GLOBAL_AS pw_idx_t *pws_idx, GLOBAL_AS u32 *pws_comp, pw_t *pw, const u64 gid);
 
 #endif

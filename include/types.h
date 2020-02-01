@@ -1322,6 +1322,7 @@ typedef struct hc_device_param
   CUevent           cuda_event2;
 
   CUmodule          cuda_module;
+  CUmodule          cuda_module_shared;
   CUmodule          cuda_module_mp;
   CUmodule          cuda_module_amp;
 
@@ -1403,6 +1404,7 @@ typedef struct hc_device_param
   cl_command_queue  opencl_command_queue;
 
   cl_program        opencl_program;
+  cl_program        opencl_program_shared;
   cl_program        opencl_program_mp;
   cl_program        opencl_program_amp;
 

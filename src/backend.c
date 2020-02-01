@@ -631,6 +631,16 @@ void generate_cached_kernel_filename (const bool slow_candidates, const u32 atta
   }
 }
 
+void generate_source_kernel_shared_filename (char *shared_dir, char *source_file)
+{
+  snprintf (source_file, 255, "%s/OpenCL/shared.cl", shared_dir);
+}
+
+void generate_cached_kernel_shared_filename (char *profile_dir, const char *device_name_chksum_amp_mp, char *cached_file)
+{
+  snprintf (cached_file, 255, "%s/kernels/shared.%s.kernel", profile_dir, device_name_chksum_amp_mp);
+}
+
 void generate_source_kernel_mp_filename (const u32 opti_type, const u64 opts_type, char *shared_dir, char *source_file)
 {
   if ((opti_type & OPTI_TYPE_BRUTE_FORCE) && (opts_type & OPTS_TYPE_PT_GENERATE_BE))
@@ -7787,6 +7797,44 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     hcfree (build_options_module_buf);
 
     /**
+     * shared kernel with no hashconfig dependencies
+     */
+
+    {
+      /**
+       * kernel shared source filename
+       */
+
+      char source_file[256] = { 0 };
+
+      generate_source_kernel_shared_filename (folder_config->shared_dir, source_file);
+
+      if (hc_path_read (source_file) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: %s", source_file, strerror (errno));
+
+        return -1;
+      }
+
+      /**
+       * kernel shared cached filename
+       */
+
+      char cached_file[256] = { 0 };
+
+      generate_cached_kernel_shared_filename (folder_config->profile_dir, device_name_chksum_amp_mp, cached_file);
+
+      const bool rc_load_kernel = load_kernel (hashcat_ctx, device_param, "shared_kernel", source_file, cached_file, build_options_buf, cache_disable, &device_param->opencl_program_shared, &device_param->cuda_module_shared);
+
+      if (rc_load_kernel == false)
+      {
+        event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed.", device_param->device_id + 1, source_file);
+
+        return -1;
+      }
+    }
+
+    /**
      * word generator kernel
      */
 
@@ -8708,7 +8756,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       // GPU memset
 
-      if (hc_cuModuleGetFunction (hashcat_ctx, &device_param->cuda_function_memset, device_param->cuda_module, "gpu_memset") == -1) return -1;
+      if (hc_cuModuleGetFunction (hashcat_ctx, &device_param->cuda_function_memset, device_param->cuda_module_shared, "gpu_memset") == -1) return -1;
 
       if (get_cuda_kernel_wgs (hashcat_ctx, device_param->cuda_function_memset, &device_param->kernel_wgs_memset) == -1) return -1;
 
@@ -8722,7 +8770,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       // GPU autotune init
 
-      if (hc_cuModuleGetFunction (hashcat_ctx, &device_param->cuda_function_atinit, device_param->cuda_module, "gpu_atinit") == -1) return -1;
+      if (hc_cuModuleGetFunction (hashcat_ctx, &device_param->cuda_function_atinit, device_param->cuda_module_shared, "gpu_atinit") == -1) return -1;
 
       if (get_cuda_kernel_wgs (hashcat_ctx, device_param->cuda_function_atinit, &device_param->kernel_wgs_atinit) == -1) return -1;
 
@@ -8735,7 +8783,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       // GPU decompress
 
-      if (hc_cuModuleGetFunction (hashcat_ctx, &device_param->cuda_function_decompress, device_param->cuda_module, "gpu_decompress") == -1) return -1;
+      if (hc_cuModuleGetFunction (hashcat_ctx, &device_param->cuda_function_decompress, device_param->cuda_module_shared, "gpu_decompress") == -1) return -1;
 
       if (get_cuda_kernel_wgs (hashcat_ctx, device_param->cuda_function_decompress, &device_param->kernel_wgs_decompress) == -1) return -1;
 
@@ -9243,7 +9291,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       // GPU memset
 
-      if (hc_clCreateKernel (hashcat_ctx, device_param->opencl_program, "gpu_memset", &device_param->opencl_kernel_memset) == -1) return -1;
+      if (hc_clCreateKernel (hashcat_ctx, device_param->opencl_program_shared, "gpu_memset", &device_param->opencl_kernel_memset) == -1) return -1;
 
       if (get_opencl_kernel_wgs (hashcat_ctx, device_param, device_param->opencl_kernel_memset, &device_param->kernel_wgs_memset) == -1) return -1;
 
@@ -9257,7 +9305,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       // GPU autotune init
 
-      if (hc_clCreateKernel (hashcat_ctx, device_param->opencl_program, "gpu_atinit", &device_param->opencl_kernel_atinit) == -1) return -1;
+      if (hc_clCreateKernel (hashcat_ctx, device_param->opencl_program_shared, "gpu_atinit", &device_param->opencl_kernel_atinit) == -1) return -1;
 
       if (get_opencl_kernel_wgs (hashcat_ctx, device_param, device_param->opencl_kernel_atinit, &device_param->kernel_wgs_atinit) == -1) return -1;
 
@@ -9270,7 +9318,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       // GPU decompress
 
-      if (hc_clCreateKernel (hashcat_ctx, device_param->opencl_program, "gpu_decompress", &device_param->opencl_kernel_decompress) == -1) return -1;
+      if (hc_clCreateKernel (hashcat_ctx, device_param->opencl_program_shared, "gpu_decompress", &device_param->opencl_kernel_decompress) == -1) return -1;
 
       if (get_opencl_kernel_wgs (hashcat_ctx, device_param, device_param->opencl_kernel_decompress, &device_param->kernel_wgs_decompress) == -1) return -1;
 
