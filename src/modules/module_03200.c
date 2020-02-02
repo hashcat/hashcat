@@ -81,18 +81,32 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 {
   char *jit_build_options = NULL;
 
+  // this mode heavily depends on the available shared memory size
+  // note the kernel need to have some special code changes in order to make use to use post-48k memory region
+  // we need to set some macros
+
+  bool use_dynamic = false;
+
+  if (device_param->is_cuda == true)
+  {
+    if (device_param->kernel_dynamic_local_mem_size_memset % device_param->device_local_mem_size)
+    {
+      // this is the case Compute Capability 7.5
+      // there is also Compute Capability 7.0 which offers a larger dynamic local size access
+      // however, if it's an exact multiple the driver can optimize this for us more efficient
+
+      use_dynamic = true;
+    }
+  }
+
   // this uses some nice feedback effect.
   // based on the device_local_mem_size the reqd_work_group_size in the kernel is set to some value
   // which is then is read from the opencl host in the kernel_preferred_wgs_multiple1/2/3 result.
   // therefore we do not need to set module_kernel_threads_min/max except for CPU, where the threads are set to fixed 1.
 
-  u32 fixed_local_size = 0;
-
   if (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU)
   {
-    fixed_local_size = 1;
-
-    hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u", fixed_local_size);
+    hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u", 1);
   }
   else
   {
@@ -108,45 +122,52 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
       if (device_param->is_opencl == true)
       {
-        overhead = 4;
+        overhead = 1;
       }
     }
 
     if (user_options->kernel_threads_chgd == true)
     {
-      fixed_local_size = user_options->kernel_threads;
+      u32 fixed_local_size = user_options->kernel_threads;
 
-      // otherwise out-of-bound reads
-
-      if ((fixed_local_size * 4096) > (device_param->device_local_mem_size - overhead))
+      if (use_dynamic == true)
       {
-        fixed_local_size = (device_param->device_local_mem_size - overhead) / 4096;
-      }
+        if ((fixed_local_size * 4096) > device_param->kernel_dynamic_local_mem_size_memset)
+        {
+          // otherwise out-of-bound reads
 
-      if (device_param->is_cuda == true)
-      {
+          fixed_local_size = device_param->kernel_dynamic_local_mem_size_memset / 4096;
+        }
+
         hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u -D DYNAMIC_LOCAL", fixed_local_size);
       }
       else
       {
+        if ((fixed_local_size * 4096) > (device_param->device_local_mem_size - overhead))
+        {
+          // otherwise out-of-bound reads
+
+          fixed_local_size = (device_param->device_local_mem_size - overhead) / 4096;
+        }
+
         hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u", fixed_local_size);
       }
     }
     else
     {
-      if (device_param->is_cuda == true)
+      if (use_dynamic == true)
       {
         // using kernel_dynamic_local_mem_size_memset is a bit hackish.
         // we had to brute-force this value out of an already loaded CUDA function.
         // there's no official way to query for this value.
 
-        fixed_local_size = device_param->kernel_dynamic_local_mem_size_memset / 4096;
+        const u32 fixed_local_size = device_param->kernel_dynamic_local_mem_size_memset / 4096;
 
         hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u -D DYNAMIC_LOCAL", fixed_local_size);
       }
       else
       {
-        fixed_local_size = (device_param->device_local_mem_size - overhead) / 4096;
+        const u32 fixed_local_size = (device_param->device_local_mem_size - overhead) / 4096;
 
         hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u", fixed_local_size);
       }

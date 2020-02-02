@@ -3275,14 +3275,13 @@ int run_cuda_kernel_atinit (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devic
   device_param->kernel_params_atinit[0]       = (void *) &buf;
   device_param->kernel_params_atinit_buf64[1] = num_elements;
 
-  const u64 kernel_threads     = device_param->kernel_wgs_atinit;
-  const u64 dynamic_shared_mem = device_param->kernel_dynamic_local_mem_size_atinit;
+  const u64 kernel_threads = device_param->kernel_wgs_atinit;
 
   num_elements = CEILDIV (num_elements, kernel_threads);
 
   CUfunction function = device_param->cuda_function_atinit;
 
-  if (hc_cuLaunchKernel (hashcat_ctx, function, num_elements, 1, 1, kernel_threads, 1, 1, dynamic_shared_mem, device_param->cuda_stream, device_param->kernel_params_atinit, NULL) == -1) return -1;
+  if (hc_cuLaunchKernel (hashcat_ctx, function, num_elements, 1, 1, kernel_threads, 1, 1, 0, device_param->cuda_stream, device_param->kernel_params_atinit, NULL) == -1) return -1;
 
   if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
 
@@ -3300,8 +3299,7 @@ int run_cuda_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devic
     device_param->kernel_params_memset_buf32[1] = value;
     device_param->kernel_params_memset_buf64[2] = num16d;
 
-    const u64 kernel_threads     = device_param->kernel_wgs_memset;
-    const u64 dynamic_shared_mem = device_param->kernel_dynamic_local_mem_size_memset;
+    const u64 kernel_threads = device_param->kernel_wgs_memset;
 
     u64 num_elements = num16d;
 
@@ -3316,7 +3314,7 @@ int run_cuda_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devic
     //const size_t global_work_size[3] = { num_elements,   1, 1 };
     //const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
 
-    if (hc_cuLaunchKernel (hashcat_ctx, function, num_elements, 1, 1, kernel_threads, 1, 1, dynamic_shared_mem, device_param->cuda_stream, device_param->kernel_params_memset, NULL) == -1) return -1;
+    if (hc_cuLaunchKernel (hashcat_ctx, function, num_elements, 1, 1, kernel_threads, 1, 1, 0, device_param->cuda_stream, device_param->kernel_params_memset, NULL) == -1) return -1;
 
     if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
   }
@@ -3484,6 +3482,18 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
       break;
   }
 
+  if (device_param->is_cuda == true)
+  {
+    if ((device_param->kernel_dynamic_local_mem_size_memset % device_param->device_local_mem_size) == 0)
+    {
+      // this is the case Compute Capability 7.5
+      // there is also Compute Capability 7.0 which offers a larger dynamic local size access
+      // however, if it's an exact multiple the driver can optimize this for us more efficient
+
+      dynamic_shared_mem = 0;
+    }
+  }
+
   kernel_threads = MIN (kernel_threads, device_param->kernel_threads);
 
   device_param->kernel_params_buf64[34] = num;
@@ -3511,6 +3521,8 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
         case KERN_RUN_AUX3:   cuda_function = device_param->cuda_function_aux3;  break;
         case KERN_RUN_AUX4:   cuda_function = device_param->cuda_function_aux4;  break;
       }
+
+      if (hc_cuFuncSetAttribute (hashcat_ctx, cuda_function, CU_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES, dynamic_shared_mem) == -1) return -1;
     }
 
     if (kernel_threads == 0) kernel_threads = 1;
@@ -3767,23 +3779,13 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
 int run_kernel_mp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kern_run, const u64 num)
 {
-  u64 kernel_threads     = 0;
-  u64 dynamic_shared_mem = 0;
+  u64 kernel_threads = 0;
 
   switch (kern_run)
   {
-    case KERN_RUN_MP:
-      kernel_threads     = device_param->kernel_wgs_mp;
-      dynamic_shared_mem = device_param->kernel_dynamic_local_mem_size_mp;
-      break;
-    case KERN_RUN_MP_R:
-      kernel_threads     = device_param->kernel_wgs_mp_r;
-      dynamic_shared_mem = device_param->kernel_dynamic_local_mem_size_mp_r;
-      break;
-    case KERN_RUN_MP_L:
-      kernel_threads     = device_param->kernel_wgs_mp_l;
-      dynamic_shared_mem = device_param->kernel_dynamic_local_mem_size_mp_l;
-      break;
+    case KERN_RUN_MP:   kernel_threads  = device_param->kernel_wgs_mp;    break;
+    case KERN_RUN_MP_R: kernel_threads  = device_param->kernel_wgs_mp_r;  break;
+    case KERN_RUN_MP_L: kernel_threads  = device_param->kernel_wgs_mp_l;  break;
   }
 
   u64 num_elements = num;
@@ -3816,7 +3818,7 @@ int run_kernel_mp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
     num_elements = CEILDIV (num_elements, kernel_threads);
 
-    if (hc_cuLaunchKernel (hashcat_ctx, cuda_function, num_elements, 1, 1, kernel_threads, 1, 1, dynamic_shared_mem, device_param->cuda_stream, cuda_args, NULL) == -1) return -1;
+    if (hc_cuLaunchKernel (hashcat_ctx, cuda_function, num_elements, 1, 1, kernel_threads, 1, 1, 0, device_param->cuda_stream, cuda_args, NULL) == -1) return -1;
 
     if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
   }
@@ -3875,8 +3877,7 @@ int run_kernel_mp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
 int run_kernel_tm (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 {
-  const u64 num_elements       = 1024; // fixed
-  const u64 dynamic_shared_mem = device_param->kernel_dynamic_local_mem_size_tm;
+  const u64 num_elements = 1024; // fixed
 
   const u64 kernel_threads = MIN (num_elements, device_param->kernel_wgs_tm);
 
@@ -3884,7 +3885,7 @@ int run_kernel_tm (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   {
     CUfunction cuda_function = device_param->cuda_function_tm;
 
-    if (hc_cuLaunchKernel (hashcat_ctx, cuda_function, num_elements / kernel_threads, 1, 1, kernel_threads, 1, 1, dynamic_shared_mem, device_param->cuda_stream, device_param->kernel_params_tm, NULL) == -1) return -1;
+    if (hc_cuLaunchKernel (hashcat_ctx, cuda_function, num_elements / kernel_threads, 1, 1, kernel_threads, 1, 1, 0, device_param->cuda_stream, device_param->kernel_params_tm, NULL) == -1) return -1;
 
     if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
   }
@@ -3912,8 +3913,7 @@ int run_kernel_amp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
   u64 num_elements = num;
 
-  const u64 kernel_threads     = device_param->kernel_wgs_amp;
-  const u64 dynamic_shared_mem = device_param->kernel_dynamic_local_mem_size_amp;
+  const u64 kernel_threads = device_param->kernel_wgs_amp;
 
   if (device_param->is_cuda == true)
   {
@@ -3921,7 +3921,7 @@ int run_kernel_amp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
     CUfunction cuda_function = device_param->cuda_function_amp;
 
-    if (hc_cuLaunchKernel (hashcat_ctx, cuda_function, num_elements, 1, 1, kernel_threads, 1, 1, dynamic_shared_mem, device_param->cuda_stream, device_param->kernel_params_amp, NULL) == -1) return -1;
+    if (hc_cuLaunchKernel (hashcat_ctx, cuda_function, num_elements, 1, 1, kernel_threads, 1, 1, 0, device_param->cuda_stream, device_param->kernel_params_amp, NULL) == -1) return -1;
 
     if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
   }
@@ -3953,8 +3953,7 @@ int run_kernel_decompress (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
 
   u64 num_elements = num;
 
-  const u64 kernel_threads     = device_param->kernel_wgs_decompress;
-  const u64 dynamic_shared_mem = device_param->kernel_dynamic_local_mem_size_decompress;
+  const u64 kernel_threads = device_param->kernel_wgs_decompress;
 
   if (device_param->is_cuda == true)
   {
@@ -3962,7 +3961,7 @@ int run_kernel_decompress (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
 
     CUfunction cuda_function = device_param->cuda_function_decompress;
 
-    if (hc_cuLaunchKernel (hashcat_ctx, cuda_function, num_elements, 1, 1, kernel_threads, 1, 1, dynamic_shared_mem, device_param->cuda_stream, device_param->kernel_params_decompress, NULL) == -1) return -1;
+    if (hc_cuLaunchKernel (hashcat_ctx, cuda_function, num_elements, 1, 1, kernel_threads, 1, 1, 0, device_param->cuda_stream, device_param->kernel_params_decompress, NULL) == -1) return -1;
 
     if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
   }
@@ -6806,7 +6805,9 @@ static int get_cuda_kernel_dynamic_local_mem_size (hashcat_ctx_t *hashcat_ctx, C
 
   #define MAX_ASSUMED_SHARED (1024 * 1024)
 
-  for (int i = 0; i < MAX_ASSUMED_SHARED; i++)
+  u64 dynamic_shared_size_bytes = 0;
+
+  for (int i = 1; i <= MAX_ASSUMED_SHARED; i++)
   {
     backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
@@ -6814,16 +6815,19 @@ static int get_cuda_kernel_dynamic_local_mem_size (hashcat_ctx_t *hashcat_ctx, C
 
     const CUresult CU_err = cuda->cuFuncSetAttribute (function, CU_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES, i);
 
-    if (CU_err == CUDA_SUCCESS) continue;
+    if (CU_err == CUDA_SUCCESS)
+    {
+      dynamic_shared_size_bytes = i;
+
+      continue;
+    }
 
     break;
   }
 
-  int dynamic_shared_size_bytes = 0;
+  *result = dynamic_shared_size_bytes;
 
-  if (hc_cuFuncGetAttribute (hashcat_ctx, &dynamic_shared_size_bytes, CU_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES, function) == -1) return -1;
-
-  *result = (u64) dynamic_shared_size_bytes;
+  if (hc_cuFuncSetAttribute (hashcat_ctx, function, CU_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES, 0) == -1) return -1;
 
   return 0;
 }
