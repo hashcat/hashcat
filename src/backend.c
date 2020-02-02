@@ -3482,6 +3482,11 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
       break;
   }
 
+  if ((hashconfig->opts_type & OPTS_TYPE_DYNAMIC_SHARED) == 0)
+  {
+    dynamic_shared_mem = 0;
+  }
+
   if (device_param->is_cuda == true)
   {
     if ((device_param->kernel_dynamic_local_mem_size_memset % device_param->device_local_mem_size) == 0)

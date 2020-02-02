@@ -425,6 +425,7 @@ typedef enum opts_type
   OPTS_TYPE_SUGGEST_KG        = (1ULL << 44), // suggest keep guessing for modules the user maybe wants to use --keep-guessing
   OPTS_TYPE_COPY_TMPS         = (1ULL << 45), // if we want to use data from tmps buffer (for example get the PMK in WPA)
   OPTS_TYPE_POTFILE_NOPASS    = (1ULL << 46), // sometimes the password should not be printed to potfile
+  OPTS_TYPE_DYNAMIC_SHARED    = (1ULL << 47), // use dynamic shared memory (note: needs special kernel changes)
 
 } opts_type_t;
 
