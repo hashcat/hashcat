@@ -14,12 +14,12 @@
 #include "inc_hash_whirlpool.cl"
 #endif
 
-DECLSPEC void whirlpool_transform_transport_vector (const u32x *w, u32x *digest, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
+DECLSPEC void whirlpool_transform_transport_vector (const u32x *w, u32x *digest, SHM_TYPE u64 (*s_MT)[256], SHM_TYPE u64 *s_RC)
 {
-  whirlpool_transform_vector (w + 0, w + 4, w + 8, w + 12, digest, s_Ch, s_Cl);
+  whirlpool_transform_vector (w + 0, w + 4, w + 8, w + 12, digest, s_MT, s_RC);
 }
 
-DECLSPEC void m06100m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC (), SHM_TYPE u32 (*s_Cl)[256], SHM_TYPE u32 (*s_Ch)[256])
+DECLSPEC void m06100m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC (), SHM_TYPE u64 (*s_MT)[256], SHM_TYPE u64 *s_RC)
 {
   /**
    * modifier
@@ -82,13 +82,13 @@ DECLSPEC void m06100m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
     dgst[14] = 0;
     dgst[15] = 0;
 
-    whirlpool_transform_transport_vector (w, dgst, s_Ch, s_Cl);
+    whirlpool_transform_transport_vector (w, dgst, s_MT, s_RC);
 
     COMPARE_M_SIMD (dgst[0], dgst[1], dgst[2], dgst[3]);
   }
 }
 
-DECLSPEC void m06100s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC (), SHM_TYPE u32 (*s_Cl)[256], SHM_TYPE u32 (*s_Ch)[256])
+DECLSPEC void m06100s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC (), SHM_TYPE u64 (*s_MT)[256], SHM_TYPE u64 *s_RC)
 {
   /**
    * modifier
@@ -163,7 +163,7 @@ DECLSPEC void m06100s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
     dgst[14] = 0;
     dgst[15] = 0;
 
-    whirlpool_transform_transport_vector (w, dgst, s_Ch, s_Cl);
+    whirlpool_transform_transport_vector (w, dgst, s_MT, s_RC);
 
     COMPARE_S_SIMD (dgst[0], dgst[1], dgst[2], dgst[3]);
   }
@@ -185,36 +185,32 @@ KERNEL_FQ void m06100_m04 (KERN_ATTR_BASIC ())
 
   #ifdef REAL_SHM
 
-  LOCAL_VK u32 s_Ch[8][256];
-  LOCAL_VK u32 s_Cl[8][256];
+  LOCAL_VK u64 s_MT[8][256];
+  LOCAL_VK u64 s_RC[16];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
-    s_Ch[0][i] = Ch[0][i];
-    s_Ch[1][i] = Ch[1][i];
-    s_Ch[2][i] = Ch[2][i];
-    s_Ch[3][i] = Ch[3][i];
-    s_Ch[4][i] = Ch[4][i];
-    s_Ch[5][i] = Ch[5][i];
-    s_Ch[6][i] = Ch[6][i];
-    s_Ch[7][i] = Ch[7][i];
+    s_MT[0][i] = MT[0][i];
+    s_MT[1][i] = MT[1][i];
+    s_MT[2][i] = MT[2][i];
+    s_MT[3][i] = MT[3][i];
+    s_MT[4][i] = MT[4][i];
+    s_MT[5][i] = MT[5][i];
+    s_MT[6][i] = MT[6][i];
+    s_MT[7][i] = MT[7][i];
+  }
 
-    s_Cl[0][i] = Cl[0][i];
-    s_Cl[1][i] = Cl[1][i];
-    s_Cl[2][i] = Cl[2][i];
-    s_Cl[3][i] = Cl[3][i];
-    s_Cl[4][i] = Cl[4][i];
-    s_Cl[5][i] = Cl[5][i];
-    s_Cl[6][i] = Cl[6][i];
-    s_Cl[7][i] = Cl[7][i];
+  for (u32 i = lid; i < 16; i += lsz)
+  {
+    s_RC[i] = RC[i];
   }
 
   SYNC_THREADS ();
 
   #else
 
-  CONSTANT_AS u32a (*s_Ch)[256] = Ch;
-  CONSTANT_AS u32a (*s_Cl)[256] = Cl;
+  CONSTANT_AS u64a (*s_MT)[256] = MT;
+  CONSTANT_AS u64a  *s_RC       = RC;
 
   #endif
 
@@ -258,7 +254,7 @@ KERNEL_FQ void m06100_m04 (KERN_ATTR_BASIC ())
    * main
    */
 
-  m06100m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max, s_Cl, s_Ch);
+  m06100m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max, s_MT, s_RC);
 }
 
 KERNEL_FQ void m06100_m08 (KERN_ATTR_BASIC ())
@@ -277,36 +273,32 @@ KERNEL_FQ void m06100_m08 (KERN_ATTR_BASIC ())
 
   #ifdef REAL_SHM
 
-  LOCAL_VK u32 s_Ch[8][256];
-  LOCAL_VK u32 s_Cl[8][256];
+  LOCAL_VK u64 s_MT[8][256];
+  LOCAL_VK u64 s_RC[16];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
-    s_Ch[0][i] = Ch[0][i];
-    s_Ch[1][i] = Ch[1][i];
-    s_Ch[2][i] = Ch[2][i];
-    s_Ch[3][i] = Ch[3][i];
-    s_Ch[4][i] = Ch[4][i];
-    s_Ch[5][i] = Ch[5][i];
-    s_Ch[6][i] = Ch[6][i];
-    s_Ch[7][i] = Ch[7][i];
+    s_MT[0][i] = MT[0][i];
+    s_MT[1][i] = MT[1][i];
+    s_MT[2][i] = MT[2][i];
+    s_MT[3][i] = MT[3][i];
+    s_MT[4][i] = MT[4][i];
+    s_MT[5][i] = MT[5][i];
+    s_MT[6][i] = MT[6][i];
+    s_MT[7][i] = MT[7][i];
+  }
 
-    s_Cl[0][i] = Cl[0][i];
-    s_Cl[1][i] = Cl[1][i];
-    s_Cl[2][i] = Cl[2][i];
-    s_Cl[3][i] = Cl[3][i];
-    s_Cl[4][i] = Cl[4][i];
-    s_Cl[5][i] = Cl[5][i];
-    s_Cl[6][i] = Cl[6][i];
-    s_Cl[7][i] = Cl[7][i];
+  for (u32 i = lid; i < 16; i += lsz)
+  {
+    s_RC[i] = RC[i];
   }
 
   SYNC_THREADS ();
 
   #else
 
-  CONSTANT_AS u32a (*s_Ch)[256] = Ch;
-  CONSTANT_AS u32a (*s_Cl)[256] = Cl;
+  CONSTANT_AS u64a (*s_MT)[256] = MT;
+  CONSTANT_AS u64a  *s_RC       = RC;
 
   #endif
 
@@ -350,7 +342,7 @@ KERNEL_FQ void m06100_m08 (KERN_ATTR_BASIC ())
    * main
    */
 
-  m06100m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max, s_Cl, s_Ch);
+  m06100m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max, s_MT, s_RC);
 }
 
 KERNEL_FQ void m06100_m16 (KERN_ATTR_BASIC ())
@@ -373,36 +365,32 @@ KERNEL_FQ void m06100_s04 (KERN_ATTR_BASIC ())
 
   #ifdef REAL_SHM
 
-  LOCAL_VK u32 s_Ch[8][256];
-  LOCAL_VK u32 s_Cl[8][256];
+  LOCAL_VK u64 s_MT[8][256];
+  LOCAL_VK u64 s_RC[16];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
-    s_Ch[0][i] = Ch[0][i];
-    s_Ch[1][i] = Ch[1][i];
-    s_Ch[2][i] = Ch[2][i];
-    s_Ch[3][i] = Ch[3][i];
-    s_Ch[4][i] = Ch[4][i];
-    s_Ch[5][i] = Ch[5][i];
-    s_Ch[6][i] = Ch[6][i];
-    s_Ch[7][i] = Ch[7][i];
+    s_MT[0][i] = MT[0][i];
+    s_MT[1][i] = MT[1][i];
+    s_MT[2][i] = MT[2][i];
+    s_MT[3][i] = MT[3][i];
+    s_MT[4][i] = MT[4][i];
+    s_MT[5][i] = MT[5][i];
+    s_MT[6][i] = MT[6][i];
+    s_MT[7][i] = MT[7][i];
+  }
 
-    s_Cl[0][i] = Cl[0][i];
-    s_Cl[1][i] = Cl[1][i];
-    s_Cl[2][i] = Cl[2][i];
-    s_Cl[3][i] = Cl[3][i];
-    s_Cl[4][i] = Cl[4][i];
-    s_Cl[5][i] = Cl[5][i];
-    s_Cl[6][i] = Cl[6][i];
-    s_Cl[7][i] = Cl[7][i];
+  for (u32 i = lid; i < 16; i += lsz)
+  {
+    s_RC[i] = RC[i];
   }
 
   SYNC_THREADS ();
 
   #else
 
-  CONSTANT_AS u32a (*s_Ch)[256] = Ch;
-  CONSTANT_AS u32a (*s_Cl)[256] = Cl;
+  CONSTANT_AS u64a (*s_MT)[256] = MT;
+  CONSTANT_AS u64a  *s_RC       = RC;
 
   #endif
 
@@ -446,7 +434,7 @@ KERNEL_FQ void m06100_s04 (KERN_ATTR_BASIC ())
    * main
    */
 
-  m06100s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max, s_Cl, s_Ch);
+  m06100s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max, s_MT, s_RC);
 }
 
 KERNEL_FQ void m06100_s08 (KERN_ATTR_BASIC ())
@@ -465,36 +453,32 @@ KERNEL_FQ void m06100_s08 (KERN_ATTR_BASIC ())
 
   #ifdef REAL_SHM
 
-  LOCAL_VK u32 s_Ch[8][256];
-  LOCAL_VK u32 s_Cl[8][256];
+  LOCAL_VK u64 s_MT[8][256];
+  LOCAL_VK u64 s_RC[16];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
-    s_Ch[0][i] = Ch[0][i];
-    s_Ch[1][i] = Ch[1][i];
-    s_Ch[2][i] = Ch[2][i];
-    s_Ch[3][i] = Ch[3][i];
-    s_Ch[4][i] = Ch[4][i];
-    s_Ch[5][i] = Ch[5][i];
-    s_Ch[6][i] = Ch[6][i];
-    s_Ch[7][i] = Ch[7][i];
+    s_MT[0][i] = MT[0][i];
+    s_MT[1][i] = MT[1][i];
+    s_MT[2][i] = MT[2][i];
+    s_MT[3][i] = MT[3][i];
+    s_MT[4][i] = MT[4][i];
+    s_MT[5][i] = MT[5][i];
+    s_MT[6][i] = MT[6][i];
+    s_MT[7][i] = MT[7][i];
+  }
 
-    s_Cl[0][i] = Cl[0][i];
-    s_Cl[1][i] = Cl[1][i];
-    s_Cl[2][i] = Cl[2][i];
-    s_Cl[3][i] = Cl[3][i];
-    s_Cl[4][i] = Cl[4][i];
-    s_Cl[5][i] = Cl[5][i];
-    s_Cl[6][i] = Cl[6][i];
-    s_Cl[7][i] = Cl[7][i];
+  for (u32 i = lid; i < 16; i += lsz)
+  {
+    s_RC[i] = RC[i];
   }
 
   SYNC_THREADS ();
 
   #else
 
-  CONSTANT_AS u32a (*s_Ch)[256] = Ch;
-  CONSTANT_AS u32a (*s_Cl)[256] = Cl;
+  CONSTANT_AS u64a (*s_MT)[256] = MT;
+  CONSTANT_AS u64a  *s_RC       = RC;
 
   #endif
 
@@ -538,7 +522,7 @@ KERNEL_FQ void m06100_s08 (KERN_ATTR_BASIC ())
    * main
    */
 
-  m06100s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max, s_Cl, s_Ch);
+  m06100s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max, s_MT, s_RC);
 }
 
 KERNEL_FQ void m06100_s16 (KERN_ATTR_BASIC ())
