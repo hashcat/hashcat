@@ -1073,34 +1073,40 @@ CONSTANT_VK u32a Cl[8][256] =
   },
 };
 
-CONSTANT_VK u32a rch[R + 1] =
+CONSTANT_VK u32a rchl[32] =
 {
-  0x00000000,
   0x1823c6e8,
-  0x36a6d2f5,
-  0x60bc9b8e,
-  0x1de0d7c2,
-  0x157737e5,
-  0x58c9290a,
-  0xbd5d10f4,
-  0xe427418b,
-  0xfbee7c66,
-  0xca2dbf07,
-};
-
-CONSTANT_VK u32a rcl[R + 1] =
-{
-  0x00000000,
   0x87b8014f,
+  0x36a6d2f5,
   0x796f9152,
+  0x60bc9b8e,
   0xa30c7b35,
+  0x1de0d7c2,
   0x2e4bfe57,
+  0x157737e5,
   0x9ff04ada,
+  0x58c9290a,
   0xb1a06b85,
+  0xbd5d10f4,
   0xcb3e0567,
+  0xe427418b,
   0xa77d95d8,
+  0xfbee7c66,
   0xdd17479e,
+  0xca2dbf07,
   0xad5a8333,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
 };
 
 // important notes on this:
@@ -1150,9 +1156,7 @@ DECLSPEC void whirlpool_transform (const u32 *w0, const u32 *w1, const u32 *w2, 
   stateh[7] = w3[2] ^ Kh[7];
   statel[7] = w3[3] ^ Kl[7];
 
-  u32 r;
-
-  for (r = 1; r <= R; r++)
+  for (u32 r = 0; r < (R * 2); r += 2)
   {
     u32 Lh[8];
     u32 Ll[8];
@@ -1192,8 +1196,8 @@ DECLSPEC void whirlpool_transform (const u32 *w0, const u32 *w1, const u32 *w2, 
             ^ BOX_S (s_Cl, 7, Lp7 & 0xff);
     }
 
-    Kh[0] = Lh[0] ^ rch[r];
-    Kl[0] = Ll[0] ^ rcl[r];
+    Kh[0] = Lh[0] ^ rchl[r + 0];
+    Kl[0] = Ll[0] ^ rchl[r + 1];
     Kh[1] = Lh[1];
     Kl[1] = Ll[1];
     Kh[2] = Lh[2];
@@ -2402,9 +2406,7 @@ DECLSPEC void whirlpool_transform_vector (const u32x *w0, const u32x *w1, const 
   stateh[7] = w3[2] ^ Kh[7];
   statel[7] = w3[3] ^ Kl[7];
 
-  u32 r;
-
-  for (r = 1; r <= R; r++)
+  for (u32 r = 0; r < (R * 2); r += 2)
   {
     u32x Lh[8];
     u32x Ll[8];
@@ -2444,8 +2446,8 @@ DECLSPEC void whirlpool_transform_vector (const u32x *w0, const u32x *w1, const 
             ^ BOX (s_Cl, 7, Lp7 & 0xff);
     }
 
-    Kh[0] = Lh[0] ^ rch[r];
-    Kl[0] = Ll[0] ^ rcl[r];
+    Kh[0] = Lh[0] ^ rchl[r + 0];
+    Kl[0] = Ll[0] ^ rchl[r + 1];
     Kh[1] = Lh[1];
     Kl[1] = Ll[1];
     Kh[2] = Lh[2];
