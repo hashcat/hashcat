@@ -16,7 +16,7 @@ my $default_mask     = "?b?b?b?b?b?b?b";
 my $result           = "result.txt";
 my $old_hashcat      = 0; # requires to have ran with new hashcat before to create the hashfiles
 my $repeats          = 1;
-my $cpu_benchmark    = 0;
+my $cpu_benchmark    = 1;
 
 print "\nHardware preparations... You may need to adjust some settings and probably can ignore some of the error\n\n";
 

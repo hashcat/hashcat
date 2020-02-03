@@ -615,14 +615,14 @@ DECLSPEC void whirlpool_transform (const u32 *w0, const u32 *w1, const u32 *w2, 
     #endif
     for (int i = 0; i < 8; i++)
     {
-      const u8 Lp0 = K[(i + 8) & 7] >> 56;
-      const u8 Lp1 = K[(i + 7) & 7] >> 48;
-      const u8 Lp2 = K[(i + 6) & 7] >> 40;
-      const u8 Lp3 = K[(i + 5) & 7] >> 32;
-      const u8 Lp4 = K[(i + 4) & 7] >> 24;
-      const u8 Lp5 = K[(i + 3) & 7] >> 16;
-      const u8 Lp6 = K[(i + 2) & 7] >>  8;
-      const u8 Lp7 = K[(i + 1) & 7] >>  0;
+      const u8 Lp0 = v8h_from_v64_S (K[(i + 8) & 7]);
+      const u8 Lp1 = v8g_from_v64_S (K[(i + 7) & 7]);
+      const u8 Lp2 = v8f_from_v64_S (K[(i + 6) & 7]);
+      const u8 Lp3 = v8e_from_v64_S (K[(i + 5) & 7]);
+      const u8 Lp4 = v8d_from_v64_S (K[(i + 4) & 7]);
+      const u8 Lp5 = v8c_from_v64_S (K[(i + 3) & 7]);
+      const u8 Lp6 = v8b_from_v64_S (K[(i + 2) & 7]);
+      const u8 Lp7 = v8a_from_v64_S (K[(i + 1) & 7]);
 
       const u64 X0 = BOX64_S (s_MT, 0, Lp0);
       const u64 X1 = BOX64_S (s_MT, 1, Lp1);
@@ -659,14 +659,14 @@ DECLSPEC void whirlpool_transform (const u32 *w0, const u32 *w1, const u32 *w2, 
     #endif
     for (int i = 0; i < 8; i++)
     {
-      const u8 Lp0 = state[(i + 8) & 7] >> 56;
-      const u8 Lp1 = state[(i + 7) & 7] >> 48;
-      const u8 Lp2 = state[(i + 6) & 7] >> 40;
-      const u8 Lp3 = state[(i + 5) & 7] >> 32;
-      const u8 Lp4 = state[(i + 4) & 7] >> 24;
-      const u8 Lp5 = state[(i + 3) & 7] >> 16;
-      const u8 Lp6 = state[(i + 2) & 7] >>  8;
-      const u8 Lp7 = state[(i + 1) & 7] >>  0;
+      const u8 Lp0 = v8h_from_v64_S (state[(i + 8) & 7]);
+      const u8 Lp1 = v8g_from_v64_S (state[(i + 7) & 7]);
+      const u8 Lp2 = v8f_from_v64_S (state[(i + 6) & 7]);
+      const u8 Lp3 = v8e_from_v64_S (state[(i + 5) & 7]);
+      const u8 Lp4 = v8d_from_v64_S (state[(i + 4) & 7]);
+      const u8 Lp5 = v8c_from_v64_S (state[(i + 3) & 7]);
+      const u8 Lp6 = v8b_from_v64_S (state[(i + 2) & 7]);
+      const u8 Lp7 = v8a_from_v64_S (state[(i + 1) & 7]);
 
       const u64 X0 = BOX64_S (s_MT, 0, Lp0);
       const u64 X1 = BOX64_S (s_MT, 1, Lp1);
@@ -1861,14 +1861,14 @@ DECLSPEC void whirlpool_transform_vector (const u32x *w0, const u32x *w1, const 
     #endif
     for (int i = 0; i < 8; i++)
     {
-      const u8x Lp0 = K[(i + 8) & 7] >> 56;
-      const u8x Lp1 = K[(i + 7) & 7] >> 48;
-      const u8x Lp2 = K[(i + 6) & 7] >> 40;
-      const u8x Lp3 = K[(i + 5) & 7] >> 32;
-      const u8x Lp4 = K[(i + 4) & 7] >> 24;
-      const u8x Lp5 = K[(i + 3) & 7] >> 16;
-      const u8x Lp6 = K[(i + 2) & 7] >>  8;
-      const u8x Lp7 = K[(i + 1) & 7] >>  0;
+      const u8x Lp0 = v8h_from_v64 (K[(i + 8) & 7]);
+      const u8x Lp1 = v8g_from_v64 (K[(i + 7) & 7]);
+      const u8x Lp2 = v8f_from_v64 (K[(i + 6) & 7]);
+      const u8x Lp3 = v8e_from_v64 (K[(i + 5) & 7]);
+      const u8x Lp4 = v8d_from_v64 (K[(i + 4) & 7]);
+      const u8x Lp5 = v8c_from_v64 (K[(i + 3) & 7]);
+      const u8x Lp6 = v8b_from_v64 (K[(i + 2) & 7]);
+      const u8x Lp7 = v8a_from_v64 (K[(i + 1) & 7]);
 
       const u64x X0 = BOX64 (s_MT, 0, Lp0);
       const u64x X1 = BOX64 (s_MT, 1, Lp1);
@@ -1905,14 +1905,14 @@ DECLSPEC void whirlpool_transform_vector (const u32x *w0, const u32x *w1, const 
     #endif
     for (int i = 0; i < 8; i++)
     {
-      const u8x Lp0 = state[(i + 8) & 7] >> 56;
-      const u8x Lp1 = state[(i + 7) & 7] >> 48;
-      const u8x Lp2 = state[(i + 6) & 7] >> 40;
-      const u8x Lp3 = state[(i + 5) & 7] >> 32;
-      const u8x Lp4 = state[(i + 4) & 7] >> 24;
-      const u8x Lp5 = state[(i + 3) & 7] >> 16;
-      const u8x Lp6 = state[(i + 2) & 7] >>  8;
-      const u8x Lp7 = state[(i + 1) & 7] >>  0;
+      const u8x Lp0 = v8h_from_v64 (state[(i + 8) & 7]);
+      const u8x Lp1 = v8g_from_v64 (state[(i + 7) & 7]);
+      const u8x Lp2 = v8f_from_v64 (state[(i + 6) & 7]);
+      const u8x Lp3 = v8e_from_v64 (state[(i + 5) & 7]);
+      const u8x Lp4 = v8d_from_v64 (state[(i + 4) & 7]);
+      const u8x Lp5 = v8c_from_v64 (state[(i + 3) & 7]);
+      const u8x Lp6 = v8b_from_v64 (state[(i + 2) & 7]);
+      const u8x Lp7 = v8a_from_v64 (state[(i + 1) & 7]);
 
       const u64x X0 = BOX64 (s_MT, 0, Lp0);
       const u64x X1 = BOX64 (s_MT, 1, Lp1);

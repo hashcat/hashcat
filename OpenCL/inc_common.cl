@@ -48,6 +48,390 @@ DECLSPEC u8 v8d_from_v32_S (const u32 v32)
   return v.v8.d;
 }
 
+DECLSPEC u8 v8a_from_v64_S (const u64 v64)
+{
+  vconv64_t v;
+
+  v.v64 = v64;
+
+  return v.v8.a;
+}
+
+DECLSPEC u8 v8b_from_v64_S (const u64 v64)
+{
+  vconv64_t v;
+
+  v.v64 = v64;
+
+  return v.v8.b;
+}
+
+DECLSPEC u8 v8c_from_v64_S (const u64 v64)
+{
+  vconv64_t v;
+
+  v.v64 = v64;
+
+  return v.v8.c;
+}
+
+DECLSPEC u8 v8d_from_v64_S (const u64 v64)
+{
+  vconv64_t v;
+
+  v.v64 = v64;
+
+  return v.v8.d;
+}
+
+DECLSPEC u8 v8e_from_v64_S (const u64 v64)
+{
+  vconv64_t v;
+
+  v.v64 = v64;
+
+  return v.v8.e;
+}
+
+DECLSPEC u8 v8f_from_v64_S (const u64 v64)
+{
+  vconv64_t v;
+
+  v.v64 = v64;
+
+  return v.v8.f;
+}
+
+DECLSPEC u8 v8g_from_v64_S (const u64 v64)
+{
+  vconv64_t v;
+
+  v.v64 = v64;
+
+  return v.v8.g;
+}
+
+DECLSPEC u8 v8h_from_v64_S (const u64 v64)
+{
+  vconv64_t v;
+
+  v.v64 = v64;
+
+  return v.v8.h;
+}
+
+DECLSPEC u8x v8a_from_v64 (u64x a)
+{
+  u8x r = 0;
+
+  #if VECT_SIZE == 1
+  r    = v8a_from_v64_S (a);
+  #endif
+
+  #if VECT_SIZE >= 2
+  r.s0 = v8a_from_v64_S (a.s0);
+  r.s1 = v8a_from_v64_S (a.s1);
+  #endif
+
+  #if VECT_SIZE >= 4
+  r.s2 = v8a_from_v64_S (a.s2);
+  r.s3 = v8a_from_v64_S (a.s3);
+  #endif
+
+  #if VECT_SIZE >= 8
+  r.s4 = v8a_from_v64_S (a.s4);
+  r.s5 = v8a_from_v64_S (a.s5);
+  r.s6 = v8a_from_v64_S (a.s6);
+  r.s7 = v8a_from_v64_S (a.s7);
+  #endif
+
+  #if VECT_SIZE >= 16
+  r.s8 = v8a_from_v64_S (a.s8);
+  r.s9 = v8a_from_v64_S (a.s9);
+  r.sa = v8a_from_v64_S (a.sa);
+  r.sb = v8a_from_v64_S (a.sb);
+  r.sc = v8a_from_v64_S (a.sc);
+  r.sd = v8a_from_v64_S (a.sd);
+  r.se = v8a_from_v64_S (a.se);
+  r.sf = v8a_from_v64_S (a.sf);
+  #endif
+
+  return r;
+}
+
+DECLSPEC u8x v8b_from_v64 (u64x a)
+{
+  u8x r = 0;
+
+  #if VECT_SIZE == 1
+  r    = v8b_from_v64_S (a);
+  #endif
+
+  #if VECT_SIZE >= 2
+  r.s0 = v8b_from_v64_S (a.s0);
+  r.s1 = v8b_from_v64_S (a.s1);
+  #endif
+
+  #if VECT_SIZE >= 4
+  r.s2 = v8b_from_v64_S (a.s2);
+  r.s3 = v8b_from_v64_S (a.s3);
+  #endif
+
+  #if VECT_SIZE >= 8
+  r.s4 = v8b_from_v64_S (a.s4);
+  r.s5 = v8b_from_v64_S (a.s5);
+  r.s6 = v8b_from_v64_S (a.s6);
+  r.s7 = v8b_from_v64_S (a.s7);
+  #endif
+
+  #if VECT_SIZE >= 16
+  r.s8 = v8b_from_v64_S (a.s8);
+  r.s9 = v8b_from_v64_S (a.s9);
+  r.sa = v8b_from_v64_S (a.sa);
+  r.sb = v8b_from_v64_S (a.sb);
+  r.sc = v8b_from_v64_S (a.sc);
+  r.sd = v8b_from_v64_S (a.sd);
+  r.se = v8b_from_v64_S (a.se);
+  r.sf = v8b_from_v64_S (a.sf);
+  #endif
+
+  return r;
+}
+
+DECLSPEC u8x v8c_from_v64 (u64x a)
+{
+  u8x r = 0;
+
+  #if VECT_SIZE == 1
+  r    = v8c_from_v64_S (a);
+  #endif
+
+  #if VECT_SIZE >= 2
+  r.s0 = v8c_from_v64_S (a.s0);
+  r.s1 = v8c_from_v64_S (a.s1);
+  #endif
+
+  #if VECT_SIZE >= 4
+  r.s2 = v8c_from_v64_S (a.s2);
+  r.s3 = v8c_from_v64_S (a.s3);
+  #endif
+
+  #if VECT_SIZE >= 8
+  r.s4 = v8c_from_v64_S (a.s4);
+  r.s5 = v8c_from_v64_S (a.s5);
+  r.s6 = v8c_from_v64_S (a.s6);
+  r.s7 = v8c_from_v64_S (a.s7);
+  #endif
+
+  #if VECT_SIZE >= 16
+  r.s8 = v8c_from_v64_S (a.s8);
+  r.s9 = v8c_from_v64_S (a.s9);
+  r.sa = v8c_from_v64_S (a.sa);
+  r.sb = v8c_from_v64_S (a.sb);
+  r.sc = v8c_from_v64_S (a.sc);
+  r.sd = v8c_from_v64_S (a.sd);
+  r.se = v8c_from_v64_S (a.se);
+  r.sf = v8c_from_v64_S (a.sf);
+  #endif
+
+  return r;
+}
+
+DECLSPEC u8x v8d_from_v64 (u64x a)
+{
+  u8x r = 0;
+
+  #if VECT_SIZE == 1
+  r    = v8d_from_v64_S (a);
+  #endif
+
+  #if VECT_SIZE >= 2
+  r.s0 = v8d_from_v64_S (a.s0);
+  r.s1 = v8d_from_v64_S (a.s1);
+  #endif
+
+  #if VECT_SIZE >= 4
+  r.s2 = v8d_from_v64_S (a.s2);
+  r.s3 = v8d_from_v64_S (a.s3);
+  #endif
+
+  #if VECT_SIZE >= 8
+  r.s4 = v8d_from_v64_S (a.s4);
+  r.s5 = v8d_from_v64_S (a.s5);
+  r.s6 = v8d_from_v64_S (a.s6);
+  r.s7 = v8d_from_v64_S (a.s7);
+  #endif
+
+  #if VECT_SIZE >= 16
+  r.s8 = v8d_from_v64_S (a.s8);
+  r.s9 = v8d_from_v64_S (a.s9);
+  r.sa = v8d_from_v64_S (a.sa);
+  r.sb = v8d_from_v64_S (a.sb);
+  r.sc = v8d_from_v64_S (a.sc);
+  r.sd = v8d_from_v64_S (a.sd);
+  r.se = v8d_from_v64_S (a.se);
+  r.sf = v8d_from_v64_S (a.sf);
+  #endif
+
+  return r;
+}
+
+DECLSPEC u8x v8e_from_v64 (u64x a)
+{
+  u8x r = 0;
+
+  #if VECT_SIZE == 1
+  r    = v8e_from_v64_S (a);
+  #endif
+
+  #if VECT_SIZE >= 2
+  r.s0 = v8e_from_v64_S (a.s0);
+  r.s1 = v8e_from_v64_S (a.s1);
+  #endif
+
+  #if VECT_SIZE >= 4
+  r.s2 = v8e_from_v64_S (a.s2);
+  r.s3 = v8e_from_v64_S (a.s3);
+  #endif
+
+  #if VECT_SIZE >= 8
+  r.s4 = v8e_from_v64_S (a.s4);
+  r.s5 = v8e_from_v64_S (a.s5);
+  r.s6 = v8e_from_v64_S (a.s6);
+  r.s7 = v8e_from_v64_S (a.s7);
+  #endif
+
+  #if VECT_SIZE >= 16
+  r.s8 = v8e_from_v64_S (a.s8);
+  r.s9 = v8e_from_v64_S (a.s9);
+  r.sa = v8e_from_v64_S (a.sa);
+  r.sb = v8e_from_v64_S (a.sb);
+  r.sc = v8e_from_v64_S (a.sc);
+  r.sd = v8e_from_v64_S (a.sd);
+  r.se = v8e_from_v64_S (a.se);
+  r.sf = v8e_from_v64_S (a.sf);
+  #endif
+
+  return r;
+}
+
+DECLSPEC u8x v8f_from_v64 (u64x a)
+{
+  u8x r = 0;
+
+  #if VECT_SIZE == 1
+  r    = v8f_from_v64_S (a);
+  #endif
+
+  #if VECT_SIZE >= 2
+  r.s0 = v8f_from_v64_S (a.s0);
+  r.s1 = v8f_from_v64_S (a.s1);
+  #endif
+
+  #if VECT_SIZE >= 4
+  r.s2 = v8f_from_v64_S (a.s2);
+  r.s3 = v8f_from_v64_S (a.s3);
+  #endif
+
+  #if VECT_SIZE >= 8
+  r.s4 = v8f_from_v64_S (a.s4);
+  r.s5 = v8f_from_v64_S (a.s5);
+  r.s6 = v8f_from_v64_S (a.s6);
+  r.s7 = v8f_from_v64_S (a.s7);
+  #endif
+
+  #if VECT_SIZE >= 16
+  r.s8 = v8f_from_v64_S (a.s8);
+  r.s9 = v8f_from_v64_S (a.s9);
+  r.sa = v8f_from_v64_S (a.sa);
+  r.sb = v8f_from_v64_S (a.sb);
+  r.sc = v8f_from_v64_S (a.sc);
+  r.sd = v8f_from_v64_S (a.sd);
+  r.se = v8f_from_v64_S (a.se);
+  r.sf = v8f_from_v64_S (a.sf);
+  #endif
+
+  return r;
+}
+
+DECLSPEC u8x v8g_from_v64 (u64x a)
+{
+  u8x r = 0;
+
+  #if VECT_SIZE == 1
+  r    = v8g_from_v64_S (a);
+  #endif
+
+  #if VECT_SIZE >= 2
+  r.s0 = v8g_from_v64_S (a.s0);
+  r.s1 = v8g_from_v64_S (a.s1);
+  #endif
+
+  #if VECT_SIZE >= 4
+  r.s2 = v8g_from_v64_S (a.s2);
+  r.s3 = v8g_from_v64_S (a.s3);
+  #endif
+
+  #if VECT_SIZE >= 8
+  r.s4 = v8g_from_v64_S (a.s4);
+  r.s5 = v8g_from_v64_S (a.s5);
+  r.s6 = v8g_from_v64_S (a.s6);
+  r.s7 = v8g_from_v64_S (a.s7);
+  #endif
+
+  #if VECT_SIZE >= 16
+  r.s8 = v8g_from_v64_S (a.s8);
+  r.s9 = v8g_from_v64_S (a.s9);
+  r.sa = v8g_from_v64_S (a.sa);
+  r.sb = v8g_from_v64_S (a.sb);
+  r.sc = v8g_from_v64_S (a.sc);
+  r.sd = v8g_from_v64_S (a.sd);
+  r.se = v8g_from_v64_S (a.se);
+  r.sf = v8g_from_v64_S (a.sf);
+  #endif
+
+  return r;
+}
+
+DECLSPEC u8x v8h_from_v64 (u64x a)
+{
+  u8x r = 0;
+
+  #if VECT_SIZE == 1
+  r    = v8h_from_v64_S (a);
+  #endif
+
+  #if VECT_SIZE >= 2
+  r.s0 = v8h_from_v64_S (a.s0);
+  r.s1 = v8h_from_v64_S (a.s1);
+  #endif
+
+  #if VECT_SIZE >= 4
+  r.s2 = v8h_from_v64_S (a.s2);
+  r.s3 = v8h_from_v64_S (a.s3);
+  #endif
+
+  #if VECT_SIZE >= 8
+  r.s4 = v8h_from_v64_S (a.s4);
+  r.s5 = v8h_from_v64_S (a.s5);
+  r.s6 = v8h_from_v64_S (a.s6);
+  r.s7 = v8h_from_v64_S (a.s7);
+  #endif
+
+  #if VECT_SIZE >= 16
+  r.s8 = v8h_from_v64_S (a.s8);
+  r.s9 = v8h_from_v64_S (a.s9);
+  r.sa = v8h_from_v64_S (a.sa);
+  r.sb = v8h_from_v64_S (a.sb);
+  r.sc = v8h_from_v64_S (a.sc);
+  r.sd = v8h_from_v64_S (a.sd);
+  r.se = v8h_from_v64_S (a.se);
+  r.sf = v8h_from_v64_S (a.sf);
+  #endif
+
+  return r;
+}
+
 DECLSPEC u16 v16a_from_v32_S (const u32 v32)
 {
   vconv32_t v;
