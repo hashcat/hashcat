@@ -142,6 +142,24 @@ DECLSPEC u8 v8b_from_v32_S   (const u32 v32);
 DECLSPEC u8 v8c_from_v32_S   (const u32 v32);
 DECLSPEC u8 v8d_from_v32_S   (const u32 v32);
 
+DECLSPEC u8 v8a_from_v64_S   (const u64 v64);
+DECLSPEC u8 v8b_from_v64_S   (const u64 v64);
+DECLSPEC u8 v8c_from_v64_S   (const u64 v64);
+DECLSPEC u8 v8d_from_v64_S   (const u64 v64);
+DECLSPEC u8 v8e_from_v64_S   (const u64 v64);
+DECLSPEC u8 v8f_from_v64_S   (const u64 v64);
+DECLSPEC u8 v8g_from_v64_S   (const u64 v64);
+DECLSPEC u8 v8h_from_v64_S   (const u64 v64);
+
+DECLSPEC u8x v8a_from_v64   (const u64x v64);
+DECLSPEC u8x v8b_from_v64   (const u64x v64);
+DECLSPEC u8x v8c_from_v64   (const u64x v64);
+DECLSPEC u8x v8d_from_v64   (const u64x v64);
+DECLSPEC u8x v8e_from_v64   (const u64x v64);
+DECLSPEC u8x v8f_from_v64   (const u64x v64);
+DECLSPEC u8x v8g_from_v64   (const u64x v64);
+DECLSPEC u8x v8h_from_v64   (const u64x v64);
+
 DECLSPEC u16 v16a_from_v32_S (const u32 v32);
 DECLSPEC u16 v16b_from_v32_S (const u32 v32);
 
