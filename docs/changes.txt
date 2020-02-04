@@ -147,6 +147,7 @@
 - Hash-mode 1460 (HMAC-SHA256 (key = $salt)): Allow up to 64 byte of salt
 - Hash-Mode 1680x (WPA-PMKID) specific: Changed separator character from '*' to ':'
 - Hash-Mode 8300 (DNSSEC (NSEC3)) specific: Allow empty salt
+- Hash-Mode 12500 (RAR3-hp): Allow cracking of passwords up to length 64
 - Keep Guessing: No longer automatically activate --keep-guessing for modes 9720, 9820, 14900 and 18100
 - Keep Guessing: No longer mark hashes as cracked/removed when in potfile
 - Kernel Cache: Reactivate OpenCL runtime specific kernel caches
