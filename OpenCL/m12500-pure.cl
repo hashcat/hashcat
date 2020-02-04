@@ -217,9 +217,9 @@ KERNEL_FQ void m12500_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
 
   for (u32 i = 0, j = loop_pos; i < 16384; i++, j++)
   {
-    sha1_update_global_utf16le_swap (&ctx, w, pw_len);
+    sha1_update_utf16le_swap (&ctx, w, pw_len);
 
-    sha1_update_global_swap (&ctx, salt_buf, salt_len);
+    sha1_update_swap (&ctx, salt_buf, salt_len);
 
     memcat8c_be (ctx.w0, ctx.w1, ctx.w2, ctx.w3, ctx.len, hc_swap32_S (j), ctx.h);
 
@@ -405,9 +405,9 @@ KERNEL_FQ void m12500_comp (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
 
     ctx.len = iter_pos * p3;
 
-    sha1_update_global_utf16le_swap (&ctx, w, pw_len);
+    sha1_update_utf16le_swap (&ctx, w, pw_len);
 
-    sha1_update_global_swap (&ctx, salt_buf, salt_len);
+    sha1_update_swap (&ctx, salt_buf, salt_len);
 
     memcat8c_be (ctx.w0, ctx.w1, ctx.w2, ctx.w3, ctx.len, hc_swap32_S (iter_pos), ctx.h);
 
