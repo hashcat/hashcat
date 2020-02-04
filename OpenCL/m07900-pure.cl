@@ -66,18 +66,6 @@ KERNEL_FQ void m07900_loop (KERN_ATTR_TMPS (drupal7_tmp_t))
 
   const u32 pw_len = pws[gid].pw_len;
 
-  u32 w[64] = { 0 };
-
-  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
-  {
-    w[idx] = pws[gid].i[idx];
-  }
-
-  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
-  {
-    w[idx] = hc_swap32_S (w[idx]);
-  }
-
   /**
    * load
    */
@@ -120,7 +108,7 @@ KERNEL_FQ void m07900_loop (KERN_ATTR_TMPS (drupal7_tmp_t))
 
   sha512_ctx.len = 64;
 
-  sha512_update (&sha512_ctx, w, pw_len);
+  sha512_update_global_swap (&sha512_ctx, pws[gid].i, pw_len);
 
   sha512_final (&sha512_ctx);
 
@@ -158,7 +146,7 @@ KERNEL_FQ void m07900_loop (KERN_ATTR_TMPS (drupal7_tmp_t))
 
       sha512_ctx.len = 64;
 
-      sha512_update (&sha512_ctx, w, pw_len);
+      sha512_update_global_swap (&sha512_ctx, pws[gid].i, pw_len);
 
       sha512_final (&sha512_ctx);
 
