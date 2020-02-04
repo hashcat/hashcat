@@ -372,7 +372,8 @@ typedef enum opti_type
   OPTI_TYPE_USES_BITS_8         = (1 << 16),
   OPTI_TYPE_USES_BITS_16        = (1 << 17),
   OPTI_TYPE_USES_BITS_32        = (1 << 18),
-  OPTI_TYPE_USES_BITS_64        = (1 << 19)
+  OPTI_TYPE_USES_BITS_64        = (1 << 19),
+  OPTI_TYPE_REGISTER_LIMIT      = (1 << 20), // We'll limit the register count to 128
 
 } opti_type_t;
 
