@@ -8,7 +8,7 @@ my $amd_cache        = "~/.AMD";
 my $hashcat_path     = ".";
 my $kernels_cache    = "$hashcat_path/kernels";
 my $hashcat_bin      = "$hashcat_path/hashcat";
-my $device           = 3;
+my $device           = 1;
 my $workload_profile = 3;
 my $runtime          = 24;
 my $sleep_sec        = 12;
@@ -16,7 +16,7 @@ my $default_mask     = "?b?b?b?b?b?b?b";
 my $result           = "result.txt";
 my $old_hashcat      = 0; # requires to have ran with new hashcat before to create the hashfiles
 my $repeats          = 1;
-my $cpu_benchmark    = 1;
+my $cpu_benchmark    = 0;
 
 print "\nHardware preparations... You may need to adjust some settings and probably can ignore some of the error\n\n";
 
