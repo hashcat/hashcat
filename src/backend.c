@@ -7052,8 +7052,8 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
       char *mod_info_log  = (char *) hcmalloc (LOG_SIZE + 1);
       char *mod_error_log = (char *) hcmalloc (LOG_SIZE + 1);
 
-      CUjit_option mod_opts[6];
-      void *mod_vals[6];
+      CUjit_option mod_opts[7];
+      void *mod_vals[7];
 
       mod_opts[0] = CU_JIT_TARGET_FROM_CUCONTEXT;
       mod_vals[0] = (void *) 0;
@@ -7073,13 +7073,16 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
       mod_opts[5] = CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES;
       mod_vals[5] = (void *) LOG_SIZE;
 
+      mod_opts[6] = CU_JIT_MAX_REGISTERS;
+      mod_vals[6] = (void *) 128;
+
       #if defined (WITH_CUBIN)
 
       char *jit_info_log  = (char *) hcmalloc (LOG_SIZE + 1);
       char *jit_error_log = (char *) hcmalloc (LOG_SIZE + 1);
 
-      CUjit_option jit_opts[6];
-      void *jit_vals[6];
+      CUjit_option jit_opts[7];
+      void *jit_vals[7];
 
       jit_opts[0] = CU_JIT_TARGET_FROM_CUCONTEXT;
       jit_vals[0] = (void *) 0;
@@ -7099,9 +7102,12 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
       jit_opts[5] = CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES;
       jit_vals[5] = (void *) LOG_SIZE;
 
+      jit_opts[6] = CU_JIT_MAX_REGISTERS;
+      jit_vals[6] = (void *) 128;
+
       CUlinkState state;
 
-      if (hc_cuLinkCreate (hashcat_ctx, 6, jit_opts, jit_vals, &state) == -1)
+      if (hc_cuLinkCreate (hashcat_ctx, 7, jit_opts, jit_vals, &state) == -1)
       {
         event_log_error (hashcat_ctx, "* Device #%u: Kernel %s link failed. Error Log:", device_param->device_id + 1, source_file);
         event_log_error (hashcat_ctx, "%s", jit_error_log);
@@ -7138,7 +7144,7 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
       event_log_info (hashcat_ctx, NULL);
       #endif
 
-      if (hc_cuModuleLoadDataEx (hashcat_ctx, cuda_module, cubin, 6, mod_opts, mod_vals) == -1)
+      if (hc_cuModuleLoadDataEx (hashcat_ctx, cuda_module, cubin, 7, mod_opts, mod_vals) == -1)
       {
         event_log_error (hashcat_ctx, "* Device #%u: Kernel %s load failed. Error Log:", device_param->device_id + 1, source_file);
         event_log_error (hashcat_ctx, "%s", mod_error_log);
@@ -7165,7 +7171,7 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       #else
 
-      if (hc_cuModuleLoadDataEx (hashcat_ctx, cuda_module, binary, 6, mod_opts, mod_vals) == -1)
+      if (hc_cuModuleLoadDataEx (hashcat_ctx, cuda_module, binary, 7, mod_opts, mod_vals) == -1)
       {
         event_log_error (hashcat_ctx, "* Device #%u: Kernel %s load failed. Error Log:", device_param->device_id + 1, source_file);
         event_log_error (hashcat_ctx, "%s", mod_error_log);
@@ -7253,8 +7259,8 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
       char *mod_info_log  = (char *) hcmalloc (LOG_SIZE + 1);
       char *mod_error_log = (char *) hcmalloc (LOG_SIZE + 1);
 
-      CUjit_option mod_opts[6];
-      void *mod_vals[6];
+      CUjit_option mod_opts[7];
+      void *mod_vals[7];
 
       mod_opts[0] = CU_JIT_TARGET_FROM_CUCONTEXT;
       mod_vals[0] = (void *) 0;
@@ -7274,7 +7280,10 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
       mod_opts[5] = CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES;
       mod_vals[5] = (void *) LOG_SIZE;
 
-      if (hc_cuModuleLoadDataEx (hashcat_ctx, cuda_module, kernel_sources[0], 6, mod_opts, mod_vals) == -1)
+      mod_opts[6] = CU_JIT_MAX_REGISTERS;
+      mod_vals[6] = (void *) 128;
+
+      if (hc_cuModuleLoadDataEx (hashcat_ctx, cuda_module, kernel_sources[0], 7, mod_opts, mod_vals) == -1)
       {
         event_log_error (hashcat_ctx, "* Device #%u: Kernel %s load failed. Error Log:", device_param->device_id + 1, source_file);
         event_log_error (hashcat_ctx, "%s", mod_error_log);
