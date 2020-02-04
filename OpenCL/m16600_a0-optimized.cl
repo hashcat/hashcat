@@ -107,6 +107,26 @@ KERNEL_FQ void m16600_m04 (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
   const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
+   * data
+   */
+
+  const u32 salt_type = esalt_bufs[digests_offset].salt_type;
+
+  u32 encrypted[4];
+
+  encrypted[0] = esalt_bufs[digests_offset].encrypted[0];
+  encrypted[1] = esalt_bufs[digests_offset].encrypted[1];
+  encrypted[2] = esalt_bufs[digests_offset].encrypted[2];
+  encrypted[3] = esalt_bufs[digests_offset].encrypted[3];
+
+  u32 iv[4];
+
+  iv[0] = esalt_bufs[digests_offset].iv[0];
+  iv[1] = esalt_bufs[digests_offset].iv[1];
+  iv[2] = esalt_bufs[digests_offset].iv[2];
+  iv[3] = esalt_bufs[digests_offset].iv[3];
+
+  /**
    * loop
    */
 
@@ -348,30 +368,16 @@ KERNEL_FQ void m16600_m04 (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
 
     aes256_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
-    u32 encrypted[4];
-
-    encrypted[0] = esalt_bufs[digests_offset].encrypted[0];
-    encrypted[1] = esalt_bufs[digests_offset].encrypted[1];
-    encrypted[2] = esalt_bufs[digests_offset].encrypted[2];
-    encrypted[3] = esalt_bufs[digests_offset].encrypted[3];
-
     u32 out[4];
 
     aes256_decrypt (ks, encrypted, out, s_td0, s_td1, s_td2, s_td3, s_td4);
-
-    u32 iv[4];
-
-    iv[0] = esalt_bufs[digests_offset].iv[0];
-    iv[1] = esalt_bufs[digests_offset].iv[1];
-    iv[2] = esalt_bufs[digests_offset].iv[2];
-    iv[3] = esalt_bufs[digests_offset].iv[3];
 
     out[0] ^= iv[0];
     out[1] ^= iv[1];
     out[2] ^= iv[2];
     out[3] ^= iv[3];
 
-    if (esalt_bufs[digests_offset].salt_type == 1)
+    if (salt_type == 1)
     {
       if (is_valid_hex_32 (out[0]) == 0) continue;
       if (is_valid_hex_32 (out[1]) == 0) continue;
@@ -384,7 +390,7 @@ KERNEL_FQ void m16600_m04 (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
       }
     }
 
-    if (esalt_bufs[digests_offset].salt_type == 2)
+    if (salt_type == 2)
     {
       if ((u8) (out[0] >> 0) != 'x') continue;
       if ((u8) (out[0] >> 8) != 'p') continue;
@@ -400,7 +406,7 @@ KERNEL_FQ void m16600_m04 (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
       }
     }
 
-    if (esalt_bufs[digests_offset].salt_type == 3)
+    if (salt_type == 3)
     {
       // check PKCS7 padding (either 13 times 0x0d or 12 times 0x0c at the end, we only check 12 bytes, it's enough):
 
@@ -513,6 +519,26 @@ KERNEL_FQ void m16600_s04 (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
   const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
+   * data
+   */
+
+  const u32 salt_type = esalt_bufs[digests_offset].salt_type;
+
+  u32 encrypted[4];
+
+  encrypted[0] = esalt_bufs[digests_offset].encrypted[0];
+  encrypted[1] = esalt_bufs[digests_offset].encrypted[1];
+  encrypted[2] = esalt_bufs[digests_offset].encrypted[2];
+  encrypted[3] = esalt_bufs[digests_offset].encrypted[3];
+
+  u32 iv[4];
+
+  iv[0] = esalt_bufs[digests_offset].iv[0];
+  iv[1] = esalt_bufs[digests_offset].iv[1];
+  iv[2] = esalt_bufs[digests_offset].iv[2];
+  iv[3] = esalt_bufs[digests_offset].iv[3];
+
+  /**
    * loop
    */
 
@@ -754,30 +780,16 @@ KERNEL_FQ void m16600_s04 (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
 
     aes256_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
-    u32 encrypted[4];
-
-    encrypted[0] = esalt_bufs[digests_offset].encrypted[0];
-    encrypted[1] = esalt_bufs[digests_offset].encrypted[1];
-    encrypted[2] = esalt_bufs[digests_offset].encrypted[2];
-    encrypted[3] = esalt_bufs[digests_offset].encrypted[3];
-
     u32 out[4];
 
     aes256_decrypt (ks, encrypted, out, s_td0, s_td1, s_td2, s_td3, s_td4);
-
-    u32 iv[4];
-
-    iv[0] = esalt_bufs[digests_offset].iv[0];
-    iv[1] = esalt_bufs[digests_offset].iv[1];
-    iv[2] = esalt_bufs[digests_offset].iv[2];
-    iv[3] = esalt_bufs[digests_offset].iv[3];
 
     out[0] ^= iv[0];
     out[1] ^= iv[1];
     out[2] ^= iv[2];
     out[3] ^= iv[3];
 
-    if (esalt_bufs[digests_offset].salt_type == 1)
+    if (salt_type == 1)
     {
       if (is_valid_hex_32 (out[0]) == 0) continue;
       if (is_valid_hex_32 (out[1]) == 0) continue;
@@ -790,7 +802,7 @@ KERNEL_FQ void m16600_s04 (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
       }
     }
 
-    if (esalt_bufs[digests_offset].salt_type == 2)
+    if (salt_type == 2)
     {
       if ((u8) (out[0] >> 0) != 'x') continue;
       if ((u8) (out[0] >> 8) != 'p') continue;
@@ -806,7 +818,7 @@ KERNEL_FQ void m16600_s04 (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
       }
     }
 
-    if (esalt_bufs[digests_offset].salt_type == 3)
+    if (salt_type == 3)
     {
       // check PKCS7 padding (either 13 times 0x0d or 12 times 0x0c at the end, we only check 12 bytes, it's enough):
 
