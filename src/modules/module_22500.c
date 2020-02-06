@@ -121,16 +121,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   salt->salt_buf[8] = hex_to_u32 (data_pos + 48);
   salt->salt_buf[9] = hex_to_u32 (data_pos + 56);
 
-  // TODO remove ?
-  // salt->salt_buf[2] = byte_swap_32 (salt->salt_buf[2]);
-  // salt->salt_buf[3] = byte_swap_32 (salt->salt_buf[3]);
-  // salt->salt_buf[4] = byte_swap_32 (salt->salt_buf[4]);
-  // salt->salt_buf[5] = byte_swap_32 (salt->salt_buf[5]);
-  // salt->salt_buf[6] = byte_swap_32 (salt->salt_buf[6]);
-  // salt->salt_buf[7] = byte_swap_32 (salt->salt_buf[7]);
-  // salt->salt_buf[8] = byte_swap_32 (salt->salt_buf[8]);
-  // salt->salt_buf[9] = byte_swap_32 (salt->salt_buf[9]);
-
   salt->salt_len = 40; // 8 + 32;
 
   // fake hash
