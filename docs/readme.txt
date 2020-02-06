@@ -284,6 +284,7 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (9.0 or
 - Ethereum Pre-Sale Wallet, PBKDF2-HMAC-SHA256
 - Ethereum Wallet, PBKDF2-HMAC-SHA256
 - Ethereum Wallet, SCRYPT
+- MultiBit Classic .key (MD5)
 - 7-Zip
 - RAR3-hp
 - RAR5
