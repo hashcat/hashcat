@@ -250,7 +250,7 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
   salt_t *salt = hash->salt;
 
-  if ((user_options->veracrypt_pim_start) && (user_options->veracrypt_pim_stop))
+  if ((user_options->veracrypt_pim_start_chgd == true) && (user_options->veracrypt_pim_stop_chgd == true))
   {
     vc->pim_start = 15 + user_options->veracrypt_pim_start;
     vc->pim_stop  = 15 + user_options->veracrypt_pim_stop;

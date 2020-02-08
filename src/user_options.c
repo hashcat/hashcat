@@ -257,8 +257,8 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->usage                     = USAGE;
   user_options->username                  = USERNAME;
   user_options->veracrypt_keyfiles        = NULL;
-  user_options->veracrypt_pim_start       = 0;
-  user_options->veracrypt_pim_stop        = 0;
+  user_options->veracrypt_pim_start       = VERACRYPT_PIM_START;
+  user_options->veracrypt_pim_stop        = VERACRYPT_PIM_STOP;
   user_options->version                   = VERSION;
   user_options->wordlist_autohex_disable  = WORDLIST_AUTOHEX_DISABLE;
   user_options->workload_profile          = WORKLOAD_PROFILE;
@@ -460,8 +460,10 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_KEYBOARD_LAYOUT_MAPPING:   user_options->keyboard_layout_mapping   = optarg;                          break;
       case IDX_TRUECRYPT_KEYFILES:        user_options->truecrypt_keyfiles        = optarg;                          break;
       case IDX_VERACRYPT_KEYFILES:        user_options->veracrypt_keyfiles        = optarg;                          break;
-      case IDX_VERACRYPT_PIM_START:       user_options->veracrypt_pim_start       = hc_strtoul (optarg, NULL, 10);   break;
-      case IDX_VERACRYPT_PIM_STOP:        user_options->veracrypt_pim_stop        = hc_strtoul (optarg, NULL, 10);   break;
+      case IDX_VERACRYPT_PIM_START:       user_options->veracrypt_pim_start       = hc_strtoul (optarg, NULL, 10);
+                                          user_options->veracrypt_pim_start_chgd  = true;                            break;
+      case IDX_VERACRYPT_PIM_STOP:        user_options->veracrypt_pim_stop        = hc_strtoul (optarg, NULL, 10);
+                                          user_options->veracrypt_pim_stop_chgd   = true;                            break;
       case IDX_SEGMENT_SIZE:              user_options->segment_size              = hc_strtoul (optarg, NULL, 10);
                                           user_options->segment_size_chgd         = true;                            break;
       case IDX_SCRYPT_TMTO:               user_options->scrypt_tmto               = hc_strtoul (optarg, NULL, 10);   break;
@@ -720,14 +722,14 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  if ((user_options->veracrypt_pim_start != 0) && (user_options->veracrypt_pim_stop == 0))
+  if ((user_options->veracrypt_pim_start_chgd == true) && (user_options->veracrypt_pim_stop_chgd == false))
   {
     event_log_error (hashcat_ctx, "If --veracrypt-pim-start is specified then --veracrypt-pim-stop needs to be specified, too.");
 
     return -1;
   }
 
-  if ((user_options->veracrypt_pim_start == 0) && (user_options->veracrypt_pim_stop != 0))
+  if ((user_options->veracrypt_pim_start_chgd == false) && (user_options->veracrypt_pim_stop_chgd == true))
   {
     event_log_error (hashcat_ctx, "If --veracrypt-pim-stop is specified then --veracrypt-pim-start needs to be specified, too.");
 

@@ -646,6 +646,8 @@ typedef enum user_options_defaults
   USAGE                    = false,
   USERNAME                 = false,
   VERSION                  = false,
+  VERACRYPT_PIM_START      = 485,
+  VERACRYPT_PIM_STOP       = 485,
   WORDLIST_AUTOHEX_DISABLE = false,
   WORKLOAD_PROFILE         = 2,
 
@@ -1938,6 +1940,8 @@ typedef struct user_options
   bool         stdin_timeout_abort_chgd;
   bool         usage;
   bool         username;
+  bool         veracrypt_pim_start_chgd;
+  bool         veracrypt_pim_stop_chgd;
   bool         version;
   bool         wordlist_autohex_disable;
   #ifdef WITH_BRAIN
