@@ -280,7 +280,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   token.len_min[1] = 0;
-  token.len_max[1] = 16;
+  token.len_max[1] = 20;
   token.sep[1]     = '$';
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_OPTIONAL_ROUNDS;
