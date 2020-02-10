@@ -870,6 +870,36 @@ DECLSPEC u32 memcat20 (u32 *block, const u32 offset, const u32 *append, const u3
               block[18]  = tmp3;
               block[19]  = tmp4;
               break;
+    case 16:  block[16] |= tmp0;
+              block[17]  = tmp1;
+              block[18]  = tmp2;
+              block[19]  = tmp3;
+              block[20]  = tmp4;
+              break;
+    case 17:  block[17] |= tmp0;
+              block[18]  = tmp1;
+              block[19]  = tmp2;
+              block[20]  = tmp3;
+              block[21]  = tmp4;
+              break;
+    case 18:  block[18] |= tmp0;
+              block[19]  = tmp1;
+              block[20]  = tmp2;
+              block[21]  = tmp3;
+              block[22]  = tmp4;
+              break;
+    case 19:  block[19] |= tmp0;
+              block[20]  = tmp1;
+              block[21]  = tmp2;
+              block[22]  = tmp3;
+              block[23]  = tmp4;
+              break;
+    case 20:  block[20] |= tmp0;
+              block[21]  = tmp1;
+              block[22]  = tmp2;
+              block[23]  = tmp3;
+              block[24]  = tmp4;
+              break;
   }
 
   return offset + append_len;
@@ -998,6 +1028,36 @@ DECLSPEC u32 memcat20_x80 (u32 *block, const u32 offset, const u32 *append, cons
               block[17]  = tmp2;
               block[18]  = tmp3;
               block[19]  = tmp4;
+              break;
+    case 16:  block[16] |= tmp0;
+              block[17]  = tmp1;
+              block[18]  = tmp2;
+              block[19]  = tmp3;
+              block[20]  = tmp4;
+              break;
+    case 17:  block[17] |= tmp0;
+              block[18]  = tmp1;
+              block[19]  = tmp2;
+              block[20]  = tmp3;
+              block[21]  = tmp4;
+              break;
+    case 18:  block[18] |= tmp0;
+              block[19]  = tmp1;
+              block[20]  = tmp2;
+              block[21]  = tmp3;
+              block[22]  = tmp4;
+              break;
+    case 19:  block[19] |= tmp0;
+              block[20]  = tmp1;
+              block[21]  = tmp2;
+              block[22]  = tmp3;
+              block[23]  = tmp4;
+              break;
+    case 20:  block[20] |= tmp0;
+              block[21]  = tmp1;
+              block[22]  = tmp2;
+              block[23]  = tmp3;
+              block[24]  = tmp4;
               break;
   }
 
@@ -1438,15 +1498,6 @@ KERNEL_FQ void m07400_loop (KERN_ATTR_TMPS (sha256crypt_tmp_t))
   p_bytes[2] = tmps[gid].p_bytes[2];
   p_bytes[3] = tmps[gid].p_bytes[3];
 
-  u32 p_bytes_x80[4];
-
-  p_bytes_x80[0] = tmps[gid].p_bytes[0];
-  p_bytes_x80[1] = tmps[gid].p_bytes[1];
-  p_bytes_x80[2] = tmps[gid].p_bytes[2];
-  p_bytes_x80[3] = tmps[gid].p_bytes[3];
-
-  append_0x80_1x4_S (p_bytes_x80, pw_len ^ 3);
-
   u32 s_bytes[5];
 
   s_bytes[0] = tmps[gid].s_bytes[0];
@@ -1467,6 +1518,17 @@ KERNEL_FQ void m07400_loop (KERN_ATTR_TMPS (sha256crypt_tmp_t))
   alt_result[7] = tmps[gid].alt_result[7];
 
   u32 salt_len = salt_bufs[salt_pos].salt_len;
+
+  // just an optimization
+
+  u32 p_bytes_x80[4];
+
+  p_bytes_x80[0] = p_bytes[0];
+  p_bytes_x80[1] = p_bytes[1];
+  p_bytes_x80[2] = p_bytes[2];
+  p_bytes_x80[3] = p_bytes[3];
+
+  append_0x80_1x4_S (p_bytes_x80, pw_len ^ 3);
 
   /* Repeatedly run the collected hash value through SHA256 to burn
      CPU cycles.  */
