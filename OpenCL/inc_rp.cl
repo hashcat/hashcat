@@ -300,7 +300,17 @@ DECLSPEC int mangle_dupeword_times (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const
 
   u8 *out = buf + len;
 
-  for (int t = 0; t < p0; t++) for (int i = 0; i < len; i++) *out++ = *buf++;
+  int out_pos = len;
+
+  for (int t = 0; t < p0; t++)
+  {
+    for (int i = 0; i < len; i++)
+    {
+      out[out_pos] = buf[i];
+
+      out_pos++;
+    }
+  }
 
   return (out_len);
 }
