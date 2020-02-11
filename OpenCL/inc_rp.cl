@@ -298,15 +298,13 @@ DECLSPEC int mangle_dupeword_times (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const
 
   if (out_len >= RP_PASSWORD_SIZE) return (len);
 
-  u8 *out = buf + len;
-
   int out_pos = len;
 
   for (int t = 0; t < p0; t++)
   {
     for (int i = 0; i < len; i++)
     {
-      out[out_pos] = buf[i];
+      buf[out_pos] = buf[i];
 
       out_pos++;
     }
