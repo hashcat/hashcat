@@ -213,6 +213,7 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (9.0 or
 - Oracle T: Type (Oracle 12+)
 - MySQL323
 - MySQL4.1/MySQL5
+- MySQL $A$ (sha256crypt)
 - Sybase ASE
 - hMailServer
 - DNSSEC (NSEC3)

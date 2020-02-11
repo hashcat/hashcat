@@ -41,6 +41,7 @@
 - Added hash-mode: md5(sha1($pass).md5($pass).sha1($pass))
 - Added hash-mode: md5(sha1($salt).md5($pass))
 - Added hash-mode: MultiBit Classic .key (MD5)
+- Added hash-mode: MySQL $A$ (sha256crypt)
 - Added hash-mode: Open Document Format (ODF) 1.1 (SHA-1, Blowfish)
 - Added hash-mode: Open Document Format (ODF) 1.2 (SHA-256, AES)
 - Added hash-mode: Oracle Transportation Management (SHA256)

@@ -7,28 +7,37 @@
 
 use strict;
 use warnings;
+
 use Digest::SHA qw (sha256);
 
-sub module_constraints { [[0, 256], [0, 20], [0, 15], [0, 20], [-1, -1]] }
+sub module_constraints { [[0, 256], [20, 20], [0, 15], [20, 20], [-1, -1]] }
+
+my $ITERATION_MULTIPLIER = 1000;
 
 sub module_generate_hash
 {
-  my $word = shift;
-  my $salt = shift;
-  my $iter = shift;
+  my $word  = shift;
+  my $salt  = shift;
+  my $cost  = shift // 5; # => cost * $ITERATION_MULTIPLIER
+  my $lower = shift // 0;
 
-  my $hash_buf;
+  my $dgst = sha_crypts (\&sha256, 256, $word, $salt, $cost * $ITERATION_MULTIPLIER);
 
-  if (defined $iter)
+  my $salt_hex = unpack ("H*", $salt);
+  my $dgst_hex = unpack ("H*", $dgst);
+
+  # default for MySQL is upper-case hexadecimals:
+
+  if ($lower == 0)
   {
-    $hash_buf = sha256crypt ($word, $salt, $iter, 1);
-  }
-  else
-  {
-    $hash_buf = sha256crypt ($word, $salt, 5000, 0);
+    $salt_hex = uc ($salt_hex);
+    $dgst_hex = uc ($dgst_hex);
   }
 
-  my $hash = sprintf ("%s", $hash_buf);
+  my $hash = sprintf ("\$mysql\$A\$%03i*%s*%s",
+   $cost,
+   $salt_hex,
+   $dgst_hex);
 
   return $hash;
 }
@@ -37,59 +46,53 @@ sub module_verify_hash
 {
   my $line = shift;
 
-  my $index1 = index ($line, ":", 30);
+  my $idx = index ($line, ':');
 
-  return if $index1 < 1;
+  return unless ($idx >= 0);
 
-  my $hash_in = substr ($line, 0, $index1);
+  my $hash = substr ($line, 0, $idx);
+  my $word = substr ($line, $idx + 1);
 
-  my $word = substr ($line, $index1 + 1);
-
-  $index1 = index ($hash_in,  ",", 1);
-
-  my $index2 = index ($hash_in, "\$", 1);
-
-  if ($index1 != -1)
-  {
-    if ($index1 < $index2)
-    {
-      $index2 = $index1;
-    }
-  }
-
-  #$param = substr ($hash_in, $index2, 1);
-
-  $index2++;
-
-  # rounds= if available
-  my $iter;
-
-  if (substr ($hash_in, $index2, 7) eq "rounds=")
-  {
-    my $old_index = $index2;
-
-    $index2 = index ($hash_in, "\$", $index2 + 1);
-
-    return if $index2 < 1;
-
-    $iter = substr ($hash_in, $old_index + 7, $index2 - $old_index - 7);
-
-    $index2++;
-  }
-
-  # get salt
-  my $index3 = rindex ($hash_in, "\$");
-
-  return if $index3 < 1;
-
-  my $salt = substr ($hash_in, $index2, $index3 - $index2);
-
-  return unless defined $salt;
+  return unless defined $hash;
   return unless defined $word;
+
+  return unless (substr ($hash, 0, 9) eq '$mysql$A$');
+
+  $idx = index ($hash, '*');
+
+  return unless ($idx == 12);
+
+  # iter:
+
+  my $cost_factor = substr ($hash, 9, 3);
+
+  $cost_factor = int ($cost_factor);
+
+  return unless ($cost_factor > 0);
+
+  # salt:
+
+  $idx = index ($hash, '*', 13);
+
+  return unless ($idx == 53);
+
+  my $salt = substr ($hash, 13, 40);
+
+  $salt = pack ("H*", $salt);
+
+  # check for lower/upper case:
+
+  my $digest = substr ($hash, 54);
+
+  my $is_lower = 0;
+
+  $is_lower = 1 if (uc ($digest) ne $digest);
+
+  # verify:
 
   $word = pack_if_HEX_notation ($word);
 
-  my $new_hash = module_generate_hash ($word, $salt, $iter);
+  my $new_hash = module_generate_hash ($word, $salt, $cost_factor, $is_lower);
 
   return ($new_hash, $word);
 }
@@ -258,25 +261,6 @@ sub sha_crypts
   else              { $tmp .= to64  (ord (substr ($c, 63, 1)), 2); }
 
   return $tmp;
-}
-
-sub sha256crypt
-{
-  my $pass   = shift;
-  my $salt   = shift;
-  my $iter   = shift;
-  my $rounds = shift;
-
-  my $bin = sha_crypts (\&sha256, 256, $pass, $salt, $iter);
-
-  if ($rounds == 1)
-  {
-    return "\$5\$rounds=$iter\$" . $salt . "\$$bin";
-  }
-  else
-  {
-    return "\$5\$" . $salt . "\$$bin";
-  }
 }
 
 1;
