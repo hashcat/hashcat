@@ -14,12 +14,12 @@
 #include "inc_hash_whirlpool.cl"
 #endif
 
-DECLSPEC void whirlpool_transform_transport_vector (const u32x *w, u32x *digest, SHM_TYPE u64 (*s_MT)[256], SHM_TYPE u64 *s_RC)
+DECLSPEC void whirlpool_transform_transport_vector (const u32x *w, u32x *digest, SHM_TYPE u64 (*s_MT)[256])
 {
-  whirlpool_transform_vector (w + 0, w + 4, w + 8, w + 12, digest, s_MT, s_RC);
+  whirlpool_transform_vector (w + 0, w + 4, w + 8, w + 12, digest, s_MT);
 }
 
-DECLSPEC void m06100m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC (), SHM_TYPE u64 (*s_MT)[256], SHM_TYPE u64 *s_RC)
+DECLSPEC void m06100m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC (), SHM_TYPE u64 (*s_MT)[256])
 {
   /**
    * modifier
@@ -82,13 +82,13 @@ DECLSPEC void m06100m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
     dgst[14] = 0;
     dgst[15] = 0;
 
-    whirlpool_transform_transport_vector (w, dgst, s_MT, s_RC);
+    whirlpool_transform_transport_vector (w, dgst, s_MT);
 
     COMPARE_M_SIMD (dgst[0], dgst[1], dgst[2], dgst[3]);
   }
 }
 
-DECLSPEC void m06100s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC (), SHM_TYPE u64 (*s_MT)[256], SHM_TYPE u64 *s_RC)
+DECLSPEC void m06100s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC (), SHM_TYPE u64 (*s_MT)[256])
 {
   /**
    * modifier
@@ -163,7 +163,7 @@ DECLSPEC void m06100s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
     dgst[14] = 0;
     dgst[15] = 0;
 
-    whirlpool_transform_transport_vector (w, dgst, s_MT, s_RC);
+    whirlpool_transform_transport_vector (w, dgst, s_MT);
 
     COMPARE_S_SIMD (dgst[0], dgst[1], dgst[2], dgst[3]);
   }
@@ -186,7 +186,6 @@ KERNEL_FQ void m06100_m04 (KERN_ATTR_BASIC ())
   #ifdef REAL_SHM
 
   LOCAL_VK u64 s_MT[8][256];
-  LOCAL_VK u64 s_RC[16];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -200,17 +199,11 @@ KERNEL_FQ void m06100_m04 (KERN_ATTR_BASIC ())
     s_MT[7][i] = MT[7][i];
   }
 
-  for (u32 i = lid; i < 16; i += lsz)
-  {
-    s_RC[i] = RC[i];
-  }
-
   SYNC_THREADS ();
 
   #else
 
   CONSTANT_AS u64a (*s_MT)[256] = MT;
-  CONSTANT_AS u64a  *s_RC       = RC;
 
   #endif
 
@@ -254,7 +247,7 @@ KERNEL_FQ void m06100_m04 (KERN_ATTR_BASIC ())
    * main
    */
 
-  m06100m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max, s_MT, s_RC);
+  m06100m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max, s_MT);
 }
 
 KERNEL_FQ void m06100_m08 (KERN_ATTR_BASIC ())
@@ -274,7 +267,6 @@ KERNEL_FQ void m06100_m08 (KERN_ATTR_BASIC ())
   #ifdef REAL_SHM
 
   LOCAL_VK u64 s_MT[8][256];
-  LOCAL_VK u64 s_RC[16];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -288,17 +280,11 @@ KERNEL_FQ void m06100_m08 (KERN_ATTR_BASIC ())
     s_MT[7][i] = MT[7][i];
   }
 
-  for (u32 i = lid; i < 16; i += lsz)
-  {
-    s_RC[i] = RC[i];
-  }
-
   SYNC_THREADS ();
 
   #else
 
   CONSTANT_AS u64a (*s_MT)[256] = MT;
-  CONSTANT_AS u64a  *s_RC       = RC;
 
   #endif
 
@@ -342,7 +328,7 @@ KERNEL_FQ void m06100_m08 (KERN_ATTR_BASIC ())
    * main
    */
 
-  m06100m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max, s_MT, s_RC);
+  m06100m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max, s_MT);
 }
 
 KERNEL_FQ void m06100_m16 (KERN_ATTR_BASIC ())
@@ -366,7 +352,6 @@ KERNEL_FQ void m06100_s04 (KERN_ATTR_BASIC ())
   #ifdef REAL_SHM
 
   LOCAL_VK u64 s_MT[8][256];
-  LOCAL_VK u64 s_RC[16];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -380,17 +365,11 @@ KERNEL_FQ void m06100_s04 (KERN_ATTR_BASIC ())
     s_MT[7][i] = MT[7][i];
   }
 
-  for (u32 i = lid; i < 16; i += lsz)
-  {
-    s_RC[i] = RC[i];
-  }
-
   SYNC_THREADS ();
 
   #else
 
   CONSTANT_AS u64a (*s_MT)[256] = MT;
-  CONSTANT_AS u64a  *s_RC       = RC;
 
   #endif
 
@@ -434,7 +413,7 @@ KERNEL_FQ void m06100_s04 (KERN_ATTR_BASIC ())
    * main
    */
 
-  m06100s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max, s_MT, s_RC);
+  m06100s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max, s_MT);
 }
 
 KERNEL_FQ void m06100_s08 (KERN_ATTR_BASIC ())
@@ -454,7 +433,6 @@ KERNEL_FQ void m06100_s08 (KERN_ATTR_BASIC ())
   #ifdef REAL_SHM
 
   LOCAL_VK u64 s_MT[8][256];
-  LOCAL_VK u64 s_RC[16];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -468,17 +446,11 @@ KERNEL_FQ void m06100_s08 (KERN_ATTR_BASIC ())
     s_MT[7][i] = MT[7][i];
   }
 
-  for (u32 i = lid; i < 16; i += lsz)
-  {
-    s_RC[i] = RC[i];
-  }
-
   SYNC_THREADS ();
 
   #else
 
   CONSTANT_AS u64a (*s_MT)[256] = MT;
-  CONSTANT_AS u64a  *s_RC       = RC;
 
   #endif
 
@@ -522,7 +494,7 @@ KERNEL_FQ void m06100_s08 (KERN_ATTR_BASIC ())
    * main
    */
 
-  m06100s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max, s_MT, s_RC);
+  m06100s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max, s_MT);
 }
 
 KERNEL_FQ void m06100_s16 (KERN_ATTR_BASIC ())

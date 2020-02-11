@@ -16,9 +16,9 @@
 #include "inc_hash_whirlpool.cl"
 #endif
 
-DECLSPEC void whirlpool_transform_transport_vector (const u32x *w, u32x *digest, SHM_TYPE u64 (*s_MT)[256], SHM_TYPE u64 *s_RC)
+DECLSPEC void whirlpool_transform_transport_vector (const u32x *w, u32x *digest, SHM_TYPE u64 (*s_MT)[256])
 {
-  whirlpool_transform_vector (w + 0, w + 4, w + 8, w + 12, digest, s_MT, s_RC);
+  whirlpool_transform_vector (w + 0, w + 4, w + 8, w + 12, digest, s_MT);
 }
 
 KERNEL_FQ void m06100_m04 (KERN_ATTR_RULES ())
@@ -38,7 +38,6 @@ KERNEL_FQ void m06100_m04 (KERN_ATTR_RULES ())
   #ifdef REAL_SHM
 
   LOCAL_VK u64 s_MT[8][256];
-  LOCAL_VK u64 s_RC[16];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -52,17 +51,11 @@ KERNEL_FQ void m06100_m04 (KERN_ATTR_RULES ())
     s_MT[7][i] = MT[7][i];
   }
 
-  for (u32 i = lid; i < 16; i += lsz)
-  {
-    s_RC[i] = RC[i];
-  }
-
   SYNC_THREADS ();
 
   #else
 
   CONSTANT_AS u64a (*s_MT)[256] = MT;
-  CONSTANT_AS u64a  *s_RC       = RC;
 
   #endif
 
@@ -143,7 +136,7 @@ KERNEL_FQ void m06100_m04 (KERN_ATTR_RULES ())
     dgst[14] = 0;
     dgst[15] = 0;
 
-    whirlpool_transform_transport_vector (w, dgst, s_MT, s_RC);
+    whirlpool_transform_transport_vector (w, dgst, s_MT);
 
     COMPARE_M_SIMD (dgst[0], dgst[1], dgst[2], dgst[3]);
   }
@@ -174,7 +167,6 @@ KERNEL_FQ void m06100_s04 (KERN_ATTR_RULES ())
   #ifdef REAL_SHM
 
   LOCAL_VK u64 s_MT[8][256];
-  LOCAL_VK u64 s_RC[16];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -188,17 +180,11 @@ KERNEL_FQ void m06100_s04 (KERN_ATTR_RULES ())
     s_MT[7][i] = MT[7][i];
   }
 
-  for (u32 i = lid; i < 16; i += lsz)
-  {
-    s_RC[i] = RC[i];
-  }
-
   SYNC_THREADS ();
 
   #else
 
   CONSTANT_AS u64a (*s_MT)[256] = MT;
-  CONSTANT_AS u64a  *s_RC       = RC;
 
   #endif
 
@@ -291,7 +277,7 @@ KERNEL_FQ void m06100_s04 (KERN_ATTR_RULES ())
     dgst[14] = 0;
     dgst[15] = 0;
 
-    whirlpool_transform_transport_vector (w, dgst, s_MT, s_RC);
+    whirlpool_transform_transport_vector (w, dgst, s_MT);
 
     COMPARE_S_SIMD (dgst[0], dgst[1], dgst[2], dgst[3]);
   }

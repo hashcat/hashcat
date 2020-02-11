@@ -45,7 +45,7 @@ typedef struct tc_tmp
 
 } tc_tmp_t;
 
-DECLSPEC void hmac_whirlpool_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest, SHM_TYPE u64 (*s_MT)[256], SHM_TYPE u64 *s_RC)
+DECLSPEC void hmac_whirlpool_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest, SHM_TYPE u64 (*s_MT)[256])
 {
   digest[ 0] = ipad[ 0];
   digest[ 1] = ipad[ 1];
@@ -64,7 +64,7 @@ DECLSPEC void hmac_whirlpool_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x
   digest[14] = ipad[14];
   digest[15] = ipad[15];
 
-  whirlpool_transform_vector (w0, w1, w2, w3, digest, s_MT, s_RC);
+  whirlpool_transform_vector (w0, w1, w2, w3, digest, s_MT);
 
   w0[0] = 0x80000000;
   w0[1] = 0;
@@ -83,7 +83,7 @@ DECLSPEC void hmac_whirlpool_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x
   w3[2] = 0;
   w3[3] = (64 + 64) * 8;
 
-  whirlpool_transform_vector (w0, w1, w2, w3, digest, s_MT, s_RC);
+  whirlpool_transform_vector (w0, w1, w2, w3, digest, s_MT);
 
   w0[0] = digest[ 0];
   w0[1] = digest[ 1];
@@ -119,7 +119,7 @@ DECLSPEC void hmac_whirlpool_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x
   digest[14] = opad[14];
   digest[15] = opad[15];
 
-  whirlpool_transform_vector (w0, w1, w2, w3, digest, s_MT, s_RC);
+  whirlpool_transform_vector (w0, w1, w2, w3, digest, s_MT);
 
   w0[0] = 0x80000000;
   w0[1] = 0;
@@ -138,7 +138,7 @@ DECLSPEC void hmac_whirlpool_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x
   w3[2] = 0;
   w3[3] = (64 + 64) * 8;
 
-  whirlpool_transform_vector (w0, w1, w2, w3, digest, s_MT, s_RC);
+  whirlpool_transform_vector (w0, w1, w2, w3, digest, s_MT);
 }
 
 KERNEL_FQ void m06232_init (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
@@ -169,7 +169,6 @@ KERNEL_FQ void m06232_init (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
   #ifdef REAL_SHM
 
   LOCAL_VK u64 s_MT[8][256];
-  LOCAL_VK u64 s_RC[16];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -183,17 +182,11 @@ KERNEL_FQ void m06232_init (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
     s_MT[7][i] = MT[7][i];
   }
 
-  for (u32 i = lid; i < 16; i += lsz)
-  {
-    s_RC[i] = RC[i];
-  }
-
   SYNC_THREADS ();
 
   #else
 
   CONSTANT_AS u64a (*s_MT)[256] = MT;
-  CONSTANT_AS u64a  *s_RC       = RC;
 
   #endif
 
@@ -265,7 +258,7 @@ KERNEL_FQ void m06232_init (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
 
   whirlpool_hmac_ctx_t whirlpool_hmac_ctx;
 
-  whirlpool_hmac_init_64 (&whirlpool_hmac_ctx, w0, w1, w2, w3, s_MT, s_RC);
+  whirlpool_hmac_init_64 (&whirlpool_hmac_ctx, w0, w1, w2, w3, s_MT);
 
   tmps[gid].ipad[ 0] = whirlpool_hmac_ctx.ipad.h[ 0];
   tmps[gid].ipad[ 1] = whirlpool_hmac_ctx.ipad.h[ 1];
@@ -377,7 +370,6 @@ KERNEL_FQ void m06232_loop (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
   #ifdef REAL_SHM
 
   LOCAL_VK u64 s_MT[8][256];
-  LOCAL_VK u64 s_RC[16];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -391,17 +383,11 @@ KERNEL_FQ void m06232_loop (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
     s_MT[7][i] = MT[7][i];
   }
 
-  for (u32 i = lid; i < 16; i += lsz)
-  {
-    s_RC[i] = RC[i];
-  }
-
   SYNC_THREADS ();
 
   #else
 
   CONSTANT_AS u64a (*s_MT)[256] = MT;
-  CONSTANT_AS u64a  *s_RC       = RC;
 
   #endif
 
@@ -507,7 +493,7 @@ KERNEL_FQ void m06232_loop (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
       w3[2] = dgst[14];
       w3[3] = dgst[15];
 
-      hmac_whirlpool_run_V (w0, w1, w2, w3, ipad, opad, dgst, s_MT, s_RC);
+      hmac_whirlpool_run_V (w0, w1, w2, w3, ipad, opad, dgst, s_MT);
 
       out[ 0] ^= dgst[ 0];
       out[ 1] ^= dgst[ 1];
@@ -617,41 +603,6 @@ KERNEL_FQ void m06232_comp (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
   CONSTANT_AS u32a *s_te2 = te2;
   CONSTANT_AS u32a *s_te3 = te3;
   CONSTANT_AS u32a *s_te4 = te4;
-
-  #endif
-
-  /**
-   * Whirlpool shared
-   */
-
-  #ifdef REAL_SHM
-
-  LOCAL_VK u64 s_MT[8][256];
-  LOCAL_VK u64 s_RC[16];
-
-  for (u32 i = lid; i < 256; i += lsz)
-  {
-    s_MT[0][i] = MT[0][i];
-    s_MT[1][i] = MT[1][i];
-    s_MT[2][i] = MT[2][i];
-    s_MT[3][i] = MT[3][i];
-    s_MT[4][i] = MT[4][i];
-    s_MT[5][i] = MT[5][i];
-    s_MT[6][i] = MT[6][i];
-    s_MT[7][i] = MT[7][i];
-  }
-
-  for (u32 i = lid; i < 16; i += lsz)
-  {
-    s_RC[i] = RC[i];
-  }
-
-  SYNC_THREADS ();
-
-  #else
-
-  CONSTANT_AS u64a (*s_MT)[256] = MT;
-  CONSTANT_AS u64a  *s_RC       = RC;
 
   #endif
 

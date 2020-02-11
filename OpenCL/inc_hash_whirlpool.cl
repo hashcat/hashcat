@@ -560,7 +560,78 @@ CONSTANT_VK u64a RC[16] =
 // input buf needs to be in algorithm native byte order (md5 = LE, sha256 = BE, etc)
 // input buf needs to be 64 byte aligned when using whirlpool_update()
 
-DECLSPEC void whirlpool_transform (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest, SHM_TYPE u64 (*s_MT)[256], SHM_TYPE u64 *s_RC)
+#define F1(i,v,m)                                     \
+{                                                     \
+  const u8 Lp0 = v8h_from_v64_S ((v)[((i) + 8) & 7]); \
+  const u8 Lp1 = v8g_from_v64_S ((v)[((i) + 7) & 7]); \
+  const u8 Lp2 = v8f_from_v64_S ((v)[((i) + 6) & 7]); \
+  const u8 Lp3 = v8e_from_v64_S ((v)[((i) + 5) & 7]); \
+  const u8 Lp4 = v8d_from_v64_S ((v)[((i) + 4) & 7]); \
+  const u8 Lp5 = v8c_from_v64_S ((v)[((i) + 3) & 7]); \
+  const u8 Lp6 = v8b_from_v64_S ((v)[((i) + 2) & 7]); \
+  const u8 Lp7 = v8a_from_v64_S ((v)[((i) + 1) & 7]); \
+                                                      \
+  const u64 X0 = BOX64_S ((m), 0, Lp0);               \
+  const u64 X1 = BOX64_S ((m), 1, Lp1);               \
+  const u64 X2 = BOX64_S ((m), 2, Lp2);               \
+  const u64 X3 = BOX64_S ((m), 3, Lp3);               \
+  const u64 X4 = BOX64_S ((m), 4, Lp4);               \
+  const u64 X5 = BOX64_S ((m), 5, Lp5);               \
+  const u64 X6 = BOX64_S ((m), 6, Lp6);               \
+  const u64 X7 = BOX64_S ((m), 7, Lp7);               \
+                                                      \
+  L[(i)] = X0                                         \
+         ^ X1                                         \
+         ^ X2                                         \
+         ^ X3                                         \
+         ^ X4                                         \
+         ^ X5                                         \
+         ^ X6                                         \
+         ^ X7;                                        \
+}
+
+#define F0(rc)            \
+{                         \
+  u64 L[8];               \
+                          \
+  F1 (0, K, s_MT);        \
+  F1 (1, K, s_MT);        \
+  F1 (2, K, s_MT);        \
+  F1 (3, K, s_MT);        \
+  F1 (4, K, s_MT);        \
+  F1 (5, K, s_MT);        \
+  F1 (6, K, s_MT);        \
+  F1 (7, K, s_MT);        \
+                          \
+  K[0] = L[0] ^ (rc);     \
+  K[1] = L[1];            \
+  K[2] = L[2];            \
+  K[3] = L[3];            \
+  K[4] = L[4];            \
+  K[5] = L[5];            \
+  K[6] = L[6];            \
+  K[7] = L[7];            \
+                          \
+  F1 (0, state, s_MT);    \
+  F1 (1, state, s_MT);    \
+  F1 (2, state, s_MT);    \
+  F1 (3, state, s_MT);    \
+  F1 (4, state, s_MT);    \
+  F1 (5, state, s_MT);    \
+  F1 (6, state, s_MT);    \
+  F1 (7, state, s_MT);    \
+                          \
+  state[0] = L[0] ^ K[0]; \
+  state[1] = L[1] ^ K[1]; \
+  state[2] = L[2] ^ K[2]; \
+  state[3] = L[3] ^ K[3]; \
+  state[4] = L[4] ^ K[4]; \
+  state[5] = L[5] ^ K[5]; \
+  state[6] = L[6] ^ K[6]; \
+  state[7] = L[7] ^ K[7]; \
+}
+
+DECLSPEC void whirlpool_transform (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest, SHM_TYPE u64 (*s_MT)[256])
 {
   u64 D[8];
 
@@ -606,96 +677,16 @@ DECLSPEC void whirlpool_transform (const u32 *w0, const u32 *w1, const u32 *w2, 
   state[6] = K[6] ^ W[6];
   state[7] = K[7] ^ W[7];
 
-  for (u32 r = 0; r < R; r++)
-  {
-    u64 L[8];
-
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (int i = 0; i < 8; i++)
-    {
-      const u8 Lp0 = v8h_from_v64_S (K[(i + 8) & 7]);
-      const u8 Lp1 = v8g_from_v64_S (K[(i + 7) & 7]);
-      const u8 Lp2 = v8f_from_v64_S (K[(i + 6) & 7]);
-      const u8 Lp3 = v8e_from_v64_S (K[(i + 5) & 7]);
-      const u8 Lp4 = v8d_from_v64_S (K[(i + 4) & 7]);
-      const u8 Lp5 = v8c_from_v64_S (K[(i + 3) & 7]);
-      const u8 Lp6 = v8b_from_v64_S (K[(i + 2) & 7]);
-      const u8 Lp7 = v8a_from_v64_S (K[(i + 1) & 7]);
-
-      const u64 X0 = BOX64_S (s_MT, 0, Lp0);
-      const u64 X1 = BOX64_S (s_MT, 1, Lp1);
-      const u64 X2 = BOX64_S (s_MT, 2, Lp2);
-      const u64 X3 = BOX64_S (s_MT, 3, Lp3);
-      const u64 X4 = BOX64_S (s_MT, 4, Lp4);
-      const u64 X5 = BOX64_S (s_MT, 5, Lp5);
-      const u64 X6 = BOX64_S (s_MT, 6, Lp6);
-      const u64 X7 = BOX64_S (s_MT, 7, Lp7);
-
-      L[i] = X0
-           ^ X1
-           ^ X2
-           ^ X3
-           ^ X4
-           ^ X5
-           ^ X6
-           ^ X7;
-    }
-
-    const u64 rc = s_RC[r];
-
-    K[0] = L[0] ^ rc;
-    K[1] = L[1];
-    K[2] = L[2];
-    K[3] = L[3];
-    K[4] = L[4];
-    K[5] = L[5];
-    K[6] = L[6];
-    K[7] = L[7];
-
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (int i = 0; i < 8; i++)
-    {
-      const u8 Lp0 = v8h_from_v64_S (state[(i + 8) & 7]);
-      const u8 Lp1 = v8g_from_v64_S (state[(i + 7) & 7]);
-      const u8 Lp2 = v8f_from_v64_S (state[(i + 6) & 7]);
-      const u8 Lp3 = v8e_from_v64_S (state[(i + 5) & 7]);
-      const u8 Lp4 = v8d_from_v64_S (state[(i + 4) & 7]);
-      const u8 Lp5 = v8c_from_v64_S (state[(i + 3) & 7]);
-      const u8 Lp6 = v8b_from_v64_S (state[(i + 2) & 7]);
-      const u8 Lp7 = v8a_from_v64_S (state[(i + 1) & 7]);
-
-      const u64 X0 = BOX64_S (s_MT, 0, Lp0);
-      const u64 X1 = BOX64_S (s_MT, 1, Lp1);
-      const u64 X2 = BOX64_S (s_MT, 2, Lp2);
-      const u64 X3 = BOX64_S (s_MT, 3, Lp3);
-      const u64 X4 = BOX64_S (s_MT, 4, Lp4);
-      const u64 X5 = BOX64_S (s_MT, 5, Lp5);
-      const u64 X6 = BOX64_S (s_MT, 6, Lp6);
-      const u64 X7 = BOX64_S (s_MT, 7, Lp7);
-
-      L[i] = X0
-           ^ X1
-           ^ X2
-           ^ X3
-           ^ X4
-           ^ X5
-           ^ X6
-           ^ X7;
-    }
-
-    state[0] = L[0] ^ K[0];
-    state[1] = L[1] ^ K[1];
-    state[2] = L[2] ^ K[2];
-    state[3] = L[3] ^ K[3];
-    state[4] = L[4] ^ K[4];
-    state[5] = L[5] ^ K[5];
-    state[6] = L[6] ^ K[6];
-    state[7] = L[7] ^ K[7];
-  }
+  F0 (RC[0]);
+  F0 (RC[1]);
+  F0 (RC[2]);
+  F0 (RC[3]);
+  F0 (RC[4]);
+  F0 (RC[5]);
+  F0 (RC[6]);
+  F0 (RC[7]);
+  F0 (RC[8]);
+  F0 (RC[9]);
 
   W[0] ^= D[0] ^ state[0];
   W[1] ^= D[1] ^ state[1];
@@ -724,7 +715,7 @@ DECLSPEC void whirlpool_transform (const u32 *w0, const u32 *w1, const u32 *w2, 
   digest[15] = l32_from_64_S (W[7]);
 }
 
-DECLSPEC void whirlpool_init (whirlpool_ctx_t *ctx, SHM_TYPE u64 (*s_MT)[256], SHM_TYPE u64 *s_RC)
+DECLSPEC void whirlpool_init (whirlpool_ctx_t *ctx, SHM_TYPE u64 (*s_MT)[256])
 {
   ctx->h[ 0] = 0;
   ctx->h[ 1] = 0;
@@ -763,7 +754,6 @@ DECLSPEC void whirlpool_init (whirlpool_ctx_t *ctx, SHM_TYPE u64 (*s_MT)[256], S
   ctx->len = 0;
 
   ctx->s_MT = s_MT;
-  ctx->s_RC = s_RC;
 }
 
 DECLSPEC void whirlpool_update_64 (whirlpool_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len)
@@ -793,7 +783,7 @@ DECLSPEC void whirlpool_update_64 (whirlpool_ctx_t *ctx, u32 *w0, u32 *w1, u32 *
 
     if (len == 64)
     {
-      whirlpool_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h, ctx->s_MT, ctx->s_RC);
+      whirlpool_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h, ctx->s_MT);
 
       ctx->w0[0] = 0;
       ctx->w0[1] = 0;
@@ -862,7 +852,7 @@ DECLSPEC void whirlpool_update_64 (whirlpool_ctx_t *ctx, u32 *w0, u32 *w1, u32 *
       ctx->w3[2] |= w3[2];
       ctx->w3[3] |= w3[3];
 
-      whirlpool_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h, ctx->s_MT, ctx->s_RC);
+      whirlpool_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h, ctx->s_MT);
 
       ctx->w0[0] = c0[0];
       ctx->w0[1] = c0[1];
@@ -1404,7 +1394,7 @@ DECLSPEC void whirlpool_final (whirlpool_ctx_t *ctx)
 
   if (pos >= 32)
   {
-    whirlpool_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h, ctx->s_MT, ctx->s_RC);
+    whirlpool_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h, ctx->s_MT);
 
     ctx->w0[0] = 0;
     ctx->w0[1] = 0;
@@ -1427,12 +1417,12 @@ DECLSPEC void whirlpool_final (whirlpool_ctx_t *ctx)
   ctx->w3[2] = 0;
   ctx->w3[3] = ctx->len * 8;
 
-  whirlpool_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h, ctx->s_MT, ctx->s_RC);
+  whirlpool_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h, ctx->s_MT);
 }
 
 // whirlpool_hmac
 
-DECLSPEC void whirlpool_hmac_init_64 (whirlpool_hmac_ctx_t *ctx, const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, SHM_TYPE u64 (*s_MT)[256], SHM_TYPE u64 *s_RC)
+DECLSPEC void whirlpool_hmac_init_64 (whirlpool_hmac_ctx_t *ctx, const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, SHM_TYPE u64 (*s_MT)[256])
 {
   u32 t0[4];
   u32 t1[4];
@@ -1458,7 +1448,7 @@ DECLSPEC void whirlpool_hmac_init_64 (whirlpool_hmac_ctx_t *ctx, const u32 *w0, 
   t3[2] = w3[2] ^ 0x36363636;
   t3[3] = w3[3] ^ 0x36363636;
 
-  whirlpool_init (&ctx->ipad, s_MT, s_RC);
+  whirlpool_init (&ctx->ipad, s_MT);
 
   whirlpool_update_64 (&ctx->ipad, t0, t1, t2, t3, 64);
 
@@ -1481,12 +1471,12 @@ DECLSPEC void whirlpool_hmac_init_64 (whirlpool_hmac_ctx_t *ctx, const u32 *w0, 
   t3[2] = w3[2] ^ 0x5c5c5c5c;
   t3[3] = w3[3] ^ 0x5c5c5c5c;
 
-  whirlpool_init (&ctx->opad, s_MT, s_RC);
+  whirlpool_init (&ctx->opad, s_MT);
 
   whirlpool_update_64 (&ctx->opad, t0, t1, t2, t3, 64);
 }
 
-DECLSPEC void whirlpool_hmac_init (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len, SHM_TYPE u64 (*s_MT)[256], SHM_TYPE u64 *s_RC)
+DECLSPEC void whirlpool_hmac_init (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len, SHM_TYPE u64 (*s_MT)[256])
 {
   u32 w0[4];
   u32 w1[4];
@@ -1497,7 +1487,7 @@ DECLSPEC void whirlpool_hmac_init (whirlpool_hmac_ctx_t *ctx, const u32 *w, cons
   {
     whirlpool_ctx_t tmp;
 
-    whirlpool_init (&tmp, s_MT, s_RC);
+    whirlpool_init (&tmp, s_MT);
 
     whirlpool_update (&tmp, w, len);
 
@@ -1540,10 +1530,10 @@ DECLSPEC void whirlpool_hmac_init (whirlpool_hmac_ctx_t *ctx, const u32 *w, cons
     w3[3] = w[15];
   }
 
-  whirlpool_hmac_init_64 (ctx, w0, w1, w2, w3, s_MT, s_RC);
+  whirlpool_hmac_init_64 (ctx, w0, w1, w2, w3, s_MT);
 }
 
-DECLSPEC void whirlpool_hmac_init_swap (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len, SHM_TYPE u64 (*s_MT)[256], SHM_TYPE u64 *s_RC)
+DECLSPEC void whirlpool_hmac_init_swap (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len, SHM_TYPE u64 (*s_MT)[256])
 {
   u32 w0[4];
   u32 w1[4];
@@ -1554,7 +1544,7 @@ DECLSPEC void whirlpool_hmac_init_swap (whirlpool_hmac_ctx_t *ctx, const u32 *w,
   {
     whirlpool_ctx_t tmp;
 
-    whirlpool_init (&tmp, s_MT, s_RC);
+    whirlpool_init (&tmp, s_MT);
 
     whirlpool_update_swap (&tmp, w, len);
 
@@ -1597,10 +1587,10 @@ DECLSPEC void whirlpool_hmac_init_swap (whirlpool_hmac_ctx_t *ctx, const u32 *w,
     w3[3] = hc_swap32_S (w[15]);
   }
 
-  whirlpool_hmac_init_64 (ctx, w0, w1, w2, w3, s_MT, s_RC);
+  whirlpool_hmac_init_64 (ctx, w0, w1, w2, w3, s_MT);
 }
 
-DECLSPEC void whirlpool_hmac_init_global (whirlpool_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len, SHM_TYPE u64 (*s_MT)[256], SHM_TYPE u64 *s_RC)
+DECLSPEC void whirlpool_hmac_init_global (whirlpool_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len, SHM_TYPE u64 (*s_MT)[256])
 {
   u32 w0[4];
   u32 w1[4];
@@ -1611,7 +1601,7 @@ DECLSPEC void whirlpool_hmac_init_global (whirlpool_hmac_ctx_t *ctx, GLOBAL_AS c
   {
     whirlpool_ctx_t tmp;
 
-    whirlpool_init (&tmp, s_MT, s_RC);
+    whirlpool_init (&tmp, s_MT);
 
     whirlpool_update_global (&tmp, w, len);
 
@@ -1654,10 +1644,10 @@ DECLSPEC void whirlpool_hmac_init_global (whirlpool_hmac_ctx_t *ctx, GLOBAL_AS c
     w3[3] = w[15];
   }
 
-  whirlpool_hmac_init_64 (ctx, w0, w1, w2, w3, s_MT, s_RC);
+  whirlpool_hmac_init_64 (ctx, w0, w1, w2, w3, s_MT);
 }
 
-DECLSPEC void whirlpool_hmac_init_global_swap (whirlpool_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len, SHM_TYPE u64 (*s_MT)[256], SHM_TYPE u64 *s_RC)
+DECLSPEC void whirlpool_hmac_init_global_swap (whirlpool_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len, SHM_TYPE u64 (*s_MT)[256])
 {
   u32 w0[4];
   u32 w1[4];
@@ -1668,7 +1658,7 @@ DECLSPEC void whirlpool_hmac_init_global_swap (whirlpool_hmac_ctx_t *ctx, GLOBAL
   {
     whirlpool_ctx_t tmp;
 
-    whirlpool_init (&tmp, s_MT, s_RC);
+    whirlpool_init (&tmp, s_MT);
 
     whirlpool_update_global_swap (&tmp, w, len);
 
@@ -1711,7 +1701,7 @@ DECLSPEC void whirlpool_hmac_init_global_swap (whirlpool_hmac_ctx_t *ctx, GLOBAL
     w3[3] = hc_swap32_S (w[15]);
   }
 
-  whirlpool_hmac_init_64 (ctx, w0, w1, w2, w3, s_MT, s_RC);
+  whirlpool_hmac_init_64 (ctx, w0, w1, w2, w3, s_MT);
 }
 
 DECLSPEC void whirlpool_hmac_update_64 (whirlpool_hmac_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len)
@@ -1782,7 +1772,7 @@ DECLSPEC void whirlpool_hmac_final (whirlpool_hmac_ctx_t *ctx)
 
   ctx->opad.len += 64;
 
-  whirlpool_transform (ctx->opad.w0, ctx->opad.w1, ctx->opad.w2, ctx->opad.w3, ctx->opad.h, ctx->opad.s_MT, ctx->opad.s_RC);
+  whirlpool_transform (ctx->opad.w0, ctx->opad.w1, ctx->opad.w2, ctx->opad.w3, ctx->opad.h, ctx->opad.s_MT);
 
   ctx->opad.w0[0] = 0;
   ctx->opad.w0[1] = 0;
@@ -1806,7 +1796,78 @@ DECLSPEC void whirlpool_hmac_final (whirlpool_hmac_ctx_t *ctx)
 
 // while input buf can be a vector datatype, the length of the different elements can not
 
-DECLSPEC void whirlpool_transform_vector (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u32x *digest, SHM_TYPE u64 (*s_MT)[256], SHM_TYPE u64 *s_RC)
+#define F1x(i,v,m)                                    \
+{                                                     \
+  const u8x Lp0 = v8h_from_v64 ((v)[((i) + 8) & 7]);  \
+  const u8x Lp1 = v8g_from_v64 ((v)[((i) + 7) & 7]);  \
+  const u8x Lp2 = v8f_from_v64 ((v)[((i) + 6) & 7]);  \
+  const u8x Lp3 = v8e_from_v64 ((v)[((i) + 5) & 7]);  \
+  const u8x Lp4 = v8d_from_v64 ((v)[((i) + 4) & 7]);  \
+  const u8x Lp5 = v8c_from_v64 ((v)[((i) + 3) & 7]);  \
+  const u8x Lp6 = v8b_from_v64 ((v)[((i) + 2) & 7]);  \
+  const u8x Lp7 = v8a_from_v64 ((v)[((i) + 1) & 7]);  \
+                                                      \
+  const u64x X0 = BOX64 ((m), 0, Lp0);                \
+  const u64x X1 = BOX64 ((m), 1, Lp1);                \
+  const u64x X2 = BOX64 ((m), 2, Lp2);                \
+  const u64x X3 = BOX64 ((m), 3, Lp3);                \
+  const u64x X4 = BOX64 ((m), 4, Lp4);                \
+  const u64x X5 = BOX64 ((m), 5, Lp5);                \
+  const u64x X6 = BOX64 ((m), 6, Lp6);                \
+  const u64x X7 = BOX64 ((m), 7, Lp7);                \
+                                                      \
+  L[(i)] = X0                                         \
+         ^ X1                                         \
+         ^ X2                                         \
+         ^ X3                                         \
+         ^ X4                                         \
+         ^ X5                                         \
+         ^ X6                                         \
+         ^ X7;                                        \
+}
+
+#define F0x(rc)           \
+{                         \
+  u64x L[8];              \
+                          \
+  F1x (0, K, s_MT);       \
+  F1x (1, K, s_MT);       \
+  F1x (2, K, s_MT);       \
+  F1x (3, K, s_MT);       \
+  F1x (4, K, s_MT);       \
+  F1x (5, K, s_MT);       \
+  F1x (6, K, s_MT);       \
+  F1x (7, K, s_MT);       \
+                          \
+  K[0] = L[0] ^ (rc);     \
+  K[1] = L[1];            \
+  K[2] = L[2];            \
+  K[3] = L[3];            \
+  K[4] = L[4];            \
+  K[5] = L[5];            \
+  K[6] = L[6];            \
+  K[7] = L[7];            \
+                          \
+  F1x (0, state, s_MT);   \
+  F1x (1, state, s_MT);   \
+  F1x (2, state, s_MT);   \
+  F1x (3, state, s_MT);   \
+  F1x (4, state, s_MT);   \
+  F1x (5, state, s_MT);   \
+  F1x (6, state, s_MT);   \
+  F1x (7, state, s_MT);   \
+                          \
+  state[0] = L[0] ^ K[0]; \
+  state[1] = L[1] ^ K[1]; \
+  state[2] = L[2] ^ K[2]; \
+  state[3] = L[3] ^ K[3]; \
+  state[4] = L[4] ^ K[4]; \
+  state[5] = L[5] ^ K[5]; \
+  state[6] = L[6] ^ K[6]; \
+  state[7] = L[7] ^ K[7]; \
+}
+
+DECLSPEC void whirlpool_transform_vector (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u32x *digest, SHM_TYPE u64 (*s_MT)[256])
 {
   u64x D[8];
 
@@ -1852,96 +1913,16 @@ DECLSPEC void whirlpool_transform_vector (const u32x *w0, const u32x *w1, const 
   state[6] = K[6] ^ W[6];
   state[7] = K[7] ^ W[7];
 
-  for (u32 r = 0; r < R; r++)
-  {
-    u64x L[8];
-
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (int i = 0; i < 8; i++)
-    {
-      const u8x Lp0 = v8h_from_v64 (K[(i + 8) & 7]);
-      const u8x Lp1 = v8g_from_v64 (K[(i + 7) & 7]);
-      const u8x Lp2 = v8f_from_v64 (K[(i + 6) & 7]);
-      const u8x Lp3 = v8e_from_v64 (K[(i + 5) & 7]);
-      const u8x Lp4 = v8d_from_v64 (K[(i + 4) & 7]);
-      const u8x Lp5 = v8c_from_v64 (K[(i + 3) & 7]);
-      const u8x Lp6 = v8b_from_v64 (K[(i + 2) & 7]);
-      const u8x Lp7 = v8a_from_v64 (K[(i + 1) & 7]);
-
-      const u64x X0 = BOX64 (s_MT, 0, Lp0);
-      const u64x X1 = BOX64 (s_MT, 1, Lp1);
-      const u64x X2 = BOX64 (s_MT, 2, Lp2);
-      const u64x X3 = BOX64 (s_MT, 3, Lp3);
-      const u64x X4 = BOX64 (s_MT, 4, Lp4);
-      const u64x X5 = BOX64 (s_MT, 5, Lp5);
-      const u64x X6 = BOX64 (s_MT, 6, Lp6);
-      const u64x X7 = BOX64 (s_MT, 7, Lp7);
-
-      L[i] = X0
-           ^ X1
-           ^ X2
-           ^ X3
-           ^ X4
-           ^ X5
-           ^ X6
-           ^ X7;
-    }
-
-    const u64 rc = s_RC[r];
-
-    K[0] = L[0] ^ rc;
-    K[1] = L[1];
-    K[2] = L[2];
-    K[3] = L[3];
-    K[4] = L[4];
-    K[5] = L[5];
-    K[6] = L[6];
-    K[7] = L[7];
-
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (int i = 0; i < 8; i++)
-    {
-      const u8x Lp0 = v8h_from_v64 (state[(i + 8) & 7]);
-      const u8x Lp1 = v8g_from_v64 (state[(i + 7) & 7]);
-      const u8x Lp2 = v8f_from_v64 (state[(i + 6) & 7]);
-      const u8x Lp3 = v8e_from_v64 (state[(i + 5) & 7]);
-      const u8x Lp4 = v8d_from_v64 (state[(i + 4) & 7]);
-      const u8x Lp5 = v8c_from_v64 (state[(i + 3) & 7]);
-      const u8x Lp6 = v8b_from_v64 (state[(i + 2) & 7]);
-      const u8x Lp7 = v8a_from_v64 (state[(i + 1) & 7]);
-
-      const u64x X0 = BOX64 (s_MT, 0, Lp0);
-      const u64x X1 = BOX64 (s_MT, 1, Lp1);
-      const u64x X2 = BOX64 (s_MT, 2, Lp2);
-      const u64x X3 = BOX64 (s_MT, 3, Lp3);
-      const u64x X4 = BOX64 (s_MT, 4, Lp4);
-      const u64x X5 = BOX64 (s_MT, 5, Lp5);
-      const u64x X6 = BOX64 (s_MT, 6, Lp6);
-      const u64x X7 = BOX64 (s_MT, 7, Lp7);
-
-      L[i] = X0
-           ^ X1
-           ^ X2
-           ^ X3
-           ^ X4
-           ^ X5
-           ^ X6
-           ^ X7;
-    }
-
-    state[0] = L[0] ^ K[0];
-    state[1] = L[1] ^ K[1];
-    state[2] = L[2] ^ K[2];
-    state[3] = L[3] ^ K[3];
-    state[4] = L[4] ^ K[4];
-    state[5] = L[5] ^ K[5];
-    state[6] = L[6] ^ K[6];
-    state[7] = L[7] ^ K[7];
-  }
+  F0x (RC[0]);
+  F0x (RC[1]);
+  F0x (RC[2]);
+  F0x (RC[3]);
+  F0x (RC[4]);
+  F0x (RC[5]);
+  F0x (RC[6]);
+  F0x (RC[7]);
+  F0x (RC[8]);
+  F0x (RC[9]);
 
   W[0] ^= D[0] ^ state[0];
   W[1] ^= D[1] ^ state[1];
@@ -1970,7 +1951,7 @@ DECLSPEC void whirlpool_transform_vector (const u32x *w0, const u32x *w1, const 
   digest[15] = l32_from_64 (W[7]);
 }
 
-DECLSPEC void whirlpool_init_vector (whirlpool_ctx_vector_t *ctx, SHM_TYPE u64 (*s_MT)[256], SHM_TYPE u64 *s_RC)
+DECLSPEC void whirlpool_init_vector (whirlpool_ctx_vector_t *ctx, SHM_TYPE u64 (*s_MT)[256])
 {
   ctx->h[ 0] = 0;
   ctx->h[ 1] = 0;
@@ -2009,7 +1990,6 @@ DECLSPEC void whirlpool_init_vector (whirlpool_ctx_vector_t *ctx, SHM_TYPE u64 (
   ctx->len = 0;
 
   ctx->s_MT = s_MT;
-  ctx->s_RC = s_RC;
 }
 
 DECLSPEC void whirlpool_init_vector_from_scalar (whirlpool_ctx_vector_t *ctx, whirlpool_ctx_t *ctx0)
@@ -2051,7 +2031,6 @@ DECLSPEC void whirlpool_init_vector_from_scalar (whirlpool_ctx_vector_t *ctx, wh
   ctx->len = ctx0->len;
 
   ctx->s_MT = ctx0->s_MT;
-  ctx->s_RC = ctx0->s_RC;
 }
 
 DECLSPEC void whirlpool_update_vector_64 (whirlpool_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, const int len)
@@ -2081,7 +2060,7 @@ DECLSPEC void whirlpool_update_vector_64 (whirlpool_ctx_vector_t *ctx, u32x *w0,
 
     if (len == 64)
     {
-      whirlpool_transform_vector (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h, ctx->s_MT, ctx->s_RC);
+      whirlpool_transform_vector (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h, ctx->s_MT);
 
       ctx->w0[0] = 0;
       ctx->w0[1] = 0;
@@ -2150,7 +2129,7 @@ DECLSPEC void whirlpool_update_vector_64 (whirlpool_ctx_vector_t *ctx, u32x *w0,
       ctx->w3[2] |= w3[2];
       ctx->w3[3] |= w3[3];
 
-      whirlpool_transform_vector (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h, ctx->s_MT, ctx->s_RC);
+      whirlpool_transform_vector (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h, ctx->s_MT);
 
       ctx->w0[0] = c0[0];
       ctx->w0[1] = c0[1];
@@ -2436,7 +2415,7 @@ DECLSPEC void whirlpool_final_vector (whirlpool_ctx_vector_t *ctx)
 
   if (pos >= 32)
   {
-    whirlpool_transform_vector (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h, ctx->s_MT, ctx->s_RC);
+    whirlpool_transform_vector (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h, ctx->s_MT);
 
     ctx->w0[0] = 0;
     ctx->w0[1] = 0;
@@ -2459,12 +2438,12 @@ DECLSPEC void whirlpool_final_vector (whirlpool_ctx_vector_t *ctx)
   ctx->w3[2] = 0;
   ctx->w3[3] = ctx->len * 8;
 
-  whirlpool_transform_vector (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h, ctx->s_MT, ctx->s_RC);
+  whirlpool_transform_vector (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h, ctx->s_MT);
 }
 
 // HMAC + Vector
 
-DECLSPEC void whirlpool_hmac_init_vector_64 (whirlpool_hmac_ctx_vector_t *ctx, const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, SHM_TYPE u64 (*s_MT)[256], SHM_TYPE u64 *s_RC)
+DECLSPEC void whirlpool_hmac_init_vector_64 (whirlpool_hmac_ctx_vector_t *ctx, const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, SHM_TYPE u64 (*s_MT)[256])
 {
   u32x t0[4];
   u32x t1[4];
@@ -2490,7 +2469,7 @@ DECLSPEC void whirlpool_hmac_init_vector_64 (whirlpool_hmac_ctx_vector_t *ctx, c
   t3[2] = w3[2] ^ 0x36363636;
   t3[3] = w3[3] ^ 0x36363636;
 
-  whirlpool_init_vector (&ctx->ipad, s_MT, s_RC);
+  whirlpool_init_vector (&ctx->ipad, s_MT);
 
   whirlpool_update_vector_64 (&ctx->ipad, t0, t1, t2, t3, 64);
 
@@ -2513,12 +2492,12 @@ DECLSPEC void whirlpool_hmac_init_vector_64 (whirlpool_hmac_ctx_vector_t *ctx, c
   t3[2] = w3[2] ^ 0x5c5c5c5c;
   t3[3] = w3[3] ^ 0x5c5c5c5c;
 
-  whirlpool_init_vector (&ctx->opad, s_MT, s_RC);
+  whirlpool_init_vector (&ctx->opad, s_MT);
 
   whirlpool_update_vector_64 (&ctx->opad, t0, t1, t2, t3, 64);
 }
 
-DECLSPEC void whirlpool_hmac_init_vector (whirlpool_hmac_ctx_vector_t *ctx, const u32x *w, const int len, SHM_TYPE u64 (*s_MT)[256], SHM_TYPE u64 *s_RC)
+DECLSPEC void whirlpool_hmac_init_vector (whirlpool_hmac_ctx_vector_t *ctx, const u32x *w, const int len, SHM_TYPE u64 (*s_MT)[256])
 {
   u32x w0[4];
   u32x w1[4];
@@ -2529,7 +2508,7 @@ DECLSPEC void whirlpool_hmac_init_vector (whirlpool_hmac_ctx_vector_t *ctx, cons
   {
     whirlpool_ctx_vector_t tmp;
 
-    whirlpool_init_vector (&tmp, s_MT, s_RC);
+    whirlpool_init_vector (&tmp, s_MT);
 
     whirlpool_update_vector (&tmp, w, len);
 
@@ -2572,7 +2551,7 @@ DECLSPEC void whirlpool_hmac_init_vector (whirlpool_hmac_ctx_vector_t *ctx, cons
     w3[3] = w[15];
   }
 
-  whirlpool_hmac_init_vector_64 (ctx, w0, w1, w2, w3, s_MT, s_RC);
+  whirlpool_hmac_init_vector_64 (ctx, w0, w1, w2, w3, s_MT);
 }
 
 DECLSPEC void whirlpool_hmac_update_vector_64 (whirlpool_hmac_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, const int len)
@@ -2608,7 +2587,7 @@ DECLSPEC void whirlpool_hmac_final_vector (whirlpool_hmac_ctx_vector_t *ctx)
 
   ctx->opad.len += 64;
 
-  whirlpool_transform_vector (ctx->opad.w0, ctx->opad.w1, ctx->opad.w2, ctx->opad.w3, ctx->opad.h, ctx->opad.s_MT, ctx->opad.s_RC);
+  whirlpool_transform_vector (ctx->opad.w0, ctx->opad.w1, ctx->opad.w2, ctx->opad.w3, ctx->opad.h, ctx->opad.s_MT);
 
   ctx->opad.w0[0] = 0;
   ctx->opad.w0[1] = 0;
@@ -2633,3 +2612,7 @@ DECLSPEC void whirlpool_hmac_final_vector (whirlpool_hmac_ctx_vector_t *ctx)
 #undef R
 #undef BOX
 #undef BOX_S
+#undef F0
+#undef F0x
+#undef F1
+#undef F1x

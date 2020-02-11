@@ -31,7 +31,6 @@ KERNEL_FQ void m06100_mxx (KERN_ATTR_VECTOR ())
   #ifdef REAL_SHM
 
   LOCAL_VK u64 s_MT[8][256];
-  LOCAL_VK u64 s_RC[16];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -45,17 +44,11 @@ KERNEL_FQ void m06100_mxx (KERN_ATTR_VECTOR ())
     s_MT[7][i] = MT[7][i];
   }
 
-  for (u32 i = lid; i < 16; i += lsz)
-  {
-    s_RC[i] = RC[i];
-  }
-
   SYNC_THREADS ();
 
   #else
 
   CONSTANT_AS u64a (*s_MT)[256] = MT;
-  CONSTANT_AS u64a  *s_RC       = RC;
 
   #endif
 
@@ -90,7 +83,7 @@ KERNEL_FQ void m06100_mxx (KERN_ATTR_VECTOR ())
 
     whirlpool_ctx_vector_t ctx;
 
-    whirlpool_init_vector (&ctx, s_MT, s_RC);
+    whirlpool_init_vector (&ctx, s_MT);
 
     whirlpool_update_vector (&ctx, w, pw_len);
 
@@ -122,7 +115,6 @@ KERNEL_FQ void m06100_sxx (KERN_ATTR_VECTOR ())
   #ifdef REAL_SHM
 
   LOCAL_VK u64 s_MT[8][256];
-  LOCAL_VK u64 s_RC[16];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -136,17 +128,11 @@ KERNEL_FQ void m06100_sxx (KERN_ATTR_VECTOR ())
     s_MT[7][i] = MT[7][i];
   }
 
-  for (u32 i = lid; i < 16; i += lsz)
-  {
-    s_RC[i] = RC[i];
-  }
-
   SYNC_THREADS ();
 
   #else
 
   CONSTANT_AS u64a (*s_MT)[256] = MT;
-  CONSTANT_AS u64a  *s_RC       = RC;
 
   #endif
 
@@ -193,7 +179,7 @@ KERNEL_FQ void m06100_sxx (KERN_ATTR_VECTOR ())
 
     whirlpool_ctx_vector_t ctx;
 
-    whirlpool_init_vector (&ctx, s_MT, s_RC);
+    whirlpool_init_vector (&ctx, s_MT);
 
     whirlpool_update_vector (&ctx, w, pw_len);
 
