@@ -41,7 +41,7 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (9.0 or
 - Supports automatic keyspace ordering markov-chains
 - Built-in benchmarking system
 - Integrated thermal watchdog
-- 200+ Hash-types implemented with performance in mind
+- 300+ Hash-types implemented with performance in mind
 
 ##
 ## Hash-Types
