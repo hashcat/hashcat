@@ -14,6 +14,8 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+#define MIN(a,b) (((a) < (b)) ? (a) : (b))
+
 typedef struct sha256crypt_tmp
 {
   // pure version
@@ -1144,7 +1146,7 @@ KERNEL_FQ void m07400_init (KERN_ATTR_TMPS (sha256crypt_tmp_t))
   w0[2] = hc_swap32_S (pws[gid].i[2]);
   w0[3] = hc_swap32_S (pws[gid].i[3]);
 
-  const u32 pw_len = pws[gid].pw_len & 63;
+  const u32 pw_len = MIN (pws[gid].pw_len, 15);
 
   /**
    * salt
@@ -1158,7 +1160,7 @@ KERNEL_FQ void m07400_init (KERN_ATTR_TMPS (sha256crypt_tmp_t))
   salt_buf[3] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[3]);
   salt_buf[4] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[4]);
 
-  u32 salt_len = salt_bufs[salt_pos].salt_len;
+  const u32 salt_len = MIN (salt_bufs[salt_pos].salt_len, 20);
 
   /**
    * buffers
@@ -1485,7 +1487,7 @@ KERNEL_FQ void m07400_loop (KERN_ATTR_TMPS (sha256crypt_tmp_t))
 
   if (gid >= gid_max) return;
 
-  const u32 pw_len = pws[gid].pw_len & 63;
+  const u32 pw_len = MIN (pws[gid].pw_len, 15);
 
   /**
    * base
@@ -1517,7 +1519,7 @@ KERNEL_FQ void m07400_loop (KERN_ATTR_TMPS (sha256crypt_tmp_t))
   alt_result[6] = tmps[gid].alt_result[6];
   alt_result[7] = tmps[gid].alt_result[7];
 
-  u32 salt_len = salt_bufs[salt_pos].salt_len;
+  const u32 salt_len = MIN (salt_bufs[salt_pos].salt_len, 20);
 
   // just an optimization
 
@@ -1539,7 +1541,7 @@ KERNEL_FQ void m07400_loop (KERN_ATTR_TMPS (sha256crypt_tmp_t))
 
     init_ctx (tmp);
 
-    u32 block[32];
+    u32 block[25];
 
     u32 block_len = 0;
 
@@ -1574,13 +1576,6 @@ KERNEL_FQ void m07400_loop (KERN_ATTR_TMPS (sha256crypt_tmp_t))
       block[22] = 0;
       block[23] = 0;
       block[24] = 0;
-      block[25] = 0;
-      block[26] = 0;
-      block[27] = 0;
-      block[28] = 0;
-      block[29] = 0;
-      block[30] = 0;
-      block[31] = 0;
 
       block_len = pw_len;
 
@@ -1616,13 +1611,6 @@ KERNEL_FQ void m07400_loop (KERN_ATTR_TMPS (sha256crypt_tmp_t))
       block[22] = 0;
       block[23] = 0;
       block[24] = 0;
-      block[25] = 0;
-      block[26] = 0;
-      block[27] = 0;
-      block[28] = 0;
-      block[29] = 0;
-      block[30] = 0;
-      block[31] = 0;
 
       block_len = 32;
 
@@ -1666,13 +1654,13 @@ KERNEL_FQ void m07400_loop (KERN_ATTR_TMPS (sha256crypt_tmp_t))
       block[ 6] = block[22];
       block[ 7] = block[23];
       block[ 8] = block[24];
-      block[ 9] = block[25];
-      block[10] = block[26];
-      block[11] = block[27];
-      block[12] = block[28];
-      block[13] = block[29];
-      block[14] = block[30];
-      block[15] = block[31];
+      block[ 9] = 0;
+      block[10] = 0;
+      block[11] = 0;
+      block[12] = 0;
+      block[13] = 0;
+      block[14] = 0;
+      block[15] = 0;
     }
 
     block[14] = 0;
