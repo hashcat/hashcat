@@ -541,178 +541,163 @@ CONSTANT_VK u64a MT[8][256] =
   },
 };
 
-CONSTANT_VK u64a RC[16] =
-{
-  0x1823c6e887b8014f,
-  0x36a6d2f5796f9152,
-  0x60bc9b8ea30c7b35,
-  0x1de0d7c22e4bfe57,
-  0x157737e59ff04ada,
-  0x58c9290ab1a06b85,
-  0xbd5d10f4cb3e0567,
-  0xe427418ba77d95d8,
-  0xfbee7c66dd17479e,
-  0xca2dbf07ad5a8333,
-};
-
 // important notes on this:
 // input buf unused bytes needs to be set to zero
 // input buf needs to be in algorithm native byte order (md5 = LE, sha256 = BE, etc)
 // input buf needs to be 64 byte aligned when using whirlpool_update()
 
-#define F1(i,v,m)                                     \
-{                                                     \
-  const u8 Lp0 = v8h_from_v64_S ((v)[((i) + 8) & 7]); \
-  const u8 Lp1 = v8g_from_v64_S ((v)[((i) + 7) & 7]); \
-  const u8 Lp2 = v8f_from_v64_S ((v)[((i) + 6) & 7]); \
-  const u8 Lp3 = v8e_from_v64_S ((v)[((i) + 5) & 7]); \
-  const u8 Lp4 = v8d_from_v64_S ((v)[((i) + 4) & 7]); \
-  const u8 Lp5 = v8c_from_v64_S ((v)[((i) + 3) & 7]); \
-  const u8 Lp6 = v8b_from_v64_S ((v)[((i) + 2) & 7]); \
-  const u8 Lp7 = v8a_from_v64_S ((v)[((i) + 1) & 7]); \
-                                                      \
-  const u64 X0 = BOX64_S ((m), 0, Lp0);               \
-  const u64 X1 = BOX64_S ((m), 1, Lp1);               \
-  const u64 X2 = BOX64_S ((m), 2, Lp2);               \
-  const u64 X3 = BOX64_S ((m), 3, Lp3);               \
-  const u64 X4 = BOX64_S ((m), 4, Lp4);               \
-  const u64 X5 = BOX64_S ((m), 5, Lp5);               \
-  const u64 X6 = BOX64_S ((m), 6, Lp6);               \
-  const u64 X7 = BOX64_S ((m), 7, Lp7);               \
-                                                      \
-  L[(i)] = X0                                         \
-         ^ X1                                         \
-         ^ X2                                         \
-         ^ X3                                         \
-         ^ X4                                         \
-         ^ X5                                         \
-         ^ X6                                         \
-         ^ X7;                                        \
+#define F1(l,m,v0,v1,v2,v3,v4,v5,v6,v7)   \
+{                                         \
+  const u8 Lp0 = v8h_from_v64_S ((v0));   \
+  const u8 Lp1 = v8g_from_v64_S ((v1));   \
+  const u8 Lp2 = v8f_from_v64_S ((v2));   \
+  const u8 Lp3 = v8e_from_v64_S ((v3));   \
+  const u8 Lp4 = v8d_from_v64_S ((v4));   \
+  const u8 Lp5 = v8c_from_v64_S ((v5));   \
+  const u8 Lp6 = v8b_from_v64_S ((v6));   \
+  const u8 Lp7 = v8a_from_v64_S ((v7));   \
+                                          \
+  const u64 X0 = BOX64_S ((m), 0, Lp0);   \
+  const u64 X1 = BOX64_S ((m), 1, Lp1);   \
+  const u64 X2 = BOX64_S ((m), 2, Lp2);   \
+  const u64 X3 = BOX64_S ((m), 3, Lp3);   \
+  const u64 X4 = BOX64_S ((m), 4, Lp4);   \
+  const u64 X5 = BOX64_S ((m), 5, Lp5);   \
+  const u64 X6 = BOX64_S ((m), 6, Lp6);   \
+  const u64 X7 = BOX64_S ((m), 7, Lp7);   \
+                                          \
+  (l) = X0                                \
+      ^ X1                                \
+      ^ X2                                \
+      ^ X3                                \
+      ^ X4                                \
+      ^ X5                                \
+      ^ X6                                \
+      ^ X7;                               \
 }
 
-#define F0(rc)            \
-{                         \
-  u64 L[8];               \
-                          \
-  F1 (0, K, s_MT);        \
-  F1 (1, K, s_MT);        \
-  F1 (2, K, s_MT);        \
-  F1 (3, K, s_MT);        \
-  F1 (4, K, s_MT);        \
-  F1 (5, K, s_MT);        \
-  F1 (6, K, s_MT);        \
-  F1 (7, K, s_MT);        \
-                          \
-  K[0] = L[0] ^ (rc);     \
-  K[1] = L[1];            \
-  K[2] = L[2];            \
-  K[3] = L[3];            \
-  K[4] = L[4];            \
-  K[5] = L[5];            \
-  K[6] = L[6];            \
-  K[7] = L[7];            \
-                          \
-  F1 (0, state, s_MT);    \
-  F1 (1, state, s_MT);    \
-  F1 (2, state, s_MT);    \
-  F1 (3, state, s_MT);    \
-  F1 (4, state, s_MT);    \
-  F1 (5, state, s_MT);    \
-  F1 (6, state, s_MT);    \
-  F1 (7, state, s_MT);    \
-                          \
-  state[0] = L[0] ^ K[0]; \
-  state[1] = L[1] ^ K[1]; \
-  state[2] = L[2] ^ K[2]; \
-  state[3] = L[3] ^ K[3]; \
-  state[4] = L[4] ^ K[4]; \
-  state[5] = L[5] ^ K[5]; \
-  state[6] = L[6] ^ K[6]; \
-  state[7] = L[7] ^ K[7]; \
+#define F0(rc)                                    \
+{                                                 \
+  u64 L0;                                         \
+  u64 L1;                                         \
+  u64 L2;                                         \
+  u64 L3;                                         \
+  u64 L4;                                         \
+  u64 L5;                                         \
+  u64 L6;                                         \
+  u64 L7;                                         \
+                                                  \
+  F1 (L0, s_MT, K0, K7, K6, K5, K4, K3, K2, K1);  \
+  F1 (L1, s_MT, K1, K0, K7, K6, K5, K4, K3, K2);  \
+  F1 (L2, s_MT, K2, K1, K0, K7, K6, K5, K4, K3);  \
+  F1 (L3, s_MT, K3, K2, K1, K0, K7, K6, K5, K4);  \
+  F1 (L4, s_MT, K4, K3, K2, K1, K0, K7, K6, K5);  \
+  F1 (L5, s_MT, K5, K4, K3, K2, K1, K0, K7, K6);  \
+  F1 (L6, s_MT, K6, K5, K4, K3, K2, K1, K0, K7);  \
+  F1 (L7, s_MT, K7, K6, K5, K4, K3, K2, K1, K0);  \
+                                                  \
+  K0 = L0 ^ (rc);                                 \
+  K1 = L1;                                        \
+  K2 = L2;                                        \
+  K3 = L3;                                        \
+  K4 = L4;                                        \
+  K5 = L5;                                        \
+  K6 = L6;                                        \
+  K7 = L7;                                        \
+                                                  \
+  F1 (L0, s_MT, S0, S7, S6, S5, S4, S3, S2, S1);  \
+  F1 (L1, s_MT, S1, S0, S7, S6, S5, S4, S3, S2);  \
+  F1 (L2, s_MT, S2, S1, S0, S7, S6, S5, S4, S3);  \
+  F1 (L3, s_MT, S3, S2, S1, S0, S7, S6, S5, S4);  \
+  F1 (L4, s_MT, S4, S3, S2, S1, S0, S7, S6, S5);  \
+  F1 (L5, s_MT, S5, S4, S3, S2, S1, S0, S7, S6);  \
+  F1 (L6, s_MT, S6, S5, S4, S3, S2, S1, S0, S7);  \
+  F1 (L7, s_MT, S7, S6, S5, S4, S3, S2, S1, S0);  \
+                                                  \
+  S0 = L0 ^ K0;                                   \
+  S1 = L1 ^ K1;                                   \
+  S2 = L2 ^ K2;                                   \
+  S3 = L3 ^ K3;                                   \
+  S4 = L4 ^ K4;                                   \
+  S5 = L5 ^ K5;                                   \
+  S6 = L6 ^ K6;                                   \
+  S7 = L7 ^ K7;                                   \
 }
 
 DECLSPEC void whirlpool_transform (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest, SHM_TYPE u64 (*s_MT)[256])
 {
-  u64 D[8];
+  u64 W0 = hl32_to_64_S (w0[0], w0[1]);
+  u64 W1 = hl32_to_64_S (w0[2], w0[3]);
+  u64 W2 = hl32_to_64_S (w1[0], w1[1]);
+  u64 W3 = hl32_to_64_S (w1[2], w1[3]);
+  u64 W4 = hl32_to_64_S (w2[0], w2[1]);
+  u64 W5 = hl32_to_64_S (w2[2], w2[3]);
+  u64 W6 = hl32_to_64_S (w3[0], w3[1]);
+  u64 W7 = hl32_to_64_S (w3[2], w3[3]);
 
-  D[0] = hl32_to_64_S (digest[ 0], digest[ 1]);
-  D[1] = hl32_to_64_S (digest[ 2], digest[ 3]);
-  D[2] = hl32_to_64_S (digest[ 4], digest[ 5]);
-  D[3] = hl32_to_64_S (digest[ 6], digest[ 7]);
-  D[4] = hl32_to_64_S (digest[ 8], digest[ 9]);
-  D[5] = hl32_to_64_S (digest[10], digest[11]);
-  D[6] = hl32_to_64_S (digest[12], digest[13]);
-  D[7] = hl32_to_64_S (digest[14], digest[15]);
+  u64 D0 = hl32_to_64_S (digest[ 0], digest[ 1]);
+  u64 D1 = hl32_to_64_S (digest[ 2], digest[ 3]);
+  u64 D2 = hl32_to_64_S (digest[ 4], digest[ 5]);
+  u64 D3 = hl32_to_64_S (digest[ 6], digest[ 7]);
+  u64 D4 = hl32_to_64_S (digest[ 8], digest[ 9]);
+  u64 D5 = hl32_to_64_S (digest[10], digest[11]);
+  u64 D6 = hl32_to_64_S (digest[12], digest[13]);
+  u64 D7 = hl32_to_64_S (digest[14], digest[15]);
 
-  u64 K[8];
+  u64 K0 = D0;
+  u64 K1 = D1;
+  u64 K2 = D2;
+  u64 K3 = D3;
+  u64 K4 = D4;
+  u64 K5 = D5;
+  u64 K6 = D6;
+  u64 K7 = D7;
 
-  K[0] = D[0];
-  K[1] = D[1];
-  K[2] = D[2];
-  K[3] = D[3];
-  K[4] = D[4];
-  K[5] = D[5];
-  K[6] = D[6];
-  K[7] = D[7];
+  u64 S0 = K0 ^ W0;
+  u64 S1 = K1 ^ W1;
+  u64 S2 = K2 ^ W2;
+  u64 S3 = K3 ^ W3;
+  u64 S4 = K4 ^ W4;
+  u64 S5 = K5 ^ W5;
+  u64 S6 = K6 ^ W6;
+  u64 S7 = K7 ^ W7;
 
-  u64 W[8];
+  F0 (0x1823c6e887b8014f);
+  F0 (0x36a6d2f5796f9152);
+  F0 (0x60bc9b8ea30c7b35);
+  F0 (0x1de0d7c22e4bfe57);
+  F0 (0x157737e59ff04ada);
+  F0 (0x58c9290ab1a06b85);
+  F0 (0xbd5d10f4cb3e0567);
+  F0 (0xe427418ba77d95d8);
+  F0 (0xfbee7c66dd17479e);
+  F0 (0xca2dbf07ad5a8333);
 
-  W[0] = hl32_to_64_S (w0[0], w0[1]);
-  W[1] = hl32_to_64_S (w0[2], w0[3]);
-  W[2] = hl32_to_64_S (w1[0], w1[1]);
-  W[3] = hl32_to_64_S (w1[2], w1[3]);
-  W[4] = hl32_to_64_S (w2[0], w2[1]);
-  W[5] = hl32_to_64_S (w2[2], w2[3]);
-  W[6] = hl32_to_64_S (w3[0], w3[1]);
-  W[7] = hl32_to_64_S (w3[2], w3[3]);
+  D0 ^= S0 ^ W0;
+  D1 ^= S1 ^ W1;
+  D2 ^= S2 ^ W2;
+  D3 ^= S3 ^ W3;
+  D4 ^= S4 ^ W4;
+  D5 ^= S5 ^ W5;
+  D6 ^= S6 ^ W6;
+  D7 ^= S7 ^ W7;
 
-  u64 state[8];
-
-  state[0] = K[0] ^ W[0];
-  state[1] = K[1] ^ W[1];
-  state[2] = K[2] ^ W[2];
-  state[3] = K[3] ^ W[3];
-  state[4] = K[4] ^ W[4];
-  state[5] = K[5] ^ W[5];
-  state[6] = K[6] ^ W[6];
-  state[7] = K[7] ^ W[7];
-
-  F0 (RC[0]);
-  F0 (RC[1]);
-  F0 (RC[2]);
-  F0 (RC[3]);
-  F0 (RC[4]);
-  F0 (RC[5]);
-  F0 (RC[6]);
-  F0 (RC[7]);
-  F0 (RC[8]);
-  F0 (RC[9]);
-
-  W[0] ^= D[0] ^ state[0];
-  W[1] ^= D[1] ^ state[1];
-  W[2] ^= D[2] ^ state[2];
-  W[3] ^= D[3] ^ state[3];
-  W[4] ^= D[4] ^ state[4];
-  W[5] ^= D[5] ^ state[5];
-  W[6] ^= D[6] ^ state[6];
-  W[7] ^= D[7] ^ state[7];
-
-  digest[ 0] = h32_from_64_S (W[0]);
-  digest[ 1] = l32_from_64_S (W[0]);
-  digest[ 2] = h32_from_64_S (W[1]);
-  digest[ 3] = l32_from_64_S (W[1]);
-  digest[ 4] = h32_from_64_S (W[2]);
-  digest[ 5] = l32_from_64_S (W[2]);
-  digest[ 6] = h32_from_64_S (W[3]);
-  digest[ 7] = l32_from_64_S (W[3]);
-  digest[ 8] = h32_from_64_S (W[4]);
-  digest[ 9] = l32_from_64_S (W[4]);
-  digest[10] = h32_from_64_S (W[5]);
-  digest[11] = l32_from_64_S (W[5]);
-  digest[12] = h32_from_64_S (W[6]);
-  digest[13] = l32_from_64_S (W[6]);
-  digest[14] = h32_from_64_S (W[7]);
-  digest[15] = l32_from_64_S (W[7]);
+  digest[ 0] = h32_from_64_S (D0);
+  digest[ 1] = l32_from_64_S (D0);
+  digest[ 2] = h32_from_64_S (D1);
+  digest[ 3] = l32_from_64_S (D1);
+  digest[ 4] = h32_from_64_S (D2);
+  digest[ 5] = l32_from_64_S (D2);
+  digest[ 6] = h32_from_64_S (D3);
+  digest[ 7] = l32_from_64_S (D3);
+  digest[ 8] = h32_from_64_S (D4);
+  digest[ 9] = l32_from_64_S (D4);
+  digest[10] = h32_from_64_S (D5);
+  digest[11] = l32_from_64_S (D5);
+  digest[12] = h32_from_64_S (D6);
+  digest[13] = l32_from_64_S (D6);
+  digest[14] = h32_from_64_S (D7);
+  digest[15] = l32_from_64_S (D7);
 }
 
 DECLSPEC void whirlpool_init (whirlpool_ctx_t *ctx, SHM_TYPE u64 (*s_MT)[256])
@@ -1796,159 +1781,158 @@ DECLSPEC void whirlpool_hmac_final (whirlpool_hmac_ctx_t *ctx)
 
 // while input buf can be a vector datatype, the length of the different elements can not
 
-#define F1x(i,v,m)                                    \
-{                                                     \
-  const u8x Lp0 = v8h_from_v64 ((v)[((i) + 8) & 7]);  \
-  const u8x Lp1 = v8g_from_v64 ((v)[((i) + 7) & 7]);  \
-  const u8x Lp2 = v8f_from_v64 ((v)[((i) + 6) & 7]);  \
-  const u8x Lp3 = v8e_from_v64 ((v)[((i) + 5) & 7]);  \
-  const u8x Lp4 = v8d_from_v64 ((v)[((i) + 4) & 7]);  \
-  const u8x Lp5 = v8c_from_v64 ((v)[((i) + 3) & 7]);  \
-  const u8x Lp6 = v8b_from_v64 ((v)[((i) + 2) & 7]);  \
-  const u8x Lp7 = v8a_from_v64 ((v)[((i) + 1) & 7]);  \
-                                                      \
-  const u64x X0 = BOX64 ((m), 0, Lp0);                \
-  const u64x X1 = BOX64 ((m), 1, Lp1);                \
-  const u64x X2 = BOX64 ((m), 2, Lp2);                \
-  const u64x X3 = BOX64 ((m), 3, Lp3);                \
-  const u64x X4 = BOX64 ((m), 4, Lp4);                \
-  const u64x X5 = BOX64 ((m), 5, Lp5);                \
-  const u64x X6 = BOX64 ((m), 6, Lp6);                \
-  const u64x X7 = BOX64 ((m), 7, Lp7);                \
-                                                      \
-  L[(i)] = X0                                         \
-         ^ X1                                         \
-         ^ X2                                         \
-         ^ X3                                         \
-         ^ X4                                         \
-         ^ X5                                         \
-         ^ X6                                         \
-         ^ X7;                                        \
+#define F1x(l,m,v0,v1,v2,v3,v4,v5,v6,v7)  \
+{                                         \
+  const u8x Lp0 = v8h_from_v64 ((v0));    \
+  const u8x Lp1 = v8g_from_v64 ((v1));    \
+  const u8x Lp2 = v8f_from_v64 ((v2));    \
+  const u8x Lp3 = v8e_from_v64 ((v3));    \
+  const u8x Lp4 = v8d_from_v64 ((v4));    \
+  const u8x Lp5 = v8c_from_v64 ((v5));    \
+  const u8x Lp6 = v8b_from_v64 ((v6));    \
+  const u8x Lp7 = v8a_from_v64 ((v7));    \
+                                          \
+  const u64x X0 = BOX64 ((m), 0, Lp0);    \
+  const u64x X1 = BOX64 ((m), 1, Lp1);    \
+  const u64x X2 = BOX64 ((m), 2, Lp2);    \
+  const u64x X3 = BOX64 ((m), 3, Lp3);    \
+  const u64x X4 = BOX64 ((m), 4, Lp4);    \
+  const u64x X5 = BOX64 ((m), 5, Lp5);    \
+  const u64x X6 = BOX64 ((m), 6, Lp6);    \
+  const u64x X7 = BOX64 ((m), 7, Lp7);    \
+                                          \
+  (l) = X0                                \
+      ^ X1                                \
+      ^ X2                                \
+      ^ X3                                \
+      ^ X4                                \
+      ^ X5                                \
+      ^ X6                                \
+      ^ X7;                               \
 }
 
-#define F0x(rc)           \
-{                         \
-  u64x L[8];              \
-                          \
-  F1x (0, K, s_MT);       \
-  F1x (1, K, s_MT);       \
-  F1x (2, K, s_MT);       \
-  F1x (3, K, s_MT);       \
-  F1x (4, K, s_MT);       \
-  F1x (5, K, s_MT);       \
-  F1x (6, K, s_MT);       \
-  F1x (7, K, s_MT);       \
-                          \
-  K[0] = L[0] ^ (rc);     \
-  K[1] = L[1];            \
-  K[2] = L[2];            \
-  K[3] = L[3];            \
-  K[4] = L[4];            \
-  K[5] = L[5];            \
-  K[6] = L[6];            \
-  K[7] = L[7];            \
-                          \
-  F1x (0, state, s_MT);   \
-  F1x (1, state, s_MT);   \
-  F1x (2, state, s_MT);   \
-  F1x (3, state, s_MT);   \
-  F1x (4, state, s_MT);   \
-  F1x (5, state, s_MT);   \
-  F1x (6, state, s_MT);   \
-  F1x (7, state, s_MT);   \
-                          \
-  state[0] = L[0] ^ K[0]; \
-  state[1] = L[1] ^ K[1]; \
-  state[2] = L[2] ^ K[2]; \
-  state[3] = L[3] ^ K[3]; \
-  state[4] = L[4] ^ K[4]; \
-  state[5] = L[5] ^ K[5]; \
-  state[6] = L[6] ^ K[6]; \
-  state[7] = L[7] ^ K[7]; \
+#define F0x(rc)                                   \
+{                                                 \
+  u64x L0;                                        \
+  u64x L1;                                        \
+  u64x L2;                                        \
+  u64x L3;                                        \
+  u64x L4;                                        \
+  u64x L5;                                        \
+  u64x L6;                                        \
+  u64x L7;                                        \
+                                                  \
+  F1x (L0, s_MT, K0, K7, K6, K5, K4, K3, K2, K1); \
+  F1x (L1, s_MT, K1, K0, K7, K6, K5, K4, K3, K2); \
+  F1x (L2, s_MT, K2, K1, K0, K7, K6, K5, K4, K3); \
+  F1x (L3, s_MT, K3, K2, K1, K0, K7, K6, K5, K4); \
+  F1x (L4, s_MT, K4, K3, K2, K1, K0, K7, K6, K5); \
+  F1x (L5, s_MT, K5, K4, K3, K2, K1, K0, K7, K6); \
+  F1x (L6, s_MT, K6, K5, K4, K3, K2, K1, K0, K7); \
+  F1x (L7, s_MT, K7, K6, K5, K4, K3, K2, K1, K0); \
+                                                  \
+  K0 = L0 ^ (rc);                                 \
+  K1 = L1;                                        \
+  K2 = L2;                                        \
+  K3 = L3;                                        \
+  K4 = L4;                                        \
+  K5 = L5;                                        \
+  K6 = L6;                                        \
+  K7 = L7;                                        \
+                                                  \
+  F1x (L0, s_MT, S0, S7, S6, S5, S4, S3, S2, S1); \
+  F1x (L1, s_MT, S1, S0, S7, S6, S5, S4, S3, S2); \
+  F1x (L2, s_MT, S2, S1, S0, S7, S6, S5, S4, S3); \
+  F1x (L3, s_MT, S3, S2, S1, S0, S7, S6, S5, S4); \
+  F1x (L4, s_MT, S4, S3, S2, S1, S0, S7, S6, S5); \
+  F1x (L5, s_MT, S5, S4, S3, S2, S1, S0, S7, S6); \
+  F1x (L6, s_MT, S6, S5, S4, S3, S2, S1, S0, S7); \
+  F1x (L7, s_MT, S7, S6, S5, S4, S3, S2, S1, S0); \
+                                                  \
+  S0 = L0 ^ K0;                                   \
+  S1 = L1 ^ K1;                                   \
+  S2 = L2 ^ K2;                                   \
+  S3 = L3 ^ K3;                                   \
+  S4 = L4 ^ K4;                                   \
+  S5 = L5 ^ K5;                                   \
+  S6 = L6 ^ K6;                                   \
+  S7 = L7 ^ K7;                                   \
 }
 
 DECLSPEC void whirlpool_transform_vector (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u32x *digest, SHM_TYPE u64 (*s_MT)[256])
 {
-  u64x D[8];
+  u64x W0 = hl32_to_64 (w0[0], w0[1]);
+  u64x W1 = hl32_to_64 (w0[2], w0[3]);
+  u64x W2 = hl32_to_64 (w1[0], w1[1]);
+  u64x W3 = hl32_to_64 (w1[2], w1[3]);
+  u64x W4 = hl32_to_64 (w2[0], w2[1]);
+  u64x W5 = hl32_to_64 (w2[2], w2[3]);
+  u64x W6 = hl32_to_64 (w3[0], w3[1]);
+  u64x W7 = hl32_to_64 (w3[2], w3[3]);
 
-  D[0] = hl32_to_64 (digest[ 0], digest[ 1]);
-  D[1] = hl32_to_64 (digest[ 2], digest[ 3]);
-  D[2] = hl32_to_64 (digest[ 4], digest[ 5]);
-  D[3] = hl32_to_64 (digest[ 6], digest[ 7]);
-  D[4] = hl32_to_64 (digest[ 8], digest[ 9]);
-  D[5] = hl32_to_64 (digest[10], digest[11]);
-  D[6] = hl32_to_64 (digest[12], digest[13]);
-  D[7] = hl32_to_64 (digest[14], digest[15]);
+  u64x D0 = hl32_to_64 (digest[ 0], digest[ 1]);
+  u64x D1 = hl32_to_64 (digest[ 2], digest[ 3]);
+  u64x D2 = hl32_to_64 (digest[ 4], digest[ 5]);
+  u64x D3 = hl32_to_64 (digest[ 6], digest[ 7]);
+  u64x D4 = hl32_to_64 (digest[ 8], digest[ 9]);
+  u64x D5 = hl32_to_64 (digest[10], digest[11]);
+  u64x D6 = hl32_to_64 (digest[12], digest[13]);
+  u64x D7 = hl32_to_64 (digest[14], digest[15]);
 
-  u64x K[8];
+  u64x K0 = D0;
+  u64x K1 = D1;
+  u64x K2 = D2;
+  u64x K3 = D3;
+  u64x K4 = D4;
+  u64x K5 = D5;
+  u64x K6 = D6;
+  u64x K7 = D7;
 
-  K[0] = D[0];
-  K[1] = D[1];
-  K[2] = D[2];
-  K[3] = D[3];
-  K[4] = D[4];
-  K[5] = D[5];
-  K[6] = D[6];
-  K[7] = D[7];
+  u64x S0 = K0 ^ W0;
+  u64x S1 = K1 ^ W1;
+  u64x S2 = K2 ^ W2;
+  u64x S3 = K3 ^ W3;
+  u64x S4 = K4 ^ W4;
+  u64x S5 = K5 ^ W5;
+  u64x S6 = K6 ^ W6;
+  u64x S7 = K7 ^ W7;
 
-  u64x W[8];
+  F0x (0x1823c6e887b8014f);
+  F0x (0x36a6d2f5796f9152);
+  F0x (0x60bc9b8ea30c7b35);
+  F0x (0x1de0d7c22e4bfe57);
+  F0x (0x157737e59ff04ada);
+  F0x (0x58c9290ab1a06b85);
+  F0x (0xbd5d10f4cb3e0567);
+  F0x (0xe427418ba77d95d8);
+  F0x (0xfbee7c66dd17479e);
+  F0x (0xca2dbf07ad5a8333);
 
-  W[0] = hl32_to_64 (w0[0], w0[1]);
-  W[1] = hl32_to_64 (w0[2], w0[3]);
-  W[2] = hl32_to_64 (w1[0], w1[1]);
-  W[3] = hl32_to_64 (w1[2], w1[3]);
-  W[4] = hl32_to_64 (w2[0], w2[1]);
-  W[5] = hl32_to_64 (w2[2], w2[3]);
-  W[6] = hl32_to_64 (w3[0], w3[1]);
-  W[7] = hl32_to_64 (w3[2], w3[3]);
+  D0 ^= S0 ^ W0;
+  D1 ^= S1 ^ W1;
+  D2 ^= S2 ^ W2;
+  D3 ^= S3 ^ W3;
+  D4 ^= S4 ^ W4;
+  D5 ^= S5 ^ W5;
+  D6 ^= S6 ^ W6;
+  D7 ^= S7 ^ W7;
 
-  u64x state[8];
-
-  state[0] = K[0] ^ W[0];
-  state[1] = K[1] ^ W[1];
-  state[2] = K[2] ^ W[2];
-  state[3] = K[3] ^ W[3];
-  state[4] = K[4] ^ W[4];
-  state[5] = K[5] ^ W[5];
-  state[6] = K[6] ^ W[6];
-  state[7] = K[7] ^ W[7];
-
-  F0x (RC[0]);
-  F0x (RC[1]);
-  F0x (RC[2]);
-  F0x (RC[3]);
-  F0x (RC[4]);
-  F0x (RC[5]);
-  F0x (RC[6]);
-  F0x (RC[7]);
-  F0x (RC[8]);
-  F0x (RC[9]);
-
-  W[0] ^= D[0] ^ state[0];
-  W[1] ^= D[1] ^ state[1];
-  W[2] ^= D[2] ^ state[2];
-  W[3] ^= D[3] ^ state[3];
-  W[4] ^= D[4] ^ state[4];
-  W[5] ^= D[5] ^ state[5];
-  W[6] ^= D[6] ^ state[6];
-  W[7] ^= D[7] ^ state[7];
-
-  digest[ 0] = h32_from_64 (W[0]);
-  digest[ 1] = l32_from_64 (W[0]);
-  digest[ 2] = h32_from_64 (W[1]);
-  digest[ 3] = l32_from_64 (W[1]);
-  digest[ 4] = h32_from_64 (W[2]);
-  digest[ 5] = l32_from_64 (W[2]);
-  digest[ 6] = h32_from_64 (W[3]);
-  digest[ 7] = l32_from_64 (W[3]);
-  digest[ 8] = h32_from_64 (W[4]);
-  digest[ 9] = l32_from_64 (W[4]);
-  digest[10] = h32_from_64 (W[5]);
-  digest[11] = l32_from_64 (W[5]);
-  digest[12] = h32_from_64 (W[6]);
-  digest[13] = l32_from_64 (W[6]);
-  digest[14] = h32_from_64 (W[7]);
-  digest[15] = l32_from_64 (W[7]);
+  digest[ 0] = h32_from_64 (D0);
+  digest[ 1] = l32_from_64 (D0);
+  digest[ 2] = h32_from_64 (D1);
+  digest[ 3] = l32_from_64 (D1);
+  digest[ 4] = h32_from_64 (D2);
+  digest[ 5] = l32_from_64 (D2);
+  digest[ 6] = h32_from_64 (D3);
+  digest[ 7] = l32_from_64 (D3);
+  digest[ 8] = h32_from_64 (D4);
+  digest[ 9] = l32_from_64 (D4);
+  digest[10] = h32_from_64 (D5);
+  digest[11] = l32_from_64 (D5);
+  digest[12] = h32_from_64 (D6);
+  digest[13] = l32_from_64 (D6);
+  digest[14] = h32_from_64 (D7);
+  digest[15] = l32_from_64 (D7);
 }
 
 DECLSPEC void whirlpool_init_vector (whirlpool_ctx_vector_t *ctx, SHM_TYPE u64 (*s_MT)[256])
