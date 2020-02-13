@@ -364,7 +364,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u32 data_len = zip2->data_len;
 
-  char data_tmp[8192 + 1] = { 0 };
+  char data_tmp[16384 + 1] = { 0 };
 
   for (u32 i = 0, j = 0; i < data_len; i += 1, j += 2)
   {
