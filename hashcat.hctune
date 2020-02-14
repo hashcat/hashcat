@@ -272,9 +272,13 @@ GeForce_RTX_2080_Ti                             ALIAS_nv_sm50_or_higher
 ## ENTRIES ##
 #############
 
-DEVICE_TYPE_CPU                                 *       *       N       A       A
 DEVICE_TYPE_CPU                                 *       6100    1       A       A
-DEVICE_TYPE_CPU                                 *       6900    1       A       A
+DEVICE_TYPE_CPU                                 *       6231    1       A       A
+DEVICE_TYPE_CPU                                 *       6232    1       A       A
+DEVICE_TYPE_CPU                                 *       6233    1       A       A
+DEVICE_TYPE_CPU                                 *       13731   1       A       A
+DEVICE_TYPE_CPU                                 *       13732   1       A       A
+DEVICE_TYPE_CPU                                 *       13733   1       A       A
 
 #Device                                         Attack  Hash    Vector  Kernel  Kernel
 #Name                                           Mode    Type    Width   Accel   Loops
@@ -355,21 +359,9 @@ GeForce_GTX_TITAN                               3       2410    2       A       
 GeForce_GTX_TITAN                               3       5500    1       A       A
 GeForce_GTX_TITAN                               3       9900    2       A       A
 
-#######################
-## EXTREME SLOW ALGOS #
-#######################
-
-#DEVICE_TYPE_GPU                                 *       14600   1       2       M
-#DEVICE_TYPE_GPU                                 *       14800   1       2       250
-
 ###########
 ## SCRYPT #
 ###########
 
-DEVICE_TYPE_CPU                                 *       8900    1       16      1
-DEVICE_TYPE_CPU                                 *       9300    1       16      1
 DEVICE_TYPE_CPU                                 *       15700   1       1       1
-
-DEVICE_TYPE_GPU                                 *       8900    1       16      1
-DEVICE_TYPE_GPU                                 *       9300    1       16      1
 DEVICE_TYPE_GPU                                 *       15700   1       1       1
