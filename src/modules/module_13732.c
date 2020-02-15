@@ -85,15 +85,6 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
     return true;
   }
 
-  if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
-  {
-    // self-test failed
-    if ((device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
-    {
-      return true;
-    }
-  }
-
   return false;
 }
 
