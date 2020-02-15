@@ -340,23 +340,6 @@ u32 module_kernel_loops_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_
   return kernel_loops_max;
 }
 
-char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
-{
-  char *jit_build_options = NULL;
-
-  if (device_param->is_cuda == true)
-  {
-    hc_asprintf (&jit_build_options, "-D NO_UNROLL");
-  }
-
-  if (device_param->opencl_device_vendor_id == VENDOR_ID_NV)
-  {
-    hc_asprintf (&jit_build_options, "-D NO_UNROLL");
-  }
-
-  return jit_build_options;
-}
-
 bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
   // amdgpu-pro-19.30-934563-ubuntu-18.04: Segmentation fault
@@ -761,7 +744,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hook23                   = module_hook23;
   module_ctx->module_hook_salt_size           = module_hook_salt_size;
   module_ctx->module_hook_size                = module_hook_size;
-  module_ctx->module_jit_build_options        = module_jit_build_options;
+  module_ctx->module_jit_build_options        = MODULE_DEFAULT;
   module_ctx->module_jit_cache_disable        = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_max         = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_min         = MODULE_DEFAULT;

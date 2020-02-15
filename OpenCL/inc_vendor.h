@@ -135,19 +135,6 @@
 #endif
 #endif
 
-/**
- * Unrolling is generally enabled, for all device types and hash modes
- * There's a few exception when it's better not to unroll
- * Some algorithms run into too much register pressure due to loop unrolling
- */
-
-// generic vendors: those algos have shown that they produce better results on both amd and nv when not unrolled
-// so we can assume they will produce better results on other vendors as well
-
-#ifdef NO_UNROLL
-#undef _unroll
-#endif
-
 // Whitelist some OpenCL specific functions
 // This could create more stable kernels on systems with bad OpenCL drivers
 
