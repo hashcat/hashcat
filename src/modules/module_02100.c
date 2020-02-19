@@ -95,7 +95,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.len_min[2] = SALT_MIN;
   token.len_max[2] = SALT_MAX;
   token.sep[2]     = '#';
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_SEPARATOR_FARTHEST;
 
   token.len_min[3] = 32;
   token.len_max[3] = 32;

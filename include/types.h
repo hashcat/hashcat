@@ -770,16 +770,17 @@ typedef enum user_options_map
 
 typedef enum token_attr
 {
-  TOKEN_ATTR_FIXED_LENGTH       = 1 << 0,
-  TOKEN_ATTR_OPTIONAL_ROUNDS    = 1 << 1,
-  TOKEN_ATTR_VERIFY_SIGNATURE   = 1 << 2,
-  TOKEN_ATTR_VERIFY_LENGTH      = 1 << 3,
-  TOKEN_ATTR_VERIFY_DIGIT       = 1 << 4,
-  TOKEN_ATTR_VERIFY_FLOAT       = 1 << 5,
-  TOKEN_ATTR_VERIFY_HEX         = 1 << 6,
-  TOKEN_ATTR_VERIFY_BASE64A     = 1 << 7,
-  TOKEN_ATTR_VERIFY_BASE64B     = 1 << 8,
-  TOKEN_ATTR_VERIFY_BASE64C     = 1 << 9
+  TOKEN_ATTR_FIXED_LENGTH       = 1 <<  0,
+  TOKEN_ATTR_SEPARATOR_FARTHEST = 1 <<  1,
+  TOKEN_ATTR_OPTIONAL_ROUNDS    = 1 <<  2,
+  TOKEN_ATTR_VERIFY_SIGNATURE   = 1 <<  3,
+  TOKEN_ATTR_VERIFY_LENGTH      = 1 <<  4,
+  TOKEN_ATTR_VERIFY_DIGIT       = 1 <<  5,
+  TOKEN_ATTR_VERIFY_FLOAT       = 1 <<  6,
+  TOKEN_ATTR_VERIFY_HEX         = 1 <<  7,
+  TOKEN_ATTR_VERIFY_BASE64A     = 1 <<  8,
+  TOKEN_ATTR_VERIFY_BASE64B     = 1 <<  9,
+  TOKEN_ATTR_VERIFY_BASE64C     = 1 << 10,
 
 } token_attr_t;
 

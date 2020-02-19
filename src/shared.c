@@ -1028,6 +1028,26 @@ static int rounds_count_length (const char *input_buf, const int input_len)
   return -1;
 }
 
+const u8 *hc_strchr_next (const u8 *input_buf, const int input_len, const u8 separator)
+{
+  for (int i = 0; i < input_len; i++)
+  {
+    if (input_buf[i] == separator) return &input_buf[i];
+  }
+
+  return NULL;
+}
+
+const u8 *hc_strchr_last (const u8 *input_buf, const int input_len, const u8 separator)
+{
+  for (int i = input_len - 1; i >= 0; i--)
+  {
+    if (input_buf[i] == separator) return &input_buf[i];
+  }
+
+  return NULL;
+}
+
 int input_tokenizer (const u8 *input_buf, const int input_len, token_t *token)
 {
   int len_left = input_len;
@@ -1066,7 +1086,16 @@ int input_tokenizer (const u8 *input_buf, const int input_len, token_t *token)
         }
       }
 
-      const u8 *next_pos = (const u8 *) strchr ((const char *) token->buf[token_idx], token->sep[token_idx]);
+      const u8 *next_pos = NULL;
+
+      if (token->attr[token_idx] & TOKEN_ATTR_SEPARATOR_FARTHEST)
+      {
+        next_pos = hc_strchr_last (token->buf[token_idx], len_left, token->sep[token_idx]);
+      }
+      else
+      {
+        next_pos = hc_strchr_next (token->buf[token_idx], len_left, token->sep[token_idx]);
+      }
 
       if (next_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 

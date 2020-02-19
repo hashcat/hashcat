@@ -79,6 +79,9 @@ u64 round_up_multiple_64 (const u64 v, const u64 m);
 
 void hc_strncat (u8 *dst, const u8 *src, const size_t n);
 
+const u8 *hc_strchr_next (const u8 *input_buf, const int input_len, const u8 separator);
+const u8 *hc_strchr_last (const u8 *input_buf, const int input_len, const u8 separator);
+
 int count_char (const u8 *buf, const int len, const u8 c);
 float get_entropy (const u8 *buf, const int len);
 
