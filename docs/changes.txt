@@ -73,6 +73,7 @@
 ##
 
 - Fixed buffer overflow in build_plain() function
+- Fixed buffer overflow in mp_add_cs_buf() function
 - Fixed copy/paste error leading to invalid "Integer overflow detected in keyspace of mask" in attack-mode 6 and 7
 - Fixed cracking multiple Office hashes (modes 9500, 9600) with the same salt
 - Fixed cracking of Blockchain, My Wallet (V1 and V2) hashes with unexpected decrypted data

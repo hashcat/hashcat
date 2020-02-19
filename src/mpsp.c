@@ -217,6 +217,13 @@ static int mp_add_cs_buf (hashcat_ctx_t *hashcat_ctx, const u32 *in_buf, size_t 
 {
   const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
+  if (css_cnt == 256)
+  {
+    event_log_error (hashcat_ctx, "Invalid mask length.");
+
+    return -1;
+  }
+
   cs_t *cs = &css[css_cnt];
 
   size_t css_uniq_sz = CHARSIZ * sizeof (u32);
