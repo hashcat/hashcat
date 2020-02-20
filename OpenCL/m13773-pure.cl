@@ -488,6 +488,36 @@ KERNEL_FQ void m13773_init (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, vc_t))
 KERNEL_FQ void m13773_loop (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, vc_t))
 {
   const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
+
+  /**
+   * shared lookup table
+   */
+
+  #ifdef REAL_SHM
+
+  LOCAL_VK u64a s_sbob_sl64[8][256];
+
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    s_sbob_sl64[0][i] = sbob512_sl64[0][i];
+    s_sbob_sl64[1][i] = sbob512_sl64[1][i];
+    s_sbob_sl64[2][i] = sbob512_sl64[2][i];
+    s_sbob_sl64[3][i] = sbob512_sl64[3][i];
+    s_sbob_sl64[4][i] = sbob512_sl64[4][i];
+    s_sbob_sl64[5][i] = sbob512_sl64[5][i];
+    s_sbob_sl64[6][i] = sbob512_sl64[6][i];
+    s_sbob_sl64[7][i] = sbob512_sl64[7][i];
+  }
+
+  SYNC_THREADS ();
+
+  #else
+
+  CONSTANT_AS u64a (*s_sbob_sl64)[256] = sbob512_sl64;
+
+  #endif
 
   if ((gid * VECT_SIZE) >= gid_max) return;
 
