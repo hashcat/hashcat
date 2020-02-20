@@ -486,6 +486,11 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
       device_param->kernel_params_buf32[29] = loop_left;
 
       if (run_kernel (hashcat_ctx, device_param, KERN_RUN_2, 1, false, 0) == -1) return -1;
+
+      if (hashconfig->opts_type & OPTS_TYPE_LOOP_EXTENDED)
+      {
+        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_2E, 1, false, 0) == -1) return -1;
+      }
     }
 
     if (hashconfig->opts_type & OPTS_TYPE_HOOK23)

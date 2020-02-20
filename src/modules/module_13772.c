@@ -23,9 +23,11 @@ static const u32   HASH_CATEGORY  = HASH_CATEGORY_FDE;
 static const char *HASH_NAME      = "VeraCrypt Streebog-512 + XTS 1024 bit";
 static const u64   KERN_TYPE      = 13772;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
-                                  | OPTI_TYPE_USES_BITS_64;
+                                  | OPTI_TYPE_USES_BITS_64
+                                  | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_BINARY_HASHFILE
+                                  | OPTS_TYPE_LOOP_EXTENDED
                                   | OPTS_TYPE_COPY_TMPS;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
@@ -59,6 +61,7 @@ typedef struct vc64_sbog_tmp
 
   u64 pim_key[32];
   int pim; // marker for cracked
+  int pim_check; // marker for _extended kernel
 
 } vc64_sbog_tmp_t;
 

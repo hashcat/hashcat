@@ -3,7 +3,7 @@
  * License.....: MIT
  */
 
-//#define NEW_SIMD_CODE
+#define NEW_SIMD_CODE
 
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
@@ -52,6 +52,7 @@ typedef struct vc_tmp
 
   u32 pim_key[64];
   int pim; // marker for cracked
+  int pim_check; // marker for _extended kernel
 
 } vc_tmp_t;
 
@@ -287,61 +288,8 @@ KERNEL_FQ void m13751_init (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 KERNEL_FQ void m13751_loop (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 {
   const u64 gid = get_global_id (0);
-  const u64 lid = get_local_id (0);
-  const u64 lsz = get_local_size (0);
 
-  /**
-   * aes shared
-   */
-
-  #ifdef REAL_SHM
-
-  LOCAL_VK u32 s_td0[256];
-  LOCAL_VK u32 s_td1[256];
-  LOCAL_VK u32 s_td2[256];
-  LOCAL_VK u32 s_td3[256];
-  LOCAL_VK u32 s_td4[256];
-
-  LOCAL_VK u32 s_te0[256];
-  LOCAL_VK u32 s_te1[256];
-  LOCAL_VK u32 s_te2[256];
-  LOCAL_VK u32 s_te3[256];
-  LOCAL_VK u32 s_te4[256];
-
-  for (u32 i = lid; i < 256; i += lsz)
-  {
-    s_td0[i] = td0[i];
-    s_td1[i] = td1[i];
-    s_td2[i] = td2[i];
-    s_td3[i] = td3[i];
-    s_td4[i] = td4[i];
-
-    s_te0[i] = te0[i];
-    s_te1[i] = te1[i];
-    s_te2[i] = te2[i];
-    s_te3[i] = te3[i];
-    s_te4[i] = te4[i];
-  }
-
-  SYNC_THREADS ();
-
-  #else
-
-  CONSTANT_AS u32a *s_td0 = td0;
-  CONSTANT_AS u32a *s_td1 = td1;
-  CONSTANT_AS u32a *s_td2 = td2;
-  CONSTANT_AS u32a *s_td3 = td3;
-  CONSTANT_AS u32a *s_td4 = td4;
-
-  CONSTANT_AS u32a *s_te0 = te0;
-  CONSTANT_AS u32a *s_te1 = te1;
-  CONSTANT_AS u32a *s_te2 = te2;
-  CONSTANT_AS u32a *s_te3 = te3;
-  CONSTANT_AS u32a *s_te4 = te4;
-
-  #endif
-
-  if (gid >= gid_max) return;
+  if ((gid * VECT_SIZE) >= gid_max) return;
 
   // this is the pim range check
   // it is guaranteed that only 0 or 1 innerloops will match a "pim" mark (each 1000 iterations)
@@ -486,14 +434,16 @@ KERNEL_FQ void m13751_loop (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 
       if (j == pim_at)
       {
-        tmps[gid].pim_key[i + 0] = out[0];
-        tmps[gid].pim_key[i + 1] = out[1];
-        tmps[gid].pim_key[i + 2] = out[2];
-        tmps[gid].pim_key[i + 3] = out[3];
-        tmps[gid].pim_key[i + 4] = out[4];
-        tmps[gid].pim_key[i + 5] = out[5];
-        tmps[gid].pim_key[i + 6] = out[6];
-        tmps[gid].pim_key[i + 7] = out[7];
+        unpackv (tmps, pim_key, gid, i + 0, out[0]);
+        unpackv (tmps, pim_key, gid, i + 1, out[1]);
+        unpackv (tmps, pim_key, gid, i + 2, out[2]);
+        unpackv (tmps, pim_key, gid, i + 3, out[3]);
+        unpackv (tmps, pim_key, gid, i + 4, out[4]);
+        unpackv (tmps, pim_key, gid, i + 5, out[5]);
+        unpackv (tmps, pim_key, gid, i + 6, out[6]);
+        unpackv (tmps, pim_key, gid, i + 7, out[7]);
+
+        tmps[gid].pim_check = pim;
       }
     }
 
@@ -515,10 +465,78 @@ KERNEL_FQ void m13751_loop (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
     unpackv (tmps, out, gid, i + 6, out[6]);
     unpackv (tmps, out, gid, i + 7, out[7]);
   }
+}
 
-  if (pim == 0) return;
+KERNEL_FQ void m13751_loop_extended (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
+{
+  const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
 
-  if (check_header_0512 (esalt_bufs, tmps[gid].pim_key, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) != -1) tmps[gid].pim = pim;
+  /**
+   * aes shared
+   */
+
+  #ifdef REAL_SHM
+
+  LOCAL_VK u32 s_td0[256];
+  LOCAL_VK u32 s_td1[256];
+  LOCAL_VK u32 s_td2[256];
+  LOCAL_VK u32 s_td3[256];
+  LOCAL_VK u32 s_td4[256];
+
+  LOCAL_VK u32 s_te0[256];
+  LOCAL_VK u32 s_te1[256];
+  LOCAL_VK u32 s_te2[256];
+  LOCAL_VK u32 s_te3[256];
+  LOCAL_VK u32 s_te4[256];
+
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    s_td0[i] = td0[i];
+    s_td1[i] = td1[i];
+    s_td2[i] = td2[i];
+    s_td3[i] = td3[i];
+    s_td4[i] = td4[i];
+
+    s_te0[i] = te0[i];
+    s_te1[i] = te1[i];
+    s_te2[i] = te2[i];
+    s_te3[i] = te3[i];
+    s_te4[i] = te4[i];
+  }
+
+  SYNC_THREADS ();
+
+  #else
+
+  CONSTANT_AS u32a *s_td0 = td0;
+  CONSTANT_AS u32a *s_td1 = td1;
+  CONSTANT_AS u32a *s_td2 = td2;
+  CONSTANT_AS u32a *s_td3 = td3;
+  CONSTANT_AS u32a *s_td4 = td4;
+
+  CONSTANT_AS u32a *s_te0 = te0;
+  CONSTANT_AS u32a *s_te1 = te1;
+  CONSTANT_AS u32a *s_te2 = te2;
+  CONSTANT_AS u32a *s_te3 = te3;
+  CONSTANT_AS u32a *s_te4 = te4;
+
+  #endif
+
+  if (gid >= gid_max) return;
+
+  const u32 pim_check = tmps[gid].pim_check;
+
+  if (pim_check)
+  {
+    if (check_header_0512 (esalt_bufs, tmps[gid].pim_key, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) != -1)
+    {
+      tmps[gid].pim = pim_check;
+    }
+
+    tmps[gid].pim_check = 0;
+  }
 }
 
 KERNEL_FQ void m13751_comp (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))

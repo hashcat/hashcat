@@ -3026,6 +3026,11 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
         if (run_kernel (hashcat_ctx, device_param, KERN_RUN_2, pws_cnt, true, slow_iteration) == -1) return -1;
 
+        if (hashconfig->opts_type & OPTS_TYPE_LOOP_EXTENDED)
+        {
+          if (run_kernel (hashcat_ctx, device_param, KERN_RUN_2E, pws_cnt, true, slow_iteration) == -1) return -1;
+        }
+
         //bug?
         //while (status_ctx->run_thread_level2 == false) break;
         if (status_ctx->run_thread_level2 == false) break;
@@ -3444,6 +3449,10 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
       kernel_threads     = device_param->kernel_wgs2;
       dynamic_shared_mem = device_param->kernel_dynamic_local_mem_size2;
       break;
+    case KERN_RUN_2E:
+      kernel_threads     = device_param->kernel_wgs2e;
+      dynamic_shared_mem = device_param->kernel_dynamic_local_mem_size2e;
+      break;
     case KERN_RUN_23:
       kernel_threads     = device_param->kernel_wgs23;
       dynamic_shared_mem = device_param->kernel_dynamic_local_mem_size23;
@@ -3516,6 +3525,7 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
         case KERN_RUN_1:      cuda_function = device_param->cuda_function1;      break;
         case KERN_RUN_12:     cuda_function = device_param->cuda_function12;     break;
         case KERN_RUN_2:      cuda_function = device_param->cuda_function2;      break;
+        case KERN_RUN_2E:     cuda_function = device_param->cuda_function2e;     break;
         case KERN_RUN_23:     cuda_function = device_param->cuda_function23;     break;
         case KERN_RUN_3:      cuda_function = device_param->cuda_function3;      break;
         case KERN_RUN_4:      cuda_function = device_param->cuda_function4;      break;
@@ -3609,6 +3619,7 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
         case KERN_RUN_1:      opencl_kernel = device_param->opencl_kernel1;      break;
         case KERN_RUN_12:     opencl_kernel = device_param->opencl_kernel12;     break;
         case KERN_RUN_2:      opencl_kernel = device_param->opencl_kernel2;      break;
+        case KERN_RUN_2E:     opencl_kernel = device_param->opencl_kernel2e;     break;
         case KERN_RUN_23:     opencl_kernel = device_param->opencl_kernel23;     break;
         case KERN_RUN_3:      opencl_kernel = device_param->opencl_kernel3;      break;
         case KERN_RUN_4:      opencl_kernel = device_param->opencl_kernel4;      break;
@@ -3703,6 +3714,7 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
           {
             case KERN_RUN_1:      if (device_param->exec_us_prev1[iterationm]      > 0) usleep ((useconds_t) (device_param->exec_us_prev1[iterationm]      * device_param->spin_damp)); break;
             case KERN_RUN_2:      if (device_param->exec_us_prev2[iterationm]      > 0) usleep ((useconds_t) (device_param->exec_us_prev2[iterationm]      * device_param->spin_damp)); break;
+            case KERN_RUN_2E:     if (device_param->exec_us_prev2e[iterationm]     > 0) usleep ((useconds_t) (device_param->exec_us_prev2e[iterationm]     * device_param->spin_damp)); break;
             case KERN_RUN_3:      if (device_param->exec_us_prev3[iterationm]      > 0) usleep ((useconds_t) (device_param->exec_us_prev3[iterationm]      * device_param->spin_damp)); break;
             case KERN_RUN_4:      if (device_param->exec_us_prev4[iterationm]      > 0) usleep ((useconds_t) (device_param->exec_us_prev4[iterationm]      * device_param->spin_damp)); break;
             case KERN_RUN_INIT2:  if (device_param->exec_us_prev_init2[iterationm] > 0) usleep ((useconds_t) (device_param->exec_us_prev_init2[iterationm] * device_param->spin_damp)); break;
@@ -3746,6 +3758,7 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
         {
           case KERN_RUN_1:      device_param->exec_us_prev1[iterationm]      = exec_us; break;
           case KERN_RUN_2:      device_param->exec_us_prev2[iterationm]      = exec_us; break;
+          case KERN_RUN_2E:     device_param->exec_us_prev2e[iterationm]     = exec_us; break;
           case KERN_RUN_3:      device_param->exec_us_prev3[iterationm]      = exec_us; break;
           case KERN_RUN_4:      device_param->exec_us_prev4[iterationm]      = exec_us; break;
           case KERN_RUN_INIT2:  device_param->exec_us_prev_init2[iterationm] = exec_us; break;
@@ -8887,6 +8900,23 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         device_param->kernel_preferred_wgs_multiple3 = device_param->cuda_warp_size;
 
+        if (hashconfig->opts_type & OPTS_TYPE_LOOP_EXTENDED)
+        {
+          // kernel2e
+
+          snprintf (kernel_name, sizeof (kernel_name), "m%05u_loop_extended", kern_type);
+
+          if (hc_cuModuleGetFunction (hashcat_ctx, &device_param->cuda_function2e, device_param->cuda_module, kernel_name) == -1) return -1;
+
+          if (get_cuda_kernel_wgs (hashcat_ctx, device_param->cuda_function2e, &device_param->kernel_wgs2e) == -1) return -1;
+
+          if (get_cuda_kernel_local_mem_size (hashcat_ctx, device_param->cuda_function2e, &device_param->kernel_local_mem_size2e) == -1) return -1;
+
+          if (get_cuda_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->cuda_function2e, &device_param->kernel_dynamic_local_mem_size2e) == -1) return -1;
+
+          device_param->kernel_preferred_wgs_multiple2e = device_param->cuda_warp_size;
+        }
+
         // kernel12
 
         if (hashconfig->opts_type & OPTS_TYPE_HOOK12)
@@ -9452,6 +9482,23 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         if (get_opencl_kernel_dynamic_local_mem_size (hashcat_ctx, device_param, device_param->opencl_kernel3, &device_param->kernel_dynamic_local_mem_size3) == -1) return -1;
 
         if (get_opencl_kernel_preferred_wgs_multiple (hashcat_ctx, device_param, device_param->opencl_kernel3, &device_param->kernel_preferred_wgs_multiple3) == -1) return -1;
+
+        // aux1
+
+        if (hashconfig->opts_type & OPTS_TYPE_LOOP_EXTENDED)
+        {
+          snprintf (kernel_name, sizeof (kernel_name), "m%05u_loop_extended", kern_type);
+
+          if (hc_clCreateKernel (hashcat_ctx, device_param->opencl_program, kernel_name, &device_param->opencl_kernel2e) == -1) return -1;
+
+          if (get_opencl_kernel_wgs (hashcat_ctx, device_param, device_param->opencl_kernel2e, &device_param->kernel_wgs2e) == -1) return -1;
+
+          if (get_opencl_kernel_local_mem_size (hashcat_ctx, device_param, device_param->opencl_kernel2e, &device_param->kernel_local_mem_size2e) == -1) return -1;
+
+          if (get_opencl_kernel_dynamic_local_mem_size (hashcat_ctx, device_param, device_param->opencl_kernel2e, &device_param->kernel_dynamic_local_mem_size2e) == -1) return -1;
+
+          if (get_opencl_kernel_preferred_wgs_multiple (hashcat_ctx, device_param, device_param->opencl_kernel2e, &device_param->kernel_preferred_wgs_multiple2e) == -1) return -1;
+        }
 
         // kernel12
 
@@ -10332,6 +10379,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       device_param->cuda_function1            = NULL;
       device_param->cuda_function12           = NULL;
       device_param->cuda_function2            = NULL;
+      device_param->cuda_function2e           = NULL;
       device_param->cuda_function23           = NULL;
       device_param->cuda_function3            = NULL;
       device_param->cuda_function4            = NULL;
@@ -10399,6 +10447,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       if (device_param->opencl_kernel1)          hc_clReleaseKernel (hashcat_ctx, device_param->opencl_kernel1);
       if (device_param->opencl_kernel12)         hc_clReleaseKernel (hashcat_ctx, device_param->opencl_kernel12);
       if (device_param->opencl_kernel2)          hc_clReleaseKernel (hashcat_ctx, device_param->opencl_kernel2);
+      if (device_param->opencl_kernel2e)         hc_clReleaseKernel (hashcat_ctx, device_param->opencl_kernel2e);
       if (device_param->opencl_kernel23)         hc_clReleaseKernel (hashcat_ctx, device_param->opencl_kernel23);
       if (device_param->opencl_kernel3)          hc_clReleaseKernel (hashcat_ctx, device_param->opencl_kernel3);
       if (device_param->opencl_kernel4)          hc_clReleaseKernel (hashcat_ctx, device_param->opencl_kernel4);
@@ -10464,6 +10513,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       device_param->opencl_kernel1             = NULL;
       device_param->opencl_kernel12            = NULL;
       device_param->opencl_kernel2             = NULL;
+      device_param->opencl_kernel2e            = NULL;
       device_param->opencl_kernel23            = NULL;
       device_param->opencl_kernel3             = NULL;
       device_param->opencl_kernel4             = NULL;
