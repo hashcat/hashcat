@@ -249,33 +249,33 @@ KERNEL_FQ void m07800_m04 (KERN_ATTR_BASIC ())
     digest[3] = SHA1M_D;
     digest[4] = SHA1M_E;
 
-    sha1_transform (&final[0], &final[4], &final[8], &final[12], digest);
+    sha1_transform (final +  0, final +  4, final +  8, final + 12, digest);
 
     // prepare magic array range
 
     u32 lengthMagicArray = 0x20;
     u32 offsetMagicArray = 0;
 
-    lengthMagicArray += ((digest[0] >> 24) & 0xff) % 6;
-    lengthMagicArray += ((digest[0] >> 16) & 0xff) % 6;
-    lengthMagicArray += ((digest[0] >>  8) & 0xff) % 6;
-    lengthMagicArray += ((digest[0] >>  0) & 0xff) % 6;
-    lengthMagicArray += ((digest[1] >> 24) & 0xff) % 6;
-    lengthMagicArray += ((digest[1] >> 16) & 0xff) % 6;
-    lengthMagicArray += ((digest[1] >>  8) & 0xff) % 6;
-    lengthMagicArray += ((digest[1] >>  0) & 0xff) % 6;
-    lengthMagicArray += ((digest[2] >> 24) & 0xff) % 6;
-    lengthMagicArray += ((digest[2] >> 16) & 0xff) % 6;
-    offsetMagicArray += ((digest[2] >>  8) & 0xff) % 8;
-    offsetMagicArray += ((digest[2] >>  0) & 0xff) % 8;
-    offsetMagicArray += ((digest[3] >> 24) & 0xff) % 8;
-    offsetMagicArray += ((digest[3] >> 16) & 0xff) % 8;
-    offsetMagicArray += ((digest[3] >>  8) & 0xff) % 8;
-    offsetMagicArray += ((digest[3] >>  0) & 0xff) % 8;
-    offsetMagicArray += ((digest[4] >> 24) & 0xff) % 8;
-    offsetMagicArray += ((digest[4] >> 16) & 0xff) % 8;
-    offsetMagicArray += ((digest[4] >>  8) & 0xff) % 8;
-    offsetMagicArray += ((digest[4] >>  0) & 0xff) % 8;
+    lengthMagicArray += unpack_v8d_from_v32_S (digest[0]) % 6;
+    lengthMagicArray += unpack_v8c_from_v32_S (digest[0]) % 6;
+    lengthMagicArray += unpack_v8b_from_v32_S (digest[0]) % 6;
+    lengthMagicArray += unpack_v8a_from_v32_S (digest[0]) % 6;
+    lengthMagicArray += unpack_v8d_from_v32_S (digest[1]) % 6;
+    lengthMagicArray += unpack_v8c_from_v32_S (digest[1]) % 6;
+    lengthMagicArray += unpack_v8b_from_v32_S (digest[1]) % 6;
+    lengthMagicArray += unpack_v8a_from_v32_S (digest[1]) % 6;
+    lengthMagicArray += unpack_v8d_from_v32_S (digest[2]) % 6;
+    lengthMagicArray += unpack_v8c_from_v32_S (digest[2]) % 6;
+    offsetMagicArray += unpack_v8b_from_v32_S (digest[2]) & 7;
+    offsetMagicArray += unpack_v8a_from_v32_S (digest[2]) & 7;
+    offsetMagicArray += unpack_v8d_from_v32_S (digest[3]) & 7;
+    offsetMagicArray += unpack_v8c_from_v32_S (digest[3]) & 7;
+    offsetMagicArray += unpack_v8b_from_v32_S (digest[3]) & 7;
+    offsetMagicArray += unpack_v8a_from_v32_S (digest[3]) & 7;
+    offsetMagicArray += unpack_v8d_from_v32_S (digest[4]) & 7;
+    offsetMagicArray += unpack_v8c_from_v32_S (digest[4]) & 7;
+    offsetMagicArray += unpack_v8b_from_v32_S (digest[4]) & 7;
+    offsetMagicArray += unpack_v8a_from_v32_S (digest[4]) & 7;
 
     // final
 
@@ -336,17 +336,21 @@ KERNEL_FQ void m07800_m04 (KERN_ATTR_BASIC ())
 
     // calculate
 
-    int left;
-    int off;
-
-    for (left = final_len, off = 0; left >= 56; left -= 64, off += 16)
+    if (final_len >= 56)
     {
-      sha1_transform (&final[off + 0], &final[off + 4], &final[off + 8], &final[off + 12], digest);
+      final[30] = 0;
+      final[31] = final_len * 8;
+
+      sha1_transform (final +  0, final +  4, final +  8, final + 12, digest);
+      sha1_transform (final + 16, final + 20, final + 24, final + 28, digest);
     }
+    else
+    {
+      final[14] = 0;
+      final[15] = final_len * 8;
 
-    final[off + 15] = final_len * 8;
-
-    sha1_transform (&final[off + 0], &final[off + 4], &final[off + 8], &final[off + 12], digest);
+      sha1_transform (final +  0, final +  4, final +  8, final + 12, digest);
+    }
 
     COMPARE_M_SIMD (digest[3], digest[4], digest[2], digest[1]);
   }
@@ -569,33 +573,33 @@ KERNEL_FQ void m07800_s04 (KERN_ATTR_BASIC ())
     digest[3] = SHA1M_D;
     digest[4] = SHA1M_E;
 
-    sha1_transform (&final[0], &final[4], &final[8], &final[12], digest);
+    sha1_transform (final +  0, final +  4, final +  8, final + 12, digest);
 
     // prepare magic array range
 
     u32 lengthMagicArray = 0x20;
     u32 offsetMagicArray = 0;
 
-    lengthMagicArray += ((digest[0] >> 24) & 0xff) % 6;
-    lengthMagicArray += ((digest[0] >> 16) & 0xff) % 6;
-    lengthMagicArray += ((digest[0] >>  8) & 0xff) % 6;
-    lengthMagicArray += ((digest[0] >>  0) & 0xff) % 6;
-    lengthMagicArray += ((digest[1] >> 24) & 0xff) % 6;
-    lengthMagicArray += ((digest[1] >> 16) & 0xff) % 6;
-    lengthMagicArray += ((digest[1] >>  8) & 0xff) % 6;
-    lengthMagicArray += ((digest[1] >>  0) & 0xff) % 6;
-    lengthMagicArray += ((digest[2] >> 24) & 0xff) % 6;
-    lengthMagicArray += ((digest[2] >> 16) & 0xff) % 6;
-    offsetMagicArray += ((digest[2] >>  8) & 0xff) % 8;
-    offsetMagicArray += ((digest[2] >>  0) & 0xff) % 8;
-    offsetMagicArray += ((digest[3] >> 24) & 0xff) % 8;
-    offsetMagicArray += ((digest[3] >> 16) & 0xff) % 8;
-    offsetMagicArray += ((digest[3] >>  8) & 0xff) % 8;
-    offsetMagicArray += ((digest[3] >>  0) & 0xff) % 8;
-    offsetMagicArray += ((digest[4] >> 24) & 0xff) % 8;
-    offsetMagicArray += ((digest[4] >> 16) & 0xff) % 8;
-    offsetMagicArray += ((digest[4] >>  8) & 0xff) % 8;
-    offsetMagicArray += ((digest[4] >>  0) & 0xff) % 8;
+    lengthMagicArray += unpack_v8d_from_v32_S (digest[0]) % 6;
+    lengthMagicArray += unpack_v8c_from_v32_S (digest[0]) % 6;
+    lengthMagicArray += unpack_v8b_from_v32_S (digest[0]) % 6;
+    lengthMagicArray += unpack_v8a_from_v32_S (digest[0]) % 6;
+    lengthMagicArray += unpack_v8d_from_v32_S (digest[1]) % 6;
+    lengthMagicArray += unpack_v8c_from_v32_S (digest[1]) % 6;
+    lengthMagicArray += unpack_v8b_from_v32_S (digest[1]) % 6;
+    lengthMagicArray += unpack_v8a_from_v32_S (digest[1]) % 6;
+    lengthMagicArray += unpack_v8d_from_v32_S (digest[2]) % 6;
+    lengthMagicArray += unpack_v8c_from_v32_S (digest[2]) % 6;
+    offsetMagicArray += unpack_v8b_from_v32_S (digest[2]) & 7;
+    offsetMagicArray += unpack_v8a_from_v32_S (digest[2]) & 7;
+    offsetMagicArray += unpack_v8d_from_v32_S (digest[3]) & 7;
+    offsetMagicArray += unpack_v8c_from_v32_S (digest[3]) & 7;
+    offsetMagicArray += unpack_v8b_from_v32_S (digest[3]) & 7;
+    offsetMagicArray += unpack_v8a_from_v32_S (digest[3]) & 7;
+    offsetMagicArray += unpack_v8d_from_v32_S (digest[4]) & 7;
+    offsetMagicArray += unpack_v8c_from_v32_S (digest[4]) & 7;
+    offsetMagicArray += unpack_v8b_from_v32_S (digest[4]) & 7;
+    offsetMagicArray += unpack_v8a_from_v32_S (digest[4]) & 7;
 
     // final
 
@@ -656,17 +660,21 @@ KERNEL_FQ void m07800_s04 (KERN_ATTR_BASIC ())
 
     // calculate
 
-    int left;
-    int off;
-
-    for (left = final_len, off = 0; left >= 56; left -= 64, off += 16)
+    if (final_len >= 56)
     {
-      sha1_transform (&final[off + 0], &final[off + 4], &final[off + 8], &final[off + 12], digest);
+      final[30] = 0;
+      final[31] = final_len * 8;
+
+      sha1_transform (final +  0, final +  4, final +  8, final + 12, digest);
+      sha1_transform (final + 16, final + 20, final + 24, final + 28, digest);
     }
+    else
+    {
+      final[14] = 0;
+      final[15] = final_len * 8;
 
-    final[off + 15] = final_len * 8;
-
-    sha1_transform (&final[off + 0], &final[off + 4], &final[off + 8], &final[off + 12], digest);
+      sha1_transform (final +  0, final +  4, final +  8, final + 12, digest);
+    }
 
     COMPARE_S_SIMD (digest[3], digest[4], digest[2], digest[1]);
   }
