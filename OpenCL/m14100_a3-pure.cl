@@ -675,6 +675,7 @@ DECLSPEC void m14100s (LOCAL_AS u32 (*s_SPtrans)[64], LOCAL_AS u32 (*s_skb)[64],
    * digest
    */
 
+  #if VECT_SIZE == 1
   const u32 search[4] =
   {
     p1[0],
@@ -682,6 +683,15 @@ DECLSPEC void m14100s (LOCAL_AS u32 (*s_SPtrans)[64], LOCAL_AS u32 (*s_skb)[64],
     0,
     0
   };
+  #else
+  const u32 search[4] =
+  {
+    p1[0].s0,
+    p1[1].s0,
+    0,
+    0
+  };
+  #endif
 
   /**
    * loop
