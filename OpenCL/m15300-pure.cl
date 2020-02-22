@@ -507,6 +507,8 @@ KERNEL_FQ void m15300_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
 
     iv[0] = data[0];
     iv[1] = data[1];
+
+    if (wx_off == 24) break;
   }
 
   u32 hmacSalt[4];
@@ -523,7 +525,7 @@ KERNEL_FQ void m15300_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
   expectedHmac[2] = hc_swap32_S (decrypted[4 + 2]);
   expectedHmac[3] = hc_swap32_S (decrypted[4 + 3]);
 
-  for(int i = 0; i < 16; i++)
+  for (int i = 0; i < 16; i++)
   {
     lastKey[i] = decrypted[i + 26 - 16];
   }

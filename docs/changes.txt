@@ -88,6 +88,7 @@
 - Fixed invalid use of --hex-wordlist if encoded wordlist string is larger than length 256
 - Fixed maximum password length limit which was announced as 256 but actually was 255
 - Fixed out-of-boundary read in pure kernel rule engine rule 'p' if parameter is set to 2 or higher
+- Fixed out-of-boundary write to decrypted[] in DPAPI masterkey file v1 kernel
 - Fixed output of IKE PSK (mode 5300 and 5400) hashes to have separators at right position
 - Fixed output password of "e" rule in pure and cpu rule engine if separator character is also the first letter
 - Fixed problem with the usage of the hexadecimal notations (\x00-\xff) within rules
