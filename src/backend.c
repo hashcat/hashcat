@@ -2868,7 +2868,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
       }
       else
       {
-        if (hashconfig->opts_type & OPTS_TYPE_PT_BITSLICE)
+        if (hashconfig->opts_type & OPTS_TYPE_TM_KERNEL)
         {
           const u32 size_tm = device_param->size_tm;
 
@@ -3430,7 +3430,6 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 {
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
-  const user_options_t *user_options = hashcat_ctx->user_options;
 
   u64 kernel_threads = 0;
   u64 dynamic_shared_mem = 0;
@@ -3544,44 +3543,33 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
     num_elements = CEILDIV (num_elements, kernel_threads);
 
-    if ((hashconfig->opts_type & OPTS_TYPE_PT_BITSLICE) && (user_options->attack_mode == ATTACK_MODE_BF))
+    if (kern_run == KERN_RUN_1)
     {
-      if (hc_cuEventRecord (hashcat_ctx, device_param->cuda_event1, device_param->cuda_stream) == -1) return -1;
-
-      if (hc_cuLaunchKernel (hashcat_ctx, cuda_function, num_elements, 32, 1, kernel_threads, 1, 1, dynamic_shared_mem, device_param->cuda_stream, device_param->kernel_params, NULL) == -1) return -1;
-
-      if (hc_cuEventRecord (hashcat_ctx, device_param->cuda_event2, device_param->cuda_stream) == -1) return -1;
+      if (hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_SIMD_INIT)
+      {
+        num_elements = CEILDIV (num_elements, device_param->vector_width);
+      }
     }
-    else
+    else if (kern_run == KERN_RUN_2)
     {
-      if (kern_run == KERN_RUN_1)
+      if (hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_SIMD_LOOP)
       {
-        if (hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_SIMD_INIT)
-        {
-          num_elements = CEILDIV (num_elements, device_param->vector_width);
-        }
+        num_elements = CEILDIV (num_elements, device_param->vector_width);
       }
-      else if (kern_run == KERN_RUN_2)
-      {
-        if (hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_SIMD_LOOP)
-        {
-          num_elements = CEILDIV (num_elements, device_param->vector_width);
-        }
-      }
-      else if (kern_run == KERN_RUN_3)
-      {
-        if (hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_SIMD_COMP)
-        {
-          num_elements = CEILDIV (num_elements, device_param->vector_width);
-        }
-      }
-
-      if (hc_cuEventRecord (hashcat_ctx, device_param->cuda_event1, device_param->cuda_stream) == -1) return -1;
-
-      if (hc_cuLaunchKernel (hashcat_ctx, cuda_function, num_elements, 1, 1, kernel_threads, 1, 1, dynamic_shared_mem, device_param->cuda_stream, device_param->kernel_params, NULL) == -1) return -1;
-
-      if (hc_cuEventRecord (hashcat_ctx, device_param->cuda_event2, device_param->cuda_stream) == -1) return -1;
     }
+    else if (kern_run == KERN_RUN_3)
+    {
+      if (hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_SIMD_COMP)
+      {
+        num_elements = CEILDIV (num_elements, device_param->vector_width);
+      }
+    }
+
+    if (hc_cuEventRecord (hashcat_ctx, device_param->cuda_event1, device_param->cuda_stream) == -1) return -1;
+
+    if (hc_cuLaunchKernel (hashcat_ctx, cuda_function, num_elements, 1, 1, kernel_threads, 1, 1, dynamic_shared_mem, device_param->cuda_stream, device_param->kernel_params, NULL) == -1) return -1;
+
+    if (hc_cuEventRecord (hashcat_ctx, device_param->cuda_event2, device_param->cuda_stream) == -1) return -1;
 
     if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
 
@@ -3651,44 +3639,34 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
     cl_event opencl_event;
 
-    if ((hashconfig->opts_type & OPTS_TYPE_PT_BITSLICE) && (user_options->attack_mode == ATTACK_MODE_BF))
+    if (kern_run == KERN_RUN_1)
     {
-      const size_t global_work_size[3] = { num_elements,  32, 1 };
-      const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
-
-      if (hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, opencl_kernel, 2, NULL, global_work_size, local_work_size, 0, NULL, &opencl_event) == -1) return -1;
+      if (hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_SIMD_INIT)
+      {
+        num_elements = CEILDIV (num_elements, device_param->vector_width);
+      }
     }
-    else
+    else if (kern_run == KERN_RUN_2)
     {
-      if (kern_run == KERN_RUN_1)
+      if (hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_SIMD_LOOP)
       {
-        if (hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_SIMD_INIT)
-        {
-          num_elements = CEILDIV (num_elements, device_param->vector_width);
-        }
+        num_elements = CEILDIV (num_elements, device_param->vector_width);
       }
-      else if (kern_run == KERN_RUN_2)
-      {
-        if (hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_SIMD_LOOP)
-        {
-          num_elements = CEILDIV (num_elements, device_param->vector_width);
-        }
-      }
-      else if (kern_run == KERN_RUN_3)
-      {
-        if (hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_SIMD_COMP)
-        {
-          num_elements = CEILDIV (num_elements, device_param->vector_width);
-        }
-      }
-
-      num_elements = round_up_multiple_64 (num_elements, kernel_threads);
-
-      const size_t global_work_size[3] = { num_elements,   1, 1 };
-      const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
-
-      if (hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, opencl_kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, &opencl_event) == -1) return -1;
     }
+    else if (kern_run == KERN_RUN_3)
+    {
+      if (hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_SIMD_COMP)
+      {
+        num_elements = CEILDIV (num_elements, device_param->vector_width);
+      }
+    }
+
+    num_elements = round_up_multiple_64 (num_elements, kernel_threads);
+
+    const size_t global_work_size[3] = { num_elements,   1, 1 };
+    const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
+
+    if (hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, opencl_kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, &opencl_event) == -1) return -1;
 
     if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
 
@@ -8839,7 +8817,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         {
           if (user_options->attack_mode == ATTACK_MODE_BF)
           {
-            if (hashconfig->opts_type & OPTS_TYPE_PT_BITSLICE)
+            if (hashconfig->opts_type & OPTS_TYPE_TM_KERNEL)
             {
               snprintf (kernel_name, sizeof (kernel_name), "m%05u_tm", kern_type);
 
@@ -9092,10 +9070,13 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           device_param->kernel_preferred_wgs_multiple_mp_r = device_param->cuda_warp_size;
 
-          if (hashconfig->opts_type & OPTS_TYPE_PT_BITSLICE)
+          if (user_options->attack_mode == ATTACK_MODE_BF)
           {
-            //CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_tm, 0, sizeof (cl_mem), device_param->kernel_params_tm[0]); if (CL_rc == -1) return -1;
-            //CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_tm, 1, sizeof (cl_mem), device_param->kernel_params_tm[1]); if (CL_rc == -1) return -1;
+            if (hashconfig->opts_type & OPTS_TYPE_TM_KERNEL)
+            {
+              //CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_tm, 0, sizeof (cl_mem), device_param->kernel_params_tm[0]); if (CL_rc == -1) return -1;
+              //CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_tm, 1, sizeof (cl_mem), device_param->kernel_params_tm[1]); if (CL_rc == -1) return -1;
+            }
           }
         }
         else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
@@ -9422,7 +9403,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         {
           if (user_options->attack_mode == ATTACK_MODE_BF)
           {
-            if (hashconfig->opts_type & OPTS_TYPE_PT_BITSLICE)
+            if (hashconfig->opts_type & OPTS_TYPE_TM_KERNEL)
             {
               snprintf (kernel_name, sizeof (kernel_name), "m%05u_tm", kern_type);
 
@@ -9670,10 +9651,13 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (get_opencl_kernel_preferred_wgs_multiple (hashcat_ctx, device_param, device_param->opencl_kernel_mp_r, &device_param->kernel_preferred_wgs_multiple_mp_r) == -1) return -1;
 
-          if (hashconfig->opts_type & OPTS_TYPE_PT_BITSLICE)
+          if (user_options->attack_mode == ATTACK_MODE_BF)
           {
-            if (hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_tm, 0, sizeof (cl_mem), device_param->kernel_params_tm[0]) == -1) return -1;
-            if (hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_tm, 1, sizeof (cl_mem), device_param->kernel_params_tm[1]) == -1) return -1;
+            if (hashconfig->opts_type & OPTS_TYPE_TM_KERNEL)
+            {
+              if (hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_tm, 0, sizeof (cl_mem), device_param->kernel_params_tm[0]) == -1) return -1;
+              if (hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_tm, 1, sizeof (cl_mem), device_param->kernel_params_tm[1]) == -1) return -1;
+            }
           }
         }
         else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)

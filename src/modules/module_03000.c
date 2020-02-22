@@ -23,7 +23,7 @@ static const u64   KERN_TYPE      = 3000;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_PT_UPPER
-                                  | OPTS_TYPE_PT_BITSLICE
+                                  | OPTS_TYPE_TM_KERNEL
                                   | OPTS_TYPE_PT_ALWAYS_ASCII
                                   | OPTS_TYPE_PT_LM
                                   | OPTS_TYPE_HASH_SPLIT;

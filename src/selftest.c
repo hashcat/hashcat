@@ -201,7 +201,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
       {
         device_param->kernel_params_buf32[30] = 1;
 
-        if (hashconfig->opts_type & OPTS_TYPE_PT_BITSLICE)
+        if (hashconfig->opts_type & OPTS_TYPE_TM_KERNEL)
         {
           pw_t pw;
 
