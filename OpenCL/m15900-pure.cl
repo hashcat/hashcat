@@ -637,21 +637,6 @@ KERNEL_FQ void m15900_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v2_t, dpapimk_t))
     if (contents_off == 32) break;
   }
 
-  u32 hmacSalt[4];
-  u32 expectedHmac[16];
-  u32 lastKey[16];
-
-  hmacSalt[0] = decrypted[0];
-  hmacSalt[1] = decrypted[1];
-  hmacSalt[2] = decrypted[2];
-  hmacSalt[3] = decrypted[3];
-
-  for(int i = 0; i < 16; i++)
-  {
-    expectedHmac[i] = decrypted[i + 4];
-    lastKey[i]      = decrypted[i + 36 - 16];
-  }
-
   w0[0] = tmps[gid].userKey[0];
   w0[1] = tmps[gid].userKey[1];
   w0[2] = tmps[gid].userKey[2];
@@ -689,10 +674,10 @@ KERNEL_FQ void m15900_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v2_t, dpapimk_t))
 
   sha512_hmac_init_128 (&ctx, w0, w1, w2, w3, w4, w5, w6, w7);
 
-  w0[0] = hmacSalt[0];
-  w0[1] = hmacSalt[1];
-  w0[2] = hmacSalt[2];
-  w0[3] = hmacSalt[3];
+  w0[0] = decrypted[0];
+  w0[1] = decrypted[1];
+  w0[2] = decrypted[2];
+  w0[3] = decrypted[3];
   w1[0] = 0;
   w1[1] = 0;
   w1[2] = 0;
@@ -761,22 +746,22 @@ KERNEL_FQ void m15900_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v2_t, dpapimk_t))
 
   sha512_hmac_init_128 (&ctx, w0, w1, w2, w3, w4, w5, w6, w7);
 
-  w0[0] = lastKey[ 0];
-  w0[1] = lastKey[ 1];
-  w0[2] = lastKey[ 2];
-  w0[3] = lastKey[ 3];
-  w1[0] = lastKey[ 4];
-  w1[1] = lastKey[ 5];
-  w1[2] = lastKey[ 6];
-  w1[3] = lastKey[ 7];
-  w2[0] = lastKey[ 8];
-  w2[1] = lastKey[ 9];
-  w2[2] = lastKey[10];
-  w2[3] = lastKey[11];
-  w3[0] = lastKey[12];
-  w3[1] = lastKey[13];
-  w3[2] = lastKey[14];
-  w3[3] = lastKey[15];
+  w0[0] = decrypted[20];
+  w0[1] = decrypted[21];
+  w0[2] = decrypted[22];
+  w0[3] = decrypted[23];
+  w1[0] = decrypted[24];
+  w1[1] = decrypted[25];
+  w1[2] = decrypted[26];
+  w1[3] = decrypted[27];
+  w2[0] = decrypted[28];
+  w2[1] = decrypted[29];
+  w2[2] = decrypted[30];
+  w2[3] = decrypted[31];
+  w3[0] = decrypted[32];
+  w3[1] = decrypted[33];
+  w3[2] = decrypted[34];
+  w3[3] = decrypted[35];
   w4[0] = 0;
   w4[1] = 0;
   w4[2] = 0;
@@ -800,10 +785,10 @@ KERNEL_FQ void m15900_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v2_t, dpapimk_t))
 
   #define il_pos 0
 
-  if ((expectedHmac[0] == h32_from_64_S (ctx.opad.h[0]))
-   && (expectedHmac[1] == l32_from_64_S (ctx.opad.h[0]))
-   && (expectedHmac[2] == h32_from_64_S (ctx.opad.h[1]))
-   && (expectedHmac[3] == l32_from_64_S (ctx.opad.h[1])))
+  if ((decrypted[4] == h32_from_64_S (ctx.opad.h[0]))
+   && (decrypted[5] == l32_from_64_S (ctx.opad.h[0]))
+   && (decrypted[6] == h32_from_64_S (ctx.opad.h[1]))
+   && (decrypted[7] == l32_from_64_S (ctx.opad.h[1])))
   {
     if (atomic_inc (&hashes_shown[digests_offset]) == 0)
     {

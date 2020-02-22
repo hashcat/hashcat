@@ -511,25 +511,6 @@ KERNEL_FQ void m15300_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
     if (wx_off == 24) break;
   }
 
-  u32 hmacSalt[4];
-  u32 expectedHmac[4];
-  u32 lastKey[16];
-
-  hmacSalt[0] = hc_swap32_S (decrypted[0]);
-  hmacSalt[1] = hc_swap32_S (decrypted[1]);
-  hmacSalt[2] = hc_swap32_S (decrypted[2]);
-  hmacSalt[3] = hc_swap32_S (decrypted[3]);
-
-  expectedHmac[0] = hc_swap32_S (decrypted[4 + 0]);
-  expectedHmac[1] = hc_swap32_S (decrypted[4 + 1]);
-  expectedHmac[2] = hc_swap32_S (decrypted[4 + 2]);
-  expectedHmac[3] = hc_swap32_S (decrypted[4 + 3]);
-
-  for (int i = 0; i < 16; i++)
-  {
-    lastKey[i] = decrypted[i + 26 - 16];
-  }
-
   w0[0] = tmps[gid].userKey[0];
   w0[1] = tmps[gid].userKey[1];
   w0[2] = tmps[gid].userKey[2];
@@ -551,10 +532,10 @@ KERNEL_FQ void m15300_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
 
   sha1_hmac_init_64 (&ctx, w0, w1, w2, w3);
 
-  w0[0] = hmacSalt[0];
-  w0[1] = hmacSalt[1];
-  w0[2] = hmacSalt[2];
-  w0[3] = hmacSalt[3];
+  w0[0] = hc_swap32_S (decrypted[0]);
+  w0[1] = hc_swap32_S (decrypted[1]);
+  w0[2] = hc_swap32_S (decrypted[2]);
+  w0[3] = hc_swap32_S (decrypted[3]);
   w1[0] = 0;
   w1[1] = 0;
   w1[2] = 0;
@@ -591,22 +572,22 @@ KERNEL_FQ void m15300_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
 
   sha1_hmac_init_64 (&ctx, w0, w1, w2, w3);
 
-  w0[0] = hc_swap32_S (lastKey[ 0]);
-  w0[1] = hc_swap32_S (lastKey[ 1]);
-  w0[2] = hc_swap32_S (lastKey[ 2]);
-  w0[3] = hc_swap32_S (lastKey[ 3]);
-  w1[0] = hc_swap32_S (lastKey[ 4]);
-  w1[1] = hc_swap32_S (lastKey[ 5]);
-  w1[2] = hc_swap32_S (lastKey[ 6]);
-  w1[3] = hc_swap32_S (lastKey[ 7]);
-  w2[0] = hc_swap32_S (lastKey[ 8]);
-  w2[1] = hc_swap32_S (lastKey[ 9]);
-  w2[2] = hc_swap32_S (lastKey[10]);
-  w2[3] = hc_swap32_S (lastKey[11]);
-  w3[0] = hc_swap32_S (lastKey[12]);
-  w3[1] = hc_swap32_S (lastKey[13]);
-  w3[2] = hc_swap32_S (lastKey[14]);
-  w3[3] = hc_swap32_S (lastKey[15]);
+  w0[0] = hc_swap32_S (decrypted[10]);
+  w0[1] = hc_swap32_S (decrypted[11]);
+  w0[2] = hc_swap32_S (decrypted[12]);
+  w0[3] = hc_swap32_S (decrypted[13]);
+  w1[0] = hc_swap32_S (decrypted[14]);
+  w1[1] = hc_swap32_S (decrypted[15]);
+  w1[2] = hc_swap32_S (decrypted[16]);
+  w1[3] = hc_swap32_S (decrypted[17]);
+  w2[0] = hc_swap32_S (decrypted[18]);
+  w2[1] = hc_swap32_S (decrypted[19]);
+  w2[2] = hc_swap32_S (decrypted[20]);
+  w2[3] = hc_swap32_S (decrypted[21]);
+  w3[0] = hc_swap32_S (decrypted[22]);
+  w3[1] = hc_swap32_S (decrypted[23]);
+  w3[2] = hc_swap32_S (decrypted[24]);
+  w3[3] = hc_swap32_S (decrypted[25]);
 
   sha1_hmac_update_64 (&ctx, w0, w1, w2, w3, 64);
 
@@ -614,10 +595,10 @@ KERNEL_FQ void m15300_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
 
   #define il_pos 0
 
-  if ((expectedHmac[0] == ctx.opad.h[0])
-   && (expectedHmac[1] == ctx.opad.h[1])
-   && (expectedHmac[2] == ctx.opad.h[2])
-   && (expectedHmac[3] == ctx.opad.h[3]))
+  if ((decrypted[4] == hc_swap32_S (ctx.opad.h[0]))
+   && (decrypted[5] == hc_swap32_S (ctx.opad.h[1]))
+   && (decrypted[6] == hc_swap32_S (ctx.opad.h[2]))
+   && (decrypted[7] == hc_swap32_S (ctx.opad.h[3])))
   {
     if (atomic_inc (&hashes_shown[digests_offset]) == 0)
     {
