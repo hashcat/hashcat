@@ -124,17 +124,17 @@ DECLSPEC void lotus_mix (u32x *in, LOCAL_AS u32 *s_lotus_magic_table)
       u32x tmp_in = in[j];
       u32x tmp_out = 0;
 
-      p = ((tmp_in >>  0) & 0xff) ^ BOX1 (s_lotus_magic_table, (p + s--)); tmp_out |= p <<  0;
-      p = ((tmp_in >>  8) & 0xff) ^ BOX1 (s_lotus_magic_table, (p + s--)); tmp_out |= p <<  8;
-      p = ((tmp_in >> 16) & 0xff) ^ BOX1 (s_lotus_magic_table, (p + s--)); tmp_out |= p << 16;
-      p = ((tmp_in >> 24) & 0xff) ^ BOX1 (s_lotus_magic_table, (p + s--)); tmp_out |= p << 24;
+      p = p + s--; p = ((tmp_in >>  0) & 0xff) ^ BOX1 (s_lotus_magic_table, p); tmp_out |= p <<  0;
+      p = p + s--; p = ((tmp_in >>  8) & 0xff) ^ BOX1 (s_lotus_magic_table, p); tmp_out |= p <<  8;
+      p = p + s--; p = ((tmp_in >> 16) & 0xff) ^ BOX1 (s_lotus_magic_table, p); tmp_out |= p << 16;
+      p = p + s--; p = ((tmp_in >> 24) & 0xff) ^ BOX1 (s_lotus_magic_table, p); tmp_out |= p << 24;
 
       in[j] = tmp_out;
     }
   }
 }
 
-DECLSPEC void lotus_transform_password (u32x *in, u32x *out, LOCAL_AS u32 *s_lotus_magic_table)
+DECLSPEC void lotus_transform_password (const u32x *in, u32x *out, LOCAL_AS u32 *s_lotus_magic_table)
 {
   u32x t = out[3] >> 24;
 
@@ -145,15 +145,10 @@ DECLSPEC void lotus_transform_password (u32x *in, u32x *out, LOCAL_AS u32 *s_lot
   #endif
   for (int i = 0; i < 4; i++)
   {
-    u32x tmp_in = in[i];
-    u32x tmp_out = 0;
-
-    t ^= (tmp_in >>  0) & 0xff; c = BOX1 (s_lotus_magic_table, t); tmp_out ^= c <<  0; t = (tmp_out >>  0) & 0xff;
-    t ^= (tmp_in >>  8) & 0xff; c = BOX1 (s_lotus_magic_table, t); tmp_out ^= c <<  8; t = (tmp_out >>  8) & 0xff;
-    t ^= (tmp_in >> 16) & 0xff; c = BOX1 (s_lotus_magic_table, t); tmp_out ^= c << 16; t = (tmp_out >> 16) & 0xff;
-    t ^= (tmp_in >> 24) & 0xff; c = BOX1 (s_lotus_magic_table, t); tmp_out ^= c << 24; t = (tmp_out >> 24) & 0xff;
-
-    out[i] = tmp_out;
+    t ^= (in[i] >>  0) & 0xff; c = BOX1 (s_lotus_magic_table, t); out[i] ^= c <<  0; t = ((out[i] >>  0) & 0xff);
+    t ^= (in[i] >>  8) & 0xff; c = BOX1 (s_lotus_magic_table, t); out[i] ^= c <<  8; t = ((out[i] >>  8) & 0xff);
+    t ^= (in[i] >> 16) & 0xff; c = BOX1 (s_lotus_magic_table, t); out[i] ^= c << 16; t = ((out[i] >> 16) & 0xff);
+    t ^= (in[i] >> 24) & 0xff; c = BOX1 (s_lotus_magic_table, t); out[i] ^= c << 24; t = ((out[i] >> 24) & 0xff);
   }
 }
 
