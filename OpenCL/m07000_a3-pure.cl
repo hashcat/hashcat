@@ -62,7 +62,7 @@ KERNEL_FQ void m07000_mxx (KERN_ATTR_VECTOR ())
 
     sha1_init_vector_from_scalar (&ctx, &ctx0);
 
-    sha1_update_vector_swap (&ctx, w, pw_len);
+    sha1_update_vector (&ctx, w, pw_len);
 
     /**
      * pepper
@@ -163,7 +163,7 @@ KERNEL_FQ void m07000_sxx (KERN_ATTR_VECTOR ())
 
     sha1_init_vector_from_scalar (&ctx, &ctx0);
 
-    sha1_update_vector_swap (&ctx, w, pw_len);
+    sha1_update_vector (&ctx, w, pw_len);
 
     /**
      * pepper

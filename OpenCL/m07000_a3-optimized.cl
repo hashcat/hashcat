@@ -32,9 +32,9 @@ DECLSPEC void m07000m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
   u32 salt_buf2[4];
   u32 salt_buf3[4];
 
-  salt_buf0[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf0[1] = salt_bufs[salt_pos].salt_buf[1];
-  salt_buf0[2] = salt_bufs[salt_pos].salt_buf[2];
+  salt_buf0[0] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[0]);
+  salt_buf0[1] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[1]);
+  salt_buf0[2] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[2]);
   salt_buf0[3] = 0;
   salt_buf1[0] = 0;
   salt_buf1[1] = 0;
@@ -56,12 +56,12 @@ DECLSPEC void m07000m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
   u32 magic_buf2[4];
   u32 magic_buf3[4];
 
-  magic_buf0[0] = FORTIGATE_A;
-  magic_buf0[1] = FORTIGATE_B;
-  magic_buf0[2] = FORTIGATE_C;
-  magic_buf0[3] = FORTIGATE_D;
-  magic_buf1[0] = FORTIGATE_E;
-  magic_buf1[1] = FORTIGATE_F;
+  magic_buf0[0] = hc_swap32_S (FORTIGATE_A);
+  magic_buf0[1] = hc_swap32_S (FORTIGATE_B);
+  magic_buf0[2] = hc_swap32_S (FORTIGATE_C);
+  magic_buf0[3] = hc_swap32_S (FORTIGATE_D);
+  magic_buf1[0] = hc_swap32_S (FORTIGATE_E);
+  magic_buf1[1] = hc_swap32_S (FORTIGATE_F);
   magic_buf1[2] = 0;
   magic_buf1[3] = 0;
   magic_buf2[0] = 0;
@@ -77,7 +77,7 @@ DECLSPEC void m07000m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
 
   const u32 salt_pw_len = salt_len + pw_len;
 
-  switch_buffer_by_offset_le_S (magic_buf0, magic_buf1, magic_buf2, magic_buf3, salt_pw_len);
+  switch_buffer_by_offset_be_S (magic_buf0, magic_buf1, magic_buf2, magic_buf3, salt_pw_len);
 
   salt_buf0[0] |= magic_buf0[0];
   salt_buf0[1] |= magic_buf0[1];
@@ -98,7 +98,7 @@ DECLSPEC void m07000m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
 
   const u32 final_len = salt_len + pw_len + magic_len;
 
-  append_0x80_4x4_S (salt_buf0, salt_buf1, salt_buf2, salt_buf3, final_len);
+  append_0x80_4x4_S (salt_buf0, salt_buf1, salt_buf2, salt_buf3, final_len ^ 3);
 
   /**
    * loop
@@ -158,20 +158,20 @@ DECLSPEC void m07000m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
      * sha1
      */
 
-    u32x w0_t = hc_swap32 (t0[0]);
-    u32x w1_t = hc_swap32 (t0[1]);
-    u32x w2_t = hc_swap32 (t0[2]);
-    u32x w3_t = hc_swap32 (t0[3]);
-    u32x w4_t = hc_swap32 (t1[0]);
-    u32x w5_t = hc_swap32 (t1[1]);
-    u32x w6_t = hc_swap32 (t1[2]);
-    u32x w7_t = hc_swap32 (t1[3]);
-    u32x w8_t = hc_swap32 (t2[0]);
-    u32x w9_t = hc_swap32 (t2[1]);
-    u32x wa_t = hc_swap32 (t2[2]);
-    u32x wb_t = hc_swap32 (t2[3]);
-    u32x wc_t = hc_swap32 (t3[0]);
-    u32x wd_t = hc_swap32 (t3[1]);
+    u32x w0_t = t0[0];
+    u32x w1_t = t0[1];
+    u32x w2_t = t0[2];
+    u32x w3_t = t0[3];
+    u32x w4_t = t1[0];
+    u32x w5_t = t1[1];
+    u32x w6_t = t1[2];
+    u32x w7_t = t1[3];
+    u32x w8_t = t2[0];
+    u32x w9_t = t2[1];
+    u32x wa_t = t2[2];
+    u32x wb_t = t2[3];
+    u32x wc_t = t3[0];
+    u32x wd_t = t3[1];
     u32x we_t = 0;
     u32x wf_t = final_len * 8;
 
@@ -299,9 +299,9 @@ DECLSPEC void m07000s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
   u32 salt_buf2[4];
   u32 salt_buf3[4];
 
-  salt_buf0[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf0[1] = salt_bufs[salt_pos].salt_buf[1];
-  salt_buf0[2] = salt_bufs[salt_pos].salt_buf[2];
+  salt_buf0[0] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[0]);
+  salt_buf0[1] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[1]);
+  salt_buf0[2] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[2]);
   salt_buf0[3] = 0;
   salt_buf1[0] = 0;
   salt_buf1[1] = 0;
@@ -323,12 +323,12 @@ DECLSPEC void m07000s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
   u32 magic_buf2[4];
   u32 magic_buf3[4];
 
-  magic_buf0[0] = FORTIGATE_A;
-  magic_buf0[1] = FORTIGATE_B;
-  magic_buf0[2] = FORTIGATE_C;
-  magic_buf0[3] = FORTIGATE_D;
-  magic_buf1[0] = FORTIGATE_E;
-  magic_buf1[1] = FORTIGATE_F;
+  magic_buf0[0] = hc_swap32_S (FORTIGATE_A);
+  magic_buf0[1] = hc_swap32_S (FORTIGATE_B);
+  magic_buf0[2] = hc_swap32_S (FORTIGATE_C);
+  magic_buf0[3] = hc_swap32_S (FORTIGATE_D);
+  magic_buf1[0] = hc_swap32_S (FORTIGATE_E);
+  magic_buf1[1] = hc_swap32_S (FORTIGATE_F);
   magic_buf1[2] = 0;
   magic_buf1[3] = 0;
   magic_buf2[0] = 0;
@@ -344,7 +344,7 @@ DECLSPEC void m07000s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
 
   const u32 salt_pw_len = salt_len + pw_len;
 
-  switch_buffer_by_offset_le_S (magic_buf0, magic_buf1, magic_buf2, magic_buf3, salt_pw_len);
+  switch_buffer_by_offset_be_S (magic_buf0, magic_buf1, magic_buf2, magic_buf3, salt_pw_len);
 
   salt_buf0[0] |= magic_buf0[0];
   salt_buf0[1] |= magic_buf0[1];
@@ -365,7 +365,7 @@ DECLSPEC void m07000s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
 
   const u32 final_len = salt_len + pw_len + magic_len;
 
-  append_0x80_4x4_S (salt_buf0, salt_buf1, salt_buf2, salt_buf3, final_len);
+  append_0x80_4x4_S (salt_buf0, salt_buf1, salt_buf2, salt_buf3, final_len ^ 3);
 
   /**
    * digest
@@ -443,20 +443,20 @@ DECLSPEC void m07000s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
      * sha1
      */
 
-    u32x w0_t = hc_swap32 (t0[0]);
-    u32x w1_t = hc_swap32 (t0[1]);
-    u32x w2_t = hc_swap32 (t0[2]);
-    u32x w3_t = hc_swap32 (t0[3]);
-    u32x w4_t = hc_swap32 (t1[0]);
-    u32x w5_t = hc_swap32 (t1[1]);
-    u32x w6_t = hc_swap32 (t1[2]);
-    u32x w7_t = hc_swap32 (t1[3]);
-    u32x w8_t = hc_swap32 (t2[0]);
-    u32x w9_t = hc_swap32 (t2[1]);
-    u32x wa_t = hc_swap32 (t2[2]);
-    u32x wb_t = hc_swap32 (t2[3]);
-    u32x wc_t = hc_swap32 (t3[0]);
-    u32x wd_t = hc_swap32 (t3[1]);
+    u32x w0_t = t0[0];
+    u32x w1_t = t0[1];
+    u32x w2_t = t0[2];
+    u32x w3_t = t0[3];
+    u32x w4_t = t1[0];
+    u32x w5_t = t1[1];
+    u32x w6_t = t1[2];
+    u32x w7_t = t1[3];
+    u32x w8_t = t2[0];
+    u32x w9_t = t2[1];
+    u32x wa_t = t2[2];
+    u32x wb_t = t2[3];
+    u32x wc_t = t3[0];
+    u32x wd_t = t3[1];
     u32x we_t = 0;
     u32x wf_t = final_len * 8;
 
