@@ -112,25 +112,25 @@ LIBRARY_DEV_FOLDER      ?= $(LIBRARY_DEV_ROOT_FOLDER)/hashcat
 ifeq ($(USE_SYSTEM_LZMA),0)
 DEPS_LZMA_PATH          := deps/LZMA-SDK/C
 else
-DEPS_LZMA_PATH          := $(LIBRARY_DEV_ROOT_FOLDER)/
+DEPS_LZMA_PATH          := $(LIBRARY_DEV_ROOT_FOLDER)
 endif
 
 ifeq ($(USE_SYSTEM_ZLIB),0)
-DEPS_ZLIB_PATH          := deps/zlib/
+DEPS_ZLIB_PATH          := deps/zlib
 else
-DEPS_ZLIB_PATH          := $(LIBRARY_DEV_ROOT_FOLDER)/
+DEPS_ZLIB_PATH          := $(LIBRARY_DEV_ROOT_FOLDER)
 endif
 
 ifeq ($(USE_SYSTEM_OPENCL),0)
 DEPS_OPENCL_PATH        := deps/OpenCL-Headers
 else
-DEPS_OPENCL_PATH        := $(LIBRARY_DEV_ROOT_FOLDER)/
+DEPS_OPENCL_PATH        := $(LIBRARY_DEV_ROOT_FOLDER)
 endif
 
 ifeq ($(USE_SYSTEM_XXHASH),0)
 DEPS_XXHASH_PATH        := deps/xxHash
 else
-DEPS_XXHASH_PATH        := $(LIBRARY_DEV_ROOT_FOLDER)/
+DEPS_XXHASH_PATH        := $(LIBRARY_DEV_ROOT_FOLDER)
 endif
 
 ##
