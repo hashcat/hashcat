@@ -443,8 +443,6 @@ void hc_fclose (HCFILE *fp)
     fclose (fp->pfp);
   }
 
-  close (fp->fd);
-
   fp->fd = -1;
   fp->pfp = NULL;
   fp->is_gzip = false;
