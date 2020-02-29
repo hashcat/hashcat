@@ -428,7 +428,7 @@ static bool opencl_test_instruction (hashcat_ctx_t *hashcat_ctx, cl_context cont
   return true;
 }
 
-static bool read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_file, size_t *kernel_lengths, char **kernel_sources, const bool force_recompile)
+static bool read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_file, size_t *kernel_lengths, char **kernel_sources)
 {
   HCFILE fp;
 
@@ -443,11 +443,9 @@ static bool read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_f
       return false;
     }
 
-    #define EXTRASZ 100
+    const size_t klen = st.st_size;
 
-    size_t klen = st.st_size;
-
-    char *buf = (char *) hcmalloc (klen + 1 + EXTRASZ);
+    char *buf = (char *) hcmalloc (klen + 1);
 
     size_t num_read = hc_fread (buf, sizeof (char), klen, &fp);
 
@@ -463,19 +461,6 @@ static bool read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_f
     }
 
     buf[klen] = 0;
-
-    if (force_recompile == true)
-    {
-      // this adds some hopefully unique data to the backend kernel source
-      // the effect should be that backend kernel compiler caching see this as new "uncached" source
-      // we have to do this since they do not check for the changes only in the #include source
-
-      time_t tlog = time (NULL);
-
-      const int extra_len = snprintf (buf + klen, EXTRASZ, "\n//%u\n", (u32) tlog);
-
-      klen += extra_len;
-    }
 
     kernel_lengths[0] = klen;
 
@@ -516,6 +501,15 @@ static bool write_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_
     hc_fwrite (binary, sizeof (char), binary_size, &fp);
 
     hc_fflush (&fp);
+
+    if (hc_unlockfile (&fp) == -1)
+    {
+      hc_fclose (&fp);
+
+      event_log_error (hashcat_ctx, "%s: %s", kernel_file, strerror (errno));
+
+      return false;
+    }
 
     hc_fclose (&fp);
   }
@@ -6979,7 +6973,7 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
     if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s not found in cache! Building may take a while...", device_param->device_id + 1, filename_from_filepath (cached_file));
     #endif
 
-    if (read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources, true) == false) return false;
+    if (read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources) == false) return false;
 
     if (device_param->is_cuda == true)
     {
@@ -7257,7 +7251,7 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
   }
   else
   {
-    if (read_kernel_binary (hashcat_ctx, cached_file, kernel_lengths, kernel_sources, false) == false) return false;
+    if (read_kernel_binary (hashcat_ctx, cached_file, kernel_lengths, kernel_sources) == false) return false;
 
     if (device_param->is_cuda == true)
     {
