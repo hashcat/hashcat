@@ -533,6 +533,8 @@ void outfile_write_close (hashcat_ctx_t *hashcat_ctx)
 
   if (outfile_ctx->fp.pfp == NULL) return;
 
+  hc_unlockfile (&outfile_ctx->fp);
+
   hc_fclose (&outfile_ctx->fp);
 }
 

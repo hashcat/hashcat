@@ -291,7 +291,12 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
   out_flush (&out);
 
-  if (filename) hc_fclose (&out.fp);
+  if (filename)
+  {
+    hc_unlockfile (&out.fp);
+
+    hc_fclose (&out.fp);
+  }
 
   return 0;
 }

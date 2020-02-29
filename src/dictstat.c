@@ -217,6 +217,15 @@ int dictstat_write (hashcat_ctx_t *hashcat_ctx)
 
   hc_fwrite (dictstat_ctx->base, sizeof (dictstat_t), dictstat_ctx->cnt, &fp);
 
+  if (hc_unlockfile (&fp) == -1)
+  {
+    hc_fclose (&fp);
+
+    event_log_error (hashcat_ctx, "%s: %s", dictstat_ctx->filename, strerror (errno));
+
+    return -1;
+  }
+
   hc_fclose (&fp);
 
   return 0;

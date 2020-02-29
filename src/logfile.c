@@ -66,6 +66,8 @@ void logfile_append (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
 
   hc_fflush (&fp);
 
+  hc_unlockfile (&fp);
+
   hc_fclose (&fp);
 }
 

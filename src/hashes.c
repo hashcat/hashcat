@@ -258,6 +258,18 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
 
   hc_fflush (&fp);
 
+  if (hc_unlockfile (&fp) == -1)
+  {
+    hc_fclose (&fp);
+
+    event_log_error (hashcat_ctx, "%s: %s", new_hashfile, strerror (errno));
+
+    free (new_hashfile);
+    free (old_hashfile);
+
+    return -1;
+  }
+
   hc_fclose (&fp);
 
   unlink (old_hashfile);
