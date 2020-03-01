@@ -28,28 +28,28 @@ typedef struct blake2
 #define BLAKE2B_FINAL   1
 #define BLAKE2B_UPDATE  0
 
-#define BLAKE2B_G(r,i,a,b,c,d)                \
-  do {                                        \
-    a = a + b + m[blake2b_sigma[r][2*i+0]];   \
-    d = hc_rotr64 (d ^ a, 32);                   \
-    c = c + d;                                \
-    b = hc_rotr64 (b ^ c, 24);                   \
-    a = a + b + m[blake2b_sigma[r][2*i+1]];   \
-    d = hc_rotr64 (d ^ a, 16);                   \
-    c = c + d;                                \
-    b = hc_rotr64 (b ^ c, 63);                   \
+#define BLAKE2B_G(k0,k1,a,b,c,d)  \
+  do {                            \
+    a = a + b + m[(k0)];          \
+    d = hc_rotr64 (d ^ a, 32);    \
+    c = c + d;                    \
+    b = hc_rotr64 (b ^ c, 24);    \
+    a = a + b + m[(k1)];          \
+    d = hc_rotr64 (d ^ a, 16);    \
+    c = c + d;                    \
+    b = hc_rotr64 (b ^ c, 63);    \
   } while(0)
 
-#define BLAKE2B_ROUND(r)                     \
-  do {                                       \
-    BLAKE2B_G (r,0,v[ 0],v[ 4],v[ 8],v[12]); \
-    BLAKE2B_G (r,1,v[ 1],v[ 5],v[ 9],v[13]); \
-    BLAKE2B_G (r,2,v[ 2],v[ 6],v[10],v[14]); \
-    BLAKE2B_G (r,3,v[ 3],v[ 7],v[11],v[15]); \
-    BLAKE2B_G (r,4,v[ 0],v[ 5],v[10],v[15]); \
-    BLAKE2B_G (r,5,v[ 1],v[ 6],v[11],v[12]); \
-    BLAKE2B_G (r,6,v[ 2],v[ 7],v[ 8],v[13]); \
-    BLAKE2B_G (r,7,v[ 3],v[ 4],v[ 9],v[14]); \
+#define BLAKE2B_ROUND(c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,ca,cb,cc,cd,ce,cf)  \
+  do {                                                                  \
+    BLAKE2B_G ((c0),(c1),v[ 0],v[ 4],v[ 8],v[12]);                      \
+    BLAKE2B_G ((c2),(c3),v[ 1],v[ 5],v[ 9],v[13]);                      \
+    BLAKE2B_G ((c4),(c5),v[ 2],v[ 6],v[10],v[14]);                      \
+    BLAKE2B_G ((c6),(c7),v[ 3],v[ 7],v[11],v[15]);                      \
+    BLAKE2B_G ((c8),(c9),v[ 0],v[ 5],v[10],v[15]);                      \
+    BLAKE2B_G ((ca),(cb),v[ 1],v[ 6],v[11],v[12]);                      \
+    BLAKE2B_G ((cc),(cd),v[ 2],v[ 7],v[ 8],v[13]);                      \
+    BLAKE2B_G ((ce),(cf),v[ 3],v[ 4],v[ 9],v[14]);                      \
 } while(0)
 
 DECLSPEC void blake2b_transform (u64x *h, u64x *t, u64x *f, u64x *m, u64x *v, const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, const u32x out_len, const u8 isFinal)
@@ -93,34 +93,18 @@ DECLSPEC void blake2b_transform (u64x *h, u64x *t, u64x *f, u64x *m, u64x *v, co
   v[14] = BLAKE2B_IV_06 ^ f[0];
   v[15] = BLAKE2B_IV_07 ^ f[1];
 
-  const int blake2b_sigma[12][16] =
-  {
-    {  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15 } ,
-    { 14, 10,  4,  8,  9, 15, 13,  6,  1, 12,  0,  2, 11,  7,  5,  3 } ,
-    { 11,  8, 12,  0,  5,  2, 15, 13, 10, 14,  3,  6,  7,  1,  9,  4 } ,
-    {  7,  9,  3,  1, 13, 12, 11, 14,  2,  6,  5, 10,  4,  0, 15,  8 } ,
-    {  9,  0,  5,  7,  2,  4, 10, 15, 14,  1, 11, 12,  6,  8,  3, 13 } ,
-    {  2, 12,  6, 10,  0, 11,  8,  3,  4, 13,  7,  5, 15, 14,  1,  9 } ,
-    { 12,  5,  1, 15, 14, 13,  4, 10,  0,  7,  6,  3,  9,  2,  8, 11 } ,
-    { 13, 11,  7, 14, 12,  1,  3,  9,  5,  0, 15,  4,  8,  6,  2, 10 } ,
-    {  6, 15, 14,  9, 11,  3,  0,  8, 12,  2, 13,  7,  1,  4, 10,  5 } ,
-    { 10,  2,  8,  4,  7,  6,  1,  5, 15, 11,  9, 14,  3, 12, 13 , 0 } ,
-    {  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15 } ,
-    { 14, 10,  4,  8,  9, 15, 13,  6,  1, 12,  0,  2, 11,  7,  5,  3 }
-  };
-
-  BLAKE2B_ROUND ( 0);
-  BLAKE2B_ROUND ( 1);
-  BLAKE2B_ROUND ( 2);
-  BLAKE2B_ROUND ( 3);
-  BLAKE2B_ROUND ( 4);
-  BLAKE2B_ROUND ( 5);
-  BLAKE2B_ROUND ( 6);
-  BLAKE2B_ROUND ( 7);
-  BLAKE2B_ROUND ( 8);
-  BLAKE2B_ROUND ( 9);
-  BLAKE2B_ROUND (10);
-  BLAKE2B_ROUND (11);
+  BLAKE2B_ROUND ( 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15);
+  BLAKE2B_ROUND (14, 10,  4,  8,  9, 15, 13,  6,  1, 12,  0,  2, 11,  7,  5,  3);
+  BLAKE2B_ROUND (11,  8, 12,  0,  5,  2, 15, 13, 10, 14,  3,  6,  7,  1,  9,  4);
+  BLAKE2B_ROUND ( 7,  9,  3,  1, 13, 12, 11, 14,  2,  6,  5, 10,  4,  0, 15,  8);
+  BLAKE2B_ROUND ( 9,  0,  5,  7,  2,  4, 10, 15, 14,  1, 11, 12,  6,  8,  3, 13);
+  BLAKE2B_ROUND ( 2, 12,  6, 10,  0, 11,  8,  3,  4, 13,  7,  5, 15, 14,  1,  9);
+  BLAKE2B_ROUND (12,  5,  1, 15, 14, 13,  4, 10,  0,  7,  6,  3,  9,  2,  8, 11);
+  BLAKE2B_ROUND (13, 11,  7, 14, 12,  1,  3,  9,  5,  0, 15,  4,  8,  6,  2, 10);
+  BLAKE2B_ROUND ( 6, 15, 14,  9, 11,  3,  0,  8, 12,  2, 13,  7,  1,  4, 10,  5);
+  BLAKE2B_ROUND (10,  2,  8,  4,  7,  6,  1,  5, 15, 11,  9, 14,  3, 12, 13 , 0);
+  BLAKE2B_ROUND ( 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15);
+  BLAKE2B_ROUND (14, 10,  4,  8,  9, 15, 13,  6,  1, 12,  0,  2, 11,  7,  5,  3);
 
   h[0] = h[0] ^ v[0] ^ v[ 8];
   h[1] = h[1] ^ v[1] ^ v[ 9];
