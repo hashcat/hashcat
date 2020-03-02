@@ -148,6 +148,11 @@
 #define USE_ROTATE
 #endif
 
+#ifdef IS_INTEL_SDK
+#define USE_BITSELECT
+#define USE_ROTATE
+#endif
+
 #ifdef IS_OPENCL
 //#define USE_BITSELECT
 //#define USE_ROTATE
