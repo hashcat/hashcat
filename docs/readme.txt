@@ -220,6 +220,7 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (9.0 or
 - CRAM-MD5 Dovecot
 - SSHA-256(Base64), LDAP {SSHA256}
 - SSHA-512(Base64), LDAP {SSHA512}
+- RedHat 389-DS LDAP (PBKDF2-HMAC-SHA256)
 - FileZilla Server >= 0.9.55
 - ColdFusion 10+
 - Apache $apr1$ MD5, md5apr1, MD5 (APR)

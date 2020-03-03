@@ -16,7 +16,7 @@ sub module_generate_hash
 {
   my $word  = shift;
   my $salt  = shift;
-  my $iter  = shift // 10000;
+  my $iter  = shift // 8192; ## https://pagure.io/389-ds-base/blob/master/f/ldap/servers/plugins/pwdstorage/pbkdf2_pwd.c
 
   if (length $salt == 0)
   {
@@ -29,6 +29,7 @@ sub module_generate_hash
     output_len => 256,
     salt_len => 64,
   );
+
   my $p = $pbkdf2->generate($word, $salt);
 
   my $decoded_hash = $pbkdf2->decode_string($p);
