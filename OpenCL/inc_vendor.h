@@ -110,12 +110,10 @@
  * fast but pure kernels on rocm is a good example
  */
 
-#define DECLSPEC
-
-#if defined IS_AMD
-#if defined IS_GPU
+#if defined IS_AMD && defined IS_GPU
 #define DECLSPEC inline static
-#endif
+#else
+#define DECLSPEC
 #endif
 
 /**
