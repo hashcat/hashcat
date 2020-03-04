@@ -150,7 +150,7 @@ KERNEL_FQ void m07801_m04 (KERN_ATTR_BASIC ())
 
   #else
 
-  CONSTANT_AS u32a *s_theMagicArray = theMagicArray;
+  CONSTANT_AS u32a (*s_theMagicArray)[16] = theMagicArray;
 
   #endif
 
@@ -519,7 +519,7 @@ KERNEL_FQ void m07801_s04 (KERN_ATTR_BASIC ())
 
   #else
 
-  CONSTANT_AS u32a *s_theMagicArray = theMagicArray;
+  CONSTANT_AS u32a (*s_theMagicArray)[16] = theMagicArray;
 
   #endif
 
