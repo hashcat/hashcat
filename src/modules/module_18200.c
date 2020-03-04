@@ -64,6 +64,12 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
     return jit_build_options;
   }
 
+  // NVIDIA GPU
+  if (device_param->opencl_device_vendor_id == VENDOR_ID_NV)
+  {
+    hc_asprintf (&jit_build_options, "-D _unroll");
+  }
+
   // AMD-GPU-PRO
   if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
   {
