@@ -650,11 +650,6 @@ KERNEL_FQ void m13722_loop_extended (KERN_ATTR_TMPS_ESALT (vc64_tmp_t, vc_t))
       tmps[gid].pim = pim_check;
     }
 
-    if (check_header_1536 (esalt_bufs, tmps[gid].pim_key, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) != -1)
-    {
-      tmps[gid].pim = pim_check;
-    }
-
     tmps[gid].pim_check = 0;
   }
 }
