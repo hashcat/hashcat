@@ -407,7 +407,6 @@ typedef enum opts_type
   OPTS_TYPE_ST_ADDBITS15      = (1ULL << 24),
   OPTS_TYPE_ST_HEX            = (1ULL << 25),
   OPTS_TYPE_ST_BASE64         = (1ULL << 26),
-  OPTS_TYPE_ST_HASH_MD5       = (1ULL << 27),
   OPTS_TYPE_HASH_COPY         = (1ULL << 28),
   OPTS_TYPE_HASH_SPLIT        = (1ULL << 29),
   OPTS_TYPE_LOOP_EXTENDED     = (1ULL << 30), // a kernel which is called each time normal _loop kernel finished.
