@@ -171,6 +171,11 @@ DECLSPEC u64 v64_from_v32ab_S (const u32 v32a, const u32 v32b);
 
 // inline asm packing
 
+DECLSPEC u32x unpack_v8a_from_v32 (const u32x v32);
+DECLSPEC u32x unpack_v8b_from_v32 (const u32x v32);
+DECLSPEC u32x unpack_v8c_from_v32 (const u32x v32);
+DECLSPEC u32x unpack_v8d_from_v32 (const u32x v32);
+
 DECLSPEC u32 unpack_v8a_from_v32_S (const u32 v32);
 DECLSPEC u32 unpack_v8b_from_v32_S (const u32 v32);
 DECLSPEC u32 unpack_v8c_from_v32_S (const u32 v32);

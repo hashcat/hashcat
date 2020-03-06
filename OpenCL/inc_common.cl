@@ -490,6 +490,194 @@ DECLSPEC u64 v64_from_v32ab_S (const u32 v32a, const u32 v32b)
 
 // unpack function are similar, but always return u32
 
+DECLSPEC u32x unpack_v8a_from_v32 (const u32x v32)
+{
+  u32x r = 0;
+
+  #if   defined IS_NV  && HAS_BFE  == 1
+
+  #if VECT_SIZE == 1
+  asm volatile ("bfe.u32 %0, %1,  0, 8;" : "=r"(r) : "r"(v32));
+  #endif
+
+  #if VECT_SIZE >= 2
+  asm volatile ("bfe.u32 %0, %1,  0, 8;" : "=r"(r.s0) : "r"(v32.s0));
+  asm volatile ("bfe.u32 %0, %1,  0, 8;" : "=r"(r.s1) : "r"(v32.s1));
+  #endif
+
+  #if VECT_SIZE >= 4
+  asm volatile ("bfe.u32 %0, %1,  0, 8;" : "=r"(r.s2) : "r"(v32.s2));
+  asm volatile ("bfe.u32 %0, %1,  0, 8;" : "=r"(r.s3) : "r"(v32.s3));
+  #endif
+
+  #if VECT_SIZE >= 8
+  asm volatile ("bfe.u32 %0, %1,  0, 8;" : "=r"(r.s4) : "r"(v32.s4));
+  asm volatile ("bfe.u32 %0, %1,  0, 8;" : "=r"(r.s5) : "r"(v32.s5));
+  asm volatile ("bfe.u32 %0, %1,  0, 8;" : "=r"(r.s6) : "r"(v32.s6));
+  asm volatile ("bfe.u32 %0, %1,  0, 8;" : "=r"(r.s7) : "r"(v32.s7));
+  #endif
+
+  #if VECT_SIZE >= 16
+  asm volatile ("bfe.u32 %0, %1,  0, 8;" : "=r"(r.s8) : "r"(v32.s8));
+  asm volatile ("bfe.u32 %0, %1,  0, 8;" : "=r"(r.s9) : "r"(v32.s9));
+  asm volatile ("bfe.u32 %0, %1,  0, 8;" : "=r"(r.sa) : "r"(v32.sa));
+  asm volatile ("bfe.u32 %0, %1,  0, 8;" : "=r"(r.sb) : "r"(v32.sb));
+  asm volatile ("bfe.u32 %0, %1,  0, 8;" : "=r"(r.sc) : "r"(v32.sc));
+  asm volatile ("bfe.u32 %0, %1,  0, 8;" : "=r"(r.sd) : "r"(v32.sd));
+  asm volatile ("bfe.u32 %0, %1,  0, 8;" : "=r"(r.se) : "r"(v32.se));
+  asm volatile ("bfe.u32 %0, %1,  0, 8;" : "=r"(r.sf) : "r"(v32.sf));
+  #endif
+
+  //#elif defined IS_AMD && HAS_VBFE == 1
+  //__asm__ __volatile__ ("V_BFE_U32 %0, %1, 0, 8;" : "=v"(r) : "v"(v32));
+  #else
+  r = (v32 >> 0) & 0xff;
+  #endif
+
+  return r;
+}
+
+DECLSPEC u32x unpack_v8b_from_v32 (const u32x v32)
+{
+  u32x r = 0;
+
+  #if   defined IS_NV  && HAS_BFE  == 1
+
+  #if VECT_SIZE == 1
+  asm volatile ("bfe.u32 %0, %1,  8, 8;" : "=r"(r) : "r"(v32));
+  #endif
+
+  #if VECT_SIZE >= 2
+  asm volatile ("bfe.u32 %0, %1,  8, 8;" : "=r"(r.s0) : "r"(v32.s0));
+  asm volatile ("bfe.u32 %0, %1,  8, 8;" : "=r"(r.s1) : "r"(v32.s1));
+  #endif
+
+  #if VECT_SIZE >= 4
+  asm volatile ("bfe.u32 %0, %1,  8, 8;" : "=r"(r.s2) : "r"(v32.s2));
+  asm volatile ("bfe.u32 %0, %1,  8, 8;" : "=r"(r.s3) : "r"(v32.s3));
+  #endif
+
+  #if VECT_SIZE >= 8
+  asm volatile ("bfe.u32 %0, %1,  8, 8;" : "=r"(r.s4) : "r"(v32.s4));
+  asm volatile ("bfe.u32 %0, %1,  8, 8;" : "=r"(r.s5) : "r"(v32.s5));
+  asm volatile ("bfe.u32 %0, %1,  8, 8;" : "=r"(r.s6) : "r"(v32.s6));
+  asm volatile ("bfe.u32 %0, %1,  8, 8;" : "=r"(r.s7) : "r"(v32.s7));
+  #endif
+
+  #if VECT_SIZE >= 16
+  asm volatile ("bfe.u32 %0, %1,  8, 8;" : "=r"(r.s8) : "r"(v32.s8));
+  asm volatile ("bfe.u32 %0, %1,  8, 8;" : "=r"(r.s9) : "r"(v32.s9));
+  asm volatile ("bfe.u32 %0, %1,  8, 8;" : "=r"(r.sa) : "r"(v32.sa));
+  asm volatile ("bfe.u32 %0, %1,  8, 8;" : "=r"(r.sb) : "r"(v32.sb));
+  asm volatile ("bfe.u32 %0, %1,  8, 8;" : "=r"(r.sc) : "r"(v32.sc));
+  asm volatile ("bfe.u32 %0, %1,  8, 8;" : "=r"(r.sd) : "r"(v32.sd));
+  asm volatile ("bfe.u32 %0, %1,  8, 8;" : "=r"(r.se) : "r"(v32.se));
+  asm volatile ("bfe.u32 %0, %1,  8, 8;" : "=r"(r.sf) : "r"(v32.sf));
+  #endif
+
+  //#elif defined IS_AMD && HAS_VBFE == 1
+  //__asm__ __volatile__ ("V_BFE_U32 %0, %1, 8, 8;" : "=v"(r) : "v"(v32));
+  #else
+  r = (v32 >> 8) & 0xff;
+  #endif
+
+  return r;
+}
+
+DECLSPEC u32x unpack_v8c_from_v32 (const u32x v32)
+{
+  u32x r = 0;
+
+  #if   defined IS_NV  && HAS_BFE  == 1
+
+  #if VECT_SIZE == 1
+  asm volatile ("bfe.u32 %0, %1, 16, 8;" : "=r"(r) : "r"(v32));
+  #endif
+
+  #if VECT_SIZE >= 2
+  asm volatile ("bfe.u32 %0, %1, 16, 8;" : "=r"(r.s0) : "r"(v32.s0));
+  asm volatile ("bfe.u32 %0, %1, 16, 8;" : "=r"(r.s1) : "r"(v32.s1));
+  #endif
+
+  #if VECT_SIZE >= 4
+  asm volatile ("bfe.u32 %0, %1, 16, 8;" : "=r"(r.s2) : "r"(v32.s2));
+  asm volatile ("bfe.u32 %0, %1, 16, 8;" : "=r"(r.s3) : "r"(v32.s3));
+  #endif
+
+  #if VECT_SIZE >= 8
+  asm volatile ("bfe.u32 %0, %1, 16, 8;" : "=r"(r.s4) : "r"(v32.s4));
+  asm volatile ("bfe.u32 %0, %1, 16, 8;" : "=r"(r.s5) : "r"(v32.s5));
+  asm volatile ("bfe.u32 %0, %1, 16, 8;" : "=r"(r.s6) : "r"(v32.s6));
+  asm volatile ("bfe.u32 %0, %1, 16, 8;" : "=r"(r.s7) : "r"(v32.s7));
+  #endif
+
+  #if VECT_SIZE >= 16
+  asm volatile ("bfe.u32 %0, %1, 16, 8;" : "=r"(r.s8) : "r"(v32.s8));
+  asm volatile ("bfe.u32 %0, %1, 16, 8;" : "=r"(r.s9) : "r"(v32.s9));
+  asm volatile ("bfe.u32 %0, %1, 16, 8;" : "=r"(r.sa) : "r"(v32.sa));
+  asm volatile ("bfe.u32 %0, %1, 16, 8;" : "=r"(r.sb) : "r"(v32.sb));
+  asm volatile ("bfe.u32 %0, %1, 16, 8;" : "=r"(r.sc) : "r"(v32.sc));
+  asm volatile ("bfe.u32 %0, %1, 16, 8;" : "=r"(r.sd) : "r"(v32.sd));
+  asm volatile ("bfe.u32 %0, %1, 16, 8;" : "=r"(r.se) : "r"(v32.se));
+  asm volatile ("bfe.u32 %0, %1, 16, 8;" : "=r"(r.sf) : "r"(v32.sf));
+  #endif
+
+  //#elif defined IS_AMD && HAS_VBFE == 1
+  //__asm__ __volatile__ ("V_BFE_U32 %0, %1, 16, 8;" : "=v"(r) : "v"(v32));
+  #else
+  r = (v32 >> 16) & 0xff;
+  #endif
+
+  return r;
+}
+
+DECLSPEC u32x unpack_v8d_from_v32 (const u32x v32)
+{
+  u32x r = 0;
+
+  #if   defined IS_NV  && HAS_BFE  == 1
+
+  #if VECT_SIZE == 1
+  asm volatile ("bfe.u32 %0, %1, 24, 8;" : "=r"(r) : "r"(v32));
+  #endif
+
+  #if VECT_SIZE >= 2
+  asm volatile ("bfe.u32 %0, %1, 24, 8;" : "=r"(r.s0) : "r"(v32.s0));
+  asm volatile ("bfe.u32 %0, %1, 24, 8;" : "=r"(r.s1) : "r"(v32.s1));
+  #endif
+
+  #if VECT_SIZE >= 4
+  asm volatile ("bfe.u32 %0, %1, 24, 8;" : "=r"(r.s2) : "r"(v32.s2));
+  asm volatile ("bfe.u32 %0, %1, 24, 8;" : "=r"(r.s3) : "r"(v32.s3));
+  #endif
+
+  #if VECT_SIZE >= 8
+  asm volatile ("bfe.u32 %0, %1, 24, 8;" : "=r"(r.s4) : "r"(v32.s4));
+  asm volatile ("bfe.u32 %0, %1, 24, 8;" : "=r"(r.s5) : "r"(v32.s5));
+  asm volatile ("bfe.u32 %0, %1, 24, 8;" : "=r"(r.s6) : "r"(v32.s6));
+  asm volatile ("bfe.u32 %0, %1, 24, 8;" : "=r"(r.s7) : "r"(v32.s7));
+  #endif
+
+  #if VECT_SIZE >= 16
+  asm volatile ("bfe.u32 %0, %1, 24, 8;" : "=r"(r.s8) : "r"(v32.s8));
+  asm volatile ("bfe.u32 %0, %1, 24, 8;" : "=r"(r.s9) : "r"(v32.s9));
+  asm volatile ("bfe.u32 %0, %1, 24, 8;" : "=r"(r.sa) : "r"(v32.sa));
+  asm volatile ("bfe.u32 %0, %1, 24, 8;" : "=r"(r.sb) : "r"(v32.sb));
+  asm volatile ("bfe.u32 %0, %1, 24, 8;" : "=r"(r.sc) : "r"(v32.sc));
+  asm volatile ("bfe.u32 %0, %1, 24, 8;" : "=r"(r.sd) : "r"(v32.sd));
+  asm volatile ("bfe.u32 %0, %1, 24, 8;" : "=r"(r.se) : "r"(v32.se));
+  asm volatile ("bfe.u32 %0, %1, 24, 8;" : "=r"(r.sf) : "r"(v32.sf));
+  #endif
+
+  //#elif defined IS_AMD && HAS_VBFE == 1
+  //__asm__ __volatile__ ("V_BFE_U32 %0, %1, 24, 8;" : "=v"(r) : "v"(v32));
+  #else
+  r = (v32 >> 24) & 0xff;
+  #endif
+
+  return r;
+}
+
 DECLSPEC u32 unpack_v8a_from_v32_S (const u32 v32)
 {
   u32 r = 0;
