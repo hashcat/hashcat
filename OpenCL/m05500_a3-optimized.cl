@@ -354,7 +354,7 @@ CONSTANT_VK u32a c_skb[8][64] =
 #define BOX(i,n,S) make_u32x ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3], (S)[(n)][(i).s4], (S)[(n)][(i).s5], (S)[(n)][(i).s6], (S)[(n)][(i).s7], (S)[(n)][(i).s8], (S)[(n)][(i).s9], (S)[(n)][(i).sa], (S)[(n)][(i).sb], (S)[(n)][(i).sc], (S)[(n)][(i).sd], (S)[(n)][(i).se], (S)[(n)][(i).sf])
 #endif
 
-DECLSPEC void _des_crypt_encrypt (u32x *iv, u32x *data, u32x *Kc, u32x *Kd, LOCAL_AS u32 (*s_SPtrans)[64])
+DECLSPEC void _des_crypt_encrypt (u32x *iv, u32x *data, u32x *Kc, u32x *Kd, SHM_TYPE u32 (*s_SPtrans)[64])
 {
   u32x r = data[0];
   u32x l = data[1];
@@ -396,7 +396,7 @@ DECLSPEC void _des_crypt_encrypt (u32x *iv, u32x *data, u32x *Kc, u32x *Kd, LOCA
   iv[1] = r;
 }
 
-DECLSPEC void _des_crypt_keysetup (u32x c, u32x d, u32x *Kc, u32x *Kd, LOCAL_AS u32 (*s_skb)[64])
+DECLSPEC void _des_crypt_keysetup (u32x c, u32x d, u32x *Kc, u32x *Kd, SHM_TYPE u32 (*s_skb)[64])
 {
   u32x tt;
 
@@ -500,7 +500,7 @@ DECLSPEC void transform_netntlmv1_key (const u32x w0, const u32x w1, u32x *out)
          | ((k[7] & 0xff) << 24);
 }
 
-DECLSPEC void m05500m (LOCAL_AS u32 (*s_SPtrans)[64], LOCAL_AS u32 (*s_skb)[64], u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC void m05500m (SHM_TYPE u32 (*s_SPtrans)[64], SHM_TYPE u32 (*s_skb)[64], u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -657,7 +657,7 @@ DECLSPEC void m05500m (LOCAL_AS u32 (*s_SPtrans)[64], LOCAL_AS u32 (*s_skb)[64],
   }
 }
 
-DECLSPEC void m05500s (LOCAL_AS u32 (*s_SPtrans)[64], LOCAL_AS u32 (*s_skb)[64], u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC void m05500s (SHM_TYPE u32 (*s_SPtrans)[64], SHM_TYPE u32 (*s_skb)[64], u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -847,6 +847,8 @@ KERNEL_FQ void m05500_m04 (KERN_ATTR_VECTOR ())
    * sbox, kbox
    */
 
+  #ifdef REAL_SHM
+
   LOCAL_VK u32 s_SPtrans[8][64];
   LOCAL_VK u32 s_skb[8][64];
 
@@ -872,6 +874,13 @@ KERNEL_FQ void m05500_m04 (KERN_ATTR_VECTOR ())
   }
 
   SYNC_THREADS ();
+
+  #else
+
+  CONSTANT_AS u32a (*s_SPtrans)[64] = c_SPtrans;
+  CONSTANT_AS u32a (*s_skb)[64]     = c_skb;
+
+  #endif
 
   if (gid >= gid_max) return;
 
@@ -921,6 +930,8 @@ KERNEL_FQ void m05500_m08 (KERN_ATTR_VECTOR ())
    * sbox, kbox
    */
 
+  #ifdef REAL_SHM
+
   LOCAL_VK u32 s_SPtrans[8][64];
   LOCAL_VK u32 s_skb[8][64];
 
@@ -946,6 +957,13 @@ KERNEL_FQ void m05500_m08 (KERN_ATTR_VECTOR ())
   }
 
   SYNC_THREADS ();
+
+  #else
+
+  CONSTANT_AS u32a (*s_SPtrans)[64] = c_SPtrans;
+  CONSTANT_AS u32a (*s_skb)[64]     = c_skb;
+
+  #endif
 
   if (gid >= gid_max) return;
 
@@ -995,6 +1013,8 @@ KERNEL_FQ void m05500_m16 (KERN_ATTR_VECTOR ())
    * sbox, kbox
    */
 
+  #ifdef REAL_SHM
+
   LOCAL_VK u32 s_SPtrans[8][64];
   LOCAL_VK u32 s_skb[8][64];
 
@@ -1020,6 +1040,13 @@ KERNEL_FQ void m05500_m16 (KERN_ATTR_VECTOR ())
   }
 
   SYNC_THREADS ();
+
+  #else
+
+  CONSTANT_AS u32a (*s_SPtrans)[64] = c_SPtrans;
+  CONSTANT_AS u32a (*s_skb)[64]     = c_skb;
+
+  #endif
 
   if (gid >= gid_max) return;
 
@@ -1069,6 +1096,8 @@ KERNEL_FQ void m05500_s04 (KERN_ATTR_VECTOR ())
    * sbox, kbox
    */
 
+  #ifdef REAL_SHM
+
   LOCAL_VK u32 s_SPtrans[8][64];
   LOCAL_VK u32 s_skb[8][64];
 
@@ -1094,6 +1123,13 @@ KERNEL_FQ void m05500_s04 (KERN_ATTR_VECTOR ())
   }
 
   SYNC_THREADS ();
+
+  #else
+
+  CONSTANT_AS u32a (*s_SPtrans)[64] = c_SPtrans;
+  CONSTANT_AS u32a (*s_skb)[64]     = c_skb;
+
+  #endif
 
   if (gid >= gid_max) return;
 
@@ -1143,6 +1179,8 @@ KERNEL_FQ void m05500_s08 (KERN_ATTR_VECTOR ())
    * sbox, kbox
    */
 
+  #ifdef REAL_SHM
+
   LOCAL_VK u32 s_SPtrans[8][64];
   LOCAL_VK u32 s_skb[8][64];
 
@@ -1168,6 +1206,13 @@ KERNEL_FQ void m05500_s08 (KERN_ATTR_VECTOR ())
   }
 
   SYNC_THREADS ();
+
+  #else
+
+  CONSTANT_AS u32a (*s_SPtrans)[64] = c_SPtrans;
+  CONSTANT_AS u32a (*s_skb)[64]     = c_skb;
+
+  #endif
 
   if (gid >= gid_max) return;
 
@@ -1217,6 +1262,8 @@ KERNEL_FQ void m05500_s16 (KERN_ATTR_VECTOR ())
    * sbox, kbox
    */
 
+  #ifdef REAL_SHM
+
   LOCAL_VK u32 s_SPtrans[8][64];
   LOCAL_VK u32 s_skb[8][64];
 
@@ -1242,6 +1289,13 @@ KERNEL_FQ void m05500_s16 (KERN_ATTR_VECTOR ())
   }
 
   SYNC_THREADS ();
+
+  #else
+
+  CONSTANT_AS u32a (*s_SPtrans)[64] = c_SPtrans;
+  CONSTANT_AS u32a (*s_skb)[64]     = c_skb;
+
+  #endif
 
   if (gid >= gid_max) return;
 
