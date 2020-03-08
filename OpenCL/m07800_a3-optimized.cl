@@ -626,7 +626,7 @@ KERNEL_FQ void m07800_m04 (KERN_ATTR_BASIC ())
 
   #else
 
-  CONSTANT_AS u32a *s_theMagicArray = theMagicArray;
+  CONSTANT_AS u32a (*s_theMagicArray)[16] = theMagicArray;
 
   #endif
 
@@ -711,7 +711,7 @@ KERNEL_FQ void m07800_m08 (KERN_ATTR_BASIC ())
 
   #else
 
-  CONSTANT_AS u32a *s_theMagicArray = theMagicArray;
+  CONSTANT_AS u32a (*s_theMagicArray)[16] = theMagicArray;
 
   #endif
 
@@ -800,7 +800,7 @@ KERNEL_FQ void m07800_s04 (KERN_ATTR_BASIC ())
 
   #else
 
-  CONSTANT_AS u32a *s_theMagicArray = theMagicArray;
+  CONSTANT_AS u32a (*s_theMagicArray)[16] = theMagicArray;
 
   #endif
 
@@ -885,7 +885,7 @@ KERNEL_FQ void m07800_s08 (KERN_ATTR_BASIC ())
 
   #else
 
-  CONSTANT_AS u32a *s_theMagicArray = theMagicArray;
+  CONSTANT_AS u32a (*s_theMagicArray)[16] = theMagicArray;
 
   #endif
 

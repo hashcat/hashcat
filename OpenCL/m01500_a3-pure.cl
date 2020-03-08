@@ -16,7 +16,6 @@
 #define COMPARE_M "inc_comp_multi_bs.cl"
 
 #ifdef IS_NV
-#undef _unroll
 #define KXX_DECL
 #endif
 

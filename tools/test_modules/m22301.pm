@@ -21,7 +21,7 @@ sub module_generate_hash
 
   my $digest = sha256_hex ($salt_bin . $word . $salt_bin);
 
-  my $hash = sprintf ("\$telegram\$1*%s*%s", $digest, $salt);
+  my $hash = sprintf ("\$telegram\$0*%s*%s", $digest, $salt);
 
   return $hash;
 }
@@ -40,7 +40,7 @@ sub module_verify_hash
 
   my $version = substr ($data[0], 10);
 
-  return unless ($version eq "1");
+  return unless ($version eq "0");
 
   my $digest = $data[1];
   my $salt   = $data[2];

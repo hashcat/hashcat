@@ -407,7 +407,6 @@ typedef enum opts_type
   OPTS_TYPE_ST_ADDBITS15      = (1ULL << 24),
   OPTS_TYPE_ST_HEX            = (1ULL << 25),
   OPTS_TYPE_ST_BASE64         = (1ULL << 26),
-  OPTS_TYPE_ST_HASH_MD5       = (1ULL << 27),
   OPTS_TYPE_HASH_COPY         = (1ULL << 28),
   OPTS_TYPE_HASH_SPLIT        = (1ULL << 29),
   OPTS_TYPE_LOOP_EXTENDED     = (1ULL << 30), // a kernel which is called each time normal _loop kernel finished.
@@ -421,7 +420,6 @@ typedef enum opts_type
   OPTS_TYPE_AUX3              = (1ULL << 37),
   OPTS_TYPE_AUX4              = (1ULL << 38),
   OPTS_TYPE_BINARY_HASHFILE   = (1ULL << 39),
-  OPTS_TYPE_PREFERED_THREAD   = (1ULL << 40), // some algorithms (complicated ones with many branches) benefit from this
   OPTS_TYPE_PT_ADD06          = (1ULL << 41),
   OPTS_TYPE_KEYBOARD_MAPPING  = (1ULL << 42),
   OPTS_TYPE_DEEP_COMP_KERNEL  = (1ULL << 43), // if we have to iterate through each hash inside the comp kernel, for example if each hash has to be decrypted separately

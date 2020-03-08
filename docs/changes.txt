@@ -81,6 +81,7 @@
 - Fixed cracking of Cisco-PIX and Cisco-ASA MD5 passwords in mask-attack mode if mask > length 16
 - Fixed cracking of Electrum Wallet Salt-Type 2 hashes
 - Fixed cracking of NetNTLMv1 passwords in mask-attack mode if mask > length 16 (optimized kernels only)
+- Fixed cracking of VeraCrypt Streebog-512 hashes (CPU only)
 - Fixed cracking raw Streebog-HMAC 256 and 512 hashes with password of length >= 64
 - Fixed cracking raw Whirlpool hashes cracking with password of length >= 32
 - Fixed incorrect progress-only result in a special race condition
