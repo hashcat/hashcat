@@ -369,32 +369,7 @@ static bool opencl_test_instruction (hashcat_ctx_t *hashcat_ctx, cl_context cont
 
   OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
-  // LLVM seems to write an error message (if there's an error) directly to stderr
-  // and not (as supposted to) into buffer for later request using clGetProgramBuildInfo()
-
-  #ifndef DEBUG
-  #ifndef _WIN
-  fflush (stderr);
-  int bak = fcntl(2, F_DUPFD_CLOEXEC);
-  int tmp = open ("/dev/null", O_WRONLY | O_CLOEXEC);
-  dup2 (tmp, 2);
-  close (tmp);
-  #endif
-  #endif
-
-  int CL_rc = ocl->clBuildProgram (program, 1, &device, "-Werror", NULL, NULL); // do not use the wrapper to avoid the error message
-
-  #ifndef DEBUG
-  #ifndef _WIN
-  fflush (stderr);
-  #ifndef __APPLE__
-  dup3 (bak, 2, O_CLOEXEC);
-  #else
-  dup2 (bak, 2);
-  #endif
-  close (bak);
-  #endif
-  #endif
+  const int CL_rc = ocl->clBuildProgram (program, 1, &device, NULL, NULL, NULL);
 
   if (CL_rc != CL_SUCCESS)
   {
