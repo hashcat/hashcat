@@ -369,7 +369,25 @@ static bool opencl_test_instruction (hashcat_ctx_t *hashcat_ctx, cl_context cont
 
   OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
+  const int fd_stderr = fileno (stderr);
+
+  #ifndef DEBUG
+  const int stderr_bak = dup (fd_stderr);
+  #ifdef _WIN
+  const int tmp = open ("NIL", O_WRONLY);
+  #else
+  const int tmp = open ("/dev/null", O_WRONLY);
+  #endif
+  dup2 (tmp, fd_stderr);
+  close (tmp);
+  #endif
+
   const int CL_rc = ocl->clBuildProgram (program, 1, &device, NULL, NULL, NULL);
+
+  #ifndef DEBUG
+  dup2 (stderr_bak, fd_stderr);
+  close (stderr_bak);
+  #endif
 
   if (CL_rc != CL_SUCCESS)
   {
