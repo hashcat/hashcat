@@ -374,7 +374,7 @@ static bool opencl_test_instruction (hashcat_ctx_t *hashcat_ctx, cl_context cont
   #ifndef DEBUG
   const int stderr_bak = dup (fd_stderr);
   #ifdef _WIN
-  const int tmp = open ("NIL", O_WRONLY);
+  const int tmp = open ("NUL", O_WRONLY);
   #else
   const int tmp = open ("/dev/null", O_WRONLY);
   #endif
