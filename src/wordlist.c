@@ -383,6 +383,8 @@ int count_words (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, const char *dictfile, u
 
   u32 *dictfile_padded = (u32 *) hcmalloc (dictfile_len + 64); // padding required for sha1_update()
 
+  memcpy (dictfile_padded, dictfile, dictfile_len);
+
   sha1_ctx_t sha1_ctx;
   sha1_init   (&sha1_ctx);
   sha1_update (&sha1_ctx, dictfile_padded, dictfile_len);
