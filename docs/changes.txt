@@ -108,6 +108,7 @@
 - Building: Fix for library compilation failure due to multiple defenition of sbob_xx64()
 - Building: Updated BUILD.md
 - Cracking bcrypt and Password Safe v2: Use a feedback from the compute API backend to dynamically find out optimal thread count
+- Dictstat: On Windows, the st_ino attribute in the stat struct is not set which can lead to invalid cache hits. Added the filename to the database entry.
 - Documents: Added README on how to build hashcat on MSYS2
 - File handling: Print a truncation warning when an oversized line is detected
 - My Wallet: Added additional plaintext pattern used in newer versions

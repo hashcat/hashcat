@@ -13,6 +13,7 @@
 #include "rp_cpu.h"
 #include "shared.h"
 #include "wordlist.h"
+#include "emu_inc_hash_sha1.h"
 
 size_t convert_from_hex (hashcat_ctx_t *hashcat_ctx, char *line_buf, const size_t line_len)
 {
@@ -340,7 +341,7 @@ int count_words (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, const char *dictfile, u
 
   dictstat_t d;
 
-  d.cnt = 0;
+  memset (&d, 0, sizeof (d));
 
   if (fstat (hc_fileno (fp), &d.stat))
   {
@@ -377,6 +378,19 @@ int count_words (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, const char *dictfile, u
 
     return 0;
   }
+
+  const size_t dictfile_len = strlen (dictfile);
+
+  u32 *dictfile_padded = (u32 *) hcmalloc (dictfile_len + 64); // padding required for sha1_update()
+
+  sha1_ctx_t sha1_ctx;
+  sha1_init   (&sha1_ctx);
+  sha1_update (&sha1_ctx, dictfile_padded, dictfile_len);
+  sha1_final  (&sha1_ctx);
+
+  hcfree (dictfile_padded);
+
+  memcpy (d.hash_filename, sha1_ctx.h, 16);
 
   const u64 cached_cnt = dictstat_find (hashcat_ctx, &d);
 
