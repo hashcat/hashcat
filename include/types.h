@@ -1656,6 +1656,8 @@ typedef struct dictstat
   char encoding_from[64];
   char encoding_to[64];
 
+  u8 hash_filename[16];
+
 } dictstat_t;
 
 typedef struct hashdump
