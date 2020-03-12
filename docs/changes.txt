@@ -162,6 +162,7 @@
 - Kernel Compile: Removed -cl-std= from all kernel build options since we're compatible to all OpenCL versions
 - OpenCL Kernels: Fix OpenCL compiler warning on double precision constants
 - OpenCL Kernels: Moved "gpu_decompress", "gpu_memset" and "gpu_atinit" into shared.cl in order to reduce compile time
+- OpenCL Options: Set --spin-damp to 0 (disabled) by default. With the CUDA backend this workaround became deprecated
 - OpenCL Options: Removed --opencl-platforms filter in order to force backend device numbers to stay constant
 - Parsers: switched from strtok() to strtok_r() for thread safety
 - Requirements: Add new requirement for NVIDIA GPU: CUDA Toolkit (9.0 or later)

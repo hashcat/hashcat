@@ -3661,14 +3661,14 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
     const u32 iterationm = iteration % EXPECTED_ITERATIONS;
 
-    cl_int opencl_event_status;
-
-    size_t param_value_size_ret;
-
-    if (hc_clGetEventInfo (hashcat_ctx, opencl_event, CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof (opencl_event_status), &opencl_event_status, &param_value_size_ret) == -1) return -1;
-
     if (device_param->spin_damp > 0)
     {
+      cl_int opencl_event_status;
+
+      size_t param_value_size_ret;
+
+      if (hc_clGetEventInfo (hashcat_ctx, opencl_event, CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof (opencl_event_status), &opencl_event_status, &param_value_size_ret) == -1) return -1;
+
       double spin_total = device_param->spin_damp;
 
       while (opencl_event_status != CL_COMPLETE)
