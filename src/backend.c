@@ -43,6 +43,10 @@ static bool is_same_device (const hc_device_param_t *src, const hc_device_param_
   if (src->pcie_device   != dst->pcie_device)   return false;
   if (src->pcie_function != dst->pcie_function) return false;
 
+  // Intel CPU and embedded GPU would survive up to here!
+
+  if (src->opencl_device_type != dst->opencl_device_type) return false;
+
   return true;
 }
 
