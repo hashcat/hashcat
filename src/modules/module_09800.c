@@ -49,6 +49,8 @@ typedef struct oldoffice34
   u32 version;
   u32 encryptedVerifier[4];
   u32 encryptedVerifierHash[5];
+  u32 secondBlockData[8];
+  u32 secondBlockLen;
   u32 rc4key[2];
 
 } oldoffice34_t;
@@ -137,7 +139,22 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
+  int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
+
+  // alternative format (with second block data):
+
+  if (rc_tokenizer == PARSER_TOKEN_LENGTH) // or just rc_tokenizer != PARSER_OK
+  {
+    token.token_cnt = 6;
+
+    token.len_min[5] = 64;
+    token.len_max[5] = 64;
+    token.sep[5]     = '*';
+    token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
+  }
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
@@ -164,6 +181,24 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   oldoffice34->encryptedVerifierHash[2] = hex_to_u32 (encryptedVerifierHash_pos + 16);
   oldoffice34->encryptedVerifierHash[3] = hex_to_u32 (encryptedVerifierHash_pos + 24);
   oldoffice34->encryptedVerifierHash[4] = hex_to_u32 (encryptedVerifierHash_pos + 32);
+
+  // second block (if needed)
+
+  oldoffice34->secondBlockLen = 0;
+
+  if (token.token_cnt == 6)
+  {
+    oldoffice34->secondBlockData[0] = 0;
+
+    const u8 *second_block_data = token.buf[5];
+
+    for (int i = 0, j = 0; i < 8; i += 1, j += 8)
+    {
+      oldoffice34->secondBlockData[i] = hex_to_u32 (second_block_data + j);
+    }
+
+    oldoffice34->secondBlockLen = 64;
+  }
 
   // salt
 
@@ -208,7 +243,23 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const oldoffice34_t *oldoffice34 = (const oldoffice34_t *) esalt_buf;
 
-  const int line_len = snprintf (line_buf, line_size, "%s%u*%08x%08x%08x%08x*%08x%08x%08x%08x*%08x%08x%08x%08x%08x",
+  u8 secondBlockData[64 + 1 + 1];
+
+  memset (secondBlockData, 0, sizeof (secondBlockData));
+
+  if (oldoffice34->secondBlockLen != 0)
+  {
+    secondBlockData[0] = '*';
+
+    u8 *ptr = (u8 *) oldoffice34->secondBlockData;
+
+    for (int i = 0, j = 1; i < 32; i += 1, j += 2)
+    {
+      u8_to_hex (ptr[i], secondBlockData + j);
+    }
+  }
+
+  const int line_len = snprintf (line_buf, line_size, "%s%u*%08x%08x%08x%08x*%08x%08x%08x%08x*%08x%08x%08x%08x%08x%s",
     SIGNATURE_OLDOFFICE,
     oldoffice34->version,
     salt->salt_buf[0],
@@ -223,7 +274,8 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     byte_swap_32 (oldoffice34->encryptedVerifierHash[1]),
     byte_swap_32 (oldoffice34->encryptedVerifierHash[2]),
     byte_swap_32 (oldoffice34->encryptedVerifierHash[3]),
-    byte_swap_32 (oldoffice34->encryptedVerifierHash[4]));
+    byte_swap_32 (oldoffice34->encryptedVerifierHash[4]),
+    secondBlockData);
 
   return line_len;
 }
