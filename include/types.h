@@ -1280,6 +1280,7 @@ typedef struct hc_device_param
 
   bool    use_opencl12;
   bool    use_opencl20;
+  bool    use_opencl21;
 
   // AMD
   bool    has_vadd;

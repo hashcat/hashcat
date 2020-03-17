@@ -43,6 +43,10 @@ static bool is_same_device (const hc_device_param_t *src, const hc_device_param_
   if (src->pcie_device   != dst->pcie_device)   return false;
   if (src->pcie_function != dst->pcie_function) return false;
 
+  // Intel CPU and embedded GPU would survive up to here!
+
+  if (src->opencl_device_type != dst->opencl_device_type) return false;
+
   return true;
 }
 
@@ -5364,6 +5368,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       device_param->use_opencl12 = false;
       device_param->use_opencl20 = false;
+      device_param->use_opencl21 = false;
 
       // device_name
 
@@ -5648,12 +5653,14 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
     cl_device_id  **opencl_platforms_devices     = backend_ctx->opencl_platforms_devices;
     cl_uint        *opencl_platforms_devices_cnt = backend_ctx->opencl_platforms_devices_cnt;
     cl_uint        *opencl_platforms_vendor_id   = backend_ctx->opencl_platforms_vendor_id;
+    char          **opencl_platforms_version     = backend_ctx->opencl_platforms_version;
 
     for (u32 opencl_platforms_idx = 0; opencl_platforms_idx < opencl_platforms_cnt; opencl_platforms_idx++)
     {
       cl_device_id   *opencl_platform_devices     = opencl_platforms_devices[opencl_platforms_idx];
       cl_uint         opencl_platform_devices_cnt = opencl_platforms_devices_cnt[opencl_platforms_idx];
       cl_uint         opencl_platform_vendor_id   = opencl_platforms_vendor_id[opencl_platforms_idx];
+      char           *opencl_platform_version     = opencl_platforms_version[opencl_platforms_idx];
 
       for (u32 opencl_platform_devices_idx = 0; opencl_platform_devices_idx < opencl_platform_devices_cnt; opencl_platform_devices_idx++, backend_devices_idx++, opencl_devices_cnt++)
       {
@@ -5677,8 +5684,30 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         device_param->is_opencl = true;
 
+        // check OpenCL version
+
         device_param->use_opencl12 = false;
         device_param->use_opencl20 = false;
+        device_param->use_opencl21 = false;
+
+        int opencl_version_min = 0;
+        int opencl_version_maj = 0;
+
+        if (sscanf (opencl_platform_version, "OpenCL %d.%d", &opencl_version_min, &opencl_version_maj) == 2)
+        {
+          if ((opencl_version_min == 1) && (opencl_version_maj == 2))
+          {
+            device_param->use_opencl12 = true;
+          }
+          else if ((opencl_version_min == 2) && (opencl_version_maj == 0))
+          {
+            device_param->use_opencl20 = true;
+          }
+          else if ((opencl_version_min == 2) && (opencl_version_maj == 1))
+          {
+            device_param->use_opencl21 = true;
+          }
+        }
 
         size_t param_value_size = 0;
 
@@ -5792,23 +5821,6 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         if (hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_OPENCL_C_VERSION, param_value_size, opencl_device_c_version, NULL) == -1) return -1;
 
         device_param->opencl_device_c_version = opencl_device_c_version;
-
-        // check OpenCL version
-
-        int opencl_version_min = 0;
-        int opencl_version_maj = 0;
-
-        if (sscanf (opencl_device_c_version, "OpenCL C %d.%d", &opencl_version_min, &opencl_version_maj) == 2)
-        {
-          if ((opencl_version_min == 1) && (opencl_version_maj == 2))
-          {
-            device_param->use_opencl12 = true;
-          }
-          else if ((opencl_version_min == 2) && (opencl_version_maj == 0))
-          {
-            device_param->use_opencl20 = true;
-          }
-        }
 
         // max_compute_units
 
@@ -7740,8 +7752,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D KERNEL_STATIC -I OpenCL -I %s ", folder_config->cpath_real);
     #endif
 
-    // workarounds reproduceable bugs on some OpenCL runtimes (Beignet and NEO)
-    // ex: remove empty code in m04, m08 and m16 in OpenCL/m05600_a3-optimized.cl will break s04 kernel (not cracking anymore)
+    /* currently disabled, hangs NEO drivers since 20.09.
+       was required for NEO driver 20.08 to workaround the same issue!
+       we go with the latest version
 
     if (device_param->is_opencl == true)
     {
@@ -7753,7 +7766,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       {
         build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-cl-std=CL2.0 ");
       }
+      else if (device_param->use_opencl21 == true)
+      {
+        build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-cl-std=CL2.1 ");
+      }
     }
+    */
 
     // we don't have sm_* on vendors not NV but it doesn't matter
 

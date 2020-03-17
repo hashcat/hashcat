@@ -37,8 +37,7 @@ _hashcat_backend_devices ()
   # sanity check, all device ids must be numerical
 
   if [ -n "${cur_selection}" ]; then
-    if echo "${cur_selection}" | sed 's/,/\n/g' | grep -q -v '^[0-9]\+$'
-    then
+    if echo "${cur_selection}" | sed 's/,/\n/g' | grep -q -v '^[0-9]\+$'; then
       return
     fi
   fi
@@ -155,6 +154,7 @@ _hashcat_backend_devices ()
 _hashcat_cpu_devices ()
 {
   local cur_selection="${1}"
+
   hashcat_device_list=""
 
   if [ ! -f "/proc/cpuinfo" ]; then
@@ -172,8 +172,7 @@ _hashcat_cpu_devices ()
   # sanity check, all device ids must be numerical
 
   if [ -n "${cur_selection}" ]; then
-    if echo "${cur_selection}" | sed 's/,/\n/g' | grep -q -v '^[0-9]\+$'
-    then
+    if echo "${cur_selection}" | sed 's/,/\n/g' | grep -q -v '^[0-9]\+$'; then
       return
     fi
   fi
@@ -220,7 +219,7 @@ _hashcat_cpu_devices ()
 _hashcat_files_replace_home ()
 {
   local cur_select="${1}"
-  local cur_files="${2}"
+  local  cur_files="${2}"
 
   hashcat_select="${cur_select}"
   hashcat_file_list="${cur_files}"
@@ -235,43 +234,106 @@ _hashcat_files_replace_home ()
   fi
 }
 
-_hashcat_files_include ()
+_hashcat_recursive_file_search ()
 {
-  local cur_select="${1}"
-  local cur_filter="${2}"
+  local  allow_dir="${1}"
+  local is_include="${2}"
+  local  file_list="${3}"
+  local cur_filter="${4}"
 
-  # allow starting/ending quotes (" and '):
+  local grep_flags="-Ei"
 
-  cur_select=$(echo -n "${cur_select}" | sed 's/^["'"'"']//' | sed 's/["'"'"']\$//')
+  if [ "${is_include}" -eq 0 ]; then
+    grep_flags="-Eiv"
+  fi
 
-  hashcat_file_list=$(bash -c "ls -d ${cur_select}*" 2> /dev/null | grep -Ei "${cur_filter}" 2> /dev/null)
+  hashcat_file_list=""
 
+  local dir_loop=""
 
-  # special case: add all folders/directories (ending with "/")
+  for dir_loop in "${file_list}"; do
+    if [ -d "${dir_loop}" ]; then
+      # check subdirs:
 
-  local all_dirs=$(bash -c "ls -d ${cur_select}*/" 2> /dev/null)
+      local subdir="${dir_loop}"
+      local loop_cnt=0
 
-  hashcat_file_list="${hashcat_file_list} ${all_dirs}"
+      for loop_cnt in $(seq 1 35); do # maximum number of recursive (subdir) tests
+        local subdir_files=$(bash -c "ls -d ${subdir}/*" 2> /dev/null | grep ${grep_flags} '*\.('${cur_filter}')' 2> /dev/null)
 
+        if [ "${allow_dir}" -eq 1 ]; then
+          if [ -n "${hashcat_file_list}" ]; then
+            hashcat_file_list="${hashcat_file_list} "
+          fi
 
-  # special case: $HOME directory (~/)
+          hashcat_file_list="${hashcat_file_list}${subdir}"
+        fi
 
-  _hashcat_files_replace_home "${cur_select}" "${hashcat_file_list}"
+        if [ -z "${subdir_files}" ]; then
+          break
+        fi
 
-  # (hashcat_select and hashcat_file_list are modified and "returned")
+        local subdir_file=""
+
+        for subdir_file in "${subdir_files}"; do
+          if [ "${allow_dir}" -eq 1 ]; then
+            if [ -n "${hashcat_file_list}" ]; then
+              hashcat_file_list="${hashcat_file_list} "
+            fi
+
+            hashcat_file_list="${hashcat_file_list}${subdir_file}"
+          else
+            if [ ! -d "${subdir_file}" ]; then
+              if [ -n "${hashcat_file_list}" ]; then
+                hashcat_file_list="${hashcat_file_list} "
+              fi
+
+              hashcat_file_list="${hashcat_file_list}${subdir_file}"
+            fi
+          fi
+        done
+
+        local amount=$(echo "${subdir_files}" | wc -l)
+
+        if [ "${amount}" -gt 1 ]; then
+          break
+        fi
+
+        subdir="${subdir_files}"
+      done
+    else
+      if [ -n "${hashcat_file_list}" ]; then
+        hashcat_file_list="${hashcat_file_list} "
+      fi
+
+      hashcat_file_list="${hashcat_file_list}${dir_loop}"
+    fi
+  done
 }
 
-_hashcat_files_exclude ()
+_hashcat_include ()
 {
-  local cur_select="${1}"
-  local cur_filter="${2}"
+  local  allow_dir="${1}"
+  local cur_select="${2}"
+  local cur_filter="${3}"
 
   # allow starting/ending quotes (" and '):
 
   cur_select=$(echo -n "${cur_select}" | sed 's/^["'"'"']//' | sed 's/["'"'"']\$//')
 
-  hashcat_file_list=$(bash -c "ls -d ${cur_select}*" 2> /dev/null | grep -Eiv '*\.('${cur_filter}')' 2> /dev/null)
+  local file_list=$(bash -c "ls -d ${cur_select}*" 2> /dev/null | grep -Ei "${cur_filter}" 2> /dev/null)
 
+  _hashcat_recursive_file_search "${allow_dir}" 1 "${file_list}" "${cur_filter}"
+
+  if [ "${allow_dir}" -eq 1 ]; then
+    if [ -d "${cur_select}" ]; then
+      if [ -n "${hashcat_file_list}" ]; then
+        hashcat_file_list="${hashcat_file_list} "
+      fi
+
+      hashcat_file_list="${hashcat_file_list}${cur_select}"
+    fi
+  fi
 
   # handle special case for $HOME directory (~/)
 
@@ -280,14 +342,65 @@ _hashcat_files_exclude ()
   # (hashcat_select and hashcat_file_list are modified and "returned")
 }
 
+_hashcat_files_include ()
+{
+  _hashcat_include 0 "${1}" "${2}"
+}
+
+_hashcat_files_folders_include ()
+{
+  _hashcat_include 1 "${1}" "${2}"
+}
+
+_hashcat_exclude ()
+{
+  local  allow_dir="${1}"
+  local cur_select="${2}"
+  local cur_filter="${3}"
+
+  # allow starting/ending quotes (" and '):
+
+  cur_select=$(echo -n "${cur_select}" | sed 's/^["'"'"']//' | sed 's/["'"'"']\$//')
+
+  local file_list=$(bash -c "ls -d ${cur_select}*" 2> /dev/null | grep -Eiv '*\.('${cur_filter}')' 2> /dev/null)
+
+  _hashcat_recursive_file_search "${allow_dir}" 0 "${file_list}" "${cur_filter}"
+
+  if [ "${allow_dir}" -eq 1 ]; then
+    if [ -d "${cur_select}" ]; then
+      if [ -n "${hashcat_file_list}" ]; then
+        hashcat_file_list="${hashcat_file_list} "
+      fi
+
+      hashcat_file_list="${hashcat_file_list}${cur_select}"
+    fi
+  fi
+
+  # handle special case for $HOME directory (~/)
+
+  _hashcat_files_replace_home "${cur_select}" "${hashcat_file_list}"
+
+  # (hashcat_select and hashcat_file_list are modified and "returned")
+}
+
+_hashcat_files_exclude ()
+{
+  _hashcat_exclude 0 "${1}" "${2}"
+}
+
+_hashcat_files_folders_exclude ()
+{
+  _hashcat_exclude 1 "${1}" "${2}"
+}
+
 _hashcat_contains ()
 {
   local haystack=${1}
   local needle="${2}"
 
-  if   echo "${haystack}" | grep -q " ${needle} " 2> /dev/null; then
+  if   echo "${haystack}" | grep -q " ${needle} "  2> /dev/null; then
     return 0
-  elif echo "${haystack}" | grep -q "^${needle} " 2> /dev/null; then
+  elif echo "${haystack}" | grep -q "^${needle} "  2> /dev/null; then
     return 0
   elif echo "${haystack}" | grep -q " ${needle}\$" 2> /dev/null; then
     return 0
@@ -430,10 +543,8 @@ _hashcat ()
       local mask=${BUILD_IN_CHARSETS}
 
       if [ -e "${cur}" ]; then # should be hcchr file (but not enforced)
-
         COMPREPLY=($(compgen -W "${cur}" -- ${cur}))
         return 0
-
       fi
 
       if [ -n "${cur}" ]; then
@@ -712,7 +823,7 @@ _hashcat ()
 
         0)
           # dict/directory are files here
-          _hashcat_files_exclude "${cur}" "${HIDDEN_FILES_AGGRESSIVE}"
+          _hashcat_files_folders_exclude "${cur}" "${HIDDEN_FILES_AGGRESSIVE}"
           COMPREPLY=($(compgen -W "${hashcat_file_list}" -- ${hashcat_select}))
           return 0
           ;;
@@ -722,7 +833,7 @@ _hashcat ()
             return 0
           fi
 
-          _hashcat_files_exclude "${cur}" "${HIDDEN_FILES_AGGRESSIVE}"
+          _hashcat_files_folders_exclude "${cur}" "${HIDDEN_FILES_AGGRESSIVE}"
           COMPREPLY=($(compgen -W "${hashcat_file_list}" -- ${hashcat_select}))
           return 0
           ;;
@@ -779,7 +890,7 @@ _hashcat ()
         6)
           if [ "${no_opts}" -eq 2 ]; then
 
-            _hashcat_files_exclude "${cur}" "${HIDDEN_FILES_AGGRESSIVE}"
+            _hashcat_files_folders_exclude "${cur}" "${HIDDEN_FILES_AGGRESSIVE}"
             COMPREPLY=($(compgen -W "${hashcat_file_list}" -- ${hashcat_select}))
 
           elif [ "${no_opts}" -eq 3 ]; then
@@ -820,7 +931,7 @@ _hashcat ()
               mask="${mask} ${cur_var}"
             fi
 
-            _hashcat_files_exclude "${cur}" "${HIDDEN_FILES}"
+            _hashcat_files_folders_exclude "${cur}" "${HIDDEN_FILES}"
 
             mask="${mask} ${hashcat_file_list}"
 
@@ -869,7 +980,7 @@ _hashcat ()
               mask="${mask} ${cur_var}"
             fi
 
-            _hashcat_files_exclude "${cur}" "${HIDDEN_FILES}"
+            _hashcat_files_folders_exclude "${cur}" "${HIDDEN_FILES}"
 
             mask="${mask} ${hashcat_file_list}"
 
@@ -878,7 +989,7 @@ _hashcat ()
 
           elif [ "${no_opts}" -eq 3 ]; then
 
-            _hashcat_files_exclude "${cur}" "${HIDDEN_FILES_AGGRESSIVE}"
+            _hashcat_files_folders_exclude "${cur}" "${HIDDEN_FILES_AGGRESSIVE}"
             COMPREPLY=($(compgen -W "${hashcat_file_list}" -- ${hashcat_select}))
             return 0
 
