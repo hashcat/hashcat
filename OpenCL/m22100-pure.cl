@@ -265,11 +265,35 @@ KERNEL_FQ void m22100_loop (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
   {
     #ifdef REAL_SHM
 
-    for (u32 i = lid; i < FIXED_ITER_INCR; i += lsz)
+    /**
+     * On NVIDIA, the __sync_threads() is not working as expected if called from inside a loop.
+     * This is a unique situation across all hashcat kernels so far.
+     * From CUDA manual:
+     *   __syncthreads() is allowed in conditional code but only if the conditional evaluates identically across the entire thread block,
+     *   otherwise the code execution is likely to hang or produce unintended side effects.
+     * NVIDIA OpenCL runtime is also affected, but other OpenCL runtimes work as they should.
+     * An workaround exists by disabling shared memory access. Speed drop is around 4%.
+     * Another workaround is to let only a single thread do all the work while all other threads wait for it to finish. Speed drop is around 0.05%.
+
+       // original code
+       for (int i = lid; i < FIXED_ITER_INCR; i += lsz)
+       {
+         for (int j = 0; j < 48; j++) // first 16 set to register
+         {
+           s_wb_ke_pc[i][j] = esalt_bufs[digests_offset].wb_ke_pc[loop_pos + t + i][j];
+         }
+       }
+
+     */
+
+    if (lid == 0)
     {
-      for (u32 j = 0; j < 48; j++) // first 16 set to register
+      for (int i = 0; i < FIXED_ITER_INCR; i++)
       {
-        s_wb_ke_pc[i][j] = esalt_bufs[digests_offset].wb_ke_pc[loop_pos + t + i][j];
+        for (int j = 0; j < 48; j++) // first 16 set to register
+        {
+          s_wb_ke_pc[i][j] = esalt_bufs[digests_offset].wb_ke_pc[loop_pos + t + i][j];
+        }
       }
     }
 
