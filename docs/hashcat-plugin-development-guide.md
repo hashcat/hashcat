@@ -1,5 +1,5 @@
 # Hashcat Plugin Development Guide #
-"
+
 The purpose of this document is to introduce you to the development of plugins for hashcat 6.0.0 and newer. We will update this document regularly and add more detailed content. The content in its current state includes enough details to write easy, medium and hard plugins.
 
 With hashcat 6.0.0, a new interface has been designed which enables you to add new hash-modes more easily than in older hashcat versions. The plugin interface is an essential new feature of hashcat 6.0.0.
