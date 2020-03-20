@@ -12,11 +12,15 @@
 #include "inc_hash_sha1.cl"
 #endif
 
+#define MIN_NULL_BYTES 10
+
 typedef struct oldoffice34
 {
   u32 version;
   u32 encryptedVerifier[4];
   u32 encryptedVerifierHash[5];
+  u32 secondBlockData[8];
+  u32 secondBlockLen;
   u32 rc4key[2];
 
 } oldoffice34_t;
@@ -223,21 +227,21 @@ DECLSPEC void m09800m (LOCAL_AS RC4_KEY *rc4_keys, u32 *w0, u32 *w1, u32 *w2, u3
     w3_t[2] = 0;
     w3_t[3] = pw_salt_len * 8;
 
-    u32 digest[5];
+    u32 pass_hash[5];
 
-    digest[0] = SHA1M_A;
-    digest[1] = SHA1M_B;
-    digest[2] = SHA1M_C;
-    digest[3] = SHA1M_D;
-    digest[4] = SHA1M_E;
+    pass_hash[0] = SHA1M_A;
+    pass_hash[1] = SHA1M_B;
+    pass_hash[2] = SHA1M_C;
+    pass_hash[3] = SHA1M_D;
+    pass_hash[4] = SHA1M_E;
 
-    sha1_transform (w0_t, w1_t, w2_t, w3_t, digest);
+    sha1_transform (w0_t, w1_t, w2_t, w3_t, pass_hash);
 
-    w0_t[0] = digest[0];
-    w0_t[1] = digest[1];
-    w0_t[2] = digest[2];
-    w0_t[3] = digest[3];
-    w1_t[0] = digest[4];
+    w0_t[0] = pass_hash[0];
+    w0_t[1] = pass_hash[1];
+    w0_t[2] = pass_hash[2];
+    w0_t[3] = pass_hash[3];
+    w1_t[0] = pass_hash[4];
     w1_t[1] = 0;
     w1_t[2] = 0x80000000;
     w1_t[3] = 0;
@@ -249,6 +253,8 @@ DECLSPEC void m09800m (LOCAL_AS RC4_KEY *rc4_keys, u32 *w0, u32 *w1, u32 *w2, u3
     w3_t[1] = 0;
     w3_t[2] = 0;
     w3_t[3] = (20 + 4) * 8;
+
+    u32 digest[5];
 
     digest[0] = SHA1M_A;
     digest[1] = SHA1M_B;
@@ -308,7 +314,93 @@ DECLSPEC void m09800m (LOCAL_AS RC4_KEY *rc4_keys, u32 *w0, u32 *w1, u32 *w2, u3
 
     rc4_next_16 (rc4_key, 16, j, digest, out);
 
-    COMPARE_M_SIMD (out[0], out[1], out[2], out[3]);
+    // initial compare
+
+    int digest_pos = find_hash (out, digests_cnt, &digests_buf[digests_offset]);
+
+    if (digest_pos == -1) continue;
+
+    if (esalt_bufs[digests_offset].secondBlockLen != 0)
+    {
+      w0[0] = pass_hash[0];
+      w0[1] = pass_hash[1];
+      w0[2] = pass_hash[2];
+      w0[3] = pass_hash[3];
+      w1[0] = pass_hash[4];
+      w1[1] = 0x01000000;
+      w1[2] = 0x80000000;
+      w1[3] = 0;
+      w2[0] = 0;
+      w2[1] = 0;
+      w2[2] = 0;
+      w2[3] = 0;
+      w3[0] = 0;
+      w3[1] = 0;
+      w3[2] = 0;
+      w3[3] = (20 + 4) * 8;
+
+      digest[0] = SHA1M_A;
+      digest[1] = SHA1M_B;
+      digest[2] = SHA1M_C;
+      digest[3] = SHA1M_D;
+      digest[4] = SHA1M_E;
+
+      sha1_transform (w0, w1, w2, w3, digest);
+
+      digest[0] = hc_swap32_S (digest[0]);
+      digest[1] = hc_swap32_S (digest[1]);
+      digest[2] = 0;
+      digest[3] = 0;
+
+      digest[1] &= 0xff; // only 40-bit key
+
+      // second block decrypt:
+
+      rc4_init_16 (rc4_key, digest);
+
+      u32 secondBlockData[4];
+
+      secondBlockData[0] = esalt_bufs[digests_offset].secondBlockData[0];
+      secondBlockData[1] = esalt_bufs[digests_offset].secondBlockData[1];
+      secondBlockData[2] = esalt_bufs[digests_offset].secondBlockData[2];
+      secondBlockData[3] = esalt_bufs[digests_offset].secondBlockData[3];
+
+      j = rc4_next_16 (rc4_key, 0, 0, secondBlockData, out);
+
+      int null_bytes = 0;
+
+      for (int k = 0; k < 4; k++)
+      {
+        if ((out[k] & 0x000000ff) == 0) null_bytes++;
+        if ((out[k] & 0x0000ff00) == 0) null_bytes++;
+        if ((out[k] & 0x00ff0000) == 0) null_bytes++;
+        if ((out[k] & 0xff000000) == 0) null_bytes++;
+      }
+
+      secondBlockData[0] = esalt_bufs[digests_offset].secondBlockData[4];
+      secondBlockData[1] = esalt_bufs[digests_offset].secondBlockData[5];
+      secondBlockData[2] = esalt_bufs[digests_offset].secondBlockData[6];
+      secondBlockData[3] = esalt_bufs[digests_offset].secondBlockData[7];
+
+      rc4_next_16 (rc4_key, 16, j, secondBlockData, out);
+
+      for (int k = 0; k < 4; k++)
+      {
+        if ((out[k] & 0x000000ff) == 0) null_bytes++;
+        if ((out[k] & 0x0000ff00) == 0) null_bytes++;
+        if ((out[k] & 0x00ff0000) == 0) null_bytes++;
+        if ((out[k] & 0xff000000) == 0) null_bytes++;
+      }
+
+      if (null_bytes < MIN_NULL_BYTES) continue;
+    }
+
+    const u32 final_hash_pos = digests_offset + digest_pos;
+
+    if (atomic_inc (&hashes_shown[final_hash_pos]) == 0)
+    {
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, digest_pos, final_hash_pos, gid, il_pos, 0, 0);
+    }
   }
 }
 
@@ -403,21 +495,21 @@ DECLSPEC void m09800s (LOCAL_AS RC4_KEY *rc4_keys, u32 *w0, u32 *w1, u32 *w2, u3
     w3_t[2] = 0;
     w3_t[3] = pw_salt_len * 8;
 
-    u32 digest[5];
+    u32 pass_hash[5];
 
-    digest[0] = SHA1M_A;
-    digest[1] = SHA1M_B;
-    digest[2] = SHA1M_C;
-    digest[3] = SHA1M_D;
-    digest[4] = SHA1M_E;
+    pass_hash[0] = SHA1M_A;
+    pass_hash[1] = SHA1M_B;
+    pass_hash[2] = SHA1M_C;
+    pass_hash[3] = SHA1M_D;
+    pass_hash[4] = SHA1M_E;
 
-    sha1_transform (w0_t, w1_t, w2_t, w3_t, digest);
+    sha1_transform (w0_t, w1_t, w2_t, w3_t, pass_hash);
 
-    w0_t[0] = digest[0];
-    w0_t[1] = digest[1];
-    w0_t[2] = digest[2];
-    w0_t[3] = digest[3];
-    w1_t[0] = digest[4];
+    w0_t[0] = pass_hash[0];
+    w0_t[1] = pass_hash[1];
+    w0_t[2] = pass_hash[2];
+    w0_t[3] = pass_hash[3];
+    w1_t[0] = pass_hash[4];
     w1_t[1] = 0;
     w1_t[2] = 0x80000000;
     w1_t[3] = 0;
@@ -429,6 +521,8 @@ DECLSPEC void m09800s (LOCAL_AS RC4_KEY *rc4_keys, u32 *w0, u32 *w1, u32 *w2, u3
     w3_t[1] = 0;
     w3_t[2] = 0;
     w3_t[3] = (20 + 4) * 8;
+
+    u32 digest[5];
 
     digest[0] = SHA1M_A;
     digest[1] = SHA1M_B;
@@ -488,7 +582,92 @@ DECLSPEC void m09800s (LOCAL_AS RC4_KEY *rc4_keys, u32 *w0, u32 *w1, u32 *w2, u3
 
     rc4_next_16 (rc4_key, 16, j, digest, out);
 
-    COMPARE_S_SIMD (out[0], out[1], out[2], out[3]);
+    // initial compare
+
+    if (out[0] != search[0]) continue;
+    if (out[1] != search[1]) continue;
+    if (out[2] != search[2]) continue;
+    if (out[3] != search[3]) continue;
+
+    if (esalt_bufs[digests_offset].secondBlockLen != 0)
+    {
+      w0[0] = pass_hash[0];
+      w0[1] = pass_hash[1];
+      w0[2] = pass_hash[2];
+      w0[3] = pass_hash[3];
+      w1[0] = pass_hash[4];
+      w1[1] = 0x01000000;
+      w1[2] = 0x80000000;
+      w1[3] = 0;
+      w2[0] = 0;
+      w2[1] = 0;
+      w2[2] = 0;
+      w2[3] = 0;
+      w3[0] = 0;
+      w3[1] = 0;
+      w3[2] = 0;
+      w3[3] = (20 + 4) * 8;
+
+      digest[0] = SHA1M_A;
+      digest[1] = SHA1M_B;
+      digest[2] = SHA1M_C;
+      digest[3] = SHA1M_D;
+      digest[4] = SHA1M_E;
+
+      sha1_transform (w0, w1, w2, w3, digest);
+
+      digest[0] = hc_swap32_S (digest[0]);
+      digest[1] = hc_swap32_S (digest[1]);
+      digest[2] = 0;
+      digest[3] = 0;
+
+      digest[1] &= 0xff; // only 40-bit key
+
+      // second block decrypt:
+
+      rc4_init_16 (rc4_key, digest);
+
+      u32 secondBlockData[4];
+
+      secondBlockData[0] = esalt_bufs[digests_offset].secondBlockData[0];
+      secondBlockData[1] = esalt_bufs[digests_offset].secondBlockData[1];
+      secondBlockData[2] = esalt_bufs[digests_offset].secondBlockData[2];
+      secondBlockData[3] = esalt_bufs[digests_offset].secondBlockData[3];
+
+      j = rc4_next_16 (rc4_key, 0, 0, secondBlockData, out);
+
+      int null_bytes = 0;
+
+      for (int k = 0; k < 4; k++)
+      {
+        if ((out[k] & 0x000000ff) == 0) null_bytes++;
+        if ((out[k] & 0x0000ff00) == 0) null_bytes++;
+        if ((out[k] & 0x00ff0000) == 0) null_bytes++;
+        if ((out[k] & 0xff000000) == 0) null_bytes++;
+      }
+
+      secondBlockData[0] = esalt_bufs[digests_offset].secondBlockData[4];
+      secondBlockData[1] = esalt_bufs[digests_offset].secondBlockData[5];
+      secondBlockData[2] = esalt_bufs[digests_offset].secondBlockData[6];
+      secondBlockData[3] = esalt_bufs[digests_offset].secondBlockData[7];
+
+      rc4_next_16 (rc4_key, 16, j, secondBlockData, out);
+
+      for (int k = 0; k < 4; k++)
+      {
+        if ((out[k] & 0x000000ff) == 0) null_bytes++;
+        if ((out[k] & 0x0000ff00) == 0) null_bytes++;
+        if ((out[k] & 0x00ff0000) == 0) null_bytes++;
+        if ((out[k] & 0xff000000) == 0) null_bytes++;
+      }
+
+      if (null_bytes < MIN_NULL_BYTES) continue;
+    }
+
+    if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+    {
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos, 0, 0);
+    }
   }
 }
 

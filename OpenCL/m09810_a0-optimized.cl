@@ -22,6 +22,8 @@ typedef struct oldoffice34
   u32 version;
   u32 encryptedVerifier[4];
   u32 encryptedVerifierHash[5];
+  u32 secondBlockData[8];
+  u32 secondBlockLen;
   u32 rc4key[2];
 
 } oldoffice34_t;
