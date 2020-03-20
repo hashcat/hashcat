@@ -99,6 +99,11 @@
 #define REAL_SHM
 #endif
 
+// So far, only used by -m 22100 and only affects NVIDIA on OpenCL. CUDA seems to work fine.
+#ifdef FORCE_DISABLE_SHM
+#undef REAL_SHM
+#endif
+
 #ifdef REAL_SHM
 #define SHM_TYPE LOCAL_AS
 #else
