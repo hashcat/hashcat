@@ -394,7 +394,7 @@ This configuration item is a bitmask field. There are a few switches which you c
 The decoder function is the function that is called again and again for every line in your hashfile. We also call this sometimes the hash parser. Here you have to program the logic which decodes the line into its components and then stores them in the standardized data structure which hashcat understands.
 
 Typically hash files are text files in which each hash is stored in a single line. Before the decoder function is called, Hashcat opens the hash file and scans the number of lines. Based on this information, it pre-allocates memory buffers for the hash digest, the salt and the esalt so you do not need to allocate any buffers from inside the decoder. If you allocate buffers from inside the decoder, you must free them as well. The size of the digest is based on what is returned from module_dgst_size(). The salt_t is a fixed size structure and the esalt size is known from module_esalt_size(). There is also some more rarely used buffers like module_hook_salt_size() but the logic is always the same. Hashcat simply multiplies the size of all these different structures by the number of lines. It then rewinds the file handle and starts iterating. For each iteration of these input lines, the module_hash_decode() function is called. The input pointer points to the new hash line and the output pointers point to the corresponding previously allocated buffers. You can directly access the pointers to store the digest, salt, esalt and other buffers without any offsets.
- 
+
 In hashcat there are two different types of salt structures. It is essential to understand them; please read the section "About salts" at the end of this document first. If you are unaware about the different concepts of salt_t and esalt, you really need to read that section before you continue this section.
 
 For instance, if your crypto algorithm is something like MD5(MD5($pass.$salt)), then you can expect to find both a hash and a salt in each of your hash lines. In the decoder function, it is up to you to split these two parts (typically by using the tokenizer - please read the tokenizer section below) and copy them into a standardized hashcat structure.
@@ -508,7 +508,7 @@ This is the password to crack the hash given in module_st_hash() for the self-te
 
 This is the second necessary ingredient for creating a plugin. Particular attention should be paid to the development of the kernel. Compiling the kernel takes a relatively long time, so both hashcat and the various compute APIs try to save a binary kernel in a cached structure. This serves to reduce the startup time and it is important for the user experience (UX). This however can be a pain as a developer.
 
-NOTE: You -must- manually delete all cached kernels with every change to your kernel code. This is -very- important! 
+NOTE: You -must- manually delete all cached kernels with every change to your kernel code. This is -very- important!
 
 ```
 $ rm -rf kernels/
