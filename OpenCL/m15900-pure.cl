@@ -599,57 +599,111 @@ KERNEL_FQ void m15900_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v2_t, dpapimk_t))
 
   AES256_set_decrypt_key (ks, key, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
-  /* 144 bytes */
-  u32 decrypted[36] = { 0 };
+  u32 out[4];
 
-  u32 contents_pos;
-  u32 contents_off;
-  u32 wx_off;
+  u32 hmac_data[4];
 
-  for (wx_off = 0, contents_pos = 0, contents_off = 0; contents_pos < esalt_bufs[digests_offset].contents_len; wx_off += 4, contents_pos += 16, contents_off += 4)
+  hmac_data[0] = esalt_bufs[digests_offset].contents[0];
+  hmac_data[1] = esalt_bufs[digests_offset].contents[1];
+  hmac_data[2] = esalt_bufs[digests_offset].contents[2];
+  hmac_data[3] = esalt_bufs[digests_offset].contents[3];
+
+  u32 expected_key[4];
+
+  expected_key[0] = esalt_bufs[digests_offset].contents[4];
+  expected_key[1] = esalt_bufs[digests_offset].contents[5];
+  expected_key[2] = esalt_bufs[digests_offset].contents[6];
+  expected_key[3] = esalt_bufs[digests_offset].contents[7];
+
+  u32 last_iv[4];
+
+  last_iv[0] = esalt_bufs[digests_offset].contents[16];
+  last_iv[1] = esalt_bufs[digests_offset].contents[17];
+  last_iv[2] = esalt_bufs[digests_offset].contents[18];
+  last_iv[3] = esalt_bufs[digests_offset].contents[19];
+
+  u32 last_key[16];
+
+  last_key[ 0] = esalt_bufs[digests_offset].contents[20];
+  last_key[ 1] = esalt_bufs[digests_offset].contents[21];
+  last_key[ 2] = esalt_bufs[digests_offset].contents[22];
+  last_key[ 3] = esalt_bufs[digests_offset].contents[23];
+  last_key[ 4] = esalt_bufs[digests_offset].contents[24];
+  last_key[ 5] = esalt_bufs[digests_offset].contents[25];
+  last_key[ 6] = esalt_bufs[digests_offset].contents[26];
+  last_key[ 7] = esalt_bufs[digests_offset].contents[27];
+  last_key[ 8] = esalt_bufs[digests_offset].contents[28];
+  last_key[ 9] = esalt_bufs[digests_offset].contents[29];
+  last_key[10] = esalt_bufs[digests_offset].contents[30];
+  last_key[11] = esalt_bufs[digests_offset].contents[31];
+  last_key[12] = esalt_bufs[digests_offset].contents[32];
+  last_key[13] = esalt_bufs[digests_offset].contents[33];
+  last_key[14] = esalt_bufs[digests_offset].contents[34];
+  last_key[15] = esalt_bufs[digests_offset].contents[35];
+
+  // hmac_data
+
+  AES256_decrypt (ks, hmac_data, out, s_td0, s_td1, s_td2, s_td3, s_td4);
+
+  out[0] ^= iv[0];
+  out[1] ^= iv[1];
+  out[2] ^= iv[2];
+  out[3] ^= iv[3];
+
+  iv[0] = hmac_data[0];
+  iv[1] = hmac_data[1];
+  iv[2] = hmac_data[2];
+  iv[3] = hmac_data[3];
+
+  hmac_data[0] = out[0];
+  hmac_data[1] = out[1];
+  hmac_data[2] = out[2];
+  hmac_data[3] = out[3];
+
+  // expected_key
+
+  AES256_decrypt (ks, expected_key, out, s_td0, s_td1, s_td2, s_td3, s_td4);
+
+  out[0] ^= iv[0];
+  out[1] ^= iv[1];
+  out[2] ^= iv[2];
+  out[3] ^= iv[3];
+
+  iv[0] = expected_key[0];
+  iv[1] = expected_key[1];
+  iv[2] = expected_key[2];
+  iv[3] = expected_key[3];
+
+  expected_key[0] = out[0];
+  expected_key[1] = out[1];
+  expected_key[2] = out[2];
+  expected_key[3] = out[3];
+
+  // last_key
+
+  iv[0] = last_iv[0];
+  iv[1] = last_iv[1];
+  iv[2] = last_iv[2];
+  iv[3] = last_iv[3];
+
+  for (int off = 0; off < 16; off += 4)
   {
-    u32 data[4];
-
-    data[0] = esalt_bufs[digests_offset].contents[contents_off + 0];
-    data[1] = esalt_bufs[digests_offset].contents[contents_off + 1];
-    data[2] = esalt_bufs[digests_offset].contents[contents_off + 2];
-    data[3] = esalt_bufs[digests_offset].contents[contents_off + 3];
-
-    u32 out[4];
-
-    AES256_decrypt (ks, data, out, s_td0, s_td1, s_td2, s_td3, s_td4);
+    AES256_decrypt (ks, last_key + off, out, s_td0, s_td1, s_td2, s_td3, s_td4);
 
     out[0] ^= iv[0];
     out[1] ^= iv[1];
     out[2] ^= iv[2];
     out[3] ^= iv[3];
 
-    decrypted[wx_off + 0] = out[0];
-    decrypted[wx_off + 1] = out[1];
-    decrypted[wx_off + 2] = out[2];
-    decrypted[wx_off + 3] = out[3];
+    iv[0] = last_key[off + 0];
+    iv[1] = last_key[off + 1];
+    iv[2] = last_key[off + 2];
+    iv[3] = last_key[off + 3];
 
-    iv[0] = data[0];
-    iv[1] = data[1];
-    iv[2] = data[2];
-    iv[3] = data[3];
-
-    if (contents_off == 32) break;
-  }
-
-  u32 hmacSalt[4];
-  u32 expectedHmac[16];
-  u32 lastKey[16];
-
-  hmacSalt[0] = decrypted[0];
-  hmacSalt[1] = decrypted[1];
-  hmacSalt[2] = decrypted[2];
-  hmacSalt[3] = decrypted[3];
-
-  for(int i = 0; i < 16; i++)
-  {
-    expectedHmac[i] = decrypted[i + 4];
-    lastKey[i]      = decrypted[i + 36 - 16];
+    last_key[off + 0] = out[0];
+    last_key[off + 1] = out[1];
+    last_key[off + 2] = out[2];
+    last_key[off + 3] = out[3];
   }
 
   w0[0] = tmps[gid].userKey[0];
@@ -689,10 +743,10 @@ KERNEL_FQ void m15900_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v2_t, dpapimk_t))
 
   sha512_hmac_init_128 (&ctx, w0, w1, w2, w3, w4, w5, w6, w7);
 
-  w0[0] = hmacSalt[0];
-  w0[1] = hmacSalt[1];
-  w0[2] = hmacSalt[2];
-  w0[3] = hmacSalt[3];
+  w0[0] = hmac_data[0];
+  w0[1] = hmac_data[1];
+  w0[2] = hmac_data[2];
+  w0[3] = hmac_data[3];
   w1[0] = 0;
   w1[1] = 0;
   w1[2] = 0;
@@ -761,22 +815,22 @@ KERNEL_FQ void m15900_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v2_t, dpapimk_t))
 
   sha512_hmac_init_128 (&ctx, w0, w1, w2, w3, w4, w5, w6, w7);
 
-  w0[0] = lastKey[ 0];
-  w0[1] = lastKey[ 1];
-  w0[2] = lastKey[ 2];
-  w0[3] = lastKey[ 3];
-  w1[0] = lastKey[ 4];
-  w1[1] = lastKey[ 5];
-  w1[2] = lastKey[ 6];
-  w1[3] = lastKey[ 7];
-  w2[0] = lastKey[ 8];
-  w2[1] = lastKey[ 9];
-  w2[2] = lastKey[10];
-  w2[3] = lastKey[11];
-  w3[0] = lastKey[12];
-  w3[1] = lastKey[13];
-  w3[2] = lastKey[14];
-  w3[3] = lastKey[15];
+  w0[0] = last_key[ 0];
+  w0[1] = last_key[ 1];
+  w0[2] = last_key[ 2];
+  w0[3] = last_key[ 3];
+  w1[0] = last_key[ 4];
+  w1[1] = last_key[ 5];
+  w1[2] = last_key[ 6];
+  w1[3] = last_key[ 7];
+  w2[0] = last_key[ 8];
+  w2[1] = last_key[ 9];
+  w2[2] = last_key[10];
+  w2[3] = last_key[11];
+  w3[0] = last_key[12];
+  w3[1] = last_key[13];
+  w3[2] = last_key[14];
+  w3[3] = last_key[15];
   w4[0] = 0;
   w4[1] = 0;
   w4[2] = 0;
@@ -800,10 +854,10 @@ KERNEL_FQ void m15900_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v2_t, dpapimk_t))
 
   #define il_pos 0
 
-  if ((expectedHmac[0] == h32_from_64_S (ctx.opad.h[0]))
-   && (expectedHmac[1] == l32_from_64_S (ctx.opad.h[0]))
-   && (expectedHmac[2] == h32_from_64_S (ctx.opad.h[1]))
-   && (expectedHmac[3] == l32_from_64_S (ctx.opad.h[1])))
+  if ((expected_key[0] == h32_from_64_S (ctx.opad.h[0]))
+   && (expected_key[1] == l32_from_64_S (ctx.opad.h[0]))
+   && (expected_key[2] == h32_from_64_S (ctx.opad.h[1]))
+   && (expected_key[3] == l32_from_64_S (ctx.opad.h[1])))
   {
     if (atomic_inc (&hashes_shown[digests_offset]) == 0)
     {

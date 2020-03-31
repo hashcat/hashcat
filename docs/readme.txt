@@ -15,7 +15,7 @@ AMD GPUs on Windows require "AMD Radeon Software Crimson Edition" (15.12 or late
 Intel CPUs require "OpenCL Runtime for Intel Core and Intel Xeon Processors" (16.1.1 or later)
 Intel GPUs on Linux require "OpenCL 2.0 GPU Driver Package for Linux" (2.0 or later)
 Intel GPUs on Windows require "OpenCL Driver for Intel Iris and Intel HD Graphics"
-NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (10.1 or later)
+NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (9.0 or later)
 
 ##
 ## Features
@@ -41,7 +41,7 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (10.1 o
 - Supports automatic keyspace ordering markov-chains
 - Built-in benchmarking system
 - Integrated thermal watchdog
-- 200+ Hash-types implemented with performance in mind
+- 300+ Hash-types implemented with performance in mind
 
 ##
 ## Hash-Types
@@ -69,7 +69,6 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (10.1 o
 - Keccak-256
 - Keccak-384
 - Keccak-512
-- sha256(sha256_bin(pass))
 - Whirlpool
 - SipHash
 - BitShares v0.x - sha512(sha512_bin(pass))
@@ -103,9 +102,11 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (10.1 o
 - sha1(utf16le($pass).$salt)
 - sha256($pass.$salt)
 - sha256($salt.$pass)
+- sha256($salt.$pass.$salt)
 - sha256($salt.utf16le($pass))
 - sha256(md5($pass))
 - sha256(sha256($pass).$salt)
+- sha256(sha256_bin($pass))
 - sha256(utf16le($pass).$salt)
 - sha512($pass.$salt)
 - sha512($salt.$pass)
@@ -144,10 +145,8 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (10.1 o
 - SIP digest authentication (MD5)
 - IKE-PSK MD5
 - IKE-PSK SHA1
-- WPA-EAPOL-PBKDF2
-- WPA-EAPOL-PMK
-- WPA-PMKID-PBKDF2
-- WPA-PMKID-PMK
+- WPA-PBKDF2-PMKID+EAPOL
+- WPA-PMK-PMKID+EAPOL
 - IPMI2 RAKP HMAC-SHA1
 - CRAM-MD5
 - iSCSI CHAP authentication, MD5(CHAP)
@@ -162,6 +161,7 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (10.1 o
 - NetNTLMv1 / NetNTLMv1+ESS
 - NetNTLMv2
 - Skype
+- Telegram client app passcode (SHA256)
 - PostgreSQL CRAM (MD5)
 - MySQL CRAM (SHA1)
 - RACF
@@ -195,7 +195,8 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (10.1 o
 - Cisco-IOS $9$ (scrypt)
 - Cisco-IOS type 4 (SHA256)
 - Cisco-PIX MD5
-- Citrix NetScaler
+- Citrix NetScaler (SHA1)
+- Citrix NetScaler (SHA512)
 - Domain Cached Credentials (DCC), MS Cache
 - Domain Cached Credentials 2 (DCC2), MS Cache 2
 - FortiGate (FortiOS)
@@ -212,12 +213,14 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (10.1 o
 - Oracle T: Type (Oracle 12+)
 - MySQL323
 - MySQL4.1/MySQL5
+- MySQL $A$ (sha256crypt)
 - Sybase ASE
 - hMailServer
 - DNSSEC (NSEC3)
 - CRAM-MD5 Dovecot
 - SSHA-256(Base64), LDAP {SSHA256}
 - SSHA-512(Base64), LDAP {SSHA512}
+- RedHat 389-DS LDAP (PBKDF2-HMAC-SHA256)
 - FileZilla Server >= 0.9.55
 - ColdFusion 10+
 - Apache $apr1$ MD5, md5apr1, MD5 (APR)
@@ -239,6 +242,8 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (10.1 o
 - Oracle Transportation Management (SHA256)
 - Huawei sha1(md5($pass).$salt)
 - AuthMe sha256
+- AES Crypt (SHA256)
+- BitLocker
 - eCryptfs
 - LUKS
 - VeraCrypt
@@ -274,13 +279,14 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (10.1 o
 - LastPass + LastPass sniffed
 - KeePass 1 (AES/Twofish) and KeePass 2 (AES)
 - Bitcoin/Litecoin wallet.dat
-- Electrum Wallet (Salt-Type 1-3)
+- Electrum Wallet (Salt-Type 1-5)
 - Blockchain, My Wallet
 - Blockchain, My Wallet, V2
 - Blockchain, My Wallet, Second Password (SHA256)
 - Ethereum Pre-Sale Wallet, PBKDF2-HMAC-SHA256
 - Ethereum Wallet, PBKDF2-HMAC-SHA256
 - Ethereum Wallet, SCRYPT
+- MultiBit Classic .key (MD5)
 - 7-Zip
 - RAR3-hp
 - RAR5
@@ -304,8 +310,6 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (10.1 o
 - SMF (Simple Machines Forum) > v1.1
 - MediaWiki B type
 - Redmine
-- Django (PBKDF2-SHA256)
-- Django (SHA-1)
 - Joomla < 2.5.18
 - OpenCart
 - PrestaShop
@@ -314,6 +318,9 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (10.1 o
 - osCommerce, xt:Commerce
 - PunBB
 - MyBB 1.2+, IPB2+ (Invision Power Board)
+- Django (PBKDF2-SHA256)
+- Django (SHA-1)
+- Web2py pbkdf2-sha512
 - TOTP (HMAC-SHA1)
 
 ##

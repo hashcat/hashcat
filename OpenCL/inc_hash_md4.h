@@ -10,26 +10,14 @@
 #define MD4_G_S(x,y,z)  (((x) & (y)) | ((x) & (z)) | ((y) & (z)))
 #define MD4_H_S(x,y,z)  ((x) ^ (y) ^ (z))
 
-#ifdef IS_NV
 #define MD4_F(x,y,z)    (((x) & (y)) | ((~(x)) & (z)))
 #define MD4_G(x,y,z)    (((x) & (y)) | ((x) & (z)) | ((y) & (z)))
 #define MD4_H(x,y,z)    ((x) ^ (y) ^ (z))
+
+#ifdef USE_BITSELECT
 #define MD4_Fo(x,y,z)   (bitselect ((z), (y), (x)))
 #define MD4_Go(x,y,z)   (bitselect ((x), (y), ((x) ^ (z))))
-#endif
-
-#ifdef IS_AMD
-#define MD4_F(x,y,z)    (((x) & (y)) | ((~(x)) & (z)))
-#define MD4_G(x,y,z)    (((x) & (y)) | ((x) & (z)) | ((y) & (z)))
-#define MD4_H(x,y,z)    ((x) ^ (y) ^ (z))
-#define MD4_Fo(x,y,z)   (bitselect ((z), (y), (x)))
-#define MD4_Go(x,y,z)   (bitselect ((x), (y), ((x) ^ (z))))
-#endif
-
-#ifdef IS_GENERIC
-#define MD4_F(x,y,z)    (((x) & (y)) | ((~(x)) & (z)))
-#define MD4_G(x,y,z)    (((x) & (y)) | ((x) & (z)) | ((y) & (z)))
-#define MD4_H(x,y,z)    ((x) ^ (y) ^ (z))
+#else
 #define MD4_Fo(x,y,z)   (MD4_F((x), (y), (z)))
 #define MD4_Go(x,y,z)   (MD4_G((x), (y), (z)))
 #endif

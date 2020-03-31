@@ -17,6 +17,10 @@ int sort_by_dictstat (const void *s1, const void *s2)
   const dictstat_t *d1 = (const dictstat_t *) s1;
   const dictstat_t *d2 = (const dictstat_t *) s2;
 
+  const int rc_hash = memcmp (d1->hash_filename, d2->hash_filename, 16);
+
+  if (rc_hash != 0) return rc_hash;
+
   const int rc_from = strcmp (d1->encoding_from, d2->encoding_from);
 
   if (rc_from != 0) return rc_from;
@@ -216,6 +220,15 @@ int dictstat_write (hashcat_ctx_t *hashcat_ctx)
   // data
 
   hc_fwrite (dictstat_ctx->base, sizeof (dictstat_t), dictstat_ctx->cnt, &fp);
+
+  if (hc_unlockfile (&fp) == -1)
+  {
+    hc_fclose (&fp);
+
+    event_log_error (hashcat_ctx, "%s: %s", dictstat_ctx->filename, strerror (errno));
+
+    return -1;
+  }
 
   hc_fclose (&fp);
 

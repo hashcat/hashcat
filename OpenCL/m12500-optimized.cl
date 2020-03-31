@@ -1,0 +1,397 @@
+/**
+ * Author......: See docs/credits.txt
+ * License.....: MIT
+ */
+
+#ifdef KERNEL_STATIC
+#include "inc_vendor.h"
+#include "inc_types.h"
+#include "inc_platform.cl"
+#include "inc_common.cl"
+#include "inc_hash_sha1.cl"
+#include "inc_cipher_aes.cl"
+#endif
+
+#define COMPARE_S "inc_comp_single.cl"
+#define COMPARE_M "inc_comp_multi.cl"
+
+#define ROUNDS 0x40000
+
+#define PUTCHAR(a,p,c) ((u8 *)(a))[(p)] = (u8) (c)
+#define GETCHAR(a,p)   ((u8 *)(a))[(p)]
+
+#define PUTCHAR_BE(a,p,c) ((u8 *)(a))[(p) ^ 3] = (u8) (c)
+#define GETCHAR_BE(a,p)   ((u8 *)(a))[(p) ^ 3]
+
+#define MIN(a,b) (((a) < (b)) ? (a) : (b))
+
+typedef struct pbkdf2_sha1
+{
+  u32 salt_buf[64];
+
+} pbkdf2_sha1_t;
+
+typedef struct rar3_tmp
+{
+  u32 dgst[17][5];
+
+} rar3_tmp_t;
+
+KERNEL_FQ void m12500_init (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
+{
+  /**
+   * base
+   */
+
+  const u64 gid = get_global_id (0);
+
+  if (gid >= gid_max) return;
+
+  tmps[gid].dgst[0][0] = SHA1M_A;
+  tmps[gid].dgst[0][1] = SHA1M_B;
+  tmps[gid].dgst[0][2] = SHA1M_C;
+  tmps[gid].dgst[0][3] = SHA1M_D;
+  tmps[gid].dgst[0][4] = SHA1M_E;
+}
+
+KERNEL_FQ void m12500_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
+{
+  const u64 gid = get_global_id (0);
+
+  if (gid >= gid_max) return;
+
+  u32 pw_buf[5];
+
+  pw_buf[0] = pws[gid].i[0];
+  pw_buf[1] = pws[gid].i[1];
+  pw_buf[2] = pws[gid].i[2];
+  pw_buf[3] = pws[gid].i[3];
+  pw_buf[4] = pws[gid].i[4];
+
+  const u32 pw_len = MIN (pws[gid].pw_len, 20);
+
+  u32 salt_buf[2];
+
+  salt_buf[0] = salt_bufs[salt_pos].salt_buf[0];
+  salt_buf[1] = salt_bufs[salt_pos].salt_buf[1];
+
+  const u32 salt_len = 8;
+
+  // this is large enough to hold all possible w[] arrays for 64 iterations
+
+  #define LARGEBLOCK_ELEMS ((40 + 8 + 3) * 16)
+
+  u32 largeblock[LARGEBLOCK_ELEMS];
+
+  for (u32 i = 0; i < LARGEBLOCK_ELEMS; i++) largeblock[i] = 0;
+
+  for (u32 i = 0, p = 0; i < 64; i++)
+  {
+    for (u32 j = 0; j < pw_len; j++, p += 2)
+    {
+      PUTCHAR_BE (largeblock, p, GETCHAR (pw_buf, j));
+    }
+
+    for (u32 j = 0; j < salt_len; j++, p += 1)
+    {
+      PUTCHAR_BE (largeblock, p, GETCHAR (salt_buf, j));
+    }
+
+    PUTCHAR_BE (largeblock, p + 2, (loop_pos >> 16) & 0xff);
+
+    p += 3;
+  }
+
+  const u32 p3 = (pw_len * 2) + salt_len + 3;
+
+  const u32 init_pos = loop_pos / (ROUNDS / 16);
+
+  u32 dgst[5];
+
+  dgst[0] = tmps[gid].dgst[init_pos][0];
+  dgst[1] = tmps[gid].dgst[init_pos][1];
+  dgst[2] = tmps[gid].dgst[init_pos][2];
+  dgst[3] = tmps[gid].dgst[init_pos][3];
+  dgst[4] = tmps[gid].dgst[init_pos][4];
+
+  u32 iter = loop_pos;
+
+  for (u32 i = 0; i < 256; i += 4)
+  {
+    for (u32 j = 0; j < 64; j++)
+    {
+      const u32 p = ((j + 1) * p3) - 2;
+
+      PUTCHAR_BE (largeblock, p, iter >> 8);
+    }
+
+    for (u32 k = 0; k < 4; k++)
+    {
+      for (u32 j = 0; j < 64; j++)
+      {
+        const u32 p = ((j + 1) * p3) - 3;
+
+        PUTCHAR_BE (largeblock, p, iter >> 0);
+
+        iter++;
+      }
+
+      for (u32 j = 0; j < p3; j++)
+      {
+        const u32 j16 = j * 16;
+
+        u32 w0[4];
+        u32 w1[4];
+        u32 w2[4];
+        u32 w3[4];
+
+        w0[0] = largeblock[j16 +  0];
+        w0[1] = largeblock[j16 +  1];
+        w0[2] = largeblock[j16 +  2];
+        w0[3] = largeblock[j16 +  3];
+        w1[0] = largeblock[j16 +  4];
+        w1[1] = largeblock[j16 +  5];
+        w1[2] = largeblock[j16 +  6];
+        w1[3] = largeblock[j16 +  7];
+        w2[0] = largeblock[j16 +  8];
+        w2[1] = largeblock[j16 +  9];
+        w2[2] = largeblock[j16 + 10];
+        w2[3] = largeblock[j16 + 11];
+        w3[0] = largeblock[j16 + 12];
+        w3[1] = largeblock[j16 + 13];
+        w3[2] = largeblock[j16 + 14];
+        w3[3] = largeblock[j16 + 15];
+
+        sha1_transform (w0, w1, w2, w3, dgst);
+      }
+    }
+  }
+
+  tmps[gid].dgst[init_pos + 1][0] = dgst[0];
+  tmps[gid].dgst[init_pos + 1][1] = dgst[1];
+  tmps[gid].dgst[init_pos + 1][2] = dgst[2];
+  tmps[gid].dgst[init_pos + 1][3] = dgst[3];
+  tmps[gid].dgst[init_pos + 1][4] = dgst[4];
+}
+
+KERNEL_FQ void m12500_comp (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
+{
+  const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
+
+  /**
+   * aes shared
+   */
+
+  #ifdef REAL_SHM
+
+  LOCAL_VK u32 s_td0[256];
+  LOCAL_VK u32 s_td1[256];
+  LOCAL_VK u32 s_td2[256];
+  LOCAL_VK u32 s_td3[256];
+  LOCAL_VK u32 s_td4[256];
+
+  LOCAL_VK u32 s_te0[256];
+  LOCAL_VK u32 s_te1[256];
+  LOCAL_VK u32 s_te2[256];
+  LOCAL_VK u32 s_te3[256];
+  LOCAL_VK u32 s_te4[256];
+
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    s_td0[i] = td0[i];
+    s_td1[i] = td1[i];
+    s_td2[i] = td2[i];
+    s_td3[i] = td3[i];
+    s_td4[i] = td4[i];
+
+    s_te0[i] = te0[i];
+    s_te1[i] = te1[i];
+    s_te2[i] = te2[i];
+    s_te3[i] = te3[i];
+    s_te4[i] = te4[i];
+  }
+
+  SYNC_THREADS ();
+
+  #else
+
+  CONSTANT_AS u32a *s_td0 = td0;
+  CONSTANT_AS u32a *s_td1 = td1;
+  CONSTANT_AS u32a *s_td2 = td2;
+  CONSTANT_AS u32a *s_td3 = td3;
+  CONSTANT_AS u32a *s_td4 = td4;
+
+  CONSTANT_AS u32a *s_te0 = te0;
+  CONSTANT_AS u32a *s_te1 = te1;
+  CONSTANT_AS u32a *s_te2 = te2;
+  CONSTANT_AS u32a *s_te3 = te3;
+  CONSTANT_AS u32a *s_te4 = te4;
+
+  #endif
+
+  if (gid >= gid_max) return;
+
+  /**
+   * base
+   */
+
+  const u32 pw_len = MIN (pws[gid].pw_len, 20);
+
+  const u32 salt_len = 8;
+
+  const u32 p3 = (pw_len * 2) + salt_len + 3;
+
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  w0[0] = 0x80000000;
+  w0[1] = 0;
+  w0[2] = 0;
+  w0[3] = 0;
+  w1[0] = 0;
+  w1[1] = 0;
+  w1[2] = 0;
+  w1[3] = 0;
+  w2[0] = 0;
+  w2[1] = 0;
+  w2[2] = 0;
+  w2[3] = 0;
+  w3[0] = 0;
+  w3[1] = 0;
+  w3[2] = 0;
+  w3[3] = (p3 * ROUNDS) * 8;
+
+  u32 dgst[5];
+
+  dgst[0] = tmps[gid].dgst[16][0];
+  dgst[1] = tmps[gid].dgst[16][1];
+  dgst[2] = tmps[gid].dgst[16][2];
+  dgst[3] = tmps[gid].dgst[16][3];
+  dgst[4] = tmps[gid].dgst[16][4];
+
+  sha1_transform (w0, w1, w2, w3, dgst);
+
+  u32 ukey[4];
+
+  ukey[0] = hc_swap32_S (dgst[0]);
+  ukey[1] = hc_swap32_S (dgst[1]);
+  ukey[2] = hc_swap32_S (dgst[2]);
+  ukey[3] = hc_swap32_S (dgst[3]);
+
+  u32 ks[44];
+
+  AES128_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+
+  u32 data[4];
+
+  data[0] = salt_bufs[salt_pos].salt_buf[2];
+  data[1] = salt_bufs[salt_pos].salt_buf[3];
+  data[2] = salt_bufs[salt_pos].salt_buf[4];
+  data[3] = salt_bufs[salt_pos].salt_buf[5];
+
+  u32 out[4];
+
+  AES128_decrypt (ks, data, out, s_td0, s_td1, s_td2, s_td3, s_td4);
+
+  u32 iv[4];
+
+  iv[0] = 0;
+  iv[1] = 0;
+  iv[2] = 0;
+  iv[3] = 0;
+
+  for (int i = 0; i < 16; i++)
+  {
+    u32 pw_buf[5];
+
+    pw_buf[0] = pws[gid].i[0];
+    pw_buf[1] = pws[gid].i[1];
+    pw_buf[2] = pws[gid].i[2];
+    pw_buf[3] = pws[gid].i[3];
+    pw_buf[4] = pws[gid].i[4];
+
+    //const u32 pw_len = pws[gid].pw_len;
+
+    u32 salt_buf[2];
+
+    salt_buf[0] = salt_bufs[salt_pos].salt_buf[0];
+    salt_buf[1] = salt_bufs[salt_pos].salt_buf[1];
+
+    //const u32 salt_len = 8;
+
+    //const u32 p3 = (pw_len * 2) + salt_len + 3;
+
+    u32 w[16];
+
+    w[ 0] = 0;
+    w[ 1] = 0;
+    w[ 2] = 0;
+    w[ 3] = 0;
+    w[ 4] = 0;
+    w[ 5] = 0;
+    w[ 6] = 0;
+    w[ 7] = 0;
+    w[ 8] = 0;
+    w[ 9] = 0;
+    w[10] = 0;
+    w[11] = 0;
+    w[12] = 0;
+    w[13] = 0;
+    w[14] = 0;
+    w[15] = 0;
+
+    u32 p = 0;
+
+    for (u32 j = 0; j < pw_len; j++, p += 2)
+    {
+      PUTCHAR_BE (w, p, GETCHAR (pw_buf, j));
+    }
+
+    for (u32 j = 0; j < salt_len; j++, p += 1)
+    {
+      PUTCHAR_BE (w, p, GETCHAR (salt_buf, j));
+    }
+
+    const u32 iter_pos = i * (ROUNDS / 16);
+
+    PUTCHAR_BE (w, p + 0, (iter_pos >>  0) & 0xff);
+    PUTCHAR_BE (w, p + 1, (iter_pos >>  8) & 0xff);
+    PUTCHAR_BE (w, p + 2, (iter_pos >> 16) & 0xff);
+
+    PUTCHAR_BE (w, p3, 0x80);
+
+    w[15] = ((iter_pos + 1) * p3) * 8;
+
+    u32 dgst[5];
+
+    dgst[0] = tmps[gid].dgst[i][0];
+    dgst[1] = tmps[gid].dgst[i][1];
+    dgst[2] = tmps[gid].dgst[i][2];
+    dgst[3] = tmps[gid].dgst[i][3];
+    dgst[4] = tmps[gid].dgst[i][4];
+
+    sha1_transform (w + 0, w + 4, w + 8, w + 12, dgst);
+
+    PUTCHAR (iv, i, dgst[4] & 0xff);
+  }
+
+  out[0] ^= hc_swap32_S (iv[0]);
+  out[1] ^= hc_swap32_S (iv[1]);
+  out[2] ^= hc_swap32_S (iv[2]);
+  out[3] ^= hc_swap32_S (iv[3]);
+
+  const u32 r0 = out[0];
+  const u32 r1 = out[1];
+  const u32 r2 = 0;
+  const u32 r3 = 0;
+
+  #define il_pos 0
+
+  #ifdef KERNEL_STATIC
+  #include COMPARE_M
+  #endif
+}

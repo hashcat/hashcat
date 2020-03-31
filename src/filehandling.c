@@ -137,7 +137,7 @@ size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
   return n;
 }
 
-size_t hc_fwrite (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
+size_t hc_fwrite (const void *ptr, size_t size, size_t nmemb, HCFILE *fp)
 {
   size_t n = -1;
 
@@ -443,8 +443,6 @@ void hc_fclose (HCFILE *fp)
     fclose (fp->pfp);
   }
 
-  close (fp->fd);
-
   fp->fd = -1;
   fp->pfp = NULL;
   fp->is_gzip = false;
@@ -482,7 +480,7 @@ size_t fgetl (HCFILE *fp, char *line_buf, const size_t line_sz)
 
   if (line_truncated > 0)
   {
-    fprintf (stderr, "\nOversized line detected! Truncated %" PRIu64 " bytes\n", line_truncated);
+    fprintf (stderr, "\nOversized line detected! Truncated %" PRIu64 " bytes\n", (u64) line_truncated);
   }
 
   if (line_len == 0) return 0;

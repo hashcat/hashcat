@@ -52,17 +52,79 @@ KERNEL_FQ void l_markov (GLOBAL_AS pw_t *pws_buf_l, GLOBAL_AS const cs_t *root_c
 
   if (gid >= gid_max) return;
 
-  u32 pw_buf[64] = { 0 };
 
-  generate_pw (pw_buf, root_css_buf, markov_css_buf, pw_l_len, pw_r_len, mask80, bits14, bits15, off + gid);
+  pw_t pw;
 
-  #pragma unroll
-  for (int idx = 0; idx < 64; idx++)
-  {
-    pws_buf_l[gid].i[idx] = pw_buf[idx];
-  }
+  pw.i[ 0] = 0;
+  pw.i[ 1] = 0;
+  pw.i[ 2] = 0;
+  pw.i[ 3] = 0;
+  pw.i[ 4] = 0;
+  pw.i[ 5] = 0;
+  pw.i[ 6] = 0;
+  pw.i[ 7] = 0;
+  pw.i[ 8] = 0;
+  pw.i[ 9] = 0;
+  pw.i[10] = 0;
+  pw.i[11] = 0;
+  pw.i[12] = 0;
+  pw.i[13] = 0;
+  pw.i[14] = 0;
+  pw.i[15] = 0;
+  pw.i[16] = 0;
+  pw.i[17] = 0;
+  pw.i[18] = 0;
+  pw.i[19] = 0;
+  pw.i[20] = 0;
+  pw.i[21] = 0;
+  pw.i[22] = 0;
+  pw.i[23] = 0;
+  pw.i[24] = 0;
+  pw.i[25] = 0;
+  pw.i[26] = 0;
+  pw.i[27] = 0;
+  pw.i[28] = 0;
+  pw.i[29] = 0;
+  pw.i[30] = 0;
+  pw.i[31] = 0;
+  pw.i[32] = 0;
+  pw.i[33] = 0;
+  pw.i[34] = 0;
+  pw.i[35] = 0;
+  pw.i[36] = 0;
+  pw.i[37] = 0;
+  pw.i[38] = 0;
+  pw.i[39] = 0;
+  pw.i[40] = 0;
+  pw.i[41] = 0;
+  pw.i[42] = 0;
+  pw.i[43] = 0;
+  pw.i[44] = 0;
+  pw.i[45] = 0;
+  pw.i[46] = 0;
+  pw.i[47] = 0;
+  pw.i[48] = 0;
+  pw.i[49] = 0;
+  pw.i[50] = 0;
+  pw.i[51] = 0;
+  pw.i[52] = 0;
+  pw.i[53] = 0;
+  pw.i[54] = 0;
+  pw.i[55] = 0;
+  pw.i[56] = 0;
+  pw.i[57] = 0;
+  pw.i[58] = 0;
+  pw.i[59] = 0;
+  pw.i[60] = 0;
+  pw.i[61] = 0;
+  pw.i[62] = 0;
+  pw.i[63] = 0;
 
-  pws_buf_l[gid].pw_len = pw_l_len + pw_r_len;
+  pw.pw_len = pw_l_len + pw_r_len;
+
+  generate_pw (pw.i, root_css_buf, markov_css_buf, pw_l_len, pw_r_len, mask80, bits14, bits15, off + gid);
+
+  pws_buf_l[gid] = pw;
 }
 
 KERNEL_FQ void r_markov (GLOBAL_AS bf_t *pws_buf_r, GLOBAL_AS const cs_t *root_css_buf, GLOBAL_AS const cs_t *markov_css_buf, const u64 off, const u32 pw_r_len, const u32 mask80, const u32 bits14, const u32 bits15, const u64 gid_max)
@@ -71,11 +133,76 @@ KERNEL_FQ void r_markov (GLOBAL_AS bf_t *pws_buf_r, GLOBAL_AS const cs_t *root_c
 
   if (gid >= gid_max) return;
 
-  u32 pw_buf[64] = { 0 };
+  pw_t pw;
 
-  generate_pw (pw_buf, root_css_buf, markov_css_buf, pw_r_len, 0, 0, 0, 0, off + gid);
+  pw.i[ 0] = 0;
+  pw.i[ 1] = 0;
+  pw.i[ 2] = 0;
+  pw.i[ 3] = 0;
+  pw.i[ 4] = 0;
+  pw.i[ 5] = 0;
+  pw.i[ 6] = 0;
+  pw.i[ 7] = 0;
+  pw.i[ 8] = 0;
+  pw.i[ 9] = 0;
+  pw.i[10] = 0;
+  pw.i[11] = 0;
+  pw.i[12] = 0;
+  pw.i[13] = 0;
+  pw.i[14] = 0;
+  pw.i[15] = 0;
+  pw.i[16] = 0;
+  pw.i[17] = 0;
+  pw.i[18] = 0;
+  pw.i[19] = 0;
+  pw.i[20] = 0;
+  pw.i[21] = 0;
+  pw.i[22] = 0;
+  pw.i[23] = 0;
+  pw.i[24] = 0;
+  pw.i[25] = 0;
+  pw.i[26] = 0;
+  pw.i[27] = 0;
+  pw.i[28] = 0;
+  pw.i[29] = 0;
+  pw.i[30] = 0;
+  pw.i[31] = 0;
+  pw.i[32] = 0;
+  pw.i[33] = 0;
+  pw.i[34] = 0;
+  pw.i[35] = 0;
+  pw.i[36] = 0;
+  pw.i[37] = 0;
+  pw.i[38] = 0;
+  pw.i[39] = 0;
+  pw.i[40] = 0;
+  pw.i[41] = 0;
+  pw.i[42] = 0;
+  pw.i[43] = 0;
+  pw.i[44] = 0;
+  pw.i[45] = 0;
+  pw.i[46] = 0;
+  pw.i[47] = 0;
+  pw.i[48] = 0;
+  pw.i[49] = 0;
+  pw.i[50] = 0;
+  pw.i[51] = 0;
+  pw.i[52] = 0;
+  pw.i[53] = 0;
+  pw.i[54] = 0;
+  pw.i[55] = 0;
+  pw.i[56] = 0;
+  pw.i[57] = 0;
+  pw.i[58] = 0;
+  pw.i[59] = 0;
+  pw.i[60] = 0;
+  pw.i[61] = 0;
+  pw.i[62] = 0;
+  pw.i[63] = 0;
 
-  pws_buf_r[gid].i = pw_buf[0];
+  generate_pw (pw.i, root_css_buf, markov_css_buf, pw_r_len, 0, 0, 0, 0, off + gid);
+
+  pws_buf_r[gid].i = pw.i[0];
 }
 
 KERNEL_FQ void C_markov (GLOBAL_AS pw_t *pws_buf, GLOBAL_AS const cs_t *root_css_buf, GLOBAL_AS const cs_t *markov_css_buf, const u64 off, const u32 pw_len, const u32 mask80, const u32 bits14, const u32 bits15, const u64 gid_max)
@@ -84,15 +211,76 @@ KERNEL_FQ void C_markov (GLOBAL_AS pw_t *pws_buf, GLOBAL_AS const cs_t *root_css
 
   if (gid >= gid_max) return;
 
-  u32 pw_buf[64] = { 0 };
+  pw_t pw;
 
-  generate_pw (pw_buf, root_css_buf, markov_css_buf, pw_len, 0, mask80, bits14, bits15, off + gid);
+  pw.i[ 0] = 0;
+  pw.i[ 1] = 0;
+  pw.i[ 2] = 0;
+  pw.i[ 3] = 0;
+  pw.i[ 4] = 0;
+  pw.i[ 5] = 0;
+  pw.i[ 6] = 0;
+  pw.i[ 7] = 0;
+  pw.i[ 8] = 0;
+  pw.i[ 9] = 0;
+  pw.i[10] = 0;
+  pw.i[11] = 0;
+  pw.i[12] = 0;
+  pw.i[13] = 0;
+  pw.i[14] = 0;
+  pw.i[15] = 0;
+  pw.i[16] = 0;
+  pw.i[17] = 0;
+  pw.i[18] = 0;
+  pw.i[19] = 0;
+  pw.i[20] = 0;
+  pw.i[21] = 0;
+  pw.i[22] = 0;
+  pw.i[23] = 0;
+  pw.i[24] = 0;
+  pw.i[25] = 0;
+  pw.i[26] = 0;
+  pw.i[27] = 0;
+  pw.i[28] = 0;
+  pw.i[29] = 0;
+  pw.i[30] = 0;
+  pw.i[31] = 0;
+  pw.i[32] = 0;
+  pw.i[33] = 0;
+  pw.i[34] = 0;
+  pw.i[35] = 0;
+  pw.i[36] = 0;
+  pw.i[37] = 0;
+  pw.i[38] = 0;
+  pw.i[39] = 0;
+  pw.i[40] = 0;
+  pw.i[41] = 0;
+  pw.i[42] = 0;
+  pw.i[43] = 0;
+  pw.i[44] = 0;
+  pw.i[45] = 0;
+  pw.i[46] = 0;
+  pw.i[47] = 0;
+  pw.i[48] = 0;
+  pw.i[49] = 0;
+  pw.i[50] = 0;
+  pw.i[51] = 0;
+  pw.i[52] = 0;
+  pw.i[53] = 0;
+  pw.i[54] = 0;
+  pw.i[55] = 0;
+  pw.i[56] = 0;
+  pw.i[57] = 0;
+  pw.i[58] = 0;
+  pw.i[59] = 0;
+  pw.i[60] = 0;
+  pw.i[61] = 0;
+  pw.i[62] = 0;
+  pw.i[63] = 0;
 
-  #pragma unroll
-  for (int idx = 0; idx < 64; idx++)
-  {
-    pws_buf[gid].i[idx] = pw_buf[idx];
-  }
+  pw.pw_len = pw_len;
 
-  pws_buf[gid].pw_len = pw_len;
+  generate_pw (pw.i, root_css_buf, markov_css_buf, pw_len, 0, mask80, bits14, bits15, off + gid);
+
+  pws_buf[gid] = pw;
 }

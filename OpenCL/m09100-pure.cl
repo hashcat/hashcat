@@ -27,6 +27,42 @@ typedef struct lotus8_tmp
 
 } lotus8_tmp_t;
 
+CONSTANT_VK u32a bin2asc[256] =
+{
+  0x00003030, 0x00003130, 0x00003230, 0x00003330, 0x00003430, 0x00003530, 0x00003630, 0x00003730,
+  0x00003830, 0x00003930, 0x00004130, 0x00004230, 0x00004330, 0x00004430, 0x00004530, 0x00004630,
+  0x00003031, 0x00003131, 0x00003231, 0x00003331, 0x00003431, 0x00003531, 0x00003631, 0x00003731,
+  0x00003831, 0x00003931, 0x00004131, 0x00004231, 0x00004331, 0x00004431, 0x00004531, 0x00004631,
+  0x00003032, 0x00003132, 0x00003232, 0x00003332, 0x00003432, 0x00003532, 0x00003632, 0x00003732,
+  0x00003832, 0x00003932, 0x00004132, 0x00004232, 0x00004332, 0x00004432, 0x00004532, 0x00004632,
+  0x00003033, 0x00003133, 0x00003233, 0x00003333, 0x00003433, 0x00003533, 0x00003633, 0x00003733,
+  0x00003833, 0x00003933, 0x00004133, 0x00004233, 0x00004333, 0x00004433, 0x00004533, 0x00004633,
+  0x00003034, 0x00003134, 0x00003234, 0x00003334, 0x00003434, 0x00003534, 0x00003634, 0x00003734,
+  0x00003834, 0x00003934, 0x00004134, 0x00004234, 0x00004334, 0x00004434, 0x00004534, 0x00004634,
+  0x00003035, 0x00003135, 0x00003235, 0x00003335, 0x00003435, 0x00003535, 0x00003635, 0x00003735,
+  0x00003835, 0x00003935, 0x00004135, 0x00004235, 0x00004335, 0x00004435, 0x00004535, 0x00004635,
+  0x00003036, 0x00003136, 0x00003236, 0x00003336, 0x00003436, 0x00003536, 0x00003636, 0x00003736,
+  0x00003836, 0x00003936, 0x00004136, 0x00004236, 0x00004336, 0x00004436, 0x00004536, 0x00004636,
+  0x00003037, 0x00003137, 0x00003237, 0x00003337, 0x00003437, 0x00003537, 0x00003637, 0x00003737,
+  0x00003837, 0x00003937, 0x00004137, 0x00004237, 0x00004337, 0x00004437, 0x00004537, 0x00004637,
+  0x00003038, 0x00003138, 0x00003238, 0x00003338, 0x00003438, 0x00003538, 0x00003638, 0x00003738,
+  0x00003838, 0x00003938, 0x00004138, 0x00004238, 0x00004338, 0x00004438, 0x00004538, 0x00004638,
+  0x00003039, 0x00003139, 0x00003239, 0x00003339, 0x00003439, 0x00003539, 0x00003639, 0x00003739,
+  0x00003839, 0x00003939, 0x00004139, 0x00004239, 0x00004339, 0x00004439, 0x00004539, 0x00004639,
+  0x00003041, 0x00003141, 0x00003241, 0x00003341, 0x00003441, 0x00003541, 0x00003641, 0x00003741,
+  0x00003841, 0x00003941, 0x00004141, 0x00004241, 0x00004341, 0x00004441, 0x00004541, 0x00004641,
+  0x00003042, 0x00003142, 0x00003242, 0x00003342, 0x00003442, 0x00003542, 0x00003642, 0x00003742,
+  0x00003842, 0x00003942, 0x00004142, 0x00004242, 0x00004342, 0x00004442, 0x00004542, 0x00004642,
+  0x00003043, 0x00003143, 0x00003243, 0x00003343, 0x00003443, 0x00003543, 0x00003643, 0x00003743,
+  0x00003843, 0x00003943, 0x00004143, 0x00004243, 0x00004343, 0x00004443, 0x00004543, 0x00004643,
+  0x00003044, 0x00003144, 0x00003244, 0x00003344, 0x00003444, 0x00003544, 0x00003644, 0x00003744,
+  0x00003844, 0x00003944, 0x00004144, 0x00004244, 0x00004344, 0x00004444, 0x00004544, 0x00004644,
+  0x00003045, 0x00003145, 0x00003245, 0x00003345, 0x00003445, 0x00003545, 0x00003645, 0x00003745,
+  0x00003845, 0x00003945, 0x00004145, 0x00004245, 0x00004345, 0x00004445, 0x00004545, 0x00004645,
+  0x00003046, 0x00003146, 0x00003246, 0x00003346, 0x00003446, 0x00003546, 0x00003646, 0x00003746,
+  0x00003846, 0x00003946, 0x00004146, 0x00004246, 0x00004346, 0x00004446, 0x00004546, 0x00004646,
+};
+
 CONSTANT_VK u32a lotus64_table[64] =
 {
   '0', '1', '2', '3', '4', '5', '6', '7',
@@ -79,7 +115,7 @@ CONSTANT_VK u32a lotus_magic_table[256] =
 
 #define BOX1(S,i) (S)[(i)]
 
-DECLSPEC void lotus_mix (u32 *in, LOCAL_AS const u32 *s_lotus_magic_table)
+DECLSPEC void lotus_mix (u32 *in, SHM_TYPE const u32 *s_lotus_magic_table)
 {
   u8 p = 0;
 
@@ -102,7 +138,7 @@ DECLSPEC void lotus_mix (u32 *in, LOCAL_AS const u32 *s_lotus_magic_table)
   }
 }
 
-DECLSPEC void lotus_transform_password (const u32 *in, u32 *out, LOCAL_AS const u32 *s_lotus_magic_table)
+DECLSPEC void lotus_transform_password (const u32 *in, u32 *out, SHM_TYPE const u32 *s_lotus_magic_table)
 {
   u8 t = (u8) (out[3] >> 24);
 
@@ -199,7 +235,7 @@ DECLSPEC void pad (u32 *w, const u32 len)
   }
 }
 
-DECLSPEC void mdtransform_norecalc (u32 *state, const u32 *block, LOCAL_AS const u32 *s_lotus_magic_table)
+DECLSPEC void mdtransform_norecalc (u32 *state, const u32 *block, SHM_TYPE const u32 *s_lotus_magic_table)
 {
   u32 x[12];
 
@@ -224,14 +260,14 @@ DECLSPEC void mdtransform_norecalc (u32 *state, const u32 *block, LOCAL_AS const
   state[3] = x[3];
 }
 
-DECLSPEC void mdtransform (u32 *state, u32 *checksum, const u32 *block, LOCAL_AS const u32 *s_lotus_magic_table)
+DECLSPEC void mdtransform (u32 *state, u32 *checksum, const u32 *block, SHM_TYPE const u32 *s_lotus_magic_table)
 {
   mdtransform_norecalc (state, block, s_lotus_magic_table);
 
   lotus_transform_password (block, checksum, s_lotus_magic_table);
 }
 
-DECLSPEC void domino_big_md (const u32 *saved_key, const u32 size, u32 *state, LOCAL_AS const u32 *s_lotus_magic_table)
+DECLSPEC void domino_big_md (const u32 *saved_key, const u32 size, u32 *state, SHM_TYPE const u32 *s_lotus_magic_table)
 {
   u32 checksum[4];
 
@@ -402,6 +438,8 @@ KERNEL_FQ void m09100_init (KERN_ATTR_TMPS (lotus8_tmp_t))
    * sbox
    */
 
+  #ifdef REAL_SHM
+
   LOCAL_VK u32 s_lotus_magic_table[256];
 
   for (u32 i = lid; i < 256; i += lsz)
@@ -413,14 +451,18 @@ KERNEL_FQ void m09100_init (KERN_ATTR_TMPS (lotus8_tmp_t))
 
   for (u32 i = lid; i < 256; i += lsz)
   {
-    const u32 i0 = (i >> 0) & 15;
-    const u32 i1 = (i >> 4) & 15;
-
-    l_bin2asc[i] = ((i0 < 10) ? '0' + i0 : 'A' - 10 + i0) << 8
-                 | ((i1 < 10) ? '0' + i1 : 'A' - 10 + i1) << 0;
+    l_bin2asc[i] = bin2asc[i];
   }
 
   SYNC_THREADS ();
+
+  #else
+
+  CONSTANT_AS u32a *s_lotus_magic_table = lotus_magic_table;
+
+  CONSTANT_AS u32a *l_bin2asc = bin2asc;
+
+  #endif
 
   if (gid >= gid_max) return;
 

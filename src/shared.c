@@ -83,7 +83,7 @@ static const char *HASH_CATEGORY_RAW_HASH_AUTHENTICATED_STR = "Raw Hash, Authent
 static const char *HASH_CATEGORY_RAW_CIPHER_KPA_STR         = "Raw Cipher, Known-Plaintext attack";
 static const char *HASH_CATEGORY_GENERIC_KDF_STR            = "Generic KDF";
 static const char *HASH_CATEGORY_NETWORK_PROTOCOL_STR       = "Network Protocols";
-static const char *HASH_CATEGORY_FORUM_SOFTWARE_STR         = "Forums, CMS, E-Commerce, Frameworks";
+static const char *HASH_CATEGORY_FORUM_SOFTWARE_STR         = "Forums, CMS, E-Commerce";
 static const char *HASH_CATEGORY_DATABASE_SERVER_STR        = "Database Server";
 static const char *HASH_CATEGORY_NETWORK_SERVER_STR         = "FTP, HTTP, SMTP, LDAP Server";
 static const char *HASH_CATEGORY_RAW_CHECKSUM_STR           = "Raw Checksum";
@@ -609,6 +609,27 @@ void hc_string_trim_trailing (char *s)
   s[new_len] = 0;
 }
 
+int hc_get_processor_count ()
+{
+  int cnt = 0;
+
+  #if defined (_WIN)
+
+  SYSTEM_INFO info;
+
+  GetSystemInfo (&info);
+
+  cnt = (int) info.dwNumberOfProcessors;
+
+  #else
+
+  cnt = (int) sysconf (_SC_NPROCESSORS_ONLN);
+
+  #endif
+
+  return cnt;
+}
+
 bool hc_same_files (char *file1, char *file2)
 {
   if ((file1 != NULL) && (file2 != NULL))
@@ -994,7 +1015,7 @@ static int rounds_count_length (const char *input_buf, const int input_len)
 
     if (memcmp (input_buf, rounds, 7) == 0)
     {
-      char *next_pos = strchr (input_buf + 8, '$');
+      const char *next_pos = strchr (input_buf + 8, '$');
 
       if (next_pos == NULL) return -1;
 
@@ -1005,6 +1026,26 @@ static int rounds_count_length (const char *input_buf, const int input_len)
   }
 
   return -1;
+}
+
+const u8 *hc_strchr_next (const u8 *input_buf, const int input_len, const u8 separator)
+{
+  for (int i = 0; i < input_len; i++)
+  {
+    if (input_buf[i] == separator) return &input_buf[i];
+  }
+
+  return NULL;
+}
+
+const u8 *hc_strchr_last (const u8 *input_buf, const int input_len, const u8 separator)
+{
+  for (int i = input_len - 1; i >= 0; i--)
+  {
+    if (input_buf[i] == separator) return &input_buf[i];
+  }
+
+  return NULL;
 }
 
 int input_tokenizer (const u8 *input_buf, const int input_len, token_t *token)
@@ -1045,7 +1086,16 @@ int input_tokenizer (const u8 *input_buf, const int input_len, token_t *token)
         }
       }
 
-      const u8 *next_pos = (const u8 *) strchr ((const char *) token->buf[token_idx], token->sep[token_idx]);
+      const u8 *next_pos = NULL;
+
+      if (token->attr[token_idx] & TOKEN_ATTR_SEPARATOR_FARTHEST)
+      {
+        next_pos = hc_strchr_last (token->buf[token_idx], len_left, token->sep[token_idx]);
+      }
+      else
+      {
+        next_pos = hc_strchr_next (token->buf[token_idx], len_left, token->sep[token_idx]);
+      }
 
       if (next_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -1090,6 +1140,16 @@ int input_tokenizer (const u8 *input_buf, const int input_len, token_t *token)
     {
       if (token->len[token_idx] < token->len_min[token_idx]) return (PARSER_TOKEN_LENGTH);
       if (token->len[token_idx] > token->len_max[token_idx]) return (PARSER_TOKEN_LENGTH);
+    }
+
+    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_DIGIT)
+    {
+      if (is_valid_digit_string (token->buf[token_idx], token->len[token_idx]) == false) return (PARSER_TOKEN_ENCODING);
+    }
+
+    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_FLOAT)
+    {
+      if (is_valid_float_string (token->buf[token_idx], token->len[token_idx]) == false) return (PARSER_TOKEN_ENCODING);
     }
 
     if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_HEX)

@@ -41,7 +41,7 @@
 #include "xxhash.h"
 
 static const int BRAIN_CLIENT_CONNECT_TIMEOUT     = 5;
-static const int BRAIN_SERVER_DUMP_EVERY          = 5 * 60;
+static const int BRAIN_SERVER_TIMER               = 5 * 60;
 static const int BRAIN_SERVER_SESSIONS_MAX        = 64;
 static const int BRAIN_SERVER_ATTACKS_MAX         = 64 * 1024;
 static const int BRAIN_SERVER_CLIENTS_MAX         = 256;
@@ -173,6 +173,8 @@ typedef struct brain_server_dumper_options
 {
   brain_server_dbs_t *brain_server_dbs;
 
+  u32 brain_server_timer;
+
 } brain_server_dumper_options_t;
 
 typedef struct brain_server_client_options
@@ -211,7 +213,7 @@ bool  brain_client_connect              (hc_device_param_t *device_param, const 
 void  brain_client_disconnect           (hc_device_param_t *device_param);
 void  brain_client_generate_hash        (u64 *hash, const char *line_buf, const size_t line_len);
 
-int   brain_server                      (const char *listen_host, const int listen_port, const char *brain_password, const char *brain_session_whitelist);
+int   brain_server                      (const char *listen_host, const int listen_port, const char *brain_password, const char *brain_session_whitelist, const u32 brain_server_timer);
 bool  brain_server_read_hash_dumps      (brain_server_dbs_t *brain_server_dbs, const char *path);
 bool  brain_server_write_hash_dumps     (brain_server_dbs_t *brain_server_dbs, const char *path);
 bool  brain_server_read_hash_dump       (brain_server_db_hash_t *brain_server_db_hash, const char *file);

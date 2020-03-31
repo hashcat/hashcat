@@ -11,35 +11,17 @@
 #define MD5_H_S(x,y,z)  ((x) ^ (y) ^ (z))
 #define MD5_I_S(x,y,z)  ((y) ^ ((x) | ~(z)))
 
-#ifdef IS_NV
 #define MD5_F(x,y,z)    ((z) ^ ((x) & ((y) ^ (z))))
 #define MD5_G(x,y,z)    ((y) ^ ((z) & ((x) ^ (y))))
 #define MD5_H(x,y,z)    ((x) ^ (y) ^ (z))
 #define MD5_H1(x,y,z)   ((t = (x) ^ (y)) ^ (z))
 #define MD5_H2(x,y,z)   ((x) ^ t)
 #define MD5_I(x,y,z)    ((y) ^ ((x) | ~(z)))
-#define MD5_Fo(x,y,z)   (MD5_F((x), (y), (z)))
-#define MD5_Go(x,y,z)   (MD5_G((x), (y), (z)))
-#endif
 
-#ifdef IS_AMD
-#define MD5_F(x,y,z)    ((z) ^ ((x) & ((y) ^ (z))))
-#define MD5_G(x,y,z)    ((y) ^ ((z) & ((x) ^ (y))))
-#define MD5_H(x,y,z)    ((x) ^ (y) ^ (z))
-#define MD5_H1(x,y,z)   ((t = (x) ^ (y)) ^ (z))
-#define MD5_H2(x,y,z)   ((x) ^ t)
-#define MD5_I(x,y,z)    ((y) ^ ((x) | ~(z)))
+#ifdef USE_BITSELECT
 #define MD5_Fo(x,y,z)   (bitselect ((z), (y), (x)))
 #define MD5_Go(x,y,z)   (bitselect ((y), (x), (z)))
-#endif
-
-#ifdef IS_GENERIC
-#define MD5_F(x,y,z)    ((z) ^ ((x) & ((y) ^ (z))))
-#define MD5_G(x,y,z)    ((y) ^ ((z) & ((x) ^ (y))))
-#define MD5_H(x,y,z)    ((x) ^ (y) ^ (z))
-#define MD5_H1(x,y,z)   ((t = (x) ^ (y)) ^ (z))
-#define MD5_H2(x,y,z)   ((x) ^ t)
-#define MD5_I(x,y,z)    ((y) ^ ((x) | ~(z)))
+#else
 #define MD5_Fo(x,y,z)   (MD5_F((x), (y), (z)))
 #define MD5_Go(x,y,z)   (MD5_G((x), (y), (z)))
 #endif

@@ -340,7 +340,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
     return -1;
   }
 
-  char *install_dir = hcmalloc (HCBUFSIZ_TINY);
+  char *install_dir = (char *) hcmalloc (HCBUFSIZ_TINY);
 
   get_install_dir (install_dir, resolved_exec_path);
 
@@ -359,8 +359,8 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
     const char *home_dir = pwp->pw_dir;
 
-    profile_dir = hcmalloc (HCBUFSIZ_TINY);
-    session_dir = hcmalloc (HCBUFSIZ_TINY);
+    profile_dir = (char *) hcmalloc (HCBUFSIZ_TINY);
+    session_dir = (char *) hcmalloc (HCBUFSIZ_TINY);
 
     get_profile_dir (profile_dir, home_dir);
     get_session_dir (session_dir, profile_dir);
@@ -458,7 +458,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
   hcfree (cpath);
 
   //if (getenv ("TMP") == NULL)
-  if (1)
+  if (true)
   {
     char *tmp;
 

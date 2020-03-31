@@ -61,7 +61,7 @@ const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 #define LUKS_KEY_ENABLED  0x00AC71F3
 #define LUKS_STRIPES 4000
 // partition header starts with magic
-#define LUKS_MAGIC {'L','U','K','S', 0xba, 0xbe};
+#define LUKS_MAGIC {'L','U','K','S', (char) 0xba, (char) 0xbe};
 #define LUKS_MAGIC_L 6
 /* Actually we need only 37, but we don't want struct autoaligning to kick in */
 #define UUID_STRING_L 40

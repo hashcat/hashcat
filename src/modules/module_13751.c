@@ -22,9 +22,11 @@ static const u32   DGST_SIZE      = DGST_SIZE_4_8;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_FDE;
 static const char *HASH_NAME      = "VeraCrypt SHA256 + XTS 512 bit";
 static const u64   KERN_TYPE      = 13751;
-static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
+static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
+                                  | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_BINARY_HASHFILE
+                                  | OPTS_TYPE_LOOP_EXTENDED
                                   | OPTS_TYPE_COPY_TMPS;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
@@ -55,6 +57,7 @@ typedef struct vc_tmp
 
   u32 pim_key[64];
   int pim; // marker for cracked
+  int pim_check; // marker for _extended kernel
 
 } vc_tmp_t;
 
@@ -81,9 +84,16 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 {
   char *jit_build_options = NULL;
 
-  if (device_param->opencl_device_vendor_id == VENDOR_ID_AMD)
+  // Extra treatment for Apple systems
+  if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
   {
-    hc_asprintf (&jit_build_options, "-D NO_UNROLL");
+    return jit_build_options;
+  }
+
+  // NVIDIA GPU
+  if (device_param->opencl_device_vendor_id == VENDOR_ID_NV)
+  {
+    hc_asprintf (&jit_build_options, "-D _unroll");
   }
 
   return jit_build_options;
@@ -235,7 +245,7 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
   salt_t *salt = hash->salt;
 
-  if ((user_options->veracrypt_pim_start) && (user_options->veracrypt_pim_stop))
+  if ((user_options->veracrypt_pim_start_chgd == true) && (user_options->veracrypt_pim_stop_chgd == true))
   {
     vc->pim_start = 15 + user_options->veracrypt_pim_start;
     vc->pim_stop  = 15 + user_options->veracrypt_pim_stop;

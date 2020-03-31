@@ -64,6 +64,8 @@ bool hc_string_is_digit (const char *s);
 void hc_string_trim_trailing (char *s);
 void hc_string_trim_leading (char *s);
 
+int hc_get_processor_count ();
+
 bool hc_same_files (char *file1, char *file2);
 
 u32 hc_strtoul  (const char *nptr, char **endptr, int base);
@@ -76,6 +78,9 @@ u32 round_up_multiple_32 (const u32 v, const u32 m);
 u64 round_up_multiple_64 (const u64 v, const u64 m);
 
 void hc_strncat (u8 *dst, const u8 *src, const size_t n);
+
+const u8 *hc_strchr_next (const u8 *input_buf, const int input_len, const u8 separator);
+const u8 *hc_strchr_last (const u8 *input_buf, const int input_len, const u8 separator);
 
 int count_char (const u8 *buf, const int len, const u8 c);
 float get_entropy (const u8 *buf, const int len);

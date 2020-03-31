@@ -2349,6 +2349,7 @@ DECLSPEC u32 apply_rules_optimized (CONSTANT_AS const u32 *cmds, u32 *buf0, u32 
     const u32 p0   = (cmd >>  8) & 0xff;
     const u32 p1   = (cmd >> 16) & 0xff;
 
+    // we need to guarantee input length < 32 otherwise functions like rule_op_mangle_switch_last() and others will read out of boundary
     out_len = apply_rule_optimized (name, p0, p1, buf0, buf1, out_len);
   }
 

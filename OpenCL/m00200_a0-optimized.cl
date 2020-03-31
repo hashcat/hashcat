@@ -99,10 +99,10 @@ KERNEL_FQ void m00200_m04 (KERN_ATTR_RULES ())
     {
       const u32x wj = w_t[j];
 
-      ROUND ((wj >>  0) & 0xff);
-      ROUND ((wj >>  8) & 0xff);
-      ROUND ((wj >> 16) & 0xff);
-      ROUND ((wj >> 24) & 0xff);
+      ROUND (unpack_v8a_from_v32 (wj));
+      ROUND (unpack_v8b_from_v32 (wj));
+      ROUND (unpack_v8c_from_v32 (wj));
+      ROUND (unpack_v8d_from_v32 (wj));
     }
 
     const u32x wj = w_t[j];
@@ -111,18 +111,18 @@ KERNEL_FQ void m00200_m04 (KERN_ATTR_RULES ())
 
     if (left == 3)
     {
-      ROUND ((wj >>  0) & 0xff);
-      ROUND ((wj >>  8) & 0xff);
-      ROUND ((wj >> 16) & 0xff);
+      ROUND (unpack_v8a_from_v32 (wj));
+      ROUND (unpack_v8b_from_v32 (wj));
+      ROUND (unpack_v8c_from_v32 (wj));
     }
     else if (left == 2)
     {
-      ROUND ((wj >>  0) & 0xff);
-      ROUND ((wj >>  8) & 0xff);
+      ROUND (unpack_v8a_from_v32 (wj));
+      ROUND (unpack_v8b_from_v32 (wj));
     }
     else if (left == 1)
     {
-      ROUND ((wj >>  0) & 0xff);
+      ROUND (unpack_v8a_from_v32 (wj));
     }
 
     a &= 0x7fffffff;
@@ -237,10 +237,10 @@ KERNEL_FQ void m00200_s04 (KERN_ATTR_RULES ())
     {
       const u32x wj = w_t[j];
 
-      ROUND ((wj >>  0) & 0xff);
-      ROUND ((wj >>  8) & 0xff);
-      ROUND ((wj >> 16) & 0xff);
-      ROUND ((wj >> 24) & 0xff);
+      ROUND (unpack_v8a_from_v32 (wj));
+      ROUND (unpack_v8b_from_v32 (wj));
+      ROUND (unpack_v8c_from_v32 (wj));
+      ROUND (unpack_v8d_from_v32 (wj));
     }
 
     const u32x wj = w_t[j];
@@ -249,18 +249,18 @@ KERNEL_FQ void m00200_s04 (KERN_ATTR_RULES ())
 
     if (left == 3)
     {
-      ROUND ((wj >>  0) & 0xff);
-      ROUND ((wj >>  8) & 0xff);
-      ROUND ((wj >> 16) & 0xff);
+      ROUND (unpack_v8a_from_v32 (wj));
+      ROUND (unpack_v8b_from_v32 (wj));
+      ROUND (unpack_v8c_from_v32 (wj));
     }
     else if (left == 2)
     {
-      ROUND ((wj >>  0) & 0xff);
-      ROUND ((wj >>  8) & 0xff);
+      ROUND (unpack_v8a_from_v32 (wj));
+      ROUND (unpack_v8b_from_v32 (wj));
     }
     else if (left == 1)
     {
-      ROUND ((wj >>  0) & 0xff);
+      ROUND (unpack_v8a_from_v32 (wj));
     }
 
     a &= 0x7fffffff;

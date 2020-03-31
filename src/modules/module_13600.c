@@ -19,7 +19,8 @@ static const u32   DGST_SIZE      = DGST_SIZE_4_4;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_ARCHIVE;
 static const char *HASH_NAME      = "WinZip";
 static const u64   KERN_TYPE      = 13600;
-static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
+static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
+                                  | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
@@ -156,13 +157,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.len_max[5] = 6;
   token.sep[5]     = '*';
   token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
+                   | TOKEN_ATTR_VERIFY_HEX;
 
   token.len_min[6] = 1;
   token.len_max[6] = 6;
   token.sep[6]     = '*';
   token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
+                   | TOKEN_ATTR_VERIFY_HEX;
 
   token.len_min[7] = 0;
   token.len_max[7] = 16384;
@@ -233,7 +234,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *compress_length_pos = token.buf[6];
 
-  const u32 compress_length = hc_strtoul ((const char *) compress_length_pos, NULL, 10);
+  const u32 compress_length = hc_strtoul ((const char *) compress_length_pos, NULL, 16);
 
   zip2->compress_length = compress_length;
 
@@ -364,7 +365,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u32 data_len = zip2->data_len;
 
-  char data_tmp[8192 + 1] = { 0 };
+  char data_tmp[16384 + 1] = { 0 };
 
   for (u32 i = 0, j = 0; i < data_len; i += 1, j += 2)
   {
@@ -384,7 +385,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     sprintf (auth_tmp + j, "%02x", ptr[i]);
   }
 
-  const int line_len = snprintf (line_buf, line_size, "%s*%u*%u*%u*%s*%x*%u*%s*%s*%s",
+  const int line_len = snprintf (line_buf, line_size, "%s*%u*%u*%u*%s*%x*%x*%s*%s*%s",
     SIGNATURE_ZIP2_START,
     zip2->type,
     zip2->mode,

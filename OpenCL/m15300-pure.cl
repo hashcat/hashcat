@@ -442,8 +442,6 @@ KERNEL_FQ void m15300_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
   iv[0] = hc_swap32_S (tmps[gid].out[6]);
   iv[1] = hc_swap32_S (tmps[gid].out[7]);
 
-  u32 decrypted[26];
-
   /* Construct 3DES keys */
 
   const u32 a = (key[0]);
@@ -470,62 +468,123 @@ KERNEL_FQ void m15300_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
 
   _des_crypt_keysetup (e, f, Ke, Kf, s_skb);
 
-  u32 contents_pos;
-  u32 contents_off;
-  u32 wx_off;
+  u32 p1[2];
+  u32 p2[2];
+  u32 out[2];
 
-  for (wx_off = 0, contents_pos = 0, contents_off = 0; contents_pos < esalt_bufs[digests_offset].contents_len; wx_off += 2, contents_pos += 8, contents_off += 2)
+  u32 hmac_data[4];
+
+  hmac_data[0] = hc_swap32_S (esalt_bufs[digests_offset].contents[0]);
+  hmac_data[1] = hc_swap32_S (esalt_bufs[digests_offset].contents[1]);
+  hmac_data[2] = hc_swap32_S (esalt_bufs[digests_offset].contents[2]);
+  hmac_data[3] = hc_swap32_S (esalt_bufs[digests_offset].contents[3]);
+
+  u32 expected_key[4];
+
+  expected_key[0] = hc_swap32_S (esalt_bufs[digests_offset].contents[4]);
+  expected_key[1] = hc_swap32_S (esalt_bufs[digests_offset].contents[5]);
+  expected_key[2] = hc_swap32_S (esalt_bufs[digests_offset].contents[6]);
+  expected_key[3] = hc_swap32_S (esalt_bufs[digests_offset].contents[7]);
+
+  u32 last_iv[2];
+
+  last_iv[0] = hc_swap32_S (esalt_bufs[digests_offset].contents[8]);
+  last_iv[1] = hc_swap32_S (esalt_bufs[digests_offset].contents[9]);
+
+  u32 last_key[16];
+
+  last_key[ 0] = hc_swap32_S (esalt_bufs[digests_offset].contents[10]);
+  last_key[ 1] = hc_swap32_S (esalt_bufs[digests_offset].contents[11]);
+  last_key[ 2] = hc_swap32_S (esalt_bufs[digests_offset].contents[12]);
+  last_key[ 3] = hc_swap32_S (esalt_bufs[digests_offset].contents[13]);
+  last_key[ 4] = hc_swap32_S (esalt_bufs[digests_offset].contents[14]);
+  last_key[ 5] = hc_swap32_S (esalt_bufs[digests_offset].contents[15]);
+  last_key[ 6] = hc_swap32_S (esalt_bufs[digests_offset].contents[16]);
+  last_key[ 7] = hc_swap32_S (esalt_bufs[digests_offset].contents[17]);
+  last_key[ 8] = hc_swap32_S (esalt_bufs[digests_offset].contents[18]);
+  last_key[ 9] = hc_swap32_S (esalt_bufs[digests_offset].contents[19]);
+  last_key[10] = hc_swap32_S (esalt_bufs[digests_offset].contents[20]);
+  last_key[11] = hc_swap32_S (esalt_bufs[digests_offset].contents[21]);
+  last_key[12] = hc_swap32_S (esalt_bufs[digests_offset].contents[22]);
+  last_key[13] = hc_swap32_S (esalt_bufs[digests_offset].contents[23]);
+  last_key[14] = hc_swap32_S (esalt_bufs[digests_offset].contents[24]);
+  last_key[15] = hc_swap32_S (esalt_bufs[digests_offset].contents[25]);
+
+  // hmac_data
+
+  _des_crypt_decrypt (p1,  hmac_data + 0, Ke, Kf, s_SPtrans);
+  _des_crypt_encrypt (p2,  p1,   Kc, Kd, s_SPtrans);
+  _des_crypt_decrypt (out, p2,   Ka, Kb, s_SPtrans);
+
+  out[0] ^= iv[0];
+  out[1] ^= iv[1];
+
+  iv[0] = hmac_data[0];
+  iv[1] = hmac_data[1];
+
+  hmac_data[0] = out[0];
+  hmac_data[1] = out[1];
+
+  _des_crypt_decrypt (p1,  hmac_data + 2, Ke, Kf, s_SPtrans);
+  _des_crypt_encrypt (p2,  p1,   Kc, Kd, s_SPtrans);
+  _des_crypt_decrypt (out, p2,   Ka, Kb, s_SPtrans);
+
+  out[0] ^= iv[0];
+  out[1] ^= iv[1];
+
+  iv[0] = hmac_data[2];
+  iv[1] = hmac_data[3];
+
+  hmac_data[2] = out[0];
+  hmac_data[3] = out[1];
+
+  // expected_key
+
+  _des_crypt_decrypt (p1,  expected_key + 0, Ke, Kf, s_SPtrans);
+  _des_crypt_encrypt (p2,  p1,   Kc, Kd, s_SPtrans);
+  _des_crypt_decrypt (out, p2,   Ka, Kb, s_SPtrans);
+
+  out[0] ^= iv[0];
+  out[1] ^= iv[1];
+
+  iv[0] = expected_key[0];
+  iv[1] = expected_key[1];
+
+  expected_key[0] = out[0];
+  expected_key[1] = out[1];
+
+  _des_crypt_decrypt (p1,  expected_key + 2, Ke, Kf, s_SPtrans);
+  _des_crypt_encrypt (p2,  p1,   Kc, Kd, s_SPtrans);
+  _des_crypt_decrypt (out, p2,   Ka, Kb, s_SPtrans);
+
+  out[0] ^= iv[0];
+  out[1] ^= iv[1];
+
+  iv[0] = expected_key[2];
+  iv[1] = expected_key[3];
+
+  expected_key[2] = out[0];
+  expected_key[3] = out[1];
+
+  // last_key
+
+  iv[0] = last_iv[0];
+  iv[1] = last_iv[1];
+
+  for (int off = 0; off < 16; off += 2)
   {
-    /* First Pass */
-
-    u32 data[2];
-
-    data[0] = hc_swap32_S (esalt_bufs[digests_offset].contents[contents_off + 0]);
-    data[1] = hc_swap32_S (esalt_bufs[digests_offset].contents[contents_off + 1]);
-
-    u32 p1[2];
-
-    _des_crypt_decrypt (p1, data, Ke, Kf, s_SPtrans);
-
-    /* Second Pass */
-
-    u32 p2[2];
-
-    _des_crypt_encrypt (p2, p1, Kc, Kd, s_SPtrans);
-
-    /* Third Pass */
-
-    u32 out[2];
-
-    _des_crypt_decrypt (out, p2, Ka, Kb, s_SPtrans);
+    _des_crypt_decrypt (p1,  last_key + off, Ke, Kf, s_SPtrans);
+    _des_crypt_encrypt (p2,  p1,   Kc, Kd, s_SPtrans);
+    _des_crypt_decrypt (out, p2,   Ka, Kb, s_SPtrans);
 
     out[0] ^= iv[0];
     out[1] ^= iv[1];
 
-    decrypted[wx_off + 0] = out[0];
-    decrypted[wx_off + 1] = out[1];
+    iv[0] = last_key[off + 0];
+    iv[1] = last_key[off + 1];
 
-    iv[0] = data[0];
-    iv[1] = data[1];
-  }
-
-  u32 hmacSalt[4];
-  u32 expectedHmac[4];
-  u32 lastKey[16];
-
-  hmacSalt[0] = hc_swap32_S (decrypted[0]);
-  hmacSalt[1] = hc_swap32_S (decrypted[1]);
-  hmacSalt[2] = hc_swap32_S (decrypted[2]);
-  hmacSalt[3] = hc_swap32_S (decrypted[3]);
-
-  expectedHmac[0] = hc_swap32_S (decrypted[4 + 0]);
-  expectedHmac[1] = hc_swap32_S (decrypted[4 + 1]);
-  expectedHmac[2] = hc_swap32_S (decrypted[4 + 2]);
-  expectedHmac[3] = hc_swap32_S (decrypted[4 + 3]);
-
-  for(int i = 0; i < 16; i++)
-  {
-    lastKey[i] = decrypted[i + 26 - 16];
+    last_key[off + 0] = out[0];
+    last_key[off + 1] = out[1];
   }
 
   w0[0] = tmps[gid].userKey[0];
@@ -549,10 +608,10 @@ KERNEL_FQ void m15300_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
 
   sha1_hmac_init_64 (&ctx, w0, w1, w2, w3);
 
-  w0[0] = hmacSalt[0];
-  w0[1] = hmacSalt[1];
-  w0[2] = hmacSalt[2];
-  w0[3] = hmacSalt[3];
+  w0[0] = hc_swap32_S (hmac_data[0]);
+  w0[1] = hc_swap32_S (hmac_data[1]);
+  w0[2] = hc_swap32_S (hmac_data[2]);
+  w0[3] = hc_swap32_S (hmac_data[3]);
   w1[0] = 0;
   w1[1] = 0;
   w1[2] = 0;
@@ -589,22 +648,22 @@ KERNEL_FQ void m15300_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
 
   sha1_hmac_init_64 (&ctx, w0, w1, w2, w3);
 
-  w0[0] = hc_swap32_S (lastKey[ 0]);
-  w0[1] = hc_swap32_S (lastKey[ 1]);
-  w0[2] = hc_swap32_S (lastKey[ 2]);
-  w0[3] = hc_swap32_S (lastKey[ 3]);
-  w1[0] = hc_swap32_S (lastKey[ 4]);
-  w1[1] = hc_swap32_S (lastKey[ 5]);
-  w1[2] = hc_swap32_S (lastKey[ 6]);
-  w1[3] = hc_swap32_S (lastKey[ 7]);
-  w2[0] = hc_swap32_S (lastKey[ 8]);
-  w2[1] = hc_swap32_S (lastKey[ 9]);
-  w2[2] = hc_swap32_S (lastKey[10]);
-  w2[3] = hc_swap32_S (lastKey[11]);
-  w3[0] = hc_swap32_S (lastKey[12]);
-  w3[1] = hc_swap32_S (lastKey[13]);
-  w3[2] = hc_swap32_S (lastKey[14]);
-  w3[3] = hc_swap32_S (lastKey[15]);
+  w0[0] = hc_swap32_S (last_key[ 0]);
+  w0[1] = hc_swap32_S (last_key[ 1]);
+  w0[2] = hc_swap32_S (last_key[ 2]);
+  w0[3] = hc_swap32_S (last_key[ 3]);
+  w1[0] = hc_swap32_S (last_key[ 4]);
+  w1[1] = hc_swap32_S (last_key[ 5]);
+  w1[2] = hc_swap32_S (last_key[ 6]);
+  w1[3] = hc_swap32_S (last_key[ 7]);
+  w2[0] = hc_swap32_S (last_key[ 8]);
+  w2[1] = hc_swap32_S (last_key[ 9]);
+  w2[2] = hc_swap32_S (last_key[10]);
+  w2[3] = hc_swap32_S (last_key[11]);
+  w3[0] = hc_swap32_S (last_key[12]);
+  w3[1] = hc_swap32_S (last_key[13]);
+  w3[2] = hc_swap32_S (last_key[14]);
+  w3[3] = hc_swap32_S (last_key[15]);
 
   sha1_hmac_update_64 (&ctx, w0, w1, w2, w3, 64);
 
@@ -612,10 +671,10 @@ KERNEL_FQ void m15300_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
 
   #define il_pos 0
 
-  if ((expectedHmac[0] == ctx.opad.h[0])
-   && (expectedHmac[1] == ctx.opad.h[1])
-   && (expectedHmac[2] == ctx.opad.h[2])
-   && (expectedHmac[3] == ctx.opad.h[3]))
+  if ((expected_key[0] == hc_swap32_S (ctx.opad.h[0]))
+   && (expected_key[1] == hc_swap32_S (ctx.opad.h[1]))
+   && (expected_key[2] == hc_swap32_S (ctx.opad.h[2]))
+   && (expected_key[3] == hc_swap32_S (ctx.opad.h[3])))
   {
     if (atomic_inc (&hashes_shown[digests_offset]) == 0)
     {

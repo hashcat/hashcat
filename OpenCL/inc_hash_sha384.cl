@@ -219,7 +219,7 @@ DECLSPEC void sha384_update_128 (sha384_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u
 
     if (len == 128)
     {
-      sha384_transform_vector (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->w4, ctx->w5, ctx->w6, ctx->w7, ctx->h);
+      sha384_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->w4, ctx->w5, ctx->w6, ctx->w7, ctx->h);
 
       ctx->w0[0] = 0;
       ctx->w0[1] = 0;
@@ -1358,9 +1358,7 @@ DECLSPEC void sha384_hmac_init_128 (sha384_hmac_ctx_t *ctx, const u32 *w0, const
 
   sha384_init (&ctx->ipad);
 
-  sha384_transform (t0, t1, t2, t3, t4, t5, t6, t7, ctx->ipad.h);
-
-  ctx->ipad.len = 128;
+  sha384_update_128 (&ctx->ipad, t0, t1, t2, t3, t4, t5, t6, t7, 128);
 
   // opad
 
@@ -1399,9 +1397,7 @@ DECLSPEC void sha384_hmac_init_128 (sha384_hmac_ctx_t *ctx, const u32 *w0, const
 
   sha384_init (&ctx->opad);
 
-  sha384_transform (t0, t1, t2, t3, t4, t5, t6, t7, ctx->opad.h);
-
-  ctx->opad.len = 128;
+  sha384_update_128 (&ctx->opad, t0, t1, t2, t3, t4, t5, t6, t7, 128);
 }
 
 DECLSPEC void sha384_hmac_init (sha384_hmac_ctx_t *ctx, const u32 *w, const int len)
@@ -2093,7 +2089,7 @@ DECLSPEC void sha384_update_vector_128 (sha384_ctx_vector_t *ctx, u32x *w0, u32x
 
     if (len == 128)
     {
-      sha384_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->w4, ctx->w5, ctx->w6, ctx->w7, ctx->h);
+      sha384_transform_vector (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->w4, ctx->w5, ctx->w6, ctx->w7, ctx->h);
 
       ctx->w0[0] = 0;
       ctx->w0[1] = 0;
@@ -2858,9 +2854,7 @@ DECLSPEC void sha384_hmac_init_vector_128 (sha384_hmac_ctx_vector_t *ctx, const 
 
   sha384_init_vector (&ctx->ipad);
 
-  sha384_transform_vector (t0, t1, t2, t3, t4, t5, t6, t7, ctx->ipad.h);
-
-  ctx->ipad.len = 128;
+  sha384_update_vector_128 (&ctx->ipad, t0, t1, t2, t3, t4, t5, t6, t7, 128);
 
   // opad
 
@@ -2899,9 +2893,7 @@ DECLSPEC void sha384_hmac_init_vector_128 (sha384_hmac_ctx_vector_t *ctx, const 
 
   sha384_init_vector (&ctx->opad);
 
-  sha384_transform_vector (t0, t1, t2, t3, t4, t5, t6, t7, ctx->opad.h);
-
-  ctx->opad.len = 128;
+  sha384_update_vector_128 (&ctx->opad, t0, t1, t2, t3, t4, t5, t6, t7, 128);
 }
 
 DECLSPEC void sha384_hmac_init_vector (sha384_hmac_ctx_vector_t *ctx, const u32x *w, const int len)

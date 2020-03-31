@@ -51,6 +51,9 @@ typedef struct bitcoin_wallet
   u32 cry_master_buf[64];
   u32 cry_master_len;
 
+  u32 cry_salt_buf[16];
+  u32 cry_salt_len;
+
 } bitcoin_wallet_t;
 
 typedef struct bitcoin_wallet_tmp
@@ -60,6 +63,31 @@ typedef struct bitcoin_wallet_tmp
 } bitcoin_wallet_tmp_t;
 
 static const char *SIGNATURE_BITCOIN_WALLET = "$bitcoin$";
+
+char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
+{
+  char *jit_build_options = NULL;
+
+  // Extra treatment for Apple systems
+  if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
+  {
+    return jit_build_options;
+  }
+
+  // NVIDIA GPU
+  if (device_param->opencl_device_vendor_id == VENDOR_ID_NV)
+  {
+    hc_asprintf (&jit_build_options, "-D _unroll");
+  }
+
+  // ROCM
+  if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == true))
+  {
+    hc_asprintf (&jit_build_options, "-D _unroll");
+  }
+
+  return jit_build_options;
+}
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -85,29 +113,6 @@ u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
   return pw_max;
 }
 
-bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
-{
-  if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
-  {
-    // trap 6
-    if ((device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
-    {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
-{
-  char *jit_build_options = NULL;
-
-  hc_asprintf (&jit_build_options, "-D NO_UNROLL");
-
-  return jit_build_options;
-}
-
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
   u32 *digest = (u32 *) digest_buf;
@@ -127,12 +132,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.sep[1]     = '$';
   token.len_min[1] = 2;
-  token.len_max[1] = 2;
+  token.len_max[1] = 3;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[2]     = '$';
-  token.len_min[2] = 16;
+  token.len_min[2] = 64;
   token.len_max[2] = 256;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
@@ -145,7 +150,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.sep[4]     = '$';
   token.len_min[4] = 16;
-  token.len_max[4] = 16;
+  token.len_max[4] = 36;
   token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
@@ -208,7 +213,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   if (ckey_buf_len       != ckey_len)       return (PARSER_SALT_VALUE);
   if (public_key_buf_len != public_key_len) return (PARSER_SALT_VALUE);
 
-  if (cry_master_len % 16) return (PARSER_SALT_VALUE);
+  if (cry_master_len < 64) return (PARSER_SALT_VALUE);
+  if (cry_master_len % 32) return (PARSER_SALT_VALUE);
+
+  if (cry_salt_len != 16 && cry_salt_len != 36) return (PARSER_SALT_VALUE);
 
   // esalt
 
@@ -232,11 +240,18 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   salt->salt_iter = cry_rounds - 1;
 
-  // salt
+  // esalt
 
-  const bool parse_rc = generic_salt_decode (hashconfig, cry_salt_buf_pos, cry_salt_buf_len, (u8 *) salt->salt_buf, (int *) &salt->salt_len);
+  const bool parse_rc = generic_salt_decode (hashconfig, cry_salt_buf_pos, cry_salt_buf_len, (u8 *) bitcoin_wallet->cry_salt_buf, (int *) &bitcoin_wallet->cry_salt_len);
 
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
+
+  // salt
+
+  salt->salt_buf[0] = bitcoin_wallet->cry_salt_buf[0];
+  salt->salt_buf[1] = bitcoin_wallet->cry_salt_buf[1];
+
+  salt->salt_len = 8;
 
   return (PARSER_OK);
 }
@@ -315,6 +330,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_hash                  = module_st_hash;
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
-  module_ctx->module_unstable_warning         = module_unstable_warning;
+  module_ctx->module_unstable_warning         = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

@@ -18,23 +18,13 @@
 #define SHA224_S2(x) (hc_rotl32 ((x), 30u) ^ hc_rotl32 ((x), 19u) ^ hc_rotl32 ((x), 10u))
 #define SHA224_S3(x) (hc_rotl32 ((x), 26u) ^ hc_rotl32 ((x), 21u) ^ hc_rotl32 ((x),  7u))
 
-#ifdef IS_NV
 #define SHA224_F0(x,y,z)  (((x) & (y)) | ((z) & ((x) ^ (y))))
 #define SHA224_F1(x,y,z)  ((z) ^ ((x) & ((y) ^ (z))))
+
+#ifdef USE_BITSELECT
 #define SHA224_F0o(x,y,z) (bitselect ((x), (y), ((x) ^ (z))))
 #define SHA224_F1o(x,y,z) (bitselect ((z), (y), (x)))
-#endif
-
-#ifdef IS_AMD
-#define SHA224_F0(x,y,z)  (((x) & (y)) | ((z) & ((x) ^ (y))))
-#define SHA224_F1(x,y,z)  ((z) ^ ((x) & ((y) ^ (z))))
-#define SHA224_F0o(x,y,z) (bitselect ((x), (y), ((x) ^ (z))))
-#define SHA224_F1o(x,y,z) (bitselect ((z), (y), (x)))
-#endif
-
-#ifdef IS_GENERIC
-#define SHA224_F0(x,y,z)  (((x) & (y)) | ((z) & ((x) ^ (y))))
-#define SHA224_F1(x,y,z)  ((z) ^ ((x) & ((y) ^ (z))))
+#else
 #define SHA224_F0o(x,y,z) (SHA224_F0 ((x), (y), (z)))
 #define SHA224_F1o(x,y,z) (SHA224_F1 ((x), (y), (z)))
 #endif

@@ -7,6 +7,7 @@ SHARED                  := 0
 DEBUG                   := 0
 PRODUCTION              := 0
 PRODUCTION_VERSION      := v5.1.0
+ENABLE_CUBIN            := 1
 ENABLE_BRAIN            := 1
 USE_SYSTEM_LZMA         := 0
 USE_SYSTEM_ZLIB         := 0
@@ -111,25 +112,25 @@ LIBRARY_DEV_FOLDER      ?= $(LIBRARY_DEV_ROOT_FOLDER)/hashcat
 ifeq ($(USE_SYSTEM_LZMA),0)
 DEPS_LZMA_PATH          := deps/LZMA-SDK/C
 else
-DEPS_LZMA_PATH          := $(LIBRARY_DEV_ROOT_FOLDER)/
+DEPS_LZMA_PATH          := $(LIBRARY_DEV_ROOT_FOLDER)
 endif
 
 ifeq ($(USE_SYSTEM_ZLIB),0)
-DEPS_ZLIB_PATH          := deps/zlib/
+DEPS_ZLIB_PATH          := deps/zlib
 else
-DEPS_ZLIB_PATH          := $(LIBRARY_DEV_ROOT_FOLDER)/
+DEPS_ZLIB_PATH          := $(LIBRARY_DEV_ROOT_FOLDER)
 endif
 
 ifeq ($(USE_SYSTEM_OPENCL),0)
 DEPS_OPENCL_PATH        := deps/OpenCL-Headers
 else
-DEPS_OPENCL_PATH        := $(LIBRARY_DEV_ROOT_FOLDER)/
+DEPS_OPENCL_PATH        := $(LIBRARY_DEV_ROOT_FOLDER)
 endif
 
 ifeq ($(USE_SYSTEM_XXHASH),0)
 DEPS_XXHASH_PATH        := deps/xxHash
 else
-DEPS_XXHASH_PATH        := $(LIBRARY_DEV_ROOT_FOLDER)/
+DEPS_XXHASH_PATH        := $(LIBRARY_DEV_ROOT_FOLDER)
 endif
 
 ##
@@ -234,6 +235,11 @@ LFLAGS                  += -lxxhash
 endif
 endif
 
+# CUDA binary cache
+ifeq ($(ENABLE_CUBIN),1)
+CFLAGS                  += -DWITH_CUBIN
+endif
+
 ##
 ## Native compilation target
 ##
@@ -299,7 +305,7 @@ endif # MSYS2
 EMU_OBJS_ALL            := emu_general emu_inc_common emu_inc_platform emu_inc_scalar emu_inc_simd
 EMU_OBJS_ALL            += emu_inc_rp emu_inc_rp_optimized
 EMU_OBJS_ALL            += emu_inc_truecrypt_crc32 emu_inc_truecrypt_keyfile emu_inc_truecrypt_xts emu_inc_veracrypt_xts
-EMU_OBJS_ALL            += emu_inc_hash_md4 emu_inc_hash_md5 emu_inc_hash_ripemd160 emu_inc_hash_sha1 emu_inc_hash_sha256 emu_inc_hash_sha384 emu_inc_hash_sha512 emu_inc_hash_streebog256 emu_inc_hash_streebog512
+EMU_OBJS_ALL            += emu_inc_hash_md4 emu_inc_hash_md5 emu_inc_hash_ripemd160 emu_inc_hash_sha1 emu_inc_hash_sha256 emu_inc_hash_sha384 emu_inc_hash_sha512 emu_inc_hash_streebog256 emu_inc_hash_streebog512 emu_inc_ecc_secp256k1
 EMU_OBJS_ALL            += emu_inc_cipher_aes emu_inc_cipher_camellia emu_inc_cipher_des emu_inc_cipher_kuznyechik emu_inc_cipher_serpent emu_inc_cipher_twofish
 
 OBJS_ALL                := affinity autotune backend benchmark bitmap bitops combinator common convert cpt cpu_crc32 debugfile dictstat dispatch dynloader event ext_ADL ext_cuda ext_nvapi ext_nvml ext_nvrtc ext_OpenCL ext_sysfs ext_lzma filehandling folder hashcat hashes hlfmt hwmon induct interface keyboard_layout locking logfile loopback memory monitor mpsp outfile_check outfile pidfile potfile restore rp rp_cpu selftest slow_candidates shared status stdout straight terminal thread timer tuningdb usage user_options wordlist $(EMU_OBJS_ALL)

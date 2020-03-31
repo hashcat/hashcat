@@ -19,7 +19,7 @@ VC_MODES="13711 13712 13713 13721 13722 13723 13731 13732 13733 13741 13742 1374
 NEVER_CRACK="9720 9820 14900 18100"
 
 # List of modes which return a different output hash format than the input hash format
-NOCHECK_ENCODING="16800"
+NOCHECK_ENCODING="16800 22000"
 
 # LUKS mode has test containers
 LUKS_MODE="14600"
@@ -273,6 +273,8 @@ function init()
     min_offset=3
   elif [ "${hash_type}" -eq 16800 ]; then
     min_offset=7 # means length 8, since we start with 0
+  elif [ "${hash_type}" -eq 22000 ]; then
+    min_offset=7 # means length 8, since we start with 0
   fi
 
   # foreach password entry split password in 2 (skip first entry, is len 1)
@@ -333,6 +335,8 @@ function init()
   elif [ "${hash_type}" -eq 15400 ]; then
     min_len=31
   elif [ "${hash_type}" -eq 16800 ]; then
+    min_len=7 # means length 8, since we start with 0
+  elif [ "${hash_type}" -eq 22000 ]; then
     min_len=7 # means length 8, since we start with 0
   fi
 
@@ -402,6 +406,10 @@ function status()
 
         ;;
       10)
+        if is_in_array "${hash_type}" ${NEVER_CRACK_ALGOS}; then
+          return
+        fi
+
         if [ "${pass_only}" -eq 1 ]; then
           echo "plains not found in output, cmdline : ${CMD}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
         else
@@ -469,7 +477,13 @@ function attack_0()
       if [ "${file_only}" -eq 1 ]; then
 
         temp_file="${OUTD}/${hash_type}_filebased_only_temp.txt"
-        echo "${hash}" | base64 -d > "${temp_file}"
+
+        if [ "${hash_type}" -ne 22000 ]; then
+          echo "${hash}" | base64 -d > "${temp_file}"
+        else
+          echo "${hash}" > "${temp_file}"
+        fi
+
         hash="${temp_file}"
 
       fi
@@ -486,9 +500,9 @@ function attack_0()
 
       output=$(echo "${pass}" | ./${BIN} ${OPTS} -a 0 -m ${hash_type} "${hash}" 2>&1)
 
-      pass=${pass_old}
-
       ret=${?}
+
+      pass=${pass_old}
 
       echo "${output}" >> "${OUTD}/logfull.txt"
 
@@ -553,9 +567,13 @@ function attack_0()
 
       hash_file=${temp_file}
 
-      while read -r base64_hash; do
+      while read -r file_only_hash; do
 
-        echo -n "${base64_hash}" | base64 -d >> "${temp_file}"
+        if [ "${hash_type}" -ne 22000 ]; then
+          echo -n "${file_only_hash}" | base64 -d >> "${temp_file}"
+        else
+          echo "${file_only_hash}" >> "${temp_file}"
+        fi
 
       done < "${OUTD}/${hash_type}_hashes.txt"
 
@@ -657,7 +675,13 @@ function attack_1()
         if [ "${file_only}" -eq 1 ]; then
 
           temp_file="${OUTD}/${hash_type}_filebased_only_temp.txt"
-          echo "${hash}" | base64 -d > "${temp_file}"
+
+          if [ "${hash_type}" -ne 22000 ]; then
+            echo "${hash}" | base64 -d > "${temp_file}"
+          else
+            echo "${hash}" > "${temp_file}"
+          fi
+
           hash="${temp_file}"
 
         fi
@@ -815,9 +839,13 @@ function attack_1()
 
       hash_file=${temp_file}
 
-      while read -r base64_hash; do
+      while read -r file_only_hash; do
 
-        echo -n "${base64_hash}" | base64 -d >> "${temp_file}"
+        if [ "${hash_type}" -ne 22000 ]; then
+          echo -n "${file_only_hash}" | base64 -d >> "${temp_file}"
+        else
+          echo "${file_only_hash}" >> "${temp_file}"
+        fi
 
       done < "${OUTD}/${hash_type}_multihash_combi.txt"
 
@@ -925,6 +953,8 @@ function attack_3()
       max=1
     elif [ "${hash_type}" -eq 16800 ]; then
       max=7
+    elif [ "${hash_type}" -eq 22000 ]; then
+      max=7
     fi
 
     i=1
@@ -944,7 +974,13 @@ function attack_3()
       if [ "${file_only}" -eq 1 ]; then
 
         temp_file="${OUTD}/${hash_type}_filebased_only_temp.txt"
-        echo "${hash}" | base64 -d > "${temp_file}"
+
+        if [ "${hash_type}" -ne 22000 ]; then
+          echo "${hash}" | base64 -d > "${temp_file}"
+        else
+          echo "${hash}" > "${temp_file}"
+        fi
+
         hash="${temp_file}"
 
       fi
@@ -1094,6 +1130,11 @@ function attack_3()
       increment_max=9
     fi
 
+    if   [ "${hash_type}" -eq 22000 ]; then
+      increment_min=8
+      increment_max=9
+    fi
+
     # if file_only -> decode all base64 "hashes" and put them in the temporary file
 
     if [ "${file_only}" -eq 1 ]; then
@@ -1103,9 +1144,13 @@ function attack_3()
 
       hash_file=${temp_file}
 
-      while read -r base64_hash; do
+      while read -r file_only_hash; do
 
-        echo -n "${base64_hash}" | base64 -d >> "${temp_file}"
+        if [ "${hash_type}" -ne 22000 ]; then
+          echo -n "${file_only_hash}" | base64 -d >> "${temp_file}"
+        else
+          echo "${file_only_hash}" >> "${temp_file}"
+        fi
 
       done < "${OUTD}/${hash_type}_multihash_bruteforce.txt"
 
@@ -1335,6 +1380,91 @@ function attack_3()
       custom_charsets="-1 ${charset_1} -2 ${charset_2} -3 ${charset_3} -4 ${charset_4}"
     fi
 
+    if [ "${hash_type}" -eq 22000 ]; then
+
+      mask="?d?d?d?d?d?1?2?3?4"
+
+      charset_1=""
+      charset_2=""
+      charset_3=""
+      charset_4=""
+
+      # check positions (here we assume that mask is always composed of non literal chars
+      # i.e. something like ?d?l?u?s?1 is possible, but ?d?dsuffix not
+      charset_1_pos=$(expr index "${mask}" 1)
+      charset_2_pos=$(expr index "${mask}" 2)
+      charset_3_pos=$(expr index "${mask}" 3)
+      charset_4_pos=$(expr index "${mask}" 4)
+
+      # divide each charset position by 2 since each of them occupies 2 positions in the mask
+
+      charset_1_pos=$((charset_1_pos / 2))
+      charset_2_pos=$((charset_2_pos / 2))
+      charset_3_pos=$((charset_3_pos / 2))
+      charset_4_pos=$((charset_4_pos / 2))
+
+      i=1
+
+      while read -r -u 9 hash; do
+
+        pass=$(sed -n ${i}p "${OUTD}/${hash_type}_passwords.txt")
+
+        # charset 1
+        char=$(echo "${pass}" | cut -b ${charset_1_pos})
+        charset_1=$(printf "%s\n%s\n" "${charset_1}" "${char}")
+
+        # charset 2
+        char=$(echo "${pass}" | cut -b ${charset_2_pos})
+        charset_2=$(printf "%s\n%s\n" "${charset_2}" "${char}")
+
+        # charset 3
+        char=$(echo "${pass}" | cut -b ${charset_3_pos})
+        charset_3=$(printf "%s\n%s\n" "${charset_3}" "${char}")
+
+        # charset 4
+        char=$(echo "${pass}" | cut -b ${charset_4_pos})
+        charset_4=$(printf "%s\n%s\n" "${charset_4}" "${char}")
+
+        i=$((i + 1))
+
+      done 9< "${OUTD}/${hash_type}_multihash_bruteforce.txt"
+
+      # just make sure that all custom charset fields are initialized
+
+      if [ -z "${charset_1}" ]; then
+
+        charset_1="1"
+
+      fi
+
+      if [ -z "${charset_2}" ]; then
+
+        charset_2="2"
+
+      fi
+
+      if [ -z "${charset_3}" ]; then
+
+        charset_3="3"
+
+      fi
+
+      if [ -z "${charset_4}" ]; then
+
+        charset_4="4"
+
+      fi
+
+      # unique and remove new lines
+
+      charset_1=$(echo "${charset_1}" | sort -u | tr -d '\n')
+      charset_2=$(echo "${charset_2}" | sort -u | tr -d '\n')
+      charset_3=$(echo "${charset_3}" | sort -u | tr -d '\n')
+      charset_4=$(echo "${charset_4}" | sort -u | tr -d '\n')
+
+      custom_charsets="-1 ${charset_1} -2 ${charset_2} -3 ${charset_3} -4 ${charset_4}"
+    fi
+
     increment_charset_opts=""
 
     if [ ${need_hcmask} -eq 0 ]; then # the "normal" case without .hcmask file
@@ -1449,6 +1579,8 @@ function attack_6()
       mask_offset=29
     elif [ "${hash_type}" -eq 16800 ]; then
       max=6
+    elif [ "${hash_type}" -eq 22000 ]; then
+      max=6
     fi
 
     # special case: we need to split the first line
@@ -1507,7 +1639,13 @@ function attack_6()
         if [ "${file_only}" -eq 1 ]; then
 
           temp_file="${OUTD}/${hash_type}_filebased_only_temp.txt"
-          echo "${hash}" | base64 -d > "${temp_file}"
+
+          if [ "${hash_type}" -ne 22000 ]; then
+            echo "${hash}" | base64 -d > "${temp_file}"
+          else
+            echo "${hash}" > "${temp_file}"
+          fi
+
           hash="${temp_file}"
 
         fi
@@ -1667,6 +1805,8 @@ function attack_6()
       max=8
     elif [ "${hash_type}" -eq 16800 ]; then
       max=5
+    elif [ "${hash_type}" -eq 22000 ]; then
+      max=5
     fi
 
     if is_in_array "${hash_type}" ${TIMEOUT_ALGOS}; then
@@ -1695,9 +1835,13 @@ function attack_6()
 
         hash_file=${temp_file}
 
-        while read -r base64_hash; do
+        while read -r file_only_hash; do
 
-          echo -n "${base64_hash}" | base64 -d >> "${temp_file}"
+          if [ "${hash_type}" -ne 22000 ]; then
+            echo -n "${file_only_hash}" | base64 -d >> "${temp_file}"
+          else
+            echo "${file_only_hash}" >> "${temp_file}"
+          fi
 
         done < "${OUTD}/${hash_type}_hashes_multi_${i}.txt"
 
@@ -1813,6 +1957,8 @@ function attack_7()
       max=1
     elif [ "${hash_type}" -eq 16800 ]; then
       max=5
+    elif [ "${hash_type}" -eq 22000 ]; then
+      max=5
     fi
 
     # special case: we need to split the first line
@@ -1860,7 +2006,13 @@ function attack_7()
         if [ "${file_only}" -eq 1 ]; then
 
           temp_file="${OUTD}/${hash_type}_filebased_only_temp.txt"
-          echo "${hash}" | base64 -d > "${temp_file}"
+
+          if [ "${hash_type}" -ne 22000 ]; then
+            echo "${hash}" | base64 -d > "${temp_file}"
+          else
+            echo "${hash}" > "${temp_file}"
+          fi
+
           hash="${temp_file}"
 
         fi
@@ -1897,6 +2049,26 @@ function attack_7()
         fi
 
         if [ "${hash_type}" -eq 16800 ]; then
+
+          pass_part_1=$(sed -n ${line_nr}p "${OUTD}/${hash_type}_dict1")
+          pass_part_2=$(sed -n ${line_nr}p "${OUTD}/${hash_type}_dict2")
+
+          pass_part_2_len=${#pass_part_2}
+
+          pass=${pass_part_1}${pass_part_2}
+          pass_len=${#pass}
+
+          # add first x chars of password to mask and append the (old) mask
+
+          mask_len=${#mask}
+          mask_len=$((mask_len / 2))
+
+          mask_prefix=$(echo "${pass}" | cut -b -$((pass_len - mask_len - pass_part_2_len)))
+          mask=${mask_prefix}${mask}
+
+        fi
+
+        if [ "${hash_type}" -eq 22000 ]; then
 
           pass_part_1=$(sed -n ${line_nr}p "${OUTD}/${hash_type}_dict1")
           pass_part_2=$(sed -n ${line_nr}p "${OUTD}/${hash_type}_dict2")
@@ -2060,6 +2232,8 @@ function attack_7()
       max=5
     elif [ "${hash_type}" -eq 16800 ]; then
       max=5
+    elif [ "${hash_type}" -eq 22000 ]; then
+      max=5
     fi
 
     if is_in_array "${hash_type}" ${TIMEOUT_ALGOS}; then
@@ -2091,9 +2265,13 @@ function attack_7()
 
         hash_file=${temp_file}
 
-        while read -r base64_hash; do
+        while read -r file_only_hash; do
 
-          echo -n "${base64_hash}" | base64 -d >> "${temp_file}"
+          if [ "${hash_type}" -ne 22000 ]; then
+            echo -n "${file_only_hash}" | base64 -d >> "${temp_file}"
+          else
+            echo "${file_only_hash}" >> "${temp_file}"
+          fi
 
         done < "${OUTD}/${hash_type}_hashes_multi_${i}.txt"
 
@@ -2805,13 +2983,6 @@ if [ "${TYPE}" = "null" ]; then
   TYPE="Gpu"
 fi
 
-if [ "${HT}" -eq 20510 ]; then # special case for PKZIP Master Key
-  if [ "${MODE}" -eq 1 ]; then # if "multi" was forced we need to exit
-    echo "ERROR: -m 20510 = PKZIP Master Key can only be run with a single hash"
-    exit 1
-  fi
-fi
-
 if [ -n "${ARCHITECTURE}" ]; then
 
   BIN="${BIN}${ARCHITECTURE}"
@@ -2940,6 +3111,18 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
       elif [ "${hash_type}" -gt "${HT_MAX}" ]; then
         # we are done because hash_type is larger than range:
         break
+      fi
+    fi
+
+    if [ "${hash_type}" -eq 20510 ]; then # special case for PKZIP Master Key
+      if [ "${MODE}" -eq 1 ]; then # if "multi" was forced we need to skip it
+        if [ "${HT_MIN}" -eq 20510 ]; then
+          if [ "${HT_MAX}" -eq 20510 ]; then
+            echo "ERROR: -m 20510 = PKZIP Master Key can only be run with a single hash"
+          fi
+        fi
+
+        continue
       fi
     fi
 

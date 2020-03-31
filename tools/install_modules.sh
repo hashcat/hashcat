@@ -14,6 +14,7 @@ cpan install Authen::Passphrase::LANManager \
              Authen::Passphrase::MySQL323   \
              Authen::Passphrase::NTHash     \
              Authen::Passphrase::PHPass     \
+             Compress::Zlib                 \
              Convert::EBCDIC                \
              Crypt::CBC                     \
              Crypt::DES                     \
@@ -25,6 +26,8 @@ cpan install Authen::Passphrase::LANManager \
              Crypt::Mode::ECB               \
              Crypt::MySQL                   \
              Crypt::OpenSSH::ChachaPoly     \
+             Crypt::OpenSSL::EC             \
+             Crypt::OpenSSL::Bignum::CTX    \
              Crypt::PBKDF2                  \
              Crypt::RC4                     \
              Crypt::Rijndael                \
@@ -59,7 +62,7 @@ ERRORS=$((ERRORS+$?))
 
 pip2 install pygost pycryptoplus
 
-pip2 -y uninstall pycryptodome
+pip2 uninstall -y pycryptodome
 
 ERRORS=$((ERRORS+$?))
 

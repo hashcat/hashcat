@@ -110,27 +110,29 @@
  */
 
 #ifdef IS_CUDA
-#define KERN_ATTR_BASIC()         KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, void)
-#define KERN_ATTR_BITSLICE()      KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bs_word_t *g_words_buf_s, void, void, void)
-#define KERN_ATTR_ESALT(e)        KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, e)
-#define KERN_ATTR_RULES()         KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, void)
-#define KERN_ATTR_RULES_ESALT(e)  KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, e)
-#define KERN_ATTR_TMPS(t)         KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     t,    void, void)
-#define KERN_ATTR_TMPS_ESALT(t,e) KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     t,    void, e)
-#define KERN_ATTR_TMPS_HOOKS(t,h) KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     t,    h,    void)
-#define KERN_ATTR_VECTOR()        KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const u32x      *g_words_buf_r, void, void, void)
-#define KERN_ATTR_VECTOR_ESALT(e) KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const u32x      *g_words_buf_r, void, void, e)
+#define KERN_ATTR_BASIC()                 KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, void)
+#define KERN_ATTR_BITSLICE()              KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bs_word_t *g_words_buf_s, void, void, void)
+#define KERN_ATTR_ESALT(e)                KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, e)
+#define KERN_ATTR_RULES()                 KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, void)
+#define KERN_ATTR_RULES_ESALT(e)          KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, e)
+#define KERN_ATTR_TMPS(t)                 KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     t,    void, void)
+#define KERN_ATTR_TMPS_ESALT(t,e)         KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     t,    void, e)
+#define KERN_ATTR_TMPS_HOOKS(t,h)         KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     t,    h,    void)
+#define KERN_ATTR_TMPS_HOOKS_ESALT(t,h,e) KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     t,    h,    e)
+#define KERN_ATTR_VECTOR()                KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const u32x      *g_words_buf_r, void, void, void)
+#define KERN_ATTR_VECTOR_ESALT(e)         KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const u32x      *g_words_buf_r, void, void, e)
 #else
-#define KERN_ATTR_BASIC()         KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       void, void, void)
-#define KERN_ATTR_BITSLICE()      KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bs_word_t *words_buf_s,   void, void, void)
-#define KERN_ATTR_ESALT(e)        KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       void, void, e)
-#define KERN_ATTR_RULES()         KERN_ATTR (CONSTANT_AS, GLOBAL_AS   const bf_t      *bfs_buf,       void, void, void)
-#define KERN_ATTR_RULES_ESALT(e)  KERN_ATTR (CONSTANT_AS, GLOBAL_AS   const bf_t      *bfs_buf,       void, void, e)
-#define KERN_ATTR_TMPS(t)         KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       t,    void, void)
-#define KERN_ATTR_TMPS_ESALT(t,e) KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       t,    void, e)
-#define KERN_ATTR_TMPS_HOOKS(t,h) KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       t,    h,    void)
-#define KERN_ATTR_VECTOR()        KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const u32x      *words_buf_r,   void, void, void)
-#define KERN_ATTR_VECTOR_ESALT(e) KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const u32x      *words_buf_r,   void, void, e)
+#define KERN_ATTR_BASIC()                 KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       void, void, void)
+#define KERN_ATTR_BITSLICE()              KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bs_word_t *words_buf_s,   void, void, void)
+#define KERN_ATTR_ESALT(e)                KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       void, void, e)
+#define KERN_ATTR_RULES()                 KERN_ATTR (CONSTANT_AS, GLOBAL_AS   const bf_t      *bfs_buf,       void, void, void)
+#define KERN_ATTR_RULES_ESALT(e)          KERN_ATTR (CONSTANT_AS, GLOBAL_AS   const bf_t      *bfs_buf,       void, void, e)
+#define KERN_ATTR_TMPS(t)                 KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       t,    void, void)
+#define KERN_ATTR_TMPS_ESALT(t,e)         KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       t,    void, e)
+#define KERN_ATTR_TMPS_HOOKS(t,h)         KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       t,    h,    void)
+#define KERN_ATTR_TMPS_HOOKS_ESALT(t,h,e) KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       t,    h,    e)
+#define KERN_ATTR_VECTOR()                KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const u32x      *words_buf_r,   void, void, void)
+#define KERN_ATTR_VECTOR_ESALT(e)         KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const u32x      *words_buf_r,   void, void, e)
 #endif
 
 // union based packing
@@ -139,6 +141,24 @@ DECLSPEC u8 v8a_from_v32_S   (const u32 v32);
 DECLSPEC u8 v8b_from_v32_S   (const u32 v32);
 DECLSPEC u8 v8c_from_v32_S   (const u32 v32);
 DECLSPEC u8 v8d_from_v32_S   (const u32 v32);
+
+DECLSPEC u8 v8a_from_v64_S   (const u64 v64);
+DECLSPEC u8 v8b_from_v64_S   (const u64 v64);
+DECLSPEC u8 v8c_from_v64_S   (const u64 v64);
+DECLSPEC u8 v8d_from_v64_S   (const u64 v64);
+DECLSPEC u8 v8e_from_v64_S   (const u64 v64);
+DECLSPEC u8 v8f_from_v64_S   (const u64 v64);
+DECLSPEC u8 v8g_from_v64_S   (const u64 v64);
+DECLSPEC u8 v8h_from_v64_S   (const u64 v64);
+
+DECLSPEC u8x v8a_from_v64   (const u64x v64);
+DECLSPEC u8x v8b_from_v64   (const u64x v64);
+DECLSPEC u8x v8c_from_v64   (const u64x v64);
+DECLSPEC u8x v8d_from_v64   (const u64x v64);
+DECLSPEC u8x v8e_from_v64   (const u64x v64);
+DECLSPEC u8x v8f_from_v64   (const u64x v64);
+DECLSPEC u8x v8g_from_v64   (const u64x v64);
+DECLSPEC u8x v8h_from_v64   (const u64x v64);
 
 DECLSPEC u16 v16a_from_v32_S (const u32 v32);
 DECLSPEC u16 v16b_from_v32_S (const u32 v32);
@@ -150,6 +170,11 @@ DECLSPEC u32 v32_from_v16ab_S (const u16 v16a, const u16 v16b);
 DECLSPEC u64 v64_from_v32ab_S (const u32 v32a, const u32 v32b);
 
 // inline asm packing
+
+DECLSPEC u32x unpack_v8a_from_v32 (const u32x v32);
+DECLSPEC u32x unpack_v8b_from_v32 (const u32x v32);
+DECLSPEC u32x unpack_v8c_from_v32 (const u32x v32);
+DECLSPEC u32x unpack_v8d_from_v32 (const u32x v32);
 
 DECLSPEC u32 unpack_v8a_from_v32_S (const u32 v32);
 DECLSPEC u32 unpack_v8b_from_v32_S (const u32 v32);
@@ -217,7 +242,7 @@ DECLSPEC int is_valid_hex_32 (const u32 v);
 DECLSPEC int is_valid_base58_8 (const u8 v);
 DECLSPEC int is_valid_base58_32 (const u32 v);
 DECLSPEC int hc_find_keyboard_layout_map (const u32 search, const int search_len, LOCAL_AS keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt);
-DECLSPEC int hc_execute_keyboard_layout_mapping (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int pw_len, LOCAL_AS keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt);
+DECLSPEC int hc_execute_keyboard_layout_mapping (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int pw_len, LOCAL_AS keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt);
 DECLSPEC void make_utf16be (const u32x *in, u32x *out1, u32x *out2);
 DECLSPEC void make_utf16beN (const u32x *in, u32x *out1, u32x *out2);
 DECLSPEC void make_utf16le (const u32x *in, u32x *out1, u32x *out2);
@@ -275,6 +300,5 @@ DECLSPEC void append_0x01_4x4_VV (u32x *w0, u32x *w1, u32x *w2, u32x *w3, const 
 DECLSPEC void append_0x06_2x4_VV (u32x *w0, u32x *w1, const u32x offset);
 DECLSPEC void append_0x80_2x4_VV (u32x *w0, u32x *w1, const u32x offset);
 DECLSPEC void append_0x80_4x4_VV (u32x *w0, u32x *w1, u32x *w2, u32x *w3, const u32x offset);
-DECLSPEC void gpu_decompress_entry (GLOBAL_AS pw_idx_t *pws_idx, GLOBAL_AS u32 *pws_comp, pw_t *pw, const u64 gid);
 
 #endif

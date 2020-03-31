@@ -298,9 +298,17 @@ DECLSPEC int mangle_dupeword_times (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const
 
   if (out_len >= RP_PASSWORD_SIZE) return (len);
 
-  u8 *out = buf + len;
+  int out_pos = len;
 
-  for (int t = 0; t < p0; t++) for (int i = 0; i < len; i++) *out++ = *buf++;
+  for (int t = 0; t < p0; t++)
+  {
+    for (int i = 0; i < len; i++)
+    {
+      buf[out_pos] = buf[i];
+
+      out_pos++;
+    }
+  }
 
   return (out_len);
 }
@@ -769,6 +777,7 @@ DECLSPEC int apply_rules (CONSTANT_AS const u32 *cmds, u32 *buf, const int in_le
     const u8 p0   = (cmd >>  8) & 0xff;
     const u8 p1   = (cmd >> 16) & 0xff;
 
+    // we need to guarantee input length < 256 otherwise functions like rule_op_mangle_switch_last() and others will read out of boundary
     out_len = apply_rule (name, p0, p1, buf, out_len);
   }
 

@@ -682,7 +682,7 @@ DECLSPEC void streebog512_g (u64 *h, const u64 *n, const u64 *m, SHM_TYPE u64a (
 
   for (int i = 0; i < 8; i++)
   {
-    k[i] = SBOG_LPSti64;
+    k[i] = SBOG_LPSti64_S;
   }
 
   #ifdef _unroll
@@ -708,7 +708,7 @@ DECLSPEC void streebog512_g (u64 *h, const u64 *n, const u64 *m, SHM_TYPE u64a (
     #endif
     for (int i = 0; i < 8; i++)
     {
-      s[i] = SBOG_LPSti64;
+      s[i] = SBOG_LPSti64_S;
     }
 
     for (int i = 0; i < 8; i++)
@@ -721,7 +721,7 @@ DECLSPEC void streebog512_g (u64 *h, const u64 *n, const u64 *m, SHM_TYPE u64a (
     #endif
     for (int i = 0; i < 8; i++)
     {
-      k[i] = SBOG_LPSti64;
+      k[i] = SBOG_LPSti64_S;
     }
   }
 
@@ -1106,9 +1106,7 @@ DECLSPEC void streebog512_hmac_init_64 (streebog512_hmac_ctx_t *ctx, const u32 *
 
   streebog512_init (&ctx->ipad, s_sbob_sl64);
 
-  streebog512_transform (&ctx->ipad, t0, t1, t2, t3);
-
-  ctx->ipad.len = 64;
+  streebog512_update_64 (&ctx->ipad, t0, t1, t2, t3, 64);
 
   // opad
 
@@ -1131,9 +1129,7 @@ DECLSPEC void streebog512_hmac_init_64 (streebog512_hmac_ctx_t *ctx, const u32 *
 
   streebog512_init (&ctx->opad, s_sbob_sl64);
 
-  streebog512_transform (&ctx->opad, t0, t1, t2, t3);
-
-  ctx->opad.len = 64;
+  streebog512_update_64 (&ctx->opad, t0, t1, t2, t3, 64);
 }
 
 DECLSPEC void streebog512_hmac_init (streebog512_hmac_ctx_t *ctx, const u32 *w, const int len, SHM_TYPE u64a (*s_sbob_sl64)[256])
@@ -1771,9 +1767,7 @@ DECLSPEC void streebog512_hmac_init_vector_64 (streebog512_hmac_ctx_vector_t *ct
 
   streebog512_init_vector (&ctx->ipad, s_sbob_sl64);
 
-  streebog512_transform_vector (&ctx->ipad, t0, t1, t2, t3);
-
-  ctx->ipad.len = 64;
+  streebog512_update_vector_64 (&ctx->ipad, t0, t1, t2, t3, 64);
 
   // opad
 
@@ -1796,9 +1790,7 @@ DECLSPEC void streebog512_hmac_init_vector_64 (streebog512_hmac_ctx_vector_t *ct
 
   streebog512_init_vector (&ctx->opad, s_sbob_sl64);
 
-  streebog512_transform_vector (&ctx->opad, t0, t1, t2, t3);
-
-  ctx->opad.len = 64;
+  streebog512_update_vector_64 (&ctx->opad, t0, t1, t2, t3, 64);
 }
 
 DECLSPEC void streebog512_hmac_init_vector (streebog512_hmac_ctx_vector_t *ctx, const u32x *w, const int len, SHM_TYPE u64a (*s_sbob_sl64)[256])

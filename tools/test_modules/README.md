@@ -3,7 +3,7 @@
 Each module provides the functions `module_constraints`, `module_generate_hash` and `module_verify_hash`.
 
 * The `module_constraints` function should return the minimum and maximum length of the password, salt and the combination of password and salt in following order: password (pure), salt (pure), password (optimized), salt (optimized) and combination (optimized). 
-Each pair should be set to -1 if the hash mode is not supporting the appropriate field. For example, if a hash-mode does not support a salt, it should be set to -1. The last field (combination) is important if the the password and the salt is stored in the same buffer in the kernel (typically raw hashes only). 
+Each pair should be set to -1 if the hash mode is not supporting the appropriate field. For example, if a hash-mode does not support a salt, it should be set to -1. The last field (combination) is important if the password and the salt is stored in the same buffer in the kernel (typically raw hashes only). 
 * The first parameter to `module_generate_hash` is the password, which can be either in ASCII or binary (packed) form. The second parameter is the salt *which can be undefined for unsalted hash modes). 
 * The `module_verify_hash` function accepts a line from the cracks file, without the newline characters.
 

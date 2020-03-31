@@ -121,11 +121,11 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 *out_buf = (u8 *) line_buf;
 
-	u32_to_hex (tmp[0], out_buf +  0);
-	u32_to_hex (tmp[1], out_buf +  8);
-	u32_to_hex (tmp[2], out_buf + 16);
-	u32_to_hex (tmp[3], out_buf + 24);
-	u32_to_hex (tmp[4], out_buf + 32);
+  u32_to_hex (tmp[0], out_buf +  0);
+  u32_to_hex (tmp[1], out_buf +  8);
+  u32_to_hex (tmp[2], out_buf + 16);
+  u32_to_hex (tmp[3], out_buf + 24);
+  u32_to_hex (tmp[4], out_buf + 32);
 
   const int out_len = 40;
 

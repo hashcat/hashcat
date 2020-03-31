@@ -93,13 +93,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.sep[2]     = '$';
   token.len_min[2] = 1;
-  token.len_max[2] = 5;
+  token.len_max[2] = 6;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[3]     = '$';
-  token.len_min[3] = 64;
-  token.len_max[3] = 20000;
+  token.len_min[3] = 144;
+  token.len_max[3] = 999999;
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
@@ -119,29 +119,16 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *data_pos = token.buf[3];
 
-  salt->salt_buf[0] = hex_to_u32 ((const u8 *) &data_pos[ 0]);
-  salt->salt_buf[1] = hex_to_u32 ((const u8 *) &data_pos[ 8]);
-  salt->salt_buf[2] = hex_to_u32 ((const u8 *) &data_pos[16]);
-  salt->salt_buf[3] = hex_to_u32 ((const u8 *) &data_pos[24]);
+  // first 16 byte are IV
 
-  salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
-  salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
-  salt->salt_buf[2] = byte_swap_32 (salt->salt_buf[2]);
-  salt->salt_buf[3] = byte_swap_32 (salt->salt_buf[3]);
+  for (int i = 0, j = 0; i < 16; i += 1, j += 8)
+  {
+    salt->salt_buf[i] = hex_to_u32 (data_pos + j);
 
-  // this is actually the CT, which is also the hash later (if matched)
+    salt->salt_buf[i] = byte_swap_32 (salt->salt_buf[i]);
+  }
 
-  salt->salt_buf[4] = hex_to_u32 ((const u8 *) &data_pos[32]);
-  salt->salt_buf[5] = hex_to_u32 ((const u8 *) &data_pos[40]);
-  salt->salt_buf[6] = hex_to_u32 ((const u8 *) &data_pos[48]);
-  salt->salt_buf[7] = hex_to_u32 ((const u8 *) &data_pos[56]);
-
-  salt->salt_buf[4] = byte_swap_32 (salt->salt_buf[4]);
-  salt->salt_buf[5] = byte_swap_32 (salt->salt_buf[5]);
-  salt->salt_buf[6] = byte_swap_32 (salt->salt_buf[6]);
-  salt->salt_buf[7] = byte_swap_32 (salt->salt_buf[7]);
-
-  salt->salt_len = 32; // note we need to fix this to 16 in kernel
+  salt->salt_len = 64;
 
   // hash
 

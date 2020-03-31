@@ -44,6 +44,27 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   // password : move the known password into a fake buffer
 
+  const u32 module_opts_type = module_ctx->module_opts_type (hashconfig, user_options, user_options_extra);
+
+  pw_t tmp;
+
+  memset (&tmp, 0, sizeof (tmp));
+
+  char *tmp_ptr = (char *) &tmp.i;
+
+  const size_t tmp_len = strlen (hashconfig->st_pass);
+
+  if (module_opts_type & OPTS_TYPE_PT_HEX)
+  {
+    tmp.pw_len = hex_decode ((const u8 *) hashconfig->st_pass, (const int) tmp_len, (u8 *) tmp_ptr);
+  }
+  else
+  {
+    memcpy (tmp_ptr, hashconfig->st_pass, tmp_len);
+
+    tmp.pw_len = (u32) tmp_len;
+  }
+
   u32 highest_pw_len = 0;
 
   if (user_options->slow_candidates == true)
@@ -53,13 +74,15 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
       device_param->kernel_params_buf32[30] = 1;
     }
 
-    pw_t pw; memset (&pw, 0, sizeof (pw));
+    pw_t pw;
+
+    memset (&pw, 0, sizeof (pw));
 
     char *pw_ptr = (char *) &pw.i;
 
-    const size_t pw_len = strlen (hashconfig->st_pass);
+    const size_t pw_len = tmp.pw_len;
 
-    memcpy (pw_ptr, hashconfig->st_pass, pw_len);
+    memcpy (pw_ptr, tmp_ptr, pw_len);
 
     pw.pw_len = (u32) pw_len;
 
@@ -87,9 +110,9 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
         char *pw_ptr = (char *) &pw.i;
 
-        const size_t pw_len = strlen (hashconfig->st_pass);
+        const size_t pw_len = tmp.pw_len;
 
-        memcpy (pw_ptr, hashconfig->st_pass, pw_len);
+        memcpy (pw_ptr, tmp_ptr, pw_len);
 
         pw.pw_len = (u32) pw_len;
 
@@ -119,9 +142,9 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
         char *pw_ptr = (char *) &pw.i;
 
-        const size_t pw_len = strlen (hashconfig->st_pass);
+        const size_t pw_len = tmp.pw_len;
 
-        memcpy (pw_ptr, hashconfig->st_pass, pw_len - 1);
+        memcpy (pw_ptr, tmp_ptr, pw_len - 1);
 
         pw.pw_len = (u32) pw_len - 1;
 
@@ -136,7 +159,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
         char *comb_ptr = (char *) &comb.i;
 
-        memcpy (comb_ptr, hashconfig->st_pass + pw_len - 1, 1);
+        memcpy (comb_ptr, tmp_ptr + pw_len - 1, 1);
 
         comb.pw_len = 1;
 
@@ -178,7 +201,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
       {
         device_param->kernel_params_buf32[30] = 1;
 
-        if (hashconfig->opts_type & OPTS_TYPE_PT_BITSLICE)
+        if (hashconfig->opts_type & OPTS_TYPE_TM_KERNEL)
         {
           pw_t pw;
 
@@ -186,9 +209,9 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
           char *pw_ptr = (char *) &pw.i;
 
-          const size_t pw_len = strlen (hashconfig->st_pass);
+          const size_t pw_len = tmp.pw_len;
 
-          memcpy (pw_ptr, hashconfig->st_pass, pw_len);
+          memcpy (pw_ptr, tmp_ptr, pw_len);
 
           if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER)
           {
@@ -215,7 +238,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
           char *bf_ptr = (char *) &bf.i;
 
-          memcpy (bf_ptr, hashconfig->st_pass, 1);
+          memcpy (bf_ptr, tmp_ptr, 1);
 
           if (hashconfig->opts_type & OPTS_TYPE_PT_UTF16LE)
           {
@@ -223,7 +246,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
             for (int i = 0, j = 0; i < 1; i += 1, j += 2)
             {
-              bf_ptr[j + 0] = hashconfig->st_pass[i];
+              bf_ptr[j + 0] = tmp_ptr[i];
               bf_ptr[j + 1] = 0;
             }
           }
@@ -234,7 +257,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
             for (int i = 0, j = 0; i < 1; i += 1, j += 2)
             {
               bf_ptr[j + 0] = 0;
-              bf_ptr[j + 1] = hashconfig->st_pass[i];
+              bf_ptr[j + 1] = tmp_ptr[i];
             }
           }
 
@@ -264,9 +287,9 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
           char *pw_ptr = (char *) &pw.i;
 
-          const size_t pw_len = strlen (hashconfig->st_pass);
+          const size_t pw_len = tmp.pw_len;
 
-          memcpy (pw_ptr + 1, hashconfig->st_pass + 1, pw_len - 1);
+          memcpy (pw_ptr + 1, tmp_ptr + 1, pw_len - 1);
 
           size_t new_pass_len = pw_len;
 
@@ -276,7 +299,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
             for (size_t i = 1, j = 2; i < new_pass_len; i += 1, j += 2)
             {
-              pw_ptr[j + 0] = hashconfig->st_pass[i];
+              pw_ptr[j + 0] = tmp_ptr[i];
               pw_ptr[j + 1] = 0;
             }
 
@@ -289,7 +312,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
             for (size_t i = 1, j = 2; i < new_pass_len; i += 1, j += 2)
             {
               pw_ptr[j + 0] = 0;
-              pw_ptr[j + 1] = hashconfig->st_pass[i];
+              pw_ptr[j + 1] = tmp_ptr[i];
             }
 
             new_pass_len *= 2;
@@ -366,9 +389,9 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       char *pw_ptr = (char *) &pw.i;
 
-      const size_t pw_len = strlen (hashconfig->st_pass);
+      const size_t pw_len = tmp.pw_len;
 
-      memcpy (pw_ptr, hashconfig->st_pass, pw_len);
+      memcpy (pw_ptr, tmp_ptr, pw_len);
 
       pw.pw_len = (u32) pw_len;
 
@@ -432,7 +455,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
         if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL) == -1) return -1;
       }
 
-      module_ctx->module_hook12 (device_param, hashes->st_hook_salts_buf, 0, 1);
+      module_ctx->module_hook12 (device_param, hashes->st_hook_salts_buf, 0, 0);
 
       if (device_param->is_cuda == true)
       {
@@ -463,6 +486,11 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
       device_param->kernel_params_buf32[29] = loop_left;
 
       if (run_kernel (hashcat_ctx, device_param, KERN_RUN_2, 1, false, 0) == -1) return -1;
+
+      if (hashconfig->opts_type & OPTS_TYPE_LOOP_EXTENDED)
+      {
+        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_2E, 1, false, 0) == -1) return -1;
+      }
     }
 
     if (hashconfig->opts_type & OPTS_TYPE_HOOK23)
@@ -479,7 +507,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
         if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL) == -1) return -1;
       }
 
-      module_ctx->module_hook23 (device_param, hashes->st_hook_salts_buf, 0, 1);
+      module_ctx->module_hook23 (device_param, hashes->st_hook_salts_buf, 0, 0);
 
       if (device_param->is_cuda == true)
       {
@@ -523,30 +551,31 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
       {
         if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX1, 1, false, 0) == -1) return -1;
       }
-      else if (hashconfig->opts_type & OPTS_TYPE_AUX2)
+
+      if (hashconfig->opts_type & OPTS_TYPE_AUX2)
       {
         if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX2, 1, false, 0) == -1) return -1;
       }
-      else if (hashconfig->opts_type & OPTS_TYPE_AUX3)
+
+      if (hashconfig->opts_type & OPTS_TYPE_AUX3)
       {
         if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX3, 1, false, 0) == -1) return -1;
       }
-      else
+
+      if (hashconfig->opts_type & OPTS_TYPE_AUX4)
       {
-        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_3, 1, false, 0) == -1) return -1;
+        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX4, 1, false, 0) == -1) return -1;
       }
     }
-    else
-    {
-      if (run_kernel (hashcat_ctx, device_param, KERN_RUN_3, 1, false, 0) == -1) return -1;
-    }
+
+    if (run_kernel (hashcat_ctx, device_param, KERN_RUN_3, 1, false, 0) == -1) return -1;
   }
 
   device_param->spin_damp = spin_damp_sav;
 
   // check : check if cracked
 
-  u32 num_cracked;
+  u32 num_cracked = 0;
 
   if (device_param->is_cuda == true)
   {
@@ -654,6 +683,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   if (num_cracked == 0)
   {
     hc_thread_mutex_lock (status_ctx->mux_display);
+
     if (device_param->is_opencl == true)
     {
       event_log_error (hashcat_ctx, "* Device #%u: ATTENTION! OpenCL kernel self-test failed.", device_param->device_id + 1);

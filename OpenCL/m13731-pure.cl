@@ -3,7 +3,7 @@
  * License.....: MIT
  */
 
-//#define NEW_SIMD_CODE
+#define NEW_SIMD_CODE
 
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
@@ -52,6 +52,7 @@ typedef struct vc_tmp
 
   u32 pim_key[64];
   int pim; // marker for cracked
+  int pim_check; // marker for _extended kernel
 
 } vc_tmp_t;
 
@@ -86,7 +87,7 @@ DECLSPEC int check_header_0512 (GLOBAL_AS const vc_t *esalt_bufs, GLOBAL_AS u32 
   return -1;
 }
 
-DECLSPEC void hmac_whirlpool_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
+DECLSPEC void hmac_whirlpool_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest, SHM_TYPE u64 *s_MT0, SHM_TYPE u64 *s_MT1, SHM_TYPE u64 *s_MT2, SHM_TYPE u64 *s_MT3, SHM_TYPE u64 *s_MT4, SHM_TYPE u64 *s_MT5, SHM_TYPE u64 *s_MT6, SHM_TYPE u64 *s_MT7)
 {
   digest[ 0] = ipad[ 0];
   digest[ 1] = ipad[ 1];
@@ -105,7 +106,7 @@ DECLSPEC void hmac_whirlpool_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x
   digest[14] = ipad[14];
   digest[15] = ipad[15];
 
-  whirlpool_transform_vector (w0, w1, w2, w3, digest, s_Ch, s_Cl);
+  whirlpool_transform_vector (w0, w1, w2, w3, digest, s_MT0, s_MT1, s_MT2, s_MT3, s_MT4, s_MT5, s_MT6, s_MT7);
 
   w0[0] = 0x80000000;
   w0[1] = 0;
@@ -124,7 +125,7 @@ DECLSPEC void hmac_whirlpool_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x
   w3[2] = 0;
   w3[3] = (64 + 64) * 8;
 
-  whirlpool_transform_vector (w0, w1, w2, w3, digest, s_Ch, s_Cl);
+  whirlpool_transform_vector (w0, w1, w2, w3, digest, s_MT0, s_MT1, s_MT2, s_MT3, s_MT4, s_MT5, s_MT6, s_MT7);
 
   w0[0] = digest[ 0];
   w0[1] = digest[ 1];
@@ -160,7 +161,7 @@ DECLSPEC void hmac_whirlpool_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x
   digest[14] = opad[14];
   digest[15] = opad[15];
 
-  whirlpool_transform_vector (w0, w1, w2, w3, digest, s_Ch, s_Cl);
+  whirlpool_transform_vector (w0, w1, w2, w3, digest, s_MT0, s_MT1, s_MT2, s_MT3, s_MT4, s_MT5, s_MT6, s_MT7);
 
   w0[0] = 0x80000000;
   w0[1] = 0;
@@ -179,7 +180,7 @@ DECLSPEC void hmac_whirlpool_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x
   w3[2] = 0;
   w3[3] = (64 + 64) * 8;
 
-  whirlpool_transform_vector (w0, w1, w2, w3, digest, s_Ch, s_Cl);
+  whirlpool_transform_vector (w0, w1, w2, w3, digest, s_MT0, s_MT1, s_MT2, s_MT3, s_MT4, s_MT5, s_MT6, s_MT7);
 }
 
 KERNEL_FQ void m13731_init (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
@@ -209,36 +210,39 @@ KERNEL_FQ void m13731_init (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 
   #ifdef REAL_SHM
 
-  LOCAL_VK u32 s_Ch[8][256];
-  LOCAL_VK u32 s_Cl[8][256];
+  LOCAL_VK u64 s_MT0[256];
+  LOCAL_VK u64 s_MT1[256];
+  LOCAL_VK u64 s_MT2[256];
+  LOCAL_VK u64 s_MT3[256];
+  LOCAL_VK u64 s_MT4[256];
+  LOCAL_VK u64 s_MT5[256];
+  LOCAL_VK u64 s_MT6[256];
+  LOCAL_VK u64 s_MT7[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
-    s_Ch[0][i] = Ch[0][i];
-    s_Ch[1][i] = Ch[1][i];
-    s_Ch[2][i] = Ch[2][i];
-    s_Ch[3][i] = Ch[3][i];
-    s_Ch[4][i] = Ch[4][i];
-    s_Ch[5][i] = Ch[5][i];
-    s_Ch[6][i] = Ch[6][i];
-    s_Ch[7][i] = Ch[7][i];
-
-    s_Cl[0][i] = Cl[0][i];
-    s_Cl[1][i] = Cl[1][i];
-    s_Cl[2][i] = Cl[2][i];
-    s_Cl[3][i] = Cl[3][i];
-    s_Cl[4][i] = Cl[4][i];
-    s_Cl[5][i] = Cl[5][i];
-    s_Cl[6][i] = Cl[6][i];
-    s_Cl[7][i] = Cl[7][i];
+    s_MT0[i] = MT0[i];
+    s_MT1[i] = MT1[i];
+    s_MT2[i] = MT2[i];
+    s_MT3[i] = MT3[i];
+    s_MT4[i] = MT4[i];
+    s_MT5[i] = MT5[i];
+    s_MT6[i] = MT6[i];
+    s_MT7[i] = MT7[i];
   }
 
   SYNC_THREADS ();
 
   #else
 
-  CONSTANT_AS u32a (*s_Ch)[256] = Ch;
-  CONSTANT_AS u32a (*s_Cl)[256] = Cl;
+  CONSTANT_AS u64a *s_MT0 = MT0;
+  CONSTANT_AS u64a *s_MT1 = MT1;
+  CONSTANT_AS u64a *s_MT2 = MT2;
+  CONSTANT_AS u64a *s_MT3 = MT3;
+  CONSTANT_AS u64a *s_MT4 = MT4;
+  CONSTANT_AS u64a *s_MT5 = MT5;
+  CONSTANT_AS u64a *s_MT6 = MT6;
+  CONSTANT_AS u64a *s_MT7 = MT7;
 
   #endif
 
@@ -310,7 +314,7 @@ KERNEL_FQ void m13731_init (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 
   whirlpool_hmac_ctx_t whirlpool_hmac_ctx;
 
-  whirlpool_hmac_init_64 (&whirlpool_hmac_ctx, w0, w1, w2, w3, s_Ch, s_Cl);
+  whirlpool_hmac_init_64 (&whirlpool_hmac_ctx, w0, w1, w2, w3, s_MT0, s_MT1, s_MT2, s_MT3, s_MT4, s_MT5, s_MT6, s_MT7);
 
   tmps[gid].ipad[ 0] = whirlpool_hmac_ctx.ipad.h[ 0];
   tmps[gid].ipad[ 1] = whirlpool_hmac_ctx.ipad.h[ 1];
@@ -416,92 +420,44 @@ KERNEL_FQ void m13731_loop (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
   const u64 lsz = get_local_size (0);
 
   /**
-   * aes shared
-   */
-
-  #ifdef REAL_SHM
-
-  LOCAL_VK u32 s_td0[256];
-  LOCAL_VK u32 s_td1[256];
-  LOCAL_VK u32 s_td2[256];
-  LOCAL_VK u32 s_td3[256];
-  LOCAL_VK u32 s_td4[256];
-
-  LOCAL_VK u32 s_te0[256];
-  LOCAL_VK u32 s_te1[256];
-  LOCAL_VK u32 s_te2[256];
-  LOCAL_VK u32 s_te3[256];
-  LOCAL_VK u32 s_te4[256];
-
-  for (u32 i = lid; i < 256; i += lsz)
-  {
-    s_td0[i] = td0[i];
-    s_td1[i] = td1[i];
-    s_td2[i] = td2[i];
-    s_td3[i] = td3[i];
-    s_td4[i] = td4[i];
-
-    s_te0[i] = te0[i];
-    s_te1[i] = te1[i];
-    s_te2[i] = te2[i];
-    s_te3[i] = te3[i];
-    s_te4[i] = te4[i];
-  }
-
-  SYNC_THREADS ();
-
-  #else
-
-  CONSTANT_AS u32a *s_td0 = td0;
-  CONSTANT_AS u32a *s_td1 = td1;
-  CONSTANT_AS u32a *s_td2 = td2;
-  CONSTANT_AS u32a *s_td3 = td3;
-  CONSTANT_AS u32a *s_td4 = td4;
-
-  CONSTANT_AS u32a *s_te0 = te0;
-  CONSTANT_AS u32a *s_te1 = te1;
-  CONSTANT_AS u32a *s_te2 = te2;
-  CONSTANT_AS u32a *s_te3 = te3;
-  CONSTANT_AS u32a *s_te4 = te4;
-
-  #endif
-
-  /**
    * Whirlpool shared
    */
 
   #ifdef REAL_SHM
 
-  LOCAL_VK u32 s_Ch[8][256];
-  LOCAL_VK u32 s_Cl[8][256];
+  LOCAL_VK u64 s_MT0[256];
+  LOCAL_VK u64 s_MT1[256];
+  LOCAL_VK u64 s_MT2[256];
+  LOCAL_VK u64 s_MT3[256];
+  LOCAL_VK u64 s_MT4[256];
+  LOCAL_VK u64 s_MT5[256];
+  LOCAL_VK u64 s_MT6[256];
+  LOCAL_VK u64 s_MT7[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
-    s_Ch[0][i] = Ch[0][i];
-    s_Ch[1][i] = Ch[1][i];
-    s_Ch[2][i] = Ch[2][i];
-    s_Ch[3][i] = Ch[3][i];
-    s_Ch[4][i] = Ch[4][i];
-    s_Ch[5][i] = Ch[5][i];
-    s_Ch[6][i] = Ch[6][i];
-    s_Ch[7][i] = Ch[7][i];
-
-    s_Cl[0][i] = Cl[0][i];
-    s_Cl[1][i] = Cl[1][i];
-    s_Cl[2][i] = Cl[2][i];
-    s_Cl[3][i] = Cl[3][i];
-    s_Cl[4][i] = Cl[4][i];
-    s_Cl[5][i] = Cl[5][i];
-    s_Cl[6][i] = Cl[6][i];
-    s_Cl[7][i] = Cl[7][i];
+    s_MT0[i] = MT0[i];
+    s_MT1[i] = MT1[i];
+    s_MT2[i] = MT2[i];
+    s_MT3[i] = MT3[i];
+    s_MT4[i] = MT4[i];
+    s_MT5[i] = MT5[i];
+    s_MT6[i] = MT6[i];
+    s_MT7[i] = MT7[i];
   }
 
   SYNC_THREADS ();
 
   #else
 
-  CONSTANT_AS u32a (*s_Ch)[256] = Ch;
-  CONSTANT_AS u32a (*s_Cl)[256] = Cl;
+  CONSTANT_AS u64a *s_MT0 = MT0;
+  CONSTANT_AS u64a *s_MT1 = MT1;
+  CONSTANT_AS u64a *s_MT2 = MT2;
+  CONSTANT_AS u64a *s_MT3 = MT3;
+  CONSTANT_AS u64a *s_MT4 = MT4;
+  CONSTANT_AS u64a *s_MT5 = MT5;
+  CONSTANT_AS u64a *s_MT6 = MT6;
+  CONSTANT_AS u64a *s_MT7 = MT7;
 
   #endif
 
@@ -638,7 +594,7 @@ KERNEL_FQ void m13731_loop (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
       w3[2] = dgst[14];
       w3[3] = dgst[15];
 
-      hmac_whirlpool_run_V (w0, w1, w2, w3, ipad, opad, dgst, s_Ch, s_Cl);
+      hmac_whirlpool_run_V (w0, w1, w2, w3, ipad, opad, dgst, s_MT0, s_MT1, s_MT2, s_MT3, s_MT4, s_MT5, s_MT6, s_MT7);
 
       out[ 0] ^= dgst[ 0];
       out[ 1] ^= dgst[ 1];
@@ -661,22 +617,24 @@ KERNEL_FQ void m13731_loop (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 
       if (j == pim_at)
       {
-        tmps[gid].pim_key[i +  0] = out[ 0];
-        tmps[gid].pim_key[i +  1] = out[ 1];
-        tmps[gid].pim_key[i +  2] = out[ 2];
-        tmps[gid].pim_key[i +  3] = out[ 3];
-        tmps[gid].pim_key[i +  4] = out[ 4];
-        tmps[gid].pim_key[i +  5] = out[ 5];
-        tmps[gid].pim_key[i +  6] = out[ 6];
-        tmps[gid].pim_key[i +  7] = out[ 7];
-        tmps[gid].pim_key[i +  8] = out[ 8];
-        tmps[gid].pim_key[i +  9] = out[ 9];
-        tmps[gid].pim_key[i + 10] = out[10];
-        tmps[gid].pim_key[i + 11] = out[11];
-        tmps[gid].pim_key[i + 12] = out[12];
-        tmps[gid].pim_key[i + 13] = out[13];
-        tmps[gid].pim_key[i + 14] = out[14];
-        tmps[gid].pim_key[i + 15] = out[15];
+        unpackv (tmps, pim_key, gid, i +  0, out[ 0]);
+        unpackv (tmps, pim_key, gid, i +  1, out[ 1]);
+        unpackv (tmps, pim_key, gid, i +  2, out[ 2]);
+        unpackv (tmps, pim_key, gid, i +  3, out[ 3]);
+        unpackv (tmps, pim_key, gid, i +  4, out[ 4]);
+        unpackv (tmps, pim_key, gid, i +  5, out[ 5]);
+        unpackv (tmps, pim_key, gid, i +  6, out[ 6]);
+        unpackv (tmps, pim_key, gid, i +  7, out[ 7]);
+        unpackv (tmps, pim_key, gid, i +  8, out[ 8]);
+        unpackv (tmps, pim_key, gid, i +  9, out[ 9]);
+        unpackv (tmps, pim_key, gid, i + 10, out[10]);
+        unpackv (tmps, pim_key, gid, i + 11, out[11]);
+        unpackv (tmps, pim_key, gid, i + 12, out[12]);
+        unpackv (tmps, pim_key, gid, i + 13, out[13]);
+        unpackv (tmps, pim_key, gid, i + 14, out[14]);
+        unpackv (tmps, pim_key, gid, i + 15, out[15]);
+
+        tmps[gid].pim_check = pim;
       }
     }
 
@@ -714,13 +672,9 @@ KERNEL_FQ void m13731_loop (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
     unpackv (tmps, out, gid, i + 14, out[14]);
     unpackv (tmps, out, gid, i + 15, out[15]);
   }
-
-  if (pim == 0) return;
-
-  if (check_header_0512 (esalt_bufs, tmps[gid].pim_key, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) != -1) tmps[gid].pim = pim;
 }
 
-KERNEL_FQ void m13731_comp (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
+KERNEL_FQ void m13731_loop_extended (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -777,42 +731,75 @@ KERNEL_FQ void m13731_comp (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 
   #endif
 
+  if (gid >= gid_max) return;
+
+  const u32 pim_check = tmps[gid].pim_check;
+
+  if (pim_check)
+  {
+    if (check_header_0512 (esalt_bufs, tmps[gid].pim_key, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) != -1)
+    {
+      tmps[gid].pim = pim_check;
+    }
+
+    tmps[gid].pim_check = 0;
+  }
+}
+
+KERNEL_FQ void m13731_comp (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
+{
+  const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
+
   /**
-   * Whirlpool shared
+   * aes shared
    */
 
   #ifdef REAL_SHM
 
-  LOCAL_VK u32 s_Ch[8][256];
-  LOCAL_VK u32 s_Cl[8][256];
+  LOCAL_VK u32 s_td0[256];
+  LOCAL_VK u32 s_td1[256];
+  LOCAL_VK u32 s_td2[256];
+  LOCAL_VK u32 s_td3[256];
+  LOCAL_VK u32 s_td4[256];
+
+  LOCAL_VK u32 s_te0[256];
+  LOCAL_VK u32 s_te1[256];
+  LOCAL_VK u32 s_te2[256];
+  LOCAL_VK u32 s_te3[256];
+  LOCAL_VK u32 s_te4[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
-    s_Ch[0][i] = Ch[0][i];
-    s_Ch[1][i] = Ch[1][i];
-    s_Ch[2][i] = Ch[2][i];
-    s_Ch[3][i] = Ch[3][i];
-    s_Ch[4][i] = Ch[4][i];
-    s_Ch[5][i] = Ch[5][i];
-    s_Ch[6][i] = Ch[6][i];
-    s_Ch[7][i] = Ch[7][i];
+    s_td0[i] = td0[i];
+    s_td1[i] = td1[i];
+    s_td2[i] = td2[i];
+    s_td3[i] = td3[i];
+    s_td4[i] = td4[i];
 
-    s_Cl[0][i] = Cl[0][i];
-    s_Cl[1][i] = Cl[1][i];
-    s_Cl[2][i] = Cl[2][i];
-    s_Cl[3][i] = Cl[3][i];
-    s_Cl[4][i] = Cl[4][i];
-    s_Cl[5][i] = Cl[5][i];
-    s_Cl[6][i] = Cl[6][i];
-    s_Cl[7][i] = Cl[7][i];
+    s_te0[i] = te0[i];
+    s_te1[i] = te1[i];
+    s_te2[i] = te2[i];
+    s_te3[i] = te3[i];
+    s_te4[i] = te4[i];
   }
 
   SYNC_THREADS ();
 
   #else
 
-  CONSTANT_AS u32a (*s_Ch)[256] = Ch;
-  CONSTANT_AS u32a (*s_Cl)[256] = Cl;
+  CONSTANT_AS u32a *s_td0 = td0;
+  CONSTANT_AS u32a *s_td1 = td1;
+  CONSTANT_AS u32a *s_td2 = td2;
+  CONSTANT_AS u32a *s_td3 = td3;
+  CONSTANT_AS u32a *s_td4 = td4;
+
+  CONSTANT_AS u32a *s_te0 = te0;
+  CONSTANT_AS u32a *s_te1 = te1;
+  CONSTANT_AS u32a *s_te2 = te2;
+  CONSTANT_AS u32a *s_te3 = te3;
+  CONSTANT_AS u32a *s_te4 = te4;
 
   #endif
 

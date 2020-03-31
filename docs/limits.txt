@@ -23,6 +23,17 @@ Important: That does not mean UTF-16 file content, which is fully supported.
 It only means the filename itself.
 
 ##
+## Hashing algorithms that internally use UTF-16 characters could in special cases lead to false negatives
+##
+
+The UTF-16 conversion implementation used within the kernel code is very elementary and for performance
+reasons does not respect all complicated encoding rules required to correctly convert, for instance, ASCII
+or UTF-8 to UTF-16LE (or UTF-16BE).
+
+The implementation most likely fails with multi-byte characters, because we basically add a zero byte every
+second byte within the kernel conversion code.
+
+##
 ## The use of --keep-guessing eventually skips reporting duplicate passwords
 ##
 

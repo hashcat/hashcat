@@ -126,9 +126,39 @@ DECLSPEC void chacha20_transform (const u32x *w0, const u32x *w1, const u32 *pos
      * Generate a second 64 byte keystream
      */
 
-    ctx[12]++;
+    ctx[12] += 1;
 
-    if (all(ctx[12] == 0)) ctx[13]++;
+    #if VECT_SIZE == 1
+    if (ctx[12] == 0) ctx[13] += 1;
+    #endif
+
+    #if VECT_SIZE >= 2
+    if (ctx[12].s0 == 0) ctx[13].s0 += 1;
+    if (ctx[12].s1 == 0) ctx[13].s1 += 1;
+    #endif
+
+    #if VECT_SIZE >= 4
+    if (ctx[12].s2 == 0) ctx[13].s2 += 1;
+    if (ctx[12].s3 == 0) ctx[13].s3 += 1;
+    #endif
+
+    #if VECT_SIZE >= 8
+    if (ctx[12].s4 == 0) ctx[13].s4 += 1;
+    if (ctx[12].s5 == 0) ctx[13].s5 += 1;
+    if (ctx[12].s6 == 0) ctx[13].s6 += 1;
+    if (ctx[12].s7 == 0) ctx[13].s7 += 1;
+    #endif
+
+    #if VECT_SIZE >= 16
+    if (ctx[12].s8 == 0) ctx[13].s8 += 1;
+    if (ctx[12].s9 == 0) ctx[13].s9 += 1;
+    if (ctx[12].sa == 0) ctx[13].sa += 1;
+    if (ctx[12].sb == 0) ctx[13].sb += 1;
+    if (ctx[12].sc == 0) ctx[13].sc += 1;
+    if (ctx[12].sd == 0) ctx[13].sd += 1;
+    if (ctx[12].se == 0) ctx[13].se += 1;
+    if (ctx[12].sf == 0) ctx[13].sf += 1;
+    #endif
 
     x[16] = ctx[ 0];
     x[17] = ctx[ 1];

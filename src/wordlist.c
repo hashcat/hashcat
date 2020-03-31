@@ -13,14 +13,16 @@
 #include "rp_cpu.h"
 #include "shared.h"
 #include "wordlist.h"
+#include "emu_inc_hash_sha1.h"
 
 size_t convert_from_hex (hashcat_ctx_t *hashcat_ctx, char *line_buf, const size_t line_len)
 {
+  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   if (line_len & 1) return (line_len); // not in hex
 
-  if (user_options->hex_wordlist == true)
+  if (hashconfig->opts_type & OPTS_TYPE_PT_HEX)
   {
     size_t i, j;
 
@@ -187,7 +189,13 @@ void get_next_word (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, char **out_buf, u32 
 
     wl_data->pos += off;
 
+    // do the on-the-fly hex decode using original buffer
+    // this is safe as length only decreases in size
+
+    len = (u32) convert_from_hex (hashcat_ctx, ptr, len);
+
     // do the on-the-fly encoding
+    // needs to write into new buffer because size case both decrease and increase
 
     if (wl_data->iconv_enabled == true)
     {
@@ -203,6 +211,8 @@ void get_next_word (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, char **out_buf, u32 
       ptr = wl_data->iconv_tmp;
       len = HCBUFSIZ_TINY - iconv_sz;
     }
+
+    // this is only a test for length, not writing into output buffer
 
     if (run_rule_engine (user_options_extra->rule_len_l, user_options->rule_buf_l))
     {
@@ -331,7 +341,7 @@ int count_words (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, const char *dictfile, u
 
   dictstat_t d;
 
-  d.cnt = 0;
+  memset (&d, 0, sizeof (d));
 
   if (fstat (hc_fileno (fp), &d.stat))
   {
@@ -368,6 +378,21 @@ int count_words (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, const char *dictfile, u
 
     return 0;
   }
+
+  const size_t dictfile_len = strlen (dictfile);
+
+  u32 *dictfile_padded = (u32 *) hcmalloc (dictfile_len + 64); // padding required for sha1_update()
+
+  memcpy (dictfile_padded, dictfile, dictfile_len);
+
+  sha1_ctx_t sha1_ctx;
+  sha1_init   (&sha1_ctx);
+  sha1_update (&sha1_ctx, dictfile_padded, dictfile_len);
+  sha1_final  (&sha1_ctx);
+
+  hcfree (dictfile_padded);
+
+  memcpy (d.hash_filename, sha1_ctx.h, 16);
 
   const u64 cached_cnt = dictstat_find (hashcat_ctx, &d);
 
@@ -443,6 +468,11 @@ int count_words (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, const char *dictfile, u
       wl_data->func (ptr, wl_data->cnt - i, &len, &off);
 
       i += off;
+
+      // do the on-the-fly hex decode using original buffer
+      // this is safe as length only decreases in size
+
+      len = (u32) convert_from_hex (hashcat_ctx, ptr, len);
 
       // do the on-the-fly encoding
 

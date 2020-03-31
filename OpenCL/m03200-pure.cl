@@ -356,6 +356,10 @@ CONSTANT_VK u32a c_pbox[18] =
   L ^= P[17];           \
 }
 
+#ifdef DYNAMIC_LOCAL
+extern __shared__ u32 lm[];
+#endif
+
 DECLSPEC void expand_key (u32 *E, u32 *W, const int len)
 {
   u8 *E_ptr = (u8 *) E;
@@ -456,6 +460,12 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m03200_init (KERN_ATTR_TMPS 
     P[i] = c_pbox[i];
   }
 
+  #ifdef DYNAMIC_LOCAL
+  LOCAL_AS u32 *S0 = lm + (lid * 1024) +   0;
+  LOCAL_AS u32 *S1 = lm + (lid * 1024) + 256;
+  LOCAL_AS u32 *S2 = lm + (lid * 1024) + 512;
+  LOCAL_AS u32 *S3 = lm + (lid * 1024) + 768;
+  #else
   LOCAL_VK u32 S0_all[FIXED_LOCAL_SIZE][256];
   LOCAL_VK u32 S1_all[FIXED_LOCAL_SIZE][256];
   LOCAL_VK u32 S2_all[FIXED_LOCAL_SIZE][256];
@@ -465,6 +475,7 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m03200_init (KERN_ATTR_TMPS 
   LOCAL_AS u32 *S1 = S1_all[lid];
   LOCAL_AS u32 *S2 = S2_all[lid];
   LOCAL_AS u32 *S3 = S3_all[lid];
+  #endif
 
   for (u32 i = 0; i < 256; i++)
   {
@@ -614,6 +625,12 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m03200_loop (KERN_ATTR_TMPS 
     P[i] = tmps[gid].P[i];
   }
 
+  #ifdef DYNAMIC_LOCAL
+  LOCAL_AS u32 *S0 = lm + (lid * 1024) +   0;
+  LOCAL_AS u32 *S1 = lm + (lid * 1024) + 256;
+  LOCAL_AS u32 *S2 = lm + (lid * 1024) + 512;
+  LOCAL_AS u32 *S3 = lm + (lid * 1024) + 768;
+  #else
   LOCAL_VK u32 S0_all[FIXED_LOCAL_SIZE][256];
   LOCAL_VK u32 S1_all[FIXED_LOCAL_SIZE][256];
   LOCAL_VK u32 S2_all[FIXED_LOCAL_SIZE][256];
@@ -623,6 +640,7 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m03200_loop (KERN_ATTR_TMPS 
   LOCAL_AS u32 *S1 = S1_all[lid];
   LOCAL_AS u32 *S2 = S2_all[lid];
   LOCAL_AS u32 *S3 = S3_all[lid];
+  #endif
 
   for (u32 i = 0; i < 256; i++)
   {
@@ -799,6 +817,12 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m03200_comp (KERN_ATTR_TMPS 
     P[i] = tmps[gid].P[i];
   }
 
+  #ifdef DYNAMIC_LOCAL
+  LOCAL_AS u32 *S0 = lm + (lid * 1024) +   0;
+  LOCAL_AS u32 *S1 = lm + (lid * 1024) + 256;
+  LOCAL_AS u32 *S2 = lm + (lid * 1024) + 512;
+  LOCAL_AS u32 *S3 = lm + (lid * 1024) + 768;
+  #else
   LOCAL_VK u32 S0_all[FIXED_LOCAL_SIZE][256];
   LOCAL_VK u32 S1_all[FIXED_LOCAL_SIZE][256];
   LOCAL_VK u32 S2_all[FIXED_LOCAL_SIZE][256];
@@ -808,6 +832,7 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m03200_comp (KERN_ATTR_TMPS 
   LOCAL_AS u32 *S1 = S1_all[lid];
   LOCAL_AS u32 *S2 = S2_all[lid];
   LOCAL_AS u32 *S3 = S3_all[lid];
+  #endif
 
   for (u32 i = 0; i < 256; i++)
   {

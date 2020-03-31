@@ -94,7 +94,27 @@ typedef struct seven_zip_hook_salt
 
 static const char *SIGNATURE_SEVEN_ZIP = "$7z$";
 
-void module_hook23 (hc_device_param_t *device_param, const void *hook_salts_buf, const u32 salt_pos, const u64 pws_cnt)
+char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
+{
+  char *jit_build_options = NULL;
+
+  // Extra treatment for Apple systems
+  if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
+  {
+    return jit_build_options;
+  }
+
+  // ROCM
+  if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == true))
+  {
+    hc_asprintf (&jit_build_options, "-D _unroll");
+  }
+
+  return jit_build_options;
+}
+
+
+void module_hook23 (hc_device_param_t *device_param, const void *hook_salts_buf, const u32 salt_pos, const u64 pw_pos)
 {
   seven_zip_hook_t *hook_items = (seven_zip_hook_t *) device_param->hooks_buf;
 
@@ -105,67 +125,40 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_salts_buf,
   u32 *data_buf    = seven_zip->data_buf;
   u32  unpack_size = seven_zip->unpack_size;
 
-  for (u64 pw_pos = 0; pw_pos < pws_cnt; pw_pos++)
+  // this hook data needs to be updated (the "hook_success" variable):
+
+  seven_zip_hook_t *hook_item = &hook_items[pw_pos];
+
+  const u32 *ukey = (const u32 *) hook_item->ukey;
+
+  // init AES
+
+  AES_KEY aes_key;
+
+  memset (&aes_key, 0, sizeof (aes_key));
+
+  aes256_set_decrypt_key (aes_key.rdk, ukey, (u32 *) te0, (u32 *) te1, (u32 *) te2, (u32 *) te3, (u32 *) td0, (u32 *) td1, (u32 *) td2, (u32 *) td3);
+
+  int aes_len = seven_zip->aes_len;
+
+  u32 data[4];
+  u32 out[4];
+  u32 iv[4];
+
+  iv[0] = seven_zip->iv_buf[0];
+  iv[1] = seven_zip->iv_buf[1];
+  iv[2] = seven_zip->iv_buf[2];
+  iv[3] = seven_zip->iv_buf[3];
+
+  u32 out_full[81882];
+
+  // if aes_len > 16 we need to loop
+
+  int i = 0;
+  int j = 0;
+
+  for (i = 0, j = 0; i < aes_len - 16; i += 16, j += 4)
   {
-    // this hook data needs to be updated (the "hook_success" variable):
-
-    seven_zip_hook_t *hook_item = &hook_items[pw_pos];
-
-    const u32 *ukey = (const u32 *) hook_item->ukey;
-
-    // init AES
-
-    AES_KEY aes_key;
-
-    memset (&aes_key, 0, sizeof (aes_key));
-
-    aes256_set_decrypt_key (aes_key.rdk, ukey, (u32 *) te0, (u32 *) te1, (u32 *) te2, (u32 *) te3, (u32 *) td0, (u32 *) td1, (u32 *) td2, (u32 *) td3);
-
-    int aes_len = seven_zip->aes_len;
-
-    u32 data[4];
-    u32 out[4];
-    u32 iv[4];
-
-    iv[0] = seven_zip->iv_buf[0];
-    iv[1] = seven_zip->iv_buf[1];
-    iv[2] = seven_zip->iv_buf[2];
-    iv[3] = seven_zip->iv_buf[3];
-
-    u32 out_full[81882];
-
-    // if aes_len > 16 we need to loop
-
-    int i = 0;
-    int j = 0;
-
-    for (i = 0, j = 0; i < aes_len - 16; i += 16, j += 4)
-    {
-      data[0] = data_buf[j + 0];
-      data[1] = data_buf[j + 1];
-      data[2] = data_buf[j + 2];
-      data[3] = data_buf[j + 3];
-
-      aes256_decrypt (aes_key.rdk, data, out, (u32 *) td0, (u32 *) td1, (u32 *) td2, (u32 *) td3, (u32 *) td4);
-
-      out[0] ^= iv[0];
-      out[1] ^= iv[1];
-      out[2] ^= iv[2];
-      out[3] ^= iv[3];
-
-      iv[0] = data[0];
-      iv[1] = data[1];
-      iv[2] = data[2];
-      iv[3] = data[3];
-
-      out_full[j + 0] = out[0];
-      out_full[j + 1] = out[1];
-      out_full[j + 2] = out[2];
-      out_full[j + 3] = out[3];
-    }
-
-    // we need to run it at least once:
-
     data[0] = data_buf[j + 0];
     data[1] = data_buf[j + 1];
     data[2] = data_buf[j + 2];
@@ -178,105 +171,129 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_salts_buf,
     out[2] ^= iv[2];
     out[3] ^= iv[3];
 
+    iv[0] = data[0];
+    iv[1] = data[1];
+    iv[2] = data[2];
+    iv[3] = data[3];
+
     out_full[j + 0] = out[0];
     out_full[j + 1] = out[1];
     out_full[j + 2] = out[2];
     out_full[j + 3] = out[3];
+  }
 
-    /*
-     * check the CRC32 "hash"
-     */
+  // we need to run it at least once:
 
-    u32 seven_zip_crc = seven_zip->crc;
+  data[0] = data_buf[j + 0];
+  data[1] = data_buf[j + 1];
+  data[2] = data_buf[j + 2];
+  data[3] = data_buf[j + 3];
 
-    u32 crc;
+  aes256_decrypt (aes_key.rdk, data, out, (u32 *) td0, (u32 *) td1, (u32 *) td2, (u32 *) td3, (u32 *) td4);
 
-    if (data_type == 0) // uncompressed
+  out[0] ^= iv[0];
+  out[1] ^= iv[1];
+  out[2] ^= iv[2];
+  out[3] ^= iv[3];
+
+  out_full[j + 0] = out[0];
+  out_full[j + 1] = out[1];
+  out_full[j + 2] = out[2];
+  out_full[j + 3] = out[3];
+
+  /*
+   * check the CRC32 "hash"
+   */
+
+  u32 seven_zip_crc = seven_zip->crc;
+
+  u32 crc;
+
+  if (data_type == 0) // uncompressed
+  {
+    crc = cpu_crc32_buffer ((u8 *) out_full, unpack_size);
+  }
+  else
+  {
+    u32 crc_len = seven_zip->crc_len;
+
+    char *coder_attributes = seven_zip->coder_attributes;
+
+    // input buffers and length
+
+    u8 *compressed_data = (u8 *) out_full;
+
+    SizeT compressed_data_len = aes_len;
+
+    // output buffers and length
+
+    unsigned char *decompressed_data;
+
+    decompressed_data = (unsigned char *) hcmalloc (crc_len);
+
+    SizeT decompressed_data_len = crc_len;
+
+    int ret;
+
+    if (data_type == 1) // LZMA1
     {
-      crc = cpu_crc32_buffer ((u8 *) out_full, unpack_size);
+      ret = hc_lzma1_decompress (compressed_data, &compressed_data_len, decompressed_data, &decompressed_data_len, coder_attributes);
     }
-    else
+    else if (data_type == 7) // inflate using zlib (DEFLATE compression)
     {
-      u32 crc_len = seven_zip->crc_len;
+      ret = SZ_ERROR_DATA;
 
-      char *coder_attributes = seven_zip->coder_attributes;
+      z_stream inf;
 
-      // input buffers and length
+      inf.zalloc = Z_NULL;
+      inf.zfree  = Z_NULL;
+      inf.opaque = Z_NULL;
 
-      u8 *compressed_data = (u8 *) out_full;
+      inf.avail_in  = compressed_data_len;
+      inf.next_in   = compressed_data;
 
-      SizeT compressed_data_len = aes_len;
+      inf.avail_out = decompressed_data_len;
+      inf.next_out  = decompressed_data;
 
-      // output buffers and length
+      // inflate:
 
-      unsigned char *decompressed_data;
+      inflateInit2 (&inf, -MAX_WBITS);
 
-      decompressed_data = (unsigned char *) hcmalloc (crc_len);
+      int zlib_ret = inflate (&inf, Z_NO_FLUSH);
 
-      SizeT decompressed_data_len = crc_len;
+      inflateEnd (&inf);
 
-      int ret;
-
-      if (data_type == 1) // LZMA1
+      if ((zlib_ret == Z_OK) || (zlib_ret == Z_STREAM_END))
       {
-        ret = hc_lzma1_decompress (compressed_data, &compressed_data_len, decompressed_data, &decompressed_data_len, coder_attributes);
+        ret = SZ_OK;
       }
-      else if (data_type == 7) // inflate using zlib (DEFLATE compression)
-      {
-        ret = SZ_ERROR_DATA;
-
-        z_stream inf;
-
-        inf.zalloc = Z_NULL;
-        inf.zfree  = Z_NULL;
-        inf.opaque = Z_NULL;
-
-        inf.avail_in  = compressed_data_len;
-        inf.next_in   = compressed_data;
-
-        inf.avail_out = decompressed_data_len;
-        inf.next_out  = decompressed_data;
-
-        // inflate:
-
-        inflateInit2 (&inf, -MAX_WBITS);
-
-        int zlib_ret = inflate (&inf, Z_NO_FLUSH);
-
-        inflateEnd (&inf);
-
-        if ((zlib_ret == Z_OK) || (zlib_ret == Z_STREAM_END))
-        {
-          ret = SZ_OK;
-        }
-      }
-      else // we only support LZMA2 in addition to LZMA1
-      {
-        ret = hc_lzma2_decompress (compressed_data, &compressed_data_len, decompressed_data, &decompressed_data_len, coder_attributes);
-      }
-
-      if (ret != SZ_OK)
-      {
-        hook_item->hook_success = 0;
-
-        hcfree (decompressed_data);
-
-        continue;
-      }
-
-      crc = cpu_crc32_buffer (decompressed_data, crc_len);
-
-      hcfree (decompressed_data);
     }
-
-    if (crc == seven_zip_crc)
+    else // we only support LZMA2 in addition to LZMA1
     {
-      hook_item->hook_success = 1;
+      ret = hc_lzma2_decompress (compressed_data, &compressed_data_len, decompressed_data, &decompressed_data_len, coder_attributes);
     }
-    else
+
+    if (ret != SZ_OK)
     {
       hook_item->hook_success = 0;
+
+      hcfree (decompressed_data);
+
+      return;
     }
+
+    crc = cpu_crc32_buffer (decompressed_data, crc_len);
+
+    hcfree (decompressed_data);
+  }
+
+  if (crc == seven_zip_crc)
+  {
+    hook_item->hook_success = 1;
+  }
+  else
+  {
+    hook_item->hook_success = 0;
   }
 }
 
@@ -301,49 +318,46 @@ u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED c
   return tmp_size;
 }
 
-u32 module_kernel_accel_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u32 kernel_accel_max = 128; // password length affects total performance, this limits the wait times for threads with short password lengths if there's at least one thread with long password length
-
-  return kernel_accel_max;
-}
-
 u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  // this overrides the reductions of PW_MAX in case optimized kernel is selected
-  // IOW, even in optimized kernel mode it support length 256
+  const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL);
 
-  const u32 pw_max = PW_MAX;
+  u32 pw_max = PW_MAX;
+
+  if (optimized_kernel == true)
+  {
+    pw_max = 20;
+  }
 
   return pw_max;
 }
 
-char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
+u32 module_kernel_loops_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  char *jit_build_options = NULL;
+  const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL);
 
-  if (device_param->is_cuda == true)
+  u32 kernel_loops_min = KERNEL_LOOPS_MIN;
+
+  if (optimized_kernel == true)
   {
-    hc_asprintf (&jit_build_options, "-D NO_UNROLL");
+    kernel_loops_min = 4096;
   }
 
-  if (device_param->opencl_device_vendor_id == VENDOR_ID_NV)
-  {
-    hc_asprintf (&jit_build_options, "-D NO_UNROLL");
-  }
-
-  return jit_build_options;
+  return kernel_loops_min;
 }
 
-bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
+u32 module_kernel_loops_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  // amdgpu-pro-18.50-708488-ubuntu-18.04: Segmentation fault
-  if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
+  const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL);
+
+  u32 kernel_loops_max = KERNEL_LOOPS_MAX;
+
+  if (optimized_kernel == true)
   {
-    return true;
+    kernel_loops_max = 4096;
   }
 
-  return false;
+  return kernel_loops_max;
 }
 
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
@@ -741,10 +755,10 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hook_size                = module_hook_size;
   module_ctx->module_jit_build_options        = module_jit_build_options;
   module_ctx->module_jit_cache_disable        = MODULE_DEFAULT;
-  module_ctx->module_kernel_accel_max         = module_kernel_accel_max;
+  module_ctx->module_kernel_accel_max         = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_min         = MODULE_DEFAULT;
-  module_ctx->module_kernel_loops_max         = MODULE_DEFAULT;
-  module_ctx->module_kernel_loops_min         = MODULE_DEFAULT;
+  module_ctx->module_kernel_loops_max         = module_kernel_loops_max;
+  module_ctx->module_kernel_loops_min         = module_kernel_loops_min;
   module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
   module_ctx->module_kern_type                = module_kern_type;
@@ -766,6 +780,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_hash                  = module_st_hash;
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
-  module_ctx->module_unstable_warning         = module_unstable_warning;
+  module_ctx->module_unstable_warning         = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

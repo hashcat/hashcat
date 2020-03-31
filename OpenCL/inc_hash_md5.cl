@@ -835,9 +835,7 @@ DECLSPEC void md5_hmac_init_64 (md5_hmac_ctx_t *ctx, const u32 *w0, const u32 *w
 
   md5_init (&ctx->ipad);
 
-  md5_transform (t0, t1, t2, t3, ctx->ipad.h);
-
-  ctx->ipad.len = 64;
+  md5_update_64 (&ctx->ipad, t0, t1, t2, t3, 64);
 
   // opad
 
@@ -860,9 +858,7 @@ DECLSPEC void md5_hmac_init_64 (md5_hmac_ctx_t *ctx, const u32 *w0, const u32 *w
 
   md5_init (&ctx->opad);
 
-  md5_transform (t0, t1, t2, t3, ctx->opad.h);
-
-  ctx->opad.len = 64;
+  md5_update_64 (&ctx->opad, t0, t1, t2, t3, 64);
 }
 
 DECLSPEC void md5_hmac_init (md5_hmac_ctx_t *ctx, const u32 *w, const int len)
@@ -1758,9 +1754,7 @@ DECLSPEC void md5_hmac_init_vector_64 (md5_hmac_ctx_vector_t *ctx, const u32x *w
 
   md5_init_vector (&ctx->ipad);
 
-  md5_transform_vector (t0, t1, t2, t3, ctx->ipad.h);
-
-  ctx->ipad.len = 64;
+  md5_update_vector_64 (&ctx->ipad, t0, t1, t2, t3, 64);
 
   // opad
 
@@ -1783,9 +1777,7 @@ DECLSPEC void md5_hmac_init_vector_64 (md5_hmac_ctx_vector_t *ctx, const u32x *w
 
   md5_init_vector (&ctx->opad);
 
-  md5_transform_vector (t0, t1, t2, t3, ctx->opad.h);
-
-  ctx->opad.len = 64;
+  md5_update_vector_64 (&ctx->opad, t0, t1, t2, t3, 64);
 }
 
 DECLSPEC void md5_hmac_init_vector (md5_hmac_ctx_vector_t *ctx, const u32x *w, const int len)

@@ -158,10 +158,7 @@ void loopback_write_append (hashcat_ctx_t *hashcat_ctx, const u8 *plain_ptr, con
 
   hc_fflush (&loopback_ctx->fp);
 
-  if (hc_unlockfile (&loopback_ctx->fp))
-  {
-    event_log_error (hashcat_ctx, "%s: Failed to unlock file", loopback_ctx->filename);
-  }
+  hc_unlockfile (&loopback_ctx->fp);
 
   loopback_ctx->unused = false;
 }

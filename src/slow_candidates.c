@@ -35,7 +35,7 @@ void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, const u
         char *line_buf = NULL;
         u32   line_len = 0;
 
-        while (1)
+        while (true)
         {
           HCFILE *fp = &extra_info_straight->fp;
 
@@ -86,7 +86,7 @@ void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, const u
         char *line_buf = NULL;
         u32   line_len = 0;
 
-        while (1)
+        while (true)
         {
           get_next_word (hashcat_ctx, base_fp, &line_buf, &line_len);
 
@@ -121,9 +121,11 @@ void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, const u
       char *line_buf = extra_info_combi->scratch_buf;
       u32   line_len = 0;
 
-      while (1)
+      while (true)
       {
         line_len = (u32) fgetl (combs_fp, line_buf, HCBUFSIZ_LARGE);
+
+        line_len = convert_from_hex (hashcat_ctx, line_buf, line_len);
 
         // post-process rule engine
 
@@ -174,13 +176,11 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
       char *line_buf = NULL;
       u32   line_len = 0;
 
-      while (1)
+      while (true)
       {
         HCFILE *fp = &extra_info_straight->fp;
 
         get_next_word (hashcat_ctx, fp, &line_buf, &line_len);
-
-        line_len = (u32) convert_from_hex (hashcat_ctx, line_buf, line_len);
 
         // post-process rule engine
 
@@ -218,10 +218,14 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
 
     if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
     {
+      extra_info_straight->out_len = MIN (extra_info_straight->out_len, 31); // max length supported by apply_rules_optimized()
+
       extra_info_straight->out_len = apply_rules_optimized (straight_ctx->kernel_rules_buf[extra_info_straight->rule_pos].cmds, &out_ptr[0], &out_ptr[4], extra_info_straight->out_len);
     }
     else
     {
+      extra_info_straight->out_len = MIN (extra_info_straight->out_len, 256); // max length supported by apply_rules()
+
       extra_info_straight->out_len = apply_rules (straight_ctx->kernel_rules_buf[extra_info_straight->rule_pos].cmds, out_ptr, extra_info_straight->out_len);
     }
 
@@ -246,25 +250,26 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
       char *line_buf = NULL;
       u32   line_len = 0;
 
-      while (1)
+      while (true)
       {
         get_next_word (hashcat_ctx, base_fp, &line_buf, &line_len);
 
-        line_len = (u32) convert_from_hex (hashcat_ctx, line_buf, line_len);
-
         // post-process rule engine
+
+        char rule_buf_out[RP_PASSWORD_SIZE];
 
         if (run_rule_engine ((int) user_options_extra->rule_len_l, user_options->rule_buf_l))
         {
           if (line_len >= RP_PASSWORD_SIZE) continue;
-
-          char rule_buf_out[RP_PASSWORD_SIZE];
 
           memset (rule_buf_out, 0, sizeof (rule_buf_out));
 
           const int rule_len_out = _old_apply_rule (user_options->rule_buf_l, (int) user_options_extra->rule_len_l, line_buf, (int) line_len, rule_buf_out);
 
           if (rule_len_out < 0) continue;
+
+          line_buf = rule_buf_out;
+          line_len = (u32) rule_len_out;
         }
 
         break;
@@ -284,9 +289,11 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
     char *line_buf = extra_info_combi->scratch_buf;
     u32   line_len = 0;
 
-    while (1)
+    while (true)
     {
       line_len = (u32) fgetl (combs_fp, line_buf, HCBUFSIZ_LARGE);
+
+      line_len = convert_from_hex (hashcat_ctx, line_buf, line_len);
 
       // post-process rule engine
 

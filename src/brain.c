@@ -66,7 +66,7 @@ u32 brain_compute_session (hashcat_ctx_t *hashcat_ctx)
     // digest
 
     u32  digests_cnt = hashes->digests_cnt;
-    u32 *digests_buf = hashes->digests_buf;
+    u32 *digests_buf = (u32 *) hashes->digests_buf;
 
     XXH64_update (state, digests_buf, digests_cnt * hashconfig->dgst_size);
 
@@ -1950,11 +1950,15 @@ void *brain_server_handle_dumps (void *p)
 
   brain_server_dbs_t *brain_server_dbs = brain_server_dumper_options->brain_server_dbs;
 
-  int i = 0;
+  u32 brain_server_timer = brain_server_dumper_options->brain_server_timer;
+
+  if (brain_server_timer == 0) return NULL;
+
+  u32 i = 0;
 
   while (keep_running == true)
   {
-    if (i == BRAIN_SERVER_DUMP_EVERY)
+    if (i == brain_server_timer)
     {
       brain_server_write_hash_dumps   (brain_server_dbs, ".");
       brain_server_write_attack_dumps (brain_server_dbs, ".");
@@ -2306,7 +2310,7 @@ void *brain_server_handle_client (void *p)
 
   // short global alloc
 
-  brain_server_db_short_t *brain_server_db_short = hcmalloc (sizeof (brain_server_db_short_t));
+  brain_server_db_short_t *brain_server_db_short = (brain_server_db_short_t *) hcmalloc (sizeof (brain_server_db_short_t));
 
   brain_server_db_short->short_cnt = 0;
   brain_server_db_short->short_buf = (brain_server_hash_short_t *) hccalloc (passwords_max, sizeof (brain_server_hash_short_t));
@@ -2923,7 +2927,7 @@ void *brain_server_handle_client (void *p)
   return NULL;
 }
 
-int brain_server (const char *listen_host, const int listen_port, const char *brain_password, const char *brain_session_whitelist)
+int brain_server (const char *listen_host, const int listen_port, const char *brain_password, const char *brain_session_whitelist, const u32 brain_server_timer)
 {
   #if defined (_WIN)
   WSADATA wsaData;
@@ -3193,7 +3197,8 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
 
   brain_server_dumper_options_t brain_server_dumper_options;
 
-  brain_server_dumper_options.brain_server_dbs = brain_server_dbs;
+  brain_server_dumper_options.brain_server_dbs   = brain_server_dbs;
+  brain_server_dumper_options.brain_server_timer = brain_server_timer;
 
   hc_thread_t dump_thr;
 

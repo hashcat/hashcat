@@ -119,74 +119,69 @@ KERNEL_FQ void m06500_init (KERN_ATTR_TMPS (sha512aix_tmp_t))
 
   sha512_hmac_update_global_swap (&sha512_hmac_ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
 
-  for (u32 i = 0, j = 1; i < 8; i += 8, j += 1)
-  {
-    sha512_hmac_ctx_t sha512_hmac_ctx2 = sha512_hmac_ctx;
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+  u32 w4[4];
+  u32 w5[4];
+  u32 w6[4];
+  u32 w7[4];
 
-    u32 w0[4];
-    u32 w1[4];
-    u32 w2[4];
-    u32 w3[4];
-    u32 w4[4];
-    u32 w5[4];
-    u32 w6[4];
-    u32 w7[4];
+  w0[0] = 1;
+  w0[1] = 0;
+  w0[2] = 0;
+  w0[3] = 0;
+  w1[0] = 0;
+  w1[1] = 0;
+  w1[2] = 0;
+  w1[3] = 0;
+  w2[0] = 0;
+  w2[1] = 0;
+  w2[2] = 0;
+  w2[3] = 0;
+  w3[0] = 0;
+  w3[1] = 0;
+  w3[2] = 0;
+  w3[3] = 0;
+  w4[0] = 0;
+  w4[1] = 0;
+  w4[2] = 0;
+  w4[3] = 0;
+  w5[0] = 0;
+  w5[1] = 0;
+  w5[2] = 0;
+  w5[3] = 0;
+  w6[0] = 0;
+  w6[1] = 0;
+  w6[2] = 0;
+  w6[3] = 0;
+  w7[0] = 0;
+  w7[1] = 0;
+  w7[2] = 0;
+  w7[3] = 0;
 
-    w0[0] = j;
-    w0[1] = 0;
-    w0[2] = 0;
-    w0[3] = 0;
-    w1[0] = 0;
-    w1[1] = 0;
-    w1[2] = 0;
-    w1[3] = 0;
-    w2[0] = 0;
-    w2[1] = 0;
-    w2[2] = 0;
-    w2[3] = 0;
-    w3[0] = 0;
-    w3[1] = 0;
-    w3[2] = 0;
-    w3[3] = 0;
-    w4[0] = 0;
-    w4[1] = 0;
-    w4[2] = 0;
-    w4[3] = 0;
-    w5[0] = 0;
-    w5[1] = 0;
-    w5[2] = 0;
-    w5[3] = 0;
-    w6[0] = 0;
-    w6[1] = 0;
-    w6[2] = 0;
-    w6[3] = 0;
-    w7[0] = 0;
-    w7[1] = 0;
-    w7[2] = 0;
-    w7[3] = 0;
+  sha512_hmac_update_128 (&sha512_hmac_ctx, w0, w1, w2, w3, w4, w5, w6, w7, 4);
 
-    sha512_hmac_update_128 (&sha512_hmac_ctx2, w0, w1, w2, w3, w4, w5, w6, w7, 4);
+  sha512_hmac_final (&sha512_hmac_ctx);
 
-    sha512_hmac_final (&sha512_hmac_ctx2);
+  tmps[gid].dgst[0] = sha512_hmac_ctx.opad.h[0];
+  tmps[gid].dgst[1] = sha512_hmac_ctx.opad.h[1];
+  tmps[gid].dgst[2] = sha512_hmac_ctx.opad.h[2];
+  tmps[gid].dgst[3] = sha512_hmac_ctx.opad.h[3];
+  tmps[gid].dgst[4] = sha512_hmac_ctx.opad.h[4];
+  tmps[gid].dgst[5] = sha512_hmac_ctx.opad.h[5];
+  tmps[gid].dgst[6] = sha512_hmac_ctx.opad.h[6];
+  tmps[gid].dgst[7] = sha512_hmac_ctx.opad.h[7];
 
-    tmps[gid].dgst[i + 0] = sha512_hmac_ctx2.opad.h[0];
-    tmps[gid].dgst[i + 1] = sha512_hmac_ctx2.opad.h[1];
-    tmps[gid].dgst[i + 2] = sha512_hmac_ctx2.opad.h[2];
-    tmps[gid].dgst[i + 3] = sha512_hmac_ctx2.opad.h[3];
-    tmps[gid].dgst[i + 4] = sha512_hmac_ctx2.opad.h[4];
-    tmps[gid].dgst[i + 5] = sha512_hmac_ctx2.opad.h[5];
-    tmps[gid].dgst[i + 6] = sha512_hmac_ctx2.opad.h[6];
-    tmps[gid].dgst[i + 7] = sha512_hmac_ctx2.opad.h[7];
-
-    tmps[gid].out[i + 0] = tmps[gid].dgst[i + 0];
-    tmps[gid].out[i + 1] = tmps[gid].dgst[i + 1];
-    tmps[gid].out[i + 2] = tmps[gid].dgst[i + 2];
-    tmps[gid].out[i + 3] = tmps[gid].dgst[i + 3];
-    tmps[gid].out[i + 4] = tmps[gid].dgst[i + 4];
-    tmps[gid].out[i + 5] = tmps[gid].dgst[i + 5];
-    tmps[gid].out[i + 6] = tmps[gid].dgst[i + 6];
-    tmps[gid].out[i + 7] = tmps[gid].dgst[i + 7];
-  }
+  tmps[gid].out[0] = sha512_hmac_ctx.opad.h[0];
+  tmps[gid].out[1] = sha512_hmac_ctx.opad.h[1];
+  tmps[gid].out[2] = sha512_hmac_ctx.opad.h[2];
+  tmps[gid].out[3] = sha512_hmac_ctx.opad.h[3];
+  tmps[gid].out[4] = sha512_hmac_ctx.opad.h[4];
+  tmps[gid].out[5] = sha512_hmac_ctx.opad.h[5];
+  tmps[gid].out[6] = sha512_hmac_ctx.opad.h[6];
+  tmps[gid].out[7] = sha512_hmac_ctx.opad.h[7];
 }
 
 KERNEL_FQ void m06500_loop (KERN_ATTR_TMPS (sha512aix_tmp_t))
@@ -216,103 +211,100 @@ KERNEL_FQ void m06500_loop (KERN_ATTR_TMPS (sha512aix_tmp_t))
   opad[6] = pack64v (tmps, opad, gid, 6);
   opad[7] = pack64v (tmps, opad, gid, 7);
 
-  for (u32 i = 0; i < 8; i += 8)
+  u64x dgst[8];
+  u64x out[8];
+
+  dgst[0] = pack64v (tmps, dgst, gid, 0);
+  dgst[1] = pack64v (tmps, dgst, gid, 1);
+  dgst[2] = pack64v (tmps, dgst, gid, 2);
+  dgst[3] = pack64v (tmps, dgst, gid, 3);
+  dgst[4] = pack64v (tmps, dgst, gid, 4);
+  dgst[5] = pack64v (tmps, dgst, gid, 5);
+  dgst[6] = pack64v (tmps, dgst, gid, 6);
+  dgst[7] = pack64v (tmps, dgst, gid, 7);
+
+  out[0] = pack64v (tmps, out, gid, 0);
+  out[1] = pack64v (tmps, out, gid, 1);
+  out[2] = pack64v (tmps, out, gid, 2);
+  out[3] = pack64v (tmps, out, gid, 3);
+  out[4] = pack64v (tmps, out, gid, 4);
+  out[5] = pack64v (tmps, out, gid, 5);
+  out[6] = pack64v (tmps, out, gid, 6);
+  out[7] = pack64v (tmps, out, gid, 7);
+
+  for (u32 j = 0; j < loop_cnt; j++)
   {
-    u64x dgst[8];
-    u64x out[8];
+    u32x w0[4];
+    u32x w1[4];
+    u32x w2[4];
+    u32x w3[4];
+    u32x w4[4];
+    u32x w5[4];
+    u32x w6[4];
+    u32x w7[4];
 
-    dgst[0] = pack64v (tmps, dgst, gid, i + 0);
-    dgst[1] = pack64v (tmps, dgst, gid, i + 1);
-    dgst[2] = pack64v (tmps, dgst, gid, i + 2);
-    dgst[3] = pack64v (tmps, dgst, gid, i + 3);
-    dgst[4] = pack64v (tmps, dgst, gid, i + 4);
-    dgst[5] = pack64v (tmps, dgst, gid, i + 5);
-    dgst[6] = pack64v (tmps, dgst, gid, i + 6);
-    dgst[7] = pack64v (tmps, dgst, gid, i + 7);
+    w0[0] = h32_from_64 (dgst[0]);
+    w0[1] = l32_from_64 (dgst[0]);
+    w0[2] = h32_from_64 (dgst[1]);
+    w0[3] = l32_from_64 (dgst[1]);
+    w1[0] = h32_from_64 (dgst[2]);
+    w1[1] = l32_from_64 (dgst[2]);
+    w1[2] = h32_from_64 (dgst[3]);
+    w1[3] = l32_from_64 (dgst[3]);
+    w2[0] = h32_from_64 (dgst[4]);
+    w2[1] = l32_from_64 (dgst[4]);
+    w2[2] = h32_from_64 (dgst[5]);
+    w2[3] = l32_from_64 (dgst[5]);
+    w3[0] = h32_from_64 (dgst[6]);
+    w3[1] = l32_from_64 (dgst[6]);
+    w3[2] = h32_from_64 (dgst[7]);
+    w3[3] = l32_from_64 (dgst[7]);
+    w4[0] = 0x80000000;
+    w4[1] = 0;
+    w4[2] = 0;
+    w4[3] = 0;
+    w5[0] = 0;
+    w5[1] = 0;
+    w5[2] = 0;
+    w5[3] = 0;
+    w6[0] = 0;
+    w6[1] = 0;
+    w6[2] = 0;
+    w6[3] = 0;
+    w7[0] = 0;
+    w7[1] = 0;
+    w7[2] = 0;
+    w7[3] = (128 + 64) * 8;
 
-    out[0] = pack64v (tmps, out, gid, i + 0);
-    out[1] = pack64v (tmps, out, gid, i + 1);
-    out[2] = pack64v (tmps, out, gid, i + 2);
-    out[3] = pack64v (tmps, out, gid, i + 3);
-    out[4] = pack64v (tmps, out, gid, i + 4);
-    out[5] = pack64v (tmps, out, gid, i + 5);
-    out[6] = pack64v (tmps, out, gid, i + 6);
-    out[7] = pack64v (tmps, out, gid, i + 7);
+    hmac_sha512_run_V (w0, w1, w2, w3, w4, w5, w6, w7, ipad, opad, dgst);
 
-    for (u32 j = 0; j < loop_cnt; j++)
-    {
-      u32x w0[4];
-      u32x w1[4];
-      u32x w2[4];
-      u32x w3[4];
-      u32x w4[4];
-      u32x w5[4];
-      u32x w6[4];
-      u32x w7[4];
-
-      w0[0] = h32_from_64 (dgst[0]);
-      w0[1] = l32_from_64 (dgst[0]);
-      w0[2] = h32_from_64 (dgst[1]);
-      w0[3] = l32_from_64 (dgst[1]);
-      w1[0] = h32_from_64 (dgst[2]);
-      w1[1] = l32_from_64 (dgst[2]);
-      w1[2] = h32_from_64 (dgst[3]);
-      w1[3] = l32_from_64 (dgst[3]);
-      w2[0] = h32_from_64 (dgst[4]);
-      w2[1] = l32_from_64 (dgst[4]);
-      w2[2] = h32_from_64 (dgst[5]);
-      w2[3] = l32_from_64 (dgst[5]);
-      w3[0] = h32_from_64 (dgst[6]);
-      w3[1] = l32_from_64 (dgst[6]);
-      w3[2] = h32_from_64 (dgst[7]);
-      w3[3] = l32_from_64 (dgst[7]);
-      w4[0] = 0x80000000;
-      w4[1] = 0;
-      w4[2] = 0;
-      w4[3] = 0;
-      w5[0] = 0;
-      w5[1] = 0;
-      w5[2] = 0;
-      w5[3] = 0;
-      w6[0] = 0;
-      w6[1] = 0;
-      w6[2] = 0;
-      w6[3] = 0;
-      w7[0] = 0;
-      w7[1] = 0;
-      w7[2] = 0;
-      w7[3] = (128 + 64) * 8;
-
-      hmac_sha512_run_V (w0, w1, w2, w3, w4, w5, w6, w7, ipad, opad, dgst);
-
-      out[0] ^= dgst[0];
-      out[1] ^= dgst[1];
-      out[2] ^= dgst[2];
-      out[3] ^= dgst[3];
-      out[4] ^= dgst[4];
-      out[5] ^= dgst[5];
-      out[6] ^= dgst[6];
-      out[7] ^= dgst[7];
-    }
-
-    unpack64v (tmps, dgst, gid, i + 0, dgst[0]);
-    unpack64v (tmps, dgst, gid, i + 1, dgst[1]);
-    unpack64v (tmps, dgst, gid, i + 2, dgst[2]);
-    unpack64v (tmps, dgst, gid, i + 3, dgst[3]);
-    unpack64v (tmps, dgst, gid, i + 4, dgst[4]);
-    unpack64v (tmps, dgst, gid, i + 5, dgst[5]);
-    unpack64v (tmps, dgst, gid, i + 6, dgst[6]);
-    unpack64v (tmps, dgst, gid, i + 7, dgst[7]);
-
-    unpack64v (tmps, out, gid, i + 0, out[0]);
-    unpack64v (tmps, out, gid, i + 1, out[1]);
-    unpack64v (tmps, out, gid, i + 2, out[2]);
-    unpack64v (tmps, out, gid, i + 3, out[3]);
-    unpack64v (tmps, out, gid, i + 4, out[4]);
-    unpack64v (tmps, out, gid, i + 5, out[5]);
-    unpack64v (tmps, out, gid, i + 6, out[6]);
-    unpack64v (tmps, out, gid, i + 7, out[7]);
+    out[0] ^= dgst[0];
+    out[1] ^= dgst[1];
+    out[2] ^= dgst[2];
+    out[3] ^= dgst[3];
+    out[4] ^= dgst[4];
+    out[5] ^= dgst[5];
+    out[6] ^= dgst[6];
+    out[7] ^= dgst[7];
   }
+
+  unpack64v (tmps, dgst, gid, 0, dgst[0]);
+  unpack64v (tmps, dgst, gid, 1, dgst[1]);
+  unpack64v (tmps, dgst, gid, 2, dgst[2]);
+  unpack64v (tmps, dgst, gid, 3, dgst[3]);
+  unpack64v (tmps, dgst, gid, 4, dgst[4]);
+  unpack64v (tmps, dgst, gid, 5, dgst[5]);
+  unpack64v (tmps, dgst, gid, 6, dgst[6]);
+  unpack64v (tmps, dgst, gid, 7, dgst[7]);
+
+  unpack64v (tmps, out, gid, 0, out[0]);
+  unpack64v (tmps, out, gid, 1, out[1]);
+  unpack64v (tmps, out, gid, 2, out[2]);
+  unpack64v (tmps, out, gid, 3, out[3]);
+  unpack64v (tmps, out, gid, 4, out[4]);
+  unpack64v (tmps, out, gid, 5, out[5]);
+  unpack64v (tmps, out, gid, 6, out[6]);
+  unpack64v (tmps, out, gid, 7, out[7]);
 }
 
 KERNEL_FQ void m06500_comp (KERN_ATTR_TMPS (sha512aix_tmp_t))

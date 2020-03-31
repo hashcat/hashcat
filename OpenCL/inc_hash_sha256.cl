@@ -850,9 +850,7 @@ DECLSPEC void sha256_hmac_init_64 (sha256_hmac_ctx_t *ctx, const u32 *w0, const 
 
   sha256_init (&ctx->ipad);
 
-  sha256_transform (t0, t1, t2, t3, ctx->ipad.h);
-
-  ctx->ipad.len = 64;
+  sha256_update_64 (&ctx->ipad, t0, t1, t2, t3, 64);
 
   // opad
 
@@ -875,9 +873,7 @@ DECLSPEC void sha256_hmac_init_64 (sha256_hmac_ctx_t *ctx, const u32 *w0, const 
 
   sha256_init (&ctx->opad);
 
-  sha256_transform (t0, t1, t2, t3, ctx->opad.h);
-
-  ctx->opad.len = 64;
+  sha256_update_64 (&ctx->opad, t0, t1, t2, t3, 64);
 }
 
 DECLSPEC void sha256_hmac_init (sha256_hmac_ctx_t *ctx, const u32 *w, const int len)
@@ -1814,9 +1810,7 @@ DECLSPEC void sha256_hmac_init_vector_64 (sha256_hmac_ctx_vector_t *ctx, const u
 
   sha256_init_vector (&ctx->ipad);
 
-  sha256_transform_vector (t0, t1, t2, t3, ctx->ipad.h);
-
-  ctx->ipad.len = 64;
+  sha256_update_vector_64 (&ctx->ipad, t0, t1, t2, t3, 64);
 
   // opad
 
@@ -1839,9 +1833,7 @@ DECLSPEC void sha256_hmac_init_vector_64 (sha256_hmac_ctx_vector_t *ctx, const u
 
   sha256_init_vector (&ctx->opad);
 
-  sha256_transform_vector (t0, t1, t2, t3, ctx->opad.h);
-
-  ctx->opad.len = 64;
+  sha256_update_vector_64 (&ctx->opad, t0, t1, t2, t3, 64);
 }
 
 DECLSPEC void sha256_hmac_init_vector (sha256_hmac_ctx_vector_t *ctx, const u32x *w, const int len)

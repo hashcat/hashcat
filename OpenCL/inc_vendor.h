@@ -88,11 +88,20 @@
 #define IS_GENERIC
 #endif
 
+#if defined IS_AMD && HAS_VPERM == 1
+#define IS_ROCM
+#endif
+
 #define LOCAL_MEM_TYPE_LOCAL  1
 #define LOCAL_MEM_TYPE_GLOBAL 2
 
 #if LOCAL_MEM_TYPE == LOCAL_MEM_TYPE_LOCAL
 #define REAL_SHM
+#endif
+
+// So far, only used by -m 22100 and only affects NVIDIA on OpenCL. CUDA seems to work fine.
+#ifdef FORCE_DISABLE_SHM
+#undef REAL_SHM
 #endif
 
 #ifdef REAL_SHM
@@ -106,14 +115,8 @@
  * fast but pure kernels on rocm is a good example
  */
 
-#if defined IS_CPU
-#define DECLSPEC inline
-#elif defined IS_GPU
-#if defined IS_AMD
+#if defined IS_AMD && defined IS_GPU
 #define DECLSPEC inline static
-#else
-#define DECLSPEC
-#endif
 #else
 #define DECLSPEC
 #endif
@@ -131,17 +134,30 @@
 #endif
 #endif
 
-/**
- * Unrolling is generally enabled, for all device types and hash modes
- * There's a few exception when it's better not to unroll
- * Some algorithms run into too much register pressure due to loop unrolling
- */
+// Whitelist some OpenCL specific functions
+// This could create more stable kernels on systems with bad OpenCL drivers
 
-// generic vendors: those algos have shown that they produce better results on both amd and nv when not unrolled
-// so we can assume they will produce better results on other vendors as well
+#ifdef IS_CUDA
+#define USE_BITSELECT
+#define USE_ROTATE
+#endif
 
-#ifdef NO_UNROLL
-#undef _unroll
+#ifdef IS_ROCM
+#define USE_BITSELECT
+#define USE_ROTATE
+#endif
+
+#ifdef IS_INTEL_SDK
+#ifdef IS_CPU
+//#define USE_BITSELECT
+//#define USE_ROTATE
+#endif
+#endif
+
+#ifdef IS_OPENCL
+//#define USE_BITSELECT
+//#define USE_ROTATE
+//#define USE_SWIZZLE
 #endif
 
 #endif

@@ -5,6 +5,7 @@
 
 #include "common.h"
 #include "types.h"
+#include "memory.h"
 #include "event.h"
 #include "convert.h"
 #include "mpsp.h"
@@ -15,6 +16,101 @@
 #include "shared.h"
 #include "locking.h"
 #include "outfile.h"
+
+u32 outfile_format_parse (const char *format_string)
+{
+  if (format_string == NULL) return 0;
+
+  char *format = hcstrdup (format_string);
+
+  if (format == NULL) return 0;
+
+  char *saveptr = NULL;
+
+  char *next = strtok_r (format, ",", &saveptr);
+
+  if (next == NULL)
+  {
+    hcfree (format);
+
+    return 0;
+  }
+
+  u32 outfile_format = 0;
+
+  do
+  {
+    const int tok_len = strlen (next);
+
+    // reject non-numbers:
+
+    if (is_valid_digit_string ((const u8 *) next, tok_len) == false)
+    {
+      outfile_format = 0;
+      break;
+    }
+
+    // string to number conversion:
+
+    const u32 num = hc_strtoul (next, NULL, 10);
+
+    if (num == 0)
+    {
+      outfile_format = 0;
+      break;
+    }
+
+    if (num > 31)
+    {
+      outfile_format = 0;
+      break;
+    }
+
+    // to bitmask:
+
+    const u32 bit = 1 << (num - 1);
+
+    bool accepted = false;
+
+    switch (bit)
+    {
+      // allowed formats:
+      case OUTFILE_FMT_HASH:
+      case OUTFILE_FMT_PLAIN:
+      case OUTFILE_FMT_HEXPLAIN:
+      case OUTFILE_FMT_CRACKPOS:
+      case OUTFILE_FMT_TIME_ABS:
+      case OUTFILE_FMT_TIME_REL:
+        accepted = true;
+        break;
+      // NOT acceptable formats:
+      default:
+        accepted = false;
+        break;
+    }
+
+    if (accepted == false)
+    {
+      outfile_format = 0;
+      break;
+    }
+
+    // the user should specify any format at most once:
+
+    if (outfile_format & bit)
+    {
+      outfile_format = 0;
+      break;
+    }
+
+    outfile_format |= bit;
+
+  } while ((next = strtok_r ((char *) NULL, ",", &saveptr)) != NULL);
+
+  hcfree (format);
+
+  return outfile_format;
+}
 
 int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain, u32 *plain_buf, int *out_len)
 {
@@ -391,10 +487,10 @@ int outfile_init (hashcat_ctx_t *hashcat_ctx)
   outfile_ctx_t  *outfile_ctx  = hashcat_ctx->outfile_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
 
-  outfile_ctx->fp.pfp           = NULL;
-  outfile_ctx->filename         = user_options->outfile;
-  outfile_ctx->outfile_format   = user_options->outfile_format;
-  outfile_ctx->outfile_autohex  = user_options->outfile_autohex;
+  outfile_ctx->fp.pfp          = NULL;
+  outfile_ctx->filename        = user_options->outfile;
+  outfile_ctx->outfile_format  = user_options->outfile_format;
+  outfile_ctx->outfile_autohex = user_options->outfile_autohex;
 
   return 0;
 }
@@ -437,6 +533,8 @@ void outfile_write_close (hashcat_ctx_t *hashcat_ctx)
 
   if (outfile_ctx->fp.pfp == NULL) return;
 
+  hc_unlockfile (&outfile_ctx->fp);
+
   hc_fclose (&outfile_ctx->fp);
 }
 
@@ -445,6 +543,7 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const int ou
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const user_options_t *user_options = hashcat_ctx->user_options;
   outfile_ctx_t        *outfile_ctx  = hashcat_ctx->outfile_ctx;
+  status_ctx_t         *status_ctx   = hashcat_ctx->status_ctx;
 
   const u32 outfile_format = (hashconfig->opts_type & OPTS_TYPE_PT_ALWAYS_HEXIFY) ? 5 : outfile_ctx->outfile_format;
 
@@ -458,12 +557,53 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const int ou
 
       tmp_len += user_len;
 
-      if (outfile_format & (OUTFILE_FMT_HASH | OUTFILE_FMT_PLAIN | OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
+      if (outfile_format & (OUTFILE_FMT_TIME_ABS | OUTFILE_FMT_TIME_REL | OUTFILE_FMT_HASH | OUTFILE_FMT_PLAIN | OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
       {
         tmp_buf[tmp_len] = hashconfig->separator;
 
         tmp_len += 1;
       }
+    }
+  }
+
+  if (outfile_format & OUTFILE_FMT_TIME_ABS)
+  {
+    time_t now;
+
+    time (&now);
+
+    tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_LARGE - tmp_len, "%" PRIu64, (u64) now);
+
+    if (outfile_format & (OUTFILE_FMT_TIME_REL | OUTFILE_FMT_HASH | OUTFILE_FMT_PLAIN | OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
+    {
+      tmp_buf[tmp_len] = hashconfig->separator;
+
+      tmp_len += 1;
+    }
+  }
+
+  if (outfile_format & OUTFILE_FMT_TIME_REL)
+  {
+    time_t time_now;
+
+    time (&time_now);
+
+    time_t time_started = status_ctx->runtime_start;
+
+    u64 diff = 0;
+
+    if (time_now > time_started) // should always be true, but you never know
+    {
+      diff = (u64) time_now - (u64) time_started;
+    }
+
+    tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_LARGE - tmp_len, "%" PRIu64, diff);
+
+    if (outfile_format & (OUTFILE_FMT_HASH | OUTFILE_FMT_PLAIN | OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
+    {
+      tmp_buf[tmp_len] = hashconfig->separator;
+
+      tmp_len += 1;
     }
   }
 

@@ -550,6 +550,26 @@ DECLSPEC void m14100m (LOCAL_AS u32 (*s_SPtrans)[64], LOCAL_AS u32 (*s_skb)[64],
   salt_buf0[1] = salt_bufs[salt_pos].salt_buf_pc[1];
 
   /**
+   * Precompute fixed key scheduler
+   */
+
+  const u32x c = (w[2]);
+  const u32x d = (w[3]);
+
+  u32x Kc[16];
+  u32x Kd[16];
+
+  _des_crypt_keysetup (c, d, Kc, Kd, s_skb);
+
+  const u32x e = (w[4]);
+  const u32x f = (w[5]);
+
+  u32x Ke[16];
+  u32x Kf[16];
+
+  _des_crypt_keysetup (e, f, Ke, Kf, s_skb);
+
+  /**
    * loop
    */
 
@@ -584,27 +604,11 @@ DECLSPEC void m14100m (LOCAL_AS u32 (*s_SPtrans)[64], LOCAL_AS u32 (*s_skb)[64],
 
     /* Second Pass */
 
-    const u32x c = (w[2]);
-    const u32x d = (w[3]);
-
-    u32x Kc[16];
-    u32x Kd[16];
-
-    _des_crypt_keysetup (c, d, Kc, Kd, s_skb);
-
     u32x p2[2];
 
     _des_crypt_decrypt (p2, p1, Kc, Kd, s_SPtrans);
 
     /* Third Pass */
-
-    const u32x e = (w[4]);
-    const u32x f = (w[5]);
-
-    u32x Ke[16];
-    u32x Kf[16];
-
-    _des_crypt_keysetup (e, f, Ke, Kf, s_skb);
 
     u32x iv[2];
 
@@ -635,16 +639,59 @@ DECLSPEC void m14100s (LOCAL_AS u32 (*s_SPtrans)[64], LOCAL_AS u32 (*s_skb)[64],
   salt_buf0[1] = salt_bufs[salt_pos].salt_buf_pc[1];
 
   /**
+   * Precompute fixed key scheduler
+   */
+
+  u32x iv[2];
+
+  iv[0] = digests_buf[digests_offset].digest_buf[0];
+  iv[1] = digests_buf[digests_offset].digest_buf[1];
+
+  const u32x e = (w[4]);
+  const u32x f = (w[5]);
+
+  u32x Ke[16];
+  u32x Kf[16];
+
+  _des_crypt_keysetup (e, f, Ke, Kf, s_skb);
+
+  u32x p2[2];
+
+  _des_crypt_decrypt (p2, iv, Ke, Kf, s_SPtrans);
+
+  const u32x c = (w[2]);
+  const u32x d = (w[3]);
+
+  u32x Kc[16];
+  u32x Kd[16];
+
+  _des_crypt_keysetup (c, d, Kc, Kd, s_skb);
+
+  u32x p1[2];
+
+  _des_crypt_encrypt (p1, p2, Kc, Kd, s_SPtrans);
+
+  /**
    * digest
    */
 
+  #if VECT_SIZE == 1
   const u32 search[4] =
   {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
+    p1[0],
+    p1[1],
     0,
     0
   };
+  #else
+  const u32 search[4] =
+  {
+    p1[0].s0,
+    p1[1].s0,
+    0,
+    0
+  };
+  #endif
 
   /**
    * loop
@@ -679,37 +726,13 @@ DECLSPEC void m14100s (LOCAL_AS u32 (*s_SPtrans)[64], LOCAL_AS u32 (*s_skb)[64],
 
     _des_crypt_encrypt (p1, data, Ka, Kb, s_SPtrans);
 
-    /* Second Pass */
+    /* Second Pass was precomputed */
 
-    const u32x c = (w[2]);
-    const u32x d = (w[3]);
-
-    u32x Kc[16];
-    u32x Kd[16];
-
-    _des_crypt_keysetup (c, d, Kc, Kd, s_skb);
-
-    u32x p2[2];
-
-    _des_crypt_decrypt (p2, p1, Kc, Kd, s_SPtrans);
-
-    /* Third Pass */
-
-    const u32x e = (w[4]);
-    const u32x f = (w[5]);
-
-    u32x Ke[16];
-    u32x Kf[16];
-
-    _des_crypt_keysetup (e, f, Ke, Kf, s_skb);
-
-    u32x iv[2];
-
-    _des_crypt_encrypt (iv, p2, Ke, Kf, s_SPtrans);
+    /* Third Pass was precomputed */
 
     u32x z = 0;
 
-    COMPARE_S_SIMD (iv[0], iv[1], z, z);
+    COMPARE_S_SIMD (p1[0], p1[1], z, z);
   }
 }
 

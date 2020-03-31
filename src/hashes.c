@@ -258,6 +258,18 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
 
   hc_fflush (&fp);
 
+  if (hc_unlockfile (&fp) == -1)
+  {
+    hc_fclose (&fp);
+
+    event_log_error (hashcat_ctx, "%s: %s", new_hashfile, strerror (errno));
+
+    free (new_hashfile);
+    free (old_hashfile);
+
+    return -1;
+  }
+
   hc_fclose (&fp);
 
   unlink (old_hashfile);
@@ -330,22 +342,23 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   // plain
 
-  u8 plain_buf[256+1];
+  u8 plain_buf[0x1000]; // while the password itself can have only length 256, the module could encode it with something like base64 which inflates the requires buffer size
 
   memset (plain_buf, 0, sizeof (plain_buf));
 
   u8 *plain_ptr = plain_buf;
+
   int plain_len = 0;
 
-  build_plain (hashcat_ctx, device_param, plain, (u32 *)plain_buf, &plain_len);
+  build_plain (hashcat_ctx, device_param, plain, (u32 *) plain_buf, &plain_len);
 
   if (module_ctx->module_build_plain_postprocess != MODULE_DEFAULT)
   {
-    u8 temp_buf[256+1] = { 0 };
+    u8 temp_buf[0x1000];
 
     memset (temp_buf, 0, sizeof (temp_buf));
 
-    const int temp_len = module_ctx->module_build_plain_postprocess (hashcat_ctx->hashconfig, hashcat_ctx->hashes, tmps, (u32 *)plain_buf, sizeof (plain_buf), plain_len, (u32 *)temp_buf, sizeof (temp_buf));
+    const int temp_len = module_ctx->module_build_plain_postprocess (hashcat_ctx->hashconfig, hashcat_ctx->hashes, tmps, (u32 *) plain_buf, sizeof (plain_buf), plain_len, (u32 *)temp_buf, sizeof (temp_buf));
 
     if (temp_len < (int) sizeof (plain_buf))
     {
@@ -470,7 +483,7 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
   salt_t *salt_buf = &hashes->salts_buf[salt_pos];
 
-  u32 num_cracked;
+  u32 num_cracked = 0;
 
   int CU_rc;
   int CL_rc;
@@ -822,6 +835,12 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
   for (u64 hash_pos = 0; hash_pos < hashes_avail; hash_pos++)
   {
+    /**
+     * Initialize some values for later use
+     */
+
+    hashes_buf[hash_pos].orig_line_pos = hash_pos;
+
     hashes_buf[hash_pos].digest = ((char *) digests_buf) + (hash_pos * hashconfig->dgst_size);
 
     if (hashconfig->is_salted == true)
@@ -887,10 +906,10 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
       hlfmt_hash (hashcat_ctx, hashlist_format, input_buf, input_len, &hash_buf, &hash_len);
 
-      bool hash_fmt_error = 0;
+      bool hash_fmt_error = false;
 
-      if (hash_len < 1)     hash_fmt_error = 1;
-      if (hash_buf == NULL) hash_fmt_error = 1;
+      if (hash_len < 1)     hash_fmt_error = true;
+      if (hash_buf == NULL) hash_fmt_error = true;
 
       if (hash_fmt_error)
       {
@@ -1034,10 +1053,10 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
         hlfmt_hash (hashcat_ctx, hashlist_format, line_buf, line_len, &hash_buf, &hash_len);
 
-        bool hash_fmt_error = 0;
+        bool hash_fmt_error = false;
 
-        if (hash_len < 1)     hash_fmt_error = 1;
-        if (hash_buf == NULL) hash_fmt_error = 1;
+        if (hash_len < 1)     hash_fmt_error = true;
+        if (hash_buf == NULL) hash_fmt_error = true;
 
         if (hash_fmt_error)
         {

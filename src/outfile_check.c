@@ -37,7 +37,7 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
   salt_t    *salts_buf   = hashes->salts_buf;
   const u32  salts_cnt   = hashes->salts_cnt;
 
-  char      *digests_buf = hashes->digests_buf;
+  char      *digests_buf = (char *) hashes->digests_buf;
 
   char *root_directory      = outcheck_ctx->root_directory;
   u32   outfile_check_timer = user_options->outfile_check_timer;

@@ -6,32 +6,16 @@
 #ifndef _INC_HASH_RIPEMD160_H
 #define _INC_HASH_RIPEMD160_H
 
-#ifdef IS_NV
 #define RIPEMD160_F(x,y,z)    ((x) ^ (y) ^ (z))
 #define RIPEMD160_G(x,y,z)    ((z) ^ ((x) & ((y) ^ (z)))) /* x ? y : z */
 #define RIPEMD160_H(x,y,z)    (((x) | ~(y)) ^ (z))
 #define RIPEMD160_I(x,y,z)    ((y) ^ ((z) & ((x) ^ (y)))) /* z ? x : y */
 #define RIPEMD160_J(x,y,z)    ((x) ^ ((y) | ~(z)))
+
+#ifdef USE_BITSELECT
 #define RIPEMD160_Go(x,y,z)   (bitselect ((z), (y), (x)))
 #define RIPEMD160_Io(x,y,z)   (bitselect ((y), (x), (z)))
-#endif
-
-#ifdef IS_AMD
-#define RIPEMD160_F(x,y,z)    ((x) ^ (y) ^ (z))
-#define RIPEMD160_G(x,y,z)    ((z) ^ ((x) & ((y) ^ (z)))) /* x ? y : z */
-#define RIPEMD160_H(x,y,z)    (((x) | ~(y)) ^ (z))
-#define RIPEMD160_I(x,y,z)    ((y) ^ ((z) & ((x) ^ (y)))) /* z ? x : y */
-#define RIPEMD160_J(x,y,z)    ((x) ^ ((y) | ~(z)))
-#define RIPEMD160_Go(x,y,z)   (bitselect ((z), (y), (x)))
-#define RIPEMD160_Io(x,y,z)   (bitselect ((y), (x), (z)))
-#endif
-
-#ifdef IS_GENERIC
-#define RIPEMD160_F(x,y,z)    ((x) ^ (y) ^ (z))
-#define RIPEMD160_G(x,y,z)    ((z) ^ ((x) & ((y) ^ (z)))) /* x ? y : z */
-#define RIPEMD160_H(x,y,z)    (((x) | ~(y)) ^ (z))
-#define RIPEMD160_I(x,y,z)    ((y) ^ ((z) & ((x) ^ (y)))) /* z ? x : y */
-#define RIPEMD160_J(x,y,z)    ((x) ^ ((y) | ~(z)))
+#else
 #define RIPEMD160_Go(x,y,z)   (RIPEMD160_G ((x), (y), (z)))
 #define RIPEMD160_Io(x,y,z)   (RIPEMD160_I ((x), (y), (z)))
 #endif

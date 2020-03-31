@@ -1390,8 +1390,6 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
           {
             get_next_word (hashcat_ctx_tmp, &fp, &line_buf, &line_len);
 
-            line_len = (u32) convert_from_hex (hashcat_ctx, line_buf, line_len);
-
             // post-process rule engine
 
             if (run_rule_engine ((int) user_options_extra->rule_len_l, user_options->rule_buf_l))

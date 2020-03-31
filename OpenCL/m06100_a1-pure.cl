@@ -30,36 +30,39 @@ KERNEL_FQ void m06100_mxx (KERN_ATTR_BASIC ())
 
   #ifdef REAL_SHM
 
-  LOCAL_VK u32 s_Ch[8][256];
-  LOCAL_VK u32 s_Cl[8][256];
+  LOCAL_VK u64 s_MT0[256];
+  LOCAL_VK u64 s_MT1[256];
+  LOCAL_VK u64 s_MT2[256];
+  LOCAL_VK u64 s_MT3[256];
+  LOCAL_VK u64 s_MT4[256];
+  LOCAL_VK u64 s_MT5[256];
+  LOCAL_VK u64 s_MT6[256];
+  LOCAL_VK u64 s_MT7[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
-    s_Ch[0][i] = Ch[0][i];
-    s_Ch[1][i] = Ch[1][i];
-    s_Ch[2][i] = Ch[2][i];
-    s_Ch[3][i] = Ch[3][i];
-    s_Ch[4][i] = Ch[4][i];
-    s_Ch[5][i] = Ch[5][i];
-    s_Ch[6][i] = Ch[6][i];
-    s_Ch[7][i] = Ch[7][i];
-
-    s_Cl[0][i] = Cl[0][i];
-    s_Cl[1][i] = Cl[1][i];
-    s_Cl[2][i] = Cl[2][i];
-    s_Cl[3][i] = Cl[3][i];
-    s_Cl[4][i] = Cl[4][i];
-    s_Cl[5][i] = Cl[5][i];
-    s_Cl[6][i] = Cl[6][i];
-    s_Cl[7][i] = Cl[7][i];
+    s_MT0[i] = MT0[i];
+    s_MT1[i] = MT1[i];
+    s_MT2[i] = MT2[i];
+    s_MT3[i] = MT3[i];
+    s_MT4[i] = MT4[i];
+    s_MT5[i] = MT5[i];
+    s_MT6[i] = MT6[i];
+    s_MT7[i] = MT7[i];
   }
 
   SYNC_THREADS ();
 
   #else
 
-  CONSTANT_AS u32a (*s_Ch)[256] = Ch;
-  CONSTANT_AS u32a (*s_Cl)[256] = Cl;
+  CONSTANT_AS u64a *s_MT0 = MT0;
+  CONSTANT_AS u64a *s_MT1 = MT1;
+  CONSTANT_AS u64a *s_MT2 = MT2;
+  CONSTANT_AS u64a *s_MT3 = MT3;
+  CONSTANT_AS u64a *s_MT4 = MT4;
+  CONSTANT_AS u64a *s_MT5 = MT5;
+  CONSTANT_AS u64a *s_MT6 = MT6;
+  CONSTANT_AS u64a *s_MT7 = MT7;
 
   #endif
 
@@ -71,7 +74,7 @@ KERNEL_FQ void m06100_mxx (KERN_ATTR_BASIC ())
 
   whirlpool_ctx_t ctx0;
 
-  whirlpool_init (&ctx0, s_Ch, s_Cl);
+  whirlpool_init (&ctx0, s_MT0, s_MT1, s_MT2, s_MT3, s_MT4, s_MT5, s_MT6, s_MT7);
 
   whirlpool_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
 
@@ -112,36 +115,39 @@ KERNEL_FQ void m06100_sxx (KERN_ATTR_BASIC ())
 
   #ifdef REAL_SHM
 
-  LOCAL_VK u32 s_Ch[8][256];
-  LOCAL_VK u32 s_Cl[8][256];
+  LOCAL_VK u64 s_MT0[256];
+  LOCAL_VK u64 s_MT1[256];
+  LOCAL_VK u64 s_MT2[256];
+  LOCAL_VK u64 s_MT3[256];
+  LOCAL_VK u64 s_MT4[256];
+  LOCAL_VK u64 s_MT5[256];
+  LOCAL_VK u64 s_MT6[256];
+  LOCAL_VK u64 s_MT7[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
-    s_Ch[0][i] = Ch[0][i];
-    s_Ch[1][i] = Ch[1][i];
-    s_Ch[2][i] = Ch[2][i];
-    s_Ch[3][i] = Ch[3][i];
-    s_Ch[4][i] = Ch[4][i];
-    s_Ch[5][i] = Ch[5][i];
-    s_Ch[6][i] = Ch[6][i];
-    s_Ch[7][i] = Ch[7][i];
-
-    s_Cl[0][i] = Cl[0][i];
-    s_Cl[1][i] = Cl[1][i];
-    s_Cl[2][i] = Cl[2][i];
-    s_Cl[3][i] = Cl[3][i];
-    s_Cl[4][i] = Cl[4][i];
-    s_Cl[5][i] = Cl[5][i];
-    s_Cl[6][i] = Cl[6][i];
-    s_Cl[7][i] = Cl[7][i];
+    s_MT0[i] = MT0[i];
+    s_MT1[i] = MT1[i];
+    s_MT2[i] = MT2[i];
+    s_MT3[i] = MT3[i];
+    s_MT4[i] = MT4[i];
+    s_MT5[i] = MT5[i];
+    s_MT6[i] = MT6[i];
+    s_MT7[i] = MT7[i];
   }
 
   SYNC_THREADS ();
 
   #else
 
-  CONSTANT_AS u32a (*s_Ch)[256] = Ch;
-  CONSTANT_AS u32a (*s_Cl)[256] = Cl;
+  CONSTANT_AS u64a *s_MT0 = MT0;
+  CONSTANT_AS u64a *s_MT1 = MT1;
+  CONSTANT_AS u64a *s_MT2 = MT2;
+  CONSTANT_AS u64a *s_MT3 = MT3;
+  CONSTANT_AS u64a *s_MT4 = MT4;
+  CONSTANT_AS u64a *s_MT5 = MT5;
+  CONSTANT_AS u64a *s_MT6 = MT6;
+  CONSTANT_AS u64a *s_MT7 = MT7;
 
   #endif
 
@@ -165,7 +171,7 @@ KERNEL_FQ void m06100_sxx (KERN_ATTR_BASIC ())
 
   whirlpool_ctx_t ctx0;
 
-  whirlpool_init (&ctx0, s_Ch, s_Cl);
+  whirlpool_init (&ctx0, s_MT0, s_MT1, s_MT2, s_MT3, s_MT4, s_MT5, s_MT6, s_MT7);
 
   whirlpool_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
 

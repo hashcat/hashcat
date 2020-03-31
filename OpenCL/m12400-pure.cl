@@ -726,40 +726,6 @@ KERNEL_FQ void m12400_loop (KERN_ATTR_TMPS (bsdicrypt_tmp_t))
 
   _des_crypt_encrypt (iv, mask, loop_cnt, Kc, Kd, s_SPtrans);
 
-  tmps[gid].Kc[ 0] = Kc[ 0];
-  tmps[gid].Kc[ 1] = Kc[ 1];
-  tmps[gid].Kc[ 2] = Kc[ 2];
-  tmps[gid].Kc[ 3] = Kc[ 3];
-  tmps[gid].Kc[ 4] = Kc[ 4];
-  tmps[gid].Kc[ 5] = Kc[ 5];
-  tmps[gid].Kc[ 6] = Kc[ 6];
-  tmps[gid].Kc[ 7] = Kc[ 7];
-  tmps[gid].Kc[ 8] = Kc[ 8];
-  tmps[gid].Kc[ 9] = Kc[ 9];
-  tmps[gid].Kc[10] = Kc[10];
-  tmps[gid].Kc[11] = Kc[11];
-  tmps[gid].Kc[12] = Kc[12];
-  tmps[gid].Kc[13] = Kc[13];
-  tmps[gid].Kc[14] = Kc[14];
-  tmps[gid].Kc[15] = Kc[15];
-
-  tmps[gid].Kd[ 0] = Kd[ 0];
-  tmps[gid].Kd[ 1] = Kd[ 1];
-  tmps[gid].Kd[ 2] = Kd[ 2];
-  tmps[gid].Kd[ 3] = Kd[ 3];
-  tmps[gid].Kd[ 4] = Kd[ 4];
-  tmps[gid].Kd[ 5] = Kd[ 5];
-  tmps[gid].Kd[ 6] = Kd[ 6];
-  tmps[gid].Kd[ 7] = Kd[ 7];
-  tmps[gid].Kd[ 8] = Kd[ 8];
-  tmps[gid].Kd[ 9] = Kd[ 9];
-  tmps[gid].Kd[10] = Kd[10];
-  tmps[gid].Kd[11] = Kd[11];
-  tmps[gid].Kd[12] = Kd[12];
-  tmps[gid].Kd[13] = Kd[13];
-  tmps[gid].Kd[14] = Kd[14];
-  tmps[gid].Kd[15] = Kd[15];
-
   tmps[gid].iv[0] = iv[0];
   tmps[gid].iv[1] = iv[1];
 }

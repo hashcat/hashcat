@@ -118,13 +118,22 @@ KERNEL_FQ void m07300_m04 (KERN_ATTR_RULES_ESALT (rakp_t))
    * modifier
    */
 
+  const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
 
   /**
-   * base
+   * s_msg
    */
 
-  const u64 gid = get_global_id (0);
+  LOCAL_VK u32 s_esalt_buf[128];
+
+  for (u32 i = lid; i < 128; i += lsz)
+  {
+    s_esalt_buf[i] = esalt_bufs[digests_offset].salt_buf[i];
+  }
+
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -186,40 +195,40 @@ KERNEL_FQ void m07300_m04 (KERN_ATTR_RULES_ESALT (rakp_t))
 
     for (esalt_left = esalt_size, esalt_off = 0; esalt_left >= 56; esalt_left -= 64, esalt_off += 16)
     {
-      w0[0] = esalt_bufs[digests_offset].salt_buf[esalt_off +  0];
-      w0[1] = esalt_bufs[digests_offset].salt_buf[esalt_off +  1];
-      w0[2] = esalt_bufs[digests_offset].salt_buf[esalt_off +  2];
-      w0[3] = esalt_bufs[digests_offset].salt_buf[esalt_off +  3];
-      w1[0] = esalt_bufs[digests_offset].salt_buf[esalt_off +  4];
-      w1[1] = esalt_bufs[digests_offset].salt_buf[esalt_off +  5];
-      w1[2] = esalt_bufs[digests_offset].salt_buf[esalt_off +  6];
-      w1[3] = esalt_bufs[digests_offset].salt_buf[esalt_off +  7];
-      w2[0] = esalt_bufs[digests_offset].salt_buf[esalt_off +  8];
-      w2[1] = esalt_bufs[digests_offset].salt_buf[esalt_off +  9];
-      w2[2] = esalt_bufs[digests_offset].salt_buf[esalt_off + 10];
-      w2[3] = esalt_bufs[digests_offset].salt_buf[esalt_off + 11];
-      w3[0] = esalt_bufs[digests_offset].salt_buf[esalt_off + 12];
-      w3[1] = esalt_bufs[digests_offset].salt_buf[esalt_off + 13];
-      w3[2] = esalt_bufs[digests_offset].salt_buf[esalt_off + 14];
-      w3[3] = esalt_bufs[digests_offset].salt_buf[esalt_off + 15];
+      w0[0] = s_esalt_buf[esalt_off +  0];
+      w0[1] = s_esalt_buf[esalt_off +  1];
+      w0[2] = s_esalt_buf[esalt_off +  2];
+      w0[3] = s_esalt_buf[esalt_off +  3];
+      w1[0] = s_esalt_buf[esalt_off +  4];
+      w1[1] = s_esalt_buf[esalt_off +  5];
+      w1[2] = s_esalt_buf[esalt_off +  6];
+      w1[3] = s_esalt_buf[esalt_off +  7];
+      w2[0] = s_esalt_buf[esalt_off +  8];
+      w2[1] = s_esalt_buf[esalt_off +  9];
+      w2[2] = s_esalt_buf[esalt_off + 10];
+      w2[3] = s_esalt_buf[esalt_off + 11];
+      w3[0] = s_esalt_buf[esalt_off + 12];
+      w3[1] = s_esalt_buf[esalt_off + 13];
+      w3[2] = s_esalt_buf[esalt_off + 14];
+      w3[3] = s_esalt_buf[esalt_off + 15];
 
       sha1_transform_vector (w0, w1, w2, w3, ipad);
     }
 
-    w0[0] = esalt_bufs[digests_offset].salt_buf[esalt_off +  0];
-    w0[1] = esalt_bufs[digests_offset].salt_buf[esalt_off +  1];
-    w0[2] = esalt_bufs[digests_offset].salt_buf[esalt_off +  2];
-    w0[3] = esalt_bufs[digests_offset].salt_buf[esalt_off +  3];
-    w1[0] = esalt_bufs[digests_offset].salt_buf[esalt_off +  4];
-    w1[1] = esalt_bufs[digests_offset].salt_buf[esalt_off +  5];
-    w1[2] = esalt_bufs[digests_offset].salt_buf[esalt_off +  6];
-    w1[3] = esalt_bufs[digests_offset].salt_buf[esalt_off +  7];
-    w2[0] = esalt_bufs[digests_offset].salt_buf[esalt_off +  8];
-    w2[1] = esalt_bufs[digests_offset].salt_buf[esalt_off +  9];
-    w2[2] = esalt_bufs[digests_offset].salt_buf[esalt_off + 10];
-    w2[3] = esalt_bufs[digests_offset].salt_buf[esalt_off + 11];
-    w3[0] = esalt_bufs[digests_offset].salt_buf[esalt_off + 12];
-    w3[1] = esalt_bufs[digests_offset].salt_buf[esalt_off + 13];
+    w0[0] = s_esalt_buf[esalt_off +  0];
+    w0[1] = s_esalt_buf[esalt_off +  1];
+    w0[2] = s_esalt_buf[esalt_off +  2];
+    w0[3] = s_esalt_buf[esalt_off +  3];
+    w1[0] = s_esalt_buf[esalt_off +  4];
+    w1[1] = s_esalt_buf[esalt_off +  5];
+    w1[2] = s_esalt_buf[esalt_off +  6];
+    w1[3] = s_esalt_buf[esalt_off +  7];
+    w2[0] = s_esalt_buf[esalt_off +  8];
+    w2[1] = s_esalt_buf[esalt_off +  9];
+    w2[2] = s_esalt_buf[esalt_off + 10];
+    w2[3] = s_esalt_buf[esalt_off + 11];
+    w3[0] = s_esalt_buf[esalt_off + 12];
+    w3[1] = s_esalt_buf[esalt_off + 13];
     w3[2] = 0;
     w3[3] = (64 + esalt_size) * 8;
 
@@ -245,13 +254,22 @@ KERNEL_FQ void m07300_s04 (KERN_ATTR_RULES_ESALT (rakp_t))
    * modifier
    */
 
+  const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
 
   /**
-   * base
+   * s_msg
    */
 
-  const u64 gid = get_global_id (0);
+  LOCAL_VK u32 s_esalt_buf[128];
+
+  for (u32 i = lid; i < 128; i += lsz)
+  {
+    s_esalt_buf[i] = esalt_bufs[digests_offset].salt_buf[i];
+  }
+
+  SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
@@ -325,40 +343,40 @@ KERNEL_FQ void m07300_s04 (KERN_ATTR_RULES_ESALT (rakp_t))
 
     for (esalt_left = esalt_size, esalt_off = 0; esalt_left >= 56; esalt_left -= 64, esalt_off += 16)
     {
-      w0[0] = esalt_bufs[digests_offset].salt_buf[esalt_off +  0];
-      w0[1] = esalt_bufs[digests_offset].salt_buf[esalt_off +  1];
-      w0[2] = esalt_bufs[digests_offset].salt_buf[esalt_off +  2];
-      w0[3] = esalt_bufs[digests_offset].salt_buf[esalt_off +  3];
-      w1[0] = esalt_bufs[digests_offset].salt_buf[esalt_off +  4];
-      w1[1] = esalt_bufs[digests_offset].salt_buf[esalt_off +  5];
-      w1[2] = esalt_bufs[digests_offset].salt_buf[esalt_off +  6];
-      w1[3] = esalt_bufs[digests_offset].salt_buf[esalt_off +  7];
-      w2[0] = esalt_bufs[digests_offset].salt_buf[esalt_off +  8];
-      w2[1] = esalt_bufs[digests_offset].salt_buf[esalt_off +  9];
-      w2[2] = esalt_bufs[digests_offset].salt_buf[esalt_off + 10];
-      w2[3] = esalt_bufs[digests_offset].salt_buf[esalt_off + 11];
-      w3[0] = esalt_bufs[digests_offset].salt_buf[esalt_off + 12];
-      w3[1] = esalt_bufs[digests_offset].salt_buf[esalt_off + 13];
-      w3[2] = esalt_bufs[digests_offset].salt_buf[esalt_off + 14];
-      w3[3] = esalt_bufs[digests_offset].salt_buf[esalt_off + 15];
+      w0[0] = s_esalt_buf[esalt_off +  0];
+      w0[1] = s_esalt_buf[esalt_off +  1];
+      w0[2] = s_esalt_buf[esalt_off +  2];
+      w0[3] = s_esalt_buf[esalt_off +  3];
+      w1[0] = s_esalt_buf[esalt_off +  4];
+      w1[1] = s_esalt_buf[esalt_off +  5];
+      w1[2] = s_esalt_buf[esalt_off +  6];
+      w1[3] = s_esalt_buf[esalt_off +  7];
+      w2[0] = s_esalt_buf[esalt_off +  8];
+      w2[1] = s_esalt_buf[esalt_off +  9];
+      w2[2] = s_esalt_buf[esalt_off + 10];
+      w2[3] = s_esalt_buf[esalt_off + 11];
+      w3[0] = s_esalt_buf[esalt_off + 12];
+      w3[1] = s_esalt_buf[esalt_off + 13];
+      w3[2] = s_esalt_buf[esalt_off + 14];
+      w3[3] = s_esalt_buf[esalt_off + 15];
 
       sha1_transform_vector (w0, w1, w2, w3, ipad);
     }
 
-    w0[0] = esalt_bufs[digests_offset].salt_buf[esalt_off +  0];
-    w0[1] = esalt_bufs[digests_offset].salt_buf[esalt_off +  1];
-    w0[2] = esalt_bufs[digests_offset].salt_buf[esalt_off +  2];
-    w0[3] = esalt_bufs[digests_offset].salt_buf[esalt_off +  3];
-    w1[0] = esalt_bufs[digests_offset].salt_buf[esalt_off +  4];
-    w1[1] = esalt_bufs[digests_offset].salt_buf[esalt_off +  5];
-    w1[2] = esalt_bufs[digests_offset].salt_buf[esalt_off +  6];
-    w1[3] = esalt_bufs[digests_offset].salt_buf[esalt_off +  7];
-    w2[0] = esalt_bufs[digests_offset].salt_buf[esalt_off +  8];
-    w2[1] = esalt_bufs[digests_offset].salt_buf[esalt_off +  9];
-    w2[2] = esalt_bufs[digests_offset].salt_buf[esalt_off + 10];
-    w2[3] = esalt_bufs[digests_offset].salt_buf[esalt_off + 11];
-    w3[0] = esalt_bufs[digests_offset].salt_buf[esalt_off + 12];
-    w3[1] = esalt_bufs[digests_offset].salt_buf[esalt_off + 13];
+    w0[0] = s_esalt_buf[esalt_off +  0];
+    w0[1] = s_esalt_buf[esalt_off +  1];
+    w0[2] = s_esalt_buf[esalt_off +  2];
+    w0[3] = s_esalt_buf[esalt_off +  3];
+    w1[0] = s_esalt_buf[esalt_off +  4];
+    w1[1] = s_esalt_buf[esalt_off +  5];
+    w1[2] = s_esalt_buf[esalt_off +  6];
+    w1[3] = s_esalt_buf[esalt_off +  7];
+    w2[0] = s_esalt_buf[esalt_off +  8];
+    w2[1] = s_esalt_buf[esalt_off +  9];
+    w2[2] = s_esalt_buf[esalt_off + 10];
+    w2[3] = s_esalt_buf[esalt_off + 11];
+    w3[0] = s_esalt_buf[esalt_off + 12];
+    w3[1] = s_esalt_buf[esalt_off + 13];
     w3[2] = 0;
     w3[3] = (64 + esalt_size) * 8;
 

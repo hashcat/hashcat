@@ -18,7 +18,7 @@
 #define MAX_DICTSTAT 100000
 
 #define DICTSTAT_FILENAME "hashcat.dictstat2"
-#define DICTSTAT_VERSION  (0x6863646963743200 | 0x01)
+#define DICTSTAT_VERSION  (0x6863646963743200 | 0x02)
 
 int sort_by_dictstat (const void *s1, const void *s2);
 

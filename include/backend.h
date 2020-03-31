@@ -68,13 +68,16 @@ int hc_cuMemcpyHtoD              (hashcat_ctx_t *hashcat_ctx, CUdeviceptr dstDev
 int hc_cuMemFree                 (hashcat_ctx_t *hashcat_ctx, CUdeviceptr dptr);
 int hc_cuModuleGetFunction       (hashcat_ctx_t *hashcat_ctx, CUfunction *hfunc, CUmodule hmod, const char *name);
 int hc_cuModuleLoadDataEx        (hashcat_ctx_t *hashcat_ctx, CUmodule *module, const void *image, unsigned int numOptions, CUjit_option *options, void **optionValues);
-int hc_cuModuleLoadDataExLog     (hashcat_ctx_t *hashcat_ctx, CUmodule *module, const void *image);
 int hc_cuModuleUnload            (hashcat_ctx_t *hashcat_ctx, CUmodule hmod);
 int hc_cuStreamCreate            (hashcat_ctx_t *hashcat_ctx, CUstream *phStream, unsigned int Flags);
 int hc_cuStreamDestroy           (hashcat_ctx_t *hashcat_ctx, CUstream hStream);
 int hc_cuStreamSynchronize       (hashcat_ctx_t *hashcat_ctx, CUstream hStream);
 int hc_cuCtxPushCurrent          (hashcat_ctx_t *hashcat_ctx, CUcontext ctx);
 int hc_cuCtxPopCurrent           (hashcat_ctx_t *hashcat_ctx, CUcontext *pctx);
+int hc_cuLinkCreate              (hashcat_ctx_t *hashcat_ctx, unsigned int numOptions, CUjit_option *options, void **optionValues, CUlinkState *stateOut);
+int hc_cuLinkAddData             (hashcat_ctx_t *hashcat_ctx, CUlinkState state, CUjitInputType type, void *data, size_t size, const char *name, unsigned int numOptions, CUjit_option *options, void **optionValues);
+int hc_cuLinkDestroy             (hashcat_ctx_t *hashcat_ctx, CUlinkState state);
+int hc_cuLinkComplete            (hashcat_ctx_t *hashcat_ctx, CUlinkState state, void **cubinOut, size_t *sizeOut);
 
 int hc_clBuildProgram            (hashcat_ctx_t *hashcat_ctx, cl_program program, cl_uint num_devices, const cl_device_id *device_list, const char *options, void (CL_CALLBACK *pfn_notify) (cl_program program, void *user_data), void *user_data);
 int hc_clCreateBuffer            (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_mem_flags flags, size_t size, void *host_ptr, cl_mem *mem);
@@ -131,12 +134,14 @@ int run_kernel_decompress     (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *de
 int run_copy                  (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_cnt);
 int run_cracker               (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_cnt);
 
-void generate_source_kernel_filename     (const bool slow_candidates, const u32 attack_exec, const u32 attack_kern, const u32 kern_type, const u32 opti_type, char *shared_dir, char *source_file);
-void generate_cached_kernel_filename     (const bool slow_candidates, const u32 attack_exec, const u32 attack_kern, const u32 kern_type, const u32 opti_type, char *profile_dir, const char *device_name_chksum, char *cached_file);
-void generate_source_kernel_mp_filename  (const u32 opti_type, const u64 opts_type, char *shared_dir, char *source_file);
-void generate_cached_kernel_mp_filename  (const u32 opti_type, const u64 opts_type, char *profile_dir, const char *device_name_chksum, char *cached_file);
-void generate_source_kernel_amp_filename (const u32 attack_kern, char *shared_dir, char *source_file);
-void generate_cached_kernel_amp_filename (const u32 attack_kern, char *profile_dir, const char *device_name_chksum, char *cached_file);
+void generate_source_kernel_filename        (const bool slow_candidates, const u32 attack_exec, const u32 attack_kern, const u32 kern_type, const u32 opti_type, char *shared_dir, char *source_file);
+void generate_cached_kernel_filename        (const bool slow_candidates, const u32 attack_exec, const u32 attack_kern, const u32 kern_type, const u32 opti_type, char *profile_dir, const char *device_name_chksum, char *cached_file);
+void generate_source_kernel_shared_filename (char *shared_dir, char *source_file);
+void generate_cached_kernel_shared_filename (char *profile_dir, const char *device_name_chksum, char *cached_file);
+void generate_source_kernel_mp_filename     (const u32 opti_type, const u64 opts_type, char *shared_dir, char *source_file);
+void generate_cached_kernel_mp_filename     (const u32 opti_type, const u64 opts_type, char *profile_dir, const char *device_name_chksum, char *cached_file);
+void generate_source_kernel_amp_filename    (const u32 attack_kern, char *shared_dir, char *source_file);
+void generate_cached_kernel_amp_filename    (const u32 attack_kern, char *profile_dir, const char *device_name_chksum, char *cached_file);
 
 int  backend_ctx_init                  (hashcat_ctx_t *hashcat_ctx);
 void backend_ctx_destroy               (hashcat_ctx_t *hashcat_ctx);
@@ -153,5 +158,8 @@ void backend_session_reset             (hashcat_ctx_t *hashcat_ctx);
 int  backend_session_update_combinator (hashcat_ctx_t *hashcat_ctx);
 int  backend_session_update_mp         (hashcat_ctx_t *hashcat_ctx);
 int  backend_session_update_mp_rl      (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_l, const u32 css_cnt_r);
+
+void *hook12_thread (void *p);
+void *hook23_thread (void *p);
 
 #endif // _BACKEND_H

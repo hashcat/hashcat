@@ -62,9 +62,16 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 {
   char *jit_build_options = NULL;
 
-  if (device_param->opencl_device_vendor_id == VENDOR_ID_AMD)
+  // Extra treatment for Apple systems
+  if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
   {
-    hc_asprintf (&jit_build_options, "-D NO_UNROLL");
+    return jit_build_options;
+  }
+
+  // Intel CPU
+  if ((device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK) && (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU))
+  {
+    hc_asprintf (&jit_build_options, "-D _unroll");
   }
 
   return jit_build_options;
