@@ -49,7 +49,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.token_cnt  = 2;
 
-  token.sep[0]     = ':';
+  token.sep[0]     = hashconfig->separator;
   token.len_min[0] = 128;
   token.len_max[0] = 128;
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH

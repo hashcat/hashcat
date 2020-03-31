@@ -165,7 +165,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     sprintf (buf + j, "%08x", esalt->salt_buf[i]);
   }
 
-  const int line_len = snprintf (line_buf, line_size, "%08x%08x%08x%08x%08x%08x%08x%08x:%s",
+  const int line_len = snprintf (line_buf, line_size, "%08x%08x%08x%08x%08x%08x%08x%08x%c%s",
     digest[0],
     digest[1],
     digest[2],
@@ -174,6 +174,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     digest[5],
     digest[6],
     digest[7],
+    hashconfig->separator,
     buf);
 
   return line_len;
