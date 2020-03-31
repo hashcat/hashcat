@@ -27,7 +27,7 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_PT_ADD80
                                   | OPTS_TYPE_PT_ADDBITS14;
-static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
+static const u32   SALT_TYPE      = SALT_TYPE_GENERIC;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "799dc7d9aa4d3f404cc21a4936dbdcde:68617368636174"; //6d455b6e8945bebfd0a5878eaa201523:hashcat"; //c8f4f1202e7aaebb14e49903ca973d39:943038186";
 
