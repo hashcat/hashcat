@@ -4976,25 +4976,17 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       #if defined (__linux__)
       event_log_warning (hashcat_ctx, "* AMD GPUs on Linux require this driver:");
-      event_log_warning (hashcat_ctx, "  \"RadeonOpenCompute (ROCm)\" Software Platform (1.6.180 or later)");
+      event_log_warning (hashcat_ctx, "  \"RadeonOpenCompute (ROCm)\" Software Platform (3.1 or later)");
       #elif defined (_WIN)
       event_log_warning (hashcat_ctx, "* AMD GPUs on Windows require this driver:");
-      event_log_warning (hashcat_ctx, "  \"AMD Radeon Software Crimson Edition\" (15.12 or later)");
+      event_log_warning (hashcat_ctx, "  \"AMD Radeon Adrenalin 2020 Edition\" (20.2.2 or later)");
       #endif
 
       event_log_warning (hashcat_ctx, "* Intel CPUs require this runtime:");
       event_log_warning (hashcat_ctx, "  \"OpenCL Runtime for Intel Core and Intel Xeon Processors\" (16.1.1 or later)");
 
-      #if defined (__linux__)
-      event_log_warning (hashcat_ctx, "* Intel GPUs on Linux require this driver:");
-      event_log_warning (hashcat_ctx, "  \"OpenCL 2.0 GPU Driver Package for Linux\" (2.0 or later)");
-      #elif defined (_WIN)
-      event_log_warning (hashcat_ctx, "* Intel GPUs on Windows require this driver:");
-      event_log_warning (hashcat_ctx, "  \"OpenCL Driver for Intel Iris and Intel HD Graphics\"");
-      #endif
-
       event_log_warning (hashcat_ctx, "* NVIDIA GPUs require this runtime and/or driver (both):");
-      event_log_warning (hashcat_ctx, "  \"NVIDIA Driver\" (418.56 or later)");
+      event_log_warning (hashcat_ctx, "  \"NVIDIA Driver\" (440.64 or later)");
       event_log_warning (hashcat_ctx, "  \"CUDA Toolkit\" (9.0 or later)");
       event_log_warning (hashcat_ctx, NULL);
 
@@ -5258,25 +5250,17 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     #if defined (__linux__)
     event_log_warning (hashcat_ctx, "* AMD GPUs on Linux require this driver:");
-    event_log_warning (hashcat_ctx, "  \"RadeonOpenCompute (ROCm)\" Software Platform (1.6.180 or later)");
+    event_log_warning (hashcat_ctx, "  \"RadeonOpenCompute (ROCm)\" Software Platform (3.1 or later)");
     #elif defined (_WIN)
     event_log_warning (hashcat_ctx, "* AMD GPUs on Windows require this driver:");
-    event_log_warning (hashcat_ctx, "  \"AMD Radeon Software Crimson Edition\" (15.12 or later)");
+    event_log_warning (hashcat_ctx, "  \"AMD Radeon Adrenalin 2020 Edition\" (20.2.2 or later)");
     #endif
 
     event_log_warning (hashcat_ctx, "* Intel CPUs require this runtime:");
     event_log_warning (hashcat_ctx, "  \"OpenCL Runtime for Intel Core and Intel Xeon Processors\" (16.1.1 or later)");
 
-    #if defined (__linux__)
-    event_log_warning (hashcat_ctx, "* Intel GPUs on Linux require this driver:");
-    event_log_warning (hashcat_ctx, "  \"OpenCL 2.0 GPU Driver Package for Linux\" (2.0 or later)");
-    #elif defined (_WIN)
-    event_log_warning (hashcat_ctx, "* Intel GPUs on Windows require this driver:");
-    event_log_warning (hashcat_ctx, "  \"OpenCL Driver for Intel Iris and Intel HD Graphics\"");
-    #endif
-
     event_log_warning (hashcat_ctx, "* NVIDIA GPUs require this runtime and/or driver (both):");
-    event_log_warning (hashcat_ctx, "  \"NVIDIA Driver\" (418.56 or later)");
+    event_log_warning (hashcat_ctx, "  \"NVIDIA Driver\" (440.64 or later)");
     event_log_warning (hashcat_ctx, "  \"CUDA Toolkit\" (9.0 or later)");
     event_log_warning (hashcat_ctx, NULL);
 
@@ -6002,11 +5986,44 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
             {
               if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Not a native Intel OpenCL runtime. Expect massive speed loss.", device_id + 1);
               if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             You can use --force to override, but do not report related errors.");
+              if (user_options->quiet == false) event_log_warning (hashcat_ctx, NULL);
 
               device_param->skipped = true;
             }
           }
         }
+
+        char *opencl_device_version_lower = hcstrdup (opencl_device_version);
+
+        lowercase ((u8 *) opencl_device_version_lower, strlen (opencl_device_version_lower));
+
+        if ((strstr (opencl_device_version_lower, "neo "))
+         || (strstr (opencl_device_version_lower, " neo"))
+         || (strstr (opencl_device_version_lower, "beignet "))
+         || (strstr (opencl_device_version_lower, " beignet"))
+         || (strstr (opencl_device_version_lower, "pocl "))
+         || (strstr (opencl_device_version_lower, " pocl"))
+         || (strstr (opencl_device_version_lower, "mesa "))
+         || (strstr (opencl_device_version_lower, " mesa")))
+        {
+          // NEO:     https://github.com/hashcat/hashcat/issues/2342
+          // BEIGNET: https://github.com/hashcat/hashcat/issues/2243
+          // POCL:    https://github.com/hashcat/hashcat/issues/2344
+          // MESA:    https://github.com/hashcat/hashcat/issues/2269
+
+          if (user_options->force == false)
+          {
+            event_log_error (hashcat_ctx, "* Device #%u: Unstable OpenCL driver detected!", device_id + 1);
+
+            if (user_options->quiet == false) event_log_warning (hashcat_ctx, "This OpenCL driver has been marked as likely to fail kernel compilation or to produce false negatives.");
+            if (user_options->quiet == false) event_log_warning (hashcat_ctx, "You can use --force to override this, but do not report related errors.");
+            if (user_options->quiet == false) event_log_warning (hashcat_ctx, NULL);
+
+            device_param->skipped = true;
+          }
+        }
+
+        hcfree (opencl_device_version_lower);
 
         // Since some times we get reports from users about not working hashcat, dropping error messages like:
         // CL_INVALID_COMMAND_QUEUE and CL_OUT_OF_RESOURCES
@@ -6245,23 +6262,18 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
                 if (r == 2)
                 {
-                  if (version_maj >= 367)
+                  if (version_maj >= 440)
                   {
-                    if (version_maj == 418)
-                    {
-                      // older 418.x versions are known to be broken.
-                      // for instance, NVIDIA-Linux-x86_64-418.43.run
-                      // run ./hashcat -b -m 2501 results in self-test fail
-
-                      if (version_min >= 56)
-                      {
-                        nv_warn = false;
-                      }
-                    }
-                    else
+                    if (version_min >= 64)
                     {
                       nv_warn = false;
                     }
+                  }
+                  else
+                  {
+                    // unknown version scheme, probably new driver version
+
+                    nv_warn = false;
                   }
                 }
                 else
