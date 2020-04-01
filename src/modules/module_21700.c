@@ -97,6 +97,12 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
     }
   }
 
+  // self-test failed
+  if (device_param->opencl_platform_vendor_id == VENDOR_ID_AMD)
+  {
+    return true;
+  }
+
   return false;
 }
 
