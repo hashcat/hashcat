@@ -113,6 +113,7 @@
 - File handling: Print a truncation warning when an oversized line is detected
 - My Wallet: Added additional plaintext pattern used in newer versions
 - Office cracking: Support hash format with second block data for 40-bit oldoffice files (eliminates false positives)
+- OpenCL Runtime: Added a warning if OpenCL runtime NEO, Beignet, POCL or MESA is detected and skip associated devices (override with --force)
 - OpenCL Runtime: Disable OpenCL kernel cache on Apple for Intel CPU (throws CL_BUILD_PROGRAM_FAILURE for no reason)
 - OpenCL Runtime: Do not run shared- and constant-memory size checks if their memory type is of type global memory (typically CPU)
 - OpenCL Runtime: Improve ROCm detection and make sure to not confuse with recent AMDGPU drivers
@@ -166,7 +167,7 @@
 - OpenCL Options: Removed --opencl-platforms filter in order to force backend device numbers to stay constant
 - Parsers: switched from strtok() to strtok_r() for thread safety
 - Requirements: Add new requirement for NVIDIA GPU: CUDA Toolkit (9.0 or later)
-- Requirements: Update runtime check for minimum NVIDIA driver version from 367.x to 418.56 or later
+- Requirements: Update runtime check for minimum NVIDIA driver version from 367.x to 440.64 or later
 - Test Script: Switched from /bin/bash to generic /bin/sh and updated code accordingly
 
 * changes v5.0.0 -> v5.1.0

@@ -185,12 +185,13 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     sprintf (pstoken_tmp + j, "%02x", ptr[i]);
   }
 
-  const int line_len = snprintf (line_buf, line_size, "%08x%08x%08x%08x%08x:%s",
+  const int line_len = snprintf (line_buf, line_size, "%08x%08x%08x%08x%08x%c%s",
     digest[0],
     digest[1],
     digest[2],
     digest[3],
     digest[4],
+    hashconfig->separator,
     pstoken_tmp);
 
   return line_len;

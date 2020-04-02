@@ -10,12 +10,10 @@
 hashcat v5.1.0
 ==============
 
-AMD GPUs on Linux require "RadeonOpenCompute (ROCm)" Software Platform (1.6.180 or later)
-AMD GPUs on Windows require "AMD Radeon Software Crimson Edition" (15.12 or later)
+AMD GPUs on Linux require "RadeonOpenCompute (ROCm)" Software Platform (3.1 or later)
+AMD GPUs on Windows require "AMD Radeon Adrenalin 2020 Edition" (20.2.2 or later)
 Intel CPUs require "OpenCL Runtime for Intel Core and Intel Xeon Processors" (16.1.1 or later)
-Intel GPUs on Linux require "OpenCL 2.0 GPU Driver Package for Linux" (2.0 or later)
-Intel GPUs on Windows require "OpenCL Driver for Intel Iris and Intel HD Graphics"
-NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (9.0 or later)
+NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or later)
 
 ##
 ## Features
@@ -342,9 +340,7 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (9.0 or
 - AMD
 - Apple
 - Intel
-- Mesa (Gallium)
 - NVidia
-- pocl
 
 ##
 ## Supported OpenCL device types
@@ -353,6 +349,3 @@ NVIDIA GPUs require "NVIDIA Driver" (418.56 or later) and "CUDA Toolkit" (9.0 or
 - GPU
 - CPU
 - APU
-- DSP
-- FPGA
-- Coprocessor

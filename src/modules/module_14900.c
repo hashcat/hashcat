@@ -109,7 +109,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u32 *digest = (const u32 *) digest_buf;
 
-  const int line_len = snprintf (line_buf, line_size, "%08x:%08x", byte_swap_32 (digest[0]), byte_swap_32 (salt->salt_buf[0]));
+  const int line_len = snprintf (line_buf, line_size, "%08x%c%08x", byte_swap_32 (digest[0]), hashconfig->separator, byte_swap_32 (salt->salt_buf[0]));
 
   return line_len;
 }

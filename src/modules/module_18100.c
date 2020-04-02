@@ -128,7 +128,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u64 tmp_salt_buf = (((u64) (salt->salt_buf[2])) << 32) | ((u64) (salt->salt_buf[3]));
 
-  const int line_len = snprintf (line_buf, line_size, "%06d:%" PRIu64, digest[0], tmp_salt_buf);
+  const int line_len = snprintf (line_buf, line_size, "%06d%c%" PRIu64, digest[0], hashconfig->separator, tmp_salt_buf);
 
   return line_len;
 }

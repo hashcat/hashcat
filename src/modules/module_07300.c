@@ -147,7 +147,8 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     line_len += snprintf (line_buf + line_len, line_size - line_len, "%02x", ptr[i ^ 3]); // the ^ 3 index converts LE -> BE
   }
 
-  line_len += snprintf (line_buf + line_len, line_size - line_len, ":%08x%08x%08x%08x%08x",
+  line_len += snprintf (line_buf + line_len, line_size - line_len, "%c%08x%08x%08x%08x%08x",
+    hashconfig->separator,
     digest[0],
     digest[1],
     digest[2],

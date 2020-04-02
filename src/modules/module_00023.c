@@ -138,11 +138,12 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   tmp_salt[salt_len] = 0;
 
-  const int out_len = snprintf (line_buf, line_size, "%08x%08x%08x%08x:%s",
+  const int out_len = snprintf (line_buf, line_size, "%08x%08x%08x%08x%c%s",
     byte_swap_32 (tmp[0]),
     byte_swap_32 (tmp[1]),
     byte_swap_32 (tmp[2]),
     byte_swap_32 (tmp[3]),
+    hashconfig->separator,
     tmp_salt);
 
   return out_len;
