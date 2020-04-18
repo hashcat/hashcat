@@ -373,9 +373,9 @@ static bool opencl_test_instruction (hashcat_ctx_t *hashcat_ctx, cl_context cont
 
   OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
-  const int fd_stderr = fileno (stderr);
 
   #ifndef DEBUG
+  const int fd_stderr = fileno (stderr);
   const int stderr_bak = dup (fd_stderr);
   #ifdef _WIN
   const int tmp = open ("NUL", O_WRONLY);
