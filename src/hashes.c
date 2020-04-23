@@ -1296,9 +1296,13 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         {
           hashes_cnt = hashes_parsed;
         }
-        else
+        else if (hashes_parsed == 0)
         {
           event_log_warning (hashcat_ctx, "Hashfile '%s': %s", hashes->hashfile, strerror (errno));
+        }
+        else
+        {
+          event_log_warning (hashcat_ctx, "Hashfile '%s': %s", hashes->hashfile, strparser (hashes_parsed));
         }
       }
       else

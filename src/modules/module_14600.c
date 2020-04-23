@@ -235,6 +235,7 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
   hash_t *hashes_buf = hashes->hashes_buf;
 
   int hashes_cnt = 0;
+  int last_error = 0;
 
   for (int keyslot_idx = 0; keyslot_idx < LUKS_NUMKEYS; keyslot_idx++)
   {
@@ -246,12 +247,23 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
     const int parser_status = module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, hashes->hashfile, strlen (hashes->hashfile));
 
-    if (parser_status != PARSER_OK) continue;
+    if (parser_status != PARSER_OK)
+    {
+      last_error = parser_status;
+      continue;
+    }
 
     hashes_cnt++;
   }
 
-  return hashes_cnt;
+  if (hashes_cnt == 0)
+  {
+    return last_error;
+  }
+  else
+  {
+    return hashes_cnt;
+  }
 }
 
 u64 module_kern_type_dynamic (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info)
