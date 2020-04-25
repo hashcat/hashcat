@@ -121,6 +121,7 @@ DECLSPEC void md5_init_vector (md5_ctx_vector_t *ctx);
 DECLSPEC void md5_init_vector_from_scalar (md5_ctx_vector_t *ctx, md5_ctx_t *ctx0);
 DECLSPEC void md5_update_vector_64 (md5_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, const int len);
 DECLSPEC void md5_update_vector (md5_ctx_vector_t *ctx, const u32x *w, const int len);
+DECLSPEC void md5_update_vector_from_scalar (md5_ctx_vector_t *ctx, const u32 *w, const int len);
 DECLSPEC void md5_update_vector_swap (md5_ctx_vector_t *ctx, const u32x *w, const int len);
 DECLSPEC void md5_update_vector_utf16le (md5_ctx_vector_t *ctx, const u32x *w, const int len);
 DECLSPEC void md5_update_vector_utf16le_swap (md5_ctx_vector_t *ctx, const u32x *w, const int len);
