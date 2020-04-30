@@ -97,6 +97,30 @@ static bool printable_utf8 (const u8 *buf, const size_t len)
     }
   }
 
+  // another round in order to suppress some handpicked control characters from being printed to console
+  // taken from here: https://utf8-chartable.de/unicode-utf8-table.pl
+  // we could inline with the above loop but this way it's easier to understand
+
+  for (size_t pos = 0; pos < len; pos++)
+  {
+    const u8 c0 = buf[pos + 0];
+
+    if (c0 <= 0x1f) return false;
+    if (c0 == 0x7f) return false;
+
+    const size_t left = len - pos;
+
+    if (left >= 2)
+    {
+      const u8 c1 = buf[pos + 1];
+
+      if (c0 == 0xc2)
+      {
+        if ((c1 >= 0x80) && (c1 <= 0x9f)) return false;
+      }
+    }
+  }
+
   return true;
 }
 
