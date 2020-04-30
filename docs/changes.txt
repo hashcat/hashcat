@@ -64,7 +64,8 @@
 - Added hash-mode: sha256(sha256_bin($pass))
 - Added hash-mode: sha256(sha256($pass).$salt)
 - Added hash-mode: SolarWinds Orion
-- Added hash-mode: Telegram client app passcode (SHA256)
+- Added hash-mode: Telegram Desktop App Passcode (PBKDF2-HMAC-SHA1)
+- Added hash-mode: Telegram Mobile App Passcode (SHA256)
 - Added hash-mode: Web2py pbkdf2-sha512
 - Added hash-mode: WPA-PBKDF2-PMKID+EAPOL
 - Added hash-mode: WPA-PMK-PMKID+EAPOL
