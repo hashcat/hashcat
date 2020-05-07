@@ -462,9 +462,24 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
   {
     char *tmp;
 
-    hc_asprintf (&tmp, "TMP=%s", cpath_real);
+    #if defined (_POSIX)
+    // Setting TMP may break POSIX temporary directory semantics
+    // Fix it by setting the POSIX-ly correct TMPDIR if it is not already set
+    if (getenv ("TMPDIR") == NULL) {
+      if (getenv("TMP") != NULL) {
+        // TMP was specified in the environment, promote it to TMPDIR
+        hc_asprintf (&tmp, "TMPDIR=%s", getenv("TMP"));
+        putenv (tmp);
+        hcfree (tmp);
+      } else {
+        putenv ("TMPDIR=/tmp");
+      }
+    }
+    #endif
 
+    hc_asprintf (&tmp, "TMP=%s", cpath_real);
     putenv (tmp);
+    hcfree (tmp);
   }
 
   #if defined (_WIN)
