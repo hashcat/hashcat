@@ -365,3 +365,5 @@ GeForce_GTX_TITAN                               3       9900    2       A       
 
 DEVICE_TYPE_CPU                                 *       15700   1       1       1
 DEVICE_TYPE_GPU                                 *       15700   1       1       1
+DEVICE_TYPE_CPU                                 *       22700   1       1       1
+DEVICE_TYPE_GPU                                 *       22700   1       1       1
