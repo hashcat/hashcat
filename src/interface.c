@@ -280,6 +280,11 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
+  if (user_options->self_test_disable == true)
+  {
+    hashconfig->opts_type |= OPTS_TYPE_SELF_TEST_DISABLE;
+  }
+
   if (user_options->hex_charset)
   {
     hashconfig->opts_type |= OPTS_TYPE_PT_HEX;

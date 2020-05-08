@@ -553,7 +553,14 @@ void example_hashes (hashcat_ctx_t *hashcat_ctx)
 
       if ((hashconfig->st_hash != NULL) && (hashconfig->st_pass != NULL))
       {
-        event_log_info (hashcat_ctx, "HASH: %s", hashconfig->st_hash);
+        if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
+        {
+          event_log_info (hashcat_ctx, "HASH (hex-encoded): %s", hashconfig->st_hash);
+        }
+        else
+        {
+          event_log_info (hashcat_ctx, "HASH: %s", hashconfig->st_hash);
+        }
 
         if (need_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), user_options->separator, false))
         {

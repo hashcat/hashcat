@@ -707,7 +707,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * create self-test threads
    */
 
-  if ((user_options->self_test_disable == false) && (hashconfig->st_hash != NULL) && (hashconfig->st_pass != NULL))
+  if ((hashconfig->opts_type & OPTS_TYPE_SELF_TEST_DISABLE) == 0)
   {
     EVENT (EVENT_SELFTEST_STARTING);
 
