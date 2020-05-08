@@ -542,7 +542,7 @@ DECLSPEC void m22500 (SHM_TYPE u32a *s_te0, SHM_TYPE u32a *s_te1, SHM_TYPE u32a 
     }
     else if (first_byte == 0x0a) // \n => bitcoinj
     {
-      if ((out[0] & 0x0000ff00)  > 0x00007e00) continue; // second_byte
+      if ((out[0] & 0x0000ff00)  > 0x00007f00) continue; // second_byte
 
       // check for "org." substring:
 

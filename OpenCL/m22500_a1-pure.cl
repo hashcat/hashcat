@@ -267,7 +267,7 @@ KERNEL_FQ void m22500_mxx (KERN_ATTR_BASIC ())
     }
     else if (first_byte == 0x0a) // \n => bitcoinj
     {
-      if ((out[0] & 0x0000ff00)  > 0x00007e00) continue; // second_byte
+      if ((out[0] & 0x0000ff00)  > 0x00007f00) continue; // second_byte
 
       // check for "org." substring:
 
@@ -569,7 +569,7 @@ KERNEL_FQ void m22500_sxx (KERN_ATTR_BASIC ())
     }
     else if (first_byte == 0x0a) // \n => bitcoinj
     {
-      if ((out[0] & 0x0000ff00)  > 0x00007e00) continue; // second_byte
+      if ((out[0] & 0x0000ff00)  > 0x00007f00) continue; // second_byte
 
       // check for "org." substring:
 
