@@ -95,10 +95,11 @@ u32 brain_compute_session (hashcat_ctx_t *hashcat_ctx)
   else
   {
     // using hash_encode is an easy workaround for dealing with optimizations
-    // like OPTI_TYPE_PRECOMPUTE_MERKLE which cause diffrent hashes in digests_buf
+    // like OPTI_TYPE_PRECOMPUTE_MERKLE which cause different hashes in digests_buf
     // in case -O is used
 
     char **out_bufs = (char **) hccalloc (hashes->digests_cnt, sizeof (char *));
+    int   *out_lens = (int *)   hccalloc (hashes->digests_cnt, sizeof (int));
 
     int out_idx = 0;
 
@@ -114,9 +115,12 @@ u32 brain_compute_session (hashcat_ctx_t *hashcat_ctx)
       {
         const int out_len = hash_encode (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf, HCBUFSIZ_LARGE, salts_idx, digest_idx);
 
-        out_buf[out_len] = 0;
+        out_bufs[out_idx] = (char *) hcmalloc (out_len + 1);
+        out_lens[out_idx] = out_len;
 
-        out_bufs[out_idx] = hcstrdup ((char *) out_buf);
+        memcpy (out_bufs[out_idx], out_buf, out_len);
+
+        out_idx++;
       }
     }
 
@@ -124,16 +128,15 @@ u32 brain_compute_session (hashcat_ctx_t *hashcat_ctx)
 
     qsort (out_bufs, out_idx, sizeof (char *), sort_by_string);
 
-    for (int i = 0; i <= out_idx; i++)
+    for (int i = 0; i < out_idx; i++)
     {
-      const size_t out_len = strlen (out_bufs[out_idx]);
+      XXH64_update (state, out_bufs[i], out_lens[i]);
 
-      XXH64_update (state, out_bufs[out_idx], out_len);
-
-      hcfree (out_bufs[out_idx]);
+      hcfree (out_bufs[i]);
     }
 
     hcfree (out_bufs);
+    hcfree (out_lens);
   }
 
   const u32 session = (const u32) XXH64_digest (state);
