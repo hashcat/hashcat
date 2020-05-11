@@ -14,14 +14,6 @@
 #include "event.h"
 #endif
 
-int sort_by_stringptr (const void *p1, const void *p2)
-{
-  const char* const *s1 = (const char* const *) p1;
-  const char* const *s2 = (const char* const *) p2;
-
-  return strcmp (*s1, *s2);
-}
-
 static int get_exec_path (char *exec_path, const size_t exec_path_sz)
 {
   #if defined (__linux__) || defined (__CYGWIN__)

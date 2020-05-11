@@ -24,8 +24,6 @@
 #define DOT_HASHCAT     ".hashcat"
 #define SESSIONS_FOLDER "sessions"
 
-int sort_by_stringptr (const void *p1, const void *p2);
-
 int count_dictionaries (char **dictionary_files);
 
 char *first_file_in_directory (const char *path);

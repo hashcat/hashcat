@@ -27,14 +27,6 @@
 #include "brain.h"
 #endif
 
-int sort_by_string (const void *p1, const void *p2)
-{
-  const char *s1 = (const char *) p1;
-  const char *s2 = (const char *) p2;
-
-  return strcmp (s1, s2);
-}
-
 int sort_by_digest_p0p1 (const void *v1, const void *v2, void *v3)
 {
   const u32 *d1 = (const u32 *) v1;
