@@ -97,14 +97,6 @@ static const char *HASH_CATEGORY_OTP_STR                    = "One-Time Password
 static const char *HASH_CATEGORY_PLAIN_STR                  = "Plaintext";
 static const char *HASH_CATEGORY_FRAMEWORK_STR              = "Framework";
 
-int sort_by_string (const void *p1, const void *p2)
-{
-  const char *s1 = (const char *) p1;
-  const char *s2 = (const char *) p2;
-
-  return strcmp (s1, s2);
-}
-
 int sort_by_stringptr (const void *p1, const void *p2)
 {
   const char* const *s1 = (const char* const *) p1;
