@@ -1020,15 +1020,41 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
     end = time_now + sec_etc;
   }
 
+  char *tmp_target = (char *) hcmalloc (strlen (hashcat_status->hash_target) * 2);
+
+  unsigned long i, j;
+
+  for (i = 0, j = 0; j < strlen (hashcat_status->hash_target); i++, j++)
+  {
+    char rep = hashcat_status->hash_target[j];
+
+    switch (hashcat_status->hash_target[j])
+    {
+      case '\b': rep =  'b'; tmp_target[i] = '\\'; i++; break;
+      case '\t': rep =  't'; tmp_target[i] = '\\'; i++; break;
+      case '\n': rep =  'n'; tmp_target[i] = '\\'; i++; break;
+      case '\f': rep =  'f'; tmp_target[i] = '\\'; i++; break;
+      case '\r': rep =  'r'; tmp_target[i] = '\\'; i++; break;
+      case '\\': rep = '\\'; tmp_target[i] = '\\'; i++; break;
+      case  '"': rep =  '"'; tmp_target[i] = '\\'; i++; break;
+    }
+
+    tmp_target[i] = rep;
+  }
+
+  tmp_target[i] = 0;
+
   printf ("{ \"session\": \"%s\",", hashcat_status->session);
   printf (" \"status\": %d,", hashcat_status->status_number);
-  printf (" \"target\": \"%s\",", hashcat_status->hash_target);
+  printf (" \"target\": \"%s\",", tmp_target);
   printf (" \"progress\": [%" PRIu64 ", %" PRIu64 "],", hashcat_status->progress_cur_relative_skip, hashcat_status->progress_end_relative_skip);
   printf (" \"restore_point\": %" PRIu64 ",", hashcat_status->restore_point);
   printf (" \"recovered_hashes\": [%d, %d],", hashcat_status->digests_done, hashcat_status->digests_cnt);
   printf (" \"recovered_salts\": [%d, %d],", hashcat_status->salts_done, hashcat_status->salts_cnt);
   printf (" \"rejected\": %" PRIu64 ",", hashcat_status->progress_rejected);
   printf (" \"devices\": [");
+
+  free(tmp_target);
 
   int device_num = 0;
 
