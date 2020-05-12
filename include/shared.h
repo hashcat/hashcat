@@ -24,7 +24,8 @@
 #include <sys/select.h>
 #endif
 
-int sort_by_stringptr (const void *p1, const void *p2);
+int sort_by_string_sized (const void *p1, const void *p2);
+int sort_by_stringptr    (const void *p1, const void *p2);
 
 bool overflow_check_u32_add (const u32 a, const u32 b);
 bool overflow_check_u32_mul (const u32 a, const u32 b);

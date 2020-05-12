@@ -1626,6 +1626,13 @@ typedef struct cpu_set
 } cpu_set_t;
 #endif
 
+typedef struct
+{
+  char *buf;
+  int   len;
+
+} string_sized_t;
+
 /* AES context.  */
 typedef struct aes_context
 {
