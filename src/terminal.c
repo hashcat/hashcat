@@ -1020,33 +1020,40 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
     end = time_now + sec_etc;
   }
 
-  char *tmp_target = (char *) hcmalloc (strlen (hashcat_status->hash_target) * 2);
+  /*
+   * As the hash target can contain the hash (in case of a single attacked hash), especially
+   * some salts can contain chars which need to be escaped to not break the JSON encoding.
+   * Based on https://www.freeformatter.com/json-escape.html, below these 7 different chars
+   * are getting escaped before being printed.
+   */
+
+  char *target_json_encoded = (char *) hcmalloc (strlen (hashcat_status->hash_target) * 2);
 
   unsigned long i, j;
 
-  for (i = 0, j = 0; j < strlen (hashcat_status->hash_target); i++, j++)
+  for (i = 0, j = 0; i < strlen (hashcat_status->hash_target); i++, j++)
   {
-    char rep = hashcat_status->hash_target[j];
+    char c = hashcat_status->hash_target[i];
 
-    switch (hashcat_status->hash_target[j])
+    switch (c)
     {
-      case '\b': rep =  'b'; tmp_target[i] = '\\'; i++; break;
-      case '\t': rep =  't'; tmp_target[i] = '\\'; i++; break;
-      case '\n': rep =  'n'; tmp_target[i] = '\\'; i++; break;
-      case '\f': rep =  'f'; tmp_target[i] = '\\'; i++; break;
-      case '\r': rep =  'r'; tmp_target[i] = '\\'; i++; break;
-      case '\\': rep = '\\'; tmp_target[i] = '\\'; i++; break;
-      case  '"': rep =  '"'; tmp_target[i] = '\\'; i++; break;
+      case '\b': c =  'b'; target_json_encoded[j] = '\\'; j++; break;
+      case '\t': c =  't'; target_json_encoded[j] = '\\'; j++; break;
+      case '\n': c =  'n'; target_json_encoded[j] = '\\'; j++; break;
+      case '\f': c =  'f'; target_json_encoded[j] = '\\'; j++; break;
+      case '\r': c =  'r'; target_json_encoded[j] = '\\'; j++; break;
+      case '\\': c = '\\'; target_json_encoded[j] = '\\'; j++; break;
+      case  '"': c =  '"'; target_json_encoded[j] = '\\'; j++; break;
     }
 
-    tmp_target[i] = rep;
+    target_json_encoded[j] = c;
   }
 
-  tmp_target[i] = 0;
+  target_json_encoded[j] = 0;
 
   printf ("{ \"session\": \"%s\",", hashcat_status->session);
   printf (" \"status\": %d,", hashcat_status->status_number);
-  printf (" \"target\": \"%s\",", tmp_target);
+  printf (" \"target\": \"%s\",", target_json_encoded);
   printf (" \"progress\": [%" PRIu64 ", %" PRIu64 "],", hashcat_status->progress_cur_relative_skip, hashcat_status->progress_end_relative_skip);
   printf (" \"restore_point\": %" PRIu64 ",", hashcat_status->restore_point);
   printf (" \"recovered_hashes\": [%d, %d],", hashcat_status->digests_done, hashcat_status->digests_cnt);
@@ -1054,7 +1061,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
   printf (" \"rejected\": %" PRIu64 ",", hashcat_status->progress_rejected);
   printf (" \"devices\": [");
 
-  free(tmp_target);
+  free (target_json_encoded);
 
   int device_num = 0;
 
