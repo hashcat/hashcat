@@ -507,7 +507,7 @@ void setup_environment_variables (const folder_config_t *folder_config)
 
     putenv (display);
 
-    free (display);
+    hcfree (display);
   }
   else
   {
