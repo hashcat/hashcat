@@ -102,6 +102,7 @@
 - Fixed some memory leaks in case mask-files are used in optimized mode
 - Fixed the 7-Zip parser to allow the entire supported range of encrypted and decrypted data lengths
 - Fixed the validation of the --brain-client-features command line argument (only values 1, 2 or 3 are allowed)
+- Fixed --status-json to correctly escape certain characters in hashes
 
 ##
 ## Improvements

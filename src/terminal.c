@@ -1027,15 +1027,48 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
     end = time_now + sec_etc;
   }
 
+  /*
+   * As the hash target can contain the hash (in case of a single attacked hash), especially
+   * some salts can contain chars which need to be escaped to not break the JSON encoding.
+   * Based on https://www.freeformatter.com/json-escape.html, below these 7 different chars
+   * are getting escaped before being printed.
+   */
+
+  char *target_json_encoded = (char *) hcmalloc (strlen (hashcat_status->hash_target) * 2);
+
+  unsigned long i, j;
+
+  for (i = 0, j = 0; i < strlen (hashcat_status->hash_target); i++, j++)
+  {
+    char c = hashcat_status->hash_target[i];
+
+    switch (c)
+    {
+      case '\b': c =  'b'; target_json_encoded[j] = '\\'; j++; break;
+      case '\t': c =  't'; target_json_encoded[j] = '\\'; j++; break;
+      case '\n': c =  'n'; target_json_encoded[j] = '\\'; j++; break;
+      case '\f': c =  'f'; target_json_encoded[j] = '\\'; j++; break;
+      case '\r': c =  'r'; target_json_encoded[j] = '\\'; j++; break;
+      case '\\': c = '\\'; target_json_encoded[j] = '\\'; j++; break;
+      case  '"': c =  '"'; target_json_encoded[j] = '\\'; j++; break;
+    }
+
+    target_json_encoded[j] = c;
+  }
+
+  target_json_encoded[j] = 0;
+
   printf ("{ \"session\": \"%s\",", hashcat_status->session);
   printf (" \"status\": %d,", hashcat_status->status_number);
-  printf (" \"target\": \"%s\",", hashcat_status->hash_target);
+  printf (" \"target\": \"%s\",", target_json_encoded);
   printf (" \"progress\": [%" PRIu64 ", %" PRIu64 "],", hashcat_status->progress_cur_relative_skip, hashcat_status->progress_end_relative_skip);
   printf (" \"restore_point\": %" PRIu64 ",", hashcat_status->restore_point);
   printf (" \"recovered_hashes\": [%d, %d],", hashcat_status->digests_done, hashcat_status->digests_cnt);
   printf (" \"recovered_salts\": [%d, %d],", hashcat_status->salts_done, hashcat_status->salts_cnt);
   printf (" \"rejected\": %" PRIu64 ",", hashcat_status->progress_rejected);
   printf (" \"devices\": [");
+
+  free (target_json_encoded);
 
   int device_num = 0;
 
