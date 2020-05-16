@@ -244,7 +244,7 @@ KERNEL_FQ void m21920_sxx (KERN_ATTR_RULES ())
     const u32 r1 = ctx.h[DGST_R1];
     const u32 r2 = ctx.h[DGST_R2];
     const u32 r3 = ctx.h[DGST_R3];
-    
+
     COMPARE_S_SCALAR (r0, r1, r2, r3);
   }
 }

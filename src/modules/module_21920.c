@@ -27,11 +27,10 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_PT_ADD80
                                   | OPTS_TYPE_PT_ADDBITS15
-                                  | OPTS_TYPE_PT_HEX
                                   | OPTS_TYPE_ST_HEX;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
-static const char *ST_PASS        = "6f72676f6e6c6a75732076692067c3a5";
-static const char *ST_HASH        = "87a737e82313c56269ffc0ad427f0aa456cabab0:74696c6c207265736e696e672069206d";
+static const char *ST_PASS        = "hashcat";
+static const char *ST_HASH        = "50d9d045dea43b03b592f9a862eece32965f62db:74696c6c207265736e696e672069206d6f72676f6e6c6a75732076692067c3a5";
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
 u32         module_dgst_pos1      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS1;       }
@@ -58,8 +57,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.sep[0]     = hashconfig->separator;
   token.len_min[0] = 40;
   token.len_max[0] = 40;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
+  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.len_min[1] = 2 * SALT_MIN;
   token.len_max[1] = 2 * SALT_MAX;
