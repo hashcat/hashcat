@@ -122,11 +122,13 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     tmp[4] += RIPEMD160M_E;
   }
 
-  tmp[0] = byte_swap_32 (tmp[0]);
-  tmp[1] = byte_swap_32 (tmp[1]);
-  tmp[2] = byte_swap_32 (tmp[2]);
-  tmp[3] = byte_swap_32 (tmp[3]);
-  tmp[4] = byte_swap_32 (tmp[4]);
+  // no byte swap
+
+  tmp[0] = tmp[0];
+  tmp[1] = tmp[1];
+  tmp[2] = tmp[2];
+  tmp[3] = tmp[3];
+  tmp[4] = tmp[4];
 
   u8 *out_buf = (u8 *) line_buf;
 
