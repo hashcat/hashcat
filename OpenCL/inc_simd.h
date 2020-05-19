@@ -1133,6 +1133,50 @@
 #define unpackv_xor(arr,var,gid,idx,val) (arr)[((gid) * 16) + 0].var[(idx)] ^= val.s0; (arr)[((gid) * 16) + 1].var[(idx)] ^= val.s1; (arr)[((gid) * 16) + 2].var[(idx)] ^= val.s2; (arr)[((gid) * 16) + 3].var[(idx)] ^= val.s3; (arr)[((gid) * 16) + 4].var[(idx)] ^= val.s4; (arr)[((gid) * 16) + 5].var[(idx)] ^= val.s5; (arr)[((gid) * 16) + 6].var[(idx)] ^= val.s6; (arr)[((gid) * 16) + 7].var[(idx)] ^= val.s7; (arr)[((gid) * 16) + 8].var[(idx)] ^= val.s8; (arr)[((gid) * 16) + 9].var[(idx)] ^= val.s9; (arr)[((gid) * 16) + 10].var[(idx)] ^= val.sa; (arr)[((gid) * 16) + 11].var[(idx)] ^= val.sb; (arr)[((gid) * 16) + 12].var[(idx)] ^= val.sc; (arr)[((gid) * 16) + 13].var[(idx)] ^= val.sd; (arr)[((gid) * 16) + 14].var[(idx)] ^= val.se; (arr)[((gid) * 16) + 15].var[(idx)] ^= val.sf;
 #endif
 
+#if   VECT_SIZE == 1
+#define VECTOR_ELEMENT(v, n) (v)
+#elif VECT_SIZE == 2
+#define VECTOR_ELEMENT(v, n) (n == 0 ? (v).s0 : (v).s1)
+#elif VECT_SIZE == 4
+#define VECTOR_ELEMENT(v, n)    \
+  (n < 2 ?                      \
+   (n == 0 ? (v).s0 : (v).s1) : \
+   (n == 2 ? (v).s2 : (v).s3)   \
+  )
+#elif VECT_SIZE == 8
+#define VECTOR_ELEMENT(v, n)     \
+  (n < 4 ?                       \
+   (n < 2 ?                      \
+    (n == 0 ? (v).s0 : (v).s1) : \
+    (n == 2 ? (v).s2 : (v).s3)   \
+   ) : (n < 6 ?                  \
+    (n == 4 ? (v).s4 : (v).s5) : \
+    (n == 6 ? (v).s6 : (v).s7)   \
+   )                             \
+  )
+#elif VECT_SIZE == 16
+#define VECTOR_ELEMENT(v, n)       \
+  (n < 8 ?                         \
+   (n < 4 ?                        \
+    (n < 2 ?                       \
+     (n == 0 ? (v).s0 : (v).s1) :  \
+     (n == 2 ? (v).s2 : (v).s3)    \
+    ) : (n < 6 ?                   \
+     (n == 4 ? (v).s4 : (v).s5) :  \
+     (n == 6 ? (v).s6 : (v).s7)    \
+    )                              \
+   ) : (n < 12 ?                   \
+    (n < 10 ?                      \
+     (n == 8 ? (v).s8 : (v).s9) :  \
+     (n == 10 ? (v).sa : (v).sb)   \
+    ) : (n < 14 ?                  \
+     (n == 12 ? (v).sc : (v).sd) : \
+     (n == 14 ? (v).se : (v).sf)   \
+    )                              \
+   )                               \
+  )
+#endif
+
 DECLSPEC u32x ix_create_bft       (CONSTANT_AS const bf_t *arr, const u32 il_pos);
 DECLSPEC u32x pwlenx_create_combt (GLOBAL_AS   const pw_t *arr, const u32 il_pos);
 DECLSPEC u32x ix_create_combt     (GLOBAL_AS   const pw_t *arr, const u32 il_pos, const int idx);
