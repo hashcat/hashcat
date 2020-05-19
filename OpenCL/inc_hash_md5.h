@@ -100,6 +100,10 @@ DECLSPEC void md5_update_global (md5_ctx_t *ctx, GLOBAL_AS const u32 *w, const i
 DECLSPEC void md5_update_global_swap (md5_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
 DECLSPEC void md5_update_global_utf16le (md5_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
 DECLSPEC void md5_update_global_utf16le_swap (md5_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
+DECLSPEC void md5_update_local (md5_ctx_t *ctx, LOCAL_AS const u32 *w, const int len);
+DECLSPEC void md5_update_local_swap (md5_ctx_t *ctx, LOCAL_AS const u32 *w, const int len);
+DECLSPEC void md5_update_local_utf16le (md5_ctx_t *ctx, LOCAL_AS const u32 *w, const int len);
+DECLSPEC void md5_update_local_utf16le_swap (md5_ctx_t *ctx, LOCAL_AS const u32 *w, const int len);
 DECLSPEC void md5_final (md5_ctx_t *ctx);
 DECLSPEC void md5_hmac_init_64 (md5_hmac_ctx_t *ctx, const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3);
 DECLSPEC void md5_hmac_init (md5_hmac_ctx_t *ctx, const u32 *w, const int len);
