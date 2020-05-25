@@ -42,16 +42,33 @@ const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 
 typedef struct rar3_tmp
 {
-  u32 dgst[17][5];
+  u32 dgst[5];
+
+  u32 w[66]; // 256 byte pass + 8 byte salt
+
+  u32 iv[4];
 
 } rar3_tmp_t;
+
+typedef struct rar3_tmp_optimized
+{
+  u32 dgst[17][5];
+
+} rar3_tmp_optimized_t;
 
 static const int   ROUNDS_RAR3    = 262144;
 static const char *SIGNATURE_RAR3 = "$RAR3$";
 
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u64 tmp_size = (const u64) sizeof (rar3_tmp_t);
+  const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL);
+
+  u64 tmp_size = (u64) sizeof (rar3_tmp_t);
+
+  if (optimized_kernel == true)
+  {
+    tmp_size = (u64) sizeof (rar3_tmp_optimized_t);
+  }
 
   return tmp_size;
 }
@@ -74,7 +91,7 @@ u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
 {
   const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL);
 
-  u32 pw_max = PW_MAX;
+  u32 pw_max = 127;
 
   if (optimized_kernel == true)
   {
