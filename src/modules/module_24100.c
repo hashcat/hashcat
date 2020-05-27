@@ -27,14 +27,14 @@ static const u32 DGST_POS2     = 2;
 static const u32 DGST_POS3     = 3;
 static const u32 DGST_SIZE     = DGST_SIZE_4_4;
 static const u32 HASH_CATEGORY = HASH_CATEGORY_DOCUMENTS;
-static const char *HASH_NAME   = "PKCS#1 key";
-static const u64 KERN_TYPE     = 24100; // this gets overwritten later instead of in benchmark
+static const char *HASH_NAME   = "PEM encrypted private key";
+static const u64 KERN_TYPE     = 24111;  // Kernel used for the benchmark esalt; will likely be overridden in production
 static const u32 OPTI_TYPE     = OPTI_TYPE_ZERO_BYTE;
 static const u64 OPTS_TYPE     = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_BINARY_HASHFILE;
 static const u32 SALT_TYPE     = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS     = "hashcat";
-static const char *ST_HASH     = NULL;  // ST_HASH_24100 multi-hash-mode algorithm, unlikely to match self-test hash settings
+static const char *ST_HASH     = NULL;  // Benchmark / self-test hash provided in module_benchmark_esalt
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -410,6 +410,27 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t * hashconfig, MAYBE_UNUS
   return 1;
 }
 
+void *module_benchmark_esalt (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  pkcs1_t *pkcs1 = (pkcs1_t *) hcmalloc (sizeof (pkcs1_t));
+
+  pkcs1->chosen_cipher = &pkcs1_ciphers[0];
+  hex_decode ((u8 *) "7CC48DB27D461D30", 16, (u8 *) pkcs1->salt_iv);
+  pkcs1->data_len = base64_decode (base64_to_int, (u8 *) "ysVmp6tkcZXRqHyy3YMk5zd4bsT9D97kFcDIKkD2g5o/OBgc0pGQ/iSwJm/V+A2IkwgQlwvLW1OfKkAWdjcSFNKhmiWApVQB", 96, (u8 *) pkcs1->data);
+
+  return pkcs1;
+}
+
+salt_t *module_benchmark_salt (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  salt_t *salt = (salt_t *) hcmalloc (sizeof (salt_t));
+
+  salt->salt_iter = 1;
+  hex_decode ((u8 *) "7CC48DB27D461D30", 16, (u8 *) salt->salt_buf);
+
+  return salt;
+}
+
 u64 module_kern_type_dynamic (MAYBE_UNUSED const hashconfig_t * hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t * salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t * hash_info)
 {
   const pkcs1_t *pkcs1 = (const pkcs1_t *) esalt_buf;
@@ -444,10 +465,10 @@ void module_init (module_ctx_t * module_ctx)
   module_ctx->module_interface_version = MODULE_INTERFACE_VERSION_CURRENT;
 
   module_ctx->module_attack_exec = module_attack_exec;
-  module_ctx->module_benchmark_esalt = MODULE_DEFAULT;
+  module_ctx->module_benchmark_esalt = module_benchmark_esalt;
   module_ctx->module_benchmark_hook_salt = MODULE_DEFAULT;
   module_ctx->module_benchmark_mask = MODULE_DEFAULT;
-  module_ctx->module_benchmark_salt = MODULE_DEFAULT;
+  module_ctx->module_benchmark_salt = module_benchmark_salt;
   module_ctx->module_build_plain_postprocess = MODULE_DEFAULT;
   module_ctx->module_deep_comp_kernel = MODULE_DEFAULT;
   module_ctx->module_dgst_pos0 = module_dgst_pos0;
