@@ -377,7 +377,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   HCFILE fp;
 
-  if (hc_fopen (&fp, (const char *) line_buf, "rb") == false) return (PARSER_HASH_FILE);
+  if (hc_fopen (&fp, (const char *) line_buf, "rb") == false) return (PARSER_HAVE_ERRNO);
 
   struct luks_phdr hdr;
 
