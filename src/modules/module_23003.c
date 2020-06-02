@@ -172,34 +172,19 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 *iv = (u8 *) securezip->iv;
 
-  memset (iv, 0, 16);
-
-  for (int i = 0, j = 0; i < token.len[5]; i += 2, j += 1)
-  {
-    iv[j] = hex_to_u8 (iv_pos + i);
-  }
-
-  securezip->iv_len = (u32) (token.len[5] / 2);
+  securezip->iv_len = hex_decode (iv_pos, token.len[5], iv);
 
   // data:
 
   u32 *data = securezip->data;
 
-  for (int i = 0, j = 0; i < token.len[6]; i += 8, j += 1)
-  {
-    data[j] = hex_to_u32 (data_pos + i);
-  }
+  hex_decode (data_pos, token.len[6], (u8 *) data);
 
   // file:
 
   u8 *file = (u8 *) securezip->file;
 
-  memset (file, 0, 64);
-
-  for (int i = 0; i < token.len[10]; i++)
-  {
-    file[i] = file_pos[i]; // or just memcpy ()
-  }
+  memcpy (file, file_pos, token.len[10]);
 
   file[63] = 0;
 
@@ -228,23 +213,15 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // IV:
 
-  const u8 *iv_ptr = (const u8 *) securezip->iv;
+  u8 iv[33] = { 0 };
 
-  char iv[33] = { 0 };
-
-  for (u32 i = 0, j = 0; i < securezip->iv_len; i += 1, j += 2)
-  {
-    snprintf (iv + j, 33 - j, "%02x", iv_ptr[i]);
-  }
+  hex_encode ((u8 *) securezip->iv, securezip->iv_len, iv);
 
   // data:
 
-  char data[289] = { 0 };
+  u8 data[289] = { 0 };
 
-  for (u32 i = 0, j = 0; i < 36; i += 1, j += 8)
-  {
-    snprintf (data + j, 289 - j, "%08x", byte_swap_32 (securezip->data[i]));
-  }
+  hex_encode ((u8 *) securezip->data, 144, data);
 
   // file:
 
