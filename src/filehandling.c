@@ -72,7 +72,7 @@ bool hc_fopen (HCFILE *fp, const char *path, char *mode)
   {
     lseek (fd_tmp, 0, SEEK_SET);
 
-    if (read (fd_tmp, check, sizeof(check)) > 0)
+    if (read (fd_tmp, check, sizeof (check)) > 0)
     {
       if (check[0] == 0x1f && check[1] == 0x8b && check[2] == 0x08 && check[3] == 0x08) fp->is_gzip = true;
       if (check[0] == 0x50 && check[1] == 0x4b && check[2] == 0x03 && check[3] == 0x04) fp->is_zip = true;
@@ -131,7 +131,47 @@ size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
   }
   else
   {
+    #if defined (_WIN)
+
+    // 4 GB fread () limit for windows systems ?
+    // see: https://social.msdn.microsoft.com/Forums/vstudio/en-US/7c913001-227e-439b-bf07-54369ba07994/fwrite-issues-with-large-data-write
+
+    #define GIGABYTE (1024u * 1024u * 1024u)
+
+    if (((size * nmemb) / GIGABYTE) < 4)
+    {
+      n = fread (ptr, size, nmemb, fp->pfp);
+    }
+    else
+    {
+      if ((size / GIGABYTE) > 3) return -1;
+
+      size_t elements_max  = (3u * GIGABYTE) / size;
+      size_t elements_left = nmemb;
+
+      size_t off = 0;
+
+      n = 0;
+
+      while (elements_left > 0)
+      {
+        size_t elements_cur = elements_max;
+
+        if (elements_left < elements_max) elements_cur = elements_left;
+
+        size_t ret = fread (ptr + off, size, elements_cur, fp->pfp);
+
+        if (ret != elements_cur) return -1;
+
+        n   += ret;
+        off += ret * size;
+
+        elements_left -= ret;
+      }
+    }
+    #else
     n = fread (ptr, size, nmemb, fp->pfp);
+    #endif
   }
 
   return n;
@@ -152,7 +192,47 @@ size_t hc_fwrite (const void *ptr, size_t size, size_t nmemb, HCFILE *fp)
   }
   else
   {
+    #if defined (_WIN)
+
+    // 4 GB fwrite () limit for windows systems ?
+    // see: https://social.msdn.microsoft.com/Forums/vstudio/en-US/7c913001-227e-439b-bf07-54369ba07994/fwrite-issues-with-large-data-write
+
+    #define GIGABYTE (1024u * 1024u * 1024u)
+
+    if (((size * nmemb) / GIGABYTE) < 4)
+    {
+      n = fwrite (ptr, size, nmemb, fp->pfp);
+    }
+    else
+    {
+      if ((size / GIGABYTE) > 3) return -1;
+
+      size_t elements_max  = (3u * GIGABYTE) / size;
+      size_t elements_left = nmemb;
+
+      size_t off = 0;
+
+      n = 0;
+
+      while (elements_left > 0)
+      {
+        size_t elements_cur = elements_max;
+
+        if (elements_left < elements_max) elements_cur = elements_left;
+
+        size_t ret = fwrite (ptr + off, size, elements_cur, fp->pfp);
+
+        if (ret != elements_cur) return -1;
+
+        n   += ret;
+        off += ret * size;
+
+        elements_left -= ret;
+      }
+    }
+    #else
     n = fwrite (ptr, size, nmemb, fp->pfp);
+    #endif
   }
 
   if (n != nmemb) return -1;
