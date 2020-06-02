@@ -64,6 +64,9 @@
 - Added hash-mode: sha256($salt.$pass.$salt)
 - Added hash-mode: sha256(sha256_bin($pass))
 - Added hash-mode: sha256(sha256($pass).$salt)
+- Added hash-mode: SecureZIP AES-128
+- Added hash-mode: SecureZIP AES-192
+- Added hash-mode: SecureZIP AES-256
 - Added hash-mode: SolarWinds Orion
 - Added hash-mode: Telegram Desktop App Passcode (PBKDF2-HMAC-SHA1)
 - Added hash-mode: Telegram Mobile App Passcode (SHA256)
