@@ -1068,7 +1068,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
   printf (" \"rejected\": %" PRIu64 ",", hashcat_status->progress_rejected);
   printf (" \"devices\": [");
 
-  free (target_json_encoded);
+  hcfree (target_json_encoded);
 
   int device_num = 0;
 

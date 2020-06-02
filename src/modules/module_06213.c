@@ -197,7 +197,7 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
       keyfile = strtok_r ((char *) NULL, ",", &saveptr);
     }
 
-    free (keyfiles);
+    hcfree (keyfiles);
   }
 
   // keyboard layout mapping
