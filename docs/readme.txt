@@ -346,6 +346,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Apple
 - Intel
 - NVidia
+- POCL
 
 ##
 ## Supported OpenCL device types
