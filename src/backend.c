@@ -6318,7 +6318,9 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
                 if (r == 2)
                 {
-                  if (version_maj >= 440)
+                  // nvidia 441.x looks ok
+
+                  if (version_maj == 440)
                   {
                     if (version_min >= 64)
                     {
