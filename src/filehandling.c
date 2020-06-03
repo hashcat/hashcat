@@ -235,8 +235,6 @@ size_t hc_fwrite (const void *ptr, size_t size, size_t nmemb, HCFILE *fp)
     #endif
   }
 
-  if (n != nmemb) return -1;
-
   return n;
 }
 
