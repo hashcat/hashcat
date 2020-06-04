@@ -297,6 +297,9 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - PKZIP (Uncompressed)
 - PKZIP Master Key
 - PKZIP Master Key (6 byte optimization)
+- SecureZIP AES-128
+- SecureZIP AES-192
+- SecureZIP AES-256
 - iTunes backup < 10.0
 - iTunes backup >= 10.0
 - WinZip
@@ -344,6 +347,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Apple
 - Intel
 - NVidia
+- POCL
 
 ##
 ## Supported OpenCL device types

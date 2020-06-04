@@ -54,21 +54,15 @@ static int backend_ctx_find_alias_devices (hashcat_ctx_t *hashcat_ctx)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
+  // first identify all aliases
+
   for (int backend_devices_cnt_src = 0; backend_devices_cnt_src < backend_ctx->backend_devices_cnt; backend_devices_cnt_src++)
   {
     hc_device_param_t *device_param_src = &backend_ctx->devices_param[backend_devices_cnt_src];
 
-    if (device_param_src->skipped == true) continue;
-
-    if (device_param_src->skipped_warning == true) continue;
-
     for (int backend_devices_cnt_dst = backend_devices_cnt_src + 1; backend_devices_cnt_dst < backend_ctx->backend_devices_cnt; backend_devices_cnt_dst++)
     {
       hc_device_param_t *device_param_dst = &backend_ctx->devices_param[backend_devices_cnt_dst];
-
-      if (device_param_dst->skipped == true) continue;
-
-      if (device_param_dst->skipped_warning == true) continue;
 
       if (is_same_device (device_param_src, device_param_dst) == false) continue;
 
@@ -77,18 +71,45 @@ static int backend_ctx_find_alias_devices (hashcat_ctx_t *hashcat_ctx)
 
       device_param_dst->device_id_alias_buf[device_param_dst->device_id_alias_cnt] = device_param_src->device_id;
       device_param_dst->device_id_alias_cnt++;
+    }
+  }
 
-      if (device_param_dst->is_opencl == true)
+  // find the alias to skip
+
+  for (int backend_devices_pos = 0; backend_devices_pos < backend_ctx->backend_devices_cnt; backend_devices_pos++)
+  {
+    hc_device_param_t *backend_device = &backend_ctx->devices_param[backend_devices_pos];
+
+    if (backend_device->skipped == true) continue;
+
+    if (backend_device->skipped_warning == true) continue;
+
+    for (int device_id_alias_pos = 0; device_id_alias_pos < backend_device->device_id_alias_cnt; device_id_alias_pos++)
+    {
+      const int alias_pos = backend_device->device_id_alias_buf[device_id_alias_pos];
+
+      hc_device_param_t *alias_device = &backend_ctx->devices_param[alias_pos];
+
+      if (alias_device->skipped == true) continue;
+
+      if (alias_device->skipped_warning == true) continue;
+
+      // this lets CUDA devices survive over OpenCL
+
+      if (alias_device->is_cuda == true) continue;
+
+        // this lets native OpenCL runtime survive over generic OpenCL runtime
+
+      if (alias_device->opencl_device_type & CL_DEVICE_TYPE_CPU)
       {
-        if (device_param_dst->skipped == false)
-        {
-          device_param_dst->skipped = true;
-
-          backend_ctx->opencl_devices_active--;
-
-          backend_ctx->backend_devices_active--;
-        }
+        if (alias_device->opencl_platform_vendor_id == alias_device->opencl_device_vendor_id) continue;
       }
+
+      alias_device->skipped = true;
+
+      backend_ctx->opencl_devices_active--;
+
+      backend_ctx->backend_devices_active--;
     }
   }
 
@@ -5972,23 +5993,61 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         device_param->device_local_mem_size = device_local_mem_size;
 
-        // If there's both an Intel CPU and an AMD OpenCL runtime it's a tricky situation
-        // Both platforms support CPU device types and therefore both will try to use 100% of the physical resources
-        // This results in both utilizing it for 50%
-        // However, Intel has much better SIMD control over their own hardware
-        // It makes sense to give them full control over their own hardware
+        // older POCL version and older LLVM versions are known to fail compiling kernels
+        // we need to inform the user to update
+        // https://github.com/hashcat/hashcat/issues/2344
 
-        if (opencl_device_type & CL_DEVICE_TYPE_CPU)
+        if (opencl_platform_vendor_id == VENDOR_ID_POCL)
         {
-          if (device_param->opencl_device_vendor_id == VENDOR_ID_AMD_USE_INTEL)
-          {
-            if (user_options->force == false)
-            {
-              if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Not a native Intel OpenCL runtime. Expect massive speed loss.", device_id + 1);
-              if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             You can use --force to override, but do not report related errors.");
-              if (user_options->quiet == false) event_log_warning (hashcat_ctx, NULL);
+          char *pocl_version_ptr = strstr (opencl_platform_version, "pocl ");
+          char *llvm_version_ptr = strstr (opencl_platform_version, "LLVM ");
 
-              device_param->skipped = true;
+          if ((pocl_version_ptr != NULL) && (llvm_version_ptr != NULL))
+          {
+            bool pocl_skip = false;
+
+            int pocl_maj = 0;
+            int pocl_min = 0;
+
+            const int res1 = sscanf (pocl_version_ptr, "pocl %d.%d", &pocl_maj, &pocl_min);
+
+            if (res1 == 2)
+            {
+              const int pocl_version = (pocl_maj * 100) + pocl_min;
+
+              if (pocl_version < 105)
+              {
+                pocl_skip = true;
+              }
+            }
+
+            int llvm_maj = 0;
+            int llvm_min = 0;
+
+            const int res2 = sscanf (llvm_version_ptr, "LLVM %d.%d", &llvm_maj, &llvm_min);
+
+            if (res2 == 2)
+            {
+              const int llvm_version = (llvm_maj * 100) + llvm_min;
+
+              if (llvm_version < 900)
+              {
+                pocl_skip = true;
+              }
+            }
+
+            if (pocl_skip == true)
+            {
+              if (user_options->force == false)
+              {
+                event_log_error (hashcat_ctx, "* Device #%u: Outdated POCL OpenCL driver detected!", device_id + 1);
+
+                if (user_options->quiet == false) event_log_warning (hashcat_ctx, "This OpenCL driver has been marked as likely to fail kernel compilation or to produce false negatives.");
+                if (user_options->quiet == false) event_log_warning (hashcat_ctx, "You can use --force to override this, but do not report related errors.");
+                if (user_options->quiet == false) event_log_warning (hashcat_ctx, NULL);
+
+                device_param->skipped = true;
+              }
             }
           }
         }
@@ -6001,14 +6060,11 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
          || (strstr (opencl_device_version_lower, " neo"))
          || (strstr (opencl_device_version_lower, "beignet "))
          || (strstr (opencl_device_version_lower, " beignet"))
-         || (strstr (opencl_device_version_lower, "pocl "))
-         || (strstr (opencl_device_version_lower, " pocl"))
          || (strstr (opencl_device_version_lower, "mesa "))
          || (strstr (opencl_device_version_lower, " mesa")))
         {
           // NEO:     https://github.com/hashcat/hashcat/issues/2342
           // BEIGNET: https://github.com/hashcat/hashcat/issues/2243
-          // POCL:    https://github.com/hashcat/hashcat/issues/2344
           // MESA:    https://github.com/hashcat/hashcat/issues/2269
 
           if (user_options->force == false)
@@ -6262,7 +6318,9 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
                 if (r == 2)
                 {
-                  if (version_maj >= 440)
+                  // nvidia 441.x looks ok
+
+                  if (version_maj == 440)
                   {
                     if (version_min >= 64)
                     {
@@ -6541,10 +6599,10 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
   backend_ctx->backend_devices_cnt    = cuda_devices_cnt    + opencl_devices_cnt;
   backend_ctx->backend_devices_active = cuda_devices_active + opencl_devices_active;
 
-  // find duplicate devices (typically CUDA and OpenCL)
+  // find duplicate devices
 
-  if ((cuda_devices_cnt > 0) && (opencl_devices_cnt > 0))
-  {
+  //if ((cuda_devices_cnt > 0) && (opencl_devices_cnt > 0))
+  //{
     // using force here enables both devices, which is the worst possible outcome
     // many users force by default, so this is not a good idea
 
@@ -6552,7 +6610,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
     //{
     backend_ctx_find_alias_devices (hashcat_ctx);
     //{
-  }
+  //}
 
   if (backend_ctx->backend_devices_active == 0)
   {

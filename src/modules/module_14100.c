@@ -139,6 +139,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   salt->salt_buf[2] = 0;
   salt->salt_buf[3] = 0;
 
+  salt->salt_len = 8;
+
   salt->salt_buf_pc[0] = salt->salt_buf[0];
   salt->salt_buf_pc[1] = salt->salt_buf[1];
 

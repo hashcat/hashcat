@@ -188,6 +188,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   salt->salt_buf[1] = krb5pa->checksum[1];
   salt->salt_buf[2] = krb5pa->checksum[2];
 
+  salt->salt_len = 12;
+
   salt->salt_iter = 4096 - 1;
 
   digest[0] = krb5pa->checksum[0];

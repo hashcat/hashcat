@@ -351,7 +351,7 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
   HCFILE fp;
 
-  if (hc_fopen (&fp, hashes->hashfile, "rb") == false) return -1;
+  if (hc_fopen (&fp, hashes->hashfile, "rb") == false) return (PARSER_HAVE_ERRNO);
 
   char *in = (char *) hcmalloc (sizeof (hccapx_t));
 
@@ -442,7 +442,7 @@ int module_hash_binary_count (MAYBE_UNUSED const hashes_t *hashes)
 {
   struct stat st;
 
-  if (stat (hashes->hashfile, &st) == -1) return -1;
+  if (stat (hashes->hashfile, &st) == -1) return (PARSER_HAVE_ERRNO);
 
   return st.st_size / sizeof (hccapx_t);
 }
