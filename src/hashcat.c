@@ -467,6 +467,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   if (hashes_init_stage1 (hashcat_ctx) == -1) return -1;
 
+  if (user_options->verify_hashlist_only == true) return 0;
+
   if ((user_options->keyspace == false) && (user_options->stdout_flag == false))
   {
     if (hashes->hashes_cnt == 0)
@@ -1103,6 +1105,8 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
 
   if (user_options_check_files (hashcat_ctx) == -1) return -1;
 
+  if (user_options->verify_hashlist_only == true) return 0;
+
   /**
    * Init backend library loader
    */
@@ -1215,6 +1219,8 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
   logfile_top_msg ("STOP");
 
   // free memory
+
+  if (user_options->verify_hashlist_only == true) return rc_final;
 
   if (rc_final == 0)
   {

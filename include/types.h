@@ -768,9 +768,10 @@ typedef enum user_options_map
   IDX_VERACRYPT_KEYFILES        = 0xff49,
   IDX_VERACRYPT_PIM_START       = 0xff4a,
   IDX_VERACRYPT_PIM_STOP        = 0xff4b,
+  IDX_VERIFY_HASHLIST_ONLY      = 0xff4c,
   IDX_VERSION_LOWER             = 'v',
   IDX_VERSION                   = 'V',
-  IDX_WORDLIST_AUTOHEX_DISABLE  = 0xff4c,
+  IDX_WORDLIST_AUTOHEX_DISABLE  = 0xff4d,
   IDX_WORKLOAD_PROFILE          = 'w',
 
 } user_options_map_t;
@@ -1967,6 +1968,7 @@ typedef struct user_options
   bool         username;
   bool         veracrypt_pim_start_chgd;
   bool         veracrypt_pim_stop_chgd;
+  bool         verify_hashlist_only;
   bool         version;
   bool         wordlist_autohex_disable;
   #ifdef WITH_BRAIN

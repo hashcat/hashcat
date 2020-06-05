@@ -123,6 +123,7 @@ static const struct option long_options[] =
   {"veracrypt-keyfiles",        required_argument, NULL, IDX_VERACRYPT_KEYFILES},
   {"veracrypt-pim-start",       required_argument, NULL, IDX_VERACRYPT_PIM_START},
   {"veracrypt-pim-stop",        required_argument, NULL, IDX_VERACRYPT_PIM_STOP},
+  {"verify-hashlist-only",      no_argument,       NULL, IDX_VERIFY_HASHLIST_ONLY},
   {"version",                   no_argument,       NULL, IDX_VERSION},
   {"wordlist-autohex-disable",  no_argument,       NULL, IDX_WORDLIST_AUTOHEX_DISABLE},
   {"workload-profile",          required_argument, NULL, IDX_WORKLOAD_PROFILE},
@@ -464,6 +465,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
                                           user_options->veracrypt_pim_start_chgd  = true;                            break;
       case IDX_VERACRYPT_PIM_STOP:        user_options->veracrypt_pim_stop        = hc_strtoul (optarg, NULL, 10);
                                           user_options->veracrypt_pim_stop_chgd   = true;                            break;
+      case IDX_VERIFY_HASHLIST_ONLY:      user_options->verify_hashlist_only      = true;                            break;
       case IDX_SEGMENT_SIZE:              user_options->segment_size              = hc_strtoul (optarg, NULL, 10);
                                           user_options->segment_size_chgd         = true;                            break;
       case IDX_SCRYPT_TMTO:               user_options->scrypt_tmto               = hc_strtoul (optarg, NULL, 10);   break;
