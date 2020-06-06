@@ -1486,12 +1486,14 @@ bool brain_server_read_hash_dumps (brain_server_dbs_t *brain_server_dbs, const c
 {
   brain_server_dbs->hash_cnt = 0;
 
+  /* temporary disabled due to https://github.com/hashcat/hashcat/issues/2379
   if (chdir (path) == -1)
   {
     brain_logging (stderr, 0, "%s: %s\n", path, strerror (errno));
 
     return false;
   }
+  */
 
   DIR *dirp = opendir (path);
 
@@ -1683,12 +1685,14 @@ bool brain_server_read_attack_dumps (brain_server_dbs_t *brain_server_dbs, const
 {
   brain_server_dbs->attack_cnt = 0;
 
+  /* temporary disabled due to https://github.com/hashcat/hashcat/issues/2379
   if (chdir (path) == -1)
   {
     brain_logging (stderr, 0, "%s: %s\n", path, strerror (errno));
 
     return false;
   }
+  */
 
   DIR *dirp = opendir (path);
 

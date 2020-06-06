@@ -64,6 +64,9 @@
 - Added hash-mode: sha256($salt.$pass.$salt)
 - Added hash-mode: sha256(sha256_bin($pass))
 - Added hash-mode: sha256(sha256($pass).$salt)
+- Added hash-mode: SecureZIP AES-128
+- Added hash-mode: SecureZIP AES-192
+- Added hash-mode: SecureZIP AES-256
 - Added hash-mode: SolarWinds Orion
 - Added hash-mode: Telegram Desktop App Passcode (PBKDF2-HMAC-SHA1)
 - Added hash-mode: Telegram Mobile App Passcode (SHA256)
@@ -85,6 +88,7 @@
 - Fixed cracking of Cisco-PIX and Cisco-ASA MD5 passwords in mask-attack mode if mask > length 16
 - Fixed cracking of Electrum Wallet Salt-Type 2 hashes
 - Fixed cracking of NetNTLMv1 passwords in mask-attack mode if mask > length 16 (optimized kernels only)
+- Fixed cracking of RAR3-hp hashes with passwords longer than 28 bytes with pure kernel
 - Fixed cracking of VeraCrypt Streebog-512 hashes (CPU only)
 - Fixed cracking raw Streebog-HMAC 256 and 512 hashes with password of length >= 64
 - Fixed cracking raw Whirlpool hashes cracking with password of length >= 32
@@ -118,7 +122,7 @@
 - File handling: Print a truncation warning when an oversized line is detected
 - My Wallet: Added additional plaintext pattern used in newer versions
 - Office cracking: Support hash format with second block data for 40-bit oldoffice files (eliminates false positives)
-- OpenCL Runtime: Added a warning if OpenCL runtime NEO, Beignet, POCL or MESA is detected and skip associated devices (override with --force)
+- OpenCL Runtime: Added a warning if OpenCL runtime NEO, Beignet, POCL (v1.4 or older) or MESA is detected and skip associated devices (override with --force)
 - OpenCL Runtime: Disable OpenCL kernel cache on Apple for Intel CPU (throws CL_BUILD_PROGRAM_FAILURE for no reason)
 - OpenCL Runtime: Do not run shared- and constant-memory size checks if their memory type is of type global memory (typically CPU)
 - OpenCL Runtime: Improve ROCm detection and make sure to not confuse with recent AMDGPU drivers

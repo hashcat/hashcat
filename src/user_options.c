@@ -2760,12 +2760,14 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
    * default building options
    */
 
+  /* temporary disabled due to https://github.com/hashcat/hashcat/issues/2379
   if (chdir (folder_config->cpath_real) == -1)
   {
     event_log_error (hashcat_ctx, "%s: %s", folder_config->cpath_real, strerror (errno));
 
     return -1;
   }
+  */
 
   // include check
   // this test needs to be done manually because of macOS opencl runtime
@@ -2792,9 +2794,13 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
   for (int i = 0; files_names[i] != NULL; i++)
   {
-    if (hc_path_read (files_names[i]) == false)
+    char *temp_filename = NULL;
+
+    hc_asprintf (&temp_filename, "%s/%s", folder_config->cpath_real, files_names[i]);
+
+    if (hc_path_read (temp_filename) == false)
     {
-      event_log_error (hashcat_ctx, "%s: %s", files_names[i], strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %s", temp_filename, strerror (errno));
 
       return -1;
     }
@@ -2802,6 +2808,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
   // return back to the folder we came from initially (workaround)
 
+  /* temporary disabled due to https://github.com/hashcat/hashcat/issues/2379
   #if defined (_WIN)
   if (chdir ("..") == -1)
   {
@@ -2817,6 +2824,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
   #endif
+  */
 
   return 0;
 }

@@ -171,7 +171,7 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
   HCFILE fp;
 
-  if (hc_fopen (&fp, hashes->hashfile, "rb") == false) return -1;
+  if (hc_fopen (&fp, hashes->hashfile, "rb") == false) return (PARSER_HAVE_ERRNO);
 
   const bool r = is_hccapx (&fp);
 
@@ -258,7 +258,7 @@ int module_hash_binary_count (MAYBE_UNUSED const hashes_t *hashes)
 
   HCFILE fp;
 
-  if (hc_fopen (&fp, hashes->hashfile, "rb") == false) return -1;
+  if (hc_fopen (&fp, hashes->hashfile, "rb") == false) return (PARSER_HAVE_ERRNO);
 
   const bool r = is_hccapx (&fp);
 

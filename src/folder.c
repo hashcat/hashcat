@@ -258,6 +258,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
    * A workaround is to chdir() to the OpenCL folder,
    * then compile the kernels,
    * then chdir() back to where we came from so we need to save it first
+   * - temporary disabled due to https://github.com/hashcat/hashcat/issues/2379
    */
 
   char *cwd = (char *) hcmalloc (HCBUFSIZ_TINY);
@@ -450,6 +451,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
   hcfree (cpath);
 
   //if (getenv ("TMP") == NULL)
+  /* temporary disabled due to https://github.com/hashcat/hashcat/issues/2379
   if (true)
   {
     char *tmp;
@@ -458,6 +460,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
     putenv (tmp);
   }
+  */
 
   #if defined (_WIN)
 
