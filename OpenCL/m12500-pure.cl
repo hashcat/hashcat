@@ -700,15 +700,15 @@ DECLSPEC void sha1_update_rar29 (sha1_ctx_t *ctx, u32 *w, const int len)
     t[14] = hc_swap32_S (t[14]);
     t[15] = hc_swap32_S (t[15]);
 
-    const u32 n_idx = diff >> 2;
-    const u32 n_off = diff  & 3;
+    const u32 n_idx = diff / 4;
+    const u32 n_off = diff % 4;
 
     if (n_off)
     {
-      const u32 off_mul = n_off << 3;
+      const u32 off_mul = n_off * 8;
       const u32 off_sub = 32 - off_mul;
 
-      t[16] = (t[15] << off_sub);
+      t[16] =                      (t[15] << off_sub);
       t[15] = (t[15] >> off_mul) | (t[14] << off_sub);
       t[14] = (t[14] >> off_mul) | (t[13] << off_sub);
       t[13] = (t[13] >> off_mul) | (t[12] << off_sub);
@@ -727,7 +727,7 @@ DECLSPEC void sha1_update_rar29 (sha1_ctx_t *ctx, u32 *w, const int len)
       t[ 0] = (t[ 0] >> off_mul);
     }
 
-    w[n_idx] &= 0xffffff00 << ((3 - n_off) << 3);
+    w[n_idx] &= 0xffffff00 << ((3 - n_off) * 8);
 
     w[n_idx] |= t[0];
 
@@ -749,7 +749,7 @@ DECLSPEC void sha1_update_rar29 (sha1_ctx_t *ctx, u32 *w, const int len)
 
     // the final set is only meaningful: if (n_off)
 
-    w[n_idx + 16] &= 0xffffffff >> (n_off << 3);
+    w[n_idx + 16] &= 0xffffffff >> (n_off * 8);
 
     w[n_idx + 16] |= t[16];
   }
@@ -818,7 +818,7 @@ KERNEL_FQ void m12500_init (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
 
   if (salt_off == 2) // or just: if (salt_off)
   {
-    salt_buf[2] = (salt_buf[1] << 16);
+    salt_buf[2] =                       (salt_buf[1] << 16);
     salt_buf[1] = (salt_buf[1] >> 16) | (salt_buf[0] << 16);
     salt_buf[0] = (salt_buf[0] >> 16);
   }
@@ -928,9 +928,9 @@ KERNEL_FQ void m12500_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
   sha1_final (&ctx_iv);
 
   const u32 iv_idx = init_pos / 4;
-  const u32 iv_off = init_pos & 3;
+  const u32 iv_off = init_pos % 4;
 
-  tmps[gid].iv[iv_idx] |= (ctx_iv.h[4] & 0xff) << (iv_off << 3);
+  tmps[gid].iv[iv_idx] |= (ctx_iv.h[4] & 0xff) << (iv_off * 8);
 
   // main loop:
 
