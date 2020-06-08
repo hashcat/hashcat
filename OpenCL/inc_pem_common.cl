@@ -5,7 +5,7 @@
 
 #include "inc_types.h"
 #include "inc_vendor.h"
-#include "inc_pkcs1_common.h"
+#include "inc_pem_common.h"
 
 #ifdef KERNEL_STATIC
 #include "inc_hash_md5.cl"
@@ -28,7 +28,7 @@ DECLSPEC void generate_key (u32 *salt_buf, u32 *pw, size_t pw_len, u32 *key)
 
   md5_init (&md_ctx);
   md5_update (&md_ctx, pw, pw_len);
-  md5_update (&md_ctx, salt_buf, HC_PKCS1_SALT_LENGTH);
+  md5_update (&md_ctx, salt_buf, HC_PEM_SALT_LENGTH);
   md5_final (&md_ctx);
 
   key[0] = md_ctx.h[0];
@@ -50,15 +50,15 @@ DECLSPEC void generate_key (u32 *salt_buf, u32 *pw, size_t pw_len, u32 *key)
   #ifdef _unroll
   #pragma unroll
   #endif
-  for (u32 i = 0; i < HC_PKCS1_MD_LENGTH / 4; i++)
+  for (u32 i = 0; i < HC_PEM_MD_LENGTH / 4; i++)
   {
     md_buf[i] = md_ctx.h[i];
   }
 
   md5_init (&md_ctx);
-  md5_update (&md_ctx, md_buf, HC_PKCS1_MD_LENGTH);
+  md5_update (&md_ctx, md_buf, HC_PEM_MD_LENGTH);
   md5_update (&md_ctx, pw, pw_len);
-  md5_update (&md_ctx, salt_buf, HC_PKCS1_SALT_LENGTH);
+  md5_update (&md_ctx, salt_buf, HC_PEM_SALT_LENGTH);
   md5_final (&md_ctx);
 
   key[4] = md_ctx.h[0];
@@ -107,7 +107,7 @@ DECLSPEC void generate_key_vector (u32 *salt_buf, u32x *pw, size_t pw_len, u32x 
 
   md5_init_vector (&md_ctx);
   md5_update_vector (&md_ctx, pw, pw_len);
-  md5_update_vector_from_scalar (&md_ctx, salt_buf, HC_PKCS1_SALT_LENGTH);
+  md5_update_vector_from_scalar (&md_ctx, salt_buf, HC_PEM_SALT_LENGTH);
   md5_final_vector (&md_ctx);
 
   key[0] = md_ctx.h[0];
@@ -129,15 +129,15 @@ DECLSPEC void generate_key_vector (u32 *salt_buf, u32x *pw, size_t pw_len, u32x 
   #ifdef _unroll
   #pragma unroll
   #endif
-  for (u32 i = 0; i < HC_PKCS1_MD_LENGTH / 4; i++)
+  for (u32 i = 0; i < HC_PEM_MD_LENGTH / 4; i++)
   {
     md_buf[i] = md_ctx.h[i];
   }
 
   md5_init_vector (&md_ctx);
-  md5_update_vector (&md_ctx, md_buf, HC_PKCS1_MD_LENGTH);
+  md5_update_vector (&md_ctx, md_buf, HC_PEM_MD_LENGTH);
   md5_update_vector (&md_ctx, pw, pw_len);
-  md5_update_vector_from_scalar (&md_ctx, salt_buf, HC_PKCS1_SALT_LENGTH);
+  md5_update_vector_from_scalar (&md_ctx, salt_buf, HC_PEM_SALT_LENGTH);
   md5_final_vector (&md_ctx);
 
   key[4] = md_ctx.h[0];
@@ -169,12 +169,12 @@ DECLSPEC void generate_key_vector (u32 *salt_buf, u32x *pw, size_t pw_len, u32x 
   #endif   // DEBUG
 }
 
-DECLSPEC void prep_buffers(u32 *salt_buf, u32 *salt_iv, u32 *first_block, PSEUDO_SHM_TYPE u32 *data, GLOBAL_AS const pkcs1_t *esalt)
+DECLSPEC void prep_buffers(u32 *salt_buf, u32 *salt_iv, u32 *first_block, PSEUDO_SHM_TYPE u32 *data, GLOBAL_AS const pem_t *esalt)
 {
   #ifdef _unroll
   #pragma unroll
   #endif
-  for (u32 i = 0; i < HC_PKCS1_SALT_LENGTH / 4; i++)
+  for (u32 i = 0; i < HC_PEM_SALT_LENGTH / 4; i++)
   {
     salt_buf[i] = esalt->salt_iv[i];
   }

@@ -11,14 +11,14 @@
 #include "shared.h"
 #include "memory.h"
 
-#define HC_PKCS1_SALT_LENGTH    8
-#define HC_PKCS1_MAX_BLOCK_SIZE 16
-#define HC_PKCS1_MAX_KEY_LENGTH 32
-#define HC_PKCS1_MAX_DATA_LENGTH 12288
+#define HC_PEM_SALT_LENGTH    8
+#define HC_PEM_MAX_BLOCK_SIZE 16
+#define HC_PEM_MAX_KEY_LENGTH 32
+#define HC_PEM_MAX_DATA_LENGTH 12288
 
 // The longest OpenSSL cipher name I can find is 24 characters, so add on seven
 // more characters for luck and one for the \0 gives us 32.
-#define HC_PKCS1_MAX_CIPHER_NAME_LENGTH 32
+#define HC_PEM_MAX_CIPHER_NAME_LENGTH 32
 
 static const u32 ATTACK_EXEC   = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32 DGST_POS0     = 0;
@@ -28,7 +28,7 @@ static const u32 DGST_POS3     = 3;
 static const u32 DGST_SIZE     = DGST_SIZE_4_4;
 static const u32 HASH_CATEGORY = HASH_CATEGORY_DOCUMENTS;
 static const char *HASH_NAME   = "PEM encrypted private key";
-static const u64 KERN_TYPE     = 24111;  // Kernel used for the benchmark esalt; will likely be overridden in production
+static const u64 KERN_TYPE     = 22911;  // Kernel used for the benchmark esalt; will likely be overridden in production
 static const u32 OPTI_TYPE     = OPTI_TYPE_ZERO_BYTE;
 static const u64 OPTS_TYPE     = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_BINARY_HASHFILE;
@@ -51,30 +51,21 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
-typedef enum kern_type_pkcs1
+typedef enum hc_pem_cipher_type
 {
-  KERN_TYPE_PKCS1_3DES_CBC   = 24111,
-  KERN_TYPE_PKCS1_DES_CBC    = 24121,
-  KERN_TYPE_PKCS1_AES128_CBC = 24131,
-  KERN_TYPE_PKCS1_AES192_CBC = 24141,
-  KERN_TYPE_PKCS1_AES256_CBC = 24151,
-} kern_type_pkcs1_t;
+  HC_PEM_CIPHER_TYPE_3DES   = 1,
+  HC_PEM_CIPHER_TYPE_DES    = 2,
+  HC_PEM_CIPHER_TYPE_AES128 = 3,
+  HC_PEM_CIPHER_TYPE_AES192 = 4,
+  HC_PEM_CIPHER_TYPE_AES256 = 5,
+} hc_pem_cipher_type_t;
 
-typedef enum hc_pkcs1_cipher_type
+typedef enum hc_pem_cipher_mode
 {
-  HC_PKCS1_CIPHER_TYPE_3DES   = 1,
-  HC_PKCS1_CIPHER_TYPE_DES    = 2,
-  HC_PKCS1_CIPHER_TYPE_AES128 = 3,
-  HC_PKCS1_CIPHER_TYPE_AES192 = 4,
-  HC_PKCS1_CIPHER_TYPE_AES256 = 5,
-} hc_pkcs1_cipher_type_t;
+  HC_PEM_CIPHER_MODE_CBC = 1,
+} hc_pem_cipher_mode_t;
 
-typedef enum hc_pkcs1_cipher_mode
-{
-  HC_PKCS1_CIPHER_MODE_CBC = 1,
-} hc_pkcs1_cipher_mode_t;
-
-typedef struct pkcs1_cipher
+typedef struct pem_cipher
 {
   char *name;
 
@@ -82,31 +73,31 @@ typedef struct pkcs1_cipher
   u32 key_length;
   u32 cipher_type;
   u32 cipher_mode;
-} hc_pkcs1_cipher_t;
+} hc_pem_cipher_t;
 
-static hc_pkcs1_cipher_t pkcs1_ciphers[] = {
-  {"des-ede3-cbc", 8, 24, HC_PKCS1_CIPHER_TYPE_3DES,   HC_PKCS1_CIPHER_MODE_CBC},
-  {"des-cbc",      8,  8, HC_PKCS1_CIPHER_TYPE_DES,    HC_PKCS1_CIPHER_MODE_CBC},
-  {"aes-128-cbc", 16, 16, HC_PKCS1_CIPHER_TYPE_AES128, HC_PKCS1_CIPHER_MODE_CBC},
-  {"aes-192-cbc", 16, 24, HC_PKCS1_CIPHER_TYPE_AES192, HC_PKCS1_CIPHER_MODE_CBC},
-  {"aes-256-cbc", 16, 32, HC_PKCS1_CIPHER_TYPE_AES256, HC_PKCS1_CIPHER_MODE_CBC},
+static hc_pem_cipher_t pem_ciphers[] = {
+  {"des-ede3-cbc", 8, 24, HC_PEM_CIPHER_TYPE_3DES,   HC_PEM_CIPHER_MODE_CBC},
+  {"des-cbc",      8,  8, HC_PEM_CIPHER_TYPE_DES,    HC_PEM_CIPHER_MODE_CBC},
+  {"aes-128-cbc", 16, 16, HC_PEM_CIPHER_TYPE_AES128, HC_PEM_CIPHER_MODE_CBC},
+  {"aes-192-cbc", 16, 24, HC_PEM_CIPHER_TYPE_AES192, HC_PEM_CIPHER_MODE_CBC},
+  {"aes-256-cbc", 16, 32, HC_PEM_CIPHER_TYPE_AES256, HC_PEM_CIPHER_MODE_CBC},
   {NULL,           0,  0, 0,                           0}
 };
 
-typedef struct pkcs1
+typedef struct pem
 {
-  hc_pkcs1_cipher_t *chosen_cipher;
+  hc_pem_cipher_t *chosen_cipher;
 
-  u32 salt_iv[HC_PKCS1_MAX_BLOCK_SIZE / 4];
+  u32 salt_iv[HC_PEM_MAX_BLOCK_SIZE / 4];
 
-  u32 data[HC_PKCS1_MAX_DATA_LENGTH / 4];
+  u32 data[HC_PEM_MAX_DATA_LENGTH / 4];
   size_t data_len;
-} pkcs1_t;
+} pem_t;
 
-typedef struct pkcs1_tmp
+typedef struct pem_tmp
 {
-  u32 key[HC_PKCS1_MAX_KEY_LENGTH / 4];
-} pkcs1_tmp_t;
+  u32 key[HC_PEM_MAX_KEY_LENGTH / 4];
+} pem_tmp_t;
 
 
 u32 module_pw_max (MAYBE_UNUSED const hashconfig_t * hashconfig, MAYBE_UNUSED const user_options_t * user_options, MAYBE_UNUSED const user_options_extra_t * user_options_extra)
@@ -134,7 +125,7 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t * hashconfig, MAYB
   hash_t *hash = &hashes_buf[0];
 
   memset (hash->salt, 0, sizeof (salt_t));
-  memset (hash->esalt, 0, sizeof (pkcs1_t));
+  memset (hash->esalt, 0, sizeof (pem_t));
 
   return module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, hashes->hashfile, strlen (hashes->hashfile));
 }
@@ -203,14 +194,14 @@ static int parse_dek_info (char *line, char *cipher_name, u8 * salt)
 
         salt[salty++] = hex_to_u8 ((u8 *) line);
 
-        if (salty > HC_PKCS1_MAX_BLOCK_SIZE)
+        if (salty > HC_PEM_MAX_BLOCK_SIZE)
         {
           return PARSER_SALT_LENGTH;
         }
       }
       else if (line[1] == '\0')
       {
-        if (salty < HC_PKCS1_SALT_LENGTH)
+        if (salty < HC_PEM_SALT_LENGTH)
         {
           // Malformed salt, not long enough for PKCS5's liking
           return PARSER_SALT_LENGTH;
@@ -230,7 +221,7 @@ static int parse_dek_info (char *line, char *cipher_name, u8 * salt)
     else
     {
       cipher_name[i++] = *line;
-      if (i >= HC_PKCS1_MAX_CIPHER_NAME_LENGTH)
+      if (i >= HC_PEM_MAX_CIPHER_NAME_LENGTH)
       {
         return PARSER_CIPHER;
       }
@@ -240,7 +231,7 @@ static int parse_dek_info (char *line, char *cipher_name, u8 * salt)
   return PARSER_SALT_VALUE;
 }
 
-static int parse_pkcs1_key_data (char *buf, char *cipher_name, u8 * salt, u8 * data, size_t * data_len)
+static int parse_pem_key_data (char *buf, char *cipher_name, u8 * salt, u8 * data, size_t * data_len)
 {
   char *pemdata;
   size_t pemdata_len;
@@ -304,7 +295,7 @@ static int parse_pkcs1_key_data (char *buf, char *cipher_name, u8 * salt, u8 * d
     }
   }
 
-  if (b64_idx * 6 / 8 > HC_PKCS1_MAX_DATA_LENGTH)
+  if (b64_idx * 6 / 8 > HC_PEM_MAX_DATA_LENGTH)
   {
     return PARSER_TOKEN_LENGTH;
   }
@@ -316,7 +307,7 @@ static int parse_pkcs1_key_data (char *buf, char *cipher_name, u8 * salt, u8 * d
 
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t * hashconfig, MAYBE_UNUSED void *digest_buf, salt_t * salt, void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t * hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
-  pkcs1_t *pkcs1 = (pkcs1_t *) esalt_buf;
+  pem_t *pem = (pem_t *) esalt_buf;
 
   HCFILE fp;
   struct stat fileinfo;
@@ -342,11 +333,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t * hashconfig, MAYBE_UNUS
 
   filebuf[fileinfo.st_size] = '\0';
 
-  char cipher_name[HC_PKCS1_MAX_CIPHER_NAME_LENGTH] = { 0 };
-  u8 saltbytes[MAX(HC_PKCS1_SALT_LENGTH, HC_PKCS1_MAX_BLOCK_SIZE)];
+  char cipher_name[HC_PEM_MAX_CIPHER_NAME_LENGTH] = { 0 };
+  u8 saltbytes[MAX(HC_PEM_SALT_LENGTH, HC_PEM_MAX_BLOCK_SIZE)];
   int err;
 
-  if ((err = parse_pkcs1_key_data ((char *) filebuf, cipher_name, saltbytes, (u8 *) pkcs1->data, &pkcs1->data_len)) < 0)
+  if ((err = parse_pem_key_data ((char *) filebuf, cipher_name, saltbytes, (u8 *) pem->data, &pem->data_len)) < 0)
   {
     hcfree (filebuf);
 
@@ -355,12 +346,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t * hashconfig, MAYBE_UNUS
 
   u32 *saltwords = (u32 *) saltbytes;
 
-  for (u32 i = 0; i < HC_PKCS1_SALT_LENGTH / 4; i++)
+  for (u32 i = 0; i < HC_PEM_SALT_LENGTH / 4; i++)
   {
-    pkcs1->salt_iv[i] = saltwords[i];
+    pem->salt_iv[i] = saltwords[i];
   }
 
-  hc_pkcs1_cipher_t *candidate_cipher = pkcs1_ciphers, *chosen_cipher = NULL;
+  hc_pem_cipher_t *candidate_cipher = pem_ciphers, *chosen_cipher = NULL;
 
   while (candidate_cipher->name)
   {
@@ -382,29 +373,29 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t * hashconfig, MAYBE_UNUS
     return PARSER_CIPHER;
   }
 
-  if (chosen_cipher->block_size > HC_PKCS1_MAX_BLOCK_SIZE)
+  if (chosen_cipher->block_size > HC_PEM_MAX_BLOCK_SIZE)
   {
     hcfree (filebuf);
 
     return PARSER_BLOCK_SIZE;
   }
 
-  if (pkcs1->data_len % chosen_cipher->block_size)
+  if (pem->data_len % chosen_cipher->block_size)
   {
     hcfree (filebuf);
 
     return PARSER_HASH_LENGTH;
   }
 
-  if (chosen_cipher->key_length > HC_PKCS1_MAX_KEY_LENGTH)
+  if (chosen_cipher->key_length > HC_PEM_MAX_KEY_LENGTH)
   {
     // Nope nope nopety nope
     return PARSER_KEY_SIZE;
   }
 
-  pkcs1->chosen_cipher = chosen_cipher;
+  pem->chosen_cipher = chosen_cipher;
 
-  memcpy (salt->salt_buf, pkcs1->salt_iv, MIN (HC_PKCS1_SALT_LENGTH, 64 * 4));
+  memcpy (salt->salt_buf, pem->salt_iv, MIN (HC_PEM_SALT_LENGTH, 64 * 4));
   salt->salt_iter = 1;
 
   return 1;
@@ -412,13 +403,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t * hashconfig, MAYBE_UNUS
 
 void *module_benchmark_esalt (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  pkcs1_t *pkcs1 = (pkcs1_t *) hcmalloc (sizeof (pkcs1_t));
+  pem_t *pem = (pem_t *) hcmalloc (sizeof (pem_t));
 
-  pkcs1->chosen_cipher = &pkcs1_ciphers[0];
-  hex_decode ((u8 *) "7CC48DB27D461D30", 16, (u8 *) pkcs1->salt_iv);
-  pkcs1->data_len = base64_decode (base64_to_int, (u8 *) "ysVmp6tkcZXRqHyy3YMk5zd4bsT9D97kFcDIKkD2g5o/OBgc0pGQ/iSwJm/V+A2IkwgQlwvLW1OfKkAWdjcSFNKhmiWApVQB", 96, (u8 *) pkcs1->data);
+  pem->chosen_cipher = &pem_ciphers[0];
+  hex_decode ((u8 *) "7CC48DB27D461D30", 16, (u8 *) pem->salt_iv);
+  pem->data_len = base64_decode (base64_to_int, (u8 *) "ysVmp6tkcZXRqHyy3YMk5zd4bsT9D97kFcDIKkD2g5o/OBgc0pGQ/iSwJm/V+A2IkwgQlwvLW1OfKkAWdjcSFNKhmiWApVQB", 96, (u8 *) pem->data);
 
-  return pkcs1;
+  return pem;
 }
 
 salt_t *module_benchmark_salt (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -433,19 +424,19 @@ salt_t *module_benchmark_salt (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
 u64 module_kern_type_dynamic (MAYBE_UNUSED const hashconfig_t * hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t * salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t * hash_info)
 {
-  const pkcs1_t *pkcs1 = (const pkcs1_t *) esalt_buf;
+  const pem_t *pem = (const pem_t *) esalt_buf;
 
-  u64 kern_type = 24100;
+  u64 kern_type = 22900;
 
-  kern_type += pkcs1->chosen_cipher->cipher_type * 10;
-  kern_type += pkcs1->chosen_cipher->cipher_mode;
+  kern_type += pem->chosen_cipher->cipher_type * 10;
+  kern_type += pem->chosen_cipher->cipher_mode;
 
   return kern_type;
 }
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t * hashconfig, MAYBE_UNUSED const user_options_t * user_options, MAYBE_UNUSED const user_options_extra_t * user_options_extra)
 {
-  const u64 esalt_size = (const u64) sizeof (pkcs1_t);
+  const u64 esalt_size = (const u64) sizeof (pem_t);
 
   return esalt_size;
 }

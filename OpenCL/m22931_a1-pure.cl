@@ -12,10 +12,10 @@
 #include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_cipher_aes.cl"
-#include "inc_pkcs1_common.cl"
+#include "inc_pem_common.cl"
 #endif  // KERNEL_STATIC
 
-KERNEL_FQ void m24131_sxx (KERN_ATTR_ESALT (pkcs1_t))
+KERNEL_FQ void m22931_sxx (KERN_ATTR_ESALT (pem_t))
 {
   /**
    * base
@@ -32,7 +32,7 @@ KERNEL_FQ void m24131_sxx (KERN_ATTR_ESALT (pkcs1_t))
   LOCAL_VK u32 data_len;
   data_len = esalt_bufs[digests_offset].data_len;
 
-  LOCAL_VK u32 data[HC_PKCS1_MAX_DATA_LENGTH / 4];
+  LOCAL_VK u32 data[HC_PEM_MAX_DATA_LENGTH / 4];
 
   for (u32 i = lid; i <= data_len / 4; i += lsz)
   {
@@ -71,7 +71,7 @@ KERNEL_FQ void m24131_sxx (KERN_ATTR_ESALT (pkcs1_t))
   #else
 
   const size_t data_len = esalt_bufs[digests_offset].data_len;
-  u32 data[HC_PKCS1_MAX_DATA_LENGTH / 4];
+  u32 data[HC_PEM_MAX_DATA_LENGTH / 4];
 
   #ifdef _unroll
   #pragma unroll
@@ -136,7 +136,7 @@ KERNEL_FQ void m24131_sxx (KERN_ATTR_ESALT (pkcs1_t))
       c[i] |= w[i];
     }
 
-    u32 key[HC_PKCS1_MAX_KEY_LENGTH / 4];
+    u32 key[HC_PEM_MAX_KEY_LENGTH / 4];
 
     generate_key (salt_buf, c, pw_len + comb_len, key);
 

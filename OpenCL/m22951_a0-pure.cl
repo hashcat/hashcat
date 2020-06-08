@@ -11,11 +11,12 @@
 #include "inc_types.h"
 #include "inc_platform.cl"
 #include "inc_common.cl"
+#include "inc_rp.cl"
 #include "inc_cipher_aes.cl"
-#include "inc_pkcs1_common.cl"
+#include "inc_pem_common.cl"
 #endif  // KERNEL_STATIC
 
-KERNEL_FQ void m24151_sxx (KERN_ATTR_ESALT (pkcs1_t))
+KERNEL_FQ void m22951_sxx (KERN_ATTR_RULES_ESALT (pem_t))
 {
   /**
    * base
@@ -32,7 +33,7 @@ KERNEL_FQ void m24151_sxx (KERN_ATTR_ESALT (pkcs1_t))
   LOCAL_VK u32 data_len;
   data_len = esalt_bufs[digests_offset].data_len;
 
-  LOCAL_VK u32 data[HC_PKCS1_MAX_DATA_LENGTH / 4];
+  LOCAL_VK u32 data[HC_PEM_MAX_DATA_LENGTH / 4];
 
   for (u32 i = lid; i <= data_len / 4; i += lsz)
   {
@@ -71,7 +72,7 @@ KERNEL_FQ void m24151_sxx (KERN_ATTR_ESALT (pkcs1_t))
   #else
 
   const size_t data_len = esalt_bufs[digests_offset].data_len;
-  u32 data[HC_PKCS1_MAX_DATA_LENGTH / 4];
+  u32 data[HC_PEM_MAX_DATA_LENGTH / 4];
 
   #ifdef _unroll
   #pragma unroll
@@ -100,14 +101,7 @@ KERNEL_FQ void m24151_sxx (KERN_ATTR_ESALT (pkcs1_t))
 
   prep_buffers(salt_buf, salt_iv, first_block, data, &esalt_bufs[digests_offset]);
 
-  const u32 pw_len = pws[gid].pw_len;
-
-  u32 w[16] = { 0 };
-
-  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
-  {
-    w[idx] = pws[gid].i[idx];
-  }
+  COPY_PW (pws[gid]);
 
   /**
    * loop
@@ -115,30 +109,13 @@ KERNEL_FQ void m24151_sxx (KERN_ATTR_ESALT (pkcs1_t))
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    const u32 comb_len = combs_buf[il_pos].pw_len;
-    u32 c[64];
+    u32 key[HC_PEM_MAX_KEY_LENGTH / 4];
 
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (int i = 0; i < 16; i++)
-    {
-      c[i] = combs_buf[il_pos].i[i];
-    }
+    pw_t tmp = PASTE_PW;
 
-    switch_buffer_by_offset_1x64_be_S (c, pw_len);
+    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
 
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (int i = 0; i < 16; i++)
-    {
-      c[i] |= w[i];
-    }
-
-    u32 key[HC_PKCS1_MAX_KEY_LENGTH / 4];
-
-    generate_key (salt_buf, c, pw_len + comb_len, key);
+    generate_key (salt_buf, tmp.i, tmp.pw_len, key);
 
     u32 asn1_ok = 0, padding_ok = 0, plaintext_length, plaintext[BLOCK_SIZE / 4];
     u32 ciphertext[BLOCK_SIZE / 4], iv[BLOCK_SIZE / 4];

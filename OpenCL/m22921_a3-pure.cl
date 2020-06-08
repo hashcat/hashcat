@@ -5,8 +5,8 @@
 
 #define NEW_SIMD_CODE
 
-#define BLOCK_SIZE 16
-#define KEY_LENGTH 16
+#define BLOCK_SIZE 8
+#define KEY_LENGTH 8
 
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
@@ -14,11 +14,11 @@
 #include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
-#include "inc_cipher_aes.cl"
-#include "inc_pkcs1_common.cl"
+#include "inc_cipher_des.cl"
+#include "inc_pem_common.cl"
 #endif  // KERNEL_STATIC
 
-KERNEL_FQ void m24131_sxx (KERN_ATTR_VECTOR_ESALT (pkcs1_t))
+KERNEL_FQ void m22921_sxx (KERN_ATTR_VECTOR_ESALT (pem_t))
 {
   /**
    * base
@@ -35,38 +35,35 @@ KERNEL_FQ void m24131_sxx (KERN_ATTR_VECTOR_ESALT (pkcs1_t))
   LOCAL_VK u32 data_len;
   data_len = esalt_bufs[digests_offset].data_len;
 
-  LOCAL_VK u32 data[HC_PKCS1_MAX_DATA_LENGTH / 4];
+  LOCAL_VK u32 data[HC_PEM_MAX_DATA_LENGTH / 4];
 
   for (u32 i = lid; i <= data_len / 4; i += lsz)
   {
     data[i] = esalt_bufs[digests_offset].data[i];
   }
 
-  LOCAL_VK u32 s_td0[256];
-  LOCAL_VK u32 s_td1[256];
-  LOCAL_VK u32 s_td2[256];
-  LOCAL_VK u32 s_td3[256];
-  LOCAL_VK u32 s_td4[256];
+  LOCAL_VK u32 s_SPtrans[8][64];
+  LOCAL_VK u32 s_skb[8][64];
 
-  LOCAL_VK u32 s_te0[256];
-  LOCAL_VK u32 s_te1[256];
-  LOCAL_VK u32 s_te2[256];
-  LOCAL_VK u32 s_te3[256];
-  LOCAL_VK u32 s_te4[256];
-
-  for (u32 i = lid; i < 256; i += lsz)
+  for (u32 i = lid; i < 64; i += lsz)
   {
-    s_td0[i] = td0[i];
-    s_td1[i] = td1[i];
-    s_td2[i] = td2[i];
-    s_td3[i] = td3[i];
-    s_td4[i] = td4[i];
+    s_SPtrans[0][i] = c_SPtrans[0][i];
+    s_SPtrans[1][i] = c_SPtrans[1][i];
+    s_SPtrans[2][i] = c_SPtrans[2][i];
+    s_SPtrans[3][i] = c_SPtrans[3][i];
+    s_SPtrans[4][i] = c_SPtrans[4][i];
+    s_SPtrans[5][i] = c_SPtrans[5][i];
+    s_SPtrans[6][i] = c_SPtrans[6][i];
+    s_SPtrans[7][i] = c_SPtrans[7][i];
 
-    s_te0[i] = te0[i];
-    s_te1[i] = te1[i];
-    s_te2[i] = te2[i];
-    s_te3[i] = te3[i];
-    s_te4[i] = te4[i];
+    s_skb[0][i] = c_skb[0][i];
+    s_skb[1][i] = c_skb[1][i];
+    s_skb[2][i] = c_skb[2][i];
+    s_skb[3][i] = c_skb[3][i];
+    s_skb[4][i] = c_skb[4][i];
+    s_skb[5][i] = c_skb[5][i];
+    s_skb[6][i] = c_skb[6][i];
+    s_skb[7][i] = c_skb[7][i];
   }
 
   SYNC_THREADS ();
@@ -74,7 +71,7 @@ KERNEL_FQ void m24131_sxx (KERN_ATTR_VECTOR_ESALT (pkcs1_t))
   #else
 
   const size_t data_len = esalt_bufs[digests_offset].data_len;
-  u32 data[HC_PKCS1_MAX_DATA_LENGTH / 4];
+  u32 data[HC_PEM_MAX_DATA_LENGTH / 4];
 
   #ifdef _unroll
   #pragma unroll
@@ -84,17 +81,8 @@ KERNEL_FQ void m24131_sxx (KERN_ATTR_VECTOR_ESALT (pkcs1_t))
     data[i] = esalt_bufs[digests_offset].data[i];
   }
 
-  CONSTANT_AS u32a *s_td0 = td0;
-  CONSTANT_AS u32a *s_td1 = td1;
-  CONSTANT_AS u32a *s_td2 = td2;
-  CONSTANT_AS u32a *s_td3 = td3;
-  CONSTANT_AS u32a *s_td4 = td4;
-
-  CONSTANT_AS u32a *s_te0 = te0;
-  CONSTANT_AS u32a *s_te1 = te1;
-  CONSTANT_AS u32a *s_te2 = te2;
-  CONSTANT_AS u32a *s_te3 = te3;
-  CONSTANT_AS u32a *s_te4 = te4;
+  CONSTANT_AS u32a (*s_SPtrans)[64] = c_SPtrans;
+  CONSTANT_AS u32a (*s_skb)[64]     = c_skb;
 
   #endif  // REAL_SHM
 
@@ -125,28 +113,19 @@ KERNEL_FQ void m24131_sxx (KERN_ATTR_VECTOR_ESALT (pkcs1_t))
 
     w[0] = w0;
 
-    u32x keys[KEY_LENGTH / 4];
+    u32x key[HC_PEM_MAX_KEY_LENGTH / 4];
 
-    generate_key_vector (salt_buf, w, pw_len, keys);
+    generate_key_vector (salt_buf, w, pw_len, key);
 
-    #ifdef _unroll
-    #pragma unroll
-    #endif
     for (u32 v_pos = 0; v_pos < VECT_SIZE; v_pos++)
     {
       u32 asn1_ok = 0, padding_ok = 0, plaintext_length, plaintext[BLOCK_SIZE / 4];
       u32 ciphertext[BLOCK_SIZE / 4], iv[BLOCK_SIZE / 4];
-      u32 ks[44];
-      u32 key[KEY_LENGTH / 4];
+      u32 K0[16], K1[16];
 
-      for (u32 i = 0; i < KEY_LENGTH; i++)
-      {
-        key[i] = VECTOR_ELEMENT(keys[i], v_pos);
-      }
+      _des_crypt_keysetup (VECTOR_ELEMENT(key[0], v_pos), VECTOR_ELEMENT(key[1], v_pos), K0, K1, s_skb);
 
-      aes128_set_decrypt_key (ks, key, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
-
-      aes128_decrypt (ks, first_block, plaintext, s_td0, s_td1, s_td2, s_td3, s_td4);
+      _des_crypt_decrypt (plaintext, first_block, K0, K1, s_SPtrans);
 
       #ifdef _unroll
       #pragma unroll
@@ -205,7 +184,7 @@ KERNEL_FQ void m24131_sxx (KERN_ATTR_VECTOR_ESALT (pkcs1_t))
           ciphertext[j] = data[i + j];
         }
 
-        aes128_decrypt (ks, ciphertext, plaintext, s_td0, s_td1, s_td2, s_td3, s_td4);
+        _des_crypt_decrypt (plaintext, ciphertext, K0, K1, s_SPtrans);
 
         #ifdef _unroll
         #pragma unroll
