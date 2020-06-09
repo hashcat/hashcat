@@ -86,6 +86,7 @@
 - Fixed cracking multiple Office hashes (modes 9500, 9600) with the same salt
 - Fixed cracking of Blockchain, My Wallet (V1 and V2) hashes with unexpected decrypted data
 - Fixed cracking of Cisco-PIX and Cisco-ASA MD5 passwords in mask-attack mode if mask > length 16
+- Fixed cracking of DNSSEC (NSEC3) hashes by replacing all dots in the passwords with lengths
 - Fixed cracking of Electrum Wallet Salt-Type 2 hashes
 - Fixed cracking of NetNTLMv1 passwords in mask-attack mode if mask > length 16 (optimized kernels only)
 - Fixed cracking of RAR3-hp hashes with passwords longer than 28 bytes with pure kernel
