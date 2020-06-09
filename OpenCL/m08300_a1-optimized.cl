@@ -14,49 +14,99 @@
 #include "inc_hash_sha1.cl"
 #endif
 
-const u32 replace_dots (u32 *w, const u32 idx, const u32 old_len, const u32 pw_len)
+DECLSPEC u64 u32_to_u64 (const u32 in)
 {
-  const u32 min_len = idx << 4; // 2 ^ 4 = 16 for each u32 w[4]
+  const u64 t0 = (u64) ((in >>  0) & 0xff);
+  const u64 t1 = (u64) ((in >>  8) & 0xff);
+  const u64 t2 = (u64) ((in >> 16) & 0xff);
+  const u64 t3 = (u64) ((in >> 24) & 0xff);
 
-  if (pw_len <= min_len) return 0;
+  const u64 out = (t0 <<  0)
+                | (t1 << 16)
+                | (t2 << 32)
+                | (t3 << 48);
 
-  const u32 max_len = pw_len - min_len - 1;
+  return out;
+}
 
-  const u32 start_pos = (max_len < 15) ? max_len : 15;
+DECLSPEC u32 u64_to_u32 (const u64 in)
+{
+  const u32 t0 = (u32) ((in >>  0) & 0xff);
+  const u32 t1 = (u32) ((in >> 16) & 0xff);
+  const u32 t2 = (u32) ((in >> 32) & 0xff);
+  const u32 t3 = (u32) ((in >> 48) & 0xff);
 
-  u32 cur_len = old_len;
+  const u32 out = (t0 <<  0)
+                | (t1 <<  8)
+                | (t2 << 16)
+                | (t3 << 24);
 
-  for (int pos = (int) start_pos; pos >= 0; pos--)
-  {
-    const u32 div = pos  / 4;
-    const u32 mod = pos  & 3;
-    const u32 sht = mod << 3;
+  return out;
+}
 
-    if (((w[div] >> sht) & 0xff) == 0x2e) // '.'
-    {
-      w[div] += (cur_len - 0x2e) << sht;
+DECLSPEC int replace_u32_le (const u32 input, u32 *output, int cur_len)
+{
+  // expand to keep 9th bit consistent
 
-      cur_len = 0;
-    }
-    else
-    {
-      cur_len++;
-    }
-  }
+  u64 input64 = u32_to_u64 (input);
+
+  u64 m64 = input64;
+
+  m64 ^= 0x002e002e002e002e;  // convert 0x2e to 0x00
+  m64 ^= 0x00ff00ff00ff00ff;  // convert 0x00 to 0xff (jit will optimize this to one instruction)
+  m64 += 0x0001000100010001;  // only 0xff can set 9th bit
+  m64 &= 0x0100010001000100;  // only 9th bit survives
+
+  m64 |= m64 << 1;            // converts 0x0100 to 0xff00
+  m64 |= m64 << 2;
+  m64 |= m64 << 4;
+
+  m64 >>= 8;                  // back to original positions (in 64 bit)
+
+  u32 m = u64_to_u32 (m64);
+
+  u32 r = 0;
+
+  const u32 mn = ~m;
+
+  const u32 r0 = mn & 0x000000ff;
+  const u32 r1 = mn & 0x0000ff00;
+  const u32 r2 = mn & 0x00ff0000;
+  const u32 r3 = mn & 0xff000000;
+
+                                                       cur_len <<= 24;
+  r |= cur_len; cur_len = (cur_len + 0x01000000) & r3; cur_len >>= 8;
+  r |= cur_len; cur_len = (cur_len + 0x00010000) & r2; cur_len >>= 8;
+  r |= cur_len; cur_len = (cur_len + 0x00000100) & r1; cur_len >>= 8;
+  r |= cur_len; cur_len = (cur_len + 0x00000001) & r0;
+
+  *output = (input & mn) | (r & m);
 
   return cur_len;
 }
 
-const u32 replace_dot_by_len (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len)
+DECLSPEC u32 replace_dot_by_len (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len)
 {
-  u32 cur_len = 0;
-
   // loop over w3...w0 (4 * 16 = 64 bytes):
 
-  cur_len = replace_dots (w3, 3, cur_len, pw_len);
-  cur_len = replace_dots (w2, 2, cur_len, pw_len);
-  cur_len = replace_dots (w1, 1, cur_len, pw_len);
-  cur_len = replace_dots (w0, 0, cur_len, pw_len);
+  int cur_len = 0 - (64 - pw_len); // number of padding bytes relative to buffer size
+
+  cur_len = replace_u32_le (w3[3], &w3[3], cur_len);
+  cur_len = replace_u32_le (w3[2], &w3[2], cur_len);
+  cur_len = replace_u32_le (w3[1], &w3[1], cur_len);
+  cur_len = replace_u32_le (w3[0], &w3[0], cur_len);
+  cur_len = replace_u32_le (w2[3], &w2[3], cur_len);
+  cur_len = replace_u32_le (w2[2], &w2[2], cur_len);
+  cur_len = replace_u32_le (w2[1], &w2[1], cur_len);
+  cur_len = replace_u32_le (w2[0], &w2[0], cur_len);
+  cur_len = replace_u32_le (w1[3], &w1[3], cur_len);
+  cur_len = replace_u32_le (w1[2], &w1[2], cur_len);
+  cur_len = replace_u32_le (w1[1], &w1[1], cur_len);
+  cur_len = replace_u32_le (w1[0], &w1[0], cur_len);
+  cur_len = replace_u32_le (w0[3], &w0[3], cur_len);
+  cur_len = replace_u32_le (w0[2], &w0[2], cur_len);
+  cur_len = replace_u32_le (w0[1], &w0[1], cur_len);
+  cur_len = replace_u32_le (w0[0], &w0[0], cur_len);
 
   return cur_len;
 }
