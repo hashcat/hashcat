@@ -66,6 +66,15 @@ pip2 uninstall -y pycryptodome
 
 ERRORS=$((ERRORS+$?))
 
+php --version > /dev/null 2> /dev/null
+
+if [ "$?" -ne 0 ]
+then
+  echo '[ ERROR ] php must be installed for some unit tests'
+
+  ERRORS=$((ERRORS+1))
+fi
+
 echo
 if [ $ERRORS -eq 0 ]; then
   echo '[  OK  ] All commands were successful'
