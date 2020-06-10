@@ -3,7 +3,7 @@ hashcat build documentation
 
 ### Revision ###
 
-* 1.4
+* 1.5
 
 ### Author ###
 
@@ -32,6 +32,11 @@ $ make install
 ```
 
 If you install it, cached kernels, session files, restore- and pot-files etc. will go to $HOME/.hashcat/
+
+
+### Building hashcat for Windows (using Windows Subsystem for Linux) ###
+
+Refer to [BUILD_WSL.md](BUILD_WSL.md)
 
 ### Building hashcat for Windows (using Cygwin) ###
 

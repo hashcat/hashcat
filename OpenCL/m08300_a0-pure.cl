@@ -67,11 +67,36 @@ KERNEL_FQ void m08300_mxx (KERN_ATTR_RULES ())
 
     sha1_init (&ctx1);
 
-    ctx1.w0[0] = (tmp.pw_len & 0xff) << 24;
+    // replace "." with the length:
 
-    ctx1.len = 1;
+    if (tmp.pw_len > 0)
+    {
+      u32 len = 0;
 
-    sha1_update_swap (&ctx1, tmp.i, tmp.pw_len);
+      for (int pos = tmp.pw_len - 1; pos >= 0; pos--)
+      {
+        const u32 div = pos  / 4;
+        const u32 mod = pos  & 3;
+        const u32 sht = mod << 3;
+
+        if (((tmp.i[div] >> sht) & 0xff) == 0x2e) // '.'
+        {
+          tmp.i[div] += (len - 0x2e) << sht;
+
+          len = 0;
+
+          continue;
+        }
+
+        len++;
+      }
+
+      ctx1.w0[0] = (len & 0xff) << 24;
+
+      ctx1.len = 1;
+
+      sha1_update_swap (&ctx1, tmp.i, tmp.pw_len);
+    }
 
     sha1_update (&ctx1, s_pc, salt_len_pc + 1);
 
@@ -186,11 +211,36 @@ KERNEL_FQ void m08300_sxx (KERN_ATTR_RULES ())
 
     sha1_init (&ctx1);
 
-    ctx1.w0[0] = (tmp.pw_len & 0xff) << 24;
+    // replace "." with the length:
 
-    ctx1.len = 1;
+    if (tmp.pw_len > 0)
+    {
+      u32 len = 0;
 
-    sha1_update_swap (&ctx1, tmp.i, tmp.pw_len);
+      for (int pos = tmp.pw_len - 1; pos >= 0; pos--)
+      {
+        const u32 div = pos  / 4;
+        const u32 mod = pos  & 3;
+        const u32 sht = mod << 3;
+
+        if (((tmp.i[div] >> sht) & 0xff) == 0x2e) // '.'
+        {
+          tmp.i[div] += (len - 0x2e) << sht;
+
+          len = 0;
+
+          continue;
+        }
+
+        len++;
+      }
+
+      ctx1.w0[0] = (len & 0xff) << 24;
+
+      ctx1.len = 1;
+
+      sha1_update_swap (&ctx1, tmp.i, tmp.pw_len);
+    }
 
     sha1_update (&ctx1, s_pc, salt_len_pc + 1);
 

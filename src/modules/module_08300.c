@@ -56,7 +56,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.sep[1]     = ':';
-  token.len_min[1] = 1;
+  token.len_min[1] = 0;
   token.len_max[1] = 32;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
@@ -104,9 +104,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 *salt_buf_pc_ptr = (u8 *) salt->salt_buf_pc;
 
-  memcpy (salt_buf_pc_ptr, domain_pos, domain_len);
+  if (domain_len > 0)
+  {
+    if (domain_pos[0] != '.') return (PARSER_SALT_VALUE);
 
-  if (salt_buf_pc_ptr[0] != '.') return (PARSER_SALT_VALUE);
+    memcpy (salt_buf_pc_ptr, domain_pos, domain_len);
+  }
 
   u8 *len_ptr = salt_buf_pc_ptr;
 

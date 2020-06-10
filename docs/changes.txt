@@ -1,22 +1,21 @@
 * changes v5.1.0 -> v6.0.0
 
 ##
-## Feature
+## Features
 ##
 
-- Fully modularized hash-mode integration via plugin interface and conversion of all existing hash-modes
-- Refactor hashcat backend interface to allow adding compute API other than OpenCL
-- Added CUDA as a new compute API to hashcat backend (enables hashcat to run on NVIDIA Jetson, IBM POWER9 w/ Nvidia V100, etc.)
-- Added new options --backend-ignore-cuda and --backend-ingore-opencl to ignore CUDA and/or OpenCL interface from being load on startup
-- Added new parameter --brain-server-timer to specify the seconds for the next scheduled backup
-- Added new way to specify the outfile format, the new --outfile-format now also supports timestamps
-- Support use of all available GPU memory using CUDA backend
-- Support use of all available CPU cores for hash-mode specific hooks
+- Refactor hash-mode integration and replaced it with a fully modularized plugin interface 
+- Converted all existing hardwired hash-modes into hashcat plugins
+- Added comprehensive plugin developer guide on how to add new/custom hash-modes to hashcat
+- Refactor compute backend interface to allow adding compute API other than OpenCL
+- Added CUDA as a new compute backend (enables hashcat to run on NVIDIA Jetson, IBM POWER9 w/ Nvidia V100, etc.)
+- Support automatic use of all available GPU memory using CUDA backend
+- Support automatic use of all available CPU cores for hash-mode specific hooks
 - Support on-the-fly loading of compressed wordlists in zip and gzip format
-- Support for inline VeraCrypt PIM brute-force
 - Support deflate decompression for the 7-Zip hash-mode using zlib hook
-- Added documentation on hashcat brain, slow-candidate and keyboard-layout mapping features
+- Added additional documentation on hashcat brain, slow-candidate interface and keyboard-layout mapping features
 - Keep output of --show and --left in the original ordering of the input hash file
+- Improved performance of many hash-modes
 
 ##
 ## Algorithms
@@ -37,15 +36,13 @@
 - Added hash-mode: Kerberos 5 Pre-Auth etype 18 (AES256-CTS-HMAC-SHA1-96)
 - Added hash-mode: Kerberos 5 TGS-REP etype 17 (AES128-CTS-HMAC-SHA1-96)
 - Added hash-mode: Kerberos 5 TGS-REP etype 18 (AES256-CTS-HMAC-SHA1-96)
-- Added hash-mode: md5($salt.sha1($salt.$pass))
-- Added hash-mode: md5(sha1($pass).md5($pass).sha1($pass))
-- Added hash-mode: md5(sha1($salt).md5($pass))
 - Added hash-mode: MultiBit Classic .key (MD5)
 - Added hash-mode: MultiBit HD (scrypt)
 - Added hash-mode: MySQL $A$ (sha256crypt)
 - Added hash-mode: Open Document Format (ODF) 1.1 (SHA-1, Blowfish)
 - Added hash-mode: Open Document Format (ODF) 1.2 (SHA-256, AES)
 - Added hash-mode: Oracle Transportation Management (SHA256)
+- Added hash-mode: PKCS#1 key
 - Added hash-mode: PKZIP archive encryption
 - Added hash-mode: PKZIP Master Key
 - Added hash-mode: Python passlib pbkdf2-sha1
@@ -56,14 +53,6 @@
 - Added hash-mode: QNX /etc/shadow (SHA512)
 - Added hash-mode: RedHat 389-DS LDAP (PBKDF2-HMAC-SHA256)
 - Added hash-mode: Ruby on Rails Restful-Authentication
-- Added hash-mode: sha1(md5(md5($pass)))
-- Added hash-mode: sha1(md5($pass.$salt))
-- Added hash-mode: sha1(md5($pass).$salt)
-- Added hash-mode: sha1($salt1.$pass.$salt2)
-- Added hash-mode: sha256(md5($pass))
-- Added hash-mode: sha256($salt.$pass.$salt)
-- Added hash-mode: sha256(sha256_bin($pass))
-- Added hash-mode: sha256(sha256($pass).$salt)
 - Added hash-mode: SecureZIP AES-128
 - Added hash-mode: SecureZIP AES-192
 - Added hash-mode: SecureZIP AES-256
@@ -73,7 +62,17 @@
 - Added hash-mode: Web2py pbkdf2-sha512
 - Added hash-mode: WPA-PBKDF2-PMKID+EAPOL
 - Added hash-mode: WPA-PMK-PMKID+EAPOL
-- Added hash-mode: PKCS#1 key
+- Added hash-mode: md5($salt.sha1($salt.$pass))
+- Added hash-mode: md5(sha1($pass).md5($pass).sha1($pass))
+- Added hash-mode: md5(sha1($salt).md5($pass))
+- Added hash-mode: sha1(md5(md5($pass)))
+- Added hash-mode: sha1(md5($pass.$salt))
+- Added hash-mode: sha1(md5($pass).$salt)
+- Added hash-mode: sha1($salt1.$pass.$salt2)
+- Added hash-mode: sha256(md5($pass))
+- Added hash-mode: sha256($salt.$pass.$salt)
+- Added hash-mode: sha256(sha256_bin($pass))
+- Added hash-mode: sha256(sha256($pass).$salt)
 
 ##
 ## Bugs
@@ -82,13 +81,15 @@
 - Fixed buffer overflow in build_plain() function
 - Fixed buffer overflow in mp_add_cs_buf() function
 - Fixed calculation of brain-session ID, only the first hash of the hashset was taken into account
-- Fixed cleanup of password candidate buffers on GPU set from autotune in case -n was used
+- Fixed cleanup of password candidate buffers on GPU set from autotune in case -n parameter was used
 - Fixed copy/paste error leading to invalid "Integer overflow detected in keyspace of mask" in attack-mode 6 and 7
-- Fixed cracking multiple Office hashes (modes 9500, 9600) with the same salt
-- Fixed cracking of Blockchain, My Wallet (V1 and V2) hashes with unexpected decrypted data
+- Fixed cracking multiple Office hashes (modes 9500, 9600) if hashes shared the same salt
+- Fixed cracking of Blockchain, My Wallet (V1 and V2) hashes when testing decrypted data of unexpected format
 - Fixed cracking of Cisco-PIX and Cisco-ASA MD5 passwords in mask-attack mode if mask > length 16
+- Fixed cracking of DNSSEC (NSEC3) hashes by replacing all dots in the passwords with lengths
 - Fixed cracking of Electrum Wallet Salt-Type 2 hashes
 - Fixed cracking of NetNTLMv1 passwords in mask-attack mode if mask > length 16 (optimized kernels only)
+- Fixed cracking of RAR3-hp hashes with passwords longer than 28 bytes with pure kernel
 - Fixed cracking of VeraCrypt Streebog-512 hashes (CPU only)
 - Fixed cracking raw Streebog-HMAC 256 and 512 hashes with password of length >= 64
 - Fixed cracking raw Whirlpool hashes cracking with password of length >= 32
@@ -114,15 +115,16 @@
 ##
 
 - Bitcoin Wallet: Be more user friendly by allowing a larger data range for ckey and public_key
+- Brain: Added new parameter --brain-server-timer to specify the seconds for the next scheduled backup
 - Building: Fix for library compilation failure due to multiple defenition of sbob_xx64()
-- Building: Updated BUILD.md
 - Cracking bcrypt and Password Safe v2: Use a feedback from the compute API backend to dynamically find out optimal thread count
 - Dictstat: On Windows, the st_ino attribute in the stat struct is not set which can lead to invalid cache hits. Added the filename to the database entry.
-- Documents: Added README on how to build hashcat on MSYS2
+- Documents: Added README on how to build hashcat on Cygwin, MSYS2 and WSL
 - File handling: Print a truncation warning when an oversized line is detected
 - My Wallet: Added additional plaintext pattern used in newer versions
 - Office cracking: Support hash format with second block data for 40-bit oldoffice files (eliminates false positives)
 - OpenCL Runtime: Added a warning if OpenCL runtime NEO, Beignet, POCL (v1.4 or older) or MESA is detected and skip associated devices (override with --force)
+- OpenCL Runtime: Allow the kernel to access post-48k shared memory region on CUDA. Requires both module and kernel preparation
 - OpenCL Runtime: Disable OpenCL kernel cache on Apple for Intel CPU (throws CL_BUILD_PROGRAM_FAILURE for no reason)
 - OpenCL Runtime: Do not run shared- and constant-memory size checks if their memory type is of type global memory (typically CPU)
 - OpenCL Runtime: Improve ROCm detection and make sure to not confuse with recent AMDGPU drivers
@@ -132,18 +134,19 @@
 - OpenCL Runtime: Workaround JiT compiler error on AMDGPU driver compiling WPA-EAPOL-PBKDF2 OpenCL kernel
 - OpenCL Runtime: Workaround JiT compiler error on ROCm 2.3 driver if the 'inline' keyword is used in function declaration
 - OpenCL Runtime: Workaround memory allocation error on AMD driver on Windows leading to CL_MEM_OBJECT_ALLOCATION_FAILURE
-- OpenCL Runtime: Workaround ROCm OpenCL driver problem trying to write temporary file into readonly folder by setting TMPDIR
-- OpenCL Runtime: Allow the kernel to access post-48k shared memory region on CUDA. Requires both module and kernel preparation
+- OpenCL Runtime: Removed some workarounds by calling chdir() to specific folders on startup
+- Outfile: Added new systematic to specify the outfile format, the new --outfile-format now also supports timestamps
 - Startup Checks: Improved the pidfile check: Do not just check for existing PID but also check executable filename
 - Startup Checks: Prevent the user to modify options which are overwritten automatically in benchmark mode
 - Startup Screen: Add extra warning when using --force
 - Startup Screen: Add extra warning when using --keep-guessing
 - Startup Screen: Provide an estimate of host memory requirements for the requested attack
-- Status Screen: Added brain status for all devices
+- Status Screen: Added brain status for all compute devices
 - Status Screen: Added remaining counts and changed recovered count logic
 - Status Screen: Added --status-json flag for easier machine reading of hashcat status output
 - Tab Completion: Allow using "make install" version of hashcat
 - Tuning Database: Updated hashcat.hctune with new models and refreshed vector width values
+- VeraCrypt: Added support for VeraCrypt PIM brute-force, replaced --veracrypt-pim with --veracrypt-pim-start and --veracrypt-pim-stop
 - WipZip cracking: Added two byte early reject, resulting in higher cracking speed
 - WPA/WPA2 cracking: In the potfile, replace password with PMK in order to detect already cracked networks across all WPA modes
 
@@ -151,6 +154,7 @@
 ## Technical
 ##
 
+- Backend Interface: Added new options --backend-ignore-cuda and --backend-ingore-opencl to ignore CUDA and/or OpenCL API from being used
 - Binary Distribution: Removed 32-bit binary executables
 - Building: On macOS, switch from ar to /usr/bin/ar to improve building compatibility
 - Building: Skipping Travis/Appveyor build for non-code changes
@@ -162,18 +166,18 @@
 - Codebase: Remove redundant calls to fclose()
 - Dependencies: Updated LZMA-Headers from 18.05 to 19.00
 - Dependencies: Updated OpenCL-Headers to latest version from GitHub master repository
+- Hash-Mode 12500 (RAR3-hp): Allow cracking of passwords up to length 64
 - Hash-mode 1460 (HMAC-SHA256 (key = $salt)): Allow up to 64 byte of salt
 - Hash-Mode 1680x (WPA-PMKID) specific: Changed separator character from '*' to ':'
 - Hash-Mode 8300 (DNSSEC (NSEC3)) specific: Allow empty salt
-- Hash-Mode 12500 (RAR3-hp): Allow cracking of passwords up to length 64
 - Keep Guessing: No longer automatically activate --keep-guessing for modes 9720, 9820, 14900 and 18100
 - Keep Guessing: No longer mark hashes as cracked/removed when in potfile
 - Kernel Cache: Reactivate OpenCL runtime specific kernel caches
 - Kernel Compile: Removed -cl-std= from all kernel build options since we're compatible to all OpenCL versions
 - OpenCL Kernels: Fix OpenCL compiler warning on double precision constants
 - OpenCL Kernels: Moved "gpu_decompress", "gpu_memset" and "gpu_atinit" into shared.cl in order to reduce compile time
-- OpenCL Options: Set --spin-damp to 0 (disabled) by default. With the CUDA backend this workaround became deprecated
 - OpenCL Options: Removed --opencl-platforms filter in order to force backend device numbers to stay constant
+- OpenCL Options: Set --spin-damp to 0 (disabled) by default. With the CUDA backend this workaround became deprecated
 - Parsers: switched from strtok() to strtok_r() for thread safety
 - Requirements: Add new requirement for NVIDIA GPU: CUDA Toolkit (9.0 or later)
 - Requirements: Update runtime check for minimum NVIDIA driver version from 367.x to 440.64 or later
