@@ -354,7 +354,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
       {
         if (hashconfig->has_optimized_kernel == false)
         {
-          if (user_options->quiet == false) 
+          if (user_options->quiet == false)
           {
             event_log_warning (hashcat_ctx, "Kernel %s:", source_file);
             event_log_warning (hashcat_ctx, "Optimized kernel requested but not needed - falling back to pure kernel");
