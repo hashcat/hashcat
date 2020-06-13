@@ -1265,7 +1265,7 @@ int hashcat_session_destroy (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->brain_client == true)
   {
-    WSACleanup();
+    WSACleanup ();
   }
   #endif
   #endif

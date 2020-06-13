@@ -9,7 +9,7 @@ use strict;
 use warnings;
 use Digest::MD5    qw (md5_hex);
 use File::Basename qw (dirname);
-use YAML::XS          "LoadFile";
+use YAML::XS       qw (LoadFile);
 use Test::More;
 
 # Use `eq_or_diff` from Test::Differences if it's available for an easier to read comparison
@@ -87,7 +87,7 @@ sub run_case_mode1
 
   my $case = $cases{$rule};
 
-  die("Expected output for mode 1 (expected_cpu) isn't defined for rule: $rule") unless defined $case->{expected_cpu};
+  die ("Expected output for mode 1 (expected_cpu) isn't defined for rule: $rule") unless defined $case->{expected_cpu};
 
   my $input_file = input_to_file ($case, $rule);
 
@@ -105,7 +105,7 @@ sub run_case_mode2
 
   my $case = $cases{$rule};
 
-  die("Expected output for mode 2 (expected_opencl) isn't defined for rule: $rule") unless defined $case->{expected_opencl};
+  die ("Expected output for mode 2 (expected_opencl) isn't defined for rule: $rule") unless defined $case->{expected_opencl};
 
   my $input_file = input_to_file ($case, $rule);
   my $rule_file  = rule_to_file ($rule);
@@ -177,7 +177,7 @@ sub usage_die
 sub load_cases
 {
   my $file_path = $CURRENT_DIR . "/" . "rules-test-cases.yaml";
-  return %{ LoadFile($file_path) };
+  return %{ LoadFile ($file_path) };
 }
 
 sub cleanup

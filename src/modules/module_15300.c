@@ -335,7 +335,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     SID[i] = SID_tmp[j];
   }
 
-  hcfree(SID_tmp);
+  hcfree (SID_tmp);
 
   for (u32 i = 0; i < iv_len / 8; i++)
   {
@@ -361,9 +361,9 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (contents_len == 208)
   {
-    memcpy (cipher_algorithm, "des3", strlen("des3"));
+    memcpy (cipher_algorithm, "des3", strlen ("des3"));
 
-    memcpy (hash_algorithm, "sha1", strlen("sha1"));
+    memcpy (hash_algorithm, "sha1", strlen ("sha1"));
   }
 
   const int line_len = snprintf (line_buf, line_size, "%s%u*%u*%s*%s*%s*%u*%s*%u*%s",

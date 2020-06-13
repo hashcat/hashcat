@@ -125,7 +125,7 @@ sub module_verify_hash
 
   my @data = split (':', $digest);
 
-  return unless scalar(@data) == 4;
+  return unless scalar (@data) == 4;
 
   my $signature = shift @data;
 

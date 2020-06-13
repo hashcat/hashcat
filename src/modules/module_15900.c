@@ -301,7 +301,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // convert back SID
 
-  SID_tmp = (u8 *) hcmalloc ((SID_len + 1) * sizeof(u8));
+  SID_tmp = (u8 *) hcmalloc ((SID_len + 1) * sizeof (u8));
 
   for (u32 i = 0; i < (SID_len / 4) + 1; i++)
   {

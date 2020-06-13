@@ -40,7 +40,7 @@ sub module_generate_hash
   my $cipher    = unpack ('H*', $b_cipher);
   my $checksum  = sha256_hex ($b_plain);
 
-  my $hash = '$odf$'."*1*1*$iter*32*$checksum*16*$iv*16*$salt*0*$cipher";
+  my $hash = '$odf$' . "*1*1*$iter*32*$checksum*16*$iv*16*$salt*0*$cipher";
 
   return $hash;
 }

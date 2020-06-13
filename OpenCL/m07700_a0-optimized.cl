@@ -25,13 +25,13 @@
 #define PUTCHAR(a,p,c) ((u8 *)(a))[(p)] = (u8) (c)
 #endif
 
-#define SETSHIFTEDINT(a,n,v)        \
-{                                   \
-  const u32 s = ((n) & 3) * 8;     \
-  const u64 x = (u64) (v) << s; \
+#define SETSHIFTEDINT(a,n,v)                  \
+{                                             \
+  const u32 s = ((n) & 3) * 8;                \
+  const u64 x = (u64) (v) << s;               \
   (a)[((n)/4)+0] &= ~(0xff << ((n & 3) * 8)); \
-  (a)[((n)/4)+0] |= x;              \
-  (a)[((n)/4)+1]  = x >> 32;        \
+  (a)[((n)/4)+0] |= x;                        \
+  (a)[((n)/4)+1]  = x >> 32;                  \
 }
 
 CONSTANT_VK u32a sapb_trans_tbl[256] =

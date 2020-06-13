@@ -22,8 +22,8 @@ sub module_generate_hash
 import binascii
 import sys
 from pygost import gost34112012256
-digest = gost34112012256.new(b"$word").digest()
-sys.stdout.write(binascii.hexlify(digest[::-1]))
+digest = gost34112012256.new (b"$word").digest ()
+sys.stdout.write (binascii.hexlify (digest[::-1]))
 
 END_CODE
 

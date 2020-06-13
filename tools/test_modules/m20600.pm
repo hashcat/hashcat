@@ -22,13 +22,14 @@ sub module_generate_hash
 
   $iter //= 1000;
 
-  my $digest = sha256($salt.$word);
+  my $digest = sha256 ($salt . $word);
 
-  for (my $i = 1; $i < $iter; $i++) {
-    $digest = sha256($digest);
+  for (my $i = 1; $i < $iter; $i++)
+  {
+    $digest = sha256 ($digest);
   }
 
-  chomp($digest = encode_base64($digest));
+  chomp ($digest = encode_base64 ($digest));
 
   my $hash = sprintf ("otm_sha256:%d:%s:%s", $iter, $salt, $digest);
 

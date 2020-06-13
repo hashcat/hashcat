@@ -21,7 +21,7 @@ sub module_generate_hash
 
   $md5->{_data} = $word ^ ("\x5c" x $length);
   $md5->{_data} .= "\x5c" x (64 - $length);
-  $md5->add();
+  $md5->add ();
 
   my $digest = unpack ("H*", pack ('V4', @{$md5->{_state}}));
  

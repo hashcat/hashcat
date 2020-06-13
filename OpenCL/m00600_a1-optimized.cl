@@ -36,7 +36,7 @@ typedef struct blake2
     d = hc_rotr64 (d ^ a, 16);    \
     c = c + d;                    \
     b = hc_rotr64 (b ^ c, 63);    \
-  } while(0)
+  } while (0)
 
 #define BLAKE2B_ROUND(c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,ca,cb,cc,cd,ce,cf)  \
   do {                                                                  \
@@ -48,7 +48,7 @@ typedef struct blake2
     BLAKE2B_G ((ca),(cb),v[ 1],v[ 6],v[11],v[12]);                      \
     BLAKE2B_G ((cc),(cd),v[ 2],v[ 7],v[ 8],v[13]);                      \
     BLAKE2B_G ((ce),(cf),v[ 3],v[ 4],v[ 9],v[14]);                      \
-} while(0)
+} while (0)
 
 DECLSPEC void blake2b_transform (u64x *h, u64x *t, u64x *f, u64x *m, u64x *v, const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, const u32x out_len, const u8 isFinal)
 {
@@ -250,7 +250,7 @@ KERNEL_FQ void m00600_m04 (KERN_ATTR_ESALT (blake2_t))
     f[0] = tmp_f[0];
     f[1] = tmp_f[1];
 
-    blake2b_transform(h, t, f, m, v, w0, w1, w2, w3, out_len, BLAKE2B_FINAL);
+    blake2b_transform (h, t, f, m, v, w0, w1, w2, w3, out_len, BLAKE2B_FINAL);
 
     digest[0] = h[0];
     digest[1] = h[1];
@@ -261,12 +261,12 @@ KERNEL_FQ void m00600_m04 (KERN_ATTR_ESALT (blake2_t))
     digest[6] = h[6];
     digest[7] = h[7];
 
-    const u32x r0 = h32_from_64(digest[0]);
-    const u32x r1 = l32_from_64(digest[0]);
-    const u32x r2 = h32_from_64(digest[1]);
-    const u32x r3 = l32_from_64(digest[1]);
+    const u32x r0 = h32_from_64 (digest[0]);
+    const u32x r1 = l32_from_64 (digest[0]);
+    const u32x r2 = h32_from_64 (digest[1]);
+    const u32x r3 = l32_from_64 (digest[1]);
 
-    COMPARE_M_SIMD(r0, r1, r2, r3);
+    COMPARE_M_SIMD (r0, r1, r2, r3);
   }
 }
 
@@ -429,7 +429,7 @@ KERNEL_FQ void m00600_s04 (KERN_ATTR_ESALT (blake2_t))
     f[0] = tmp_f[0];
     f[1] = tmp_f[1];
 
-    blake2b_transform(h, t, f, m, v, w0, w1, w2, w3, out_len, BLAKE2B_FINAL);
+    blake2b_transform (h, t, f, m, v, w0, w1, w2, w3, out_len, BLAKE2B_FINAL);
 
     digest[0] = h[0];
     digest[1] = h[1];
@@ -440,12 +440,12 @@ KERNEL_FQ void m00600_s04 (KERN_ATTR_ESALT (blake2_t))
     digest[6] = h[6];
     digest[7] = h[7];
 
-    const u32x r0 = h32_from_64(digest[0]);
-    const u32x r1 = l32_from_64(digest[0]);
-    const u32x r2 = h32_from_64(digest[1]);
-    const u32x r3 = l32_from_64(digest[1]);
+    const u32x r0 = h32_from_64 (digest[0]);
+    const u32x r1 = l32_from_64 (digest[0]);
+    const u32x r2 = h32_from_64 (digest[1]);
+    const u32x r3 = l32_from_64 (digest[1]);
 
-    COMPARE_S_SIMD(r0, r1, r2, r3);
+    COMPARE_S_SIMD (r0, r1, r2, r3);
   }
 }
 

@@ -23,8 +23,8 @@ import sys
 from pygost import gost34112012512
 key    = b"$word"
 msg    = b"$salt"
-digest = hmac.new(key, msg, gost34112012512).digest()
-sys.stdout.write(binascii.hexlify(digest[::-1]))
+digest = hmac.new (key, msg, gost34112012512).digest ()
+sys.stdout.write (binascii.hexlify (digest[::-1]))
 
 END_CODE
 

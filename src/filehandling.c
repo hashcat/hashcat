@@ -255,15 +255,15 @@ int hc_fseek (HCFILE *fp, off_t offset, int whence)
     zlib_filefunc64_32_def *d = NULL;
     if (whence == SEEK_SET)
     {
-      r = ZSEEK64(*d, fp->ufp, offset, ZLIB_FILEFUNC_SEEK_SET);
+      r = ZSEEK64 (*d, fp->ufp, offset, ZLIB_FILEFUNC_SEEK_SET);
     }
     else if (whence == SEEK_CUR)
     {
-      r = ZSEEK64(*d, fp->ufp, offset, ZLIB_FILEFUNC_SEEK_CUR);
+      r = ZSEEK64 (*d, fp->ufp, offset, ZLIB_FILEFUNC_SEEK_CUR);
     }
     else if (whence == SEEK_END)
     {
-      r = ZSEEK64(*d, fp->ufp, offset, ZLIB_FILEFUNC_SEEK_END);
+      r = ZSEEK64 (*d, fp->ufp, offset, ZLIB_FILEFUNC_SEEK_END);
     }
     // or
     // r = unzSetOffset (fp->ufp, offset);

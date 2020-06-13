@@ -82,7 +82,7 @@ DECLSPEC void m17300m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
 
     #define Rho_Pi(ad,r)     \
       bc0 = ad;              \
-      ad = hc_rotl64 (t, r);    \
+      ad = hc_rotl64 (t, r); \
       t = bc0;               \
 
     #ifdef _unroll
@@ -280,7 +280,7 @@ DECLSPEC void m17300s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
 
     #define Rho_Pi(ad,r)     \
       bc0 = ad;              \
-      ad = hc_rotl64 (t, r);    \
+      ad = hc_rotl64 (t, r); \
       t = bc0;               \
 
     #ifdef _unroll
