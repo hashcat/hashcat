@@ -138,12 +138,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   user_pos = token.buf[1];
   user_len = token.len[1];
 
-  memcpy(krb5pa->user, user_pos, user_len);
+  memcpy (krb5pa->user, user_pos, user_len);
 
   domain_pos = token.buf[2];
   domain_len = token.len[2];
 
-  memcpy(krb5pa->domain, domain_pos, domain_len);
+  memcpy (krb5pa->domain, domain_pos, domain_len);
 
   data_pos = token.buf[3];
   data_len = token.len[3];
@@ -153,12 +153,14 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   u8 *account_info_ptr = (u8 *) krb5pa->account_info;
 
   // domain must be uppercase
-  u8 domain[128];
-  memcpy(domain, domain_pos, domain_len);
-  uppercase(domain, domain_len);
 
-  memcpy(account_info_ptr, domain, domain_len);
-  memcpy(account_info_ptr + domain_len, user_pos, user_len);
+  u8 domain[128];
+
+  memcpy (domain, domain_pos, domain_len);
+  uppercase (domain, domain_len);
+
+  memcpy (account_info_ptr, domain, domain_len);
+  memcpy (account_info_ptr + domain_len, user_pos, user_len);
 
   krb5pa->account_info_len = account_info_len;
 

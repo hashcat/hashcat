@@ -5068,7 +5068,7 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
       hcfree (opencl_platforms_vendor);       \
       hcfree (opencl_platforms_vendor_id);    \
       hcfree (opencl_platforms_version);      \
-    } while(0)
+    } while (0)
 
     cl_platform_id *opencl_platforms             = (cl_platform_id *) hccalloc (CL_PLATFORMS_MAX, sizeof (cl_platform_id));
     cl_uint         opencl_platforms_cnt         = 0;

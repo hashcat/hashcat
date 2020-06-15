@@ -164,7 +164,7 @@ KERNEL_FQ void m17400_m04 (KERN_ATTR_BASIC ())
 
     #define Rho_Pi(ad,r)     \
       bc0 = ad;              \
-      ad = hc_rotl64 (t, r);    \
+      ad = hc_rotl64 (t, r); \
       t = bc0;               \
 
     #ifdef _unroll
@@ -453,7 +453,7 @@ KERNEL_FQ void m17400_s04 (KERN_ATTR_BASIC ())
 
     #define Rho_Pi(ad,r)     \
       bc0 = ad;              \
-      ad = hc_rotl64 (t, r);    \
+      ad = hc_rotl64 (t, r); \
       t = bc0;               \
 
     #ifdef _unroll

@@ -547,7 +547,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   char *ptr_data = line_buf;
 
-  ptr_data += strlen(line_buf);
+  ptr_data += strlen (line_buf);
 
   *ptr_data = '*';
   ptr_data++;
@@ -594,7 +594,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     sprintf (ptr_data, "%u", contents_len);
 
-    ptr_data += strlen(ptr_contents_len);
+    ptr_data += strlen (ptr_contents_len);
 
     *ptr_data = '*';
     ptr_data++;
@@ -616,6 +616,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     for (u32 i = 0; i < contents_hash_len; i++, ptr_data += 8)
       sprintf (ptr_data, "%08x", ptr_contents_hash[i]);
   }
+
   if (keyfile_len)
   {
     *ptr_data = '*';

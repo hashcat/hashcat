@@ -134,7 +134,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_KRB5ASREP;
 
-  token.len[0]  = strlen(SIGNATURE_KRB5ASREP);
+  token.len[0]  = strlen (SIGNATURE_KRB5ASREP);
   token.attr[0] = TOKEN_ATTR_FIXED_LENGTH
                 | TOKEN_ATTR_VERIFY_SIGNATURE;
 

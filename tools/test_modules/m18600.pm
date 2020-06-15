@@ -54,7 +54,7 @@ sub module_generate_hash
   my $cipher   = unpack ('H*', $b_cipher);
   my $checksum = sha1_hex ($b_plain);
 
-  my $hash = '$odf$'."*0*0*$iter*16*$checksum*8*$iv*16*$salt*0*$cipher";
+  my $hash = '$odf$' . "*0*0*$iter*16*$checksum*8*$iv*16*$salt*0*$cipher";
 
   return $hash;
 }
@@ -113,7 +113,7 @@ sub module_verify_hash
   my $pass_hash = sha1 ($word);
   my $key       = $kdf->PBKDF2 ($b_salt, $pass_hash);
 
-  my $cfb = Crypt::GCrypt->new(
+  my $cfb = Crypt::GCrypt->new (
     type      => 'cipher',
     algorithm => 'blowfish',
     mode      => 'cfb'

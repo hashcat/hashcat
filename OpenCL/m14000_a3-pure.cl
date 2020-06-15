@@ -1478,39 +1478,39 @@ DECLSPEC void s8 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const 
 
 #define SWAP(a, b) { u32 tmp=*a;*a=*b;*b=tmp; }
 
-#define DATASWAP  \
-  SWAP(D00, D32); \
-  SWAP(D01, D33); \
-  SWAP(D02, D34); \
-  SWAP(D03, D35); \
-  SWAP(D04, D36); \
-  SWAP(D05, D37); \
-  SWAP(D06, D38); \
-  SWAP(D07, D39); \
-  SWAP(D08, D40); \
-  SWAP(D09, D41); \
-  SWAP(D10, D42); \
-  SWAP(D11, D43); \
-  SWAP(D12, D44); \
-  SWAP(D13, D45); \
-  SWAP(D14, D46); \
-  SWAP(D15, D47); \
-  SWAP(D16, D48); \
-  SWAP(D17, D49); \
-  SWAP(D18, D50); \
-  SWAP(D19, D51); \
-  SWAP(D20, D52); \
-  SWAP(D21, D53); \
-  SWAP(D22, D54); \
-  SWAP(D23, D55); \
-  SWAP(D24, D56); \
-  SWAP(D25, D57); \
-  SWAP(D26, D58); \
-  SWAP(D27, D59); \
-  SWAP(D28, D60); \
-  SWAP(D29, D61); \
-  SWAP(D30, D62); \
-  SWAP(D31, D63);
+#define DATASWAP   \
+  SWAP (D00, D32); \
+  SWAP (D01, D33); \
+  SWAP (D02, D34); \
+  SWAP (D03, D35); \
+  SWAP (D04, D36); \
+  SWAP (D05, D37); \
+  SWAP (D06, D38); \
+  SWAP (D07, D39); \
+  SWAP (D08, D40); \
+  SWAP (D09, D41); \
+  SWAP (D10, D42); \
+  SWAP (D11, D43); \
+  SWAP (D12, D44); \
+  SWAP (D13, D45); \
+  SWAP (D14, D46); \
+  SWAP (D15, D47); \
+  SWAP (D16, D48); \
+  SWAP (D17, D49); \
+  SWAP (D18, D50); \
+  SWAP (D19, D51); \
+  SWAP (D20, D52); \
+  SWAP (D21, D53); \
+  SWAP (D22, D54); \
+  SWAP (D23, D55); \
+  SWAP (D24, D56); \
+  SWAP (D25, D57); \
+  SWAP (D26, D58); \
+  SWAP (D27, D59); \
+  SWAP (D28, D60); \
+  SWAP (D29, D61); \
+  SWAP (D30, D62); \
+  SWAP (D31, D63);
 
 #define KEYSET00 { k00 = K08; k01 = K44; k02 = K29; k03 = K52; k04 = K42; k05 = K14; k06 = K28; k07 = K49; k08 = K01; k09 = K07; k10 = K16; k11 = K36; k12 = K02; k13 = K30; k14 = K22; k15 = K21; k16 = K38; k17 = K50; k18 = K51; k19 = K00; k20 = K31; k21 = K23; k22 = K15; k23 = K35; k24 = K19; k25 = K24; k26 = K34; k27 = K47; k28 = K32; k29 = K03; k30 = K41; k31 = K26; k32 = K04; k33 = K46; k34 = K20; k35 = K25; k36 = K53; k37 = K18; k38 = K33; k39 = K55; k40 = K13; k41 = K17; k42 = K39; k43 = K12; k44 = K11; k45 = K54; k46 = K48; k47 = K27; }
 #define KEYSET10 { k00 = K49; k01 = K28; k02 = K45; k03 = K36; k04 = K01; k05 = K30; k06 = K44; k07 = K08; k08 = K42; k09 = K23; k10 = K00; k11 = K52; k12 = K43; k13 = K14; k14 = K38; k15 = K37; k16 = K22; k17 = K09; k18 = K35; k19 = K16; k20 = K15; k21 = K07; k22 = K31; k23 = K51; k24 = K03; k25 = K40; k26 = K46; k27 = K04; k28 = K20; k29 = K19; k30 = K53; k31 = K10; k32 = K47; k33 = K34; k34 = K32; k35 = K13; k36 = K41; k37 = K06; k38 = K17; k39 = K12; k40 = K25; k41 = K33; k42 = K27; k43 = K55; k44 = K54; k45 = K11; k46 = K05; k47 = K39; }

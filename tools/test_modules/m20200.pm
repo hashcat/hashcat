@@ -80,7 +80,7 @@ sub module_verify_hash
   $salt =~ s/\./\+/g;
   $salt .= '==';
 
-  my $new_hash = module_generate_hash ($word, decode_base64($salt), $iter);
+  my $new_hash = module_generate_hash ($word, decode_base64 ($salt), $iter);
 
   return ($new_hash, $word);
 }

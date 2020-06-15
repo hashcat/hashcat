@@ -61,7 +61,7 @@ sub module_generate_hash
 
   my $hash_buf = sha1_hex ($word . substr ($theMagicArray_s, $offsetMagicArray, $lengthMagicArray) . $salt);
 
-  my $hash = sprintf("%s\$%.20s%020X", $salt, uc $hash_buf, 0);
+  my $hash = sprintf ("%s\$%.20s%020X", $salt, uc $hash_buf, 0);
 
   return $hash;
 }
@@ -104,4 +104,3 @@ sub module_verify_hash
 }
 
 1;
-

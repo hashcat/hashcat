@@ -66,7 +66,7 @@ sub module_verify_hash
 
   my $default_salt = 1;
 
-  my ($param, $hash) = split('\$', $digest);
+  my ($param, $hash) = split ('\$', $digest);
 
   $default_salt = 0 if ($param eq '1');
 
@@ -74,7 +74,7 @@ sub module_verify_hash
 
   if ($default_salt == 0)
   {
-    ($salt, $hash) = split('\$', $hash);
+    ($salt, $hash) = split ('\$', $hash);
   }
 
   my $word_packed = pack_if_HEX_notation ($word);

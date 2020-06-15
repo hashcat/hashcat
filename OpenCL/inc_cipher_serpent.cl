@@ -383,29 +383,29 @@
 
 /* the linear transformation and its inverse    */
 
-#define rot(a,b,c,d)        \
-    a = hc_rotl32_S(a, 13);    \
-    c = hc_rotl32_S(c, 3);     \
-    d ^= c ^ (a << 3);      \
-    b ^= a ^ c;             \
-    d = hc_rotl32_S(d, 7);     \
-    b = hc_rotl32_S(b, 1);     \
-    a ^= b ^ d;             \
-    c ^= d ^ (b << 7);      \
-    a = hc_rotl32_S(a, 5);     \
-    c = hc_rotl32_S(c, 22)
+#define rot(a,b,c,d)         \
+    a = hc_rotl32_S (a, 13); \
+    c = hc_rotl32_S (c, 3);  \
+    d ^= c ^ (a << 3);       \
+    b ^= a ^ c;              \
+    d = hc_rotl32_S (d, 7);  \
+    b = hc_rotl32_S (b, 1);  \
+    a ^= b ^ d;              \
+    c ^= d ^ (b << 7);       \
+    a = hc_rotl32_S (a, 5);  \
+    c = hc_rotl32_S (c, 22)
 
-#define irot(a,b,c,d)       \
-    c = hc_rotr32_S(c, 22);    \
-    a = hc_rotr32_S(a, 5);     \
-    c ^= d ^ (b << 7);      \
-    a ^= b ^ d;             \
-    d = hc_rotr32_S(d, 7);     \
-    b = hc_rotr32_S(b, 1);     \
-    d ^= c ^ (a << 3);      \
-    b ^= a ^ c;             \
-    c = hc_rotr32_S(c, 3);     \
-    a = hc_rotr32_S(a, 13)
+#define irot(a,b,c,d)        \
+    c = hc_rotr32_S (c, 22); \
+    a = hc_rotr32_S (a, 5);  \
+    c ^= d ^ (b << 7);       \
+    a ^= b ^ d;              \
+    d = hc_rotr32_S (d, 7);  \
+    b = hc_rotr32_S (b, 1);  \
+    d ^= c ^ (a <<  3);      \
+    b ^= a ^ c;              \
+    c = hc_rotr32_S (c, 3);  \
+    a = hc_rotr32_S (a, 13)
 
 // 128 bit key
 

@@ -74,27 +74,34 @@ sub get_random_dpapimk_salt
   return $salt_buf;
 }
 
-#Thanks to Jochen Hoenicke <hoenicke@gmail.com>
+# Thanks to Jochen Hoenicke <hoenicke@gmail.com>
 # (one of the authors of Palm Keyring)
 # for these next two subs.
+
 sub dpapi_pbkdf2
 {
-    my ($password, $salt, $iter, $keylen, $prf) = @_;
-    my ($k, $t, $u, $ui, $i);
-    $t = "";
-    for ($k = 1; length ($t) <  $keylen; $k++)
+  my ($password, $salt, $iter, $keylen, $prf) = @_;
+  my ($k, $t, $u, $ui, $i);
+
+  $t = "";
+
+  for ($k = 1; length ($t) <  $keylen; $k++)
+  {
+    $u = $ui = &$prf ($salt . pack ('N', $k), $password);
+
+    for ($i = 1; $i < $iter; $i++)
     {
-      $u = $ui = &$prf ($salt.pack ('N', $k), $password);
-      for ($i = 1; $i < $iter; $i++)
-      {
-        # modification to fit Microsoft
-        # weird pbkdf2 implementation...
-        $ui = &$prf ($u, $password);
-        $u ^= $ui;
-      }
-      $t .= $u;
+      # modification to fit Microsoft
+      # weird pbkdf2 implementation...
+
+      $ui = &$prf ($u, $password);
+      $u ^= $ui;
     }
-    return substr ($t, 0, $keylen);
+
+    $t .= $u;
+  }
+
+  return substr ($t, 0, $keylen);
 }
 
 sub module_generate_hash

@@ -47,11 +47,11 @@ sub module_verify_hash
 
   my $word = substr ($line, $index1 + 1);
 
-  my $index2 =  index ($hash_in, ".", 19);
+  my $index2 = index ($hash_in, ".", 19);
 
   return if $index2 < 1;
 
-  my $index3 =  index ($hash_in, ".", $index2 + 1);
+  my $index3 = index ($hash_in, ".", $index2 + 1);
 
   my $salt = substr ($hash_in, $index2 + 1, $index3 - $index2 - 1);
 

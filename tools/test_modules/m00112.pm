@@ -17,7 +17,7 @@ sub module_generate_hash
   my $word = shift;
   my $salt = shift;
 
-  my $salt_bin = pack("H*", $salt);
+  my $salt_bin = pack ("H*", $salt);
 
   my $digest = sha1_hex ($word . $salt_bin);
 

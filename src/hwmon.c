@@ -456,7 +456,7 @@ static int nvml_init (hashcat_ctx_t *hashcat_ctx)
 
   #elif defined (__CYGWIN__)
 
-  nvml->lib = hc_dlopen("nvml.dll");
+  nvml->lib = hc_dlopen ("nvml.dll");
 
   if (!nvml->lib)
   {
@@ -2252,7 +2252,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
     hcfree (hm_adapters_nvapi); \
     hcfree (hm_adapters_nvml);  \
     hcfree (hm_adapters_sysfs); \
-  } while(0)
+  } while (0)
 
   if (backend_ctx->need_nvml == true)
   {
