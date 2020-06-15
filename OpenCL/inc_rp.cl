@@ -518,6 +518,7 @@ DECLSPEC int mangle_dupechar_first (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const
 {
   const int out_len = len + p0;
 
+  if (len     ==                0) return (len);
   if (out_len >= RP_PASSWORD_SIZE) return (len);
 
   const u8 c = buf[0];
