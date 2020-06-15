@@ -1083,7 +1083,43 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
 
   for (u32 final_pos = 0; final_pos < final_cnt; final_pos++)
   {
-    EVENT_DATA (EVENT_POTFILE_HASH_LEFT, final_buf[final_pos].hash_buf, final_buf[final_pos].hash_len);
+    u8 *event_data = NULL;
+
+    int event_len = 0;
+
+    // add EOL after hash, but only if NOT binary:
+
+    if ((hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE) == 0)
+    {
+      u8 *eol_chars = (u8 *) EOL;
+
+      int eol_len = (int) strlen (EOL);
+
+      event_len = final_buf[final_pos].hash_len + eol_len;
+
+      event_data = (u8 *) hcmalloc (event_len);
+
+      memcpy (event_data, final_buf[final_pos].hash_buf, final_buf[final_pos].hash_len);
+
+      // only difference (add EOL to the buffer):
+
+      for (int i = 0, j = event_len - eol_len; i < eol_len; i++, j++)
+      {
+        event_data[j] = eol_chars[i];
+      }
+    }
+    else
+    {
+      event_len = final_buf[final_pos].hash_len;
+
+      event_data = (u8 *) hcmalloc (event_len);
+
+      memcpy (event_data, final_buf[final_pos].hash_buf, final_buf[final_pos].hash_len);
+    }
+
+    EVENT_DATA (EVENT_POTFILE_HASH_LEFT, event_data, event_len);
+
+    hcfree (event_data);
 
     hcfree (final_buf[final_pos].hash_buf);
   }
