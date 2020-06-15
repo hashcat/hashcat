@@ -768,7 +768,7 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
           }
         }
 
-        const int tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, out_len, (u8 *) mixed_buf, mixed_len, 0, username, user_len, (char *) tmp_buf);
+        const int tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, out_len, (u8 *) mixed_buf, mixed_len, 0, username, user_len, true, (char *) tmp_buf);
 
         //EVENT_DATA (EVENT_POTFILE_HASH_SHOW, tmp_buf, tmp_len);
 
@@ -852,11 +852,11 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
 
           const size_t pass_unhexified_len = exec_unhexify ((u8 *) hash->pw_buf, hash->pw_len, pass_unhexified, sizeof (pass_unhexified));
 
-          tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, out_len, pass_unhexified, (u32) pass_unhexified_len, 0, username, user_len, (char *) tmp_buf);
+          tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, out_len, pass_unhexified, (u32) pass_unhexified_len, 0, username, user_len, true, (char *) tmp_buf);
         }
         else
         {
-          tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, out_len, (u8 *) hash->pw_buf, hash->pw_len, 0, username, user_len, (char *) tmp_buf);
+          tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, out_len, (u8 *) hash->pw_buf, hash->pw_len, 0, username, user_len, true, (char *) tmp_buf);
         }
 
         //EVENT_DATA (EVENT_POTFILE_HASH_SHOW, tmp_buf, tmp_len);
@@ -977,7 +977,7 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
 
         tmp_buf[0] = 0;
 
-        const int tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, out_len, NULL, 0, 0, username, user_len, (char *) tmp_buf);
+        const int tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, out_len, NULL, 0, 0, username, user_len, true, (char *) tmp_buf);
 
         //EVENT_DATA (EVENT_POTFILE_HASH_LEFT, tmp_buf, tmp_len);
 
@@ -1058,11 +1058,13 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
           }
         }
 
+        const bool print_eol = (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE) == 0;
+
         u8 *tmp_buf = potfile_ctx->tmp_buf;
 
         tmp_buf[0] = 0;
 
-        const int tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, out_len, NULL, 0, 0, username, user_len, (char *) tmp_buf);
+        const int tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, out_len, NULL, 0, 0, username, user_len, print_eol, (char *) tmp_buf);
 
         //EVENT_DATA (EVENT_POTFILE_HASH_LEFT, tmp_buf, tmp_len);
 

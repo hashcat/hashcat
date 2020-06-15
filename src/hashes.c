@@ -386,7 +386,7 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   tmp_buf[0] = 0;
 
-  const int tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, out_len, plain_ptr, plain_len, crackpos, NULL, 0, (char *) tmp_buf);
+  const int tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, out_len, plain_ptr, plain_len, crackpos, NULL, 0, true, (char *) tmp_buf);
 
   EVENT_DATA (EVENT_CRACKER_HASH_CRACKED, tmp_buf, tmp_len);
 
