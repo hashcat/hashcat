@@ -15,8 +15,8 @@
 #include <psapi.h>
 #endif // _WIN
 
-#define RESTORE_VERSION_MIN 340
-#define RESTORE_VERSION_CUR 510
+#define RESTORE_VERSION_MIN 600
+#define RESTORE_VERSION_CUR 600
 
 int cycle_restore (hashcat_ctx_t *hashcat_ctx);
 
