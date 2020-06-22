@@ -6625,8 +6625,8 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
   // find duplicate devices
 
-  //if ((cuda_devices_cnt > 0) && (opencl_devices_cnt > 0))
-  //{
+  if ((cuda_devices_cnt > 0) && (opencl_devices_cnt > 0))
+  {
     // using force here enables both devices, which is the worst possible outcome
     // many users force by default, so this is not a good idea
 
@@ -6634,7 +6634,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
     //{
     backend_ctx_find_alias_devices (hashcat_ctx);
     //{
-  //}
+  }
 
   if (backend_ctx->backend_devices_active == 0)
   {
