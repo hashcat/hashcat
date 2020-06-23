@@ -5185,7 +5185,31 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
         {
           event_log_error (hashcat_ctx, "clGetDeviceIDs(): %s", val2cstr_cl (CL_rc));
 
-          return -1;
+          // Special handling for CL_DEVICE_NOT_FOUND, see: https://github.com/hashcat/hashcat/issues/2455
+
+          #define IGNORE_DEVICE_NOT_FOUND 1
+
+          if (IGNORE_DEVICE_NOT_FOUND)
+          {
+            backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+            OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
+
+            const cl_int CL_err = ocl->clGetDeviceIDs (opencl_platform, CL_DEVICE_TYPE_ALL, DEVICES_MAX, opencl_platform_devices, &opencl_platform_devices_cnt);
+
+            if (CL_err == CL_DEVICE_NOT_FOUND)
+            {
+              // we ignore this error
+            }
+            else
+            {
+              return -1;
+            }
+          }
+          else
+          {
+            return -1;
+          }
         }
 
         opencl_platforms_devices[opencl_platforms_idx] = opencl_platform_devices;
