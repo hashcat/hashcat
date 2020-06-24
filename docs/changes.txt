@@ -1,6 +1,12 @@
 * changes v6.0.0 -> v6.0.x
 
 ##
+## Algorithms
+##
+
+- Added pure kernels for hash-mode 600 (BLAKE2b-512)
+
+##
 ## Improvements
 ##
 
