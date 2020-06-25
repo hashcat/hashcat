@@ -269,6 +269,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - MS Office <= 2003 $3, SHA1 + RC4, collider #2
 - Open Document Format (ODF) 1.2 (SHA-256, AES)
 - Open Document Format (ODF) 1.1 (SHA-1, Blowfish)
+- Apple Keychain
 - Apple Secure Notes
 - JKS Java Key Store Private Keys (SHA1)
 - 1Password, agilekeychain
