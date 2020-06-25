@@ -86,5 +86,4 @@ DECLSPEC void blake2b_init_vector (blake2b_ctx_vector_t *ctx);
 DECLSPEC void blake2b_update_vector (blake2b_ctx_vector_t *ctx, const u32x *w, const u32 len);
 DECLSPEC void blake2b_final_vector (blake2b_ctx_vector_t *ctx);
 
-
 #endif // _INC_HASH_BLAKE2B_H
