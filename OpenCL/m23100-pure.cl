@@ -276,10 +276,6 @@ KERNEL_FQ void m23100_comp (KERN_ATTR_TMPS_ESALT (keychain_tmp_t, keychain_t))
 
   if (gid >= gid_max) return;
 
-  /**
-   * base
-   */
-
   u32 key[6];
 
   key[0] = tmps[gid].out[0];
