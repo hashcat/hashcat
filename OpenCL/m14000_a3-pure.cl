@@ -1772,135 +1772,71 @@ KERNEL_FQ void m14000_mxx (KERN_ATTR_BITSLICE ())
 
   // salt1 first, because this is a 64 bit value actually
 
-  #define d00 (((salt1 >>  0) & 1) ? -1 : 0)
-  #define d01 (((salt1 >>  1) & 1) ? -1 : 0)
-  #define d02 (((salt1 >>  2) & 1) ? -1 : 0)
-  #define d03 (((salt1 >>  3) & 1) ? -1 : 0)
-  #define d04 (((salt1 >>  4) & 1) ? -1 : 0)
-  #define d05 (((salt1 >>  5) & 1) ? -1 : 0)
-  #define d06 (((salt1 >>  6) & 1) ? -1 : 0)
-  #define d07 (((salt1 >>  7) & 1) ? -1 : 0)
-  #define d08 (((salt1 >>  8) & 1) ? -1 : 0)
-  #define d09 (((salt1 >>  9) & 1) ? -1 : 0)
-  #define d10 (((salt1 >> 10) & 1) ? -1 : 0)
-  #define d11 (((salt1 >> 11) & 1) ? -1 : 0)
-  #define d12 (((salt1 >> 12) & 1) ? -1 : 0)
-  #define d13 (((salt1 >> 13) & 1) ? -1 : 0)
-  #define d14 (((salt1 >> 14) & 1) ? -1 : 0)
-  #define d15 (((salt1 >> 15) & 1) ? -1 : 0)
-  #define d16 (((salt1 >> 16) & 1) ? -1 : 0)
-  #define d17 (((salt1 >> 17) & 1) ? -1 : 0)
-  #define d18 (((salt1 >> 18) & 1) ? -1 : 0)
-  #define d19 (((salt1 >> 19) & 1) ? -1 : 0)
-  #define d20 (((salt1 >> 20) & 1) ? -1 : 0)
-  #define d21 (((salt1 >> 21) & 1) ? -1 : 0)
-  #define d22 (((salt1 >> 22) & 1) ? -1 : 0)
-  #define d23 (((salt1 >> 23) & 1) ? -1 : 0)
-  #define d24 (((salt1 >> 24) & 1) ? -1 : 0)
-  #define d25 (((salt1 >> 25) & 1) ? -1 : 0)
-  #define d26 (((salt1 >> 26) & 1) ? -1 : 0)
-  #define d27 (((salt1 >> 27) & 1) ? -1 : 0)
-  #define d28 (((salt1 >> 28) & 1) ? -1 : 0)
-  #define d29 (((salt1 >> 29) & 1) ? -1 : 0)
-  #define d30 (((salt1 >> 30) & 1) ? -1 : 0)
-  #define d31 (((salt1 >> 31) & 1) ? -1 : 0)
-  #define d32 (((salt0 >>  0) & 1) ? -1 : 0)
-  #define d33 (((salt0 >>  1) & 1) ? -1 : 0)
-  #define d34 (((salt0 >>  2) & 1) ? -1 : 0)
-  #define d35 (((salt0 >>  3) & 1) ? -1 : 0)
-  #define d36 (((salt0 >>  4) & 1) ? -1 : 0)
-  #define d37 (((salt0 >>  5) & 1) ? -1 : 0)
-  #define d38 (((salt0 >>  6) & 1) ? -1 : 0)
-  #define d39 (((salt0 >>  7) & 1) ? -1 : 0)
-  #define d40 (((salt0 >>  8) & 1) ? -1 : 0)
-  #define d41 (((salt0 >>  9) & 1) ? -1 : 0)
-  #define d42 (((salt0 >> 10) & 1) ? -1 : 0)
-  #define d43 (((salt0 >> 11) & 1) ? -1 : 0)
-  #define d44 (((salt0 >> 12) & 1) ? -1 : 0)
-  #define d45 (((salt0 >> 13) & 1) ? -1 : 0)
-  #define d46 (((salt0 >> 14) & 1) ? -1 : 0)
-  #define d47 (((salt0 >> 15) & 1) ? -1 : 0)
-  #define d48 (((salt0 >> 16) & 1) ? -1 : 0)
-  #define d49 (((salt0 >> 17) & 1) ? -1 : 0)
-  #define d50 (((salt0 >> 18) & 1) ? -1 : 0)
-  #define d51 (((salt0 >> 19) & 1) ? -1 : 0)
-  #define d52 (((salt0 >> 20) & 1) ? -1 : 0)
-  #define d53 (((salt0 >> 21) & 1) ? -1 : 0)
-  #define d54 (((salt0 >> 22) & 1) ? -1 : 0)
-  #define d55 (((salt0 >> 23) & 1) ? -1 : 0)
-  #define d56 (((salt0 >> 24) & 1) ? -1 : 0)
-  #define d57 (((salt0 >> 25) & 1) ? -1 : 0)
-  #define d58 (((salt0 >> 26) & 1) ? -1 : 0)
-  #define d59 (((salt0 >> 27) & 1) ? -1 : 0)
-  #define d60 (((salt0 >> 28) & 1) ? -1 : 0)
-  #define d61 (((salt0 >> 29) & 1) ? -1 : 0)
-  #define d62 (((salt0 >> 30) & 1) ? -1 : 0)
-  #define d63 (((salt0 >> 31) & 1) ? -1 : 0)
 
-  u32 D00 = d00;
-  u32 D01 = d01;
-  u32 D02 = d02;
-  u32 D03 = d03;
-  u32 D04 = d04;
-  u32 D05 = d05;
-  u32 D06 = d06;
-  u32 D07 = d07;
-  u32 D08 = d08;
-  u32 D09 = d09;
-  u32 D10 = d10;
-  u32 D11 = d11;
-  u32 D12 = d12;
-  u32 D13 = d13;
-  u32 D14 = d14;
-  u32 D15 = d15;
-  u32 D16 = d16;
-  u32 D17 = d17;
-  u32 D18 = d18;
-  u32 D19 = d19;
-  u32 D20 = d20;
-  u32 D21 = d21;
-  u32 D22 = d22;
-  u32 D23 = d23;
-  u32 D24 = d24;
-  u32 D25 = d25;
-  u32 D26 = d26;
-  u32 D27 = d27;
-  u32 D28 = d28;
-  u32 D29 = d29;
-  u32 D30 = d30;
-  u32 D31 = d31;
-  u32 D32 = d32;
-  u32 D33 = d33;
-  u32 D34 = d34;
-  u32 D35 = d35;
-  u32 D36 = d36;
-  u32 D37 = d37;
-  u32 D38 = d38;
-  u32 D39 = d39;
-  u32 D40 = d40;
-  u32 D41 = d41;
-  u32 D42 = d42;
-  u32 D43 = d43;
-  u32 D44 = d44;
-  u32 D45 = d45;
-  u32 D46 = d46;
-  u32 D47 = d47;
-  u32 D48 = d48;
-  u32 D49 = d49;
-  u32 D50 = d50;
-  u32 D51 = d51;
-  u32 D52 = d52;
-  u32 D53 = d53;
-  u32 D54 = d54;
-  u32 D55 = d55;
-  u32 D56 = d56;
-  u32 D57 = d57;
-  u32 D58 = d58;
-  u32 D59 = d59;
-  u32 D60 = d60;
-  u32 D61 = d61;
-  u32 D62 = d62;
-  u32 D63 = d63;
+  const u32 d00 = (((salt1 >>  0) & 1) ? -1 : 0);
+  const u32 d01 = (((salt1 >>  1) & 1) ? -1 : 0);
+  const u32 d02 = (((salt1 >>  2) & 1) ? -1 : 0);
+  const u32 d03 = (((salt1 >>  3) & 1) ? -1 : 0);
+  const u32 d04 = (((salt1 >>  4) & 1) ? -1 : 0);
+  const u32 d05 = (((salt1 >>  5) & 1) ? -1 : 0);
+  const u32 d06 = (((salt1 >>  6) & 1) ? -1 : 0);
+  const u32 d07 = (((salt1 >>  7) & 1) ? -1 : 0);
+  const u32 d08 = (((salt1 >>  8) & 1) ? -1 : 0);
+  const u32 d09 = (((salt1 >>  9) & 1) ? -1 : 0);
+  const u32 d10 = (((salt1 >> 10) & 1) ? -1 : 0);
+  const u32 d11 = (((salt1 >> 11) & 1) ? -1 : 0);
+  const u32 d12 = (((salt1 >> 12) & 1) ? -1 : 0);
+  const u32 d13 = (((salt1 >> 13) & 1) ? -1 : 0);
+  const u32 d14 = (((salt1 >> 14) & 1) ? -1 : 0);
+  const u32 d15 = (((salt1 >> 15) & 1) ? -1 : 0);
+  const u32 d16 = (((salt1 >> 16) & 1) ? -1 : 0);
+  const u32 d17 = (((salt1 >> 17) & 1) ? -1 : 0);
+  const u32 d18 = (((salt1 >> 18) & 1) ? -1 : 0);
+  const u32 d19 = (((salt1 >> 19) & 1) ? -1 : 0);
+  const u32 d20 = (((salt1 >> 20) & 1) ? -1 : 0);
+  const u32 d21 = (((salt1 >> 21) & 1) ? -1 : 0);
+  const u32 d22 = (((salt1 >> 22) & 1) ? -1 : 0);
+  const u32 d23 = (((salt1 >> 23) & 1) ? -1 : 0);
+  const u32 d24 = (((salt1 >> 24) & 1) ? -1 : 0);
+  const u32 d25 = (((salt1 >> 25) & 1) ? -1 : 0);
+  const u32 d26 = (((salt1 >> 26) & 1) ? -1 : 0);
+  const u32 d27 = (((salt1 >> 27) & 1) ? -1 : 0);
+  const u32 d28 = (((salt1 >> 28) & 1) ? -1 : 0);
+  const u32 d29 = (((salt1 >> 29) & 1) ? -1 : 0);
+  const u32 d30 = (((salt1 >> 30) & 1) ? -1 : 0);
+  const u32 d31 = (((salt1 >> 31) & 1) ? -1 : 0);
+  const u32 d32 = (((salt0 >>  0) & 1) ? -1 : 0);
+  const u32 d33 = (((salt0 >>  1) & 1) ? -1 : 0);
+  const u32 d34 = (((salt0 >>  2) & 1) ? -1 : 0);
+  const u32 d35 = (((salt0 >>  3) & 1) ? -1 : 0);
+  const u32 d36 = (((salt0 >>  4) & 1) ? -1 : 0);
+  const u32 d37 = (((salt0 >>  5) & 1) ? -1 : 0);
+  const u32 d38 = (((salt0 >>  6) & 1) ? -1 : 0);
+  const u32 d39 = (((salt0 >>  7) & 1) ? -1 : 0);
+  const u32 d40 = (((salt0 >>  8) & 1) ? -1 : 0);
+  const u32 d41 = (((salt0 >>  9) & 1) ? -1 : 0);
+  const u32 d42 = (((salt0 >> 10) & 1) ? -1 : 0);
+  const u32 d43 = (((salt0 >> 11) & 1) ? -1 : 0);
+  const u32 d44 = (((salt0 >> 12) & 1) ? -1 : 0);
+  const u32 d45 = (((salt0 >> 13) & 1) ? -1 : 0);
+  const u32 d46 = (((salt0 >> 14) & 1) ? -1 : 0);
+  const u32 d47 = (((salt0 >> 15) & 1) ? -1 : 0);
+  const u32 d48 = (((salt0 >> 16) & 1) ? -1 : 0);
+  const u32 d49 = (((salt0 >> 17) & 1) ? -1 : 0);
+  const u32 d50 = (((salt0 >> 18) & 1) ? -1 : 0);
+  const u32 d51 = (((salt0 >> 19) & 1) ? -1 : 0);
+  const u32 d52 = (((salt0 >> 20) & 1) ? -1 : 0);
+  const u32 d53 = (((salt0 >> 21) & 1) ? -1 : 0);
+  const u32 d54 = (((salt0 >> 22) & 1) ? -1 : 0);
+  const u32 d55 = (((salt0 >> 23) & 1) ? -1 : 0);
+  const u32 d56 = (((salt0 >> 24) & 1) ? -1 : 0);
+  const u32 d57 = (((salt0 >> 25) & 1) ? -1 : 0);
+  const u32 d58 = (((salt0 >> 26) & 1) ? -1 : 0);
+  const u32 d59 = (((salt0 >> 27) & 1) ? -1 : 0);
+  const u32 d60 = (((salt0 >> 28) & 1) ? -1 : 0);
+  const u32 d61 = (((salt0 >> 29) & 1) ? -1 : 0);
+  const u32 d62 = (((salt0 >> 30) & 1) ? -1 : 0);
+  const u32 d63 = (((salt0 >> 31) & 1) ? -1 : 0);
 
   /**
    * base
@@ -2031,6 +1967,71 @@ KERNEL_FQ void m14000_mxx (KERN_ATTR_BITSLICE ())
     k25 |= words_buf_s[pc_pos].b[25];
     k26 |= words_buf_s[pc_pos].b[26];
     k27 |= words_buf_s[pc_pos].b[27];
+
+    u32 D00 = d00;
+    u32 D01 = d01;
+    u32 D02 = d02;
+    u32 D03 = d03;
+    u32 D04 = d04;
+    u32 D05 = d05;
+    u32 D06 = d06;
+    u32 D07 = d07;
+    u32 D08 = d08;
+    u32 D09 = d09;
+    u32 D10 = d10;
+    u32 D11 = d11;
+    u32 D12 = d12;
+    u32 D13 = d13;
+    u32 D14 = d14;
+    u32 D15 = d15;
+    u32 D16 = d16;
+    u32 D17 = d17;
+    u32 D18 = d18;
+    u32 D19 = d19;
+    u32 D20 = d20;
+    u32 D21 = d21;
+    u32 D22 = d22;
+    u32 D23 = d23;
+    u32 D24 = d24;
+    u32 D25 = d25;
+    u32 D26 = d26;
+    u32 D27 = d27;
+    u32 D28 = d28;
+    u32 D29 = d29;
+    u32 D30 = d30;
+    u32 D31 = d31;
+    u32 D32 = d32;
+    u32 D33 = d33;
+    u32 D34 = d34;
+    u32 D35 = d35;
+    u32 D36 = d36;
+    u32 D37 = d37;
+    u32 D38 = d38;
+    u32 D39 = d39;
+    u32 D40 = d40;
+    u32 D41 = d41;
+    u32 D42 = d42;
+    u32 D43 = d43;
+    u32 D44 = d44;
+    u32 D45 = d45;
+    u32 D46 = d46;
+    u32 D47 = d47;
+    u32 D48 = d48;
+    u32 D49 = d49;
+    u32 D50 = d50;
+    u32 D51 = d51;
+    u32 D52 = d52;
+    u32 D53 = d53;
+    u32 D54 = d54;
+    u32 D55 = d55;
+    u32 D56 = d56;
+    u32 D57 = d57;
+    u32 D58 = d58;
+    u32 D59 = d59;
+    u32 D60 = d60;
+    u32 D61 = d61;
+    u32 D62 = d62;
+    u32 D63 = d63;
 
     DES
     (
@@ -2213,135 +2214,70 @@ KERNEL_FQ void m14000_sxx (KERN_ATTR_BITSLICE ())
 
   // salt1 first, because this is a 64 bit value actually
 
-  #define d00 (((salt1 >>  0) & 1) ? -1 : 0)
-  #define d01 (((salt1 >>  1) & 1) ? -1 : 0)
-  #define d02 (((salt1 >>  2) & 1) ? -1 : 0)
-  #define d03 (((salt1 >>  3) & 1) ? -1 : 0)
-  #define d04 (((salt1 >>  4) & 1) ? -1 : 0)
-  #define d05 (((salt1 >>  5) & 1) ? -1 : 0)
-  #define d06 (((salt1 >>  6) & 1) ? -1 : 0)
-  #define d07 (((salt1 >>  7) & 1) ? -1 : 0)
-  #define d08 (((salt1 >>  8) & 1) ? -1 : 0)
-  #define d09 (((salt1 >>  9) & 1) ? -1 : 0)
-  #define d10 (((salt1 >> 10) & 1) ? -1 : 0)
-  #define d11 (((salt1 >> 11) & 1) ? -1 : 0)
-  #define d12 (((salt1 >> 12) & 1) ? -1 : 0)
-  #define d13 (((salt1 >> 13) & 1) ? -1 : 0)
-  #define d14 (((salt1 >> 14) & 1) ? -1 : 0)
-  #define d15 (((salt1 >> 15) & 1) ? -1 : 0)
-  #define d16 (((salt1 >> 16) & 1) ? -1 : 0)
-  #define d17 (((salt1 >> 17) & 1) ? -1 : 0)
-  #define d18 (((salt1 >> 18) & 1) ? -1 : 0)
-  #define d19 (((salt1 >> 19) & 1) ? -1 : 0)
-  #define d20 (((salt1 >> 20) & 1) ? -1 : 0)
-  #define d21 (((salt1 >> 21) & 1) ? -1 : 0)
-  #define d22 (((salt1 >> 22) & 1) ? -1 : 0)
-  #define d23 (((salt1 >> 23) & 1) ? -1 : 0)
-  #define d24 (((salt1 >> 24) & 1) ? -1 : 0)
-  #define d25 (((salt1 >> 25) & 1) ? -1 : 0)
-  #define d26 (((salt1 >> 26) & 1) ? -1 : 0)
-  #define d27 (((salt1 >> 27) & 1) ? -1 : 0)
-  #define d28 (((salt1 >> 28) & 1) ? -1 : 0)
-  #define d29 (((salt1 >> 29) & 1) ? -1 : 0)
-  #define d30 (((salt1 >> 30) & 1) ? -1 : 0)
-  #define d31 (((salt1 >> 31) & 1) ? -1 : 0)
-  #define d32 (((salt0 >>  0) & 1) ? -1 : 0)
-  #define d33 (((salt0 >>  1) & 1) ? -1 : 0)
-  #define d34 (((salt0 >>  2) & 1) ? -1 : 0)
-  #define d35 (((salt0 >>  3) & 1) ? -1 : 0)
-  #define d36 (((salt0 >>  4) & 1) ? -1 : 0)
-  #define d37 (((salt0 >>  5) & 1) ? -1 : 0)
-  #define d38 (((salt0 >>  6) & 1) ? -1 : 0)
-  #define d39 (((salt0 >>  7) & 1) ? -1 : 0)
-  #define d40 (((salt0 >>  8) & 1) ? -1 : 0)
-  #define d41 (((salt0 >>  9) & 1) ? -1 : 0)
-  #define d42 (((salt0 >> 10) & 1) ? -1 : 0)
-  #define d43 (((salt0 >> 11) & 1) ? -1 : 0)
-  #define d44 (((salt0 >> 12) & 1) ? -1 : 0)
-  #define d45 (((salt0 >> 13) & 1) ? -1 : 0)
-  #define d46 (((salt0 >> 14) & 1) ? -1 : 0)
-  #define d47 (((salt0 >> 15) & 1) ? -1 : 0)
-  #define d48 (((salt0 >> 16) & 1) ? -1 : 0)
-  #define d49 (((salt0 >> 17) & 1) ? -1 : 0)
-  #define d50 (((salt0 >> 18) & 1) ? -1 : 0)
-  #define d51 (((salt0 >> 19) & 1) ? -1 : 0)
-  #define d52 (((salt0 >> 20) & 1) ? -1 : 0)
-  #define d53 (((salt0 >> 21) & 1) ? -1 : 0)
-  #define d54 (((salt0 >> 22) & 1) ? -1 : 0)
-  #define d55 (((salt0 >> 23) & 1) ? -1 : 0)
-  #define d56 (((salt0 >> 24) & 1) ? -1 : 0)
-  #define d57 (((salt0 >> 25) & 1) ? -1 : 0)
-  #define d58 (((salt0 >> 26) & 1) ? -1 : 0)
-  #define d59 (((salt0 >> 27) & 1) ? -1 : 0)
-  #define d60 (((salt0 >> 28) & 1) ? -1 : 0)
-  #define d61 (((salt0 >> 29) & 1) ? -1 : 0)
-  #define d62 (((salt0 >> 30) & 1) ? -1 : 0)
-  #define d63 (((salt0 >> 31) & 1) ? -1 : 0)
-
-  u32 D00 = d00;
-  u32 D01 = d01;
-  u32 D02 = d02;
-  u32 D03 = d03;
-  u32 D04 = d04;
-  u32 D05 = d05;
-  u32 D06 = d06;
-  u32 D07 = d07;
-  u32 D08 = d08;
-  u32 D09 = d09;
-  u32 D10 = d10;
-  u32 D11 = d11;
-  u32 D12 = d12;
-  u32 D13 = d13;
-  u32 D14 = d14;
-  u32 D15 = d15;
-  u32 D16 = d16;
-  u32 D17 = d17;
-  u32 D18 = d18;
-  u32 D19 = d19;
-  u32 D20 = d20;
-  u32 D21 = d21;
-  u32 D22 = d22;
-  u32 D23 = d23;
-  u32 D24 = d24;
-  u32 D25 = d25;
-  u32 D26 = d26;
-  u32 D27 = d27;
-  u32 D28 = d28;
-  u32 D29 = d29;
-  u32 D30 = d30;
-  u32 D31 = d31;
-  u32 D32 = d32;
-  u32 D33 = d33;
-  u32 D34 = d34;
-  u32 D35 = d35;
-  u32 D36 = d36;
-  u32 D37 = d37;
-  u32 D38 = d38;
-  u32 D39 = d39;
-  u32 D40 = d40;
-  u32 D41 = d41;
-  u32 D42 = d42;
-  u32 D43 = d43;
-  u32 D44 = d44;
-  u32 D45 = d45;
-  u32 D46 = d46;
-  u32 D47 = d47;
-  u32 D48 = d48;
-  u32 D49 = d49;
-  u32 D50 = d50;
-  u32 D51 = d51;
-  u32 D52 = d52;
-  u32 D53 = d53;
-  u32 D54 = d54;
-  u32 D55 = d55;
-  u32 D56 = d56;
-  u32 D57 = d57;
-  u32 D58 = d58;
-  u32 D59 = d59;
-  u32 D60 = d60;
-  u32 D61 = d61;
-  u32 D62 = d62;
-  u32 D63 = d63;
+  const u32 d00 = (((salt1 >>  0) & 1) ? -1 : 0);
+  const u32 d01 = (((salt1 >>  1) & 1) ? -1 : 0);
+  const u32 d02 = (((salt1 >>  2) & 1) ? -1 : 0);
+  const u32 d03 = (((salt1 >>  3) & 1) ? -1 : 0);
+  const u32 d04 = (((salt1 >>  4) & 1) ? -1 : 0);
+  const u32 d05 = (((salt1 >>  5) & 1) ? -1 : 0);
+  const u32 d06 = (((salt1 >>  6) & 1) ? -1 : 0);
+  const u32 d07 = (((salt1 >>  7) & 1) ? -1 : 0);
+  const u32 d08 = (((salt1 >>  8) & 1) ? -1 : 0);
+  const u32 d09 = (((salt1 >>  9) & 1) ? -1 : 0);
+  const u32 d10 = (((salt1 >> 10) & 1) ? -1 : 0);
+  const u32 d11 = (((salt1 >> 11) & 1) ? -1 : 0);
+  const u32 d12 = (((salt1 >> 12) & 1) ? -1 : 0);
+  const u32 d13 = (((salt1 >> 13) & 1) ? -1 : 0);
+  const u32 d14 = (((salt1 >> 14) & 1) ? -1 : 0);
+  const u32 d15 = (((salt1 >> 15) & 1) ? -1 : 0);
+  const u32 d16 = (((salt1 >> 16) & 1) ? -1 : 0);
+  const u32 d17 = (((salt1 >> 17) & 1) ? -1 : 0);
+  const u32 d18 = (((salt1 >> 18) & 1) ? -1 : 0);
+  const u32 d19 = (((salt1 >> 19) & 1) ? -1 : 0);
+  const u32 d20 = (((salt1 >> 20) & 1) ? -1 : 0);
+  const u32 d21 = (((salt1 >> 21) & 1) ? -1 : 0);
+  const u32 d22 = (((salt1 >> 22) & 1) ? -1 : 0);
+  const u32 d23 = (((salt1 >> 23) & 1) ? -1 : 0);
+  const u32 d24 = (((salt1 >> 24) & 1) ? -1 : 0);
+  const u32 d25 = (((salt1 >> 25) & 1) ? -1 : 0);
+  const u32 d26 = (((salt1 >> 26) & 1) ? -1 : 0);
+  const u32 d27 = (((salt1 >> 27) & 1) ? -1 : 0);
+  const u32 d28 = (((salt1 >> 28) & 1) ? -1 : 0);
+  const u32 d29 = (((salt1 >> 29) & 1) ? -1 : 0);
+  const u32 d30 = (((salt1 >> 30) & 1) ? -1 : 0);
+  const u32 d31 = (((salt1 >> 31) & 1) ? -1 : 0);
+  const u32 d32 = (((salt0 >>  0) & 1) ? -1 : 0);
+  const u32 d33 = (((salt0 >>  1) & 1) ? -1 : 0);
+  const u32 d34 = (((salt0 >>  2) & 1) ? -1 : 0);
+  const u32 d35 = (((salt0 >>  3) & 1) ? -1 : 0);
+  const u32 d36 = (((salt0 >>  4) & 1) ? -1 : 0);
+  const u32 d37 = (((salt0 >>  5) & 1) ? -1 : 0);
+  const u32 d38 = (((salt0 >>  6) & 1) ? -1 : 0);
+  const u32 d39 = (((salt0 >>  7) & 1) ? -1 : 0);
+  const u32 d40 = (((salt0 >>  8) & 1) ? -1 : 0);
+  const u32 d41 = (((salt0 >>  9) & 1) ? -1 : 0);
+  const u32 d42 = (((salt0 >> 10) & 1) ? -1 : 0);
+  const u32 d43 = (((salt0 >> 11) & 1) ? -1 : 0);
+  const u32 d44 = (((salt0 >> 12) & 1) ? -1 : 0);
+  const u32 d45 = (((salt0 >> 13) & 1) ? -1 : 0);
+  const u32 d46 = (((salt0 >> 14) & 1) ? -1 : 0);
+  const u32 d47 = (((salt0 >> 15) & 1) ? -1 : 0);
+  const u32 d48 = (((salt0 >> 16) & 1) ? -1 : 0);
+  const u32 d49 = (((salt0 >> 17) & 1) ? -1 : 0);
+  const u32 d50 = (((salt0 >> 18) & 1) ? -1 : 0);
+  const u32 d51 = (((salt0 >> 19) & 1) ? -1 : 0);
+  const u32 d52 = (((salt0 >> 20) & 1) ? -1 : 0);
+  const u32 d53 = (((salt0 >> 21) & 1) ? -1 : 0);
+  const u32 d54 = (((salt0 >> 22) & 1) ? -1 : 0);
+  const u32 d55 = (((salt0 >> 23) & 1) ? -1 : 0);
+  const u32 d56 = (((salt0 >> 24) & 1) ? -1 : 0);
+  const u32 d57 = (((salt0 >> 25) & 1) ? -1 : 0);
+  const u32 d58 = (((salt0 >> 26) & 1) ? -1 : 0);
+  const u32 d59 = (((salt0 >> 27) & 1) ? -1 : 0);
+  const u32 d60 = (((salt0 >> 28) & 1) ? -1 : 0);
+  const u32 d61 = (((salt0 >> 29) & 1) ? -1 : 0);
+  const u32 d62 = (((salt0 >> 30) & 1) ? -1 : 0);
+  const u32 d63 = (((salt0 >> 31) & 1) ? -1 : 0);
 
   /**
    * digest
@@ -2544,6 +2480,71 @@ KERNEL_FQ void m14000_sxx (KERN_ATTR_BITSLICE ())
     k25 |= words_buf_s[pc_pos].b[25];
     k26 |= words_buf_s[pc_pos].b[26];
     k27 |= words_buf_s[pc_pos].b[27];
+
+    u32 D00 = d00;
+    u32 D01 = d01;
+    u32 D02 = d02;
+    u32 D03 = d03;
+    u32 D04 = d04;
+    u32 D05 = d05;
+    u32 D06 = d06;
+    u32 D07 = d07;
+    u32 D08 = d08;
+    u32 D09 = d09;
+    u32 D10 = d10;
+    u32 D11 = d11;
+    u32 D12 = d12;
+    u32 D13 = d13;
+    u32 D14 = d14;
+    u32 D15 = d15;
+    u32 D16 = d16;
+    u32 D17 = d17;
+    u32 D18 = d18;
+    u32 D19 = d19;
+    u32 D20 = d20;
+    u32 D21 = d21;
+    u32 D22 = d22;
+    u32 D23 = d23;
+    u32 D24 = d24;
+    u32 D25 = d25;
+    u32 D26 = d26;
+    u32 D27 = d27;
+    u32 D28 = d28;
+    u32 D29 = d29;
+    u32 D30 = d30;
+    u32 D31 = d31;
+    u32 D32 = d32;
+    u32 D33 = d33;
+    u32 D34 = d34;
+    u32 D35 = d35;
+    u32 D36 = d36;
+    u32 D37 = d37;
+    u32 D38 = d38;
+    u32 D39 = d39;
+    u32 D40 = d40;
+    u32 D41 = d41;
+    u32 D42 = d42;
+    u32 D43 = d43;
+    u32 D44 = d44;
+    u32 D45 = d45;
+    u32 D46 = d46;
+    u32 D47 = d47;
+    u32 D48 = d48;
+    u32 D49 = d49;
+    u32 D50 = d50;
+    u32 D51 = d51;
+    u32 D52 = d52;
+    u32 D53 = d53;
+    u32 D54 = d54;
+    u32 D55 = d55;
+    u32 D56 = d56;
+    u32 D57 = d57;
+    u32 D58 = d58;
+    u32 D59 = d59;
+    u32 D60 = d60;
+    u32 D61 = d61;
+    u32 D62 = d62;
+    u32 D63 = d63;
 
     DES
     (

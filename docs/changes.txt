@@ -1,6 +1,12 @@
 * changes v6.0.0 -> v6.0.x
 
 ##
+## Bugs
+##
+
+- Fixed uninitialized value in bitsliced DES kernel (BF mode only) leading to false negatives
+
+##
 ## Improvements
 ##
 
