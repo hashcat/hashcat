@@ -4,7 +4,14 @@
 ## Algorithms
 ##
 
+- Added pure kernels for hash-mode 600 (BLAKE2b-512)
 - Added hash-mode: Apple Keychain
+
+##
+## Bugs
+##
+
+- Fixed uninitialized value in bitsliced DES kernel (BF mode only) leading to false negatives
 
 ##
 ## Improvements
