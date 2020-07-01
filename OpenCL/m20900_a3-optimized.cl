@@ -378,7 +378,7 @@ DECLSPEC void m20900m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
 
     _w2[0] = 0;
     _w2[1] = 0;
-    _w2[2] = 0; 
+    _w2[2] = 0;
     _w2[3] = 0;
     _w3[0] = 0;
     _w3[1] = 0;
@@ -550,7 +550,7 @@ DECLSPEC void m20900m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
     _w2[1] = uint_to_hex_lower8 ((e0 >>  8) & 255) <<  0
            | uint_to_hex_lower8 ((e0 >>  0) & 255) << 16;
 
-    _w2[2] = 0; 
+    _w2[2] = 0;
     _w2[3] = 0;
     _w3[0] = 0;
     _w3[1] = 0;
@@ -1051,7 +1051,7 @@ DECLSPEC void m20900s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
 
     _w2[0] = 0;
     _w2[1] = 0;
-    _w2[2] = 0; 
+    _w2[2] = 0;
     _w2[3] = 0;
     _w3[0] = 0;
     _w3[1] = 0;
@@ -1223,7 +1223,7 @@ DECLSPEC void m20900s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
     _w2[1] = uint_to_hex_lower8 ((e0 >>  8) & 255) <<  0
            | uint_to_hex_lower8 ((e0 >>  0) & 255) << 16;
 
-    _w2[2] = 0; 
+    _w2[2] = 0;
     _w2[3] = 0;
     _w3[0] = 0;
     _w3[1] = 0;
