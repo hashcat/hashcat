@@ -354,24 +354,30 @@ default: $(HASHCAT_FRONTEND) modules
 clean:
 	$(RM) -f $(HASHCAT_FRONTEND)
 	$(RM) -f $(HASHCAT_LIBRARY)
-	$(RM) -rf modules/*.dSYM
+	$(RM) -f modules/*.dSYM
 	$(RM) -f modules/*.dll
 	$(RM) -f modules/*.so
 	$(RM) -f obj/*/*/*.o
 	$(RM) -f obj/*.o
 	$(RM) -f obj/*.a
+	$(RM) -f *.dSYM
+	$(RM) -f *.dylib
 	$(RM) -f *.bin *.exe
 	$(RM) -f *.pid
-	$(RM) -f *.restore
 	$(RM) -f *.log
 	$(RM) -f core
 	$(RM) -rf *.induct
 	$(RM) -rf *.outfiles
-	$(RM) -rf *.dSYM
 	$(RM) -rf kernels
 
 distclean: clean
-	$(RM) -f *.restore *.pot *.out *.log
+	$(RM) -f *.restore
+	$(RM) -f *.potfile
+	$(RM) -f *.out
+	$(RM) -f hashcat.dictstat2
+	$(RM) -f brain.*
+	$(RM) -rf test_[0-9]*
+	$(RM) -rf tools/luks_tests
 
 ##
 ## Targets: Linux install
