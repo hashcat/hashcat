@@ -374,7 +374,10 @@ distclean: clean
 	$(RM) -f *.restore
 	$(RM) -f *.potfile
 	$(RM) -f *.out
-	$(RM) -rf test_[0-9]*/
+	$(RM) -f hashcat.dictstat2
+	$(RM) -f brain.*
+	$(RM) -rf test_[0-9]*
+	$(RM) -rf tools/luks_tests
 
 ##
 ## Targets: Linux install
