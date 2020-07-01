@@ -5,6 +5,7 @@
 ##
 
 - Added pure kernels for hash-mode 600 (BLAKE2b-512)
+- Added hash-mode: Apple Keychain
 
 ##
 ## Bugs
