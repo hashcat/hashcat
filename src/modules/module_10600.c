@@ -81,7 +81,11 @@ u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED
 
 u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 pw_max = 127; // https://www.pdflib.com/knowledge-base/pdf-password-security/encryption/
+  const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL);
+
+  // https://www.pdflib.com/knowledge-base/pdf-password-security/encryption/
+
+  const u32 pw_max = (optimized_kernel == false) ? 127 : hashconfig->pw_max;
 
   return pw_max;
 }
