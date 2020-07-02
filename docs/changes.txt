@@ -11,6 +11,7 @@
 ## Bugs
 ##
 
+- Fixed maximum password length in modules of hash-modes 600, 7800, 7801 and 9900
 - Fixed uninitialized value in bitsliced DES kernel (BF mode only) leading to false negatives
 
 ##

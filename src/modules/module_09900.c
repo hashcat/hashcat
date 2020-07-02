@@ -46,7 +46,9 @@ const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 
 u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 pw_max = 100; // RAdmin2 sets w[25] = 0x80
+  const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL);
+
+  const u32 pw_max = (optimized_kernel == false) ? 100 : hashconfig->pw_max; // RAdmin2 sets w[25] = 0x80
 
   return pw_max;
 }
