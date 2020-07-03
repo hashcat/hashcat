@@ -47,6 +47,10 @@ static bool is_same_device (const hc_device_param_t *src, const hc_device_param_
 
   if (src->opencl_device_type != dst->opencl_device_type) return false;
 
+  // macOS still can't distinguish the devices by PCIe bus:
+
+  if (src->device_processors != dst->device_processors) return false;
+
   return true;
 }
 
