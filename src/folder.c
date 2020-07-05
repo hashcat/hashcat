@@ -97,14 +97,22 @@ static void get_profile_dir (char *profile_dir, const char *home_dir)
   if (stat (profile_dir, &st) == 0 && S_ISDIR (st.st_mode))
     return;
 
+  char *data_dir = (char *) hcmalloc (HCBUFSIZ_TINY);
   if (getenv("XDG_DATA_HOME"))
   {
-    snprintf (profile_dir, HCBUFSIZ_TINY, "%s/hashcat", getenv("XDG_DATA_HOME"));
+    strncpy (data_dir, getenv("XDG_DATA_HOME"), HCBUFSIZ_TINY);
   }
   else
   {
-    snprintf (profile_dir, HCBUFSIZ_TINY, "%s/.local/share/hashcat", home_dir);
+    snprintf (data_dir, HCBUFSIZ_TINY, "%s/.local/share", home_dir);
   }
+
+  if (access (data_dir, R_OK) != -1)
+  {
+    snprintf (profile_dir, HCBUFSIZ_TINY, "%s/hashcat", data_dir);
+  }
+
+  hcfree (data_dir);
 }
 
 static void get_session_dir (char *session_dir, const char *profile_dir)
