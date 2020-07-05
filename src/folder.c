@@ -94,13 +94,16 @@ static void get_profile_dir (char *profile_dir, const char *home_dir)
 {
   snprintf (profile_dir, HCBUFSIZ_TINY, "%s/%s", home_dir, DOT_HASHCAT);
   struct stat st = {0};
-  if (stat(profile_dir, &st) == 0 && S_ISDIR(st.st_mode))
+  if (stat (profile_dir, &st) == 0 && S_ISDIR (st.st_mode))
     return;
 
-  if (getenv("XDG_DATA_HOME")) {
-    snprintf(profile_dir, HCBUFSIZ_TINY, "%s/hashcat", getenv("XDG_DATA_HOME"));
-  } else {
-    snprintf(profile_dir, HCBUFSIZ_TINY, "%s/.local/share/hashcat", home_dir);
+  if (getenv("XDG_DATA_HOME"))
+  {
+    snprintf (profile_dir, HCBUFSIZ_TINY, "%s/hashcat", getenv("XDG_DATA_HOME"));
+  }
+  else
+  {
+    snprintf (profile_dir, HCBUFSIZ_TINY, "%s/.local/share/hashcat", home_dir);
   }
 }
 
