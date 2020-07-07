@@ -98,9 +98,9 @@ static void get_profile_dir (char *profile_dir, const char *home_dir)
     return;
 
   char *data_dir = (char *) hcmalloc (HCBUFSIZ_TINY);
-  if (getenv("XDG_DATA_HOME"))
+  if (getenv ("XDG_DATA_HOME"))
   {
-    strncpy (data_dir, getenv("XDG_DATA_HOME"), HCBUFSIZ_TINY);
+    strncpy (data_dir, getenv ("XDG_DATA_HOME"), HCBUFSIZ_TINY);
   }
   else
   {
