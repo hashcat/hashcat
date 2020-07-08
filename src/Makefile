@@ -354,13 +354,13 @@ default: $(HASHCAT_FRONTEND) modules
 clean:
 	$(RM) -f $(HASHCAT_FRONTEND)
 	$(RM) -f $(HASHCAT_LIBRARY)
-	$(RM) -f modules/*.dSYM
+	$(RM) -rf modules/*.dSYM
 	$(RM) -f modules/*.dll
 	$(RM) -f modules/*.so
 	$(RM) -f obj/*/*/*.o
 	$(RM) -f obj/*.o
 	$(RM) -f obj/*.a
-	$(RM) -f *.dSYM
+	$(RM) -rf *.dSYM
 	$(RM) -f *.dylib
 	$(RM) -f *.bin *.exe
 	$(RM) -f *.pid

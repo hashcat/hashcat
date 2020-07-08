@@ -20,6 +20,7 @@
 ## Improvements
 ##
 
+- Compile macOS: Fixed makefile target 'clean' to correctly remove *.dSYM folders
 - OpenCL Runtime: Reinterpret return code CL_DEVICE_NOT_FOUND from clGetDeviceIDs() as non-fatal
 
 * changes v5.1.0 -> v6.0.0
