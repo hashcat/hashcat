@@ -22,6 +22,7 @@
 
 - Compile macOS: Fixed makefile target 'clean' to correctly remove *.dSYM folders
 - OpenCL Runtime: Reinterpret return code CL_DEVICE_NOT_FOUND from clGetDeviceIDs() as non-fatal
+- OpenCL Runtime: Add some unstable warnings for some SHA512 based algorithms on AMD GPU on macOS
 
 ##
 ## Technical

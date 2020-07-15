@@ -81,6 +81,20 @@ typedef struct vc
 static const int   ROUNDS_VERACRYPT_500000     = 500000;
 static const float MIN_SUFFICIENT_ENTROPY_FILE = 7.0f;
 
+bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
+{
+  if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
+  {
+    // self-test failed
+    if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
+    {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 int module_build_plain_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const void *tmps, const u32 *src_buf, MAYBE_UNUSED const size_t src_sz, MAYBE_UNUSED const int src_len, u32 *dst_buf, MAYBE_UNUSED const size_t dst_sz)
 {
   const vc64_tmp_t *vc64_tmp = (const vc64_tmp_t *) tmps;
@@ -340,6 +354,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_hash                  = module_st_hash;
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
-  module_ctx->module_unstable_warning         = MODULE_DEFAULT;
+  module_ctx->module_unstable_warning         = module_unstable_warning;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

@@ -87,13 +87,22 @@ u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
 
 bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
-  // self-test failed
-  if ((device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
+  if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
   {
-    return true;
+    // self-test failed
+    if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
+    {
+      return true;
+    }
+
+    // self-test failed
+    if ((device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
+    {
+      return true;
+    }
   }
 
-  // hangs somewhere in zlib inflate
+  // self-test failed
   if (device_param->opencl_platform_vendor_id == VENDOR_ID_AMD)
   {
     return true;
