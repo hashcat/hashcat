@@ -163,6 +163,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Telegram Mobile App Passcode (SHA256)
 - PostgreSQL CRAM (MD5)
 - MySQL CRAM (SHA1)
+- XMPP SCRAM
 - RACF
 - AIX {smd5}
 - AIX {ssha1}
