@@ -23,20 +23,20 @@ sub module_generate_hash
     $salt = random_bytes (16);
   }
 
-  my $pbkdf2 = Crypt::PBKDF2->new(
+  my $pbkdf2 = Crypt::PBKDF2->new (
     hash_class => 'HMACSHA2',
     iterations => $iter,
     output_len => 256,
     salt_len => 64,
   );
 
-  my $p = $pbkdf2->generate($word, $salt);
+  my $p = $pbkdf2->generate ($word, $salt);
 
-  my $decoded_hash = $pbkdf2->decode_string($p);
+  my $decoded_hash = $pbkdf2->decode_string ($p);
 
   my $diter = $decoded_hash->{"iterations"};
 
-  my $iterbytes = pack('I', unpack('N*', pack('L*', $diter)));
+  my $iterbytes = pack ('I', unpack ('N*', pack ('L*', $diter)));
 
   my $dsalt = $decoded_hash->{"salt"};
 
@@ -44,7 +44,7 @@ sub module_generate_hash
 
   my $tmp = $iterbytes . $dsalt . $dhash;
 
-  my $hash = "{PBKDF2_SHA256}" . encode_base64($tmp, '');
+  my $hash = "{PBKDF2_SHA256}" . encode_base64 ($tmp, '');
 
   return $hash;
 }
@@ -57,11 +57,11 @@ sub module_verify_hash
 
   return unless (substr ($hash, 0, 15) eq '{PBKDF2_SHA256}');
 
-  my $hashbytes = decode_base64(substr ($hash, 15, length $hash));
+  my $hashbytes = decode_base64 (substr ($hash, 15, length $hash));
 
   my $iterbytes = substr $hashbytes, 0, 4;
 
-  my $iter = unpack('N*', pack('L*', unpack("I",$iterbytes)));
+  my $iter = unpack ('N*', pack ('L*', unpack ('I', $iterbytes)));
 
   my $salt = substr $hashbytes, 4, 64;
 
@@ -75,4 +75,3 @@ sub module_verify_hash
 }
 
 1;
-

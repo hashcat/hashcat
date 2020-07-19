@@ -411,7 +411,7 @@ _hashcat_contains ()
 
 _hashcat ()
 {
-  local VERSION=5.1.0
+  local VERSION=6.0.0
 
   local ATTACK_MODES="0 1 3 6 7"
   local HCCAPX_MESSAGE_PAIRS="0 1 2 3 4 5"

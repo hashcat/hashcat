@@ -52,7 +52,7 @@ u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
 {
   const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL);
 
-  u32 pw_max = (optimized_kernel == true) ? PW_MAX_OLD : 64; // HMAC-MD5 and `doveadm pw` are different for password more than 64 bytes
+  const u32 pw_max = (optimized_kernel == false) ? 64 : hashconfig->pw_max; // HMAC-MD5 and `doveadm pw` are different for password more than 64 bytes
 
   return pw_max;
 }

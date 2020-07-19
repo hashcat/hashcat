@@ -590,7 +590,7 @@ KERNEL_FQ void m19700_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t
 
       int last_block_size = edata2_len % 16;
 
-      if(last_block_size == 0)
+      if (last_block_size == 0)
       {
         last_block_size = 16;
       }
@@ -1055,9 +1055,9 @@ KERNEL_FQ void m19700_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t
 
       sha1_hmac_update_64 (&sha1_hmac_ctx, w0, w1, w2, w3, 16 + last_block_size);
 
-      sha1_hmac_final(&sha1_hmac_ctx);
+      sha1_hmac_final (&sha1_hmac_ctx);
 
-      if(sha1_hmac_ctx.opad.h[0]   == esalt_bufs[digests_offset].checksum[0]
+      if (sha1_hmac_ctx.opad.h[0]   == esalt_bufs[digests_offset].checksum[0]
         && sha1_hmac_ctx.opad.h[1] == esalt_bufs[digests_offset].checksum[1]
         && sha1_hmac_ctx.opad.h[2] == esalt_bufs[digests_offset].checksum[2])
       {

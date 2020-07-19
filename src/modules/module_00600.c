@@ -23,7 +23,7 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_USES_BITS_64
                                   | OPTI_TYPE_RAW_HASH;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
-static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
+static const u32   SALT_TYPE      = SALT_TYPE_NONE;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$BLAKE2$296c269e70ac5f0095e6fb47693480f0f7b97ccd0307f5c3bfa4df8f5ca5c9308a0e7108e80a0a9c0ebb715e8b7109b072046c6cd5e155b4cfd2f27216283b1e";
 
@@ -42,30 +42,11 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
-typedef struct blake2
-{
-  u64 h[8];
-  u64 t[2];
-  u64 f[2];
-  u32 buflen;
-  u32 outlen;
-
-} blake2_t;
-
 static const char *SIGNATURE_BLAKE2B = "$BLAKE2$";
-
-u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u64 esalt_size = (const u64) sizeof (blake2_t);
-
-  return esalt_size;
-}
 
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
   u64 *digest = (u64 *) digest_buf;
-
-  blake2_t *blake2 = (blake2_t *) esalt_buf;
 
   token_t token;
 
@@ -96,24 +77,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[5] = hex_to_u64 (hash_pos +  80);
   digest[6] = hex_to_u64 (hash_pos +  96);
   digest[7] = hex_to_u64 (hash_pos + 112);
-
-  // Initialize BLAKE2 Params and State
-
-  memset (blake2, 0, sizeof (blake2_t));
-
-  blake2->h[0] = BLAKE2B_IV_00;
-  blake2->h[1] = BLAKE2B_IV_01;
-  blake2->h[2] = BLAKE2B_IV_02;
-  blake2->h[3] = BLAKE2B_IV_03;
-  blake2->h[4] = BLAKE2B_IV_04;
-  blake2->h[5] = BLAKE2B_IV_05;
-  blake2->h[6] = BLAKE2B_IV_06;
-  blake2->h[7] = BLAKE2B_IV_07;
-
-  // blake2->h[0] ^= 0x0000000001010040; // digest_lenght = 0x40, depth = 0x01, fanout = 0x01
-  blake2->h[0] ^= 0x40 <<  0;
-  blake2->h[0] ^= 0x01 << 16;
-  blake2->h[0] ^= 0x01 << 24;
 
   return (PARSER_OK);
 }
@@ -161,7 +124,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_pos3                = module_dgst_pos3;
   module_ctx->module_dgst_size                = module_dgst_size;
   module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
-  module_ctx->module_esalt_size               = module_esalt_size;
+  module_ctx->module_esalt_size               = MODULE_DEFAULT;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
   module_ctx->module_forced_outfile_format    = MODULE_DEFAULT;

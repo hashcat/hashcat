@@ -357,7 +357,7 @@ void SetConsoleWindowSize (const int x)
 static struct termios savemodes;
 static int havemodes = 0;
 
-int tty_break()
+int tty_break ()
 {
   struct termios modmodes;
 
@@ -373,7 +373,7 @@ int tty_break()
   return tcsetattr (fileno (stdin), TCSANOW, &modmodes);
 }
 
-int tty_getchar()
+int tty_getchar ()
 {
   fd_set rfds;
 
@@ -394,7 +394,7 @@ int tty_getchar()
   return getchar();
 }
 
-int tty_fix()
+int tty_fix ()
 {
   if (!havemodes) return 0;
 
@@ -406,7 +406,7 @@ int tty_fix()
 static struct termios savemodes;
 static int havemodes = 0;
 
-int tty_break()
+int tty_break ()
 {
   struct termios modmodes;
 
@@ -422,7 +422,7 @@ int tty_break()
   return ioctl (fileno (stdin), TIOCSETAW, &modmodes);
 }
 
-int tty_getchar()
+int tty_getchar ()
 {
   fd_set rfds;
 
@@ -443,7 +443,7 @@ int tty_getchar()
   return getchar();
 }
 
-int tty_fix()
+int tty_fix ()
 {
   if (!havemodes) return 0;
 
@@ -454,7 +454,7 @@ int tty_fix()
 #if defined (_WIN)
 static DWORD saveMode = 0;
 
-int tty_break()
+int tty_break ()
 {
   HANDLE stdinHandle = GetStdHandle (STD_INPUT_HANDLE);
 
@@ -464,7 +464,7 @@ int tty_break()
   return 0;
 }
 
-int tty_getchar()
+int tty_getchar ()
 {
   HANDLE stdinHandle = GetStdHandle (STD_INPUT_HANDLE);
 
@@ -504,7 +504,7 @@ int tty_getchar()
   return 0;
 }
 
-int tty_fix()
+int tty_fix ()
 {
   HANDLE stdinHandle = GetStdHandle (STD_INPUT_HANDLE);
 
@@ -1068,7 +1068,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
   printf (" \"rejected\": %" PRIu64 ",", hashcat_status->progress_rejected);
   printf (" \"devices\": [");
 
-  free (target_json_encoded);
+  hcfree (target_json_encoded);
 
   int device_num = 0;
 
@@ -1082,8 +1082,9 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
 
     if (device_num != 0)
     {
-      printf(",");
+      printf (",");
     }
+
     printf (" { \"device_id\": %d,", device_id + 1);
     printf (" \"speed\": %" PRIu64 ",", (u64) (device_info->hashes_msec_dev * 1000));
 
@@ -1876,14 +1877,15 @@ void status_speed_json (hashcat_ctx_t *hashcat_ctx)
 
     if (device_num != 0)
     {
-      printf(",");
+      printf (",");
     }
 
     printf (" { \"device_id\": %d,", device_id + 1);
     printf (" \"speed\": %" PRIu64 " }", (u64) (device_info->hashes_msec_dev_benchmark * 1000));
     device_num++;
   }
-  printf(" ] }");
+
+  printf (" ] }");
 
   status_status_destroy (hashcat_ctx, hashcat_status);
 
@@ -1995,7 +1997,7 @@ void status_progress_json (hashcat_ctx_t *hashcat_ctx)
 
     if (device_num != 0)
     {
-      printf(",");
+      printf (",");
     }
 
     printf (" { \"device_id\": %d,", device_id + 1);
@@ -2004,7 +2006,7 @@ void status_progress_json (hashcat_ctx_t *hashcat_ctx)
     device_num++;
   }
 
-  printf(" ] }");
+  printf (" ] }");
 
   status_status_destroy (hashcat_ctx, hashcat_status);
 

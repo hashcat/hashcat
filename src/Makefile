@@ -3,16 +3,16 @@
 ## License.....: MIT
 ##
 
-SHARED                  := 0
+SHARED                  ?= 0
 DEBUG                   := 0
 PRODUCTION              := 0
-PRODUCTION_VERSION      := v5.1.0
-ENABLE_CUBIN            := 1
-ENABLE_BRAIN            := 1
-USE_SYSTEM_LZMA         := 0
-USE_SYSTEM_ZLIB         := 0
-USE_SYSTEM_OPENCL       := 0
-USE_SYSTEM_XXHASH       := 0
+PRODUCTION_VERSION      := v6.0.0
+ENABLE_CUBIN            ?= 1
+ENABLE_BRAIN            ?= 1
+USE_SYSTEM_LZMA         ?= 0
+USE_SYSTEM_ZLIB         ?= 0
+USE_SYSTEM_OPENCL       ?= 0
+USE_SYSTEM_XXHASH       ?= 0
 
 ##
 ## Detect Operating System
@@ -260,6 +260,7 @@ CFLAGS_NATIVE           := $(CFLAGS)
 LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -lpthread
 LFLAGS_NATIVE           += -lm
+LFLAGS_NATIVE           += -liconv
 endif
 endif # FreeBSD
 
@@ -359,18 +360,24 @@ clean:
 	$(RM) -f obj/*/*/*.o
 	$(RM) -f obj/*.o
 	$(RM) -f obj/*.a
+	$(RM) -rf *.dSYM
+	$(RM) -f *.dylib
 	$(RM) -f *.bin *.exe
 	$(RM) -f *.pid
-	$(RM) -f *.restore
 	$(RM) -f *.log
 	$(RM) -f core
 	$(RM) -rf *.induct
 	$(RM) -rf *.outfiles
-	$(RM) -rf *.dSYM
 	$(RM) -rf kernels
 
 distclean: clean
-	$(RM) -f *.restore *.pot *.out *.log
+	$(RM) -f *.restore
+	$(RM) -f *.potfile
+	$(RM) -f *.out
+	$(RM) -f hashcat.dictstat2
+	$(RM) -f brain.*
+	$(RM) -rf test_[0-9]*
+	$(RM) -rf tools/luks_tests
 
 ##
 ## Targets: Linux install

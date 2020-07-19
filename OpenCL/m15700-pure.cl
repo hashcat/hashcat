@@ -298,7 +298,7 @@ DECLSPEC void scrypt_smix (uint4 *X, uint4 *T, GLOBAL_AS uint4 *V0, GLOBAL_AS ui
   u32 j = keccakf_piln[s];      \
   u32 k = keccakf_rotc[s];      \
   bc0 = st[j];                  \
-  st[j] = hc_rotl64_S (t, k);      \
+  st[j] = hc_rotl64_S (t, k);   \
   t = bc0;                      \
 }
 

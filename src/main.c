@@ -390,8 +390,7 @@ static void main_potfile_hash_left (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
 
   if (outfile_ctx->fp.pfp != NULL) return; // cracked hash was not written to an outfile
 
-  fwrite (buf, len,          1, stdout);
-  fwrite (EOL, strlen (EOL), 1, stdout);
+  fwrite (buf, len, 1, stdout);
 }
 
 static void main_potfile_num_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -472,7 +471,7 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
 
   if (hashconfig->opti_type)
   {
-    event_log_info (hashcat_ctx, "Applicable optimizers:");
+    event_log_info (hashcat_ctx, "Applicable optimizers applied:");
 
     for (u32 i = 0; i < 32; i++)
     {

@@ -14,11 +14,11 @@
 #endif
 
 #ifdef REAL_SHM
-#define COPY_PW(x)                \
-  LOCAL_VK pw_t s_pws[64];         \
+#define COPY_PW(x)               \
+  LOCAL_VK pw_t s_pws[64];       \
   s_pws[get_local_id (0)] = (x);
 #else
-#define COPY_PW(x)                \
+#define COPY_PW(x)               \
   pw_t pw = (x);
 #endif
 
@@ -518,6 +518,7 @@ DECLSPEC int mangle_dupechar_first (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const
 {
   const int out_len = len + p0;
 
+  if (len     ==                0) return (len);
   if (out_len >= RP_PASSWORD_SIZE) return (len);
 
   const u8 c = buf[0];
@@ -651,7 +652,7 @@ DECLSPEC int mangle_replace_nm1 (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8
 
 DECLSPEC int mangle_dupeblock_first (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
-  if (p0 >= len) return (len);
+  if (p0 > len) return (len);
 
   const int out_len = len + p0;
 
@@ -669,7 +670,7 @@ DECLSPEC int mangle_dupeblock_first (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED cons
 
 DECLSPEC int mangle_dupeblock_last (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
-  if (p0 >= len) return (len);
+  if (p0 > len) return (len);
 
   const int out_len = len + p0;
 

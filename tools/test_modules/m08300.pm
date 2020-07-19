@@ -11,7 +11,11 @@ use warnings;
 use Net::DNS::RR::NSEC3;
 use Net::DNS::SEC;
 
-sub module_constraints { [[1, 256], [-1, -1], [1, 55], [-1, -1], [-1, -1]] }
+# we need to restict the pure password length for the test module to 63 bytes,
+# because we can't have any string (including the pass) of over 63 bytes without "."
+
+# sub module_constraints { [[1, 256], [-1, -1], [1, 55], [-1, -1], [-1, -1]] }
+sub module_constraints { [[1, 63], [-1, -1], [1, 55], [-1, -1], [-1, -1]] }
 
 sub get_random_dnssec_salt
 {
@@ -38,7 +42,14 @@ sub module_generate_hash
 
   if (length $salt == 0)
   {
-    $salt = get_random_dnssec_salt ();
+    if (int (rand (10)) == 0)
+    {
+      $salt = ":";
+    }
+    else
+    {
+      $salt = get_random_dnssec_salt ();
+    }
   }
 
   my ($domain, $salt_hex) = split (":", $salt);
@@ -78,4 +89,3 @@ sub module_verify_hash
 }
 
 1;
-

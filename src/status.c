@@ -323,7 +323,7 @@ char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
 
       tmp_buf2[tmp_len] = 0;
 
-      free (tmp_buf);
+      hcfree (tmp_buf);
 
       return tmp_buf2;
     }
@@ -343,7 +343,7 @@ char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
 
     char *tmp_buf2 = strdup (tmp_buf);
 
-    free (tmp_buf);
+    hcfree (tmp_buf);
 
     return tmp_buf2;
   }
@@ -1097,14 +1097,14 @@ char *status_get_time_estimated_relative (const hashcat_ctx_t *hashcat_ctx)
 
       snprintf (display, HCBUFSIZ_TINY, "%s; Runtime limited: %s", tmp_display, display_left);
 
-      free (display_left);
+      hcfree (display_left);
     }
     else
     {
       snprintf (display, HCBUFSIZ_TINY, "%s; Runtime limit exceeded", tmp_display);
     }
 
-    free (tmp_display);
+    hcfree (tmp_display);
   }
 
   return display;

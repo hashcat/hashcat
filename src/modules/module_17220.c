@@ -165,6 +165,11 @@ const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 
 bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
+  if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
+  {
+    return true;
+  }
+
   // hangs somewhere in zlib inflate
   if (device_param->opencl_platform_vendor_id == VENDOR_ID_AMD)
   {

@@ -60,9 +60,9 @@ sub module_generate_hash
   my $b_seed = $pbkdf2->PBKDF2 ($mysalt, $word);
   
   # we can precompute this
-  my $b_kerberos_nfolded = hex2byte('6b65726265726f737b9b5b2b93132b93');
+  my $b_kerberos_nfolded = hex2byte ('6b65726265726f737b9b5b2b93132b93');
 
-  my $b_iv = hex2byte('0' x 32);
+  my $b_iv = hex2byte ('0' x 32);
 
   # 'key_bytes' will be the AES key used to generate 'ki' (for final hmac-sha1)
   # and 'ke' (AES key to decrypt/encrypt the ticket)
@@ -73,10 +73,10 @@ sub module_generate_hash
   
   # precomputed stuff
   # nfold 0x0000000155 to 16 bytes
-  my $b_nfolded1 = hex2byte('5b582c160a5aa80556ab55aad5402ab5');
+  my $b_nfolded1 = hex2byte ('5b582c160a5aa80556ab55aad5402ab5');
   
   # nfold 0x00000001aa to 16 bytes
-  my $b_nfolded2 = hex2byte('ae2c160b04ad5006ab55aad56a80355a');
+  my $b_nfolded2 = hex2byte ('ae2c160b04ad5006ab55aad56a80355a');
   
   my $b_ki = $cbc->encrypt ($b_nfolded1, $b_key_bytes, $b_iv);
 
@@ -93,36 +93,36 @@ sub module_generate_hash
   {
     # Do CTS Decryption https://en.wikipedia.org/wiki/Ciphertext_stealing
     # Decrypt n-1 block
-    my $len_last_block  = length($enc_timestamp) % 32;
+    my $len_last_block  = length ($enc_timestamp) % 32;
 
     my $len_last_2_blocks = $len_last_block + 32;
 
-    my $b_n_1_block = hex2byte (substr($enc_timestamp, -$len_last_2_blocks, 32));
+    my $b_n_1_block = hex2byte (substr ($enc_timestamp, -$len_last_2_blocks, 32));
 
     my $b_n_1_decrypted = $cbc->decrypt ($b_n_1_block, $b_ke, $b_iv);
 
     # Pad the last block with last bytes from the decrypted n-1
-    my $b_padded_enc_ticket = hex2byte($enc_timestamp).(substr $b_n_1_decrypted, -(16 - $len_last_block/2));
+    my $b_padded_enc_ticket = hex2byte ($enc_timestamp) . (substr $b_n_1_decrypted, -(16 - $len_last_block / 2));
     
     # Swap the last two blocks
-    my $b_cbc_enc_ticket = (substr $b_padded_enc_ticket, 0, -32).(substr $b_padded_enc_ticket, -16, 16).
+    my $b_cbc_enc_ticket = (substr $b_padded_enc_ticket, 0, -32) . (substr $b_padded_enc_ticket, -16, 16).
     (substr $b_padded_enc_ticket, -32, 16);
     
     # Decrypt and truncate
     my $b_dec_ticket_padded = $cbc->decrypt ($b_cbc_enc_ticket, $b_ke, $b_iv);
     
-    my $b_cleartext_ticket = substr $b_dec_ticket_padded, 0, length($enc_timestamp)/2;
+    my $b_cleartext_ticket = substr $b_dec_ticket_padded, 0, length ($enc_timestamp) / 2;
 
-    $cleartext_ticket = byte2hex($b_cleartext_ticket);
+    $cleartext_ticket = byte2hex ($b_cleartext_ticket);
     
     my $check_correct  = ((substr ($b_cleartext_ticket, 22, 2) eq "20") && 
-                           (substr ($b_cleartext_ticket, 36, 1) eq "Z"));
+                          (substr ($b_cleartext_ticket, 36, 1) eq "Z"));
 
     if ($check_correct == 1 && defined $checksum)
     {
-      my $b_checksum = hmac_sha1 (hex2byte($cleartext_ticket), $b_ki);
+      my $b_checksum = hmac_sha1 (hex2byte ($cleartext_ticket), $b_ki);
       
-      $check_correct = ($checksum eq byte2hex(substr $b_checksum, 0, 12));
+      $check_correct = ($checksum eq byte2hex (substr $b_checksum, 0, 12));
     }
   }
   
@@ -134,27 +134,27 @@ sub module_generate_hash
 '32313131363134323835355aa10502030c28a2';
   
     # we have what is required to compute checksum
-    $checksum = hmac_sha1 (hex2byte($cleartext_ticket), $b_ki);
+    $checksum = hmac_sha1 (hex2byte ($cleartext_ticket), $b_ki);
 
-    $checksum = byte2hex(substr $checksum, 0, 12);
+    $checksum = byte2hex (substr $checksum, 0, 12);
   }
     
   # CTS Encrypt our new block
-  my $len_cleartext_last_block = length($cleartext_ticket)%32;
+  my $len_cleartext_last_block = length ($cleartext_ticket) % 32;
   my $cleartext_last_block = substr $cleartext_ticket, -$len_cleartext_last_block;
 
-  my $padding = pad(length($cleartext_ticket), 32);
+  my $padding = pad (length ($cleartext_ticket), 32);
 
-  my $b_cleartext_last_block_padded = hex2byte($cleartext_last_block . '0' x $padding);
+  my $b_cleartext_last_block_padded = hex2byte ($cleartext_last_block . '0' x $padding);
 
   # we will encrypt until n-1 block (included)
   my $truncated_cleartext_ticket = substr $cleartext_ticket, 0, -$len_cleartext_last_block;
 
-  my $b_truncated_enc_ticket = $cbc->encrypt (hex2byte($truncated_cleartext_ticket), $b_ke, $b_iv);
+  my $b_truncated_enc_ticket = $cbc->encrypt (hex2byte ($truncated_cleartext_ticket), $b_ke, $b_iv);
 
   my $b_enc_ticket_n_1_block= substr $b_truncated_enc_ticket, -16;
 
-  my $b_enc_last_block = substr $b_enc_ticket_n_1_block, 0, $len_cleartext_last_block/2;
+  my $b_enc_last_block = substr $b_enc_ticket_n_1_block, 0, $len_cleartext_last_block / 2;
 
   # we now craft the new n-1 block
   my $tmp = $b_enc_ticket_n_1_block ^ $b_cleartext_last_block_padded;
