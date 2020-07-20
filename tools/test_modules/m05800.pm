@@ -6,6 +6,7 @@
 ##
 
 use strict;
+use warnings;
 
 use Digest::SHA  qw (sha1);
 
