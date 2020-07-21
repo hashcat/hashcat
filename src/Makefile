@@ -218,7 +218,7 @@ LFLAGS                  += -llzmasdk
 endif
 
 # ZLIB
-CFLAGS                  += -I$(DEPS_ZLIB_PATH)
+CFLAGS                  += -I$(DEPS_ZLIB_PATH) -I$(DEPS_ZLIB_PATH)/contrib
 ifeq ($(USE_SYSTEM_ZLIB),1)
 LFLAGS                  += -lz -lminizip
 endif
