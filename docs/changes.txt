@@ -31,6 +31,7 @@
 
 - Backend: Changed the maximum number of compute devices from 64 to 128
 - Tests: Improved tests for hash-mode 11300 (Bitcoin/Litecoin wallet.dat)
+- Tests: Improved tests for hash-mode 13600 (WinZip)
 - Tests: Improved tests for hash-mode 16800 (WPA-PMKID-PBKDF2)
 
 * changes v5.1.0 -> v6.0.0

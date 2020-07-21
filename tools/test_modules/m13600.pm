@@ -94,7 +94,7 @@ sub module_generate_hash
 
   my $auth = hmac_hex ($data, $key_bin, \&sha1, 64);
 
-  my $hash = sprintf ('$zip2$*%u*%u*%u*%s*%s*%x*%s*%s*$/zip2$', $type, $mode, $magic, $salt, $verify_bytes, $compress_length, $data, substr ($auth, 0, 20));
+  my $hash = sprintf ('$zip2$*%u*%u*%u*%s*%s*%s*%s*%s*$/zip2$', $type, $mode, $magic, $salt, $verify_bytes, $compress_length, unpack ("H*", $data), substr ($auth, 0, 20));
 
   return $hash;
 }
@@ -135,6 +135,8 @@ sub module_verify_hash
 
   return unless defined $salt;
   return unless defined $word;
+
+  $param6 = pack ("H*", $param6);
 
   $word = pack_if_HEX_notation ($word);
 
