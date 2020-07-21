@@ -220,7 +220,7 @@ endif
 # ZLIB
 CFLAGS                  += -I$(DEPS_ZLIB_PATH)
 ifeq ($(USE_SYSTEM_ZLIB),1)
-LFLAGS                  += -lz
+LFLAGS                  += -lz -lminizip
 endif
 
 # OpenCL
