@@ -51,7 +51,7 @@ sub module_generate_hash
 
   $KEK = substr ($KEK ^ $mysalt, 0, 16);
 
-  my $aes = Crypt::Mode::ECB->new ('AES');
+  my $aes = Crypt::Mode::ECB->new ('AES', 0);
 
   my $B;
 
@@ -75,7 +75,7 @@ sub module_generate_hash
 
       $B = $R[2];
 
-      $A = $aes->decrypt ($A . $B . "\x00" x 16, $KEK);
+      $A = $aes->decrypt (substr ($A . $B . "\x00" x 16, 0, 16), $KEK);
 
       $R[2] = substr ($A, 8, 16);
 
@@ -83,7 +83,7 @@ sub module_generate_hash
 
       $B = $R[1];
 
-      $A = $aes->decrypt ($A . $B . "\x00" x 16, $KEK);
+      $A = $aes->decrypt (substr ($A . $B . "\x00" x 16, 0, 16), $KEK);
 
       $R[1] = substr ($A, 8, 16);
     }
@@ -109,13 +109,13 @@ sub module_generate_hash
 
   for (my $j = 0; $j < $iteration; $j++)
   {
-    $B = $aes->encrypt ($A . $R[1], $KEK);
+    $B = $aes->encrypt (substr ($A . $R[1] . "\x00" x 16, 0, 16), $KEK);
 
     $A = substr ($B, 0, 8) ^ pack ("q", (2 * $j + 1));
 
     $R[1] = substr ($B, 8, 16);
 
-    $B = $aes->encrypt ($A . $R[2], $KEK);
+    $B = $aes->encrypt (substr ($A . $R[2] . "\x00" x 16, 0, 16), $KEK);
 
     $A = substr ($B, 0, 8) ^ pack ("q", (2 * $j + 2));
 
