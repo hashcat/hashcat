@@ -62,24 +62,9 @@ sub module_generate_hash
 
 sub module_verify_hash
 {
-  my $line = shift;
+  print "ERROR: verify currently not supported for WPA-PMKID-PBKDF2 (because of hashcat's output format)\n";
 
-  my ($hash, $word) = split (':', $line);
-
-  return unless defined $hash;
-  return unless defined $word;
-
-  my @data = split (/\:/, $hash);
-
-  return unless scalar @data == 4;
-
-  my (undef, $macap, $macsta, $essid) = @data;
-
-  my $word_packed = pack_if_HEX_notation ($word);
-
-  my $new_hash = module_generate_hash ($word_packed, undef, $macap, $macsta, $essid);
-
-  return ($new_hash, $word);
+  exit (1);
 }
 
 1;
