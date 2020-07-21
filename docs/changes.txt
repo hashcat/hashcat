@@ -11,6 +11,7 @@
 ## Bugs
 ##
 
+- Fixed integer overflow for large masks in -a 6 attack mode
 - Fixed alias detection with additional processor core count check
 - Fixed maximum password length in modules of hash-modes 600, 7800, 7801 and 9900
 - Fixed non-zero status code when using --stdout

@@ -1261,6 +1261,16 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
           return -1;
         }
 
+        // do not allow modifier count > 32 bit
+        // https://github.com/hashcat/hashcat/issues/2482
+
+        if (combinator_ctx->combs_cnt > 0xffffffff)
+        {
+          event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
+
+          return -1;
+        }
+
         if (backend_session_update_mp (hashcat_ctx) == -1) return -1;
       }
     }
