@@ -8,7 +8,7 @@
 use strict;
 use warnings;
 
-use Data::Types qw (is_count is_int is_whole);
+use Data::Types qw (is_count is_whole);
 use File::Basename;
 use FindBin;
 use List::Util 'shuffle';
@@ -484,9 +484,9 @@ sub random_hex_string
   # length in characters
   my $count = shift;
 
-  return if ! is_count ($count);
+  return if ! is_whole ($count);
 
-  my $string;
+  my $string = "";
 
   $string .= sprintf ("%x", rand 16) for (1 .. $count);
 
@@ -497,11 +497,11 @@ sub random_lowercase_string
 {
   my $count = shift;
 
-  return if ! is_count ($count);
+  return if ! is_whole ($count);
 
   my @chars = ('a'..'z');
 
-  my $string;
+  my $string = "";
 
   $string .= $chars[rand @chars] for (1 .. $count);
 
@@ -512,11 +512,11 @@ sub random_uppercase_string
 {
   my $count = shift;
 
-  return if ! is_count ($count);
+  return if ! is_whole ($count);
 
   my @chars = ('A'..'Z');
 
-  my $string;
+  my $string = "";
 
   $string .= $chars[rand @chars] for (1 .. $count);
 
@@ -527,11 +527,11 @@ sub random_mixedcase_string
 {
   my $count = shift;
 
-  return if ! is_count ($count);
+  return if ! is_whole ($count);
 
   my @chars = ('A'..'Z', 'a'..'z');
 
-  my $string;
+  my $string = "";
 
   $string .= $chars[rand @chars] for (1 .. $count);
 
@@ -542,11 +542,11 @@ sub random_numeric_string
 {
   my $count = shift;
 
-  return if ! is_count ($count);
+  return if ! is_whole ($count);
 
   my @chars = ('0'..'9');
 
-  my $string;
+  my $string = "";
 
   $string .= $chars[rand @chars] for (1 .. $count);
 
@@ -557,11 +557,11 @@ sub random_string
 {
   my $count = shift;
 
-  return if ! is_count ($count);
+  return if ! is_whole ($count);
 
   my @chars = ('A'..'Z', 'a'..'z', '0'..'9');
 
-  my $string;
+  my $string = "";
 
   $string .= $chars[rand @chars] for (1 .. $count);
 
