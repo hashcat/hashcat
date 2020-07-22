@@ -17,7 +17,7 @@
 #include "inc_hash_streebog256.cl"
 #endif
 
-#define INITVAL 0x0101010101010101
+#define INITVAL 0x0101010101010101UL
 
 DECLSPEC void streebog_g (u64x *h, const u64x *m, LOCAL_AS u64 (*s_sbob_sl64)[256])
 {

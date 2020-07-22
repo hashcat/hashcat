@@ -170,7 +170,7 @@ DECLSPEC void hmac_sha512_run (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u64x *ipa
   w1_t[1] = digest[5];
   w1_t[2] = digest[6];
   w1_t[3] = digest[7];
-  w2_t[0] = 0x8000000000000000;
+  w2_t[0] = 0x8000000000000000UL;
   w2_t[1] = 0;
   w2_t[2] = 0;
   w2_t[3] = 0;

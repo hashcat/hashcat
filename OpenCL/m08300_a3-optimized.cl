@@ -52,16 +52,16 @@ DECLSPEC int replace_u32_be (const u32 input, u32 *output, int cur_len)
 
   u64 m64 = input64;
 
-  m64 ^= 0x002e002e002e002e;  // convert 0x2e to 0x00
-  m64 ^= 0x00ff00ff00ff00ff;  // convert 0x00 to 0xff (jit will optimize this to one instruction)
-  m64 += 0x0001000100010001;  // only 0xff can set 9th bit
-  m64 &= 0x0100010001000100;  // only 9th bit survives
+  m64 ^= 0x002e002e002e002eUL;  // convert 0x2e to 0x00
+  m64 ^= 0x00ff00ff00ff00ffUL;  // convert 0x00 to 0xff (jit will optimize this to one instruction)
+  m64 += 0x0001000100010001UL;  // only 0xff can set 9th bit
+  m64 &= 0x0100010001000100UL;  // only 9th bit survives
 
-  m64 |= m64 << 1;            // converts 0x0100 to 0xff00
+  m64 |= m64 << 1;              // converts 0x0100 to 0xff00
   m64 |= m64 << 2;
   m64 |= m64 << 4;
 
-  m64 >>= 8;                  // back to original positions (in 64 bit)
+  m64 >>= 8;                    // back to original positions (in 64 bit)
 
   u32 m = u64_to_u32 (m64);
 

@@ -203,7 +203,7 @@ KERNEL_FQ void m03100_m04 (KERN_ATTR_BASIC ())
     dst[15] = w3[3];
 
     /**
-     * precompute key1 since key is static: 0x0123456789abcdef
+     * precompute key1 since key is static: 0x0123456789abcdefUL
      * plus LEFT_ROTATE by 2
      */
 
@@ -507,7 +507,7 @@ KERNEL_FQ void m03100_s04 (KERN_ATTR_BASIC ())
     dst[15] = w3[3];
 
     /**
-     * precompute key1 since key is static: 0x0123456789abcdef
+     * precompute key1 since key is static: 0x0123456789abcdefUL
      * plus LEFT_ROTATE by 2
      */
 

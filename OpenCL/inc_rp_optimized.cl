@@ -895,7 +895,7 @@ DECLSPEC void append_block8_optimized (const u32 offset, u32 *buf0, u32 *buf1, c
   #endif
 
   #if defined IS_AMD
-  const int selector = 0x0706050403020100 >> (offset_minus_4 * 8);
+  const int selector = l32_from_64_S (0x0706050403020100UL >> (offset_minus_4 * 8));
   #endif
 
   const u32 src_r00 = src_r0[0];

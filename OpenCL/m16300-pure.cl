@@ -38,14 +38,12 @@ typedef struct pbkdf2_sha256_tmp
 
 CONSTANT_VK u64a keccakf_rndc[24] =
 {
-  0x0000000000000001, 0x0000000000008082, 0x800000000000808a,
-  0x8000000080008000, 0x000000000000808b, 0x0000000080000001,
-  0x8000000080008081, 0x8000000000008009, 0x000000000000008a,
-  0x0000000000000088, 0x0000000080008009, 0x000000008000000a,
-  0x000000008000808b, 0x800000000000008b, 0x8000000000008089,
-  0x8000000000008003, 0x8000000000008002, 0x8000000000000080,
-  0x000000000000800a, 0x800000008000000a, 0x8000000080008081,
-  0x8000000000008080, 0x0000000080000001, 0x8000000080008008
+  KECCAK_RNDC_00, KECCAK_RNDC_01, KECCAK_RNDC_02, KECCAK_RNDC_03,
+  KECCAK_RNDC_04, KECCAK_RNDC_05, KECCAK_RNDC_06, KECCAK_RNDC_07,
+  KECCAK_RNDC_08, KECCAK_RNDC_09, KECCAK_RNDC_10, KECCAK_RNDC_11,
+  KECCAK_RNDC_12, KECCAK_RNDC_13, KECCAK_RNDC_14, KECCAK_RNDC_15,
+  KECCAK_RNDC_16, KECCAK_RNDC_17, KECCAK_RNDC_18, KECCAK_RNDC_19,
+  KECCAK_RNDC_20, KECCAK_RNDC_21, KECCAK_RNDC_22, KECCAK_RNDC_23
 };
 
 #ifndef KECCAK_ROUNDS
@@ -552,186 +550,186 @@ KERNEL_FQ void m16300_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, ethereum_
   switch (padding_len)
   {
     case 16:
-        if (((seed[seed_idx - 1] & 0xffffffffffffffff) != 0x1010101010101010) ||
-            ((seed[seed_idx - 2] & 0xffffffffffffffff) != 0x1010101010101010))
+        if (((seed[seed_idx - 1] & 0xffffffffffffffffUL) != 0x1010101010101010UL) ||
+            ((seed[seed_idx - 2] & 0xffffffffffffffffUL) != 0x1010101010101010UL))
         {
           return;
         }
 
-        seed[seed_idx - 2] = 0x0102;
-        seed[seed_idx - 1] = 0;
+        seed[seed_idx - 2] = 0x0102UL;
+        seed[seed_idx - 1] = 0UL;
       break;
 
     case 15:
-        if (((seed[seed_idx - 1] & 0xffffffffffffffff) != 0x0f0f0f0f0f0f0f0f) ||
-            ((seed[seed_idx - 2] & 0xffffffffffffff00) != 0x0f0f0f0f0f0f0f00))
+        if (((seed[seed_idx - 1] & 0xffffffffffffffffUL) != 0x0f0f0f0f0f0f0f0fUL) ||
+            ((seed[seed_idx - 2] & 0xffffffffffffff00UL) != 0x0f0f0f0f0f0f0f00UL))
         {
           return;
         }
 
-        seed[seed_idx - 2] &= 0x00000000000000ff;
-        seed[seed_idx - 2] |= 0x0000000000010200;
-        seed[seed_idx - 1] = 0;
+        seed[seed_idx - 2] &= 0x00000000000000ffUL;
+        seed[seed_idx - 2] |= 0x0000000000010200UL;
+        seed[seed_idx - 1]  = 0UL;
       break;
 
     case 14:
-        if (((seed[seed_idx - 1] & 0xffffffffffffffff) != 0x0e0e0e0e0e0e0e0e) ||
-            ((seed[seed_idx - 2] & 0xffffffffffff0000) != 0x0e0e0e0e0e0e0000))
+        if (((seed[seed_idx - 1] & 0xffffffffffffffffUL) != 0x0e0e0e0e0e0e0e0eUL) ||
+            ((seed[seed_idx - 2] & 0xffffffffffff0000UL) != 0x0e0e0e0e0e0e0000UL))
         {
           return;
         }
 
-        seed[seed_idx - 2] &= 0x000000000000ffff;
-        seed[seed_idx - 2] |= 0x0000000001020000;
-        seed[seed_idx - 1] = 0;
+        seed[seed_idx - 2] &= 0x000000000000ffffUL;
+        seed[seed_idx - 2] |= 0x0000000001020000UL;
+        seed[seed_idx - 1]  = 0UL;
       break;
 
     case 13:
-        if (((seed[seed_idx - 1] & 0xffffffffffffffff) != 0x0d0d0d0d0d0d0d0d) ||
-            ((seed[seed_idx - 2] & 0xffffffffff000000) != 0x0d0d0d0d0d000000))
+        if (((seed[seed_idx - 1] & 0xffffffffffffffffUL) != 0x0d0d0d0d0d0d0d0dUL) ||
+            ((seed[seed_idx - 2] & 0xffffffffff000000UL) != 0x0d0d0d0d0d000000UL))
         {
           return;
         }
 
-        seed[seed_idx - 2] &= 0x0000000000ffffff;
-        seed[seed_idx - 2] |= 0x0000000102000000;
-        seed[seed_idx - 1] = 0;
+        seed[seed_idx - 2] &= 0x0000000000ffffffUL;
+        seed[seed_idx - 2] |= 0x0000000102000000UL;
+        seed[seed_idx - 1]  = 0UL;
       break;
 
     case 12:
-        if (((seed[seed_idx - 1] & 0xffffffffffffffff) != 0x0c0c0c0c0c0c0c0c) ||
-            ((seed[seed_idx - 2] & 0xffffffff00000000) != 0x0c0c0c0c00000000))
+        if (((seed[seed_idx - 1] & 0xffffffffffffffffUL) != 0x0c0c0c0c0c0c0c0cUL) ||
+            ((seed[seed_idx - 2] & 0xffffffff00000000UL) != 0x0c0c0c0c00000000UL))
         {
           return;
         }
 
-        seed[seed_idx - 2] &= 0x00000000ffffffff;
-        seed[seed_idx - 2] |= 0x0000010200000000;
-        seed[seed_idx - 1] = 0;
+        seed[seed_idx - 2] &= 0x00000000ffffffffUL;
+        seed[seed_idx - 2] |= 0x0000010200000000UL;
+        seed[seed_idx - 1]  = 0UL;
       break;
 
     case 11:
-        if (((seed[seed_idx - 1] & 0xffffffffffffffff) != 0x0b0b0b0b0b0b0b0b) ||
-            ((seed[seed_idx - 2] & 0xffffff0000000000) != 0x0b0b0b0000000000))
+        if (((seed[seed_idx - 1] & 0xffffffffffffffffUL) != 0x0b0b0b0b0b0b0b0bUL) ||
+            ((seed[seed_idx - 2] & 0xffffff0000000000UL) != 0x0b0b0b0000000000UL))
         {
           return;
         }
 
-        seed[seed_idx - 2] &= 0x000000ffffffffff;
-        seed[seed_idx - 2] |= 0x0001020000000000;
-        seed[seed_idx - 1] = 0;
+        seed[seed_idx - 2] &= 0x000000ffffffffffUL;
+        seed[seed_idx - 2] |= 0x0001020000000000UL;
+        seed[seed_idx - 1]  = 0UL;
       break;
 
     case 10:
-        if (((seed[seed_idx - 1] & 0xffffffffffffffff) != 0x0a0a0a0a0a0a0a0a) ||
-            ((seed[seed_idx - 2] & 0xffff000000000000) != 0x0a0a000000000000))
+        if (((seed[seed_idx - 1] & 0xffffffffffffffffUL) != 0x0a0a0a0a0a0a0a0aUL) ||
+            ((seed[seed_idx - 2] & 0xffff000000000000UL) != 0x0a0a000000000000UL))
         {
           return;
         }
 
-        seed[seed_idx - 2] &= 0x0000ffffffffffff;
-        seed[seed_idx - 2] |= 0x0102000000000000;
-        seed[seed_idx - 1] = 0;
+        seed[seed_idx - 2] &= 0x0000ffffffffffffUL;
+        seed[seed_idx - 2] |= 0x0102000000000000UL;
+        seed[seed_idx - 1]  = 0UL;
       break;
 
     case  9:
-        if (((seed[seed_idx - 1] & 0xffffffffffffffff) != 0x0909090909090909) ||
-            ((seed[seed_idx - 2] & 0xff00000000000000) != 0x0900000000000000))
+        if (((seed[seed_idx - 1] & 0xffffffffffffffffUL) != 0x0909090909090909UL) ||
+            ((seed[seed_idx - 2] & 0xff00000000000000UL) != 0x0900000000000000UL))
         {
           return;
         }
 
-        seed[seed_idx - 2] &= 0x00ffffffffffffff;
-        seed[seed_idx - 2] |= 0x0200000000000000;
-        seed[seed_idx - 1] = 0x01;
+        seed[seed_idx - 2] &= 0x00ffffffffffffffUL;
+        seed[seed_idx - 2] |= 0x0200000000000000UL;
+        seed[seed_idx - 1]  = 0x01UL;
       break;
 
     case  8:
-        if (((seed[seed_idx - 1] & 0xffffffffffffffff) != 0x0808080808080808) ||
-            ((seed[seed_idx - 2] & 0x0000000000000000) != 0x0000000000000000))
+        if (((seed[seed_idx - 1] & 0xffffffffffffffffUL) != 0x0808080808080808UL) ||
+            ((seed[seed_idx - 2] & 0x0000000000000000UL) != 0x0000000000000000UL))
         {
           return;
         }
 
-        seed[seed_idx - 1] = 0x0102;
+        seed[seed_idx - 1]  = 0x0102UL;
       break;
 
     case  7:
-        if (((seed[seed_idx - 1] & 0xffffffffffffff00) != 0x0707070707070700) ||
-            ((seed[seed_idx - 2] & 0x0000000000000000) != 0x0000000000000000))
+        if (((seed[seed_idx - 1] & 0xffffffffffffff00UL) != 0x0707070707070700UL) ||
+            ((seed[seed_idx - 2] & 0x0000000000000000UL) != 0x0000000000000000UL))
         {
           return;
         }
 
-        seed[seed_idx - 1] &= 0x00000000000000ff;
-        seed[seed_idx - 1] |= 0x0000000000010200;
+        seed[seed_idx - 1] &= 0x00000000000000ffUL;
+        seed[seed_idx - 1] |= 0x0000000000010200UL;
       break;
 
     case  6:
-        if (((seed[seed_idx - 1] & 0xffffffffffff0000) != 0x0606060606060000) ||
-            ((seed[seed_idx - 2] & 0x0000000000000000) != 0x0000000000000000))
+        if (((seed[seed_idx - 1] & 0xffffffffffff0000UL) != 0x0606060606060000UL) ||
+            ((seed[seed_idx - 2] & 0x0000000000000000UL) != 0x0000000000000000UL))
         {
           return;
         }
 
-        seed[seed_idx - 1] &= 0x000000000000ffff;
-        seed[seed_idx - 1] |= 0x0000000001020000;
+        seed[seed_idx - 1] &= 0x000000000000ffffUL;
+        seed[seed_idx - 1] |= 0x0000000001020000UL;
       break;
 
     case  5:
-        if (((seed[seed_idx - 1] & 0xffffffffff000000) != 0x0505050505000000) ||
-            ((seed[seed_idx - 2] & 0x0000000000000000) != 0x0000000000000000))
+        if (((seed[seed_idx - 1] & 0xffffffffff000000UL) != 0x0505050505000000UL) ||
+            ((seed[seed_idx - 2] & 0x0000000000000000UL) != 0x0000000000000000UL))
         {
           return;
         }
 
-        seed[seed_idx - 1] &= 0x0000000000ffffff;
-        seed[seed_idx - 1] |= 0x0000000102000000;
+        seed[seed_idx - 1] &= 0x0000000000ffffffUL;
+        seed[seed_idx - 1] |= 0x0000000102000000UL;
       break;
 
     case  4:
-        if (((seed[seed_idx - 1] & 0xffffffff00000000) != 0x0404040400000000) ||
-            ((seed[seed_idx - 2] & 0x0000000000000000) != 0x0000000000000000))
+        if (((seed[seed_idx - 1] & 0xffffffff00000000UL) != 0x0404040400000000UL) ||
+            ((seed[seed_idx - 2] & 0x0000000000000000UL) != 0x0000000000000000UL))
         {
           return;
         }
 
-        seed[seed_idx - 1] &= 0x00000000ffffffff;
-        seed[seed_idx - 1] |= 0x0000010200000000;
+        seed[seed_idx - 1] &= 0x00000000ffffffffUL;
+        seed[seed_idx - 1] |= 0x0000010200000000UL;
       break;
 
     case  3:
-        if (((seed[seed_idx - 1] & 0xffffff0000000000) != 0x0303030000000000) ||
-            ((seed[seed_idx - 2] & 0x0000000000000000) != 0x0000000000000000))
+        if (((seed[seed_idx - 1] & 0xffffff0000000000UL) != 0x0303030000000000UL) ||
+            ((seed[seed_idx - 2] & 0x0000000000000000UL) != 0x0000000000000000UL))
         {
           return;
         }
 
-        seed[seed_idx - 1] &= 0x000000ffffffffff;
-        seed[seed_idx - 1] |= 0x0001020000000000;
+        seed[seed_idx - 1] &= 0x000000ffffffffffUL;
+        seed[seed_idx - 1] |= 0x0001020000000000UL;
       break;
 
     case  2:
-        if (((seed[seed_idx - 1] & 0xffff000000000000) != 0x0202000000000000) ||
-            ((seed[seed_idx - 2] & 0x0000000000000000) != 0x0000000000000000))
+        if (((seed[seed_idx - 1] & 0xffff000000000000UL) != 0x0202000000000000UL) ||
+            ((seed[seed_idx - 2] & 0x0000000000000000UL) != 0x0000000000000000UL))
         {
           return;
         }
 
-        seed[seed_idx - 1] &= 0x0000ffffffffffff;
-        seed[seed_idx - 1] |= 0x0102000000000000;
+        seed[seed_idx - 1] &= 0x0000ffffffffffffUL;
+        seed[seed_idx - 1] |= 0x0102000000000000UL;
       break;
 
     case  1:
-        if (((seed[seed_idx - 1] & 0xff00000000000000) != 0x0100000000000000) ||
-            ((seed[seed_idx - 2] & 0x0000000000000000) != 0x0000000000000000))
+        if (((seed[seed_idx - 1] & 0xff00000000000000UL) != 0x0100000000000000UL) ||
+            ((seed[seed_idx - 2] & 0x0000000000000000UL) != 0x0000000000000000UL))
         {
           return;
         }
 
-        seed[seed_idx - 1] &= 0x00ffffffffffffff;
-        seed[seed_idx - 1] |= 0x0200000000000000;
-        seed[seed_idx - 0] = 0x01;
+        seed[seed_idx - 1] &= 0x00ffffffffffffffUL;
+        seed[seed_idx - 1] |= 0x0200000000000000UL;
+        seed[seed_idx - 0]  = 0x01UL;
       break;
 
     default:
@@ -761,7 +759,7 @@ KERNEL_FQ void m16300_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, ethereum_
 
   // final:
 
-  st[16] ^= 0x8000000000000000;
+  st[16] ^= 0x8000000000000000UL;
 
   keccak_transform_S (st);
 

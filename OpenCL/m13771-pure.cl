@@ -97,12 +97,12 @@ DECLSPEC void hmac_streebog512_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u6
   u64x padding[8]       = { 0 };
   u64x message[8];
 
-  padding[7] = 0x0100000000000000;
+  padding[7] = 0x0100000000000000UL;
 
   //inner HMAC: ipad + message
 
   //first transform: precalculated ipad hash
-  counterbuf[7] = 0x0002000000000000;
+  counterbuf[7] = 0x0002000000000000UL;
 
   //second transform: message = previous HMAC digest
   message[7] = hl32_to_64 (w3[2], w3[3]);
@@ -125,7 +125,7 @@ DECLSPEC void hmac_streebog512_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u6
 
   streebog512_g_vector (digest, counterbuf, message, s_sbob_sl64);
 
-  counterbuf[7] = 0x0004000000000000;
+  counterbuf[7] = 0x0004000000000000UL;
 
   //final: padding byte
   streebog512_g_vector (digest, counterbuf, padding, s_sbob_sl64);
@@ -140,7 +140,7 @@ DECLSPEC void hmac_streebog512_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u6
   //outer HMAC: opad + digest
 
   //first transform: precalculated opad hash
-  counterbuf[7] = 0x0002000000000000;
+  counterbuf[7] = 0x0002000000000000UL;
 
   //second transform: message = inner HMAC digest
   message[0] = digest[0];
@@ -163,7 +163,7 @@ DECLSPEC void hmac_streebog512_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u6
 
   streebog512_g_vector (digest, counterbuf, message, s_sbob_sl64);
 
-  counterbuf[7] = 0x0004000000000000;
+  counterbuf[7] = 0x0004000000000000UL;
 
   streebog512_g_vector (digest, counterbuf, padding, s_sbob_sl64);
 

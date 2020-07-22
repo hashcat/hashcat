@@ -2903,7 +2903,7 @@ DECLSPEC void switch_buffer_by_offset_le (u32x *w0, u32x *w1, u32x *w2, u32x *w3
   #endif
 
   #if defined IS_AMD
-  const int selector = 0x0706050403020100 >> (offset_minus_4 * 8);
+  const int selector = l32_from_64_S (0x0706050403020100UL >> (offset_minus_4 * 8));
   #endif
 
   switch (offset_switch)
@@ -4495,7 +4495,7 @@ DECLSPEC void switch_buffer_by_offset_be (u32x *w0, u32x *w1, u32x *w2, u32x *w3
   #endif
 
   #if defined IS_AMD
-  const int selector = 0x0706050403020100 >> ((offset & 3) * 8);
+  const int selector = l32_from_64_S (0x0706050403020100UL >> ((offset & 3) * 8));
   #endif
 
   switch (offset_switch)
@@ -5295,7 +5295,7 @@ DECLSPEC void switch_buffer_by_offset_carry_be (u32x *w0, u32x *w1, u32x *w2, u3
   #endif
 
   #if defined IS_AMD
-  const int selector = 0x0706050403020100 >> ((offset & 3) * 8);
+  const int selector = l32_from_64_S (0x0706050403020100UL >> ((offset & 3) * 8));
   #endif
 
   switch (offset_switch)
@@ -6931,7 +6931,7 @@ DECLSPEC void switch_buffer_by_offset_8x4_le (u32x *w0, u32x *w1, u32x *w2, u32x
   #endif
 
   #if defined IS_AMD
-  const int selector = 0x0706050403020100 >> (offset_minus_4 * 8);
+  const int selector = l32_from_64_S (0x0706050403020100UL >> (offset_minus_4 * 8));
   #endif
 
   switch (offset_switch)
@@ -9199,7 +9199,7 @@ DECLSPEC void switch_buffer_by_offset_8x4_carry_le (u32x *w0, u32x *w1, u32x *w2
   #endif
 
   #if defined IS_AMD
-  const int selector = 0x0706050403020100 >> (offset_minus_4 * 8);
+  const int selector = l32_from_64_S (0x0706050403020100UL >> (offset_minus_4 * 8));
   #endif
 
   switch (offset_switch)
@@ -12055,7 +12055,7 @@ DECLSPEC void switch_buffer_by_offset_8x4_be (u32x *w0, u32x *w1, u32x *w2, u32x
   #endif
 
   #if defined IS_AMD
-  const int selector = 0x0706050403020100 >> ((offset & 3) * 8);
+  const int selector = l32_from_64_S (0x0706050403020100UL >> ((offset & 3) * 8));
   #endif
 
   switch (offset_switch)
@@ -14911,7 +14911,7 @@ DECLSPEC void switch_buffer_by_offset_8x4_carry_be (u32x *w0, u32x *w1, u32x *w2
   #endif
 
   #if defined IS_AMD
-  const int selector = 0x0706050403020100 >> ((offset & 3) * 8);
+  const int selector = l32_from_64_S (0x0706050403020100UL >> ((offset & 3) * 8));
   #endif
 
   switch (offset_switch)
@@ -20971,7 +20971,7 @@ DECLSPEC void switch_buffer_by_offset_1x64_le (u32x *w, const u32 offset)
   #endif
 
   #if defined IS_AMD
-  const int selector = 0x0706050403020100 >> (offset_minus_4 * 8);
+  const int selector = l32_from_64_S (0x0706050403020100UL >> (offset_minus_4 * 8));
   #endif
 
   switch (offset_switch)
@@ -29699,7 +29699,7 @@ DECLSPEC void switch_buffer_by_offset_1x64_be (u32x *w, const u32 offset)
   #endif
 
   #if defined IS_AMD
-  const int selector = 0x0706050403020100 >> ((offset & 3) * 8);
+  const int selector = l32_from_64_S (0x0706050403020100UL >> ((offset & 3) * 8));
   #endif
 
   switch (offset_switch)
@@ -36494,7 +36494,7 @@ DECLSPEC void switch_buffer_by_offset_le_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, 
   #endif
 
   #if defined IS_AMD
-  const int selector = 0x0706050403020100 >> (offset_minus_4 * 8);
+  const int selector = l32_from_64_S (0x0706050403020100UL >> (offset_minus_4 * 8));
   #endif
 
   switch (offset_switch)
@@ -38086,7 +38086,7 @@ DECLSPEC void switch_buffer_by_offset_be_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, 
   #endif
 
   #if defined IS_AMD
-  const int selector = 0x0706050403020100 >> ((offset & 3) * 8);
+  const int selector = l32_from_64_S (0x0706050403020100UL >> ((offset & 3) * 8));
   #endif
 
   switch (offset_switch)
@@ -38886,7 +38886,7 @@ DECLSPEC void switch_buffer_by_offset_carry_be_S (u32 *w0, u32 *w1, u32 *w2, u32
   #endif
 
   #if defined IS_AMD
-  const int selector = 0x0706050403020100 >> ((offset & 3) * 8);
+  const int selector = l32_from_64_S (0x0706050403020100UL >> ((offset & 3) * 8));
   #endif
 
   switch (offset_switch)
@@ -40522,7 +40522,7 @@ DECLSPEC void switch_buffer_by_offset_8x4_le_S (u32 *w0, u32 *w1, u32 *w2, u32 *
   #endif
 
   #if defined IS_AMD
-  const int selector = 0x0706050403020100 >> (offset_minus_4 * 8);
+  const int selector = l32_from_64_S (0x0706050403020100UL >> (offset_minus_4 * 8));
   #endif
 
   switch (offset_switch)
@@ -42790,7 +42790,7 @@ DECLSPEC void switch_buffer_by_offset_8x4_carry_le_S (u32 *w0, u32 *w1, u32 *w2,
   #endif
 
   #if defined IS_AMD
-  const int selector = 0x0706050403020100 >> (offset_minus_4 * 8);
+  const int selector = l32_from_64_S (0x0706050403020100UL >> (offset_minus_4 * 8));
   #endif
 
   switch (offset_switch)
@@ -45646,7 +45646,7 @@ DECLSPEC void switch_buffer_by_offset_8x4_be_S (u32 *w0, u32 *w1, u32 *w2, u32 *
   #endif
 
   #if defined IS_AMD
-  const int selector = 0x0706050403020100 >> ((offset & 3) * 8);
+  const int selector = l32_from_64_S (0x0706050403020100UL >> ((offset & 3) * 8));
   #endif
 
   switch (offset_switch)
@@ -48502,7 +48502,7 @@ DECLSPEC void switch_buffer_by_offset_8x4_carry_be_S (u32 *w0, u32 *w1, u32 *w2,
   #endif
 
   #if defined IS_AMD
-  const int selector = 0x0706050403020100 >> ((offset & 3) * 8);
+  const int selector = l32_from_64_S (0x0706050403020100UL >> ((offset & 3) * 8));
   #endif
 
   switch (offset_switch)
@@ -54562,7 +54562,7 @@ DECLSPEC void switch_buffer_by_offset_1x64_le_S (u32 *w, const u32 offset)
   #endif
 
   #if defined IS_AMD
-  const int selector = 0x0706050403020100 >> (offset_minus_4 * 8);
+  const int selector = l32_from_64_S (0x0706050403020100UL >> (offset_minus_4 * 8));
   #endif
 
   switch (offset_switch)
@@ -63290,7 +63290,7 @@ DECLSPEC void switch_buffer_by_offset_1x64_be_S (u32 *w, const u32 offset)
   #endif
 
   #if defined IS_AMD
-  const int selector = 0x0706050403020100 >> ((offset & 3) * 8);
+  const int selector = l32_from_64_S (0x0706050403020100UL >> ((offset & 3) * 8));
   #endif
 
   switch (offset_switch)
