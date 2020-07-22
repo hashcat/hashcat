@@ -331,7 +331,7 @@ KERNEL_FQ void m06500_comp (KERN_ATTR_TMPS (sha512aix_tmp_t))
   u64 e = tmps[gid].out[4];
   u64 f = tmps[gid].out[5];
   u64 g = tmps[gid].out[6];
-  u64 h = tmps[gid].out[7] & 0xffffffffffffff00;
+  u64 h = tmps[gid].out[7] & 0xffffffffffffff00UL;
   */
 
   const u32 r0 = l32_from_64_S (tmps[gid].out[0]);

@@ -23,6 +23,7 @@
 
 - Compile ZLIB: Fixed makefile include paths in case USE_SYSTEM_ZLIB is used
 - Compile macOS: Fixed makefile target 'clean' to correctly remove *.dSYM folders
+- OpenCL Kernels: Added datatypes to literals of enum costants
 - OpenCL Kernels: Added pure kernels for hash-mode 600 (BLAKE2b-512)
 - OpenCL Runtime: Reinterpret return code CL_DEVICE_NOT_FOUND from clGetDeviceIDs() as non-fatal
 - OpenCL Runtime: Add some unstable warnings for some SHA512 based algorithms on AMD GPU on macOS

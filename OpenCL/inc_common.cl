@@ -1323,21 +1323,21 @@ DECLSPEC u64x hc_swap64 (const u64x v)
 
   r = bitselect (bitselect (rotate (v, make_u64x (24)),
                             rotate (v, make_u64x ( 8)),
-                                       make_u64x (0x000000ff000000ff)),
+                                       make_u64x (0x000000ff000000ffUL)),
                  bitselect (rotate (v, make_u64x (56)),
                             rotate (v, make_u64x (40)),
-                                       make_u64x (0x00ff000000ff0000)),
-                                       make_u64x (0xffff0000ffff0000));
+                                       make_u64x (0x00ff000000ff0000UL)),
+                                       make_u64x (0xffff0000ffff0000UL));
   #else
 
-  r = ((v & make_u64x (0xff00000000000000ULL)) >> 56)
-    | ((v & make_u64x (0x00ff000000000000ULL)) >> 40)
-    | ((v & make_u64x (0x0000ff0000000000ULL)) >> 24)
-    | ((v & make_u64x (0x000000ff00000000ULL)) >>  8)
-    | ((v & make_u64x (0x00000000ff000000ULL)) <<  8)
-    | ((v & make_u64x (0x0000000000ff0000ULL)) << 24)
-    | ((v & make_u64x (0x000000000000ff00ULL)) << 40)
-    | ((v & make_u64x (0x00000000000000ffULL)) << 56);
+  r = ((v & make_u64x (0xff00000000000000UL)) >> 56)
+    | ((v & make_u64x (0x00ff000000000000UL)) >> 40)
+    | ((v & make_u64x (0x0000ff0000000000UL)) >> 24)
+    | ((v & make_u64x (0x000000ff00000000UL)) >>  8)
+    | ((v & make_u64x (0x00000000ff000000UL)) <<  8)
+    | ((v & make_u64x (0x0000000000ff0000UL)) << 24)
+    | ((v & make_u64x (0x000000000000ff00UL)) << 40)
+    | ((v & make_u64x (0x00000000000000ffUL)) << 56);
 
   #endif
 
@@ -1384,14 +1384,14 @@ DECLSPEC u64 hc_swap64_S (const u64 v)
   #ifdef USE_SWIZZLE
   r = as_ulong (as_uchar8 (v).s76543210);
   #else
-  r = ((v & (u64) 0xff00000000000000ULL) >> 56)
-    | ((v & (u64) 0x00ff000000000000ULL) >> 40)
-    | ((v & (u64) 0x0000ff0000000000ULL) >> 24)
-    | ((v & (u64) 0x000000ff00000000ULL) >>  8)
-    | ((v & (u64) 0x00000000ff000000ULL) <<  8)
-    | ((v & (u64) 0x0000000000ff0000ULL) << 24)
-    | ((v & (u64) 0x000000000000ff00ULL) << 40)
-    | ((v & (u64) 0x00000000000000ffULL) << 56);
+  r = ((v & (u64) 0xff00000000000000UL) >> 56)
+    | ((v & (u64) 0x00ff000000000000UL) >> 40)
+    | ((v & (u64) 0x0000ff0000000000UL) >> 24)
+    | ((v & (u64) 0x000000ff00000000UL) >>  8)
+    | ((v & (u64) 0x00000000ff000000UL) <<  8)
+    | ((v & (u64) 0x0000000000ff0000UL) << 24)
+    | ((v & (u64) 0x000000000000ff00UL) << 40)
+    | ((v & (u64) 0x00000000000000ffUL) << 56);
   #endif
   #endif
   #endif
