@@ -11,8 +11,9 @@
 ## Bugs
 ##
 
-- Fixed integer overflow for large masks in -a 6 attack mode
 - Fixed alias detection with additional processor core count check
+- Fixed false negatives in hash-mode 10901 if hash-mode 9200, 10000, 10900 or 20300 was used to compile the kernel binary
+- Fixed integer overflow for large masks in -a 6 attack mode
 - Fixed maximum password length in modules of hash-modes 600, 7800, 7801 and 9900
 - Fixed non-zero status code when using --stdout
 - Fixed uninitialized value in bitsliced DES kernel (BF mode only) leading to false negatives
@@ -21,12 +22,12 @@
 ## Improvements
 ##
 
-- Compile ZLIB: Fixed makefile include paths in case USE_SYSTEM_ZLIB is used
 - Compile macOS: Fixed makefile target 'clean' to correctly remove *.dSYM folders
+- Compile ZLIB: Fixed makefile include paths in case USE_SYSTEM_ZLIB is used
 - OpenCL Kernels: Added datatypes to literals of enum costants
 - OpenCL Kernels: Added pure kernels for hash-mode 600 (BLAKE2b-512)
-- OpenCL Runtime: Reinterpret return code CL_DEVICE_NOT_FOUND from clGetDeviceIDs() as non-fatal
 - OpenCL Runtime: Add some unstable warnings for some SHA512 based algorithms on AMD GPU on macOS
+- OpenCL Runtime: Reinterpret return code CL_DEVICE_NOT_FOUND from clGetDeviceIDs() as non-fatal
 
 ##
 ## Technical
