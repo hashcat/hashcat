@@ -14,7 +14,6 @@
 #include "inc_rp.cl"
 #include "inc_scalar.cl"
 #include "inc_hash_md5.cl"
-#include "inc_hash_sha1.cl"
 #endif
 
 #if   VECT_SIZE == 1
@@ -64,37 +63,41 @@ KERNEL_FQ void m21200_mxx (KERN_ATTR_RULES ())
 
   COPY_PW (pws[gid]);
 
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
+  /**
+   * salt
+   */
 
-  u32 s[64] = { 0 };
+  u32 salt_buf0[4];
+  u32 salt_buf1[4];
+  u32 salt_buf2[4];
+  u32 salt_buf3[4];
 
-  for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
-  {
-    s[idx] = salt_bufs[salt_pos].salt_buf[idx];
-  }
+  salt_buf0[0] = salt_bufs[salt_pos].salt_buf_pc[0];
+  salt_buf0[1] = salt_bufs[salt_pos].salt_buf_pc[1];
+  salt_buf0[2] = salt_bufs[salt_pos].salt_buf_pc[2];
+  salt_buf0[3] = salt_bufs[salt_pos].salt_buf_pc[3];
+  salt_buf1[0] = salt_bufs[salt_pos].salt_buf_pc[4];
+  salt_buf1[1] = salt_bufs[salt_pos].salt_buf_pc[5];
+  salt_buf1[2] = salt_bufs[salt_pos].salt_buf_pc[6];
+  salt_buf1[3] = salt_bufs[salt_pos].salt_buf_pc[7];
+  salt_buf2[0] = salt_bufs[salt_pos].salt_buf_pc[8];
+  salt_buf2[1] = salt_bufs[salt_pos].salt_buf_pc[9];
+  salt_buf2[2] = 0;
+  salt_buf2[3] = 0;
+  salt_buf3[0] = 0;
+  salt_buf3[1] = 0;
+  salt_buf3[2] = 0;
+  salt_buf3[3] = 0;
 
-  sha1_ctx_t ctx0;
+  md5_ctx_t ctx0;
 
-  sha1_init (&ctx0);
+  md5_init (&ctx0);
 
-  sha1_update_swap (&ctx0, s, salt_len);
-
-  sha1_final (&ctx0);
-
-  const u32 a0 = ctx0.h[0];
-  const u32 b0 = ctx0.h[1];
-  const u32 c0 = ctx0.h[2];
-  const u32 d0 = ctx0.h[3];
-  const u32 e0 = ctx0.h[4];
+  md5_update_64 (&ctx0, salt_buf0, salt_buf1, salt_buf2, salt_buf3, 40);
 
   /**
    * loop
    */
-
-  u32 w0[4];
-  u32 w1[4];
-  u32 w2[4];
-  u32 w3[4];
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
@@ -110,61 +113,34 @@ KERNEL_FQ void m21200_mxx (KERN_ATTR_RULES ())
 
     md5_final (&ctx1);
 
-    const u32 a1 = hc_swap32 (ctx1.h[0]);
-    const u32 b1 = hc_swap32 (ctx1.h[1]);
-    const u32 c1 = hc_swap32 (ctx1.h[2]);
-    const u32 d1 = hc_swap32 (ctx1.h[3]);
+    const u32 a = hc_swap32 (ctx1.h[0]);
+    const u32 b = hc_swap32 (ctx1.h[1]);
+    const u32 c = hc_swap32 (ctx1.h[2]);
+    const u32 d = hc_swap32 (ctx1.h[3]);
 
-    md5_ctx_t ctx;
+    // add md5_hex ($pass) to ctx0:
 
-    md5_init (&ctx);
+    u32 w0[4];
+    u32 w1[4];
+    u32 w2[4];
+    u32 w3[4];
 
-    w0[0] = uint_to_hex_lower8 ((a0 >> 24) & 255) <<  0
-          | uint_to_hex_lower8 ((a0 >> 16) & 255) << 16;
-    w0[1] = uint_to_hex_lower8 ((a0 >>  8) & 255) <<  0
-          | uint_to_hex_lower8 ((a0 >>  0) & 255) << 16;
-    w0[2] = uint_to_hex_lower8 ((b0 >> 24) & 255) <<  0
-          | uint_to_hex_lower8 ((b0 >> 16) & 255) << 16;
-    w0[3] = uint_to_hex_lower8 ((b0 >>  8) & 255) <<  0
-          | uint_to_hex_lower8 ((b0 >>  0) & 255) << 16;
-    w1[0] = uint_to_hex_lower8 ((c0 >> 24) & 255) <<  0
-          | uint_to_hex_lower8 ((c0 >> 16) & 255) << 16;
-    w1[1] = uint_to_hex_lower8 ((c0 >>  8) & 255) <<  0
-          | uint_to_hex_lower8 ((c0 >>  0) & 255) << 16;
-    w1[2] = uint_to_hex_lower8 ((d0 >> 24) & 255) <<  0
-          | uint_to_hex_lower8 ((d0 >> 16) & 255) << 16;
-    w1[3] = uint_to_hex_lower8 ((d0 >>  8) & 255) <<  0
-          | uint_to_hex_lower8 ((d0 >>  0) & 255) << 16;
-    w2[0] = uint_to_hex_lower8 ((e0 >> 24) & 255) <<  0
-          | uint_to_hex_lower8 ((e0 >> 16) & 255) << 16;
-    w2[1] = uint_to_hex_lower8 ((e0 >>  8) & 255) <<  0
-          | uint_to_hex_lower8 ((e0 >>  0) & 255) << 16;
-
-    w2[2] = 0;
-    w2[3] = 0;
-    w3[0] = 0;
-    w3[1] = 0;
-    w3[2] = 0;
-    w3[3] = 0;
-
-    md5_update_64 (&ctx, w0, w1, w2, w3, 40);
-
-    w0[0] = uint_to_hex_lower8 ((a1 >> 24) & 255) <<  0
-          | uint_to_hex_lower8 ((a1 >> 16) & 255) << 16;
-    w0[1] = uint_to_hex_lower8 ((a1 >>  8) & 255) <<  0
-          | uint_to_hex_lower8 ((a1 >>  0) & 255) << 16;
-    w0[2] = uint_to_hex_lower8 ((b1 >> 24) & 255) <<  0
-          | uint_to_hex_lower8 ((b1 >> 16) & 255) << 16;
-    w0[3] = uint_to_hex_lower8 ((b1 >>  8) & 255) <<  0
-          | uint_to_hex_lower8 ((b1 >>  0) & 255) << 16;
-    w1[0] = uint_to_hex_lower8 ((c1 >> 24) & 255) <<  0
-          | uint_to_hex_lower8 ((c1 >> 16) & 255) << 16;
-    w1[1] = uint_to_hex_lower8 ((c1 >>  8) & 255) <<  0
-          | uint_to_hex_lower8 ((c1 >>  0) & 255) << 16;
-    w1[2] = uint_to_hex_lower8 ((d1 >> 24) & 255) <<  0
-          | uint_to_hex_lower8 ((d1 >> 16) & 255) << 16;
-    w1[3] = uint_to_hex_lower8 ((d1 >>  8) & 255) <<  0
-          | uint_to_hex_lower8 ((d1 >>  0) & 255) << 16;
+    w0[0] = uint_to_hex_lower8 ((a >> 24) & 255) <<  0
+          | uint_to_hex_lower8 ((a >> 16) & 255) << 16;
+    w0[1] = uint_to_hex_lower8 ((a >>  8) & 255) <<  0
+          | uint_to_hex_lower8 ((a >>  0) & 255) << 16;
+    w0[2] = uint_to_hex_lower8 ((b >> 24) & 255) <<  0
+          | uint_to_hex_lower8 ((b >> 16) & 255) << 16;
+    w0[3] = uint_to_hex_lower8 ((b >>  8) & 255) <<  0
+          | uint_to_hex_lower8 ((b >>  0) & 255) << 16;
+    w1[0] = uint_to_hex_lower8 ((c >> 24) & 255) <<  0
+          | uint_to_hex_lower8 ((c >> 16) & 255) << 16;
+    w1[1] = uint_to_hex_lower8 ((c >>  8) & 255) <<  0
+          | uint_to_hex_lower8 ((c >>  0) & 255) << 16;
+    w1[2] = uint_to_hex_lower8 ((d >> 24) & 255) <<  0
+          | uint_to_hex_lower8 ((d >> 16) & 255) << 16;
+    w1[3] = uint_to_hex_lower8 ((d >>  8) & 255) <<  0
+          | uint_to_hex_lower8 ((d >>  0) & 255) << 16;
 
     w2[0] = 0;
     w2[1] = 0;
@@ -174,6 +150,8 @@ KERNEL_FQ void m21200_mxx (KERN_ATTR_RULES ())
     w3[1] = 0;
     w3[2] = 0;
     w3[3] = 0;
+
+    md5_ctx_t ctx = ctx0;
 
     md5_update_64 (&ctx, w0, w1, w2, w3, 32);
 
@@ -235,37 +213,41 @@ KERNEL_FQ void m21200_sxx (KERN_ATTR_RULES ())
 
   COPY_PW (pws[gid]);
 
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
+  /**
+   * salt
+   */
 
-  u32 s[64] = { 0 };
+  u32 salt_buf0[4];
+  u32 salt_buf1[4];
+  u32 salt_buf2[4];
+  u32 salt_buf3[4];
 
-  for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
-  {
-    s[idx] = salt_bufs[salt_pos].salt_buf[idx];
-  }
+  salt_buf0[0] = salt_bufs[salt_pos].salt_buf_pc[0];
+  salt_buf0[1] = salt_bufs[salt_pos].salt_buf_pc[1];
+  salt_buf0[2] = salt_bufs[salt_pos].salt_buf_pc[2];
+  salt_buf0[3] = salt_bufs[salt_pos].salt_buf_pc[3];
+  salt_buf1[0] = salt_bufs[salt_pos].salt_buf_pc[4];
+  salt_buf1[1] = salt_bufs[salt_pos].salt_buf_pc[5];
+  salt_buf1[2] = salt_bufs[salt_pos].salt_buf_pc[6];
+  salt_buf1[3] = salt_bufs[salt_pos].salt_buf_pc[7];
+  salt_buf2[0] = salt_bufs[salt_pos].salt_buf_pc[8];
+  salt_buf2[1] = salt_bufs[salt_pos].salt_buf_pc[9];
+  salt_buf2[2] = 0;
+  salt_buf2[3] = 0;
+  salt_buf3[0] = 0;
+  salt_buf3[1] = 0;
+  salt_buf3[2] = 0;
+  salt_buf3[3] = 0;
 
-  sha1_ctx_t ctx0;
+  md5_ctx_t ctx0;
 
-  sha1_init (&ctx0);
+  md5_init (&ctx0);
 
-  sha1_update_swap (&ctx0, s, salt_len);
-
-  sha1_final (&ctx0);
-
-  const u32 a0 = ctx0.h[0];
-  const u32 b0 = ctx0.h[1];
-  const u32 c0 = ctx0.h[2];
-  const u32 d0 = ctx0.h[3];
-  const u32 e0 = ctx0.h[4];
+  md5_update_64 (&ctx0, salt_buf0, salt_buf1, salt_buf2, salt_buf3, 40);
 
   /**
    * loop
    */
-
-  u32 w0[4];
-  u32 w1[4];
-  u32 w2[4];
-  u32 w3[4];
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
@@ -281,61 +263,34 @@ KERNEL_FQ void m21200_sxx (KERN_ATTR_RULES ())
 
     md5_final (&ctx1);
 
-    const u32 a1 = hc_swap32 (ctx1.h[0]);
-    const u32 b1 = hc_swap32 (ctx1.h[1]);
-    const u32 c1 = hc_swap32 (ctx1.h[2]);
-    const u32 d1 = hc_swap32 (ctx1.h[3]);
+    const u32 a = hc_swap32 (ctx1.h[0]);
+    const u32 b = hc_swap32 (ctx1.h[1]);
+    const u32 c = hc_swap32 (ctx1.h[2]);
+    const u32 d = hc_swap32 (ctx1.h[3]);
 
-    md5_ctx_t ctx;
+    // add md5_hex ($pass) to ctx0:
 
-    md5_init (&ctx);
+    u32 w0[4];
+    u32 w1[4];
+    u32 w2[4];
+    u32 w3[4];
 
-    w0[0] = uint_to_hex_lower8 ((a0 >> 24) & 255) <<  0
-          | uint_to_hex_lower8 ((a0 >> 16) & 255) << 16;
-    w0[1] = uint_to_hex_lower8 ((a0 >>  8) & 255) <<  0
-          | uint_to_hex_lower8 ((a0 >>  0) & 255) << 16;
-    w0[2] = uint_to_hex_lower8 ((b0 >> 24) & 255) <<  0
-          | uint_to_hex_lower8 ((b0 >> 16) & 255) << 16;
-    w0[3] = uint_to_hex_lower8 ((b0 >>  8) & 255) <<  0
-          | uint_to_hex_lower8 ((b0 >>  0) & 255) << 16;
-    w1[0] = uint_to_hex_lower8 ((c0 >> 24) & 255) <<  0
-          | uint_to_hex_lower8 ((c0 >> 16) & 255) << 16;
-    w1[1] = uint_to_hex_lower8 ((c0 >>  8) & 255) <<  0
-          | uint_to_hex_lower8 ((c0 >>  0) & 255) << 16;
-    w1[2] = uint_to_hex_lower8 ((d0 >> 24) & 255) <<  0
-          | uint_to_hex_lower8 ((d0 >> 16) & 255) << 16;
-    w1[3] = uint_to_hex_lower8 ((d0 >>  8) & 255) <<  0
-          | uint_to_hex_lower8 ((d0 >>  0) & 255) << 16;
-    w2[0] = uint_to_hex_lower8 ((e0 >> 24) & 255) <<  0
-          | uint_to_hex_lower8 ((e0 >> 16) & 255) << 16;
-    w2[1] = uint_to_hex_lower8 ((e0 >>  8) & 255) <<  0
-          | uint_to_hex_lower8 ((e0 >>  0) & 255) << 16;
-
-    w2[2] = 0;
-    w2[3] = 0;
-    w3[0] = 0;
-    w3[1] = 0;
-    w3[2] = 0;
-    w3[3] = 0;
-
-    md5_update_64 (&ctx, w0, w1, w2, w3, 40);
-
-    w0[0] = uint_to_hex_lower8 ((a1 >> 24) & 255) <<  0
-          | uint_to_hex_lower8 ((a1 >> 16) & 255) << 16;
-    w0[1] = uint_to_hex_lower8 ((a1 >>  8) & 255) <<  0
-          | uint_to_hex_lower8 ((a1 >>  0) & 255) << 16;
-    w0[2] = uint_to_hex_lower8 ((b1 >> 24) & 255) <<  0
-          | uint_to_hex_lower8 ((b1 >> 16) & 255) << 16;
-    w0[3] = uint_to_hex_lower8 ((b1 >>  8) & 255) <<  0
-          | uint_to_hex_lower8 ((b1 >>  0) & 255) << 16;
-    w1[0] = uint_to_hex_lower8 ((c1 >> 24) & 255) <<  0
-          | uint_to_hex_lower8 ((c1 >> 16) & 255) << 16;
-    w1[1] = uint_to_hex_lower8 ((c1 >>  8) & 255) <<  0
-          | uint_to_hex_lower8 ((c1 >>  0) & 255) << 16;
-    w1[2] = uint_to_hex_lower8 ((d1 >> 24) & 255) <<  0
-          | uint_to_hex_lower8 ((d1 >> 16) & 255) << 16;
-    w1[3] = uint_to_hex_lower8 ((d1 >>  8) & 255) <<  0
-          | uint_to_hex_lower8 ((d1 >>  0) & 255) << 16;
+    w0[0] = uint_to_hex_lower8 ((a >> 24) & 255) <<  0
+          | uint_to_hex_lower8 ((a >> 16) & 255) << 16;
+    w0[1] = uint_to_hex_lower8 ((a >>  8) & 255) <<  0
+          | uint_to_hex_lower8 ((a >>  0) & 255) << 16;
+    w0[2] = uint_to_hex_lower8 ((b >> 24) & 255) <<  0
+          | uint_to_hex_lower8 ((b >> 16) & 255) << 16;
+    w0[3] = uint_to_hex_lower8 ((b >>  8) & 255) <<  0
+          | uint_to_hex_lower8 ((b >>  0) & 255) << 16;
+    w1[0] = uint_to_hex_lower8 ((c >> 24) & 255) <<  0
+          | uint_to_hex_lower8 ((c >> 16) & 255) << 16;
+    w1[1] = uint_to_hex_lower8 ((c >>  8) & 255) <<  0
+          | uint_to_hex_lower8 ((c >>  0) & 255) << 16;
+    w1[2] = uint_to_hex_lower8 ((d >> 24) & 255) <<  0
+          | uint_to_hex_lower8 ((d >> 16) & 255) << 16;
+    w1[3] = uint_to_hex_lower8 ((d >>  8) & 255) <<  0
+          | uint_to_hex_lower8 ((d >>  0) & 255) << 16;
 
     w2[0] = 0;
     w2[1] = 0;
@@ -345,6 +300,8 @@ KERNEL_FQ void m21200_sxx (KERN_ATTR_RULES ())
     w3[1] = 0;
     w3[2] = 0;
     w3[3] = 0;
+
+    md5_ctx_t ctx = ctx0;
 
     md5_update_64 (&ctx, w0, w1, w2, w3, 32);
 

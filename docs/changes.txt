@@ -24,6 +24,7 @@
 
 - Compile macOS: Fixed makefile target 'clean' to correctly remove *.dSYM folders
 - Compile ZLIB: Fixed makefile include paths in case USE_SYSTEM_ZLIB is used
+- Hash-Mode 21200 (md5(sha1($salt).md5($pass))): Improved speed by using pre-computed SHA1
 - OpenCL Kernels: Added datatypes to literals of enum costants
 - OpenCL Kernels: Added pure kernels for hash-mode 600 (BLAKE2b-512)
 - OpenCL Runtime: Add some unstable warnings for some SHA512 based algorithms on AMD GPU on macOS

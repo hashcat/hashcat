@@ -12,7 +12,6 @@
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_md5.cl"
-#include "inc_hash_sha1.cl"
 #endif
 
 #if   VECT_SIZE == 1
@@ -69,37 +68,41 @@ KERNEL_FQ void m21200_mxx (KERN_ATTR_VECTOR ())
     w[idx] = pws[gid].i[idx];
   }
 
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
+  /**
+   * salt
+   */
 
-  u32 s[64] = { 0 };
+  u32x salt_buf0[4];
+  u32x salt_buf1[4];
+  u32x salt_buf2[4];
+  u32x salt_buf3[4];
 
-  for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
-  {
-    s[idx] = salt_bufs[salt_pos].salt_buf[idx];
-  }
+  salt_buf0[0] = salt_bufs[salt_pos].salt_buf_pc[0];
+  salt_buf0[1] = salt_bufs[salt_pos].salt_buf_pc[1];
+  salt_buf0[2] = salt_bufs[salt_pos].salt_buf_pc[2];
+  salt_buf0[3] = salt_bufs[salt_pos].salt_buf_pc[3];
+  salt_buf1[0] = salt_bufs[salt_pos].salt_buf_pc[4];
+  salt_buf1[1] = salt_bufs[salt_pos].salt_buf_pc[5];
+  salt_buf1[2] = salt_bufs[salt_pos].salt_buf_pc[6];
+  salt_buf1[3] = salt_bufs[salt_pos].salt_buf_pc[7];
+  salt_buf2[0] = salt_bufs[salt_pos].salt_buf_pc[8];
+  salt_buf2[1] = salt_bufs[salt_pos].salt_buf_pc[9];
+  salt_buf2[2] = 0;
+  salt_buf2[3] = 0;
+  salt_buf3[0] = 0;
+  salt_buf3[1] = 0;
+  salt_buf3[2] = 0;
+  salt_buf3[3] = 0;
 
-  sha1_ctx_t ctx0;
+  md5_ctx_vector_t ctx0;
 
-  sha1_init (&ctx0);
+  md5_init_vector (&ctx0);
 
-  sha1_update_swap (&ctx0, s, salt_len);
-
-  sha1_final (&ctx0);
-
-  const u32x a0 = ctx0.h[0];
-  const u32x b0 = ctx0.h[1];
-  const u32x c0 = ctx0.h[2];
-  const u32x d0 = ctx0.h[3];
-  const u32x e0 = ctx0.h[4];
+  md5_update_vector_64 (&ctx0, salt_buf0, salt_buf1, salt_buf2, salt_buf3, 40);
 
   /**
    * loop
    */
-
-  u32x _w0[4];
-  u32x _w1[4];
-  u32x _w2[4];
-  u32x _w3[4];
 
   u32x w0l = w[0];
 
@@ -113,78 +116,51 @@ KERNEL_FQ void m21200_mxx (KERN_ATTR_VECTOR ())
 
     md5_ctx_vector_t ctx1;
 
-    md5_init_vector (&ctx1);
-
+    md5_init_vector   (&ctx1);
     md5_update_vector (&ctx1, w, pw_len);
+    md5_final_vector  (&ctx1);
 
-    md5_final_vector (&ctx1);
+    const u32x a = hc_swap32 (ctx1.h[0]);
+    const u32x b = hc_swap32 (ctx1.h[1]);
+    const u32x c = hc_swap32 (ctx1.h[2]);
+    const u32x d = hc_swap32 (ctx1.h[3]);
 
-    const u32x a1 = hc_swap32 (ctx1.h[0]);
-    const u32x b1 = hc_swap32 (ctx1.h[1]);
-    const u32x c1 = hc_swap32 (ctx1.h[2]);
-    const u32x d1 = hc_swap32 (ctx1.h[3]);
+    // add md5_hex ($pass) to ctx0:
 
-    md5_ctx_vector_t ctx;
+    u32x w0_t[4];
+    u32x w1_t[4];
+    u32x w2_t[4];
+    u32x w3_t[4];
 
-    md5_init_vector (&ctx);
+    w0_t[0] = uint_to_hex_lower8 ((a >> 24) & 255) <<  0
+            | uint_to_hex_lower8 ((a >> 16) & 255) << 16;
+    w0_t[1] = uint_to_hex_lower8 ((a >>  8) & 255) <<  0
+            | uint_to_hex_lower8 ((a >>  0) & 255) << 16;
+    w0_t[2] = uint_to_hex_lower8 ((b >> 24) & 255) <<  0
+            | uint_to_hex_lower8 ((b >> 16) & 255) << 16;
+    w0_t[3] = uint_to_hex_lower8 ((b >>  8) & 255) <<  0
+            | uint_to_hex_lower8 ((b >>  0) & 255) << 16;
+    w1_t[0] = uint_to_hex_lower8 ((c >> 24) & 255) <<  0
+            | uint_to_hex_lower8 ((c >> 16) & 255) << 16;
+    w1_t[1] = uint_to_hex_lower8 ((c >>  8) & 255) <<  0
+            | uint_to_hex_lower8 ((c >>  0) & 255) << 16;
+    w1_t[2] = uint_to_hex_lower8 ((d >> 24) & 255) <<  0
+            | uint_to_hex_lower8 ((d >> 16) & 255) << 16;
+    w1_t[3] = uint_to_hex_lower8 ((d >>  8) & 255) <<  0
+            | uint_to_hex_lower8 ((d >>  0) & 255) << 16;
 
-    _w0[0] = uint_to_hex_lower8 ((a0 >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((a0 >> 16) & 255) << 16;
-    _w0[1] = uint_to_hex_lower8 ((a0 >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((a0 >>  0) & 255) << 16;
-    _w0[2] = uint_to_hex_lower8 ((b0 >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((b0 >> 16) & 255) << 16;
-    _w0[3] = uint_to_hex_lower8 ((b0 >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((b0 >>  0) & 255) << 16;
-    _w1[0] = uint_to_hex_lower8 ((c0 >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((c0 >> 16) & 255) << 16;
-    _w1[1] = uint_to_hex_lower8 ((c0 >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((c0 >>  0) & 255) << 16;
-    _w1[2] = uint_to_hex_lower8 ((d0 >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((d0 >> 16) & 255) << 16;
-    _w1[3] = uint_to_hex_lower8 ((d0 >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((d0 >>  0) & 255) << 16;
-    _w2[0] = uint_to_hex_lower8 ((e0 >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((e0 >> 16) & 255) << 16;
-    _w2[1] = uint_to_hex_lower8 ((e0 >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((e0 >>  0) & 255) << 16;
+    w2_t[0] = 0;
+    w2_t[1] = 0;
+    w2_t[2] = 0;
+    w2_t[3] = 0;
+    w3_t[0] = 0;
+    w3_t[1] = 0;
+    w3_t[2] = 0;
+    w3_t[3] = 0;
 
-    _w2[2] = 0;
-    _w2[3] = 0;
-    _w3[0] = 0;
-    _w3[1] = 0;
-    _w3[2] = 0;
-    _w3[3] = 0;
+    md5_ctx_vector_t ctx = ctx0;
 
-    md5_update_vector_64 (&ctx, _w0, _w1, _w2, _w3, 40);
-
-    _w0[0] = uint_to_hex_lower8 ((a1 >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((a1 >> 16) & 255) << 16;
-    _w0[1] = uint_to_hex_lower8 ((a1 >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((a1 >>  0) & 255) << 16;
-    _w0[2] = uint_to_hex_lower8 ((b1 >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((b1 >> 16) & 255) << 16;
-    _w0[3] = uint_to_hex_lower8 ((b1 >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((b1 >>  0) & 255) << 16;
-    _w1[0] = uint_to_hex_lower8 ((c1 >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((c1 >> 16) & 255) << 16;
-    _w1[1] = uint_to_hex_lower8 ((c1 >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((c1 >>  0) & 255) << 16;
-    _w1[2] = uint_to_hex_lower8 ((d1 >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((d1 >> 16) & 255) << 16;
-    _w1[3] = uint_to_hex_lower8 ((d1 >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((d1 >>  0) & 255) << 16;
-
-    _w2[0] = 0;
-    _w2[1] = 0;
-    _w2[2] = 0;
-    _w2[3] = 0;
-    _w3[0] = 0;
-    _w3[1] = 0;
-    _w3[2] = 0;
-    _w3[3] = 0;
-
-    md5_update_vector_64 (&ctx, _w0, _w1, _w2, _w3, 32);
+    md5_update_vector_64 (&ctx, w0_t, w1_t, w2_t, w3_t, 32);
 
     md5_final_vector (&ctx);
 
@@ -251,37 +227,41 @@ KERNEL_FQ void m21200_sxx (KERN_ATTR_VECTOR ())
     w[idx] = pws[gid].i[idx];
   }
 
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
+  /**
+   * salt
+   */
 
-  u32 s[64] = { 0 };
+  u32x salt_buf0[4];
+  u32x salt_buf1[4];
+  u32x salt_buf2[4];
+  u32x salt_buf3[4];
 
-  for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
-  {
-    s[idx] = salt_bufs[salt_pos].salt_buf[idx];
-  }
+  salt_buf0[0] = salt_bufs[salt_pos].salt_buf_pc[0];
+  salt_buf0[1] = salt_bufs[salt_pos].salt_buf_pc[1];
+  salt_buf0[2] = salt_bufs[salt_pos].salt_buf_pc[2];
+  salt_buf0[3] = salt_bufs[salt_pos].salt_buf_pc[3];
+  salt_buf1[0] = salt_bufs[salt_pos].salt_buf_pc[4];
+  salt_buf1[1] = salt_bufs[salt_pos].salt_buf_pc[5];
+  salt_buf1[2] = salt_bufs[salt_pos].salt_buf_pc[6];
+  salt_buf1[3] = salt_bufs[salt_pos].salt_buf_pc[7];
+  salt_buf2[0] = salt_bufs[salt_pos].salt_buf_pc[8];
+  salt_buf2[1] = salt_bufs[salt_pos].salt_buf_pc[9];
+  salt_buf2[2] = 0;
+  salt_buf2[3] = 0;
+  salt_buf3[0] = 0;
+  salt_buf3[1] = 0;
+  salt_buf3[2] = 0;
+  salt_buf3[3] = 0;
 
-  sha1_ctx_t ctx0;
+  md5_ctx_vector_t ctx0;
 
-  sha1_init (&ctx0);
+  md5_init_vector (&ctx0);
 
-  sha1_update_swap (&ctx0, s, salt_len);
-
-  sha1_final (&ctx0);
-
-  const u32x a0 = ctx0.h[0];
-  const u32x b0 = ctx0.h[1];
-  const u32x c0 = ctx0.h[2];
-  const u32x d0 = ctx0.h[3];
-  const u32x e0 = ctx0.h[4];
+  md5_update_vector_64 (&ctx0, salt_buf0, salt_buf1, salt_buf2, salt_buf3, 40);
 
   /**
    * loop
    */
-
-  u32x _w0[4];
-  u32x _w1[4];
-  u32x _w2[4];
-  u32x _w3[4];
 
   u32x w0l = w[0];
 
@@ -295,78 +275,51 @@ KERNEL_FQ void m21200_sxx (KERN_ATTR_VECTOR ())
 
     md5_ctx_vector_t ctx1;
 
-    md5_init_vector (&ctx1);
-
+    md5_init_vector   (&ctx1);
     md5_update_vector (&ctx1, w, pw_len);
+    md5_final_vector  (&ctx1);
 
-    md5_final_vector (&ctx1);
+    const u32x a = hc_swap32 (ctx1.h[0]);
+    const u32x b = hc_swap32 (ctx1.h[1]);
+    const u32x c = hc_swap32 (ctx1.h[2]);
+    const u32x d = hc_swap32 (ctx1.h[3]);
 
-    const u32x a1 = hc_swap32 (ctx1.h[0]);
-    const u32x b1 = hc_swap32 (ctx1.h[1]);
-    const u32x c1 = hc_swap32 (ctx1.h[2]);
-    const u32x d1 = hc_swap32 (ctx1.h[3]);
+    // add md5_hex ($pass) to ctx0:
 
-    md5_ctx_vector_t ctx;
+    u32x w0_t[4];
+    u32x w1_t[4];
+    u32x w2_t[4];
+    u32x w3_t[4];
 
-    md5_init_vector (&ctx);
+    w0_t[0] = uint_to_hex_lower8 ((a >> 24) & 255) <<  0
+            | uint_to_hex_lower8 ((a >> 16) & 255) << 16;
+    w0_t[1] = uint_to_hex_lower8 ((a >>  8) & 255) <<  0
+            | uint_to_hex_lower8 ((a >>  0) & 255) << 16;
+    w0_t[2] = uint_to_hex_lower8 ((b >> 24) & 255) <<  0
+            | uint_to_hex_lower8 ((b >> 16) & 255) << 16;
+    w0_t[3] = uint_to_hex_lower8 ((b >>  8) & 255) <<  0
+            | uint_to_hex_lower8 ((b >>  0) & 255) << 16;
+    w1_t[0] = uint_to_hex_lower8 ((c >> 24) & 255) <<  0
+            | uint_to_hex_lower8 ((c >> 16) & 255) << 16;
+    w1_t[1] = uint_to_hex_lower8 ((c >>  8) & 255) <<  0
+            | uint_to_hex_lower8 ((c >>  0) & 255) << 16;
+    w1_t[2] = uint_to_hex_lower8 ((d >> 24) & 255) <<  0
+            | uint_to_hex_lower8 ((d >> 16) & 255) << 16;
+    w1_t[3] = uint_to_hex_lower8 ((d >>  8) & 255) <<  0
+            | uint_to_hex_lower8 ((d >>  0) & 255) << 16;
 
-    _w0[0] = uint_to_hex_lower8 ((a0 >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((a0 >> 16) & 255) << 16;
-    _w0[1] = uint_to_hex_lower8 ((a0 >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((a0 >>  0) & 255) << 16;
-    _w0[2] = uint_to_hex_lower8 ((b0 >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((b0 >> 16) & 255) << 16;
-    _w0[3] = uint_to_hex_lower8 ((b0 >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((b0 >>  0) & 255) << 16;
-    _w1[0] = uint_to_hex_lower8 ((c0 >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((c0 >> 16) & 255) << 16;
-    _w1[1] = uint_to_hex_lower8 ((c0 >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((c0 >>  0) & 255) << 16;
-    _w1[2] = uint_to_hex_lower8 ((d0 >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((d0 >> 16) & 255) << 16;
-    _w1[3] = uint_to_hex_lower8 ((d0 >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((d0 >>  0) & 255) << 16;
-    _w2[0] = uint_to_hex_lower8 ((e0 >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((e0 >> 16) & 255) << 16;
-    _w2[1] = uint_to_hex_lower8 ((e0 >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((e0 >>  0) & 255) << 16;
+    w2_t[0] = 0;
+    w2_t[1] = 0;
+    w2_t[2] = 0;
+    w2_t[3] = 0;
+    w3_t[0] = 0;
+    w3_t[1] = 0;
+    w3_t[2] = 0;
+    w3_t[3] = 0;
 
-    _w2[2] = 0;
-    _w2[3] = 0;
-    _w3[0] = 0;
-    _w3[1] = 0;
-    _w3[2] = 0;
-    _w3[3] = 0;
+    md5_ctx_vector_t ctx = ctx0;
 
-    md5_update_vector_64 (&ctx, _w0, _w1, _w2, _w3, 40);
-
-    _w0[0] = uint_to_hex_lower8 ((a1 >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((a1 >> 16) & 255) << 16;
-    _w0[1] = uint_to_hex_lower8 ((a1 >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((a1 >>  0) & 255) << 16;
-    _w0[2] = uint_to_hex_lower8 ((b1 >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((b1 >> 16) & 255) << 16;
-    _w0[3] = uint_to_hex_lower8 ((b1 >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((b1 >>  0) & 255) << 16;
-    _w1[0] = uint_to_hex_lower8 ((c1 >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((c1 >> 16) & 255) << 16;
-    _w1[1] = uint_to_hex_lower8 ((c1 >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((c1 >>  0) & 255) << 16;
-    _w1[2] = uint_to_hex_lower8 ((d1 >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((d1 >> 16) & 255) << 16;
-    _w1[3] = uint_to_hex_lower8 ((d1 >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((d1 >>  0) & 255) << 16;
-
-    _w2[0] = 0;
-    _w2[1] = 0;
-    _w2[2] = 0;
-    _w2[3] = 0;
-    _w3[0] = 0;
-    _w3[1] = 0;
-    _w3[2] = 0;
-    _w3[3] = 0;
-
-    md5_update_vector_64 (&ctx, _w0, _w1, _w2, _w3, 32);
+    md5_update_vector_64 (&ctx, w0_t, w1_t, w2_t, w3_t, 32);
 
     md5_final_vector (&ctx);
 
