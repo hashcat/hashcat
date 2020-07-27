@@ -9,6 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "emu_inc_hash_sha1.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -97,6 +98,37 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const bool parse_rc = generic_salt_decode (hashconfig, salt_pos, salt_len, (u8 *) salt->salt_buf, (int *) &salt->salt_len);
 
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
+
+  // precompute sha1 ($salt) into salt->salt_buf_pc:
+
+  u32 s[64];
+
+  for (int i = 0; i < 64; i++)
+  {
+    s[i] = byte_swap_32 (salt->salt_buf[i]);
+  }
+
+  sha1_ctx_t sha1_ctx;
+
+  sha1_init   (&sha1_ctx);
+  sha1_update (&sha1_ctx, s, salt->salt_len);
+  sha1_final  (&sha1_ctx);
+
+  u32 pc[4];
+
+  pc[0] = byte_swap_32 (sha1_ctx.h[0]);
+  pc[1] = byte_swap_32 (sha1_ctx.h[1]);
+  pc[2] = byte_swap_32 (sha1_ctx.h[2]);
+  pc[3] = byte_swap_32 (sha1_ctx.h[3]);
+  pc[4] = byte_swap_32 (sha1_ctx.h[4]);
+
+  u8 *salt_buf_pc = (u8 *) salt->salt_buf_pc;
+
+  u32_to_hex (pc[0], salt_buf_pc +  0);
+  u32_to_hex (pc[1], salt_buf_pc +  8);
+  u32_to_hex (pc[2], salt_buf_pc + 16);
+  u32_to_hex (pc[3], salt_buf_pc + 24);
+  u32_to_hex (pc[4], salt_buf_pc + 32);
 
   return (PARSER_OK);
 }
