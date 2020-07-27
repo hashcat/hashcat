@@ -1056,6 +1056,7 @@ typedef struct hc_device_param
   int     device_id_alias_cnt;
   int     device_id_alias_buf[DEVICES_MAX];
 
+  u8      pcie_domain;
   u8      pcie_bus;
   u8      pcie_device;
   u8      pcie_function;
@@ -1437,6 +1438,7 @@ typedef struct hc_device_param
 
   cl_device_type    opencl_device_type;
   cl_uint           opencl_device_vendor_id;
+  u32               opencl_platform_id;
   cl_uint           opencl_platform_vendor_id;
 
   cl_device_id      opencl_device;

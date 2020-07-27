@@ -39,17 +39,33 @@ static double TARGET_MSEC_PROFILE[4] = { 2, 12, 96, 480 };
 
 static bool is_same_device (const hc_device_param_t *src, const hc_device_param_t *dst)
 {
+  // First check by PCI address
+
+  if (src->pcie_domain   != dst->pcie_domain)   return false; // PCI domain not available on OpenCL
   if (src->pcie_bus      != dst->pcie_bus)      return false;
   if (src->pcie_device   != dst->pcie_device)   return false;
   if (src->pcie_function != dst->pcie_function) return false;
 
-  // Intel CPU and embedded GPU would survive up to here!
-
-  if (src->opencl_device_type != dst->opencl_device_type) return false;
-
   // macOS still can't distinguish the devices by PCIe bus:
 
   if (src->device_processors != dst->device_processors) return false;
+
+  // CUDA can't have aliases
+
+  if ((src->is_cuda == true) && (dst->is_cuda == true)) return false;
+
+  // But OpenCL can have aliases
+
+  if ((src->is_opencl == true) && (dst->is_opencl == true))
+  {
+    // Intel CPU and embedded GPU would survive up to here!
+
+    if (src->opencl_device_type != dst->opencl_device_type) return false;
+
+    // There should be no aliases on the same opencl platform
+
+    if (src->opencl_platform_id == dst->opencl_platform_id) return false;
+  }
 
   return true;
 }
@@ -5473,13 +5489,17 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       // pcie_bus, pcie_device, pcie_function
 
-      int pci_bus_id_nv  = 0;
-      int pci_slot_id_nv = 0;
+      int pci_domain_id_nv  = 0;
+      int pci_bus_id_nv     = 0;
+      int pci_slot_id_nv    = 0;
+
+      if (hc_cuDeviceGetAttribute (hashcat_ctx, &pci_domain_id_nv, CU_DEVICE_ATTRIBUTE_PCI_DOMAIN_ID, cuda_device) == -1) return -1;
 
       if (hc_cuDeviceGetAttribute (hashcat_ctx, &pci_bus_id_nv, CU_DEVICE_ATTRIBUTE_PCI_BUS_ID, cuda_device) == -1) return -1;
 
       if (hc_cuDeviceGetAttribute (hashcat_ctx, &pci_slot_id_nv, CU_DEVICE_ATTRIBUTE_PCI_DEVICE_ID, cuda_device) == -1) return -1;
 
+      device_param->pcie_domain   = (u8) (pci_domain_id_nv);
       device_param->pcie_bus      = (u8) (pci_bus_id_nv);
       device_param->pcie_device   = (u8) (pci_slot_id_nv >> 3);
       device_param->pcie_function = (u8) (pci_slot_id_nv & 7);
@@ -5716,6 +5736,10 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         device_param->is_cuda = false;
 
         device_param->is_opencl = true;
+
+        // store opencl platform i
+
+        device_param->opencl_platform_id = opencl_platforms_idx;
 
         // check OpenCL version
 
@@ -6190,6 +6214,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
             if (hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_TOPOLOGY_AMD, sizeof (amdtopo), &amdtopo, NULL) == -1) return -1;
 
+            device_param->pcie_domain   = 0; // no attribute to query
             device_param->pcie_bus      = amdtopo.pcie.bus;
             device_param->pcie_device   = amdtopo.pcie.device;
             device_param->pcie_function = amdtopo.pcie.function;
@@ -6204,6 +6229,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
             if (hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_PCI_SLOT_ID_NV, sizeof (pci_slot_id_nv), &pci_slot_id_nv, NULL) == -1) return -1;
 
+            device_param->pcie_domain   = 0; // no attribute to query
             device_param->pcie_bus      = (u8) (pci_bus_id_nv);
             device_param->pcie_device   = (u8) (pci_slot_id_nv >> 3);
             device_param->pcie_function = (u8) (pci_slot_id_nv & 7);

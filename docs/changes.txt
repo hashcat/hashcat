@@ -24,6 +24,7 @@
 
 - Compile macOS: Fixed makefile target 'clean' to correctly remove *.dSYM folders
 - Compile ZLIB: Fixed makefile include paths in case USE_SYSTEM_ZLIB is used
+- OpenCL Devices: Utilize PCI domain to improve alias device detection
 - OpenCL Kernels: Added datatypes to literals of enum costants
 - OpenCL Kernels: Added pure kernels for hash-mode 600 (BLAKE2b-512)
 - OpenCL Runtime: Add some unstable warnings for some SHA512 based algorithms on AMD GPU on macOS
