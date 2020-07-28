@@ -5,8 +5,8 @@
 
 SHARED                  ?= 0
 DEBUG                   := 0
-PRODUCTION              := 0
-PRODUCTION_VERSION      := v6.0.0
+PRODUCTION              := 1
+PRODUCTION_VERSION      := v6.1.0
 ENABLE_CUBIN            ?= 1
 ENABLE_BRAIN            ?= 1
 USE_SYSTEM_LZMA         ?= 0
