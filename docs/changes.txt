@@ -1,5 +1,11 @@
 * changes v6.1.0 -> v6.x.x
 
+##
+## Bugs
+##
+
+- Fixed unresolvable relative paths in hashcat.log
+
 * changes v6.0.0 -> v6.1.0
 
 ##
