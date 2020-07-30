@@ -1981,6 +1981,149 @@ DECLSPEC int find_hash (const u32 *digest, const u32 digests_cnt, GLOBAL_AS cons
 }
 #endif
 
+DECLSPEC int pkcs_padding_bs8 (const u32 *data_buf, const int data_len)
+{
+  if (data_len == 0) return -1; // cannot have zero length, is important to avoid out of boundary reads
+
+  if (data_len % 8) return -1; // has to be a multiple of block size
+
+  const int last_pad_pos = data_len - 1;
+
+  const int last_pad_elem = last_pad_pos / 4;
+
+  const u32 pad = data_buf[last_pad_elem] >> 24; // guaranteed by pkcs structure
+
+  if ((pad < 1) || (pad > 8)) return -1; // pkcs pads are not zero based
+
+  const u32 padm = (pad <<  0)
+                 | (pad <<  8)
+                 | (pad << 16)
+                 | (pad << 24);
+
+  u32 mask0 = 0;
+  u32 mask1 = 0;
+
+  switch (pad)
+  {
+    case  1:  mask0 = 0x00000000; mask1 = 0xff000000; break;
+    case  2:  mask0 = 0x00000000; mask1 = 0xffff0000; break;
+    case  3:  mask0 = 0x00000000; mask1 = 0xffffff00; break;
+    case  4:  mask0 = 0x00000000; mask1 = 0xffffffff; break;
+    case  5:  mask0 = 0xff000000; mask1 = 0xffffffff; break;
+    case  6:  mask0 = 0xffff0000; mask1 = 0xffffffff; break;
+    case  7:  mask0 = 0xffffff00; mask1 = 0xffffffff; break;
+    case  8:  mask0 = 0xffffffff; mask1 = 0xffffffff; break;
+  }
+
+  const u32 data0 = data_buf[last_pad_elem - 1];
+  const u32 data1 = data_buf[last_pad_elem - 0];
+
+  if ((data0 & mask0) != (padm & mask0)) return -1;
+  if ((data1 & mask1) != (padm & mask1)) return -1;
+
+  const int real_len = data_len - pad;
+
+  return real_len;
+}
+
+DECLSPEC int pkcs_padding_bs16 (const u32 *data_buf, const int data_len)
+{
+  if (data_len == 0) return -1; // cannot have zero length, is important to avoid out of boundary reads
+
+  if (data_len % 16) return -1; // has to be a multiple of block size
+
+  const int last_pad_pos = data_len - 1;
+
+  const int last_pad_elem = last_pad_pos / 4;
+
+  const u32 pad = data_buf[last_pad_elem] >> 24; // guaranteed by pkcs structure
+
+  if ((pad < 1) || (pad > 16)) return -1; // pkcs pads are not zero based
+
+  const u32 padm = (pad <<  0)
+                 | (pad <<  8)
+                 | (pad << 16)
+                 | (pad << 24);
+
+  u32 mask0 = 0;
+  u32 mask1 = 0;
+  u32 mask2 = 0;
+  u32 mask3 = 0;
+
+  switch (pad)
+  {
+    case  1:  mask0 = 0x00000000; mask1 = 0x00000000; mask2 = 0x00000000; mask3 = 0xff000000; break;
+    case  2:  mask0 = 0x00000000; mask1 = 0x00000000; mask2 = 0x00000000; mask3 = 0xffff0000; break;
+    case  3:  mask0 = 0x00000000; mask1 = 0x00000000; mask2 = 0x00000000; mask3 = 0xffffff00; break;
+    case  4:  mask0 = 0x00000000; mask1 = 0x00000000; mask2 = 0x00000000; mask3 = 0xffffffff; break;
+    case  5:  mask0 = 0x00000000; mask1 = 0x00000000; mask2 = 0xff000000; mask3 = 0xffffffff; break;
+    case  6:  mask0 = 0x00000000; mask1 = 0x00000000; mask2 = 0xffff0000; mask3 = 0xffffffff; break;
+    case  7:  mask0 = 0x00000000; mask1 = 0x00000000; mask2 = 0xffffff00; mask3 = 0xffffffff; break;
+    case  8:  mask0 = 0x00000000; mask1 = 0x00000000; mask2 = 0xffffffff; mask3 = 0xffffffff; break;
+    case  9:  mask0 = 0x00000000; mask1 = 0xff000000; mask2 = 0xffffffff; mask3 = 0xffffffff; break;
+    case 10:  mask0 = 0x00000000; mask1 = 0xffff0000; mask2 = 0xffffffff; mask3 = 0xffffffff; break;
+    case 11:  mask0 = 0x00000000; mask1 = 0xffffff00; mask2 = 0xffffffff; mask3 = 0xffffffff; break;
+    case 12:  mask0 = 0x00000000; mask1 = 0xffffffff; mask2 = 0xffffffff; mask3 = 0xffffffff; break;
+    case 13:  mask0 = 0xff000000; mask1 = 0xffffffff; mask2 = 0xffffffff; mask3 = 0xffffffff; break;
+    case 14:  mask0 = 0xffff0000; mask1 = 0xffffffff; mask2 = 0xffffffff; mask3 = 0xffffffff; break;
+    case 15:  mask0 = 0xffffff00; mask1 = 0xffffffff; mask2 = 0xffffffff; mask3 = 0xffffffff; break;
+    case 16:  mask0 = 0xffffffff; mask1 = 0xffffffff; mask2 = 0xffffffff; mask3 = 0xffffffff; break;
+  }
+
+  const u32 data0 = data_buf[last_pad_elem - 3];
+  const u32 data1 = data_buf[last_pad_elem - 2];
+  const u32 data2 = data_buf[last_pad_elem - 1];
+  const u32 data3 = data_buf[last_pad_elem - 0];
+
+  if ((data0 & mask0) != (padm & mask0)) return -1;
+  if ((data1 & mask1) != (padm & mask1)) return -1;
+  if ((data2 & mask2) != (padm & mask2)) return -1;
+  if ((data3 & mask3) != (padm & mask3)) return -1;
+
+  const int real_len = data_len - pad;
+
+  return real_len;
+}
+
+DECLSPEC int asn1_detect (const u32 *buf, const int len)
+{
+  if (len < 128)
+  {
+    if ((buf[0] & 0x00ff80ff) != 0x00020030) return 0;
+  }
+  else if (len < 256)
+  {
+    if ((buf[0] & 0xff00ffff) != 0x02008130) return 0;
+  }
+  else if (len < 65536)
+  {
+    if ((buf[0] & 0x0000ffff) != 0x00008230) return 0;
+    if ((buf[1] & 0x000000ff) != 0x00000002) return 0;
+  }
+
+  if (len < 128)
+  {
+    const int lenb = ((buf[0] & 0x00007f00) >>  8);
+
+    if ((lenb + 2) != len) return 0;
+  }
+  else if (len < 256)
+  {
+    const int lenb = ((buf[0] & 0x00ff0000) >> 16);
+
+    if ((lenb + 3) != len) return 0;
+  }
+  else if (len < 65536)
+  {
+    const int lenb = ((buf[0] & 0xff000000) >> 24)
+                   | ((buf[0] & 0x00ff0000) >>  8);
+
+    if ((lenb + 4) != len) return 0;
+  }
+
+  return 1;
+}
+
 DECLSPEC u32 check_bitmap (GLOBAL_AS const u32 *bitmap, const u32 bitmap_mask, const u32 bitmap_shift, const u32 digest)
 {
   return (bitmap[(digest >> bitmap_shift) & bitmap_mask] & (1 << (digest & 0x1f)));
