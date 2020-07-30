@@ -100,6 +100,7 @@ static const char *HASH_CATEGORY_PASSWORD_MANAGER_STR       = "Password Managers
 static const char *HASH_CATEGORY_OTP_STR                    = "One-Time Passwords";
 static const char *HASH_CATEGORY_PLAIN_STR                  = "Plaintext";
 static const char *HASH_CATEGORY_FRAMEWORK_STR              = "Framework";
+static const char *HASH_CATEGORY_PRIVATE_KEY_STR            = "Private Key";
 
 int sort_by_string_sized (const void *p1, const void *p2)
 {
@@ -950,6 +951,7 @@ const char *strhashcategory (const u32 hash_category)
     case HASH_CATEGORY_OTP:                     return HASH_CATEGORY_OTP_STR;
     case HASH_CATEGORY_PLAIN:                   return HASH_CATEGORY_PLAIN_STR;
     case HASH_CATEGORY_FRAMEWORK:               return HASH_CATEGORY_FRAMEWORK_STR;
+    case HASH_CATEGORY_PRIVATE_KEY:             return HASH_CATEGORY_PRIVATE_KEY_STR;
   }
 
   return NULL;

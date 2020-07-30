@@ -2627,6 +2627,7 @@ typedef enum hash_category
   HASH_CATEGORY_OTP                     = 17,
   HASH_CATEGORY_PLAIN                   = 18,
   HASH_CATEGORY_FRAMEWORK               = 19,
+  HASH_CATEGORY_PRIVATE_KEY             = 20,
 
 } hash_category_t;
 
