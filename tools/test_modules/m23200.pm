@@ -54,19 +54,19 @@ sub module_verify_hash
 
   my (undef, $signature, $type, $iter, $salt_len, $salt_hex, $hash_hex) = split '\$', $hash;
 
-  next unless defined $signature;
-  next unless defined $type;
-  next unless defined $iter;
-  next unless defined $salt_len;
-  next unless defined $salt_hex;
-  next unless defined $hash_hex;
+  return unless defined $signature;
+  return unless defined $type;
+  return unless defined $iter;
+  return unless defined $salt_len;
+  return unless defined $salt_hex;
+  return unless defined $hash_hex;
 
-  next unless ($signature eq 'xmpp-scram');
-  next unless ($type eq '0');
+  return unless ($signature eq 'xmpp-scram');
+  return unless ($type eq '0');
 
   my $salt = pack ("H*", $salt_hex);
 
-  next unless ($salt_len == length $salt);
+  return unless ($salt_len == length $salt);
 
   my $word_packed = pack_if_HEX_notation ($word);
 
