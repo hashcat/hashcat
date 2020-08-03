@@ -24,7 +24,7 @@ typedef struct pem
 
 } pem_t;
 
-KERNEL_FQ void m22931_mxx (KERN_ATTR_VECTOR_ESALT (pem_t))
+KERNEL_FQ void m22941_mxx (KERN_ATTR_VECTOR_ESALT (pem_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -189,12 +189,30 @@ KERNEL_FQ void m22931_mxx (KERN_ATTR_VECTOR_ESALT (pem_t))
 
     md5_final (&ctx);
 
-    u32 ukey[4];
+    u32 ukey[6];
 
     ukey[0] = ctx.h[0];
     ukey[1] = ctx.h[1];
     ukey[2] = ctx.h[2];
     ukey[3] = ctx.h[3];
+
+    md5_init (&ctx);
+
+    ctx.w0[0] = ukey[0];
+    ctx.w0[1] = ukey[1];
+    ctx.w0[2] = ukey[2];
+    ctx.w0[3] = ukey[3];
+
+    ctx.len = 16;
+
+    md5_update (&ctx, w, pw_len);
+
+    md5_update (&ctx, t, 8);
+
+    md5_final (&ctx);
+
+    ukey[4] = ctx.h[0];
+    ukey[5] = ctx.h[1];
 
     // AES
 
@@ -202,16 +220,18 @@ KERNEL_FQ void m22931_mxx (KERN_ATTR_VECTOR_ESALT (pem_t))
     ukey[1] = hc_swap32_S (ukey[1]);
     ukey[2] = hc_swap32_S (ukey[2]);
     ukey[3] = hc_swap32_S (ukey[3]);
+    ukey[4] = hc_swap32_S (ukey[4]);
+    ukey[5] = hc_swap32_S (ukey[5]);
 
-    u32 ks[44];
+    u32 ks[52];
 
-    AES128_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+    AES192_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
     u32 dec[4];
 
     // first check the padding
 
-    aes128_decrypt (ks, enc, dec, s_td0, s_td1, s_td2, s_td3, s_td4);
+    aes192_decrypt (ks, enc, dec, s_td0, s_td1, s_td2, s_td3, s_td4);
 
     dec[0] ^= iv[0];
     dec[1] ^= iv[1];
@@ -224,7 +244,7 @@ KERNEL_FQ void m22931_mxx (KERN_ATTR_VECTOR_ESALT (pem_t))
 
     // second check (naive code) ASN.1 structure
 
-    aes128_decrypt (ks, first_data, dec, s_td0, s_td1, s_td2, s_td3, s_td4);
+    aes192_decrypt (ks, first_data, dec, s_td0, s_td1, s_td2, s_td3, s_td4);
 
     dec[0] ^= s[0];
     dec[1] ^= s[1];
@@ -246,7 +266,7 @@ KERNEL_FQ void m22931_mxx (KERN_ATTR_VECTOR_ESALT (pem_t))
   }
 }
 
-KERNEL_FQ void m22931_sxx (KERN_ATTR_VECTOR_ESALT (pem_t))
+KERNEL_FQ void m22941_sxx (KERN_ATTR_VECTOR_ESALT (pem_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -411,12 +431,30 @@ KERNEL_FQ void m22931_sxx (KERN_ATTR_VECTOR_ESALT (pem_t))
 
     md5_final (&ctx);
 
-    u32 ukey[4];
+    u32 ukey[6];
 
     ukey[0] = ctx.h[0];
     ukey[1] = ctx.h[1];
     ukey[2] = ctx.h[2];
     ukey[3] = ctx.h[3];
+
+    md5_init (&ctx);
+
+    ctx.w0[0] = ukey[0];
+    ctx.w0[1] = ukey[1];
+    ctx.w0[2] = ukey[2];
+    ctx.w0[3] = ukey[3];
+
+    ctx.len = 16;
+
+    md5_update (&ctx, w, pw_len);
+
+    md5_update (&ctx, t, 8);
+
+    md5_final (&ctx);
+
+    ukey[4] = ctx.h[0];
+    ukey[5] = ctx.h[1];
 
     // AES
 
@@ -424,16 +462,18 @@ KERNEL_FQ void m22931_sxx (KERN_ATTR_VECTOR_ESALT (pem_t))
     ukey[1] = hc_swap32_S (ukey[1]);
     ukey[2] = hc_swap32_S (ukey[2]);
     ukey[3] = hc_swap32_S (ukey[3]);
+    ukey[4] = hc_swap32_S (ukey[4]);
+    ukey[5] = hc_swap32_S (ukey[5]);
 
-    u32 ks[44];
+    u32 ks[52];
 
-    AES128_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+    AES192_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
     u32 dec[4];
 
     // first check the padding
 
-    aes128_decrypt (ks, enc, dec, s_td0, s_td1, s_td2, s_td3, s_td4);
+    aes192_decrypt (ks, enc, dec, s_td0, s_td1, s_td2, s_td3, s_td4);
 
     dec[0] ^= iv[0];
     dec[1] ^= iv[1];
@@ -446,7 +486,7 @@ KERNEL_FQ void m22931_sxx (KERN_ATTR_VECTOR_ESALT (pem_t))
 
     // second check (naive code) ASN.1 structure
 
-    aes128_decrypt (ks, first_data, dec, s_td0, s_td1, s_td2, s_td3, s_td4);
+    aes192_decrypt (ks, first_data, dec, s_td0, s_td1, s_td2, s_td3, s_td4);
 
     dec[0] ^= s[0];
     dec[1] ^= s[1];
