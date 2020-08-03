@@ -97,6 +97,7 @@
 - Added hash-mode: Open Document Format (ODF) 1.1 (SHA-1, Blowfish)
 - Added hash-mode: Open Document Format (ODF) 1.2 (SHA-256, AES)
 - Added hash-mode: Oracle Transportation Management (SHA256)
+- Added hash-mode: PKCS#1 key
 - Added hash-mode: PKZIP archive encryption
 - Added hash-mode: PKZIP Master Key
 - Added hash-mode: Python passlib pbkdf2-sha1
