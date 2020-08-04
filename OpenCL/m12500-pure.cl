@@ -17,12 +17,6 @@
 
 #define ROUNDS 0x40000
 
-typedef struct pbkdf2_sha1
-{
-  u32 salt_buf[64];
-
-} pbkdf2_sha1_t;
-
 typedef struct rar3_tmp
 {
   u32 dgst[5];
@@ -755,7 +749,7 @@ DECLSPEC void sha1_update_rar29 (sha1_ctx_t *ctx, u32 *w, const int len)
   }
 }
 
-KERNEL_FQ void m12500_init (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
+KERNEL_FQ void m12500_init (KERN_ATTR_TMPS (rar3_tmp_t))
 {
   /**
    * base
@@ -843,7 +837,7 @@ KERNEL_FQ void m12500_init (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
   tmps[gid].iv[3] = 0;
 }
 
-KERNEL_FQ void m12500_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
+KERNEL_FQ void m12500_loop (KERN_ATTR_TMPS (rar3_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -957,7 +951,7 @@ KERNEL_FQ void m12500_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
   }
 }
 
-KERNEL_FQ void m12500_comp (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
+KERNEL_FQ void m12500_comp (KERN_ATTR_TMPS (rar3_tmp_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
