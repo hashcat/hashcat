@@ -6,6 +6,12 @@
 
 - Added hash-mode: RSA/DSA/EC/OPENSSH Private Keys
 
+##
+## Bugs
+##
+
+- Fixed too early execution of some module functions which could make use of non-final values opts_type and opti_type
+
 * changes v6.1.0 -> v6.1.1
 
 ##
