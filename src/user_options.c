@@ -2702,7 +2702,13 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
+  const bool quiet_save = user_options->quiet;
+
+  user_options->quiet = true;
+
   const int rc = hashconfig_init (hashcat_ctx);
+
+  user_options->quiet = quiet_save;
 
   if (rc == -1) return -1;
 

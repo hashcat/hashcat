@@ -11,6 +11,7 @@
 ##
 
 - Fixed too early execution of some module functions which could make use of non-final values opts_type and opti_type
+- Fixed internal access on module option attribute OPTS_TYPE_SUGGEST_KG with the result that it was unused
 
 * changes v6.1.0 -> v6.1.1
 
