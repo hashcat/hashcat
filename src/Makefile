@@ -106,7 +106,7 @@ LIBRARY_DEV_ROOT_FOLDER ?= $(PREFIX)/include
 LIBRARY_DEV_FOLDER      ?= $(LIBRARY_DEV_ROOT_FOLDER)/hashcat
 
 ##
-## Depencies paths
+## Dependencies paths
 ##
 
 ifeq ($(USE_SYSTEM_LZMA),0)
