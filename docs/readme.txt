@@ -276,6 +276,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - RSA/DSA/EC/OPENSSH Private Keys
 - 1Password, agilekeychain
 - 1Password, cloudkeychain
+- Bitwarden
 - Password Safe v2
 - Password Safe v3
 - LastPass + LastPass sniffed
