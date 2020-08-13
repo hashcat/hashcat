@@ -11,7 +11,7 @@ use warnings;
 use Crypt::PBKDF2;
 use MIME::Base64 qw (encode_base64 decode_base64);
 
-sub module_constraints { [[0, 256], [0, 256], [-1, -1], [-1, -1], [-1, -1]] }
+sub module_constraints { [[0, 256], [1, 256], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub module_generate_hash
 {
@@ -38,7 +38,7 @@ sub module_generate_hash
   my $digest1 = $kdf1->PBKDF2 ($email, $word);
   my $digest2 = $kdf2->PBKDF2 ($word, $digest1); # position of $word switched !
 
-  my $hash = sprintf ("\$bitwarden\$1*%d*%s*%s", $iter, $email, encode_base64 ($digest2, ""));
+  my $hash = sprintf ("\$bitwarden\$1*%d*%s*%s", $iter, encode_base64 ($email, ""), encode_base64 ($digest2, ""));
 
   return $hash;
 }
@@ -56,18 +56,21 @@ sub module_verify_hash
 
   return unless substr ($hash, 0, 12) eq '$bitwarden$1';
 
-  my ($type, $iter, $salt, $hash_base64) = split ('\*', $hash);
+  my ($type, $iter, $salt_base64, $hash_base64) = split ('\*', $hash);
 
   return unless defined ($type);
   return unless defined ($iter);
-  return unless defined ($salt);
+  return unless defined ($salt_base64);
   return unless defined ($hash_base64);
 
   $type = substr ($type, 11);
 
   return unless ($type eq '1');
   return unless ($iter =~ m/^[0-9]{1,7}$/);
+  return unless ($salt_base64 =~ m/^[a-zA-Z0-9+\/=]+$/);
   return unless ($hash_base64 =~ m/^[a-zA-Z0-9+\/=]+$/);
+
+  my $salt = decode_base64 ($salt_base64);
 
   my $word_packed = pack_if_HEX_notation ($word);
 

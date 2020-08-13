@@ -24,7 +24,7 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$bitwarden$1*100000*noreply@hashcat.net*zAXL7noQxkIJG82vWuqyDsnoqnKAVU7gE/8IRI6BlMs=";
+static const char *ST_HASH        = "$bitwarden$1*100000*bm9yZXBseUBoYXNoY2F0Lm5ldA==*zAXL7noQxkIJG82vWuqyDsnoqnKAVU7gE/8IRI6BlMs=";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -123,8 +123,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[3]     = '*';
-  token.len_min[3] = SALT_MIN;
-  token.len_max[3] = SALT_MAX;
+  token.len_min[3] = 1;
+  token.len_max[3] = ((SALT_MAX * 8) / 6) + 3;
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.sep[4]     = '*';
@@ -159,18 +159,25 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u8 *salt_pos = token.buf[3];
   const int salt_len = token.len[3];
 
-  const bool parse_rc = generic_salt_decode (hashconfig, salt_pos, salt_len, (u8 *) salt->salt_buf, (int *) &salt->salt_len);
+  u8 tmp_buf[SALT_MAX + 1] = { 0 };
 
-  if (parse_rc == false) return (PARSER_SALT_LENGTH);
+  int tmp_len = base64_decode (base64_to_int, salt_pos, salt_len, tmp_buf);
+
+  if (tmp_len <        1) return (PARSER_SALT_LENGTH);
+  if (tmp_len > SALT_MAX) return (PARSER_SALT_LENGTH);
+
+  memcpy (salt->salt_buf, tmp_buf, tmp_len);
+
+  salt->salt_len = tmp_len;
 
   // hash
 
   const u8 *hash_pos = token.buf[4];
   const int hash_len = token.len[4];
 
-  u8 tmp_buf[100] = { 0 };
+  memset (tmp_buf, 0, sizeof (tmp_buf));
 
-  int tmp_len = base64_decode (base64_to_int, hash_pos, hash_len, tmp_buf);
+  tmp_len = base64_decode (base64_to_int, hash_pos, hash_len, tmp_buf);
 
   if (tmp_len != 32) return (PARSER_HASH_LENGTH);
 
@@ -194,9 +201,11 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // salt_buf
 
-  u8 salt_buf[SALT_MAX + 1] = { 0 };
+  #define SALT_LEN_BASE64 ((SALT_MAX * 8) / 6) + 3
 
-  generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, (const int) salt->salt_len, (u8 *) salt_buf);
+  u8 salt_buf[SALT_LEN_BASE64] = { 0 };
+
+  base64_encode (int_to_base64, (const u8 *) salt->salt_buf, (const int) salt->salt_len, salt_buf);
 
   // hash_buf
 
