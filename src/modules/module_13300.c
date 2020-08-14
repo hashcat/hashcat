@@ -17,7 +17,7 @@ static const u32   DGST_POS2      = 3;
 static const u32   DGST_POS3      = 2;
 static const u32   DGST_SIZE      = DGST_SIZE_4_5;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_ARCHIVE;
-static const char *HASH_NAME      = "AxCrypt in-memory SHA1";
+static const char *HASH_NAME      = "AxCrypt 1 in-memory SHA1";
 static const u64   KERN_TYPE      = 13300;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_PRECOMPUTE_INIT
