@@ -274,7 +274,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Apple Keychain
 - Apple Secure Notes
 - JKS Java Key Store Private Keys (SHA1)
-- RSA/DSA/EC/OPENSSH Private Keys
+- RSA/DSA/EC/OpenSSH Private Keys
 - 1Password, agilekeychain
 - 1Password, cloudkeychain
 - Password Safe v2
