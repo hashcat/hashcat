@@ -259,6 +259,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - PDF 1.4 - 1.6 (Acrobat 5 - 8)
 - PDF 1.7 Level 3 (Acrobat 9)
 - PDF 1.7 Level 8 (Acrobat 10 - 11)
+- Apple iWork
 - MS Office 2007
 - MS Office 2010
 - MS Office 2013
@@ -308,8 +309,8 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - iTunes backup >= 10.0
 - WinZip
 - Android Backup
-- AxCrypt
-- AxCrypt in-memory SHA1
+- AxCrypt 1
+- AxCrypt 1 in-memory SHA1
 - WBB3 (Woltlab Burning Board)
 - vBulletin < v3.8.5
 - vBulletin >= v3.8.5

@@ -3596,6 +3596,20 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
         num_elements = CEILDIV (num_elements, device_param->vector_width);
       }
     }
+    else if (kern_run == KERN_RUN_INIT2)
+    {
+      if (hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_SIMD_INIT2)
+      {
+        num_elements = CEILDIV (num_elements, device_param->vector_width);
+      }
+    }
+    else if (kern_run == KERN_RUN_LOOP2)
+    {
+      if (hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_SIMD_LOOP2)
+      {
+        num_elements = CEILDIV (num_elements, device_param->vector_width);
+      }
+    }
 
     if (hc_cuEventRecord (hashcat_ctx, device_param->cuda_event1, device_param->cuda_stream) == -1) return -1;
 
@@ -5540,7 +5554,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         device_param->skipped = true;
       }
 
-      // some attributes have to be hardcoded because they are used for instance in the build options
+      // some attributes have to be hardcoded values because they are used for instance in the build options
 
       device_param->device_local_mem_type     = CL_LOCAL;
       device_param->opencl_device_type        = CL_DEVICE_TYPE_GPU;
@@ -5616,11 +5630,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         cuda_devices_active++;
       }
 
-      CUcontext cuda_context;
-
-      if (hc_cuCtxCreate (hashcat_ctx, &cuda_context, CU_CTX_SCHED_BLOCKING_SYNC, device_param->cuda_device) == -1) return -1;
-
-      if (hc_cuCtxSetCurrent (hashcat_ctx, cuda_context) == -1) return -1;
+      // instruction set
 
       // bcrypt optimization?
       //const int rc_cuCtxSetCacheConfig = hc_cuCtxSetCacheConfig (hashcat_ctx, CU_FUNC_CACHE_PREFER_SHARED);
@@ -5638,46 +5648,13 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       device_param->has_mov64 = (sm >= 10) ? true : false;
       device_param->has_prmt  = (sm >= 20) ? true : false;
 
-      /*
-      #define RUN_INSTRUCTION_CHECKS()                                                                                                                                                                                                                      \
-        device_param->has_add   = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned int r; asm volatile (\"add.cc.u32 %0, 0, 0;\" : \"=r\"(r)); }");                                                              \
-        device_param->has_addc  = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned int r; asm volatile (\"addc.cc.u32 %0, 0, 0;\" : \"=r\"(r)); }");                                                             \
-        device_param->has_sub   = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned int r; asm volatile (\"sub.cc.u32 %0, 0, 0;\" : \"=r\"(r)); }");                                                              \
-        device_param->has_subc  = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned int r; asm volatile (\"subc.cc.u32 %0, 0, 0;\" : \"=r\"(r)); }");                                                             \
-        device_param->has_bfe   = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned int r; asm volatile (\"bfe.u32 %0, 0, 0, 0;\" : \"=r\"(r)); }");                                                              \
-        device_param->has_lop3  = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned int r; asm volatile (\"lop3.b32 %0, 0, 0, 0, 0;\" : \"=r\"(r)); }");                                                          \
-        device_param->has_mov64 = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned long long r; unsigned int a; unsigned int b; asm volatile (\"mov.b64 %0, {%1, %2};\" : \"=l\"(r) : \"r\"(a), \"r\"(b)); }");  \
-        device_param->has_prmt  = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned int r; asm volatile (\"prmt.b32 %0, 0, 0, 0;\" : \"=r\"(r)); }");                                                             \
-
-      if (backend_devices_idx > 0)
-      {
-        hc_device_param_t *device_param_prev = &devices_param[backend_devices_idx - 1];
-
-        if (is_same_device_type (device_param, device_param_prev) == true)
-        {
-          device_param->has_add   = device_param_prev->has_add;
-          device_param->has_addc  = device_param_prev->has_addc;
-          device_param->has_sub   = device_param_prev->has_sub;
-          device_param->has_subc  = device_param_prev->has_subc;
-          device_param->has_bfe   = device_param_prev->has_bfe;
-          device_param->has_lop3  = device_param_prev->has_lop3;
-          device_param->has_mov64 = device_param_prev->has_mov64;
-          device_param->has_prmt  = device_param_prev->has_prmt;
-        }
-        else
-        {
-          RUN_INSTRUCTION_CHECKS();
-        }
-      }
-      else
-      {
-        RUN_INSTRUCTION_CHECKS();
-      }
-
-      #undef RUN_INSTRUCTION_CHECKS
-      */
-
       // device_available_mem
+
+      CUcontext cuda_context;
+
+      if (hc_cuCtxCreate (hashcat_ctx, &cuda_context, CU_CTX_SCHED_BLOCKING_SYNC, device_param->cuda_device) == -1) return -1;
+
+      if (hc_cuCtxSetCurrent (hashcat_ctx, cuda_context) == -1) return -1;
 
       size_t free  = 0;
       size_t total = 0;
@@ -6269,6 +6246,25 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           }
         }
 
+        // instruction set
+
+        // fixed values works only for nvidia devices
+        // dynamical values for amd see time intensive section below
+
+        if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) && (device_param->opencl_platform_vendor_id == VENDOR_ID_NV))
+        {
+          const int sm = (device_param->sm_major * 10) + device_param->sm_minor;
+
+          device_param->has_add   = (sm >= 12) ? true : false;
+          device_param->has_addc  = (sm >= 12) ? true : false;
+          device_param->has_sub   = (sm >= 12) ? true : false;
+          device_param->has_subc  = (sm >= 12) ? true : false;
+          device_param->has_bfe   = (sm >= 20) ? true : false;
+          device_param->has_lop3  = (sm >= 50) ? true : false;
+          device_param->has_mov64 = (sm >= 10) ? true : false;
+          device_param->has_prmt  = (sm >= 20) ? true : false;
+        }
+
         // common driver check
 
         if (device_param->skipped == false)
@@ -6432,215 +6428,6 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
           opencl_devices_active++;
         }
-
-        /**
-         * create context for each device
-         */
-
-        cl_context context;
-
-        /*
-        cl_context_properties properties[3];
-
-        properties[0] = CL_CONTEXT_PLATFORM;
-        properties[1] = (cl_context_properties) device_param->opencl_platform;
-        properties[2] = 0;
-
-        CL_rc = hc_clCreateContext (hashcat_ctx, properties, 1, &device_param->opencl_device, NULL, NULL, &context);
-        */
-
-        if (hc_clCreateContext (hashcat_ctx, NULL, 1, &device_param->opencl_device, NULL, NULL, &context) == -1) return -1;
-
-        /**
-         * create command-queue
-         */
-
-        cl_command_queue command_queue;
-
-        if (hc_clCreateCommandQueue (hashcat_ctx, context, device_param->opencl_device, 0, &command_queue) == -1) return -1;
-
-        if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) && (device_param->opencl_platform_vendor_id == VENDOR_ID_AMD))
-        {
-          #define RUN_INSTRUCTION_CHECKS()
-            device_param->has_vadd     = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_ADD_U32     %0, vcc, 0, 0;\"      : \"=v\"(r1)); }"); \
-            device_param->has_vaddc    = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_ADDC_U32    %0, vcc, 0, 0, vcc;\" : \"=v\"(r1)); }"); \
-            device_param->has_vadd_co  = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_ADD_CO_U32  %0, vcc, 0, 0;\"      : \"=v\"(r1)); }"); \
-            device_param->has_vaddc_co = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_ADDC_CO_U32 %0, vcc, 0, 0, vcc;\" : \"=v\"(r1)); }"); \
-            device_param->has_vsub     = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_SUB_U32     %0, vcc, 0, 0;\"      : \"=v\"(r1)); }"); \
-            device_param->has_vsubb    = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_SUBB_U32    %0, vcc, 0, 0, vcc;\" : \"=v\"(r1)); }"); \
-            device_param->has_vsub_co  = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_SUB_CO_U32  %0, vcc, 0, 0;\"      : \"=v\"(r1)); }"); \
-            device_param->has_vsubb_co = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_SUBB_CO_U32 %0, vcc, 0, 0, vcc;\" : \"=v\"(r1)); }"); \
-            device_param->has_vadd3    = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_ADD3_U32    %0,   0, 0, 0;\"      : \"=v\"(r1)); }"); \
-            device_param->has_vbfe     = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_BFE_U32     %0,   0, 0, 0;\"      : \"=v\"(r1)); }"); \
-            device_param->has_vperm    = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_PERM_B32    %0,   0, 0, 0;\"      : \"=v\"(r1)); }"); \
-
-          if (backend_devices_idx > 0)
-          {
-            hc_device_param_t *device_param_prev = &devices_param[backend_devices_idx - 1];
-
-            if (is_same_device_type (device_param, device_param_prev) == true)
-            {
-              device_param->has_vadd     = device_param_prev->has_vadd;
-              device_param->has_vaddc    = device_param_prev->has_vaddc;
-              device_param->has_vadd_co  = device_param_prev->has_vadd_co;
-              device_param->has_vaddc_co = device_param_prev->has_vaddc_co;
-              device_param->has_vsub     = device_param_prev->has_vsub;
-              device_param->has_vsubb    = device_param_prev->has_vsubb;
-              device_param->has_vsub_co  = device_param_prev->has_vsub_co;
-              device_param->has_vsubb_co = device_param_prev->has_vsubb_co;
-              device_param->has_vadd3    = device_param_prev->has_vadd3;
-              device_param->has_vbfe     = device_param_prev->has_vbfe;
-              device_param->has_vperm    = device_param_prev->has_vperm;
-            }
-            else
-            {
-              RUN_INSTRUCTION_CHECKS();
-            }
-          }
-          else
-          {
-            RUN_INSTRUCTION_CHECKS();
-          }
-
-          #undef RUN_INSTRUCTION_CHECKS
-        }
-
-        if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) && (device_param->opencl_platform_vendor_id == VENDOR_ID_NV))
-        {
-          const int sm = (device_param->sm_major * 10) + device_param->sm_minor;
-
-          device_param->has_add   = (sm >= 12) ? true : false;
-          device_param->has_addc  = (sm >= 12) ? true : false;
-          device_param->has_sub   = (sm >= 12) ? true : false;
-          device_param->has_subc  = (sm >= 12) ? true : false;
-          device_param->has_bfe   = (sm >= 20) ? true : false;
-          device_param->has_lop3  = (sm >= 50) ? true : false;
-          device_param->has_mov64 = (sm >= 10) ? true : false;
-          device_param->has_prmt  = (sm >= 20) ? true : false;
-
-          /*
-          #define RUN_INSTRUCTION_CHECKS()                                                                                                                                                                                                          \
-            device_param->has_add   = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; asm volatile (\"add.cc.u32 %0, 0, 0;\" : \"=r\"(r)); }");                                        \
-            device_param->has_addc  = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; asm volatile (\"addc.cc.u32 %0, 0, 0;\" : \"=r\"(r)); }");                                       \
-            device_param->has_sub   = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; asm volatile (\"sub.cc.u32 %0, 0, 0;\" : \"=r\"(r)); }");                                        \
-            device_param->has_subc  = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; asm volatile (\"subc.cc.u32 %0, 0, 0;\" : \"=r\"(r)); }");                                       \
-            device_param->has_bfe   = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; asm volatile (\"bfe.u32 %0, 0, 0, 0;\" : \"=r\"(r)); }");                                        \
-            device_param->has_lop3  = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; asm volatile (\"lop3.b32 %0, 0, 0, 0, 0;\" : \"=r\"(r)); }");                                    \
-            device_param->has_mov64 = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { ulong r; uint a; uint b; asm volatile (\"mov.b64 %0, {%1, %2};\" : \"=l\"(r) : \"r\"(a), \"r\"(b)); }"); \
-            device_param->has_prmt  = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; asm volatile (\"prmt.b32 %0, 0, 0, 0;\" : \"=r\"(r)); }");                                       \
-
-          if (backend_devices_idx > 0)
-          {
-            hc_device_param_t *device_param_prev = &devices_param[backend_devices_idx - 1];
-
-            if (is_same_device_type (device_param, device_param_prev) == true)
-            {
-              device_param->has_add   = device_param_prev->has_add;
-              device_param->has_addc  = device_param_prev->has_addc;
-              device_param->has_sub   = device_param_prev->has_sub;
-              device_param->has_subc  = device_param_prev->has_subc;
-              device_param->has_bfe   = device_param_prev->has_bfe;
-              device_param->has_lop3  = device_param_prev->has_lop3;
-              device_param->has_mov64 = device_param_prev->has_mov64;
-              device_param->has_prmt  = device_param_prev->has_prmt;
-            }
-            else
-            {
-              RUN_INSTRUCTION_CHECKS();
-            }
-          }
-          else
-          {
-            RUN_INSTRUCTION_CHECKS();
-          }
-
-          #undef RUN_INSTRUCTION_CHECKS
-          */
-        }
-
-        // device_available_mem
-
-        #define MAX_ALLOC_CHECKS_CNT  8192
-        #define MAX_ALLOC_CHECKS_SIZE (64 * 1024 * 1024)
-
-        device_param->device_available_mem = device_param->device_global_mem - MAX_ALLOC_CHECKS_SIZE;
-
-        #if defined (_WIN)
-        if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) && (device_param->opencl_platform_vendor_id == VENDOR_ID_NV))
-        #else
-        if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) && ((device_param->opencl_platform_vendor_id == VENDOR_ID_NV) || (device_param->opencl_platform_vendor_id == VENDOR_ID_AMD)))
-        #endif
-        {
-          // OK, so the problem here is the following:
-          // There's just CL_DEVICE_GLOBAL_MEM_SIZE to ask OpenCL about the total memory on the device,
-          // but there's no way to ask for available memory on the device.
-          // In combination, most OpenCL runtimes implementation of clCreateBuffer()
-          // are doing so called lazy memory allocation on the device.
-          // Now, if the user has X11 (or a game or anything that takes a lot of GPU memory)
-          // running on the host we end up with an error type of this:
-          // clEnqueueNDRangeKernel(): CL_MEM_OBJECT_ALLOCATION_FAILURE
-          // The clEnqueueNDRangeKernel() is because of the lazy allocation
-          // The best way to workaround this problem is if we would be able to ask for available memory,
-          // The idea here is to try to evaluate available memory by allocating it till it errors
-
-          cl_mem *tmp_device = (cl_mem *) hccalloc (MAX_ALLOC_CHECKS_CNT, sizeof (cl_mem));
-
-          u64 c;
-
-          for (c = 0; c < MAX_ALLOC_CHECKS_CNT; c++)
-          {
-            if (((c + 1 + 1) * MAX_ALLOC_CHECKS_SIZE) >= device_param->device_global_mem) break;
-
-            cl_int CL_err;
-
-            OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
-
-            tmp_device[c] = ocl->clCreateBuffer (context, CL_MEM_READ_WRITE, MAX_ALLOC_CHECKS_SIZE, NULL, &CL_err);
-
-            if (CL_err != CL_SUCCESS)
-            {
-              c--;
-
-              break;
-            }
-
-            // transfer only a few byte should be enough to force the runtime to actually allocate the memory
-
-            u8 tmp_host[8];
-
-            if (ocl->clEnqueueReadBuffer  (command_queue, tmp_device[c], CL_TRUE, 0, sizeof (tmp_host), tmp_host, 0, NULL, NULL) != CL_SUCCESS) break;
-
-            if (ocl->clEnqueueWriteBuffer (command_queue, tmp_device[c], CL_TRUE, 0, sizeof (tmp_host), tmp_host, 0, NULL, NULL) != CL_SUCCESS) break;
-
-            if (ocl->clEnqueueReadBuffer  (command_queue, tmp_device[c], CL_TRUE, MAX_ALLOC_CHECKS_SIZE - sizeof (tmp_host), sizeof (tmp_host), tmp_host, 0, NULL, NULL) != CL_SUCCESS) break;
-
-            if (ocl->clEnqueueWriteBuffer (command_queue, tmp_device[c], CL_TRUE, MAX_ALLOC_CHECKS_SIZE - sizeof (tmp_host), sizeof (tmp_host), tmp_host, 0, NULL, NULL) != CL_SUCCESS) break;
-          }
-
-          device_param->device_available_mem = MAX_ALLOC_CHECKS_SIZE;
-          if (c > 0)
-          {
-            device_param->device_available_mem *= c;
-          }
-
-          // clean up
-
-          for (c = 0; c < MAX_ALLOC_CHECKS_CNT; c++)
-          {
-            if (((c + 1 + 1) * MAX_ALLOC_CHECKS_SIZE) >= device_param->device_global_mem) break;
-
-            if (tmp_device[c] != NULL)
-            {
-              if (hc_clReleaseMemObject (hashcat_ctx, tmp_device[c]) == -1) return -1;
-            }
-          }
-
-          hcfree (tmp_device);
-        }
-
-        hc_clReleaseCommandQueue (hashcat_ctx, command_queue);
-
-        hc_clReleaseContext (hashcat_ctx, context);
       }
     }
   }
@@ -6698,6 +6485,279 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       event_log_error (hashcat_ctx, "The specified device was higher than the number of available devices (%u).", backend_ctx->backend_devices_cnt);
 
       return -1;
+    }
+  }
+
+  // time or resource intensive operations which we do not run if the corresponding device was skipped by the user
+
+  if (backend_ctx->cuda)
+  {
+    // instruction test for cuda devices was replaced with fixed values (see above)
+
+    /*
+    CUcontext cuda_context;
+
+    if (hc_cuCtxCreate (hashcat_ctx, &cuda_context, CU_CTX_SCHED_BLOCKING_SYNC, device_param->cuda_device) == -1) return -1;
+
+    if (hc_cuCtxSetCurrent (hashcat_ctx, cuda_context) == -1) return -1;
+
+    #define RUN_INSTRUCTION_CHECKS()                                                                                                                                                                                                                      \
+      device_param->has_add   = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned int r; asm volatile (\"add.cc.u32 %0, 0, 0;\" : \"=r\"(r)); }");                                                              \
+      device_param->has_addc  = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned int r; asm volatile (\"addc.cc.u32 %0, 0, 0;\" : \"=r\"(r)); }");                                                             \
+      device_param->has_sub   = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned int r; asm volatile (\"sub.cc.u32 %0, 0, 0;\" : \"=r\"(r)); }");                                                              \
+      device_param->has_subc  = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned int r; asm volatile (\"subc.cc.u32 %0, 0, 0;\" : \"=r\"(r)); }");                                                             \
+      device_param->has_bfe   = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned int r; asm volatile (\"bfe.u32 %0, 0, 0, 0;\" : \"=r\"(r)); }");                                                              \
+      device_param->has_lop3  = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned int r; asm volatile (\"lop3.b32 %0, 0, 0, 0, 0;\" : \"=r\"(r)); }");                                                          \
+      device_param->has_mov64 = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned long long r; unsigned int a; unsigned int b; asm volatile (\"mov.b64 %0, {%1, %2};\" : \"=l\"(r) : \"r\"(a), \"r\"(b)); }");  \
+      device_param->has_prmt  = cuda_test_instruction (hashcat_ctx, sm_major, sm_minor, "__global__ void test () { unsigned int r; asm volatile (\"prmt.b32 %0, 0, 0, 0;\" : \"=r\"(r)); }");                                                             \
+
+    if (backend_devices_idx > 0)
+    {
+      hc_device_param_t *device_param_prev = &devices_param[backend_devices_idx - 1];
+
+      if (is_same_device_type (device_param, device_param_prev) == true)
+      {
+        device_param->has_add   = device_param_prev->has_add;
+        device_param->has_addc  = device_param_prev->has_addc;
+        device_param->has_sub   = device_param_prev->has_sub;
+        device_param->has_subc  = device_param_prev->has_subc;
+        device_param->has_bfe   = device_param_prev->has_bfe;
+        device_param->has_lop3  = device_param_prev->has_lop3;
+        device_param->has_mov64 = device_param_prev->has_mov64;
+        device_param->has_prmt  = device_param_prev->has_prmt;
+      }
+      else
+      {
+        RUN_INSTRUCTION_CHECKS();
+      }
+    }
+    else
+    {
+      RUN_INSTRUCTION_CHECKS();
+    }
+
+    #undef RUN_INSTRUCTION_CHECKS
+
+    if (hc_cuCtxDestroy (hashcat_ctx, cuda_context) == -1) return -1;
+
+    */
+  }
+
+  if (backend_ctx->ocl)
+  {
+    for (int backend_devices_cnt = 0; backend_devices_cnt < backend_ctx->backend_devices_cnt; backend_devices_cnt++)
+    {
+      hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_cnt];
+
+      if (device_param->is_opencl == false) continue;
+
+      if (device_param->skipped == true) continue;
+
+      /**
+       * create context for each device
+       */
+
+      cl_context context;
+
+      /*
+      cl_context_properties properties[3];
+
+      properties[0] = CL_CONTEXT_PLATFORM;
+      properties[1] = (cl_context_properties) device_param->opencl_platform;
+      properties[2] = 0;
+
+      CL_rc = hc_clCreateContext (hashcat_ctx, properties, 1, &device_param->opencl_device, NULL, NULL, &context);
+      */
+
+      if (hc_clCreateContext (hashcat_ctx, NULL, 1, &device_param->opencl_device, NULL, NULL, &context) == -1) return -1;
+
+      /**
+       * create command-queue
+       */
+
+      cl_command_queue command_queue;
+
+      if (hc_clCreateCommandQueue (hashcat_ctx, context, device_param->opencl_device, 0, &command_queue) == -1) return -1;
+
+      // instruction set
+
+      if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) && (device_param->opencl_platform_vendor_id == VENDOR_ID_AMD))
+      {
+        #define RUN_INSTRUCTION_CHECKS()
+          device_param->has_vadd     = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_ADD_U32     %0, vcc, 0, 0;\"      : \"=v\"(r1)); }"); \
+          device_param->has_vaddc    = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_ADDC_U32    %0, vcc, 0, 0, vcc;\" : \"=v\"(r1)); }"); \
+          device_param->has_vadd_co  = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_ADD_CO_U32  %0, vcc, 0, 0;\"      : \"=v\"(r1)); }"); \
+          device_param->has_vaddc_co = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_ADDC_CO_U32 %0, vcc, 0, 0, vcc;\" : \"=v\"(r1)); }"); \
+          device_param->has_vsub     = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_SUB_U32     %0, vcc, 0, 0;\"      : \"=v\"(r1)); }"); \
+          device_param->has_vsubb    = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_SUBB_U32    %0, vcc, 0, 0, vcc;\" : \"=v\"(r1)); }"); \
+          device_param->has_vsub_co  = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_SUB_CO_U32  %0, vcc, 0, 0;\"      : \"=v\"(r1)); }"); \
+          device_param->has_vsubb_co = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_SUBB_CO_U32 %0, vcc, 0, 0, vcc;\" : \"=v\"(r1)); }"); \
+          device_param->has_vadd3    = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_ADD3_U32    %0,   0, 0, 0;\"      : \"=v\"(r1)); }"); \
+          device_param->has_vbfe     = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_BFE_U32     %0,   0, 0, 0;\"      : \"=v\"(r1)); }"); \
+          device_param->has_vperm    = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_PERM_B32    %0,   0, 0, 0;\"      : \"=v\"(r1)); }"); \
+
+        if (backend_devices_idx > 0)
+        {
+          hc_device_param_t *device_param_prev = &devices_param[backend_devices_idx - 1];
+
+          if (is_same_device_type (device_param, device_param_prev) == true)
+          {
+            device_param->has_vadd     = device_param_prev->has_vadd;
+            device_param->has_vaddc    = device_param_prev->has_vaddc;
+            device_param->has_vadd_co  = device_param_prev->has_vadd_co;
+            device_param->has_vaddc_co = device_param_prev->has_vaddc_co;
+            device_param->has_vsub     = device_param_prev->has_vsub;
+            device_param->has_vsubb    = device_param_prev->has_vsubb;
+            device_param->has_vsub_co  = device_param_prev->has_vsub_co;
+            device_param->has_vsubb_co = device_param_prev->has_vsubb_co;
+            device_param->has_vadd3    = device_param_prev->has_vadd3;
+            device_param->has_vbfe     = device_param_prev->has_vbfe;
+            device_param->has_vperm    = device_param_prev->has_vperm;
+          }
+          else
+          {
+            RUN_INSTRUCTION_CHECKS();
+          }
+        }
+        else
+        {
+          RUN_INSTRUCTION_CHECKS();
+        }
+
+        #undef RUN_INSTRUCTION_CHECKS
+      }
+
+      if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) && (device_param->opencl_platform_vendor_id == VENDOR_ID_NV))
+      {
+        // replaced with fixed values see non time intensive section above
+
+        /*
+        #define RUN_INSTRUCTION_CHECKS()                                                                                                                                                                                                          \
+          device_param->has_add   = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; asm volatile (\"add.cc.u32 %0, 0, 0;\" : \"=r\"(r)); }");                                        \
+          device_param->has_addc  = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; asm volatile (\"addc.cc.u32 %0, 0, 0;\" : \"=r\"(r)); }");                                       \
+          device_param->has_sub   = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; asm volatile (\"sub.cc.u32 %0, 0, 0;\" : \"=r\"(r)); }");                                        \
+          device_param->has_subc  = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; asm volatile (\"subc.cc.u32 %0, 0, 0;\" : \"=r\"(r)); }");                                       \
+          device_param->has_bfe   = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; asm volatile (\"bfe.u32 %0, 0, 0, 0;\" : \"=r\"(r)); }");                                        \
+          device_param->has_lop3  = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; asm volatile (\"lop3.b32 %0, 0, 0, 0, 0;\" : \"=r\"(r)); }");                                    \
+          device_param->has_mov64 = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { ulong r; uint a; uint b; asm volatile (\"mov.b64 %0, {%1, %2};\" : \"=l\"(r) : \"r\"(a), \"r\"(b)); }"); \
+          device_param->has_prmt  = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r; asm volatile (\"prmt.b32 %0, 0, 0, 0;\" : \"=r\"(r)); }");                                       \
+
+        if (backend_devices_idx > 0)
+        {
+          hc_device_param_t *device_param_prev = &devices_param[backend_devices_idx - 1];
+
+          if (is_same_device_type (device_param, device_param_prev) == true)
+          {
+            device_param->has_add   = device_param_prev->has_add;
+            device_param->has_addc  = device_param_prev->has_addc;
+            device_param->has_sub   = device_param_prev->has_sub;
+            device_param->has_subc  = device_param_prev->has_subc;
+            device_param->has_bfe   = device_param_prev->has_bfe;
+            device_param->has_lop3  = device_param_prev->has_lop3;
+            device_param->has_mov64 = device_param_prev->has_mov64;
+            device_param->has_prmt  = device_param_prev->has_prmt;
+          }
+          else
+          {
+            RUN_INSTRUCTION_CHECKS();
+          }
+        }
+        else
+        {
+          RUN_INSTRUCTION_CHECKS();
+        }
+
+        #undef RUN_INSTRUCTION_CHECKS
+        */
+      }
+
+      // available device memory
+      // This test causes an GPU memory usage spike.
+      // In case there are multiple hashcat instances starting at the same time this will cause GPU out of memory errors which otherwise would not exist.
+      // We will simply not run it if that device was skipped by the user.
+
+      #define MAX_ALLOC_CHECKS_CNT  8192
+      #define MAX_ALLOC_CHECKS_SIZE (64 * 1024 * 1024)
+
+      device_param->device_available_mem = device_param->device_global_mem - MAX_ALLOC_CHECKS_SIZE;
+
+      #if defined (_WIN)
+      if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) && (device_param->opencl_platform_vendor_id == VENDOR_ID_NV))
+      #else
+      if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) && ((device_param->opencl_platform_vendor_id == VENDOR_ID_NV) || (device_param->opencl_platform_vendor_id == VENDOR_ID_AMD)))
+      #endif
+      {
+        // OK, so the problem here is the following:
+        // There's just CL_DEVICE_GLOBAL_MEM_SIZE to ask OpenCL about the total memory on the device,
+        // but there's no way to ask for available memory on the device.
+        // In combination, most OpenCL runtimes implementation of clCreateBuffer()
+        // are doing so called lazy memory allocation on the device.
+        // Now, if the user has X11 (or a game or anything that takes a lot of GPU memory)
+        // running on the host we end up with an error type of this:
+        // clEnqueueNDRangeKernel(): CL_MEM_OBJECT_ALLOCATION_FAILURE
+        // The clEnqueueNDRangeKernel() is because of the lazy allocation
+        // The best way to workaround this problem is if we would be able to ask for available memory,
+        // The idea here is to try to evaluate available memory by allocating it till it errors
+
+        cl_mem *tmp_device = (cl_mem *) hccalloc (MAX_ALLOC_CHECKS_CNT, sizeof (cl_mem));
+
+        u64 c;
+
+        for (c = 0; c < MAX_ALLOC_CHECKS_CNT; c++)
+        {
+          if (((c + 1 + 1) * MAX_ALLOC_CHECKS_SIZE) >= device_param->device_global_mem) break;
+
+          cl_int CL_err;
+
+          OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
+
+          tmp_device[c] = ocl->clCreateBuffer (context, CL_MEM_READ_WRITE, MAX_ALLOC_CHECKS_SIZE, NULL, &CL_err);
+
+          if (CL_err != CL_SUCCESS)
+          {
+            c--;
+
+            break;
+          }
+
+          // transfer only a few byte should be enough to force the runtime to actually allocate the memory
+
+          u8 tmp_host[8];
+
+          if (ocl->clEnqueueReadBuffer  (command_queue, tmp_device[c], CL_TRUE, 0, sizeof (tmp_host), tmp_host, 0, NULL, NULL) != CL_SUCCESS) break;
+
+          if (ocl->clEnqueueWriteBuffer (command_queue, tmp_device[c], CL_TRUE, 0, sizeof (tmp_host), tmp_host, 0, NULL, NULL) != CL_SUCCESS) break;
+
+          if (ocl->clEnqueueReadBuffer  (command_queue, tmp_device[c], CL_TRUE, MAX_ALLOC_CHECKS_SIZE - sizeof (tmp_host), sizeof (tmp_host), tmp_host, 0, NULL, NULL) != CL_SUCCESS) break;
+
+          if (ocl->clEnqueueWriteBuffer (command_queue, tmp_device[c], CL_TRUE, MAX_ALLOC_CHECKS_SIZE - sizeof (tmp_host), sizeof (tmp_host), tmp_host, 0, NULL, NULL) != CL_SUCCESS) break;
+        }
+
+        device_param->device_available_mem = MAX_ALLOC_CHECKS_SIZE;
+
+        if (c > 0)
+        {
+          device_param->device_available_mem *= c;
+        }
+
+        // clean up
+
+        for (c = 0; c < MAX_ALLOC_CHECKS_CNT; c++)
+        {
+          if (((c + 1 + 1) * MAX_ALLOC_CHECKS_SIZE) >= device_param->device_global_mem) break;
+
+          if (tmp_device[c] != NULL)
+          {
+            if (hc_clReleaseMemObject (hashcat_ctx, tmp_device[c]) == -1) return -1;
+          }
+        }
+
+        hcfree (tmp_device);
+      }
+
+      hc_clReleaseCommandQueue (hashcat_ctx, command_queue);
+
+      hc_clReleaseContext (hashcat_ctx, context);
     }
   }
 

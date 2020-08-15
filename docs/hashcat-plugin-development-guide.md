@@ -383,6 +383,8 @@ This configuration item is a bitmask field. There are a few switches which you c
 * OPTI_TYPE_SLOW_HASH_SIMD_INIT: This flag tells the hashcat host binary to divide the number of work items with the size of the vector being used. The *_init kernel needs to be written using vector data types. Vector data types have a strong impact on CPU performance, since they will be translated from the OpenCL JiT into SSE2/AVX/AVX2/XOP instructions. Modern GPUs use scalar data types thus there is no benefit from using vector data types. This is not recommended for *_init kernels because it makes the kernel much more complicated while at the same time the _init kernel is called only once per password guess.
 * OPTI_TYPE_SLOW_HASH_SIMD_LOOP: see OPTI_TYPE_SLOW_HASH_SIMD_INIT but for *_loop kernels. If it is possible for your *_loop kernel to be written in vector data types, this is highly recommended. You will typically find this option being used if the _loop kernel does not do any data-dependent branching.
 * OPTI_TYPE_SLOW_HASH_SIMD_COMP: see OPTI_TYPE_SLOW_HASH_SIMD_INIT but for *_comp kernels.
+* OPTI_TYPE_SLOW_HASH_SIMD_INIT2: see OPTI_TYPE_SLOW_HASH_SIMD_INIT but for *_init2 kernels.
+* OPTI_TYPE_SLOW_HASH_SIMD_LOOP2: see OPTI_TYPE_SLOW_HASH_SIMD_LOOP but for *_loop2 kernels.
 * OPTI_TYPE_USES_BITS_8: This flag is passed to the JiT and helps optimize some of the GPU library functions at compile time. The configuration defines the bitsize of the underlying crypto primitive.
 * OPTI_TYPE_USES_BITS_16: see OPTI_TYPE_USES_BITS_8
 * OPTI_TYPE_USES_BITS_32: see OPTI_TYPE_USES_BITS_8. This is the default in case no OPTI_TYPE_USES_BITS_* flag is being used. Almost all traditional crypto primitives use 32 bits: MD4, MD5, SHA1, SHA256, RipeMD160, etc.
