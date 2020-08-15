@@ -61,7 +61,7 @@ typedef struct axcrypt2_tmp
   u64 out[8];
 
   u32 KEK[8];
-  u32 data[36];
+  u32 data[14];
 
 } axcrypt2_tmp_t;
 

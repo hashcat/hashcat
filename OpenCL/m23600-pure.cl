@@ -31,7 +31,7 @@ typedef struct axcrypt2_tmp
   u64 out[8];
 
   u32 KEK[8];
-  u32 data[36];
+  u32 data[14];
 
 } axcrypt2_tmp_t;
 
@@ -383,7 +383,7 @@ KERNEL_FQ void m23600_init2 (KERN_ATTR_TMPS_ESALT (axcrypt2_tmp_t, axcrypt2_t))
   tmps[gid].KEK[6] = KEK[6] ^ salt[6];
   tmps[gid].KEK[7] = KEK[7] ^ salt[7];
 
-  for (int i = 0; i < 36; i++)
+  for (int i = 0; i < 14; i++)
   {
     tmps[gid].data[i] = esalt_bufs[digests_offset].data[i];
   }
@@ -463,9 +463,9 @@ KERNEL_FQ void m23600_loop2 (KERN_ATTR_TMPS_ESALT (axcrypt2_tmp_t, axcrypt2_t))
   ukey[6] = tmps[gid].KEK[6];
   ukey[7] = tmps[gid].KEK[7];
 
-  u32 data[36];
+  u32 data[14];
 
-  for (int i = 0; i < 36; i++)
+  for (int i = 0; i < 14; i++)
   {
     data[i] = tmps[gid].data[i];
   }
@@ -508,7 +508,7 @@ KERNEL_FQ void m23600_loop2 (KERN_ATTR_TMPS_ESALT (axcrypt2_tmp_t, axcrypt2_t))
     }
   }
 
-  for (int i = 0; i < 36; i++)
+  for (int i = 0; i < 14; i++)
   {
     tmps[gid].data[i] = data[i];
   }
