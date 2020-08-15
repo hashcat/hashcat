@@ -14,6 +14,7 @@
 - Fixed too early execution of some module functions which could make use of non-final values opts_type and opti_type
 - Fixed internal access on module option attribute OPTS_TYPE_SUGGEST_KG with the result that it was unused
 - Fixed race condition resulting in out of memory error on startup if multiple hashcat instances are started at the same time
+- Fixed unexpected non-unique salts in multi-hash cracking in Bitcoin/Litecoin wallet.dat module which lead to false negatives
 
 ##
 ## Improvements
