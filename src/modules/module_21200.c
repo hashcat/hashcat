@@ -114,7 +114,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   sha1_update (&sha1_ctx, s, salt->salt_len);
   sha1_final  (&sha1_ctx);
 
-  u32 pc[4];
+  u32 pc[5];
 
   pc[0] = byte_swap_32 (sha1_ctx.h[0]);
   pc[1] = byte_swap_32 (sha1_ctx.h[1]);
