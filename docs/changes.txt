@@ -6,7 +6,7 @@
 
 - Added hash-mode: Bitwarden
 - Added hash-mode: Apple iWork
-- Added hash-mode: RSA/DSA/EC/OPENSSH Private Keys
+- Added hash-mode: RSA/DSA/EC/OpenSSH Private Keys
 
 ##
 ## Bugs
