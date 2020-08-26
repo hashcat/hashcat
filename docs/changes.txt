@@ -23,6 +23,7 @@
 ## Improvements
 ##
 
+- Apple Keychain: Notify the user about the risk of collisions / false positives
 - Startup time: Improved the startup time by avoiding some time intensive operations for skipped devices
 
 ##
