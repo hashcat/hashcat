@@ -1,4 +1,4 @@
-## The hashcat brain ##
+# The hashcat brain
 
 This feature will have a significant impact on the art of password cracking - either cracking alone, in small teams over a local network, or in large teams over the Internet.
 
@@ -6,19 +6,21 @@ From a technical perspective, the hashcat brain consists of two in-memory databa
 
 Put simply, the hashcat brain persistently remembers the attacks you've executed against a particular hashlist in the past ... but on a low level.
 
-Hashcat will check each password candidate against the "brain" to find out if that candidate was already checked in the past and then accept it or reject it. The brain will check each candidate for existence in both the long-term and short-term memory areas. The nice thing is that it does not matter which attack-mode originally was used - it can be straight attack, mask attack or any of the advanced future generators. 
+Hashcat will check each password candidate against the "brain" to find out if that candidate was already checked in the past and then accept it or reject it. The brain will check each candidate for existence in both the long-term and short-term memory areas. The nice thing is that it does not matter which attack-mode originally was used - it can be straight attack, mask attack or any of the advanced future generators.
 
 The brain computes a hash (a very fast one called xxHash) of every password candidate and store it in the short-term memory first. Hashcat then starts cracking the usual way. Once it's done cracking, it sends a "commit" signal to the hashcat brain, which then moves the candidates from the short-term memory into the long-term memory.
 
-The hashcat brain feature uses a client/server architecture. That means that the hashcat brain itself is actually a network server. I know, I know - you don't want any network sockets in your hashcat process? No problem, then disable the feature in the makefile by setting ENABLE_BRAIN=0 and it will be gone forever. 
+The hashcat brain feature uses a client/server architecture. That means that the hashcat brain itself is actually a network server. I know, I know - you don't want any network sockets in your hashcat process? No problem, then disable the feature in the __makefile__ by setting `ENABLE_BRAIN=0` and it will be gone forever.
 
 It's a network server for a reason. This way we can run multiple hashcat clients ... all using the same hashcat brain. This is great for collaboration with many people involved - plus it stays alive after the client shuts down. (Note, however, that even if you want to only use brain functionality locally, you must run two separate instances of hashcat - one to be the brain server, and one to be the client and perform attacks).
 
 That's it from the technical perspective. It's hard to explain how much potential there is in this, and I'm wondering why I didn't invent this sooner. Maybe it took the Crack Me If You Can password-cracking challenge to realize that we need a feature like this.
 
+## Examples
+
 Before you try it out yourself, let me show you a few examples.
 
-### Example 1: Duplicate candidates all around us ###
+### Example 1: Duplicate candidates all around us
 
 There's no doubt that rule-based attacks are the greatest general purpose attack-modifier on an existing wordlist. But they have a little-known problem: They produce a lot of duplicate candidates. While this is not relevant for fast hashes, it has a large impact on slow hashes.
 
@@ -50,12 +52,13 @@ $ ./hashcat -z example0.hash example.dict -r rules/best64.rule
 Rejected.........: 2379391/9888032 (24.06%)
 ```
 
-Note:
-Hashcat brain rejects dynamically created duplicate candidates
-Average dynamically created duplicate candidates is around 25%
-Eliminating the duplicate 25% reduces the attack time by 25%
+> __Notes:__ Hashcat brain rejects dynamically created duplicate candidates
+>
+> Average dynamically created duplicate candidates is around 25%
+>
+> Eliminating the duplicate 25% reduces the attack time by 25%
 
-### Example 2: stop caring about what you've done in the past ### 
+### Example 2: stop caring about what you've done in the past
 
 Think of this: you have a single hash, but it is very high profile. You can use all of your resources. You start cracking - nothing. You try a different attack - still nothing. You're frustrated, but you must continue.. So try more attacks ... but even after two or more days - nothing. You start wondering what you've already done, but you're starting to lose track, getting tired, and making mistakes. Guess what? The hashcat brain comes to the rescue! Here's an attack that you've tried:
 
@@ -65,7 +68,7 @@ $ ./hashcat -z -m 6211 hashcat_ripemd160_aes.tc rockyou.txt
 Time.Started.....: xxx (32 mins, 6 secs)
 ```
 
-Note that the way you use hashcat doesn't change at all. The hash mode and attack mode can be replaced with anything you'd like. The only difference in your attack is that you add the new -z option to enable hashcat's new brain "client" functionality. By using -z you will also automatically enable the use of "slow candidates" -S mode.
+Note that the way you use hashcat doesn't change at all. The hash mode and attack mode can be replaced with anything you'd like. The only difference in your attack is that you add the new `-z` option to enable hashcat's new brain "client" functionality. By using `-z` you will also automatically enable the use of "slow candidates" `-S` mode.
 
 Now let's say that two days later, you forgot that you already performed the attack before. Or maybe it wasn't you who forgot, it's just your coworker on a different machine also trying. This is what happens:
 
@@ -78,12 +81,13 @@ Time.Started.....: xxx (15 secs)
 
 The hashcat brain correctly rejected *all* of the candidates.
 
-Important things to note here:
-The rejected count exactly matches the keyspace.
-The attack took a bit of time - it's not 0 seconds. The process is not completely without cost. The client must hash all of the candidates, and transfer them to the hashcat brain; the hashcat brain must then search for those candidates in both memory regions, and send back a reject list; and then hashcat must select new candidates to fill the reject gaps, and so on ...
-Most important: 15 seconds is less than 32 minutes
+> __Important things to note here:__ The rejected count exactly matches the keyspace.
+>
+> The attack took a bit of time - it's not 0 seconds. The process is not completely without cost. The client must hash all of the candidates, and transfer them to the hashcat brain; the hashcat brain must then search for those candidates in both memory regions, and send back a reject list; and then hashcat must select new candidates to fill the reject gaps, and so on ...
+>
+> __Most important:__ 15 seconds is less than 32 minutes
 
-### Example 3: It's the candidates that matter, not the attack ### 
+### Example 3: It's the candidates that matter, not the attack
 
 As I've stated above, it's not the command line that is stored somehow - it's not high level storage in this mode. This is where the hashcat brain server starts to create a strong advantage over manual (even organized) selection of attacks, because of the overlaps that naturally occur when carrying out a variety of attacks:
 
@@ -100,14 +104,15 @@ $ grep -c '^[0123456789]\{4\}$' rockyou.txt
 6359
 ```
 
-Notes:
-The previous command from the second example kicks in here. In the rockyou wordlist, we have 6359 pure digits with length 4 and the hashcat brain was able to reject them - because the mask ?d?d?d?d will also produce them
-The hashcat brain does not care about your attack mode. Actually, you could say that the hashcat brain creates a kind of dynamic cross attack-mode while you are using it. As you can see here, attack-mode 0 and attack-mode 3 work together.
-The hashcat brain does not end after hashcat finishes - it stays intact because it's a stand-alone process
+> __Notes:__ The previous command from the second example kicks in here. In the rockyou wordlist, we have 6359 pure digits with length 4 and the hashcat brain was able to reject them - because the mask ?d?d?d?d will also produce them The hashcat brain does not care about your attack mode.
+>
+> Actually, you could say that the hashcat brain creates a kind of dynamic cross attack-mode while you are using it. As you can see here, attack-mode 0 and attack-mode 3 work together.
+>
+> The hashcat brain does not end after hashcat finishes - it stays intact because it's a stand-alone process
 
-### Example 4: Improve on what you've done in the past ###
+### Example 4: Improve on what you've done in the past
 
-So you're out of ideas, and you start to run some simple brute-force. But you're clever, because you know the target tends to use the symbol "$" somewhere inside the password, and you optimize your mask for this. Let's start with an example not using the hashcat brain:
+So you're out of ideas, and you start to run some simple brute-force. But you're clever, because you know the target tends to use the symbol "`$`" somewhere inside the password, and you optimize your mask for this. Let's start with an example not using the hashcat brain:
 
 ```
 $ ./hashcat -m 6211 hashcat_ripemd160_aes.tc -a 3 -1 ?l?d$ ?1?1?1?1?1?1
@@ -116,7 +121,7 @@ Time.Started.....: xxx (5 hours, 37 mins)
 Progress.........: 2565726409/2565726409 (100.00%)
 ```
 
-Damn - it did not crack. But then your coworker shows up and tells you that he found out that the target isn't just using the "$" symbol in his passwords, but also the "!" symbol. Damn, this makes your previous run (which took 5.5 hours) completely useless - wasted! You now need even more time for the correct run:
+Damn - it did not crack. But then your coworker shows up and tells you that he found out that the target isn't just using the "`$`" symbol in his passwords, but also the "`!`" symbol. Damn, this makes your previous run (which took 5.5 hours) completely useless - wasted! You now need even more time for the correct run:
 
 ```
 $ ./hashcat -m 6211 hashcat_ripemd160_aes.tc -a 3 -1 ?l?d$! ?1?1?1?1?1?1
@@ -143,7 +148,7 @@ Time.Started.....: xxx (1 hour, 5 mins)
 
 So you can see here how the hashcat brain helps you to reduce the time for the second attack, from ~6 hours to ~1 hour.
 
-### Example 5: The resurrection of the random rules ###
+### Example 5: The resurrection of the random rules
 
 Random rules and salts? No way! Take a look at this, it's horrible:
 
@@ -166,9 +171,9 @@ I cannot believe that I've never thought about this in detail, but now the hashc
 Rejected.........: 82093/100000 (82.09%)
 ```
 
-This alone gives -g a new role in password cracking. If you've ever attended a password cracking contest, you know how important it is to find the patterns that were used to generate the password candidates. Because finding new patterns using the combination of random-rules and debug-rules is a very efficient way to find new attack vectors.
+This alone gives `-g` a new role in password cracking. If you've ever attended a password cracking contest, you know how important it is to find the patterns that were used to generate the password candidates. Because finding new patterns using the combination of random-rules and debug-rules is a very efficient way to find new attack vectors.
 
-For example, Team Hashcat managed to crack 188k/300k of the SSHA hashlist from the 2018 CMIYC contest - a strong showing. But with random rules, there's a really good chance that you'll discover what you missed. Here's an example of an attack I ran for only few minutes while writing this document:
+For example, __Team Hashcat__ managed to crack 188k/300k of the SSHA hashlist from the __2018 CMIYC contest__ - a strong showing. But with random rules, there's a really good chance that you'll discover what you missed. Here's an example of an attack I ran for only few minutes while writing this document:
 
 ```
 $ ./hashcat -z -m 111 c0_111.list.txt wordlist.txt -g 100000 --debug-mode 4
@@ -184,11 +189,11 @@ profit:o8F ^_:_profit
 smashing:Z3:smashingggg
 ```
 
-These are real passwords that Team Hashcat didn't crack during the contest. What matters here is that you can see hints for possible patterns - which counts much more than just cracking a single password. And if you run the exact same command again, hashcat will generate different rules and you get more cracks, and discover more new patterns. You can do this again and again. We call this technique "raking".
+These are real passwords that __Team Hashcat__ didn't crack during the contest. What matters here is that you can see hints for possible patterns - which counts much more than just cracking a single password. And if you run the exact same command again, hashcat will generate different rules and you get more cracks, and discover more new patterns. You can do this again and again. We call this technique "raking".
 
 Note: It can occur that a pattern discovered from random rules matches an already known pattern. In such a case, it's a strong sign that this pattern may have been searched already, but has not yet been searched exhaustively. Perhaps a previous attack was stopped too early. But with the hashcat brain, that's no longer important - we can just apply the pattern without any worry about creating double work.
 
-## The costs of hashcat brain ##
+## The costs of hashcat brain
 
 It should now be clear now what the potential is here. There are many other examples where this feature really kicks in, but I'm sure you already have your own ideas.
 
@@ -206,23 +211,27 @@ Let's continue with our calculation and our 8,000,000,000 password example. The 
 
 Lookup times are pretty good. The hashcat brain uses two binary trees, which means that the more hashes that are added, the more efficient it becomes. Of course, the lookup times will increase drastically in the first moments, but will stabilize at some point. Note that we typically do not compare just one entry vs. million of entries - we compare hundreds of thousands of entries vs. millions of entries.
 
-## Technical details on the hashcat brain server ##
+## Technical details on the hashcat brain server
 
 * The hashcat brain server saves the long-term memory to disk every 5 minutes automatically
-* The server also saves the long-term memory if the hashcat brain server is killed using Ctrl-C
+* The server also saves the long-term memory if the hashcat brain server is killed using `[Ctrl + C]`
 * There's no mitigation against database poisoning - this would cost too many resources
 * There's currently no mitigation against an evil client requesting the server to allocate too much memory
 * Make sure your hashcat brain server is protected with a good password, because you have to trust your clients
-* I'll add a standalone hashcat brain seeding tool later which enables you to easily push all the words from an entire wordlist or a mask very fast. At this time you can use the --hashcat-session option to do so with hashcat itself
-* You can use --brain-server-whitelist in order to force the clients to use a specific hashlist
+* I'll add a standalone hashcat brain seeding tool later which enables you to easily push all the words from an entire wordlist or a mask very fast. At this time you can use the `--hashcat-session` option to do so with hashcat itself
+* You can use `--brain-server-whitelist` in order to force the clients to use a specific hashlist
 * The protocol used is pretty simple and does not contain hashcat specific information, which should make it possible for other cracking tools to utilize the server, too
 
-## Technical details on the hashcat brain client ##
+## Technical details on the hashcat brain client
 
-The client calculates the hashcat brain session based on the hashlist entries, to efficiently let a high number of salts work for us. You can override the session calculated with --brain-session, which makes sense if you want to use a fast hash in order to "seed" the hashcat brain with already-tried wordlists or masks.
-The use of --remove is forbidden, but this should not really be a problem, since the potfile will do the same for you. Make sure to remove --potfile-disable in case you use it.
+The client calculates the hashcat brain session based on the hashlist entries, to efficiently let a high number of salts work for us. You can override the session calculated with `--brain-session`, which makes sense if you want to use a fast hash in order to "__seed__" the hashcat brain with already-tried wordlists or masks.
+
+The use of `--remove` is forbidden, but this should not really be a problem, since the potfile will do the same for you. Make sure to remove `--potfile-disable` in case you use it.
+
 If multiple clients use the same attack on the same hashcat brain (which is a clever idea), you end up with a distributed solution - without the need of an overlay for keyspace distribution. This is not the intended use of the hashcat brain and should not be used as it. I'll explain later.
+
 Since each password candidate is creating a hash of 8 bytes, some serious network upstream traffic can be generated from your client. I'll explain later.
+
 The use of xxHash as hash is not required; we can exchange it with whatever hash we want. However so far it's doing a great job.
 The status view was updated to give you some real-time statistics about the network usage:
 
@@ -252,7 +261,7 @@ Brain.Link.#3....: RX: 1.3 MB (0.00 Mbps), TX: 10.5 MB (0.00 Mbps), idle
 Brain.Link.#4....: RX: 1.3 MB (0.00 Mbps), TX: 10.5 MB (0.00 Mbps), idle
 ```
 
-## The brain and the bottlenecks ##
+## The brain and the bottlenecks
 
 While working with Team Hashcat to test how the brain performs with large numbers of clients and over the Internet, I learned about some serious bottlenecks.
 
@@ -260,11 +269,12 @@ The most important insight was about the performance of lookups against the brai
 
 But to start from the beginning, keep the following number in mind: 50kH/s
 
-This was the speed that was the maximum performance of the hashcat brain after the first development alpha was finished. In other words, if the performance of your attack was faster than this speed, the hashcat brain becomes the bottleneck. Now there's good and bad news about this:
+This was the speed that was the maximum performance of the hashcat brain after the first development alpha was finished. In other words, if the performance of your attack was faster than this speed, the hashcat brain becomes the bottleneck.
 
-Bad: This is the total number. Which means, the entire network of all GPUs participating as clients cannot create more than 50kH/s before the bottleneck effect kicks in.
+Now there's good and bad news about this:
 
-Good: Salts come to the rescue. If you have a large salted hashlist - with, for example 300,000 SSHA1 hashes (as in the last Crack Me If You Can) - this means that the real maximum performance that the brain can handle jumps to 15 GH/s. (You can simply multiply the 50kH/s with the number of unique salts of your hashlist.)
+* __Bad:__ This is the total number. Which means, the entire network of all GPUs participating as clients cannot create more than 50kH/s before the bottleneck effect kicks in.
+* __Good:__ Salts come to the rescue. If you have a large salted hashlist - with, for example 300,000 SSHA1 hashes (as in the last Crack Me If You Can) - this means that the real maximum performance that the brain can handle jumps to 15 GH/s. (You can simply multiply the 50kH/s with the number of unique salts of your hashlist.)
 
 Then there's another bottleneck: the network bandwidth required. For those of you who plan to use the brain inside a local network with 100Mbit, you can skip this section entirely. But for those who plan to use the brain in a large group, over VPN or in general over the Internet, keep in mind that a single GPU can create around 5Mbit/s of upstream before bandwidth becomes a bottleneck. That doesn't mean that a hashcat client will stop working - it will just reduce your theoretical maximum cracking performance.
 
@@ -277,20 +287,24 @@ The brain "hashes" feature is everything that we've explained from the beginning
 
 The brain "attack" feature should be explained in more detail in order to understand what it is doing. It is a high-level approach, or a compressed hint. Hashcat clients request this "hint" from the brain about a given attack as soon as the client is assigned a new work package from the local hashcat dispatcher. For example, if you have a system with 4 GPUs, the local hashcat dispatcher is responsible for distributing the workload across the local GPUs. What's new is that before a GPU starts actually working on the package, it asks the brain for a high level confirmation of whether or not to proceed. The process of how this work is basically the same as with the low-level architecture: the client "reserves" a package when the hashcat brain moves it to short-term memory - and once it is done, it will be moved to long-term memory.
 
-The attack package itself is another 8-byte checksum - but that's more than enough to assign all feasible combinations of attacks a unique identifier. For example, hashcat takes options like the attack mode itself, rules with -r (but also -j and -k rules), masks, user-defined custom charset, Markov options, a checksum of the wordlists (if used) and so on. All of these options are combined in a repeatable way, and from that unique combination of options, a checksum is created that uniquely "fingerprints" all of the components of the attack.
+The attack package itself is another 8-byte checksum - but that's more than enough to assign all feasible combinations of attacks a unique identifier. For example, hashcat takes options like the attack mode itself, rules with `-r` (but also `-j` and `-k` rules), masks, user-defined custom charset, Markov options, a checksum of the wordlists (if used) and so on. All of these options are combined in a repeatable way, and from that unique combination of options, a checksum is created that uniquely "fingerprints" all of the components of the attack.
 
-When the clients connect to the hashcat brain, they send this attack checksum (along with the session ID) to the brain, so that the brain knows precisely which attack is running on a particular hashcat client. Now, if the local dispatcher creates a new package, the local start point and end point of this attack is sent to the brain so that the brain can track it. The client will automatically reject an entire package - for example, an entire wordlist, or an entire wordlist plus a specific list of rules - if the attack has some overlaps. This is done *before* the client sends any password candidate hashes to the brain. This means that if a package is rejected:
-The client doesn't need to transfer the hashes (which mitigates the bandwidth bottleneck)
-The brain server doesn't need to compare it (which mitigates the lookup bottleneck)
+When the clients connect to the hashcat brain, they send this attack checksum (along with the session ID) to the brain, so that the brain knows precisely which attack is running on a particular hashcat client. Now, if the local dispatcher creates a new package, the local start point and end point of this attack is sent to the brain so that the brain can track it. The client will automatically reject an entire package - for example, an entire wordlist, or an entire wordlist plus a specific list of rules - if the attack has some overlaps. This is done *before* the client sends any password candidate hashes to the brain.
+
+This means that if a package is rejected:
+
+* The client doesn't need to transfer the hashes (which mitigates the bandwidth bottleneck)
+* The brain server doesn't need to compare it (which mitigates the lookup bottleneck)
+
 If the attack package itself is not rejected, the hashes are still sent to the brain and compared.
 
 The hashcat brain is kind of clever when it comes to the packages. It recognizes overlapping packages on a low level - in cases where only part of one package overlaps with another package. When this occurs, the brain only rejects the overlapping section of the package and informs the client about that. It is then up to the client to decide whether it wants to either launch the attack with a minimized package size, or to ask the local dispatcher for another (smaller) portion to fill the gap. Of course, this newly creates portion is also first sent to the brain, in case it can be rejected. The entire process is packed into a loop and it will repeat the process until the client decides that the package is big enough (and the default setting for accepting a package and to start executing is half of the original package size.)
 
-Something I realized - after I had already finished with the implementation of the high-level feature - was that the new brain "attack" feature is a very strong feature for standalone use. By setting --brain-client-features 2, you tell the client to only use the attack feature. This completely eliminates all bottlenecks - the network bandwidth, but even more importantly, the lookup bottleneck. The drawback is that you lose cross-attack functionality.
+Something I realized - after I had already finished with the implementation of the high-level feature - was that the new brain "attack" feature is a very strong feature for standalone use. By setting `--brain-client-features 2`, you tell the client to only use the attack feature. This completely eliminates all bottlenecks - the network bandwidth, but even more importantly, the lookup bottleneck. The drawback is that you lose cross-attack functionality.
 
-If you think that this new feature is a nice way to get a native hashcat multi-system distribution ... you are wrong. The brain client still requires running in -S mode, which means that this is all about slow hashes or fast hashes with many salts. There's also no wordlist distribution, and most importantly, there's no distribution of cracked hashes across all network clients. So the brain "attack" feature is not meant to be an alternative to existing distribution solutions, but just as a mitigation for the bottlenecks (and it works exactly as such).
+If you think that this new feature is a nice way to get a native hashcat multi-system distribution ... you are wrong. The brain client still requires running in `-S` mode, which means that this is all about slow hashes or fast hashes with many salts. There's also no wordlist distribution, and most importantly, there's no distribution of cracked hashes across all network clients. So the brain "attack" feature is not meant to be an alternative to existing distribution solutions, but just as a mitigation for the bottlenecks (and it works exactly as such).
 
-## Commandline Options ##
+## Commandline Options
 
 Most of the commands are self-explaining. I'm just adding them here to inform you which ones exist:
 
