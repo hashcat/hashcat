@@ -18,6 +18,7 @@
 - Fixed internal access on module option attribute OPTS_TYPE_SUGGEST_KG with the result that it was unused
 - Fixed race condition resulting in out of memory error on startup if multiple hashcat instances are started at the same time
 - Fixed unexpected non-unique salts in multi-hash cracking in Bitcoin/Litecoin wallet.dat module which lead to false negatives
+- Fixed rare case of misalignment of the status prompt when other user warnings are shown within the hashcat output
 
 ##
 ## Improvements

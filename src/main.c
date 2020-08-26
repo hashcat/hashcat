@@ -239,6 +239,8 @@ static void main_cracker_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
     {
       event_log_info_nn (hashcat_ctx, NULL);
 
+      clear_prompt (hashcat_ctx);
+
       send_prompt (hashcat_ctx);
     }
   }
