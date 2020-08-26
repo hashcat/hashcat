@@ -3346,6 +3346,6 @@ if [ "${PACKAGE}" -eq 1 ]; then
     -e "s/^\(ATTACK\)=0/\1=${ATTACK}/" \
     "${OUTD}/test.sh"
 
-  "${PACKAGE_CMD}" "${OUTD}/${OUTD}.7z" "${OUTD}/" >/dev/null 2>/dev/null
+  ${PACKAGE_CMD} "${OUTD}/${OUTD}.7z" "${OUTD}/" >/dev/null 2>/dev/null
 
 fi

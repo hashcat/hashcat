@@ -32,6 +32,7 @@
 
 - Hash-Mode 13200 (AxCrypt): Changed the name to AxCrypt 1 to avoid confusion
 - Hash-Mode 13300 (AxCrypt in-memory SHA1): Changed the name to AxCrypt 1 in-memory SHA1
+- Unit tests: Fixed the packaging of test (-p) feature
 
 * changes v6.1.0 -> v6.1.1
 
