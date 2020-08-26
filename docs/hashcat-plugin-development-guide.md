@@ -539,7 +539,7 @@ Additionally there is a couple of command line parameters that you want to use:
 Typically a developer command line for hashcat looks the following:
 
 ```
-$ rm -rf kernels $HOME/.nv; ./hashcat -m XXXXX hash.txt word.txt --potfile-disable --self-test-disable -n 1 -u 1 -T 1 --quiet --backend-vector-width 1 -d 1
+$ rm -rf kernels $HOME/.nv; ./hashcat -m XXXXX hash.txt word.txt --potfile-disable --self-test-disable -n 1 -u 1 -T 1 --quiet --backend-vector-width 1 -d 1 --force
 ```
 
 If you need to printf from without a _loop kernel, keep in mind that you need to add a branching manually for a specific loop position.
