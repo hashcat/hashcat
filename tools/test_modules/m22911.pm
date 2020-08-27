@@ -9,6 +9,7 @@ use strict;
 use warnings;
 
 use Crypt::CBC;
+use Crypt::DES_EDE3;
 use Digest::MD5 qw (md5);
 
 sub module_constraints { [[0, 256], [16, 16], [-1, -1], [-1, -1], [-1, -1]] }
