@@ -507,6 +507,16 @@ The --example-hashes command line argument together with a specific hash mode (-
 
 This is the password to crack the hash given in module_st_hash() for the self-test functionality.
 
+### module_hook_extra_param_init() and module_hook_extra_param_term() ###
+
+These two functions were added to hashcat beginning with version 6.2.0 when it was required for a module to use a 3rd party library from inside a hook function. However, the module developer is free to decide how to use this buffer (it doesn't have to be a library handle). Generally, it is a buffer that the module developer would use for something that they need to initialize and terminate only once on startup and shutdown for performance reasons.
+
+It is unclear to hashcat if this buffer will be handled in a thread-safe fashion or not, but since hooks are multi-threaded, hashcat will allocate multiple buffers (as many as there are hook threads) of this type for the module developer. This enables the module developer to load 3rd party libraries where they have no control over and which are known to not be thread-safe.
+
+The module developer does not have to care about managing the multiple instances but has to provide the size of the buffer to be allocated. For this, they have to use the module_hook_extra_param_size() function. The buffer in *hook_extra_param is zeroed and ready to be written when module_hook_extra_param_init() is called. On startup, hashcat will call module_hook_extra_param_init() that many times as there are hook threads each time providing the module function with a new buffer. The same logic applies to module_hook_extra_param_term() on shutdown. Hashcat will also free the memory on shutdown.
+
+A good example for this is: `src/modules/module_xxxxx.c`
+
 ## Kernel ##
 
 This is the second necessary ingredient for creating a plugin. Particular attention should be paid to the development of the kernel. Compiling the kernel takes a relatively long time, so both hashcat and the various compute APIs try to save a binary kernel in a cached structure. This serves to reduce the startup time and it is important for the user experience (UX). This however can be a pain as a developer.

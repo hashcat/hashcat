@@ -50,7 +50,7 @@ endif
 ## Do not modify
 ##
 
-MODULE_INTERFACE_VERSION := 520
+MODULE_INTERFACE_VERSION := 620
 
 ##
 ## Native compiler paths

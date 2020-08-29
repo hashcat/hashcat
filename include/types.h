@@ -947,6 +947,7 @@ struct hashconfig
   // sizes have to be size_t
 
   u64   esalt_size;
+  u64   hook_extra_param_size;
   u64   hook_salt_size;
   u64   tmp_size;
   u64   extra_tmp_size;
@@ -2440,6 +2441,8 @@ typedef struct module_ctx
 
   MODULE_INIT module_init;
 
+  void      **hook_extra_params; // free for module to use (for instance: library handles)
+
   u32         (*module_attack_exec)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   void       *(*module_benchmark_esalt)         (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   void       *(*module_benchmark_hook_salt)     (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
@@ -2505,8 +2508,12 @@ typedef struct module_ctx
   u32         (*module_deep_comp_kernel)        (const hashes_t *, const u32, const u32);
   int         (*module_hash_init_selftest)      (const hashconfig_t *, hash_t *);
 
-  void        (*module_hook12)                  (hc_device_param_t *, const void *, const u32, const u64);
-  void        (*module_hook23)                  (hc_device_param_t *, const void *, const u32, const u64);
+  u64         (*module_hook_extra_param_size)   (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  bool        (*module_hook_extra_param_init)   (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const folder_config_t *, const backend_ctx_t *, void *);
+  bool        (*module_hook_extra_param_term)   (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const folder_config_t *, const backend_ctx_t *, void *);
+
+  void        (*module_hook12)                  (hc_device_param_t *, const void *, const void *, const u32, const u64);
+  void        (*module_hook23)                  (hc_device_param_t *, const void *, const void *, const u32, const u64);
 
   int         (*module_build_plain_postprocess) (const hashconfig_t *, const hashes_t *, const void *, const u32 *, const size_t, const int, u32 *, const size_t);
 
@@ -2569,6 +2576,7 @@ typedef struct hook_thread_param
 
   hc_device_param_t *device_param;
 
+  void *hook_extra_param;
   void *hook_salts_buf;
 
   u32 salt_pos;

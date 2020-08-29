@@ -3007,6 +3007,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
           hook_thread_param->device_param = device_param;
 
+          hook_thread_param->hook_extra_param = module_ctx->hook_extra_params[i];
           hook_thread_param->hook_salts_buf = hashes->hook_salts_buf;
 
           hook_thread_param->salt_pos = salt_pos;
@@ -3128,6 +3129,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
           hook_thread_param->device_param = device_param;
 
+          hook_thread_param->hook_extra_param = module_ctx->hook_extra_params[i];
           hook_thread_param->hook_salts_buf = hashes->hook_salts_buf;
 
           hook_thread_param->salt_pos = salt_pos;
@@ -10952,7 +10954,7 @@ void *hook12_thread (void *p)
 
     if (status_ctx->devices_status == STATUS_RUNNING)
     {
-      module_ctx->module_hook12 (hook_thread_param->device_param, hook_thread_param->hook_salts_buf, hook_thread_param->salt_pos, pw_pos);
+      module_ctx->module_hook12 (hook_thread_param->device_param, hook_thread_param->hook_extra_param, hook_thread_param->hook_salts_buf, hook_thread_param->salt_pos, pw_pos);
     }
   }
 
@@ -10976,7 +10978,7 @@ void *hook23_thread (void *p)
 
     if (status_ctx->devices_status == STATUS_RUNNING)
     {
-      module_ctx->module_hook23 (hook_thread_param->device_param, hook_thread_param->hook_salts_buf, hook_thread_param->salt_pos, pw_pos);
+      module_ctx->module_hook23 (hook_thread_param->device_param, hook_thread_param->hook_extra_param, hook_thread_param->hook_salts_buf, hook_thread_param->salt_pos, pw_pos);
     }
   }
 
