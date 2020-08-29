@@ -10087,7 +10087,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     // sometimes device_available_mem and device_maxmem_alloc reported back from the opencl runtime are a bit inaccurate.
     // let's add some extra space just to be sure.
 
-    const u64 EXTRA_SPACE = 64ULL * 1024ULL * 1024ULL;
+    //const u64 EXTRA_SPACE = 64ULL * 1024ULL * 1024ULL;
+
+    // it seems the returned values to device_available_mem are inaccurate
+    // we need more room
+
+    const u64 EXTRA_SPACE = device_param->device_maxmem_alloc / 4;
 
     while (kernel_accel_max >= kernel_accel_min)
     {
@@ -10197,7 +10202,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         + size_pws_pre
         + size_pws_base;
 
-      size_total_host_all += size_total_host + EXTRA_SPACE;
+      size_total_host_all += size_total_host;
 
       break;
     }
