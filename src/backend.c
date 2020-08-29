@@ -23,6 +23,7 @@
 #include "event.h"
 #include "dynloader.h"
 #include "backend.h"
+#include "terminal.h"
 
 #if defined (__linux__)
 static const char *dri_card0_path = "/dev/dri/card0";
@@ -6892,6 +6893,8 @@ void backend_ctx_devices_update_power (hashcat_ctx_t *hashcat_ctx)
     {
       if (user_options->quiet == false)
       {
+        clear_prompt (hashcat_ctx);
+
         event_log_advice (hashcat_ctx, "The wordlist or mask that you are using is too small.");
         event_log_advice (hashcat_ctx, "This means that hashcat cannot use the full parallel power of your device(s).");
         event_log_advice (hashcat_ctx, "Unless you supply more work, your cracking speed will drop.");
