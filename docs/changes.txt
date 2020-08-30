@@ -19,6 +19,7 @@
 - Fixed race condition resulting in out of memory error on startup if multiple hashcat instances are started at the same time
 - Fixed unexpected non-unique salts in multi-hash cracking in Bitcoin/Litecoin wallet.dat module which lead to false negatives
 - Fixed rare case of misalignment of the status prompt when other user warnings are shown within the hashcat output
+- Fixed password reassembling for cracked hashes on host for slow hashes in optimized mode that are longer than 32 characters
 
 ##
 ## Improvements
