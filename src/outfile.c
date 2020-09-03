@@ -155,7 +155,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
       if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
       {
-        if ((user_options->rp_files_cnt == 0) || (user_options->rp_gen == 0))
+        if ((user_options->rp_files_cnt == 0) && (user_options->rp_gen == 0))
         {
           for (int i = 0; i < 14; i++)
           {
