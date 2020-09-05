@@ -317,8 +317,14 @@ static bool setup_opencl_device_types_filter (hashcat_ctx_t *hashcat_ctx, const 
   {
     // Do not use CPU by default, this often reduces GPU performance because
     // the CPU is too busy to handle GPU synchronization
+    // Except for apple, because GPU drivers are not reliable
+    // The user can explicitly enable it by setting -D
 
+    #if defined (__APPLE__)
+    opencl_device_types_filter = CL_DEVICE_TYPE_ALL & ~CL_DEVICE_TYPE_GPU;
+    #else
     opencl_device_types_filter = CL_DEVICE_TYPE_ALL & ~CL_DEVICE_TYPE_CPU;
+    #endif
   }
 
   *out = opencl_device_types_filter;
@@ -6146,6 +6152,21 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         }
         #endif // __APPLE__
         */
+
+        #if defined (__APPLE__)
+        if (opencl_device_type & CL_DEVICE_TYPE_GPU)
+        {
+          if (user_options->force == false)
+          {
+            if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Apple's OpenCL drivers (GPU) are known to be unreliable.", device_id + 1);
+            if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             There are many reports of false negatives and other issues.");
+            if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             This is not a hashcat specific issue. Many other projects suffer from the bad quality of these drivers.");
+            if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             You can use --force to override, but do not report related errors. You have been warned.");
+
+            device_param->skipped = true;
+          }
+        }
+        #endif // __APPLE__
 
         // skipped
 
