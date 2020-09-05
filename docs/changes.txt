@@ -27,6 +27,8 @@
 ##
 
 - Apple Keychain: Notify the user about the risk of collisions / false positives
+- CUDA Backend: Give detailed warning if either the NVIDIA CUDA or the NVIDIA RTC library cannot be initialized
+- CUDA Backend: Do not warn about missing CUDA SDK installation if --backend-ignore-cuda is used
 - CUDA Backend: Use blocking events to avoid 100% CPU core usage (per GPU)
 - Startup time: Improved the startup time by avoiding some time intensive operations for skipped devices
 

@@ -4929,6 +4929,9 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if (rc_cuda_init == -1)
     {
+      event_log_warning (hashcat_ctx, "Failed to initialize NVIDIA CUDA library.");
+      event_log_warning (hashcat_ctx, NULL);
+
       cuda_close (hashcat_ctx);
     }
 
@@ -4944,6 +4947,9 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if (rc_nvrtc_init == -1)
     {
+      event_log_warning (hashcat_ctx, "Failed to initialize NVIDIA RTC library.");
+      event_log_warning (hashcat_ctx, NULL);
+
       nvrtc_close (hashcat_ctx);
     }
 
@@ -6240,11 +6246,14 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
             if ((backend_ctx->cuda == NULL) || (backend_ctx->nvrtc == NULL))
             {
-              event_log_warning (hashcat_ctx, "* Device #%u: CUDA SDK Toolkit installation NOT detected.", device_id + 1);
-              event_log_warning (hashcat_ctx, "             CUDA SDK Toolkit installation required for proper device support and utilization");
-              event_log_warning (hashcat_ctx, "             Falling back to OpenCL Runtime");
+              if (user_options->backend_ignore_cuda == false)
+              {
+                event_log_warning (hashcat_ctx, "* Device #%u: CUDA SDK Toolkit installation NOT detected.", device_id + 1);
+                event_log_warning (hashcat_ctx, "             CUDA SDK Toolkit installation required for proper device support and utilization");
+                event_log_warning (hashcat_ctx, "             Falling back to OpenCL Runtime");
 
-              event_log_warning (hashcat_ctx, NULL);
+                event_log_warning (hashcat_ctx, NULL);
+              }
             }
           }
         }
