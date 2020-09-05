@@ -3,14 +3,14 @@
  * License.....: MIT
  */
 
-// #define NEW_SIMD_CODE
+#define NEW_SIMD_CODE
 
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
 #include "inc_platform.cl"
 #include "inc_common.cl"
-#include "inc_scalar.cl"
+#include "inc_simd.cl"
 #include "inc_hash_sha1.cl"
 #endif
 
@@ -26,7 +26,7 @@
 #define uint_to_hex_lower8_le(i) make_u32x (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7], l_bin2asc[(i).s8], l_bin2asc[(i).s9], l_bin2asc[(i).sa], l_bin2asc[(i).sb], l_bin2asc[(i).sc], l_bin2asc[(i).sd], l_bin2asc[(i).se], l_bin2asc[(i).sf])
 #endif
 
-KERNEL_FQ void m04720_mxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void m04500_mxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -59,47 +59,55 @@ KERNEL_FQ void m04720_mxx (KERN_ATTR_BASIC ())
    * base
    */
 
+  const u32 pw_len = pws[gid].pw_len;
+
+  u32x w[64] = { 0 };
+
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  {
+    w[idx] = pws[gid].i[idx];
+  }
+
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
-  u32 s[64] = { 0 };
+  u32x s[64] = { 0 };
 
   for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
     s[idx] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[idx]);
   }
 
-  sha1_ctx_t ctx0;
-
-  sha1_init (&ctx0);
-
-  sha1_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
-
   /**
    * loop
    */
 
-  u32 w0[4];
-  u32 w1[4];
-  u32 w2[4];
-  u32 w3[4];
+  u32x w0l = w[0];
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    sha1_ctx_t ctx1 = ctx0;
+    const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
-    sha1_update_global_swap (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    const u32x w0 = w0l | w0r;
 
-    sha1_final (&ctx1);
+    w[0] = w0;
 
-    const u32 a = ctx1.h[0];
-    const u32 b = ctx1.h[1];
-    const u32 c = ctx1.h[2];
-    const u32 d = ctx1.h[3];
-    const u32 e = ctx1.h[4];
+    sha1_ctx_vector_t ctx0;
 
-    sha1_ctx_t ctx;
+    sha1_init_vector (&ctx0);
 
-    sha1_init (&ctx);
+    sha1_update_vector (&ctx0, w, pw_len);
+
+    sha1_final_vector (&ctx0);
+
+    const u32x a = ctx0.h[0];
+    const u32x b = ctx0.h[1];
+    const u32x c = ctx0.h[2];
+    const u32x d = ctx0.h[3];
+    const u32x e = ctx0.h[4];
+
+    sha1_ctx_vector_t ctx;
+
+    sha1_init_vector (&ctx);
 
     ctx.w0[0] = uint_to_hex_lower8_le ((a >> 16) & 255) << 0 | uint_to_hex_lower8_le ((a >> 24) & 255) << 16;
     ctx.w0[1] = uint_to_hex_lower8_le ((a >> 0) & 255) << 0 | uint_to_hex_lower8_le ((a >> 8) & 255) << 16;
@@ -114,23 +122,23 @@ KERNEL_FQ void m04720_mxx (KERN_ATTR_BASIC ())
 
     ctx.len = 40;
 
-    sha1_update (&ctx, s, salt_len);
+    sha1_update_vector (&ctx, s, salt_len);
 
-    sha1_final (&ctx);
+    sha1_final_vector (&ctx);
 
     const u32x r0 = ctx.h[DGST_R0];
     const u32x r1 = ctx.h[DGST_R1];
     const u32x r2 = ctx.h[DGST_R2];
     const u32x r3 = ctx.h[DGST_R3];
 
-    COMPARE_M_SCALAR (r0, r1, r2, r3);
+    COMPARE_M_SIMD (r0, r1, r2, r3);
   }
 }
 
-KERNEL_FQ void m04720_sxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void m04510_sxx (KERN_ATTR_VECTOR ())
 {
   /**
-   * modifier
+   * base
    */
 
   const u64 gid = get_global_id (0);
@@ -171,47 +179,60 @@ KERNEL_FQ void m04720_sxx (KERN_ATTR_BASIC ())
    * base
    */
 
+  const u32 pw_len = pws[gid].pw_len;
+
+  u32x w[64] = { 0 };
+
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  {
+    w[idx] = pws[gid].i[idx];
+  }
+
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
-  u32 s[64] = { 0 };
+  u32x s[64] = { 0 };
 
   for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
     s[idx] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[idx]);
   }
 
-  sha1_ctx_t ctx0;
-
-  sha1_init (&ctx0);
-
-  sha1_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
-
   /**
    * loop
    */
 
-  u32 w0[4];
-  u32 w1[4];
-  u32 w2[4];
-  u32 w3[4];
+  u32x _w0[4];
+  u32x _w1[4];
+  u32x _w2[4];
+  u32x _w3[4];
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  u32x w0l = w[0];
+
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    sha1_ctx_t ctx1 = ctx0;
+    const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
-    sha1_update_global_swap (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    const u32x w0 = w0l | w0r;
 
-    sha1_final (&ctx1);
+    w[0] = w0;
 
-    const u32 a = ctx1.h[0];
-    const u32 b = ctx1.h[1];
-    const u32 c = ctx1.h[2];
-    const u32 d = ctx1.h[3];
-    const u32 e = ctx1.h[4];
+    sha1_ctx_vector_t ctx0;
 
-    sha1_ctx_t ctx;
+    sha1_init_vector (&ctx0);
 
-    sha1_init (&ctx);
+    sha1_update_vector (&ctx0, w, pw_len);
+
+    sha1_final_vector (&ctx0);
+
+    const u32x a = ctx0.h[0];
+    const u32x b = ctx0.h[1];
+    const u32x c = ctx0.h[2];
+    const u32x d = ctx0.h[3];
+    const u32x e = ctx0.h[4];
+
+    sha1_ctx_vector_t ctx;
+
+    sha1_init_vector (&ctx);
 
     ctx.w0[0] = uint_to_hex_lower8_le ((a >> 16) & 255) << 0 | uint_to_hex_lower8_le ((a >> 24) & 255) << 16;
     ctx.w0[1] = uint_to_hex_lower8_le ((a >> 0) & 255) << 0 | uint_to_hex_lower8_le ((a >> 8) & 255) << 16;
@@ -226,15 +247,15 @@ KERNEL_FQ void m04720_sxx (KERN_ATTR_BASIC ())
 
     ctx.len = 40;
 
-    sha1_update (&ctx, s, salt_len);
+    sha1_update_vector (&ctx, s, salt_len);
 
-    sha1_final (&ctx);
+    sha1_final_vector (&ctx);
 
     const u32x r0 = ctx.h[DGST_R0];
     const u32x r1 = ctx.h[DGST_R1];
     const u32x r2 = ctx.h[DGST_R2];
     const u32x r3 = ctx.h[DGST_R3];
 
-    COMPARE_S_SCALAR (r0, r1, r2, r3);
+    COMPARE_S_SIMD (r0, r1, r2, r3);
   }
 }

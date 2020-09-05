@@ -10,8 +10,6 @@
 #include "inc_types.h"
 #include "inc_platform.cl"
 #include "inc_common.cl"
-#include "inc_rp.h"
-#include "inc_rp.cl"
 #include "inc_scalar.cl"
 #include "inc_hash_sha1.cl"
 #endif
@@ -28,7 +26,7 @@
 #define uint_to_hex_lower8_le(i) make_u32x (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7], l_bin2asc[(i).s8], l_bin2asc[(i).s9], l_bin2asc[(i).sa], l_bin2asc[(i).sb], l_bin2asc[(i).sc], l_bin2asc[(i).sd], l_bin2asc[(i).se], l_bin2asc[(i).sf])
 #endif
 
-KERNEL_FQ void m04720_mxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m04510_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -61,8 +59,6 @@ KERNEL_FQ void m04720_mxx (KERN_ATTR_VECTOR ())
    * base
    */
 
-  COPY_PW (pws[gid]);
-
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
   u32 s[64] = { 0 };
@@ -71,6 +67,12 @@ KERNEL_FQ void m04720_mxx (KERN_ATTR_VECTOR ())
   {
     s[idx] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[idx]);
   }
+
+  sha1_ctx_t ctx0;
+
+  sha1_init (&ctx0);
+
+  sha1_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
@@ -83,23 +85,17 @@ KERNEL_FQ void m04720_mxx (KERN_ATTR_VECTOR ())
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    pw_t tmp = PASTE_PW;
+    sha1_ctx_t ctx1 = ctx0;
 
-    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
+    sha1_update_global_swap (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
-    sha1_ctx_t ctx0;
+    sha1_final (&ctx1);
 
-    sha1_init (&ctx0);
-
-    sha1_update_swap (&ctx0, tmp.i, tmp.pw_len);
-
-    sha1_final (&ctx0);
-
-    const u32x a = ctx0.h[0];
-    const u32x b = ctx0.h[1];
-    const u32x c = ctx0.h[2];
-    const u32x d = ctx0.h[3];
-    const u32x e = ctx0.h[4];
+    const u32 a = ctx1.h[0];
+    const u32 b = ctx1.h[1];
+    const u32 c = ctx1.h[2];
+    const u32 d = ctx1.h[3];
+    const u32 e = ctx1.h[4];
 
     sha1_ctx_t ctx;
 
@@ -131,7 +127,7 @@ KERNEL_FQ void m04720_mxx (KERN_ATTR_VECTOR ())
   }
 }
 
-KERNEL_FQ void m04720_sxx (KERN_ATTR_RULES ())
+KERNEL_FQ void m04510_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -175,8 +171,6 @@ KERNEL_FQ void m04720_sxx (KERN_ATTR_RULES ())
    * base
    */
 
-  COPY_PW (pws[gid]);
-
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
   u32 s[64] = { 0 };
@@ -185,6 +179,12 @@ KERNEL_FQ void m04720_sxx (KERN_ATTR_RULES ())
   {
     s[idx] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[idx]);
   }
+
+  sha1_ctx_t ctx0;
+
+  sha1_init (&ctx0);
+
+  sha1_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
@@ -197,23 +197,17 @@ KERNEL_FQ void m04720_sxx (KERN_ATTR_RULES ())
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    pw_t tmp = PASTE_PW;
+    sha1_ctx_t ctx1 = ctx0;
 
-    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
+    sha1_update_global_swap (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
-    sha1_ctx_t ctx0;
+    sha1_final (&ctx1);
 
-    sha1_init (&ctx0);
-
-    sha1_update_swap (&ctx0, tmp.i, tmp.pw_len);
-
-    sha1_final (&ctx0);
-
-    const u32x a = ctx0.h[0];
-    const u32x b = ctx0.h[1];
-    const u32x c = ctx0.h[2];
-    const u32x d = ctx0.h[3];
-    const u32x e = ctx0.h[4];
+    const u32 a = ctx1.h[0];
+    const u32 b = ctx1.h[1];
+    const u32 c = ctx1.h[2];
+    const u32 d = ctx1.h[3];
+    const u32 e = ctx1.h[4];
 
     sha1_ctx_t ctx;
 

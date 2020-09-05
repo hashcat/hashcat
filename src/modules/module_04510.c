@@ -18,7 +18,7 @@ static const u32   DGST_POS3      = 1;
 static const u32   DGST_SIZE      = DGST_SIZE_4_5;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_RAW_HASH_SALTED;
 static const char *HASH_NAME      = "sha1(sha1($pass).$salt)";
-static const u64   KERN_TYPE      = 4720;
+static const u64   KERN_TYPE      = 4510;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_PRECOMPUTE_INIT
                                   | OPTI_TYPE_EARLY_SKIP
