@@ -1557,6 +1557,9 @@ typedef struct backend_ctx
 
   // cuda
 
+  int                 rc_cuda_init;
+  int                 rc_nvrtc_init;
+
   int                 nvrtc_driver_version;
   int                 cuda_driver_version;
 
