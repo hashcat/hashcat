@@ -1,0 +1,92 @@
+                           ACKNOWLEDGMENTS
+
+* We used "Screaming Fast Galois Field Arithmetic Using Intel
+  SIMD Instructions" paper by James S. Plank, Kevin M. Greenan
+  and Ethan L. Miller to improve Reed-Solomon coding performance.
+  Also we are grateful to Artem Drobanov and Bulat Ziganshin
+  for samples and ideas allowed to make Reed-Solomon coding
+  more efficient.
+
+* RAR text compression algorithm is based on Dmitry Shkarin PPMII
+  and Dmitry Subbotin carryless rangecoder public domain source code.
+  You may find it in ftp.elf.stuba.sk/pub/pc/pack.
+
+* RAR encryption includes parts of code from Szymon Stefanek
+  and Brian Gladman AES implementations also as Steve Reid SHA-1 source.
+
+  ---------------------------------------------------------------------------
+  Copyright (c) 2002, Dr Brian Gladman <                 >, Worcester, UK.
+  All rights reserved.
+
+  LICENSE TERMS
+
+  The free distribution and use of this software in both source and binary
+  form is allowed (with or without changes) provided that:
+
+    1. distributions of this source code include the above copyright
+       notice, this list of conditions and the following disclaimer;
+
+    2. distributions in binary form include the above copyright
+       notice, this list of conditions and the following disclaimer
+       in the documentation and/or other associated materials;
+
+    3. the copyright holder's name is not used to endorse products
+       built using this software without specific written permission.
+
+  ALTERNATIVELY, provided that this notice is retained in full, this product
+  may be distributed under the terms of the GNU General Public License (GPL),
+  in which case the provisions of the GPL apply INSTEAD OF those given above.
+
+  DISCLAIMER
+
+  This software is provided 'as is' with no explicit or implied warranties
+  in respect of its properties, including, but not limited to, correctness
+  and/or fitness for purpose.
+  ---------------------------------------------------------------------------
+
+  Source code of this package also as other cryptographic technology
+  and computing project related links are available on Brian Gladman's
+  web site: http://www.gladman.me.uk
+
+* RAR uses CRC32 function based on Intel Slicing-by-8 algorithm.
+  Original Intel Slicing-by-8 code is available here:
+
+    http://sourceforge.net/projects/slicing-by-8/
+
+  Original Intel Slicing-by-8 code is licensed under BSD License
+  available at http://www.opensource.org/licenses/bsd-license.html
+
+    Copyright (c) 2004-2006 Intel Corporation. 
+    All Rights Reserved
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+
+    Redistributions of source code must retain the above copyright notice,
+    this list of conditions and the following disclaimer.
+    
+    Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer
+    in the documentation and/or other materials provided with
+    the distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+    ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+    OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
+    OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+    SUCH DAMAGE.
+
+* RAR archives may optionally include BLAKE2sp hash ( https://blake2.net ),
+  designed by Jean-Philippe Aumasson, Samuel Neves, Zooko Wilcox-O'Hearn
+  and Christian Winnerlein.
+
+* Useful hints provided by Alexander Khoroshev and Bulat Ziganshin allowed
+  to significantly improve RAR compression and speed.
