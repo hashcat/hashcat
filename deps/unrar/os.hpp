@@ -53,7 +53,7 @@
 #include <prsht.h>
 #include <shlwapi.h>
 #pragma comment(lib, "Shlwapi.lib")
-#include <PowrProf.h>
+#include <powrprof.h>
 #pragma comment(lib, "PowrProf.lib")
 #include <shellapi.h>
 #include <shlobj.h>
