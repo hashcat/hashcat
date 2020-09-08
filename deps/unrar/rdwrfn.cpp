@@ -292,6 +292,13 @@ void ComprDataIO::SetEncryption(bool Encrypt,CRYPT_METHOD Method,
 #endif
 }
 
+void ComprDataIO::InitRijindal(byte *Key,byte *InitV)
+{
+#ifndef RAR_NOCRYPT
+  Decryption=true;
+  Decrypt->SetRijndalDecryptKey(Key,InitV);
+#endif
+}
 
 #if !defined(SFX_MODULE) && !defined(RAR_NOCRYPT)
 void ComprDataIO::SetAV15Encryption()

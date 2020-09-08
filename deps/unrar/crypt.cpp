@@ -91,6 +91,11 @@ bool CryptData::SetCryptKeys(bool Encrypt,CRYPT_METHOD Method,
   return true;
 }
 
+void CryptData::SetRijndalDecryptKey(byte *Key,byte *InitV)
+{
+  CryptData::Method=CRYPT_RAR30;
+  rin.Init(false,Key,128,InitV);
+}
 
 // Use the current system time to additionally randomize data.
 static void TimeRandomize(byte *RndBuf,size_t BufSize)

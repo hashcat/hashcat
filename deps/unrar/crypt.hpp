@@ -81,6 +81,7 @@ class CryptData
     bool SetCryptKeys(bool Encrypt,CRYPT_METHOD Method,SecPassword *Password,
          const byte *Salt,const byte *InitV,uint Lg2Cnt,
          byte *HashKey,byte *PswCheck);
+    void SetRijndalDecryptKey(byte *Key,byte *InitV);
     void SetAV15Encryption();
     void SetCmt13Encryption();
     void EncryptBlock(byte *Buf,size_t Size);

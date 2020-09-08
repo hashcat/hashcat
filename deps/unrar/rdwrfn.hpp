@@ -70,6 +70,7 @@ class ComprDataIO
     void SetSubHeader(FileHeader *hd,int64 *Pos) {SubHead=hd;SubHeadPos=Pos;}
     void SetEncryption(bool Encrypt,CRYPT_METHOD Method,SecPassword *Password,
          const byte *Salt,const byte *InitV,uint Lg2Cnt,byte *HashKey,byte *PswCheck);
+    void InitRijindal(byte *Key,byte *InitV);
     void SetAV15Encryption();
     void SetCmt13Encryption();
     void SetUnpackToMemory(byte *Addr,uint Size);
