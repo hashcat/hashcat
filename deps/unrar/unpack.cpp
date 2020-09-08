@@ -16,7 +16,7 @@
 #include "unpack50frag.cpp"
 
 Unpack::Unpack(ComprDataIO *DataIO)
-:Inp(true),VMCodeInp(true)
+:Inp(false),VMCodeInp(false)
 {
   UnpIO=DataIO;
   Window=NULL;
@@ -49,8 +49,8 @@ Unpack::~Unpack()
 {
   InitFilters30(false);
 
-  if (Window!=NULL)
-    free(Window);
+  //if (Window!=NULL)
+  //  free(Window);
 #ifdef RAR_SMP
   delete UnpThreadPool;
   delete[] ReadBufMT;
@@ -69,6 +69,21 @@ void Unpack::SetThreads(uint Threads)
 }
 #endif
 
+void Unpack::SetWin(void *win)
+{
+  hcwin=(byte *)win;
+}
+
+void Unpack::SetPPM(void *ppm)
+{
+  hcppm=(byte *)ppm;
+}
+
+void Unpack::SetExternalBuffer(byte *InpBuf,byte *VMCodeBuf)
+{
+  Inp.SetExternalBuffer(InpBuf);
+  VMCodeInp.SetExternalBuffer(VMCodeBuf);
+}
 
 void Unpack::Init(size_t WinSize,bool Solid)
 {
@@ -102,7 +117,7 @@ void Unpack::Init(size_t WinSize,bool Solid)
   if (Grow && Fragmented)
     throw std::bad_alloc();
 
-  byte *NewWindow=Fragmented ? NULL : (byte *)malloc(WinSize);
+  byte *NewWindow=Fragmented ? NULL : (byte *)hcwin;
 
   if (NewWindow==NULL)
     if (Grow || WinSize<0x1000000)
@@ -115,7 +130,7 @@ void Unpack::Init(size_t WinSize,bool Solid)
     {
       if (Window!=NULL) // If allocated by preceding files.
       {
-        free(Window);
+        //free(Window);
         Window=NULL;
       }
       FragWindow.Init(WinSize);
@@ -126,7 +141,7 @@ void Unpack::Init(size_t WinSize,bool Solid)
   {
     // Clean the window to generate the same output when unpacking corrupt
     // RAR files, which may access unused areas of sliding dictionary.
-    memset(NewWindow,0,WinSize);
+    //memset(NewWindow,0,WinSize);
 
     // If Window is not NULL, it means that window size has grown.
     // In solid streams we need to copy data to a new window in such case.
@@ -136,8 +151,8 @@ void Unpack::Init(size_t WinSize,bool Solid)
       for (size_t I=1;I<=MaxWinSize;I++)
         NewWindow[(UnpPtr-I)&(WinSize-1)]=Window[(UnpPtr-I)&(MaxWinSize-1)];
 
-    if (Window!=NULL)
-      free(Window);
+    //if (Window!=NULL)
+    //  free(Window);
     Window=NewWindow;
   }
 

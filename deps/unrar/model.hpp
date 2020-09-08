@@ -115,7 +115,7 @@ class ModelPPM : RARPPM_DEF
   public:
     ModelPPM();
     void CleanUp(); // reset PPM variables after data error
-    bool DecodeInit(Unpack *UnpackRead,int &EscChar);
+    bool DecodeInit(Unpack *UnpackRead,int &EscChar,byte *hcppm);
     int DecodeChar();
 };
 

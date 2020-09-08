@@ -637,7 +637,7 @@ bool Unpack::ReadTables30()
   if (BitField & 0x8000)
   {
     UnpBlockType=BLOCK_PPM;
-    return(PPM.DecodeInit(this,PPMEscChar));
+    return(PPM.DecodeInit(this,PPMEscChar,hcppm));
   }
   UnpBlockType=BLOCK_LZ;
   

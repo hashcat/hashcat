@@ -566,14 +566,17 @@ void ModelPPM::CleanUp()
 }
 
 
-bool ModelPPM::DecodeInit(Unpack *UnpackRead,int &EscChar)
+bool ModelPPM::DecodeInit(Unpack *UnpackRead,int &EscChar,byte *hcppm)
 {
   int MaxOrder=UnpackRead->GetChar();
   bool Reset=(MaxOrder & 0x20)!=0;
 
   int MaxMB;
   if (Reset)
+  {
     MaxMB=UnpackRead->GetChar();
+    if (MaxMB>128) return(false);
+  }
   else
     if (SubAlloc.GetAllocatedMemory()==0)
       return(false);
@@ -590,6 +593,7 @@ bool ModelPPM::DecodeInit(Unpack *UnpackRead,int &EscChar)
       SubAlloc.StopSubAllocator();
       return(false);
     }
+    SubAlloc.SetHeapStartFixed(hcppm);
     SubAlloc.StartSubAllocator(MaxMB+1);
     StartModelRare(MaxOrder);
   }

@@ -71,7 +71,7 @@ void SubAllocator::StopSubAllocator()
   if ( SubAllocatorSize ) 
   {
     SubAllocatorSize=0;
-    free(HeapStart);
+    //free(HeapStart);
   }
 }
 
@@ -88,7 +88,8 @@ bool SubAllocator::StartSubAllocator(int SASize)
   // units: one as reserve for HeapEnd overflow checks and another
   // to provide the space to correctly align UnitsStart.
   uint AllocSize=t/FIXED_UNIT_SIZE*UNIT_SIZE+2*UNIT_SIZE;
-  if ((HeapStart=(byte *)malloc(AllocSize)) == NULL)
+  //if ((HeapStart=(byte *)malloc(AllocSize)) == NULL)
+  if ((HeapStart=(byte *)HeapStartFixed) == NULL)
   {
     ErrHandler.MemoryError();
     return false;

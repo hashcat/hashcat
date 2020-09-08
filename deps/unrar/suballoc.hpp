@@ -80,6 +80,9 @@ class SubAllocator
     long GetAllocatedMemory() {return(SubAllocatorSize);}
 
     byte *pText, *UnitsStart,*HeapEnd,*FakeUnitsStart;
+
+    byte *HeapStartFixed;
+    void SetHeapStartFixed(byte *p) {HeapStartFixed=p;}
 };
 
 

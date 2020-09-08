@@ -375,6 +375,9 @@ class Unpack:PackDef
   public:
     Unpack(ComprDataIO *DataIO);
     ~Unpack();
+    void SetWin(void *win);
+    void SetPPM(void *PPM);
+    void SetExternalBuffer(byte *InpBuf,byte *VMCodeBuf);
     void Init(size_t WinSize,bool Solid);
     void DoUnpack(uint Method,bool Solid);
     bool IsFileExtracted() {return(FileExtracted);}
@@ -385,6 +388,9 @@ class Unpack:PackDef
     void SetThreads(uint Threads);
     void UnpackDecode(UnpackThreadData &D);
 #endif
+
+    byte *hcwin;
+    byte *hcppm;
 
     size_t MaxWinSize;
     size_t MaxWinMask;

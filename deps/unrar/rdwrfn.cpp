@@ -201,7 +201,7 @@ void ComprDataIO::UnpWrite(byte *Addr,size_t Count)
   {
     if (Count <= UnpackToMemorySize)
     {
-      memcpy(UnpackToMemoryAddr,Addr,Count);
+      //memcpy(UnpackToMemoryAddr,Addr,Count);
       UnpackToMemoryAddr+=Count;
       UnpackToMemorySize-=Count;
     }
