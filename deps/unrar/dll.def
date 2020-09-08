@@ -1,0 +1,13 @@
+EXPORTS
+  RAROpenArchive
+  RAROpenArchiveEx
+  RARCloseArchive
+  RARReadHeader
+  RARReadHeaderEx
+  RARProcessFile
+  RARProcessFileW
+  RARSetCallback
+  RARSetChangeVolProc
+  RARSetProcessDataProc
+  RARSetPassword
+  RARGetDllVersion

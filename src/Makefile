@@ -13,6 +13,8 @@ USE_SYSTEM_LZMA         ?= 0
 USE_SYSTEM_ZLIB         ?= 0
 USE_SYSTEM_OPENCL       ?= 0
 USE_SYSTEM_XXHASH       ?= 0
+## do not change, requires some hacks
+USE_SYSTEM_UNRAR        ?= 0
 
 ##
 ## Detect Operating System
@@ -57,6 +59,7 @@ MODULE_INTERFACE_VERSION := 620
 ##
 
 CC                      := gcc
+CXX                     := g++
 AR                      := ar
 FIND                    := find
 INSTALL                 := install
@@ -66,6 +69,7 @@ SED_IN_PLACE            := -i
 
 ifeq ($(UNAME),Darwin)
 CC                      := clang
+CXX                     := clang++
 # the sed -i option of macOS requires a parameter for the backup file (we just use "")
 AR                      := /usr/bin/ar
 SED                     := /usr/bin/sed
@@ -75,6 +79,7 @@ endif
 
 ifeq ($(UNAME),FreeBSD)
 CC                      := cc
+CXX                     := c++
 SED                     := gsed
 endif
 
@@ -133,6 +138,12 @@ else
 DEPS_XXHASH_PATH        := $(LIBRARY_DEV_ROOT_FOLDER)
 endif
 
+ifeq ($(USE_SYSTEM_UNRAR),0)
+DEPS_UNRAR_PATH         := deps/unrar
+else
+DEPS_UNRAR_PATH         := $(LIBRARY_DEV_ROOT_FOLDER)
+endif
+
 ##
 ## Filenames for library and frontend
 ##
@@ -185,6 +196,22 @@ CFLAGS_ZLIB             += -Wno-unused-parameter
 CFLAGS_ZLIB             += -DIOAPI_NO_64
 endif
 
+## because UNRAR
+ifeq ($(USE_SYSTEM_UNRAR),0)
+CFLAGS_UNRAR            += -Wno-unused-variable
+CFLAGS_UNRAR            += -Wno-unused-parameter
+CFLAGS_UNRAR            += -Wno-unused-function
+CFLAGS_UNRAR            += -Wno-sign-compare
+CFLAGS_UNRAR            += -Wno-dangling-else
+CFLAGS_UNRAR            += -Wno-switch
+CFLAGS_UNRAR            += -Wno-parentheses
+CFLAGS_UNRAR            += -Wno-misleading-indentation
+CFLAGS_UNRAR            += -Wno-implicit-fallthrough
+CFLAGS_UNRAR            += -Wno-extra
+CFLAGS_UNRAR            += -Wno-unknown-pragmas
+CFLAGS_UNRAR            += -Wno-class-memaccess
+endif
+
 ifeq ($(DEBUG),0)
 CFLAGS                  += -O2
 ifneq ($(UNAME),Darwin)
@@ -209,7 +236,7 @@ endif
 endif
 endif
 
-CFLAGS                  += -pipe -std=gnu99 -Iinclude/ -IOpenCL/
+CFLAGS                  += -pipe -Iinclude/ -IOpenCL/
 
 # LZMA
 CFLAGS                  += -I$(DEPS_LZMA_PATH)
@@ -239,6 +266,10 @@ endif
 ifeq ($(ENABLE_CUBIN),1)
 CFLAGS                  += -DWITH_CUBIN
 endif
+
+# unrar
+CFLAGS                  += -I$(DEPS_UNRAR_PATH)
+LFLAGS                  += -lstdc++
 
 ##
 ## Native compilation target
@@ -297,7 +328,14 @@ LFLAGS_NATIVE           += -Wl,--nxcompat
 LFLAGS_NATIVE           += -lpsapi
 LFLAGS_NATIVE           += -liconv
 LFLAGS_NATIVE           += -lws2_32
+LFLAGS_NATIVE           += -lpowrprof
 endif # MSYS2
+
+# CCFLAGS only for C compiler
+CCFLAGS                 := -std=gnu99
+
+# CXXFLAGS only for C++ compiler
+CXXFLAGS                :=
 
 ##
 ## Objects
@@ -345,6 +383,14 @@ WIN_OBJS                += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).WIN.o)
 endif
 endif
 
+ifeq ($(USE_SYSTEM_UNRAR),0)
+OBJS_UNRAR              := strlist strfn pathfn smallfn global file filefn filcreat archive arcread unicode system isnt crypt crc rawread encname resource match timefn rdwrfn consio options errhnd rarvm secpassword rijndael getbits sha1 sha256 blake2s hash extinfo extract volume list find unpack headers threadpool rs16 cmddata ui filestr recvol rs scantree qopen hc_decompress_rar
+
+NATIVE_OBJS             += $(foreach OBJ,$(OBJS_UNRAR),obj/$(OBJ).NATIVE.o)
+LINUX_OBJS              += $(foreach OBJ,$(OBJS_UNRAR),obj/$(OBJ).LINUX.o)
+WIN_OBJS                += $(foreach OBJ,$(OBJS_UNRAR),obj/$(OBJ).WIN.o)
+endif
+
 ##
 ## Targets: Native Compilation
 ##
@@ -358,6 +404,7 @@ clean:
 	$(RM) -f modules/*.dll
 	$(RM) -f modules/*.so
 	$(RM) -f obj/*/*/*.o
+	$(RM) -f obj/*/*.o
 	$(RM) -f obj/*.o
 	$(RM) -f obj/*.a
 	$(RM) -rf *.dSYM
@@ -484,23 +531,28 @@ uninstall:
 ##
 
 obj/%.NATIVE.o: src/%.c
-	$(CC) -c $(CFLAGS_NATIVE) $< -o $@ -fpic
+	$(CC) -c $(CCFLAGS) $(CFLAGS_NATIVE) $< -o $@ -fpic
 
 ifeq ($(USE_SYSTEM_LZMA),0)
 obj/%.NATIVE.o: $(DEPS_LZMA_PATH)/%.c
-	$(CC) -c $(CFLAGS_NATIVE) $< -o $@ -fpic
+	$(CC) -c $(CCFLAGS) $(CFLAGS_NATIVE) $< -o $@ -fpic
 endif
 
 ifeq ($(USE_SYSTEM_ZLIB),0)
 obj/%.NATIVE.o: $(DEPS_ZLIB_PATH)/%.c
-	$(CC) -c $(CFLAGS_NATIVE) $(CFLAGS_ZLIB) $< -o $@ -fpic
+	$(CC) -c $(CCFLAGS) $(CFLAGS_NATIVE) $(CFLAGS_ZLIB) $< -o $@ -fpic
 endif
 
 ifeq ($(USE_SYSTEM_XXHASH),0)
 ifeq ($(ENABLE_BRAIN),1)
 obj/%.NATIVE.o: $(DEPS_XXHASH_PATH)/%.c
-	$(CC) -c $(CFLAGS_NATIVE) $< -o $@ -fpic
+	$(CC) -c $(CCFLAGS) $(CFLAGS_NATIVE) $< -o $@ -fpic
 endif
+endif
+
+ifeq ($(USE_SYSTEM_UNRAR),0)
+obj/%.NATIVE.o: $(DEPS_UNRAR_PATH)/%.cpp
+	$(CXX) -c $(CXXFLAGS) $(CFLAGS_NATIVE) $(CFLAGS_UNRAR) $< -o $@ -fpic
 endif
 
 obj/combined.NATIVE.a: $(NATIVE_OBJS)
@@ -516,10 +568,10 @@ endif
 
 ifeq ($(SHARED),1)
 $(HASHCAT_FRONTEND): src/main.c $(HASHCAT_LIBRARY)
-	$(CC)    $(CFLAGS_NATIVE) $^ -o $@ $(HASHCAT_LIBRARY) $(LFLAGS_NATIVE) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
+	$(CC)    $(CCFLAGS) $(CFLAGS_NATIVE) $^ -o $@ $(HASHCAT_LIBRARY) $(LFLAGS_NATIVE) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 else
 $(HASHCAT_FRONTEND): src/main.c obj/combined.NATIVE.a
-	$(CC)    $(CFLAGS_NATIVE) $^ -o $@                    $(LFLAGS_NATIVE) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
+	$(CC)    $(CCFLAGS) $(CFLAGS_NATIVE) $^ -o $@                    $(LFLAGS_NATIVE) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 endif
 
 ##
@@ -541,10 +593,10 @@ MODULES_LIB   := $(patsubst src/modules/module_%.c, modules/module_%.$(MODULE_SU
 
 ifeq ($(SHARED),1)
 modules/module_%.$(MODULE_SUFFIX): src/modules/module_%.c $(HASHCAT_LIBRARY)
-	$(CC)    $(CFLAGS_NATIVE) $^ -o $@ $(LFLAGS_NATIVE) -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
+	$(CC)    $(CCFLAGS) $(CFLAGS_NATIVE) $^ -o $@ $(LFLAGS_NATIVE) -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
 else
 modules/module_%.$(MODULE_SUFFIX): src/modules/module_%.c obj/combined.NATIVE.a
-	$(CC)    $(CFLAGS_NATIVE) $^ -o $@ $(LFLAGS_NATIVE) -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
+	$(CC)    $(CCFLAGS) $(CFLAGS_NATIVE) $^ -o $@ $(LFLAGS_NATIVE) -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
 endif
 
 modules: $(MODULES_LIB)
@@ -560,7 +612,9 @@ ifeq ($(UNAME),Linux)
 ##
 
 CC_LINUX                := gcc
+CXX_LINUX               := g++
 CC_WIN                  := x86_64-w64-mingw32-gcc
+CXX_WIN                 := x86_64-w64-mingw32-g++
 
 AR_LINUX                := ar
 AR_WIN                  := x86_64-w64-mingw32-ar
@@ -593,6 +647,8 @@ LFLAGS_CROSS_WIN        += -Wl,--dynamicbase
 LFLAGS_CROSS_WIN        += -Wl,--nxcompat
 LFLAGS_CROSS_WIN        += -lpsapi
 LFLAGS_CROSS_WIN        += -lws2_32
+LFLAGS_CROSS_WIN        += -lpowrprof
+LFLAGS_CROSS_WIN        += -static -static-libgcc -static-libstdc++
 
 ##
 ## Targets
@@ -617,45 +673,53 @@ modules_linux: $(MODULES_LIB_LINUX)
 modules_win:   $(MODULES_LIB_WIN)
 
 modules/module_%.so:  src/modules/module_%.c obj/combined.LINUX.a
-	$(CC_LINUX)  $(CFLAGS_CROSS_LINUX) $^ -o $@ $(LFLAGS_CROSS_LINUX) -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
+	$(CC_LINUX)  $(CCFLAGS) $(CFLAGS_CROSS_LINUX) $^ -o $@ $(LFLAGS_CROSS_LINUX) -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
 
 modules/module_%.dll: src/modules/module_%.c obj/combined.WIN.a
-	$(CC_WIN)    $(CFLAGS_CROSS_WIN)   $^ -o $@ $(LFLAGS_CROSS_WIN)   -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
+	$(CC_WIN)    $(CCFLAGS) $(CFLAGS_CROSS_WIN)   $^ -o $@ $(LFLAGS_CROSS_WIN)   -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
 
 ##
 ## cross compiled hashcat
 ##
 
 obj/%.LINUX.o: src/%.c
-	$(CC_LINUX) $(CFLAGS_CROSS_LINUX) -c -o $@ $<
+	$(CC_LINUX) $(CCFLAGS) $(CFLAGS_CROSS_LINUX) -c -o $@ $<
 
 obj/%.WIN.o:   src/%.c
-	$(CC_WIN)   $(CFLAGS_CROSS_WIN)   -c -o $@ $<
+	$(CC_WIN)   $(CCFLAGS) $(CFLAGS_CROSS_WIN)   -c -o $@ $<
 
 ifeq ($(USE_SYSTEM_LZMA),0)
 obj/%.LINUX.o: $(DEPS_LZMA_PATH)/%.c
-	$(CC_LINUX) $(CFLAGS_CROSS_LINUX) -c -o $@ $<
+	$(CC_LINUX) $(CCFLAGS) $(CFLAGS_CROSS_LINUX) -c -o $@ $<
 
 obj/%.WIN.o:   $(DEPS_LZMA_PATH)/%.c
-	$(CC_WIN)   $(CFLAGS_CROSS_WIN)   -c -o $@ $<
+	$(CC_WIN)   $(CCFLAGS) $(CFLAGS_CROSS_WIN)   -c -o $@ $<
 endif
 
 ifeq ($(USE_SYSTEM_ZLIB),0)
 obj/%.LINUX.o: $(DEPS_ZLIB_PATH)/%.c
-	$(CC_LINUX) $(CFLAGS_CROSS_LINUX) $(CFLAGS_ZLIB) -c -o $@ $<
+	$(CC_LINUX) $(CCFLAGS) $(CFLAGS_CROSS_LINUX) $(CFLAGS_ZLIB) -c -o $@ $<
 
 obj/%.WIN.o:   $(DEPS_ZLIB_PATH)/%.c
-	$(CC_WIN)   $(CFLAGS_CROSS_WIN) $(CFLAGS_ZLIB) -c -o $@ $<
+	$(CC_WIN)   $(CCFLAGS) $(CFLAGS_CROSS_WIN)   $(CFLAGS_ZLIB) -c -o $@ $<
 endif
 
 ifeq ($(USE_SYSTEM_XXHASH),0)
 ifeq ($(ENABLE_BRAIN),1)
 obj/%.LINUX.o: $(DEPS_XXHASH_PATH)/%.c
-	$(CC_LINUX) $(CFLAGS_CROSS_LINUX) -c -o $@ $<
+	$(CC_LINUX) $(CCFLAGS) $(CFLAGS_CROSS_LINUX) -c -o $@ $<
 
 obj/%.WIN.o:   $(DEPS_XXHASH_PATH)/%.c
-	$(CC_WIN)   $(CFLAGS_CROSS_WIN)   -c -o $@ $<
+	$(CC_WIN)   $(CCFLAGS) $(CFLAGS_CROSS_WIN)   -c -o $@ $<
 endif
+endif
+
+ifeq ($(USE_SYSTEM_UNRAR),0)
+obj/%.LINUX.o: $(DEPS_UNRAR_PATH)/%.cpp
+	$(CXX_LINUX) $(CXXFLAGS) $(CFLAGS_CROSS_LINUX) $(CFLAGS_UNRAR) -c -o $@ $<
+
+obj/%.WIN.o:   $(DEPS_UNRAR_PATH)/%.cpp
+	$(CXX_WIN)   $(CXXFLAGS) $(CFLAGS_CROSS_WIN)   $(CFLAGS_UNRAR) -c -o $@ $<
 endif
 
 obj/combined.LINUX.a: $(LINUX_OBJS)
@@ -665,12 +729,12 @@ obj/combined.WIN.a: $(WIN_OBJS)
 	$(AR_WIN) rcs $@ $^
 
 hashcat.bin: src/main.c obj/combined.LINUX.a
-	$(CC_LINUX) $(CFLAGS_CROSS_LINUX)    -o $@ $^ $(LFLAGS_CROSS_LINUX) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
+	$(CC_LINUX) $(CCFLAGS) $(CFLAGS_CROSS_LINUX)    -o $@ $^ $(LFLAGS_CROSS_LINUX) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 
 hashcat.exe: src/main.c obj/combined.WIN.a $(WIN_ICONV)/lib/libiconv.a
-	$(CC_WIN)   $(CFLAGS_CROSS_WIN)      -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\"
+	$(CC_WIN)   $(CCFLAGS) $(CFLAGS_CROSS_WIN)      -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\"
 
 hashcat.dll: src/main.c obj/combined.WIN.a $(WIN_ICONV)/lib/libiconv.a
-	$(CC_WIN)   $(CFLAGS_CROSS_WIN)      -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -shared
+	$(CC_WIN)   $(CCFLAGS) $(CFLAGS_CROSS_WIN)      -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -shared
 
 endif

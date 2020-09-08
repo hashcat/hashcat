@@ -295,6 +295,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - MultiBit HD (scrypt)
 - 7-Zip
 - RAR3-hp
+- RAR3-p
 - RAR5
 - PKZIP (Compressed)
 - PKZIP (Compressed Multi-File)

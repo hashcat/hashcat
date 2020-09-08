@@ -57,6 +57,7 @@ Other contributors to hashcat
 * zlib by Jean-loup Gailly and Mark Adler
 * win-iconv by Yukihiro Nakadaira
 * micro-ecc by Ken MacKay (used as reference for some secp256k1 operations)
+* UnRAR by Alexander Roshal
 
 # Furthermore the following persons helped the project:
 
