@@ -11,10 +11,11 @@
 #include <wmmintrin.h>
 #endif
 
-static byte S[256],S5[256],rcon[30];
-static byte T1[256][4],T2[256][4],T3[256][4],T4[256][4];
-static byte T5[256][4],T6[256][4],T7[256][4],T8[256][4];
-static byte U1[256][4],U2[256][4],U3[256][4],U4[256][4];
+// not thread-safe ?
+//static byte S[256],S5[256],rcon[30];
+//static byte T1[256][4],T2[256][4],T3[256][4],T4[256][4];
+//static byte T5[256][4],T6[256][4],T7[256][4],T8[256][4];
+//static byte U1[256][4],U2[256][4],U3[256][4],U4[256][4];
 
 
 inline void Xor128(void *dest,const void *arg1,const void *arg2)

@@ -33,6 +33,11 @@ class Rijndael
     int      m_uRounds;
     byte     m_initVector[MAX_IV_SIZE];
     byte     m_expandedKey[_MAX_ROUNDS+1][4][4];
+
+    byte S[256],S5[256],rcon[30];
+    byte T1[256][4],T2[256][4],T3[256][4],T4[256][4];
+    byte T5[256][4],T6[256][4],T7[256][4],T8[256][4];
+    byte U1[256][4],U2[256][4],U3[256][4],U4[256][4];
   public:
     Rijndael();
     void Init(bool Encrypt,const byte *key,uint keyLen,const byte *initVector);
