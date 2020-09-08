@@ -9,6 +9,7 @@
 - Added hash-mode: AxCrypt 2 AES-128
 - Added hash-mode: AxCrypt 2 AES-256
 - Added hash-mode: RSA/DSA/EC/OPENSSH Private Keys
+- Added hash-mode: sha1(sha1($pass).$salt)
 
 ##
 ## Bugs
