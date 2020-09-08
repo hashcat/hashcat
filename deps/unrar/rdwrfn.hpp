@@ -74,6 +74,7 @@ class ComprDataIO
     void SetAV15Encryption();
     void SetCmt13Encryption();
     void SetUnpackToMemory(byte *Addr,uint Size);
+    void SetUnpackFromMemory(byte *Addr,uint Size);
     void SetCurrentCommand(wchar Cmd) {CurrentCommand=Cmd;}
 
 

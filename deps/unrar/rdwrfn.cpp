@@ -326,3 +326,10 @@ void ComprDataIO::SetUnpackToMemory(byte *Addr,uint Size)
   UnpackToMemoryAddr=Addr;
   UnpackToMemorySize=Size;
 }
+
+void ComprDataIO::SetUnpackFromMemory(byte *Addr,uint Size)
+{
+  UnpackFromMemory=true;
+  UnpackFromMemoryAddr=Addr;
+  UnpackFromMemorySize=Size;
+}
