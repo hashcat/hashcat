@@ -265,6 +265,7 @@ bool module_hook_extra_param_term (MAYBE_UNUSED const hashconfig_t *hashconfig, 
     hcfree (rar3_hook_extra->vm [backend_devices_idx]);
   }
 
+  hcfree (rar3_hook_extra->ppm);
   hcfree (rar3_hook_extra->win);
   hcfree (rar3_hook_extra->inp);
   hcfree (rar3_hook_extra->vm);
