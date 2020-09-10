@@ -154,6 +154,337 @@ KERNEL_FQ void m23700_init (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
   tmps[gid].dgst[0][4] = SHA1M_E;
 }
 
+/*
+KERNEL_FQ void m23700_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
+{
+  const u64 gid = get_global_id (0);
+
+  if (gid >= gid_max) return;
+
+  u32 pw_buf[5];
+
+  pw_buf[0] = pws[gid].i[0];
+  pw_buf[1] = pws[gid].i[1];
+  pw_buf[2] = pws[gid].i[2];
+  pw_buf[3] = pws[gid].i[3];
+  pw_buf[4] = pws[gid].i[4];
+
+  const u32 pw_len = MIN (pws[gid].pw_len, 20);
+
+  u32 salt_buf[2];
+
+  salt_buf[0] = salt_bufs[salt_pos].salt_buf[0];
+  salt_buf[1] = salt_bufs[salt_pos].salt_buf[1];
+
+  const u32 salt_len = 8;
+
+  // this is large enough to hold all possible w[] arrays for 64 iterations
+
+  u32 cb[16] = { 0 };
+
+  u32 p = 0;
+
+  for (u32 j = 0; j < pw_len; j++, p += 2)
+  {
+    PUTCHAR_BE (cb, p, GETCHAR (pw_buf, j));
+  }
+
+  for (u32 j = 0; j < salt_len; j++, p += 1)
+  {
+    PUTCHAR_BE (cb, p, GETCHAR (salt_buf, j));
+  }
+
+  const u32 p2 = (pw_len * 2) + salt_len;
+  const u32 p3 = (pw_len * 2) + salt_len + 3;
+
+  const u32 init_pos = loop_pos / (ROUNDS / 16);
+
+  u32 dgst[5];
+
+  dgst[0] = tmps[gid].dgst[init_pos][0];
+  dgst[1] = tmps[gid].dgst[init_pos][1];
+  dgst[2] = tmps[gid].dgst[init_pos][2];
+  dgst[3] = tmps[gid].dgst[init_pos][3];
+  dgst[4] = tmps[gid].dgst[init_pos][4];
+
+  u32 w0[4] = { 0 };
+  u32 w1[4] = { 0 };
+  u32 w2[4] = { 0 };
+  u32 w3[4] = { 0 };
+  u32 w4[4] = { 0 };
+  u32 w5[4] = { 0 };
+  u32 w6[4] = { 0 };
+  u32 w7[4] = { 0 };
+
+  u32 iter = loop_pos;
+
+  for (u32 i = 0; i < 256; i++)
+  {
+    u32 k1 = 0;
+    u32 k2 = p2;
+
+    for (u32 j = 0; j < p3; j++)
+    {
+      w0[0] = w4[0];
+      w0[1] = w4[1];
+      w0[2] = w4[2];
+      w0[3] = w4[3];
+      w1[0] = w5[0];
+      w1[1] = w5[1];
+      w1[2] = w5[2];
+      w1[3] = w5[3];
+      w2[0] = w6[0];
+      w2[1] = w6[1];
+      w2[2] = w6[2];
+      w2[3] = w6[3];
+      w3[0] = w7[0];
+      w3[1] = w7[1];
+      w3[2] = w7[2];
+      w3[3] = w7[3];
+      w4[0] = 0;
+      w4[1] = 0;
+      w4[2] = 0;
+      w4[3] = 0;
+      w5[0] = 0;
+      w5[1] = 0;
+      w5[2] = 0;
+      w5[3] = 0;
+      w6[0] = 0;
+      w6[1] = 0;
+      w6[2] = 0;
+      w6[3] = 0;
+      w7[0] = 0;
+      w7[1] = 0;
+      w7[2] = 0;
+      w7[3] = 0;
+
+      const u32 t1 = k1;
+
+      while (k1 < 64)
+      {
+        u32 x0[4];
+        u32 x1[4];
+        u32 x2[4];
+        u32 x3[4];
+        u32 x4[4];
+        u32 x5[4];
+        u32 x6[4];
+        u32 x7[4];
+
+        x0[0] = cb[ 0];
+        x0[1] = cb[ 1];
+        x0[2] = cb[ 2];
+        x0[3] = cb[ 3];
+        x1[0] = cb[ 4];
+        x1[1] = cb[ 5];
+        x1[2] = cb[ 6];
+        x1[3] = cb[ 7];
+        x2[0] = cb[ 8];
+        x2[1] = cb[ 9];
+        x2[2] = cb[10];
+        x2[3] = cb[11];
+        x3[0] = cb[12];
+        x3[1] = cb[13];
+        x3[2] = cb[14];
+        x3[3] = cb[15];
+        x4[0] = 0;
+        x4[1] = 0;
+        x4[2] = 0;
+        x4[3] = 0;
+        x5[0] = 0;
+        x5[1] = 0;
+        x5[2] = 0;
+        x5[3] = 0;
+        x6[0] = 0;
+        x6[1] = 0;
+        x6[2] = 0;
+        x6[3] = 0;
+        x7[0] = 0;
+        x7[1] = 0;
+        x7[2] = 0;
+        x7[3] = 0;
+
+        switch_buffer_by_offset_carry_be (x0, x1, x2, x3, x4, x5, x6, x7, k1);
+
+        w0[0] |= x0[0];
+        w0[1] |= x0[1];
+        w0[2] |= x0[2];
+        w0[3] |= x0[3];
+        w1[0] |= x1[0];
+        w1[1] |= x1[1];
+        w1[2] |= x1[2];
+        w1[3] |= x1[3];
+        w2[0] |= x2[0];
+        w2[1] |= x2[1];
+        w2[2] |= x2[2];
+        w2[3] |= x2[3];
+        w3[0] |= x3[0];
+        w3[1] |= x3[1];
+        w3[2] |= x3[2];
+        w3[3] |= x3[3];
+        w4[0] |= x4[0];
+        w4[1] |= x4[1];
+        w4[2] |= x4[2];
+        w4[3] |= x4[3];
+        w5[0] |= x5[0];
+        w5[1] |= x5[1];
+        w5[2] |= x5[2];
+        w5[3] |= x5[3];
+        w6[0] |= x6[0];
+        w6[1] |= x6[1];
+        w6[2] |= x6[2];
+        w6[3] |= x6[3];
+        w7[0] |= x7[0];
+        w7[1] |= x7[1];
+        w7[2] |= x7[2];
+        w7[3] |= x7[3];
+
+        k1 += p3;
+      }
+
+      while (k2 < k1)
+      {
+        const u32 iter_s = hc_swap32_S (iter);
+
+        u32 tmp0 = 0;
+        u32 tmp1 = 0;
+
+        switch (k2 & 3)
+        {
+          case 0: tmp0 = iter_s >>  0;
+                  tmp1 = 0;
+                  break;
+          case 1: tmp0 = iter_s >>  8;
+                  tmp1 = 0;
+                  break;
+          case 2: tmp0 = iter_s >> 16;
+                  tmp1 = iter_s << 16;
+                  break;
+          case 3: tmp0 = iter_s >> 24;
+                  tmp1 = iter_s <<  8;
+                  break;
+        }
+
+        switch (k2 / 4)
+        {
+          case  0: w0[0] |= tmp0;
+                   w0[1] |= tmp1;
+                   break;
+          case  1: w0[1] |= tmp0;
+                   w0[2] |= tmp1;
+                   break;
+          case  2: w0[2] |= tmp0;
+                   w0[3] |= tmp1;
+                   break;
+          case  3: w0[3] |= tmp0;
+                   w1[0] |= tmp1;
+                   break;
+          case  4: w1[0] |= tmp0;
+                   w1[1] |= tmp1;
+                   break;
+          case  5: w1[1] |= tmp0;
+                   w1[2] |= tmp1;
+                   break;
+          case  6: w1[2] |= tmp0;
+                   w1[3] |= tmp1;
+                   break;
+          case  7: w1[3] |= tmp0;
+                   w2[0] |= tmp1;
+                   break;
+          case  8: w2[0] |= tmp0;
+                   w2[1] |= tmp1;
+                   break;
+          case  9: w2[1] |= tmp0;
+                   w2[2] |= tmp1;
+                   break;
+          case 10: w2[2] |= tmp0;
+                   w2[3] |= tmp1;
+                   break;
+          case 11: w2[3] |= tmp0;
+                   w3[0] |= tmp1;
+                   break;
+          case 12: w3[0] |= tmp0;
+                   w3[1] |= tmp1;
+                   break;
+          case 13: w3[1] |= tmp0;
+                   w3[2] |= tmp1;
+                   break;
+          case 14: w3[2] |= tmp0;
+                   w3[3] |= tmp1;
+                   break;
+          case 15: w3[3] |= tmp0;
+                   w4[0] |= tmp1;
+                   break;
+          case 16: w4[0] |= tmp0;
+                   w4[1] |= tmp1;
+                   break;
+          case 17: w4[1] |= tmp0;
+                   w4[2] |= tmp1;
+                   break;
+          case 18: w4[2] |= tmp0;
+                   w4[3] |= tmp1;
+                   break;
+          case 19: w4[3] |= tmp0;
+                   w5[0] |= tmp1;
+                   break;
+          case 20: w5[0] |= tmp0;
+                   w5[1] |= tmp1;
+                   break;
+          case 21: w5[1] |= tmp0;
+                   w5[2] |= tmp1;
+                   break;
+          case 22: w5[2] |= tmp0;
+                   w5[3] |= tmp1;
+                   break;
+          case 23: w5[3] |= tmp0;
+                   w6[0] |= tmp1;
+                   break;
+          case 24: w6[0] |= tmp0;
+                   w6[1] |= tmp1;
+                   break;
+          case 25: w6[1] |= tmp0;
+                   w6[2] |= tmp1;
+                   break;
+          case 26: w6[2] |= tmp0;
+                   w6[3] |= tmp1;
+                   break;
+          case 27: w6[3] |= tmp0;
+                   w7[0] |= tmp1;
+                   break;
+          case 28: w7[0] |= tmp0;
+                   w7[1] |= tmp1;
+                   break;
+          case 29: w7[1] |= tmp0;
+                   w7[2] |= tmp1;
+                   break;
+          case 30: w7[2] |= tmp0;
+                   w7[3] |= tmp1;
+                   break;
+          case 31: w7[3] |= tmp0;
+
+                   break;
+        }
+
+        iter++;
+
+        k2 += p3;
+      }
+
+      sha1_transform (w0, w1, w2, w3, dgst);
+
+      k1 &= 63;
+      k2 &= 63;
+    }
+  }
+
+  tmps[gid].dgst[init_pos + 1][0] = dgst[0];
+  tmps[gid].dgst[init_pos + 1][1] = dgst[1];
+  tmps[gid].dgst[init_pos + 1][2] = dgst[2];
+  tmps[gid].dgst[init_pos + 1][3] = dgst[3];
+  tmps[gid].dgst[init_pos + 1][4] = dgst[4];
+}
+*/
+
 KERNEL_FQ void m23700_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
 {
   const u64 gid = get_global_id (0);
@@ -202,6 +533,8 @@ KERNEL_FQ void m23700_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
     p += 3;
   }
 
+  const u32 p2 = (pw_len * 2) + salt_len;
+
   const u32 p3 = (pw_len * 2) + salt_len + 3;
 
   const u32 init_pos = loop_pos / (ROUNDS / 16);
@@ -216,54 +549,124 @@ KERNEL_FQ void m23700_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
 
   u32 iter = loop_pos;
 
-  for (u32 i = 0; i < 256; i += 4)
+  for (u32 i = 0; i < 256; i++)
   {
-    for (u32 j = 0; j < 64; j++)
-    {
-      const u32 p = ((j + 1) * p3) - 2;
+    u32 tmp = 0;
 
-      PUTCHAR_BE (largeblock, p, iter >> 8);
-    }
+    u32 k = p2;
 
-    for (u32 k = 0; k < 4; k++)
+    for (u32 j = 0; j < p3; j++)
     {
-      for (u32 j = 0; j < 64; j++)
+      const u32 j16 = j * 16;
+
+      u32 w[16 + 1];
+
+      w[ 0] = largeblock[j16 +  0] | tmp;
+      w[ 1] = largeblock[j16 +  1];
+      w[ 2] = largeblock[j16 +  2];
+      w[ 3] = largeblock[j16 +  3];
+      w[ 4] = largeblock[j16 +  4];
+      w[ 5] = largeblock[j16 +  5];
+      w[ 6] = largeblock[j16 +  6];
+      w[ 7] = largeblock[j16 +  7];
+      w[ 8] = largeblock[j16 +  8];
+      w[ 9] = largeblock[j16 +  9];
+      w[10] = largeblock[j16 + 10];
+      w[11] = largeblock[j16 + 11];
+      w[12] = largeblock[j16 + 12];
+      w[13] = largeblock[j16 + 13];
+      w[14] = largeblock[j16 + 14];
+      w[15] = largeblock[j16 + 15];
+      w[16] = 0;
+
+      while (k < 64)
       {
-        const u32 p = ((j + 1) * p3) - 3;
+        const u32 iter_s = hc_swap32_S (iter);
 
-        PUTCHAR_BE (largeblock, p, iter >> 0);
+        u32 mask0 = 0;
+        u32 mask1 = 0;
+
+        u32 tmp0 = 0;
+        u32 tmp1 = 0;
+
+        switch (k & 3)
+        {
+          case 0: tmp0 = iter_s >>  0;  mask0 = 0x0000ffff;
+                  tmp1 = 0;             mask1 = 0xffffffff;
+                  break;
+          case 1: tmp0 = iter_s >>  8;  mask0 = 0xff0000ff;
+                  tmp1 = 0;             mask1 = 0xffffffff;
+                  break;
+          case 2: tmp0 = iter_s >> 16;  mask0 = 0xffff0000;
+                  tmp1 = 0;             mask1 = 0xffffffff;
+                  break;
+          case 3: tmp0 = iter_s >> 24;  mask0 = 0xffffff00;
+                  tmp1 = iter_s <<  8;  mask1 = 0x00ffffff;
+                  break;
+        }
+
+        switch (k / 4)
+        {
+          case  0: w[ 0] = (w[ 0] & mask0) | tmp0;
+                   w[ 1] = (w[ 1] & mask1) | tmp1;
+                   break;
+          case  1: w[ 1] = (w[ 1] & mask0) | tmp0;
+                   w[ 2] = (w[ 2] & mask1) | tmp1;
+                   break;
+          case  2: w[ 2] = (w[ 2] & mask0) | tmp0;
+                   w[ 3] = (w[ 3] & mask1) | tmp1;
+                   break;
+          case  3: w[ 3] = (w[ 3] & mask0) | tmp0;
+                   w[ 4] = (w[ 4] & mask1) | tmp1;
+                   break;
+          case  4: w[ 4] = (w[ 4] & mask0) | tmp0;
+                   w[ 5] = (w[ 5] & mask1) | tmp1;
+                   break;
+          case  5: w[ 5] = (w[ 5] & mask0) | tmp0;
+                   w[ 6] = (w[ 6] & mask1) | tmp1;
+                   break;
+          case  6: w[ 6] = (w[ 6] & mask0) | tmp0;
+                   w[ 7] = (w[ 7] & mask1) | tmp1;
+                   break;
+          case  7: w[ 7] = (w[ 7] & mask0) | tmp0;
+                   w[ 8] = (w[ 8] & mask1) | tmp1;
+                   break;
+          case  8: w[ 8] = (w[ 8] & mask0) | tmp0;
+                   w[ 9] = (w[ 9] & mask1) | tmp1;
+                   break;
+          case  9: w[ 9] = (w[ 9] & mask0) | tmp0;
+                   w[10] = (w[10] & mask1) | tmp1;
+                   break;
+          case 10: w[10] = (w[10] & mask0) | tmp0;
+                   w[11] = (w[11] & mask1) | tmp1;
+                   break;
+          case 11: w[11] = (w[11] & mask0) | tmp0;
+                   w[12] = (w[12] & mask1) | tmp1;
+                   break;
+          case 12: w[12] = (w[12] & mask0) | tmp0;
+                   w[13] = (w[13] & mask1) | tmp1;
+                   break;
+          case 13: w[13] = (w[13] & mask0) | tmp0;
+                   w[14] = (w[14] & mask1) | tmp1;
+                   break;
+          case 14: w[14] = (w[14] & mask0) | tmp0;
+                   w[15] = (w[15] & mask1) | tmp1;
+                   break;
+          case 15: w[15] = (w[15] & mask0) | tmp0;
+                   w[16] =                   tmp1;
+                   break;
+        }
 
         iter++;
+
+        k += p3;
       }
 
-      for (u32 j = 0; j < p3; j++)
-      {
-        const u32 j16 = j * 16;
+      sha1_transform (w + 0, w + 4, w + 8, w + 12, dgst);
 
-        u32 w0[4];
-        u32 w1[4];
-        u32 w2[4];
-        u32 w3[4];
+      k &= 63;
 
-        w0[0] = largeblock[j16 +  0];
-        w0[1] = largeblock[j16 +  1];
-        w0[2] = largeblock[j16 +  2];
-        w0[3] = largeblock[j16 +  3];
-        w1[0] = largeblock[j16 +  4];
-        w1[1] = largeblock[j16 +  5];
-        w1[2] = largeblock[j16 +  6];
-        w1[3] = largeblock[j16 +  7];
-        w2[0] = largeblock[j16 +  8];
-        w2[1] = largeblock[j16 +  9];
-        w2[2] = largeblock[j16 + 10];
-        w2[3] = largeblock[j16 + 11];
-        w3[0] = largeblock[j16 + 12];
-        w3[1] = largeblock[j16 + 13];
-        w3[2] = largeblock[j16 + 14];
-        w3[3] = largeblock[j16 + 15];
-
-        sha1_transform (w0, w1, w2, w3, dgst);
-      }
+      tmp = w[16];
     }
   }
 
