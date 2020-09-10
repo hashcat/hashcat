@@ -65,7 +65,7 @@ KERNEL_FQ void m23800_init (KERN_ATTR_TMPS_HOOKS_ESALT (rar3_tmp_t, rar3_hook_t,
   tmps[gid].dgst[0][4] = SHA1M_E;
 }
 
-KERNEL_FQ void m23800_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
+KERNEL_FQ void m23800_loop (KERN_ATTR_TMPS_HOOKS_ESALT (rar3_tmp_t, rar3_hook_t, rar3_t))
 {
   const u64 gid = get_global_id (0);
 
