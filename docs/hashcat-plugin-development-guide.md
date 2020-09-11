@@ -549,14 +549,22 @@ Additionally there is a couple of command line parameters that you want to use:
 Typically a developer command line for hashcat looks the following:
 
 ```
-$ rm -rf kernels $HOME/.nv; ./hashcat -m XXXXX hash.txt word.txt --potfile-disable --self-test-disable -n 1 -u 1 -T 1 --quiet --backend-vector-width 1 -d 1
+$ rm -rf kernels $HOME/.nv; ./hashcat -m XXXXX hash.txt word.txt --potfile-disable --self-test-disable -n 1 -u 1 -T 1 --quiet --backend-vector-width 1 -d 1 --force
 ```
 
-If you need to printf from without a _loop kernel, keep in mind that you need to add a branching manually for a specific loop position.
+When adding print statements keep in mind that you need to manually add a conditional to branch on a specific loop position, otherwise every parallel execution of the kernel will execute the printf(), flooding your terminal. So you can use either:
 
 ```
 if ((loop_pos + i) == 0) printf ("%08x\n", a);
 ```
+
+from a _loop kernel, or
+
+```
+if ((gid == 0) && (lid == 0)) printf ("%08x\n", a);
+```
+
+from a kernel without _loop.
 
 Some last recommendations about printf() itself. Printing a string %s is not recommended. Missing zero bytes or big endian byte order can be very confusing. Instead try to use only the %08x template for everything. Especially for strings this makes a lot of sense, if for example you want to find unexpected non zero bytes. This can be done by calling printf() multiple times. Get used to this and it will simplify a lot of things for you.
 
