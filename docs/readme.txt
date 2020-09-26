@@ -253,6 +253,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Android FDE (Samsung DEK)
 - Android FDE <= 4.3
 - Apple File System (APFS)
+- BestCrypt v3 Volume Encryption
 - TrueCrypt
 - PDF 1.1 - 1.3 (Acrobat 2 - 4)
 - PDF 1.1 - 1.3 (Acrobat 2 - 4), collider #1

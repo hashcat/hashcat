@@ -5,6 +5,7 @@
 ##
 
 - Added hash-mode: Bitwarden
+- Added hash-mode: BestCrypt v3 Volume Encryption
 - Added hash-mode: Apple iWork
 - Added hash-mode: AxCrypt 2 AES-128
 - Added hash-mode: AxCrypt 2 AES-256
