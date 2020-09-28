@@ -46,6 +46,7 @@ typedef struct bestcrypt_scrypt
 {
   u32 salt_buf[24];
   u32 ciphertext[96];
+  char version;
 
 } bestcrypt_scrypt_t;
 
@@ -348,8 +349,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *crypto_type_pos = token.buf[2];
 
-  if (crypto_type_pos[0] != '0') return (PARSER_SALT_VALUE);
-  if (crypto_type_pos[1] != '8') return (PARSER_SALT_VALUE);
+  bestcrypt_scrypt->version = (char) crypto_type_pos[1];
 
   // scrypt settings
   const u32 scrypt_N = 32768;
@@ -408,8 +408,9 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hex_encode ((u8 *) bestcrypt_scrypt->ciphertext, 96, data_hex);
 
-  const int line_len = snprintf (line_buf, line_size, "%s4$08$%s$%s",
+  const int line_len = snprintf (line_buf, line_size, "%s4$0%c$%s$%s",
     SIGNATURE_BESTCRYPT_SCRYPT,
+    bestcrypt_scrypt->version,
     (char *) tmp_salt,
     data_hex
   ); 
