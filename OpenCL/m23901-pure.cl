@@ -9,7 +9,10 @@
 #include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_hash_sha256.cl" 
+#include "inc_cipher_twofish.cl"
 #include "inc_cipher_aes.cl"
+#include "inc_cipher_serpent.cl"
+#include "inc_cipher_camellia.cl"
 #endif 
 
 #define COMPARE_S "inc_comp_single.cl"
@@ -46,6 +49,7 @@ typedef struct bestcrypt_scrypt
 {
   u32 salt_buf[24];
   u32 ciphertext[96];
+  char version;
 
 } bestcrypt_scrypt_t;
 
@@ -528,59 +532,6 @@ KERNEL_FQ void m23901_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt
   const u64 lid = get_local_id (0);
   const u64 lsz = get_local_size (0);
 
-
-
-  /**
-   * aes shared
-   */
-
-  #ifdef REAL_SHM
-
-  LOCAL_VK u32 s_td0[256];
-  LOCAL_VK u32 s_td1[256];
-  LOCAL_VK u32 s_td2[256];
-  LOCAL_VK u32 s_td3[256];
-  LOCAL_VK u32 s_td4[256];
-
-  LOCAL_VK u32 s_te0[256];
-  LOCAL_VK u32 s_te1[256];
-  LOCAL_VK u32 s_te2[256];
-  LOCAL_VK u32 s_te3[256];
-  LOCAL_VK u32 s_te4[256];
-
-  for (u32 i = lid; i < 256; i += lsz)
-  {
-    s_td0[i] = td0[i];
-    s_td1[i] = td1[i];
-    s_td2[i] = td2[i];
-    s_td3[i] = td3[i];
-    s_td4[i] = td4[i];
-
-    s_te0[i] = te0[i];
-    s_te1[i] = te1[i];
-    s_te2[i] = te2[i];
-    s_te3[i] = te3[i];
-    s_te4[i] = te4[i];
-  }
-
-  SYNC_THREADS ();
-
-  #else
-
-  CONSTANT_AS u32a *s_td0 = td0;
-  CONSTANT_AS u32a *s_td1 = td1;
-  CONSTANT_AS u32a *s_td2 = td2;
-  CONSTANT_AS u32a *s_td3 = td3;
-  CONSTANT_AS u32a *s_td4 = td4;
-
-  CONSTANT_AS u32a *s_te0 = te0;
-  CONSTANT_AS u32a *s_te1 = te1;
-  CONSTANT_AS u32a *s_te2 = te2;
-  CONSTANT_AS u32a *s_te3 = te3;
-  CONSTANT_AS u32a *s_te4 = te4;
-
-  #endif
-
   if (gid >= gid_max) return;
 
   /**
@@ -652,43 +603,218 @@ KERNEL_FQ void m23901_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt
 
   sha256_hmac_final (&ctx);
 
-
-/**
-   * AES part
-   */
-
-  #define KEYLEN 60
-
-  u32 ks[KEYLEN];
-
-  AES256_set_decrypt_key (ks, ctx.opad.h, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+  char version = esalt_bufs[digests_offset].version;
 
   u32 iv[4] = { 0 };
 
   u32 res[20]; // full would be 24 x u32 (96 bytes)
 
-  for (u32 i = 0; i < 20; i += 4) // 96 bytes output would contain the full 32 byte checksum
+  if (version == '8')
   {
-    u32 data[4];
 
-    data[0] = esalt_bufs[digests_offset].ciphertext[i + 0];
-    data[1] = esalt_bufs[digests_offset].ciphertext[i + 1];
-    data[2] = esalt_bufs[digests_offset].ciphertext[i + 2];
-    data[3] = esalt_bufs[digests_offset].ciphertext[i + 3];
+        /**
+     * aes shared
+     */
 
-    u32 out[4];
+    #ifdef REAL_SHM
 
-    aes256_decrypt (ks, data, out, s_td0, s_td1, s_td2, s_td3, s_td4);
+    LOCAL_VK u32 s_td0[256];
+    LOCAL_VK u32 s_td1[256];
+    LOCAL_VK u32 s_td2[256];
+    LOCAL_VK u32 s_td3[256];
+    LOCAL_VK u32 s_td4[256];
 
-    res[i + 0] = hc_swap32_S (out[0] ^ iv[0]);
-    res[i + 1] = hc_swap32_S (out[1] ^ iv[1]);
-    res[i + 2] = hc_swap32_S (out[2] ^ iv[2]);
-    res[i + 3] = hc_swap32_S (out[3] ^ iv[3]);
+    LOCAL_VK u32 s_te0[256];
+    LOCAL_VK u32 s_te1[256];
+    LOCAL_VK u32 s_te2[256];
+    LOCAL_VK u32 s_te3[256];
+    LOCAL_VK u32 s_te4[256];
 
-    iv[0] = data[0];
-    iv[1] = data[1];
-    iv[2] = data[2];
-    iv[3] = data[3];
+    for (u32 i = lid; i < 256; i += lsz)
+    {
+      s_td0[i] = td0[i];
+      s_td1[i] = td1[i];
+      s_td2[i] = td2[i];
+      s_td3[i] = td3[i];
+      s_td4[i] = td4[i];
+
+      s_te0[i] = te0[i];
+      s_te1[i] = te1[i];
+      s_te2[i] = te2[i];
+      s_te3[i] = te3[i];
+      s_te4[i] = te4[i];
+    }
+
+    SYNC_THREADS ();
+
+    #else
+
+    CONSTANT_AS u32a *s_td0 = td0;
+    CONSTANT_AS u32a *s_td1 = td1;
+    CONSTANT_AS u32a *s_td2 = td2;
+    CONSTANT_AS u32a *s_td3 = td3;
+    CONSTANT_AS u32a *s_td4 = td4;
+
+    CONSTANT_AS u32a *s_te0 = te0;
+    CONSTANT_AS u32a *s_te1 = te1;
+    CONSTANT_AS u32a *s_te2 = te2;
+    CONSTANT_AS u32a *s_te3 = te3;
+    CONSTANT_AS u32a *s_te4 = te4;
+
+    #endif
+      /**
+     * AES part
+     */
+
+    #define KEYLEN 60
+
+    u32 ks[KEYLEN];
+
+    AES256_set_decrypt_key (ks, ctx.opad.h, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+
+    for (u32 i = 0; i < 20; i += 4) // 96 bytes output would contain the full 32 byte checksum
+    {
+      u32 data[4];
+
+      data[0] = esalt_bufs[digests_offset].ciphertext[i + 0];
+      data[1] = esalt_bufs[digests_offset].ciphertext[i + 1];
+      data[2] = esalt_bufs[digests_offset].ciphertext[i + 2];
+      data[3] = esalt_bufs[digests_offset].ciphertext[i + 3];
+
+      u32 out[4];
+
+      aes256_decrypt (ks, data, out, s_td0, s_td1, s_td2, s_td3, s_td4);
+
+      res[i + 0] = hc_swap32_S (out[0] ^ iv[0]);
+      res[i + 1] = hc_swap32_S (out[1] ^ iv[1]);
+      res[i + 2] = hc_swap32_S (out[2] ^ iv[2]);
+      res[i + 3] = hc_swap32_S (out[3] ^ iv[3]);
+
+      iv[0] = data[0];
+      iv[1] = data[1];
+      iv[2] = data[2];
+      iv[3] = data[3];
+    }
+  }
+
+
+  if (version == '9')
+  {
+    u32 sk[4];
+    u32 lk[40];
+
+    ctx.opad.h[0] = hc_swap32_S (ctx.opad.h[0]);
+    ctx.opad.h[1] = hc_swap32_S (ctx.opad.h[1]);
+    ctx.opad.h[2] = hc_swap32_S (ctx.opad.h[2]);
+    ctx.opad.h[3] = hc_swap32_S (ctx.opad.h[3]);
+    ctx.opad.h[4] = hc_swap32_S (ctx.opad.h[4]);
+    ctx.opad.h[5] = hc_swap32_S (ctx.opad.h[5]);
+    ctx.opad.h[6] = hc_swap32_S (ctx.opad.h[6]);
+    ctx.opad.h[7] = hc_swap32_S (ctx.opad.h[7]);
+
+    twofish256_set_key (sk, lk, ctx.opad.h);
+
+    for (u32 i = 0; i < 20; i += 4) // 96 bytes output would contain the full 32 byte checksum
+    {
+      u32 data[4];
+
+      data[0] = esalt_bufs[digests_offset].ciphertext[i + 0];
+      data[1] = esalt_bufs[digests_offset].ciphertext[i + 1];
+      data[2] = esalt_bufs[digests_offset].ciphertext[i + 2];
+      data[3] = esalt_bufs[digests_offset].ciphertext[i + 3];
+
+
+      u32 out[4];
+
+      twofish256_decrypt (sk, lk, data, out);
+
+      res[i + 0] = hc_swap32_S (out[0] ^ iv[0]);
+      res[i + 1] = hc_swap32_S (out[1] ^ iv[1]);
+      res[i + 2] = hc_swap32_S (out[2] ^ iv[2]);
+      res[i + 3] = hc_swap32_S (out[3] ^ iv[3]);
+
+      iv[0] = data[0];
+      iv[1] = data[1];
+      iv[2] = data[2];
+      iv[3] = data[3];
+    }
+  }
+
+  if (version == 'a')
+  {
+    printf("%s\n", "SERPENT");
+    u32 ks_serpent[140];
+    ctx.opad.h[0] = hc_swap32_S (ctx.opad.h[0]);
+    ctx.opad.h[1] = hc_swap32_S (ctx.opad.h[1]);
+    ctx.opad.h[2] = hc_swap32_S (ctx.opad.h[2]);
+    ctx.opad.h[3] = hc_swap32_S (ctx.opad.h[3]);
+    ctx.opad.h[4] = hc_swap32_S (ctx.opad.h[4]);
+    ctx.opad.h[5] = hc_swap32_S (ctx.opad.h[5]);
+    ctx.opad.h[6] = hc_swap32_S (ctx.opad.h[6]);
+    ctx.opad.h[7] = hc_swap32_S (ctx.opad.h[7]);
+    serpent256_set_key (ks_serpent, ctx.opad.h);
+    for (u32 i = 0; i < 20; i += 4) // 96 bytes output would contain the full 32 byte checksum
+    {
+      u32 data[4];
+
+      data[0] = esalt_bufs[digests_offset].ciphertext[i + 0];
+      data[1] = esalt_bufs[digests_offset].ciphertext[i + 1];
+      data[2] = esalt_bufs[digests_offset].ciphertext[i + 2];
+      data[3] = esalt_bufs[digests_offset].ciphertext[i + 3];
+
+
+      u32 out[4];
+
+      serpent256_decrypt (ks_serpent, data, out);
+
+      res[i + 0] = hc_swap32_S (out[0] ^ iv[0]);
+      res[i + 1] = hc_swap32_S (out[1] ^ iv[1]);
+      res[i + 2] = hc_swap32_S (out[2] ^ iv[2]);
+      res[i + 3] = hc_swap32_S (out[3] ^ iv[3]);
+
+      iv[0] = data[0];
+      iv[1] = data[1];
+      iv[2] = data[2];
+      iv[3] = data[3];
+    }
+  }
+
+  if (version == 'f')
+  {
+    u32 ks_camellia[68];
+    ctx.opad.h[0] = hc_swap32_S (ctx.opad.h[0]);
+    ctx.opad.h[1] = hc_swap32_S (ctx.opad.h[1]);
+    ctx.opad.h[2] = hc_swap32_S (ctx.opad.h[2]);
+    ctx.opad.h[3] = hc_swap32_S (ctx.opad.h[3]);
+    ctx.opad.h[4] = hc_swap32_S (ctx.opad.h[4]);
+    ctx.opad.h[5] = hc_swap32_S (ctx.opad.h[5]);
+    ctx.opad.h[6] = hc_swap32_S (ctx.opad.h[6]);
+    ctx.opad.h[7] = hc_swap32_S (ctx.opad.h[7]);
+    camellia256_set_key (ks_camellia, ctx.opad.h);
+    for (u32 i = 0; i < 20; i += 4) // 96 bytes output would contain the full 32 byte checksum
+    {
+      u32 data[4];
+
+      data[0] = esalt_bufs[digests_offset].ciphertext[i + 0];
+      data[1] = esalt_bufs[digests_offset].ciphertext[i + 1];
+      data[2] = esalt_bufs[digests_offset].ciphertext[i + 2];
+      data[3] = esalt_bufs[digests_offset].ciphertext[i + 3];
+
+
+      u32 out[4];
+
+      camellia256_decrypt (ks_camellia, data, out);
+
+      res[i + 0] = hc_swap32_S (out[0] ^ iv[0]);
+      res[i + 1] = hc_swap32_S (out[1] ^ iv[1]);
+      res[i + 2] = hc_swap32_S (out[2] ^ iv[2]);
+      res[i + 3] = hc_swap32_S (out[3] ^ iv[3]);
+
+      iv[0] = data[0];
+      iv[1] = data[1];
+      iv[2] = data[2];
+      iv[3] = data[3];
+    }
   }
 
   u32 digest[8];
