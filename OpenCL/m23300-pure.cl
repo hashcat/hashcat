@@ -306,7 +306,7 @@ KERNEL_FQ void m23300_comp (KERN_ATTR_TMPS_ESALT (iwork_tmp_t, iwork_t))
    * AES part
    */
 
-  u32 ukey[8];
+  u32 ukey[4];
 
   ukey[0] = tmps[gid].out[0];
   ukey[1] = tmps[gid].out[1];

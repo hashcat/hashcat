@@ -479,7 +479,7 @@ KERNEL_FQ void m16300_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, ethereum_
    * aes init
    */
 
-  #define KEYLEN 60
+  #define KEYLEN 44
 
   u32 ks[KEYLEN];
 
