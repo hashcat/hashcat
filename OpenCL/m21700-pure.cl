@@ -379,7 +379,7 @@ KERNEL_FQ void m21700_comp (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
    * the main secp256k1 point multiplication by a scalar/tweak:
    */
 
-  GLOBAL_AS secp256k1_t *coords = (GLOBAL_AS secp256k1_t *) &esalt_bufs[digests_offset].coords;
+  GLOBAL_AS secp256k1_t *coords = (GLOBAL_AS secp256k1_t *) &esalt_bufs[DIGESTS_OFFSET].coords;
 
   u32 pubkey[64] = { 0 }; // for point_mul () we need: 1 + 32 bytes (for sha512 () we need more)
 
@@ -401,9 +401,9 @@ KERNEL_FQ void m21700_comp (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
    * sha256-hmac () of the data_buf
    */
 
-  GLOBAL_AS u32 *data_buf = (GLOBAL_AS u32 *) esalt_bufs[digests_offset].data_buf;
+  GLOBAL_AS u32 *data_buf = (GLOBAL_AS u32 *) esalt_bufs[DIGESTS_OFFSET].data_buf;
 
-  u32 data_len = esalt_bufs[digests_offset].data_len;
+  u32 data_len = esalt_bufs[DIGESTS_OFFSET].data_len;
 
   u32 key[16] = { 0 };
 

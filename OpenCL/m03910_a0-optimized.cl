@@ -84,14 +84,14 @@ KERNEL_FQ void m03910_m04 (KERN_ATTR_RULES ())
   u32 salt_buf2[4];
   u32 salt_buf3[4];
 
-  salt_buf0[0] = salt_bufs[salt_pos].salt_buf_pc[0];
-  salt_buf0[1] = salt_bufs[salt_pos].salt_buf_pc[1];
-  salt_buf0[2] = salt_bufs[salt_pos].salt_buf_pc[2];
-  salt_buf0[3] = salt_bufs[salt_pos].salt_buf_pc[3];
-  salt_buf1[0] = salt_bufs[salt_pos].salt_buf_pc[4];
-  salt_buf1[1] = salt_bufs[salt_pos].salt_buf_pc[5];
-  salt_buf1[2] = salt_bufs[salt_pos].salt_buf_pc[6];
-  salt_buf1[3] = salt_bufs[salt_pos].salt_buf_pc[7];
+  salt_buf0[0] = salt_bufs[SALT_POS].salt_buf_pc[0];
+  salt_buf0[1] = salt_bufs[SALT_POS].salt_buf_pc[1];
+  salt_buf0[2] = salt_bufs[SALT_POS].salt_buf_pc[2];
+  salt_buf0[3] = salt_bufs[SALT_POS].salt_buf_pc[3];
+  salt_buf1[0] = salt_bufs[SALT_POS].salt_buf_pc[4];
+  salt_buf1[1] = salt_bufs[SALT_POS].salt_buf_pc[5];
+  salt_buf1[2] = salt_bufs[SALT_POS].salt_buf_pc[6];
+  salt_buf1[3] = salt_bufs[SALT_POS].salt_buf_pc[7];
   salt_buf2[0] = 0;
   salt_buf2[1] = 0;
   salt_buf2[2] = 0;
@@ -452,14 +452,14 @@ KERNEL_FQ void m03910_s04 (KERN_ATTR_RULES ())
   u32 salt_buf2[4];
   u32 salt_buf3[4];
 
-  salt_buf0[0] = salt_bufs[salt_pos].salt_buf_pc[0];
-  salt_buf0[1] = salt_bufs[salt_pos].salt_buf_pc[1];
-  salt_buf0[2] = salt_bufs[salt_pos].salt_buf_pc[2];
-  salt_buf0[3] = salt_bufs[salt_pos].salt_buf_pc[3];
-  salt_buf1[0] = salt_bufs[salt_pos].salt_buf_pc[4];
-  salt_buf1[1] = salt_bufs[salt_pos].salt_buf_pc[5];
-  salt_buf1[2] = salt_bufs[salt_pos].salt_buf_pc[6];
-  salt_buf1[3] = salt_bufs[salt_pos].salt_buf_pc[7];
+  salt_buf0[0] = salt_bufs[SALT_POS].salt_buf_pc[0];
+  salt_buf0[1] = salt_bufs[SALT_POS].salt_buf_pc[1];
+  salt_buf0[2] = salt_bufs[SALT_POS].salt_buf_pc[2];
+  salt_buf0[3] = salt_bufs[SALT_POS].salt_buf_pc[3];
+  salt_buf1[0] = salt_bufs[SALT_POS].salt_buf_pc[4];
+  salt_buf1[1] = salt_bufs[SALT_POS].salt_buf_pc[5];
+  salt_buf1[2] = salt_bufs[SALT_POS].salt_buf_pc[6];
+  salt_buf1[3] = salt_bufs[SALT_POS].salt_buf_pc[7];
   salt_buf2[0] = 0;
   salt_buf2[1] = 0;
   salt_buf2[2] = 0;
@@ -475,10 +475,10 @@ KERNEL_FQ void m03910_s04 (KERN_ATTR_RULES ())
 
   const u32 search[4] =
   {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
   };
 
   /**

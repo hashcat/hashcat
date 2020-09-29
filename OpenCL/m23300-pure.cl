@@ -100,10 +100,10 @@ KERNEL_FQ void m23300_init (KERN_ATTR_TMPS_ESALT (iwork_tmp_t, iwork_t))
   u32 w2[4];
   u32 w3[4];
 
-  w0[0] = salt_bufs[salt_pos].salt_buf[0];
-  w0[1] = salt_bufs[salt_pos].salt_buf[1];
-  w0[2] = salt_bufs[salt_pos].salt_buf[2];
-  w0[3] = salt_bufs[salt_pos].salt_buf[3];
+  w0[0] = salt_bufs[SALT_POS].salt_buf[0];
+  w0[1] = salt_bufs[SALT_POS].salt_buf[1];
+  w0[2] = salt_bufs[SALT_POS].salt_buf[2];
+  w0[3] = salt_bufs[SALT_POS].salt_buf[3];
   w1[0] = 0;
   w1[1] = 0;
   w1[2] = 0;
@@ -117,7 +117,7 @@ KERNEL_FQ void m23300_init (KERN_ATTR_TMPS_ESALT (iwork_tmp_t, iwork_t))
   w3[2] = 0;
   w3[3] = 0;
 
-  sha1_hmac_update_64 (&sha1_hmac_ctx, w0, w1, w2, w3, salt_bufs[salt_pos].salt_len);
+  sha1_hmac_update_64 (&sha1_hmac_ctx, w0, w1, w2, w3, salt_bufs[SALT_POS].salt_len);
 
   for (u32 i = 0, j = 1; i < 4; i += 5, j += 1)
   {
@@ -321,10 +321,10 @@ KERNEL_FQ void m23300_comp (KERN_ATTR_TMPS_ESALT (iwork_tmp_t, iwork_t))
 
   u32 iv[4];
 
-  iv[0] = esalt_bufs[digests_offset].iv[0];
-  iv[1] = esalt_bufs[digests_offset].iv[1];
-  iv[2] = esalt_bufs[digests_offset].iv[2];
-  iv[3] = esalt_bufs[digests_offset].iv[3];
+  iv[0] = esalt_bufs[DIGESTS_OFFSET].iv[0];
+  iv[1] = esalt_bufs[DIGESTS_OFFSET].iv[1];
+  iv[2] = esalt_bufs[DIGESTS_OFFSET].iv[2];
+  iv[3] = esalt_bufs[DIGESTS_OFFSET].iv[3];
 
   u32 res[12]; // actually res[16], but we don't need the full 64 bytes output
 
@@ -332,10 +332,10 @@ KERNEL_FQ void m23300_comp (KERN_ATTR_TMPS_ESALT (iwork_tmp_t, iwork_t))
   {
     u32 data[4];
 
-    data[0] = esalt_bufs[digests_offset].data[i + 0];
-    data[1] = esalt_bufs[digests_offset].data[i + 1];
-    data[2] = esalt_bufs[digests_offset].data[i + 2];
-    data[3] = esalt_bufs[digests_offset].data[i + 3];
+    data[0] = esalt_bufs[DIGESTS_OFFSET].data[i + 0];
+    data[1] = esalt_bufs[DIGESTS_OFFSET].data[i + 1];
+    data[2] = esalt_bufs[DIGESTS_OFFSET].data[i + 2];
+    data[3] = esalt_bufs[DIGESTS_OFFSET].data[i + 3];
 
     u32 out[4];
 
@@ -400,9 +400,9 @@ KERNEL_FQ void m23300_comp (KERN_ATTR_TMPS_ESALT (iwork_tmp_t, iwork_t))
       (res[10] == checksum[2]) &&
       (res[11] == checksum[3]))
   {
-    if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+    if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
     }
 
     return;

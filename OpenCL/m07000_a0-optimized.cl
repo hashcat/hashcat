@@ -52,12 +52,12 @@ KERNEL_FQ void m07000_m04 (KERN_ATTR_RULES ())
 
   u32 salt_buf0[4];
 
-  salt_buf0[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf0[1] = salt_bufs[salt_pos].salt_buf[1];
-  salt_buf0[2] = salt_bufs[salt_pos].salt_buf[2];
+  salt_buf0[0] = salt_bufs[SALT_POS].salt_buf[0];
+  salt_buf0[1] = salt_bufs[SALT_POS].salt_buf[1];
+  salt_buf0[2] = salt_bufs[SALT_POS].salt_buf[2];
   salt_buf0[3] = 0;
 
-  const u32 salt_len  = 12; // salt_bufs[salt_pos].salt_len;
+  const u32 salt_len  = 12; // salt_bufs[SALT_POS].salt_len;
   const u32 magic_len = 24;
 
   /**
@@ -314,12 +314,12 @@ KERNEL_FQ void m07000_s04 (KERN_ATTR_RULES ())
 
   u32 salt_buf0[4];
 
-  salt_buf0[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf0[1] = salt_bufs[salt_pos].salt_buf[1];
-  salt_buf0[2] = salt_bufs[salt_pos].salt_buf[2];
+  salt_buf0[0] = salt_bufs[SALT_POS].salt_buf[0];
+  salt_buf0[1] = salt_bufs[SALT_POS].salt_buf[1];
+  salt_buf0[2] = salt_bufs[SALT_POS].salt_buf[2];
   salt_buf0[3] = 0;
 
-  const u32 salt_len  = 12; // salt_bufs[salt_pos].salt_len;
+  const u32 salt_len  = 12; // salt_bufs[SALT_POS].salt_len;
   const u32 magic_len = 24;
 
   /**
@@ -328,10 +328,10 @@ KERNEL_FQ void m07000_s04 (KERN_ATTR_RULES ())
 
   const u32 search[4] =
   {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
   };
 
   /**

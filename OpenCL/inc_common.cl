@@ -2148,6 +2148,9 @@ DECLSPEC void mark_hash (GLOBAL_AS plain_t *plains_buf, GLOBAL_AS u32 *d_result,
 {
   const u32 idx = atomic_inc (d_result);
 
+  #if ATTACK_MODE == 9
+
+  #else
   if (idx >= digests_cnt)
   {
     // this is kind of tricky: we *must* call atomic_inc() to know about the current value from a multi-thread perspective
@@ -2157,6 +2160,7 @@ DECLSPEC void mark_hash (GLOBAL_AS plain_t *plains_buf, GLOBAL_AS u32 *d_result,
 
     return;
   }
+  #endif
 
   plains_buf[idx].salt_pos   = salt_pos;
   plains_buf[idx].digest_pos = digest_pos;  // relative

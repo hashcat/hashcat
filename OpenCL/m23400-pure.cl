@@ -101,7 +101,7 @@ KERNEL_FQ void m23400_init (KERN_ATTR_TMPS (bitwarden_tmp_t))
   tmps[gid].opad[6] = sha256_hmac_ctx.opad.h[6];
   tmps[gid].opad[7] = sha256_hmac_ctx.opad.h[7];
 
-  sha256_hmac_update_global_swap (&sha256_hmac_ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  sha256_hmac_update_global_swap (&sha256_hmac_ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   sha256_hmac_ctx_t sha256_hmac_ctx2 = sha256_hmac_ctx;
 

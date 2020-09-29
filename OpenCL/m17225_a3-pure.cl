@@ -552,7 +552,7 @@ KERNEL_FQ void m17225_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
 
   for (u64 i = lid; i < MAX_LOCAL; i += lsz)
   {
-    l_data[i] = esalt_bufs[digests_offset].hashes[0].data[i];
+    l_data[i] = esalt_bufs[DIGESTS_OFFSET].hashes[0].data[i];
   }
 
   SYNC_THREADS ();
@@ -576,8 +576,8 @@ KERNEL_FQ void m17225_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
    * prefetch from global memory
    */
 
-  const u32 checksum_size = esalt_bufs[digests_offset].checksum_size;
-  const u32 hash_count    = esalt_bufs[digests_offset].hash_count;
+  const u32 checksum_size = esalt_bufs[DIGESTS_OFFSET].checksum_size;
+  const u32 hash_count    = esalt_bufs[DIGESTS_OFFSET].hash_count;
 
   /**
    * loop
@@ -619,7 +619,7 @@ KERNEL_FQ void m17225_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       u32x key2 = key2init;
 
       if (idx == 0) next = l_data[0];
-      else          next = esalt_bufs[digests_offset].hashes[idx].data[0];
+      else          next = esalt_bufs[DIGESTS_OFFSET].hashes[idx].data[0];
 
       update_key3 (key2, key3);
       plain = unpack_v8a_from_v32_S (next) ^ key3;
@@ -638,7 +638,7 @@ KERNEL_FQ void m17225_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       update_key012 (key0, key1, key2, plain, l_crc32tab);
 
       if (idx == 0) next = l_data[1];
-      else          next = esalt_bufs[digests_offset].hashes[idx].data[1];
+      else          next = esalt_bufs[DIGESTS_OFFSET].hashes[idx].data[1];
 
       update_key3 (key2, key3);
       plain = unpack_v8a_from_v32_S (next) ^ key3;
@@ -657,7 +657,7 @@ KERNEL_FQ void m17225_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       update_key012 (key0, key1, key2, plain, l_crc32tab);
 
       if (idx == 0) next = l_data[2];
-      else          next = esalt_bufs[digests_offset].hashes[idx].data[2];
+      else          next = esalt_bufs[DIGESTS_OFFSET].hashes[idx].data[2];
 
       update_key3 (key2, key3);
       plain = unpack_v8a_from_v32_S (next) ^ key3;
@@ -669,15 +669,15 @@ KERNEL_FQ void m17225_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
 
       update_key3 (key2, key3);
       plain = unpack_v8c_from_v32_S (next) ^ key3;
-      if ((checksum_size == 2) && ((esalt_bufs[digests_offset].hashes[idx].checksum_from_crc & 0xff) != plain) && ((esalt_bufs[digests_offset].hashes[idx].checksum_from_timestamp & 0xff) != plain)) break;
+      if ((checksum_size == 2) && ((esalt_bufs[DIGESTS_OFFSET].hashes[idx].checksum_from_crc & 0xff) != plain) && ((esalt_bufs[DIGESTS_OFFSET].hashes[idx].checksum_from_timestamp & 0xff) != plain)) break;
       update_key012 (key0, key1, key2, plain, l_crc32tab);
 
       update_key3 (key2, key3);
       plain = unpack_v8d_from_v32_S (next) ^ key3;
-      if ((plain != (esalt_bufs[digests_offset].hashes[idx].checksum_from_crc >> 8)) && (plain != (esalt_bufs[digests_offset].hashes[idx].checksum_from_timestamp >> 8))) break;
+      if ((plain != (esalt_bufs[DIGESTS_OFFSET].hashes[idx].checksum_from_crc >> 8)) && (plain != (esalt_bufs[DIGESTS_OFFSET].hashes[idx].checksum_from_timestamp >> 8))) break;
       update_key012 (key0, key1, key2, plain, l_crc32tab);
 
-      if (esalt_bufs[digests_offset].hashes[idx].compression_type == 0 && esalt_bufs[digests_offset].hashes[idx].data_type_enum == 1)
+      if (esalt_bufs[DIGESTS_OFFSET].hashes[idx].compression_type == 0 && esalt_bufs[DIGESTS_OFFSET].hashes[idx].data_type_enum == 1)
       {
         continue; // so far everything matches for this hash, but it's only a partial and uncompressed one, so we need to continue with the next one
       }
@@ -689,11 +689,11 @@ KERNEL_FQ void m17225_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       u8 tmp[TMPSIZ];
 
       if (idx == 0) next = l_data[3];
-      else          next = esalt_bufs[digests_offset].hashes[idx].data[3];
+      else          next = esalt_bufs[DIGESTS_OFFSET].hashes[idx].data[3];
 
       update_key3 (key2, key3);
       plain = unpack_v8a_from_v32_S (next) ^ key3;
-      if (esalt_bufs[digests_offset].hashes[idx].compression_type == 8 && ((plain & 6) == 0 || (plain & 6) == 6)) break;
+      if (esalt_bufs[DIGESTS_OFFSET].hashes[idx].compression_type == 8 && ((plain & 6) == 0 || (plain & 6) == 6)) break;
       tmp[0] = plain;
       update_key012 (key0, key1, key2, plain, l_crc32tab);
 
@@ -715,7 +715,7 @@ KERNEL_FQ void m17225_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       for (int i = 16; i < 36; i += 4)
       {
         if (idx == 0) next = l_data[i / 4];
-        else          next = esalt_bufs[digests_offset].hashes[idx].data[i / 4];
+        else          next = esalt_bufs[DIGESTS_OFFSET].hashes[idx].data[i / 4];
 
         update_key3 (key2, key3);
         plain = unpack_v8a_from_v32_S (next) ^ key3;
@@ -738,25 +738,25 @@ KERNEL_FQ void m17225_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
         update_key012 (key0, key1, key2, plain, l_crc32tab);
       }
 
-      if (esalt_bufs[digests_offset].hashes[idx].compression_type == 8 && esalt_bufs[digests_offset].hashes[idx].data_length >= 36 && esalt_bufs[digests_offset].hashes[idx].compression_type == 8 && ((tmp[0]) & 6) == 2 && !check_inflate_code1 (tmp, 24)) break;
-      if (esalt_bufs[digests_offset].hashes[idx].compression_type == 8 && esalt_bufs[digests_offset].hashes[idx].data_length >= 36 && esalt_bufs[digests_offset].hashes[idx].compression_type == 8 && ((tmp[0]) & 6) == 4 && !check_inflate_code2 (tmp))     break;
+      if (esalt_bufs[DIGESTS_OFFSET].hashes[idx].compression_type == 8 && esalt_bufs[DIGESTS_OFFSET].hashes[idx].data_length >= 36 && esalt_bufs[DIGESTS_OFFSET].hashes[idx].compression_type == 8 && ((tmp[0]) & 6) == 2 && !check_inflate_code1 (tmp, 24)) break;
+      if (esalt_bufs[DIGESTS_OFFSET].hashes[idx].compression_type == 8 && esalt_bufs[DIGESTS_OFFSET].hashes[idx].data_length >= 36 && esalt_bufs[DIGESTS_OFFSET].hashes[idx].compression_type == 8 && ((tmp[0]) & 6) == 4 && !check_inflate_code2 (tmp))     break;
 
-      if (esalt_bufs[digests_offset].hashes[idx].data_type_enum == 1)
+      if (esalt_bufs[DIGESTS_OFFSET].hashes[idx].data_type_enum == 1)
       {
         continue; // so far everything matches for this hash, but it's only a partial one, so we need to continue with the next one
       }
 
       u32x crc = 0xffffffff;
 
-      if (esalt_bufs[digests_offset].hashes[idx].compression_type == 8)
+      if (esalt_bufs[DIGESTS_OFFSET].hashes[idx].compression_type == 8)
       {
         mz_stream infstream;
 
         inflate_state pStream;
 
         infstream.opaque    = Z_NULL;
-        infstream.avail_in  = esalt_bufs[digests_offset].hashes[idx].data_length           - 12; // size of input
-        infstream.next_in   = (GLOBAL_AS u8 *) esalt_bufs[digests_offset].hashes[idx].data + 12; // input char array
+        infstream.avail_in  = esalt_bufs[DIGESTS_OFFSET].hashes[idx].data_length           - 12; // size of input
+        infstream.next_in   = (GLOBAL_AS u8 *) esalt_bufs[DIGESTS_OFFSET].hashes[idx].data + 12; // input char array
         infstream.avail_out = TMPSIZ; // size of output
         infstream.next_out  = tmp; // output char array
 
@@ -784,7 +784,7 @@ KERNEL_FQ void m17225_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       }
       else
       {
-        const u32 data_length = esalt_bufs[digests_offset].hashes[idx].data_length;
+        const u32 data_length = esalt_bufs[DIGESTS_OFFSET].hashes[idx].data_length;
 
         key0 = key0_sav;
         key1 = key1_sav;
@@ -792,7 +792,7 @@ KERNEL_FQ void m17225_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
 
         for (u32 j = 3, i = 12; i < data_length; j++, i += 4)
         {
-          next = esalt_bufs[digests_offset].hashes[idx].data[j];
+          next = esalt_bufs[DIGESTS_OFFSET].hashes[idx].data[j];
 
           if (data_length >= (i + 1))
           {
@@ -834,7 +834,7 @@ KERNEL_FQ void m17225_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
         crc = ~crc;
       }
 
-      if (crc == esalt_bufs[digests_offset].hashes[idx].crc32)
+      if (crc == esalt_bufs[DIGESTS_OFFSET].hashes[idx].crc32)
       {
         if (idx + 1 == hash_count)
         {
@@ -844,13 +844,13 @@ KERNEL_FQ void m17225_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
 
           const u32 search[4] =
           {
-            digests_buf[digests_offset].digest_buf[0],
+            digests_buf[DIGESTS_OFFSET].digest_buf[0],
             0,
             0,
             0
           };
 
-          const u32 r0 = esalt_bufs[digests_offset].hashes[0].checksum_from_crc;
+          const u32 r0 = esalt_bufs[DIGESTS_OFFSET].hashes[0].checksum_from_crc;
           const u32 r1 = 0;
           const u32 r2 = 0;
           const u32 r3 = 0;
@@ -893,7 +893,7 @@ KERNEL_FQ void m17225_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
 
   for (u64 i = lid; i < MAX_LOCAL; i += lsz)
   {
-    l_data[i] = esalt_bufs[digests_offset].hashes[0].data[i];
+    l_data[i] = esalt_bufs[DIGESTS_OFFSET].hashes[0].data[i];
   }
 
   SYNC_THREADS ();
@@ -917,8 +917,8 @@ KERNEL_FQ void m17225_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
    * prefetch from global memory
    */
 
-  const u32 checksum_size = esalt_bufs[digests_offset].checksum_size;
-  const u32 hash_count    = esalt_bufs[digests_offset].hash_count;
+  const u32 checksum_size = esalt_bufs[DIGESTS_OFFSET].checksum_size;
+  const u32 hash_count    = esalt_bufs[DIGESTS_OFFSET].hash_count;
 
   /**
    * loop
@@ -960,7 +960,7 @@ KERNEL_FQ void m17225_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       u32x key2 = key2init;
 
       if (idx == 0) next = l_data[0];
-      else          next = esalt_bufs[digests_offset].hashes[idx].data[0];
+      else          next = esalt_bufs[DIGESTS_OFFSET].hashes[idx].data[0];
 
       update_key3 (key2, key3);
       plain = unpack_v8a_from_v32_S (next) ^ key3;
@@ -979,7 +979,7 @@ KERNEL_FQ void m17225_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       update_key012 (key0, key1, key2, plain, l_crc32tab);
 
       if (idx == 0) next = l_data[1];
-      else          next = esalt_bufs[digests_offset].hashes[idx].data[1];
+      else          next = esalt_bufs[DIGESTS_OFFSET].hashes[idx].data[1];
 
       update_key3 (key2, key3);
       plain = unpack_v8a_from_v32_S (next) ^ key3;
@@ -998,7 +998,7 @@ KERNEL_FQ void m17225_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       update_key012 (key0, key1, key2, plain, l_crc32tab);
 
       if (idx == 0) next = l_data[2];
-      else          next = esalt_bufs[digests_offset].hashes[idx].data[2];
+      else          next = esalt_bufs[DIGESTS_OFFSET].hashes[idx].data[2];
 
       update_key3 (key2, key3);
       plain = unpack_v8a_from_v32_S (next) ^ key3;
@@ -1010,15 +1010,15 @@ KERNEL_FQ void m17225_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
 
       update_key3 (key2, key3);
       plain = unpack_v8c_from_v32_S (next) ^ key3;
-      if ((checksum_size == 2) && ((esalt_bufs[digests_offset].hashes[idx].checksum_from_crc & 0xff) != plain) && ((esalt_bufs[digests_offset].hashes[idx].checksum_from_timestamp & 0xff) != plain)) break;
+      if ((checksum_size == 2) && ((esalt_bufs[DIGESTS_OFFSET].hashes[idx].checksum_from_crc & 0xff) != plain) && ((esalt_bufs[DIGESTS_OFFSET].hashes[idx].checksum_from_timestamp & 0xff) != plain)) break;
       update_key012 (key0, key1, key2, plain, l_crc32tab);
 
       update_key3 (key2, key3);
       plain = unpack_v8d_from_v32_S (next) ^ key3;
-      if ((plain != (esalt_bufs[digests_offset].hashes[idx].checksum_from_crc >> 8)) && (plain != (esalt_bufs[digests_offset].hashes[idx].checksum_from_timestamp >> 8))) break;
+      if ((plain != (esalt_bufs[DIGESTS_OFFSET].hashes[idx].checksum_from_crc >> 8)) && (plain != (esalt_bufs[DIGESTS_OFFSET].hashes[idx].checksum_from_timestamp >> 8))) break;
       update_key012 (key0, key1, key2, plain, l_crc32tab);
 
-      if (esalt_bufs[digests_offset].hashes[idx].compression_type == 0 && esalt_bufs[digests_offset].hashes[idx].data_type_enum == 1)
+      if (esalt_bufs[DIGESTS_OFFSET].hashes[idx].compression_type == 0 && esalt_bufs[DIGESTS_OFFSET].hashes[idx].data_type_enum == 1)
       {
         continue; // so far everything matches for this hash, but it's only a partial and uncompressed one, so we need to continue with the next one
       }
@@ -1030,11 +1030,11 @@ KERNEL_FQ void m17225_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       u8 tmp[TMPSIZ];
 
       if (idx == 0) next = l_data[3];
-      else          next = esalt_bufs[digests_offset].hashes[idx].data[3];
+      else          next = esalt_bufs[DIGESTS_OFFSET].hashes[idx].data[3];
 
       update_key3 (key2, key3);
       plain = unpack_v8a_from_v32_S (next) ^ key3;
-      if (esalt_bufs[digests_offset].hashes[idx].compression_type == 8 && ((plain & 6) == 0 || (plain & 6) == 6)) break;
+      if (esalt_bufs[DIGESTS_OFFSET].hashes[idx].compression_type == 8 && ((plain & 6) == 0 || (plain & 6) == 6)) break;
       tmp[0] = plain;
       update_key012 (key0, key1, key2, plain, l_crc32tab);
 
@@ -1056,7 +1056,7 @@ KERNEL_FQ void m17225_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       for (int i = 16; i < 36; i += 4)
       {
         if (idx == 0) next = l_data[i / 4];
-        else          next = esalt_bufs[digests_offset].hashes[idx].data[i / 4];
+        else          next = esalt_bufs[DIGESTS_OFFSET].hashes[idx].data[i / 4];
 
         update_key3 (key2, key3);
         plain = unpack_v8a_from_v32_S (next) ^ key3;
@@ -1079,25 +1079,25 @@ KERNEL_FQ void m17225_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
         update_key012 (key0, key1, key2, plain, l_crc32tab);
       }
 
-      if (esalt_bufs[digests_offset].hashes[idx].compression_type == 8 && esalt_bufs[digests_offset].hashes[idx].data_length >= 36 && esalt_bufs[digests_offset].hashes[idx].compression_type == 8 && ((tmp[0]) & 6) == 2 && !check_inflate_code1 (tmp, 24)) break;
-      if (esalt_bufs[digests_offset].hashes[idx].compression_type == 8 && esalt_bufs[digests_offset].hashes[idx].data_length >= 36 && esalt_bufs[digests_offset].hashes[idx].compression_type == 8 && ((tmp[0]) & 6) == 4 && !check_inflate_code2 (tmp))     break;
+      if (esalt_bufs[DIGESTS_OFFSET].hashes[idx].compression_type == 8 && esalt_bufs[DIGESTS_OFFSET].hashes[idx].data_length >= 36 && esalt_bufs[DIGESTS_OFFSET].hashes[idx].compression_type == 8 && ((tmp[0]) & 6) == 2 && !check_inflate_code1 (tmp, 24)) break;
+      if (esalt_bufs[DIGESTS_OFFSET].hashes[idx].compression_type == 8 && esalt_bufs[DIGESTS_OFFSET].hashes[idx].data_length >= 36 && esalt_bufs[DIGESTS_OFFSET].hashes[idx].compression_type == 8 && ((tmp[0]) & 6) == 4 && !check_inflate_code2 (tmp))     break;
 
-      if (esalt_bufs[digests_offset].hashes[idx].data_type_enum == 1)
+      if (esalt_bufs[DIGESTS_OFFSET].hashes[idx].data_type_enum == 1)
       {
         continue; // so far everything matches for this hash, but it's only a partial one, so we need to continue with the next one
       }
 
       u32x crc = 0xffffffff;
 
-      if (esalt_bufs[digests_offset].hashes[idx].compression_type == 8)
+      if (esalt_bufs[DIGESTS_OFFSET].hashes[idx].compression_type == 8)
       {
         mz_stream infstream;
 
         inflate_state pStream;
 
         infstream.opaque    = Z_NULL;
-        infstream.avail_in  = esalt_bufs[digests_offset].hashes[idx].data_length           - 12; // size of input
-        infstream.next_in   = (GLOBAL_AS u8 *) esalt_bufs[digests_offset].hashes[idx].data + 12; // input char array
+        infstream.avail_in  = esalt_bufs[DIGESTS_OFFSET].hashes[idx].data_length           - 12; // size of input
+        infstream.next_in   = (GLOBAL_AS u8 *) esalt_bufs[DIGESTS_OFFSET].hashes[idx].data + 12; // input char array
         infstream.avail_out = TMPSIZ; // size of output
         infstream.next_out  = tmp; // output char array
 
@@ -1125,7 +1125,7 @@ KERNEL_FQ void m17225_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       }
       else
       {
-        const u32 data_length = esalt_bufs[digests_offset].hashes[idx].data_length;
+        const u32 data_length = esalt_bufs[DIGESTS_OFFSET].hashes[idx].data_length;
 
         key0 = key0_sav;
         key1 = key1_sav;
@@ -1133,7 +1133,7 @@ KERNEL_FQ void m17225_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
 
         for (u32 j = 3, i = 12; i < data_length; j++, i += 4)
         {
-          next = esalt_bufs[digests_offset].hashes[idx].data[j];
+          next = esalt_bufs[DIGESTS_OFFSET].hashes[idx].data[j];
 
           if (data_length >= (i + 1))
           {
@@ -1175,11 +1175,11 @@ KERNEL_FQ void m17225_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
         crc = ~crc;
       }
 
-      if (crc == esalt_bufs[digests_offset].hashes[idx].crc32)
+      if (crc == esalt_bufs[DIGESTS_OFFSET].hashes[idx].crc32)
       {
         if (idx + 1 == hash_count)
         {
-          const u32 r0 = esalt_bufs[digests_offset].hashes[0].checksum_from_crc;
+          const u32 r0 = esalt_bufs[DIGESTS_OFFSET].hashes[0].checksum_from_crc;
           const u32 r1 = 0;
           const u32 r2 = 0;
           const u32 r3 = 0;

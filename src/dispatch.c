@@ -298,7 +298,7 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
       return -1;
     }
 
-    if (run_cracker (hashcat_ctx, device_param, device_param->pws_cnt) == -1)
+    if (run_cracker (hashcat_ctx, device_param, -1, device_param->pws_cnt) == -1) // no pws_pos?
     {
       hcfree (buf);
 
@@ -650,7 +650,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
             return -1;
           }
 
-          if (run_cracker (hashcat_ctx, device_param, pws_cnt) == -1)
+          if (run_cracker (hashcat_ctx, device_param, -1, pws_cnt) == -1)
           {
             hc_fclose (&extra_info_straight.fp);
 
@@ -963,7 +963,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
             return -1;
           }
 
-          if (run_cracker (hashcat_ctx, device_param, pws_cnt) == -1)
+          if (run_cracker (hashcat_ctx, device_param, -1, pws_cnt) == -1)
           {
             hc_fclose (&extra_info_combi.base_fp);
             hc_fclose (&extra_info_combi.combs_fp);
@@ -1202,7 +1202,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         if (pws_cnt)
         {
           if (run_copy    (hashcat_ctx, device_param, pws_cnt) == -1) return -1;
-          if (run_cracker (hashcat_ctx, device_param, pws_cnt) == -1) return -1;
+          if (run_cracker (hashcat_ctx, device_param, -1, pws_cnt) == -1) return -1;
 
           #ifdef WITH_BRAIN
           if (user_options->brain_client == true)
@@ -1274,7 +1274,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         device_param->pws_cnt = work;
 
         if (run_copy    (hashcat_ctx, device_param, device_param->pws_cnt) == -1) return -1;
-        if (run_cracker (hashcat_ctx, device_param, device_param->pws_cnt) == -1) return -1;
+        if (run_cracker (hashcat_ctx, device_param, -1, device_param->pws_cnt) == -1) return -1;
 
         device_param->pws_cnt = 0;
 
@@ -1479,7 +1479,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
             return -1;
           }
 
-          if (run_cracker (hashcat_ctx, device_param, pws_cnt) == -1)
+          if (run_cracker (hashcat_ctx, device_param, device_param->words_off, pws_cnt) == -1)
           {
             if (attack_mode == ATTACK_MODE_COMBI) hc_fclose (&device_param->combs_fp);
 

@@ -1154,13 +1154,13 @@ KERNEL_FQ void m07400_init (KERN_ATTR_TMPS (sha256crypt_tmp_t))
 
   u32 salt_buf[5];
 
-  salt_buf[0] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[0]);
-  salt_buf[1] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[1]);
-  salt_buf[2] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[2]);
-  salt_buf[3] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[3]);
-  salt_buf[4] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[4]);
+  salt_buf[0] = hc_swap32_S (salt_bufs[SALT_POS].salt_buf[0]);
+  salt_buf[1] = hc_swap32_S (salt_bufs[SALT_POS].salt_buf[1]);
+  salt_buf[2] = hc_swap32_S (salt_bufs[SALT_POS].salt_buf[2]);
+  salt_buf[3] = hc_swap32_S (salt_bufs[SALT_POS].salt_buf[3]);
+  salt_buf[4] = hc_swap32_S (salt_bufs[SALT_POS].salt_buf[4]);
 
-  const u32 salt_len = MIN (salt_bufs[salt_pos].salt_len, 20);
+  const u32 salt_len = MIN (salt_bufs[SALT_POS].salt_len, 20);
 
   /**
    * buffers
@@ -1519,7 +1519,7 @@ KERNEL_FQ void m07400_loop (KERN_ATTR_TMPS (sha256crypt_tmp_t))
   alt_result[6] = tmps[gid].alt_result[6];
   alt_result[7] = tmps[gid].alt_result[7];
 
-  const u32 salt_len = MIN (salt_bufs[salt_pos].salt_len, 20);
+  const u32 salt_len = MIN (salt_bufs[SALT_POS].salt_len, 20);
 
   // just an optimization
 

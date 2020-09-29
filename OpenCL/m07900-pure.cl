@@ -34,7 +34,7 @@ KERNEL_FQ void m07900_init (KERN_ATTR_TMPS (drupal7_tmp_t))
 
   sha512_init (&ctx);
 
-  sha512_update_global_swap (&ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  sha512_update_global_swap (&ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   sha512_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 

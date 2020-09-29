@@ -128,7 +128,7 @@ KERNEL_FQ void m07300_m04 (KERN_ATTR_ESALT (rakp_t))
 
   for (u32 i = lid; i < 128; i += lsz)
   {
-    s_esalt_buf[i] = esalt_bufs[digests_offset].salt_buf[i];
+    s_esalt_buf[i] = esalt_bufs[DIGESTS_OFFSET].salt_buf[i];
   }
 
   SYNC_THREADS ();
@@ -153,7 +153,7 @@ KERNEL_FQ void m07300_m04 (KERN_ATTR_ESALT (rakp_t))
    * salt
    */
 
-  const u32 esalt_len = esalt_bufs[digests_offset].salt_len;
+  const u32 esalt_len = esalt_bufs[DIGESTS_OFFSET].salt_len;
 
   /**
    * loop
@@ -332,7 +332,7 @@ KERNEL_FQ void m07300_s04 (KERN_ATTR_ESALT (rakp_t))
 
   for (u32 i = lid; i < 128; i += lsz)
   {
-    s_esalt_buf[i] = esalt_bufs[digests_offset].salt_buf[i];
+    s_esalt_buf[i] = esalt_bufs[DIGESTS_OFFSET].salt_buf[i];
   }
 
   SYNC_THREADS ();
@@ -357,7 +357,7 @@ KERNEL_FQ void m07300_s04 (KERN_ATTR_ESALT (rakp_t))
    * salt
    */
 
-  const u32 esalt_len = esalt_bufs[digests_offset].salt_len;
+  const u32 esalt_len = esalt_bufs[DIGESTS_OFFSET].salt_len;
 
   /**
    * digest
@@ -365,10 +365,10 @@ KERNEL_FQ void m07300_s04 (KERN_ATTR_ESALT (rakp_t))
 
   const u32 search[4] =
   {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
   };
 
   /**

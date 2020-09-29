@@ -6,6 +6,16 @@
 #ifndef _INC_TYPES_H
 #define _INC_TYPES_H
 
+#if ATTACK_MODE == 9
+#define SALT_POS       (pws_pos + gid)
+#define DIGESTS_CNT    1
+#define DIGESTS_OFFSET (pws_pos + gid)
+#else
+#define SALT_POS       salt_pos_host
+#define DIGESTS_CNT    digests_cnt_host
+#define DIGESTS_OFFSET digests_offset_host
+#endif
+
 #ifdef IS_CUDA
 //https://docs.nvidia.com/cuda/nvrtc/index.html#integer-size
 typedef unsigned char      uchar;
@@ -1608,6 +1618,8 @@ typedef struct salt
   u32 salt_iter;
   u32 salt_iter2;
   u32 salt_sign[2];
+
+  u32 orig_pos;
 
   u32 digests_cnt;
   u32 digests_done;

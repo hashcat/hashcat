@@ -43,6 +43,7 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 {
   combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
   induct_ctx_t         *induct_ctx         = hashcat_ctx->induct_ctx;
+  hashes_t             *hashes             = hashcat_ctx->hashes;
   logfile_ctx_t        *logfile_ctx        = hashcat_ctx->logfile_ctx;
   mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
   status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
@@ -200,6 +201,54 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
       return 0;
     }
   }
+  else if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+  {
+    if (user_options_extra->wordlist_mode == WL_MODE_FILE)
+    {
+      straight_ctx->dict = straight_ctx->dicts[straight_ctx->dicts_pos];
+
+      logfile_sub_string (straight_ctx->dict);
+
+      for (u32 i = 0; i < user_options->rp_files_cnt; i++)
+      {
+        logfile_sub_var_string ("rulefile", user_options->rp_files[i]);
+      }
+
+      HCFILE fp;
+
+      if (hc_fopen (&fp, straight_ctx->dict, "rb") == false)
+      {
+        event_log_error (hashcat_ctx, "%s: %s", straight_ctx->dict, strerror (errno));
+
+        return -1;
+      }
+
+      const int rc = count_words (hashcat_ctx, &fp, straight_ctx->dict, &status_ctx->words_cnt);
+
+      hc_fclose (&fp);
+
+      if (rc == -1)
+      {
+        event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of wordlist: %s", straight_ctx->dict);
+
+        return -1;
+      }
+
+      if ((status_ctx->words_cnt / straight_ctx->kernel_rules_cnt) != hashes->salts_cnt)
+      {
+        event_log_error (hashcat_ctx, "Number of words in wordlist %s is not in sync with number of salts (words: %" PRIu64 ", salts: %d)", straight_ctx->dict, status_ctx->words_cnt, hashes->salts_cnt);
+
+        return -1;
+      }
+
+      if (status_ctx->words_cnt == 0)
+      {
+        logfile_sub_msg ("STOP");
+
+        return 0;
+      }
+    }
+  }
 
   return 0;
 }
@@ -251,7 +300,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
    * wordlist based work
    */
 
-  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+  if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
   {
     if (user_options_extra->wordlist_mode == WL_MODE_FILE)
     {

@@ -43,20 +43,20 @@ KERNEL_FQ void m19300_mxx (KERN_ATTR_RULES_ESALT (sha1_double_salt_t))
 
   COPY_PW (pws[gid]);
 
-  const int salt2_len = esalt_bufs[digests_offset].salt2_len;
+  const int salt2_len = esalt_bufs[DIGESTS_OFFSET].salt2_len;
 
   u32 s2[64] = { 0 };
 
   for (int i = 0, idx = 0; i < salt2_len; i += 4, idx += 1)
   {
-    s2[idx] = hc_swap32_S (esalt_bufs[digests_offset].salt2_buf[idx]);
+    s2[idx] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt2_buf[idx]);
   }
 
   sha1_ctx_t ctx0;
 
   sha1_init (&ctx0);
 
-  sha1_update_global_swap (&ctx0, esalt_bufs[digests_offset].salt1_buf, esalt_bufs[digests_offset].salt1_len);
+  sha1_update_global_swap (&ctx0, esalt_bufs[DIGESTS_OFFSET].salt1_buf, esalt_bufs[DIGESTS_OFFSET].salt1_len);
 
   /**
    * loop
@@ -102,10 +102,10 @@ KERNEL_FQ void m19300_sxx (KERN_ATTR_RULES_ESALT (sha1_double_salt_t))
 
   const u32 search[4] =
   {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
   };
 
   /**
@@ -114,20 +114,20 @@ KERNEL_FQ void m19300_sxx (KERN_ATTR_RULES_ESALT (sha1_double_salt_t))
 
   COPY_PW (pws[gid]);
 
-  const int salt2_len = esalt_bufs[digests_offset].salt2_len;
+  const int salt2_len = esalt_bufs[DIGESTS_OFFSET].salt2_len;
 
   u32 s2[64] = { 0 };
 
   for (int i = 0, idx = 0; i < salt2_len; i += 4, idx += 1)
   {
-    s2[idx] = hc_swap32_S (esalt_bufs[digests_offset].salt2_buf[idx]);
+    s2[idx] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt2_buf[idx]);
   }
 
   sha1_ctx_t ctx0;
 
   sha1_init (&ctx0);
 
-  sha1_update_global_swap (&ctx0, esalt_bufs[digests_offset].salt1_buf, esalt_bufs[digests_offset].salt1_len);
+  sha1_update_global_swap (&ctx0, esalt_bufs[DIGESTS_OFFSET].salt1_buf, esalt_bufs[DIGESTS_OFFSET].salt1_len);
 
   /**
    * loop

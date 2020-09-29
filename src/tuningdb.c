@@ -147,6 +147,7 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
       if ((token_ptr[1][0] != '0') &&
           (token_ptr[1][0] != '1') &&
           (token_ptr[1][0] != '3') &&
+          (token_ptr[1][0] != '9') &&
           (token_ptr[1][0] != '*'))
       {
         event_log_warning (hashcat_ctx, "Tuning-db: Invalid attack_mode '%c' in Line '%d'", token_ptr[1][0], line_num);

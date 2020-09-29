@@ -232,13 +232,13 @@ KERNEL_FQ void m13772_init (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, vc_t))
   const u64 lid = get_local_id (0);
   const u64 lsz = get_local_size (0);
 
-  const int keyboard_layout_mapping_cnt = esalt_bufs[digests_offset].keyboard_layout_mapping_cnt;
+  const int keyboard_layout_mapping_cnt = esalt_bufs[DIGESTS_OFFSET].keyboard_layout_mapping_cnt;
 
   LOCAL_VK keyboard_layout_mapping_t s_keyboard_layout_mapping_buf[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
-    s_keyboard_layout_mapping_buf[i] = esalt_bufs[digests_offset].keyboard_layout_mapping_buf[i];
+    s_keyboard_layout_mapping_buf[i] = esalt_bufs[DIGESTS_OFFSET].keyboard_layout_mapping_buf[i];
   }
 
   SYNC_THREADS ();
@@ -299,22 +299,22 @@ KERNEL_FQ void m13772_init (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, vc_t))
 
   hc_execute_keyboard_layout_mapping (w0, w1, w2, w3, pw_len, s_keyboard_layout_mapping_buf, keyboard_layout_mapping_cnt);
 
-  w0[0] = u8add (w0[0], esalt_bufs[digests_offset].keyfile_buf[ 0]);
-  w0[1] = u8add (w0[1], esalt_bufs[digests_offset].keyfile_buf[ 1]);
-  w0[2] = u8add (w0[2], esalt_bufs[digests_offset].keyfile_buf[ 2]);
-  w0[3] = u8add (w0[3], esalt_bufs[digests_offset].keyfile_buf[ 3]);
-  w1[0] = u8add (w1[0], esalt_bufs[digests_offset].keyfile_buf[ 4]);
-  w1[1] = u8add (w1[1], esalt_bufs[digests_offset].keyfile_buf[ 5]);
-  w1[2] = u8add (w1[2], esalt_bufs[digests_offset].keyfile_buf[ 6]);
-  w1[3] = u8add (w1[3], esalt_bufs[digests_offset].keyfile_buf[ 7]);
-  w2[0] = u8add (w2[0], esalt_bufs[digests_offset].keyfile_buf[ 8]);
-  w2[1] = u8add (w2[1], esalt_bufs[digests_offset].keyfile_buf[ 9]);
-  w2[2] = u8add (w2[2], esalt_bufs[digests_offset].keyfile_buf[10]);
-  w2[3] = u8add (w2[3], esalt_bufs[digests_offset].keyfile_buf[11]);
-  w3[0] = u8add (w3[0], esalt_bufs[digests_offset].keyfile_buf[12]);
-  w3[1] = u8add (w3[1], esalt_bufs[digests_offset].keyfile_buf[13]);
-  w3[2] = u8add (w3[2], esalt_bufs[digests_offset].keyfile_buf[14]);
-  w3[3] = u8add (w3[3], esalt_bufs[digests_offset].keyfile_buf[15]);
+  w0[0] = u8add (w0[0], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[ 0]);
+  w0[1] = u8add (w0[1], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[ 1]);
+  w0[2] = u8add (w0[2], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[ 2]);
+  w0[3] = u8add (w0[3], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[ 3]);
+  w1[0] = u8add (w1[0], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[ 4]);
+  w1[1] = u8add (w1[1], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[ 5]);
+  w1[2] = u8add (w1[2], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[ 6]);
+  w1[3] = u8add (w1[3], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[ 7]);
+  w2[0] = u8add (w2[0], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[ 8]);
+  w2[1] = u8add (w2[1], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[ 9]);
+  w2[2] = u8add (w2[2], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[10]);
+  w2[3] = u8add (w2[3], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[11]);
+  w3[0] = u8add (w3[0], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[12]);
+  w3[1] = u8add (w3[1], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[13]);
+  w3[2] = u8add (w3[2], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[14]);
+  w3[3] = u8add (w3[3], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[15]);
 
   w0[0] = hc_swap32_S (w0[0]);
   w0[1] = hc_swap32_S (w0[1]);
@@ -373,7 +373,7 @@ KERNEL_FQ void m13772_init (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, vc_t))
   tmps[gid].opad_raw[6] = streebog512_hmac_ctx.opad.s[6];
   tmps[gid].opad_raw[7] = streebog512_hmac_ctx.opad.s[7];
 
-  streebog512_hmac_update_global_swap (&streebog512_hmac_ctx, esalt_bufs[digests_offset].salt_buf, 64);
+  streebog512_hmac_update_global_swap (&streebog512_hmac_ctx, esalt_bufs[DIGESTS_OFFSET].salt_buf, 64);
 
   for (u32 i = 0, j = 1; i < 16; i += 8, j += 1)
   {
@@ -461,9 +461,9 @@ KERNEL_FQ void m13772_loop (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, vc_t))
   // therefore the module limits the inner loop iteration count to 1000
   // if the key_pim is set, we know that we have to save and check the key for this pim
 
-  const int pim_multi = esalt_bufs[digests_offset].pim_multi;
-  const int pim_start = esalt_bufs[digests_offset].pim_start;
-  const int pim_stop  = esalt_bufs[digests_offset].pim_stop;
+  const int pim_multi = esalt_bufs[DIGESTS_OFFSET].pim_multi;
+  const int pim_start = esalt_bufs[DIGESTS_OFFSET].pim_start;
+  const int pim_stop  = esalt_bufs[DIGESTS_OFFSET].pim_stop;
 
   int pim    = 0;
   int pim_at = 0;
@@ -764,7 +764,7 @@ KERNEL_FQ void m13772_comp (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, vc_t))
   {
     if (atomic_inc (&hashes_shown[0]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, 0, gid, 0, 0, 0);
     }
   }
   else
@@ -773,7 +773,7 @@ KERNEL_FQ void m13772_comp (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, vc_t))
     {
       if (atomic_inc (&hashes_shown[0]) == 0)
       {
-        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0, 0, 0);
+        mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, 0, gid, 0, 0, 0);
       }
     }
 
@@ -781,7 +781,7 @@ KERNEL_FQ void m13772_comp (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, vc_t))
     {
       if (atomic_inc (&hashes_shown[0]) == 0)
       {
-        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0, 0, 0);
+        mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, 0, gid, 0, 0, 0);
       }
     }
   }

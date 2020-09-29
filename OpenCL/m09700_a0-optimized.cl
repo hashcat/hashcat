@@ -537,10 +537,10 @@ KERNEL_FQ void m09700_m04 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
 
   u32 salt_buf[4];
 
-  salt_buf[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf[1] = salt_bufs[salt_pos].salt_buf[1];
-  salt_buf[2] = salt_bufs[salt_pos].salt_buf[2];
-  salt_buf[3] = salt_bufs[salt_pos].salt_buf[3];
+  salt_buf[0] = salt_bufs[SALT_POS].salt_buf[0];
+  salt_buf[1] = salt_bufs[SALT_POS].salt_buf[1];
+  salt_buf[2] = salt_bufs[SALT_POS].salt_buf[2];
+  salt_buf[3] = salt_bufs[SALT_POS].salt_buf[3];
 
   /**
    * esalt
@@ -548,10 +548,10 @@ KERNEL_FQ void m09700_m04 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
 
   u32 encryptedVerifier[4];
 
-  encryptedVerifier[0] = esalt_bufs[digests_offset].encryptedVerifier[0];
-  encryptedVerifier[1] = esalt_bufs[digests_offset].encryptedVerifier[1];
-  encryptedVerifier[2] = esalt_bufs[digests_offset].encryptedVerifier[2];
-  encryptedVerifier[3] = esalt_bufs[digests_offset].encryptedVerifier[3];
+  encryptedVerifier[0] = esalt_bufs[DIGESTS_OFFSET].encryptedVerifier[0];
+  encryptedVerifier[1] = esalt_bufs[DIGESTS_OFFSET].encryptedVerifier[1];
+  encryptedVerifier[2] = esalt_bufs[DIGESTS_OFFSET].encryptedVerifier[2];
+  encryptedVerifier[3] = esalt_bufs[DIGESTS_OFFSET].encryptedVerifier[3];
 
   /**
    * loop
@@ -724,10 +724,10 @@ KERNEL_FQ void m09700_s04 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
 
   u32 salt_buf[4];
 
-  salt_buf[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf[1] = salt_bufs[salt_pos].salt_buf[1];
-  salt_buf[2] = salt_bufs[salt_pos].salt_buf[2];
-  salt_buf[3] = salt_bufs[salt_pos].salt_buf[3];
+  salt_buf[0] = salt_bufs[SALT_POS].salt_buf[0];
+  salt_buf[1] = salt_bufs[SALT_POS].salt_buf[1];
+  salt_buf[2] = salt_bufs[SALT_POS].salt_buf[2];
+  salt_buf[3] = salt_bufs[SALT_POS].salt_buf[3];
 
   /**
    * esalt
@@ -735,10 +735,10 @@ KERNEL_FQ void m09700_s04 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
 
   u32 encryptedVerifier[4];
 
-  encryptedVerifier[0] = esalt_bufs[digests_offset].encryptedVerifier[0];
-  encryptedVerifier[1] = esalt_bufs[digests_offset].encryptedVerifier[1];
-  encryptedVerifier[2] = esalt_bufs[digests_offset].encryptedVerifier[2];
-  encryptedVerifier[3] = esalt_bufs[digests_offset].encryptedVerifier[3];
+  encryptedVerifier[0] = esalt_bufs[DIGESTS_OFFSET].encryptedVerifier[0];
+  encryptedVerifier[1] = esalt_bufs[DIGESTS_OFFSET].encryptedVerifier[1];
+  encryptedVerifier[2] = esalt_bufs[DIGESTS_OFFSET].encryptedVerifier[2];
+  encryptedVerifier[3] = esalt_bufs[DIGESTS_OFFSET].encryptedVerifier[3];
 
   /**
    * digest
@@ -746,10 +746,10 @@ KERNEL_FQ void m09700_s04 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
 
   const u32 search[4] =
   {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
   };
 
   /**

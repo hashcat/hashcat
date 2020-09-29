@@ -90,7 +90,7 @@ KERNEL_FQ void m15100_init (KERN_ATTR_TMPS (pbkdf1_sha1_tmp_t))
   tmps[gid].opad[3] = sha1_hmac_ctx.opad.h[3];
   tmps[gid].opad[4] = sha1_hmac_ctx.opad.h[4];
 
-  sha1_hmac_update_global_swap (&sha1_hmac_ctx, salt_bufs[salt_pos].salt_buf_pc, salt_bufs[salt_pos].salt_len_pc);
+  sha1_hmac_update_global_swap (&sha1_hmac_ctx, salt_bufs[SALT_POS].salt_buf_pc, salt_bufs[SALT_POS].salt_len_pc);
 
   sha1_hmac_final (&sha1_hmac_ctx);
 

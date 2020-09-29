@@ -56,6 +56,10 @@ int sort_by_salt (const void *v1, const void *v2)
   const salt_t *s1 = (const salt_t *) v1;
   const salt_t *s2 = (const salt_t *) v2;
 
+  const int res_pos = (int) s1->orig_pos - (int) s2->orig_pos;
+
+  if (res_pos != 0) return (res_pos);
+
   const int res1 = (int) s1->salt_len - (int) s2->salt_len;
 
   if (res1 != 0) return (res1);
@@ -465,15 +469,14 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
   }
 }
 
-int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 salt_pos)
+//int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 salt_pos)
+int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 {
   cpt_ctx_t      *cpt_ctx      = hashcat_ctx->cpt_ctx;
   hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   hashes_t       *hashes       = hashcat_ctx->hashes;
   status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
-
-  salt_t *salt_buf = &hashes->salts_buf[salt_pos];
 
   u32 num_cracked = 0;
 
@@ -538,6 +541,10 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
         cpt_cracked++;
 
+        const u32 salt_pos = cracked[i].salt_pos;
+
+        salt_t *salt_buf = &hashes->salts_buf[salt_pos];
+
         salt_buf->digests_done++;
 
         if (salt_buf->digests_done == salt_buf->digests_cnt)
@@ -545,6 +552,26 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
           hashes->salts_shown[salt_pos] = 1;
 
           hashes->salts_done++;
+        }
+
+        // we need to reset cracked state on the device
+        // otherwise host thinks again and again the hash was cracked
+        // and returns invalid password each time
+
+        memset (hashes->digests_shown_tmp, 0, salt_buf->digests_cnt * sizeof (u32));
+
+        if (device_param->is_cuda == true)
+        {
+          CU_rc = hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_digests_shown + (salt_buf->digests_offset * sizeof (u32)), &hashes->digests_shown_tmp[salt_buf->digests_offset], salt_buf->digests_cnt * sizeof (u32));
+
+          if (CU_rc == -1) return -1;
+        }
+
+        if (device_param->is_opencl == true)
+        {
+          CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_digests_shown, CL_TRUE, salt_buf->digests_offset * sizeof (u32), salt_buf->digests_cnt * sizeof (u32), &hashes->digests_shown_tmp[salt_buf->digests_offset], 0, NULL, NULL);
+
+          if (CL_rc == -1) return -1;
         }
       }
 
@@ -571,29 +598,6 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
       if (cpt_ctx->cpt_pos == CPT_CACHE) cpt_ctx->cpt_pos = 0;
 
       hc_thread_mutex_unlock (status_ctx->mux_display);
-    }
-
-    if (hashconfig->opts_type & OPTS_TYPE_PT_NEVERCRACK)
-    {
-      // we need to reset cracked state on the device
-      // otherwise host thinks again and again the hash was cracked
-      // and returns invalid password each time
-
-      memset (hashes->digests_shown_tmp, 0, salt_buf->digests_cnt * sizeof (u32));
-
-      if (device_param->is_cuda == true)
-      {
-        CU_rc = hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_digests_shown + (salt_buf->digests_offset * sizeof (u32)), &hashes->digests_shown_tmp[salt_buf->digests_offset], salt_buf->digests_cnt * sizeof (u32));
-
-        if (CU_rc == -1) return -1;
-      }
-
-      if (device_param->is_opencl == true)
-      {
-        CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_digests_shown, CL_TRUE, salt_buf->digests_offset * sizeof (u32), salt_buf->digests_cnt * sizeof (u32), &hashes->digests_shown_tmp[salt_buf->digests_offset], 0, NULL, NULL);
-
-        if (CL_rc == -1) return -1;
-      }
     }
 
     num_cracked = 0;
@@ -816,6 +820,23 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
   if (hashconfig->is_salted == true)
   {
     salts_buf = (salt_t *) hccalloc (hashes_avail, sizeof (salt_t));
+
+    if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+    {
+      // this disables:
+      // - sorting by salt value
+      // - grouping by salt value
+      // - keep the salt in position relative to hashfile (not equal because of some hashes maybe failed to load)
+
+      u64 hash_pos;
+
+      for (hash_pos = 0; hash_pos < hashes_avail; hash_pos++)
+      {
+        salt_t *salt = &salts_buf[hash_pos];
+
+        salt->orig_pos = hash_pos;
+      }
+    }
 
     if (hashconfig->esalt_size > 0)
     {
@@ -1116,7 +1137,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
         if (hashconfig->is_salted == true)
         {
+          const u32 orig_pos = hashes_buf[hashes_cnt].salt->orig_pos;
+
           memset (hashes_buf[hashes_cnt].salt, 0, sizeof (salt_t));
+
+          hashes_buf[hashes_cnt].salt->orig_pos = orig_pos;
         }
 
         if (hashconfig->esalt_size > 0)
@@ -1711,6 +1736,23 @@ int hashes_init_stage4 (hashcat_ctx_t *hashcat_ctx)
           hashconfig->opts_type &= ~OPTS_TYPE_ST_ADDBITS15;
           hashconfig->opts_type |=  OPTS_TYPE_PT_ADDBITS15;
         }
+      }
+    }
+  }
+
+  // test iteration count in association attack
+
+  if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+  {
+    salt_t *salts_buf = hashes->salts_buf;
+
+    for (u32 salt_idx = 1; salt_idx < hashes->salts_cnt; salt_idx++)
+    {
+      if (salts_buf[salt_idx - 1].salt_iter != salts_buf[salt_idx].salt_iter)
+      {
+        event_log_error (hashcat_ctx, "Mixed iteration counts are not supported in association attack-mode.");
+
+        return -1;
       }
     }
   }
