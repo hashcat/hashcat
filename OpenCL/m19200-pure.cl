@@ -382,7 +382,7 @@ KERNEL_FQ void m19200_init (KERN_ATTR_TMPS (qnx_sha512_tmp_t))
 
   sha512_init (&sha512_ctx);
 
-  sha512_update_global_swap (&sha512_ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  sha512_update_global_swap (&sha512_ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   sha512_update_global_swap (&sha512_ctx, pws[gid].i, pws[gid].pw_len);
 

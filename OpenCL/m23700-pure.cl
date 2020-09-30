@@ -912,8 +912,8 @@ KERNEL_FQ void m23700_init (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
 
   u32 salt_buf[3];
 
-  salt_buf[0] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[0]); // swap needed due to -O kernel
-  salt_buf[1] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[1]);
+  salt_buf[0] = hc_swap32_S (salt_bufs[SALT_POS].salt_buf[0]); // swap needed due to -O kernel
+  salt_buf[1] = hc_swap32_S (salt_bufs[SALT_POS].salt_buf[1]);
   salt_buf[2] = 0;
 
   // switch buffer by offset (can only be 0 or 2 because of utf16):
@@ -1180,8 +1180,8 @@ KERNEL_FQ void m23700_comp (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
 
   AES128_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
-  const u32 pack_size   = esalt_bufs[digests_offset].pack_size;
-  const u32 unpack_size = esalt_bufs[digests_offset].unpack_size;
+  const u32 pack_size   = esalt_bufs[DIGESTS_OFFSET].pack_size;
+  const u32 unpack_size = esalt_bufs[DIGESTS_OFFSET].unpack_size;
 
   if (pack_size > unpack_size) // could be aligned
   {
@@ -1191,10 +1191,10 @@ KERNEL_FQ void m23700_comp (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
 
       u32 last_block_encrypted[4];
 
-      last_block_encrypted[0] = esalt_bufs[digests_offset].data[pack_size_elements - 4 + 0];
-      last_block_encrypted[1] = esalt_bufs[digests_offset].data[pack_size_elements - 4 + 1];
-      last_block_encrypted[2] = esalt_bufs[digests_offset].data[pack_size_elements - 4 + 2];
-      last_block_encrypted[3] = esalt_bufs[digests_offset].data[pack_size_elements - 4 + 3];
+      last_block_encrypted[0] = esalt_bufs[DIGESTS_OFFSET].data[pack_size_elements - 4 + 0];
+      last_block_encrypted[1] = esalt_bufs[DIGESTS_OFFSET].data[pack_size_elements - 4 + 1];
+      last_block_encrypted[2] = esalt_bufs[DIGESTS_OFFSET].data[pack_size_elements - 4 + 2];
+      last_block_encrypted[3] = esalt_bufs[DIGESTS_OFFSET].data[pack_size_elements - 4 + 3];
 
       u32 last_block_decrypted[4];
 
@@ -1202,10 +1202,10 @@ KERNEL_FQ void m23700_comp (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
 
       u32 last_block_iv[4];
 
-      last_block_iv[0] = esalt_bufs[digests_offset].data[pack_size_elements - 8 + 0];
-      last_block_iv[1] = esalt_bufs[digests_offset].data[pack_size_elements - 8 + 1];
-      last_block_iv[2] = esalt_bufs[digests_offset].data[pack_size_elements - 8 + 2];
-      last_block_iv[3] = esalt_bufs[digests_offset].data[pack_size_elements - 8 + 3];
+      last_block_iv[0] = esalt_bufs[DIGESTS_OFFSET].data[pack_size_elements - 8 + 0];
+      last_block_iv[1] = esalt_bufs[DIGESTS_OFFSET].data[pack_size_elements - 8 + 1];
+      last_block_iv[2] = esalt_bufs[DIGESTS_OFFSET].data[pack_size_elements - 8 + 2];
+      last_block_iv[3] = esalt_bufs[DIGESTS_OFFSET].data[pack_size_elements - 8 + 3];
 
       last_block_decrypted[0] ^= last_block_iv[0];
       last_block_decrypted[1] ^= last_block_iv[1];
@@ -1236,10 +1236,10 @@ KERNEL_FQ void m23700_comp (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
   {
     u32 data[4];
 
-    data[0] = esalt_bufs[digests_offset].data[j + 0];
-    data[1] = esalt_bufs[digests_offset].data[j + 1];
-    data[2] = esalt_bufs[digests_offset].data[j + 2];
-    data[3] = esalt_bufs[digests_offset].data[j + 3];
+    data[0] = esalt_bufs[DIGESTS_OFFSET].data[j + 0];
+    data[1] = esalt_bufs[DIGESTS_OFFSET].data[j + 1];
+    data[2] = esalt_bufs[DIGESTS_OFFSET].data[j + 2];
+    data[3] = esalt_bufs[DIGESTS_OFFSET].data[j + 3];
 
     u32 out[4];
 

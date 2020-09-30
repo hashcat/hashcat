@@ -83,8 +83,8 @@ KERNEL_FQ void m23800_loop (KERN_ATTR_TMPS_HOOKS_ESALT (rar3_tmp_t, rar3_hook_t,
 
   u32 salt_buf[2];
 
-  salt_buf[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf[1] = salt_bufs[salt_pos].salt_buf[1];
+  salt_buf[0] = salt_bufs[SALT_POS].salt_buf[0];
+  salt_buf[1] = salt_bufs[SALT_POS].salt_buf[1];
 
   const u32 salt_len = 8;
 
@@ -379,8 +379,8 @@ KERNEL_FQ void m23800_hook23 (KERN_ATTR_TMPS_HOOKS_ESALT (rar3_tmp_t, rar3_hook_
 
     u32 salt_buf[2];
 
-    salt_buf[0] = salt_bufs[salt_pos].salt_buf[0];
-    salt_buf[1] = salt_bufs[salt_pos].salt_buf[1];
+    salt_buf[0] = salt_bufs[SALT_POS].salt_buf[0];
+    salt_buf[1] = salt_bufs[SALT_POS].salt_buf[1];
 
     //const u32 salt_len = 8;
 
@@ -463,10 +463,10 @@ KERNEL_FQ void m23800_hook23 (KERN_ATTR_TMPS_HOOKS_ESALT (rar3_tmp_t, rar3_hook_
 
   u32 data[4];
 
-  data[0] = hc_swap32_S (esalt_bufs[digests_offset].first_block_encrypted[0]);
-  data[1] = hc_swap32_S (esalt_bufs[digests_offset].first_block_encrypted[1]);
-  data[2] = hc_swap32_S (esalt_bufs[digests_offset].first_block_encrypted[2]);
-  data[3] = hc_swap32_S (esalt_bufs[digests_offset].first_block_encrypted[3]);
+  data[0] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].first_block_encrypted[0]);
+  data[1] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].first_block_encrypted[1]);
+  data[2] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].first_block_encrypted[2]);
+  data[3] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].first_block_encrypted[3]);
 
   u32 out[4];
 

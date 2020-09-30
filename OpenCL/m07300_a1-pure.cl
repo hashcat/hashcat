@@ -77,7 +77,7 @@ KERNEL_FQ void m07300_mxx (KERN_ATTR_ESALT (rakp_t))
 
     sha1_hmac_init (&ctx, c, pw_len + comb_len);
 
-    sha1_hmac_update_global (&ctx, esalt_bufs[digests_offset].salt_buf, esalt_bufs[digests_offset].salt_len);
+    sha1_hmac_update_global (&ctx, esalt_bufs[DIGESTS_OFFSET].salt_buf, esalt_bufs[DIGESTS_OFFSET].salt_len);
 
     sha1_hmac_final (&ctx);
 
@@ -107,10 +107,10 @@ KERNEL_FQ void m07300_sxx (KERN_ATTR_ESALT (rakp_t))
 
   const u32 search[4] =
   {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
   };
 
   /**
@@ -158,7 +158,7 @@ KERNEL_FQ void m07300_sxx (KERN_ATTR_ESALT (rakp_t))
 
     sha1_hmac_init (&ctx, c, pw_len + comb_len);
 
-    sha1_hmac_update_global (&ctx, esalt_bufs[digests_offset].salt_buf, esalt_bufs[digests_offset].salt_len);
+    sha1_hmac_update_global (&ctx, esalt_bufs[DIGESTS_OFFSET].salt_buf, esalt_bufs[DIGESTS_OFFSET].salt_len);
 
     sha1_hmac_final (&ctx);
 

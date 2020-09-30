@@ -132,25 +132,25 @@ KERNEL_FQ void m05600_m04 (KERN_ATTR_RULES_ESALT (netntlm_t))
 
   for (u32 i = lid; i < 64; i += lsz)
   {
-    s_userdomain_buf[i] = esalt_bufs[digests_offset].userdomain_buf[i];
+    s_userdomain_buf[i] = esalt_bufs[DIGESTS_OFFSET].userdomain_buf[i];
   }
 
   LOCAL_VK u32 s_chall_buf[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
-    s_chall_buf[i] = esalt_bufs[digests_offset].chall_buf[i];
+    s_chall_buf[i] = esalt_bufs[DIGESTS_OFFSET].chall_buf[i];
   }
 
   SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
-  const u32 userdomain_len = esalt_bufs[digests_offset].user_len
-                           + esalt_bufs[digests_offset].domain_len;
+  const u32 userdomain_len = esalt_bufs[DIGESTS_OFFSET].user_len
+                           + esalt_bufs[DIGESTS_OFFSET].domain_len;
 
-  const u32 chall_len = esalt_bufs[digests_offset].srvchall_len
-                      + esalt_bufs[digests_offset].clichall_len;
+  const u32 chall_len = esalt_bufs[DIGESTS_OFFSET].srvchall_len
+                      + esalt_bufs[DIGESTS_OFFSET].clichall_len;
 
   /**
    * base
@@ -371,25 +371,25 @@ KERNEL_FQ void m05600_s04 (KERN_ATTR_RULES_ESALT (netntlm_t))
 
   for (u32 i = lid; i < 64; i += lsz)
   {
-    s_userdomain_buf[i] = esalt_bufs[digests_offset].userdomain_buf[i];
+    s_userdomain_buf[i] = esalt_bufs[DIGESTS_OFFSET].userdomain_buf[i];
   }
 
   LOCAL_VK u32 s_chall_buf[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
-    s_chall_buf[i] = esalt_bufs[digests_offset].chall_buf[i];
+    s_chall_buf[i] = esalt_bufs[DIGESTS_OFFSET].chall_buf[i];
   }
 
   SYNC_THREADS ();
 
   if (gid >= gid_max) return;
 
-  const u32 userdomain_len = esalt_bufs[digests_offset].user_len
-                           + esalt_bufs[digests_offset].domain_len;
+  const u32 userdomain_len = esalt_bufs[DIGESTS_OFFSET].user_len
+                           + esalt_bufs[DIGESTS_OFFSET].domain_len;
 
-  const u32 chall_len = esalt_bufs[digests_offset].srvchall_len
-                      + esalt_bufs[digests_offset].clichall_len;
+  const u32 chall_len = esalt_bufs[DIGESTS_OFFSET].srvchall_len
+                      + esalt_bufs[DIGESTS_OFFSET].clichall_len;
 
   /**
    * base
@@ -415,10 +415,10 @@ KERNEL_FQ void m05600_s04 (KERN_ATTR_RULES_ESALT (netntlm_t))
 
   const u32 search[4] =
   {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
   };
 
   /**

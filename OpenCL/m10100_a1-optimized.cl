@@ -69,10 +69,10 @@ KERNEL_FQ void m10100_m04 (KERN_ATTR_BASIC ())
   u64x v2p = SIPHASHM_2;
   u64x v3p = SIPHASHM_3;
 
-  v0p ^= hl32_to_64 (salt_bufs[salt_pos].salt_buf[1], salt_bufs[salt_pos].salt_buf[0]);
-  v1p ^= hl32_to_64 (salt_bufs[salt_pos].salt_buf[3], salt_bufs[salt_pos].salt_buf[2]);
-  v2p ^= hl32_to_64 (salt_bufs[salt_pos].salt_buf[1], salt_bufs[salt_pos].salt_buf[0]);
-  v3p ^= hl32_to_64 (salt_bufs[salt_pos].salt_buf[3], salt_bufs[salt_pos].salt_buf[2]);
+  v0p ^= hl32_to_64 (salt_bufs[SALT_POS].salt_buf[1], salt_bufs[SALT_POS].salt_buf[0]);
+  v1p ^= hl32_to_64 (salt_bufs[SALT_POS].salt_buf[3], salt_bufs[SALT_POS].salt_buf[2]);
+  v2p ^= hl32_to_64 (salt_bufs[SALT_POS].salt_buf[1], salt_bufs[SALT_POS].salt_buf[0]);
+  v3p ^= hl32_to_64 (salt_bufs[SALT_POS].salt_buf[3], salt_bufs[SALT_POS].salt_buf[2]);
 
   /**
    * loop
@@ -256,10 +256,10 @@ KERNEL_FQ void m10100_s04 (KERN_ATTR_BASIC ())
   u64x v2p = SIPHASHM_2;
   u64x v3p = SIPHASHM_3;
 
-  v0p ^= hl32_to_64 (salt_bufs[salt_pos].salt_buf[1], salt_bufs[salt_pos].salt_buf[0]);
-  v1p ^= hl32_to_64 (salt_bufs[salt_pos].salt_buf[3], salt_bufs[salt_pos].salt_buf[2]);
-  v2p ^= hl32_to_64 (salt_bufs[salt_pos].salt_buf[1], salt_bufs[salt_pos].salt_buf[0]);
-  v3p ^= hl32_to_64 (salt_bufs[salt_pos].salt_buf[3], salt_bufs[salt_pos].salt_buf[2]);
+  v0p ^= hl32_to_64 (salt_bufs[SALT_POS].salt_buf[1], salt_bufs[SALT_POS].salt_buf[0]);
+  v1p ^= hl32_to_64 (salt_bufs[SALT_POS].salt_buf[3], salt_bufs[SALT_POS].salt_buf[2]);
+  v2p ^= hl32_to_64 (salt_bufs[SALT_POS].salt_buf[1], salt_bufs[SALT_POS].salt_buf[0]);
+  v3p ^= hl32_to_64 (salt_bufs[SALT_POS].salt_buf[3], salt_bufs[SALT_POS].salt_buf[2]);
 
   /**
    * digest
@@ -267,8 +267,8 @@ KERNEL_FQ void m10100_s04 (KERN_ATTR_BASIC ())
 
   const u32 search[4] =
   {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
     0,
     0
   };

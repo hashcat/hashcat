@@ -51,7 +51,8 @@ int induct_ctx_init (hashcat_ctx_t *hashcat_ctx)
   if (user_options->usage          == true) return 0;
   if (user_options->version        == true) return 0;
 
-  if (user_options->attack_mode != ATTACK_MODE_STRAIGHT) return 0;
+  if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT)
+   && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION)) return 0;
 
   induct_ctx->enabled = true;
 

@@ -431,21 +431,21 @@ KERNEL_FQ void m07500_m04 (KERN_ATTR_RULES_ESALT (krb5pa_t))
 
   u32 checksum[4];
 
-  checksum[0] = esalt_bufs[digests_offset].checksum[0];
-  checksum[1] = esalt_bufs[digests_offset].checksum[1];
-  checksum[2] = esalt_bufs[digests_offset].checksum[2];
-  checksum[3] = esalt_bufs[digests_offset].checksum[3];
+  checksum[0] = esalt_bufs[DIGESTS_OFFSET].checksum[0];
+  checksum[1] = esalt_bufs[DIGESTS_OFFSET].checksum[1];
+  checksum[2] = esalt_bufs[DIGESTS_OFFSET].checksum[2];
+  checksum[3] = esalt_bufs[DIGESTS_OFFSET].checksum[3];
 
   u32 timestamp_ct[8];
 
-  timestamp_ct[0] = esalt_bufs[digests_offset].timestamp[0];
-  timestamp_ct[1] = esalt_bufs[digests_offset].timestamp[1];
-  timestamp_ct[2] = esalt_bufs[digests_offset].timestamp[2];
-  timestamp_ct[3] = esalt_bufs[digests_offset].timestamp[3];
-  timestamp_ct[4] = esalt_bufs[digests_offset].timestamp[4];
-  timestamp_ct[5] = esalt_bufs[digests_offset].timestamp[5];
-  timestamp_ct[6] = esalt_bufs[digests_offset].timestamp[6];
-  timestamp_ct[7] = esalt_bufs[digests_offset].timestamp[7];
+  timestamp_ct[0] = esalt_bufs[DIGESTS_OFFSET].timestamp[0];
+  timestamp_ct[1] = esalt_bufs[DIGESTS_OFFSET].timestamp[1];
+  timestamp_ct[2] = esalt_bufs[DIGESTS_OFFSET].timestamp[2];
+  timestamp_ct[3] = esalt_bufs[DIGESTS_OFFSET].timestamp[3];
+  timestamp_ct[4] = esalt_bufs[DIGESTS_OFFSET].timestamp[4];
+  timestamp_ct[5] = esalt_bufs[DIGESTS_OFFSET].timestamp[5];
+  timestamp_ct[6] = esalt_bufs[DIGESTS_OFFSET].timestamp[6];
+  timestamp_ct[7] = esalt_bufs[DIGESTS_OFFSET].timestamp[7];
 
   /**
    * shared
@@ -485,9 +485,9 @@ KERNEL_FQ void m07500_m04 (KERN_ATTR_RULES_ESALT (krb5pa_t))
 
     if (decrypt_and_check (rc4_key, tmp, timestamp_ct) == 1)
     {
-      if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+      if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
       {
-        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos, 0, 0);
+        mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, il_pos, 0, 0);
       }
     }
   }
@@ -537,21 +537,21 @@ KERNEL_FQ void m07500_s04 (KERN_ATTR_RULES_ESALT (krb5pa_t))
 
   u32 checksum[4];
 
-  checksum[0] = esalt_bufs[digests_offset].checksum[0];
-  checksum[1] = esalt_bufs[digests_offset].checksum[1];
-  checksum[2] = esalt_bufs[digests_offset].checksum[2];
-  checksum[3] = esalt_bufs[digests_offset].checksum[3];
+  checksum[0] = esalt_bufs[DIGESTS_OFFSET].checksum[0];
+  checksum[1] = esalt_bufs[DIGESTS_OFFSET].checksum[1];
+  checksum[2] = esalt_bufs[DIGESTS_OFFSET].checksum[2];
+  checksum[3] = esalt_bufs[DIGESTS_OFFSET].checksum[3];
 
   u32 timestamp_ct[8];
 
-  timestamp_ct[0] = esalt_bufs[digests_offset].timestamp[0];
-  timestamp_ct[1] = esalt_bufs[digests_offset].timestamp[1];
-  timestamp_ct[2] = esalt_bufs[digests_offset].timestamp[2];
-  timestamp_ct[3] = esalt_bufs[digests_offset].timestamp[3];
-  timestamp_ct[4] = esalt_bufs[digests_offset].timestamp[4];
-  timestamp_ct[5] = esalt_bufs[digests_offset].timestamp[5];
-  timestamp_ct[6] = esalt_bufs[digests_offset].timestamp[6];
-  timestamp_ct[7] = esalt_bufs[digests_offset].timestamp[7];
+  timestamp_ct[0] = esalt_bufs[DIGESTS_OFFSET].timestamp[0];
+  timestamp_ct[1] = esalt_bufs[DIGESTS_OFFSET].timestamp[1];
+  timestamp_ct[2] = esalt_bufs[DIGESTS_OFFSET].timestamp[2];
+  timestamp_ct[3] = esalt_bufs[DIGESTS_OFFSET].timestamp[3];
+  timestamp_ct[4] = esalt_bufs[DIGESTS_OFFSET].timestamp[4];
+  timestamp_ct[5] = esalt_bufs[DIGESTS_OFFSET].timestamp[5];
+  timestamp_ct[6] = esalt_bufs[DIGESTS_OFFSET].timestamp[6];
+  timestamp_ct[7] = esalt_bufs[DIGESTS_OFFSET].timestamp[7];
 
   /**
    * shared
@@ -591,9 +591,9 @@ KERNEL_FQ void m07500_s04 (KERN_ATTR_RULES_ESALT (krb5pa_t))
 
     if (decrypt_and_check (rc4_key, tmp, timestamp_ct) == 1)
     {
-      if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+      if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
       {
-        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos, 0, 0);
+        mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, il_pos, 0, 0);
       }
     }
   }

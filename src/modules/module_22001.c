@@ -600,6 +600,7 @@ bool module_potfile_custom_check (MAYBE_UNUSED const hashconfig_t *hashconfig, M
     1,                  // digests_cnt
     0,                  // digests_offset
     0,                  // combs_mode
+    0,                  // pws_pos
     1                   // gid_max
   );
 

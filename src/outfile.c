@@ -143,7 +143,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
   }
   else
   {
-    if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+    if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
     {
       pw_t pw;
 
@@ -428,7 +428,7 @@ int build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   const u64 gidvid = plain->gidvid;
   const u32 il_pos = plain->il_pos;
 
-  if (user_options->attack_mode != ATTACK_MODE_STRAIGHT) return 0;
+  if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT) && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION)) return 0;
 
   const u32 debug_mode = debugfile_ctx->mode;
 

@@ -2095,7 +2095,7 @@ KERNEL_FQ void m05800_init (KERN_ATTR_TMPS (androidpin_tmp_t))
 
   sha1_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
-  sha1_update_global_swap (&ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  sha1_update_global_swap (&ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   sha1_final (&ctx);
 
@@ -2146,13 +2146,13 @@ KERNEL_FQ void m05800_loop (KERN_ATTR_TMPS (androidpin_tmp_t))
     w[idx] = hc_swap32_S (pws[gid].i[idx]);
   }
 
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
+  const u32 salt_len = salt_bufs[SALT_POS].salt_len;
 
   u32 s[64] = { 0 };
 
   for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[idx]);
+    s[idx] = hc_swap32_S (salt_bufs[SALT_POS].salt_buf[idx]);
   }
 
   u32 digest[5];

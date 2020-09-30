@@ -117,7 +117,7 @@ KERNEL_FQ void m06500_init (KERN_ATTR_TMPS (sha512aix_tmp_t))
   tmps[gid].opad[6] = sha512_hmac_ctx.opad.h[6];
   tmps[gid].opad[7] = sha512_hmac_ctx.opad.h[7];
 
-  sha512_hmac_update_global_swap (&sha512_hmac_ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  sha512_hmac_update_global_swap (&sha512_hmac_ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   u32 w0[4];
   u32 w1[4];

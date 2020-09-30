@@ -73,9 +73,9 @@ KERNEL_FQ void m19500_mxx (KERN_ATTR_RULES_ESALT (devise_hash_t))
 
   COPY_PW (pws[gid]);
 
-  const int salt_len = esalt_bufs[digests_offset].salt_len;
+  const int salt_len = esalt_bufs[DIGESTS_OFFSET].salt_len;
 
-  const int site_key_len = esalt_bufs[digests_offset].site_key_len;
+  const int site_key_len = esalt_bufs[DIGESTS_OFFSET].site_key_len;
 
   u32 s[64] = { 0 };
   u32 k[64] = { 0 };
@@ -84,12 +84,12 @@ KERNEL_FQ void m19500_mxx (KERN_ATTR_RULES_ESALT (devise_hash_t))
 
   for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = hc_swap32_S (esalt_bufs[salt_pos].salt_buf[idx]);
+    s[idx] = hc_swap32_S (esalt_bufs[SALT_POS].salt_buf[idx]);
   }
 
   for (int i = 0, idx = 0; i < site_key_len; i += 4, idx += 1)
   {
-    k[idx] = hc_swap32_S (esalt_bufs[salt_pos].site_key_buf[idx]);
+    k[idx] = hc_swap32_S (esalt_bufs[SALT_POS].site_key_buf[idx]);
   }
 
   // precompute some stuff
@@ -208,10 +208,10 @@ KERNEL_FQ void m19500_sxx (KERN_ATTR_RULES_ESALT (devise_hash_t))
 
   const u32 search[4] =
   {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
   };
 
   /**
@@ -220,9 +220,9 @@ KERNEL_FQ void m19500_sxx (KERN_ATTR_RULES_ESALT (devise_hash_t))
 
   COPY_PW (pws[gid]);
 
-  const int salt_len = esalt_bufs[digests_offset].salt_len;
+  const int salt_len = esalt_bufs[DIGESTS_OFFSET].salt_len;
 
-  const int site_key_len = esalt_bufs[digests_offset].site_key_len;
+  const int site_key_len = esalt_bufs[DIGESTS_OFFSET].site_key_len;
 
   u32 s[64] = { 0 };
   u32 k[64] = { 0 };
@@ -231,12 +231,12 @@ KERNEL_FQ void m19500_sxx (KERN_ATTR_RULES_ESALT (devise_hash_t))
 
   for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = hc_swap32_S (esalt_bufs[salt_pos].salt_buf[idx]);
+    s[idx] = hc_swap32_S (esalt_bufs[SALT_POS].salt_buf[idx]);
   }
 
   for (int i = 0, idx = 0; i < site_key_len; i += 4, idx += 1)
   {
-    k[idx] = hc_swap32_S (esalt_bufs[salt_pos].site_key_buf[idx]);
+    k[idx] = hc_swap32_S (esalt_bufs[SALT_POS].site_key_buf[idx]);
   }
 
   // precompute some stuff

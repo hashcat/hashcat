@@ -83,23 +83,23 @@ KERNEL_FQ void m10420_m04 (KERN_ATTR_ESALT (pdf_t))
 
   u32 o_buf[8];
 
-  o_buf[0] = esalt_bufs[digests_offset].o_buf[0];
-  o_buf[1] = esalt_bufs[digests_offset].o_buf[1];
-  o_buf[2] = esalt_bufs[digests_offset].o_buf[2];
-  o_buf[3] = esalt_bufs[digests_offset].o_buf[3];
-  o_buf[4] = esalt_bufs[digests_offset].o_buf[4];
-  o_buf[5] = esalt_bufs[digests_offset].o_buf[5];
-  o_buf[6] = esalt_bufs[digests_offset].o_buf[6];
-  o_buf[7] = esalt_bufs[digests_offset].o_buf[7];
+  o_buf[0] = esalt_bufs[DIGESTS_OFFSET].o_buf[0];
+  o_buf[1] = esalt_bufs[DIGESTS_OFFSET].o_buf[1];
+  o_buf[2] = esalt_bufs[DIGESTS_OFFSET].o_buf[2];
+  o_buf[3] = esalt_bufs[DIGESTS_OFFSET].o_buf[3];
+  o_buf[4] = esalt_bufs[DIGESTS_OFFSET].o_buf[4];
+  o_buf[5] = esalt_bufs[DIGESTS_OFFSET].o_buf[5];
+  o_buf[6] = esalt_bufs[DIGESTS_OFFSET].o_buf[6];
+  o_buf[7] = esalt_bufs[DIGESTS_OFFSET].o_buf[7];
 
-  u32 P = esalt_bufs[digests_offset].P;
+  u32 P = esalt_bufs[DIGESTS_OFFSET].P;
 
   u32 id_buf[4];
 
-  id_buf[0] = esalt_bufs[digests_offset].id_buf[0];
-  id_buf[1] = esalt_bufs[digests_offset].id_buf[1];
-  id_buf[2] = esalt_bufs[digests_offset].id_buf[2];
-  id_buf[3] = esalt_bufs[digests_offset].id_buf[3];
+  id_buf[0] = esalt_bufs[DIGESTS_OFFSET].id_buf[0];
+  id_buf[1] = esalt_bufs[DIGESTS_OFFSET].id_buf[1];
+  id_buf[2] = esalt_bufs[DIGESTS_OFFSET].id_buf[2];
+  id_buf[3] = esalt_bufs[DIGESTS_OFFSET].id_buf[3];
 
   /**
    * loop
@@ -304,23 +304,23 @@ KERNEL_FQ void m10420_s04 (KERN_ATTR_ESALT (pdf_t))
 
   u32 o_buf[8];
 
-  o_buf[0] = esalt_bufs[digests_offset].o_buf[0];
-  o_buf[1] = esalt_bufs[digests_offset].o_buf[1];
-  o_buf[2] = esalt_bufs[digests_offset].o_buf[2];
-  o_buf[3] = esalt_bufs[digests_offset].o_buf[3];
-  o_buf[4] = esalt_bufs[digests_offset].o_buf[4];
-  o_buf[5] = esalt_bufs[digests_offset].o_buf[5];
-  o_buf[6] = esalt_bufs[digests_offset].o_buf[6];
-  o_buf[7] = esalt_bufs[digests_offset].o_buf[7];
+  o_buf[0] = esalt_bufs[DIGESTS_OFFSET].o_buf[0];
+  o_buf[1] = esalt_bufs[DIGESTS_OFFSET].o_buf[1];
+  o_buf[2] = esalt_bufs[DIGESTS_OFFSET].o_buf[2];
+  o_buf[3] = esalt_bufs[DIGESTS_OFFSET].o_buf[3];
+  o_buf[4] = esalt_bufs[DIGESTS_OFFSET].o_buf[4];
+  o_buf[5] = esalt_bufs[DIGESTS_OFFSET].o_buf[5];
+  o_buf[6] = esalt_bufs[DIGESTS_OFFSET].o_buf[6];
+  o_buf[7] = esalt_bufs[DIGESTS_OFFSET].o_buf[7];
 
-  u32 P = esalt_bufs[digests_offset].P;
+  u32 P = esalt_bufs[DIGESTS_OFFSET].P;
 
   u32 id_buf[4];
 
-  id_buf[0] = esalt_bufs[digests_offset].id_buf[0];
-  id_buf[1] = esalt_bufs[digests_offset].id_buf[1];
-  id_buf[2] = esalt_bufs[digests_offset].id_buf[2];
-  id_buf[3] = esalt_bufs[digests_offset].id_buf[3];
+  id_buf[0] = esalt_bufs[DIGESTS_OFFSET].id_buf[0];
+  id_buf[1] = esalt_bufs[DIGESTS_OFFSET].id_buf[1];
+  id_buf[2] = esalt_bufs[DIGESTS_OFFSET].id_buf[2];
+  id_buf[3] = esalt_bufs[DIGESTS_OFFSET].id_buf[3];
 
   /**
    * digest
@@ -328,8 +328,8 @@ KERNEL_FQ void m10420_s04 (KERN_ATTR_ESALT (pdf_t))
 
   const u32 search[4] =
   {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
     0,
     0
   };

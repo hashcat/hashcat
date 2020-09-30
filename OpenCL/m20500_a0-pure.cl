@@ -182,9 +182,9 @@ KERNEL_FQ void m20500_sxx (KERN_ATTR_RULES ())
 
   const u32 search[4] =
   {
-    digests_buf[digests_offset].digest_buf[0],
-    digests_buf[digests_offset].digest_buf[1],
-    digests_buf[digests_offset].digest_buf[2],
+    digests_buf[DIGESTS_OFFSET].digest_buf[0],
+    digests_buf[DIGESTS_OFFSET].digest_buf[1],
+    digests_buf[DIGESTS_OFFSET].digest_buf[2],
     0
   };
 

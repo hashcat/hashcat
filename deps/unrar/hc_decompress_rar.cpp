@@ -27,7 +27,7 @@ extern "C" unsigned int hc_decompress_rar (unsigned char *Win, unsigned char *In
   DataIO.SetUnpackFromMemory ((byte *) Input,  PackSize);
   DataIO.SetUnpackToMemory   ((byte *) NULL, UnpackSize);
 
-  Unpack *Unp = new Unpack (&DataIO);
+  Unpack Unp = Unpack (&DataIO);
 
   // not needed in our tests (no false positives):
   // memset (Win, 0, UnpackSize);
@@ -37,19 +37,17 @@ extern "C" unsigned int hc_decompress_rar (unsigned char *Win, unsigned char *In
   // #define PPMSIZE 216 * 1024 * 1024
   // memset (PPM,  0, PPMSIZE);
 
-  Unp->SetWin (Win);
-  Unp->SetPPM (PPM);
+  Unp.SetWin (Win);
+  Unp.SetPPM (PPM);
 
-  Unp->Init (WINSIZE, SOLID);
-  Unp->SetDestSize (UnpackSize);
+  Unp.Init (WINSIZE, SOLID);
+  Unp.SetDestSize (UnpackSize);
 
-  Unp->SetExternalBuffer (Inp, VM);
+  Unp.SetExternalBuffer (Inp, VM);
 
-  Unp->DoUnpack (METHOD, SOLID); // sets output
+  Unp.DoUnpack (METHOD, SOLID); // sets output
 
   unsigned int crc32 = (unsigned int) DataIO.UnpHash.GetCRC32 ();
-
-  delete Unp;
 
   return crc32;
 }

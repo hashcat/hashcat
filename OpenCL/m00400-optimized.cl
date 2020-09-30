@@ -62,8 +62,8 @@ KERNEL_FQ void m00400_init (KERN_ATTR_TMPS (phpass_tmp_t))
 
   u32 salt_buf[2];
 
-  salt_buf[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf[1] = salt_bufs[salt_pos].salt_buf[1];
+  salt_buf[0] = salt_bufs[SALT_POS].salt_buf[0];
+  salt_buf[1] = salt_bufs[SALT_POS].salt_buf[1];
 
   /**
    * init

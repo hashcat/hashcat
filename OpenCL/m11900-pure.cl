@@ -91,7 +91,7 @@ KERNEL_FQ void m11900_init (KERN_ATTR_TMPS_ESALT (pbkdf2_md5_tmp_t, pbkdf2_md5_t
   tmps[gid].opad[2] = md5_hmac_ctx.opad.h[2];
   tmps[gid].opad[3] = md5_hmac_ctx.opad.h[3];
 
-  md5_hmac_update_global (&md5_hmac_ctx, esalt_bufs[digests_offset].salt_buf, salt_bufs[salt_pos].salt_len);
+  md5_hmac_update_global (&md5_hmac_ctx, esalt_bufs[DIGESTS_OFFSET].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   for (u32 i = 0, j = 1; i < 4; i += 4, j += 1)
   {

@@ -448,10 +448,10 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m03200_init (KERN_ATTR_TMPS 
 
   u32 salt_buf[4];
 
-  salt_buf[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf[1] = salt_bufs[salt_pos].salt_buf[1];
-  salt_buf[2] = salt_bufs[salt_pos].salt_buf[2];
-  salt_buf[3] = salt_bufs[salt_pos].salt_buf[3];
+  salt_buf[0] = salt_bufs[SALT_POS].salt_buf[0];
+  salt_buf[1] = salt_bufs[SALT_POS].salt_buf[1];
+  salt_buf[2] = salt_bufs[SALT_POS].salt_buf[2];
+  salt_buf[3] = salt_bufs[SALT_POS].salt_buf[3];
 
   u32 P[18];
 
@@ -656,10 +656,10 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m03200_loop (KERN_ATTR_TMPS 
 
   u32 salt_buf[4];
 
-  salt_buf[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf[1] = salt_bufs[salt_pos].salt_buf[1];
-  salt_buf[2] = salt_bufs[salt_pos].salt_buf[2];
-  salt_buf[3] = salt_bufs[salt_pos].salt_buf[3];
+  salt_buf[0] = salt_bufs[SALT_POS].salt_buf[0];
+  salt_buf[1] = salt_bufs[SALT_POS].salt_buf[1];
+  salt_buf[2] = salt_bufs[SALT_POS].salt_buf[2];
+  salt_buf[3] = salt_bufs[SALT_POS].salt_buf[3];
 
   /**
    * main loop

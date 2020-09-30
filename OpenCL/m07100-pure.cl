@@ -123,7 +123,7 @@ KERNEL_FQ void m07100_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, pbkdf2_sh
   tmps[gid].opad[6] = sha512_hmac_ctx.opad.h[6];
   tmps[gid].opad[7] = sha512_hmac_ctx.opad.h[7];
 
-  sha512_hmac_update_global_swap (&sha512_hmac_ctx, esalt_bufs[digests_offset].salt_buf, salt_bufs[salt_pos].salt_len);
+  sha512_hmac_update_global_swap (&sha512_hmac_ctx, esalt_bufs[DIGESTS_OFFSET].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   for (u32 i = 0, j = 1; i < 8; i += 8, j += 1)
   {

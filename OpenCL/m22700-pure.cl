@@ -648,17 +648,17 @@ KERNEL_FQ void m22700_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
 
   u32 iv[4];
 
-  iv[0] = salt_bufs[salt_pos].salt_buf[0];
-  iv[1] = salt_bufs[salt_pos].salt_buf[1];
-  iv[2] = salt_bufs[salt_pos].salt_buf[2];
-  iv[3] = salt_bufs[salt_pos].salt_buf[3];
+  iv[0] = salt_bufs[SALT_POS].salt_buf[0];
+  iv[1] = salt_bufs[SALT_POS].salt_buf[1];
+  iv[2] = salt_bufs[SALT_POS].salt_buf[2];
+  iv[3] = salt_bufs[SALT_POS].salt_buf[3];
 
   u32 enc[4];
 
-  enc[0] = salt_bufs[salt_pos].salt_buf[4];
-  enc[1] = salt_bufs[salt_pos].salt_buf[5];
-  enc[2] = salt_bufs[salt_pos].salt_buf[6];
-  enc[3] = salt_bufs[salt_pos].salt_buf[7];
+  enc[0] = salt_bufs[SALT_POS].salt_buf[4];
+  enc[1] = salt_bufs[SALT_POS].salt_buf[5];
+  enc[2] = salt_bufs[SALT_POS].salt_buf[6];
+  enc[3] = salt_bufs[SALT_POS].salt_buf[7];
 
   u32 dec[4];
 
@@ -671,9 +671,9 @@ KERNEL_FQ void m22700_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
 
   if (is_valid_bitcoinj (dec) == 1)
   {
-    if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+    if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
     }
 
     return;
@@ -681,10 +681,10 @@ KERNEL_FQ void m22700_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
 
   // alternative 2 (second block, fixed IV):
 
-  enc[0] = salt_bufs[salt_pos].salt_buf[ 8];
-  enc[1] = salt_bufs[salt_pos].salt_buf[ 9];
-  enc[2] = salt_bufs[salt_pos].salt_buf[10];
-  enc[3] = salt_bufs[salt_pos].salt_buf[11];
+  enc[0] = salt_bufs[SALT_POS].salt_buf[ 8];
+  enc[1] = salt_bufs[SALT_POS].salt_buf[ 9];
+  enc[2] = salt_bufs[SALT_POS].salt_buf[10];
+  enc[3] = salt_bufs[SALT_POS].salt_buf[11];
 
   aes256_decrypt (ks, enc, dec, s_td0, s_td1, s_td2, s_td3, s_td4);
 
@@ -695,9 +695,9 @@ KERNEL_FQ void m22700_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
 
   if (is_valid_bitcoinj (dec) == 1)
   {
-    if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+    if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
     }
 
     return;

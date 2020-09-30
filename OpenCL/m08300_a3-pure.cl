@@ -49,25 +49,25 @@ KERNEL_FQ void m08300_mxx (KERN_ATTR_VECTOR ())
     w[idx] = pws[gid].i[idx];
   }
 
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
+  const u32 salt_len = salt_bufs[SALT_POS].salt_len;
 
   u32x s[64] = { 0 };
 
   for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = hc_swap32 (salt_bufs[salt_pos].salt_buf[idx]);
+    s[idx] = hc_swap32 (salt_bufs[SALT_POS].salt_buf[idx]);
   }
 
-  const u32 salt_len_pc = salt_bufs[salt_pos].salt_len_pc;
+  const u32 salt_len_pc = salt_bufs[SALT_POS].salt_len_pc;
 
   u32x s_pc[64] = { 0 };
 
   for (int i = 0, idx = 0; i < salt_len_pc; i += 4, idx += 1)
   {
-    s_pc[idx] = hc_swap32 (salt_bufs[salt_pos].salt_buf_pc[idx]);
+    s_pc[idx] = hc_swap32 (salt_bufs[SALT_POS].salt_buf_pc[idx]);
   }
 
-  const u32 salt_iter = salt_bufs[salt_pos].salt_iter;
+  const u32 salt_iter = salt_bufs[SALT_POS].salt_iter;
 
   /**
    * loop
@@ -215,10 +215,10 @@ KERNEL_FQ void m08300_sxx (KERN_ATTR_VECTOR ())
 
   const u32 search[4] =
   {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
   };
 
   /**
@@ -234,25 +234,25 @@ KERNEL_FQ void m08300_sxx (KERN_ATTR_VECTOR ())
     w[idx] = pws[gid].i[idx];
   }
 
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
+  const u32 salt_len = salt_bufs[SALT_POS].salt_len;
 
   u32x s[64] = { 0 };
 
   for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = hc_swap32 (salt_bufs[salt_pos].salt_buf[idx]);
+    s[idx] = hc_swap32 (salt_bufs[SALT_POS].salt_buf[idx]);
   }
 
-  const u32 salt_len_pc = salt_bufs[salt_pos].salt_len_pc;
+  const u32 salt_len_pc = salt_bufs[SALT_POS].salt_len_pc;
 
   u32x s_pc[64] = { 0 };
 
   for (int i = 0, idx = 0; i < salt_len_pc; i += 4, idx += 1)
   {
-    s_pc[idx] = hc_swap32 (salt_bufs[salt_pos].salt_buf_pc[idx]);
+    s_pc[idx] = hc_swap32 (salt_bufs[SALT_POS].salt_buf_pc[idx]);
   }
 
-  const u32 salt_iter = salt_bufs[salt_pos].salt_iter;
+  const u32 salt_iter = salt_bufs[SALT_POS].salt_iter;
 
   /**
    * loop
