@@ -19,7 +19,7 @@ static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_8;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_PASSWORD_MANAGER;
 static const char *HASH_NAME      = "BestCrypt v4 Volume Encryption";
-static const u64   KERN_TYPE      = 23901;
+static const u64   KERN_TYPE      = 24000;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_ST_HEX;
