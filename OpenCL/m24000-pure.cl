@@ -414,7 +414,7 @@ DECLSPEC void keccak_transform_S (u64 *st)
   }
 }
 
-KERNEL_FQ void m23901_init (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt_t))
+KERNEL_FQ void m24000_init (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt_t))
 {
   /**
    * base
@@ -484,7 +484,7 @@ KERNEL_FQ void m23901_init (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt
   }
 }
 
-KERNEL_FQ void m23901_loop (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt_t))
+KERNEL_FQ void m24000_loop (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -522,7 +522,7 @@ KERNEL_FQ void m23901_loop (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt
   #endif
 }
 
-KERNEL_FQ void m23901_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt_t))
+KERNEL_FQ void m24000_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt_t))
 {
   /**
    * base
