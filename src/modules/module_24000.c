@@ -362,10 +362,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // salt
 
-  const u8 *salt_pos = token.buf[3];
+  const u8 *SALT_POS = token.buf[3];
   const int salt_len = token.len[3];
 
-  const bool parse_rc = generic_salt_decode (hashconfig, salt_pos, salt_len, (u8 *) salt->salt_buf, (int *) &salt->salt_len);
+  const bool parse_rc = generic_salt_decode (hashconfig, SALT_POS, salt_len, (u8 *) salt->salt_buf, (int *) &salt->salt_len);
 
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
 
