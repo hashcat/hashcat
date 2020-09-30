@@ -428,7 +428,7 @@ KERNEL_FQ void m24000_init (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt
 
   sha256_hmac_init_global_swap (&sha256_hmac_ctx, pws[gid].i, pws[gid].pw_len);
 
-  sha256_hmac_update_global_swap (&sha256_hmac_ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  sha256_hmac_update_global_swap (&sha256_hmac_ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   for (u32 i = 0, j = 1, k = 0; i < SCRYPT_CNT; i += 8, j += 1, k += 2)
   {
@@ -603,7 +603,7 @@ KERNEL_FQ void m24000_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt
 
   sha256_hmac_final (&ctx);
 
-  char version = esalt_bufs[digests_offset].version;
+  char version = esalt_bufs[DIGESTS_OFFSET].version;
 
   u32 iv[4] = { 0 };
 
@@ -676,10 +676,10 @@ KERNEL_FQ void m24000_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt
     {
       u32 data[4];
 
-      data[0] = esalt_bufs[digests_offset].ciphertext[i + 0];
-      data[1] = esalt_bufs[digests_offset].ciphertext[i + 1];
-      data[2] = esalt_bufs[digests_offset].ciphertext[i + 2];
-      data[3] = esalt_bufs[digests_offset].ciphertext[i + 3];
+      data[0] = esalt_bufs[DIGESTS_OFFSET].ciphertext[i + 0];
+      data[1] = esalt_bufs[DIGESTS_OFFSET].ciphertext[i + 1];
+      data[2] = esalt_bufs[DIGESTS_OFFSET].ciphertext[i + 2];
+      data[3] = esalt_bufs[DIGESTS_OFFSET].ciphertext[i + 3];
 
       u32 out[4];
 
@@ -718,10 +718,10 @@ KERNEL_FQ void m24000_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt
     {
       u32 data[4];
 
-      data[0] = esalt_bufs[digests_offset].ciphertext[i + 0];
-      data[1] = esalt_bufs[digests_offset].ciphertext[i + 1];
-      data[2] = esalt_bufs[digests_offset].ciphertext[i + 2];
-      data[3] = esalt_bufs[digests_offset].ciphertext[i + 3];
+      data[0] = esalt_bufs[DIGESTS_OFFSET].ciphertext[i + 0];
+      data[1] = esalt_bufs[DIGESTS_OFFSET].ciphertext[i + 1];
+      data[2] = esalt_bufs[DIGESTS_OFFSET].ciphertext[i + 2];
+      data[3] = esalt_bufs[DIGESTS_OFFSET].ciphertext[i + 3];
 
 
       u32 out[4];
@@ -757,10 +757,10 @@ KERNEL_FQ void m24000_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt
     {
       u32 data[4];
 
-      data[0] = esalt_bufs[digests_offset].ciphertext[i + 0];
-      data[1] = esalt_bufs[digests_offset].ciphertext[i + 1];
-      data[2] = esalt_bufs[digests_offset].ciphertext[i + 2];
-      data[3] = esalt_bufs[digests_offset].ciphertext[i + 3];
+      data[0] = esalt_bufs[DIGESTS_OFFSET].ciphertext[i + 0];
+      data[1] = esalt_bufs[DIGESTS_OFFSET].ciphertext[i + 1];
+      data[2] = esalt_bufs[DIGESTS_OFFSET].ciphertext[i + 2];
+      data[3] = esalt_bufs[DIGESTS_OFFSET].ciphertext[i + 3];
 
 
       u32 out[4];
@@ -795,10 +795,10 @@ KERNEL_FQ void m24000_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt
     {
       u32 data[4];
 
-      data[0] = esalt_bufs[digests_offset].ciphertext[i + 0];
-      data[1] = esalt_bufs[digests_offset].ciphertext[i + 1];
-      data[2] = esalt_bufs[digests_offset].ciphertext[i + 2];
-      data[3] = esalt_bufs[digests_offset].ciphertext[i + 3];
+      data[0] = esalt_bufs[DIGESTS_OFFSET].ciphertext[i + 0];
+      data[1] = esalt_bufs[DIGESTS_OFFSET].ciphertext[i + 1];
+      data[2] = esalt_bufs[DIGESTS_OFFSET].ciphertext[i + 2];
+      data[3] = esalt_bufs[DIGESTS_OFFSET].ciphertext[i + 3];
 
 
       u32 out[4];
@@ -871,9 +871,9 @@ KERNEL_FQ void m24000_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt
       (digest[2] == res[18]) &&
       (digest[3] == res[19]))
   {
-    if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+    if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
     }
 
     return;
