@@ -532,6 +532,60 @@ KERNEL_FQ void m24000_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt
   const u64 lid = get_local_id (0);
   const u64 lsz = get_local_size (0);
 
+        /**
+   * aes shared
+   */
+
+  #ifdef REAL_SHM
+
+  LOCAL_VK u32 s_td0[256];
+  LOCAL_VK u32 s_td1[256];
+  LOCAL_VK u32 s_td2[256];
+  LOCAL_VK u32 s_td3[256];
+  LOCAL_VK u32 s_td4[256];
+
+  LOCAL_VK u32 s_te0[256];
+  LOCAL_VK u32 s_te1[256];
+  LOCAL_VK u32 s_te2[256];
+  LOCAL_VK u32 s_te3[256];
+  LOCAL_VK u32 s_te4[256];
+
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    s_td0[i] = td0[i];
+    s_td1[i] = td1[i];
+    s_td2[i] = td2[i];
+    s_td3[i] = td3[i];
+    s_td4[i] = td4[i];
+
+    s_te0[i] = te0[i];
+    s_te1[i] = te1[i];
+    s_te2[i] = te2[i];
+    s_te3[i] = te3[i];
+    s_te4[i] = te4[i];
+  }
+
+  SYNC_THREADS ();
+
+  #else
+
+  CONSTANT_AS u32a *s_td0 = td0;
+  CONSTANT_AS u32a *s_td1 = td1;
+  CONSTANT_AS u32a *s_td2 = td2;
+  CONSTANT_AS u32a *s_td3 = td3;
+  CONSTANT_AS u32a *s_td4 = td4;
+
+  CONSTANT_AS u32a *s_te0 = te0;
+  CONSTANT_AS u32a *s_te1 = te1;
+  CONSTANT_AS u32a *s_te2 = te2;
+  CONSTANT_AS u32a *s_te3 = te3;
+  CONSTANT_AS u32a *s_te4 = te4;
+
+  #endif
+    /**
+   * AES part
+   */
+
   if (gid >= gid_max) return;
 
   /**
@@ -611,60 +665,6 @@ KERNEL_FQ void m24000_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt
 
   if (version == '8')
   {
-
-        /**
-     * aes shared
-     */
-
-    #ifdef REAL_SHM
-
-    LOCAL_VK u32 s_td0[256];
-    LOCAL_VK u32 s_td1[256];
-    LOCAL_VK u32 s_td2[256];
-    LOCAL_VK u32 s_td3[256];
-    LOCAL_VK u32 s_td4[256];
-
-    LOCAL_VK u32 s_te0[256];
-    LOCAL_VK u32 s_te1[256];
-    LOCAL_VK u32 s_te2[256];
-    LOCAL_VK u32 s_te3[256];
-    LOCAL_VK u32 s_te4[256];
-
-    for (u32 i = lid; i < 256; i += lsz)
-    {
-      s_td0[i] = td0[i];
-      s_td1[i] = td1[i];
-      s_td2[i] = td2[i];
-      s_td3[i] = td3[i];
-      s_td4[i] = td4[i];
-
-      s_te0[i] = te0[i];
-      s_te1[i] = te1[i];
-      s_te2[i] = te2[i];
-      s_te3[i] = te3[i];
-      s_te4[i] = te4[i];
-    }
-
-    SYNC_THREADS ();
-
-    #else
-
-    CONSTANT_AS u32a *s_td0 = td0;
-    CONSTANT_AS u32a *s_td1 = td1;
-    CONSTANT_AS u32a *s_td2 = td2;
-    CONSTANT_AS u32a *s_td3 = td3;
-    CONSTANT_AS u32a *s_td4 = td4;
-
-    CONSTANT_AS u32a *s_te0 = te0;
-    CONSTANT_AS u32a *s_te1 = te1;
-    CONSTANT_AS u32a *s_te2 = te2;
-    CONSTANT_AS u32a *s_te3 = te3;
-    CONSTANT_AS u32a *s_te4 = te4;
-
-    #endif
-      /**
-     * AES part
-     */
 
     #define KEYLEN 60
 
