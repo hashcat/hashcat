@@ -8,12 +8,12 @@
 #include "inc_types.h"
 #include "inc_platform.cl"
 #include "inc_common.cl"
-#include "inc_hash_sha256.cl" 
+#include "inc_hash_sha256.cl"
 #include "inc_cipher_twofish.cl"
 #include "inc_cipher_aes.cl"
 #include "inc_cipher_serpent.cl"
 #include "inc_cipher_camellia.cl"
-#endif 
+#endif
 
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
@@ -49,7 +49,7 @@ typedef struct bestcrypt_scrypt
 {
   u32 salt_buf[24];
   u32 ciphertext[96];
-  char version;
+  u32 version;
 
 } bestcrypt_scrypt_t;
 
@@ -303,7 +303,7 @@ DECLSPEC void scrypt_smix (uint4 *X, uint4 *T, GLOBAL_AS uint4 *V0, GLOBAL_AS ui
   u32 j = keccakf_piln[s];      \
   u32 k = keccakf_rotc[s];      \
   bc0 = st[j];                  \
-  st[j] = hc_rotl64_S (t, k);      \
+  st[j] = hc_rotl64_S (t, k);   \
   t = bc0;                      \
 }
 
@@ -580,9 +580,9 @@ KERNEL_FQ void m24000_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt
   CONSTANT_AS u32a *s_te2 = te2;
   CONSTANT_AS u32a *s_te3 = te3;
   CONSTANT_AS u32a *s_te4 = te4;
-
   #endif
-    /**
+
+  /**
    * AES part
    */
 
@@ -657,7 +657,7 @@ KERNEL_FQ void m24000_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt
 
   sha256_hmac_final (&ctx);
 
-  char version = esalt_bufs[DIGESTS_OFFSET].version;
+  u32 version = esalt_bufs[DIGESTS_OFFSET].version;
 
   u32 iv[4] = { 0 };
 
@@ -742,8 +742,8 @@ KERNEL_FQ void m24000_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt
 
   if (version == 'a')
   {
-    printf("%s\n", "SERPENT");
     u32 ks_serpent[140];
+
     ctx.opad.h[0] = hc_swap32_S (ctx.opad.h[0]);
     ctx.opad.h[1] = hc_swap32_S (ctx.opad.h[1]);
     ctx.opad.h[2] = hc_swap32_S (ctx.opad.h[2]);
@@ -752,7 +752,9 @@ KERNEL_FQ void m24000_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt
     ctx.opad.h[5] = hc_swap32_S (ctx.opad.h[5]);
     ctx.opad.h[6] = hc_swap32_S (ctx.opad.h[6]);
     ctx.opad.h[7] = hc_swap32_S (ctx.opad.h[7]);
+
     serpent256_set_key (ks_serpent, ctx.opad.h);
+
     for (u32 i = 0; i < 20; i += 4) // 96 bytes output would contain the full 32 byte checksum
     {
       u32 data[4];
@@ -782,6 +784,7 @@ KERNEL_FQ void m24000_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt
   if (version == 'f')
   {
     u32 ks_camellia[68];
+
     ctx.opad.h[0] = hc_swap32_S (ctx.opad.h[0]);
     ctx.opad.h[1] = hc_swap32_S (ctx.opad.h[1]);
     ctx.opad.h[2] = hc_swap32_S (ctx.opad.h[2]);
@@ -790,7 +793,9 @@ KERNEL_FQ void m24000_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt
     ctx.opad.h[5] = hc_swap32_S (ctx.opad.h[5]);
     ctx.opad.h[6] = hc_swap32_S (ctx.opad.h[6]);
     ctx.opad.h[7] = hc_swap32_S (ctx.opad.h[7]);
+
     camellia256_set_key (ks_camellia, ctx.opad.h);
+
     for (u32 i = 0; i < 20; i += 4) // 96 bytes output would contain the full 32 byte checksum
     {
       u32 data[4];
