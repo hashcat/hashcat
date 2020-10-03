@@ -11,20 +11,21 @@
 #include "convert.h"
 #include "shared.h"
 
-static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL; 
+static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
 static const u32   DGST_POS1      = 1;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_8;
-static const u32   HASH_CATEGORY  = HASH_CATEGORY_PASSWORD_MANAGER;
+static const u32   HASH_CATEGORY  = HASH_CATEGORY_FDE;
 static const char *HASH_NAME      = "BestCrypt v4 Volume Encryption";
 static const u64   KERN_TYPE      = 24000;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_ST_HEX;
+                                  | OPTS_TYPE_ST_HEX
+                                  | OPTS_TYPE_SELF_TEST_DISABLE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
-static const char *ST_PASS        = NULL; // the self-test is disabled, because the original scrypt settings would create a too long startup time
+static const char *ST_PASS        = "password"; // the self-test is disabled, because the original scrypt settings would create a too long startup time
 static const char *ST_HASH        = "$bcve$4$08$450886364ae094fb94b4a787e4fc2484b85f305082f63b1a$3a6ead2a1b806e51ba72efe66efde5a96ec4f4966a2155e1dbbb5eeaa55249a6430d648451ad5409d1813bedc98b55c8cd896adce3bca3d5e1d843ef9dd3a8b30ac23dcd92668113c7d9caf444acbdd5e60eaa18d36975089b24cf8459ffce00";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
@@ -46,7 +47,7 @@ typedef struct bestcrypt_scrypt
 {
   u32 salt_buf[24];
   u32 ciphertext[96];
-  char version;
+  u32 version;
 
 } bestcrypt_scrypt_t;
 
@@ -349,7 +350,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *crypto_type_pos = token.buf[2];
 
-  bestcrypt_scrypt->version = (char) crypto_type_pos[1];
+  bestcrypt_scrypt->version = crypto_type_pos[1];
 
   // scrypt settings
   const u32 scrypt_N = 32768;
@@ -413,7 +414,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     bestcrypt_scrypt->version,
     (char *) tmp_salt,
     data_hex
-  ); 
+  );
 
   return line_len;
 }
