@@ -663,7 +663,7 @@ KERNEL_FQ void m24000_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt
 
   u32 res[20]; // full would be 24 x u32 (96 bytes)
 
-  if (version == 0x38) //0x38 is char for '8' which is the crypto type passed in position 2 of hash
+  if (version == 0x38) //0x38 is char for '8' which is the crypto type passed in position 3 of hash ( $08$ )
   {
 
     #define KEYLEN 60
@@ -698,7 +698,7 @@ KERNEL_FQ void m24000_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt
   }
 
 
-  if (version == 0x39) //0x39 is char for '9' which is the crypto type passed in position 2 of hash
+  if (version == 0x39) //0x39 is char for '9' which is the crypto type passed in position 3 of hash ( $09$ )
   {
     u32 sk[4];
     u32 lk[40];
@@ -740,7 +740,7 @@ KERNEL_FQ void m24000_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt
     }
   }
 
-  if (version == 0x61) //0x61 is char for 'a' which is the crypto type passed in position 2 of hash
+  if (version == 0x61) //0x61 is char for 'a' which is the crypto type passed in position 3 of hash ( $0a$ )
   {
     u32 ks_serpent[140];
 
@@ -781,7 +781,7 @@ KERNEL_FQ void m24000_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt
     }
   }
 
-  if (version == 0x66) //0x66 is char for 'f' which is the crypto type passed in position 2 of hash
+  if (version == 0x66) //0x66 is char for 'f' which is the crypto type passed in position 3 of hash ( $0f$ )
   {
     u32 ks_camellia[68];
 
