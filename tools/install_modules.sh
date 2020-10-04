@@ -16,7 +16,9 @@ cpan install Authen::Passphrase::LANManager \
              Authen::Passphrase::PHPass     \
              Compress::Zlib                 \
              Convert::EBCDIC                \
+             Crypt::Camellia                \
              Crypt::CBC                     \
+             Crypt::Cipher::Serpent         \
              Crypt::DES                     \
              Crypt::DES_EDE3                \
              Crypt::Digest::RIPEMD160       \
