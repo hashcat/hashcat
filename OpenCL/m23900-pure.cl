@@ -35,7 +35,7 @@ KERNEL_FQ void m23900_init (KERN_ATTR_TMPS_ESALT (bestcrypt_tmp_t, bestcrypt_t))
 
   if (gid >= gid_max) return;
 
-  const int salt_pw_len = 8 + pws[gid].pw_len;
+  const int salt_pw_len = 8 + MIN (pws[gid].pw_len, 56);
 
   u32 comb[16];
 
@@ -109,7 +109,7 @@ KERNEL_FQ void m23900_loop (KERN_ATTR_TMPS_ESALT (bestcrypt_tmp_t, bestcrypt_t))
 
   if (gid >= gid_max) return;
 
-  const int salt_pw_len = 8 + pws[gid].pw_len;
+  const int salt_pw_len = 8 + MIN (pws[gid].pw_len, 56);
 
   u32 salt_pw_buf[32 + 1]; // 8 + 56 + 64 = 128 bytes
 
