@@ -31,7 +31,7 @@ void Lzma2DecMtProps_Init(CLzma2DecMtProps *p);
 SRes:
   SZ_OK           - OK
   SZ_ERROR_MEM    - Memory allocation error
-  SZ_ERROR_PARAM  - Incorrect paramater in props
+  SZ_ERROR_PARAM  - Incorrect parameter in props
   SZ_ERROR_WRITE  - ISeqOutStream write callback error
   // SZ_ERROR_OUTPUT_EOF - output buffer overflow - version with (Byte *) output
   SZ_ERROR_PROGRESS - some break from progress callback

@@ -56,7 +56,7 @@ RAM Requirements for compressing:
 Return code:
   SZ_OK               - OK
   SZ_ERROR_MEM        - Memory allocation error
-  SZ_ERROR_PARAM      - Incorrect paramater
+  SZ_ERROR_PARAM      - Incorrect parameter
   SZ_ERROR_OUTPUT_EOF - output buffer overflow
   SZ_ERROR_THREAD     - errors in multithreading functions (only for Mt version)
 */
