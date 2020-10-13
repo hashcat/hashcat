@@ -10,7 +10,6 @@ use warnings;
 
 use Crypt::CBC;
 use Crypt::PBKDF2;
-use Convert::ASN1 qw(:io);
 
 sub module_constraints { [[0, 256], [16, 16], [-1, -1], [-1, -1], [-1, -1]] }
 
