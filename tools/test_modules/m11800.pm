@@ -24,7 +24,7 @@ print (binascii.hexlify (digest[::-1]).decode (), end = "")
 
 END_CODE
 
-  my $hash = `python -c '$python_code'`;
+  my $hash = `python3 -c '$python_code'`;
 
   return $hash;
 }
