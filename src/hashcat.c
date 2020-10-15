@@ -471,10 +471,17 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   {
     if (hashes->hashes_cnt == 0)
     {
-      event_log_error (hashcat_ctx, "No hashes loaded.");
+      if (user_options->guess_hash_mode == false) event_log_error (hashcat_ctx, "No hashes loaded.");
 
       return -1;
     }
+  }
+
+  if (user_options->guess_hash_mode == true)
+  {
+    EVENT (EVENT_OUTERLOOP_MAINSCREEN);
+
+    return hashes->hashes_cnt;
   }
 
   /**
@@ -1194,6 +1201,50 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
     user_options->quiet = false;
   }
+  else if (user_options->guess_hash_mode == true)
+  {
+    u64 rc = 0;
+
+    rc_final = 1;
+
+    event_log_info (hashcat_ctx, "Starting guessing mode...\n");
+
+    user_options->quiet = true;
+
+    if (user_options->hash_mode_chgd == true)
+    {
+      if (outer_loop (hashcat_ctx) != -1) rc++;
+    }
+    else
+    {
+      char *modulefile = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+      for (int i = 0; i < MODULE_HASH_MODES_MAXIMUM; i++)
+      {
+        // skip STDOUT, Plaintext and Password Safe v2 modes
+        if (i == 2000 || i == 99999 || i == 9000) continue;
+
+        user_options->hash_mode = i;
+
+        module_filename (folder_config, i, modulefile, HCBUFSIZ_TINY);
+
+        if (hc_path_exist (modulefile) == false) continue;
+
+        if (outer_loop (hashcat_ctx) != -1) rc++;
+
+        if (status_ctx->run_main_level1 == false) break;
+      }
+
+      hcfree (modulefile);
+    }
+
+    user_options->quiet = false;
+
+    if (rc > 0)
+    {
+      rc_final = 2;
+    }
+  }
   else
   {
     if (user_options->speed_only == true) user_options->quiet = true;
@@ -1245,6 +1296,13 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
     {
       rc_final = 0;
     }
+  }
+
+  // special case for --guess-hash-type
+
+  if (user_options->guess_hash_mode == true && rc_final == 2)
+  {
+    rc_final = 0;
   }
 
   // done

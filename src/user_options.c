@@ -20,9 +20,9 @@
 #endif
 
 #ifdef WITH_BRAIN
-static const char *short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:iIbw:OSz";
+static const char *short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:iIbw:OSMz";
 #else
-static const char *short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:iIbw:OS";
+static const char *short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:iIbw:OSM";
 #endif
 
 static const struct option long_options[] =
@@ -53,6 +53,7 @@ static const struct option long_options[] =
   {"generate-rules-func-min",   required_argument, NULL, IDX_RP_GEN_FUNC_MIN},
   {"generate-rules",            required_argument, NULL, IDX_RP_GEN},
   {"generate-rules-seed",       required_argument, NULL, IDX_RP_GEN_SEED},
+  {"guess-hash-type",           no_argument,       NULL, IDX_GUESS_HASH_MODE},
   {"hwmon-disable",             no_argument,       NULL, IDX_HWMON_DISABLE},
   {"hwmon-temp-abort",          required_argument, NULL, IDX_HWMON_TEMP_ABORT},
   {"hash-type",                 required_argument, NULL, IDX_HASH_MODE},
@@ -186,6 +187,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->encoding_to               = ENCODING_TO;
   user_options->example_hashes            = EXAMPLE_HASHES;
   user_options->force                     = FORCE;
+  user_options->guess_hash_mode           = false;
   user_options->hwmon_disable             = HWMON_DISABLE;
   user_options->hwmon_temp_abort          = HWMON_TEMP_ABORT;
   user_options->hash_mode                 = HASH_MODE;
@@ -406,6 +408,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_SESSION:                   user_options->session                   = optarg;                          break;
       case IDX_HASH_MODE:                 user_options->hash_mode                 = hc_strtoul (optarg, NULL, 10);
                                           user_options->hash_mode_chgd            = true;                            break;
+      case IDX_GUESS_HASH_MODE:           user_options->guess_hash_mode           = true;                            break;
       case IDX_RUNTIME:                   user_options->runtime                   = hc_strtoul (optarg, NULL, 10);
                                           user_options->runtime_chgd              = true;                            break;
       case IDX_ATTACK_MODE:               user_options->attack_mode               = hc_strtoul (optarg, NULL, 10);
@@ -1079,22 +1082,31 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  if (user_options->benchmark == true)
+  if (user_options->guess_hash_mode == true && user_options->benchmark == true)
+  {
+      event_log_error (hashcat_ctx, "Can't set --benchmark (-b) in guess hash mode.");
+
+      return -1;
+  }
+
+  if (user_options->benchmark == true || user_options->guess_hash_mode == true)
   {
     // sanity checks based on automatically overwritten configuration variables by
     // benchmark mode section in user_options_preprocess()
 
+    char *desc = (user_options->benchmark == true) ? "benchmark" : "guess hash";
+
     #ifdef WITH_BRAIN
     if (user_options->brain_client == true)
     {
-      event_log_error (hashcat_ctx, "Brain client (-z) is not allowed in benchmark mode.");
+      event_log_error (hashcat_ctx, "Brain client (-z) is not allowed in %s mode.", desc);
 
       return -1;
     }
 
     if (user_options->brain_server == true)
     {
-      event_log_error (hashcat_ctx, "Brain server is not allowed in benchmark mode.");
+      event_log_error (hashcat_ctx, "Brain server is not allowed in %s mode.", desc);
 
       return -1;
     }
@@ -1102,84 +1114,84 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
     if (user_options->attack_mode_chgd == true)
     {
-      event_log_error (hashcat_ctx, "Can't change --attack-mode (-a) in benchmark mode.");
+      event_log_error (hashcat_ctx, "Can't change --attack-mode (-a) in %s mode.", desc);
 
       return -1;
     }
 
     if (user_options->bitmap_min != BITMAP_MIN)
     {
-      event_log_error (hashcat_ctx, "Can't change --bitmap-min in benchmark mode.");
+      event_log_error (hashcat_ctx, "Can't change --bitmap-min in %s mode.", desc);
 
       return -1;
     }
 
     if (user_options->bitmap_max != BITMAP_MAX)
     {
-      event_log_error (hashcat_ctx, "Can't change --bitmap-max in benchmark mode.");
+      event_log_error (hashcat_ctx, "Can't change --bitmap-max in %s mode.", desc);
 
       return -1;
     }
 
     if (user_options->hwmon_temp_abort != HWMON_TEMP_ABORT)
     {
-      event_log_error (hashcat_ctx, "Can't change --hwmon-temp-abort in benchmark mode.");
+      event_log_error (hashcat_ctx, "Can't change --hwmon-temp-abort in %s mode.", desc);
 
       return -1;
     }
 
     if (user_options->left == true)
     {
-      event_log_error (hashcat_ctx, "Can't change --left in benchmark mode.");
+      event_log_error (hashcat_ctx, "Can't change --left in %s mode.", desc);
 
       return -1;
     }
 
     if (user_options->show == true)
     {
-      event_log_error (hashcat_ctx, "Can't change --show in benchmark mode.");
+      event_log_error (hashcat_ctx, "Can't change --show in %s mode.", desc);
 
       return -1;
     }
 
     if (user_options->speed_only == true)
     {
-      event_log_error (hashcat_ctx, "Can't change --speed-only in benchmark mode.");
+      event_log_error (hashcat_ctx, "Can't change --speed-only in %s mode.", desc);
 
       return -1;
     }
 
     if (user_options->progress_only == true)
     {
-      event_log_error (hashcat_ctx, "Can't change --progress-only in benchmark mode.");
+      event_log_error (hashcat_ctx, "Can't change --progress-only in %s mode.", desc);
 
       return -1;
     }
 
     if (user_options->increment == true)
     {
-      event_log_error (hashcat_ctx, "Can't change --increment (-i) in benchmark mode.");
+      event_log_error (hashcat_ctx, "Can't change --increment (-i) in %s mode.", desc);
 
       return -1;
     }
 
     if (user_options->restore == true)
     {
-      event_log_error (hashcat_ctx, "Can't change --restore in benchmark mode.");
+      event_log_error (hashcat_ctx, "Can't change --restore in %s mode.", desc);
 
       return -1;
     }
 
     if (user_options->status == true)
     {
-      event_log_error (hashcat_ctx, "Can't change --status in benchmark mode.");
+      event_log_error (hashcat_ctx, "Can't change --status in %s mode.", desc);
 
       return -1;
     }
 
     if (user_options->spin_damp_chgd == true)
     {
-      event_log_error (hashcat_ctx, "Can't change --spin-damp in benchmark mode.");
+      event_log_error (hashcat_ctx, "Can't change --spin-damp in %s mode.", desc);
 
       return -1;
     }
@@ -1191,7 +1203,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     {
       if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
       {
-        event_log_error (hashcat_ctx, "Custom charsets are not supported in benchmark mode.");
+        event_log_error (hashcat_ctx, "Custom charsets are not supported in %s mode.", desc);
 
         return -1;
       }

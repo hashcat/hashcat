@@ -19,6 +19,7 @@ Philipp "philsmd" Schmidt <philsmd@hashcat.net> (@philsmd)
 Gabriele "matrix" Gristina <matrix@hashcat.net> (@gm4tr1x)
 
 * Multiple kernel modules
+* Guess Hash feature
 * Compressed wordlist feature
 * OpenCL Info feature
 * Apple macOS port

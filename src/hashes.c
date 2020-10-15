@@ -639,7 +639,7 @@ int hashes_init_filename (hashcat_ctx_t *hashcat_ctx)
     {
       if (hc_path_read (user_options_extra->hc_hash) == false)
       {
-        event_log_error (hashcat_ctx, "%s: %s", user_options_extra->hc_hash, strerror (errno));
+        if (user_options->guess_hash_mode == false) event_log_error (hashcat_ctx, "%s: %s", user_options_extra->hc_hash, strerror (errno));
 
         return -1;
       }
@@ -730,7 +730,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
       if (stat (hashes->hashfile, &st) == -1)
       {
-        event_log_error (hashcat_ctx, "%s: %s", hashes->hashfile, strerror (errno));
+        if (user_options->guess_hash_mode == false) event_log_error (hashcat_ctx, "%s: %s", hashes->hashfile, strerror (errno));
 
         return -1;
       }
@@ -745,19 +745,19 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         }
         else if (binary_count == 0)
         {
-          event_log_error (hashcat_ctx, "No hashes loaded.");
+          if (user_options->guess_hash_mode == false) event_log_error (hashcat_ctx, "No hashes loaded.");
 
           return -1;
         }
         else if (binary_count == PARSER_HAVE_ERRNO)
         {
-          event_log_error (hashcat_ctx, "%s: %s", hashes->hashfile, strerror (errno));
+          if (user_options->guess_hash_mode == false) event_log_error (hashcat_ctx, "%s: %s", hashes->hashfile, strerror (errno));
 
           return -1;
         }
         else
         {
-          event_log_error (hashcat_ctx, "%s: %s", hashes->hashfile, strerror (binary_count));
+          if (user_options->guess_hash_mode == false) event_log_error (hashcat_ctx, "%s: %s", hashes->hashfile, strerror (binary_count));
 
           return -1;
         }
@@ -973,12 +973,24 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             if (parser_status == PARSER_OK)
             {
+              if (user_options->guess_hash_mode == true)
+              {
+                if (user_options->machine_readable == false)
+                {
+                  event_log_info (hashcat_ctx, "(%d) %s : %s\n", hashconfig->hash_mode, hashconfig->hash_name, input_buf);
+                }
+                else
+                {
+                  event_log_info (hashcat_ctx, "%s:%d:%s\n", hashconfig->hash_name, hashconfig->hash_mode, input_buf);
+                }
+              }
+
               hashes_buf[hashes_cnt].hash_info->split->split_group  = 0;
               hashes_buf[hashes_cnt].hash_info->split->split_origin = SPLIT_ORIGIN_LEFT;
 
               hashes_cnt++;
             }
-            else
+            else if (user_options->guess_hash_mode == false)
             {
               event_log_warning (hashcat_ctx, "Hash '%s': %s", input_buf, strparser (parser_status));
             }
@@ -989,12 +1001,24 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             if (parser_status == PARSER_OK)
             {
+              if (user_options->guess_hash_mode == true)
+              {
+                if (user_options->machine_readable == false)
+                {
+                  event_log_info (hashcat_ctx, "(%d) %s : %s\n", hashconfig->hash_mode, hashconfig->hash_name, input_buf);
+                }
+                else
+                {
+                  event_log_info (hashcat_ctx, "%s:%d:%s\n", hashconfig->hash_name, hashconfig->hash_mode, input_buf);
+                }
+              }
+
               hashes_buf[hashes_cnt].hash_info->split->split_group  = 0;
               hashes_buf[hashes_cnt].hash_info->split->split_origin = SPLIT_ORIGIN_RIGHT;
 
               hashes_cnt++;
             }
-            else
+            else if (user_options->guess_hash_mode == false)
             {
               event_log_warning (hashcat_ctx, "Hash '%s': %s", input_buf, strparser (parser_status));
             }
@@ -1007,12 +1031,24 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             if (parser_status == PARSER_OK)
             {
+              if (user_options->guess_hash_mode == true)
+              {
+                if (user_options->machine_readable == false)
+                {
+                  event_log_info (hashcat_ctx, "(%d) %s : %s\n", hashconfig->hash_mode, hashconfig->hash_name, input_buf);
+                }
+                else
+                {
+                  event_log_info (hashcat_ctx, "%s:%d:%s\n", hashconfig->hash_name, hashconfig->hash_mode, input_buf);
+                }
+              }
+
               hashes_buf[hashes_cnt].hash_info->split->split_group  = 0;
               hashes_buf[hashes_cnt].hash_info->split->split_origin = SPLIT_ORIGIN_NONE;
 
               hashes_cnt++;
             }
-            else
+            else if (user_options->guess_hash_mode == false)
             {
               event_log_warning (hashcat_ctx, "Hash '%s': %s", input_buf, strparser (parser_status));
             }
@@ -1026,9 +1062,21 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
           if (parser_status == PARSER_OK)
           {
+            if (user_options->guess_hash_mode == true)
+            {
+              if (user_options->machine_readable == false)
+              {
+                event_log_info (hashcat_ctx, "(%d) %s : %s\n", hashconfig->hash_mode, hashconfig->hash_name, input_buf);
+              }
+              else
+              {
+                event_log_info (hashcat_ctx, "%s:%d:%s\n", hashconfig->hash_name, hashconfig->hash_mode, input_buf);
+              }
+            }
+
             hashes_cnt++;
           }
-          else
+          else if (user_options->guess_hash_mode == false)
           {
             event_log_warning (hashcat_ctx, "Hash '%s': %s", input_buf, strparser (parser_status));
           }
@@ -1166,15 +1214,18 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             if (parser_status < PARSER_GLOBAL_ZERO)
             {
-              char *tmp_line_buf;
+              if (user_options->guess_hash_mode == false)
+              {
+                char *tmp_line_buf;
 
-              hc_asprintf (&tmp_line_buf, "%s", line_buf);
+                hc_asprintf (&tmp_line_buf, "%s", line_buf);
 
-              compress_terminal_line_length (tmp_line_buf, 38, 32);
+                compress_terminal_line_length (tmp_line_buf, 38, 32);
 
-              event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+                event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
 
-              hcfree (tmp_line_buf);
+                hcfree (tmp_line_buf);
+              }
 
               continue;
             }
@@ -1190,17 +1241,32 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             if (parser_status < PARSER_GLOBAL_ZERO)
             {
-              char *tmp_line_buf;
+              if (user_options->guess_hash_mode == false)
+              {
+                char *tmp_line_buf;
 
-              hc_asprintf (&tmp_line_buf, "%s", line_buf);
+                hc_asprintf (&tmp_line_buf, "%s", line_buf);
 
-              compress_terminal_line_length (tmp_line_buf, 38, 32);
+                compress_terminal_line_length (tmp_line_buf, 38, 32);
 
-              event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+                event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
 
-              hcfree (tmp_line_buf);
+                hcfree (tmp_line_buf);
+              }
 
               continue;
+            }
+
+            if (user_options->guess_hash_mode == true)
+            {
+              if (user_options->machine_readable == false)
+              {
+                event_log_info (hashcat_ctx, "(%d) %s : %s\n", hashconfig->hash_mode, hashconfig->hash_name, line_buf);
+              }
+              else
+              {
+                event_log_info (hashcat_ctx, "%s:%d:%s\n", hashconfig->hash_name, hashconfig->hash_mode, line_buf);
+              }
             }
 
             hashes_buf[hashes_cnt].hash_info->split->split_group  = line_num;
@@ -1216,17 +1282,32 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             if (parser_status < PARSER_GLOBAL_ZERO)
             {
-              char *tmp_line_buf;
+              if (user_options->guess_hash_mode == false)
+              {
+                char *tmp_line_buf;
 
-              hc_asprintf (&tmp_line_buf, "%s", line_buf);
+                hc_asprintf (&tmp_line_buf, "%s", line_buf);
 
-              compress_terminal_line_length (tmp_line_buf, 38, 32);
+                compress_terminal_line_length (tmp_line_buf, 38, 32);
 
-              event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+                event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
 
-              hcfree (tmp_line_buf);
+                hcfree (tmp_line_buf);
+              }
 
               continue;
+            }
+
+            if (user_options->guess_hash_mode == true)
+            {
+              if (user_options->machine_readable == false)
+              {
+                event_log_info (hashcat_ctx, "(%d) %s : %s\n", hashconfig->hash_mode, hashconfig->hash_name, line_buf);
+              }
+              else
+              {
+                event_log_info (hashcat_ctx, "%s:%d:%s\n", hashconfig->hash_name, hashconfig->hash_mode, line_buf);
+              }
             }
 
             hashes_buf[hashes_cnt].hash_info->split->split_group  = line_num;
@@ -1243,17 +1324,32 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
           if (parser_status < PARSER_GLOBAL_ZERO)
           {
-            char *tmp_line_buf;
+            if (user_options->guess_hash_mode == false)
+            {
+              char *tmp_line_buf;
 
-            hc_asprintf (&tmp_line_buf, "%s", line_buf);
+              hc_asprintf (&tmp_line_buf, "%s", line_buf);
 
-            compress_terminal_line_length (tmp_line_buf, 38, 32);
+              compress_terminal_line_length (tmp_line_buf, 38, 32);
 
-            event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+              event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
 
-            hcfree (tmp_line_buf);
+              hcfree (tmp_line_buf);
+            }
 
             continue;
+          }
+
+          if (user_options->guess_hash_mode == true)
+          {
+            if (user_options->machine_readable == false)
+            {
+              event_log_info (hashcat_ctx, "(%d) %s : %s\n", hashconfig->hash_mode, hashconfig->hash_name, line_buf);
+            }
+            else
+            {
+              event_log_info (hashcat_ctx, "%s:%d:%s\n", hashconfig->hash_name, hashconfig->hash_mode, line_buf);
+            }
           }
 
           hashes_cnt++;
@@ -1320,17 +1416,23 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         {
           hashes_cnt = hashes_parsed;
         }
-        else if (hashes_parsed == 0)
-        {
-          event_log_warning (hashcat_ctx, "No hashes loaded.");
-        }
-        else if (hashes_parsed == PARSER_HAVE_ERRNO)
-        {
-          event_log_warning (hashcat_ctx, "Hashfile '%s': %s", hashes->hashfile, strerror (errno));
-        }
         else
         {
-          event_log_warning (hashcat_ctx, "Hashfile '%s': %s", hashes->hashfile, strparser (hashes_parsed));
+          if (user_options->guess_hash_mode == false)
+          {
+            if (hashes_parsed == 0)
+            {
+	      event_log_warning (hashcat_ctx, "No hashes loaded.");
+            }
+            else if (hashes_parsed == PARSER_HAVE_ERRNO)
+            {
+              event_log_warning (hashcat_ctx, "Hashfile '%s': %s", hashes->hashfile, strerror (errno));
+            }
+            else
+            {
+              event_log_warning (hashcat_ctx, "Hashfile '%s': %s", hashes->hashfile, strparser (hashes_parsed));
+            }
+          }
         }
       }
       else
@@ -1341,9 +1443,21 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
         if (parser_status == PARSER_OK)
         {
+          if (user_options->guess_hash_mode == true)
+          {
+            if (user_options->machine_readable == false)
+            {
+              event_log_info (hashcat_ctx, "(%d) %s : %s\n", hashconfig->hash_mode, hashconfig->hash_name, input_buf);
+            }
+            else
+            {
+              event_log_info (hashcat_ctx, "%s:%d:%s\n", hashconfig->hash_name, hashconfig->hash_mode, input_buf);
+            }
+          }
+
           hashes_cnt++;
         }
-        else
+        else if (user_options->guess_hash_mode == false)
         {
           event_log_warning (hashcat_ctx, "Hash '%s': %s", input_buf, strparser (parser_status));
         }

@@ -80,6 +80,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "     --veracrypt-keyfiles       | File | Keyfiles to use, separated with commas               | --veracrypt-keyf=x.txt",
   "     --veracrypt-pim-start      | Num  | VeraCrypt personal iterations multiplier start       | --veracrypt-pim-start=450",
   "     --veracrypt-pim-stop       | Num  | VeraCrypt personal iterations multiplier stop        | --veracrypt-pim-stop=500",
+  " -M, --guess-hash-type          |      | Try to guess hash type                               | -M",
   " -b, --benchmark                |      | Run benchmark of selected hash-modes                 |",
   "     --benchmark-all            |      | Run benchmark of all hash-modes (requires -b)        |",
   "     --speed-only               |      | Return expected speed of the attack, then quit       |",

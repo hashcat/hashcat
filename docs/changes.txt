@@ -1,6 +1,12 @@
 * changes v6.1.1 -> v6.x.x
 
 ##
+## Features
+##
+
+- Added guess hash mode (-M)
+
+##
 ## Algorithms
 ##
 
