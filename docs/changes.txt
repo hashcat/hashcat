@@ -4,7 +4,7 @@
 ## Features
 ##
 
-- Added guess hash mode (-M)
+- Added guess hash type (-M)
 
 ##
 ## Algorithms
