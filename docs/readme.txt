@@ -160,7 +160,8 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - NetNTLMv1 / NetNTLMv1+ESS
 - NetNTLMv2
 - Skype
-- Telegram Desktop App Passcode (PBKDF2-HMAC-SHA1)
+- Telegram Desktop <  v2.1.14 (PBKDF2-HMAC-SHA1)
+- Telegram Desktop >= v2.1.14 (PBKDF2-HMAC-SHA512)
 - Telegram Mobile App Passcode (SHA256)
 - PostgreSQL CRAM (MD5)
 - MySQL CRAM (SHA1)
