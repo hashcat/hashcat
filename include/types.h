@@ -2613,8 +2613,6 @@ typedef struct token
 
 } token_t;
 
-#endif // _TYPES_H
-
 /**
  * hash category is relevant in usage.c (--help screen)
  */
@@ -2648,3 +2646,5 @@ typedef enum hash_category
 // hash specific
 
 typedef aes_ctx AES_KEY;
+
+#endif // _TYPES_H
