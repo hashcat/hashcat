@@ -13,6 +13,7 @@
 - Added hash-mode: RAR3-p (Uncompressed)
 - Added hash-mode: RSA/DSA/EC/OPENSSH Private Keys
 - Added hash-mode: sha1(sha1($pass).$salt)
+- Added hash-mode: sha256($salt.sha256($pass))
 
 ##
 ## Bugs
