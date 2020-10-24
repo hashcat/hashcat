@@ -138,7 +138,7 @@ DECLSPEC void m24300m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
     u32x wb_t = w2[3];
     u32x wc_t = w3[0];
     u32x wd_t = w3[1];
-    u32x we_t = 0;
+    u32x we_t = w3[2];
     u32x wf_t = pw_salt_len * 8;
     
 
@@ -715,30 +715,8 @@ DECLSPEC void m24300s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
     u32x wb_t = w2[3];
     u32x wc_t = w3[0];
     u32x wd_t = w3[1];
-    u32x we_t = 0;
+    u32x we_t = w3[2];
     u32x wf_t = pw_salt_len * 8;
-
-    /*
-    if (gid == 0 && lid == 0)
-    {
-      printf("\n%08x", w0_t[0]);
-      printf("\n%08x", w1_t[0]);
-      printf("\n%08x", w2_t[0]);
-      printf("\n%08x", w3_t[0]);
-      printf("\n%08x", w4_t[0]);
-      printf("\n%08x", w5_t[0]);
-      printf("\n%08x", w6_t[0]);
-      printf("\n%08x", w7_t[0]);
-      printf("\n%08x", w8_t[0]);
-      printf("\n%08x", w9_t[0]);
-      printf("\n%08x", wa_t[0]);
-      printf("\n%08x", wb_t[0]);
-      printf("\n%08x", wc_t[0]);
-      printf("\n%08x", wd_t[0]);
-      printf("\n%08x", we_t[0]);
-      printf("\n%08x\n", wf_t[0]);
-    }
-    */
     
 
     u32x a = SHA1M_A;
@@ -1083,27 +1061,6 @@ DECLSPEC void m24300s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
     wd_t = hc_swap32 (t3[1]);
     we_t = 0;
     wf_t = (salt_len + 40) * 8;
-
-
-    if (gid == 0 && lid == 0)
-    {
-      printf("\n%08x", w0_t[0]);
-      printf("\n%08x", w1_t[0]);
-      printf("\n%08x", w2_t[0]);
-      printf("\n%08x", w3_t[0]);
-      printf("\n%08x", w4_t[0]);
-      printf("\n%08x", w5_t[0]);
-      printf("\n%08x", w6_t[0]);
-      printf("\n%08x", w7_t[0]);
-      printf("\n%08x", w8_t[0]);
-      printf("\n%08x", w9_t[0]);
-      printf("\n%08x", wa_t[0]);
-      printf("\n%08x", wb_t[0]);
-      printf("\n%08x", wc_t[0]);
-      printf("\n%08x", wd_t[0]);
-      printf("\n%08x", we_t[0]);
-      printf("\n%08x\n", wf_t[0]);
-    }
 
     #undef K
     #define K SHA1C00

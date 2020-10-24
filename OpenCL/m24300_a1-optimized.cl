@@ -237,7 +237,7 @@ KERNEL_FQ void m24300_m04 (KERN_ATTR_BASIC ())
     u32x wb_t = hc_swap32 (w2[3]);
     u32x wc_t = hc_swap32 (w3[0]);
     u32x wd_t = hc_swap32 (w3[1]);
-    u32x we_t = 0;
+    u32x we_t = hc_swap32 (w3[2]);
     u32x wf_t = out_salt_len * 8;
 
     u32x a = SHA1M_A;
@@ -920,7 +920,7 @@ KERNEL_FQ void m24300_s04 (KERN_ATTR_BASIC ())
     u32x wb_t = hc_swap32 (w2[3]);
     u32x wc_t = hc_swap32 (w3[0]);
     u32x wd_t = hc_swap32 (w3[1]);
-    u32x we_t = 0;
+    u32x we_t = hc_swap32 (w3[2]);
     u32x wf_t = out_salt_len * 8;
 
     u32x a = SHA1M_A;
