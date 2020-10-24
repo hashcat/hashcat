@@ -1,7 +1,7 @@
 /**
  * Author......: See docs/credits.txt
  * License.....: MIT
- */
+ */ 
 
 #include "common.h"
 #include "types.h"
@@ -23,9 +23,7 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_EARLY_SKIP
                                   | OPTI_TYPE_NOT_ITERATED
                                   | OPTI_TYPE_PREPENDED_SALT;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_BE
-                                  | OPTS_TYPE_PT_ADD80
-                                  | OPTS_TYPE_PT_ADDBITS15;
+static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_BE;
 static const u32   SALT_TYPE      = SALT_TYPE_GENERIC;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "94520b02c04e79e08a75a84c2a6e3ed4e3874fe8:ThisIsATestSalt";
@@ -75,7 +73,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  const u8 *hash_pos = token.buf[0];
+  const u8 *hash_pos = token.buf[0]; 
 
   digest[0] = hex_to_u32 (hash_pos +  0);
   digest[1] = hex_to_u32 (hash_pos +  8);
