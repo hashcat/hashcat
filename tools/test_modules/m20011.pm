@@ -48,7 +48,7 @@ END_CODE
   $python_code =~ s/key_tweak/"$key_tweak"/;
   $python_code =~ s/data/"$data_base64"/;
 
-  my $output_buf = `python -c '$python_code'`;
+  my $output_buf = `python3 -c '$python_code'`;
 
   $output_buf =~ s/[\r\n]//g;
 
@@ -91,7 +91,7 @@ END_CODE
   $python_code =~ s/key_tweak/"$key_tweak"/;
   $python_code =~ s/data/"$data_base64"/;
 
-  my $output_buf = `python -c '$python_code'`;
+  my $output_buf = `python3 -c '$python_code'`;
 
   $output_buf =~ s/[\r\n]//g;
 
@@ -136,7 +136,7 @@ END_CODE
   $python_code =~ s/key_tweak/"$key_tweak"/;
   $python_code =~ s/data/"$data_base64"/;
 
-  my $output_buf = `python -c '$python_code'`;
+  my $output_buf = `python3 -c '$python_code'`;
 
   $output_buf =~ s/[\r\n]//g;
 
@@ -179,7 +179,7 @@ END_CODE
   $python_code =~ s/key_tweak/"$key_tweak"/;
   $python_code =~ s/data/"$data_base64"/;
 
-  my $output_buf = `python -c '$python_code'`;
+  my $output_buf = `python3 -c '$python_code'`;
 
   $output_buf =~ s/[\r\n]//g;
 
@@ -224,7 +224,7 @@ END_CODE
   $python_code =~ s/key_tweak/"$key_tweak"/;
   $python_code =~ s/data/"$data_base64"/;
 
-  my $output_buf = `python -c '$python_code'`;
+  my $output_buf = `python3 -c '$python_code'`;
 
   $output_buf =~ s/[\r\n]//g;
 
@@ -267,7 +267,7 @@ END_CODE
   $python_code =~ s/key_tweak/"$key_tweak"/;
   $python_code =~ s/data/"$data_base64"/;
 
-  my $output_buf = `python -c '$python_code'`;
+  my $output_buf = `python3 -c '$python_code'`;
 
   $output_buf =~ s/[\r\n]//g;
 

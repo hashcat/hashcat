@@ -66,13 +66,13 @@ cpan install Authen::Passphrase::LANManager \
 
 ERRORS=$((ERRORS+$?))
 
-pip install pygost
+pip3 install pygost
 
-# pip uninstall -y pycryptoplus pycrypto pycryptodome
+# pip3 uninstall -y pycryptoplus pycrypto pycryptodome
 
-pip install pycryptoplus
-pip uninstall -y pycryptodome
-pip install pycrypto
+pip3 install pycryptoplus
+pip3 uninstall -y pycryptodome
+pip3 install pycrypto
 
 ERRORS=$((ERRORS+$?))
 
