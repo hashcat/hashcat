@@ -178,12 +178,12 @@ KERNEL_FQ void m24300_m04 (KERN_ATTR_RULES ())
     u32x w6_t = hc_swap32 (w1[2]);
     u32x w7_t = hc_swap32 (w1[3]);
     u32x w8_t = hc_swap32 (w2[0]);
-    u32x w9_t = 0;
-    u32x wa_t = 0;
-    u32x wb_t = 0;
-    u32x wc_t = 0;
-    u32x wd_t = 0;
-    u32x we_t = 0;
+    u32x w9_t = hc_swap32 (w2[1]);
+    u32x wa_t = hc_swap32 (w2[2]);
+    u32x wb_t = hc_swap32 (w2[3]);
+    u32x wc_t = hc_swap32 (w3[0]);
+    u32x wd_t = hc_swap32 (w3[1]);
+    u32x we_t = hc_swap32 (w3[2]);
     u32x wf_t = out_salt_len * 8;
 
     u32x a = SHA1M_A;
@@ -792,6 +792,7 @@ KERNEL_FQ void m24300_s04 (KERN_ATTR_RULES ())
 
     append_0x80_4x4_VV (w0, w1, w2, w3, out_salt_len);
 
+
     /**
      * sha1
      */
@@ -805,12 +806,12 @@ KERNEL_FQ void m24300_s04 (KERN_ATTR_RULES ())
     u32x w6_t = hc_swap32 (w1[2]);
     u32x w7_t = hc_swap32 (w1[3]);
     u32x w8_t = hc_swap32 (w2[0]);
-    u32x w9_t = 0;
-    u32x wa_t = 0;
-    u32x wb_t = 0;
-    u32x wc_t = 0;
-    u32x wd_t = 0;
-    u32x we_t = 0;
+    u32x w9_t = hc_swap32 (w2[1]);
+    u32x wa_t = hc_swap32 (w2[2]);
+    u32x wb_t = hc_swap32 (w2[3]);
+    u32x wc_t = hc_swap32 (w3[0]);
+    u32x wd_t = hc_swap32 (w3[1]);
+    u32x we_t = hc_swap32 (w3[2]);
     u32x wf_t = out_salt_len * 8;
 
     u32x a = SHA1M_A;
