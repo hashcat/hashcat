@@ -27,7 +27,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_HASH_COPY;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "sqlcipher:256000:8pKCwhWlnnMtP+dAsFR2kQ==:hGFfy1rUULCzl7MRgC1CqBv01+hizNb4ERKogdU529ZLc5odh1S203QidBWDxzds1ZjJ51573dnUbEkiHObV63xEtKLaLoP3Bv54REtfOYRb25dfSfb1A5IjKf5yrVTFjTXJrkO40NDybQDsxh/SOQCQcT0gjR7DNprxjv6/N+ZAR8vm8xhSNvm9BRWHu74rvg2hsMroyIZSF8KimsvbwTmAQfpYgy6vcg9MV/QI+BR0Mwmru1NIXTYo3huez37H7Cij1Jchia2pgyNt9rqMX3aBw7ae/i29D3aprO+CYQmisVWsGT1Mljx+rc7ujQG0I0CCB/TF2ycjYlZPmC/vYQ==";
+static const char *ST_HASH        = "sqlcipherv4:256000:8pKCwhWlnnMtP+dAsFR2kQ==:hGFfy1rUULCzl7MRgC1CqBv01+hizNb4ERKogdU529ZLc5odh1S203QidBWDxzds1ZjJ51573dnUbEkiHObV63xEtKLaLoP3Bv54REtfOYRb25dfSfb1A5IjKf5yrVTFjTXJrkO40NDybQDsxh/SOQCQcT0gjR7DNprxjv6/N+ZAR8vm8xhSNvm9BRWHu74rvg2hsMroyIZSF8KimsvbwTmAQfpYgy6vcg9MV/QI+BR0Mwmru1NIXTYo3huez37H7Cij1Jchia2pgyNt9rqMX3aBw7ae/i29D3aprO+CYQmisVWsGT1Mljx+rc7ujQG0I0CCB/TF2ycjYlZPmC/vYQ==";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
