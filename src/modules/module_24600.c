@@ -17,7 +17,7 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_8_16;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_GENERIC_KDF;
-static const char *HASH_NAME      = "SQL-CIPHER";
+static const char *HASH_NAME      = "SQL-CIPHER-V4";
 static const u64   KERN_TYPE      = 24600;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_USES_BITS_64
@@ -61,7 +61,7 @@ typedef struct pbkdf2_sha512_tmp
 
 } pbkdf2_sha512_tmp_t;
 
-static const char *SIGNATURE_PBKDF2_SHA512 = "sqlcipher";
+static const char *SIGNATURE_PBKDF2_SHA512 = "sqlcipherv4";
 
 bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
@@ -111,8 +111,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.signatures_buf[0] = SIGNATURE_PBKDF2_SHA512;
 
   token.sep[0]     = ':';
-  token.len_min[0] = 9;
-  token.len_max[0] = 9;
+  token.len_min[0] = 11;
+  token.len_max[0] = 11;
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
