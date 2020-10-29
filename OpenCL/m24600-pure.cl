@@ -427,8 +427,8 @@ KERNEL_FQ void m24600_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, pbkdf2_sh
     iv[3] = data[3];
   }
 
-  u8 counter = 0;
-  for (u8 i = 0; i < 64; i++)
+  u32 counter = 0;
+  for (u32 i = 0; i < 64; i++)
   {
     if (res[i] == 0)
     {
