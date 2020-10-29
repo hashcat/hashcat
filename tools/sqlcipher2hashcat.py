@@ -2,7 +2,17 @@
 from base64 import b64encode
 import sys
 
-database = open(sys.argv[1], "rb").read(272)
-salt = database[:16]
+def usage():
+  print('./sqlcipher2hashcat DATABASE_FILE')
 
-print('sqlcipherv4:256000:' + b64encode(salt).decode() + ':' + b64encode(database[16:272]).decode())
+def main():
+  database = open(sys.argv[1], "rb").read(272)
+  salt = database[:16]
+
+  print('sqlcipherv4:256000:' + b64encode(salt).decode() + ':' + b64encode(database[16:272]).decode())
+  
+if __name__ == '__main__':
+  if len(sys.argv < 2):
+    usage()
+   else:
+    main()
