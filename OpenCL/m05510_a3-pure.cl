@@ -3,16 +3,14 @@
  * License.....: MIT
  */
 
-//#define NEW_SIMD_CODE
+#define NEW_SIMD_CODE
 
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
 #include "inc_platform.cl"
 #include "inc_common.cl"
-#include "inc_rp.h"
-#include "inc_rp.cl"
-#include "inc_scalar.cl"
+#include "inc_simd.cl"
 #include "inc_hash_md4.cl"
 #endif
 
@@ -356,18 +354,18 @@ CONSTANT_VK u32a c_skb[8][64] =
 #define BOX(i,n,S) make_u32x ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3], (S)[(n)][(i).s4], (S)[(n)][(i).s5], (S)[(n)][(i).s6], (S)[(n)][(i).s7], (S)[(n)][(i).s8], (S)[(n)][(i).s9], (S)[(n)][(i).sa], (S)[(n)][(i).sb], (S)[(n)][(i).sc], (S)[(n)][(i).sd], (S)[(n)][(i).se], (S)[(n)][(i).sf])
 #endif
 
-DECLSPEC void _des_crypt_encrypt (u32 *iv, u32 *data, u32 *Kc, u32 *Kd, SHM_TYPE u32 (*s_SPtrans)[64])
+DECLSPEC void _des_crypt_encrypt (u32x *iv, u32x *data, u32x *Kc, u32x *Kd, SHM_TYPE u32 (*s_SPtrans)[64])
 {
-  u32 r = data[0];
-  u32 l = data[1];
+  u32x r = data[0];
+  u32x l = data[1];
 
   #ifdef _unroll
   #pragma unroll
   #endif
   for (u32 i = 0; i < 16; i += 2)
   {
-    u32 u;
-    u32 t;
+    u32x u;
+    u32x t;
 
     u = Kc[i + 0] ^ hc_rotl32 (r, 30u);
     t = Kd[i + 0] ^ hc_rotl32 (r, 26u);
@@ -398,9 +396,9 @@ DECLSPEC void _des_crypt_encrypt (u32 *iv, u32 *data, u32 *Kc, u32 *Kd, SHM_TYPE
   iv[1] = r;
 }
 
-DECLSPEC void _des_crypt_keysetup (u32 c, u32 d, u32 *Kc, u32 *Kd, SHM_TYPE u32 (*s_skb)[64])
+DECLSPEC void _des_crypt_keysetup (u32x c, u32x d, u32x *Kc, u32x *Kd, SHM_TYPE u32 (*s_skb)[64])
 {
-  u32 tt;
+  u32x tt;
 
   PERM_OP  (d, c, tt, 4, 0x0f0f0f0f);
   HPERM_OP (c,    tt, 2, 0xcccc0000);
@@ -435,13 +433,13 @@ DECLSPEC void _des_crypt_keysetup (u32 c, u32 d, u32 *Kc, u32 *Kd, SHM_TYPE u32 
     c = c & 0x0fffffff;
     d = d & 0x0fffffff;
 
-    const u32 c00 = (c >>  0) & 0x0000003f;
-    const u32 c06 = (c >>  6) & 0x00383003;
-    const u32 c07 = (c >>  7) & 0x0000003c;
-    const u32 c13 = (c >> 13) & 0x0000060f;
-    const u32 c20 = (c >> 20) & 0x00000001;
+    const u32x c00 = (c >>  0) & 0x0000003f;
+    const u32x c06 = (c >>  6) & 0x00383003;
+    const u32x c07 = (c >>  7) & 0x0000003c;
+    const u32x c13 = (c >> 13) & 0x0000060f;
+    const u32x c20 = (c >> 20) & 0x00000001;
 
-    u32 s = BOX (((c00 >>  0) & 0xff), 0, s_skb)
+    u32x s = BOX (((c00 >>  0) & 0xff), 0, s_skb)
            | BOX (((c06 >>  0) & 0xff)
                  |((c07 >>  0) & 0xff), 1, s_skb)
            | BOX (((c13 >>  0) & 0xff)
@@ -450,12 +448,12 @@ DECLSPEC void _des_crypt_keysetup (u32 c, u32 d, u32 *Kc, u32 *Kd, SHM_TYPE u32 
                  |((c13 >>  8) & 0xff)
                  |((c06 >> 16) & 0xff), 3, s_skb);
 
-    const u32 d00 = (d >>  0) & 0x00003c3f;
-    const u32 d07 = (d >>  7) & 0x00003f03;
-    const u32 d21 = (d >> 21) & 0x0000000f;
-    const u32 d22 = (d >> 22) & 0x00000030;
+    const u32x d00 = (d >>  0) & 0x00003c3f;
+    const u32x d07 = (d >>  7) & 0x00003f03;
+    const u32x d21 = (d >> 21) & 0x0000000f;
+    const u32x d22 = (d >> 22) & 0x00000030;
 
-    u32 t = BOX (((d00 >>  0) & 0xff), 4, s_skb)
+    u32x t = BOX (((d00 >>  0) & 0xff), 4, s_skb)
            | BOX (((d07 >>  0) & 0xff)
                  |((d00 >>  8) & 0xff), 5, s_skb)
            | BOX (((d07 >>  8) & 0xff), 6, s_skb)
@@ -467,9 +465,9 @@ DECLSPEC void _des_crypt_keysetup (u32 c, u32 d, u32 *Kc, u32 *Kd, SHM_TYPE u32 
   }
 }
 
-DECLSPEC void transform_netntlmv1_key (const u32 w0, const u32 w1, u32 *out)
+DECLSPEC void transform_netntlmv1_key (const u32x w0, const u32x w1, u32x *out)
 {
-  u32 t[8];
+  u32x t[8];
 
   t[0] = (w0 >>  0) & 0xff;
   t[1] = (w0 >>  8) & 0xff;
@@ -480,7 +478,7 @@ DECLSPEC void transform_netntlmv1_key (const u32 w0, const u32 w1, u32 *out)
   t[6] = (w1 >> 16) & 0xff;
   t[7] = (w1 >> 24) & 0xff;
 
-  u32 k[8];
+  u32x k[8];
 
   k[0] =               (t[0] >> 0);
   k[1] = (t[0] << 7) | (t[1] >> 1);
@@ -502,7 +500,7 @@ DECLSPEC void transform_netntlmv1_key (const u32 w0, const u32 w1, u32 *out)
          | ((k[7] & 0xff) << 24);
 }
 
-KERNEL_FQ void m05510_mxx (KERN_ATTR_RULES ())
+KERNEL_FQ void m05510_mxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -565,39 +563,63 @@ KERNEL_FQ void m05510_mxx (KERN_ATTR_RULES ())
    * base
    */
 
-  const u32 a = pws[gid].i[ 0];
-  const u32 b = pws[gid].i[ 1];
-  const u32 c = pws[gid].i[ 2];
-  const u32 d = pws[gid].i[ 3];
+  const u32 pw_len = pws[gid].pw_len;
+
+  u32x w[64] = { 0 };
+
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  {
+    w[idx] = pws[gid].i[idx];
+  }
 
   /**
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
-  {
+  u32x w0l = w[0];
 
-    // if ((d >> 16) != s2) continue;
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  {
+    const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
+
+    const u32x w0 = w0l | w0r;
+
+    w[0] = w0;
+
+    // md4_ctx_vector_t ctx;
+
+    // md4_init_vector (&ctx);
+
+    // md4_update_vector_utf16le (&ctx, w, pw_len);
+
+    // md4_final_vector (&ctx);
+
+    const u32x a = w[0];
+    const u32x b = w[1];
+    const u32x c = w[2];
+    const u32x d = w[3];
+
+    if (MATCHES_NONE_VS ((d >> 16), s2)) continue;
 
     /**
      * DES1
      */
 
-    u32 key[2];
+    u32x key[2];
 
     transform_netntlmv1_key (a, b, key);
 
-    u32 Kc[16];
-    u32 Kd[16];
+    u32x Kc[16];
+    u32x Kd[16];
 
     _des_crypt_keysetup (key[0], key[1], Kc, Kd, s_skb);
 
-    u32 data[2];
+    u32x data[2];
 
     data[0] = s0;
     data[1] = s1;
 
-    u32 out1[2];
+    u32x out1[2];
 
     _des_crypt_encrypt (out1, data, Kc, Kd, s_SPtrans);
 
@@ -609,20 +631,20 @@ KERNEL_FQ void m05510_mxx (KERN_ATTR_RULES ())
 
     _des_crypt_keysetup (key[0], key[1], Kc, Kd, s_skb);
 
-    u32 out2[2];
+    u32x out2[2];
 
     _des_crypt_encrypt (out2, data, Kc, Kd, s_SPtrans);
 
-    const u32 r0 = out1[0];
-    const u32 r1 = out1[1];
-    const u32 r2 = out2[0];
-    const u32 r3 = out2[1];
+    const u32x r0 = out1[0];
+    const u32x r1 = out1[1];
+    const u32x r2 = out2[0];
+    const u32x r3 = out2[1];
 
-    COMPARE_M_SCALAR (r0, r1, r2, r3);
+    COMPARE_M_SIMD (r0, r1, r2, r3);
   }
 }
 
-KERNEL_FQ void m05510_sxx (KERN_ATTR_RULES ())
+KERNEL_FQ void m05510_sxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -697,39 +719,63 @@ KERNEL_FQ void m05510_sxx (KERN_ATTR_RULES ())
    * base
    */
 
-  const u32 a = pws[gid].i[ 0];
-  const u32 b = pws[gid].i[ 1];
-  const u32 c = pws[gid].i[ 2];
-  const u32 d = pws[gid].i[ 3];
+  const u32 pw_len = pws[gid].pw_len;
+
+  u32x w[64] = { 0 };
+
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  {
+    w[idx] = pws[gid].i[idx];
+  }
 
   /**
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
-  {
+  u32x w0l = w[0];
 
-    if ((d >> 16) != s2) continue;
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  {
+    const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
+
+    const u32x w0 = w0l | w0r;
+
+    w[0] = w0;
+
+    // md4_ctx_vector_t ctx;
+
+    // md4_init_vector (&ctx);
+
+    // md4_update_vector_utf16le (&ctx, w, pw_len);
+
+    // md4_final_vector (&ctx);
+
+    const u32x a = w[0];
+    const u32x b = w[1];
+    const u32x c = w[2];
+    const u32x d = w[3];
+
+    if (MATCHES_NONE_VS ((d >> 16), s2)) continue;
 
     /**
      * DES1
      */
 
-    u32 key[2];
+    u32x key[2];
 
     transform_netntlmv1_key (a, b, key);
 
-    u32 Kc[16];
-    u32 Kd[16];
+    u32x Kc[16];
+    u32x Kd[16];
 
     _des_crypt_keysetup (key[0], key[1], Kc, Kd, s_skb);
 
-    u32 data[2];
+    u32x data[2];
 
     data[0] = s0;
     data[1] = s1;
 
-    u32 out1[2];
+    u32x out1[2];
 
     _des_crypt_encrypt (out1, data, Kc, Kd, s_SPtrans);
 
@@ -737,21 +783,21 @@ KERNEL_FQ void m05510_sxx (KERN_ATTR_RULES ())
      * DES2
      */
 
-    /*
+    
     transform_netntlmv1_key (((b >> 24) | (c << 8)), ((c >> 24) | (d << 8)), key);
 
     _des_crypt_keysetup (key[0], key[1], Kc, Kd, s_skb);
 
-    u32 out2[2];
+    u32x out2[2];
 
     _des_crypt_encrypt (out2, data, Kc, Kd, s_SPtrans);
-    */
+    
 
-    const u32 r0 = out1[0];
-    const u32 r1 = out1[1];
-    const u32 r2 = search[2];
-    const u32 r3 = search[3];
+    const u32x r0 = out1[0];
+    const u32x r1 = out1[1];
+    const u32x r2 = out2[0];
+    const u32x r3 = out2[1];
 
-    COMPARE_S_SCALAR (r0, r1, r2, r3);
+    COMPARE_S_SIMD (r0, r1, r2, r3);
   }
 }
