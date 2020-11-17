@@ -1730,14 +1730,17 @@ DECLSPEC void point_get_coords (secp256k1_t *r, const u32 *x, const u32 *y)
   r->xy[95] = neg[7];
 }
 
-DECLSPEC void point_mul (u32 *r, const u32 *k, GLOBAL_AS const secp256k1_t *tmps)
+
+/*
+ * Convert the tweak/scalar k to w-NAF (window size is 4).
+ * @param out: naf a pointer to an u32 array with a size of 33.
+ * @param in: k a pointer to a tweak/scalar which should be converted.
+ * @return Returns the loop start index.
+ */
+DECLSPEC int convert_to_window_naf (u32 *naf, const u32 *k)
 {
-  /*
-   * Convert the tweak/scalar k to w-NAF (window size is 4)
-   */
-
+  int loop_start = 0;
   u32 n[9];
-
   n[0] =    0; // we need this extra slot sometimes for the subtraction to work
   n[1] = k[7];
   n[2] = k[6];
@@ -1747,10 +1750,6 @@ DECLSPEC void point_mul (u32 *r, const u32 *k, GLOBAL_AS const secp256k1_t *tmps
   n[6] = k[2];
   n[7] = k[1];
   n[8] = k[0];
-
-  u32 naf[32 + 1] = { 0 }; // we need one extra slot
-
-  int loop_start = 0;
 
   for (int i = 0; i <= 256; i++)
   {
@@ -1835,8 +1834,14 @@ DECLSPEC void point_mul (u32 *r, const u32 *k, GLOBAL_AS const secp256k1_t *tmps
     n[1] = n[1] >> 1 | n[0] << 31;
     n[0] = n[0] >> 1;
   }
+  return loop_start;
+}
 
-
+DECLSPEC void point_mul (u32 *r, const u32 *k, GLOBAL_AS const secp256k1_t *tmps)
+{
+  u32 naf[32 + 1] = { 0 }; // we need one extra slot
+  int loop_start = convert_to_window_naf(naf, k);
+  
   // first set:
 
   const u32 multiplier = (naf[loop_start >> 3] >> ((loop_start & 7) << 2)) & 0x0f; // or use u8 ?
