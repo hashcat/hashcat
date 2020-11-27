@@ -1933,7 +1933,7 @@ char *status_get_brain_link_send_bytes_sec_dev (const hashcat_ctx_t *hashcat_ctx
 
   char *display = (char *) hcmalloc (HCBUFSIZ_TINY);
 
- snprintf (display, HCBUFSIZ_TINY, "%.2f M", (double) (brain_link_send_bytes * 8) / 1024 / 1024);
+  snprintf (display, HCBUFSIZ_TINY, "%.2f M", (double) (brain_link_send_bytes * 8) / 1024 / 1024);
 
   return display;
 }

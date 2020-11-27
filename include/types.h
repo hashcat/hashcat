@@ -593,6 +593,7 @@ typedef enum user_options_defaults
   DEBUG_MODE               = 0,
   EXAMPLE_HASHES           = false,
   FORCE                    = false,
+  GUESS_HASH_MODE          = false,
   HWMON_DISABLE            = false,
   HWMON_TEMP_ABORT         = 90,
   HASH_MODE                = 0,
@@ -1933,6 +1934,7 @@ typedef struct user_options
   bool         limit_chgd;
 
   bool         advice_disable;
+  bool         guess_hash_mode;
   bool         benchmark;
   bool         benchmark_all;
   #ifdef WITH_BRAIN
@@ -2021,7 +2023,6 @@ typedef struct user_options
   u32          debug_mode;
   u32          hwmon_temp_abort;
   int          hash_mode;
-  int          guess_hash_mode;
   u32          hccapx_message_pair;
   u32          hook_threads;
   u32          increment_max;

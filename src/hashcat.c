@@ -1207,7 +1207,14 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
     rc_final = 1;
 
-    event_log_info (hashcat_ctx, "Starting guessing mode...\n");
+    event_log_info (hashcat_ctx, "Starting to guess the hash-type ...");
+
+    if (user_options->quiet == false)
+    {
+      event_log_info (hashcat_ctx, "For each hash-type guessed, the following fields will be printed: type, description and hash.");
+    }
+
+    event_log_info (hashcat_ctx, NULL);
 
     user_options->quiet = true;
 
@@ -1237,6 +1244,8 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
       hcfree (modulefile);
     }
+
+    event_log_info (hashcat_ctx, NULL);
 
     user_options->quiet = false;
 

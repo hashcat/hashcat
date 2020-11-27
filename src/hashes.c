@@ -841,6 +841,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
     if (hashconfig->esalt_size > 0)
     {
       esalts_buf = hccalloc (hashes_avail, hashconfig->esalt_size);
+
+      // a lot of calloc/malloc called globally, without check if works or not. why ?
+      // workaround for 22100/BitLocker, if calloc fail you got a Segmentation fault in the next for loop
+      // to reproduce comment the following line and run ./hashcat -m 22100 example0.hash
+      if (!esalts_buf) return -1;
     }
 
     if (hashconfig->hook_salt_size > 0)
@@ -977,11 +982,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
               {
                 if (user_options->machine_readable == false)
                 {
-                  event_log_info (hashcat_ctx, "(%d) %s : %s\n", hashconfig->hash_mode, hashconfig->hash_name, input_buf);
+                  event_log_info (hashcat_ctx, "%6d | %50s | %s", hashconfig->hash_mode, hashconfig->hash_name, input_buf);
                 }
                 else
                 {
-                  event_log_info (hashcat_ctx, "%s:%d:%s\n", hashconfig->hash_name, hashconfig->hash_mode, input_buf);
+                  event_log_info (hashcat_ctx, "%d:%s:%s", hashconfig->hash_mode, hashconfig->hash_name, input_buf);
                 }
               }
 
@@ -1005,11 +1010,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
               {
                 if (user_options->machine_readable == false)
                 {
-                  event_log_info (hashcat_ctx, "(%d) %s : %s\n", hashconfig->hash_mode, hashconfig->hash_name, input_buf);
+                  event_log_info (hashcat_ctx, "%6d | %50s | %s", hashconfig->hash_mode, hashconfig->hash_name, input_buf);
                 }
                 else
                 {
-                  event_log_info (hashcat_ctx, "%s:%d:%s\n", hashconfig->hash_name, hashconfig->hash_mode, input_buf);
+                  event_log_info (hashcat_ctx, "%d:%s:%s", hashconfig->hash_mode, hashconfig->hash_name, input_buf);
                 }
               }
 
@@ -1035,11 +1040,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
               {
                 if (user_options->machine_readable == false)
                 {
-                  event_log_info (hashcat_ctx, "(%d) %s : %s\n", hashconfig->hash_mode, hashconfig->hash_name, input_buf);
+                  event_log_info (hashcat_ctx, "%6d | %50s | %s", hashconfig->hash_mode, hashconfig->hash_name, input_buf);
                 }
                 else
                 {
-                  event_log_info (hashcat_ctx, "%s:%d:%s\n", hashconfig->hash_name, hashconfig->hash_mode, input_buf);
+                  event_log_info (hashcat_ctx, "%d:%s:%s", hashconfig->hash_mode, hashconfig->hash_name, input_buf);
                 }
               }
 
@@ -1066,11 +1071,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
             {
               if (user_options->machine_readable == false)
               {
-                event_log_info (hashcat_ctx, "(%d) %s : %s\n", hashconfig->hash_mode, hashconfig->hash_name, input_buf);
+                event_log_info (hashcat_ctx, "%6d | %50s | %s", hashconfig->hash_mode, hashconfig->hash_name, input_buf);
               }
               else
               {
-                event_log_info (hashcat_ctx, "%s:%d:%s\n", hashconfig->hash_name, hashconfig->hash_mode, input_buf);
+                event_log_info (hashcat_ctx, "%d:%s:%s", hashconfig->hash_mode, hashconfig->hash_name, input_buf);
               }
             }
 
@@ -1261,11 +1266,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
             {
               if (user_options->machine_readable == false)
               {
-                event_log_info (hashcat_ctx, "(%d) %s : %s\n", hashconfig->hash_mode, hashconfig->hash_name, line_buf);
+                event_log_info (hashcat_ctx, "%6d | %50s | %s", hashconfig->hash_mode, hashconfig->hash_name, line_buf);
               }
               else
               {
-                event_log_info (hashcat_ctx, "%s:%d:%s\n", hashconfig->hash_name, hashconfig->hash_mode, line_buf);
+                event_log_info (hashcat_ctx, "%d:%s:%s", hashconfig->hash_mode, hashconfig->hash_name, line_buf);
               }
             }
 
@@ -1302,11 +1307,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
             {
               if (user_options->machine_readable == false)
               {
-                event_log_info (hashcat_ctx, "(%d) %s : %s\n", hashconfig->hash_mode, hashconfig->hash_name, line_buf);
+                event_log_info (hashcat_ctx, "%6d | %50s | %s", hashconfig->hash_mode, hashconfig->hash_name, line_buf);
               }
               else
               {
-                event_log_info (hashcat_ctx, "%s:%d:%s\n", hashconfig->hash_name, hashconfig->hash_mode, line_buf);
+                event_log_info (hashcat_ctx, "%d:%s:%s", hashconfig->hash_mode, hashconfig->hash_name, line_buf);
               }
             }
 
@@ -1344,11 +1349,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           {
             if (user_options->machine_readable == false)
             {
-              event_log_info (hashcat_ctx, "(%d) %s : %s\n", hashconfig->hash_mode, hashconfig->hash_name, line_buf);
+              event_log_info (hashcat_ctx, "%6d | %50s | %s", hashconfig->hash_mode, hashconfig->hash_name, line_buf);
             }
             else
             {
-              event_log_info (hashcat_ctx, "%s:%d:%s\n", hashconfig->hash_name, hashconfig->hash_mode, line_buf);
+              event_log_info (hashcat_ctx, "%d:%s:%s", hashconfig->hash_mode, hashconfig->hash_name, line_buf);
             }
           }
 
@@ -1422,7 +1427,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           {
             if (hashes_parsed == 0)
             {
-	      event_log_warning (hashcat_ctx, "No hashes loaded.");
+              event_log_warning (hashcat_ctx, "No hashes loaded.");
             }
             else if (hashes_parsed == PARSER_HAVE_ERRNO)
             {
@@ -1447,11 +1452,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           {
             if (user_options->machine_readable == false)
             {
-              event_log_info (hashcat_ctx, "(%d) %s : %s\n", hashconfig->hash_mode, hashconfig->hash_name, input_buf);
+              event_log_info (hashcat_ctx, "%6d | %50s | %s", hashconfig->hash_mode, hashconfig->hash_name, input_buf);
             }
             else
             {
-              event_log_info (hashcat_ctx, "%s:%d:%s\n", hashconfig->hash_name, hashconfig->hash_mode, input_buf);
+              event_log_info (hashcat_ctx, "%d:%s:%s", hashconfig->hash_mode, hashconfig->hash_name, input_buf);
             }
           }
 

@@ -187,7 +187,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->encoding_to               = ENCODING_TO;
   user_options->example_hashes            = EXAMPLE_HASHES;
   user_options->force                     = FORCE;
-  user_options->guess_hash_mode           = false;
+  user_options->guess_hash_mode           = GUESS_HASH_MODE;
   user_options->hwmon_disable             = HWMON_DISABLE;
   user_options->hwmon_temp_abort          = HWMON_TEMP_ABORT;
   user_options->hash_mode                 = HASH_MODE;
