@@ -24,8 +24,8 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
-static const char *ST_PASS        = "HASHCAT";
-static const char *ST_HASH        = "$solarwindsv2$0$q83vASNFZ5q83vASNFZ5qw==$IcIQh9taIIeYQ3HJ4PUU+zOKGEYNxv8iIcquQv/Ll0YRtikrie+uOJ8Hu/tRK9XBT2RE6vGwhmgj7DSioQ7zqg==";
+static const char *ST_PASS        = "hashcat";
+static const char *ST_HASH        = "$solarwinds$1$3pHkk55NTYpAeV3EJjcAww==$N4Ii2PxXX/bTZZwslQLIKrp0wvfZ5aN9hpyiR896ozJMJTPO1Q7BK1Eht8Vhl4kXq/42Vn2zp3qYeAkRuqsuEw==";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -60,7 +60,7 @@ typedef struct solarwinds
 
 static const u32 ROUNDS_SOLARWINDS_ORION = 1000;
 
-static const char *SIGNATURE_SOLARWINDS_ORION = "$solarwindsv2$0$";
+static const char *SIGNATURE_SOLARWINDS_ORION_V2 = "$solarwinds$1$";
 
 bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
@@ -125,9 +125,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.token_cnt  = 3;
 
   token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_SOLARWINDS_ORION;
+  token.signatures_buf[0] = SIGNATURE_SOLARWINDS_ORION_V2;
 
-  token.len[0]     = 16;
+  token.len[0]     = 14;
   token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
@@ -225,7 +225,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   base64_encode (int_to_base64, (const u8 *) tmp, 64, (u8 *) hash_enc);
 
   // output
-  const int line_len = snprintf (line_buf, line_size, "%s%s$%s", SIGNATURE_SOLARWINDS_ORION, (const char *) solarwinds->salt_buf, hash_enc);
+  const int line_len = snprintf (line_buf, line_size, "%s%s$%s", SIGNATURE_SOLARWINDS_ORION_V2, (const char *) solarwinds->salt_buf, hash_enc);
 
   return line_len;
 }
