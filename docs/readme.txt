@@ -186,6 +186,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Radmin2
 - Samsung Android Password/PIN
 - bcrypt $2*$, Blowfish (Unix)
+- bcrypt(md5($pass)) / bcryptmd5
 - md5crypt, MD5 (Unix), Cisco-IOS $1$ (MD5)
 - descrypt, DES (Unix), Traditional DES
 - sha256crypt $5$, SHA256 (Unix)
