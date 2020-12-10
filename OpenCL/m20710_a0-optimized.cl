@@ -381,7 +381,7 @@ KERNEL_FQ void m20710_m04 (KERN_ATTR_RULES ())
     wf_t = salt_buf3[3];
 
     // sha256_update_64: pos 0
-
+/*
     if (salt_len == 64)
     {
       // sha256 transform
@@ -489,7 +489,7 @@ KERNEL_FQ void m20710_m04 (KERN_ATTR_RULES ())
       we_t = 0;
       wf_t = 0;
     }
-
+*/
     const int ctx_len = 64 + salt_len;
 
     const int pos = ctx_len & 63;
@@ -1087,7 +1087,7 @@ KERNEL_FQ void m20710_s04 (KERN_ATTR_RULES ())
     wf_t = salt_buf3[3];
 
     // sha256_update_64: pos 0
-
+/*
     if (salt_len == 64)
     {
       // sha256 transform
@@ -1195,7 +1195,7 @@ KERNEL_FQ void m20710_s04 (KERN_ATTR_RULES ())
       we_t = 0;
       wf_t = 0;
     }
-
+*/
     const int ctx_len = 64 + salt_len;
 
     const int pos = ctx_len & 63;

@@ -338,7 +338,7 @@ DECLSPEC void m20710m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR (), LOCAL_AS u
     wf_t = salt_buf3[3];
 
     // sha256_update_64: pos 0
-
+/*
     if (salt_len == 64)
     {
       // sha256 transform
@@ -446,7 +446,7 @@ DECLSPEC void m20710m (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR (), LOCAL_AS u
       we_t = 0;
       wf_t = 0;
     }
-
+*/
     const int ctx_len = 64 + salt_len;
 
     const int pos = ctx_len & 63;
@@ -995,7 +995,7 @@ DECLSPEC void m20710s (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR (), LOCAL_AS u
     wf_t = salt_buf3[3];
 
     // sha256_update_64: pos 0
-
+/*
     if (salt_len == 64)
     {
       // sha256 transform
@@ -1103,7 +1103,7 @@ DECLSPEC void m20710s (u32 *w, const u32 pw_len, KERN_ATTR_VECTOR (), LOCAL_AS u
       we_t = 0;
       wf_t = 0;
     }
-
+*/
     const int ctx_len = 64 + salt_len;
 
     const int pos = ctx_len & 63;
