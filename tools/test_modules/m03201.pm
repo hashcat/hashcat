@@ -26,7 +26,9 @@ sub module_generate_hash
     $cost = $iter;
   }
 
-  my $hash = bcrypt ($word, sprintf ('$2a$%s$%s$', $cost, en_base64 ($salt)));
+  my $md5_word = md5_hex ($word);
+
+  my $hash = bcrypt ($md5_word, sprintf ('$2a$%s$%s$', $cost, en_base64 ($salt)));
 
   return $hash;
 }
