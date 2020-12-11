@@ -422,28 +422,14 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m03201_init (KERN_ATTR_TMPS 
 
   if (gid >= gid_max) return;
 
-  u32 w[18];
-
-  w[ 0] = pws[gid].i[ 0];
-  w[ 1] = pws[gid].i[ 1];
-  w[ 2] = pws[gid].i[ 2];
-  w[ 3] = pws[gid].i[ 3];
-  w[ 4] = pws[gid].i[ 4];
-  w[ 5] = pws[gid].i[ 5];
-  w[ 6] = pws[gid].i[ 6];
-  w[ 7] = pws[gid].i[ 7];
-  w[ 8] = pws[gid].i[ 8];
-  w[ 9] = pws[gid].i[ 9];
-  w[10] = pws[gid].i[10];
-  w[11] = pws[gid].i[11];
-  w[12] = pws[gid].i[12];
-  w[13] = pws[gid].i[13];
-  w[14] = pws[gid].i[14];
-  w[15] = pws[gid].i[15];
-  w[16] = pws[gid].i[16];
-  w[17] = pws[gid].i[17];
-
   const u32 pw_len = pws[gid].pw_len;
+
+  u32 w[64] = { 0 };
+
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  {
+    w[idx] = pws[gid].i[idx];
+  }
 
   md5_ctx_t ctx0;
 
