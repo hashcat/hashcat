@@ -10,6 +10,7 @@ use warnings;
 
 use Crypt::Eksblowfish::Bcrypt qw (bcrypt en_base64);
 use MIME::Base64               qw (decode_base64);
+use Digest::MD5                qw (md5_hex);
 
 sub module_constraints { [[0, 72], [16, 16], [-1, -1], [-1, -1], [-1, -1]] }
 
