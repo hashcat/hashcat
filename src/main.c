@@ -473,7 +473,7 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
 
   if (hashconfig->opti_type)
   {
-    event_log_info (hashcat_ctx, "Applicable optimizers applied:");
+    event_log_info (hashcat_ctx, "Optimizers applied:");
 
     for (u32 i = 0; i < 32; i++)
     {
