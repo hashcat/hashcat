@@ -533,6 +533,9 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       if (hashes->digests_shown[hash_pos] == 1) continue;
 
+      const u32 salt_pos = cracked[i].salt_pos;
+      salt_t *salt_buf = &hashes->salts_buf[salt_pos];
+
       if ((hashconfig->opts_type & OPTS_TYPE_PT_NEVERCRACK) == 0)
       {
         hashes->digests_shown[hash_pos] = 1;
@@ -540,10 +543,6 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         hashes->digests_done++;
 
         cpt_cracked++;
-
-        const u32 salt_pos = cracked[i].salt_pos;
-
-        salt_t *salt_buf = &hashes->salts_buf[salt_pos];
 
         salt_buf->digests_done++;
 
@@ -553,7 +552,14 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
           hashes->salts_done++;
         }
+      }
 
+      if (hashes->salts_done == hashes->salts_cnt) mycracked (hashcat_ctx);
+
+      check_hash (hashcat_ctx, device_param, &cracked[i]);
+
+      if (hashconfig->opts_type & OPTS_TYPE_PT_NEVERCRACK)
+      {
         // we need to reset cracked state on the device
         // otherwise host thinks again and again the hash was cracked
         // and returns invalid password each time
@@ -574,10 +580,6 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
           if (CL_rc == -1) return -1;
         }
       }
-
-      if (hashes->salts_done == hashes->salts_cnt) mycracked (hashcat_ctx);
-
-      check_hash (hashcat_ctx, device_param, &cracked[i]);
     }
 
     hc_thread_mutex_unlock (status_ctx->mux_display);
