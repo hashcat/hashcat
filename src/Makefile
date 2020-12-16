@@ -198,6 +198,12 @@ endif
 
 ## because UNRAR
 ifeq ($(USE_SYSTEM_UNRAR),0)
+ifneq ($(UNAME),Darwin)
+CFLAGS_UNRAR            += -Wno-misleading-indentation
+CFLAGS_UNRAR            += -Wno-class-memaccess
+else
+CFLAGS_UNRAR            += -Wno-missing-braces
+endif
 CFLAGS_UNRAR            += -Wno-unused-variable
 CFLAGS_UNRAR            += -Wno-unused-parameter
 CFLAGS_UNRAR            += -Wno-unused-function
@@ -205,11 +211,9 @@ CFLAGS_UNRAR            += -Wno-sign-compare
 CFLAGS_UNRAR            += -Wno-dangling-else
 CFLAGS_UNRAR            += -Wno-switch
 CFLAGS_UNRAR            += -Wno-parentheses
-CFLAGS_UNRAR            += -Wno-misleading-indentation
 CFLAGS_UNRAR            += -Wno-implicit-fallthrough
 CFLAGS_UNRAR            += -Wno-extra
 CFLAGS_UNRAR            += -Wno-unknown-pragmas
-CFLAGS_UNRAR            += -Wno-class-memaccess
 endif
 
 ifeq ($(DEBUG),0)
