@@ -655,15 +655,20 @@ function attack_1()
     cnt=0
 
     min=1
+    max=8
 
     if   [ "${hash_type}" -eq 14000 ]; then
       min=0
+      max=5
     elif [ "${hash_type}" -eq 14100 ]; then
       min=0
+      max=5
     elif [ "${hash_type}" -eq 14900 ]; then
       min=0
+      max=5
     elif [ "${hash_type}" -eq 15400 ]; then
       min=0
+      max=5
     fi
 
     echo "> Testing hash type $hash_type with attack mode 1, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
@@ -688,7 +693,9 @@ function attack_1()
 
         line_nr=1
 
-        if [ "${i}" -gt 1 ]; then
+        if [ "$min" -eq 0 ]; then
+          line_nr=$i
+        elif [ "${i}" -gt 1 ]; then
           line_nr=$((i - 1))
         fi
 
@@ -777,6 +784,8 @@ function attack_1()
         status ${ret}
 
       fi
+
+      if [ $i -eq ${max} ]; then break; fi
 
       i=$((i + 1))
 
