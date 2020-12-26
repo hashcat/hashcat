@@ -5,6 +5,8 @@
 
 //#define NEW_SIMD_CODE
 
+#define SNMPV3_OPT1
+
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
@@ -97,6 +99,35 @@ KERNEL_FQ void m25200_init (KERN_ATTR_TMPS_ESALT (hmac_sha1_tmp_t, snmpv3_t))
 
   u8 buf[72] = { 0 };
 
+  #ifdef SNMPV3_OPT1
+
+  buf[ 0] = as_uchar4 (h[0]).x;
+  buf[ 1] = as_uchar4 (h[0]).y;
+  buf[ 2] = as_uchar4 (h[0]).z;
+  buf[ 3] = as_uchar4 (h[0]).w;
+
+  buf[ 4] = as_uchar4 (h[1]).x;
+  buf[ 5] = as_uchar4 (h[1]).y;
+  buf[ 6] = as_uchar4 (h[1]).z;
+  buf[ 7] = as_uchar4 (h[1]).w;
+
+  buf[ 8] = as_uchar4 (h[2]).x;
+  buf[ 9] = as_uchar4 (h[2]).y;
+  buf[10] = as_uchar4 (h[2]).z;
+  buf[11] = as_uchar4 (h[2]).w;
+
+  buf[12] = as_uchar4 (h[3]).x;
+  buf[13] = as_uchar4 (h[3]).y;
+  buf[14] = as_uchar4 (h[3]).z;
+  buf[15] = as_uchar4 (h[3]).w;
+
+  buf[16] = as_uchar4 (h[4]).x;
+  buf[17] = as_uchar4 (h[4]).y;
+  buf[18] = as_uchar4 (h[4]).z;
+  buf[19] = as_uchar4 (h[4]).w;
+
+  #else // ! SNMPV3_OPT1
+
   buf[ 0] =  h[0] & 0xff;
   buf[ 1] = (h[0] >> 8) & 0xff;
   buf[ 2] = (h[0] >> 16) & 0xff;
@@ -121,6 +152,8 @@ KERNEL_FQ void m25200_init (KERN_ATTR_TMPS_ESALT (hmac_sha1_tmp_t, snmpv3_t))
   buf[17] = (h[4] >> 8) & 0xff;
   buf[18] = (h[4] >> 16) & 0xff;
   buf[19] = (h[4] >> 24) & 0xff;
+
+  #endif // SNMPV3_OPT1
 
   u32 j;
   u32 i = 20;
@@ -156,27 +189,36 @@ KERNEL_FQ void m25200_loop (KERN_ATTR_TMPS_ESALT (hmac_sha1_tmp_t, snmpv3_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if ((gid * VECT_SIZE) >= gid_max) return;
 
-  u32 key[16] = { 0 };
+  u32x key[16] = { 0 };
 
-  key[ 0] = tmps[gid].dgst[0];
-  key[ 1] = tmps[gid].dgst[1];
-  key[ 2] = tmps[gid].dgst[2];
-  key[ 3] = tmps[gid].dgst[3];
-  key[ 4] = tmps[gid].dgst[4];
+  key[0] = packv (tmps, dgst, gid, 0);
+  key[1] = packv (tmps, dgst, gid, 1);
+  key[2] = packv (tmps, dgst, gid, 2);
+  key[3] = packv (tmps, dgst, gid, 3);
+  key[4] = packv (tmps, dgst, gid, 4);
 
-  sha1_hmac_ctx_t ctx;
+  u32x s[375] = { 0 };
 
-  sha1_hmac_init (&ctx, key, 20);
+  const u32 salt_len = esalt_bufs[DIGESTS_OFFSET].salt_len;
 
-  sha1_hmac_update_global (&ctx, esalt_bufs[DIGESTS_OFFSET].salt_buf, esalt_bufs[DIGESTS_OFFSET].salt_len);
+  for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
+  {
+    s[idx] = esalt_bufs[DIGESTS_OFFSET].salt_buf[idx];
+  }
 
-  sha1_hmac_final (&ctx);
+  sha1_hmac_ctx_vector_t ctx;
 
-  tmps[gid].out[0] = ctx.opad.h[0];
-  tmps[gid].out[1] = ctx.opad.h[1];
-  tmps[gid].out[2] = ctx.opad.h[2];
+  sha1_hmac_init_vector (&ctx, key, 20);
+
+  sha1_hmac_update_vector (&ctx, s, salt_len);
+
+  sha1_hmac_final_vector (&ctx);
+
+  unpackv (tmps, out, gid, 0, ctx.opad.h[DGST_R0]);
+  unpackv (tmps, out, gid, 1, ctx.opad.h[DGST_R1]);
+  unpackv (tmps, out, gid, 2, ctx.opad.h[DGST_R2]);
 }
 
 KERNEL_FQ void m25200_comp (KERN_ATTR_TMPS_ESALT (hmac_sha1_tmp_t, snmpv3_t))
