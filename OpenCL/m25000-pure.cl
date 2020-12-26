@@ -5,6 +5,8 @@
 
 //#define NEW_SIMD_CODE
 
+#define SNMPV3_OPT1
+
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
@@ -111,6 +113,55 @@ KERNEL_FQ void m25000_init (KERN_ATTR_TMPS_ESALT (hmac_md5sha1_tmp_t, snmpv3_mul
   u8  md5_buf[72] = { 0 };
   u8 sha1_buf[72] = { 0 };
 
+  #ifdef SNMPV3_OPT1
+
+  sha1_buf[ 0] = as_uchar4 (h_sha1[0]).x;
+  sha1_buf[ 1] = as_uchar4 (h_sha1[0]).y;
+  sha1_buf[ 2] = as_uchar4 (h_sha1[0]).z;
+  sha1_buf[ 3] = as_uchar4 (h_sha1[0]).w;
+
+   md5_buf[ 3] = as_uchar4 (h_md5[ 0]).x;
+   md5_buf[ 2] = as_uchar4 (h_md5[ 0]).y;
+   md5_buf[ 1] = as_uchar4 (h_md5[ 0]).z;
+   md5_buf[ 0] = as_uchar4 (h_md5[ 0]).w;
+
+  sha1_buf[ 4] = as_uchar4 (h_sha1[1]).x;
+  sha1_buf[ 5] = as_uchar4 (h_sha1[1]).y;
+  sha1_buf[ 6] = as_uchar4 (h_sha1[1]).z;
+  sha1_buf[ 7] = as_uchar4 (h_sha1[1]).w;
+
+   md5_buf[ 7] = as_uchar4 (h_md5[ 1]).x;
+   md5_buf[ 6] = as_uchar4 (h_md5[ 1]).y;
+   md5_buf[ 5] = as_uchar4 (h_md5[ 1]).z;
+   md5_buf[ 4] = as_uchar4 (h_md5[ 1]).w;
+
+  sha1_buf[ 8] = as_uchar4 (h_sha1[2]).x;
+  sha1_buf[ 9] = as_uchar4 (h_sha1[2]).y;
+  sha1_buf[10] = as_uchar4 (h_sha1[2]).z;
+  sha1_buf[11] = as_uchar4 (h_sha1[2]).w;
+
+   md5_buf[11] = as_uchar4 (h_md5[ 2]).x;
+   md5_buf[10] = as_uchar4 (h_md5[ 2]).y;
+   md5_buf[ 9] = as_uchar4 (h_md5[ 2]).z;
+   md5_buf[ 8] = as_uchar4 (h_md5[ 2]).w;
+
+  sha1_buf[12] = as_uchar4 (h_sha1[3]).x;
+  sha1_buf[13] = as_uchar4 (h_sha1[3]).y;
+  sha1_buf[14] = as_uchar4 (h_sha1[3]).z;
+  sha1_buf[15] = as_uchar4 (h_sha1[3]).w;
+
+   md5_buf[15] = as_uchar4 (h_md5[ 3]).x;
+   md5_buf[14] = as_uchar4 (h_md5[ 3]).y;
+   md5_buf[13] = as_uchar4 (h_md5[ 3]).z;
+   md5_buf[12] = as_uchar4 (h_md5[ 3]).w;
+
+  sha1_buf[16] = as_uchar4 (h_sha1[4]).x;
+  sha1_buf[17] = as_uchar4 (h_sha1[4]).y;
+  sha1_buf[18] = as_uchar4 (h_sha1[4]).z;
+  sha1_buf[19] = as_uchar4 (h_sha1[4]).w;
+
+  #else // ! SNMPV3_OPT1
+
   sha1_buf[ 0] =  h_sha1[0] & 0xff;
   sha1_buf[ 1] = (h_sha1[0] >> 8) & 0xff;
   sha1_buf[ 2] = (h_sha1[0] >> 16) & 0xff;
@@ -156,6 +207,8 @@ KERNEL_FQ void m25000_init (KERN_ATTR_TMPS_ESALT (hmac_md5sha1_tmp_t, snmpv3_mul
   sha1_buf[18] = (h_sha1[4] >> 16) & 0xff;
   sha1_buf[19] = (h_sha1[4] >> 24) & 0xff;
 
+  #endif // SNMPV3_OPT1
+
   u32 j;
   u32 i = 20, o = 16;
 
@@ -185,16 +238,16 @@ KERNEL_FQ void m25000_init (KERN_ATTR_TMPS_ESALT (hmac_md5sha1_tmp_t, snmpv3_mul
    md5_final (& md5_ctx);
   sha1_final (&sha1_ctx);
 
-  tmps[gid].dgst_sha1[0] = sha1_ctx.h[0];
-  tmps[gid].dgst_sha1[1] = sha1_ctx.h[1];
-  tmps[gid].dgst_sha1[2] = sha1_ctx.h[2];
-  tmps[gid].dgst_sha1[3] = sha1_ctx.h[3];
-  tmps[gid].dgst_sha1[4] = sha1_ctx.h[4];
+  unpackv (tmps, dgst_sha1, gid, 0, sha1_ctx.h[0]);
+  unpackv (tmps, dgst_sha1, gid, 1, sha1_ctx.h[1]);
+  unpackv (tmps, dgst_sha1, gid, 2, sha1_ctx.h[2]);
+  unpackv (tmps, dgst_sha1, gid, 3, sha1_ctx.h[3]);
+  unpackv (tmps, dgst_sha1, gid, 4, sha1_ctx.h[4]);
 
-  tmps[gid].dgst_md5[ 0] = md5_ctx.h[ 0];
-  tmps[gid].dgst_md5[ 1] = md5_ctx.h[ 1];
-  tmps[gid].dgst_md5[ 2] = md5_ctx.h[ 2];
-  tmps[gid].dgst_md5[ 3] = md5_ctx.h[ 3];
+  unpackv (tmps, dgst_md5,  gid, 0, md5_ctx.h[0]);
+  unpackv (tmps, dgst_md5,  gid, 1, md5_ctx.h[1]);
+  unpackv (tmps, dgst_md5,  gid, 2, md5_ctx.h[2]);
+  unpackv (tmps, dgst_md5,  gid, 3, md5_ctx.h[3]);
 }
 
 KERNEL_FQ void m25000_loop (KERN_ATTR_TMPS_ESALT (hmac_md5sha1_tmp_t, snmpv3_multi_t))
@@ -205,41 +258,52 @@ KERNEL_FQ void m25000_loop (KERN_ATTR_TMPS_ESALT (hmac_md5sha1_tmp_t, snmpv3_mul
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if ((gid * VECT_SIZE) >= gid_max) return;
 
-  u32  md5_key[16] = { 0 };
-  u32 sha1_key[16] = { 0 };
+  u32x  md5_key[16] = { 0 };
+  u32x sha1_key[16] = { 0 };
 
-   md5_key[0] = tmps[gid].dgst_md5[ 0];
-   md5_key[1] = tmps[gid].dgst_md5[ 1];
-   md5_key[2] = tmps[gid].dgst_md5[ 2];
-   md5_key[3] = tmps[gid].dgst_md5[ 3];
+   md5_key[0] = packv (tmps, dgst_md5,  gid, 0);
+   md5_key[1] = packv (tmps, dgst_md5,  gid, 1);
+   md5_key[2] = packv (tmps, dgst_md5,  gid, 2);
+   md5_key[3] = packv (tmps, dgst_md5,  gid, 3);
 
-  sha1_key[0] = tmps[gid].dgst_sha1[0];
-  sha1_key[1] = tmps[gid].dgst_sha1[1];
-  sha1_key[2] = tmps[gid].dgst_sha1[2];
-  sha1_key[3] = tmps[gid].dgst_sha1[3];
-  sha1_key[4] = tmps[gid].dgst_sha1[4];
+  sha1_key[0] = packv (tmps, dgst_sha1, gid, 0);
+  sha1_key[1] = packv (tmps, dgst_sha1, gid, 1);
+  sha1_key[2] = packv (tmps, dgst_sha1, gid, 2);
+  sha1_key[3] = packv (tmps, dgst_sha1, gid, 3);
+  sha1_key[4] = packv (tmps, dgst_sha1, gid, 4);
 
-   md5_hmac_ctx_t  md5_ctx;
-  sha1_hmac_ctx_t sha1_ctx;
+  u32x  s_md5[375] = { 0 };
+  u32x s_sha1[375] = { 0 };
 
-   md5_hmac_init (& md5_ctx,  md5_key, 16);
-  sha1_hmac_init (&sha1_ctx, sha1_key, 20);
+  const u32 salt_len = esalt_bufs[DIGESTS_OFFSET].salt_len;
 
-   md5_hmac_update_global (& md5_ctx, esalt_bufs[DIGESTS_OFFSET].salt_buf_md5,  esalt_bufs[DIGESTS_OFFSET].salt_len);
-  sha1_hmac_update_global (&sha1_ctx, esalt_bufs[DIGESTS_OFFSET].salt_buf_sha1, esalt_bufs[DIGESTS_OFFSET].salt_len);
+  for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
+  {
+     s_md5[idx] = esalt_bufs[DIGESTS_OFFSET].salt_buf_md5[idx];
+    s_sha1[idx] = esalt_bufs[DIGESTS_OFFSET].salt_buf_sha1[idx];
+  }
 
-   md5_hmac_final (& md5_ctx);
-  sha1_hmac_final (&sha1_ctx);
+   md5_hmac_ctx_vector_t md5_ctx;
+  sha1_hmac_ctx_vector_t sha1_ctx;
 
-  tmps[gid].out_md5[ 0] =  md5_ctx.opad.h[DGST_R0];
-  tmps[gid].out_md5[ 1] =  md5_ctx.opad.h[DGST_R1];
-  tmps[gid].out_md5[ 2] =  md5_ctx.opad.h[DGST_R2];
+   md5_hmac_init_vector (&md5_ctx,  md5_key,  16);
+  sha1_hmac_init_vector (&sha1_ctx, sha1_key, 20);
 
-  tmps[gid].out_sha1[0] = sha1_ctx.opad.h[DGST_R0];
-  tmps[gid].out_sha1[1] = sha1_ctx.opad.h[DGST_R1];
-  tmps[gid].out_sha1[2] = sha1_ctx.opad.h[DGST_R2];
+   md5_hmac_update_vector (&md5_ctx,  s_md5,  salt_len);
+  sha1_hmac_update_vector (&sha1_ctx, s_sha1, salt_len);
+
+   md5_hmac_final_vector (&md5_ctx);
+  sha1_hmac_final_vector (&sha1_ctx);
+
+  unpackv (tmps, out_md5,  gid, 0, md5_ctx.opad.h[DGST_R0]);
+  unpackv (tmps, out_md5,  gid, 1, md5_ctx.opad.h[DGST_R1]);
+  unpackv (tmps, out_md5,  gid, 2, md5_ctx.opad.h[DGST_R2]);
+
+  unpackv (tmps, out_sha1, gid, 0, sha1_ctx.opad.h[DGST_R0]);
+  unpackv (tmps, out_sha1, gid, 1, sha1_ctx.opad.h[DGST_R1]);
+  unpackv (tmps, out_sha1, gid, 2, sha1_ctx.opad.h[DGST_R2]);
 }
 
 KERNEL_FQ void m25000_comp (KERN_ATTR_TMPS_ESALT (hmac_md5sha1_tmp_t, snmpv3_multi_t))
