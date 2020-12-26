@@ -5,6 +5,8 @@
 
 //#define NEW_SIMD_CODE
 
+#define SNMPV3_OPT1
+
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
@@ -96,6 +98,30 @@ KERNEL_FQ void m25100_init (KERN_ATTR_TMPS_ESALT (hmac_md5_tmp_t, snmpv3_t))
 
   u8 buf[72] = { 0 };
 
+  #ifdef SNMPV3_OPT1
+
+  buf[ 0] = as_uchar4 (h[0]).w;
+  buf[ 1] = as_uchar4 (h[0]).z;
+  buf[ 2] = as_uchar4 (h[0]).y;
+  buf[ 3] = as_uchar4 (h[0]).x;
+
+  buf[ 4] = as_uchar4 (h[1]).w;
+  buf[ 5] = as_uchar4 (h[1]).z;
+  buf[ 6] = as_uchar4 (h[1]).y;
+  buf[ 7] = as_uchar4 (h[1]).x;
+
+  buf[ 8] = as_uchar4 (h[2]).w;
+  buf[ 9] = as_uchar4 (h[2]).z;
+  buf[10] = as_uchar4 (h[2]).y;
+  buf[11] = as_uchar4 (h[2]).x;
+
+  buf[12] = as_uchar4 (h[3]).w;
+  buf[13] = as_uchar4 (h[3]).z;
+  buf[14] = as_uchar4 (h[3]).y;
+  buf[15] = as_uchar4 (h[3]).x;
+
+  #else // ! SNMPV3_OPT1
+
   buf[ 0] = (h[0] >> 24) & 0xff;
   buf[ 1] = (h[0] >> 16) & 0xff;
   buf[ 2] = (h[0] >> 8) & 0xff;
@@ -115,6 +141,8 @@ KERNEL_FQ void m25100_init (KERN_ATTR_TMPS_ESALT (hmac_md5_tmp_t, snmpv3_t))
   buf[13] = (h[3] >> 16) & 0xff;
   buf[14] = (h[3] >> 8) & 0xff;
   buf[15] =  h[3] & 0xff;
+
+  #endif // SNMPV3_OPT1
 
   u32 j;
   u32 i = 16;
@@ -149,26 +177,35 @@ KERNEL_FQ void m25100_loop (KERN_ATTR_TMPS_ESALT (hmac_md5_tmp_t, snmpv3_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if ((gid * VECT_SIZE) >= gid_max) return;
 
-  u32 key[16] = { 0 };
+  u32x key[16] = { 0 };
 
-  key[ 0] = tmps[gid].dgst[0];
-  key[ 1] = tmps[gid].dgst[1];
-  key[ 2] = tmps[gid].dgst[2];
-  key[ 3] = tmps[gid].dgst[3];
+  key[0] = packv (tmps, dgst, gid, 0);
+  key[1] = packv (tmps, dgst, gid, 1);
+  key[2] = packv (tmps, dgst, gid, 2);
+  key[3] = packv (tmps, dgst, gid, 3);
 
-  md5_hmac_ctx_t ctx;
+  u32x s[375] = { 0 };
 
-  md5_hmac_init (&ctx, key, 16);
+  const u32 salt_len = esalt_bufs[DIGESTS_OFFSET].salt_len;
 
-  md5_hmac_update_global (&ctx, esalt_bufs[DIGESTS_OFFSET].salt_buf, esalt_bufs[DIGESTS_OFFSET].salt_len);
+  for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
+  {
+    s[idx] = esalt_bufs[DIGESTS_OFFSET].salt_buf[idx];
+  }
 
-  md5_hmac_final (&ctx);
+  md5_hmac_ctx_vector_t ctx;
 
-  tmps[gid].out[0] = ctx.opad.h[DGST_R0];
-  tmps[gid].out[1] = ctx.opad.h[DGST_R1];
-  tmps[gid].out[2] = ctx.opad.h[DGST_R2];
+  md5_hmac_init_vector (&ctx, key, 16);
+
+  md5_hmac_update_vector (&ctx, s, salt_len);
+
+  md5_hmac_final_vector (&ctx);
+
+  unpackv (tmps, out, gid, 0, ctx.opad.h[DGST_R0]);
+  unpackv (tmps, out, gid, 1, ctx.opad.h[DGST_R1]);
+  unpackv (tmps, out, gid, 2, ctx.opad.h[DGST_R2]);
 }
 
 KERNEL_FQ void m25100_comp (KERN_ATTR_TMPS_ESALT (hmac_md5_tmp_t, snmpv3_t))
