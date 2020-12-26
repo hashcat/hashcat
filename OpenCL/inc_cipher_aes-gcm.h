@@ -6,7 +6,10 @@
 #ifndef _INC_CIPHER_AES_GCM_H
 #define _INC_CIPHER_AES_GCM_H
 
+#ifndef AES_GCM_ALT1
 DECLSPEC void AES_GCM_shift_right_block(uchar *block);
+#endif
+
 DECLSPEC void AES_GCM_inc32 (u32 *block);
 DECLSPEC void AES_GCM_xor_block (u32 *dst, const u32 *src);
 DECLSPEC void AES_GCM_gf_mult (const uchar16 *x, const uchar16 *y, uchar16 *z);

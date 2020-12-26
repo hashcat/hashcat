@@ -4,6 +4,7 @@
  */
 
 #define NEW_SIMD_CODE
+#define AES_GCM_ALT1
 
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
@@ -281,14 +282,14 @@ KERNEL_FQ void m27000_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
 
   if (gid >= gid_max) return;
 
-  const u64 lid = get_local_id (0);
-  const u64 lsz = get_local_size (0);
-
   /**
    * aes shared
    */
 
   #ifdef REAL_SHM
+
+  const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
 
   LOCAL_VK u32 s_te0[256];
   LOCAL_VK u32 s_te1[256];
@@ -332,9 +333,8 @@ KERNEL_FQ void m27000_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
   ukey[6] = tmps[gid].out[6];
   ukey[7] = tmps[gid].out[7];
 
-  u32 key_len = 32 * 8;
-
   u32 key[60] = { 0 };
+
   u32 subKey[4] = { 0 };
 
   AES256_set_encrypt_key (key, ukey, s_te0, s_te1, s_te2, s_te3);
@@ -349,8 +349,6 @@ KERNEL_FQ void m27000_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
     esalt_bufs[DIGESTS_OFFSET].iv_buf[2],
     esalt_bufs[DIGESTS_OFFSET].iv_buf[3]
   };
-
-  const u32 iv_len = esalt_bufs[DIGESTS_OFFSET].iv_len;
 
   u32 J0[4] = {
     iv[0],
@@ -389,7 +387,7 @@ KERNEL_FQ void m27000_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
   S[2] ^= enc[2];
   S[3] ^= enc[3];
 
-  AES_GCM_gf_mult (S, subKey, t);
+  AES_GCM_gf_mult ((uchar16 *) S, (uchar16 *) subKey, (uchar16 *) t);
 
   t[0] = hc_swap32_S (t[0]);
   t[1] = hc_swap32_S (t[1]);
@@ -401,7 +399,7 @@ KERNEL_FQ void m27000_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
   S[2] = t[2] ^ enc[6];
   S[3] = t[3] ^ enc[7];
 
-  AES_GCM_gf_mult (S, subKey, t);
+  AES_GCM_gf_mult ((uchar16 *) S, (uchar16 *) subKey, (uchar16 *) t);
 
   t[0] = hc_swap32_S (t[0]);
   t[1] = hc_swap32_S (t[1]);
@@ -413,7 +411,7 @@ KERNEL_FQ void m27000_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
   S[2] = t[2] ^ enc[10];
   S[3] = t[3] ^ enc[11];
 
-  AES_GCM_gf_mult (S, subKey, t);
+  AES_GCM_gf_mult ((uchar16 *) S, (uchar16 *) subKey, (uchar16 *) t);
 
   t[0] = hc_swap32_S (t[0]);
   t[1] = hc_swap32_S (t[1]);
@@ -435,7 +433,7 @@ KERNEL_FQ void m27000_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
   S[2] ^= t[2];
   S[3] ^= t[3];
 
-  AES_GCM_gf_mult (S, subKey, t);
+  AES_GCM_gf_mult ((uchar16 *) S, (uchar16 *) subKey, (uchar16 *) t);
 
   S[0] = hc_swap32_S (t[0]);
   S[1] = hc_swap32_S (t[1]);
@@ -452,7 +450,7 @@ KERNEL_FQ void m27000_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
   S[2] ^= len_buf[2];
   S[3] ^= len_buf[3];
 
-  AES_GCM_gf_mult (S, subKey, t);
+  AES_GCM_gf_mult ((uchar16 *) S, (uchar16 *) subKey, (uchar16 *) t);
 
   S[0] = hc_swap32_S (t[0]);
   S[1] = hc_swap32_S (t[1]);

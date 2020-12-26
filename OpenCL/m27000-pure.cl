@@ -4,6 +4,7 @@
  */
 
 #define NEW_SIMD_CODE
+#define AES_GCM_ALT1
 
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
@@ -281,14 +282,14 @@ KERNEL_FQ void m27000_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
 
   if (gid >= gid_max) return;
 
-  const u64 lid = get_local_id (0);
-  const u64 lsz = get_local_size (0);
-
   /**
    * aes shared
    */
 
   #ifdef REAL_SHM
+
+  const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
 
   LOCAL_VK u32 s_te0[256];
   LOCAL_VK u32 s_te1[256];
@@ -386,7 +387,7 @@ KERNEL_FQ void m27000_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
   u32 S[4] = { 0 };
 
   u32 S_len   = 16;
-  u32 aad_buf = 0;
+  u32 aad_buf[4] = { 0 };
   u32 aad_len = 0;
 
   AES_GCM_GHASH (subKey, aad_buf, aad_len, enc, enc_len, S);
