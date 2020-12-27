@@ -2825,6 +2825,8 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
+  hcfree (modulefile);
+
   const bool quiet_save = user_options->quiet;
 
   user_options->quiet = true;
@@ -2835,15 +2837,12 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
   if (rc == -1) return -1;
 
-  hashconfig_destroy (hashcat_ctx);
+  // the following check is done by hashconfig_init(), using the correct parameters. We can remove it.
 
-  hcfree (modulefile);
-
-  // same check but for an backend kernel
-
+  /*
   char *kernelfile = (char *) hcmalloc (HCBUFSIZ_TINY);
 
-  generate_source_kernel_filename (false, ATTACK_EXEC_OUTSIDE_KERNEL, ATTACK_KERN_STRAIGHT, 400, 0, folder_config->shared_dir, kernelfile);
+  generate_source_kernel_filename (false, ATTACK_EXEC_OUTSIDE_KERNEL, ATTACK_KERN_STRAIGHT, hashcat_ctx->hashconfig->kern_type, hashcat_ctx->hashconfig->opti_type, folder_config->shared_dir, kernelfile);
 
   if (hc_path_read (kernelfile) == false)
   {
@@ -2853,10 +2852,17 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     event_log_warning (hashcat_ctx, "For example, using \"7z e\" instead of using \"7z x\".");
     event_log_warning (hashcat_ctx, NULL);
 
+    hashconfig_destroy (hashcat_ctx);
+
+    hcfree (kernelfile);
+
     return -1;
   }
 
   hcfree (kernelfile);
+  */
+
+  hashconfig_destroy (hashcat_ctx);
 
   // loopback - can't check at this point
 
