@@ -2921,19 +2921,25 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     NULL
   };
 
+  char *temp_filename = (char *) hcmalloc (HCBUFSIZ_LARGE);
+
   for (int i = 0; files_names[i] != NULL; i++)
   {
-    char *temp_filename = NULL;
+    memset (temp_filename, 0, HCBUFSIZ_LARGE);
 
-    hc_asprintf (&temp_filename, "%s/%s", folder_config->cpath_real, files_names[i]);
+    snprintf (temp_filename, HCBUFSIZ_LARGE - 1, "%s/%s", folder_config->cpath_real, files_names[i]);
 
     if (hc_path_read (temp_filename) == false)
     {
       event_log_error (hashcat_ctx, "%s: %s", temp_filename, strerror (errno));
 
+      hcfree (temp_filename);
+
       return -1;
     }
   }
+
+  hcfree (temp_filename);
 
   // return back to the folder we came from initially (workaround)
 
