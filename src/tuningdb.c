@@ -55,7 +55,6 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
   tuning_db->enabled = false;
 
   if (user_options->hash_info      == true) return 0;
-  if (user_options->example_hashes == true) return 0;
   if (user_options->keyspace       == true) return 0;
   if (user_options->left           == true) return 0;
   if (user_options->backend_info   == true) return 0;

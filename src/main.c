@@ -185,7 +185,6 @@ static void main_outerloop_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MA
   status_ctx->shutdown_outer = false;
 
   if (user_options->hash_info      == true) return;
-  if (user_options->example_hashes == true) return;
   if (user_options->keyspace       == true) return;
   if (user_options->stdout_flag    == true) return;
   if (user_options->backend_info   == true) return;
@@ -262,7 +261,6 @@ static void main_cracker_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   if (user_options->hash_info       == true) return;
-  if (user_options->example_hashes  == true) return;
   if (user_options->keyspace        == true) return;
   if (user_options->backend_info    == true) return;
   if (user_options->stdout_flag     == true) return;
@@ -1165,12 +1163,6 @@ int main (int argc, char **argv)
     else if (user_options->hash_info == true)
     {
       hash_info (hashcat_ctx);
-
-      rc_final = 0;
-    }
-    else if (user_options->example_hashes == true)
-    {
-      example_hashes (hashcat_ctx);
 
       rc_final = 0;
     }

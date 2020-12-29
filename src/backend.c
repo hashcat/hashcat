@@ -4957,7 +4957,6 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
   backend_ctx->enabled = false;
 
   if (user_options->hash_info      == true) return 0;
-  if (user_options->example_hashes == true) return 0;
   if (user_options->keyspace       == true) return 0;
   if (user_options->left           == true) return 0;
   if (user_options->show           == true) return 0;
