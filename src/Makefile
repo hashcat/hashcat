@@ -4,7 +4,7 @@
 ##
 
 SHARED                  ?= 0
-DEBUG                   := 0
+DEBUG                   := 1
 PRODUCTION              := 0
 PRODUCTION_VERSION      := v6.1.1
 ENABLE_CUBIN            ?= 1

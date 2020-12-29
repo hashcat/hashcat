@@ -595,6 +595,7 @@ typedef enum user_options_defaults
   FORCE                    = false,
   HWMON_DISABLE            = false,
   HWMON_TEMP_ABORT         = 90,
+  HASH_INFO                = false,
   HASH_MODE                = 0,
   HCCAPX_MESSAGE_PAIR      = 0,
   HEX_CHARSET              = false,
@@ -700,6 +701,7 @@ typedef enum user_options_map
   IDX_FORCE                     = 0xff15,
   IDX_HWMON_DISABLE             = 0xff16,
   IDX_HWMON_TEMP_ABORT          = 0xff17,
+  IDX_HASH_INFO                 = 0xff4d, // must be changed before merging
   IDX_HASH_MODE                 = 'm',
   IDX_HCCAPX_MESSAGE_PAIR       = 0xff18,
   IDX_HELP                      = 'h',
@@ -1941,6 +1943,7 @@ typedef struct user_options
   bool         example_hashes;
   bool         force;
   bool         hwmon_disable;
+  bool         hash_info;
   bool         hex_charset;
   bool         hex_salt;
   bool         hex_wordlist;

@@ -901,6 +901,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
     hashes_cnt = 1;
   }
+  else if (user_options->hash_info == true)
+  {
+  }
   else if (user_options->example_hashes == true)
   {
   }

@@ -16,6 +16,12 @@
 - Added hash-mode: sha1(sha1($pass).$salt)
 
 ##
+## Features
+##
+
+- Added option --hash-info to print generic information on hash types supported
+
+##
 ## Bugs
 ##
 

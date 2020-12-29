@@ -537,6 +537,129 @@ void compress_terminal_line_length (char *out_buf, const size_t keep_from_beginn
   *ptr1 = 0;
 }
 
+void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_t *user_options)
+{
+  if (hashconfig_init (hashcat_ctx) == 0)
+  {
+    hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+
+    event_log_info (hashcat_ctx, "Hash mode #%u", hashconfig->hash_mode);
+    event_log_info (hashcat_ctx, "  Name................: %s", hashconfig->hash_name);
+    event_log_info (hashcat_ctx, "  Category............: %s", strhashcategory (hashconfig->hash_category));
+    event_log_info (hashcat_ctx, "  Password.Len.Min....: %d", hashconfig->pw_min);
+    event_log_info (hashcat_ctx, "  Password.Len.Max....: %d", hashconfig->pw_max);
+
+    if (hashconfig->is_salted == true)
+    {
+      event_log_info (hashcat_ctx, "  Salt.Len.Min........: %d", hashconfig->salt_min);
+      event_log_info (hashcat_ctx, "  Salt.Len.Max........: %d", hashconfig->salt_max);
+    }
+
+    event_log_info (hashcat_ctx, "  Hashes.Count.Min....: %d", hashconfig->hashes_count_min);
+    event_log_info (hashcat_ctx, "  Hashes.Count.Max....: %u", hashconfig->hashes_count_max);
+
+    char kernel_types[15];
+
+    memset (kernel_types, 0, sizeof (kernel_types));
+
+    if (hashconfig->has_pure_kernel) strncat (kernel_types, "pure ", 5);
+    if (hashconfig->has_optimized_kernel) strncat (kernel_types, "optimized", 9);
+
+    event_log_info (hashcat_ctx, "  Kernel.Type(s)......: %s", kernel_types);
+
+    if ((hashconfig->st_hash != NULL) && (hashconfig->st_pass != NULL))
+    {
+      if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
+      {
+        event_log_info (hashcat_ctx, "  Example.Hash.Format.: hex-encoded");
+        event_log_info (hashcat_ctx, "  Example.Hash........: %s", hashconfig->st_hash);
+      }
+      else
+      {
+        event_log_info (hashcat_ctx, "  Example.Hash.Format.: plain");
+        event_log_info (hashcat_ctx, "  Example.Hash........: %s", hashconfig->st_hash);
+      }
+
+      if (need_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), user_options->separator, false))
+      {
+        char tmp_buf[HCBUFSIZ_LARGE] = { 0 };
+
+        int tmp_len = 0;
+
+        tmp_buf[tmp_len++] = '$';
+        tmp_buf[tmp_len++] = 'H';
+        tmp_buf[tmp_len++] = 'E';
+        tmp_buf[tmp_len++] = 'X';
+        tmp_buf[tmp_len++] = '[';
+
+        exec_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), (u8 *) tmp_buf + tmp_len);
+
+        tmp_len += strlen (hashconfig->st_pass) * 2;
+
+        tmp_buf[tmp_len++] = ']';
+        tmp_buf[tmp_len++] = 0;
+
+        event_log_info (hashcat_ctx, "  Example.Pass........: %s", tmp_buf);
+      }
+      else
+      {
+        event_log_info (hashcat_ctx, "  Example.Pass........: %s", hashconfig->st_pass);
+      }
+    }
+    else
+    {
+      event_log_info (hashcat_ctx, "  Example.Hash.Format.: N/A");
+      event_log_info (hashcat_ctx, "  Example.Hash........: N/A");
+      event_log_info (hashcat_ctx, "  Example.Pass........: N/A");
+    }
+
+    if (hashconfig->benchmark_mask != NULL)
+    {
+      event_log_info (hashcat_ctx, "  Benchmark.Mask......: %s", hashconfig->benchmark_mask);
+    }
+    else
+    {
+      event_log_info (hashcat_ctx, "  Benchmark.Mask......: N/A");
+    }
+
+    event_log_info (hashcat_ctx, NULL);
+  }
+
+  hashconfig_destroy (hashcat_ctx);
+}
+
+void hash_info (hashcat_ctx_t *hashcat_ctx)
+{
+  folder_config_t *folder_config = hashcat_ctx->folder_config;
+  user_options_t  *user_options  = hashcat_ctx->user_options;
+
+  event_log_info (hashcat_ctx, "Hash Info:");
+  event_log_info (hashcat_ctx, "==========");
+  event_log_info (hashcat_ctx, NULL);
+
+  if (user_options->hash_mode_chgd == true)
+  {
+    hash_info_single (hashcat_ctx, user_options);
+  }
+  else
+  {
+    char *modulefile = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+    for (int i = 0; i < MODULE_HASH_MODES_MAXIMUM; i++)
+    {
+      user_options->hash_mode = i;
+
+      module_filename (folder_config, i, modulefile, HCBUFSIZ_TINY);
+
+      if (hc_path_exist (modulefile) == false) continue;
+
+      hash_info_single (hashcat_ctx, user_options);
+    }
+
+    hcfree (modulefile);
+  }
+}
+
 void example_hashes (hashcat_ctx_t *hashcat_ctx)
 {
   folder_config_t *folder_config = hashcat_ctx->folder_config;
