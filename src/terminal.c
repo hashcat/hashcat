@@ -546,11 +546,16 @@ void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_t *user_options)
     event_log_info (hashcat_ctx, "Hash mode #%u", hashconfig->hash_mode);
     event_log_info (hashcat_ctx, "  Name................: %s", hashconfig->hash_name);
     event_log_info (hashcat_ctx, "  Category............: %s", strhashcategory (hashconfig->hash_category));
+    event_log_info (hashcat_ctx, "  Slow.Hash...........: %s", (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL) ? "No" : "Yes");
+
     event_log_info (hashcat_ctx, "  Password.Len.Min....: %d", hashconfig->pw_min);
     event_log_info (hashcat_ctx, "  Password.Len.Max....: %d", hashconfig->pw_max);
 
     if (hashconfig->is_salted == true)
     {
+      u32 t = hashconfig->salt_type;
+      char *t_desc = (t == SALT_TYPE_EMBEDDED) ? "Embedded\0" : (t == SALT_TYPE_GENERIC) ? "Generic\0" : "Virtual\0";
+      event_log_info (hashcat_ctx, "  Salt.Type...........: %s", t_desc);
       event_log_info (hashcat_ctx, "  Salt.Len.Min........: %d", hashconfig->salt_min);
       event_log_info (hashcat_ctx, "  Salt.Len.Max........: %d", hashconfig->salt_max);
     }
