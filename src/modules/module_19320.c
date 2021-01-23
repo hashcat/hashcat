@@ -1,4 +1,3 @@
-
 /**
  * Author......: See docs/credits.txt
  * License.....: MIT
@@ -137,7 +136,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   memmove(salt1_buf_ptr + strlen(dashes), salt1_buf_ptr, sha1_double_salt->salt1_len+1);
   memcpy(salt1_buf_ptr, dashes, strlen(dashes));
   sha1_double_salt->salt1_len += strlen(dashes);
-
   // Append 2 dashes
   memcpy (salt1_buf_ptr + sha1_double_salt->salt1_len, dashes, strlen(dashes));
   sha1_double_salt->salt1_len += strlen(dashes);
@@ -189,13 +187,13 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   out_len += 1;
 
-  out_len += generic_salt_encode (hashconfig, (const u8 *) sha1_double_salt->salt1_buf, (const int) sha1_double_salt->salt1_len, out_buf + out_len);
+    // Reset salt length and buffer to without double dashes
+  u8 *salt1_buf_ptr = (u8 *) sha1_double_salt->salt1_buf;
 
-  out_buf[out_len] = hashconfig->separator;
+  const int tmp_salt1_len = sha1_double_salt->salt1_len - (2 * strlen(dashes));
+  memmove(salt1_buf_ptr, salt1_buf_ptr + strlen(dashes), sha1_double_salt->salt1_len);
 
-  out_len += 1;
-
-  out_len += generic_salt_encode (hashconfig, (const u8 *) sha1_double_salt->salt2_buf, (const int) sha1_double_salt->salt2_len, out_buf + out_len);
+  out_len += generic_salt_encode (hashconfig, (const u8 *) sha1_double_salt->salt1_buf, tmp_salt1_len, out_buf + out_len);
 
   return out_len;
 }

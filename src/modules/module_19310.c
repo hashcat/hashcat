@@ -187,13 +187,13 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   out_len += 1;
 
-  out_len += generic_salt_encode (hashconfig, (const u8 *) sha1_double_salt->salt1_buf, (const int) sha1_double_salt->salt1_len, out_buf + out_len);
+  // Reset salt length and buffer to without double dashes
+  u8 *salt2_buf_ptr = (u8 *) sha1_double_salt->salt2_buf;
 
-  out_buf[out_len] = hashconfig->separator;
+  const int tmp_salt2_len = sha1_double_salt->salt2_len - (2 * strlen(dashes));
+  memmove(salt2_buf_ptr, salt2_buf_ptr + strlen(dashes), tmp_salt2_len);
 
-  out_len += 1;
-
-  out_len += generic_salt_encode (hashconfig, (const u8 *) sha1_double_salt->salt2_buf, (const int) sha1_double_salt->salt2_len, out_buf + out_len);
+  out_len += generic_salt_encode (hashconfig, (const u8 *) sha1_double_salt->salt2_buf, tmp_salt2_len, out_buf + out_len);
 
   return out_len;
 }
