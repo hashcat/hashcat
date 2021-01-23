@@ -407,9 +407,22 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m03201_init (KERN_ATTR_TMPS 
    * bin2asc table
    */
 
+  #ifdef IS_CUDA
+
+  if (gid >= gid_max) return;
+
+  u32 l_bin2asc[256];
+
+  for (u32 i = 0; i < 256; i++)
+
+  #else
+
   LOCAL_VK u32 l_bin2asc[256];
 
   for (u32 i = lid; i < 256; i += lsz)
+
+  #endif
+
   {
     const u32 i0 = (i >> 0) & 15;
     const u32 i1 = (i >> 4) & 15;
@@ -418,9 +431,13 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m03201_init (KERN_ATTR_TMPS 
                  | ((i1 < 10) ? '0' + i1 : 'a' - 10 + i1) << 0;
   }
 
+  #ifndef IS_CUDA
+
   SYNC_THREADS ();
 
   if (gid >= gid_max) return;
+
+  #endif
 
   const u32 pw_len = pws[gid].pw_len;
 
