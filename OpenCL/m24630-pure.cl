@@ -1,7 +1,7 @@
 /**
  * Author......: See docs/credits.txt
  * License.....: MIT
- */ 
+ */
 
 #define NEW_SIMD_CODE
 
@@ -18,22 +18,24 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
-typedef struct pbkdf2_sha512_tmp
+typedef struct sqlcipher_sha512_tmp
 {
   u64  ipad[8];
   u64  opad[8];
 
-  u64  dgst[16];
-  u64  out[16];
+  u64  dgst[8];
+  u64  out[8];
 
-} pbkdf2_sha512_tmp_t;
+} sqlcipher_sha512_tmp_t;
 
-typedef struct pbkdf2_sha512
+typedef struct sqlcipher
 {
-  u32 salt_buf[64];
-  u32 ciphertext[64];
+  u32 iv_buf[4];
+  u32 data_buf[4];
 
-} pbkdf2_sha512_t;
+  u32 type;
+
+} sqlcipher_t;
 
 DECLSPEC void hmac_sha512_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, u64x *ipad, u64x *opad, u64x *digest)
 {
@@ -93,7 +95,7 @@ DECLSPEC void hmac_sha512_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w
   sha512_transform_vector (w0, w1, w2, w3, w4, w5, w6, w7, digest);
 }
 
-KERNEL_FQ void m24600_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, pbkdf2_sha512_t))
+KERNEL_FQ void m24630_init (KERN_ATTR_TMPS_ESALT (sqlcipher_sha512_tmp_t, sqlcipher_t))
 {
   /**
    * base
@@ -125,7 +127,7 @@ KERNEL_FQ void m24600_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, pbkdf2_sh
   tmps[gid].opad[6] = sha512_hmac_ctx.opad.h[6];
   tmps[gid].opad[7] = sha512_hmac_ctx.opad.h[7];
 
-  sha512_hmac_update_global_swap (&sha512_hmac_ctx, esalt_bufs[DIGESTS_OFFSET].salt_buf, salt_bufs[SALT_POS].salt_len);
+  sha512_hmac_update_global_swap (&sha512_hmac_ctx, salt_bufs[DIGESTS_OFFSET].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   for (u32 i = 0, j = 1; i < 8; i += 8, j += 1)
   {
@@ -197,7 +199,7 @@ KERNEL_FQ void m24600_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, pbkdf2_sh
   }
 }
 
-KERNEL_FQ void m24600_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, pbkdf2_sha512_t))
+KERNEL_FQ void m24630_loop (KERN_ATTR_TMPS_ESALT (sqlcipher_sha512_tmp_t, sqlcipher_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -323,20 +325,13 @@ KERNEL_FQ void m24600_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, pbkdf2_sh
   }
 }
 
-KERNEL_FQ void m24600_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, pbkdf2_sha512_t))
+KERNEL_FQ void m24630_comp (KERN_ATTR_TMPS_ESALT (sqlcipher_sha512_tmp_t, sqlcipher_t))
 {
-  /**
-   * base
-   */
-
   const u64 gid = get_global_id (0);
-
-  if (gid >= gid_max) return;
-
   const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
 
-  const u64 lsz = get_local_size(0);
-   /**
+  /**
    * aes shared
    */
 
@@ -384,59 +379,63 @@ KERNEL_FQ void m24600_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, pbkdf2_sh
   CONSTANT_AS u32a *s_te2 = te2;
   CONSTANT_AS u32a *s_te3 = te3;
   CONSTANT_AS u32a *s_te4 = te4;
+
   #endif
 
-  const u32 a = h32_from_64_S (tmps[gid].out[0]);
-  const u32 b = l32_from_64_S (tmps[gid].out[0]);
-  const u32 c = h32_from_64_S (tmps[gid].out[1]);
-  const u32 d = l32_from_64_S (tmps[gid].out[1]);
-  const u32 e = h32_from_64_S (tmps[gid].out[2]);
-  const u32 f = l32_from_64_S (tmps[gid].out[2]);
-  const u32 g = h32_from_64_S (tmps[gid].out[3]);
-  const u32 h = l32_from_64_S (tmps[gid].out[3]);
+  if (gid >= gid_max) return;
 
-  const u32 key[8] = { a,b,c,d,e,f,g,h };
+  u32 ukey[8];
 
-  u32 iv[4] = { 0 };
-  u32 res[64];
+  ukey[0] = h32_from_64_S (tmps[gid].out[0]);
+  ukey[1] = l32_from_64_S (tmps[gid].out[0]);
+  ukey[2] = h32_from_64_S (tmps[gid].out[1]);
+  ukey[3] = l32_from_64_S (tmps[gid].out[1]);
+  ukey[4] = h32_from_64_S (tmps[gid].out[2]);
+  ukey[5] = l32_from_64_S (tmps[gid].out[2]);
+  ukey[6] = h32_from_64_S (tmps[gid].out[3]);
+  ukey[7] = l32_from_64_S (tmps[gid].out[3]);
+
   u32 ks[60];
 
-  AES256_set_decrypt_key (ks, key, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+  AES256_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
-  for (u32 i = 0; i < 64; i += 4)
-  {
-    u32 data[4];
+  // first check the padding
 
-    data[0] = esalt_bufs[DIGESTS_OFFSET].ciphertext[i + 0];
-    data[1] = esalt_bufs[DIGESTS_OFFSET].ciphertext[i + 1];
-    data[2] = esalt_bufs[DIGESTS_OFFSET].ciphertext[i + 2];
-    data[3] = esalt_bufs[DIGESTS_OFFSET].ciphertext[i + 3];
+  u32 iv_buf[4];
 
-    u32 out[4];
+  iv_buf[0] = esalt_bufs[DIGESTS_OFFSET].iv_buf[0];
+  iv_buf[1] = esalt_bufs[DIGESTS_OFFSET].iv_buf[1];
+  iv_buf[2] = esalt_bufs[DIGESTS_OFFSET].iv_buf[2];
+  iv_buf[3] = esalt_bufs[DIGESTS_OFFSET].iv_buf[3];
 
-    aes256_decrypt (ks, data, out, s_td0, s_td1, s_td2, s_td3, s_td4);
+  u32 enc[4];
 
-    res[i + 0] = hc_swap32_S (out[0] ^ iv[0]);
-    res[i + 1] = hc_swap32_S (out[1] ^ iv[1]);
-    res[i + 2] = hc_swap32_S (out[2] ^ iv[2]);
-    res[i + 3] = hc_swap32_S (out[3] ^ iv[3]);
+  enc[0] = esalt_bufs[DIGESTS_OFFSET].data_buf[0];
+  enc[1] = esalt_bufs[DIGESTS_OFFSET].data_buf[1];
+  enc[2] = esalt_bufs[DIGESTS_OFFSET].data_buf[2];
+  enc[3] = esalt_bufs[DIGESTS_OFFSET].data_buf[3];
 
-    iv[0] = data[0];
-    iv[1] = data[1];
-    iv[2] = data[2];
-    iv[3] = data[3];
-  }
+  u32 dec[4];
 
-  u32 counter = 0;
-  for (u32 i = 0; i < 64; i++)
-  {
-    if (res[i] == 0)
-    {
-      counter +=1;
-    }
-  }
-  if (counter >= 2)
-  {
-    mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
-  }
+  aes256_decrypt (ks, enc, dec, s_td0, s_td1, s_td2, s_td3, s_td4);
+
+  dec[0] ^= iv_buf[0];
+  dec[1] ^= iv_buf[1];
+  dec[2] ^= iv_buf[2];
+  dec[3] ^= iv_buf[3];
+
+  if (dec[0] != 0) return;
+  if (dec[1] != 0) return;
+  if (dec[2] != 0) return;
+
+  const u32 r0 = esalt_bufs[DIGESTS_OFFSET].data_buf[0];
+  const u32 r1 = esalt_bufs[DIGESTS_OFFSET].data_buf[1];
+  const u32 r2 = esalt_bufs[DIGESTS_OFFSET].data_buf[2];
+  const u32 r3 = esalt_bufs[DIGESTS_OFFSET].data_buf[3];
+
+  #define il_pos 0
+
+  #ifdef KERNEL_STATIC
+  #include COMPARE_M
+  #endif
 }

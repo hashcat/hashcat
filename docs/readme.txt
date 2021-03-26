@@ -216,6 +216,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - MySQL4.1/MySQL5
 - MySQL $A$ (sha256crypt)
 - Sybase ASE
+- SQLCipher
 - hMailServer
 - DNSSEC (NSEC3)
 - CRAM-MD5 Dovecot
@@ -336,7 +337,6 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Django (SHA-1)
 - Web2py pbkdf2-sha512
 - TOTP (HMAC-SHA1)
-- SQLCipher V4
 
 ##
 ## Attack-Modes
