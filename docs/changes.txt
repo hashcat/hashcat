@@ -14,8 +14,8 @@
 - Added hash-mode: RAR3-p (Uncompressed)
 - Added hash-mode: RSA/DSA/EC/OPENSSH Private Keys
 - Added hash-mode: SQLCipher
-- Added hash-mode: sha1(sha1($pass).$salt)
 - Added hash-mode: Dahua Authentication MD5
+- Added hash-mode: sha1(sha1($pass).$salt)
 
 ##
 ## Bugs

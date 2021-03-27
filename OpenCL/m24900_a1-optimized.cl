@@ -46,22 +46,6 @@ KERNEL_FQ void m24900_m04 (KERN_ATTR_BASIC ())
   const u32 pw_l_len = pws[gid].pw_len & 63;
 
   /**
-   * lookup table
-   */
-
-  const u8 sof_lut[64] =
-  {
-   0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
-   0x38, 0x39, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46,
-   0x47, 0x48, 0x49, 0x4a, 0x4b, 0x4c, 0x4d, 0x4e,
-   0x4f, 0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56,
-   0x57, 0x58, 0x59, 0x5a, 0x61, 0x62, 0x63, 0x64,
-   0x65, 0x66, 0x67, 0x68, 0x69, 0x6a, 0x6b, 0x6c,
-   0x6d, 0x6e, 0x6f, 0x70, 0x71, 0x72, 0x73, 0x74,
-   0x75, 0x76, 0x77, 0x78, 0x79, 0x7a, 0x00, 0x00
-  };
-
-  /**
    * loop
    */
 
@@ -218,36 +202,21 @@ KERNEL_FQ void m24900_m04 (KERN_ATTR_BASIC ())
     c += MD5M_C;
     d += MD5M_D;
 
-    u16 t_abcd = ((a & 0xff) + ((a >> 8) & 0xff));
-    u8 a_12 = (t_abcd % 0x3e);
+    const u32x a0 = (((a >>  0) & 0xff) + ((a >>  8) & 0xff)) % 62;
+    const u32x a1 = (((a >> 16) & 0xff) + ((a >> 24) & 0xff)) % 62;
+    const u32x b0 = (((b >>  0) & 0xff) + ((b >>  8) & 0xff)) % 62;
+    const u32x b1 = (((b >> 16) & 0xff) + ((b >> 24) & 0xff)) % 62;
+    const u32x c0 = (((c >>  0) & 0xff) + ((c >>  8) & 0xff)) % 62;
+    const u32x c1 = (((c >> 16) & 0xff) + ((c >> 24) & 0xff)) % 62;
+    const u32x d0 = (((d >>  0) & 0xff) + ((d >>  8) & 0xff)) % 62;
+    const u32x d1 = (((d >> 16) & 0xff) + ((d >> 24) & 0xff)) % 62;
 
-    t_abcd = (((a >> 16 )& 0xff) + ((a >> 24) & 0xff));
-    u8 a_34 = (t_abcd % 0x3e);
+    const u32x ax = (a0 <<  0) | (a1 <<  8);
+    const u32x bx = (b0 <<  0) | (b1 <<  8);
+    const u32x cx = (c0 <<  0) | (c1 <<  8);
+    const u32x dx = (d0 <<  0) | (d1 <<  8);
 
-    t_abcd = ((b & 0xff) + ((b >> 8) & 0xff));
-    u8 b_12 = (t_abcd % 0x3e);
-
-    t_abcd = (((b >> 16) & 0xff) + ((b >> 24) & 0xff));
-    u8 b_34 = (t_abcd % 0x3e);
-
-    t_abcd = ((c & 0xff) + ((c >> 8) & 0xff));
-    u8 c_12 = (t_abcd % 0x3e);
-
-    t_abcd = (((c >> 16 )& 0xff) + ((c >> 24) & 0xff));
-    u8 c_34 = (t_abcd % 0x3e);
-
-    t_abcd = ((d & 0xff) + ((d >> 8) & 0xff));
-    u8 d_12 = (t_abcd % 0x3e);
-
-    t_abcd = (((d >> 16) & 0xff) + ((d >> 24) & 0xff));
-    u8 d_34 = (t_abcd % 0x3e);
-
-    a = (sof_lut[a_12]) + (sof_lut[a_34] << 8) + (sof_lut[b_12] << 16) + (sof_lut[b_34] << 24);
-    b = (sof_lut[c_12]) + (sof_lut[c_34] << 8) + (sof_lut[d_12] << 16) + (sof_lut[d_34] << 24);
-
-    u32x z = 0;
-
-    COMPARE_M_SIMD (a, b, z, z);
+    COMPARE_M_SIMD (ax, bx, cx, dx);
   }
 }
 
@@ -290,22 +259,6 @@ KERNEL_FQ void m24900_s04 (KERN_ATTR_BASIC ())
   const u32 pw_l_len = pws[gid].pw_len & 63;
 
   /**
-   * lookup table
-   */
-
-  const u8 sof_lut[64] =
-  {
-   0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
-   0x38, 0x39, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46,
-   0x47, 0x48, 0x49, 0x4a, 0x4b, 0x4c, 0x4d, 0x4e,
-   0x4f, 0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56,
-   0x57, 0x58, 0x59, 0x5a, 0x61, 0x62, 0x63, 0x64,
-   0x65, 0x66, 0x67, 0x68, 0x69, 0x6a, 0x6b, 0x6c,
-   0x6d, 0x6e, 0x6f, 0x70, 0x71, 0x72, 0x73, 0x74,
-   0x75, 0x76, 0x77, 0x78, 0x79, 0x7a, 0x00, 0x00
-  };
-
-  /**
    * digest
    */
 
@@ -313,8 +266,8 @@ KERNEL_FQ void m24900_s04 (KERN_ATTR_BASIC ())
   {
     digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
     digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
-    0,
-    0
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
   };
 
   /**
@@ -474,36 +427,21 @@ KERNEL_FQ void m24900_s04 (KERN_ATTR_BASIC ())
     c += MD5M_C;
     d += MD5M_D;
 
-    u16 t_abcd = ((a & 0xff) + ((a >> 8) & 0xff));
-    u8 a_12 = (t_abcd % 0x3e);
+    const u32x a0 = (((a >>  0) & 0xff) + ((a >>  8) & 0xff)) % 62;
+    const u32x a1 = (((a >> 16) & 0xff) + ((a >> 24) & 0xff)) % 62;
+    const u32x b0 = (((b >>  0) & 0xff) + ((b >>  8) & 0xff)) % 62;
+    const u32x b1 = (((b >> 16) & 0xff) + ((b >> 24) & 0xff)) % 62;
+    const u32x c0 = (((c >>  0) & 0xff) + ((c >>  8) & 0xff)) % 62;
+    const u32x c1 = (((c >> 16) & 0xff) + ((c >> 24) & 0xff)) % 62;
+    const u32x d0 = (((d >>  0) & 0xff) + ((d >>  8) & 0xff)) % 62;
+    const u32x d1 = (((d >> 16) & 0xff) + ((d >> 24) & 0xff)) % 62;
 
-    t_abcd = (((a >> 16 )& 0xff) + ((a >> 24) & 0xff));
-    u8 a_34 = (t_abcd % 0x3e);
+    const u32x ax = (a0 <<  0) | (a1 <<  8);
+    const u32x bx = (b0 <<  0) | (b1 <<  8);
+    const u32x cx = (c0 <<  0) | (c1 <<  8);
+    const u32x dx = (d0 <<  0) | (d1 <<  8);
 
-    t_abcd = ((b & 0xff) + ((b >> 8) & 0xff));
-    u8 b_12 = (t_abcd % 0x3e);
-
-    t_abcd = (((b >> 16) & 0xff) + ((b >> 24) & 0xff));
-    u8 b_34 = (t_abcd % 0x3e);
-
-    t_abcd = ((c & 0xff) + ((c >> 8) & 0xff));
-    u8 c_12 = (t_abcd % 0x3e);
-
-    t_abcd = (((c >> 16 )& 0xff) + ((c >> 24) & 0xff));
-    u8 c_34 = (t_abcd % 0x3e);
-
-    t_abcd = ((d & 0xff) + ((d >> 8) & 0xff));
-    u8 d_12 = (t_abcd % 0x3e);
-
-    t_abcd = (((d >> 16) & 0xff) + ((d >> 24) & 0xff));
-    u8 d_34 = (t_abcd % 0x3e);
-
-    a = (sof_lut[a_12]) + (sof_lut[a_34] << 8) + (sof_lut[b_12] << 16) + (sof_lut[b_34] << 24);
-    b = (sof_lut[c_12]) + (sof_lut[c_34] << 8) + (sof_lut[d_12] << 16) + (sof_lut[d_34] << 24);
-
-    u32x z = 0;
-
-    COMPARE_S_SIMD (a, b, z, z);
+    COMPARE_S_SIMD (ax, bx, cx, dx);
   }
 }
 
