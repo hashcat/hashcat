@@ -32,14 +32,11 @@ KERNEL_FQ void m24800_mxx (KERN_ATTR_VECTOR ())
   const u32 pw_len = pws[gid].pw_len;
 
   u32x w[64] = { 0 };
-  u32x t[128] = { 0 };
 
   for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
     w[idx] = pws[gid].i[idx];
   }
-
-  /* The password is the salt too */
 
   /**
    * loop
@@ -55,15 +52,18 @@ KERNEL_FQ void m24800_mxx (KERN_ATTR_VECTOR ())
 
     w[0] = w0;
 
-    for(u32 i = 0, idx = 0; idx < pw_len; i += 2, idx += 1){
-        make_utf16beN(&w[idx], &t[i], &t[i+1]);
+    u32x t[128] = { 0 };
+
+    for (u32 i = 0, idx = 0; idx < pw_len; i += 2, idx += 1)
+    {
+      make_utf16beN (&w[idx], &t[i + 0], &t[i + 1]);
     }
 
     sha1_hmac_ctx_vector_t ctx;
 
-    sha1_hmac_init_vector (&ctx, t, pw_len*2);
+    sha1_hmac_init_vector (&ctx, t, pw_len * 2);
 
-    sha1_hmac_update_vector (&ctx, t, pw_len*2);
+    sha1_hmac_update_vector (&ctx, t, pw_len * 2);
 
     sha1_hmac_final_vector (&ctx);
 
@@ -106,7 +106,6 @@ KERNEL_FQ void m24800_sxx (KERN_ATTR_VECTOR ())
   const u32 pw_len = pws[gid].pw_len;
 
   u32x w[64] = { 0 };
-  u32x t[128] = { 0 };
 
   for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
@@ -126,15 +125,19 @@ KERNEL_FQ void m24800_sxx (KERN_ATTR_VECTOR ())
     const u32x w0 = w0l | w0r;
 
     w[0] = w0;
-    for(u32 i = 0, idx = 0; idx < pw_len; i += 2, idx += 1){
-        make_utf16beN(&w[idx], &t[i], &t[i+1]);
+
+    u32x t[128] = { 0 };
+
+    for (u32 i = 0, idx = 0; idx < pw_len; i += 2, idx += 1)
+    {
+      make_utf16beN (&w[idx], &t[i + 0], &t[i + 1]);
     }
 
     sha1_hmac_ctx_vector_t ctx;
 
-    sha1_hmac_init_vector (&ctx, t, pw_len*2);
+    sha1_hmac_init_vector (&ctx, t, pw_len * 2);
 
-    sha1_hmac_update_vector (&ctx, t, pw_len*2);
+    sha1_hmac_update_vector (&ctx, t, pw_len * 2);
 
     sha1_hmac_final_vector (&ctx);
 

@@ -325,6 +325,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - SMF (Simple Machines Forum) > v1.1
 - MediaWiki B type
 - Redmine
+- Umbraco HMAC-SHA1
 - Joomla < 2.5.18
 - OpenCart
 - PrestaShop

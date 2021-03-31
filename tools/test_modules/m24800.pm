@@ -10,21 +10,20 @@ use warnings;
 
 use Digest::SHA1 qw (sha1);
 use Digest::HMAC qw (hmac hmac_hex);
-use Encode qw/encode decode/;
+use Encode qw (encode decode);
 use MIME::Base64;
 
-sub module_constraints { [[0, 256], [0, 256], [0, 55], [0, 55], [-1, -1]] }
+sub module_constraints { [[0, 256], [0, 256], [0, 27], [0, 27], [0, 27]] }
 
 sub module_generate_hash
 {
   my $word = shift;
-  my $unicode_word;
 
-  $unicode_word = encode("UTF-16LE", $word);  
-  
+  my $unicode_word = encode ("UTF-16LE", $word);
+
   my $digest = hmac ($unicode_word, $unicode_word, \&sha1, 64);
-  
-  my $hash = sprintf ("%s", encode_base64($digest));
+
+  my $hash = sprintf ("%s", encode_base64 ($digest, ""));
 
   return $hash;
 }

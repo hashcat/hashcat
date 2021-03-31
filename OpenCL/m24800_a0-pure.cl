@@ -33,9 +33,6 @@ KERNEL_FQ void m24800_mxx (KERN_ATTR_RULES ())
 
   COPY_PW (pws[gid]);
 
-  u32 t[128] = { 0 };
-
-
   /**
    * loop
    */
@@ -46,15 +43,18 @@ KERNEL_FQ void m24800_mxx (KERN_ATTR_RULES ())
 
     tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
 
-    // we need to swap the endian before we convert to unicode.
+    // swap endian
     for (u32 i = 0, idx = 0; i < tmp.pw_len; i += 4, idx += 1)
     {
-      tmp.i[idx] = hc_swap32(tmp.i[idx]);
+      tmp.i[idx] = hc_swap32 (tmp.i[idx]);
     }
 
+    u32 t[128] = { 0 };
+
     // make it unicode.
-    for(u32 i = 0, idx = 0; idx < tmp.pw_len; i += 2, idx += 1){
-        make_utf16beN(&tmp.i[idx], &t[i], &t[i+1]);
+    for (u32 i = 0, idx = 0; idx < tmp.pw_len; i += 2, idx += 1)
+    {
+      make_utf16beN (&tmp.i[idx], &t[i], &t[i+1]);
     }
 
     // hash time
@@ -104,8 +104,6 @@ KERNEL_FQ void m24800_sxx (KERN_ATTR_RULES ())
 
   COPY_PW (pws[gid]);
 
-  u32 t[128] = { 0 };
-
   /**
    * loop
    */
@@ -119,20 +117,23 @@ KERNEL_FQ void m24800_sxx (KERN_ATTR_RULES ())
     // swap endian
     for (u32 i = 0, idx = 0; i < tmp.pw_len; i += 4, idx += 1)
     {
-      tmp.i[idx] = hc_swap32(tmp.i[idx]);
+      tmp.i[idx] = hc_swap32 (tmp.i[idx]);
     }
 
+    u32 t[128] = { 0 };
+
     // make it unicode.
-    for(u32 i = 0, idx = 0; idx < tmp.pw_len; i += 2, idx += 1){
-        make_utf16beN(&tmp.i[idx], &t[i], &t[i+1]);
+    for (u32 i = 0, idx = 0; idx < tmp.pw_len; i += 2, idx += 1)
+    {
+      make_utf16beN (&tmp.i[idx], &t[i], &t[i+1]);
     }
 
     // hash time
     sha1_hmac_ctx_t ctx;
 
-    sha1_hmac_init (&ctx, t, tmp.pw_len*2);
+    sha1_hmac_init (&ctx, t, tmp.pw_len * 2);
 
-    sha1_hmac_update (&ctx, t, tmp.pw_len*2);
+    sha1_hmac_update (&ctx, t, tmp.pw_len * 2);
 
     sha1_hmac_final (&ctx);
 

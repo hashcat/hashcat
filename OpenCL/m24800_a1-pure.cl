@@ -38,8 +38,6 @@ KERNEL_FQ void m24800_mxx (KERN_ATTR_BASIC ())
     w[idx] = hc_swap32_S (pws[gid].i[idx]);
   }
 
-  u32 t[128] = { 0 };
-
   /**
    * loop
    */
@@ -68,16 +66,19 @@ KERNEL_FQ void m24800_mxx (KERN_ATTR_BASIC ())
       c[i] |= w[i];
     }
 
+    u32 t[128] = { 0 };
+
     // make it unicode.
-    for(u32 i = 0, idx = 0; idx < pw_len + comb_len; i += 2, idx += 1){
-        make_utf16beN(&c[idx], &t[i], &t[i+1]);
+    for (u32 i = 0, idx = 0; idx < pw_len + comb_len; i += 2, idx += 1)
+    {
+        make_utf16beN (&c[idx], &t[i], &t[i+1]);
     }
 
     sha1_hmac_ctx_t ctx;
 
-    sha1_hmac_init (&ctx, t, (pw_len + comb_len)*2);
+    sha1_hmac_init (&ctx, t, (pw_len + comb_len) * 2);
 
-    sha1_hmac_update (&ctx, t, (pw_len + comb_len)*2);
+    sha1_hmac_update (&ctx, t, (pw_len + comb_len) * 2);
 
     sha1_hmac_final (&ctx);
 
@@ -120,7 +121,6 @@ KERNEL_FQ void m24800_sxx (KERN_ATTR_BASIC ())
   const u32 pw_len = pws[gid].pw_len;
 
   u32 w[64] = { 0 };
-  u32 t[128] = { 0 };
 
   for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
@@ -155,16 +155,19 @@ KERNEL_FQ void m24800_sxx (KERN_ATTR_BASIC ())
       c[i] |= w[i];
     }
 
+    u32 t[128] = { 0 };
+
     // make it unicode.
-    for(u32 i = 0, idx = 0; idx < pw_len + comb_len; i += 2, idx += 1){
-        make_utf16beN(&c[idx], &t[i], &t[i+1]);
+    for (u32 i = 0, idx = 0; idx < pw_len + comb_len; i += 2, idx += 1)
+    {
+        make_utf16beN (&c[idx], &t[i], &t[i+1]);
     }
 
     sha1_hmac_ctx_t ctx;
 
-    sha1_hmac_init (&ctx, t, (pw_len + comb_len)*2);
+    sha1_hmac_init (&ctx, t, (pw_len + comb_len) * 2);
 
-    sha1_hmac_update (&ctx, t, (pw_len + comb_len)*2);
+    sha1_hmac_update (&ctx, t, (pw_len + comb_len) * 2);
 
     sha1_hmac_final (&ctx);
 

@@ -22,8 +22,6 @@ static const u64   KERN_TYPE      = 24800;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_NOT_ITERATED;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_BE
-                                  | OPTS_TYPE_ST_ADD80
-                                  | OPTS_TYPE_ST_ADDBITS15
                                   | OPTS_TYPE_PT_UTF16LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
@@ -47,13 +45,15 @@ const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
   u32 *digest = (u32 *) digest_buf;
+
   token_t token;
 
   token.token_cnt  = 1;
 
   token.len_min[0] = 28;
   token.len_max[0] = 28;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH;
+  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_BASE64A;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
@@ -61,7 +61,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *hash_pos = token.buf[0];
   const int hash_len = token.len[0];
-  u8 tmp_buf[20] = { 0 };
+
+  u8 tmp_buf[32] = { 0 };
 
   const int decoded_len = base64_decode (base64_to_int, hash_pos, hash_len, tmp_buf);
 
@@ -99,12 +100,13 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   tmp[3] = byte_swap_32 (tmp[3]);
   tmp[4] = byte_swap_32 (tmp[4]);
 
-
-  char ptr_plain[28];
+  u8 ptr_plain[100] = { 0 };
 
   base64_encode (int_to_base64, (const u8 *) tmp, 20, (u8 *) ptr_plain);
 
-  return snprintf (line_buf, line_size, "%s", ptr_plain);
+  const int out_len = snprintf (line_buf, line_size, "%s", (char *) ptr_plain);
+
+  return out_len;
 }
 
 void module_init (module_ctx_t *module_ctx)
