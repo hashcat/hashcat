@@ -17,6 +17,7 @@
 - Added hash-mode: Dahua Authentication MD5
 - Added hash-mode: Umbraco HMAC-SHA1
 - Added hash-mode: sha1(sha1($pass).$salt)
+- Added hash-mode: Stuffit5
 
 ##
 ## Bugs
