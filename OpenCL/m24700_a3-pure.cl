@@ -14,7 +14,7 @@
 #include "inc_hash_md5.cl"
 #endif
 
-KERNEL_FQ void m29800_mxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m24700_mxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -60,23 +60,21 @@ KERNEL_FQ void m29800_mxx (KERN_ATTR_VECTOR ())
     md5_final_vector (&ctx0);
 
     const u32x a = ctx0.h[0];
-    const u32x b = ctx0.h[1] & 0x000000ff;
+    const u32x b = ctx0.h[1] & 0xff;
 
     md5_ctx_vector_t ctx;
 
     md5_init_vector (&ctx);
 
-    u32x _w[64] = { 0 };
+    ctx.w0[0] = a;
+    ctx.w0[1] = b;
 
-    _w[0] = a;
-    _w[1] = b;
-
-    md5_update_vector (&ctx, _w, 5);
+    ctx.len = 5;
 
     md5_final_vector (&ctx);
 
     const u32x r0 = ctx.h[DGST_R0];
-    const u32x r1 = ctx.h[DGST_R1] & 0x000000ff;
+    const u32x r1 = ctx.h[DGST_R1] & 0xff;
     const u32x r2 = 0;
     const u32x r3 = 0;
 
@@ -84,7 +82,7 @@ KERNEL_FQ void m29800_mxx (KERN_ATTR_VECTOR ())
   }
 }
 
-KERNEL_FQ void m29800_sxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m24700_sxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -142,23 +140,21 @@ KERNEL_FQ void m29800_sxx (KERN_ATTR_VECTOR ())
     md5_final_vector (&ctx0);
 
     const u32x a = ctx0.h[0];
-    const u32x b = ctx0.h[1] & 0x000000ff;
+    const u32x b = ctx0.h[1] & 0xff;
 
     md5_ctx_vector_t ctx;
 
     md5_init_vector (&ctx);
 
-    u32x _w[64] = { 0 };
+    ctx.w0[0] = a;
+    ctx.w0[1] = b;
 
-    _w[0] = a;
-    _w[1] = b;
-
-    md5_update_vector (&ctx, _w, 5);
+    ctx.len = 5;
 
     md5_final_vector (&ctx);
 
     const u32x r0 = ctx.h[DGST_R0];
-    const u32x r1 = ctx.h[DGST_R1] & 0x000000ff;
+    const u32x r1 = ctx.h[DGST_R1] & 0xff;
     const u32x r2 = 0;
     const u32x r3 = 0;
 

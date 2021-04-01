@@ -11,7 +11,7 @@ use warnings;
 use Digest::MD5 qw (md5_hex);
 use Digest::MD5 qw (md5);
 
-sub module_constraints { [[0, 256], [0, 256], [0, 55], [0, 55], [-1, -1]] }
+sub module_constraints { [[0, 256], [-1, -1], [0, 55], [-1, -1], [-1, -1]] }
 
 sub module_generate_hash
 {
@@ -19,11 +19,13 @@ sub module_generate_hash
 
   my $digest1 = md5 ($word);
 
-  my $digest1_sub = substr($digest1, 0, 5);
+  my $digest1_sub = substr ($digest1, 0, 5);
 
-  my $digest_hex = md5_hex ($digest1_sub);
+  my $digest2 = md5 ($digest1_sub);
 
-  my $hash = sprintf ("%s", substr ($digest_hex, 0, 10));
+  my $digest2_sub = substr ($digest2, 0, 5);
+
+  my $hash = sprintf ("%s", unpack ("H*", $digest2_sub));
 
   return $hash;
 }

@@ -10,11 +10,13 @@
 #include "inc_types.h"
 #include "inc_platform.cl"
 #include "inc_common.cl"
+#include "inc_rp.h"
+#include "inc_rp.cl"
 #include "inc_scalar.cl"
 #include "inc_hash_md5.cl"
 #endif
 
-KERNEL_FQ void m29800_mxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void m24700_mxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -28,11 +30,7 @@ KERNEL_FQ void m29800_mxx (KERN_ATTR_BASIC ())
    * base
    */
 
-  md5_ctx_t ctx0;
-
-  md5_init (&ctx0);
-
-  md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+  COPY_PW (pws[gid]);
 
   /**
    * loop
@@ -40,30 +38,34 @@ KERNEL_FQ void m29800_mxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    md5_ctx_t ctx1 = ctx0;
+    pw_t tmp = PASTE_PW;
 
-    md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
 
-    md5_final (&ctx1);
+    md5_ctx_t ctx0;
 
-    const u32 a = ctx1.h[0];
-    const u32 b = ctx1.h[1] & 0x000000ff;
+    md5_init (&ctx0);
+
+    md5_update (&ctx0, tmp.i, tmp.pw_len);
+
+    md5_final (&ctx0);
+
+    const u32 a = ctx0.h[0];
+    const u32 b = ctx0.h[1] & 0xff;
 
     md5_ctx_t ctx;
 
     md5_init (&ctx);
 
-    u32x _w[64] = { 0 };
+    ctx.w0[0] = a;
+    ctx.w0[1] = b;
 
-    _w[0] = a;
-    _w[1] = b;
-
-    md5_update_vector (&ctx, _w, 5);
+    ctx.len = 5;
 
     md5_final (&ctx);
 
     const u32 r0 = ctx.h[DGST_R0];
-    const u32 r1 = ctx.h[DGST_R1] & 0x000000ff;
+    const u32 r1 = ctx.h[DGST_R1] & 0xff;
     const u32 r2 = 0;
     const u32 r3 = 0;
 
@@ -71,7 +73,7 @@ KERNEL_FQ void m29800_mxx (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m29800_sxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void m24700_sxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -97,11 +99,7 @@ KERNEL_FQ void m29800_sxx (KERN_ATTR_BASIC ())
    * base
    */
 
-  md5_ctx_t ctx0;
-
-  md5_init (&ctx0);
-
-  md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+  COPY_PW (pws[gid]);
 
   /**
    * loop
@@ -109,30 +107,34 @@ KERNEL_FQ void m29800_sxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    md5_ctx_t ctx1 = ctx0;
+    pw_t tmp = PASTE_PW;
 
-    md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
 
-    md5_final (&ctx1);
+    md5_ctx_t ctx0;
 
-    const u32 a = ctx1.h[0];
-    const u32 b = ctx1.h[1] & 0x000000ff;
+    md5_init (&ctx0);
+
+    md5_update (&ctx0, tmp.i, tmp.pw_len);
+
+    md5_final (&ctx0);
+
+    const u32 a = ctx0.h[0];
+    const u32 b = ctx0.h[1] & 0xff;
 
     md5_ctx_t ctx;
 
     md5_init (&ctx);
 
-    u32x _w[64] = { 0 };
+    ctx.w0[0] = a;
+    ctx.w0[1] = b;
 
-    _w[0] = a;
-    _w[1] = b;
-
-    md5_update_vector (&ctx, _w, 5);
+    ctx.len = 5;
 
     md5_final (&ctx);
 
     const u32 r0 = ctx.h[DGST_R0];
-    const u32 r1 = ctx.h[DGST_R1] & 0x000000ff;
+    const u32 r1 = ctx.h[DGST_R1] & 0xff;
     const u32 r2 = 0;
     const u32 r3 = 0;
 
