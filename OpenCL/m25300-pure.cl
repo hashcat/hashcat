@@ -23,7 +23,7 @@ typedef struct office2016_tmp
 
 } office2016_tmp_t;
 
-KERNEL_FQ void m29700_init (KERN_ATTR_TMPS (office2016_tmp_t))
+KERNEL_FQ void m25300_init (KERN_ATTR_TMPS (office2016_tmp_t))
 {
   /**
    * base
@@ -53,7 +53,7 @@ KERNEL_FQ void m29700_init (KERN_ATTR_TMPS (office2016_tmp_t))
   tmps[gid].out[7] = ctx.h[7];
 }
 
-KERNEL_FQ void m29700_loop (KERN_ATTR_TMPS (office2016_tmp_t))
+KERNEL_FQ void m25300_loop (KERN_ATTR_TMPS (office2016_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -163,7 +163,7 @@ KERNEL_FQ void m29700_loop (KERN_ATTR_TMPS (office2016_tmp_t))
   unpack64v (tmps, out, gid, 7, t7);
 }
 
-KERNEL_FQ void m29700_comp (KERN_ATTR_TMPS (office2016_tmp_t))
+KERNEL_FQ void m25300_comp (KERN_ATTR_TMPS (office2016_tmp_t))
 {
   const u64 gid = get_global_id (0);
 

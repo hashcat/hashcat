@@ -18,7 +18,7 @@ static const u32   DGST_POS3      = 7;
 static const u32   DGST_SIZE      = DGST_SIZE_8_8;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_DOCUMENTS;
 static const char *HASH_NAME      = "MS Office 2016 - SheetProtection";
-static const u64   KERN_TYPE      = 29700;
+static const u64   KERN_TYPE      = 25300;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_USES_BITS_64
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
