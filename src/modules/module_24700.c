@@ -16,20 +16,18 @@ static const u32   DGST_POS1      = 1;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_4;
-static const u32   HASH_CATEGORY  = HASH_CATEGORY_RAW_HASH;
-static const char *HASH_NAME      = "Dahua Authentication MD5";
-static const u64   KERN_TYPE      = 24900;
+static const u32   HASH_CATEGORY  = HASH_CATEGORY_ARCHIVE;
+static const char *HASH_NAME      = "Stuffit5";
+static const u64   KERN_TYPE      = 24700;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_PRECOMPUTE_INIT
-                                  | OPTI_TYPE_NOT_ITERATED
-                                  | OPTI_TYPE_NOT_SALTED
-                                  | OPTI_TYPE_RAW_HASH;
+                                  | OPTI_TYPE_EARLY_SKIP;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_PT_ADD80
                                   | OPTS_TYPE_PT_ADDBITS14;
 static const u32   SALT_TYPE      = SALT_TYPE_NONE;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "GRuHbyVp";
+static const char *ST_HASH        = "66a75cb059";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -46,42 +44,6 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
-u32 dahua_decode (const u32 in)
-{
-  if (in >= 'a')
-  {
-    return (in - 61);
-  }
-  else if (in >= 'A')
-  {
-    return (in - 55);
-  }
-  else
-  {
-    return (in - 48);
-  }
-
-  return -1;
-}
-
-u32 dahua_encode (const u32 in)
-{
-  if (in < 10)
-  {
-    return (in + 48);
-  }
-  else if (in < 36)
-  {
-    return (in + 55);
-  }
-  else
-  {
-    return (in + 61);
-  }
-
-  return -1;
-}
-
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
   u32 *digest = (u32 *) digest_buf;
@@ -90,9 +52,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.token_cnt  = 1;
 
-  token.len_min[0] = 8;
-  token.len_max[0] = 8;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH;
+  token.len_min[0] = 10;
+  token.len_max[0] = 10;
+  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
@@ -100,19 +63,16 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *hash_pos = token.buf[0];
 
-  const u32 a0 = dahua_decode (hash_pos[0]);
-  const u32 a1 = dahua_decode (hash_pos[1]);
-  const u32 b0 = dahua_decode (hash_pos[2]);
-  const u32 b1 = dahua_decode (hash_pos[3]);
-  const u32 c0 = dahua_decode (hash_pos[4]);
-  const u32 c1 = dahua_decode (hash_pos[5]);
-  const u32 d0 = dahua_decode (hash_pos[6]);
-  const u32 d1 = dahua_decode (hash_pos[7]);
+  digest[0] = hex_to_u32 (hash_pos +  0);
+  digest[1] = hex_to_u32 (hash_pos +  8);
 
-  digest[0] = (a0 << 0) | (a1 << 8);
-  digest[1] = (b0 << 0) | (b1 << 8);
-  digest[2] = (c0 << 0) | (c1 << 8);
-  digest[3] = (d0 << 0) | (d1 << 8);
+  if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+  {
+    digest[0] -= MD5M_A;
+    digest[1] -= MD5M_B;
+  }
+
+  digest[1] &= 0x000000ff;
 
   return (PARSER_OK);
 }
@@ -121,18 +81,26 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u32 *digest = (const u32 *) digest_buf;
 
+  // we can not change anything in the original buffer, otherwise destroying sorting
+  // therefore create some local buffer
+
+  u32 tmp[2];
+
+  tmp[0] = digest[0];
+  tmp[1] = digest[1];
+
+  if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+  {
+    tmp[0] += MD5M_A;
+    tmp[1] += MD5M_B;
+  }
+
   u8 *out_buf = (u8 *) line_buf;
 
-  out_buf[0] = (u8) dahua_encode ((digest[0] >> 0) & 0xff);
-  out_buf[1] = (u8) dahua_encode ((digest[0] >> 8) & 0xff);
-  out_buf[2] = (u8) dahua_encode ((digest[1] >> 0) & 0xff);
-  out_buf[3] = (u8) dahua_encode ((digest[1] >> 8) & 0xff);
-  out_buf[4] = (u8) dahua_encode ((digest[2] >> 0) & 0xff);
-  out_buf[5] = (u8) dahua_encode ((digest[2] >> 8) & 0xff);
-  out_buf[6] = (u8) dahua_encode ((digest[3] >> 0) & 0xff);
-  out_buf[7] = (u8) dahua_encode ((digest[3] >> 8) & 0xff);
+  int out_len = 0;
 
-  const int out_len = 8;
+  u32_to_hex (tmp[0], out_buf + out_len); out_len += 8;
+  u32_to_hex (tmp[1], out_buf + out_len); out_len += 2;
 
   return out_len;
 }
@@ -212,5 +180,3 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_unstable_warning         = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }
-
-
