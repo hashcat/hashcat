@@ -18,6 +18,7 @@
 - Added hash-mode: Stuffit5
 - Added hash-mode: Umbraco HMAC-SHA1
 - Added hash-mode: sha1(sha1($pass).$salt)
+- Added hash-mode: MS Office 2016 - SheetProtection
 
 ##
 ## Bugs
