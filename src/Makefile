@@ -74,7 +74,7 @@ CXX                     := clang++
 AR                      := /usr/bin/ar
 SED                     := /usr/bin/sed
 SED_IN_PLACE            := -i ""
-PROD_VERS               := $(shell sw_vers -productVersion | cut -d. -f2)
+DARWIN_VERSION          := $(shell uname -r | cut -d. -f1)
 endif
 
 ifeq ($(UNAME),FreeBSD)
@@ -299,7 +299,7 @@ ifeq ($(UNAME),Darwin)
 export MACOSX_DEPLOYMENT_TARGET=10.9
 CFLAGS_NATIVE           := $(CFLAGS)
 
-ifeq ($(shell test $(PROD_VERS) -le 11; echo $$?), 0)
+ifeq ($(shell test $(DARWIN_VERSION) -le 15; echo $$?), 0)
 CFLAGS_NATIVE           += -DMISSING_CLOCK_GETTIME
 endif
 
