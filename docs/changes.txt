@@ -21,6 +21,13 @@
 - Added hash-mode: sha1(sha1($pass).$salt)
 
 ##
+## Features
+##
+
+- Added option --hash-info to show generic information for each hash-mode
+- Removed option --example-hashes, now is an alias of --hash-info
+
+##
 ## Bugs
 ##
 

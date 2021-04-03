@@ -47,7 +47,7 @@ static const struct option long_options[] =
   {"debug-mode",                required_argument, NULL, IDX_DEBUG_MODE},
   {"encoding-from",             required_argument, NULL, IDX_ENCODING_FROM},
   {"encoding-to",               required_argument, NULL, IDX_ENCODING_TO},
-  {"example-hashes",            no_argument,       NULL, IDX_EXAMPLE_HASHES},
+  {"example-hashes",            no_argument,       NULL, IDX_HASH_INFO}, // alias of hash-info
   {"force",                     no_argument,       NULL, IDX_FORCE},
   {"generate-rules-func-max",   required_argument, NULL, IDX_RP_GEN_FUNC_MAX},
   {"generate-rules-func-min",   required_argument, NULL, IDX_RP_GEN_FUNC_MIN},
@@ -55,6 +55,7 @@ static const struct option long_options[] =
   {"generate-rules-seed",       required_argument, NULL, IDX_RP_GEN_SEED},
   {"hwmon-disable",             no_argument,       NULL, IDX_HWMON_DISABLE},
   {"hwmon-temp-abort",          required_argument, NULL, IDX_HWMON_TEMP_ABORT},
+  {"hash-info",                 no_argument,       NULL, IDX_HASH_INFO},
   {"hash-type",                 required_argument, NULL, IDX_HASH_MODE},
   {"hccapx-message-pair",       required_argument, NULL, IDX_HCCAPX_MESSAGE_PAIR},
   {"help",                      no_argument,       NULL, IDX_HELP},
@@ -184,10 +185,10 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->debug_mode                = DEBUG_MODE;
   user_options->encoding_from             = ENCODING_FROM;
   user_options->encoding_to               = ENCODING_TO;
-  user_options->example_hashes            = EXAMPLE_HASHES;
   user_options->force                     = FORCE;
   user_options->hwmon_disable             = HWMON_DISABLE;
   user_options->hwmon_temp_abort          = HWMON_TEMP_ABORT;
+  user_options->hash_info                 = HASH_INFO;
   user_options->hash_mode                 = HASH_MODE;
   user_options->hccapx_message_pair       = HCCAPX_MESSAGE_PAIR;
   user_options->hex_charset               = HEX_CHARSET;
@@ -380,7 +381,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_ENCODING_TO:               user_options->encoding_to               = optarg;                          break;
       case IDX_INDUCTION_DIR:             user_options->induction_dir             = optarg;                          break;
       case IDX_OUTFILE_CHECK_DIR:         user_options->outfile_check_dir         = optarg;                          break;
-      case IDX_EXAMPLE_HASHES:            user_options->example_hashes            = true;                            break;
+      case IDX_HASH_INFO:                 user_options->hash_info                 = true;                            break;
       case IDX_FORCE:                     user_options->force                     = true;                            break;
       case IDX_SELF_TEST_DISABLE:         user_options->self_test_disable         = true;                            break;
       case IDX_SKIP:                      user_options->skip                      = hc_strtoull (optarg, NULL, 10);
@@ -1391,7 +1392,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       show_error = false;
     }
   }
-  else if (user_options->example_hashes == true)
+  else if (user_options->hash_info == true)
   {
     if (user_options->hc_argc == 0)
     {
@@ -1589,9 +1590,9 @@ void user_options_session_auto (hashcat_ctx_t *hashcat_ctx)
       user_options->session = "benchmark";
     }
 
-    if (user_options->example_hashes == true)
+    if (user_options->hash_info == true)
     {
-      user_options->session = "example_hashes";
+      user_options->session = "hash_info";
     }
 
     if (user_options->usage == true)
@@ -1667,7 +1668,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->bitmap_max          = 1;
   }
 
-  if (user_options->example_hashes  == true
+  if (user_options->hash_info       == true
    || user_options->backend_info    == true
    || user_options->keyspace        == true
    || user_options->speed_only      == true
@@ -1723,7 +1724,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  if (user_options->example_hashes == true)
+  if (user_options->hash_info == true)
   {
     user_options->quiet = true;
   }
@@ -1837,7 +1838,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->attack_mode == ATTACK_MODE_BF)
   {
-    if (user_options->example_hashes == true)
+    if (user_options->hash_info == true)
     {
 
     }
@@ -2058,7 +2059,7 @@ void user_options_extra_init (hashcat_ctx_t *hashcat_ctx)
   {
 
   }
-  else if (user_options->example_hashes == true)
+  else if (user_options->hash_info == true)
   {
 
   }
@@ -3001,7 +3002,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->bitmap_max);
   logfile_top_uint   (user_options->bitmap_min);
   logfile_top_uint   (user_options->debug_mode);
-  logfile_top_uint   (user_options->example_hashes);
+  logfile_top_uint   (user_options->hash_info);
   logfile_top_uint   (user_options->force);
   logfile_top_uint   (user_options->hwmon_disable);
   logfile_top_uint   (user_options->hwmon_temp_abort);
