@@ -560,17 +560,22 @@ void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_t *user_options)
       event_log_info (hashcat_ctx, "  Salt.Len.Max........: %d", hashconfig->salt_max);
     }
 
-    event_log_info (hashcat_ctx, "  Hashes.Count.Min....: %d", hashconfig->hashes_count_min);
-    event_log_info (hashcat_ctx, "  Hashes.Count.Max....: %u", hashconfig->hashes_count_max);
+    // almost always 1 and -1
+    //event_log_info (hashcat_ctx, "  Hashes.Count.Min....: %d", hashconfig->hashes_count_min);
+    //event_log_info (hashcat_ctx, "  Hashes.Count.Max....: %u", hashconfig->hashes_count_max);
 
-    char kernel_types[15];
-
-    memset (kernel_types, 0, sizeof (kernel_types));
-
-    if (hashconfig->has_pure_kernel) strncat (kernel_types, "pure ", 5);
-    if (hashconfig->has_optimized_kernel) strncat (kernel_types, "optimized", 9);
-
-    event_log_info (hashcat_ctx, "  Kernel.Type(s)......: %s", kernel_types);
+    if ((hashconfig->has_pure_kernel) && (hashconfig->has_optimized_kernel))
+    {
+      event_log_info (hashcat_ctx, "  Kernel.Type(s)......: pure, optimized");
+    }
+    else if (hashconfig->has_pure_kernel)
+    {
+      event_log_info (hashcat_ctx, "  Kernel.Type(s)......: pure");
+    }
+    else if (hashconfig->has_optimized_kernel)
+    {
+      event_log_info (hashcat_ctx, "  Kernel.Type(s)......: optimized");
+    }
 
     if ((hashconfig->st_hash != NULL) && (hashconfig->st_pass != NULL))
     {
