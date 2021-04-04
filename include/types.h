@@ -423,6 +423,8 @@ typedef enum opts_type
   OPTS_TYPE_AUX3              = (1ULL << 37),
   OPTS_TYPE_AUX4              = (1ULL << 38),
   OPTS_TYPE_BINARY_HASHFILE   = (1ULL << 39),
+  OPTS_TYPE_BINARY_HASHFILE_OPTIONAL
+                              = (1ULL << 40), // this allows us to not enforce the use of a binary file. requires OPTS_TYPE_BINARY_HASHFILE set to be effective.
   OPTS_TYPE_PT_ADD06          = (1ULL << 41),
   OPTS_TYPE_KEYBOARD_MAPPING  = (1ULL << 42),
   OPTS_TYPE_DEEP_COMP_KERNEL  = (1ULL << 43), // if we have to iterate through each hash inside the comp kernel, for example if each hash has to be decrypted separately
