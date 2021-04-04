@@ -1187,7 +1187,17 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
               compress_terminal_line_length (tmp_line_buf, 38, 32);
 
-              event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+              if (user_options->machine_readable == true) {
+                event_log_warning(hashcat_ctx, "%s:%u:%s:%s", hashes->hashfile,
+                                  line_num, tmp_line_buf,
+                                  strparser(parser_status));
+
+              } else {
+                event_log_warning(hashcat_ctx,
+                                  "Hashfile '%s' on line %u (%s): %s",
+                                  hashes->hashfile, line_num, tmp_line_buf,
+                                  strparser(parser_status));
+              }
 
               hcfree (tmp_line_buf);
 
@@ -1211,7 +1221,17 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
               compress_terminal_line_length (tmp_line_buf, 38, 32);
 
-              event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+              if (user_options->machine_readable == true) {
+                event_log_warning(hashcat_ctx, "%s:%u:%s:%s", hashes->hashfile,
+                                  line_num, tmp_line_buf,
+                                  strparser(parser_status));
+
+              } else {
+                event_log_warning(hashcat_ctx,
+                                  "Hashfile '%s' on line %u (%s): %s",
+                                  hashes->hashfile, line_num, tmp_line_buf,
+                                  strparser(parser_status));
+              }
 
               hcfree (tmp_line_buf);
 
@@ -1237,7 +1257,17 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
               compress_terminal_line_length (tmp_line_buf, 38, 32);
 
-              event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+              if (user_options->machine_readable == true) {
+                event_log_warning(hashcat_ctx, "%s:%u:%s:%s", hashes->hashfile,
+                                  line_num, tmp_line_buf,
+                                  strparser(parser_status));
+
+              } else {
+                event_log_warning(hashcat_ctx,
+                                  "Hashfile '%s' on line %u (%s): %s",
+                                  hashes->hashfile, line_num, tmp_line_buf,
+                                  strparser(parser_status));
+              }
 
               hcfree (tmp_line_buf);
 
@@ -1264,7 +1294,17 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             compress_terminal_line_length (tmp_line_buf, 38, 32);
 
-            event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+            if (user_options->machine_readable == true) {
+              event_log_warning(hashcat_ctx, "%s:%u:%s:%s", hashes->hashfile,
+                                line_num, tmp_line_buf,
+                                strparser(parser_status));
+
+            } else {
+              event_log_warning(hashcat_ctx,
+                                "Hashfile '%s' on line %u (%s): %s",
+                                hashes->hashfile, line_num, tmp_line_buf,
+                                strparser(parser_status));
+            }
 
             hcfree (tmp_line_buf);
 
