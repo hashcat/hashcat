@@ -19,6 +19,7 @@
 - Added hash-mode: Stuffit5
 - Added hash-mode: Umbraco HMAC-SHA1
 - Added hash-mode: sha1(sha1($pass).$salt)
+- Added hash-mode: Stargazer Stellar Wallet XLM, PBKDF2-HMAC-SHA256 + AES-256-GCM
 
 ##
 ## Features
