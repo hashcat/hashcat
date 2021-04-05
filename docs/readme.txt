@@ -292,6 +292,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Blockchain, My Wallet
 - Blockchain, My Wallet, V2
 - Blockchain, My Wallet, Second Password (SHA256)
+- Stargazer Stellar Wallet XLM
 - Ethereum Pre-Sale Wallet, PBKDF2-HMAC-SHA256
 - Ethereum Wallet, PBKDF2-HMAC-SHA256
 - Ethereum Wallet, SCRYPT
@@ -340,7 +341,6 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Django (SHA-1)
 - Web2py pbkdf2-sha512
 - TOTP (HMAC-SHA1)
-- Stargazer Stellar Wallet XLM, PBKDF2-HMAC-SHA256 + AES-256-GCM
 - Dahua Authentication MD5
 
 ##

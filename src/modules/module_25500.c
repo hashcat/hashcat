@@ -18,8 +18,8 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_4;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_PASSWORD_MANAGER;
-static const char *HASH_NAME      = "Stargazer Stellar Wallet XLM, PBKDF2-HMAC-SHA256 + AES-256-GCM";
-static const u64   KERN_TYPE      = 27000;
+static const char *HASH_NAME      = "Stargazer Stellar Wallet XLM";
+static const u64   KERN_TYPE      = 25500;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
@@ -74,13 +74,6 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
   if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
   {
     return jit_build_options;
-  }
-
-  // NVIDIA GPU
-  if (device_param->opencl_device_vendor_id == VENDOR_ID_NV)
-  {
-    // aes expandkey produce wrong results with this kernel if REAL_SHM is enabled
-    hc_asprintf (&jit_build_options, "-D _unroll -D FORCE_DISABLE_SHM");
   }
 
   // ROCM
