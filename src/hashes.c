@@ -633,18 +633,33 @@ int hashes_init_filename (hashcat_ctx_t *hashcat_ctx)
 
   if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
   {
-    hashes->hashlist_mode = HL_MODE_FILE_BINARY;
-
-    if ((user_options->benchmark == false) && (user_options->keyspace == false))
+    if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE_OPTIONAL)
     {
-      if (hc_path_read (user_options_extra->hc_hash) == false)
+      if ((user_options->benchmark == false) && (user_options->keyspace == false))
       {
-        event_log_error (hashcat_ctx, "%s: %s", user_options_extra->hc_hash, strerror (errno));
+        hashes->hashlist_mode = (hc_path_exist (user_options_extra->hc_hash) == true) ? HL_MODE_FILE_PLAIN : HL_MODE_ARG;
 
-        return -1;
+        if (hashes->hashlist_mode == HL_MODE_FILE_PLAIN)
+        {
+          hashes->hashfile = user_options_extra->hc_hash;
+        }
       }
+    }
+    else
+    {
+      hashes->hashlist_mode = HL_MODE_FILE_BINARY;
 
-      hashes->hashfile = user_options_extra->hc_hash;
+      if ((user_options->benchmark == false) && (user_options->keyspace == false))
+      {
+        if (hc_path_read (user_options_extra->hc_hash) == false)
+        {
+          event_log_error (hashcat_ctx, "%s: %s", user_options_extra->hc_hash, strerror (errno));
+
+          return -1;
+        }
+
+        hashes->hashfile = user_options_extra->hc_hash;
+      }
     }
   }
   else
@@ -901,7 +916,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
     hashes_cnt = 1;
   }
-  else if (user_options->example_hashes == true)
+  else if (user_options->hash_info == true)
   {
   }
   else if (user_options->keyspace == true)
@@ -1172,7 +1187,17 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
               compress_terminal_line_length (tmp_line_buf, 38, 32);
 
-              event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+              if (user_options->machine_readable == true) {
+                event_log_warning(hashcat_ctx, "%s:%u:%s:%s", hashes->hashfile,
+                                  line_num, tmp_line_buf,
+                                  strparser(parser_status));
+
+              } else {
+                event_log_warning(hashcat_ctx,
+                                  "Hashfile '%s' on line %u (%s): %s",
+                                  hashes->hashfile, line_num, tmp_line_buf,
+                                  strparser(parser_status));
+              }
 
               hcfree (tmp_line_buf);
 
@@ -1196,7 +1221,17 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
               compress_terminal_line_length (tmp_line_buf, 38, 32);
 
-              event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+              if (user_options->machine_readable == true) {
+                event_log_warning(hashcat_ctx, "%s:%u:%s:%s", hashes->hashfile,
+                                  line_num, tmp_line_buf,
+                                  strparser(parser_status));
+
+              } else {
+                event_log_warning(hashcat_ctx,
+                                  "Hashfile '%s' on line %u (%s): %s",
+                                  hashes->hashfile, line_num, tmp_line_buf,
+                                  strparser(parser_status));
+              }
 
               hcfree (tmp_line_buf);
 
@@ -1222,7 +1257,17 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
               compress_terminal_line_length (tmp_line_buf, 38, 32);
 
-              event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+              if (user_options->machine_readable == true) {
+                event_log_warning(hashcat_ctx, "%s:%u:%s:%s", hashes->hashfile,
+                                  line_num, tmp_line_buf,
+                                  strparser(parser_status));
+
+              } else {
+                event_log_warning(hashcat_ctx,
+                                  "Hashfile '%s' on line %u (%s): %s",
+                                  hashes->hashfile, line_num, tmp_line_buf,
+                                  strparser(parser_status));
+              }
 
               hcfree (tmp_line_buf);
 
@@ -1249,7 +1294,17 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             compress_terminal_line_length (tmp_line_buf, 38, 32);
 
-            event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+            if (user_options->machine_readable == true) {
+              event_log_warning(hashcat_ctx, "%s:%u:%s:%s", hashes->hashfile,
+                                line_num, tmp_line_buf,
+                                strparser(parser_status));
+
+            } else {
+              event_log_warning(hashcat_ctx,
+                                "Hashfile '%s' on line %u (%s): %s",
+                                hashes->hashfile, line_num, tmp_line_buf,
+                                strparser(parser_status));
+            }
 
             hcfree (tmp_line_buf);
 
@@ -1858,30 +1913,37 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
   {
     if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
     {
-      char *tmpfile_bin;
-
-      hc_asprintf (&tmpfile_bin, "%s/selftest.hash", folder_config->session_dir);
-
-      HCFILE fp;
-
-      hc_fopen (&fp, tmpfile_bin, "wb");
-
-      const size_t st_hash_len = strlen (hashconfig->st_hash);
-
-      for (size_t i = 0; i < st_hash_len; i += 2)
+      if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE_OPTIONAL)
       {
-        const u8 c = hex_to_u8 ((const u8 *) hashconfig->st_hash + i);
-
-        hc_fputc (c, &fp);
+        parser_status = module_ctx->module_hash_decode (hashconfig, hash.digest, hash.salt, hash.esalt, hash.hook_salt, hash.hash_info, hashconfig->st_hash, strlen (hashconfig->st_hash));
       }
+      else
+      {
+        char *tmpfile_bin;
 
-      hc_fclose (&fp);
+        hc_asprintf (&tmpfile_bin, "%s/selftest.hash", folder_config->session_dir);
 
-      parser_status = module_ctx->module_hash_decode (hashconfig, hash.digest, hash.salt, hash.esalt, hash.hook_salt, hash.hash_info, tmpfile_bin, strlen (tmpfile_bin));
+        HCFILE fp;
 
-      unlink (tmpfile_bin);
+        hc_fopen (&fp, tmpfile_bin, "wb");
 
-      hcfree (tmpfile_bin);
+        const size_t st_hash_len = strlen (hashconfig->st_hash);
+
+        for (size_t i = 0; i < st_hash_len; i += 2)
+        {
+          const u8 c = hex_to_u8 ((const u8 *) hashconfig->st_hash + i);
+
+          hc_fputc (c, &fp);
+        }
+
+        hc_fclose (&fp);
+
+        parser_status = module_ctx->module_hash_decode (hashconfig, hash.digest, hash.salt, hash.esalt, hash.hook_salt, hash.hash_info, tmpfile_bin, strlen (tmpfile_bin));
+
+        unlink (tmpfile_bin);
+
+        hcfree (tmpfile_bin);
+      }
     }
     else
     {

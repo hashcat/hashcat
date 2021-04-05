@@ -216,6 +216,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - MySQL4.1/MySQL5
 - MySQL $A$ (sha256crypt)
 - Sybase ASE
+- SQLCipher
 - hMailServer
 - DNSSEC (NSEC3)
 - CRAM-MD5 Dovecot
@@ -265,6 +266,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - MS Office 2007
 - MS Office 2010
 - MS Office 2013
+- MS Office 2016 - SheetProtection
 - MS Office <= 2003 $0/$1, MD5 + RC4
 - MS Office <= 2003 $0/$1, MD5 + RC4, collider #1
 - MS Office <= 2003 $0/$1, MD5 + RC4, collider #2
@@ -313,6 +315,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - iTunes backup >= 10.0
 - WinZip
 - Android Backup
+- Stuffit5
 - AxCrypt 1
 - AxCrypt 1 in-memory SHA1
 - AxCrypt 2 AES-128
@@ -324,6 +327,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - SMF (Simple Machines Forum) > v1.1
 - MediaWiki B type
 - Redmine
+- Umbraco HMAC-SHA1
 - Joomla < 2.5.18
 - OpenCart
 - PrestaShop
@@ -337,6 +341,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Web2py pbkdf2-sha512
 - TOTP (HMAC-SHA1)
 - Stargazer Stellar Wallet XLM, PBKDF2-HMAC-SHA256 + AES-256-GCM
+- Dahua Authentication MD5
 
 ##
 ## Attack-Modes
