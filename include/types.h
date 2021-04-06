@@ -423,6 +423,8 @@ typedef enum opts_type
   OPTS_TYPE_AUX3              = (1ULL << 37),
   OPTS_TYPE_AUX4              = (1ULL << 38),
   OPTS_TYPE_BINARY_HASHFILE   = (1ULL << 39),
+  OPTS_TYPE_BINARY_HASHFILE_OPTIONAL
+                              = (1ULL << 40), // this allows us to not enforce the use of a binary file. requires OPTS_TYPE_BINARY_HASHFILE set to be effective.
   OPTS_TYPE_PT_ADD06          = (1ULL << 41),
   OPTS_TYPE_KEYBOARD_MAPPING  = (1ULL << 42),
   OPTS_TYPE_DEEP_COMP_KERNEL  = (1ULL << 43), // if we have to iterate through each hash inside the comp kernel, for example if each hash has to be decrypted separately
@@ -542,6 +544,8 @@ typedef enum parser_rc
   PARSER_BLOCK_SIZE           = -39,
   PARSER_CIPHER               = -40,
   PARSER_FILE_SIZE            = -41,
+  PARSER_IV_LENGTH            = -42,
+  PARSER_CT_LENGTH            = -43,
   PARSER_HAVE_ERRNO           = -100,
   PARSER_UNKNOWN_ERROR        = -255
 
@@ -591,10 +595,10 @@ typedef enum user_options_defaults
   BRAIN_SESSION            = 0,
   #endif
   DEBUG_MODE               = 0,
-  EXAMPLE_HASHES           = false,
   FORCE                    = false,
   HWMON_DISABLE            = false,
   HWMON_TEMP_ABORT         = 90,
+  HASH_INFO                = false,
   HASH_MODE                = 0,
   HCCAPX_MESSAGE_PAIR      = 0,
   HEX_CHARSET              = false,
@@ -696,7 +700,7 @@ typedef enum user_options_map
   IDX_DEBUG_MODE                = 0xff11,
   IDX_ENCODING_FROM             = 0xff12,
   IDX_ENCODING_TO               = 0xff13,
-  IDX_EXAMPLE_HASHES            = 0xff14,
+  IDX_HASH_INFO                 = 0xff14,
   IDX_FORCE                     = 0xff15,
   IDX_HWMON_DISABLE             = 0xff16,
   IDX_HWMON_TEMP_ABORT          = 0xff17,
@@ -1938,9 +1942,9 @@ typedef struct user_options
   bool         brain_client;
   bool         brain_server;
   #endif
-  bool         example_hashes;
   bool         force;
   bool         hwmon_disable;
+  bool         hash_info;
   bool         hex_charset;
   bool         hex_salt;
   bool         hex_wordlist;

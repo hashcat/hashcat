@@ -4,17 +4,31 @@
 ## Algorithms
 ##
 
-- Added hash-mode: Bitwarden
-- Added hash-mode: BestCrypt v3 Volume Encryption
 - Added hash-mode: Apple iWork
 - Added hash-mode: AxCrypt 2 AES-128
 - Added hash-mode: AxCrypt 2 AES-256
+- Added hash-mode: BestCrypt v3 Volume Encryption
+- Added hash-mode: Bitwarden
+- Added hash-mode: Dahua Authentication MD5
 - Added hash-mode: MongoDB ServerKey SCRAM-SHA-1
 - Added hash-mode: MongoDB ServerKey SCRAM-SHA-256
+- Added hash-mode: MS Office 2016 - SheetProtection
+- Added hash-mode: PKCS#8 Private Keys
 - Added hash-mode: RAR3-p (Compressed)
 - Added hash-mode: RAR3-p (Uncompressed)
 - Added hash-mode: RSA/DSA/EC/OPENSSH Private Keys
+- Added hash-mode: SQLCipher
+- Added hash-mode: Stargazer Stellar Wallet XLM
+- Added hash-mode: Stuffit5
+- Added hash-mode: Umbraco HMAC-SHA1
 - Added hash-mode: sha1(sha1($pass).$salt)
+
+##
+## Features
+##
+
+- Added option --hash-info to show generic information for each hash-mode
+- Removed option --example-hashes, now is an alias of --hash-info
 
 ##
 ## Bugs
