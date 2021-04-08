@@ -4,7 +4,6 @@
  */
 
 #define NEW_SIMD_CODE
-#define AES_GCM_ALT1
 
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
@@ -35,7 +34,7 @@ typedef struct pbkdf2_sha256_aes_gcm
   u32 salt_buf[64];
   u32 iv_buf[4];
   u32 iv_len;
-  u32 ct_buf[14];
+  u32 ct_buf[16];
   u32 ct_len;
 
 } pbkdf2_sha256_aes_gcm_t;

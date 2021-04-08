@@ -4,7 +4,6 @@
  */
 
 #define NEW_SIMD_CODE
-#define AES_GCM_ALT1
 
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
@@ -35,7 +34,7 @@ typedef struct pbkdf2_sha256_aes_gcm
   u32 salt_buf[64];
   u32 iv_buf[4];
   u32 iv_len;
-  u32 ct_buf[14];
+  u32 ct_buf[16];
   u32 ct_len;
 
 } pbkdf2_sha256_aes_gcm_t;
@@ -350,6 +349,7 @@ KERNEL_FQ void m25500_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
 
   // ct
 
+  /*
   u32 enc[14] = { 0 };
 
   enc[ 0] = esalt_bufs[DIGESTS_OFFSET].ct_buf[ 0];
@@ -368,6 +368,7 @@ KERNEL_FQ void m25500_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
   enc[13] = esalt_bufs[DIGESTS_OFFSET].ct_buf[13];
 
   u32 enc_len = esalt_bufs[DIGESTS_OFFSET].ct_len;
+  */
 
   /*
   // decrypt buffer is not usefull here, skip
@@ -383,7 +384,9 @@ KERNEL_FQ void m25500_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
   u32 aad_buf[4] = { 0 };
   u32 aad_len = 0;
 
-  AES_GCM_GHASH (subKey, aad_buf, aad_len, enc, enc_len, S);
+  //AES_GCM_GHASH (subKey, aad_buf, aad_len, enc, enc_len, S);
+
+  AES_GCM_GHASH_GLOBAL (subKey, aad_buf, aad_len, esalt_bufs[DIGESTS_OFFSET].ct_buf, esalt_bufs[DIGESTS_OFFSET].ct_len, S);
 
   AES_GCM_GCTR (key, J0, S, S_len, T, s_te0, s_te1, s_te2, s_te3, s_te4);
 

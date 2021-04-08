@@ -59,7 +59,7 @@ typedef struct pbkdf2_sha256_aes_gcm
   u32 salt_buf[64];
   u32 iv_buf[4];
   u32 iv_len;
-  u32 ct_buf[14];
+  u32 ct_buf[16];
   u32 ct_len;
 
 } pbkdf2_sha256_aes_gcm_t;
@@ -213,6 +213,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   {
     stellar->ct_buf[i] = byte_swap_32 (stellar->ct_buf[i]);
   }
+
+  stellar->ct_buf[14] = 0;
+  stellar->ct_buf[15] = 0;
 
   stellar->ct_len = tmp_len - 16;
 
