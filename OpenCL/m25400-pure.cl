@@ -3,6 +3,9 @@
  * License.....: MIT
  */
 
+// TODO use user password as input for md5 of o_digest if no owner password is set
+// TODO dynamically add user password including padding to the RC4 input for the computation of the pdf o-value
+
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
@@ -214,21 +217,6 @@ KERNEL_FQ void m25400_init (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
   //LOCAL_AS RC4_KEY rc4_keys[64];
   //LOCAL_AS RC4_KEY *rc4_key = &rc4_keys[lid];
 
-  /**
-   * U_buf
-   */
-
-  u32 o_buf[8];
-
-  o_buf[0] = esalt_bufs[DIGESTS_OFFSET].o_buf[0];
-  o_buf[1] = esalt_bufs[DIGESTS_OFFSET].o_buf[1];
-  o_buf[2] = esalt_bufs[DIGESTS_OFFSET].o_buf[2];
-  o_buf[3] = esalt_bufs[DIGESTS_OFFSET].o_buf[3];
-  o_buf[4] = esalt_bufs[DIGESTS_OFFSET].o_buf[4];
-  o_buf[5] = esalt_bufs[DIGESTS_OFFSET].o_buf[5];
-  o_buf[6] = esalt_bufs[DIGESTS_OFFSET].o_buf[6];
-  o_buf[7] = esalt_bufs[DIGESTS_OFFSET].o_buf[7];
-
   u32 P = esalt_bufs[DIGESTS_OFFSET].P;
 
   u32 id_buf[12];
@@ -285,7 +273,7 @@ KERNEL_FQ void m25400_init (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
 
   // add password
   // truncate at 32 is wanted, not a bug!
-  // add o_buf
+  // add padding
 
   w0_t[0] |= w0[0];
   w0_t[1] |= w0[1];

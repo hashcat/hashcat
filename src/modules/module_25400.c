@@ -3,6 +3,9 @@
  * License.....: MIT
  */
 
+// TODO use user password as input for md5 of o_digest if no owner password is set
+// TODO dynamically add user password including padding to the RC4 input for the computation of the pdf o-value
+
 #include "common.h"
 #include "types.h"
 #include "modules.h"
@@ -25,7 +28,7 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$pdf$2*3*128*-3904*1*16*631ed33746e50fba5caf56bcc39e09c6*32*842103b0a0dc886db9223b94afe2d7cd63389079b61986a4fcf70095ad630c24*32*5f9d0e4f0b39835dace0d306c40cd6b700000000000000000000000000000000";
+static const char *ST_HASH        = "$pdf$2*3*128*-3904*1*16*631ed33746e50fba5caf56bcc39e09c6*32*5f9d0e4f0b39835dace0d306c40cd6b700000000000000000000000000000000*32*842103b0a0dc886db9223b94afe2d7cd63389079b61986a4fcf70095ad630c24";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -242,9 +245,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u8 *id_len_pos = token.buf[6];
   const u8 *id_buf_pos = token.buf[7];
   const u8 *u_len_pos  = token.buf[8];
-  const u8 *u_buf_pos  = token.buf[9];
+  const u8 *u_buf_pos  = token.buf[9];  // user hash
   const u8 *o_len_pos  = token.buf[10];
-  const u8 *o_buf_pos  = token.buf[11];
+  const u8 *o_buf_pos  = token.buf[11]; // owner hash
 
   // validate data
 
@@ -358,16 +361,16 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   salt->salt_buf[1] = pdf->id_buf[1];
   salt->salt_buf[2] = pdf->id_buf[2];
   salt->salt_buf[3] = pdf->id_buf[3];
-  salt->salt_buf[4] = pdf->u_buf[0];
-  salt->salt_buf[5] = pdf->u_buf[1];
-  salt->salt_buf[6] = pdf->o_buf[0];
-  salt->salt_buf[7] = pdf->o_buf[1];
+  salt->salt_buf[4] = pdf->o_buf[0]; // switched u_buf with o_buf vs m10500
+  salt->salt_buf[5] = pdf->o_buf[1];
+  salt->salt_buf[6] = pdf->u_buf[0];
+  salt->salt_buf[7] = pdf->u_buf[1];
   salt->salt_len    = pdf->id_len + 16;
 
   salt->salt_iter   = (50 + 20);
 
-  digest[0] = pdf->u_buf[0];
-  digest[1] = pdf->u_buf[1];
+  digest[0] = pdf->o_buf[0]; // o_buf instead of u_buf vs m10500
+  digest[1] = pdf->o_buf[1];
   digest[2] = 0;
   digest[3] = 0;
 
