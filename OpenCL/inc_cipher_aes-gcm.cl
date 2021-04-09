@@ -63,78 +63,23 @@ DECLSPEC void AES_GCM_gf_mult (const u32 *x, const u32 *y, u32 *z)
   }
 }
 
-DECLSPEC void AES_GCM_ghash (const u32 *subkey, const u32 *in, u32 in_len, u32 *out)
+DECLSPEC void AES_GCM_ghash (const u32 *subkey, const u32 *in, int in_len, u32 *out)
 {
-  u32 m = in_len / 16;
+  int i;
+  int j;
 
-  const u32 *xpos = in;
-
-  u32 tmp[4] = { 0 };
-
-  for (u32 i = 0; i < m; i++)
-  {
-    AES_GCM_xor_block (out, xpos);
-
-    xpos += 4;
-
-    AES_GCM_gf_mult (out, subkey, tmp);
-
-    out[0] = tmp[0];
-    out[1] = tmp[1];
-    out[2] = tmp[2];
-    out[3] = tmp[3];
-  }
-
-  if (in + (in_len/4) > xpos)
-  {
-    u32 last = in + (in_len/4) - xpos;
-
-    for (u32 i = 0; i < last; i++)
-    {
-      tmp[i] = xpos[i];
-    }
-
-    for (u32 i = last; i < 4; i++)
-    {
-      tmp[i] = 0;
-    }
-
-    AES_GCM_xor_block (out, tmp);
-
-    AES_GCM_gf_mult (out, subkey, tmp);
-
-    tmp[0] = hc_swap32_S (tmp[0]);
-    tmp[1] = hc_swap32_S (tmp[1]);
-    tmp[2] = hc_swap32_S (tmp[2]);
-    tmp[3] = hc_swap32_S (tmp[3]);
-
-    out[0] = tmp[0];
-    out[1] = tmp[1];
-    out[2] = tmp[2];
-    out[3] = tmp[3];
-  }
-}
-
-DECLSPEC void AES_GCM_ghash_global (const u32 *subkey, GLOBAL_AS const u32 *in, u32 in_len, u32 *out)
-{
-  u32 m = in_len / 16;
-
-  GLOBAL_AS const u32 *xpos = in;
-
-  u32 tmp[4] = { 0 };
-
-  for (u32 i = 0; i < m; i++)
+  for (i = 0, j = 0; i < in_len - 15; i += 16, j += 4)
   {
     u32 t2[4];
 
-    t2[0] = xpos[0];
-    t2[1] = xpos[1];
-    t2[2] = xpos[2];
-    t2[3] = xpos[3];
+    t2[0] = in[j + 0];
+    t2[1] = in[j + 1];
+    t2[2] = in[j + 2];
+    t2[3] = in[j + 3];
 
     AES_GCM_xor_block (out, t2);
 
-    xpos += 4;
+    u32 tmp[4];
 
     AES_GCM_gf_mult (out, subkey, tmp);
 
@@ -144,28 +89,22 @@ DECLSPEC void AES_GCM_ghash_global (const u32 *subkey, GLOBAL_AS const u32 *in, 
     out[3] = tmp[3];
   }
 
-  if (in + (in_len/4) > xpos)
+  const int left = in_len - i;
+
+  if (left > 0)
   {
-    u32 last = in + (in_len/4) - xpos;
+    u32 t2[4];
 
-    for (u32 i = 0; i < last; i++)
-    {
-      tmp[i] = xpos[i];
-    }
+    t2[0] = (left >  0) ? in[j + 0] : 0;
+    t2[1] = (left >  4) ? in[j + 1] : 0;
+    t2[2] = (left >  8) ? in[j + 2] : 0;
+    t2[3] = (left > 12) ? in[j + 3] : 0;
 
-    for (u32 i = last; i < 4; i++)
-    {
-      tmp[i] = 0;
-    }
+    AES_GCM_xor_block (out, t2);
 
-    AES_GCM_xor_block (out, tmp);
+    u32 tmp[4];
 
     AES_GCM_gf_mult (out, subkey, tmp);
-
-    tmp[0] = hc_swap32_S (tmp[0]);
-    tmp[1] = hc_swap32_S (tmp[1]);
-    tmp[2] = hc_swap32_S (tmp[2]);
-    tmp[3] = hc_swap32_S (tmp[3]);
 
     out[0] = tmp[0];
     out[1] = tmp[1];
@@ -174,7 +113,57 @@ DECLSPEC void AES_GCM_ghash_global (const u32 *subkey, GLOBAL_AS const u32 *in, 
   }
 }
 
-DECLSPEC void AES_GCM_Init (const u32 *ukey, u32 key_len, u32 *key, u32 *subkey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void AES_GCM_ghash_global (const u32 *subkey, GLOBAL_AS const u32 *in, int in_len, u32 *out)
+{
+  int i;
+  int j;
+
+  for (i = 0, j = 0; i < in_len - 15; i += 16, j += 4)
+  {
+    u32 t2[4];
+
+    t2[0] = in[j + 0];
+    t2[1] = in[j + 1];
+    t2[2] = in[j + 2];
+    t2[3] = in[j + 3];
+
+    AES_GCM_xor_block (out, t2);
+
+    u32 tmp[4];
+
+    AES_GCM_gf_mult (out, subkey, tmp);
+
+    out[0] = tmp[0];
+    out[1] = tmp[1];
+    out[2] = tmp[2];
+    out[3] = tmp[3];
+  }
+
+  const int left = in_len - i;
+
+  if (left > 0)
+  {
+    u32 t2[4];
+
+    t2[0] = (left >  0) ? in[j + 0] : 0;
+    t2[1] = (left >  4) ? in[j + 1] : 0;
+    t2[2] = (left >  8) ? in[j + 2] : 0;
+    t2[3] = (left > 12) ? in[j + 3] : 0;
+
+    AES_GCM_xor_block (out, t2);
+
+    u32 tmp[4];
+
+    AES_GCM_gf_mult (out, subkey, tmp);
+
+    out[0] = tmp[0];
+    out[1] = tmp[1];
+    out[2] = tmp[2];
+    out[3] = tmp[3];
+  }
+}
+
+DECLSPEC void AES_GCM_Init (const u32 *ukey, int key_len, u32 *key, u32 *subkey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   if (key_len == 128)
   {
@@ -196,7 +185,7 @@ DECLSPEC void AES_GCM_Init (const u32 *ukey, u32 key_len, u32 *key, u32 *subkey,
   }
 }
 
-DECLSPEC void AES_GCM_Prepare_J0 (const u32 *iv, u32 iv_len, const u32 *subkey, u32 *J0)
+DECLSPEC void AES_GCM_Prepare_J0 (const u32 *iv, int iv_len, const u32 *subkey, u32 *J0)
 {
   if (iv_len == 12)
   {
@@ -207,23 +196,19 @@ DECLSPEC void AES_GCM_Prepare_J0 (const u32 *iv, u32 iv_len, const u32 *subkey, 
   }
   else
   {
-    J0[0] = iv[0];
-    J0[1] = iv[1];
-    J0[2] = iv[2];
-    J0[3] = iv[3];
+    AES_GCM_gf_mult (iv, subkey, J0);
 
-    u32 len_buf[4];
+    u32 len_buf[4] = { 0 };
 
-    len_buf[0] = 0;
-    len_buf[1] = 0;
-    len_buf[2] = 0;
     len_buf[3] = iv_len * 8;
 
-    AES_GCM_ghash (subkey, len_buf, 16, J0);
+    AES_GCM_xor_block (len_buf, J0);
+
+    AES_GCM_gf_mult (len_buf, subkey, J0);
   }
 }
 
-DECLSPEC void AES_GCM_gctr (const u32 *key, const u32 *iv, const u32 *in, u32 in_len, u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void AES_GCM_gctr (const u32 *key, const u32 *iv, const u32 *in, int in_len, u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   const u32 *xpos = in;
 
@@ -236,7 +221,7 @@ DECLSPEC void AES_GCM_gctr (const u32 *key, const u32 *iv, const u32 *in, u32 in
   iv_buf[2] = iv[2];
   iv_buf[3] = iv[3];
 
-  const u32 n = in_len / 16;
+  const int n = in_len / 16;
 
   for (u32 i = 0; i < n; i++)
   {
@@ -250,7 +235,9 @@ DECLSPEC void AES_GCM_gctr (const u32 *key, const u32 *iv, const u32 *in, u32 in
     AES_GCM_inc32 (iv_buf);
   }
 
-  u32 last = in + (in_len/4) - xpos;
+  // this is not byte accurate but 4-byte accurate. needs fix?
+
+  int last = in + (in_len/4) - xpos;
 
   if (last)
   {
@@ -264,7 +251,7 @@ DECLSPEC void AES_GCM_gctr (const u32 *key, const u32 *iv, const u32 *in, u32 in
   }
 }
 
-DECLSPEC void AES_GCM_GCTR (u32 *key, u32 *J0, const u32 *in, u32 in_len, u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void AES_GCM_GCTR (u32 *key, u32 *J0, const u32 *in, int in_len, u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 J0_incr[4];
 
@@ -276,7 +263,7 @@ DECLSPEC void AES_GCM_GCTR (u32 *key, u32 *J0, const u32 *in, u32 in_len, u32 *o
   AES_GCM_gctr (key, J0_incr, in, in_len, out, s_te0, s_te1, s_te2, s_te3, s_te4);
 }
 
-DECLSPEC void AES_GCM_GHASH (const u32 *subkey, const u32 *aad_buf, u32 aad_len, const u32 *enc_buf, u32 enc_len, u32 *out)
+DECLSPEC void AES_GCM_GHASH (const u32 *subkey, const u32 *aad_buf, int aad_len, const u32 *enc_buf, int enc_len, u32 *out)
 {
   out[0] = 0;
   out[1] = 0;
@@ -285,20 +272,7 @@ DECLSPEC void AES_GCM_GHASH (const u32 *subkey, const u32 *aad_buf, u32 aad_len,
 
   AES_GCM_ghash (subkey, aad_buf, aad_len, out);
 
-  // untested swap
-  /*
-  out[0] = hc_swap32_S (out[0]);
-  out[1] = hc_swap32_S (out[1]);
-  out[2] = hc_swap32_S (out[2]);
-  out[3] = hc_swap32_S (out[3]);
-  */
-
   AES_GCM_ghash (subkey, enc_buf, enc_len, out);
-
-  out[0] = hc_swap32_S (out[0]);
-  out[1] = hc_swap32_S (out[1]);
-  out[2] = hc_swap32_S (out[2]);
-  out[3] = hc_swap32_S (out[3]);
 
   u32 len_buf[4];
 
@@ -310,7 +284,7 @@ DECLSPEC void AES_GCM_GHASH (const u32 *subkey, const u32 *aad_buf, u32 aad_len,
   AES_GCM_ghash (subkey, len_buf, 16, out);
 }
 
-DECLSPEC void AES_GCM_GHASH_GLOBAL (const u32 *subkey, const u32 *aad_buf, u32 aad_len, GLOBAL_AS const u32 *enc_buf, u32 enc_len, u32 *out)
+DECLSPEC void AES_GCM_GHASH_GLOBAL (const u32 *subkey, const u32 *aad_buf, int aad_len, GLOBAL_AS const u32 *enc_buf, int enc_len, u32 *out)
 {
   out[0] = 0;
   out[1] = 0;
@@ -319,20 +293,7 @@ DECLSPEC void AES_GCM_GHASH_GLOBAL (const u32 *subkey, const u32 *aad_buf, u32 a
 
   AES_GCM_ghash (subkey, aad_buf, aad_len, out);
 
-  // untested swap
-  /*
-  out[0] = hc_swap32_S (out[0]);
-  out[1] = hc_swap32_S (out[1]);
-  out[2] = hc_swap32_S (out[2]);
-  out[3] = hc_swap32_S (out[3]);
-  */
-
   AES_GCM_ghash_global (subkey, enc_buf, enc_len, out);
-
-  out[0] = hc_swap32_S (out[0]);
-  out[1] = hc_swap32_S (out[1]);
-  out[2] = hc_swap32_S (out[2]);
-  out[3] = hc_swap32_S (out[3]);
 
   u32 len_buf[4];
 
