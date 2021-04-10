@@ -13,6 +13,7 @@
 - Added hash-mode: MongoDB ServerKey SCRAM-SHA-1
 - Added hash-mode: MongoDB ServerKey SCRAM-SHA-256
 - Added hash-mode: MS Office 2016 - SheetProtection
+- Added hash-mode: PDF 1.4 - 1.6 (Acrobat 5 - 8) - edit password
 - Added hash-mode: PKCS#8 Private Keys
 - Added hash-mode: RAR3-p (Compressed)
 - Added hash-mode: RAR3-p (Uncompressed)
