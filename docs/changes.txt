@@ -10,12 +10,16 @@
 - Added hash-mode: BestCrypt v3 Volume Encryption
 - Added hash-mode: Bitwarden
 - Added hash-mode: Dahua Authentication MD5
+- Added hash-mode: MongoDB ServerKey SCRAM-SHA-1
+- Added hash-mode: MongoDB ServerKey SCRAM-SHA-256
 - Added hash-mode: MS Office 2016 - SheetProtection
+- Added hash-mode: PDF 1.4 - 1.6 (Acrobat 5 - 8) - edit password
 - Added hash-mode: PKCS#8 Private Keys
 - Added hash-mode: RAR3-p (Compressed)
 - Added hash-mode: RAR3-p (Uncompressed)
 - Added hash-mode: RSA/DSA/EC/OPENSSH Private Keys
 - Added hash-mode: SQLCipher
+- Added hash-mode: Stargazer Stellar Wallet XLM
 - Added hash-mode: Stuffit5
 - Added hash-mode: Umbraco HMAC-SHA1
 - Added hash-mode: sha1(sha1($pass).$salt)
@@ -24,6 +28,7 @@
 ## Features
 ##
 
+- Added support for true UTF8 to UTF16 conversion in kernel crypto library
 - Added option --hash-info to show generic information for each hash-mode
 - Removed option --example-hashes, now is an alias of --hash-info
 
@@ -38,6 +43,7 @@
 - Fixed rare case of misalignment of the status prompt when other user warnings are shown within the hashcat output
 - Fixed password reassembling for cracked hashes on host for slow hashes in optimized mode that are longer than 32 characters
 - Fixed incorrect maximum password length support for -m 400 in optimized mode (reduced from 55 to 39)
+- Fixed invalid handling of outfile folder entries for -m 22000
 
 ##
 ## Improvements
@@ -47,6 +53,7 @@
 - CUDA Backend: Give detailed warning if either the NVIDIA CUDA or the NVIDIA RTC library cannot be initialized
 - CUDA Backend: Do not warn about missing CUDA SDK installation if --backend-ignore-cuda is used
 - CUDA Backend: Use blocking events to avoid 100% CPU core usage (per GPU)
+- OpenCL Runtime: Workaround JiT compiler deadlock on NVIDIA driver >= 465.89
 - RAR3 Kernels: Improved loop code, improving performance by 23%
 - Startup time: Improved the startup time by avoiding some time intensive operations for skipped devices
 
@@ -59,7 +66,8 @@
 - Hash-Mode 11600 (7-Zip): Improved memory handling (alloc and free) for the hook function
 - Hash-Mode 13200 (AxCrypt): Changed the name to AxCrypt 1 to avoid confusion
 - Hash-Mode 13300 (AxCrypt in-memory SHA1): Changed the name to AxCrypt 1 in-memory SHA1
-- OpenCL Runtime: Switched default OpenCL device type on macOS from GPU to CPU. Use -D 2 to enable GPU devices.
+- Kernel Crypto Library: Removed unnecessary utf16 conversion functions which would apply on HMAC data portion
+- OpenCL Runtime: Switched default OpenCL device type on macOS from GPU to CPU. Use -D 2 to enable GPU devices
 - Unit tests: Added Python 3 support for all of the Python code in our test framework
 - Unit tests: Fixed the packaging of test (-p) feature
 

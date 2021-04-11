@@ -330,7 +330,17 @@ char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
 
     if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
     {
-      return hcstrdup (hashes->hashfile);
+      if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE_OPTIONAL)
+      {
+        if (hashes->hashfile)
+        {
+          return hcstrdup (hashes->hashfile);
+        }
+      }
+      else
+      {
+        return hcstrdup (hashes->hashfile);
+      }
     }
 
     char *tmp_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);

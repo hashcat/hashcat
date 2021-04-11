@@ -162,8 +162,10 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Skype
 - Telegram Desktop App Passcode (PBKDF2-HMAC-SHA1)
 - Telegram Mobile App Passcode (SHA256)
-- PostgreSQL CRAM (MD5)
+- MongoDB ServerKey SCRAM-SHA-1
+- MongoDB ServerKey SCRAM-SHA-256
 - MySQL CRAM (SHA1)
+- PostgreSQL CRAM (MD5)
 - XMPP SCRAM
 - RACF
 - AIX {smd5}
@@ -260,6 +262,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - PDF 1.1 - 1.3 (Acrobat 2 - 4), collider #1
 - PDF 1.1 - 1.3 (Acrobat 2 - 4), collider #2
 - PDF 1.4 - 1.6 (Acrobat 5 - 8)
+- PDF 1.4 - 1.6 (Acrobat 5 - 8) - edit password
 - PDF 1.7 Level 3 (Acrobat 9)
 - PDF 1.7 Level 8 (Acrobat 10 - 11)
 - Apple iWork
@@ -292,6 +295,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Blockchain, My Wallet
 - Blockchain, My Wallet, V2
 - Blockchain, My Wallet, Second Password (SHA256)
+- Stargazer Stellar Wallet XLM
 - Ethereum Pre-Sale Wallet, PBKDF2-HMAC-SHA256
 - Ethereum Wallet, PBKDF2-HMAC-SHA256
 - Ethereum Wallet, SCRYPT
