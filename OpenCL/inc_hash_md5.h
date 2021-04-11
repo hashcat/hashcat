@@ -109,12 +109,8 @@ DECLSPEC void md5_hmac_init_global_swap (md5_hmac_ctx_t *ctx, GLOBAL_AS const u3
 DECLSPEC void md5_hmac_update_64 (md5_hmac_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len);
 DECLSPEC void md5_hmac_update (md5_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void md5_hmac_update_swap (md5_hmac_ctx_t *ctx, const u32 *w, const int len);
-DECLSPEC void md5_hmac_update_utf16le (md5_hmac_ctx_t *ctx, const u32 *w, const int len);
-DECLSPEC void md5_hmac_update_utf16le_swap (md5_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void md5_hmac_update_global (md5_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
 DECLSPEC void md5_hmac_update_global_swap (md5_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
-DECLSPEC void md5_hmac_update_global_utf16le (md5_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
-DECLSPEC void md5_hmac_update_global_utf16le_swap (md5_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
 DECLSPEC void md5_hmac_final (md5_hmac_ctx_t *ctx);
 DECLSPEC void md5_transform_vector (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u32x *digest);
 DECLSPEC void md5_init_vector (md5_ctx_vector_t *ctx);

@@ -1981,6 +1981,268 @@ DECLSPEC int find_hash (const u32 *digest, const u32 digests_cnt, GLOBAL_AS cons
 }
 #endif
 
+// Constants and some code snippets from unicode.org's ConvertUTF.c
+// Compiler can perfectly translate some of the branches and switch cases this into MOVC
+// which is faster than lookup tables
+
+#define halfShift 10
+
+#define halfBase 0x0010000
+#define halfMask 0x3FF
+
+#define UNI_MAX_BMP          0xFFFF
+#define UNI_SUR_HIGH_START   0xD800
+#define UNI_SUR_HIGH_END     0xDBFF
+#define UNI_SUR_LOW_START    0xDC00
+#define UNI_SUR_LOW_END      0xDFFF
+
+/*
+ * Magic values subtracted from a buffer value during UTF8 conversion.
+ * This table contains as many values as there might be trailing bytes
+ * in a UTF-8 sequence.
+ */
+
+#define offsetsFromUTF8_0 0x00000000UL
+#define offsetsFromUTF8_1 0x00003080UL
+#define offsetsFromUTF8_2 0x000E2080UL
+#define offsetsFromUTF8_3 0x03C82080UL
+#define offsetsFromUTF8_4 0xFA082080UL
+#define offsetsFromUTF8_5 0x82082080UL
+
+DECLSPEC int utf8_to_utf16le (const u32 *src_buf, int src_len, int src_size, u32 *dst_buf, int dst_size)
+{
+  const u8  *src_ptr = (const u8  *) src_buf;
+        u16 *dst_ptr = (      u16 *) dst_buf;
+
+  int src_pos = 0;
+  int dst_pos = 0;
+  int dst_len = 0;
+
+  while (src_pos < src_len)
+  {
+    const u8 c = src_ptr[src_pos];
+
+    int extraBytesToRead = 0;
+
+    if (c >= 0xfc)
+    {
+      extraBytesToRead = 5;
+    }
+    else if (c >= 0xf8)
+    {
+      extraBytesToRead = 4;
+    }
+    else if (c >= 0xf0)
+    {
+      extraBytesToRead = 3;
+    }
+    else if (c >= 0xe0)
+    {
+      extraBytesToRead = 2;
+    }
+    else if (c >= 0xc0)
+    {
+      extraBytesToRead = 1;
+    }
+
+    if ((src_pos + extraBytesToRead) >= src_size) return dst_len;
+
+    u32 ch = 0;
+
+    switch (extraBytesToRead)
+    {
+      case 5:
+        ch += src_ptr[src_pos++]; ch <<= 6; /* remember, illegal UTF-8 */
+        ch += src_ptr[src_pos++]; ch <<= 6; /* remember, illegal UTF-8 */
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++];
+        ch -= offsetsFromUTF8_5;
+        break;
+      case 4:
+        ch += src_ptr[src_pos++]; ch <<= 6; /* remember, illegal UTF-8 */
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++];
+        ch -= offsetsFromUTF8_4;
+        break;
+      case 3:
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++];
+        ch -= offsetsFromUTF8_3;
+        break;
+      case 2:
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++];
+        ch -= offsetsFromUTF8_2;
+        break;
+      case 1:
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++];
+        ch -= offsetsFromUTF8_1;
+        break;
+      case 0:
+        ch += src_ptr[src_pos++];
+        ch -= offsetsFromUTF8_0;
+        break;
+    }
+
+    /* Target is a character <= 0xFFFF */
+    if (ch <= UNI_MAX_BMP)
+    {
+      if ((dst_len + 2) >= dst_size) return dst_len;
+
+      dst_ptr[dst_pos++] = (u16) ch;
+
+      dst_len += 2;
+    }
+    else
+    {
+      if ((dst_len + 4) >= dst_size) return dst_len;
+
+      ch -= halfBase;
+
+      dst_ptr[dst_pos++] = (u16) ((ch >> halfShift) + UNI_SUR_HIGH_START);
+      dst_ptr[dst_pos++] = (u16) ((ch  & halfMask)  + UNI_SUR_LOW_START);
+
+      dst_len += 4;
+    }
+  }
+
+  return dst_len;
+}
+
+DECLSPEC int utf8_to_utf16le_global (GLOBAL_AS const u32 *src_buf, int src_len, int src_size, u32 *dst_buf, int dst_size)
+{
+  GLOBAL_AS const u8  *src_ptr = (GLOBAL_AS const u8  *) src_buf;
+                  u16 *dst_ptr = (                u16 *) dst_buf;
+
+  int src_pos = 0;
+  int dst_pos = 0;
+  int dst_len = 0;
+
+  while (src_pos < src_len)
+  {
+    const u8 c = src_ptr[src_pos];
+
+    int extraBytesToRead = 0;
+
+    if (c >= 0xfc)
+    {
+      extraBytesToRead = 5;
+    }
+    else if (c >= 0xf8)
+    {
+      extraBytesToRead = 4;
+    }
+    else if (c >= 0xf0)
+    {
+      extraBytesToRead = 3;
+    }
+    else if (c >= 0xe0)
+    {
+      extraBytesToRead = 2;
+    }
+    else if (c >= 0xc0)
+    {
+      extraBytesToRead = 1;
+    }
+
+    if ((src_pos + extraBytesToRead) >= src_size) return dst_len;
+
+    u32 ch = 0;
+
+    switch (extraBytesToRead)
+    {
+      case 5:
+        ch += src_ptr[src_pos++]; ch <<= 6; /* remember, illegal UTF-8 */
+        ch += src_ptr[src_pos++]; ch <<= 6; /* remember, illegal UTF-8 */
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++];
+        ch -= offsetsFromUTF8_5;
+        break;
+      case 4:
+        ch += src_ptr[src_pos++]; ch <<= 6; /* remember, illegal UTF-8 */
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++];
+        ch -= offsetsFromUTF8_4;
+        break;
+      case 3:
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++];
+        ch -= offsetsFromUTF8_3;
+        break;
+      case 2:
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++];
+        ch -= offsetsFromUTF8_2;
+        break;
+      case 1:
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++];
+        ch -= offsetsFromUTF8_1;
+        break;
+      case 0:
+        ch += src_ptr[src_pos++];
+        ch -= offsetsFromUTF8_0;
+        break;
+    }
+
+    /* Target is a character <= 0xFFFF */
+    if (ch <= UNI_MAX_BMP)
+    {
+      if ((dst_len + 2) >= dst_size) return dst_len;
+
+      dst_ptr[dst_pos++] = (u16) ch;
+
+      dst_len += 2;
+    }
+    else
+    {
+      if ((dst_len + 4) >= dst_size) return dst_len;
+
+      ch -= halfBase;
+
+      dst_ptr[dst_pos++] = (u16) ((ch >> halfShift) + UNI_SUR_HIGH_START);
+      dst_ptr[dst_pos++] = (u16) ((ch  & halfMask)  + UNI_SUR_LOW_START);
+
+      dst_len += 4;
+    }
+  }
+
+  return dst_len;
+}
+
+#undef halfShift
+
+#undef halfBase
+#undef halfMask
+
+#undef UNI_MAX_BMP
+#undef UNI_SUR_HIGH_START
+#undef UNI_SUR_HIGH_END
+#undef UNI_SUR_LOW_START
+#undef UNI_SUR_LOW_END
+
+#undef offsetsFromUTF8_0
+#undef offsetsFromUTF8_1
+#undef offsetsFromUTF8_2
+#undef offsetsFromUTF8_3
+#undef offsetsFromUTF8_4
+#undef offsetsFromUTF8_5
+
 DECLSPEC int pkcs_padding_bs8 (const u32 *data_buf, const int data_len)
 {
   if (data_len == 0) return -1; // cannot have zero length, is important to avoid out of boundary reads
