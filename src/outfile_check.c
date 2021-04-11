@@ -224,22 +224,7 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
             memset (hash_buf.hook_salt, 0, hashconfig->hook_salt_size);
           }
 
-          int parser_status = PARSER_HASH_LENGTH;
-
-          if (module_ctx->module_hash_decode_potfile != MODULE_DEFAULT)
-          {
-            void *tmps = hcmalloc (hashconfig->tmp_size);
-
-            parser_status = module_ctx->module_hash_decode_potfile (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, hash_buf.hook_salt, hash_buf.hash_info, line_buf, line_hash_len, tmps);
-
-            hcfree (tmps);
-          }
-          else
-          {
-            // "normal" case: hash in the outfile is the same as the hash in the original hash file
-
-            parser_status = module_ctx->module_hash_decode (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, hash_buf.hook_salt, hash_buf.hash_info, line_buf, line_hash_len);
-          }
+          int parser_status = module_ctx->module_hash_decode (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, hash_buf.hook_salt, hash_buf.hash_info, line_buf, line_hash_len);
 
           if (parser_status != PARSER_OK) continue;
 
