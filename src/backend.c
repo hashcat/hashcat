@@ -2183,6 +2183,7 @@ int ocl_init (hashcat_ctx_t *hashcat_ctx)
   if (ocl->lib == NULL) return -1;
 
   HC_LOAD_FUNC (ocl, clBuildProgram,            OCL_CLBUILDPROGRAM,             OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clCompileProgram,          OCL_CLCOMPILEPROGRAM,           OpenCL, 1);
   HC_LOAD_FUNC (ocl, clCreateBuffer,            OCL_CLCREATEBUFFER,             OpenCL, 1);
   HC_LOAD_FUNC (ocl, clCreateCommandQueue,      OCL_CLCREATECOMMANDQUEUE,       OpenCL, 1);
   HC_LOAD_FUNC (ocl, clCreateContext,           OCL_CLCREATECONTEXT,            OpenCL, 1);
@@ -2205,6 +2206,7 @@ int ocl_init (hashcat_ctx_t *hashcat_ctx)
   HC_LOAD_FUNC (ocl, clGetPlatformInfo,         OCL_CLGETPLATFORMINFO,          OpenCL, 1);
   HC_LOAD_FUNC (ocl, clGetProgramBuildInfo,     OCL_CLGETPROGRAMBUILDINFO,      OpenCL, 1);
   HC_LOAD_FUNC (ocl, clGetProgramInfo,          OCL_CLGETPROGRAMINFO,           OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clLinkProgram,             OCL_CLLINKPROGRAM,              OpenCL, 1);
   HC_LOAD_FUNC (ocl, clReleaseCommandQueue,     OCL_CLRELEASECOMMANDQUEUE,      OpenCL, 1);
   HC_LOAD_FUNC (ocl, clReleaseContext,          OCL_CLRELEASECONTEXT,           OpenCL, 1);
   HC_LOAD_FUNC (ocl, clReleaseKernel,           OCL_CLRELEASEKERNEL,            OpenCL, 1);
@@ -2564,6 +2566,44 @@ int hc_clBuildProgram (hashcat_ctx_t *hashcat_ctx, cl_program program, cl_uint n
   if (CL_err != CL_SUCCESS)
   {
     event_log_error (hashcat_ctx, "clBuildProgram(): %s", val2cstr_cl (CL_err));
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_clCompileProgram (hashcat_ctx_t *hashcat_ctx, cl_program program, cl_uint num_devices, const cl_device_id *device_list, const char *options, cl_uint num_input_headers, const cl_program *input_headers, const char **header_include_names, void (CL_CALLBACK *pfn_notify) (cl_program program, void *user_data), void *user_data)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
+
+  const cl_int CL_err = ocl->clCompileProgram (program, num_devices, device_list, options, num_input_headers, input_headers, header_include_names, pfn_notify, user_data);
+
+  if (CL_err != CL_SUCCESS)
+  {
+    event_log_error (hashcat_ctx, "clCompileProgram(): %s", val2cstr_cl (CL_err));
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_clLinkProgram (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_uint num_devices, const cl_device_id *device_list, const char *options, cl_uint num_input_programs, const cl_program *input_programs, void (CL_CALLBACK *pfn_notify) (cl_program program, void *user_data), void *user_data, cl_program *program)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
+
+  cl_int CL_err;
+
+  *program = ocl->clLinkProgram (context, num_devices, device_list, options, num_input_programs, input_programs, pfn_notify, user_data, &CL_err);
+
+  if (CL_err != CL_SUCCESS)
+  {
+    event_log_error (hashcat_ctx, "clLinkProgram(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -7707,17 +7747,17 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
     if (device_param->is_opencl == true)
     {
-      if (hc_clCreateProgramWithSource (hashcat_ctx, device_param->opencl_context, 1, (const char **) kernel_sources, NULL, opencl_program) == -1) return false;
-
-      const int CL_rc = hc_clBuildProgram (hashcat_ctx, *opencl_program, 1, &device_param->opencl_device, build_options_buf, NULL, NULL);
-
-      //if (CL_rc == -1) return -1;
-
       size_t build_log_size = 0;
 
-      hc_clGetProgramBuildInfo (hashcat_ctx, *opencl_program, device_param->opencl_device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
+      int CL_rc;
 
-      //if (CL_rc == -1) return -1;
+      cl_program p1 = NULL;
+
+      if (hc_clCreateProgramWithSource (hashcat_ctx, device_param->opencl_context, 1, (const char **) kernel_sources, NULL, &p1) == -1) return false;
+
+      CL_rc = hc_clCompileProgram (hashcat_ctx, p1, 1, &device_param->opencl_device, build_options_buf, 0, NULL, NULL, NULL, NULL);
+
+      hc_clGetProgramBuildInfo (hashcat_ctx, p1, device_param->opencl_device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
 
       #if defined (DEBUG)
       if ((build_log_size > 1) || (CL_rc == -1))
@@ -7727,7 +7767,7 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
       {
         char *build_log = (char *) hcmalloc (build_log_size + 1);
 
-        const int rc_clGetProgramBuildInfo = hc_clGetProgramBuildInfo (hashcat_ctx, *opencl_program, device_param->opencl_device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
+        const int rc_clGetProgramBuildInfo = hc_clGetProgramBuildInfo (hashcat_ctx, p1, device_param->opencl_device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
 
         if (rc_clGetProgramBuildInfo == -1) return false;
 
@@ -7737,6 +7777,21 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
       }
 
       if (CL_rc == -1) return false;
+
+      cl_program t2[1];
+
+      t2[0] = p1;
+
+      cl_program fin;
+
+      if (hc_clLinkProgram (hashcat_ctx, device_param->opencl_context, 1, &device_param->opencl_device, NULL, 1, t2, NULL, NULL, &fin) == -1) return false;
+
+      // it seems errors caused by clLinkProgram() do not go into CL_PROGRAM_BUILD
+      // I couldn't find any information on the web explaining how else to retrieve the error messages from the linker
+
+      *opencl_program = fin;
+
+      hc_clReleaseProgram (hashcat_ctx, p1);
 
       if (cache_disable == false)
       {
