@@ -20,7 +20,8 @@ static const u32   HASH_CATEGORY   = HASH_CATEGORY_NETWORK_PROTOCOL;
 static const char *HASH_NAME       = "KNX IP Secure - Device Authentication Code";
 static const u64   KERN_TYPE       = 25900;
 static const u32   OPTI_TYPE       = OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-static const u64   OPTS_TYPE       = OPTS_TYPE_PT_GENERATE_LE;
+static const u64   OPTS_TYPE       = OPTS_TYPE_PT_GENERATE_LE
+                                   | OPTS_TYPE_DEEP_COMP_KERNEL;
 static const u32   SALT_TYPE       = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS         = "hashcat";
 static const char *ST_HASH         = "$knx-ip-secure-device-authentication-code$*3033*fa7c0d787a9467c209f0a6e7cf16069ed704f3959dce19e45d7935c0a91bce41*f927640d9bbe9a4b0b74dd3289ad41ec";
@@ -87,6 +88,11 @@ char* module_jit_build_options(MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   }
 
   return jit_build_options;
+}
+
+u32 module_deep_comp_kernel(MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u32 digest_pos)
+{
+  return KERN_RUN_3;
 }
 
 u64 module_esalt_size(MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -260,7 +266,7 @@ void module_init(module_ctx_t *module_ctx)
   module_ctx->module_benchmark_mask           = MODULE_DEFAULT;
   module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
   module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
-  module_ctx->module_deep_comp_kernel         = MODULE_DEFAULT;
+  module_ctx->module_deep_comp_kernel         = module_deep_comp_kernel;
   module_ctx->module_dgst_pos0                = module_dgst_pos0;
   module_ctx->module_dgst_pos1                = module_dgst_pos1;
   module_ctx->module_dgst_pos2                = module_dgst_pos2;

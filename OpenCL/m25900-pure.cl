@@ -1,9 +1,7 @@
 /**
- * Author......: See docs/credits.txt and Robert Guetzkow
+ * Author......: See docs/credits.txt
  * License.....: MIT
  */
-
-// The code is mostly reused from m10900-pure.cl and m19800-pure.cl
 
 #define NEW_SIMD_CODE
 
@@ -49,7 +47,7 @@ DECLSPEC void hmac_sha256_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *i
   digest[6] = ipad[6];
   digest[7] = ipad[7];
 
-  sha256_transform_vector(w0, w1, w2, w3, digest);
+  sha256_transform_vector (w0, w1, w2, w3, digest);
 
   w0[0] = digest[0];
   w0[1] = digest[1];
@@ -77,7 +75,7 @@ DECLSPEC void hmac_sha256_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *i
   digest[6] = opad[6];
   digest[7] = opad[7];
 
-  sha256_transform_vector(w0, w1, w2, w3, digest);
+  sha256_transform_vector (w0, w1, w2, w3, digest);
 }
 
 DECLSPEC void aes128_encrypt_cbc (const u32 *aes_ks, u32 *aes_iv, const u32 *in, u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
@@ -195,46 +193,46 @@ KERNEL_FQ void m25900_loop(KERN_ATTR_TMPS(pbkdf2_sha256_tmp_t))
   u32x ipad[8];
   u32x opad[8];
 
-  ipad[0] = packv(tmps, ipad, gid, 0);
-  ipad[1] = packv(tmps, ipad, gid, 1);
-  ipad[2] = packv(tmps, ipad, gid, 2);
-  ipad[3] = packv(tmps, ipad, gid, 3);
-  ipad[4] = packv(tmps, ipad, gid, 4);
-  ipad[5] = packv(tmps, ipad, gid, 5);
-  ipad[6] = packv(tmps, ipad, gid, 6);
-  ipad[7] = packv(tmps, ipad, gid, 7);
+  ipad[0] = packv (tmps, ipad, gid, 0);
+  ipad[1] = packv (tmps, ipad, gid, 1);
+  ipad[2] = packv (tmps, ipad, gid, 2);
+  ipad[3] = packv (tmps, ipad, gid, 3);
+  ipad[4] = packv (tmps, ipad, gid, 4);
+  ipad[5] = packv (tmps, ipad, gid, 5);
+  ipad[6] = packv (tmps, ipad, gid, 6);
+  ipad[7] = packv (tmps, ipad, gid, 7);
 
-  opad[0] = packv(tmps, opad, gid, 0);
-  opad[1] = packv(tmps, opad, gid, 1);
-  opad[2] = packv(tmps, opad, gid, 2);
-  opad[3] = packv(tmps, opad, gid, 3);
-  opad[4] = packv(tmps, opad, gid, 4);
-  opad[5] = packv(tmps, opad, gid, 5);
-  opad[6] = packv(tmps, opad, gid, 6);
-  opad[7] = packv(tmps, opad, gid, 7);
+  opad[0] = packv (tmps, opad, gid, 0);
+  opad[1] = packv (tmps, opad, gid, 1);
+  opad[2] = packv (tmps, opad, gid, 2);
+  opad[3] = packv (tmps, opad, gid, 3);
+  opad[4] = packv (tmps, opad, gid, 4);
+  opad[5] = packv (tmps, opad, gid, 5);
+  opad[6] = packv (tmps, opad, gid, 6);
+  opad[7] = packv (tmps, opad, gid, 7);
 
   for (u32 i = 0; i < 8; i += 8)
   {
     u32x dgst[8];
     u32x out[8];
 
-    dgst[0] = packv(tmps, dgst, gid, i + 0);
-    dgst[1] = packv(tmps, dgst, gid, i + 1);
-    dgst[2] = packv(tmps, dgst, gid, i + 2);
-    dgst[3] = packv(tmps, dgst, gid, i + 3);
-    dgst[4] = packv(tmps, dgst, gid, i + 4);
-    dgst[5] = packv(tmps, dgst, gid, i + 5);
-    dgst[6] = packv(tmps, dgst, gid, i + 6);
-    dgst[7] = packv(tmps, dgst, gid, i + 7);
+    dgst[0] = packv (tmps, dgst, gid, i + 0);
+    dgst[1] = packv (tmps, dgst, gid, i + 1);
+    dgst[2] = packv (tmps, dgst, gid, i + 2);
+    dgst[3] = packv (tmps, dgst, gid, i + 3);
+    dgst[4] = packv (tmps, dgst, gid, i + 4);
+    dgst[5] = packv (tmps, dgst, gid, i + 5);
+    dgst[6] = packv (tmps, dgst, gid, i + 6);
+    dgst[7] = packv (tmps, dgst, gid, i + 7);
 
-    out[0] = packv(tmps, out, gid, i + 0);
-    out[1] = packv(tmps, out, gid, i + 1);
-    out[2] = packv(tmps, out, gid, i + 2);
-    out[3] = packv(tmps, out, gid, i + 3);
-    out[4] = packv(tmps, out, gid, i + 4);
-    out[5] = packv(tmps, out, gid, i + 5);
-    out[6] = packv(tmps, out, gid, i + 6);
-    out[7] = packv(tmps, out, gid, i + 7);
+    out[0] = packv (tmps, out, gid, i + 0);
+    out[1] = packv (tmps, out, gid, i + 1);
+    out[2] = packv (tmps, out, gid, i + 2);
+    out[3] = packv (tmps, out, gid, i + 3);
+    out[4] = packv (tmps, out, gid, i + 4);
+    out[5] = packv (tmps, out, gid, i + 5);
+    out[6] = packv (tmps, out, gid, i + 6);
+    out[7] = packv (tmps, out, gid, i + 7);
 
     for (u32 j = 0; j < loop_cnt; j++)
     {
@@ -260,7 +258,7 @@ KERNEL_FQ void m25900_loop(KERN_ATTR_TMPS(pbkdf2_sha256_tmp_t))
       w3[2] = 0;
       w3[3] = (64 + 32) * 8;
 
-      hmac_sha256_run_V(w0, w1, w2, w3, ipad, opad, dgst);
+      hmac_sha256_run_V (w0, w1, w2, w3, ipad, opad, dgst);
 
       out[0] ^= dgst[0];
       out[1] ^= dgst[1];
@@ -272,23 +270,23 @@ KERNEL_FQ void m25900_loop(KERN_ATTR_TMPS(pbkdf2_sha256_tmp_t))
       out[7] ^= dgst[7];
     }
 
-    unpackv(tmps, dgst, gid, i + 0, dgst[0]);
-    unpackv(tmps, dgst, gid, i + 1, dgst[1]);
-    unpackv(tmps, dgst, gid, i + 2, dgst[2]);
-    unpackv(tmps, dgst, gid, i + 3, dgst[3]);
-    unpackv(tmps, dgst, gid, i + 4, dgst[4]);
-    unpackv(tmps, dgst, gid, i + 5, dgst[5]);
-    unpackv(tmps, dgst, gid, i + 6, dgst[6]);
-    unpackv(tmps, dgst, gid, i + 7, dgst[7]);
+    unpackv (tmps, dgst, gid, i + 0, dgst[0]);
+    unpackv (tmps, dgst, gid, i + 1, dgst[1]);
+    unpackv (tmps, dgst, gid, i + 2, dgst[2]);
+    unpackv (tmps, dgst, gid, i + 3, dgst[3]);
+    unpackv (tmps, dgst, gid, i + 4, dgst[4]);
+    unpackv (tmps, dgst, gid, i + 5, dgst[5]);
+    unpackv (tmps, dgst, gid, i + 6, dgst[6]);
+    unpackv (tmps, dgst, gid, i + 7, dgst[7]);
 
-    unpackv(tmps, out, gid, i + 0, out[0]);
-    unpackv(tmps, out, gid, i + 1, out[1]);
-    unpackv(tmps, out, gid, i + 2, out[2]);
-    unpackv(tmps, out, gid, i + 3, out[3]);
-    unpackv(tmps, out, gid, i + 4, out[4]);
-    unpackv(tmps, out, gid, i + 5, out[5]);
-    unpackv(tmps, out, gid, i + 6, out[6]);
-    unpackv(tmps, out, gid, i + 7, out[7]);
+    unpackv (tmps, out, gid, i + 0, out[0]);
+    unpackv (tmps, out, gid, i + 1, out[1]);
+    unpackv (tmps, out, gid, i + 2, out[2]);
+    unpackv (tmps, out, gid, i + 3, out[3]);
+    unpackv (tmps, out, gid, i + 4, out[4]);
+    unpackv (tmps, out, gid, i + 5, out[5]);
+    unpackv (tmps, out, gid, i + 6, out[6]);
+    unpackv (tmps, out, gid, i + 7, out[7]);
   }
 }
 
@@ -372,10 +370,34 @@ KERNEL_FQ void m25900_comp(KERN_ATTR_TMPS_ESALT(pbkdf2_sha256_tmp_t, blocks_t))
 
   u32 yn[4];
 
+  const u32 digest_pos = loop_pos;
+  const u32 digest_cur = DIGESTS_OFFSET + digest_pos;
+
+  u32 b1[4];
+
+  b1[0] = esalt_bufs[digest_cur].b1[0];
+  b1[1] = esalt_bufs[digest_cur].b1[1];
+  b1[2] = esalt_bufs[digest_cur].b1[2];
+  b1[3] = esalt_bufs[digest_cur].b1[3];
+
+  u32 b2[4];
+
+  b2[0] = esalt_bufs[digest_cur].b2[0];
+  b2[1] = esalt_bufs[digest_cur].b2[1];
+  b2[2] = esalt_bufs[digest_cur].b2[2];
+  b2[3] = esalt_bufs[digest_cur].b2[3];
+
+  u32 b3[4];
+
+  b3[0] = esalt_bufs[digest_cur].b3[0];
+  b3[1] = esalt_bufs[digest_cur].b3[1];
+  b3[2] = esalt_bufs[digest_cur].b3[2];
+  b3[3] = esalt_bufs[digest_cur].b3[3];
+
   aes128_encrypt_cbc (aes_ks, aes_cbc_iv, b0, yn, s_te0, s_te1, s_te2, s_te3, s_te4);
-  aes128_encrypt_cbc (aes_ks, aes_cbc_iv, esalt_bufs[DIGESTS_OFFSET].b1, yn, s_te0, s_te1, s_te2, s_te3, s_te4);
-  aes128_encrypt_cbc (aes_ks, aes_cbc_iv, esalt_bufs[DIGESTS_OFFSET].b2, yn, s_te0, s_te1, s_te2, s_te3, s_te4);
-  aes128_encrypt_cbc (aes_ks, aes_cbc_iv, esalt_bufs[DIGESTS_OFFSET].b3, yn, s_te0, s_te1, s_te2, s_te3, s_te4);
+  aes128_encrypt_cbc (aes_ks, aes_cbc_iv, b1, yn, s_te0, s_te1, s_te2, s_te3, s_te4);
+  aes128_encrypt_cbc (aes_ks, aes_cbc_iv, b2, yn, s_te0, s_te1, s_te2, s_te3, s_te4);
+  aes128_encrypt_cbc (aes_ks, aes_cbc_iv, b3, yn, s_te0, s_te1, s_te2, s_te3, s_te4);
  
   u32 nonce[4];
 
