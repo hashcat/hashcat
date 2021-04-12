@@ -497,18 +497,18 @@ DECLSPEC void ripemd160_update_swap (ripemd160_ctx_t *ctx, const u32 *w, const i
 
 DECLSPEC void ripemd160_update_utf16le (ripemd160_ctx_t *ctx, const u32 *w, const int len)
 {
-  u32 w_utf16_buf[64] = { 0 };
+  u32 w_utf16_buf[256] = { 0 };
 
-  const int w_utf16_len = utf8_to_utf16le (w, len, 256, w_utf16_buf, 256);
+  const int w_utf16_len = utf8_to_utf16le (w, len, 256, w_utf16_buf, sizeof (w_utf16_buf));
 
   ripemd160_update (ctx, w_utf16_buf, w_utf16_len);
 }
 
 DECLSPEC void ripemd160_update_utf16le_swap (ripemd160_ctx_t *ctx, const u32 *w, const int len)
 {
-  u32 w_utf16_buf[64] = { 0 };
+  u32 w_utf16_buf[256] = { 0 };
 
-  const int w_utf16_len = utf8_to_utf16le (w, len, 256, w_utf16_buf, 256);
+  const int w_utf16_len = utf8_to_utf16le (w, len, 256, w_utf16_buf, sizeof (w_utf16_buf));
 
   ripemd160_update_swap (ctx, w_utf16_buf, w_utf16_len);
 }
@@ -653,18 +653,18 @@ DECLSPEC void ripemd160_update_global_swap (ripemd160_ctx_t *ctx, GLOBAL_AS cons
 
 DECLSPEC void ripemd160_update_global_utf16le (ripemd160_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
-  u32 w_utf16_buf[64] = { 0 };
+  u32 w_utf16_buf[256] = { 0 };
 
-  const int w_utf16_len = utf8_to_utf16le_global (w, len, 256, w_utf16_buf, 256);
+  const int w_utf16_len = utf8_to_utf16le_global (w, len, 256, w_utf16_buf, sizeof (w_utf16_buf));
 
   ripemd160_update (ctx, w_utf16_buf, w_utf16_len);
 }
 
 DECLSPEC void ripemd160_update_global_utf16le_swap (ripemd160_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
-  u32 w_utf16_buf[64] = { 0 };
+  u32 w_utf16_buf[256] = { 0 };
 
-  const int w_utf16_len = utf8_to_utf16le_global (w, len, 256, w_utf16_buf, 256);
+  const int w_utf16_len = utf8_to_utf16le_global (w, len, 256, w_utf16_buf, sizeof (w_utf16_buf));
 
   ripemd160_update_swap (ctx, w_utf16_buf, w_utf16_len);
 }

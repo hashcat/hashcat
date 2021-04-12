@@ -399,18 +399,18 @@ DECLSPEC void md5_update_swap (md5_ctx_t *ctx, const u32 *w, const int len)
 
 DECLSPEC void md5_update_utf16le (md5_ctx_t *ctx, const u32 *w, const int len)
 {
-  u32 w_utf16_buf[64] = { 0 };
+  u32 w_utf16_buf[256] = { 0 };
 
-  const int w_utf16_len = utf8_to_utf16le (w, len, 256, w_utf16_buf, 256);
+  const int w_utf16_len = utf8_to_utf16le (w, len, 256, w_utf16_buf, sizeof (w_utf16_buf));
 
   md5_update (ctx, w_utf16_buf, w_utf16_len);
 }
 
 DECLSPEC void md5_update_utf16le_swap (md5_ctx_t *ctx, const u32 *w, const int len)
 {
-  u32 w_utf16_buf[64] = { 0 };
+  u32 w_utf16_buf[256] = { 0 };
 
-  const int w_utf16_len = utf8_to_utf16le (w, len, 256, w_utf16_buf, 256);
+  const int w_utf16_len = utf8_to_utf16le (w, len, 256, w_utf16_buf, sizeof (w_utf16_buf));
 
   md5_update_swap (ctx, w_utf16_buf, w_utf16_len);
 }
@@ -555,18 +555,18 @@ DECLSPEC void md5_update_global_swap (md5_ctx_t *ctx, GLOBAL_AS const u32 *w, co
 
 DECLSPEC void md5_update_global_utf16le (md5_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
-  u32 w_utf16_buf[64] = { 0 };
+  u32 w_utf16_buf[256] = { 0 };
 
-  const int w_utf16_len = utf8_to_utf16le_global (w, len, 256, w_utf16_buf, 256);
+  const int w_utf16_len = utf8_to_utf16le_global (w, len, 256, w_utf16_buf, sizeof (w_utf16_buf));
 
   md5_update (ctx, w_utf16_buf, w_utf16_len);
 }
 
 DECLSPEC void md5_update_global_utf16le_swap (md5_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
-  u32 w_utf16_buf[64] = { 0 };
+  u32 w_utf16_buf[256] = { 0 };
 
-  const int w_utf16_len = utf8_to_utf16le_global (w, len, 256, w_utf16_buf, 256);
+  const int w_utf16_len = utf8_to_utf16le_global (w, len, 256, w_utf16_buf, sizeof (w_utf16_buf));
 
   md5_update_swap (ctx, w_utf16_buf, w_utf16_len);
 }

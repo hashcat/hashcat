@@ -414,18 +414,18 @@ DECLSPEC void sha224_update_swap (sha224_ctx_t *ctx, const u32 *w, const int len
 
 DECLSPEC void sha224_update_utf16le (sha224_ctx_t *ctx, const u32 *w, const int len)
 {
-  u32 w_utf16_buf[64] = { 0 };
+  u32 w_utf16_buf[256] = { 0 };
 
-  const int w_utf16_len = utf8_to_utf16le (w, len, 256, w_utf16_buf, 256);
+  const int w_utf16_len = utf8_to_utf16le (w, len, 256, w_utf16_buf, sizeof (w_utf16_buf));
 
   sha224_update (ctx, w_utf16_buf, w_utf16_len);
 }
 
 DECLSPEC void sha224_update_utf16le_swap (sha224_ctx_t *ctx, const u32 *w, const int len)
 {
-  u32 w_utf16_buf[64] = { 0 };
+  u32 w_utf16_buf[256] = { 0 };
 
-  const int w_utf16_len = utf8_to_utf16le (w, len, 256, w_utf16_buf, 256);
+  const int w_utf16_len = utf8_to_utf16le (w, len, 256, w_utf16_buf, sizeof (w_utf16_buf));
 
   sha224_update_swap (ctx, w_utf16_buf, w_utf16_len);
 }
@@ -570,18 +570,18 @@ DECLSPEC void sha224_update_global_swap (sha224_ctx_t *ctx, GLOBAL_AS const u32 
 
 DECLSPEC void sha224_update_global_utf16le (sha224_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
-  u32 w_utf16_buf[64] = { 0 };
+  u32 w_utf16_buf[256] = { 0 };
 
-  const int w_utf16_len = utf8_to_utf16le_global (w, len, 256, w_utf16_buf, 256);
+  const int w_utf16_len = utf8_to_utf16le_global (w, len, 256, w_utf16_buf, sizeof (w_utf16_buf));
 
   sha224_update (ctx, w_utf16_buf, w_utf16_len);
 }
 
 DECLSPEC void sha224_update_global_utf16le_swap (sha224_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
-  u32 w_utf16_buf[64] = { 0 };
+  u32 w_utf16_buf[256] = { 0 };
 
-  const int w_utf16_len = utf8_to_utf16le_global (w, len, 256, w_utf16_buf, 256);
+  const int w_utf16_len = utf8_to_utf16le_global (w, len, 256, w_utf16_buf, sizeof (w_utf16_buf));
 
   sha224_update_swap (ctx, w_utf16_buf, w_utf16_len);
 }
