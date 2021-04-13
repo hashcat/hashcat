@@ -7174,6 +7174,7 @@ void backend_ctx_devices_destroy (hashcat_ctx_t *hashcat_ctx)
 void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+  hashconfig_t  *hashconfig  = hashcat_ctx->hashconfig;
 
   if (backend_ctx->enabled == false) return;
 
@@ -7199,7 +7200,7 @@ void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
       device_param_dst->kernel_loops   = device_param_src->kernel_loops;
       device_param_dst->kernel_threads = device_param_src->kernel_threads;
 
-      const u32 hardware_power = device_param_dst->device_processors * device_param_dst->kernel_threads;
+      const u32 hardware_power = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE) ? 1 : device_param_dst->device_processors) * device_param_dst->kernel_threads;
 
       device_param_dst->hardware_power = hardware_power;
 
@@ -10466,7 +10467,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     device_param->kernel_threads = kernel_threads;
 
-    device_param->hardware_power = device_processors * kernel_threads;
+    device_param->hardware_power = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE) ? 1 : device_processors) * kernel_threads;
 
     u32 kernel_accel_min = device_param->kernel_accel_min;
     u32 kernel_accel_max = device_param->kernel_accel_max;
