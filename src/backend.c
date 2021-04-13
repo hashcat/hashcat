@@ -10562,8 +10562,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       // sometimes device_available_mem and device_maxmem_alloc reported back from the opencl runtime are a bit inaccurate.
       // let's add some extra space just to be sure.
+      // now depends on the kernel-accel value (where scrypt and similar benefits), but also hard minimum 64mb and maximum 1024mb limit
 
-      const u64 EXTRA_SPACE = MAX (((1024ULL * 1024ULL) * kernel_accel_max), (64ULL * 1024ULL * 1024ULL));
+      u64 EXTRA_SPACE = (1024ULL * 1024ULL) * kernel_accel_max;
+
+      EXTRA_SPACE = MAX (EXTRA_SPACE, (  64ULL * 1024ULL * 1024ULL));
+      EXTRA_SPACE = MIN (EXTRA_SPACE, (1024ULL * 1024ULL * 1024ULL));
 
       if ((size_pws   + EXTRA_SPACE) > device_param->device_maxmem_alloc) memory_limit_hit = 1;
       if ((size_tmps  + EXTRA_SPACE) > device_param->device_maxmem_alloc) memory_limit_hit = 1;
