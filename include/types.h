@@ -435,6 +435,7 @@ typedef enum opts_type
   OPTS_TYPE_DYNAMIC_SHARED    = (1ULL << 48), // use dynamic shared memory (note: needs special kernel changes)
   OPTS_TYPE_SELF_TEST_DISABLE = (1ULL << 49), // some algos use JiT in combinations with a salt or create too much startup time
   OPTS_TYPE_MP_MULTI_DISABLE  = (1ULL << 50), // do not multiply the kernel-accel with the multiprocessor count per device to allow more fine-tuned workload settings
+  OPTS_TYPE_NATIVE_THREADS    = (1ULL << 51), // forces "native" thread count: CPU=1, GPU-Intel=8, GPU-AMD=64 (wavefront), GPU-NV=32 (warps)
 
 } opts_type_t;
 

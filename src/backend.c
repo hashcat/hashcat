@@ -8166,6 +8166,62 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     const u32 device_processors = device_param->device_processors;
 
+    if (hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)
+    {
+      u32 native_accel = device_processors;
+
+      if ((native_accel >= device_param->kernel_accel_min) && (native_accel <= device_param->kernel_accel_max))
+      {
+        device_param->kernel_accel_min = native_accel;
+        device_param->kernel_accel_max = native_accel;
+      }
+    }
+
+    /**
+     * device threads
+     */
+
+    if (hashconfig->opts_type & OPTS_TYPE_NATIVE_THREADS)
+    {
+      u32 native_threads = 0;
+
+      if (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU)
+      {
+        native_threads = 1;
+      }
+      else if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
+      {
+        // for GPU we need to distinguish by vendor
+
+        if (device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK)
+        {
+          native_threads = 8;
+        }
+        else if (device_param->opencl_device_vendor_id == VENDOR_ID_AMD)
+        {
+          native_threads = 64;
+        }
+        else
+        {
+          native_threads = 32;
+        }
+      }
+      else
+      {
+        // abort?
+      }
+
+      if ((native_threads >= device_param->kernel_threads_min) && (native_threads <= device_param->kernel_threads_max))
+      {
+        device_param->kernel_threads_min = native_threads;
+        device_param->kernel_threads_max = native_threads;
+      }
+      else
+      {
+        // abort?
+      }
+    }
+
     /**
      * create context for each device
      */
