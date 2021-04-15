@@ -15,16 +15,17 @@ static const u32   DGST_POS0      = 0;
 static const u32   DGST_POS1      = 1;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
-static const u32   DGST_SIZE      = DGST_SIZE_4_4;
+static const u32   DGST_SIZE      = DGST_SIZE_4_8;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_NETWORK_PROTOCOL;
-static const char *HASH_NAME      = "Telegram Desktop < v2.1.14 (PBKDF2-HMAC-SHA1)";
-static const u64   KERN_TYPE      = 22600;
+static const char *HASH_NAME      = "Telegram Desktop >= v2.1.14 (PBKDF2-HMAC-SHA512)";
+static const u64   KERN_TYPE      = 24500;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
+                                  | OPTI_TYPE_USES_BITS_64
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$telegram$1*4000*913a7e42143b4eed0fb532dacfa04e3a0eae036ae66dd02de76323046c575531*cde5f7a3bda3812b4a3cd4df1269c6be18ca7536981522c251cab531c274776804634cdca5313dc8beb9895f903a40d874cd50dbb82e5e4d8f264820f3f2e2111a5831e1a2f16b1a75b2264c4b4485dfe0f789071130160af205f9f96aef378ee05602de2562f8c3b136a75ea01f54f4598af93f9e7f98eb66a5fd3dabaa864708fe0e84b59b77686974060f1533e3acc5367bc493915b5614603cf5601cfa0a6b8eae4c4bd24948176dd7ff470bc0863f35fdfce31a667c70e37743f662bc9c5ec86baff3ebb6bf7de96bcdfaca18baf9617a979424f792ef6e65e346ea2cbc1d53377f47c3fc681d7eda8169e6e20cd6a22dd94bf24933b8ffc4878216fa9edc7c72a073446a14b63e12b223f840217a7eac51b6afcc15bfa12afd3e85d3bd";
+static const char *ST_HASH        = "$telegram$2*100000*77461dcb457ce9539f8e4235d33bd12455b4a38446e63b52ecdf2e7b65af4476*f705dda3247df6d690dfc7f44d8c666979737cae9505d961130071bcc18eeadaef0320ac6985e4a116834c0761e55314464aae56dadb8f80ab8886c16f72f8b95adca08b56a60c4303d84210f75cfd78a3e1a197c84a747988ce2e1b247397b61041823bdb33932714ba16ca7279e6c36b75d3f994479a469b50a7b2c7299a4d7aadb775fb030d3bb55ca77b7ce8ac2f5cf5eb7bdbcc10821b8953a4734b448060246e5bb93f130d6d3f2e28b9e04f2a064820be562274c040cd849f1473d45141559fc45da4c54abeaf5ca40d2d57f8f8e33bdb232c7279872f758b3fb452713b5d91c855383f7cec8376649a53b83951cf8edd519a99e91b8a6cb90153088e35d9fed332c7253771740f49f9dc40c7da50352656395bbfeae63e10f754d24a";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -43,11 +44,11 @@ const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 
 typedef struct telegram_tmp
 {
-  u32 ipad[5];
-  u32 opad[5];
+  u64 ipad[8];
+  u64 opad[8];
 
-  u32 dgst[35];
-  u32 out [35];
+  u64 dgst[24];
+  u64 out [24];
 
 } telegram_tmp_t;
 
@@ -60,6 +61,17 @@ typedef struct telegram
 static const char *SIGNATURE_TELEGRAM = "$telegram$";
 static const int   DATA_LEN_TELEGRAM  = 288;
 static const int   SALT_LEN_TELEGRAM  =  32;
+
+bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
+{
+  // amdgpu-pro-19.30-934563-ubuntu-18.04: password not found
+  if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
+  {
+    return true;
+  }
+
+  return false;
+}
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -110,7 +122,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.sep[2]     = '*';
   token.len_min[2] = 1;
-  token.len_max[2] = 5;
+  token.len_max[2] = 6;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
@@ -132,7 +144,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 version = token.buf[1][0];
 
-  if (version != '1') return (PARSER_SALT_VALUE);
+  if (version != '2') return (PARSER_SALT_VALUE);
 
   // iter
 
@@ -157,22 +169,31 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   salt->salt_buf[6] = hex_to_u32 (salt_pos + 48);
   salt->salt_buf[7] = hex_to_u32 (salt_pos + 56);
 
+  salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
+  salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
+  salt->salt_buf[2] = byte_swap_32 (salt->salt_buf[2]);
+  salt->salt_buf[3] = byte_swap_32 (salt->salt_buf[3]);
+  salt->salt_buf[4] = byte_swap_32 (salt->salt_buf[4]);
+  salt->salt_buf[5] = byte_swap_32 (salt->salt_buf[5]);
+  salt->salt_buf[6] = byte_swap_32 (salt->salt_buf[6]);
+  salt->salt_buf[7] = byte_swap_32 (salt->salt_buf[7]);
+
   salt->salt_len = SALT_LEN_TELEGRAM;
 
   // digest
 
-  const u8 *message_pos = token.buf[4];
+  const u8 *data_pos = token.buf[4];
 
-  digest[0] = hex_to_u32 (message_pos +  0);
-  digest[1] = hex_to_u32 (message_pos +  8);
-  digest[2] = hex_to_u32 (message_pos + 16);
-  digest[3] = hex_to_u32 (message_pos + 24);
+  digest[0] = hex_to_u32 (data_pos +  0);
+  digest[1] = hex_to_u32 (data_pos +  8);
+  digest[2] = hex_to_u32 (data_pos + 16);
+  digest[3] = hex_to_u32 (data_pos + 24);
 
   // data
 
   for (int i = 0, j = 0; i < DATA_LEN_TELEGRAM / 4; i += 1, j += 8)
   {
-    telegram->data[i] = hex_to_u32 (message_pos + j);
+    telegram->data[i] = hex_to_u32 (data_pos + j);
 
     telegram->data[i] = byte_swap_32 (telegram->data[i]);
   }
@@ -194,30 +215,30 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (int i = 0, j = 0; i < SALT_LEN_TELEGRAM / 4; i += 1, j += 8)
   {
-    snprintf (salt_buf + j, SALT_BUF_LEN - j, "%08x", byte_swap_32 (salt->salt_buf[i]));
+    snprintf (salt_buf + j, SALT_BUF_LEN - j, "%08x", salt->salt_buf[i]);
   }
 
-  // message
+  // data
 
   #define DATA_BUF_LEN (DATA_LEN_TELEGRAM * 2 + 1)
 
-  char message[DATA_BUF_LEN];
+  char data[DATA_BUF_LEN];
 
-  memset (message, 0, DATA_BUF_LEN);
+  memset (data, 0, DATA_BUF_LEN);
 
   for (int i = 0, j = 0; i < DATA_LEN_TELEGRAM / 4; i += 1, j += 8)
   {
-    snprintf (message + j, DATA_BUF_LEN - j, "%08x", telegram->data[i]);
+    snprintf (data + j, DATA_BUF_LEN - j, "%08x", telegram->data[i]);
   }
 
   // output
 
   const int line_len = snprintf (line_buf, line_size, "%s%i*%i*%s*%s",
     SIGNATURE_TELEGRAM,
-    1,
+    2,
     salt->salt_iter + 1,
     salt_buf,
-    message);
+    data);
 
   return line_len;
 }
@@ -294,6 +315,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_hash                  = module_st_hash;
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
-  module_ctx->module_unstable_warning         = MODULE_DEFAULT;
+  module_ctx->module_unstable_warning         = module_unstable_warning;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }
