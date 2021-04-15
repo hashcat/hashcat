@@ -522,6 +522,46 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
       XXH64_update (state, rule_buf_r, strlen (rule_buf_r));
     }
   }
+  else if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+  {
+    if (straight_ctx->dict)
+    {
+      const u64 wordlist_hash = brain_compute_attack_wordlist (straight_ctx->dict);
+
+      XXH64_update (state, &wordlist_hash, sizeof (wordlist_hash));
+    }
+
+    const int hex_wordlist = user_options->hex_wordlist;
+
+    XXH64_update (state, &hex_wordlist, sizeof (hex_wordlist));
+
+    const int wordlist_autohex_disable = user_options->wordlist_autohex_disable;
+
+    XXH64_update (state, &wordlist_autohex_disable, sizeof (wordlist_autohex_disable));
+
+    if (user_options->encoding_from)
+    {
+      const char *encoding_from = user_options->encoding_from;
+
+      XXH64_update (state, encoding_from, strlen (encoding_from));
+    }
+
+    if (user_options->encoding_to)
+    {
+      const char *encoding_to = user_options->encoding_to;
+
+      XXH64_update (state, encoding_to, strlen (encoding_to));
+    }
+
+    if (user_options->rule_buf_l)
+    {
+      const char *rule_buf_l = user_options->rule_buf_l;
+
+      XXH64_update (state, rule_buf_l, strlen (rule_buf_l));
+    }
+
+    XXH64_update (state, straight_ctx->kernel_rules_buf, straight_ctx->kernel_rules_cnt * sizeof (kernel_rule_t));
+  }
 
   const u32 brain_attack = (const u32) XXH64_digest (state);
 

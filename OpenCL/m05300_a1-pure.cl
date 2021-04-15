@@ -80,7 +80,7 @@ KERNEL_FQ void m05300_mxx (KERN_ATTR_ESALT (ikepsk_t))
 
     md5_hmac_init (&ctx0, c, pw_len + comb_len);
 
-    md5_hmac_update_global (&ctx0, esalt_bufs[digests_offset].nr_buf, esalt_bufs[digests_offset].nr_len);
+    md5_hmac_update_global (&ctx0, esalt_bufs[DIGESTS_OFFSET].nr_buf, esalt_bufs[DIGESTS_OFFSET].nr_len);
 
     md5_hmac_final (&ctx0);
 
@@ -110,7 +110,7 @@ KERNEL_FQ void m05300_mxx (KERN_ATTR_ESALT (ikepsk_t))
 
     md5_hmac_init_64 (&ctx, w0, w1, w2, w3);
 
-    md5_hmac_update_global (&ctx, esalt_bufs[digests_offset].msg_buf, esalt_bufs[digests_offset].msg_len[5]);
+    md5_hmac_update_global (&ctx, esalt_bufs[DIGESTS_OFFSET].msg_buf, esalt_bufs[DIGESTS_OFFSET].msg_len[5]);
 
     md5_hmac_final (&ctx);
 
@@ -140,10 +140,10 @@ KERNEL_FQ void m05300_sxx (KERN_ATTR_ESALT (ikepsk_t))
 
   const u32 search[4] =
   {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
   };
 
   /**
@@ -191,7 +191,7 @@ KERNEL_FQ void m05300_sxx (KERN_ATTR_ESALT (ikepsk_t))
 
     md5_hmac_init (&ctx0, c, pw_len + comb_len);
 
-    md5_hmac_update_global (&ctx0, esalt_bufs[digests_offset].nr_buf, esalt_bufs[digests_offset].nr_len);
+    md5_hmac_update_global (&ctx0, esalt_bufs[DIGESTS_OFFSET].nr_buf, esalt_bufs[DIGESTS_OFFSET].nr_len);
 
     md5_hmac_final (&ctx0);
 
@@ -221,7 +221,7 @@ KERNEL_FQ void m05300_sxx (KERN_ATTR_ESALT (ikepsk_t))
 
     md5_hmac_init_64 (&ctx, w0, w1, w2, w3);
 
-    md5_hmac_update_global (&ctx, esalt_bufs[digests_offset].msg_buf, esalt_bufs[digests_offset].msg_len[5]);
+    md5_hmac_update_global (&ctx, esalt_bufs[DIGESTS_OFFSET].msg_buf, esalt_bufs[DIGESTS_OFFSET].msg_len[5]);
 
     md5_hmac_final (&ctx);
 

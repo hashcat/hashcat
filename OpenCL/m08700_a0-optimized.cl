@@ -360,8 +360,8 @@ KERNEL_FQ void m08700_m04 (KERN_ATTR_RULES ())
    * salt
    */
 
-  const u32 salt0 = salt_bufs[salt_pos].salt_buf[0];
-  const u32 salt1 = (salt_bufs[salt_pos].salt_buf[1] & 0xff) | '(' << 8;
+  const u32 salt0 = salt_bufs[SALT_POS].salt_buf[0];
+  const u32 salt1 = (salt_bufs[SALT_POS].salt_buf[1] & 0xff) | '(' << 8;
 
   /**
    * loop
@@ -547,8 +547,8 @@ KERNEL_FQ void m08700_s04 (KERN_ATTR_RULES ())
    * salt
    */
 
-  const u32 salt0 = salt_bufs[salt_pos].salt_buf[0];
-  const u32 salt1 = (salt_bufs[salt_pos].salt_buf[1] & 0xff) | '(' << 8;
+  const u32 salt0 = salt_bufs[SALT_POS].salt_buf[0];
+  const u32 salt1 = (salt_bufs[SALT_POS].salt_buf[1] & 0xff) | '(' << 8;
 
   /**
    * digest
@@ -556,10 +556,10 @@ KERNEL_FQ void m08700_s04 (KERN_ATTR_RULES ())
 
   const u32 search[4] =
   {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
   };
 
   /**

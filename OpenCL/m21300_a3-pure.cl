@@ -73,13 +73,13 @@ KERNEL_FQ void m21300_mxx (KERN_ATTR_VECTOR ())
 
   sha1_init (&ctx00);
 
-  sha1_update_global_swap (&ctx00, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  sha1_update_global_swap (&ctx00, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   md5_ctx_t ctx11;
 
   md5_init (&ctx11);
 
-  md5_update_global (&ctx11, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  md5_update_global (&ctx11, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   /**
    * loop
@@ -194,10 +194,10 @@ KERNEL_FQ void m21300_sxx (KERN_ATTR_VECTOR ())
 
   const u32 search[4] =
   {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
   };
 
   /**
@@ -217,13 +217,13 @@ KERNEL_FQ void m21300_sxx (KERN_ATTR_VECTOR ())
 
   sha1_init (&ctx00);
 
-  sha1_update_global_swap (&ctx00, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  sha1_update_global_swap (&ctx00, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   md5_ctx_t ctx11;
 
   md5_init (&ctx11);
 
-  md5_update_global (&ctx11, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  md5_update_global (&ctx11, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   /**
    * loop

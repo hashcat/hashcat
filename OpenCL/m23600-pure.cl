@@ -125,7 +125,7 @@ KERNEL_FQ void m23600_init (KERN_ATTR_TMPS_ESALT (axcrypt2_tmp_t, axcrypt2_t))
   tmps[gid].opad[6] = sha512_hmac_ctx.opad.h[6];
   tmps[gid].opad[7] = sha512_hmac_ctx.opad.h[7];
 
-  sha512_hmac_update_global (&sha512_hmac_ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  sha512_hmac_update_global (&sha512_hmac_ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   for (u32 i = 0, j = 1; i < 8; i += 8, j += 1)
   {
@@ -365,14 +365,14 @@ KERNEL_FQ void m23600_init2 (KERN_ATTR_TMPS_ESALT (axcrypt2_tmp_t, axcrypt2_t))
 
   u32 salt[8];
 
-  salt[0] = esalt_bufs[digests_offset].salt[0];
-  salt[1] = esalt_bufs[digests_offset].salt[1];
-  salt[2] = esalt_bufs[digests_offset].salt[2];
-  salt[3] = esalt_bufs[digests_offset].salt[3];
-  salt[4] = esalt_bufs[digests_offset].salt[4];
-  salt[5] = esalt_bufs[digests_offset].salt[5];
-  salt[6] = esalt_bufs[digests_offset].salt[6];
-  salt[7] = esalt_bufs[digests_offset].salt[7];
+  salt[0] = esalt_bufs[DIGESTS_OFFSET].salt[0];
+  salt[1] = esalt_bufs[DIGESTS_OFFSET].salt[1];
+  salt[2] = esalt_bufs[DIGESTS_OFFSET].salt[2];
+  salt[3] = esalt_bufs[DIGESTS_OFFSET].salt[3];
+  salt[4] = esalt_bufs[DIGESTS_OFFSET].salt[4];
+  salt[5] = esalt_bufs[DIGESTS_OFFSET].salt[5];
+  salt[6] = esalt_bufs[DIGESTS_OFFSET].salt[6];
+  salt[7] = esalt_bufs[DIGESTS_OFFSET].salt[7];
 
   tmps[gid].KEK[0] = KEK[0] ^ salt[0];
   tmps[gid].KEK[1] = KEK[1] ^ salt[1];
@@ -385,7 +385,7 @@ KERNEL_FQ void m23600_init2 (KERN_ATTR_TMPS_ESALT (axcrypt2_tmp_t, axcrypt2_t))
 
   for (int i = 0; i < 14; i++)
   {
-    tmps[gid].data[i] = esalt_bufs[digests_offset].data[i];
+    tmps[gid].data[i] = esalt_bufs[DIGESTS_OFFSET].data[i];
   }
 }
 
@@ -484,7 +484,7 @@ KERNEL_FQ void m23600_loop2 (KERN_ATTR_TMPS_ESALT (axcrypt2_tmp_t, axcrypt2_t))
 
   AES256_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
-  const int wrapping_rounds = (int) salt_bufs[salt_pos].salt_iter2;
+  const int wrapping_rounds = (int) salt_bufs[SALT_POS].salt_iter2;
 
   // custom AES un-wrapping loop
 
@@ -527,9 +527,9 @@ KERNEL_FQ void m23600_comp (KERN_ATTR_TMPS_ESALT (axcrypt2_tmp_t, axcrypt2_t))
   if ((tmps[gid].data[0] == 0xa6a6a6a6) &&
       (tmps[gid].data[1] == 0xa6a6a6a6))
   {
-    if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+    if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
     }
 
     return;

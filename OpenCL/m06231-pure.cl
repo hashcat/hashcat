@@ -151,13 +151,13 @@ KERNEL_FQ void m06231_init (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
    * keyboard layout shared
    */
 
-  const int keyboard_layout_mapping_cnt = esalt_bufs[digests_offset].keyboard_layout_mapping_cnt;
+  const int keyboard_layout_mapping_cnt = esalt_bufs[DIGESTS_OFFSET].keyboard_layout_mapping_cnt;
 
   LOCAL_VK keyboard_layout_mapping_t s_keyboard_layout_mapping_buf[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
-    s_keyboard_layout_mapping_buf[i] = esalt_bufs[digests_offset].keyboard_layout_mapping_buf[i];
+    s_keyboard_layout_mapping_buf[i] = esalt_bufs[DIGESTS_OFFSET].keyboard_layout_mapping_buf[i];
   }
 
   SYNC_THREADS ();
@@ -236,22 +236,22 @@ KERNEL_FQ void m06231_init (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
 
   hc_execute_keyboard_layout_mapping (w0, w1, w2, w3, pw_len, s_keyboard_layout_mapping_buf, keyboard_layout_mapping_cnt);
 
-  w0[0] = u8add (w0[0], esalt_bufs[digests_offset].keyfile_buf[ 0]);
-  w0[1] = u8add (w0[1], esalt_bufs[digests_offset].keyfile_buf[ 1]);
-  w0[2] = u8add (w0[2], esalt_bufs[digests_offset].keyfile_buf[ 2]);
-  w0[3] = u8add (w0[3], esalt_bufs[digests_offset].keyfile_buf[ 3]);
-  w1[0] = u8add (w1[0], esalt_bufs[digests_offset].keyfile_buf[ 4]);
-  w1[1] = u8add (w1[1], esalt_bufs[digests_offset].keyfile_buf[ 5]);
-  w1[2] = u8add (w1[2], esalt_bufs[digests_offset].keyfile_buf[ 6]);
-  w1[3] = u8add (w1[3], esalt_bufs[digests_offset].keyfile_buf[ 7]);
-  w2[0] = u8add (w2[0], esalt_bufs[digests_offset].keyfile_buf[ 8]);
-  w2[1] = u8add (w2[1], esalt_bufs[digests_offset].keyfile_buf[ 9]);
-  w2[2] = u8add (w2[2], esalt_bufs[digests_offset].keyfile_buf[10]);
-  w2[3] = u8add (w2[3], esalt_bufs[digests_offset].keyfile_buf[11]);
-  w3[0] = u8add (w3[0], esalt_bufs[digests_offset].keyfile_buf[12]);
-  w3[1] = u8add (w3[1], esalt_bufs[digests_offset].keyfile_buf[13]);
-  w3[2] = u8add (w3[2], esalt_bufs[digests_offset].keyfile_buf[14]);
-  w3[3] = u8add (w3[3], esalt_bufs[digests_offset].keyfile_buf[15]);
+  w0[0] = u8add (w0[0], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[ 0]);
+  w0[1] = u8add (w0[1], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[ 1]);
+  w0[2] = u8add (w0[2], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[ 2]);
+  w0[3] = u8add (w0[3], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[ 3]);
+  w1[0] = u8add (w1[0], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[ 4]);
+  w1[1] = u8add (w1[1], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[ 5]);
+  w1[2] = u8add (w1[2], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[ 6]);
+  w1[3] = u8add (w1[3], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[ 7]);
+  w2[0] = u8add (w2[0], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[ 8]);
+  w2[1] = u8add (w2[1], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[ 9]);
+  w2[2] = u8add (w2[2], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[10]);
+  w2[3] = u8add (w2[3], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[11]);
+  w3[0] = u8add (w3[0], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[12]);
+  w3[1] = u8add (w3[1], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[13]);
+  w3[2] = u8add (w3[2], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[14]);
+  w3[3] = u8add (w3[3], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[15]);
 
   w0[0] = hc_swap32_S (w0[0]);
   w0[1] = hc_swap32_S (w0[1]);
@@ -308,7 +308,7 @@ KERNEL_FQ void m06231_init (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
   tmps[gid].opad[14] = whirlpool_hmac_ctx.opad.h[14];
   tmps[gid].opad[15] = whirlpool_hmac_ctx.opad.h[15];
 
-  whirlpool_hmac_update_global_swap (&whirlpool_hmac_ctx, esalt_bufs[digests_offset].salt_buf, 64);
+  whirlpool_hmac_update_global_swap (&whirlpool_hmac_ctx, esalt_bufs[DIGESTS_OFFSET].salt_buf, 64);
 
   for (u32 i = 0, j = 1; i < 16; i += 16, j += 1)
   {
@@ -662,7 +662,7 @@ KERNEL_FQ void m06231_comp (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
   {
     if (atomic_inc (&hashes_shown[0]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, 0, gid, 0, 0, 0);
     }
   }
 
@@ -670,7 +670,7 @@ KERNEL_FQ void m06231_comp (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
   {
     if (atomic_inc (&hashes_shown[0]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, 0, gid, 0, 0, 0);
     }
   }
 
@@ -678,7 +678,7 @@ KERNEL_FQ void m06231_comp (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
   {
     if (atomic_inc (&hashes_shown[0]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, 0, gid, 0, 0, 0);
     }
   }
 }

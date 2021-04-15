@@ -109,7 +109,7 @@ KERNEL_FQ void m18700_sxx (KERN_ATTR_RULES ())
 
   const u32 search[4] =
   {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
     0,
     0,
     0

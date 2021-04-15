@@ -330,7 +330,17 @@ char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
 
     if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
     {
-      return hcstrdup (hashes->hashfile);
+      if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE_OPTIONAL)
+      {
+        if (hashes->hashfile)
+        {
+          return hcstrdup (hashes->hashfile);
+        }
+      }
+      else
+      {
+        return hcstrdup (hashes->hashfile);
+      }
     }
 
     char *tmp_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
@@ -375,7 +385,7 @@ int status_get_guess_mode (const hashcat_ctx_t *hashcat_ctx)
   if (user_options->custom_charset_3) has_mask_cs = true;
   if (user_options->custom_charset_4) has_mask_cs = true;
 
-  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+  if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
   {
     if (has_wordlist == true)
     {
@@ -445,7 +455,7 @@ char *status_get_guess_base (const hashcat_ctx_t *hashcat_ctx)
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
-  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+  if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
   {
     if (user_options_extra->wordlist_mode == WL_MODE_FILE)
     {
@@ -501,7 +511,7 @@ int status_get_guess_base_offset (const hashcat_ctx_t *hashcat_ctx)
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
-  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+  if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
   {
     const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
@@ -549,7 +559,7 @@ int status_get_guess_base_count (const hashcat_ctx_t *hashcat_ctx)
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
-  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+  if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
   {
     const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
@@ -607,7 +617,7 @@ char *status_get_guess_mod (const hashcat_ctx_t *hashcat_ctx)
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
-  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+  if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
   {
     return status_get_rules_file (hashcat_ctx);
   }
@@ -657,7 +667,7 @@ int status_get_guess_mod_offset (const hashcat_ctx_t *hashcat_ctx)
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
-  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+  if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
   {
     return 1;
   }
@@ -701,7 +711,7 @@ int status_get_guess_mod_count (const hashcat_ctx_t *hashcat_ctx)
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
-  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+  if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
   {
     return 1;
   }
@@ -1028,7 +1038,6 @@ char *status_get_time_estimated_absolute (const hashcat_ctx_t *hashcat_ctx)
   time_t now;
   time (&now);
 
-
   char buf[32] = { 0 };
 
   char *etc;
@@ -1242,8 +1251,17 @@ u64 status_get_progress_cur (const hashcat_ctx_t *hashcat_ctx)
 
 u64 status_get_progress_ignore (const hashcat_ctx_t *hashcat_ctx)
 {
-  const hashes_t     *hashes     = hashcat_ctx->hashes;
-  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+  const hashes_t       *hashes        = hashcat_ctx->hashes;
+  const status_ctx_t   *status_ctx    = hashcat_ctx->status_ctx;
+  const user_options_t *user_options  = hashcat_ctx->user_options;
+
+  if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+  {
+    // we have no salt based skips in this attack mode
+    // ?? words_progress_restored[]
+
+    return 0;
+  }
 
   // Important for ETA only
 
@@ -1273,7 +1291,16 @@ u64 status_get_progress_end (const hashcat_ctx_t *hashcat_ctx)
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
-  u64 progress_end = status_ctx->words_cnt * hashes->salts_cnt;
+  u64 progress_end = status_ctx->words_cnt;
+
+  if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+  {
+    // nothing to do
+  }
+  else
+  {
+    progress_end *= hashes->salts_cnt;
+  }
 
   if (user_options->limit)
   {
@@ -1281,7 +1308,16 @@ u64 status_get_progress_end (const hashcat_ctx_t *hashcat_ctx)
     const mask_ctx_t       *mask_ctx       = hashcat_ctx->mask_ctx;
     const straight_ctx_t   *straight_ctx   = hashcat_ctx->straight_ctx;
 
-    progress_end = MIN (user_options->limit, status_ctx->words_base) * hashes->salts_cnt;
+    progress_end = MIN (user_options->limit, status_ctx->words_base);
+
+    if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+    {
+      // nothing to do
+    }
+    else
+    {
+      progress_end *= hashes->salts_cnt;
+    }
 
     if (user_options->slow_candidates == true)
     {
@@ -1313,7 +1349,16 @@ u64 status_get_progress_skip (const hashcat_ctx_t *hashcat_ctx)
     const mask_ctx_t       *mask_ctx       = hashcat_ctx->mask_ctx;
     const straight_ctx_t   *straight_ctx   = hashcat_ctx->straight_ctx;
 
-    progress_skip = MIN (user_options->skip, status_ctx->words_base) * hashes->salts_cnt;
+    progress_skip = MIN (user_options->skip, status_ctx->words_base);
+
+    if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+    {
+      // nothing to do
+    }
+    else
+    {
+      progress_skip *= hashes->salts_cnt;
+    }
 
     if (user_options->slow_candidates == true)
     {

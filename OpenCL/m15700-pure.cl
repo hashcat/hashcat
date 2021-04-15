@@ -421,7 +421,7 @@ KERNEL_FQ void m15700_init (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, ethereum_scrypt_
 
   sha256_hmac_init_global_swap (&sha256_hmac_ctx, pws[gid].i, pws[gid].pw_len);
 
-  sha256_hmac_update_global_swap (&sha256_hmac_ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  sha256_hmac_update_global_swap (&sha256_hmac_ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   for (u32 i = 0, j = 1, k = 0; i < SCRYPT_CNT; i += 8, j += 1, k += 2)
   {
@@ -601,14 +601,14 @@ KERNEL_FQ void m15700_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, ethereum_scrypt_
 
   u32 ciphertext[8];
 
-  ciphertext[0] = esalt_bufs[digests_offset].ciphertext[0];
-  ciphertext[1] = esalt_bufs[digests_offset].ciphertext[1];
-  ciphertext[2] = esalt_bufs[digests_offset].ciphertext[2];
-  ciphertext[3] = esalt_bufs[digests_offset].ciphertext[3];
-  ciphertext[4] = esalt_bufs[digests_offset].ciphertext[4];
-  ciphertext[5] = esalt_bufs[digests_offset].ciphertext[5];
-  ciphertext[6] = esalt_bufs[digests_offset].ciphertext[6];
-  ciphertext[7] = esalt_bufs[digests_offset].ciphertext[7];
+  ciphertext[0] = esalt_bufs[DIGESTS_OFFSET].ciphertext[0];
+  ciphertext[1] = esalt_bufs[DIGESTS_OFFSET].ciphertext[1];
+  ciphertext[2] = esalt_bufs[DIGESTS_OFFSET].ciphertext[2];
+  ciphertext[3] = esalt_bufs[DIGESTS_OFFSET].ciphertext[3];
+  ciphertext[4] = esalt_bufs[DIGESTS_OFFSET].ciphertext[4];
+  ciphertext[5] = esalt_bufs[DIGESTS_OFFSET].ciphertext[5];
+  ciphertext[6] = esalt_bufs[DIGESTS_OFFSET].ciphertext[6];
+  ciphertext[7] = esalt_bufs[DIGESTS_OFFSET].ciphertext[7];
 
   u32 key[4];
 

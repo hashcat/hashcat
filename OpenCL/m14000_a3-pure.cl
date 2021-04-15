@@ -1767,8 +1767,8 @@ KERNEL_FQ void m14000_mxx (KERN_ATTR_BITSLICE ())
    * salt
    */
 
-  const u32 salt0 = salt_bufs[salt_pos].salt_buf_pc[0];
-  const u32 salt1 = salt_bufs[salt_pos].salt_buf_pc[1];
+  const u32 salt0 = salt_bufs[SALT_POS].salt_buf_pc[0];
+  const u32 salt1 = salt_bufs[SALT_POS].salt_buf_pc[1];
 
   // salt1 first, because this is a 64 bit value actually
 
@@ -2124,7 +2124,7 @@ KERNEL_FQ void m14000_mxx (KERN_ATTR_BITSLICE ())
     {
       for (u32 d = 0; d < digests_cnt; d++)
       {
-        const u32 final_hash_pos = digests_offset + d;
+        const u32 final_hash_pos = DIGESTS_OFFSET + d;
 
         if (hashes_shown[final_hash_pos]) continue;
 
@@ -2209,8 +2209,8 @@ KERNEL_FQ void m14000_sxx (KERN_ATTR_BITSLICE ())
    * salt
    */
 
-  const u32 salt0 = salt_bufs[salt_pos].salt_buf_pc[0];
-  const u32 salt1 = salt_bufs[salt_pos].salt_buf_pc[1];
+  const u32 salt0 = salt_bufs[SALT_POS].salt_buf_pc[0];
+  const u32 salt1 = salt_bufs[SALT_POS].salt_buf_pc[1];
 
   // salt1 first, because this is a 64 bit value actually
 

@@ -47,7 +47,7 @@ static const struct option long_options[] =
   {"debug-mode",                required_argument, NULL, IDX_DEBUG_MODE},
   {"encoding-from",             required_argument, NULL, IDX_ENCODING_FROM},
   {"encoding-to",               required_argument, NULL, IDX_ENCODING_TO},
-  {"example-hashes",            no_argument,       NULL, IDX_EXAMPLE_HASHES},
+  {"example-hashes",            no_argument,       NULL, IDX_HASH_INFO}, // alias of hash-info
   {"force",                     no_argument,       NULL, IDX_FORCE},
   {"generate-rules-func-max",   required_argument, NULL, IDX_RP_GEN_FUNC_MAX},
   {"generate-rules-func-min",   required_argument, NULL, IDX_RP_GEN_FUNC_MIN},
@@ -55,6 +55,7 @@ static const struct option long_options[] =
   {"generate-rules-seed",       required_argument, NULL, IDX_RP_GEN_SEED},
   {"hwmon-disable",             no_argument,       NULL, IDX_HWMON_DISABLE},
   {"hwmon-temp-abort",          required_argument, NULL, IDX_HWMON_TEMP_ABORT},
+  {"hash-info",                 no_argument,       NULL, IDX_HASH_INFO},
   {"hash-type",                 required_argument, NULL, IDX_HASH_MODE},
   {"hccapx-message-pair",       required_argument, NULL, IDX_HCCAPX_MESSAGE_PAIR},
   {"help",                      no_argument,       NULL, IDX_HELP},
@@ -184,10 +185,10 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->debug_mode                = DEBUG_MODE;
   user_options->encoding_from             = ENCODING_FROM;
   user_options->encoding_to               = ENCODING_TO;
-  user_options->example_hashes            = EXAMPLE_HASHES;
   user_options->force                     = FORCE;
   user_options->hwmon_disable             = HWMON_DISABLE;
   user_options->hwmon_temp_abort          = HWMON_TEMP_ABORT;
+  user_options->hash_info                 = HASH_INFO;
   user_options->hash_mode                 = HASH_MODE;
   user_options->hccapx_message_pair       = HCCAPX_MESSAGE_PAIR;
   user_options->hex_charset               = HEX_CHARSET;
@@ -380,7 +381,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_ENCODING_TO:               user_options->encoding_to               = optarg;                          break;
       case IDX_INDUCTION_DIR:             user_options->induction_dir             = optarg;                          break;
       case IDX_OUTFILE_CHECK_DIR:         user_options->outfile_check_dir         = optarg;                          break;
-      case IDX_EXAMPLE_HASHES:            user_options->example_hashes            = true;                            break;
+      case IDX_HASH_INFO:                 user_options->hash_info                 = true;                            break;
       case IDX_FORCE:                     user_options->force                     = true;                            break;
       case IDX_SELF_TEST_DISABLE:         user_options->self_test_disable         = true;                            break;
       case IDX_SKIP:                      user_options->skip                      = hc_strtoull (optarg, NULL, 10);
@@ -599,6 +600,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
      && (user_options->attack_mode != ATTACK_MODE_BF)
      && (user_options->attack_mode != ATTACK_MODE_HYBRID1)
      && (user_options->attack_mode != ATTACK_MODE_HYBRID2)
+     && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION)
      && (user_options->attack_mode != ATTACK_MODE_NONE))
     {
       event_log_error (hashcat_ctx, "Invalid attack mode (-a) value specified.");
@@ -771,6 +773,20 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
+  if ((user_options->increment == true) && (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
+  {
+    event_log_error (hashcat_ctx, "Increment is not allowed in attack mode 9 (association).");
+
+    return -1;
+  }
+
+  if ((user_options->remove == true) && (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
+  {
+    event_log_error (hashcat_ctx, "Remove is not allowed in attack mode 9 (association).");
+
+    return -1;
+  }
+
   if ((user_options->increment == false) && (user_options->increment_min_chgd == true))
   {
     event_log_error (hashcat_ctx, "Increment-min is only supported when combined with -i/--increment.");
@@ -794,9 +810,9 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
   if ((user_options->rp_files_cnt > 0) || (user_options->rp_gen > 0))
   {
-    if (user_options->attack_mode != ATTACK_MODE_STRAIGHT)
+    if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT) && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION))
     {
-      event_log_error (hashcat_ctx, "Use of -r/--rules-file and -g/--rules-generate only allowed in attack mode 0.");
+      event_log_error (hashcat_ctx, "Use of -r/--rules-file and -g/--rules-generate only allowed in attack mode 0 or 9.");
 
       return -1;
     }
@@ -1048,6 +1064,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
       return -1;
     }
+
+    if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+    {
+      event_log_error (hashcat_ctx, "Use of --induction-dir is not allowed in attack mode 9 (association).");
+
+      return -1;
+    }
   }
 
   if (user_options->spin_damp > 100)
@@ -1167,7 +1190,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
      || (user_options->custom_charset_3 != NULL)
      || (user_options->custom_charset_4 != NULL))
     {
-      if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+      if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
       {
         event_log_error (hashcat_ctx, "Custom charsets are not supported in benchmark mode.");
 
@@ -1312,6 +1335,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
 
+    if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+    {
+      event_log_error (hashcat_ctx, "Custom charsets are not supported in attack mode 9 (association).");
+
+      return -1;
+    }
+
     // detect if mask was specified:
 
     bool mask_is_missing = true;
@@ -1362,7 +1392,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       show_error = false;
     }
   }
-  else if (user_options->example_hashes == true)
+  else if (user_options->hash_info == true)
   {
     if (user_options->hc_argc == 0)
     {
@@ -1420,6 +1450,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
         show_error = false;
       }
     }
+    else if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+    {
+      if (user_options->hc_argc == 1)
+      {
+        show_error = false;
+      }
+    }
   }
   else if (user_options->stdout_flag == true)
   {
@@ -1451,6 +1488,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       }
     }
     else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+    {
+      if (user_options->hc_argc >= 1)
+      {
+        show_error = false;
+      }
+    }
+    else if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
     {
       if (user_options->hc_argc >= 1)
       {
@@ -1516,6 +1560,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
         show_error = false;
       }
     }
+    else if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+    {
+      if (user_options->hc_argc >= 2)
+      {
+        show_error = false;
+      }
+    }
   }
 
   if (show_error == true)
@@ -1539,9 +1590,9 @@ void user_options_session_auto (hashcat_ctx_t *hashcat_ctx)
       user_options->session = "benchmark";
     }
 
-    if (user_options->example_hashes == true)
+    if (user_options->hash_info == true)
     {
-      user_options->session = "example_hashes";
+      user_options->session = "hash_info";
     }
 
     if (user_options->usage == true)
@@ -1617,7 +1668,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->bitmap_max          = 1;
   }
 
-  if (user_options->example_hashes  == true
+  if (user_options->hash_info       == true
    || user_options->backend_info    == true
    || user_options->keyspace        == true
    || user_options->speed_only      == true
@@ -1673,7 +1724,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  if (user_options->example_hashes == true)
+  if (user_options->hash_info == true)
   {
     user_options->quiet = true;
   }
@@ -1726,6 +1777,10 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
     {
       user_options->kernel_loops = KERNEL_COMBS;
+    }
+    else if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+    {
+      user_options->kernel_loops = KERNEL_RULES;
     }
   }
 
@@ -1783,7 +1838,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->attack_mode == ATTACK_MODE_BF)
   {
-    if (user_options->example_hashes == true)
+    if (user_options->hash_info == true)
     {
 
     }
@@ -1828,6 +1883,13 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
         user_options->increment = true;
       }
     }
+  }
+
+  // association limitations
+
+  if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+  {
+    user_options->potfile_disable = true;
   }
 }
 
@@ -1979,6 +2041,7 @@ void user_options_extra_init (hashcat_ctx_t *hashcat_ctx)
     case ATTACK_MODE_BF:       user_options_extra->attack_kern = ATTACK_KERN_BF;       break;
     case ATTACK_MODE_HYBRID1:  user_options_extra->attack_kern = ATTACK_KERN_COMBI;    break;
     case ATTACK_MODE_HYBRID2:  user_options_extra->attack_kern = ATTACK_KERN_COMBI;    break;
+    case ATTACK_MODE_ASSOCIATION:  user_options_extra->attack_kern = ATTACK_KERN_STRAIGHT; break;
   }
 
   // rules
@@ -1996,7 +2059,7 @@ void user_options_extra_init (hashcat_ctx_t *hashcat_ctx)
   {
 
   }
-  else if (user_options->example_hashes == true)
+  else if (user_options->hash_info == true)
   {
 
   }
@@ -2441,6 +2504,53 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       }
     }
   }
+  else if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+  {
+    for (int i = 0; i < user_options_extra->hc_workc; i++)
+    {
+      char *wlfile = user_options_extra->hc_workv[i];
+
+      if (hc_path_exist (wlfile) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: %s", wlfile, strerror (errno));
+
+        return -1;
+      }
+    }
+
+    for (int i = 0; i < (int) user_options->rp_files_cnt; i++)
+    {
+      char *rp_file = user_options->rp_files[i];
+
+      if (hc_path_exist (rp_file) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: %s", rp_file, strerror (errno));
+
+        return -1;
+      }
+
+      if (hc_path_is_directory (rp_file) == true)
+      {
+        event_log_error (hashcat_ctx, "%s: A directory cannot be used as a rulefile argument.", rp_file);
+
+        return -1;
+      }
+
+      if (hc_path_read (rp_file) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: %s", rp_file, strerror (errno));
+
+        return -1;
+      }
+
+      if (hc_path_has_bom (rp_file) == true)
+      {
+        event_log_error (hashcat_ctx, "%s: Byte Order Mark (BOM) was detected", rp_file);
+
+        return -1;
+      }
+    }
+  }
 
   // logfile
 
@@ -2585,6 +2695,20 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     if (user_options_extra->hc_workc == 2)
     {
       char *wlfile = user_options_extra->hc_workv[1];
+
+      if (hc_same_files (outfile_ctx->filename, wlfile) == true)
+      {
+        event_log_error (hashcat_ctx, "Outfile and wordlist cannot point to the same file.");
+
+        return -1;
+      }
+    }
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+  {
+    for (int i = 0; i < user_options_extra->hc_workc; i++)
+    {
+      char *wlfile = user_options_extra->hc_workv[i];
 
       if (hc_same_files (outfile_ctx->filename, wlfile) == true)
       {
@@ -2878,7 +3002,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->bitmap_max);
   logfile_top_uint   (user_options->bitmap_min);
   logfile_top_uint   (user_options->debug_mode);
-  logfile_top_uint   (user_options->example_hashes);
+  logfile_top_uint   (user_options->hash_info);
   logfile_top_uint   (user_options->force);
   logfile_top_uint   (user_options->hwmon_disable);
   logfile_top_uint   (user_options->hwmon_temp_abort);

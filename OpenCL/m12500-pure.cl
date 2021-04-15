@@ -804,8 +804,8 @@ KERNEL_FQ void m12500_init (KERN_ATTR_TMPS (rar3_tmp_t))
 
   u32 salt_buf[3];
 
-  salt_buf[0] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[0]); // swap needed due to -O kernel
-  salt_buf[1] = hc_swap32_S (salt_bufs[salt_pos].salt_buf[1]);
+  salt_buf[0] = hc_swap32_S (salt_bufs[SALT_POS].salt_buf[0]); // swap needed due to -O kernel
+  salt_buf[1] = hc_swap32_S (salt_bufs[SALT_POS].salt_buf[1]);
   salt_buf[2] = 0;
 
   // switch buffer by offset (can only be 0 or 2 because of utf16):
@@ -1067,10 +1067,10 @@ KERNEL_FQ void m12500_comp (KERN_ATTR_TMPS (rar3_tmp_t))
 
   u32 data[4];
 
-  data[0] = salt_bufs[salt_pos].salt_buf[2];
-  data[1] = salt_bufs[salt_pos].salt_buf[3];
-  data[2] = salt_bufs[salt_pos].salt_buf[4];
-  data[3] = salt_bufs[salt_pos].salt_buf[5];
+  data[0] = salt_bufs[SALT_POS].salt_buf[2];
+  data[1] = salt_bufs[SALT_POS].salt_buf[3];
+  data[2] = salt_bufs[SALT_POS].salt_buf[4];
+  data[3] = salt_bufs[SALT_POS].salt_buf[5];
 
   u32 out[4];
 

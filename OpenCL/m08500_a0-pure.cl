@@ -576,8 +576,8 @@ KERNEL_FQ void m08500_mxx (KERN_ATTR_RULES ())
 
   u32 salt_buf0[2];
 
-  salt_buf0[0] = salt_bufs[salt_pos].salt_buf_pc[0];
-  salt_buf0[1] = salt_bufs[salt_pos].salt_buf_pc[1];
+  salt_buf0[0] = salt_bufs[SALT_POS].salt_buf_pc[0];
+  salt_buf0[1] = salt_bufs[SALT_POS].salt_buf_pc[1];
 
   /**
    * main
@@ -674,8 +674,8 @@ KERNEL_FQ void m08500_sxx (KERN_ATTR_RULES ())
 
   u32 salt_buf0[2];
 
-  salt_buf0[0] = salt_bufs[salt_pos].salt_buf_pc[0];
-  salt_buf0[1] = salt_bufs[salt_pos].salt_buf_pc[1];
+  salt_buf0[0] = salt_bufs[SALT_POS].salt_buf_pc[0];
+  salt_buf0[1] = salt_bufs[SALT_POS].salt_buf_pc[1];
 
   /**
    * digest
@@ -683,8 +683,8 @@ KERNEL_FQ void m08500_sxx (KERN_ATTR_RULES ())
 
   const u32 search[4] =
   {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
     0,
     0
   };

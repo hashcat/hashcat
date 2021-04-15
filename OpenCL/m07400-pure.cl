@@ -52,13 +52,13 @@ KERNEL_FQ void m07400_init (KERN_ATTR_TMPS (sha256crypt_tmp_t))
     w[idx] = hc_swap32_S (w[idx]);
   }
 
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
+  const u32 salt_len = salt_bufs[SALT_POS].salt_len;
 
   u32 s[64] = { 0 };
 
   for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = salt_bufs[salt_pos].salt_buf[idx];
+    s[idx] = salt_bufs[SALT_POS].salt_buf[idx];
   }
 
   for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
@@ -273,7 +273,7 @@ KERNEL_FQ void m07400_loop (KERN_ATTR_TMPS (sha256crypt_tmp_t))
 
   const u32 pw_len = pws[gid].pw_len;
 
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
+  const u32 salt_len = salt_bufs[SALT_POS].salt_len;
 
   u32 alt_result[16] = { 0 };
 

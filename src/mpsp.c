@@ -1391,7 +1391,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   mask_ctx->enabled = false;
 
-  if (user_options->example_hashes == true) return 0;
+  if (user_options->hash_info      == true) return 0;
   if (user_options->left           == true) return 0;
   if (user_options->backend_info   == true) return 0;
   if (user_options->show           == true) return 0;
@@ -1400,6 +1400,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->attack_mode == ATTACK_MODE_STRAIGHT) return 0;
   if (user_options->attack_mode == ATTACK_MODE_COMBI)    return 0;
+  if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)  return 0;
 
   mask_ctx->enabled = true;
 

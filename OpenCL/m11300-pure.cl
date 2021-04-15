@@ -105,7 +105,7 @@ KERNEL_FQ void m11300_init (KERN_ATTR_TMPS_ESALT (bitcoin_wallet_tmp_t, bitcoin_
 
   sha512_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
-  sha512_update_global_swap (&ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  sha512_update_global_swap (&ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   sha512_final (&ctx);
 
@@ -298,7 +298,7 @@ KERNEL_FQ void m11300_comp (KERN_ATTR_TMPS_ESALT (bitcoin_wallet_tmp_t, bitcoin_
 
   const u32 digest_pos = loop_pos;
 
-  const u32 digest_cur = digests_offset + digest_pos;
+  const u32 digest_cur = DIGESTS_OFFSET + digest_pos;
 
   #define KEYLEN 60
 
@@ -353,7 +353,7 @@ KERNEL_FQ void m11300_comp (KERN_ATTR_TMPS_ESALT (bitcoin_wallet_tmp_t, bitcoin_
   {
     if (atomic_inc (&hashes_shown[digest_cur]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
     }
   }
 }

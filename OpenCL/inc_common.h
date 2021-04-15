@@ -27,78 +27,80 @@
  */
 
 #ifdef IS_CUDA
-#define KERN_ATTR(p2,p4,p5,p6,p19)                              \
-  MAYBE_UNUSED GLOBAL_AS       pw_t          *pws,              \
-  MAYBE_UNUSED p2        const kernel_rule_t *g_rules_buf,      \
-  MAYBE_UNUSED GLOBAL_AS const pw_t          *combs_buf,        \
-  MAYBE_UNUSED p4,                                              \
-  MAYBE_UNUSED GLOBAL_AS p5                  *tmps,             \
-  MAYBE_UNUSED GLOBAL_AS p6                  *hooks,            \
-  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s1_a, \
-  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s1_b, \
-  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s1_c, \
-  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s1_d, \
-  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s2_a, \
-  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s2_b, \
-  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s2_c, \
-  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s2_d, \
-  MAYBE_UNUSED GLOBAL_AS       plain_t       *plains_buf,       \
-  MAYBE_UNUSED GLOBAL_AS const digest_t      *digests_buf,      \
-  MAYBE_UNUSED GLOBAL_AS       u32           *hashes_shown,     \
-  MAYBE_UNUSED GLOBAL_AS const salt_t        *salt_bufs,        \
-  MAYBE_UNUSED GLOBAL_AS const p19           *esalt_bufs,       \
-  MAYBE_UNUSED GLOBAL_AS       u32           *d_return_buf,     \
-  MAYBE_UNUSED GLOBAL_AS       void          *d_extra0_buf,     \
-  MAYBE_UNUSED GLOBAL_AS       void          *d_extra1_buf,     \
-  MAYBE_UNUSED GLOBAL_AS       void          *d_extra2_buf,     \
-  MAYBE_UNUSED GLOBAL_AS       void          *d_extra3_buf,     \
-  MAYBE_UNUSED           const u32            bitmap_mask,      \
-  MAYBE_UNUSED           const u32            bitmap_shift1,    \
-  MAYBE_UNUSED           const u32            bitmap_shift2,    \
-  MAYBE_UNUSED           const u32            salt_pos,         \
-  MAYBE_UNUSED           const u32            loop_pos,         \
-  MAYBE_UNUSED           const u32            loop_cnt,         \
-  MAYBE_UNUSED           const u32            il_cnt,           \
-  MAYBE_UNUSED           const u32            digests_cnt,      \
-  MAYBE_UNUSED           const u32            digests_offset,   \
-  MAYBE_UNUSED           const u32            combs_mode,       \
+#define KERN_ATTR(p2,p4,p5,p6,p19)                                  \
+  MAYBE_UNUSED GLOBAL_AS       pw_t          *pws,                  \
+  MAYBE_UNUSED p2        const kernel_rule_t *g_rules_buf,          \
+  MAYBE_UNUSED GLOBAL_AS const pw_t          *combs_buf,            \
+  MAYBE_UNUSED p4,                                                  \
+  MAYBE_UNUSED GLOBAL_AS p5                  *tmps,                 \
+  MAYBE_UNUSED GLOBAL_AS p6                  *hooks,                \
+  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s1_a,     \
+  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s1_b,     \
+  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s1_c,     \
+  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s1_d,     \
+  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s2_a,     \
+  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s2_b,     \
+  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s2_c,     \
+  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s2_d,     \
+  MAYBE_UNUSED GLOBAL_AS       plain_t       *plains_buf,           \
+  MAYBE_UNUSED GLOBAL_AS const digest_t      *digests_buf,          \
+  MAYBE_UNUSED GLOBAL_AS       u32           *hashes_shown,         \
+  MAYBE_UNUSED GLOBAL_AS const salt_t        *salt_bufs,            \
+  MAYBE_UNUSED GLOBAL_AS const p19           *esalt_bufs,           \
+  MAYBE_UNUSED GLOBAL_AS       u32           *d_return_buf,         \
+  MAYBE_UNUSED GLOBAL_AS       void          *d_extra0_buf,         \
+  MAYBE_UNUSED GLOBAL_AS       void          *d_extra1_buf,         \
+  MAYBE_UNUSED GLOBAL_AS       void          *d_extra2_buf,         \
+  MAYBE_UNUSED GLOBAL_AS       void          *d_extra3_buf,         \
+  MAYBE_UNUSED           const u32            bitmap_mask,          \
+  MAYBE_UNUSED           const u32            bitmap_shift1,        \
+  MAYBE_UNUSED           const u32            bitmap_shift2,        \
+  MAYBE_UNUSED           const u32            salt_pos_host,        \
+  MAYBE_UNUSED           const u32            loop_pos,             \
+  MAYBE_UNUSED           const u32            loop_cnt,             \
+  MAYBE_UNUSED           const u32            il_cnt,               \
+  MAYBE_UNUSED           const u32            digests_cnt,          \
+  MAYBE_UNUSED           const u32            digests_offset_host,  \
+  MAYBE_UNUSED           const u32            combs_mode,           \
+  MAYBE_UNUSED           const u64            pws_pos,              \
   MAYBE_UNUSED           const u64            gid_max
 #else
-#define KERN_ATTR(p2,p4,p5,p6,p19)                              \
-  MAYBE_UNUSED GLOBAL_AS       pw_t          *pws,              \
-  MAYBE_UNUSED p2        const kernel_rule_t *rules_buf,        \
-  MAYBE_UNUSED GLOBAL_AS const pw_t          *combs_buf,        \
-  MAYBE_UNUSED p4,                                              \
-  MAYBE_UNUSED GLOBAL_AS p5                  *tmps,             \
-  MAYBE_UNUSED GLOBAL_AS p6                  *hooks,            \
-  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s1_a, \
-  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s1_b, \
-  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s1_c, \
-  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s1_d, \
-  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s2_a, \
-  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s2_b, \
-  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s2_c, \
-  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s2_d, \
-  MAYBE_UNUSED GLOBAL_AS       plain_t       *plains_buf,       \
-  MAYBE_UNUSED GLOBAL_AS const digest_t      *digests_buf,      \
-  MAYBE_UNUSED GLOBAL_AS       u32           *hashes_shown,     \
-  MAYBE_UNUSED GLOBAL_AS const salt_t        *salt_bufs,        \
-  MAYBE_UNUSED GLOBAL_AS const p19           *esalt_bufs,       \
-  MAYBE_UNUSED GLOBAL_AS       u32           *d_return_buf,     \
-  MAYBE_UNUSED GLOBAL_AS       void          *d_extra0_buf,     \
-  MAYBE_UNUSED GLOBAL_AS       void          *d_extra1_buf,     \
-  MAYBE_UNUSED GLOBAL_AS       void          *d_extra2_buf,     \
-  MAYBE_UNUSED GLOBAL_AS       void          *d_extra3_buf,     \
-  MAYBE_UNUSED           const u32            bitmap_mask,      \
-  MAYBE_UNUSED           const u32            bitmap_shift1,    \
-  MAYBE_UNUSED           const u32            bitmap_shift2,    \
-  MAYBE_UNUSED           const u32            salt_pos,         \
-  MAYBE_UNUSED           const u32            loop_pos,         \
-  MAYBE_UNUSED           const u32            loop_cnt,         \
-  MAYBE_UNUSED           const u32            il_cnt,           \
-  MAYBE_UNUSED           const u32            digests_cnt,      \
-  MAYBE_UNUSED           const u32            digests_offset,   \
-  MAYBE_UNUSED           const u32            combs_mode,       \
+#define KERN_ATTR(p2,p4,p5,p6,p19)                                  \
+  MAYBE_UNUSED GLOBAL_AS       pw_t          *pws,                  \
+  MAYBE_UNUSED p2        const kernel_rule_t *rules_buf,            \
+  MAYBE_UNUSED GLOBAL_AS const pw_t          *combs_buf,            \
+  MAYBE_UNUSED p4,                                                  \
+  MAYBE_UNUSED GLOBAL_AS p5                  *tmps,                 \
+  MAYBE_UNUSED GLOBAL_AS p6                  *hooks,                \
+  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s1_a,     \
+  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s1_b,     \
+  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s1_c,     \
+  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s1_d,     \
+  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s2_a,     \
+  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s2_b,     \
+  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s2_c,     \
+  MAYBE_UNUSED GLOBAL_AS const u32           *bitmaps_buf_s2_d,     \
+  MAYBE_UNUSED GLOBAL_AS       plain_t       *plains_buf,           \
+  MAYBE_UNUSED GLOBAL_AS const digest_t      *digests_buf,          \
+  MAYBE_UNUSED GLOBAL_AS       u32           *hashes_shown,         \
+  MAYBE_UNUSED GLOBAL_AS const salt_t        *salt_bufs,            \
+  MAYBE_UNUSED GLOBAL_AS const p19           *esalt_bufs,           \
+  MAYBE_UNUSED GLOBAL_AS       u32           *d_return_buf,         \
+  MAYBE_UNUSED GLOBAL_AS       void          *d_extra0_buf,         \
+  MAYBE_UNUSED GLOBAL_AS       void          *d_extra1_buf,         \
+  MAYBE_UNUSED GLOBAL_AS       void          *d_extra2_buf,         \
+  MAYBE_UNUSED GLOBAL_AS       void          *d_extra3_buf,         \
+  MAYBE_UNUSED           const u32            bitmap_mask,          \
+  MAYBE_UNUSED           const u32            bitmap_shift1,        \
+  MAYBE_UNUSED           const u32            bitmap_shift2,        \
+  MAYBE_UNUSED           const u32            salt_pos_host,        \
+  MAYBE_UNUSED           const u32            loop_pos,             \
+  MAYBE_UNUSED           const u32            loop_cnt,             \
+  MAYBE_UNUSED           const u32            il_cnt,               \
+  MAYBE_UNUSED           const u32            digests_cnt,          \
+  MAYBE_UNUSED           const u32            digests_offset_host,  \
+  MAYBE_UNUSED           const u32            combs_mode,           \
+  MAYBE_UNUSED           const u64            pws_pos,              \
   MAYBE_UNUSED           const u64            gid_max
 #endif
 /*
@@ -232,6 +234,8 @@ DECLSPEC int hash_comp (const u32 *d1, GLOBAL_AS const u32 *d2);
 DECLSPEC int find_hash (const u32 *digest, const u32 digests_cnt, GLOBAL_AS const digest_t *digests_buf);
 #endif
 
+DECLSPEC int utf8_to_utf16le (const u32 *src_buf, int src_len, int src_size, u32 *dst_buf, int dst_size);
+DECLSPEC int utf8_to_utf16le_global (GLOBAL_AS const u32 *src_buf, int src_len, int src_size, u32 *dst_buf, int dst_size);
 DECLSPEC int pkcs_padding_bs8 (const u32 *data_buf, const int data_len);
 DECLSPEC int pkcs_padding_bs16 (const u32 *data_buf, const int data_len);
 DECLSPEC int asn1_detect (const u32 *buf, const int len);

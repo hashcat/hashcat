@@ -45,7 +45,7 @@ KERNEL_FQ void m09500_init (KERN_ATTR_TMPS_ESALT (office2010_tmp_t, office2010_t
 
   sha1_init (&ctx);
 
-  sha1_update_global (&ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  sha1_update_global (&ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   sha1_update_global_utf16le_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
@@ -271,7 +271,7 @@ KERNEL_FQ void m09500_comp (KERN_ATTR_TMPS_ESALT (office2010_tmp_t, office2010_t
 
   AES128_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
-  const u32 digest_cur = digests_offset + loop_pos;
+  const u32 digest_cur = DIGESTS_OFFSET + loop_pos;
 
   u32 data[4];
 
@@ -285,10 +285,10 @@ KERNEL_FQ void m09500_comp (KERN_ATTR_TMPS_ESALT (office2010_tmp_t, office2010_t
 
   AES128_decrypt (ks, data, out, s_td0, s_td1, s_td2, s_td3, s_td4);
 
-  out[0] ^= salt_bufs[salt_pos].salt_buf[0];
-  out[1] ^= salt_bufs[salt_pos].salt_buf[1];
-  out[2] ^= salt_bufs[salt_pos].salt_buf[2];
-  out[3] ^= salt_bufs[salt_pos].salt_buf[3];
+  out[0] ^= salt_bufs[SALT_POS].salt_buf[0];
+  out[1] ^= salt_bufs[SALT_POS].salt_buf[1];
+  out[2] ^= salt_bufs[SALT_POS].salt_buf[2];
+  out[3] ^= salt_bufs[SALT_POS].salt_buf[3];
 
   // do a sha1 of the result
 
@@ -331,10 +331,10 @@ KERNEL_FQ void m09500_comp (KERN_ATTR_TMPS_ESALT (office2010_tmp_t, office2010_t
 
   AES128_set_encrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3);
 
-  data[0] = digest[0] ^ salt_bufs[salt_pos].salt_buf[0];
-  data[1] = digest[1] ^ salt_bufs[salt_pos].salt_buf[1];
-  data[2] = digest[2] ^ salt_bufs[salt_pos].salt_buf[2];
-  data[3] = digest[3] ^ salt_bufs[salt_pos].salt_buf[3];
+  data[0] = digest[0] ^ salt_bufs[SALT_POS].salt_buf[0];
+  data[1] = digest[1] ^ salt_bufs[SALT_POS].salt_buf[1];
+  data[2] = digest[2] ^ salt_bufs[SALT_POS].salt_buf[2];
+  data[3] = digest[3] ^ salt_bufs[SALT_POS].salt_buf[3];
 
   AES128_encrypt (ks, data, out, s_te0, s_te1, s_te2, s_te3, s_te4);
 

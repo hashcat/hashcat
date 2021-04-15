@@ -117,7 +117,7 @@ KERNEL_FQ void m21600_init (KERN_ATTR_TMPS (web2py_sha512_tmp_t))
   tmps[gid].opad[6] = sha512_hmac_ctx.opad.h[6];
   tmps[gid].opad[7] = sha512_hmac_ctx.opad.h[7];
 
-  sha512_hmac_update_global_swap (&sha512_hmac_ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  sha512_hmac_update_global_swap (&sha512_hmac_ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   for (u32 i = 0, j = 1; i < 8; i += 8, j += 1)
   {

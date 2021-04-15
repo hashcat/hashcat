@@ -117,7 +117,7 @@ KERNEL_FQ void m12300_init (KERN_ATTR_TMPS (oraclet_tmp_t))
   tmps[gid].opad[6] = sha512_hmac_ctx.opad.h[6];
   tmps[gid].opad[7] = sha512_hmac_ctx.opad.h[7];
 
-  sha512_hmac_update_global (&sha512_hmac_ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  sha512_hmac_update_global (&sha512_hmac_ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   u32 w0[4];
   u32 w1[4];
@@ -421,7 +421,7 @@ KERNEL_FQ void m12300_comp (KERN_ATTR_TMPS (oraclet_tmp_t))
 
   sha512_update_128 (&ctx, w0, w1, w2, w3, w4, w5, w6, w7, 64);
 
-  sha512_update_global (&ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  sha512_update_global (&ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   sha512_final (&ctx);
 

@@ -121,10 +121,10 @@ KERNEL_FQ void m18400_init (KERN_ATTR_TMPS_ESALT (odf12_tmp_t, odf12_t))
   u32 m2[4];
   u32 m3[4];
 
-  m0[0] = hc_swap32_S (salt_bufs[digests_offset].salt_buf[0]);
-  m0[1] = hc_swap32_S (salt_bufs[digests_offset].salt_buf[1]);
-  m0[2] = hc_swap32_S (salt_bufs[digests_offset].salt_buf[2]);
-  m0[3] = hc_swap32_S (salt_bufs[digests_offset].salt_buf[3]);
+  m0[0] = hc_swap32_S (salt_bufs[DIGESTS_OFFSET].salt_buf[0]);
+  m0[1] = hc_swap32_S (salt_bufs[DIGESTS_OFFSET].salt_buf[1]);
+  m0[2] = hc_swap32_S (salt_bufs[DIGESTS_OFFSET].salt_buf[2]);
+  m0[3] = hc_swap32_S (salt_bufs[DIGESTS_OFFSET].salt_buf[3]);
   m1[0] = 0;
   m1[1] = 0;
   m1[2] = 0;
@@ -343,7 +343,7 @@ KERNEL_FQ void m18400_comp (KERN_ATTR_TMPS_ESALT (odf12_tmp_t, odf12_t))
 
   aes256_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
-  GLOBAL_AS const odf12_t *es = &esalt_bufs[digests_offset];
+  GLOBAL_AS const odf12_t *es = &esalt_bufs[DIGESTS_OFFSET];
 
   u32 iv[4];
 

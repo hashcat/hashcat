@@ -2057,7 +2057,7 @@ KERNEL_FQ void m03000_mxx (KERN_ATTR_BITSLICE ())
     {
       for (u32 d = 0; d < digests_cnt; d++)
       {
-        const u32 final_hash_pos = digests_offset + d;
+        const u32 final_hash_pos = DIGESTS_OFFSET + d;
 
         if (hashes_shown[final_hash_pos]) continue;
 

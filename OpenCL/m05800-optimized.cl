@@ -2220,15 +2220,15 @@ KERNEL_FQ void m05800_init (KERN_ATTR_TMPS (androidpin_tmp_t))
    * salt
    */
 
-  u32 salt_len = salt_bufs[salt_pos].salt_len;
+  u32 salt_len = salt_bufs[SALT_POS].salt_len;
 
   u32 salt_buf[5];
 
-  salt_buf[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf[1] = salt_bufs[salt_pos].salt_buf[1];
-  salt_buf[2] = salt_bufs[salt_pos].salt_buf[2];
-  salt_buf[3] = salt_bufs[salt_pos].salt_buf[3];
-  salt_buf[4] = salt_bufs[salt_pos].salt_buf[4];
+  salt_buf[0] = salt_bufs[SALT_POS].salt_buf[0];
+  salt_buf[1] = salt_bufs[SALT_POS].salt_buf[1];
+  salt_buf[2] = salt_bufs[SALT_POS].salt_buf[2];
+  salt_buf[3] = salt_bufs[SALT_POS].salt_buf[3];
+  salt_buf[4] = salt_bufs[SALT_POS].salt_buf[4];
 
   /**
    * init
@@ -2338,15 +2338,15 @@ KERNEL_FQ void m05800_loop (KERN_ATTR_TMPS (androidpin_tmp_t))
    * salt
    */
 
-  u32 salt_len = salt_bufs[salt_pos].salt_len;
+  u32 salt_len = salt_bufs[SALT_POS].salt_len;
 
   u32 salt_buf[5];
 
-  salt_buf[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf[1] = salt_bufs[salt_pos].salt_buf[1];
-  salt_buf[2] = salt_bufs[salt_pos].salt_buf[2];
-  salt_buf[3] = salt_bufs[salt_pos].salt_buf[3];
-  salt_buf[4] = salt_bufs[salt_pos].salt_buf[4];
+  salt_buf[0] = salt_bufs[SALT_POS].salt_buf[0];
+  salt_buf[1] = salt_bufs[SALT_POS].salt_buf[1];
+  salt_buf[2] = salt_bufs[SALT_POS].salt_buf[2];
+  salt_buf[3] = salt_bufs[SALT_POS].salt_buf[3];
+  salt_buf[4] = salt_bufs[SALT_POS].salt_buf[4];
 
   /**
    * loop

@@ -45,10 +45,10 @@ KERNEL_FQ void m22400_init (KERN_ATTR_TMPS_ESALT (aescrypt_tmp_t, aescrypt_t))
 
   u32 s[16] = { 0 }; // 64-byte aligned
 
-  s[0] = salt_bufs[salt_pos].salt_buf[0];
-  s[1] = salt_bufs[salt_pos].salt_buf[1];
-  s[2] = salt_bufs[salt_pos].salt_buf[2];
-  s[3] = salt_bufs[salt_pos].salt_buf[3];
+  s[0] = salt_bufs[SALT_POS].salt_buf[0];
+  s[1] = salt_bufs[SALT_POS].salt_buf[1];
+  s[2] = salt_bufs[SALT_POS].salt_buf[2];
+  s[3] = salt_bufs[SALT_POS].salt_buf[3];
 
   // convert password to utf16le:
 
@@ -258,21 +258,21 @@ KERNEL_FQ void m22400_comp (KERN_ATTR_TMPS_ESALT (aescrypt_tmp_t, aescrypt_t))
 
   u32 data[16] = { 0 };
 
-  data[ 0] = esalt_bufs[digests_offset].iv[0];
-  data[ 1] = esalt_bufs[digests_offset].iv[1];
-  data[ 2] = esalt_bufs[digests_offset].iv[2];
-  data[ 3] = esalt_bufs[digests_offset].iv[3];
+  data[ 0] = esalt_bufs[DIGESTS_OFFSET].iv[0];
+  data[ 1] = esalt_bufs[DIGESTS_OFFSET].iv[1];
+  data[ 2] = esalt_bufs[DIGESTS_OFFSET].iv[2];
+  data[ 3] = esalt_bufs[DIGESTS_OFFSET].iv[3];
 
   // key
 
-  data[ 4] = esalt_bufs[digests_offset].key[0];
-  data[ 5] = esalt_bufs[digests_offset].key[1];
-  data[ 6] = esalt_bufs[digests_offset].key[2];
-  data[ 7] = esalt_bufs[digests_offset].key[3];
-  data[ 8] = esalt_bufs[digests_offset].key[4];
-  data[ 9] = esalt_bufs[digests_offset].key[5];
-  data[10] = esalt_bufs[digests_offset].key[6];
-  data[11] = esalt_bufs[digests_offset].key[7];
+  data[ 4] = esalt_bufs[DIGESTS_OFFSET].key[0];
+  data[ 5] = esalt_bufs[DIGESTS_OFFSET].key[1];
+  data[ 6] = esalt_bufs[DIGESTS_OFFSET].key[2];
+  data[ 7] = esalt_bufs[DIGESTS_OFFSET].key[3];
+  data[ 8] = esalt_bufs[DIGESTS_OFFSET].key[4];
+  data[ 9] = esalt_bufs[DIGESTS_OFFSET].key[5];
+  data[10] = esalt_bufs[DIGESTS_OFFSET].key[6];
+  data[11] = esalt_bufs[DIGESTS_OFFSET].key[7];
 
   /*
    * HMAC-SHA256:

@@ -722,7 +722,7 @@ KERNEL_FQ void m12400_loop (KERN_ATTR_TMPS (bsdicrypt_tmp_t))
   iv[0] = tmps[gid].iv[0];
   iv[1] = tmps[gid].iv[1];
 
-  const u32 mask = salt_bufs[salt_pos].salt_buf[0];
+  const u32 mask = salt_bufs[SALT_POS].salt_buf[0];
 
   _des_crypt_encrypt (iv, mask, loop_cnt, Kc, Kd, s_SPtrans);
 

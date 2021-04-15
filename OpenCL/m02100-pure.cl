@@ -28,6 +28,11 @@ typedef struct dcc2_tmp
 
 } dcc2_tmp_t;
 
+DECLSPEC void sha1_hmac_update_global_utf16le_swap (sha1_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+{
+  sha1_update_global_utf16le_swap (&ctx->ipad, w, len);
+}
+
 DECLSPEC void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
 {
   digest[0] = ipad[0];
@@ -95,7 +100,7 @@ KERNEL_FQ void m02100_init (KERN_ATTR_TMPS (dcc2_tmp_t))
 
   md4_ctx2.len = 16;
 
-  md4_update_global_utf16le (&md4_ctx2, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  md4_update_global_utf16le (&md4_ctx2, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   md4_final (&md4_ctx2);
 
@@ -144,7 +149,7 @@ KERNEL_FQ void m02100_init (KERN_ATTR_TMPS (dcc2_tmp_t))
   tmps[gid].opad[3] = sha1_hmac_ctx.opad.h[3];
   tmps[gid].opad[4] = sha1_hmac_ctx.opad.h[4];
 
-  sha1_hmac_update_global_utf16le_swap (&sha1_hmac_ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  sha1_hmac_update_global_utf16le_swap (&sha1_hmac_ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   w0[0] = 1;
   w0[1] = 0;

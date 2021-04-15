@@ -51,7 +51,7 @@ KERNEL_FQ void m13800_mxx (KERN_ATTR_ESALT (win8phone_t))
 
     sha256_update_global_utf16le_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
-    sha256_update_global (&ctx, esalt_bufs[digests_offset].salt_buf, 128);
+    sha256_update_global (&ctx, esalt_bufs[DIGESTS_OFFSET].salt_buf, 128);
 
     sha256_final (&ctx);
 
@@ -81,10 +81,10 @@ KERNEL_FQ void m13800_sxx (KERN_ATTR_ESALT (win8phone_t))
 
   const u32 search[4] =
   {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
   };
 
   /**
@@ -107,7 +107,7 @@ KERNEL_FQ void m13800_sxx (KERN_ATTR_ESALT (win8phone_t))
 
     sha256_update_global_utf16le_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
-    sha256_update_global (&ctx, esalt_bufs[digests_offset].salt_buf, 128);
+    sha256_update_global (&ctx, esalt_bufs[DIGESTS_OFFSET].salt_buf, 128);
 
     sha256_final (&ctx);
 

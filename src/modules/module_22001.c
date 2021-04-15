@@ -35,6 +35,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_AUX3
                                   | OPTS_TYPE_AUX4
                                   | OPTS_TYPE_BINARY_HASHFILE
+                                  | OPTS_TYPE_BINARY_HASHFILE_OPTIONAL
                                   | OPTS_TYPE_DEEP_COMP_KERNEL
                                   | OPTS_TYPE_COPY_TMPS
                                   | OPTS_TYPE_POTFILE_NOPASS;
@@ -600,6 +601,7 @@ bool module_potfile_custom_check (MAYBE_UNUSED const hashconfig_t *hashconfig, M
     1,                  // digests_cnt
     0,                  // digests_offset
     0,                  // combs_mode
+    0,                  // pws_pos
     1                   // gid_max
   );
 

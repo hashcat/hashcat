@@ -184,16 +184,19 @@ static void main_outerloop_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MA
 
   status_ctx->shutdown_outer = false;
 
-  if ((user_options->example_hashes == false) && (user_options->keyspace == false) && (user_options->stdout_flag == false) && (user_options->backend_info == false) && (user_options->speed_only == false))
+  if (user_options->hash_info      == true) return;
+  if (user_options->keyspace       == true) return;
+  if (user_options->stdout_flag    == true) return;
+  if (user_options->backend_info   == true) return;
+  if (user_options->speed_only     == true) return;
+
+  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
-    if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
-    {
-      // see thread_keypress() how to access status information
+    // see thread_keypress() how to access status information
 
-      hc_thread_create (hashcat_user->outer_threads[hashcat_user->outer_threads_cnt], thread_keypress, hashcat_ctx);
+    hc_thread_create (hashcat_user->outer_threads[hashcat_user->outer_threads_cnt], thread_keypress, hashcat_ctx);
 
-      hashcat_user->outer_threads_cnt++;
-    }
+    hashcat_user->outer_threads_cnt++;
   }
 }
 
@@ -257,7 +260,7 @@ static void main_cracker_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
-  if (user_options->example_hashes  == true) return;
+  if (user_options->hash_info       == true) return;
   if (user_options->keyspace        == true) return;
   if (user_options->backend_info    == true) return;
   if (user_options->stdout_flag     == true) return;
@@ -464,7 +467,7 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
   event_log_info (hashcat_ctx, "Hashes: %u digests; %u unique digests, %u unique salts", hashes->hashes_cnt_orig, hashes->digests_cnt, hashes->salts_cnt);
   event_log_info (hashcat_ctx, "Bitmaps: %u bits, %u entries, 0x%08x mask, %u bytes, %u/%u rotates", bitmap_ctx->bitmap_bits, bitmap_ctx->bitmap_nums, bitmap_ctx->bitmap_mask, bitmap_ctx->bitmap_size, bitmap_ctx->bitmap_shift1, bitmap_ctx->bitmap_shift2);
 
-  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+  if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
   {
     event_log_info (hashcat_ctx, "Rules: %u", straight_ctx->kernel_rules_cnt);
   }
@@ -1157,9 +1160,9 @@ int main (int argc, char **argv)
 
       rc_final = 0;
     }
-    else if (user_options->example_hashes == true)
+    else if (user_options->hash_info == true)
     {
-      example_hashes (hashcat_ctx);
+      hash_info (hashcat_ctx);
 
       rc_final = 0;
     }

@@ -180,7 +180,7 @@ KERNEL_FQ void m02501_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
 
   const u32 digest_pos = loop_pos;
 
-  const u32 digest_cur = digests_offset + digest_pos;
+  const u32 digest_cur = DIGESTS_OFFSET + digest_pos;
 
   GLOBAL_AS const wpa_eapol_t *wpa_eapol = &esalt_bufs[digest_cur];
 
@@ -338,7 +338,7 @@ KERNEL_FQ void m02501_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
       {
         if (atomic_inc (&hashes_shown[digest_cur]) == 0)
         {
-          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
+          mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
         }
       }
     }
@@ -365,7 +365,7 @@ KERNEL_FQ void m02501_aux2 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
 
   const u32 digest_pos = loop_pos;
 
-  const u32 digest_cur = digests_offset + digest_pos;
+  const u32 digest_cur = DIGESTS_OFFSET + digest_pos;
 
   GLOBAL_AS const wpa_eapol_t *wpa_eapol = &esalt_bufs[digest_cur];
 
@@ -518,7 +518,7 @@ KERNEL_FQ void m02501_aux2 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
       {
         if (atomic_inc (&hashes_shown[digest_cur]) == 0)
         {
-          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
+          mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
         }
       }
     }
@@ -581,7 +581,7 @@ KERNEL_FQ void m02501_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
 
   const u32 digest_pos = loop_pos;
 
-  const u32 digest_cur = digests_offset + digest_pos;
+  const u32 digest_cur = DIGESTS_OFFSET + digest_pos;
 
   GLOBAL_AS const wpa_eapol_t *wpa_eapol = &esalt_bufs[digest_cur];
 
@@ -804,7 +804,7 @@ KERNEL_FQ void m02501_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
       {
         if (atomic_inc (&hashes_shown[digest_cur]) == 0)
         {
-          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
+          mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
         }
       }
     }

@@ -239,6 +239,7 @@ typedef enum attack_mode
   ATTACK_MODE_TABLE     = 5,
   ATTACK_MODE_HYBRID1   = 6,
   ATTACK_MODE_HYBRID2   = 7,
+  ATTACK_MODE_ASSOCIATION   = 9,
   ATTACK_MODE_NONE      = 100
 
 } attack_mode_t;
@@ -422,6 +423,8 @@ typedef enum opts_type
   OPTS_TYPE_AUX3              = (1ULL << 37),
   OPTS_TYPE_AUX4              = (1ULL << 38),
   OPTS_TYPE_BINARY_HASHFILE   = (1ULL << 39),
+  OPTS_TYPE_BINARY_HASHFILE_OPTIONAL
+                              = (1ULL << 40), // this allows us to not enforce the use of a binary file. requires OPTS_TYPE_BINARY_HASHFILE set to be effective.
   OPTS_TYPE_PT_ADD06          = (1ULL << 41),
   OPTS_TYPE_KEYBOARD_MAPPING  = (1ULL << 42),
   OPTS_TYPE_DEEP_COMP_KERNEL  = (1ULL << 43), // if we have to iterate through each hash inside the comp kernel, for example if each hash has to be decrypted separately
@@ -431,6 +434,8 @@ typedef enum opts_type
   OPTS_TYPE_POTFILE_NOPASS    = (1ULL << 47), // sometimes the password should not be printed to potfile
   OPTS_TYPE_DYNAMIC_SHARED    = (1ULL << 48), // use dynamic shared memory (note: needs special kernel changes)
   OPTS_TYPE_SELF_TEST_DISABLE = (1ULL << 49), // some algos use JiT in combinations with a salt or create too much startup time
+  OPTS_TYPE_MP_MULTI_DISABLE  = (1ULL << 50), // do not multiply the kernel-accel with the multiprocessor count per device to allow more fine-tuned workload settings
+  OPTS_TYPE_NATIVE_THREADS    = (1ULL << 51), // forces "native" thread count: CPU=1, GPU-Intel=8, GPU-AMD=64 (wavefront), GPU-NV=32 (warps)
 
 } opts_type_t;
 
@@ -541,6 +546,8 @@ typedef enum parser_rc
   PARSER_BLOCK_SIZE           = -39,
   PARSER_CIPHER               = -40,
   PARSER_FILE_SIZE            = -41,
+  PARSER_IV_LENGTH            = -42,
+  PARSER_CT_LENGTH            = -43,
   PARSER_HAVE_ERRNO           = -100,
   PARSER_UNKNOWN_ERROR        = -255
 
@@ -590,10 +597,10 @@ typedef enum user_options_defaults
   BRAIN_SESSION            = 0,
   #endif
   DEBUG_MODE               = 0,
-  EXAMPLE_HASHES           = false,
   FORCE                    = false,
   HWMON_DISABLE            = false,
   HWMON_TEMP_ABORT         = 90,
+  HASH_INFO                = false,
   HASH_MODE                = 0,
   HCCAPX_MESSAGE_PAIR      = 0,
   HEX_CHARSET              = false,
@@ -695,7 +702,7 @@ typedef enum user_options_map
   IDX_DEBUG_MODE                = 0xff11,
   IDX_ENCODING_FROM             = 0xff12,
   IDX_ENCODING_TO               = 0xff13,
-  IDX_EXAMPLE_HASHES            = 0xff14,
+  IDX_HASH_INFO                 = 0xff14,
   IDX_FORCE                     = 0xff15,
   IDX_HWMON_DISABLE             = 0xff16,
   IDX_HWMON_TEMP_ABORT          = 0xff17,
@@ -1937,9 +1944,9 @@ typedef struct user_options
   bool         brain_client;
   bool         brain_server;
   #endif
-  bool         example_hashes;
   bool         force;
   bool         hwmon_disable;
+  bool         hash_info;
   bool         hex_charset;
   bool         hex_salt;
   bool         hex_wordlist;
@@ -2612,8 +2619,6 @@ typedef struct token
 
 } token_t;
 
-#endif // _TYPES_H
-
 /**
  * hash category is relevant in usage.c (--help screen)
  */
@@ -2647,3 +2652,5 @@ typedef enum hash_category
 // hash specific
 
 typedef aes_ctx AES_KEY;
+
+#endif // _TYPES_H

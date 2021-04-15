@@ -449,10 +449,10 @@ KERNEL_FQ void m18600_init (KERN_ATTR_TMPS_ESALT (odf11_tmp_t, odf11_t))
   u32 m2[4];
   u32 m3[4];
 
-  m0[0] = salt_bufs[digests_offset].salt_buf[0];
-  m0[1] = salt_bufs[digests_offset].salt_buf[1];
-  m0[2] = salt_bufs[digests_offset].salt_buf[2];
-  m0[3] = salt_bufs[digests_offset].salt_buf[3];
+  m0[0] = salt_bufs[DIGESTS_OFFSET].salt_buf[0];
+  m0[1] = salt_bufs[DIGESTS_OFFSET].salt_buf[1];
+  m0[2] = salt_bufs[DIGESTS_OFFSET].salt_buf[2];
+  m0[3] = salt_bufs[DIGESTS_OFFSET].salt_buf[3];
   m1[0] = 0;
   m1[1] = 0;
   m1[2] = 0;
@@ -697,7 +697,7 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m18600_comp (KERN_ATTR_TMPS_
     S3[i + 3] = R0;
   }
 
-  GLOBAL_AS const odf11_t *es = &esalt_bufs[digests_offset];
+  GLOBAL_AS const odf11_t *es = &esalt_bufs[DIGESTS_OFFSET];
 
   u32 ct[2];
 

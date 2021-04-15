@@ -404,12 +404,12 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m09000_init (KERN_ATTR_TMPS 
    * salt
    */
 
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
+  const u32 salt_len = salt_bufs[SALT_POS].salt_len;
 
   u32 salt_buf[2];
 
-  salt_buf[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf[1] = salt_bufs[salt_pos].salt_buf[1];
+  salt_buf[0] = salt_bufs[SALT_POS].salt_buf[0];
+  salt_buf[1] = salt_bufs[SALT_POS].salt_buf[1];
 
   /**
    * initial sha1

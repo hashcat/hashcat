@@ -161,10 +161,13 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - NetNTLMv1 / NetNTLMv1+ESS
 - NetNTLMv2
 - Skype
-- Telegram Desktop App Passcode (PBKDF2-HMAC-SHA1)
+- Telegram Desktop <  v2.1.14 (PBKDF2-HMAC-SHA1)
+- Telegram Desktop >= v2.1.14 (PBKDF2-HMAC-SHA512)
 - Telegram Mobile App Passcode (SHA256)
-- PostgreSQL CRAM (MD5)
+- MongoDB ServerKey SCRAM-SHA-1
+- MongoDB ServerKey SCRAM-SHA-256
 - MySQL CRAM (SHA1)
+- PostgreSQL CRAM (MD5)
 - XMPP SCRAM
 - RACF
 - AIX {smd5}
@@ -217,6 +220,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - MySQL4.1/MySQL5
 - MySQL $A$ (sha256crypt)
 - Sybase ASE
+- SQLCipher
 - hMailServer
 - DNSSEC (NSEC3)
 - CRAM-MD5 Dovecot
@@ -260,12 +264,14 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - PDF 1.1 - 1.3 (Acrobat 2 - 4), collider #1
 - PDF 1.1 - 1.3 (Acrobat 2 - 4), collider #2
 - PDF 1.4 - 1.6 (Acrobat 5 - 8)
+- PDF 1.4 - 1.6 (Acrobat 5 - 8) - edit password
 - PDF 1.7 Level 3 (Acrobat 9)
 - PDF 1.7 Level 8 (Acrobat 10 - 11)
 - Apple iWork
 - MS Office 2007
 - MS Office 2010
 - MS Office 2013
+- MS Office 2016 - SheetProtection
 - MS Office <= 2003 $0/$1, MD5 + RC4
 - MS Office <= 2003 $0/$1, MD5 + RC4, collider #1
 - MS Office <= 2003 $0/$1, MD5 + RC4, collider #2
@@ -291,6 +297,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Blockchain, My Wallet
 - Blockchain, My Wallet, V2
 - Blockchain, My Wallet, Second Password (SHA256)
+- Stargazer Stellar Wallet XLM
 - Ethereum Pre-Sale Wallet, PBKDF2-HMAC-SHA256
 - Ethereum Wallet, PBKDF2-HMAC-SHA256
 - Ethereum Wallet, SCRYPT
@@ -314,6 +321,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - iTunes backup >= 10.0
 - WinZip
 - Android Backup
+- Stuffit5
 - AxCrypt 1
 - AxCrypt 1 in-memory SHA1
 - AxCrypt 2 AES-128
@@ -325,6 +333,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - SMF (Simple Machines Forum) > v1.1
 - MediaWiki B type
 - Redmine
+- Umbraco HMAC-SHA1
 - Joomla < 2.5.18
 - OpenCart
 - PrestaShop
@@ -337,6 +346,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Django (SHA-1)
 - Web2py pbkdf2-sha512
 - TOTP (HMAC-SHA1)
+- Dahua Authentication MD5
 
 ##
 ## Attack-Modes

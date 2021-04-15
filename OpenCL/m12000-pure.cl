@@ -95,7 +95,7 @@ KERNEL_FQ void m12000_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, pbkdf2_sha1
   tmps[gid].opad[3] = sha1_hmac_ctx.opad.h[3];
   tmps[gid].opad[4] = sha1_hmac_ctx.opad.h[4];
 
-  sha1_hmac_update_global_swap (&sha1_hmac_ctx, esalt_bufs[digests_offset].salt_buf, salt_bufs[salt_pos].salt_len);
+  sha1_hmac_update_global_swap (&sha1_hmac_ctx, esalt_bufs[DIGESTS_OFFSET].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   for (u32 i = 0, j = 1; i < 4; i += 5, j += 1)
   {

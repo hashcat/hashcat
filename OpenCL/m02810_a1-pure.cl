@@ -65,7 +65,7 @@ KERNEL_FQ void m02810_mxx (KERN_ATTR_BASIC ())
 
   for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = salt_bufs[salt_pos].salt_buf_pc[idx];
+    s[idx] = salt_bufs[SALT_POS].salt_buf_pc[idx];
   }
 
   md5_ctx_t ctx0;
@@ -185,10 +185,10 @@ KERNEL_FQ void m02810_sxx (KERN_ATTR_BASIC ())
 
   const u32 search[4] =
   {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
   };
 
   /**
@@ -201,7 +201,7 @@ KERNEL_FQ void m02810_sxx (KERN_ATTR_BASIC ())
 
   for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = salt_bufs[salt_pos].salt_buf_pc[idx];
+    s[idx] = salt_bufs[SALT_POS].salt_buf_pc[idx];
   }
 
   md5_ctx_t ctx0;
