@@ -1936,6 +1936,7 @@ typedef struct user_options
   bool         workload_profile_chgd;
   bool         skip_chgd;
   bool         limit_chgd;
+  bool         scrypt_tmto_chgd;
 
   bool         advice_disable;
   bool         benchmark;

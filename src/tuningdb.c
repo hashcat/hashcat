@@ -186,6 +186,10 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
       {
         kernel_accel = 1024;
       }
+      else if (token_ptr[4][0] == 'N')
+      {
+        kernel_accel = -1;
+      }
       else
       {
         kernel_accel = (int) strtol (token_ptr[4], NULL, 10);

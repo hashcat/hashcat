@@ -359,11 +359,21 @@ GeForce_GTX_TITAN                               3       2410    2       A       
 GeForce_GTX_TITAN                               3       5500    1       A       A
 GeForce_GTX_TITAN                               3       9900    2       A       A
 
-###########
-## SCRYPT #
-###########
+##
+## SCRYPT
+##
 
-DEVICE_TYPE_CPU                                 *       15700   1       1       1
-DEVICE_TYPE_GPU                                 *       15700   1       1       1
-DEVICE_TYPE_CPU                                 *       22700   1       1       1
-DEVICE_TYPE_GPU                                 *       22700   1       1       1
+DEVICE_TYPE_CPU                                 *       8900    1       N       1
+DEVICE_TYPE_GPU                                 *       8900    1       N       1
+DEVICE_TYPE_CPU                                 *       9300    1       N       1
+DEVICE_TYPE_GPU                                 *       9300    1       N       1
+DEVICE_TYPE_CPU                                 *      15700    1       N       1
+DEVICE_TYPE_GPU                                 *      15700    1       1       1
+DEVICE_TYPE_CPU                                 *      22700    1       N       1
+DEVICE_TYPE_GPU                                 *      22700    1       N       1
+
+GeForce_GTX_980                                 *       8900    1       28      1
+GeForce_GTX_980                                 *       9300    1      128      1
+GeForce_GTX_980                                 *      15700    1        1      1
+GeForce_GTX_980                                 *      22700    1       28      1
+

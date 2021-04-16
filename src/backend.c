@@ -8070,12 +8070,20 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       {
         const u32 _kernel_accel = tuningdb_entry->kernel_accel;
 
-        if (_kernel_accel)
+        if (_kernel_accel == (u32) -1) // native, makes sense if OPTS_TYPE_MP_MULTI_DISABLE is used
         {
-          if ((_kernel_accel >= device_param->kernel_accel_min) && (_kernel_accel <= device_param->kernel_accel_max))
+          device_param->kernel_accel_min = device_param->device_processors;
+          device_param->kernel_accel_max = device_param->device_processors;
+        }
+        else
+        {
+          if (_kernel_accel)
           {
-            device_param->kernel_accel_min = _kernel_accel;
-            device_param->kernel_accel_max = _kernel_accel;
+            if ((_kernel_accel >= device_param->kernel_accel_min) && (_kernel_accel <= device_param->kernel_accel_max))
+            {
+              device_param->kernel_accel_min = _kernel_accel;
+              device_param->kernel_accel_max = _kernel_accel;
+            }
           }
         }
       }
@@ -8165,17 +8173,6 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
      */
 
     const u32 device_processors = device_param->device_processors;
-
-    if (hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)
-    {
-      u32 native_accel = device_processors;
-
-      if ((native_accel >= device_param->kernel_accel_min) && (native_accel <= device_param->kernel_accel_max))
-      {
-        device_param->kernel_accel_min = native_accel;
-        device_param->kernel_accel_max = native_accel;
-      }
-    }
 
     /**
      * device threads
