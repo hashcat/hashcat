@@ -383,7 +383,7 @@ DEVICE_TYPE_GPU                                 *       22700   1       N       
 ##
 ## First, you need to know the parameters of your SCRYPT hash: N, r and p.
 ##
-## For the default SCRYPT reference those are N=14, r=8 and p=1, but these will likely not match the paremeters used by real-world applications.
+## In the SCRYPT reference implementation those parameters are N=14, r=8 and p=1, but these will likely not match the parameters used by real-world applications.
 ## By reference, the N value represents an exponent (2^N, which we calculate as 1 bit shifted left by N).
 ## Hashcat expects this N value in decimal: 1 << 14 = 16384
 ##
@@ -428,7 +428,7 @@ DEVICE_TYPE_GPU                                 *       22700   1       N       
 ##   (8GB >> 1) = 4GB < 3.8GB = No, Does not fit
 ##   (8GB >> 2) = 2GB < 3.8GB = Yes! 
 ##
-## This process is automated in Hashcat, but it is important to understand what's happening here.
+## This process is automated in Hashcat, but it is important to understand what's actually happening here.
 ## Because of the little overhead from the OS and Hashcat we pay a very high price.
 ## Even though it is just 200MB, it forces us to increase the TMTO by another step.
 ## In terms of speed, the speed is now only 1/4 of what we could archieve on that same GPU if it had only 8.2GB ram.
