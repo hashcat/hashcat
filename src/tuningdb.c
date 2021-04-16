@@ -316,7 +316,7 @@ void tuning_db_destroy (hashcat_ctx_t *hashcat_ctx)
   memset (tuning_db, 0, sizeof (tuning_db_t));
 }
 
-tuning_db_entry_t *tuning_db_search (hashcat_ctx_t *hashcat_ctx, const char *device_name, const cl_device_type device_type, int attack_mode, const int hash_mode)
+tuning_db_entry_t *tuning_db_search_real (hashcat_ctx_t *hashcat_ctx, const char *device_name, const cl_device_type device_type, int attack_mode, const int hash_mode)
 {
   tuning_db_t *tuning_db = hashcat_ctx->tuning_db;
 
@@ -420,6 +420,24 @@ tuning_db_entry_t *tuning_db_search (hashcat_ctx_t *hashcat_ctx, const char *dev
   // free converted device_name
 
   hcfree (device_name_nospace);
+
+  return entry;
+}
+
+tuning_db_entry_t *tuning_db_search (hashcat_ctx_t *hashcat_ctx, const char *device_name, const cl_device_type device_type, int attack_mode, const int hash_mode)
+{
+  tuning_db_entry_t *entry;
+
+  const char *NV_prefix = (const char *) "NVIDIA ";
+
+  if (memcmp (device_name, NV_prefix, strlen (NV_prefix)) == 0)
+  {
+    entry = tuning_db_search_real (hashcat_ctx, device_name + strlen (NV_prefix), device_type, attack_mode, hash_mode);
+
+    if (entry) return entry;
+  }
+
+  entry = tuning_db_search_real (hashcat_ctx, device_name, device_type, attack_mode, hash_mode);
 
   return entry;
 }
