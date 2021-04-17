@@ -297,6 +297,8 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Blockchain, My Wallet
 - Blockchain, My Wallet, V2
 - Blockchain, My Wallet, Second Password (SHA256)
+- Mozilla key3.db
+- Mozilla key4.db
 - Stargazer Stellar Wallet XLM
 - Ethereum Pre-Sale Wallet, PBKDF2-HMAC-SHA256
 - Ethereum Wallet, PBKDF2-HMAC-SHA256
