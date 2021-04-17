@@ -31,11 +31,11 @@ sub module_generate_hash
 
   my $chp = sha1 ($hp . $entry_salt_bin);
 
-	my $k1 = hmac ($pes . $entry_salt_bin, $chp, \&sha1, 64);
+  my $k1 = hmac ($pes . $entry_salt_bin, $chp, \&sha1, 64);
 
   my $tk = hmac ($pes, $chp, \&sha1, 64);
 
-	my $k2 = hmac ($tk . $entry_salt_bin, $chp, \&sha1, 64);
+  my $k2 = hmac ($tk . $entry_salt_bin, $chp, \&sha1, 64);
 
   my $k = $k1 . $k2;
 
@@ -57,16 +57,9 @@ sub module_generate_hash
 
     $pt1 = exclusive_or ($pt1, $iv);
 
-print unpack ("H*", $ct1_bin), "\n";
-print unpack ("H*", $ct2_bin), "\n";
-
     my $pt2 = $ede3->decrypt ($ct2_bin);
 
-print unpack ("H*", $pt2), "\n";
-
     $pt2 = exclusive_or ($pt2, $ct1_bin);
-
-print unpack ("H*", $pt2), "\n";
 
     $pt = $pt1 . $pt2;
 
