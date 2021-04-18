@@ -9,7 +9,7 @@
 # Author: 
 #   https://github.com/Banaanhangwagen
 #   https://github.com/mneitsabes
-# License: GPL
+# License: MIT
 #
 
 import argparse
