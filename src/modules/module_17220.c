@@ -170,12 +170,6 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
     return true;
   }
 
-  // hangs somewhere in zlib inflate
-  if (device_param->opencl_platform_vendor_id == VENDOR_ID_AMD)
-  {
-    return true;
-  }
-
   return false;
 }
 

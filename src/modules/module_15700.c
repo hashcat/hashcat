@@ -223,6 +223,12 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
     }
   }
 
+  // w_opencl_runtime_p_2021.2.0.616.exe: password not found
+  if ((device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK) && (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU))
+  {
+    return true;
+  }
+
   return false;
 }
 

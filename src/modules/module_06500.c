@@ -54,6 +54,17 @@ typedef struct sha512aix_tmp
 
 static const char *SIGNATURE_SHA512AIX = "{ssha512}";
 
+bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
+{
+  // amdgpu-pro-20.50-1234664-ubuntu-20.04 (legacy): unhandled return code 255
+  if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
+  {
+    return true;
+  }
+
+  return false;
+}
+
 static void sha512aix_decode (u8 digest[64], const u8 buf[86])
 {
   int l;
@@ -408,17 +419,6 @@ static void sha512aix_encode (const u8 digest[64], u8 buf[86])
 
   buf[84] = int_to_itoa64 (l & 0x3f); l >>= 6;
   buf[85] = int_to_itoa64 (l & 0x3f); //l >>= 6;
-}
-
-bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
-{
-  // amdgpu-pro-19.30-934563-ubuntu-18.04: password not found
-  if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
-  {
-    return true;
-  }
-
-  return false;
 }
 
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)

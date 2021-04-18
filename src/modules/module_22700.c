@@ -59,6 +59,18 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
     return true;
   }
 
+  // w_opencl_runtime_p_2021.2.0.616.exe: password not found
+  if ((device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK) && (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU))
+  {
+    return true;
+  }
+
+  // amdgpu-pro-20.50-1234664-ubuntu-20.04 (legacy): unhandled return code 255
+  if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
+  {
+    return true;
+  }
+
   return false;
 }
 

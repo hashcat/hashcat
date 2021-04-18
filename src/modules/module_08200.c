@@ -60,7 +60,7 @@ typedef struct pbkdf2_sha512_tmp
 
 bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
-  // amdgpu-pro-19.30-934563-ubuntu-18.04: password not found
+  // amdgpu-pro-20.50-1234664-ubuntu-20.04 (legacy): unhandled return code 255
   if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
   {
     return true;
