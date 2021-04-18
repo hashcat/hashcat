@@ -11,7 +11,7 @@ use MIME::Base64 qw (encode_base64 decode_base64);
 
 use Digest::MD5 qw (md5);
 
-sub module_constraints { [[0, 256], [-1, -1], [0, 55], [-1, -1], [-1, -1]] }
+sub module_constraints { [[-1, -1], [-1, -1], [0, 55], [-1, -1], [-1, -1]] }
 
 my $itoa62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
@@ -26,8 +26,6 @@ sub module_generate_hash
   for (my $i = 0, my $j = 0; $i < 16; $i += 2, $j += 1)
   {
     $chksum[$j] = (ord (substr ($digest, $i + 0, 1)) + ord (substr ($digest, $i + 1, 1))) % 62;
-
-printf ("%d\n", $chksum[$j]);
 
     $chksum[$j] = substr ($itoa62, $chksum[$j], 1);
   }
