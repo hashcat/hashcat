@@ -115,6 +115,29 @@ u64 module_extra_buffer_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
   const u64 size_hooks = kernel_power_max * hashconfig->hook_size;
 
+  u64 size_pws_pre  = 4;
+  u64 size_pws_base = 4;
+
+  if (user_options->slow_candidates == true)
+  {
+    // size_pws_pre
+
+    size_pws_pre = kernel_power_max * sizeof (pw_pre_t);
+
+    // size_pws_base
+
+    size_pws_base = kernel_power_max * sizeof (pw_pre_t);
+  }
+
+  // sometimes device_available_mem and device_maxmem_alloc reported back from the opencl runtime are a bit inaccurate.
+  // let's add some extra space just to be sure.
+  // now depends on the kernel-accel value (where scrypt and similar benefits), but also hard minimum 64mb and maximum 1024mb limit
+
+  u64 EXTRA_SPACE = (1024ULL * 1024ULL) * device_param->kernel_accel_max;
+
+  EXTRA_SPACE = MAX (EXTRA_SPACE, (  64ULL * 1024ULL * 1024ULL));
+  EXTRA_SPACE = MIN (EXTRA_SPACE, (1024ULL * 1024ULL * 1024ULL));
+
   const u64 scrypt_extra_space
     = device_param->size_bfs
     + device_param->size_combs
@@ -137,7 +160,10 @@ u64 module_extra_buffer_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
     + size_pws_comp
     + size_pws_idx
     + size_tmps
-    + size_hooks;
+    + size_hooks
+    + size_pws_pre
+    + size_pws_base
+    + EXTRA_SPACE;
 
   bool not_enough_memory = true;
 

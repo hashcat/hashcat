@@ -466,13 +466,12 @@ DEVICE_TYPE_GPU                                 *       22700   1       N       
 ## Find the ideal -n value, then store it here along with the proper compute device name. 
 ## Formatting guidelines are availabe at the top of this document.
 
-
 GeForce_GTX_980                                 *       8900    1      28       1
 GeForce_GTX_980                                 *       9300    1     128       1
 GeForce_GTX_980                                 *       15700   1       1       1
 GeForce_GTX_980                                 *       22700   1      28       1
 
-GeForce_RTX_2080_Ti                             *       8900    1      68       1
+GeForce_RTX_2080_Ti                             *       8900    1       N       1
 GeForce_RTX_2080_Ti                             *       9300    1     544       1
 GeForce_RTX_2080_Ti                             *       15700   1       4       1
 GeForce_RTX_2080_Ti                             *       22700   1       N       1

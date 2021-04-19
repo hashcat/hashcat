@@ -8360,7 +8360,20 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       device_param->extra_buffer_size = extra_buffer_size;
 
-      size_extra_buffer = extra_buffer_size;
+      // for the size we actually allocate we need to cheat a bit in order to make it more easy for plugin developer.
+      //
+      // we will divide this size by 4 to workaround opencl limitation.
+      // this collides with a theoretical scenario (like -n1 -T1) where there's only one workitem,
+      // because inside the kernel the target buffer is selected by workitem_id / 4.
+      // but the maximum size of the buffer would be only 1/4 of what is needed -> overflow.
+      //
+      // to workaround this we make sure that there's always a full buffer in each of the 4 allocated buffers available.
+
+      const u64 kernel_power_max = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE) ? 1 : device_param->device_processors) * device_param->kernel_threads_max * device_param->kernel_accel_max;
+
+      const u64 extra_buffer_size_one = extra_buffer_size / kernel_power_max;
+
+      size_extra_buffer = extra_buffer_size + (extra_buffer_size_one * 4);
     }
 
     // kern type
