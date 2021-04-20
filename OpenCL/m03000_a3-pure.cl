@@ -1761,6 +1761,8 @@ KERNEL_FQ void m03000_mxx (KERN_ATTR_BITSLICE ())
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
 
+  if (gid >= gid_max) return;
+
   /**
    * base
    */
@@ -2137,6 +2139,8 @@ KERNEL_FQ void m03000_sxx (KERN_ATTR_BITSLICE ())
 
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
+
+  if (gid >= gid_max) return;
 
   /**
    * digest
