@@ -676,7 +676,7 @@ KERNEL_FQ void m15300_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
    && (expected_key[2] == hc_swap32_S (ctx.opad.h[2]))
    && (expected_key[3] == hc_swap32_S (ctx.opad.h[3])))
   {
-    if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
     {
       mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, il_pos, 0, 0);
     }

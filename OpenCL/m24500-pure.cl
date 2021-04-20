@@ -646,7 +646,7 @@ KERNEL_FQ void m24500_comp (KERN_ATTR_TMPS_ESALT (telegram_tmp_t, telegram_t))
       r2 == data_key[2] &&
       r3 == data_key[3])
   {
-    if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
     {
       mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
     }

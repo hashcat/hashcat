@@ -671,7 +671,7 @@ KERNEL_FQ void m22700_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
 
   if (is_valid_bitcoinj (dec) == 1)
   {
-    if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
     {
       mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
     }
@@ -695,7 +695,7 @@ KERNEL_FQ void m22700_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
 
   if (is_valid_bitcoinj (dec) == 1)
   {
-    if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
     {
       mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
     }

@@ -24,7 +24,7 @@ if (check (digest_tp,
   {
     const u32 final_hash_pos = DIGESTS_OFFSET + digest_pos;
 
-    if (atomic_inc (&hashes_shown[final_hash_pos]) == 0)
+    if (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0)
     {
       mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, digest_pos, final_hash_pos, gid, il_pos, 0, 0);
     }

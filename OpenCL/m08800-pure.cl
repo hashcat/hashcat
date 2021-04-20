@@ -415,7 +415,7 @@ KERNEL_FQ void m08800_comp (KERN_ATTR_TMPS_ESALT (androidfde_tmp_t, androidfde_t
     // MSDOS5.0
     if ((r0 == 0x4f44534d) && (r1 == 0x302e3553))
     {
-      if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
       {
         mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
       }
@@ -474,7 +474,7 @@ KERNEL_FQ void m08800_comp (KERN_ATTR_TMPS_ESALT (androidfde_tmp_t, androidfde_t
 
     if ((r[5] < 2) && (r[6] < 16) && ((r[14] & 0xffff) == 0xEF53))
     {
-      if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
       {
         mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
       }

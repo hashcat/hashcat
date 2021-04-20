@@ -423,7 +423,7 @@ DECLSPEC void m23002m (SHM_TYPE u32a *s_te0, SHM_TYPE u32a *s_te1, SHM_TYPE u32a
         (out[2] == 0x10101010) &&
         (out[3] == 0x10101010))
     {
-      if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
       {
         mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, il_pos, 0, 0);
       }
@@ -830,7 +830,7 @@ DECLSPEC void m23002s (SHM_TYPE u32a *s_te0, SHM_TYPE u32a *s_te1, SHM_TYPE u32a
         (out[2] == 0x10101010) &&
         (out[3] == 0x10101010))
     {
-      if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
       {
         mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, il_pos, 0, 0);
       }

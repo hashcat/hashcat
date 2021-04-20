@@ -2408,17 +2408,17 @@ DECLSPEC u32 check (const u32 *digest, GLOBAL_AS const u32 *bitmap_s1_a, GLOBAL_
 
 DECLSPEC void mark_hash (GLOBAL_AS plain_t *plains_buf, GLOBAL_AS u32 *d_result, const u32 salt_pos, const u32 digests_cnt, const u32 digest_pos, const u32 hash_pos, const u64 gid, const u32 il_pos, const u32 extra1, const u32 extra2)
 {
-  const u32 idx = atomic_inc (d_result);
+  const u32 idx = hc_atomic_inc (d_result);
 
   #if ATTACK_MODE == 9
 
   #else
   if (idx >= digests_cnt)
   {
-    // this is kind of tricky: we *must* call atomic_inc() to know about the current value from a multi-thread perspective
+    // this is kind of tricky: we *must* call hc_atomic_inc() to know about the current value from a multi-thread perspective
     // this action creates a buffer overflow, so we need to fix it here
 
-    atomic_dec (d_result);
+    hc_atomic_dec (d_result);
 
     return;
   }

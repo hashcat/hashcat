@@ -1741,14 +1741,14 @@ KERNEL_FQ void m03000_tm (GLOBAL_AS u32 *mod, GLOBAL_AS bs_word_t *words_buf_b)
 
   for (int i = 0; i < 32; i += 8)
   {
-    atomic_or (&words_buf_b[block].b[i + 0], (((w0 >> (i + 7)) & 1) << slice));
-    atomic_or (&words_buf_b[block].b[i + 1], (((w0 >> (i + 6)) & 1) << slice));
-    atomic_or (&words_buf_b[block].b[i + 2], (((w0 >> (i + 5)) & 1) << slice));
-    atomic_or (&words_buf_b[block].b[i + 3], (((w0 >> (i + 4)) & 1) << slice));
-    atomic_or (&words_buf_b[block].b[i + 4], (((w0 >> (i + 3)) & 1) << slice));
-    atomic_or (&words_buf_b[block].b[i + 5], (((w0 >> (i + 2)) & 1) << slice));
-    atomic_or (&words_buf_b[block].b[i + 6], (((w0 >> (i + 1)) & 1) << slice));
-    atomic_or (&words_buf_b[block].b[i + 7], (((w0 >> (i + 0)) & 1) << slice));
+    hc_atomic_or (&words_buf_b[block].b[i + 0], (((w0 >> (i + 7)) & 1) << slice));
+    hc_atomic_or (&words_buf_b[block].b[i + 1], (((w0 >> (i + 6)) & 1) << slice));
+    hc_atomic_or (&words_buf_b[block].b[i + 2], (((w0 >> (i + 5)) & 1) << slice));
+    hc_atomic_or (&words_buf_b[block].b[i + 3], (((w0 >> (i + 4)) & 1) << slice));
+    hc_atomic_or (&words_buf_b[block].b[i + 4], (((w0 >> (i + 3)) & 1) << slice));
+    hc_atomic_or (&words_buf_b[block].b[i + 5], (((w0 >> (i + 2)) & 1) << slice));
+    hc_atomic_or (&words_buf_b[block].b[i + 6], (((w0 >> (i + 1)) & 1) << slice));
+    hc_atomic_or (&words_buf_b[block].b[i + 7], (((w0 >> (i + 0)) & 1) << slice));
   }
 }
 
