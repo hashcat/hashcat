@@ -87,15 +87,19 @@ CONSTANT_VK u32 generic_constant[8192]; // 32k
 
 DECLSPEC u32 atomic_dec (u32 *p)
 {
-  return atomicSub (p, 1);
+  volatile const u32 val = 1;
+
+  return atomicSub (p, val);
 }
 
 DECLSPEC u32 atomic_inc (u32 *p)
 {
-  return atomicAdd (p, 1);
+  volatile const u32 val = 1;
+
+  return atomicAdd (p, val);
 }
 
-DECLSPEC u32 atomic_or (u32 *p, u32 val)
+DECLSPEC u32 atomic_or (u32 *p, volatile const u32 val)
 {
   return atomicOr (p, val);
 }
