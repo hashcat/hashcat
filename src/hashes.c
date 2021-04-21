@@ -2048,6 +2048,79 @@ int hashes_init_benchmark (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
+int hashes_init_zerohash (hashcat_ctx_t *hashcat_ctx)
+{
+  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  const hashes_t       *hashes       = hashcat_ctx->hashes;
+  const module_ctx_t   *module_ctx   = hashcat_ctx->module_ctx;
+
+  // do not use this unless really needed, for example as in LM
+
+  if (module_ctx->module_hash_decode_zero_hash == MODULE_DEFAULT) return 0;
+
+  hash_t *hashes_buf = hashes->hashes_buf;
+  u32     hashes_cnt = hashes->hashes_cnt;
+
+  // no solution for these special hash types (for instane because they use hashfile in output etc)
+
+  hash_t hash_buf;
+
+  hash_buf.digest    = hcmalloc (hashconfig->dgst_size);
+  hash_buf.salt      = NULL;
+  hash_buf.esalt     = NULL;
+  hash_buf.hook_salt = NULL;
+  hash_buf.cracked   = 0;
+  hash_buf.hash_info = NULL;
+  hash_buf.pw_buf    = NULL;
+  hash_buf.pw_len    = 0;
+
+  if (hashconfig->is_salted == true)
+  {
+    hash_buf.salt = (salt_t *) hcmalloc (sizeof (salt_t));
+  }
+
+  if (hashconfig->esalt_size > 0)
+  {
+    hash_buf.esalt = hcmalloc (hashconfig->esalt_size);
+  }
+
+  if (hashconfig->hook_salt_size > 0)
+  {
+    hash_buf.hook_salt = hcmalloc (hashconfig->hook_salt_size);
+  }
+
+  module_ctx->module_hash_decode_zero_hash (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, hash_buf.hook_salt, hash_buf.hash_info);
+
+  hash_t *found = (hash_t *) hc_bsearch_r (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_no_salt, (void *) hashconfig);
+
+  if (found != NULL)
+  {
+    found->pw_buf = (char *) hcmalloc (1);
+    found->pw_len = 0;
+
+    found->cracked = 1;
+  }
+
+  if (hashconfig->esalt_size > 0)
+  {
+    hcfree (hash_buf.esalt);
+  }
+
+  if (hashconfig->hook_salt_size > 0)
+  {
+    hcfree (hash_buf.hook_salt);
+  }
+
+  if (hashconfig->is_salted == true)
+  {
+    hcfree (hash_buf.salt);
+  }
+
+  hcfree (hash_buf.digest);
+
+  return 0;
+}
+
 void hashes_destroy (hashcat_ctx_t *hashcat_ctx)
 {
   hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;

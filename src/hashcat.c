@@ -509,6 +509,12 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   }
 
   /**
+   * zero hash removes
+   */
+
+  if (hashes_init_zerohash (hashcat_ctx) == -1) return -1;
+
+  /**
    * load hashes, stage 3, update cracked results from potfile
    */
 
