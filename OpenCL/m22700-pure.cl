@@ -180,11 +180,11 @@ DECLSPEC void salsa_r (uint4 *TI)
   uint4 R2 = TI[STATE_CNT4 - 2];
   uint4 R3 = TI[STATE_CNT4 - 1];
 
-  uint4 TO[STATE_CNT4];
+  uint4 TT[STATE_CNT4 / 2];
 
   int idx_y  = 0;
   int idx_r1 = 0;
-  int idx_r2 = SCRYPT_R * 4;
+  int idx_r2 = 0;
 
   for (int i = 0; i < SCRYPT_R; i++)
   {
@@ -200,10 +200,10 @@ DECLSPEC void salsa_r (uint4 *TI)
 
     SALSA20_8_XOR ();
 
-    TO[idx_r1++] = R0;
-    TO[idx_r1++] = R1;
-    TO[idx_r1++] = R2;
-    TO[idx_r1++] = R3;
+    TI[idx_r1++] = R0;
+    TI[idx_r1++] = R1;
+    TI[idx_r1++] = R2;
+    TI[idx_r1++] = R3;
 
     Y0 = TI[idx_y++];
     Y1 = TI[idx_y++];
@@ -212,16 +212,24 @@ DECLSPEC void salsa_r (uint4 *TI)
 
     SALSA20_8_XOR ();
 
-    TO[idx_r2++] = R0;
-    TO[idx_r2++] = R1;
-    TO[idx_r2++] = R2;
-    TO[idx_r2++] = R3;
+    TT[idx_r2++] = R0;
+    TT[idx_r2++] = R1;
+    TT[idx_r2++] = R2;
+    TT[idx_r2++] = R3;
   }
 
+  idx_r1 = 0;
+  idx_r2 = SCRYPT_R * 4;
+
+  #ifdef _unroll
   #pragma unroll
-  for (int i = 0; i < STATE_CNT4; i++)
+  #endif
+  for (int i = 0; i < SCRYPT_R; i++)
   {
-    TI[i] = TO[i];
+    TI[idx_r2++] = TT[idx_r1++];
+    TI[idx_r2++] = TT[idx_r1++];
+    TI[idx_r2++] = TT[idx_r1++];
+    TI[idx_r2++] = TT[idx_r1++];
   }
 }
 
