@@ -265,9 +265,24 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
   const u64 tmp_size = 128ULL * scrypt_r * scrypt_p;
 
+  char *unroll = "";
+
+  // NVIDIA GPU
+  if (device_param->opencl_device_vendor_id == VENDOR_ID_NV)
+  {
+    unroll = "-D _unroll";
+  }
+
+  // ROCM
+  if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == true))
+  {
+    unroll = "-D _unroll";
+  }
+
   char *jit_build_options = NULL;
 
-  hc_asprintf (&jit_build_options, "-DSCRYPT_N=%u -DSCRYPT_R=%u -DSCRYPT_P=%u -DSCRYPT_TMTO=%" PRIu64 " -DSCRYPT_TMP_ELEM=%" PRIu64,
+  hc_asprintf (&jit_build_options, "%s -DSCRYPT_N=%u -DSCRYPT_R=%u -DSCRYPT_P=%u -DSCRYPT_TMTO=%" PRIu64 " -DSCRYPT_TMP_ELEM=%" PRIu64,
+    unroll,
     hashes->salts_buf[0].scrypt_N,
     hashes->salts_buf[0].scrypt_r,
     hashes->salts_buf[0].scrypt_p,
