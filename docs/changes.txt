@@ -62,6 +62,7 @@
 - OpenCL Runtime: Workaround JiT compiler deadlock on NVIDIA driver >= 465.89
 - RAR3 Kernels: Improved loop code, improving performance by 23%
 - Startup time: Improved the startup time by avoiding some time intensive operations for skipped devices
+- Scrypt Kernels: Reduced kernel wait times by making it a true split kernel where iteration count = N value
 
 ##
 ## Technical

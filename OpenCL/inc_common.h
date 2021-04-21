@@ -62,6 +62,7 @@
   MAYBE_UNUSED           const u32            digests_cnt,          \
   MAYBE_UNUSED           const u32            digests_offset_host,  \
   MAYBE_UNUSED           const u32            combs_mode,           \
+  MAYBE_UNUSED           const u32            salt_repeat,          \
   MAYBE_UNUSED           const u64            pws_pos,              \
   MAYBE_UNUSED           const u64            gid_max
 #else
@@ -100,6 +101,7 @@
   MAYBE_UNUSED           const u32            digests_cnt,          \
   MAYBE_UNUSED           const u32            digests_offset_host,  \
   MAYBE_UNUSED           const u32            combs_mode,           \
+  MAYBE_UNUSED           const u32            salt_repeat,          \
   MAYBE_UNUSED           const u64            pws_pos,              \
   MAYBE_UNUSED           const u64            gid_max
 #endif

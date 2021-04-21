@@ -369,14 +369,14 @@ GeForce_GTX_TITAN                               3       9900    2       A       
 ## SCRYPT
 ##
 
-DEVICE_TYPE_CPU                                 *       8900    1       N       1
-DEVICE_TYPE_GPU                                 *       8900    1       N       1
-DEVICE_TYPE_CPU                                 *       9300    1       N       1
-DEVICE_TYPE_GPU                                 *       9300    1       N       1
-DEVICE_TYPE_CPU                                 *       15700   1       N       1
-DEVICE_TYPE_GPU                                 *       15700   1       1       1
-DEVICE_TYPE_CPU                                 *       22700   1       N       1
-DEVICE_TYPE_GPU                                 *       22700   1       N       1
+DEVICE_TYPE_CPU                                 *       8900    1       N       A
+DEVICE_TYPE_GPU                                 *       8900    1       N       A
+DEVICE_TYPE_CPU                                 *       9300    1       N       A
+DEVICE_TYPE_GPU                                 *       9300    1       N       A
+DEVICE_TYPE_CPU                                 *       15700   1       N       A
+DEVICE_TYPE_GPU                                 *       15700   1       1       A
+DEVICE_TYPE_CPU                                 *       22700   1       N       A
+DEVICE_TYPE_GPU                                 *       22700   1       N       A
 
 ## Here's an example of how to manually tune SCRYPT algorithm kernels for your hardware.
 ## Manually tuning the GPU will yield increased performance. There is typically no noticeable change to CPU performance.
@@ -466,12 +466,12 @@ DEVICE_TYPE_GPU                                 *       22700   1       N       
 ## Find the ideal -n value, then store it here along with the proper compute device name. 
 ## Formatting guidelines are availabe at the top of this document.
 
-GeForce_GTX_980                                 *       8900    1      28       1
-GeForce_GTX_980                                 *       9300    1     128       1
-GeForce_GTX_980                                 *       15700   1       1       1
-GeForce_GTX_980                                 *       22700   1      28       1
+GeForce_GTX_980                                 *       8900    1      28       A
+GeForce_GTX_980                                 *       9300    1     128       A
+GeForce_GTX_980                                 *       15700   1       1       A
+GeForce_GTX_980                                 *       22700   1      28       A
 
-GeForce_RTX_2080_Ti                             *       8900    1       N       1
-GeForce_RTX_2080_Ti                             *       9300    1     544       1
-GeForce_RTX_2080_Ti                             *       15700   1       4       1
-GeForce_RTX_2080_Ti                             *       22700   1       N       1
+GeForce_RTX_2080_Ti                             *       8900    1       N       A
+GeForce_RTX_2080_Ti                             *       9300    1     544       A
+GeForce_RTX_2080_Ti                             *       15700   1       4       A
+GeForce_RTX_2080_Ti                             *       22700   1       N       A

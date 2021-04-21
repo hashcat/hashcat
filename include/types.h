@@ -257,12 +257,14 @@ typedef enum kern_run
 {
   KERN_RUN_1      = 1000,
   KERN_RUN_12     = 1500,
+  KERN_RUN_2P     = 1999,
   KERN_RUN_2      = 2000,
   KERN_RUN_2E     = 2001,
   KERN_RUN_23     = 2500,
   KERN_RUN_3      = 3000,
   KERN_RUN_4      = 4000,
   KERN_RUN_INIT2  = 5000,
+  KERN_RUN_LOOP2P = 5999,
   KERN_RUN_LOOP2  = 6000,
   KERN_RUN_AUX1   = 7001,
   KERN_RUN_AUX2   = 7002,
@@ -412,30 +414,33 @@ typedef enum opts_type
   OPTS_TYPE_ST_BASE64         = (1ULL << 26),
   OPTS_TYPE_HASH_COPY         = (1ULL << 28),
   OPTS_TYPE_HASH_SPLIT        = (1ULL << 29),
-  OPTS_TYPE_LOOP_EXTENDED     = (1ULL << 30), // a kernel which is called each time normal _loop kernel finished.
+  OPTS_TYPE_LOOP_PREPARE      = (1ULL << 30), // a kernel which is called each time before _loop kernel started.
+                                              // like a hook12 kernel but without extra buffers.
+  OPTS_TYPE_LOOP_EXTENDED     = (1ULL << 31), // a kernel which is called each time normal _loop kernel finished.
                                               // but unlike a hook kernel this kernel is called for every _loop iteration offset
-  OPTS_TYPE_HOOK12            = (1ULL << 31),
-  OPTS_TYPE_HOOK23            = (1ULL << 32),
-  OPTS_TYPE_INIT2             = (1ULL << 33),
-  OPTS_TYPE_LOOP2             = (1ULL << 34),
-  OPTS_TYPE_AUX1              = (1ULL << 35),
-  OPTS_TYPE_AUX2              = (1ULL << 36),
-  OPTS_TYPE_AUX3              = (1ULL << 37),
-  OPTS_TYPE_AUX4              = (1ULL << 38),
-  OPTS_TYPE_BINARY_HASHFILE   = (1ULL << 39),
+  OPTS_TYPE_HOOK12            = (1ULL << 32),
+  OPTS_TYPE_HOOK23            = (1ULL << 33),
+  OPTS_TYPE_INIT2             = (1ULL << 34),
+  OPTS_TYPE_LOOP2_PREPARE     = (1ULL << 35), // same as OPTS_TYPE_LOOP_PREPARE but for loop2 kernel
+  OPTS_TYPE_LOOP2             = (1ULL << 36),
+  OPTS_TYPE_AUX1              = (1ULL << 37),
+  OPTS_TYPE_AUX2              = (1ULL << 38),
+  OPTS_TYPE_AUX3              = (1ULL << 39),
+  OPTS_TYPE_AUX4              = (1ULL << 40),
+  OPTS_TYPE_BINARY_HASHFILE   = (1ULL << 41),
   OPTS_TYPE_BINARY_HASHFILE_OPTIONAL
-                              = (1ULL << 40), // this allows us to not enforce the use of a binary file. requires OPTS_TYPE_BINARY_HASHFILE set to be effective.
-  OPTS_TYPE_PT_ADD06          = (1ULL << 41),
-  OPTS_TYPE_KEYBOARD_MAPPING  = (1ULL << 42),
-  OPTS_TYPE_DEEP_COMP_KERNEL  = (1ULL << 43), // if we have to iterate through each hash inside the comp kernel, for example if each hash has to be decrypted separately
-  OPTS_TYPE_TM_KERNEL         = (1ULL << 44),
-  OPTS_TYPE_SUGGEST_KG        = (1ULL << 45), // suggest keep guessing for modules the user maybe wants to use --keep-guessing
-  OPTS_TYPE_COPY_TMPS         = (1ULL << 46), // if we want to use data from tmps buffer (for example get the PMK in WPA)
-  OPTS_TYPE_POTFILE_NOPASS    = (1ULL << 47), // sometimes the password should not be printed to potfile
-  OPTS_TYPE_DYNAMIC_SHARED    = (1ULL << 48), // use dynamic shared memory (note: needs special kernel changes)
-  OPTS_TYPE_SELF_TEST_DISABLE = (1ULL << 49), // some algos use JiT in combinations with a salt or create too much startup time
-  OPTS_TYPE_MP_MULTI_DISABLE  = (1ULL << 50), // do not multiply the kernel-accel with the multiprocessor count per device to allow more fine-tuned workload settings
-  OPTS_TYPE_NATIVE_THREADS    = (1ULL << 51), // forces "native" thread count: CPU=1, GPU-Intel=8, GPU-AMD=64 (wavefront), GPU-NV=32 (warps)
+                              = (1ULL << 42), // this allows us to not enforce the use of a binary file. requires OPTS_TYPE_BINARY_HASHFILE set to be effective.
+  OPTS_TYPE_PT_ADD06          = (1ULL << 43),
+  OPTS_TYPE_KEYBOARD_MAPPING  = (1ULL << 44),
+  OPTS_TYPE_DEEP_COMP_KERNEL  = (1ULL << 45), // if we have to iterate through each hash inside the comp kernel, for example if each hash has to be decrypted separately
+  OPTS_TYPE_TM_KERNEL         = (1ULL << 46),
+  OPTS_TYPE_SUGGEST_KG        = (1ULL << 47), // suggest keep guessing for modules the user maybe wants to use --keep-guessing
+  OPTS_TYPE_COPY_TMPS         = (1ULL << 48), // if we want to use data from tmps buffer (for example get the PMK in WPA)
+  OPTS_TYPE_POTFILE_NOPASS    = (1ULL << 49), // sometimes the password should not be printed to potfile
+  OPTS_TYPE_DYNAMIC_SHARED    = (1ULL << 50), // use dynamic shared memory (note: needs special kernel changes)
+  OPTS_TYPE_SELF_TEST_DISABLE = (1ULL << 51), // some algos use JiT in combinations with a salt or create too much startup time
+  OPTS_TYPE_MP_MULTI_DISABLE  = (1ULL << 52), // do not multiply the kernel-accel with the multiprocessor count per device to allow more fine-tuned workload settings
+  OPTS_TYPE_NATIVE_THREADS    = (1ULL << 53), // forces "native" thread count: CPU=1, GPU-Intel=8, GPU-AMD=64 (wavefront), GPU-NV=32 (warps)
 
 } opts_type_t;
 
@@ -1094,12 +1099,14 @@ typedef struct hc_device_param
 
   u32     kernel_wgs1;
   u32     kernel_wgs12;
+  u32     kernel_wgs2p;
   u32     kernel_wgs2;
   u32     kernel_wgs2e;
   u32     kernel_wgs23;
   u32     kernel_wgs3;
   u32     kernel_wgs4;
   u32     kernel_wgs_init2;
+  u32     kernel_wgs_loop2p;
   u32     kernel_wgs_loop2;
   u32     kernel_wgs_mp;
   u32     kernel_wgs_mp_l;
@@ -1116,12 +1123,14 @@ typedef struct hc_device_param
 
   u32     kernel_preferred_wgs_multiple1;
   u32     kernel_preferred_wgs_multiple12;
+  u32     kernel_preferred_wgs_multiple2p;
   u32     kernel_preferred_wgs_multiple2;
   u32     kernel_preferred_wgs_multiple2e;
   u32     kernel_preferred_wgs_multiple23;
   u32     kernel_preferred_wgs_multiple3;
   u32     kernel_preferred_wgs_multiple4;
   u32     kernel_preferred_wgs_multiple_init2;
+  u32     kernel_preferred_wgs_multiple_loop2p;
   u32     kernel_preferred_wgs_multiple_loop2;
   u32     kernel_preferred_wgs_multiple_mp;
   u32     kernel_preferred_wgs_multiple_mp_l;
@@ -1138,12 +1147,14 @@ typedef struct hc_device_param
 
   u64     kernel_local_mem_size1;
   u64     kernel_local_mem_size12;
+  u64     kernel_local_mem_size2p;
   u64     kernel_local_mem_size2;
   u64     kernel_local_mem_size2e;
   u64     kernel_local_mem_size23;
   u64     kernel_local_mem_size3;
   u64     kernel_local_mem_size4;
   u64     kernel_local_mem_size_init2;
+  u64     kernel_local_mem_size_loop2p;
   u64     kernel_local_mem_size_loop2;
   u64     kernel_local_mem_size_mp;
   u64     kernel_local_mem_size_mp_l;
@@ -1160,12 +1171,14 @@ typedef struct hc_device_param
 
   u64     kernel_dynamic_local_mem_size1;
   u64     kernel_dynamic_local_mem_size12;
+  u64     kernel_dynamic_local_mem_size2p;
   u64     kernel_dynamic_local_mem_size2;
   u64     kernel_dynamic_local_mem_size2e;
   u64     kernel_dynamic_local_mem_size23;
   u64     kernel_dynamic_local_mem_size3;
   u64     kernel_dynamic_local_mem_size4;
   u64     kernel_dynamic_local_mem_size_init2;
+  u64     kernel_dynamic_local_mem_size_loop2p;
   u64     kernel_dynamic_local_mem_size_loop2;
   u64     kernel_dynamic_local_mem_size_mp;
   u64     kernel_dynamic_local_mem_size_mp_l;
@@ -1273,11 +1286,13 @@ typedef struct hc_device_param
   // workaround cpu spinning
 
   double  exec_us_prev1[EXPECTED_ITERATIONS];
+  double  exec_us_prev2p[EXPECTED_ITERATIONS];
   double  exec_us_prev2[EXPECTED_ITERATIONS];
   double  exec_us_prev2e[EXPECTED_ITERATIONS];
   double  exec_us_prev3[EXPECTED_ITERATIONS];
   double  exec_us_prev4[EXPECTED_ITERATIONS];
   double  exec_us_prev_init2[EXPECTED_ITERATIONS];
+  double  exec_us_prev_loop2p[EXPECTED_ITERATIONS];
   double  exec_us_prev_loop2[EXPECTED_ITERATIONS];
   double  exec_us_prev_aux1[EXPECTED_ITERATIONS];
   double  exec_us_prev_aux2[EXPECTED_ITERATIONS];
@@ -1378,12 +1393,14 @@ typedef struct hc_device_param
 
   CUfunction        cuda_function1;
   CUfunction        cuda_function12;
+  CUfunction        cuda_function2p;
   CUfunction        cuda_function2;
   CUfunction        cuda_function2e;
   CUfunction        cuda_function23;
   CUfunction        cuda_function3;
   CUfunction        cuda_function4;
   CUfunction        cuda_function_init2;
+  CUfunction        cuda_function_loop2p;
   CUfunction        cuda_function_loop2;
   CUfunction        cuda_function_mp;
   CUfunction        cuda_function_mp_l;
@@ -1462,12 +1479,14 @@ typedef struct hc_device_param
 
   cl_kernel         opencl_kernel1;
   cl_kernel         opencl_kernel12;
+  cl_kernel         opencl_kernel2p;
   cl_kernel         opencl_kernel2;
   cl_kernel         opencl_kernel2e;
   cl_kernel         opencl_kernel23;
   cl_kernel         opencl_kernel3;
   cl_kernel         opencl_kernel4;
   cl_kernel         opencl_kernel_init2;
+  cl_kernel         opencl_kernel_loop2p;
   cl_kernel         opencl_kernel_loop2;
   cl_kernel         opencl_kernel_mp;
   cl_kernel         opencl_kernel_mp_l;

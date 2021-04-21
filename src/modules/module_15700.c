@@ -24,6 +24,7 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_MP_MULTI_DISABLE
                                   | OPTS_TYPE_NATIVE_THREADS
+                                  | OPTS_TYPE_LOOP_PREPARE
                                   | OPTS_TYPE_SELF_TEST_DISABLE
                                   | OPTS_TYPE_ST_HEX;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
@@ -60,14 +61,14 @@ static const u64 SCRYPT_P = 1;
 
 u32 module_kernel_loops_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 kernel_loops_min = 1;
+  const u32 kernel_loops_min = 1024;
 
   return kernel_loops_min;
 }
 
 u32 module_kernel_loops_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 kernel_loops_max = 1;
+  const u32 kernel_loops_max = 1024;
 
   return kernel_loops_max;
 }
@@ -349,6 +350,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   salt->scrypt_r = scrypt_r;
   salt->scrypt_p = scrypt_p;
 
+  salt->salt_iter    = salt->scrypt_N;
+  salt->salt_repeats = salt->scrypt_p - 1;
+
+  if (salt->scrypt_N % 1024) return (PARSER_SALT_VALUE); // we set loop count to 1024 fixed
+
   // salt
 
   const u8 *salt_pos = token.buf[4];
@@ -366,8 +372,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   ethereum_scrypt->salt_buf[5] = salt->salt_buf[5];
   ethereum_scrypt->salt_buf[6] = salt->salt_buf[6];
   ethereum_scrypt->salt_buf[7] = salt->salt_buf[7];
-
-  salt->salt_iter = 1;
 
   // ciphertext
 

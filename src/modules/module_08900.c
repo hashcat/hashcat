@@ -24,6 +24,7 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_MP_MULTI_DISABLE
                                   | OPTS_TYPE_NATIVE_THREADS
+                                  | OPTS_TYPE_LOOP_PREPARE
                                   | OPTS_TYPE_SELF_TEST_DISABLE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
@@ -63,14 +64,14 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
 u32 module_kernel_loops_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 kernel_loops_min = 1;
+  const u32 kernel_loops_min = 1024;
 
   return kernel_loops_min;
 }
 
 u32 module_kernel_loops_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 kernel_loops_max = 1;
+  const u32 kernel_loops_max = 1024;
 
   return kernel_loops_max;
 }
@@ -330,6 +331,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   salt->scrypt_r = hc_strtoul ((const char *) r_pos, NULL, 10);
   salt->scrypt_p = hc_strtoul ((const char *) p_pos, NULL, 10);
 
+  salt->salt_iter    = salt->scrypt_N;
+  salt->salt_repeats = salt->scrypt_p - 1;
+
+  if (salt->scrypt_N % 1024) return (PARSER_SALT_VALUE); // we set loop count to 1024 fixed
+
   // salt
 
   const u8 *salt_pos = token.buf[4];
@@ -341,8 +347,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memcpy (salt->salt_buf, tmp_buf, tmp_len);
 
-  salt->salt_len  = tmp_len;
-  salt->salt_iter = 1;
+  salt->salt_len = tmp_len;
 
   // digest - base64 decode
 

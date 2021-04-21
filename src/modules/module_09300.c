@@ -24,6 +24,7 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_MP_MULTI_DISABLE
                                   | OPTS_TYPE_NATIVE_THREADS
+                                  | OPTS_TYPE_LOOP_PREPARE
                                   | OPTS_TYPE_SELF_TEST_DISABLE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
@@ -52,14 +53,14 @@ static const u64 SCRYPT_P = 1;
 
 u32 module_kernel_loops_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 kernel_loops_min = 1;
+  const u32 kernel_loops_min = 1024;
 
   return kernel_loops_min;
 }
 
 u32 module_kernel_loops_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 kernel_loops_max = 1;
+  const u32 kernel_loops_max = 1024;
 
   return kernel_loops_max;
 }
@@ -299,11 +300,14 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   memcpy (salt_buf_ptr, salt_pos, salt_len);
 
   salt->salt_len  = salt_len;
-  salt->salt_iter = 1;
 
-  salt->scrypt_N  = 16384;
-  salt->scrypt_r  = 1;
-  salt->scrypt_p  = 1;
+  salt->scrypt_N  = SCRYPT_N;
+  salt->scrypt_r  = SCRYPT_R;
+  salt->scrypt_p  = SCRYPT_P;
+
+  salt->salt_iter    = salt->scrypt_N;
+  salt->salt_repeats = salt->scrypt_p - 1;
+
 
   // base64 decode hash
 

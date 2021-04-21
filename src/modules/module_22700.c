@@ -25,6 +25,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_BE
                                   | OPTS_TYPE_PT_UTF16BE
                                   | OPTS_TYPE_MP_MULTI_DISABLE
                                   | OPTS_TYPE_NATIVE_THREADS
+                                  | OPTS_TYPE_LOOP_PREPARE
                                   | OPTS_TYPE_SELF_TEST_DISABLE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
@@ -64,14 +65,14 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
 u32 module_kernel_loops_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 kernel_loops_min = 1;
+  const u32 kernel_loops_min = 1024;
 
   return kernel_loops_min;
 }
 
 u32 module_kernel_loops_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 kernel_loops_max = 1;
+  const u32 kernel_loops_max = 1024;
 
   return kernel_loops_max;
 }
@@ -320,6 +321,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   salt->scrypt_r = SCRYPT_R;
   salt->scrypt_p = SCRYPT_P;
 
+  salt->salt_iter    = salt->scrypt_N;
+  salt->salt_repeats = salt->scrypt_p - 1;
+
   // version
 
   const u8 *version_pos = token.buf[1];
@@ -353,8 +357,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   salt->salt_buf[10] = hex_to_u32 (b2_pos + 16);
   salt->salt_buf[11] = hex_to_u32 (b2_pos + 24);
 
-  salt->salt_len  = 48;
-  salt->salt_iter =  1;
+  salt->salt_len = 48;
 
   // fake digest:
 
