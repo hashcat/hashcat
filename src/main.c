@@ -411,12 +411,12 @@ static void main_potfile_num_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, M
   {
     if (potfile_remove_cracks == 1)
     {
-      event_log_info (hashcat_ctx, "INFO: Removed 1 hash found as as potfile entry or as empty hash.");
+      event_log_info (hashcat_ctx, "INFO: Removed 1 hash found as potfile entry or as empty hash.");
       event_log_info (hashcat_ctx, NULL);
     }
     else
     {
-      event_log_info (hashcat_ctx, "INFO: Removed %d hashes found as potfile entries or as empty hash.", potfile_remove_cracks);
+      event_log_info (hashcat_ctx, "INFO: Removed %d hashes found as potfile entries or as empty hashes.", potfile_remove_cracks);
       event_log_info (hashcat_ctx, NULL);
     }
   }
