@@ -170,22 +170,18 @@ DECLSPEC void salsa_r (uint4 *TI)
     TT[idx_r2++] = R3;
   }
 
-  idx_r1 = 0;
-  idx_r2 = SCRYPT_R * 4;
+  idx_r2 = 0;
 
-  #ifdef _unroll
-  #pragma unroll
-  #endif
   for (int i = 0; i < SCRYPT_R; i++)
   {
-    TI[idx_r2++] = TT[idx_r1++];
-    TI[idx_r2++] = TT[idx_r1++];
-    TI[idx_r2++] = TT[idx_r1++];
-    TI[idx_r2++] = TT[idx_r1++];
+    TI[idx_r1++] = TT[idx_r2++];
+    TI[idx_r1++] = TT[idx_r2++];
+    TI[idx_r1++] = TT[idx_r2++];
+    TI[idx_r1++] = TT[idx_r2++];
   }
 }
 
-DECLSPEC void scrypt_smix_init (uint4 *X, uint4 *T, GLOBAL_AS uint4 *V0, GLOBAL_AS uint4 *V1, GLOBAL_AS uint4 *V2, GLOBAL_AS uint4 *V3)
+DECLSPEC void scrypt_smix_init (uint4 *X, GLOBAL_AS uint4 *V0, GLOBAL_AS uint4 *V1, GLOBAL_AS uint4 *V2, GLOBAL_AS uint4 *V3)
 {
   #define Coord(xd4,y,z) (((xd4) * ySIZE * zSIZE) + ((y) * zSIZE) + (z))
   #define CO Coord(xd4,y,z)
@@ -206,26 +202,6 @@ DECLSPEC void scrypt_smix_init (uint4 *X, uint4 *T, GLOBAL_AS uint4 *V0, GLOBAL_
     case 1: V = V1; break;
     case 2: V = V2; break;
     case 3: V = V3; break;
-  }
-
-  for (u32 i = 0; i < STATE_CNT4; i += 4)
-  {
-    #ifdef IS_CUDA
-    T[0] = make_uint4 (X[i + 0].x, X[i + 1].y, X[i + 2].z, X[i + 3].w);
-    T[1] = make_uint4 (X[i + 1].x, X[i + 2].y, X[i + 3].z, X[i + 0].w);
-    T[2] = make_uint4 (X[i + 2].x, X[i + 3].y, X[i + 0].z, X[i + 1].w);
-    T[3] = make_uint4 (X[i + 3].x, X[i + 0].y, X[i + 1].z, X[i + 2].w);
-    #else
-    T[0] = (uint4) (X[i + 0].x, X[i + 1].y, X[i + 2].z, X[i + 3].w);
-    T[1] = (uint4) (X[i + 1].x, X[i + 2].y, X[i + 3].z, X[i + 0].w);
-    T[2] = (uint4) (X[i + 2].x, X[i + 3].y, X[i + 0].z, X[i + 1].w);
-    T[3] = (uint4) (X[i + 3].x, X[i + 0].y, X[i + 1].z, X[i + 2].w);
-    #endif
-
-    X[i + 0] = T[0];
-    X[i + 1] = T[1];
-    X[i + 2] = T[2];
-    X[i + 3] = T[3];
   }
 
   for (u32 y = 0; y < ySIZE; y++)
@@ -234,29 +210,9 @@ DECLSPEC void scrypt_smix_init (uint4 *X, uint4 *T, GLOBAL_AS uint4 *V0, GLOBAL_
 
     for (u32 i = 0; i < SCRYPT_TMTO; i++) salsa_r (X);
   }
-
-  for (u32 i = 0; i < STATE_CNT4; i += 4)
-  {
-    #ifdef IS_CUDA
-    T[0] = make_uint4 (X[i + 0].x, X[i + 3].y, X[i + 2].z, X[i + 1].w);
-    T[1] = make_uint4 (X[i + 1].x, X[i + 0].y, X[i + 3].z, X[i + 2].w);
-    T[2] = make_uint4 (X[i + 2].x, X[i + 1].y, X[i + 0].z, X[i + 3].w);
-    T[3] = make_uint4 (X[i + 3].x, X[i + 2].y, X[i + 1].z, X[i + 0].w);
-    #else
-    T[0] = (uint4) (X[i + 0].x, X[i + 3].y, X[i + 2].z, X[i + 1].w);
-    T[1] = (uint4) (X[i + 1].x, X[i + 0].y, X[i + 3].z, X[i + 2].w);
-    T[2] = (uint4) (X[i + 2].x, X[i + 1].y, X[i + 0].z, X[i + 3].w);
-    T[3] = (uint4) (X[i + 3].x, X[i + 2].y, X[i + 1].z, X[i + 0].w);
-    #endif
-
-    X[i + 0] = T[0];
-    X[i + 1] = T[1];
-    X[i + 2] = T[2];
-    X[i + 3] = T[3];
-  }
 }
 
-DECLSPEC void scrypt_smix_loop (uint4 *X, uint4 *T, GLOBAL_AS uint4 *V0, GLOBAL_AS uint4 *V1, GLOBAL_AS uint4 *V2, GLOBAL_AS uint4 *V3)
+DECLSPEC void scrypt_smix_loop (uint4 *X, GLOBAL_AS uint4 *V0, GLOBAL_AS uint4 *V1, GLOBAL_AS uint4 *V2, GLOBAL_AS uint4 *V3)
 {
   #define Coord(xd4,y,z) (((xd4) * ySIZE * zSIZE) + ((y) * zSIZE) + (z))
   #define CO Coord(xd4,y,z)
@@ -277,26 +233,6 @@ DECLSPEC void scrypt_smix_loop (uint4 *X, uint4 *T, GLOBAL_AS uint4 *V0, GLOBAL_
     case 1: V = V1; break;
     case 2: V = V2; break;
     case 3: V = V3; break;
-  }
-
-  for (u32 i = 0; i < STATE_CNT4; i += 4)
-  {
-    #ifdef IS_CUDA
-    T[0] = make_uint4 (X[i + 0].x, X[i + 1].y, X[i + 2].z, X[i + 3].w);
-    T[1] = make_uint4 (X[i + 1].x, X[i + 2].y, X[i + 3].z, X[i + 0].w);
-    T[2] = make_uint4 (X[i + 2].x, X[i + 3].y, X[i + 0].z, X[i + 1].w);
-    T[3] = make_uint4 (X[i + 3].x, X[i + 0].y, X[i + 1].z, X[i + 2].w);
-    #else
-    T[0] = (uint4) (X[i + 0].x, X[i + 1].y, X[i + 2].z, X[i + 3].w);
-    T[1] = (uint4) (X[i + 1].x, X[i + 2].y, X[i + 3].z, X[i + 0].w);
-    T[2] = (uint4) (X[i + 2].x, X[i + 3].y, X[i + 0].z, X[i + 1].w);
-    T[3] = (uint4) (X[i + 3].x, X[i + 0].y, X[i + 1].z, X[i + 2].w);
-    #endif
-
-    X[i + 0] = T[0];
-    X[i + 1] = T[1];
-    X[i + 2] = T[2];
-    X[i + 3] = T[3];
   }
 
   for (u32 N_pos = 0; N_pos < 1024; N_pos++)
@@ -307,6 +243,8 @@ DECLSPEC void scrypt_smix_loop (uint4 *X, uint4 *T, GLOBAL_AS uint4 *V0, GLOBAL_
 
     const u32 km = k - (y * SCRYPT_TMTO);
 
+    uint4 T[STATE_CNT4];
+
     for (u32 z = 0; z < zSIZE; z++) T[z] = V[CO];
 
     for (u32 i = 0; i < km; i++) salsa_r (T);
@@ -314,26 +252,6 @@ DECLSPEC void scrypt_smix_loop (uint4 *X, uint4 *T, GLOBAL_AS uint4 *V0, GLOBAL_
     for (u32 z = 0; z < zSIZE; z++) X[z] ^= T[z];
 
     salsa_r (X);
-  }
-
-  for (u32 i = 0; i < STATE_CNT4; i += 4)
-  {
-    #ifdef IS_CUDA
-    T[0] = make_uint4 (X[i + 0].x, X[i + 3].y, X[i + 2].z, X[i + 1].w);
-    T[1] = make_uint4 (X[i + 1].x, X[i + 0].y, X[i + 3].z, X[i + 2].w);
-    T[2] = make_uint4 (X[i + 2].x, X[i + 1].y, X[i + 0].z, X[i + 3].w);
-    T[3] = make_uint4 (X[i + 3].x, X[i + 2].y, X[i + 1].z, X[i + 0].w);
-    #else
-    T[0] = (uint4) (X[i + 0].x, X[i + 3].y, X[i + 2].z, X[i + 1].w);
-    T[1] = (uint4) (X[i + 1].x, X[i + 0].y, X[i + 3].z, X[i + 2].w);
-    T[2] = (uint4) (X[i + 2].x, X[i + 1].y, X[i + 0].z, X[i + 3].w);
-    T[3] = (uint4) (X[i + 3].x, X[i + 2].y, X[i + 1].z, X[i + 0].w);
-    #endif
-
-    X[i + 0] = T[0];
-    X[i + 1] = T[1];
-    X[i + 2] = T[2];
-    X[i + 3] = T[3];
   }
 }
 
@@ -405,6 +323,40 @@ KERNEL_FQ void m08900_init (KERN_ATTR_TMPS (scrypt_tmp_t))
     tmps[gid].P[k + 0] = tmp0;
     tmps[gid].P[k + 1] = tmp1;
   }
+
+  for (u32 l = 0; l < SCRYPT_CNT4; l += 4)
+  {
+    uint4 T[4];
+
+    T[0] = tmps[gid].P[l + 0];
+    T[1] = tmps[gid].P[l + 1];
+    T[2] = tmps[gid].P[l + 2];
+    T[3] = tmps[gid].P[l + 3];
+
+    T[0] = hc_swap32_4 (T[0]);
+    T[1] = hc_swap32_4 (T[1]);
+    T[2] = hc_swap32_4 (T[2]);
+    T[3] = hc_swap32_4 (T[3]);
+
+    uint4 X[4];
+
+    #ifdef IS_CUDA
+    X[0] = make_uint4 (T[0].x, T[1].y, T[2].z, T[3].w);
+    X[1] = make_uint4 (T[1].x, T[2].y, T[3].z, T[0].w);
+    X[2] = make_uint4 (T[2].x, T[3].y, T[0].z, T[1].w);
+    X[3] = make_uint4 (T[3].x, T[0].y, T[1].z, T[2].w);
+    #else
+    X[0] = (uint4) (T[0].x, T[1].y, T[2].z, T[3].w);
+    X[1] = (uint4) (T[1].x, T[2].y, T[3].z, T[0].w);
+    X[2] = (uint4) (T[2].x, T[3].y, T[0].z, T[1].w);
+    X[3] = (uint4) (T[3].x, T[0].y, T[1].z, T[2].w);
+    #endif
+
+    tmps[gid].P[l + 0] = X[0];
+    tmps[gid].P[l + 1] = X[1];
+    tmps[gid].P[l + 2] = X[2];
+    tmps[gid].P[l + 3] = X[3];
+  }
 }
 
 KERNEL_FQ void m08900_loop_prepare (KERN_ATTR_TMPS (scrypt_tmp_t))
@@ -414,6 +366,7 @@ KERNEL_FQ void m08900_loop_prepare (KERN_ATTR_TMPS (scrypt_tmp_t))
    */
 
   const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
 
   if (gid >= gid_max) return;
 
@@ -425,26 +378,20 @@ KERNEL_FQ void m08900_loop_prepare (KERN_ATTR_TMPS (scrypt_tmp_t))
   GLOBAL_AS uint4 *d_scrypt3_buf = (GLOBAL_AS uint4 *) d_extra3_buf;
 
   uint4 X[STATE_CNT4];
-  uint4 T[STATE_CNT4];
 
   const u32 P_offset = salt_repeat * STATE_CNT4;
 
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (int z = 0; z < STATE_CNT4; z++) X[z] = hc_swap32_4 (tmps[gid].P[P_offset + z]);
+  for (int z = 0; z < STATE_CNT4; z++) X[z] = tmps[gid].P[P_offset + z];
 
-  scrypt_smix_init (X, T, d_scrypt0_buf, d_scrypt1_buf, d_scrypt2_buf, d_scrypt3_buf);
+  scrypt_smix_init (X, d_scrypt0_buf, d_scrypt1_buf, d_scrypt2_buf, d_scrypt3_buf);
 
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (int z = 0; z < STATE_CNT4; z++) tmps[gid].P[P_offset + z] = hc_swap32_4 (X[z]);
+  for (int z = 0; z < STATE_CNT4; z++) tmps[gid].P[P_offset + z] = X[z];
 }
 
 KERNEL_FQ void m08900_loop (KERN_ATTR_TMPS (scrypt_tmp_t))
 {
   const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
 
   if (gid >= gid_max) return;
 
@@ -454,21 +401,14 @@ KERNEL_FQ void m08900_loop (KERN_ATTR_TMPS (scrypt_tmp_t))
   GLOBAL_AS uint4 *d_scrypt3_buf = (GLOBAL_AS uint4 *) d_extra3_buf;
 
   uint4 X[STATE_CNT4];
-  uint4 T[STATE_CNT4];
 
   const u32 P_offset = salt_repeat * STATE_CNT4;
 
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (int z = 0; z < STATE_CNT4; z++) X[z] = hc_swap32_4 (tmps[gid].P[P_offset + z]);
+  for (int z = 0; z < STATE_CNT4; z++) X[z] = tmps[gid].P[P_offset + z];
 
-  scrypt_smix_loop (X, T, d_scrypt0_buf, d_scrypt1_buf, d_scrypt2_buf, d_scrypt3_buf);
+  scrypt_smix_loop (X, d_scrypt0_buf, d_scrypt1_buf, d_scrypt2_buf, d_scrypt3_buf);
 
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (int z = 0; z < STATE_CNT4; z++) tmps[gid].P[P_offset + z] = hc_swap32_4 (X[z]);
+  for (int z = 0; z < STATE_CNT4; z++) tmps[gid].P[P_offset + z] = X[z];
 }
 
 KERNEL_FQ void m08900_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
@@ -497,35 +437,48 @@ KERNEL_FQ void m08900_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
 
   for (u32 l = 0; l < SCRYPT_CNT4; l += 4)
   {
-    uint4 tmp;
+    uint4 X[4];
 
-    tmp = tmps[gid].P[l + 0];
+    X[0] = tmps[gid].P[l + 0];
+    X[1] = tmps[gid].P[l + 1];
+    X[2] = tmps[gid].P[l + 2];
+    X[3] = tmps[gid].P[l + 3];
 
-    w0[0] = tmp.x;
-    w0[1] = tmp.y;
-    w0[2] = tmp.z;
-    w0[3] = tmp.w;
+    uint4 T[4];
 
-    tmp = tmps[gid].P[l + 1];
+    #ifdef IS_CUDA
+    T[0] = make_uint4 (X[0].x, X[3].y, X[2].z, X[1].w);
+    T[1] = make_uint4 (X[1].x, X[0].y, X[3].z, X[2].w);
+    T[2] = make_uint4 (X[2].x, X[1].y, X[0].z, X[3].w);
+    T[3] = make_uint4 (X[3].x, X[2].y, X[1].z, X[0].w);
+    #else
+    T[0] = (uint4) (X[0].x, X[3].y, X[2].z, X[1].w);
+    T[1] = (uint4) (X[1].x, X[0].y, X[3].z, X[2].w);
+    T[2] = (uint4) (X[2].x, X[1].y, X[0].z, X[3].w);
+    T[3] = (uint4) (X[3].x, X[2].y, X[1].z, X[0].w);
+    #endif
 
-    w1[0] = tmp.x;
-    w1[1] = tmp.y;
-    w1[2] = tmp.z;
-    w1[3] = tmp.w;
+    T[0] = hc_swap32_4 (T[0]);
+    T[1] = hc_swap32_4 (T[1]);
+    T[2] = hc_swap32_4 (T[2]);
+    T[3] = hc_swap32_4 (T[3]);
 
-    tmp = tmps[gid].P[l + 2];
-
-    w2[0] = tmp.x;
-    w2[1] = tmp.y;
-    w2[2] = tmp.z;
-    w2[3] = tmp.w;
-
-    tmp = tmps[gid].P[l + 3];
-
-    w3[0] = tmp.x;
-    w3[1] = tmp.y;
-    w3[2] = tmp.z;
-    w3[3] = tmp.w;
+    w0[0] = T[0].x;
+    w0[1] = T[0].y;
+    w0[2] = T[0].z;
+    w0[3] = T[0].w;
+    w1[0] = T[1].x;
+    w1[1] = T[1].y;
+    w1[2] = T[1].z;
+    w1[3] = T[1].w;
+    w2[0] = T[2].x;
+    w2[1] = T[2].y;
+    w2[2] = T[2].z;
+    w2[3] = T[2].w;
+    w3[0] = T[3].x;
+    w3[1] = T[3].y;
+    w3[2] = T[3].z;
+    w3[3] = T[3].w;
 
     sha256_hmac_update_64 (&ctx, w0, w1, w2, w3, 64);
   }

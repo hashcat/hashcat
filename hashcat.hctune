@@ -370,12 +370,13 @@ GeForce_GTX_TITAN                               3       9900    2       A       
 ##
 
 DEVICE_TYPE_CPU                                 *       8900    1       N       A
-DEVICE_TYPE_GPU                                 *       8900    1       N       A
 DEVICE_TYPE_CPU                                 *       9300    1       N       A
-DEVICE_TYPE_GPU                                 *       9300    1       N       A
 DEVICE_TYPE_CPU                                 *       15700   1       N       A
-DEVICE_TYPE_GPU                                 *       15700   1       1       A
 DEVICE_TYPE_CPU                                 *       22700   1       N       A
+
+DEVICE_TYPE_GPU                                 *       8900    1       N       A
+DEVICE_TYPE_GPU                                 *       9300    1       N       A
+DEVICE_TYPE_GPU                                 *       15700   1       1       A
 DEVICE_TYPE_GPU                                 *       22700   1       N       A
 
 ## Here's an example of how to manually tune SCRYPT algorithm kernels for your hardware.
@@ -399,7 +400,7 @@ DEVICE_TYPE_GPU                                 *       22700   1       N       
 ## 3. Artificial multiplier (--kernel-accel aka -n)
 ##
 ## In order to find these values:
-## 
+##
 ## 1. On startup Hashcat will show: * Device #1: GeForce GTX 980, 3963/4043 MB, 16MCU. The 16 MCU is the number of compute units on that device.
 ## 2. Native thread counts are fixed values: CPU=1, GPU-Intel=8, GPU-AMD=64 (wavefronts), GPU-NVIDIA=32 (warps)
 ##
@@ -412,12 +413,12 @@ DEVICE_TYPE_GPU                                 *       22700   1       N       
 ##
 ## How do we deal with this? This is where SCRYPT TMTO(time-memory trde off) kicks in. The SCRYPT algorithm is designed in such a way that we
 ## can pre-compute that 16MB buffer from a self-choosen offset. Details on how this actually works are not important for this process.
-## 
-## What's relevant to us is that we can halve the buffer size, but we pay with twice the computation time. 
+##
+## What's relevant to us is that we can halve the buffer size, but we pay with twice the computation time.
 ## We can repeat this as often as we want. That's why it's a trade-off.
 ##
 ## This mechanic can be manually set using --scrypt-tmto on the commandline, but this is not the best way.
-## 
+##
 ## Back to our problem. We need 8GB of memory but have only ~4GB.
 ## It's not a full 4GB. The OS needs some of it and Hashcat needs some of it to store password candidates and other things.
 ## If you run a headless server it should be safe to subtract a fixed value of 200MB from whatever you have in your GPU.
@@ -426,7 +427,7 @@ DEVICE_TYPE_GPU                                 *       22700   1       N       
 ##
 ## (8GB >> 0) = 8GB < 3.8GB = No, Does not fit
 ## (8GB >> 1) = 4GB < 3.8GB = No, Does not fit
-## (8GB >> 2) = 2GB < 3.8GB = Yes! 
+## (8GB >> 2) = 2GB < 3.8GB = Yes!
 ##
 ## This process is automated in Hashcat, but it is important to understand what's happening here.
 ## Because of the light overhead from the OS and Hashcat, we pay a very high price.
@@ -440,7 +441,7 @@ DEVICE_TYPE_GPU                                 *       22700   1       N       
 ## Therefore, we do not need to increase the TMTO by another step to fit in VRAM.
 ##
 ## If we cut down our 16 MCU to only 15 MCU or 14 MCU using --kernel-accel(-n), we end up with:
-## 
+##
 ## 16 * 32 * 16777216 = 8589934592 / 2 = 4294967296 = 4.00GB < 3.80GB = Nope, next
 ## 15 * 32 * 16777216 = 8053063680 / 2 = 4026531840 = 3.84GB < 3.80GB = Nope, next
 ## 14 * 32 * 16777216 = 7516192768 / 2 = 3758096384 = 3.58GB < 3.80GB = Yes!
@@ -459,19 +460,24 @@ DEVICE_TYPE_GPU                                 *       22700   1       N       
 ## On my GTX980, this improves the performance from 201 H/s to 255 H/s.
 ## Again, there's no need to control this with --scrypt-tmto. Hashcat will realize it has to increase the TMTO again.
 ##
-## All together, you can control all of this by using the -n parameter in the command line. 
+## All together, you can control all of this by using the -n parameter in the command line.
 ## This is not ideal in a production environment because you must use the --force flag.
 ## The best way to set this is by using this Hashcat.hctune file to store it. This avoids the need to bypass any warnings.
 ##
-## Find the ideal -n value, then store it here along with the proper compute device name. 
+## Find the ideal -n value, then store it here along with the proper compute device name.
 ## Formatting guidelines are availabe at the top of this document.
 
 GeForce_GTX_980                                 *       8900    1      28       A
 GeForce_GTX_980                                 *       9300    1     128       A
-GeForce_GTX_980                                 *       15700   1       1       A
+GeForce_GTX_980                                 *       15700   1       2       A
 GeForce_GTX_980                                 *       22700   1      28       A
 
-GeForce_RTX_2080_Ti                             *       8900    1       N       A
+GeForce_RTX_2080_Ti                             *       8900    1      38       A
 GeForce_RTX_2080_Ti                             *       9300    1     544       A
-GeForce_RTX_2080_Ti                             *       15700   1       4       A
-GeForce_RTX_2080_Ti                             *       22700   1       N       A
+GeForce_RTX_2080_Ti                             *       15700   1       8       A
+GeForce_RTX_2080_Ti                             *       22700   1      38       A
+
+gfx900                                          *       8900    1      28       A
+gfx900                                          *       9300    1     384       A
+gfx900                                          *       15700   1       6       A
+gfx900                                          *       22700   1      28       A

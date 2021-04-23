@@ -8381,6 +8381,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->size_st_salts   = size_st_salts;
     device_param->size_st_esalts  = size_st_esalts;
 
+    // extra buffer
+
     u64 size_extra_buffer = 4;
 
     if (module_ctx->module_extra_buffer_size != MODULE_DEFAULT)

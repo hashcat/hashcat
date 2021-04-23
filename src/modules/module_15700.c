@@ -23,7 +23,6 @@ static const u64   KERN_TYPE      = 15700;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_MP_MULTI_DISABLE
-                                  | OPTS_TYPE_NATIVE_THREADS
                                   | OPTS_TYPE_LOOP_PREPARE
                                   | OPTS_TYPE_SELF_TEST_DISABLE
                                   | OPTS_TYPE_ST_HEX;
@@ -71,6 +70,13 @@ u32 module_kernel_loops_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_
   const u32 kernel_loops_max = 1024;
 
   return kernel_loops_max;
+}
+
+u32 module_kernel_threads_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 kernel_threads_max = 4;
+
+  return kernel_threads_max;
 }
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -265,24 +271,9 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
   const u64 tmp_size = 128ULL * scrypt_r * scrypt_p;
 
-  char *unroll = "";
-
-  // NVIDIA GPU
-  if (device_param->opencl_device_vendor_id == VENDOR_ID_NV)
-  {
-    unroll = "-D _unroll";
-  }
-
-  // ROCM
-  if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == true))
-  {
-    unroll = "-D _unroll";
-  }
-
   char *jit_build_options = NULL;
 
-  hc_asprintf (&jit_build_options, "%s -DSCRYPT_N=%u -DSCRYPT_R=%u -DSCRYPT_P=%u -DSCRYPT_TMTO=%" PRIu64 " -DSCRYPT_TMP_ELEM=%" PRIu64,
-    unroll,
+  hc_asprintf (&jit_build_options, "-DSCRYPT_N=%u -DSCRYPT_R=%u -DSCRYPT_P=%u -DSCRYPT_TMTO=%" PRIu64 " -DSCRYPT_TMP_ELEM=%" PRIu64,
     hashes->salts_buf[0].scrypt_N,
     hashes->salts_buf[0].scrypt_r,
     hashes->salts_buf[0].scrypt_p,
@@ -507,7 +498,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_kernel_accel_min         = MODULE_DEFAULT;
   module_ctx->module_kernel_loops_max         = module_kernel_loops_max;
   module_ctx->module_kernel_loops_min         = module_kernel_loops_min;
-  module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
+  module_ctx->module_kernel_threads_max       = module_kernel_threads_max;
   module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
