@@ -49,6 +49,7 @@
 - Fixed race condition resulting in out of memory error on startup if multiple hashcat instances are started at the same time
 - Fixed rare case of misalignment of the status prompt when other user warnings are shown within the hashcat output
 - Fixed too early execution of some module functions which could make use of non-final values opts_type and opti_type
+- Fixed tuning database search if a device was not assigned an alias it couldn't be found in general
 - Fixed unexpected non-unique salts in multi-hash cracking in Bitcoin/Litecoin wallet.dat module which lead to false negatives
 
 ##

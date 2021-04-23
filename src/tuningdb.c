@@ -337,15 +337,17 @@ tuning_db_entry_t *tuning_db_search_real (hashcat_ctx_t *hashcat_ctx, const char
 
   // find out if there's an alias configured
 
+  char *device_name_nospace2 = hcstrdup (device_name_nospace);
+
   tuning_db_alias_t a;
 
-  a.device_name = device_name_nospace;
+  a.device_name = device_name_nospace2;
 
   char *alias_name = NULL;
 
   for (i = device_name_length; i >= 1; i--)
   {
-    device_name_nospace[i] = 0;
+    device_name_nospace2[i] = 0;
 
     tuning_db_alias_t *alias = (tuning_db_alias_t *) bsearch (&a, tuning_db->alias_buf, tuning_db->alias_cnt, sizeof (tuning_db_alias_t), sort_by_tuning_db_alias);
 
@@ -355,6 +357,8 @@ tuning_db_entry_t *tuning_db_search_real (hashcat_ctx_t *hashcat_ctx, const char
 
     break;
   }
+
+  hcfree (device_name_nospace2);
 
   // attack-mode 6 and 7 are attack-mode 1 basically
 
