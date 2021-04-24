@@ -472,12 +472,17 @@ GeForce_GTX_980                                 *       9300    1     128       
 GeForce_GTX_980                                 *       15700   1       2       A
 GeForce_GTX_980                                 *       22700   1      28       A
 
-GeForce_RTX_2080_Ti                             *       8900    1      38       A
+GeForce_RTX_2080_Ti                             *       8900    1       N       A
 GeForce_RTX_2080_Ti                             *       9300    1     544       A
 GeForce_RTX_2080_Ti                             *       15700   1       8       A
-GeForce_RTX_2080_Ti                             *       22700   1      38       A
+GeForce_RTX_2080_Ti                             *       22700   1       N       A
 
 gfx900                                          *       8900    1      28       A
 gfx900                                          *       9300    1     384       A
 gfx900                                          *       15700   1       6       A
 gfx900                                          *       22700   1      28       A
+
+Ellesmere                                       *       8900    1      28       A
+Ellesmere                                       *       9300    1     128       A
+Ellesmere                                       *       15700   1       2       A
+Ellesmere                                       *       22700   1      28       A

@@ -150,28 +150,8 @@ DECLSPEC uint4 hc_swap32_4 (uint4 v)
 }
 #endif
 
-#define SALSA20_8_XOR() \
-{                       \
-  R0 = R0 ^ Y0;         \
-  R1 = R1 ^ Y1;         \
-  R2 = R2 ^ Y2;         \
-  R3 = R3 ^ Y3;         \
-                        \
-  uint4 X0 = R0;        \
-  uint4 X1 = R1;        \
-  uint4 X2 = R2;        \
-  uint4 X3 = R3;        \
-                        \
-  SALSA20_2R ();        \
-  SALSA20_2R ();        \
-  SALSA20_2R ();        \
-  SALSA20_2R ();        \
-                        \
-  R0 = R0 + X0;         \
-  R1 = R1 + X1;         \
-  R2 = R2 + X2;         \
-  R3 = R3 + X3;         \
-}
+#define Coord(xd4,y,z) (((xd4) * ySIZE * zSIZE) + ((y) * zSIZE) + (z))
+#define CO Coord(xd4,y,z)
 
 DECLSPEC void salsa_r (uint4 *TI)
 {
@@ -180,60 +160,72 @@ DECLSPEC void salsa_r (uint4 *TI)
   uint4 R2 = TI[STATE_CNT4 - 2];
   uint4 R3 = TI[STATE_CNT4 - 1];
 
+  for (int i = 0; i < STATE_CNT4; i += 4)
+  {
+    uint4 Y0 = TI[i + 0];
+    uint4 Y1 = TI[i + 1];
+    uint4 Y2 = TI[i + 2];
+    uint4 Y3 = TI[i + 3];
+
+    R0 = R0 ^ Y0;
+    R1 = R1 ^ Y1;
+    R2 = R2 ^ Y2;
+    R3 = R3 ^ Y3;
+
+    uint4 X0 = R0;
+    uint4 X1 = R1;
+    uint4 X2 = R2;
+    uint4 X3 = R3;
+
+    SALSA20_2R ();
+    SALSA20_2R ();
+    SALSA20_2R ();
+    SALSA20_2R ();
+
+    R0 = R0 + X0;
+    R1 = R1 + X1;
+    R2 = R2 + X2;
+    R3 = R3 + X3;
+
+    TI[i + 0] = R0;
+    TI[i + 1] = R1;
+    TI[i + 2] = R2;
+    TI[i + 3] = R3;
+  }
+
+  #if SCRYPT_R > 1
+
   uint4 TT[STATE_CNT4 / 2];
 
-  int idx_y  = 0;
-  int idx_r1 = 0;
-  int idx_r2 = 0;
-
-  for (int i = 0; i < SCRYPT_R; i++)
+  for (int dst_off = 0, src_off = 4; src_off < STATE_CNT4; dst_off += 4, src_off += 8)
   {
-    uint4 Y0;
-    uint4 Y1;
-    uint4 Y2;
-    uint4 Y3;
-
-    Y0 = TI[idx_y++];
-    Y1 = TI[idx_y++];
-    Y2 = TI[idx_y++];
-    Y3 = TI[idx_y++];
-
-    SALSA20_8_XOR ();
-
-    TI[idx_r1++] = R0;
-    TI[idx_r1++] = R1;
-    TI[idx_r1++] = R2;
-    TI[idx_r1++] = R3;
-
-    Y0 = TI[idx_y++];
-    Y1 = TI[idx_y++];
-    Y2 = TI[idx_y++];
-    Y3 = TI[idx_y++];
-
-    SALSA20_8_XOR ();
-
-    TT[idx_r2++] = R0;
-    TT[idx_r2++] = R1;
-    TT[idx_r2++] = R2;
-    TT[idx_r2++] = R3;
+    TT[dst_off + 0] = TI[src_off + 0];
+    TT[dst_off + 1] = TI[src_off + 1];
+    TT[dst_off + 2] = TI[src_off + 2];
+    TT[dst_off + 3] = TI[src_off + 3];
   }
 
-  idx_r2 = 0;
-
-  for (int i = 0; i < SCRYPT_R; i++)
+  for (int dst_off = 4, src_off = 8; src_off < STATE_CNT4; dst_off += 4, src_off += 8)
   {
-    TI[idx_r1++] = TT[idx_r2++];
-    TI[idx_r1++] = TT[idx_r2++];
-    TI[idx_r1++] = TT[idx_r2++];
-    TI[idx_r1++] = TT[idx_r2++];
+    TI[dst_off + 0] = TI[src_off + 0];
+    TI[dst_off + 1] = TI[src_off + 1];
+    TI[dst_off + 2] = TI[src_off + 2];
+    TI[dst_off + 3] = TI[src_off + 3];
   }
+
+  for (int dst_off = STATE_CNT4 / 2, src_off = 0; dst_off < STATE_CNT4; dst_off += 4, src_off += 4)
+  {
+    TI[dst_off + 0] = TT[src_off + 0];
+    TI[dst_off + 1] = TT[src_off + 1];
+    TI[dst_off + 2] = TT[src_off + 2];
+    TI[dst_off + 3] = TT[src_off + 3];
+  }
+
+  #endif
 }
 
 DECLSPEC void scrypt_smix_init (uint4 *X, GLOBAL_AS uint4 *V0, GLOBAL_AS uint4 *V1, GLOBAL_AS uint4 *V2, GLOBAL_AS uint4 *V3)
 {
-  #define Coord(xd4,y,z) (((xd4) * ySIZE * zSIZE) + ((y) * zSIZE) + (z))
-  #define CO Coord(xd4,y,z)
-
   const u32 ySIZE = SCRYPT_N / SCRYPT_TMTO;
   const u32 zSIZE = STATE_CNT4;
 
@@ -262,9 +254,6 @@ DECLSPEC void scrypt_smix_init (uint4 *X, GLOBAL_AS uint4 *V0, GLOBAL_AS uint4 *
 
 DECLSPEC void scrypt_smix_loop (uint4 *X, GLOBAL_AS uint4 *V0, GLOBAL_AS uint4 *V1, GLOBAL_AS uint4 *V2, GLOBAL_AS uint4 *V3)
 {
-  #define Coord(xd4,y,z) (((xd4) * ySIZE * zSIZE) + ((y) * zSIZE) + (z))
-  #define CO Coord(xd4,y,z)
-
   const u32 ySIZE = SCRYPT_N / SCRYPT_TMTO;
   const u32 zSIZE = STATE_CNT4;
 
@@ -282,6 +271,8 @@ DECLSPEC void scrypt_smix_loop (uint4 *X, GLOBAL_AS uint4 *V0, GLOBAL_AS uint4 *
     case 2: V = V2; break;
     case 3: V = V3; break;
   }
+
+  // note: fixed 1024 iterations = forced -u 1024
 
   for (u32 N_pos = 0; N_pos < 1024; N_pos++)
   {
@@ -469,11 +460,13 @@ KERNEL_FQ void m22700_loop_prepare (KERN_ATTR_TMPS (scrypt_tmp_t))
 
   const u32 P_offset = salt_repeat * STATE_CNT4;
 
-  for (int z = 0; z < STATE_CNT4; z++) X[z] = tmps[gid].P[P_offset + z];
+  GLOBAL_AS uint4 *P = tmps[gid].P + P_offset;
+
+  for (int z = 0; z < STATE_CNT4; z++) X[z] = P[z];
 
   scrypt_smix_init (X, d_scrypt0_buf, d_scrypt1_buf, d_scrypt2_buf, d_scrypt3_buf);
 
-  for (int z = 0; z < STATE_CNT4; z++) tmps[gid].P[P_offset + z] = X[z];
+  for (int z = 0; z < STATE_CNT4; z++) P[z] = X[z];
 }
 
 KERNEL_FQ void m22700_loop (KERN_ATTR_TMPS (scrypt_tmp_t))
@@ -492,11 +485,13 @@ KERNEL_FQ void m22700_loop (KERN_ATTR_TMPS (scrypt_tmp_t))
 
   const u32 P_offset = salt_repeat * STATE_CNT4;
 
-  for (int z = 0; z < STATE_CNT4; z++) X[z] = tmps[gid].P[P_offset + z];
+  GLOBAL_AS uint4 *P = tmps[gid].P + P_offset;
+
+  for (int z = 0; z < STATE_CNT4; z++) X[z] = P[z];
 
   scrypt_smix_loop (X, d_scrypt0_buf, d_scrypt1_buf, d_scrypt2_buf, d_scrypt3_buf);
 
-  for (int z = 0; z < STATE_CNT4; z++) tmps[gid].P[P_offset + z] = X[z];
+  for (int z = 0; z < STATE_CNT4; z++) P[z] = X[z];
 }
 
 KERNEL_FQ void m22700_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
