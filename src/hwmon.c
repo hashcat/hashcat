@@ -566,7 +566,7 @@ static int hm_NVML_nvmlInit (hashcat_ctx_t *hashcat_ctx)
 
   const nvmlReturn_t nvml_rc = (nvmlReturn_t) nvml->nvmlInit ();
 
-  if (nvml_rc != NVML_SUCCESS)
+  if (nvml_rc != NVML_SUCCESS && nvml_rc != NVML_ERROR_DRIVER_NOT_LOADED)
   {
     const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
@@ -586,7 +586,7 @@ static int hm_NVML_nvmlShutdown (hashcat_ctx_t *hashcat_ctx)
 
   const nvmlReturn_t nvml_rc = (nvmlReturn_t) nvml->nvmlShutdown ();
 
-  if (nvml_rc != NVML_SUCCESS)
+  if (nvml_rc != NVML_SUCCESS && nvml_rc != NVML_ERROR_DRIVER_NOT_LOADED)
   {
     const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
@@ -606,7 +606,7 @@ static int hm_NVML_nvmlDeviceGetCount (hashcat_ctx_t *hashcat_ctx, unsigned int 
 
   const nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetCount (deviceCount);
 
-  if (nvml_rc != NVML_SUCCESS)
+  if (nvml_rc != NVML_SUCCESS && nvml_rc != NVML_ERROR_DRIVER_NOT_LOADED)
   {
     const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
