@@ -71,7 +71,7 @@ KERNEL_FQ void m21100_mxx (KERN_ATTR_VECTOR ())
 
   const u32 salt_len = salt_bufs[SALT_POS].salt_len;
 
-  u32 s[64] = { 0 };
+  u32x s[64] = { 0 };
 
   for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
@@ -211,7 +211,7 @@ KERNEL_FQ void m21100_sxx (KERN_ATTR_VECTOR ())
 
   const u32 salt_len = salt_bufs[SALT_POS].salt_len;
 
-  u32 s[64] = { 0 };
+  u32x s[64] = { 0 };
 
   for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {

@@ -53,6 +53,7 @@
 - Fixed too early execution of some module functions which could make use of non-final values opts_type and opti_type
 - Fixed tuning database search if a device was not assigned an alias it couldn't be found in general
 - Fixed unexpected non-unique salts in multi-hash cracking in Bitcoin/Litecoin wallet.dat module which lead to false negatives
+- Fixed vector datatype support in -m 21100 only -P mode and only -a 3 mode were affected
 
 ##
 ## Improvements
