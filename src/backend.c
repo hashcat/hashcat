@@ -8568,6 +8568,11 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       cache_disable = module_ctx->module_jit_cache_disable (hashconfig, user_options, user_options_extra, hashes, device_param);
     }
 
+    #if defined (DEBUG)
+    // https://github.com/hashcat/hashcat/issues/2750
+    cache_disable = true;
+    #endif
+
     /**
      * shared kernel with no hashconfig dependencies
      */

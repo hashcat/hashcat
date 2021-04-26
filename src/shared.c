@@ -522,7 +522,7 @@ void setup_environment_variables (const folder_config_t *folder_config)
       putenv ((char *) "DISPLAY=:0");
   }
 
-  /*
+  #if defined (DEBUG)
   if (getenv ("OCL_CODE_CACHE_ENABLE") == NULL)
     putenv ((char *) "OCL_CODE_CACHE_ENABLE=0");
 
@@ -531,7 +531,7 @@ void setup_environment_variables (const folder_config_t *folder_config)
 
   if (getenv ("POCL_KERNEL_CACHE") == NULL)
     putenv ((char *) "POCL_KERNEL_CACHE=0");
-  */
+  #endif
 
   if (getenv ("TMPDIR") == NULL)
   {
@@ -544,8 +544,10 @@ void setup_environment_variables (const folder_config_t *folder_config)
     // we can't free tmpdir at this point!
   }
 
+  /*
   if (getenv ("CL_CONFIG_USE_VECTORIZER") == NULL)
     putenv ((char *) "CL_CONFIG_USE_VECTORIZER=False");
+  */
 
   #if defined (__CYGWIN__)
   cygwin_internal (CW_SYNC_WINENV);

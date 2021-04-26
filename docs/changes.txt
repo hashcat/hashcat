@@ -78,6 +78,7 @@
 - Hash-Mode 13200 (AxCrypt): Changed the name to AxCrypt 1 to avoid confusion
 - Hash-Mode 13300 (AxCrypt in-memory SHA1): Changed the name to AxCrypt 1 in-memory SHA1
 - Kernel Crypto Library: Removed unnecessary utf16 conversion functions which would apply on HMAC data portion
+- Kernel Development: Kernel cache is disabled automatically in case hashcat is compiled with DEBUG=1
 - OpenCL Runtime: Switched default OpenCL device type on macOS from GPU to CPU. Use -D 2 to enable GPU devices
 - Unit tests: Added Python 3 support for all of the Python code in our test framework
 - Unit tests: Fixed the packaging of test (-p) feature
