@@ -2099,6 +2099,44 @@ int hashes_init_zerohash (hashcat_ctx_t *hashcat_ctx)
     found->pw_len = 0;
 
     found->cracked = 1;
+
+    // should we show the cracked zero hash to the user?
+
+    if (false)
+    {
+      // digest pos
+
+      const u32 digest_pos = found - hashes_buf;
+
+      // show the crack
+
+      u8 *out_buf = (u8 *) hcmalloc (HCBUFSIZ_LARGE);
+
+      int out_len = hash_encode (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf, HCBUFSIZ_LARGE, 0, digest_pos);
+
+      out_buf[out_len] = 0;
+
+      // outfile, can be either to file or stdout
+      // if an error occurs opening the file, send to stdout as fallback
+      // the fp gets opened for each cracked hash so that the user can modify (move) the outfile while hashcat runs
+
+      outfile_write_open (hashcat_ctx);
+
+      const u8 *plain = (const u8 *) "";
+
+      u8 *tmp_buf = (u8 *) hcmalloc (HCBUFSIZ_LARGE);
+
+      tmp_buf[0] = 0;
+
+      const int tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, out_len, plain, 0, 0, NULL, 0, true, (char *) tmp_buf);
+
+      EVENT_DATA (EVENT_CRACKER_HASH_CRACKED, tmp_buf, tmp_len);
+
+      outfile_write_close (hashcat_ctx);
+
+      hcfree (tmp_buf);
+      hcfree (out_buf);
+    }
   }
 
   if (hashconfig->esalt_size > 0)
