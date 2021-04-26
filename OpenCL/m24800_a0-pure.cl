@@ -52,9 +52,9 @@ KERNEL_FQ void m24800_mxx (KERN_ATTR_RULES ())
     u32 t[128] = { 0 };
 
     // make it unicode.
-    for (u32 i = 0, idx = 0; i < tmp.pw_len; i += 4, idx += 1)
+    for (u32 i = 0, idx = 0; i < tmp.pw_len; i += 16, idx += 4)
     {
-      make_utf16beN (&tmp.i[idx], &t[(idx * 2) + 0], &t[(idx * 2) + 1]);
+      make_utf16beN (&tmp.i[idx], &t[(idx * 2) + 0], &t[(idx * 2) + 4]);
     }
 
     // hash time
@@ -123,9 +123,9 @@ KERNEL_FQ void m24800_sxx (KERN_ATTR_RULES ())
     u32 t[128] = { 0 };
 
     // make it unicode.
-    for (u32 i = 0, idx = 0; i < tmp.pw_len; i += 4, idx += 1)
+    for (u32 i = 0, idx = 0; i < tmp.pw_len; i += 16, idx += 4)
     {
-      make_utf16beN (&tmp.i[idx], &t[(idx * 2) + 0], &t[(idx * 2) + 1]);
+      make_utf16beN (&tmp.i[idx], &t[(idx * 2) + 0], &t[(idx * 2) + 4]);
     }
 
     // hash time

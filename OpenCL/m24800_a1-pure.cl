@@ -69,9 +69,9 @@ KERNEL_FQ void m24800_mxx (KERN_ATTR_BASIC ())
     u32 t[128] = { 0 };
 
     // make it unicode.
-    for (u32 i = 0, idx = 0; i < pw_len + comb_len; i += 4, idx += 1)
+    for (u32 i = 0, idx = 0; i < pw_len + comb_len; i += 16, idx += 4)
     {
-      make_utf16beN (&c[idx], &t[(idx * 2) + 0], &t[(idx * 2) + 1]);
+      make_utf16beN (&c[idx], &t[(idx * 2) + 0], &t[(idx * 2) + 4]);
     }
 
     sha1_hmac_ctx_t ctx;
@@ -158,9 +158,9 @@ KERNEL_FQ void m24800_sxx (KERN_ATTR_BASIC ())
     u32 t[128] = { 0 };
 
     // make it unicode.
-    for (u32 i = 0, idx = 0; i < pw_len + comb_len; i += 4, idx += 1)
+    for (u32 i = 0, idx = 0; i < pw_len + comb_len; i += 16, idx += 4)
     {
-      make_utf16beN (&c[idx], &t[(idx * 2) + 0], &t[(idx * 2) + 1]);
+      make_utf16beN (&c[idx], &t[(idx * 2) + 0], &t[(idx * 2) + 4]);
     }
 
     sha1_hmac_ctx_t ctx;
