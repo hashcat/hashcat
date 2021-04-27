@@ -46,6 +46,7 @@
 - Fixed incorrect maximum password length support for -m 400 in optimized mode (reduced from 55 to 39)
 - Fixed internal access on module option attribute OPTS_TYPE_SUGGEST_KG with the result that it was unused
 - Fixed invalid handling of outfile folder entries for -m 22000
+- Fixed out-of-boundary reads in case user activates -S for fast but pure hashes in -a 1 or -a 3 mode
 - Fixed password reassembling for cracked hashes on host for slow hashes in optimized mode that are longer than 32 characters
 - Fixed race condition in potfile check during removal of empty hashes
 - Fixed race condition resulting in out of memory error on startup if multiple hashcat instances are started at the same time
