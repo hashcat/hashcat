@@ -935,7 +935,7 @@ typedef struct hashes
 
 } hashes_t;
 
-struct hashconfig
+typedef struct hashconfig
 {
   char  separator;
 
@@ -1009,9 +1009,7 @@ struct hashconfig
   bool forced_jit_compile;
 
   u32 pwdump_column;
-};
-
-typedef struct hashconfig hashconfig_t;
+} hashconfig_t;
 
 typedef struct pw_pre
 {
