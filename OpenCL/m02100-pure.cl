@@ -28,11 +28,6 @@ typedef struct dcc2_tmp
 
 } dcc2_tmp_t;
 
-DECLSPEC void sha1_hmac_update_global_utf16le_swap (sha1_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
-{
-  sha1_update_global_utf16le_swap (&ctx->ipad, w, len);
-}
-
 DECLSPEC void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
 {
   digest[0] = ipad[0];

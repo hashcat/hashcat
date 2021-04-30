@@ -1981,6 +1981,20 @@ DECLSPEC int find_hash (const u32 *digest, const u32 digests_cnt, GLOBAL_AS cons
 }
 #endif
 
+// Input has to be zero padded and buffer size has to be multiple of 4
+
+DECLSPEC int test_any_8th_bit (const u32 *buf, const int len)
+{
+  for (int i = 0, j = 0; i < len; i += 4, j += 1)
+  {
+    const u32 v = buf[j];
+
+    if (v & 0x80808080) return 1;
+  }
+
+  return 0;
+}
+
 // Constants and some code snippets from unicode.org's ConvertUTF.c
 // Compiler can perfectly translate some of the branches and switch cases this into MOVC
 // which is faster than lookup tables
