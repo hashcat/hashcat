@@ -1985,11 +1985,19 @@ DECLSPEC int find_hash (const u32 *digest, const u32 digests_cnt, GLOBAL_AS cons
 
 DECLSPEC int test_any_8th_bit (const u32 *buf, const int len)
 {
-  for (int i = 0, j = 0; i < len; i += 4, j += 1)
-  {
-    const u32 v = buf[j];
+  // we simply ignore buffer length for the first 24 bytes for some extra speed boost :)
+  // number of unrolls found by simply testing what gave best results
 
-    if (v & 0x80808080) return 1;
+  if (buf[0] & 0x80808080) return 1;
+  if (buf[1] & 0x80808080) return 1;
+  if (buf[2] & 0x80808080) return 1;
+  if (buf[3] & 0x80808080) return 1;
+  if (buf[4] & 0x80808080) return 1;
+  if (buf[5] & 0x80808080) return 1;
+
+  for (int i = 24, j = 6; i < len; i += 4, j += 1)
+  {
+    if (buf[j] & 0x80808080) return 1;
   }
 
   return 0;
