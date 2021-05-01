@@ -1417,8 +1417,6 @@ typedef struct hc_device_param
   CUdeviceptr       cuda_d_pws_amp_buf;
   CUdeviceptr       cuda_d_pws_comp_buf;
   CUdeviceptr       cuda_d_pws_idx;
-  CUdeviceptr       cuda_d_words_buf_l;
-  CUdeviceptr       cuda_d_words_buf_r;
   CUdeviceptr       cuda_d_rules;
   CUdeviceptr       cuda_d_rules_c;
   CUdeviceptr       cuda_d_combs;
@@ -1503,8 +1501,6 @@ typedef struct hc_device_param
   cl_mem            opencl_d_pws_amp_buf;
   cl_mem            opencl_d_pws_comp_buf;
   cl_mem            opencl_d_pws_idx;
-  cl_mem            opencl_d_words_buf_l;
-  cl_mem            opencl_d_words_buf_r;
   cl_mem            opencl_d_rules;
   cl_mem            opencl_d_rules_c;
   cl_mem            opencl_d_combs;

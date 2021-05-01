@@ -11143,6 +11143,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       if (device_param->cuda_module)           hc_cuModuleUnload (hashcat_ctx, device_param->cuda_module);
       if (device_param->cuda_module_mp)        hc_cuModuleUnload (hashcat_ctx, device_param->cuda_module_mp);
       if (device_param->cuda_module_amp)       hc_cuModuleUnload (hashcat_ctx, device_param->cuda_module_amp);
+      if (device_param->cuda_module_shared)    hc_cuModuleUnload (hashcat_ctx, device_param->cuda_module_shared);
 
       if (device_param->cuda_context)          hc_cuCtxDestroy (hashcat_ctx, device_param->cuda_context);
 
@@ -11280,6 +11281,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       if (device_param->opencl_program)          hc_clReleaseProgram (hashcat_ctx, device_param->opencl_program);
       if (device_param->opencl_program_mp)       hc_clReleaseProgram (hashcat_ctx, device_param->opencl_program_mp);
       if (device_param->opencl_program_amp)      hc_clReleaseProgram (hashcat_ctx, device_param->opencl_program_amp);
+      if (device_param->opencl_program_shared)   hc_clReleaseProgram (hashcat_ctx, device_param->opencl_program_shared);
 
       if (device_param->opencl_command_queue)    hc_clReleaseCommandQueue (hashcat_ctx, device_param->opencl_command_queue);
 
