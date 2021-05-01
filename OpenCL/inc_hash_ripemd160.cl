@@ -497,19 +497,20 @@ DECLSPEC void ripemd160_update_swap (ripemd160_ctx_t *ctx, const u32 *w, const i
 
 DECLSPEC void ripemd160_update_utf16le (ripemd160_ctx_t *ctx, const u32 *w, const int len)
 {
-  if (test_any_8th_bit (w, len) == 1)
+  if (hc_enc_scan (w, len))
   {
-    u32 w_utf16_buf[256];
+    hc_enc_t hc_enc;
 
-    const int w_utf16_len = utf8_to_utf16le (w, len, 256, w_utf16_buf, sizeof (w_utf16_buf));
+    hc_enc_init (&hc_enc);
 
-    const int blkoff = (w_utf16_len / 64) * 16;
+    while (hc_enc_has_next (&hc_enc, len))
+    {
+      u32 enc_buf[16];
 
-    u32 *w_ptr = w_utf16_buf + blkoff;
+      const int enc_len = hc_enc_next (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
 
-    truncate_block_16x4_le_S (w_ptr + 0, w_ptr + 4, w_ptr + 8, w_ptr + 12, w_utf16_len & 63);
-
-    ripemd160_update (ctx, w_utf16_buf, w_utf16_len);
+      ripemd160_update_64 (ctx, enc_buf + 0, enc_buf + 4, enc_buf + 8, enc_buf + 12, enc_len);
+    }
 
     return;
   }
@@ -556,19 +557,37 @@ DECLSPEC void ripemd160_update_utf16le (ripemd160_ctx_t *ctx, const u32 *w, cons
 
 DECLSPEC void ripemd160_update_utf16le_swap (ripemd160_ctx_t *ctx, const u32 *w, const int len)
 {
-  if (test_any_8th_bit (w, len) == 1)
+  if (hc_enc_scan (w, len))
   {
-    u32 w_utf16_buf[256];
+    hc_enc_t hc_enc;
 
-    const int w_utf16_len = utf8_to_utf16le (w, len, 256, w_utf16_buf, sizeof (w_utf16_buf));
+    hc_enc_init (&hc_enc);
 
-    const int blkoff = (w_utf16_len / 64) * 16;
+    while (hc_enc_has_next (&hc_enc, len))
+    {
+      u32 enc_buf[16];
 
-    u32 *w_ptr = w_utf16_buf + blkoff;
+      const int enc_len = hc_enc_next (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
 
-    truncate_block_16x4_le_S (w_ptr + 0, w_ptr + 4, w_ptr + 8, w_ptr + 12, w_utf16_len & 63);
+      enc_buf[ 0] = hc_swap32_S (enc_buf[ 0]);
+      enc_buf[ 1] = hc_swap32_S (enc_buf[ 1]);
+      enc_buf[ 2] = hc_swap32_S (enc_buf[ 2]);
+      enc_buf[ 3] = hc_swap32_S (enc_buf[ 3]);
+      enc_buf[ 4] = hc_swap32_S (enc_buf[ 4]);
+      enc_buf[ 5] = hc_swap32_S (enc_buf[ 5]);
+      enc_buf[ 6] = hc_swap32_S (enc_buf[ 6]);
+      enc_buf[ 7] = hc_swap32_S (enc_buf[ 7]);
+      enc_buf[ 8] = hc_swap32_S (enc_buf[ 8]);
+      enc_buf[ 9] = hc_swap32_S (enc_buf[ 9]);
+      enc_buf[10] = hc_swap32_S (enc_buf[10]);
+      enc_buf[11] = hc_swap32_S (enc_buf[11]);
+      enc_buf[12] = hc_swap32_S (enc_buf[12]);
+      enc_buf[13] = hc_swap32_S (enc_buf[13]);
+      enc_buf[14] = hc_swap32_S (enc_buf[14]);
+      enc_buf[15] = hc_swap32_S (enc_buf[15]);
 
-    ripemd160_update_swap (ctx, w_utf16_buf, w_utf16_len);
+      ripemd160_update_64 (ctx, enc_buf + 0, enc_buf + 4, enc_buf + 8, enc_buf + 12, enc_len);
+    }
 
     return;
   }
@@ -787,19 +806,20 @@ DECLSPEC void ripemd160_update_global_swap (ripemd160_ctx_t *ctx, GLOBAL_AS cons
 
 DECLSPEC void ripemd160_update_global_utf16le (ripemd160_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
-  if (test_any_8th_bit (w, len) == 1)
+  if (hc_enc_scan_global (w, len))
   {
-    u32 w_utf16_buf[256];
+    hc_enc_t hc_enc;
 
-    const int w_utf16_len = utf8_to_utf16le_global (w, len, 256, w_utf16_buf, sizeof (w_utf16_buf));
+    hc_enc_init (&hc_enc);
 
-    const int blkoff = (w_utf16_len / 64) * 16;
+    while (hc_enc_has_next (&hc_enc, len))
+    {
+      u32 enc_buf[16];
 
-    u32 *w_ptr = w_utf16_buf + blkoff;
+      const int enc_len = hc_enc_next_global (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
 
-    truncate_block_16x4_le_S (w_ptr + 0, w_ptr + 4, w_ptr + 8, w_ptr + 12, w_utf16_len & 63);
-
-    ripemd160_update (ctx, w_utf16_buf, w_utf16_len);
+      ripemd160_update_64 (ctx, enc_buf + 0, enc_buf + 4, enc_buf + 8, enc_buf + 12, enc_len);
+    }
 
     return;
   }
@@ -846,19 +866,37 @@ DECLSPEC void ripemd160_update_global_utf16le (ripemd160_ctx_t *ctx, GLOBAL_AS c
 
 DECLSPEC void ripemd160_update_global_utf16le_swap (ripemd160_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
-  if (test_any_8th_bit (w, len) == 1)
+  if (hc_enc_scan_global (w, len))
   {
-    u32 w_utf16_buf[256];
+    hc_enc_t hc_enc;
 
-    const int w_utf16_len = utf8_to_utf16le_global (w, len, 256, w_utf16_buf, sizeof (w_utf16_buf));
+    hc_enc_init (&hc_enc);
 
-    const int blkoff = (w_utf16_len / 64) * 16;
+    while (hc_enc_has_next (&hc_enc, len))
+    {
+      u32 enc_buf[16];
 
-    u32 *w_ptr = w_utf16_buf + blkoff;
+      const int enc_len = hc_enc_next_global (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
 
-    truncate_block_16x4_le_S (w_ptr + 0, w_ptr + 4, w_ptr + 8, w_ptr + 12, w_utf16_len & 63);
+      enc_buf[ 0] = hc_swap32_S (enc_buf[ 0]);
+      enc_buf[ 1] = hc_swap32_S (enc_buf[ 1]);
+      enc_buf[ 2] = hc_swap32_S (enc_buf[ 2]);
+      enc_buf[ 3] = hc_swap32_S (enc_buf[ 3]);
+      enc_buf[ 4] = hc_swap32_S (enc_buf[ 4]);
+      enc_buf[ 5] = hc_swap32_S (enc_buf[ 5]);
+      enc_buf[ 6] = hc_swap32_S (enc_buf[ 6]);
+      enc_buf[ 7] = hc_swap32_S (enc_buf[ 7]);
+      enc_buf[ 8] = hc_swap32_S (enc_buf[ 8]);
+      enc_buf[ 9] = hc_swap32_S (enc_buf[ 9]);
+      enc_buf[10] = hc_swap32_S (enc_buf[10]);
+      enc_buf[11] = hc_swap32_S (enc_buf[11]);
+      enc_buf[12] = hc_swap32_S (enc_buf[12]);
+      enc_buf[13] = hc_swap32_S (enc_buf[13]);
+      enc_buf[14] = hc_swap32_S (enc_buf[14]);
+      enc_buf[15] = hc_swap32_S (enc_buf[15]);
 
-    ripemd160_update_swap (ctx, w_utf16_buf, w_utf16_len);
+      ripemd160_update_64 (ctx, enc_buf + 0, enc_buf + 4, enc_buf + 8, enc_buf + 12, enc_len);
+    }
 
     return;
   }

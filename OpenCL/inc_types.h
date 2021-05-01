@@ -1726,4 +1726,13 @@ typedef struct keyboard_layout_mapping
 
 } keyboard_layout_mapping_t;
 
+typedef struct hc_enc
+{
+  int  pos;   // source offset
+
+  u32  cbuf;  // carry buffer
+  int  clen;  // carry length
+
+} hc_enc_t;
+
 #endif

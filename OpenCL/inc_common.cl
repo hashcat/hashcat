@@ -1981,13 +1981,29 @@ DECLSPEC int find_hash (const u32 *digest, const u32 digests_cnt, GLOBAL_AS cons
 }
 #endif
 
-// Input has to be zero padded and buffer size has to be multiple of 4
+// Input has to be zero padded and buffer size has to be multiple of 4 and at least of length 24
+// We simply ignore buffer length for the first 24 bytes for some extra speed boost :)
+// Number of unrolls found by simply testing what gave best results
 
-DECLSPEC int test_any_8th_bit (const u32 *buf, const int len)
+DECLSPEC int hc_enc_scan (const u32 *buf, const int len)
 {
-  // we simply ignore buffer length for the first 24 bytes for some extra speed boost :)
-  // number of unrolls found by simply testing what gave best results
+  if (buf[0] & 0x80808080) return 1;
+  if (buf[1] & 0x80808080) return 1;
+  if (buf[2] & 0x80808080) return 1;
+  if (buf[3] & 0x80808080) return 1;
+  if (buf[4] & 0x80808080) return 1;
+  if (buf[5] & 0x80808080) return 1;
 
+  for (int i = 24, j = 6; i < len; i += 4, j += 1)
+  {
+    if (buf[j] & 0x80808080) return 1;
+  }
+
+  return 0;
+}
+
+DECLSPEC int hc_enc_scan_global (GLOBAL_AS const u32 *buf, const int len)
+{
   if (buf[0] & 0x80808080) return 1;
   if (buf[1] & 0x80808080) return 1;
   if (buf[2] & 0x80808080) return 1;
@@ -2031,124 +2047,41 @@ DECLSPEC int test_any_8th_bit (const u32 *buf, const int len)
 #define offsetsFromUTF8_4 0xFA082080UL
 #define offsetsFromUTF8_5 0x82082080UL
 
-DECLSPEC int utf8_to_utf16le (const u32 *src_buf, int src_len, int src_size, u32 *dst_buf, int dst_size)
+DECLSPEC void hc_enc_init (hc_enc_t *hc_enc)
 {
-  const u8  *src_ptr = (const u8  *) src_buf;
-        u16 *dst_ptr = (      u16 *) dst_buf;
+  hc_enc->pos = 0;
 
-  int src_pos = 0;
-  int dst_pos = 0;
-  int dst_len = 0;
-
-  while (src_pos < src_len)
-  {
-    const u8 c = src_ptr[src_pos];
-
-    int extraBytesToRead = 0;
-
-    if (c >= 0xfc)
-    {
-      extraBytesToRead = 5;
-    }
-    else if (c >= 0xf8)
-    {
-      extraBytesToRead = 4;
-    }
-    else if (c >= 0xf0)
-    {
-      extraBytesToRead = 3;
-    }
-    else if (c >= 0xe0)
-    {
-      extraBytesToRead = 2;
-    }
-    else if (c >= 0xc0)
-    {
-      extraBytesToRead = 1;
-    }
-
-    if ((src_pos + extraBytesToRead) >= src_size) return dst_len;
-
-    u32 ch = 0;
-
-    switch (extraBytesToRead)
-    {
-      case 5:
-        ch += src_ptr[src_pos++]; ch <<= 6; /* remember, illegal UTF-8 */
-        ch += src_ptr[src_pos++]; ch <<= 6; /* remember, illegal UTF-8 */
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++];
-        ch -= offsetsFromUTF8_5;
-        break;
-      case 4:
-        ch += src_ptr[src_pos++]; ch <<= 6; /* remember, illegal UTF-8 */
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++];
-        ch -= offsetsFromUTF8_4;
-        break;
-      case 3:
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++];
-        ch -= offsetsFromUTF8_3;
-        break;
-      case 2:
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++];
-        ch -= offsetsFromUTF8_2;
-        break;
-      case 1:
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++];
-        ch -= offsetsFromUTF8_1;
-        break;
-      case 0:
-        ch += src_ptr[src_pos++];
-        ch -= offsetsFromUTF8_0;
-        break;
-    }
-
-    /* Target is a character <= 0xFFFF */
-    if (ch <= UNI_MAX_BMP)
-    {
-      if ((dst_len + 2) >= dst_size) return dst_len;
-
-      dst_ptr[dst_pos++] = (u16) ch;
-
-      dst_len += 2;
-    }
-    else
-    {
-      if ((dst_len + 4) >= dst_size) return dst_len;
-
-      ch -= halfBase;
-
-      dst_ptr[dst_pos++] = (u16) ((ch >> halfShift) + UNI_SUR_HIGH_START);
-      dst_ptr[dst_pos++] = (u16) ((ch  & halfMask)  + UNI_SUR_LOW_START);
-
-      dst_len += 4;
-    }
-  }
-
-  return dst_len;
+  hc_enc->cbuf = 0;
+  hc_enc->clen = 0;
 }
 
-DECLSPEC int utf8_to_utf16le_global (GLOBAL_AS const u32 *src_buf, int src_len, int src_size, u32 *dst_buf, int dst_size)
+DECLSPEC int hc_enc_has_next (hc_enc_t *hc_enc, const int sz)
 {
-  GLOBAL_AS const u8  *src_ptr = (GLOBAL_AS const u8  *) src_buf;
-                  u16 *dst_ptr = (                u16 *) dst_buf;
+  if (hc_enc->pos < sz) return 1;
 
-  int src_pos = 0;
-  int dst_pos = 0;
-  int dst_len = 0;
+  if (hc_enc->clen) return 1;
 
-  while (src_pos < src_len)
+  return 0;
+}
+
+// Input buffer and Output buffer size has to be multiple of 16 and at least of size 16
+// The output buffer will by zero padded
+
+DECLSPEC int hc_enc_next (hc_enc_t *hc_enc, const u32 *src_buf, const int src_len, const int src_sz, u32 *dst_buf, const int dst_sz)
+{
+  const u8 *src_ptr = (const u8 *) src_buf;
+        u8 *dst_ptr = (      u8 *) dst_buf;
+
+  int src_pos = hc_enc->pos;
+
+  int dst_pos = hc_enc->clen;
+
+  dst_buf[0] = hc_enc->cbuf;
+
+  hc_enc->clen = 0;
+  hc_enc->cbuf = 0;
+
+  while ((src_pos < src_len) && (dst_pos < dst_sz))
   {
     const u8 c = src_ptr[src_pos];
 
@@ -2175,7 +2108,14 @@ DECLSPEC int utf8_to_utf16le_global (GLOBAL_AS const u32 *src_buf, int src_len, 
       extraBytesToRead = 1;
     }
 
-    if ((src_pos + extraBytesToRead) >= src_size) return dst_len;
+    if ((src_pos + extraBytesToRead) >= src_sz)
+    {
+      // broken input
+
+      hc_enc->pos = src_len;
+
+      return dst_pos;
+    }
 
     u32 ch = 0;
 
@@ -2225,26 +2165,196 @@ DECLSPEC int utf8_to_utf16le_global (GLOBAL_AS const u32 *src_buf, int src_len, 
     /* Target is a character <= 0xFFFF */
     if (ch <= UNI_MAX_BMP)
     {
-      if ((dst_len + 2) >= dst_size) return dst_len;
-
-      dst_ptr[dst_pos++] = (u16) ch;
-
-      dst_len += 2;
+      dst_ptr[dst_pos++] = (ch >> 0) & 0xff;
+      dst_ptr[dst_pos++] = (ch >> 8) & 0xff;
     }
     else
     {
-      if ((dst_len + 4) >= dst_size) return dst_len;
-
       ch -= halfBase;
 
-      dst_ptr[dst_pos++] = (u16) ((ch >> halfShift) + UNI_SUR_HIGH_START);
-      dst_ptr[dst_pos++] = (u16) ((ch  & halfMask)  + UNI_SUR_LOW_START);
+      const u32 a = ((ch >> halfShift) + UNI_SUR_HIGH_START);
+      const u32 b = ((ch  & halfMask)  + UNI_SUR_LOW_START);
 
-      dst_len += 4;
+      if ((dst_pos + 2) == dst_sz)
+      {
+        dst_ptr[dst_pos++] = (a >> 0) & 0xff;
+        dst_ptr[dst_pos++] = (a >> 8) & 0xff;
+
+        hc_enc->cbuf = b & 0xffff;
+        hc_enc->clen = 2;
+      }
+      else
+      {
+        dst_ptr[dst_pos++] = (a >> 0) & 0xff;
+        dst_ptr[dst_pos++] = (a >> 8) & 0xff;
+        dst_ptr[dst_pos++] = (b >> 0) & 0xff;
+        dst_ptr[dst_pos++] = (b >> 8) & 0xff;
+      }
     }
   }
 
-  return dst_len;
+  if (dst_pos < dst_sz)
+  {
+    const int dst_block = dst_pos / 16;
+
+    truncate_block_4x4_le_S (dst_buf + (dst_block * 4), dst_pos & 15);
+
+    const int zero_block = dst_block + 1;
+
+    for (int i = zero_block * 16, j = zero_block * 4; i < dst_sz; i += 4, j += 1)
+    {
+      dst_buf[j] = 0;
+    }
+  }
+
+  hc_enc->pos = src_pos;
+
+  return dst_pos;
+}
+
+DECLSPEC int hc_enc_next_global (hc_enc_t *hc_enc, GLOBAL_AS const u32 *src_buf, const int src_len, const int src_sz, u32 *dst_buf, const int dst_sz)
+{
+  GLOBAL_AS const u8 *src_ptr = (GLOBAL_AS const u8 *) src_buf;
+                  u8 *dst_ptr = (                u8 *) dst_buf;
+
+  int src_pos = hc_enc->pos;
+
+  int dst_pos = hc_enc->clen;
+
+  dst_buf[0] = hc_enc->cbuf;
+
+  hc_enc->clen = 0;
+  hc_enc->cbuf = 0;
+
+  while ((src_pos < src_len) && (dst_pos < dst_sz))
+  {
+    const u8 c = src_ptr[src_pos];
+
+    int extraBytesToRead = 0;
+
+    if (c >= 0xfc)
+    {
+      extraBytesToRead = 5;
+    }
+    else if (c >= 0xf8)
+    {
+      extraBytesToRead = 4;
+    }
+    else if (c >= 0xf0)
+    {
+      extraBytesToRead = 3;
+    }
+    else if (c >= 0xe0)
+    {
+      extraBytesToRead = 2;
+    }
+    else if (c >= 0xc0)
+    {
+      extraBytesToRead = 1;
+    }
+
+    if ((src_pos + extraBytesToRead) >= src_sz)
+    {
+      // broken input
+
+      hc_enc->pos = src_len;
+
+      return dst_pos;
+    }
+
+    u32 ch = 0;
+
+    switch (extraBytesToRead)
+    {
+      case 5:
+        ch += src_ptr[src_pos++]; ch <<= 6; /* remember, illegal UTF-8 */
+        ch += src_ptr[src_pos++]; ch <<= 6; /* remember, illegal UTF-8 */
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++];
+        ch -= offsetsFromUTF8_5;
+        break;
+      case 4:
+        ch += src_ptr[src_pos++]; ch <<= 6; /* remember, illegal UTF-8 */
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++];
+        ch -= offsetsFromUTF8_4;
+        break;
+      case 3:
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++];
+        ch -= offsetsFromUTF8_3;
+        break;
+      case 2:
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++];
+        ch -= offsetsFromUTF8_2;
+        break;
+      case 1:
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++];
+        ch -= offsetsFromUTF8_1;
+        break;
+      case 0:
+        ch += src_ptr[src_pos++];
+        ch -= offsetsFromUTF8_0;
+        break;
+    }
+
+    /* Target is a character <= 0xFFFF */
+    if (ch <= UNI_MAX_BMP)
+    {
+      dst_ptr[dst_pos++] = (ch >> 0) & 0xff;
+      dst_ptr[dst_pos++] = (ch >> 8) & 0xff;
+    }
+    else
+    {
+      ch -= halfBase;
+
+      const u32 a = ((ch >> halfShift) + UNI_SUR_HIGH_START);
+      const u32 b = ((ch  & halfMask)  + UNI_SUR_LOW_START);
+
+      if ((dst_pos + 2) == dst_sz)
+      {
+        dst_ptr[dst_pos++] = (a >> 0) & 0xff;
+        dst_ptr[dst_pos++] = (a >> 8) & 0xff;
+
+        hc_enc->cbuf = b & 0xffff;
+        hc_enc->clen = 2;
+      }
+      else
+      {
+        dst_ptr[dst_pos++] = (a >> 0) & 0xff;
+        dst_ptr[dst_pos++] = (a >> 8) & 0xff;
+        dst_ptr[dst_pos++] = (b >> 0) & 0xff;
+        dst_ptr[dst_pos++] = (b >> 8) & 0xff;
+      }
+    }
+  }
+
+  if (dst_pos < dst_sz)
+  {
+    const int dst_block = dst_pos / 16;
+
+    truncate_block_4x4_le_S (dst_buf + (dst_block * 4), dst_pos & 15);
+
+    const int zero_block = dst_block + 1;
+
+    for (int i = zero_block * 16, j = zero_block * 4; i < dst_sz; i += 4, j += 1)
+    {
+      dst_buf[j] = 0;
+    }
+  }
+
+  hc_enc->pos = src_pos;
+
+  return dst_pos;
 }
 
 #undef halfShift
