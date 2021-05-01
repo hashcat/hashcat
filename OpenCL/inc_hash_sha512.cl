@@ -1932,7 +1932,7 @@ DECLSPEC void sha512_hmac_init_global_utf16le_swap (sha512_hmac_ctx_t *ctx, GLOB
 
         sha512_init (&tmp);
 
-        sha512_update_global_utf16le_swap (&tmp, enc_buf, enc_len);
+        sha512_update_utf16le_swap (&tmp, enc_buf, enc_len);
 
         sha512_final (&tmp);
 
