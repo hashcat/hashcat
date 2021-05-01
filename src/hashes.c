@@ -629,6 +629,8 @@ int hashes_init_filename (hashcat_ctx_t *hashcat_ctx)
   user_options_t       *user_options       = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
+  if (user_options->benchmark == true) return 0;
+
   /**
    * load hashes, part I: find input mode, count hashes
    */

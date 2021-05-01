@@ -40,6 +40,7 @@
 ## Bugs
 ##
 
+- Fixed access to filename which is a null-pointer in benchmark mode
 - Fixed both false negative and false positive result in -m 3000 in -a 3 (affected only NVIDIA GPU) 
 - Fixed buffer overflow in -m 1800 in -O mode which is optimized to handle only password candidates up to length 15
 - Fixed buffer overflow in -m 4710 in -P mode and only in single hash mode if salt length was larger than 32 byte
