@@ -43,13 +43,11 @@ const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 
 bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
-  // amdgpu-pro-19.30-934563-ubuntu-18.04: self-test failed
-  if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
-  {
-    return true;
-  }
-
-  // amdgpu-pro-20.50-1234664-ubuntu-20.04 (legacy): unhandled return code 255
+  // amdgpu-pro-20.50-1234664-ubuntu-20.04 (legacy)
+  // test_1619943729/test_report.log:! unhandled return code 255, cmdline : cat test_1619943729/16000_passwords.txt | ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -O -D 2 --backend-vector-width 1 -a 0 -m 16000 test_1619943729/16000_hashes.txt
+  // test_1619950656/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -O -D 2 --backend-vector-width 4 -a 3 -m 16000 --increment --increment-min 1 --increment-max 8 test_1619950656/16000_multihash_bruteforce.txt ?d?d?d?d?d?d?d?d
+  // test_1619955152/test_report.log:! unhandled return code 255, cmdline : cat test_1619955152/16000_passwords.txt | ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 0 -m 16000 test_1619955152/16000_hashes.txt
+  // test_1619967069/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 3 -m 16000 --increment --increment-min 1 --increment-max 8 test_1619967069/16000_multihash_bruteforce.txt ?d?d?d?d?d?d?d?d
   if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
   {
     return true;
