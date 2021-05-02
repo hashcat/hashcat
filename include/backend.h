@@ -113,6 +113,7 @@ int hc_clReleaseMemObject        (hashcat_ctx_t *hashcat_ctx, cl_mem mem);
 int hc_clReleaseProgram          (hashcat_ctx_t *hashcat_ctx, cl_program program);
 int hc_clSetKernelArg            (hashcat_ctx_t *hashcat_ctx, cl_kernel kernel, cl_uint arg_index, size_t arg_size, const void *arg_value);
 int hc_clWaitForEvents           (hashcat_ctx_t *hashcat_ctx, cl_uint num_events, const cl_event *event_list);
+int hc_clUnloadPlatformCompiler  (hashcat_ctx_t *hashcat_ctx, cl_platform_id platform);
 
 int gidd_to_pw_t (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 gidd, pw_t *pw);
 

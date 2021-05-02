@@ -70,6 +70,7 @@ typedef cl_int           (CL_API_CALL *OCL_CLRELEASEKERNEL)           (cl_kernel
 typedef cl_int           (CL_API_CALL *OCL_CLRELEASEMEMOBJECT)        (cl_mem);
 typedef cl_int           (CL_API_CALL *OCL_CLRELEASEPROGRAM)          (cl_program);
 typedef cl_int           (CL_API_CALL *OCL_CLSETKERNELARG)            (cl_kernel, cl_uint, size_t, const void *);
+typedef cl_int           (CL_API_CALL *OCL_CLUNLOADPLATFORMCOMPILER)  (cl_platform_id);
 typedef cl_int           (CL_API_CALL *OCL_CLWAITFOREVENTS)           (cl_uint, const cl_event *);
 
 typedef struct hc_opencl_lib
@@ -109,6 +110,7 @@ typedef struct hc_opencl_lib
   OCL_CLRELEASEMEMOBJECT        clReleaseMemObject;
   OCL_CLRELEASEPROGRAM          clReleaseProgram;
   OCL_CLSETKERNELARG            clSetKernelArg;
+  OCL_CLUNLOADPLATFORMCOMPILER  clUnloadPlatformCompiler;
   OCL_CLWAITFOREVENTS           clWaitForEvents;
 
 } hc_opencl_lib_t;

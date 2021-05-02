@@ -2216,6 +2216,7 @@ int ocl_init (hashcat_ctx_t *hashcat_ctx)
   HC_LOAD_FUNC (ocl, clWaitForEvents,           OCL_CLWAITFOREVENTS,            OpenCL, 1);
   HC_LOAD_FUNC (ocl, clGetEventProfilingInfo,   OCL_CLGETEVENTPROFILINGINFO,    OpenCL, 1);
   HC_LOAD_FUNC (ocl, clReleaseEvent,            OCL_CLRELEASEEVENT,             OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clUnloadPlatformCompiler,  OCL_CLUNLOADPLATFORMCOMPILER,   OpenCL, 1);
 
   return 0;
 }
@@ -2860,6 +2861,24 @@ int hc_clReleaseEvent (hashcat_ctx_t *hashcat_ctx, cl_event event)
   if (CL_err != CL_SUCCESS)
   {
     event_log_error (hashcat_ctx, "clReleaseEvent(): %s", val2cstr_cl (CL_err));
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_clUnloadPlatformCompiler (hashcat_ctx_t *hashcat_ctx, cl_platform_id platform)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
+
+  const cl_int CL_err = ocl->clUnloadPlatformCompiler (platform);
+
+  if (CL_err != CL_SUCCESS)
+  {
+    event_log_error (hashcat_ctx, "clUnloadPlatformCompiler(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -8867,6 +8886,19 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         hcfree (build_options_buf);
       }
+    }
+
+    /**
+     * no more need for the compiler. cuda doesn't offer this function.
+     * from opencl specs:
+     * Calls to clBuildProgram, clCompileProgram or clLinkProgram after clUnloadPlatformCompiler will reload the compiler, if necessary, to build the appropriate program executable.
+     */
+
+    if (device_param->is_opencl == true)
+    {
+      cl_platform_id platform_id = backend_ctx->opencl_platforms[device_param->opencl_platform_id];
+
+      if (hc_clUnloadPlatformCompiler (hashcat_ctx, platform_id) == -1) return -1;
     }
 
     hcfree (device_name_chksum);
