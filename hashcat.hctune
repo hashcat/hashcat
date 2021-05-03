@@ -467,22 +467,32 @@ DEVICE_TYPE_GPU                                 *       22700   1       N       
 ## Find the ideal -n value, then store it here along with the proper compute device name.
 ## Formatting guidelines are availabe at the top of this document.
 
+## 4GB
 GeForce_GTX_980                                 *       8900    1      28       A
 GeForce_GTX_980                                 *       9300    1     128       A
-GeForce_GTX_980                                 *       15700   1       2       A
+GeForce_GTX_980                                 *       15700   1      28       A
 GeForce_GTX_980                                 *       22700   1      28       A
 
-GeForce_RTX_2080_Ti                             *       8900    1       N       A
-GeForce_RTX_2080_Ti                             *       9300    1     544       A
-GeForce_RTX_2080_Ti                             *       15700   1       8       A
-GeForce_RTX_2080_Ti                             *       22700   1       N       A
+## 8GB
+GeForce_GTX_1080                                *       8900    1      14       A
+GeForce_GTX_1080                                *       9300    1     256       A
+GeForce_GTX_1080                                *       15700   1      14       A
+GeForce_GTX_1080                                *       22700   1      14       A
 
+## 11GB
+GeForce_RTX_2080_Ti                             *       8900    1      68       A
+GeForce_RTX_2080_Ti                             *       9300    1     532       A
+GeForce_RTX_2080_Ti                             *       15700   1      68       A
+GeForce_RTX_2080_Ti                             *       22700   1      68       A
+
+## 8GB
 gfx900                                          *       8900    1      28       A
-gfx900                                          *       9300    1     384       A
-gfx900                                          *       15700   1       6       A
+gfx900                                          *       9300    1     442       A
+gfx900                                          *       15700   1      28       A
 gfx900                                          *       22700   1      28       A
 
-Ellesmere                                       *       8900    1      28       A
-Ellesmere                                       *       9300    1     128       A
-Ellesmere                                       *       15700   1       2       A
-Ellesmere                                       *       22700   1      28       A
+## 4GB
+Ellesmere                                       *       8900    1      14       A
+Ellesmere                                       *       9300    1     126       A
+Ellesmere                                       *       15700   1      14       A
+Ellesmere                                       *       22700   1      14       A
