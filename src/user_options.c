@@ -2933,8 +2933,12 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     {
       event_log_error (hashcat_ctx, "%s: %s", temp_filename, strerror (errno));
 
+      hcfree (temp_filename);
+
       return -1;
     }
+
+    hcfree (temp_filename);
   }
 
   // return back to the folder we came from initially (workaround)
