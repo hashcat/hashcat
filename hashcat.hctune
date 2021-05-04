@@ -366,6 +366,12 @@ GeForce_GTX_TITAN                               3       5500    1       A       
 GeForce_GTX_TITAN                               3       9900    2       A       A
 
 ##
+## BCRYPT
+##
+
+DEVICE_TYPE_CPU                                 *       3200    1       N       A
+
+##
 ## SCRYPT
 ##
 
