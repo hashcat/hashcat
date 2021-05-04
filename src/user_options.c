@@ -2824,8 +2824,12 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     event_log_warning (hashcat_ctx, "For example, using \"7z e\" instead of using \"7z x\".");
     event_log_warning (hashcat_ctx, NULL);
 
+    hcfree (modulefile);
+
     return -1;
   }
+
+  hcfree (modulefile);
 
   const bool quiet_save = user_options->quiet;
 
@@ -2838,8 +2842,6 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
   if (rc == -1) return -1;
 
   hashconfig_destroy (hashcat_ctx);
-
-  hcfree (modulefile);
 
   // same check but for an backend kernel
 
@@ -2854,6 +2856,8 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     event_log_warning (hashcat_ctx, "If you are using the hashcat binary package this error typically indicates a problem during extraction.");
     event_log_warning (hashcat_ctx, "For example, using \"7z e\" instead of using \"7z x\".");
     event_log_warning (hashcat_ctx, NULL);
+
+    hcfree (kernelfile);
 
     return -1;
   }
