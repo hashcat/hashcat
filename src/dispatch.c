@@ -1406,6 +1406,14 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
               line_len = (u32) rule_len_out;
             }
 
+            if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+            {
+              // we can't reject password base on length in -a 9 because it will bring the schedule out of sync
+              // therefore we render it defective so the other candidates survive
+
+              line_len = MIN (line_len, hashconfig->pw_max);
+            }
+
             if (attack_kern == ATTACK_KERN_STRAIGHT)
             {
               if ((line_len < hashconfig->pw_min) || (line_len > hashconfig->pw_max))
