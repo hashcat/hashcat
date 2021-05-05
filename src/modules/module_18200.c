@@ -109,13 +109,12 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
     }
   }
 
-  // amdgpu-pro-19.30-934563-ubuntu-18.04: CL_OUT_OF_RESOURCES
+  // amdgpu-pro-20.50-1234664-ubuntu-20.04 (legacy)
+  // test_1619955152/test_report.log:! unhandled return code 139, cmdline : cat test_1619955152/18200_passwords.txt | ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 0 -m 18200 test_1619955152/18200_hashes.txt
+  // test_1619967069/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 3 -m 18200  test_1619967069/18200_multihash_bruteforce.txt test_1619967069/18200_passwords.txt
   if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
   {
-    if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0)
-    {
-      return true;
-    }
+    return true;
   }
 
   return false;

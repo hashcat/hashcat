@@ -74,7 +74,7 @@ CXX                     := clang++
 AR                      := /usr/bin/ar
 SED                     := /usr/bin/sed
 SED_IN_PLACE            := -i ""
-PROD_VERS               := $(shell sw_vers -productVersion | cut -d. -f2)
+DARWIN_VERSION          := $(shell uname -r | cut -d. -f1)
 endif
 
 ifeq ($(UNAME),FreeBSD)
@@ -198,6 +198,12 @@ endif
 
 ## because UNRAR
 ifeq ($(USE_SYSTEM_UNRAR),0)
+ifneq ($(UNAME),Darwin)
+CFLAGS_UNRAR            += -Wno-misleading-indentation
+CFLAGS_UNRAR            += -Wno-class-memaccess
+else
+CFLAGS_UNRAR            += -Wno-missing-braces
+endif
 CFLAGS_UNRAR            += -Wno-unused-variable
 CFLAGS_UNRAR            += -Wno-unused-parameter
 CFLAGS_UNRAR            += -Wno-unused-function
@@ -205,11 +211,9 @@ CFLAGS_UNRAR            += -Wno-sign-compare
 CFLAGS_UNRAR            += -Wno-dangling-else
 CFLAGS_UNRAR            += -Wno-switch
 CFLAGS_UNRAR            += -Wno-parentheses
-CFLAGS_UNRAR            += -Wno-misleading-indentation
 CFLAGS_UNRAR            += -Wno-implicit-fallthrough
 CFLAGS_UNRAR            += -Wno-extra
 CFLAGS_UNRAR            += -Wno-unknown-pragmas
-CFLAGS_UNRAR            += -Wno-class-memaccess
 endif
 
 ifeq ($(DEBUG),0)
@@ -299,7 +303,7 @@ ifeq ($(UNAME),Darwin)
 export MACOSX_DEPLOYMENT_TARGET=10.9
 CFLAGS_NATIVE           := $(CFLAGS)
 
-ifeq ($(shell test $(PROD_VERS) -le 11; echo $$?), 0)
+ifeq ($(shell test $(DARWIN_VERSION) -le 15; echo $$?), 0)
 CFLAGS_NATIVE           += -DMISSING_CLOCK_GETTIME
 endif
 

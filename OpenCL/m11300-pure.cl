@@ -351,7 +351,7 @@ KERNEL_FQ void m11300_comp (KERN_ATTR_TMPS_ESALT (bitcoin_wallet_tmp_t, bitcoin_
 
   if (out[2] == pad && out[3] == pad)
   {
-    if (atomic_inc (&hashes_shown[digest_cur]) == 0)
+    if (hc_atomic_inc (&hashes_shown[digest_cur]) == 0)
     {
       mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
     }

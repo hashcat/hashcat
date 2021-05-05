@@ -73,9 +73,6 @@ Quadro_K6000                                    ALIAS_nv_real_simd
 Quadro_K600                                     ALIAS_nv_real_simd
 Quadro_Plex_7000                                ALIAS_nv_real_simd
 
-NVIDIA_NVS_310                                  ALIAS_nv_real_simd
-NVIDIA_NVS_315                                  ALIAS_nv_real_simd
-NVIDIA_NVS_510                                  ALIAS_nv_real_simd
 NVS_310                                         ALIAS_nv_real_simd
 NVS_315                                         ALIAS_nv_real_simd
 NVS_4200M                                       ALIAS_nv_real_simd
@@ -197,7 +194,7 @@ Quadro_M500M                                    ALIAS_nv_sm50_or_higher
 Quadro_M5500M                                   ALIAS_nv_sm50_or_higher
 Quadro_M600M                                    ALIAS_nv_sm50_or_higher
 
-NVIDIA_NVS_810                                  ALIAS_nv_sm50_or_higher
+NVS_810                                         ALIAS_nv_sm50_or_higher
 
 GeForce_GTX_750                                 ALIAS_nv_sm50_or_higher
 GeForce_GTX_750_Ti                              ALIAS_nv_sm50_or_higher
@@ -228,7 +225,7 @@ TITAN_Xp                                        ALIAS_nv_sm50_or_higher
 TITAN_V                                         ALIAS_nv_sm50_or_higher
 TITAN_RTX                                       ALIAS_nv_sm50_or_higher
 
-NVIDIA_Tegra_X1                                 ALIAS_nv_sm50_or_higher
+Tegra_X1                                        ALIAS_nv_sm50_or_higher
 
 GeForce_910M                                    ALIAS_nv_sm50_or_higher
 GeForce_920M                                    ALIAS_nv_sm50_or_higher
@@ -264,9 +261,18 @@ GeForce_MX130                                   ALIAS_nv_sm50_or_higher
 GeForce_MX150                                   ALIAS_nv_sm50_or_higher
 
 GeForce_RTX_2060                                ALIAS_nv_sm50_or_higher
+GeForce_RTX_2060_SUPER                          ALIAS_nv_sm50_or_higher
 GeForce_RTX_2070                                ALIAS_nv_sm50_or_higher
+GeForce_RTX_2070_SUPER                          ALIAS_nv_sm50_or_higher
 GeForce_RTX_2080                                ALIAS_nv_sm50_or_higher
+GeForce_RTX_2080_SUPER                          ALIAS_nv_sm50_or_higher
 GeForce_RTX_2080_Ti                             ALIAS_nv_sm50_or_higher
+
+GeForce_RTX_3060                                ALIAS_nv_sm50_or_higher
+GeForce_RTX_3060_Ti                             ALIAS_nv_sm50_or_higher
+GeForce_RTX_3070                                ALIAS_nv_sm50_or_higher
+GeForce_RTX_3080                                ALIAS_nv_sm50_or_higher
+GeForce_RTX_3090                                ALIAS_nv_sm50_or_higher
 
 #############
 ## ENTRIES ##
@@ -359,11 +365,140 @@ GeForce_GTX_TITAN                               3       2410    2       A       
 GeForce_GTX_TITAN                               3       5500    1       A       A
 GeForce_GTX_TITAN                               3       9900    2       A       A
 
-###########
-## SCRYPT #
-###########
+##
+## BCRYPT
+##
 
-DEVICE_TYPE_CPU                                 *       15700   1       1       1
-DEVICE_TYPE_GPU                                 *       15700   1       1       1
-DEVICE_TYPE_CPU                                 *       22700   1       1       1
-DEVICE_TYPE_GPU                                 *       22700   1       1       1
+DEVICE_TYPE_CPU                                 *       3200    1       N       A
+
+##
+## SCRYPT
+##
+
+DEVICE_TYPE_CPU                                 *       8900    1       N       A
+DEVICE_TYPE_CPU                                 *       9300    1       N       A
+DEVICE_TYPE_CPU                                 *       15700   1       N       A
+DEVICE_TYPE_CPU                                 *       22700   1       N       A
+
+DEVICE_TYPE_GPU                                 *       8900    1       N       A
+DEVICE_TYPE_GPU                                 *       9300    1       N       A
+DEVICE_TYPE_GPU                                 *       15700   1       1       A
+DEVICE_TYPE_GPU                                 *       22700   1       N       A
+
+## Here's an example of how to manually tune SCRYPT algorithm kernels for your hardware.
+## Manually tuning the GPU will yield increased performance. There is typically no noticeable change to CPU performance.
+##
+## First, you need to know the parameters of your SCRYPT hash: N, r and p.
+##
+## The reference SCRYPT parameter values are N=14, r=8 and p=1, but these will likely not match the parameters used by real-world applications.
+## For reference, the N value represents an exponent (2^N, which we calculate by bit shifting 1 left by N bits).
+## Hashcat expects this N value in decimal format: 1 << 14 = 16384
+##
+## Now that you have the 3 configuration items in decimal format, multiply them by 128 (underlaying crypto primitive block size).
+## For example: 128 * 16384 * 8 * 1 = 16777216 = 16MB
+## This is the amount of memory required for the GPU to compute the hash of one password candidate.
+##
+## Hashcat computes multiple password candidates in parallel - this is what allows for full utilization of the device.
+## The number of password candidates that Hashcat can run in parallel is VRAM limited and depends on:
+##
+## 1. Compute devices' native compute units
+## 2. Compute devices' native thread count
+## 3. Artificial multiplier (--kernel-accel aka -n)
+##
+## In order to find these values:
+##
+## 1. On startup Hashcat will show: * Device #1: GeForce GTX 980, 3963/4043 MB, 16MCU. The 16 MCU is the number of compute units on that device.
+## 2. Native thread counts are fixed values: CPU=1, GPU-Intel=8, GPU-AMD=64 (wavefronts), GPU-NVIDIA=32 (warps)
+##
+## Now multiply them together. For my GTX980: 16 * 32 * 16777216 = 8589934592 = 8GB
+##
+## If we want to actually make use of all computing resources, this GPU would require 8GB of GPU RAM.
+## However, it doesn't have that:
+##
+## Device #1: GeForce GTX 980, 3963/4043 MB, 16MCU. We only have 4043 MB (4GB minus some overhead from the OS).
+##
+## How do we deal with this? This is where SCRYPT TMTO(time-memory trde off) kicks in. The SCRYPT algorithm is designed in such a way that we
+## can pre-compute that 16MB buffer from a self-choosen offset. Details on how this actually works are not important for this process.
+##
+## What's relevant to us is that we can halve the buffer size, but we pay with twice the computation time.
+## We can repeat this as often as we want. That's why it's a trade-off.
+##
+## This mechanic can be manually set using --scrypt-tmto on the commandline, but this is not the best way.
+##
+## Back to our problem. We need 8GB of memory but have only ~4GB.
+## It's not a full 4GB. The OS needs some of it and Hashcat needs some of it to store password candidates and other things.
+## If you run a headless server it should be safe to subtract a fixed value of 200MB from whatever you have in your GPU.
+##
+## So lets divide our required memory(8GB) by 2 until it fits in our VRAM - 200MB.
+##
+## (8GB >> 0) = 8GB < 3.8GB = No, Does not fit
+## (8GB >> 1) = 4GB < 3.8GB = No, Does not fit
+## (8GB >> 2) = 2GB < 3.8GB = Yes!
+##
+## This process is automated in Hashcat, but it is important to understand what's happening here.
+## Because of the light overhead from the OS and Hashcat, we pay a very high price.
+## Even though it is just 200MB, it forces us to increase the TMTO by another step.
+## In terms of speed, the speed is now only 1/4 of what we could archieve on that same GPU if it had only 8.2GB ram.
+## But now we end up in a situation that we waste 1.8GB RAM which costs us ((1.8GB/16MB)>>1) candidates/second.
+##
+## This is where manual tuning can come into play.
+## If we know that the resources we need are close to what we have (in this case 3.8GB <-> 4.0GB)
+## We could decide to throw away some of our compute units so that we will no longer need 4.0GB but only 3.8GB.
+## Therefore, we do not need to increase the TMTO by another step to fit in VRAM.
+##
+## If we cut down our 16 MCU to only 15 MCU or 14 MCU using --kernel-accel(-n), we end up with:
+##
+## 16 * 32 * 16777216 = 8589934592 / 2 = 4294967296 = 4.00GB < 3.80GB = Nope, next
+## 15 * 32 * 16777216 = 8053063680 / 2 = 4026531840 = 3.84GB < 3.80GB = Nope, next
+## 14 * 32 * 16777216 = 7516192768 / 2 = 3758096384 = 3.58GB < 3.80GB = Yes!
+##
+## So we can throw away 2/16 compute units, but save half of the computation trade-off on the rest of the compute device.
+## On my GTX980, this improves the performance from 163 H/s to 201 H/s.
+## You don't need to control --scrypt-tmto manually because now that the multiplier (-n) is smaller than the native value
+## Hashcat will automatically realize it can decrease the TMTO by one.
+##
+## At this point, you found the optimal base value for your compute device. In this case: 14.
+##
+## Depending on our hardware, especially hardware with very slow memory access like a GPU
+## there's a good chance that it's cheaper (faster) to compute an extra step on the GPU register.
+## So if we increase the TMTO again by one, this gives an extra speed boost.
+##
+## On my GTX980, this improves the performance from 201 H/s to 255 H/s.
+## Again, there's no need to control this with --scrypt-tmto. Hashcat will realize it has to increase the TMTO again.
+##
+## All together, you can control all of this by using the -n parameter in the command line.
+## This is not ideal in a production environment because you must use the --force flag.
+## The best way to set this is by using this Hashcat.hctune file to store it. This avoids the need to bypass any warnings.
+##
+## Find the ideal -n value, then store it here along with the proper compute device name.
+## Formatting guidelines are availabe at the top of this document.
+
+## 4GB
+GeForce_GTX_980                                 *       8900    1      28       A
+GeForce_GTX_980                                 *       9300    1     128       A
+GeForce_GTX_980                                 *       15700   1      28       A
+GeForce_GTX_980                                 *       22700   1      28       A
+
+## 8GB
+GeForce_GTX_1080                                *       8900    1      14       A
+GeForce_GTX_1080                                *       9300    1     256       A
+GeForce_GTX_1080                                *       15700   1      14       A
+GeForce_GTX_1080                                *       22700   1      14       A
+
+## 11GB
+GeForce_RTX_2080_Ti                             *       8900    1      68       A
+GeForce_RTX_2080_Ti                             *       9300    1     532       A
+GeForce_RTX_2080_Ti                             *       15700   1      68       A
+GeForce_RTX_2080_Ti                             *       22700   1      68       A
+
+## 8GB
+gfx900                                          *       8900    1      28       A
+gfx900                                          *       9300    1     442       A
+gfx900                                          *       15700   1      28       A
+gfx900                                          *       22700   1      28       A
+
+## 4GB
+Ellesmere                                       *       8900    1      14       A
+Ellesmere                                       *       9300    1     126       A
+Ellesmere                                       *       15700   1      14       A
+Ellesmere                                       *       22700   1      14       A

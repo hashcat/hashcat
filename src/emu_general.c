@@ -7,12 +7,12 @@
 #include "types.h"
 #include "emu_general.h"
 
-u32 atomic_dec (u32 *p)
+u32 hc_atomic_dec (u32 *p)
 {
   return p[0]--;
 }
 
-u32 atomic_inc (u32 *p)
+u32 hc_atomic_inc (u32 *p)
 {
   return p[0]++;
 }

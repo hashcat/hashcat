@@ -414,6 +414,24 @@ DECLSPEC void sha224_update_swap (sha224_ctx_t *ctx, const u32 *w, const int len
 
 DECLSPEC void sha224_update_utf16le (sha224_ctx_t *ctx, const u32 *w, const int len)
 {
+  if (hc_enc_scan (w, len))
+  {
+    hc_enc_t hc_enc;
+
+    hc_enc_init (&hc_enc);
+
+    while (hc_enc_has_next (&hc_enc, len))
+    {
+      u32 enc_buf[16];
+
+      const int enc_len = hc_enc_next (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
+
+      sha224_update_64 (ctx, enc_buf + 0, enc_buf + 4, enc_buf + 8, enc_buf + 12, enc_len);
+    }
+
+    return;
+  }
+
   u32 w0[4];
   u32 w1[4];
   u32 w2[4];
@@ -456,6 +474,41 @@ DECLSPEC void sha224_update_utf16le (sha224_ctx_t *ctx, const u32 *w, const int 
 
 DECLSPEC void sha224_update_utf16le_swap (sha224_ctx_t *ctx, const u32 *w, const int len)
 {
+  if (hc_enc_scan (w, len))
+  {
+    hc_enc_t hc_enc;
+
+    hc_enc_init (&hc_enc);
+
+    while (hc_enc_has_next (&hc_enc, len))
+    {
+      u32 enc_buf[16];
+
+      const int enc_len = hc_enc_next (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
+
+      enc_buf[ 0] = hc_swap32_S (enc_buf[ 0]);
+      enc_buf[ 1] = hc_swap32_S (enc_buf[ 1]);
+      enc_buf[ 2] = hc_swap32_S (enc_buf[ 2]);
+      enc_buf[ 3] = hc_swap32_S (enc_buf[ 3]);
+      enc_buf[ 4] = hc_swap32_S (enc_buf[ 4]);
+      enc_buf[ 5] = hc_swap32_S (enc_buf[ 5]);
+      enc_buf[ 6] = hc_swap32_S (enc_buf[ 6]);
+      enc_buf[ 7] = hc_swap32_S (enc_buf[ 7]);
+      enc_buf[ 8] = hc_swap32_S (enc_buf[ 8]);
+      enc_buf[ 9] = hc_swap32_S (enc_buf[ 9]);
+      enc_buf[10] = hc_swap32_S (enc_buf[10]);
+      enc_buf[11] = hc_swap32_S (enc_buf[11]);
+      enc_buf[12] = hc_swap32_S (enc_buf[12]);
+      enc_buf[13] = hc_swap32_S (enc_buf[13]);
+      enc_buf[14] = hc_swap32_S (enc_buf[14]);
+      enc_buf[15] = hc_swap32_S (enc_buf[15]);
+
+      sha224_update_64 (ctx, enc_buf + 0, enc_buf + 4, enc_buf + 8, enc_buf + 12, enc_len);
+    }
+
+    return;
+  }
+
   u32 w0[4];
   u32 w1[4];
   u32 w2[4];
@@ -670,6 +723,24 @@ DECLSPEC void sha224_update_global_swap (sha224_ctx_t *ctx, GLOBAL_AS const u32 
 
 DECLSPEC void sha224_update_global_utf16le (sha224_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
+  if (hc_enc_scan_global (w, len))
+  {
+    hc_enc_t hc_enc;
+
+    hc_enc_init (&hc_enc);
+
+    while (hc_enc_has_next (&hc_enc, len))
+    {
+      u32 enc_buf[16];
+
+      const int enc_len = hc_enc_next_global (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
+
+      sha224_update_64 (ctx, enc_buf + 0, enc_buf + 4, enc_buf + 8, enc_buf + 12, enc_len);
+    }
+
+    return;
+  }
+
   u32 w0[4];
   u32 w1[4];
   u32 w2[4];
@@ -712,6 +783,41 @@ DECLSPEC void sha224_update_global_utf16le (sha224_ctx_t *ctx, GLOBAL_AS const u
 
 DECLSPEC void sha224_update_global_utf16le_swap (sha224_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
+  if (hc_enc_scan_global (w, len))
+  {
+    hc_enc_t hc_enc;
+
+    hc_enc_init (&hc_enc);
+
+    while (hc_enc_has_next (&hc_enc, len))
+    {
+      u32 enc_buf[16];
+
+      const int enc_len = hc_enc_next_global (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
+
+      enc_buf[ 0] = hc_swap32_S (enc_buf[ 0]);
+      enc_buf[ 1] = hc_swap32_S (enc_buf[ 1]);
+      enc_buf[ 2] = hc_swap32_S (enc_buf[ 2]);
+      enc_buf[ 3] = hc_swap32_S (enc_buf[ 3]);
+      enc_buf[ 4] = hc_swap32_S (enc_buf[ 4]);
+      enc_buf[ 5] = hc_swap32_S (enc_buf[ 5]);
+      enc_buf[ 6] = hc_swap32_S (enc_buf[ 6]);
+      enc_buf[ 7] = hc_swap32_S (enc_buf[ 7]);
+      enc_buf[ 8] = hc_swap32_S (enc_buf[ 8]);
+      enc_buf[ 9] = hc_swap32_S (enc_buf[ 9]);
+      enc_buf[10] = hc_swap32_S (enc_buf[10]);
+      enc_buf[11] = hc_swap32_S (enc_buf[11]);
+      enc_buf[12] = hc_swap32_S (enc_buf[12]);
+      enc_buf[13] = hc_swap32_S (enc_buf[13]);
+      enc_buf[14] = hc_swap32_S (enc_buf[14]);
+      enc_buf[15] = hc_swap32_S (enc_buf[15]);
+
+      sha224_update_64 (ctx, enc_buf + 0, enc_buf + 4, enc_buf + 8, enc_buf + 12, enc_len);
+    }
+
+    return;
+  }
+
   u32 w0[4];
   u32 w1[4];
   u32 w2[4];

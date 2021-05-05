@@ -78,12 +78,6 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 {
   if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
   {
-    // AMD on Apple not affected
-    if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
-    {
-      return false;
-    }
-
     // self-test failed
     if ((device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
     {
@@ -91,13 +85,12 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
     }
   }
 
-  // amdgpu-pro-18.50-708488-ubuntu-18.04: Segmentation fault
+  // amdgpu-pro-20.50-1234664-ubuntu-20.04 (legacy)
+  // test_1619955152/test_report.log:! unhandled return code 139, cmdline : cat test_1619955152/7500_passwords.txt | ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 0 -m 7500 test_1619955152/7500_hashes.txt
+  // test_1619967069/test_report.log:! unhandled return code 139, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 3 -m 7500  test_1619967069/7500_multihash_bruteforce.txt test_1619967069/7500_passwords.txt
   if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
   {
-    if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0)
-    {
-      return true;
-    }
+    return true;
   }
 
   return false;

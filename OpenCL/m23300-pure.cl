@@ -400,7 +400,7 @@ KERNEL_FQ void m23300_comp (KERN_ATTR_TMPS_ESALT (iwork_tmp_t, iwork_t))
       (res[10] == checksum[2]) &&
       (res[11] == checksum[3]))
   {
-    if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
     {
       mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
     }

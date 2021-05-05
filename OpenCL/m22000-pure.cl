@@ -488,7 +488,7 @@ KERNEL_FQ void m22000_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_t))
        && (ctx2.opad.h[2] == wpa->keymic[2])
        && (ctx2.opad.h[3] == wpa->keymic[3]))
       {
-        if (atomic_inc (&hashes_shown[digest_cur]) == 0)
+        if (hc_atomic_inc (&hashes_shown[digest_cur]) == 0)
         {
           mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
         }
@@ -668,7 +668,7 @@ KERNEL_FQ void m22000_aux2 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_t))
        && (ctx2.opad.h[2] == wpa->keymic[2])
        && (ctx2.opad.h[3] == wpa->keymic[3]))
       {
-        if (atomic_inc (&hashes_shown[digest_cur]) == 0)
+        if (hc_atomic_inc (&hashes_shown[digest_cur]) == 0)
         {
           mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
         }
@@ -963,7 +963,7 @@ KERNEL_FQ void m22000_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_t))
        && (keymic[2] == wpa->keymic[2])
        && (keymic[3] == wpa->keymic[3]))
       {
-        if (atomic_inc (&hashes_shown[digest_cur]) == 0)
+        if (hc_atomic_inc (&hashes_shown[digest_cur]) == 0)
         {
           mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
         }
@@ -1028,7 +1028,7 @@ KERNEL_FQ void m22000_aux4 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_t))
    && (hc_swap32_S (r2) == wpa->pmkid[2])
    && (hc_swap32_S (r3) == wpa->pmkid[3]))
   {
-    if (atomic_inc (&hashes_shown[digest_cur]) == 0)
+    if (hc_atomic_inc (&hashes_shown[digest_cur]) == 0)
     {
       mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
     }

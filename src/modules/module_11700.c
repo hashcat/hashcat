@@ -43,13 +43,11 @@ const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 
 bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
-  // amdgpu-pro-19.30-934563-ubuntu-18.04: CL_OUT_OF_RESOURCES
+  // amdgpu-pro-20.50-1234664-ubuntu-20.04 (legacy)
+  // test_1619955152/test_report.log:! unhandled return code 255, cmdline : cat test_1619955152/11700_passwords.txt | ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 0 -m 11700 test_1619955152/11700_hashes.txt
   if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
   {
-    if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0)
-    {
-      return true;
-    }
+    return true;
   }
 
   return false;

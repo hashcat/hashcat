@@ -74,7 +74,7 @@ bool hc_fopen (HCFILE *fp, const char *path, char *mode)
 
     if (read (fd_tmp, check, sizeof (check)) > 0)
     {
-      if (check[0] == 0x1f && check[1] == 0x8b && check[2] == 0x08 && check[3] == 0x08) fp->is_gzip = true;
+      if (check[0] == 0x1f && check[1] == 0x8b && check[2] == 0x08) fp->is_gzip = true;
       if (check[0] == 0x50 && check[1] == 0x4b && check[2] == 0x03 && check[3] == 0x04) fp->is_zip = true;
     }
 
