@@ -242,6 +242,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - PeopleSoft
 - PeopleSoft PS_TOKEN
 - SolarWinds Orion
+- SolarWinds Orion v2
 - SolarWinds Serv-U
 - Lotus Notes/Domino 5
 - Lotus Notes/Domino 6
