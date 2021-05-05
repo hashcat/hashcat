@@ -270,10 +270,16 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     myabort_checkpoint (hashcat_ctx);
   }
 
+  if ((status_ctx->devices_status == STATUS_RUNNING) && (status_ctx->finish_shutdown == true))
+  {
+    myabort_finish (hashcat_ctx);
+  }
+
   if ((status_ctx->devices_status != STATUS_CRACKED)
    && (status_ctx->devices_status != STATUS_ERROR)
    && (status_ctx->devices_status != STATUS_ABORTED)
    && (status_ctx->devices_status != STATUS_ABORTED_CHECKPOINT)
+   && (status_ctx->devices_status != STATUS_ABORTED_FINISH)
    && (status_ctx->devices_status != STATUS_ABORTED_RUNTIME)
    && (status_ctx->devices_status != STATUS_QUIT)
    && (status_ctx->devices_status != STATUS_BYPASS))
@@ -1234,6 +1240,7 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
   if (rc_final == 0)
   {
+    if (status_ctx->devices_status == STATUS_ABORTED_FINISH)      rc_final =  5;
     if (status_ctx->devices_status == STATUS_ABORTED_RUNTIME)     rc_final =  4;
     if (status_ctx->devices_status == STATUS_ABORTED_CHECKPOINT)  rc_final =  3;
     if (status_ctx->devices_status == STATUS_ABORTED)             rc_final =  2;
@@ -1276,6 +1283,11 @@ int hashcat_session_bypass (hashcat_ctx_t *hashcat_ctx)
 int hashcat_session_checkpoint (hashcat_ctx_t *hashcat_ctx)
 {
   return stop_at_checkpoint (hashcat_ctx);
+}
+
+int hashcat_session_finish (hashcat_ctx_t *hashcat_ctx)
+{
+  return finish_after_attack (hashcat_ctx);
 }
 
 int hashcat_session_quit (hashcat_ctx_t *hashcat_ctx)

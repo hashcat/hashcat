@@ -209,6 +209,7 @@ typedef enum status_rc
   STATUS_ABORTED_CHECKPOINT = 10,
   STATUS_ABORTED_RUNTIME    = 11,
   STATUS_ERROR              = 13,
+  STATUS_ABORTED_FINISH     = 14,
 
 } status_rc_t;
 
@@ -2348,6 +2349,7 @@ typedef struct status_ctx
   bool shutdown_outer;
 
   bool checkpoint_shutdown;
+  bool finish_shutdown;
 
   hc_thread_mutex_t mux_dispatcher;
   hc_thread_mutex_t mux_counter;

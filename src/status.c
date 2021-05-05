@@ -32,6 +32,8 @@ static const char *ST_0010 = "Aborted (Checkpoint)";
 static const char *ST_0011 = "Aborted (Runtime)";
 static const char *ST_0012 = "Running (Checkpoint Quit requested)";
 static const char *ST_0013 = "Error";
+static const char *ST_0014 = "Aborted (Finish)";
+static const char *ST_0015 = "Running (Quit after attack requested)";
 static const char *ST_9999 = "Unknown! Bug!";
 
 static const char UNITS[7] = { ' ', 'k', 'M', 'G', 'T', 'P', 'E' };
@@ -267,6 +269,11 @@ const char *status_get_status_string (const hashcat_ctx_t *hashcat_ctx)
     {
       return ST_0012;
     }
+
+    if (status_ctx->finish_shutdown == true)
+    {
+      return ST_0015;
+    }
   }
 
   switch (devices_status)
@@ -284,6 +291,7 @@ const char *status_get_status_string (const hashcat_ctx_t *hashcat_ctx)
     case STATUS_ABORTED_CHECKPOINT: return ST_0010;
     case STATUS_ABORTED_RUNTIME:    return ST_0011;
     case STATUS_ERROR:              return ST_0013;
+    case STATUS_ABORTED_FINISH:     return ST_0014;
   }
 
   return ST_9999;
@@ -2197,6 +2205,7 @@ int status_ctx_init (hashcat_ctx_t *hashcat_ctx)
   status_ctx->shutdown_outer      = false;
 
   status_ctx->checkpoint_shutdown = false;
+  status_ctx->finish_shutdown     = false;
 
   status_ctx->hashcat_status_final = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
 

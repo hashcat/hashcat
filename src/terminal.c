@@ -18,8 +18,8 @@
 
 static const size_t TERMINAL_LINE_LENGTH = 79;
 
-static const char *PROMPT_ACTIVE = "[s]tatus [p]ause [b]ypass [c]heckpoint [q]uit => ";
-static const char *PROMPT_PAUSED = "[s]tatus [r]esume [b]ypass [c]heckpoint [q]uit => ";
+static const char *PROMPT_ACTIVE = "[s]tatus [p]ause [b]ypass [c]heckpoint [f]inish [q]uit => ";
+static const char *PROMPT_PAUSED = "[s]tatus [r]esume [b]ypass [c]heckpoint [f]inish [q]uit => ";
 
 void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
 {
@@ -284,6 +284,27 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
         else
         {
           event_log_info (hashcat_ctx, "Checkpoint disabled. Restore-point updates will no longer be monitored.");
+        }
+
+        event_log_info (hashcat_ctx, NULL);
+
+        if (quiet == false) send_prompt (hashcat_ctx);
+
+        break;
+
+      case 'f':
+
+        event_log_info (hashcat_ctx, NULL);
+
+        finish_after_attack (hashcat_ctx);
+
+        if (status_ctx->finish_shutdown == true)
+        {
+          event_log_info (hashcat_ctx, "Finish enabled. Will quit after this attack.");
+        }
+        else
+        {
+          event_log_info (hashcat_ctx, "Finish disabled. Will continue after this attack.");
         }
 
         event_log_info (hashcat_ctx, NULL);

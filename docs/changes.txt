@@ -20,6 +20,8 @@
 - Added hash-mode: RAR3-p (Compressed)
 - Added hash-mode: RAR3-p (Uncompressed)
 - Added hash-mode: RSA/DSA/EC/OPENSSH Private Keys
+- Added hash-mode: SolarWinds Orion v2
+- Added hash-mode: SolarWinds Serv-U
 - Added hash-mode: SQLCipher
 - Added hash-mode: Stargazer Stellar Wallet XLM
 - Added hash-mode: Stuffit5
@@ -27,13 +29,12 @@
 - Added hash-mode: Umbraco HMAC-SHA1
 - Added hash-mode: sha1($salt.sha1($pass.$salt))
 - Added hash-mode: sha1(sha1($pass).$salt)
-- Added hash-mode: SolarWinds Orion v2
-- Added hash-mode: SolarWinds Serv-U
 
 ##
 ## Features
 ##
 
+- Added command prompt [f]inish to instruct hashcat to finish the current attack and quit afterwards
 - Added support for true UTF8 to UTF16 conversion in kernel crypto library
 - Added option --hash-info to show generic information for each hash-mode
 - Removed option --example-hashes, now is an alias of --hash-info
