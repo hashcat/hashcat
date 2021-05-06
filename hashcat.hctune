@@ -385,6 +385,13 @@ DEVICE_TYPE_GPU                                 *       9300    1       N       
 DEVICE_TYPE_GPU                                 *       15700   1       1       A
 DEVICE_TYPE_GPU                                 *       22700   1       N       A
 
+##
+## CryptoAPI
+##
+
+DEVICE_TYPE_CPU                                 *       14500   1       A       A
+DEVICE_TYPE_GPU                                 *       14500   1       A       A
+
 ## Here's an example of how to manually tune SCRYPT algorithm kernels for your hardware.
 ## Manually tuning the GPU will yield increased performance. There is typically no noticeable change to CPU performance.
 ##
