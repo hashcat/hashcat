@@ -505,7 +505,7 @@ DECLSPEC void ripemd160_update_utf16le (ripemd160_ctx_t *ctx, const u32 *w, cons
 
     while (hc_enc_has_next (&hc_enc, len))
     {
-      u32 enc_buf[16];
+      u32 enc_buf[16] = { 0 };
 
       const int enc_len = hc_enc_next (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
 
@@ -565,7 +565,7 @@ DECLSPEC void ripemd160_update_utf16le_swap (ripemd160_ctx_t *ctx, const u32 *w,
 
     while (hc_enc_has_next (&hc_enc, len))
     {
-      u32 enc_buf[16];
+      u32 enc_buf[16] = { 0 };
 
       const int enc_len = hc_enc_next (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
 
@@ -814,7 +814,7 @@ DECLSPEC void ripemd160_update_global_utf16le (ripemd160_ctx_t *ctx, GLOBAL_AS c
 
     while (hc_enc_has_next (&hc_enc, len))
     {
-      u32 enc_buf[16];
+      u32 enc_buf[16] = { 0 };
 
       const int enc_len = hc_enc_next_global (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
 
@@ -874,7 +874,7 @@ DECLSPEC void ripemd160_update_global_utf16le_swap (ripemd160_ctx_t *ctx, GLOBAL
 
     while (hc_enc_has_next (&hc_enc, len))
     {
-      u32 enc_buf[16];
+      u32 enc_buf[16] = { 0 };
 
       const int enc_len = hc_enc_next_global (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
 

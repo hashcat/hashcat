@@ -407,7 +407,7 @@ DECLSPEC void md5_update_utf16le (md5_ctx_t *ctx, const u32 *w, const int len)
 
     while (hc_enc_has_next (&hc_enc, len))
     {
-      u32 enc_buf[16];
+      u32 enc_buf[16] = { 0 };
 
       const int enc_len = hc_enc_next (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
 
@@ -467,7 +467,7 @@ DECLSPEC void md5_update_utf16le_swap (md5_ctx_t *ctx, const u32 *w, const int l
 
     while (hc_enc_has_next (&hc_enc, len))
     {
-      u32 enc_buf[16];
+      u32 enc_buf[16] = { 0 };
 
       const int enc_len = hc_enc_next (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
 
@@ -716,7 +716,7 @@ DECLSPEC void md5_update_global_utf16le (md5_ctx_t *ctx, GLOBAL_AS const u32 *w,
 
     while (hc_enc_has_next (&hc_enc, len))
     {
-      u32 enc_buf[16];
+      u32 enc_buf[16] = { 0 };
 
       const int enc_len = hc_enc_next_global (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
 
@@ -776,7 +776,7 @@ DECLSPEC void md5_update_global_utf16le_swap (md5_ctx_t *ctx, GLOBAL_AS const u3
 
     while (hc_enc_has_next (&hc_enc, len))
     {
-      u32 enc_buf[16];
+      u32 enc_buf[16] = { 0 };
 
       const int enc_len = hc_enc_next_global (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
 

@@ -2064,8 +2064,8 @@ DECLSPEC int hc_enc_has_next (hc_enc_t *hc_enc, const int sz)
   return 0;
 }
 
-// Input buffer and Output buffer size has to be multiple of 16 and at least of size 16
-// The output buffer will by zero padded
+// Input buffer and Output buffer size has to be multiple of 4 and at least of size 4.
+// The output buffer is not zero padded, so entire buffer has to be set all zero before entering this function or truncated afterwards.
 
 DECLSPEC int hc_enc_next (hc_enc_t *hc_enc, const u32 *src_buf, const int src_len, const int src_sz, u32 *dst_buf, const int dst_sz)
 {
@@ -2190,20 +2190,6 @@ DECLSPEC int hc_enc_next (hc_enc_t *hc_enc, const u32 *src_buf, const int src_le
         dst_ptr[dst_pos++] = (b >> 0) & 0xff;
         dst_ptr[dst_pos++] = (b >> 8) & 0xff;
       }
-    }
-  }
-
-  if (dst_pos < dst_sz)
-  {
-    const int dst_block = dst_pos / 16;
-
-    truncate_block_4x4_le_S (dst_buf + (dst_block * 4), dst_pos & 15);
-
-    const int zero_block = dst_block + 1;
-
-    for (int i = zero_block * 16, j = zero_block * 4; i < dst_sz; i += 4, j += 1)
-    {
-      dst_buf[j] = 0;
     }
   }
 
@@ -2335,20 +2321,6 @@ DECLSPEC int hc_enc_next_global (hc_enc_t *hc_enc, GLOBAL_AS const u32 *src_buf,
         dst_ptr[dst_pos++] = (b >> 0) & 0xff;
         dst_ptr[dst_pos++] = (b >> 8) & 0xff;
       }
-    }
-  }
-
-  if (dst_pos < dst_sz)
-  {
-    const int dst_block = dst_pos / 16;
-
-    truncate_block_4x4_le_S (dst_buf + (dst_block * 4), dst_pos & 15);
-
-    const int zero_block = dst_block + 1;
-
-    for (int i = zero_block * 16, j = zero_block * 4; i < dst_sz; i += 4, j += 1)
-    {
-      dst_buf[j] = 0;
     }
   }
 
