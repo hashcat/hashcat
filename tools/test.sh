@@ -2384,6 +2384,7 @@ function cryptoloop_test()
   CMD="unset"
 
   mkdir -p ${OUTD}/cl_tests
+  chmod u+x ${TDIR}/cryptoloop2hashcat.py
 
   case $hashType in
 
