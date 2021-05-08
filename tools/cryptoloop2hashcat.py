@@ -98,5 +98,4 @@ else:
 
 f.close()
 
-print('Hashcat mode: ' + str(hash_mode))
-print('Hash: $cryptoapi$' + str(kern_type) + '$' + str(key_size) + '$03000000000000000000000000000000$00000000000000000000000000000000$' + ct)
+print('$cryptoapi$' + str(kern_type) + '$' + str(key_size) + '$03000000000000000000000000000000$00000000000000000000000000000000$' + ct)

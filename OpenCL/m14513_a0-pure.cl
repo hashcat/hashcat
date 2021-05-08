@@ -40,10 +40,6 @@ KERNEL_FQ void m14513_mxx (KERN_ATTR_RULES_ESALT (cryptoapi_t))
 
   u32 twofish_key_len = esalt_bufs[DIGESTS_OFFSET].key_size;
 
-  u32 padding[64] = { 0 };
-
-  padding[0] = 0x00000041;
-
   COPY_PW (pws[gid]);
 
   /**
@@ -85,7 +81,9 @@ KERNEL_FQ void m14513_mxx (KERN_ATTR_RULES_ESALT (cryptoapi_t))
 
       sha1_init (&ctx);
 
-      sha1_update_swap (&ctx, padding, 1);
+      ctx.w0[0] = 0x41000000;
+
+      ctx.len = 1;
 
       sha1_update_swap (&ctx, w, w_len);
 
@@ -199,10 +197,6 @@ KERNEL_FQ void m14513_sxx (KERN_ATTR_RULES_ESALT (cryptoapi_t))
    * base
    */
 
-  u32 padding[64] = { 0 };
-
-  padding[0] = 0x00000041;
-
   COPY_PW (pws[gid]);
 
   /**
@@ -244,7 +238,9 @@ KERNEL_FQ void m14513_sxx (KERN_ATTR_RULES_ESALT (cryptoapi_t))
 
       sha1_init (&ctx);
 
-      sha1_update_swap (&ctx, padding, 1);
+      ctx.w0[0] = 0x41000000;
+
+      ctx.len = 1;
 
       sha1_update_swap (&ctx, w, w_len);
 

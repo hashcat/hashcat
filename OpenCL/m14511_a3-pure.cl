@@ -74,10 +74,6 @@ KERNEL_FQ void m14511_mxx (KERN_ATTR_VECTOR_ESALT (cryptoapi_t))
 
   u32 aes_key_len = esalt_bufs[DIGESTS_OFFSET].key_size;
 
-  u32 padding[64] = { 0 };
-
-  padding[0] = 0x00000041;
-
   const u32 pw_len = pws[gid].pw_len;
 
   u32x w[64] = { 0 };
@@ -100,12 +96,6 @@ KERNEL_FQ void m14511_mxx (KERN_ATTR_VECTOR_ESALT (cryptoapi_t))
     const u32x w0 = w0l | w0r;
 
     w[0] = w0;
-
-    u32x _w[64];
-
-    u32 _w_len = pw_len;
-
-    for (u32 i = 0; i < 64; i++) _w[i] = w[i];
 
     sha1_ctx_t ctx0;
 
@@ -130,9 +120,11 @@ KERNEL_FQ void m14511_mxx (KERN_ATTR_VECTOR_ESALT (cryptoapi_t))
 
       sha1_init (&ctx);
 
-      sha1_update_swap(&ctx, padding, 1);
+      ctx.w0[0] = 0x41000000;
 
-      sha1_update_swap(&ctx, _w, _w_len);
+      ctx.len = 1;
+
+      sha1_update_swap (&ctx, w, pw_len);
 
       sha1_final (&ctx);
 
@@ -275,10 +267,6 @@ KERNEL_FQ void m14511_sxx (KERN_ATTR_VECTOR_ESALT (cryptoapi_t))
 
   u32 aes_key_len = esalt_bufs[DIGESTS_OFFSET].key_size;
 
-  u32 padding[64] = { 0 };
-
-  padding[0] = 0x00000041;
-
   const u32 pw_len = pws[gid].pw_len;
 
   u32x w[64] = { 0 };
@@ -302,17 +290,11 @@ KERNEL_FQ void m14511_sxx (KERN_ATTR_VECTOR_ESALT (cryptoapi_t))
 
     w[0] = w0;
 
-    u32x _w[64];
-
-    u32 _w_len = pw_len;
-
-    for (u32 i = 0; i < 64; i++) _w[i] = w[i];
-
     sha1_ctx_t ctx0;
 
     sha1_init (&ctx0);
 
-    sha1_update_swap(&ctx0, w, pw_len);
+    sha1_update_swap (&ctx0, w, pw_len);
 
     sha1_final (&ctx0);
 
@@ -331,9 +313,11 @@ KERNEL_FQ void m14511_sxx (KERN_ATTR_VECTOR_ESALT (cryptoapi_t))
 
       sha1_init (&ctx);
 
-      sha1_update_swap(&ctx, padding, 1);
+      ctx.w0[0] = 0x41000000;
 
-      sha1_update_swap(&ctx, _w, _w_len);
+      ctx.len = 1;
+
+      sha1_update_swap (&ctx, w, pw_len);
 
       sha1_final (&ctx);
 

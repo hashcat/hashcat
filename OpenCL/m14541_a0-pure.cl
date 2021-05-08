@@ -76,10 +76,6 @@ KERNEL_FQ void m14541_mxx (KERN_ATTR_RULES_ESALT (cryptoapi_t))
 
   u32 aes_key_len = esalt_bufs[DIGESTS_OFFSET].key_size;
 
-  u32 padding[64] = { 0 };
-
-  padding[0] = 0x00000041;
-
   COPY_PW (pws[gid]);
 
   /**
@@ -121,7 +117,9 @@ KERNEL_FQ void m14541_mxx (KERN_ATTR_RULES_ESALT (cryptoapi_t))
 
       ripemd160_init (&ctx);
 
-      ripemd160_update (&ctx, padding, 1);
+      ctx.w0[0] = 0x00000041;
+
+      ctx.len = 1;
 
       ripemd160_update (&ctx, w, w_len);
 
@@ -271,10 +269,6 @@ KERNEL_FQ void m14541_sxx (KERN_ATTR_RULES_ESALT (cryptoapi_t))
    * base
    */
 
-  u32 padding[64] = { 0 };
-
-  padding[0] = 0x00000041;
-
   COPY_PW (pws[gid]);
 
   /**
@@ -288,6 +282,7 @@ KERNEL_FQ void m14541_sxx (KERN_ATTR_RULES_ESALT (cryptoapi_t))
     tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
 
     u32 w[64];
+
     u32 w_len = tmp.pw_len;
 
     for (u32 i = 0; i < 64; i++) w[i] = tmp.i[i];
@@ -315,7 +310,9 @@ KERNEL_FQ void m14541_sxx (KERN_ATTR_RULES_ESALT (cryptoapi_t))
 
       ripemd160_init (&ctx);
 
-      ripemd160_update (&ctx, padding, 1);
+      ctx.w0[0] = 0x00000041;
+
+      ctx.len = 1;
 
       ripemd160_update (&ctx, w, w_len);
 
