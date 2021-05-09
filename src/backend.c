@@ -11243,6 +11243,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       device_param->cuda_module               = NULL;
       device_param->cuda_module_mp            = NULL;
       device_param->cuda_module_amp           = NULL;
+      device_param->cuda_module_shared        = NULL;
 
       device_param->cuda_context              = NULL;
     }
@@ -11381,6 +11382,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       device_param->opencl_program             = NULL;
       device_param->opencl_program_mp          = NULL;
       device_param->opencl_program_amp         = NULL;
+      device_param->opencl_program_shared      = NULL;
       device_param->opencl_command_queue       = NULL;
       device_param->opencl_context             = NULL;
     }
