@@ -53,54 +53,22 @@ DECLSPEC void memcat8c_be (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 len, co
 
   switch (div)
   {
-    case  0:  w0[0] |= tmp0;
-              w0[1]  = tmp1;
-              break;
-    case  1:  w0[1] |= tmp0;
-              w0[2]  = tmp1;
-              break;
-    case  2:  w0[2] |= tmp0;
-              w0[3]  = tmp1;
-              break;
-    case  3:  w0[3] |= tmp0;
-              w1[0]  = tmp1;
-              break;
-    case  4:  w1[0] |= tmp0;
-              w1[1]  = tmp1;
-              break;
-    case  5:  w1[1] |= tmp0;
-              w1[2]  = tmp1;
-              break;
-    case  6:  w1[2] |= tmp0;
-              w1[3]  = tmp1;
-              break;
-    case  7:  w1[3] |= tmp0;
-              w2[0]  = tmp1;
-              break;
-    case  8:  w2[0] |= tmp0;
-              w2[1]  = tmp1;
-              break;
-    case  9:  w2[1] |= tmp0;
-              w2[2]  = tmp1;
-              break;
-    case 10:  w2[2] |= tmp0;
-              w2[3]  = tmp1;
-              break;
-    case 11:  w2[3] |= tmp0;
-              w3[0]  = tmp1;
-              break;
-    case 12:  w3[0] |= tmp0;
-              w3[1]  = tmp1;
-              break;
-    case 13:  w3[1] |= tmp0;
-              w3[2]  = tmp1;
-              break;
-    case 14:  w3[2] |= tmp0;
-              w3[3]  = tmp1;
-              break;
-    case 15:  w3[3] |= tmp0;
-              carry  = tmp1;
-              break;
+    case  0:  w0[0] |= tmp0; w0[1]  = tmp1; break;
+    case  1:  w0[1] |= tmp0; w0[2]  = tmp1; break;
+    case  2:  w0[2] |= tmp0; w0[3]  = tmp1; break;
+    case  3:  w0[3] |= tmp0; w1[0]  = tmp1; break;
+    case  4:  w1[0] |= tmp0; w1[1]  = tmp1; break;
+    case  5:  w1[1] |= tmp0; w1[2]  = tmp1; break;
+    case  6:  w1[2] |= tmp0; w1[3]  = tmp1; break;
+    case  7:  w1[3] |= tmp0; w2[0]  = tmp1; break;
+    case  8:  w2[0] |= tmp0; w2[1]  = tmp1; break;
+    case  9:  w2[1] |= tmp0; w2[2]  = tmp1; break;
+    case 10:  w2[2] |= tmp0; w2[3]  = tmp1; break;
+    case 11:  w2[3] |= tmp0; w3[0]  = tmp1; break;
+    case 12:  w3[0] |= tmp0; w3[1]  = tmp1; break;
+    case 13:  w3[1] |= tmp0; w3[2]  = tmp1; break;
+    case 14:  w3[2] |= tmp0; w3[3]  = tmp1; break;
+    default:  w3[3] |= tmp0; carry  = tmp1; break; // this is a bit weird but helps to workaround AMD JiT compiler segfault if set to case 15:
   }
 
   const u32 new_len = func_len + 3;

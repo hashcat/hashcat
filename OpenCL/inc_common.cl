@@ -1431,13 +1431,12 @@ DECLSPEC u32x hc_bytealign_be (const u32x a, const u32x b, const int c)
 {
   u32x r = 0;
 
-  switch (c & 3)
-  {
-    case 0: r =              b;        break;
-    case 1: r = (a << 24) | (b >>  8); break;
-    case 2: r = (a << 16) | (b >> 16); break;
-    case 3: r = (a <<  8) | (b >> 24); break;
-  }
+  const int cm = c & 3;
+
+       if (cm == 0) { r = b;                     }
+  else if (cm == 1) { r = (a << 24) | (b >>  8); }
+  else if (cm == 2) { r = (a << 16) | (b >> 16); }
+  else if (cm == 3) { r = (a <<  8) | (b >> 24); }
 
   return r;
 }
@@ -1446,13 +1445,12 @@ DECLSPEC u32 hc_bytealign_be_S (const u32 a, const u32 b, const int c)
 {
   u32 r = 0;
 
-  switch (c & 3)
-  {
-    case 0: r =              b;        break;
-    case 1: r = (a << 24) | (b >>  8); break;
-    case 2: r = (a << 16) | (b >> 16); break;
-    case 3: r = (a <<  8) | (b >> 24); break;
-  }
+  const int cm = c & 3;
+
+       if (cm == 0) { r = b;                     }
+  else if (cm == 1) { r = (a << 24) | (b >>  8); }
+  else if (cm == 2) { r = (a << 16) | (b >> 16); }
+  else if (cm == 3) { r = (a <<  8) | (b >> 24); }
 
   return r;
 }
@@ -1461,13 +1459,12 @@ DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const int c)
 {
   u32x r = 0;
 
-  switch (c & 3)
-  {
-    case 0: r =              b;        break;
-    case 1: r = (a >> 24) | (b <<  8); break;
-    case 2: r = (a >> 16) | (b << 16); break;
-    case 3: r = (a >>  8) | (b << 24); break;
-  }
+  const int cm = c & 3;
+
+       if (cm == 0) { r = b;                     }
+  else if (cm == 1) { r = (a >> 24) | (b <<  8); }
+  else if (cm == 2) { r = (a >> 16) | (b << 16); }
+  else if (cm == 3) { r = (a >>  8) | (b << 24); }
 
   return r;
 }
@@ -1476,13 +1473,12 @@ DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const int c)
 {
   u32 r = 0;
 
-  switch (c & 3)
-  {
-    case 0: r =              b;        break;
-    case 1: r = (a >> 24) | (b <<  8); break;
-    case 2: r = (a >> 16) | (b << 16); break;
-    case 3: r = (a >>  8) | (b << 24); break;
-  }
+  const int cm = c & 3;
+
+       if (cm == 0) { r = b;                     }
+  else if (cm == 1) { r = (a >> 24) | (b <<  8); }
+  else if (cm == 2) { r = (a >> 16) | (b << 16); }
+  else if (cm == 3) { r = (a >>  8) | (b << 24); }
 
   return r;
 }
@@ -1845,13 +1841,12 @@ DECLSPEC u32x hc_bytealign_be (const u32x a, const u32x b, const int c)
 {
   u32x r = 0;
 
-  switch (c & 3)
-  {
-    case 0: r =              b;        break;
-    case 1: r = (a << 24) | (b >>  8); break;
-    case 2: r = (a << 16) | (b >> 16); break;
-    case 3: r = (a <<  8) | (b >> 24); break;
-  }
+  const int cm = c & 3;
+
+       if (cm == 0) { r = b;                     }
+  else if (cm == 1) { r = (a << 24) | (b >>  8); }
+  else if (cm == 2) { r = (a << 16) | (b >> 16); }
+  else if (cm == 3) { r = (a <<  8) | (b >> 24); }
 
   return r;
 }
@@ -1860,13 +1855,12 @@ DECLSPEC u32 hc_bytealign_be_S (const u32 a, const u32 b, const int c)
 {
   u32 r = 0;
 
-  switch (c & 3)
-  {
-    case 0: r =              b;        break;
-    case 1: r = (a << 24) | (b >>  8); break;
-    case 2: r = (a << 16) | (b >> 16); break;
-    case 3: r = (a <<  8) | (b >> 24); break;
-  }
+  const int cm = c & 3;
+
+       if (cm == 0) { r = b;                     }
+  else if (cm == 1) { r = (a << 24) | (b >>  8); }
+  else if (cm == 2) { r = (a << 16) | (b >> 16); }
+  else if (cm == 3) { r = (a <<  8) | (b >> 24); }
 
   return r;
 }
@@ -1875,13 +1869,12 @@ DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const int c)
 {
   u32x r = 0;
 
-  switch (c & 3)
-  {
-    case 0: r =              b;        break;
-    case 1: r = (a >> 24) | (b <<  8); break;
-    case 2: r = (a >> 16) | (b << 16); break;
-    case 3: r = (a >>  8) | (b << 24); break;
-  }
+  const int cm = c & 3;
+
+       if (cm == 0) { r = b;                     }
+  else if (cm == 1) { r = (a >> 24) | (b <<  8); }
+  else if (cm == 2) { r = (a >> 16) | (b << 16); }
+  else if (cm == 3) { r = (a >>  8) | (b << 24); }
 
   return r;
 }
@@ -1890,13 +1883,12 @@ DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const int c)
 {
   u32 r = 0;
 
-  switch (c & 3)
-  {
-    case 0: r =              b;        break;
-    case 1: r = (a >> 24) | (b <<  8); break;
-    case 2: r = (a >> 16) | (b << 16); break;
-    case 3: r = (a >>  8) | (b << 24); break;
-  }
+  const int cm = c & 3;
+
+       if (cm == 0) { r = b;                     }
+  else if (cm == 1) { r = (a >> 24) | (b <<  8); }
+  else if (cm == 2) { r = (a >> 16) | (b << 16); }
+  else if (cm == 3) { r = (a >>  8) | (b << 24); }
 
   return r;
 }
