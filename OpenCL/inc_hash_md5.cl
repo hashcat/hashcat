@@ -143,7 +143,9 @@ DECLSPEC void md5_init (md5_ctx_t *ctx)
 
 DECLSPEC void md5_update_64 (md5_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len)
 {
-  MAYBE_VOLATILE const int pos = ctx->len & 63;
+  if (len == 0) return;
+
+  const int pos = ctx->len & 63;
 
   ctx->len += len;
 
@@ -879,7 +881,7 @@ DECLSPEC void md5_update_global_utf16le_swap (md5_ctx_t *ctx, GLOBAL_AS const u3
 
 DECLSPEC void md5_final (md5_ctx_t *ctx)
 {
-  MAYBE_VOLATILE const int pos = ctx->len & 63;
+  const int pos = ctx->len & 63;
 
   append_0x80_4x4_S (ctx->w0, ctx->w1, ctx->w2, ctx->w3, pos);
 
@@ -1424,7 +1426,9 @@ DECLSPEC void md5_init_vector_from_scalar (md5_ctx_vector_t *ctx, md5_ctx_t *ctx
 
 DECLSPEC void md5_update_vector_64 (md5_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, const int len)
 {
-  MAYBE_VOLATILE const int pos = ctx->len & 63;
+  if (len == 0) return;
+
+  const int pos = ctx->len & 63;
 
   ctx->len += len;
 
@@ -1798,7 +1802,7 @@ DECLSPEC void md5_update_vector_utf16le_swap (md5_ctx_vector_t *ctx, const u32x 
 
 DECLSPEC void md5_final_vector (md5_ctx_vector_t *ctx)
 {
-  MAYBE_VOLATILE const int pos = ctx->len & 63;
+  const int pos = ctx->len & 63;
 
   append_0x80_4x4 (ctx->w0, ctx->w1, ctx->w2, ctx->w3, pos);
 

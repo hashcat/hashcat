@@ -558,7 +558,9 @@ DECLSPEC void sha1_transform_rar29 (const u32 *w0, const u32 *w1, const u32 *w2,
 
 DECLSPEC void sha1_update_64_rar29 (sha1_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int bytes, u32 *t)
 {
-  MAYBE_VOLATILE const int pos = ctx->len & 63;
+  if (bytes == 0) return;
+
+  const int pos = ctx->len & 63;
 
   int len = 64;
 
@@ -691,7 +693,9 @@ DECLSPEC void sha1_update_rar29 (sha1_ctx_t *ctx, u32 *w, const int len)
   u32 w2[4];
   u32 w3[4];
 
-  MAYBE_VOLATILE const int pos = ctx->len & 63;
+  if (len == 0) return;
+
+  const int pos = ctx->len & 63;
 
   int pos1 = 0;
   int pos4 = 0;
