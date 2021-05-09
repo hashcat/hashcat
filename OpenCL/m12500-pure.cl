@@ -450,7 +450,7 @@ DECLSPEC void sha1_transform_rar29 (const u32 *w0, const u32 *w1, const u32 *w2,
 
 DECLSPEC void sha1_update_64_rar29 (sha1_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int bytes, u32 *t)
 {
-  if (bytes == 0) return 0;
+  if (bytes == 0) return;
 
   const int pos = ctx->len & 63;
 
