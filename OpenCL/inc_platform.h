@@ -6,6 +6,10 @@
 #ifndef _INC_PLATFORM_H
 #define _INC_PLATFORM_H
 
+DECLSPEC u32 hc_atomic_dec (volatile GLOBAL_AS u32 *p);
+DECLSPEC u32 hc_atomic_inc (volatile GLOBAL_AS u32 *p);
+DECLSPEC u32 hc_atomic_or  (volatile GLOBAL_AS u32 *p, volatile const u32 val);
+
 #ifdef IS_AMD
 DECLSPEC u32 hc_atomic_dec (volatile GLOBAL_AS u32 *p);
 DECLSPEC u32 hc_atomic_inc (volatile GLOBAL_AS u32 *p);
