@@ -54,6 +54,12 @@ static const u64 SCRYPT_P = 1;
 
 bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
+  // AMD Radeon Pro W5700X Compute Engine; 1.2 (Apr 22 2021 21:54:44); 11.3.1; 20E241
+  if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
+  {
+    return true;
+  }
+
   // amdgpu-pro-20.50-1234664-ubuntu-20.04 (legacy)
   // test_1619943729/test_report.log:password not found, cmdline : cat test_1619943729/22700_passwords.txt | ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -O -D 2 --backend-vector-width 1 -a 0 -m 22700 test_1619943729/22700_hashes.txt
   // test_1619955152/test_report.log:password not found, cmdline : cat test_1619955152/22700_passwords.txt | ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 0 -m 22700 test_1619955152/22700_hashes.txt
