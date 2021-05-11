@@ -67,6 +67,7 @@
 - Fixed too-early execution of some module functions that use non-final values opts_type and opti_type
 - Fixed unexpected non-unique salts in multi-hash cracking in Bitcoin/Litecoin wallet.dat module which led to false negatives
 - Fixed unit test for -m 3000 by preventing it to generate zero hashes
+- Fixed unit tests using 'null' as padding method in Crypt::CBC but actually want to use 'none'
 - Fixed vector datatype support in -m 21100 only -P mode and only -a 3 mode were affected
 
 ##
