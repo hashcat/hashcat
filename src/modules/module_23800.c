@@ -579,11 +579,13 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   rar3_hook_salt_t *rar3_hook_salt = (rar3_hook_salt_t *) hook_salt_buf;
 
-  u8 data[655360] = { 0 };
-
   const u32 data_len = rar3_hook_salt->pack_size;
 
+  u8 *data = (u8 *) hcmalloc ((data_len * 2) + 1);
+
   hex_encode ((const u8 *) rar3_hook_salt->data, data_len, data);
+
+  data[data_len * 2] = 0;
 
   const int line_len = snprintf (line_buf, line_size, "%s*1*%08x%08x*%08x*%u*%u*1*%s*%i",
       SIGNATURE_RAR3,
@@ -594,6 +596,8 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
       rar3_hook_salt->unpack_size,
       data,
       rar3_hook_salt->method);
+
+  hcfree (data);
 
   return line_len;
 }
