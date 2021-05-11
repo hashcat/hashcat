@@ -68,6 +68,7 @@
 - Fixed unexpected non-unique salts in multi-hash cracking in Bitcoin/Litecoin wallet.dat module which led to false negatives
 - Fixed unit test for -m 3000 by preventing it to generate zero hashes
 - Fixed unit tests using 'null' as padding method in Crypt::CBC but actually want to use 'none'
+- Fixed unterminated salt buffer in -m 23400 module_hash_encode() in case salt was of length 256
 - Fixed vector datatype support in -m 21100 only -P mode and only -a 3 mode were affected
 
 ##
