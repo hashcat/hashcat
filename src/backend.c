@@ -6457,6 +6457,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
               if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Intel's OpenCL runtime (GPU only) is currently broken.", device_id + 1);
               if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             We are waiting for updated OpenCL drivers from Intel.");
               if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             You can use --force to override, but do not report related errors.");
+              if (user_options->quiet == false) event_log_warning (hashcat_ctx, NULL);
 
               device_param->skipped = true;
             }
@@ -6464,22 +6465,6 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         }
         #endif // __APPLE__
         */
-
-        #if defined (__APPLE__)
-        if (opencl_device_type & CL_DEVICE_TYPE_GPU)
-        {
-          if (user_options->force == false)
-          {
-            if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Apple's OpenCL drivers (GPU) are known to be unreliable.", device_id + 1);
-            if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             You have been warned.");
-            //if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             There are many reports of false negatives and other issues.");
-            //if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             This is not a hashcat specific issue. Many other projects suffer from the bad quality of these drivers.");
-            //if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             You can use --force to override, but do not report related errors. You have been warned.");
-
-            //device_param->skipped = true;
-          }
-        }
-        #endif // __APPLE__
 
         // skipped
 
@@ -6492,6 +6477,24 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         {
           device_param->skipped = true;
         }
+
+        #if defined (__APPLE__)
+        if (opencl_device_type & CL_DEVICE_TYPE_GPU)
+        {
+          //if (user_options->force == false)
+          if (device_param->skipped == false)
+          {
+            if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Apple's OpenCL drivers (GPU) are known to be unreliable.", device_id + 1);
+            if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             You have been warned.");
+            //if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             There are many reports of false negatives and other issues.");
+            //if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             This is not a hashcat specific issue. Many other projects suffer from the bad quality of these drivers.");
+            //if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             You can use --force to override, but do not report related errors. You have been warned.");
+            if (user_options->quiet == false) event_log_warning (hashcat_ctx, NULL);
+
+            //device_param->skipped = true;
+          }
+        }
+        #endif // __APPLE__
 
         // driver_version
 
