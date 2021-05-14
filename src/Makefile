@@ -9,6 +9,7 @@ PRODUCTION              := 0
 PRODUCTION_VERSION      := v6.2.0
 ENABLE_CUBIN            ?= 1
 ENABLE_BRAIN            ?= 1
+ENABLE_UNRAR            ?= 1
 USE_SYSTEM_LZMA         ?= 0
 USE_SYSTEM_ZLIB         ?= 0
 USE_SYSTEM_OPENCL       ?= 0
@@ -138,10 +139,12 @@ else
 DEPS_XXHASH_PATH        := $(LIBRARY_DEV_ROOT_FOLDER)
 endif
 
+ifeq ($(ENABLE_UNRAR),1)
 ifeq ($(USE_SYSTEM_UNRAR),0)
 DEPS_UNRAR_PATH         := deps/unrar
 else
 DEPS_UNRAR_PATH         := $(LIBRARY_DEV_ROOT_FOLDER)
+endif
 endif
 
 ##
@@ -197,6 +200,7 @@ CFLAGS_ZLIB             += -DIOAPI_NO_64
 endif
 
 ## because UNRAR
+ifeq ($(ENABLE_UNRAR),1)
 ifeq ($(USE_SYSTEM_UNRAR),0)
 ifneq ($(UNAME),Darwin)
 CFLAGS_UNRAR            += -Wno-misleading-indentation
@@ -214,6 +218,7 @@ CFLAGS_UNRAR            += -Wno-parentheses
 CFLAGS_UNRAR            += -Wno-implicit-fallthrough
 CFLAGS_UNRAR            += -Wno-extra
 CFLAGS_UNRAR            += -Wno-unknown-pragmas
+endif
 endif
 
 ifeq ($(DEBUG),0)
@@ -272,8 +277,11 @@ CFLAGS                  += -DWITH_CUBIN
 endif
 
 # unrar
+ifeq ($(ENABLE_UNRAR),1)
 CFLAGS                  += -I$(DEPS_UNRAR_PATH)
+CFLAGS                  += -DWITH_UNRAR
 LFLAGS                  += -lstdc++
+endif
 
 ##
 ## Native compilation target
@@ -387,12 +395,14 @@ WIN_OBJS                += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).WIN.o)
 endif
 endif
 
+ifeq ($(ENABLE_UNRAR),1)
 ifeq ($(USE_SYSTEM_UNRAR),0)
 OBJS_UNRAR              := strlist strfn pathfn smallfn global file filefn filcreat archive arcread unicode system isnt crypt crc rawread encname resource match timefn rdwrfn consio options errhnd rarvm secpassword rijndael getbits sha1 sha256 blake2s hash extinfo extract volume list find unpack headers threadpool rs16 cmddata ui filestr recvol rs scantree qopen hc_decompress_rar
 
 NATIVE_OBJS             += $(foreach OBJ,$(OBJS_UNRAR),obj/$(OBJ).NATIVE.o)
 LINUX_OBJS              += $(foreach OBJ,$(OBJS_UNRAR),obj/$(OBJ).LINUX.o)
 WIN_OBJS                += $(foreach OBJ,$(OBJS_UNRAR),obj/$(OBJ).WIN.o)
+endif
 endif
 
 ##
@@ -568,9 +578,11 @@ obj/%.NATIVE.o: $(DEPS_XXHASH_PATH)/%.c
 endif
 endif
 
+ifeq ($(ENABLE_UNRAR),1)
 ifeq ($(USE_SYSTEM_UNRAR),0)
 obj/%.NATIVE.o: $(DEPS_UNRAR_PATH)/%.cpp
 	$(CXX) -c $(CXXFLAGS) $(CFLAGS_NATIVE) $(CFLAGS_UNRAR) $< -o $@ -fpic
+endif
 endif
 
 obj/combined.NATIVE.a: $(NATIVE_OBJS)
@@ -607,7 +619,16 @@ MODULE_SUFFIX := dll
 endif
 
 MODULES_SRC   := $(wildcard src/modules/*.c)
-MODULES_LIB   := $(patsubst src/modules/module_%.c, modules/module_%.$(MODULE_SUFFIX), $(MODULES_SRC))
+
+MODULES_DISABLE ?=
+
+ifeq ($(ENABLE_UNRAR),0)
+MODULES_SRC     := $(filter-out src/modules/module_23800.c,$(MODULES_SRC))
+MODULES_DISABLE += modules/module_23800.so
+MODULES_DISABLE += modules/module_23800.dll
+endif
+
+$(MODULES_DISABLE): ;
 
 ifeq ($(SHARED),1)
 modules/module_%.$(MODULE_SUFFIX): src/modules/module_%.c $(HASHCAT_LIBRARY)
@@ -616,6 +637,8 @@ else
 modules/module_%.$(MODULE_SUFFIX): src/modules/module_%.c obj/combined.NATIVE.a
 	$(CC)    $(CCFLAGS) $(CFLAGS_NATIVE) $^ -o $@ $(LFLAGS_NATIVE) -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
 endif
+
+MODULES_LIB   := $(patsubst src/modules/module_%.c, modules/module_%.$(MODULE_SUFFIX), $(MODULES_SRC))
 
 .PHONY: modules
 modules: $(MODULES_LIB)
@@ -737,12 +760,14 @@ obj/%.WIN.o:   $(DEPS_XXHASH_PATH)/%.c
 endif
 endif
 
+ifeq ($(ENABLE_UNRAR),1)
 ifeq ($(USE_SYSTEM_UNRAR),0)
 obj/%.LINUX.o: $(DEPS_UNRAR_PATH)/%.cpp
 	$(CXX_LINUX) $(CXXFLAGS) $(CFLAGS_CROSS_LINUX) $(CFLAGS_UNRAR) -c -o $@ $<
 
 obj/%.WIN.o:   $(DEPS_UNRAR_PATH)/%.cpp
 	$(CXX_WIN)   $(CXXFLAGS) $(CFLAGS_CROSS_WIN)   $(CFLAGS_UNRAR) -c -o $@ $<
+endif
 endif
 
 obj/combined.LINUX.a: $(LINUX_OBJS)
