@@ -411,9 +411,9 @@ _hashcat_contains ()
 
 _hashcat ()
 {
-  local VERSION=6.1.1
+  local VERSION=6.2.0
 
-  local ATTACK_MODES="0 1 3 6 7"
+  local ATTACK_MODES="0 1 3 6 7 9"
   local HCCAPX_MESSAGE_PAIRS="0 1 2 3 4 5"
   local OUTFILE_FORMATS="1 2 3 4 5 6"
   local OPENCL_DEVICE_TYPES="1 2 3"
