@@ -279,7 +279,6 @@ endif
 # unrar
 ifeq ($(ENABLE_UNRAR),1)
 CFLAGS                  += -I$(DEPS_UNRAR_PATH)
-CFLAGS                  += -DWITH_UNRAR
 LFLAGS                  += -lstdc++
 endif
 
