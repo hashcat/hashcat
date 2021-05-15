@@ -49,7 +49,7 @@ bool FileCreate(RAROptions *Cmd,File *NewFile,wchar *Name,size_t MaxNameSize,
   if (NewFile!=NULL && NewFile->Create(Name,FileMode))
     return true;
 
-  CreatePath(Name,true);
+  CreatePath(Name,true,Cmd->DisableNames);
   return NewFile!=NULL ? NewFile->Create(Name,FileMode):DelFile(Name);
 }
 

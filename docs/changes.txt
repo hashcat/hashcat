@@ -4,6 +4,7 @@
 ## Technical
 ##
 
+- Dependencies: Updated unrar source from 5.9.4 to 6.0.5
 - Dependencies: Make unrar dependencies optional and disable hash-mode 23800 if dependency is disabled
 
 * changes v6.1.1 -> v6.2.0

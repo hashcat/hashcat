@@ -51,7 +51,7 @@
 * RAR uses CRC32 function based on Intel Slicing-by-8 algorithm.
   Original Intel Slicing-by-8 code is available here:
 
-    http://sourceforge.net/projects/slicing-by-8/
+    https://sourceforge.net/projects/slicing-by-8/
 
   Original Intel Slicing-by-8 code is licensed under BSD License
   available at http://www.opensource.org/licenses/bsd-license.html
