@@ -1,5 +1,5 @@
 /* LzmaLib.h -- LZMA library interface
-2013-01-18 : Igor Pavlov : Public domain */
+2021-04-03 : Igor Pavlov : Public domain */
 
 #ifndef __LZMA_LIB_H
 #define __LZMA_LIB_H
@@ -40,14 +40,16 @@ outPropsSize -
 level - compression level: 0 <= level <= 9;
 
   level dictSize algo  fb
-    0:    16 KB   0    32
-    1:    64 KB   0    32
-    2:   256 KB   0    32
-    3:     1 MB   0    32
-    4:     4 MB   0    32
+    0:    64 KB   0    32
+    1:   256 KB   0    32
+    2:     1 MB   0    32
+    3:     4 MB   0    32
+    4:    16 MB   0    32
     5:    16 MB   1    32
     6:    32 MB   1    32
-    7+:   64 MB   1    64
+    7:    32 MB   1    64
+    8:    64 MB   1    64
+    9:    64 MB   1    64
  
   The default value for "level" is 5.
 
@@ -83,6 +85,11 @@ fb - Word size (the number of fast bytes).
 numThreads - The number of thereads. 1 or 2. The default value is 2.
      Fast mode (algo = 0) can use only 1 thread.
 
+In:
+  dest     - output data buffer
+  destLen  - output data buffer size
+  src      - input data
+  srcLen   - input data size
 Out:
   destLen  - processed output size
 Returns:
@@ -108,8 +115,8 @@ MY_STDAPI LzmaCompress(unsigned char *dest, size_t *destLen, const unsigned char
 LzmaUncompress
 --------------
 In:
-  dest     - output data
-  destLen  - output data size
+  dest     - output data buffer
+  destLen  - output data buffer size
   src      - input data
   srcLen   - input data size
 Out:

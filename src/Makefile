@@ -253,6 +253,11 @@ ifeq ($(USE_SYSTEM_LZMA),1)
 LFLAGS                  += -llzmasdk
 endif
 
+## LZMA workaround for MSYS2
+ifeq ($(USE_SYSTEM_LZMA),0)
+CFLAGS                  += -Iinclude/workarounds
+endif
+
 # ZLIB
 CFLAGS                  += -I$(DEPS_ZLIB_PATH) -I$(DEPS_ZLIB_PATH)/contrib
 ifeq ($(USE_SYSTEM_ZLIB),1)
