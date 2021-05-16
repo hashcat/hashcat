@@ -1,5 +1,15 @@
 * changes v6.2.1 -> v6.x.x
 
+##
+## Improvements
+##
+
+- CUDA Backend: Do not warn about missing CUDA SDK installation if --stdout is used
+
+##
+## Technical
+##
+
 - Dependencies: Updated LZMA SDK from 19.00 to 21.02 alpha
 - Dependencies: Updated xxHash from 0.1.0 to v0.8.0 - Stable XXH3
 
