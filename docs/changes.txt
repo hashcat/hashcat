@@ -1,6 +1,12 @@
 * changes v6.2.1 -> v6.x.x
 
 ##
+## Algorithms
+##
+
+- Added hash-mode: bcrypt(md5($pass)) / bcryptmd5
+
+##
 ## Improvements
 ##
 
@@ -54,7 +60,6 @@
 - Added hash-mode: Umbraco HMAC-SHA1
 - Added hash-mode: sha1($salt.sha1($pass.$salt))
 - Added hash-mode: sha1(sha1($pass).$salt)
-- Added hash-mode: bcrypt(md5($pass)) / bcryptmd5
 
 ##
 ## Features
