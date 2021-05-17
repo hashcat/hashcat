@@ -24,10 +24,13 @@ NOCHECK_ENCODING="16800 22000"
 # LUKS mode has test containers
 LUKS_MODE="14600"
 
+# Cryptoloop mode which have test containers
+CL_MODES="14511 14512 14513 14521 14522 14523 14531 14532 14533 14541 14542 14543 14551 14552 14553"
+
 # missing hash types: 5200
 
 HASH_TYPES=$(ls "${TDIR}"/test_modules/*.pm | sed -E 's/.*m0*([0-9]+).pm/\1/')
-HASH_TYPES="${HASH_TYPES} ${TC_MODES} ${VC_MODES} ${LUKS_MODE}"
+HASH_TYPES="${HASH_TYPES} ${TC_MODES} ${VC_MODES} ${LUKS_MODE} ${CL_MODES}"
 HASH_TYPES=$(echo -n "${HASH_TYPES}" | tr ' ' '\n' | sort -u -n | tr '\n' ' ')
 
 VECTOR_WIDTHS="1 2 4 8 16"
@@ -156,22 +159,21 @@ function is_in_array()
 function init()
 {
   if [ "${PACKAGE}" -eq 1 ]; then
-
     echo "[ ${OUTD} ] > Generate tests for hash type $hash_type."
-
   else
-
     echo "[ ${OUTD} ] > Init test for hash type $hash_type."
-
   fi
 
   rm -rf "${OUTD}/${hash_type}.sh" "${OUTD}/${hash_type}_passwords.txt" "${OUTD}/${hash_type}_hashes.txt"
 
-  # Exclude TrueCrypt and VeraCrypt testing modes
+  # Exclude TrueCrypt, VeraCrypt and CryptoLoop testing modes
   if is_in_array "${hash_type}" ${TC_MODES}; then
     return 0
   fi
   if is_in_array "${hash_type}" ${VC_MODES}; then
+    return 0
+  fi
+  if is_in_array "${hash_type}" ${CL_MODES}; then
     return 0
   fi
 
@@ -2375,6 +2377,177 @@ function attack_7()
   fi
 }
 
+function cryptoloop_test()
+{
+  hashType=$1
+  keySize=$2
+  CMD="unset"
+
+  mkdir -p ${OUTD}/cl_tests
+  chmod u+x ${TDIR}/cryptoloop2hashcat.py
+
+  case $hashType in
+
+    14511)
+      case $keySize in
+        128|192|256)
+          ${TDIR}/cryptoloop2hashcat.py --source ${TDIR}/cl_tests/hashcat_sha1_aes_${keySize}.img --hash sha1 --cipher aes --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_sha1_aes_${keySize}.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha1_aes_${keySize}.hash hashca?l"
+          ;;
+      esac
+      ;;
+
+    14512)
+      case $keySize in
+        128|192|256)
+          ${TDIR}/cryptoloop2hashcat.py --source ${TDIR}/cl_tests/hashcat_sha1_serpent_${keySize}.img --hash sha1 --cipher serpent --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_sha1_serpent_${keySize}.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha1_serpent_${keySize}.hash hashca?l"
+          ;;
+      esac
+      ;;
+
+    14513)
+      case $keySize in
+        128|192|256)
+          ${TDIR}/cryptoloop2hashcat.py --source ${TDIR}/cl_tests/hashcat_sha1_twofish_${keySize}.img --hash sha1 --cipher twofish --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_sha1_twofish_${keySize}.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha1_twofish_${keySize}.hash hashca?l"
+          ;;
+      esac
+      ;;
+
+    14521)
+      case $keySize in
+        128|192|256)
+          ${TDIR}/cryptoloop2hashcat.py --source ${TDIR}/cl_tests/hashcat_sha256_aes_${keySize}.img --hash sha256 --cipher aes --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_sha256_aes_${keySize}.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha256_aes_${keySize}.hash hashca?l"
+          ;;
+      esac
+      ;;
+
+    14522)
+      case $keySize in
+        128|192|256)
+          ${TDIR}/cryptoloop2hashcat.py --source ${TDIR}/cl_tests/hashcat_sha256_serpent_${keySize}.img --hash sha256 --cipher serpent --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_sha256_serpent_${keySize}.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha256_serpent_${keySize}.hash hashca?l"
+          ;;
+      esac
+      ;;
+
+    14523)
+      case $keySize in
+        128|192|256)
+          ${TDIR}/cryptoloop2hashcat.py --source ${TDIR}/cl_tests/hashcat_sha256_twofish_${keySize}.img --hash sha256 --cipher twofish --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_sha256_twofish_${keySize}.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha256_twofish_${keySize}.hash hashca?l"
+          ;;
+      esac
+      ;;
+
+    14531)
+      case $keySize in
+        128|192|256)
+          ${TDIR}/cryptoloop2hashcat.py --source ${TDIR}/cl_tests/hashcat_sha512_aes_${keySize}.img --hash sha512 --cipher aes --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_sha512_aes_${keySize}.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha512_aes_${keySize}.hash hashca?l"
+          ;;
+      esac
+      ;;
+
+    14532)
+      case $keySize in
+        128|192|256)
+          ${TDIR}/cryptoloop2hashcat.py --source ${TDIR}/cl_tests/hashcat_sha512_serpent_${keySize}.img --hash sha512 --cipher serpent --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_sha512_serpent_${keySize}.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha512_serpent_${keySize}.hash hashca?l"
+          ;;
+      esac
+      ;;
+
+    14533)
+      case $keySize in
+        128|192|256)
+          ${TDIR}/cryptoloop2hashcat.py --source ${TDIR}/cl_tests/hashcat_sha512_twofish_${keySize}.img --hash sha512 --cipher twofish --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_sha512_twofish_${keySize}.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha512_twofish_${keySize}.hash hashca?l"
+          ;;
+      esac
+      ;;
+
+    14541)
+      case $keySize in
+        128|192|256)
+          ${TDIR}/cryptoloop2hashcat.py --source ${TDIR}/cl_tests/hashcat_ripemd160_aes_${keySize}.img --hash ripemd160 --cipher aes --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_ripemd160_aes_${keySize}.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_ripemd160_aes_${keySize}.hash hashca?l"
+          ;;
+      esac
+      ;;
+
+    14542)
+      case $keySize in
+        128|192|256)
+          ${TDIR}/cryptoloop2hashcat.py --source ${TDIR}/cl_tests/hashcat_ripemd160_serpent_${keySize}.img --hash ripemd160 --cipher serpent --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_ripemd160_serpent_${keySize}.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_ripemd160_serpent_${keySize}.hash hashca?l"
+          ;;
+      esac
+      ;;
+
+    14543)
+      case $keySize in
+        128|192|256)
+          ${TDIR}/cryptoloop2hashcat.py --source ${TDIR}/cl_tests/hashcat_ripemd160_twofish_${keySize}.img --hash ripemd160 --cipher twofish --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_ripemd160_twofish_${keySize}.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_ripemd160_twofish_${keySize}.hash hashca?l"
+          ;;
+      esac
+      ;;
+
+    14551)
+      case $keySize in
+        128|192|256)
+          ${TDIR}/cryptoloop2hashcat.py --source ${TDIR}/cl_tests/hashcat_whirlpool_aes_${keySize}.img --hash whirlpool --cipher aes --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_whirlpool_aes_${keySize}.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_whirlpool_aes_${keySize}.hash hashca?l"
+          ;;
+      esac
+      ;;
+
+    14552)
+      case $keySize in
+        128|192|256)
+          ${TDIR}/cryptoloop2hashcat.py --source ${TDIR}/cl_tests/hashcat_whirlpool_serpent_${keySize}.img --hash whirlpool --cipher serpent --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_whirlpool_serpent_${keySize}.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_whirlpool_serpent_${keySize}.hash hashca?l"
+          ;;
+      esac
+      ;;
+
+    14553)
+      case $keySize in
+        128|192|256)
+          ${TDIR}/cryptoloop2hashcat.py --source ${TDIR}/cl_tests/hashcat_whirlpool_twofish_${keySize}.img --hash whirlpool --cipher twofish --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_whirlpool_twofish_${keySize}.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_whirlpool_twofish_${keySize}.hash hashca?l"
+          ;;
+      esac
+      ;;
+  esac
+
+  if [ ${#CMD} -gt 5 ]; then
+    echo "> Testing hash type $hashType with attack mode 3, markov ${MARKOV}, single hash, Device-Type ${TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, Key-Size ${keySize}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+
+    output=$(${CMD} 2>&1)
+
+    ret=${?}
+
+    echo "${output}" >> "${OUTD}/logfull.txt"
+
+    cnt=1
+    e_nf=0
+    msg="OK"
+
+    if [ ${ret} -ne 0 ]; then
+      e_nf=1
+      msg="Error"
+    fi
+
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 3, Mode single, Device-Type ${TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, Key-Size ${keySize} ] > $msg : ${e_nf}/${cnt} not found"
+
+    status ${ret}
+  fi
+}
+
 function truecrypt_test()
 {
   hashType=$1
@@ -3072,7 +3245,9 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
         if [ "${TMP_HT}" -ne ${LUKS_MODE} ]; then
           if ! is_in_array "${TMP_HT}" ${TC_MODES}; then
             if ! is_in_array "${TMP_HT}" ${VC_MODES}; then
-              perl tools/test.pl single "${TMP_HT}" >> "${OUTD}/all.sh"
+              if ! is_in_array "${TMP_HT}" ${CL_MODES}; then
+                perl tools/test.pl single "${TMP_HT}" >> "${OUTD}/all.sh"
+              fi
             fi
           fi
         fi
@@ -3087,7 +3262,9 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
           # Exclude TrueCrypt and VeraCrypt testing modes
           if ! is_in_array "${TMP_HT}" ${TC_MODES}; then
             if ! is_in_array "${TMP_HT}" ${VC_MODES}; then
-              perl tools/test.pl single "${TMP_HT}" >> "${OUTD}/all.sh"
+              if ! is_in_array "${TMP_HT}" ${CL_MODES}; then
+                perl tools/test.pl single "${TMP_HT}" >> "${OUTD}/all.sh"
+              fi
             fi
           fi
         fi
@@ -3197,7 +3374,6 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
               veracrypt_test 4 # camellia (alternative cascade)
               veracrypt_test 5 # kuznyechik
               veracrypt_test 6 # kuznyechik (alternative cascade)
-
             elif is_in_array "${hash_type}" ${TC_MODES}; then
               # run truecrypt tests
               truecrypt_test "${hash_type}" 0
@@ -3213,20 +3389,27 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
 
           else
 
-            # run attack mode 0 (stdin)
-            if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 0 ]; then attack_0; fi
+            if is_in_array "${hash_type}" ${CL_MODES}; then
+              # run cryptoloop tests
+              cryptoloop_test "${hash_type}" 128
+              cryptoloop_test "${hash_type}" 192
+              cryptoloop_test "${hash_type}" 256
+            else
+              # run attack mode 0 (stdin)
+              if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 0 ]; then attack_0; fi
 
-            # run attack mode 1 (combinator)
-            if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 1 ]; then attack_1; fi
+              # run attack mode 1 (combinator)
+              if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 1 ]; then attack_1; fi
 
-            # run attack mode 3 (bruteforce)
-            if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 3 ]; then attack_3; fi
+              # run attack mode 3 (bruteforce)
+              if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 3 ]; then attack_3; fi
 
-            # run attack mode 6 (dict+mask)
-            if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 6 ]; then attack_6; fi
+              # run attack mode 6 (dict+mask)
+              if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 6 ]; then attack_6; fi
 
-            # run attack mode 7 (mask+dict)
-            if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 7 ]; then attack_7; fi
+              # run attack mode 7 (mask+dict)
+              if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 7 ]; then attack_7; fi
+            fi
 
           fi
         fi
@@ -3245,9 +3428,7 @@ fi
 
 # fix logfile
 if [ "${PACKAGE}" -eq 0 ]; then
-
   cat -vet "${OUTD}/logfull.txt" | sed -e 's/\^M                                             \^M//g' | sed -e 's/\$$//g' > "${OUTD}/test_report.log"
-
 fi
 
 rm -rf "${OUTD}/logfull.txt"
@@ -3261,11 +3442,13 @@ if [ "${PACKAGE}" -eq 1 ]; then
   copy_luks_dir=0
   copy_tc_dir=0
   copy_vc_dir=0
+  copy_cl_dir=0
 
   if [ "${HT}" -eq 65535 ]; then
     copy_luks_dir=1
     copy_tc_dir=1
     copy_vc_dir=1
+    copy_cl_dir=1
   else
     for TMP_HT in $(seq "${HT_MIN}" "${HT_MAX}"); do
       if [ "${TMP_HT}" -eq "${LUKS_MODE}" ]; then
@@ -3274,6 +3457,8 @@ if [ "${PACKAGE}" -eq 1 ]; then
         copy_tc_dir=1
       elif is_in_array "${TMP_HT}" ${VC_MODES}; then
         copy_vc_dir=1
+      elif is_in_array "${TMP_HT}" ${CL_MODES}; then
+        copy_cl_dir=1
       fi
     done
   fi
@@ -3291,6 +3476,11 @@ if [ "${PACKAGE}" -eq 1 ]; then
   if [ "${copy_vc_dir}" -eq 1 ]; then
     mkdir "${OUTD}/vc_tests/"
     cp ${TDIR}/vc_tests/* "${OUTD}/vc_tests/"
+  fi
+
+  if [ "${copy_cl_dir}" -eq 1 ]; then
+    mkdir "${OUTD}/cl_tests/"
+    cp ${TDIR}/cl_tests/* "${OUTD}/cl_tests/"
   fi
 
   # if we package from a given folder, we need to check if e.g. the files needed for multi mode are there

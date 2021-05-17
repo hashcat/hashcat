@@ -270,6 +270,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Huawei sha1(md5($pass).$salt)
 - AuthMe sha256
 - eCryptfs
+- Linux Kernel Crypto API (2.4)
 - AES Crypt (SHA256)
 - LUKS
 - VeraCrypt
