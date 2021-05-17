@@ -5,6 +5,7 @@
 ##
 
 - Added hash-mode: bcrypt(md5($pass)) / bcryptmd5
+- Added hash-mode: Linux Kernel Crypto API (2.4)
 
 ##
 ## Improvements
@@ -60,7 +61,6 @@
 - Added hash-mode: Umbraco HMAC-SHA1
 - Added hash-mode: sha1($salt.sha1($pass.$salt))
 - Added hash-mode: sha1(sha1($pass).$salt)
-- Added hash-mode: Linux Kernel Crypto API (2.4)
 
 ##
 ## Features
