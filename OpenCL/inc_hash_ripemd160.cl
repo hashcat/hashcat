@@ -241,7 +241,9 @@ DECLSPEC void ripemd160_init (ripemd160_ctx_t *ctx)
 
 DECLSPEC void ripemd160_update_64 (ripemd160_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len)
 {
-  MAYBE_VOLATILE const int pos = ctx->len & 63;
+  if (len == 0) return;
+
+  const int pos = ctx->len & 63;
 
   ctx->len += len;
 
@@ -497,6 +499,24 @@ DECLSPEC void ripemd160_update_swap (ripemd160_ctx_t *ctx, const u32 *w, const i
 
 DECLSPEC void ripemd160_update_utf16le (ripemd160_ctx_t *ctx, const u32 *w, const int len)
 {
+  if (hc_enc_scan (w, len))
+  {
+    hc_enc_t hc_enc;
+
+    hc_enc_init (&hc_enc);
+
+    while (hc_enc_has_next (&hc_enc, len))
+    {
+      u32 enc_buf[16] = { 0 };
+
+      const int enc_len = hc_enc_next (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
+
+      ripemd160_update_64 (ctx, enc_buf + 0, enc_buf + 4, enc_buf + 8, enc_buf + 12, enc_len);
+    }
+
+    return;
+  }
+
   u32 w0[4];
   u32 w1[4];
   u32 w2[4];
@@ -539,6 +559,41 @@ DECLSPEC void ripemd160_update_utf16le (ripemd160_ctx_t *ctx, const u32 *w, cons
 
 DECLSPEC void ripemd160_update_utf16le_swap (ripemd160_ctx_t *ctx, const u32 *w, const int len)
 {
+  if (hc_enc_scan (w, len))
+  {
+    hc_enc_t hc_enc;
+
+    hc_enc_init (&hc_enc);
+
+    while (hc_enc_has_next (&hc_enc, len))
+    {
+      u32 enc_buf[16] = { 0 };
+
+      const int enc_len = hc_enc_next (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
+
+      enc_buf[ 0] = hc_swap32_S (enc_buf[ 0]);
+      enc_buf[ 1] = hc_swap32_S (enc_buf[ 1]);
+      enc_buf[ 2] = hc_swap32_S (enc_buf[ 2]);
+      enc_buf[ 3] = hc_swap32_S (enc_buf[ 3]);
+      enc_buf[ 4] = hc_swap32_S (enc_buf[ 4]);
+      enc_buf[ 5] = hc_swap32_S (enc_buf[ 5]);
+      enc_buf[ 6] = hc_swap32_S (enc_buf[ 6]);
+      enc_buf[ 7] = hc_swap32_S (enc_buf[ 7]);
+      enc_buf[ 8] = hc_swap32_S (enc_buf[ 8]);
+      enc_buf[ 9] = hc_swap32_S (enc_buf[ 9]);
+      enc_buf[10] = hc_swap32_S (enc_buf[10]);
+      enc_buf[11] = hc_swap32_S (enc_buf[11]);
+      enc_buf[12] = hc_swap32_S (enc_buf[12]);
+      enc_buf[13] = hc_swap32_S (enc_buf[13]);
+      enc_buf[14] = hc_swap32_S (enc_buf[14]);
+      enc_buf[15] = hc_swap32_S (enc_buf[15]);
+
+      ripemd160_update_64 (ctx, enc_buf + 0, enc_buf + 4, enc_buf + 8, enc_buf + 12, enc_len);
+    }
+
+    return;
+  }
+
   u32 w0[4];
   u32 w1[4];
   u32 w2[4];
@@ -753,6 +808,24 @@ DECLSPEC void ripemd160_update_global_swap (ripemd160_ctx_t *ctx, GLOBAL_AS cons
 
 DECLSPEC void ripemd160_update_global_utf16le (ripemd160_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
+  if (hc_enc_scan_global (w, len))
+  {
+    hc_enc_t hc_enc;
+
+    hc_enc_init (&hc_enc);
+
+    while (hc_enc_has_next (&hc_enc, len))
+    {
+      u32 enc_buf[16] = { 0 };
+
+      const int enc_len = hc_enc_next_global (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
+
+      ripemd160_update_64 (ctx, enc_buf + 0, enc_buf + 4, enc_buf + 8, enc_buf + 12, enc_len);
+    }
+
+    return;
+  }
+
   u32 w0[4];
   u32 w1[4];
   u32 w2[4];
@@ -795,6 +868,41 @@ DECLSPEC void ripemd160_update_global_utf16le (ripemd160_ctx_t *ctx, GLOBAL_AS c
 
 DECLSPEC void ripemd160_update_global_utf16le_swap (ripemd160_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
+  if (hc_enc_scan_global (w, len))
+  {
+    hc_enc_t hc_enc;
+
+    hc_enc_init (&hc_enc);
+
+    while (hc_enc_has_next (&hc_enc, len))
+    {
+      u32 enc_buf[16] = { 0 };
+
+      const int enc_len = hc_enc_next_global (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
+
+      enc_buf[ 0] = hc_swap32_S (enc_buf[ 0]);
+      enc_buf[ 1] = hc_swap32_S (enc_buf[ 1]);
+      enc_buf[ 2] = hc_swap32_S (enc_buf[ 2]);
+      enc_buf[ 3] = hc_swap32_S (enc_buf[ 3]);
+      enc_buf[ 4] = hc_swap32_S (enc_buf[ 4]);
+      enc_buf[ 5] = hc_swap32_S (enc_buf[ 5]);
+      enc_buf[ 6] = hc_swap32_S (enc_buf[ 6]);
+      enc_buf[ 7] = hc_swap32_S (enc_buf[ 7]);
+      enc_buf[ 8] = hc_swap32_S (enc_buf[ 8]);
+      enc_buf[ 9] = hc_swap32_S (enc_buf[ 9]);
+      enc_buf[10] = hc_swap32_S (enc_buf[10]);
+      enc_buf[11] = hc_swap32_S (enc_buf[11]);
+      enc_buf[12] = hc_swap32_S (enc_buf[12]);
+      enc_buf[13] = hc_swap32_S (enc_buf[13]);
+      enc_buf[14] = hc_swap32_S (enc_buf[14]);
+      enc_buf[15] = hc_swap32_S (enc_buf[15]);
+
+      ripemd160_update_64 (ctx, enc_buf + 0, enc_buf + 4, enc_buf + 8, enc_buf + 12, enc_len);
+    }
+
+    return;
+  }
+
   u32 w0[4];
   u32 w1[4];
   u32 w2[4];
@@ -871,7 +979,7 @@ DECLSPEC void ripemd160_update_global_utf16le_swap (ripemd160_ctx_t *ctx, GLOBAL
 
 DECLSPEC void ripemd160_final (ripemd160_ctx_t *ctx)
 {
-  MAYBE_VOLATILE const int pos = ctx->len & 63;
+  const int pos = ctx->len & 63;
 
   append_0x80_4x4_S (ctx->w0, ctx->w1, ctx->w2, ctx->w3, pos);
 
@@ -1515,7 +1623,9 @@ DECLSPEC void ripemd160_init_vector_from_scalar (ripemd160_ctx_vector_t *ctx, ri
 
 DECLSPEC void ripemd160_update_vector_64 (ripemd160_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, const int len)
 {
-  MAYBE_VOLATILE const int pos = ctx->len & 63;
+  if (len == 0) return;
+
+  const int pos = ctx->len & 63;
 
   ctx->len += len;
 
@@ -1889,7 +1999,7 @@ DECLSPEC void ripemd160_update_vector_utf16le_swap (ripemd160_ctx_vector_t *ctx,
 
 DECLSPEC void ripemd160_final_vector (ripemd160_ctx_vector_t *ctx)
 {
-  MAYBE_VOLATILE const int pos = ctx->len & 63;
+  const int pos = ctx->len & 63;
 
   append_0x80_4x4 (ctx->w0, ctx->w1, ctx->w2, ctx->w3, pos);
 

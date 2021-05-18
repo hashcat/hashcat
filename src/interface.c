@@ -333,7 +333,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
     hashconfig->has_optimized_kernel = hc_path_read (source_file);
 
-    if (user_options->example_hashes == false)
+    if (user_options->hash_info == false)
     {
       if (user_options->optimized_kernel_enable == true)
       {
@@ -342,7 +342,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
           if (user_options->quiet == false)
           {
             event_log_warning (hashcat_ctx, "Kernel %s:", source_file);
-            event_log_warning (hashcat_ctx, "Optimized kernel requested but not needed - falling back to pure kernel");
+            event_log_warning (hashcat_ctx, "Optimized kernel requested but not available or not required - falling back to pure kernel");
             event_log_warning (hashcat_ctx, NULL);
           }
         }

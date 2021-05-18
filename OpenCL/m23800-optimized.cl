@@ -169,23 +169,15 @@ KERNEL_FQ void m23800_loop (KERN_ATTR_TMPS_HOOKS_ESALT (rar3_tmp_t, rar3_hook_t,
         u32 tmp0 = 0;
         u32 tmp1 = 0;
 
-        switch (k & 3)
-        {
-          case 0: tmp0 = iter_s >>  0;  mask0 = 0x0000ffff;
-                  tmp1 = 0;             mask1 = 0xffffffff;
-                  break;
-          case 1: tmp0 = iter_s >>  8;  mask0 = 0xff0000ff;
-                  tmp1 = 0;             mask1 = 0xffffffff;
-                  break;
-          case 2: tmp0 = iter_s >> 16;  mask0 = 0xffff0000;
-                  tmp1 = 0;             mask1 = 0xffffffff;
-                  break;
-          case 3: tmp0 = iter_s >> 24;  mask0 = 0xffffff00;
-                  tmp1 = iter_s <<  8;  mask1 = 0x00ffffff;
-                  break;
-        }
+        const int kd = k / 4;
+        const int km = k & 3;
 
-        switch (k / 4)
+             if (km == 0) { tmp0 = iter_s >>  0; tmp1 = 0;            mask0 = 0x0000ffff; mask1 = 0xffffffff; }
+        else if (km == 1) { tmp0 = iter_s >>  8; tmp1 = 0;            mask0 = 0xff0000ff; mask1 = 0xffffffff; }
+        else if (km == 2) { tmp0 = iter_s >> 16; tmp1 = 0;            mask0 = 0xffff0000; mask1 = 0xffffffff; }
+        else if (km == 3) { tmp0 = iter_s >> 24; tmp1 = iter_s <<  8; mask0 = 0xffffff00; mask1 = 0x00ffffff; }
+
+        switch (kd)
         {
           case  0: w[ 0] = (w[ 0] & mask0) | tmp0;
                    w[ 1] = (w[ 1] & mask1) | tmp1;

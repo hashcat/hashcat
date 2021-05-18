@@ -10,7 +10,7 @@ use warnings;
 
 use Authen::Passphrase::LANManager;
 
-sub module_constraints { [[0, 7], [-1, -1], [-1, -1], [-1, -1], [-1, -1]] }
+sub module_constraints { [[1, 7], [-1, -1], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub module_generate_hash
 {

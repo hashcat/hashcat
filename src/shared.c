@@ -57,6 +57,8 @@ static const char *PA_038 = "Invalid key size";
 static const char *PA_039 = "Invalid block size";
 static const char *PA_040 = "Invalid or unsupported cipher";
 static const char *PA_041 = "Invalid filesize";
+static const char *PA_042 = "IV length exception";
+static const char *PA_043 = "CT length exception";
 static const char *PA_255 = "Unknown error";
 
 static const char *OPTI_STR_OPTIMIZED_KERNEL     = "Optimized-Kernel";
@@ -520,7 +522,7 @@ void setup_environment_variables (const folder_config_t *folder_config)
       putenv ((char *) "DISPLAY=:0");
   }
 
-  /*
+  #if defined (DEBUG)
   if (getenv ("OCL_CODE_CACHE_ENABLE") == NULL)
     putenv ((char *) "OCL_CODE_CACHE_ENABLE=0");
 
@@ -529,7 +531,7 @@ void setup_environment_variables (const folder_config_t *folder_config)
 
   if (getenv ("POCL_KERNEL_CACHE") == NULL)
     putenv ((char *) "POCL_KERNEL_CACHE=0");
-  */
+  #endif
 
   if (getenv ("TMPDIR") == NULL)
   {
@@ -542,8 +544,10 @@ void setup_environment_variables (const folder_config_t *folder_config)
     // we can't free tmpdir at this point!
   }
 
+  /*
   if (getenv ("CL_CONFIG_USE_VECTORIZER") == NULL)
     putenv ((char *) "CL_CONFIG_USE_VECTORIZER=False");
+  */
 
   #if defined (__CYGWIN__)
   cygwin_internal (CW_SYNC_WINENV);
@@ -1032,6 +1036,8 @@ const char *strparser (const u32 parser_status)
     case PARSER_BLOCK_SIZE:           return PA_039;
     case PARSER_CIPHER:               return PA_040;
     case PARSER_FILE_SIZE:            return PA_041;
+    case PARSER_IV_LENGTH:            return PA_042;
+    case PARSER_CT_LENGTH:            return PA_043;
   }
 
   return PA_255;

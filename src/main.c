@@ -184,16 +184,19 @@ static void main_outerloop_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MA
 
   status_ctx->shutdown_outer = false;
 
-  if ((user_options->example_hashes == false) && (user_options->keyspace == false) && (user_options->stdout_flag == false) && (user_options->backend_info == false) && (user_options->speed_only == false))
+  if (user_options->hash_info      == true) return;
+  if (user_options->keyspace       == true) return;
+  if (user_options->stdout_flag    == true) return;
+  if (user_options->backend_info   == true) return;
+  if (user_options->speed_only     == true) return;
+
+  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
-    if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
-    {
-      // see thread_keypress() how to access status information
+    // see thread_keypress() how to access status information
 
-      hc_thread_create (hashcat_user->outer_threads[hashcat_user->outer_threads_cnt], thread_keypress, hashcat_ctx);
+    hc_thread_create (hashcat_user->outer_threads[hashcat_user->outer_threads_cnt], thread_keypress, hashcat_ctx);
 
-      hashcat_user->outer_threads_cnt++;
-    }
+    hashcat_user->outer_threads_cnt++;
   }
 }
 
@@ -257,7 +260,7 @@ static void main_cracker_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
-  if (user_options->example_hashes  == true) return;
+  if (user_options->hash_info       == true) return;
   if (user_options->keyspace        == true) return;
   if (user_options->backend_info    == true) return;
   if (user_options->stdout_flag     == true) return;
@@ -408,12 +411,12 @@ static void main_potfile_num_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, M
   {
     if (potfile_remove_cracks == 1)
     {
-      event_log_info (hashcat_ctx, "INFO: Removed 1 hash found in potfile.");
+      event_log_info (hashcat_ctx, "INFO: Removed 1 hash found as potfile entry or as empty hash.");
       event_log_info (hashcat_ctx, NULL);
     }
     else
     {
-      event_log_info (hashcat_ctx, "INFO: Removed %d hashes found in potfile.", potfile_remove_cracks);
+      event_log_info (hashcat_ctx, "INFO: Removed %d hashes found as potfile entries or as empty hashes.", potfile_remove_cracks);
       event_log_info (hashcat_ctx, NULL);
     }
   }
@@ -473,7 +476,7 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
 
   if (hashconfig->opti_type)
   {
-    event_log_info (hashcat_ctx, "Applicable optimizers applied:");
+    event_log_info (hashcat_ctx, "Optimizers applied:");
 
     for (u32 i = 0; i < 32; i++)
     {
@@ -1157,9 +1160,9 @@ int main (int argc, char **argv)
 
       rc_final = 0;
     }
-    else if (user_options->example_hashes == true)
+    else if (user_options->hash_info == true)
     {
-      example_hashes (hashcat_ctx);
+      hash_info (hashcat_ctx);
 
       rc_final = 0;
     }

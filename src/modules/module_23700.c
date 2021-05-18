@@ -9,6 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "memory.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -294,9 +295,9 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u32    *digest = (const u32    *) digest_buf;
   const rar3_t *rar3   = (const rar3_t *) esalt_buf;
 
-  u8 data[655360] = { 0 };
-
   const u32 data_len = rar3->pack_size;
+
+  u8 *data = (u8 *) hcmalloc ((data_len * 2) + 1);
 
   // like hex encode, but swapped:
   // hex_encode ((const u8 *) rar3->data, rar3->pack_size, data);
@@ -308,6 +309,8 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     u32_to_hex (d, data + j);
   }
 
+  data[data_len * 2] = 0;
+
   const int line_len = snprintf (line_buf, line_size, "%s*1*%08x%08x*%08x*%u*%u*1*%s*30",
       SIGNATURE_RAR3,
       byte_swap_32 (salt->salt_buf[0]),
@@ -316,6 +319,8 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
       rar3->pack_size,
       rar3->unpack_size,
       data);
+
+  hcfree (data);
 
   return line_len;
 }

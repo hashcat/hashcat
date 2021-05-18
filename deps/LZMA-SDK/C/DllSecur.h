@@ -10,8 +10,8 @@ EXTERN_C_BEGIN
 
 #ifdef _WIN32
 
-void My_SetDefaultDllDirectories();
-void LoadSecurityDlls();
+void My_SetDefaultDllDirectories(void);
+void LoadSecurityDlls(void);
 
 #endif
 

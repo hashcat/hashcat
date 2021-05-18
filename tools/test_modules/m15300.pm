@@ -190,7 +190,7 @@ sub module_generate_hash
         literal_key => 1,
         header      => "none",
         keysize     => 8,
-        padding     => "null",
+        padding     => "none",
       });
 
       my $p2 = Crypt::ECB->new ({
@@ -199,7 +199,7 @@ sub module_generate_hash
         literal_key => 1,
         header      => "none",
         keysize     => 8,
-        padding     => "null",
+        padding     => "none",
       });
 
       my $p3 = Crypt::ECB->new ({
@@ -208,7 +208,7 @@ sub module_generate_hash
         literal_key => 1,
         header      => "none",
         keysize     => 8,
-        padding     => "null",
+        padding     => "none",
       });
 
       # let's compute a 3DES-EDE-CBC decryption
@@ -256,7 +256,7 @@ sub module_generate_hash
         literal_key => 1,
         header      => "none",
         keysize     => 32,
-        padding     => "null",
+        padding     => "none",
       });
 
       my $expected_cleartext = $aes->decrypt ($cipher);
@@ -288,7 +288,7 @@ sub module_generate_hash
       literal_key => 1,
       header      => "none",
       keysize     => 8,
-      padding     => "null",
+      padding     => "none",
     });
 
     my $p2 = Crypt::ECB->new ({
@@ -297,7 +297,7 @@ sub module_generate_hash
       literal_key => 1,
       header      => "none",
       keysize     => 8,
-      padding     => "null",
+      padding     => "none",
     });
 
     my $p3 = Crypt::ECB->new ({
@@ -306,7 +306,7 @@ sub module_generate_hash
       literal_key => 1,
       header      => "none",
       keysize     => 8,
-      padding     => "null",
+      padding     => "none",
     });
 
     # let's compute a 3DES-EDE-CBC encryption
@@ -342,7 +342,7 @@ sub module_generate_hash
       literal_key => 1,
       header      => "none",
       keysize     => 32,
-      padding     => "null",
+      padding     => "none",
     });
 
     $cipher = $aes->encrypt ($cleartext);

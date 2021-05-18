@@ -1,5 +1,5 @@
 /* LzFind.h -- Match finder for LZ algorithms
-2017-06-10 : Igor Pavlov : Public domain */
+2021-02-09 : Igor Pavlov : Public domain */
 
 #ifndef __LZ_FIND_H
 #define __LZ_FIND_H
@@ -61,7 +61,7 @@ typedef struct _CMatchFinder
         && (!(p)->directInput || (p)->directInputRem == 0))
       
 int MatchFinder_NeedMove(CMatchFinder *p);
-Byte *MatchFinder_GetPointerToCurrentPos(CMatchFinder *p);
+// Byte *MatchFinder_GetPointerToCurrentPos(CMatchFinder *p);
 void MatchFinder_MoveBlock(CMatchFinder *p);
 void MatchFinder_ReadIfRequired(CMatchFinder *p);
 

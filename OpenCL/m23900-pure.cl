@@ -444,7 +444,7 @@ KERNEL_FQ void m23900_comp (KERN_ATTR_TMPS_ESALT (bestcrypt_tmp_t, bestcrypt_t))
       (digest[2] == res[18]) &&
       (digest[3] == res[19]))
   {
-    if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
     {
       mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
     }

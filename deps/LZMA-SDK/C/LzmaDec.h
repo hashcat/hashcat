@@ -1,5 +1,5 @@
 /* LzmaDec.h -- LZMA Decoder
-2018-04-21 : Igor Pavlov : Public domain */
+2020-03-19 : Igor Pavlov : Public domain */
 
 #ifndef __LZMA_DEC_H
 #define __LZMA_DEC_H
@@ -181,6 +181,7 @@ Returns:
       LZMA_STATUS_NEEDS_MORE_INPUT
       LZMA_STATUS_MAYBE_FINISHED_WITHOUT_MARK
   SZ_ERROR_DATA - Data error
+  SZ_ERROR_FAIL - Some unexpected error: internal error of code, memory corruption or hardware failure
 */
 
 SRes LzmaDec_DecodeToDic(CLzmaDec *p, SizeT dicLimit,
@@ -223,6 +224,7 @@ Returns:
   SZ_ERROR_MEM  - Memory allocation error
   SZ_ERROR_UNSUPPORTED - Unsupported properties
   SZ_ERROR_INPUT_EOF - It needs more bytes in input buffer (src).
+  SZ_ERROR_FAIL - Some unexpected error: internal error of code, memory corruption or hardware failure
 */
 
 SRes LzmaDecode(Byte *dest, SizeT *destLen, const Byte *src, SizeT *srcLen,
