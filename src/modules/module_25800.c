@@ -18,7 +18,7 @@ static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_6;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_OS;
 static const char *HASH_NAME      = "bcrypt(sha1($pass)) / bcryptsha1";
-static const u64   KERN_TYPE      = 3202;
+static const u64   KERN_TYPE      = 25800;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_BE
                                   | OPTS_TYPE_DYNAMIC_SHARED;
