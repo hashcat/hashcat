@@ -113,6 +113,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - sha512($salt.utf16le($pass))
 - sha512(utf16le($pass).$salt)
 - Ruby on Rails Restful-Authentication
+- MurmurHash
 - HMAC-MD5 (key = $pass)
 - HMAC-MD5 (key = $salt)
 - HMAC-SHA1 (key = $pass)
