@@ -1237,6 +1237,15 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     hashcat_status->time_estimated_relative);
   }
 
+  if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+  {
+    event_log_info (hashcat_ctx, "Kernel.Feature...: Optimized Kernel");
+  }
+  else
+  {
+    event_log_info (hashcat_ctx, "Kernel.Feature...: Pure Kernel");
+  }
+
   switch (hashcat_status->guess_mode)
   {
     case GUESS_MODE_STRAIGHT_FILE:
@@ -1731,6 +1740,16 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       device_info->innerloop_pos_dev + device_info->innerloop_left_dev,
       device_info->iteration_pos_dev,
       device_info->iteration_pos_dev + device_info->iteration_left_dev);
+  }
+
+  //if (hashconfig->opts_type & OPTS_TYPE_SLOW_CANDIDATES)
+  if (user_options->slow_candidates == true)
+  {
+    event_log_info (hashcat_ctx, "Candidate.Engine.: Host Generator + PCIe");
+  }
+  else
+  {
+    event_log_info (hashcat_ctx, "Candidate.Engine.: Device Generator");
   }
 
   for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)

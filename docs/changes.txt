@@ -15,6 +15,7 @@
 
 - CUDA Backend: Do not warn about missing CUDA SDK installation if --stdout is used
 - Performance Monitor: Add -S as a user suggestion to improve cracking performance in specific attack configurations
+- Status Screen: Show currently running kernel type (pure, optimized) and generator type (host, device)
 
 ##
 ## Technical
