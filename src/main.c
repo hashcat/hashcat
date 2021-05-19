@@ -710,13 +710,16 @@ static void main_monitor_performance_hint (MAYBE_UNUSED hashcat_ctx_t *hashcat_c
   event_log_advice (hashcat_ctx, "Cracking performance lower than expected?");
   event_log_advice (hashcat_ctx, NULL);
 
-  if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0)
+  if (user_options->optimized_kernel_enable == false)
   {
-    if (hashconfig->has_optimized_kernel == true)
+    if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0)
     {
-      event_log_advice (hashcat_ctx, "* Append -O to the commandline.");
-      event_log_advice (hashcat_ctx, "  This lowers the maximum supported password- and salt-length (typically down to 32).");
-      event_log_advice (hashcat_ctx, NULL);
+      if (hashconfig->has_optimized_kernel == true)
+      {
+        event_log_advice (hashcat_ctx, "* Append -O to the commandline.");
+        event_log_advice (hashcat_ctx, "  This lowers the maximum supported password- and salt-length (typically down to 32).");
+        event_log_advice (hashcat_ctx, NULL);
+      }
     }
   }
 
@@ -724,6 +727,14 @@ static void main_monitor_performance_hint (MAYBE_UNUSED hashcat_ctx_t *hashcat_c
   {
     event_log_advice (hashcat_ctx, "* Append -w 3 to the commandline.");
     event_log_advice (hashcat_ctx, "  This can cause your screen to lag.");
+    event_log_advice (hashcat_ctx, NULL);
+  }
+
+  if (user_options->slow_candidates == false)
+  {
+    event_log_advice (hashcat_ctx, "* Append -S to the commandline.");
+    event_log_advice (hashcat_ctx, "  This has a drastic effect but only for context specific attack configurations.");
+    event_log_advice (hashcat_ctx, "  Typical scenarios are a small wordlist but a large ruleset.");
     event_log_advice (hashcat_ctx, NULL);
   }
 
