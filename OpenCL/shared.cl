@@ -212,3 +212,24 @@ KERNEL_FQ void gpu_atinit (GLOBAL_AS pw_t *buf, const u64 gid_max)
 
   buf[gid] = pw;
 }
+
+KERNEL_FQ void gpu_utf8_to_utf16 (GLOBAL_AS pw_t *pws_buf, const u64 gid_max)
+{
+  const u64 gid = get_global_id (0);
+
+  if (gid >= gid_max) return;
+
+  pw_t pw_in = pws_buf[gid];
+
+  pw_t pw_out;
+
+  for (int i = 0; i < 64; i++) pw_out.i[i] = 0;
+
+  hc_enc_t hc_enc;
+
+  hc_enc_init (&hc_enc);
+
+  pw_out.pw_len = hc_enc_next (&hc_enc, pw_in.i, pw_in.pw_len, 64, pw_out.i, 256);
+
+  pws_buf[gid] = pw_out;
+}

@@ -442,6 +442,7 @@ typedef enum opts_type
   OPTS_TYPE_SELF_TEST_DISABLE = (1ULL << 51), // some algos use JiT in combinations with a salt or create too much startup time
   OPTS_TYPE_MP_MULTI_DISABLE  = (1ULL << 52), // do not multiply the kernel-accel with the multiprocessor count per device to allow more fine-tuned workload settings
   OPTS_TYPE_NATIVE_THREADS    = (1ULL << 53), // forces "native" thread count: CPU=1, GPU-Intel=8, GPU-AMD=64 (wavefront), GPU-NV=32 (warps)
+  OPTS_TYPE_POST_AMP_UTF16LE  = (1ULL << 54), // run the utf8 to utf16le conversion kernel after they have been processed from amplifiers
 
 } opts_type_t;
 
@@ -1116,6 +1117,7 @@ typedef struct hc_device_param
   u32     kernel_wgs_tm;
   u32     kernel_wgs_memset;
   u32     kernel_wgs_atinit;
+  u32     kernel_wgs_utf8toutf16le;
   u32     kernel_wgs_decompress;
   u32     kernel_wgs_aux1;
   u32     kernel_wgs_aux2;
@@ -1140,6 +1142,7 @@ typedef struct hc_device_param
   u32     kernel_preferred_wgs_multiple_tm;
   u32     kernel_preferred_wgs_multiple_memset;
   u32     kernel_preferred_wgs_multiple_atinit;
+  u32     kernel_preferred_wgs_multiple_utf8toutf16le;
   u32     kernel_preferred_wgs_multiple_decompress;
   u32     kernel_preferred_wgs_multiple_aux1;
   u32     kernel_preferred_wgs_multiple_aux2;
@@ -1164,6 +1167,7 @@ typedef struct hc_device_param
   u64     kernel_local_mem_size_tm;
   u64     kernel_local_mem_size_memset;
   u64     kernel_local_mem_size_atinit;
+  u64     kernel_local_mem_size_utf8toutf16le;
   u64     kernel_local_mem_size_decompress;
   u64     kernel_local_mem_size_aux1;
   u64     kernel_local_mem_size_aux2;
@@ -1188,6 +1192,7 @@ typedef struct hc_device_param
   u64     kernel_dynamic_local_mem_size_tm;
   u64     kernel_dynamic_local_mem_size_memset;
   u64     kernel_dynamic_local_mem_size_atinit;
+  u64     kernel_dynamic_local_mem_size_utf8toutf16le;
   u64     kernel_dynamic_local_mem_size_decompress;
   u64     kernel_dynamic_local_mem_size_aux1;
   u64     kernel_dynamic_local_mem_size_aux2;
@@ -1348,6 +1353,7 @@ typedef struct hc_device_param
   void   *kernel_params_tm[PARAMCNT];
   void   *kernel_params_memset[PARAMCNT];
   void   *kernel_params_atinit[PARAMCNT];
+  void   *kernel_params_utf8toutf16le[PARAMCNT];
   void   *kernel_params_decompress[PARAMCNT];
 
   u32     kernel_params_buf32[PARAMCNT];
@@ -1370,6 +1376,9 @@ typedef struct hc_device_param
 
   u32     kernel_params_atinit_buf32[PARAMCNT];
   u64     kernel_params_atinit_buf64[PARAMCNT];
+
+  u32     kernel_params_utf8toutf16le_buf32[PARAMCNT];
+  u64     kernel_params_utf8toutf16le_buf64[PARAMCNT];
 
   u32     kernel_params_decompress_buf32[PARAMCNT];
   u64     kernel_params_decompress_buf64[PARAMCNT];
@@ -1410,6 +1419,7 @@ typedef struct hc_device_param
   CUfunction        cuda_function_tm;
   CUfunction        cuda_function_memset;
   CUfunction        cuda_function_atinit;
+  CUfunction        cuda_function_utf8toutf16le;
   CUfunction        cuda_function_decompress;
   CUfunction        cuda_function_aux1;
   CUfunction        cuda_function_aux2;
@@ -1494,6 +1504,7 @@ typedef struct hc_device_param
   cl_kernel         opencl_kernel_tm;
   cl_kernel         opencl_kernel_memset;
   cl_kernel         opencl_kernel_atinit;
+  cl_kernel         opencl_kernel_utf8toutf16le;
   cl_kernel         opencl_kernel_decompress;
   cl_kernel         opencl_kernel_aux1;
   cl_kernel         opencl_kernel_aux2;
