@@ -229,7 +229,7 @@ KERNEL_FQ void gpu_utf8_to_utf16 (GLOBAL_AS pw_t *pws_buf, const u64 gid_max)
 
   hc_enc_init (&hc_enc);
 
-  pw_out.pw_len = hc_enc_next (&hc_enc, pw_in.i, pw_in.pw_len, 64, pw_out.i, 256);
+  pw_out.pw_len = hc_enc_next (&hc_enc, pw_in.i, pw_in.pw_len, 256, pw_out.i, 256);
 
   pws_buf[gid] = pw_out;
 }
