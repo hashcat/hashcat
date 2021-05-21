@@ -741,38 +741,17 @@ KERNEL_FQ void m12500_init (KERN_ATTR_TMPS (rar3_tmp_t))
 
   const u32 pw_len = pws[gid].pw_len;
 
-  // first set the utf16le pass:
-
   u32 w[80] = { 0 };
 
-  for (u32 i = 0, j = 0, k = 0; i < pw_len; i += 16, j += 4, k += 8)
+  for (int i = 0, j = 0; i < pw_len; i += 4, j += 1)
   {
-    u32 a[4];
-
-    a[0] = pws[gid].i[j + 0];
-    a[1] = pws[gid].i[j + 1];
-    a[2] = pws[gid].i[j + 2];
-    a[3] = pws[gid].i[j + 3];
-
-    u32 b[4];
-    u32 c[4];
-
-    make_utf16le (a, b, c);
-
-    w[k + 0] = hc_swap32_S (b[0]);
-    w[k + 1] = hc_swap32_S (b[1]);
-    w[k + 2] = hc_swap32_S (b[2]);
-    w[k + 3] = hc_swap32_S (b[3]);
-    w[k + 4] = hc_swap32_S (c[0]);
-    w[k + 5] = hc_swap32_S (c[1]);
-    w[k + 6] = hc_swap32_S (c[2]);
-    w[k + 7] = hc_swap32_S (c[3]);
+    w[j] = hc_swap32_S (pws[gid].i[j]);
   }
 
   // append salt:
 
-  const u32 salt_idx = (pw_len * 2) / 4;
-  const u32 salt_off = (pw_len * 2) & 3;
+  const u32 salt_idx = pw_len / 4;
+  const u32 salt_off = pw_len & 3;
 
   u32 salt_buf[3];
 
@@ -789,10 +768,9 @@ KERNEL_FQ void m12500_init (KERN_ATTR_TMPS (rar3_tmp_t))
     salt_buf[0] = (salt_buf[0] >> 16);
   }
 
-  w[salt_idx] |= salt_buf[0];
-
-  w[salt_idx + 1] = salt_buf[1];
-  w[salt_idx + 2] = salt_buf[2];
+  w[salt_idx + 0] |= salt_buf[0];
+  w[salt_idx + 1]  = salt_buf[1];
+  w[salt_idx + 2]  = salt_buf[2];
 
   // store initial w[] (pass and salt) in tmps:
 
@@ -819,17 +797,17 @@ KERNEL_FQ void m12500_loop (KERN_ATTR_TMPS (rar3_tmp_t))
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 255;
 
   const u32 salt_len = 8;
 
-  const u32 pw_salt_len = (pw_len * 2) + salt_len;
+  const u32 pw_salt_len = pw_len + salt_len;
 
   const u32 p3 = pw_salt_len + 3;
 
-  u32 w[80] = { 0 }; // 64 byte aligned
+  u32 w[80] = { 0 };
 
-  for (u32 i = 0; i < 66; i++) // unroll ?
+  for (u32 i = 0; i < 66; i++)
   {
     w[i] = tmps[gid].w[i];
   }
@@ -855,7 +833,6 @@ KERNEL_FQ void m12500_loop (KERN_ATTR_TMPS (rar3_tmp_t))
   memcat8c_be (ctx_iv.w0, ctx_iv.w1, ctx_iv.w2, ctx_iv.w3, ctx_iv.len, hc_swap32_S (loop_pos), ctx_iv.h);
 
   ctx_iv.len += 3;
-
 
   // copy the context from ctx_iv to ctx:
 
@@ -917,7 +894,7 @@ KERNEL_FQ void m12500_loop (KERN_ATTR_TMPS (rar3_tmp_t))
 
   // only needed if pw_len > 28:
 
-  for (u32 i = 0; i < 66; i++) // unroll ?
+  for (u32 i = 0; i < 66; i++)
   {
     tmps[gid].w[i] = w[i];
   }
@@ -986,11 +963,11 @@ KERNEL_FQ void m12500_comp (KERN_ATTR_TMPS (rar3_tmp_t))
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 255;
 
   const u32 salt_len = 8;
 
-  const u32 pw_salt_len = (pw_len * 2) + salt_len;
+  const u32 pw_salt_len = pw_len + salt_len;
 
   const u32 p3 = pw_salt_len + 3;
 
