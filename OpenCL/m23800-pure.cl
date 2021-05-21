@@ -760,38 +760,17 @@ KERNEL_FQ void m23800_init (KERN_ATTR_TMPS_HOOKS_ESALT (rar3_tmp_t, rar3_hook_t,
 
   const u32 pw_len = pws[gid].pw_len;
 
-  // first set the utf16le pass:
-
   u32 w[80] = { 0 };
 
-  for (u32 i = 0, j = 0, k = 0; i < pw_len; i += 16, j += 4, k += 8)
+  for (int i = 0, j = 0; i < pw_len; i += 4, j += 1)
   {
-    u32 a[4];
-
-    a[0] = pws[gid].i[j + 0];
-    a[1] = pws[gid].i[j + 1];
-    a[2] = pws[gid].i[j + 2];
-    a[3] = pws[gid].i[j + 3];
-
-    u32 b[4];
-    u32 c[4];
-
-    make_utf16le (a, b, c);
-
-    w[k + 0] = hc_swap32_S (b[0]);
-    w[k + 1] = hc_swap32_S (b[1]);
-    w[k + 2] = hc_swap32_S (b[2]);
-    w[k + 3] = hc_swap32_S (b[3]);
-    w[k + 4] = hc_swap32_S (c[0]);
-    w[k + 5] = hc_swap32_S (c[1]);
-    w[k + 6] = hc_swap32_S (c[2]);
-    w[k + 7] = hc_swap32_S (c[3]);
+    w[j] = hc_swap32_S (pws[gid].i[j]);
   }
 
   // append salt:
 
-  const u32 salt_idx = (pw_len * 2) / 4;
-  const u32 salt_off = (pw_len * 2) & 3;
+  const u32 salt_idx = pw_len / 4;
+  const u32 salt_off = pw_len & 3;
 
   u32 salt_buf[3];
 
@@ -808,10 +787,9 @@ KERNEL_FQ void m23800_init (KERN_ATTR_TMPS_HOOKS_ESALT (rar3_tmp_t, rar3_hook_t,
     salt_buf[0] = (salt_buf[0] >> 16);
   }
 
-  w[salt_idx] |= salt_buf[0];
-
-  w[salt_idx + 1] = salt_buf[1];
-  w[salt_idx + 2] = salt_buf[2];
+  w[salt_idx + 0] |= salt_buf[0];
+  w[salt_idx + 1]  = salt_buf[1];
+  w[salt_idx + 2]  = salt_buf[2];
 
   // store initial w[] (pass and salt) in tmps:
 
@@ -838,17 +816,17 @@ KERNEL_FQ void m23800_loop (KERN_ATTR_TMPS_HOOKS_ESALT (rar3_tmp_t, rar3_hook_t,
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 255;
 
   const u32 salt_len = 8;
 
-  const u32 pw_salt_len = (pw_len * 2) + salt_len;
+  const u32 pw_salt_len = pw_len + salt_len;
 
   const u32 p3 = pw_salt_len + 3;
 
-  u32 w[80] = { 0 }; // 64 byte aligned
+  u32 w[80] = { 0 };
 
-  for (u32 i = 0; i < 66; i++) // unroll ?
+  for (u32 i = 0; i < 66; i++)
   {
     w[i] = tmps[gid].w[i];
   }
@@ -1005,11 +983,11 @@ KERNEL_FQ void m23800_hook23 (KERN_ATTR_TMPS_HOOKS_ESALT (rar3_tmp_t, rar3_hook_
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 255;
 
   const u32 salt_len = 8;
 
-  const u32 pw_salt_len = (pw_len * 2) + salt_len;
+  const u32 pw_salt_len = pw_len + salt_len;
 
   const u32 p3 = pw_salt_len + 3;
 

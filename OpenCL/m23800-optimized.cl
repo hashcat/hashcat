@@ -71,15 +71,20 @@ KERNEL_FQ void m23800_loop (KERN_ATTR_TMPS_HOOKS_ESALT (rar3_tmp_t, rar3_hook_t,
 
   if (gid >= gid_max) return;
 
-  u32 pw_buf[5];
+  u32 pw_buf[10];
 
   pw_buf[0] = pws[gid].i[0];
   pw_buf[1] = pws[gid].i[1];
   pw_buf[2] = pws[gid].i[2];
   pw_buf[3] = pws[gid].i[3];
   pw_buf[4] = pws[gid].i[4];
+  pw_buf[5] = pws[gid].i[5];
+  pw_buf[6] = pws[gid].i[6];
+  pw_buf[7] = pws[gid].i[7];
+  pw_buf[8] = pws[gid].i[8];
+  pw_buf[9] = pws[gid].i[9];
 
-  const u32 pw_len = MIN (pws[gid].pw_len, 20);
+  const u32 pw_len = MIN (pws[gid].pw_len, 40);
 
   u32 salt_buf[2];
 
@@ -98,7 +103,7 @@ KERNEL_FQ void m23800_loop (KERN_ATTR_TMPS_HOOKS_ESALT (rar3_tmp_t, rar3_hook_t,
 
   for (u32 i = 0, p = 0; i < 64; i++)
   {
-    for (u32 j = 0; j < pw_len; j++, p += 2)
+    for (u32 j = 0; j < pw_len; j++, p += 1)
     {
       PUTCHAR_BE (largeblock, p, GETCHAR (pw_buf, j));
     }
@@ -113,9 +118,9 @@ KERNEL_FQ void m23800_loop (KERN_ATTR_TMPS_HOOKS_ESALT (rar3_tmp_t, rar3_hook_t,
     p += 3;
   }
 
-  const u32 p2 = (pw_len * 2) + salt_len;
+  const u32 p2 = pw_len + salt_len;
 
-  const u32 p3 = (pw_len * 2) + salt_len + 3;
+  const u32 p3 = pw_len + salt_len + 3;
 
   const u32 init_pos = loop_pos / (ROUNDS / 16);
 
@@ -312,11 +317,11 @@ KERNEL_FQ void m23800_hook23 (KERN_ATTR_TMPS_HOOKS_ESALT (rar3_tmp_t, rar3_hook_
    * base
    */
 
-  const u32 pw_len = MIN (pws[gid].pw_len, 20);
+  const u32 pw_len = MIN (pws[gid].pw_len, 40);
 
   const u32 salt_len = 8;
 
-  const u32 p3 = (pw_len * 2) + salt_len + 3;
+  const u32 p3 = pw_len + salt_len + 3;
 
   u32 w0[4];
   u32 w1[4];
@@ -359,13 +364,18 @@ KERNEL_FQ void m23800_hook23 (KERN_ATTR_TMPS_HOOKS_ESALT (rar3_tmp_t, rar3_hook_
 
   for (int i = 0; i < 16; i++)
   {
-    u32 pw_buf[5];
+    u32 pw_buf[10];
 
     pw_buf[0] = pws[gid].i[0];
     pw_buf[1] = pws[gid].i[1];
     pw_buf[2] = pws[gid].i[2];
     pw_buf[3] = pws[gid].i[3];
     pw_buf[4] = pws[gid].i[4];
+    pw_buf[5] = pws[gid].i[5];
+    pw_buf[6] = pws[gid].i[6];
+    pw_buf[7] = pws[gid].i[7];
+    pw_buf[8] = pws[gid].i[8];
+    pw_buf[9] = pws[gid].i[9];
 
     //const u32 pw_len = pws[gid].pw_len;
 
@@ -376,7 +386,7 @@ KERNEL_FQ void m23800_hook23 (KERN_ATTR_TMPS_HOOKS_ESALT (rar3_tmp_t, rar3_hook_
 
     //const u32 salt_len = 8;
 
-    //const u32 p3 = (pw_len * 2) + salt_len + 3;
+    //const u32 p3 = pw_len + salt_len + 3;
 
     u32 w[16];
 
@@ -399,7 +409,7 @@ KERNEL_FQ void m23800_hook23 (KERN_ATTR_TMPS_HOOKS_ESALT (rar3_tmp_t, rar3_hook_
 
     u32 p = 0;
 
-    for (u32 j = 0; j < pw_len; j++, p += 2)
+    for (u32 j = 0; j < pw_len; j++, p += 1)
     {
       PUTCHAR_BE (w, p, GETCHAR (pw_buf, j));
     }

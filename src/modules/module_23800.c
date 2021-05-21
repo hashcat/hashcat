@@ -22,7 +22,8 @@ static const char *HASH_NAME      = "RAR3-p (Compressed)";
 static const u64   KERN_TYPE      = 23800;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_HOOK23;
+                                  | OPTS_TYPE_HOOK23
+                                  | OPTS_TYPE_POST_AMP_UTF16LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$RAR3$*1*ad56eb40219c9da2*834064ce*32*13*1*eb47b1abe17a1a75bce6c92ab1cef3f4126035ea95deaf08b3f32a0c7b8078e1*33";
@@ -400,7 +401,7 @@ u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
 {
   const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL);
 
-  u32 pw_max = 127;
+  u32 pw_max = 64;
 
   if (optimized_kernel == true)
   {
@@ -412,7 +413,7 @@ u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
 
 const char *module_benchmark_mask (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const char *mask = "?b?b?b?b?b";
+  const char *mask = "?l?l?l?l?l";
 
   return mask;
 }
