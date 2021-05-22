@@ -7,6 +7,12 @@ assignees: ''
 
 ---
 
+**GitHub is for bugs and features - not for support**
+For support, please use [the hashcat forums](https://hashcat.net/forum/)
+
+**Check the FAQ**
+Some items that might appear to be issues are not issues. Please review [the hashcat FAQ](https://hashcat.net/wiki/doku.php?id=frequently_asked_questions) before submitting a bug report.
+
 **Describe the bug**
 A clear and concise description of what the bug is.
 
