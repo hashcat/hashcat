@@ -304,41 +304,24 @@ KERNEL_FQ void m22700_init (KERN_ATTR_TMPS (scrypt_tmp_t))
 
   if (gid >= gid_max) return;
 
-  // convert password to utf16be:
-
-  const u32 pw_len = pws[gid].pw_len;
-
-  const u32 pw_len_utf16be = pw_len * 2;
-
   u32 w[128] = { 0 };
 
-  for (u32 i = 0, j = 0; i < 64; i += 4, j += 8)
+  hc_enc_t hc_enc;
+
+  hc_enc_init (&hc_enc);
+
+  const u32 w_len = hc_enc_next_global (&hc_enc, pws[gid].i, pws[gid].pw_len, 256, w, sizeof (w));
+
+  // utf16le to utf16be
+  for (int i = 0, j = 0; i < w_len; i += 4, j += 1)
   {
-    u32 in[4];
-
-    in[0] = pws[gid].i[i + 0];
-    in[1] = pws[gid].i[i + 1];
-    in[2] = pws[gid].i[i + 2];
-    in[3] = pws[gid].i[i + 3];
-
-    u32 out0[4];
-    u32 out1[4];
-
-    make_utf16be_S (in, out0, out1);
-
-    w[j + 0] = out0[0];
-    w[j + 1] = out0[1];
-    w[j + 2] = out0[2];
-    w[j + 3] = out0[3];
-    w[j + 4] = out1[0];
-    w[j + 5] = out1[1];
-    w[j + 6] = out1[2];
-    w[j + 7] = out1[3];
+    w[j] = ((w[j] >> 8) & 0x00ff00ff)
+         | ((w[j] << 8) & 0xff00ff00);
   }
 
   sha256_hmac_ctx_t sha256_hmac_ctx;
 
-  sha256_hmac_init_swap (&sha256_hmac_ctx, w, pw_len_utf16be);
+  sha256_hmac_init_swap (&sha256_hmac_ctx, w, w_len);
 
   u32 s0[4] = { 0 };
   u32 s1[4] = { 0 };
@@ -557,41 +540,24 @@ KERNEL_FQ void m22700_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
    * 2nd pbkdf2, creates B
    */
 
-  // convert password to utf16be:
-
-  const u32 pw_len = pws[gid].pw_len;
-
-  const u32 pw_len_utf16be = pw_len * 2;
-
   u32 w[128] = { 0 };
 
-  for (u32 i = 0, j = 0; i < 64; i += 4, j += 8)
+  hc_enc_t hc_enc;
+
+  hc_enc_init (&hc_enc);
+
+  const u32 w_len = hc_enc_next_global (&hc_enc, pws[gid].i, pws[gid].pw_len, 256, w, sizeof (w));
+
+  // utf16le to utf16be
+  for (int i = 0, j = 0; i < w_len; i += 4, j += 1)
   {
-    u32 in[4];
-
-    in[0] = pws[gid].i[i + 0];
-    in[1] = pws[gid].i[i + 1];
-    in[2] = pws[gid].i[i + 2];
-    in[3] = pws[gid].i[i + 3];
-
-    u32 out0[4];
-    u32 out1[4];
-
-    make_utf16be_S (in, out0, out1);
-
-    w[j + 0] = out0[0];
-    w[j + 1] = out0[1];
-    w[j + 2] = out0[2];
-    w[j + 3] = out0[3];
-    w[j + 4] = out1[0];
-    w[j + 5] = out1[1];
-    w[j + 6] = out1[2];
-    w[j + 7] = out1[3];
+    w[j] = ((w[j] >> 8) & 0x00ff00ff)
+         | ((w[j] << 8) & 0xff00ff00);
   }
 
   sha256_hmac_ctx_t ctx;
 
-  sha256_hmac_init_swap (&ctx, w, pw_len_utf16be);
+  sha256_hmac_init_swap (&ctx, w, w_len);
 
   u32 w0[4];
   u32 w1[4];

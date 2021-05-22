@@ -21,8 +21,7 @@ static const u32   HASH_CATEGORY  = HASH_CATEGORY_PASSWORD_MANAGER;
 static const char *HASH_NAME      = "MultiBit HD (scrypt)";
 static const u64   KERN_TYPE      = 22700;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_BE
-                                  | OPTS_TYPE_PT_UTF16BE
+static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_MP_MULTI_DISABLE
                                   | OPTS_TYPE_NATIVE_THREADS
                                   | OPTS_TYPE_LOOP_PREPARE

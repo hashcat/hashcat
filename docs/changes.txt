@@ -16,7 +16,8 @@
 - CUDA Backend: Do not warn about missing CUDA SDK installation if --stdout is used
 - Performance Monitor: Add -S as a user suggestion to improve cracking performance in specific attack configurations
 - Status Screen: Show currently running kernel type (pure, optimized) and generator type (host, device)
-- RAR3 Plugins: Replaced naive with true UTF8 to UTF16 conversion in optimized and pure kernels
+- UTF8-to-UTF16: Replaced naive UTF8 to UTF16 conversion with true conversion for RAR3, AES Crypt and MultiBit HD (scrypt)
+- AES Crypt Plugin: Reduced max password length from 256 to 128 which improved performance by 22%
 
 ##
 ## Technical
