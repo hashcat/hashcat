@@ -3,14 +3,14 @@
  * License.....: MIT
  */
 
-#define NEW_SIMD_CODE
+//#define NEW_SIMD_CODE
 
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"
 #include "inc_types.h"
 #include "inc_platform.cl"
 #include "inc_common.cl"
-#include "inc_simd.cl"
+#include "inc_scalar.cl"
 #include "inc_hash_sha1.cl"
 #endif
 
@@ -31,11 +31,11 @@ KERNEL_FQ void m24800_mxx (KERN_ATTR_VECTOR ())
 
   const u32 pw_len = pws[gid].pw_len;
 
-  u32x w[64] = { 0 };
+  u32 w[64] = { 0 };
 
   for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
-    w[idx] = pws[gid].i[idx];
+    w[idx] = hc_swap32_S (pws[gid].i[idx]);
   }
 
   /**
@@ -48,32 +48,34 @@ KERNEL_FQ void m24800_mxx (KERN_ATTR_VECTOR ())
   {
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
-    const u32x w0 = w0l | w0r;
+    const u32x w0 = w0l | hc_swap32_S (w0r);
 
     w[0] = w0;
 
-    u32x t[128] = { 0 };
+    u32 t[128] = { 0 };
 
-    // make it unicode.
-    for (u32 i = 0, idx = 0; i < pw_len; i += 16, idx += 4)
-    {
-      make_utf16beN (&w[idx], &t[(idx * 2) + 0], &t[(idx * 2) + 4]);
-    }
+    hc_enc_t hc_enc;
 
-    sha1_hmac_ctx_vector_t ctx;
+    hc_enc_init (&hc_enc);
 
-    sha1_hmac_init_vector (&ctx, t, pw_len * 2);
+    const u32 t_len = hc_enc_next (&hc_enc, w, pw_len, 256, t, sizeof (t));
 
-    sha1_hmac_update_vector (&ctx, t, pw_len * 2);
+    // hash time
 
-    sha1_hmac_final_vector (&ctx);
+    sha1_hmac_ctx_t ctx;
 
-    const u32x r0 = ctx.opad.h[DGST_R0];
-    const u32x r1 = ctx.opad.h[DGST_R1];
-    const u32x r2 = ctx.opad.h[DGST_R2];
-    const u32x r3 = ctx.opad.h[DGST_R3];
+    sha1_hmac_init_swap (&ctx, t, t_len);
 
-    COMPARE_M_SIMD (r0, r1, r2, r3);
+    sha1_hmac_update_swap (&ctx, t, t_len);
+
+    sha1_hmac_final (&ctx);
+
+    const u32 r0 = ctx.opad.h[DGST_R0];
+    const u32 r1 = ctx.opad.h[DGST_R1];
+    const u32 r2 = ctx.opad.h[DGST_R2];
+    const u32 r3 = ctx.opad.h[DGST_R3];
+
+    COMPARE_M_SCALAR (r0, r1, r2, r3);
   }
 }
 
@@ -106,11 +108,11 @@ KERNEL_FQ void m24800_sxx (KERN_ATTR_VECTOR ())
 
   const u32 pw_len = pws[gid].pw_len;
 
-  u32x w[64] = { 0 };
+  u32 w[64] = { 0 };
 
   for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
-    w[idx] = pws[gid].i[idx];
+    w[idx] = hc_swap32_S (pws[gid].i[idx]);
   }
 
   /**
@@ -123,31 +125,33 @@ KERNEL_FQ void m24800_sxx (KERN_ATTR_VECTOR ())
   {
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
-    const u32x w0 = w0l | w0r;
+    const u32x w0 = w0l | hc_swap32_S (w0r);
 
     w[0] = w0;
 
-    u32x t[128] = { 0 };
+    u32 t[128] = { 0 };
 
-    // make it unicode.
-    for (u32 i = 0, idx = 0; i < pw_len; i += 16, idx += 4)
-    {
-      make_utf16beN (&w[idx], &t[(idx * 2) + 0], &t[(idx * 2) + 4]);
-    }
+    hc_enc_t hc_enc;
 
-    sha1_hmac_ctx_vector_t ctx;
+    hc_enc_init (&hc_enc);
 
-    sha1_hmac_init_vector (&ctx, t, pw_len * 2);
+    const u32 t_len = hc_enc_next (&hc_enc, w, pw_len, 256, t, sizeof (t));
 
-    sha1_hmac_update_vector (&ctx, t, pw_len * 2);
+    // hash time
 
-    sha1_hmac_final_vector (&ctx);
+    sha1_hmac_ctx_t ctx;
 
-    const u32x r0 = ctx.opad.h[DGST_R0];
-    const u32x r1 = ctx.opad.h[DGST_R1];
-    const u32x r2 = ctx.opad.h[DGST_R2];
-    const u32x r3 = ctx.opad.h[DGST_R3];
+    sha1_hmac_init_swap (&ctx, t, t_len);
 
-    COMPARE_S_SIMD (r0, r1, r2, r3);
+    sha1_hmac_update_swap (&ctx, t, t_len);
+
+    sha1_hmac_final (&ctx);
+
+    const u32 r0 = ctx.opad.h[DGST_R0];
+    const u32 r1 = ctx.opad.h[DGST_R1];
+    const u32 r2 = ctx.opad.h[DGST_R2];
+    const u32 r3 = ctx.opad.h[DGST_R3];
+
+    COMPARE_S_SCALAR (r0, r1, r2, r3);
   }
 }
