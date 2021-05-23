@@ -8,7 +8,6 @@
 - Added hash-mode: bcrypt(sha1($pass)) / bcryptsha1
 - Added hash-mode: Linux Kernel Crypto API (2.4)
 - Added hash-mode: MurmurHash
-- Added hash-mode: SNMPv3 HMAC-MD5-96
 
 ##
 ## Improvements

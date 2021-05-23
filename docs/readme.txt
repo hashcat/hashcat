@@ -147,7 +147,6 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - IKE-PSK MD5
 - IKE-PSK SHA1
 - XMPP SCRAM PBKDF2-SHA1
-- SNMPv3 HMAC-MD5-96
 - KNX IP Secure - Device Authentication Code
 - WPA-PBKDF2-PMKID+EAPOL
 - WPA-PMK-PMKID+EAPOL
