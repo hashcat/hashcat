@@ -27,6 +27,7 @@
 - Dependencies: Updated xxHash from 0.1.0 to v0.8.0 - Stable XXH3
 - Documentation: Update missing documentation in plugin developer guide for OPTS_TYPE_MP_MULTI_DISABLE and OPTS_TYPE_NATIVE_THREADS
 - Kernels: Add standalone true UTF8 to UTF16 converter kernel that runs after amplifier. Use OPTS_TYPE_POST_AMP_UTF16LE from plugin
+- RAR3-p (Compressed): Deactivated plugin because unrar is having serious problems with multi threading which lead to false negatives
 
 * changes v6.2.0 -> v6.2.1
 
