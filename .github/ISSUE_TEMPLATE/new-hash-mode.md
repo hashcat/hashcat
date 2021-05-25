@@ -1,6 +1,6 @@
 ---
-name: Add new hash-mode (-m)
-about: Add support for new algorithm
+name: Feature Request: Add new algorithm
+about: Add support for new hash-mode (-m)
 title: ''
 labels: new algorithm
 assignees: ''
@@ -12,9 +12,6 @@ For instance:
 - The hashing function XY is a public known hash algorithm on Wikipedia. 
 - The password protection for the application XY was made by public by security researcher XY and there's a paper called ...
 - The cryptographic schema used in protocol XY can be found in the OSS code on it's GitHub repository.
-
-**Describe the solution you'd like**
-A clear and concise description of what you want to happen.
 
 **Describe alternatives you've considered**
 A clear and concise description of any alternative solutions or features you've considered. For instance, other standalone crackers which already support this algorithm.

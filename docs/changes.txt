@@ -8,8 +8,8 @@
 - Added hash-mode: bcrypt(sha1($pass)) / bcryptsha1
 - Added hash-mode: Linux Kernel Crypto API (2.4)
 - Added hash-mode: MurmurHash
-- Added hash-mode: sha384($salt.$pass)
 - Added hash-mode: sha384($pass.$salt)
+- Added hash-mode: sha384($salt.$pass)
 
 ##
 ## Improvements
