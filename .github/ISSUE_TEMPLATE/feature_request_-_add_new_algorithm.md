@@ -1,5 +1,5 @@
 ---
-name: Feature Request: Add new algorithm
+name: Feature Request - Add new algorithm
 about: Add support for new hash-mode (-m)
 title: ''
 labels: new algorithm
