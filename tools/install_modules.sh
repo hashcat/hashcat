@@ -69,7 +69,7 @@ pip3 install pygost
 # pip3 uninstall -y pycryptoplus pycrypto pycryptodome
 
 pip3 install pycryptoplus
-pip3 uninstall -y pycryptodome
+# pip3 uninstall -y pycryptodome # latest versions do not require this work around anymore
 pip3 install pycrypto
 
 ERRORS=$((ERRORS+$?))

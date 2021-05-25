@@ -111,7 +111,7 @@ int potfile_init (hashcat_ctx_t *hashcat_ctx)
   potfile_ctx->enabled = false;
 
   if (user_options->benchmark       == true) return 0;
-  if (user_options->example_hashes  == true) return 0;
+  if (user_options->hash_info       == true) return 0;
   if (user_options->keyspace        == true) return 0;
   if (user_options->backend_info    == true) return 0;
   if (user_options->stdout_flag     == true) return 0;
@@ -495,24 +495,6 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
       // (or in other words: the head of the linked list always points to *this* new inserted node)
 
       found_entry->nodes = new_node;
-    }
-  }
-
-  // do not use this unless really needed, for example as in LM
-
-  if (module_ctx->module_hash_decode_zero_hash != MODULE_DEFAULT)
-  {
-    module_ctx->module_hash_decode_zero_hash (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, hash_buf.hook_salt, hash_buf.hash_info);
-
-    if (hashconfig->potfile_keep_all_hashes == true)
-    {
-      potfile_update_hashes (hashcat_ctx, &hash_buf, NULL, 0, all_hashes_tree);
-    }
-    else
-    {
-      hash_t *found = (hash_t *) hc_bsearch_r (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_no_salt, (void *) hashconfig);
-
-      potfile_update_hash (hashcat_ctx, found, NULL, 0);
     }
   }
 

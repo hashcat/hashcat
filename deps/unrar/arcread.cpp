@@ -785,7 +785,7 @@ size_t Archive::ReadHeader50()
     case HEAD_SERVICE:
       {
         FileHeader *hd=ShortBlock.HeaderType==HEAD_FILE ? &FileHead:&SubHead;
-        hd->Reset();
+        hd->Reset(); // Clear hash, time fields and other stuff like flags.
         *(BaseBlock *)hd=ShortBlock;
 
         bool FileBlock=ShortBlock.HeaderType==HEAD_FILE;

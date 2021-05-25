@@ -1,11 +1,13 @@
 /* 7zTypes.h -- Basic types
-2018-08-04 : Igor Pavlov : Public domain */
+2021-04-25 : Igor Pavlov : Public domain */
 
 #ifndef __7Z_TYPES_H
 #define __7Z_TYPES_H
 
 #ifdef _WIN32
 /* #include <windows.h> */
+#else
+#include <errno.h>
 #endif
 
 #include <stddef.h>
@@ -43,24 +45,122 @@ EXTERN_C_BEGIN
 typedef int SRes;
 
 
+#ifdef _MSC_VER
+  #if _MSC_VER > 1200
+    #define MY_ALIGN(n) __declspec(align(n))
+  #else
+    #define MY_ALIGN(n)
+  #endif
+#else
+  #define MY_ALIGN(n) __attribute__ ((aligned(n)))
+#endif
+
+
 #ifdef _WIN32
 
 /* typedef DWORD WRes; */
 typedef unsigned WRes;
 #define MY_SRes_HRESULT_FROM_WRes(x) HRESULT_FROM_WIN32(x)
 
-#else
+#else // _WIN32
 
+// #define ENV_HAVE_LSTAT
 typedef int WRes;
-#define MY__FACILITY_WIN32 7
-#define MY__FACILITY__WRes MY__FACILITY_WIN32
-#define MY_SRes_HRESULT_FROM_WRes(x) ((HRESULT)(x) <= 0 ? ((HRESULT)(x)) : ((HRESULT) (((x) & 0x0000FFFF) | (MY__FACILITY__WRes << 16) | 0x80000000)))
+
+// (FACILITY_ERRNO = 0x800) is 7zip's FACILITY constant to represent (errno) errors in HRESULT
+#define MY__FACILITY_ERRNO  0x800
+#define MY__FACILITY_WIN32  7
+#define MY__FACILITY__WRes  MY__FACILITY_ERRNO
+
+#define MY_HRESULT_FROM_errno_CONST_ERROR(x) ((HRESULT)( \
+          ( (HRESULT)(x) & 0x0000FFFF) \
+          | (MY__FACILITY__WRes << 16)  \
+          | (HRESULT)0x80000000 ))
+
+#define MY_SRes_HRESULT_FROM_WRes(x) \
+  ((HRESULT)(x) <= 0 ? ((HRESULT)(x)) : MY_HRESULT_FROM_errno_CONST_ERROR(x))
+
+// we call macro HRESULT_FROM_WIN32 for system errors (WRes) that are (errno)
+#define HRESULT_FROM_WIN32(x) MY_SRes_HRESULT_FROM_WRes(x)
+
+/*
+#define ERROR_FILE_NOT_FOUND             2L
+#define ERROR_ACCESS_DENIED              5L
+#define ERROR_NO_MORE_FILES              18L
+#define ERROR_LOCK_VIOLATION             33L
+#define ERROR_FILE_EXISTS                80L
+#define ERROR_DISK_FULL                  112L
+#define ERROR_NEGATIVE_SEEK              131L
+#define ERROR_ALREADY_EXISTS             183L
+#define ERROR_DIRECTORY                  267L
+#define ERROR_TOO_MANY_POSTS             298L
+
+#define ERROR_INVALID_REPARSE_DATA       4392L
+#define ERROR_REPARSE_TAG_INVALID        4393L
+#define ERROR_REPARSE_TAG_MISMATCH       4394L
+*/
+
+// we use errno equivalents for some WIN32 errors:
+
+#define ERROR_INVALID_FUNCTION      EINVAL
+#define ERROR_ALREADY_EXISTS        EEXIST
+#define ERROR_FILE_EXISTS           EEXIST
+#define ERROR_PATH_NOT_FOUND        ENOENT
+#define ERROR_FILE_NOT_FOUND        ENOENT
+#define ERROR_DISK_FULL             ENOSPC
+// #define ERROR_INVALID_HANDLE        EBADF
+
+// we use FACILITY_WIN32 for errors that has no errno equivalent
+// Too many posts were made to a semaphore.
+#define ERROR_TOO_MANY_POSTS        ((HRESULT)0x8007012AL)
+#define ERROR_INVALID_REPARSE_DATA  ((HRESULT)0x80071128L)
+#define ERROR_REPARSE_TAG_INVALID   ((HRESULT)0x80071129L)
+
+// if (MY__FACILITY__WRes != FACILITY_WIN32),
+// we use FACILITY_WIN32 for COM errors:
+#define E_OUTOFMEMORY               ((HRESULT)0x8007000EL)
+#define E_INVALIDARG                ((HRESULT)0x80070057L)
+#define MY__E_ERROR_NEGATIVE_SEEK   ((HRESULT)0x80070083L)
+
+/*
+// we can use FACILITY_ERRNO for some COM errors, that have errno equivalents:
+#define E_OUTOFMEMORY             MY_HRESULT_FROM_errno_CONST_ERROR(ENOMEM)
+#define E_INVALIDARG              MY_HRESULT_FROM_errno_CONST_ERROR(EINVAL)
+#define MY__E_ERROR_NEGATIVE_SEEK MY_HRESULT_FROM_errno_CONST_ERROR(EINVAL)
+*/
+
+// gcc / clang : (sizeof(long) == sizeof(void*)) in 32/64 bits
+typedef          long INT_PTR;
+typedef unsigned long UINT_PTR;
+
+#define TEXT(quote) quote
+
+#define FILE_ATTRIBUTE_READONLY       0x0001
+#define FILE_ATTRIBUTE_HIDDEN         0x0002
+#define FILE_ATTRIBUTE_SYSTEM         0x0004
+#define FILE_ATTRIBUTE_DIRECTORY      0x0010
+#define FILE_ATTRIBUTE_ARCHIVE        0x0020
+#define FILE_ATTRIBUTE_DEVICE         0x0040
+#define FILE_ATTRIBUTE_NORMAL         0x0080
+#define FILE_ATTRIBUTE_TEMPORARY      0x0100
+#define FILE_ATTRIBUTE_SPARSE_FILE    0x0200
+#define FILE_ATTRIBUTE_REPARSE_POINT  0x0400
+#define FILE_ATTRIBUTE_COMPRESSED     0x0800
+#define FILE_ATTRIBUTE_OFFLINE        0x1000
+#define FILE_ATTRIBUTE_NOT_CONTENT_INDEXED 0x2000
+#define FILE_ATTRIBUTE_ENCRYPTED      0x4000
+
+#define FILE_ATTRIBUTE_UNIX_EXTENSION 0x8000   /* trick for Unix */
 
 #endif
 
 
 #ifndef RINOK
 #define RINOK(x) { int __result__ = (x); if (__result__ != 0) return __result__; }
+#endif
+
+#ifndef RINOK_WRes
+#define RINOK_WRes(x) { WRes __result__ = (x); if (__result__ != 0) return __result__; }
 #endif
 
 typedef unsigned char Byte;
@@ -74,6 +174,38 @@ typedef unsigned long UInt32;
 typedef int Int32;
 typedef unsigned int UInt32;
 #endif
+
+
+#ifndef _WIN32
+
+typedef int INT;
+typedef Int32 INT32;
+typedef unsigned int UINT;
+typedef UInt32 UINT32;
+typedef INT32 LONG;   // LONG, ULONG and DWORD must be 32-bit for _WIN32 compatibility
+typedef UINT32 ULONG;
+
+#undef DWORD
+typedef UINT32 DWORD;
+
+#define VOID void
+
+#define HRESULT LONG
+
+typedef void *LPVOID;
+// typedef void VOID;
+// typedef ULONG_PTR DWORD_PTR, *PDWORD_PTR;
+// gcc / clang on Unix  : sizeof(long==sizeof(void*) in 32 or 64 bits)
+typedef          long  INT_PTR;
+typedef unsigned long  UINT_PTR;
+typedef          long  LONG_PTR;
+typedef unsigned long  DWORD_PTR;
+
+typedef size_t SIZE_T;
+
+#endif //  _WIN32
+
+
 
 #ifdef _SZ_NO_INT_64
 
@@ -128,24 +260,36 @@ typedef int BoolInt;
 #define MY_CDECL __cdecl
 #define MY_FAST_CALL __fastcall
 
-#else
+#else //  _MSC_VER
 
-#define MY_NO_INLINE
-#define MY_FORCE_INLINE
-#define MY_CDECL
-#define MY_FAST_CALL
-
-/* inline keyword : for C++ / C99 */
-
-/* GCC, clang: */
-/*
-#if defined (__GNUC__) && (__GNUC__ >= 4)
-#define MY_FORCE_INLINE __attribute__((always_inline))
+#if (defined(__GNUC__) && (__GNUC__ >= 4)) \
+    || (defined(__clang__) && (__clang_major__ >= 4)) \
+    || defined(__INTEL_COMPILER) \
+    || defined(__xlC__)
 #define MY_NO_INLINE __attribute__((noinline))
+// #define MY_FORCE_INLINE __attribute__((always_inline)) inline
+#else
+#define MY_NO_INLINE
 #endif
-*/
 
+#define MY_FORCE_INLINE
+
+
+#define MY_CDECL
+
+#if  defined(_M_IX86) \
+  || defined(__i386__)
+// #define MY_FAST_CALL __attribute__((fastcall))
+// #define MY_FAST_CALL __attribute__((cdecl))
+#define MY_FAST_CALL
+#elif defined(MY_CPU_AMD64)
+// #define MY_FAST_CALL __attribute__((ms_abi))
+#define MY_FAST_CALL
+#else
+#define MY_FAST_CALL
 #endif
+
+#endif //  _MSC_VER
 
 
 /* The following interfaces use first parameter as pointer to structure */
@@ -335,12 +479,11 @@ struct ISzAlloc
     GCC 4.8.1 : classes with non-public variable members"
 */
 
-#define MY_container_of(ptr, type, m) ((type *)((char *)(1 ? (ptr) : &((type *)0)->m) - MY_offsetof(type, m)))
-
+#define MY_container_of(ptr, type, m) ((type *)(void *)((char *)(void *)(1 ? (ptr) : &((type *)0)->m) - MY_offsetof(type, m)))
 
 #endif
 
-#define CONTAINER_FROM_VTBL_SIMPLE(ptr, type, m) ((type *)(ptr))
+#define CONTAINER_FROM_VTBL_SIMPLE(ptr, type, m) ((type *)(void *)(ptr))
 
 /*
 #define CONTAINER_FROM_VTBL(ptr, type, m) CONTAINER_FROM_VTBL_SIMPLE(ptr, type, m)
@@ -353,6 +496,7 @@ struct ISzAlloc
 */
 
 
+#define MY_memset_0_ARRAY(a) memset((a), 0, sizeof(a))
 
 #ifdef _WIN32
 

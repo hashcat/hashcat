@@ -6,9 +6,12 @@
 SHARED                  ?= 0
 DEBUG                   := 0
 PRODUCTION              := 0
-PRODUCTION_VERSION      := v6.1.1
+PRODUCTION_VERSION      := v6.2.1
 ENABLE_CUBIN            ?= 1
 ENABLE_BRAIN            ?= 1
+# unrar is having serious problems with multi threading which lead to false negatives
+# poc: https://github.com/hashcat/hashcat/issues/2796
+ENABLE_UNRAR            ?= 1
 USE_SYSTEM_LZMA         ?= 0
 USE_SYSTEM_ZLIB         ?= 0
 USE_SYSTEM_OPENCL       ?= 0
@@ -74,7 +77,7 @@ CXX                     := clang++
 AR                      := /usr/bin/ar
 SED                     := /usr/bin/sed
 SED_IN_PLACE            := -i ""
-PROD_VERS               := $(shell sw_vers -productVersion | cut -d. -f2)
+DARWIN_VERSION          := $(shell uname -r | cut -d. -f1)
 endif
 
 ifeq ($(UNAME),FreeBSD)
@@ -138,10 +141,12 @@ else
 DEPS_XXHASH_PATH        := $(LIBRARY_DEV_ROOT_FOLDER)
 endif
 
+ifeq ($(ENABLE_UNRAR),1)
 ifeq ($(USE_SYSTEM_UNRAR),0)
 DEPS_UNRAR_PATH         := deps/unrar
 else
 DEPS_UNRAR_PATH         := $(LIBRARY_DEV_ROOT_FOLDER)
+endif
 endif
 
 ##
@@ -197,7 +202,14 @@ CFLAGS_ZLIB             += -DIOAPI_NO_64
 endif
 
 ## because UNRAR
+ifeq ($(ENABLE_UNRAR),1)
 ifeq ($(USE_SYSTEM_UNRAR),0)
+ifneq ($(UNAME),Darwin)
+CFLAGS_UNRAR            += -Wno-misleading-indentation
+CFLAGS_UNRAR            += -Wno-class-memaccess
+else
+CFLAGS_UNRAR            += -Wno-missing-braces
+endif
 CFLAGS_UNRAR            += -Wno-unused-variable
 CFLAGS_UNRAR            += -Wno-unused-parameter
 CFLAGS_UNRAR            += -Wno-unused-function
@@ -205,11 +217,10 @@ CFLAGS_UNRAR            += -Wno-sign-compare
 CFLAGS_UNRAR            += -Wno-dangling-else
 CFLAGS_UNRAR            += -Wno-switch
 CFLAGS_UNRAR            += -Wno-parentheses
-CFLAGS_UNRAR            += -Wno-misleading-indentation
 CFLAGS_UNRAR            += -Wno-implicit-fallthrough
 CFLAGS_UNRAR            += -Wno-extra
 CFLAGS_UNRAR            += -Wno-unknown-pragmas
-CFLAGS_UNRAR            += -Wno-class-memaccess
+endif
 endif
 
 ifeq ($(DEBUG),0)
@@ -244,6 +255,11 @@ ifeq ($(USE_SYSTEM_LZMA),1)
 LFLAGS                  += -llzmasdk
 endif
 
+## LZMA workaround for MSYS2
+ifeq ($(USE_SYSTEM_LZMA),0)
+CFLAGS                  += -Iinclude/workarounds
+endif
+
 # ZLIB
 CFLAGS                  += -I$(DEPS_ZLIB_PATH) -I$(DEPS_ZLIB_PATH)/contrib
 ifeq ($(USE_SYSTEM_ZLIB),1)
@@ -268,8 +284,10 @@ CFLAGS                  += -DWITH_CUBIN
 endif
 
 # unrar
+ifeq ($(ENABLE_UNRAR),1)
 CFLAGS                  += -I$(DEPS_UNRAR_PATH)
 LFLAGS                  += -lstdc++
+endif
 
 ##
 ## Native compilation target
@@ -299,7 +317,7 @@ ifeq ($(UNAME),Darwin)
 export MACOSX_DEPLOYMENT_TARGET=10.9
 CFLAGS_NATIVE           := $(CFLAGS)
 
-ifeq ($(shell test $(PROD_VERS) -le 11; echo $$?), 0)
+ifeq ($(shell test $(DARWIN_VERSION) -le 15; echo $$?), 0)
 CFLAGS_NATIVE           += -DMISSING_CLOCK_GETTIME
 endif
 
@@ -383,6 +401,7 @@ WIN_OBJS                += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).WIN.o)
 endif
 endif
 
+ifeq ($(ENABLE_UNRAR),1)
 ifeq ($(USE_SYSTEM_UNRAR),0)
 OBJS_UNRAR              := strlist strfn pathfn smallfn global file filefn filcreat archive arcread unicode system isnt crypt crc rawread encname resource match timefn rdwrfn consio options errhnd rarvm secpassword rijndael getbits sha1 sha256 blake2s hash extinfo extract volume list find unpack headers threadpool rs16 cmddata ui filestr recvol rs scantree qopen hc_decompress_rar
 
@@ -390,13 +409,16 @@ NATIVE_OBJS             += $(foreach OBJ,$(OBJS_UNRAR),obj/$(OBJ).NATIVE.o)
 LINUX_OBJS              += $(foreach OBJ,$(OBJS_UNRAR),obj/$(OBJ).LINUX.o)
 WIN_OBJS                += $(foreach OBJ,$(OBJS_UNRAR),obj/$(OBJ).WIN.o)
 endif
+endif
 
 ##
 ## Targets: Native Compilation
 ##
 
+.PHONY: default
 default: $(HASHCAT_FRONTEND) modules
 
+.PHONY: clean
 clean:
 	$(RM) -f $(HASHCAT_FRONTEND)
 	$(RM) -f $(HASHCAT_LIBRARY)
@@ -417,6 +439,7 @@ clean:
 	$(RM) -rf *.outfiles
 	$(RM) -rf kernels
 
+.PHONY: distclean
 distclean: clean
 	$(RM) -f *.restore
 	$(RM) -f *.potfile
@@ -443,6 +466,7 @@ Only Linux, FreeBSD and Darwin can use the 'install' target
   endif
 endif
 
+.PHONY: install
 ifeq ($(SHARED),1)
 install: install_docs install_shared install_library install_library_dev install_kernels install_modules install_hashcat
 else
@@ -452,12 +476,15 @@ endif
 # we need this extra target to make sure that for parallel builds (i.e. 2+ Makefile targets could possible run at the same time)
 # the root folder of the shared directory is created first (and is a dependency for the targets that depend on it)
 
+.PHONY: install_make_library_dev_root
 install_make_library_dev_root:
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(LIBRARY_DEV_ROOT_FOLDER)
 
+.PHONY: install_make_shared_root
 install_make_shared_root:
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(SHARED_ROOT_FOLDER)
 
+.PHONY: install_docs
 install_docs: install_make_shared_root
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(DOCUMENT_FOLDER)
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(DOCUMENT_FOLDER)/charsets
@@ -491,34 +518,41 @@ install_docs: install_make_shared_root
 	$(SED) $(SED_IN_PLACE) 's/\.\/hashcat/hashcat/'                         $(DESTDIR)$(DOCUMENT_FOLDER)/example400.sh
 	$(SED) $(SED_IN_PLACE) 's/\.\/hashcat/hashcat/'                         $(DESTDIR)$(DOCUMENT_FOLDER)/example500.sh
 
+.PHONY: install_shared
 install_shared: install_make_shared_root
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(SHARED_FOLDER)
 	$(INSTALL) -m 644 hashcat.hctune                                        $(DESTDIR)$(SHARED_FOLDER)/
 	$(INSTALL) -m 644 hashcat.hcstat2                                       $(DESTDIR)$(SHARED_FOLDER)/
 
+.PHONY: install_kernels
 install_kernels: install_shared
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(SHARED_FOLDER)/OpenCL
 	$(FIND) OpenCL/   -mindepth 1 -type d -execdir $(INSTALL) -m 755 -d     $(DESTDIR)$(SHARED_FOLDER)/OpenCL/{} \;
 	$(FIND) OpenCL/   -mindepth 1 -type f -execdir $(INSTALL) -m 644 {}     $(DESTDIR)$(SHARED_FOLDER)/OpenCL/{} \;
 
+.PHONY: install_modules
 install_modules: install_shared modules
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(SHARED_FOLDER)/modules
 	$(FIND) modules/  -mindepth 1 -type d -execdir $(INSTALL) -m 755 -d     $(DESTDIR)$(SHARED_FOLDER)/modules/{} \;
 	$(FIND) modules/  -mindepth 1 -type f -execdir $(INSTALL) -m 644 {}     $(DESTDIR)$(SHARED_FOLDER)/modules/{} \;
 
+.PHONY: install_library
 install_library: $(HASHCAT_LIBRARY)
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(LIBRARY_FOLDER)
 	$(INSTALL) -m 755 $(HASHCAT_LIBRARY)                                    $(DESTDIR)$(LIBRARY_FOLDER)/
 
+.PHONY: install_library_dev
 install_library_dev: install_make_library_dev_root
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(LIBRARY_DEV_FOLDER)
 	$(FIND) include/  -mindepth 1 -type d -execdir $(INSTALL) -m 755 -d     $(DESTDIR)$(LIBRARY_DEV_FOLDER)/{} \;
 	$(FIND) include/  -mindepth 1 -type f -execdir $(INSTALL) -m 644 {}     $(DESTDIR)$(LIBRARY_DEV_FOLDER)/{} \;
 
+.PHONY: install_hashcat
 install_hashcat: $(HASHCAT_FRONTEND)
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(INSTALL_FOLDER)
 	$(INSTALL) -m 755 $(HASHCAT_FRONTEND)                                   $(DESTDIR)$(INSTALL_FOLDER)/
 
+.PHONY: uninstall
 uninstall:
 	$(RM) -f  $(DESTDIR)$(INSTALL_FOLDER)/$(HASHCAT_FRONTEND)
 	$(RM) -f  $(DESTDIR)$(LIBRARY_FOLDER)/$(HASHCAT_LIBRARY)
@@ -550,9 +584,11 @@ obj/%.NATIVE.o: $(DEPS_XXHASH_PATH)/%.c
 endif
 endif
 
+ifeq ($(ENABLE_UNRAR),1)
 ifeq ($(USE_SYSTEM_UNRAR),0)
 obj/%.NATIVE.o: $(DEPS_UNRAR_PATH)/%.cpp
 	$(CXX) -c $(CXXFLAGS) $(CFLAGS_NATIVE) $(CFLAGS_UNRAR) $< -o $@ -fpic
+endif
 endif
 
 obj/combined.NATIVE.a: $(NATIVE_OBJS)
@@ -589,7 +625,16 @@ MODULE_SUFFIX := dll
 endif
 
 MODULES_SRC   := $(wildcard src/modules/*.c)
-MODULES_LIB   := $(patsubst src/modules/module_%.c, modules/module_%.$(MODULE_SUFFIX), $(MODULES_SRC))
+
+MODULES_DISABLE ?=
+
+ifeq ($(ENABLE_UNRAR),0)
+MODULES_SRC     := $(filter-out src/modules/module_23800.c,$(MODULES_SRC))
+MODULES_DISABLE += modules/module_23800.so
+MODULES_DISABLE += modules/module_23800.dll
+endif
+
+$(MODULES_DISABLE): ;
 
 ifeq ($(SHARED),1)
 modules/module_%.$(MODULE_SUFFIX): src/modules/module_%.c $(HASHCAT_LIBRARY)
@@ -599,6 +644,9 @@ modules/module_%.$(MODULE_SUFFIX): src/modules/module_%.c obj/combined.NATIVE.a
 	$(CC)    $(CCFLAGS) $(CFLAGS_NATIVE) $^ -o $@ $(LFLAGS_NATIVE) -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
 endif
 
+MODULES_LIB   := $(patsubst src/modules/module_%.c, modules/module_%.$(MODULE_SUFFIX), $(MODULES_SRC))
+
+.PHONY: modules
 modules: $(MODULES_LIB)
 
 ##
@@ -654,11 +702,14 @@ LFLAGS_CROSS_WIN        += -static -static-libgcc -static-libstdc++
 ## Targets
 ##
 
+.PHONY: binaries
 binaries: linux win
 
+.PHONY: host_linux host_win
 host_linux: hashcat.bin
 host_win:   hashcat.exe
 
+.PHONY: linux win
 linux: host_linux modules_linux
 win:   host_win   modules_win
 
@@ -669,6 +720,7 @@ win:   host_win   modules_win
 MODULES_LIB_LINUX   := $(patsubst src/modules/module_%.c, modules/module_%.so,  $(MODULES_SRC))
 MODULES_LIB_WIN     := $(patsubst src/modules/module_%.c, modules/module_%.dll, $(MODULES_SRC))
 
+.PHONY: modules_linux modules_win
 modules_linux: $(MODULES_LIB_LINUX)
 modules_win:   $(MODULES_LIB_WIN)
 
@@ -714,12 +766,14 @@ obj/%.WIN.o:   $(DEPS_XXHASH_PATH)/%.c
 endif
 endif
 
+ifeq ($(ENABLE_UNRAR),1)
 ifeq ($(USE_SYSTEM_UNRAR),0)
 obj/%.LINUX.o: $(DEPS_UNRAR_PATH)/%.cpp
 	$(CXX_LINUX) $(CXXFLAGS) $(CFLAGS_CROSS_LINUX) $(CFLAGS_UNRAR) -c -o $@ $<
 
 obj/%.WIN.o:   $(DEPS_UNRAR_PATH)/%.cpp
 	$(CXX_WIN)   $(CXXFLAGS) $(CFLAGS_CROSS_WIN)   $(CFLAGS_UNRAR) -c -o $@ $<
+endif
 endif
 
 obj/combined.LINUX.a: $(LINUX_OBJS)

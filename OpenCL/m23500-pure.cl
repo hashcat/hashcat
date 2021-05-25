@@ -511,7 +511,7 @@ KERNEL_FQ void m23500_comp (KERN_ATTR_TMPS_ESALT (axcrypt2_tmp_t, axcrypt2_t))
   if ((tmps[gid].data[0] == 0xa6a6a6a6) &&
       (tmps[gid].data[1] == 0xa6a6a6a6))
   {
-    if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
     {
       mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
     }

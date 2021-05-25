@@ -73,24 +73,34 @@ u32 module_kernel_threads_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   return kernel_threads_max;
 }
 
-bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
+char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
-  if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
+  char *jit_build_options = NULL;
+
+  // in pure -a 0 mode we reserve pws_t with 64 threads = 256 + 4 bytes = 16640.
+  // the RC4_KEY with 64 threads requires (256 + 4) 16640.
+
+  if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0)
   {
-    // self-test failed
-    if ((device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
+    if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
     {
-      return true;
+      if (device_param->device_local_mem_size < 49152)
+      {
+        hc_asprintf (&jit_build_options, "-D FORCE_DISABLE_SHM");
+      }
     }
   }
 
-  // amdgpu-pro-19.30-934563-ubuntu-18.04: CL_OUT_OF_RESOURCES
+  return jit_build_options;
+}
+
+bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
+{
+  // amdgpu-pro-20.50-1234664-ubuntu-20.04 (legacy)
+  // test_1619967069/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 3 -m 13100 --increment --increment-min 1 --increment-max 8 test_1619967069/13100_multihash_bruteforce.txt ?d?d?d?d?d?d?d?d
   if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
   {
-    if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0)
-    {
-      return true;
-    }
+    return true;
   }
 
   return false;
