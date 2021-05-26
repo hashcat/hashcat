@@ -6057,21 +6057,58 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         // device_name
 
-        if (hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_NAME, 0, NULL, &param_value_size) == -1)
+        // try CL_DEVICE_BOARD_NAME_AMD first, if it fails fall back to CL_DEVICE_NAME
+        // since AMD ROCm does not identify itself at this stage we simply check for return code from clGetDeviceInfo()
+
+        #define CHECK_BOARD_NAME_AMD 1
+
+        cl_int rc_board_name_amd = 0;
+
+        if (CHECK_BOARD_NAME_AMD)
         {
-          device_param->skipped = true;
-          continue;
+          backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+          OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
+
+          rc_board_name_amd = ocl->clGetDeviceInfo (device_param->opencl_device, CL_DEVICE_BOARD_NAME_AMD, 0, NULL, NULL);
         }
 
-        char *device_name = (char *) hcmalloc (param_value_size);
-
-        if (hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_NAME, param_value_size, device_name, NULL) == -1)
+        if (rc_board_name_amd == CL_SUCCESS)
         {
-          device_param->skipped = true;
-          continue;
-        }
+          if (hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_BOARD_NAME_AMD, 0, NULL, &param_value_size) == -1)
+          {
+            device_param->skipped = true;
+            continue;
+          }
 
-        device_param->device_name = device_name;
+          char *device_name = (char *) hcmalloc (param_value_size);
+
+          if (hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_BOARD_NAME_AMD, param_value_size, device_name, NULL) == -1)
+          {
+            device_param->skipped = true;
+            continue;
+          }
+
+          device_param->device_name = device_name;
+        }
+        else
+        {
+          if (hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_NAME, 0, NULL, &param_value_size) == -1)
+          {
+            device_param->skipped = true;
+            continue;
+          }
+
+          char *device_name = (char *) hcmalloc (param_value_size);
+
+          if (hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_NAME, param_value_size, device_name, NULL) == -1)
+          {
+            device_param->skipped = true;
+            continue;
+          }
+
+          device_param->device_name = device_name;
+        }
 
         hc_string_trim_leading (device_param->device_name);
 

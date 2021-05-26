@@ -16,6 +16,7 @@
 ##
 
 - CUDA Backend: Do not warn about missing CUDA SDK installation if --stdout is used
+- OpenCL Backend: Use CL_DEVICE_BOARD_NAME_AMD instead of CL_DEVICE_NAME for device name in case OpenCL runtime supports this query
 - Performance Monitor: Add -S as a user suggestion to improve cracking performance in specific attack configurations
 - Status Screen: Show currently running kernel type (pure, optimized) and generator type (host, device)
 - UTF8-to-UTF16: Replaced naive UTF8 to UTF16 conversion with true conversion for RAR3, AES Crypt, MultiBit HD (scrypt) and Umbraco HMAC-SHA1

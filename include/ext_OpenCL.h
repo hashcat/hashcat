@@ -28,6 +28,7 @@
 // AMD extras
 
 #define CL_DEVICE_TOPOLOGY_AMD                      0x4037
+#define CL_DEVICE_BOARD_NAME_AMD                    0x4038
 
 typedef union
 {

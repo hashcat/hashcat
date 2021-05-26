@@ -499,13 +499,13 @@ GeForce_RTX_2080_Ti                             *       15700   1      68       
 GeForce_RTX_2080_Ti                             *       22700   1      68       A
 
 ## 8GB
-gfx900                                          *       8900    1      28       A
-gfx900                                          *       9300    1     442       A
-gfx900                                          *       15700   1      28       A
-gfx900                                          *       22700   1      28       A
+Vega_10_XL/XT_[Radeon_RX_Vega_56/64]            *       8900    1      28       A
+Vega_10_XL/XT_[Radeon_RX_Vega_56/64]            *       9300    1     442       A
+Vega_10_XL/XT_[Radeon_RX_Vega_56/64]            *       15700   1      28       A
+Vega_10_XL/XT_[Radeon_RX_Vega_56/64]            *       22700   1      28       A
 
 ## 4GB
-Ellesmere                                       *       8900    1      14       A
-Ellesmere                                       *       9300    1     126       A
-Ellesmere                                       *       15700   1      14       A
-Ellesmere                                       *       22700   1      14       A
+AMD_Radeon_(TM)_RX_480_Graphics                 *       8900    1      14       A
+AMD_Radeon_(TM)_RX_480_Graphics                 *       9300    1     126       A
+AMD_Radeon_(TM)_RX_480_Graphics                 *       15700   1      14       A
+AMD_Radeon_(TM)_RX_480_Graphics                 *       22700   1      14       A
