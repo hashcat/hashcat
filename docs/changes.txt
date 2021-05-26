@@ -10,6 +10,8 @@
 - Added hash-mode: MurmurHash
 - Added hash-mode: sha384($pass.$salt)
 - Added hash-mode: sha384($salt.$pass)
+- Added hash-mode: sha384(utf16le($pass).$salt)
+- Added hash-mode: sha384($salt.utf16le($pass))
 
 ##
 ## Improvements
@@ -73,7 +75,6 @@
 - Added hash-mode: Umbraco HMAC-SHA1
 - Added hash-mode: sha1($salt.sha1($pass.$salt))
 - Added hash-mode: sha1(sha1($pass).$salt)
-- Added hash-mode: sha384(utf16le($pass).$salt)
 
 ##
 ## Features
