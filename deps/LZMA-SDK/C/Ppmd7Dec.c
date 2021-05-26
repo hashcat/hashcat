@@ -1,6 +1,8 @@
-/* Ppmd7Dec.c -- PPMdH Decoder
-2018-07-04 : Igor Pavlov : Public domain
-This code is based on PPMd var.H (2001): Dmitry Shkarin : Public domain */
+/* Ppmd7Dec.c -- Ppmd7z (PPMdH with 7z Range Coder) Decoder
+2021-04-13 : Igor Pavlov : Public domain
+This code is based on:
+  PPMd var.H (2001): Dmitry Shkarin : Public domain */
+
 
 #include "Precomp.h"
 
@@ -8,184 +10,288 @@ This code is based on PPMd var.H (2001): Dmitry Shkarin : Public domain */
 
 #define kTopValue (1 << 24)
 
-BoolInt Ppmd7z_RangeDec_Init(CPpmd7z_RangeDec *p)
+
+#define READ_BYTE(p) IByteIn_Read((p)->Stream)
+
+BoolInt Ppmd7z_RangeDec_Init(CPpmd7_RangeDec *p)
 {
   unsigned i;
   p->Code = 0;
   p->Range = 0xFFFFFFFF;
-  if (IByteIn_Read(p->Stream) != 0)
+  if (READ_BYTE(p) != 0)
     return False;
   for (i = 0; i < 4; i++)
-    p->Code = (p->Code << 8) | IByteIn_Read(p->Stream);
+    p->Code = (p->Code << 8) | READ_BYTE(p);
   return (p->Code < 0xFFFFFFFF);
 }
 
-#define GET_Ppmd7z_RangeDec CPpmd7z_RangeDec *p = CONTAINER_FROM_VTBL(pp, CPpmd7z_RangeDec, vt);
- 
-static UInt32 Range_GetThreshold(const IPpmd7_RangeDec *pp, UInt32 total)
+#define RC_NORM_BASE(p) if ((p)->Range < kTopValue) \
+  { (p)->Code = ((p)->Code << 8) | READ_BYTE(p); (p)->Range <<= 8;
+
+#define RC_NORM_1(p)  RC_NORM_BASE(p) }
+#define RC_NORM(p)    RC_NORM_BASE(p) RC_NORM_BASE(p) }}
+
+// we must use only one type of Normalization from two: LOCAL or REMOTE
+#define RC_NORM_LOCAL(p)    // RC_NORM(p)
+#define RC_NORM_REMOTE(p)   RC_NORM(p)
+
+#define R (&p->rc.dec)
+
+MY_FORCE_INLINE
+// MY_NO_INLINE
+static void RangeDec_Decode(CPpmd7 *p, UInt32 start, UInt32 size)
 {
-  GET_Ppmd7z_RangeDec
-  return p->Code / (p->Range /= total);
+
+  
+  R->Code -= start * R->Range;
+  R->Range *= size;
+  RC_NORM_LOCAL(R)
 }
 
-static void Range_Normalize(CPpmd7z_RangeDec *p)
-{
-  if (p->Range < kTopValue)
-  {
-    p->Code = (p->Code << 8) | IByteIn_Read(p->Stream);
-    p->Range <<= 8;
-    if (p->Range < kTopValue)
-    {
-      p->Code = (p->Code << 8) | IByteIn_Read(p->Stream);
-      p->Range <<= 8;
-    }
-  }
-}
-
-static void Range_Decode(const IPpmd7_RangeDec *pp, UInt32 start, UInt32 size)
-{
-  GET_Ppmd7z_RangeDec
-  p->Code -= start * p->Range;
-  p->Range *= size;
-  Range_Normalize(p);
-}
-
-static UInt32 Range_DecodeBit(const IPpmd7_RangeDec *pp, UInt32 size0)
-{
-  GET_Ppmd7z_RangeDec
-  UInt32 newBound = (p->Range >> 14) * size0;
-  UInt32 symbol;
-  if (p->Code < newBound)
-  {
-    symbol = 0;
-    p->Range = newBound;
-  }
-  else
-  {
-    symbol = 1;
-    p->Code -= newBound;
-    p->Range -= newBound;
-  }
-  Range_Normalize(p);
-  return symbol;
-}
-
-void Ppmd7z_RangeDec_CreateVTable(CPpmd7z_RangeDec *p)
-{
-  p->vt.GetThreshold = Range_GetThreshold;
-  p->vt.Decode = Range_Decode;
-  p->vt.DecodeBit = Range_DecodeBit;
-}
+#define RC_Decode(start, size) RangeDec_Decode(p, start, size);
+#define RC_DecodeFinal(start, size) RC_Decode(start, size) RC_NORM_REMOTE(R)
+#define RC_GetThreshold(total) (R->Code / (R->Range /= (total)))
 
 
-#define MASK(sym) ((signed char *)charMask)[sym]
+#define CTX(ref) ((CPpmd7_Context *)Ppmd7_GetContext(p, ref))
+typedef CPpmd7_Context * CTX_PTR;
+#define SUCCESSOR(p) Ppmd_GET_SUCCESSOR(p)
+void Ppmd7_UpdateModel(CPpmd7 *p);
 
-int Ppmd7_DecodeSymbol(CPpmd7 *p, const IPpmd7_RangeDec *rc)
+#define MASK(sym) ((unsigned char *)charMask)[sym]
+// MY_FORCE_INLINE
+// static
+int Ppmd7z_DecodeSymbol(CPpmd7 *p)
 {
   size_t charMask[256 / sizeof(size_t)];
+
   if (p->MinContext->NumStats != 1)
   {
     CPpmd_State *s = Ppmd7_GetStats(p, p->MinContext);
     unsigned i;
     UInt32 count, hiCnt;
-    if ((count = rc->GetThreshold(rc, p->MinContext->SummFreq)) < (hiCnt = s->Freq))
+    UInt32 summFreq = p->MinContext->Union2.SummFreq;
+
+    
+    
+    
+    count = RC_GetThreshold(summFreq);
+    hiCnt = count;
+    
+    if ((Int32)(count -= s->Freq) < 0)
     {
-      Byte symbol;
-      rc->Decode(rc, 0, s->Freq);
+      Byte sym;
+      RC_DecodeFinal(0, s->Freq);
       p->FoundState = s;
-      symbol = s->Symbol;
+      sym = s->Symbol;
       Ppmd7_Update1_0(p);
-      return symbol;
+      return sym;
     }
+  
     p->PrevSuccess = 0;
-    i = p->MinContext->NumStats - 1;
+    i = (unsigned)p->MinContext->NumStats - 1;
+    
     do
     {
-      if ((hiCnt += (++s)->Freq) > count)
+      if ((Int32)(count -= (++s)->Freq) < 0)
       {
-        Byte symbol;
-        rc->Decode(rc, hiCnt - s->Freq, s->Freq);
+        Byte sym;
+        RC_DecodeFinal((hiCnt - count) - s->Freq, s->Freq);
         p->FoundState = s;
-        symbol = s->Symbol;
+        sym = s->Symbol;
         Ppmd7_Update1(p);
-        return symbol;
+        return sym;
       }
     }
     while (--i);
-    if (count >= p->MinContext->SummFreq)
-      return -2;
-    p->HiBitsFlag = p->HB2Flag[p->FoundState->Symbol];
-    rc->Decode(rc, hiCnt, p->MinContext->SummFreq - hiCnt);
+    
+    if (hiCnt >= summFreq)
+      return PPMD7_SYM_ERROR;
+    
+    hiCnt -= count;
+    RC_Decode(hiCnt, summFreq - hiCnt);
+
+    p->HiBitsFlag = PPMD7_HiBitsFlag_3(p->FoundState->Symbol);
     PPMD_SetAllBitsIn256Bytes(charMask);
-    MASK(s->Symbol) = 0;
-    i = p->MinContext->NumStats - 1;
-    do { MASK((--s)->Symbol) = 0; } while (--i);
+    // i = p->MinContext->NumStats - 1;
+    // do { MASK((--s)->Symbol) = 0; } while (--i);
+    {
+      CPpmd_State *s2 = Ppmd7_GetStats(p, p->MinContext);
+      MASK(s->Symbol) = 0;
+      do
+      {
+        unsigned sym0 = s2[0].Symbol;
+        unsigned sym1 = s2[1].Symbol;
+        s2 += 2;
+        MASK(sym0) = 0;
+        MASK(sym1) = 0;
+      }
+      while (s2 < s);
+    }
   }
   else
   {
+    CPpmd_State *s = Ppmd7Context_OneState(p->MinContext);
     UInt16 *prob = Ppmd7_GetBinSumm(p);
-    if (rc->DecodeBit(rc, *prob) == 0)
+    UInt32 pr = *prob;
+    UInt32 size0 = (R->Range >> 14) * pr;
+    pr = PPMD_UPDATE_PROB_1(pr);
+
+    if (R->Code < size0)
     {
-      Byte symbol;
-      *prob = (UInt16)PPMD_UPDATE_PROB_0(*prob);
-      symbol = (p->FoundState = Ppmd7Context_OneState(p->MinContext))->Symbol;
-      Ppmd7_UpdateBin(p);
-      return symbol;
+      Byte sym;
+      *prob = (UInt16)(pr + (1 << PPMD_INT_BITS));
+      
+      // RangeDec_DecodeBit0(size0);
+      R->Range = size0;
+      RC_NORM_1(R)
+      /* we can use single byte normalization here because of
+         (min(BinSumm[][]) = 95) > (1 << (14 - 8)) */
+
+      // sym = (p->FoundState = Ppmd7Context_OneState(p->MinContext))->Symbol;
+      // Ppmd7_UpdateBin(p);
+      {
+        unsigned freq = s->Freq;
+        CTX_PTR c = CTX(SUCCESSOR(s));
+        sym = s->Symbol;
+        p->FoundState = s;
+        p->PrevSuccess = 1;
+        p->RunLength++;
+        s->Freq = (Byte)(freq + (freq < 128));
+        // NextContext(p);
+        if (p->OrderFall == 0 && (const Byte *)c > p->Text)
+          p->MaxContext = p->MinContext = c;
+        else
+          Ppmd7_UpdateModel(p);
+      }
+      return sym;
     }
-    *prob = (UInt16)PPMD_UPDATE_PROB_1(*prob);
-    p->InitEsc = PPMD7_kExpEscape[*prob >> 10];
+
+    *prob = (UInt16)pr;
+    p->InitEsc = p->ExpEscape[pr >> 10];
+
+    // RangeDec_DecodeBit1(size0);
+    
+    R->Code -= size0;
+    R->Range -= size0;
+    RC_NORM_LOCAL(R)
+    
     PPMD_SetAllBitsIn256Bytes(charMask);
     MASK(Ppmd7Context_OneState(p->MinContext)->Symbol) = 0;
     p->PrevSuccess = 0;
   }
+
   for (;;)
   {
-    CPpmd_State *ps[256], *s;
+    CPpmd_State *s, *s2;
     UInt32 freqSum, count, hiCnt;
+
     CPpmd_See *see;
-    unsigned i, num, numMasked = p->MinContext->NumStats;
+    CPpmd7_Context *mc;
+    unsigned numMasked;
+    RC_NORM_REMOTE(R)
+    mc = p->MinContext;
+    numMasked = mc->NumStats;
+
     do
     {
       p->OrderFall++;
-      if (!p->MinContext->Suffix)
-        return -1;
-      p->MinContext = Ppmd7_GetContext(p, p->MinContext->Suffix);
+      if (!mc->Suffix)
+        return PPMD7_SYM_END;
+      mc = Ppmd7_GetContext(p, mc->Suffix);
     }
-    while (p->MinContext->NumStats == numMasked);
-    hiCnt = 0;
-    s = Ppmd7_GetStats(p, p->MinContext);
-    i = 0;
-    num = p->MinContext->NumStats - numMasked;
-    do
-    {
-      int k = (int)(MASK(s->Symbol));
-      hiCnt += (s->Freq & k);
-      ps[i] = s++;
-      i -= k;
-    }
-    while (i != num);
+    while (mc->NumStats == numMasked);
     
+    s = Ppmd7_GetStats(p, mc);
+
+    {
+      unsigned num = mc->NumStats;
+      unsigned num2 = num / 2;
+      
+      num &= 1;
+      hiCnt = (s->Freq & (unsigned)(MASK(s->Symbol))) & (0 - (UInt32)num);
+      s += num;
+      p->MinContext = mc;
+
+      do
+      {
+        unsigned sym0 = s[0].Symbol;
+        unsigned sym1 = s[1].Symbol;
+        s += 2;
+        hiCnt += (s[-2].Freq & (unsigned)(MASK(sym0)));
+        hiCnt += (s[-1].Freq & (unsigned)(MASK(sym1)));
+      }
+      while (--num2);
+    }
+
     see = Ppmd7_MakeEscFreq(p, numMasked, &freqSum);
     freqSum += hiCnt;
-    count = rc->GetThreshold(rc, freqSum);
+
+
+
+
+    count = RC_GetThreshold(freqSum);
     
     if (count < hiCnt)
     {
-      Byte symbol;
-      CPpmd_State **pps = ps;
-      for (hiCnt = 0; (hiCnt += (*pps)->Freq) <= count; pps++);
-      s = *pps;
-      rc->Decode(rc, hiCnt - s->Freq, s->Freq);
+      Byte sym;
+
+      s = Ppmd7_GetStats(p, p->MinContext);
+      hiCnt = count;
+      // count -= s->Freq & (unsigned)(MASK(s->Symbol));
+      // if ((Int32)count >= 0)
+      {
+        for (;;)
+        {
+          count -= s->Freq & (unsigned)(MASK((s)->Symbol)); s++; if ((Int32)count < 0) break;
+          // count -= s->Freq & (unsigned)(MASK((s)->Symbol)); s++; if ((Int32)count < 0) break;
+        };
+      }
+      s--;
+      RC_DecodeFinal((hiCnt - count) - s->Freq, s->Freq);
+
+      // new (see->Summ) value can overflow over 16-bits in some rare cases
       Ppmd_See_Update(see);
       p->FoundState = s;
-      symbol = s->Symbol;
+      sym = s->Symbol;
       Ppmd7_Update2(p);
-      return symbol;
+      return sym;
     }
+
     if (count >= freqSum)
-      return -2;
-    rc->Decode(rc, hiCnt, freqSum - hiCnt);
+      return PPMD7_SYM_ERROR;
+    
+    RC_Decode(hiCnt, freqSum - hiCnt);
+
+    // We increase (see->Summ) for sum of Freqs of all non_Masked symbols.
+    // new (see->Summ) value can overflow over 16-bits in some rare cases
     see->Summ = (UInt16)(see->Summ + freqSum);
-    do { MASK(ps[--i]->Symbol) = 0; } while (i != 0);
+
+    s = Ppmd7_GetStats(p, p->MinContext);
+    s2 = s + p->MinContext->NumStats;
+    do
+    {
+      MASK(s->Symbol) = 0;
+      s++;
+    }
+    while (s != s2);
   }
 }
+
+/*
+Byte *Ppmd7z_DecodeSymbols(CPpmd7 *p, Byte *buf, const Byte *lim)
+{
+  int sym = 0;
+  if (buf != lim)
+  do
+  {
+    sym = Ppmd7z_DecodeSymbol(p);
+    if (sym < 0)
+      break;
+    *buf = (Byte)sym;
+  }
+  while (++buf < lim);
+  p->LastSymbol = sym;
+  return buf;
+}
+*/

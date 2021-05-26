@@ -325,7 +325,7 @@ KERNEL_FQ void m23100_comp (KERN_ATTR_TMPS_ESALT (keychain_tmp_t, keychain_t))
 
   if ((out[1] ^ iv[1]) == 0x04040404) // this check uses very low number of bits => collisions
   {
-    if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
     {
       mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
     }

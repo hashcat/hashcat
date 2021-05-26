@@ -1,5 +1,5 @@
 /* Bcj2.c -- BCJ2 Decoder (Converter for x86 code)
-2018-04-28 : Igor Pavlov : Public domain */
+2021-02-09 : Igor Pavlov : Public domain */
 
 #include "Precomp.h"
 
@@ -123,7 +123,7 @@ SRes Bcj2Dec_Decode(CBcj2Dec *p)
         const Byte *src = p->bufs[BCJ2_STREAM_MAIN];
         const Byte *srcLim;
         Byte *dest;
-        SizeT num = p->lims[BCJ2_STREAM_MAIN] - src;
+        SizeT num = (SizeT)(p->lims[BCJ2_STREAM_MAIN] - src);
         
         if (num == 0)
         {
@@ -134,7 +134,7 @@ SRes Bcj2Dec_Decode(CBcj2Dec *p)
         dest = p->dest;
         if (num > (SizeT)(p->destLim - dest))
         {
-          num = p->destLim - dest;
+          num = (SizeT)(p->destLim - dest);
           if (num == 0)
           {
             p->state = BCJ2_DEC_STATE_ORIG;
@@ -168,7 +168,7 @@ SRes Bcj2Dec_Decode(CBcj2Dec *p)
           break;
         }
         
-        num = src - p->bufs[BCJ2_STREAM_MAIN];
+        num = (SizeT)(src - p->bufs[BCJ2_STREAM_MAIN]);
         
         if (src == srcLim)
         {
@@ -228,7 +228,7 @@ SRes Bcj2Dec_Decode(CBcj2Dec *p)
       p->ip += 4;
       val -= p->ip;
       dest = p->dest;
-      rem = p->destLim - dest;
+      rem = (SizeT)(p->destLim - dest);
       
       if (rem < 4)
       {

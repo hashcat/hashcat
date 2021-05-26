@@ -11,8 +11,6 @@
 #include "Bra.h"
 #include "LzmaEnc.h"
 
-#define SZE_OUT_OVERFLOW SZE_DATA_ERROR
-
 int Lzma86_Encode(Byte *dest, size_t *destLen, const Byte *src, size_t srcLen,
     int level, UInt32 dictSize, int filterMode)
 {

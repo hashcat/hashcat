@@ -1,12 +1,12 @@
 /* Alloc.c -- Memory allocation functions
-2018-04-27 : Igor Pavlov : Public domain */
+2020-10-29 : Igor Pavlov : Public domain */
 
 #include "Precomp.h"
 
 #include <stdio.h>
 
 #ifdef _WIN32
-#include <windows.h>
+#include <Windows.h>
 #endif
 #include <stdlib.h>
 
@@ -122,7 +122,6 @@ static void PrintAddr(void *p)
 #define Print(s)
 #define PrintLn()
 #define PrintHex(v, align)
-#define PrintDec(v, align)
 #define PrintAddr(p)
 
 #endif
@@ -133,10 +132,11 @@ void *MyAlloc(size_t size)
 {
   if (size == 0)
     return NULL;
+  PRINT_ALLOC("Alloc    ", g_allocCount, size, NULL);
   #ifdef _SZ_ALLOC_DEBUG
   {
     void *p = malloc(size);
-    PRINT_ALLOC("Alloc    ", g_allocCount, size, p);
+    // PRINT_ALLOC("Alloc    ", g_allocCount, size, p);
     return p;
   }
   #else
@@ -172,14 +172,20 @@ void MidFree(void *address)
   VirtualFree(address, 0, MEM_RELEASE);
 }
 
-#ifndef MEM_LARGE_PAGES
-#undef _7ZIP_LARGE_PAGES
+#ifdef _7ZIP_LARGE_PAGES
+
+#ifdef MEM_LARGE_PAGES
+  #define MY__MEM_LARGE_PAGES  MEM_LARGE_PAGES
+#else
+  #define MY__MEM_LARGE_PAGES  0x20000000
 #endif
 
-#ifdef _7ZIP_LARGE_PAGES
+extern
+SIZE_T g_LargePageSize;
 SIZE_T g_LargePageSize = 0;
-typedef SIZE_T (WINAPI *GetLargePageMinimumP)();
-#endif
+typedef SIZE_T (WINAPI *GetLargePageMinimumP)(VOID);
+
+#endif // _7ZIP_LARGE_PAGES
 
 void SetLargePageSize()
 {
@@ -214,7 +220,7 @@ void *BigAlloc(size_t size)
       size2 = (size + ps) & ~ps;
       if (size2 >= size)
       {
-        void *res = VirtualAlloc(NULL, size2, MEM_COMMIT | MEM_LARGE_PAGES, PAGE_READWRITE);
+        void *res = VirtualAlloc(NULL, size2, MEM_COMMIT | MY__MEM_LARGE_PAGES, PAGE_READWRITE);
         if (res)
           return res;
       }
@@ -280,11 +286,13 @@ const ISzAlloc g_BigAlloc = { SzBigAlloc, SzBigFree };
 */
 #define MY_ALIGN_PTR_DOWN(p, align) ((void *)((((UIntPtr)(p)) & ~((UIntPtr)(align) - 1))))
 
-#define MY_ALIGN_PTR_UP_PLUS(p, align) MY_ALIGN_PTR_DOWN(((char *)(p) + (align) + ADJUST_ALLOC_SIZE), align)
 
-
-#if (_POSIX_C_SOURCE >= 200112L) && !defined(_WIN32)
+#if !defined(_WIN32) && defined(_POSIX_C_SOURCE) && (_POSIX_C_SOURCE >= 200112L)
   #define USE_posix_memalign
+#endif
+
+#ifndef USE_posix_memalign
+#define MY_ALIGN_PTR_UP_PLUS(p, align) MY_ALIGN_PTR_DOWN(((char *)(p) + (align) + ADJUST_ALLOC_SIZE), align)
 #endif
 
 /*

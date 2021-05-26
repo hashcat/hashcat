@@ -331,7 +331,7 @@ KERNEL_FQ void m22500_mxx (KERN_ATTR_VECTOR ())
       if (out[3] != 0x41202145) continue; // "A !E"
     }
 
-    if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
     {
       mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, il_pos, 0, 0);
     }
@@ -642,7 +642,7 @@ KERNEL_FQ void m22500_sxx (KERN_ATTR_VECTOR ())
       if (out[3] != 0x41202145) continue; // "A !E"
     }
 
-    if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
     {
       mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, il_pos, 0, 0);
     }
