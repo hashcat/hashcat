@@ -1,5 +1,5 @@
 /* Lzma2Enc.c -- LZMA2 Encoder
-2018-07-04 : Igor Pavlov : Public domain */
+2021-02-09 : Igor Pavlov : Public domain */
 
 #include "Precomp.h"
 
@@ -330,7 +330,7 @@ void Lzma2EncProps_Normalize(CLzma2EncProps *p)
         numBlocks++;
       if (numBlocks < (unsigned)t2)
       {
-        t2r = (unsigned)numBlocks;
+        t2r = (int)numBlocks;
         if (t2r == 0)
           t2r = 1;
         t3 = t1 * t2r;
@@ -632,15 +632,15 @@ static SRes Lzma2Enc_EncodeMt1(
       {
         if (outBuf)
         {
-          size_t destPos = *outBufSize;
+          const size_t destPos = *outBufSize;
           if (destPos >= outLim)
             return SZ_ERROR_OUTPUT_EOF;
-          outBuf[destPos] = 0;
+          outBuf[destPos] = LZMA2_CONTROL_EOF; // 0
           *outBufSize = destPos + 1;
         }
         else
         {
-          Byte b = 0;
+          const Byte b = LZMA2_CONTROL_EOF; // 0;
           if (ISeqOutStream_Write(outStream, &b, 1) != 1)
             return SZ_ERROR_WRITE;
         }
@@ -780,13 +780,13 @@ SRes Lzma2Enc_Encode2(CLzma2EncHandle pp,
       p->outBufSize = destBlockSize;
     }
 
-    p->mtCoder.numThreadsMax = p->props.numBlockThreads_Max;
+    p->mtCoder.numThreadsMax = (unsigned)p->props.numBlockThreads_Max;
     p->mtCoder.expectedDataSize = p->expectedDataSize;
     
     {
       SRes res = MtCoder_Code(&p->mtCoder);
       if (!outStream)
-        *outBufSize = p->outBuf - outBuf;
+        *outBufSize = (size_t)(p->outBuf - outBuf);
       return res;
     }
   }

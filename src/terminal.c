@@ -18,8 +18,8 @@
 
 static const size_t TERMINAL_LINE_LENGTH = 79;
 
-static const char *PROMPT_ACTIVE = "[s]tatus [p]ause [b]ypass [c]heckpoint [q]uit => ";
-static const char *PROMPT_PAUSED = "[s]tatus [r]esume [b]ypass [c]heckpoint [q]uit => ";
+static const char *PROMPT_ACTIVE = "[s]tatus [p]ause [b]ypass [c]heckpoint [f]inish [q]uit => ";
+static const char *PROMPT_PAUSED = "[s]tatus [r]esume [b]ypass [c]heckpoint [f]inish [q]uit => ";
 
 void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
 {
@@ -292,6 +292,27 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
 
         break;
 
+      case 'f':
+
+        event_log_info (hashcat_ctx, NULL);
+
+        finish_after_attack (hashcat_ctx);
+
+        if (status_ctx->finish_shutdown == true)
+        {
+          event_log_info (hashcat_ctx, "Finish enabled. Will quit after this attack.");
+        }
+        else
+        {
+          event_log_info (hashcat_ctx, "Finish disabled. Will continue after this attack.");
+        }
+
+        event_log_info (hashcat_ctx, NULL);
+
+        if (quiet == false) send_prompt (hashcat_ctx);
+
+        break;
+
       case 'q':
 
         event_log_info (hashcat_ctx, NULL);
@@ -537,67 +558,119 @@ void compress_terminal_line_length (char *out_buf, const size_t keep_from_beginn
   *ptr1 = 0;
 }
 
-void example_hashes (hashcat_ctx_t *hashcat_ctx)
+void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_t *user_options)
+{
+  if (hashconfig_init (hashcat_ctx) == 0)
+  {
+    hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+
+    event_log_info (hashcat_ctx, "Hash mode #%u", hashconfig->hash_mode);
+    event_log_info (hashcat_ctx, "  Name................: %s", hashconfig->hash_name);
+    event_log_info (hashcat_ctx, "  Category............: %s", strhashcategory (hashconfig->hash_category));
+    event_log_info (hashcat_ctx, "  Slow.Hash...........: %s", (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL) ? "No" : "Yes");
+
+    event_log_info (hashcat_ctx, "  Password.Len.Min....: %d", hashconfig->pw_min);
+    event_log_info (hashcat_ctx, "  Password.Len.Max....: %d", hashconfig->pw_max);
+
+    if (hashconfig->is_salted == true)
+    {
+      u32 t = hashconfig->salt_type;
+      char *t_desc = (t == SALT_TYPE_EMBEDDED) ? "Embedded\0" : (t == SALT_TYPE_GENERIC) ? "Generic\0" : "Virtual\0";
+      event_log_info (hashcat_ctx, "  Salt.Type...........: %s", t_desc);
+      event_log_info (hashcat_ctx, "  Salt.Len.Min........: %d", hashconfig->salt_min);
+      event_log_info (hashcat_ctx, "  Salt.Len.Max........: %d", hashconfig->salt_max);
+    }
+
+    // almost always 1 and -1
+    //event_log_info (hashcat_ctx, "  Hashes.Count.Min....: %d", hashconfig->hashes_count_min);
+    //event_log_info (hashcat_ctx, "  Hashes.Count.Max....: %u", hashconfig->hashes_count_max);
+
+    if ((hashconfig->has_pure_kernel) && (hashconfig->has_optimized_kernel))
+    {
+      event_log_info (hashcat_ctx, "  Kernel.Type(s)......: pure, optimized");
+    }
+    else if (hashconfig->has_pure_kernel)
+    {
+      event_log_info (hashcat_ctx, "  Kernel.Type(s)......: pure");
+    }
+    else if (hashconfig->has_optimized_kernel)
+    {
+      event_log_info (hashcat_ctx, "  Kernel.Type(s)......: optimized");
+    }
+
+    if ((hashconfig->st_hash != NULL) && (hashconfig->st_pass != NULL))
+    {
+      if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
+      {
+        event_log_info (hashcat_ctx, "  Example.Hash.Format.: hex-encoded");
+        event_log_info (hashcat_ctx, "  Example.Hash........: %s", hashconfig->st_hash);
+      }
+      else
+      {
+        event_log_info (hashcat_ctx, "  Example.Hash.Format.: plain");
+        event_log_info (hashcat_ctx, "  Example.Hash........: %s", hashconfig->st_hash);
+      }
+
+      if (need_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), user_options->separator, false))
+      {
+        char tmp_buf[HCBUFSIZ_LARGE] = { 0 };
+
+        int tmp_len = 0;
+
+        tmp_buf[tmp_len++] = '$';
+        tmp_buf[tmp_len++] = 'H';
+        tmp_buf[tmp_len++] = 'E';
+        tmp_buf[tmp_len++] = 'X';
+        tmp_buf[tmp_len++] = '[';
+
+        exec_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), (u8 *) tmp_buf + tmp_len);
+
+        tmp_len += strlen (hashconfig->st_pass) * 2;
+
+        tmp_buf[tmp_len++] = ']';
+        tmp_buf[tmp_len++] = 0;
+
+        event_log_info (hashcat_ctx, "  Example.Pass........: %s", tmp_buf);
+      }
+      else
+      {
+        event_log_info (hashcat_ctx, "  Example.Pass........: %s", hashconfig->st_pass);
+      }
+    }
+    else
+    {
+      event_log_info (hashcat_ctx, "  Example.Hash.Format.: N/A");
+      event_log_info (hashcat_ctx, "  Example.Hash........: N/A");
+      event_log_info (hashcat_ctx, "  Example.Pass........: N/A");
+    }
+
+    if (hashconfig->benchmark_mask != NULL)
+    {
+      event_log_info (hashcat_ctx, "  Benchmark.Mask......: %s", hashconfig->benchmark_mask);
+    }
+    else
+    {
+      event_log_info (hashcat_ctx, "  Benchmark.Mask......: N/A");
+    }
+
+    event_log_info (hashcat_ctx, NULL);
+  }
+
+  hashconfig_destroy (hashcat_ctx);
+}
+
+void hash_info (hashcat_ctx_t *hashcat_ctx)
 {
   folder_config_t *folder_config = hashcat_ctx->folder_config;
   user_options_t  *user_options  = hashcat_ctx->user_options;
 
+  event_log_info (hashcat_ctx, "Hash Info:");
+  event_log_info (hashcat_ctx, "==========");
+  event_log_info (hashcat_ctx, NULL);
+
   if (user_options->hash_mode_chgd == true)
   {
-    if (hashconfig_init (hashcat_ctx) == 0)
-    {
-      hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
-
-      event_log_info (hashcat_ctx, "MODE: %u", hashconfig->hash_mode);
-      event_log_info (hashcat_ctx, "TYPE: %s", hashconfig->hash_name);
-
-      if ((hashconfig->st_hash != NULL) && (hashconfig->st_pass != NULL))
-      {
-        if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
-        {
-          event_log_info (hashcat_ctx, "HASH (hex-encoded): %s", hashconfig->st_hash);
-        }
-        else
-        {
-          event_log_info (hashcat_ctx, "HASH: %s", hashconfig->st_hash);
-        }
-
-        if (need_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), user_options->separator, false))
-        {
-          char tmp_buf[HCBUFSIZ_LARGE] = { 0 };
-
-          int tmp_len = 0;
-
-          tmp_buf[tmp_len++] = '$';
-          tmp_buf[tmp_len++] = 'H';
-          tmp_buf[tmp_len++] = 'E';
-          tmp_buf[tmp_len++] = 'X';
-          tmp_buf[tmp_len++] = '[';
-
-          exec_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), (u8 *) tmp_buf + tmp_len);
-
-          tmp_len += strlen (hashconfig->st_pass) * 2;
-
-          tmp_buf[tmp_len++] = ']';
-          tmp_buf[tmp_len++] = 0;
-
-          event_log_info (hashcat_ctx, "PASS: %s", tmp_buf);
-        }
-        else
-        {
-          event_log_info (hashcat_ctx, "PASS: %s", hashconfig->st_pass);
-        }
-      }
-      else
-      {
-        event_log_info (hashcat_ctx, "HASH: not stored");
-        event_log_info (hashcat_ctx, "PASS: not stored");
-      }
-
-      event_log_info (hashcat_ctx, NULL);
-    }
-
-    hashconfig_destroy (hashcat_ctx);
+    hash_info_single (hashcat_ctx, user_options);
   }
   else
   {
@@ -611,53 +684,7 @@ void example_hashes (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_exist (modulefile) == false) continue;
 
-      if (hashconfig_init (hashcat_ctx) == 0)
-      {
-        hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
-
-        event_log_info (hashcat_ctx, "MODE: %u", hashconfig->hash_mode);
-        event_log_info (hashcat_ctx, "TYPE: %s", hashconfig->hash_name);
-
-        if ((hashconfig->st_hash != NULL) && (hashconfig->st_pass != NULL))
-        {
-          event_log_info (hashcat_ctx, "HASH: %s", hashconfig->st_hash);
-
-          if (need_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), user_options->separator, false))
-          {
-            char tmp_buf[HCBUFSIZ_LARGE] = { 0 };
-
-            int tmp_len = 0;
-
-            tmp_buf[tmp_len++] = '$';
-            tmp_buf[tmp_len++] = 'H';
-            tmp_buf[tmp_len++] = 'E';
-            tmp_buf[tmp_len++] = 'X';
-            tmp_buf[tmp_len++] = '[';
-
-            exec_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), (u8 *) tmp_buf + tmp_len);
-
-            tmp_len += strlen (hashconfig->st_pass) * 2;
-
-            tmp_buf[tmp_len++] = ']';
-            tmp_buf[tmp_len++] = 0;
-
-            event_log_info (hashcat_ctx, "PASS: %s", tmp_buf);
-          }
-          else
-          {
-            event_log_info (hashcat_ctx, "PASS: %s", hashconfig->st_pass);
-          }
-        }
-        else
-        {
-          event_log_info (hashcat_ctx, "HASH: not stored");
-          event_log_info (hashcat_ctx, "PASS: not stored");
-        }
-
-        event_log_info (hashcat_ctx, NULL);
-      }
-
-      hashconfig_destroy (hashcat_ctx);
+      hash_info_single (hashcat_ctx, user_options);
     }
 
     hcfree (modulefile);
@@ -1210,6 +1237,15 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     hashcat_status->time_estimated_relative);
   }
 
+  if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+  {
+    event_log_info (hashcat_ctx, "Kernel.Feature...: Optimized Kernel");
+  }
+  else
+  {
+    event_log_info (hashcat_ctx, "Kernel.Feature...: Pure Kernel");
+  }
+
   switch (hashcat_status->guess_mode)
   {
     case GUESS_MODE_STRAIGHT_FILE:
@@ -1704,6 +1740,16 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       device_info->innerloop_pos_dev + device_info->innerloop_left_dev,
       device_info->iteration_pos_dev,
       device_info->iteration_pos_dev + device_info->iteration_left_dev);
+  }
+
+  //if (hashconfig->opts_type & OPTS_TYPE_SLOW_CANDIDATES)
+  if (user_options->slow_candidates == true)
+  {
+    event_log_info (hashcat_ctx, "Candidate.Engine.: Host Generator + PCIe");
+  }
+  else
+  {
+    event_log_info (hashcat_ctx, "Candidate.Engine.: Device Generator");
   }
 
   for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)

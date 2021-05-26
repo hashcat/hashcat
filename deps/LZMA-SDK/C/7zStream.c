@@ -1,5 +1,5 @@
 /* 7zStream.c -- 7z Stream functions
-2017-04-03 : Igor Pavlov : Public domain */
+2021-02-09 : Igor Pavlov : Public domain */
 
 #include "Precomp.h"
 
@@ -37,7 +37,7 @@ SRes SeqInStream_ReadByte(const ISeqInStream *stream, Byte *buf)
 
 SRes LookInStream_SeekTo(const ILookInStream *stream, UInt64 offset)
 {
-  Int64 t = offset;
+  Int64 t = (Int64)offset;
   return ILookInStream_Seek(stream, &t, SZ_SEEK_SET);
 }
 

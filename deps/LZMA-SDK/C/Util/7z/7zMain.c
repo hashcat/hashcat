@@ -1,5 +1,5 @@
 /* 7zMain.c - Test application for 7z Decoder
-2019-02-02 : Igor Pavlov : Public domain */
+2021-04-29 : Igor Pavlov : Public domain */
 
 #include "Precomp.h"
 
@@ -20,6 +20,13 @@
 #ifdef _WIN32
 #include <direct.h>
 #else
+#include <stdlib.h>
+#include <time.h>
+#ifdef __GNUC__
+#include <sys/time.h>
+#endif
+#include <fcntl.h>
+// #include <utime.h>
 #include <sys/stat.h>
 #include <errno.h>
 #endif
@@ -108,7 +115,7 @@ static Byte *Utf16_To_Utf8(Byte *dest, const UInt16 *src, const UInt16 *srcLim)
     
     if (val < 0x80)
     {
-      *dest++ = (char)val;
+      *dest++ = (Byte)val;
       continue;
     }
 
@@ -162,21 +169,21 @@ static SRes Utf16_To_Char(CBuf *buf, const UInt16 *s
     )
 {
   unsigned len = 0;
-  for (len = 0; s[len] != 0; len++);
+  for (len = 0; s[len] != 0; len++) {}
 
   #ifndef _USE_UTF8
   {
-    unsigned size = len * 3 + 100;
+    const unsigned size = len * 3 + 100;
     if (!Buf_EnsureSize(buf, size))
       return SZ_ERROR_MEM;
     {
       buf->data[0] = 0;
       if (len != 0)
       {
-        char defaultChar = '_';
+        const char defaultChar = '_';
         BOOL defUsed;
-        unsigned numChars = 0;
-        numChars = WideCharToMultiByte(codePage, 0, (LPCWSTR)s, len, (char *)buf->data, size, &defaultChar, &defUsed);
+        const unsigned numChars = (unsigned)WideCharToMultiByte(
+            codePage, 0, (LPCWSTR)s, (int)len, (char *)buf->data, (int)size, &defaultChar, &defUsed);
         if (numChars == 0 || numChars >= size)
           return SZ_ERROR_FAIL;
         buf->data[numChars] = 0;
@@ -192,8 +199,8 @@ static SRes Utf16_To_Char(CBuf *buf, const UInt16 *s
 #ifdef _WIN32
   #ifndef USE_WINDOWS_FILE
     static UINT g_FileCodePage = CP_ACP;
+    #define MY_FILE_CODE_PAGE_PARAM ,g_FileCodePage
   #endif
-  #define MY_FILE_CODE_PAGE_PARAM ,g_FileCodePage
 #else
   #define MY_FILE_CODE_PAGE_PARAM
 #endif
@@ -300,17 +307,142 @@ static void UIntToStr_2(char *s, unsigned value)
   s[1] = (char)('0' + (value % 10));
 }
 
+
 #define PERIOD_4 (4 * 365 + 1)
 #define PERIOD_100 (PERIOD_4 * 25 - 1)
 #define PERIOD_400 (PERIOD_100 * 4 + 1)
 
-static void ConvertFileTimeToString(const CNtfsFileTime *nt, char *s)
+
+
+#ifndef _WIN32
+
+// MS uses long for BOOL, but long is 32-bit in MS. So we use int.
+// typedef long BOOL;
+typedef int BOOL;
+
+typedef struct _FILETIME
+{
+  DWORD dwLowDateTime;
+  DWORD dwHighDateTime;
+} FILETIME;
+
+static LONG TIME_GetBias()
+{
+  time_t utc = time(NULL);
+  struct tm *ptm = localtime(&utc);
+  int localdaylight = ptm->tm_isdst; /* daylight for local timezone */
+  ptm = gmtime(&utc);
+  ptm->tm_isdst = localdaylight; /* use local daylight, not that of Greenwich */
+  LONG bias = (int)(mktime(ptm)-utc);
+  return bias;
+}
+
+#define TICKS_PER_SEC 10000000
+
+#define GET_TIME_64(pft) ((pft)->dwLowDateTime | ((UInt64)(pft)->dwHighDateTime << 32))
+
+#define SET_FILETIME(ft, v64) \
+   (ft)->dwLowDateTime = (DWORD)v64; \
+   (ft)->dwHighDateTime = (DWORD)(v64 >> 32);
+
+#define WINAPI
+#define TRUE 1
+
+static BOOL WINAPI FileTimeToLocalFileTime(const FILETIME *fileTime, FILETIME *localFileTime)
+{
+  UInt64 v = GET_TIME_64(fileTime);
+  v = (UInt64)((Int64)v - (Int64)TIME_GetBias() * TICKS_PER_SEC);
+  SET_FILETIME(localFileTime, v);
+  return TRUE;
+}
+
+static const UInt32 kNumTimeQuantumsInSecond = 10000000;
+static const UInt32 kFileTimeStartYear = 1601;
+static const UInt32 kUnixTimeStartYear = 1970;
+static const UInt64 kUnixTimeOffset =
+    (UInt64)60 * 60 * 24 * (89 + 365 * (kUnixTimeStartYear - kFileTimeStartYear));
+
+static Int64 Time_FileTimeToUnixTime64(const FILETIME *ft)
+{
+  UInt64 winTime = GET_TIME_64(ft);
+  return (Int64)(winTime / kNumTimeQuantumsInSecond) - (Int64)kUnixTimeOffset;
+}
+
+#if defined(_AIX)
+  #define MY_ST_TIMESPEC st_timespec
+#else
+  #define MY_ST_TIMESPEC timespec
+#endif
+
+static void FILETIME_To_timespec(const FILETIME *ft, struct MY_ST_TIMESPEC *ts)
+{
+  if (ft)
+  {
+    const Int64 sec = Time_FileTimeToUnixTime64(ft);
+    // time_t is long
+    const time_t sec2 = (time_t)sec;
+    if (sec2 == sec)
+    {
+      ts->tv_sec = sec2;
+      UInt64 winTime = GET_TIME_64(ft);
+      ts->tv_nsec = (long)((winTime % 10000000) * 100);;
+      return;
+    }
+  }
+  // else
+  {
+    ts->tv_sec = 0;
+    // ts.tv_nsec = UTIME_NOW; // set to the current time
+    ts->tv_nsec = UTIME_OMIT; // keep old timesptamp
+  }
+}
+
+static WRes Set_File_FILETIME(const UInt16 *name, const FILETIME *mTime)
+{
+  struct timespec times[2];
+  
+  const int flags = 0; // follow link
+    // = AT_SYMLINK_NOFOLLOW; // don't follow link
+
+  CBuf buf;
+  int res;
+  Buf_Init(&buf);
+  RINOK(Utf16_To_Char(&buf, name MY_FILE_CODE_PAGE_PARAM));
+  FILETIME_To_timespec(NULL, &times[0]);
+  FILETIME_To_timespec(mTime, &times[1]);
+  res = utimensat(AT_FDCWD, (const char *)buf.data, times, flags);
+  Buf_Free(&buf, &g_Alloc);
+  if (res == 0)
+    return 0;
+  return errno;
+}
+
+#endif
+
+static void NtfsFileTime_to_FILETIME(const CNtfsFileTime *t, FILETIME *ft)
+{
+  ft->dwLowDateTime = (DWORD)(t->Low);
+  ft->dwHighDateTime = (DWORD)(t->High);
+}
+
+static void ConvertFileTimeToString(const CNtfsFileTime *nTime, char *s)
 {
   unsigned year, mon, hour, min, sec;
   Byte ms[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
   unsigned t;
   UInt32 v;
-  UInt64 v64 = nt->Low | ((UInt64)nt->High << 32);
+  // UInt64 v64 = nt->Low | ((UInt64)nt->High << 32);
+  UInt64 v64;
+  {
+    FILETIME fileTime, locTime;
+    NtfsFileTime_to_FILETIME(nTime, &fileTime);
+    if (!FileTimeToLocalFileTime(&fileTime, &locTime))
+    {
+      locTime.dwHighDateTime =
+      locTime.dwLowDateTime = 0;
+    }
+    v64 = locTime.dwLowDateTime | ((UInt64)locTime.dwHighDateTime << 32);
+  }
   v64 /= 10000000;
   sec = (unsigned)(v64 % 60); v64 /= 60;
   min = (unsigned)(v64 % 60); v64 /= 60;
@@ -351,6 +483,43 @@ static void PrintError(char *s)
 {
   Print("\nERROR: ");
   Print(s);
+  PrintLF();
+}
+
+static void PrintError_WRes(const char *message, WRes wres)
+{
+  Print("\nERROR: ");
+  Print(message);
+  PrintLF();
+  {
+    char s[32];
+    UIntToStr(s, (unsigned)wres, 1);
+    Print("System error code: ");
+    Print(s);
+  }
+  // sprintf(buffer + strlen(buffer), "\nSystem error code: %d", (unsigned)wres);
+  #ifdef _WIN32
+  {
+    char *s = NULL;
+    if (FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+        FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+        NULL, wres, 0, (LPSTR) &s, 0, NULL) != 0 && s)
+    {
+      Print(" : ");
+      Print(s);
+      LocalFree(s);
+    }
+  }
+  #else
+  {
+    const char *s = strerror(wres);
+    if (s)
+    {
+      Print(" : ");
+      Print(s);
+    }
+  }
+  #endif
   PrintLF();
 }
 
@@ -413,17 +582,22 @@ int MY_CDECL main(int numargs, char *args[])
   allocImp = g_Alloc;
   allocTempImp = g_Alloc;
 
-  #ifdef UNDER_CE
-  if (InFile_OpenW(&archiveStream.file, L"\test.7z"))
-  #else
-  if (InFile_Open(&archiveStream.file, args[2]))
-  #endif
   {
-    PrintError("can not open input file");
-    return 1;
+    WRes wres =
+    #ifdef UNDER_CE
+      InFile_OpenW(&archiveStream.file, L"\test.7z"); // change it
+    #else
+      InFile_Open(&archiveStream.file, args[2]);
+    #endif
+    if (wres != 0)
+    {
+      PrintError_WRes("cannot open input file", wres);
+      return 1;
+    }
   }
 
   FileInStream_CreateVTable(&archiveStream);
+  archiveStream.wres = 0;
   LookToRead2_CreateVTable(&lookStream, False);
   lookStream.buf = NULL;
 
@@ -483,7 +657,7 @@ int MY_CDECL main(int numargs, char *args[])
         size_t outSizeProcessed = 0;
         // const CSzFileItem *f = db.Files + i;
         size_t len;
-        unsigned isDir = SzArEx_IsDir(&db, i);
+        const BoolInt isDir = SzArEx_IsDir(&db, i);
         if (listCommand == 0 && isDir && !fullPaths)
           continue;
         len = SzArEx_GetFileNameUtf16(&db, i, NULL);
@@ -546,8 +720,8 @@ int MY_CDECL main(int numargs, char *args[])
         }
 
         Print(testCommand ?
-            "Testing    ":
-            "Extracting ");
+            "T ":
+            "- ");
         res = PrintString(temp);
         if (res != SZ_OK)
           break;
@@ -591,27 +765,37 @@ int MY_CDECL main(int numargs, char *args[])
             PrintLF();
             continue;
           }
-          else if (OutFile_OpenUtf16(&outFile, destPath))
+          else
           {
-            PrintError("can not open output file");
-            res = SZ_ERROR_FAIL;
-            break;
+            WRes wres = OutFile_OpenUtf16(&outFile, destPath);
+            if (wres != 0)
+            {
+              PrintError_WRes("cannot open output file", wres);
+              res = SZ_ERROR_FAIL;
+              break;
+            }
           }
 
           processedSize = outSizeProcessed;
           
-          if (File_Write(&outFile, outBuffer + offset, &processedSize) != 0 || processedSize != outSizeProcessed)
           {
-            PrintError("can not write output file");
-            res = SZ_ERROR_FAIL;
-            break;
+            WRes wres = File_Write(&outFile, outBuffer + offset, &processedSize);
+            if (wres != 0 || processedSize != outSizeProcessed)
+            {
+              PrintError_WRes("cannot write output file", wres);
+              res = SZ_ERROR_FAIL;
+              break;
+            }
           }
 
-          #ifdef USE_WINDOWS_FILE
           {
-            FILETIME mtime, ctime;
+            FILETIME mtime;
             FILETIME *mtimePtr = NULL;
+            
+            #ifdef USE_WINDOWS_FILE
+            FILETIME ctime;
             FILETIME *ctimePtr = NULL;
+            #endif
 
             if (SzBitWithVals_Check(&db.MTime, i))
             {
@@ -620,6 +804,8 @@ int MY_CDECL main(int numargs, char *args[])
               mtime.dwHighDateTime = (DWORD)(t->High);
               mtimePtr = &mtime;
             }
+
+            #ifdef USE_WINDOWS_FILE
             if (SzBitWithVals_Check(&db.CTime, i))
             {
               const CNtfsFileTime *t = &db.CTime.Vals[i];
@@ -627,16 +813,29 @@ int MY_CDECL main(int numargs, char *args[])
               ctime.dwHighDateTime = (DWORD)(t->High);
               ctimePtr = &ctime;
             }
+
             if (mtimePtr || ctimePtr)
               SetFileTime(outFile.handle, ctimePtr, NULL, mtimePtr);
-          }
-          #endif
+            #endif
           
-          if (File_Close(&outFile))
-          {
-            PrintError("can not close output file");
-            res = SZ_ERROR_FAIL;
-            break;
+            {
+              WRes wres = File_Close(&outFile);
+              if (wres != 0)
+              {
+                PrintError_WRes("cannot close output file", wres);
+                res = SZ_ERROR_FAIL;
+                break;
+              }
+            }
+
+            #ifndef USE_WINDOWS_FILE
+            #ifdef _WIN32
+            mtimePtr = mtimePtr;
+            #else
+            if (mtimePtr)
+              Set_File_FILETIME(destPath, mtimePtr);
+            #endif
+            #endif
           }
           
           #ifdef USE_WINDOWS_FILE
@@ -672,13 +871,15 @@ int MY_CDECL main(int numargs, char *args[])
   if (res == SZ_ERROR_UNSUPPORTED)
     PrintError("decoder doesn't support this archive");
   else if (res == SZ_ERROR_MEM)
-    PrintError("can not allocate memory");
+    PrintError("cannot allocate memory");
   else if (res == SZ_ERROR_CRC)
     PrintError("CRC error");
+  else if (res == SZ_ERROR_READ /* || archiveStream.Res != 0 */)
+    PrintError_WRes("Read Error", archiveStream.wres);
   else
   {
     char s[32];
-    UInt64ToStr(res, s, 0);
+    UInt64ToStr((unsigned)res, s, 0);
     PrintError(s);
   }
   

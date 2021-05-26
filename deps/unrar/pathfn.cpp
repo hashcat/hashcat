@@ -655,7 +655,7 @@ wchar* VolNameToFirstName(const wchar *VolName,wchar *FirstName,size_t MaxSize,b
   }
   if (!FileExist(FirstName))
   {
-    // If the first volume, which name we just generated, is not exist,
+    // If the first volume, which name we just generated, does not exist,
     // check if volume with same name and any other extension is available.
     // It can help in case of *.exe or *.sfx first volume.
     wchar Mask[NM];
