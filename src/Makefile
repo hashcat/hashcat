@@ -9,8 +9,6 @@ PRODUCTION              := 0
 PRODUCTION_VERSION      := v6.2.1
 ENABLE_CUBIN            ?= 1
 ENABLE_BRAIN            ?= 1
-# unrar is having serious problems with multi threading which lead to false negatives
-# poc: https://github.com/hashcat/hashcat/issues/2796
 ENABLE_UNRAR            ?= 1
 USE_SYSTEM_LZMA         ?= 0
 USE_SYSTEM_ZLIB         ?= 0

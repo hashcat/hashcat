@@ -23,6 +23,7 @@
 - Status Screen: Show currently running kernel type (pure, optimized) and generator type (host, device)
 - UTF8-to-UTF16: Replaced naive UTF8 to UTF16 conversion with true conversion for RAR3, AES Crypt, MultiBit HD (scrypt) and Umbraco HMAC-SHA1
 - AES Crypt Plugin: Reduced max password length from 256 to 128 which improved performance by 22%
+- RAR3-p (Compressed): Fix workaround in unrar library in AES constant table generation to enable multi-threading support
 
 ##
 ## Technical
@@ -32,7 +33,6 @@
 - Dependencies: Updated xxHash from 0.1.0 to v0.8.0 - Stable XXH3
 - Documentation: Update missing documentation in plugin developer guide for OPTS_TYPE_MP_MULTI_DISABLE and OPTS_TYPE_NATIVE_THREADS
 - Kernels: Add standalone true UTF8 to UTF16 converter kernel that runs after amplifier. Use OPTS_TYPE_POST_AMP_UTF16LE from plugin
-- RAR3-p (Compressed): Deactivated plugin because unrar is having serious problems with multi threading which lead to false negatives
 
 * changes v6.2.0 -> v6.2.1
 
