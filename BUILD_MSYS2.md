@@ -1,6 +1,6 @@
 # Compiling hashcat with msys2.
 
-Tested on a Windows 7 SP1 x64 machine.
+Tested on a Windows 10 20H2 x64 machine.
 
 ### Installation ###
 

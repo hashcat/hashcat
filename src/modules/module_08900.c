@@ -22,10 +22,13 @@ static const char *HASH_NAME      = "scrypt";
 static const u64   KERN_TYPE      = 8900;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_MP_MULTI_DISABLE
+                                  | OPTS_TYPE_NATIVE_THREADS
+                                  | OPTS_TYPE_LOOP_PREPARE
                                   | OPTS_TYPE_SELF_TEST_DISABLE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "SCRYPT:1024:1:1:Mzg3MjYzNzYwMzE0NDE=:uM7P3Kg2X9En9KZPv3378YablKcuUoQ1mwunXdg3o1M=";
+static const char *ST_HASH        = "SCRYPT:16384:8:1:OTEyNzU0ODg=:Cc8SPjRH1hFQhuIPCdF51uNGtJ2aOY/isuoMlMUsJ8c=";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -42,56 +45,43 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
-// limit scrypt accel otherwise we hurt ourself when calculating the scrypt tmto
-// 16 is actually a bit low, we may need to change this depending on user response
+static const char *SIGNATURE_SCRYPT = "SCRYPT";
 
-static const char *SIGNATURE_SCRYPT   = "SCRYPT";
-static const u32   SCRYPT_MAX_ACCEL   = 16;
-static const u32   SCRYPT_MAX_THREADS = 16;
+static const u64 SCRYPT_N = 16384;
+static const u64 SCRYPT_R = 8;
+static const u64 SCRYPT_P = 1;
 
-u32 module_kernel_accel_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
-  const u32 kernel_accel_min = 1;
+  // AMD Radeon Pro W5700X Compute Engine; 1.2 (Apr 22 2021 21:54:44); 11.3.1; 20E241
+  if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
+  {
+    return true;
+  }
 
-  return kernel_accel_min;
-}
+  // amdgpu-pro-20.50-1234664-ubuntu-20.04 (legacy)
+  // test_1619943729/test_report.log:password not found, cmdline : cat test_1619943729/8900_passwords.txt | ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -O -D 2 --backend-vector-width 1 -a 0 -m 8900 test_1619943729/8900_hashes.txt
+  // test_1619955152/test_report.log:password not found, cmdline : cat test_1619955152/8900_passwords.txt | ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 0 -m 8900 test_1619955152/8900_hashes.txt
+  if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
+  {
+    return true;
+  }
 
-u32 module_kernel_accel_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u32 kernel_accel_max = (user_options->kernel_accel_chgd == true) ? user_options->kernel_accel : SCRYPT_MAX_ACCEL;
-
-  return kernel_accel_max;
+  return false;
 }
 
 u32 module_kernel_loops_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 kernel_loops_min = 1;
+  const u32 kernel_loops_min = 1024;
 
   return kernel_loops_min;
 }
 
 u32 module_kernel_loops_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 kernel_loops_max = 1;
+  const u32 kernel_loops_max = 1024;
 
   return kernel_loops_max;
-}
-
-u32 module_kernel_threads_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u32 kernel_threads_min = 1;
-
-  return kernel_threads_min;
-}
-
-u32 module_kernel_threads_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  // limit scrypt accel otherwise we hurt ourself when calculating the scrypt tmto
-  // 16 is actually a bit low, we may need to change this depending on user response
-
-  const u32 kernel_threads_max = (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : SCRYPT_MAX_THREADS;
-
-  return kernel_threads_max;
 }
 
 u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -109,15 +99,15 @@ u64 module_extra_buffer_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
   // we need to set the self-test hash settings to pass the self-test
   // the decoder for the self-test is called after this function
 
-  const u32 scrypt_N = (hashes->salts_buf[0].scrypt_N) ? hashes->salts_buf[0].scrypt_N : 1024;
-  const u32 scrypt_r = (hashes->salts_buf[0].scrypt_r) ? hashes->salts_buf[0].scrypt_r : 1;
+  const u64 scrypt_N = (hashes->salts_buf[0].scrypt_N) ? hashes->salts_buf[0].scrypt_N : SCRYPT_N;
+  const u64 scrypt_r = (hashes->salts_buf[0].scrypt_r) ? hashes->salts_buf[0].scrypt_r : SCRYPT_R;
 
-  const u64 kernel_power_max = (u64)(device_param->device_processors * hashconfig->kernel_threads_max * hashconfig->kernel_accel_max);
+  const u64 kernel_power_max = ((OPTS_TYPE & OPTS_TYPE_MP_MULTI_DISABLE) ? 1 : device_param->device_processors) * device_param->kernel_threads_max * device_param->kernel_accel_max;
 
-  u32 tmto_start = 1;
-  u32 tmto_stop  = 6;
+  u64 tmto_start = 0;
+  u64 tmto_stop  = 4;
 
-  if (user_options->scrypt_tmto)
+  if (user_options->scrypt_tmto_chgd == true)
   {
     tmto_start = user_options->scrypt_tmto;
     tmto_stop  = user_options->scrypt_tmto;
@@ -145,6 +135,29 @@ u64 module_extra_buffer_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
   const u64 size_hooks = kernel_power_max * hashconfig->hook_size;
 
+  u64 size_pws_pre  = 4;
+  u64 size_pws_base = 4;
+
+  if (user_options->slow_candidates == true)
+  {
+    // size_pws_pre
+
+    size_pws_pre = kernel_power_max * sizeof (pw_pre_t);
+
+    // size_pws_base
+
+    size_pws_base = kernel_power_max * sizeof (pw_pre_t);
+  }
+
+  // sometimes device_available_mem and device_maxmem_alloc reported back from the opencl runtime are a bit inaccurate.
+  // let's add some extra space just to be sure.
+  // now depends on the kernel-accel value (where scrypt and similar benefits), but also hard minimum 64mb and maximum 1024mb limit
+
+  u64 EXTRA_SPACE = (1024ULL * 1024ULL) * device_param->kernel_accel_max;
+
+  EXTRA_SPACE = MAX (EXTRA_SPACE, (  64ULL * 1024ULL * 1024ULL));
+  EXTRA_SPACE = MIN (EXTRA_SPACE, (1024ULL * 1024ULL * 1024ULL));
+
   const u64 scrypt_extra_space
     = device_param->size_bfs
     + device_param->size_combs
@@ -167,19 +180,22 @@ u64 module_extra_buffer_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
     + size_pws_comp
     + size_pws_idx
     + size_tmps
-    + size_hooks;
+    + size_hooks
+    + size_pws_pre
+    + size_pws_base
+    + EXTRA_SPACE;
 
   bool not_enough_memory = true;
 
   u64 size_scrypt = 0;
 
-  u32 tmto;
+  u64 tmto;
 
   for (tmto = tmto_start; tmto <= tmto_stop; tmto++)
   {
-    size_scrypt = (128 * scrypt_r) * scrypt_N;
+    size_scrypt = (128ULL * scrypt_r) * scrypt_N;
 
-    size_scrypt /= 1u << tmto;
+    size_scrypt /= 1ull << tmto;
 
     size_scrypt *= kernel_power_max;
 
@@ -206,12 +222,9 @@ u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED c
 
 u64 module_extra_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes)
 {
-  // we need to set the self-test hash settings to pass the self-test
-  // the decoder for the self-test is called after this function
-
-  const u32 scrypt_N = (hashes->salts_buf[0].scrypt_N) ? hashes->salts_buf[0].scrypt_N : 1024;
-  const u32 scrypt_r = (hashes->salts_buf[0].scrypt_r) ? hashes->salts_buf[0].scrypt_r : 1;
-  const u32 scrypt_p = (hashes->salts_buf[0].scrypt_p) ? hashes->salts_buf[0].scrypt_p : 1;
+  const u64 scrypt_N = (hashes->salts_buf[0].scrypt_N) ? hashes->salts_buf[0].scrypt_N : SCRYPT_N;
+  const u64 scrypt_r = (hashes->salts_buf[0].scrypt_r) ? hashes->salts_buf[0].scrypt_r : SCRYPT_R;
+  const u64 scrypt_p = (hashes->salts_buf[0].scrypt_p) ? hashes->salts_buf[0].scrypt_p : SCRYPT_P;
 
   // we need to check that all hashes have the same scrypt settings
 
@@ -225,7 +238,7 @@ u64 module_extra_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UN
     }
   }
 
-  const u64 tmp_size = (u64)(128 * scrypt_r * scrypt_p);
+  const u64 tmp_size = 128ULL * scrypt_r * scrypt_p;
 
   return tmp_size;
 }
@@ -235,21 +248,26 @@ bool module_jit_cache_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   return true;
 }
 
+bool module_warmup_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  return true;
+}
+
 char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
-  const u32 scrypt_N = (hashes->salts_buf[0].scrypt_N) ? hashes->salts_buf[0].scrypt_N : 1024;
-  const u32 scrypt_r = (hashes->salts_buf[0].scrypt_r) ? hashes->salts_buf[0].scrypt_r : 1;
-  const u32 scrypt_p = (hashes->salts_buf[0].scrypt_p) ? hashes->salts_buf[0].scrypt_p : 1;
+  const u64 scrypt_N = (hashes->salts_buf[0].scrypt_N) ? hashes->salts_buf[0].scrypt_N : SCRYPT_N;
+  const u64 scrypt_r = (hashes->salts_buf[0].scrypt_r) ? hashes->salts_buf[0].scrypt_r : SCRYPT_R;
+  const u64 scrypt_p = (hashes->salts_buf[0].scrypt_p) ? hashes->salts_buf[0].scrypt_p : SCRYPT_P;
 
   const u64 extra_buffer_size = device_param->extra_buffer_size;
 
-  const u64 kernel_power_max = (u64)(device_param->device_processors * hashconfig->kernel_threads_max * hashconfig->kernel_accel_max);
+  const u64 kernel_power_max = ((OPTS_TYPE & OPTS_TYPE_MP_MULTI_DISABLE) ? 1 : device_param->device_processors) * device_param->kernel_threads_max * device_param->kernel_accel_max;
 
-  const u64 size_scrypt = (u64)(128 * scrypt_r * scrypt_N);
+  const u64 size_scrypt = 128ULL * scrypt_r * scrypt_N;
 
   const u64 scrypt_tmto_final = (kernel_power_max * size_scrypt) / extra_buffer_size;
 
-  const u64 tmp_size = (u64)(128 * scrypt_r * scrypt_p);
+  const u64 tmp_size = 128ULL * scrypt_r * scrypt_p;
 
   char *jit_build_options = NULL;
 
@@ -321,6 +339,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   salt->scrypt_r = hc_strtoul ((const char *) r_pos, NULL, 10);
   salt->scrypt_p = hc_strtoul ((const char *) p_pos, NULL, 10);
 
+  salt->salt_iter    = salt->scrypt_N;
+  salt->salt_repeats = salt->scrypt_p - 1;
+
+  if (salt->scrypt_N % 1024) return (PARSER_SALT_VALUE); // we set loop count to 1024 fixed
+
   // salt
 
   const u8 *salt_pos = token.buf[4];
@@ -332,8 +355,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memcpy (salt->salt_buf, tmp_buf, tmp_len);
 
-  salt->salt_len  = tmp_len;
-  salt->salt_iter = 1;
+  salt->salt_len = tmp_len;
 
   // digest - base64 decode
 
@@ -417,12 +439,12 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hook_size                = MODULE_DEFAULT;
   module_ctx->module_jit_build_options        = module_jit_build_options;
   module_ctx->module_jit_cache_disable        = module_jit_cache_disable;
-  module_ctx->module_kernel_accel_max         = module_kernel_accel_max;
-  module_ctx->module_kernel_accel_min         = module_kernel_accel_min;
+  module_ctx->module_kernel_accel_max         = MODULE_DEFAULT;
+  module_ctx->module_kernel_accel_min         = MODULE_DEFAULT;
   module_ctx->module_kernel_loops_max         = module_kernel_loops_max;
   module_ctx->module_kernel_loops_min         = module_kernel_loops_min;
-  module_ctx->module_kernel_threads_max       = module_kernel_threads_max;
-  module_ctx->module_kernel_threads_min       = module_kernel_threads_min;
+  module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
+  module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
   module_ctx->module_opti_type                = module_opti_type;
@@ -442,6 +464,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_hash                  = module_st_hash;
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
-  module_ctx->module_unstable_warning         = MODULE_DEFAULT;
-  module_ctx->module_warmup_disable           = MODULE_DEFAULT;
+  module_ctx->module_unstable_warning         = module_unstable_warning;
+  module_ctx->module_warmup_disable           = module_warmup_disable;
 }

@@ -15,6 +15,7 @@ void ErrorHandler::Clean()
   UserBreak=false;
   MainExit=false;
   DisableShutdown=false;
+  ReadErrIgnoreAll=false;
 }
 
 
@@ -56,24 +57,34 @@ void ErrorHandler::ReadError(const wchar *FileName)
   ReadErrorMsg(FileName);
 #endif
 #if !defined(SILENT) || defined(RARDLL)
-  Exit(RARX_FATAL);
+  Exit(RARX_READ);
 #endif
 }
 
 
-bool ErrorHandler::AskRepeatRead(const wchar *FileName)
+void ErrorHandler::AskRepeatRead(const wchar *FileName,bool &Ignore,bool &Retry,bool &Quit)
 {
+  SetErrorCode(RARX_READ);
 #if !defined(SILENT) && !defined(SFX_MODULE)
   if (!Silent)
   {
+    uiMsg(UIERROR_FILEREAD,UINULL,FileName);
     SysErrMsg();
-    bool Repeat=uiAskRepeatRead(FileName);
-    if (!Repeat) // Disable shutdown if user pressed Cancel in error dialog.
-      DisableShutdown=true;
-    return Repeat;
+    if (ReadErrIgnoreAll)
+      Ignore=true;
+    else
+    {
+      bool All=false;
+      uiAskRepeatRead(FileName,Ignore,All,Retry,Quit);
+      if (All)
+        ReadErrIgnoreAll=Ignore=true;
+      if (Quit) // Disable shutdown if user select Quit in read error prompt.
+        DisableShutdown=true;
+    }
+    return;
   }
 #endif
-  return false;
+  Ignore=true; // Saving the file part for -y or -inul or "Ignore all" choice.
 }
 
 
@@ -189,7 +200,7 @@ void ErrorHandler::ReadErrorMsg(const wchar *ArcName,const wchar *FileName)
 {
   uiMsg(UIERROR_FILEREAD,ArcName,FileName);
   SysErrMsg();
-  SetErrorCode(RARX_FATAL);
+  SetErrorCode(RARX_READ);
 }
 
 

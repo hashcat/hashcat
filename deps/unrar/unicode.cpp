@@ -471,6 +471,7 @@ int wcsnicomp(const wchar *s1,const wchar *s2,size_t n)
 }
 
 
+// Case insensitive wcsstr().
 const wchar_t* wcscasestr(const wchar_t *str, const wchar_t *search)
 {
   for (size_t i=0;str[i]!=0;i++)

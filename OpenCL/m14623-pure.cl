@@ -351,7 +351,7 @@ KERNEL_FQ void m14623_comp (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
 
   if (entropy < MAX_ENTROPY)
   {
-    if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
     {
       mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, 0, gid, 0, 0, 0);
     }

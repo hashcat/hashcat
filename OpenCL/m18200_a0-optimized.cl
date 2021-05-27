@@ -655,7 +655,7 @@ KERNEL_FQ void m18200_m04 (KERN_ATTR_RULES_ESALT (krb5asrep_t))
 
     if (decrypt_and_check (rc4_key, tmp, esalt_bufs[DIGESTS_OFFSET].edata2, esalt_bufs[DIGESTS_OFFSET].edata2_len, K2, checksum) == 1)
     {
-      if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
       {
         mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, il_pos, 0, 0);
       }
@@ -753,7 +753,7 @@ KERNEL_FQ void m18200_s04 (KERN_ATTR_RULES_ESALT (krb5asrep_t))
 
     if (decrypt_and_check (rc4_key, tmp, esalt_bufs[DIGESTS_OFFSET].edata2, esalt_bufs[DIGESTS_OFFSET].edata2_len, K2, checksum) == 1)
     {
-      if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
       {
         mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, il_pos, 0, 0);
       }

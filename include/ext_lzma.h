@@ -4,6 +4,7 @@
  */
 
 #ifndef _EXT_LZMA_H
+#define _EXT_LZMA_H
 
 #include <LzmaDec.h>
 #include <Lzma2Dec.h>
