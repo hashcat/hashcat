@@ -52,13 +52,12 @@ static const char *SIGNATURE_DRUPAL7 = "$S$";
 
 bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
-  if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
+  // amdgpu-pro-20.50-1234664-ubuntu-20.04 (legacy)
+  // test_1619943729/test_report.log:! unhandled return code 255, cmdline : cat test_1619943729/7900_passwords.txt | ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -O -D 2 --backend-vector-width 1 -a 0 -m 7900 test_1619943729/7900_hashes.txt
+  // test_1619955152/test_report.log:! unhandled return code 255, cmdline : cat test_1619955152/7900_passwords.txt | ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 0 -m 7900 test_1619955152/7900_hashes.txt
+  if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
   {
-    // self-test failed
-    if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
-    {
-      return true;
-    }
+    return true;
   }
 
   return false;

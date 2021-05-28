@@ -7,7 +7,7 @@ bool ExtractSymlink(CommandData *Cmd,ComprDataIO &DataIO,Archive &Arc,const wcha
 void SetUnixOwner(Archive &Arc,const wchar *FileName);
 #endif
 
-bool ExtractHardlink(wchar *NameNew,wchar *NameExisting,size_t NameExistingSize);
+bool ExtractHardlink(CommandData *Cmd,wchar *NameNew,wchar *NameExisting,size_t NameExistingSize);
 
 void GetStreamNameNTFS(Archive &Arc,wchar *StreamName,size_t MaxSize);
 

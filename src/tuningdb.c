@@ -54,7 +54,7 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 
   tuning_db->enabled = false;
 
-  if (user_options->example_hashes == true) return 0;
+  if (user_options->hash_info      == true) return 0;
   if (user_options->keyspace       == true) return 0;
   if (user_options->left           == true) return 0;
   if (user_options->backend_info   == true) return 0;
@@ -186,6 +186,10 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
       {
         kernel_accel = 1024;
       }
+      else if (token_ptr[4][0] == 'N')
+      {
+        kernel_accel = -1;
+      }
       else
       {
         kernel_accel = (int) strtol (token_ptr[4], NULL, 10);
@@ -312,7 +316,7 @@ void tuning_db_destroy (hashcat_ctx_t *hashcat_ctx)
   memset (tuning_db, 0, sizeof (tuning_db_t));
 }
 
-tuning_db_entry_t *tuning_db_search (hashcat_ctx_t *hashcat_ctx, const char *device_name, const cl_device_type device_type, int attack_mode, const int hash_mode)
+tuning_db_entry_t *tuning_db_search_real (hashcat_ctx_t *hashcat_ctx, const char *device_name, const cl_device_type device_type, int attack_mode, const int hash_mode)
 {
   tuning_db_t *tuning_db = hashcat_ctx->tuning_db;
 
@@ -333,15 +337,17 @@ tuning_db_entry_t *tuning_db_search (hashcat_ctx_t *hashcat_ctx, const char *dev
 
   // find out if there's an alias configured
 
+  char *device_name_nospace2 = hcstrdup (device_name_nospace);
+
   tuning_db_alias_t a;
 
-  a.device_name = device_name_nospace;
+  a.device_name = device_name_nospace2;
 
   char *alias_name = NULL;
 
   for (i = device_name_length; i >= 1; i--)
   {
-    device_name_nospace[i] = 0;
+    device_name_nospace2[i] = 0;
 
     tuning_db_alias_t *alias = (tuning_db_alias_t *) bsearch (&a, tuning_db->alias_buf, tuning_db->alias_cnt, sizeof (tuning_db_alias_t), sort_by_tuning_db_alias);
 
@@ -351,6 +357,8 @@ tuning_db_entry_t *tuning_db_search (hashcat_ctx_t *hashcat_ctx, const char *dev
 
     break;
   }
+
+  hcfree (device_name_nospace2);
 
   // attack-mode 6 and 7 are attack-mode 1 basically
 
@@ -416,6 +424,24 @@ tuning_db_entry_t *tuning_db_search (hashcat_ctx_t *hashcat_ctx, const char *dev
   // free converted device_name
 
   hcfree (device_name_nospace);
+
+  return entry;
+}
+
+tuning_db_entry_t *tuning_db_search (hashcat_ctx_t *hashcat_ctx, const char *device_name, const cl_device_type device_type, int attack_mode, const int hash_mode)
+{
+  tuning_db_entry_t *entry;
+
+  const char *NV_prefix = (const char *) "NVIDIA ";
+
+  if (memcmp (device_name, NV_prefix, strlen (NV_prefix)) == 0)
+  {
+    entry = tuning_db_search_real (hashcat_ctx, device_name + strlen (NV_prefix), device_type, attack_mode, hash_mode);
+
+    if (entry) return entry;
+  }
+
+  entry = tuning_db_search_real (hashcat_ctx, device_name, device_type, attack_mode, hash_mode);
 
   return entry;
 }

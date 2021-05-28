@@ -144,6 +144,21 @@ int myabort_checkpoint (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
+int myabort_finish (hashcat_ctx_t *hashcat_ctx)
+{
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  status_ctx->devices_status = STATUS_ABORTED_FINISH;
+
+  status_ctx->run_main_level1   = false;
+  status_ctx->run_main_level2   = false;
+  status_ctx->run_main_level3   = false;
+  status_ctx->run_thread_level1 = false;
+  status_ctx->run_thread_level2 = false;
+
+  return 0;
+}
+
 int myabort_runtime (hashcat_ctx_t *hashcat_ctx)
 {
   status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
@@ -209,6 +224,9 @@ int bypass (hashcat_ctx_t *hashcat_ctx)
   status_ctx->run_thread_level1 = false;
   status_ctx->run_thread_level2 = false;
 
+  status_ctx->checkpoint_shutdown = false;
+  status_ctx->finish_shutdown     = false;
+
   return 0;
 }
 
@@ -242,7 +260,7 @@ int ResumeThreads (hashcat_ctx_t *hashcat_ctx)
 
 int stop_at_checkpoint (hashcat_ctx_t *hashcat_ctx)
 {
-  status_ctx_t  *status_ctx  = hashcat_ctx->status_ctx;
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
   if (status_ctx->devices_status != STATUS_RUNNING) return -1;
 
@@ -272,6 +290,38 @@ int stop_at_checkpoint (hashcat_ctx_t *hashcat_ctx)
   else
   {
     status_ctx->checkpoint_shutdown = false;
+
+    status_ctx->run_main_level1   = true;
+    status_ctx->run_main_level2   = true;
+    status_ctx->run_main_level3   = true;
+    status_ctx->run_thread_level1 = true;
+    status_ctx->run_thread_level2 = true;
+  }
+
+  return 0;
+}
+
+int finish_after_attack (hashcat_ctx_t *hashcat_ctx)
+{
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  if (status_ctx->devices_status != STATUS_RUNNING) return -1;
+
+  // Enable or Disable
+
+  if (status_ctx->finish_shutdown == false)
+  {
+    status_ctx->finish_shutdown = true;
+
+    status_ctx->run_main_level1   = false;
+    status_ctx->run_main_level2   = false;
+    status_ctx->run_main_level3   = false;
+    status_ctx->run_thread_level1 = true;
+    status_ctx->run_thread_level2 = true;
+  }
+  else
+  {
+    status_ctx->finish_shutdown = false;
 
     status_ctx->run_main_level1   = true;
     status_ctx->run_main_level2   = true;

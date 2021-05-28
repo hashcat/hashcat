@@ -67,3 +67,8 @@ const wchar *uiGetMonthName(int Month)
   return L"";
 }
 #endif
+
+
+void uiEolAfterMsg()
+{
+}

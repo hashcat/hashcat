@@ -9,7 +9,7 @@
 #include "inc_common.h"
 #include "inc_hash_blake2b.h"
 
-DECLSPEC void blake2b_transform (u64 *h, const u64 *m, const u32 len, const u64 f0)
+DECLSPEC void blake2b_transform (u64 *h, const u64 *m, const int len, const u64 f0)
 {
   const u64 t0 = hl32_to_64_S (0, len);
 
@@ -86,9 +86,11 @@ DECLSPEC void blake2b_init (blake2b_ctx_t *ctx)
   ctx->len = 0;
 }
 
-DECLSPEC void blake2b_update_128 (blake2b_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const u32 len)
+DECLSPEC void blake2b_update_128 (blake2b_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const int len)
 {
-  MAYBE_VOLATILE const u32 pos = ctx->len & 127;
+  if (len == 0) return;
+
+  const int pos = ctx->len & 127;
 
   if (pos == 0)
   {
@@ -195,7 +197,7 @@ DECLSPEC void blake2b_update_128 (blake2b_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2,
   ctx->len += len;
 }
 
-DECLSPEC void blake2b_update (blake2b_ctx_t *ctx, const u32 *w, const u32 len)
+DECLSPEC void blake2b_update (blake2b_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -285,7 +287,7 @@ DECLSPEC void blake2b_update (blake2b_ctx_t *ctx, const u32 *w, const u32 len)
   blake2b_update_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, len - (u32) pos1);
 }
 
-DECLSPEC void blake2b_update_global (blake2b_ctx_t *ctx, GLOBAL_AS const u32 *w, const u32 len)
+DECLSPEC void blake2b_update_global (blake2b_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -457,9 +459,11 @@ DECLSPEC void blake2b_init_vector (blake2b_ctx_vector_t *ctx)
   ctx->len = 0;
 }
 
-DECLSPEC void blake2b_update_vector_128 (blake2b_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, const u32 len)
+DECLSPEC void blake2b_update_vector_128 (blake2b_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, const int len)
 {
-  MAYBE_VOLATILE const u32 pos = ctx->len & 127;
+  if (len == 0) return;
+
+  const int pos = ctx->len & 127;
 
   if (pos == 0)
   {
@@ -566,7 +570,7 @@ DECLSPEC void blake2b_update_vector_128 (blake2b_ctx_vector_t *ctx, u32x *w0, u3
   ctx->len += len;
 }
 
-DECLSPEC void blake2b_update_vector (blake2b_ctx_vector_t *ctx, const u32x *w, const u32 len)
+DECLSPEC void blake2b_update_vector (blake2b_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];

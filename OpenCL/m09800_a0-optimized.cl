@@ -426,7 +426,7 @@ KERNEL_FQ void m09800_m04 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
 
     const u32 final_hash_pos = DIGESTS_OFFSET + digest_pos;
 
-    if (atomic_inc (&hashes_shown[final_hash_pos]) == 0)
+    if (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0)
     {
       mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, digest_pos, final_hash_pos, gid, il_pos, 0, 0);
     }
@@ -725,7 +725,7 @@ KERNEL_FQ void m09800_s04 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
       if (null_bytes < MIN_NULL_BYTES) continue;
     }
 
-    if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
     {
       mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, il_pos, 0, 0);
     }

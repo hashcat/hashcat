@@ -150,28 +150,8 @@ DECLSPEC uint4 hc_swap32_4 (uint4 v)
 }
 #endif
 
-#define SALSA20_8_XOR() \
-{                       \
-  R0 = R0 ^ Y0;         \
-  R1 = R1 ^ Y1;         \
-  R2 = R2 ^ Y2;         \
-  R3 = R3 ^ Y3;         \
-                        \
-  uint4 X0 = R0;        \
-  uint4 X1 = R1;        \
-  uint4 X2 = R2;        \
-  uint4 X3 = R3;        \
-                        \
-  SALSA20_2R ();        \
-  SALSA20_2R ();        \
-  SALSA20_2R ();        \
-  SALSA20_2R ();        \
-                        \
-  R0 = R0 + X0;         \
-  R1 = R1 + X1;         \
-  R2 = R2 + X2;         \
-  R3 = R3 + X3;         \
-}
+#define Coord(xd4,y,z) (((xd4) * ySIZE * zSIZE) + ((y) * zSIZE) + (z))
+#define CO Coord(xd4,y,z)
 
 DECLSPEC void salsa_r (uint4 *TI)
 {
@@ -180,56 +160,72 @@ DECLSPEC void salsa_r (uint4 *TI)
   uint4 R2 = TI[STATE_CNT4 - 2];
   uint4 R3 = TI[STATE_CNT4 - 1];
 
-  uint4 TO[STATE_CNT4];
-
-  int idx_y  = 0;
-  int idx_r1 = 0;
-  int idx_r2 = SCRYPT_R * 4;
-
-  for (int i = 0; i < SCRYPT_R; i++)
+  for (int i = 0; i < STATE_CNT4; i += 4)
   {
-    uint4 Y0;
-    uint4 Y1;
-    uint4 Y2;
-    uint4 Y3;
+    uint4 Y0 = TI[i + 0];
+    uint4 Y1 = TI[i + 1];
+    uint4 Y2 = TI[i + 2];
+    uint4 Y3 = TI[i + 3];
 
-    Y0 = TI[idx_y++];
-    Y1 = TI[idx_y++];
-    Y2 = TI[idx_y++];
-    Y3 = TI[idx_y++];
+    R0 = R0 ^ Y0;
+    R1 = R1 ^ Y1;
+    R2 = R2 ^ Y2;
+    R3 = R3 ^ Y3;
 
-    SALSA20_8_XOR ();
+    uint4 X0 = R0;
+    uint4 X1 = R1;
+    uint4 X2 = R2;
+    uint4 X3 = R3;
 
-    TO[idx_r1++] = R0;
-    TO[idx_r1++] = R1;
-    TO[idx_r1++] = R2;
-    TO[idx_r1++] = R3;
+    SALSA20_2R ();
+    SALSA20_2R ();
+    SALSA20_2R ();
+    SALSA20_2R ();
 
-    Y0 = TI[idx_y++];
-    Y1 = TI[idx_y++];
-    Y2 = TI[idx_y++];
-    Y3 = TI[idx_y++];
+    R0 = R0 + X0;
+    R1 = R1 + X1;
+    R2 = R2 + X2;
+    R3 = R3 + X3;
 
-    SALSA20_8_XOR ();
-
-    TO[idx_r2++] = R0;
-    TO[idx_r2++] = R1;
-    TO[idx_r2++] = R2;
-    TO[idx_r2++] = R3;
+    TI[i + 0] = R0;
+    TI[i + 1] = R1;
+    TI[i + 2] = R2;
+    TI[i + 3] = R3;
   }
 
-  #pragma unroll
-  for (int i = 0; i < STATE_CNT4; i++)
+  #if SCRYPT_R > 1
+
+  uint4 TT[STATE_CNT4 / 2];
+
+  for (int dst_off = 0, src_off = 4; src_off < STATE_CNT4; dst_off += 4, src_off += 8)
   {
-    TI[i] = TO[i];
+    TT[dst_off + 0] = TI[src_off + 0];
+    TT[dst_off + 1] = TI[src_off + 1];
+    TT[dst_off + 2] = TI[src_off + 2];
+    TT[dst_off + 3] = TI[src_off + 3];
   }
+
+  for (int dst_off = 4, src_off = 8; src_off < STATE_CNT4; dst_off += 4, src_off += 8)
+  {
+    TI[dst_off + 0] = TI[src_off + 0];
+    TI[dst_off + 1] = TI[src_off + 1];
+    TI[dst_off + 2] = TI[src_off + 2];
+    TI[dst_off + 3] = TI[src_off + 3];
+  }
+
+  for (int dst_off = STATE_CNT4 / 2, src_off = 0; dst_off < STATE_CNT4; dst_off += 4, src_off += 4)
+  {
+    TI[dst_off + 0] = TT[src_off + 0];
+    TI[dst_off + 1] = TT[src_off + 1];
+    TI[dst_off + 2] = TT[src_off + 2];
+    TI[dst_off + 3] = TT[src_off + 3];
+  }
+
+  #endif
 }
 
-DECLSPEC void scrypt_smix (uint4 *X, uint4 *T, GLOBAL_AS uint4 *V0, GLOBAL_AS uint4 *V1, GLOBAL_AS uint4 *V2, GLOBAL_AS uint4 *V3)
+DECLSPEC void scrypt_smix_init (uint4 *X, GLOBAL_AS uint4 *V0, GLOBAL_AS uint4 *V1, GLOBAL_AS uint4 *V2, GLOBAL_AS uint4 *V3)
 {
-  #define Coord(xd4,y,z) (((xd4) * ySIZE * zSIZE) + ((y) * zSIZE) + (z))
-  #define CO Coord(xd4,y,z)
-
   const u32 ySIZE = SCRYPT_N / SCRYPT_TMTO;
   const u32 zSIZE = STATE_CNT4;
 
@@ -248,43 +244,45 @@ DECLSPEC void scrypt_smix (uint4 *X, uint4 *T, GLOBAL_AS uint4 *V0, GLOBAL_AS ui
     case 3: V = V3; break;
   }
 
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (u32 i = 0; i < STATE_CNT4; i += 4)
-  {
-    #ifdef IS_CUDA
-    T[0] = make_uint4 (X[i + 0].x, X[i + 1].y, X[i + 2].z, X[i + 3].w);
-    T[1] = make_uint4 (X[i + 1].x, X[i + 2].y, X[i + 3].z, X[i + 0].w);
-    T[2] = make_uint4 (X[i + 2].x, X[i + 3].y, X[i + 0].z, X[i + 1].w);
-    T[3] = make_uint4 (X[i + 3].x, X[i + 0].y, X[i + 1].z, X[i + 2].w);
-    #else
-    T[0] = (uint4) (X[i + 0].x, X[i + 1].y, X[i + 2].z, X[i + 3].w);
-    T[1] = (uint4) (X[i + 1].x, X[i + 2].y, X[i + 3].z, X[i + 0].w);
-    T[2] = (uint4) (X[i + 2].x, X[i + 3].y, X[i + 0].z, X[i + 1].w);
-    T[3] = (uint4) (X[i + 3].x, X[i + 0].y, X[i + 1].z, X[i + 2].w);
-    #endif
-
-    X[i + 0] = T[0];
-    X[i + 1] = T[1];
-    X[i + 2] = T[2];
-    X[i + 3] = T[3];
-  }
-
   for (u32 y = 0; y < ySIZE; y++)
   {
     for (u32 z = 0; z < zSIZE; z++) V[CO] = X[z];
 
     for (u32 i = 0; i < SCRYPT_TMTO; i++) salsa_r (X);
   }
+}
 
-  for (u32 i = 0; i < SCRYPT_N; i++)
+DECLSPEC void scrypt_smix_loop (uint4 *X, GLOBAL_AS uint4 *V0, GLOBAL_AS uint4 *V1, GLOBAL_AS uint4 *V2, GLOBAL_AS uint4 *V3)
+{
+  const u32 ySIZE = SCRYPT_N / SCRYPT_TMTO;
+  const u32 zSIZE = STATE_CNT4;
+
+  const u32 x = get_global_id (0);
+
+  const u32 xd4 = x / 4;
+  const u32 xm4 = x & 3;
+
+  GLOBAL_AS uint4 *V;
+
+  switch (xm4)
+  {
+    case 0: V = V0; break;
+    case 1: V = V1; break;
+    case 2: V = V2; break;
+    case 3: V = V3; break;
+  }
+
+  // note: fixed 1024 iterations = forced -u 1024
+
+  for (u32 N_pos = 0; N_pos < 1024; N_pos++)
   {
     const u32 k = X[zSIZE - 4].x & (SCRYPT_N - 1);
 
     const u32 y = k / SCRYPT_TMTO;
 
     const u32 km = k - (y * SCRYPT_TMTO);
+
+    uint4 T[STATE_CNT4];
 
     for (u32 z = 0; z < zSIZE; z++) T[z] = V[CO];
 
@@ -293,29 +291,6 @@ DECLSPEC void scrypt_smix (uint4 *X, uint4 *T, GLOBAL_AS uint4 *V0, GLOBAL_AS ui
     for (u32 z = 0; z < zSIZE; z++) X[z] ^= T[z];
 
     salsa_r (X);
-  }
-
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (u32 i = 0; i < STATE_CNT4; i += 4)
-  {
-    #ifdef IS_CUDA
-    T[0] = make_uint4 (X[i + 0].x, X[i + 3].y, X[i + 2].z, X[i + 1].w);
-    T[1] = make_uint4 (X[i + 1].x, X[i + 0].y, X[i + 3].z, X[i + 2].w);
-    T[2] = make_uint4 (X[i + 2].x, X[i + 1].y, X[i + 0].z, X[i + 3].w);
-    T[3] = make_uint4 (X[i + 3].x, X[i + 2].y, X[i + 1].z, X[i + 0].w);
-    #else
-    T[0] = (uint4) (X[i + 0].x, X[i + 3].y, X[i + 2].z, X[i + 1].w);
-    T[1] = (uint4) (X[i + 1].x, X[i + 0].y, X[i + 3].z, X[i + 2].w);
-    T[2] = (uint4) (X[i + 2].x, X[i + 1].y, X[i + 0].z, X[i + 3].w);
-    T[3] = (uint4) (X[i + 3].x, X[i + 2].y, X[i + 1].z, X[i + 0].w);
-    #endif
-
-    X[i + 0] = T[0];
-    X[i + 1] = T[1];
-    X[i + 2] = T[2];
-    X[i + 3] = T[3];
   }
 }
 
@@ -329,41 +304,24 @@ KERNEL_FQ void m22700_init (KERN_ATTR_TMPS (scrypt_tmp_t))
 
   if (gid >= gid_max) return;
 
-  // convert password to utf16be:
-
-  const u32 pw_len = pws[gid].pw_len;
-
-  const u32 pw_len_utf16be = pw_len * 2;
-
   u32 w[128] = { 0 };
 
-  for (u32 i = 0, j = 0; i < 64; i += 4, j += 8)
+  hc_enc_t hc_enc;
+
+  hc_enc_init (&hc_enc);
+
+  const u32 w_len = hc_enc_next_global (&hc_enc, pws[gid].i, pws[gid].pw_len, 256, w, sizeof (w));
+
+  // utf16le to utf16be
+  for (int i = 0, j = 0; i < w_len; i += 4, j += 1)
   {
-    u32 in[4];
-
-    in[0] = pws[gid].i[i + 0];
-    in[1] = pws[gid].i[i + 1];
-    in[2] = pws[gid].i[i + 2];
-    in[3] = pws[gid].i[i + 3];
-
-    u32 out0[4];
-    u32 out1[4];
-
-    make_utf16be_S (in, out0, out1);
-
-    w[j + 0] = out0[0];
-    w[j + 1] = out0[1];
-    w[j + 2] = out0[2];
-    w[j + 3] = out0[3];
-    w[j + 4] = out1[0];
-    w[j + 5] = out1[1];
-    w[j + 6] = out1[2];
-    w[j + 7] = out1[3];
+    w[j] = ((w[j] >> 8) & 0x00ff00ff)
+         | ((w[j] << 8) & 0xff00ff00);
   }
 
   sha256_hmac_ctx_t sha256_hmac_ctx;
 
-  sha256_hmac_init_swap (&sha256_hmac_ctx, w, pw_len_utf16be);
+  sha256_hmac_init_swap (&sha256_hmac_ctx, w, w_len);
 
   u32 s0[4] = { 0 };
   u32 s1[4] = { 0 };
@@ -427,11 +385,77 @@ KERNEL_FQ void m22700_init (KERN_ATTR_TMPS (scrypt_tmp_t))
     tmps[gid].P[k + 0] = tmp0;
     tmps[gid].P[k + 1] = tmp1;
   }
+
+  for (u32 l = 0; l < SCRYPT_CNT4; l += 4)
+  {
+    uint4 T[4];
+
+    T[0] = tmps[gid].P[l + 0];
+    T[1] = tmps[gid].P[l + 1];
+    T[2] = tmps[gid].P[l + 2];
+    T[3] = tmps[gid].P[l + 3];
+
+    T[0] = hc_swap32_4 (T[0]);
+    T[1] = hc_swap32_4 (T[1]);
+    T[2] = hc_swap32_4 (T[2]);
+    T[3] = hc_swap32_4 (T[3]);
+
+    uint4 X[4];
+
+    #ifdef IS_CUDA
+    X[0] = make_uint4 (T[0].x, T[1].y, T[2].z, T[3].w);
+    X[1] = make_uint4 (T[1].x, T[2].y, T[3].z, T[0].w);
+    X[2] = make_uint4 (T[2].x, T[3].y, T[0].z, T[1].w);
+    X[3] = make_uint4 (T[3].x, T[0].y, T[1].z, T[2].w);
+    #else
+    X[0] = (uint4) (T[0].x, T[1].y, T[2].z, T[3].w);
+    X[1] = (uint4) (T[1].x, T[2].y, T[3].z, T[0].w);
+    X[2] = (uint4) (T[2].x, T[3].y, T[0].z, T[1].w);
+    X[3] = (uint4) (T[3].x, T[0].y, T[1].z, T[2].w);
+    #endif
+
+    tmps[gid].P[l + 0] = X[0];
+    tmps[gid].P[l + 1] = X[1];
+    tmps[gid].P[l + 2] = X[2];
+    tmps[gid].P[l + 3] = X[3];
+  }
+}
+
+KERNEL_FQ void m22700_loop_prepare (KERN_ATTR_TMPS (scrypt_tmp_t))
+{
+  /**
+   * base
+   */
+
+  const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
+
+  if (gid >= gid_max) return;
+
+  // SCRYPT part, init V
+
+  GLOBAL_AS uint4 *d_scrypt0_buf = (GLOBAL_AS uint4 *) d_extra0_buf;
+  GLOBAL_AS uint4 *d_scrypt1_buf = (GLOBAL_AS uint4 *) d_extra1_buf;
+  GLOBAL_AS uint4 *d_scrypt2_buf = (GLOBAL_AS uint4 *) d_extra2_buf;
+  GLOBAL_AS uint4 *d_scrypt3_buf = (GLOBAL_AS uint4 *) d_extra3_buf;
+
+  uint4 X[STATE_CNT4];
+
+  const u32 P_offset = salt_repeat * STATE_CNT4;
+
+  GLOBAL_AS uint4 *P = tmps[gid].P + P_offset;
+
+  for (int z = 0; z < STATE_CNT4; z++) X[z] = P[z];
+
+  scrypt_smix_init (X, d_scrypt0_buf, d_scrypt1_buf, d_scrypt2_buf, d_scrypt3_buf);
+
+  for (int z = 0; z < STATE_CNT4; z++) P[z] = X[z];
 }
 
 KERNEL_FQ void m22700_loop (KERN_ATTR_TMPS (scrypt_tmp_t))
 {
   const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
 
   if (gid >= gid_max) return;
 
@@ -441,30 +465,16 @@ KERNEL_FQ void m22700_loop (KERN_ATTR_TMPS (scrypt_tmp_t))
   GLOBAL_AS uint4 *d_scrypt3_buf = (GLOBAL_AS uint4 *) d_extra3_buf;
 
   uint4 X[STATE_CNT4];
-  uint4 T[STATE_CNT4];
 
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (int z = 0; z < STATE_CNT4; z++) X[z] = hc_swap32_4 (tmps[gid].P[z]);
+  const u32 P_offset = salt_repeat * STATE_CNT4;
 
-  scrypt_smix (X, T, d_scrypt0_buf, d_scrypt1_buf, d_scrypt2_buf, d_scrypt3_buf);
+  GLOBAL_AS uint4 *P = tmps[gid].P + P_offset;
 
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (int z = 0; z < STATE_CNT4; z++) tmps[gid].P[z] = hc_swap32_4 (X[z]);
+  for (int z = 0; z < STATE_CNT4; z++) X[z] = P[z];
 
-  #if SCRYPT_P >= 1
-  for (int i = STATE_CNT4; i < SCRYPT_CNT4; i += STATE_CNT4)
-  {
-    for (int z = 0; z < STATE_CNT4; z++) X[z] = hc_swap32_4 (tmps[gid].P[i + z]);
+  scrypt_smix_loop (X, d_scrypt0_buf, d_scrypt1_buf, d_scrypt2_buf, d_scrypt3_buf);
 
-    scrypt_smix (X, T, d_scrypt0_buf, d_scrypt1_buf, d_scrypt2_buf, d_scrypt3_buf);
-
-    for (int z = 0; z < STATE_CNT4; z++) tmps[gid].P[i + z] = hc_swap32_4 (X[z]);
-  }
-  #endif
+  for (int z = 0; z < STATE_CNT4; z++) P[z] = X[z];
 }
 
 KERNEL_FQ void m22700_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
@@ -530,41 +540,24 @@ KERNEL_FQ void m22700_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
    * 2nd pbkdf2, creates B
    */
 
-  // convert password to utf16be:
-
-  const u32 pw_len = pws[gid].pw_len;
-
-  const u32 pw_len_utf16be = pw_len * 2;
-
   u32 w[128] = { 0 };
 
-  for (u32 i = 0, j = 0; i < 64; i += 4, j += 8)
+  hc_enc_t hc_enc;
+
+  hc_enc_init (&hc_enc);
+
+  const u32 w_len = hc_enc_next_global (&hc_enc, pws[gid].i, pws[gid].pw_len, 256, w, sizeof (w));
+
+  // utf16le to utf16be
+  for (int i = 0, j = 0; i < w_len; i += 4, j += 1)
   {
-    u32 in[4];
-
-    in[0] = pws[gid].i[i + 0];
-    in[1] = pws[gid].i[i + 1];
-    in[2] = pws[gid].i[i + 2];
-    in[3] = pws[gid].i[i + 3];
-
-    u32 out0[4];
-    u32 out1[4];
-
-    make_utf16be_S (in, out0, out1);
-
-    w[j + 0] = out0[0];
-    w[j + 1] = out0[1];
-    w[j + 2] = out0[2];
-    w[j + 3] = out0[3];
-    w[j + 4] = out1[0];
-    w[j + 5] = out1[1];
-    w[j + 6] = out1[2];
-    w[j + 7] = out1[3];
+    w[j] = ((w[j] >> 8) & 0x00ff00ff)
+         | ((w[j] << 8) & 0xff00ff00);
   }
 
   sha256_hmac_ctx_t ctx;
 
-  sha256_hmac_init_swap (&ctx, w, pw_len_utf16be);
+  sha256_hmac_init_swap (&ctx, w, w_len);
 
   u32 w0[4];
   u32 w1[4];
@@ -573,35 +566,48 @@ KERNEL_FQ void m22700_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
 
   for (u32 l = 0; l < SCRYPT_CNT4; l += 4)
   {
-    uint4 tmp;
+    uint4 X[4];
 
-    tmp = tmps[gid].P[l + 0];
+    X[0] = tmps[gid].P[l + 0];
+    X[1] = tmps[gid].P[l + 1];
+    X[2] = tmps[gid].P[l + 2];
+    X[3] = tmps[gid].P[l + 3];
 
-    w0[0] = tmp.x;
-    w0[1] = tmp.y;
-    w0[2] = tmp.z;
-    w0[3] = tmp.w;
+    uint4 T[4];
 
-    tmp = tmps[gid].P[l + 1];
+    #ifdef IS_CUDA
+    T[0] = make_uint4 (X[0].x, X[3].y, X[2].z, X[1].w);
+    T[1] = make_uint4 (X[1].x, X[0].y, X[3].z, X[2].w);
+    T[2] = make_uint4 (X[2].x, X[1].y, X[0].z, X[3].w);
+    T[3] = make_uint4 (X[3].x, X[2].y, X[1].z, X[0].w);
+    #else
+    T[0] = (uint4) (X[0].x, X[3].y, X[2].z, X[1].w);
+    T[1] = (uint4) (X[1].x, X[0].y, X[3].z, X[2].w);
+    T[2] = (uint4) (X[2].x, X[1].y, X[0].z, X[3].w);
+    T[3] = (uint4) (X[3].x, X[2].y, X[1].z, X[0].w);
+    #endif
 
-    w1[0] = tmp.x;
-    w1[1] = tmp.y;
-    w1[2] = tmp.z;
-    w1[3] = tmp.w;
+    T[0] = hc_swap32_4 (T[0]);
+    T[1] = hc_swap32_4 (T[1]);
+    T[2] = hc_swap32_4 (T[2]);
+    T[3] = hc_swap32_4 (T[3]);
 
-    tmp = tmps[gid].P[l + 2];
-
-    w2[0] = tmp.x;
-    w2[1] = tmp.y;
-    w2[2] = tmp.z;
-    w2[3] = tmp.w;
-
-    tmp = tmps[gid].P[l + 3];
-
-    w3[0] = tmp.x;
-    w3[1] = tmp.y;
-    w3[2] = tmp.z;
-    w3[3] = tmp.w;
+    w0[0] = T[0].x;
+    w0[1] = T[0].y;
+    w0[2] = T[0].z;
+    w0[3] = T[0].w;
+    w1[0] = T[1].x;
+    w1[1] = T[1].y;
+    w1[2] = T[1].z;
+    w1[3] = T[1].w;
+    w2[0] = T[2].x;
+    w2[1] = T[2].y;
+    w2[2] = T[2].z;
+    w2[3] = T[2].w;
+    w3[0] = T[3].x;
+    w3[1] = T[3].y;
+    w3[2] = T[3].z;
+    w3[3] = T[3].w;
 
     sha256_hmac_update_64 (&ctx, w0, w1, w2, w3, 64);
   }
@@ -671,7 +677,7 @@ KERNEL_FQ void m22700_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
 
   if (is_valid_bitcoinj (dec) == 1)
   {
-    if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
     {
       mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
     }
@@ -695,7 +701,7 @@ KERNEL_FQ void m22700_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
 
   if (is_valid_bitcoinj (dec) == 1)
   {
-    if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
     {
       mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
     }

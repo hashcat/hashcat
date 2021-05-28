@@ -1,5 +1,5 @@
 /* Alloc.h -- Memory allocation functions
-2018-02-19 : Igor Pavlov : Public domain */
+2021-02-08 : Igor Pavlov : Public domain */
 
 #ifndef __COMMON_ALLOC_H
 #define __COMMON_ALLOC_H
@@ -13,7 +13,7 @@ void MyFree(void *address);
 
 #ifdef _WIN32
 
-void SetLargePageSize();
+void SetLargePageSize(void);
 
 void *MidAlloc(size_t size);
 void MidFree(void *address);
