@@ -500,7 +500,7 @@ DECLSPEC void transform_netntlmv1_key (const u32x w0, const u32x w1, u32x *out)
          | ((k[7] & 0xff) << 24);
 }
 
-KERNEL_FQ void m05510_mxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m27000_mxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -644,7 +644,7 @@ KERNEL_FQ void m05510_mxx (KERN_ATTR_VECTOR ())
   }
 }
 
-KERNEL_FQ void m05510_sxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m27000_sxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier

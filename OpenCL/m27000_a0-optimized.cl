@@ -502,7 +502,7 @@ DECLSPEC void transform_netntlmv1_key (const u32x w0, const u32x w1, u32x *out)
          | ((k[7] & 0xff) << 24);
 }
 
-KERNEL_FQ void m05510_m04 (KERN_ATTR_RULES ())
+KERNEL_FQ void m27000_m04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -624,15 +624,15 @@ KERNEL_FQ void m05510_m04 (KERN_ATTR_RULES ())
   }
 }
 
-KERNEL_FQ void m05510_m08 (KERN_ATTR_RULES ())
+KERNEL_FQ void m27000_m08 (KERN_ATTR_RULES ())
 {
 }
 
-KERNEL_FQ void m05510_m16 (KERN_ATTR_RULES ())
+KERNEL_FQ void m27000_m16 (KERN_ATTR_RULES ())
 {
 }
 
-KERNEL_FQ void m05510_s04 (KERN_ATTR_RULES ())
+KERNEL_FQ void m27000_s04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -770,10 +770,10 @@ KERNEL_FQ void m05510_s04 (KERN_ATTR_RULES ())
   }
 }
 
-KERNEL_FQ void m05510_s08 (KERN_ATTR_RULES ())
+KERNEL_FQ void m27000_s08 (KERN_ATTR_RULES ())
 {
 }
 
-KERNEL_FQ void m05510_s16 (KERN_ATTR_RULES ())
+KERNEL_FQ void m27000_s16 (KERN_ATTR_RULES ())
 {
 }

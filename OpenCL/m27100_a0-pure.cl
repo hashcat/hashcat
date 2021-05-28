@@ -10,6 +10,8 @@
 #include "inc_types.h"
 #include "inc_platform.cl"
 #include "inc_common.cl"
+#include "inc_rp.h"
+#include "inc_rp.cl"
 #include "inc_scalar.cl"
 #include "inc_hash_md4.cl"
 #include "inc_hash_md5.cl"
@@ -27,7 +29,7 @@ typedef struct netntlm
 
 } netntlm_t;
 
-KERNEL_FQ void m05610_mxx (KERN_ATTR_VECTOR_ESALT (netntlm_t))
+KERNEL_FQ void m27100_mxx (KERN_ATTR_RULES_ESALT (netntlm_t))
 {
   /**
    * modifier
@@ -42,46 +44,15 @@ KERNEL_FQ void m05610_mxx (KERN_ATTR_VECTOR_ESALT (netntlm_t))
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len;
-
-  u32 w[64] = { 0 };
-
-  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
-  {
-    w[idx] = pws[gid].i[idx];
-  }
-
-  /**
-   * loop
-   */
-
-  u32 w0l = w[0];
-
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
-  {
-    const u32 w0r = words_buf_r[il_pos / VECT_SIZE];
-
-    const u32 w0lr = w0l | w0r;
-
-    w[0] = w0lr;
-
-    // md4_ctx_t ctx1;
-
-    // md4_init (&ctx1);
-
-    // md4_update_utf16le (&ctx1, w, pw_len);
-
-    // md4_final (&ctx1);
-
     u32 w0[4];
     u32 w1[4];
     u32 w2[4];
     u32 w3[4];
 
-    w0[0] = w[0];
-    w0[1] = w[1];
-    w0[2] = w[2];
-    w0[3] = w[3];
+    w0[0] = pws[gid].i[ 0];
+    w0[1] = pws[gid].i[ 1];
+    w0[2] = pws[gid].i[ 2];
+    w0[3] = pws[gid].i[ 3];
     w1[0] = 0;
     w1[1] = 0;
     w1[2] = 0;
@@ -94,6 +65,13 @@ KERNEL_FQ void m05610_mxx (KERN_ATTR_VECTOR_ESALT (netntlm_t))
     w3[1] = 0;
     w3[2] = 0;
     w3[3] = 0;
+
+  /**
+   * loop
+   */
+
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  {
 
     md5_hmac_ctx_t ctx0;
 
@@ -137,7 +115,7 @@ KERNEL_FQ void m05610_mxx (KERN_ATTR_VECTOR_ESALT (netntlm_t))
   }
 }
 
-KERNEL_FQ void m05610_sxx (KERN_ATTR_VECTOR_ESALT (netntlm_t))
+KERNEL_FQ void m27100_sxx (KERN_ATTR_RULES_ESALT (netntlm_t))
 {
   /**
    * modifier
@@ -164,58 +142,34 @@ KERNEL_FQ void m05610_sxx (KERN_ATTR_VECTOR_ESALT (netntlm_t))
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len;
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
 
-  u32 w[64] = { 0 };
-
-  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
-  {
-    w[idx] = pws[gid].i[idx];
-  }
+  w0[0] = pws[gid].i[ 0];
+  w0[1] = pws[gid].i[ 1];
+  w0[2] = pws[gid].i[ 2];
+  w0[3] = pws[gid].i[ 3];
+  w1[0] = 0;
+  w1[1] = 0;
+  w1[2] = 0;
+  w1[3] = 0;
+  w2[0] = 0;
+  w2[1] = 0;
+  w2[2] = 0;
+  w2[3] = 0;
+  w3[0] = 0;
+  w3[1] = 0;
+  w3[2] = 0;
+  w3[3] = 0;
 
   /**
    * loop
    */
 
-  u32 w0l = w[0];
-
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    const u32 w0r = words_buf_r[il_pos / VECT_SIZE];
-
-    const u32 w0lr = w0l | w0r;
-
-    w[0] = w0lr;
-
-    // md4_ctx_t ctx1;
-
-    // md4_init (&ctx1);
-
-    // md4_update_utf16le (&ctx1, w, pw_len);
-
-    // md4_final (&ctx1);
-
-    u32 w0[4];
-    u32 w1[4];
-    u32 w2[4];
-    u32 w3[4];
-
-    w0[0] = w[0];
-    w0[1] = w[1];
-    w0[2] = w[2];
-    w0[3] = w[3];
-    w1[0] = 0;
-    w1[1] = 0;
-    w1[2] = 0;
-    w1[3] = 0;
-    w2[0] = 0;
-    w2[1] = 0;
-    w2[2] = 0;
-    w2[3] = 0;
-    w3[0] = 0;
-    w3[1] = 0;
-    w3[2] = 0;
-    w3[3] = 0;
 
     md5_hmac_ctx_t ctx0;
 

@@ -114,7 +114,7 @@ DECLSPEC void hmac_md5_run (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, 
   md5_transform_vector (w0, w1, w2, w3, digest);
 }
 
-KERNEL_FQ void m05610_m04 (KERN_ATTR_RULES_ESALT (netntlm_t))
+KERNEL_FQ void m27100_m04 (KERN_ATTR_RULES_ESALT (netntlm_t))
 {
   /**
    * modifier
@@ -347,15 +347,15 @@ KERNEL_FQ void m05610_m04 (KERN_ATTR_RULES_ESALT (netntlm_t))
   }
 }
 
-KERNEL_FQ void m05610_m08 (KERN_ATTR_RULES_ESALT (netntlm_t))
+KERNEL_FQ void m27100_m08 (KERN_ATTR_RULES_ESALT (netntlm_t))
 {
 }
 
-KERNEL_FQ void m05610_m16 (KERN_ATTR_RULES_ESALT (netntlm_t))
+KERNEL_FQ void m27100_m16 (KERN_ATTR_RULES_ESALT (netntlm_t))
 {
 }
 
-KERNEL_FQ void m05610_s04 (KERN_ATTR_RULES_ESALT (netntlm_t))
+KERNEL_FQ void m27100_s04 (KERN_ATTR_RULES_ESALT (netntlm_t))
 {
   /**
    * modifier
@@ -601,10 +601,10 @@ KERNEL_FQ void m05610_s04 (KERN_ATTR_RULES_ESALT (netntlm_t))
   }
 }
 
-KERNEL_FQ void m05610_s08 (KERN_ATTR_RULES_ESALT (netntlm_t))
+KERNEL_FQ void m27100_s08 (KERN_ATTR_RULES_ESALT (netntlm_t))
 {
 }
 
-KERNEL_FQ void m05610_s16 (KERN_ATTR_RULES_ESALT (netntlm_t))
+KERNEL_FQ void m27100_s16 (KERN_ATTR_RULES_ESALT (netntlm_t))
 {
 }
