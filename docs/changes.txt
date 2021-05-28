@@ -8,14 +8,14 @@
 - Added hash-mode: bcrypt(sha1($pass)) / bcryptsha1
 - Added hash-mode: Linux Kernel Crypto API (2.4)
 - Added hash-mode: MurmurHash
+- Added hash-mode: md5(utf16le($pass))
+- Added hash-mode: sha1(utf16le($pass))
+- Added hash-mode: sha256(utf16le($pass))
+- Added hash-mode: sha512(utf16le($pass))
 - Added hash-mode: sha384($pass.$salt)
 - Added hash-mode: sha384($salt.$pass)
 - Added hash-mode: sha384(utf16le($pass).$salt)
 - Added hash-mode: sha384($salt.utf16le($pass))
-- Added hash-mode: md5(utf16le($pass))
-- Added hash-mode: sha1(utf16le($pass))
-- Added hash-mode: sha512(utf16le($pass))
-- Added hash-mode: sha256(utf16le($pass))
 
 ##
 ## Improvements
@@ -37,6 +37,7 @@
 - Dependencies: Updated xxHash from 0.1.0 to v0.8.0 - Stable XXH3
 - Documentation: Update missing documentation in plugin developer guide for OPTS_TYPE_MP_MULTI_DISABLE and OPTS_TYPE_NATIVE_THREADS
 - Kernels: Add standalone true UTF8 to UTF16 converter kernel that runs after amplifier. Use OPTS_TYPE_POST_AMP_UTF16LE from plugin
+- Modules: Recategorized HASH_CATEGORY option in various modules
 
 * changes v6.2.0 -> v6.2.1
 

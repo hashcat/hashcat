@@ -16,7 +16,7 @@ static const u32   DGST_POS1      = 1;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_8;
-static const u32   HASH_CATEGORY  = HASH_CATEGORY_NETWORK_PROTOCOL;
+static const u32   HASH_CATEGORY  = HASH_CATEGORY_IMS;
 static const char *HASH_NAME      = "Telegram Desktop >= v2.1.14 (PBKDF2-HMAC-SHA512)";
 static const u64   KERN_TYPE      = 24500;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE

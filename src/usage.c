@@ -138,8 +138,8 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "",
   "- [ Hash modes ] -",
   "",
-  "      # | Name                                             | Category",
-  "  ======+==================================================+======================================",
+  "      # | Name                                                | Category",
+  "  ======+=====================================================+======================================",
   NULL
 };
 
@@ -255,7 +255,16 @@ static int sort_by_usage (const void *p1, const void *p2)
   if (u1->hash_category > u2->hash_category) return  1;
   if (u1->hash_category < u2->hash_category) return -1;
 
-  const int rc_name = strncmp (u1->hash_name + 1, u2->hash_name + 1, 15); // yes, strange...
+  const bool first1_is_lc = ((u1->hash_name[0] >= 'a') && (u1->hash_name[0] <= 'z')) ? true :  false;
+  const bool first2_is_lc = ((u2->hash_name[0] >= 'a') && (u2->hash_name[0] <= 'z')) ? true :  false;
+
+  if (first1_is_lc != first2_is_lc)
+  {
+    if (first1_is_lc) return  1;
+    else              return -1;
+  }
+
+  const int rc_name = strncmp (u1->hash_name + 1, u2->hash_name + 1, 20); // yes, strange...
 
   if (rc_name > 0) return  1;
   if (rc_name < 0) return -1;
@@ -325,7 +334,7 @@ void usage_big_print (hashcat_ctx_t *hashcat_ctx)
 
   for (int i = 0; i < usage_sort_cnt; i++)
   {
-    printf ("%7u | %-48s | %s", usage_sort_buf[i].hash_mode, usage_sort_buf[i].hash_name, strhashcategory (usage_sort_buf[i].hash_category));
+    printf ("%7u | %-51s | %s", usage_sort_buf[i].hash_mode, usage_sort_buf[i].hash_name, strhashcategory (usage_sort_buf[i].hash_category));
 
     fwrite (EOL, strlen (EOL), 1, stdout);
   }
