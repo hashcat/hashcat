@@ -439,6 +439,19 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   {
     // missing handling hooks
 
+    if (hashconfig->opts_type & OPTS_TYPE_POST_AMP_UTF16LE)
+    {
+      if (device_param->is_cuda == true)
+      {
+        if (run_cuda_kernel_utf8toutf16le (hashcat_ctx, device_param, device_param->cuda_d_pws_buf, 1) == -1) return -1;
+      }
+
+      if (device_param->is_opencl == true)
+      {
+        if (run_opencl_kernel_utf8toutf16le (hashcat_ctx, device_param, device_param->opencl_d_pws_buf, 1) == -1) return -1;
+      }
+    }
+
     if (run_kernel (hashcat_ctx, device_param, KERN_RUN_1, 0, 1, false, 0) == -1) return -1;
 
     if (hashconfig->opts_type & OPTS_TYPE_HOOK12)

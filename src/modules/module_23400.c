@@ -201,11 +201,11 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // salt_buf
 
-  #define SALT_LEN_BASE64 ((SALT_MAX * 8) / 6) + 3
+  u8 salt_buf[SALT_MAX * 2];
 
-  u8 salt_buf[SALT_LEN_BASE64] = { 0 };
+  const int salt_len = base64_encode (int_to_base64, (const u8 *) salt->salt_buf, (const int) salt->salt_len, salt_buf);
 
-  base64_encode (int_to_base64, (const u8 *) salt->salt_buf, (const int) salt->salt_len, salt_buf);
+  salt_buf[salt_len] = 0;
 
   // hash_buf
 

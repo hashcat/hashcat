@@ -18,6 +18,7 @@
 /* -------------------------------------------------------------------- */
 /*                                                                      */
 /* Cleaned and optimized for GPU use with hashcat by Jens Steube        */
+/* Added 192-bit functions by Gabriele Gristina                         */
 
 #include "inc_vendor.h"
 #include "inc_types.h"
@@ -79,7 +80,8 @@ CONSTANT_VK u32a q_tab[2][256] =
 
 CONSTANT_VK u32a  m_tab[4][256] =
 {
-  { 0xBCBC3275, 0xECEC21F3, 0x202043C6, 0xB3B3C9F4, 0xDADA03DB, 0x02028B7B,
+  {
+    0xBCBC3275, 0xECEC21F3, 0x202043C6, 0xB3B3C9F4, 0xDADA03DB, 0x02028B7B,
     0xE2E22BFB, 0x9E9EFAC8, 0xC9C9EC4A, 0xD4D409D3, 0x18186BE6, 0x1E1E9F6B,
     0x98980E45, 0xB2B2387D, 0xA6A6D2E8, 0x2626B74B, 0x3C3C57D6, 0x93938A32,
     0x8282EED8, 0x525298FD, 0x7B7BD437, 0xBBBB3771, 0x5B5B97F1, 0x474783E1,
@@ -121,9 +123,10 @@ CONSTANT_VK u32a  m_tab[4][256] =
     0xE6E6540D, 0xDBDBF252, 0x92927BBB, 0xB7B7B602, 0x6969CA2F, 0x3939D9A9,
     0xD3D30CD7, 0xA7A72361, 0xA2A2AD1E, 0xC3C399B4, 0x6C6C4450, 0x07070504,
     0x04047FF6, 0x272746C2, 0xACACA716, 0xD0D07625, 0x50501386, 0xDCDCF756,
-    0x84841A55, 0xE1E15109, 0x7A7A25BE, 0x1313EF91 },
-
-  { 0xA9D93939, 0x67901717, 0xB3719C9C, 0xE8D2A6A6, 0x04050707, 0xFD985252,
+    0x84841A55, 0xE1E15109, 0x7A7A25BE, 0x1313EF91
+  },
+  {
+    0xA9D93939, 0x67901717, 0xB3719C9C, 0xE8D2A6A6, 0x04050707, 0xFD985252,
     0xA3658080, 0x76DFE4E4, 0x9A084545, 0x92024B4B, 0x80A0E0E0, 0x78665A5A,
     0xE4DDAFAF, 0xDDB06A6A, 0xD1BF6363, 0x38362A2A, 0x0D54E6E6, 0xC6432020,
     0x3562CCCC, 0x98BEF2F2, 0x181E1212, 0xF724EBEB, 0xECD7A1A1, 0x6C774141,
@@ -165,9 +168,10 @@ CONSTANT_VK u32a  m_tab[4][256] =
     0x2BCF6E6E, 0x40507070, 0xDCEB8585, 0xFE750A0A, 0x328A9393, 0xA48DDFDF,
     0xCA4C2929, 0x10141C1C, 0x2173D7D7, 0xF0CCB4B4, 0xD309D4D4, 0x5D108A8A,
     0x0FE25151, 0x00000000, 0x6F9A1919, 0x9DE01A1A, 0x368F9494, 0x42E6C7C7,
-    0x4AECC9C9, 0x5EFDD2D2, 0xC1AB7F7F, 0xE0D8A8A8 },
-
-  { 0xBC75BC32, 0xECF3EC21, 0x20C62043, 0xB3F4B3C9, 0xDADBDA03, 0x027B028B,
+    0x4AECC9C9, 0x5EFDD2D2, 0xC1AB7F7F, 0xE0D8A8A8
+  },
+  {
+    0xBC75BC32, 0xECF3EC21, 0x20C62043, 0xB3F4B3C9, 0xDADBDA03, 0x027B028B,
     0xE2FBE22B, 0x9EC89EFA, 0xC94AC9EC, 0xD4D3D409, 0x18E6186B, 0x1E6B1E9F,
     0x9845980E, 0xB27DB238, 0xA6E8A6D2, 0x264B26B7, 0x3CD63C57, 0x9332938A,
     0x82D882EE, 0x52FD5298, 0x7B377BD4, 0xBB71BB37, 0x5BF15B97, 0x47E14783,
@@ -209,9 +213,10 @@ CONSTANT_VK u32a  m_tab[4][256] =
     0xE60DE654, 0xDB52DBF2, 0x92BB927B, 0xB702B7B6, 0x692F69CA, 0x39A939D9,
     0xD3D7D30C, 0xA761A723, 0xA21EA2AD, 0xC3B4C399, 0x6C506C44, 0x07040705,
     0x04F6047F, 0x27C22746, 0xAC16ACA7, 0xD025D076, 0x50865013, 0xDC56DCF7,
-    0x8455841A, 0xE109E151, 0x7ABE7A25, 0x139113EF },
-
-  { 0xD939A9D9, 0x90176790, 0x719CB371, 0xD2A6E8D2, 0x05070405, 0x9852FD98,
+    0x8455841A, 0xE109E151, 0x7ABE7A25, 0x139113EF
+  },
+  {
+    0xD939A9D9, 0x90176790, 0x719CB371, 0xD2A6E8D2, 0x05070405, 0x9852FD98,
     0x6580A365, 0xDFE476DF, 0x08459A08, 0x024B9202, 0xA0E080A0, 0x665A7866,
     0xDDAFE4DD, 0xB06ADDB0, 0xBF63D1BF, 0x362A3836, 0x54E60D54, 0x4320C643,
     0x62CC3562, 0xBEF298BE, 0x1E12181E, 0x24EBF724, 0xD7A1ECD7, 0x77416C77,
@@ -253,7 +258,8 @@ CONSTANT_VK u32a  m_tab[4][256] =
     0xCF6E2BCF, 0x50704050, 0xEB85DCEB, 0x750AFE75, 0x8A93328A, 0x8DDFA48D,
     0x4C29CA4C, 0x141C1014, 0x73D72173, 0xCCB4F0CC, 0x09D4D309, 0x108A5D10,
     0xE2510FE2, 0x00000000, 0x9A196F9A, 0xE01A9DE0, 0x8F94368F, 0xE6C742E6,
-    0xECC94AEC, 0xFDD25EFD, 0xAB7FC1AB, 0xD8A8E0D8 }
+    0xECC94AEC, 0xFDD25EFD, 0xAB7FC1AB, 0xD8A8E0D8
+  }
 };
 
 #define g1_fun128(x)                              \
@@ -267,6 +273,31 @@ CONSTANT_VK u32a  m_tab[4][256] =
    mds (1, q21 (unpack_v8b_from_v32_S (x), sk)) ^ \
    mds (2, q22 (unpack_v8c_from_v32_S (x), sk)) ^ \
    mds (3, q23 (unpack_v8d_from_v32_S (x), sk)))
+
+#define g1_fun192(x)                              \
+  (mds (0, q30 (unpack_v8d_from_v32_S (x), sk)) ^ \
+   mds (1, q31 (unpack_v8a_from_v32_S (x), sk)) ^ \
+   mds (2, q32 (unpack_v8b_from_v32_S (x), sk)) ^ \
+   mds (3, q33 (unpack_v8c_from_v32_S (x), sk)))
+
+#define g0_fun192(x)                              \
+  (mds (0, q30 (unpack_v8a_from_v32_S (x), sk)) ^ \
+   mds (1, q31 (unpack_v8b_from_v32_S (x), sk)) ^ \
+   mds (2, q32 (unpack_v8c_from_v32_S (x), sk)) ^ \
+   mds (3, q33 (unpack_v8d_from_v32_S (x), sk)))
+
+#define g1_fun256(x)                              \
+  (mds (0, q40 (unpack_v8d_from_v32_S (x), sk)) ^ \
+   mds (1, q41 (unpack_v8a_from_v32_S (x), sk)) ^ \
+   mds (2, q42 (unpack_v8b_from_v32_S (x), sk)) ^ \
+   mds (3, q43 (unpack_v8c_from_v32_S (x), sk)))
+
+#define g0_fun256(x)                              \
+  (mds (0, q40 (unpack_v8a_from_v32_S (x), sk)) ^ \
+   mds (1, q41 (unpack_v8b_from_v32_S (x), sk)) ^ \
+   mds (2, q42 (unpack_v8c_from_v32_S (x), sk)) ^ \
+   mds (3, q43 (unpack_v8d_from_v32_S (x), sk)))
+
 
 #define f_rnd128(i)                                                      \
 {                                                                        \
@@ -288,6 +319,30 @@ CONSTANT_VK u32a  m_tab[4][256] =
   data[3] = hc_rotr32_S (data[3] ^ (t0 + 2 * t1 + lk[4 * (i) + 11]), 1); \
   const u32 t2 = g0_fun128 (data[2]);                                    \
   const u32 t3 = g1_fun128 (data[3]);                                    \
+  data[0] = hc_rotl32_S (data[0], 1) ^ (t2 + t3 + lk[4 * (i) +  8]);     \
+  data[1] = hc_rotr32_S (data[1] ^ (t2 + 2 * t3 + lk[4 * (i) +  9]), 1); \
+}
+
+#define f_rnd192(i)                                                      \
+{                                                                        \
+  const u32 t0 = g0_fun192 (data[0]);                                    \
+  const u32 t1 = g1_fun192 (data[1]);                                    \
+  data[2] = hc_rotr32_S (data[2] ^ (t0 + t1 + lk[4 * (i) + 8]), 1);      \
+  data[3] = hc_rotl32_S (data[3], 1) ^ (t0 + 2 * t1 + lk[4 * (i) + 9]);  \
+  const u32 t2 = g0_fun192 (data[2]);                                    \
+  const u32 t3 = g1_fun192 (data[3]);                                    \
+  data[0] = hc_rotr32_S (data[0] ^ (t2 + t3 + lk[4 * (i) + 10]), 1);     \
+  data[1] = hc_rotl32_S (data[1], 1) ^ (t2 + 2 * t3 + lk[4 * (i) + 11]); \
+}
+
+#define i_rnd192(i)                                                      \
+{                                                                        \
+  const u32 t0 = g0_fun192 (data[0]);                                    \
+  const u32 t1 = g1_fun192 (data[1]);                                    \
+  data[2] = hc_rotl32_S (data[2], 1) ^ (t0 + t1 + lk[4 * (i) + 10]);     \
+  data[3] = hc_rotr32_S (data[3] ^ (t0 + 2 * t1 + lk[4 * (i) + 11]), 1); \
+  const u32 t2 = g0_fun192 (data[2]);                                    \
+  const u32 t3 = g1_fun192 (data[3]);                                    \
   data[0] = hc_rotl32_S (data[0], 1) ^ (t2 + t3 + lk[4 * (i) +  8]);     \
   data[1] = hc_rotr32_S (data[1] ^ (t2 + 2 * t3 + lk[4 * (i) +  9]), 1); \
 }
@@ -325,6 +380,11 @@ CONSTANT_VK u32a  m_tab[4][256] =
 #define q22(x,k) q (1, q (0, x) ^ unpack_v8c_from_v32_S (k[1])) ^ unpack_v8c_from_v32_S (k[0])
 #define q23(x,k) q (1, q (1, x) ^ unpack_v8d_from_v32_S (k[1])) ^ unpack_v8d_from_v32_S (k[0])
 
+#define q30(x,k) q (0, q (0, q (1, x) ^ unpack_v8a_from_v32_S (k[2])) ^ unpack_v8a_from_v32_S (k[1])) ^ unpack_v8a_from_v32_S (k[0])
+#define q31(x,k) q (0, q (1, q (1, x) ^ unpack_v8b_from_v32_S (k[2])) ^ unpack_v8b_from_v32_S (k[1])) ^ unpack_v8b_from_v32_S (k[0])
+#define q32(x,k) q (1, q (0, q (0, x) ^ unpack_v8c_from_v32_S (k[2])) ^ unpack_v8c_from_v32_S (k[1])) ^ unpack_v8c_from_v32_S (k[0])
+#define q33(x,k) q (1, q (1, q (0, x) ^ unpack_v8d_from_v32_S (k[2])) ^ unpack_v8d_from_v32_S (k[1])) ^ unpack_v8d_from_v32_S (k[0])
+
 #define q40(x,k) q (0, q (0, q (1, q (1, x) ^ unpack_v8a_from_v32_S (k[3])) ^ unpack_v8a_from_v32_S (k[2])) ^ unpack_v8a_from_v32_S (k[1])) ^ unpack_v8a_from_v32_S (k[0])
 #define q41(x,k) q (0, q (1, q (1, q (0, x) ^ unpack_v8b_from_v32_S (k[3])) ^ unpack_v8b_from_v32_S (k[2])) ^ unpack_v8b_from_v32_S (k[1])) ^ unpack_v8b_from_v32_S (k[0])
 #define q42(x,k) q (1, q (0, q (0, q (0, x) ^ unpack_v8c_from_v32_S (k[3])) ^ unpack_v8c_from_v32_S (k[2])) ^ unpack_v8c_from_v32_S (k[1])) ^ unpack_v8c_from_v32_S (k[0])
@@ -360,6 +420,8 @@ DECLSPEC u32 mds_rem (u32 p0, u32 p1)
 
   return p1;
 }
+
+// 128 bit key
 
 DECLSPEC u32 h_fun128 (const u32 x, const u32 *key)
 {
@@ -459,19 +521,115 @@ DECLSPEC void twofish128_decrypt (const u32 *sk, const u32 *lk, const u32 *in, u
   out[3] = data[1] ^ lk[3];
 }
 
+// 192 bit key
+
+DECLSPEC u32 h_fun192 (const u32 x, const u32 *key)
+{
+  u32  b0, b1, b2, b3;
+
+  b0 = unpack_v8a_from_v32_S (x);
+  b1 = unpack_v8b_from_v32_S (x);
+  b2 = unpack_v8c_from_v32_S (x);
+  b3 = unpack_v8d_from_v32_S (x);
+
+  b0 = q (1, b0) ^ unpack_v8a_from_v32_S (key[2]);
+  b1 = q (1, b1) ^ unpack_v8b_from_v32_S (key[2]);
+  b2 = q (0, b2) ^ unpack_v8c_from_v32_S (key[2]);
+  b3 = q (0, b3) ^ unpack_v8d_from_v32_S (key[2]);
+
+  b0 = q (0, (q (0, b0) ^ unpack_v8a_from_v32_S (key[1]))) ^ unpack_v8a_from_v32_S (key[0]);
+  b1 = q (0, (q (1, b1) ^ unpack_v8b_from_v32_S (key[1]))) ^ unpack_v8b_from_v32_S (key[0]);
+  b2 = q (1, (q (0, b2) ^ unpack_v8c_from_v32_S (key[1]))) ^ unpack_v8c_from_v32_S (key[0]);
+  b3 = q (1, (q (1, b3) ^ unpack_v8d_from_v32_S (key[1]))) ^ unpack_v8d_from_v32_S (key[0]);
+
+  return mds (0, b0) ^ mds (1, b1) ^ mds (2, b2) ^ mds (3, b3);
+}
+
+DECLSPEC void twofish192_set_key (u32 *sk, u32 *lk, const u32 *ukey)
+{
+  u32 me_key[3];
+
+  me_key[0] = ukey[0];
+  me_key[1] = ukey[2];
+  me_key[2] = ukey[4];
+
+  u32 mo_key[3];
+
+  mo_key[0] = ukey[1];
+  mo_key[1] = ukey[3];
+  mo_key[2] = ukey[5];
+
+  sk[2] = mds_rem (me_key[0], mo_key[0]);
+  sk[1] = mds_rem (me_key[1], mo_key[1]);
+  sk[0] = mds_rem (me_key[2], mo_key[2]);
+
+  #ifdef _unroll
+  #pragma unroll
+  #endif
+  for (int i = 0; i < 40; i += 2)
+  {
+    u32 a = 0x01010101 * i;
+    u32 b = 0x01010101 + a;
+
+    a = h_fun192 (a, me_key);
+    b = h_fun192 (b, mo_key);
+
+    b = hc_rotl32_S (b, 8);
+
+    lk[i + 0] = a + b;
+    lk[i + 1] = hc_rotl32_S (a + 2 * b, 9);
+  }
+}
+
+DECLSPEC void twofish192_encrypt (const u32 *sk, const u32 *lk, const u32 *in, u32 *out)
+{
+  u32 data[4];
+
+  data[0] = in[0] ^ lk[0];
+  data[1] = in[1] ^ lk[1];
+  data[2] = in[2] ^ lk[2];
+  data[3] = in[3] ^ lk[3];
+
+  f_rnd192 (0);
+  f_rnd192 (1);
+  f_rnd192 (2);
+  f_rnd192 (3);
+  f_rnd192 (4);
+  f_rnd192 (5);
+  f_rnd192 (6);
+  f_rnd192 (7);
+
+  out[0] = data[2] ^ lk[4];
+  out[1] = data[3] ^ lk[5];
+  out[2] = data[0] ^ lk[6];
+  out[3] = data[1] ^ lk[7];
+}
+
+DECLSPEC void twofish192_decrypt (const u32 *sk, const u32 *lk, const u32 *in, u32 *out)
+{
+  u32 data[4];
+
+  data[0] = in[0] ^ lk[4];
+  data[1] = in[1] ^ lk[5];
+  data[2] = in[2] ^ lk[6];
+  data[3] = in[3] ^ lk[7];
+
+  i_rnd192 (7);
+  i_rnd192 (6);
+  i_rnd192 (5);
+  i_rnd192 (4);
+  i_rnd192 (3);
+  i_rnd192 (2);
+  i_rnd192 (1);
+  i_rnd192 (0);
+
+  out[0] = data[2] ^ lk[0];
+  out[1] = data[3] ^ lk[1];
+  out[2] = data[0] ^ lk[2];
+  out[3] = data[1] ^ lk[3];
+}
+
 // 256 bit key
-
-#define g1_fun256(x)                              \
-  (mds (0, q40 (unpack_v8d_from_v32_S (x), sk)) ^ \
-   mds (1, q41 (unpack_v8a_from_v32_S (x), sk)) ^ \
-   mds (2, q42 (unpack_v8b_from_v32_S (x), sk)) ^ \
-   mds (3, q43 (unpack_v8c_from_v32_S (x), sk)))
-
-#define g0_fun256(x)                              \
-  (mds (0, q40 (unpack_v8a_from_v32_S (x), sk)) ^ \
-   mds (1, q41 (unpack_v8b_from_v32_S (x), sk)) ^ \
-   mds (2, q42 (unpack_v8c_from_v32_S (x), sk)) ^ \
-   mds (3, q43 (unpack_v8d_from_v32_S (x), sk)))
 
 DECLSPEC u32 h_fun256 (const u32 x, const u32 *key)
 {
@@ -589,8 +747,15 @@ DECLSPEC void twofish256_decrypt (const u32 *sk, const u32 *lk, const u32 *in, u
 
 #undef g1_fun128
 #undef g0_fun128
+#undef g1_fun192
+#undef g0_fun192
+#undef g1_fun256
+#undef g0_fun256
+
 #undef f_rnd128
 #undef i_rnd128
+#undef f_rnd192
+#undef i_rnd192
 #undef f_rnd256
 #undef i_rnd256
 
@@ -602,6 +767,12 @@ DECLSPEC void twofish256_decrypt (const u32 *sk, const u32 *lk, const u32 *in, u
 #undef q21
 #undef q22
 #undef q23
+
+#undef q30
+#undef q31
+#undef q32
+#undef q33
+
 #undef q40
 #undef q41
 #undef q42

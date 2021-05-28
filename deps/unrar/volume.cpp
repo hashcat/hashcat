@@ -136,7 +136,7 @@ bool MergeArchive(Archive &Arc,ComprDataIO *DataIO,bool ShowFileName,wchar Comma
     Arc.ConvertAttributes();
     Arc.Seek(Arc.NextBlockPos-Arc.FileHead.PackSize,SEEK_SET);
   }
-  if (ShowFileName)
+  if (ShowFileName && !Cmd->DisableNames)
   {
     mprintf(St(MExtrPoints),Arc.FileHead.FileName);
     if (!Cmd->DisablePercentage)

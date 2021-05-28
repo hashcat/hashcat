@@ -1,4 +1,4 @@
-Copyright (c) 1999-2018 Igor Pavlov
+Copyright (c) 1999-2021 Igor Pavlov
 
 LZMA SDK is written and placed in the public domain by Igor Pavlov.
 
