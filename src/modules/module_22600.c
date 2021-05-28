@@ -17,7 +17,7 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_4;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_NETWORK_PROTOCOL;
-static const char *HASH_NAME      = "Telegram Desktop App Passcode (PBKDF2-HMAC-SHA1)";
+static const char *HASH_NAME      = "Telegram Desktop < v2.1.14 (PBKDF2-HMAC-SHA1)";
 static const u64   KERN_TYPE      = 22600;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;

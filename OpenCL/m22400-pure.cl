@@ -26,7 +26,7 @@ typedef struct aescrypt
 
 typedef struct aescrypt_tmp
 {
-  u32 pass[144];
+  u32 pass[80];
   int len;
 
 } aescrypt_tmp_t;
@@ -50,36 +50,13 @@ KERNEL_FQ void m22400_init (KERN_ATTR_TMPS_ESALT (aescrypt_tmp_t, aescrypt_t))
   s[2] = salt_bufs[SALT_POS].salt_buf[2];
   s[3] = salt_bufs[SALT_POS].salt_buf[3];
 
-  // convert password to utf16le:
-
   const u32 pw_len = pws[gid].pw_len;
 
-  const u32 pw_len_utf16le = pw_len * 2;
+  u32 w[80] = { 0 };
 
-  u32 w[144] = { 0 };
-
-  for (u32 i = 0, j = 0; i < 64; i += 4, j += 8)
+  for (u32 i = 0, j = 0; i < pw_len; i += 4, j += 1)
   {
-    u32 in[4];
-
-    in[0] = pws[gid].i[i + 0];
-    in[1] = pws[gid].i[i + 1];
-    in[2] = pws[gid].i[i + 2];
-    in[3] = pws[gid].i[i + 3];
-
-    u32 out0[4];
-    u32 out1[4];
-
-    make_utf16le_S (in, out0, out1);
-
-    w[j + 0] = hc_swap32_S (out0[0]);
-    w[j + 1] = hc_swap32_S (out0[1]);
-    w[j + 2] = hc_swap32_S (out0[2]);
-    w[j + 3] = hc_swap32_S (out0[3]);
-    w[j + 4] = hc_swap32_S (out1[0]);
-    w[j + 5] = hc_swap32_S (out1[1]);
-    w[j + 6] = hc_swap32_S (out1[2]);
-    w[j + 7] = hc_swap32_S (out1[3]);
+    w[j] = hc_swap32_S (pws[gid].i[j]);
   }
 
   // sha256:
@@ -88,7 +65,7 @@ KERNEL_FQ void m22400_init (KERN_ATTR_TMPS_ESALT (aescrypt_tmp_t, aescrypt_t))
 
   sha256_init   (&ctx);
   sha256_update (&ctx, s, 32);
-  sha256_update (&ctx, w, pw_len_utf16le);
+  sha256_update (&ctx, w, pw_len);
   sha256_final  (&ctx);
 
   // set tmps:
@@ -110,7 +87,7 @@ KERNEL_FQ void m22400_init (KERN_ATTR_TMPS_ESALT (aescrypt_tmp_t, aescrypt_t))
   w[6] = ctx.h[6];
   w[7] = ctx.h[7];
 
-  const u32 final_len = 32 + pw_len_utf16le;
+  const u32 final_len = 32 + pw_len;
 
   const u32 idx_floor = (final_len / 64) * 16;
   const u32 idx_ceil  = ((final_len & 63) >= 56) ? idx_floor + 16 : idx_floor;
@@ -123,7 +100,7 @@ KERNEL_FQ void m22400_init (KERN_ATTR_TMPS_ESALT (aescrypt_tmp_t, aescrypt_t))
   #ifdef _unroll
   #pragma unroll
   #endif
-  for (u32 i = 0; i < 144; i++)
+  for (u32 i = 0; i < 80; i++)
   {
     tmps[gid].pass[i] = w[i];
   }
@@ -139,17 +116,17 @@ KERNEL_FQ void m22400_loop (KERN_ATTR_TMPS_ESALT (aescrypt_tmp_t, aescrypt_t))
 
   // init
 
-  u32 w[144];
+  u32 w[80];
 
   #ifdef _unroll
   #pragma unroll
   #endif
-  for (u32 i = 0; i < 144; i++)
+  for (u32 i = 0; i < 80; i++)
   {
     w[i] = tmps[gid].pass[i];
   }
 
-  const int pw_len = tmps[gid].len;
+  const int len = tmps[gid].len;
 
   // main loop
 
@@ -174,7 +151,7 @@ KERNEL_FQ void m22400_loop (KERN_ATTR_TMPS_ESALT (aescrypt_tmp_t, aescrypt_t))
     int left;
     int idx;
 
-    for (left = pw_len, idx = 0; left >= 56; left -= 64, idx += 16)
+    for (left = len, idx = 0; left >= 56; left -= 64, idx += 16)
     {
       w0[0] = w[idx +  0];
       w0[1] = w[idx +  1];

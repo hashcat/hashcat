@@ -154,6 +154,7 @@ KERNEL_FQ void m12800_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
 
   #undef uint_to_hex_lower8
 
+  // naive convert is fine here
   make_utf16le_S (w1, w2, w3);
   make_utf16le_S (w0, w0, w1);
 

@@ -75,7 +75,7 @@ sub module_generate_hash
     keysize     => 16,
     literal_key => 1,
     header      => "none",
-    padding     => "null"
+    padding     => "none"
   });
 
   if ($is_decrypt == 1)

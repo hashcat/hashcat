@@ -13,7 +13,7 @@ use Crypt::CBC;
 use Encode;
 use Digest::CRC qw (crc32);
 
-sub module_constraints { [[0, 127], [8, 8], [0, 20], [8, 8], [-1, -1]] }
+sub module_constraints { [[0, 128], [8, 8], [0, 20], [8, 8], [-1, -1]] }
 
 my $ITERATIONS = 0x40000;
 
@@ -375,7 +375,7 @@ sub module_generate_hash
     -keysize     => 16,
     -literal_key => 1,
     -header      => 'none',
-    -padding     => 'null'
+    -padding     => 'none'
   );
 
   if (defined ($data))

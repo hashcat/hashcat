@@ -1,6 +1,6 @@
 # Compiling hashcat with Cygwin.
 
-Tested on a Windows 7 SP1 x64 machine.
+Tested on a Windows 10 20H2 x64 machine.
 
 ### Installation ###
 
@@ -11,6 +11,7 @@ Make sure to install additional dependencies necessary for hashcat compilation b
 ```
 libiconv-devel
 gcc-core
+gcc-g++
 make
 git
 ```

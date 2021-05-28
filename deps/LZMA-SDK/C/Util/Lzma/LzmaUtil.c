@@ -1,5 +1,5 @@
 /* LzmaUtil.c -- Test application for LZMA compression
-2018-07-04 : Igor Pavlov : Public domain */
+2021-02-15 : Igor Pavlov : Public domain */
 
 #include "../../Precomp.h"
 
@@ -15,9 +15,9 @@
 #include "../../LzmaDec.h"
 #include "../../LzmaEnc.h"
 
-static const char * const kCantReadMessage = "Can not read input file";
-static const char * const kCantWriteMessage = "Can not write output file";
-static const char * const kCantAllocateMessage = "Can not allocate memory";
+static const char * const kCantReadMessage = "Cannot read input file";
+static const char * const kCantWriteMessage = "Cannot write output file";
+static const char * const kCantAllocateMessage = "Cannot allocate memory";
 static const char * const kDataErrorMessage = "Data error";
 
 static void PrintHelp(char *buffer)
@@ -37,9 +37,25 @@ static int PrintError(char *buffer, const char *message)
   return 1;
 }
 
+static int PrintError_WRes(char *buffer, const char *message, WRes wres)
+{
+  strcat(buffer, "\nError: ");
+  strcat(buffer, message);
+  sprintf(buffer + strlen(buffer), "\nSystem error code: %d", (unsigned)wres);
+  #ifndef _WIN32
+  {
+    const char *s = strerror(wres);
+    if (s)
+      sprintf(buffer + strlen(buffer), " : %s", s);
+  }
+  #endif
+  strcat(buffer, "\n");
+  return 1;
+}
+
 static int PrintErrorNumber(char *buffer, SRes val)
 {
-  sprintf(buffer + strlen(buffer), "\nError code: %x\n", (unsigned)val);
+  sprintf(buffer + strlen(buffer), "\n7-Zip error code: %d\n", (unsigned)val);
   return 1;
 }
 
@@ -181,9 +197,11 @@ static int main2(int numArgs, const char *args[], char *rs)
 
   FileSeqInStream_CreateVTable(&inStream);
   File_Construct(&inStream.file);
+  inStream.wres = 0;
 
   FileOutStream_CreateVTable(&outStream);
   File_Construct(&outStream.file);
+  outStream.wres = 0;
 
   if (numArgs == 1)
   {
@@ -206,14 +224,19 @@ static int main2(int numArgs, const char *args[], char *rs)
       return PrintError(rs, "Incorrect UInt32 or UInt64");
   }
 
-  if (InFile_Open(&inStream.file, args[2]) != 0)
-    return PrintError(rs, "Can not open input file");
+  {
+    WRes wres = InFile_Open(&inStream.file, args[2]);
+    if (wres != 0)
+      return PrintError_WRes(rs, "Cannot open input file", wres);
+  }
 
   if (numArgs > 3)
   {
+    WRes wres;
     useOutFile = True;
-    if (OutFile_Open(&outStream.file, args[3]) != 0)
-      return PrintError(rs, "Can not open output file");
+    wres = OutFile_Open(&outStream.file, args[3]);
+    if (wres != 0)
+      return PrintError_WRes(rs, "Cannot open output file", wres);
   }
   else if (encodeMode)
     PrintUserError(rs);
@@ -221,7 +244,9 @@ static int main2(int numArgs, const char *args[], char *rs)
   if (encodeMode)
   {
     UInt64 fileSize;
-    File_GetLength(&inStream.file, &fileSize);
+    WRes wres = File_GetLength(&inStream.file, &fileSize);
+    if (wres != 0)
+      return PrintError_WRes(rs, "Cannot get file length", wres);
     res = Encode(&outStream.vt, &inStream.vt, fileSize, rs);
   }
   else
@@ -240,9 +265,9 @@ static int main2(int numArgs, const char *args[], char *rs)
     else if (res == SZ_ERROR_DATA)
       return PrintError(rs, kDataErrorMessage);
     else if (res == SZ_ERROR_WRITE)
-      return PrintError(rs, kCantWriteMessage);
+      return PrintError_WRes(rs, kCantWriteMessage, outStream.wres);
     else if (res == SZ_ERROR_READ)
-      return PrintError(rs, kCantReadMessage);
+      return PrintError_WRes(rs, kCantReadMessage, inStream.wres);
     return PrintErrorNumber(rs, res);
   }
   return 0;

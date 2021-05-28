@@ -38,7 +38,8 @@ enum UIMESSAGE_CODE {
   UIERROR_PATHTOOLONG, UIERROR_DIRSCAN, UIERROR_UOWNERGET,
   UIERROR_UOWNERBROKEN, UIERROR_UOWNERGETOWNERID, UIERROR_UOWNERGETGROUPID,
   UIERROR_UOWNERSET, UIERROR_ULINKREAD, UIERROR_ULINKEXIST,
-  UIERROR_OPENPRESERVEATIME,
+  UIERROR_OPENPRESERVEATIME, UIERROR_READERRTRUNCATED, UIERROR_READERRCOUNT,
+  UIERROR_DIRNAMEEXISTS,
 
   UIMSG_FIRST,
   UIMSG_STRING, UIMSG_BUILD, UIMSG_RRSEARCH, UIMSG_ANALYZEFILEDATA,
@@ -92,15 +93,17 @@ bool uiIsGlobalPasswordSet();
 enum UIALARM_TYPE {UIALARM_ERROR, UIALARM_INFO, UIALARM_QUESTION};
 void uiAlarm(UIALARM_TYPE Type);
 
+void uiEolAfterMsg();
 
 bool uiAskNextVolume(wchar *VolName,size_t MaxSize);
-bool uiAskRepeatRead(const wchar *FileName);
+#if !defined(SILENT) && !defined(SFX_MODULE)
+void uiAskRepeatRead(const wchar *FileName,bool &Ignore,bool &All,bool &Retry,bool &Quit);
+#endif
 bool uiAskRepeatWrite(const wchar *FileName,bool DiskFull);
 
 #ifndef SFX_MODULE
 const wchar *uiGetMonthName(int Month);
 #endif
-
 
 class uiMsgStore
 {

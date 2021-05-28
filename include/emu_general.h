@@ -23,9 +23,6 @@ typedef struct digest
 } digest_t;
 #endif
 
-u32 atomic_dec (u32 *p);
-u32 atomic_inc (u32 *p);
-
 size_t get_global_id  (u32 dimindx __attribute__((unused)));
 size_t get_local_id   (u32 dimindx __attribute__((unused)));
 size_t get_local_size (u32 dimindx __attribute__((unused)));

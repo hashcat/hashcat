@@ -342,7 +342,7 @@ KERNEL_FQ void m07500_mxx (KERN_ATTR_RULES_ESALT (krb5pa_t))
 
     if (decrypt_and_check (rc4_key, digest, timestamp_ct) == 1)
     {
-      if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
       {
         mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, il_pos, 0, 0);
       }
@@ -413,7 +413,7 @@ KERNEL_FQ void m07500_sxx (KERN_ATTR_RULES_ESALT (krb5pa_t))
 
     if (decrypt_and_check (rc4_key, digest, timestamp_ct) == 1)
     {
-      if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
       {
         mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, il_pos, 0, 0);
       }
