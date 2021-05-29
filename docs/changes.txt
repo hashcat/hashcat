@@ -29,6 +29,7 @@
 - UTF8-to-UTF16: Replaced naive UTF8 to UTF16 conversion with true conversion for RAR3, AES Crypt, MultiBit HD (scrypt) and Umbraco HMAC-SHA1
 - AES Crypt Plugin: Reduced max password length from 256 to 128 which improved performance by 22%
 - RAR3-p (Compressed): Fix workaround in unrar library in AES constant table generation to enable multi-threading support
+- CRC32: Prevent decompression of data used in CRC32 calculation on host. This leads to false negatives with TrueCrypt/VeraCrypt keyfiles
 
 ##
 ## Technical
