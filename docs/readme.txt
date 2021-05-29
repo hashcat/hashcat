@@ -71,6 +71,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - md5(utf16le($pass))
 - sha1(utf16le($pass))
 - sha256(utf16le($pass))
+- sha384(utf16le($pass))
 - sha512(utf16le($pass))
 - md5($pass.$salt)
 - md5($salt.$pass)
