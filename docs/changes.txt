@@ -30,7 +30,7 @@
 - AES Crypt Plugin: Reduced max password length from 256 to 128 which improved performance by 22%
 - RAR3-p (Compressed): Fix workaround in unrar library in AES constant table generation to enable multi-threading support
 - CRC32: Prevent decompression of data used in CRC32 calculation on host. This leads to false negatives with TrueCrypt/VeraCrypt keyfiles
-- PDF: Update -m 10400 and -m 10410 to new RC4 crypto library code, improving performance by 20% or more
+- RC4: Update -m 97x0 and -m 104x0 to new RC4 crypto library code, improving performance by 20% or more
 
 ##
 ## Technical

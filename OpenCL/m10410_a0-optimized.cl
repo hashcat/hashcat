@@ -18,18 +18,6 @@
 #include "inc_cipher_rc4.cl"
 #endif
 
-CONSTANT_VK u32a padding[8] =
-{
-  0x5e4ebf28,
-  0x418a754e,
-  0x564e0064,
-  0x0801faff,
-  0xb6002e2e,
-  0x803e68d0,
-  0xfea90c2f,
-  0x7a695364
-};
-
 typedef struct pdf
 {
   int  V;
@@ -82,6 +70,22 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m10410_m04 (KERN_ATTR_RULES_
   const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
+   * constant
+   */
+
+  const u32 padding[8] =
+  {
+    0x5e4ebf28,
+    0x418a754e,
+    0x564e0064,
+    0x0801faff,
+    0xb6002e2e,
+    0x803e68d0,
+    0xfea90c2f,
+    0x7a695364
+  };
+
+  /**
    * shared
    */
 
@@ -104,7 +108,7 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m10410_m04 (KERN_ATTR_RULES_
      * pdf
      */
 
-    rc4_init_16 (S, w0);
+    rc4_init_40 (S, w0);
 
     u32 out[4];
 
@@ -153,6 +157,22 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m10410_s04 (KERN_ATTR_RULES_
   const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
+   * constant
+   */
+
+  const u32 padding[8] =
+  {
+    0x5e4ebf28,
+    0x418a754e,
+    0x564e0064,
+    0x0801faff,
+    0xb6002e2e,
+    0x803e68d0,
+    0xfea90c2f,
+    0x7a695364
+  };
+
+  /**
    * shared
    */
 
@@ -187,7 +207,7 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m10410_s04 (KERN_ATTR_RULES_
      * pdf
      */
 
-    rc4_init_16 (S, w0);
+    rc4_init_40 (S, w0);
 
     u32 out[4];
 

@@ -16,18 +16,6 @@
 #include "inc_cipher_rc4.cl"
 #endif
 
-CONSTANT_VK u32a padding[8] =
-{
-  0x5e4ebf28,
-  0x418a754e,
-  0x564e0064,
-  0x0801faff,
-  0xb6002e2e,
-  0x803e68d0,
-  0xfea90c2f,
-  0x7a695364
-};
-
 typedef struct pdf
 {
   int  V;
@@ -59,6 +47,22 @@ DECLSPEC void m10410m (LOCAL_AS u32 *S, u32 *w0, u32 *w1, u32 *w2, u32 *w3, cons
   const u64 lid = get_local_id (0);
 
   /**
+   * constant
+   */
+
+  const u32 padding[8] =
+  {
+    0x5e4ebf28,
+    0x418a754e,
+    0x564e0064,
+    0x0801faff,
+    0xb6002e2e,
+    0x803e68d0,
+    0xfea90c2f,
+    0x7a695364
+  };
+
+  /**
    * loop
    */
 
@@ -76,7 +80,7 @@ DECLSPEC void m10410m (LOCAL_AS u32 *S, u32 *w0, u32 *w1, u32 *w2, u32 *w3, cons
      * pdf
      */
 
-    rc4_init_16 (S, w0);
+    rc4_init_40 (S, w0);
 
     u32 out[4];
 
@@ -94,6 +98,22 @@ DECLSPEC void m10410s (LOCAL_AS u32 *S, u32 *w0, u32 *w1, u32 *w2, u32 *w3, cons
 
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
+
+  /**
+   * constant
+   */
+
+  const u32 padding[8] =
+  {
+    0x5e4ebf28,
+    0x418a754e,
+    0x564e0064,
+    0x0801faff,
+    0xb6002e2e,
+    0x803e68d0,
+    0xfea90c2f,
+    0x7a695364
+  };
 
   /**
    * digest
@@ -125,7 +145,7 @@ DECLSPEC void m10410s (LOCAL_AS u32 *S, u32 *w0, u32 *w1, u32 *w2, u32 *w3, cons
      * pdf
      */
 
-    rc4_init_16 (S, w0);
+    rc4_init_40 (S, w0);
 
     u32 out[4];
 
