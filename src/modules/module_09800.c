@@ -59,25 +59,42 @@ static const char *SIGNATURE_OLDOFFICE  = "$oldoffice$";
 static const char *SIGNATURE_OLDOFFICE3 = "$oldoffice$3";
 static const char *SIGNATURE_OLDOFFICE4 = "$oldoffice$4";
 
+char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
+{
+  char *jit_build_options = NULL;
+
+  u32 native_threads = 0;
+
+  if (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU)
+  {
+    native_threads = 1;
+  }
+  else if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
+  {
+    if (device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK)
+    {
+      native_threads = 8;
+    }
+    else if (device_param->opencl_device_vendor_id == VENDOR_ID_AMD)
+    {
+      native_threads = 64;
+    }
+    else
+    {
+      native_threads = 32;
+    }
+  }
+
+  hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u -D _unroll", native_threads);
+
+  return jit_build_options;
+}
+
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   const u64 esalt_size = (const u64) sizeof (oldoffice34_t);
 
   return esalt_size;
-}
-
-u32 module_kernel_threads_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u32 kernel_threads_min = 64; // RC4
-
-  return kernel_threads_min;
-}
-
-u32 module_kernel_threads_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u32 kernel_threads_max = 64; // RC4
-
-  return kernel_threads_max;
 }
 
 u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -314,14 +331,14 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hook23                   = MODULE_DEFAULT;
   module_ctx->module_hook_salt_size           = MODULE_DEFAULT;
   module_ctx->module_hook_size                = MODULE_DEFAULT;
-  module_ctx->module_jit_build_options        = MODULE_DEFAULT;
+  module_ctx->module_jit_build_options        = module_jit_build_options;
   module_ctx->module_jit_cache_disable        = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_max         = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_min         = MODULE_DEFAULT;
   module_ctx->module_kernel_loops_max         = MODULE_DEFAULT;
   module_ctx->module_kernel_loops_min         = MODULE_DEFAULT;
-  module_ctx->module_kernel_threads_max       = module_kernel_threads_max;
-  module_ctx->module_kernel_threads_min       = module_kernel_threads_min;
+  module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
+  module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
   module_ctx->module_opti_type                = module_opti_type;

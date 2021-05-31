@@ -6,9 +6,9 @@
 #ifndef _INC_CIPHER_RC4_H
 #define _INC_CIPHER_RC4_H
 
-DECLSPEC u8   GET_KEY8  (LOCAL_AS u32 *S, const int k);
-DECLSPEC void SET_KEY8  (LOCAL_AS u32 *S, const int k, const u8 v);
-DECLSPEC void SET_KEY32 (LOCAL_AS u32 *S, const int k, const u32 v);
+DECLSPEC u8   GET_KEY8  (LOCAL_AS u32 *S, const u8 k);
+DECLSPEC void SET_KEY8  (LOCAL_AS u32 *S, const u8 k, const u8 v);
+DECLSPEC void SET_KEY32 (LOCAL_AS u32 *S, const u8 k, const u32 v);
 
 DECLSPEC void rc4_init_40  (LOCAL_AS u32 *S, const u32 *key);
 DECLSPEC void rc4_init_128 (LOCAL_AS u32 *S, const u32 *key);

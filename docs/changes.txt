@@ -30,7 +30,7 @@
 - AES Crypt Plugin: Reduced max password length from 256 to 128 which improved performance by 22%
 - RAR3-p (Compressed): Fix workaround in unrar library in AES constant table generation to enable multi-threading support
 - CRC32: Prevent decompression of data used in CRC32 calculation on host. This leads to false negatives with TrueCrypt/VeraCrypt keyfiles
-- RC4: Updated hash-mode 7500, 9710, 9720, 10400 and 10410 to new RC4 crypto library code, improving performance by 20% or more
+- RC4 Kernels: Improved performance by 20%+ for hash-modes Kerberos 5 (etype 23), MS Office (<= 2003) and PDF (<= 1.6) by using new RC4 code
 
 ##
 ## Technical
@@ -40,7 +40,7 @@
 - Dependencies: Updated xxHash from 0.1.0 to v0.8.0 - Stable XXH3
 - Documentation: Update missing documentation in plugin developer guide for OPTS_TYPE_MP_MULTI_DISABLE and OPTS_TYPE_NATIVE_THREADS
 - Kernels: Add standalone true UTF8 to UTF16 converter kernel that runs after amplifier. Use OPTS_TYPE_POST_AMP_UTF16LE from plugin
-- Kernels: Add RC4 cipher to crypto library with shared memory access pattern which is not causing any bank conflicts
+- Kernels: Add RC4 cipher to crypto library with optimized shared memory access pattern which will not cause any bank conflicts if -u <= 32
 - Modules: Recategorized HASH_CATEGORY option in various modules
 
 * changes v6.2.0 -> v6.2.1

@@ -8,21 +8,21 @@
 
 // Pattern linear
 
-DECLSPEC u8 GET_KEY8 (LOCAL_AS u32 *S, const int k)
+DECLSPEC u8 GET_KEY8 (LOCAL_AS u32 *S, const u8 k)
 {
   LOCAL_AS u8 *S8 = (LOCAL_AS u8 *) S;
 
   return S8[k];
 }
 
-DECLSPEC void SET_KEY8 (LOCAL_AS u32 *S, const int k, const u8 v)
+DECLSPEC void SET_KEY8 (LOCAL_AS u32 *S, const u8 k, const u8 v)
 {
   LOCAL_AS u8 *S8 = (LOCAL_AS u8 *) S;
 
   S8[k] = v;
 }
 
-DECLSPEC void SET_KEY32 (LOCAL_AS u32 *S, const int k, const u32 v)
+DECLSPEC void SET_KEY32 (LOCAL_AS u32 *S, const u8 k, const u32 v)
 {
   S[k] = v;
 }
@@ -74,7 +74,7 @@ DECLSPEC void SET_KEY32 (LOCAL_AS u32 *S, const int k, const u32 v)
 
 #define KEY8(t,k) (((k) & 3) + (((k) / 4) * 128) + (((t) & 31) * 4) + (((t) / 32) * 8192))
 
-DECLSPEC u8 GET_KEY8 (LOCAL_AS u32 *S, const int k)
+DECLSPEC u8 GET_KEY8 (LOCAL_AS u32 *S, const u8 k)
 {
   const u64 lid = get_local_id (0);
 
@@ -83,7 +83,7 @@ DECLSPEC u8 GET_KEY8 (LOCAL_AS u32 *S, const int k)
   return S8[KEY8 (lid, k)];
 }
 
-DECLSPEC void SET_KEY8 (LOCAL_AS u32 *S, const int k, const u8 v)
+DECLSPEC void SET_KEY8 (LOCAL_AS u32 *S, const u8 k, const u8 v)
 {
   const u64 lid = get_local_id (0);
 
@@ -94,7 +94,7 @@ DECLSPEC void SET_KEY8 (LOCAL_AS u32 *S, const int k, const u8 v)
 
 #define KEY32(t,k) (((k) * 32) + ((t) & 31) + (((t) / 32) * 2048))
 
-DECLSPEC void SET_KEY32 (LOCAL_AS u32 *S, const int k, const u32 v)
+DECLSPEC void SET_KEY32 (LOCAL_AS u32 *S, const u8 k, const u32 v)
 {
   const u64 lid = get_local_id (0);
 
@@ -114,18 +114,18 @@ DECLSPEC void rc4_init_40 (LOCAL_AS u32 *S, const u32 *key)
   #ifdef _unroll
   #pragma unroll
   #endif
-  for (u32 i = 0; i < 64; i++)
+  for (u8 i = 0; i < 64; i++)
   {
     SET_KEY32 (S, i, v); v += a;
   }
 
-  const u32 d0 = key[0] >>  0;
-  const u32 d1 = key[0] >>  8;
-  const u32 d2 = key[0] >> 16;
-  const u32 d3 = key[0] >> 24;
-  const u32 d4 = key[1] >>  0;
+  const u8 d0 = v8a_from_v32_S (key[0]);
+  const u8 d1 = v8b_from_v32_S (key[0]);
+  const u8 d2 = v8c_from_v32_S (key[0]);
+  const u8 d3 = v8d_from_v32_S (key[0]);
+  const u8 d4 = v8a_from_v32_S (key[1]);
 
-  u32 j = 0;
+  u8 j = 0;
 
   #ifdef _unroll
   #pragma unroll
@@ -150,16 +150,16 @@ DECLSPEC void rc4_init_128 (LOCAL_AS u32 *S, const u32 *key)
   #ifdef _unroll
   #pragma unroll
   #endif
-  for (u32 i = 0; i < 64; i++)
+  for (u8 i = 0; i < 64; i++)
   {
     SET_KEY32 (S, i, v); v += a;
   }
 
-  u32 j = 0;
+  u8 j = 0;
 
   for (u32 i = 0; i < 16; i++)
   {
-    u32 idx = i * 16;
+    u8 idx = i * 16;
 
     u32 v;
 
@@ -204,66 +204,66 @@ DECLSPEC void rc4_swap (LOCAL_AS u32 *S, const u8 i, const u8 j)
 
 DECLSPEC u8 rc4_next_16 (LOCAL_AS u32 *S, const u8 i, const u8 j, const u32 *in, u32 *out)
 {
-  u8 src = i;
-  u8 dst = j;
+  u8 a = i;
+  u8 b = j;
 
   #ifdef _unroll
   #pragma unroll
   #endif
-  for (u32 k = 0; k < 4; k++)
+  for (int k = 0; k < 4; k++)
   {
     u32 xor4 = 0;
 
+    u32 tmp;
+
     u8 idx;
 
-    u32 r;
+    a += 1;
+    b += GET_KEY8 (S, a);
 
-    src += 1;
-    dst += GET_KEY8 (S, src);
+    rc4_swap (S, a, b);
 
-    rc4_swap (S, src, dst);
+    idx = GET_KEY8 (S, a) + GET_KEY8 (S, b);
 
-    idx = GET_KEY8 (S, src) + GET_KEY8 (S, dst);
+    tmp = GET_KEY8 (S, idx);
 
-    r = GET_KEY8 (S, idx);
+    xor4 |= tmp <<  0;
 
-    xor4 |= r <<  0;
+    a += 1;
+    b += GET_KEY8 (S, a);
 
-    src += 1;
-    dst += GET_KEY8 (S, src);
+    rc4_swap (S, a, b);
 
-    rc4_swap (S, src, dst);
+    idx = GET_KEY8 (S, a) + GET_KEY8 (S, b);
 
-    idx = GET_KEY8 (S, src) + GET_KEY8 (S, dst);
+    tmp = GET_KEY8 (S, idx);
 
-    r = GET_KEY8 (S, idx);
+    xor4 |= tmp <<  8;
 
-    xor4 |= r <<  8;
+    a += 1;
+    b += GET_KEY8 (S, a);
 
-    src += 1;
-    dst += GET_KEY8 (S, src);
+    rc4_swap (S, a, b);
 
-    rc4_swap (S, src, dst);
+    idx = GET_KEY8 (S, a) + GET_KEY8 (S, b);
 
-    idx = GET_KEY8 (S, src) + GET_KEY8 (S, dst);
+    tmp = GET_KEY8 (S, idx);
 
-    r = GET_KEY8 (S, idx);
+    xor4 |= tmp << 16;
 
-    xor4 |= r << 16;
+    a += 1;
+    b += GET_KEY8 (S, a);
 
-    src += 1;
-    dst += GET_KEY8 (S, src);
+    rc4_swap (S, a, b);
 
-    rc4_swap (S, src, dst);
+    idx = GET_KEY8 (S, a) + GET_KEY8 (S, b);
 
-    idx = GET_KEY8 (S, src) + GET_KEY8 (S, dst);
+    tmp = GET_KEY8 (S, idx);
 
-    r = GET_KEY8 (S, idx);
-
-    xor4 |= r << 24;
+    xor4 |= tmp << 24;
 
     out[k] = in[k] ^ xor4;
   }
 
-  return dst;
+  return b;
 }
