@@ -236,7 +236,7 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       if ((status_ctx->words_cnt / straight_ctx->kernel_rules_cnt) != hashes->salts_cnt)
       {
-        event_log_error (hashcat_ctx, "Number of words in wordlist %s is not in sync with number of salts (words: %" PRIu64 ", salts: %d)", straight_ctx->dict, status_ctx->words_cnt, hashes->salts_cnt);
+        event_log_error (hashcat_ctx, "Number of words in wordlist %s is not in sync with number of salts (words: %" PRIu64 ", salts: %d)", straight_ctx->dict, status_ctx->words_cnt / straight_ctx->kernel_rules_cnt, hashes->salts_cnt);
 
         return -1;
       }
