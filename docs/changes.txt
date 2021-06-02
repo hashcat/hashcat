@@ -23,13 +23,13 @@
 ##
 
 - Fixed error message in -a 9 mode with rules in case number of words from wordlist are not in sync with number of unique salts
+- Fixed false negatives with TrueCrypt/VeraCrypt in case zip or gzip compressed files were used as keyfiles
 
 ##
 ## Improvements
 ##
 
 - AES Crypt Plugin: Reduced max password length from 256 to 128 which improved performance by 22%
-- CRC32: Prevent decompression of data used in CRC32 calculation on host. This leads to false negatives with TrueCrypt/VeraCrypt keyfiles
 - CUDA Backend: Do not warn about missing CUDA SDK installation if --stdout is used
 - OpenCL Backend: Use CL_DEVICE_BOARD_NAME_AMD instead of CL_DEVICE_NAME for device name in case OpenCL runtime supports this query
 - Performance Monitor: Add -S as a user suggestion to improve cracking performance in specific attack configurations
