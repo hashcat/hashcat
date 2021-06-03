@@ -13,10 +13,13 @@
 - Added hash-mode: sha256(utf16le($pass))
 - Added hash-mode: sha384(utf16le($pass))
 - Added hash-mode: sha512(utf16le($pass))
+- Added hash-mode: md5(md5(md5($pass)))
+- Added hash-mode: sha1(sha1($salt.$pass.$salt))
+- Added hash-mode: sha256($salt.sha256($pass))
 - Added hash-mode: sha384($pass.$salt)
 - Added hash-mode: sha384($salt.$pass)
-- Added hash-mode: sha384(utf16le($pass).$salt)
 - Added hash-mode: sha384($salt.utf16le($pass))
+- Added hash-mode: sha384(utf16le($pass).$salt)
 
 ##
 ## Bugs
@@ -90,8 +93,6 @@
 - Added hash-mode: Umbraco HMAC-SHA1
 - Added hash-mode: sha1($salt.sha1($pass.$salt))
 - Added hash-mode: sha1(sha1($pass).$salt)
-- Added hash-mode: md5(md5(md5($pass)))
-- Added hash-mode: sha1(sha1($salt.$pass.$salt))
 
 ##
 ## Features
