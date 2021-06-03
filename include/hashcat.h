@@ -15,6 +15,7 @@ int   hashcat_session_pause      (hashcat_ctx_t *hashcat_ctx);
 int   hashcat_session_resume     (hashcat_ctx_t *hashcat_ctx);
 int   hashcat_session_bypass     (hashcat_ctx_t *hashcat_ctx);
 int   hashcat_session_checkpoint (hashcat_ctx_t *hashcat_ctx);
+int   hashcat_session_finish     (hashcat_ctx_t *hashcat_ctx);
 int   hashcat_session_quit       (hashcat_ctx_t *hashcat_ctx);
 int   hashcat_session_destroy    (hashcat_ctx_t *hashcat_ctx);
 

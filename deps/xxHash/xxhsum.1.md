@@ -4,24 +4,26 @@ xxhsum(1) -- print or check xxHash non-cryptographic checksums
 SYNOPSIS
 --------
 
-`xxhsum [<OPTION>] ... [<FILE>] ...`  
+`xxhsum [<OPTION>] ... [<FILE>] ...`
 `xxhsum -b [<OPTION>] ...`
 
-`xxh32sum` is equivalent to `xxhsum -H0`  
+`xxh32sum` is equivalent to `xxhsum -H0`
 `xxh64sum` is equivalent to `xxhsum -H1`
+`xxh128sum` is equivalent to `xxhsum -H2`
 
 
 DESCRIPTION
 -----------
 
-Print or check xxHash (32 or 64bit) checksums.  When <FILE> is `-`, read
-standard input.
+Print or check xxHash (32, 64 or 128 bits) checksums.
+When no <FILE>, read standard input, except if it's the console.
+When <FILE> is `-`, read standard input even if it's the console.
 
-`xxhsum` supports a command line syntax similar but not identical to
-md5sum(1).  Differences are:
+`xxhsum` supports a command line syntax similar but not identical to md5sum(1).
+Differences are:
 `xxhsum` doesn't have text/binary mode switch (`-b`, `-t`);
-`xxhsum` always treats file as binary file;
-`xxhsum` has hash bit width switch (`-H`);
+`xxhsum` always treats files as binary file;
+`xxhsum` has a hash bit width switch (`-H`);
 
 As xxHash is a fast non-cryptographic checksum algorithm,
 `xxhsum` should not be used for security related purposes.
@@ -32,40 +34,52 @@ OPTIONS
 -------
 
 * `-V`, `--version`:
-  Display xxhsum version
+  Displays xxhsum version and exits
 
 * `-H`<HASHTYPE>:
-  Hash selection.  <HASHTYPE> means `0`=32bits, `1`=64bits.
+  Hash selection. <HASHTYPE> means `0`=32bits, `1`=64bits, `2`=128bits.
+  Alternatively, <HASHTYPE> `32`=32bits, `64`=64bits, `128`=128bits.
   Default value is `1` (64bits)
+
+* `--tag`:
+  Output in the BSD style.
 
 * `--little-endian`:
   Set output hexadecimal checksum value as little endian convention.
   By default, value is displayed as big endian.
 
 * `-h`, `--help`:
-  Display help and exit
+  Displays help and exits
 
 **The following four options are useful only when verifying checksums (`-c`)**
 
-* `-c`, `--check`:
-  Read xxHash sums from the <FILE>s and check them
+* `-c`, `--check` <FILE>:
+  Read xxHash sums from <FILE> and check them
 
-* `--quiet`:
-  Exit non-zero for improperly formatted checksum lines
-
-* `--strict`:
+* `-q`, `--quiet`:
   Don't print OK for each successfully verified file
 
+* `--strict`:
+  Return an error code if any line in the file is invalid,
+  not just if some checksums are wrong.
+  This policy is disabled by default,
+  though UI will prompt an informational message
+  if any line in the file is detected invalid.
+
 * `--status`:
-  Don't output anything, status code shows success
+  Don't output anything. Status code shows success.
 
 * `-w`, `--warn`:
-  Warn about improperly formatted checksum lines
+  Emit a warning message about each improperly formatted checksum line.
 
 **The following options are useful only benchmark purpose**
 
 * `-b`:
   Benchmark mode.  See [EXAMPLES](#EXAMPLES) for details.
+
+* `-b#`:
+  Specify ID of variant to be tested.
+  Multiple variants can be selected, separated by a ',' comma.
 
 * `-B`<BLOCKSIZE>:
   Only useful for benchmark mode (`-b`). See [EXAMPLES](#EXAMPLES) for details.
@@ -75,7 +89,7 @@ OPTIONS
 * `-i`<ITERATIONS>:
   Only useful for benchmark mode (`-b`). See [EXAMPLES](#EXAMPLES) for details.
   <ITERATIONS> specifies number of iterations in benchmark. Single iteration
-  takes at least 2500 milliseconds. Default value is 3
+  lasts approximately 1000 milliseconds. Default value is 3
 
 EXIT STATUS
 -----------
@@ -100,13 +114,23 @@ Read xxHash sums from specific files and check them
 
     $ xxhsum -c xyz.xxh32 qux.xxh64
 
-Benchmark xxHash algorithm for 16384 bytes data in 10 times. `xxhsum`
-benchmarks xxHash algorithm for 32-bit and 64-bit and output results to
-standard output.  First column means algorithm, second column is source data
-size in bytes, last column means hash generation speed in mega-bytes per
-seconds.
+Benchmark xxHash algorithm.
+By default, `xxhsum` benchmarks xxHash main variants
+on a synthetic sample of 100 KB,
+and print results into standard output.
+The first column is the algorithm,
+the second column is the source data size in bytes,
+the third column is the number of hashes generated per second (throughput),
+and finally the last column translates speed in megabytes per second.
 
-    $ xxhsum -b -i10 -B16384
+    $ xxhsum -b
+
+In the following example,
+the sample to hash is set to 16384 bytes,
+the variants to be benched are selected by their IDs,
+and each benchmark test is repeated 10 times, for increased accuracy.
+
+    $ xxhsum -b1,2,3 -i10 -B16384
 
 BUGS
 ----

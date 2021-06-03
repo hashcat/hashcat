@@ -28,7 +28,7 @@ void ListArchive(CommandData *Cmd)
     if (!Arc.WOpen(ArcName))
       continue;
     bool FileMatched=true;
-    while (1)
+    while (true)
     {
       int64 TotalPackSize=0,TotalUnpSize=0;
       uint FileCount=0;
@@ -69,7 +69,7 @@ void ListArchive(CommandData *Cmd)
 
         wchar VolNumText[50];
         *VolNumText=0;
-        while(Arc.ReadHeader()>0)
+        while (Arc.ReadHeader()>0)
         {
           Wait(); // Allow quit listing with Ctrl+C.
           HEADER_TYPE HeaderType=Arc.GetHeaderType();

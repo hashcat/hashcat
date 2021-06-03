@@ -56,7 +56,6 @@ void CommandData::ParseCommandLine(bool Preprocess,int argc, char *argv[])
   // In Windows we may prefer to implement our own command line parser
   // to avoid replacing \" by " in standard parser. Such replacing corrupts
   // destination paths like "dest path\" in extraction commands.
-  // Also our own parser is Unicode compatible.
   const wchar *CmdLine=GetCommandLine();
 
   wchar *Par;
@@ -288,7 +287,10 @@ void CommandData::ProcessSwitch(const wchar *Switch)
             AppendArcNameToPath=APPENDARCNAME_DESTPATH;
           else
             if (Switch[2]=='1')
-              AppendArcNameToPath=APPENDARCNAME_OWNDIR;
+              AppendArcNameToPath=APPENDARCNAME_OWNSUBDIR;
+            else
+              if (Switch[2]=='2')
+                AppendArcNameToPath=APPENDARCNAME_OWNDIR;
           break;
 #ifndef SFX_MODULE
         case 'G':
@@ -436,9 +438,9 @@ void CommandData::ProcessSwitch(const wchar *Switch)
         wcsncpyz(EmailTo,Switch[4]!=0 ? Switch+4:L"@",ASIZE(EmailTo));
         break;
       }
-      if (wcsicomp(Switch+1,L"M")==0)
+      if (wcsicomp(Switch+1,L"M")==0) // For compatibility with pre-WinRAR 6.0 -im syntax. Replaced with -idv.
       {
-        MoreInfo=true;
+        VerboseOutput=true;
         break;
       }
       if (wcsicomp(Switch+1,L"NUL")==0)
@@ -464,6 +466,12 @@ void CommandData::ProcessSwitch(const wchar *Switch)
               break;
             case 'P':
               DisablePercentage=true;
+              break;
+            case 'N':
+              DisableNames=true;
+              break;
+            case 'V':
+              VerboseOutput=true;
               break;
           }
         break;
@@ -539,7 +547,6 @@ void CommandData::ProcessSwitch(const wchar *Switch)
                   case 'D': Type=FILTER_DELTA;       break;
                   case 'A': Type=FILTER_AUDIO;       break;
                   case 'C': Type=FILTER_RGB;         break;
-                  case 'I': Type=FILTER_ITANIUM;     break;
                   case 'R': Type=FILTER_ARM;         break;
                 }
                 if (*Str=='+' || *Str=='-')

@@ -533,6 +533,9 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       if (hashes->digests_shown[hash_pos] == 1) continue;
 
+      const u32 salt_pos = cracked[i].salt_pos;
+      salt_t *salt_buf = &hashes->salts_buf[salt_pos];
+
       if ((hashconfig->opts_type & OPTS_TYPE_PT_NEVERCRACK) == 0)
       {
         hashes->digests_shown[hash_pos] = 1;
@@ -540,10 +543,6 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         hashes->digests_done++;
 
         cpt_cracked++;
-
-        const u32 salt_pos = cracked[i].salt_pos;
-
-        salt_t *salt_buf = &hashes->salts_buf[salt_pos];
 
         salt_buf->digests_done++;
 
@@ -553,7 +552,14 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
           hashes->salts_done++;
         }
+      }
 
+      if (hashes->salts_done == hashes->salts_cnt) mycracked (hashcat_ctx);
+
+      check_hash (hashcat_ctx, device_param, &cracked[i]);
+
+      if (hashconfig->opts_type & OPTS_TYPE_PT_NEVERCRACK)
+      {
         // we need to reset cracked state on the device
         // otherwise host thinks again and again the hash was cracked
         // and returns invalid password each time
@@ -574,10 +580,6 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
           if (CL_rc == -1) return -1;
         }
       }
-
-      if (hashes->salts_done == hashes->salts_cnt) mycracked (hashcat_ctx);
-
-      check_hash (hashcat_ctx, device_param, &cracked[i]);
     }
 
     hc_thread_mutex_unlock (status_ctx->mux_display);
@@ -627,24 +629,41 @@ int hashes_init_filename (hashcat_ctx_t *hashcat_ctx)
   user_options_t       *user_options       = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
+  if (user_options->benchmark == true) return 0;
+
   /**
    * load hashes, part I: find input mode, count hashes
    */
 
   if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
   {
-    hashes->hashlist_mode = HL_MODE_FILE_BINARY;
-
-    if ((user_options->benchmark == false) && (user_options->keyspace == false))
+    if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE_OPTIONAL)
     {
-      if (hc_path_read (user_options_extra->hc_hash) == false)
+      if ((user_options->benchmark == false) && (user_options->keyspace == false))
       {
-        event_log_error (hashcat_ctx, "%s: %s", user_options_extra->hc_hash, strerror (errno));
+        hashes->hashlist_mode = (hc_path_exist (user_options_extra->hc_hash) == true) ? HL_MODE_FILE_PLAIN : HL_MODE_ARG;
 
-        return -1;
+        if (hashes->hashlist_mode == HL_MODE_FILE_PLAIN)
+        {
+          hashes->hashfile = user_options_extra->hc_hash;
+        }
       }
+    }
+    else
+    {
+      hashes->hashlist_mode = HL_MODE_FILE_BINARY;
 
-      hashes->hashfile = user_options_extra->hc_hash;
+      if ((user_options->benchmark == false) && (user_options->keyspace == false))
+      {
+        if (hc_path_read (user_options_extra->hc_hash) == false)
+        {
+          event_log_error (hashcat_ctx, "%s: %s", user_options_extra->hc_hash, strerror (errno));
+
+          return -1;
+        }
+
+        hashes->hashfile = user_options_extra->hc_hash;
+      }
     }
   }
   else
@@ -901,7 +920,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
     hashes_cnt = 1;
   }
-  else if (user_options->example_hashes == true)
+  else if (user_options->hash_info == true)
   {
   }
   else if (user_options->keyspace == true)
@@ -1172,7 +1191,14 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
               compress_terminal_line_length (tmp_line_buf, 38, 32);
 
-              event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+              if (user_options->machine_readable == true)
+              {
+                event_log_warning (hashcat_ctx, "%s:%u:%s:%s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+              }
+              else
+              {
+                event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+              }
 
               hcfree (tmp_line_buf);
 
@@ -1196,7 +1222,14 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
               compress_terminal_line_length (tmp_line_buf, 38, 32);
 
-              event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+              if (user_options->machine_readable == true)
+              {
+                event_log_warning (hashcat_ctx, "%s:%u:%s:%s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+              }
+              else
+              {
+                event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+              }
 
               hcfree (tmp_line_buf);
 
@@ -1222,7 +1255,14 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
               compress_terminal_line_length (tmp_line_buf, 38, 32);
 
-              event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+              if (user_options->machine_readable == true)
+              {
+                event_log_warning (hashcat_ctx, "%s:%u:%s:%s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+              }
+              else
+              {
+                event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+              }
 
               hcfree (tmp_line_buf);
 
@@ -1249,7 +1289,14 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             compress_terminal_line_length (tmp_line_buf, 38, 32);
 
-            event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+            if (user_options->machine_readable == true)
+            {
+              event_log_warning (hashcat_ctx, "%s:%u:%s:%s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+            }
+            else
+            {
+              event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+            }
 
             hcfree (tmp_line_buf);
 
@@ -1858,30 +1905,37 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
   {
     if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
     {
-      char *tmpfile_bin;
-
-      hc_asprintf (&tmpfile_bin, "%s/selftest.hash", folder_config->session_dir);
-
-      HCFILE fp;
-
-      hc_fopen (&fp, tmpfile_bin, "wb");
-
-      const size_t st_hash_len = strlen (hashconfig->st_hash);
-
-      for (size_t i = 0; i < st_hash_len; i += 2)
+      if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE_OPTIONAL)
       {
-        const u8 c = hex_to_u8 ((const u8 *) hashconfig->st_hash + i);
-
-        hc_fputc (c, &fp);
+        parser_status = module_ctx->module_hash_decode (hashconfig, hash.digest, hash.salt, hash.esalt, hash.hook_salt, hash.hash_info, hashconfig->st_hash, strlen (hashconfig->st_hash));
       }
+      else
+      {
+        char *tmpfile_bin;
 
-      hc_fclose (&fp);
+        hc_asprintf (&tmpfile_bin, "%s/selftest.hash", folder_config->session_dir);
 
-      parser_status = module_ctx->module_hash_decode (hashconfig, hash.digest, hash.salt, hash.esalt, hash.hook_salt, hash.hash_info, tmpfile_bin, strlen (tmpfile_bin));
+        HCFILE fp;
 
-      unlink (tmpfile_bin);
+        hc_fopen (&fp, tmpfile_bin, "wb");
 
-      hcfree (tmpfile_bin);
+        const size_t st_hash_len = strlen (hashconfig->st_hash);
+
+        for (size_t i = 0; i < st_hash_len; i += 2)
+        {
+          const u8 c = hex_to_u8 ((const u8 *) hashconfig->st_hash + i);
+
+          hc_fputc (c, &fp);
+        }
+
+        hc_fclose (&fp);
+
+        parser_status = module_ctx->module_hash_decode (hashconfig, hash.digest, hash.salt, hash.esalt, hash.hook_salt, hash.hash_info, tmpfile_bin, strlen (tmpfile_bin));
+
+        unlink (tmpfile_bin);
+
+        hcfree (tmpfile_bin);
+      }
     }
     else
     {
@@ -1982,6 +2036,117 @@ int hashes_init_benchmark (hashcat_ctx_t *hashcat_ctx)
       memcpy (hashes->hook_salts_buf, hashes->st_hook_salts_buf, hashconfig->hook_salt_size);
     }
   }
+
+  return 0;
+}
+
+int hashes_init_zerohash (hashcat_ctx_t *hashcat_ctx)
+{
+  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  const hashes_t       *hashes       = hashcat_ctx->hashes;
+  const module_ctx_t   *module_ctx   = hashcat_ctx->module_ctx;
+
+  // do not use this unless really needed, for example as in LM
+
+  if (module_ctx->module_hash_decode_zero_hash == MODULE_DEFAULT) return 0;
+
+  hash_t *hashes_buf = hashes->hashes_buf;
+  u32     hashes_cnt = hashes->hashes_cnt;
+
+  // no solution for these special hash types (for instane because they use hashfile in output etc)
+
+  hash_t hash_buf;
+
+  hash_buf.digest    = hcmalloc (hashconfig->dgst_size);
+  hash_buf.salt      = NULL;
+  hash_buf.esalt     = NULL;
+  hash_buf.hook_salt = NULL;
+  hash_buf.cracked   = 0;
+  hash_buf.hash_info = NULL;
+  hash_buf.pw_buf    = NULL;
+  hash_buf.pw_len    = 0;
+
+  if (hashconfig->is_salted == true)
+  {
+    hash_buf.salt = (salt_t *) hcmalloc (sizeof (salt_t));
+  }
+
+  if (hashconfig->esalt_size > 0)
+  {
+    hash_buf.esalt = hcmalloc (hashconfig->esalt_size);
+  }
+
+  if (hashconfig->hook_salt_size > 0)
+  {
+    hash_buf.hook_salt = hcmalloc (hashconfig->hook_salt_size);
+  }
+
+  module_ctx->module_hash_decode_zero_hash (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, hash_buf.hook_salt, hash_buf.hash_info);
+
+  hash_t *found = (hash_t *) hc_bsearch_r (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_no_salt, (void *) hashconfig);
+
+  if (found != NULL)
+  {
+    found->pw_buf = (char *) hcmalloc (1);
+    found->pw_len = 0;
+
+    found->cracked = 1;
+
+    // should we show the cracked zero hash to the user?
+
+    if (false)
+    {
+      // digest pos
+
+      const u32 digest_pos = found - hashes_buf;
+
+      // show the crack
+
+      u8 *out_buf = (u8 *) hcmalloc (HCBUFSIZ_LARGE);
+
+      int out_len = hash_encode (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf, HCBUFSIZ_LARGE, 0, digest_pos);
+
+      out_buf[out_len] = 0;
+
+      // outfile, can be either to file or stdout
+      // if an error occurs opening the file, send to stdout as fallback
+      // the fp gets opened for each cracked hash so that the user can modify (move) the outfile while hashcat runs
+
+      outfile_write_open (hashcat_ctx);
+
+      const u8 *plain = (const u8 *) "";
+
+      u8 *tmp_buf = (u8 *) hcmalloc (HCBUFSIZ_LARGE);
+
+      tmp_buf[0] = 0;
+
+      const int tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, out_len, plain, 0, 0, NULL, 0, true, (char *) tmp_buf);
+
+      EVENT_DATA (EVENT_CRACKER_HASH_CRACKED, tmp_buf, tmp_len);
+
+      outfile_write_close (hashcat_ctx);
+
+      hcfree (tmp_buf);
+      hcfree (out_buf);
+    }
+  }
+
+  if (hashconfig->esalt_size > 0)
+  {
+    hcfree (hash_buf.esalt);
+  }
+
+  if (hashconfig->hook_salt_size > 0)
+  {
+    hcfree (hash_buf.hook_salt);
+  }
+
+  if (hashconfig->is_salted == true)
+  {
+    hcfree (hash_buf.salt);
+  }
+
+  hcfree (hash_buf.digest);
 
   return 0;
 }

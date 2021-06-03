@@ -17,8 +17,8 @@ sub module_generate_hash
 {
   my $word = shift;
   my $salt = shift;
-  my $N    = shift // 1024;
-  my $r    = shift // 1;
+  my $N    = shift // 16384;
+  my $r    = shift // 8;
   my $p    = shift // 1;
 
   my $hash_buf = scrypt_hash ($word, $salt, $N, $r, $p, 32);

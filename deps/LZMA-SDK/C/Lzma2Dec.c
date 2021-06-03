@@ -1,5 +1,5 @@
 /* Lzma2Dec.c -- LZMA2 Decoder
-2019-02-02 : Igor Pavlov : Public domain */
+2021-02-09 : Igor Pavlov : Public domain */
 
 /* #define SHOW_DEBUG_INFO */
 
@@ -93,7 +93,8 @@ void Lzma2Dec_Init(CLzma2Dec *p)
   LzmaDec_Init(&p->decoder);
 }
 
-static ELzma2State Lzma2Dec_UpdateState(CLzma2Dec *p, Byte b)
+// ELzma2State
+static unsigned Lzma2Dec_UpdateState(CLzma2Dec *p, Byte b)
 {
   switch (p->state)
   {

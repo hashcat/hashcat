@@ -14,6 +14,7 @@
 #include "inc_simd.cl"
 #include "inc_hash_md4.cl"
 #include "inc_hash_md5.cl"
+#include "inc_cipher_rc4.cl"
 #endif
 
 typedef struct krb5pa
@@ -26,142 +27,19 @@ typedef struct krb5pa
 
 } krb5pa_t;
 
-typedef struct
+DECLSPEC int decrypt_and_check (LOCAL_AS u32 *S, u32 *data, u32 *timestamp_ct)
 {
-  u8 S[256];
-
-  u32 wtf_its_faster;
-
-} RC4_KEY;
-
-DECLSPEC void swap (LOCAL_AS RC4_KEY *rc4_key, const u8 i, const u8 j)
-{
-  u8 tmp;
-
-  tmp           = rc4_key->S[i];
-  rc4_key->S[i] = rc4_key->S[j];
-  rc4_key->S[j] = tmp;
-}
-
-DECLSPEC void rc4_init_16 (LOCAL_AS RC4_KEY *rc4_key, const u32 *data)
-{
-  u32 v = 0x03020100;
-  u32 a = 0x04040404;
-
-  LOCAL_AS u32 *ptr = (LOCAL_AS u32 *) rc4_key->S;
-
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (u32 i = 0; i < 64; i++)
-  {
-    *ptr++ = v; v += a;
-  }
-
-  u32 j = 0;
-
-  for (u32 i = 0; i < 16; i++)
-  {
-    u32 idx = i * 16;
-
-    u32 v;
-
-    v = data[0];
-
-    j += rc4_key->S[idx] + (v >>  0); swap (rc4_key, idx, j); idx++;
-    j += rc4_key->S[idx] + (v >>  8); swap (rc4_key, idx, j); idx++;
-    j += rc4_key->S[idx] + (v >> 16); swap (rc4_key, idx, j); idx++;
-    j += rc4_key->S[idx] + (v >> 24); swap (rc4_key, idx, j); idx++;
-
-    v = data[1];
-
-    j += rc4_key->S[idx] + (v >>  0); swap (rc4_key, idx, j); idx++;
-    j += rc4_key->S[idx] + (v >>  8); swap (rc4_key, idx, j); idx++;
-    j += rc4_key->S[idx] + (v >> 16); swap (rc4_key, idx, j); idx++;
-    j += rc4_key->S[idx] + (v >> 24); swap (rc4_key, idx, j); idx++;
-
-    v = data[2];
-
-    j += rc4_key->S[idx] + (v >>  0); swap (rc4_key, idx, j); idx++;
-    j += rc4_key->S[idx] + (v >>  8); swap (rc4_key, idx, j); idx++;
-    j += rc4_key->S[idx] + (v >> 16); swap (rc4_key, idx, j); idx++;
-    j += rc4_key->S[idx] + (v >> 24); swap (rc4_key, idx, j); idx++;
-
-    v = data[3];
-
-    j += rc4_key->S[idx] + (v >>  0); swap (rc4_key, idx, j); idx++;
-    j += rc4_key->S[idx] + (v >>  8); swap (rc4_key, idx, j); idx++;
-    j += rc4_key->S[idx] + (v >> 16); swap (rc4_key, idx, j); idx++;
-    j += rc4_key->S[idx] + (v >> 24); swap (rc4_key, idx, j); idx++;
-  }
-}
-
-DECLSPEC u8 rc4_next_16 (LOCAL_AS RC4_KEY *rc4_key, u8 i, u8 j, const u32 *in, u32 *out)
-{
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (u32 k = 0; k < 4; k++)
-  {
-    u32 xor4 = 0;
-
-    u8 idx;
-
-    i += 1;
-    j += rc4_key->S[i];
-
-    swap (rc4_key, i, j);
-
-    idx = rc4_key->S[i] + rc4_key->S[j];
-
-    xor4 |= rc4_key->S[idx] <<  0;
-
-    i += 1;
-    j += rc4_key->S[i];
-
-    swap (rc4_key, i, j);
-
-    idx = rc4_key->S[i] + rc4_key->S[j];
-
-    xor4 |= rc4_key->S[idx] <<  8;
-
-    i += 1;
-    j += rc4_key->S[i];
-
-    swap (rc4_key, i, j);
-
-    idx = rc4_key->S[i] + rc4_key->S[j];
-
-    xor4 |= rc4_key->S[idx] << 16;
-
-    i += 1;
-    j += rc4_key->S[i];
-
-    swap (rc4_key, i, j);
-
-    idx = rc4_key->S[i] + rc4_key->S[j];
-
-    xor4 |= rc4_key->S[idx] << 24;
-
-    out[k] = in[k] ^ xor4;
-  }
-
-  return j;
-}
-
-DECLSPEC int decrypt_and_check (LOCAL_AS RC4_KEY *rc4_key, u32 *data, u32 *timestamp_ct)
-{
-  rc4_init_16 (rc4_key, data);
+  rc4_init_128 (S, data);
 
   u32 out[4];
 
   u8 j = 0;
 
-  j = rc4_next_16 (rc4_key,  0, j, timestamp_ct + 0, out);
+  j = rc4_next_16 (S,  0, j, timestamp_ct + 0, out);
 
   if ((out[3] & 0xffff0000) != 0x30320000) return 0;
 
-  j = rc4_next_16 (rc4_key, 16, j, timestamp_ct + 4, out);
+  j = rc4_next_16 (S, 16, j, timestamp_ct + 4, out);
 
   if (((out[0] & 0xff) < '0') || ((out[0] & 0xff) > '9')) return 0; out[0] >>= 8;
   if (((out[0] & 0xff) < '0') || ((out[0] & 0xff) > '9')) return 0; out[0] >>= 8;
@@ -449,9 +327,7 @@ KERNEL_FQ void m07500_m04 (KERN_ATTR_ESALT (krb5pa_t))
    * shared
    */
 
-  LOCAL_VK RC4_KEY rc4_keys[64];
-
-  LOCAL_AS RC4_KEY *rc4_key = &rc4_keys[lid];
+  LOCAL_VK u32 S[64 * FIXED_LOCAL_SIZE];
 
   /**
    * loop
@@ -531,9 +407,9 @@ KERNEL_FQ void m07500_m04 (KERN_ATTR_ESALT (krb5pa_t))
     tmp[2] = digest[2];
     tmp[3] = digest[3];
 
-    if (decrypt_and_check (rc4_key, tmp, timestamp_ct) == 1)
+    if (decrypt_and_check (S, tmp, timestamp_ct) == 1)
     {
-      if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
       {
         mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, il_pos, 0, 0);
       }
@@ -605,9 +481,7 @@ KERNEL_FQ void m07500_s04 (KERN_ATTR_ESALT (krb5pa_t))
    * shared
    */
 
-  LOCAL_VK RC4_KEY rc4_keys[64];
-
-  LOCAL_AS RC4_KEY *rc4_key = &rc4_keys[lid];
+  LOCAL_VK u32 S[64 * FIXED_LOCAL_SIZE];
 
   /**
    * loop
@@ -687,9 +561,9 @@ KERNEL_FQ void m07500_s04 (KERN_ATTR_ESALT (krb5pa_t))
     tmp[2] = digest[2];
     tmp[3] = digest[3];
 
-    if (decrypt_and_check (rc4_key, tmp, timestamp_ct) == 1)
+    if (decrypt_and_check (S, tmp, timestamp_ct) == 1)
     {
-      if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
       {
         mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, il_pos, 0, 0);
       }

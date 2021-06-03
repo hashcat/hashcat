@@ -36,7 +36,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "     --hex-wordlist             |      | Assume words in wordlist are given in hex            |",
   "     --force                    |      | Ignore warnings                                      |",
   "     --status                   |      | Enable automatic update of the status screen         |",
-  "     --status-json              |      | Enable JSON format for status ouput                  |",
+  "     --status-json              |      | Enable JSON format for status output                 |",
   "     --status-timer             | Num  | Sets seconds between status screen updates to X      | --status-timer=1",
   "     --stdin-timeout-abort      | Num  | Abort if there is no input from stdin for X seconds  | --stdin-timeout-abort=300",
   "     --machine-readable         |      | Display the status view in a machine-readable format |",
@@ -89,7 +89,8 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "     --bitmap-max               | Num  | Sets maximum bits allowed for bitmaps to X           | --bitmap-max=24",
   "     --cpu-affinity             | Str  | Locks to CPU devices, separated with commas          | --cpu-affinity=1,2,3",
   "     --hook-threads             | Num  | Sets number of threads for a hook (per compute unit) | --hook-threads=8",
-  "     --example-hashes           |      | Show an example hash for each hash-mode              |",
+  "     --hash-info                |      | Show information for each hash-mode                  |",
+  "     --example-hashes           |      | Alias of --hash-info                                 |",
   "     --backend-ignore-cuda      |      | Do not try to open CUDA interface on startup         |",
   "     --backend-ignore-opencl    |      | Do not try to open OpenCL interface on startup       |",
   " -I, --backend-info             |      | Show info about detected backend API devices         | -I",
@@ -137,8 +138,8 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "",
   "- [ Hash modes ] -",
   "",
-  "      # | Name                                             | Category",
-  "  ======+==================================================+======================================",
+  "      # | Name                                                | Category",
+  "  ======+=====================================================+======================================",
   NULL
 };
 
@@ -254,7 +255,16 @@ static int sort_by_usage (const void *p1, const void *p2)
   if (u1->hash_category > u2->hash_category) return  1;
   if (u1->hash_category < u2->hash_category) return -1;
 
-  const int rc_name = strncmp (u1->hash_name + 1, u2->hash_name + 1, 15); // yes, strange...
+  const bool first1_is_lc = ((u1->hash_name[0] >= 'a') && (u1->hash_name[0] <= 'z')) ? true :  false;
+  const bool first2_is_lc = ((u2->hash_name[0] >= 'a') && (u2->hash_name[0] <= 'z')) ? true :  false;
+
+  if (first1_is_lc != first2_is_lc)
+  {
+    if (first1_is_lc) return  1;
+    else              return -1;
+  }
+
+  const int rc_name = strncmp (u1->hash_name + 1, u2->hash_name + 1, 20); // yes, strange...
 
   if (rc_name > 0) return  1;
   if (rc_name < 0) return -1;
@@ -324,7 +334,7 @@ void usage_big_print (hashcat_ctx_t *hashcat_ctx)
 
   for (int i = 0; i < usage_sort_cnt; i++)
   {
-    printf ("%7u | %-48s | %s", usage_sort_buf[i].hash_mode, usage_sort_buf[i].hash_name, strhashcategory (usage_sort_buf[i].hash_category));
+    printf ("%7u | %-51s | %s", usage_sort_buf[i].hash_mode, usage_sort_buf[i].hash_name, strhashcategory (usage_sort_buf[i].hash_category));
 
     fwrite (EOL, strlen (EOL), 1, stdout);
   }
