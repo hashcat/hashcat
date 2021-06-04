@@ -27,6 +27,7 @@
 
 - Fixed error message in -a 9 mode with rules in case number of words from wordlist are not in sync with number of unique salts
 - Fixed false negatives with TrueCrypt/VeraCrypt in case zip or gzip compressed files were used as keyfiles
+- Fixed error handling logic in monitor thread to not return in case of error (disc full, permission error, ...) but to retry instead
 
 ##
 ## Improvements

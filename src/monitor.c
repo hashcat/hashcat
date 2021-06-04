@@ -167,9 +167,14 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
       if (restore_left == 0)
       {
-        const int rc = cycle_restore (hashcat_ctx);
+        // Can't return from monitor for that reasons, see:
+        // https://github.com/hashcat/hashcat/issues/2704
+        //
+        //const int rc = cycle_restore (hashcat_ctx);
+        //
+        //if (rc == -1) return -1;
 
-        if (rc == -1) return -1;
+        cycle_restore (hashcat_ctx);
 
         restore_left = user_options->restore_timer;
       }
@@ -197,9 +202,14 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
         {
           hashes->digests_saved = hashes->digests_done;
 
-          const int rc = save_hash (hashcat_ctx);
+          // Can't return from monitor for that reasons, see:
+          // https://github.com/hashcat/hashcat/issues/2704
+          //
+          // const int rc = save_hash (hashcat_ctx);
+          //
+          // if (rc == -1) return -1;
 
-          if (rc == -1) return -1;
+          save_hash (hashcat_ctx);
         }
 
         remove_left = user_options->remove_timer;
@@ -313,9 +323,14 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
   {
     if (hashes->digests_saved != hashes->digests_done)
     {
-      const int rc = save_hash (hashcat_ctx);
+      // Can't return from monitor for that reasons, see:
+      // https://github.com/hashcat/hashcat/issues/2704
+      //
+      // const int rc = save_hash (hashcat_ctx);
+      //
+      // if (rc == -1) return -1;
 
-      if (rc == -1) return -1;
+      save_hash (hashcat_ctx);
     }
   }
 
@@ -323,9 +338,14 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
   if (restore_check == true)
   {
-    const int rc = cycle_restore (hashcat_ctx);
+    // Can't return from monitor for that reasons, see:
+    // https://github.com/hashcat/hashcat/issues/2704
+    //
+    // const int rc = cycle_restore (hashcat_ctx);
+    //
+    // if (rc == -1) return -1;
 
-    if (rc == -1) return -1;
+    cycle_restore (hashcat_ctx);
   }
 
   return 0;
