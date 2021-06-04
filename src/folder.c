@@ -115,6 +115,31 @@ static void get_profile_dir (char *profile_dir, const char *home_dir)
   hcfree (data_dir);
 }
 
+static void get_cache_dir (char *cache_dir, const char *home_dir)
+{
+  snprintf (cache_dir, HCBUFSIZ_TINY, "%s/%s", home_dir, DOT_HASHCAT);
+  struct stat st = {0};
+  if (stat (cache_dir, &st) == 0 && S_ISDIR (st.st_mode))
+    return;
+
+  char *xdg_cache_dir = (char *) hcmalloc (HCBUFSIZ_TINY);
+  if (getenv ("XDG_CACHE_HOME"))
+  {
+    strncpy (xdg_cache_dir, getenv ("XDG_CACHE_HOME"), HCBUFSIZ_TINY);
+  }
+  else
+  {
+    snprintf (xdg_cache_dir, HCBUFSIZ_TINY, "%s/.cache", home_dir);
+  }
+
+  if (access (xdg_cache_dir, R_OK) != -1)
+  {
+    snprintf (cache_dir, HCBUFSIZ_TINY, "%s/hashcat", xdg_cache_dir);
+  }
+
+  hcfree (xdg_cache_dir);
+}
+
 static void get_session_dir (char *session_dir, const char *profile_dir)
 {
   snprintf (session_dir, HCBUFSIZ_TINY, "%s/%s", profile_dir, SESSIONS_FOLDER);
@@ -358,6 +383,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
   get_install_dir (install_dir, resolved_exec_path);
 
   char *profile_dir = NULL;
+  char *cache_dir = NULL;
   char *session_dir = NULL;
   char *shared_dir  = NULL;
 
@@ -373,19 +399,23 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
     const char *home_dir = pwp->pw_dir;
 
     profile_dir = (char *) hcmalloc (HCBUFSIZ_TINY);
+    cache_dir = (char *) hcmalloc (HCBUFSIZ_TINY);
     session_dir = (char *) hcmalloc (HCBUFSIZ_TINY);
 
     get_profile_dir (profile_dir, home_dir);
+    get_cache_dir (cache_dir, home_dir);
     get_session_dir (session_dir, profile_dir);
 
     shared_dir = hcstrdup (shared_folder);
 
     hc_mkdir (profile_dir, 0700);
+    hc_mkdir (cache_dir, 0700);
     hc_mkdir (session_dir, 0700);
   }
   else
   {
     profile_dir = install_dir;
+    cache_dir = install_dir;
     session_dir = install_dir;
     shared_dir  = install_dir;
   }
@@ -400,6 +430,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
   get_install_dir (install_dir, exec_path);
 
   char *profile_dir = install_dir;
+  char *cache_dir = install_dir;
   char *session_dir = install_dir;
   char *shared_dir  = install_dir;
 
@@ -442,6 +473,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
     // we prevent double-freeing the same memory address (this happens if e.g. profile_dir == session_dir)
 
     if (profile_dir == shared_dir) profile_dir = NULL;
+    if (cache_dir == shared_dir) cache_dir = NULL;
     if (session_dir == shared_dir) session_dir = NULL;
 
     shared_dir = NULL;
@@ -450,8 +482,16 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
     hcfree (profile_dir);
 
     if (session_dir == profile_dir) session_dir = NULL;
+    if (cache_dir == profile_dir) cache_dir = NULL;
 
     profile_dir = NULL;
+
+
+    hcfree (cache_dir);
+
+    if (session_dir == cache_dir) session_dir = NULL;
+
+    cache_dir = NULL;
 
 
     hcfree (session_dir);
@@ -501,7 +541,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
   char *kernels_folder;
 
-  hc_asprintf (&kernels_folder, "%s/kernels", profile_dir);
+  hc_asprintf (&kernels_folder, "%s/kernels", cache_dir);
 
   hc_mkdir (kernels_folder, 0700);
 
@@ -514,6 +554,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
   folder_config->cwd          = cwd;
   folder_config->install_dir  = install_dir;
   folder_config->profile_dir  = profile_dir;
+  folder_config->cache_dir    = cache_dir;
   folder_config->session_dir  = session_dir;
   folder_config->shared_dir   = shared_dir;
   folder_config->cpath_real   = cpath_real;

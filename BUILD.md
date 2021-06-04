@@ -31,8 +31,7 @@ The install target is linux FHS compatible and can be used like this:
 $ make install
 ```
 
-If you install it, cached kernels, session files, restore- and pot-files etc. will go to either $HOME/.hashcat/, if that already exists, otherwise to $XDG_DATA_HOME/hashcat/ or ~/.local/share/hashcat/, if that environment variable is not set.
-
+If you install it, cached kernels will go to either $HOME/.hashcat/, if that already exists, otherwise to $XDG_CACHE_HOME/hashcat/ or ~/.cache/hashcat/, if that environment variable is not set. Session files, restore- and pot-files etc. will go to either $HOME/.hashcat/, if that already exists, otherwise to $XDG_DATA_HOME/hashcat/ or ~/.local/share/hashcat/, if that environment variable is not set.
 
 ### Building hashcat for Windows (using Windows Subsystem for Linux) ###
 
