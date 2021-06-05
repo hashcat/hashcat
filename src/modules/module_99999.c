@@ -30,7 +30,8 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_RAW_HASH;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_PT_ADD80
-                                  | OPTS_TYPE_PT_ADDBITS14;
+                                  | OPTS_TYPE_PT_ADDBITS14
+                                  | OPTS_TYPE_AUTODETECT_DISABLE;
 static const u32   SALT_TYPE      = SALT_TYPE_NONE;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "hashcat";

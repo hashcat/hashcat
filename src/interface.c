@@ -259,7 +259,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   {
     if ((hashconfig->opts_type & OPTS_TYPE_KEYBOARD_MAPPING) == 0)
     {
-      event_log_error (hashcat_ctx, "Parameter --keyboard-layout-mapping not valid for hash-type %u", hashconfig->hash_mode);
+      if (user_options->autodetect == false) event_log_error (hashcat_ctx, "Parameter --keyboard-layout-mapping not valid for hash-type %u", hashconfig->hash_mode);
 
       return -1;
     }
@@ -288,7 +288,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      event_log_error (hashcat_ctx, "Parameter --hex-salt not valid for hash-type %u", hashconfig->hash_mode);
+      if (user_options->autodetect == false) event_log_error (hashcat_ctx, "Parameter --hex-salt not valid for hash-type %u", hashconfig->hash_mode);
 
       return -1;
     }
@@ -302,7 +302,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   {
     if (hashconfig->opts_type & OPTS_TYPE_SUGGEST_KG)
     {
-      if (user_options->quiet == false)
+      if (user_options->quiet == false && user_options->autodetect == false)
       {
         event_log_warning (hashcat_ctx, "This hash-mode is known to emit multiple valid password candidates for the same hash.");
         event_log_warning (hashcat_ctx, "Use --keep-guessing to prevent hashcat from shutdown after the hash has been cracked.");

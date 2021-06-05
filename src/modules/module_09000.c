@@ -21,7 +21,8 @@ static const char *HASH_NAME      = "Password Safe v2";
 static const u64   KERN_TYPE      = 9000;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_BINARY_HASHFILE;
+                                  | OPTS_TYPE_BINARY_HASHFILE
+                                  | OPTS_TYPE_AUTODETECT_DISABLE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "0a3f352686e5eb5be173e668a4fff5cd5df420927e1da2d5d4052340160637e3e6a5a92841a188ed240e13b919f3d91694bd4c0acba79271e9c08a83ea5ad387cbb74d5884066a1cb5a8caa80d847079168f84823847c631dbe3a834f1bc496acfebac3bff1608bf1c857717f8f428e07b5e2cb12aaeddfa83d7dcb6d840234d08b84f8ca6c6e562af73eea13148f7902bcaf0220d3e36eeeff1d37283dc421483a2791182614ebb";

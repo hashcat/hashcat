@@ -157,6 +157,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
 
   user_options->advice_disable            = ADVICE_DISABLE;
   user_options->attack_mode               = ATTACK_MODE;
+  user_options->autodetect                = AUTODETECT;
   user_options->backend_devices           = NULL;
   user_options->backend_ignore_cuda       = BACKEND_IGNORE_CUDA;
   user_options->backend_ignore_opencl     = BACKEND_IGNORE_OPENCL;
@@ -662,6 +663,11 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     event_log_error (hashcat_ctx, "Invalid -m (hash type) value specified.");
 
     return -1;
+  }
+
+  if (user_options->hash_mode == 0 && user_options->hash_mode_chgd == false)
+  {
+    user_options->autodetect = true;
   }
 
   if (user_options->outfile_format == 0)

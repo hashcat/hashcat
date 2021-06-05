@@ -28,6 +28,7 @@
 #include "event.h"
 #include "hashes.h"
 #include "hwmon.h"
+#include "hlfmt.h"
 #include "induct.h"
 #include "interface.h"
 #include "logfile.h"
@@ -1138,6 +1139,271 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
   return 0;
 }
 
+bool autodetect_hashmode_test (hashcat_ctx_t *hashcat_ctx)
+{
+  hashconfig_t          *hashconfig         = hashcat_ctx->hashconfig;
+  hashes_t              *hashes             = hashcat_ctx->hashes;
+  module_ctx_t          *module_ctx         = hashcat_ctx->module_ctx;
+  user_options_t        *user_options       = hashcat_ctx->user_options;
+  user_options_extra_t  *user_options_extra = hashcat_ctx->user_options_extra;
+
+  // check for file or hash on command line
+  // if file, find out if binary file
+
+  if (hashconfig->opts_type & OPTS_TYPE_AUTODETECT_DISABLE) return false;
+
+  if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
+  {
+    if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE_OPTIONAL)
+    {
+      hashes->hashlist_mode = (hc_path_exist (user_options_extra->hc_hash) == true) ? HL_MODE_FILE_PLAIN : HL_MODE_ARG;
+
+      if (hashes->hashlist_mode == HL_MODE_FILE_PLAIN)
+      {
+        hashes->hashfile = user_options_extra->hc_hash;
+      }
+    }
+    else
+    {
+      hashes->hashlist_mode = HL_MODE_FILE_BINARY;
+
+      if (hc_path_read (user_options_extra->hc_hash) == false) return false;
+
+      hashes->hashfile = user_options_extra->hc_hash;
+    }
+  }
+  else
+  {
+    hashes->hashlist_mode = (hc_path_exist (user_options_extra->hc_hash) == true) ? HL_MODE_FILE_PLAIN : HL_MODE_ARG;
+
+    if (hashes->hashlist_mode == HL_MODE_FILE_PLAIN)
+    {
+      hashes->hashfile = user_options_extra->hc_hash;
+    }
+  }
+
+  /**
+   * load hashes, part I: find input mode
+   */
+
+  const char *hashfile      = hashes->hashfile;
+  const u32   hashlist_mode = hashes->hashlist_mode;
+
+  u32 hashlist_format = HLFMT_HASHCAT;
+
+  if (hashlist_mode == HL_MODE_FILE_PLAIN)
+  {
+    HCFILE fp;
+
+    if (hc_fopen (&fp, hashfile, "rb") == false) return false;
+
+    hashlist_format = hlfmt_detect (hashcat_ctx, &fp, 100);
+
+    hc_fclose (&fp);
+  }
+
+  hashes->hashlist_format = hashlist_format;
+
+  /**
+   * load hashes, part II: allocate required memory, set pointers
+   */
+
+  void   *digest    =            hccalloc (1, hashconfig->dgst_size);
+  salt_t *salt      = (salt_t *) hccalloc (1, sizeof (salt_t));
+  void   *esalt     = NULL;
+  void   *hook_salt = NULL;
+
+  if (hashconfig->esalt_size > 0)
+  {
+    esalt = hccalloc (1, hashconfig->esalt_size);
+  }
+
+  if (hashconfig->hook_salt_size > 0)
+  {
+    hook_salt = hccalloc (1, hashconfig->hook_salt_size);
+  }
+
+  hashinfo_t *hash_info = (hashinfo_t *) hcmalloc (sizeof (hashinfo_t));
+
+  hash_info->user = (user_t *) hcmalloc (sizeof (user_t));
+  hash_info->orighash = (char *) hcmalloc (256);
+  hash_info->split = (split_t *) hcmalloc (sizeof (split_t));
+
+  hash_t *hashes_buf = (hash_t *) hcmalloc (sizeof (hash_t));
+
+  hashes_buf->digest    = digest;
+  hashes_buf->salt      = salt;
+  hashes_buf->esalt     = esalt;
+  hashes_buf->hook_salt = hook_salt;
+
+  hashes->hashes_buf     = hashes_buf;
+  hashes->digests_buf    = digest;
+  hashes->salts_buf      = salt;
+  hashes->esalts_buf     = esalt;
+  hashes->hook_salts_buf = hook_salt;
+
+  bool success = false;
+
+  if (hashlist_mode == HL_MODE_ARG)
+  {
+    char *input_buf = user_options_extra->hc_hash;
+
+    size_t input_len = strlen (input_buf);
+
+    char  *hash_buf = NULL;
+    int    hash_len = 0;
+
+    hlfmt_hash (hashcat_ctx, hashlist_format, input_buf, input_len, &hash_buf, &hash_len);
+
+    bool hash_fmt_error = false;
+
+    if (hash_len < 1)     hash_fmt_error = true;
+    if (hash_buf == NULL) hash_fmt_error = true;
+
+    if (hash_fmt_error) return false;
+
+    const int parser_status = module_ctx->module_hash_decode (hashconfig, digest, salt, esalt, hook_salt, hash_info, hash_buf, hash_len);
+
+    if (parser_status == PARSER_OK) success = true;
+  }
+  else if (hashlist_mode == HL_MODE_FILE_PLAIN)
+  {
+    HCFILE fp;
+
+    if (hc_fopen (&fp, hashfile, "rb") == false) return false;
+
+    char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
+
+    while (!hc_feof (&fp))
+    {
+      const size_t line_len = fgetl (&fp, line_buf, HCBUFSIZ_LARGE);
+
+      if (line_len == 0) continue;
+
+      char *hash_buf = NULL;
+      int   hash_len = 0;
+
+      hlfmt_hash (hashcat_ctx, hashlist_format, line_buf, line_len, &hash_buf, &hash_len);
+
+      bool hash_fmt_error = false;
+
+      if (hash_len < 1)     hash_fmt_error = true;
+      if (hash_buf == NULL) hash_fmt_error = true;
+
+      if (hash_fmt_error) continue;
+
+      int parser_status = module_ctx->module_hash_decode (hashconfig, digest, salt, esalt, hook_salt, hash_info, hash_buf, hash_len);
+
+      if (parser_status == PARSER_OK)
+      {
+        success = true;
+
+        break;
+      }
+    }
+
+    hcfree (line_buf);
+
+    hc_fclose (&fp);
+  }
+  else if (hashlist_mode == HL_MODE_FILE_BINARY)
+  {
+    char *input_buf = user_options_extra->hc_hash;
+
+    size_t input_len = strlen (input_buf);
+
+    if (module_ctx->module_hash_binary_parse != MODULE_DEFAULT)
+    {
+      const int hashes_parsed = module_ctx->module_hash_binary_parse (hashconfig, user_options, user_options_extra, hashes);
+
+      if (hashes_parsed > 0) success = true;
+    }
+    else
+    {
+      const int parser_status = module_ctx->module_hash_decode (hashconfig, digest, salt, esalt, hook_salt, hash_info, input_buf, input_len);
+
+      if (parser_status == PARSER_OK) success = true;
+    }
+  }
+
+  hcfree (digest);
+  hcfree (salt);
+  hcfree (hash_info);
+  hcfree (hashes_buf);
+
+  if (hashconfig->esalt_size > 0)
+  {
+    hcfree (esalt);
+  }
+
+  if (hashconfig->hook_salt_size > 0)
+  {
+    hcfree (hook_salt);
+  }
+
+  hashes->digests_buf    = NULL;
+  hashes->salts_buf      = NULL;
+  hashes->esalts_buf     = NULL;
+  hashes->hook_salts_buf = NULL;
+
+  return success;
+}
+
+int autodetect_hashmodes (hashcat_ctx_t *hashcat_ctx, int *modes_buf)
+{
+  folder_config_t *folder_config = hashcat_ctx->folder_config;
+  user_options_t  *user_options  = hashcat_ctx->user_options;
+
+  int modes_cnt = 0;
+
+  // save quiet state so we can restore later
+
+  const bool quiet_sav = user_options->quiet;
+
+  user_options->quiet = true;
+
+  char *modulefile = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+  // brute force all the modes
+
+  for (int i = 0; i < MODULE_HASH_MODES_MAXIMUM; i++)
+  {
+    user_options->hash_mode = i;
+
+    // this is just to find out of that hash-mode exists or not
+
+    module_filename (folder_config, i, modulefile, HCBUFSIZ_TINY);
+
+    if (hc_path_exist (modulefile) == false) continue;
+
+    // we know it exists, so load the plugin
+
+    const int hashconfig_init_rc = hashconfig_init (hashcat_ctx);
+
+    if (hashconfig_init_rc == 0)
+    {
+      const bool test_rc = autodetect_hashmode_test (hashcat_ctx);
+
+      if (test_rc == true)
+      {
+        modes_buf[modes_cnt] = i;
+
+        modes_cnt++;
+      }
+    }
+
+    // clean up
+
+    hashconfig_destroy (hashcat_ctx);
+  }
+
+  hcfree (modulefile);
+
+  user_options->quiet = quiet_sav;
+
+  return modes_cnt;
+}
+
 int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 {
   folder_config_t *folder_config = hashcat_ctx->folder_config;
@@ -1169,6 +1435,64 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
   // read dictionary cache
 
   dictstat_read (hashcat_ctx);
+
+  // autodetect
+
+  if (user_options->autodetect == true)
+  {
+    status_ctx->devices_status = STATUS_AUTODETECT;
+
+    int *modes_buf = (int *) hccalloc (MODULE_HASH_MODES_MAXIMUM, sizeof (int));
+
+    if (!modes_buf) return -1;
+
+    const int modes_cnt = autodetect_hashmodes (hashcat_ctx, modes_buf);
+
+    if (modes_cnt > 0)
+    {
+      event_log_info (hashcat_ctx, "The following %d hash-mode match the structure of your input hash:", modes_cnt);
+      event_log_info (hashcat_ctx, NULL);
+      event_log_info (hashcat_ctx, "      # | Name                                                | Category");
+      event_log_info (hashcat_ctx, "  ======+=====================================================+======================================");
+
+      for (int i = 0; i < modes_cnt; i++)
+      {
+        user_options->hash_mode = modes_buf[i];
+
+        if (hashconfig_init (hashcat_ctx) == 0)
+        {
+          event_log_info (hashcat_ctx, "%7u | %-51s | %s", hashcat_ctx->hashconfig->hash_mode, hashcat_ctx->hashconfig->hash_name, strhashcategory (hashcat_ctx->hashconfig->hash_category));
+
+          if (modes_cnt != 1) hashconfig_destroy (hashcat_ctx); // keep for later
+        }
+      }
+
+      event_log_info (hashcat_ctx, NULL);
+
+      if (modes_cnt > 1)
+      {
+        event_log_error (hashcat_ctx, "Please specify the hash-mode by argument (-m).");
+
+        return -1;
+      }
+      else // 1
+      {
+        event_log_warning (hashcat_ctx, "You have not specified -m to select the correct hash-mode.");
+        event_log_warning (hashcat_ctx, "It was automatically selected by hashcat because it was the only hash-mode matching your input hash.");
+        event_log_warning (hashcat_ctx, "Under no circumstances it is not to be understood as a guarantee this is the right hash-mode.");
+        event_log_warning (hashcat_ctx, "Do not report hashcat issues if you do not know exactly how the hash was extracted.");
+        event_log_warning (hashcat_ctx, NULL);
+
+        user_options->autodetect = false;
+      }
+    }
+    else
+    {
+      if (user_options->show == false) event_log_error (hashcat_ctx, "No hash-mode matches the structure of the input hash.");
+
+      return -1;
+    }
+  }
 
   /**
    * outer loop
