@@ -52,6 +52,7 @@
 - Kernels: Add RC4 cipher to crypto library with optimized shared memory access pattern which will not cause any bank conflicts if -u <= 32
 - Kernels: Add standalone true UTF8 to UTF16 converter kernel that runs after amplifier. Use OPTS_TYPE_POST_AMP_UTF16LE from plugin
 - Modules: Recategorized HASH_CATEGORY option in various modules
+- Modules: Added hash categories HASH_CATEGORY_IMS and HASH_CATEGORY_CRYPTOCURRENCY_WALLET
 
 * changes v6.2.0 -> v6.2.1
 

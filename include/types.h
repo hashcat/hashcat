@@ -2676,6 +2676,7 @@ typedef enum hash_category
   HASH_CATEGORY_FRAMEWORK               = 19,
   HASH_CATEGORY_PRIVATE_KEY             = 20,
   HASH_CATEGORY_IMS                     = 21,
+  HASH_CATEGORY_CRYPTOCURRENCY_WALLET   = 22,
 
 } hash_category_t;
 

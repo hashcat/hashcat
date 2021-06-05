@@ -104,6 +104,7 @@ static const char *HASH_CATEGORY_PLAIN_STR                  = "Plaintext";
 static const char *HASH_CATEGORY_FRAMEWORK_STR              = "Framework";
 static const char *HASH_CATEGORY_PRIVATE_KEY_STR            = "Private Key";
 static const char *HASH_CATEGORY_IMS_STR                    = "Instant Messaging Service";
+static const char *HASH_CATEGORY_CRYPTOCURRENCY_WALLET_STR  = "Cryptocurrency Wallet";
 
 int sort_by_string_sized (const void *p1, const void *p2)
 {
@@ -958,6 +959,7 @@ const char *strhashcategory (const u32 hash_category)
     case HASH_CATEGORY_FRAMEWORK:               return HASH_CATEGORY_FRAMEWORK_STR;
     case HASH_CATEGORY_PRIVATE_KEY:             return HASH_CATEGORY_PRIVATE_KEY_STR;
     case HASH_CATEGORY_IMS:                     return HASH_CATEGORY_IMS_STR;
+    case HASH_CATEGORY_CRYPTOCURRENCY_WALLET:   return HASH_CATEGORY_CRYPTOCURRENCY_WALLET_STR;
   }
 
   return NULL;

@@ -300,25 +300,11 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Password Safe v3
 - LastPass + LastPass sniffed
 - KeePass 1 (AES/Twofish) and KeePass 2 (AES)
-- BitShares v0.x - sha512(sha512_bin(pass))
-- Bitcoin/Litecoin wallet.dat
 - Bitwarden
-- Electrum Wallet (Salt-Type 1-3)
-- Electrum Wallet (Salt-Type 4)
-- Electrum Wallet (Salt-Type 5)
-- Blockchain, My Wallet
-- Blockchain, My Wallet, V2
-- Blockchain, My Wallet, Second Password (SHA256)
 - Ansible Vault
 - Mozilla key3.db
 - Mozilla key4.db
 - Apple Keychain
-- Stargazer Stellar Wallet XLM
-- Ethereum Pre-Sale Wallet, PBKDF2-HMAC-SHA256
-- Ethereum Wallet, PBKDF2-HMAC-SHA256
-- Ethereum Wallet, SCRYPT
-- MultiBit Classic .key (MD5)
-- MultiBit HD (scrypt)
 - 7-Zip
 - RAR3-hp
 - RAR3-p (Compressed)
@@ -382,6 +368,20 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Telegram Desktop >= v2.1.14 (PBKDF2-HMAC-SHA512)
 - Telegram Mobile App Passcode (SHA256)
 - Skype
+- BitShares v0.x - sha512(sha512_bin(pass))
+- Bitcoin/Litecoin wallet.dat
+- Electrum Wallet (Salt-Type 1-3)
+- Electrum Wallet (Salt-Type 4)
+- Electrum Wallet (Salt-Type 5)
+- Blockchain, My Wallet
+- Blockchain, My Wallet, V2
+- Blockchain, My Wallet, Second Password (SHA256)
+- Stargazer Stellar Wallet XLM
+- Ethereum Pre-Sale Wallet, PBKDF2-HMAC-SHA256
+- Ethereum Wallet, PBKDF2-HMAC-SHA256
+- Ethereum Wallet, SCRYPT
+- MultiBit Classic .key (MD5)
+- MultiBit HD (scrypt)
 
 ##
 ## Attack-Modes
