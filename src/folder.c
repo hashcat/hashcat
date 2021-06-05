@@ -9,6 +9,7 @@
 #include "event.h"
 #include "shared.h"
 #include "folder.h"
+#include <libgen.h>
 
 #if defined (__APPLE__)
 #include "event.h"
@@ -394,8 +395,8 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
     shared_dir = hcstrdup (shared_folder);
 
-    hc_mkdir (profile_dir, 0700);
-    hc_mkdir (cache_dir, 0700);
+    hc_mkdir_rec (profile_dir, 0700);
+    hc_mkdir_rec (cache_dir, 0700);
     hc_mkdir (session_dir, 0700);
   }
   else
@@ -566,4 +567,29 @@ int hc_mkdir (const char *name, MAYBE_UNUSED const int mode)
   #else
   return mkdir (name, mode);
   #endif
+}
+
+int hc_mkdir_rec (const char *path, MAYBE_UNUSED const int mode)
+{
+  char *subpath, *fullpath;
+
+  fullpath = hcstrdup (path);
+  subpath = dirname (fullpath);
+  if (strlen (subpath) > 1)
+  {
+    if (hc_mkdir_rec (subpath, mode) == -1) {
+      return -1;
+    };
+  }
+
+  if (hc_mkdir (path, mode) == -1)
+  {
+    if (errno != EEXIST)
+    {
+      return -1;
+    }
+  }
+
+  hcfree (fullpath);
+  return 0;
 }
