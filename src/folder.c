@@ -93,51 +93,37 @@ static void get_install_dir (char *install_dir, const char *exec_path)
 static void get_profile_dir (char *profile_dir, const char *home_dir)
 {
   snprintf (profile_dir, HCBUFSIZ_TINY, "%s/%s", home_dir, DOT_HASHCAT);
-  struct stat st = {0};
-  if (stat (profile_dir, &st) == 0 && S_ISDIR (st.st_mode))
-    return;
 
-  char *data_dir = (char *) hcmalloc (HCBUFSIZ_TINY);
-  if (getenv ("XDG_DATA_HOME"))
+  if (hc_path_is_directory (profile_dir)) return;
+
+  char *xdg_data_home = getenv ("XDG_DATA_HOME");
+
+  if (xdg_data_home)
   {
-    strncpy (data_dir, getenv ("XDG_DATA_HOME"), HCBUFSIZ_TINY);
+    snprintf (profile_dir, HCBUFSIZ_TINY, "%s/hashcat", xdg_data_home);
   }
   else
   {
-    snprintf (data_dir, HCBUFSIZ_TINY, "%s/.local/share", home_dir);
+    snprintf (profile_dir, HCBUFSIZ_TINY, "%s/.local/share/hashcat", home_dir);
   }
-
-  if (access (data_dir, R_OK) != -1)
-  {
-    snprintf (profile_dir, HCBUFSIZ_TINY, "%s/hashcat", data_dir);
-  }
-
-  hcfree (data_dir);
 }
 
 static void get_cache_dir (char *cache_dir, const char *home_dir)
 {
   snprintf (cache_dir, HCBUFSIZ_TINY, "%s/%s", home_dir, DOT_HASHCAT);
-  struct stat st = {0};
-  if (stat (cache_dir, &st) == 0 && S_ISDIR (st.st_mode))
-    return;
 
-  char *xdg_cache_dir = (char *) hcmalloc (HCBUFSIZ_TINY);
-  if (getenv ("XDG_CACHE_HOME"))
+  if (hc_path_is_directory (cache_dir)) return;
+
+  char *xdg_cache_home = getenv ("XDG_CACHE_HOME");
+
+  if (xdg_cache_home)
   {
-    strncpy (xdg_cache_dir, getenv ("XDG_CACHE_HOME"), HCBUFSIZ_TINY);
+    snprintf (cache_dir, HCBUFSIZ_TINY, "%s/hashcat", xdg_cache_home);
   }
   else
   {
-    snprintf (xdg_cache_dir, HCBUFSIZ_TINY, "%s/.cache", home_dir);
+    snprintf (cache_dir, HCBUFSIZ_TINY, "%s/.cache/hashcat", home_dir);
   }
-
-  if (access (xdg_cache_dir, R_OK) != -1)
-  {
-    snprintf (cache_dir, HCBUFSIZ_TINY, "%s/hashcat", xdg_cache_dir);
-  }
-
-  hcfree (xdg_cache_dir);
 }
 
 static void get_session_dir (char *session_dir, const char *profile_dir)
