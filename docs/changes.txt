@@ -22,6 +22,12 @@
 - Added hash-mode: sha384(utf16le($pass).$salt)
 
 ##
+## Features
+##
+
+- Autodetect hash-type: performs an automatic analysis of the input hash(es), associating compatible algorithms, or executing the attack if only one compatible format is found.
+
+##
 ## Bugs
 ##
 
@@ -41,7 +47,6 @@
 - RC4 Kernels: Improved performance by 20%+ for hash-modes Kerberos 5 (etype 23), MS Office (<= 2003) and PDF (<= 1.6) by using new RC4 code
 - Status Screen: Show currently running kernel type (pure, optimized) and generator type (host, device)
 - UTF8-to-UTF16: Replaced naive UTF8 to UTF16 conversion with true conversion for RAR3, AES Crypt, MultiBit HD (scrypt) and Umbraco HMAC-SHA1
-- Autodetect hash-type: performs an automatic analysis of the hashlist, associating compatible algorithms, or executing the attack if only one compatible format is found.
 
 ##
 ## Technical
