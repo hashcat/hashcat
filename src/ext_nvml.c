@@ -6,10 +6,15 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
+#include "shared.h"
 #include "event.h"
 #include "ext_nvml.h"
 
 #include "dynloader.h"
+
+#if defined (__CYGWIN__)
+#include <sys/cygwin.h>
+#endif
 
 int nvml_init (void *hashcat_ctx)
 {

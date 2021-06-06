@@ -189,7 +189,6 @@ endif
 ## because LZMA SDK
 ifeq ($(CC),clang)
 CFLAGS                  += -Wno-enum-conversion
-CFLAGS                  += -Wno-typedef-redefinition
 endif
 
 ## because ZLIB
