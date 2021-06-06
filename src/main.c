@@ -493,8 +493,8 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
     if (hashconfig->has_optimized_kernel == true)
     {
       event_log_advice (hashcat_ctx, "ATTENTION! Pure (unoptimized) backend kernels selected.");
-      event_log_advice (hashcat_ctx, "Using pure kernels enables cracking longer passwords but for the price of drastically reduced performance.");
-      event_log_advice (hashcat_ctx, "If you want to switch to optimized backend kernels, append -O to your commandline.");
+      event_log_advice (hashcat_ctx, "Pure kernels can crack longer passwords, but drastically reduce performance.");
+      event_log_advice (hashcat_ctx, "If you want to switch to optimized kernels, append -O to your commandline.");
       event_log_advice (hashcat_ctx, "See the above message to find out about the exact limits.");
       event_log_advice (hashcat_ctx, NULL);
     }
@@ -717,7 +717,7 @@ static void main_monitor_performance_hint (MAYBE_UNUSED hashcat_ctx_t *hashcat_c
       if (hashconfig->has_optimized_kernel == true)
       {
         event_log_advice (hashcat_ctx, "* Append -O to the commandline.");
-        event_log_advice (hashcat_ctx, "  This lowers the maximum supported password- and salt-length (typically down to 32).");
+        event_log_advice (hashcat_ctx, "  This lowers the maximum supported password/salt length (usually down to 32).");
         event_log_advice (hashcat_ctx, NULL);
       }
     }
@@ -733,7 +733,7 @@ static void main_monitor_performance_hint (MAYBE_UNUSED hashcat_ctx_t *hashcat_c
   if (user_options->slow_candidates == false)
   {
     event_log_advice (hashcat_ctx, "* Append -S to the commandline.");
-    event_log_advice (hashcat_ctx, "  This has a drastic effect but only for context specific attack configurations.");
+    event_log_advice (hashcat_ctx, "  This has a drastic speed impact but can be better for specific attacks.");
     event_log_advice (hashcat_ctx, "  Typical scenarios are a small wordlist but a large ruleset.");
     event_log_advice (hashcat_ctx, NULL);
   }
@@ -758,10 +758,10 @@ static void main_monitor_noinput_hint (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
 
   if (user_options->quiet == true) return;
 
-  event_log_advice (hashcat_ctx, "ATTENTION! Read timeout in stdin mode. The password candidates input is too slow:");
-  event_log_advice (hashcat_ctx, "* Are you sure that you are using the correct attack mode (--attack-mode or -a)?");
-  event_log_advice (hashcat_ctx, "* Are you sure that you want to use input from standard input (stdin)?");
-  event_log_advice (hashcat_ctx, "* If so, are you sure that the input from stdin (the pipe) is working correctly and is fast enough?");
+  event_log_advice (hashcat_ctx, "ATTENTION! Read timeout in stdin mode. Password candidates input is too slow:");
+  event_log_advice (hashcat_ctx, "* Are you sure you are using the correct attack mode (--attack-mode or -a)?");
+  event_log_advice (hashcat_ctx, "* Are you sure you want to use input from standard input (stdin)?");
+  event_log_advice (hashcat_ctx, "* If using stdin, are you sure it is working correctly, and is fast enough?");
   event_log_advice (hashcat_ctx, NULL);
 }
 

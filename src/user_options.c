@@ -728,14 +728,14 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
   if ((user_options->veracrypt_pim_start_chgd == true) && (user_options->veracrypt_pim_stop_chgd == false))
   {
-    event_log_error (hashcat_ctx, "If --veracrypt-pim-start is specified then --veracrypt-pim-stop needs to be specified, too.");
+    event_log_error (hashcat_ctx, "The--veracrypt-pim-start option requires --veracrypt-pim-stop as well.");
 
     return -1;
   }
 
   if ((user_options->veracrypt_pim_start_chgd == false) && (user_options->veracrypt_pim_stop_chgd == true))
   {
-    event_log_error (hashcat_ctx, "If --veracrypt-pim-stop is specified then --veracrypt-pim-start needs to be specified, too.");
+    event_log_error (hashcat_ctx, "The --veracrypt-pim-stop option requires --veracrypt-pim-start as well.");
 
     return -1;
   }
@@ -814,7 +814,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT) && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION))
     {
-      event_log_error (hashcat_ctx, "Use of -r/--rules-file and -g/--rules-generate only allowed in attack mode 0 or 9.");
+      event_log_error (hashcat_ctx, "Use of -r/--rules-file and -g/--rules-generate requires attack mode 0 or 9.");
 
       return -1;
     }
@@ -1011,7 +1011,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     {
       if ((user_options->rp_files_cnt == 0) && (user_options->rp_gen == 0))
       {
-        event_log_error (hashcat_ctx, "Parameter --loopback not allowed without -r/--rules-file or -g/--rules-generate.");
+        event_log_error (hashcat_ctx, "Parameter --loopback requires either -r/--rules-file or -g/--rules-generate.");
 
         return -1;
       }
@@ -2829,7 +2829,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
   {
     event_log_error (hashcat_ctx, "%s: %s", modulefile, strerror (errno));
 
-    event_log_warning (hashcat_ctx, "If you are using the hashcat binary package this error typically indicates a problem during extraction.");
+    event_log_warning (hashcat_ctx, "If you are using the hashcat binary package, this may be an extraction issue.");
     event_log_warning (hashcat_ctx, "For example, using \"7z e\" instead of using \"7z x\".");
     event_log_warning (hashcat_ctx, NULL);
 
@@ -2862,7 +2862,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
   {
     event_log_error (hashcat_ctx, "%s: %s", kernelfile, strerror (errno));
 
-    event_log_warning (hashcat_ctx, "If you are using the hashcat binary package this error typically indicates a problem during extraction.");
+    event_log_warning (hashcat_ctx, "If you are using the hashcat binary package, this may be an extraction issue.");
     event_log_warning (hashcat_ctx, "For example, using \"7z e\" instead of using \"7z x\".");
     event_log_warning (hashcat_ctx, NULL);
 
