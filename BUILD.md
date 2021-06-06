@@ -31,8 +31,35 @@ The install target is linux FHS compatible and can be used like this:
 $ make install
 ```
 
-If you install it, cached kernels, session files, restore- and pot-files etc. will go to $HOME/.hashcat/
+If the $HOME/.hashcat folder exists, then:
 
+- Session related files go to: $HOME/.hashcat/sessions/
+- Cached kernels go to: $HOME/.hashcat/kernels/
+- Potfiles go to: $HOME/.hashcat/
+
+Otherwise, if environment variable XDG_DATA_HOME and XDG_CACHE_HOME exists, then:
+
+- Session related files go to: $XDG_DATA_HOME/hashcat/sessions/
+- Cached kernels go to: $XDG_CACHE_HOME/hashcat/kernels/
+- Potfiles go to: $XDG_DATA_HOME/hashcat/
+
+Otherwise, if environment variable XDG_DATA_HOME exists, then:
+
+- Session related files go to: $XDG_DATA_HOME/hashcat/sessions/
+- Cached kernels go to: $HOME/.cache/hashcat
+- Potfiles go to: $XDG_DATA_HOME/hashcat/
+
+Otherwise, if environment variable XDG_CACHE_HOME exists, then:
+
+- Session related files go to: $HOME/.local/share/hashcat/sessions/
+- Cached kernels go to: $XDG_CACHE_HOME/hashcat/kernels/
+- Potfiles go to: $HOME/.local/share/hashcat/
+
+Otherwise:
+
+- Session related files go to: $HOME/.local/share/hashcat/sessions/
+- Cached kernels go to: $HOME/.cache/hashcat
+- Potfiles go to: $HOME/.local/share/hashcat/
 
 ### Building hashcat for Windows (using Windows Subsystem for Linux) ###
 

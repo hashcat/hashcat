@@ -2130,6 +2130,7 @@ typedef struct folder_config
   char *cwd;
   char *install_dir;
   char *profile_dir;
+  char *cache_dir;
   char *session_dir;
   char *shared_dir;
   char *cpath_real;
