@@ -370,7 +370,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
   get_install_dir (install_dir, resolved_exec_path);
 
   char *profile_dir = NULL;
-  char *cache_dir = NULL;
+  char *cache_dir   = NULL;
   char *session_dir = NULL;
   char *shared_dir  = NULL;
 
@@ -386,23 +386,23 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
     const char *home_dir = pwp->pw_dir;
 
     profile_dir = (char *) hcmalloc (HCBUFSIZ_TINY);
-    cache_dir = (char *) hcmalloc (HCBUFSIZ_TINY);
+    cache_dir   = (char *) hcmalloc (HCBUFSIZ_TINY);
     session_dir = (char *) hcmalloc (HCBUFSIZ_TINY);
 
     get_profile_dir (profile_dir, home_dir);
-    get_cache_dir (cache_dir, home_dir);
+    get_cache_dir   (cache_dir,   home_dir);
     get_session_dir (session_dir, profile_dir);
 
     shared_dir = hcstrdup (shared_folder);
 
     hc_mkdir_rec (profile_dir, 0700);
-    hc_mkdir_rec (cache_dir, 0700);
-    hc_mkdir (session_dir, 0700);
+    hc_mkdir_rec (cache_dir,   0700);
+    hc_mkdir     (session_dir, 0700);
   }
   else
   {
     profile_dir = install_dir;
-    cache_dir = install_dir;
+    cache_dir   = install_dir;
     session_dir = install_dir;
     shared_dir  = install_dir;
   }
@@ -417,7 +417,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
   get_install_dir (install_dir, exec_path);
 
   char *profile_dir = install_dir;
-  char *cache_dir = install_dir;
+  char *cache_dir   = install_dir;
   char *session_dir = install_dir;
   char *shared_dir  = install_dir;
 
@@ -460,7 +460,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
     // we prevent double-freeing the same memory address (this happens if e.g. profile_dir == session_dir)
 
     if (profile_dir == shared_dir) profile_dir = NULL;
-    if (cache_dir == shared_dir) cache_dir = NULL;
+    if (cache_dir   == shared_dir) cache_dir   = NULL;
     if (session_dir == shared_dir) session_dir = NULL;
 
     shared_dir = NULL;
@@ -469,7 +469,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
     hcfree (profile_dir);
 
     if (session_dir == profile_dir) session_dir = NULL;
-    if (cache_dir == profile_dir) cache_dir = NULL;
+    if (cache_dir   == profile_dir) cache_dir   = NULL;
 
     profile_dir = NULL;
 
@@ -480,11 +480,9 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
     cache_dir = NULL;
 
-
     hcfree (session_dir);
 
     session_dir = NULL;
-
 
     hcfree (cpath_real);
 
@@ -571,25 +569,21 @@ int hc_mkdir (const char *name, MAYBE_UNUSED const int mode)
 
 int hc_mkdir_rec (const char *path, MAYBE_UNUSED const int mode)
 {
-  char *subpath, *fullpath;
+  char *fullpath = hcstrdup (path);
 
-  fullpath = hcstrdup (path);
-  subpath = dirname (fullpath);
+  char *subpath = dirname (fullpath);
+
   if (strlen (subpath) > 1)
   {
-    if (hc_mkdir_rec (subpath, mode) == -1) {
-      return -1;
-    };
+    if (hc_mkdir_rec (subpath, mode) == -1) return -1;
   }
 
   if (hc_mkdir (path, mode) == -1)
   {
-    if (errno != EEXIST)
-    {
-      return -1;
-    }
+    if (errno != EEXIST) return -1;
   }
 
   hcfree (fullpath);
+
   return 0;
 }
