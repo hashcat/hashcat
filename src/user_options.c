@@ -157,6 +157,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
 
   user_options->advice_disable            = ADVICE_DISABLE;
   user_options->attack_mode               = ATTACK_MODE;
+  user_options->autodetect                = AUTODETECT;
   user_options->backend_devices           = NULL;
   user_options->backend_ignore_cuda       = BACKEND_IGNORE_CUDA;
   user_options->backend_ignore_opencl     = BACKEND_IGNORE_OPENCL;
@@ -1891,6 +1892,14 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
   if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
   {
     user_options->potfile_disable = true;
+  }
+
+  if (user_options->stdout_flag == false && user_options->benchmark == false && user_options->keyspace == false)
+  {
+    if (user_options->hash_mode == 0 && user_options->hash_mode_chgd == false)
+    {
+      user_options->autodetect = true;
+    }
   }
 }
 

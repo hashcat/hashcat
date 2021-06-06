@@ -34,6 +34,7 @@ static const char *ST_0012 = "Running (Checkpoint Quit requested)";
 static const char *ST_0013 = "Error";
 static const char *ST_0014 = "Aborted (Finish)";
 static const char *ST_0015 = "Running (Quit after attack requested)";
+static const char *ST_0016 = "Autodetect";
 static const char *ST_9999 = "Unknown! Bug!";
 
 static const char UNITS[7] = { ' ', 'k', 'M', 'G', 'T', 'P', 'E' };
@@ -292,6 +293,7 @@ const char *status_get_status_string (const hashcat_ctx_t *hashcat_ctx)
     case STATUS_ABORTED_RUNTIME:    return ST_0011;
     case STATUS_ERROR:              return ST_0013;
     case STATUS_ABORTED_FINISH:     return ST_0014;
+    case STATUS_AUTODETECT:         return ST_0016;
   }
 
   return ST_9999;

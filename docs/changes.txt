@@ -22,6 +22,12 @@
 - Added hash-mode: sha384(utf16le($pass).$salt)
 
 ##
+## Features
+##
+
+- Autodetect hash-type: performs an automatic analysis of the input hash(es), associating compatible algorithms, or executing the attack if only one compatible format is found.
+
+##
 ## Bugs
 ##
 
