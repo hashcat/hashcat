@@ -1464,7 +1464,7 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
     if (modes_cnt > 1)
     {
-      event_log_info (hashcat_ctx, "The following %d hash-mode match the structure of your input hash:", modes_cnt);
+      event_log_info (hashcat_ctx, "The following %d hash-modes match the structure of your input hash:", modes_cnt);
       event_log_info (hashcat_ctx, NULL);
       event_log_info (hashcat_ctx, "      # | Name                                                | Category");
       event_log_info (hashcat_ctx, "  ======+=====================================================+======================================");
@@ -1478,7 +1478,7 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
       event_log_info (hashcat_ctx, NULL);
 
-      event_log_error (hashcat_ctx, "Please specify the hash-mode by argument (-m).");
+      event_log_error (hashcat_ctx, "Please specify the hash-mode with -m [hash-mode].");
 
       hcfree (usage_sort_buf);
 
@@ -1487,11 +1487,11 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
     // modes_cnt == 1
 
-    event_log_warning (hashcat_ctx, "You have not specified -m to select the correct hash-mode.");
-    event_log_warning (hashcat_ctx, "It was automatically selected by hashcat because it was the only hash-mode matching your input hash:");
+    event_log_warning (hashcat_ctx, "Hash-mode was not specified with -m. Attempting to auto-detect hash mode.");
+    event_log_warning (hashcat_ctx, "The following mode was auto-detected as the only one matching your input hash:");
     event_log_warning (hashcat_ctx, "\n%u | %s | %s\n", usage_sort_buf[0].hash_mode, usage_sort_buf[0].hash_name, strhashcategory (usage_sort_buf[0].hash_category));
-    event_log_warning (hashcat_ctx, "Under no circumstances it is not to be understood as a guarantee this is the right hash-mode.");
-    event_log_warning (hashcat_ctx, "Do not report hashcat issues if you do not know exactly how the hash was extracted.");
+    event_log_warning (hashcat_ctx, "NOTE: Auto-detect is best effort. The correct hash-mode is NOT guaranteed!");
+    event_log_warning (hashcat_ctx, "Do NOT report auto-detect issues unless you are certain of the hash type.");
     event_log_warning (hashcat_ctx, NULL);
 
     user_options->autodetect = false;
