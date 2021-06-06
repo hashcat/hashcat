@@ -1894,7 +1894,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->potfile_disable = true;
   }
 
-  if (user_options->stdout_flag == false)
+  if (user_options->stdout_flag == false && user_options->benchmark == false)
   {
     if (user_options->hash_mode == 0 && user_options->hash_mode_chgd == false)
     {

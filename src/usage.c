@@ -239,15 +239,7 @@ static const char *const USAGE_BIG_POST_HASHMODES[] =
   NULL
 };
 
-typedef struct usage_sort
-{
-  u32   hash_mode;
-  char *hash_name;
-  u32   hash_category;
-
-} usage_sort_t;
-
-static int sort_by_usage (const void *p1, const void *p2)
+int sort_by_usage (const void *p1, const void *p2)
 {
   const usage_sort_t *u1 = (const usage_sort_t *) p1;
   const usage_sort_t *u2 = (const usage_sort_t *) p2;

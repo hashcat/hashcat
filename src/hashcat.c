@@ -48,6 +48,7 @@
 #include "user_options.h"
 #include "wordlist.h"
 #include "hashcat.h"
+#include "usage.h"
 
 #ifdef WITH_BRAIN
 #include "brain.h"
@@ -1349,12 +1350,12 @@ bool autodetect_hashmode_test (hashcat_ctx_t *hashcat_ctx)
   return success;
 }
 
-int autodetect_hashmodes (hashcat_ctx_t *hashcat_ctx, int *modes_buf)
+int autodetect_hashmodes (hashcat_ctx_t *hashcat_ctx, usage_sort_t *usage_sort_buf)
 {
   folder_config_t *folder_config = hashcat_ctx->folder_config;
   user_options_t  *user_options  = hashcat_ctx->user_options;
 
-  int modes_cnt = 0;
+  int usage_sort_cnt = 0;
 
   // save quiet state so we can restore later
 
@@ -1363,6 +1364,8 @@ int autodetect_hashmodes (hashcat_ctx_t *hashcat_ctx, int *modes_buf)
   user_options->quiet = true;
 
   char *modulefile = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+  if (modulefile == NULL) return -1;
 
   // brute force all the modes
 
@@ -1386,9 +1389,11 @@ int autodetect_hashmodes (hashcat_ctx_t *hashcat_ctx, int *modes_buf)
 
       if (test_rc == true)
       {
-        modes_buf[modes_cnt] = i;
+        usage_sort_buf[usage_sort_cnt].hash_mode     = hashcat_ctx->hashconfig->hash_mode;
+        usage_sort_buf[usage_sort_cnt].hash_name     = hcstrdup (hashcat_ctx->hashconfig->hash_name);
+        usage_sort_buf[usage_sort_cnt].hash_category = hashcat_ctx->hashconfig->hash_category;
 
-        modes_cnt++;
+        usage_sort_cnt++;
       }
     }
 
@@ -1399,9 +1404,11 @@ int autodetect_hashmodes (hashcat_ctx_t *hashcat_ctx, int *modes_buf)
 
   hcfree (modulefile);
 
+  qsort (usage_sort_buf, usage_sort_cnt, sizeof (usage_sort_t), sort_by_usage);
+
   user_options->quiet = quiet_sav;
 
-  return modes_cnt;
+  return usage_sort_cnt;
 }
 
 int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
@@ -1442,11 +1449,11 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
   {
     status_ctx->devices_status = STATUS_AUTODETECT;
 
-    int *modes_buf = (int *) hccalloc (MODULE_HASH_MODES_MAXIMUM, sizeof (int));
+    usage_sort_t *usage_sort_buf = (usage_sort_t *) hccalloc (MODULE_HASH_MODES_MAXIMUM, sizeof (usage_sort_t));
 
-    if (modes_buf == NULL) return -1;
+    if (usage_sort_buf == NULL) return -1;
 
-    const int modes_cnt = autodetect_hashmodes (hashcat_ctx, modes_buf);
+    const int modes_cnt = autodetect_hashmodes (hashcat_ctx, usage_sort_buf);
 
     if (modes_cnt <= 0)
     {
@@ -1464,39 +1471,35 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
       for (int i = 0; i < modes_cnt; i++)
       {
-        user_options->hash_mode = modes_buf[i];
+        event_log_info (hashcat_ctx, "%7u | %-51s | %s", usage_sort_buf[i].hash_mode, usage_sort_buf[i].hash_name, strhashcategory (usage_sort_buf[i].hash_category));
 
-        if (hashconfig_init (hashcat_ctx) == 0)
-        {
-          event_log_info (hashcat_ctx, "%7u | %-51s | %s", hashcat_ctx->hashconfig->hash_mode, hashcat_ctx->hashconfig->hash_name, strhashcategory (hashcat_ctx->hashconfig->hash_category));
-
-          hashconfig_destroy (hashcat_ctx);
-        }
+        hcfree (usage_sort_buf[i].hash_name);
       }
 
       event_log_info (hashcat_ctx, NULL);
 
       event_log_error (hashcat_ctx, "Please specify the hash-mode by argument (-m).");
 
+      hcfree (usage_sort_buf);
+
       return -1;
     }
 
     // modes_cnt == 1
 
-    user_options->hash_mode = modes_buf[0];
-
-    if (hashconfig_init (hashcat_ctx) != 0) return -1;
-
     event_log_warning (hashcat_ctx, "You have not specified -m to select the correct hash-mode.");
     event_log_warning (hashcat_ctx, "It was automatically selected by hashcat because it was the only hash-mode matching your input hash:");
-    event_log_warning (hashcat_ctx, "\n%u | %s | %s\n", hashcat_ctx->hashconfig->hash_mode, hashcat_ctx->hashconfig->hash_name, strhashcategory (hashcat_ctx->hashconfig->hash_category));
+    event_log_warning (hashcat_ctx, "\n%u | %s | %s\n", usage_sort_buf[0].hash_mode, usage_sort_buf[0].hash_name, strhashcategory (usage_sort_buf[0].hash_category));
     event_log_warning (hashcat_ctx, "Under no circumstances it is not to be understood as a guarantee this is the right hash-mode.");
     event_log_warning (hashcat_ctx, "Do not report hashcat issues if you do not know exactly how the hash was extracted.");
     event_log_warning (hashcat_ctx, NULL);
 
-    hashconfig_destroy (hashcat_ctx);
-
     user_options->autodetect = false;
+
+    user_options->hash_mode = usage_sort_buf[0].hash_mode;
+
+    hcfree (usage_sort_buf[0].hash_name);
+    hcfree (usage_sort_buf);
   }
 
   /**
