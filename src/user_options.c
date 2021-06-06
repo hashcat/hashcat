@@ -665,11 +665,6 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  if (user_options->hash_mode == 0 && user_options->hash_mode_chgd == false)
-  {
-    user_options->autodetect = true;
-  }
-
   if (user_options->outfile_format == 0)
   {
     event_log_error (hashcat_ctx, "Invalid --outfile-format value specified.");
@@ -1897,6 +1892,14 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
   if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
   {
     user_options->potfile_disable = true;
+  }
+
+  if (user_options->stdout_flag == false)
+  {
+    if (user_options->hash_mode == 0 && user_options->hash_mode_chgd == false)
+    {
+      user_options->autodetect = true;
+    }
   }
 }
 

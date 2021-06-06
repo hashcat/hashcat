@@ -1444,11 +1444,18 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
     int *modes_buf = (int *) hccalloc (MODULE_HASH_MODES_MAXIMUM, sizeof (int));
 
-    if (!modes_buf) return -1;
+    if (modes_buf == NULL) return -1;
 
     const int modes_cnt = autodetect_hashmodes (hashcat_ctx, modes_buf);
 
-    if (modes_cnt > 0)
+    if (modes_cnt <= 0)
+    {
+      if (user_options->show == false) event_log_error (hashcat_ctx, "No hash-mode matches the structure of the input hash.");
+
+      return -1;
+    }
+
+    if (modes_cnt > 1)
     {
       event_log_info (hashcat_ctx, "The following %d hash-mode match the structure of your input hash:", modes_cnt);
       event_log_info (hashcat_ctx, NULL);
@@ -1463,35 +1470,33 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
         {
           event_log_info (hashcat_ctx, "%7u | %-51s | %s", hashcat_ctx->hashconfig->hash_mode, hashcat_ctx->hashconfig->hash_name, strhashcategory (hashcat_ctx->hashconfig->hash_category));
 
-          if (modes_cnt != 1) hashconfig_destroy (hashcat_ctx); // keep for later
+          hashconfig_destroy (hashcat_ctx);
         }
       }
 
       event_log_info (hashcat_ctx, NULL);
 
-      if (modes_cnt > 1)
-      {
-        event_log_error (hashcat_ctx, "Please specify the hash-mode by argument (-m).");
-
-        return -1;
-      }
-      else // 1
-      {
-        event_log_warning (hashcat_ctx, "You have not specified -m to select the correct hash-mode.");
-        event_log_warning (hashcat_ctx, "It was automatically selected by hashcat because it was the only hash-mode matching your input hash.");
-        event_log_warning (hashcat_ctx, "Under no circumstances it is not to be understood as a guarantee this is the right hash-mode.");
-        event_log_warning (hashcat_ctx, "Do not report hashcat issues if you do not know exactly how the hash was extracted.");
-        event_log_warning (hashcat_ctx, NULL);
-
-        user_options->autodetect = false;
-      }
-    }
-    else
-    {
-      if (user_options->show == false) event_log_error (hashcat_ctx, "No hash-mode matches the structure of the input hash.");
+      event_log_error (hashcat_ctx, "Please specify the hash-mode by argument (-m).");
 
       return -1;
     }
+
+    // modes_cnt == 1
+
+    user_options->hash_mode = modes_buf[0];
+
+    if (hashconfig_init (hashcat_ctx) != 0) return -1;
+
+    event_log_warning (hashcat_ctx, "You have not specified -m to select the correct hash-mode.");
+    event_log_warning (hashcat_ctx, "It was automatically selected by hashcat because it was the only hash-mode matching your input hash:");
+    event_log_warning (hashcat_ctx, "\n%u | %s | %s\n", hashcat_ctx->hashconfig->hash_mode, hashcat_ctx->hashconfig->hash_name, strhashcategory (hashcat_ctx->hashconfig->hash_category));
+    event_log_warning (hashcat_ctx, "Under no circumstances it is not to be understood as a guarantee this is the right hash-mode.");
+    event_log_warning (hashcat_ctx, "Do not report hashcat issues if you do not know exactly how the hash was extracted.");
+    event_log_warning (hashcat_ctx, NULL);
+
+    hashconfig_destroy (hashcat_ctx);
+
+    user_options->autodetect = false;
   }
 
   /**
