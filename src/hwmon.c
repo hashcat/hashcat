@@ -394,6 +394,57 @@ static int hm_SYSFS_get_pp_dpm_pcie (hashcat_ctx_t *hashcat_ctx, const int backe
   return 0;
 }
 
+static int hm_SYSFS_get_gpu_busy_percent (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx, int *val)
+{
+  char *syspath = hm_SYSFS_get_syspath_device (hashcat_ctx, backend_device_idx);
+
+  if (syspath == NULL) return -1;
+
+  char *path;
+
+  hc_asprintf (&path, "%s/gpu_busy_percent", syspath);
+
+  hcfree (syspath);
+
+  HCFILE fp;
+
+  if (hc_fopen (&fp, path, "r") == false)
+  {
+    event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
+
+    hcfree (path);
+
+    return -1;
+  }
+
+  int util = 0;
+
+  while (!hc_feof (&fp))
+  {
+    char buf[HCBUFSIZ_TINY];
+
+    char *ptr = hc_fgets (buf, sizeof (buf), &fp);
+
+    if (ptr == NULL) continue;
+
+    size_t len = strlen (ptr);
+
+    if (len < 1) continue;
+
+    int rc = sscanf (ptr, "%d", &util);
+
+    if (rc == 1) break;
+  }
+
+  hc_fclose (&fp);
+
+  *val = util;
+
+  hcfree (path);
+
+  return 0;
+}
+
 // nvml functions
 
 static int nvml_init (hashcat_ctx_t *hashcat_ctx)
@@ -1896,6 +1947,20 @@ int hm_get_utilization_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int b
 
         return PMActivity.iActivityPercent;
       }
+
+      if (hwmon_ctx->hm_sysfs)
+      {
+        int util;
+
+        if (hm_SYSFS_get_gpu_busy_percent (hashcat_ctx, backend_device_idx, &util) == -1)
+        {
+          hwmon_ctx->hm_device[backend_device_idx].utilization_get_supported = false;
+
+          return -1;
+        }
+
+        return util;
+      }
     }
 
     if (backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_NV)
@@ -2575,6 +2640,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
           hm_adapters_sysfs[device_id].fanpolicy_get_supported   = true;
           hm_adapters_sysfs[device_id].memoryspeed_get_supported = true;
           hm_adapters_sysfs[device_id].temperature_get_supported = true;
+          hm_adapters_sysfs[device_id].utilization_get_supported = true;
         }
       }
     }
