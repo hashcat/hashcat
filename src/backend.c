@@ -7059,7 +7059,12 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (device_param->is_opencl == false) continue;
 
-      if (device_param->skipped == true) continue;
+      if (user_options->backend_info == false)
+      {
+        // do not ignore in case -I because user expects a value also for skipped devices
+
+        if (device_param->skipped == true) continue;
+      }
 
       /**
        * create context for each device
