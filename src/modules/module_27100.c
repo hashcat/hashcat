@@ -26,7 +26,8 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_PT_ADD80
                                   | OPTS_TYPE_PT_ADDBITS14
                                   | OPTS_TYPE_PT_UTF16LE
-                                  | OPTS_TYPE_ST_HEX;
+                                  | OPTS_TYPE_ST_HEX
+                                  | OPTS_TYPE_PT_ALWAYS_HEXIFY;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "\xb4\xb9\xb0\x2e\x6f\x09\xa9\xbd\x76\x0f\x38\x8b\x67\x35\x1e\x2b";
 static const char *ST_HASH        = "0UL5G37JOI0SX::6VB1IS0KA74:ebe1afa18b7fbfa6:aab8bf8675658dd2a939458a1077ba08:010100000000000031c8aa092510945398b9f7b7dde1a9fb00000000f7876f2b04b700";
