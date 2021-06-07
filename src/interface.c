@@ -304,8 +304,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     {
       if (user_options->quiet == false && user_options->autodetect == false)
       {
-        event_log_warning (hashcat_ctx, "This hash-mode is known to emit multiple valid password candidates for the same hash.");
-        event_log_warning (hashcat_ctx, "Use --keep-guessing to prevent hashcat from shutdown after the hash has been cracked.");
+        event_log_warning (hashcat_ctx, "This hash-mode is known to emit multiple valid candidates for the same hash.");
+        event_log_warning (hashcat_ctx, "Use --keep-guessing to continue attack after finding the first crack.");
         event_log_warning (hashcat_ctx, NULL);
       }
     }
@@ -342,7 +342,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
           if (user_options->quiet == false)
           {
             event_log_warning (hashcat_ctx, "Kernel %s:", source_file);
-            event_log_warning (hashcat_ctx, "Optimized kernel requested but not available or not required - falling back to pure kernel");
+            event_log_warning (hashcat_ctx, "Optimized kernel requested, but not available or not required");
+            event_log_warning (hashcat_ctx, "Falling back to pure kernel");
             event_log_warning (hashcat_ctx, NULL);
           }
         }

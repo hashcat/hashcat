@@ -761,7 +761,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "Aborting session due to kernel self-test failure.");
 
-        event_log_warning (hashcat_ctx, "You can use --self-test-disable to override this, but do not report related errors.");
+        event_log_warning (hashcat_ctx, "You can use --self-test-disable to override, but do not report related errors.");
         event_log_warning (hashcat_ctx, NULL);
 
         return -1;

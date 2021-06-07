@@ -837,7 +837,7 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
       {
         if (out_pos == RULES_MAX - 1)
         {
-          // event_log_warning (hashcat_ctx, "Truncated chaining of rule %d and rule %d - maximum functions per rule exceeded.", i, in_off);
+          // event_log_warning (hashcat_ctx, "Truncated chaining of rules %d and %d - maximum functions per rule exceeded.", i, in_off);
 
           break;
         }
