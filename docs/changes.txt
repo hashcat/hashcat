@@ -6,6 +6,7 @@
 
 - Added hash-mode: bcrypt(md5($pass)) / bcryptmd5
 - Added hash-mode: bcrypt(sha1($pass)) / bcryptsha1
+- Added hash-mode: FortiGate256 (FortiOS256)
 - Added hash-mode: Linux Kernel Crypto API (2.4)
 - Added hash-mode: MurmurHash
 - Added hash-mode: md5(utf16le($pass))
