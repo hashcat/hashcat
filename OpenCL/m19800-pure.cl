@@ -609,7 +609,7 @@ KERNEL_FQ void m19800_comp (KERN_ATTR_TMPS_ESALT (krb5pa_17_tmp_t, krb5pa_17_t))
      && (sha1_hmac_ctx.opad.h[1] == esalt_bufs[DIGESTS_OFFSET].checksum[1])
      && (sha1_hmac_ctx.opad.h[2] == esalt_bufs[DIGESTS_OFFSET].checksum[2]))
     {
-      if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
       {
         #define il_pos 0
 

@@ -18,7 +18,7 @@ static const u32   DGST_POS1      = 1;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_8;
-static const u32   HASH_CATEGORY  = HASH_CATEGORY_PASSWORD_MANAGER;
+static const u32   HASH_CATEGORY  = HASH_CATEGORY_CRYPTOCURRENCY_WALLET;
 static const char *HASH_NAME      = "Electrum Wallet (Salt-Type 5)";
 static const u64   KERN_TYPE      = 21800;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
@@ -90,20 +90,24 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
   if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
   {
     // self-test failed
-    if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
-    {
-      return true;
-    }
-
-    // self-test failed
     if ((device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
     {
       return true;
     }
   }
 
-  // self-test failed
-  if (device_param->opencl_platform_vendor_id == VENDOR_ID_AMD)
+  // amdgpu-pro-20.50-1234664-ubuntu-20.04 (rocr)
+  // test_1620713931/test_report.log:! unhandled return code 255, cmdline : cat test_1620713931/21800_passwords.txt | ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -O -D 2 --backend-vector-width 4 -a 0 -m 21800 test_1620713931/21800_hashes.txt
+  // test_1620719578/test_report.log:! unhandled return code 255, cmdline : cat test_1620719578/21800_passwords.txt | ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 0 -m 21800 test_1620719578/21800_hashes.txt
+  if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == true))
+  {
+    return true;
+  }
+
+  // amdgpu-pro-20.50-1234664-ubuntu-20.04 (legacy)
+  // test_1619943729/test_report.log:! unhandled return code 255, cmdline : cat test_1619943729/21800_passwords.txt | ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -O -D 2 --backend-vector-width 1 -a 0 -m 21800 test_1619943729/21800_hashes.txt
+  // test_1619955152/test_report.log:! unhandled return code 255, cmdline : cat test_1619955152/21800_passwords.txt | ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 0 -m 21800 test_1619955152/21800_hashes.txt
+  if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
   {
     return true;
   }

@@ -184,16 +184,19 @@ static void main_outerloop_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MA
 
   status_ctx->shutdown_outer = false;
 
-  if ((user_options->example_hashes == false) && (user_options->keyspace == false) && (user_options->stdout_flag == false) && (user_options->backend_info == false) && (user_options->speed_only == false))
+  if (user_options->hash_info      == true) return;
+  if (user_options->keyspace       == true) return;
+  if (user_options->stdout_flag    == true) return;
+  if (user_options->backend_info   == true) return;
+  if (user_options->speed_only     == true) return;
+
+  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
-    if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
-    {
-      // see thread_keypress() how to access status information
+    // see thread_keypress() how to access status information
 
-      hc_thread_create (hashcat_user->outer_threads[hashcat_user->outer_threads_cnt], thread_keypress, hashcat_ctx);
+    hc_thread_create (hashcat_user->outer_threads[hashcat_user->outer_threads_cnt], thread_keypress, hashcat_ctx);
 
-      hashcat_user->outer_threads_cnt++;
-    }
+    hashcat_user->outer_threads_cnt++;
   }
 }
 
@@ -257,7 +260,7 @@ static void main_cracker_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
-  if (user_options->example_hashes  == true) return;
+  if (user_options->hash_info       == true) return;
   if (user_options->keyspace        == true) return;
   if (user_options->backend_info    == true) return;
   if (user_options->stdout_flag     == true) return;
@@ -408,12 +411,12 @@ static void main_potfile_num_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, M
   {
     if (potfile_remove_cracks == 1)
     {
-      event_log_info (hashcat_ctx, "INFO: Removed 1 hash found in potfile.");
+      event_log_info (hashcat_ctx, "INFO: Removed 1 hash found as potfile entry or as empty hash.");
       event_log_info (hashcat_ctx, NULL);
     }
     else
     {
-      event_log_info (hashcat_ctx, "INFO: Removed %d hashes found in potfile.", potfile_remove_cracks);
+      event_log_info (hashcat_ctx, "INFO: Removed %d hashes found as potfile entries or as empty hashes.", potfile_remove_cracks);
       event_log_info (hashcat_ctx, NULL);
     }
   }
@@ -473,7 +476,7 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
 
   if (hashconfig->opti_type)
   {
-    event_log_info (hashcat_ctx, "Applicable optimizers applied:");
+    event_log_info (hashcat_ctx, "Optimizers applied:");
 
     for (u32 i = 0; i < 32; i++)
     {
@@ -490,8 +493,8 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
     if (hashconfig->has_optimized_kernel == true)
     {
       event_log_advice (hashcat_ctx, "ATTENTION! Pure (unoptimized) backend kernels selected.");
-      event_log_advice (hashcat_ctx, "Using pure kernels enables cracking longer passwords but for the price of drastically reduced performance.");
-      event_log_advice (hashcat_ctx, "If you want to switch to optimized backend kernels, append -O to your commandline.");
+      event_log_advice (hashcat_ctx, "Pure kernels can crack longer passwords, but drastically reduce performance.");
+      event_log_advice (hashcat_ctx, "If you want to switch to optimized kernels, append -O to your commandline.");
       event_log_advice (hashcat_ctx, "See the above message to find out about the exact limits.");
       event_log_advice (hashcat_ctx, NULL);
     }
@@ -707,13 +710,16 @@ static void main_monitor_performance_hint (MAYBE_UNUSED hashcat_ctx_t *hashcat_c
   event_log_advice (hashcat_ctx, "Cracking performance lower than expected?");
   event_log_advice (hashcat_ctx, NULL);
 
-  if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0)
+  if (user_options->optimized_kernel_enable == false)
   {
-    if (hashconfig->has_optimized_kernel == true)
+    if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0)
     {
-      event_log_advice (hashcat_ctx, "* Append -O to the commandline.");
-      event_log_advice (hashcat_ctx, "  This lowers the maximum supported password- and salt-length (typically down to 32).");
-      event_log_advice (hashcat_ctx, NULL);
+      if (hashconfig->has_optimized_kernel == true)
+      {
+        event_log_advice (hashcat_ctx, "* Append -O to the commandline.");
+        event_log_advice (hashcat_ctx, "  This lowers the maximum supported password/salt length (usually down to 32).");
+        event_log_advice (hashcat_ctx, NULL);
+      }
     }
   }
 
@@ -721,6 +727,14 @@ static void main_monitor_performance_hint (MAYBE_UNUSED hashcat_ctx_t *hashcat_c
   {
     event_log_advice (hashcat_ctx, "* Append -w 3 to the commandline.");
     event_log_advice (hashcat_ctx, "  This can cause your screen to lag.");
+    event_log_advice (hashcat_ctx, NULL);
+  }
+
+  if (user_options->slow_candidates == false)
+  {
+    event_log_advice (hashcat_ctx, "* Append -S to the commandline.");
+    event_log_advice (hashcat_ctx, "  This has a drastic speed impact but can be better for specific attacks.");
+    event_log_advice (hashcat_ctx, "  Typical scenarios are a small wordlist but a large ruleset.");
     event_log_advice (hashcat_ctx, NULL);
   }
 
@@ -744,10 +758,10 @@ static void main_monitor_noinput_hint (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
 
   if (user_options->quiet == true) return;
 
-  event_log_advice (hashcat_ctx, "ATTENTION! Read timeout in stdin mode. The password candidates input is too slow:");
-  event_log_advice (hashcat_ctx, "* Are you sure that you are using the correct attack mode (--attack-mode or -a)?");
-  event_log_advice (hashcat_ctx, "* Are you sure that you want to use input from standard input (stdin)?");
-  event_log_advice (hashcat_ctx, "* If so, are you sure that the input from stdin (the pipe) is working correctly and is fast enough?");
+  event_log_advice (hashcat_ctx, "ATTENTION! Read timeout in stdin mode. Password candidates input is too slow:");
+  event_log_advice (hashcat_ctx, "* Are you sure you are using the correct attack mode (--attack-mode or -a)?");
+  event_log_advice (hashcat_ctx, "* Are you sure you want to use input from standard input (stdin)?");
+  event_log_advice (hashcat_ctx, "* If using stdin, are you sure it is working correctly, and is fast enough?");
   event_log_advice (hashcat_ctx, NULL);
 }
 
@@ -1157,9 +1171,9 @@ int main (int argc, char **argv)
 
       rc_final = 0;
     }
-    else if (user_options->example_hashes == true)
+    else if (user_options->hash_info == true)
     {
-      example_hashes (hashcat_ctx);
+      hash_info (hashcat_ctx);
 
       rc_final = 0;
     }

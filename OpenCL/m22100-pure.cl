@@ -470,7 +470,7 @@ KERNEL_FQ void m22100_comp (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
 
   if (type == 0)
   {
-    if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
     {
       mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
     }
@@ -569,7 +569,7 @@ KERNEL_FQ void m22100_comp (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
 
   // if we end up here, we are sure to have found the correct password:
 
-  if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+  if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
   {
     mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
   }

@@ -351,7 +351,7 @@ static int hm_SYSFS_get_pp_dpm_pcie (hashcat_ctx_t *hashcat_ctx, const int backe
 
   char *path;
 
-  hc_asprintf (&path, "%s/pp_dpm_pcie", syspath);
+  hc_asprintf (&path, "%s/current_link_width", syspath);
 
   hcfree (syspath);
 
@@ -380,19 +380,65 @@ static int hm_SYSFS_get_pp_dpm_pcie (hashcat_ctx_t *hashcat_ctx, const int backe
 
     if (len < 2) continue;
 
-    if (ptr[len - 2] != '*') continue;
+    int rc = sscanf (ptr, "%d", &lanes);
 
-    int   profile = 0;
-    float speed = 0;
-
-    int rc = sscanf (ptr, "%d: %fGB, x%d *", &profile, &speed, &lanes);
-
-    if (rc == 3) break;
+    if (rc == 1) break;
   }
 
   hc_fclose (&fp);
 
   *val = lanes;
+
+  hcfree (path);
+
+  return 0;
+}
+
+static int hm_SYSFS_get_gpu_busy_percent (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx, int *val)
+{
+  char *syspath = hm_SYSFS_get_syspath_device (hashcat_ctx, backend_device_idx);
+
+  if (syspath == NULL) return -1;
+
+  char *path;
+
+  hc_asprintf (&path, "%s/gpu_busy_percent", syspath);
+
+  hcfree (syspath);
+
+  HCFILE fp;
+
+  if (hc_fopen (&fp, path, "r") == false)
+  {
+    event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
+
+    hcfree (path);
+
+    return -1;
+  }
+
+  int util = 0;
+
+  while (!hc_feof (&fp))
+  {
+    char buf[HCBUFSIZ_TINY];
+
+    char *ptr = hc_fgets (buf, sizeof (buf), &fp);
+
+    if (ptr == NULL) continue;
+
+    size_t len = strlen (ptr);
+
+    if (len < 1) continue;
+
+    int rc = sscanf (ptr, "%d", &util);
+
+    if (rc == 1) break;
+  }
+
+  hc_fclose (&fp);
+
+  *val = util;
 
   hcfree (path);
 
@@ -566,7 +612,7 @@ static int hm_NVML_nvmlInit (hashcat_ctx_t *hashcat_ctx)
 
   const nvmlReturn_t nvml_rc = (nvmlReturn_t) nvml->nvmlInit ();
 
-  if (nvml_rc != NVML_SUCCESS)
+  if (nvml_rc != NVML_SUCCESS && nvml_rc != NVML_ERROR_DRIVER_NOT_LOADED)
   {
     const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
@@ -586,7 +632,7 @@ static int hm_NVML_nvmlShutdown (hashcat_ctx_t *hashcat_ctx)
 
   const nvmlReturn_t nvml_rc = (nvmlReturn_t) nvml->nvmlShutdown ();
 
-  if (nvml_rc != NVML_SUCCESS)
+  if (nvml_rc != NVML_SUCCESS && nvml_rc != NVML_ERROR_DRIVER_NOT_LOADED)
   {
     const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
@@ -606,7 +652,7 @@ static int hm_NVML_nvmlDeviceGetCount (hashcat_ctx_t *hashcat_ctx, unsigned int 
 
   const nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetCount (deviceCount);
 
-  if (nvml_rc != NVML_SUCCESS)
+  if (nvml_rc != NVML_SUCCESS && nvml_rc != NVML_ERROR_DRIVER_NOT_LOADED)
   {
     const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
@@ -1901,6 +1947,20 @@ int hm_get_utilization_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int b
 
         return PMActivity.iActivityPercent;
       }
+
+      if (hwmon_ctx->hm_sysfs)
+      {
+        int util;
+
+        if (hm_SYSFS_get_gpu_busy_percent (hashcat_ctx, backend_device_idx, &util) == -1)
+        {
+          hwmon_ctx->hm_device[backend_device_idx].utilization_get_supported = false;
+
+          return -1;
+        }
+
+        return util;
+      }
     }
 
     if (backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_NV)
@@ -2225,7 +2285,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
   return 0;
   #endif // WITH_HWMON
 
-  if (user_options->example_hashes  == true) return 0;
+  if (user_options->hash_info       == true) return 0;
   if (user_options->keyspace        == true) return 0;
   if (user_options->left            == true) return 0;
   if (user_options->backend_info    == true) return 0;
@@ -2559,8 +2619,6 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
   {
     if (true)
     {
-      int hm_adapters_id = 0;
-
       for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
       {
         hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
@@ -2572,18 +2630,17 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         if (device_param->is_opencl == true)
         {
+          const u32 device_id = device_param->device_id;
+
           if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
 
-          hm_adapters_sysfs[hm_adapters_id].sysfs = backend_devices_idx; // ????
-
-          hm_adapters_sysfs[hm_adapters_id].buslanes_get_supported    = true;
-          hm_adapters_sysfs[hm_adapters_id].corespeed_get_supported   = true;
-          hm_adapters_sysfs[hm_adapters_id].fanspeed_get_supported    = true;
-          hm_adapters_sysfs[hm_adapters_id].fanpolicy_get_supported   = true;
-          hm_adapters_sysfs[hm_adapters_id].memoryspeed_get_supported = true;
-          hm_adapters_sysfs[hm_adapters_id].temperature_get_supported = true;
-
-          hm_adapters_id++;
+          hm_adapters_sysfs[device_id].buslanes_get_supported    = true;
+          hm_adapters_sysfs[device_id].corespeed_get_supported   = true;
+          hm_adapters_sysfs[device_id].fanspeed_get_supported    = true;
+          hm_adapters_sysfs[device_id].fanpolicy_get_supported   = true;
+          hm_adapters_sysfs[device_id].memoryspeed_get_supported = true;
+          hm_adapters_sysfs[device_id].temperature_get_supported = true;
+          hm_adapters_sysfs[device_id].utilization_get_supported = true;
         }
       }
     }
@@ -2664,7 +2721,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
       if (device_param->opencl_device_vendor_id == VENDOR_ID_AMD)
       {
         hwmon_ctx->hm_device[backend_devices_idx].adl         = hm_adapters_adl[device_id].adl;
-        hwmon_ctx->hm_device[backend_devices_idx].sysfs       = hm_adapters_sysfs[device_id].sysfs;
+        hwmon_ctx->hm_device[backend_devices_idx].sysfs       = hm_adapters_sysfs[device_id].sysfs; // not used
         hwmon_ctx->hm_device[backend_devices_idx].nvapi       = 0;
         hwmon_ctx->hm_device[backend_devices_idx].nvml        = 0;
         hwmon_ctx->hm_device[backend_devices_idx].od_version  = 0;
@@ -2789,7 +2846,6 @@ void hwmon_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
   if (hwmon_ctx->hm_sysfs)
   {
-
     sysfs_close (hashcat_ctx);
   }
 

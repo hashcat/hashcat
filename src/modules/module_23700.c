@@ -9,6 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "memory.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -20,7 +21,8 @@ static const u32   HASH_CATEGORY  = HASH_CATEGORY_ARCHIVE;
 static const char *HASH_NAME      = "RAR3-p (Uncompressed)";
 static const u64   KERN_TYPE      = 23700;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
+static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_POST_AMP_UTF16LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$RAR3$*1*e54a73729887cb53*49b0a846*16*14*1*34620bcca8176642a210b1051901921e*30";
@@ -116,7 +118,7 @@ u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
 {
   const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL);
 
-  u32 pw_max = 127;
+  u32 pw_max = 128;
 
   if (optimized_kernel == true)
   {
@@ -128,7 +130,7 @@ u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
 
 const char *module_benchmark_mask (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const char *mask = "?b?b?b?b?b";
+  const char *mask = "?l?l?l?l?l";
 
   return mask;
 }
@@ -294,9 +296,9 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u32    *digest = (const u32    *) digest_buf;
   const rar3_t *rar3   = (const rar3_t *) esalt_buf;
 
-  u8 data[655360] = { 0 };
-
   const u32 data_len = rar3->pack_size;
+
+  u8 *data = (u8 *) hcmalloc ((data_len * 2) + 1);
 
   // like hex encode, but swapped:
   // hex_encode ((const u8 *) rar3->data, rar3->pack_size, data);
@@ -308,6 +310,8 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     u32_to_hex (d, data + j);
   }
 
+  data[data_len * 2] = 0;
+
   const int line_len = snprintf (line_buf, line_size, "%s*1*%08x%08x*%08x*%u*%u*1*%s*30",
       SIGNATURE_RAR3,
       byte_swap_32 (salt->salt_buf[0]),
@@ -316,6 +320,8 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
       rar3->pack_size,
       rar3->unpack_size,
       data);
+
+  hcfree (data);
 
   return line_len;
 }

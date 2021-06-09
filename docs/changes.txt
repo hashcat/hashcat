@@ -1,56 +1,209 @@
-* changes v6.1.1 -> v6.x.x
+* changes v6.2.1 -> v6.x.x
 
 ##
 ## Algorithms
 ##
 
-- Added hash-mode: Bitwarden
-- Added hash-mode: BestCrypt v3 Volume Encryption
-- Added hash-mode: Apple iWork
-- Added hash-mode: AxCrypt 2 AES-128
-- Added hash-mode: AxCrypt 2 AES-256
-- Added hash-mode: PKCS#8 Private Keys
-- Added hash-mode: RAR3-p (Compressed)
-- Added hash-mode: RAR3-p (Uncompressed)
-- Added hash-mode: RSA/DSA/EC/OPENSSH Private Keys
-- Added hash-mode: sha1(sha1($pass).$salt)
-- Added hash-mode: OpenEdge Progress Encode
+- Added hash-mode: bcrypt(md5($pass)) / bcryptmd5
+- Added hash-mode: bcrypt(sha1($pass)) / bcryptsha1
+- Added hash-mode: FortiGate256 (FortiOS256)
+- Added hash-mode: Linux Kernel Crypto API (2.4)
+- Added hash-mode: MurmurHash
+- Added hash-mode: md5(utf16le($pass))
+- Added hash-mode: sha1(utf16le($pass))
+- Added hash-mode: sha256(utf16le($pass))
+- Added hash-mode: sha384(utf16le($pass))
+- Added hash-mode: sha512(utf16le($pass))
+- Added hash-mode: md5(md5(md5($pass)))
+- Added hash-mode: sha1(sha1($salt.$pass.$salt))
+- Added hash-mode: sha256($salt.sha256($pass))
+- Added hash-mode: sha384($pass.$salt)
+- Added hash-mode: sha384($salt.$pass)
+- Added hash-mode: sha384($salt.utf16le($pass))
+- Added hash-mode: sha384(utf16le($pass).$salt)
+
+##
+## Features
+##
+
+- Autodetect hash-type: performs an automatic analysis of the input hash(es), associating compatible algorithms, or executing the attack if only one compatible format is found.
 
 ##
 ## Bugs
 ##
 
-- Fixed too early execution of some module functions which could make use of non-final values opts_type and opti_type
-- Fixed internal access on module option attribute OPTS_TYPE_SUGGEST_KG with the result that it was unused
-- Fixed race condition resulting in out of memory error on startup if multiple hashcat instances are started at the same time
-- Fixed unexpected non-unique salts in multi-hash cracking in Bitcoin/Litecoin wallet.dat module which lead to false negatives
-- Fixed rare case of misalignment of the status prompt when other user warnings are shown within the hashcat output
-- Fixed password reassembling for cracked hashes on host for slow hashes in optimized mode that are longer than 32 characters
+- Fixed error message in -a 9 mode with rules in case number of words from wordlist are not in sync with number of unique salts
+- Fixed error handling logic in monitor thread to not return in case of error (disc full, permission error, ...) but to retry instead
+- Fixed false negatives with TrueCrypt/VeraCrypt in case zip or gzip compressed files were used as keyfiles
+- Fixed free memory size output for skipped GPU (both automatic and manual) of --backend-info information screen
+
+##
+## Improvements
+##
+
+- AES Crypt Plugin: Reduced max password length from 256 to 128 which improved performance by 22%
+- CUDA Backend: Do not warn about missing CUDA SDK installation if --stdout is used
+- Folder Management: Add support for XDG Base Directory specification if hashcat was installed using make install
+- Hardware Monitor: Add support for GPU device utilization readings from sysfs (AMD on Linux)
+- OpenCL Backend: Use CL_DEVICE_BOARD_NAME_AMD instead of CL_DEVICE_NAME for device name in case OpenCL runtime supports this query
+- Performance Monitor: Add -S as a user suggestion to improve cracking performance in specific attack configurations
+- RAR3-p (Compressed): Fix workaround in unrar library in AES constant table generation to enable multi-threading support
+- RC4 Kernels: Improved performance by 20%+ for hash-modes Kerberos 5 (etype 23), MS Office (<= 2003) and PDF (<= 1.6) by using new RC4 code
+- Status Screen: Show currently running kernel type (pure, optimized) and generator type (host, device)
+- UTF8-to-UTF16: Replaced naive UTF8 to UTF16 conversion with true conversion for RAR3, AES Crypt, MultiBit HD (scrypt) and Umbraco HMAC-SHA1
+
+##
+## Technical
+##
+
+- Dependencies: Updated LZMA SDK from 19.00 to 21.02 alpha
+- Dependencies: Updated xxHash from 0.1.0 to v0.8.0 - Stable XXH3
+- Documentation: Update missing documentation in plugin developer guide for OPTS_TYPE_MP_MULTI_DISABLE and OPTS_TYPE_NATIVE_THREADS
+- Kernels: Add RC4 cipher to crypto library with optimized shared memory access pattern which will not cause any bank conflicts if -u <= 32
+- Kernels: Add standalone true UTF8 to UTF16 converter kernel that runs after amplifier. Use OPTS_TYPE_POST_AMP_UTF16LE from plugin
+- Modules: Recategorized HASH_CATEGORY option in various modules
+- Modules: Added hash categories HASH_CATEGORY_IMS and HASH_CATEGORY_CRYPTOCURRENCY_WALLET
+- Modules: Changed hash category of Python passlib from HASH_CATEGORY_GENERIC_KDF to HASH_CATEGORY_FRAMEWORK
+
+* changes v6.2.0 -> v6.2.1
+
+##
+## Technical
+##
+
+- Dependencies: Updated unrar source from 5.9.4 to 6.0.5
+- Dependencies: Make unrar dependencies optional and disable hash-mode 23800 if dependency is disabled
+
+* changes v6.1.1 -> v6.2.0
+
+##
+## Algorithms
+##
+
+- Added hash-mode: Apple iWork
+- Added hash-mode: AxCrypt 2 AES-128
+- Added hash-mode: AxCrypt 2 AES-256
+- Added hash-mode: BestCrypt v3 Volume Encryption
+- Added hash-mode: Bitwarden
+- Added hash-mode: Dahua Authentication MD5
+- Added hash-mode: KNX IP Secure - Device Authentication Code
+- Added hash-mode: MongoDB ServerKey SCRAM-SHA-1
+- Added hash-mode: MongoDB ServerKey SCRAM-SHA-256
+- Added hash-mode: Mozilla key3.db
+- Added hash-mode: Mozilla key4.db
+- Added hash-mode: MS Office 2016 - SheetProtection
+- Added hash-mode: PDF 1.4 - 1.6 (Acrobat 5 - 8) - edit password
+- Added hash-mode: PKCS#8 Private Keys
+- Added hash-mode: RAR3-p (Compressed)
+- Added hash-mode: RAR3-p (Uncompressed)
+- Added hash-mode: RSA/DSA/EC/OPENSSH Private Keys
+- Added hash-mode: SolarWinds Orion v2
+- Added hash-mode: SolarWinds Serv-U
+- Added hash-mode: SQLCipher
+- Added hash-mode: Stargazer Stellar Wallet XLM
+- Added hash-mode: Stuffit5
+- Added hash-mode: Telegram Desktop >= v2.1.14 (PBKDF2-HMAC-SHA512)
+- Added hash-mode: Umbraco HMAC-SHA1
+- Added hash-mode: sha1($salt.sha1($pass.$salt))
+- Added hash-mode: sha1(sha1($pass).$salt)
+- Added hash-mode: OpenEdge Progress Encode
+
+##
+## Features
+##
+
+- Added new attack-mode: Association Attack (aka "Context Attack") to attack hashes from a hashlist with associated "hints"
+- Added support for true UTF-8 to UTF-16 conversion in kernel crypto library
+- Added option --hash-info to show generic information for each hash-mode
+- Added command prompt [f]inish to tell hashcat to quit after finishing the current attack
+
+##
+## Bugs
+##
+
+- Fixed access to filename which is a null-pointer in benchmark mode
+- Fixed both false negative and false positive results in -m 3000 in -a 3 (affecting only NVIDIA GPU)
+- Fixed buffer overflow in -m 1800 in -O mode which is optimized to handle only password candidates up to length 15
+- Fixed buffer overflow in -m 4710 in -P mode and only in single hash mode if salt length is larger than 32 bytes
+- Fixed hardware management sysfs readings in status screen (typically ROCm controlled GPUs)
+- Fixed include guards in several header files
 - Fixed incorrect maximum password length support for -m 400 in optimized mode (reduced from 55 to 39)
+- Fixed internal access on module option attribute OPTS_TYPE_SUGGEST_KG with the result that it was unused
+- Fixed invalid handling of outfile folder entries for -m 22000
+- Fixed memory leak causing problems in sessions with many iterations - for instance, --benchmark-all or large mask files
+- Fixed memory leaks in several cases of errors with access to temporary files
+- Fixed NVML initialization in WSL2 environments
+- Fixed out-of-boundary reads in cases where user activates -S for fast but pure hashes in -a 1 or -a 3 mode
+- Fixed out-of-boundary reads in kernels using module_extra_buffer_size() if -n is set to 1
+- Fixed password reassembling for cracked hashes on host for slow hashes in optimized mode that are longer than 32 characters
+- Fixed race condition in potfile check during removal of empty hashes
+- Fixed race condition resulting in out of memory error on startup if multiple hashcat instances are started at the same time
+- Fixed rare case of misalignment of the status prompt when other user warnings are shown in the hashcat output
+- Fixed search of tuning database - if a device was not assigned an alias, it couldn't be found in general
+- Fixed test on gzip header in wordlists and hashlists
+- Fixed too-early execution of some module functions that use non-final values opts_type and opti_type
+- Fixed unexpected non-unique salts in multi-hash cracking in Bitcoin/Litecoin wallet.dat module which led to false negatives
+- Fixed unit test for -m 3000 by preventing it to generate zero hashes
+- Fixed unit tests using 'null' as padding method in Crypt::CBC but actually want to use 'none'
+- Fixed unterminated salt buffer in -m 23400 module_hash_encode() in case salt was of length 256
+- Fixed vector datatype support in -m 21100 only -P mode and only -a 3 mode were affected
 
 ##
 ## Improvements
 ##
 
 - Apple Keychain: Notify the user about the risk of collisions / false positives
-- CUDA Backend: Give detailed warning if either the NVIDIA CUDA or the NVIDIA RTC library cannot be initialized
 - CUDA Backend: Do not warn about missing CUDA SDK installation if --backend-ignore-cuda is used
+- CUDA Backend: Give detailed warning if either the NVIDIA CUDA or the NVIDIA RTC library cannot be initialized
 - CUDA Backend: Use blocking events to avoid 100% CPU core usage (per GPU)
+- OpenCL Runtime: Workaround JiT compiler deadlock on NVIDIA driver >= 465.89
+- OpenCL Runtime: Workaround JiT compiler segfault on legacy AMDGPU driver compiling RAR3 OpenCL kernel
 - RAR3 Kernels: Improved loop code, improving performance by 23%
-- Startup time: Improved the startup time by avoiding some time intensive operations for skipped devices
+- Scrypt Kernels: Added a number of GPU specific optimizations per hash modes to hashcat.hctune
+- Scrypt Kernels: Added detailed documentation on device specific tunings in hashcat.hctune
+- Scrypt Kernels: Optimized Salsa code portion by reducing register copies and removed unnecessary byte swaps
+- Scrypt Kernels: Reduced kernel wait times by making it a true split kernel where iteration count = N value
+- Scrypt Kernels: Refactored workload configuration strategy based on available resources
+- Startup time: Improved startup time by avoiding some time-intensive operations for skipped devices
 
 ##
 ## Technical
 ##
 
+- Bcrypt: Make BCRYPT entry for CPU in hashcat.hctune after switch to OPTS_TYPE_MP_MULTI_DISABLE (basically set -n to 1)
+- Benchmark: Update benchmark_deep.pl with new hash modes added (also new hash modes which were added with v6.1.0)
+- Building: Declare phony targets in Makefile to avoid conflicts of a target name with a file of the same name
+- Building: Fixed build warnings on macOS for unrar sources
+- Building: Fixed test for DARWIN_VERSION in Makefile
+- Commandline Options: Removed option --example-hashes, now an alias of --hash-info
+- Compute API: Skipping devices instead of stop if error occured in initialization
 - Documentation: Added 3rd party licenses to docs/license_libs
-- Module Structure: Add 3rd party library hook management functions. This also requires an update to all existing module_init()
+- Hash-Mode 8900 (Scrypt): Changed default benchmark scrypt parameters from 1k:1:1 to 16k:8:1 (default)
 - Hash-Mode 11600 (7-Zip): Improved memory handling (alloc and free) for the hook function
 - Hash-Mode 13200 (AxCrypt): Changed the name to AxCrypt 1 to avoid confusion
 - Hash-Mode 13300 (AxCrypt in-memory SHA1): Changed the name to AxCrypt 1 in-memory SHA1
-- OpenCL Runtime: Switched default OpenCL device type on macOS from GPU to CPU. Use -D 2 to enable GPU devices.
+- Hash-Mode 16300 (Ethereum Pre-Sale Wallet, PBKDF2-HMAC-SHA256): Use correct buffer size allocation for AES key
+- Hash-Mode 20710 (sha256(sha256($pass).$salt)): Removed unused code and fixed module_constraints
+- Hash-Mode 22000 (WPA-PBKDF2-PMKID+EAPOL): Support loading a hash from command line
+- Hash-Mode 23300 (Apple iWork): Use correct buffer size allocation for AES key
+- Hash Parser: Output support for machine-readable hash lines in --show and --left and in error messages
+- Kernel Development: Kernel cache is disabled automatically when hashcat is compiled with DEBUG=1
+- Kernel Functions: Added generic AES-GCM interface see OpenCL/inc_cipher_aes-gcm.h
+- Kernel Functions: Refactored OpenCL/inc_ecc_secp256k1.cl many functions, add constants and documentation
+- Kernel Functions: Refactored OpenCL/inc_ecc_secp256k1.cl to improve usage in external programs
+- Kernel Functions: Wrap atomic functions with hc_ prefix. Custom kernels need to rename "atomic_inc()" to "hc_atomic_inc()"
+- Kernel Parameters: Added new parameter 'salt_repeat' to improve large buffer management
+- Module Parameters: Add OPTS_TYPE_MP_MULTI_DISABLE for use by plugin developers to prevent multiply -n with the MCU count
+- Module Parameters: Add OPTS_TYPE_NATIVE_THREADS for use by plugin developers to enforce native thread count
+- Module Structure: Add 3rd party library hook management functions. This also requires an update to all existing module_init()
+- OpenCL Runtime: Add support for clUnloadPlatformCompiler() to release some resources after JiT compilation
+- OpenCL Runtime: Switched default OpenCL device type on macOS from GPU to CPU. Use -D 2 to enable GPU devices
+- OpenCL Runtime: Update module_unstable_warnings() for all hash modes based on most recent versions of many OpenCL runtimes
+- Unit tests: Added 'potthrough' (like passthrough, but hash:plain) to tools/test.pl
 - Unit tests: Added Python 3 support for all of the Python code in our test framework
 - Unit tests: Fixed the packaging of test (-p) feature
+- Unit tests: Updated test.sh to show kernel type (pure or optimized) in output
+- Unit tests: Use python3/pip3 instead of just python/pip in tools/install_modules.sh
 
 * changes v6.1.0 -> v6.1.1
 

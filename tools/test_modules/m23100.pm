@@ -44,7 +44,7 @@ sub module_generate_hash
     cipher      => "DES",
     literal_key => 1,
     header      => "none",
-    padding     => "null",
+    padding     => "none",
   });
 
   my $des2 = Crypt::CBC->new ({
@@ -53,7 +53,7 @@ sub module_generate_hash
     cipher      => "DES",
     literal_key => 1,
     header      => "none",
-    padding     => "null",
+    padding     => "none",
   });
 
   my $des3 = Crypt::CBC->new ({
@@ -62,7 +62,7 @@ sub module_generate_hash
     cipher      => "DES",
     literal_key => 1,
     header      => "none",
-    padding     => "null",
+    padding     => "none",
   });
 
   my $data_encrypted = "";

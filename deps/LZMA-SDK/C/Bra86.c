@@ -1,5 +1,5 @@
 /* Bra86.c -- Converter for x86 code (BCJ)
-2017-04-03 : Igor Pavlov : Public domain */
+2021-02-09 : Igor Pavlov : Public domain */
 
 #include "Precomp.h"
 
@@ -25,7 +25,7 @@ SizeT x86_Convert(Byte *data, SizeT size, UInt32 ip, UInt32 *state, int encoding
         break;
 
     {
-      SizeT d = (SizeT)(p - data - pos);
+      SizeT d = (SizeT)(p - data) - pos;
       pos = (SizeT)(p - data);
       if (p >= limit)
       {

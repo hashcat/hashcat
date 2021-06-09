@@ -74,7 +74,7 @@ bool hc_fopen (HCFILE *fp, const char *path, char *mode)
 
     if (read (fd_tmp, check, sizeof (check)) > 0)
     {
-      if (check[0] == 0x1f && check[1] == 0x8b && check[2] == 0x08 && check[3] == 0x08) fp->is_gzip = true;
+      if (check[0] == 0x1f && check[1] == 0x8b && check[2] == 0x08) fp->is_gzip = true;
       if (check[0] == 0x50 && check[1] == 0x4b && check[2] == 0x03 && check[3] == 0x04) fp->is_zip = true;
     }
 
@@ -106,6 +106,68 @@ bool hc_fopen (HCFILE *fp, const char *path, char *mode)
   {
     if ((fp->pfp = fdopen (fp->fd, mode)) == NULL)  return false;
   }
+
+  fp->path = path;
+  fp->mode = mode;
+
+  return true;
+}
+
+bool hc_fopen_nozip (HCFILE *fp, const char *path, char *mode)
+{
+  if (path == NULL || mode == NULL) return false;
+
+  int oflag = -1;
+
+  int fmode = S_IRUSR|S_IWUSR;
+
+  if (strncmp (mode, "a", 1) == 0 || strncmp (mode, "ab", 2) == 0)
+  {
+    oflag = O_WRONLY | O_CREAT | O_APPEND;
+
+    #if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__)
+    if (strncmp (mode, "ab", 2) == 0) oflag |= O_BINARY;
+    #endif
+  }
+  else if (strncmp (mode, "r", 1) == 0 || strncmp (mode, "rb", 2) == 0)
+  {
+    oflag = O_RDONLY;
+    fmode = -1;
+
+    #if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__)
+    if (strncmp (mode, "rb", 2) == 0) oflag |= O_BINARY;
+    #endif
+  }
+  else if (strncmp (mode, "w", 1) == 0 || strncmp (mode, "wb", 2) == 0)
+  {
+    oflag = O_WRONLY | O_CREAT | O_TRUNC;
+
+    #if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__)
+    if (strncmp (mode, "wb", 2) == 0) oflag |= O_BINARY;
+    #endif
+  }
+  else
+  {
+    // ADD more strncmp to handle more "mode"
+    return false;
+  }
+
+  fp->pfp = NULL;
+  fp->is_gzip = false;
+  fp->is_zip = false;
+
+  if (fmode == -1)
+  {
+    fp->fd = open (path, oflag);
+  }
+  else
+  {
+    fp->fd = open (path, oflag, fmode);
+  }
+
+  if (fp->fd == -1 && fp->is_zip == false) return false;
+
+  if ((fp->pfp = fdopen (fp->fd, mode)) == NULL)  return false;
 
   fp->path = path;
   fp->mode = mode;

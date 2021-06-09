@@ -11,7 +11,6 @@ enum IS_PROCESS_FILE_FLAGS {IPFF_EXCLUDE_PARENT=1};
 class CommandData:public RAROptions
 {
   private:
-    void ProcessSwitchesString(const wchar *Str);
     void ProcessSwitch(const wchar *Switch);
     void BadSwitch(const wchar *Switch);
     uint GetExclAttr(const wchar *Str,bool &Dir);
@@ -34,6 +33,7 @@ class CommandData:public RAROptions
     void ParseEnvVar();
     void ReadConfig();
     void PreprocessArg(const wchar *Arg);
+    void ProcessSwitchesString(const wchar *Str);
     void OutTitle();
     void OutHelp(RAR_EXIT ExitCode);
     bool IsSwitch(int Ch);

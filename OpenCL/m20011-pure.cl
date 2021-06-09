@@ -407,7 +407,7 @@ KERNEL_FQ void m20011_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcrypt
 
   if (dcrp_verify_header_serpent (digests_buf[DIGESTS_OFFSET].digest_buf, ukey1, ukey2) == 1)
   {
-    if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
     {
       mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET, gid, il_pos, 0, 0);
     }
@@ -415,7 +415,7 @@ KERNEL_FQ void m20011_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcrypt
 
   if (dcrp_verify_header_twofish (digests_buf[DIGESTS_OFFSET].digest_buf, ukey1, ukey2) == 1)
   {
-    if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
     {
       mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET, gid, il_pos, 0, 0);
     }
@@ -423,7 +423,7 @@ KERNEL_FQ void m20011_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcrypt
 
   if (dcrp_verify_header_aes (digests_buf[DIGESTS_OFFSET].digest_buf, ukey1, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
   {
-    if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
     {
       mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET, gid, il_pos, 0, 0);
     }

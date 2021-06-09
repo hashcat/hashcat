@@ -38,7 +38,7 @@ MKDIR_CODE MakeDir(const wchar *Name,bool SetAttr,uint Attr)
 }
 
 
-bool CreatePath(const wchar *Path,bool SkipLastName)
+bool CreatePath(const wchar *Path,bool SkipLastName,bool Silent)
 {
   if (Path==NULL || *Path==0)
     return false;
@@ -73,7 +73,7 @@ bool CreatePath(const wchar *Path,bool SkipLastName)
       DirName[s-Path]=0;
 
       Success=MakeDir(DirName,true,DirAttr)==MKDIR_SUCCESS;
-      if (Success)
+      if (Success && !Silent)
       {
         mprintf(St(MCreatDir),DirName);
         mprintf(L" %s",St(MOk));
@@ -474,6 +474,24 @@ bool DelFile(const wchar *Name)
 }
 
 
+bool DelDir(const wchar *Name)
+{
+#ifdef _WIN_ALL
+  bool Success=RemoveDirectory(Name)!=0;
+  if (!Success)
+  {
+    wchar LongName[NM];
+    if (GetWinLongPath(Name,LongName,ASIZE(LongName)))
+      Success=RemoveDirectory(LongName)!=0;
+  }
+  return Success;
+#else
+  char NameA[NM];
+  WideToChar(Name,NameA,ASIZE(NameA));
+  bool Success=rmdir(NameA)==0;
+  return Success;
+#endif
+}
 
 
 #if defined(_WIN_ALL) && !defined(SFX_MODULE)

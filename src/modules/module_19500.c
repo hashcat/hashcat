@@ -17,7 +17,7 @@ static const u32   DGST_POS1      = 4;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 1;
 static const u32   DGST_SIZE      = DGST_SIZE_4_5;
-static const u32   HASH_CATEGORY  = HASH_CATEGORY_RAW_HASH_SALTED;
+static const u32   HASH_CATEGORY  = HASH_CATEGORY_FRAMEWORK;
 static const char *HASH_NAME      = "Ruby on Rails Restful-Authentication";
 static const u64   KERN_TYPE      = 19500;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
@@ -54,16 +54,11 @@ typedef struct devise_hash
 
 bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
-  if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
-  {
-    // self-test failed
-    if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
-    {
-      return true;
-    }
-  }
-
-  // amdgpu-pro-19.30-934563-ubuntu-18.04: self-test failure.
+  // amdgpu-pro-20.50-1234664-ubuntu-20.04 (legacy)
+  // test_1619943729/test_report.log:! unhandled return code 255, cmdline : cat test_1619943729/19500_passwords.txt | ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -O -D 2 --backend-vector-width 1 -a 0 -m 19500 test_1619943729/19500_hashes.txt
+  // test_1619950656/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -O -D 2 --backend-vector-width 4 -a 3 -m 19500  test_1619950656/19500_multihash_bruteforce.txt test_1619950656/19500_passwords.txt
+  // test_1619955152/test_report.log:! unhandled return code 255, cmdline : cat test_1619955152/19500_passwords.txt | ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 0 -m 19500 test_1619955152/19500_hashes.txt
+  // test_1619967069/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 3 -m 19500  test_1619967069/19500_multihash_bruteforce.txt test_1619967069/19500_passwords.txt
   if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
   {
     return true;

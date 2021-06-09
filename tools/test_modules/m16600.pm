@@ -33,7 +33,7 @@ sub module_generate_hash
     literal_key => 1,
     header      => "none",
     keysize     => 32,
-    padding     => "null",
+    padding     => "none",
   });
 
   if (defined $plain_bin)

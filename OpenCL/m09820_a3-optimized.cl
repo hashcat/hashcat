@@ -13,6 +13,7 @@
 #include "inc_common.cl"
 #include "inc_simd.cl"
 #include "inc_hash_sha1.cl"
+#include "inc_cipher_rc4.cl"
 #endif
 
 #define MIN_NULL_BYTES 10
@@ -28,130 +29,7 @@ typedef struct oldoffice34
 
 } oldoffice34_t;
 
-typedef struct
-{
-  u8 S[256];
-
-  u32 wtf_its_faster;
-
-} RC4_KEY;
-
-DECLSPEC void swap (LOCAL_AS RC4_KEY *rc4_key, const u8 i, const u8 j)
-{
-  u8 tmp;
-
-  tmp           = rc4_key->S[i];
-  rc4_key->S[i] = rc4_key->S[j];
-  rc4_key->S[j] = tmp;
-}
-
-DECLSPEC void rc4_init_16 (LOCAL_AS RC4_KEY *rc4_key, const u32 *data)
-{
-  u32 v = 0x03020100;
-  u32 a = 0x04040404;
-
-  LOCAL_AS u32 *ptr = (LOCAL_AS u32 *) rc4_key->S;
-
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (u32 i = 0; i < 64; i++)
-  {
-    *ptr++ = v; v += a;
-  }
-
-  u32 j = 0;
-
-  for (u32 i = 0; i < 16; i++)
-  {
-    u32 idx = i * 16;
-
-    u32 v;
-
-    v = data[0];
-
-    j += rc4_key->S[idx] + (v >>  0); swap (rc4_key, idx, j); idx++;
-    j += rc4_key->S[idx] + (v >>  8); swap (rc4_key, idx, j); idx++;
-    j += rc4_key->S[idx] + (v >> 16); swap (rc4_key, idx, j); idx++;
-    j += rc4_key->S[idx] + (v >> 24); swap (rc4_key, idx, j); idx++;
-
-    v = data[1];
-
-    j += rc4_key->S[idx] + (v >>  0); swap (rc4_key, idx, j); idx++;
-    j += rc4_key->S[idx] + (v >>  8); swap (rc4_key, idx, j); idx++;
-    j += rc4_key->S[idx] + (v >> 16); swap (rc4_key, idx, j); idx++;
-    j += rc4_key->S[idx] + (v >> 24); swap (rc4_key, idx, j); idx++;
-
-    v = data[2];
-
-    j += rc4_key->S[idx] + (v >>  0); swap (rc4_key, idx, j); idx++;
-    j += rc4_key->S[idx] + (v >>  8); swap (rc4_key, idx, j); idx++;
-    j += rc4_key->S[idx] + (v >> 16); swap (rc4_key, idx, j); idx++;
-    j += rc4_key->S[idx] + (v >> 24); swap (rc4_key, idx, j); idx++;
-
-    v = data[3];
-
-    j += rc4_key->S[idx] + (v >>  0); swap (rc4_key, idx, j); idx++;
-    j += rc4_key->S[idx] + (v >>  8); swap (rc4_key, idx, j); idx++;
-    j += rc4_key->S[idx] + (v >> 16); swap (rc4_key, idx, j); idx++;
-    j += rc4_key->S[idx] + (v >> 24); swap (rc4_key, idx, j); idx++;
-  }
-}
-
-DECLSPEC u8 rc4_next_16 (LOCAL_AS RC4_KEY *rc4_key, u8 i, u8 j, const u32 *in, u32 *out)
-{
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (u32 k = 0; k < 4; k++)
-  {
-    u32 xor4 = 0;
-
-    u8 idx;
-
-    i += 1;
-    j += rc4_key->S[i];
-
-    swap (rc4_key, i, j);
-
-    idx = rc4_key->S[i] + rc4_key->S[j];
-
-    xor4 |= rc4_key->S[idx] <<  0;
-
-    i += 1;
-    j += rc4_key->S[i];
-
-    swap (rc4_key, i, j);
-
-    idx = rc4_key->S[i] + rc4_key->S[j];
-
-    xor4 |= rc4_key->S[idx] <<  8;
-
-    i += 1;
-    j += rc4_key->S[i];
-
-    swap (rc4_key, i, j);
-
-    idx = rc4_key->S[i] + rc4_key->S[j];
-
-    xor4 |= rc4_key->S[idx] << 16;
-
-    i += 1;
-    j += rc4_key->S[i];
-
-    swap (rc4_key, i, j);
-
-    idx = rc4_key->S[i] + rc4_key->S[j];
-
-    xor4 |= rc4_key->S[idx] << 24;
-
-    out[k] = in[k] ^ xor4;
-  }
-
-  return j;
-}
-
-DECLSPEC void m09820m (LOCAL_AS RC4_KEY *rc4_keys, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_ESALT (oldoffice34_t))
+DECLSPEC void m09820m (LOCAL_AS u32 *S, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_ESALT (oldoffice34_t))
 {
   /**
    * modifier
@@ -159,12 +37,6 @@ DECLSPEC void m09820m (LOCAL_AS RC4_KEY *rc4_keys, u32 *w0, u32 *w1, u32 *w2, u3
 
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
-
-  /**
-   * shared
-   */
-
-  LOCAL_AS RC4_KEY *rc4_key = &rc4_keys[lid];
 
   /**
    * salt
@@ -299,7 +171,7 @@ DECLSPEC void m09820m (LOCAL_AS RC4_KEY *rc4_keys, u32 *w0, u32 *w1, u32 *w2, u3
 
       // second block decrypt:
 
-      rc4_init_16 (rc4_key, digest);
+      rc4_init_128 (S, digest);
 
       u32 secondBlockData[4];
 
@@ -310,7 +182,7 @@ DECLSPEC void m09820m (LOCAL_AS RC4_KEY *rc4_keys, u32 *w0, u32 *w1, u32 *w2, u3
 
       u32 out[4];
 
-      u32 j = rc4_next_16 (rc4_key, 0, 0, secondBlockData, out);
+      u32 j = rc4_next_16 (S, 0, 0, secondBlockData, out);
 
       int null_bytes = 0;
 
@@ -327,7 +199,7 @@ DECLSPEC void m09820m (LOCAL_AS RC4_KEY *rc4_keys, u32 *w0, u32 *w1, u32 *w2, u3
       secondBlockData[2] = esalt_bufs[DIGESTS_OFFSET].secondBlockData[6];
       secondBlockData[3] = esalt_bufs[DIGESTS_OFFSET].secondBlockData[7];
 
-      rc4_next_16 (rc4_key, 16, j, secondBlockData, out);
+      rc4_next_16 (S, 16, j, secondBlockData, out);
 
       for (int k = 0; k < 4; k++)
       {
@@ -342,14 +214,14 @@ DECLSPEC void m09820m (LOCAL_AS RC4_KEY *rc4_keys, u32 *w0, u32 *w1, u32 *w2, u3
 
     const u32 final_hash_pos = DIGESTS_OFFSET + digest_pos;
 
-    if (atomic_inc (&hashes_shown[final_hash_pos]) == 0)
+    if (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0)
     {
       mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, digest_pos, final_hash_pos, gid, il_pos, 0, 0);
     }
   }
 }
 
-DECLSPEC void m09820s (LOCAL_AS RC4_KEY *rc4_keys, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_ESALT (oldoffice34_t))
+DECLSPEC void m09820s (LOCAL_AS u32 *S, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_ESALT (oldoffice34_t))
 {
   /**
    * modifier
@@ -357,12 +229,6 @@ DECLSPEC void m09820s (LOCAL_AS RC4_KEY *rc4_keys, u32 *w0, u32 *w1, u32 *w2, u3
 
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
-
-  /**
-   * shared
-   */
-
-  LOCAL_AS RC4_KEY *rc4_key = &rc4_keys[lid];
 
   /**
    * salt
@@ -508,7 +374,7 @@ DECLSPEC void m09820s (LOCAL_AS RC4_KEY *rc4_keys, u32 *w0, u32 *w1, u32 *w2, u3
 
       // second block decrypt:
 
-      rc4_init_16 (rc4_key, digest);
+      rc4_init_128 (S, digest);
 
       u32 secondBlockData[4];
 
@@ -519,7 +385,7 @@ DECLSPEC void m09820s (LOCAL_AS RC4_KEY *rc4_keys, u32 *w0, u32 *w1, u32 *w2, u3
 
       u32 out[4];
 
-      u32 j = rc4_next_16 (rc4_key, 0, 0, secondBlockData, out);
+      u32 j = rc4_next_16 (S, 0, 0, secondBlockData, out);
 
       int null_bytes = 0;
 
@@ -536,7 +402,7 @@ DECLSPEC void m09820s (LOCAL_AS RC4_KEY *rc4_keys, u32 *w0, u32 *w1, u32 *w2, u3
       secondBlockData[2] = esalt_bufs[DIGESTS_OFFSET].secondBlockData[6];
       secondBlockData[3] = esalt_bufs[DIGESTS_OFFSET].secondBlockData[7];
 
-      rc4_next_16 (rc4_key, 16, j, secondBlockData, out);
+      rc4_next_16 (S, 16, j, secondBlockData, out);
 
       for (int k = 0; k < 4; k++)
       {
@@ -549,7 +415,7 @@ DECLSPEC void m09820s (LOCAL_AS RC4_KEY *rc4_keys, u32 *w0, u32 *w1, u32 *w2, u3
       if (null_bytes < MIN_NULL_BYTES) continue;
     }
 
-    if (atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
     {
       mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, il_pos, 0, 0);
     }
@@ -600,9 +466,9 @@ KERNEL_FQ void m09820_m04 (KERN_ATTR_ESALT (oldoffice34_t))
    * main
    */
 
-  LOCAL_VK RC4_KEY rc4_keys[64];
+  LOCAL_VK u32 S[64 * FIXED_LOCAL_SIZE];
 
-  m09820m (rc4_keys, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, pws_pos, gid_max);
+  m09820m (S, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max);
 }
 
 KERNEL_FQ void m09820_m08 (KERN_ATTR_ESALT (oldoffice34_t))
@@ -649,9 +515,9 @@ KERNEL_FQ void m09820_m08 (KERN_ATTR_ESALT (oldoffice34_t))
    * main
    */
 
-  LOCAL_VK RC4_KEY rc4_keys[64];
+  LOCAL_VK u32 S[64 * FIXED_LOCAL_SIZE];
 
-  m09820m (rc4_keys, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, pws_pos, gid_max);
+  m09820m (S, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max);
 }
 
 KERNEL_FQ void m09820_m16 (KERN_ATTR_ESALT (oldoffice34_t))
@@ -698,9 +564,9 @@ KERNEL_FQ void m09820_m16 (KERN_ATTR_ESALT (oldoffice34_t))
    * main
    */
 
-  LOCAL_VK RC4_KEY rc4_keys[64];
+  LOCAL_VK u32 S[64 * FIXED_LOCAL_SIZE];
 
-  m09820m (rc4_keys, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, pws_pos, gid_max);
+  m09820m (S, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max);
 }
 
 KERNEL_FQ void m09820_s04 (KERN_ATTR_ESALT (oldoffice34_t))
@@ -747,9 +613,9 @@ KERNEL_FQ void m09820_s04 (KERN_ATTR_ESALT (oldoffice34_t))
    * main
    */
 
-  LOCAL_VK RC4_KEY rc4_keys[64];
+  LOCAL_VK u32 S[64 * FIXED_LOCAL_SIZE];
 
-  m09820s (rc4_keys, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, pws_pos, gid_max);
+  m09820s (S, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max);
 }
 
 KERNEL_FQ void m09820_s08 (KERN_ATTR_ESALT (oldoffice34_t))
@@ -796,9 +662,9 @@ KERNEL_FQ void m09820_s08 (KERN_ATTR_ESALT (oldoffice34_t))
    * main
    */
 
-  LOCAL_VK RC4_KEY rc4_keys[64];
+  LOCAL_VK u32 S[64 * FIXED_LOCAL_SIZE];
 
-  m09820s (rc4_keys, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, pws_pos, gid_max);
+  m09820s (S, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max);
 }
 
 KERNEL_FQ void m09820_s16 (KERN_ATTR_ESALT (oldoffice34_t))
@@ -845,7 +711,7 @@ KERNEL_FQ void m09820_s16 (KERN_ATTR_ESALT (oldoffice34_t))
    * main
    */
 
-  LOCAL_VK RC4_KEY rc4_keys[64];
+  LOCAL_VK u32 S[64 * FIXED_LOCAL_SIZE];
 
-  m09820s (rc4_keys, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, pws_pos, gid_max);
+  m09820s (S, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max);
 }
