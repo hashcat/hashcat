@@ -68,7 +68,12 @@ void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
     event_log_info (hashcat_ctx, "%s (%s) starting in progress-only mode...", PROGNAME, version_tag);
     event_log_info (hashcat_ctx, NULL);
   }
-  else if (user_options->hash_mode == 0 && user_options->hash_mode_chgd == false)
+  else if (user_options->backend_info == true)
+  {
+    event_log_info (hashcat_ctx, "%s (%s) starting in backend information mode...", PROGNAME, version_tag);
+    event_log_info (hashcat_ctx, NULL);
+  }
+  else if (user_options->hash_mode_chgd == false)
   {
     event_log_info (hashcat_ctx, "%s (%s) starting in autodetect mode...", PROGNAME, version_tag);
     event_log_info (hashcat_ctx, NULL);
