@@ -629,6 +629,7 @@ typedef enum user_options_defaults
   KEYSPACE                 = false,
   LEFT                     = false,
   LIMIT                    = 0,
+  LEN_LIMIT_IGNORE         = false,
   LOGFILE_DISABLE          = false,
   LOOPBACK                 = false,
   MACHINE_READABLE         = false,
@@ -737,6 +738,7 @@ typedef enum user_options_map
   IDX_KEYSPACE                  = 0xff22,
   IDX_LEFT                      = 0xff23,
   IDX_LIMIT                     = 'l',
+  IDX_LEN_LIMIT_IGNORE          = 0xfe00,
   IDX_LOGFILE_DISABLE           = 0xff24,
   IDX_LOOPBACK                  = 0xff25,
   IDX_MACHINE_READABLE          = 0xff26,
@@ -1986,6 +1988,7 @@ typedef struct user_options
   bool         keep_guessing;
   bool         keyspace;
   bool         left;
+  bool         len_limit_ignore;
   bool         logfile_disable;
   bool         loopback;
   bool         machine_readable;

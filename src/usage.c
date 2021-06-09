@@ -43,6 +43,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "     --keep-guessing            |      | Keep guessing the hash after it has been cracked     |",
   "     --self-test-disable        |      | Disable self-test functionality on startup           |",
   "     --loopback                 |      | Add new plains to induct directory                   |",
+  "     --len-limit-ignore         |      | Ignore the password length limit in hash module      |",
   "     --markov-hcstat2           | File | Specify hcstat2 file to use                          | --markov-hcstat2=my.hcstat2",
   "     --markov-disable           |      | Disables markov-chains, emulates classic brute-force |",
   "     --markov-classic           |      | Enables classic markov-chains, no per-position       |",

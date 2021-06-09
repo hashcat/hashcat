@@ -63,6 +63,7 @@ static const struct option long_options[] =
   {"hex-salt",                  no_argument,       NULL, IDX_HEX_SALT},
   {"hex-wordlist",              no_argument,       NULL, IDX_HEX_WORDLIST},
   {"hook-threads",              required_argument, NULL, IDX_HOOK_THREADS},
+  {"len-limit-ignore",          no_argument,       NULL, IDX_LEN_LIMIT_IGNORE},
   {"increment-max",             required_argument, NULL, IDX_INCREMENT_MAX},
   {"increment-min",             required_argument, NULL, IDX_INCREMENT_MIN},
   {"increment",                 no_argument,       NULL, IDX_INCREMENT},
@@ -208,6 +209,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->keyspace                  = KEYSPACE;
   user_options->left                      = LEFT;
   user_options->limit                     = LIMIT;
+  user_options->len_limit_ignore          = LEN_LIMIT_IGNORE;
   user_options->logfile_disable           = LOGFILE_DISABLE;
   user_options->loopback                  = LOOPBACK;
   user_options->machine_readable          = MACHINE_READABLE;
@@ -433,6 +435,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_HEX_CHARSET:               user_options->hex_charset               = true;                            break;
       case IDX_HEX_SALT:                  user_options->hex_salt                  = true;                            break;
       case IDX_HEX_WORDLIST:              user_options->hex_wordlist              = true;                            break;
+      case IDX_LEN_LIMIT_IGNORE:          user_options->len_limit_ignore          = true;                            break;
       case IDX_CPU_AFFINITY:              user_options->cpu_affinity              = optarg;                          break;
       case IDX_BACKEND_IGNORE_CUDA:       user_options->backend_ignore_cuda       = true;                            break;
       case IDX_BACKEND_IGNORE_OPENCL:     user_options->backend_ignore_opencl     = true;                            break;
@@ -3028,6 +3031,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->hex_charset);
   logfile_top_uint   (user_options->hex_salt);
   logfile_top_uint   (user_options->hex_wordlist);
+  logfile_top_uint   (user_options->len_limit_ignore);
   logfile_top_uint   (user_options->hook_threads);
   logfile_top_uint   (user_options->increment);
   logfile_top_uint   (user_options->increment_max);
