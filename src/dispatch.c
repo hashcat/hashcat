@@ -1415,7 +1415,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
             }
 
             if (attack_kern == ATTACK_KERN_STRAIGHT)
-            {        
+            {
               if (((line_len < hashconfig->pw_min) && (user_options->len_limit_ignore == false)) || ((line_len > hashconfig->pw_max) && (user_options->len_limit_ignore == false)))
               {
                 words_extra++;

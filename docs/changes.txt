@@ -51,6 +51,8 @@
 - RC4 Kernels: Improved performance by 20%+ for hash-modes Kerberos 5 (etype 23), MS Office (<= 2003) and PDF (<= 1.6) by using new RC4 code
 - Status Screen: Show currently running kernel type (pure, optimized) and generator type (host, device)
 - UTF8-to-UTF16: Replaced naive UTF8 to UTF16 conversion with true conversion for RAR3, AES Crypt, MultiBit HD (scrypt) and Umbraco HMAC-SHA1
+- Use --len-limit-ignore option to solve the length missmatch problem in -a 0 mode.
+
 
 ##
 ## Technical
