@@ -63,6 +63,7 @@
 - Kernels: Add standalone true UTF8 to UTF16 converter kernel that runs after amplifier. Use OPTS_TYPE_POST_AMP_UTF16LE from plugin
 - Modules: Recategorized HASH_CATEGORY option in various modules
 - Modules: Added hash categories HASH_CATEGORY_IMS and HASH_CATEGORY_CRYPTOCURRENCY_WALLET
+- Modules: Changed hash category of Python passlib from HASH_CATEGORY_GENERIC_KDF to HASH_CATEGORY_FRAMEWORK
 
 * changes v6.2.0 -> v6.2.1
 

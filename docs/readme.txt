@@ -146,9 +146,6 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - PBKDF2-HMAC-SHA1
 - PBKDF2-HMAC-SHA256
 - PBKDF2-HMAC-SHA512
-- Python passlib pbkdf2-sha512
-- Python passlib pbkdf2-sha256
-- Python passlib pbkdf2-sha1
 - scrypt
 - phpass
 - TACACS+
@@ -356,6 +353,9 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Django (SHA-1)
 - Atlassian (PBKDF2-HMAC-SHA1)
 - Ruby on Rails Restful-Authentication
+- Python passlib pbkdf2-sha512
+- Python passlib pbkdf2-sha256
+- Python passlib pbkdf2-sha1
 - PKCS#8 Private Keys (PBKDF2-HMAC-SHA1 + 3DES/AES)
 - PKCS#8 Private Keys (PBKDF2-HMAC-SHA256 + 3DES/AES)
 - JKS Java Key Store Private Keys (SHA1)
