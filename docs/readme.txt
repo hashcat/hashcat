@@ -202,6 +202,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Domain Cached Credentials (DCC), MS Cache
 - Domain Cached Credentials 2 (DCC2), MS Cache 2
 - FortiGate (FortiOS)
+- FortiGate256 (FortiOS256)
 - ArubaOS
 - Juniper IVE
 - Juniper NetScreen/SSG (ScreenOS)
