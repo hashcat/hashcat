@@ -16,9 +16,7 @@
 
 static int get_adapters_num_adl (hashcat_ctx_t *hashcat_ctx, int *iNumberAdapters)
 {
-  const int hm_rc = hm_ADL_Adapter_NumberOfAdapters_Get (hashcat_ctx, iNumberAdapters);
-
-  if (hm_rc == -1) return -1;
+  if (hm_ADL_Adapter_NumberOfAdapters_Get (hashcat_ctx, iNumberAdapters) == -1) return -1;
 
   if (iNumberAdapters == NULL)
   {
@@ -1074,9 +1072,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
           {
             nvmlPciInfo_t pci;
 
-            int rc = hm_NVML_nvmlDeviceGetPciInfo (hashcat_ctx, nvmlGPUHandle[i], &pci);
-
-            if (rc == -1) continue;
+            if (hm_NVML_nvmlDeviceGetPciInfo (hashcat_ctx, nvmlGPUHandle[i], &pci) == -1) continue;
 
             if ((device_param->pcie_bus      == pci.bus)
              && (device_param->pcie_device   == (pci.device >> 3))
@@ -1108,9 +1104,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
           {
             nvmlPciInfo_t pci;
 
-            int rc = hm_NVML_nvmlDeviceGetPciInfo (hashcat_ctx, nvmlGPUHandle[i], &pci);
-
-            if (rc == -1) continue;
+            if (hm_NVML_nvmlDeviceGetPciInfo (hashcat_ctx, nvmlGPUHandle[i], &pci) == -1) continue;
 
             if ((device_param->pcie_bus      == pci.bus)
              && (device_param->pcie_device   == (pci.device >> 3))
@@ -1158,13 +1152,9 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
             NvU32 BusId     = 0;
             NvU32 BusSlotId = 0;
 
-            int rc1 = hm_NvAPI_GPU_GetBusId (hashcat_ctx, nvGPUHandle[i], &BusId);
+            if (hm_NvAPI_GPU_GetBusId (hashcat_ctx, nvGPUHandle[i], &BusId) == -1) continue;
 
-            if (rc1 == -1) continue;
-
-            int rc2 = hm_NvAPI_GPU_GetBusSlotId (hashcat_ctx, nvGPUHandle[i], &BusSlotId);
-
-            if (rc2 == -1) continue;
+            if (hm_NvAPI_GPU_GetBusSlotId (hashcat_ctx, nvGPUHandle[i], &BusSlotId) == -1) continue;
 
             if ((device_param->pcie_bus      == BusId)
              && (device_param->pcie_device   == (BusSlotId >> 3))
@@ -1191,13 +1181,9 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
             NvU32 BusId     = 0;
             NvU32 BusSlotId = 0;
 
-            int rc1 = hm_NvAPI_GPU_GetBusId (hashcat_ctx, nvGPUHandle[i], &BusId);
+            if (hm_NvAPI_GPU_GetBusId (hashcat_ctx, nvGPUHandle[i], &BusId) == -1) continue;
 
-            if (rc1 == -1) continue;
-
-            int rc2 = hm_NvAPI_GPU_GetBusSlotId (hashcat_ctx, nvGPUHandle[i], &BusSlotId);
-
-            if (rc2 == -1) continue;
+            if (hm_NvAPI_GPU_GetBusSlotId (hashcat_ctx, nvGPUHandle[i], &BusSlotId) == -1) continue;
 
             if ((device_param->pcie_bus      == BusId)
              && (device_param->pcie_device   == (BusSlotId >> 3))
@@ -1237,9 +1223,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       LPAdapterInfo lpAdapterInfo = (LPAdapterInfo) hccalloc (tmp_in, sizeof (AdapterInfo));
 
-      const int rc_adapter_info_adl = hm_ADL_Adapter_AdapterInfo_Get (hashcat_ctx, lpAdapterInfo, tmp_in * sizeof (AdapterInfo));
-
-      if (rc_adapter_info_adl == -1)
+      if (hm_ADL_Adapter_AdapterInfo_Get (hashcat_ctx, lpAdapterInfo, tmp_in * sizeof (AdapterInfo)) == -1)
       {
         FREE_ADAPTERS;
 
