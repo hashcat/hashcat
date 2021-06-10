@@ -97,6 +97,7 @@ static const char *HASH_CATEGORY_OS_STR                     = "Operating System"
 static const char *HASH_CATEGORY_EAS_STR                    = "Enterprise Application Software (EAS)";
 static const char *HASH_CATEGORY_ARCHIVE_STR                = "Archives";
 static const char *HASH_CATEGORY_FDE_STR                    = "Full-Disk Encryption (FDE)";
+static const char *HASH_CATEGORY_FBE_STR                    = "File-Based Encryption (FBE)";
 static const char *HASH_CATEGORY_DOCUMENTS_STR              = "Documents";
 static const char *HASH_CATEGORY_PASSWORD_MANAGER_STR       = "Password Managers";
 static const char *HASH_CATEGORY_OTP_STR                    = "One-Time Passwords";
@@ -952,6 +953,7 @@ const char *strhashcategory (const u32 hash_category)
     case HASH_CATEGORY_EAS:                     return HASH_CATEGORY_EAS_STR;
     case HASH_CATEGORY_ARCHIVE:                 return HASH_CATEGORY_ARCHIVE_STR;
     case HASH_CATEGORY_FDE:                     return HASH_CATEGORY_FDE_STR;
+    case HASH_CATEGORY_FBE:                     return HASH_CATEGORY_FBE_STR;
     case HASH_CATEGORY_DOCUMENTS:               return HASH_CATEGORY_DOCUMENTS_STR;
     case HASH_CATEGORY_PASSWORD_MANAGER:        return HASH_CATEGORY_PASSWORD_MANAGER_STR;
     case HASH_CATEGORY_OTP:                     return HASH_CATEGORY_OTP_STR;
