@@ -3017,6 +3017,28 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
   }
   else
   {
+    // innerloop prediction to get a speed estimation is hard, because we don't know in advance how much
+    // time the different kernels take and if their weightnings are equally distributed.
+    // - for instance, a regular _loop kernel is likely to be the slowest, but _loop2 kernel can also be slow.
+    //   in fact, _loop2 can be even slower (see iTunes backup >= 10.0).
+    // - hooks can have a large influence depending on the OS.
+    //   spawning threads and memory allocations take a lot of time on windows (compared to linux).
+    // - the kernel execution can take shortcuts based on intermediate values
+    //   while these intermediate valus depend on input values.
+    // - if we meassure runtimes of different kernels to find out about their weightning
+    //   we need to call them with real input values otherwise we miss the shortcuts inside the kernel.
+    // - the problem is that these real input values could crack the hash which makes the chaos perfect.
+    //
+    // so the innerloop prediction is not perfectly accurate, because we:
+    //
+    // 1. completely ignore hooks and the time they take.
+    // 2. assume that the code in _loop and _loop2 is similar,
+    //    but we respect the different iteration counts in _loop and _loop2.
+    // 3. ignore _comp kernel runtimes (probably irrelevant).
+    //
+    // as soon as the first restore checkpoint is reached the prediction is accurate.
+    // also the closer it gets to that point.
+
     if (true)
     {
       if (device_param->is_cuda == true)
@@ -3160,7 +3182,10 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
              * speed
              */
 
-            const float iter_part = (float) (loop_pos + loop_left) / iter;
+            const u32 iter1r = hashes->salts_buf[salt_pos].salt_iter  * (salt_repeats + 1);
+            const u32 iter2r = hashes->salts_buf[salt_pos].salt_iter2 * (salt_repeats + 1);
+
+            const double iter_part = (double) ((iter * salt_repeat) + loop_pos + loop_left) / (double) (iter1r + iter2r);
 
             const u64 perf_sum_all = (u64) (pws_cnt * iter_part);
 
@@ -3176,7 +3201,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
             {
               if (speed_msec > 4000)
               {
-                device_param->outerloop_multi *= (double) iter / (double) (loop_pos + loop_left);
+                device_param->outerloop_multi *= 1 / iter_part;
 
                 device_param->speed_pos = 1;
 
@@ -3295,6 +3320,25 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
             //bug?
             //while (status_ctx->run_thread_level2 == false) break;
             if (status_ctx->run_thread_level2 == false) break;
+
+            /**
+             * speed
+             */
+
+            const u32 iter1r = hashes->salts_buf[salt_pos].salt_iter  * (salt_repeats + 1);
+            const u32 iter2r = hashes->salts_buf[salt_pos].salt_iter2 * (salt_repeats + 1);
+
+            const double iter_part = (double) (iter1r + (iter * salt_repeat) + loop_pos + loop_left) / (double) (iter1r + iter2r);
+
+            const u64 perf_sum_all = (u64) (pws_cnt * iter_part);
+
+            double speed_msec = hc_timer_get (device_param->timer_speed);
+
+            const u32 speed_pos = device_param->speed_pos;
+
+            device_param->speed_cnt[speed_pos] = perf_sum_all;
+
+            device_param->speed_msec[speed_pos] = speed_msec;
           }
         }
       }

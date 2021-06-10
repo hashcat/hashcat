@@ -59,6 +59,7 @@
 - Dependencies: Updated LZMA SDK from 19.00 to 21.02 alpha
 - Dependencies: Updated xxHash from 0.1.0 to v0.8.0 - Stable XXH3
 - Documentation: Update missing documentation in plugin developer guide for OPTS_TYPE_MP_MULTI_DISABLE and OPTS_TYPE_NATIVE_THREADS
+- Hashrate: Innerloop hashrate prediction requires update because of the new salt_repeats feature and also respect _loop2 kernel runtime
 - Kernels: Add RC4 cipher to crypto library with optimized shared memory access pattern which will not cause any bank conflicts if -u <= 32
 - Kernels: Add standalone true UTF8 to UTF16 converter kernel that runs after amplifier. Use OPTS_TYPE_POST_AMP_UTF16LE from plugin
 - Modules: Recategorized HASH_CATEGORY option in various modules
