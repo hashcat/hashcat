@@ -597,6 +597,7 @@ typedef enum user_options_defaults
   ADVICE_DISABLE           = false,
   ATTACK_MODE              = ATTACK_MODE_STRAIGHT,
   AUTODETECT               = false,
+  AUTODETECT_ONLY          = false,
   BENCHMARK_ALL            = false,
   BENCHMARK                = false,
   BITMAP_MAX               = 18,
@@ -685,6 +686,7 @@ typedef enum user_options_map
 {
   IDX_ADVICE_DISABLE            = 0xff00,
   IDX_ATTACK_MODE               = 'a',
+  IDX_AUTODETECT_ONLY           = 0xff4d,
   IDX_BACKEND_DEVICES           = 'd',
   IDX_BACKEND_IGNORE_CUDA       = 0xff01,
   IDX_BACKEND_IGNORE_OPENCL     = 0xff02,
@@ -1943,6 +1945,7 @@ typedef struct user_options
 
   bool         attack_mode_chgd;
   bool         autodetect;
+  bool         autodetect_only;
   #ifdef WITH_BRAIN
   bool         brain_host_chgd;
   bool         brain_port_chgd;
