@@ -22,12 +22,10 @@ static const char *HASH_NAME      = "Stargazer Stellar Wallet XLM";
 static const u64   KERN_TYPE      = 25500;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_ST_BASE64
-                                  | OPTS_TYPE_HASH_COPY;
+static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
-static const char *ST_PASS        = "lacoin";
-static const char *ST_HASH        = "$stellar$ZCtl/+vWiLL358Jz+xnP5A==$GgmFU37DSX4evSMU$CoMGXWHqDmLwxRAgORqjK/MyFEMAkMbqvDEDMjn4veVwpHab9m6Egcwp70qEJsRhjkHjCMWj9zX40tu9UK5QACuB8gD1r9Cu";
+static const char *ST_PASS        = "hashcat";
+static const char *ST_HASH        = "$stellar$YAlIJziURRcBEWUwRSRDWA==$EutMmmcV5Hbf3p1I$rfSAF349RvGKG4R4Z2VCrH9WjNEKjbJa9hpOja9Yn8MwXruuFEMtw47HPn9CYj+JJ5Rb4Z87Wejj1c4fqpbMZHFOnqtQsVAr";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }

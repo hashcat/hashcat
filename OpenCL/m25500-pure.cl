@@ -403,3 +403,185 @@ KERNEL_FQ void m25500_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
   #include COMPARE_M
   #endif
 }
+
+/*
+Optimized GCM: No real speed benefit. For documentation purpose
+
+KERNEL_FQ void m25500_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sha256_aes_gcm_t))
+{
+  const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
+
+  #ifdef REAL_SHM
+
+  LOCAL_VK u32 s_te0[256];
+  LOCAL_VK u32 s_te1[256];
+  LOCAL_VK u32 s_te2[256];
+  LOCAL_VK u32 s_te3[256];
+  LOCAL_VK u32 s_te4[256];
+
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    s_te0[i] = te0[i];
+    s_te1[i] = te1[i];
+    s_te2[i] = te2[i];
+    s_te3[i] = te3[i];
+    s_te4[i] = te4[i];
+  }
+
+  SYNC_THREADS ();
+
+  #else
+
+  CONSTANT_AS u32a *s_te0 = te0;
+  CONSTANT_AS u32a *s_te1 = te1;
+  CONSTANT_AS u32a *s_te2 = te2;
+  CONSTANT_AS u32a *s_te3 = te3;
+  CONSTANT_AS u32a *s_te4 = te4;
+
+  #endif
+
+  if (gid >= gid_max) return;
+
+  // keys
+
+  u32 ukey[8];
+
+  ukey[0] = tmps[gid].out[0];
+  ukey[1] = tmps[gid].out[1];
+  ukey[2] = tmps[gid].out[2];
+  ukey[3] = tmps[gid].out[3];
+  ukey[4] = tmps[gid].out[4];
+  ukey[5] = tmps[gid].out[5];
+  ukey[6] = tmps[gid].out[6];
+  ukey[7] = tmps[gid].out[7];
+
+  u32 key[60] = { 0 };
+
+  u32 subKey[4] = { 0 };
+
+  AES256_set_encrypt_key (key, ukey, s_te0, s_te1, s_te2, s_te3);
+
+  AES256_encrypt (key, subKey, subKey, s_te0, s_te1, s_te2, s_te3, s_te4);
+
+  // iv
+
+  const u32 iv[4] = {
+    esalt_bufs[DIGESTS_OFFSET].iv_buf[0],
+    esalt_bufs[DIGESTS_OFFSET].iv_buf[1],
+    esalt_bufs[DIGESTS_OFFSET].iv_buf[2],
+    esalt_bufs[DIGESTS_OFFSET].iv_buf[3]
+  };
+
+  u32 J0[4] = {
+    iv[0],
+    iv[1],
+    iv[2],
+    0x00000001
+  };
+
+  // ct
+
+  u32 enc[14] = { 0 };
+
+  enc[ 0] = esalt_bufs[DIGESTS_OFFSET].ct_buf[ 0];
+  enc[ 1] = esalt_bufs[DIGESTS_OFFSET].ct_buf[ 1];
+  enc[ 2] = esalt_bufs[DIGESTS_OFFSET].ct_buf[ 2];
+  enc[ 3] = esalt_bufs[DIGESTS_OFFSET].ct_buf[ 3];
+  enc[ 4] = esalt_bufs[DIGESTS_OFFSET].ct_buf[ 4];
+  enc[ 5] = esalt_bufs[DIGESTS_OFFSET].ct_buf[ 5];
+  enc[ 6] = esalt_bufs[DIGESTS_OFFSET].ct_buf[ 6];
+  enc[ 7] = esalt_bufs[DIGESTS_OFFSET].ct_buf[ 7];
+  enc[ 8] = esalt_bufs[DIGESTS_OFFSET].ct_buf[ 8];
+  enc[ 9] = esalt_bufs[DIGESTS_OFFSET].ct_buf[ 9];
+  enc[10] = esalt_bufs[DIGESTS_OFFSET].ct_buf[10];
+  enc[11] = esalt_bufs[DIGESTS_OFFSET].ct_buf[11];
+  enc[12] = esalt_bufs[DIGESTS_OFFSET].ct_buf[12];
+  enc[13] = esalt_bufs[DIGESTS_OFFSET].ct_buf[13];
+
+  u32 enc_len = esalt_bufs[DIGESTS_OFFSET].ct_len;
+
+  u32 S[4] = { 0 };
+
+  u32 t[4] = { 0 };
+
+  S[0] ^= enc[0];
+  S[1] ^= enc[1];
+  S[2] ^= enc[2];
+  S[3] ^= enc[3];
+
+  AES_GCM_gf_mult (S, subKey, t);
+
+  S[0] = t[0] ^ enc[4];
+  S[1] = t[1] ^ enc[5];
+  S[2] = t[2] ^ enc[6];
+  S[3] = t[3] ^ enc[7];
+
+  AES_GCM_gf_mult (S, subKey, t);
+
+  S[0] = t[0] ^ enc[8];
+  S[1] = t[1] ^ enc[9];
+  S[2] = t[2] ^ enc[10];
+  S[3] = t[3] ^ enc[11];
+
+  AES_GCM_gf_mult (S, subKey, t);
+
+  S[0] = t[0];
+  S[1] = t[1];
+  S[2] = t[2];
+  S[3] = t[3];
+
+  t[0] = enc[12];
+  t[1] = enc[13];
+  t[2] = 0;
+  t[3] = 0;
+
+  S[0] ^= t[0];
+  S[1] ^= t[1];
+  S[2] ^= t[2];
+  S[3] ^= t[3];
+
+  AES_GCM_gf_mult (S, subKey, t);
+
+  S[0] = t[0];
+  S[1] = t[1];
+  S[2] = t[2];
+  S[3] = t[3];
+
+  u32 len_buf[4] = { 0 };
+
+  len_buf[0] = 0;
+  len_buf[3] = enc_len * 8;
+
+  S[0] ^= len_buf[0];
+  S[1] ^= len_buf[1];
+  S[2] ^= len_buf[2];
+  S[3] ^= len_buf[3];
+
+  AES_GCM_gf_mult (S, subKey, t);
+
+  S[0] = t[0];
+  S[1] = t[1];
+  S[2] = t[2];
+  S[3] = t[3];
+
+  J0[3] = 0x00000001;
+
+  u32 T[4] = { 0 };
+
+  AES256_encrypt (key, J0, T, s_te0, s_te1, s_te2, s_te3, s_te4);
+
+  const u32 r0 = T[0] ^ S[0];
+  const u32 r1 = T[1] ^ S[1];
+  const u32 r2 = T[2] ^ S[2];
+  const u32 r3 = T[3] ^ S[3];
+
+  #define il_pos 0
+
+  #ifdef KERNEL_STATIC
+  #include COMPARE_M
+  #endif
+}
+
+*/
