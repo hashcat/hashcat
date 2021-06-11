@@ -1480,7 +1480,7 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
       event_log_info (hashcat_ctx, NULL);
 
-      if (user_options->autodetect_only == false)
+      if (user_options->identify == false)
       {
         event_log_error (hashcat_ctx, "Please specify the hash-mode with -m [hash-mode].");
 
@@ -1504,7 +1504,7 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
     hcfree (usage_sort_buf[0].hash_name);
     hcfree (usage_sort_buf);
 
-    if (user_options->autodetect_only == true) return 0;
+    if (user_options->identify == true) return 0;
 
     user_options->autodetect = false;
   }

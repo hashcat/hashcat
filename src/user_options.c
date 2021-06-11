@@ -63,7 +63,7 @@ static const struct option long_options[] =
   {"hex-salt",                  no_argument,       NULL, IDX_HEX_SALT},
   {"hex-wordlist",              no_argument,       NULL, IDX_HEX_WORDLIST},
   {"hook-threads",              required_argument, NULL, IDX_HOOK_THREADS},
-  {"identify",                  no_argument,       NULL, IDX_AUTODETECT_ONLY},
+  {"identify",                  no_argument,       NULL, IDX_IDENTIFY},
   {"increment-max",             required_argument, NULL, IDX_INCREMENT_MAX},
   {"increment-min",             required_argument, NULL, IDX_INCREMENT_MIN},
   {"increment",                 no_argument,       NULL, IDX_INCREMENT},
@@ -159,7 +159,6 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->advice_disable            = ADVICE_DISABLE;
   user_options->attack_mode               = ATTACK_MODE;
   user_options->autodetect                = AUTODETECT;
-  user_options->autodetect_only           = AUTODETECT_ONLY;
   user_options->backend_devices           = NULL;
   user_options->backend_ignore_cuda       = BACKEND_IGNORE_CUDA;
   user_options->backend_ignore_opencl     = BACKEND_IGNORE_OPENCL;
@@ -198,6 +197,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->hex_salt                  = HEX_SALT;
   user_options->hex_wordlist              = HEX_WORDLIST;
   user_options->hook_threads              = HOOK_THREADS;
+  user_options->identify                  = IDENTIFY;
   user_options->increment                 = INCREMENT;
   user_options->increment_max             = INCREMENT_MAX;
   user_options->increment_min             = INCREMENT_MIN;
@@ -398,7 +398,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_STDOUT_FLAG:               user_options->stdout_flag               = true;                            break;
       case IDX_STDIN_TIMEOUT_ABORT:       user_options->stdin_timeout_abort       = hc_strtoul (optarg, NULL, 10);
                                           user_options->stdin_timeout_abort_chgd  = true;                            break;
-      case IDX_AUTODETECT_ONLY:           user_options->autodetect_only           = true;                            break;
+      case IDX_IDENTIFY:                  user_options->identify                  = true;                            break;
       case IDX_SPEED_ONLY:                user_options->speed_only                = true;                            break;
       case IDX_PROGRESS_ONLY:             user_options->progress_only             = true;                            break;
       case IDX_RESTORE_DISABLE:           user_options->restore_disable           = true;                            break;
