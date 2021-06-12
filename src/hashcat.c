@@ -1464,42 +1464,86 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
     if (modes_cnt > 1)
     {
-      event_log_info (hashcat_ctx, "The following %d hash-modes match the structure of your input hash:", modes_cnt);
-      event_log_info (hashcat_ctx, NULL);
-      event_log_info (hashcat_ctx, "      # | Name                                                | Category");
-      event_log_info (hashcat_ctx, "  ======+=====================================================+======================================");
+      if (user_options->quiet == false)
+      {
+        event_log_info (hashcat_ctx, "The following %d hash-modes match the structure of your input hash:", modes_cnt);
+        event_log_info (hashcat_ctx, NULL);
+        event_log_info (hashcat_ctx, "      # | Name                                                | Category");
+        event_log_info (hashcat_ctx, "  ======+=====================================================+======================================");
+      }
 
       for (int i = 0; i < modes_cnt; i++)
       {
-        event_log_info (hashcat_ctx, "%7u | %-51s | %s", usage_sort_buf[i].hash_mode, usage_sort_buf[i].hash_name, strhashcategory (usage_sort_buf[i].hash_category));
+        if (user_options->quiet == false)
+        {
+          event_log_info (hashcat_ctx, "%7u | %-51s | %s", usage_sort_buf[i].hash_mode, usage_sort_buf[i].hash_name, strhashcategory (usage_sort_buf[i].hash_category));
+        }
+        else
+        {
+          event_log_info (hashcat_ctx, "%u", usage_sort_buf[i].hash_mode);
+        }
 
         hcfree (usage_sort_buf[i].hash_name);
       }
 
-      event_log_info (hashcat_ctx, NULL);
-
-      event_log_error (hashcat_ctx, "Please specify the hash-mode with -m [hash-mode].");
-
       hcfree (usage_sort_buf);
 
-      return -1;
+      if (user_options->quiet == false) event_log_info (hashcat_ctx, NULL);
+
+      if (user_options->identify == false)
+      {
+        event_log_error (hashcat_ctx, "Please specify the hash-mode with -m [hash-mode].");
+
+        return -1;
+      }
+
+      return 0;
     }
 
     // modes_cnt == 1
 
-    event_log_warning (hashcat_ctx, "Hash-mode was not specified with -m. Attempting to auto-detect hash mode.");
-    event_log_warning (hashcat_ctx, "The following mode was auto-detected as the only one matching your input hash:");
-    event_log_warning (hashcat_ctx, "\n%u | %s | %s\n", usage_sort_buf[0].hash_mode, usage_sort_buf[0].hash_name, strhashcategory (usage_sort_buf[0].hash_category));
-    event_log_warning (hashcat_ctx, "NOTE: Auto-detect is best effort. The correct hash-mode is NOT guaranteed!");
-    event_log_warning (hashcat_ctx, "Do NOT report auto-detect issues unless you are certain of the hash type.");
-    event_log_warning (hashcat_ctx, NULL);
+    if (user_options->identify == false)
+    {
+      event_log_warning (hashcat_ctx, "Hash-mode was not specified with -m. Attempting to auto-detect hash mode.");
+      event_log_warning (hashcat_ctx, "The following mode was auto-detected as the only one matching your input hash:");
+    }
 
-    user_options->autodetect = false;
+    if (user_options->identify == true)
+    {
+      if (user_options->quiet == true)
+      {
+        event_log_info (hashcat_ctx, "%u", usage_sort_buf[0].hash_mode);
+      }
+      else
+      {
+        event_log_info (hashcat_ctx, "The following hash-mode match the structure of your input hash:");
+        event_log_info (hashcat_ctx, NULL);
+        event_log_info (hashcat_ctx, "      # | Name                                                | Category");
+        event_log_info (hashcat_ctx, "  ======+=====================================================+======================================");
+        event_log_info (hashcat_ctx, "%7u | %-51s | %s", usage_sort_buf[0].hash_mode, usage_sort_buf[0].hash_name, strhashcategory (usage_sort_buf[0].hash_category));
+        event_log_info (hashcat_ctx, NULL);
+      }
+    }
+    else
+    {
+      event_log_info (hashcat_ctx, "\n%u | %s | %s\n", usage_sort_buf[0].hash_mode, usage_sort_buf[0].hash_name, strhashcategory (usage_sort_buf[0].hash_category));
+    }
+
+    if (user_options->identify == false)
+    {
+      event_log_warning (hashcat_ctx, "NOTE: Auto-detect is best effort. The correct hash-mode is NOT guaranteed!");
+      event_log_warning (hashcat_ctx, "Do NOT report auto-detect issues unless you are certain of the hash type.");
+      event_log_warning (hashcat_ctx, NULL);
+    }
 
     user_options->hash_mode = usage_sort_buf[0].hash_mode;
 
     hcfree (usage_sort_buf[0].hash_name);
     hcfree (usage_sort_buf);
+
+    if (user_options->identify == true) return 0;
+
+    user_options->autodetect = false;
   }
 
   /**
