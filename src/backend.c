@@ -8676,28 +8676,10 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     #endif
 
     /**
-     * device_name_chksum
+     * device_name_chksum_amp_mp
      */
 
-    char *device_name_chksum        = (char *) hcmalloc (HCBUFSIZ_TINY);
     char *device_name_chksum_amp_mp = (char *) hcmalloc (HCBUFSIZ_TINY);
-
-    // The kernel source can depend on some JiT compiler macros which themself depend on the attack_modes.
-    // ATM this is relevant only for ATTACK_MODE_ASSOCIATION which slightly modifies ATTACK_MODE_STRAIGHT kernels.
-
-    const u32 extra_value = (user_options->attack_mode == ATTACK_MODE_ASSOCIATION) ? ATTACK_MODE_ASSOCIATION : ATTACK_MODE_NONE;
-
-    const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY, "%d-%d-%d-%u-%s-%s-%s-%d-%u-%u",
-      backend_ctx->comptime,
-      backend_ctx->cuda_driver_version,
-      device_param->is_opencl,
-      device_param->opencl_platform_vendor_id,
-      device_param->device_name,
-      device_param->opencl_device_version,
-      device_param->opencl_driver_version,
-      device_param->vector_width,
-      hashconfig->kern_type,
-      extra_value);
 
     const size_t dnclen_amp_mp = snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%d-%d-%d-%u-%s-%s-%s",
       backend_ctx->comptime,
@@ -8709,12 +8691,6 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       device_param->opencl_driver_version);
 
     md5_ctx_t md5_ctx;
-
-    md5_init   (&md5_ctx);
-    md5_update (&md5_ctx, (u32 *) device_name_chksum, dnclen);
-    md5_final  (&md5_ctx);
-
-    snprintf (device_name_chksum, HCBUFSIZ_TINY, "%08x", md5_ctx.h[0]);
 
     md5_init   (&md5_ctx);
     md5_update (&md5_ctx, (u32 *) device_name_chksum_amp_mp, dnclen_amp_mp);
@@ -8935,6 +8911,38 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       #endif
 
       /**
+       * device_name_chksum
+       */
+
+      char *device_name_chksum = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+      // The kernel source can depend on some JiT compiler macros which themself depend on the attack_modes.
+      // ATM this is relevant only for ATTACK_MODE_ASSOCIATION which slightly modifies ATTACK_MODE_STRAIGHT kernels.
+
+      const u32 extra_value = (user_options->attack_mode == ATTACK_MODE_ASSOCIATION) ? ATTACK_MODE_ASSOCIATION : ATTACK_MODE_NONE;
+
+      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY, "%d-%d-%d-%u-%s-%s-%s-%d-%u-%u-%s",
+        backend_ctx->comptime,
+        backend_ctx->cuda_driver_version,
+        device_param->is_opencl,
+        device_param->opencl_platform_vendor_id,
+        device_param->device_name,
+        device_param->opencl_device_version,
+        device_param->opencl_driver_version,
+        device_param->vector_width,
+        hashconfig->kern_type,
+        extra_value,
+        build_options_module_buf);
+
+      md5_ctx_t md5_ctx;
+
+      md5_init   (&md5_ctx);
+      md5_update (&md5_ctx, (u32 *) device_name_chksum, dnclen);
+      md5_final  (&md5_ctx);
+
+      snprintf (device_name_chksum, HCBUFSIZ_TINY, "%08x", md5_ctx.h[0]);
+
+      /**
        * kernel source filename
        */
 
@@ -8971,6 +8979,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
 
       hcfree (build_options_module_buf);
+
+      hcfree (device_name_chksum);
     }
 
     /**
@@ -9082,7 +9092,6 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       if (hc_clUnloadPlatformCompiler (hashcat_ctx, platform_id) == -1) return -1;
     }
 
-    hcfree (device_name_chksum);
     hcfree (device_name_chksum_amp_mp);
 
     // some algorithm collide too fast, make that impossible

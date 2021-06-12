@@ -50,6 +50,7 @@
 - Performance Monitor: Add -S as a user suggestion to improve cracking performance in specific attack configurations
 - RAR3-p (Compressed): Fix workaround in unrar library in AES constant table generation to enable multi-threading support
 - RC4 Kernels: Improved performance by 20%+ for hash-modes Kerberos 5 (etype 23), MS Office (<= 2003) and PDF (<= 1.6) by using new RC4 code
+- Scrypt Kernels: Re-enable scrypt based kernels to use kernel cache
 - Status Screen: Show currently running kernel type (pure, optimized) and generator type (host, device)
 - UTF8-to-UTF16: Replaced naive UTF8 to UTF16 conversion with true conversion for RAR3, AES Crypt, MultiBit HD (scrypt) and Umbraco HMAC-SHA1
 
@@ -63,6 +64,7 @@
 - Hashrate: Innerloop hashrate prediction requires update because of the new salt_repeats feature and also respect _loop2 kernel runtime
 - Kernels: Add RC4 cipher to crypto library with optimized shared memory access pattern which will not cause any bank conflicts if -u <= 32
 - Kernels: Add standalone true UTF8 to UTF16 converter kernel that runs after amplifier. Use OPTS_TYPE_POST_AMP_UTF16LE from plugin
+- Kernel Cache: Add module_jit_build_options() string from modules to kernel cache checksum calculation
 - Modules: Recategorized HASH_CATEGORY option in various modules
 - Modules: Added hash categories HASH_CATEGORY_IMS and HASH_CATEGORY_CRYPTOCURRENCY_WALLET
 - Modules: Changed hash category of Python passlib from HASH_CATEGORY_GENERIC_KDF to HASH_CATEGORY_FRAMEWORK
