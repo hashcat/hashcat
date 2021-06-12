@@ -112,6 +112,7 @@
 - Added hash-mode: Umbraco HMAC-SHA1
 - Added hash-mode: sha1($salt.sha1($pass.$salt))
 - Added hash-mode: sha1(sha1($pass).$salt)
+- Added hash-mode: OpenEdge Progress Encode
 
 ##
 ## Features

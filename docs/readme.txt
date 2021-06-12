@@ -351,6 +351,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Web2py pbkdf2-sha512
 - Django (PBKDF2-SHA256)
 - Django (SHA-1)
+- OpenEdge Progress Encode
 - Atlassian (PBKDF2-HMAC-SHA1)
 - Ruby on Rails Restful-Authentication
 - Python passlib pbkdf2-sha512
