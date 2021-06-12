@@ -1,4 +1,4 @@
-* changes v6.2.1 -> v6.x.x
+* changes v6.2.1 -> v6.2.2
 
 ##
 ## Algorithms
@@ -9,6 +9,7 @@
 - Added hash-mode: FortiGate256 (FortiOS256)
 - Added hash-mode: Linux Kernel Crypto API (2.4)
 - Added hash-mode: MurmurHash
+- Added hash-mode: OpenEdge Progress Encode
 - Added hash-mode: md5(utf16le($pass))
 - Added hash-mode: sha1(utf16le($pass))
 - Added hash-mode: sha256(utf16le($pass))
@@ -112,7 +113,6 @@
 - Added hash-mode: Umbraco HMAC-SHA1
 - Added hash-mode: sha1($salt.sha1($pass.$salt))
 - Added hash-mode: sha1(sha1($pass).$salt)
-- Added hash-mode: OpenEdge Progress Encode
 
 ##
 ## Features

@@ -7,7 +7,7 @@
            |_____|     /___________/     |_____|  /_____/        /_______|
                  :                             :                         :
 
-hashcat v6.2.1
+hashcat v6.2.2
 ==============
 
 AMD GPUs on Linux require "RadeonOpenCompute (ROCm)" Software Platform (3.1 or later)
@@ -256,6 +256,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Lotus Notes/Domino 5
 - Lotus Notes/Domino 6
 - Lotus Notes/Domino 8
+- OpenEdge Progress Encode
 - Oracle Transportation Management (SHA256)
 - Huawei sha1(md5($pass).$salt)
 - AuthMe sha256
@@ -351,7 +352,6 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Web2py pbkdf2-sha512
 - Django (PBKDF2-SHA256)
 - Django (SHA-1)
-- OpenEdge Progress Encode
 - Atlassian (PBKDF2-HMAC-SHA1)
 - Ruby on Rails Restful-Authentication
 - Python passlib pbkdf2-sha512
