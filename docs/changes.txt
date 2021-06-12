@@ -46,6 +46,7 @@
 - CUDA Backend: Do not warn about missing CUDA SDK installation if --stdout is used
 - Folder Management: Add support for XDG Base Directory specification if hashcat was installed using make install
 - Hardware Monitor: Add support for GPU device utilization readings from sysfs (AMD on Linux)
+- Hardware Monitor: Add support for CPU/GPU device temperature and fanspeed using iokit (Apple)
 - OpenCL Backend: Use CL_DEVICE_BOARD_NAME_AMD instead of CL_DEVICE_NAME for device name in case OpenCL runtime supports this query
 - Performance Monitor: Add -S as a user suggestion to improve cracking performance in specific attack configurations
 - RAR3-p (Compressed): Fix workaround in unrar library in AES constant table generation to enable multi-threading support

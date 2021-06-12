@@ -5653,6 +5653,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
   bool need_nvml    = false;
   bool need_nvapi   = false;
   bool need_sysfs   = false;
+  bool need_iokit   = false;
 
   int backend_devices_idx = 0;
 
@@ -5901,10 +5902,12 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         device_param->skipped = true;
       }
 
+      #if !defined (__APPLE__)
       if ((backend_ctx->opencl_device_types_filter & CL_DEVICE_TYPE_GPU) == 0)
       {
         device_param->skipped = true;
       }
+      #endif
 
       if ((device_param->opencl_platform_vendor_id == VENDOR_ID_NV) && (device_param->opencl_device_vendor_id == VENDOR_ID_NV))
       {
@@ -6659,6 +6662,13 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         // vendor specific
 
+        #if defined (__APPLE__)
+        if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
+        {
+          if (device_param->skipped == false) need_iokit = true;
+        }
+        #endif
+
         if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
         {
           if ((device_param->opencl_platform_vendor_id == VENDOR_ID_AMD) && (device_param->opencl_device_vendor_id == VENDOR_ID_AMD))
@@ -7333,6 +7343,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
   backend_ctx->need_nvml    = need_nvml;
   backend_ctx->need_nvapi   = need_nvapi;
   backend_ctx->need_sysfs   = need_sysfs;
+  backend_ctx->need_iokit   = need_iokit;
 
   backend_ctx->comptime     = comptime;
 
