@@ -6,7 +6,7 @@
 #ifndef _EXT_IOKIT_H
 #define _EXT_IOKIT_H
 
-#ifdef __APPLE__
+#if defined(__APPLE__)
 #include <IOKit/IOKitLib.h>
 
 // Apple SMC Keys
@@ -109,6 +109,7 @@ typedef struct hm_iokit_lib
 
 typedef hm_iokit_lib_t IOKIT_PTR;
 
+#if defined(__APPLE__)
 UInt32 hm_IOKIT_strtoul (char *str, int size, int base);
 void hm_IOKIT_ultostr (char *str, UInt32 val);
 kern_return_t hm_IOKIT_SMCOpen (void *hashcat_ctx, io_connect_t *conn);
@@ -121,5 +122,6 @@ bool hm_IOKIT_SMCGetFanRPM (char *key, io_connect_t conn, float *ret);
 int hm_IOKIT_get_fan_speed_current (void *hashcat_ctx, int *fan_speed);
 bool iokit_init (void *hashcat_ctx);
 bool iokit_close (void *hashcat_ctx);
+#endif // __APPLE__
 
 #endif // _EXT_IOKIT_H
