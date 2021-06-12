@@ -26,7 +26,8 @@
 ## Features
 ##
 
-- Autodetect hash-type: performs an automatic analysis of the input hash(es), associating compatible algorithms, or executing the attack if only one compatible format is found.
+- Autodetect hash-type: performs an automatic analysis of the input hash(es), associating compatible algorithms, or executing the attack if only one compatible format is found
+- Autodetect hash-type: Added option --identify to limit hashcat to perform only autodetection of hash-type and to skip the backend device initialization
 
 ##
 ## Bugs

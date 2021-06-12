@@ -30,6 +30,7 @@ void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
   if (user_options->stdout_flag == true) return;
   if (user_options->show        == true) return;
   if (user_options->left        == true) return;
+  if (user_options->identify    == true) return;
 
   if (user_options->benchmark == true)
   {
@@ -101,6 +102,7 @@ void goodbye_screen (hashcat_ctx_t *hashcat_ctx, const time_t proc_start, const 
   if (user_options->stdout_flag == true) return;
   if (user_options->show        == true) return;
   if (user_options->left        == true) return;
+  if (user_options->identify    == true) return;
 
   char start_buf[32]; memset (start_buf, 0, sizeof (start_buf));
   char stop_buf[32];  memset (start_buf, 0, sizeof (stop_buf));

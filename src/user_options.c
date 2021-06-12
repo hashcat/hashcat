@@ -1085,6 +1085,16 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
+  if (user_options->identify == true)
+  {
+    if (user_options->hash_mode_chgd == true)
+    {
+      event_log_error (hashcat_ctx, "Can't change --hash-type (-m) in identify mode.");
+
+      return -1;
+    }
+  }
+
   if (user_options->benchmark == true)
   {
     // sanity checks based on automatically overwritten configuration variables by
@@ -1639,6 +1649,11 @@ void user_options_session_auto (hashcat_ctx_t *hashcat_ctx)
     {
       user_options->session = "left";
     }
+
+    if (user_options->identify == true)
+    {
+      user_options->session = "identify";
+    }
   }
 }
 
@@ -1678,6 +1693,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
    || user_options->keyspace        == true
    || user_options->speed_only      == true
    || user_options->progress_only   == true
+   || user_options->identify        == true
    || user_options->usage           == true)
   {
     user_options->hwmon_disable       = true;
@@ -3032,6 +3048,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->hex_salt);
   logfile_top_uint   (user_options->hex_wordlist);
   logfile_top_uint   (user_options->hook_threads);
+  logfile_top_uint   (user_options->identify);
   logfile_top_uint   (user_options->increment);
   logfile_top_uint   (user_options->increment_max);
   logfile_top_uint   (user_options->increment_min);

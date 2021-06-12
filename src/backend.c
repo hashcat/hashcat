@@ -5157,12 +5157,13 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   backend_ctx->enabled = false;
 
-  if (user_options->hash_info      == true) return 0;
-  if (user_options->keyspace       == true) return 0;
-  if (user_options->left           == true) return 0;
-  if (user_options->show           == true) return 0;
-  if (user_options->usage          == true) return 0;
-  if (user_options->version        == true) return 0;
+  if (user_options->hash_info == true) return 0;
+  if (user_options->keyspace  == true) return 0;
+  if (user_options->left      == true) return 0;
+  if (user_options->show      == true) return 0;
+  if (user_options->usage     == true) return 0;
+  if (user_options->version   == true) return 0;
+  if (user_options->identify  == true) return 0;
 
   hc_device_param_t *devices_param = (hc_device_param_t *) hccalloc (DEVICES_MAX, sizeof (hc_device_param_t));
 
