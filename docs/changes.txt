@@ -1,5 +1,12 @@
 * changes v6.2.2 -> v6.2.x
 
+##
+## Bugs
+##
+
+- Fixed 'E' rule in pure kernel mode which was ignoring letters that are in positions that are multiples of 4
+
+
 * changes v6.2.1 -> v6.2.2
 
 ##
