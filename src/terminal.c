@@ -731,6 +731,10 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       u32   device_maxclock_frequency = device_param->device_maxclock_frequency;
       u64   device_available_mem      = device_param->device_available_mem;
       u64   device_global_mem         = device_param->device_global_mem;
+      u8    pcie_domain               = device_param->pcie_domain;
+      u8    pcie_bus                  = device_param->pcie_bus;
+      u8    pcie_device               = device_param->pcie_device;
+      u8    pcie_function             = device_param->pcie_function;
 
       if (device_param->device_id_alias_cnt)
       {
@@ -746,6 +750,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       event_log_info (hashcat_ctx, "  Clock..........: %u", device_maxclock_frequency);
       event_log_info (hashcat_ctx, "  Memory.Total...: %" PRIu64 " MB", device_global_mem / 1024 / 1024);
       event_log_info (hashcat_ctx, "  Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
+      event_log_info (hashcat_ctx, "  PCI.Addr.BDFe..: %04x:%02x:%02x.%d", (u16) pcie_domain, pcie_bus, pcie_device, pcie_function);
       event_log_info (hashcat_ctx, NULL);
     }
   }
@@ -815,6 +820,24 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         event_log_info (hashcat_ctx, "    Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
         event_log_info (hashcat_ctx, "    OpenCL.Version.: %s", opencl_device_c_version);
         event_log_info (hashcat_ctx, "    Driver.Version.: %s", opencl_driver_version);
+
+        if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
+        {
+          u8 pcie_bus      = device_param->pcie_bus;
+          u8 pcie_device   = device_param->pcie_device;
+          u8 pcie_function = device_param->pcie_function;
+
+          if ((device_param->opencl_platform_vendor_id == VENDOR_ID_AMD) && (device_param->opencl_device_vendor_id == VENDOR_ID_AMD))
+          {
+            event_log_info (hashcat_ctx, "    PCI.Addr.BDF...: %02x:%02x.%d", pcie_bus, pcie_device, pcie_function);
+          }
+
+          if ((device_param->opencl_platform_vendor_id == VENDOR_ID_NV) && (device_param->opencl_device_vendor_id == VENDOR_ID_NV))
+          {
+            event_log_info (hashcat_ctx, "    PCI.Addr.BDF...: %02x:%02x.%d", pcie_bus, pcie_device, pcie_function);
+          }
+        }
+
         event_log_info (hashcat_ctx, NULL);
       }
     }

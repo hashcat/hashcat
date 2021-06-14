@@ -6,6 +6,11 @@
 
 - Fixed 'E' rule in pure kernel mode which was ignoring letters that are in positions that are multiples of 4
 
+##
+## Improvements
+##
+
+- Backend Information: Added new column showing the PCI Address per CUDA/OpenCL device to easier identify broken cards
 
 * changes v6.2.1 -> v6.2.2
 
