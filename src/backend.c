@@ -131,6 +131,17 @@ static int backend_ctx_find_alias_devices (hashcat_ctx_t *hashcat_ctx)
       backend_ctx->opencl_devices_active--;
 
       backend_ctx->backend_devices_active--;
+
+      // show a warning for specifically listed devices if they are an alias
+
+      if (backend_ctx->backend_devices_filter != (u64) -1)
+      {
+        if (backend_ctx->backend_devices_filter & (1ULL << alias_device->device_id))
+        {
+          event_log_warning (hashcat_ctx, "The device #%d specifically listed was skipped because it is an alias of device #%d", alias_device->device_id + 1, backend_device->device_id + 1);
+          event_log_warning (hashcat_ctx, NULL);
+        }
+      }
     }
   }
 
