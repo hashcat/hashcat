@@ -255,7 +255,7 @@ KERNEL_FQ void m15900_init (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v2_t, dpapimk_t))
 
   sha512_hmac_ctx_t sha512_hmac_ctx;
 
-  sha512_hmac_init_128 (&sha512_hmac_ctx, w0, w1, w2, w3, w5, w5, w6, w7);
+  sha512_hmac_init_128 (&sha512_hmac_ctx, w0, w1, w2, w3, w4, w5, w6, w7);
 
   tmps[gid].ipad64[0] = sha512_hmac_ctx.ipad.h[0];
   tmps[gid].ipad64[1] = sha512_hmac_ctx.ipad.h[1];
