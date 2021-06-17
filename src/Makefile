@@ -360,7 +360,6 @@ CXXFLAGS                :=
 
 EMU_OBJS_ALL            := emu_general emu_inc_common emu_inc_platform emu_inc_scalar emu_inc_simd
 EMU_OBJS_ALL            += emu_inc_rp emu_inc_rp_optimized
-EMU_OBJS_ALL            += emu_inc_truecrypt_crc32 emu_inc_truecrypt_keyfile emu_inc_truecrypt_xts emu_inc_veracrypt_xts
 EMU_OBJS_ALL            += emu_inc_hash_md4 emu_inc_hash_md5 emu_inc_hash_ripemd160 emu_inc_hash_sha1 emu_inc_hash_sha256 emu_inc_hash_sha384 emu_inc_hash_sha512 emu_inc_hash_streebog256 emu_inc_hash_streebog512 emu_inc_ecc_secp256k1
 EMU_OBJS_ALL            += emu_inc_cipher_aes emu_inc_cipher_camellia emu_inc_cipher_des emu_inc_cipher_kuznyechik emu_inc_cipher_serpent emu_inc_cipher_twofish
 
