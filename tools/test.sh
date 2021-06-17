@@ -2783,7 +2783,7 @@ function veracrypt_test()
   # The hash-cipher combination might be invalid (e.g. RIPEMD-160 + Kuznyechik)
   [ -f "${filename}" ] || return
 
-  CMD="echo hashca{a..z} | ./${BIN} ${OPTS} -a 0 -m ${hash_type} ${filename}"
+  CMD="./${BIN} ${OPTS} -a 3 -m ${hash_type} ${filename} hashc?lt"
 
   echo "> Testing hash type ${hash_type} with attack mode 0, markov ${MARKOV}, single hash, Device-Type ${TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, Cipher ${cipher_cascade}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
