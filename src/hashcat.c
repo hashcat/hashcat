@@ -1775,6 +1775,8 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
   #ifdef WITH_BRAIN
   hashcat_status->brain_session               = status_get_brain_session              (hashcat_ctx);
   hashcat_status->brain_attack                = status_get_brain_attack               (hashcat_ctx);
+  hashcat_status->brain_rx_all                = status_get_brain_rx_all               (hashcat_ctx);
+  hashcat_status->brain_tx_all                = status_get_brain_tx_all               (hashcat_ctx);
   #endif
   hashcat_status->status_string               = status_get_status_string              (hashcat_ctx);
   hashcat_status->status_number               = status_get_status_number              (hashcat_ctx);
@@ -1827,8 +1829,6 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
     device_info->brain_link_send_bytes_dev      = status_get_brain_link_send_bytes_dev      (hashcat_ctx, device_id);
     device_info->brain_link_recv_bytes_sec_dev  = status_get_brain_link_recv_bytes_sec_dev  (hashcat_ctx, device_id);
     device_info->brain_link_send_bytes_sec_dev  = status_get_brain_link_send_bytes_sec_dev  (hashcat_ctx, device_id);
-    hashcat_status->brain_rx_all   = status_get_brain_rx_all   (hashcat_ctx);
-    hashcat_status->brain_tx_all   = status_get_brain_tx_all   (hashcat_ctx);
     #endif
   }
 

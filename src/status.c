@@ -2268,6 +2268,10 @@ void status_status_destroy (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashca
   hcfree (hashcat_status->guess_mod);
   hcfree (hashcat_status->guess_charset);
   hcfree (hashcat_status->cpt);
+  #ifdef WITH_BRAIN
+  hcfree (hashcat_status->brain_rx_all);
+  hcfree (hashcat_status->brain_tx_all);
+  #endif
 
   hashcat_status->hash_target             = NULL;
   hashcat_status->hash_name               = NULL;
@@ -2281,6 +2285,10 @@ void status_status_destroy (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashca
   hashcat_status->guess_mod               = NULL;
   hashcat_status->guess_charset           = NULL;
   hashcat_status->cpt                     = NULL;
+  #ifdef WITH_BRAIN
+  hashcat_status->brain_rx_all            = NULL;
+  hashcat_status->brain_tx_all            = NULL;
+  #endif
 
   for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
   {
