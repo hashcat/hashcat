@@ -20,6 +20,7 @@
 ## Technical
 ##
 
+- LM: Workaround JiT compiler bug in -m 3000 on NV leading to false negatives with large amount of hashes
 - Tests: Changed tests for VeraCrypt from -a 0 to -a 3, because password extension is not available to all shells
 
 * changes v6.2.1 -> v6.2.2
