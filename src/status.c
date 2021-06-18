@@ -1556,7 +1556,7 @@ int status_get_cpt_cur_min (const hashcat_ctx_t *hashcat_ctx)
 
   for (int i = 0; i < CPT_CACHE; i++)
   {
-    const u32       cracked   = cpt_ctx->cpt_buf[i].cracked;
+    const u32    cracked   = cpt_ctx->cpt_buf[i].cracked;
     const time_t timestamp = cpt_ctx->cpt_buf[i].timestamp;
 
     if ((timestamp + 60) > now)
@@ -1581,7 +1581,7 @@ int status_get_cpt_cur_hour (const hashcat_ctx_t *hashcat_ctx)
 
   for (int i = 0; i < CPT_CACHE; i++)
   {
-    const u32       cracked   = cpt_ctx->cpt_buf[i].cracked;
+    const u32    cracked   = cpt_ctx->cpt_buf[i].cracked;
     const time_t timestamp = cpt_ctx->cpt_buf[i].timestamp;
 
     if ((timestamp + 3600) > now)
@@ -1606,7 +1606,7 @@ int status_get_cpt_cur_day (const hashcat_ctx_t *hashcat_ctx)
 
   for (int i = 0; i < CPT_CACHE; i++)
   {
-    const u32       cracked   = cpt_ctx->cpt_buf[i].cracked;
+    const u32    cracked   = cpt_ctx->cpt_buf[i].cracked;
     const time_t timestamp = cpt_ctx->cpt_buf[i].timestamp;
 
     if ((timestamp + 86400) > now)
@@ -1618,37 +1618,58 @@ int status_get_cpt_cur_day (const hashcat_ctx_t *hashcat_ctx)
   return cpt_cur_day;
 }
 
-int status_get_cpt_avg_min (const hashcat_ctx_t *hashcat_ctx)
+double status_get_cpt_avg_min (const hashcat_ctx_t *hashcat_ctx)
 {
   const cpt_ctx_t *cpt_ctx = hashcat_ctx->cpt_ctx;
 
   const double msec_real = status_get_msec_real (hashcat_ctx);
 
-  const double cpt_avg_min = (double) cpt_ctx->cpt_total / ((msec_real / 1000) / 60);
+  const double min_real = (msec_real / 1000) / 60;
 
-  return (int) cpt_avg_min;
+  double cpt_avg_min = 0;
+
+  if (min_real > 1)
+  {
+    cpt_avg_min = (double) cpt_ctx->cpt_total / min_real;
+  }
+
+  return cpt_avg_min;
 }
 
-int status_get_cpt_avg_hour (const hashcat_ctx_t *hashcat_ctx)
+double status_get_cpt_avg_hour (const hashcat_ctx_t *hashcat_ctx)
 {
   const cpt_ctx_t *cpt_ctx = hashcat_ctx->cpt_ctx;
 
   const double msec_real = status_get_msec_real (hashcat_ctx);
 
-  const double cpt_avg_hour = (double) cpt_ctx->cpt_total / ((msec_real / 1000) / 3600);
+  const double hour_real = (msec_real / 1000) / (60 * 60);
 
-  return (int) cpt_avg_hour;
+  double cpt_avg_hour = 0;
+
+  if (hour_real > 1)
+  {
+    cpt_avg_hour = (double) cpt_ctx->cpt_total / hour_real;
+  }
+
+  return cpt_avg_hour;
 }
 
-int status_get_cpt_avg_day (const hashcat_ctx_t *hashcat_ctx)
+double status_get_cpt_avg_day (const hashcat_ctx_t *hashcat_ctx)
 {
   const cpt_ctx_t *cpt_ctx = hashcat_ctx->cpt_ctx;
 
   const double msec_real = status_get_msec_real (hashcat_ctx);
 
-  const double cpt_avg_day = (double) cpt_ctx->cpt_total / ((msec_real / 1000) / 86400);
+  const double day_real = (msec_real / 1000) / (60 * 60 * 24);
 
-  return (int) cpt_avg_day;
+  double cpt_avg_day = 0;
+
+  if (day_real > 1)
+  {
+    cpt_avg_day = (double) cpt_ctx->cpt_total / day_real;
+  }
+
+  return cpt_avg_day;
 }
 
 char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
@@ -1663,13 +1684,13 @@ char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
   const int cpt_cur_hour = status_get_cpt_cur_hour (hashcat_ctx);
   const int cpt_cur_day  = status_get_cpt_cur_day  (hashcat_ctx);
 
-  const int cpt_avg_min  = status_get_cpt_avg_min  (hashcat_ctx);
-  const int cpt_avg_hour = status_get_cpt_avg_hour (hashcat_ctx);
-  const int cpt_avg_day  = status_get_cpt_avg_day  (hashcat_ctx);
+  const double cpt_avg_min  = status_get_cpt_avg_min  (hashcat_ctx);
+  const double cpt_avg_hour = status_get_cpt_avg_hour (hashcat_ctx);
+  const double cpt_avg_day  = status_get_cpt_avg_day  (hashcat_ctx);
 
-  if ((cpt_ctx->cpt_start + 86400) < now)
+  if ((cpt_ctx->cpt_start + (60 * 60 * 24)) < now)
   {
-    hc_asprintf (&cpt, "CUR:%d,%d,%d AVG:%d,%d,%d (Min,Hour,Day)",
+    hc_asprintf (&cpt, "CUR:%d,%d,%d AVG:%.2f,%.2f,%.2f (Min,Hour,Day)",
       cpt_cur_min,
       cpt_cur_hour,
       cpt_cur_day,
@@ -1677,29 +1698,23 @@ char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
       cpt_avg_hour,
       cpt_avg_day);
   }
-  else if ((cpt_ctx->cpt_start + 3600) < now)
+  else if ((cpt_ctx->cpt_start + (60 * 60)) < now)
   {
-    hc_asprintf (&cpt, "CUR:%d,%d,N/A AVG:%d,%d,%d (Min,Hour,Day)",
+    hc_asprintf (&cpt, "CUR:%d,%d,N/A AVG:%.2f,%.2f,N/a (Min,Hour,Day)",
       cpt_cur_min,
       cpt_cur_hour,
       cpt_avg_min,
-      cpt_avg_hour,
-      cpt_avg_day);
+      cpt_avg_hour);
   }
   else if ((cpt_ctx->cpt_start + 60) < now)
   {
-    hc_asprintf (&cpt, "CUR:%d,N/A,N/A AVG:%d,%d,%d (Min,Hour,Day)",
+    hc_asprintf (&cpt, "CUR:%d,N/A,N/A AVG:%.2f,N/A,N/A (Min,Hour,Day)",
       cpt_cur_min,
-      cpt_avg_min,
-      cpt_avg_hour,
-      cpt_avg_day);
+      cpt_avg_min);
   }
   else
   {
-    hc_asprintf (&cpt, "CUR:N/A,N/A,N/A AVG:%d,%d,%d (Min,Hour,Day)",
-      cpt_avg_min,
-      cpt_avg_hour,
-      cpt_avg_day);
+    hc_asprintf (&cpt, "CUR:N/A,N/A,N/A AVG:N/A,N/A,N/A (Min,Hour,Day)");
   }
 
   return cpt;
