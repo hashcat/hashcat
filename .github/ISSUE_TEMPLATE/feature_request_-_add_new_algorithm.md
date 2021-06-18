@@ -7,10 +7,10 @@ assignees: ''
 
 ---
 
-**Is your request based on a publicly know cryptographic schema and where can we find information about?**
+**Is your request based on a publicly known cryptographic schema and where can we find information about?**
 For instance:
 - The hashing function XY is a public known hash algorithm on Wikipedia. 
-- The password protection for the application XY was made by public by security researcher XY and there's a paper called ...
+- The password protection for the application XY was made public by security researcher XY and there's a paper called ...
 - The cryptographic schema used in protocol XY can be found in the OSS code on it's GitHub repository.
 
 **Describe alternatives you've considered**
