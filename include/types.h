@@ -2251,6 +2251,9 @@ typedef struct device_info
   double  exec_msec_dev;
   char   *speed_sec_dev;
   char   *guess_candidates_dev;
+  #if defined(__APPLE__)
+  char   *hwmon_fan_dev;
+  #endif
   char   *hwmon_dev;
   int     corespeed_dev;
   int     memoryspeed_dev;

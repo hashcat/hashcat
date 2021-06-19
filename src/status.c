@@ -1959,6 +1959,23 @@ char *status_get_brain_link_send_bytes_sec_dev (const hashcat_ctx_t *hashcat_ctx
 }
 #endif
 
+#if defined(__APPLE__)
+char *status_get_hwmon_fan_dev (const hashcat_ctx_t *hashcat_ctx)
+{
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  char *fanspeed_str = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+  hc_thread_mutex_lock (status_ctx->mux_hwmon);
+
+  hm_get_fanspeed_apple ((hashcat_ctx_t *) hashcat_ctx, fanspeed_str);
+
+  hc_thread_mutex_unlock (status_ctx->mux_hwmon);
+
+  return fanspeed_str;
+}
+#endif
+
 char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx)
 {
   const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;

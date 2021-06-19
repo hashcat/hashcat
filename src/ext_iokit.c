@@ -202,6 +202,13 @@ bool hm_IOKIT_SMCGetFanRPM (char *key, io_connect_t conn, float *ret)
   {
     if (val.dataSize > 0)
     {
+      if (strcmp(val.dataType, DATATYPE_FLT) == 0)
+      {
+        *ret = *(float *) val.bytes;
+
+        return true;
+      }
+
       if (strcmp(val.dataType, DATATYPE_FPE2) == 0)
       {
         // convert fpe2 value to RPM
@@ -218,10 +225,8 @@ bool hm_IOKIT_SMCGetFanRPM (char *key, io_connect_t conn, float *ret)
   return false;
 }
 
-int hm_IOKIT_get_fan_speed_current (void *hashcat_ctx, int *fan_speed)
+int hm_IOKIT_get_fan_speed_current (void *hashcat_ctx, char *fan_speed_buf)
 {
-  *fan_speed = 0;
-
   hwmon_ctx_t *hwmon_ctx = ((hashcat_ctx_t *) hashcat_ctx)->hwmon_ctx;
 
   IOKIT_PTR *iokit = hwmon_ctx->hm_iokit;
@@ -236,8 +241,13 @@ int hm_IOKIT_get_fan_speed_current (void *hashcat_ctx, int *fan_speed)
   {
     int totalFans = hm_IOKIT_strtoul ((char *)val.bytes, val.dataSize, 10);
 
+    if (totalFans <= 0) return -1;
+
+    char tmp_buf[16];
+
     for (int i = 0; i < totalFans; i++)
     {
+      int fan_speed = 0;
       float actual_speed  = 0.0f;
       float maximum_speed = 0.0f;
 
@@ -251,10 +261,16 @@ int hm_IOKIT_get_fan_speed_current (void *hashcat_ctx, int *fan_speed)
       hm_IOKIT_SMCGetFanRPM (key, iokit->conn, &maximum_speed);
       if (maximum_speed < 0.f) continue;
 
-      *fan_speed = (actual_speed / maximum_speed) * 100.f;
+      fan_speed = (actual_speed / maximum_speed) * 100.f;
 
-      break;
+      memset   (tmp_buf, 0, sizeof (tmp_buf));
+      snprintf (tmp_buf, sizeof (tmp_buf) - 1, "Fan%d: %d%%, ", i, fan_speed);
+      strncat  (fan_speed_buf, tmp_buf, strlen (tmp_buf));
     }
+
+    // remove last two bytes
+    size_t out_len = strlen (fan_speed_buf);
+    fan_speed_buf[out_len-2] = '\0';
   }
 
   return 1;

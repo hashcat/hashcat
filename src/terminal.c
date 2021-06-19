@@ -1781,6 +1781,10 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
   if (hwmon_ctx->enabled == true)
   {
+    #if defined(__APPLE__)
+    bool first_dev = true;
+    #endif
+
     for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
     {
       const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
@@ -1790,6 +1794,14 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       if (device_info->skipped_warning_dev == true) continue;
 
       if (device_info->hwmon_dev == NULL) continue;
+
+      #if defined(__APPLE__)
+      if (first_dev && device_info->hwmon_fan_dev)
+      {
+        event_log_info (hashcat_ctx, "Hardware.Mon.SMC.: %s", device_info->hwmon_fan_dev);
+        first_dev = false;
+      }
+      #endif
 
       event_log_info (hashcat_ctx,
         "Hardware.Mon.#%d..: %s", device_id + 1,

@@ -18,6 +18,7 @@
 #define KERNEL_INDEX_SMC 2
 
 #define DATATYPE_FPE2   "fpe2"
+#define DATATYPE_FLT    "flt "
 #define DATATYPE_UINT8  "ui8 "
 #define DATATYPE_UINT16 "ui16"
 #define DATATYPE_UINT32 "ui32"
@@ -119,7 +120,7 @@ kern_return_t hm_IOKIT_SMCReadKey (UInt32Char_t key, SMCVal_t *val, io_connect_t
 int hm_IOKIT_SMCGetSensorGraphicHot (void *hashcat_ctx);
 int hm_IOKIT_SMCGetTemperature (void *hashcat_ctx, char *key, double *temp);
 bool hm_IOKIT_SMCGetFanRPM (char *key, io_connect_t conn, float *ret);
-int hm_IOKIT_get_fan_speed_current (void *hashcat_ctx, int *fan_speed);
+int hm_IOKIT_get_fan_speed_current (void *hashcat_ctx, char *fan_speed_buf);
 bool iokit_init (void *hashcat_ctx);
 bool iokit_close (void *hashcat_ctx);
 #endif // __APPLE__

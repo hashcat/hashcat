@@ -98,6 +98,9 @@ char       *status_get_brain_link_send_bytes_sec_dev  (const hashcat_ctx_t *hash
 char       *status_get_brain_rx_all                   (const hashcat_ctx_t *hashcat_ctx);
 char       *status_get_brain_tx_all                   (const hashcat_ctx_t *hashcat_ctx);
 #endif
+#if defined(__APPLE__)
+char       *status_get_hwmon_fan_dev                  (const hashcat_ctx_t *hashcat_ctx);
+#endif
 char       *status_get_hwmon_dev                      (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
 int         status_get_corespeed_dev                  (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
 int         status_get_memoryspeed_dev                (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);

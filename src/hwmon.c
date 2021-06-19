@@ -418,6 +418,25 @@ int hm_get_fanpolicy_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int bac
   return -1;
 }
 
+#if defined(__APPLE__)
+int hm_get_fanspeed_apple (hashcat_ctx_t *hashcat_ctx, char *fan_speed_buf)
+{
+  hwmon_ctx_t   *hwmon_ctx   = hashcat_ctx->hwmon_ctx;
+
+  if (hwmon_ctx->enabled == false) return -1;
+
+  if (hwmon_ctx->hm_iokit)
+  {
+    if (hm_IOKIT_get_fan_speed_current (hashcat_ctx, fan_speed_buf) == 0)
+    {
+      return 1;
+    }
+  }
+
+  return -1;
+}
+#endif
+
 int hm_get_fanspeed_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx)
 {
   hwmon_ctx_t   *hwmon_ctx   = hashcat_ctx->hwmon_ctx;
@@ -446,26 +465,7 @@ int hm_get_fanspeed_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int back
 
   if (backend_ctx->devices_param[backend_device_idx].is_opencl == true)
   {
-    #if defined (__APPLE__)
-    if (backend_ctx->devices_param[backend_device_idx].opencl_platform_vendor_id == VENDOR_ID_APPLE)
-    {
-      if (hwmon_ctx->hm_iokit)
-      {
-        int speed = 0;
-
-        if (hm_IOKIT_get_fan_speed_current (hashcat_ctx, &speed) == -1)
-        {
-          hwmon_ctx->hm_device[backend_device_idx].fanspeed_get_supported = false;
-
-          return -1;
-        }
-
-        return speed;
-      }
-    }
-    #else
     if ((backend_ctx->devices_param[backend_device_idx].opencl_device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
-    #endif
 
     if (backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_AMD)
     {
@@ -1112,13 +1112,6 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
     hwmon_ctx->hm_iokit = (IOKIT_PTR *) hcmalloc (sizeof (IOKIT_PTR));
 
     if (iokit_init (hashcat_ctx) == false)
-    {
-      hcfree (hwmon_ctx->hm_iokit);
-
-      hwmon_ctx->hm_iokit = NULL;
-    }
-
-    if (hwmon_ctx->hm_adl)
     {
       hcfree (hwmon_ctx->hm_iokit);
 
