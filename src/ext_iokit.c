@@ -270,7 +270,7 @@ int hm_IOKIT_get_fan_speed_current (void *hashcat_ctx, char *fan_speed_buf)
 
     // remove last two bytes
     size_t out_len = strlen (fan_speed_buf);
-    fan_speed_buf[out_len-2] = '\0';
+    if (out_len > 2) fan_speed_buf[out_len-2] = '\0';
   }
 
   return 1;

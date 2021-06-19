@@ -1796,7 +1796,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       if (device_info->hwmon_dev == NULL) continue;
 
       #if defined(__APPLE__)
-      if (first_dev && device_info->hwmon_fan_dev)
+      if (first_dev && strlen (device_info->hwmon_fan_dev) > 0)
       {
         event_log_info (hashcat_ctx, "Hardware.Mon.SMC.: %s", device_info->hwmon_fan_dev);
         first_dev = false;

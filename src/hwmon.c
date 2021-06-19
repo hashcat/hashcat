@@ -1408,13 +1408,6 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       hwmon_ctx->hm_iokit = NULL;
     }
-
-    if (hwmon_ctx->hm_adl)
-    {
-      hcfree (hwmon_ctx->hm_iokit);
-
-      hwmon_ctx->hm_iokit = NULL;
-    }
   }
   #endif
 
