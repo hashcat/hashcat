@@ -141,10 +141,10 @@ int hm_IOKIT_SMCGetSensorGraphicHot (void *hashcat_ctx)
 
   memset (&val, 0, sizeof (SMCVal_t));
 
-  int alarm = -1;
-
   if (hm_IOKIT_SMCReadKey (HM_IOKIT_SMC_SENSOR_GRAPHICS_HOT, &val, iokit->conn) == kIOReturnSuccess)
   {
+    int alarm = -1;
+
     if (val.dataSize > 0)
     {
       if (strcmp(val.dataType, DATATYPE_UINT8) == 0)
@@ -230,21 +230,16 @@ int hm_IOKIT_get_fan_speed_current (void *hashcat_ctx, int *fan_speed)
 
   UInt32Char_t key;
 
-  int i, totalFans = 0;
-
   memset (&val, 0, sizeof (SMCVal_t));
 
   if (hm_IOKIT_SMCReadKey ("FNum", &val, iokit->conn) == kIOReturnSuccess)
   {
-    totalFans = hm_IOKIT_strtoul ((char *)val.bytes, val.dataSize, 10);
+    int totalFans = hm_IOKIT_strtoul ((char *)val.bytes, val.dataSize, 10);
 
-    for (i = 0; i < totalFans; i++)
+    for (int i = 0; i < totalFans; i++)
     {
       float actual_speed  = 0.0f;
-      float minimum_speed = 0.0f;
       float maximum_speed = 0.0f;
-      float rpm = 0.0f;
-      float pct = 0.0f;
 
       memset (&key, 0, sizeof (UInt32Char_t));
       sprintf (key, "F%dAc", i);
@@ -252,22 +247,11 @@ int hm_IOKIT_get_fan_speed_current (void *hashcat_ctx, int *fan_speed)
       if (actual_speed < 0.f) continue;
 
       memset (&key, 0, sizeof (UInt32Char_t));
-      sprintf(key, "F%dMn", i);
-      hm_IOKIT_SMCGetFanRPM (key, iokit->conn, &minimum_speed);
-      if (minimum_speed < 0.f) continue;
-
-      memset (&key, 0, sizeof (UInt32Char_t));
       sprintf (key, "F%dMx", i);
       hm_IOKIT_SMCGetFanRPM (key, iokit->conn, &maximum_speed);
       if (maximum_speed < 0.f) continue;
 
-      rpm = actual_speed - minimum_speed;
-      if (rpm < 0.f) rpm = 0.f;
-
-      pct = rpm / (maximum_speed - minimum_speed);
-      pct *= 100.f;
-
-      *fan_speed = pct;
+      *fan_speed = (actual_speed / maximum_speed) * 100.f;
 
       break;
     }
