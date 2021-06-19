@@ -1172,6 +1172,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
 
+    if (user_options->hash_info == true)
+    {
+      event_log_error (hashcat_ctx, "Use of --hash-info is not allowed in benchmark mode.");
+
+      return -1;
+    }
+
     if (user_options->increment == true)
     {
       event_log_error (hashcat_ctx, "Can't change --increment (-i) in benchmark mode.");
