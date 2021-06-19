@@ -114,8 +114,6 @@ kern_return_t hm_IOKIT_SMCReadKey (UInt32Char_t key, SMCVal_t *val, io_connect_t
 
   if (hm_IOKIT_SMCCall (KERNEL_INDEX_SMC, &inData, &outData, conn) != kIOReturnSuccess) return 1;
 
-  if (hm_IOKIT_SMCCall (KERNEL_INDEX_SMC, &inData, &outData, conn) != kIOReturnSuccess) return 1;
-
   val->dataSize = outData.keyInfo.dataSize;
 
   hm_IOKIT_ultostr (val->dataType, outData.keyInfo.dataType);
