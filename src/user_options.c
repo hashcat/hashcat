@@ -1174,7 +1174,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
     if (user_options->hash_info == true)
     {
-      event_log_error (hashcat_ctx, "Use of --hash-info/example is not allowed in benchmark mode.");
+      event_log_error (hashcat_ctx, "Use of --hash-info is not allowed in benchmark mode.");
 
       return -1;
     }
