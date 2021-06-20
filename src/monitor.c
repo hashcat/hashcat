@@ -130,6 +130,20 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
           myabort (hashcat_ctx);
         }
+        #if defined (__APPLE__)
+        // experimental feature, check the "Sensor Graphic Hot" sensor through IOKIT/SMC to catch a GPU overtemp alarm
+        else if (temperature > (int) (user_options->hwmon_temp_abort - 10))
+        {
+          if (hm_IOKIT_SMCGetSensorGraphicHot (hashcat_ctx) == 1)
+          {
+            event_log_error (hashcat_ctx, "hm_IOKIT_SMCGetSensorGraphicHot(): Sensor Graphics HoT, GPU Overtemp");
+
+            EVENT_DATA (EVENT_MONITOR_TEMP_ABORT, &backend_devices_idx, sizeof (int));
+
+            myabort (hashcat_ctx);
+          }
+        }
+        #endif
       }
 
       for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
