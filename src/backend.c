@@ -3050,44 +3050,175 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
     // as soon as the first restore checkpoint is reached the prediction is accurate.
     // also the closer it gets to that point.
 
-    if (true)
+    if (device_param->is_cuda == true)
+    {
+      if (hc_cuMemcpyDtoD (hashcat_ctx, device_param->cuda_d_pws_buf, device_param->cuda_d_pws_amp_buf, pws_cnt * sizeof (pw_t)) == -1) return -1;
+    }
+
+    if (device_param->is_opencl == true)
+    {
+      if (hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_amp_buf, device_param->opencl_d_pws_buf, 0, 0, pws_cnt * sizeof (pw_t), 0, NULL, NULL) == -1) return -1;
+    }
+
+    if (user_options->slow_candidates == true)
+    {
+    }
+    else
+    {
+      if (run_kernel_amp (hashcat_ctx, device_param, pws_cnt) == -1) return -1;
+    }
+
+    if (hashconfig->opts_type & OPTS_TYPE_POST_AMP_UTF16LE)
     {
       if (device_param->is_cuda == true)
       {
-        if (hc_cuMemcpyDtoD (hashcat_ctx, device_param->cuda_d_pws_buf, device_param->cuda_d_pws_amp_buf, pws_cnt * sizeof (pw_t)) == -1) return -1;
+        if (run_cuda_kernel_utf8toutf16le (hashcat_ctx, device_param, device_param->cuda_d_pws_buf, pws_cnt) == -1) return -1;
       }
 
       if (device_param->is_opencl == true)
       {
-        if (hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_amp_buf, device_param->opencl_d_pws_buf, 0, 0, pws_cnt * sizeof (pw_t), 0, NULL, NULL) == -1) return -1;
+        if (run_opencl_kernel_utf8toutf16le (hashcat_ctx, device_param, device_param->opencl_d_pws_buf, pws_cnt) == -1) return -1;
+      }
+    }
+
+    if (run_kernel (hashcat_ctx, device_param, KERN_RUN_1, pws_pos, pws_cnt, false, 0) == -1) return -1;
+
+    if (hashconfig->opts_type & OPTS_TYPE_HOOK12)
+    {
+      if (run_kernel (hashcat_ctx, device_param, KERN_RUN_12, pws_pos, pws_cnt, false, 0) == -1) return -1;
+
+      if (device_param->is_cuda == true)
+      {
+        if (hc_cuMemcpyDtoH (hashcat_ctx, device_param->hooks_buf, device_param->cuda_d_hooks, pws_cnt * hashconfig->hook_size) == -1) return -1;
       }
 
-      if (user_options->slow_candidates == true)
+      if (device_param->is_opencl == true)
       {
-      }
-      else
-      {
-        if (run_kernel_amp (hashcat_ctx, device_param, pws_cnt) == -1) return -1;
+        if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_hooks, CL_TRUE, 0, pws_cnt * hashconfig->hook_size, device_param->hooks_buf, 0, NULL, NULL) == -1) return -1;
       }
 
-      if (hashconfig->opts_type & OPTS_TYPE_POST_AMP_UTF16LE)
+      const int hook_threads = (int) user_options->hook_threads;
+
+      hook_thread_param_t *hook_threads_param = (hook_thread_param_t *) hccalloc (hook_threads, sizeof (hook_thread_param_t));
+
+      for (int i = 0; i < hook_threads; i++)
       {
-        if (device_param->is_cuda == true)
+        hook_thread_param_t *hook_thread_param = hook_threads_param + i;
+
+        hook_thread_param->tid = i;
+        hook_thread_param->tsz = hook_threads;
+
+        hook_thread_param->module_ctx = module_ctx;
+        hook_thread_param->status_ctx = status_ctx;
+
+        hook_thread_param->device_param = device_param;
+
+        hook_thread_param->hook_extra_param = module_ctx->hook_extra_params[i];
+        hook_thread_param->hook_salts_buf = hashes->hook_salts_buf;
+
+        hook_thread_param->salt_pos = salt_pos;
+
+        hook_thread_param->pws_cnt = pws_cnt;
+      }
+
+      hc_thread_t *c_threads = (hc_thread_t *) hccalloc (hook_threads, sizeof (hc_thread_t));
+
+      for (int i = 0; i < hook_threads; i++)
+      {
+        hook_thread_param_t *hook_thread_param = hook_threads_param + i;
+
+        hc_thread_create (c_threads[i], hook12_thread, hook_thread_param);
+      }
+
+      hc_thread_wait (hook_threads, c_threads);
+
+      hcfree (c_threads);
+
+      hcfree (hook_threads_param);
+
+      if (device_param->is_cuda == true)
+      {
+        if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_hooks, device_param->hooks_buf, pws_cnt * hashconfig->hook_size) == -1) return -1;
+      }
+
+      if (device_param->is_opencl == true)
+      {
+        if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_hooks, CL_TRUE, 0, pws_cnt * hashconfig->hook_size, device_param->hooks_buf, 0, NULL, NULL) == -1) return -1;
+      }
+    }
+
+    u32 salt_repeats = hashes->salts_buf[salt_pos].salt_repeats;
+
+    for (u32 salt_repeat = 0; salt_repeat <= salt_repeats; salt_repeat++)
+    {
+      device_param->kernel_params_buf32[34] = salt_repeat;
+
+      if (hashconfig->opts_type & OPTS_TYPE_LOOP_PREPARE)
+      {
+        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_2P, pws_pos, pws_cnt, false, 0) == -1) return -1;
+      }
+
+      const u32 iter = hashes->salts_buf[salt_pos].salt_iter;
+
+      const u32 loop_step = device_param->kernel_loops;
+
+      for (u32 loop_pos = 0, slow_iteration = 0; loop_pos < iter; loop_pos += loop_step, slow_iteration++)
+      {
+        u32 loop_left = iter - loop_pos;
+
+        loop_left = MIN (loop_left, loop_step);
+
+        device_param->kernel_params_buf32[28] = loop_pos;
+        device_param->kernel_params_buf32[29] = loop_left;
+
+        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_2, pws_pos, pws_cnt, true, slow_iteration) == -1) return -1;
+
+        if (hashconfig->opts_type & OPTS_TYPE_LOOP_EXTENDED)
         {
-          if (run_cuda_kernel_utf8toutf16le (hashcat_ctx, device_param, device_param->cuda_d_pws_buf, pws_cnt) == -1) return -1;
+          if (run_kernel (hashcat_ctx, device_param, KERN_RUN_2E, pws_pos, pws_cnt, true, slow_iteration) == -1) return -1;
         }
 
-        if (device_param->is_opencl == true)
+        //bug?
+        //while (status_ctx->run_thread_level2 == false) break;
+        if (status_ctx->run_thread_level2 == false) break;
+
+        /**
+         * speed
+         */
+
+        const u32 iter1r = hashes->salts_buf[salt_pos].salt_iter  * (salt_repeats + 1);
+        const u32 iter2r = hashes->salts_buf[salt_pos].salt_iter2 * (salt_repeats + 1);
+
+        const double iter_part = (double) ((iter * salt_repeat) + loop_pos + loop_left) / (double) (iter1r + iter2r);
+
+        const u64 perf_sum_all = (u64) (pws_cnt * iter_part);
+
+        double speed_msec = hc_timer_get (device_param->timer_speed);
+
+        const u32 speed_pos = device_param->speed_pos;
+
+        device_param->speed_cnt[speed_pos] = perf_sum_all;
+
+        device_param->speed_msec[speed_pos] = speed_msec;
+
+        if (user_options->speed_only == true)
         {
-          if (run_opencl_kernel_utf8toutf16le (hashcat_ctx, device_param, device_param->opencl_d_pws_buf, pws_cnt) == -1) return -1;
+          if (speed_msec > 4000)
+          {
+            device_param->outerloop_multi *= 1 / iter_part;
+
+            device_param->speed_pos = 1;
+
+            device_param->speed_only_finish = true;
+
+            return 0;
+          }
         }
       }
 
-      if (run_kernel (hashcat_ctx, device_param, KERN_RUN_1, pws_pos, pws_cnt, false, 0) == -1) return -1;
-
-      if (hashconfig->opts_type & OPTS_TYPE_HOOK12)
+      if (hashconfig->opts_type & OPTS_TYPE_HOOK23)
       {
-        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_12, pws_pos, pws_cnt, false, 0) == -1) return -1;
+        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_23, pws_pos, pws_cnt, false, 0) == -1) return -1;
 
         if (device_param->is_cuda == true)
         {
@@ -3129,7 +3260,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
         {
           hook_thread_param_t *hook_thread_param = hook_threads_param + i;
 
-          hc_thread_create (c_threads[i], hook12_thread, hook_thread_param);
+          hc_thread_create (c_threads[i], hook23_thread, hook_thread_param);
         }
 
         hc_thread_wait (hook_threads, c_threads);
@@ -3150,146 +3281,6 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
       }
     }
 
-    if (true)
-    {
-      const u32 salt_repeats = hashes->salts_buf[salt_pos].salt_repeats;
-
-      for (u32 salt_repeat = 0; salt_repeat <= salt_repeats; salt_repeat++)
-      {
-        device_param->kernel_params_buf32[34] = salt_repeat;
-
-        if (hashconfig->opts_type & OPTS_TYPE_LOOP_PREPARE)
-        {
-          if (run_kernel (hashcat_ctx, device_param, KERN_RUN_2P, pws_pos, pws_cnt, false, 0) == -1) return -1;
-        }
-
-        if (true)
-        {
-          const u32 iter = hashes->salts_buf[salt_pos].salt_iter;
-
-          const u32 loop_step = device_param->kernel_loops;
-
-          for (u32 loop_pos = 0, slow_iteration = 0; loop_pos < iter; loop_pos += loop_step, slow_iteration++)
-          {
-            u32 loop_left = iter - loop_pos;
-
-            loop_left = MIN (loop_left, loop_step);
-
-            device_param->kernel_params_buf32[28] = loop_pos;
-            device_param->kernel_params_buf32[29] = loop_left;
-
-            if (run_kernel (hashcat_ctx, device_param, KERN_RUN_2, pws_pos, pws_cnt, true, slow_iteration) == -1) return -1;
-
-            if (hashconfig->opts_type & OPTS_TYPE_LOOP_EXTENDED)
-            {
-              if (run_kernel (hashcat_ctx, device_param, KERN_RUN_2E, pws_pos, pws_cnt, true, slow_iteration) == -1) return -1;
-            }
-
-            //bug?
-            //while (status_ctx->run_thread_level2 == false) break;
-            if (status_ctx->run_thread_level2 == false) break;
-
-            /**
-             * speed
-             */
-
-            const u32 iter1r = hashes->salts_buf[salt_pos].salt_iter  * (salt_repeats + 1);
-            const u32 iter2r = hashes->salts_buf[salt_pos].salt_iter2 * (salt_repeats + 1);
-
-            const double iter_part = (double) ((iter * salt_repeat) + loop_pos + loop_left) / (double) (iter1r + iter2r);
-
-            const u64 perf_sum_all = (u64) (pws_cnt * iter_part);
-
-            double speed_msec = hc_timer_get (device_param->timer_speed);
-
-            const u32 speed_pos = device_param->speed_pos;
-
-            device_param->speed_cnt[speed_pos] = perf_sum_all;
-
-            device_param->speed_msec[speed_pos] = speed_msec;
-
-            if (user_options->speed_only == true)
-            {
-              if (speed_msec > 4000)
-              {
-                device_param->outerloop_multi *= 1 / iter_part;
-
-                device_param->speed_pos = 1;
-
-                device_param->speed_only_finish = true;
-
-                return 0;
-              }
-            }
-          }
-
-          if (hashconfig->opts_type & OPTS_TYPE_HOOK23)
-          {
-            if (run_kernel (hashcat_ctx, device_param, KERN_RUN_23, pws_pos, pws_cnt, false, 0) == -1) return -1;
-
-            if (device_param->is_cuda == true)
-            {
-              if (hc_cuMemcpyDtoH (hashcat_ctx, device_param->hooks_buf, device_param->cuda_d_hooks, pws_cnt * hashconfig->hook_size) == -1) return -1;
-            }
-
-            if (device_param->is_opencl == true)
-            {
-              if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_hooks, CL_TRUE, 0, pws_cnt * hashconfig->hook_size, device_param->hooks_buf, 0, NULL, NULL) == -1) return -1;
-            }
-
-            const int hook_threads = (int) user_options->hook_threads;
-
-            hook_thread_param_t *hook_threads_param = (hook_thread_param_t *) hccalloc (hook_threads, sizeof (hook_thread_param_t));
-
-            for (int i = 0; i < hook_threads; i++)
-            {
-              hook_thread_param_t *hook_thread_param = hook_threads_param + i;
-
-              hook_thread_param->tid = i;
-              hook_thread_param->tsz = hook_threads;
-
-              hook_thread_param->module_ctx = module_ctx;
-              hook_thread_param->status_ctx = status_ctx;
-
-              hook_thread_param->device_param = device_param;
-
-              hook_thread_param->hook_extra_param = module_ctx->hook_extra_params[i];
-              hook_thread_param->hook_salts_buf = hashes->hook_salts_buf;
-
-              hook_thread_param->salt_pos = salt_pos;
-
-              hook_thread_param->pws_cnt = pws_cnt;
-            }
-
-            hc_thread_t *c_threads = (hc_thread_t *) hccalloc (hook_threads, sizeof (hc_thread_t));
-
-            for (int i = 0; i < hook_threads; i++)
-            {
-              hook_thread_param_t *hook_thread_param = hook_threads_param + i;
-
-              hc_thread_create (c_threads[i], hook23_thread, hook_thread_param);
-            }
-
-            hc_thread_wait (hook_threads, c_threads);
-
-            hcfree (c_threads);
-
-            hcfree (hook_threads_param);
-
-            if (device_param->is_cuda == true)
-            {
-              if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_hooks, device_param->hooks_buf, pws_cnt * hashconfig->hook_size) == -1) return -1;
-            }
-
-            if (device_param->is_opencl == true)
-            {
-              if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_hooks, CL_TRUE, 0, pws_cnt * hashconfig->hook_size, device_param->hooks_buf, 0, NULL, NULL) == -1) return -1;
-            }
-          }
-        }
-      }
-    }
-
     // note: they also do not influence the performance screen
     // in case you want to use this, this cane make sense only if your input data comes out of tmps[]
 
@@ -3298,85 +3289,79 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
       if (run_kernel (hashcat_ctx, device_param, KERN_RUN_INIT2, pws_pos, pws_cnt, false, 0) == -1) return -1;
     }
 
-    if (true)
+    salt_repeats = hashes->salts_buf[salt_pos].salt_repeats;
+
+    for (u32 salt_repeat = 0; salt_repeat <= salt_repeats; salt_repeat++)
     {
-      const u32 salt_repeats = hashes->salts_buf[salt_pos].salt_repeats;
+      device_param->kernel_params_buf32[34] = salt_repeat;
 
-      for (u32 salt_repeat = 0; salt_repeat <= salt_repeats; salt_repeat++)
+      if (hashconfig->opts_type & OPTS_TYPE_LOOP2_PREPARE)
       {
-        device_param->kernel_params_buf32[34] = salt_repeat;
+        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_LOOP2P, pws_pos, pws_cnt, false, 0) == -1) return -1;
+      }
 
-        if (hashconfig->opts_type & OPTS_TYPE_LOOP2_PREPARE)
+      if (hashconfig->opts_type & OPTS_TYPE_LOOP2)
+      {
+        u32 iter = hashes->salts_buf[salt_pos].salt_iter2;
+
+        u32 loop_step = device_param->kernel_loops;
+
+        for (u32 loop_pos = 0, slow_iteration = 0; loop_pos < iter; loop_pos += loop_step, slow_iteration++)
         {
-          if (run_kernel (hashcat_ctx, device_param, KERN_RUN_LOOP2P, pws_pos, pws_cnt, false, 0) == -1) return -1;
-        }
+          u32 loop_left = iter - loop_pos;
 
-        if (hashconfig->opts_type & OPTS_TYPE_LOOP2)
-        {
-          u32 iter = hashes->salts_buf[salt_pos].salt_iter2;
+          loop_left = MIN (loop_left, loop_step);
 
-          u32 loop_step = device_param->kernel_loops;
+          device_param->kernel_params_buf32[28] = loop_pos;
+          device_param->kernel_params_buf32[29] = loop_left;
 
-          for (u32 loop_pos = 0, slow_iteration = 0; loop_pos < iter; loop_pos += loop_step, slow_iteration++)
-          {
-            u32 loop_left = iter - loop_pos;
+          if (run_kernel (hashcat_ctx, device_param, KERN_RUN_LOOP2, pws_pos, pws_cnt, true, slow_iteration) == -1) return -1;
 
-            loop_left = MIN (loop_left, loop_step);
+          //bug?
+          //while (status_ctx->run_thread_level2 == false) break;
+          if (status_ctx->run_thread_level2 == false) break;
 
-            device_param->kernel_params_buf32[28] = loop_pos;
-            device_param->kernel_params_buf32[29] = loop_left;
+          /**
+           * speed
+           */
 
-            if (run_kernel (hashcat_ctx, device_param, KERN_RUN_LOOP2, pws_pos, pws_cnt, true, slow_iteration) == -1) return -1;
+          const u32 iter1r = hashes->salts_buf[salt_pos].salt_iter  * (salt_repeats + 1);
+          const u32 iter2r = hashes->salts_buf[salt_pos].salt_iter2 * (salt_repeats + 1);
 
-            //bug?
-            //while (status_ctx->run_thread_level2 == false) break;
-            if (status_ctx->run_thread_level2 == false) break;
+          const double iter_part = (double) (iter1r + (iter * salt_repeat) + loop_pos + loop_left) / (double) (iter1r + iter2r);
 
-            /**
-             * speed
-             */
+          const u64 perf_sum_all = (u64) (pws_cnt * iter_part);
 
-            const u32 iter1r = hashes->salts_buf[salt_pos].salt_iter  * (salt_repeats + 1);
-            const u32 iter2r = hashes->salts_buf[salt_pos].salt_iter2 * (salt_repeats + 1);
+          double speed_msec = hc_timer_get (device_param->timer_speed);
 
-            const double iter_part = (double) (iter1r + (iter * salt_repeat) + loop_pos + loop_left) / (double) (iter1r + iter2r);
+          const u32 speed_pos = device_param->speed_pos;
 
-            const u64 perf_sum_all = (u64) (pws_cnt * iter_part);
+          device_param->speed_cnt[speed_pos] = perf_sum_all;
 
-            double speed_msec = hc_timer_get (device_param->timer_speed);
-
-            const u32 speed_pos = device_param->speed_pos;
-
-            device_param->speed_cnt[speed_pos] = perf_sum_all;
-
-            device_param->speed_msec[speed_pos] = speed_msec;
-          }
+          device_param->speed_msec[speed_pos] = speed_msec;
         }
       }
     }
 
-    if (true)
+    if (hashconfig->opts_type & OPTS_TYPE_DEEP_COMP_KERNEL)
     {
-      if (hashconfig->opts_type & OPTS_TYPE_DEEP_COMP_KERNEL)
+      const u32 loops_cnt = hashes->salts_buf[salt_pos].digests_cnt;
+
+      for (u32 loops_pos = 0; loops_pos < loops_cnt; loops_pos++)
       {
-        const u32 loops_cnt = hashes->salts_buf[salt_pos].digests_cnt;
+        device_param->kernel_params_buf32[28] = loops_pos;
+        device_param->kernel_params_buf32[29] = loops_cnt;
 
-        for (u32 loops_pos = 0; loops_pos < loops_cnt; loops_pos++)
-        {
-          device_param->kernel_params_buf32[28] = loops_pos;
-          device_param->kernel_params_buf32[29] = loops_cnt;
+        const u32 deep_comp_kernel = module_ctx->module_deep_comp_kernel (hashes, salt_pos, loops_pos);
 
-          const u32 deep_comp_kernel = module_ctx->module_deep_comp_kernel (hashes, salt_pos, loops_pos);
+        if (run_kernel (hashcat_ctx, device_param, deep_comp_kernel, pws_pos, pws_cnt, false, 0) == -1) return -1;
 
-          if (run_kernel (hashcat_ctx, device_param, deep_comp_kernel, pws_pos, pws_cnt, false, 0) == -1) return -1;
-
-          if (status_ctx->run_thread_level2 == false) break;
-        }
+        if (status_ctx->run_thread_level2 == false) break;
       }
-      else
-      {
-        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_3, pws_pos, pws_cnt, false, 0) == -1) return -1;
-      }
+    }
+    else
+    {
+      if (run_kernel (hashcat_ctx, device_param, KERN_RUN_3, pws_pos, pws_cnt, false, 0) == -1) return -1;
     }
 
     /*
