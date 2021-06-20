@@ -9,6 +9,12 @@
 - Fixed integer overflow in Recovered/Time status view column caused by division > 0 but < 1
 
 ##
+## Features
+##
+
+- Added temperature watchdog and fanspeed readings for CPU and GPU on macOS using iokit
+
+##
 ## Improvements
 ##
 
