@@ -1271,6 +1271,8 @@ bool autodetect_hashmode_test (hashcat_ctx_t *hashcat_ctx)
   {
     HCFILE fp;
 
+    int error_count = 0;
+
     if (hc_fopen (&fp, hashfile, "rb") == false) return false;
 
     char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
@@ -1300,6 +1302,17 @@ bool autodetect_hashmode_test (hashcat_ctx_t *hashcat_ctx)
         success = true;
 
         break;
+      }
+
+      // abort this list after 100 errors
+
+      if (error_count == 100)
+      {
+        break;
+      }
+      else
+      {
+        error_count++;
       }
     }
 
