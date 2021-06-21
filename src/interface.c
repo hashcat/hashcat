@@ -495,20 +495,21 @@ void hashconfig_destroy (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  if (hashconfig->hook_extra_param_size)
+  if (module_ctx->hook_extra_params)
   {
-    const int hook_threads = (int) user_options->hook_threads;
-
-    for (int i = 0; i < hook_threads; i++)
+    if (hashconfig->hook_extra_param_size)
     {
-      hcfree (module_ctx->hook_extra_params[i]);
-    }
+      const int hook_threads = (int) user_options->hook_threads;
 
-    hcfree (module_ctx->hook_extra_params);
-  }
-  else
-  {
-    hcfree (module_ctx->hook_extra_params[0]);
+      for (int i = 0; i < hook_threads; i++)
+      {
+        hcfree (module_ctx->hook_extra_params[i]);
+      }
+    }
+    else
+    {
+      hcfree (module_ctx->hook_extra_params[0]);
+    }
 
     hcfree (module_ctx->hook_extra_params);
   }
