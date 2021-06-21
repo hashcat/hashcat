@@ -256,7 +256,7 @@ KERNEL_FQ void m14513_sxx (KERN_ATTR_RULES_ESALT (cryptoapi_t))
     }
 
     // key
-    
+
     u32 ukey[8] = { 0 };
 
     ukey[0] = hc_swap32_S (k0);

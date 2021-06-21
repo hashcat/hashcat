@@ -204,7 +204,7 @@ KERNEL_FQ void m03500_sxx (KERN_ATTR_RULES ())
 
   /**
    * base
-   */ 
+   */
 
   COPY_PW (pws[gid]);
 

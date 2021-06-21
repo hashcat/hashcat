@@ -110,7 +110,7 @@ sub pdf_compute_encryption_key_owner
   }
   else
   {
-	$o_key = substr($o_digest, 0, 16); #length is always 128 bits or 16 bytes
+  $o_key = substr($o_digest, 0, 16); #length is always 128 bits or 16 bytes
   }
   #printf("\$o_key = %s\n", unpack ("H*", $o_key));
 

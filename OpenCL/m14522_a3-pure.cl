@@ -115,7 +115,7 @@ KERNEL_FQ void m14522_mxx (KERN_ATTR_VECTOR_ESALT (cryptoapi_t))
       salt_bufs[SALT_POS].salt_buf[0],
       salt_bufs[SALT_POS].salt_buf[1],
       salt_bufs[SALT_POS].salt_buf[2],
-      salt_bufs[SALT_POS].salt_buf[3] 
+      salt_bufs[SALT_POS].salt_buf[3]
     };
 
     // CT
@@ -259,7 +259,7 @@ KERNEL_FQ void m14522_sxx (KERN_ATTR_VECTOR_ESALT (cryptoapi_t))
       salt_bufs[SALT_POS].salt_buf[0],
       salt_bufs[SALT_POS].salt_buf[1],
       salt_bufs[SALT_POS].salt_buf[2],
-      salt_bufs[SALT_POS].salt_buf[3] 
+      salt_bufs[SALT_POS].salt_buf[3]
     };
 
     // CT

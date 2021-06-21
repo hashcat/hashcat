@@ -3,7 +3,7 @@
  * License.....: MIT
  */
 
-//#define NEW_SIMD_CODE 
+//#define NEW_SIMD_CODE
 
 #ifdef KERNEL_STATIC
 #include "inc_vendor.h"

@@ -44,9 +44,9 @@ DECLSPEC u32 MurmurHash (const u32 seed, const u32 *w, const int pw_len)
     hash ^= hash >> R;
   }
 
-	hash *= M;
+  hash *= M;
   hash ^= hash >> 10;
-	hash *= M;
+  hash *= M;
   hash ^= hash >> 17;
 
   #undef M
