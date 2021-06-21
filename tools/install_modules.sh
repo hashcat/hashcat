@@ -16,6 +16,7 @@ cpan install Authen::Passphrase::LANManager \
              Authen::Passphrase::PHPass     \
              Compress::Zlib                 \
              Convert::EBCDIC                \
+             Crypt::AuthEnc::GCM            \
              Crypt::CBC                     \
              Crypt::DES                     \
              Crypt::DES_EDE3                \

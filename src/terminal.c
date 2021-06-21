@@ -30,8 +30,14 @@ void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
   if (user_options->stdout_flag == true) return;
   if (user_options->show        == true) return;
   if (user_options->left        == true) return;
+  if (user_options->identify    == true) return;
 
-  if (user_options->benchmark == true)
+  if (user_options->usage == true)
+  {
+    event_log_info (hashcat_ctx, "%s (%s) starting in help mode...", PROGNAME, version_tag);
+    event_log_info (hashcat_ctx, NULL);
+  }
+  else if (user_options->benchmark == true)
   {
     if (user_options->machine_readable == false)
     {
@@ -68,9 +74,19 @@ void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
     event_log_info (hashcat_ctx, "%s (%s) starting in progress-only mode...", PROGNAME, version_tag);
     event_log_info (hashcat_ctx, NULL);
   }
-  else if (user_options->hash_mode == 0 && user_options->hash_mode_chgd == false)
+  else if (user_options->backend_info == true)
+  {
+    event_log_info (hashcat_ctx, "%s (%s) starting in backend information mode...", PROGNAME, version_tag);
+    event_log_info (hashcat_ctx, NULL);
+  }
+  else if (user_options->hash_mode_chgd == false)
   {
     event_log_info (hashcat_ctx, "%s (%s) starting in autodetect mode...", PROGNAME, version_tag);
+    event_log_info (hashcat_ctx, NULL);
+  }
+  else if (user_options->hash_info == true)
+  {
+    event_log_info (hashcat_ctx, "%s (%s) starting in hash-info mode...", PROGNAME, version_tag);
     event_log_info (hashcat_ctx, NULL);
   }
   else
@@ -96,6 +112,7 @@ void goodbye_screen (hashcat_ctx_t *hashcat_ctx, const time_t proc_start, const 
   if (user_options->stdout_flag == true) return;
   if (user_options->show        == true) return;
   if (user_options->left        == true) return;
+  if (user_options->identify    == true) return;
 
   char start_buf[32]; memset (start_buf, 0, sizeof (start_buf));
   char stop_buf[32];  memset (start_buf, 0, sizeof (stop_buf));
@@ -724,6 +741,10 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       u32   device_maxclock_frequency = device_param->device_maxclock_frequency;
       u64   device_available_mem      = device_param->device_available_mem;
       u64   device_global_mem         = device_param->device_global_mem;
+      u8    pcie_domain               = device_param->pcie_domain;
+      u8    pcie_bus                  = device_param->pcie_bus;
+      u8    pcie_device               = device_param->pcie_device;
+      u8    pcie_function             = device_param->pcie_function;
 
       if (device_param->device_id_alias_cnt)
       {
@@ -739,6 +760,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       event_log_info (hashcat_ctx, "  Clock..........: %u", device_maxclock_frequency);
       event_log_info (hashcat_ctx, "  Memory.Total...: %" PRIu64 " MB", device_global_mem / 1024 / 1024);
       event_log_info (hashcat_ctx, "  Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
+      event_log_info (hashcat_ctx, "  PCI.Addr.BDFe..: %04x:%02x:%02x.%d", (u16) pcie_domain, pcie_bus, pcie_device, pcie_function);
       event_log_info (hashcat_ctx, NULL);
     }
   }
@@ -808,6 +830,24 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         event_log_info (hashcat_ctx, "    Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
         event_log_info (hashcat_ctx, "    OpenCL.Version.: %s", opencl_device_c_version);
         event_log_info (hashcat_ctx, "    Driver.Version.: %s", opencl_driver_version);
+
+        if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
+        {
+          u8 pcie_bus      = device_param->pcie_bus;
+          u8 pcie_device   = device_param->pcie_device;
+          u8 pcie_function = device_param->pcie_function;
+
+          if ((device_param->opencl_platform_vendor_id == VENDOR_ID_AMD) && (device_param->opencl_device_vendor_id == VENDOR_ID_AMD))
+          {
+            event_log_info (hashcat_ctx, "    PCI.Addr.BDF...: %02x:%02x.%d", pcie_bus, pcie_device, pcie_function);
+          }
+
+          if ((device_param->opencl_platform_vendor_id == VENDOR_ID_NV) && (device_param->opencl_device_vendor_id == VENDOR_ID_NV))
+          {
+            event_log_info (hashcat_ctx, "    PCI.Addr.BDF...: %02x:%02x.%d", pcie_bus, pcie_device, pcie_function);
+          }
+        }
+
         event_log_info (hashcat_ctx, NULL);
       }
     }
@@ -1774,6 +1814,10 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
   if (hwmon_ctx->enabled == true)
   {
+    #if defined(__APPLE__)
+    bool first_dev = true;
+    #endif
+
     for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
     {
       const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
@@ -1783,6 +1827,14 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       if (device_info->skipped_warning_dev == true) continue;
 
       if (device_info->hwmon_dev == NULL) continue;
+
+      #if defined(__APPLE__)
+      if (first_dev && strlen (device_info->hwmon_fan_dev) > 0)
+      {
+        event_log_info (hashcat_ctx, "Hardware.Mon.SMC.: %s", device_info->hwmon_fan_dev);
+        first_dev = false;
+      }
+      #endif
 
       event_log_info (hashcat_ctx,
         "Hardware.Mon.#%d..: %s", device_id + 1,

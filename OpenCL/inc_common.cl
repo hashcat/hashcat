@@ -2627,34 +2627,15 @@ DECLSPEC int hc_find_keyboard_layout_map (const u32 search, const int search_len
   return -1;
 }
 
-DECLSPEC int hc_execute_keyboard_layout_mapping (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int pw_len, LOCAL_AS keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt)
+DECLSPEC int hc_execute_keyboard_layout_mapping (u32 *w, const int pw_len, LOCAL_AS keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt)
 {
-  u32 out_buf[16] = { 0 };
+  u32 out_buf[32] = { 0 };
 
   u8 *out_ptr = (u8 *) out_buf;
 
   int out_len = 0;
 
-  // TC/VC passwords are limited to 64
-
-  u32 w[16];
-
-  w[ 0] = w0[0];
-  w[ 1] = w0[1];
-  w[ 2] = w0[2];
-  w[ 3] = w0[3];
-  w[ 4] = w1[0];
-  w[ 5] = w1[1];
-  w[ 6] = w1[2];
-  w[ 7] = w1[3];
-  w[ 8] = w2[0];
-  w[ 9] = w2[1];
-  w[10] = w2[2];
-  w[11] = w2[3];
-  w[12] = w3[0];
-  w[13] = w3[1];
-  w[14] = w3[2];
-  w[15] = w3[3];
+  // TC/VC passwords are limited to 128
 
   u8 *w_ptr = (u8 *) w;
 
@@ -2733,22 +2714,38 @@ DECLSPEC int hc_execute_keyboard_layout_mapping (u32 *w0, u32 *w1, u32 *w2, u32 
     }
   }
 
-  w0[0] = out_buf[ 0];
-  w0[1] = out_buf[ 1];
-  w0[2] = out_buf[ 2];
-  w0[3] = out_buf[ 3];
-  w1[0] = out_buf[ 4];
-  w1[1] = out_buf[ 5];
-  w1[2] = out_buf[ 6];
-  w1[3] = out_buf[ 7];
-  w2[0] = out_buf[ 8];
-  w2[1] = out_buf[ 9];
-  w2[2] = out_buf[10];
-  w2[3] = out_buf[11];
-  w3[0] = out_buf[12];
-  w3[1] = out_buf[13];
-  w3[2] = out_buf[14];
-  w3[3] = out_buf[15];
+  w[ 0] = out_buf[ 0];
+  w[ 1] = out_buf[ 1];
+  w[ 2] = out_buf[ 2];
+  w[ 3] = out_buf[ 3];
+  w[ 4] = out_buf[ 4];
+  w[ 5] = out_buf[ 5];
+  w[ 6] = out_buf[ 6];
+  w[ 7] = out_buf[ 7];
+  w[ 8] = out_buf[ 8];
+  w[ 9] = out_buf[ 9];
+  w[10] = out_buf[10];
+  w[11] = out_buf[11];
+  w[12] = out_buf[12];
+  w[13] = out_buf[13];
+  w[14] = out_buf[14];
+  w[15] = out_buf[15];
+  w[16] = out_buf[16];
+  w[17] = out_buf[17];
+  w[18] = out_buf[18];
+  w[19] = out_buf[19];
+  w[20] = out_buf[20];
+  w[21] = out_buf[21];
+  w[22] = out_buf[22];
+  w[23] = out_buf[23];
+  w[24] = out_buf[24];
+  w[25] = out_buf[25];
+  w[26] = out_buf[26];
+  w[27] = out_buf[27];
+  w[28] = out_buf[28];
+  w[29] = out_buf[29];
+  w[30] = out_buf[30];
+  w[31] = out_buf[31];
 
   return out_len;
 }

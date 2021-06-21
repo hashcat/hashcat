@@ -7,7 +7,7 @@
            |_____|     /___________/     |_____|  /_____/        /_______|
                  :                             :                         :
 
-hashcat v6.2.1
+hashcat v6.2.2
 ==============
 
 AMD GPUs on Linux require "RadeonOpenCompute (ROCm)" Software Platform (3.1 or later)
@@ -146,9 +146,6 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - PBKDF2-HMAC-SHA1
 - PBKDF2-HMAC-SHA256
 - PBKDF2-HMAC-SHA512
-- Python passlib pbkdf2-sha512
-- Python passlib pbkdf2-sha256
-- Python passlib pbkdf2-sha1
 - scrypt
 - phpass
 - TACACS+
@@ -202,6 +199,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Domain Cached Credentials (DCC), MS Cache
 - Domain Cached Credentials 2 (DCC2), MS Cache 2
 - FortiGate (FortiOS)
+- FortiGate256 (FortiOS256)
 - ArubaOS
 - Juniper IVE
 - Juniper NetScreen/SSG (ScreenOS)
@@ -258,6 +256,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Lotus Notes/Domino 5
 - Lotus Notes/Domino 6
 - Lotus Notes/Domino 8
+- OpenEdge Progress Encode
 - Oracle Transportation Management (SHA256)
 - Huawei sha1(md5($pass).$salt)
 - AuthMe sha256
@@ -355,6 +354,9 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Django (SHA-1)
 - Atlassian (PBKDF2-HMAC-SHA1)
 - Ruby on Rails Restful-Authentication
+- Python passlib pbkdf2-sha512
+- Python passlib pbkdf2-sha256
+- Python passlib pbkdf2-sha1
 - PKCS#8 Private Keys (PBKDF2-HMAC-SHA1 + 3DES/AES)
 - PKCS#8 Private Keys (PBKDF2-HMAC-SHA256 + 3DES/AES)
 - JKS Java Key Store Private Keys (SHA1)

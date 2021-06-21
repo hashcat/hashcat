@@ -1,4 +1,44 @@
-* changes v6.2.1 -> v6.x.x
+* changes v6.2.2 -> v6.2.x
+
+##
+## Algorithms
+##
+
+- Added hash-mode: VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 512 bit + boot-mode
+- Added hash-mode: VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 1024 bit + boot-mode
+- Added hash-mode: VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 1536 bit + boot-mode
+
+##
+## Bugs
+##
+
+- Fixed 'E' rule in pure kernel mode which was ignoring letters that are in positions that are multiples of 4
+- Fixed false negative in hash-mode 15900 (DPAPI masterkey file v2) if password was longer than 64 characters
+- Fixed integer overflow in Recovered/Time status view column caused by division > 0 but < 1
+
+##
+## Features
+##
+
+- Added temperature watchdog and fanspeed readings for CPU and GPU on macOS using iokit
+
+##
+## Improvements
+##
+
+- Alias Devices: Show a warning in case the user specifically listed a device to use which in a later step is skipped because it is an alias of another active device
+- Backend Information: Added new column showing the PCI Address per CUDA/OpenCL device to easier identify broken cards
+- VeraCrypt: Increase password length support for non-boot volumes from 64 to 128
+
+##
+## Technical
+##
+
+- Autodetect: Limit the number of errors per hash-mode try to 100 to avoid long startup time
+- LM: Workaround JiT compiler bug in -m 3000 on NV leading to false negatives with large amount of hashes
+- Tests: Changed tests for VeraCrypt from -a 0 to -a 3, because password extension is not available to all shells
+
+* changes v6.2.1 -> v6.2.2
 
 ##
 ## Algorithms
@@ -6,8 +46,10 @@
 
 - Added hash-mode: bcrypt(md5($pass)) / bcryptmd5
 - Added hash-mode: bcrypt(sha1($pass)) / bcryptsha1
+- Added hash-mode: FortiGate256 (FortiOS256)
 - Added hash-mode: Linux Kernel Crypto API (2.4)
 - Added hash-mode: MurmurHash
+- Added hash-mode: OpenEdge Progress Encode
 - Added hash-mode: md5(utf16le($pass))
 - Added hash-mode: sha1(utf16le($pass))
 - Added hash-mode: sha256(utf16le($pass))
@@ -25,29 +67,33 @@
 ## Features
 ##
 
-- Autodetect hash-type: performs an automatic analysis of the input hash(es), associating compatible algorithms, or executing the attack if only one compatible format is found.
+- Autodetect hash-type: performs an automatic analysis of input hash(es), either listing compatible algorithms, or executing the attack (if only one compatible format is found)
+- Autodetect hash-type: added option --identify to only perform autodetection of hash-type, without back-end device initialization
 
 ##
 ## Bugs
 ##
 
-- Fixed error message in -a 9 mode with rules in case number of words from wordlist are not in sync with number of unique salts
-- Fixed false negatives with TrueCrypt/VeraCrypt in case zip or gzip compressed files were used as keyfiles
-- Fixed error handling logic in monitor thread to not return in case of error (disc full, permission error, ...) but to retry instead
+- Fixed error message in -a 9 mode with rules when number of words from wordlist is not in sync with number of unique salts
+- Fixed error-handling logic in monitor thread to not return in case of error (disk full, permission error, ...) but to retry instead
+- Fixed false negatives with TrueCrypt/VeraCrypt when zip- or gzip-compressed files were used as keyfiles
+- Fixed free memory-size output for skipped GPU (both automatic and manual) of --backend-info information screen
 
 ##
 ## Improvements
 ##
 
 - AES Crypt Plugin: Reduced max password length from 256 to 128 which improved performance by 22%
-- CUDA Backend: Do not warn about missing CUDA SDK installation if --stdout is used
-- Folder Management: Add support for XDG Base Directory specification if hashcat was installed using make install
-- OpenCL Backend: Use CL_DEVICE_BOARD_NAME_AMD instead of CL_DEVICE_NAME for device name in case OpenCL runtime supports this query
-- Performance Monitor: Add -S as a user suggestion to improve cracking performance in specific attack configurations
+- CUDA Backend: If --stdout is used, do not warn about missing CUDA SDK
+- Folder Management: Add support for XDG Base Directory specification when hashcat is installed using 'make install'
+- Hardware Monitor: Add support for GPU device utilization readings from sysfs (AMD on Linux)
+- OpenCL Backend: Use CL_DEVICE_BOARD_NAME_AMD instead of CL_DEVICE_NAME for device name (when supported by OpenCL runtime)
+- Performance Monitor: Suggest -S to improve cracking performance in specific attack configurations
 - RAR3-p (Compressed): Fix workaround in unrar library in AES constant table generation to enable multi-threading support
-- RC4 Kernels: Improved performance by 20%+ for hash-modes Kerberos 5 (etype 23), MS Office (<= 2003) and PDF (<= 1.6) by using new RC4 code
-- Status Screen: Show currently running kernel type (pure, optimized) and generator type (host, device)
-- UTF8-to-UTF16: Replaced naive UTF8 to UTF16 conversion with true conversion for RAR3, AES Crypt, MultiBit HD (scrypt) and Umbraco HMAC-SHA1
+- RC4 Kernels: Improved performance by 20%+ with new RC4 code in hash-modes Kerberos 5 (etype 23), MS Office (<= 2003) and PDF (<= 1.6)
+- Scrypt Kernels: Re-enable use of kernel cache in scrypt-based kernels
+- Status Screen: Show currently-running kernel type (pure, optimized) and generator type (host, device)
+- UTF8-to-UTF16: Replaced naive UTF8-to-UTF16 conversion with true conversion for RAR3, AES Crypt, MultiBit HD (scrypt) and Umbraco HMAC-SHA1
 
 ##
 ## Technical
@@ -56,10 +102,15 @@
 - Dependencies: Updated LZMA SDK from 19.00 to 21.02 alpha
 - Dependencies: Updated xxHash from 0.1.0 to v0.8.0 - Stable XXH3
 - Documentation: Update missing documentation in plugin developer guide for OPTS_TYPE_MP_MULTI_DISABLE and OPTS_TYPE_NATIVE_THREADS
+- Hashrate: Update inner-loop hashrate prediction to handle new salt_repeats feature and also respect _loop2 kernel runtime
 - Kernels: Add RC4 cipher to crypto library with optimized shared memory access pattern which will not cause any bank conflicts if -u <= 32
-- Kernels: Add standalone true UTF8 to UTF16 converter kernel that runs after amplifier. Use OPTS_TYPE_POST_AMP_UTF16LE from plugin
+- Kernels: Add standalone true UTF8-to-UTF16 converter kernel that runs after amplifier. Use OPTS_TYPE_POST_AMP_UTF16LE from plugin
+- Kernel Cache: Add module_jit_build_options() string from modules to kernel cache checksum calculation
 - Modules: Recategorized HASH_CATEGORY option in various modules
 - Modules: Added hash categories HASH_CATEGORY_IMS and HASH_CATEGORY_CRYPTOCURRENCY_WALLET
+- Modules: Changed hash category of Python passlib from HASH_CATEGORY_GENERIC_KDF to HASH_CATEGORY_FRAMEWORK
+- Unit-Tests: Added missing support for OPTS_TYPE_LOOP_PREPARE, OPTS_TYPE_LOOP_PREPARE2 and salt_repeats in self-test
+- Unit-Tests: Added missing unit-test for Stargazer Stellar Wallet XLM
 
 * changes v6.2.0 -> v6.2.1
 

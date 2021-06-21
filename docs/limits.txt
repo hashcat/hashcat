@@ -26,12 +26,16 @@ It only means the filename itself.
 ## Hashing algorithms that internally use UTF-16 characters could in special cases lead to false negatives
 ##
 
+For optimized kernels only (-O): Since hashcat v6.2.1 there's true UTF16 support for pure kernels:
+
 The UTF-16 conversion implementation used within the kernel code is very elementary and for performance
 reasons does not respect all complicated encoding rules required to correctly convert, for instance, ASCII
 or UTF-8 to UTF-16LE (or UTF-16BE).
 
 The implementation most likely fails with multi-byte characters, because we basically add a zero byte every
 second byte within the kernel conversion code.
+
+Since hashcat v6.2.1 there's true UTF16 support for pure kernels.
 
 ##
 ## The use of --keep-guessing eventually skips reporting duplicate passwords

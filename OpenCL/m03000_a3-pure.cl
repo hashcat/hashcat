@@ -2070,9 +2070,7 @@ KERNEL_FQ void m03000_mxx (KERN_ATTR_BITSLICE ())
 
         u32 tmpResult = 0;
 
-        #ifdef _unroll
         #pragma unroll
-        #endif
         for (int i = 0; i < 32; i++)
         {
           const u32 b0 = -((search[0] >> i) & 1);
@@ -2088,8 +2086,8 @@ KERNEL_FQ void m03000_mxx (KERN_ATTR_BITSLICE ())
 
         const u32 r0 = search[0];
         const u32 r1 = search[1];
-        const u32 r2 = 0;
         #ifdef KERNEL_STATIC
+        const u32 r2 = 0;
         const u32 r3 = 0;
         #endif
 
@@ -2101,9 +2099,7 @@ KERNEL_FQ void m03000_mxx (KERN_ATTR_BITSLICE ())
       u32 out0[32];
       u32 out1[32];
 
-      #ifdef _unroll
       #pragma unroll
-      #endif
       for (int i = 0; i < 32; i++)
       {
         out0[i] = out[ 0 + 31 - i];
@@ -2113,15 +2109,13 @@ KERNEL_FQ void m03000_mxx (KERN_ATTR_BITSLICE ())
       transpose32c (out0);
       transpose32c (out1);
 
-      #ifdef _unroll
       #pragma unroll
-      #endif
       for (int slice = 0; slice < 32; slice++)
       {
         const u32 r0 = out0[31 - slice];
         const u32 r1 = out1[31 - slice];
-        const u32 r2 = 0;
         #ifdef KERNEL_STATIC
+        const u32 r2 = 0;
         const u32 r3 = 0;
         #endif
 

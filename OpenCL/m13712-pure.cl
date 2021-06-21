@@ -23,7 +23,9 @@ typedef struct vc
 {
   u32 salt_buf[32];
   u32 data_buf[112];
-  u32 keyfile_buf[16];
+  u32 keyfile_buf16[16];
+  u32 keyfile_buf32[32];
+  u32 keyfile_enabled;
   u32 signature;
 
   keyboard_layout_mapping_t keyboard_layout_mapping_buf[256];
@@ -36,10 +38,10 @@ typedef struct vc
 } vc_t;
 
 #ifdef KERNEL_STATIC
-#include "inc_truecrypt_keyfile.cl"
 #include "inc_truecrypt_crc32.cl"
 #include "inc_truecrypt_xts.cl"
 #include "inc_veracrypt_xts.cl"
+#include "inc_veracrypt_keyfile.cl"
 #endif
 
 typedef struct vc_tmp
@@ -201,52 +203,50 @@ KERNEL_FQ void m13712_init (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
    * base
    */
 
-  u32 w0[4];
-  u32 w1[4];
-  u32 w2[4];
-  u32 w3[4];
+  u32 w[32];
 
-  w0[0] = pws[gid].i[ 0];
-  w0[1] = pws[gid].i[ 1];
-  w0[2] = pws[gid].i[ 2];
-  w0[3] = pws[gid].i[ 3];
-  w1[0] = pws[gid].i[ 4];
-  w1[1] = pws[gid].i[ 5];
-  w1[2] = pws[gid].i[ 6];
-  w1[3] = pws[gid].i[ 7];
-  w2[0] = pws[gid].i[ 8];
-  w2[1] = pws[gid].i[ 9];
-  w2[2] = pws[gid].i[10];
-  w2[3] = pws[gid].i[11];
-  w3[0] = pws[gid].i[12];
-  w3[1] = pws[gid].i[13];
-  w3[2] = pws[gid].i[14];
-  w3[3] = pws[gid].i[15];
+  w[ 0] = pws[gid].i[ 0];
+  w[ 1] = pws[gid].i[ 1];
+  w[ 2] = pws[gid].i[ 2];
+  w[ 3] = pws[gid].i[ 3];
+  w[ 4] = pws[gid].i[ 4];
+  w[ 5] = pws[gid].i[ 5];
+  w[ 6] = pws[gid].i[ 6];
+  w[ 7] = pws[gid].i[ 7];
+  w[ 8] = pws[gid].i[ 8];
+  w[ 9] = pws[gid].i[ 9];
+  w[10] = pws[gid].i[10];
+  w[11] = pws[gid].i[11];
+  w[12] = pws[gid].i[12];
+  w[13] = pws[gid].i[13];
+  w[14] = pws[gid].i[14];
+  w[15] = pws[gid].i[15];
+  w[16] = pws[gid].i[16];
+  w[17] = pws[gid].i[17];
+  w[18] = pws[gid].i[18];
+  w[19] = pws[gid].i[19];
+  w[20] = pws[gid].i[20];
+  w[21] = pws[gid].i[21];
+  w[22] = pws[gid].i[22];
+  w[23] = pws[gid].i[23];
+  w[24] = pws[gid].i[24];
+  w[25] = pws[gid].i[25];
+  w[26] = pws[gid].i[26];
+  w[27] = pws[gid].i[27];
+  w[28] = pws[gid].i[28];
+  w[29] = pws[gid].i[29];
+  w[30] = pws[gid].i[30];
+  w[31] = pws[gid].i[31];
 
-  const u32 pw_len = pws[gid].pw_len;
+  u32 pw_len = pws[gid].pw_len;
 
-  hc_execute_keyboard_layout_mapping (w0, w1, w2, w3, pw_len, s_keyboard_layout_mapping_buf, keyboard_layout_mapping_cnt);
+  hc_execute_keyboard_layout_mapping (w, pw_len, s_keyboard_layout_mapping_buf, keyboard_layout_mapping_cnt);
 
-  w0[0] = u8add (w0[0], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[ 0]);
-  w0[1] = u8add (w0[1], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[ 1]);
-  w0[2] = u8add (w0[2], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[ 2]);
-  w0[3] = u8add (w0[3], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[ 3]);
-  w1[0] = u8add (w1[0], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[ 4]);
-  w1[1] = u8add (w1[1], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[ 5]);
-  w1[2] = u8add (w1[2], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[ 6]);
-  w1[3] = u8add (w1[3], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[ 7]);
-  w2[0] = u8add (w2[0], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[ 8]);
-  w2[1] = u8add (w2[1], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[ 9]);
-  w2[2] = u8add (w2[2], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[10]);
-  w2[3] = u8add (w2[3], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[11]);
-  w3[0] = u8add (w3[0], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[12]);
-  w3[1] = u8add (w3[1], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[13]);
-  w3[2] = u8add (w3[2], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[14]);
-  w3[3] = u8add (w3[3], esalt_bufs[DIGESTS_OFFSET].keyfile_buf[15]);
+  pw_len = hc_apply_keyfile_vc (w, pw_len, &esalt_bufs[DIGESTS_OFFSET]);
 
   ripemd160_hmac_ctx_t ripemd160_hmac_ctx;
 
-  ripemd160_hmac_init_64 (&ripemd160_hmac_ctx, w0, w1, w2, w3);
+  ripemd160_hmac_init (&ripemd160_hmac_ctx, w, pw_len);
 
   tmps[gid].ipad[0] = ripemd160_hmac_ctx.ipad.h[0];
   tmps[gid].ipad[1] = ripemd160_hmac_ctx.ipad.h[1];
@@ -265,6 +265,11 @@ KERNEL_FQ void m13712_init (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
   for (u32 i = 0, j = 1; i < 32; i += 5, j += 1)
   {
     ripemd160_hmac_ctx_t ripemd160_hmac_ctx2 = ripemd160_hmac_ctx;
+
+    u32 w0[4];
+    u32 w1[4];
+    u32 w2[4];
+    u32 w3[4];
 
     w0[0] = j << 24;
     w0[1] = 0;

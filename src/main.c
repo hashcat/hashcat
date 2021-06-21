@@ -189,6 +189,7 @@ static void main_outerloop_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MA
   if (user_options->stdout_flag    == true) return;
   if (user_options->backend_info   == true) return;
   if (user_options->speed_only     == true) return;
+  if (user_options->identify       == true) return;
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {

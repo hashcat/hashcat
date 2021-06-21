@@ -309,6 +309,7 @@ int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
   if (user_options->progress_only   == true) return 0;
   if (user_options->usage           == true) return 0;
   if (user_options->version         == true) return 0;
+  if (user_options->identify        == true) return 0;
   if (user_options->restore_disable == true) return 0;
 
   if (argc ==    0) return 0;

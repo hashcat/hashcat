@@ -256,7 +256,7 @@ DECLSPEC int is_valid_hex_32 (const u32 v);
 DECLSPEC int is_valid_base58_8 (const u8 v);
 DECLSPEC int is_valid_base58_32 (const u32 v);
 DECLSPEC int hc_find_keyboard_layout_map (const u32 search, const int search_len, LOCAL_AS keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt);
-DECLSPEC int hc_execute_keyboard_layout_mapping (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int pw_len, LOCAL_AS keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt);
+DECLSPEC int hc_execute_keyboard_layout_mapping (u32 *w, const int pw_len, LOCAL_AS keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt);
 DECLSPEC void make_utf16be (const u32x *in, u32x *out1, u32x *out2);
 DECLSPEC void make_utf16beN (const u32x *in, u32x *out1, u32x *out2);
 DECLSPEC void make_utf16le (const u32x *in, u32x *out1, u32x *out2);

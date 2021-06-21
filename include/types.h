@@ -611,7 +611,11 @@ typedef enum user_options_defaults
   DEBUG_MODE               = 0,
   FORCE                    = false,
   HWMON_DISABLE            = false,
+  #if defined (__APPLE__)
+  HWMON_TEMP_ABORT         = 100,
+  #else
   HWMON_TEMP_ABORT         = 90,
+  #endif
   HASH_INFO                = false,
   HASH_MODE                = 0,
   HCCAPX_MESSAGE_PAIR      = 0,
@@ -619,6 +623,7 @@ typedef enum user_options_defaults
   HEX_SALT                 = false,
   HEX_WORDLIST             = false,
   HOOK_THREADS             = 0,
+  IDENTIFY                 = false,
   INCREMENT                = false,
   INCREMENT_MAX            = PW_MAX,
   INCREMENT_MIN            = 1,
@@ -725,73 +730,74 @@ typedef enum user_options_map
   IDX_HEX_SALT                  = 0xff1a,
   IDX_HEX_WORDLIST              = 0xff1b,
   IDX_HOOK_THREADS              = 0xff1c,
+  IDX_IDENTIFY                  = 0xff1d,
   IDX_INCREMENT                 = 'i',
-  IDX_INCREMENT_MAX             = 0xff1d,
-  IDX_INCREMENT_MIN             = 0xff1e,
-  IDX_INDUCTION_DIR             = 0xff1f,
-  IDX_KEEP_GUESSING             = 0xff20,
+  IDX_INCREMENT_MAX             = 0xff1e,
+  IDX_INCREMENT_MIN             = 0xff1f,
+  IDX_INDUCTION_DIR             = 0xff20,
+  IDX_KEEP_GUESSING             = 0xff21,
   IDX_KERNEL_ACCEL              = 'n',
   IDX_KERNEL_LOOPS              = 'u',
   IDX_KERNEL_THREADS            = 'T',
-  IDX_KEYBOARD_LAYOUT_MAPPING   = 0xff21,
-  IDX_KEYSPACE                  = 0xff22,
-  IDX_LEFT                      = 0xff23,
+  IDX_KEYBOARD_LAYOUT_MAPPING   = 0xff22,
+  IDX_KEYSPACE                  = 0xff23,
+  IDX_LEFT                      = 0xff24,
   IDX_LIMIT                     = 'l',
-  IDX_LOGFILE_DISABLE           = 0xff24,
-  IDX_LOOPBACK                  = 0xff25,
-  IDX_MACHINE_READABLE          = 0xff26,
-  IDX_MARKOV_CLASSIC            = 0xff27,
-  IDX_MARKOV_DISABLE            = 0xff28,
-  IDX_MARKOV_HCSTAT2            = 0xff29,
+  IDX_LOGFILE_DISABLE           = 0xff25,
+  IDX_LOOPBACK                  = 0xff26,
+  IDX_MACHINE_READABLE          = 0xff27,
+  IDX_MARKOV_CLASSIC            = 0xff28,
+  IDX_MARKOV_DISABLE            = 0xff29,
+  IDX_MARKOV_HCSTAT2            = 0xff2a,
   IDX_MARKOV_THRESHOLD          = 't',
-  IDX_NONCE_ERROR_CORRECTIONS   = 0xff2a,
+  IDX_NONCE_ERROR_CORRECTIONS   = 0xff2b,
   IDX_OPENCL_DEVICE_TYPES       = 'D',
   IDX_OPTIMIZED_KERNEL_ENABLE   = 'O',
-  IDX_OUTFILE_AUTOHEX_DISABLE   = 0xff2b,
-  IDX_OUTFILE_CHECK_DIR         = 0xff2c,
-  IDX_OUTFILE_CHECK_TIMER       = 0xff2d,
-  IDX_OUTFILE_FORMAT            = 0xff2e,
+  IDX_OUTFILE_AUTOHEX_DISABLE   = 0xff2c,
+  IDX_OUTFILE_CHECK_DIR         = 0xff2d,
+  IDX_OUTFILE_CHECK_TIMER       = 0xff2e,
+  IDX_OUTFILE_FORMAT            = 0xff2f,
   IDX_OUTFILE                   = 'o',
-  IDX_POTFILE_DISABLE           = 0xff2f,
-  IDX_POTFILE_PATH              = 0xff30,
-  IDX_PROGRESS_ONLY             = 0xff31,
-  IDX_QUIET                     = 0xff32,
-  IDX_REMOVE                    = 0xff33,
-  IDX_REMOVE_TIMER              = 0xff34,
-  IDX_RESTORE                   = 0xff35,
-  IDX_RESTORE_DISABLE           = 0xff36,
-  IDX_RESTORE_FILE_PATH         = 0xff37,
+  IDX_POTFILE_DISABLE           = 0xff30,
+  IDX_POTFILE_PATH              = 0xff31,
+  IDX_PROGRESS_ONLY             = 0xff32,
+  IDX_QUIET                     = 0xff33,
+  IDX_REMOVE                    = 0xff34,
+  IDX_REMOVE_TIMER              = 0xff35,
+  IDX_RESTORE                   = 0xff36,
+  IDX_RESTORE_DISABLE           = 0xff37,
+  IDX_RESTORE_FILE_PATH         = 0xff38,
   IDX_RP_FILE                   = 'r',
-  IDX_RP_GEN_FUNC_MAX           = 0xff38,
-  IDX_RP_GEN_FUNC_MIN           = 0xff39,
+  IDX_RP_GEN_FUNC_MAX           = 0xff39,
+  IDX_RP_GEN_FUNC_MIN           = 0xff3a,
   IDX_RP_GEN                    = 'g',
-  IDX_RP_GEN_SEED               = 0xff3a,
+  IDX_RP_GEN_SEED               = 0xff3b,
   IDX_RULE_BUF_L                = 'j',
   IDX_RULE_BUF_R                = 'k',
-  IDX_RUNTIME                   = 0xff3b,
-  IDX_SCRYPT_TMTO               = 0xff3c,
+  IDX_RUNTIME                   = 0xff3c,
+  IDX_SCRYPT_TMTO               = 0xff3d,
   IDX_SEGMENT_SIZE              = 'c',
-  IDX_SELF_TEST_DISABLE         = 0xff3d,
+  IDX_SELF_TEST_DISABLE         = 0xff3e,
   IDX_SEPARATOR                 = 'p',
-  IDX_SESSION                   = 0xff3e,
-  IDX_SHOW                      = 0xff3f,
+  IDX_SESSION                   = 0xff3f,
+  IDX_SHOW                      = 0xff40,
   IDX_SKIP                      = 's',
   IDX_SLOW_CANDIDATES           = 'S',
-  IDX_SPEED_ONLY                = 0xff40,
-  IDX_SPIN_DAMP                 = 0xff41,
-  IDX_STATUS                    = 0xff42,
-  IDX_STATUS_JSON               = 0xff43,
-  IDX_STATUS_TIMER              = 0xff44,
-  IDX_STDOUT_FLAG               = 0xff45,
-  IDX_STDIN_TIMEOUT_ABORT       = 0xff46,
-  IDX_TRUECRYPT_KEYFILES        = 0xff47,
-  IDX_USERNAME                  = 0xff48,
-  IDX_VERACRYPT_KEYFILES        = 0xff49,
-  IDX_VERACRYPT_PIM_START       = 0xff4a,
-  IDX_VERACRYPT_PIM_STOP        = 0xff4b,
+  IDX_SPEED_ONLY                = 0xff41,
+  IDX_SPIN_DAMP                 = 0xff42,
+  IDX_STATUS                    = 0xff43,
+  IDX_STATUS_JSON               = 0xff44,
+  IDX_STATUS_TIMER              = 0xff45,
+  IDX_STDOUT_FLAG               = 0xff46,
+  IDX_STDIN_TIMEOUT_ABORT       = 0xff47,
+  IDX_TRUECRYPT_KEYFILES        = 0xff48,
+  IDX_USERNAME                  = 0xff49,
+  IDX_VERACRYPT_KEYFILES        = 0xff4a,
+  IDX_VERACRYPT_PIM_START       = 0xff4b,
+  IDX_VERACRYPT_PIM_STOP        = 0xff4c,
   IDX_VERSION_LOWER             = 'v',
   IDX_VERSION                   = 'V',
-  IDX_WORDLIST_AUTOHEX_DISABLE  = 0xff4c,
+  IDX_WORDLIST_AUTOHEX_DISABLE  = 0xff4d,
   IDX_WORKLOAD_PROFILE          = 'w',
 
 } user_options_map_t;
@@ -1587,6 +1593,7 @@ typedef struct backend_ctx
   bool                need_nvml;
   bool                need_nvapi;
   bool                need_sysfs;
+  bool                need_iokit;
 
   int                 comptime;
 
@@ -1630,6 +1637,7 @@ typedef enum kernel_workload
 #include "ext_nvapi.h"
 #include "ext_nvml.h"
 #include "ext_sysfs.h"
+#include "ext_iokit.h"
 
 typedef struct hm_attrs
 {
@@ -1637,6 +1645,7 @@ typedef struct hm_attrs
   HM_ADAPTER_NVML    nvml;
   HM_ADAPTER_NVAPI   nvapi;
   HM_ADAPTER_SYSFS   sysfs;
+  HM_ADAPTER_IOKIT   iokit;
 
   int od_version;
 
@@ -1661,6 +1670,7 @@ typedef struct hwmon_ctx
   void *hm_nvml;
   void *hm_nvapi;
   void *hm_sysfs;
+  void *hm_iokit;
 
   hm_attrs_t *hm_device;
 
@@ -1951,6 +1961,7 @@ typedef struct user_options
   #endif
   bool         hash_mode_chgd;
   bool         hccapx_message_pair_chgd;
+  bool         identify;
   bool         increment_max_chgd;
   bool         increment_min_chgd;
   bool         kernel_accel_chgd;
@@ -2240,6 +2251,9 @@ typedef struct device_info
   double  exec_msec_dev;
   char   *speed_sec_dev;
   char   *guess_candidates_dev;
+  #if defined(__APPLE__)
+  char   *hwmon_fan_dev;
+  #endif
   char   *hwmon_dev;
   int     corespeed_dev;
   int     memoryspeed_dev;
@@ -2682,7 +2696,7 @@ typedef enum hash_category
   HASH_CATEGORY_PRIVATE_KEY             = 20,
   HASH_CATEGORY_IMS                     = 21,
   HASH_CATEGORY_CRYPTOCURRENCY_WALLET   = 22,
-
+  HASH_CATEGORY_FBE                     = 23
 } hash_category_t;
 
 // hash specific

@@ -1271,6 +1271,8 @@ bool autodetect_hashmode_test (hashcat_ctx_t *hashcat_ctx)
   {
     HCFILE fp;
 
+    int error_count = 0;
+
     if (hc_fopen (&fp, hashfile, "rb") == false) return false;
 
     char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
@@ -1300,6 +1302,17 @@ bool autodetect_hashmode_test (hashcat_ctx_t *hashcat_ctx)
         success = true;
 
         break;
+      }
+
+      // abort this list after 100 errors
+
+      if (error_count == 100)
+      {
+        break;
+      }
+      else
+      {
+        error_count++;
       }
     }
 
@@ -1464,42 +1477,86 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
     if (modes_cnt > 1)
     {
-      event_log_info (hashcat_ctx, "The following %d hash-modes match the structure of your input hash:", modes_cnt);
-      event_log_info (hashcat_ctx, NULL);
-      event_log_info (hashcat_ctx, "      # | Name                                                | Category");
-      event_log_info (hashcat_ctx, "  ======+=====================================================+======================================");
+      if (user_options->machine_readable == false)
+      {
+        event_log_info (hashcat_ctx, "The following %d hash-modes match the structure of your input hash:", modes_cnt);
+        event_log_info (hashcat_ctx, NULL);
+        event_log_info (hashcat_ctx, "      # | Name                                                | Category");
+        event_log_info (hashcat_ctx, "  ======+=====================================================+======================================");
+      }
 
       for (int i = 0; i < modes_cnt; i++)
       {
-        event_log_info (hashcat_ctx, "%7u | %-51s | %s", usage_sort_buf[i].hash_mode, usage_sort_buf[i].hash_name, strhashcategory (usage_sort_buf[i].hash_category));
+        if (user_options->machine_readable == false)
+        {
+          event_log_info (hashcat_ctx, "%7u | %-51s | %s", usage_sort_buf[i].hash_mode, usage_sort_buf[i].hash_name, strhashcategory (usage_sort_buf[i].hash_category));
+        }
+        else
+        {
+          event_log_info (hashcat_ctx, "%u", usage_sort_buf[i].hash_mode);
+        }
 
         hcfree (usage_sort_buf[i].hash_name);
       }
 
-      event_log_info (hashcat_ctx, NULL);
-
-      event_log_error (hashcat_ctx, "Please specify the hash-mode with -m [hash-mode].");
-
       hcfree (usage_sort_buf);
 
-      return -1;
+      if (user_options->machine_readable == false) event_log_info (hashcat_ctx, NULL);
+
+      if (user_options->identify == false)
+      {
+        event_log_error (hashcat_ctx, "Please specify the hash-mode with -m [hash-mode].");
+
+        return -1;
+      }
+
+      return 0;
     }
 
     // modes_cnt == 1
 
-    event_log_warning (hashcat_ctx, "Hash-mode was not specified with -m. Attempting to auto-detect hash mode.");
-    event_log_warning (hashcat_ctx, "The following mode was auto-detected as the only one matching your input hash:");
-    event_log_warning (hashcat_ctx, "\n%u | %s | %s\n", usage_sort_buf[0].hash_mode, usage_sort_buf[0].hash_name, strhashcategory (usage_sort_buf[0].hash_category));
-    event_log_warning (hashcat_ctx, "NOTE: Auto-detect is best effort. The correct hash-mode is NOT guaranteed!");
-    event_log_warning (hashcat_ctx, "Do NOT report auto-detect issues unless you are certain of the hash type.");
-    event_log_warning (hashcat_ctx, NULL);
+    if (user_options->identify == false)
+    {
+      event_log_warning (hashcat_ctx, "Hash-mode was not specified with -m. Attempting to auto-detect hash mode.");
+      event_log_warning (hashcat_ctx, "The following mode was auto-detected as the only one matching your input hash:");
+    }
 
-    user_options->autodetect = false;
+    if (user_options->identify == true)
+    {
+      if (user_options->machine_readable == true)
+      {
+        event_log_info (hashcat_ctx, "%u", usage_sort_buf[0].hash_mode);
+      }
+      else
+      {
+        event_log_info (hashcat_ctx, "The following hash-mode match the structure of your input hash:");
+        event_log_info (hashcat_ctx, NULL);
+        event_log_info (hashcat_ctx, "      # | Name                                                | Category");
+        event_log_info (hashcat_ctx, "  ======+=====================================================+======================================");
+        event_log_info (hashcat_ctx, "%7u | %-51s | %s", usage_sort_buf[0].hash_mode, usage_sort_buf[0].hash_name, strhashcategory (usage_sort_buf[0].hash_category));
+        event_log_info (hashcat_ctx, NULL);
+      }
+    }
+    else
+    {
+      event_log_info (hashcat_ctx, "\n%u | %s | %s\n", usage_sort_buf[0].hash_mode, usage_sort_buf[0].hash_name, strhashcategory (usage_sort_buf[0].hash_category));
+    }
+
+    if (user_options->identify == false)
+    {
+      event_log_warning (hashcat_ctx, "NOTE: Auto-detect is best effort. The correct hash-mode is NOT guaranteed!");
+      event_log_warning (hashcat_ctx, "Do NOT report auto-detect issues unless you are certain of the hash type.");
+      event_log_warning (hashcat_ctx, NULL);
+    }
 
     user_options->hash_mode = usage_sort_buf[0].hash_mode;
 
     hcfree (usage_sort_buf[0].hash_name);
     hcfree (usage_sort_buf);
+
+    if (user_options->identify == true) return 0;
+
+    user_options->autodetect = false;
   }
 
   /**
@@ -1731,6 +1788,8 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
   #ifdef WITH_BRAIN
   hashcat_status->brain_session               = status_get_brain_session              (hashcat_ctx);
   hashcat_status->brain_attack                = status_get_brain_attack               (hashcat_ctx);
+  hashcat_status->brain_rx_all                = status_get_brain_rx_all               (hashcat_ctx);
+  hashcat_status->brain_tx_all                = status_get_brain_tx_all               (hashcat_ctx);
   #endif
   hashcat_status->status_string               = status_get_status_string              (hashcat_ctx);
   hashcat_status->status_number               = status_get_status_number              (hashcat_ctx);
@@ -1762,6 +1821,9 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
     device_info->exec_msec_dev                  = status_get_exec_msec_dev                  (hashcat_ctx, device_id);
     device_info->speed_sec_dev                  = status_get_speed_sec_dev                  (hashcat_ctx, device_id);
     device_info->guess_candidates_dev           = status_get_guess_candidates_dev           (hashcat_ctx, device_id);
+    #if defined(__APPLE__)
+    device_info->hwmon_fan_dev                  = status_get_hwmon_fan_dev                  (hashcat_ctx);
+    #endif
     device_info->hwmon_dev                      = status_get_hwmon_dev                      (hashcat_ctx, device_id);
     device_info->corespeed_dev                  = status_get_corespeed_dev                  (hashcat_ctx, device_id);
     device_info->memoryspeed_dev                = status_get_memoryspeed_dev                (hashcat_ctx, device_id);
@@ -1783,8 +1845,6 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
     device_info->brain_link_send_bytes_dev      = status_get_brain_link_send_bytes_dev      (hashcat_ctx, device_id);
     device_info->brain_link_recv_bytes_sec_dev  = status_get_brain_link_recv_bytes_sec_dev  (hashcat_ctx, device_id);
     device_info->brain_link_send_bytes_sec_dev  = status_get_brain_link_send_bytes_sec_dev  (hashcat_ctx, device_id);
-    hashcat_status->brain_rx_all   = status_get_brain_rx_all   (hashcat_ctx);
-    hashcat_status->brain_tx_all   = status_get_brain_tx_all   (hashcat_ctx);
     #endif
   }
 
