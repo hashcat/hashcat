@@ -1,6 +1,14 @@
 * changes v6.2.2 -> v6.2.x
 
 ##
+## Algorithms
+##
+
+- Added hash-mode: VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 512 bit + boot-mode
+- Added hash-mode: VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 1024 bit + boot-mode
+- Added hash-mode: VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 1536 bit + boot-mode
+
+##
 ## Bugs
 ##
 
