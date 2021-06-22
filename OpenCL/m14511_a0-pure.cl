@@ -120,7 +120,7 @@ KERNEL_FQ void m14511_mxx (KERN_ATTR_RULES_ESALT (cryptoapi_t))
       ctx.w0[0] = 0x41000000;
 
       ctx.len = 1;
-      
+
       sha1_update_swap (&ctx, w, w_len);
 
       sha1_final (&ctx);

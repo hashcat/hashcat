@@ -45,7 +45,7 @@ sub module_generate_hash
 "guid" : "00000000-0000-0000-0000-000000000000",
 "sharedKey" : "00000000-0000-0000-0000-000000000000",
 "options" : {"pbkdf2_iterations":$iterations,"fee_policy":0,"html5_notifications":false,"logout_time":600000,"tx_display":0,"always_keep_local_backup":false}|;
-  
+
   unless (defined $encrypted)
   {
     $encrypted = unpack ("H*", $cipher->encrypt ($data));

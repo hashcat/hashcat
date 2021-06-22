@@ -1,7 +1,7 @@
 /**
  * Author......: See docs/credits.txt
  * License.....: MIT
- */ 
+ */
 
 #include "common.h"
 #include "types.h"
@@ -73,7 +73,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  const u8 *hash_pos = token.buf[0]; 
+  const u8 *hash_pos = token.buf[0];
 
   digest[0] = hex_to_u32 (hash_pos +  0);
   digest[1] = hex_to_u32 (hash_pos +  8);

@@ -1,7 +1,7 @@
 /**
  * Author......: See docs/credits.txt
  * License.....: MIT
- */ 
+ */
 
 #define NEW_SIMD_CODE
 

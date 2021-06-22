@@ -398,7 +398,7 @@ KERNEL_FQ void m25900_comp(KERN_ATTR_TMPS_ESALT(pbkdf2_sha256_tmp_t, blocks_t))
   aes128_encrypt_cbc (aes_ks, aes_cbc_iv, b1, yn, s_te0, s_te1, s_te2, s_te3, s_te4);
   aes128_encrypt_cbc (aes_ks, aes_cbc_iv, b2, yn, s_te0, s_te1, s_te2, s_te3, s_te4);
   aes128_encrypt_cbc (aes_ks, aes_cbc_iv, b3, yn, s_te0, s_te1, s_te2, s_te3, s_te4);
- 
+
   u32 nonce[4];
 
   nonce[0] = 0;

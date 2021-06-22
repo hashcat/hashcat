@@ -80,7 +80,7 @@ KERNEL_FQ void m14523_mxx (KERN_ATTR_RULES_ESALT (cryptoapi_t))
     }
 
     // key
-    
+
     u32 ukey[8] = { 0 };
 
     ukey[0] = hc_swap32_S (k0);
@@ -106,7 +106,7 @@ KERNEL_FQ void m14523_mxx (KERN_ATTR_RULES_ESALT (cryptoapi_t))
       salt_bufs[SALT_POS].salt_buf[0],
       salt_bufs[SALT_POS].salt_buf[1],
       salt_bufs[SALT_POS].salt_buf[2],
-      salt_bufs[SALT_POS].salt_buf[3] 
+      salt_bufs[SALT_POS].salt_buf[3]
     };
 
     // CT
@@ -244,7 +244,7 @@ KERNEL_FQ void m14523_sxx (KERN_ATTR_RULES_ESALT (cryptoapi_t))
       salt_bufs[SALT_POS].salt_buf[0],
       salt_bufs[SALT_POS].salt_buf[1],
       salt_bufs[SALT_POS].salt_buf[2],
-      salt_bufs[SALT_POS].salt_buf[3] 
+      salt_bufs[SALT_POS].salt_buf[3]
     };
 
     // CT

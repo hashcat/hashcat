@@ -32,15 +32,15 @@ sub module_generate_hash
 
   my $hash_buf = encode_base64 ($pbkdf2->PBKDF2 ($salt, $word), '');
   my $salt_buf = encode_base64 ($salt, '');
-  
+
   # replace + with .
   $hash_buf =~ s/\+/\./g;
   $salt_buf =~ s/\+/\./g;
-  
+
   # remove padding =
   $hash_buf =~ s/\=+$//;
   $salt_buf =~ s/\=+$//;
-  
+
   my $hash = sprintf ("\$pbkdf2-sha512\$%i\$%s\$%s", $iter, $salt_buf, $hash_buf);
 
   return $hash;

@@ -1847,7 +1847,7 @@ DECLSPEC void point_mul_xy (u32 *x1, u32 *y1, const u32 *k, GLOBAL_AS const secp
 {
   u32 naf[SECP256K1_NAF_SIZE] = { 0 };
   int loop_start = convert_to_window_naf(naf, k);
-  
+
   // first set:
 
   const u32 multiplier = (naf[loop_start >> 3] >> ((loop_start & 7) << 2)) & 0x0f; // or use u8 ?
@@ -1973,7 +1973,7 @@ DECLSPEC void point_mul_xy (u32 *x1, u32 *y1, const u32 *k, GLOBAL_AS const secp
 
   mul_mod (z1, z2, z1); // z1^3
   mul_mod (y1, y1, z1); // y1_affine
-  
+
   // return values are already in x1 and y1
 }
 
