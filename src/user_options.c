@@ -2865,7 +2865,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       event_log_warning (hashcat_ctx, "For example, using \"7z e\" instead of using \"7z x\".");
       event_log_warning (hashcat_ctx, NULL);
     }
-    
+
     hashconfig_destroy (hashcat_ctx);
 
     return -1;
@@ -2893,7 +2893,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
   }
-  
+
   // loopback - can't check at this point
 
   // tuning file check already done
