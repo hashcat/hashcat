@@ -1,6 +1,6 @@
 ---
 name: Other issue
-about: Issues that are not bugs or features, but should be addressed
+about: Minor issues that are not bugs or features, but should be addressed
 title: ''
 labels: 'help wanted'
 assignees: ''
