@@ -250,7 +250,7 @@ static void main_cracker_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
   }
   else if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
   {
-    event_log_info (hashcat_ctx, "Starting attack in stdin mode...");
+    event_log_info (hashcat_ctx, "Starting attack in stdin mode");
     event_log_info (hashcat_ctx, NULL);
   }
 }
@@ -368,7 +368,7 @@ static void main_potfile_remove_parse_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_c
 
   if (user_options->quiet == true) return;
 
-  event_log_info_nn (hashcat_ctx, "Comparing hashes with potfile entries...");
+  event_log_info_nn (hashcat_ctx, "Comparing hashes with potfile entries. Please be patient...");
 }
 
 static void main_potfile_remove_parse_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -377,7 +377,7 @@ static void main_potfile_remove_parse_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_
 
   if (user_options->quiet == true) return;
 
-  event_log_info_nn (hashcat_ctx, "Compared hashes with potfile entries...");
+  event_log_info_nn (hashcat_ctx, "Compared hashes with potfile entries");
 }
 
 static void main_potfile_hash_show (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -536,7 +536,7 @@ static void main_backend_session_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, M
 
   if (user_options->quiet == true) return;
 
-  event_log_info_nn (hashcat_ctx, "Initializing device kernels and memory...");
+  event_log_info_nn (hashcat_ctx, "Initializing device kernels and memory. Please be patient...");
 }
 
 static void main_backend_session_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -545,7 +545,7 @@ static void main_backend_session_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
 
   if (user_options->quiet == true) return;
 
-  event_log_info_nn (hashcat_ctx, "Initialized device kernels and memory...");
+  event_log_info_nn (hashcat_ctx, "Initialized device kernels and memory");
 }
 
 static void main_backend_session_hostmem (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -568,7 +568,7 @@ static void main_backend_device_init_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ct
 
   const u32 *device_id = (const u32 *) buf;
 
-  event_log_info_nn (hashcat_ctx, "Initializing backend runtime for device #%u...", *device_id + 1);
+  event_log_info_nn (hashcat_ctx, "Initializing backend runtime for device #%u. Please be patient...", *device_id + 1);
 }
 
 static void main_backend_device_init_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -579,7 +579,7 @@ static void main_backend_device_init_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_c
 
   const u32 *device_id = (const u32 *) buf;
 
-  event_log_info_nn (hashcat_ctx, "Initialized backend runtime for device #%u...", *device_id + 1);
+  event_log_info_nn (hashcat_ctx, "Initialized backend runtime for device #%u", *device_id + 1);
 }
 
 static void main_bitmap_init_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -597,7 +597,7 @@ static void main_bitmap_init_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
 
   if (user_options->quiet == true) return;
 
-  event_log_info_nn (hashcat_ctx, "Generated bitmap tables...");
+  event_log_info_nn (hashcat_ctx, "Generated bitmap tables");
 }
 
 static void main_bitmap_final_overflow (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -768,7 +768,7 @@ static void main_monitor_noinput_hint (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
 
 static void main_monitor_noinput_abort (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
-  event_log_error (hashcat_ctx, "No password candidates received in stdin mode, aborting...");
+  event_log_error (hashcat_ctx, "No password candidates received in stdin mode, aborting");
 }
 
 static void main_monitor_temp_abort (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -785,7 +785,7 @@ static void main_monitor_temp_abort (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MA
 
   const u32 *device_id = (const u32 *) buf;
 
-  event_log_error (hashcat_ctx, "Temperature limit on GPU #%u reached, aborting...", *device_id + 1);
+  event_log_error (hashcat_ctx, "Temperature limit on GPU #%u reached, aborting", *device_id + 1);
 }
 
 static void main_monitor_runtime_limit (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -800,7 +800,7 @@ static void main_monitor_runtime_limit (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx,
     clear_prompt (hashcat_ctx);
   }
 
-  event_log_warning (hashcat_ctx, "Runtime limit reached, aborting...");
+  event_log_warning (hashcat_ctx, "Runtime limit reached, aborting");
 }
 
 static void main_monitor_status_refresh (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -934,7 +934,7 @@ static void main_hashlist_count_lines_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_c
 
   const char *hashfile = (const char *) buf;
 
-  event_log_info_nn (hashcat_ctx, "Counting lines in %s...", hashfile);
+  event_log_info_nn (hashcat_ctx, "Counting lines in %s. Please be patient...", hashfile);
 }
 
 static void main_hashlist_count_lines_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -945,7 +945,7 @@ static void main_hashlist_count_lines_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_
 
   const char *hashfile = (const char *) buf;
 
-  event_log_info_nn (hashcat_ctx, "Counted lines in %s...", hashfile);
+  event_log_info_nn (hashcat_ctx, "Counted lines in %s", hashfile);
 }
 
 static void main_hashlist_parse_hash (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -975,7 +975,7 @@ static void main_hashlist_sort_hash_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx
 
   if (user_options->quiet == true) return;
 
-  event_log_info_nn (hashcat_ctx, "Sorting hashes...");
+  event_log_info_nn (hashcat_ctx, "Sorting hashes. Please be patient...");
 }
 
 static void main_hashlist_sort_hash_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -984,7 +984,7 @@ static void main_hashlist_sort_hash_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ct
 
   if (user_options->quiet == true) return;
 
-  event_log_info_nn (hashcat_ctx, "Sorted hashes...");
+  event_log_info_nn (hashcat_ctx, "Sorted hashes");
 }
 
 static void main_hashlist_unique_hash_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -993,7 +993,7 @@ static void main_hashlist_unique_hash_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_c
 
   if (user_options->quiet == true) return;
 
-  event_log_info_nn (hashcat_ctx, "Removing duplicate hashes...");
+  event_log_info_nn (hashcat_ctx, "Removing duplicate hashes. Please be patient...");
 }
 
 static void main_hashlist_unique_hash_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -1002,7 +1002,7 @@ static void main_hashlist_unique_hash_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_
 
   if (user_options->quiet == true) return;
 
-  event_log_info_nn (hashcat_ctx, "Removed duplicate hashes...");
+  event_log_info_nn (hashcat_ctx, "Removed duplicate hashes");
 }
 
 static void main_hashlist_sort_salt_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -1011,7 +1011,7 @@ static void main_hashlist_sort_salt_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx
 
   if (user_options->quiet == true) return;
 
-  event_log_info_nn (hashcat_ctx, "Sorting salts...");
+  event_log_info_nn (hashcat_ctx, "Sorting salts. Please be patient...");
 }
 
 static void main_hashlist_sort_salt_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -1020,13 +1020,53 @@ static void main_hashlist_sort_salt_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ct
 
   if (user_options->quiet == true) return;
 
-  event_log_info_nn (hashcat_ctx, "Sorted salts...");
+  event_log_info_nn (hashcat_ctx, "Sorted salts");
+}
+
+static void main_autodetect_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  event_log_info_nn (hashcat_ctx, "Autodetecting hash-modes. Please be patient...");
+}
+
+static void main_autodetect_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  event_log_info_nn (hashcat_ctx, "Autodetected hash-modes");
+}
+
+static void main_selftest_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  event_log_info_nn (hashcat_ctx, "Starting self-test. Please be patient...");
+}
+
+static void main_selftest_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  event_log_info_nn (hashcat_ctx, "Finished self-test");
 }
 
 static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
 {
   switch (id)
   {
+    case EVENT_SELFTEST_FINISHED:         main_selftest_finished         (hashcat_ctx, buf, len); break;
+    case EVENT_SELFTEST_STARTING:         main_selftest_starting         (hashcat_ctx, buf, len); break;
+    case EVENT_AUTODETECT_FINISHED:       main_autodetect_finished       (hashcat_ctx, buf, len); break;
+    case EVENT_AUTODETECT_STARTING:       main_autodetect_starting       (hashcat_ctx, buf, len); break;
     case EVENT_BITMAP_INIT_POST:          main_bitmap_init_post          (hashcat_ctx, buf, len); break;
     case EVENT_BITMAP_INIT_PRE:           main_bitmap_init_pre           (hashcat_ctx, buf, len); break;
     case EVENT_BITMAP_FINAL_OVERFLOW:     main_bitmap_final_overflow     (hashcat_ctx, buf, len); break;

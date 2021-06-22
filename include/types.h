@@ -103,6 +103,8 @@ typedef enum loglevel
 
 typedef enum event_identifier
 {
+  EVENT_AUTODETECT_FINISHED       = 0x00000100,
+  EVENT_AUTODETECT_STARTING       = 0x00000101,
   EVENT_AUTOTUNE_FINISHED         = 0x00000000,
   EVENT_AUTOTUNE_STARTING         = 0x00000001,
   EVENT_BITMAP_INIT_POST          = 0x00000010,

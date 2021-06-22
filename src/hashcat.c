@@ -1372,6 +1372,8 @@ int autodetect_hashmodes (hashcat_ctx_t *hashcat_ctx, usage_sort_t *usage_sort_b
 
   // save quiet state so we can restore later
 
+  EVENT (EVENT_AUTODETECT_STARTING);
+
   const bool quiet_sav = user_options->quiet;
 
   user_options->quiet = true;
@@ -1420,6 +1422,8 @@ int autodetect_hashmodes (hashcat_ctx_t *hashcat_ctx, usage_sort_t *usage_sort_b
   qsort (usage_sort_buf, usage_sort_cnt, sizeof (usage_sort_t), sort_by_usage);
 
   user_options->quiet = quiet_sav;
+
+  EVENT (EVENT_AUTODETECT_FINISHED);
 
   return usage_sort_cnt;
 }
