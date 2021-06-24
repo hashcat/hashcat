@@ -17,6 +17,7 @@
 - Fixed false negative in hash-mode 15900 (DPAPI masterkey file v2) if password was longer than 64 characters
 - Fixed hashcat_ctx leak and refactor module and kernel existence checks
 - Fixed integer overflow in Recovered/Time status view column caused by division > 0 but < 1
+- Fixed out-of-boundary write in slow candidates mode in combinator attack
 
 ##
 ## Features
