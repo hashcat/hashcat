@@ -507,16 +507,12 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
   }
   */
 
+  // not escaping here, using quotes later
+  // naive_escape (cpath_real, PATH_MAX,  ' ', '\\');
+
   #if defined (_WIN)
 
   naive_replace (cpath_real, '\\', '/');
-
-  // not escaping here, windows using quotes later
-  // naive_escape (cpath_real, PATH_MAX,  ' ', '\\');
-
-  #else
-
-  naive_escape (cpath_real, PATH_MAX,  ' ', '\\');
 
   #endif
 

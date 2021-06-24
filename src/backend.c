@@ -7714,7 +7714,8 @@ static u32 get_kernel_threads (const hc_device_param_t *device_param)
 
 static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const char *kernel_name, char *source_file, char *cached_file, const char *build_options_buf, const bool cache_disable, cl_program *opencl_program, CUmodule *cuda_module)
 {
-  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+  const hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
+  const folder_config_t *folder_config = hashcat_ctx->folder_config;
 
   bool cached = true;
 
@@ -7761,7 +7762,7 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       if (hc_nvrtcCreateProgram (hashcat_ctx, &program, kernel_sources[0], kernel_name, 0, NULL, NULL) == -1) return false;
 
-      char **nvrtc_options = (char **) hccalloc (4 + strlen (build_options_buf) + 1, sizeof (char *)); // ...
+      char **nvrtc_options = (char **) hccalloc (6 + strlen (build_options_buf) + 1, sizeof (char *)); // ...
 
       nvrtc_options[0] = "--restrict";
       nvrtc_options[1] = "--device-as-default-execution-space";
@@ -7769,9 +7770,12 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       hc_asprintf (&nvrtc_options[3], "compute_%d%d", device_param->sm_major, device_param->sm_minor);
 
+      nvrtc_options[4] = "-I";
+      nvrtc_options[5] = folder_config->cpath_real;
+
       char *nvrtc_options_string = hcstrdup (build_options_buf);
 
-      const int num_options = 4 + nvrtc_make_options_array_from_string (nvrtc_options_string, nvrtc_options + 4);
+      const int num_options = 6 + nvrtc_make_options_array_from_string (nvrtc_options_string, nvrtc_options + 6);
 
       const int rc_nvrtcCompileProgram = hc_nvrtcCompileProgram (hashcat_ctx, program, num_options, (const char * const *) nvrtc_options);
 
@@ -8646,11 +8650,17 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     int build_options_len = 0;
 
-    #if defined (_WIN)
-    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D KERNEL_STATIC -I OpenCL -I \"%s\" ", folder_config->cpath_real);
-    #else
-    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D KERNEL_STATIC -I OpenCL -I %s ", folder_config->cpath_real);
-    #endif
+    if (device_param->is_cuda == true)
+    {
+      // using a path with a space will break nvrtc_make_options_array_from_string()
+      // we add it to options array in a clean way later
+
+      build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D KERNEL_STATIC -I OpenCL ");
+    }
+    else
+    {
+      build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D KERNEL_STATIC -I OpenCL -I \"%s\" ", folder_config->cpath_real);
+    }
 
     /* currently disabled, hangs NEO drivers since 20.09.
        was required for NEO driver 20.08 to workaround the same issue!
