@@ -33,44 +33,56 @@ sub PE_encode
 {
   my $word_str = shift;
 
-  my $word_str_len = length($word_str);
+  my $word_str_len = length ($word_str);
 
-  my @word = split('', $word_str, $word_str_len);
+  my @word = split ('', $word_str, $word_str_len);
 
   my @scratch = (0) x 16;
-  my @target = (0) x 16;
-  my $hash = 17;
+  my @target  = (0) x 16;
+  my $hash    = 17;
 
-  for (my $i=0; $i<5; $i++) {
-    for (my $j=0; $j<$word_str_len; $j++) {
+  for (my $i = 0; $i < 5; $i++)
+  {
+    for (my $j = 0; $j < $word_str_len; $j++)
+    {
       my $idx = 15 - ($j % 16);
-      $scratch[$idx] ^= ord($word[$j]);
+
+      $scratch[$idx] ^= ord ($word[$j]);
     }
 
-    for (my $j=0; $j<16; $j+=2) {
-      for (my $k=15; $k>=0; $k--) {
+    for (my $j = 0; $j < 16; $j += 2)
+    {
+      for (my $k = 15; $k >= 0; $k--)
+      {
         $hash = (($hash & 0xffff) >> 8 ^ $PE_CONST[($hash & 0xff)] ^ $PE_CONST[$scratch[$k]]);
       }
 
-      $scratch[$j] = $hash & 0xff;
+      $scratch[$j]   =  $hash       & 0xff;
       $scratch[$j+1] = ($hash >> 8) & 0xff;
     }
   }
 
-  my $low;
-  for (my $i=0; $i<16; $i++) {
-    $low = $scratch[$i] & 0x7f;
+  for (my $i = 0; $i < 16; $i++)
+  {
+    my $low = $scratch[$i] & 0x7f;
 
-    if ($low >= 65 && $low <= 90 || $low >= 97 && $low <= 122) {
+    if ($low >= 65 && $low <= 90)
+    {
       $target[$i] = $low;
-    } else {
+    }
+    elsif ($low >= 97 && $low <= 122)
+    {
+      $target[$i] = $low;
+    }
+    else
+    {
       $target[$i] = ((($scratch[$i] & 0xff) >> 4) + 0x61) & 0xff;
     }
 
-    $target[$i] = chr($target[$i]);
+    $target[$i] = chr ($target[$i]);
   }
 
-  return join '', @target;
+  return join ('', @target);
 }
 
 sub module_generate_hash
