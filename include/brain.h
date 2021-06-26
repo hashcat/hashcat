@@ -249,4 +249,7 @@ void  brain_server_db_attack_init       (brain_server_db_attack_t *brain_server_
 bool  brain_server_db_attack_realloc    (brain_server_db_attack_t *brain_server_db_attack, const i64 new_long_cnt, const i64 new_short_cnt);
 void  brain_server_db_attack_free       (brain_server_db_attack_t *brain_server_db_attack);
 
+int   brain_ctx_init                    (hashcat_ctx_t *hashcat_ctx);
+void  brain_ctx_destroy                 (hashcat_ctx_t *hashcat_ctx);
+
 #endif // _BRAIN_H

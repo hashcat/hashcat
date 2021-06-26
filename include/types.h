@@ -2120,6 +2120,13 @@ typedef struct user_options_extra
 
 } user_options_extra_t;
 
+typedef struct brain_ctx
+{
+  bool support;     // general brain support compiled in (server or client)
+  bool enabled;     // brain support required by user request on command line
+
+} brain_ctx_t;
+
 typedef struct bitmap_ctx
 {
   bool enabled;
@@ -2585,6 +2592,7 @@ typedef struct module_ctx
 
 typedef struct hashcat_ctx
 {
+  brain_ctx_t           *brain_ctx;
   bitmap_ctx_t          *bitmap_ctx;
   combinator_ctx_t      *combinator_ctx;
   cpt_ctx_t             *cpt_ctx;

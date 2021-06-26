@@ -868,6 +868,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   // clean up
 
+  brain_ctx_destroy       (hashcat_ctx);
   bitmap_ctx_destroy      (hashcat_ctx);
   combinator_ctx_destroy  (hashcat_ctx);
   cpt_ctx_destroy         (hashcat_ctx);
@@ -897,6 +898,7 @@ int hashcat_init (hashcat_ctx_t *hashcat_ctx, void (*event) (const u32, struct h
     hashcat_ctx->event = event;
   }
 
+  hashcat_ctx->brain_ctx          = (brain_ctx_t *)           hcmalloc (sizeof (brain_ctx_t));
   hashcat_ctx->bitmap_ctx         = (bitmap_ctx_t *)          hcmalloc (sizeof (bitmap_ctx_t));
   hashcat_ctx->combinator_ctx     = (combinator_ctx_t *)      hcmalloc (sizeof (combinator_ctx_t));
   hashcat_ctx->cpt_ctx            = (cpt_ctx_t *)             hcmalloc (sizeof (cpt_ctx_t));
@@ -931,6 +933,7 @@ int hashcat_init (hashcat_ctx_t *hashcat_ctx, void (*event) (const u32, struct h
 
 void hashcat_destroy (hashcat_ctx_t *hashcat_ctx)
 {
+  hcfree (hashcat_ctx->brain_ctx);
   hcfree (hashcat_ctx->bitmap_ctx);
   hcfree (hashcat_ctx->combinator_ctx);
   hcfree (hashcat_ctx->cpt_ctx);
@@ -1034,6 +1037,12 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
   }
   #endif
   #endif
+
+  /**
+   * brain
+   */
+
+  if (brain_ctx_init (hashcat_ctx) == -1) return -1;
 
   /**
    * logfile
