@@ -137,11 +137,14 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - CRC32
 - Java Object hashCode()
 - MurmurHash
-- 3DES (PT = $salt, key = $pass)
-- DES (PT = $salt, key = $pass)
+- 3DES
+- DES
+- AES-128-ECB NOKDF
+- AES-192-ECB NOKDF
+- AES-256-ECB NOKDF
 - ChaCha20
 - Linux Kernel Crypto API (2.4)
-- Skip32 (PT = $salt, key = $pass)
+- Skip32
 - PBKDF2-HMAC-MD5
 - PBKDF2-HMAC-SHA1
 - PBKDF2-HMAC-SHA256

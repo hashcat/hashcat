@@ -3008,6 +3008,8 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
     if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
     {
+      // this is not perfectly right, only in case algorithm has to add 0x80 (most of the cases for fast optimized kernels)
+
       if (highest_pw_len < 16)
       {
         if (run_kernel (hashcat_ctx, device_param, KERN_RUN_1, pws_pos, pws_cnt, true, fast_iteration) == -1) return -1;

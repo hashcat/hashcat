@@ -7,6 +7,9 @@
 - Added hash-mode: VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 512 bit + boot-mode
 - Added hash-mode: VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 1024 bit + boot-mode
 - Added hash-mode: VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 1536 bit + boot-mode
+- Added hash-mode: AES-128-ECB NOKDF (PT = $salt, key = $pass)
+- Added hash-mode: AES-192-ECB NOKDF (PT = $salt, key = $pass)
+- Added hash-mode: AES-256-ECB NOKDF (PT = $salt, key = $pass)
 
 ##
 ## Bugs
