@@ -46,6 +46,7 @@
 - Folders: Do not escape the variable cpath_real to prevent certain OpenCL runtimes from running into an error which do not support escape characters
 - LM: Workaround JiT compiler bug in -m 3000 on NV leading to false negatives with large amount of hashes
 - Tests: Changed tests for VeraCrypt from -a 0 to -a 3, because password extension is not available to all shells
+- OpenCL Runtime: Workaround JiT crash (SC failed. No reason given.) on macOS by limiting local memory allocations to 32k
 
 * changes v6.2.1 -> v6.2.2
 
