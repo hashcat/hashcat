@@ -23,18 +23,21 @@ static void debugfile_format_plain (hashcat_ctx_t *hashcat_ctx, const u8 *plain_
     if (plain_ptr[i] < 0x20)
     {
       needs_hexify = 1;
+
       break;
     }
 
     if (plain_ptr[i] > 0x7f)
     {
       needs_hexify = 1;
+
       break;
     }
-    
+
     if (plain_ptr[i] == ':')
     {
       needs_hexify = 1;
+
       break;
     }
   }
