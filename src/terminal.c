@@ -100,6 +100,7 @@ void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
     event_log_warning (hashcat_ctx, "You have enabled --force to bypass dangerous warnings and errors!");
     event_log_warning (hashcat_ctx, "This can hide serious problems and should only be done when debugging.");
     event_log_warning (hashcat_ctx, "Do not report hashcat issues encountered when using --force.");
+    event_log_warning (hashcat_ctx, NULL);
   }
 }
 
