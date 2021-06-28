@@ -435,7 +435,7 @@ tuning_db_entry_t *tuning_db_search (hashcat_ctx_t *hashcat_ctx, const char *dev
 
   const char *NV_prefix = (const char *) "NVIDIA ";
 
-  if (memcmp (device_name, NV_prefix, strlen (NV_prefix)) == 0)
+  if (strlen(device_name) >= strlen(NV_prefix) && memcmp (device_name, NV_prefix, strlen (NV_prefix)) == 0)
   {
     entry = tuning_db_search_real (hashcat_ctx, device_name + strlen (NV_prefix), device_type, attack_mode, hash_mode);
 
