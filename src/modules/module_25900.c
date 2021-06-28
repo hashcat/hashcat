@@ -10,21 +10,21 @@
 #include "convert.h"
 #include "shared.h"
 
-static const u32   ATTACK_EXEC     = ATTACK_EXEC_OUTSIDE_KERNEL;
-static const u32   DGST_POS0       = 0;
-static const u32   DGST_POS1       = 1;
-static const u32   DGST_POS2       = 2;
-static const u32   DGST_POS3       = 3;
-static const u32   DGST_SIZE       = DGST_SIZE_4_4;
-static const u32   HASH_CATEGORY   = HASH_CATEGORY_NETWORK_SERVER;
-static const char *HASH_NAME       = "KNX IP Secure - Device Authentication Code";
-static const u64   KERN_TYPE       = 25900;
-static const u32   OPTI_TYPE       = OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-static const u64   OPTS_TYPE       = OPTS_TYPE_PT_GENERATE_LE
-                                   | OPTS_TYPE_DEEP_COMP_KERNEL;
-static const u32   SALT_TYPE       = SALT_TYPE_EMBEDDED;
-static const char *ST_PASS         = "hashcat";
-static const char *ST_HASH         = "$knx-ip-secure-device-authentication-code$*3033*fa7c0d787a9467c209f0a6e7cf16069ed704f3959dce19e45d7935c0a91bce41*f927640d9bbe9a4b0b74dd3289ad41ec";
+static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
+static const u32   DGST_POS0      = 0;
+static const u32   DGST_POS1      = 1;
+static const u32   DGST_POS2      = 2;
+static const u32   DGST_POS3      = 3;
+static const u32   DGST_SIZE      = DGST_SIZE_4_4;
+static const u32   HASH_CATEGORY  = HASH_CATEGORY_NETWORK_SERVER;
+static const char *HASH_NAME      = "KNX IP Secure - Device Authentication Code";
+static const u64   KERN_TYPE      = 25900;
+static const u32   OPTI_TYPE      = OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
+static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_DEEP_COMP_KERNEL;
+static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
+static const char *ST_PASS        = "hashcat";
+static const char *ST_HASH        = "$knx-ip-secure-device-authentication-code$*3033*fa7c0d787a9467c209f0a6e7cf16069ed704f3959dce19e45d7935c0a91bce41*f927640d9bbe9a4b0b74dd3289ad41ec";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
