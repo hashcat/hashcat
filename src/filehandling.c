@@ -113,7 +113,7 @@ bool hc_fopen (HCFILE *fp, const char *path, char *mode)
   return true;
 }
 
-bool hc_fopen_nozip (HCFILE *fp, const char *path, char *mode)
+bool hc_fopen_raw (HCFILE *fp, const char *path, char *mode)
 {
   if (path == NULL || mode == NULL) return false;
 
