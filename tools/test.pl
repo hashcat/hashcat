@@ -602,7 +602,7 @@ sub usage_exit
     . "\n"
     . "Potthrough:\n"
     . " Like passthrough, but includes both the hash and the plain in hash:plain format,\n"
-    . " similar to the classic potfile format.\n"
+    . " similar to the classic potfile format, yet this only works for unsalted hashes.\n"
     . "\n"
     . "Verify:\n"
     . " Reads a list of hashes from <hashfile> and a list of hash:password pairs from\n"
