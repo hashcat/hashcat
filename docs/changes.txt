@@ -11,7 +11,6 @@
 - Added hash-mode: AES-192-ECB NOKDF (PT = $salt, key = $pass)
 - Added hash-mode: AES-256-ECB NOKDF (PT = $salt, key = $pass)
 
-
 ##
 ## Bugs
 ##
@@ -42,6 +41,7 @@
 ## Technical
 ##
 
+- File handling: Do not abort on seeing a BOM in input files, just warn and ignore the BOM
 - Brain: Add brain_ctx_t to hashcat_ctx_t to enable runtime check if hashcat was compiled with brain support
 - Autodetect: Limit the number of errors per hash-mode try to 100 to avoid long startup time
 - Folders: Do not escape the variable cpath_real to prevent certain OpenCL runtimes from running into an error which do not support escape characters
