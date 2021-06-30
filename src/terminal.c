@@ -636,7 +636,7 @@ void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_t *user_options)
 
       if (need_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), user_options->separator, false))
       {
-        char tmp_buf[HCBUFSIZ_LARGE] = { 0 };
+        char *tmp_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
         int tmp_len = 0;
 
@@ -654,6 +654,8 @@ void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_t *user_options)
         tmp_buf[tmp_len++] = 0;
 
         event_log_info (hashcat_ctx, "  Example.Pass........: %s", tmp_buf);
+
+        hcfree (tmp_buf);
       }
       else
       {
