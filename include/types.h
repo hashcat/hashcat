@@ -1067,9 +1067,11 @@ typedef struct hc_fp
 
   bool        is_gzip;
   bool        is_zip;
+  int         bom_size;
 
   char       *mode;
   const char *path;
+
 } HCFILE;
 
 #include "ext_nvrtc.h"

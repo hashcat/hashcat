@@ -56,7 +56,7 @@ typedef struct keepass
 
   /* specific to version 1 */
   u32 contents_len;
-  u32 contents[75000];
+  u32 contents[0x200000];
 
   /* specific to version 2 */
   u32 expected_bytes[8];
@@ -178,13 +178,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     token.sep[9]     = '*';
     token.len_min[9] = 1;
-    token.len_max[9] = 6;
+    token.len_max[9] = 8;
     token.attr[9]    = TOKEN_ATTR_VERIFY_LENGTH
                      | TOKEN_ATTR_VERIFY_DIGIT;
 
     token.sep[10]     = '*';
     token.len_min[10] = 2;
-    token.len_max[10] = 600000;
+    token.len_max[10] = 0x1000000;
     token.attr[10]    = TOKEN_ATTR_VERIFY_LENGTH
                       | TOKEN_ATTR_VERIFY_HEX;
 
