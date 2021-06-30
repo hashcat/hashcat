@@ -35,6 +35,7 @@
 - Alias Devices: Show a warning in case the user specifically listed a device to use which in a later step is skipped because it is an alias of another active device
 - Backend Information: Added new column showing the PCI Address per CUDA/OpenCL device to easier identify broken cards
 - Debug Rules: HEX-ify rules debug non-rules outputs that contain colons
+- KeePass: Increase supported size for KeePass 1 databases from 300kB to 16MB
 - VeraCrypt: Increase password length support for non-boot volumes from 64 to 128
 
 ##
