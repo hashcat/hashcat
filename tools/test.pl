@@ -599,16 +599,19 @@ sub usage_exit
     . "\n"
     . "Passthrough:\n"
     . " Generates hashes for strings entered via stdin and prints them to stdout.\n"
+    . " Each call generates a hash with a new random salt.\n"
     . "\n"
     . "Potthrough:\n"
     . " Like passthrough, but includes both the hash and the plain in hash:plain format,\n"
-    . " similar to the classic potfile format, yet this only works for unsalted hashes.\n"
+    . " similar to the classic potfile format. Each call generates a hash wit a new \n"
+    . " random salt.\n"
     . "\n"
     . "Verify:\n"
     . " Reads a list of hashes from <hashfile> and a list of hash:password pairs from\n"
     . " <cracksfile>. Hashes every password and compares the hash to the corresponding\n"
     . " entry in the <cracksfile>. If the hashes match and the hash is present in the\n"
-    . " list from <hashfile>, it will be written to the <outfile>.\n"
+    . " list from <hashfile>, it will be written to the <outfile>. The salt of the hash\n"
+    . " is ignored in the comparison.\n"
     . "\n";
 
   exit 1;
