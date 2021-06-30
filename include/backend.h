@@ -22,15 +22,6 @@ static const char CL_VENDOR_MESA[]            = "Mesa";
 static const char CL_VENDOR_NV[]              = "NVIDIA Corporation";
 static const char CL_VENDOR_POCL[]            = "The pocl project";
 
-int  cuda_init   (hashcat_ctx_t *hashcat_ctx);
-void cuda_close  (hashcat_ctx_t *hashcat_ctx);
-
-int  nvrtc_init  (hashcat_ctx_t *hashcat_ctx);
-void nvrtc_close (hashcat_ctx_t *hashcat_ctx);
-
-int  ocl_init    (hashcat_ctx_t *hashcat_ctx);
-void ocl_close   (hashcat_ctx_t *hashcat_ctx);
-
 int hc_nvrtcCreateProgram        (hashcat_ctx_t *hashcat_ctx, nvrtcProgram *prog, const char *src, const char *name, int numHeaders, const char * const *headers, const char * const *includeNames);
 int hc_nvrtcDestroyProgram       (hashcat_ctx_t *hashcat_ctx, nvrtcProgram *prog);
 int hc_nvrtcCompileProgram       (hashcat_ctx_t *hashcat_ctx, nvrtcProgram prog, int numOptions, const char * const *options);

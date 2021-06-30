@@ -727,13 +727,13 @@ void generate_cached_kernel_amp_filename (const u32 attack_kern, char *cache_dir
 
 // NVRTC
 
-int nvrtc_init (hashcat_ctx_t *hashcat_ctx)
+static int nvrtc_init (hashcat_ctx_t *hashcat_ctx)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  NVRTC_PTR *nvrtc = (NVRTC_PTR *) backend_ctx->nvrtc;
+  NVRTC_PTR *nvrtc = (NVRTC_PTR *) hccalloc (1, sizeof(NVRTC_PTR));
 
-  memset (nvrtc, 0, sizeof (NVRTC_PTR));
+  backend_ctx->nvrtc = nvrtc;
 
   #if   defined (_WIN)
   nvrtc->lib = hc_dlopen ("nvrtc.dll");
@@ -797,7 +797,7 @@ int nvrtc_init (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-void nvrtc_close (hashcat_ctx_t *hashcat_ctx)
+static void nvrtc_close (hashcat_ctx_t *hashcat_ctx)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
@@ -962,13 +962,13 @@ int hc_nvrtcVersion (hashcat_ctx_t *hashcat_ctx, int *major, int *minor)
 
 // CUDA
 
-int cuda_init (hashcat_ctx_t *hashcat_ctx)
+static int cuda_init (hashcat_ctx_t *hashcat_ctx)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
+  CUDA_PTR *cuda = (CUDA_PTR *) hccalloc (1, sizeof(CUDA_PTR));
 
-  memset (cuda, 0, sizeof (CUDA_PTR));
+  backend_ctx->cuda = cuda;
 
   #if   defined (_WIN)
   cuda->lib = hc_dlopen ("nvcuda.dll");
@@ -1068,7 +1068,7 @@ int cuda_init (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-void cuda_close (hashcat_ctx_t *hashcat_ctx)
+static void cuda_close (hashcat_ctx_t *hashcat_ctx)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
@@ -2169,13 +2169,13 @@ int hc_cuLinkComplete (hashcat_ctx_t *hashcat_ctx, CUlinkState state, void **cub
 
 // OpenCL
 
-int ocl_init (hashcat_ctx_t *hashcat_ctx)
+static int ocl_init (hashcat_ctx_t *hashcat_ctx)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
-  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
+  OCL_PTR *ocl = (OCL_PTR *) hccalloc (1, sizeof(OCL_PTR));
 
-  memset (ocl, 0, sizeof (OCL_PTR));
+  backend_ctx->ocl = ocl;
 
   #if   defined (_WIN)
   ocl->lib = hc_dlopen ("OpenCL");
@@ -2232,7 +2232,7 @@ int ocl_init (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-void ocl_close (hashcat_ctx_t *hashcat_ctx)
+static void ocl_close (hashcat_ctx_t *hashcat_ctx)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
@@ -5201,10 +5201,6 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->backend_ignore_cuda == false)
   {
-    CUDA_PTR *cuda = (CUDA_PTR *) hcmalloc (sizeof (CUDA_PTR));
-
-    backend_ctx->cuda = cuda;
-
     rc_cuda_init = cuda_init (hashcat_ctx);
 
     if (rc_cuda_init == -1)
@@ -5217,10 +5213,6 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
     /**
      * Load and map NVRTC library calls
      */
-
-    NVRTC_PTR *nvrtc = (NVRTC_PTR *) hcmalloc (sizeof (NVRTC_PTR));
-
-    backend_ctx->nvrtc = nvrtc;
 
     int rc_nvrtc_init = nvrtc_init (hashcat_ctx);
 
@@ -5294,10 +5286,6 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->backend_ignore_opencl == false)
   {
-    OCL_PTR *ocl = (OCL_PTR *) hcmalloc (sizeof (OCL_PTR));
-
-    backend_ctx->ocl = ocl;
-
     rc_ocl_init = ocl_init (hashcat_ctx);
 
     if (rc_ocl_init == -1)
