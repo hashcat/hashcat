@@ -20,7 +20,8 @@ static const u32   HASH_CATEGORY  = HASH_CATEGORY_DOCUMENTS;
 static const char *HASH_NAME      = "PDF 1.1 - 1.3 (Acrobat 2 - 4), collider #1";
 static const u64   KERN_TYPE      = 10410;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
-                                  | OPTI_TYPE_NOT_ITERATED;
+                                  | OPTI_TYPE_NOT_ITERATED
+                                  | OPTI_TYPE_OPTIMIZED_KERNEL_ONLY;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_PT_ALWAYS_HEXIFY;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;

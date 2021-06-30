@@ -21,7 +21,8 @@ static const char *HASH_NAME      = "SAP CODVN F/G (PASSCODE) from RFC_READ_TABL
 static const u64   KERN_TYPE      = 7801;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_PRECOMPUTE_INIT
-                                  | OPTI_TYPE_NOT_ITERATED;
+                                  | OPTI_TYPE_NOT_ITERATED
+                                  | OPTI_TYPE_OPTIMIZED_KERNEL_ONLY;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_BE
                                   | OPTS_TYPE_ST_ADD80
                                   | OPTS_TYPE_ST_UPPER;

@@ -575,7 +575,7 @@ static bool write_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_
 
 void generate_source_kernel_filename (const bool slow_candidates, const u32 attack_exec, const u32 attack_kern, const u32 kern_type, const u32 opti_type, char *shared_dir, char *source_file)
 {
-  if (opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+  if ((opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) || (opti_type & OPTI_TYPE_OPTIMIZED_KERNEL_ONLY))
   {
     if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
     {
@@ -629,7 +629,7 @@ void generate_source_kernel_filename (const bool slow_candidates, const u32 atta
 
 void generate_cached_kernel_filename (const bool slow_candidates, const u32 attack_exec, const u32 attack_kern, const u32 kern_type, const u32 opti_type, char *cache_dir, const char *device_name_chksum, char *cached_file)
 {
-  if (opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+  if ((opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) || (opti_type & OPTI_TYPE_OPTIMIZED_KERNEL_ONLY))
   {
     if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
     {

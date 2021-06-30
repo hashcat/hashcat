@@ -21,7 +21,8 @@ static const char *HASH_NAME      = "SHA3-256";
 static const u64   KERN_TYPE      = 17400;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_USES_BITS_64
-                                  | OPTI_TYPE_RAW_HASH;
+                                  | OPTI_TYPE_RAW_HASH
+                                  | OPTI_TYPE_OPTIMIZED_KERNEL_ONLY;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_PT_ADD06;
 static const u32   SALT_TYPE      = SALT_TYPE_NONE;

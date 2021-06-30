@@ -19,7 +19,8 @@ static const u32   DGST_SIZE      = DGST_SIZE_4_4; // originally DGST_SIZE_4_2;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_DATABASE_SERVER;
 static const char *HASH_NAME      = "Oracle H: Type (Oracle 7+)";
 static const u64   KERN_TYPE      = 3100;
-static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
+static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
+                                  | OPTI_TYPE_OPTIMIZED_KERNEL_ONLY;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_PT_UPPER
                                   | OPTS_TYPE_ST_UPPER;

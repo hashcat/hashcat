@@ -21,7 +21,8 @@ static const char *HASH_NAME      = "SAP CODVN B (BCODE)";
 static const u64   KERN_TYPE      = 7700;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_PRECOMPUTE_INIT
-                                  | OPTI_TYPE_NOT_ITERATED;
+                                  | OPTI_TYPE_NOT_ITERATED
+                                  | OPTI_TYPE_OPTIMIZED_KERNEL_ONLY;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_PT_UPPER
                                   | OPTS_TYPE_ST_UPPER;

@@ -21,7 +21,8 @@ static const char *HASH_NAME      = "MS Office <= 2003 $0/$1, MD5 + RC4, collide
 static const u64   KERN_TYPE      = 9710;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_PRECOMPUTE_INIT
-                                  | OPTI_TYPE_NOT_ITERATED;
+                                  | OPTI_TYPE_NOT_ITERATED
+                                  | OPTI_TYPE_OPTIMIZED_KERNEL_ONLY;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_PT_ADD80
                                   | OPTS_TYPE_PT_ALWAYS_HEXIFY;

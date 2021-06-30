@@ -2878,7 +2878,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
     char kernelfile[HCBUFSIZ_TINY] = { 0 };
 
-    generate_source_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL, folder_config->shared_dir, kernelfile);
+    generate_source_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, hashconfig->opti_type, folder_config->shared_dir, kernelfile);
 
     hashconfig_destroy (hashcat_ctx);
 
