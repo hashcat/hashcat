@@ -60,11 +60,12 @@ bool hc_fopen (HCFILE *fp, const char *path, char *mode)
     return false;
   }
 
-  fp->pfp = NULL;
-  fp->is_gzip = false;
-  fp->is_zip = false;
+  fp->pfp       = NULL;
+  fp->is_gzip   = false;
+  fp->is_zip    = false;
+  fp->bom_size  = 0;
 
-  unsigned char check[4] = { 0 };
+  unsigned char check[8] = { 0 };
 
   int fd_tmp = open (path, O_RDONLY);
 
@@ -74,8 +75,15 @@ bool hc_fopen (HCFILE *fp, const char *path, char *mode)
 
     if (read (fd_tmp, check, sizeof (check)) > 0)
     {
-      if (check[0] == 0x1f && check[1] == 0x8b && check[2] == 0x08) fp->is_gzip = true;
-      if (check[0] == 0x50 && check[1] == 0x4b && check[2] == 0x03 && check[3] == 0x04) fp->is_zip = true;
+      if (check[0] == 0x1f && check[1] == 0x8b && check[2] == 0x08)                     fp->is_gzip = true;
+      if (check[0] == 0x50 && check[1] == 0x4b && check[2] == 0x03 && check[3] == 0x04) fp->is_zip  = true;
+
+      // compressed files with BOM will be undetected!
+
+      if ((fp->is_gzip == false) && (fp->is_zip == false))
+      {
+        fp->bom_size = hc_string_bom_size (check);
+      }
     }
 
     close (fd_tmp);
@@ -104,7 +112,16 @@ bool hc_fopen (HCFILE *fp, const char *path, char *mode)
   }
   else
   {
-    if ((fp->pfp = fdopen (fp->fd, mode)) == NULL)  return false;
+    if ((fp->pfp = fdopen (fp->fd, mode)) == NULL) return false;
+
+    if (fp->bom_size)
+    {
+      // atm just skip bom
+
+      const int nread = fread (check, sizeof (char), fp->bom_size, fp->pfp);
+
+      if (nread != fp->bom_size) return false;
+    }
   }
 
   fp->path = path;
@@ -113,7 +130,7 @@ bool hc_fopen (HCFILE *fp, const char *path, char *mode)
   return true;
 }
 
-bool hc_fopen_nozip (HCFILE *fp, const char *path, char *mode)
+bool hc_fopen_raw (HCFILE *fp, const char *path, char *mode)
 {
   if (path == NULL || mode == NULL) return false;
 
@@ -152,9 +169,10 @@ bool hc_fopen_nozip (HCFILE *fp, const char *path, char *mode)
     return false;
   }
 
-  fp->pfp = NULL;
-  fp->is_gzip = false;
-  fp->is_zip = false;
+  fp->pfp       = NULL;
+  fp->is_gzip   = false;
+  fp->is_zip    = false;
+  fp->bom_size  = 0;
 
   if (fmode == -1)
   {
