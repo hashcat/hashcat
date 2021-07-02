@@ -2845,6 +2845,27 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
+  // single kernel and module existence check to detect "7z e" errors
+
+  char *modulefile = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+  module_filename (folder_config, 0, modulefile, HCBUFSIZ_TINY);
+
+  if (hc_path_exist (modulefile) == false)
+  {
+    event_log_error (hashcat_ctx, "%s: %s", modulefile, strerror (errno));
+
+    event_log_warning (hashcat_ctx, "If you are using the hashcat binary package, this may be an extraction issue.");
+    event_log_warning (hashcat_ctx, "For example, using \"7z e\" instead of using \"7z x\".");
+    event_log_warning (hashcat_ctx, NULL);
+
+    hcfree (modulefile);
+
+    return -1;
+  }
+
+  hcfree (modulefile);
+
   const bool quiet_save = user_options->quiet;
 
   user_options->quiet = true;
@@ -2853,46 +2874,30 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
   user_options->quiet = quiet_save;
 
-  if (rc == -1)
+  if (rc == -1) return -1;
+
+  hashconfig_destroy (hashcat_ctx);
+
+  // same check but for an backend kernel
+
+  char *kernelfile = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+  generate_source_kernel_filename (false, ATTACK_EXEC_OUTSIDE_KERNEL, ATTACK_KERN_STRAIGHT, 400, 0, folder_config->shared_dir, kernelfile);
+
+  if (hc_path_read (kernelfile) == false)
   {
-    // module existence check to detect "7z e" errors
+    event_log_error (hashcat_ctx, "%s: %s", kernelfile, strerror (errno));
 
-    const module_ctx_t* module_ctx = hashcat_ctx->module_ctx;
+    event_log_warning (hashcat_ctx, "If you are using the hashcat binary package, this may be an extraction issue.");
+    event_log_warning (hashcat_ctx, "For example, using \"7z e\" instead of using \"7z x\".");
+    event_log_warning (hashcat_ctx, NULL);
 
-    if (module_ctx->module_handle == NULL)
-    {
-      event_log_warning (hashcat_ctx, "If you are using the hashcat binary package, this may be an extraction issue.");
-      event_log_warning (hashcat_ctx, "For example, using \"7z e\" instead of using \"7z x\".");
-      event_log_warning (hashcat_ctx, NULL);
-    }
-
-    hashconfig_destroy (hashcat_ctx);
+    hcfree (kernelfile);
 
     return -1;
   }
-  else
-  {
-    // same check but for an backend kernel
 
-    const hashconfig_t* hashconfig = hashcat_ctx->hashconfig;
-
-    char kernelfile[HCBUFSIZ_TINY] = { 0 };
-
-    generate_source_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL, folder_config->shared_dir, kernelfile);
-
-    hashconfig_destroy (hashcat_ctx);
-
-    if (hc_path_read (kernelfile) == false)
-    {
-      event_log_error (hashcat_ctx, "%s: %s", kernelfile, strerror(errno));
-
-      event_log_warning (hashcat_ctx, "If you are using the hashcat binary package, this may be an extraction issue.");
-      event_log_warning (hashcat_ctx, "For example, using \"7z e\" instead of using \"7z x\".");
-      event_log_warning (hashcat_ctx, NULL);
-
-      return -1;
-    }
-  }
+  hcfree (kernelfile);
 
   // loopback - can't check at this point
 
