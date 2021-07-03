@@ -207,6 +207,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Juniper IVE
 - Juniper NetScreen/SSG (ScreenOS)
 - Juniper/NetBSD sha1crypt
+- iPhone passcode (UID key + System Keybag)
 - macOS v10.4, macOS v10.5, MacOS v10.6
 - macOS v10.7
 - macOS v10.8+ (PBKDF2-SHA512)
