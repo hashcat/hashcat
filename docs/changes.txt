@@ -36,6 +36,7 @@
 - Backend Information: Added new column showing the PCI Address per CUDA/OpenCL device to easier identify broken cards
 - Debug Rules: HEX-ify rules debug non-rules outputs that contain colons
 - KeePass: Increase supported size for KeePass 1 databases from 300kB to 16MB
+- Potfile: Disable potfile for hash-mode 99999
 - VeraCrypt: Increase password length support for non-boot volumes from 64 to 128
 
 ##
