@@ -4514,7 +4514,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
   iconv_t iconv_ctx = NULL;
 
-  char *iconv_tmp = NULL;
+  char iconv_tmp[HCBUFSIZ_TINY] = { 0 };
 
   if (strcmp (user_options->encoding_from, user_options->encoding_to) != 0)
   {
@@ -4523,8 +4523,6 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
     iconv_ctx = iconv_open (user_options->encoding_to, user_options->encoding_from);
 
     if (iconv_ctx == (iconv_t) -1) return -1;
-
-    iconv_tmp = (char *) hcmalloc (HCBUFSIZ_TINY);
   }
 
   // find higest password length, this is for optimization stuff
@@ -5158,6 +5156,11 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
     device_param->outerloop_msec = total_msec * hashes->salts_cnt * device_param->outerloop_multi;
 
     device_param->speed_only_finish = true;
+  }
+
+  if (iconv_enabled == true)
+  {
+    iconv_close (iconv_ctx);
   }
 
   return 0;
