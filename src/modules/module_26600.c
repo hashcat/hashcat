@@ -25,9 +25,6 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-//static const char *ST_PASS        = "mysecretpassword";
-//static const char *ST_HASH        = "$metamask$YAlIJziURRcBEWUwRSRDWA==$EutMmmcV5Hbf3p1I$rfSAF349RvGKG4R4Z2VCrH9WjNEKjbJa9hpOja9Yn8MwXruuFEMtw47HPn9CYj+JJ5Rb4Z87Wejj1c4fqpbMZHFOnqtQsVAr";
-//static const char *ST_HASH        = "$metamask$jgW3gi0eyPtXXguqMzi6uGyuR6m+lgQXw8onqivK5w0=$ejhZW94EsJZ049Sb/at0Xg==$wM+CSmCIIlaofXHPxCRFqbcPvEDZESBYM1XdAE8VFanedCIXvDEEt15nhzdv1pqzkW0MCQDBA5T1W1/Ltg7lKBszkoJJ1PtVHOpTn/afhvLyIp2VBBV1Tuj4s8LGo2GM9KOHn1Hn5BC1YhjP56opGrJlsIT9qnuGYHT8EtA5IiHP4zB4fwgGqDhtX+QUJi4rdm+apXZ1DpRvDq5J+bCca2GHXzU5H57Esn3THPXev3RdlkmjhuXVjV8=";
 static const char *ST_HASH        = "$metamask$AARgM5AgABE2eWgJcWAwQIAFmSYoASZVZBlAR4B0h2M=$8HrVMqsjfFTusMbegh+KWg==$7FPq7LjWe3t/TjDBtUwrJBpiG/Rdt+uf71dLCyUZd0pdtymBK6mSMZDyRfp/CzpjEPA1dU1BLDshcwM/1k6KdO//+mPWrgY4j49XTXIMnHNhJPfPv8s9rXiq8jLqetsStqtWmTZaD7fTtbzOYWR4gwQc98MxCnn/IrSnfCHungw1rLV5Xm0/hF7WfzFeEgcHknhJJP1xSeJCL9qI5DJ+lz7ksc0UVvHoiNJx8uvPBNkHpGQRNujwlnk=";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
@@ -282,7 +279,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   u8 *tmp_buf_str = (u8 *) tmp_buf;
   u8 *tmp_tag_str = (u8 *) tmp_tag;
 
-  memcpy (tmp_buf_str + 169, tmp_tag_str, 16);
+  memcpy (tmp_buf_str+metamask->ct_len, tmp_tag_str, 16);
 
   u8 ct_buf[CT_LEN_BASE64] = { 0 };
 
