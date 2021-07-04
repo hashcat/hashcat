@@ -89,8 +89,6 @@ sub module_verify_hash
 
   my (undef, $signature, $salt, $iv, $ct) = split '\$', $hash;
 
-printf "AAAA";
-
   return unless defined $signature;
   return unless defined $salt;
   return unless defined $iv;
@@ -100,13 +98,9 @@ printf "AAAA";
   my $iv_bin   = decode_base64 ($iv);
   my $ct_bin   = decode_base64 ($ct);
 
-printf "BBBB";
-
   return unless length $salt_bin == 32;
   return unless length $iv_bin   == 16;
   return unless length $ct_bin   == 185;
-
-printf "CCCC";
 
   my $word_packed = pack_if_HEX_notation ($word);
 
