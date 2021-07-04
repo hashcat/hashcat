@@ -21,6 +21,7 @@
 - Fixed false negative in hash-mode 15900 (DPAPI masterkey file v2) if password was longer than 64 characters
 - Fixed hashcat_ctx leak and refactor module and kernel existence checks
 - Fixed integer overflow in Recovered/Time status view column caused by division > 0 but < 1
+- Fixed memory leak in iconv_ctx and iconv_tmp in backend.c
 - Fixed out-of-boundary write in slow candidates mode in combinator attack
 
 ##
@@ -39,6 +40,7 @@
 - KeePass: Increase supported size for KeePass 1 databases from 300kB to 16MB
 - Potfile: Disable potfile for hash-mode 99999
 - VeraCrypt: Increase password length support for non-boot volumes from 64 to 128
+- WPA Kernels: Increased performance by 3.5% for backend devices controlled by CUDA backend
 
 ##
 ## Technical
