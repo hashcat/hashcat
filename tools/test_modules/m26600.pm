@@ -21,6 +21,9 @@ sub module_generate_hash
   my $iv   = shift // random_hex_string (32);
   my $ct   = shift;
 
+  my $ct_min_len = 30;
+  my $ct_max_len = 768;
+
   my $kdf = Crypt::PBKDF2->new
   (
     hasher     => Crypt::PBKDF2->hasher_from_algorithm ('HMACSHA2', 256),
@@ -55,12 +58,12 @@ sub module_generate_hash
     }
     else
     {
-      $pt = "\xff" x 169;
+      $pt = "\xff" x ($ct_min_len + int(rand($ct_max_len - $ct_min_len)) + 1);
     }
   }
   else
   {
-    $pt = "\xff" x 169;
+    $pt = "\xff" x ($ct_min_len + int(rand($ct_max_len - $ct_min_len)) + 1);
   }
 
   my $aes = Crypt::AuthEnc::GCM->new ("AES", $key, $iv_bin);
@@ -100,7 +103,12 @@ sub module_verify_hash
 
   return unless length $salt_bin == 32;
   return unless length $iv_bin   == 16;
-  return unless length $ct_bin   == 185;
+
+  my $ct_len = length ($ct_bin);
+  my $ct_min_len = 30;
+  my $ct_max_len = 768;
+
+  return unless ($ct_len >= $ct_min_len && $ct_len <= $ct_max_len);
 
   my $word_packed = pack_if_HEX_notation ($word);
 

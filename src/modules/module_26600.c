@@ -57,7 +57,7 @@ typedef struct pbkdf2_sha256_aes_gcm
   u32 salt_buf[64];
   u32 iv_buf[4];
   u32 iv_len;
-  u32 ct_buf[192];
+  u32 ct_buf[196];
   u32 ct_len;
 
 } pbkdf2_sha256_aes_gcm_t;
@@ -113,6 +113,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   pbkdf2_sha256_aes_gcm_t *metamask = (pbkdf2_sha256_aes_gcm_t *) esalt_buf;
 
+  #define CT_MAX_LEN_BASE64 ((768 * 8) / 6) + 3
+
   token_t token;
 
   token.token_cnt  = 4;
@@ -137,8 +139,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_BASE64A;
 
   token.sep[3]     = '$';
-  token.len_min[3] = 248;
-  token.len_max[3] = 248;
+  token.len_min[3] = 64;
+  token.len_max[3] = CT_MAX_LEN_BASE64;
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64A;
 
@@ -146,7 +148,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  u8 tmp_buf[512] = { 0 };
+  u8 tmp_buf[CT_MAX_LEN_BASE64] = { 0 };
 
   size_t tmp_len = 0;
 
@@ -189,7 +191,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (tmp_len != 16) return (PARSER_IV_LENGTH);
 
-  memcpy ((u8 *)metamask->iv_buf, tmp_buf, tmp_len);
+  memcpy ((u8 *) metamask->iv_buf, tmp_buf, tmp_len);
 
   metamask->iv_buf[0] = byte_swap_32 (metamask->iv_buf[0]);
   metamask->iv_buf[1] = byte_swap_32 (metamask->iv_buf[1]);
@@ -207,24 +209,27 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   tmp_len = base64_decode (base64_to_int, ct_pos, ct_len, tmp_buf);
 
-  if (tmp_len != 185) return (PARSER_CT_LENGTH);
+  if (tmp_len <= 16) return (PARSER_CT_LENGTH);
 
-  memcpy ((u8 *)metamask->ct_buf, tmp_buf, tmp_len - 16);
+  tmp_len -= 16;
 
-  for (u32 i = 0; i < 43; i++)
-  {
-    metamask->ct_buf[i] = byte_swap_32 (metamask->ct_buf[i]);
-  }
+  if (tmp_len < 30 || tmp_len > 768) return (PARSER_CT_LENGTH);
 
-  metamask->ct_len = tmp_len - 16;
+  memcpy ((u8 *) metamask->ct_buf, tmp_buf, tmp_len);
+
+  u32 j = tmp_len / 4;
+
+  if ((tmp_len % 4) > 0) j++;
+
+  for (u32 i = 0; i < j; i++) metamask->ct_buf[i] = byte_swap_32 (metamask->ct_buf[i]);
+
+  metamask->ct_len = tmp_len;
 
   // tag
 
-  u32 tag_buf[4];
+  u32 tag_buf[4] = { 0 };
 
-  memset (tag_buf, 0, sizeof (tag_buf));
-
-  memcpy ((u8 *)tag_buf, tmp_buf+metamask->ct_len, 16);
+  memcpy ((u8 *) tag_buf, tmp_buf+metamask->ct_len, 16);
 
   digest[0] = byte_swap_32 (tag_buf[0]);
   digest[1] = byte_swap_32 (tag_buf[1]);
@@ -242,9 +247,9 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // salt
 
-  #define SALT_LEN_BASE64 ((32 * 8) / 6) + 3
-  #define IV_LEN_BASE64   ((16 * 8) / 6) + 3
-  #define CT_LEN_BASE64   ((185 * 8) / 6) + 3
+  #define SALT_LEN_BASE64   ((32  * 8) / 6) + 3
+  #define IV_LEN_BASE64     ((16  * 8) / 6) + 3
+  #define CT_MAX_LEN_BASE64 ((768 * 8) / 6) + 3
 
   u8 salt_buf[SALT_LEN_BASE64] = { 0 };
 
@@ -259,15 +264,21 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   tmp_iv_buf[2] = byte_swap_32 (metamask->iv_buf[2]);
   tmp_iv_buf[3] = byte_swap_32 (metamask->iv_buf[3]);
 
-  u8 iv_buf[IV_LEN_BASE64] = { 0 };
+  u8 iv_buf[IV_LEN_BASE64+1] = { 0 };
 
   base64_encode (int_to_base64, (const u8 *) tmp_iv_buf, (const int) metamask->iv_len, iv_buf);
 
   // ct
 
-  u32 tmp_buf[47] = { 0 };
+  u32 ct_len = metamask->ct_len;
 
-  for (int i = 0; i < 43; i++) tmp_buf[i] = byte_swap_32 (metamask->ct_buf[i]);
+  u32 j = ct_len / 4;
+
+  if ((ct_len % 4) > 0) j++;
+
+  u32 tmp_buf[196] = { 0 };
+
+  for (u32 i = 0; i < j; i++) tmp_buf[i] = byte_swap_32 (metamask->ct_buf[i]);
 
   u32 tmp_tag[4] = { 0 };
 
@@ -281,7 +292,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memcpy (tmp_buf_str+metamask->ct_len, tmp_tag_str, 16);
 
-  u8 ct_buf[CT_LEN_BASE64] = { 0 };
+  u8 ct_buf[CT_MAX_LEN_BASE64] = { 0 };
 
   base64_encode (int_to_base64, (const u8 *) tmp_buf, (const int) metamask->ct_len+16, ct_buf);
 

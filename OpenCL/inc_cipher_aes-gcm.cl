@@ -219,7 +219,7 @@ DECLSPEC void AES_GCM_gctr (const u32 *key, const u32 *iv, const u32 *in, int in
   iv_buf[2] = iv[2];
   iv_buf[3] = iv[3];
 
-  const int n = in_len / 16;
+  const u32 n = in_len / 16;
 
   for (u32 i = 0; i < n; i++)
   {
