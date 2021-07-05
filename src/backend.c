@@ -7827,8 +7827,8 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       const int rc_nvrtcCompileProgram = hc_nvrtcCompileProgram (hashcat_ctx, program, num_options, (const char * const *) nvrtc_options);
 
-      hcfree(nvrtc_options_string);
-      hcfree(nvrtc_options);
+      hcfree (nvrtc_options_string);
+      hcfree (nvrtc_options);
 
       size_t build_log_size = 0;
 
@@ -8065,7 +8065,7 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
         if (rc_clGetProgramBuildInfo == -1)
         {
-          hcfree(build_log);
+          hcfree (build_log);
 
           return false;
         }
