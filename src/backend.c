@@ -7827,6 +7827,9 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       const int rc_nvrtcCompileProgram = hc_nvrtcCompileProgram (hashcat_ctx, program, num_options, (const char * const *) nvrtc_options);
 
+      hcfree(nvrtc_options_string);
+      hcfree(nvrtc_options);
+
       size_t build_log_size = 0;
 
       hc_nvrtcGetProgramLogSize (hashcat_ctx, program, &build_log_size);
@@ -7839,7 +7842,14 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
       {
         char *build_log = (char *) hcmalloc (build_log_size + 1);
 
-        if (hc_nvrtcGetProgramLog (hashcat_ctx, program, build_log) == -1) return false;
+        if (hc_nvrtcGetProgramLog (hashcat_ctx, program, build_log) == -1)
+        {
+          hcfree (build_log);
+
+          return false;
+        }
+
+        build_log[build_log_size] = 0;
 
         puts (build_log);
 
@@ -7852,9 +7862,6 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
         return false;
       }
-
-      hcfree (nvrtc_options);
-      hcfree (nvrtc_options_string);
 
       size_t binary_size = 0;
 
@@ -8056,7 +8063,14 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
         const int rc_clGetProgramBuildInfo = hc_clGetProgramBuildInfo (hashcat_ctx, p1, device_param->opencl_device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
 
-        if (rc_clGetProgramBuildInfo == -1) return false;
+        if (rc_clGetProgramBuildInfo == -1)
+        {
+          hcfree(build_log);
+
+          return false;
+        }
+
+        build_log[build_log_size] = 0;
 
         puts (build_log);
 
