@@ -171,32 +171,41 @@ sub module_generate_hash
 
 
   ################ USER PASSWORD #################
-  my $res = pdf_compute_encryption_key_user($word, $padding, $id, $u, $o, $P, $V, $R, $enc);
-
-  my $digest = md5 ($padding . pack ("H*", $id));
-
-  my $m = Crypt::RC4->new ($res);
-  $u = $m->RC4 ($digest);
-
-  my @ress = split "", $res;
-
-  #do xor of rc4 19 times
-  for (my $x = 1; $x <= 19; $x++)
+  # do not change $u if it exists, keep this the same, as we don't know the user password,
+  #  we cannot calculate this part of the hash again
+  if("".$u eq "0000000000000000000000000000000000000000000000000000000000000000")
   {
-    my @xor;
+    my $res = pdf_compute_encryption_key_user($word, $padding, $id, $u, $o, $P, $V, $R, $enc);
 
-    for (my $i = 0; $i < 16; $i++)
+    my $digest = md5 ($padding . pack ("H*", $id));
+
+    my $m = Crypt::RC4->new ($res);
+    $u = $m->RC4 ($digest);
+
+    my @ress = split "", $res;
+
+    #do xor of rc4 19 times
+    for (my $x = 1; $x <= 19; $x++)
     {
-      $xor[$i] = chr (ord ($ress[$i]) ^ $x);
+      my @xor;
+
+      for (my $i = 0; $i < 16; $i++)
+      {
+        $xor[$i] = chr (ord ($ress[$i]) ^ $x);
+      }
+
+      my $s = join ("", @xor);
+
+      my $m2 = Crypt::RC4->new ($s);
+
+      $u = $m2->RC4 ($u);
     }
-
-    my $s = join ("", @xor);
-
-    my $m2 = Crypt::RC4->new ($s);
-
-    $u = $m2->RC4 ($u);
+    $u .= substr (pack ("H*", $u_save), 16, 16);
   }
-
+  else
+  {
+    $u = pack("H*", $u)
+  }
 
   ################ OWNER PASSWORD #################
   my $o_key = pdf_compute_encryption_key_owner($word, $padding, $id, $u, $o, $P, $V, $R, $enc);
@@ -228,14 +237,11 @@ sub module_generate_hash
   }
 
   #printf("\$u = %s\n", unpack ("H*", $u));
-
-  $u .= substr (pack ("H*", $u_save), 16, 16);
-
   #printf("\$o = %s\n", unpack ("H*", $o));
   #printf("\$u = %s\n", unpack ("H*", $u));
 
   my $hash = sprintf ('$pdf$%d*%d*128*%d*%d*16*%s*32*%s*32*%s', $V, $R, $P, $enc, $id, unpack ("H*", $u), unpack ("H*", $o));
-
+  print("hash\n".$hash."\n");
   return $hash;
 }
 
