@@ -8773,7 +8773,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
      * device_name_chksum_amp_mp
      */
 
-    char *device_name_chksum_amp_mp = (char *) hcmalloc (HCBUFSIZ_TINY);
+    char device_name_chksum_amp_mp[HCBUFSIZ_TINY] = { 0 };
 
     const size_t dnclen_amp_mp = snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%d-%d-%d-%u-%s-%s-%s",
       backend_ctx->comptime,
@@ -9008,7 +9008,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
        * device_name_chksum
        */
 
-      char *device_name_chksum = (char *) hcmalloc (HCBUFSIZ_TINY);
+      char device_name_chksum[HCBUFSIZ_TINY] = { 0 };
 
       // The kernel source can depend on some JiT compiler macros which themself depend on the attack_modes.
       // ATM this is relevant only for ATTACK_MODE_ASSOCIATION which slightly modifies ATTACK_MODE_STRAIGHT kernels.
@@ -9073,8 +9073,6 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
 
       hcfree (build_options_module_buf);
-
-      hcfree (device_name_chksum);
     }
 
     /**
@@ -9185,8 +9183,6 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_clUnloadPlatformCompiler (hashcat_ctx, platform_id) == -1) return -1;
     }
-
-    hcfree (device_name_chksum_amp_mp);
 
     // some algorithm collide too fast, make that impossible
 
