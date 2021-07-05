@@ -6142,7 +6142,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         #define CHECK_BOARD_NAME_AMD 1
 
-        cl_int rc_board_name_amd = 0;
+        cl_int rc_board_name_amd = CL_INVALID_VALUE;
 
         if (CHECK_BOARD_NAME_AMD)
         {
