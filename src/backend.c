@@ -5415,7 +5415,12 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         char *opencl_platform_vendor = (char *) hcmalloc (param_value_size);
 
-        if (hc_clGetPlatformInfo (hashcat_ctx, opencl_platform, CL_PLATFORM_VENDOR, param_value_size, opencl_platform_vendor, NULL) == -1) return -1;
+        if (hc_clGetPlatformInfo (hashcat_ctx, opencl_platform, CL_PLATFORM_VENDOR, param_value_size, opencl_platform_vendor, NULL) == -1)
+        {
+          hcfree (opencl_platform_vendor);
+
+          return -1;
+        }
 
         opencl_platforms_vendor[opencl_platforms_idx] = opencl_platform_vendor;
 
@@ -5425,7 +5430,12 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         char *opencl_platform_name = (char *) hcmalloc (param_value_size);
 
-        if (hc_clGetPlatformInfo (hashcat_ctx, opencl_platform, CL_PLATFORM_NAME, param_value_size, opencl_platform_name, NULL) == -1) return -1;
+        if (hc_clGetPlatformInfo (hashcat_ctx, opencl_platform, CL_PLATFORM_NAME, param_value_size, opencl_platform_name, NULL) == -1)
+        {
+          hcfree (opencl_platform_name);
+
+          return -1;
+        }
 
         opencl_platforms_name[opencl_platforms_idx] = opencl_platform_name;
 
@@ -5435,7 +5445,12 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         char *opencl_platform_version = (char *) hcmalloc (param_value_size);
 
-        if (hc_clGetPlatformInfo (hashcat_ctx, opencl_platform, CL_PLATFORM_VERSION, param_value_size, opencl_platform_version, NULL) == -1) return -1;
+        if (hc_clGetPlatformInfo (hashcat_ctx, opencl_platform, CL_PLATFORM_VERSION, param_value_size, opencl_platform_version, NULL) == -1)
+        {
+          hcfree (opencl_platform_version);
+
+          return -1;
+        }
 
         opencl_platforms_version[opencl_platforms_idx] = opencl_platform_version;
 
@@ -5724,6 +5739,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       if (hc_cuDeviceGetName (hashcat_ctx, device_name, HCBUFSIZ_TINY, cuda_device) == -1)
       {
         device_param->skipped = true;
+        hcfree (device_name);
         continue;
       }
 
@@ -6150,6 +6166,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           if (hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_BOARD_NAME_AMD, param_value_size, device_name, NULL) == -1)
           {
             device_param->skipped = true;
+            hcfree (device_name);
             continue;
           }
 
@@ -6168,6 +6185,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           if (hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_NAME, param_value_size, device_name, NULL) == -1)
           {
             device_param->skipped = true;
+            hcfree (device_name);
             continue;
           }
 
@@ -6191,6 +6209,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         if (hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_VENDOR, param_value_size, opencl_device_vendor, NULL) == -1)
         {
           device_param->skipped = true;
+          hcfree (opencl_device_vendor);
           continue;
         }
 
@@ -6266,6 +6285,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         if (hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_VERSION, param_value_size, opencl_device_version, NULL) == -1)
         {
           device_param->skipped = true;
+          hcfree (opencl_device_version);
           continue;
         }
 
@@ -6284,6 +6304,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         if (hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_OPENCL_C_VERSION, param_value_size, opencl_device_c_version, NULL) == -1)
         {
           device_param->skipped = true;
+          hcfree (opencl_device_c_version);
           continue;
         }
 
@@ -6438,6 +6459,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         if (hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_EXTENSIONS, device_extensions_size, device_extensions, NULL) == -1)
         {
           device_param->skipped = true;
+          hcfree (device_extensions);
           continue;
         }
 
@@ -6686,6 +6708,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         if (hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DRIVER_VERSION, param_value_size, opencl_driver_version, NULL) == -1)
         {
           device_param->skipped = true;
+          hcfree (opencl_driver_version);
           continue;
         }
 
