@@ -113,7 +113,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   pbkdf2_sha256_aes_gcm_t *metamask = (pbkdf2_sha256_aes_gcm_t *) esalt_buf;
 
-  #define CT_MAX_LEN_BASE64 ((768 * 8) / 6) + 3
+  #define CT_MAX_LEN_BASE64 (((768+16) * 8) / 6) + 3
 
   token_t token;
 
@@ -249,7 +249,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   #define SALT_LEN_BASE64   ((32  * 8) / 6) + 3
   #define IV_LEN_BASE64     ((16  * 8) / 6) + 3
-  #define CT_MAX_LEN_BASE64 ((768 * 8) / 6) + 3
+  #define CT_MAX_LEN_BASE64 (((768+16) * 8) / 6) + 3
 
   u8 salt_buf[SALT_LEN_BASE64] = { 0 };
 
