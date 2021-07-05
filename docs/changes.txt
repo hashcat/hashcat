@@ -50,6 +50,7 @@
 - Brain: Add brain_ctx_t to hashcat_ctx_t to enable runtime check if hashcat was compiled with brain support
 - File handling: Do not abort on seeing a BOM in input files, just warn and ignore the BOM
 - Folders: Do not escape the variable cpath_real to prevent certain OpenCL runtimes from running into an error which do not support escape characters
+- Java Object hashCode: Add OPTS_TYPE_SUGGEST_KG as a default option
 - LM: Workaround JiT compiler bug in -m 3000 on NV leading to false negatives with large amount of hashes
 - OpenCL Runtime: Workaround JiT crash (SC failed. No reason given.) on macOS by limiting local memory allocations to 32k
 - Status View: Include time and duration info when pausing and resuming
