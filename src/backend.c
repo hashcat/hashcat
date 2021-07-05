@@ -7399,8 +7399,6 @@ void backend_ctx_devices_destroy (hashcat_ctx_t *hashcat_ctx)
   {
     hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
 
-    if (device_param->skipped == true) continue;
-
     hcfree (device_param->device_name);
 
     if (device_param->is_opencl == true)
