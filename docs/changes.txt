@@ -11,6 +11,7 @@
 - Added hash-mode: AES-192-ECB NOKDF (PT = $salt, key = $pass)
 - Added hash-mode: AES-256-ECB NOKDF (PT = $salt, key = $pass)
 - Added hash-mode: iPhone passcode (UID key + System Keybag)
+- Added hash-mode: MetaMask Wallet
 
 ##
 ## Bugs
