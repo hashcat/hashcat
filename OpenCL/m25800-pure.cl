@@ -12,15 +12,15 @@
 #endif
 
 #if   VECT_SIZE == 1
-#define uint_to_hex_lower8(i) make_u32x (l_bin2asc[(i)])
+#define uint_to_hex_lower8(i) make_u32x (u16_bin_to_u32_hex ((i)))
 #elif VECT_SIZE == 2
-#define uint_to_hex_lower8(i) make_u32x (l_bin2asc[(i).s0], l_bin2asc[(i).s1])
+#define uint_to_hex_lower8(i) make_u32x (u16_bin_to_u32_hex ((i).s0), u16_bin_to_u32_hex ((i).s1))
 #elif VECT_SIZE == 4
-#define uint_to_hex_lower8(i) make_u32x (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3])
+#define uint_to_hex_lower8(i) make_u32x (u16_bin_to_u32_hex ((i).s0), u16_bin_to_u32_hex ((i).s1), u16_bin_to_u32_hex ((i).s2), u16_bin_to_u32_hex ((i).s3))
 #elif VECT_SIZE == 8
-#define uint_to_hex_lower8(i) make_u32x (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7])
+#define uint_to_hex_lower8(i) make_u32x (u16_bin_to_u32_hex ((i).s0), u16_bin_to_u32_hex ((i).s1), u16_bin_to_u32_hex ((i).s2), u16_bin_to_u32_hex ((i).s3), u16_bin_to_u32_hex ((i).s4), u16_bin_to_u32_hex ((i).s5), u16_bin_to_u32_hex ((i).s6), u16_bin_to_u32_hex ((i).s7))
 #elif VECT_SIZE == 16
-#define uint_to_hex_lower8(i) make_u32x (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7], l_bin2asc[(i).s8], l_bin2asc[(i).s9], l_bin2asc[(i).sa], l_bin2asc[(i).sb], l_bin2asc[(i).sc], l_bin2asc[(i).sd], l_bin2asc[(i).se], l_bin2asc[(i).sf])
+#define uint_to_hex_lower8(i) make_u32x (u16_bin_to_u32_hex ((i).s0), u16_bin_to_u32_hex ((i).s1), u16_bin_to_u32_hex ((i).s2), u16_bin_to_u32_hex ((i).s3), u16_bin_to_u32_hex ((i).s4), u16_bin_to_u32_hex ((i).s5), u16_bin_to_u32_hex ((i).s6), u16_bin_to_u32_hex ((i).s7), u16_bin_to_u32_hex ((i).s8), u16_bin_to_u32_hex ((i).s9), u16_bin_to_u32_hex ((i).sa), u16_bin_to_u32_hex ((i).sb), u16_bin_to_u32_hex ((i).sc), u16_bin_to_u32_hex ((i).sd), u16_bin_to_u32_hex ((i).se), u16_bin_to_u32_hex ((i).sf))
 #endif
 
 #define COMPARE_S "inc_comp_single.cl"
@@ -438,6 +438,15 @@ DECLSPEC void expand_key (u32 *E, u32 *W, const int len)
   }
 }
 
+DECLSPEC u32 u16_bin_to_u32_hex (const u32 v)
+{
+  const u32 v0 = (v >> 0) & 15;
+  const u32 v1 = (v >> 4) & 15;
+
+  return ((v0 < 10) ? '0' + v0 : 'a' - 10 + v0) << 8
+       | ((v1 < 10) ? '0' + v1 : 'a' - 10 + v1) << 0;
+}
+
 KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m25800_init (KERN_ATTR_TMPS (bcrypt_tmp_t))
 {
   /**
@@ -446,58 +455,14 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m25800_init (KERN_ATTR_TMPS 
 
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
-  const u64 lsz = get_local_size (0);
-
-  /**
-   * bin2asc table
-   */
-
-  #ifdef IS_CUDA
 
   if (gid >= gid_max) return;
-
-  u32 l_bin2asc[256];
-
-  for (u32 i = 0; i < 256; i++)
-
-  #else
-
-  LOCAL_VK u32 l_bin2asc[256];
-
-  for (u32 i = lid; i < 256; i += lsz)
-
-  #endif
-
-  {
-    const u32 i0 = (i >> 0) & 15;
-    const u32 i1 = (i >> 4) & 15;
-
-    l_bin2asc[i] = ((i0 < 10) ? '0' + i0 : 'a' - 10 + i0) << 8
-                 | ((i1 < 10) ? '0' + i1 : 'a' - 10 + i1) << 0;
-  }
-
-  #ifndef IS_CUDA
-
-  SYNC_THREADS ();
-
-  if (gid >= gid_max) return;
-
-  #endif
-
-  const u32 pw_len = pws[gid].pw_len;
-
-  u32 w[64] = { 0 };
-
-  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
-  {
-    w[idx] = pws[gid].i[idx];
-  }
 
   sha1_ctx_t ctx0;
 
   sha1_init (&ctx0);
 
-  sha1_update_swap (&ctx0, w, pw_len);
+  sha1_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   sha1_final (&ctx0);
 
@@ -507,7 +472,7 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m25800_init (KERN_ATTR_TMPS 
   const u32 d = ctx0.h[3];
   const u32 e = ctx0.h[4];
 
-  const u32 pw_len_sha1 = 40;
+  u32 w[16];
 
   w[ 0] = uint_to_hex_lower8 ((a >> 24) & 255) <<  0
         | uint_to_hex_lower8 ((a >> 16) & 255) << 16;
@@ -535,12 +500,10 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m25800_init (KERN_ATTR_TMPS 
   w[13] = 0;
   w[14] = 0;
   w[15] = 0;
-  w[16] = 0;
-  w[17] = 0;
 
   u32 E[18] = { 0 };
 
-  expand_key (E, w, pw_len_sha1);
+  expand_key (E, w, 40);
 
   E[ 0] = hc_swap32_S (E[ 0]);
   E[ 1] = hc_swap32_S (E[ 1]);

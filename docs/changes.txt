@@ -41,6 +41,7 @@
 - Potfile: Disable potfile for hash-mode 99999
 - VeraCrypt: Increase password length support for non-boot volumes from 64 to 128
 - WPA Kernels: Increased performance by 3.5% for backend devices controlled by CUDA backend
+- Bcrypt-SHA1/MD5 Kernels: Get rid of local memory use for binary to hex conversion to avoid false negatives on several OpenCL runtimes
 
 ##
 ## Technical
