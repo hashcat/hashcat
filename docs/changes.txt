@@ -14,6 +14,12 @@
 - Added hash-mode: MetaMask Wallet
 
 ##
+## Features
+##
+
+- Added option --markov-inverse to inverse markov statistics, with the idea of reversing the order of the password candidates
+
+##
 ## Bugs
 ##
 

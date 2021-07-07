@@ -659,6 +659,7 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
   char *hcstat  = user_options->markov_hcstat2;
   u32   disable = user_options->markov_disable;
   u32   classic = user_options->markov_classic;
+  bool  inverse = user_options->markov_inverse;
 
   hcstat_table_t *root_table_buf   = mask_ctx->root_table_buf;
   hcstat_table_t *markov_table_buf = mask_ctx->markov_table_buf;
@@ -720,7 +721,7 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
 
   HCFILE fp;
 
-  if (hc_fopen (&fp, hcstat, "rb") == false)
+  if (hc_fopen_raw (&fp, hcstat, "rb") == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", hcstat, strerror (errno));
 
@@ -792,6 +793,16 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
 
   for (int i = 0; i < SP_ROOT_CNT; i++)   root_stats_buf[i]   = byte_swap_64 (root_stats_buf[i]);
   for (int i = 0; i < SP_MARKOV_CNT; i++) markov_stats_buf[i] = byte_swap_64 (markov_stats_buf[i]);
+
+  /**
+   * markov inverse: https://github.com/hashcat/hashcat/issues/1058
+   */
+
+  if (inverse == true)
+  {
+    for (int i = 0; i < SP_ROOT_CNT; i++)   root_stats_buf[i]   = 0 - (1 + root_stats_buf[i]);
+    for (int i = 0; i < SP_MARKOV_CNT; i++) markov_stats_buf[i] = 0 - (1 + markov_stats_buf[i]);
+  }
 
   /**
    * verify header
