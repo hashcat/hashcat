@@ -462,7 +462,7 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m25600_init (KERN_ATTR_TMPS 
 
   md5_init (&ctx0);
 
-  md5_update (&ctx0, pws[gid].i, pws[gid].pw_len);
+  md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   md5_final (&ctx0);
 
