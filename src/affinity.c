@@ -56,8 +56,10 @@ int set_cpu_affinity (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 
   #if defined (_WIN)
   DWORD_PTR aff_mask = 0;
+  const int cpu_id_max = 8 * sizeof (aff_mask);
   #else
   cpu_set_t cpuset;
+  const int cpu_id_max = 8 * sizeof (cpuset);
   CPU_ZERO (&cpuset);
   #endif
 
@@ -84,7 +86,7 @@ int set_cpu_affinity (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
       break;
     }
 
-    if (cpu_id > 32)
+    if (cpu_id > cpu_id_max)
     {
       event_log_error (hashcat_ctx, "Invalid cpu_id %d specified.", cpu_id);
 
@@ -94,7 +96,7 @@ int set_cpu_affinity (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
     }
 
     #if defined (_WIN)
-    aff_mask |= 1u << (cpu_id - 1);
+    aff_mask |= ((DWORD_PTR) 1) << (cpu_id - 1);
     #else
     CPU_SET ((cpu_id - 1), &cpuset);
     #endif
@@ -105,11 +107,9 @@ int set_cpu_affinity (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 
   #if defined (_WIN)
 
-  SetProcessAffinityMask (GetCurrentProcess (), aff_mask);
-
-  if (SetThreadAffinityMask (GetCurrentThread (), aff_mask) == 0)
+  if (SetProcessAffinityMask (GetCurrentProcess (), aff_mask) == 0)
   {
-    event_log_error (hashcat_ctx, "%s", "SetThreadAffinityMask().");
+    event_log_error (hashcat_ctx, "SetProcessAffinityMask() failed with error: %d", (int) GetLastError ());
 
     return -1;
   }
@@ -118,9 +118,11 @@ int set_cpu_affinity (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 
   pthread_t thread = pthread_self ();
 
-  if (pthread_setaffinity_np (thread, sizeof (cpu_set_t), &cpuset) == -1)
+  const int rc = pthread_setaffinity_np (thread, sizeof (cpu_set_t), &cpuset);
+
+  if (rc != 0)
   {
-    event_log_error (hashcat_ctx, "%s", "pthread_setaffinity_np().");
+    event_log_error (hashcat_ctx, "pthread_setaffinity_np() failed with error: %d", rc);
 
     return -1;
   }
