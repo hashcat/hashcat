@@ -2251,6 +2251,8 @@ void *brain_server_handle_client (void *p)
 
       brain_server_dbs->client_slots[client_idx] = 0;
 
+      hc_thread_mutex_unlock (brain_server_dbs->mux_dbs);
+
       close (client_fd);
 
       return NULL;
@@ -2284,6 +2286,8 @@ void *brain_server_handle_client (void *p)
       brain_logging (stderr, 0, "too many attacks\n");
 
       brain_server_dbs->client_slots[client_idx] = 0;
+
+      hc_thread_mutex_unlock (brain_server_dbs->mux_dbs);
 
       close (client_fd);
 
@@ -2323,6 +2327,10 @@ void *brain_server_handle_client (void *p)
   if (recv_buf == NULL)
   {
     brain_logging (stderr, 0, "%s\n", MSG_ENOMEM);
+
+    brain_server_dbs->client_slots[client_idx] = 0;
+
+    close (client_fd);
 
     return NULL;
   }
