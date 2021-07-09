@@ -838,6 +838,59 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
     event_log_info (hashcat_ctx, NULL);
   }
 
+  /*
+  * HIP
+  */
+  if (backend_ctx->hip)
+  {
+    int hip_devices_cnt    = backend_ctx->hip_devices_cnt;
+    int hip_driver_version = backend_ctx->hip_driver_version;
+
+    const size_t len = event_log_info (hashcat_ctx, "HIP API (HIP %d.%d)", hip_driver_version / 1000, (hip_driver_version % 100) / 10);
+
+    char line[HCBUFSIZ_TINY] = { 0 };
+
+    memset (line, '=', len);
+
+    line[len] = 0;
+
+    event_log_info (hashcat_ctx, "%s", line);
+
+    for (int hip_devices_idx = 0; hip_devices_idx < hip_devices_cnt; hip_devices_idx++)
+    {
+      const int backend_devices_idx = backend_ctx->backend_device_from_hip[hip_devices_idx];
+
+      const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
+
+      int   device_id            = device_param->device_id;
+      char *device_name          = device_param->device_name;
+      u32   device_processors    = device_param->device_processors;
+      u64   device_global_mem    = device_param->device_global_mem;
+      u64   device_available_mem = device_param->device_available_mem;
+
+      if ((device_param->skipped == false) && (device_param->skipped_warning == false))
+      {
+        event_log_info (hashcat_ctx, "* Device #%u: %s, %" PRIu64 "/%" PRIu64 " MB, %uMCU",
+                  device_id + 1,
+                  device_name,
+                  device_available_mem / 1024 / 1024,
+                  device_global_mem    / 1024 / 1024,
+                  device_processors);
+      }
+      else
+      {
+        event_log_info (hashcat_ctx, "* Device #%u: %s, skipped",
+                  device_id + 1,
+                  device_name);
+      }
+    }
+
+    event_log_info (hashcat_ctx, NULL);
+  }
+
+  /*
+  * OCL
+  */
   if (backend_ctx->ocl)
   {
     cl_uint   opencl_platforms_cnt         = backend_ctx->opencl_platforms_cnt;

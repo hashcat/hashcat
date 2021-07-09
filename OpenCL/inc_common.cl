@@ -3,6 +3,10 @@
  * License.....: MIT
  */
 
+#ifdef IS_HIP
+#include <hip/hip_runtime.h>
+#endif
+
 #include "inc_vendor.h"
 #include "inc_types.h"
 #include "inc_platform.h"
@@ -879,7 +883,7 @@ DECLSPEC u32x hc_rotl32 (const u32x a, const int n)
 {
   #if   defined _CPU_OPENCL_EMU_H
   return rotl32 (a, n);
-  #elif defined IS_CUDA
+  #elif defined IS_CUDA || defined IS_HIP
   return rotl32 (a, n);
   #else
   #ifdef USE_ROTATE
@@ -894,7 +898,7 @@ DECLSPEC u32x hc_rotr32 (const u32x a, const int n)
 {
   #if   defined _CPU_OPENCL_EMU_H
   return rotr32 (a, n);
-  #elif defined IS_CUDA
+  #elif defined IS_CUDA || defined IS_HIP
   return rotr32 (a, n);
   #else
   #ifdef USE_ROTATE
@@ -909,7 +913,7 @@ DECLSPEC u32 hc_rotl32_S (const u32 a, const int n)
 {
   #if   defined _CPU_OPENCL_EMU_H
   return rotl32 (a, n);
-  #elif defined IS_CUDA
+  #elif defined IS_CUDA || defined IS_HIP
   return rotl32_S (a, n);
   #else
   #ifdef USE_ROTATE
@@ -924,7 +928,7 @@ DECLSPEC u32 hc_rotr32_S (const u32 a, const int n)
 {
   #if   defined _CPU_OPENCL_EMU_H
   return rotr32 (a, n);
-  #elif defined IS_CUDA
+  #elif defined IS_CUDA || defined IS_HIP
   return rotr32_S (a, n);
   #else
   #ifdef USE_ROTATE
@@ -939,7 +943,7 @@ DECLSPEC u64x hc_rotl64 (const u64x a, const int n)
 {
   #if   defined _CPU_OPENCL_EMU_H
   return rotl64 (a, n);
-  #elif defined IS_CUDA
+  #elif defined IS_CUDA || defined IS_HIP
   return rotl64 (a, n);
   #elif defined IS_AMD
   return rotl64 (a, n);
@@ -956,7 +960,7 @@ DECLSPEC u64x hc_rotr64 (const u64x a, const int n)
 {
   #if   defined _CPU_OPENCL_EMU_H
   return rotr64 (a, n);
-  #elif defined IS_CUDA
+  #elif defined IS_CUDA || defined IS_HIP
   return rotr64 (a, n);
   #elif defined IS_AMD
   return rotr64 (a, n);
@@ -973,7 +977,7 @@ DECLSPEC u64 hc_rotl64_S (const u64 a, const int n)
 {
   #if   defined _CPU_OPENCL_EMU_H
   return rotl64 (a, n);
-  #elif defined IS_CUDA
+  #elif defined IS_CUDA || defined IS_HIP
   return rotl64_S (a, n);
   #elif defined IS_AMD
   return rotl64_S (a, n);
@@ -990,7 +994,7 @@ DECLSPEC u64 hc_rotr64_S (const u64 a, const int n)
 {
   #if   defined _CPU_OPENCL_EMU_H
   return rotr64 (a, n);
-  #elif defined IS_CUDA
+  #elif defined IS_CUDA || defined IS_HIP
   return rotr64_S (a, n);
   #elif defined IS_AMD
   return rotr64_S (a, n);

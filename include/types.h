@@ -616,6 +616,7 @@ typedef enum user_options_defaults
   MARKOV_THRESHOLD         = 0,
   NONCE_ERROR_CORRECTIONS  = 8,
   BACKEND_IGNORE_CUDA      = false,
+  BACKEND_IGNORE_HIP       = false,
   BACKEND_IGNORE_OPENCL    = false,
   BACKEND_INFO             = false,
   BACKEND_VECTOR_WIDTH     = 0,
@@ -666,6 +667,7 @@ typedef enum user_options_map
   IDX_ATTACK_MODE               = 'a',
   IDX_BACKEND_DEVICES           = 'd',
   IDX_BACKEND_IGNORE_CUDA       = 0xff01,
+  IDX_BACKEND_IGNORE_HIP        = 0xff4d,
   IDX_BACKEND_IGNORE_OPENCL     = 0xff02,
   IDX_BACKEND_INFO              = 'I',
   IDX_BACKEND_VECTOR_WIDTH      = 0xff03,
@@ -1045,7 +1047,10 @@ typedef struct hc_fp
 } HCFILE;
 
 #include "ext_nvrtc.h"
+#include "ext_hiprtc.h"
+
 #include "ext_cuda.h"
+#include "ext_hip.h"
 #include "ext_OpenCL.h"
 
 typedef struct hc_device_param
@@ -1427,6 +1432,85 @@ typedef struct hc_device_param
   CUdeviceptr       cuda_d_st_salts_buf;
   CUdeviceptr       cuda_d_st_esalts_buf;
 
+  // API: hip
+
+  bool               is_hip;
+
+  int                hip_warp_size;
+
+  HIPdevice          hip_device;
+  HIPcontext         hip_context;
+  HIPstream          hip_stream;
+
+  HIPevent           hip_event1;
+  HIPevent           hip_event2;
+
+  HIPmodule          hip_module;
+  HIPmodule          hip_module_shared;
+  HIPmodule          hip_module_mp;
+  HIPmodule          hip_module_amp;
+
+  HIPfunction        hip_function1;
+  HIPfunction        hip_function12;
+  HIPfunction        hip_function2;
+  HIPfunction        hip_function2e;
+  HIPfunction        hip_function23;
+  HIPfunction        hip_function3;
+  HIPfunction        hip_function4;
+  HIPfunction        hip_function_init2;
+  HIPfunction        hip_function_loop2;
+  HIPfunction        hip_function_mp;
+  HIPfunction        hip_function_mp_l;
+  HIPfunction        hip_function_mp_r;
+  HIPfunction        hip_function_amp;
+  HIPfunction        hip_function_tm;
+  HIPfunction        hip_function_memset;
+  HIPfunction        hip_function_atinit;
+  HIPfunction        hip_function_decompress;
+  HIPfunction        hip_function_aux1;
+  HIPfunction        hip_function_aux2;
+  HIPfunction        hip_function_aux3;
+  HIPfunction        hip_function_aux4;
+
+  HIPdeviceptr       hip_d_pws_buf;
+  HIPdeviceptr       hip_d_pws_amp_buf;
+  HIPdeviceptr       hip_d_pws_comp_buf;
+  HIPdeviceptr       hip_d_pws_idx;
+  HIPdeviceptr       hip_d_words_buf_l;
+  HIPdeviceptr       hip_d_words_buf_r;
+  HIPdeviceptr       hip_d_rules;
+  HIPdeviceptr       hip_d_rules_c;
+  HIPdeviceptr       hip_d_combs;
+  HIPdeviceptr       hip_d_combs_c;
+  HIPdeviceptr       hip_d_bfs;
+  HIPdeviceptr       hip_d_bfs_c;
+  HIPdeviceptr       hip_d_tm_c;
+  HIPdeviceptr       hip_d_bitmap_s1_a;
+  HIPdeviceptr       hip_d_bitmap_s1_b;
+  HIPdeviceptr       hip_d_bitmap_s1_c;
+  HIPdeviceptr       hip_d_bitmap_s1_d;
+  HIPdeviceptr       hip_d_bitmap_s2_a;
+  HIPdeviceptr       hip_d_bitmap_s2_b;
+  HIPdeviceptr       hip_d_bitmap_s2_c;
+  HIPdeviceptr       hip_d_bitmap_s2_d;
+  HIPdeviceptr       hip_d_plain_bufs;
+  HIPdeviceptr       hip_d_digests_buf;
+  HIPdeviceptr       hip_d_digests_shown;
+  HIPdeviceptr       hip_d_salt_bufs;
+  HIPdeviceptr       hip_d_esalt_bufs;
+  HIPdeviceptr       hip_d_tmps;
+  HIPdeviceptr       hip_d_hooks;
+  HIPdeviceptr       hip_d_result;
+  HIPdeviceptr       hip_d_extra0_buf;
+  HIPdeviceptr       hip_d_extra1_buf;
+  HIPdeviceptr       hip_d_extra2_buf;
+  HIPdeviceptr       hip_d_extra3_buf;
+  HIPdeviceptr       hip_d_root_css_buf;
+  HIPdeviceptr       hip_d_markov_css_buf;
+  HIPdeviceptr       hip_d_st_digests_buf;
+  HIPdeviceptr       hip_d_st_salts_buf;
+  HIPdeviceptr       hip_d_st_esalts_buf;
+
   // API: opencl
 
   bool              is_opencl;
@@ -1519,9 +1603,13 @@ typedef struct backend_ctx
 
   void               *ocl;
   void               *cuda;
+  void               *hip;
+  
   void               *nvrtc;
+  void               *hiprtc;
 
   int                 backend_device_from_cuda[DEVICES_MAX];                              // from cuda device index to backend device index
+  int                 backend_device_from_hip[DEVICES_MAX];                               // from hip device index to backend device index
   int                 backend_device_from_opencl[DEVICES_MAX];                            // from opencl device index to backend device index
   int                 backend_device_from_opencl_platform[CL_PLATFORMS_MAX][DEVICES_MAX]; // from opencl device index to backend device index (by platform)
 
@@ -1529,6 +1617,8 @@ typedef struct backend_ctx
   int                 backend_devices_active;
   int                 cuda_devices_cnt;
   int                 cuda_devices_active;
+  int                 hip_devices_cnt;
+  int                 hip_devices_active;
   int                 opencl_devices_cnt;
   int                 opencl_devices_active;
 
@@ -1556,6 +1646,11 @@ typedef struct backend_ctx
 
   int                 nvrtc_driver_version;
   int                 cuda_driver_version;
+
+  // cuda
+
+  int                 hiprtc_driver_version;
+  int                 hip_driver_version;
 
   // opencl
 
@@ -1947,6 +2042,7 @@ typedef struct user_options
   bool         markov_classic;
   bool         markov_disable;
   bool         backend_ignore_cuda;
+  bool         backend_ignore_hip;
   bool         backend_ignore_opencl;
   bool         backend_info;
   bool         optimized_kernel_enable;

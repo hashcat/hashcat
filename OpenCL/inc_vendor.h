@@ -10,6 +10,8 @@
 #define IS_NATIVE
 #elif defined __CUDACC__
 #define IS_CUDA
+#elif defined __HIPCC__
+#define IS_HIP
 #else
 #define IS_OPENCL
 #endif
@@ -21,7 +23,7 @@
 #define LOCAL_VK
 #define LOCAL_AS
 #define KERNEL_FQ
-#elif defined IS_CUDA
+#elif (defined IS_CUDA) || (defined IS_HIP)
 #define CONSTANT_VK __constant__
 #define CONSTANT_AS
 #define GLOBAL_AS
@@ -80,7 +82,9 @@
 #define IS_MESA
 #define IS_GENERIC
 #elif VENDOR_ID == (1 << 5)
-#define IS_NV
+//#define IS_NV //TODO: FIX ME HIP
+#define IS_POCL
+#define IS_GENERIC
 #elif VENDOR_ID == (1 << 6)
 #define IS_POCL
 #define IS_GENERIC
@@ -116,9 +120,13 @@
  */
 
 #if defined IS_AMD && defined IS_GPU
-#define DECLSPEC inline static
+#define DECLSPEC inline static __device__
+#else
+#ifdef IS_HIP
+#define DECLSPEC  __device__
 #else
 #define DECLSPEC
+#endif
 #endif
 
 /**
@@ -137,7 +145,7 @@
 // Whitelist some OpenCL specific functions
 // This could create more stable kernels on systems with bad OpenCL drivers
 
-#ifdef IS_CUDA
+#if defined IS_CUDA || defined IS_HIP
 #define USE_BITSELECT
 #define USE_ROTATE
 #endif

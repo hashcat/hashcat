@@ -2,6 +2,9 @@
  * Author......: See docs/credits.txt
  * License.....: MIT
  */
+#ifdef IS_HIP
+#include <hip_runtime.h>
+#endif
 
 #include "inc_vendor.h"
 #include "inc_types.h"
@@ -60,7 +63,7 @@ DECLSPEC u64 rotr64_S (const u64 a, const int n)
 
 #endif
 
-#ifdef IS_CUDA
+#if defined IS_CUDA || defined IS_HIP
 
 #if ATTACK_EXEC == 11
 
@@ -84,6 +87,7 @@ CONSTANT_VK u32 generic_constant[8192]; // 32k
 #endif
 
 #endif
+
 
 DECLSPEC u32 atomic_dec (u32 *p)
 {

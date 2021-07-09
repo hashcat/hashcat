@@ -6,13 +6,14 @@
 #ifndef _INC_TYPES_H
 #define _INC_TYPES_H
 
-#ifdef IS_CUDA
+#if defined IS_CUDA || defined IS_HIP
 //https://docs.nvidia.com/cuda/nvrtc/index.html#integer-size
 typedef unsigned char      uchar;
 typedef unsigned short     ushort;
 typedef unsigned int       uint;
-typedef unsigned long long ulong;
+typedef unsigned long long xulong;
 #endif
+
 
 #ifdef KERNEL_STATIC
 typedef uchar  u8;
@@ -58,7 +59,7 @@ typedef u64  u64x;
 #define make_u64x (u64)
 
 #else
-#ifdef IS_CUDA
+#if defined IS_CUDA || defined IS_HIP
 
 #if VECT_SIZE == 2
 

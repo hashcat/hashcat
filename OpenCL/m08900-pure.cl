@@ -24,7 +24,7 @@ typedef struct
 
 } scrypt_tmp_t;
 
-#ifdef IS_CUDA
+#if defined IS_CUDA || defined IS_HIP
 
 inline __device__ uint4 operator &  (const uint4  a, const u32   b) { return make_uint4 ((a.x &  b  ), (a.y &  b  ), (a.z &  b  ), (a.w &  b  ));  }
 inline __device__ uint4 operator << (const uint4  a, const u32   b) { return make_uint4 ((a.x << b  ), (a.y << b  ), (a.z << b  ), (a.w << b  ));  }
@@ -57,7 +57,7 @@ DECLSPEC uint4 hc_swap32_4 (uint4 v)
 
 #define ADD_ROTATE_XOR(r,i1,i2,s) (r) ^= rotate ((i1) + (i2), (s));
 
-#ifdef IS_CUDA
+#if defined IS_CUDA || defined IS_HIP
 
 #define SALSA20_2R()                        \
 {                                           \
@@ -205,7 +205,7 @@ DECLSPEC void scrypt_smix (uint4 *X, uint4 *T, GLOBAL_AS uint4 *V0, GLOBAL_AS ui
   #endif
   for (u32 i = 0; i < STATE_CNT4; i += 4)
   {
-    #ifdef IS_CUDA
+    #if defined IS_CUDA || defined IS_HIP
     T[0] = make_uint4 (X[i + 0].x, X[i + 1].y, X[i + 2].z, X[i + 3].w);
     T[1] = make_uint4 (X[i + 1].x, X[i + 2].y, X[i + 3].z, X[i + 0].w);
     T[2] = make_uint4 (X[i + 2].x, X[i + 3].y, X[i + 0].z, X[i + 1].w);
@@ -252,7 +252,7 @@ DECLSPEC void scrypt_smix (uint4 *X, uint4 *T, GLOBAL_AS uint4 *V0, GLOBAL_AS ui
   #endif
   for (u32 i = 0; i < STATE_CNT4; i += 4)
   {
-    #ifdef IS_CUDA
+    #if defined IS_CUDA || defined IS_HIP
     T[0] = make_uint4 (X[i + 0].x, X[i + 3].y, X[i + 2].z, X[i + 1].w);
     T[1] = make_uint4 (X[i + 1].x, X[i + 0].y, X[i + 3].z, X[i + 2].w);
     T[2] = make_uint4 (X[i + 2].x, X[i + 1].y, X[i + 0].z, X[i + 3].w);
@@ -328,7 +328,7 @@ KERNEL_FQ void m08900_init (KERN_ATTR_TMPS (scrypt_tmp_t))
     digest[6] = sha256_hmac_ctx2.opad.h[6];
     digest[7] = sha256_hmac_ctx2.opad.h[7];
 
-    #ifdef IS_CUDA
+    #if defined IS_CUDA || defined IS_HIP
     const uint4 tmp0 = make_uint4 (digest[0], digest[1], digest[2], digest[3]);
     const uint4 tmp1 = make_uint4 (digest[4], digest[5], digest[6], digest[7]);
     #else
