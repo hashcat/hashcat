@@ -9,15 +9,15 @@
 #include "shared.h"
 #include "event.h"
 #include "folder.h"
-#include "ext_sysfs.h"
+#include "ext_sysfs_amdgpu.h"
 
-bool sysfs_init (void *hashcat_ctx)
+bool sysfs_amdgpu_init (void *hashcat_ctx)
 {
   hwmon_ctx_t *hwmon_ctx = ((hashcat_ctx_t *) hashcat_ctx)->hwmon_ctx;
 
-  SYSFS_PTR *sysfs = (SYSFS_PTR *) hwmon_ctx->hm_sysfs;
+  SYSFS_AMDGPU_PTR *sysfs_amdgpu = (SYSFS_AMDGPU_PTR *) hwmon_ctx->hm_sysfs_amdgpu;
 
-  memset (sysfs, 0, sizeof (SYSFS_PTR));
+  memset (sysfs_amdgpu, 0, sizeof (SYSFS_AMDGPU_PTR));
 
   char *path;
 
@@ -30,19 +30,19 @@ bool sysfs_init (void *hashcat_ctx)
   return r;
 }
 
-void sysfs_close (void *hashcat_ctx)
+void sysfs_amdgpu_close (void *hashcat_ctx)
 {
   hwmon_ctx_t *hwmon_ctx = ((hashcat_ctx_t *) hashcat_ctx)->hwmon_ctx;
 
-  SYSFS_PTR *sysfs = (SYSFS_PTR *) hwmon_ctx->hm_sysfs;
+  SYSFS_AMDGPU_PTR *sysfs_amdgpu = (SYSFS_AMDGPU_PTR *) hwmon_ctx->hm_sysfs_amdgpu;
 
-  if (sysfs)
+  if (sysfs_amdgpu)
   {
-    hcfree (sysfs);
+    hcfree (sysfs_amdgpu);
   }
 }
 
-char *hm_SYSFS_get_syspath_device (void *hashcat_ctx, const int backend_device_idx)
+char *hm_SYSFS_AMDGPU_get_syspath_device (void *hashcat_ctx, const int backend_device_idx)
 {
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
 
@@ -55,13 +55,13 @@ char *hm_SYSFS_get_syspath_device (void *hashcat_ctx, const int backend_device_i
   return syspath;
 }
 
-char *hm_SYSFS_get_syspath_hwmon (void *hashcat_ctx, const int backend_device_idx)
+char *hm_SYSFS_AMDGPU_get_syspath_hwmon (void *hashcat_ctx, const int backend_device_idx)
 {
-  char *syspath = hm_SYSFS_get_syspath_device (hashcat_ctx, backend_device_idx);
+  char *syspath = hm_SYSFS_AMDGPU_get_syspath_device (hashcat_ctx, backend_device_idx);
 
   if (syspath == NULL)
   {
-    event_log_error (hashcat_ctx, "hm_SYSFS_get_syspath_device() failed.");
+    event_log_error (hashcat_ctx, "hm_SYSFS_AMDGPU_get_syspath_device() failed.");
 
     return NULL;
   }
@@ -93,9 +93,9 @@ char *hm_SYSFS_get_syspath_hwmon (void *hashcat_ctx, const int backend_device_id
   return hwmon;
 }
 
-int hm_SYSFS_get_fan_speed_current (void *hashcat_ctx, const int backend_device_idx, int *val)
+int hm_SYSFS_AMDGPU_get_fan_speed_current (void *hashcat_ctx, const int backend_device_idx, int *val)
 {
-  char *syspath = hm_SYSFS_get_syspath_hwmon (hashcat_ctx, backend_device_idx);
+  char *syspath = hm_SYSFS_AMDGPU_get_syspath_hwmon (hashcat_ctx, backend_device_idx);
 
   if (syspath == NULL) return -1;
 
@@ -185,9 +185,9 @@ int hm_SYSFS_get_fan_speed_current (void *hashcat_ctx, const int backend_device_
   return 0;
 }
 
-int hm_SYSFS_get_temperature_current (void *hashcat_ctx, const int backend_device_idx, int *val)
+int hm_SYSFS_AMDGPU_get_temperature_current (void *hashcat_ctx, const int backend_device_idx, int *val)
 {
-  char *syspath = hm_SYSFS_get_syspath_hwmon (hashcat_ctx, backend_device_idx);
+  char *syspath = hm_SYSFS_AMDGPU_get_syspath_hwmon (hashcat_ctx, backend_device_idx);
 
   if (syspath == NULL) return -1;
 
@@ -230,9 +230,9 @@ int hm_SYSFS_get_temperature_current (void *hashcat_ctx, const int backend_devic
   return 0;
 }
 
-int hm_SYSFS_get_pp_dpm_sclk (void *hashcat_ctx, const int backend_device_idx, int *val)
+int hm_SYSFS_AMDGPU_get_pp_dpm_sclk (void *hashcat_ctx, const int backend_device_idx, int *val)
 {
-  char *syspath = hm_SYSFS_get_syspath_device (hashcat_ctx, backend_device_idx);
+  char *syspath = hm_SYSFS_AMDGPU_get_syspath_device (hashcat_ctx, backend_device_idx);
 
   if (syspath == NULL) return -1;
 
@@ -285,9 +285,9 @@ int hm_SYSFS_get_pp_dpm_sclk (void *hashcat_ctx, const int backend_device_idx, i
   return 0;
 }
 
-int hm_SYSFS_get_pp_dpm_mclk (void *hashcat_ctx, const int backend_device_idx, int *val)
+int hm_SYSFS_AMDGPU_get_pp_dpm_mclk (void *hashcat_ctx, const int backend_device_idx, int *val)
 {
-  char *syspath = hm_SYSFS_get_syspath_device (hashcat_ctx, backend_device_idx);
+  char *syspath = hm_SYSFS_AMDGPU_get_syspath_device (hashcat_ctx, backend_device_idx);
 
   if (syspath == NULL) return -1;
 
@@ -340,9 +340,9 @@ int hm_SYSFS_get_pp_dpm_mclk (void *hashcat_ctx, const int backend_device_idx, i
   return 0;
 }
 
-int hm_SYSFS_get_pp_dpm_pcie (void *hashcat_ctx, const int backend_device_idx, int *val)
+int hm_SYSFS_AMDGPU_get_pp_dpm_pcie (void *hashcat_ctx, const int backend_device_idx, int *val)
 {
-  char *syspath = hm_SYSFS_get_syspath_device (hashcat_ctx, backend_device_idx);
+  char *syspath = hm_SYSFS_AMDGPU_get_syspath_device (hashcat_ctx, backend_device_idx);
 
   if (syspath == NULL) return -1;
 
@@ -391,9 +391,9 @@ int hm_SYSFS_get_pp_dpm_pcie (void *hashcat_ctx, const int backend_device_idx, i
   return 0;
 }
 
-int hm_SYSFS_get_gpu_busy_percent (void *hashcat_ctx, const int backend_device_idx, int *val)
+int hm_SYSFS_AMDGPU_get_gpu_busy_percent (void *hashcat_ctx, const int backend_device_idx, int *val)
 {
-  char *syspath = hm_SYSFS_get_syspath_device (hashcat_ctx, backend_device_idx);
+  char *syspath = hm_SYSFS_AMDGPU_get_syspath_device (hashcat_ctx, backend_device_idx);
 
   if (syspath == NULL) return -1;
 
