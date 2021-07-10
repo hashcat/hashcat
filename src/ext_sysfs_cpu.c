@@ -132,3 +132,81 @@ int hm_SYSFS_CPU_get_temperature_current (void *hashcat_ctx, int *val)
 
   return 0;
 }
+
+bool read_proc_stat (void *hashcat_ctx, proc_stat_t *proc_stat)
+{
+  FILE *fd = fopen (PROC_STAT, "r");
+
+  if (fd == NULL) return false;
+
+  const int e = fscanf (fd, "cpu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu\n",
+     &proc_stat->user,
+     &proc_stat->nice,
+     &proc_stat->system,
+     &proc_stat->idle,
+     &proc_stat->iowait,
+     &proc_stat->irq,
+     &proc_stat->softirq,
+     &proc_stat->steal,
+     &proc_stat->guest,
+     &proc_stat->guest_nice);
+
+  fclose (fd);
+
+  if (e != 10)
+  {
+    event_log_error (hashcat_ctx, "%s: unexpected data.", PROC_STAT);
+
+    return false;
+  }
+
+  return true;
+}
+
+int hm_SYSFS_CPU_get_utilization_current (void *hashcat_ctx, int *val)
+{
+  static proc_stat_t prev;
+
+  proc_stat_t cur;
+
+  if (read_proc_stat (hashcat_ctx, &cur) == false) return false;
+
+  unsigned long prev_idle = prev.idle
+                          + prev.iowait;
+
+  unsigned long prev_load = prev.user
+                          + prev.nice
+                          + prev.system
+                          + prev.irq
+                          + prev.softirq;
+
+  unsigned long prev_total = prev_idle + prev_load;
+
+
+  unsigned long cur_idle = cur.idle
+                         + cur.iowait;
+
+  unsigned long cur_load = cur.user
+                         + cur.nice
+                         + cur.system
+                         + cur.irq
+                         + cur.softirq;
+
+  unsigned long cur_total = cur_idle + cur_load;
+
+  memcpy (&prev, &cur, sizeof (prev));
+
+  unsigned long rem_total = cur_total - prev_total;
+  unsigned long rem_idle  = cur_idle  - prev_idle;
+
+  if (rem_total)
+  {
+    const double cpu_percentage = ((double) (rem_total - rem_idle) / (double) rem_total) * 100;
+
+    *val = (int) cpu_percentage;
+
+    return true;
+  }
+
+  return false;
+}

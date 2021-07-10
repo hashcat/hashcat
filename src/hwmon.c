@@ -750,6 +750,23 @@ int hm_get_utilization_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int b
         }
       }
     }
+
+    if (backend_ctx->devices_param[backend_device_idx].opencl_device_type & CL_DEVICE_TYPE_CPU)
+    {
+      if (hwmon_ctx->hm_sysfs_cpu)
+      {
+        int utilization = 0;
+
+        if (hm_SYSFS_CPU_get_utilization_current (hashcat_ctx, &utilization) == -1)
+        {
+          hwmon_ctx->hm_device[backend_device_idx].utilization_get_supported = false;
+
+          return -1;
+        }
+
+        return utilization;
+      }
+    }
   }
 
   hwmon_ctx->hm_device[backend_device_idx].utilization_get_supported = false;
@@ -1482,7 +1499,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
             hm_adapters_sysfs_cpu[device_id].fanpolicy_get_supported   = false;
             hm_adapters_sysfs_cpu[device_id].memoryspeed_get_supported = false;
             hm_adapters_sysfs_cpu[device_id].temperature_get_supported = true;
-            hm_adapters_sysfs_cpu[device_id].utilization_get_supported = false;
+            hm_adapters_sysfs_cpu[device_id].utilization_get_supported = true;
           }
         }
       }
