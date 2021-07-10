@@ -102,7 +102,7 @@ KERNEL_FQ void m18900_init (KERN_ATTR_TMPS_ESALT (android_backup_tmp_t, android_
   tmps[gid].opad[3] = sha1_hmac_ctx.opad.h[3];
   tmps[gid].opad[4] = sha1_hmac_ctx.opad.h[4];
 
-  sha1_hmac_update_global_swap (&sha1_hmac_ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  sha1_hmac_update_global_swap (&sha1_hmac_ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   for (u32 i = 0, j = 1; i < 8; i += 5, j += 1)
   {
@@ -315,17 +315,17 @@ KERNEL_FQ void m18900_comp (KERN_ATTR_TMPS_ESALT (android_backup_tmp_t, android_
 
   u32 iv[4];
 
-  iv[0] = hc_swap32_S (esalt_bufs[digests_offset].masterkey_blob[16]);
-  iv[1] = hc_swap32_S (esalt_bufs[digests_offset].masterkey_blob[17]);
-  iv[2] = hc_swap32_S (esalt_bufs[digests_offset].masterkey_blob[18]);
-  iv[3] = hc_swap32_S (esalt_bufs[digests_offset].masterkey_blob[19]);
+  iv[0] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].masterkey_blob[16]);
+  iv[1] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].masterkey_blob[17]);
+  iv[2] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].masterkey_blob[18]);
+  iv[3] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].masterkey_blob[19]);
 
   u32 ct[4];
 
-  ct[0] = hc_swap32_S (esalt_bufs[digests_offset].masterkey_blob[20]);
-  ct[1] = hc_swap32_S (esalt_bufs[digests_offset].masterkey_blob[21]);
-  ct[2] = hc_swap32_S (esalt_bufs[digests_offset].masterkey_blob[22]);
-  ct[3] = hc_swap32_S (esalt_bufs[digests_offset].masterkey_blob[23]);
+  ct[0] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].masterkey_blob[20]);
+  ct[1] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].masterkey_blob[21]);
+  ct[2] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].masterkey_blob[22]);
+  ct[3] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].masterkey_blob[23]);
 
   u32 pt[4];
 
@@ -338,9 +338,9 @@ KERNEL_FQ void m18900_comp (KERN_ATTR_TMPS_ESALT (android_backup_tmp_t, android_
 
   if ((pt[2] == 0x0d0d0d0d) && (pt[3] == 0x0d0d0d0d))
   {
-    if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
     }
   }
 }

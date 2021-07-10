@@ -90,14 +90,7 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
   if (device_param->is_cuda == true)
   {
-    if (device_param->kernel_dynamic_local_mem_size_memset % device_param->device_local_mem_size)
-    {
-      // this is the case Compute Capability 7.5
-      // there is also Compute Capability 7.0 which offers a larger dynamic local size access
-      // however, if it's an exact multiple the driver can optimize this for us more efficient
-
-      use_dynamic = true;
-    }
+    use_dynamic = true;
   }
 
   // this uses some nice feedback effect.
@@ -327,6 +320,9 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hashes_count_min         = MODULE_DEFAULT;
   module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
   module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_size    = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_init    = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_term    = MODULE_DEFAULT;
   module_ctx->module_hook12                   = MODULE_DEFAULT;
   module_ctx->module_hook23                   = MODULE_DEFAULT;
   module_ctx->module_hook_salt_size           = MODULE_DEFAULT;

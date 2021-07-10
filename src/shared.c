@@ -57,6 +57,8 @@ static const char *PA_038 = "Invalid key size";
 static const char *PA_039 = "Invalid block size";
 static const char *PA_040 = "Invalid or unsupported cipher";
 static const char *PA_041 = "Invalid filesize";
+static const char *PA_042 = "IV length exception";
+static const char *PA_043 = "CT length exception";
 static const char *PA_255 = "Unknown error";
 
 static const char *OPTI_STR_OPTIMIZED_KERNEL     = "Optimized-Kernel";
@@ -95,11 +97,15 @@ static const char *HASH_CATEGORY_OS_STR                     = "Operating System"
 static const char *HASH_CATEGORY_EAS_STR                    = "Enterprise Application Software (EAS)";
 static const char *HASH_CATEGORY_ARCHIVE_STR                = "Archives";
 static const char *HASH_CATEGORY_FDE_STR                    = "Full-Disk Encryption (FDE)";
+static const char *HASH_CATEGORY_FBE_STR                    = "File-Based Encryption (FBE)";
 static const char *HASH_CATEGORY_DOCUMENTS_STR              = "Documents";
 static const char *HASH_CATEGORY_PASSWORD_MANAGER_STR       = "Password Managers";
 static const char *HASH_CATEGORY_OTP_STR                    = "One-Time Passwords";
 static const char *HASH_CATEGORY_PLAIN_STR                  = "Plaintext";
 static const char *HASH_CATEGORY_FRAMEWORK_STR              = "Framework";
+static const char *HASH_CATEGORY_PRIVATE_KEY_STR            = "Private Key";
+static const char *HASH_CATEGORY_IMS_STR                    = "Instant Messaging Service";
+static const char *HASH_CATEGORY_CRYPTOCURRENCY_WALLET_STR  = "Cryptocurrency Wallet";
 
 int sort_by_string_sized (const void *p1, const void *p2)
 {
@@ -382,7 +388,7 @@ bool hc_path_has_bom (const char *path)
 
   HCFILE fp;
 
-  if (hc_fopen (&fp, path, "rb") == false) return false;
+  if (hc_fopen_raw (&fp, path, "rb") == false) return false;
 
   const size_t nread = hc_fread (buf, 1, sizeof (buf), &fp);
 
@@ -390,95 +396,104 @@ bool hc_path_has_bom (const char *path)
 
   if (nread < 1) return false;
 
+  const int bom_size = hc_string_bom_size (buf);
+
+  const bool has_bom = bom_size > 0;
+
+  return has_bom;
+}
+
+int hc_string_bom_size (const u8 *s)
+{
   /* signatures from https://en.wikipedia.org/wiki/Byte_order_mark#Byte_order_marks_by_encoding */
 
   // utf-8
 
-  if ((buf[0] == 0xef)
-   && (buf[1] == 0xbb)
-   && (buf[2] == 0xbf)) return true;
+  if ((s[0] == 0xef)
+   && (s[1] == 0xbb)
+   && (s[2] == 0xbf)) return 3;
 
   // utf-16
 
-  if ((buf[0] == 0xfe)
-   && (buf[1] == 0xff)) return true;
+  if ((s[0] == 0xfe)
+   && (s[1] == 0xff)) return 2;
 
-  if ((buf[0] == 0xff)
-   && (buf[1] == 0xfe)) return true;
+  if ((s[0] == 0xff)
+   && (s[1] == 0xfe)) return 2;
 
   // utf-32
 
-  if ((buf[0] == 0x00)
-   && (buf[1] == 0x00)
-   && (buf[2] == 0xfe)
-   && (buf[3] == 0xff)) return true;
+  if ((s[0] == 0x00)
+   && (s[1] == 0x00)
+   && (s[2] == 0xfe)
+   && (s[3] == 0xff)) return 4;
 
-  if ((buf[0] == 0xff)
-   && (buf[1] == 0xfe)
-   && (buf[2] == 0x00)
-   && (buf[3] == 0x00)) return true;
+  if ((s[0] == 0xff)
+   && (s[1] == 0xfe)
+   && (s[2] == 0x00)
+   && (s[3] == 0x00)) return 4;
 
   // utf-7
 
-  if ((buf[0] == 0x2b)
-   && (buf[1] == 0x2f)
-   && (buf[2] == 0x76)
-   && (buf[3] == 0x38)) return true;
+  if ((s[0] == 0x2b)
+   && (s[1] == 0x2f)
+   && (s[2] == 0x76)
+   && (s[3] == 0x38)) return 4;
 
-  if ((buf[0] == 0x2b)
-   && (buf[1] == 0x2f)
-   && (buf[2] == 0x76)
-   && (buf[3] == 0x39)) return true;
+  if ((s[0] == 0x2b)
+   && (s[1] == 0x2f)
+   && (s[2] == 0x76)
+   && (s[3] == 0x39)) return 4;
 
-  if ((buf[0] == 0x2b)
-   && (buf[1] == 0x2f)
-   && (buf[2] == 0x76)
-   && (buf[3] == 0x2b)) return true;
+  if ((s[0] == 0x2b)
+   && (s[1] == 0x2f)
+   && (s[2] == 0x76)
+   && (s[3] == 0x2b)) return 4;
 
-  if ((buf[0] == 0x2b)
-   && (buf[1] == 0x2f)
-   && (buf[2] == 0x76)
-   && (buf[3] == 0x2f)) return true;
+  if ((s[0] == 0x2b)
+   && (s[1] == 0x2f)
+   && (s[2] == 0x76)
+   && (s[3] == 0x2f)) return 4;
 
-  if ((buf[0] == 0x2b)
-   && (buf[1] == 0x2f)
-   && (buf[2] == 0x76)
-   && (buf[3] == 0x38)
-   && (buf[4] == 0x2d)) return true;
+  if ((s[0] == 0x2b)
+   && (s[1] == 0x2f)
+   && (s[2] == 0x76)
+   && (s[3] == 0x38)
+   && (s[4] == 0x2d)) return 5;
 
   // utf-1
 
-  if ((buf[0] == 0xf7)
-   && (buf[1] == 0x64)
-   && (buf[2] == 0x4c)) return true;
+  if ((s[0] == 0xf7)
+   && (s[1] == 0x64)
+   && (s[2] == 0x4c)) return 3;
 
   // utf-ebcdic
 
-  if ((buf[0] == 0xdd)
-   && (buf[1] == 0x73)
-   && (buf[2] == 0x66)
-   && (buf[3] == 0x73)) return true;
+  if ((s[0] == 0xdd)
+   && (s[1] == 0x73)
+   && (s[2] == 0x66)
+   && (s[3] == 0x73)) return 4;
 
   // scsu
 
-  if ((buf[0] == 0x0e)
-   && (buf[1] == 0xfe)
-   && (buf[2] == 0xff)) return true;
+  if ((s[0] == 0x0e)
+   && (s[1] == 0xfe)
+   && (s[2] == 0xff)) return 3;
 
   // bocu-1
 
-  if ((buf[0] == 0xfb)
-   && (buf[1] == 0xee)
-   && (buf[2] == 0x28)) return true;
+  if ((s[0] == 0xfb)
+   && (s[1] == 0xee)
+   && (s[2] == 0x28)) return 3;
 
   // gb-18030
 
-  if ((buf[0] == 0x84)
-   && (buf[1] == 0x31)
-   && (buf[2] == 0x95)
-   && (buf[3] == 0x33)) return true;
+  if ((s[0] == 0x84)
+   && (s[1] == 0x31)
+   && (s[2] == 0x95)
+   && (s[3] == 0x33)) return 4;
 
-  return false;
+  return 0;
 }
 
 bool hc_string_is_digit (const char *s)
@@ -519,7 +534,7 @@ void setup_environment_variables (const folder_config_t *folder_config)
       putenv ((char *) "DISPLAY=:0");
   }
 
-  /*
+  #if defined (DEBUG)
   if (getenv ("OCL_CODE_CACHE_ENABLE") == NULL)
     putenv ((char *) "OCL_CODE_CACHE_ENABLE=0");
 
@@ -528,7 +543,7 @@ void setup_environment_variables (const folder_config_t *folder_config)
 
   if (getenv ("POCL_KERNEL_CACHE") == NULL)
     putenv ((char *) "POCL_KERNEL_CACHE=0");
-  */
+  #endif
 
   if (getenv ("TMPDIR") == NULL)
   {
@@ -541,8 +556,10 @@ void setup_environment_variables (const folder_config_t *folder_config)
     // we can't free tmpdir at this point!
   }
 
+  /*
   if (getenv ("CL_CONFIG_USE_VECTORIZER") == NULL)
     putenv ((char *) "CL_CONFIG_USE_VECTORIZER=False");
+  */
 
   #if defined (__CYGWIN__)
   cygwin_internal (CW_SYNC_WINENV);
@@ -945,11 +962,15 @@ const char *strhashcategory (const u32 hash_category)
     case HASH_CATEGORY_EAS:                     return HASH_CATEGORY_EAS_STR;
     case HASH_CATEGORY_ARCHIVE:                 return HASH_CATEGORY_ARCHIVE_STR;
     case HASH_CATEGORY_FDE:                     return HASH_CATEGORY_FDE_STR;
+    case HASH_CATEGORY_FBE:                     return HASH_CATEGORY_FBE_STR;
     case HASH_CATEGORY_DOCUMENTS:               return HASH_CATEGORY_DOCUMENTS_STR;
     case HASH_CATEGORY_PASSWORD_MANAGER:        return HASH_CATEGORY_PASSWORD_MANAGER_STR;
     case HASH_CATEGORY_OTP:                     return HASH_CATEGORY_OTP_STR;
     case HASH_CATEGORY_PLAIN:                   return HASH_CATEGORY_PLAIN_STR;
     case HASH_CATEGORY_FRAMEWORK:               return HASH_CATEGORY_FRAMEWORK_STR;
+    case HASH_CATEGORY_PRIVATE_KEY:             return HASH_CATEGORY_PRIVATE_KEY_STR;
+    case HASH_CATEGORY_IMS:                     return HASH_CATEGORY_IMS_STR;
+    case HASH_CATEGORY_CRYPTOCURRENCY_WALLET:   return HASH_CATEGORY_CRYPTOCURRENCY_WALLET_STR;
   }
 
   return NULL;
@@ -1030,6 +1051,8 @@ const char *strparser (const u32 parser_status)
     case PARSER_BLOCK_SIZE:           return PA_039;
     case PARSER_CIPHER:               return PA_040;
     case PARSER_FILE_SIZE:            return PA_041;
+    case PARSER_IV_LENGTH:            return PA_042;
+    case PARSER_CT_LENGTH:            return PA_043;
   }
 
   return PA_255;

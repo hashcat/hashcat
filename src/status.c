@@ -32,6 +32,9 @@ static const char *ST_0010 = "Aborted (Checkpoint)";
 static const char *ST_0011 = "Aborted (Runtime)";
 static const char *ST_0012 = "Running (Checkpoint Quit requested)";
 static const char *ST_0013 = "Error";
+static const char *ST_0014 = "Aborted (Finish)";
+static const char *ST_0015 = "Running (Quit after attack requested)";
+static const char *ST_0016 = "Autodetect";
 static const char *ST_9999 = "Unknown! Bug!";
 
 static const char UNITS[7] = { ' ', 'k', 'M', 'G', 'T', 'P', 'E' };
@@ -267,6 +270,11 @@ const char *status_get_status_string (const hashcat_ctx_t *hashcat_ctx)
     {
       return ST_0012;
     }
+
+    if (status_ctx->finish_shutdown == true)
+    {
+      return ST_0015;
+    }
   }
 
   switch (devices_status)
@@ -284,6 +292,8 @@ const char *status_get_status_string (const hashcat_ctx_t *hashcat_ctx)
     case STATUS_ABORTED_CHECKPOINT: return ST_0010;
     case STATUS_ABORTED_RUNTIME:    return ST_0011;
     case STATUS_ERROR:              return ST_0013;
+    case STATUS_ABORTED_FINISH:     return ST_0014;
+    case STATUS_AUTODETECT:         return ST_0016;
   }
 
   return ST_9999;
@@ -330,7 +340,17 @@ char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
 
     if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
     {
-      return hcstrdup (hashes->hashfile);
+      if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE_OPTIONAL)
+      {
+        if (hashes->hashfile)
+        {
+          return hcstrdup (hashes->hashfile);
+        }
+      }
+      else
+      {
+        return hcstrdup (hashes->hashfile);
+      }
     }
 
     char *tmp_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
@@ -375,7 +395,7 @@ int status_get_guess_mode (const hashcat_ctx_t *hashcat_ctx)
   if (user_options->custom_charset_3) has_mask_cs = true;
   if (user_options->custom_charset_4) has_mask_cs = true;
 
-  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+  if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
   {
     if (has_wordlist == true)
     {
@@ -445,7 +465,7 @@ char *status_get_guess_base (const hashcat_ctx_t *hashcat_ctx)
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
-  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+  if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
   {
     if (user_options_extra->wordlist_mode == WL_MODE_FILE)
     {
@@ -501,7 +521,7 @@ int status_get_guess_base_offset (const hashcat_ctx_t *hashcat_ctx)
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
-  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+  if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
   {
     const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
@@ -549,7 +569,7 @@ int status_get_guess_base_count (const hashcat_ctx_t *hashcat_ctx)
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
-  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+  if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
   {
     const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
@@ -607,7 +627,7 @@ char *status_get_guess_mod (const hashcat_ctx_t *hashcat_ctx)
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
-  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+  if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
   {
     return status_get_rules_file (hashcat_ctx);
   }
@@ -657,7 +677,7 @@ int status_get_guess_mod_offset (const hashcat_ctx_t *hashcat_ctx)
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
-  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+  if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
   {
     return 1;
   }
@@ -701,7 +721,7 @@ int status_get_guess_mod_count (const hashcat_ctx_t *hashcat_ctx)
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
-  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+  if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
   {
     return 1;
   }
@@ -1028,7 +1048,6 @@ char *status_get_time_estimated_absolute (const hashcat_ctx_t *hashcat_ctx)
   time_t now;
   time (&now);
 
-
   char buf[32] = { 0 };
 
   char *etc;
@@ -1242,8 +1261,17 @@ u64 status_get_progress_cur (const hashcat_ctx_t *hashcat_ctx)
 
 u64 status_get_progress_ignore (const hashcat_ctx_t *hashcat_ctx)
 {
-  const hashes_t     *hashes     = hashcat_ctx->hashes;
-  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+  const hashes_t       *hashes        = hashcat_ctx->hashes;
+  const status_ctx_t   *status_ctx    = hashcat_ctx->status_ctx;
+  const user_options_t *user_options  = hashcat_ctx->user_options;
+
+  if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+  {
+    // we have no salt based skips in this attack mode
+    // ?? words_progress_restored[]
+
+    return 0;
+  }
 
   // Important for ETA only
 
@@ -1273,7 +1301,16 @@ u64 status_get_progress_end (const hashcat_ctx_t *hashcat_ctx)
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
-  u64 progress_end = status_ctx->words_cnt * hashes->salts_cnt;
+  u64 progress_end = status_ctx->words_cnt;
+
+  if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+  {
+    // nothing to do
+  }
+  else
+  {
+    progress_end *= hashes->salts_cnt;
+  }
 
   if (user_options->limit)
   {
@@ -1281,7 +1318,16 @@ u64 status_get_progress_end (const hashcat_ctx_t *hashcat_ctx)
     const mask_ctx_t       *mask_ctx       = hashcat_ctx->mask_ctx;
     const straight_ctx_t   *straight_ctx   = hashcat_ctx->straight_ctx;
 
-    progress_end = MIN (user_options->limit, status_ctx->words_base) * hashes->salts_cnt;
+    progress_end = MIN (user_options->limit, status_ctx->words_base);
+
+    if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+    {
+      // nothing to do
+    }
+    else
+    {
+      progress_end *= hashes->salts_cnt;
+    }
 
     if (user_options->slow_candidates == true)
     {
@@ -1313,7 +1359,16 @@ u64 status_get_progress_skip (const hashcat_ctx_t *hashcat_ctx)
     const mask_ctx_t       *mask_ctx       = hashcat_ctx->mask_ctx;
     const straight_ctx_t   *straight_ctx   = hashcat_ctx->straight_ctx;
 
-    progress_skip = MIN (user_options->skip, status_ctx->words_base) * hashes->salts_cnt;
+    progress_skip = MIN (user_options->skip, status_ctx->words_base);
+
+    if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+    {
+      // nothing to do
+    }
+    else
+    {
+      progress_skip *= hashes->salts_cnt;
+    }
 
     if (user_options->slow_candidates == true)
     {
@@ -1501,7 +1556,7 @@ int status_get_cpt_cur_min (const hashcat_ctx_t *hashcat_ctx)
 
   for (int i = 0; i < CPT_CACHE; i++)
   {
-    const u32       cracked   = cpt_ctx->cpt_buf[i].cracked;
+    const u32    cracked   = cpt_ctx->cpt_buf[i].cracked;
     const time_t timestamp = cpt_ctx->cpt_buf[i].timestamp;
 
     if ((timestamp + 60) > now)
@@ -1526,7 +1581,7 @@ int status_get_cpt_cur_hour (const hashcat_ctx_t *hashcat_ctx)
 
   for (int i = 0; i < CPT_CACHE; i++)
   {
-    const u32       cracked   = cpt_ctx->cpt_buf[i].cracked;
+    const u32    cracked   = cpt_ctx->cpt_buf[i].cracked;
     const time_t timestamp = cpt_ctx->cpt_buf[i].timestamp;
 
     if ((timestamp + 3600) > now)
@@ -1551,7 +1606,7 @@ int status_get_cpt_cur_day (const hashcat_ctx_t *hashcat_ctx)
 
   for (int i = 0; i < CPT_CACHE; i++)
   {
-    const u32       cracked   = cpt_ctx->cpt_buf[i].cracked;
+    const u32    cracked   = cpt_ctx->cpt_buf[i].cracked;
     const time_t timestamp = cpt_ctx->cpt_buf[i].timestamp;
 
     if ((timestamp + 86400) > now)
@@ -1563,37 +1618,58 @@ int status_get_cpt_cur_day (const hashcat_ctx_t *hashcat_ctx)
   return cpt_cur_day;
 }
 
-int status_get_cpt_avg_min (const hashcat_ctx_t *hashcat_ctx)
+double status_get_cpt_avg_min (const hashcat_ctx_t *hashcat_ctx)
 {
   const cpt_ctx_t *cpt_ctx = hashcat_ctx->cpt_ctx;
 
   const double msec_real = status_get_msec_real (hashcat_ctx);
 
-  const double cpt_avg_min = (double) cpt_ctx->cpt_total / ((msec_real / 1000) / 60);
+  const double min_real = (msec_real / 1000) / 60;
 
-  return (int) cpt_avg_min;
+  double cpt_avg_min = 0;
+
+  if (min_real > 1)
+  {
+    cpt_avg_min = (double) cpt_ctx->cpt_total / min_real;
+  }
+
+  return cpt_avg_min;
 }
 
-int status_get_cpt_avg_hour (const hashcat_ctx_t *hashcat_ctx)
+double status_get_cpt_avg_hour (const hashcat_ctx_t *hashcat_ctx)
 {
   const cpt_ctx_t *cpt_ctx = hashcat_ctx->cpt_ctx;
 
   const double msec_real = status_get_msec_real (hashcat_ctx);
 
-  const double cpt_avg_hour = (double) cpt_ctx->cpt_total / ((msec_real / 1000) / 3600);
+  const double hour_real = (msec_real / 1000) / (60 * 60);
 
-  return (int) cpt_avg_hour;
+  double cpt_avg_hour = 0;
+
+  if (hour_real > 1)
+  {
+    cpt_avg_hour = (double) cpt_ctx->cpt_total / hour_real;
+  }
+
+  return cpt_avg_hour;
 }
 
-int status_get_cpt_avg_day (const hashcat_ctx_t *hashcat_ctx)
+double status_get_cpt_avg_day (const hashcat_ctx_t *hashcat_ctx)
 {
   const cpt_ctx_t *cpt_ctx = hashcat_ctx->cpt_ctx;
 
   const double msec_real = status_get_msec_real (hashcat_ctx);
 
-  const double cpt_avg_day = (double) cpt_ctx->cpt_total / ((msec_real / 1000) / 86400);
+  const double day_real = (msec_real / 1000) / (60 * 60 * 24);
 
-  return (int) cpt_avg_day;
+  double cpt_avg_day = 0;
+
+  if (day_real > 1)
+  {
+    cpt_avg_day = (double) cpt_ctx->cpt_total / day_real;
+  }
+
+  return cpt_avg_day;
 }
 
 char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
@@ -1608,13 +1684,13 @@ char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
   const int cpt_cur_hour = status_get_cpt_cur_hour (hashcat_ctx);
   const int cpt_cur_day  = status_get_cpt_cur_day  (hashcat_ctx);
 
-  const int cpt_avg_min  = status_get_cpt_avg_min  (hashcat_ctx);
-  const int cpt_avg_hour = status_get_cpt_avg_hour (hashcat_ctx);
-  const int cpt_avg_day  = status_get_cpt_avg_day  (hashcat_ctx);
+  const double cpt_avg_min  = status_get_cpt_avg_min  (hashcat_ctx);
+  const double cpt_avg_hour = status_get_cpt_avg_hour (hashcat_ctx);
+  const double cpt_avg_day  = status_get_cpt_avg_day  (hashcat_ctx);
 
-  if ((cpt_ctx->cpt_start + 86400) < now)
+  if ((cpt_ctx->cpt_start + (60 * 60 * 24)) < now)
   {
-    hc_asprintf (&cpt, "CUR:%d,%d,%d AVG:%d,%d,%d (Min,Hour,Day)",
+    hc_asprintf (&cpt, "CUR:%d,%d,%d AVG:%.2f,%.2f,%.2f (Min,Hour,Day)",
       cpt_cur_min,
       cpt_cur_hour,
       cpt_cur_day,
@@ -1622,29 +1698,23 @@ char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
       cpt_avg_hour,
       cpt_avg_day);
   }
-  else if ((cpt_ctx->cpt_start + 3600) < now)
+  else if ((cpt_ctx->cpt_start + (60 * 60)) < now)
   {
-    hc_asprintf (&cpt, "CUR:%d,%d,N/A AVG:%d,%d,%d (Min,Hour,Day)",
+    hc_asprintf (&cpt, "CUR:%d,%d,N/A AVG:%.2f,%.2f,N/a (Min,Hour,Day)",
       cpt_cur_min,
       cpt_cur_hour,
       cpt_avg_min,
-      cpt_avg_hour,
-      cpt_avg_day);
+      cpt_avg_hour);
   }
   else if ((cpt_ctx->cpt_start + 60) < now)
   {
-    hc_asprintf (&cpt, "CUR:%d,N/A,N/A AVG:%d,%d,%d (Min,Hour,Day)",
+    hc_asprintf (&cpt, "CUR:%d,N/A,N/A AVG:%.2f,N/A,N/A (Min,Hour,Day)",
       cpt_cur_min,
-      cpt_avg_min,
-      cpt_avg_hour,
-      cpt_avg_day);
+      cpt_avg_min);
   }
   else
   {
-    hc_asprintf (&cpt, "CUR:N/A,N/A,N/A AVG:%d,%d,%d (Min,Hour,Day)",
-      cpt_avg_min,
-      cpt_avg_hour,
-      cpt_avg_day);
+    hc_asprintf (&cpt, "CUR:N/A,N/A,N/A AVG:N/A,N/A,N/A (Min,Hour,Day)");
   }
 
   return cpt;
@@ -1904,6 +1974,23 @@ char *status_get_brain_link_send_bytes_sec_dev (const hashcat_ctx_t *hashcat_ctx
 }
 #endif
 
+#if defined(__APPLE__)
+char *status_get_hwmon_fan_dev (const hashcat_ctx_t *hashcat_ctx)
+{
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  char *fanspeed_str = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+  hc_thread_mutex_lock (status_ctx->mux_hwmon);
+
+  hm_get_fanspeed_apple ((hashcat_ctx_t *) hashcat_ctx, fanspeed_str);
+
+  hc_thread_mutex_unlock (status_ctx->mux_hwmon);
+
+  return fanspeed_str;
+}
+#endif
+
 char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx)
 {
   const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
@@ -2152,6 +2239,7 @@ int status_ctx_init (hashcat_ctx_t *hashcat_ctx)
   status_ctx->shutdown_outer      = false;
 
   status_ctx->checkpoint_shutdown = false;
+  status_ctx->finish_shutdown     = false;
 
   status_ctx->hashcat_status_final = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
 
@@ -2197,6 +2285,10 @@ void status_status_destroy (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashca
   hcfree (hashcat_status->guess_mod);
   hcfree (hashcat_status->guess_charset);
   hcfree (hashcat_status->cpt);
+  #ifdef WITH_BRAIN
+  hcfree (hashcat_status->brain_rx_all);
+  hcfree (hashcat_status->brain_tx_all);
+  #endif
 
   hashcat_status->hash_target             = NULL;
   hashcat_status->hash_name               = NULL;
@@ -2210,6 +2302,10 @@ void status_status_destroy (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashca
   hashcat_status->guess_mod               = NULL;
   hashcat_status->guess_charset           = NULL;
   hashcat_status->cpt                     = NULL;
+  #ifdef WITH_BRAIN
+  hashcat_status->brain_rx_all            = NULL;
+  hashcat_status->brain_tx_all            = NULL;
+  #endif
 
   for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
   {

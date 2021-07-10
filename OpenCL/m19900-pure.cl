@@ -147,7 +147,7 @@ KERNEL_FQ void m19900_init (KERN_ATTR_TMPS_ESALT (krb5pa_18_tmp_t, krb5pa_18_t))
   tmps[gid].opad[3] = sha1_hmac_ctx.opad.h[3];
   tmps[gid].opad[4] = sha1_hmac_ctx.opad.h[4];
 
-  sha1_hmac_update_global_swap (&sha1_hmac_ctx, esalt_bufs[digests_offset].account_info, esalt_bufs[digests_offset].account_info_len);
+  sha1_hmac_update_global_swap (&sha1_hmac_ctx, esalt_bufs[DIGESTS_OFFSET].account_info, esalt_bufs[DIGESTS_OFFSET].account_info_len);
 
   for (u32 i = 0, j = 1; i < 8; i += 5, j += 1)
   {
@@ -453,16 +453,16 @@ KERNEL_FQ void m19900_comp (KERN_ATTR_TMPS_ESALT (krb5pa_18_tmp_t, krb5pa_18_t))
   u32 decrypted_block[4];
 
   // c_0
-  enc_blocks[0] = esalt_bufs[digests_offset].enc_timestamp[0];
-  enc_blocks[1] = esalt_bufs[digests_offset].enc_timestamp[1];
-  enc_blocks[2] = esalt_bufs[digests_offset].enc_timestamp[2];
-  enc_blocks[3] = esalt_bufs[digests_offset].enc_timestamp[3];
+  enc_blocks[0] = esalt_bufs[DIGESTS_OFFSET].enc_timestamp[0];
+  enc_blocks[1] = esalt_bufs[DIGESTS_OFFSET].enc_timestamp[1];
+  enc_blocks[2] = esalt_bufs[DIGESTS_OFFSET].enc_timestamp[2];
+  enc_blocks[3] = esalt_bufs[DIGESTS_OFFSET].enc_timestamp[3];
 
   // c_1 aka c_n-1 since there are guaranteed to be exactly 3 blocks
-  enc_blocks[4] = esalt_bufs[digests_offset].enc_timestamp[4];
-  enc_blocks[5] = esalt_bufs[digests_offset].enc_timestamp[5];
-  enc_blocks[6] = esalt_bufs[digests_offset].enc_timestamp[6];
-  enc_blocks[7] = esalt_bufs[digests_offset].enc_timestamp[7];
+  enc_blocks[4] = esalt_bufs[DIGESTS_OFFSET].enc_timestamp[4];
+  enc_blocks[5] = esalt_bufs[DIGESTS_OFFSET].enc_timestamp[5];
+  enc_blocks[6] = esalt_bufs[DIGESTS_OFFSET].enc_timestamp[6];
+  enc_blocks[7] = esalt_bufs[DIGESTS_OFFSET].enc_timestamp[7];
 
   u32 w0[4];
   u32 w1[4];
@@ -474,10 +474,10 @@ KERNEL_FQ void m19900_comp (KERN_ATTR_TMPS_ESALT (krb5pa_18_tmp_t, krb5pa_18_t))
   AES256_set_decrypt_key (aes_cts_decrypt_ks, ke, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
   // Our first decryption is the last block (currently in c_n-1) using the first portion of (c_n) as our IV, this allows us to get plaintext in one crypto operation
-  aes_iv[0] = esalt_bufs[digests_offset].enc_timestamp[8];
-  aes_iv[1] = esalt_bufs[digests_offset].enc_timestamp[9];
-  aes_iv[2] = esalt_bufs[digests_offset].enc_timestamp[10];
-  aes_iv[3] = esalt_bufs[digests_offset].enc_timestamp[11];
+  aes_iv[0] = esalt_bufs[DIGESTS_OFFSET].enc_timestamp[8];
+  aes_iv[1] = esalt_bufs[DIGESTS_OFFSET].enc_timestamp[9];
+  aes_iv[2] = esalt_bufs[DIGESTS_OFFSET].enc_timestamp[10];
+  aes_iv[3] = esalt_bufs[DIGESTS_OFFSET].enc_timestamp[11];
 
   aes256_decrypt_cbc (aes_cts_decrypt_ks, enc_blocks + 4, decrypted_block, aes_iv, s_td0, s_td1, s_td2, s_td3, s_td4);
 
@@ -497,7 +497,7 @@ KERNEL_FQ void m19900_comp (KERN_ATTR_TMPS_ESALT (krb5pa_18_tmp_t, krb5pa_18_t))
     w0[2] = decrypted_block[2];
     w0[3] = decrypted_block[3];
 
-    int enc_timestamp_len = esalt_bufs[digests_offset].enc_timestamp_len;
+    int enc_timestamp_len = esalt_bufs[DIGESTS_OFFSET].enc_timestamp_len;
     int last_word_position = enc_timestamp_len / 4;
 
     // New c_1,  join c_n with result of the decrypted c_n-1
@@ -507,7 +507,7 @@ KERNEL_FQ void m19900_comp (KERN_ATTR_TMPS_ESALT (krb5pa_18_tmp_t, krb5pa_18_t))
     {
       if (last_word_position > last_block_iter + 4)
       {
-        enc_blocks[last_block_iter] = esalt_bufs[digests_offset].enc_timestamp[last_block_iter + 4];
+        enc_blocks[last_block_iter] = esalt_bufs[DIGESTS_OFFSET].enc_timestamp[last_block_iter + 4];
       }
       else if (last_word_position == last_block_iter + 4)
       {
@@ -515,13 +515,13 @@ KERNEL_FQ void m19900_comp (KERN_ATTR_TMPS_ESALT (krb5pa_18_tmp_t, krb5pa_18_t))
         switch (enc_timestamp_len % 4)
         {
           case 1:
-            enc_blocks[last_block_iter] = (esalt_bufs[digests_offset].enc_timestamp[last_block_iter + 4] & 0x000000ff) | (w0[last_block_iter - 4] & 0xffffff00);
+            enc_blocks[last_block_iter] = (esalt_bufs[DIGESTS_OFFSET].enc_timestamp[last_block_iter + 4] & 0x000000ff) | (w0[last_block_iter - 4] & 0xffffff00);
             break;
           case 2:
-            enc_blocks[last_block_iter] = (esalt_bufs[digests_offset].enc_timestamp[last_block_iter + 4] & 0x0000ffff) | (w0[last_block_iter - 4] & 0xffff0000);
+            enc_blocks[last_block_iter] = (esalt_bufs[DIGESTS_OFFSET].enc_timestamp[last_block_iter + 4] & 0x0000ffff) | (w0[last_block_iter - 4] & 0xffff0000);
             break;
           case 3:
-            enc_blocks[last_block_iter] = (esalt_bufs[digests_offset].enc_timestamp[last_block_iter + 4] & 0x00ffffff) | (w0[last_block_iter - 4] & 0xff000000);
+            enc_blocks[last_block_iter] = (esalt_bufs[DIGESTS_OFFSET].enc_timestamp[last_block_iter + 4] & 0x00ffffff) | (w0[last_block_iter - 4] & 0xff000000);
             break;
           default:
             enc_blocks[last_block_iter] = w0[last_block_iter - 4];
@@ -534,10 +534,10 @@ KERNEL_FQ void m19900_comp (KERN_ATTR_TMPS_ESALT (krb5pa_18_tmp_t, krb5pa_18_t))
     }
 
     // c_2 aka c_n which is now equal to the old c_n-1
-    enc_blocks[ 8] = esalt_bufs[digests_offset].enc_timestamp[4];
-    enc_blocks[ 9] = esalt_bufs[digests_offset].enc_timestamp[5];
-    enc_blocks[10] = esalt_bufs[digests_offset].enc_timestamp[6];
-    enc_blocks[11] = esalt_bufs[digests_offset].enc_timestamp[7];
+    enc_blocks[ 8] = esalt_bufs[DIGESTS_OFFSET].enc_timestamp[4];
+    enc_blocks[ 9] = esalt_bufs[DIGESTS_OFFSET].enc_timestamp[5];
+    enc_blocks[10] = esalt_bufs[DIGESTS_OFFSET].enc_timestamp[6];
+    enc_blocks[11] = esalt_bufs[DIGESTS_OFFSET].enc_timestamp[7];
 
     // Go ahead and decrypt all blocks now as a normal AES CBC operation
     aes_iv[0] = 0;
@@ -647,15 +647,15 @@ KERNEL_FQ void m19900_comp (KERN_ATTR_TMPS_ESALT (krb5pa_18_tmp_t, krb5pa_18_t))
     sha1_hmac_final (&sha1_hmac_ctx);
 
     // Compare checksum
-    if ((sha1_hmac_ctx.opad.h[0] == esalt_bufs[digests_offset].checksum[0])
-     && (sha1_hmac_ctx.opad.h[1] == esalt_bufs[digests_offset].checksum[1])
-     && (sha1_hmac_ctx.opad.h[2] == esalt_bufs[digests_offset].checksum[2]))
+    if ((sha1_hmac_ctx.opad.h[0] == esalt_bufs[DIGESTS_OFFSET].checksum[0])
+     && (sha1_hmac_ctx.opad.h[1] == esalt_bufs[DIGESTS_OFFSET].checksum[1])
+     && (sha1_hmac_ctx.opad.h[2] == esalt_bufs[DIGESTS_OFFSET].checksum[2]))
     {
-      if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
       {
         #define il_pos 0
 
-        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos, 0, 0);
+        mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, il_pos, 0, 0);
       }
     }
   }

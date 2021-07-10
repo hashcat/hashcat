@@ -16,11 +16,12 @@ static const u32   DGST_POS1      = 1;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_4;
-static const u32   HASH_CATEGORY  = HASH_CATEGORY_RAW_HASH;
+static const u32   HASH_CATEGORY  = HASH_CATEGORY_RAW_CHECKSUM;
 static const char *HASH_NAME      = "Java Object hashCode()";
 static const u64   KERN_TYPE      = 18700;
 static const u32   OPTI_TYPE      = OPTI_TYPE_RAW_HASH;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
+static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_SUGGEST_KG;
 static const u32   SALT_TYPE      = SALT_TYPE_NONE;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "29937c08";
@@ -119,6 +120,9 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hashes_count_min         = MODULE_DEFAULT;
   module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
   module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_size    = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_init    = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_term    = MODULE_DEFAULT;
   module_ctx->module_hook12                   = MODULE_DEFAULT;
   module_ctx->module_hook23                   = MODULE_DEFAULT;
   module_ctx->module_hook_salt_size           = MODULE_DEFAULT;

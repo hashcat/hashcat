@@ -34,11 +34,11 @@ key = (key1, key2)
 
 cipher = AES.new (key, AES.MODE_XTS)
 
-sequence = "01".decode ("hex")
+sequence = b"\x01"
 
 encrypted = cipher.encrypt (base64.b64decode (data), sequence)
 
-print encrypted.encode ("hex")
+print (encrypted.hex ())
 
 END_CODE
 
@@ -48,7 +48,7 @@ END_CODE
   $python_code =~ s/key_tweak/"$key_tweak"/;
   $python_code =~ s/data/"$data_base64"/;
 
-  my $output_buf = `python2 -c '$python_code'`;
+  my $output_buf = `python3 -c '$python_code'`;
 
   $output_buf =~ s/[\r\n]//g;
 
@@ -77,11 +77,11 @@ key = (key1, key2)
 
 cipher = AES.new (key, AES.MODE_XTS)
 
-sequence = "01".decode ("hex")
+sequence = b"\x01"
 
 decrypted = cipher.decrypt (base64.b64decode (data), sequence)
 
-print decrypted.encode ("hex")
+print (decrypted.hex ())
 
 END_CODE
 
@@ -91,7 +91,7 @@ END_CODE
   $python_code =~ s/key_tweak/"$key_tweak"/;
   $python_code =~ s/data/"$data_base64"/;
 
-  my $output_buf = `python2 -c '$python_code'`;
+  my $output_buf = `python3 -c '$python_code'`;
 
   $output_buf =~ s/[\r\n]//g;
 
@@ -122,11 +122,11 @@ key = (key1, key2)
 
 cipher = python_Twofish.new (key, python_Twofish.MODE_XTS)
 
-sequence = "01".decode ("hex")
+sequence = b"\x01"
 
 encrypted = cipher.encrypt (base64.b64decode (data), sequence)
 
-print encrypted.encode ("hex")
+print (encrypted.hex ())
 
 END_CODE
 
@@ -136,7 +136,7 @@ END_CODE
   $python_code =~ s/key_tweak/"$key_tweak"/;
   $python_code =~ s/data/"$data_base64"/;
 
-  my $output_buf = `python2 -c '$python_code'`;
+  my $output_buf = `python3 -c '$python_code'`;
 
   $output_buf =~ s/[\r\n]//g;
 
@@ -165,11 +165,11 @@ key = (key1, key2)
 
 cipher = python_Twofish.new (key, python_Twofish.MODE_XTS)
 
-sequence = "01".decode ("hex")
+sequence = b"\x01"
 
 decrypted = cipher.decrypt (base64.b64decode (data), sequence)
 
-print decrypted.encode ("hex")
+print (decrypted.hex ())
 
 END_CODE
 
@@ -179,7 +179,7 @@ END_CODE
   $python_code =~ s/key_tweak/"$key_tweak"/;
   $python_code =~ s/data/"$data_base64"/;
 
-  my $output_buf = `python2 -c '$python_code'`;
+  my $output_buf = `python3 -c '$python_code'`;
 
   $output_buf =~ s/[\r\n]//g;
 
@@ -210,11 +210,11 @@ key = (key1, key2)
 
 cipher = python_Serpent.new (key, python_Serpent.MODE_XTS)
 
-sequence = "01".decode ("hex")
+sequence = b"\x01"
 
 encrypted = cipher.encrypt (base64.b64decode (data), sequence)
 
-print encrypted.encode ("hex")
+print (encrypted.hex ())
 
 END_CODE
 
@@ -224,7 +224,7 @@ END_CODE
   $python_code =~ s/key_tweak/"$key_tweak"/;
   $python_code =~ s/data/"$data_base64"/;
 
-  my $output_buf = `python2 -c '$python_code'`;
+  my $output_buf = `python3 -c '$python_code'`;
 
   $output_buf =~ s/[\r\n]//g;
 
@@ -253,11 +253,11 @@ key = (key1, key2)
 
 cipher = python_Serpent.new (key, python_Serpent.MODE_XTS)
 
-sequence = "01".decode ("hex")
+sequence = b"\x01"
 
 decrypted = cipher.decrypt (base64.b64decode (data), sequence)
 
-print decrypted.encode ("hex")
+print (decrypted.hex ())
 
 END_CODE
 
@@ -267,7 +267,7 @@ END_CODE
   $python_code =~ s/key_tweak/"$key_tweak"/;
   $python_code =~ s/data/"$data_base64"/;
 
-  my $output_buf = `python2 -c '$python_code'`;
+  my $output_buf = `python3 -c '$python_code'`;
 
   $output_buf =~ s/[\r\n]//g;
 

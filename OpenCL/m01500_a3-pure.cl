@@ -1901,13 +1901,13 @@ KERNEL_FQ void m01500_tm (GLOBAL_AS u32 *mod, GLOBAL_AS bs_word_t *words_buf_b)
   #endif
   for (int i = 0, j = 0; i < 32; i += 8, j += 7)
   {
-    atomic_or (&words_buf_b[block].b[j + 0], (((w0s >> (i + 7)) & 1) << slice));
-    atomic_or (&words_buf_b[block].b[j + 1], (((w0s >> (i + 6)) & 1) << slice));
-    atomic_or (&words_buf_b[block].b[j + 2], (((w0s >> (i + 5)) & 1) << slice));
-    atomic_or (&words_buf_b[block].b[j + 3], (((w0s >> (i + 4)) & 1) << slice));
-    atomic_or (&words_buf_b[block].b[j + 4], (((w0s >> (i + 3)) & 1) << slice));
-    atomic_or (&words_buf_b[block].b[j + 5], (((w0s >> (i + 2)) & 1) << slice));
-    atomic_or (&words_buf_b[block].b[j + 6], (((w0s >> (i + 1)) & 1) << slice));
+    hc_atomic_or (&words_buf_b[block].b[j + 0], (((w0s >> (i + 7)) & 1) << slice));
+    hc_atomic_or (&words_buf_b[block].b[j + 1], (((w0s >> (i + 6)) & 1) << slice));
+    hc_atomic_or (&words_buf_b[block].b[j + 2], (((w0s >> (i + 5)) & 1) << slice));
+    hc_atomic_or (&words_buf_b[block].b[j + 3], (((w0s >> (i + 4)) & 1) << slice));
+    hc_atomic_or (&words_buf_b[block].b[j + 4], (((w0s >> (i + 3)) & 1) << slice));
+    hc_atomic_or (&words_buf_b[block].b[j + 5], (((w0s >> (i + 2)) & 1) << slice));
+    hc_atomic_or (&words_buf_b[block].b[j + 6], (((w0s >> (i + 1)) & 1) << slice));
   }
 }
 
@@ -1920,11 +1920,13 @@ KERNEL_FQ void m01500_mxx (KERN_ATTR_BITSLICE ())
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
 
+  if (gid >= gid_max) return;
+
   /**
    * salt
    */
 
-  const u32 salt = salt_bufs[salt_pos].salt_buf[0];
+  const u32 salt = salt_bufs[SALT_POS].salt_buf[0];
 
   /**
    * base
@@ -2216,7 +2218,7 @@ KERNEL_FQ void m01500_mxx (KERN_ATTR_BITSLICE ())
     {
       for (u32 d = 0; d < digests_cnt; d++)
       {
-        const u32 final_hash_pos = digests_offset + d;
+        const u32 final_hash_pos = DIGESTS_OFFSET + d;
 
         if (hashes_shown[final_hash_pos]) continue;
 
@@ -2227,9 +2229,7 @@ KERNEL_FQ void m01500_mxx (KERN_ATTR_BITSLICE ())
 
         u32 tmpResult = 0;
 
-        #ifdef _unroll
         #pragma unroll
-        #endif
         for (int i = 0; i < 32; i++)
         {
           const u32 b0 = -((search[0] >> i) & 1);
@@ -2245,12 +2245,12 @@ KERNEL_FQ void m01500_mxx (KERN_ATTR_BITSLICE ())
 
         const u32 r0 = search[0];
         const u32 r1 = search[1];
+        #ifdef KERNEL_STATIC
         const u32 r2 = 0;
         const u32 r3 = 0;
-
-        #ifdef KERNEL_STATIC
-        #include COMPARE_M
         #endif
+
+        #include COMPARE_M
       }
     }
     else
@@ -2258,9 +2258,7 @@ KERNEL_FQ void m01500_mxx (KERN_ATTR_BITSLICE ())
       u32 out0[32];
       u32 out1[32];
 
-      #ifdef _unroll
       #pragma unroll
-      #endif
       for (int i = 0; i < 32; i++)
       {
         out0[i] = out[ 0 + 31 - i];
@@ -2270,15 +2268,13 @@ KERNEL_FQ void m01500_mxx (KERN_ATTR_BITSLICE ())
       transpose32c (out0);
       transpose32c (out1);
 
-      #ifdef _unroll
       #pragma unroll
-      #endif
       for (int slice = 0; slice < 32; slice++)
       {
         const u32 r0 = out0[31 - slice];
         const u32 r1 = out1[31 - slice];
-        const u32 r2 = 0;
         #ifdef KERNEL_STATIC
+        const u32 r2 = 0;
         const u32 r3 = 0;
         #endif
 
@@ -2297,11 +2293,13 @@ KERNEL_FQ void m01500_sxx (KERN_ATTR_BITSLICE ())
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
 
+  if (gid >= gid_max) return;
+
   /**
    * salt
    */
 
-  const u32 salt = salt_bufs[salt_pos].salt_buf[0];
+  const u32 salt = salt_bufs[SALT_POS].salt_buf[0];
 
   /**
    * digest

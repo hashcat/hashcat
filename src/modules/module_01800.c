@@ -58,20 +58,6 @@ typedef struct sha512crypt_tmp
 static const u32   ROUNDS_SHA512CRYPT    = 5000;
 static const char *SIGNATURE_SHA512CRYPT = "$6$";
 
-bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
-{
-  if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
-  {
-    // self-test failed
-    if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
-    {
-      return true;
-    }
-  }
-
-  return false;
-}
-
 static void sha512crypt_decode (u8 digest[64], const u8 buf[86])
 {
   int l;
@@ -428,6 +414,20 @@ static void sha512crypt_encode (const u8 digest[64], u8 buf[86])
   buf[85] = int_to_itoa64 (l & 0x3f); //l >>= 6;
 }
 
+bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
+{
+  // AMD Radeon Pro W5700X Compute Engine; 1.2 (Apr 22 2021 21:54:44); 11.3.1; 20E241
+  if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
+  {
+    if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+    {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
   char *jit_build_options = NULL;
@@ -577,6 +577,9 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hashes_count_min         = MODULE_DEFAULT;
   module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
   module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_size    = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_init    = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_term    = MODULE_DEFAULT;
   module_ctx->module_hook12                   = MODULE_DEFAULT;
   module_ctx->module_hook23                   = MODULE_DEFAULT;
   module_ctx->module_hook_salt_size           = MODULE_DEFAULT;

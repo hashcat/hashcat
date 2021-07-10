@@ -97,7 +97,7 @@ KERNEL_FQ void m14700_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, itunes_back
   tmps[gid].opad[3] = sha1_hmac_ctx.opad.h[3];
   tmps[gid].opad[4] = sha1_hmac_ctx.opad.h[4];
 
-  sha1_hmac_update_global (&sha1_hmac_ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  sha1_hmac_update_global (&sha1_hmac_ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   for (u32 i = 0, j = 1; i < 8; i += 5, j += 1)
   {
@@ -310,21 +310,21 @@ KERNEL_FQ void m14700_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, itunes_back
 
   u32 cipher[4];
 
-  cipher[0] = esalt_bufs[digests_offset].wpky[0];
-  cipher[1] = esalt_bufs[digests_offset].wpky[1];
+  cipher[0] = esalt_bufs[DIGESTS_OFFSET].wpky[0];
+  cipher[1] = esalt_bufs[DIGESTS_OFFSET].wpky[1];
   cipher[2] = 0;
   cipher[3] = 0;
 
   u32 lsb[8];
 
-  lsb[0] = esalt_bufs[digests_offset].wpky[8];
-  lsb[1] = esalt_bufs[digests_offset].wpky[9];
-  lsb[2] = esalt_bufs[digests_offset].wpky[6];
-  lsb[3] = esalt_bufs[digests_offset].wpky[7];
-  lsb[4] = esalt_bufs[digests_offset].wpky[4];
-  lsb[5] = esalt_bufs[digests_offset].wpky[5];
-  lsb[6] = esalt_bufs[digests_offset].wpky[2];
-  lsb[7] = esalt_bufs[digests_offset].wpky[3];
+  lsb[0] = esalt_bufs[DIGESTS_OFFSET].wpky[8];
+  lsb[1] = esalt_bufs[DIGESTS_OFFSET].wpky[9];
+  lsb[2] = esalt_bufs[DIGESTS_OFFSET].wpky[6];
+  lsb[3] = esalt_bufs[DIGESTS_OFFSET].wpky[7];
+  lsb[4] = esalt_bufs[DIGESTS_OFFSET].wpky[4];
+  lsb[5] = esalt_bufs[DIGESTS_OFFSET].wpky[5];
+  lsb[6] = esalt_bufs[DIGESTS_OFFSET].wpky[2];
+  lsb[7] = esalt_bufs[DIGESTS_OFFSET].wpky[3];
 
   for (int j = 5; j >= 0; j--)
   {
@@ -379,9 +379,9 @@ KERNEL_FQ void m14700_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, itunes_back
 
   if ((cipher[0] == 0xa6a6a6a6) && (cipher[1] == 0xa6a6a6a6))
   {
-    if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
     }
 
     return;

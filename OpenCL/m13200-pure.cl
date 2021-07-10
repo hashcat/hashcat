@@ -51,10 +51,10 @@ KERNEL_FQ void m13200_init (KERN_ATTR_TMPS (axcrypt_tmp_t))
   KEK[4] = ctx.h[4];
 
   /* hash XOR salt is KEK, used as key for AES wrapping routine */
-  tmps[gid].KEK[0] = KEK[0] ^ salt_bufs[salt_pos].salt_buf[0];
-  tmps[gid].KEK[1] = KEK[1] ^ salt_bufs[salt_pos].salt_buf[1];
-  tmps[gid].KEK[2] = KEK[2] ^ salt_bufs[salt_pos].salt_buf[2];
-  tmps[gid].KEK[3] = KEK[3] ^ salt_bufs[salt_pos].salt_buf[3];
+  tmps[gid].KEK[0] = KEK[0] ^ salt_bufs[SALT_POS].salt_buf[0];
+  tmps[gid].KEK[1] = KEK[1] ^ salt_bufs[SALT_POS].salt_buf[1];
+  tmps[gid].KEK[2] = KEK[2] ^ salt_bufs[SALT_POS].salt_buf[2];
+  tmps[gid].KEK[3] = KEK[3] ^ salt_bufs[SALT_POS].salt_buf[3];
 
   /**
    *  salt_buf[0..3] is salt
@@ -62,14 +62,14 @@ KERNEL_FQ void m13200_init (KERN_ATTR_TMPS (axcrypt_tmp_t))
    */
 
   /* set lsb */
-  tmps[gid].lsb[0] = salt_bufs[salt_pos].salt_buf[6];
-  tmps[gid].lsb[1] = salt_bufs[salt_pos].salt_buf[7];
-  tmps[gid].lsb[2] = salt_bufs[salt_pos].salt_buf[8];
-  tmps[gid].lsb[3] = salt_bufs[salt_pos].salt_buf[9];
+  tmps[gid].lsb[0] = salt_bufs[SALT_POS].salt_buf[6];
+  tmps[gid].lsb[1] = salt_bufs[SALT_POS].salt_buf[7];
+  tmps[gid].lsb[2] = salt_bufs[SALT_POS].salt_buf[8];
+  tmps[gid].lsb[3] = salt_bufs[SALT_POS].salt_buf[9];
 
   /* set msb */
-  tmps[gid].cipher[0] = salt_bufs[salt_pos].salt_buf[4];
-  tmps[gid].cipher[1] = salt_bufs[salt_pos].salt_buf[5];
+  tmps[gid].cipher[0] = salt_bufs[SALT_POS].salt_buf[4];
+  tmps[gid].cipher[1] = salt_bufs[SALT_POS].salt_buf[5];
   tmps[gid].cipher[2] = 0;
   tmps[gid].cipher[3] = 0;
 }
@@ -168,7 +168,7 @@ KERNEL_FQ void m13200_loop (KERN_ATTR_TMPS (axcrypt_tmp_t))
 
   AES128_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
-  const u32 wrapping_rounds = salt_bufs[salt_pos].salt_iter - 1;
+  const u32 wrapping_rounds = salt_bufs[SALT_POS].salt_iter - 1;
 
   /* custom AES un-wrapping loop */
   for (u32 i = 0, j = wrapping_rounds - loop_pos; i < loop_cnt; i++, j--)
@@ -227,9 +227,9 @@ KERNEL_FQ void m13200_comp (KERN_ATTR_TMPS (axcrypt_tmp_t))
 
   if (tmps[gid].cipher[0] == 0xa6a6a6a6 && tmps[gid].cipher[1] == 0xa6a6a6a6)
   {
-    if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, il_pos, 0, 0);
     }
   }
 }

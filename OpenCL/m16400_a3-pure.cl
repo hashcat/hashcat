@@ -116,11 +116,9 @@ DECLSPEC void cram_md5_transform_vector (const u32x *w0, const u32x *w1, const u
 
 DECLSPEC void cram_md5_update_vector_64 (md5_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, const int len)
 {
-  #ifdef IS_AMD
-  MAYBE_VOLATILE const int pos = ctx->len & 63;
-  #else
-  MAYBE_VOLATILE const int pos = ctx->len & 63;
-  #endif
+  if (len == 0) return;
+
+  const int pos = ctx->len & 63;
 
   ctx->len += len;
 
@@ -249,10 +247,10 @@ KERNEL_FQ void m16400_sxx (KERN_ATTR_VECTOR ())
 
   const u32 search[4] =
   {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
   };
 
   /**

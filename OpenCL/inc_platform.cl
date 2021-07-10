@@ -88,18 +88,21 @@ CONSTANT_VK u32 generic_constant[8192]; // 32k
 
 #endif
 
-
-DECLSPEC u32 atomic_dec (u32 *p)
+DECLSPEC u32 hc_atomic_dec (GLOBAL_AS u32 *p)
 {
-  return atomicSub (p, 1);
+  volatile const u32 val = 1;
+
+  return atomicSub (p, val);
 }
 
-DECLSPEC u32 atomic_inc (u32 *p)
+DECLSPEC u32 hc_atomic_inc (GLOBAL_AS u32 *p)
 {
-  return atomicAdd (p, 1);
+  volatile const u32 val = 1;
+
+  return atomicAdd (p, val);
 }
 
-DECLSPEC u32 atomic_or (u32 *p, u32 val)
+DECLSPEC u32 hc_atomic_or (GLOBAL_AS u32 *p, volatile const u32 val)
 {
   return atomicOr (p, val);
 }
@@ -165,6 +168,26 @@ DECLSPEC u64 rotr64_S (const u64 a, const int n)
 #endif
 
 #ifdef IS_OPENCL
+
+DECLSPEC u32 hc_atomic_dec (volatile GLOBAL_AS u32 *p)
+{
+  volatile const u32 val = 1;
+
+  return atomic_sub (p, val);
+}
+
+DECLSPEC u32 hc_atomic_inc (volatile GLOBAL_AS u32 *p)
+{
+  volatile const u32 val = 1;
+
+  return atomic_add  (p, val);
+}
+
+DECLSPEC u32 hc_atomic_or (volatile GLOBAL_AS u32 *p, volatile const u32 val)
+{
+  return atomic_or (p, val);
+}
+
 #define FIXED_THREAD_COUNT(n) __attribute__((reqd_work_group_size((n), 1, 1)))
 #define SYNC_THREADS() barrier (CLK_LOCAL_MEM_FENCE)
 #endif

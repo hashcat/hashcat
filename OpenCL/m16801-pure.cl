@@ -143,7 +143,7 @@ KERNEL_FQ void m16801_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_pmkid_t))
 
   const u32 digest_pos = loop_pos;
 
-  const u32 digest_cur = digests_offset + digest_pos;
+  const u32 digest_cur = DIGESTS_OFFSET + digest_pos;
 
   GLOBAL_AS const wpa_pmkid_t *wpa_pmkid = &esalt_bufs[digest_cur];
 
@@ -172,9 +172,9 @@ KERNEL_FQ void m16801_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_pmkid_t))
    && (hc_swap32_S (r2) == wpa_pmkid->pmkid[2])
    && (hc_swap32_S (r3) == wpa_pmkid->pmkid[3]))
   {
-    if (atomic_inc (&hashes_shown[digest_cur]) == 0)
+    if (hc_atomic_inc (&hashes_shown[digest_cur]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
     }
   }
 

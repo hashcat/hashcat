@@ -73,7 +73,7 @@ KERNEL_FQ void m11400_mxx (KERN_ATTR_ESALT (sip_t))
 
   md5_init (&ctx0);
 
-  md5_update_global (&ctx0, esalt_bufs[digests_offset].salt_buf, esalt_bufs[digests_offset].salt_len);
+  md5_update_global (&ctx0, esalt_bufs[DIGESTS_OFFSET].salt_buf, esalt_bufs[DIGESTS_OFFSET].salt_len);
 
   md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
 
@@ -117,7 +117,7 @@ KERNEL_FQ void m11400_mxx (KERN_ATTR_ESALT (sip_t))
 
     ctx.len = 32;
 
-    md5_update_global (&ctx, esalt_bufs[digests_offset].esalt_buf, esalt_bufs[digests_offset].esalt_len);
+    md5_update_global (&ctx, esalt_bufs[DIGESTS_OFFSET].esalt_buf, esalt_bufs[DIGESTS_OFFSET].esalt_len);
 
     md5_final (&ctx);
 
@@ -165,10 +165,10 @@ KERNEL_FQ void m11400_sxx (KERN_ATTR_ESALT (sip_t))
 
   const u32 search[4] =
   {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
   };
 
   /**
@@ -179,7 +179,7 @@ KERNEL_FQ void m11400_sxx (KERN_ATTR_ESALT (sip_t))
 
   md5_init (&ctx0);
 
-  md5_update_global (&ctx0, esalt_bufs[digests_offset].salt_buf, esalt_bufs[digests_offset].salt_len);
+  md5_update_global (&ctx0, esalt_bufs[DIGESTS_OFFSET].salt_buf, esalt_bufs[DIGESTS_OFFSET].salt_len);
 
   md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
 
@@ -223,7 +223,7 @@ KERNEL_FQ void m11400_sxx (KERN_ATTR_ESALT (sip_t))
 
     ctx.len = 32;
 
-    md5_update_global (&ctx, esalt_bufs[digests_offset].esalt_buf, esalt_bufs[digests_offset].esalt_len);
+    md5_update_global (&ctx, esalt_bufs[DIGESTS_OFFSET].esalt_buf, esalt_bufs[DIGESTS_OFFSET].esalt_len);
 
     md5_final (&ctx);
 

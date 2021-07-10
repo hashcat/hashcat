@@ -431,7 +431,7 @@ KERNEL_FQ void m21800_comp (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
    * the main secp256k1 point multiplication by a scalar/tweak:
    */
 
-  GLOBAL_AS secp256k1_t *coords = (GLOBAL_AS secp256k1_t *) &esalt_bufs[digests_offset].coords;
+  GLOBAL_AS secp256k1_t *coords = (GLOBAL_AS secp256k1_t *) &esalt_bufs[DIGESTS_OFFSET].coords;
 
   u32 pubkey[64] = { 0 }; // for point_mul () we need: 1 + 32 bytes (for sha512 () we need more)
 
@@ -496,7 +496,7 @@ KERNEL_FQ void m21800_comp (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
 
   // we need to run it at least once:
 
-  GLOBAL_AS u32 *data_buf = (GLOBAL_AS u32 *) esalt_bufs[digests_offset].data_buf;
+  GLOBAL_AS u32 *data_buf = (GLOBAL_AS u32 *) esalt_bufs[DIGESTS_OFFSET].data_buf;
 
   u32 data[4];
 
@@ -605,9 +605,9 @@ KERNEL_FQ void m21800_comp (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
       ((tmp[0] == 0x7b) && (tmp[1] == 0x0d) && (tmp[2] == 0x0a) && (tmp[3] == 0x20) &&
        (tmp[4] == 0x20) && (tmp[5] == 0x20) && (tmp[6] == 0x20) && (tmp[7] == 0x22)))
   {
-    if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
     }
 
     return;

@@ -131,14 +131,14 @@ KERNEL_FQ void m05400_m04 (KERN_ATTR_ESALT (ikepsk_t))
 
   for (u32 i = lid; i < 16; i += lsz)
   {
-    s_nr_buf[i] = hc_swap32_S (esalt_bufs[digests_offset].nr_buf[i]);
+    s_nr_buf[i] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].nr_buf[i]);
   }
 
   LOCAL_VK u32 s_msg_buf[128];
 
   for (u32 i = lid; i < 128; i += lsz)
   {
-    s_msg_buf[i] = hc_swap32_S (esalt_bufs[digests_offset].msg_buf[i]);
+    s_msg_buf[i] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].msg_buf[i]);
   }
 
   SYNC_THREADS ();
@@ -167,8 +167,8 @@ KERNEL_FQ void m05400_m04 (KERN_ATTR_ESALT (ikepsk_t))
    * salt
    */
 
-  const u32 nr_len  = esalt_bufs[digests_offset].nr_len;
-  const u32 msg_len = esalt_bufs[digests_offset].msg_len[5];
+  const u32 nr_len  = esalt_bufs[DIGESTS_OFFSET].nr_len;
+  const u32 msg_len = esalt_bufs[DIGESTS_OFFSET].msg_len[5];
 
   /**
    * loop
@@ -383,14 +383,14 @@ KERNEL_FQ void m05400_s04 (KERN_ATTR_ESALT (ikepsk_t))
 
   for (u32 i = lid; i < 16; i += lsz)
   {
-    s_nr_buf[i] = hc_swap32_S (esalt_bufs[digests_offset].nr_buf[i]);
+    s_nr_buf[i] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].nr_buf[i]);
   }
 
   LOCAL_VK u32 s_msg_buf[128];
 
   for (u32 i = lid; i < 128; i += lsz)
   {
-    s_msg_buf[i] = hc_swap32_S (esalt_bufs[digests_offset].msg_buf[i]);
+    s_msg_buf[i] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].msg_buf[i]);
   }
 
   SYNC_THREADS ();
@@ -419,8 +419,8 @@ KERNEL_FQ void m05400_s04 (KERN_ATTR_ESALT (ikepsk_t))
    * salt
    */
 
-  const u32 nr_len  = esalt_bufs[digests_offset].nr_len;
-  const u32 msg_len = esalt_bufs[digests_offset].msg_len[5];
+  const u32 nr_len  = esalt_bufs[DIGESTS_OFFSET].nr_len;
+  const u32 msg_len = esalt_bufs[DIGESTS_OFFSET].msg_len[5];
 
   /**
    * digest
@@ -428,10 +428,10 @@ KERNEL_FQ void m05400_s04 (KERN_ATTR_ESALT (ikepsk_t))
 
   const u32 search[4] =
   {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
   };
 
   /**

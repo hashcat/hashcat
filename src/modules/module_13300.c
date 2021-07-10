@@ -17,7 +17,7 @@ static const u32   DGST_POS2      = 3;
 static const u32   DGST_POS3      = 2;
 static const u32   DGST_SIZE      = DGST_SIZE_4_5;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_ARCHIVE;
-static const char *HASH_NAME      = "AxCrypt in-memory SHA1";
+static const char *HASH_NAME      = "AxCrypt 1 in-memory SHA1";
 static const u64   KERN_TYPE      = 13300;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_PRECOMPUTE_INIT
@@ -141,6 +141,9 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hashes_count_min         = MODULE_DEFAULT;
   module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
   module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_size    = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_init    = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_term    = MODULE_DEFAULT;
   module_ctx->module_hook12                   = MODULE_DEFAULT;
   module_ctx->module_hook23                   = MODULE_DEFAULT;
   module_ctx->module_hook_salt_size           = MODULE_DEFAULT;

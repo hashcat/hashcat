@@ -69,13 +69,13 @@ KERNEL_FQ void m21100_mxx (KERN_ATTR_VECTOR ())
     w[idx] = pws[gid].i[idx];
   }
 
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
+  const u32 salt_len = salt_bufs[SALT_POS].salt_len;
 
-  u32 s[64] = { 0 };
+  u32x s[64] = { 0 };
 
   for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = salt_bufs[salt_pos].salt_buf[idx];
+    s[idx] = salt_bufs[SALT_POS].salt_buf[idx];
   }
 
   /**
@@ -190,10 +190,10 @@ KERNEL_FQ void m21100_sxx (KERN_ATTR_VECTOR ())
 
   const u32 search[4] =
   {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
   };
 
   /**
@@ -209,13 +209,13 @@ KERNEL_FQ void m21100_sxx (KERN_ATTR_VECTOR ())
     w[idx] = pws[gid].i[idx];
   }
 
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
+  const u32 salt_len = salt_bufs[SALT_POS].salt_len;
 
-  u32 s[64] = { 0 };
+  u32x s[64] = { 0 };
 
   for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = salt_bufs[salt_pos].salt_buf[idx];
+    s[idx] = salt_bufs[SALT_POS].salt_buf[idx];
   }
 
   /**

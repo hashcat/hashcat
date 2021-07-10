@@ -188,7 +188,7 @@ KERNEL_FQ void m01800_init (KERN_ATTR_TMPS (sha512crypt_tmp_t))
   w0[2] = pws[gid].i[2];
   w0[3] = pws[gid].i[3];
 
-  const u32 pw_len = pws[gid].pw_len & 63;
+  const u32 pw_len = pws[gid].pw_len & 15;
 
   /**
    * salt
@@ -196,12 +196,12 @@ KERNEL_FQ void m01800_init (KERN_ATTR_TMPS (sha512crypt_tmp_t))
 
   u32 salt_buf[4];
 
-  salt_buf[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf[1] = salt_bufs[salt_pos].salt_buf[1];
-  salt_buf[2] = salt_bufs[salt_pos].salt_buf[2];
-  salt_buf[3] = salt_bufs[salt_pos].salt_buf[3];
+  salt_buf[0] = salt_bufs[SALT_POS].salt_buf[0];
+  salt_buf[1] = salt_bufs[SALT_POS].salt_buf[1];
+  salt_buf[2] = salt_bufs[SALT_POS].salt_buf[2];
+  salt_buf[3] = salt_bufs[SALT_POS].salt_buf[3];
 
-  u32 salt_len = salt_bufs[salt_pos].salt_len;
+  u32 salt_len = salt_bufs[SALT_POS].salt_len;
 
   /**
    * buffers
@@ -315,14 +315,14 @@ KERNEL_FQ void m01800_loop (KERN_ATTR_TMPS (sha512crypt_tmp_t))
   l_p_bytes0[0] = tmps[gid].l_p_bytes[0];
   l_p_bytes0[1] = tmps[gid].l_p_bytes[1];
 
-  const u32 pw_len = pws[gid].pw_len & 63;
+  const u32 pw_len = pws[gid].pw_len & 15;
 
   u64 l_s_bytes0[2];
 
   l_s_bytes0[0] = tmps[gid].l_s_bytes[0];
   l_s_bytes0[1] = tmps[gid].l_s_bytes[1];
 
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
+  const u32 salt_len = salt_bufs[SALT_POS].salt_len;
 
   u32 wpc_len[8];
 

@@ -535,8 +535,8 @@ DECLSPEC void m08500m (LOCAL_AS u32 (*s_SPtrans)[64], LOCAL_AS u32 (*s_skb)[64],
 
   u32 salt_buf0[2];
 
-  salt_buf0[0] = salt_bufs[salt_pos].salt_buf_pc[0];
-  salt_buf0[1] = salt_bufs[salt_pos].salt_buf_pc[1];
+  salt_buf0[0] = salt_bufs[SALT_POS].salt_buf_pc[0];
+  salt_buf0[1] = salt_bufs[SALT_POS].salt_buf_pc[1];
 
   /**
    * loop
@@ -598,8 +598,8 @@ DECLSPEC void m08500s (LOCAL_AS u32 (*s_SPtrans)[64], LOCAL_AS u32 (*s_skb)[64],
 
   u32 salt_buf0[2];
 
-  salt_buf0[0] = salt_bufs[salt_pos].salt_buf_pc[0];
-  salt_buf0[1] = salt_bufs[salt_pos].salt_buf_pc[1];
+  salt_buf0[0] = salt_bufs[SALT_POS].salt_buf_pc[0];
+  salt_buf0[1] = salt_bufs[SALT_POS].salt_buf_pc[1];
 
   /**
    * digest
@@ -607,8 +607,8 @@ DECLSPEC void m08500s (LOCAL_AS u32 (*s_SPtrans)[64], LOCAL_AS u32 (*s_skb)[64],
 
   const u32 search[4] =
   {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
     0,
     0
   };
@@ -729,7 +729,7 @@ KERNEL_FQ void m08500_mxx (KERN_ATTR_VECTOR ())
    * main
    */
 
-  m08500m (s_SPtrans, s_skb, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
+  m08500m (s_SPtrans, s_skb, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max);
 }
 
 KERNEL_FQ void m08500_sxx (KERN_ATTR_VECTOR ())
@@ -803,5 +803,5 @@ KERNEL_FQ void m08500_sxx (KERN_ATTR_VECTOR ())
    * main
    */
 
-  m08500s (s_SPtrans, s_skb, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
+  m08500s (s_SPtrans, s_skb, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max);
 }

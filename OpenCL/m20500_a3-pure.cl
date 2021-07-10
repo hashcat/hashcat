@@ -292,9 +292,9 @@ KERNEL_FQ void m20500_sxx (KERN_ATTR_VECTOR ())
    * reverse
    */
 
-  u32 prep0 = digests_buf[digests_offset].digest_buf[0];
-  u32 prep1 = digests_buf[digests_offset].digest_buf[1];
-  u32 prep2 = digests_buf[digests_offset].digest_buf[2];
+  u32 prep0 = digests_buf[DIGESTS_OFFSET].digest_buf[0];
+  u32 prep1 = digests_buf[DIGESTS_OFFSET].digest_buf[1];
+  u32 prep2 = digests_buf[DIGESTS_OFFSET].digest_buf[2];
 
   for (u32 pos = pw_len - 1; pos >= 4; pos--)
   {

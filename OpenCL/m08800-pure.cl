@@ -94,7 +94,7 @@ KERNEL_FQ void m08800_init (KERN_ATTR_TMPS_ESALT (androidfde_tmp_t, androidfde_t
   tmps[gid].opad[3] = sha1_hmac_ctx.opad.h[3];
   tmps[gid].opad[4] = sha1_hmac_ctx.opad.h[4];
 
-  sha1_hmac_update_global_swap (&sha1_hmac_ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  sha1_hmac_update_global_swap (&sha1_hmac_ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   for (u32 i = 0, j = 1; i < 8; i += 5, j += 1)
   {
@@ -303,10 +303,10 @@ KERNEL_FQ void m08800_comp (KERN_ATTR_TMPS_ESALT (androidfde_tmp_t, androidfde_t
 
   u32 data[4];
 
-  data[0] = digests_buf[digests_offset].digest_buf[0];
-  data[1] = digests_buf[digests_offset].digest_buf[1];
-  data[2] = digests_buf[digests_offset].digest_buf[2];
-  data[3] = digests_buf[digests_offset].digest_buf[3];
+  data[0] = digests_buf[DIGESTS_OFFSET].digest_buf[0];
+  data[1] = digests_buf[DIGESTS_OFFSET].digest_buf[1];
+  data[2] = digests_buf[DIGESTS_OFFSET].digest_buf[2];
+  data[3] = digests_buf[DIGESTS_OFFSET].digest_buf[3];
 
   u32 out[4];
 
@@ -383,10 +383,10 @@ KERNEL_FQ void m08800_comp (KERN_ATTR_TMPS_ESALT (androidfde_tmp_t, androidfde_t
 
     // 3. decrypt real data, xor essiv afterwards
 
-    data[0] = esalt_bufs[digests_offset].data[0];
-    data[1] = esalt_bufs[digests_offset].data[1];
-    data[2] = esalt_bufs[digests_offset].data[2];
-    data[3] = esalt_bufs[digests_offset].data[3];
+    data[0] = esalt_bufs[DIGESTS_OFFSET].data[0];
+    data[1] = esalt_bufs[DIGESTS_OFFSET].data[1];
+    data[2] = esalt_bufs[DIGESTS_OFFSET].data[2];
+    data[3] = esalt_bufs[DIGESTS_OFFSET].data[3];
 
     iv[0] = essiv[0];
     iv[1] = essiv[1];
@@ -415,9 +415,9 @@ KERNEL_FQ void m08800_comp (KERN_ATTR_TMPS_ESALT (androidfde_tmp_t, androidfde_t
     // MSDOS5.0
     if ((r0 == 0x4f44534d) && (r1 == 0x302e3553))
     {
-      if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
       {
-        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, 0, 0, 0);
+        mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
       }
     }
   }
@@ -445,15 +445,15 @@ KERNEL_FQ void m08800_comp (KERN_ATTR_TMPS_ESALT (androidfde_tmp_t, androidfde_t
 
     for (u32 i = 4; i < 16; i += 4)
     {
-      data[0] = esalt_bufs[digests_offset].data[256 + i + 0];
-      data[1] = esalt_bufs[digests_offset].data[256 + i + 1];
-      data[2] = esalt_bufs[digests_offset].data[256 + i + 2];
-      data[3] = esalt_bufs[digests_offset].data[256 + i + 3];
+      data[0] = esalt_bufs[DIGESTS_OFFSET].data[256 + i + 0];
+      data[1] = esalt_bufs[DIGESTS_OFFSET].data[256 + i + 1];
+      data[2] = esalt_bufs[DIGESTS_OFFSET].data[256 + i + 2];
+      data[3] = esalt_bufs[DIGESTS_OFFSET].data[256 + i + 3];
 
-      iv[0] = esalt_bufs[digests_offset].data[256 + i + 0 - 4];
-      iv[1] = esalt_bufs[digests_offset].data[256 + i + 1 - 4];
-      iv[2] = esalt_bufs[digests_offset].data[256 + i + 2 - 4];
-      iv[3] = esalt_bufs[digests_offset].data[256 + i + 3 - 4];
+      iv[0] = esalt_bufs[DIGESTS_OFFSET].data[256 + i + 0 - 4];
+      iv[1] = esalt_bufs[DIGESTS_OFFSET].data[256 + i + 1 - 4];
+      iv[2] = esalt_bufs[DIGESTS_OFFSET].data[256 + i + 2 - 4];
+      iv[3] = esalt_bufs[DIGESTS_OFFSET].data[256 + i + 3 - 4];
 
       AES128_decrypt (ks, data, out, s_td0, s_td1, s_td2, s_td3, s_td4);
 
@@ -474,9 +474,9 @@ KERNEL_FQ void m08800_comp (KERN_ATTR_TMPS_ESALT (androidfde_tmp_t, androidfde_t
 
     if ((r[5] < 2) && (r[6] < 16) && ((r[14] & 0xffff) == 0xEF53))
     {
-      if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
       {
-        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, 0, 0, 0);
+        mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
       }
     }
   }

@@ -313,11 +313,20 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
       break;
     }
 
-    memcpy (extra_info_combi->out_buf + extra_info_combi->out_len, line_buf, line_len);
+    // this can overflow so we move it up
 
-    extra_info_combi->out_len += line_len;
+    if ((extra_info_combi->out_len + line_len) <= sizeof (extra_info_combi->out_buf))
+    {
+      memcpy (extra_info_combi->out_buf + extra_info_combi->out_len, line_buf, line_len);
 
-    memset (extra_info_combi->out_buf + extra_info_combi->out_len, 0, sizeof (extra_info_combi->out_buf) - extra_info_combi->out_len);
+      extra_info_combi->out_len += line_len;
+
+      memset (extra_info_combi->out_buf + extra_info_combi->out_len, 0, sizeof (extra_info_combi->out_buf) - extra_info_combi->out_len);
+    }
+    else
+    {
+      extra_info_combi->out_len += line_len;
+    }
 
     extra_info_combi->comb_pos_prev = extra_info_combi->comb_pos;
 

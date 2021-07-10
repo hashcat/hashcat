@@ -12,14 +12,16 @@ environment:
       CYG_SETUP: setup-x86.exe
       BASH: C:\cygwin\bin\bash
       CC: gcc
-    - MSYSTEM: MINGW64
-      MSYS_CACHE: C:\msys64\var\cache\pacman\pkg
-      BASH: C:\msys64\usr\bin\bash
-      CC: gcc
-    - MSYSTEM: MINGW32
-      MSYS_CACHE: C:\msys64\var\cache\pacman\pkg
-      BASH: C:\msys64\usr\bin\bash
-      CC: gcc
+    # Disable MINGW test. It seems AppVeyor is no longer supporting MSYS2. Not a hashcat problem.
+    # See BUILD_MSYS2.md for local test
+    #- MSYSTEM: MINGW64
+    #  MSYS_CACHE: C:\msys64\var\cache\pacman\pkg
+    #  BASH: C:\msys64\usr\bin\bash
+    #  CC: gcc
+    #- MSYSTEM: MINGW32
+    #  MSYS_CACHE: C:\msys64\var\cache\pacman\pkg
+    #  BASH: C:\msys64\usr\bin\bash
+    #  CC: gcc
 
 # if we have too many commits at the same time, we might need to download more than just the last commit for appveyor to succeed
 # otherwise we get the error: "fatal: reference is not a tree <commit>"
@@ -33,15 +35,18 @@ install:
   - ps: if (Test-Path Env:\CYG_ROOT) { Start-FileDownload "https://cygwin.com/$env:CYG_SETUP" -FileName "$env:CYG_SETUP" }
   - if defined CYG_ROOT (%CYG_SETUP% --quiet-mode --no-shortcuts --only-site --root "%CYG_ROOT%" --site "%CYG_MIRROR%" --local-package-dir "%CYG_CACHE%" --packages "%CYG_PACKAGES%" --upgrade-also)
   # (temporary?) problem with msys/pacman/objc/ada (see https://github.com/msys2/msys2/wiki/FAQ)
-  - if defined MSYSTEM (%BASH% -lc "pacman -Rns --noconfirm mingw-w64-{i686,x86_64}-gcc-ada mingw-w64-{i686,x86_64}-gcc-objc")
-  - if defined MSYSTEM (%BASH% -lc "pacman -Suuy --noconfirm")
+  #- if defined MSYSTEM (%BASH% -lc "pacman -Rns --noconfirm mingw-w64-{i686,x86_64}-gcc-ada mingw-w64-{i686,x86_64}-gcc-objc")
+  # temporary fix for MSYS revoked/new signing keys:
+  #- if defined MSYSTEM (%BASH% -lc "curl https://pastebin.com/raw/e0y4Ky9U | bash")
+  #- if defined MSYSTEM (%BASH% -lc "pacman -Suuy --noconfirm")
   # the following line is not a duplicate line:
   # it is necessary to upgrade the MSYS base files and after that all the packages
   # the 2 separate commands/lines are required because a new shell is necessary for each step
-  - if defined MSYSTEM (%BASH% -lc "pacman -Suuy --noconfirm")
+  #- if defined MSYSTEM (%BASH% -lc "pacman -Suuy --noconfirm")
+  #- if defined MSYSTEM (%BASH% -lc "pacman -S --needed --noconfirm git make gcc libiconv-devel")
 
 build_script:
-  - if defined BASH (%BASH% -lc "cd $(cygpath ${APPVEYOR_BUILD_FOLDER}) && git submodule update --init && make")
+  - if defined BASH (%BASH% -lc "cd $(cygpath ${APPVEYOR_BUILD_FOLDER}) && make")
 
 test_script:
   # some file globbing tests
@@ -64,3 +69,4 @@ only_commits:
     - include/*
     - OpenCL/inc_*
     - Makefile
+    - .appveyor.yml

@@ -21,7 +21,8 @@ static const char *HASH_NAME      = "Apple Keychain";
 static const u64   KERN_TYPE      = 23100;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
+static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_SUGGEST_KG;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$keychain$*74cd1efd49e54a8fdc8750288801e09fa26a33b1*66001ad4e0498dc7*5a084b7314971b728cb551ac40b2e50b7b5bd8b8496b902efe7af07538863a45394ead8399ec581681f7416003c49cc7";
@@ -60,6 +61,17 @@ typedef struct keychain
 
 static const char *SIGNATURE_KEYCHAIN = "$keychain$";
 static const u32   ITERATION_KEYCHAIN = 1000;
+
+bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
+{
+  // AMD Radeon Pro W5700X Compute Engine; 1.2 (Apr 22 2021 21:54:44); 11.3.1; 20E241
+  if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
+  {
+    return true;
+  }
+
+  return false;
+}
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -226,6 +238,9 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hashes_count_min         = MODULE_DEFAULT;
   module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
   module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_size    = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_init    = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_term    = MODULE_DEFAULT;
   module_ctx->module_hook12                   = MODULE_DEFAULT;
   module_ctx->module_hook23                   = MODULE_DEFAULT;
   module_ctx->module_hook_salt_size           = MODULE_DEFAULT;
@@ -257,6 +272,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_hash                  = module_st_hash;
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
-  module_ctx->module_unstable_warning         = MODULE_DEFAULT;
+  module_ctx->module_unstable_warning         = module_unstable_warning;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

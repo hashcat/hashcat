@@ -42,14 +42,14 @@ DECLSPEC void m12600m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
 
   u32 pc256[8];
 
-  pc256[0] = salt_bufs[salt_pos].salt_buf_pc[0];
-  pc256[1] = salt_bufs[salt_pos].salt_buf_pc[1];
-  pc256[2] = salt_bufs[salt_pos].salt_buf_pc[2];
-  pc256[3] = salt_bufs[salt_pos].salt_buf_pc[3];
-  pc256[4] = salt_bufs[salt_pos].salt_buf_pc[4];
-  pc256[5] = salt_bufs[salt_pos].salt_buf_pc[5];
-  pc256[6] = salt_bufs[salt_pos].salt_buf_pc[6];
-  pc256[7] = salt_bufs[salt_pos].salt_buf_pc[7];
+  pc256[0] = salt_bufs[SALT_POS].salt_buf_pc[0];
+  pc256[1] = salt_bufs[SALT_POS].salt_buf_pc[1];
+  pc256[2] = salt_bufs[SALT_POS].salt_buf_pc[2];
+  pc256[3] = salt_bufs[SALT_POS].salt_buf_pc[3];
+  pc256[4] = salt_bufs[SALT_POS].salt_buf_pc[4];
+  pc256[5] = salt_bufs[SALT_POS].salt_buf_pc[5];
+  pc256[6] = salt_bufs[SALT_POS].salt_buf_pc[6];
+  pc256[7] = salt_bufs[SALT_POS].salt_buf_pc[7];
 
   /**
    * loop
@@ -333,14 +333,14 @@ DECLSPEC void m12600s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
 
   u32 pc256[8];
 
-  pc256[0] = salt_bufs[salt_pos].salt_buf_pc[0];
-  pc256[1] = salt_bufs[salt_pos].salt_buf_pc[1];
-  pc256[2] = salt_bufs[salt_pos].salt_buf_pc[2];
-  pc256[3] = salt_bufs[salt_pos].salt_buf_pc[3];
-  pc256[4] = salt_bufs[salt_pos].salt_buf_pc[4];
-  pc256[5] = salt_bufs[salt_pos].salt_buf_pc[5];
-  pc256[6] = salt_bufs[salt_pos].salt_buf_pc[6];
-  pc256[7] = salt_bufs[salt_pos].salt_buf_pc[7];
+  pc256[0] = salt_bufs[SALT_POS].salt_buf_pc[0];
+  pc256[1] = salt_bufs[SALT_POS].salt_buf_pc[1];
+  pc256[2] = salt_bufs[SALT_POS].salt_buf_pc[2];
+  pc256[3] = salt_bufs[SALT_POS].salt_buf_pc[3];
+  pc256[4] = salt_bufs[SALT_POS].salt_buf_pc[4];
+  pc256[5] = salt_bufs[SALT_POS].salt_buf_pc[5];
+  pc256[6] = salt_bufs[SALT_POS].salt_buf_pc[6];
+  pc256[7] = salt_bufs[SALT_POS].salt_buf_pc[7];
 
   /**
    * digest
@@ -348,10 +348,10 @@ DECLSPEC void m12600s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
 
   const u32 search[4] =
   {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
   };
 
   /**
@@ -691,7 +691,7 @@ KERNEL_FQ void m12600_m04 (KERN_ATTR_BASIC ())
    * main
    */
 
-  m12600m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max, l_bin2asc);
+  m12600m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max, l_bin2asc);
 }
 
 KERNEL_FQ void m12600_m08 (KERN_ATTR_BASIC ())
@@ -761,7 +761,7 @@ KERNEL_FQ void m12600_m08 (KERN_ATTR_BASIC ())
    * main
    */
 
-  m12600m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max, l_bin2asc);
+  m12600m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max, l_bin2asc);
 }
 
 KERNEL_FQ void m12600_m16 (KERN_ATTR_BASIC ())
@@ -831,7 +831,7 @@ KERNEL_FQ void m12600_m16 (KERN_ATTR_BASIC ())
    * main
    */
 
-  m12600m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max, l_bin2asc);
+  m12600m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max, l_bin2asc);
 }
 
 KERNEL_FQ void m12600_s04 (KERN_ATTR_BASIC ())
@@ -901,7 +901,7 @@ KERNEL_FQ void m12600_s04 (KERN_ATTR_BASIC ())
    * main
    */
 
-  m12600s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max, l_bin2asc);
+  m12600s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max, l_bin2asc);
 }
 
 KERNEL_FQ void m12600_s08 (KERN_ATTR_BASIC ())
@@ -971,7 +971,7 @@ KERNEL_FQ void m12600_s08 (KERN_ATTR_BASIC ())
    * main
    */
 
-  m12600s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max, l_bin2asc);
+  m12600s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max, l_bin2asc);
 }
 
 KERNEL_FQ void m12600_s16 (KERN_ATTR_BASIC ())
@@ -1041,5 +1041,5 @@ KERNEL_FQ void m12600_s16 (KERN_ATTR_BASIC ())
    * main
    */
 
-  m12600s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max, l_bin2asc);
+  m12600s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max, l_bin2asc);
 }

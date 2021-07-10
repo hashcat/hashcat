@@ -74,6 +74,7 @@ void module_unload (module_ctx_t *module_ctx)
 
 int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 {
+  const backend_ctx_t        *backend_ctx        = hashcat_ctx->backend_ctx;
   const folder_config_t      *folder_config      = hashcat_ctx->folder_config;
         hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
         module_ctx_t         *module_ctx         = hashcat_ctx->module_ctx;
@@ -166,6 +167,9 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_DEFINED (module_ctx->module_hashes_count_max);
   CHECK_DEFINED (module_ctx->module_hashes_count_min);
   CHECK_DEFINED (module_ctx->module_hlfmt_disable);
+  CHECK_DEFINED (module_ctx->module_hook_extra_param_size);
+  CHECK_DEFINED (module_ctx->module_hook_extra_param_init);
+  CHECK_DEFINED (module_ctx->module_hook_extra_param_term);
   CHECK_DEFINED (module_ctx->module_hook12);
   CHECK_DEFINED (module_ctx->module_hook23);
   CHECK_DEFINED (module_ctx->module_hook_salt_size);
@@ -251,30 +255,11 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   #undef CHECK_MANDATORY
 
-  if (module_ctx->module_benchmark_mask           != MODULE_DEFAULT) hashconfig->benchmark_mask          = module_ctx->module_benchmark_mask           (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_dictstat_disable         != MODULE_DEFAULT) hashconfig->dictstat_disable        = module_ctx->module_dictstat_disable         (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_esalt_size               != MODULE_DEFAULT) hashconfig->esalt_size              = module_ctx->module_esalt_size               (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_forced_outfile_format    != MODULE_DEFAULT) hashconfig->forced_outfile_format   = module_ctx->module_forced_outfile_format    (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_hash_mode                != MODULE_DEFAULT) hashconfig->hash_mode               = module_ctx->module_hash_mode                (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_hashes_count_min         != MODULE_DEFAULT) hashconfig->hashes_count_min        = module_ctx->module_hashes_count_min         (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_hashes_count_max         != MODULE_DEFAULT) hashconfig->hashes_count_max        = module_ctx->module_hashes_count_max         (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_hlfmt_disable            != MODULE_DEFAULT) hashconfig->hlfmt_disable           = module_ctx->module_hlfmt_disable            (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_hook_salt_size           != MODULE_DEFAULT) hashconfig->hook_salt_size          = module_ctx->module_hook_salt_size           (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_hook_size                != MODULE_DEFAULT) hashconfig->hook_size               = module_ctx->module_hook_size                (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_outfile_check_disable    != MODULE_DEFAULT) hashconfig->outfile_check_disable   = module_ctx->module_outfile_check_disable    (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_outfile_check_nocomp     != MODULE_DEFAULT) hashconfig->outfile_check_nocomp    = module_ctx->module_outfile_check_nocomp     (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_potfile_disable          != MODULE_DEFAULT) hashconfig->potfile_disable         = module_ctx->module_potfile_disable          (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_potfile_keep_all_hashes  != MODULE_DEFAULT) hashconfig->potfile_keep_all_hashes = module_ctx->module_potfile_keep_all_hashes  (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_pwdump_column            != MODULE_DEFAULT) hashconfig->pwdump_column           = module_ctx->module_pwdump_column            (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_separator                != MODULE_DEFAULT) hashconfig->separator               = module_ctx->module_separator                (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_tmp_size                 != MODULE_DEFAULT) hashconfig->tmp_size                = module_ctx->module_tmp_size                 (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_warmup_disable           != MODULE_DEFAULT) hashconfig->warmup_disable          = module_ctx->module_warmup_disable           (hashconfig, user_options, user_options_extra);
-
   if (user_options->keyboard_layout_mapping)
   {
     if ((hashconfig->opts_type & OPTS_TYPE_KEYBOARD_MAPPING) == 0)
     {
-      event_log_error (hashcat_ctx, "Parameter --keyboard-layout-mapping not valid for hash-type %u", hashconfig->hash_mode);
+      if (user_options->autodetect == false) event_log_error (hashcat_ctx, "Parameter --keyboard-layout-mapping not valid for hash-type %u", hashconfig->hash_mode);
 
       return -1;
     }
@@ -303,7 +288,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      event_log_error (hashcat_ctx, "Parameter --hex-salt not valid for hash-type %u", hashconfig->hash_mode);
+      if (user_options->autodetect == false) event_log_error (hashcat_ctx, "Parameter --hex-salt not valid for hash-type %u", hashconfig->hash_mode);
 
       return -1;
     }
@@ -315,12 +300,12 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
-    if (hashconfig->opti_type & OPTS_TYPE_SUGGEST_KG)
+    if (hashconfig->opts_type & OPTS_TYPE_SUGGEST_KG)
     {
-      if (user_options->quiet == false)
+      if (user_options->quiet == false && user_options->autodetect == false)
       {
-        event_log_warning (hashcat_ctx, "This hash-mode is known to emit multiple valid password candidates for the same hash.");
-        event_log_warning (hashcat_ctx, "Use --keep-guessing to prevent hashcat from shutdown after the hash has been cracked.");
+        event_log_warning (hashcat_ctx, "This hash-mode is known to emit multiple valid candidates for the same hash.");
+        event_log_warning (hashcat_ctx, "Use --keep-guessing to continue attack after finding the first crack.");
         event_log_warning (hashcat_ctx, NULL);
       }
     }
@@ -348,7 +333,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
     hashconfig->has_optimized_kernel = hc_path_read (source_file);
 
-    if (user_options->example_hashes == false)
+    if (user_options->hash_info == false)
     {
       if (user_options->optimized_kernel_enable == true)
       {
@@ -357,7 +342,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
           if (user_options->quiet == false)
           {
             event_log_warning (hashcat_ctx, "Kernel %s:", source_file);
-            event_log_warning (hashcat_ctx, "Optimized kernel requested but not needed - falling back to pure kernel");
+            event_log_warning (hashcat_ctx, "Optimized kernel requested, but not available or not required");
+            event_log_warning (hashcat_ctx, "Falling back to pure kernel");
             event_log_warning (hashcat_ctx, NULL);
           }
         }
@@ -412,6 +398,26 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   hashconfig->is_salted = is_salted;
 
+  if (module_ctx->module_benchmark_mask           != MODULE_DEFAULT) hashconfig->benchmark_mask          = module_ctx->module_benchmark_mask           (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_dictstat_disable         != MODULE_DEFAULT) hashconfig->dictstat_disable        = module_ctx->module_dictstat_disable         (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_esalt_size               != MODULE_DEFAULT) hashconfig->esalt_size              = module_ctx->module_esalt_size               (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_forced_outfile_format    != MODULE_DEFAULT) hashconfig->forced_outfile_format   = module_ctx->module_forced_outfile_format    (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_hash_mode                != MODULE_DEFAULT) hashconfig->hash_mode               = module_ctx->module_hash_mode                (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_hashes_count_min         != MODULE_DEFAULT) hashconfig->hashes_count_min        = module_ctx->module_hashes_count_min         (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_hashes_count_max         != MODULE_DEFAULT) hashconfig->hashes_count_max        = module_ctx->module_hashes_count_max         (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_hlfmt_disable            != MODULE_DEFAULT) hashconfig->hlfmt_disable           = module_ctx->module_hlfmt_disable            (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_hook_extra_param_size    != MODULE_DEFAULT) hashconfig->hook_extra_param_size   = module_ctx->module_hook_extra_param_size    (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_hook_salt_size           != MODULE_DEFAULT) hashconfig->hook_salt_size          = module_ctx->module_hook_salt_size           (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_hook_size                != MODULE_DEFAULT) hashconfig->hook_size               = module_ctx->module_hook_size                (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_outfile_check_disable    != MODULE_DEFAULT) hashconfig->outfile_check_disable   = module_ctx->module_outfile_check_disable    (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_outfile_check_nocomp     != MODULE_DEFAULT) hashconfig->outfile_check_nocomp    = module_ctx->module_outfile_check_nocomp     (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_potfile_disable          != MODULE_DEFAULT) hashconfig->potfile_disable         = module_ctx->module_potfile_disable          (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_potfile_keep_all_hashes  != MODULE_DEFAULT) hashconfig->potfile_keep_all_hashes = module_ctx->module_potfile_keep_all_hashes  (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_pwdump_column            != MODULE_DEFAULT) hashconfig->pwdump_column           = module_ctx->module_pwdump_column            (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_separator                != MODULE_DEFAULT) hashconfig->separator               = module_ctx->module_separator                (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_tmp_size                 != MODULE_DEFAULT) hashconfig->tmp_size                = module_ctx->module_tmp_size                 (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_warmup_disable           != MODULE_DEFAULT) hashconfig->warmup_disable          = module_ctx->module_warmup_disable           (hashconfig, user_options, user_options_extra);
+
   // those depend on some previously defined values
 
   hashconfig->pw_max              = default_pw_max              (hashconfig, user_options, user_options_extra);
@@ -436,13 +442,77 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   if (module_ctx->module_kernel_threads_min != MODULE_DEFAULT) hashconfig->kernel_threads_min = module_ctx->module_kernel_threads_min (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_kernel_threads_max != MODULE_DEFAULT) hashconfig->kernel_threads_max = module_ctx->module_kernel_threads_max (hashconfig, user_options, user_options_extra);
 
+  if (hashconfig->hook_extra_param_size)
+  {
+    const int hook_threads = (int) user_options->hook_threads;
+
+    module_ctx->hook_extra_params = (void *) hccalloc (hook_threads, sizeof (void *));
+
+    for (int i = 0; i < hook_threads; i++)
+    {
+      module_ctx->hook_extra_params[i] = (void *) hcmalloc (hashconfig->hook_extra_param_size);
+    }
+  }
+  else
+  {
+    module_ctx->hook_extra_params = (void *) hccalloc (1, sizeof (void *));
+
+    module_ctx->hook_extra_params[0] = (void *) hcmalloc (1);
+  }
+
+  if (module_ctx->module_hook_extra_param_init != MODULE_DEFAULT)
+  {
+    const int hook_threads = (int) user_options->hook_threads;
+
+    for (int i = 0; i < hook_threads; i++)
+    {
+      const bool rc_hook_extra_param_init = module_ctx->module_hook_extra_param_init (hashconfig, user_options, user_options_extra, folder_config, backend_ctx, module_ctx->hook_extra_params[i]);
+
+      if (rc_hook_extra_param_init == false) return -1;
+    }
+  }
+
   return 0;
 }
 
 void hashconfig_destroy (hashcat_ctx_t *hashcat_ctx)
 {
+  const backend_ctx_t        *backend_ctx        = hashcat_ctx->backend_ctx;
+  const folder_config_t      *folder_config      = hashcat_ctx->folder_config;
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
   hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
   module_ctx_t *module_ctx = hashcat_ctx->module_ctx;
+
+  if (module_ctx->module_hook_extra_param_term != MODULE_DEFAULT)
+  {
+    const int hook_threads = (int) user_options->hook_threads;
+
+    for (int i = 0; i < hook_threads; i++)
+    {
+      module_ctx->module_hook_extra_param_term (hashconfig, user_options, user_options_extra, folder_config, backend_ctx, module_ctx->hook_extra_params[i]);
+    }
+  }
+
+  if (module_ctx->hook_extra_params)
+  {
+    if (hashconfig->hook_extra_param_size)
+    {
+      const int hook_threads = (int) user_options->hook_threads;
+
+      for (int i = 0; i < hook_threads; i++)
+      {
+        hcfree (module_ctx->hook_extra_params[i]);
+      }
+    }
+    else
+    {
+      hcfree (module_ctx->hook_extra_params[0]);
+    }
+
+    hcfree (module_ctx->hook_extra_params);
+  }
 
   module_unload (module_ctx);
 

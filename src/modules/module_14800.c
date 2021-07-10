@@ -21,7 +21,8 @@ static const u32   HASH_CATEGORY  = HASH_CATEGORY_ARCHIVE;
 static const char *HASH_NAME      = "iTunes backup >= 10.0";
 static const u64   KERN_TYPE      = 14800;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
-                                  | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
+                                  | OPTI_TYPE_SLOW_HASH_SIMD_LOOP
+                                  | OPTI_TYPE_SLOW_HASH_SIMD_LOOP2;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_ST_HEX
                                   | OPTS_TYPE_INIT2
@@ -408,6 +409,9 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hashes_count_min         = MODULE_DEFAULT;
   module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
   module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_size    = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_init    = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_term    = MODULE_DEFAULT;
   module_ctx->module_hook12                   = MODULE_DEFAULT;
   module_ctx->module_hook23                   = MODULE_DEFAULT;
   module_ctx->module_hook_salt_size           = MODULE_DEFAULT;

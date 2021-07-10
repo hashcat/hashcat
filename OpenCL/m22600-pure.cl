@@ -136,7 +136,7 @@ KERNEL_FQ void m22600_init (KERN_ATTR_TMPS_ESALT (telegram_tmp_t, telegram_t))
 
   // salt length is always 32 bytes:
 
-  sha1_hmac_update_global_swap (&sha1_hmac_ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  sha1_hmac_update_global_swap (&sha1_hmac_ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   for (u32 i = 0, j = 1; i < 34; i += 5, j += 1)
   {
@@ -332,10 +332,10 @@ KERNEL_FQ void m22600_comp (KERN_ATTR_TMPS_ESALT (telegram_tmp_t, telegram_t))
 
   u32 message_key[4];
 
-  message_key[0] = esalt_bufs[digests_offset].data[0];
-  message_key[1] = esalt_bufs[digests_offset].data[1];
-  message_key[2] = esalt_bufs[digests_offset].data[2];
-  message_key[3] = esalt_bufs[digests_offset].data[3];
+  message_key[0] = esalt_bufs[DIGESTS_OFFSET].data[0];
+  message_key[1] = esalt_bufs[DIGESTS_OFFSET].data[1];
+  message_key[2] = esalt_bufs[DIGESTS_OFFSET].data[2];
+  message_key[3] = esalt_bufs[DIGESTS_OFFSET].data[3];
 
   u32 data_a[12];
   u32 data_b[12];
@@ -469,10 +469,10 @@ KERNEL_FQ void m22600_comp (KERN_ATTR_TMPS_ESALT (telegram_tmp_t, telegram_t))
   {
     u32 x[4];
 
-    x[0] = esalt_bufs[digests_offset].data[4 + i];
-    x[1] = esalt_bufs[digests_offset].data[5 + i];
-    x[2] = esalt_bufs[digests_offset].data[6 + i];
-    x[3] = esalt_bufs[digests_offset].data[7 + i];
+    x[0] = esalt_bufs[DIGESTS_OFFSET].data[4 + i];
+    x[1] = esalt_bufs[DIGESTS_OFFSET].data[5 + i];
+    x[2] = esalt_bufs[DIGESTS_OFFSET].data[6 + i];
+    x[3] = esalt_bufs[DIGESTS_OFFSET].data[7 + i];
 
     u32 y[4];
 
@@ -521,9 +521,9 @@ KERNEL_FQ void m22600_comp (KERN_ATTR_TMPS_ESALT (telegram_tmp_t, telegram_t))
       r2 == message_key[2] &&
       r3 == message_key[3])
   {
-    if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
     }
   }
 }

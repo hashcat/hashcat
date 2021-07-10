@@ -109,10 +109,10 @@ KERNEL_FQ void m12700_init (KERN_ATTR_TMPS (mywallet_tmp_t))
   u32 w2[4];
   u32 w3[4];
 
-  w0[0] = salt_bufs[salt_pos].salt_buf[0];
-  w0[1] = salt_bufs[salt_pos].salt_buf[1];
-  w0[2] = salt_bufs[salt_pos].salt_buf[2];
-  w0[3] = salt_bufs[salt_pos].salt_buf[3];
+  w0[0] = salt_bufs[SALT_POS].salt_buf[0];
+  w0[1] = salt_bufs[SALT_POS].salt_buf[1];
+  w0[2] = salt_bufs[SALT_POS].salt_buf[2];
+  w0[3] = salt_bufs[SALT_POS].salt_buf[3];
   w1[0] = 0;
   w1[1] = 0;
   w1[2] = 0;
@@ -334,10 +334,10 @@ KERNEL_FQ void m12700_comp (KERN_ATTR_TMPS (mywallet_tmp_t))
 
   u32 iv[4];
 
-  iv[0] = salt_bufs[salt_pos].salt_buf[0];
-  iv[1] = salt_bufs[salt_pos].salt_buf[1];
-  iv[2] = salt_bufs[salt_pos].salt_buf[2];
-  iv[3] = salt_bufs[salt_pos].salt_buf[3];
+  iv[0] = salt_bufs[SALT_POS].salt_buf[0];
+  iv[1] = salt_bufs[SALT_POS].salt_buf[1];
+  iv[2] = salt_bufs[SALT_POS].salt_buf[2];
+  iv[3] = salt_bufs[SALT_POS].salt_buf[3];
 
   // decrypted data should be a JSON string consisting only of ASCII chars (0x09-0x7e)
 
@@ -345,10 +345,10 @@ KERNEL_FQ void m12700_comp (KERN_ATTR_TMPS (mywallet_tmp_t))
   {
     u32 data[4];
 
-    data[0] = salt_bufs[salt_pos].salt_buf[i + 0];
-    data[1] = salt_bufs[salt_pos].salt_buf[i + 1];
-    data[2] = salt_bufs[salt_pos].salt_buf[i + 2];
-    data[3] = salt_bufs[salt_pos].salt_buf[i + 3];
+    data[0] = salt_bufs[SALT_POS].salt_buf[i + 0];
+    data[1] = salt_bufs[SALT_POS].salt_buf[i + 1];
+    data[2] = salt_bufs[SALT_POS].salt_buf[i + 2];
+    data[3] = salt_bufs[SALT_POS].salt_buf[i + 3];
 
     u32 out[4];
 
@@ -370,10 +370,10 @@ KERNEL_FQ void m12700_comp (KERN_ATTR_TMPS (mywallet_tmp_t))
     iv[3] = data[3];
   }
 
-  const u32 r0 = salt_bufs[salt_pos].salt_buf[4];
-  const u32 r1 = salt_bufs[salt_pos].salt_buf[5];
-  const u32 r2 = salt_bufs[salt_pos].salt_buf[6];
-  const u32 r3 = salt_bufs[salt_pos].salt_buf[7];
+  const u32 r0 = salt_bufs[SALT_POS].salt_buf[4];
+  const u32 r1 = salt_bufs[SALT_POS].salt_buf[5];
+  const u32 r2 = salt_bufs[SALT_POS].salt_buf[6];
+  const u32 r3 = salt_bufs[SALT_POS].salt_buf[7];
 
   #define il_pos 0
 

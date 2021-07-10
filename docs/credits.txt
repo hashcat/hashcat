@@ -22,7 +22,7 @@ Gabriele "matrix" Gristina <matrix@hashcat.net> (@gm4tr1x)
 * Compressed wordlist feature
 * OpenCL Info feature
 * Apple macOS port
-* Hardware monitor initial code base
+* Hardware monitor initial code base and maintenance
 * Test suite initial code base
 * Makefile initial code base
 * Multithreading initial code base
@@ -57,6 +57,7 @@ Other contributors to hashcat
 * zlib by Jean-loup Gailly and Mark Adler
 * win-iconv by Yukihiro Nakadaira
 * micro-ecc by Ken MacKay (used as reference for some secp256k1 operations)
+* UnRAR by Alexander Roshal
 
 # Furthermore the following persons helped the project:
 

@@ -12,7 +12,7 @@ use Digest::SHA;
 use Crypt::CBC;
 use Encode;
 
-sub module_constraints { [[0, 127], [8, 8], [0, 20], [8, 8], [-1, -1]] }
+sub module_constraints { [[0, 128], [8, 8], [0, 20], [8, 8], [-1, -1]] }
 
 my $ITERATIONS = 0x40000;
 

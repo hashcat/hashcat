@@ -44,7 +44,7 @@ KERNEL_FQ void m22200_mxx (KERN_ATTR_VECTOR ())
 
   sha512_init (&ctx0);
 
-  sha512_update_global (&ctx0, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  sha512_update_global (&ctx0, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   /**
    * loop
@@ -96,10 +96,10 @@ KERNEL_FQ void m22200_sxx (KERN_ATTR_VECTOR ())
 
   const u32 search[4] =
   {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
   };
 
   /**
@@ -121,7 +121,7 @@ KERNEL_FQ void m22200_sxx (KERN_ATTR_VECTOR ())
 
   sha512_init (&ctx0);
 
-  sha512_update_global (&ctx0, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  sha512_update_global (&ctx0, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   /**
    * loop

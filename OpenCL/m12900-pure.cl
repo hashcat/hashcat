@@ -112,10 +112,10 @@ KERNEL_FQ void m12900_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
   u32 w2[4];
   u32 w3[4];
 
-  w0[0] = salt_bufs[salt_pos].salt_buf[0];
-  w0[1] = salt_bufs[salt_pos].salt_buf[1];
-  w0[2] = salt_bufs[salt_pos].salt_buf[2];
-  w0[3] = salt_bufs[salt_pos].salt_buf[3];
+  w0[0] = salt_bufs[SALT_POS].salt_buf[0];
+  w0[1] = salt_bufs[SALT_POS].salt_buf[1];
+  w0[2] = salt_bufs[SALT_POS].salt_buf[2];
+  w0[3] = salt_bufs[SALT_POS].salt_buf[3];
   w1[0] = 0;
   w1[1] = 0;
   w1[2] = 0;
@@ -320,14 +320,14 @@ KERNEL_FQ void m12900_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
 
   sha256_hmac_init_64 (&ctx, w0, w1, w2, w3);
 
-  w0[0] = salt_bufs[salt_pos].salt_buf[ 4];
-  w0[1] = salt_bufs[salt_pos].salt_buf[ 5];
-  w0[2] = salt_bufs[salt_pos].salt_buf[ 6];
-  w0[3] = salt_bufs[salt_pos].salt_buf[ 7];
-  w1[0] = salt_bufs[salt_pos].salt_buf[ 8];
-  w1[1] = salt_bufs[salt_pos].salt_buf[ 9];
-  w1[2] = salt_bufs[salt_pos].salt_buf[10];
-  w1[3] = salt_bufs[salt_pos].salt_buf[11];
+  w0[0] = salt_bufs[SALT_POS].salt_buf[ 4];
+  w0[1] = salt_bufs[SALT_POS].salt_buf[ 5];
+  w0[2] = salt_bufs[SALT_POS].salt_buf[ 6];
+  w0[3] = salt_bufs[SALT_POS].salt_buf[ 7];
+  w1[0] = salt_bufs[SALT_POS].salt_buf[ 8];
+  w1[1] = salt_bufs[SALT_POS].salt_buf[ 9];
+  w1[2] = salt_bufs[SALT_POS].salt_buf[10];
+  w1[3] = salt_bufs[SALT_POS].salt_buf[11];
   w2[0] = 0;
   w2[1] = 0;
   w2[2] = 0;

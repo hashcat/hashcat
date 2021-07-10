@@ -88,7 +88,7 @@ DECLSPEC u32 sha256_update_aes_64 (sha256_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2,
 {
   u32 ex = 0;
 
-  MAYBE_VOLATILE const int pos = ctx->len & 63;
+  const int pos = ctx->len & 63;
 
   ctx->len += len;
 
@@ -261,7 +261,7 @@ DECLSPEC u32 sha384_update_aes_128 (sha384_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2
 {
   u32 ex = 0;
 
-  MAYBE_VOLATILE const int pos = ctx->len & 127;
+  const int pos = ctx->len & 127;
 
   ctx->len += len;
 
@@ -554,7 +554,7 @@ DECLSPEC u32 sha512_update_aes_128 (sha512_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2
 {
   u32 ex = 0;
 
-  MAYBE_VOLATILE const int pos = ctx->len & 127;
+  const int pos = ctx->len & 127;
 
   ctx->len += len;
 
@@ -1181,7 +1181,7 @@ KERNEL_FQ void m10700_init (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
 
   sha256_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
-  sha256_update_global_swap (&ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  sha256_update_global_swap (&ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   sha256_final (&ctx);
 

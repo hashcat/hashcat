@@ -98,7 +98,7 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
   const u32 il_cnt = device_param->kernel_params_buf32[30]; // ugly, i know
 
-  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+  if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
   {
     pw_t pw;
 

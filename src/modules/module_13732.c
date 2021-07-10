@@ -65,7 +65,9 @@ typedef struct vc
 {
   u32 salt_buf[32];
   u32 data_buf[112];
-  u32 keyfile_buf[16];
+  u32 keyfile_buf16[16];
+  u32 keyfile_buf32[32];
+  u32 keyfile_enabled;
   u32 signature;
 
   keyboard_layout_mapping_t keyboard_layout_mapping_buf[256];
@@ -134,7 +136,7 @@ u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
   // this overrides the reductions of PW_MAX in case optimized kernel is selected
   // IOW, even in optimized kernel mode it support length 64
 
-  const u32 pw_max = 64;
+  const u32 pw_max = 128;
 
   return pw_max;
 }
@@ -203,13 +205,16 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
     {
       if (hc_path_read (keyfile))
       {
-        cpu_crc32 (keyfile, (u8 *) vc->keyfile_buf);
+        cpu_crc32 (keyfile, (u8 *) vc->keyfile_buf16,  64);
+        cpu_crc32 (keyfile, (u8 *) vc->keyfile_buf32, 128);
       }
 
       keyfile = strtok_r ((char *) NULL, ",", &saveptr);
     }
 
     hcfree (keyfiles);
+
+    vc->keyfile_enabled = 1;
   }
 
   // keyboard layout mapping
@@ -308,6 +313,9 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hashes_count_min         = MODULE_DEFAULT;
   module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
   module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_size    = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_init    = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_term    = MODULE_DEFAULT;
   module_ctx->module_hook12                   = MODULE_DEFAULT;
   module_ctx->module_hook23                   = MODULE_DEFAULT;
   module_ctx->module_hook_salt_size           = MODULE_DEFAULT;

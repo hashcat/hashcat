@@ -56,7 +56,7 @@ typedef struct keepass
 
   /* specific to version 1 */
   u32 contents_len;
-  u32 contents[75000];
+  u32 contents[0x200000];
 
   /* specific to version 2 */
   u32 expected_bytes[8];
@@ -128,7 +128,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.sep[2]     = '*';
   token.len_min[2] = 1;
-  token.len_max[2] = 8;
+  token.len_max[2] = 10;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
@@ -178,13 +178,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     token.sep[9]     = '*';
     token.len_min[9] = 1;
-    token.len_max[9] = 6;
+    token.len_max[9] = 8;
     token.attr[9]    = TOKEN_ATTR_VERIFY_LENGTH
                      | TOKEN_ATTR_VERIFY_DIGIT;
 
     token.sep[10]     = '*';
     token.len_min[10] = 2;
-    token.len_max[10] = 600000;
+    token.len_max[10] = 0x1000000;
     token.attr[10]    = TOKEN_ATTR_VERIFY_LENGTH
                       | TOKEN_ATTR_VERIFY_HEX;
 
@@ -681,6 +681,9 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hashes_count_min         = MODULE_DEFAULT;
   module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
   module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_size    = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_init    = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_term    = MODULE_DEFAULT;
   module_ctx->module_hook12                   = MODULE_DEFAULT;
   module_ctx->module_hook23                   = MODULE_DEFAULT;
   module_ctx->module_hook_salt_size           = MODULE_DEFAULT;

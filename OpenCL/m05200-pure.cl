@@ -39,7 +39,7 @@ KERNEL_FQ void m05200_init (KERN_ATTR_TMPS (pwsafe3_tmp_t))
 
   sha256_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
-  sha256_update_global_swap (&ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  sha256_update_global_swap (&ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   sha256_final (&ctx);
 

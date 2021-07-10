@@ -63,7 +63,7 @@ KERNEL_FQ void m04010_mxx (KERN_ATTR_BASIC ())
 
   md5_init (&ctx0);
 
-  md5_update_global (&ctx0, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  md5_update_global (&ctx0, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   md5_ctx_t ctx0t = ctx0;
 
@@ -166,10 +166,10 @@ KERNEL_FQ void m04010_sxx (KERN_ATTR_BASIC ())
 
   const u32 search[4] =
   {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
   };
 
   /**
@@ -180,7 +180,7 @@ KERNEL_FQ void m04010_sxx (KERN_ATTR_BASIC ())
 
   md5_init (&ctx0);
 
-  md5_update_global (&ctx0, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  md5_update_global (&ctx0, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   md5_ctx_t ctx0t = ctx0;
 

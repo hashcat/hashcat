@@ -178,7 +178,9 @@ DECLSPEC void sha384_init (sha384_ctx_t *ctx)
 
 DECLSPEC void sha384_update_128 (sha384_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const int len)
 {
-  MAYBE_VOLATILE const int pos = ctx->len & 127;
+  if (len == 0) return;
+
+  const int pos = ctx->len & 127;
 
   ctx->len += len;
 
@@ -622,6 +624,24 @@ DECLSPEC void sha384_update_swap (sha384_ctx_t *ctx, const u32 *w, const int len
 
 DECLSPEC void sha384_update_utf16le (sha384_ctx_t *ctx, const u32 *w, const int len)
 {
+  if (hc_enc_scan (w, len))
+  {
+    hc_enc_t hc_enc;
+
+    hc_enc_init (&hc_enc);
+
+    while (hc_enc_has_next (&hc_enc, len))
+    {
+      u32 enc_buf[32] = { 0 };
+
+      const int enc_len = hc_enc_next (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
+
+      sha384_update_128 (ctx, enc_buf + 0, enc_buf + 4, enc_buf + 8, enc_buf + 12, enc_buf + 16, enc_buf + 20, enc_buf + 24, enc_buf + 28, enc_len);
+    }
+
+    return;
+  }
+
   u32 w0[4];
   u32 w1[4];
   u32 w2[4];
@@ -688,6 +708,57 @@ DECLSPEC void sha384_update_utf16le (sha384_ctx_t *ctx, const u32 *w, const int 
 
 DECLSPEC void sha384_update_utf16le_swap (sha384_ctx_t *ctx, const u32 *w, const int len)
 {
+  if (hc_enc_scan (w, len))
+  {
+    hc_enc_t hc_enc;
+
+    hc_enc_init (&hc_enc);
+
+    while (hc_enc_has_next (&hc_enc, len))
+    {
+      u32 enc_buf[32] = { 0 };
+
+      const int enc_len = hc_enc_next (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
+
+      enc_buf[ 0] = hc_swap32_S (enc_buf[ 0]);
+      enc_buf[ 1] = hc_swap32_S (enc_buf[ 1]);
+      enc_buf[ 2] = hc_swap32_S (enc_buf[ 2]);
+      enc_buf[ 3] = hc_swap32_S (enc_buf[ 3]);
+      enc_buf[ 4] = hc_swap32_S (enc_buf[ 4]);
+      enc_buf[ 5] = hc_swap32_S (enc_buf[ 5]);
+      enc_buf[ 6] = hc_swap32_S (enc_buf[ 6]);
+      enc_buf[ 7] = hc_swap32_S (enc_buf[ 7]);
+      enc_buf[ 8] = hc_swap32_S (enc_buf[ 8]);
+      enc_buf[ 9] = hc_swap32_S (enc_buf[ 9]);
+      enc_buf[10] = hc_swap32_S (enc_buf[10]);
+      enc_buf[11] = hc_swap32_S (enc_buf[11]);
+      enc_buf[12] = hc_swap32_S (enc_buf[12]);
+      enc_buf[13] = hc_swap32_S (enc_buf[13]);
+      enc_buf[14] = hc_swap32_S (enc_buf[14]);
+      enc_buf[15] = hc_swap32_S (enc_buf[15]);
+      enc_buf[16] = hc_swap32_S (enc_buf[16]);
+      enc_buf[17] = hc_swap32_S (enc_buf[17]);
+      enc_buf[18] = hc_swap32_S (enc_buf[18]);
+      enc_buf[19] = hc_swap32_S (enc_buf[19]);
+      enc_buf[20] = hc_swap32_S (enc_buf[20]);
+      enc_buf[21] = hc_swap32_S (enc_buf[21]);
+      enc_buf[22] = hc_swap32_S (enc_buf[22]);
+      enc_buf[23] = hc_swap32_S (enc_buf[23]);
+      enc_buf[24] = hc_swap32_S (enc_buf[24]);
+      enc_buf[25] = hc_swap32_S (enc_buf[25]);
+      enc_buf[26] = hc_swap32_S (enc_buf[26]);
+      enc_buf[27] = hc_swap32_S (enc_buf[27]);
+      enc_buf[28] = hc_swap32_S (enc_buf[28]);
+      enc_buf[29] = hc_swap32_S (enc_buf[29]);
+      enc_buf[30] = hc_swap32_S (enc_buf[30]);
+      enc_buf[31] = hc_swap32_S (enc_buf[31]);
+
+      sha384_update_128 (ctx, enc_buf + 0, enc_buf + 4, enc_buf + 8, enc_buf + 12, enc_buf + 16, enc_buf + 20, enc_buf + 24, enc_buf + 28, enc_len);
+    }
+
+    return;
+  }
+
   u32 w0[4];
   u32 w1[4];
   u32 w2[4];
@@ -1062,6 +1133,24 @@ DECLSPEC void sha384_update_global_swap (sha384_ctx_t *ctx, GLOBAL_AS const u32 
 
 DECLSPEC void sha384_update_global_utf16le (sha384_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
+  if (hc_enc_scan_global (w, len))
+  {
+    hc_enc_t hc_enc;
+
+    hc_enc_init (&hc_enc);
+
+    while (hc_enc_has_next (&hc_enc, len))
+    {
+      u32 enc_buf[32] = { 0 };
+
+      const int enc_len = hc_enc_next_global (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
+
+      sha384_update_128 (ctx, enc_buf + 0, enc_buf + 4, enc_buf + 8, enc_buf + 12, enc_buf + 16, enc_buf + 20, enc_buf + 24, enc_buf + 28, enc_len);
+    }
+
+    return;
+  }
+
   u32 w0[4];
   u32 w1[4];
   u32 w2[4];
@@ -1128,6 +1217,57 @@ DECLSPEC void sha384_update_global_utf16le (sha384_ctx_t *ctx, GLOBAL_AS const u
 
 DECLSPEC void sha384_update_global_utf16le_swap (sha384_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
+  if (hc_enc_scan_global (w, len))
+  {
+    hc_enc_t hc_enc;
+
+    hc_enc_init (&hc_enc);
+
+    while (hc_enc_has_next (&hc_enc, len))
+    {
+      u32 enc_buf[32] = { 0 };
+
+      const int enc_len = hc_enc_next_global (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
+
+      enc_buf[ 0] = hc_swap32_S (enc_buf[ 0]);
+      enc_buf[ 1] = hc_swap32_S (enc_buf[ 1]);
+      enc_buf[ 2] = hc_swap32_S (enc_buf[ 2]);
+      enc_buf[ 3] = hc_swap32_S (enc_buf[ 3]);
+      enc_buf[ 4] = hc_swap32_S (enc_buf[ 4]);
+      enc_buf[ 5] = hc_swap32_S (enc_buf[ 5]);
+      enc_buf[ 6] = hc_swap32_S (enc_buf[ 6]);
+      enc_buf[ 7] = hc_swap32_S (enc_buf[ 7]);
+      enc_buf[ 8] = hc_swap32_S (enc_buf[ 8]);
+      enc_buf[ 9] = hc_swap32_S (enc_buf[ 9]);
+      enc_buf[10] = hc_swap32_S (enc_buf[10]);
+      enc_buf[11] = hc_swap32_S (enc_buf[11]);
+      enc_buf[12] = hc_swap32_S (enc_buf[12]);
+      enc_buf[13] = hc_swap32_S (enc_buf[13]);
+      enc_buf[14] = hc_swap32_S (enc_buf[14]);
+      enc_buf[15] = hc_swap32_S (enc_buf[15]);
+      enc_buf[16] = hc_swap32_S (enc_buf[16]);
+      enc_buf[17] = hc_swap32_S (enc_buf[17]);
+      enc_buf[18] = hc_swap32_S (enc_buf[18]);
+      enc_buf[19] = hc_swap32_S (enc_buf[19]);
+      enc_buf[20] = hc_swap32_S (enc_buf[20]);
+      enc_buf[21] = hc_swap32_S (enc_buf[21]);
+      enc_buf[22] = hc_swap32_S (enc_buf[22]);
+      enc_buf[23] = hc_swap32_S (enc_buf[23]);
+      enc_buf[24] = hc_swap32_S (enc_buf[24]);
+      enc_buf[25] = hc_swap32_S (enc_buf[25]);
+      enc_buf[26] = hc_swap32_S (enc_buf[26]);
+      enc_buf[27] = hc_swap32_S (enc_buf[27]);
+      enc_buf[28] = hc_swap32_S (enc_buf[28]);
+      enc_buf[29] = hc_swap32_S (enc_buf[29]);
+      enc_buf[30] = hc_swap32_S (enc_buf[30]);
+      enc_buf[31] = hc_swap32_S (enc_buf[31]);
+
+      sha384_update_128 (ctx, enc_buf + 0, enc_buf + 4, enc_buf + 8, enc_buf + 12, enc_buf + 16, enc_buf + 20, enc_buf + 24, enc_buf + 28, enc_len);
+    }
+
+    return;
+  }
+
   u32 w0[4];
   u32 w1[4];
   u32 w2[4];
@@ -1260,7 +1400,7 @@ DECLSPEC void sha384_update_global_utf16le_swap (sha384_ctx_t *ctx, GLOBAL_AS co
 
 DECLSPEC void sha384_final (sha384_ctx_t *ctx)
 {
-  MAYBE_VOLATILE const int pos = ctx->len & 127;
+  const int pos = ctx->len & 127;
 
   append_0x80_8x4_S (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->w4, ctx->w5, ctx->w6, ctx->w7, pos ^ 3);
 
@@ -1312,92 +1452,101 @@ DECLSPEC void sha384_final (sha384_ctx_t *ctx)
 
 DECLSPEC void sha384_hmac_init_128 (sha384_hmac_ctx_t *ctx, const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, const u32 *w4, const u32 *w5, const u32 *w6, const u32 *w7)
 {
-  u32 t0[4];
-  u32 t1[4];
-  u32 t2[4];
-  u32 t3[4];
-  u32 t4[4];
-  u32 t5[4];
-  u32 t6[4];
-  u32 t7[4];
+  u32 a0[4];
+  u32 a1[4];
+  u32 a2[4];
+  u32 a3[4];
+  u32 a4[4];
+  u32 a5[4];
+  u32 a6[4];
+  u32 a7[4];
 
   // ipad
 
-  t0[0] = w0[0] ^ 0x36363636;
-  t0[1] = w0[1] ^ 0x36363636;
-  t0[2] = w0[2] ^ 0x36363636;
-  t0[3] = w0[3] ^ 0x36363636;
-  t1[0] = w1[0] ^ 0x36363636;
-  t1[1] = w1[1] ^ 0x36363636;
-  t1[2] = w1[2] ^ 0x36363636;
-  t1[3] = w1[3] ^ 0x36363636;
-  t2[0] = w2[0] ^ 0x36363636;
-  t2[1] = w2[1] ^ 0x36363636;
-  t2[2] = w2[2] ^ 0x36363636;
-  t2[3] = w2[3] ^ 0x36363636;
-  t3[0] = w3[0] ^ 0x36363636;
-  t3[1] = w3[1] ^ 0x36363636;
-  t3[2] = w3[2] ^ 0x36363636;
-  t3[3] = w3[3] ^ 0x36363636;
-  t4[0] = w4[0] ^ 0x36363636;
-  t4[1] = w4[1] ^ 0x36363636;
-  t4[2] = w4[2] ^ 0x36363636;
-  t4[3] = w4[3] ^ 0x36363636;
-  t5[0] = w5[0] ^ 0x36363636;
-  t5[1] = w5[1] ^ 0x36363636;
-  t5[2] = w5[2] ^ 0x36363636;
-  t5[3] = w5[3] ^ 0x36363636;
-  t6[0] = w6[0] ^ 0x36363636;
-  t6[1] = w6[1] ^ 0x36363636;
-  t6[2] = w6[2] ^ 0x36363636;
-  t6[3] = w6[3] ^ 0x36363636;
-  t7[0] = w7[0] ^ 0x36363636;
-  t7[1] = w7[1] ^ 0x36363636;
-  t7[2] = w7[2] ^ 0x36363636;
-  t7[3] = w7[3] ^ 0x36363636;
+  a0[0] = w0[0] ^ 0x36363636;
+  a0[1] = w0[1] ^ 0x36363636;
+  a0[2] = w0[2] ^ 0x36363636;
+  a0[3] = w0[3] ^ 0x36363636;
+  a1[0] = w1[0] ^ 0x36363636;
+  a1[1] = w1[1] ^ 0x36363636;
+  a1[2] = w1[2] ^ 0x36363636;
+  a1[3] = w1[3] ^ 0x36363636;
+  a2[0] = w2[0] ^ 0x36363636;
+  a2[1] = w2[1] ^ 0x36363636;
+  a2[2] = w2[2] ^ 0x36363636;
+  a2[3] = w2[3] ^ 0x36363636;
+  a3[0] = w3[0] ^ 0x36363636;
+  a3[1] = w3[1] ^ 0x36363636;
+  a3[2] = w3[2] ^ 0x36363636;
+  a3[3] = w3[3] ^ 0x36363636;
+  a4[0] = w4[0] ^ 0x36363636;
+  a4[1] = w4[1] ^ 0x36363636;
+  a4[2] = w4[2] ^ 0x36363636;
+  a4[3] = w4[3] ^ 0x36363636;
+  a5[0] = w5[0] ^ 0x36363636;
+  a5[1] = w5[1] ^ 0x36363636;
+  a5[2] = w5[2] ^ 0x36363636;
+  a5[3] = w5[3] ^ 0x36363636;
+  a6[0] = w6[0] ^ 0x36363636;
+  a6[1] = w6[1] ^ 0x36363636;
+  a6[2] = w6[2] ^ 0x36363636;
+  a6[3] = w6[3] ^ 0x36363636;
+  a7[0] = w7[0] ^ 0x36363636;
+  a7[1] = w7[1] ^ 0x36363636;
+  a7[2] = w7[2] ^ 0x36363636;
+  a7[3] = w7[3] ^ 0x36363636;
 
   sha384_init (&ctx->ipad);
 
-  sha384_update_128 (&ctx->ipad, t0, t1, t2, t3, t4, t5, t6, t7, 128);
+  sha384_update_128 (&ctx->ipad, a0, a1, a2, a3, a4, a5, a6, a7, 128);
 
   // opad
 
-  t0[0] = w0[0] ^ 0x5c5c5c5c;
-  t0[1] = w0[1] ^ 0x5c5c5c5c;
-  t0[2] = w0[2] ^ 0x5c5c5c5c;
-  t0[3] = w0[3] ^ 0x5c5c5c5c;
-  t1[0] = w1[0] ^ 0x5c5c5c5c;
-  t1[1] = w1[1] ^ 0x5c5c5c5c;
-  t1[2] = w1[2] ^ 0x5c5c5c5c;
-  t1[3] = w1[3] ^ 0x5c5c5c5c;
-  t2[0] = w2[0] ^ 0x5c5c5c5c;
-  t2[1] = w2[1] ^ 0x5c5c5c5c;
-  t2[2] = w2[2] ^ 0x5c5c5c5c;
-  t2[3] = w2[3] ^ 0x5c5c5c5c;
-  t3[0] = w3[0] ^ 0x5c5c5c5c;
-  t3[1] = w3[1] ^ 0x5c5c5c5c;
-  t3[2] = w3[2] ^ 0x5c5c5c5c;
-  t3[3] = w3[3] ^ 0x5c5c5c5c;
-  t4[0] = w4[0] ^ 0x5c5c5c5c;
-  t4[1] = w4[1] ^ 0x5c5c5c5c;
-  t4[2] = w4[2] ^ 0x5c5c5c5c;
-  t4[3] = w4[3] ^ 0x5c5c5c5c;
-  t5[0] = w5[0] ^ 0x5c5c5c5c;
-  t5[1] = w5[1] ^ 0x5c5c5c5c;
-  t5[2] = w5[2] ^ 0x5c5c5c5c;
-  t5[3] = w5[3] ^ 0x5c5c5c5c;
-  t6[0] = w6[0] ^ 0x5c5c5c5c;
-  t6[1] = w6[1] ^ 0x5c5c5c5c;
-  t6[2] = w6[2] ^ 0x5c5c5c5c;
-  t6[3] = w6[3] ^ 0x5c5c5c5c;
-  t7[0] = w7[0] ^ 0x5c5c5c5c;
-  t7[1] = w7[1] ^ 0x5c5c5c5c;
-  t7[2] = w7[2] ^ 0x5c5c5c5c;
-  t7[3] = w7[3] ^ 0x5c5c5c5c;
+  u32x b0[4];
+  u32x b1[4];
+  u32x b2[4];
+  u32x b3[4];
+  u32x b4[4];
+  u32x b5[4];
+  u32x b6[4];
+  u32x b7[4];
+
+  b0[0] = w0[0] ^ 0x5c5c5c5c;
+  b0[1] = w0[1] ^ 0x5c5c5c5c;
+  b0[2] = w0[2] ^ 0x5c5c5c5c;
+  b0[3] = w0[3] ^ 0x5c5c5c5c;
+  b1[0] = w1[0] ^ 0x5c5c5c5c;
+  b1[1] = w1[1] ^ 0x5c5c5c5c;
+  b1[2] = w1[2] ^ 0x5c5c5c5c;
+  b1[3] = w1[3] ^ 0x5c5c5c5c;
+  b2[0] = w2[0] ^ 0x5c5c5c5c;
+  b2[1] = w2[1] ^ 0x5c5c5c5c;
+  b2[2] = w2[2] ^ 0x5c5c5c5c;
+  b2[3] = w2[3] ^ 0x5c5c5c5c;
+  b3[0] = w3[0] ^ 0x5c5c5c5c;
+  b3[1] = w3[1] ^ 0x5c5c5c5c;
+  b3[2] = w3[2] ^ 0x5c5c5c5c;
+  b3[3] = w3[3] ^ 0x5c5c5c5c;
+  b4[0] = w4[0] ^ 0x5c5c5c5c;
+  b4[1] = w4[1] ^ 0x5c5c5c5c;
+  b4[2] = w4[2] ^ 0x5c5c5c5c;
+  b4[3] = w4[3] ^ 0x5c5c5c5c;
+  b5[0] = w5[0] ^ 0x5c5c5c5c;
+  b5[1] = w5[1] ^ 0x5c5c5c5c;
+  b5[2] = w5[2] ^ 0x5c5c5c5c;
+  b5[3] = w5[3] ^ 0x5c5c5c5c;
+  b6[0] = w6[0] ^ 0x5c5c5c5c;
+  b6[1] = w6[1] ^ 0x5c5c5c5c;
+  b6[2] = w6[2] ^ 0x5c5c5c5c;
+  b6[3] = w6[3] ^ 0x5c5c5c5c;
+  b7[0] = w7[0] ^ 0x5c5c5c5c;
+  b7[1] = w7[1] ^ 0x5c5c5c5c;
+  b7[2] = w7[2] ^ 0x5c5c5c5c;
+  b7[3] = w7[3] ^ 0x5c5c5c5c;
 
   sha384_init (&ctx->opad);
 
-  sha384_update_128 (&ctx->opad, t0, t1, t2, t3, t4, t5, t6, t7, 128);
+  sha384_update_128 (&ctx->opad, b0, b1, b2, b3, b4, b5, b6, b7, 128);
 }
 
 DECLSPEC void sha384_hmac_init (sha384_hmac_ctx_t *ctx, const u32 *w, const int len)
@@ -2048,7 +2197,9 @@ DECLSPEC void sha384_init_vector_from_scalar (sha384_ctx_vector_t *ctx, sha384_c
 
 DECLSPEC void sha384_update_vector_128 (sha384_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, const int len)
 {
-  MAYBE_VOLATILE const int pos = ctx->len & 127;
+  if (len == 0) return;
+
+  const int pos = ctx->len & 127;
 
   ctx->len += len;
 
@@ -2756,7 +2907,7 @@ DECLSPEC void sha384_update_vector_utf16beN (sha384_ctx_vector_t *ctx, const u32
 
 DECLSPEC void sha384_final_vector (sha384_ctx_vector_t *ctx)
 {
-  MAYBE_VOLATILE const int pos = ctx->len & 127;
+  const int pos = ctx->len & 127;
 
   append_0x80_8x4 (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->w4, ctx->w5, ctx->w6, ctx->w7, pos ^ 3);
 
@@ -2808,92 +2959,101 @@ DECLSPEC void sha384_final_vector (sha384_ctx_vector_t *ctx)
 
 DECLSPEC void sha384_hmac_init_vector_128 (sha384_hmac_ctx_vector_t *ctx, const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, const u32x *w4, const u32x *w5, const u32x *w6, const u32x *w7)
 {
-  u32x t0[4];
-  u32x t1[4];
-  u32x t2[4];
-  u32x t3[4];
-  u32x t4[4];
-  u32x t5[4];
-  u32x t6[4];
-  u32x t7[4];
+  u32x a0[4];
+  u32x a1[4];
+  u32x a2[4];
+  u32x a3[4];
+  u32x a4[4];
+  u32x a5[4];
+  u32x a6[4];
+  u32x a7[4];
 
   // ipad
 
-  t0[0] = w0[0] ^ 0x36363636;
-  t0[1] = w0[1] ^ 0x36363636;
-  t0[2] = w0[2] ^ 0x36363636;
-  t0[3] = w0[3] ^ 0x36363636;
-  t1[0] = w1[0] ^ 0x36363636;
-  t1[1] = w1[1] ^ 0x36363636;
-  t1[2] = w1[2] ^ 0x36363636;
-  t1[3] = w1[3] ^ 0x36363636;
-  t2[0] = w2[0] ^ 0x36363636;
-  t2[1] = w2[1] ^ 0x36363636;
-  t2[2] = w2[2] ^ 0x36363636;
-  t2[3] = w2[3] ^ 0x36363636;
-  t3[0] = w3[0] ^ 0x36363636;
-  t3[1] = w3[1] ^ 0x36363636;
-  t3[2] = w3[2] ^ 0x36363636;
-  t3[3] = w3[3] ^ 0x36363636;
-  t4[0] = w4[0] ^ 0x36363636;
-  t4[1] = w4[1] ^ 0x36363636;
-  t4[2] = w4[2] ^ 0x36363636;
-  t4[3] = w4[3] ^ 0x36363636;
-  t5[0] = w5[0] ^ 0x36363636;
-  t5[1] = w5[1] ^ 0x36363636;
-  t5[2] = w5[2] ^ 0x36363636;
-  t5[3] = w5[3] ^ 0x36363636;
-  t6[0] = w6[0] ^ 0x36363636;
-  t6[1] = w6[1] ^ 0x36363636;
-  t6[2] = w6[2] ^ 0x36363636;
-  t6[3] = w6[3] ^ 0x36363636;
-  t7[0] = w7[0] ^ 0x36363636;
-  t7[1] = w7[1] ^ 0x36363636;
-  t7[2] = w7[2] ^ 0x36363636;
-  t7[3] = w7[3] ^ 0x36363636;
+  a0[0] = w0[0] ^ 0x36363636;
+  a0[1] = w0[1] ^ 0x36363636;
+  a0[2] = w0[2] ^ 0x36363636;
+  a0[3] = w0[3] ^ 0x36363636;
+  a1[0] = w1[0] ^ 0x36363636;
+  a1[1] = w1[1] ^ 0x36363636;
+  a1[2] = w1[2] ^ 0x36363636;
+  a1[3] = w1[3] ^ 0x36363636;
+  a2[0] = w2[0] ^ 0x36363636;
+  a2[1] = w2[1] ^ 0x36363636;
+  a2[2] = w2[2] ^ 0x36363636;
+  a2[3] = w2[3] ^ 0x36363636;
+  a3[0] = w3[0] ^ 0x36363636;
+  a3[1] = w3[1] ^ 0x36363636;
+  a3[2] = w3[2] ^ 0x36363636;
+  a3[3] = w3[3] ^ 0x36363636;
+  a4[0] = w4[0] ^ 0x36363636;
+  a4[1] = w4[1] ^ 0x36363636;
+  a4[2] = w4[2] ^ 0x36363636;
+  a4[3] = w4[3] ^ 0x36363636;
+  a5[0] = w5[0] ^ 0x36363636;
+  a5[1] = w5[1] ^ 0x36363636;
+  a5[2] = w5[2] ^ 0x36363636;
+  a5[3] = w5[3] ^ 0x36363636;
+  a6[0] = w6[0] ^ 0x36363636;
+  a6[1] = w6[1] ^ 0x36363636;
+  a6[2] = w6[2] ^ 0x36363636;
+  a6[3] = w6[3] ^ 0x36363636;
+  a7[0] = w7[0] ^ 0x36363636;
+  a7[1] = w7[1] ^ 0x36363636;
+  a7[2] = w7[2] ^ 0x36363636;
+  a7[3] = w7[3] ^ 0x36363636;
 
   sha384_init_vector (&ctx->ipad);
 
-  sha384_update_vector_128 (&ctx->ipad, t0, t1, t2, t3, t4, t5, t6, t7, 128);
+  sha384_update_vector_128 (&ctx->ipad, a0, a1, a2, a3, a4, a5, a6, a7, 128);
 
   // opad
 
-  t0[0] = w0[0] ^ 0x5c5c5c5c;
-  t0[1] = w0[1] ^ 0x5c5c5c5c;
-  t0[2] = w0[2] ^ 0x5c5c5c5c;
-  t0[3] = w0[3] ^ 0x5c5c5c5c;
-  t1[0] = w1[0] ^ 0x5c5c5c5c;
-  t1[1] = w1[1] ^ 0x5c5c5c5c;
-  t1[2] = w1[2] ^ 0x5c5c5c5c;
-  t1[3] = w1[3] ^ 0x5c5c5c5c;
-  t2[0] = w2[0] ^ 0x5c5c5c5c;
-  t2[1] = w2[1] ^ 0x5c5c5c5c;
-  t2[2] = w2[2] ^ 0x5c5c5c5c;
-  t2[3] = w2[3] ^ 0x5c5c5c5c;
-  t3[0] = w3[0] ^ 0x5c5c5c5c;
-  t3[1] = w3[1] ^ 0x5c5c5c5c;
-  t3[2] = w3[2] ^ 0x5c5c5c5c;
-  t3[3] = w3[3] ^ 0x5c5c5c5c;
-  t4[0] = w4[0] ^ 0x5c5c5c5c;
-  t4[1] = w4[1] ^ 0x5c5c5c5c;
-  t4[2] = w4[2] ^ 0x5c5c5c5c;
-  t4[3] = w4[3] ^ 0x5c5c5c5c;
-  t5[0] = w5[0] ^ 0x5c5c5c5c;
-  t5[1] = w5[1] ^ 0x5c5c5c5c;
-  t5[2] = w5[2] ^ 0x5c5c5c5c;
-  t5[3] = w5[3] ^ 0x5c5c5c5c;
-  t6[0] = w6[0] ^ 0x5c5c5c5c;
-  t6[1] = w6[1] ^ 0x5c5c5c5c;
-  t6[2] = w6[2] ^ 0x5c5c5c5c;
-  t6[3] = w6[3] ^ 0x5c5c5c5c;
-  t7[0] = w7[0] ^ 0x5c5c5c5c;
-  t7[1] = w7[1] ^ 0x5c5c5c5c;
-  t7[2] = w7[2] ^ 0x5c5c5c5c;
-  t7[3] = w7[3] ^ 0x5c5c5c5c;
+  u32 b0[4];
+  u32 b1[4];
+  u32 b2[4];
+  u32 b3[4];
+  u32 b4[4];
+  u32 b5[4];
+  u32 b6[4];
+  u32 b7[4];
+
+  b0[0] = w0[0] ^ 0x5c5c5c5c;
+  b0[1] = w0[1] ^ 0x5c5c5c5c;
+  b0[2] = w0[2] ^ 0x5c5c5c5c;
+  b0[3] = w0[3] ^ 0x5c5c5c5c;
+  b1[0] = w1[0] ^ 0x5c5c5c5c;
+  b1[1] = w1[1] ^ 0x5c5c5c5c;
+  b1[2] = w1[2] ^ 0x5c5c5c5c;
+  b1[3] = w1[3] ^ 0x5c5c5c5c;
+  b2[0] = w2[0] ^ 0x5c5c5c5c;
+  b2[1] = w2[1] ^ 0x5c5c5c5c;
+  b2[2] = w2[2] ^ 0x5c5c5c5c;
+  b2[3] = w2[3] ^ 0x5c5c5c5c;
+  b3[0] = w3[0] ^ 0x5c5c5c5c;
+  b3[1] = w3[1] ^ 0x5c5c5c5c;
+  b3[2] = w3[2] ^ 0x5c5c5c5c;
+  b3[3] = w3[3] ^ 0x5c5c5c5c;
+  b4[0] = w4[0] ^ 0x5c5c5c5c;
+  b4[1] = w4[1] ^ 0x5c5c5c5c;
+  b4[2] = w4[2] ^ 0x5c5c5c5c;
+  b4[3] = w4[3] ^ 0x5c5c5c5c;
+  b5[0] = w5[0] ^ 0x5c5c5c5c;
+  b5[1] = w5[1] ^ 0x5c5c5c5c;
+  b5[2] = w5[2] ^ 0x5c5c5c5c;
+  b5[3] = w5[3] ^ 0x5c5c5c5c;
+  b6[0] = w6[0] ^ 0x5c5c5c5c;
+  b6[1] = w6[1] ^ 0x5c5c5c5c;
+  b6[2] = w6[2] ^ 0x5c5c5c5c;
+  b6[3] = w6[3] ^ 0x5c5c5c5c;
+  b7[0] = w7[0] ^ 0x5c5c5c5c;
+  b7[1] = w7[1] ^ 0x5c5c5c5c;
+  b7[2] = w7[2] ^ 0x5c5c5c5c;
+  b7[3] = w7[3] ^ 0x5c5c5c5c;
 
   sha384_init_vector (&ctx->opad);
 
-  sha384_update_vector_128 (&ctx->opad, t0, t1, t2, t3, t4, t5, t6, t7, 128);
+  sha384_update_vector_128 (&ctx->opad, b0, b1, b2, b3, b4, b5, b6, b7, 128);
 }
 
 DECLSPEC void sha384_hmac_init_vector (sha384_hmac_ctx_vector_t *ctx, const u32x *w, const int len)

@@ -105,7 +105,7 @@ KERNEL_FQ void m11300_init (KERN_ATTR_TMPS_ESALT (bitcoin_wallet_tmp_t, bitcoin_
 
   sha512_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
-  sha512_update_global_swap (&ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  sha512_update_global_swap (&ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   sha512_final (&ctx);
 
@@ -296,29 +296,33 @@ KERNEL_FQ void m11300_comp (KERN_ATTR_TMPS_ESALT (bitcoin_wallet_tmp_t, bitcoin_
   key[6] = h32_from_64_S (dgst[3]);
   key[7] = l32_from_64_S (dgst[3]);
 
+  const u32 digest_pos = loop_pos;
+
+  const u32 digest_cur = DIGESTS_OFFSET + digest_pos;
+
   #define KEYLEN 60
 
   u32 ks[KEYLEN];
 
   AES256_set_decrypt_key (ks, key, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
-  u32 i = esalt_bufs[digests_offset].cry_master_len - 32;
+  u32 i = esalt_bufs[digest_cur].cry_master_len - 32;
 
   u32 iv[4];
 
-  iv[0] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 0]);
-  iv[1] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 1]);
-  iv[2] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 2]);
-  iv[3] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 3]);
+  iv[0] = hc_swap32_S (esalt_bufs[digest_cur].cry_master_buf[(i / 4) + 0]);
+  iv[1] = hc_swap32_S (esalt_bufs[digest_cur].cry_master_buf[(i / 4) + 1]);
+  iv[2] = hc_swap32_S (esalt_bufs[digest_cur].cry_master_buf[(i / 4) + 2]);
+  iv[3] = hc_swap32_S (esalt_bufs[digest_cur].cry_master_buf[(i / 4) + 3]);
 
   i += 16;
 
   u32 data[4];
 
-  data[0] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 0]);
-  data[1] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 1]);
-  data[2] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 2]);
-  data[3] = hc_swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 3]);
+  data[0] = hc_swap32_S (esalt_bufs[digest_cur].cry_master_buf[(i / 4) + 0]);
+  data[1] = hc_swap32_S (esalt_bufs[digest_cur].cry_master_buf[(i / 4) + 1]);
+  data[2] = hc_swap32_S (esalt_bufs[digest_cur].cry_master_buf[(i / 4) + 2]);
+  data[3] = hc_swap32_S (esalt_bufs[digest_cur].cry_master_buf[(i / 4) + 3]);
 
   u32 out[4];
 
@@ -331,7 +335,7 @@ KERNEL_FQ void m11300_comp (KERN_ATTR_TMPS_ESALT (bitcoin_wallet_tmp_t, bitcoin_
 
   u32 pad = 0;
 
-  if (esalt_bufs[digests_offset].cry_salt_len != 18)
+  if (esalt_bufs[digest_cur].cry_salt_len != 18)
   {
     /* most wallets */
     pad = 0x10101010;
@@ -347,9 +351,9 @@ KERNEL_FQ void m11300_comp (KERN_ATTR_TMPS_ESALT (bitcoin_wallet_tmp_t, bitcoin_
 
   if (out[2] == pad && out[3] == pad)
   {
-    if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+    if (hc_atomic_inc (&hashes_shown[digest_cur]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
     }
   }
 }

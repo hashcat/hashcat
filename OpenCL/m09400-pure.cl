@@ -47,7 +47,7 @@ KERNEL_FQ void m09400_init (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t
 
   sha1_init (&ctx);
 
-  sha1_update_global (&ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  sha1_update_global (&ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   sha1_update_global_utf16le_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
@@ -274,10 +274,10 @@ KERNEL_FQ void m09400_comp (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t
 
   u32 verifier[4];
 
-  verifier[0] = esalt_bufs[digests_offset].encryptedVerifier[0];
-  verifier[1] = esalt_bufs[digests_offset].encryptedVerifier[1];
-  verifier[2] = esalt_bufs[digests_offset].encryptedVerifier[2];
-  verifier[3] = esalt_bufs[digests_offset].encryptedVerifier[3];
+  verifier[0] = esalt_bufs[DIGESTS_OFFSET].encryptedVerifier[0];
+  verifier[1] = esalt_bufs[DIGESTS_OFFSET].encryptedVerifier[1];
+  verifier[2] = esalt_bufs[DIGESTS_OFFSET].encryptedVerifier[2];
+  verifier[3] = esalt_bufs[DIGESTS_OFFSET].encryptedVerifier[3];
 
   u32 data[4];
 

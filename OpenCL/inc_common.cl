@@ -1435,13 +1435,12 @@ DECLSPEC u32x hc_bytealign_be (const u32x a, const u32x b, const int c)
 {
   u32x r = 0;
 
-  switch (c & 3)
-  {
-    case 0: r =              b;        break;
-    case 1: r = (a << 24) | (b >>  8); break;
-    case 2: r = (a << 16) | (b >> 16); break;
-    case 3: r = (a <<  8) | (b >> 24); break;
-  }
+  const int cm = c & 3;
+
+       if (cm == 0) { r = b;                     }
+  else if (cm == 1) { r = (a << 24) | (b >>  8); }
+  else if (cm == 2) { r = (a << 16) | (b >> 16); }
+  else if (cm == 3) { r = (a <<  8) | (b >> 24); }
 
   return r;
 }
@@ -1450,13 +1449,12 @@ DECLSPEC u32 hc_bytealign_be_S (const u32 a, const u32 b, const int c)
 {
   u32 r = 0;
 
-  switch (c & 3)
-  {
-    case 0: r =              b;        break;
-    case 1: r = (a << 24) | (b >>  8); break;
-    case 2: r = (a << 16) | (b >> 16); break;
-    case 3: r = (a <<  8) | (b >> 24); break;
-  }
+  const int cm = c & 3;
+
+       if (cm == 0) { r = b;                     }
+  else if (cm == 1) { r = (a << 24) | (b >>  8); }
+  else if (cm == 2) { r = (a << 16) | (b >> 16); }
+  else if (cm == 3) { r = (a <<  8) | (b >> 24); }
 
   return r;
 }
@@ -1465,13 +1463,12 @@ DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const int c)
 {
   u32x r = 0;
 
-  switch (c & 3)
-  {
-    case 0: r =              b;        break;
-    case 1: r = (a >> 24) | (b <<  8); break;
-    case 2: r = (a >> 16) | (b << 16); break;
-    case 3: r = (a >>  8) | (b << 24); break;
-  }
+  const int cm = c & 3;
+
+       if (cm == 0) { r = b;                     }
+  else if (cm == 1) { r = (a >> 24) | (b <<  8); }
+  else if (cm == 2) { r = (a >> 16) | (b << 16); }
+  else if (cm == 3) { r = (a >>  8) | (b << 24); }
 
   return r;
 }
@@ -1480,13 +1477,12 @@ DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const int c)
 {
   u32 r = 0;
 
-  switch (c & 3)
-  {
-    case 0: r =              b;        break;
-    case 1: r = (a >> 24) | (b <<  8); break;
-    case 2: r = (a >> 16) | (b << 16); break;
-    case 3: r = (a >>  8) | (b << 24); break;
-  }
+  const int cm = c & 3;
+
+       if (cm == 0) { r = b;                     }
+  else if (cm == 1) { r = (a >> 24) | (b <<  8); }
+  else if (cm == 2) { r = (a >> 16) | (b << 16); }
+  else if (cm == 3) { r = (a >>  8) | (b << 24); }
 
   return r;
 }
@@ -1849,13 +1845,12 @@ DECLSPEC u32x hc_bytealign_be (const u32x a, const u32x b, const int c)
 {
   u32x r = 0;
 
-  switch (c & 3)
-  {
-    case 0: r =              b;        break;
-    case 1: r = (a << 24) | (b >>  8); break;
-    case 2: r = (a << 16) | (b >> 16); break;
-    case 3: r = (a <<  8) | (b >> 24); break;
-  }
+  const int cm = c & 3;
+
+       if (cm == 0) { r = b;                     }
+  else if (cm == 1) { r = (a << 24) | (b >>  8); }
+  else if (cm == 2) { r = (a << 16) | (b >> 16); }
+  else if (cm == 3) { r = (a <<  8) | (b >> 24); }
 
   return r;
 }
@@ -1864,13 +1859,12 @@ DECLSPEC u32 hc_bytealign_be_S (const u32 a, const u32 b, const int c)
 {
   u32 r = 0;
 
-  switch (c & 3)
-  {
-    case 0: r =              b;        break;
-    case 1: r = (a << 24) | (b >>  8); break;
-    case 2: r = (a << 16) | (b >> 16); break;
-    case 3: r = (a <<  8) | (b >> 24); break;
-  }
+  const int cm = c & 3;
+
+       if (cm == 0) { r = b;                     }
+  else if (cm == 1) { r = (a << 24) | (b >>  8); }
+  else if (cm == 2) { r = (a << 16) | (b >> 16); }
+  else if (cm == 3) { r = (a <<  8) | (b >> 24); }
 
   return r;
 }
@@ -1879,13 +1873,12 @@ DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const int c)
 {
   u32x r = 0;
 
-  switch (c & 3)
-  {
-    case 0: r =              b;        break;
-    case 1: r = (a >> 24) | (b <<  8); break;
-    case 2: r = (a >> 16) | (b << 16); break;
-    case 3: r = (a >>  8) | (b << 24); break;
-  }
+  const int cm = c & 3;
+
+       if (cm == 0) { r = b;                     }
+  else if (cm == 1) { r = (a >> 24) | (b <<  8); }
+  else if (cm == 2) { r = (a >> 16) | (b << 16); }
+  else if (cm == 3) { r = (a >>  8) | (b << 24); }
 
   return r;
 }
@@ -1894,13 +1887,12 @@ DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const int c)
 {
   u32 r = 0;
 
-  switch (c & 3)
-  {
-    case 0: r =              b;        break;
-    case 1: r = (a >> 24) | (b <<  8); break;
-    case 2: r = (a >> 16) | (b << 16); break;
-    case 3: r = (a >>  8) | (b << 24); break;
-  }
+  const int cm = c & 3;
+
+       if (cm == 0) { r = b;                     }
+  else if (cm == 1) { r = (a >> 24) | (b <<  8); }
+  else if (cm == 2) { r = (a >> 16) | (b << 16); }
+  else if (cm == 3) { r = (a >>  8) | (b << 24); }
 
   return r;
 }
@@ -1985,6 +1977,515 @@ DECLSPEC int find_hash (const u32 *digest, const u32 digests_cnt, GLOBAL_AS cons
 }
 #endif
 
+// Input has to be zero padded and buffer size has to be multiple of 4 and at least of length 24
+// We simply ignore buffer length for the first 24 bytes for some extra speed boost :)
+// Number of unrolls found by simply testing what gave best results
+
+DECLSPEC int hc_enc_scan (const u32 *buf, const int len)
+{
+  if (buf[0] & 0x80808080) return 1;
+  if (buf[1] & 0x80808080) return 1;
+  if (buf[2] & 0x80808080) return 1;
+  if (buf[3] & 0x80808080) return 1;
+  if (buf[4] & 0x80808080) return 1;
+  if (buf[5] & 0x80808080) return 1;
+
+  for (int i = 24, j = 6; i < len; i += 4, j += 1)
+  {
+    if (buf[j] & 0x80808080) return 1;
+  }
+
+  return 0;
+}
+
+DECLSPEC int hc_enc_scan_global (GLOBAL_AS const u32 *buf, const int len)
+{
+  if (buf[0] & 0x80808080) return 1;
+  if (buf[1] & 0x80808080) return 1;
+  if (buf[2] & 0x80808080) return 1;
+  if (buf[3] & 0x80808080) return 1;
+  if (buf[4] & 0x80808080) return 1;
+  if (buf[5] & 0x80808080) return 1;
+
+  for (int i = 24, j = 6; i < len; i += 4, j += 1)
+  {
+    if (buf[j] & 0x80808080) return 1;
+  }
+
+  return 0;
+}
+
+// Constants and some code snippets from unicode.org's ConvertUTF.c
+// Compiler can perfectly translate some of the branches and switch cases this into MOVC
+// which is faster than lookup tables
+
+#define halfShift 10
+
+#define halfBase 0x0010000
+#define halfMask 0x3FF
+
+#define UNI_MAX_BMP          0xFFFF
+#define UNI_SUR_HIGH_START   0xD800
+#define UNI_SUR_HIGH_END     0xDBFF
+#define UNI_SUR_LOW_START    0xDC00
+#define UNI_SUR_LOW_END      0xDFFF
+
+/*
+ * Magic values subtracted from a buffer value during UTF8 conversion.
+ * This table contains as many values as there might be trailing bytes
+ * in a UTF-8 sequence.
+ */
+
+#define offsetsFromUTF8_0 0x00000000UL
+#define offsetsFromUTF8_1 0x00003080UL
+#define offsetsFromUTF8_2 0x000E2080UL
+#define offsetsFromUTF8_3 0x03C82080UL
+#define offsetsFromUTF8_4 0xFA082080UL
+#define offsetsFromUTF8_5 0x82082080UL
+
+DECLSPEC void hc_enc_init (hc_enc_t *hc_enc)
+{
+  hc_enc->pos = 0;
+
+  hc_enc->cbuf = 0;
+  hc_enc->clen = 0;
+}
+
+DECLSPEC int hc_enc_has_next (hc_enc_t *hc_enc, const int sz)
+{
+  if (hc_enc->pos < sz) return 1;
+
+  if (hc_enc->clen) return 1;
+
+  return 0;
+}
+
+// Input buffer and Output buffer size has to be multiple of 4 and at least of size 4.
+// The output buffer is not zero padded, so entire buffer has to be set all zero before entering this function or truncated afterwards.
+
+DECLSPEC int hc_enc_next (hc_enc_t *hc_enc, const u32 *src_buf, const int src_len, const int src_sz, u32 *dst_buf, const int dst_sz)
+{
+  const u8 *src_ptr = (const u8 *) src_buf;
+        u8 *dst_ptr = (      u8 *) dst_buf;
+
+  int src_pos = hc_enc->pos;
+
+  int dst_pos = hc_enc->clen;
+
+  dst_buf[0] = hc_enc->cbuf;
+
+  hc_enc->clen = 0;
+  hc_enc->cbuf = 0;
+
+  while ((src_pos < src_len) && (dst_pos < dst_sz))
+  {
+    const u8 c = src_ptr[src_pos];
+
+    int extraBytesToRead = 0;
+
+    if (c >= 0xfc)
+    {
+      extraBytesToRead = 5;
+    }
+    else if (c >= 0xf8)
+    {
+      extraBytesToRead = 4;
+    }
+    else if (c >= 0xf0)
+    {
+      extraBytesToRead = 3;
+    }
+    else if (c >= 0xe0)
+    {
+      extraBytesToRead = 2;
+    }
+    else if (c >= 0xc0)
+    {
+      extraBytesToRead = 1;
+    }
+
+    if ((src_pos + extraBytesToRead) >= src_sz)
+    {
+      // broken input
+
+      hc_enc->pos = src_len;
+
+      return dst_pos;
+    }
+
+    u32 ch = 0;
+
+    switch (extraBytesToRead)
+    {
+      case 5:
+        ch += src_ptr[src_pos++]; ch <<= 6; /* remember, illegal UTF-8 */
+        ch += src_ptr[src_pos++]; ch <<= 6; /* remember, illegal UTF-8 */
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++];
+        ch -= offsetsFromUTF8_5;
+        break;
+      case 4:
+        ch += src_ptr[src_pos++]; ch <<= 6; /* remember, illegal UTF-8 */
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++];
+        ch -= offsetsFromUTF8_4;
+        break;
+      case 3:
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++];
+        ch -= offsetsFromUTF8_3;
+        break;
+      case 2:
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++];
+        ch -= offsetsFromUTF8_2;
+        break;
+      case 1:
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++];
+        ch -= offsetsFromUTF8_1;
+        break;
+      case 0:
+        ch += src_ptr[src_pos++];
+        ch -= offsetsFromUTF8_0;
+        break;
+    }
+
+    /* Target is a character <= 0xFFFF */
+    if (ch <= UNI_MAX_BMP)
+    {
+      dst_ptr[dst_pos++] = (ch >> 0) & 0xff;
+      dst_ptr[dst_pos++] = (ch >> 8) & 0xff;
+    }
+    else
+    {
+      ch -= halfBase;
+
+      const u32 a = ((ch >> halfShift) + UNI_SUR_HIGH_START);
+      const u32 b = ((ch  & halfMask)  + UNI_SUR_LOW_START);
+
+      if ((dst_pos + 2) == dst_sz)
+      {
+        dst_ptr[dst_pos++] = (a >> 0) & 0xff;
+        dst_ptr[dst_pos++] = (a >> 8) & 0xff;
+
+        hc_enc->cbuf = b & 0xffff;
+        hc_enc->clen = 2;
+      }
+      else
+      {
+        dst_ptr[dst_pos++] = (a >> 0) & 0xff;
+        dst_ptr[dst_pos++] = (a >> 8) & 0xff;
+        dst_ptr[dst_pos++] = (b >> 0) & 0xff;
+        dst_ptr[dst_pos++] = (b >> 8) & 0xff;
+      }
+    }
+  }
+
+  hc_enc->pos = src_pos;
+
+  return dst_pos;
+}
+
+DECLSPEC int hc_enc_next_global (hc_enc_t *hc_enc, GLOBAL_AS const u32 *src_buf, const int src_len, const int src_sz, u32 *dst_buf, const int dst_sz)
+{
+  GLOBAL_AS const u8 *src_ptr = (GLOBAL_AS const u8 *) src_buf;
+                  u8 *dst_ptr = (                u8 *) dst_buf;
+
+  int src_pos = hc_enc->pos;
+
+  int dst_pos = hc_enc->clen;
+
+  dst_buf[0] = hc_enc->cbuf;
+
+  hc_enc->clen = 0;
+  hc_enc->cbuf = 0;
+
+  while ((src_pos < src_len) && (dst_pos < dst_sz))
+  {
+    const u8 c = src_ptr[src_pos];
+
+    int extraBytesToRead = 0;
+
+    if (c >= 0xfc)
+    {
+      extraBytesToRead = 5;
+    }
+    else if (c >= 0xf8)
+    {
+      extraBytesToRead = 4;
+    }
+    else if (c >= 0xf0)
+    {
+      extraBytesToRead = 3;
+    }
+    else if (c >= 0xe0)
+    {
+      extraBytesToRead = 2;
+    }
+    else if (c >= 0xc0)
+    {
+      extraBytesToRead = 1;
+    }
+
+    if ((src_pos + extraBytesToRead) >= src_sz)
+    {
+      // broken input
+
+      hc_enc->pos = src_len;
+
+      return dst_pos;
+    }
+
+    u32 ch = 0;
+
+    switch (extraBytesToRead)
+    {
+      case 5:
+        ch += src_ptr[src_pos++]; ch <<= 6; /* remember, illegal UTF-8 */
+        ch += src_ptr[src_pos++]; ch <<= 6; /* remember, illegal UTF-8 */
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++];
+        ch -= offsetsFromUTF8_5;
+        break;
+      case 4:
+        ch += src_ptr[src_pos++]; ch <<= 6; /* remember, illegal UTF-8 */
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++];
+        ch -= offsetsFromUTF8_4;
+        break;
+      case 3:
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++];
+        ch -= offsetsFromUTF8_3;
+        break;
+      case 2:
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++];
+        ch -= offsetsFromUTF8_2;
+        break;
+      case 1:
+        ch += src_ptr[src_pos++]; ch <<= 6;
+        ch += src_ptr[src_pos++];
+        ch -= offsetsFromUTF8_1;
+        break;
+      case 0:
+        ch += src_ptr[src_pos++];
+        ch -= offsetsFromUTF8_0;
+        break;
+    }
+
+    /* Target is a character <= 0xFFFF */
+    if (ch <= UNI_MAX_BMP)
+    {
+      dst_ptr[dst_pos++] = (ch >> 0) & 0xff;
+      dst_ptr[dst_pos++] = (ch >> 8) & 0xff;
+    }
+    else
+    {
+      ch -= halfBase;
+
+      const u32 a = ((ch >> halfShift) + UNI_SUR_HIGH_START);
+      const u32 b = ((ch  & halfMask)  + UNI_SUR_LOW_START);
+
+      if ((dst_pos + 2) == dst_sz)
+      {
+        dst_ptr[dst_pos++] = (a >> 0) & 0xff;
+        dst_ptr[dst_pos++] = (a >> 8) & 0xff;
+
+        hc_enc->cbuf = b & 0xffff;
+        hc_enc->clen = 2;
+      }
+      else
+      {
+        dst_ptr[dst_pos++] = (a >> 0) & 0xff;
+        dst_ptr[dst_pos++] = (a >> 8) & 0xff;
+        dst_ptr[dst_pos++] = (b >> 0) & 0xff;
+        dst_ptr[dst_pos++] = (b >> 8) & 0xff;
+      }
+    }
+  }
+
+  hc_enc->pos = src_pos;
+
+  return dst_pos;
+}
+
+#undef halfShift
+
+#undef halfBase
+#undef halfMask
+
+#undef UNI_MAX_BMP
+#undef UNI_SUR_HIGH_START
+#undef UNI_SUR_HIGH_END
+#undef UNI_SUR_LOW_START
+#undef UNI_SUR_LOW_END
+
+#undef offsetsFromUTF8_0
+#undef offsetsFromUTF8_1
+#undef offsetsFromUTF8_2
+#undef offsetsFromUTF8_3
+#undef offsetsFromUTF8_4
+#undef offsetsFromUTF8_5
+
+DECLSPEC int pkcs_padding_bs8 (const u32 *data_buf, const int data_len)
+{
+  if (data_len == 0) return -1; // cannot have zero length, is important to avoid out of boundary reads
+
+  if (data_len % 8) return -1; // has to be a multiple of block size
+
+  const int last_pad_pos = data_len - 1;
+
+  const int last_pad_elem = last_pad_pos / 4;
+
+  const u32 pad = data_buf[last_pad_elem] >> 24; // guaranteed by pkcs structure
+
+  if ((pad < 1) || (pad > 8)) return -1; // pkcs pads are not zero based
+
+  const u32 padm = (pad <<  0)
+                 | (pad <<  8)
+                 | (pad << 16)
+                 | (pad << 24);
+
+  u32 mask0 = 0;
+  u32 mask1 = 0;
+
+  switch (pad)
+  {
+    case  1:  mask0 = 0x00000000; mask1 = 0xff000000; break;
+    case  2:  mask0 = 0x00000000; mask1 = 0xffff0000; break;
+    case  3:  mask0 = 0x00000000; mask1 = 0xffffff00; break;
+    case  4:  mask0 = 0x00000000; mask1 = 0xffffffff; break;
+    case  5:  mask0 = 0xff000000; mask1 = 0xffffffff; break;
+    case  6:  mask0 = 0xffff0000; mask1 = 0xffffffff; break;
+    case  7:  mask0 = 0xffffff00; mask1 = 0xffffffff; break;
+    case  8:  mask0 = 0xffffffff; mask1 = 0xffffffff; break;
+  }
+
+  const u32 data0 = data_buf[last_pad_elem - 1];
+  const u32 data1 = data_buf[last_pad_elem - 0];
+
+  if ((data0 & mask0) != (padm & mask0)) return -1;
+  if ((data1 & mask1) != (padm & mask1)) return -1;
+
+  const int real_len = data_len - pad;
+
+  return real_len;
+}
+
+DECLSPEC int pkcs_padding_bs16 (const u32 *data_buf, const int data_len)
+{
+  if (data_len == 0) return -1; // cannot have zero length, is important to avoid out of boundary reads
+
+  if (data_len % 16) return -1; // has to be a multiple of block size
+
+  const int last_pad_pos = data_len - 1;
+
+  const int last_pad_elem = last_pad_pos / 4;
+
+  const u32 pad = data_buf[last_pad_elem] >> 24; // guaranteed by pkcs structure
+
+  if ((pad < 1) || (pad > 16)) return -1; // pkcs pads are not zero based
+
+  const u32 padm = (pad <<  0)
+                 | (pad <<  8)
+                 | (pad << 16)
+                 | (pad << 24);
+
+  u32 mask0 = 0;
+  u32 mask1 = 0;
+  u32 mask2 = 0;
+  u32 mask3 = 0;
+
+  switch (pad)
+  {
+    case  1:  mask0 = 0x00000000; mask1 = 0x00000000; mask2 = 0x00000000; mask3 = 0xff000000; break;
+    case  2:  mask0 = 0x00000000; mask1 = 0x00000000; mask2 = 0x00000000; mask3 = 0xffff0000; break;
+    case  3:  mask0 = 0x00000000; mask1 = 0x00000000; mask2 = 0x00000000; mask3 = 0xffffff00; break;
+    case  4:  mask0 = 0x00000000; mask1 = 0x00000000; mask2 = 0x00000000; mask3 = 0xffffffff; break;
+    case  5:  mask0 = 0x00000000; mask1 = 0x00000000; mask2 = 0xff000000; mask3 = 0xffffffff; break;
+    case  6:  mask0 = 0x00000000; mask1 = 0x00000000; mask2 = 0xffff0000; mask3 = 0xffffffff; break;
+    case  7:  mask0 = 0x00000000; mask1 = 0x00000000; mask2 = 0xffffff00; mask3 = 0xffffffff; break;
+    case  8:  mask0 = 0x00000000; mask1 = 0x00000000; mask2 = 0xffffffff; mask3 = 0xffffffff; break;
+    case  9:  mask0 = 0x00000000; mask1 = 0xff000000; mask2 = 0xffffffff; mask3 = 0xffffffff; break;
+    case 10:  mask0 = 0x00000000; mask1 = 0xffff0000; mask2 = 0xffffffff; mask3 = 0xffffffff; break;
+    case 11:  mask0 = 0x00000000; mask1 = 0xffffff00; mask2 = 0xffffffff; mask3 = 0xffffffff; break;
+    case 12:  mask0 = 0x00000000; mask1 = 0xffffffff; mask2 = 0xffffffff; mask3 = 0xffffffff; break;
+    case 13:  mask0 = 0xff000000; mask1 = 0xffffffff; mask2 = 0xffffffff; mask3 = 0xffffffff; break;
+    case 14:  mask0 = 0xffff0000; mask1 = 0xffffffff; mask2 = 0xffffffff; mask3 = 0xffffffff; break;
+    case 15:  mask0 = 0xffffff00; mask1 = 0xffffffff; mask2 = 0xffffffff; mask3 = 0xffffffff; break;
+    case 16:  mask0 = 0xffffffff; mask1 = 0xffffffff; mask2 = 0xffffffff; mask3 = 0xffffffff; break;
+  }
+
+  const u32 data0 = data_buf[last_pad_elem - 3];
+  const u32 data1 = data_buf[last_pad_elem - 2];
+  const u32 data2 = data_buf[last_pad_elem - 1];
+  const u32 data3 = data_buf[last_pad_elem - 0];
+
+  if ((data0 & mask0) != (padm & mask0)) return -1;
+  if ((data1 & mask1) != (padm & mask1)) return -1;
+  if ((data2 & mask2) != (padm & mask2)) return -1;
+  if ((data3 & mask3) != (padm & mask3)) return -1;
+
+  const int real_len = data_len - pad;
+
+  return real_len;
+}
+
+DECLSPEC int asn1_detect (const u32 *buf, const int len)
+{
+  if (len < 128)
+  {
+    if ((buf[0] & 0x00ff80ff) != 0x00020030) return 0;
+  }
+  else if (len < 256)
+  {
+    if ((buf[0] & 0xff00ffff) != 0x02008130) return 0;
+  }
+  else if (len < 65536)
+  {
+    if ((buf[0] & 0x0000ffff) != 0x00008230) return 0;
+    if ((buf[1] & 0x000000ff) != 0x00000002) return 0;
+  }
+
+  if (len < 128)
+  {
+    const int lenb = ((buf[0] & 0x00007f00) >>  8);
+
+    if ((lenb + 2) != len) return 0;
+  }
+  else if (len < 256)
+  {
+    const int lenb = ((buf[0] & 0x00ff0000) >> 16);
+
+    if ((lenb + 3) != len) return 0;
+  }
+  else if (len < 65536)
+  {
+    const int lenb = ((buf[0] & 0xff000000) >> 24)
+                   | ((buf[0] & 0x00ff0000) >>  8);
+
+    if ((lenb + 4) != len) return 0;
+  }
+
+  return 1;
+}
+
 DECLSPEC u32 check_bitmap (GLOBAL_AS const u32 *bitmap, const u32 bitmap_mask, const u32 bitmap_shift, const u32 digest)
 {
   return (bitmap[(digest >> bitmap_shift) & bitmap_mask] & (1 << (digest & 0x1f)));
@@ -2007,17 +2508,21 @@ DECLSPEC u32 check (const u32 *digest, GLOBAL_AS const u32 *bitmap_s1_a, GLOBAL_
 
 DECLSPEC void mark_hash (GLOBAL_AS plain_t *plains_buf, GLOBAL_AS u32 *d_result, const u32 salt_pos, const u32 digests_cnt, const u32 digest_pos, const u32 hash_pos, const u64 gid, const u32 il_pos, const u32 extra1, const u32 extra2)
 {
-  const u32 idx = atomic_inc (d_result);
+  const u32 idx = hc_atomic_inc (d_result);
 
+  #if ATTACK_MODE == 9
+
+  #else
   if (idx >= digests_cnt)
   {
-    // this is kind of tricky: we *must* call atomic_inc() to know about the current value from a multi-thread perspective
+    // this is kind of tricky: we *must* call hc_atomic_inc() to know about the current value from a multi-thread perspective
     // this action creates a buffer overflow, so we need to fix it here
 
-    atomic_dec (d_result);
+    hc_atomic_dec (d_result);
 
     return;
   }
+  #endif
 
   plains_buf[idx].salt_pos   = salt_pos;
   plains_buf[idx].digest_pos = digest_pos;  // relative
@@ -2126,34 +2631,15 @@ DECLSPEC int hc_find_keyboard_layout_map (const u32 search, const int search_len
   return -1;
 }
 
-DECLSPEC int hc_execute_keyboard_layout_mapping (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int pw_len, LOCAL_AS keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt)
+DECLSPEC int hc_execute_keyboard_layout_mapping (u32 *w, const int pw_len, LOCAL_AS keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt)
 {
-  u32 out_buf[16] = { 0 };
+  u32 out_buf[32] = { 0 };
 
   u8 *out_ptr = (u8 *) out_buf;
 
   int out_len = 0;
 
-  // TC/VC passwords are limited to 64
-
-  u32 w[16];
-
-  w[ 0] = w0[0];
-  w[ 1] = w0[1];
-  w[ 2] = w0[2];
-  w[ 3] = w0[3];
-  w[ 4] = w1[0];
-  w[ 5] = w1[1];
-  w[ 6] = w1[2];
-  w[ 7] = w1[3];
-  w[ 8] = w2[0];
-  w[ 9] = w2[1];
-  w[10] = w2[2];
-  w[11] = w2[3];
-  w[12] = w3[0];
-  w[13] = w3[1];
-  w[14] = w3[2];
-  w[15] = w3[3];
+  // TC/VC passwords are limited to 128
 
   u8 *w_ptr = (u8 *) w;
 
@@ -2232,22 +2718,38 @@ DECLSPEC int hc_execute_keyboard_layout_mapping (u32 *w0, u32 *w1, u32 *w2, u32 
     }
   }
 
-  w0[0] = out_buf[ 0];
-  w0[1] = out_buf[ 1];
-  w0[2] = out_buf[ 2];
-  w0[3] = out_buf[ 3];
-  w1[0] = out_buf[ 4];
-  w1[1] = out_buf[ 5];
-  w1[2] = out_buf[ 6];
-  w1[3] = out_buf[ 7];
-  w2[0] = out_buf[ 8];
-  w2[1] = out_buf[ 9];
-  w2[2] = out_buf[10];
-  w2[3] = out_buf[11];
-  w3[0] = out_buf[12];
-  w3[1] = out_buf[13];
-  w3[2] = out_buf[14];
-  w3[3] = out_buf[15];
+  w[ 0] = out_buf[ 0];
+  w[ 1] = out_buf[ 1];
+  w[ 2] = out_buf[ 2];
+  w[ 3] = out_buf[ 3];
+  w[ 4] = out_buf[ 4];
+  w[ 5] = out_buf[ 5];
+  w[ 6] = out_buf[ 6];
+  w[ 7] = out_buf[ 7];
+  w[ 8] = out_buf[ 8];
+  w[ 9] = out_buf[ 9];
+  w[10] = out_buf[10];
+  w[11] = out_buf[11];
+  w[12] = out_buf[12];
+  w[13] = out_buf[13];
+  w[14] = out_buf[14];
+  w[15] = out_buf[15];
+  w[16] = out_buf[16];
+  w[17] = out_buf[17];
+  w[18] = out_buf[18];
+  w[19] = out_buf[19];
+  w[20] = out_buf[20];
+  w[21] = out_buf[21];
+  w[22] = out_buf[22];
+  w[23] = out_buf[23];
+  w[24] = out_buf[24];
+  w[25] = out_buf[25];
+  w[26] = out_buf[26];
+  w[27] = out_buf[27];
+  w[28] = out_buf[28];
+  w[29] = out_buf[29];
+  w[30] = out_buf[30];
+  w[31] = out_buf[31];
 
   return out_len;
 }

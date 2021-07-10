@@ -60,7 +60,9 @@ typedef struct tc
 {
   u32 salt_buf[32];
   u32 data_buf[112];
-  u32 keyfile_buf[16];
+  u32 keyfile_buf16[16];
+  u32 keyfile_buf32[32];
+  u32 keyfile_enabled;
   u32 signature;
 
   keyboard_layout_mapping_t keyboard_layout_mapping_buf[256];
@@ -138,8 +140,6 @@ int module_hash_init_selftest (MAYBE_UNUSED const hashconfig_t *hashconfig, hash
 
   const int parser_status = module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, tmpdata, st_hash_len / 2);
 
-
-
   hcfree (tmpdata);
 
   return parser_status;
@@ -189,13 +189,16 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
     {
       if (hc_path_read (keyfile))
       {
-        cpu_crc32 (keyfile, (u8 *) tc->keyfile_buf);
+        cpu_crc32 (keyfile, (u8 *) tc->keyfile_buf16,  64);
+        cpu_crc32 (keyfile, (u8 *) tc->keyfile_buf32, 128);
       }
 
       keyfile = strtok_r ((char *) NULL, ",", &saveptr);
     }
 
     hcfree (keyfiles);
+
+    tc->keyfile_enabled = 1;
   }
 
   // keyboard layout mapping
@@ -276,6 +279,9 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hashes_count_min         = MODULE_DEFAULT;
   module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
   module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_size    = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_init    = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_term    = MODULE_DEFAULT;
   module_ctx->module_hook12                   = MODULE_DEFAULT;
   module_ctx->module_hook23                   = MODULE_DEFAULT;
   module_ctx->module_hook_salt_size           = MODULE_DEFAULT;

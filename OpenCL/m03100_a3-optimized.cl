@@ -30,16 +30,16 @@ DECLSPEC void m03100m (SHM_TYPE u32 (*s_SPtrans)[64], SHM_TYPE u32 (*s_skb)[64],
   u32 salt_buf0[4];
   u32 salt_buf1[4];
 
-  salt_buf0[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf0[1] = salt_bufs[salt_pos].salt_buf[1];
-  salt_buf0[2] = salt_bufs[salt_pos].salt_buf[2];
-  salt_buf0[3] = salt_bufs[salt_pos].salt_buf[3];
-  salt_buf1[0] = salt_bufs[salt_pos].salt_buf[4];
-  salt_buf1[1] = salt_bufs[salt_pos].salt_buf[5];
-  salt_buf1[2] = salt_bufs[salt_pos].salt_buf[6];
-  salt_buf1[3] = salt_bufs[salt_pos].salt_buf[7];
+  salt_buf0[0] = salt_bufs[SALT_POS].salt_buf[0];
+  salt_buf0[1] = salt_bufs[SALT_POS].salt_buf[1];
+  salt_buf0[2] = salt_bufs[SALT_POS].salt_buf[2];
+  salt_buf0[3] = salt_bufs[SALT_POS].salt_buf[3];
+  salt_buf1[0] = salt_bufs[SALT_POS].salt_buf[4];
+  salt_buf1[1] = salt_bufs[SALT_POS].salt_buf[5];
+  salt_buf1[2] = salt_bufs[SALT_POS].salt_buf[6];
+  salt_buf1[3] = salt_bufs[SALT_POS].salt_buf[7];
 
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
+  const u32 salt_len = salt_bufs[SALT_POS].salt_len;
 
   const u32 salt_word_len = (salt_len + pw_len) * 2;
 
@@ -211,16 +211,16 @@ DECLSPEC void m03100s (SHM_TYPE u32 (*s_SPtrans)[64], SHM_TYPE u32 (*s_skb)[64],
   u32 salt_buf0[4];
   u32 salt_buf1[4];
 
-  salt_buf0[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf0[1] = salt_bufs[salt_pos].salt_buf[1];
-  salt_buf0[2] = salt_bufs[salt_pos].salt_buf[2];
-  salt_buf0[3] = salt_bufs[salt_pos].salt_buf[3];
-  salt_buf1[0] = salt_bufs[salt_pos].salt_buf[4];
-  salt_buf1[1] = salt_bufs[salt_pos].salt_buf[5];
-  salt_buf1[2] = salt_bufs[salt_pos].salt_buf[6];
-  salt_buf1[3] = salt_bufs[salt_pos].salt_buf[7];
+  salt_buf0[0] = salt_bufs[SALT_POS].salt_buf[0];
+  salt_buf0[1] = salt_bufs[SALT_POS].salt_buf[1];
+  salt_buf0[2] = salt_bufs[SALT_POS].salt_buf[2];
+  salt_buf0[3] = salt_bufs[SALT_POS].salt_buf[3];
+  salt_buf1[0] = salt_bufs[SALT_POS].salt_buf[4];
+  salt_buf1[1] = salt_bufs[SALT_POS].salt_buf[5];
+  salt_buf1[2] = salt_bufs[SALT_POS].salt_buf[6];
+  salt_buf1[3] = salt_bufs[SALT_POS].salt_buf[7];
 
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
+  const u32 salt_len = salt_bufs[SALT_POS].salt_len;
 
   const u32 salt_word_len = (salt_len + pw_len) * 2;
 
@@ -230,8 +230,8 @@ DECLSPEC void m03100s (SHM_TYPE u32 (*s_SPtrans)[64], SHM_TYPE u32 (*s_skb)[64],
 
   const u32 search[4] =
   {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
     0,
     0
   };
@@ -468,7 +468,7 @@ KERNEL_FQ void m03100_m04 (KERN_ATTR_VECTOR ())
    * main
    */
 
-  m03100m (s_SPtrans, s_skb, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
+  m03100m (s_SPtrans, s_skb, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max);
 }
 
 KERNEL_FQ void m03100_m08 (KERN_ATTR_VECTOR ())
@@ -551,7 +551,7 @@ KERNEL_FQ void m03100_m08 (KERN_ATTR_VECTOR ())
    * main
    */
 
-  m03100m (s_SPtrans, s_skb, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
+  m03100m (s_SPtrans, s_skb, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max);
 }
 
 KERNEL_FQ void m03100_m16 (KERN_ATTR_VECTOR ())
@@ -638,7 +638,7 @@ KERNEL_FQ void m03100_s04 (KERN_ATTR_VECTOR ())
    * main
    */
 
-  m03100s (s_SPtrans, s_skb, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
+  m03100s (s_SPtrans, s_skb, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max);
 }
 
 KERNEL_FQ void m03100_s08 (KERN_ATTR_VECTOR ())
@@ -721,7 +721,7 @@ KERNEL_FQ void m03100_s08 (KERN_ATTR_VECTOR ())
    * main
    */
 
-  m03100s (s_SPtrans, s_skb, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
+  m03100s (s_SPtrans, s_skb, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max);
 }
 
 KERNEL_FQ void m03100_s16 (KERN_ATTR_VECTOR ())

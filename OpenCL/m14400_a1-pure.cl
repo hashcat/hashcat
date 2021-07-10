@@ -87,7 +87,7 @@ KERNEL_FQ void m14400_mxx (KERN_ATTR_BASIC ())
 
   sha1_update_64 (&ctx0, d20, d21, d22, d23, 2);
 
-  sha1_update_global_swap (&ctx0, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  sha1_update_global_swap (&ctx0, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   u32 d40[4];
   u32 d41[4];
@@ -306,10 +306,10 @@ KERNEL_FQ void m14400_sxx (KERN_ATTR_BASIC ())
 
   const u32 search[4] =
   {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
   };
 
   /**
@@ -344,7 +344,7 @@ KERNEL_FQ void m14400_sxx (KERN_ATTR_BASIC ())
 
   sha1_update_64 (&ctx0, d20, d21, d22, d23, 2);
 
-  sha1_update_global_swap (&ctx0, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  sha1_update_global_swap (&ctx0, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   u32 d40[4];
   u32 d41[4];

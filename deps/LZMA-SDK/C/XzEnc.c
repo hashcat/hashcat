@@ -1,5 +1,5 @@
 /* XzEnc.c -- Xz Encode
-2019-02-02 : Igor Pavlov : Public domain */
+2021-04-01 : Igor Pavlov : Public domain */
 
 #include "Precomp.h"
 
@@ -36,7 +36,7 @@
 
 
 #define XzBlock_ClearFlags(p)       (p)->flags = 0;
-#define XzBlock_SetNumFilters(p, n) (p)->flags |= ((n) - 1);
+#define XzBlock_SetNumFilters(p, n) (p)->flags = (Byte)((p)->flags | ((n) - 1));
 #define XzBlock_SetHasPackSize(p)   (p)->flags |= XZ_BF_PACK_SIZE;
 #define XzBlock_SetHasUnpackSize(p) (p)->flags |= XZ_BF_UNPACK_SIZE;
 
@@ -552,7 +552,7 @@ static void XzEncProps_Normalize_Fixed(CXzProps *p)
         numBlocks++;
       if (numBlocks < (unsigned)t2)
       {
-        t2r = (unsigned)numBlocks;
+        t2r = (int)numBlocks;
         if (t2r == 0)
           t2r = 1;
         t3 = t1 * t2r;
@@ -751,7 +751,8 @@ static SRes Xz_CompressBlock(
     }
     else if (fp->ipDefined)
     {
-      SetUi32(filter->props, fp->ip);
+      Byte *ptr = filter->props;
+      SetUi32(ptr, fp->ip);
       filter->propsSize = 4;
     }
   }
@@ -1196,7 +1197,7 @@ SRes XzEnc_Encode(CXzEncHandle pp, ISeqOutStream *outStream, ISeqInStream *inStr
       p->outBufSize = destBlockSize;
     }
 
-    p->mtCoder.numThreadsMax = props->numBlockThreads_Max;
+    p->mtCoder.numThreadsMax = (unsigned)props->numBlockThreads_Max;
     p->mtCoder.expectedDataSize = p->expectedDataSize;
     
     RINOK(MtCoder_Code(&p->mtCoder));

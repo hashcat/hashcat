@@ -21,7 +21,9 @@ typedef struct tc
 {
   u32 salt_buf[32];
   u32 data_buf[112];
-  u32 keyfile_buf[16];
+  u32 keyfile_buf16[16];
+  u32 keyfile_buf32[32];
+  u32 keyfile_enabled;
   u32 signature;
 
   keyboard_layout_mapping_t keyboard_layout_mapping_buf[256];
@@ -30,9 +32,9 @@ typedef struct tc
 } tc_t;
 
 #ifdef KERNEL_STATIC
-#include "inc_truecrypt_keyfile.cl"
 #include "inc_truecrypt_crc32.cl"
 #include "inc_truecrypt_xts.cl"
+#include "inc_truecrypt_keyfile.cl"
 #endif
 
 typedef struct tc_tmp
@@ -151,13 +153,13 @@ KERNEL_FQ void m06231_init (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
    * keyboard layout shared
    */
 
-  const int keyboard_layout_mapping_cnt = esalt_bufs[digests_offset].keyboard_layout_mapping_cnt;
+  const int keyboard_layout_mapping_cnt = esalt_bufs[DIGESTS_OFFSET].keyboard_layout_mapping_cnt;
 
   LOCAL_VK keyboard_layout_mapping_t s_keyboard_layout_mapping_buf[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
-    s_keyboard_layout_mapping_buf[i] = esalt_bufs[digests_offset].keyboard_layout_mapping_buf[i];
+    s_keyboard_layout_mapping_buf[i] = esalt_bufs[DIGESTS_OFFSET].keyboard_layout_mapping_buf[i];
   }
 
   SYNC_THREADS ();
@@ -210,69 +212,50 @@ KERNEL_FQ void m06231_init (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
    * base
    */
 
-  u32 w0[4];
-  u32 w1[4];
-  u32 w2[4];
-  u32 w3[4];
+  u32 w[32];
 
-  w0[0] = pws[gid].i[ 0];
-  w0[1] = pws[gid].i[ 1];
-  w0[2] = pws[gid].i[ 2];
-  w0[3] = pws[gid].i[ 3];
-  w1[0] = pws[gid].i[ 4];
-  w1[1] = pws[gid].i[ 5];
-  w1[2] = pws[gid].i[ 6];
-  w1[3] = pws[gid].i[ 7];
-  w2[0] = pws[gid].i[ 8];
-  w2[1] = pws[gid].i[ 9];
-  w2[2] = pws[gid].i[10];
-  w2[3] = pws[gid].i[11];
-  w3[0] = pws[gid].i[12];
-  w3[1] = pws[gid].i[13];
-  w3[2] = pws[gid].i[14];
-  w3[3] = pws[gid].i[15];
+  w[ 0] = pws[gid].i[ 0];
+  w[ 1] = pws[gid].i[ 1];
+  w[ 2] = pws[gid].i[ 2];
+  w[ 3] = pws[gid].i[ 3];
+  w[ 4] = pws[gid].i[ 4];
+  w[ 5] = pws[gid].i[ 5];
+  w[ 6] = pws[gid].i[ 6];
+  w[ 7] = pws[gid].i[ 7];
+  w[ 8] = pws[gid].i[ 8];
+  w[ 9] = pws[gid].i[ 9];
+  w[10] = pws[gid].i[10];
+  w[11] = pws[gid].i[11];
+  w[12] = pws[gid].i[12];
+  w[13] = pws[gid].i[13];
+  w[14] = pws[gid].i[14];
+  w[15] = pws[gid].i[15];
+  w[16] = pws[gid].i[16];
+  w[17] = pws[gid].i[17];
+  w[18] = pws[gid].i[18];
+  w[19] = pws[gid].i[19];
+  w[20] = pws[gid].i[20];
+  w[21] = pws[gid].i[21];
+  w[22] = pws[gid].i[22];
+  w[23] = pws[gid].i[23];
+  w[24] = pws[gid].i[24];
+  w[25] = pws[gid].i[25];
+  w[26] = pws[gid].i[26];
+  w[27] = pws[gid].i[27];
+  w[28] = pws[gid].i[28];
+  w[29] = pws[gid].i[29];
+  w[30] = pws[gid].i[30];
+  w[31] = pws[gid].i[31];
 
-  const u32 pw_len = pws[gid].pw_len;
+  u32 pw_len = pws[gid].pw_len;
 
-  hc_execute_keyboard_layout_mapping (w0, w1, w2, w3, pw_len, s_keyboard_layout_mapping_buf, keyboard_layout_mapping_cnt);
+  hc_execute_keyboard_layout_mapping (w, pw_len, s_keyboard_layout_mapping_buf, keyboard_layout_mapping_cnt);
 
-  w0[0] = u8add (w0[0], esalt_bufs[digests_offset].keyfile_buf[ 0]);
-  w0[1] = u8add (w0[1], esalt_bufs[digests_offset].keyfile_buf[ 1]);
-  w0[2] = u8add (w0[2], esalt_bufs[digests_offset].keyfile_buf[ 2]);
-  w0[3] = u8add (w0[3], esalt_bufs[digests_offset].keyfile_buf[ 3]);
-  w1[0] = u8add (w1[0], esalt_bufs[digests_offset].keyfile_buf[ 4]);
-  w1[1] = u8add (w1[1], esalt_bufs[digests_offset].keyfile_buf[ 5]);
-  w1[2] = u8add (w1[2], esalt_bufs[digests_offset].keyfile_buf[ 6]);
-  w1[3] = u8add (w1[3], esalt_bufs[digests_offset].keyfile_buf[ 7]);
-  w2[0] = u8add (w2[0], esalt_bufs[digests_offset].keyfile_buf[ 8]);
-  w2[1] = u8add (w2[1], esalt_bufs[digests_offset].keyfile_buf[ 9]);
-  w2[2] = u8add (w2[2], esalt_bufs[digests_offset].keyfile_buf[10]);
-  w2[3] = u8add (w2[3], esalt_bufs[digests_offset].keyfile_buf[11]);
-  w3[0] = u8add (w3[0], esalt_bufs[digests_offset].keyfile_buf[12]);
-  w3[1] = u8add (w3[1], esalt_bufs[digests_offset].keyfile_buf[13]);
-  w3[2] = u8add (w3[2], esalt_bufs[digests_offset].keyfile_buf[14]);
-  w3[3] = u8add (w3[3], esalt_bufs[digests_offset].keyfile_buf[15]);
-
-  w0[0] = hc_swap32_S (w0[0]);
-  w0[1] = hc_swap32_S (w0[1]);
-  w0[2] = hc_swap32_S (w0[2]);
-  w0[3] = hc_swap32_S (w0[3]);
-  w1[0] = hc_swap32_S (w1[0]);
-  w1[1] = hc_swap32_S (w1[1]);
-  w1[2] = hc_swap32_S (w1[2]);
-  w1[3] = hc_swap32_S (w1[3]);
-  w2[0] = hc_swap32_S (w2[0]);
-  w2[1] = hc_swap32_S (w2[1]);
-  w2[2] = hc_swap32_S (w2[2]);
-  w2[3] = hc_swap32_S (w2[3]);
-  w3[0] = hc_swap32_S (w3[0]);
-  w3[1] = hc_swap32_S (w3[1]);
-  w3[2] = hc_swap32_S (w3[2]);
-  w3[3] = hc_swap32_S (w3[3]);
+  pw_len = hc_apply_keyfile_tc (w, pw_len, &esalt_bufs[DIGESTS_OFFSET]);
 
   whirlpool_hmac_ctx_t whirlpool_hmac_ctx;
 
-  whirlpool_hmac_init_64 (&whirlpool_hmac_ctx, w0, w1, w2, w3, s_MT0, s_MT1, s_MT2, s_MT3, s_MT4, s_MT5, s_MT6, s_MT7);
+  whirlpool_hmac_init_swap (&whirlpool_hmac_ctx, w, pw_len, s_MT0, s_MT1, s_MT2, s_MT3, s_MT4, s_MT5, s_MT6, s_MT7);
 
   tmps[gid].ipad[ 0] = whirlpool_hmac_ctx.ipad.h[ 0];
   tmps[gid].ipad[ 1] = whirlpool_hmac_ctx.ipad.h[ 1];
@@ -308,11 +291,16 @@ KERNEL_FQ void m06231_init (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
   tmps[gid].opad[14] = whirlpool_hmac_ctx.opad.h[14];
   tmps[gid].opad[15] = whirlpool_hmac_ctx.opad.h[15];
 
-  whirlpool_hmac_update_global_swap (&whirlpool_hmac_ctx, esalt_bufs[digests_offset].salt_buf, 64);
+  whirlpool_hmac_update_global_swap (&whirlpool_hmac_ctx, esalt_bufs[DIGESTS_OFFSET].salt_buf, 64);
 
   for (u32 i = 0, j = 1; i < 16; i += 16, j += 1)
   {
     whirlpool_hmac_ctx_t whirlpool_hmac_ctx2 = whirlpool_hmac_ctx;
+
+    u32 w0[4];
+    u32 w1[4];
+    u32 w2[4];
+    u32 w3[4];
 
     w0[0] = j;
     w0[1] = 0;
@@ -660,25 +648,25 @@ KERNEL_FQ void m06231_comp (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
 
   if (verify_header_serpent (esalt_bufs[0].data_buf, esalt_bufs[0].signature, ukey1, ukey2) == 1)
   {
-    if (atomic_inc (&hashes_shown[0]) == 0)
+    if (hc_atomic_inc (&hashes_shown[0]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, 0, gid, 0, 0, 0);
     }
   }
 
   if (verify_header_twofish (esalt_bufs[0].data_buf, esalt_bufs[0].signature, ukey1, ukey2) == 1)
   {
-    if (atomic_inc (&hashes_shown[0]) == 0)
+    if (hc_atomic_inc (&hashes_shown[0]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, 0, gid, 0, 0, 0);
     }
   }
 
   if (verify_header_aes (esalt_bufs[0].data_buf, esalt_bufs[0].signature, ukey1, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
   {
-    if (atomic_inc (&hashes_shown[0]) == 0)
+    if (hc_atomic_inc (&hashes_shown[0]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, 0, gid, 0, 0, 0);
     }
   }
 }

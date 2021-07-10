@@ -25,19 +25,13 @@
 
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 
-typedef struct pbkdf2_sha1
-{
-  u32 salt_buf[64];
-
-} pbkdf2_sha1_t;
-
 typedef struct rar3_tmp
 {
   u32 dgst[17][5];
 
 } rar3_tmp_t;
 
-KERNEL_FQ void m12500_init (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
+KERNEL_FQ void m12500_init (KERN_ATTR_TMPS (rar3_tmp_t))
 {
   /**
    * base
@@ -54,26 +48,31 @@ KERNEL_FQ void m12500_init (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
   tmps[gid].dgst[0][4] = SHA1M_E;
 }
 
-KERNEL_FQ void m12500_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
+KERNEL_FQ void m12500_loop (KERN_ATTR_TMPS (rar3_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
   if (gid >= gid_max) return;
 
-  u32 pw_buf[5];
+  u32 pw_buf[10];
 
   pw_buf[0] = pws[gid].i[0];
   pw_buf[1] = pws[gid].i[1];
   pw_buf[2] = pws[gid].i[2];
   pw_buf[3] = pws[gid].i[3];
   pw_buf[4] = pws[gid].i[4];
+  pw_buf[5] = pws[gid].i[5];
+  pw_buf[6] = pws[gid].i[6];
+  pw_buf[7] = pws[gid].i[7];
+  pw_buf[8] = pws[gid].i[8];
+  pw_buf[9] = pws[gid].i[9];
 
-  const u32 pw_len = MIN (pws[gid].pw_len, 20);
+  const u32 pw_len = MIN (pws[gid].pw_len, 40);
 
   u32 salt_buf[2];
 
-  salt_buf[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf[1] = salt_bufs[salt_pos].salt_buf[1];
+  salt_buf[0] = salt_bufs[SALT_POS].salt_buf[0];
+  salt_buf[1] = salt_bufs[SALT_POS].salt_buf[1];
 
   const u32 salt_len = 8;
 
@@ -87,7 +86,7 @@ KERNEL_FQ void m12500_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
 
   for (u32 i = 0, p = 0; i < 64; i++)
   {
-    for (u32 j = 0; j < pw_len; j++, p += 2)
+    for (u32 j = 0; j < pw_len; j++, p += 1)
     {
       PUTCHAR_BE (largeblock, p, GETCHAR (pw_buf, j));
     }
@@ -102,7 +101,9 @@ KERNEL_FQ void m12500_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
     p += 3;
   }
 
-  const u32 p3 = (pw_len * 2) + salt_len + 3;
+  const u32 p2 = pw_len + salt_len;
+
+  const u32 p3 = pw_len + salt_len + 3;
 
   const u32 init_pos = loop_pos / (ROUNDS / 16);
 
@@ -116,54 +117,116 @@ KERNEL_FQ void m12500_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
 
   u32 iter = loop_pos;
 
-  for (u32 i = 0; i < 256; i += 4)
+  for (u32 i = 0; i < 256; i++)
   {
-    for (u32 j = 0; j < 64; j++)
-    {
-      const u32 p = ((j + 1) * p3) - 2;
+    u32 tmp = 0;
 
-      PUTCHAR_BE (largeblock, p, iter >> 8);
-    }
+    u32 k = p2;
 
-    for (u32 k = 0; k < 4; k++)
+    for (u32 j = 0; j < p3; j++)
     {
-      for (u32 j = 0; j < 64; j++)
+      const u32 j16 = j * 16;
+
+      u32 w[16 + 1];
+
+      w[ 0] = largeblock[j16 +  0] | tmp;
+      w[ 1] = largeblock[j16 +  1];
+      w[ 2] = largeblock[j16 +  2];
+      w[ 3] = largeblock[j16 +  3];
+      w[ 4] = largeblock[j16 +  4];
+      w[ 5] = largeblock[j16 +  5];
+      w[ 6] = largeblock[j16 +  6];
+      w[ 7] = largeblock[j16 +  7];
+      w[ 8] = largeblock[j16 +  8];
+      w[ 9] = largeblock[j16 +  9];
+      w[10] = largeblock[j16 + 10];
+      w[11] = largeblock[j16 + 11];
+      w[12] = largeblock[j16 + 12];
+      w[13] = largeblock[j16 + 13];
+      w[14] = largeblock[j16 + 14];
+      w[15] = largeblock[j16 + 15];
+      w[16] = 0;
+
+      while (k < 64)
       {
-        const u32 p = ((j + 1) * p3) - 3;
+        const u32 iter_s = hc_swap32_S (iter);
 
-        PUTCHAR_BE (largeblock, p, iter >> 0);
+        u32 mask0 = 0;
+        u32 mask1 = 0;
+
+        u32 tmp0 = 0;
+        u32 tmp1 = 0;
+
+        const int kd = k / 4;
+        const int km = k & 3;
+
+             if (km == 0) { tmp0 = iter_s >>  0; tmp1 = 0;            mask0 = 0x0000ffff; mask1 = 0xffffffff; }
+        else if (km == 1) { tmp0 = iter_s >>  8; tmp1 = 0;            mask0 = 0xff0000ff; mask1 = 0xffffffff; }
+        else if (km == 2) { tmp0 = iter_s >> 16; tmp1 = 0;            mask0 = 0xffff0000; mask1 = 0xffffffff; }
+        else if (km == 3) { tmp0 = iter_s >> 24; tmp1 = iter_s <<  8; mask0 = 0xffffff00; mask1 = 0x00ffffff; }
+
+        switch (kd)
+        {
+          case  0: w[ 0] = (w[ 0] & mask0) | tmp0;
+                   w[ 1] = (w[ 1] & mask1) | tmp1;
+                   break;
+          case  1: w[ 1] = (w[ 1] & mask0) | tmp0;
+                   w[ 2] = (w[ 2] & mask1) | tmp1;
+                   break;
+          case  2: w[ 2] = (w[ 2] & mask0) | tmp0;
+                   w[ 3] = (w[ 3] & mask1) | tmp1;
+                   break;
+          case  3: w[ 3] = (w[ 3] & mask0) | tmp0;
+                   w[ 4] = (w[ 4] & mask1) | tmp1;
+                   break;
+          case  4: w[ 4] = (w[ 4] & mask0) | tmp0;
+                   w[ 5] = (w[ 5] & mask1) | tmp1;
+                   break;
+          case  5: w[ 5] = (w[ 5] & mask0) | tmp0;
+                   w[ 6] = (w[ 6] & mask1) | tmp1;
+                   break;
+          case  6: w[ 6] = (w[ 6] & mask0) | tmp0;
+                   w[ 7] = (w[ 7] & mask1) | tmp1;
+                   break;
+          case  7: w[ 7] = (w[ 7] & mask0) | tmp0;
+                   w[ 8] = (w[ 8] & mask1) | tmp1;
+                   break;
+          case  8: w[ 8] = (w[ 8] & mask0) | tmp0;
+                   w[ 9] = (w[ 9] & mask1) | tmp1;
+                   break;
+          case  9: w[ 9] = (w[ 9] & mask0) | tmp0;
+                   w[10] = (w[10] & mask1) | tmp1;
+                   break;
+          case 10: w[10] = (w[10] & mask0) | tmp0;
+                   w[11] = (w[11] & mask1) | tmp1;
+                   break;
+          case 11: w[11] = (w[11] & mask0) | tmp0;
+                   w[12] = (w[12] & mask1) | tmp1;
+                   break;
+          case 12: w[12] = (w[12] & mask0) | tmp0;
+                   w[13] = (w[13] & mask1) | tmp1;
+                   break;
+          case 13: w[13] = (w[13] & mask0) | tmp0;
+                   w[14] = (w[14] & mask1) | tmp1;
+                   break;
+          case 14: w[14] = (w[14] & mask0) | tmp0;
+                   w[15] = (w[15] & mask1) | tmp1;
+                   break;
+          case 15: w[15] = (w[15] & mask0) | tmp0;
+                   w[16] =                   tmp1;
+                   break;
+        }
 
         iter++;
+
+        k += p3;
       }
 
-      for (u32 j = 0; j < p3; j++)
-      {
-        const u32 j16 = j * 16;
+      sha1_transform (w + 0, w + 4, w + 8, w + 12, dgst);
 
-        u32 w0[4];
-        u32 w1[4];
-        u32 w2[4];
-        u32 w3[4];
+      k &= 63;
 
-        w0[0] = largeblock[j16 +  0];
-        w0[1] = largeblock[j16 +  1];
-        w0[2] = largeblock[j16 +  2];
-        w0[3] = largeblock[j16 +  3];
-        w1[0] = largeblock[j16 +  4];
-        w1[1] = largeblock[j16 +  5];
-        w1[2] = largeblock[j16 +  6];
-        w1[3] = largeblock[j16 +  7];
-        w2[0] = largeblock[j16 +  8];
-        w2[1] = largeblock[j16 +  9];
-        w2[2] = largeblock[j16 + 10];
-        w2[3] = largeblock[j16 + 11];
-        w3[0] = largeblock[j16 + 12];
-        w3[1] = largeblock[j16 + 13];
-        w3[2] = largeblock[j16 + 14];
-        w3[3] = largeblock[j16 + 15];
-
-        sha1_transform (w0, w1, w2, w3, dgst);
-      }
+      tmp = w[16];
     }
   }
 
@@ -174,7 +237,7 @@ KERNEL_FQ void m12500_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
   tmps[gid].dgst[init_pos + 1][4] = dgst[4];
 }
 
-KERNEL_FQ void m12500_comp (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
+KERNEL_FQ void m12500_comp (KERN_ATTR_TMPS (rar3_tmp_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -237,11 +300,11 @@ KERNEL_FQ void m12500_comp (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
    * base
    */
 
-  const u32 pw_len = MIN (pws[gid].pw_len, 20);
+  const u32 pw_len = MIN (pws[gid].pw_len, 40);
 
   const u32 salt_len = 8;
 
-  const u32 p3 = (pw_len * 2) + salt_len + 3;
+  const u32 p3 = pw_len + salt_len + 3;
 
   u32 w0[4];
   u32 w1[4];
@@ -288,10 +351,10 @@ KERNEL_FQ void m12500_comp (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
 
   u32 data[4];
 
-  data[0] = salt_bufs[salt_pos].salt_buf[2];
-  data[1] = salt_bufs[salt_pos].salt_buf[3];
-  data[2] = salt_bufs[salt_pos].salt_buf[4];
-  data[3] = salt_bufs[salt_pos].salt_buf[5];
+  data[0] = salt_bufs[SALT_POS].salt_buf[2];
+  data[1] = salt_bufs[SALT_POS].salt_buf[3];
+  data[2] = salt_bufs[SALT_POS].salt_buf[4];
+  data[3] = salt_bufs[SALT_POS].salt_buf[5];
 
   u32 out[4];
 
@@ -306,24 +369,29 @@ KERNEL_FQ void m12500_comp (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
 
   for (int i = 0; i < 16; i++)
   {
-    u32 pw_buf[5];
+    u32 pw_buf[10];
 
     pw_buf[0] = pws[gid].i[0];
     pw_buf[1] = pws[gid].i[1];
     pw_buf[2] = pws[gid].i[2];
     pw_buf[3] = pws[gid].i[3];
     pw_buf[4] = pws[gid].i[4];
+    pw_buf[5] = pws[gid].i[5];
+    pw_buf[6] = pws[gid].i[6];
+    pw_buf[7] = pws[gid].i[7];
+    pw_buf[8] = pws[gid].i[8];
+    pw_buf[9] = pws[gid].i[9];
 
     //const u32 pw_len = pws[gid].pw_len;
 
     u32 salt_buf[2];
 
-    salt_buf[0] = salt_bufs[salt_pos].salt_buf[0];
-    salt_buf[1] = salt_bufs[salt_pos].salt_buf[1];
+    salt_buf[0] = salt_bufs[SALT_POS].salt_buf[0];
+    salt_buf[1] = salt_bufs[SALT_POS].salt_buf[1];
 
     //const u32 salt_len = 8;
 
-    //const u32 p3 = (pw_len * 2) + salt_len + 3;
+    //const u32 p3 = pw_len + salt_len + 3;
 
     u32 w[16];
 
@@ -346,7 +414,7 @@ KERNEL_FQ void m12500_comp (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, pbkdf2_sha1_t))
 
     u32 p = 0;
 
-    for (u32 j = 0; j < pw_len; j++, p += 2)
+    for (u32 j = 0; j < pw_len; j++, p += 1)
     {
       PUTCHAR_BE (w, p, GETCHAR (pw_buf, j));
     }

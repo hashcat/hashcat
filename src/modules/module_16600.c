@@ -16,7 +16,7 @@ static const u32   DGST_POS1      = 1;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_8;
-static const u32   HASH_CATEGORY  = HASH_CATEGORY_PASSWORD_MANAGER;
+static const u32   HASH_CATEGORY  = HASH_CATEGORY_CRYPTOCURRENCY_WALLET;
 static const char *HASH_NAME      = "Electrum Wallet (Salt-Type 1-3)";
 static const u64   KERN_TYPE      = 16600;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
@@ -53,20 +53,6 @@ typedef struct electrum_wallet
 } electrum_wallet_t;
 
 static const char *SIGNATURE_ELECTRUM_WALLET = "$electrum$";
-
-bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
-{
-  if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
-  {
-    // self-test failed
-    if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
-    {
-      return true;
-    }
-  }
-
-  return false;
-}
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -233,6 +219,9 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hashes_count_min         = MODULE_DEFAULT;
   module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
   module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_size    = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_init    = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_term    = MODULE_DEFAULT;
   module_ctx->module_hook12                   = MODULE_DEFAULT;
   module_ctx->module_hook23                   = MODULE_DEFAULT;
   module_ctx->module_hook_salt_size           = MODULE_DEFAULT;
@@ -264,6 +253,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_hash                  = module_st_hash;
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = MODULE_DEFAULT;
-  module_ctx->module_unstable_warning         = module_unstable_warning;
+  module_ctx->module_unstable_warning         = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

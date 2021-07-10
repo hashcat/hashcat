@@ -26,12 +26,14 @@ It only means the filename itself.
 ## Hashing algorithms that internally use UTF-16 characters could in special cases lead to false negatives
 ##
 
-The UTF-16 conversion implementation used within the kernel code is very elementary and for performance
-reasons does not respect all complicated encoding rules required to correctly convert, for instance, ASCII
-or UTF-8 to UTF-16LE (or UTF-16BE).
+This applies to optimized kernels (-O) only:
 
-The implementation most likely fails with multi-byte characters, because we basically add a zero byte every
-second byte within the kernel conversion code.
+The UTF-16 conversion implementation used within the kernel code is optimized for performance. For that
+reason, hashcat does not respect all complicated encoding rules required to correctly convert, for instance,
+ASCII or UTF-8 to UTF-16LE (or UTF-16BE). The implementation most likely fails with multi-byte characters,
+because we basically add a zero byte every second byte within the kernel conversion code.
+
+Since hashcat v6.2.1 there is true UTF-16 support for pure kernels. UTF-16 is fully supported.
 
 ##
 ## The use of --keep-guessing eventually skips reporting duplicate passwords
@@ -43,23 +45,23 @@ Only if you hit the same password twice for the same hash the password may be sh
 
 If --keep-guessing is not used, this can not occur.
 
-This limitation cannot be fixed, because it would require too much device (GPU/CPU) memory.
+This limitation cannot be fixed, because it would require too much device (GPU/CPU) memory. If we wanted
+to report back all possible password candidates executed in a single kernel invocation, it would require
+this much memory per device:
 
-If we wanted to report back all possible password candidates executed in a single kernel invocation, it would require this much memory:
+Number-of-MCU * Max-threads * Max-accel * Max-inner-loops * sizeof (plain_t)
 
-Number-of-MCU * Max-threads-per-device * Max-accel * Max-inner-loops * sizeof (plain_t)
-
-For example, on a Vega64: 64 * 512 * 1024 * 1024 * 20 = 687,194,767,360 bytes
+For example, on a Vega64: 64 * 1024 * 1024 * 1024 * 20 = 1,374,389,534,720 bytes = 1280 GB VRAM
 
 ##
-## Hashcat GPU memory usage may be limited by maximum allocation sizes of OpenCL drivers
+## Hashcat GPU memory usage may be limited by maximum memory allocation sizes of OpenCL drivers
 ##
 
-Most hashcat hash modes only use a single OpenCL allocation.
+Most hashcat memory allocations are supposed to remain inside the same memory area.
 
-The size of this allocation is limited by GPU drivers / OpenCL runtimes.
+The maximum size of a memory allocation is limited by GPU drivers / OpenCL runtimes.
 
-Only a few modes (like scrypt) make more than one allocation.
+Only a few modes (like scrypt) have special workarounds to make use of more than one allocation.
 
 ##
 ## The maximum number of functions per rule is limited to 31

@@ -95,7 +95,7 @@ KERNEL_FQ void m02100_init (KERN_ATTR_TMPS (dcc2_tmp_t))
 
   md4_ctx2.len = 16;
 
-  md4_update_global_utf16le (&md4_ctx2, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  md4_update_global_utf16le (&md4_ctx2, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   md4_final (&md4_ctx2);
 
@@ -144,7 +144,7 @@ KERNEL_FQ void m02100_init (KERN_ATTR_TMPS (dcc2_tmp_t))
   tmps[gid].opad[3] = sha1_hmac_ctx.opad.h[3];
   tmps[gid].opad[4] = sha1_hmac_ctx.opad.h[4];
 
-  sha1_hmac_update_global_utf16le_swap (&sha1_hmac_ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  sha1_hmac_update_global_utf16le_swap (&sha1_hmac_ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   w0[0] = 1;
   w0[1] = 0;

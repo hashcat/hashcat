@@ -16,8 +16,10 @@ cpan install Authen::Passphrase::LANManager \
              Authen::Passphrase::PHPass     \
              Compress::Zlib                 \
              Convert::EBCDIC                \
+             Crypt::AuthEnc::GCM            \
              Crypt::CBC                     \
              Crypt::DES                     \
+             Crypt::DES_EDE3                \
              Crypt::Digest::RIPEMD160       \
              Crypt::Digest::Whirlpool       \
              Crypt::ECB                     \
@@ -63,13 +65,13 @@ cpan install Authen::Passphrase::LANManager \
 
 ERRORS=$((ERRORS+$?))
 
-pip2 install pygost
+pip3 install pygost
 
-# pip2 uninstall -y pycryptoplus pycrypto pycryptodome
+# pip3 uninstall -y pycryptoplus pycrypto pycryptodome
 
-pip2 install pycryptoplus
-pip2 uninstall -y pycryptodome
-pip2 install pycrypto
+pip3 install pycryptoplus
+# pip3 uninstall -y pycryptodome # latest versions do not require this work around anymore
+pip3 install pycrypto
 
 ERRORS=$((ERRORS+$?))
 

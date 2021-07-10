@@ -111,7 +111,7 @@ KERNEL_FQ void m16200_init (KERN_ATTR_TMPS_ESALT (apple_secure_notes_tmp_t, appl
   tmps[gid].opad[6] = sha256_hmac_ctx.opad.h[6];
   tmps[gid].opad[7] = sha256_hmac_ctx.opad.h[7];
 
-  sha256_hmac_update_global_swap (&sha256_hmac_ctx, esalt_bufs[digests_offset].ZCRYPTOSALT, 16);
+  sha256_hmac_update_global_swap (&sha256_hmac_ctx, esalt_bufs[DIGESTS_OFFSET].ZCRYPTOSALT, 16);
 
   for (u32 i = 0, j = 1; i < 8; i += 8, j += 1)
   {
@@ -347,12 +347,12 @@ KERNEL_FQ void m16200_comp (KERN_ATTR_TMPS_ESALT (apple_secure_notes_tmp_t, appl
   u32 P1[2];
   u32 P2[2];
 
-  A[0]  = hc_swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[0]);
-  A[1]  = hc_swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[1]);
-  P1[0] = hc_swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[2]);
-  P1[1] = hc_swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[3]);
-  P2[0] = hc_swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[4]);
-  P2[1] = hc_swap32_S (esalt_bufs[digests_offset].ZCRYPTOWRAPPEDKEY[5]);
+  A[0]  = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].ZCRYPTOWRAPPEDKEY[0]);
+  A[1]  = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].ZCRYPTOWRAPPEDKEY[1]);
+  P1[0] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].ZCRYPTOWRAPPEDKEY[2]);
+  P1[1] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].ZCRYPTOWRAPPEDKEY[3]);
+  P2[0] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].ZCRYPTOWRAPPEDKEY[4]);
+  P2[1] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].ZCRYPTOWRAPPEDKEY[5]);
 
   for (int j = 5; j >= 0; j--)
   {
@@ -394,9 +394,9 @@ KERNEL_FQ void m16200_comp (KERN_ATTR_TMPS_ESALT (apple_secure_notes_tmp_t, appl
   if ((A[0] == 0xa6a6a6a6)
    && (A[1] == 0xa6a6a6a6))
   {
-    if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
     }
   }
 }

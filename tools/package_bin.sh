@@ -6,7 +6,7 @@
 ##
 
 export IN=$HOME/hashcat
-export OUT=$HOME/xy/hashcat-6.1.1
+export OUT=$HOME/xy/hashcat-6.2.2
 
 rm -rf $OUT
 rm -rf $OUT.7z
@@ -44,6 +44,7 @@ dos2unix $OUT/masks/*.hcmask
 dos2unix $OUT/rules/*.rule
 dos2unix $OUT/rules/hybrid/*.rule
 dos2unix $OUT/docs/*
+dos2unix $OUT/docs/license_libs/*
 dos2unix $OUT/example*
 
 unix2dos $OUT/layouts/*.hckmap
@@ -51,6 +52,7 @@ unix2dos $OUT/masks/*.hcmask
 unix2dos $OUT/rules/*.rule
 unix2dos $OUT/rules/hybrid/*.rule
 unix2dos $OUT/docs/*
+unix2dos $OUT/docs/license_libs/*
 unix2dos $OUT/example*.cmd
 unix2dos $OUT/OpenCL/*
 unix2dos $OUT/hashcat.hctune
@@ -60,6 +62,7 @@ chmod 755 $OUT/rules
 chmod 644 $OUT/rules/*
 chmod 755 $OUT/docs
 chmod 644 $OUT/docs/*
+chmod 644 $OUT/docs/license_libs/*
 chmod 755 $OUT/charsets
 chmod 755 $OUT/charsets/*
 chmod 755 $OUT/layouts

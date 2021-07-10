@@ -157,9 +157,9 @@ KERNEL_FQ void m14643_init (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
   tmps[gid].opad32[3] = ripemd160_hmac_ctx.opad.h[3];
   tmps[gid].opad32[4] = ripemd160_hmac_ctx.opad.h[4];
 
-  ripemd160_hmac_update_global (&ripemd160_hmac_ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  ripemd160_hmac_update_global (&ripemd160_hmac_ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
-  const u32 key_size = esalt_bufs[digests_offset].key_size;
+  const u32 key_size = esalt_bufs[DIGESTS_OFFSET].key_size;
 
   for (u32 i = 0, j = 1; i < ((key_size / 8) / 4); i += 5, j += 1)
   {
@@ -226,7 +226,7 @@ KERNEL_FQ void m14643_loop (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
   opad[3] = packv (tmps, opad32, gid, 3);
   opad[4] = packv (tmps, opad32, gid, 4);
 
-  u32 key_size = esalt_bufs[digests_offset].key_size;
+  u32 key_size = esalt_bufs[DIGESTS_OFFSET].key_size;
 
   for (u32 i = 0; i < ((key_size / 8) / 4); i += 5)
   {
@@ -304,7 +304,7 @@ KERNEL_FQ void m14643_comp (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
 
   u32 pt_buf[128];
 
-  luks_af_ripemd160_then_twofish_decrypt (&esalt_bufs[digests_offset], &tmps[gid], pt_buf);
+  luks_af_ripemd160_then_twofish_decrypt (&esalt_bufs[DIGESTS_OFFSET], &tmps[gid], pt_buf);
 
   // check entropy
 
@@ -312,9 +312,9 @@ KERNEL_FQ void m14643_comp (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
 
   if (entropy < MAX_ENTROPY)
   {
-    if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, 0, gid, 0, 0, 0);
     }
   }
 }

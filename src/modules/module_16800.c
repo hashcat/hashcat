@@ -290,6 +290,8 @@ bool module_potfile_custom_check (MAYBE_UNUSED const hashconfig_t *hashconfig, M
     1,                  // digests_cnt
     0,                  // digests_offset
     0,                  // combs_mode
+    0,                  // salt_repeat
+    0,                  // pws_pos
     1                   // gid_max
   );
 
@@ -533,6 +535,9 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hashes_count_min         = MODULE_DEFAULT;
   module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
   module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_size    = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_init    = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_term    = MODULE_DEFAULT;
   module_ctx->module_hook12                   = MODULE_DEFAULT;
   module_ctx->module_hook23                   = MODULE_DEFAULT;
   module_ctx->module_hook_salt_size           = MODULE_DEFAULT;

@@ -17,7 +17,7 @@ static const u32   DGST_POS1      = 1;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_4;
-static const u32   HASH_CATEGORY  = HASH_CATEGORY_PASSWORD_MANAGER;
+static const u32   HASH_CATEGORY  = HASH_CATEGORY_CRYPTOCURRENCY_WALLET;
 static const char *HASH_NAME      = "Bitcoin/Litecoin wallet.dat";
 static const u64   KERN_TYPE      = 11300;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
@@ -26,7 +26,8 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_ST_HEX
                                   | OPTS_TYPE_ST_ADD80
-                                  | OPTS_TYPE_HASH_COPY;
+                                  | OPTS_TYPE_HASH_COPY
+                                  | OPTS_TYPE_DEEP_COMP_KERNEL;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$bitcoin$96$c265931309b4a59307921cf054b4ec6b6e4554369be79802e94e16477645777d948ae1d375191831efc78e5acd1f0443$16$8017214013543185$200460$96$480008005625057442352316337722323437108374245623701184230273883222762730232857701607167815448714$66$014754433300175043011633205413774877455616682000536368706315333388";
@@ -64,17 +65,6 @@ typedef struct bitcoin_wallet_tmp
 
 static const char *SIGNATURE_BITCOIN_WALLET = "$bitcoin$";
 
-bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
-{
-  // amdgpu-pro-19.30-934563-ubuntu-18.04: password not found
-  if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
-  {
-    return true;
-  }
-
-  return false;
-}
-
 char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
   char *jit_build_options = NULL;
@@ -98,6 +88,11 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
   }
 
   return jit_build_options;
+}
+
+u32 module_deep_comp_kernel (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u32 digest_pos)
+{
+  return KERN_RUN_3;
 }
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -283,7 +278,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_benchmark_mask           = MODULE_DEFAULT;
   module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
   module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
-  module_ctx->module_deep_comp_kernel         = MODULE_DEFAULT;
+  module_ctx->module_deep_comp_kernel         = module_deep_comp_kernel;
   module_ctx->module_dgst_pos0                = module_dgst_pos0;
   module_ctx->module_dgst_pos1                = module_dgst_pos1;
   module_ctx->module_dgst_pos2                = module_dgst_pos2;
@@ -310,6 +305,9 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hashes_count_min         = MODULE_DEFAULT;
   module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
   module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_size    = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_init    = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_term    = MODULE_DEFAULT;
   module_ctx->module_hook12                   = MODULE_DEFAULT;
   module_ctx->module_hook23                   = MODULE_DEFAULT;
   module_ctx->module_hook_salt_size           = MODULE_DEFAULT;
@@ -341,6 +339,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_hash                  = module_st_hash;
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
-  module_ctx->module_unstable_warning         = module_unstable_warning;
+  module_ctx->module_unstable_warning         = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

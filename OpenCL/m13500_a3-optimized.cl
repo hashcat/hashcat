@@ -38,41 +38,41 @@ DECLSPEC void m13500m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
    * salt
    */
 
-  const u32 pc_offset = esalt_bufs[digests_offset].pc_offset;
+  const u32 pc_offset = esalt_bufs[DIGESTS_OFFSET].pc_offset;
 
   const u32 pc_offset4 = pc_offset * 4;
 
   u32 pc_digest[5];
 
-  pc_digest[0] = esalt_bufs[digests_offset].pc_digest[0];
-  pc_digest[1] = esalt_bufs[digests_offset].pc_digest[1];
-  pc_digest[2] = esalt_bufs[digests_offset].pc_digest[2];
-  pc_digest[3] = esalt_bufs[digests_offset].pc_digest[3];
-  pc_digest[4] = esalt_bufs[digests_offset].pc_digest[4];
+  pc_digest[0] = esalt_bufs[DIGESTS_OFFSET].pc_digest[0];
+  pc_digest[1] = esalt_bufs[DIGESTS_OFFSET].pc_digest[1];
+  pc_digest[2] = esalt_bufs[DIGESTS_OFFSET].pc_digest[2];
+  pc_digest[3] = esalt_bufs[DIGESTS_OFFSET].pc_digest[3];
+  pc_digest[4] = esalt_bufs[DIGESTS_OFFSET].pc_digest[4];
 
   u32 salt_buf0[4];
   u32 salt_buf1[4];
   u32 salt_buf2[4];
   u32 salt_buf3[4];
 
-  salt_buf0[0] = hc_swap32_S (esalt_bufs[digests_offset].salt_buf[pc_offset +  0]);
-  salt_buf0[1] = hc_swap32_S (esalt_bufs[digests_offset].salt_buf[pc_offset +  1]);
-  salt_buf0[2] = hc_swap32_S (esalt_bufs[digests_offset].salt_buf[pc_offset +  2]);
-  salt_buf0[3] = hc_swap32_S (esalt_bufs[digests_offset].salt_buf[pc_offset +  3]);
-  salt_buf1[0] = hc_swap32_S (esalt_bufs[digests_offset].salt_buf[pc_offset +  4]);
-  salt_buf1[1] = hc_swap32_S (esalt_bufs[digests_offset].salt_buf[pc_offset +  5]);
-  salt_buf1[2] = hc_swap32_S (esalt_bufs[digests_offset].salt_buf[pc_offset +  6]);
-  salt_buf1[3] = hc_swap32_S (esalt_bufs[digests_offset].salt_buf[pc_offset +  7]);
-  salt_buf2[0] = hc_swap32_S (esalt_bufs[digests_offset].salt_buf[pc_offset +  8]);
-  salt_buf2[1] = hc_swap32_S (esalt_bufs[digests_offset].salt_buf[pc_offset +  9]);
-  salt_buf2[2] = hc_swap32_S (esalt_bufs[digests_offset].salt_buf[pc_offset + 10]);
-  salt_buf2[3] = hc_swap32_S (esalt_bufs[digests_offset].salt_buf[pc_offset + 11]);
-  salt_buf3[0] = hc_swap32_S (esalt_bufs[digests_offset].salt_buf[pc_offset + 12]);
-  salt_buf3[1] = hc_swap32_S (esalt_bufs[digests_offset].salt_buf[pc_offset + 13]);
-  salt_buf3[2] = hc_swap32_S (esalt_bufs[digests_offset].salt_buf[pc_offset + 14]);
-  salt_buf3[3] = hc_swap32_S (esalt_bufs[digests_offset].salt_buf[pc_offset + 15]);
+  salt_buf0[0] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt_buf[pc_offset +  0]);
+  salt_buf0[1] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt_buf[pc_offset +  1]);
+  salt_buf0[2] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt_buf[pc_offset +  2]);
+  salt_buf0[3] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt_buf[pc_offset +  3]);
+  salt_buf1[0] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt_buf[pc_offset +  4]);
+  salt_buf1[1] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt_buf[pc_offset +  5]);
+  salt_buf1[2] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt_buf[pc_offset +  6]);
+  salt_buf1[3] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt_buf[pc_offset +  7]);
+  salt_buf2[0] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt_buf[pc_offset +  8]);
+  salt_buf2[1] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt_buf[pc_offset +  9]);
+  salt_buf2[2] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt_buf[pc_offset + 10]);
+  salt_buf2[3] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt_buf[pc_offset + 11]);
+  salt_buf3[0] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt_buf[pc_offset + 12]);
+  salt_buf3[1] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt_buf[pc_offset + 13]);
+  salt_buf3[2] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt_buf[pc_offset + 14]);
+  salt_buf3[3] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt_buf[pc_offset + 15]);
 
-  const u32 salt_len = esalt_bufs[digests_offset].salt_len;
+  const u32 salt_len = esalt_bufs[DIGESTS_OFFSET].salt_len;
 
   const u32 pw_salt_len = pw_len + salt_len;
 
@@ -431,41 +431,41 @@ DECLSPEC void m13500s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
    * salt
    */
 
-  const u32 pc_offset = esalt_bufs[digests_offset].pc_offset;
+  const u32 pc_offset = esalt_bufs[DIGESTS_OFFSET].pc_offset;
 
   const u32 pc_offset4 = pc_offset * 4;
 
   u32 pc_digest[5];
 
-  pc_digest[0] = esalt_bufs[digests_offset].pc_digest[0];
-  pc_digest[1] = esalt_bufs[digests_offset].pc_digest[1];
-  pc_digest[2] = esalt_bufs[digests_offset].pc_digest[2];
-  pc_digest[3] = esalt_bufs[digests_offset].pc_digest[3];
-  pc_digest[4] = esalt_bufs[digests_offset].pc_digest[4];
+  pc_digest[0] = esalt_bufs[DIGESTS_OFFSET].pc_digest[0];
+  pc_digest[1] = esalt_bufs[DIGESTS_OFFSET].pc_digest[1];
+  pc_digest[2] = esalt_bufs[DIGESTS_OFFSET].pc_digest[2];
+  pc_digest[3] = esalt_bufs[DIGESTS_OFFSET].pc_digest[3];
+  pc_digest[4] = esalt_bufs[DIGESTS_OFFSET].pc_digest[4];
 
   u32 salt_buf0[4];
   u32 salt_buf1[4];
   u32 salt_buf2[4];
   u32 salt_buf3[4];
 
-  salt_buf0[0] = hc_swap32_S (esalt_bufs[digests_offset].salt_buf[pc_offset +  0]);
-  salt_buf0[1] = hc_swap32_S (esalt_bufs[digests_offset].salt_buf[pc_offset +  1]);
-  salt_buf0[2] = hc_swap32_S (esalt_bufs[digests_offset].salt_buf[pc_offset +  2]);
-  salt_buf0[3] = hc_swap32_S (esalt_bufs[digests_offset].salt_buf[pc_offset +  3]);
-  salt_buf1[0] = hc_swap32_S (esalt_bufs[digests_offset].salt_buf[pc_offset +  4]);
-  salt_buf1[1] = hc_swap32_S (esalt_bufs[digests_offset].salt_buf[pc_offset +  5]);
-  salt_buf1[2] = hc_swap32_S (esalt_bufs[digests_offset].salt_buf[pc_offset +  6]);
-  salt_buf1[3] = hc_swap32_S (esalt_bufs[digests_offset].salt_buf[pc_offset +  7]);
-  salt_buf2[0] = hc_swap32_S (esalt_bufs[digests_offset].salt_buf[pc_offset +  8]);
-  salt_buf2[1] = hc_swap32_S (esalt_bufs[digests_offset].salt_buf[pc_offset +  9]);
-  salt_buf2[2] = hc_swap32_S (esalt_bufs[digests_offset].salt_buf[pc_offset + 10]);
-  salt_buf2[3] = hc_swap32_S (esalt_bufs[digests_offset].salt_buf[pc_offset + 11]);
-  salt_buf3[0] = hc_swap32_S (esalt_bufs[digests_offset].salt_buf[pc_offset + 12]);
-  salt_buf3[1] = hc_swap32_S (esalt_bufs[digests_offset].salt_buf[pc_offset + 13]);
-  salt_buf3[2] = hc_swap32_S (esalt_bufs[digests_offset].salt_buf[pc_offset + 14]);
-  salt_buf3[3] = hc_swap32_S (esalt_bufs[digests_offset].salt_buf[pc_offset + 15]);
+  salt_buf0[0] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt_buf[pc_offset +  0]);
+  salt_buf0[1] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt_buf[pc_offset +  1]);
+  salt_buf0[2] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt_buf[pc_offset +  2]);
+  salt_buf0[3] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt_buf[pc_offset +  3]);
+  salt_buf1[0] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt_buf[pc_offset +  4]);
+  salt_buf1[1] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt_buf[pc_offset +  5]);
+  salt_buf1[2] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt_buf[pc_offset +  6]);
+  salt_buf1[3] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt_buf[pc_offset +  7]);
+  salt_buf2[0] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt_buf[pc_offset +  8]);
+  salt_buf2[1] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt_buf[pc_offset +  9]);
+  salt_buf2[2] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt_buf[pc_offset + 10]);
+  salt_buf2[3] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt_buf[pc_offset + 11]);
+  salt_buf3[0] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt_buf[pc_offset + 12]);
+  salt_buf3[1] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt_buf[pc_offset + 13]);
+  salt_buf3[2] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt_buf[pc_offset + 14]);
+  salt_buf3[3] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt_buf[pc_offset + 15]);
 
-  const u32 salt_len = esalt_bufs[digests_offset].salt_len;
+  const u32 salt_len = esalt_bufs[DIGESTS_OFFSET].salt_len;
 
   const u32 pw_salt_len = pw_len + salt_len;
 
@@ -475,10 +475,10 @@ DECLSPEC void m13500s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
 
   const u32 search[4] =
   {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
   };
 
   /**
@@ -867,7 +867,7 @@ KERNEL_FQ void m13500_m04 (KERN_ATTR_ESALT (pstoken_t))
    * main
    */
 
-  m13500m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
+  m13500m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max);
 }
 
 KERNEL_FQ void m13500_m08 (KERN_ATTR_ESALT (pstoken_t))
@@ -914,7 +914,7 @@ KERNEL_FQ void m13500_m08 (KERN_ATTR_ESALT (pstoken_t))
    * main
    */
 
-  m13500m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
+  m13500m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max);
 }
 
 KERNEL_FQ void m13500_m16 (KERN_ATTR_ESALT (pstoken_t))
@@ -961,7 +961,7 @@ KERNEL_FQ void m13500_m16 (KERN_ATTR_ESALT (pstoken_t))
    * main
    */
 
-  m13500m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
+  m13500m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max);
 }
 
 KERNEL_FQ void m13500_s04 (KERN_ATTR_ESALT (pstoken_t))
@@ -1008,7 +1008,7 @@ KERNEL_FQ void m13500_s04 (KERN_ATTR_ESALT (pstoken_t))
    * main
    */
 
-  m13500s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
+  m13500s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max);
 }
 
 KERNEL_FQ void m13500_s08 (KERN_ATTR_ESALT (pstoken_t))
@@ -1055,7 +1055,7 @@ KERNEL_FQ void m13500_s08 (KERN_ATTR_ESALT (pstoken_t))
    * main
    */
 
-  m13500s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
+  m13500s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max);
 }
 
 KERNEL_FQ void m13500_s16 (KERN_ATTR_ESALT (pstoken_t))
@@ -1102,5 +1102,5 @@ KERNEL_FQ void m13500_s16 (KERN_ATTR_ESALT (pstoken_t))
    * main
    */
 
-  m13500s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
+  m13500s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max);
 }

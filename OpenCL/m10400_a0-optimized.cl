@@ -15,19 +15,8 @@
 #include "inc_rp_optimized.cl"
 #include "inc_simd.cl"
 #include "inc_hash_md5.cl"
+#include "inc_cipher_rc4.cl"
 #endif
-
-CONSTANT_VK u32a padding[8] =
-{
-  0x5e4ebf28,
-  0x418a754e,
-  0x564e0064,
-  0x0801faff,
-  0xb6002e2e,
-  0x803e68d0,
-  0xfea90c2f,
-  0x7a695364
-};
 
 typedef struct pdf
 {
@@ -50,115 +39,7 @@ typedef struct pdf
 
 } pdf_t;
 
-typedef struct
-{
-  u8 S[256];
-
-  u32 wtf_its_faster;
-
-} RC4_KEY;
-
-DECLSPEC void swap (LOCAL_AS RC4_KEY *rc4_key, const u8 i, const u8 j)
-{
-  u8 tmp;
-
-  tmp           = rc4_key->S[i];
-  rc4_key->S[i] = rc4_key->S[j];
-  rc4_key->S[j] = tmp;
-}
-
-DECLSPEC void rc4_init_16 (LOCAL_AS RC4_KEY *rc4_key, const u32 *data)
-{
-  u32 v = 0x03020100;
-  u32 a = 0x04040404;
-
-  LOCAL_AS u32 *ptr = (LOCAL_AS u32 *) rc4_key->S;
-
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (u32 i = 0; i < 64; i++)
-  {
-    ptr[i] = v; v += a;
-  }
-
-  const u32 d0 = data[0] >>  0;
-  const u32 d1 = data[0] >>  8;
-  const u32 d2 = data[0] >> 16;
-  const u32 d3 = data[0] >> 24;
-  const u32 d4 = data[1] >>  0;
-
-  u32 j = 0;
-
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (u32 i = 0; i < 255; i += 5)
-  {
-    j += rc4_key->S[i + 0] + d0; swap (rc4_key, i + 0, j);
-    j += rc4_key->S[i + 1] + d1; swap (rc4_key, i + 1, j);
-    j += rc4_key->S[i + 2] + d2; swap (rc4_key, i + 2, j);
-    j += rc4_key->S[i + 3] + d3; swap (rc4_key, i + 3, j);
-    j += rc4_key->S[i + 4] + d4; swap (rc4_key, i + 4, j);
-  }
-
-  j += rc4_key->S[255] + d0; swap (rc4_key, 255, j);
-}
-
-DECLSPEC u8 rc4_next_16 (LOCAL_AS RC4_KEY *rc4_key, u8 i, u8 j, CONSTANT_AS u32a *in, u32 *out)
-{
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (u32 k = 0; k < 4; k++)
-  {
-    u32 xor4 = 0;
-
-    u8 idx;
-
-    i += 1;
-    j += rc4_key->S[i];
-
-    swap (rc4_key, i, j);
-
-    idx = rc4_key->S[i] + rc4_key->S[j];
-
-    xor4 |= rc4_key->S[idx] <<  0;
-
-    i += 1;
-    j += rc4_key->S[i];
-
-    swap (rc4_key, i, j);
-
-    idx = rc4_key->S[i] + rc4_key->S[j];
-
-    xor4 |= rc4_key->S[idx] <<  8;
-
-    i += 1;
-    j += rc4_key->S[i];
-
-    swap (rc4_key, i, j);
-
-    idx = rc4_key->S[i] + rc4_key->S[j];
-
-    xor4 |= rc4_key->S[idx] << 16;
-
-    i += 1;
-    j += rc4_key->S[i];
-
-    swap (rc4_key, i, j);
-
-    idx = rc4_key->S[i] + rc4_key->S[j];
-
-    xor4 |= rc4_key->S[idx] << 24;
-
-    out[k] = in[k] ^ xor4;
-  }
-
-  return j;
-}
-
-KERNEL_FQ void m10400_m04 (KERN_ATTR_RULES_ESALT (pdf_t))
+KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m10400_m04 (KERN_ATTR_RULES_ESALT (pdf_t))
 {
   /**
    * modifier
@@ -189,12 +70,26 @@ KERNEL_FQ void m10400_m04 (KERN_ATTR_RULES_ESALT (pdf_t))
   const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
+   * constant
+   */
+
+  const u32 padding[8] =
+  {
+    0x5e4ebf28,
+    0x418a754e,
+    0x564e0064,
+    0x0801faff,
+    0xb6002e2e,
+    0x803e68d0,
+    0xfea90c2f,
+    0x7a695364
+  };
+
+  /**
    * shared
    */
 
-  LOCAL_VK RC4_KEY rc4_keys[64];
-
-  LOCAL_AS RC4_KEY *rc4_key = &rc4_keys[lid];
+  LOCAL_VK u32 S[64 * FIXED_LOCAL_SIZE];
 
   /**
    * U_buf
@@ -202,23 +97,23 @@ KERNEL_FQ void m10400_m04 (KERN_ATTR_RULES_ESALT (pdf_t))
 
   u32 o_buf[8];
 
-  o_buf[0] = esalt_bufs[digests_offset].o_buf[0];
-  o_buf[1] = esalt_bufs[digests_offset].o_buf[1];
-  o_buf[2] = esalt_bufs[digests_offset].o_buf[2];
-  o_buf[3] = esalt_bufs[digests_offset].o_buf[3];
-  o_buf[4] = esalt_bufs[digests_offset].o_buf[4];
-  o_buf[5] = esalt_bufs[digests_offset].o_buf[5];
-  o_buf[6] = esalt_bufs[digests_offset].o_buf[6];
-  o_buf[7] = esalt_bufs[digests_offset].o_buf[7];
+  o_buf[0] = esalt_bufs[DIGESTS_OFFSET].o_buf[0];
+  o_buf[1] = esalt_bufs[DIGESTS_OFFSET].o_buf[1];
+  o_buf[2] = esalt_bufs[DIGESTS_OFFSET].o_buf[2];
+  o_buf[3] = esalt_bufs[DIGESTS_OFFSET].o_buf[3];
+  o_buf[4] = esalt_bufs[DIGESTS_OFFSET].o_buf[4];
+  o_buf[5] = esalt_bufs[DIGESTS_OFFSET].o_buf[5];
+  o_buf[6] = esalt_bufs[DIGESTS_OFFSET].o_buf[6];
+  o_buf[7] = esalt_bufs[DIGESTS_OFFSET].o_buf[7];
 
-  u32 P = esalt_bufs[digests_offset].P;
+  u32 P = esalt_bufs[DIGESTS_OFFSET].P;
 
   u32 id_buf[4];
 
-  id_buf[0] = esalt_bufs[digests_offset].id_buf[0];
-  id_buf[1] = esalt_bufs[digests_offset].id_buf[1];
-  id_buf[2] = esalt_bufs[digests_offset].id_buf[2];
-  id_buf[3] = esalt_bufs[digests_offset].id_buf[3];
+  id_buf[0] = esalt_bufs[DIGESTS_OFFSET].id_buf[0];
+  id_buf[1] = esalt_bufs[DIGESTS_OFFSET].id_buf[1];
+  id_buf[2] = esalt_bufs[DIGESTS_OFFSET].id_buf[2];
+  id_buf[3] = esalt_bufs[DIGESTS_OFFSET].id_buf[3];
 
   /**
    * loop
@@ -316,25 +211,25 @@ KERNEL_FQ void m10400_m04 (KERN_ATTR_RULES_ESALT (pdf_t))
     digest[2] = 0;
     digest[3] = 0;
 
-    rc4_init_16 (rc4_key, digest);
+    rc4_init_40 (S, digest);
 
     u32 out[4];
 
-    rc4_next_16 (rc4_key, 0, 0, padding, out);
+    rc4_next_16 (S, 0, 0, padding, out);
 
     COMPARE_M_SIMD (out[0], out[1], out[2], out[3]);
   }
 }
 
-KERNEL_FQ void m10400_m08 (KERN_ATTR_RULES_ESALT (pdf_t))
+KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m10400_m08 (KERN_ATTR_RULES_ESALT (pdf_t))
 {
 }
 
-KERNEL_FQ void m10400_m16 (KERN_ATTR_RULES_ESALT (pdf_t))
+KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m10400_m16 (KERN_ATTR_RULES_ESALT (pdf_t))
 {
 }
 
-KERNEL_FQ void m10400_s04 (KERN_ATTR_RULES_ESALT (pdf_t))
+KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m10400_s04 (KERN_ATTR_RULES_ESALT (pdf_t))
 {
   /**
    * modifier
@@ -365,12 +260,26 @@ KERNEL_FQ void m10400_s04 (KERN_ATTR_RULES_ESALT (pdf_t))
   const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
+   * constant
+   */
+
+  const u32 padding[8] =
+  {
+    0x5e4ebf28,
+    0x418a754e,
+    0x564e0064,
+    0x0801faff,
+    0xb6002e2e,
+    0x803e68d0,
+    0xfea90c2f,
+    0x7a695364
+  };
+
+  /**
    * shared
    */
 
-  LOCAL_VK RC4_KEY rc4_keys[64];
-
-  LOCAL_AS RC4_KEY *rc4_key = &rc4_keys[lid];
+  LOCAL_VK u32 S[64 * FIXED_LOCAL_SIZE];
 
   /**
    * U_buf
@@ -378,23 +287,23 @@ KERNEL_FQ void m10400_s04 (KERN_ATTR_RULES_ESALT (pdf_t))
 
   u32 o_buf[8];
 
-  o_buf[0] = esalt_bufs[digests_offset].o_buf[0];
-  o_buf[1] = esalt_bufs[digests_offset].o_buf[1];
-  o_buf[2] = esalt_bufs[digests_offset].o_buf[2];
-  o_buf[3] = esalt_bufs[digests_offset].o_buf[3];
-  o_buf[4] = esalt_bufs[digests_offset].o_buf[4];
-  o_buf[5] = esalt_bufs[digests_offset].o_buf[5];
-  o_buf[6] = esalt_bufs[digests_offset].o_buf[6];
-  o_buf[7] = esalt_bufs[digests_offset].o_buf[7];
+  o_buf[0] = esalt_bufs[DIGESTS_OFFSET].o_buf[0];
+  o_buf[1] = esalt_bufs[DIGESTS_OFFSET].o_buf[1];
+  o_buf[2] = esalt_bufs[DIGESTS_OFFSET].o_buf[2];
+  o_buf[3] = esalt_bufs[DIGESTS_OFFSET].o_buf[3];
+  o_buf[4] = esalt_bufs[DIGESTS_OFFSET].o_buf[4];
+  o_buf[5] = esalt_bufs[DIGESTS_OFFSET].o_buf[5];
+  o_buf[6] = esalt_bufs[DIGESTS_OFFSET].o_buf[6];
+  o_buf[7] = esalt_bufs[DIGESTS_OFFSET].o_buf[7];
 
-  u32 P = esalt_bufs[digests_offset].P;
+  u32 P = esalt_bufs[DIGESTS_OFFSET].P;
 
   u32 id_buf[4];
 
-  id_buf[0] = esalt_bufs[digests_offset].id_buf[0];
-  id_buf[1] = esalt_bufs[digests_offset].id_buf[1];
-  id_buf[2] = esalt_bufs[digests_offset].id_buf[2];
-  id_buf[3] = esalt_bufs[digests_offset].id_buf[3];
+  id_buf[0] = esalt_bufs[DIGESTS_OFFSET].id_buf[0];
+  id_buf[1] = esalt_bufs[DIGESTS_OFFSET].id_buf[1];
+  id_buf[2] = esalt_bufs[DIGESTS_OFFSET].id_buf[2];
+  id_buf[3] = esalt_bufs[DIGESTS_OFFSET].id_buf[3];
 
   /**
    * digest
@@ -402,10 +311,10 @@ KERNEL_FQ void m10400_s04 (KERN_ATTR_RULES_ESALT (pdf_t))
 
   const u32 search[4] =
   {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
   };
 
   /**
@@ -504,20 +413,20 @@ KERNEL_FQ void m10400_s04 (KERN_ATTR_RULES_ESALT (pdf_t))
     digest[2] = 0;
     digest[3] = 0;
 
-    rc4_init_16 (rc4_key, digest);
+    rc4_init_40 (S, digest);
 
     u32 out[4];
 
-    rc4_next_16 (rc4_key, 0, 0, padding, out);
+    rc4_next_16 (S, 0, 0, padding, out);
 
     COMPARE_S_SIMD (out[0], out[1], out[2], out[3]);
   }
 }
 
-KERNEL_FQ void m10400_s08 (KERN_ATTR_RULES_ESALT (pdf_t))
+KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m10400_s08 (KERN_ATTR_RULES_ESALT (pdf_t))
 {
 }
 
-KERNEL_FQ void m10400_s16 (KERN_ATTR_RULES_ESALT (pdf_t))
+KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m10400_s16 (KERN_ATTR_RULES_ESALT (pdf_t))
 {
 }

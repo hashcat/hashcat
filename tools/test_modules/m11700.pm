@@ -16,18 +16,17 @@ sub module_generate_hash
 
   # PyGOST outputs digests in little-endian order, while the kernels
   # expect them in big-endian; hence the digest[::-1] mirroring.
-  # Using sys.stdout.write instead of print to disable \n character.
   my $python_code = <<"END_CODE";
 
 import binascii
 import sys
 from pygost import gost34112012256
 digest = gost34112012256.new (b"$word").digest ()
-sys.stdout.write (binascii.hexlify (digest[::-1]))
+print (binascii.hexlify (digest[::-1]).decode (), end = "")
 
 END_CODE
 
-  my $hash = `python2 -c '$python_code'`;
+  my $hash = `python3 -c '$python_code'`;
 
   return $hash;
 }

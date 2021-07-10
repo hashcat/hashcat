@@ -16,6 +16,7 @@ int    _wopen       (const char *path, int oflag, ...);
 #endif
 
 bool   hc_fopen     (HCFILE *fp, const char *path, char *mode);
+bool   hc_fopen_raw (HCFILE *fp, const char *path, char *mode);
 int    hc_fscanf    (HCFILE *fp, const char *format, void *ptr);
 int    hc_fprintf   (HCFILE *fp, const char *format, ...);
 int    hc_vfprintf  (HCFILE *fp, const char *format, va_list ap);

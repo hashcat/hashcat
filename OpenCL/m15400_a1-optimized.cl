@@ -268,16 +268,16 @@ KERNEL_FQ void m15400_m04 (KERN_ATTR_ESALT (chacha20_t))
   u32 position[2] = { 0 };
   u32 offset      = 0;
 
-  position[0] = esalt_bufs[digests_offset].position[0];
-  position[1] = esalt_bufs[digests_offset].position[1];
+  position[0] = esalt_bufs[DIGESTS_OFFSET].position[0];
+  position[1] = esalt_bufs[DIGESTS_OFFSET].position[1];
 
-  offset = esalt_bufs[digests_offset].offset;
+  offset = esalt_bufs[DIGESTS_OFFSET].offset;
 
-  iv[0] = esalt_bufs[digests_offset].iv[0];
-  iv[1] = esalt_bufs[digests_offset].iv[1];
+  iv[0] = esalt_bufs[DIGESTS_OFFSET].iv[0];
+  iv[1] = esalt_bufs[DIGESTS_OFFSET].iv[1];
 
-  plain[0] = esalt_bufs[digests_offset].plain[0];
-  plain[1] = esalt_bufs[digests_offset].plain[1];
+  plain[0] = esalt_bufs[DIGESTS_OFFSET].plain[0];
+  plain[1] = esalt_bufs[DIGESTS_OFFSET].plain[1];
 
   /**
    * loop
@@ -398,16 +398,16 @@ KERNEL_FQ void m15400_s04 (KERN_ATTR_ESALT (chacha20_t))
   u32 position[2] = { 0 };
   u32 offset      = 0;
 
-  position[0] = esalt_bufs[digests_offset].position[0];
-  position[1] = esalt_bufs[digests_offset].position[1];
+  position[0] = esalt_bufs[DIGESTS_OFFSET].position[0];
+  position[1] = esalt_bufs[DIGESTS_OFFSET].position[1];
 
-  offset = esalt_bufs[digests_offset].offset;
+  offset = esalt_bufs[DIGESTS_OFFSET].offset;
 
-  iv[0] = esalt_bufs[digests_offset].iv[0];
-  iv[1] = esalt_bufs[digests_offset].iv[1];
+  iv[0] = esalt_bufs[DIGESTS_OFFSET].iv[0];
+  iv[1] = esalt_bufs[DIGESTS_OFFSET].iv[1];
 
-  plain[0] = esalt_bufs[digests_offset].plain[0];
-  plain[1] = esalt_bufs[digests_offset].plain[1];
+  plain[0] = esalt_bufs[DIGESTS_OFFSET].plain[0];
+  plain[1] = esalt_bufs[DIGESTS_OFFSET].plain[1];
 
   /**
    * digest
@@ -415,10 +415,10 @@ KERNEL_FQ void m15400_s04 (KERN_ATTR_ESALT (chacha20_t))
 
   const u32 search[4] =
   {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
   };
 
   /**

@@ -94,7 +94,7 @@ KERNEL_FQ void m23100_init (KERN_ATTR_TMPS_ESALT (keychain_tmp_t, keychain_t))
   tmps[gid].opad[3] = sha1_hmac_ctx.opad.h[3];
   tmps[gid].opad[4] = sha1_hmac_ctx.opad.h[4];
 
-  sha1_hmac_update_global_swap (&sha1_hmac_ctx, salt_bufs[salt_pos].salt_buf, 20);
+  sha1_hmac_update_global_swap (&sha1_hmac_ctx, salt_bufs[SALT_POS].salt_buf, 20);
 
   for (u32 i = 0, j = 1; i < 8; i += 5, j += 1)
   {
@@ -294,13 +294,13 @@ KERNEL_FQ void m23100_comp (KERN_ATTR_TMPS_ESALT (keychain_tmp_t, keychain_t))
 
   u32 iv[2];
 
-  iv[0] = esalt_bufs[digests_offset].data[8];
-  iv[1] = esalt_bufs[digests_offset].data[9];
+  iv[0] = esalt_bufs[DIGESTS_OFFSET].data[8];
+  iv[1] = esalt_bufs[DIGESTS_OFFSET].data[9];
 
   u32 data[2];
 
-  data[0] = esalt_bufs[digests_offset].data[10];
-  data[1] = esalt_bufs[digests_offset].data[11];
+  data[0] = esalt_bufs[DIGESTS_OFFSET].data[10];
+  data[1] = esalt_bufs[DIGESTS_OFFSET].data[11];
 
   // 3DES-CBC (decrypt, encrypt, decrypt):
 
@@ -325,9 +325,9 @@ KERNEL_FQ void m23100_comp (KERN_ATTR_TMPS_ESALT (keychain_tmp_t, keychain_t))
 
   if ((out[1] ^ iv[1]) == 0x04040404) // this check uses very low number of bits => collisions
   {
-    if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
     }
 
     return;

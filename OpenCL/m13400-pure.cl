@@ -38,7 +38,7 @@ typedef struct keepass
 
   /* specific to version 1 */
   u32 contents_len;
-  u32 contents[75000];
+  u32 contents[0x200000];
 
   /* specific to version 2 */
   u32 expected_bytes[8];
@@ -74,7 +74,7 @@ KERNEL_FQ void m13400_init (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
   digest[6] = ctx.h[6];
   digest[7] = ctx.h[7];
 
-  if (esalt_bufs[digests_offset].version == 2 && esalt_bufs[digests_offset].keyfile_len == 0)
+  if (esalt_bufs[DIGESTS_OFFSET].version == 2 && esalt_bufs[DIGESTS_OFFSET].keyfile_len == 0)
   {
     u32 w0[4];
     u32 w1[4];
@@ -114,7 +114,7 @@ KERNEL_FQ void m13400_init (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
     digest[7] = ctx.h[7];
   }
 
-  if (esalt_bufs[digests_offset].keyfile_len != 0)
+  if (esalt_bufs[DIGESTS_OFFSET].keyfile_len != 0)
   {
     u32 w0[4];
     u32 w1[4];
@@ -129,14 +129,14 @@ KERNEL_FQ void m13400_init (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
     w1[1] = digest[5];
     w1[2] = digest[6];
     w1[3] = digest[7];
-    w2[0] = esalt_bufs[digests_offset].keyfile[0];
-    w2[1] = esalt_bufs[digests_offset].keyfile[1];
-    w2[2] = esalt_bufs[digests_offset].keyfile[2];
-    w2[3] = esalt_bufs[digests_offset].keyfile[3];
-    w3[0] = esalt_bufs[digests_offset].keyfile[4];
-    w3[1] = esalt_bufs[digests_offset].keyfile[5];
-    w3[2] = esalt_bufs[digests_offset].keyfile[6];
-    w3[3] = esalt_bufs[digests_offset].keyfile[7];
+    w2[0] = esalt_bufs[DIGESTS_OFFSET].keyfile[0];
+    w2[1] = esalt_bufs[DIGESTS_OFFSET].keyfile[1];
+    w2[2] = esalt_bufs[DIGESTS_OFFSET].keyfile[2];
+    w2[3] = esalt_bufs[DIGESTS_OFFSET].keyfile[3];
+    w3[0] = esalt_bufs[DIGESTS_OFFSET].keyfile[4];
+    w3[1] = esalt_bufs[DIGESTS_OFFSET].keyfile[5];
+    w3[2] = esalt_bufs[DIGESTS_OFFSET].keyfile[6];
+    w3[3] = esalt_bufs[DIGESTS_OFFSET].keyfile[7];
 
     sha256_init (&ctx);
 
@@ -209,14 +209,14 @@ KERNEL_FQ void m13400_loop (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
 
   u32 ukey[8];
 
-  ukey[0] = esalt_bufs[digests_offset].transf_random_seed[0];
-  ukey[1] = esalt_bufs[digests_offset].transf_random_seed[1];
-  ukey[2] = esalt_bufs[digests_offset].transf_random_seed[2];
-  ukey[3] = esalt_bufs[digests_offset].transf_random_seed[3];
-  ukey[4] = esalt_bufs[digests_offset].transf_random_seed[4];
-  ukey[5] = esalt_bufs[digests_offset].transf_random_seed[5];
-  ukey[6] = esalt_bufs[digests_offset].transf_random_seed[6];
-  ukey[7] = esalt_bufs[digests_offset].transf_random_seed[7];
+  ukey[0] = esalt_bufs[DIGESTS_OFFSET].transf_random_seed[0];
+  ukey[1] = esalt_bufs[DIGESTS_OFFSET].transf_random_seed[1];
+  ukey[2] = esalt_bufs[DIGESTS_OFFSET].transf_random_seed[2];
+  ukey[3] = esalt_bufs[DIGESTS_OFFSET].transf_random_seed[3];
+  ukey[4] = esalt_bufs[DIGESTS_OFFSET].transf_random_seed[4];
+  ukey[5] = esalt_bufs[DIGESTS_OFFSET].transf_random_seed[5];
+  ukey[6] = esalt_bufs[DIGESTS_OFFSET].transf_random_seed[6];
+  ukey[7] = esalt_bufs[DIGESTS_OFFSET].transf_random_seed[7];
 
   #define KEYLEN 60
 
@@ -356,12 +356,12 @@ KERNEL_FQ void m13400_comp (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
 
   /* ...then hash final_random_seed | output */
 
-  if (esalt_bufs[digests_offset].version == 1)
+  if (esalt_bufs[DIGESTS_OFFSET].version == 1)
   {
-    w0[0] = esalt_bufs[digests_offset].final_random_seed[0];
-    w0[1] = esalt_bufs[digests_offset].final_random_seed[1];
-    w0[2] = esalt_bufs[digests_offset].final_random_seed[2];
-    w0[3] = esalt_bufs[digests_offset].final_random_seed[3];
+    w0[0] = esalt_bufs[DIGESTS_OFFSET].final_random_seed[0];
+    w0[1] = esalt_bufs[DIGESTS_OFFSET].final_random_seed[1];
+    w0[2] = esalt_bufs[DIGESTS_OFFSET].final_random_seed[2];
+    w0[3] = esalt_bufs[DIGESTS_OFFSET].final_random_seed[3];
     w1[0] = digest[0];
     w1[1] = digest[1];
     w1[2] = digest[2];
@@ -392,14 +392,14 @@ KERNEL_FQ void m13400_comp (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
   }
   else
   {
-    w0[0] = esalt_bufs[digests_offset].final_random_seed[0];
-    w0[1] = esalt_bufs[digests_offset].final_random_seed[1];
-    w0[2] = esalt_bufs[digests_offset].final_random_seed[2];
-    w0[3] = esalt_bufs[digests_offset].final_random_seed[3];
-    w1[0] = esalt_bufs[digests_offset].final_random_seed[4];
-    w1[1] = esalt_bufs[digests_offset].final_random_seed[5];
-    w1[2] = esalt_bufs[digests_offset].final_random_seed[6];
-    w1[3] = esalt_bufs[digests_offset].final_random_seed[7];
+    w0[0] = esalt_bufs[DIGESTS_OFFSET].final_random_seed[0];
+    w0[1] = esalt_bufs[DIGESTS_OFFSET].final_random_seed[1];
+    w0[2] = esalt_bufs[DIGESTS_OFFSET].final_random_seed[2];
+    w0[3] = esalt_bufs[DIGESTS_OFFSET].final_random_seed[3];
+    w1[0] = esalt_bufs[DIGESTS_OFFSET].final_random_seed[4];
+    w1[1] = esalt_bufs[DIGESTS_OFFSET].final_random_seed[5];
+    w1[2] = esalt_bufs[DIGESTS_OFFSET].final_random_seed[6];
+    w1[3] = esalt_bufs[DIGESTS_OFFSET].final_random_seed[7];
     w2[0] = digest[0];
     w2[1] = digest[1];
     w2[2] = digest[2];
@@ -429,23 +429,23 @@ KERNEL_FQ void m13400_comp (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
 
   u32 iv[4];
 
-  iv[0] = esalt_bufs[digests_offset].enc_iv[0];
-  iv[1] = esalt_bufs[digests_offset].enc_iv[1];
-  iv[2] = esalt_bufs[digests_offset].enc_iv[2];
-  iv[3] = esalt_bufs[digests_offset].enc_iv[3];
+  iv[0] = esalt_bufs[DIGESTS_OFFSET].enc_iv[0];
+  iv[1] = esalt_bufs[DIGESTS_OFFSET].enc_iv[1];
+  iv[2] = esalt_bufs[DIGESTS_OFFSET].enc_iv[2];
+  iv[3] = esalt_bufs[DIGESTS_OFFSET].enc_iv[3];
 
   u32 r0 = 0;
   u32 r1 = 0;
   u32 r2 = 0;
   u32 r3 = 0;
 
-  if (esalt_bufs[digests_offset].version == 1)
+  if (esalt_bufs[DIGESTS_OFFSET].version == 1)
   {
     sha256_ctx_t ctx;
 
     sha256_init (&ctx);
 
-    if (esalt_bufs[digests_offset].algorithm == 1)
+    if (esalt_bufs[DIGESTS_OFFSET].algorithm == 1)
     {
       /* Construct final Twofish key */
       u32 sk[4];
@@ -467,7 +467,7 @@ KERNEL_FQ void m13400_comp (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
       iv[2] = hc_swap32_S (iv[2]);
       iv[3] = hc_swap32_S (iv[3]);
 
-      u32 contents_len = esalt_bufs[digests_offset].contents_len;
+      u32 contents_len = esalt_bufs[DIGESTS_OFFSET].contents_len;
 
       u32 contents_pos;
       u32 contents_off;
@@ -478,10 +478,10 @@ KERNEL_FQ void m13400_comp (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
       {
         u32 data[4];
 
-        data[0] = esalt_bufs[digests_offset].contents[contents_off + 0];
-        data[1] = esalt_bufs[digests_offset].contents[contents_off + 1];
-        data[2] = esalt_bufs[digests_offset].contents[contents_off + 2];
-        data[3] = esalt_bufs[digests_offset].contents[contents_off + 3];
+        data[0] = esalt_bufs[DIGESTS_OFFSET].contents[contents_off + 0];
+        data[1] = esalt_bufs[DIGESTS_OFFSET].contents[contents_off + 1];
+        data[2] = esalt_bufs[DIGESTS_OFFSET].contents[contents_off + 2];
+        data[3] = esalt_bufs[DIGESTS_OFFSET].contents[contents_off + 3];
 
         data[0] = hc_swap32_S (data[0]);
         data[1] = hc_swap32_S (data[1]);
@@ -524,10 +524,10 @@ KERNEL_FQ void m13400_comp (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
 
       u32 data[4];
 
-      data[0] = esalt_bufs[digests_offset].contents[contents_off + 0];
-      data[1] = esalt_bufs[digests_offset].contents[contents_off + 1];
-      data[2] = esalt_bufs[digests_offset].contents[contents_off + 2];
-      data[3] = esalt_bufs[digests_offset].contents[contents_off + 3];
+      data[0] = esalt_bufs[DIGESTS_OFFSET].contents[contents_off + 0];
+      data[1] = esalt_bufs[DIGESTS_OFFSET].contents[contents_off + 1];
+      data[2] = esalt_bufs[DIGESTS_OFFSET].contents[contents_off + 2];
+      data[3] = esalt_bufs[DIGESTS_OFFSET].contents[contents_off + 3];
 
       data[0] = hc_swap32_S (data[0]);
       data[1] = hc_swap32_S (data[1]);
@@ -578,7 +578,7 @@ KERNEL_FQ void m13400_comp (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
 
       AES256_set_decrypt_key (ks, digest, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
-      u32 contents_len = esalt_bufs[digests_offset].contents_len;
+      u32 contents_len = esalt_bufs[DIGESTS_OFFSET].contents_len;
 
       u32 contents_pos;
       u32 contents_off;
@@ -587,10 +587,10 @@ KERNEL_FQ void m13400_comp (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
       {
         u32 data[4];
 
-        data[0] = esalt_bufs[digests_offset].contents[contents_off + 0];
-        data[1] = esalt_bufs[digests_offset].contents[contents_off + 1];
-        data[2] = esalt_bufs[digests_offset].contents[contents_off + 2];
-        data[3] = esalt_bufs[digests_offset].contents[contents_off + 3];
+        data[0] = esalt_bufs[DIGESTS_OFFSET].contents[contents_off + 0];
+        data[1] = esalt_bufs[DIGESTS_OFFSET].contents[contents_off + 1];
+        data[2] = esalt_bufs[DIGESTS_OFFSET].contents[contents_off + 2];
+        data[3] = esalt_bufs[DIGESTS_OFFSET].contents[contents_off + 3];
 
         u32 out[4];
 
@@ -623,10 +623,10 @@ KERNEL_FQ void m13400_comp (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
 
       u32 data[4];
 
-      data[0] = esalt_bufs[digests_offset].contents[contents_off + 0];
-      data[1] = esalt_bufs[digests_offset].contents[contents_off + 1];
-      data[2] = esalt_bufs[digests_offset].contents[contents_off + 2];
-      data[3] = esalt_bufs[digests_offset].contents[contents_off + 3];
+      data[0] = esalt_bufs[DIGESTS_OFFSET].contents[contents_off + 0];
+      data[1] = esalt_bufs[DIGESTS_OFFSET].contents[contents_off + 1];
+      data[2] = esalt_bufs[DIGESTS_OFFSET].contents[contents_off + 2];
+      data[3] = esalt_bufs[DIGESTS_OFFSET].contents[contents_off + 3];
 
       u32 out[4];
 
@@ -677,10 +677,10 @@ KERNEL_FQ void m13400_comp (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
 
     u32 data[4];
 
-    data[0] = esalt_bufs[digests_offset].contents_hash[0];
-    data[1] = esalt_bufs[digests_offset].contents_hash[1];
-    data[2] = esalt_bufs[digests_offset].contents_hash[2];
-    data[3] = esalt_bufs[digests_offset].contents_hash[3];
+    data[0] = esalt_bufs[DIGESTS_OFFSET].contents_hash[0];
+    data[1] = esalt_bufs[DIGESTS_OFFSET].contents_hash[1];
+    data[2] = esalt_bufs[DIGESTS_OFFSET].contents_hash[2];
+    data[3] = esalt_bufs[DIGESTS_OFFSET].contents_hash[3];
 
     u32 out[4];
 

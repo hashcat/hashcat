@@ -43,6 +43,27 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
+bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
+{
+  // Intel(R) Xeon(R) W-3223 CPU @ 3.50GHz; OpenCL C 1.2; 11.3.1; 20E241
+  if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU))
+  {
+    return true;
+  }
+
+  // amdgpu-pro-20.50-1234664-ubuntu-20.04 (legacy)
+  // test_1619943729/test_report.log:! unhandled return code 255, cmdline : cat test_1619943729/1500_passwords.txt | ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -O -D 2 --backend-vector-width 1 -a 0 -m 1500 test_1619943729/1500_hashes.txt
+  // test_1619950656/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -O -D 2 --backend-vector-width 4 -a 3 -m 1500 --increment --increment-min 1 --increment-max 8 test_1619950656/1500_multihash_bruteforce.txt ?d?d?d?d?d?d?d?d
+  // test_1619955152/test_report.log:! unhandled return code 255, cmdline : cat test_1619955152/1500_passwords.txt | ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 0 -m 1500 test_1619955152/1500_hashes.txt
+  // test_1619967069/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 3 -m 1500 --increment --increment-min 1 --increment-max 8 test_1619967069/1500_multihash_bruteforce.txt ?d?d?d?d?d?d?d?d
+  if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
+  {
+    return true;
+  }
+
+  return false;
+}
+
 int module_build_plain_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const void *tmps, const u32 *src_buf, MAYBE_UNUSED const size_t src_sz, MAYBE_UNUSED const int src_len, u32 *dst_buf, MAYBE_UNUSED const size_t dst_sz)
 {
   u8 *ptr_src = (u8 *) src_buf;
@@ -299,6 +320,9 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hashes_count_min         = MODULE_DEFAULT;
   module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
   module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_size    = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_init    = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_term    = MODULE_DEFAULT;
   module_ctx->module_hook12                   = MODULE_DEFAULT;
   module_ctx->module_hook23                   = MODULE_DEFAULT;
   module_ctx->module_hook_salt_size           = MODULE_DEFAULT;
@@ -330,6 +354,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_hash                  = module_st_hash;
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = MODULE_DEFAULT;
-  module_ctx->module_unstable_warning         = MODULE_DEFAULT;
+  module_ctx->module_unstable_warning         = module_unstable_warning;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

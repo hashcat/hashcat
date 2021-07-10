@@ -39,7 +39,7 @@ sub module_verify_hash
   my $signature    = substr ($hash, 0, 9);
   my $plain_base64 = substr ($hash, 9);
 
-  return unless ($signature eq "{SSHA256}"); 
+  return unless ($signature eq "{SSHA256}");
   return unless defined $plain_base64;
 
   # base64 decode to extract salt

@@ -230,10 +230,10 @@ KERNEL_FQ void m22100_loop (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
   u32x t2[4];
   u32x t3[4];
 
-  t0[0] = salt_bufs[salt_pos].salt_buf[0];
-  t0[1] = salt_bufs[salt_pos].salt_buf[1];
-  t0[2] = salt_bufs[salt_pos].salt_buf[2];
-  t0[3] = salt_bufs[salt_pos].salt_buf[3];
+  t0[0] = salt_bufs[SALT_POS].salt_buf[0];
+  t0[1] = salt_bufs[SALT_POS].salt_buf[1];
+  t0[2] = salt_bufs[SALT_POS].salt_buf[2];
+  t0[3] = salt_bufs[SALT_POS].salt_buf[3];
   t1[0] = 0;
   t1[1] = 0;
   t1[2] = 0x80000000;
@@ -280,7 +280,7 @@ KERNEL_FQ void m22100_loop (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
        {
          for (int j = 0; j < 48; j++) // first 16 set to register
          {
-           s_wb_ke_pc[i][j] = esalt_bufs[digests_offset].wb_ke_pc[loop_pos + t + i][j];
+           s_wb_ke_pc[i][j] = esalt_bufs[DIGESTS_OFFSET].wb_ke_pc[loop_pos + t + i][j];
          }
        }
 
@@ -292,7 +292,7 @@ KERNEL_FQ void m22100_loop (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
       {
         for (int j = 0; j < 48; j++) // first 16 set to register
         {
-          s_wb_ke_pc[i][j] = esalt_bufs[digests_offset].wb_ke_pc[loop_pos + t + i][j];
+          s_wb_ke_pc[i][j] = esalt_bufs[DIGESTS_OFFSET].wb_ke_pc[loop_pos + t + i][j];
         }
       }
     }
@@ -301,7 +301,7 @@ KERNEL_FQ void m22100_loop (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
 
     #else
 
-    s_wb_ke_pc = &esalt_bufs[digests_offset].wb_ke_pc[loop_pos + t];
+    s_wb_ke_pc = &esalt_bufs[DIGESTS_OFFSET].wb_ke_pc[loop_pos + t];
 
     #endif
 
@@ -433,10 +433,10 @@ KERNEL_FQ void m22100_comp (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
 
   u32 iv[4];
 
-  iv[0] = esalt_bufs[digests_offset].iv[0];
-  iv[1] = esalt_bufs[digests_offset].iv[1];
-  iv[2] = esalt_bufs[digests_offset].iv[2];
-  iv[3] = esalt_bufs[digests_offset].iv[3];
+  iv[0] = esalt_bufs[DIGESTS_OFFSET].iv[0];
+  iv[1] = esalt_bufs[DIGESTS_OFFSET].iv[1];
+  iv[2] = esalt_bufs[DIGESTS_OFFSET].iv[2];
+  iv[3] = esalt_bufs[DIGESTS_OFFSET].iv[3];
 
   // in total we've 60 bytes: we need out0 (16 bytes) to out3 (16 bytes) for MAC verification
 
@@ -448,17 +448,17 @@ KERNEL_FQ void m22100_comp (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
 
   // some early reject:
 
-  out1[0] ^= esalt_bufs[digests_offset].data[4]; // skip MAC for now (first 16 bytes)
+  out1[0] ^= esalt_bufs[DIGESTS_OFFSET].data[4]; // skip MAC for now (first 16 bytes)
 
   if ((out1[0] & 0xffff0000) != 0x2c000000) return; // data_size must be 0x2c00
 
 
-  out1[1] ^= esalt_bufs[digests_offset].data[5];
+  out1[1] ^= esalt_bufs[DIGESTS_OFFSET].data[5];
 
   if ((out1[1] & 0xffff0000) != 0x01000000) return; // version must be 0x0100
 
 
-  out1[2] ^= esalt_bufs[digests_offset].data[6];
+  out1[2] ^= esalt_bufs[DIGESTS_OFFSET].data[6];
 
   if ((out1[2] & 0x00ff0000) != 0x00200000) return; // v2 must be 0x20
 
@@ -466,19 +466,19 @@ KERNEL_FQ void m22100_comp (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
 
   // if no MAC verification should be performed, we are already done:
 
-  u32 type = esalt_bufs[digests_offset].type;
+  u32 type = esalt_bufs[DIGESTS_OFFSET].type;
 
   if (type == 0)
   {
-    if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
     }
 
     return;
   }
 
-  out1[3] ^= esalt_bufs[digests_offset].data[7];
+  out1[3] ^= esalt_bufs[DIGESTS_OFFSET].data[7];
 
   /*
    * Decrypt the whole data buffer for MAC verification (type == 1):
@@ -492,10 +492,10 @@ KERNEL_FQ void m22100_comp (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
 
   AES256_encrypt (ks, iv, out0, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-  out0[0] ^= esalt_bufs[digests_offset].data[0];
-  out0[1] ^= esalt_bufs[digests_offset].data[1];
-  out0[2] ^= esalt_bufs[digests_offset].data[2];
-  out0[3] ^= esalt_bufs[digests_offset].data[3];
+  out0[0] ^= esalt_bufs[DIGESTS_OFFSET].data[0];
+  out0[1] ^= esalt_bufs[DIGESTS_OFFSET].data[1];
+  out0[2] ^= esalt_bufs[DIGESTS_OFFSET].data[2];
+  out0[3] ^= esalt_bufs[DIGESTS_OFFSET].data[3];
 
   // 2
 
@@ -507,10 +507,10 @@ KERNEL_FQ void m22100_comp (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
 
   AES256_encrypt (ks, iv, out2, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-  out2[0] ^= esalt_bufs[digests_offset].data[ 8];
-  out2[1] ^= esalt_bufs[digests_offset].data[ 9];
-  out2[2] ^= esalt_bufs[digests_offset].data[10];
-  out2[3] ^= esalt_bufs[digests_offset].data[11];
+  out2[0] ^= esalt_bufs[DIGESTS_OFFSET].data[ 8];
+  out2[1] ^= esalt_bufs[DIGESTS_OFFSET].data[ 9];
+  out2[2] ^= esalt_bufs[DIGESTS_OFFSET].data[10];
+  out2[3] ^= esalt_bufs[DIGESTS_OFFSET].data[11];
 
   // 3
 
@@ -520,9 +520,9 @@ KERNEL_FQ void m22100_comp (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
 
   AES256_encrypt (ks, iv, out3, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-  out3[0] ^= esalt_bufs[digests_offset].data[12];
-  out3[1] ^= esalt_bufs[digests_offset].data[13];
-  out3[2] ^= esalt_bufs[digests_offset].data[14];
+  out3[0] ^= esalt_bufs[DIGESTS_OFFSET].data[12];
+  out3[1] ^= esalt_bufs[DIGESTS_OFFSET].data[13];
+  out3[2] ^= esalt_bufs[DIGESTS_OFFSET].data[14];
 
   // compute MAC:
 
@@ -569,8 +569,8 @@ KERNEL_FQ void m22100_comp (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
 
   // if we end up here, we are sure to have found the correct password:
 
-  if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+  if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
   {
-    mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, 0, 0, 0);
+    mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
   }
 }

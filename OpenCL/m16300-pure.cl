@@ -479,7 +479,7 @@ KERNEL_FQ void m16300_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, ethereum_
    * aes init
    */
 
-  #define KEYLEN 60
+  #define KEYLEN 44
 
   u32 ks[KEYLEN];
 
@@ -487,17 +487,17 @@ KERNEL_FQ void m16300_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, ethereum_
 
   u32 iv[4];
 
-  iv[0] = esalt_bufs[digests_offset].iv[0];
-  iv[1] = esalt_bufs[digests_offset].iv[1];
-  iv[2] = esalt_bufs[digests_offset].iv[2];
-  iv[3] = esalt_bufs[digests_offset].iv[3];
+  iv[0] = esalt_bufs[DIGESTS_OFFSET].iv[0];
+  iv[1] = esalt_bufs[DIGESTS_OFFSET].iv[1];
+  iv[2] = esalt_bufs[DIGESTS_OFFSET].iv[2];
+  iv[3] = esalt_bufs[DIGESTS_OFFSET].iv[3];
 
   u32 a = iv[0];
   u32 b = iv[1];
   u32 c = iv[2];
   u32 d = iv[3];
 
-  u32 enc_seed_len = esalt_bufs[digests_offset].enc_seed_len;
+  u32 enc_seed_len = esalt_bufs[DIGESTS_OFFSET].enc_seed_len;
 
   u64 seed[76 + 1]; // we need the + 1 to add the final \x02
 
@@ -508,10 +508,10 @@ KERNEL_FQ void m16300_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, ethereum_
   {
     u32 data[4];
 
-    data[0] = esalt_bufs[digests_offset].enc_seed[loop_idx + 0];
-    data[1] = esalt_bufs[digests_offset].enc_seed[loop_idx + 1];
-    data[2] = esalt_bufs[digests_offset].enc_seed[loop_idx + 2];
-    data[3] = esalt_bufs[digests_offset].enc_seed[loop_idx + 3];
+    data[0] = esalt_bufs[DIGESTS_OFFSET].enc_seed[loop_idx + 0];
+    data[1] = esalt_bufs[DIGESTS_OFFSET].enc_seed[loop_idx + 1];
+    data[2] = esalt_bufs[DIGESTS_OFFSET].enc_seed[loop_idx + 2];
+    data[3] = esalt_bufs[DIGESTS_OFFSET].enc_seed[loop_idx + 3];
 
     u32 out[4];
 

@@ -36,7 +36,7 @@ KERNEL_FQ void m10300_init (KERN_ATTR_TMPS (saph_sha1_tmp_t))
 
   sha1_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
-  sha1_update_global_swap (&ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
+  sha1_update_global_swap (&ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
 
   sha1_final (&ctx);
 

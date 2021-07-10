@@ -65,7 +65,7 @@ sub module_generate_hash
       literal_key => 1,
       header      => "none",
       keysize     => 16,
-      padding     => "null",
+      padding     => "none",
     });
 
     my $data = $aes->encrypt ($data);

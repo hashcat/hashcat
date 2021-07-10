@@ -12,13 +12,26 @@
 
 static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kernel_accel, const u32 kernel_loops)
 {
-  hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  user_options_t *user_options = hashcat_ctx->user_options;
 
   device_param->kernel_params_buf32[28] = 0;
   device_param->kernel_params_buf32[29] = kernel_loops; // not a bug, both need to be set
   device_param->kernel_params_buf32[30] = kernel_loops; // because there's two variables for inner iters for slow and fast hashes
 
-  const u32 kernel_power_try = device_param->hardware_power * kernel_accel;
+  u32 kernel_power_try = device_param->hardware_power * kernel_accel;
+
+  if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+  {
+    hashes_t *hashes = hashcat_ctx->hashes;
+
+    const u32 salts_cnt = hashes->salts_cnt;
+
+    if (kernel_power_try > salts_cnt)
+    {
+      kernel_power_try = salts_cnt;
+    }
+  }
 
   const double spin_damp_sav = device_param->spin_damp;
 
@@ -28,16 +41,16 @@ static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
   {
     if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
     {
-      run_kernel (hashcat_ctx, device_param, KERN_RUN_1, kernel_power_try, true, 0);
+      run_kernel (hashcat_ctx, device_param, KERN_RUN_1, 0, kernel_power_try, true, 0);
     }
     else
     {
-      run_kernel (hashcat_ctx, device_param, KERN_RUN_4, kernel_power_try, true, 0);
+      run_kernel (hashcat_ctx, device_param, KERN_RUN_4, 0, kernel_power_try, true, 0);
     }
   }
   else
   {
-    run_kernel (hashcat_ctx, device_param, KERN_RUN_2, kernel_power_try, true, 0);
+    run_kernel (hashcat_ctx, device_param, KERN_RUN_2, 0, kernel_power_try, true, 0);
   }
 
   device_param->spin_damp = spin_damp_sav;
@@ -70,20 +83,20 @@ static double try_run_preferred (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
     {
       device_param->kernel_threads = device_param->kernel_preferred_wgs_multiple1;
 
-      run_kernel (hashcat_ctx, device_param, KERN_RUN_1, kernel_power_try, true, 0);
+      run_kernel (hashcat_ctx, device_param, KERN_RUN_1, 0, kernel_power_try, true, 0);
     }
     else
     {
       device_param->kernel_threads = device_param->kernel_preferred_wgs_multiple4;
 
-      run_kernel (hashcat_ctx, device_param, KERN_RUN_4, kernel_power_try, true, 0);
+      run_kernel (hashcat_ctx, device_param, KERN_RUN_4, 0, kernel_power_try, true, 0);
     }
   }
   else
   {
     device_param->kernel_threads = device_param->kernel_preferred_wgs_multiple2;
 
-    run_kernel (hashcat_ctx, device_param, KERN_RUN_2, kernel_power_try, true, 0);
+    run_kernel (hashcat_ctx, device_param, KERN_RUN_2, 0, kernel_power_try, true, 0);
   }
 
   device_param->kernel_threads = kernel_threads_sav;
