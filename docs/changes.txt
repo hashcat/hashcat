@@ -18,6 +18,8 @@
 ##
 
 - Added option --markov-inverse to inverse markov statistics, with the idea of reversing the order of the password candidates
+- Added temperature watchdog and fanspeed readings for CPU and GPU on macOS using iokit
+- Added temperature watchdog for CPU on linux using sysfs
 
 ##
 ## Bugs
@@ -31,12 +33,6 @@
 - Fixed memory leak in iconv_ctx and iconv_tmp in backend.c
 - Fixed missing option to automatically disable kernel cache in -m 25600 and -m 25800
 - Fixed out-of-boundary write in slow candidates mode in combinator attack
-
-##
-## Features
-##
-
-- Added temperature watchdog and fanspeed readings for CPU and GPU on macOS using iokit
 
 ##
 ## Improvements

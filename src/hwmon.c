@@ -269,6 +269,20 @@ int hm_get_temperature_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int b
         }
       }
       #endif
+
+      if (hwmon_ctx->hm_sysfs_cpu)
+      {
+        int temperature = 0;
+
+        if (hm_SYSFS_CPU_get_temperature_current (hashcat_ctx, &temperature) == -1)
+        {
+          hwmon_ctx->hm_device[backend_device_idx].temperature_get_supported = false;
+
+          return -1;
+        }
+
+        return temperature;
+      }
     }
 
     if (backend_ctx->devices_param[backend_device_idx].opencl_device_type & CL_DEVICE_TYPE_GPU)
@@ -1066,6 +1080,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
   hm_attrs_t *hm_adapters_nvapi         = (hm_attrs_t *) hccalloc (DEVICES_MAX, sizeof (hm_attrs_t));
   hm_attrs_t *hm_adapters_nvml          = (hm_attrs_t *) hccalloc (DEVICES_MAX, sizeof (hm_attrs_t));
   hm_attrs_t *hm_adapters_sysfs_amdgpu  = (hm_attrs_t *) hccalloc (DEVICES_MAX, sizeof (hm_attrs_t));
+  hm_attrs_t *hm_adapters_sysfs_cpu     = (hm_attrs_t *) hccalloc (DEVICES_MAX, sizeof (hm_attrs_t));
   hm_attrs_t *hm_adapters_iokit         = (hm_attrs_t *) hccalloc (DEVICES_MAX, sizeof (hm_attrs_t));
 
   #define FREE_ADAPTERS                \
@@ -1074,6 +1089,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
     hcfree (hm_adapters_nvapi);        \
     hcfree (hm_adapters_nvml);         \
     hcfree (hm_adapters_sysfs_amdgpu); \
+    hcfree (hm_adapters_sysfs_cpu);    \
     hcfree (hm_adapters_iokit);        \
   } while (0)
 
@@ -1131,6 +1147,18 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
       hcfree (hwmon_ctx->hm_sysfs_amdgpu);
 
       hwmon_ctx->hm_sysfs_amdgpu = NULL;
+    }
+  }
+
+  if (backend_ctx->need_sysfs_cpu == true)
+  {
+    hwmon_ctx->hm_sysfs_cpu = (SYSFS_CPU_PTR *) hcmalloc (sizeof (SYSFS_CPU_PTR));
+
+    if (sysfs_cpu_init (hashcat_ctx) == false)
+    {
+      hcfree (hwmon_ctx->hm_sysfs_cpu);
+
+      hwmon_ctx->hm_sysfs_cpu = NULL;
     }
   }
 
@@ -1425,6 +1453,42 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
+  if (hwmon_ctx->hm_sysfs_cpu)
+  {
+    if (true)
+    {
+      for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+      {
+        hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+
+        if (device_param->skipped == true) continue;
+
+        if (device_param->is_cuda == true)
+        {
+          // nothing to do
+        }
+
+        if (device_param->is_opencl == true)
+        {
+          const u32 device_id = device_param->device_id;
+
+          if ((device_param->opencl_device_type & CL_DEVICE_TYPE_CPU) == 0) continue;
+
+          if (hwmon_ctx->hm_sysfs_cpu)
+          {
+            hm_adapters_sysfs_cpu[device_id].buslanes_get_supported    = false;
+            hm_adapters_sysfs_cpu[device_id].corespeed_get_supported   = false;
+            hm_adapters_sysfs_cpu[device_id].fanspeed_get_supported    = false;
+            hm_adapters_sysfs_cpu[device_id].fanpolicy_get_supported   = false;
+            hm_adapters_sysfs_cpu[device_id].memoryspeed_get_supported = false;
+            hm_adapters_sysfs_cpu[device_id].temperature_get_supported = true;
+            hm_adapters_sysfs_cpu[device_id].utilization_get_supported = false;
+          }
+        }
+      }
+    }
+  }
+
   #if defined(__APPLE__)
   if (backend_ctx->need_iokit == true)
   {
@@ -1440,7 +1504,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
   #endif
 
 
-  if (hwmon_ctx->hm_adl == NULL && hwmon_ctx->hm_nvml == NULL && hwmon_ctx->hm_sysfs_amdgpu == NULL && hwmon_ctx->hm_iokit == NULL)
+  if (hwmon_ctx->hm_adl == NULL && hwmon_ctx->hm_nvml == NULL && hwmon_ctx->hm_sysfs_amdgpu == NULL && hwmon_ctx->hm_sysfs_cpu == NULL && hwmon_ctx->hm_iokit == NULL)
   {
     FREE_ADAPTERS;
 
@@ -1473,6 +1537,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     hwmon_ctx->hm_device[backend_devices_idx].adl           = 0;
     hwmon_ctx->hm_device[backend_devices_idx].sysfs_amdgpu  = 0;
+    hwmon_ctx->hm_device[backend_devices_idx].sysfs_cpu     = 0;
     hwmon_ctx->hm_device[backend_devices_idx].iokit         = 0;
     hwmon_ctx->hm_device[backend_devices_idx].nvapi         = 0;
     hwmon_ctx->hm_device[backend_devices_idx].nvml          = 0;
@@ -1535,8 +1600,21 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
           }
         }
         #endif
-      }
 
+        if (hwmon_ctx->hm_sysfs_cpu)
+        {
+          hwmon_ctx->hm_device[backend_devices_idx].buslanes_get_supported            |= hm_adapters_sysfs_cpu[device_id].buslanes_get_supported;
+          hwmon_ctx->hm_device[backend_devices_idx].corespeed_get_supported           |= hm_adapters_sysfs_cpu[device_id].corespeed_get_supported;
+          hwmon_ctx->hm_device[backend_devices_idx].fanspeed_get_supported            |= hm_adapters_sysfs_cpu[device_id].fanspeed_get_supported;
+          hwmon_ctx->hm_device[backend_devices_idx].fanpolicy_get_supported           |= hm_adapters_sysfs_cpu[device_id].fanpolicy_get_supported;
+          hwmon_ctx->hm_device[backend_devices_idx].memoryspeed_get_supported         |= hm_adapters_sysfs_cpu[device_id].memoryspeed_get_supported;
+          hwmon_ctx->hm_device[backend_devices_idx].temperature_get_supported         |= hm_adapters_sysfs_cpu[device_id].temperature_get_supported;
+          hwmon_ctx->hm_device[backend_devices_idx].threshold_shutdown_get_supported  |= hm_adapters_sysfs_cpu[device_id].threshold_shutdown_get_supported;
+          hwmon_ctx->hm_device[backend_devices_idx].threshold_slowdown_get_supported  |= hm_adapters_sysfs_cpu[device_id].threshold_slowdown_get_supported;
+          hwmon_ctx->hm_device[backend_devices_idx].throttle_get_supported            |= hm_adapters_sysfs_cpu[device_id].throttle_get_supported;
+          hwmon_ctx->hm_device[backend_devices_idx].utilization_get_supported         |= hm_adapters_sysfs_cpu[device_id].utilization_get_supported;
+        }
+      }
 
       if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
       {
@@ -1684,6 +1762,11 @@ void hwmon_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
   if (hwmon_ctx->hm_sysfs_amdgpu)
   {
     sysfs_amdgpu_close (hashcat_ctx);
+  }
+
+  if (hwmon_ctx->hm_sysfs_cpu)
+  {
+    sysfs_cpu_close (hashcat_ctx);
   }
 
   #if defined (__APPLE__)

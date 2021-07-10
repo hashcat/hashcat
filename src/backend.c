@@ -5684,6 +5684,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
   bool need_nvml          = false;
   bool need_nvapi         = false;
   bool need_sysfs_amdgpu  = false;
+  bool need_sysfs_cpu     = false;
   bool need_iokit         = false;
 
   int backend_devices_idx = 0;
@@ -6727,6 +6728,10 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
             }
           }
           #endif
+
+          #if defined (__linux__)
+          need_sysfs_cpu = true;
+          #endif
         }
 
         if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
@@ -7403,6 +7408,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
   backend_ctx->need_nvml          = need_nvml;
   backend_ctx->need_nvapi         = need_nvapi;
   backend_ctx->need_sysfs_amdgpu  = need_sysfs_amdgpu;
+  backend_ctx->need_sysfs_cpu     = need_sysfs_cpu;
   backend_ctx->need_iokit         = need_iokit;
 
   backend_ctx->comptime = comptime;
@@ -7450,6 +7456,7 @@ void backend_ctx_devices_destroy (hashcat_ctx_t *hashcat_ctx)
   backend_ctx->need_nvml          = false;
   backend_ctx->need_nvapi         = false;
   backend_ctx->need_sysfs_amdgpu  = false;
+  backend_ctx->need_sysfs_cpu     = false;
   backend_ctx->need_iokit         = false;
 }
 
