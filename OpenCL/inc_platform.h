@@ -21,7 +21,7 @@ DECLSPEC u64  rotl64_S (const u64  a, const int n);
 DECLSPEC u64  rotr64_S (const u64  a, const int n);
 #endif
 
-#ifdef IS_CUDA
+#if defined IS_CUDA || defined IS_HIP
 DECLSPEC u32 hc_atomic_dec (volatile GLOBAL_AS u32 *p);
 DECLSPEC u32 hc_atomic_inc (volatile GLOBAL_AS u32 *p);
 DECLSPEC u32 hc_atomic_or  (volatile GLOBAL_AS u32 *p, volatile const u32 val);
@@ -39,7 +39,10 @@ DECLSPEC u64x rotr64   (const u64x a, const int n);
 DECLSPEC u64  rotl64_S (const u64  a, const int n);
 DECLSPEC u64  rotr64_S (const u64  a, const int n);
 
-//#define rotate(a,n) (((a) << (n)) | ((a) >> (32 - (n))))
+#ifdef IS_HIP
+#define rotate(a,n) (((a) << (n)) | ((a) >> (32 - (n))))
+#endif
+
 #define bitselect(a,b,c) ((a) ^ ((c) & ((b) ^ (a))))
 #endif
 

@@ -26,7 +26,7 @@
  *   - P19: Type of the esalt_bufs structure with additional data, or void.
  */
 
-#ifdef IS_CUDA
+#if defined IS_CUDA || defined IS_HIP
 #define KERN_ATTR(p2,p4,p5,p6,p19)                                  \
   MAYBE_UNUSED GLOBAL_AS       pw_t          *pws,                  \
   MAYBE_UNUSED p2        const kernel_rule_t *g_rules_buf,          \
@@ -105,6 +105,7 @@
   MAYBE_UNUSED           const u64            pws_pos,              \
   MAYBE_UNUSED           const u64            gid_max
 #endif
+
 /*
  * Shortcut macros for usage in the actual kernels
  *
@@ -113,7 +114,7 @@
  * do not use rules or tmps, etc.
  */
 
-#ifdef IS_CUDA
+#if defined IS_CUDA || defined IS_HIP
 #define KERN_ATTR_BASIC()                 KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, void)
 #define KERN_ATTR_BITSLICE()              KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bs_word_t *g_words_buf_s, void, void, void)
 #define KERN_ATTR_ESALT(e)                KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, e)
