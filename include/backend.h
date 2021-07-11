@@ -112,7 +112,7 @@ int hc_hipEventQuery             (hashcat_ctx_t *hashcat_ctx, HIPevent hEvent);
 int hc_hipEventRecord            (hashcat_ctx_t *hashcat_ctx, HIPevent hEvent, HIPstream hStream);
 int hc_hipEventSynchronize       (hashcat_ctx_t *hashcat_ctx, HIPevent hEvent);
 int hc_hipFuncGetAttribute       (hashcat_ctx_t *hashcat_ctx, int *pi, HIPfunction_attribute attrib, HIPfunction hfunc);
-int hc_hipFuncSetAttribute       (hashcat_ctx_t *hashcat_ctx, HIPfunction hfunc, HIPfunction_attribute attrib, int value);
+//int hc_hipFuncSetAttribute       (hashcat_ctx_t *hashcat_ctx, HIPfunction hfunc, HIPfunction_attribute attrib, int value);
 int hc_hipInit                   (hashcat_ctx_t *hashcat_ctx, unsigned int Flags);
 int hc_hipLaunchKernel           (hashcat_ctx_t *hashcat_ctx, HIPfunction f, unsigned int gridDimX, unsigned int gridDimY, unsigned int gridDimZ, unsigned int blockDimX, unsigned int blockDimY, unsigned int blockDimZ, unsigned int sharedMemBytes, HIPstream hStream, void **kernelParams, void **extra);
 int hc_hipMemAlloc               (hashcat_ctx_t *hashcat_ctx, HIPdeviceptr *dptr, size_t bytesize);
