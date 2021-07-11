@@ -956,6 +956,10 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
   if (user_options->machine_readable == true) return;
   if (user_options->status_json      == true) return;
 
+  /**
+   * CUDA
+   */
+
   if (backend_ctx->cuda)
   {
     int cuda_devices_cnt    = backend_ctx->cuda_devices_cnt;
@@ -1003,9 +1007,10 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
     event_log_info (hashcat_ctx, NULL);
   }
 
-  /*
-  * HIP
-  */
+  /**
+   * HIP
+   */
+
   if (backend_ctx->hip)
   {
     int hip_devices_cnt    = backend_ctx->hip_devices_cnt;
@@ -1053,9 +1058,10 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
     event_log_info (hashcat_ctx, NULL);
   }
 
-  /*
-  * OCL
-  */
+  /**
+   * OpenCL
+   */
+
   if (backend_ctx->ocl)
   {
     cl_uint   opencl_platforms_cnt         = backend_ctx->opencl_platforms_cnt;

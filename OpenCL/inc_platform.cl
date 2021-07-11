@@ -168,7 +168,7 @@ DECLSPEC u64 rotr64_S (const u64 a, const int n)
 
 #if ATTACK_EXEC == 11
 
-CONSTANT_VK u32 generic_constant[8192]; // 32k
+CONSTANT_VK u32 generic_constant[8192] __attribute__((used)); // 32k
 
 #if   ATTACK_KERN == 0
 #define bfs_buf     g_bfs_buf
