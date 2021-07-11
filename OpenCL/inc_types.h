@@ -16,12 +16,12 @@
 #define DIGESTS_OFFSET digests_offset_host
 #endif
 
-#if defined IS_CUDA || defined IS_HIP
+#ifdef IS_CUDA
 //https://docs.nvidia.com/cuda/nvrtc/index.html#integer-size
 typedef unsigned char      uchar;
 typedef unsigned short     ushort;
 typedef unsigned int       uint;
-typedef unsigned long long xulong;
+typedef unsigned long long ulong;
 #endif
 
 #ifdef KERNEL_STATIC
@@ -68,7 +68,7 @@ typedef u64  u64x;
 #define make_u64x (u64)
 
 #else
-#if defined IS_CUDA || defined IS_HIP
+#if defined IS_CUDA
 
 #if VECT_SIZE == 2
 

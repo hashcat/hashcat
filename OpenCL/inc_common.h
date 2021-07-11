@@ -105,7 +105,6 @@
   MAYBE_UNUSED           const u64            pws_pos,              \
   MAYBE_UNUSED           const u64            gid_max
 #endif
-
 /*
  * Shortcut macros for usage in the actual kernels
  *

@@ -2,9 +2,6 @@
  * Author......: See docs/credits.txt
  * License.....: MIT
  */
-#ifdef IS_HIP
-#include <hip_runtime.h>
-#endif
 
 #include "inc_vendor.h"
 #include "inc_types.h"
@@ -63,7 +60,111 @@ DECLSPEC u64 rotr64_S (const u64 a, const int n)
 
 #endif
 
-#if defined IS_CUDA || defined IS_HIP
+#if defined IS_CUDA
+
+#if ATTACK_EXEC == 11
+
+CONSTANT_VK u32 generic_constant[8192]; // 32k
+
+#if   ATTACK_KERN == 0
+#define bfs_buf     g_bfs_buf
+#define rules_buf   ((const kernel_rule_t *) generic_constant)
+#define words_buf_s g_words_buf_s
+#define words_buf_r g_words_buf_r
+#elif ATTACK_KERN == 1
+#define bfs_buf     g_bfs_buf
+#define rules_buf   g_rules_buf
+#define words_buf_s g_words_buf_s
+#define words_buf_r g_words_buf_r
+#elif ATTACK_KERN == 3
+#define rules_buf   g_rules_buf
+#define bfs_buf     ((const bf_t *)      generic_constant)
+#define words_buf_s ((const bs_word_t *) generic_constant)
+#define words_buf_r ((const u32x *)      generic_constant)
+#endif
+
+#endif
+
+DECLSPEC u32 hc_atomic_dec (GLOBAL_AS u32 *p)
+{
+  volatile const u32 val = 1;
+
+  return atomicSub (p, val);
+}
+
+DECLSPEC u32 hc_atomic_inc (GLOBAL_AS u32 *p)
+{
+  volatile const u32 val = 1;
+
+  return atomicAdd (p, val);
+}
+
+DECLSPEC u32 hc_atomic_or (GLOBAL_AS u32 *p, volatile const u32 val)
+{
+  return atomicOr (p, val);
+}
+
+DECLSPEC size_t get_global_id  (const u32 dimindx __attribute__((unused)))
+{
+  return (blockIdx.x * blockDim.x) + threadIdx.x;
+}
+
+DECLSPEC size_t get_local_id (const u32 dimindx __attribute__((unused)))
+{
+  return threadIdx.x;
+}
+
+DECLSPEC size_t get_local_size (const u32 dimindx __attribute__((unused)))
+{
+  // verify
+  return blockDim.x;
+}
+
+DECLSPEC u32x rotl32 (const u32x a, const int n)
+{
+  return ((a << n) | ((a >> (32 - n))));
+}
+
+DECLSPEC u32x rotr32 (const u32x a, const int n)
+{
+  return ((a >> n) | ((a << (32 - n))));
+}
+
+DECLSPEC u32 rotl32_S (const u32 a, const int n)
+{
+  return ((a << n) | ((a >> (32 - n))));
+}
+
+DECLSPEC u32 rotr32_S (const u32 a, const int n)
+{
+  return ((a >> n) | ((a << (32 - n))));
+}
+
+DECLSPEC u64x rotl64 (const u64x a, const int n)
+{
+  return ((a << n) | ((a >> (64 - n))));
+}
+
+DECLSPEC u64x rotr64 (const u64x a, const int n)
+{
+  return ((a >> n) | ((a << (64 - n))));
+}
+
+DECLSPEC u64 rotl64_S (const u64 a, const int n)
+{
+  return ((a << n) | ((a >> (64 - n))));
+}
+
+DECLSPEC u64 rotr64_S (const u64 a, const int n)
+{
+  return ((a >> n) | ((a << (64 - n))));
+}
+
+#define FIXED_THREAD_COUNT(n) __launch_bounds__((n), 0)
+#define SYNC_THREADS() __syncthreads ()
+#endif
+
+#if defined IS_HIP
 
 #if ATTACK_EXEC == 11
 

@@ -16,6 +16,10 @@
 #define IS_OPENCL
 #endif
 
+#ifdef IS_HIP
+#include <hip/hip_runtime.h>
+#endif
+
 #if defined IS_NATIVE
 #define CONSTANT_VK
 #define CONSTANT_AS
@@ -23,7 +27,14 @@
 #define LOCAL_VK
 #define LOCAL_AS
 #define KERNEL_FQ
-#elif (defined IS_CUDA) || (defined IS_HIP)
+#elif defined IS_CUDA
+#define CONSTANT_VK __constant__
+#define CONSTANT_AS
+#define GLOBAL_AS
+#define LOCAL_VK    __shared__
+#define LOCAL_AS
+#define KERNEL_FQ   extern "C" __global__
+#elif defined IS_HIP
 #define CONSTANT_VK __constant__
 #define CONSTANT_AS
 #define GLOBAL_AS
@@ -78,11 +89,13 @@
 #define IS_MESA
 #define IS_GENERIC
 #elif VENDOR_ID == (1 << 5)
-//#define IS_NV //TODO: FIX ME HIP
-#define IS_POCL
-#define IS_GENERIC
+#define IS_NV
 #elif VENDOR_ID == (1 << 6)
 #define IS_POCL
+#define IS_GENERIC
+#elif VENDOR_ID == (1 << 8)
+#define IS_AMD_USE_HIP
+// TODO HIP optimization potential
 #define IS_GENERIC
 #else
 #define IS_GENERIC
@@ -116,13 +129,11 @@
  */
 
 #if defined IS_AMD && defined IS_GPU
-#define DECLSPEC inline static __device__
-#else
-#ifdef IS_HIP
-#define DECLSPEC  __device__
+#define DECLSPEC inline static
+#elif defined IS_HIP
+#define DECLSPEC __device__
 #else
 #define DECLSPEC
-#endif
 #endif
 
 /**
@@ -141,9 +152,16 @@
 // Whitelist some OpenCL specific functions
 // This could create more stable kernels on systems with bad OpenCL drivers
 
-#if defined IS_CUDA || defined IS_HIP
+#ifdef IS_CUDA
 #define USE_BITSELECT
 #define USE_ROTATE
+#endif
+
+#ifdef IS_HIP
+//TODO HIP
+//#define USE_BITSELECT
+//#define USE_ROTATE
+//#define USE_SWIZZLE
 #endif
 
 #ifdef IS_ROCM

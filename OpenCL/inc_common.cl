@@ -3,10 +3,6 @@
  * License.....: MIT
  */
 
-#ifdef IS_HIP
-#include <hip/hip_runtime.h>
-#endif
-
 #include "inc_vendor.h"
 #include "inc_types.h"
 #include "inc_platform.h"
