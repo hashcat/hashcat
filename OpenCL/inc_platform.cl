@@ -246,22 +246,55 @@ DECLSPEC u32 rotr32_S (const u32 a, const int n)
 
 DECLSPEC u64x rotl64 (const u64x a, const int n)
 {
-  return ((a << n) | ((a >> (64 - n))));
+  return rotr64 (a, 64 - n);
+}
+
+DECLSPEC u32 amd_bitalign_S (const u32 a, const u32 b, const int n)
+{
+  u32 r = 0;
+
+  __asm__ ("V_ALIGNBIT_B32 %0, %1, %2, %3;" : "=v"(r): "v"(a), "v"(b), "v"(n));
+
+  return r;
 }
 
 DECLSPEC u64x rotr64 (const u64x a, const int n)
 {
+  #if VECT_SIZE == 1
+  return rotr64_S (a, n);
+  #else
   return ((a >> n) | ((a << (64 - n))));
+  #endif
 }
 
 DECLSPEC u64 rotl64_S (const u64 a, const int n)
 {
-  return ((a << n) | ((a >> (64 - n))));
+  return rotr64_S (a, 64 - n);
 }
 
 DECLSPEC u64 rotr64_S (const u64 a, const int n)
 {
-  return ((a >> n) | ((a << (64 - n))));
+  vconv64_t in;
+
+  in.v64 = a;
+
+  const u32 a0 = in.v32.a;
+  const u32 a1 = in.v32.b;
+
+  vconv64_t out;
+
+  if (n < 32)
+  {
+    out.v32.a = amd_bitalign_S (a1, a0, n);
+    out.v32.b = amd_bitalign_S (a0, a1, n);
+  }
+  else
+  {
+    out.v32.a = amd_bitalign_S (a0, a1, n - 32);
+    out.v32.b = amd_bitalign_S (a1, a0, n - 32);
+  }
+
+  return out.v64;
 }
 
 #define FIXED_THREAD_COUNT(n) __launch_bounds__((n), 0)

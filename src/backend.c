@@ -10498,8 +10498,9 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
       // TODO HIP
       // no -offload-arch= aka --gpu-architecture because hiprtc gets native arch from hip_context
 
-      hiprtc_options[0] = "--gpu-max-threads-per-block=64";
-      hiprtc_options[1] = "";
+      hc_asprintf (&hiprtc_options[0], "--gpu-max-threads-per-block=%u", device_param->kernel_threads);
+
+      hiprtc_options[1] = "-O3";
       hiprtc_options[2] = "";
       hiprtc_options[3] = "";
 
@@ -11588,7 +11589,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     char device_name_chksum_amp_mp[HCBUFSIZ_TINY] = { 0 };
 
-    const size_t dnclen_amp_mp = snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%d-%d-%d-%d-%u-%s-%s-%s",
+    const size_t dnclen_amp_mp = snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%d-%d-%d-%d-%u-%s-%s-%s-%d",
       backend_ctx->comptime,
       backend_ctx->cuda_driver_version,
       backend_ctx->hip_driver_version,
@@ -11596,7 +11597,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       device_param->opencl_platform_vendor_id,
       device_param->device_name,
       device_param->opencl_device_version,
-      device_param->opencl_driver_version);
+      device_param->opencl_driver_version,
+      device_param->kernel_threads);
 
     md5_ctx_t md5_ctx;
 
@@ -11887,7 +11889,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       const u32 extra_value = (user_options->attack_mode == ATTACK_MODE_ASSOCIATION) ? ATTACK_MODE_ASSOCIATION : ATTACK_MODE_NONE;
 
-      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY, "%d-%d-%d-%d-%u-%s-%s-%s-%d-%u-%u-%s",
+      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY, "%d-%d-%d-%d-%u-%s-%s-%s-%d-%u-%d-%u-%s",
         backend_ctx->comptime,
         backend_ctx->cuda_driver_version,
         backend_ctx->hip_driver_version,
@@ -11897,6 +11899,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         device_param->opencl_device_version,
         device_param->opencl_driver_version,
         device_param->vector_width,
+        device_param->kernel_threads,
         hashconfig->kern_type,
         extra_value,
         build_options_module_buf);
