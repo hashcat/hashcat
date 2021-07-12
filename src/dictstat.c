@@ -84,8 +84,6 @@ void dictstat_destroy (hashcat_ctx_t *hashcat_ctx)
 
   if (dictstat_ctx->enabled == false) return;
 
-  if (hashconfig->dictstat_disable == true) return;
-
   hcfree (dictstat_ctx->filename);
   hcfree (dictstat_ctx->base);
 
