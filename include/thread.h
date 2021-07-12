@@ -22,17 +22,17 @@
 #define hc_thread_exit(t)           ExitThread (t)
 #define hc_thread_detach(t)         CloseHandle (t)
 
-/*
+#define hc_thread_mutex_init(m)     InitializeCriticalSection (&m)
 #define hc_thread_mutex_lock(m)     EnterCriticalSection      (&m)
 #define hc_thread_mutex_unlock(m)   LeaveCriticalSection      (&m)
-#define hc_thread_mutex_init(m)     InitializeCriticalSection (&m)
 #define hc_thread_mutex_delete(m)   DeleteCriticalSection     (&m)
-*/
 
+/*
 #define hc_thread_mutex_init(m)     m = CreateMutex     (NULL, FALSE, NULL)
 #define hc_thread_mutex_lock(m)     WaitForSingleObject (m, INFINITE)
 #define hc_thread_mutex_unlock(m)   ReleaseMutex        (m)
 #define hc_thread_mutex_delete(m)   CloseHandle         (m)
+*/
 
 #define hc_thread_sem_init(s)       s = CreateSemaphore (NULL, 0, INT_MAX, NULL)
 #define hc_thread_sem_post(s)       ReleaseSemaphore    (s, 1, NULL)
