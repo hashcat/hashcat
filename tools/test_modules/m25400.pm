@@ -241,7 +241,7 @@ sub module_generate_hash
   #printf("\$u = %s\n", unpack ("H*", $u));
 
   my $hash = sprintf ('$pdf$%d*%d*128*%d*%d*16*%s*32*%s*32*%s', $V, $R, $P, $enc, $id, unpack ("H*", $u), unpack ("H*", $o));
-  print("hash\n".$hash."\n");
+  #print("hash\n".$hash."\n");
   return $hash;
 }
 
