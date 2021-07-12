@@ -347,7 +347,7 @@ HC_API_CALL void *thread_calc_stdin (void *p)
 
   if (device_param->is_cuda == true)
   {
-    if (hc_cuCtxSetCurrent (hashcat_ctx, device_param->cuda_context) == -1) return NULL;
+    if (hc_cuCtxPushCurrent (hashcat_ctx, device_param->cuda_context) == -1) return NULL;
   }
 
   if (device_param->is_hip == true)
@@ -360,6 +360,11 @@ HC_API_CALL void *thread_calc_stdin (void *p)
     status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
     status_ctx->devices_status = STATUS_ERROR;
+  }
+
+  if (device_param->is_cuda == true)
+  {
+    if (hc_cuCtxPopCurrent (hashcat_ctx, &device_param->cuda_context) == -1) return NULL;
   }
 
   if (device_param->is_hip == true)
@@ -1591,7 +1596,7 @@ HC_API_CALL void *thread_calc (void *p)
 
   if (device_param->is_cuda == true)
   {
-    if (hc_cuCtxSetCurrent (hashcat_ctx, device_param->cuda_context) == -1) return NULL;
+    if (hc_cuCtxPushCurrent (hashcat_ctx, device_param->cuda_context) == -1) return NULL;
   }
 
   if (device_param->is_hip == true)
@@ -1604,6 +1609,11 @@ HC_API_CALL void *thread_calc (void *p)
     status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
     status_ctx->devices_status = STATUS_ERROR;
+  }
+
+  if (device_param->is_cuda == true)
+  {
+    if (hc_cuCtxPopCurrent (hashcat_ctx, &device_param->cuda_context) == -1) return NULL;
   }
 
   if (device_param->is_hip == true)

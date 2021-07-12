@@ -7979,7 +7979,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         continue;
       }
 
-      if (hc_cuCtxSetCurrent (hashcat_ctx, cuda_context) == -1)
+      if (hc_cuCtxPushCurrent (hashcat_ctx, cuda_context) == -1)
       {
         device_param->skipped = true;
         continue;
@@ -7995,6 +7995,12 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       }
 
       device_param->device_available_mem = (u64) free;
+
+      if (hc_cuCtxPopCurrent (hashcat_ctx, &cuda_context) == -1)
+      {
+        device_param->skipped = true;
+        continue;
+      }
 
       if (hc_cuCtxDestroy (hashcat_ctx, cuda_context) == -1)
       {
@@ -10180,6 +10186,12 @@ static u32 get_kernel_threads (const hc_device_param_t *device_param)
 
       kernel_threads_max = MIN (kernel_threads_max, gpu_prefered_thread_count);
     }
+    else if (device_param->opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP)
+    {
+      u32 gpu_prefered_thread_count = 64;
+
+      kernel_threads_max = MIN (kernel_threads_max, gpu_prefered_thread_count);
+    }
   }
 
   // this is intenionally! at this point, kernel_threads_min can be higher than kernel_threads_max.
@@ -10484,8 +10496,9 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
       //hc_asprintf (&hiprtc_options[3], "compute_%d%d", device_param->sm_major, device_param->sm_minor);
 
       // TODO HIP
+      // no -offload-arch= aka --gpu-architecture because hiprtc gets native arch from hip_context
 
-      hiprtc_options[0] = "";
+      hiprtc_options[0] = "--gpu-max-threads-per-block=64";
       hiprtc_options[1] = "";
       hiprtc_options[2] = "";
       hiprtc_options[3] = "";
@@ -11242,6 +11255,10 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         {
           native_threads = 64;
         }
+        else if (device_param->opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP)
+        {
+          native_threads = 64;
+        }
         else
         {
           native_threads = 32;
@@ -11270,6 +11287,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     if (device_param->is_cuda == true)
     {
       if (hc_cuCtxCreate (hashcat_ctx, &device_param->cuda_context, CU_CTX_SCHED_BLOCKING_SYNC, device_param->cuda_device) == -1)
+      {
+        device_param->skipped = true;
+        continue;
+      }
+
+      if (hc_cuCtxPushCurrent (hashcat_ctx, device_param->cuda_context) == -1)
       {
         device_param->skipped = true;
         continue;
@@ -15088,6 +15111,15 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     // context
 
+    if (device_param->is_cuda == true)
+    {
+      if (hc_cuCtxPopCurrent (hashcat_ctx, &device_param->cuda_context) == -1)
+      {
+        device_param->skipped = true;
+        continue;
+      }
+    }
+
     if (device_param->is_hip == true)
     {
       if (hc_hipCtxPopCurrent (hashcat_ctx, &device_param->hip_context) == -1)
@@ -15251,6 +15283,11 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       device_param->cuda_function_aux3        = NULL;
       device_param->cuda_function_aux4        = NULL;
 
+      device_param->cuda_event1               = NULL;
+      device_param->cuda_event2               = NULL;
+
+      device_param->cuda_stream               = NULL;
+
       device_param->cuda_module               = NULL;
       device_param->cuda_module_mp            = NULL;
       device_param->cuda_module_amp           = NULL;
@@ -15371,6 +15408,11 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       device_param->hip_function_aux2        = NULL;
       device_param->hip_function_aux3        = NULL;
       device_param->hip_function_aux4        = NULL;
+
+      device_param->hip_event1               = NULL;
+      device_param->hip_event2               = NULL;
+
+      device_param->hip_stream               = NULL;
 
       device_param->hip_module               = NULL;
       device_param->hip_module_mp            = NULL;

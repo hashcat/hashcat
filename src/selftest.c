@@ -875,7 +875,7 @@ HC_API_CALL void *thread_selftest (void *p)
 
   if (device_param->is_cuda == true)
   {
-    if (hc_cuCtxSetCurrent (hashcat_ctx, device_param->cuda_context) == -1) return NULL;
+    if (hc_cuCtxPushCurrent (hashcat_ctx, device_param->cuda_context) == -1) return NULL;
   }
 
   if (device_param->is_hip == true)
@@ -899,6 +899,11 @@ HC_API_CALL void *thread_selftest (void *p)
     {
       device_param->st_status = ST_STATUS_FAILED;
     }
+  }
+
+  if (device_param->is_cuda == true)
+  {
+    if (hc_cuCtxPopCurrent (hashcat_ctx, &device_param->cuda_context) == -1) return NULL;
   }
 
   if (device_param->is_hip == true)
