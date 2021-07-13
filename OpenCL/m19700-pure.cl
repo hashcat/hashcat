@@ -863,13 +863,15 @@ KERNEL_FQ void m19700_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t
       */
       u32 shift = last_block_size % 4;
 
+      u32 mask;
+
       switch (remaining_blocks)
       {
         case 0:
 
           last_block[0] = esalt_bufs[DIGESTS_OFFSET].edata2[last_block_position + 0];
 
-          u32 mask = (0xffffffff >> ((4 - last_block_size) * 8));
+          mask = (0xffffffff >> ((4 - last_block_size) * 8));
 
           last_plaintext[0] = last_block[0] ^ (decrypted_block[0] & mask);
           last_plaintext[0] = hc_swap32_S (last_plaintext[0]);
@@ -898,7 +900,7 @@ KERNEL_FQ void m19700_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t
           {
             last_block[1] = esalt_bufs[DIGESTS_OFFSET].edata2[last_block_position + 1];
 
-            u32 mask = (0xffffffff >> ((4 - (last_block_size % 4)) * 8));
+            mask = (0xffffffff >> ((4 - (last_block_size % 4)) * 8));
 
             last_plaintext[0] = last_block[0] ^ decrypted_block[0];
             last_plaintext[1] = last_block[1] ^ (decrypted_block[1] & mask);
@@ -935,7 +937,7 @@ KERNEL_FQ void m19700_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t
           {
             last_block[2] = esalt_bufs[DIGESTS_OFFSET].edata2[last_block_position + 2];
 
-            u32 mask = (0xffffffff >> ((4 - (last_block_size % 4)) * 8));
+            mask = (0xffffffff >> ((4 - (last_block_size % 4)) * 8));
 
             last_plaintext[0] = last_block[0] ^ decrypted_block[0];
             last_plaintext[1] = last_block[1] ^ decrypted_block[1];
@@ -977,7 +979,7 @@ KERNEL_FQ void m19700_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_18_tmp_t, krb5tgs_18_t
           {
             last_block[3] = esalt_bufs[DIGESTS_OFFSET].edata2[last_block_position + 3];
 
-            u32 mask = (0xffffffff >> ((4 - (last_block_size % 4)) * 8));
+            mask = (0xffffffff >> ((4 - (last_block_size % 4)) * 8));
 
             last_plaintext[0] = last_block[0] ^ decrypted_block[0];
             last_plaintext[1] = last_block[1] ^ decrypted_block[1];
