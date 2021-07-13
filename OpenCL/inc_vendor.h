@@ -131,7 +131,7 @@
 #if defined IS_AMD && defined IS_GPU
 #define DECLSPEC inline static
 #elif defined IS_HIP
-#define DECLSPEC __device__
+#define DECLSPEC inline static __device__
 #else
 #define DECLSPEC
 #endif
