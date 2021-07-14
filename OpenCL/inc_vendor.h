@@ -96,7 +96,7 @@
 #elif VENDOR_ID == (1 << 8)
 #define IS_AMD_USE_HIP
 // TODO HIP optimization potential
-#define IS_GENERIC
+//#define IS_GENERIC
 #else
 #define IS_GENERIC
 #endif

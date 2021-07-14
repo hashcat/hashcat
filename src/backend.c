@@ -8339,17 +8339,17 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       device_param->has_mov64 = false;
       device_param->has_prmt  = false;
 
-      device_param->has_vadd     = false;
-      device_param->has_vaddc    = false;
-      device_param->has_vadd_co  = false;
-      device_param->has_vaddc_co = false;
-      device_param->has_vsub     = false;
-      device_param->has_vsubb    = false;
-      device_param->has_vsub_co  = false;
-      device_param->has_vsubb_co = false;
-      device_param->has_vadd3    = false;
-      device_param->has_vbfe     = false;
-      device_param->has_vperm    = false;
+      device_param->has_vadd     = true;
+      device_param->has_vaddc    = true;
+      device_param->has_vadd_co  = true;
+      device_param->has_vaddc_co = true;
+      device_param->has_vsub     = true;
+      device_param->has_vsubb    = true;
+      device_param->has_vsub_co  = true;
+      device_param->has_vsubb_co = true;
+      device_param->has_vadd3    = true;
+      device_param->has_vbfe     = true;
+      device_param->has_vperm    = true;
 
       // device_available_mem
 

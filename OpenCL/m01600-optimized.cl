@@ -31,7 +31,7 @@ DECLSPEC void memcat16 (u32 *block0, u32 *block1, u32 *block2, u32 *block3, cons
   u32 tmp3;
   u32 tmp4;
 
-  #if defined IS_AMD || defined IS_GENERIC
+  #if (defined IS_AMD || defined IS_HIP) || defined IS_GENERIC
   u32 in0 = append[0];
   u32 in1 = append[1];
   u32 in2 = append[2];
@@ -138,7 +138,7 @@ DECLSPEC void memcat16_x80 (u32 *block0, u32 *block1, u32 *block2, u32 *block3, 
   u32 tmp3;
   u32 tmp4;
 
-  #if defined IS_AMD || defined IS_GENERIC
+  #if (defined IS_AMD || defined IS_HIP) || defined IS_GENERIC
   u32 in0 = append[0];
   u32 in1 = append[1];
   u32 in2 = append[2];
@@ -245,7 +245,7 @@ DECLSPEC void memcat8 (u32 *block0, u32 *block1, u32 *block2, u32 *block3, const
   u32 tmp1;
   u32 tmp2;
 
-  #if defined IS_AMD || defined IS_GENERIC
+  #if (defined IS_AMD || defined IS_HIP) || defined IS_GENERIC
   u32 in0 = append[0];
   u32 in1 = append[1];
 

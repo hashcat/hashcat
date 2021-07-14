@@ -232,7 +232,7 @@ DECLSPEC void make_sc (u32 *sc, const u32 *pw, const u32 pw_len, const u32 *bl, 
 
     u32 i;
 
-    #if defined IS_AMD || defined IS_GENERIC
+    #if (defined IS_AMD || defined IS_HIP) || defined IS_GENERIC
     for (i = 0; i < pd; i++) sc[idx++] = pw[i];
                              sc[idx++] = pw[i]
                                        | hc_bytealign_be (bl[0],         0, pm4);
@@ -263,7 +263,7 @@ DECLSPEC void make_pt_with_offset (u32 *pt, const u32 offset, const u32 *sc, con
   const u32 om = m % 4;
   const u32 od = m / 4;
 
-  #if defined IS_AMD || defined IS_GENERIC
+  #if (defined IS_AMD || defined IS_HIP) || defined IS_GENERIC
   pt[0] = hc_bytealign_be (sc[od + 1], sc[od + 0], om);
   pt[1] = hc_bytealign_be (sc[od + 2], sc[od + 1], om);
   pt[2] = hc_bytealign_be (sc[od + 3], sc[od + 2], om);
