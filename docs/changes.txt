@@ -12,6 +12,7 @@
 - Added hash-mode: AES-256-ECB NOKDF (PT = $salt, key = $pass)
 - Added hash-mode: iPhone passcode (UID key + System Keybag)
 - Added hash-mode: MetaMask Wallet
+- Added hash-mode: VMware VMX (PBKDF2-HMAC-SHA1 + AES-256-CBC)
 
 ##
 ## Features

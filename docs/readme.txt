@@ -389,6 +389,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - MetaMask Wallet
 - MultiBit Classic .key (MD5)
 - MultiBit HD (scrypt)
+- VMware VMX (PBKDF2-HMAC-SHA1 + AES-256-CBC)
 
 ##
 ## Attack-Modes
