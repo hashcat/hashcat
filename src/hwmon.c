@@ -95,11 +95,11 @@ int hm_get_threshold_slowdown_with_devices_idx (hashcat_ctx_t *hashcat_ctx, cons
     }
   }
 
-  if (backend_ctx->devices_param[backend_device_idx].is_opencl == true)
+  if ((backend_ctx->devices_param[backend_device_idx].is_opencl == true) || (backend_ctx->devices_param[backend_device_idx].is_hip == true))
   {
     if (backend_ctx->devices_param[backend_device_idx].opencl_device_type & CL_DEVICE_TYPE_GPU)
     {
-      if (backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_AMD)
+      if ((backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_AMD) || (backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP))
       {
         if (hwmon_ctx->hm_adl)
         {
@@ -176,11 +176,11 @@ int hm_get_threshold_shutdown_with_devices_idx (hashcat_ctx_t *hashcat_ctx, cons
     }
   }
 
-  if (backend_ctx->devices_param[backend_device_idx].is_opencl == true)
+  if ((backend_ctx->devices_param[backend_device_idx].is_opencl == true) || (backend_ctx->devices_param[backend_device_idx].is_hip == true))
   {
     if (backend_ctx->devices_param[backend_device_idx].opencl_device_type & CL_DEVICE_TYPE_GPU)
     {
-      if (backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_AMD)
+      if ((backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_AMD) || (backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP))
       {
         if (hwmon_ctx->hm_adl)
         {
@@ -245,7 +245,7 @@ int hm_get_temperature_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int b
     }
   }
 
-  if (backend_ctx->devices_param[backend_device_idx].is_opencl == true)
+  if ((backend_ctx->devices_param[backend_device_idx].is_opencl == true) || (backend_ctx->devices_param[backend_device_idx].is_hip == true))
   {
     if (backend_ctx->devices_param[backend_device_idx].opencl_device_type & CL_DEVICE_TYPE_CPU)
     {
@@ -313,7 +313,7 @@ int hm_get_temperature_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int b
       }
       #endif
 
-      if (backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_AMD)
+      if ((backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_AMD) || (backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP))
       {
         if (hwmon_ctx->hm_adl)
         {
@@ -401,11 +401,11 @@ int hm_get_fanpolicy_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int bac
     return 1;
   }
 
-  if (backend_ctx->devices_param[backend_device_idx].is_opencl == true)
+  if ((backend_ctx->devices_param[backend_device_idx].is_opencl == true) || (backend_ctx->devices_param[backend_device_idx].is_hip == true))
   {
     if (backend_ctx->devices_param[backend_device_idx].opencl_device_type & CL_DEVICE_TYPE_GPU)
     {
-      if (backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_AMD)
+      if ((backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_AMD) || (backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP))
       {
         if (hwmon_ctx->hm_adl)
         {
@@ -499,11 +499,11 @@ int hm_get_fanspeed_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int back
     }
   }
 
-  if (backend_ctx->devices_param[backend_device_idx].is_opencl == true)
+  if ((backend_ctx->devices_param[backend_device_idx].is_opencl == true) || (backend_ctx->devices_param[backend_device_idx].is_hip == true))
   {
     if (backend_ctx->devices_param[backend_device_idx].opencl_device_type & CL_DEVICE_TYPE_GPU)
     {
-      if (backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_AMD)
+      if ((backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_AMD) || (backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP))
       {
         if (hwmon_ctx->hm_adl)
         {
@@ -609,11 +609,11 @@ int hm_get_buslanes_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int back
     }
   }
 
-  if (backend_ctx->devices_param[backend_device_idx].is_opencl == true)
+  if ((backend_ctx->devices_param[backend_device_idx].is_opencl == true) || (backend_ctx->devices_param[backend_device_idx].is_hip == true))
   {
     if (backend_ctx->devices_param[backend_device_idx].opencl_device_type & CL_DEVICE_TYPE_GPU)
     {
-      if (backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_AMD)
+      if ((backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_AMD) || (backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP))
       {
         if (hwmon_ctx->hm_adl)
         {
@@ -696,11 +696,11 @@ int hm_get_utilization_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int b
     }
   }
 
-  if (backend_ctx->devices_param[backend_device_idx].is_opencl == true)
+  if ((backend_ctx->devices_param[backend_device_idx].is_opencl == true) || (backend_ctx->devices_param[backend_device_idx].is_hip == true))
   {
     if (backend_ctx->devices_param[backend_device_idx].opencl_device_type & CL_DEVICE_TYPE_GPU)
     {
-      if (backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_AMD)
+      if ((backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_AMD) || (backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP))
       {
         if (hwmon_ctx->hm_adl)
         {
@@ -800,11 +800,11 @@ int hm_get_memoryspeed_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int b
     }
   }
 
-  if (backend_ctx->devices_param[backend_device_idx].is_opencl == true)
+  if ((backend_ctx->devices_param[backend_device_idx].is_opencl == true) || (backend_ctx->devices_param[backend_device_idx].is_hip == true))
   {
     if (backend_ctx->devices_param[backend_device_idx].opencl_device_type & CL_DEVICE_TYPE_GPU)
     {
-      if (backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_AMD)
+      if ((backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_AMD) || (backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP))
       {
         if (hwmon_ctx->hm_adl)
         {
@@ -887,11 +887,11 @@ int hm_get_corespeed_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int bac
     }
   }
 
-  if (backend_ctx->devices_param[backend_device_idx].is_opencl == true)
+  if ((backend_ctx->devices_param[backend_device_idx].is_opencl == true) || (backend_ctx->devices_param[backend_device_idx].is_hip == true))
   {
     if (backend_ctx->devices_param[backend_device_idx].opencl_device_type & CL_DEVICE_TYPE_GPU)
     {
-      if (backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_AMD)
+      if ((backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_AMD) || (backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP))
       {
         if (hwmon_ctx->hm_adl)
         {
@@ -1003,11 +1003,11 @@ int hm_get_throttle_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int back
     }
   }
 
-  if (backend_ctx->devices_param[backend_device_idx].is_opencl == true)
+  if ((backend_ctx->devices_param[backend_device_idx].is_opencl == true) || (backend_ctx->devices_param[backend_device_idx].is_hip == true))
   {
     if (backend_ctx->devices_param[backend_device_idx].opencl_device_type & CL_DEVICE_TYPE_GPU)
     {
-      if (backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_AMD)
+      if ((backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_AMD) || (backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP))
       {
       }
 
@@ -1382,11 +1382,11 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
           // nothing to do
         }
 
-        if (device_param->is_opencl == true)
+        if ((device_param->is_opencl == true) || (device_param->is_hip == true))
         {
           if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
 
-          if (device_param->opencl_device_vendor_id != VENDOR_ID_AMD) continue;
+          if ((device_param->opencl_device_vendor_id != VENDOR_ID_AMD) && (device_param->opencl_device_vendor_id != VENDOR_ID_AMD_USE_HIP)) continue;
 
           for (int i = 0; i < tmp_in; i++)
           {
@@ -1438,7 +1438,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
           // nothing to do
         }
 
-        if (device_param->is_opencl == true)
+        if ((device_param->is_opencl == true) || (device_param->is_hip == true))
         {
           const u32 device_id = device_param->device_id;
 
@@ -1485,7 +1485,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
           // nothing to do
         }
 
-        if (device_param->is_opencl == true)
+        if ((device_param->is_opencl == true) || (device_param->is_hip == true))
         {
           const u32 device_id = device_param->device_id;
 
@@ -1594,7 +1594,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
       }
     }
 
-    if (device_param->is_opencl == true)
+    if ((device_param->is_opencl == true) || (device_param->is_hip == true))
     {
       if (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU)
       {
@@ -1655,7 +1655,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
         }
         #endif
 
-        if (device_param->opencl_device_vendor_id == VENDOR_ID_AMD)
+        if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) || (device_param->opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP))
         {
           hwmon_ctx->hm_device[backend_devices_idx].adl           = hm_adapters_adl[device_id].adl;
           hwmon_ctx->hm_device[backend_devices_idx].sysfs_amdgpu  = hm_adapters_sysfs_amdgpu[device_id].sysfs_amdgpu;

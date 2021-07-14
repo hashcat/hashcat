@@ -8278,13 +8278,13 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       }
       #endif
 
-      if ((device_param->opencl_platform_vendor_id == VENDOR_ID_NV) && (device_param->opencl_device_vendor_id == VENDOR_ID_NV))
+      if ((device_param->opencl_platform_vendor_id == VENDOR_ID_AMD_USE_HIP) && (device_param->opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP))
       {
-        need_nvml = true;
+         need_adl = true;
 
-        #if defined (_WIN) || defined (__CYGWIN__)
-        need_nvapi = true;
-        #endif
+         #if defined (__linux__)
+         need_sysfs_amdgpu = true;
+         #endif
       }
 
       // CPU burning loop damper
