@@ -79,7 +79,6 @@ int dictstat_init (hashcat_ctx_t *hashcat_ctx)
 
 void dictstat_destroy (hashcat_ctx_t *hashcat_ctx)
 {
-  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   dictstat_ctx_t *dictstat_ctx = hashcat_ctx->dictstat_ctx;
 
   if (dictstat_ctx->enabled == false) return;
