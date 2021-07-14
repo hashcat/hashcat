@@ -20,6 +20,7 @@ static const u32   HASH_CATEGORY  = HASH_CATEGORY_DOCUMENTS;
 static const char *HASH_NAME      = "PDF 1.7 Level 8 (Acrobat 10 - 11)";
 static const u64   KERN_TYPE      = 10700;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
+                                  | OPTI_TYPE_USES_BITS_64
                                   | OPTI_TYPE_REGISTER_LIMIT;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_HASH_COPY;

@@ -19,7 +19,8 @@ static const u32   DGST_SIZE      = DGST_SIZE_4_8;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_RAW_HASH_AUTHENTICATED;
 static const char *HASH_NAME      = "HMAC-Streebog-256 (key = $salt), big-endian";
 static const u64   KERN_TYPE      = 11760;
-static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
+static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
+                                  | OPTI_TYPE_USES_BITS_64;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_PT_ADD01;
 static const u32   SALT_TYPE      = SALT_TYPE_GENERIC;
