@@ -63,7 +63,7 @@ char *hm_SYSFS_CPU_get_syspath_hwmon ()
 
     if (hc_fopen_raw (&fp, path, "rb") == false) continue;
 
-    char buf[16];
+    char buf[32] = { 0 };
 
     const size_t line_len = fgetl (&fp, buf, sizeof (buf));
 
