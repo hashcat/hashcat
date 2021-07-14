@@ -25,11 +25,12 @@
 ## Bugs
 ##
 
-- Fixed 'E' rule in pure kernel mode which was ignoring letters that are in positions that are multiples of 4
 - Fixed access violation in hashconfig_destroy if hashcat_ctx_t is only partially initialized
+- Fixed 'E' rule in pure kernel mode which was ignoring letters that are in positions that are multiples of 4
 - Fixed false negative in hash-mode 15900 (DPAPI masterkey file v2) if password was longer than 64 characters
 - Fixed hashcat_ctx leak and refactor module and kernel existence checks
 - Fixed integer overflow in Recovered/Time status view column caused by division > 0 but < 1
+- Fixed invalid ETA if --limit was specified, several salts are in a hash list and some of them were found in a potfile
 - Fixed memory leak in iconv_ctx and iconv_tmp in backend.c
 - Fixed missing option to automatically disable kernel cache in -m 25600 and -m 25800
 - Fixed out-of-boundary write in slow candidates mode in combinator attack
