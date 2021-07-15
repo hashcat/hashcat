@@ -8339,18 +8339,6 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       device_param->has_mov64 = false;
       device_param->has_prmt  = false;
 
-      device_param->has_vadd     = true;
-      device_param->has_vaddc    = true;
-      device_param->has_vadd_co  = true;
-      device_param->has_vaddc_co = true;
-      device_param->has_vsub     = true;
-      device_param->has_vsubb    = true;
-      device_param->has_vsub_co  = true;
-      device_param->has_vsubb_co = true;
-      device_param->has_vadd3    = true;
-      device_param->has_vbfe     = true;
-      device_param->has_vperm    = true;
-
       // device_available_mem
 
       HIPcontext hip_context;
@@ -9528,7 +9516,27 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
   if (backend_ctx->hip)
   {
-    // TODO HIP
+    // TODO HIP?
+    // Maybe all devices supported by hip have these instructions guaranteed?
+
+    for (int backend_devices_cnt = 0; backend_devices_cnt < backend_ctx->backend_devices_cnt; backend_devices_cnt++)
+    {
+      hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_cnt];
+
+      if (device_param->is_hip == false) continue;
+
+      device_param->has_vadd     = true;
+      device_param->has_vaddc    = true;
+      device_param->has_vadd_co  = true;
+      device_param->has_vaddc_co = true;
+      device_param->has_vsub     = true;
+      device_param->has_vsubb    = true;
+      device_param->has_vsub_co  = true;
+      device_param->has_vsubb_co = true;
+      device_param->has_vadd3    = true;
+      device_param->has_vbfe     = true;
+      device_param->has_vperm    = true;
+    }
   }
 
   if (backend_ctx->ocl)
@@ -10494,9 +10502,6 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
       //hiprtc_options[2] = "--gpu-architecture";
 
       //hc_asprintf (&hiprtc_options[3], "compute_%d%d", device_param->sm_major, device_param->sm_minor);
-
-      // TODO HIP
-      // no -offload-arch= aka --gpu-architecture because hiprtc gets native arch from hip_context
 
       hiprtc_options[0] = "--gpu-max-threads-per-block=64";
       hiprtc_options[1] = "";

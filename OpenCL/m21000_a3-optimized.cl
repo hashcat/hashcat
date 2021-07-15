@@ -84,7 +84,7 @@ DECLSPEC void sha512_transform_full (const u32x *w0, const u32x *w1, const u32x 
 
   ROUND_STEP (0);
 
-  #if defined IS_CUDA || defined IS_HIP
+  #if defined IS_CUDA
   ROUND_EXPAND (); ROUND_STEP (16);
   ROUND_EXPAND (); ROUND_STEP (32);
   ROUND_EXPAND (); ROUND_STEP (48);
@@ -182,7 +182,7 @@ DECLSPEC void sha512_transform_opt (const u32x *w0, const u32x *w1, const u32x *
 
   ROUND_STEP (0);
 
-  #if defined IS_CUDA || defined IS_HIP
+  #if defined IS_CUDA
   ROUND_EXPAND (); ROUND_STEP (16);
   ROUND_EXPAND (); ROUND_STEP (32);
   ROUND_EXPAND (); ROUND_STEP (48);

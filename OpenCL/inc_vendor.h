@@ -95,8 +95,6 @@
 #define IS_GENERIC
 #elif VENDOR_ID == (1 << 8)
 #define IS_AMD_USE_HIP
-// TODO HIP optimization potential
-//#define IS_GENERIC
 #else
 #define IS_GENERIC
 #endif
@@ -158,10 +156,8 @@
 #endif
 
 #ifdef IS_HIP
-//TODO HIP
-//#define USE_BITSELECT
-//#define USE_ROTATE
-//#define USE_SWIZZLE
+#define USE_BITSELECT
+#define USE_ROTATE
 #endif
 
 #ifdef IS_ROCM
