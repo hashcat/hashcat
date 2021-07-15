@@ -28,13 +28,13 @@ typedef struct pbkdf2_sha1_tmp
 
 } pbkdf2_sha1_tmp_t;
 
-typedef struct pbkdf2_sha1
+typedef struct vmware_vmx
 {
   u32 salt_buf[64];
   u32 iv_buf[4];
   u32 ct_buf[4];
 
-} pbkdf2_sha1_t;
+} vmware_vmx_t;
 
 DECLSPEC void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
 {
@@ -72,7 +72,7 @@ DECLSPEC void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipa
   sha1_transform_vector (w0, w1, w2, w3, digest);
 }
 
-KERNEL_FQ void m26700_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, pbkdf2_sha1_t))
+KERNEL_FQ void m26700_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, vmware_vmx_t))
 {
   /**
    * base
@@ -144,7 +144,7 @@ KERNEL_FQ void m26700_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, pbkdf2_sha1
   }
 }
 
-KERNEL_FQ void m26700_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, pbkdf2_sha1_t))
+KERNEL_FQ void m26700_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, vmware_vmx_t))
 {
   const u64 gid = get_global_id (0);
 
