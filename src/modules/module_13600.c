@@ -61,7 +61,7 @@ typedef struct zip2
   u32 verify_bytes;
   u32 compress_length;
   u32 data_len;
-  u32 data_buf[2048];
+  u32 data_buf[0x4000000];
   u32 auth_len;
   u32 auth_buf[4];
 
@@ -166,7 +166,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.len_min[7] = 0;
-  token.len_max[7] = 16384;
+  token.len_max[7] = 0x4000000 * 4 * 2;
   token.sep[7]     = '*';
   token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;

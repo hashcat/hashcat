@@ -63,6 +63,7 @@
 - OpenCL Runtime: Workaround JiT crash (SC failed. No reason given.) on macOS by limiting local memory allocations to 32k
 - Status View: Include time and duration info when pausing and resuming
 - Tests: Changed tests for VeraCrypt from -a 0 to -a 3, because password extension is not available to all shells
+- WinZip Kernel: Increase supported data length from 8k to 16mb
 
 * changes v6.2.1 -> v6.2.2
 
