@@ -16,17 +16,16 @@ static const u32   DGST_POS1      = 1;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_4;
-static const u32   HASH_CATEGORY  = HASH_CATEGORY_RAW_CIPHER_KPA;
+static const u32   HASH_CATEGORY  = HASH_CATEGORY_FDE;
 static const char *HASH_NAME      = "VMware VMX (PBKDF2-HMAC-SHA1 + AES-256-CBC)";
 static const u64   KERN_TYPE      = 26700;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_ST_HEX
-                                  | OPTS_TYPE_HASH_COPY;
+                                  | OPTS_TYPE_ST_HEX;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$vmx$0$10000$264bbab02fdf7c1a793651120bec3723$cbb368564d8dfb99f509d4922f4693413f3816af713f0e76bc2409ff9336935d069b1c0763c06ec30bd340d87849da7db5c946f6c2bbcc2cf47fcd01d704e4711310f2e09189e2b87ada80573cafade6f83c7a27a3ceca9c5722ba7c083b358151247bb9b13fb01ad5a98ec893d8a40cfb8db06c";
+static const char *ST_HASH        = "$vmx$0$10000$264bbab02fdf7c1a793651120bec3723$cbb368564d8dfb99f509d4922f4693413f3816af713f0e76bc2409ff9336935d";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -53,19 +52,19 @@ typedef struct pbkdf2_sha1_tmp
 
 } pbkdf2_sha1_tmp_t;
 
-typedef struct pbkdf2_sha1
+typedef struct vmware_vmx
 {
   u32 salt_buf[64];
   u32 iv_buf[4];
   u32 ct_buf[4];
 
-} pbkdf2_sha1_t;
+} vmware_vmx_t;
 
-static const char *SIGNATURE_VMX = "$vmx$0$";
+static const char *SIGNATURE_VMWARE_VMX = "$vmx$0$";
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u64 esalt_size = (const u64) sizeof (pbkdf2_sha1_t);
+  const u64 esalt_size = (const u64) sizeof (vmware_vmx_t);
 
   return esalt_size;
 }
@@ -91,14 +90,14 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   u32 *digest = (u32 *) digest_buf;
 
-  pbkdf2_sha1_t *pbkdf2_sha1 = (pbkdf2_sha1_t *) esalt_buf;
+  vmware_vmx_t *vmware_vmx = (vmware_vmx_t *) esalt_buf;
 
   token_t token;
 
   token.token_cnt  = 4;
 
   token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_VMX;
+  token.signatures_buf[0] = SIGNATURE_VMWARE_VMX;
 
   token.sep[0]     = '$';
   token.len[0]     = 7;
@@ -118,8 +117,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[3]     = '$';
-  token.len_min[3] = 32;
-  token.len_max[3] = 512;
+  token.len_min[3] = 64;
+  token.len_max[3] = 64;
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
@@ -147,36 +146,36 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   salt->salt_len = salt_len / 2;
 
-  pbkdf2_sha1->salt_buf[0] = salt->salt_buf[0];
-  pbkdf2_sha1->salt_buf[1] = salt->salt_buf[1];
-  pbkdf2_sha1->salt_buf[2] = salt->salt_buf[2];
-  pbkdf2_sha1->salt_buf[3] = salt->salt_buf[3];
+  vmware_vmx->salt_buf[0] = salt->salt_buf[0];
+  vmware_vmx->salt_buf[1] = salt->salt_buf[1];
+  vmware_vmx->salt_buf[2] = salt->salt_buf[2];
+  vmware_vmx->salt_buf[3] = salt->salt_buf[3];
 
   const u8 *hash_pos = token.buf[3];
 
   // iv
 
-  pbkdf2_sha1->iv_buf[0] = hex_to_u32 (hash_pos +  0);
-  pbkdf2_sha1->iv_buf[1] = hex_to_u32 (hash_pos +  8);
-  pbkdf2_sha1->iv_buf[2] = hex_to_u32 (hash_pos + 16);
-  pbkdf2_sha1->iv_buf[3] = hex_to_u32 (hash_pos + 24);
+  vmware_vmx->iv_buf[0] = hex_to_u32 (hash_pos +  0);
+  vmware_vmx->iv_buf[1] = hex_to_u32 (hash_pos +  8);
+  vmware_vmx->iv_buf[2] = hex_to_u32 (hash_pos + 16);
+  vmware_vmx->iv_buf[3] = hex_to_u32 (hash_pos + 24);
 
-  pbkdf2_sha1->iv_buf[0] = byte_swap_32 (pbkdf2_sha1->iv_buf[0]);
-  pbkdf2_sha1->iv_buf[1] = byte_swap_32 (pbkdf2_sha1->iv_buf[1]);
-  pbkdf2_sha1->iv_buf[2] = byte_swap_32 (pbkdf2_sha1->iv_buf[2]);
-  pbkdf2_sha1->iv_buf[3] = byte_swap_32 (pbkdf2_sha1->iv_buf[3]);
+  vmware_vmx->iv_buf[0] = byte_swap_32 (vmware_vmx->iv_buf[0]);
+  vmware_vmx->iv_buf[1] = byte_swap_32 (vmware_vmx->iv_buf[1]);
+  vmware_vmx->iv_buf[2] = byte_swap_32 (vmware_vmx->iv_buf[2]);
+  vmware_vmx->iv_buf[3] = byte_swap_32 (vmware_vmx->iv_buf[3]);
 
   // ct
 
-  pbkdf2_sha1->ct_buf[0] = hex_to_u32 (hash_pos + 32);
-  pbkdf2_sha1->ct_buf[1] = hex_to_u32 (hash_pos + 40);
-  pbkdf2_sha1->ct_buf[2] = hex_to_u32 (hash_pos + 48);
-  pbkdf2_sha1->ct_buf[3] = hex_to_u32 (hash_pos + 56);
+  vmware_vmx->ct_buf[0] = hex_to_u32 (hash_pos + 32);
+  vmware_vmx->ct_buf[1] = hex_to_u32 (hash_pos + 40);
+  vmware_vmx->ct_buf[2] = hex_to_u32 (hash_pos + 48);
+  vmware_vmx->ct_buf[3] = hex_to_u32 (hash_pos + 56);
 
-  pbkdf2_sha1->ct_buf[0] = byte_swap_32 (pbkdf2_sha1->ct_buf[0]);
-  pbkdf2_sha1->ct_buf[1] = byte_swap_32 (pbkdf2_sha1->ct_buf[1]);
-  pbkdf2_sha1->ct_buf[2] = byte_swap_32 (pbkdf2_sha1->ct_buf[2]);
-  pbkdf2_sha1->ct_buf[3] = byte_swap_32 (pbkdf2_sha1->ct_buf[3]);
+  vmware_vmx->ct_buf[0] = byte_swap_32 (vmware_vmx->ct_buf[0]);
+  vmware_vmx->ct_buf[1] = byte_swap_32 (vmware_vmx->ct_buf[1]);
+  vmware_vmx->ct_buf[2] = byte_swap_32 (vmware_vmx->ct_buf[2]);
+  vmware_vmx->ct_buf[3] = byte_swap_32 (vmware_vmx->ct_buf[3]);
 
   // known pt => 'type=key:cipher='
 
@@ -190,7 +189,43 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  return snprintf (line_buf, line_size, "%s", hash_info->orighash);
+  vmware_vmx_t *vmware_vmx = (vmware_vmx_t *) esalt_buf;
+
+  // salt
+
+  u8 salt_buf[32+1] = { 0 };
+
+  u32_to_hex (vmware_vmx->salt_buf[0], salt_buf +  0);
+  u32_to_hex (vmware_vmx->salt_buf[1], salt_buf +  8);
+  u32_to_hex (vmware_vmx->salt_buf[2], salt_buf + 16);
+  u32_to_hex (vmware_vmx->salt_buf[3], salt_buf + 24);
+
+  // iv
+
+  u8 iv_buf[32+1] = { 0 };
+
+  u32_to_hex (byte_swap_32 (vmware_vmx->iv_buf[0]), iv_buf +  0);
+  u32_to_hex (byte_swap_32 (vmware_vmx->iv_buf[1]), iv_buf +  8);
+  u32_to_hex (byte_swap_32 (vmware_vmx->iv_buf[2]), iv_buf + 16);
+  u32_to_hex (byte_swap_32 (vmware_vmx->iv_buf[3]), iv_buf + 24);
+
+  // ct
+
+  u8 ct_buf[32+1] = { 0 };
+
+  u32_to_hex (byte_swap_32 (vmware_vmx->ct_buf[0]), ct_buf +  0);
+  u32_to_hex (byte_swap_32 (vmware_vmx->ct_buf[1]), ct_buf +  8);
+  u32_to_hex (byte_swap_32 (vmware_vmx->ct_buf[2]), ct_buf + 16);
+  u32_to_hex (byte_swap_32 (vmware_vmx->ct_buf[3]), ct_buf + 24);
+
+  const int line_len = snprintf (line_buf, line_size, "%s%u$%s$%s%s",
+    SIGNATURE_VMWARE_VMX,
+    salt->salt_iter + 1,
+    salt_buf,
+    iv_buf,
+    ct_buf);
+
+  return line_len;
 }
 
 void module_init (module_ctx_t *module_ctx)

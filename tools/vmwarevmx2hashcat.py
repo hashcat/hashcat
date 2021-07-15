@@ -44,7 +44,6 @@ def parse_keysafe(file):
 
     vmx_ks = ks_struct
 
-#    vmx_ks['id'] = hexlify(base64.b64decode(match.group(1))).decode()
     vmx_ks['password_hash'] = match.group(2)
     if vmx_ks['password_hash'] != 'PBKDF2-HMAC-SHA-1':
         msg = 'Unsupported password hash format: ' + vmx_ks['password_hash']
@@ -55,11 +54,9 @@ def parse_keysafe(file):
         msg = 'Unsupported cypher format: ' + vmx_ks['password_cypher']
         raise ValueError(msg)
 
-
     vmx_ks['hash_round'] = int(match.group(4))
     vmx_ks['salt'] = base64.b64decode(unquote(match.group(5)))
-#    vmx_ks['config_hash'] = match.group(6)
-    vmx_ks['dict'] = base64.b64decode(match.group(7))
+    vmx_ks['dict'] = base64.b64decode(match.group(7))[0:32]
 
     return vmx_ks
 

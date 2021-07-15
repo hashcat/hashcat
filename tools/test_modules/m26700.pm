@@ -10,14 +10,13 @@ use warnings;
 
 use Crypt::PBKDF2;
 use Crypt::CBC;
-use Crypt::Mode::CBC;
 
 sub module_constraints { [[0, 256], [32, 32], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub module_generate_hash
 {
   my $word = shift;
-  my $salt_str = shift // random_hex_string (32);
+  my $salt_str = shift;
   my $ct_str = shift;
 
   my $iv_str = "";
@@ -72,7 +71,7 @@ sub module_generate_hash
 
     my $encrypted = unpack ("H*", $cipher->encrypt ($data));
 
-    $hash = sprintf ("\$vmx\$0\$%s\$%s\$%s%s", $iterations, unpack ("H*", $salt), unpack ("H*", $iv), $encrypted);
+    $hash = sprintf ("\$vmx\$0\$%s\$%s\$%s%s", $iterations, unpack ("H*", $salt), unpack ("H*", $iv), substr ($encrypted, 0, 32));
   }
 
   return $hash;
@@ -92,7 +91,7 @@ sub module_verify_hash
   return unless ($signature eq "vmx");
   return unless ($version eq 0);
   return unless ($rounds eq 10000);
-  return unless (length $ct lt 32);
+  return unless (length $ct eq 64);
 
   my $word_packed = pack_if_HEX_notation ($word);
 
