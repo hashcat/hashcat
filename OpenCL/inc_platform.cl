@@ -253,7 +253,7 @@ DECLSPEC u32 amd_bitalign_S (const u32 a, const u32 b, const int n)
 {
   u32 r = 0;
 
-  __asm__ ("V_ALIGNBIT_B32 %0, %1, %2, %3;" : "=v"(r): "v"(a), "v"(b), "v"(n));
+  asm ("V_ALIGNBIT_B32 %0, %1, %2, %3;" : "=v"(r): "v"(a), "v"(b), "I"(n));
 
   return r;
 }
