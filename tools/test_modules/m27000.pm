@@ -8,7 +8,6 @@
 use strict;
 use warnings;
 
-use Authen::Passphrase::NTHash;
 use Digest::HMAC qw (hmac hmac_hex);
 use Digest::MD5  qw (md5);
 use Encode       qw (encode);
@@ -129,8 +128,8 @@ sub module_generate_hash
 
   my $ntresp;
 
-  # my $nthash = pack_if_HEX_notation ($word);
-  my $nthash   = pack ("H*", $word);
+  my $nthash = pack_if_HEX_notation ($word);
+  # my $nthash   = pack ("H*", $word);
   my $nthashpadded = $nthash . "\x00" x 5;
 
   $ntresp .= Crypt::ECB::encrypt (setup_des_key (substr ($nthashpadded,  0, 7)), "DES", $challenge, "none");
