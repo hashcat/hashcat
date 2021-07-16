@@ -544,8 +544,6 @@ KERNEL_FQ void m27000_loop (KERN_ATTR_TMPS_ESALT (netntlm_tmp_t, netntlm_t))
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
-
   /**
    * sbox, kbox
    */
@@ -584,6 +582,8 @@ KERNEL_FQ void m27000_loop (KERN_ATTR_TMPS_ESALT (netntlm_tmp_t, netntlm_t))
   CONSTANT_AS u32a (*s_skb)[64]     = c_skb;
 
   #endif
+
+  if (gid >= gid_max) return;
 
   /**
    * base
