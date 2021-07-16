@@ -45,7 +45,7 @@ DECLSPEC u32 memcat16 (u32 *block, const u32 offset, const u32 *append, const u3
   u32 in2 = append[2];
   u32 in3 = append[3];
 
-  #if defined IS_AMD || defined IS_GENERIC
+  #if (defined IS_AMD || defined IS_HIP) || defined IS_GENERIC
   const u32 tmp0 = hc_bytealign_be (  0, in0, offset);
   const u32 tmp1 = hc_bytealign_be (in0, in1, offset);
   const u32 tmp2 = hc_bytealign_be (in1, in2, offset);
@@ -165,7 +165,7 @@ DECLSPEC u32 memcat16c (u32 *block, const u32 offset, const u32 *append, const u
   u32 in2 = append[2];
   u32 in3 = append[3];
 
-  #if defined IS_AMD || defined IS_GENERIC
+  #if (defined IS_AMD || defined IS_HIP) || defined IS_GENERIC
   const u32 tmp0 = hc_bytealign_be (  0, in0, offset);
   const u32 tmp1 = hc_bytealign_be (in0, in1, offset);
   const u32 tmp2 = hc_bytealign_be (in1, in2, offset);
@@ -322,7 +322,7 @@ DECLSPEC u32 memcat16s (u32 *block, const u32 offset, const u32 *append, const u
   u32 in3 = append[3];
   u32 in4 = append[4];
 
-  #if defined IS_AMD || defined IS_GENERIC
+  #if (defined IS_AMD || defined IS_HIP) || defined IS_GENERIC
   const u32 tmp0 = hc_bytealign_be (  0, in0, offset);
   const u32 tmp1 = hc_bytealign_be (in0, in1, offset);
   const u32 tmp2 = hc_bytealign_be (in1, in2, offset);
@@ -456,7 +456,7 @@ DECLSPEC u32 memcat16sc (u32 *block, const u32 offset, const u32 *append, const 
   u32 in3 = append[3];
   u32 in4 = append[4];
 
-  #if defined IS_AMD || defined IS_GENERIC
+  #if (defined IS_AMD || defined IS_HIP) || defined IS_GENERIC
   const u32 tmp0 = hc_bytealign_be (  0, in0, offset);
   const u32 tmp1 = hc_bytealign_be (in0, in1, offset);
   const u32 tmp2 = hc_bytealign_be (in1, in2, offset);
@@ -756,7 +756,7 @@ DECLSPEC u32 memcat20 (u32 *block, const u32 offset, const u32 *append, const u3
   u32 in2 = append[2];
   u32 in3 = append[3];
 
-  #if defined IS_AMD || defined IS_GENERIC
+  #if (defined IS_AMD || defined IS_HIP) || defined IS_GENERIC
   const u32 tmp0 = hc_bytealign_be_S (  0, in0, offset);
   const u32 tmp1 = hc_bytealign_be_S (in0, in1, offset);
   const u32 tmp2 = hc_bytealign_be_S (in1, in2, offset);
@@ -915,7 +915,7 @@ DECLSPEC u32 memcat20_x80 (u32 *block, const u32 offset, const u32 *append, cons
   u32 in3 = append[3];
   u32 in4 = 0x80000000;
 
-  #if defined IS_AMD || defined IS_GENERIC
+  #if (defined IS_AMD || defined IS_HIP) || defined IS_GENERIC
   const u32 tmp0 = hc_bytealign_be_S (  0, in0, offset);
   const u32 tmp1 = hc_bytealign_be_S (in0, in1, offset);
   const u32 tmp2 = hc_bytealign_be_S (in1, in2, offset);
@@ -1074,7 +1074,7 @@ DECLSPEC u32 memcat24 (u32 *block, const u32 offset, const u32 *append, const u3
   u32 in3 = append[3];
   u32 in4 = append[4];
 
-  #if defined IS_AMD || defined IS_GENERIC
+  #if (defined IS_AMD || defined IS_HIP) || defined IS_GENERIC
   const u32 tmp0 = hc_bytealign_be_S (  0, in0, offset);
   const u32 tmp1 = hc_bytealign_be_S (in0, in1, offset);
   const u32 tmp2 = hc_bytealign_be_S (in1, in2, offset);

@@ -781,7 +781,7 @@ DECLSPEC void append_block8_optimized (const u32 offset, u32 *buf0, u32 *buf1, c
 
   const int offset_switch = offset / 4;
 
-  #if (defined IS_AMD && HAS_VPERM == 0) || defined IS_GENERIC
+  #if ((defined IS_AMD || defined IS_HIP) && HAS_VPERM == 0) || defined IS_GENERIC
   const u32 src_r00 = src_r0[0];
   const u32 src_r01 = src_r0[1];
   const u32 src_r02 = src_r0[2];
@@ -884,7 +884,7 @@ DECLSPEC void append_block8_optimized (const u32 offset, u32 *buf0, u32 *buf1, c
   }
   #endif
 
-  #if (defined IS_AMD && HAS_VPERM == 1) || defined IS_NV
+  #if ((defined IS_AMD || defined IS_HIP) && HAS_VPERM == 1) || defined IS_NV
 
   const int offset_mod_4 = offset & 3;
 
@@ -894,7 +894,7 @@ DECLSPEC void append_block8_optimized (const u32 offset, u32 *buf0, u32 *buf1, c
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
   #endif
 
-  #if defined IS_AMD
+  #if (defined IS_AMD || defined IS_HIP)
   const int selector = l32_from_64_S (0x0706050403020100UL >> (offset_minus_4 * 8));
   #endif
 
@@ -1359,11 +1359,7 @@ DECLSPEC u32 rule_op_mangle_delete_at (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED c
   const u32 ml = (1 << ((p0 & 3) * 8)) - 1;
   const u32 mr = ~ml;
 
-  #ifdef IS_AMD
   const int p0_switch = p0 / 4;
-  #else
-  const int p0_switch = p0 / 4;
-  #endif
 
   switch (p0_switch)
   {
@@ -1466,11 +1462,7 @@ DECLSPEC u32 rule_op_mangle_omit (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const 
   const u32 ml = (1 << ((p0 & 3) * 8)) - 1;
   const u32 mr = ~ml;
 
-  #ifdef IS_AMD
   const int p0_switch = p0 / 4;
-  #else
-  const int p0_switch = p0 / 4;
-  #endif
 
   switch (p0_switch)
   {
@@ -1552,11 +1544,7 @@ DECLSPEC u32 rule_op_mangle_insert (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED cons
 
   const u32 mr = 0xffffff00 << ((p0 & 3) * 8);
 
-  #ifdef IS_AMD
   const int p0_switch = p0 / 4;
-  #else
-  const int p0_switch = p0 / 4;
-  #endif
 
   switch (p0_switch)
   {

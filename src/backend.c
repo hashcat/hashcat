@@ -55,6 +55,10 @@ static bool is_same_device (const hc_device_param_t *src, const hc_device_param_
 
   if ((src->is_cuda == true) && (dst->is_cuda == true)) return false;
 
+  // HIP can't have aliases
+
+  if ((src->is_hip == true) && (dst->is_hip == true)) return false;
+
   // But OpenCL can have aliases
 
   if ((src->is_opencl == true) && (dst->is_opencl == true))
@@ -119,6 +123,10 @@ static int backend_ctx_find_alias_devices (hashcat_ctx_t *hashcat_ctx)
 
       if (alias_device->is_cuda == true) continue;
 
+      // this lets HIP devices survive over OpenCL
+
+      if (alias_device->is_hip == true) continue;
+
         // this lets native OpenCL runtime survive over generic OpenCL runtime
 
       if (alias_device->opencl_device_type & CL_DEVICE_TYPE_CPU)
@@ -153,6 +161,7 @@ static bool is_same_device_type (const hc_device_param_t *src, const hc_device_p
   if (strcmp (src->device_name, dst->device_name) != 0) return false;
 
   if (src->is_cuda   != dst->is_cuda)   return false;
+  if (src->is_hip    != dst->is_hip)    return false;
   if (src->is_opencl != dst->is_opencl) return false;
 
   if (strcmp (src->device_name, dst->device_name) != 0) return false;
@@ -953,6 +962,213 @@ int hc_nvrtcVersion (hashcat_ctx_t *hashcat_ctx, int *major, int *minor)
   if (NVRTC_err != NVRTC_SUCCESS)
   {
     event_log_error (hashcat_ctx, "nvrtcVersion(): %s", nvrtc->nvrtcGetErrorString (NVRTC_err));
+
+    return -1;
+  }
+
+  return 0;
+}
+
+// HIPRTC
+
+int hiprtc_init (hashcat_ctx_t *hashcat_ctx)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIPRTC_PTR *hiprtc = (HIPRTC_PTR *) backend_ctx->hiprtc;
+
+  memset (hiprtc, 0, sizeof (HIPRTC_PTR));
+
+  #if   defined (_WIN)
+  hiprtc->lib = hc_dlopen ("fixme.dll");
+  #elif defined (__APPLE__)
+  hiprtc->lib = hc_dlopen ("fixme.dylib");
+  #elif defined (__CYGWIN__)
+  hiprtc->lib = hc_dlopen ("fixme.dll");
+  #else
+  hiprtc->lib = hc_dlopen ("libamdhip64.so");
+
+  if (hiprtc->lib == NULL) hiprtc->lib = hc_dlopen ("libamdhip64.so.4");
+  #endif
+
+  if (hiprtc->lib == NULL) return -1;
+
+  HC_LOAD_FUNC (hiprtc, hiprtcAddNameExpression,  HIPRTC_HIPRTCADDNAMEEXPRESSION, HIPRTC, 1);
+  HC_LOAD_FUNC (hiprtc, hiprtcCompileProgram,     HIPRTC_HIPRTCCOMPILEPROGRAM,    HIPRTC, 1);
+  HC_LOAD_FUNC (hiprtc, hiprtcCreateProgram,      HIPRTC_HIPRTCCREATEPROGRAM,     HIPRTC, 1);
+  HC_LOAD_FUNC (hiprtc, hiprtcDestroyProgram,     HIPRTC_HIPRTCDESTROYPROGRAM,    HIPRTC, 1);
+  HC_LOAD_FUNC (hiprtc, hiprtcGetLoweredName,     HIPRTC_HIPRTCGETLOWEREDNAME,    HIPRTC, 1);
+  HC_LOAD_FUNC (hiprtc, hiprtcGetCode,            HIPRTC_HIPRTCGETPTX,            HIPRTC, 1);
+  HC_LOAD_FUNC (hiprtc, hiprtcGetCodeSize,        HIPRTC_HIPRTCGETPTXSIZE,        HIPRTC, 1);
+  HC_LOAD_FUNC (hiprtc, hiprtcGetProgramLog,      HIPRTC_HIPRTCGETPROGRAMLOG,     HIPRTC, 1);
+  HC_LOAD_FUNC (hiprtc, hiprtcGetProgramLogSize,  HIPRTC_HIPRTCGETPROGRAMLOGSIZE, HIPRTC, 1);
+  HC_LOAD_FUNC (hiprtc, hiprtcGetErrorString,     HIPRTC_HIPRTCGETERRORSTRING,    HIPRTC, 1);
+  HC_LOAD_FUNC (hiprtc, hiprtcVersion,            HIPRTC_HIPRTCVERSION,           HIPRTC, 1);
+
+  return 0;
+}
+
+void hiprtc_close (hashcat_ctx_t *hashcat_ctx)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIPRTC_PTR *hiprtc = (HIPRTC_PTR *) backend_ctx->hiprtc;
+
+  if (hiprtc)
+  {
+    if (hiprtc->lib)
+    {
+      hc_dlclose (hiprtc->lib);
+    }
+
+    hcfree (backend_ctx->hiprtc);
+
+    backend_ctx->hiprtc = NULL;
+  }
+}
+
+int hc_hiprtcCreateProgram (hashcat_ctx_t *hashcat_ctx, hiprtcProgram *prog, const char *src, const char *name, int numHeaders, const char * const *headers, const char * const *includeNames)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIPRTC_PTR *hiprtc = (HIPRTC_PTR *) backend_ctx->hiprtc;
+
+  const hiprtcResult HIPRTC_err = hiprtc->hiprtcCreateProgram (prog, src, name, numHeaders, headers, includeNames);
+
+  if (HIPRTC_err != HIPRTC_SUCCESS)
+  {
+    event_log_error (hashcat_ctx, "hiprtcCreateProgram(): %s", hiprtc->hiprtcGetErrorString (HIPRTC_err));
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hiprtcDestroyProgram (hashcat_ctx_t *hashcat_ctx, hiprtcProgram *prog)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIPRTC_PTR *hiprtc = (HIPRTC_PTR *) backend_ctx->hiprtc;
+
+  const hiprtcResult HIPRTC_err = hiprtc->hiprtcDestroyProgram (prog);
+
+  if (HIPRTC_err != HIPRTC_SUCCESS)
+  {
+    event_log_error (hashcat_ctx, "hiprtcDestroyProgram(): %s", hiprtc->hiprtcGetErrorString (HIPRTC_err));
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hiprtcCompileProgram (hashcat_ctx_t *hashcat_ctx, hiprtcProgram prog, int numOptions, const char * const *options)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIPRTC_PTR *hiprtc = (HIPRTC_PTR *) backend_ctx->hiprtc;
+
+  #if 0
+  for(int i =0; i< numOptions; i++)
+    printf("Option_%d = %s\n", i, options[i]);
+  #endif
+
+  const hiprtcResult HIPRTC_err = hiprtc->hiprtcCompileProgram (prog, numOptions, options);
+
+  if (HIPRTC_err != HIPRTC_SUCCESS)
+  {
+    event_log_error (hashcat_ctx, "hiprtcCompileProgram(): %s", hiprtc->hiprtcGetErrorString (HIPRTC_err));
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hiprtcGetProgramLogSize (hashcat_ctx_t *hashcat_ctx, hiprtcProgram prog, size_t *logSizeRet)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIPRTC_PTR *hiprtc = (HIPRTC_PTR *) backend_ctx->hiprtc;
+
+  const hiprtcResult HIPRTC_err = hiprtc->hiprtcGetProgramLogSize (prog, logSizeRet);
+
+  if (HIPRTC_err != HIPRTC_SUCCESS)
+  {
+    event_log_error (hashcat_ctx, "hiprtcGetProgramLogSize(): %s", hiprtc->hiprtcGetErrorString (HIPRTC_err));
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hiprtcGetProgramLog (hashcat_ctx_t *hashcat_ctx, hiprtcProgram prog, char *log)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIPRTC_PTR *hiprtc = (HIPRTC_PTR *) backend_ctx->hiprtc;
+
+  const hiprtcResult HIPRTC_err = hiprtc->hiprtcGetProgramLog (prog, log);
+
+  if (HIPRTC_err != HIPRTC_SUCCESS)
+  {
+    event_log_error (hashcat_ctx, "hiprtcGetProgramLog(): %s", hiprtc->hiprtcGetErrorString (HIPRTC_err));
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hiprtcGetCodeSize (hashcat_ctx_t *hashcat_ctx, hiprtcProgram prog, size_t *ptxSizeRet)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIPRTC_PTR *hiprtc = (HIPRTC_PTR *) backend_ctx->hiprtc;
+
+  const hiprtcResult HIPRTC_err = hiprtc->hiprtcGetCodeSize (prog, ptxSizeRet);
+
+  if (HIPRTC_err != HIPRTC_SUCCESS)
+  {
+    event_log_error (hashcat_ctx, "hiprtcGetCodeSize(): %s", hiprtc->hiprtcGetErrorString (HIPRTC_err));
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hiprtcGetCode (hashcat_ctx_t *hashcat_ctx, hiprtcProgram prog, char *ptx)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIPRTC_PTR *hiprtc = (HIPRTC_PTR *) backend_ctx->hiprtc;
+
+  const hiprtcResult HIPRTC_err = hiprtc->hiprtcGetCode (prog, ptx);
+
+  if (HIPRTC_err != HIPRTC_SUCCESS)
+  {
+    event_log_error (hashcat_ctx, "hiprtcGetCode(): %s", hiprtc->hiprtcGetErrorString (HIPRTC_err));
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hiprtcVersion (hashcat_ctx_t *hashcat_ctx, int *major, int *minor)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIPRTC_PTR *hiprtc = (HIPRTC_PTR *) backend_ctx->hiprtc;
+
+  const hiprtcResult HIPRTC_err = hiprtc->hiprtcVersion (major, minor);
+
+  if (HIPRTC_err != HIPRTC_SUCCESS)
+  {
+    event_log_error (hashcat_ctx, "hiprtcVersion(): %s", hiprtc->hiprtcGetErrorString (HIPRTC_err));
 
     return -1;
   }
@@ -2167,6 +2383,1220 @@ int hc_cuLinkComplete (hashcat_ctx_t *hashcat_ctx, CUlinkState state, void **cub
   return 0;
 }
 
+// HIP
+
+int hip_init (hashcat_ctx_t *hashcat_ctx)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  memset (hip, 0, sizeof (HIP_PTR));
+
+  #if   defined (_WIN)
+  hip->lib = hc_dlopen ("fixme.dll");
+  #elif defined (__APPLE__)
+  hip->lib = hc_dlopen ("fixme.dylib");
+  #elif defined (__CYGWIN__)
+  hip->lib = hc_dlopen ("fixme.dll");
+  #else
+  hip->lib = hc_dlopen ("libamdhip64.so");
+
+  //TODO: grab the 4 from the major RT version
+  if (hip->lib == NULL) hip->lib = hc_dlopen ("libamdhip64.so.4.2.40200");
+  #endif
+
+  if (hip->lib == NULL) return -1;
+
+  // finding the right symbol is a PITA,
+  #define HC_LOAD_FUNC_HIP(ptr,name,hipname,type,libname,noerr) \
+    do { \
+      ptr->name = (type) hc_dlsym ((ptr)->lib, #hipname); \
+      if ((noerr) != -1) { \
+        if (!(ptr)->name) { \
+          if ((noerr) == 1) { \
+            event_log_error (hashcat_ctx, "%s is missing from %s shared library.", #name, #libname); \
+            return -1; \
+          } \
+          if ((noerr) != 1) { \
+            event_log_warning (hashcat_ctx, "%s is missing from %s shared library.", #name, #libname); \
+            return 0; \
+          } \
+        } \
+      } \
+    } while (0)
+
+  // finding the right symbol is a PITA, because of the _v2 suffix
+  // a good reference is cuda.h itself
+  // this needs to be verified for each new cuda release
+
+  HC_LOAD_FUNC_HIP (hip, hipCtxCreate,              hipCtxCreate,               HIP_HIPCTXCREATE,               HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipCtxDestroy,             hipCtxDestroy,              HIP_HIPCTXDESTROY,              HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipCtxGetCacheConfig,      hipCtxGetCacheConfig,       HIP_HIPCTXGETCACHECONFIG,       HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipCtxGetCurrent,          hipCtxGetCurrent,           HIP_HIPCTXGETCURRENT,           HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipCtxGetSharedMemConfig,  hipCtxGetSharedMemConfig,   HIP_HIPCTXGETSHAREDMEMCONFIG,   HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipCtxPopCurrent,          hipCtxPopCurrent,           HIP_HIPCTXPOPCURRENT,           HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipCtxPushCurrent,         hipCtxPushCurrent,          HIP_HIPCTXPUSHCURRENT,          HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipCtxSetCacheConfig,      hipCtxSetCacheConfig,       HIP_HIPCTXSETCACHECONFIG,       HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipCtxSetCurrent,          hipCtxSetCurrent,           HIP_HIPCTXSETCURRENT,           HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipCtxSetSharedMemConfig,  hipCtxSetSharedMemConfig,   HIP_HIPCTXSETSHAREDMEMCONFIG,   HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipCtxSynchronize,         hipCtxSynchronize,          HIP_HIPCTXSYNCHRONIZE,          HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipDeviceGetAttribute,     hipDeviceGetAttribute,      HIP_HIPDEVICEGETATTRIBUTE,      HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipDeviceGetCount,         hipGetDeviceCount,          HIP_HIPDEVICEGETCOUNT,          HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipDeviceGet,              hipDeviceGet,               HIP_HIPDEVICEGET,               HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipDeviceGetName,          hipDeviceGetName,           HIP_HIPDEVICEGETNAME,           HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipDeviceTotalMem,         hipDeviceTotalMem,          HIP_HIPDEVICETOTALMEM,          HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipDriverGetVersion,       hipDriverGetVersion,        HIP_HIPDRIVERGETVERSION,        HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipEventCreate,            hipEventCreateWithFlags,    HIP_HIPEVENTCREATE,             HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipEventDestroy,           hipEventDestroy,            HIP_HIPEVENTDESTROY,            HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipEventElapsedTime,       hipEventElapsedTime,        HIP_HIPEVENTELAPSEDTIME,        HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipEventQuery,             hipEventQuery,              HIP_HIPEVENTQUERY,              HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipEventRecord,            hipEventRecord,             HIP_HIPEVENTRECORD,             HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipEventSynchronize,       hipEventSynchronize,        HIP_HIPEVENTSYNCHRONIZE,        HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipFuncGetAttribute,       hipFuncGetAttribute,        HIP_HIPFUNCGETATTRIBUTE,        HIP, 1);
+  //HC_LOAD_FUNC_HIP (hip, hipFuncSetAttribute,       hipFuncSetAttribute,        HIP_HIPFUNCSETATTRIBUTE,        HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipFuncSetCacheConfig,     hipFuncSetCacheConfig,      HIP_HIPFUNCSETCACHECONFIG,      HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipFuncSetSharedMemConfig, hipFuncSetSharedMemConfig,  HIP_HIPFUNCSETSHAREDMEMCONFIG,  HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipGetErrorName,           hipGetErrorName,            HIP_HIPGETERRORNAME,            HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipGetErrorString,         hipGetErrorString,          HIP_HIPGETERRORSTRING,          HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipInit,                   hipInit,                    HIP_HIPINIT,                    HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipLaunchKernel,           hipModuleLaunchKernel,      HIP_HIPLAUNCHKERNEL,            HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipMemAlloc,               hipMalloc,                  HIP_HIPMEMALLOC,                HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipMemAllocHost,           hipMemAllocHost,            HIP_HIPMEMALLOCHOST,            HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipMemcpyDtoD,             hipMemcpyDtoD,              HIP_HIPMEMCPYDTOD,              HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipMemcpyDtoH,             hipMemcpyDtoH,              HIP_HIPMEMCPYDTOH,              HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipMemcpyHtoD,             hipMemcpyHtoD,              HIP_HIPMEMCPYHTOD,              HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipMemFree,                hipFree,                    HIP_HIPMEMFREE,                 HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipMemFreeHost,            hipFreeHost,                HIP_HIPMEMFREEHOST,             HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipMemGetInfo,             hipMemGetInfo,              HIP_HIPMEMGETINFO,              HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipMemsetD32,              hipMemsetD32,               HIP_HIPMEMSETD32,               HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipMemsetD8,               hipMemsetD8,                HIP_HIPMEMSETD8,                HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipModuleGetFunction,      hipModuleGetFunction,       HIP_HIPMODULEGETFUNCTION,       HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipModuleGetGlobal,        hipModuleGetGlobal,         HIP_HIPMODULEGETGLOBAL,         HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipModuleLoad,             hipModuleLoad,              HIP_HIPMODULELOAD,              HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipModuleLoadData,         hipModuleLoadData,          HIP_HIPMODULELOADDATA,          HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipModuleLoadDataEx,       hipModuleLoadDataEx,        HIP_HIPMODULELOADDATAEX,        HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipModuleUnload,           hipModuleUnload,            HIP_HIPMODULEUNLOAD,            HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipProfilerStart,          hipProfilerStart,           HIP_HIPPROFILERSTART,           HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipProfilerStop,           hipProfilerStop,            HIP_HIPPROFILERSTOP,            HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipStreamCreate,           hipStreamCreate,            HIP_HIPSTREAMCREATE,            HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipStreamDestroy,          hipStreamDestroy,           HIP_HIPSTREAMDESTROY,           HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipStreamSynchronize,      hipStreamSynchronize,       HIP_HIPSTREAMSYNCHRONIZE,       HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipStreamWaitEvent,        hipStreamWaitEvent,         HIP_HIPSTREAMWAITEVENT,         HIP, 1);
+  #if defined (WITH_CUBINX)
+  HC_LOAD_FUNC_HIP (hip, hipLinkCreate,             hipLinkCreate,              HIP_HIPLINKCREATE,              HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipLinkAddData,            hipLinkAddData,             HIP_HIPLINKADDDATA,             HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipLinkDestroy,            hipLinkDestroy,             HIP_HIPLINKDESTROY,             HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipLinkComplete,           hipLinkComplete,            HIP_HIPLINKCOMPLETE,            HIP, 1);
+  #endif
+
+  return 0;
+}
+
+void hip_close (hashcat_ctx_t *hashcat_ctx)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  if (hip)
+  {
+    if (hip->lib)
+    {
+      hc_dlclose (hip->lib);
+    }
+
+    hcfree (backend_ctx->hip);
+
+    backend_ctx->hip = NULL;
+  }
+}
+
+int hc_hipInit (hashcat_ctx_t *hashcat_ctx, unsigned int Flags)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipInit (Flags);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipInit(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipInit(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipDeviceGetAttribute (hashcat_ctx_t *hashcat_ctx, int *pi, HIPdevice_attribute attrib, HIPdevice dev)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipDeviceGetAttribute (pi, attrib, dev);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipDeviceGetAttribute(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipDeviceGetAttribute(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipDeviceGetCount (hashcat_ctx_t *hashcat_ctx, int *count)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipDeviceGetCount (count);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipDeviceGetCount(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipDeviceGetCount(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipDeviceGet (hashcat_ctx_t *hashcat_ctx, HIPdevice* device, int ordinal)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipDeviceGet (device, ordinal);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipDeviceGet(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipDeviceGet(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipDeviceGetName (hashcat_ctx_t *hashcat_ctx, char *name, int len, HIPdevice dev)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipDeviceGetName (name, len, dev);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipDeviceGetName(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipDeviceGetName(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipDeviceTotalMem (hashcat_ctx_t *hashcat_ctx, size_t *bytes, HIPdevice dev)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipDeviceTotalMem (bytes, dev);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipDeviceTotalMem(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipDeviceTotalMem(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipDriverGetVersion (hashcat_ctx_t *hashcat_ctx, int *driverVersion)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipDriverGetVersion (driverVersion);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipDriverGetVersion(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipDriverGetVersion(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipCtxCreate (hashcat_ctx_t *hashcat_ctx, HIPcontext *pctx, unsigned int flags, HIPdevice dev)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipCtxCreate (pctx, flags, dev);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipCtxCreate(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipCtxCreate(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipCtxDestroy (hashcat_ctx_t *hashcat_ctx, HIPcontext ctx)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipCtxDestroy (ctx);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipCtxDestroy(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipCtxDestroy(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipModuleLoadDataEx (hashcat_ctx_t *hashcat_ctx, HIPmodule *module, const void *image, unsigned int numOptions, HIPjit_option *options, void **optionValues)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipModuleLoadDataEx (module, image, numOptions, options, optionValues);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipModuleLoadDataEx(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipModuleLoadDataEx(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipModuleUnload (hashcat_ctx_t *hashcat_ctx, HIPmodule hmod)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipModuleUnload (hmod);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipModuleUnload(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipModuleUnload(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipCtxSetCurrent (hashcat_ctx_t *hashcat_ctx, HIPcontext ctx)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipCtxSetCurrent (ctx);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipCtxSetCurrent(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipCtxSetCurrent(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipMemAlloc (hashcat_ctx_t *hashcat_ctx, HIPdeviceptr *dptr, size_t bytesize)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipMemAlloc (dptr, bytesize);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipMemAlloc(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipMemAlloc(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipMemFree (hashcat_ctx_t *hashcat_ctx, HIPdeviceptr dptr)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipMemFree (dptr);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipMemFree(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipMemFree(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipMemcpyDtoH (hashcat_ctx_t *hashcat_ctx, void *dstHost, HIPdeviceptr srcDevice, size_t ByteCount)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipMemcpyDtoH (dstHost, srcDevice, ByteCount);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipMemcpyDtoH(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipMemcpyDtoH(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipMemcpyDtoD (hashcat_ctx_t *hashcat_ctx, HIPdeviceptr dstDevice, HIPdeviceptr srcDevice, size_t ByteCount)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipMemcpyDtoD (dstDevice, srcDevice, ByteCount);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipMemcpyDtoD(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipMemcpyDtoD(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipMemcpyHtoD (hashcat_ctx_t *hashcat_ctx, HIPdeviceptr dstDevice, const void *srcHost, size_t ByteCount)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipMemcpyHtoD (dstDevice, srcHost, ByteCount);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipMemcpyHtoD(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipMemcpyHtoD(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipModuleGetFunction (hashcat_ctx_t *hashcat_ctx, HIPfunction *hfunc, HIPmodule hmod, const char *name)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipModuleGetFunction (hfunc, hmod, name);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipModuleGetFunction(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipModuleGetFunction(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipModuleGetGlobal (hashcat_ctx_t *hashcat_ctx, HIPdeviceptr *dptr, size_t *bytes, HIPmodule hmod, const char *name)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipModuleGetGlobal (dptr, bytes, hmod, name);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipModuleGetGlobal(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipModuleGetGlobal(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipMemGetInfo (hashcat_ctx_t *hashcat_ctx, size_t *free, size_t *total)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipMemGetInfo (free, total);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipMemGetInfo(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipMemGetInfo(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipFuncGetAttribute (hashcat_ctx_t *hashcat_ctx, int *pi, HIPfunction_attribute attrib, HIPfunction hfunc)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipFuncGetAttribute (pi, attrib, hfunc);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipFuncGetAttribute(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipFuncGetAttribute(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+/*
+
+// ATTENTION, this one maps to cudaFuncSetAttribute not cuFuncSetAttribute !!!
+
+int hc_hipFuncSetAttribute (hashcat_ctx_t *hashcat_ctx, HIPfunction hfunc, HIPfunction_attribute attrib, int value)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipFuncSetAttribute (hfunc, attrib, value);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipFuncSetAttribute(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipFuncSetAttribute(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+*/
+
+int hc_hipStreamCreate (hashcat_ctx_t *hashcat_ctx, HIPstream *phStream, unsigned int Flags)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipStreamCreate (phStream, Flags);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipStreamCreate(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipStreamCreate(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipStreamDestroy (hashcat_ctx_t *hashcat_ctx, HIPstream hStream)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipStreamDestroy (hStream);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipStreamDestroy(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipStreamDestroy(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipStreamSynchronize (hashcat_ctx_t *hashcat_ctx, HIPstream hStream)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipStreamSynchronize (hStream);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipStreamSynchronize(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipStreamSynchronize(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipLaunchKernel (hashcat_ctx_t *hashcat_ctx, HIPfunction f, unsigned int gridDimX, unsigned int gridDimY, unsigned int gridDimZ, unsigned int blockDimX, unsigned int blockDimY, unsigned int blockDimZ, unsigned int sharedMemBytes, HIPstream hStream, void **kernelParams, void **extra)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipLaunchKernel (f, gridDimX, gridDimY, gridDimZ, blockDimX, blockDimY, blockDimZ, sharedMemBytes, hStream, kernelParams, extra);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipLaunchKernel(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipLaunchKernel(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipCtxSynchronize (hashcat_ctx_t *hashcat_ctx)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipCtxSynchronize ();
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipCtxSynchronize(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipCtxSynchronize(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipEventCreate (hashcat_ctx_t *hashcat_ctx, HIPevent *phEvent, unsigned int Flags)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipEventCreate (phEvent, Flags);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipEventCreate(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipEventCreate(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipEventDestroy (hashcat_ctx_t *hashcat_ctx, HIPevent hEvent)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipEventDestroy (hEvent);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipEventDestroy(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipEventDestroy(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipEventElapsedTime (hashcat_ctx_t *hashcat_ctx, float *pMilliseconds, HIPevent hStart, HIPevent hEnd)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipEventElapsedTime (pMilliseconds, hStart, hEnd);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipEventElapsedTime(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipEventElapsedTime(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipEventQuery (hashcat_ctx_t *hashcat_ctx, HIPevent hEvent)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipEventQuery (hEvent);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipEventQuery(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipEventQuery(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipEventRecord (hashcat_ctx_t *hashcat_ctx, HIPevent hEvent, HIPstream hStream)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipEventRecord (hEvent, hStream);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipEventRecord(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipEventRecord(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipEventSynchronize (hashcat_ctx_t *hashcat_ctx, HIPevent hEvent)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipEventSynchronize (hEvent);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipEventSynchronize(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipEventSynchronize(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipCtxSetCacheConfig (hashcat_ctx_t *hashcat_ctx, HIPfunc_cache config)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipCtxSetCacheConfig (config);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipCtxSetCacheConfig(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipCtxSetCacheConfig(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipCtxPushCurrent (hashcat_ctx_t *hashcat_ctx, HIPcontext ctx)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipCtxPushCurrent (ctx);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipCtxPushCurrent(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipCtxPushCurrent(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipCtxPopCurrent (hashcat_ctx_t *hashcat_ctx, HIPcontext *pctx)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipCtxPopCurrent (pctx);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipCtxPopCurrent(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipCtxPopCurrent(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipLinkCreate (hashcat_ctx_t *hashcat_ctx, unsigned int numOptions, HIPjit_option *options, void **optionValues, HIPlinkState *stateOut)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipLinkCreate (numOptions, options, optionValues, stateOut);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipLinkCreate(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipLinkCreate(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipLinkAddData (hashcat_ctx_t *hashcat_ctx, HIPlinkState state, HIPjitInputType type, void *data, size_t size, const char *name, unsigned int numOptions, HIPjit_option *options, void **optionValues)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipLinkAddData (state, type, data, size, name, numOptions, options, optionValues);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipLinkAddData(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipLinkAddData(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipLinkDestroy (hashcat_ctx_t *hashcat_ctx, HIPlinkState state)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipLinkDestroy (state);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipLinkDestroy(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipLinkDestroy(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipLinkComplete (hashcat_ctx_t *hashcat_ctx, HIPlinkState state, void **hipbinOut, size_t *sizeOut)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipLinkComplete (state, hipbinOut, sizeOut);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipLinkComplete(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipLinkComplete(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
 // OpenCL
 
 int ocl_init (hashcat_ctx_t *hashcat_ctx)
@@ -2916,6 +4346,15 @@ int gidd_to_pw_t (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, c
     if (hc_cuCtxPopCurrent (hashcat_ctx, &device_param->cuda_context) == -1) return -1;
   }
 
+  if (device_param->is_hip == true)
+  {
+    if (hc_hipCtxPushCurrent (hashcat_ctx, device_param->hip_context) == -1) return -1;
+
+    if (hc_hipMemcpyDtoH (hashcat_ctx, &pw_idx, device_param->hip_d_pws_idx + (gidd * sizeof (pw_idx_t)), sizeof (pw_idx_t)) == -1) return -1;
+
+    if (hc_hipCtxPopCurrent (hashcat_ctx, &device_param->hip_context) == -1) return -1;
+  }
+
   if (device_param->is_opencl == true)
   {
     if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_idx, CL_TRUE, gidd * sizeof (pw_idx_t), sizeof (pw_idx_t), &pw_idx, 0, NULL, NULL) == -1) return -1;
@@ -2934,6 +4373,18 @@ int gidd_to_pw_t (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, c
       if (hc_cuMemcpyDtoH (hashcat_ctx,pw->i, device_param->cuda_d_pws_comp_buf + (off * sizeof (u32)), cnt * sizeof (u32)) == -1) return -1;
 
       if (hc_cuCtxPopCurrent (hashcat_ctx, &device_param->cuda_context) == -1) return -1;
+    }
+  }
+
+  if (device_param->is_hip == true)
+  {
+    if (cnt > 0)
+    {
+      if (hc_hipCtxPushCurrent (hashcat_ctx, device_param->hip_context) == -1) return -1;
+
+      if (hc_hipMemcpyDtoH (hashcat_ctx,pw->i, device_param->hip_d_pws_comp_buf + (off * sizeof (u32)), cnt * sizeof (u32)) == -1) return -1;
+
+      if (hc_hipCtxPopCurrent (hashcat_ctx, &device_param->hip_context) == -1) return -1;
     }
   }
 
@@ -2986,6 +4437,11 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
             if (run_cuda_kernel_bzero (hashcat_ctx, device_param, device_param->cuda_d_tm_c, size_tm) == -1) return -1;
           }
 
+          if (device_param->is_hip == true)
+          {
+            if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_tm_c, size_tm) == -1) return -1;
+          }
+
           if (device_param->is_opencl == true)
           {
             if (run_opencl_kernel_bzero (hashcat_ctx, device_param, device_param->opencl_d_tm_c, size_tm) == -1) return -1;
@@ -2996,6 +4452,11 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
           if (device_param->is_cuda == true)
           {
             if (hc_cuMemcpyDtoD (hashcat_ctx, device_param->cuda_d_bfs_c, device_param->cuda_d_tm_c, size_tm) == -1) return -1;
+          }
+
+          if (device_param->is_hip == true)
+          {
+            if (hc_hipMemcpyDtoD (hashcat_ctx, device_param->hip_d_bfs_c, device_param->hip_d_tm_c, size_tm) == -1) return -1;
           }
 
           if (device_param->is_opencl == true)
@@ -3059,6 +4520,11 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
         if (hc_cuMemcpyDtoD (hashcat_ctx, device_param->cuda_d_pws_buf, device_param->cuda_d_pws_amp_buf, pws_cnt * sizeof (pw_t)) == -1) return -1;
       }
 
+      if (device_param->is_hip == true)
+      {
+        if (hc_hipMemcpyDtoD (hashcat_ctx, device_param->hip_d_pws_buf, device_param->hip_d_pws_amp_buf, pws_cnt * sizeof (pw_t)) == -1) return -1;
+      }
+
       if (device_param->is_opencl == true)
       {
         if (hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_amp_buf, device_param->opencl_d_pws_buf, 0, 0, pws_cnt * sizeof (pw_t), 0, NULL, NULL) == -1) return -1;
@@ -3079,6 +4545,11 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
           if (run_cuda_kernel_utf8toutf16le (hashcat_ctx, device_param, device_param->cuda_d_pws_buf, pws_cnt) == -1) return -1;
         }
 
+        if (device_param->is_hip == true)
+        {
+          if (run_hip_kernel_utf8toutf16le (hashcat_ctx, device_param, device_param->hip_d_pws_buf, pws_cnt) == -1) return -1;
+        }
+
         if (device_param->is_opencl == true)
         {
           if (run_opencl_kernel_utf8toutf16le (hashcat_ctx, device_param, device_param->opencl_d_pws_buf, pws_cnt) == -1) return -1;
@@ -3094,6 +4565,11 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
         if (device_param->is_cuda == true)
         {
           if (hc_cuMemcpyDtoH (hashcat_ctx, device_param->hooks_buf, device_param->cuda_d_hooks, pws_cnt * hashconfig->hook_size) == -1) return -1;
+        }
+
+        if (device_param->is_hip == true)
+        {
+          if (hc_hipMemcpyDtoH (hashcat_ctx, device_param->hooks_buf, device_param->hip_d_hooks, pws_cnt * hashconfig->hook_size) == -1) return -1;
         }
 
         if (device_param->is_opencl == true)
@@ -3143,6 +4619,11 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
         if (device_param->is_cuda == true)
         {
           if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_hooks, device_param->hooks_buf, pws_cnt * hashconfig->hook_size) == -1) return -1;
+        }
+
+        if (device_param->is_hip == true)
+        {
+          if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_hooks, device_param->hooks_buf, pws_cnt * hashconfig->hook_size) == -1) return -1;
         }
 
         if (device_param->is_opencl == true)
@@ -3234,6 +4715,11 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
               if (hc_cuMemcpyDtoH (hashcat_ctx, device_param->hooks_buf, device_param->cuda_d_hooks, pws_cnt * hashconfig->hook_size) == -1) return -1;
             }
 
+            if (device_param->is_hip == true)
+            {
+              if (hc_hipMemcpyDtoH (hashcat_ctx, device_param->hooks_buf, device_param->hip_d_hooks, pws_cnt * hashconfig->hook_size) == -1) return -1;
+            }
+
             if (device_param->is_opencl == true)
             {
               if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_hooks, CL_TRUE, 0, pws_cnt * hashconfig->hook_size, device_param->hooks_buf, 0, NULL, NULL) == -1) return -1;
@@ -3281,6 +4767,11 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
             if (device_param->is_cuda == true)
             {
               if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_hooks, device_param->hooks_buf, pws_cnt * hashconfig->hook_size) == -1) return -1;
+            }
+
+            if (device_param->is_hip == true)
+            {
+              if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_hooks, device_param->hooks_buf, pws_cnt * hashconfig->hook_size) == -1) return -1;
             }
 
             if (device_param->is_opencl == true)
@@ -3390,6 +4881,11 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
       if (run_cuda_kernel_bzero   (hashcat_ctx, device_param, device_param->cuda_d_tmps,   device_param->size_tmps) == -1) return -1;
     }
 
+    if (device_param->is_hip == true)
+    {
+      if (run_hip_kernel_bzero    (hashcat_ctx, device_param, device_param->hip_d_tmps,    device_param->size_tmps) == -1) return -1;
+    }
+
     if (device_param->is_opencl == true)
     {
       if (run_opencl_kernel_bzero (hashcat_ctx, device_param, device_param->opencl_d_tmps, device_param->size_tmps) == -1) return -1;
@@ -3401,6 +4897,11 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
       if (device_param->is_cuda == true)
       {
         if (run_cuda_kernel_bzero   (hashcat_ctx, device_param, device_param->cuda_d_hooks,   pws_cnt * hashconfig->hook_size) == -1) return -1;
+      }
+
+      if (device_param->is_hip == true)
+      {
+        if (run_hip_kernel_bzero    (hashcat_ctx, device_param, device_param->hip_d_hooks,    pws_cnt * hashconfig->hook_size) == -1) return -1;
       }
 
       if (device_param->is_opencl == true)
@@ -3555,6 +5056,99 @@ int run_cuda_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devic
 int run_cuda_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, CUdeviceptr buf, const u64 size)
 {
   return run_cuda_kernel_memset (hashcat_ctx, device_param, buf, 0, size);
+}
+
+int run_hip_kernel_atinit (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, HIPdeviceptr buf, const u64 num)
+{
+  u64 num_elements = num;
+
+  device_param->kernel_params_atinit[0]       = (void *) &buf;
+  device_param->kernel_params_atinit_buf64[1] = num_elements;
+
+  const u64 kernel_threads = device_param->kernel_wgs_atinit;
+
+  num_elements = CEILDIV (num_elements, kernel_threads);
+
+  HIPfunction function = device_param->hip_function_atinit;
+
+  if (hc_hipLaunchKernel (hashcat_ctx, function, num_elements, 1, 1, kernel_threads, 1, 1, 0, device_param->hip_stream, device_param->kernel_params_atinit, NULL) == -1) return -1;
+
+  if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
+
+  return 0;
+}
+
+int run_hip_kernel_utf8toutf16le (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, HIPdeviceptr buf, const u64 num)
+{
+  u64 num_elements = num;
+
+  device_param->kernel_params_utf8toutf16le[0]       = (void *) &buf;
+  device_param->kernel_params_utf8toutf16le_buf64[1] = num_elements;
+
+  const u64 kernel_threads = device_param->kernel_wgs_utf8toutf16le;
+
+  num_elements = CEILDIV (num_elements, kernel_threads);
+
+  HIPfunction function = device_param->hip_function_utf8toutf16le;
+
+  if (hc_hipLaunchKernel (hashcat_ctx, function, num_elements, 1, 1, kernel_threads, 1, 1, 0, device_param->hip_stream, device_param->kernel_params_utf8toutf16le, NULL) == -1) return -1;
+
+  if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
+
+  return 0;
+}
+
+int run_hip_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, HIPdeviceptr buf, const u32 value, const u64 size)
+{
+  const u64 num16d = size / 16;
+  const u64 num16m = size % 16;
+
+  if (num16d)
+  {
+    device_param->kernel_params_memset[0]       = (void *) &buf;
+    device_param->kernel_params_memset_buf32[1] = value;
+    device_param->kernel_params_memset_buf64[2] = num16d;
+
+    const u64 kernel_threads = device_param->kernel_wgs_memset;
+
+    u64 num_elements = num16d;
+
+    num_elements = CEILDIV (num_elements, kernel_threads);
+
+    HIPfunction function = device_param->hip_function_memset;
+
+    //HIP_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 0, sizeof (cl_mem),   (void *) &buf);                         if (HIP_rc == -1) return -1;
+    //HIP_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 1, sizeof (cl_uint),  device_param->kernel_params_memset[1]); if (HIP_rc == -1) return -1;
+    //HIP_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 2, sizeof (cl_ulong), device_param->kernel_params_memset[2]); if (HIP_rc == -1) return -1;
+
+    //const size_t global_work_size[3] = { num_elements,   1, 1 };
+    //const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
+
+    if (hc_hipLaunchKernel (hashcat_ctx, function, num_elements, 1, 1, kernel_threads, 1, 1, 0, device_param->hip_stream, device_param->kernel_params_memset, NULL) == -1) return -1;
+
+    if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
+  }
+
+  if (num16m)
+  {
+    u32 tmp[4];
+
+    tmp[0] = value;
+    tmp[1] = value;
+    tmp[2] = value;
+    tmp[3] = value;
+
+    // Apparently are allowed to do this: https://devtalk.nvidia.com/default/topic/761515/how-to-copy-to-device-memory-with-offset-/
+
+    if (hc_hipMemcpyHtoD (hashcat_ctx, buf + (num16d * 16), tmp, num16m) == -1) return -1;
+  }
+
+  return 0;
+}
+
+int run_hip_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, HIPdeviceptr buf, const u64 size)
+{
+  return run_hip_kernel_memset (hashcat_ctx, device_param, buf, 0, size);
 }
 
 int run_opencl_kernel_atinit (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u64 num)
@@ -3860,6 +5454,105 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
     }
   }
 
+  if (device_param->is_hip == true)
+  {
+    HIPfunction hip_function = NULL;
+
+    if (device_param->is_hip == true)
+    {
+      switch (kern_run)
+      {
+        case KERN_RUN_1:      hip_function = device_param->hip_function1;       break;
+        case KERN_RUN_12:     hip_function = device_param->hip_function12;      break;
+        case KERN_RUN_2P:     hip_function = device_param->hip_function2p;      break;
+        case KERN_RUN_2:      hip_function = device_param->hip_function2;       break;
+        case KERN_RUN_2E:     hip_function = device_param->hip_function2e;      break;
+        case KERN_RUN_23:     hip_function = device_param->hip_function23;      break;
+        case KERN_RUN_3:      hip_function = device_param->hip_function3;       break;
+        case KERN_RUN_4:      hip_function = device_param->hip_function4;       break;
+        case KERN_RUN_INIT2:  hip_function = device_param->hip_function_init2;  break;
+        case KERN_RUN_LOOP2P: hip_function = device_param->hip_function_loop2p; break;
+        case KERN_RUN_LOOP2:  hip_function = device_param->hip_function_loop2;  break;
+        case KERN_RUN_AUX1:   hip_function = device_param->hip_function_aux1;   break;
+        case KERN_RUN_AUX2:   hip_function = device_param->hip_function_aux2;   break;
+        case KERN_RUN_AUX3:   hip_function = device_param->hip_function_aux3;   break;
+        case KERN_RUN_AUX4:   hip_function = device_param->hip_function_aux4;   break;
+      }
+
+      //if (hc_hipFuncSetAttribute (hashcat_ctx, hip_function, HIP_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES, dynamic_shared_mem) == -1) return -1;
+    }
+
+    if (kernel_threads == 0) kernel_threads = 1;
+
+    num_elements = CEILDIV (num_elements, kernel_threads);
+
+    if (kern_run == KERN_RUN_1)
+    {
+      if (hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_SIMD_INIT)
+      {
+        num_elements = CEILDIV (num_elements, device_param->vector_width);
+      }
+    }
+    else if (kern_run == KERN_RUN_2)
+    {
+      if (hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_SIMD_LOOP)
+      {
+        num_elements = CEILDIV (num_elements, device_param->vector_width);
+      }
+    }
+    else if (kern_run == KERN_RUN_3)
+    {
+      if (hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_SIMD_COMP)
+      {
+        num_elements = CEILDIV (num_elements, device_param->vector_width);
+      }
+    }
+    else if (kern_run == KERN_RUN_INIT2)
+    {
+      if (hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_SIMD_INIT2)
+      {
+        num_elements = CEILDIV (num_elements, device_param->vector_width);
+      }
+    }
+    else if (kern_run == KERN_RUN_LOOP2)
+    {
+      if (hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_SIMD_LOOP2)
+      {
+        num_elements = CEILDIV (num_elements, device_param->vector_width);
+      }
+    }
+
+    if (hc_hipEventRecord (hashcat_ctx, device_param->hip_event1, device_param->hip_stream) == -1) return -1;
+
+    if (hc_hipLaunchKernel (hashcat_ctx, hip_function, num_elements, 1, 1, kernel_threads, 1, 1, dynamic_shared_mem, device_param->hip_stream, device_param->kernel_params, NULL) == -1) return -1;
+
+    if (hc_hipEventRecord (hashcat_ctx, device_param->hip_event2, device_param->hip_stream) == -1) return -1;
+
+    if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
+
+    if (hc_hipEventSynchronize (hashcat_ctx, device_param->hip_event2) == -1) return -1;
+
+    float exec_ms;
+
+    if (hc_hipEventElapsedTime (hashcat_ctx, &exec_ms, device_param->hip_event1, device_param->hip_event2) == -1) return -1;
+
+    if (event_update)
+    {
+      u32 exec_pos = device_param->exec_pos;
+
+      device_param->exec_msec[exec_pos] = exec_ms;
+
+      exec_pos++;
+
+      if (exec_pos == EXEC_CACHE)
+      {
+        exec_pos = 0;
+      }
+
+      device_param->exec_pos = exec_pos;
+    }
+  }
+
   if (device_param->is_opencl == true)
   {
     cl_kernel opencl_kernel = NULL;
@@ -4089,6 +5782,32 @@ int run_kernel_mp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
     if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
   }
 
+  if (device_param->is_hip == true)
+  {
+    HIPfunction hip_function = NULL;
+
+    void **hip_args = NULL;
+
+    switch (kern_run)
+    {
+      case KERN_RUN_MP:   hip_function = device_param->hip_function_mp;
+                          hip_args     = device_param->kernel_params_mp;
+                          break;
+      case KERN_RUN_MP_R: hip_function = device_param->hip_function_mp_r;
+                          hip_args     = device_param->kernel_params_mp_r;
+                          break;
+      case KERN_RUN_MP_L: hip_function = device_param->hip_function_mp_l;
+                          hip_args     = device_param->kernel_params_mp_l;
+                          break;
+    }
+
+    num_elements = CEILDIV (num_elements, kernel_threads);
+
+    if (hc_hipLaunchKernel (hashcat_ctx, hip_function, num_elements, 1, 1, kernel_threads, 1, 1, 0, device_param->hip_stream, hip_args, NULL) == -1) return -1;
+
+    if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
+  }
+
   if (device_param->is_opencl == true)
   {
     cl_kernel opencl_kernel = NULL;
@@ -4156,6 +5875,15 @@ int run_kernel_tm (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
     if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
   }
 
+  if (device_param->is_hip == true)
+  {
+    HIPfunction hip_function = device_param->hip_function_tm;
+
+    if (hc_hipLaunchKernel (hashcat_ctx, hip_function, num_elements / kernel_threads, 1, 1, kernel_threads, 1, 1, 0, device_param->hip_stream, device_param->kernel_params_tm, NULL) == -1) return -1;
+
+    if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
+  }
+
   if (device_param->is_opencl == true)
   {
     cl_kernel cuda_kernel = device_param->opencl_kernel_tm;
@@ -4190,6 +5918,17 @@ int run_kernel_amp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
     if (hc_cuLaunchKernel (hashcat_ctx, cuda_function, num_elements, 1, 1, kernel_threads, 1, 1, 0, device_param->cuda_stream, device_param->kernel_params_amp, NULL) == -1) return -1;
 
     if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
+  }
+
+  if (device_param->is_hip == true)
+  {
+    num_elements = CEILDIV (num_elements, kernel_threads);
+
+    HIPfunction hip_function = device_param->hip_function_amp;
+
+    if (hc_hipLaunchKernel (hashcat_ctx, hip_function, num_elements, 1, 1, kernel_threads, 1, 1, 0, device_param->hip_stream, device_param->kernel_params_amp, NULL) == -1) return -1;
+
+    if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
   }
 
   if (device_param->is_opencl == true)
@@ -4230,6 +5969,17 @@ int run_kernel_decompress (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
     if (hc_cuLaunchKernel (hashcat_ctx, cuda_function, num_elements, 1, 1, kernel_threads, 1, 1, 0, device_param->cuda_stream, device_param->kernel_params_decompress, NULL) == -1) return -1;
 
     if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
+  }
+
+  if (device_param->is_hip == true)
+  {
+    num_elements = CEILDIV (num_elements, kernel_threads);
+
+    HIPfunction hip_function = device_param->hip_function_decompress;
+
+    if (hc_hipLaunchKernel (hashcat_ctx, hip_function, num_elements, 1, 1, kernel_threads, 1, 1, 0, device_param->hip_stream, device_param->kernel_params_decompress, NULL) == -1) return -1;
+
+    if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
   }
 
   if (device_param->is_opencl == true)
@@ -4290,6 +6040,20 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
       }
     }
 
+    if (device_param->is_hip == true)
+    {
+      if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_pws_idx, device_param->pws_idx, pws_cnt * sizeof (pw_idx_t)) == -1) return -1;
+
+      const pw_idx_t *pw_idx = device_param->pws_idx + pws_cnt;
+
+      const u32 off = pw_idx->off;
+
+      if (off)
+      {
+        if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_pws_comp_buf, device_param->pws_comp, off * sizeof (u32)) == -1) return -1;
+      }
+    }
+
     if (device_param->is_opencl == true)
     {
       if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_idx, CL_TRUE, 0, pws_cnt * sizeof (pw_idx_t), device_param->pws_idx, 0, NULL, NULL) == -1) return -1;
@@ -4321,6 +6085,20 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
         if (off)
         {
           if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_pws_comp_buf, device_param->pws_comp, off * sizeof (u32)) == -1) return -1;
+        }
+      }
+
+      if (device_param->is_hip == true)
+      {
+        if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_pws_idx, device_param->pws_idx, pws_cnt * sizeof (pw_idx_t)) == -1) return -1;
+
+        const pw_idx_t *pw_idx = device_param->pws_idx + pws_cnt;
+
+        const u32 off = pw_idx->off;
+
+        if (off)
+        {
+          if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_pws_comp_buf, device_param->pws_comp, off * sizeof (u32)) == -1) return -1;
         }
       }
 
@@ -4392,6 +6170,20 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
           }
         }
 
+        if (device_param->is_hip == true)
+        {
+          if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_pws_idx, device_param->pws_idx, pws_cnt * sizeof (pw_idx_t)) == -1) return -1;
+
+          const pw_idx_t *pw_idx = device_param->pws_idx + pws_cnt;
+
+          const u32 off = pw_idx->off;
+
+          if (off)
+          {
+            if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_pws_comp_buf, device_param->pws_comp, off * sizeof (u32)) == -1) return -1;
+          }
+        }
+
         if (device_param->is_opencl == true)
         {
           if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_idx, CL_TRUE, 0, pws_cnt * sizeof (pw_idx_t), device_param->pws_idx, 0, NULL, NULL) == -1) return -1;
@@ -4426,6 +6218,20 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
             }
           }
 
+          if (device_param->is_hip == true)
+          {
+            if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_pws_idx, device_param->pws_idx, pws_cnt * sizeof (pw_idx_t)) == -1) return -1;
+
+            const pw_idx_t *pw_idx = device_param->pws_idx + pws_cnt;
+
+            const u32 off = pw_idx->off;
+
+            if (off)
+            {
+              if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_pws_comp_buf, device_param->pws_comp, off * sizeof (u32)) == -1) return -1;
+            }
+          }
+
           if (device_param->is_opencl == true)
           {
             if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_idx, CL_TRUE, 0, pws_cnt * sizeof (pw_idx_t), device_param->pws_idx, 0, NULL, NULL) == -1) return -1;
@@ -4455,6 +6261,20 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
             if (off)
             {
               if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_pws_comp_buf, device_param->pws_comp, off * sizeof (u32)) == -1) return -1;
+            }
+          }
+
+          if (device_param->is_hip == true)
+          {
+            if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_pws_idx, device_param->pws_idx, pws_cnt * sizeof (pw_idx_t)) == -1) return -1;
+
+            const pw_idx_t *pw_idx = device_param->pws_idx + pws_cnt;
+
+            const u32 off = pw_idx->off;
+
+            if (off)
+            {
+              if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_pws_comp_buf, device_param->pws_comp, off * sizeof (u32)) == -1) return -1;
             }
           }
 
@@ -4679,6 +6499,11 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
             if (hc_cuMemcpyDtoD (hashcat_ctx, device_param->cuda_d_rules_c, device_param->cuda_d_rules + (innerloop_pos * sizeof (kernel_rule_t)), innerloop_left * sizeof (kernel_rule_t)) == -1) return -1;
           }
 
+          if (device_param->is_hip == true)
+          {
+            if (hc_hipMemcpyDtoD (hashcat_ctx, device_param->hip_d_rules_c, device_param->hip_d_rules + (innerloop_pos * sizeof (kernel_rule_t)), innerloop_left * sizeof (kernel_rule_t)) == -1) return -1;
+          }
+
           if (device_param->is_opencl == true)
           {
             if (hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_rules, device_param->opencl_d_rules_c, innerloop_pos * sizeof (kernel_rule_t), 0, innerloop_left * sizeof (kernel_rule_t), 0, NULL, NULL) == -1) return -1;
@@ -4799,6 +6624,11 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
                 if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_combs_c, device_param->combs_buf, innerloop_left * sizeof (pw_t)) == -1) return -1;
               }
 
+              if (device_param->is_hip == true)
+              {
+                if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_combs_c, device_param->combs_buf, innerloop_left * sizeof (pw_t)) == -1) return -1;
+              }
+
               if (device_param->is_opencl == true)
               {
                 if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_combs_c, CL_TRUE, 0, innerloop_left * sizeof (pw_t), device_param->combs_buf, 0, NULL, NULL) == -1) return -1;
@@ -4817,6 +6647,11 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
                 if (hc_cuMemcpyDtoD (hashcat_ctx, device_param->cuda_d_combs_c, device_param->cuda_d_combs, innerloop_left * sizeof (pw_t)) == -1) return -1;
               }
 
+              if (device_param->is_hip == true)
+              {
+                if (hc_hipMemcpyDtoD (hashcat_ctx, device_param->hip_d_combs_c, device_param->hip_d_combs, innerloop_left * sizeof (pw_t)) == -1) return -1;
+              }
+
               if (device_param->is_opencl == true)
               {
                 if (hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_combs, device_param->opencl_d_combs_c, 0, 0, innerloop_left * sizeof (pw_t), 0, NULL, NULL) == -1) return -1;
@@ -4833,6 +6668,11 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
               if (device_param->is_cuda == true)
               {
                 if (hc_cuMemcpyDtoD (hashcat_ctx, device_param->cuda_d_combs_c, device_param->cuda_d_combs, innerloop_left * sizeof (pw_t)) == -1) return -1;
+              }
+
+              if (device_param->is_hip == true)
+              {
+                if (hc_hipMemcpyDtoD (hashcat_ctx, device_param->hip_d_combs_c, device_param->hip_d_combs, innerloop_left * sizeof (pw_t)) == -1) return -1;
               }
 
               if (device_param->is_opencl == true)
@@ -4956,6 +6796,11 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
                 if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_combs_c, device_param->combs_buf, innerloop_left * sizeof (pw_t)) == -1) return -1;
               }
 
+              if (device_param->is_hip == true)
+              {
+                if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_combs_c, device_param->combs_buf, innerloop_left * sizeof (pw_t)) == -1) return -1;
+              }
+
               if (device_param->is_opencl == true)
               {
                 if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_combs_c, CL_TRUE, 0, innerloop_left * sizeof (pw_t), device_param->combs_buf, 0, NULL, NULL) == -1) return -1;
@@ -4972,6 +6817,11 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
               if (device_param->is_cuda == true)
               {
                 if (hc_cuMemcpyDtoD (hashcat_ctx, device_param->cuda_d_combs_c, device_param->cuda_d_combs, innerloop_left * sizeof (pw_t)) == -1) return -1;
+              }
+
+              if (device_param->is_hip == true)
+              {
+                if (hc_hipMemcpyDtoD (hashcat_ctx, device_param->hip_d_combs_c, device_param->hip_d_combs, innerloop_left * sizeof (pw_t)) == -1) return -1;
               }
 
               if (device_param->is_opencl == true)
@@ -4992,6 +6842,11 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
           if (device_param->is_cuda == true)
           {
             if (hc_cuMemcpyDtoD (hashcat_ctx, device_param->cuda_d_bfs_c, device_param->cuda_d_bfs, innerloop_left * sizeof (bf_t)) == -1) return -1;
+          }
+
+          if (device_param->is_hip == true)
+          {
+            if (hc_hipMemcpyDtoD (hashcat_ctx, device_param->hip_d_bfs_c, device_param->hip_d_bfs, innerloop_left * sizeof (bf_t)) == -1) return -1;
           }
 
           if (device_param->is_opencl == true)
@@ -5279,6 +7134,99 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
   }
 
   /**
+   * Load and map HIP library calls, then init HIP
+   */
+
+  int rc_hip_init = -1;
+
+  if (user_options->backend_ignore_hip == false)
+  {
+    HIP_PTR *hip = (HIP_PTR *) hcmalloc (sizeof (HIP_PTR));
+
+    backend_ctx->hip = hip;
+
+    rc_hip_init = hip_init (hashcat_ctx);
+
+    if (rc_hip_init == -1)
+    {
+      backend_ctx->rc_hip_init = rc_hip_init;
+
+      hip_close (hashcat_ctx);
+    }
+
+    /**
+     * Load and map HIPRTC library calls
+     */
+
+    HIPRTC_PTR *hiprtc = (HIPRTC_PTR *) hcmalloc (sizeof (HIPRTC_PTR));
+
+    backend_ctx->hiprtc = hiprtc;
+
+    int rc_hiprtc_init = hiprtc_init (hashcat_ctx);
+
+    if (rc_hiprtc_init == -1)
+    {
+      backend_ctx->rc_hiprtc_init = rc_hiprtc_init;
+
+      hiprtc_close (hashcat_ctx);
+    }
+
+    /**
+     * Check if both HIP and HIPRTC were load successful
+     */
+
+    if ((rc_hip_init == 0) && (rc_hiprtc_init == 0))
+    {
+      // hiprtc version
+
+      int hiprtc_major = 0;
+      int hiprtc_minor = 0;
+
+      if (hc_hiprtcVersion (hashcat_ctx, &hiprtc_major, &hiprtc_minor) == -1) return -1;
+
+      int hiprtc_driver_version = (hiprtc_major * 1000) + (hiprtc_minor * 10);
+
+      backend_ctx->hiprtc_driver_version = hiprtc_driver_version;
+
+      if (hiprtc_driver_version < 9000)
+      {
+        event_log_error (hashcat_ctx, "Outdated AMD HIPRTC driver version '%d' detected!", hiprtc_driver_version);
+
+        event_log_warning (hashcat_ctx, "See hashcat.net for officially supported AMD HIP versions.");
+        event_log_warning (hashcat_ctx, NULL);
+
+        return -1;
+      }
+
+      // hip version
+
+      int hip_driver_version = 10000;
+
+      //if (hc_hipDriverGetVersion (hashcat_ctx, &hip_driver_version) == -1) return -1;
+
+      backend_ctx->hip_driver_version = hip_driver_version;
+
+      if (hip_driver_version < 9000)
+      {
+        event_log_error (hashcat_ctx, "Outdated AMD HIP driver version '%d' detected!", hip_driver_version);
+
+        event_log_warning (hashcat_ctx, "See hashcat.net for officially supported AMD HIP versions.");
+        event_log_warning (hashcat_ctx, NULL);
+
+        return -1;
+      }
+    }
+    else
+    {
+      rc_hip_init  = -1;
+      rc_hiprtc_init = -1;
+
+      hip_close  (hashcat_ctx);
+      hiprtc_close (hashcat_ctx);
+    }
+  }
+
+  /**
    * Load and map OpenCL library calls
    */
 
@@ -5301,11 +7249,11 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
      * return if both CUDA and OpenCL initialization failed
      */
 
-    if ((rc_cuda_init == -1) && (rc_ocl_init == -1))
+    if ((rc_cuda_init == -1) && (rc_hip_init == -1) && (rc_ocl_init == -1))
     {
-      event_log_error (hashcat_ctx, "ATTENTION! No OpenCL or CUDA installation found.");
+      event_log_error (hashcat_ctx, "ATTENTION! No OpenCL, HIP or CUDA installation found.");
 
-      event_log_warning (hashcat_ctx, "You are probably missing the CUDA or OpenCL runtime installation.");
+      event_log_warning (hashcat_ctx, "You are probably missing the CUDA, HIP or OpenCL runtime installation.");
       event_log_warning (hashcat_ctx, NULL);
 
       #if defined (__linux__)
@@ -5363,6 +7311,18 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
     if (hc_cuInit (hashcat_ctx, 0) == -1)
     {
       cuda_close (hashcat_ctx);
+    }
+  }
+
+  /**
+   * HIP API: init
+   */
+
+  if (backend_ctx->hip)
+  {
+    if (hc_hipInit (hashcat_ctx, 0) == -1)
+    {
+      hip_close (hashcat_ctx);
     }
   }
 
@@ -5614,11 +7574,11 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
    * Final checks
    */
 
-  if ((backend_ctx->cuda == NULL) && (backend_ctx->ocl == NULL))
+  if ((backend_ctx->cuda == NULL) && (backend_ctx->hip == NULL) && (backend_ctx->ocl == NULL))
   {
-    event_log_error (hashcat_ctx, "ATTENTION! No OpenCL-compatible or CUDA-compatible platform found.");
+    event_log_error (hashcat_ctx, "ATTENTION! No OpenCL-compatible, HIP-compatible or CUDA-compatible platform found.");
 
-    event_log_warning (hashcat_ctx, "You are probably missing the OpenCL or CUDA runtime installation.");
+    event_log_warning (hashcat_ctx, "You are probably missing the OpenCL, CUDA or HIP runtime installation.");
     event_log_warning (hashcat_ctx, NULL);
 
     #if defined (__linux__)
@@ -5664,9 +7624,12 @@ void backend_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
     hcfree (backend_ctx->opencl_platforms_version);
   }
 
-  nvrtc_close (hashcat_ctx);
-  cuda_close  (hashcat_ctx);
-  ocl_close   (hashcat_ctx);
+  nvrtc_close  (hashcat_ctx);
+  hiprtc_close (hashcat_ctx);
+
+  cuda_close   (hashcat_ctx);
+  hip_close    (hashcat_ctx);
+  ocl_close    (hashcat_ctx);
 
   memset (backend_ctx, 0, sizeof (backend_ctx_t));
 }
@@ -5688,6 +7651,8 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
   bool need_iokit         = false;
 
   int backend_devices_idx = 0;
+
+  // CUDA
 
   int cuda_devices_cnt    = 0;
   int cuda_devices_active = 0;
@@ -5725,9 +7690,10 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       device_param->cuda_device = cuda_device;
 
-      device_param->is_cuda = true;
-
+      device_param->is_cuda   = true;
+      device_param->is_hip    = false;
       device_param->is_opencl = false;
+
 
       device_param->use_opencl12 = false;
       device_param->use_opencl20 = false;
@@ -6013,7 +7979,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         continue;
       }
 
-      if (hc_cuCtxSetCurrent (hashcat_ctx, cuda_context) == -1)
+      if (hc_cuCtxPushCurrent (hashcat_ctx, cuda_context) == -1)
       {
         device_param->skipped = true;
         continue;
@@ -6029,6 +7995,12 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       }
 
       device_param->device_available_mem = (u64) free;
+
+      if (hc_cuCtxPopCurrent (hashcat_ctx, &cuda_context) == -1)
+      {
+        device_param->skipped = true;
+        continue;
+      }
 
       if (hc_cuCtxDestroy (hashcat_ctx, cuda_context) == -1)
       {
@@ -6046,6 +8018,378 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
   backend_ctx->cuda_devices_cnt     = cuda_devices_cnt;
   backend_ctx->cuda_devices_active  = cuda_devices_active;
+
+  // HIP
+
+  int hip_devices_cnt    = 0;
+  int hip_devices_active = 0;
+
+  if (backend_ctx->hip)
+  {
+    // device count
+
+    if (hc_hipDeviceGetCount (hashcat_ctx, &hip_devices_cnt) == -1)
+    {
+      hip_close (hashcat_ctx);
+    }
+
+    backend_ctx->hip_devices_cnt = hip_devices_cnt;
+
+    // device specific
+
+    for (int hip_devices_idx = 0; hip_devices_idx < hip_devices_cnt; hip_devices_idx++, backend_devices_idx++)
+    {
+      const u32 device_id = backend_devices_idx;
+
+      hc_device_param_t *device_param = &devices_param[backend_devices_idx];
+
+      device_param->device_id = device_id;
+
+      backend_ctx->backend_device_from_hip[hip_devices_idx] = backend_devices_idx;
+
+      HIPdevice hip_device;
+
+      if (hc_hipDeviceGet (hashcat_ctx, &hip_device, hip_devices_idx) == -1)
+      {
+        device_param->skipped = true;
+        continue;
+      }
+
+      device_param->hip_device = hip_device;
+
+      device_param->is_cuda   = false;
+      device_param->is_hip    = true;
+      device_param->is_opencl = false;
+
+      device_param->use_opencl12 = false;
+      device_param->use_opencl20 = false;
+      device_param->use_opencl21 = false;
+
+      // device_name
+
+      char *device_name = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+      if (hc_hipDeviceGetName (hashcat_ctx, device_name, HCBUFSIZ_TINY, hip_device) == -1)
+      {
+        device_param->skipped = true;
+        hcfree (device_name);
+        continue;
+      }
+
+      device_param->device_name = device_name;
+
+      hc_string_trim_leading (device_name);
+
+      hc_string_trim_trailing (device_name);
+
+      // device_processors
+
+      int device_processors = 0;
+
+      if (hc_hipDeviceGetAttribute (hashcat_ctx, &device_processors, HIP_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT, hip_device) == -1)
+      {
+        device_param->skipped = true;
+        continue;
+      }
+
+      device_param->device_processors = device_processors;
+
+      // device_global_mem, device_maxmem_alloc, device_available_mem
+
+      size_t bytes = 0;
+
+      if (hc_hipDeviceTotalMem (hashcat_ctx, &bytes, hip_device) == -1)
+      {
+        device_param->skipped = true;
+        continue;
+      }
+
+      device_param->device_global_mem = (u64) bytes;
+
+      device_param->device_maxmem_alloc = (u64) bytes;
+
+      device_param->device_available_mem = 0;
+
+      // warp size
+
+      int hip_warp_size = 0;
+
+      if (hc_hipDeviceGetAttribute (hashcat_ctx, &hip_warp_size, HIP_DEVICE_ATTRIBUTE_WARP_SIZE, hip_device) == -1)
+      {
+        device_param->skipped = true;
+        continue;
+      }
+
+      device_param->hip_warp_size = hip_warp_size;
+
+      // sm_minor, sm_major
+
+      int sm_major = 0;
+      int sm_minor = 0;
+
+      if (hc_hipDeviceGetAttribute (hashcat_ctx, &sm_major, HIP_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR, hip_device) == -1)
+      {
+        device_param->skipped = true;
+        continue;
+      }
+
+      if (hc_hipDeviceGetAttribute (hashcat_ctx, &sm_minor, HIP_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR, hip_device) == -1)
+      {
+        device_param->skipped = true;
+        continue;
+      }
+
+      device_param->sm_major = sm_major;
+      device_param->sm_minor = sm_minor;
+
+      // device_maxworkgroup_size
+
+      int device_maxworkgroup_size = 0;
+
+      if (hc_hipDeviceGetAttribute (hashcat_ctx, &device_maxworkgroup_size, HIP_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK, hip_device) == -1)
+      {
+        device_param->skipped = true;
+        continue;
+      }
+
+      device_param->device_maxworkgroup_size = device_maxworkgroup_size;
+
+      // max_clock_frequency
+
+      int device_maxclock_frequency = 0;
+
+      if (hc_hipDeviceGetAttribute (hashcat_ctx, &device_maxclock_frequency, HIP_DEVICE_ATTRIBUTE_CLOCK_RATE, hip_device) == -1)
+      {
+        device_param->skipped = true;
+        continue;
+      }
+
+      device_param->device_maxclock_frequency = device_maxclock_frequency / 1000;
+
+      // pcie_bus, pcie_device, pcie_function
+
+      int pci_domain_id_nv  = 0;
+      int pci_bus_id_nv     = 0;
+      int pci_slot_id_nv    = 0;
+
+      if (hc_hipDeviceGetAttribute (hashcat_ctx, &pci_domain_id_nv, HIP_DEVICE_ATTRIBUTE_PCI_DOMAIN_ID, hip_device) == -1)
+      {
+        device_param->skipped = true;
+        continue;
+      }
+
+      if (hc_hipDeviceGetAttribute (hashcat_ctx, &pci_bus_id_nv, HIP_DEVICE_ATTRIBUTE_PCI_BUS_ID, hip_device) == -1)
+      {
+        device_param->skipped = true;
+        continue;
+      }
+
+      if (hc_hipDeviceGetAttribute (hashcat_ctx, &pci_slot_id_nv, HIP_DEVICE_ATTRIBUTE_PCI_DEVICE_ID, hip_device) == -1)
+      {
+        device_param->skipped = true;
+        continue;
+      }
+
+      device_param->pcie_domain   = (u8) (pci_domain_id_nv);
+      device_param->pcie_bus      = (u8) (pci_bus_id_nv);
+      device_param->pcie_device   = (u8) (pci_slot_id_nv >> 3);
+      device_param->pcie_function = (u8) (pci_slot_id_nv & 7);
+
+      // kernel_exec_timeout
+
+      int kernel_exec_timeout = 0;
+
+      if (hc_hipDeviceGetAttribute (hashcat_ctx, &kernel_exec_timeout, HIP_DEVICE_ATTRIBUTE_KERNEL_EXEC_TIMEOUT, hip_device) == -1)
+      {
+        device_param->skipped = true;
+        continue;
+      }
+
+      device_param->kernel_exec_timeout = kernel_exec_timeout;
+
+      // max_shared_memory_per_block
+
+      int max_shared_memory_per_block = 0;
+
+      if (hc_hipDeviceGetAttribute (hashcat_ctx, &max_shared_memory_per_block, HIP_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_BLOCK, hip_device) == -1)
+      {
+        device_param->skipped = true;
+        continue;
+      }
+
+      if (max_shared_memory_per_block < 32768)
+      {
+        event_log_error (hashcat_ctx, "* Device #%u: This device's shared buffer size is too small.", device_id + 1);
+
+        device_param->skipped = true;
+      }
+
+      device_param->device_local_mem_size = max_shared_memory_per_block;
+
+      // device_max_constant_buffer_size
+
+      int device_max_constant_buffer_size = 0;
+
+      if (hc_hipDeviceGetAttribute (hashcat_ctx, &device_max_constant_buffer_size, HIP_DEVICE_ATTRIBUTE_TOTAL_CONSTANT_MEMORY, hip_device) == -1)
+      {
+        device_param->skipped = true;
+        continue;
+      }
+
+      // TODO: broken on HIP?
+
+      device_max_constant_buffer_size = 65536;
+
+      if (device_max_constant_buffer_size < 65536)
+      {
+        event_log_error (hashcat_ctx, "* Device #%u: This device's local mem size is too small.", device_id + 1);
+
+        device_param->skipped = true;
+      }
+
+      // some attributes have to be hardcoded values because they are used for instance in the build options
+
+      device_param->device_local_mem_type     = CL_LOCAL;
+      device_param->opencl_device_type        = CL_DEVICE_TYPE_GPU;
+      device_param->opencl_device_vendor_id   = VENDOR_ID_AMD_USE_HIP;
+      device_param->opencl_platform_vendor_id = VENDOR_ID_AMD_USE_HIP;
+
+      // or in the cached kernel checksum
+
+      device_param->opencl_device_version     = "";
+      device_param->opencl_driver_version     = "";
+
+      // or just to make sure they are not NULL
+
+      device_param->opencl_device_vendor     = "";
+      device_param->opencl_device_c_version  = "";
+
+      // skipped
+
+      if ((backend_ctx->backend_devices_filter & (1ULL << device_id)) == 0)
+      {
+        device_param->skipped = true;
+      }
+
+      #if !defined (__APPLE__)
+      if ((backend_ctx->opencl_device_types_filter & CL_DEVICE_TYPE_GPU) == 0)
+      {
+        device_param->skipped = true;
+      }
+      #endif
+
+      if ((device_param->opencl_platform_vendor_id == VENDOR_ID_AMD_USE_HIP) && (device_param->opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP))
+      {
+         need_adl = true;
+
+         #if defined (__linux__)
+         need_sysfs_amdgpu = true;
+         #endif
+      }
+
+      // CPU burning loop damper
+      // Value is given as number between 0-100
+      // By default 8%
+      // in theory not needed with HIP
+
+      device_param->spin_damp = (double) user_options->spin_damp / 100;
+
+      // common driver check
+
+      if (device_param->skipped == false)
+      {
+        if ((user_options->force == false) && (user_options->backend_info == false))
+        {
+          // HIPDA does not support query nvidia driver version, therefore no driver checks here
+          // IF needed, could be retrieved using nvmlSystemGetDriverVersion()
+
+          if (device_param->sm_major < 5)
+          {
+            if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: This hardware has outdated HIPDA compute capability (%u.%u).", device_id + 1, device_param->sm_major, device_param->sm_minor);
+            if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             For modern OpenCL performance, upgrade to hardware that supports");
+            if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             HIPDA compute capability version 5.0 (Maxwell) or higher.");
+          }
+
+          if (device_param->kernel_exec_timeout != 0)
+          {
+            if (user_options->quiet == false) event_log_advice (hashcat_ctx, "* Device #%u: WARNING! Kernel exec timeout is not disabled.", device_id + 1);
+            if (user_options->quiet == false) event_log_advice (hashcat_ctx, "             This may cause \"CL_OUT_OF_RESOURCES\" or related errors.");
+            if (user_options->quiet == false) event_log_advice (hashcat_ctx, "             To disable the timeout, see: https://hashcat.net/q/timeoutpatch");
+          }
+        }
+
+        // activate device moved below, at end
+      }
+
+      // instruction set
+
+      // bcrypt optimization?
+      //const int rc_cuCtxSetCacheConfig = hc_hipCtxSetCacheConfig (hashcat_ctx, HIP_FUNC_CACHE_PREFER_SHARED);
+      //
+      //if (rc_cuCtxSetCacheConfig == -1) return -1;
+
+      // const int sm = (device_param->sm_major * 10) + device_param->sm_minor;
+
+      device_param->has_add   = false;
+      device_param->has_addc  = false;
+      device_param->has_sub   = false;
+      device_param->has_subc  = false;
+      device_param->has_bfe   = false;
+      device_param->has_lop3  = false;
+      device_param->has_mov64 = false;
+      device_param->has_prmt  = false;
+
+      // device_available_mem
+
+      HIPcontext hip_context;
+
+      if (hc_hipCtxCreate (hashcat_ctx, &hip_context, HIP_CTX_SCHED_BLOCKING_SYNC, device_param->hip_device) == -1)
+      {
+        device_param->skipped = true;
+        continue;
+      }
+
+      if (hc_hipCtxPushCurrent (hashcat_ctx, hip_context) == -1)
+      {
+        device_param->skipped = true;
+        continue;
+      }
+
+      size_t free  = 0;
+      size_t total = 0;
+
+      if (hc_hipMemGetInfo (hashcat_ctx, &free, &total) == -1)
+      {
+        device_param->skipped = true;
+        continue;
+      }
+
+      device_param->device_available_mem = (u64) free;
+
+      if (hc_hipCtxPopCurrent (hashcat_ctx, &hip_context) == -1)
+      {
+        device_param->skipped = true;
+        continue;
+      }
+
+      if (hc_hipCtxDestroy (hashcat_ctx, hip_context) == -1)
+      {
+        device_param->skipped = true;
+        continue;
+      }
+
+      /**
+       * activate device
+       */
+
+      if (device_param->skipped == false) hip_devices_active++;
+    }
+  }
+
+  backend_ctx->hip_devices_cnt     = hip_devices_cnt;
+  backend_ctx->hip_devices_active  = hip_devices_active;
+
+  // OCL
 
   int opencl_devices_cnt    = 0;
   int opencl_devices_active = 0;
@@ -6087,8 +8431,8 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         //device_param->opencl_platform = opencl_platform;
 
-        device_param->is_cuda = false;
-
+        device_param->is_cuda   = false;
+        device_param->is_hip    = false;
         device_param->is_opencl = true;
 
         // store opencl platform i
@@ -6829,7 +9173,6 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
             device_param->spin_damp = (double) user_options->spin_damp / 100;
 
-
             if (user_options->stdout_flag == false)
             {
               // recommend CUDA
@@ -7065,12 +9408,12 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
   // all devices combined go into backend_* variables
 
-  backend_ctx->backend_devices_cnt    = cuda_devices_cnt    + opencl_devices_cnt;
-  backend_ctx->backend_devices_active = cuda_devices_active + opencl_devices_active;
+  backend_ctx->backend_devices_cnt    = cuda_devices_cnt    + hip_devices_cnt    + opencl_devices_cnt;
+  backend_ctx->backend_devices_active = cuda_devices_active + hip_devices_active + opencl_devices_active;
 
   // find duplicate devices
 
-  //if ((cuda_devices_cnt > 0) && (opencl_devices_cnt > 0))
+  //if ((cuda_devices_cnt > 0) && (hip_devices_cnt > 0) && (opencl_devices_cnt > 0))
   //{
     // using force here enables both devices, which is the worst possible outcome
     // many users force by default, so this is not a good idea
@@ -7169,6 +9512,31 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
     if (hc_cuCtxDestroy (hashcat_ctx, cuda_context) == -1) return -1;
 
     */
+  }
+
+  if (backend_ctx->hip)
+  {
+    // TODO HIP?
+    // Maybe all devices supported by hip have these instructions guaranteed?
+
+    for (int backend_devices_cnt = 0; backend_devices_cnt < backend_ctx->backend_devices_cnt; backend_devices_cnt++)
+    {
+      hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_cnt];
+
+      if (device_param->is_hip == false) continue;
+
+      device_param->has_vadd     = true;
+      device_param->has_vaddc    = true;
+      device_param->has_vadd_co  = true;
+      device_param->has_vaddc_co = true;
+      device_param->has_vsub     = true;
+      device_param->has_vsubb    = true;
+      device_param->has_vsub_co  = true;
+      device_param->has_vsubb_co = true;
+      device_param->has_vadd3    = true;
+      device_param->has_vbfe     = true;
+      device_param->has_vperm    = true;
+    }
   }
 
   if (backend_ctx->ocl)
@@ -7449,6 +9817,8 @@ void backend_ctx_devices_destroy (hashcat_ctx_t *hashcat_ctx)
   backend_ctx->backend_devices_active = 0;
   backend_ctx->cuda_devices_cnt       = 0;
   backend_ctx->cuda_devices_active    = 0;
+  backend_ctx->hip_devices_cnt        = 0;
+  backend_ctx->hip_devices_active     = 0;
   backend_ctx->opencl_devices_cnt     = 0;
   backend_ctx->opencl_devices_active  = 0;
 
@@ -7657,6 +10027,66 @@ static int get_cuda_kernel_dynamic_local_mem_size (hashcat_ctx_t *hashcat_ctx, C
   return 0;
 }
 
+static int get_hip_kernel_wgs (hashcat_ctx_t *hashcat_ctx, HIPfunction function, u32 *result)
+{
+  int max_threads_per_block;
+
+  if (hc_hipFuncGetAttribute (hashcat_ctx, &max_threads_per_block, HIP_FUNC_ATTRIBUTE_MAX_THREADS_PER_BLOCK, function) == -1) return -1;
+
+  *result = (u32) max_threads_per_block;
+
+  return 0;
+}
+
+static int get_hip_kernel_local_mem_size (hashcat_ctx_t *hashcat_ctx, HIPfunction function, u64 *result)
+{
+  int shared_size_bytes;
+
+  if (hc_hipFuncGetAttribute (hashcat_ctx, &shared_size_bytes, HIP_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES, function) == -1) return -1;
+
+  *result = (u64) shared_size_bytes;
+
+  return 0;
+}
+
+/*
+not supported because there's no cuFuncSetAttribute equivalent
+
+static int get_hip_kernel_dynamic_local_mem_size (hashcat_ctx_t *hashcat_ctx, HIPfunction function, u64 *result)
+{
+  // AFAIK there's no way to query the maximum value for dynamic shared memory available (because it depends on kernel code).
+  // let's brute force it, therefore workaround the hashcat wrapper of cuFuncSetAttribute()
+
+  #define MAX_ASSUMED_SHARED (1024 * 1024)
+
+  u64 dynamic_shared_size_bytes = 0;
+
+  for (int i = 1; i <= MAX_ASSUMED_SHARED; i++)
+  {
+    backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+    HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+    const HIPresult HIP_err = hip->hipFuncSetAttribute (function, HIP_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES, i);
+
+    if (HIP_err == HIP_SUCCESS)
+    {
+      dynamic_shared_size_bytes = i;
+
+      continue;
+    }
+
+    break;
+  }
+
+  *result = dynamic_shared_size_bytes;
+
+  if (hc_hipFuncSetAttribute (hashcat_ctx, function, HIP_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES, 0) == -1) return -1;
+
+  return 0;
+}
+*/
+
 static int get_opencl_kernel_wgs (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_kernel kernel, u32 *result)
 {
   size_t work_group_size = 0;
@@ -7764,6 +10194,12 @@ static u32 get_kernel_threads (const hc_device_param_t *device_param)
 
       kernel_threads_max = MIN (kernel_threads_max, gpu_prefered_thread_count);
     }
+    else if (device_param->opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP)
+    {
+      u32 gpu_prefered_thread_count = 64;
+
+      kernel_threads_max = MIN (kernel_threads_max, gpu_prefered_thread_count);
+    }
   }
 
   // this is intenionally! at this point, kernel_threads_min can be higher than kernel_threads_max.
@@ -7774,7 +10210,7 @@ static u32 get_kernel_threads (const hc_device_param_t *device_param)
   return kernel_threads;
 }
 
-static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const char *kernel_name, char *source_file, char *cached_file, const char *build_options_buf, const bool cache_disable, cl_program *opencl_program, CUmodule *cuda_module)
+static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const char *kernel_name, char *source_file, char *cached_file, const char *build_options_buf, const bool cache_disable, cl_program *opencl_program, CUmodule *cuda_module, HIPmodule *hip_module)
 {
   const hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
   const folder_config_t *folder_config = hashcat_ctx->folder_config;
@@ -8053,6 +10489,246 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
       hcfree (binary);
     }
 
+    if (device_param->is_hip == true)
+    {
+      hiprtcProgram program;
+
+      if (hc_hiprtcCreateProgram (hashcat_ctx, &program, kernel_sources[0], kernel_name, 0, NULL, NULL) == -1) return false;
+
+      char **hiprtc_options = (char **) hccalloc (6 + strlen (build_options_buf) + 1, sizeof (char *)); // ...
+
+      //hiprtc_options[0] = "--restrict";
+      //hiprtc_options[1] = "--device-as-default-execution-space";
+      //hiprtc_options[2] = "--gpu-architecture";
+
+      //hc_asprintf (&hiprtc_options[3], "compute_%d%d", device_param->sm_major, device_param->sm_minor);
+
+      hiprtc_options[0] = "--gpu-max-threads-per-block=64";
+      hiprtc_options[1] = "";
+      hiprtc_options[2] = "";
+      hiprtc_options[3] = "";
+
+      hiprtc_options[4] = "-I";
+      hiprtc_options[5] = folder_config->cpath_real;
+
+      char *hiprtc_options_string = hcstrdup (build_options_buf);
+
+      const int num_options = 6 + hiprtc_make_options_array_from_string (hiprtc_options_string, hiprtc_options + 6);
+
+      const int rc_hiprtcCompileProgram = hc_hiprtcCompileProgram (hashcat_ctx, program, num_options, (const char * const *) hiprtc_options);
+
+      hcfree (hiprtc_options_string);
+      hcfree (hiprtc_options);
+
+      size_t build_log_size = 0;
+
+      hc_hiprtcGetProgramLogSize (hashcat_ctx, program, &build_log_size);
+
+      #if defined (DEBUG)
+      if ((build_log_size > 1) || (rc_hiprtcCompileProgram == -1))
+      #else
+      if (rc_hiprtcCompileProgram == -1)
+      #endif
+      {
+        char *build_log = (char *) hcmalloc (build_log_size + 1);
+
+        if (hc_hiprtcGetProgramLog (hashcat_ctx, program, build_log) == -1)
+        {
+          hcfree (build_log);
+
+          return false;
+        }
+
+        build_log[build_log_size] = 0;
+
+        puts (build_log);
+
+        hcfree (build_log);
+      }
+
+      if (rc_hiprtcCompileProgram == -1)
+      {
+        event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failed.", device_param->device_id + 1, source_file);
+
+        return false;
+      }
+
+      size_t binary_size = 0;
+
+      if (hc_hiprtcGetCodeSize (hashcat_ctx, program, &binary_size) == -1) return false;
+
+      char *binary = (char *) hcmalloc (binary_size);
+
+      if (hc_hiprtcGetCode (hashcat_ctx, program, binary) == -1) return false;
+
+      if (hc_hiprtcDestroyProgram (hashcat_ctx, &program) == -1) return false;
+
+      #define LOG_SIZE 8192
+
+      char *mod_info_log  = (char *) hcmalloc (LOG_SIZE + 1);
+      char *mod_error_log = (char *) hcmalloc (LOG_SIZE + 1);
+
+      int mod_cnt = 6;
+
+      HIPjit_option mod_opts[7];
+      void *mod_vals[7];
+
+      mod_opts[0] = HIP_JIT_TARGET_FROM_HIPCONTEXT;
+      mod_vals[0] = (void *) 0;
+
+      mod_opts[1] = HIP_JIT_LOG_VERBOSE;
+      mod_vals[1] = (void *) 1;
+
+      mod_opts[2] = HIP_JIT_INFO_LOG_BUFFER;
+      mod_vals[2] = (void *) mod_info_log;
+
+      mod_opts[3] = HIP_JIT_INFO_LOG_BUFFER_SIZE_BYTES;
+      mod_vals[3] = (void *) LOG_SIZE;
+
+      mod_opts[4] = HIP_JIT_ERROR_LOG_BUFFER;
+      mod_vals[4] = (void *) mod_error_log;
+
+      mod_opts[5] = HIP_JIT_ERROR_LOG_BUFFER_SIZE_BYTES;
+      mod_vals[5] = (void *) LOG_SIZE;
+
+      if (hashconfig->opti_type & OPTI_TYPE_REGISTER_LIMIT)
+      {
+        mod_opts[6] = HIP_JIT_MAX_REGISTERS;
+        mod_vals[6] = (void *) 128;
+
+        mod_cnt++;
+      }
+
+      #if defined (WITH_HIPBIN)
+
+      char *jit_info_log  = (char *) hcmalloc (LOG_SIZE + 1);
+      char *jit_error_log = (char *) hcmalloc (LOG_SIZE + 1);
+
+      int jit_cnt = 6;
+
+      HIPjit_option jit_opts[7];
+      void *jit_vals[7];
+
+      jit_opts[0] = HIP_JIT_TARGET_FROM_HIPCONTEXT;
+      jit_vals[0] = (void *) 0;
+
+      jit_opts[1] = HIP_JIT_LOG_VERBOSE;
+      jit_vals[1] = (void *) 1;
+
+      jit_opts[2] = HIP_JIT_INFO_LOG_BUFFER;
+      jit_vals[2] = (void *) jit_info_log;
+
+      jit_opts[3] = HIP_JIT_INFO_LOG_BUFFER_SIZE_BYTES;
+      jit_vals[3] = (void *) LOG_SIZE;
+
+      jit_opts[4] = HIP_JIT_ERROR_LOG_BUFFER;
+      jit_vals[4] = (void *) jit_error_log;
+
+      jit_opts[5] = HIP_JIT_ERROR_LOG_BUFFER_SIZE_BYTES;
+      jit_vals[5] = (void *) LOG_SIZE;
+
+      if (hashconfig->opti_type & OPTI_TYPE_REGISTER_LIMIT)
+      {
+        jit_opts[6] = HIP_JIT_MAX_REGISTERS;
+        jit_vals[6] = (void *) 128;
+
+        jit_cnt++;
+      }
+
+      HIPlinkState state;
+
+      if (hc_cuLinkCreate (hashcat_ctx, jit_cnt, jit_opts, jit_vals, &state) == -1)
+      {
+        event_log_error (hashcat_ctx, "* Device #%u: Kernel %s link failed. Error Log:", device_param->device_id + 1, source_file);
+        event_log_error (hashcat_ctx, "%s", jit_error_log);
+        event_log_error (hashcat_ctx, NULL);
+
+        return false;
+      }
+
+      if (hc_cuLinkAddData (hashcat_ctx, state, HIP_JIT_INPUT_CODE, binary, binary_size, kernel_name, 0, NULL, NULL) == -1)
+      {
+        event_log_error (hashcat_ctx, "* Device #%u: Kernel %s link failed. Error Log:", device_param->device_id + 1, source_file);
+        event_log_error (hashcat_ctx, "%s", jit_error_log);
+        event_log_error (hashcat_ctx, NULL);
+
+        return false;
+      }
+
+      void *cubin = NULL;
+
+      size_t cubin_size = 0;
+
+      if (hc_cuLinkComplete (hashcat_ctx, state, &cubin, &cubin_size) == -1)
+      {
+        event_log_error (hashcat_ctx, "* Device #%u: Kernel %s link failed. Error Log:", device_param->device_id + 1, source_file);
+        event_log_error (hashcat_ctx, "%s", jit_error_log);
+        event_log_error (hashcat_ctx, NULL);
+
+        return false;
+      }
+
+      #if defined (DEBUG)
+      event_log_info (hashcat_ctx, "* Device #%u: Kernel %s link successful. Info Log:", device_param->device_id + 1, source_file);
+      event_log_info (hashcat_ctx, "%s", jit_info_log);
+      event_log_info (hashcat_ctx, NULL);
+      #endif
+
+      if (hc_cuModuleLoadDataEx (hashcat_ctx, hip_module, cubin, mod_cnt, mod_opts, mod_vals) == -1)
+      {
+        event_log_error (hashcat_ctx, "* Device #%u: Kernel %s load failed. Error Log:", device_param->device_id + 1, source_file);
+        event_log_error (hashcat_ctx, "%s", mod_error_log);
+        event_log_error (hashcat_ctx, NULL);
+
+        return false;
+      }
+
+      #if defined (DEBUG)
+      event_log_info (hashcat_ctx, "* Device #%u: Kernel %s load successful. Info Log:", device_param->device_id + 1, source_file);
+      event_log_info (hashcat_ctx, "%s", mod_info_log);
+      event_log_info (hashcat_ctx, NULL);
+      #endif
+
+      if (cache_disable == false)
+      {
+        if (write_kernel_binary (hashcat_ctx, cached_file, cubin, cubin_size) == false) return false;
+      }
+
+      if (hc_hipLinkDestroy (hashcat_ctx, state) == -1) return false;
+
+      hcfree (jit_info_log);
+      hcfree (jit_error_log);
+
+      #else
+
+      if (hc_hipModuleLoadDataEx (hashcat_ctx, hip_module, binary, mod_cnt, mod_opts, mod_vals) == -1)
+      {
+        event_log_error (hashcat_ctx, "* Device #%u: Kernel %s load failed. Error Log:", device_param->device_id + 1, source_file);
+        event_log_error (hashcat_ctx, "%s", mod_error_log);
+        event_log_error (hashcat_ctx, NULL);
+
+        return false;
+      }
+
+      #if defined (DEBUG)
+      event_log_info (hashcat_ctx, "* Device #%u: Kernel %s load successful. Info Log:", device_param->device_id + 1, source_file);
+      event_log_info (hashcat_ctx, "%s", mod_info_log);
+      event_log_info (hashcat_ctx, NULL);
+      #endif
+
+      if (cache_disable == false)
+      {
+        if (write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size) == false) return false;
+      }
+
+      #endif
+
+      hcfree (mod_info_log);
+      hcfree (mod_error_log);
+
+      hcfree (binary);
+    }
+
     if (device_param->is_opencl == true)
     {
       size_t build_log_size = 0;
@@ -8185,6 +10861,63 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
       hcfree (mod_error_log);
     }
 
+    if (device_param->is_hip == true)
+    {
+      #define LOG_SIZE 8192
+
+      char *mod_info_log  = (char *) hcmalloc (LOG_SIZE + 1);
+      char *mod_error_log = (char *) hcmalloc (LOG_SIZE + 1);
+
+      int mod_cnt = 6;
+
+      HIPjit_option mod_opts[7];
+      void *mod_vals[7];
+
+      mod_opts[0] = HIP_JIT_TARGET_FROM_HIPCONTEXT;
+      mod_vals[0] = (void *) 0;
+
+      mod_opts[1] = HIP_JIT_LOG_VERBOSE;
+      mod_vals[1] = (void *) 1;
+
+      mod_opts[2] = HIP_JIT_INFO_LOG_BUFFER;
+      mod_vals[2] = (void *) mod_info_log;
+
+      mod_opts[3] = HIP_JIT_INFO_LOG_BUFFER_SIZE_BYTES;
+      mod_vals[3] = (void *) LOG_SIZE;
+
+      mod_opts[4] = HIP_JIT_ERROR_LOG_BUFFER;
+      mod_vals[4] = (void *) mod_error_log;
+
+      mod_opts[5] = HIP_JIT_ERROR_LOG_BUFFER_SIZE_BYTES;
+      mod_vals[5] = (void *) LOG_SIZE;
+
+      if (hashconfig->opti_type & OPTI_TYPE_REGISTER_LIMIT)
+      {
+        mod_opts[6] = HIP_JIT_MAX_REGISTERS;
+        mod_vals[6] = (void *) 128;
+
+        mod_cnt++;
+      }
+
+      if (hc_hipModuleLoadDataEx (hashcat_ctx, hip_module, kernel_sources[0], mod_cnt, mod_opts, mod_vals) == -1)
+      {
+        event_log_error (hashcat_ctx, "* Device #%u: Kernel %s load failed. Error Log:", device_param->device_id + 1, source_file);
+        event_log_error (hashcat_ctx, "%s", mod_error_log);
+        event_log_error (hashcat_ctx, NULL);
+
+        return false;
+      }
+
+      #if defined (DEBUG)
+      event_log_info (hashcat_ctx, "* Device #%u: Kernel %s load successful. Info Log:", device_param->device_id + 1, source_file);
+      event_log_info (hashcat_ctx, "%s", mod_info_log);
+      event_log_info (hashcat_ctx, NULL);
+      #endif
+
+      hcfree (mod_info_log);
+      hcfree (mod_error_log);
+    }
+
     if (device_param->is_opencl == true)
     {
       if (hc_clCreateProgramWithBinary (hashcat_ctx, device_param->opencl_context, 1, &device_param->opencl_device, kernel_lengths, (const unsigned char **) kernel_sources, NULL, opencl_program) == -1) return false;
@@ -8243,7 +10976,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       if ((unstable_warning == true) && (user_options->force == false))
       {
         event_log_warning (hashcat_ctx, "* Device #%u: Skipping hash-mode %u)", device_id + 1, hashconfig->hash_mode);
-        event_log_warning (hashcat_ctx, "             This is due to a known CUDA/OpenCL runtime/driver issue (not a hashcat issue)");
+        event_log_warning (hashcat_ctx, "             This is due to a known CUDA/HIP/OpenCL runtime/driver issue (not a hashcat issue)");
         event_log_warning (hashcat_ctx, "             You can use --force to override, but do not report related errors.");
 
         device_param->skipped_warning = true;
@@ -8282,6 +11015,13 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
             vector_width = 1;
           }
 
+          if (device_param->is_hip == true)
+          {
+            // hip does not support this query
+
+            vector_width = 1;
+          }
+
           if (device_param->is_opencl == true)
           {
             if (hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_NATIVE_VECTOR_WIDTH_LONG, sizeof (vector_width), &vector_width, NULL) == -1)
@@ -8296,6 +11036,13 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
           if (device_param->is_cuda == true)
           {
             // cuda does not support this query
+
+            vector_width = 1;
+          }
+
+          if (device_param->is_hip == true)
+          {
+            // hip does not support this query
 
             vector_width = 1;
           }
@@ -8513,6 +11260,10 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         {
           native_threads = 64;
         }
+        else if (device_param->opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP)
+        {
+          native_threads = 64;
+        }
         else
         {
           native_threads = 32;
@@ -8541,6 +11292,27 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     if (device_param->is_cuda == true)
     {
       if (hc_cuCtxCreate (hashcat_ctx, &device_param->cuda_context, CU_CTX_SCHED_BLOCKING_SYNC, device_param->cuda_device) == -1)
+      {
+        device_param->skipped = true;
+        continue;
+      }
+
+      if (hc_cuCtxPushCurrent (hashcat_ctx, device_param->cuda_context) == -1)
+      {
+        device_param->skipped = true;
+        continue;
+      }
+    }
+
+    if (device_param->is_hip == true)
+    {
+      if (hc_hipCtxCreate (hashcat_ctx, &device_param->hip_context, HIP_CTX_SCHED_BLOCKING_SYNC, device_param->hip_device) == -1)
+      {
+        device_param->skipped = true;
+        continue;
+      }
+
+      if (hc_hipCtxPushCurrent (hashcat_ctx, device_param->hip_context) == -1)
       {
         device_param->skipped = true;
         continue;
@@ -8593,6 +11365,19 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     }
 
     /**
+     * create stream for HIP devices
+     */
+
+    if (device_param->is_hip == true)
+    {
+      if (hc_hipStreamCreate (hashcat_ctx, &device_param->hip_stream, HIP_STREAM_DEFAULT) == -1)
+      {
+        device_param->skipped = true;
+        continue;
+      }
+    }
+
+    /**
      * create events for CUDA devices
      */
 
@@ -8605,6 +11390,25 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
 
       if (hc_cuEventCreate (hashcat_ctx, &device_param->cuda_event2, CU_EVENT_BLOCKING_SYNC) == -1)
+      {
+        device_param->skipped = true;
+        continue;
+      }
+    }
+
+    /**
+     * create events for HIP devices
+     */
+
+    if (device_param->is_hip == true)
+    {
+      if (hc_hipEventCreate (hashcat_ctx, &device_param->hip_event1, HIP_EVENT_BLOCKING_SYNC) == -1)
+      {
+        device_param->skipped = true;
+        continue;
+      }
+
+      if (hc_hipEventCreate (hashcat_ctx, &device_param->hip_event2, HIP_EVENT_BLOCKING_SYNC) == -1)
       {
         device_param->skipped = true;
         continue;
@@ -8726,7 +11530,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     int build_options_len = 0;
 
-    if (device_param->is_cuda == true)
+    if ((device_param->is_cuda == true) || (device_param->is_hip == true))
     {
       // using a path with a space will break nvrtc_make_options_array_from_string()
       // we add it to options array in a clean way later
@@ -8789,9 +11593,10 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     char device_name_chksum_amp_mp[HCBUFSIZ_TINY] = { 0 };
 
-    const size_t dnclen_amp_mp = snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%d-%d-%d-%u-%s-%s-%s",
+    const size_t dnclen_amp_mp = snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%d-%d-%d-%d-%u-%s-%s-%s",
       backend_ctx->comptime,
       backend_ctx->cuda_driver_version,
+      backend_ctx->hip_driver_version,
       device_param->is_opencl,
       device_param->opencl_platform_vendor_id,
       device_param->device_name,
@@ -8861,7 +11666,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       generate_cached_kernel_shared_filename (folder_config->cache_dir, device_name_chksum_amp_mp, cached_file);
 
-      const bool rc_load_kernel = load_kernel (hashcat_ctx, device_param, "shared_kernel", source_file, cached_file, build_options_buf, cache_disable, &device_param->opencl_program_shared, &device_param->cuda_module_shared);
+      const bool rc_load_kernel = load_kernel (hashcat_ctx, device_param, "shared_kernel", source_file, cached_file, build_options_buf, cache_disable, &device_param->opencl_program_shared, &device_param->cuda_module_shared, &device_param->hip_module_shared);
 
       if (rc_load_kernel == false)
       {
@@ -8926,6 +11731,64 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         if (get_cuda_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->cuda_function_utf8toutf16le, &device_param->kernel_dynamic_local_mem_size_utf8toutf16le) == -1) return -1;
 
         device_param->kernel_preferred_wgs_multiple_utf8toutf16le = device_param->cuda_warp_size;
+      }
+
+      if (device_param->is_hip == true)
+      {
+        // GPU memset
+
+        if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function_memset, device_param->hip_module_shared, "gpu_memset") == -1) return -1;
+
+        if (get_hip_kernel_wgs (hashcat_ctx, device_param->hip_function_memset, &device_param->kernel_wgs_memset) == -1) return -1;
+
+        if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_memset, &device_param->kernel_local_mem_size_memset) == -1) return -1;
+
+        //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function_memset, &device_param->kernel_dynamic_local_mem_size_memset) == -1) return -1;
+
+        device_param->kernel_preferred_wgs_multiple_memset = device_param->hip_warp_size;
+
+        //CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_memset, 0, sizeof (cl_mem),   device_param->kernel_params_memset[0]); if (CL_rc == -1) return -1;
+        //CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_memset, 1, sizeof (cl_uint),  device_param->kernel_params_memset[1]); if (CL_rc == -1) return -1;
+        //CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_memset, 2, sizeof (cl_ulong), device_param->kernel_params_memset[2]); if (CL_rc == -1) return -1;
+
+        // GPU autotune init
+
+        if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function_atinit, device_param->hip_module_shared, "gpu_atinit") == -1) return -1;
+
+        if (get_hip_kernel_wgs (hashcat_ctx, device_param->hip_function_atinit, &device_param->kernel_wgs_atinit) == -1) return -1;
+
+        if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_atinit, &device_param->kernel_local_mem_size_atinit) == -1) return -1;
+
+        //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function_atinit, &device_param->kernel_dynamic_local_mem_size_atinit) == -1) return -1;
+
+        device_param->kernel_preferred_wgs_multiple_atinit = device_param->hip_warp_size;
+
+        // CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_atinit, 0, sizeof (cl_mem),   device_param->kernel_params_atinit[0]); if (CL_rc == -1) return -1;
+        // CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_atinit, 1, sizeof (cl_ulong), device_param->kernel_params_atinit[1]); if (CL_rc == -1) return -1;
+
+        // GPU decompress
+
+        if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function_decompress, device_param->hip_module_shared, "gpu_decompress") == -1) return -1;
+
+        if (get_hip_kernel_wgs (hashcat_ctx, device_param->hip_function_decompress, &device_param->kernel_wgs_decompress) == -1) return -1;
+
+        if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_decompress, &device_param->kernel_local_mem_size_decompress) == -1) return -1;
+
+        //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function_decompress, &device_param->kernel_dynamic_local_mem_size_decompress) == -1) return -1;
+
+        device_param->kernel_preferred_wgs_multiple_decompress = device_param->hip_warp_size;
+
+        // GPU utf8 to utf16le conversion
+
+        if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function_utf8toutf16le, device_param->hip_module_shared, "gpu_utf8_to_utf16") == -1) return -1;
+
+        if (get_hip_kernel_wgs (hashcat_ctx, device_param->hip_function_utf8toutf16le, &device_param->kernel_wgs_utf8toutf16le) == -1) return -1;
+
+        if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_utf8toutf16le, &device_param->kernel_local_mem_size_utf8toutf16le) == -1) return -1;
+
+        //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function_utf8toutf16le, &device_param->kernel_dynamic_local_mem_size_utf8toutf16le) == -1) return -1;
+
+        device_param->kernel_preferred_wgs_multiple_utf8toutf16le = device_param->hip_warp_size;
       }
 
       if (device_param->is_opencl == true)
@@ -9029,9 +11892,10 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       const u32 extra_value = (user_options->attack_mode == ATTACK_MODE_ASSOCIATION) ? ATTACK_MODE_ASSOCIATION : ATTACK_MODE_NONE;
 
-      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY, "%d-%d-%d-%u-%s-%s-%s-%d-%u-%u-%s",
+      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY, "%d-%d-%d-%d-%u-%s-%s-%s-%d-%u-%u-%s",
         backend_ctx->comptime,
         backend_ctx->cuda_driver_version,
+        backend_ctx->hip_driver_version,
         device_param->is_opencl,
         device_param->opencl_platform_vendor_id,
         device_param->device_name,
@@ -9077,7 +11941,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
        * load kernel
        */
 
-      const bool rc_load_kernel = load_kernel (hashcat_ctx, device_param, "main_kernel", source_file, cached_file, build_options_module_buf, cache_disable, &device_param->opencl_program, &device_param->cuda_module);
+      const bool rc_load_kernel = load_kernel (hashcat_ctx, device_param, "main_kernel", source_file, cached_file, build_options_module_buf, cache_disable, &device_param->opencl_program, &device_param->cuda_module, &device_param->hip_module);
 
       if (rc_load_kernel == false)
       {
@@ -9123,7 +11987,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         generate_cached_kernel_mp_filename (hashconfig->opti_type, hashconfig->opts_type, folder_config->cache_dir, device_name_chksum_amp_mp, cached_file);
 
-        const bool rc_load_kernel = load_kernel (hashcat_ctx, device_param, "mp_kernel", source_file, cached_file, build_options_buf, cache_disable, &device_param->opencl_program_mp, &device_param->cuda_module_mp);
+        const bool rc_load_kernel = load_kernel (hashcat_ctx, device_param, "mp_kernel", source_file, cached_file, build_options_buf, cache_disable, &device_param->opencl_program_mp, &device_param->cuda_module_mp, &device_param->hip_module_mp);
 
         if (rc_load_kernel == false)
         {
@@ -9172,7 +12036,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         generate_cached_kernel_amp_filename (user_options_extra->attack_kern, folder_config->cache_dir, device_name_chksum_amp_mp, cached_file);
 
-        const bool rc_load_kernel = load_kernel (hashcat_ctx, device_param, "amp_kernel", source_file, cached_file, build_options_buf, cache_disable, &device_param->opencl_program_amp, &device_param->cuda_module_amp);
+        const bool rc_load_kernel = load_kernel (hashcat_ctx, device_param, "amp_kernel", source_file, cached_file, build_options_buf, cache_disable, &device_param->opencl_program_amp, &device_param->cuda_module_amp, &device_param->hip_module_amp);
 
         if (rc_load_kernel == false)
         {
@@ -9354,6 +12218,116 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
     }
 
+    if (device_param->is_hip == true)
+    {
+      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_bitmap_s1_a,    bitmap_ctx->bitmap_size) == -1) return -1;
+      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_bitmap_s1_b,    bitmap_ctx->bitmap_size) == -1) return -1;
+      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_bitmap_s1_c,    bitmap_ctx->bitmap_size) == -1) return -1;
+      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_bitmap_s1_d,    bitmap_ctx->bitmap_size) == -1) return -1;
+      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_bitmap_s2_a,    bitmap_ctx->bitmap_size) == -1) return -1;
+      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_bitmap_s2_b,    bitmap_ctx->bitmap_size) == -1) return -1;
+      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_bitmap_s2_c,    bitmap_ctx->bitmap_size) == -1) return -1;
+      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_bitmap_s2_d,    bitmap_ctx->bitmap_size) == -1) return -1;
+      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_plain_bufs,     size_plains)             == -1) return -1;
+      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_digests_buf,    size_digests)            == -1) return -1;
+      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_digests_shown,  size_shown)              == -1) return -1;
+      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_salt_bufs,      size_salts)              == -1) return -1;
+      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_result,         size_results)            == -1) return -1;
+      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_extra0_buf,     size_extra_buffer / 4)   == -1) return -1;
+      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_extra1_buf,     size_extra_buffer / 4)   == -1) return -1;
+      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_extra2_buf,     size_extra_buffer / 4)   == -1) return -1;
+      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_extra3_buf,     size_extra_buffer / 4)   == -1) return -1;
+      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_st_digests_buf, size_st_digests)         == -1) return -1;
+      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_st_salts_buf,   size_st_salts)           == -1) return -1;
+
+      if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_bitmap_s1_a, bitmap_ctx->bitmap_s1_a, bitmap_ctx->bitmap_size) == -1) return -1;
+      if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_bitmap_s1_b, bitmap_ctx->bitmap_s1_b, bitmap_ctx->bitmap_size) == -1) return -1;
+      if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_bitmap_s1_c, bitmap_ctx->bitmap_s1_c, bitmap_ctx->bitmap_size) == -1) return -1;
+      if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_bitmap_s1_d, bitmap_ctx->bitmap_s1_d, bitmap_ctx->bitmap_size) == -1) return -1;
+      if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_bitmap_s2_a, bitmap_ctx->bitmap_s2_a, bitmap_ctx->bitmap_size) == -1) return -1;
+      if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_bitmap_s2_b, bitmap_ctx->bitmap_s2_b, bitmap_ctx->bitmap_size) == -1) return -1;
+      if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_bitmap_s2_c, bitmap_ctx->bitmap_s2_c, bitmap_ctx->bitmap_size) == -1) return -1;
+      if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_bitmap_s2_d, bitmap_ctx->bitmap_s2_d, bitmap_ctx->bitmap_size) == -1) return -1;
+      if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_digests_buf, hashes->digests_buf,     size_digests)            == -1) return -1;
+      if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_salt_bufs,   hashes->salts_buf,       size_salts)              == -1) return -1;
+
+      /**
+       * special buffers
+       */
+
+      if (user_options->slow_candidates == true)
+      {
+        if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_rules_c, size_rules_c) == -1) return -1;
+      }
+      else
+      {
+        if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
+        {
+          if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_rules,   size_rules) == -1) return -1;
+
+          if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+          {
+            size_t dummy = 0;
+
+            if (hc_hipModuleGetGlobal (hashcat_ctx, &device_param->hip_d_rules_c, &dummy, device_param->hip_module, "generic_constant") == -1) return -1;
+          }
+          else
+          {
+            if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_rules_c, size_rules_c) == -1) return -1;
+          }
+
+          if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_rules, straight_ctx->kernel_rules_buf, size_rules) == -1) return -1;
+        }
+        else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
+        {
+          if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_combs,          size_combs)      == -1) return -1;
+          if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_combs_c,        size_combs)      == -1) return -1;
+          if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_root_css_buf,   size_root_css)   == -1) return -1;
+          if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_markov_css_buf, size_markov_css) == -1) return -1;
+        }
+        else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
+        {
+          if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_bfs,            size_bfs)        == -1) return -1;
+          if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_root_css_buf,   size_root_css)   == -1) return -1;
+          if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_markov_css_buf, size_markov_css) == -1) return -1;
+
+          if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+          {
+            size_t dummy = 0;
+
+            if (hc_hipModuleGetGlobal (hashcat_ctx, &device_param->hip_d_bfs_c, &dummy, device_param->hip_module, "generic_constant") == -1) return -1;
+
+            if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_tm_c,           size_tm)       == -1) return -1;
+          }
+          else
+          {
+            if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_bfs_c,          size_bfs)      == -1) return -1;
+            if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_tm_c,           size_tm)       == -1) return -1;
+          }
+        }
+      }
+
+      if (size_esalts)
+      {
+        if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_esalt_bufs, size_esalts) == -1) return -1;
+
+        if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_esalt_bufs, hashes->esalts_buf, size_esalts) == -1) return -1;
+      }
+
+      if (hashconfig->st_hash != NULL)
+      {
+        if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_st_digests_buf, hashes->st_digests_buf, size_st_digests) == -1) return -1;
+        if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_st_salts_buf,   hashes->st_salts_buf,   size_st_salts)   == -1) return -1;
+
+        if (size_esalts)
+        {
+          if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_st_esalts_buf, size_st_esalts) == -1) return -1;
+
+          if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_st_esalts_buf, hashes->st_esalts_buf, size_st_esalts) == -1) return -1;
+        }
+      }
+    }
+
     if (device_param->is_opencl == true)
     {
       if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   bitmap_ctx->bitmap_size, NULL, &device_param->opencl_d_bitmap_s1_a)    == -1) return -1;
@@ -9488,6 +12462,34 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       device_param->kernel_params[23] = &device_param->cuda_d_extra3_buf;
     }
 
+    if (device_param->is_hip == true)
+    {
+      device_param->kernel_params[ 0] = NULL; // &device_param->hip_d_pws_buf;
+      device_param->kernel_params[ 1] = &device_param->hip_d_rules_c;
+      device_param->kernel_params[ 2] = &device_param->hip_d_combs_c;
+      device_param->kernel_params[ 3] = &device_param->hip_d_bfs_c;
+      device_param->kernel_params[ 4] = NULL; // &device_param->hip_d_tmps;
+      device_param->kernel_params[ 5] = NULL; // &device_param->hip_d_hooks;
+      device_param->kernel_params[ 6] = &device_param->hip_d_bitmap_s1_a;
+      device_param->kernel_params[ 7] = &device_param->hip_d_bitmap_s1_b;
+      device_param->kernel_params[ 8] = &device_param->hip_d_bitmap_s1_c;
+      device_param->kernel_params[ 9] = &device_param->hip_d_bitmap_s1_d;
+      device_param->kernel_params[10] = &device_param->hip_d_bitmap_s2_a;
+      device_param->kernel_params[11] = &device_param->hip_d_bitmap_s2_b;
+      device_param->kernel_params[12] = &device_param->hip_d_bitmap_s2_c;
+      device_param->kernel_params[13] = &device_param->hip_d_bitmap_s2_d;
+      device_param->kernel_params[14] = &device_param->hip_d_plain_bufs;
+      device_param->kernel_params[15] = &device_param->hip_d_digests_buf;
+      device_param->kernel_params[16] = &device_param->hip_d_digests_shown;
+      device_param->kernel_params[17] = &device_param->hip_d_salt_bufs;
+      device_param->kernel_params[18] = &device_param->hip_d_esalt_bufs;
+      device_param->kernel_params[19] = &device_param->hip_d_result;
+      device_param->kernel_params[20] = &device_param->hip_d_extra0_buf;
+      device_param->kernel_params[21] = &device_param->hip_d_extra1_buf;
+      device_param->kernel_params[22] = &device_param->hip_d_extra2_buf;
+      device_param->kernel_params[23] = &device_param->hip_d_extra3_buf;
+    }
+
     if (device_param->is_opencl == true)
     {
       device_param->kernel_params[ 0] = NULL; // &device_param->opencl_d_pws_buf;
@@ -9549,6 +12551,11 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
           device_param->kernel_params_mp[0] = &device_param->cuda_d_combs;
         }
 
+        if (device_param->is_hip == true)
+        {
+          device_param->kernel_params_mp[0] = &device_param->hip_d_combs;
+        }
+
         if (device_param->is_opencl == true)
         {
           device_param->kernel_params_mp[0] = &device_param->opencl_d_combs;
@@ -9561,6 +12568,11 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
           if (device_param->is_cuda == true)
           {
             device_param->kernel_params_mp[0] = &device_param->cuda_d_combs;
+          }
+
+          if (device_param->is_hip == true)
+          {
+            device_param->kernel_params_mp[0] = &device_param->hip_d_combs;
           }
 
           if (device_param->is_opencl == true)
@@ -9580,6 +12592,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       {
         device_param->kernel_params_mp[1] = &device_param->cuda_d_root_css_buf;
         device_param->kernel_params_mp[2] = &device_param->cuda_d_markov_css_buf;
+      }
+
+      if (device_param->is_hip == true)
+      {
+        device_param->kernel_params_mp[1] = &device_param->hip_d_root_css_buf;
+        device_param->kernel_params_mp[2] = &device_param->hip_d_markov_css_buf;
       }
 
       if (device_param->is_opencl == true)
@@ -9606,10 +12624,17 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       device_param->kernel_params_mp_l[0] = NULL; // (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
                                                   // ? &device_param->opencl_d_pws_buf
                                                   // : &device_param->opencl_d_pws_amp_buf;
+
       if (device_param->is_cuda == true)
       {
         device_param->kernel_params_mp_l[1] = &device_param->cuda_d_root_css_buf;
         device_param->kernel_params_mp_l[2] = &device_param->cuda_d_markov_css_buf;
+      }
+
+      if (device_param->is_hip == true)
+      {
+        device_param->kernel_params_mp_l[1] = &device_param->hip_d_root_css_buf;
+        device_param->kernel_params_mp_l[2] = &device_param->hip_d_markov_css_buf;
       }
 
       if (device_param->is_opencl == true)
@@ -9640,6 +12665,13 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         device_param->kernel_params_mp_r[2] = &device_param->cuda_d_markov_css_buf;
       }
 
+      if (device_param->is_hip == true)
+      {
+        device_param->kernel_params_mp_r[0] = &device_param->hip_d_bfs;
+        device_param->kernel_params_mp_r[1] = &device_param->hip_d_root_css_buf;
+        device_param->kernel_params_mp_r[2] = &device_param->hip_d_markov_css_buf;
+      }
+
       if (device_param->is_opencl == true)
       {
         device_param->kernel_params_mp_r[0] = &device_param->opencl_d_bfs;
@@ -9666,6 +12698,15 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         device_param->kernel_params_amp[4] = &device_param->cuda_d_bfs_c;
       }
 
+      if (device_param->is_hip == true)
+      {
+        device_param->kernel_params_amp[0] = NULL; // &device_param->hip_d_pws_buf;
+        device_param->kernel_params_amp[1] = NULL; // &device_param->hip_d_pws_amp_buf;
+        device_param->kernel_params_amp[2] = &device_param->hip_d_rules_c;
+        device_param->kernel_params_amp[3] = &device_param->hip_d_combs_c;
+        device_param->kernel_params_amp[4] = &device_param->hip_d_bfs_c;
+      }
+
       if (device_param->is_opencl == true)
       {
         device_param->kernel_params_amp[0] = NULL; // &device_param->opencl_d_pws_buf;
@@ -9682,6 +12723,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       {
         device_param->kernel_params_tm[0] = &device_param->cuda_d_bfs_c;
         device_param->kernel_params_tm[1] = &device_param->cuda_d_tm_c;
+      }
+
+      if (device_param->is_hip == true)
+      {
+        device_param->kernel_params_tm[0] = &device_param->hip_d_bfs_c;
+        device_param->kernel_params_tm[1] = &device_param->hip_d_tm_c;
       }
 
       if (device_param->is_opencl == true)
@@ -9717,6 +12764,15 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       device_param->kernel_params_decompress[2] = NULL; // (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
                                                         // ? &device_param->cuda_d_pws_buf
                                                         // : &device_param->cuda_d_pws_amp_buf;
+    }
+
+    if (device_param->is_hip == true)
+    {
+      device_param->kernel_params_decompress[0] = NULL; // &device_param->hip_d_pws_idx;
+      device_param->kernel_params_decompress[1] = NULL; // &device_param->hip_d_pws_comp_buf;
+      device_param->kernel_params_decompress[2] = NULL; // (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+                                                        // ? &device_param->hip_d_pws_buf
+                                                        // : &device_param->hip_d_pws_amp_buf;
     }
 
     if (device_param->is_opencl == true)
@@ -10279,6 +13335,608 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
           if (run_cuda_kernel_bzero (hashcat_ctx, device_param, device_param->cuda_d_tm_c,           size_tm)          == -1) return -1;
           if (run_cuda_kernel_bzero (hashcat_ctx, device_param, device_param->cuda_d_root_css_buf,   size_root_css)    == -1) return -1;
           if (run_cuda_kernel_bzero (hashcat_ctx, device_param, device_param->cuda_d_markov_css_buf, size_markov_css)  == -1) return -1;
+        }
+      }
+
+      if (user_options->slow_candidates == true)
+      {
+      }
+      else
+      {
+        if ((user_options->attack_mode == ATTACK_MODE_HYBRID1) || (user_options->attack_mode == ATTACK_MODE_HYBRID2))
+        {
+          /**
+           * prepare mp
+           */
+
+          if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+          {
+            device_param->kernel_params_mp_buf32[5] = 0;
+            device_param->kernel_params_mp_buf32[6] = 0;
+            device_param->kernel_params_mp_buf32[7] = 0;
+
+            if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)     device_param->kernel_params_mp_buf32[5] = full01;
+            if (hashconfig->opts_type & OPTS_TYPE_PT_ADD06)     device_param->kernel_params_mp_buf32[5] = full06;
+            if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)     device_param->kernel_params_mp_buf32[5] = full80;
+            if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS14) device_param->kernel_params_mp_buf32[6] = 1;
+            if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS15) device_param->kernel_params_mp_buf32[7] = 1;
+          }
+          else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+          {
+            device_param->kernel_params_mp_buf32[5] = 0;
+            device_param->kernel_params_mp_buf32[6] = 0;
+            device_param->kernel_params_mp_buf32[7] = 0;
+          }
+
+          //for (u32 i = 0; i < 3; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_mp, i, sizeof (cl_mem), device_param->kernel_params_mp[i]); if (CL_rc == -1) return -1; }
+        }
+        else if (user_options->attack_mode == ATTACK_MODE_BF)
+        {
+          /**
+           * prepare mp_r and mp_l
+           */
+
+          device_param->kernel_params_mp_l_buf32[6] = 0;
+          device_param->kernel_params_mp_l_buf32[7] = 0;
+          device_param->kernel_params_mp_l_buf32[8] = 0;
+
+          if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)     device_param->kernel_params_mp_l_buf32[6] = full01;
+          if (hashconfig->opts_type & OPTS_TYPE_PT_ADD06)     device_param->kernel_params_mp_l_buf32[6] = full06;
+          if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)     device_param->kernel_params_mp_l_buf32[6] = full80;
+          if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS14) device_param->kernel_params_mp_l_buf32[7] = 1;
+          if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS15) device_param->kernel_params_mp_l_buf32[8] = 1;
+
+          //for (u32 i = 0; i < 3; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_mp_l, i, sizeof (cl_mem), device_param->kernel_params_mp_l[i]); if (CL_rc == -1) return -1; }
+          //for (u32 i = 0; i < 3; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_mp_r, i, sizeof (cl_mem), device_param->kernel_params_mp_r[i]); if (CL_rc == -1) return -1; }
+        }
+      }
+    }
+
+    if (device_param->is_hip == true)
+    {
+      char kernel_name[64] = { 0 };
+
+      if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+      {
+        if (hashconfig->opti_type & OPTI_TYPE_SINGLE_HASH)
+        {
+          if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+          {
+            // kernel1
+
+            snprintf (kernel_name, sizeof (kernel_name), "m%05u_s%02d", kern_type, 4);
+
+            if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function1, device_param->hip_module, kernel_name) == -1) return -1;
+
+            if (get_hip_kernel_wgs (hashcat_ctx, device_param->hip_function1, &device_param->kernel_wgs1) == -1) return -1;
+
+            if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function1, &device_param->kernel_local_mem_size1) == -1) return -1;
+
+            //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function1, &device_param->kernel_dynamic_local_mem_size1) == -1) return -1;
+
+            device_param->kernel_preferred_wgs_multiple1 = device_param->hip_warp_size;
+
+            // kernel2
+
+            snprintf (kernel_name, sizeof (kernel_name), "m%05u_s%02d", kern_type, 8);
+
+            if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function2, device_param->hip_module, kernel_name) == -1) return -1;
+
+            if (get_hip_kernel_wgs (hashcat_ctx, device_param->hip_function2, &device_param->kernel_wgs2) == -1) return -1;
+
+            if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function2, &device_param->kernel_local_mem_size2) == -1) return -1;
+
+            //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function2, &device_param->kernel_dynamic_local_mem_size2) == -1) return -1;
+
+            device_param->kernel_preferred_wgs_multiple2 = device_param->hip_warp_size;
+
+            // kernel3
+
+            snprintf (kernel_name, sizeof (kernel_name), "m%05u_s%02d", kern_type, 16);
+
+            if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function3, device_param->hip_module, kernel_name) == -1) return -1;
+
+            if (get_hip_kernel_wgs (hashcat_ctx, device_param->hip_function3, &device_param->kernel_wgs3) == -1) return -1;
+
+            if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function3, &device_param->kernel_local_mem_size3) == -1) return -1;
+
+            //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function3, &device_param->kernel_dynamic_local_mem_size3) == -1) return -1;
+
+            device_param->kernel_preferred_wgs_multiple3 = device_param->hip_warp_size;
+          }
+          else
+          {
+            snprintf (kernel_name, sizeof (kernel_name), "m%05u_sxx", kern_type);
+
+            if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function4, device_param->hip_module, kernel_name) == -1) return -1;
+
+            if (get_hip_kernel_wgs (hashcat_ctx, device_param->hip_function4, &device_param->kernel_wgs4) == -1) return -1;
+
+            if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function4, &device_param->kernel_local_mem_size4) == -1) return -1;
+
+            //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function4, &device_param->kernel_dynamic_local_mem_size4) == -1) return -1;
+
+            device_param->kernel_preferred_wgs_multiple4 = device_param->hip_warp_size;
+          }
+        }
+        else
+        {
+          if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+          {
+            // kernel1
+
+            snprintf (kernel_name, sizeof (kernel_name), "m%05u_m%02d", kern_type, 4);
+
+            if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function1, device_param->hip_module, kernel_name) == -1) return -1;
+
+            if (get_hip_kernel_wgs (hashcat_ctx, device_param->hip_function1, &device_param->kernel_wgs1) == -1) return -1;
+
+            if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function1, &device_param->kernel_local_mem_size1) == -1) return -1;
+
+            //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function1, &device_param->kernel_dynamic_local_mem_size1) == -1) return -1;
+
+            device_param->kernel_preferred_wgs_multiple1 = device_param->hip_warp_size;
+
+            // kernel2
+
+            snprintf (kernel_name, sizeof (kernel_name), "m%05u_m%02d", kern_type, 8);
+
+            if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function2, device_param->hip_module, kernel_name) == -1) return -1;
+
+            if (get_hip_kernel_wgs (hashcat_ctx, device_param->hip_function2, &device_param->kernel_wgs2) == -1) return -1;
+
+            if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function2, &device_param->kernel_local_mem_size2) == -1) return -1;
+
+            //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function2, &device_param->kernel_dynamic_local_mem_size2) == -1) return -1;
+
+            device_param->kernel_preferred_wgs_multiple2 = device_param->hip_warp_size;
+
+            // kernel3
+
+            snprintf (kernel_name, sizeof (kernel_name), "m%05u_m%02d", kern_type, 16);
+
+            if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function3, device_param->hip_module, kernel_name) == -1) return -1;
+
+            if (get_hip_kernel_wgs (hashcat_ctx, device_param->hip_function3, &device_param->kernel_wgs3) == -1) return -1;
+
+            if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function3, &device_param->kernel_local_mem_size3) == -1) return -1;
+
+            //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function3, &device_param->kernel_dynamic_local_mem_size3) == -1) return -1;
+
+            device_param->kernel_preferred_wgs_multiple3 = device_param->hip_warp_size;
+          }
+          else
+          {
+            snprintf (kernel_name, sizeof (kernel_name), "m%05u_mxx", kern_type);
+
+            if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function4, device_param->hip_module, kernel_name) == -1) return -1;
+
+            if (get_hip_kernel_wgs (hashcat_ctx, device_param->hip_function4, &device_param->kernel_wgs4) == -1) return -1;
+
+            if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function4, &device_param->kernel_local_mem_size4) == -1) return -1;
+
+            //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function4, &device_param->kernel_dynamic_local_mem_size4) == -1) return -1;
+
+            device_param->kernel_preferred_wgs_multiple4 = device_param->hip_warp_size;
+          }
+        }
+
+        if (user_options->slow_candidates == true)
+        {
+        }
+        else
+        {
+          if (user_options->attack_mode == ATTACK_MODE_BF)
+          {
+            if (hashconfig->opts_type & OPTS_TYPE_TM_KERNEL)
+            {
+              snprintf (kernel_name, sizeof (kernel_name), "m%05u_tm", kern_type);
+
+              if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function_tm, device_param->hip_module, kernel_name) == -1) return -1;
+
+              if (get_hip_kernel_wgs (hashcat_ctx, device_param->hip_function_tm, &device_param->kernel_wgs_tm) == -1) return -1;
+
+              if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_tm, &device_param->kernel_local_mem_size_tm) == -1) return -1;
+
+              //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function_tm, &device_param->kernel_dynamic_local_mem_size_tm) == -1) return -1;
+
+              device_param->kernel_preferred_wgs_multiple_tm = device_param->hip_warp_size;
+            }
+          }
+        }
+      }
+      else
+      {
+        // kernel1
+
+        snprintf (kernel_name, sizeof (kernel_name), "m%05u_init", kern_type);
+
+        if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function1, device_param->hip_module, kernel_name) == -1) return -1;
+
+        if (get_hip_kernel_wgs (hashcat_ctx, device_param->hip_function1, &device_param->kernel_wgs1) == -1) return -1;
+
+        if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function1, &device_param->kernel_local_mem_size1) == -1) return -1;
+
+        //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function1, &device_param->kernel_dynamic_local_mem_size1) == -1) return -1;
+
+        device_param->kernel_preferred_wgs_multiple1 = device_param->hip_warp_size;
+
+        // kernel2
+
+        snprintf (kernel_name, sizeof (kernel_name), "m%05u_loop", kern_type);
+
+        if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function2, device_param->hip_module, kernel_name) == -1) return -1;
+
+        if (get_hip_kernel_wgs (hashcat_ctx, device_param->hip_function2, &device_param->kernel_wgs2) == -1) return -1;
+
+        if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function2, &device_param->kernel_local_mem_size2) == -1) return -1;
+
+        //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function2, &device_param->kernel_dynamic_local_mem_size2) == -1) return -1;
+
+        device_param->kernel_preferred_wgs_multiple2 = device_param->hip_warp_size;
+
+        // kernel3
+
+        snprintf (kernel_name, sizeof (kernel_name), "m%05u_comp", kern_type);
+
+        if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function3, device_param->hip_module, kernel_name) == -1) return -1;
+
+        if (get_hip_kernel_wgs (hashcat_ctx, device_param->hip_function3, &device_param->kernel_wgs3) == -1) return -1;
+
+        if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function3, &device_param->kernel_local_mem_size3) == -1) return -1;
+
+        //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function3, &device_param->kernel_dynamic_local_mem_size3) == -1) return -1;
+
+        device_param->kernel_preferred_wgs_multiple3 = device_param->hip_warp_size;
+
+        if (hashconfig->opts_type & OPTS_TYPE_LOOP_PREPARE)
+        {
+          // kernel2p
+
+          snprintf (kernel_name, sizeof (kernel_name), "m%05u_loop_prepare", kern_type);
+
+          if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function2p, device_param->hip_module, kernel_name) == -1) return -1;
+
+          if (get_hip_kernel_wgs (hashcat_ctx, device_param->hip_function2p, &device_param->kernel_wgs2p) == -1) return -1;
+
+          if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function2p, &device_param->kernel_local_mem_size2p) == -1) return -1;
+
+          //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function2p, &device_param->kernel_dynamic_local_mem_size2p) == -1) return -1;
+
+          device_param->kernel_preferred_wgs_multiple2p = device_param->hip_warp_size;
+        }
+
+        if (hashconfig->opts_type & OPTS_TYPE_LOOP_EXTENDED)
+        {
+          // kernel2e
+
+          snprintf (kernel_name, sizeof (kernel_name), "m%05u_loop_extended", kern_type);
+
+          if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function2e, device_param->hip_module, kernel_name) == -1) return -1;
+
+          if (get_hip_kernel_wgs (hashcat_ctx, device_param->hip_function2e, &device_param->kernel_wgs2e) == -1) return -1;
+
+          if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function2e, &device_param->kernel_local_mem_size2e) == -1) return -1;
+
+          //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function2e, &device_param->kernel_dynamic_local_mem_size2e) == -1) return -1;
+
+          device_param->kernel_preferred_wgs_multiple2e = device_param->hip_warp_size;
+        }
+
+        // kernel12
+
+        if (hashconfig->opts_type & OPTS_TYPE_HOOK12)
+        {
+          snprintf (kernel_name, sizeof (kernel_name), "m%05u_hook12", kern_type);
+
+          if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function12, device_param->hip_module, kernel_name) == -1) return -1;
+
+          if (get_hip_kernel_wgs (hashcat_ctx, device_param->hip_function12, &device_param->kernel_wgs12) == -1) return -1;
+
+          if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function12, &device_param->kernel_local_mem_size12) == -1) return -1;
+
+          //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function12, &device_param->kernel_dynamic_local_mem_size12) == -1) return -1;
+
+          device_param->kernel_preferred_wgs_multiple12 = device_param->hip_warp_size;
+        }
+
+        // kernel23
+
+        if (hashconfig->opts_type & OPTS_TYPE_HOOK23)
+        {
+          snprintf (kernel_name, sizeof (kernel_name), "m%05u_hook23", kern_type);
+
+          if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function23, device_param->hip_module, kernel_name) == -1) return -1;
+
+          if (get_hip_kernel_wgs (hashcat_ctx, device_param->hip_function23, &device_param->kernel_wgs23) == -1) return -1;
+
+          if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function23, &device_param->kernel_local_mem_size23) == -1) return -1;
+
+          //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function23, &device_param->kernel_dynamic_local_mem_size23) == -1) return -1;
+
+          device_param->kernel_preferred_wgs_multiple23 = device_param->hip_warp_size;
+        }
+
+        // init2
+
+        if (hashconfig->opts_type & OPTS_TYPE_INIT2)
+        {
+          snprintf (kernel_name, sizeof (kernel_name), "m%05u_init2", kern_type);
+
+          if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function_init2, device_param->hip_module, kernel_name) == -1) return -1;
+
+          if (get_hip_kernel_wgs (hashcat_ctx, device_param->hip_function_init2, &device_param->kernel_wgs_init2) == -1) return -1;
+
+          if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_init2, &device_param->kernel_local_mem_size_init2) == -1) return -1;
+
+          //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function_init2, &device_param->kernel_dynamic_local_mem_size_init2) == -1) return -1;
+
+          device_param->kernel_preferred_wgs_multiple_init2 = device_param->hip_warp_size;
+        }
+
+        // loop2 prepare
+
+        if (hashconfig->opts_type & OPTS_TYPE_LOOP2_PREPARE)
+        {
+          snprintf (kernel_name, sizeof (kernel_name), "m%05u_loop2_prepare", kern_type);
+
+          if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function_loop2p, device_param->hip_module, kernel_name) == -1) return -1;
+
+          if (get_hip_kernel_wgs (hashcat_ctx, device_param->hip_function_loop2p, &device_param->kernel_wgs_loop2p) == -1) return -1;
+
+          if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_loop2p, &device_param->kernel_local_mem_size_loop2p) == -1) return -1;
+
+          //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function_loop2p, &device_param->kernel_dynamic_local_mem_size_loop2p) == -1) return -1;
+
+          device_param->kernel_preferred_wgs_multiple_loop2p = device_param->hip_warp_size;
+        }
+
+        // loop2
+
+        if (hashconfig->opts_type & OPTS_TYPE_LOOP2)
+        {
+          snprintf (kernel_name, sizeof (kernel_name), "m%05u_loop2", kern_type);
+
+          if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function_loop2, device_param->hip_module, kernel_name) == -1) return -1;
+
+          if (get_hip_kernel_wgs (hashcat_ctx, device_param->hip_function_loop2, &device_param->kernel_wgs_loop2) == -1) return -1;
+
+          if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_loop2, &device_param->kernel_local_mem_size_loop2) == -1) return -1;
+
+          //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function_loop2, &device_param->kernel_dynamic_local_mem_size_loop2) == -1) return -1;
+
+          device_param->kernel_preferred_wgs_multiple_loop2 = device_param->hip_warp_size;
+        }
+
+        // aux1
+
+        if (hashconfig->opts_type & OPTS_TYPE_AUX1)
+        {
+          snprintf (kernel_name, sizeof (kernel_name), "m%05u_aux1", kern_type);
+
+          if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function_aux1, device_param->hip_module, kernel_name) == -1) return -1;
+
+          if (get_hip_kernel_wgs (hashcat_ctx, device_param->hip_function_aux1, &device_param->kernel_wgs_aux1) == -1) return -1;
+
+          if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_aux1, &device_param->kernel_local_mem_size_aux1) == -1) return -1;
+
+          //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function_aux1, &device_param->kernel_dynamic_local_mem_size_aux1) == -1) return -1;
+
+          device_param->kernel_preferred_wgs_multiple_aux1 = device_param->hip_warp_size;
+        }
+
+        // aux2
+
+        if (hashconfig->opts_type & OPTS_TYPE_AUX2)
+        {
+          snprintf (kernel_name, sizeof (kernel_name), "m%05u_aux2", kern_type);
+
+          if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function_aux2, device_param->hip_module, kernel_name) == -1) return -1;
+
+          if (get_hip_kernel_wgs (hashcat_ctx, device_param->hip_function_aux2, &device_param->kernel_wgs_aux2) == -1) return -1;
+
+          if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_aux2, &device_param->kernel_local_mem_size_aux2) == -1) return -1;
+
+          //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function_aux2, &device_param->kernel_dynamic_local_mem_size_aux2) == -1) return -1;
+
+          device_param->kernel_preferred_wgs_multiple_aux2 = device_param->hip_warp_size;
+        }
+
+        // aux3
+
+        if (hashconfig->opts_type & OPTS_TYPE_AUX3)
+        {
+          snprintf (kernel_name, sizeof (kernel_name), "m%05u_aux3", kern_type);
+
+          if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function_aux3, device_param->hip_module, kernel_name) == -1) return -1;
+
+          if (get_hip_kernel_wgs (hashcat_ctx, device_param->hip_function_aux3, &device_param->kernel_wgs_aux3) == -1) return -1;
+
+          if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_aux3, &device_param->kernel_local_mem_size_aux3) == -1) return -1;
+
+          //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function_aux3, &device_param->kernel_dynamic_local_mem_size_aux3) == -1) return -1;
+
+          device_param->kernel_preferred_wgs_multiple_aux3 = device_param->hip_warp_size;
+        }
+
+        // aux4
+
+        if (hashconfig->opts_type & OPTS_TYPE_AUX4)
+        {
+          snprintf (kernel_name, sizeof (kernel_name), "m%05u_aux4", kern_type);
+
+          if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function_aux4, device_param->hip_module, kernel_name) == -1) return -1;
+
+          if (get_hip_kernel_wgs (hashcat_ctx, device_param->hip_function_aux4, &device_param->kernel_wgs_aux4) == -1) return -1;
+
+          if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_aux4, &device_param->kernel_local_mem_size_aux4) == -1) return -1;
+
+          //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function_aux4, &device_param->kernel_dynamic_local_mem_size_aux4) == -1) return -1;
+
+          device_param->kernel_preferred_wgs_multiple_aux4 = device_param->hip_warp_size;
+        }
+      }
+
+      //CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_decompress, 0, sizeof (cl_mem),   device_param->kernel_params_decompress[0]); if (CL_rc == -1) return -1;
+      //CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_decompress, 1, sizeof (cl_mem),   device_param->kernel_params_decompress[1]); if (CL_rc == -1) return -1;
+      //CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_decompress, 2, sizeof (cl_mem),   device_param->kernel_params_decompress[2]); if (CL_rc == -1) return -1;
+      //CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_decompress, 3, sizeof (cl_ulong), device_param->kernel_params_decompress[3]); if (CL_rc == -1) return -1;
+
+      // MP start
+
+      if (user_options->slow_candidates == true)
+      {
+      }
+      else
+      {
+        if (user_options->attack_mode == ATTACK_MODE_BF)
+        {
+          // mp_l
+
+          if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function_mp_l, device_param->hip_module_mp, "l_markov") == -1) return -1;
+
+          if (get_hip_kernel_wgs (hashcat_ctx, device_param->hip_function_mp_l, &device_param->kernel_wgs_mp_l) == -1) return -1;
+
+          if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_mp_l, &device_param->kernel_local_mem_size_mp_l) == -1) return -1;
+
+          //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function_mp_l, &device_param->kernel_dynamic_local_mem_size_mp_l) == -1) return -1;
+
+          device_param->kernel_preferred_wgs_multiple_mp_l = device_param->hip_warp_size;
+
+          // mp_r
+
+          if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function_mp_r, device_param->hip_module_mp, "r_markov") == -1) return -1;
+
+          if (get_hip_kernel_wgs (hashcat_ctx, device_param->hip_function_mp_r, &device_param->kernel_wgs_mp_r) == -1) return -1;
+
+          if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_mp_r, &device_param->kernel_local_mem_size_mp_r) == -1) return -1;
+
+          //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function_mp_r, &device_param->kernel_dynamic_local_mem_size_mp_r) == -1) return -1;
+
+          device_param->kernel_preferred_wgs_multiple_mp_r = device_param->hip_warp_size;
+
+          if (user_options->attack_mode == ATTACK_MODE_BF)
+          {
+            if (hashconfig->opts_type & OPTS_TYPE_TM_KERNEL)
+            {
+              //CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_tm, 0, sizeof (cl_mem), device_param->kernel_params_tm[0]); if (CL_rc == -1) return -1;
+              //CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_tm, 1, sizeof (cl_mem), device_param->kernel_params_tm[1]); if (CL_rc == -1) return -1;
+            }
+          }
+        }
+        else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+        {
+          if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function_mp, device_param->hip_module_mp, "C_markov") == -1) return -1;
+
+          if (get_hip_kernel_wgs (hashcat_ctx, device_param->hip_function_mp, &device_param->kernel_wgs_mp) == -1) return -1;
+
+          if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_mp, &device_param->kernel_local_mem_size_mp) == -1) return -1;
+
+          //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function_mp, &device_param->kernel_dynamic_local_mem_size_mp) == -1) return -1;
+
+          device_param->kernel_preferred_wgs_multiple_mp = device_param->hip_warp_size;
+        }
+        else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+        {
+          if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function_mp, device_param->hip_module_mp, "C_markov") == -1) return -1;
+
+          if (get_hip_kernel_wgs (hashcat_ctx, device_param->hip_function_mp, &device_param->kernel_wgs_mp) == -1) return -1;
+
+          if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_mp, &device_param->kernel_local_mem_size_mp) == -1) return -1;
+
+          //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function_mp, &device_param->kernel_dynamic_local_mem_size_mp) == -1) return -1;
+
+          device_param->kernel_preferred_wgs_multiple_mp = device_param->hip_warp_size;
+        }
+      }
+
+      if (user_options->slow_candidates == true)
+      {
+      }
+      else
+      {
+        if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+        {
+          // nothing to do
+        }
+        else
+        {
+          if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function_amp, device_param->hip_module_amp, "amp") == -1) return -1;
+
+          if (get_hip_kernel_wgs (hashcat_ctx, device_param->hip_function_amp, &device_param->kernel_wgs_amp) == -1) return -1;
+
+          if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_amp, &device_param->kernel_local_mem_size_amp) == -1) return -1;
+
+          //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function_amp, &device_param->kernel_dynamic_local_mem_size_amp) == -1) return -1;
+
+          device_param->kernel_preferred_wgs_multiple_amp = device_param->hip_warp_size;
+        }
+
+        /*
+        if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+        {
+          // nothing to do
+        }
+        else
+        {
+          for (u32 i = 0; i < 5; i++)
+          {
+            //CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_amp, i, sizeof (cl_mem), device_param->kernel_params_amp[i]);
+
+            //if (CL_rc == -1) return -1;
+          }
+
+          for (u32 i = 5; i < 6; i++)
+          {
+            //CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_amp, i, sizeof (cl_uint), device_param->kernel_params_amp[i]);
+
+            //if (CL_rc == -1) return -1;
+          }
+
+          for (u32 i = 6; i < 7; i++)
+          {
+            //CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_amp, i, sizeof (cl_ulong), device_param->kernel_params_amp[i]);
+
+            //if (CL_rc == -1) return -1;
+          }
+        }
+        */
+      }
+
+      // zero some data buffers
+
+      if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_plain_bufs,    device_param->size_plains)  == -1) return -1;
+      if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_digests_shown, device_param->size_shown)   == -1) return -1;
+      if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_result,        device_param->size_results) == -1) return -1;
+
+      /**
+       * special buffers
+       */
+
+      if (user_options->slow_candidates == true)
+      {
+        if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_rules_c, size_rules_c) == -1) return -1;
+      }
+      else
+      {
+        if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
+        {
+          if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_rules_c, size_rules_c) == -1) return -1;
+        }
+        else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
+        {
+          if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_combs,          size_combs)       == -1) return -1;
+          if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_combs_c,        size_combs)       == -1) return -1;
+          if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_root_css_buf,   size_root_css)    == -1) return -1;
+          if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_markov_css_buf, size_markov_css)  == -1) return -1;
+        }
+        else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
+        {
+          if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_bfs,            size_bfs)         == -1) return -1;
+          if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_bfs_c,          size_bfs)         == -1) return -1;
+          if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_tm_c,           size_tm)          == -1) return -1;
+          if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_root_css_buf,   size_root_css)    == -1) return -1;
+          if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_markov_css_buf, size_markov_css)  == -1) return -1;
         }
       }
 
@@ -10961,9 +14619,18 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         }
         else
         {
+          device_param->kernel_threads_min = MIN (device_param->kernel_threads_min, 64);
           device_param->kernel_threads_max = MIN (device_param->kernel_threads_max, 64);
         }
       }
+    }
+
+    // we
+
+    if (device_param->opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP)
+    {
+      device_param->kernel_threads_min = MIN (device_param->kernel_threads_min, 64);
+      device_param->kernel_threads_max = MIN (device_param->kernel_threads_max, 64);
     }
 
     /**
@@ -11208,6 +14875,23 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       if (run_cuda_kernel_bzero (hashcat_ctx, device_param, device_param->cuda_d_hooks,         device_param->size_hooks)    == -1) return -1;
     }
 
+    if (device_param->is_hip == true)
+    {
+      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_pws_buf,      size_pws)      == -1) return -1;
+      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_pws_amp_buf,  size_pws_amp)  == -1) return -1;
+      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_pws_comp_buf, size_pws_comp) == -1) return -1;
+      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_pws_idx,      size_pws_idx)  == -1) return -1;
+      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_tmps,         size_tmps)     == -1) return -1;
+      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_hooks,        size_hooks)    == -1) return -1;
+
+      if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_pws_buf,       device_param->size_pws)      == -1) return -1;
+      if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_pws_amp_buf,   device_param->size_pws_amp)  == -1) return -1;
+      if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_pws_comp_buf,  device_param->size_pws_comp) == -1) return -1;
+      if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_pws_idx,       device_param->size_pws_idx)  == -1) return -1;
+      if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_tmps,          device_param->size_tmps)     == -1) return -1;
+      if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_hooks,         device_param->size_hooks)    == -1) return -1;
+    }
+
     if (device_param->is_opencl == true)
     {
       if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_WRITE,  size_pws,      NULL, &device_param->opencl_d_pws_buf)      == -1) return -1;
@@ -11279,6 +14963,13 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       device_param->kernel_params[ 5] = &device_param->cuda_d_hooks;
     }
 
+    if (device_param->is_hip == true)
+    {
+      device_param->kernel_params[ 0] = &device_param->hip_d_pws_buf;
+      device_param->kernel_params[ 4] = &device_param->hip_d_tmps;
+      device_param->kernel_params[ 5] = &device_param->hip_d_hooks;
+    }
+
     if (device_param->is_opencl == true)
     {
       device_param->kernel_params[ 0] = &device_param->opencl_d_pws_buf;
@@ -11308,6 +14999,15 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
             //CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_mp, 0, sizeof (cl_mem), device_param->kernel_params_mp[0]); if (CL_rc == -1) return -1;
           }
 
+          if (device_param->is_hip == true)
+          {
+            device_param->kernel_params_mp[0] = (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+                                              ? &device_param->hip_d_pws_buf
+                                              : &device_param->hip_d_pws_amp_buf;
+
+            //CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_mp, 0, sizeof (cl_mem), device_param->kernel_params_mp[0]); if (CL_rc == -1) return -1;
+          }
+
           if (device_param->is_opencl == true)
           {
             device_param->kernel_params_mp[0] = (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
@@ -11326,6 +15026,15 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
           device_param->kernel_params_mp_l[0] = (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
                                               ? &device_param->cuda_d_pws_buf
                                               : &device_param->cuda_d_pws_amp_buf;
+
+          //CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_mp_l, 0, sizeof (cl_mem), device_param->kernel_params_mp_l[0]); if (CL_rc == -1) return -1;
+        }
+
+        if (device_param->is_hip == true)
+        {
+          device_param->kernel_params_mp_l[0] = (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+                                              ? &device_param->hip_d_pws_buf
+                                              : &device_param->hip_d_pws_amp_buf;
 
           //CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_mp_l, 0, sizeof (cl_mem), device_param->kernel_params_mp_l[0]); if (CL_rc == -1) return -1;
         }
@@ -11355,6 +15064,15 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
           //CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_amp, 1, sizeof (cl_mem), device_param->kernel_params_amp[1]); if (CL_rc == -1) return -1;
         }
 
+        if (device_param->is_hip == true)
+        {
+          device_param->kernel_params_amp[0] = &device_param->hip_d_pws_buf;
+          device_param->kernel_params_amp[1] = &device_param->hip_d_pws_amp_buf;
+
+          //CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_amp, 0, sizeof (cl_mem), device_param->kernel_params_amp[0]); if (CL_rc == -1) return -1;
+          //CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_amp, 1, sizeof (cl_mem), device_param->kernel_params_amp[1]); if (CL_rc == -1) return -1;
+        }
+
         if (device_param->is_opencl == true)
         {
           device_param->kernel_params_amp[0] = &device_param->opencl_d_pws_buf;
@@ -11379,6 +15097,19 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       //CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_decompress, 2, sizeof (cl_mem), device_param->kernel_params_decompress[2]); if (CL_rc == -1) return -1;
     }
 
+    if (device_param->is_hip == true)
+    {
+      device_param->kernel_params_decompress[0] = &device_param->hip_d_pws_idx;
+      device_param->kernel_params_decompress[1] = &device_param->hip_d_pws_comp_buf;
+      device_param->kernel_params_decompress[2] = (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+                                                ? &device_param->hip_d_pws_buf
+                                                : &device_param->hip_d_pws_amp_buf;
+
+      //CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_decompress, 0, sizeof (cl_mem), device_param->kernel_params_decompress[0]); if (CL_rc == -1) return -1;
+      //CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_decompress, 1, sizeof (cl_mem), device_param->kernel_params_decompress[1]); if (CL_rc == -1) return -1;
+      //CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_decompress, 2, sizeof (cl_mem), device_param->kernel_params_decompress[2]); if (CL_rc == -1) return -1;
+    }
+
     if (device_param->is_opencl == true)
     {
       device_param->kernel_params_decompress[0] = &device_param->opencl_d_pws_idx;
@@ -11390,6 +15121,26 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       if (hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_decompress, 0, sizeof (cl_mem), device_param->kernel_params_decompress[0]) == -1) return -1;
       if (hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_decompress, 1, sizeof (cl_mem), device_param->kernel_params_decompress[1]) == -1) return -1;
       if (hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_decompress, 2, sizeof (cl_mem), device_param->kernel_params_decompress[2]) == -1) return -1;
+    }
+
+    // context
+
+    if (device_param->is_cuda == true)
+    {
+      if (hc_cuCtxPopCurrent (hashcat_ctx, &device_param->cuda_context) == -1)
+      {
+        device_param->skipped = true;
+        continue;
+      }
+    }
+
+    if (device_param->is_hip == true)
+    {
+      if (hc_hipCtxPopCurrent (hashcat_ctx, &device_param->hip_context) == -1)
+      {
+        device_param->skipped = true;
+        continue;
+      }
     }
 
     hardware_power_all += device_param->hardware_power;
@@ -11546,12 +15297,143 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       device_param->cuda_function_aux3        = NULL;
       device_param->cuda_function_aux4        = NULL;
 
+      device_param->cuda_event1               = NULL;
+      device_param->cuda_event2               = NULL;
+
+      device_param->cuda_stream               = NULL;
+
       device_param->cuda_module               = NULL;
       device_param->cuda_module_mp            = NULL;
       device_param->cuda_module_amp           = NULL;
       device_param->cuda_module_shared        = NULL;
 
       device_param->cuda_context              = NULL;
+    }
+
+    if (device_param->is_hip == true)
+    {
+      if (device_param->hip_d_pws_buf)        hc_hipMemFree (hashcat_ctx, device_param->hip_d_pws_buf);
+      if (device_param->hip_d_pws_amp_buf)    hc_hipMemFree (hashcat_ctx, device_param->hip_d_pws_amp_buf);
+      if (device_param->hip_d_pws_comp_buf)   hc_hipMemFree (hashcat_ctx, device_param->hip_d_pws_comp_buf);
+      if (device_param->hip_d_pws_idx)        hc_hipMemFree (hashcat_ctx, device_param->hip_d_pws_idx);
+      if (device_param->hip_d_rules)          hc_hipMemFree (hashcat_ctx, device_param->hip_d_rules);
+      //if (device_param->hip_d_rules_c)        hc_hipMemFree (hashcat_ctx, device_param->hip_d_rules_c);
+      if (device_param->hip_d_combs)          hc_hipMemFree (hashcat_ctx, device_param->hip_d_combs);
+      if (device_param->hip_d_combs_c)        hc_hipMemFree (hashcat_ctx, device_param->hip_d_combs_c);
+      if (device_param->hip_d_bfs)            hc_hipMemFree (hashcat_ctx, device_param->hip_d_bfs);
+      //if (device_param->hip_d_bfs_c)          hc_hipMemFree (hashcat_ctx, device_param->hip_d_bfs_c);
+      if (device_param->hip_d_bitmap_s1_a)    hc_hipMemFree (hashcat_ctx, device_param->hip_d_bitmap_s1_a);
+      if (device_param->hip_d_bitmap_s1_b)    hc_hipMemFree (hashcat_ctx, device_param->hip_d_bitmap_s1_b);
+      if (device_param->hip_d_bitmap_s1_c)    hc_hipMemFree (hashcat_ctx, device_param->hip_d_bitmap_s1_c);
+      if (device_param->hip_d_bitmap_s1_d)    hc_hipMemFree (hashcat_ctx, device_param->hip_d_bitmap_s1_d);
+      if (device_param->hip_d_bitmap_s2_a)    hc_hipMemFree (hashcat_ctx, device_param->hip_d_bitmap_s2_a);
+      if (device_param->hip_d_bitmap_s2_b)    hc_hipMemFree (hashcat_ctx, device_param->hip_d_bitmap_s2_b);
+      if (device_param->hip_d_bitmap_s2_c)    hc_hipMemFree (hashcat_ctx, device_param->hip_d_bitmap_s2_c);
+      if (device_param->hip_d_bitmap_s2_d)    hc_hipMemFree (hashcat_ctx, device_param->hip_d_bitmap_s2_d);
+      if (device_param->hip_d_plain_bufs)     hc_hipMemFree (hashcat_ctx, device_param->hip_d_plain_bufs);
+      if (device_param->hip_d_digests_buf)    hc_hipMemFree (hashcat_ctx, device_param->hip_d_digests_buf);
+      if (device_param->hip_d_digests_shown)  hc_hipMemFree (hashcat_ctx, device_param->hip_d_digests_shown);
+      if (device_param->hip_d_salt_bufs)      hc_hipMemFree (hashcat_ctx, device_param->hip_d_salt_bufs);
+      if (device_param->hip_d_esalt_bufs)     hc_hipMemFree (hashcat_ctx, device_param->hip_d_esalt_bufs);
+      if (device_param->hip_d_tmps)           hc_hipMemFree (hashcat_ctx, device_param->hip_d_tmps);
+      if (device_param->hip_d_hooks)          hc_hipMemFree (hashcat_ctx, device_param->hip_d_hooks);
+      if (device_param->hip_d_result)         hc_hipMemFree (hashcat_ctx, device_param->hip_d_result);
+      if (device_param->hip_d_extra0_buf)     hc_hipMemFree (hashcat_ctx, device_param->hip_d_extra0_buf);
+      if (device_param->hip_d_extra1_buf)     hc_hipMemFree (hashcat_ctx, device_param->hip_d_extra1_buf);
+      if (device_param->hip_d_extra2_buf)     hc_hipMemFree (hashcat_ctx, device_param->hip_d_extra2_buf);
+      if (device_param->hip_d_extra3_buf)     hc_hipMemFree (hashcat_ctx, device_param->hip_d_extra3_buf);
+      if (device_param->hip_d_root_css_buf)   hc_hipMemFree (hashcat_ctx, device_param->hip_d_root_css_buf);
+      if (device_param->hip_d_markov_css_buf) hc_hipMemFree (hashcat_ctx, device_param->hip_d_markov_css_buf);
+      if (device_param->hip_d_tm_c)           hc_hipMemFree (hashcat_ctx, device_param->hip_d_tm_c);
+      if (device_param->hip_d_st_digests_buf) hc_hipMemFree (hashcat_ctx, device_param->hip_d_st_digests_buf);
+      if (device_param->hip_d_st_salts_buf)   hc_hipMemFree (hashcat_ctx, device_param->hip_d_st_salts_buf);
+      if (device_param->hip_d_st_esalts_buf)  hc_hipMemFree (hashcat_ctx, device_param->hip_d_st_esalts_buf);
+
+      if (device_param->hip_event1)           hc_hipEventDestroy (hashcat_ctx, device_param->hip_event1);
+      if (device_param->hip_event2)           hc_hipEventDestroy (hashcat_ctx, device_param->hip_event2);
+
+      if (device_param->hip_stream)           hc_hipStreamDestroy (hashcat_ctx, device_param->hip_stream);
+
+      if (device_param->hip_module)           hc_hipModuleUnload (hashcat_ctx, device_param->hip_module);
+      if (device_param->hip_module_mp)        hc_hipModuleUnload (hashcat_ctx, device_param->hip_module_mp);
+      if (device_param->hip_module_amp)       hc_hipModuleUnload (hashcat_ctx, device_param->hip_module_amp);
+      if (device_param->hip_module_shared)    hc_hipModuleUnload (hashcat_ctx, device_param->hip_module_shared);
+
+      if (device_param->hip_context)          hc_hipCtxDestroy (hashcat_ctx, device_param->hip_context);
+
+      device_param->hip_d_pws_buf            = 0;
+      device_param->hip_d_pws_amp_buf        = 0;
+      device_param->hip_d_pws_comp_buf       = 0;
+      device_param->hip_d_pws_idx            = 0;
+      device_param->hip_d_rules              = 0;
+      device_param->hip_d_rules_c            = 0;
+      device_param->hip_d_combs              = 0;
+      device_param->hip_d_combs_c            = 0;
+      device_param->hip_d_bfs                = 0;
+      device_param->hip_d_bfs_c              = 0;
+      device_param->hip_d_bitmap_s1_a        = 0;
+      device_param->hip_d_bitmap_s1_b        = 0;
+      device_param->hip_d_bitmap_s1_c        = 0;
+      device_param->hip_d_bitmap_s1_d        = 0;
+      device_param->hip_d_bitmap_s2_a        = 0;
+      device_param->hip_d_bitmap_s2_b        = 0;
+      device_param->hip_d_bitmap_s2_c        = 0;
+      device_param->hip_d_bitmap_s2_d        = 0;
+      device_param->hip_d_plain_bufs         = 0;
+      device_param->hip_d_digests_buf        = 0;
+      device_param->hip_d_digests_shown      = 0;
+      device_param->hip_d_salt_bufs          = 0;
+      device_param->hip_d_esalt_bufs         = 0;
+      device_param->hip_d_tmps               = 0;
+      device_param->hip_d_hooks              = 0;
+      device_param->hip_d_result             = 0;
+      device_param->hip_d_extra0_buf         = 0;
+      device_param->hip_d_extra1_buf         = 0;
+      device_param->hip_d_extra2_buf         = 0;
+      device_param->hip_d_extra3_buf         = 0;
+      device_param->hip_d_root_css_buf       = 0;
+      device_param->hip_d_markov_css_buf     = 0;
+      device_param->hip_d_tm_c               = 0;
+      device_param->hip_d_st_digests_buf     = 0;
+      device_param->hip_d_st_salts_buf       = 0;
+      device_param->hip_d_st_esalts_buf      = 0;
+
+      device_param->hip_function1            = NULL;
+      device_param->hip_function12           = NULL;
+      device_param->hip_function2p           = NULL;
+      device_param->hip_function2            = NULL;
+      device_param->hip_function2e           = NULL;
+      device_param->hip_function23           = NULL;
+      device_param->hip_function3            = NULL;
+      device_param->hip_function4            = NULL;
+      device_param->hip_function_init2       = NULL;
+      device_param->hip_function_loop2p      = NULL;
+      device_param->hip_function_loop2       = NULL;
+      device_param->hip_function_mp          = NULL;
+      device_param->hip_function_mp_l        = NULL;
+      device_param->hip_function_mp_r        = NULL;
+      device_param->hip_function_tm          = NULL;
+      device_param->hip_function_amp         = NULL;
+      device_param->hip_function_memset      = NULL;
+      device_param->hip_function_atinit      = NULL;
+      device_param->hip_function_utf8toutf16le = NULL;
+      device_param->hip_function_decompress  = NULL;
+      device_param->hip_function_aux1        = NULL;
+      device_param->hip_function_aux2        = NULL;
+      device_param->hip_function_aux3        = NULL;
+      device_param->hip_function_aux4        = NULL;
+
+      device_param->hip_event1               = NULL;
+      device_param->hip_event2               = NULL;
+
+      device_param->hip_stream               = NULL;
+
+      device_param->hip_module               = NULL;
+      device_param->hip_module_mp            = NULL;
+      device_param->hip_module_amp           = NULL;
+      device_param->hip_module_shared        = NULL;
+
+      device_param->hip_context              = NULL;
     }
 
     if (device_param->is_opencl == true)
@@ -11849,6 +15731,15 @@ int backend_session_update_mp (hashcat_ctx_t *hashcat_ctx)
       if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_markov_css_buf, mask_ctx->markov_css_buf, device_param->size_markov_css) == -1) return -1;
     }
 
+    if (device_param->is_hip == true)
+    {
+      //for (u32 i = 3; i < 4; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_mp, i, sizeof (cl_ulong), device_param->kernel_params_mp[i]); if (CL_rc == -1) return -1; }
+      //for (u32 i = 4; i < 8; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_mp, i, sizeof (cl_uint),  device_param->kernel_params_mp[i]); if (CL_rc == -1) return -1; }
+
+      if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_root_css_buf,   mask_ctx->root_css_buf,   device_param->size_root_css)   == -1) return -1;
+      if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_markov_css_buf, mask_ctx->markov_css_buf, device_param->size_markov_css) == -1) return -1;
+    }
+
     if (device_param->is_opencl == true)
     {
       for (u32 i = 3; i < 4; i++) { if (hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_mp, i, sizeof (cl_ulong), device_param->kernel_params_mp[i]) == -1) return -1; }
@@ -11899,6 +15790,20 @@ int backend_session_update_mp_rl (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_
 
       if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_root_css_buf,   mask_ctx->root_css_buf,   device_param->size_root_css)   == -1) return -1;
       if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_markov_css_buf, mask_ctx->markov_css_buf, device_param->size_markov_css) == -1) return -1;
+    }
+
+    if (device_param->is_hip == true)
+    {
+      //for (u32 i = 3; i < 4; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_mp_l, i, sizeof (cl_ulong), device_param->kernel_params_mp_l[i]); if (CL_rc == -1) return -1; }
+      //for (u32 i = 4; i < 8; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_mp_l, i, sizeof (cl_uint),  device_param->kernel_params_mp_l[i]); if (CL_rc == -1) return -1; }
+      //for (u32 i = 9; i < 9; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_mp_l, i, sizeof (cl_ulong), device_param->kernel_params_mp_l[i]); if (CL_rc == -1) return -1; }
+
+      //for (u32 i = 3; i < 4; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_mp_r, i, sizeof (cl_ulong), device_param->kernel_params_mp_r[i]); if (CL_rc == -1) return -1; }
+      //for (u32 i = 4; i < 7; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_mp_r, i, sizeof (cl_uint),  device_param->kernel_params_mp_r[i]); if (CL_rc == -1) return -1; }
+      //for (u32 i = 8; i < 8; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_mp_r, i, sizeof (cl_ulong), device_param->kernel_params_mp_r[i]); if (CL_rc == -1) return -1; }
+
+      if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_root_css_buf,   mask_ctx->root_css_buf,   device_param->size_root_css)   == -1) return -1;
+      if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_markov_css_buf, mask_ctx->markov_css_buf, device_param->size_markov_css) == -1) return -1;
     }
 
     if (device_param->is_opencl == true)

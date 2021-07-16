@@ -118,6 +118,17 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
         native_threads = 64;
       }
     }
+    else if (device_param->opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP)
+    {
+      if (device_param->device_local_mem_size < 49152)
+      {
+        native_threads = 32;
+      }
+      else
+      {
+        native_threads = 64;
+      }
+    }
     else
     {
       native_threads = 32;

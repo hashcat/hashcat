@@ -124,7 +124,7 @@ DECLSPEC u32 sub (u32 *r, const u32 *a, const u32 *b)
     :  "r"(a[0]),  "r"(a[1]),  "r"(a[2]),  "r"(a[3]),  "r"(a[4]),  "r"(a[5]),  "r"(a[6]),  "r"(a[7]),
        "r"(b[0]),  "r"(b[1]),  "r"(b[2]),  "r"(b[3]),  "r"(b[4]),  "r"(b[5]),  "r"(b[6]),  "r"(b[7])
   );
-  #elif defined IS_AMD && HAS_VSUB == 1 && HAS_VSUBB == 1
+  #elif (defined IS_AMD || defined IS_HIP) && HAS_VSUB == 1 && HAS_VSUBB == 1
   __asm__ __volatile__
   (
     "V_SUB_U32   %0,  %9, %17;"
@@ -176,7 +176,7 @@ DECLSPEC u32 add (u32 *r, const u32 *a, const u32 *b)
     :  "r"(a[0]),  "r"(a[1]),  "r"(a[2]),  "r"(a[3]),  "r"(a[4]),  "r"(a[5]),  "r"(a[6]),  "r"(a[7]),
        "r"(b[0]),  "r"(b[1]),  "r"(b[2]),  "r"(b[3]),  "r"(b[4]),  "r"(b[5]),  "r"(b[6]),  "r"(b[7])
   );
-  #elif defined IS_AMD && HAS_VADD == 1 && HAS_VADDC == 1
+  #elif (defined IS_AMD || defined IS_HIP) && HAS_VADD == 1 && HAS_VADDC == 1
   __asm__ __volatile__
   (
     "V_ADD_U32   %0,  %9, %17;"
