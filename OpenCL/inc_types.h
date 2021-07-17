@@ -826,9 +826,6 @@ typedef __device_builtin__ struct u64x u64x;
 
 #elif defined IS_HIP
 
-// seems to work, but slow
-
-/*
 #if VECT_SIZE == 2
 
 struct u8x
@@ -1582,7 +1579,6 @@ typedef struct u64x u64x;
 #define make_u16x u16x
 #define make_u32x u32x
 #define make_u64x u64x
-*/
 
 #else
 typedef VTYPE(uchar,  VECT_SIZE)  u8x;
