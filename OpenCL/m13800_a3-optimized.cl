@@ -48,7 +48,7 @@ DECLSPEC void memcat64c_be (u32x *block, const u32 offset, u32x *carry)
   u32x tmp15;
   u32x tmp16;
 
-  #if defined IS_AMD || defined IS_GENERIC
+  #if (defined IS_AMD || defined IS_HIP) || defined IS_GENERIC
   tmp00 = hc_bytealign_be (        0, carry[ 0], offset);
   tmp01 = hc_bytealign_be (carry[ 0], carry[ 1], offset);
   tmp02 = hc_bytealign_be (carry[ 1], carry[ 2], offset);

@@ -2119,7 +2119,7 @@ DECLSPEC void append_salt (u32 *w0, u32 *w1, u32 *w2, const u32 *append, const u
   u32 tmp4;
   u32 tmp5;
 
-  #if defined IS_AMD || defined IS_GENERIC
+  #if (defined IS_AMD || defined IS_HIP) || defined IS_GENERIC
   u32 in0 = append[0];
   u32 in1 = append[1];
   u32 in2 = append[2];

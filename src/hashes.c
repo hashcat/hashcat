@@ -322,6 +322,11 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
       hc_cuMemcpyDtoH (hashcat_ctx, tmps, device_param->cuda_d_tmps + (plain->gidvid * hashconfig->tmp_size), hashconfig->tmp_size);
     }
 
+    if (device_param->is_hip == true)
+    {
+      hc_hipMemcpyDtoH (hashcat_ctx, tmps, device_param->hip_d_tmps + (plain->gidvid * hashconfig->tmp_size), hashconfig->tmp_size);
+    }
+
     if (device_param->is_opencl == true)
     {
       hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_tmps, CL_TRUE, plain->gidvid * hashconfig->tmp_size, hashconfig->tmp_size, tmps, 0, NULL, NULL);
@@ -481,6 +486,7 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   u32 num_cracked = 0;
 
   int CU_rc;
+  int HIP_rc;
   int CL_rc;
 
   if (device_param->is_cuda == true)
@@ -488,6 +494,13 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
     CU_rc = hc_cuMemcpyDtoH (hashcat_ctx, &num_cracked, device_param->cuda_d_result, sizeof (u32));
 
     if (CU_rc == -1) return -1;
+  }
+
+  if (device_param->is_hip == true)
+  {
+    HIP_rc = hc_hipMemcpyDtoH (hashcat_ctx, &num_cracked, device_param->hip_d_result, sizeof (u32));
+
+    if (HIP_rc == -1) return -1;
   }
 
   if (device_param->is_opencl == true)
@@ -514,6 +527,13 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       CU_rc = hc_cuMemcpyDtoH (hashcat_ctx, cracked, device_param->cuda_d_plain_bufs, num_cracked * sizeof (plain_t));
 
       if (CU_rc == -1) return -1;
+    }
+
+    if (device_param->is_hip == true)
+    {
+      HIP_rc = hc_hipMemcpyDtoH (hashcat_ctx, cracked, device_param->hip_d_plain_bufs, num_cracked * sizeof (plain_t));
+
+      if (HIP_rc == -1) return -1;
     }
 
     if (device_param->is_opencl == true)
@@ -573,6 +593,13 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
           if (CU_rc == -1) return -1;
         }
 
+        if (device_param->is_hip == true)
+        {
+          HIP_rc = hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_digests_shown + (salt_buf->digests_offset * sizeof (u32)), &hashes->digests_shown_tmp[salt_buf->digests_offset], salt_buf->digests_cnt * sizeof (u32));
+
+          if (HIP_rc == -1) return -1;
+        }
+
         if (device_param->is_opencl == true)
         {
           CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_digests_shown, CL_TRUE, salt_buf->digests_offset * sizeof (u32), salt_buf->digests_cnt * sizeof (u32), &hashes->digests_shown_tmp[salt_buf->digests_offset], 0, NULL, NULL);
@@ -609,6 +636,13 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       CU_rc = hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_result, &num_cracked, sizeof (u32));
 
       if (CU_rc == -1) return -1;
+    }
+
+    if (device_param->is_hip == true)
+    {
+      HIP_rc = hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_result, &num_cracked, sizeof (u32));
+
+      if (HIP_rc == -1) return -1;
     }
 
     if (device_param->is_opencl == true)

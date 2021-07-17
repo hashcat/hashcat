@@ -1,22 +1,25 @@
-* changes v6.2.2 -> v6.2.x
+* changes v6.2.3 -> v6.2.x
+
+* changes v6.2.2 -> v6.2.3
 
 ##
 ## Algorithms
 ##
 
-- Added hash-mode: VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 512 bit + boot-mode
-- Added hash-mode: VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 1024 bit + boot-mode
-- Added hash-mode: VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 1536 bit + boot-mode
 - Added hash-mode: AES-128-ECB NOKDF (PT = $salt, key = $pass)
 - Added hash-mode: AES-192-ECB NOKDF (PT = $salt, key = $pass)
 - Added hash-mode: AES-256-ECB NOKDF (PT = $salt, key = $pass)
 - Added hash-mode: iPhone passcode (UID key + System Keybag)
 - Added hash-mode: MetaMask Wallet
+- Added hash-mode: VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 512 bit  + boot-mode
+- Added hash-mode: VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 1024 bit + boot-mode
+- Added hash-mode: VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 1536 bit + boot-mode
 
 ##
 ## Features
 ##
 
+- Added new backend support for HIP, an OpenCL alternative API for AMD GPUs (similar to CUDA for NVIDIA GPUs)
 - Added option --markov-inverse to inverse markov statistics, with the idea of reversing the order of the password candidates
 - Added temperature watchdog and fanspeed readings for CPU and GPU on macOS using iokit
 - Added temperature watchdog and utilization for CPU on linux using sysfs and procfs
@@ -41,13 +44,13 @@
 
 - Alias Devices: Show a warning in case the user specifically listed a device to use which in a later step is skipped because it is an alias of another active device
 - Backend Information: Added new column showing the PCI Address per CUDA/OpenCL device to easier identify broken cards
+- Bcrypt-SHA1/MD5 Kernels: Get rid of local memory use for binary to hex conversion to avoid false negatives on several OpenCL runtimes
 - CPU Affinity: Allow mask up to 64 processors in Windows and remove call to SetThreadAffinityMask as SetProcessAffinityMask limits all threads in process
 - Debug Rules: HEX-ify rules debug non-rules outputs that contain colons
 - KeePass: Increase supported size for KeePass 1 databases from 300kB to 16MB
 - Potfile: Disable potfile for hash-mode 99999
 - VeraCrypt: Increase password length support for non-boot volumes from 64 to 128
 - WPA Kernels: Increased performance by 3.5% for backend devices controlled by CUDA backend
-- Bcrypt-SHA1/MD5 Kernels: Get rid of local memory use for binary to hex conversion to avoid false negatives on several OpenCL runtimes
 
 ##
 ## Technical
@@ -63,6 +66,7 @@
 - OpenCL Runtime: Workaround JiT crash (SC failed. No reason given.) on macOS by limiting local memory allocations to 32k
 - Status View: Include time and duration info when pausing and resuming
 - Tests: Changed tests for VeraCrypt from -a 0 to -a 3, because password extension is not available to all shells
+- WinZip Kernel: Increase supported data length from 8k to 16mb
 
 * changes v6.2.1 -> v6.2.2
 
