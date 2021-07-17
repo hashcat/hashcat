@@ -402,19 +402,19 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   {
     int HIP_rc;
 
-    HIP_rc = run_hip_kernel_memset (hashcat_ctx, device_param, device_param->hip_d_pws_buf, 0, device_param->size_pws);
+    HIP_rc = run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_pws_buf, device_param->size_pws);
 
     if (HIP_rc == -1) return -1;
 
-    HIP_rc = run_hip_kernel_memset (hashcat_ctx, device_param, device_param->hip_d_plain_bufs, 0, device_param->size_plains);
+    HIP_rc = run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_plain_bufs, device_param->size_plains);
 
     if (HIP_rc == -1) return -1;
 
-    HIP_rc = run_hip_kernel_memset (hashcat_ctx, device_param, device_param->hip_d_digests_shown, 0, device_param->size_shown);
+    HIP_rc = run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_digests_shown, device_param->size_shown);
 
     if (HIP_rc == -1) return -1;
 
-    HIP_rc = run_hip_kernel_memset (hashcat_ctx, device_param, device_param->hip_d_result, 0, device_param->size_results);
+    HIP_rc = run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_result, device_param->size_results);
 
     if (HIP_rc == -1) return -1;
   }
