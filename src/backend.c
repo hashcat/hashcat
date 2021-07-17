@@ -5018,18 +5018,9 @@ int run_cuda_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devic
 
     const u64 kernel_threads = device_param->kernel_wgs_memset;
 
-    u64 num_elements = num16d;
-
-    num_elements = CEILDIV (num_elements, kernel_threads);
+    u64 num_elements = CEILDIV (num16d, kernel_threads);
 
     CUfunction function = device_param->cuda_function_memset;
-
-    //CU_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 0, sizeof (cl_mem),   (void *) &buf);                         if (CU_rc == -1) return -1;
-    //CU_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 1, sizeof (cl_uint),  device_param->kernel_params_memset[1]); if (CU_rc == -1) return -1;
-    //CU_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 2, sizeof (cl_ulong), device_param->kernel_params_memset[2]); if (CU_rc == -1) return -1;
-
-    //const size_t global_work_size[3] = { num_elements,   1, 1 };
-    //const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
 
     if (hc_cuLaunchKernel (hashcat_ctx, function, num_elements, 1, 1, kernel_threads, 1, 1, 0, device_param->cuda_stream, device_param->kernel_params_memset, NULL) == -1) return -1;
 
@@ -5055,7 +5046,38 @@ int run_cuda_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devic
 
 int run_cuda_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, CUdeviceptr buf, const u64 size)
 {
-  return run_cuda_kernel_memset (hashcat_ctx, device_param, buf, 0, size);
+  const u64 num16d = size / 16;
+  const u64 num16m = size % 16;
+
+  if (num16d)
+  {
+    device_param->kernel_params_bzero[0]       = (void *) &buf;
+    device_param->kernel_params_bzero_buf64[1] = num16d;
+
+    const u64 kernel_threads = device_param->kernel_wgs_bzero;
+
+    u64 num_elements = CEILDIV (num16d, kernel_threads);
+
+    CUfunction function = device_param->cuda_function_bzero;
+
+    if (hc_cuLaunchKernel (hashcat_ctx, function, num_elements, 1, 1, kernel_threads, 1, 1, 0, device_param->cuda_stream, device_param->kernel_params_bzero, NULL) == -1) return -1;
+
+    if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
+  }
+
+  if (num16m)
+  {
+    u32 tmp[4];
+
+    tmp[0] = 0;
+    tmp[1] = 0;
+    tmp[2] = 0;
+    tmp[3] = 0;
+
+    if (hc_cuMemcpyHtoD (hashcat_ctx, buf + (num16d * 16), tmp, num16m) == -1) return -1;
+  }
+
+  return 0;
 }
 
 int run_hip_kernel_atinit (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, HIPdeviceptr buf, const u64 num)
@@ -5111,18 +5133,9 @@ int run_hip_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
 
     const u64 kernel_threads = device_param->kernel_wgs_memset;
 
-    u64 num_elements = num16d;
-
-    num_elements = CEILDIV (num_elements, kernel_threads);
+    u64 num_elements = CEILDIV (num16d, kernel_threads);
 
     HIPfunction function = device_param->hip_function_memset;
-
-    //HIP_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 0, sizeof (cl_mem),   (void *) &buf);                         if (HIP_rc == -1) return -1;
-    //HIP_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 1, sizeof (cl_uint),  device_param->kernel_params_memset[1]); if (HIP_rc == -1) return -1;
-    //HIP_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 2, sizeof (cl_ulong), device_param->kernel_params_memset[2]); if (HIP_rc == -1) return -1;
-
-    //const size_t global_work_size[3] = { num_elements,   1, 1 };
-    //const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
 
     if (hc_hipLaunchKernel (hashcat_ctx, function, num_elements, 1, 1, kernel_threads, 1, 1, 0, device_param->hip_stream, device_param->kernel_params_memset, NULL) == -1) return -1;
 
@@ -5138,8 +5151,6 @@ int run_hip_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
     tmp[2] = value;
     tmp[3] = value;
 
-    // Apparently are allowed to do this: https://devtalk.nvidia.com/default/topic/761515/how-to-copy-to-device-memory-with-offset-/
-
     if (hc_hipMemcpyHtoD (hashcat_ctx, buf + (num16d * 16), tmp, num16m) == -1) return -1;
   }
 
@@ -5148,7 +5159,38 @@ int run_hip_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
 
 int run_hip_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, HIPdeviceptr buf, const u64 size)
 {
-  return run_hip_kernel_memset (hashcat_ctx, device_param, buf, 0, size);
+  const u64 num16d = size / 16;
+  const u64 num16m = size % 16;
+
+  if (num16d)
+  {
+    device_param->kernel_params_bzero[0]       = (void *) &buf;
+    device_param->kernel_params_bzero_buf64[1] = num16d;
+
+    const u64 kernel_threads = device_param->kernel_wgs_bzero;
+
+    u64 num_elements = CEILDIV(num16d, kernel_threads);
+
+    HIPfunction function = device_param->hip_function_bzero;
+
+    if (hc_hipLaunchKernel (hashcat_ctx, function, num_elements, 1, 1, kernel_threads, 1, 1, 0, device_param->hip_stream, device_param->kernel_params_bzero, NULL) == -1) return -1;
+
+    if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
+  }
+
+  if (num16m)
+  {
+    u32 tmp[4];
+
+    tmp[0] = 0;
+    tmp[1] = 0;
+    tmp[2] = 0;
+    tmp[3] = 0;
+
+    if (hc_hipMemcpyHtoD (hashcat_ctx, buf + (num16d * 16), tmp, num16m) == -1) return -1;
+  }
+
+  return 0;
 }
 
 int run_opencl_kernel_atinit (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u64 num)
@@ -5211,52 +5253,77 @@ int run_opencl_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *dev
 {
   const u64 num16d = size / 16;
   const u64 num16m = size % 16;
+  u32 tmp[4];
 
   if (num16d)
   {
-    device_param->kernel_params_memset_buf32[1] = value;
-    device_param->kernel_params_memset_buf64[2] = num16d;
-
     const u64 kernel_threads = device_param->kernel_wgs_memset;
 
-    u64 num_elements = num16d;
-
-    num_elements = round_up_multiple_64 (num_elements, kernel_threads);
+    u64 num_elements = round_up_multiple_64 (num16d, kernel_threads);
 
     cl_kernel kernel = device_param->opencl_kernel_memset;
 
-    if (hc_clSetKernelArg (hashcat_ctx, kernel, 0, sizeof (cl_mem),   (void *) &buf) == -1)                         return -1;
-    if (hc_clSetKernelArg (hashcat_ctx, kernel, 1, sizeof (cl_uint),  device_param->kernel_params_memset[1]) == -1) return -1;
-    if (hc_clSetKernelArg (hashcat_ctx, kernel, 2, sizeof (cl_ulong), device_param->kernel_params_memset[2]) == -1) return -1;
+    if (hc_clSetKernelArg (hashcat_ctx, kernel, 0, sizeof(cl_mem),   (void *) &buf)    == -1) return -1;
+    if (hc_clSetKernelArg (hashcat_ctx, kernel, 1, sizeof(cl_uint),  (void *) &value)  == -1) return -1;
+    if (hc_clSetKernelArg (hashcat_ctx, kernel, 2, sizeof(cl_ulong), (void *) &num16d) == -1) return -1;
 
     const size_t global_work_size[3] = { num_elements,   1, 1 };
     const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
 
     if (hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL) == -1) return -1;
-
-    if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
-
-    if (hc_clFinish (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
   }
 
   if (num16m)
   {
-    u32 tmp[4];
-
     tmp[0] = value;
     tmp[1] = value;
     tmp[2] = value;
     tmp[3] = value;
 
-    if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, buf, CL_TRUE, num16d * 16, num16m, tmp, 0, NULL, NULL) == -1) return -1;
+    if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, buf, CL_FALSE, num16d * 16, num16m, tmp, 0, NULL, NULL) == -1) return -1;
   }
+
+  if (hc_clFinish (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
 
   return 0;
 }
 
 int run_opencl_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u64 size)
 {
-  return run_opencl_kernel_memset (hashcat_ctx, device_param, buf, 0, size);
+  const u64 num16d = size / 16;
+  const u64 num16m = size % 16;
+  u32 tmp[4];
+
+  if (num16d)
+  {
+    const u64 kernel_threads = device_param->kernel_wgs_bzero;
+
+    u64 num_elements = round_up_multiple_64(num16d, kernel_threads);
+
+    cl_kernel kernel = device_param->opencl_kernel_bzero;
+
+    if (hc_clSetKernelArg (hashcat_ctx, kernel, 0, sizeof(cl_mem),   (void *) &buf)    == -1) return -1;
+    if (hc_clSetKernelArg (hashcat_ctx, kernel, 1, sizeof(cl_ulong), (void *) &num16d) == -1) return -1;
+
+    const size_t global_work_size[3] = { num_elements,   1, 1 };
+    const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
+
+    if (hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL) == -1) return -1;
+  }
+
+  if (num16m)
+  {
+    tmp[0] = 0;
+    tmp[1] = 0;
+    tmp[2] = 0;
+    tmp[3] = 0;
+
+    if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, buf, CL_FALSE, num16d * 16, num16m, tmp, 0, NULL, NULL) == -1) return -1;
+  }
+
+  if (hc_clFinish (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
+
+  return 0;
 }
 
 int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kern_run, const u64 pws_pos, const u64 num, const u32 event_update, const u32 iteration)
@@ -11689,9 +11756,11 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         device_param->kernel_preferred_wgs_multiple_memset = device_param->cuda_warp_size;
 
-        //CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_memset, 0, sizeof (cl_mem),   device_param->kernel_params_memset[0]); if (CL_rc == -1) return -1;
-        //CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_memset, 1, sizeof (cl_uint),  device_param->kernel_params_memset[1]); if (CL_rc == -1) return -1;
-        //CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_memset, 2, sizeof (cl_ulong), device_param->kernel_params_memset[2]); if (CL_rc == -1) return -1;
+        // GPU bzero
+
+        if (hc_cuModuleGetFunction (hashcat_ctx, &device_param->cuda_function_bzero, device_param->cuda_module_shared, "gpu_bzero") == -1) return -1;
+
+        if (get_cuda_kernel_wgs (hashcat_ctx, device_param->cuda_function_bzero, &device_param->kernel_wgs_bzero) == -1) return -1;
 
         // GPU autotune init
 
@@ -11747,9 +11816,11 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         device_param->kernel_preferred_wgs_multiple_memset = device_param->hip_warp_size;
 
-        //CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_memset, 0, sizeof (cl_mem),   device_param->kernel_params_memset[0]); if (CL_rc == -1) return -1;
-        //CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_memset, 1, sizeof (cl_uint),  device_param->kernel_params_memset[1]); if (CL_rc == -1) return -1;
-        //CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_memset, 2, sizeof (cl_ulong), device_param->kernel_params_memset[2]); if (CL_rc == -1) return -1;
+        // GPU bzero
+
+        if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function_bzero, device_param->hip_module_shared, "gpu_bzero") == -1) return -1;
+
+        if (get_hip_kernel_wgs (hashcat_ctx, device_param->hip_function_bzero, &device_param->kernel_wgs_bzero) == -1) return -1;
 
         // GPU autotune init
 
@@ -11804,6 +11875,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         if (get_opencl_kernel_dynamic_local_mem_size (hashcat_ctx, device_param, device_param->opencl_kernel_memset, &device_param->kernel_dynamic_local_mem_size_memset) == -1) return -1;
 
         if (get_opencl_kernel_preferred_wgs_multiple (hashcat_ctx, device_param, device_param->opencl_kernel_memset, &device_param->kernel_preferred_wgs_multiple_memset) == -1) return -1;
+
+        // GPU bzero
+
+        if (hc_clCreateKernel (hashcat_ctx, device_param->opencl_program_shared, "gpu_bzero", &device_param->opencl_kernel_bzero) == -1) return -1;
+
+        if (get_opencl_kernel_wgs (hashcat_ctx, device_param, device_param->opencl_kernel_bzero, &device_param->kernel_wgs_bzero) == -1) return -1;
 
         // GPU autotune init
 
@@ -12744,6 +12821,11 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_params_memset[0] = NULL;
     device_param->kernel_params_memset[1] = &device_param->kernel_params_memset_buf32[1];
     device_param->kernel_params_memset[2] = &device_param->kernel_params_memset_buf64[2];
+
+    device_param->kernel_params_bzero_buf64[1] = 0; // gid_max
+
+    device_param->kernel_params_bzero[0] = NULL;
+    device_param->kernel_params_bzero[1] = &device_param->kernel_params_bzero_buf64[1];
 
     device_param->kernel_params_atinit_buf64[1] = 0; // gid_max
 
@@ -13996,12 +14078,6 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->is_opencl == true)
     {
-      // GPU memset
-
-      if (hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_memset, 0, sizeof (cl_mem),   device_param->kernel_params_memset[0]) == -1) return -1;
-      if (hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_memset, 1, sizeof (cl_uint),  device_param->kernel_params_memset[1]) == -1) return -1;
-      if (hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_memset, 2, sizeof (cl_ulong), device_param->kernel_params_memset[2]) == -1) return -1;
-
       // GPU autotune init
 
       if (hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_atinit, 0, sizeof (cl_mem),   device_param->kernel_params_atinit[0]) == -1) return -1;
@@ -15289,6 +15365,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       device_param->cuda_function_tm          = NULL;
       device_param->cuda_function_amp         = NULL;
       device_param->cuda_function_memset      = NULL;
+      device_param->cuda_function_bzero       = NULL;
       device_param->cuda_function_atinit      = NULL;
       device_param->cuda_function_utf8toutf16le = NULL;
       device_param->cuda_function_decompress  = NULL;
@@ -15415,6 +15492,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       device_param->hip_function_tm          = NULL;
       device_param->hip_function_amp         = NULL;
       device_param->hip_function_memset      = NULL;
+      device_param->hip_function_bzero       = NULL;
       device_param->hip_function_atinit      = NULL;
       device_param->hip_function_utf8toutf16le = NULL;
       device_param->hip_function_decompress  = NULL;
@@ -15492,6 +15570,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       if (device_param->opencl_kernel_tm)        hc_clReleaseKernel (hashcat_ctx, device_param->opencl_kernel_tm);
       if (device_param->opencl_kernel_amp)       hc_clReleaseKernel (hashcat_ctx, device_param->opencl_kernel_amp);
       if (device_param->opencl_kernel_memset)    hc_clReleaseKernel (hashcat_ctx, device_param->opencl_kernel_memset);
+      if (device_param->opencl_kernel_bzero)     hc_clReleaseKernel (hashcat_ctx, device_param->opencl_kernel_bzero);
       if (device_param->opencl_kernel_atinit)    hc_clReleaseKernel (hashcat_ctx, device_param->opencl_kernel_atinit);
       if (device_param->opencl_kernel_utf8toutf16le) hc_clReleaseKernel (hashcat_ctx, device_param->opencl_kernel_utf8toutf16le);
       if (device_param->opencl_kernel_decompress)hc_clReleaseKernel (hashcat_ctx, device_param->opencl_kernel_decompress);
@@ -15562,6 +15641,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       device_param->opencl_kernel_tm           = NULL;
       device_param->opencl_kernel_amp          = NULL;
       device_param->opencl_kernel_memset       = NULL;
+      device_param->opencl_kernel_bzero        = NULL;
       device_param->opencl_kernel_atinit       = NULL;
       device_param->opencl_kernel_utf8toutf16le = NULL;
       device_param->opencl_kernel_decompress   = NULL;

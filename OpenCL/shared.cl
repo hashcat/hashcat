@@ -117,10 +117,7 @@ KERNEL_FQ void gpu_memset (GLOBAL_AS uint4 *buf, const u32 value, const u64 gid_
   #if   defined IS_NATIVE
   r = value;
   #elif defined IS_OPENCL
-  r.s0 = value;
-  r.s1 = value;
-  r.s2 = value;
-  r.s3 = value;
+  r = (uint4) (value);
   #elif defined IS_CUDA
   r.x = value;
   r.y = value;
@@ -131,6 +128,33 @@ KERNEL_FQ void gpu_memset (GLOBAL_AS uint4 *buf, const u32 value, const u64 gid_
   r.y = value;
   r.z = value;
   r.w = value;
+  #endif
+
+  buf[gid] = r;
+}
+
+KERNEL_FQ void gpu_bzero(GLOBAL_AS uint4* buf, const u64 gid_max)
+{
+  const u64 gid = get_global_id(0);
+
+  if (gid >= gid_max) return;
+
+  uint4 r;
+
+  #if   defined IS_NATIVE
+  r = 0;
+  #elif defined IS_OPENCL
+  r = (uint4) (0);
+  #elif defined IS_CUDA
+  r.x = 0;
+  r.y = 0;
+  r.z = 0;
+  r.w = 0;
+  #elif defined IS_HIP
+  r.x = 0;
+  r.y = 0;
+  r.z = 0;
+  r.w = 0;
   #endif
 
   buf[gid] = r;
