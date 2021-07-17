@@ -229,7 +229,7 @@ KERNEL_FQ void m26700_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, vmware_vmx_
   }
 }
 
-KERNEL_FQ void m26700_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, pbkdf2_sha1_t))
+KERNEL_FQ void m26700_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, vmware_vmx_t))
 {
   /**
    * base
