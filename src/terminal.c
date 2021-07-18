@@ -640,7 +640,7 @@ void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_op
     if (hashconfig->is_salted == true)
     {
       u32 t = hashconfig->salt_type;
-      char *t_desc = (t == SALT_TYPE_EMBEDDED) ? "Embedded\0" : (t == SALT_TYPE_GENERIC) ? "Generic\0" : "Virtual\0";
+      const char *t_desc = (t == SALT_TYPE_EMBEDDED) ? "Embedded\0" : (t == SALT_TYPE_GENERIC) ? "Generic\0" : "Virtual\0";
       event_log_info (hashcat_ctx, "  Salt.Type...........: %s", t_desc);
       event_log_info (hashcat_ctx, "  Salt.Len.Min........: %d", hashconfig->salt_min);
       event_log_info (hashcat_ctx, "  Salt.Len.Max........: %d", hashconfig->salt_max);
