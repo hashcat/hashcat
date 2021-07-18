@@ -18,6 +18,8 @@
 #include <unistd.h>
 #include <math.h>
 
+#define AUTO __auto_type
+
 // workaround to get the rid of "redefinition of typedef 'Byte'" build warning
 #if !defined (__APPLE__)
 #include "zlib.h"
