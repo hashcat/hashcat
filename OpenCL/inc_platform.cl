@@ -309,8 +309,9 @@ DECLSPEC u64 rotr64_S (const u64 a, const int n)
   return out.v64;
 }
 
-#define FIXED_THREAD_COUNT(n) __launch_bounds__((n), 0)
-#define SYNC_THREADS() __syncthreads ()
+#define FIXED_THREAD_COUNT(n) __attribute__((amdgpu_flat_work_group_size (1, (n))))
+
+#define SYNC_THREADS() __builtin_amdgcn_s_barrier ()
 #endif
 
 #ifdef IS_OPENCL
