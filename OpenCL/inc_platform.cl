@@ -193,35 +193,47 @@ DECLSPEC u32 hc_atomic_dec (GLOBAL_AS u32 *p)
 {
   volatile const u32 val = 1;
 
-  return atomicSub (p, val);
+  return __atomic_fetch_sub (p, val, __ATOMIC_RELAXED);
 }
 
 DECLSPEC u32 hc_atomic_inc (GLOBAL_AS u32 *p)
 {
   volatile const u32 val = 1;
 
-  return atomicAdd (p, val);
+  return __atomic_fetch_add (p, val, __ATOMIC_RELAXED);
 }
 
 DECLSPEC u32 hc_atomic_or (GLOBAL_AS u32 *p, volatile const u32 val)
 {
-  return atomicOr (p, val);
+  return __atomic_fetch_or (p, val, __ATOMIC_RELAXED);
 }
+
+extern "C" __device__ __attribute__((pure)) double __ocml_log2_f64(double);
+
+DECLSPEC double log2 (double x)
+{
+  return __ocml_log2_f64 (x);
+}
+
+extern "C" __device__ __attribute__((const)) size_t __ockl_get_local_id(uint);
+extern "C" __device__ __attribute__((const)) size_t __ockl_get_group_id(uint);
+extern "C" __device__ __attribute__((const)) size_t __ockl_get_local_size(uint);
+extern "C" __device__ __attribute__((const)) size_t __ockl_get_num_groups(uint);
 
 DECLSPEC size_t get_global_id  (const u32 dimindx __attribute__((unused)))
 {
-  return (blockIdx.x * blockDim.x) + threadIdx.x;
+  return (__ockl_get_group_id (0) * __ockl_get_local_size (0)) + __ockl_get_local_id (0);
 }
 
 DECLSPEC size_t get_local_id (const u32 dimindx __attribute__((unused)))
 {
-  return threadIdx.x;
+  return __ockl_get_local_id (0);
 }
 
 DECLSPEC size_t get_local_size (const u32 dimindx __attribute__((unused)))
 {
   // verify
-  return blockDim.x;
+  return __ockl_get_local_size (0);
 }
 
 DECLSPEC u32x rotl32 (const u32x a, const int n)

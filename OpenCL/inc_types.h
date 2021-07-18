@@ -24,6 +24,17 @@ typedef unsigned int       uint;
 typedef unsigned long long ulong;
 #endif
 
+#ifdef IS_HIP
+typedef unsigned char      uchar;
+typedef unsigned short     ushort;
+typedef unsigned int       uint;
+typedef unsigned long long ulong;
+
+typedef __SIZE_TYPE__ size_t;
+
+typedef uint uint4 __attribute__((ext_vector_type(4)));
+#endif
+
 #ifdef KERNEL_STATIC
 typedef uchar  u8;
 typedef ushort u16;
