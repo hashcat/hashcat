@@ -19,8 +19,8 @@
 
 static const size_t TERMINAL_LINE_LENGTH = 79;
 
-static const char *PROMPT_ACTIVE = "[s]tatus [p]ause [b]ypass [c]heckpoint [f]inish [q]uit => ";
-static const char *PROMPT_PAUSED = "[s]tatus [r]esume [b]ypass [c]heckpoint [f]inish [q]uit => ";
+static const char *const PROMPT_ACTIVE = "[s]tatus [p]ause [b]ypass [c]heckpoint [f]inish [q]uit => ";
+static const char *const PROMPT_PAUSED = "[s]tatus [r]esume [b]ypass [c]heckpoint [f]inish [q]uit => ";
 
 void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
 {
