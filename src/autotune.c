@@ -403,6 +403,10 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     CU_rc = run_cuda_kernel_memset (hashcat_ctx, device_param, device_param->cuda_d_result, 0, device_param->size_results);
 
     if (CU_rc == -1) return -1;
+
+    CU_rc = run_cuda_kernel_memset (hashcat_ctx, device_param, device_param->cuda_d_tmps, 0, device_param->size_tmps);
+
+    if (CU_rc == -1) return -1;
   }
 
   if (device_param->is_hip == true)
@@ -424,6 +428,10 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     HIP_rc = run_hip_kernel_memset (hashcat_ctx, device_param, device_param->hip_d_result, 0, device_param->size_results);
 
     if (HIP_rc == -1) return -1;
+
+    HIP_rc = run_hip_kernel_memset (hashcat_ctx, device_param, device_param->hip_d_tmps, 0, device_param->size_tmps);
+
+    if (HIP_rc == -1) return -1;
   }
 
   if (device_param->is_opencl == true)
@@ -443,6 +451,10 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     if (CL_rc == -1) return -1;
 
     CL_rc = run_opencl_kernel_memset (hashcat_ctx, device_param, device_param->opencl_d_result, 0, device_param->size_results);
+
+    if (CL_rc == -1) return -1;
+
+    CL_rc = run_opencl_kernel_memset (hashcat_ctx, device_param, device_param->opencl_d_tmps, 0, device_param->size_tmps);
 
     if (CL_rc == -1) return -1;
   }
