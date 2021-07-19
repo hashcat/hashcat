@@ -50,6 +50,13 @@ static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
   }
   else
   {
+    run_kernel (hashcat_ctx, device_param, KERN_RUN_1, 0, kernel_power_try, true, 0);
+
+    if (hashconfig->opts_type & OPTS_TYPE_LOOP_PREPARE)
+    {
+      run_kernel (hashcat_ctx, device_param, KERN_RUN_2P, 0, kernel_power_try, true, 0);
+    }
+
     run_kernel (hashcat_ctx, device_param, KERN_RUN_2, 0, kernel_power_try, true, 0);
   }
 
