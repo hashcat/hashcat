@@ -1502,14 +1502,14 @@ DECLSPEC void sha384_hmac_init_128 (sha384_hmac_ctx_t *ctx, const u32 *w0, const
 
   // opad
 
-  u32x b0[4];
-  u32x b1[4];
-  u32x b2[4];
-  u32x b3[4];
-  u32x b4[4];
-  u32x b5[4];
-  u32x b6[4];
-  u32x b7[4];
+  u32 b0[4];
+  u32 b1[4];
+  u32 b2[4];
+  u32 b3[4];
+  u32 b4[4];
+  u32 b5[4];
+  u32 b6[4];
+  u32 b7[4];
 
   b0[0] = w0[0] ^ 0x5c5c5c5c;
   b0[1] = w0[1] ^ 0x5c5c5c5c;
@@ -3009,14 +3009,14 @@ DECLSPEC void sha384_hmac_init_vector_128 (sha384_hmac_ctx_vector_t *ctx, const 
 
   // opad
 
-  u32 b0[4];
-  u32 b1[4];
-  u32 b2[4];
-  u32 b3[4];
-  u32 b4[4];
-  u32 b5[4];
-  u32 b6[4];
-  u32 b7[4];
+  u32x b0[4];
+  u32x b1[4];
+  u32x b2[4];
+  u32x b3[4];
+  u32x b4[4];
+  u32x b5[4];
+  u32x b6[4];
+  u32x b7[4];
 
   b0[0] = w0[0] ^ 0x5c5c5c5c;
   b0[1] = w0[1] ^ 0x5c5c5c5c;
