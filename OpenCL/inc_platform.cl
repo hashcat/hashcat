@@ -220,20 +220,19 @@ extern "C" __device__ __attribute__((const)) size_t __ockl_get_group_id(uint);
 extern "C" __device__ __attribute__((const)) size_t __ockl_get_local_size(uint);
 extern "C" __device__ __attribute__((const)) size_t __ockl_get_num_groups(uint);
 
-DECLSPEC size_t get_global_id  (const u32 dimindx __attribute__((unused)))
+DECLSPEC size_t get_global_id  (const u32 dimindx)
 {
-  return (__ockl_get_group_id (0) * __ockl_get_local_size (0)) + __ockl_get_local_id (0);
+  return (__ockl_get_group_id (dimindx) * __ockl_get_local_size (dimindx)) + __ockl_get_local_id (dimindx);
 }
 
-DECLSPEC size_t get_local_id (const u32 dimindx __attribute__((unused)))
+DECLSPEC size_t get_local_id (const u32 dimindx)
 {
-  return __ockl_get_local_id (0);
+  return __ockl_get_local_id (dimindx);
 }
 
-DECLSPEC size_t get_local_size (const u32 dimindx __attribute__((unused)))
+DECLSPEC size_t get_local_size (const u32 dimindx)
 {
-  // verify
-  return __ockl_get_local_size (0);
+  return __ockl_get_local_size (dimindx);
 }
 
 DECLSPEC u32x rotl32 (const u32x a, const int n)
@@ -309,8 +308,10 @@ DECLSPEC u64 rotr64_S (const u64 a, const int n)
   return out.v64;
 }
 
-#define FIXED_THREAD_COUNT(n) __attribute__((amdgpu_flat_work_group_size (1, (n))))
+extern "C" __device__ int printf(const char *fmt, ...);
+//int printf(__constant const char* st, ...) __attribute__((format(printf, 1, 2)));
 
+#define FIXED_THREAD_COUNT(n) __attribute__((amdgpu_flat_work_group_size (1, (n))))
 #define SYNC_THREADS() __builtin_amdgcn_s_barrier ()
 #endif
 
