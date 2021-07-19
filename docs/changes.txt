@@ -1,5 +1,12 @@
 * changes v6.2.3 -> v6.2.x
 
+##
+## Algorithms
+##
+
+- Added hash-mode: VirtualBox (PBKDF2-HMAC-SHA256 & AES-128-XTS)
+- Added hash-mode: VirtualBox (PBKDF2-HMAC-SHA256 & AES-256-XTS)
+
 * changes v6.2.2 -> v6.2.3
 
 ##
