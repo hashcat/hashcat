@@ -1029,8 +1029,11 @@ typedef CUresult (CUDA_API_CALL *CUDA_CULAUNCHKERNEL)           (CUfunction, uns
 typedef CUresult (CUDA_API_CALL *CUDA_CUMEMALLOC)               (CUdeviceptr *, size_t);
 typedef CUresult (CUDA_API_CALL *CUDA_CUMEMALLOCHOST)           (void **, size_t);
 typedef CUresult (CUDA_API_CALL *CUDA_CUMEMCPYDTOD)             (CUdeviceptr, CUdeviceptr, size_t);
+typedef CUresult (CUDA_API_CALL *CUDA_CUMEMCPYDTODASYNC)        (CUdeviceptr, CUdeviceptr, size_t, CUstream);
 typedef CUresult (CUDA_API_CALL *CUDA_CUMEMCPYDTOH)             (void *, CUdeviceptr, size_t);
+typedef CUresult (CUDA_API_CALL *CUDA_CUMEMCPYDTOHASYNC)        (void *, CUdeviceptr, size_t, CUstream);
 typedef CUresult (CUDA_API_CALL *CUDA_CUMEMCPYHTOD)             (CUdeviceptr, const void *, size_t);
+typedef CUresult (CUDA_API_CALL *CUDA_CUMEMCPYHTODASYNC)        (CUdeviceptr, const void *, size_t, CUstream);
 typedef CUresult (CUDA_API_CALL *CUDA_CUMEMFREE)                (CUdeviceptr);
 typedef CUresult (CUDA_API_CALL *CUDA_CUMEMFREEHOST)            (void *);
 typedef CUresult (CUDA_API_CALL *CUDA_CUMEMGETINFO)             (size_t *, size_t *);
@@ -1091,8 +1094,11 @@ typedef struct hc_cuda_lib
   CUDA_CUMEMALLOC               cuMemAlloc;
   CUDA_CUMEMALLOCHOST           cuMemAllocHost;
   CUDA_CUMEMCPYDTOD             cuMemcpyDtoD;
+  CUDA_CUMEMCPYDTODASYNC        cuMemcpyDtoDAsync;
   CUDA_CUMEMCPYDTOH             cuMemcpyDtoH;
+  CUDA_CUMEMCPYDTOHASYNC        cuMemcpyDtoHAsync;
   CUDA_CUMEMCPYHTOD             cuMemcpyHtoD;
+  CUDA_CUMEMCPYHTODASYNC        cuMemcpyHtoDAsync;
   CUDA_CUMEMFREE                cuMemFree;
   CUDA_CUMEMFREEHOST            cuMemFreeHost;
   CUDA_CUMEMGETINFO             cuMemGetInfo;
