@@ -13,6 +13,7 @@
 ##
 
 - Blake Kernels: Optimize BLAKE2B_ROUND() 64 bit rotates giving a 5% performance increase
+- Slow Kernels: Set some of the slowest kernels to OPTS_TYPE_MP_MULTI_DISABLE
 
 ##
 ## Technical
