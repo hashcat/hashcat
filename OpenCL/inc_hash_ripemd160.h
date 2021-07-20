@@ -32,7 +32,7 @@
 
 #define RIPEMD160_STEP(f,a,b,c,d,e,x,K,s) \
 {                                         \
-  a += make_u32x (K);                     \
+  a += K;                                 \
   a += x;                                 \
   a += f (b, c, d);                       \
   a  = hc_rotl32 (a, s);                  \
@@ -54,7 +54,7 @@
 
 #define RIPEMD160_STEP_WORKAROUND_BUG(f,a,b,c,d,e,x,K,s)  \
 {                                         \
-  a += make_u32x (K);                     \
+  a += K;                                 \
   a += x;                                 \
   a += f (b, c, d);                       \
   a  = ROTATE_LEFT_WORKAROUND_BUG (a, s); \

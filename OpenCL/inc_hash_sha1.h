@@ -28,7 +28,7 @@
 
 #define SHA1_STEP(f,a,b,c,d,e,x)    \
 {                                   \
-  e += make_u32x (K);               \
+  e += K;                           \
   e  = hc_add3 (e, x, f (b, c, d)); \
   e += hc_rotl32 (a,  5u);          \
   b  = hc_rotl32 (b, 30u);          \

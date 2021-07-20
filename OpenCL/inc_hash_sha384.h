@@ -44,7 +44,7 @@
 
 #define SHA384_STEP(F0,F1,a,b,c,d,e,f,g,h,x,K)  \
 {                                               \
-  h += make_u32x (K);                           \
+  h += K;                                       \
   h += x;                                       \
   h += SHA384_S1 (e);                           \
   h += F0 (e, f, g);                            \
