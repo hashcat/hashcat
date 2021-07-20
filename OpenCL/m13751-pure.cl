@@ -435,7 +435,7 @@ KERNEL_FQ void m13751_loop (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
         unpackv (tmps, pim_key, gid, i + 6, out[6]);
         unpackv (tmps, pim_key, gid, i + 7, out[7]);
 
-        tmps[gid].pim_check = pim;
+        unpack (tmps, pim_check, gid, make_u32x (pim));
       }
     }
 
