@@ -9,14 +9,23 @@
 #define BLAKE2B_UPDATE  0
 #define BLAKE2B_FINAL  -1
 
+DECLSPEC u64  blake2b_rot16_S (const u64  a);
+DECLSPEC u64x blake2b_rot16   (const u64x a);
+
+DECLSPEC u64  blake2b_rot24_S (const u64  a);
+DECLSPEC u64x blake2b_rot24   (const u64x a);
+
+DECLSPEC u64  blake2b_rot32_S (const u64  a);
+DECLSPEC u64x blake2b_rot32   (const u64x a);
+
 #define BLAKE2B_G(k0,k1,a,b,c,d) \
 {                                \
   a = a + b + m[k0];             \
-  d = hc_rotr64_S (d ^ a, 32);   \
+  d = blake2b_rot32_S (d ^ a);   \
   c = c + d;                     \
-  b = hc_rotr64_S (b ^ c, 24);   \
+  b = blake2b_rot24_S (b ^ c);   \
   a = a + b + m[k1];             \
-  d = hc_rotr64_S (d ^ a, 16);   \
+  d = blake2b_rot16_S (d ^ a);   \
   c = c + d;                     \
   b = hc_rotr64_S (b ^ c, 63);   \
 }
@@ -36,11 +45,11 @@
 #define BLAKE2B_G_VECTOR(k0,k1,a,b,c,d) \
 {                                       \
   a = a + b + m[k0];                    \
-  d = hc_rotr64 (d ^ a, 32);            \
+  d = blake2b_rot32 (d ^ a);            \
   c = c + d;                            \
-  b = hc_rotr64 (b ^ c, 24);            \
+  b = blake2b_rot24 (b ^ c);            \
   a = a + b + m[k1];                    \
-  d = hc_rotr64 (d ^ a, 16);            \
+  d = blake2b_rot16 (d ^ a);            \
   c = c + d;                            \
   b = hc_rotr64 (b ^ c, 63);            \
 }

@@ -10562,7 +10562,7 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       if (hc_hiprtcCreateProgram (hashcat_ctx, &program, kernel_sources[0], kernel_name, 0, NULL, NULL) == -1) return false;
 
-      char **hiprtc_options = (char **) hccalloc (6 + strlen (build_options_buf) + 1, sizeof (char *)); // ...
+      char **hiprtc_options = (char **) hccalloc (7 + strlen (build_options_buf) + 1, sizeof (char *)); // ...
 
       //hiprtc_options[0] = "--restrict";
       //hiprtc_options[1] = "--device-as-default-execution-space";
@@ -10571,16 +10571,17 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
       //hc_asprintf (&hiprtc_options[3], "compute_%d%d", device_param->sm_major, device_param->sm_minor);
 
       hiprtc_options[0] = "--gpu-max-threads-per-block=64";
-      hiprtc_options[1] = "";
-      hiprtc_options[2] = "";
+      hiprtc_options[1] = "-nocudainc";
+      hiprtc_options[2] = "-nocudalib";
       hiprtc_options[3] = "";
+      hiprtc_options[4] = "";
 
-      hiprtc_options[4] = "-I";
-      hiprtc_options[5] = folder_config->cpath_real;
+      hiprtc_options[5] = "-I";
+      hiprtc_options[6] = folder_config->cpath_real;
 
       char *hiprtc_options_string = hcstrdup (build_options_buf);
 
-      const int num_options = 6 + hiprtc_make_options_array_from_string (hiprtc_options_string, hiprtc_options + 6);
+      const int num_options = 7 + hiprtc_make_options_array_from_string (hiprtc_options_string, hiprtc_options + 7);
 
       const int rc_hiprtcCompileProgram = hc_hiprtcCompileProgram (hashcat_ctx, program, num_options, (const char * const *) hiprtc_options);
 

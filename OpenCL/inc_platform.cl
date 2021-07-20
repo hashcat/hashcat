@@ -193,35 +193,46 @@ DECLSPEC u32 hc_atomic_dec (GLOBAL_AS u32 *p)
 {
   volatile const u32 val = 1;
 
-  return atomicSub (p, val);
+  return __atomic_fetch_sub (p, val, __ATOMIC_RELAXED);
 }
 
 DECLSPEC u32 hc_atomic_inc (GLOBAL_AS u32 *p)
 {
   volatile const u32 val = 1;
 
-  return atomicAdd (p, val);
+  return __atomic_fetch_add (p, val, __ATOMIC_RELAXED);
 }
 
 DECLSPEC u32 hc_atomic_or (GLOBAL_AS u32 *p, volatile const u32 val)
 {
-  return atomicOr (p, val);
+  return __atomic_fetch_or (p, val, __ATOMIC_RELAXED);
 }
 
-DECLSPEC size_t get_global_id  (const u32 dimindx __attribute__((unused)))
+extern "C" __device__ __attribute__((pure)) double __ocml_log2_f64(double);
+
+DECLSPEC double log2 (double x)
 {
-  return (blockIdx.x * blockDim.x) + threadIdx.x;
+  return __ocml_log2_f64 (x);
 }
 
-DECLSPEC size_t get_local_id (const u32 dimindx __attribute__((unused)))
+extern "C" __device__ __attribute__((const)) size_t __ockl_get_local_id(uint);
+extern "C" __device__ __attribute__((const)) size_t __ockl_get_group_id(uint);
+extern "C" __device__ __attribute__((const)) size_t __ockl_get_local_size(uint);
+extern "C" __device__ __attribute__((const)) size_t __ockl_get_num_groups(uint);
+
+DECLSPEC size_t get_global_id  (const u32 dimindx)
 {
-  return threadIdx.x;
+  return (__ockl_get_group_id (dimindx) * __ockl_get_local_size (dimindx)) + __ockl_get_local_id (dimindx);
 }
 
-DECLSPEC size_t get_local_size (const u32 dimindx __attribute__((unused)))
+DECLSPEC size_t get_local_id (const u32 dimindx)
 {
-  // verify
-  return blockDim.x;
+  return __ockl_get_local_id (dimindx);
+}
+
+DECLSPEC size_t get_local_size (const u32 dimindx)
+{
+  return __ockl_get_local_size (dimindx);
 }
 
 DECLSPEC u32x rotl32 (const u32x a, const int n)
@@ -297,8 +308,11 @@ DECLSPEC u64 rotr64_S (const u64 a, const int n)
   return out.v64;
 }
 
-#define FIXED_THREAD_COUNT(n) __launch_bounds__((n), 0)
-#define SYNC_THREADS() __syncthreads ()
+extern "C" __device__ int printf(const char *fmt, ...);
+//int printf(__constant const char* st, ...) __attribute__((format(printf, 1, 2)));
+
+#define FIXED_THREAD_COUNT(n) __attribute__((amdgpu_flat_work_group_size (1, (n))))
+#define SYNC_THREADS() __builtin_amdgcn_s_barrier ()
 #endif
 
 #ifdef IS_OPENCL

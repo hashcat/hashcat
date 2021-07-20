@@ -17,11 +17,93 @@
 #endif
 
 #ifdef IS_CUDA
-//https://docs.nvidia.com/cuda/nvrtc/index.html#integer-size
-typedef unsigned char      uchar;
-typedef unsigned short     ushort;
-typedef unsigned int       uint;
-typedef unsigned long long ulong;
+// https://docs.nvidia.com/cuda/nvrtc/index.html#integer-size
+typedef unsigned char       uchar;
+typedef unsigned short      ushort;
+typedef unsigned int        uint;
+typedef unsigned long long  ulong;
+#endif
+
+#ifdef IS_HIP
+// https://github.com/llvm-mirror/clang/blob/master/lib/Headers/opencl-c-base.h
+
+// built-in scalar data types:
+
+/**
+ * An unsigned 8-bit integer.
+ */
+typedef unsigned char uchar;
+
+/**
+ * An unsigned 16-bit integer.
+ */
+typedef unsigned short ushort;
+
+/**
+ * An unsigned 32-bit integer.
+ */
+typedef unsigned int uint;
+
+/**
+ * An unsigned 64-bit integer.
+ */
+typedef unsigned long ulong;
+
+/**
+ * The unsigned integer type of the result of the sizeof operator. This
+ * is a 32-bit unsigned integer if CL_DEVICE_ADDRESS_BITS
+ * defined in table 4.3 is 32-bits and is a 64-bit unsigned integer if
+ * CL_DEVICE_ADDRESS_BITS is 64-bits.
+ */
+typedef __SIZE_TYPE__ size_t;
+
+// built-in vector data types:
+typedef char char2 __attribute__((ext_vector_type(2)));
+typedef char char3 __attribute__((ext_vector_type(3)));
+typedef char char4 __attribute__((ext_vector_type(4)));
+typedef char char8 __attribute__((ext_vector_type(8)));
+typedef char char16 __attribute__((ext_vector_type(16)));
+typedef uchar uchar2 __attribute__((ext_vector_type(2)));
+typedef uchar uchar3 __attribute__((ext_vector_type(3)));
+typedef uchar uchar4 __attribute__((ext_vector_type(4)));
+typedef uchar uchar8 __attribute__((ext_vector_type(8)));
+typedef uchar uchar16 __attribute__((ext_vector_type(16)));
+typedef short short2 __attribute__((ext_vector_type(2)));
+typedef short short3 __attribute__((ext_vector_type(3)));
+typedef short short4 __attribute__((ext_vector_type(4)));
+typedef short short8 __attribute__((ext_vector_type(8)));
+typedef short short16 __attribute__((ext_vector_type(16)));
+typedef ushort ushort2 __attribute__((ext_vector_type(2)));
+typedef ushort ushort3 __attribute__((ext_vector_type(3)));
+typedef ushort ushort4 __attribute__((ext_vector_type(4)));
+typedef ushort ushort8 __attribute__((ext_vector_type(8)));
+typedef ushort ushort16 __attribute__((ext_vector_type(16)));
+typedef int int2 __attribute__((ext_vector_type(2)));
+typedef int int3 __attribute__((ext_vector_type(3)));
+typedef int int4 __attribute__((ext_vector_type(4)));
+typedef int int8 __attribute__((ext_vector_type(8)));
+typedef int int16 __attribute__((ext_vector_type(16)));
+typedef uint uint2 __attribute__((ext_vector_type(2)));
+typedef uint uint3 __attribute__((ext_vector_type(3)));
+typedef uint uint4 __attribute__((ext_vector_type(4)));
+typedef uint uint8 __attribute__((ext_vector_type(8)));
+typedef uint uint16 __attribute__((ext_vector_type(16)));
+typedef long long2 __attribute__((ext_vector_type(2)));
+typedef long long3 __attribute__((ext_vector_type(3)));
+typedef long long4 __attribute__((ext_vector_type(4)));
+typedef long long8 __attribute__((ext_vector_type(8)));
+typedef long long16 __attribute__((ext_vector_type(16)));
+typedef ulong ulong2 __attribute__((ext_vector_type(2)));
+typedef ulong ulong3 __attribute__((ext_vector_type(3)));
+typedef ulong ulong4 __attribute__((ext_vector_type(4)));
+typedef ulong ulong8 __attribute__((ext_vector_type(8)));
+typedef ulong ulong16 __attribute__((ext_vector_type(16)));
+typedef float float2 __attribute__((ext_vector_type(2)));
+typedef float float3 __attribute__((ext_vector_type(3)));
+typedef float float4 __attribute__((ext_vector_type(4)));
+typedef float float8 __attribute__((ext_vector_type(8)));
+typedef float float16 __attribute__((ext_vector_type(16)));
+
 #endif
 
 #ifdef KERNEL_STATIC
@@ -824,768 +906,8 @@ typedef __device_builtin__ struct u64x u64x;
 #define make_u32x u32x
 #define make_u64x u64x
 
-#elif defined IS_HIP
-
-// seems to work, but slow
-
-/*
-#if VECT_SIZE == 2
-
-struct u8x
-{
-  u8 s0;
-  u8 s1;
-
-  inline __device__  u8x (const u8 a, const u8 b) : s0(a), s1(b) { }
-  inline __device__  u8x (const u8 a)             : s0(a), s1(a) { }
-
-  inline __device__  u8x (void) : s0(0), s1(0) { }
-  inline __device__ ~u8x (void) { }
-};
-
-struct u16x
-{
-  u16 s0;
-  u16 s1;
-
-  inline __device__  u16x (const u16 a, const u16 b) : s0(a), s1(b) { }
-  inline __device__  u16x (const u16 a)              : s0(a), s1(a) { }
-
-  inline __device__  u16x (void) : s0(0), s1(0) { }
-  inline __device__ ~u16x (void) { }
-};
-
-struct u32x
-{
-  u32 s0;
-  u32 s1;
-
-  inline __device__  u32x (const u32 a, const u32 b) : s0(a), s1(b) { }
-  inline __device__  u32x (const u32 a)              : s0(a), s1(a) { }
-
-  inline __device__  u32x (void) : s0(0), s1(0) { }
-  inline __device__ ~u32x (void) { }
-};
-
-struct u64x
-{
-  u64 s0;
-  u64 s1;
-
-  inline __device__  u64x (const u64 a, const u64 b) : s0(a), s1(b) { }
-  inline __device__  u64x (const u64 a)              : s0(a), s1(a) { }
-
-  inline __device__  u64x (void) : s0(0), s1(0) { }
-  inline __device__ ~u64x (void) { }
-};
-
-inline __device__ bool operator != (const u32x a, const u32  b) { return ((a.s0 != b)    && (a.s1 != b));    }
-inline __device__ bool operator != (const u32x a, const u32x b) { return ((a.s0 != b.s0) && (a.s1 != b.s1)); }
-
-inline __device__ void operator ^= (u32x &a, const u32  b) { a.s0 ^= b;    a.s1 ^= b;     }
-inline __device__ void operator ^= (u32x &a, const u32x b) { a.s0 ^= b.s0; a.s1 ^= b.s1;  }
-
-inline __device__ void operator |= (u32x &a, const u32  b) { a.s0 |= b;    a.s1 |= b;     }
-inline __device__ void operator |= (u32x &a, const u32x b) { a.s0 |= b.s0; a.s1 |= b.s1;  }
-
-inline __device__ void operator &= (u32x &a, const u32  b) { a.s0 &= b;    a.s1 &= b;     }
-inline __device__ void operator &= (u32x &a, const u32x b) { a.s0 &= b.s0; a.s1 &= b.s1;  }
-
-inline __device__ void operator += (u32x &a, const u32  b) { a.s0 += b;    a.s1 += b;     }
-inline __device__ void operator += (u32x &a, const u32x b) { a.s0 += b.s0; a.s1 += b.s1;  }
-
-inline __device__ void operator -= (u32x &a, const u32  b) { a.s0 -= b;    a.s1 -= b;     }
-inline __device__ void operator -= (u32x &a, const u32x b) { a.s0 -= b.s0; a.s1 -= b.s1;  }
-
-inline __device__ void operator *= (u32x &a, const u32  b) { a.s0 *= b;    a.s1 *= b;     }
-inline __device__ void operator *= (u32x &a, const u32x b) { a.s0 *= b.s0; a.s1 *= b.s1;  }
-
-inline __device__ void operator >>= (u32x &a, const u32  b) { a.s0 >>= b;    a.s1 >>= b;     }
-inline __device__ void operator >>= (u32x &a, const u32x b) { a.s0 >>= b.s0; a.s1 >>= b.s1;  }
-
-inline __device__ void operator <<= (u32x &a, const u32  b) { a.s0 <<= b;    a.s1 <<= b;     }
-inline __device__ void operator <<= (u32x &a, const u32x b) { a.s0 <<= b.s0; a.s1 <<= b.s1;  }
-
-inline __device__ u32x operator << (const u32x a, const u32  b) { return u32x ((a.s0 << b),    (a.s1 << b)   );  }
-inline __device__ u32x operator << (const u32x a, const u32x b) { return u32x ((a.s0 << b.s0), (a.s1 << b.s1));  }
-
-inline __device__ u32x operator >> (const u32x a, const u32  b) { return u32x ((a.s0 >> b),    (a.s1 >> b)   );  }
-inline __device__ u32x operator >> (const u32x a, const u32x b) { return u32x ((a.s0 >> b.s0), (a.s1 >> b.s1));  }
-
-inline __device__ u32x operator ^  (const u32x a, const u32  b) { return u32x ((a.s0 ^  b),    (a.s1 ^  b)   );  }
-inline __device__ u32x operator ^  (const u32x a, const u32x b) { return u32x ((a.s0 ^  b.s0), (a.s1 ^  b.s1));  }
-
-inline __device__ u32x operator |  (const u32x a, const u32  b) { return u32x ((a.s0 |  b),    (a.s1 |  b)   );  }
-inline __device__ u32x operator |  (const u32x a, const u32x b) { return u32x ((a.s0 |  b.s0), (a.s1 |  b.s1));  }
-
-inline __device__ u32x operator &  (const u32x a, const u32  b) { return u32x ((a.s0 &  b),    (a.s1 &  b)   );  }
-inline __device__ u32x operator &  (const u32x a, const u32x b) { return u32x ((a.s0 &  b.s0), (a.s1 &  b.s1));  }
-
-inline __device__ u32x operator +  (const u32x a, const u32  b) { return u32x ((a.s0 +  b),    (a.s1 +  b)   );  }
-inline __device__ u32x operator +  (const u32x a, const u32x b) { return u32x ((a.s0 +  b.s0), (a.s1 +  b.s1));  }
-
-inline __device__ u32x operator -  (const u32x a, const u32  b) { return u32x ((a.s0 -  b),    (a.s1 -  b)   );  }
-inline __device__ u32x operator -  (const u32x a, const u32x b) { return u32x ((a.s0 -  b.s0), (a.s1 -  b.s1));  }
-
-inline __device__ u32x operator *  (const u32x a, const u32  b) { return u32x ((a.s0 *  b),    (a.s1 *  b)   );  }
-inline __device__ u32x operator *  (const u32x a, const u32x b) { return u32x ((a.s0 *  b.s0), (a.s1 *  b.s1));  }
-
-inline __device__ u32x operator %  (const u32x a, const u32  b) { return u32x ((a.s0 %  b),    (a.s1 %  b)   );  }
-inline __device__ u32x operator %  (const u32x a, const u32x b) { return u32x ((a.s0 %  b.s0), (a.s1 %  b.s1));  }
-
-inline __device__ u32x operator ~  (const u32x a) { return u32x (~a.s0, ~a.s1); }
-
-inline __device__ bool operator != (const u64x a, const u64  b) { return ((a.s0 != b)    && (a.s1 != b));    }
-inline __device__ bool operator != (const u64x a, const u64x b) { return ((a.s0 != b.s0) && (a.s1 != b.s1)); }
-
-inline __device__ void operator ^= (u64x &a, const u64  b) { a.s0 ^= b;    a.s1 ^= b;     }
-inline __device__ void operator ^= (u64x &a, const u64x b) { a.s0 ^= b.s0; a.s1 ^= b.s1;  }
-
-inline __device__ void operator |= (u64x &a, const u64  b) { a.s0 |= b;    a.s1 |= b;     }
-inline __device__ void operator |= (u64x &a, const u64x b) { a.s0 |= b.s0; a.s1 |= b.s1;  }
-
-inline __device__ void operator &= (u64x &a, const u64  b) { a.s0 &= b;    a.s1 &= b;     }
-inline __device__ void operator &= (u64x &a, const u64x b) { a.s0 &= b.s0; a.s1 &= b.s1;  }
-
-inline __device__ void operator += (u64x &a, const u64  b) { a.s0 += b;    a.s1 += b;     }
-inline __device__ void operator += (u64x &a, const u64x b) { a.s0 += b.s0; a.s1 += b.s1;  }
-
-inline __device__ void operator -= (u64x &a, const u64  b) { a.s0 -= b;    a.s1 -= b;     }
-inline __device__ void operator -= (u64x &a, const u64x b) { a.s0 -= b.s0; a.s1 -= b.s1;  }
-
-inline __device__ void operator *= (u64x &a, const u64  b) { a.s0 *= b;    a.s1 *= b;     }
-inline __device__ void operator *= (u64x &a, const u64x b) { a.s0 *= b.s0; a.s1 *= b.s1;  }
-
-inline __device__ void operator >>= (u64x &a, const u64  b) { a.s0 >>= b;    a.s1 >>= b;     }
-inline __device__ void operator >>= (u64x &a, const u64x b) { a.s0 >>= b.s0; a.s1 >>= b.s1;  }
-
-inline __device__ void operator <<= (u64x &a, const u64  b) { a.s0 <<= b;    a.s1 <<= b;     }
-inline __device__ void operator <<= (u64x &a, const u64x b) { a.s0 <<= b.s0; a.s1 <<= b.s1;  }
-
-inline __device__ u64x operator << (const u64x a, const u64  b) { return u64x ((a.s0 << b),    (a.s1 << b)   );  }
-inline __device__ u64x operator << (const u64x a, const u64x b) { return u64x ((a.s0 << b.s0), (a.s1 << b.s1));  }
-
-inline __device__ u64x operator >> (const u64x a, const u64  b) { return u64x ((a.s0 >> b),    (a.s1 >> b)   );  }
-inline __device__ u64x operator >> (const u64x a, const u64x b) { return u64x ((a.s0 >> b.s0), (a.s1 >> b.s1));  }
-
-inline __device__ u64x operator ^  (const u64x a, const u64  b) { return u64x ((a.s0 ^  b),    (a.s1 ^  b)   );  }
-inline __device__ u64x operator ^  (const u64x a, const u64x b) { return u64x ((a.s0 ^  b.s0), (a.s1 ^  b.s1));  }
-
-inline __device__ u64x operator |  (const u64x a, const u64  b) { return u64x ((a.s0 |  b),    (a.s1 |  b)   );  }
-inline __device__ u64x operator |  (const u64x a, const u64x b) { return u64x ((a.s0 |  b.s0), (a.s1 |  b.s1));  }
-
-inline __device__ u64x operator &  (const u64x a, const u64  b) { return u64x ((a.s0 &  b),    (a.s1 &  b)   );  }
-inline __device__ u64x operator &  (const u64x a, const u64x b) { return u64x ((a.s0 &  b.s0), (a.s1 &  b.s1));  }
-
-inline __device__ u64x operator +  (const u64x a, const u64  b) { return u64x ((a.s0 +  b),    (a.s1 +  b)   );  }
-inline __device__ u64x operator +  (const u64x a, const u64x b) { return u64x ((a.s0 +  b.s0), (a.s1 +  b.s1));  }
-
-inline __device__ u64x operator -  (const u64x a, const u64  b) { return u64x ((a.s0 -  b),    (a.s1 -  b)   );  }
-inline __device__ u64x operator -  (const u64x a, const u64x b) { return u64x ((a.s0 -  b.s0), (a.s1 -  b.s1));  }
-
-inline __device__ u64x operator *  (const u64x a, const u64  b) { return u64x ((a.s0 *  b),    (a.s1 *  b)   );  }
-inline __device__ u64x operator *  (const u64x a, const u64x b) { return u64x ((a.s0 *  b.s0), (a.s1 *  b.s1));  }
-
-inline __device__ u64x operator %  (const u64x a, const u64  b) { return u64x ((a.s0 %  b),    (a.s1 %  b)   );  }
-inline __device__ u64x operator %  (const u64x a, const u64x b) { return u64x ((a.s0 %  b.s0), (a.s1 %  b.s1));  }
-
-inline __device__ u64x operator ~  (const u64x a) { return u64x (~a.s0, ~a.s1); }
-
-#endif
-
-#if VECT_SIZE == 4
-
-struct u8x
-{
-  u8 s0;
-  u8 s1;
-  u8 s2;
-  u8 s3;
-
-  inline __device__  u8x (const u8 a, const u8 b, const u8 c, const u8 d) : s0(a), s1(b), s2(c), s3(d) { }
-  inline __device__  u8x (const u8 a)                                     : s0(a), s1(a), s2(a), s3(a) { }
-
-  inline __device__  u8x (void) : s0(0), s1(0), s2(0), s3(0) { }
-  inline __device__ ~u8x (void) { }
-};
-
-struct u16x
-{
-  u16 s0;
-  u16 s1;
-  u16 s2;
-  u16 s3;
-
-  inline __device__  u16x (const u16 a, const u16 b, const u16 c, const u16 d) : s0(a), s1(b), s2(c), s3(d) { }
-  inline __device__  u16x (const u16 a)                                        : s0(a), s1(a), s2(a), s3(a) { }
-
-  inline __device__  u16x (void) : s0(0), s1(0), s2(0), s3(0) { }
-  inline __device__ ~u16x (void) { }
-};
-
-struct u32x
-{
-  u32 s0;
-  u32 s1;
-  u32 s2;
-  u32 s3;
-
-  inline __device__  u32x (const u32 a, const u32 b, const u32 c, const u32 d) : s0(a), s1(b), s2(c), s3(d) { }
-  inline __device__  u32x (const u32 a)                                        : s0(a), s1(a), s2(a), s3(a) { }
-
-  inline __device__  u32x (void) : s0(0), s1(0), s2(0), s3(0) { }
-  inline __device__ ~u32x (void) { }
-};
-
-struct u64x
-{
-  u64 s0;
-  u64 s1;
-  u64 s2;
-  u64 s3;
-
-  inline __device__  u64x (const u64 a, const u64 b, const u64 c, const u64 d) : s0(a), s1(b), s2(c), s3(d) { }
-  inline __device__  u64x (const u64 a)                                        : s0(a), s1(a), s2(a), s3(a) { }
-
-  inline __device__  u64x (void) : s0(0), s1(0), s2(0), s3(0) { }
-  inline __device__ ~u64x (void) { }
-};
-
-inline __device__ bool operator != (const u32x a, const u32  b) { return ((a.s0 != b)    && (a.s1 != b)    && (a.s2 != b)    && (a.s3 != b)   ); }
-inline __device__ bool operator != (const u32x a, const u32x b) { return ((a.s0 != b.s0) && (a.s1 != b.s1) && (a.s2 != b.s2) && (a.s3 != b.s3)); }
-
-inline __device__ void operator ^= (u32x &a, const u32  b) { a.s0 ^= b;    a.s1 ^= b;    a.s2 ^= b;    a.s3 ^= b;     }
-inline __device__ void operator ^= (u32x &a, const u32x b) { a.s0 ^= b.s0; a.s1 ^= b.s1; a.s2 ^= b.s2; a.s3 ^= b.s3;  }
-
-inline __device__ void operator |= (u32x &a, const u32  b) { a.s0 |= b;    a.s1 |= b;    a.s2 |= b;    a.s3 |= b;     }
-inline __device__ void operator |= (u32x &a, const u32x b) { a.s0 |= b.s0; a.s1 |= b.s1; a.s2 |= b.s2; a.s3 |= b.s3;  }
-
-inline __device__ void operator &= (u32x &a, const u32  b) { a.s0 &= b;    a.s1 &= b;    a.s2 &= b;    a.s3 &= b;     }
-inline __device__ void operator &= (u32x &a, const u32x b) { a.s0 &= b.s0; a.s1 &= b.s1; a.s2 &= b.s2; a.s3 &= b.s3;  }
-
-inline __device__ void operator += (u32x &a, const u32  b) { a.s0 += b;    a.s1 += b;    a.s2 += b;    a.s3 += b;     }
-inline __device__ void operator += (u32x &a, const u32x b) { a.s0 += b.s0; a.s1 += b.s1; a.s2 += b.s2; a.s3 += b.s3;  }
-
-inline __device__ void operator -= (u32x &a, const u32  b) { a.s0 -= b;    a.s1 -= b;    a.s2 -= b;    a.s3 -= b;     }
-inline __device__ void operator -= (u32x &a, const u32x b) { a.s0 -= b.s0; a.s1 -= b.s1; a.s2 -= b.s2; a.s3 -= b.s3;  }
-
-inline __device__ void operator *= (u32x &a, const u32  b) { a.s0 *= b;    a.s1 *= b;    a.s2 *= b;    a.s3 *= b;     }
-inline __device__ void operator *= (u32x &a, const u32x b) { a.s0 *= b.s0; a.s1 *= b.s1; a.s2 *= b.s2; a.s3 *= b.s3;  }
-
-inline __device__ void operator >>= (u32x &a, const u32  b) { a.s0 >>= b;    a.s1 >>= b;    a.s2 >>= b;    a.s3 >>= b;     }
-inline __device__ void operator >>= (u32x &a, const u32x b) { a.s0 >>= b.s0; a.s1 >>= b.s1; a.s2 >>= b.s2; a.s3 >>= b.s3;  }
-
-inline __device__ void operator <<= (u32x &a, const u32  b) { a.s0 <<= b;    a.s1 <<= b;    a.s2 <<= b;    a.s3 <<= b;     }
-inline __device__ void operator <<= (u32x &a, const u32x b) { a.s0 <<= b.s0; a.s1 <<= b.s1; a.s2 <<= b.s2; a.s3 <<= b.s3;  }
-
-inline __device__ u32x operator << (const u32x a, const u32  b) { return u32x ((a.s0 << b),    (a.s1 << b)   , (a.s2 << b),    (a.s3 << b)   );  }
-inline __device__ u32x operator << (const u32x a, const u32x b) { return u32x ((a.s0 << b.s0), (a.s1 << b.s1), (a.s2 << b.s2), (a.s3 << b.s3));  }
-
-inline __device__ u32x operator >> (const u32x a, const u32  b) { return u32x ((a.s0 >> b),    (a.s1 >> b)   , (a.s2 >> b),    (a.s3 >> b)   );  }
-inline __device__ u32x operator >> (const u32x a, const u32x b) { return u32x ((a.s0 >> b.s0), (a.s1 >> b.s1), (a.s2 >> b.s2), (a.s3 >> b.s3));  }
-
-inline __device__ u32x operator ^  (const u32x a, const u32  b) { return u32x ((a.s0 ^  b),    (a.s1 ^  b)   , (a.s2 ^  b),    (a.s3 ^  b)   );  }
-inline __device__ u32x operator ^  (const u32x a, const u32x b) { return u32x ((a.s0 ^  b.s0), (a.s1 ^  b.s1), (a.s2 ^  b.s2), (a.s3 ^  b.s3));  }
-
-inline __device__ u32x operator |  (const u32x a, const u32  b) { return u32x ((a.s0 |  b),    (a.s1 |  b)   , (a.s2 |  b),    (a.s3 |  b)   );  }
-inline __device__ u32x operator |  (const u32x a, const u32x b) { return u32x ((a.s0 |  b.s0), (a.s1 |  b.s1), (a.s2 |  b.s2), (a.s3 |  b.s3));  }
-
-inline __device__ u32x operator &  (const u32x a, const u32  b) { return u32x ((a.s0 &  b),    (a.s1 &  b)   , (a.s2 &  b),    (a.s3 &  b)   );  }
-inline __device__ u32x operator &  (const u32x a, const u32x b) { return u32x ((a.s0 &  b.s0), (a.s1 &  b.s1), (a.s2 &  b.s2), (a.s3 &  b.s3));  }
-
-inline __device__ u32x operator +  (const u32x a, const u32  b) { return u32x ((a.s0 +  b),    (a.s1 +  b)   , (a.s2 +  b),    (a.s3 +  b)   );  }
-inline __device__ u32x operator +  (const u32x a, const u32x b) { return u32x ((a.s0 +  b.s0), (a.s1 +  b.s1), (a.s2 +  b.s2), (a.s3 +  b.s3));  }
-
-inline __device__ u32x operator -  (const u32x a, const u32  b) { return u32x ((a.s0 -  b),    (a.s1 -  b)   , (a.s2 -  b),    (a.s3 -  b)   );  }
-inline __device__ u32x operator -  (const u32x a, const u32x b) { return u32x ((a.s0 -  b.s0), (a.s1 -  b.s1), (a.s2 -  b.s2), (a.s3 -  b.s3));  }
-
-inline __device__ u32x operator *  (const u32x a, const u32  b) { return u32x ((a.s0 *  b),    (a.s1 *  b)   , (a.s2 *  b),    (a.s3 *  b)   );  }
-inline __device__ u32x operator *  (const u32x a, const u32x b) { return u32x ((a.s0 *  b.s0), (a.s1 *  b.s1), (a.s2 *  b.s2), (a.s3 *  b.s3));  }
-
-inline __device__ u32x operator %  (const u32x a, const u32  b) { return u32x ((a.s0 %  b),    (a.s1 %  b)   , (a.s2 %  b),    (a.s3 %  b)   );  }
-inline __device__ u32x operator %  (const u32x a, const u32x b) { return u32x ((a.s0 %  b.s0), (a.s1 %  b.s1), (a.s2 %  b.s2), (a.s3 %  b.s3));  }
-
-inline __device__ u32x operator ~  (const u32x a) { return u32x (~a.s0, ~a.s1, ~a.s2, ~a.s3); }
-
-inline __device__ bool operator != (const u64x a, const u64  b) { return ((a.s0 != b)    && (a.s1 != b)    && (a.s2 != b)    && (a.s3 != b)   ); }
-inline __device__ bool operator != (const u64x a, const u64x b) { return ((a.s0 != b.s0) && (a.s1 != b.s1) && (a.s2 != b.s2) && (a.s3 != b.s3)); }
-
-inline __device__ void operator ^= (u64x &a, const u64  b) { a.s0 ^= b;    a.s1 ^= b;    a.s2 ^= b;    a.s3 ^= b;     }
-inline __device__ void operator ^= (u64x &a, const u64x b) { a.s0 ^= b.s0; a.s1 ^= b.s1; a.s2 ^= b.s2; a.s3 ^= b.s3;  }
-
-inline __device__ void operator |= (u64x &a, const u64  b) { a.s0 |= b;    a.s1 |= b;    a.s2 |= b;    a.s3 |= b;     }
-inline __device__ void operator |= (u64x &a, const u64x b) { a.s0 |= b.s0; a.s1 |= b.s1; a.s2 |= b.s2; a.s3 |= b.s3;  }
-
-inline __device__ void operator &= (u64x &a, const u64  b) { a.s0 &= b;    a.s1 &= b;    a.s2 &= b;    a.s3 &= b;     }
-inline __device__ void operator &= (u64x &a, const u64x b) { a.s0 &= b.s0; a.s1 &= b.s1; a.s2 &= b.s2; a.s3 &= b.s3;  }
-
-inline __device__ void operator += (u64x &a, const u64  b) { a.s0 += b;    a.s1 += b;    a.s2 += b;    a.s3 += b;     }
-inline __device__ void operator += (u64x &a, const u64x b) { a.s0 += b.s0; a.s1 += b.s1; a.s2 += b.s2; a.s3 += b.s3;  }
-
-inline __device__ void operator -= (u64x &a, const u64  b) { a.s0 -= b;    a.s1 -= b;    a.s2 -= b;    a.s3 -= b;     }
-inline __device__ void operator -= (u64x &a, const u64x b) { a.s0 -= b.s0; a.s1 -= b.s1; a.s2 -= b.s2; a.s3 -= b.s3;  }
-
-inline __device__ void operator *= (u64x &a, const u64  b) { a.s0 *= b;    a.s1 *= b;    a.s2 *= b;    a.s3 *= b;     }
-inline __device__ void operator *= (u64x &a, const u64x b) { a.s0 *= b.s0; a.s1 *= b.s1; a.s2 *= b.s2; a.s3 *= b.s3;  }
-
-inline __device__ void operator >>= (u64x &a, const u64  b) { a.s0 >>= b;    a.s1 >>= b;    a.s2 >>= b;    a.s3 >>= b;     }
-inline __device__ void operator >>= (u64x &a, const u64x b) { a.s0 >>= b.s0; a.s1 >>= b.s1; a.s2 >>= b.s2; a.s3 >>= b.s3;  }
-
-inline __device__ void operator <<= (u64x &a, const u64  b) { a.s0 <<= b;    a.s1 <<= b;    a.s2 <<= b;    a.s3 <<= b;     }
-inline __device__ void operator <<= (u64x &a, const u64x b) { a.s0 <<= b.s0; a.s1 <<= b.s1; a.s2 <<= b.s2; a.s3 <<= b.s3;  }
-
-inline __device__ u64x operator << (const u64x a, const u64  b) { return u64x ((a.s0 << b),    (a.s1 << b)   , (a.s2 << b),    (a.s3 << b)   );  }
-inline __device__ u64x operator << (const u64x a, const u64x b) { return u64x ((a.s0 << b.s0), (a.s1 << b.s1), (a.s2 << b.s2), (a.s3 << b.s3));  }
-
-inline __device__ u64x operator >> (const u64x a, const u64  b) { return u64x ((a.s0 >> b),    (a.s1 >> b)   , (a.s2 >> b),    (a.s3 >> b)   );  }
-inline __device__ u64x operator >> (const u64x a, const u64x b) { return u64x ((a.s0 >> b.s0), (a.s1 >> b.s1), (a.s2 >> b.s2), (a.s3 >> b.s3));  }
-
-inline __device__ u64x operator ^  (const u64x a, const u64  b) { return u64x ((a.s0 ^  b),    (a.s1 ^  b)   , (a.s2 ^  b),    (a.s3 ^  b)   );  }
-inline __device__ u64x operator ^  (const u64x a, const u64x b) { return u64x ((a.s0 ^  b.s0), (a.s1 ^  b.s1), (a.s2 ^  b.s2), (a.s3 ^  b.s3));  }
-
-inline __device__ u64x operator |  (const u64x a, const u64  b) { return u64x ((a.s0 |  b),    (a.s1 |  b)   , (a.s2 |  b),    (a.s3 |  b)   );  }
-inline __device__ u64x operator |  (const u64x a, const u64x b) { return u64x ((a.s0 |  b.s0), (a.s1 |  b.s1), (a.s2 |  b.s2), (a.s3 |  b.s3));  }
-
-inline __device__ u64x operator &  (const u64x a, const u64  b) { return u64x ((a.s0 &  b),    (a.s1 &  b)   , (a.s2 &  b),    (a.s3 &  b)   );  }
-inline __device__ u64x operator &  (const u64x a, const u64x b) { return u64x ((a.s0 &  b.s0), (a.s1 &  b.s1), (a.s2 &  b.s2), (a.s3 &  b.s3));  }
-
-inline __device__ u64x operator +  (const u64x a, const u64  b) { return u64x ((a.s0 +  b),    (a.s1 +  b)   , (a.s2 +  b),    (a.s3 +  b)   );  }
-inline __device__ u64x operator +  (const u64x a, const u64x b) { return u64x ((a.s0 +  b.s0), (a.s1 +  b.s1), (a.s2 +  b.s2), (a.s3 +  b.s3));  }
-
-inline __device__ u64x operator -  (const u64x a, const u64  b) { return u64x ((a.s0 -  b),    (a.s1 -  b)   , (a.s2 -  b),    (a.s3 -  b)   );  }
-inline __device__ u64x operator -  (const u64x a, const u64x b) { return u64x ((a.s0 -  b.s0), (a.s1 -  b.s1), (a.s2 -  b.s2), (a.s3 -  b.s3));  }
-
-inline __device__ u64x operator *  (const u64x a, const u64  b) { return u64x ((a.s0 *  b),    (a.s1 *  b)   , (a.s2 *  b),    (a.s3 *  b)   );  }
-inline __device__ u64x operator *  (const u64x a, const u64x b) { return u64x ((a.s0 *  b.s0), (a.s1 *  b.s1), (a.s2 *  b.s2), (a.s3 *  b.s3));  }
-
-inline __device__ u64x operator %  (const u64x a, const u32  b) { return u64x ((a.s0 %  b),    (a.s1 %  b)   , (a.s2 %  b),    (a.s3 %  b)   );  }
-inline __device__ u64x operator %  (const u64x a, const u64x b) { return u64x ((a.s0 %  b.s0), (a.s1 %  b.s1), (a.s2 %  b.s2), (a.s3 %  b.s3));  }
-
-inline __device__ u64x operator ~  (const u64x a) { return u64x (~a.s0, ~a.s1, ~a.s2, ~a.s3); }
-
-#endif
-
-#if VECT_SIZE == 8
-
-struct u8x
-{
-  u8 s0;
-  u8 s1;
-  u8 s2;
-  u8 s3;
-  u8 s4;
-  u8 s5;
-  u8 s6;
-  u8 s7;
-
-  inline __device__  u8x (const u8 a, const u8 b, const u8 c, const u8 d, const u8 e, const u8 f, const u8 g, const u8 h) : s0(a), s1(b), s2(c), s3(d), s4(e), s5(f), s6(g), s7(h) { }
-  inline __device__  u8x (const u8 a)                                                                                     : s0(a), s1(a), s2(a), s3(a), s4(a), s5(a), s6(a), s7(a) { }
-
-  inline __device__  u8x (void) : s0(0), s1(0), s2(0), s3(0), s4(0), s5(0), s6(0), s7(0) { }
-  inline __device__ ~u8x (void) { }
-};
-
-struct u16x
-{
-  u16 s0;
-  u16 s1;
-  u16 s2;
-  u16 s3;
-  u16 s4;
-  u16 s5;
-  u16 s6;
-  u16 s7;
-
-  inline __device__  u16x (const u16 a, const u16 b, const u16 c, const u16 d, const u16 e, const u16 f, const u16 g, const u16 h) : s0(a), s1(b), s2(c), s3(d), s4(e), s5(f), s6(g), s7(h) { }
-  inline __device__  u16x (const u16 a)                                                                                            : s0(a), s1(a), s2(a), s3(a), s4(a), s5(a), s6(a), s7(a) { }
-
-  inline __device__  u16x (void) : s0(0), s1(0), s2(0), s3(0), s4(0), s5(0), s6(0), s7(0) { }
-  inline __device__ ~u16x (void) { }
-};
-
-struct u32x
-{
-  u32 s0;
-  u32 s1;
-  u32 s2;
-  u32 s3;
-  u32 s4;
-  u32 s5;
-  u32 s6;
-  u32 s7;
-
-  inline __device__  u32x (const u32 a, const u32 b, const u32 c, const u32 d, const u32 e, const u32 f, const u32 g, const u32 h) : s0(a), s1(b), s2(c), s3(d), s4(e), s5(f), s6(g), s7(h) { }
-  inline __device__  u32x (const u32 a)                                                                                            : s0(a), s1(a), s2(a), s3(a), s4(a), s5(a), s6(a), s7(a) { }
-
-  inline __device__  u32x (void) : s0(0), s1(0), s2(0), s3(0), s4(0), s5(0), s6(0), s7(0) { }
-  inline __device__ ~u32x (void) { }
-};
-
-struct u64x
-{
-  u64 s0;
-  u64 s1;
-  u64 s2;
-  u64 s3;
-  u64 s4;
-  u64 s5;
-  u64 s6;
-  u64 s7;
-
-  inline __device__  u64x (const u64 a, const u64 b, const u64 c, const u64 d, const u64 e, const u64 f, const u64 g, const u64 h) : s0(a), s1(b), s2(c), s3(d), s4(e), s5(f), s6(g), s7(h) { }
-  inline __device__  u64x (const u64 a)                                                                                            : s0(a), s1(a), s2(a), s3(a), s4(a), s5(a), s6(a), s7(a) { }
-
-  inline __device__  u64x (void) : s0(0), s1(0), s2(0), s3(0), s4(0), s5(0), s6(0), s7(0) { }
-  inline __device__ ~u64x (void) { }
-};
-
-inline __device__ bool operator != (const u32x a, const u32  b) { return ((a.s0 != b)    && (a.s1 != b)    && (a.s2 != b)    && (a.s3 != b)    && (a.s4 != b)    && (a.s5 != b)    && (a.s6 != b)    && (a.s7 != b)   ); }
-inline __device__ bool operator != (const u32x a, const u32x b) { return ((a.s0 != b.s0) && (a.s1 != b.s1) && (a.s2 != b.s2) && (a.s3 != b.s3) && (a.s4 != b.s4) && (a.s5 != b.s5) && (a.s6 != b.s6) && (a.s7 != b.s7)); }
-
-inline __device__ void operator ^= (u32x &a, const u32  b) { a.s0 ^= b;    a.s1 ^= b;    a.s2 ^= b;    a.s3 ^= b;    a.s4 ^= b;    a.s5 ^= b;    a.s6 ^= b;    a.s7 ^= b;     }
-inline __device__ void operator ^= (u32x &a, const u32x b) { a.s0 ^= b.s0; a.s1 ^= b.s1; a.s2 ^= b.s2; a.s3 ^= b.s3; a.s4 ^= b.s4; a.s5 ^= b.s5; a.s6 ^= b.s6; a.s7 ^= b.s7;  }
-
-inline __device__ void operator |= (u32x &a, const u32  b) { a.s0 |= b;    a.s1 |= b;    a.s2 |= b;    a.s3 |= b;    a.s4 |= b;    a.s5 |= b;    a.s6 |= b;    a.s7 |= b;     }
-inline __device__ void operator |= (u32x &a, const u32x b) { a.s0 |= b.s0; a.s1 |= b.s1; a.s2 |= b.s2; a.s3 |= b.s3; a.s4 |= b.s4; a.s5 |= b.s5; a.s6 |= b.s6; a.s7 |= b.s7;  }
-
-inline __device__ void operator &= (u32x &a, const u32  b) { a.s0 &= b;    a.s1 &= b;    a.s2 &= b;    a.s3 &= b;    a.s4 &= b;    a.s5 &= b;    a.s6 &= b;    a.s7 &= b;     }
-inline __device__ void operator &= (u32x &a, const u32x b) { a.s0 &= b.s0; a.s1 &= b.s1; a.s2 &= b.s2; a.s3 &= b.s3; a.s4 &= b.s4; a.s5 &= b.s5; a.s6 &= b.s6; a.s7 &= b.s7;  }
-
-inline __device__ void operator += (u32x &a, const u32  b) { a.s0 += b;    a.s1 += b;    a.s2 += b;    a.s3 += b;    a.s4 += b;    a.s5 += b;    a.s6 += b;    a.s7 += b;     }
-inline __device__ void operator += (u32x &a, const u32x b) { a.s0 += b.s0; a.s1 += b.s1; a.s2 += b.s2; a.s3 += b.s3; a.s4 += b.s4; a.s5 += b.s5; a.s6 += b.s6; a.s7 += b.s7;  }
-
-inline __device__ void operator -= (u32x &a, const u32  b) { a.s0 -= b;    a.s1 -= b;    a.s2 -= b;    a.s3 -= b;    a.s4 -= b;    a.s5 -= b;    a.s6 -= b;    a.s7 -= b;     }
-inline __device__ void operator -= (u32x &a, const u32x b) { a.s0 -= b.s0; a.s1 -= b.s1; a.s2 -= b.s2; a.s3 -= b.s3; a.s4 -= b.s4; a.s5 -= b.s5; a.s6 -= b.s6; a.s7 -= b.s7;  }
-
-inline __device__ void operator *= (u32x &a, const u32  b) { a.s0 *= b;    a.s1 *= b;    a.s2 *= b;    a.s3 *= b;    a.s4 *= b;    a.s5 *= b;    a.s6 *= b;    a.s7 *= b;     }
-inline __device__ void operator *= (u32x &a, const u32x b) { a.s0 *= b.s0; a.s1 *= b.s1; a.s2 *= b.s2; a.s3 *= b.s3; a.s4 *= b.s4; a.s5 *= b.s5; a.s6 *= b.s6; a.s7 *= b.s7;  }
-
-inline __device__ void operator >>= (u32x &a, const u32  b) { a.s0 >>= b;    a.s1 >>= b;    a.s2 >>= b;    a.s3 >>= b;    a.s4 >>= b;    a.s5 >>= b;    a.s6 >>= b;    a.s7 >>= b;     }
-inline __device__ void operator >>= (u32x &a, const u32x b) { a.s0 >>= b.s0; a.s1 >>= b.s1; a.s2 >>= b.s2; a.s3 >>= b.s3; a.s4 >>= b.s4; a.s5 >>= b.s5; a.s6 >>= b.s6; a.s7 >>= b.s7;  }
-
-inline __device__ void operator <<= (u32x &a, const u32  b) { a.s0 <<= b;    a.s1 <<= b;    a.s2 <<= b;    a.s3 <<= b;    a.s4 <<= b;    a.s5 <<= b;    a.s6 <<= b;    a.s7 <<= b;     }
-inline __device__ void operator <<= (u32x &a, const u32x b) { a.s0 <<= b.s0; a.s1 <<= b.s1; a.s2 <<= b.s2; a.s3 <<= b.s3; a.s4 <<= b.s4; a.s5 <<= b.s5; a.s6 <<= b.s6; a.s7 <<= b.s7;  }
-
-inline __device__ u32x operator << (const u32x a, const u32  b) { return u32x ((a.s0 << b),    (a.s1 << b)   , (a.s2 << b),    (a.s3 << b)   , (a.s4 << b),    (a.s5 << b)   , (a.s6 << b),    (a.s7 << b)   );  }
-inline __device__ u32x operator << (const u32x a, const u32x b) { return u32x ((a.s0 << b.s0), (a.s1 << b.s1), (a.s2 << b.s2), (a.s3 << b.s3), (a.s4 << b.s4), (a.s5 << b.s5), (a.s6 << b.s6), (a.s7 << b.s7));  }
-
-inline __device__ u32x operator >> (const u32x a, const u32  b) { return u32x ((a.s0 >> b),    (a.s1 >> b)   , (a.s2 >> b),    (a.s3 >> b)   , (a.s4 >> b),    (a.s5 >> b)   , (a.s6 >> b),    (a.s7 >> b)   );  }
-inline __device__ u32x operator >> (const u32x a, const u32x b) { return u32x ((a.s0 >> b.s0), (a.s1 >> b.s1), (a.s2 >> b.s2), (a.s3 >> b.s3), (a.s4 >> b.s4), (a.s5 >> b.s5), (a.s6 >> b.s6), (a.s7 >> b.s7));  }
-
-inline __device__ u32x operator ^  (const u32x a, const u32  b) { return u32x ((a.s0 ^  b),    (a.s1 ^  b)   , (a.s2 ^  b),    (a.s3 ^  b)   , (a.s4 ^  b),    (a.s5 ^  b)   , (a.s6 ^  b),    (a.s7 ^  b)   );  }
-inline __device__ u32x operator ^  (const u32x a, const u32x b) { return u32x ((a.s0 ^  b.s0), (a.s1 ^  b.s1), (a.s2 ^  b.s2), (a.s3 ^  b.s3), (a.s4 ^  b.s4), (a.s5 ^  b.s5), (a.s6 ^  b.s6), (a.s7 ^  b.s7));  }
-
-inline __device__ u32x operator |  (const u32x a, const u32  b) { return u32x ((a.s0 |  b),    (a.s1 |  b)   , (a.s2 |  b),    (a.s3 |  b)   , (a.s4 |  b),    (a.s5 |  b)   , (a.s6 |  b),    (a.s7 |  b)   );  }
-inline __device__ u32x operator |  (const u32x a, const u32x b) { return u32x ((a.s0 |  b.s0), (a.s1 |  b.s1), (a.s2 |  b.s2), (a.s3 |  b.s3), (a.s4 |  b.s4), (a.s5 |  b.s5), (a.s6 |  b.s6), (a.s7 |  b.s7));  }
-
-inline __device__ u32x operator &  (const u32x a, const u32  b) { return u32x ((a.s0 &  b),    (a.s1 &  b)   , (a.s2 &  b),    (a.s3 &  b)   , (a.s4 &  b),    (a.s5 &  b)   , (a.s6 &  b),    (a.s7 &  b)   );  }
-inline __device__ u32x operator &  (const u32x a, const u32x b) { return u32x ((a.s0 &  b.s0), (a.s1 &  b.s1), (a.s2 &  b.s2), (a.s3 &  b.s3), (a.s4 &  b.s4), (a.s5 &  b.s5), (a.s6 &  b.s6), (a.s7 &  b.s7));  }
-
-inline __device__ u32x operator +  (const u32x a, const u32  b) { return u32x ((a.s0 +  b),    (a.s1 +  b)   , (a.s2 +  b),    (a.s3 +  b)   , (a.s4 +  b),    (a.s5 +  b)   , (a.s6 +  b),    (a.s7 +  b)   );  }
-inline __device__ u32x operator +  (const u32x a, const u32x b) { return u32x ((a.s0 +  b.s0), (a.s1 +  b.s1), (a.s2 +  b.s2), (a.s3 +  b.s3), (a.s4 +  b.s4), (a.s5 +  b.s5), (a.s6 +  b.s6), (a.s7 +  b.s7));  }
-
-inline __device__ u32x operator -  (const u32x a, const u32  b) { return u32x ((a.s0 -  b),    (a.s1 -  b)   , (a.s2 -  b),    (a.s3 -  b)   , (a.s4 -  b),    (a.s5 -  b)   , (a.s6 -  b),    (a.s7 -  b)   );  }
-inline __device__ u32x operator -  (const u32x a, const u32x b) { return u32x ((a.s0 -  b.s0), (a.s1 -  b.s1), (a.s2 -  b.s2), (a.s3 -  b.s3), (a.s4 -  b.s4), (a.s5 -  b.s5), (a.s6 -  b.s6), (a.s7 -  b.s7));  }
-
-inline __device__ u32x operator *  (const u32x a, const u32  b) { return u32x ((a.s0 *  b),    (a.s1 *  b)   , (a.s2 *  b),    (a.s3 *  b)   , (a.s4 *  b),    (a.s5 *  b)   , (a.s6 *  b),    (a.s7 *  b)   );  }
-inline __device__ u32x operator *  (const u32x a, const u32x b) { return u32x ((a.s0 *  b.s0), (a.s1 *  b.s1), (a.s2 *  b.s2), (a.s3 *  b.s3), (a.s4 *  b.s4), (a.s5 *  b.s5), (a.s6 *  b.s6), (a.s7 *  b.s7));  }
-
-inline __device__ u32x operator %  (const u32x a, const u32  b) { return u32x ((a.s0 %  b),    (a.s1 %  b)   , (a.s2 %  b),    (a.s3 %  b)   , (a.s4 %  b),    (a.s5 %  b)   , (a.s6 %  b),    (a.s7 %  b)   );  }
-inline __device__ u32x operator %  (const u32x a, const u32x b) { return u32x ((a.s0 %  b.s0), (a.s1 %  b.s1), (a.s2 %  b.s2), (a.s3 %  b.s3), (a.s4 %  b.s4), (a.s5 %  b.s5), (a.s6 %  b.s6), (a.s7 %  b.s7));  }
-
-inline __device__ u32x operator ~  (const u32x a) { return u32x (~a.s0, ~a.s1, ~a.s2, ~a.s3, ~a.s4, ~a.s5, ~a.s6, ~a.s7); }
-
-inline __device__ bool operator != (const u64x a, const u64  b) { return ((a.s0 != b)    && (a.s1 != b)    && (a.s2 != b)    && (a.s3 != b)    && (a.s4 != b)    && (a.s5 != b)    && (a.s6 != b)    && (a.s7 != b)   ); }
-inline __device__ bool operator != (const u64x a, const u64x b) { return ((a.s0 != b.s0) && (a.s1 != b.s1) && (a.s2 != b.s2) && (a.s3 != b.s3) && (a.s4 != b.s4) && (a.s5 != b.s5) && (a.s6 != b.s6) && (a.s7 != b.s7)); }
-
-inline __device__ void operator ^= (u64x &a, const u64  b) { a.s0 ^= b;    a.s1 ^= b;    a.s2 ^= b;    a.s3 ^= b;    a.s4 ^= b;    a.s5 ^= b;    a.s6 ^= b;    a.s7 ^= b;     }
-inline __device__ void operator ^= (u64x &a, const u64x b) { a.s0 ^= b.s0; a.s1 ^= b.s1; a.s2 ^= b.s2; a.s3 ^= b.s3; a.s4 ^= b.s4; a.s5 ^= b.s5; a.s6 ^= b.s6; a.s7 ^= b.s7;  }
-
-inline __device__ void operator |= (u64x &a, const u64  b) { a.s0 |= b;    a.s1 |= b;    a.s2 |= b;    a.s3 |= b;    a.s4 |= b;    a.s5 |= b;    a.s6 |= b;    a.s7 |= b;     }
-inline __device__ void operator |= (u64x &a, const u64x b) { a.s0 |= b.s0; a.s1 |= b.s1; a.s2 |= b.s2; a.s3 |= b.s3; a.s4 |= b.s4; a.s5 |= b.s5; a.s6 |= b.s6; a.s7 |= b.s7;  }
-
-inline __device__ void operator &= (u64x &a, const u64  b) { a.s0 &= b;    a.s1 &= b;    a.s2 &= b;    a.s3 &= b;    a.s4 &= b;    a.s5 &= b;    a.s6 &= b;    a.s7 &= b;     }
-inline __device__ void operator &= (u64x &a, const u64x b) { a.s0 &= b.s0; a.s1 &= b.s1; a.s2 &= b.s2; a.s3 &= b.s3; a.s4 &= b.s4; a.s5 &= b.s5; a.s6 &= b.s6; a.s7 &= b.s7;  }
-
-inline __device__ void operator += (u64x &a, const u64  b) { a.s0 += b;    a.s1 += b;    a.s2 += b;    a.s3 += b;    a.s4 += b;    a.s5 += b;    a.s6 += b;    a.s7 += b;     }
-inline __device__ void operator += (u64x &a, const u64x b) { a.s0 += b.s0; a.s1 += b.s1; a.s2 += b.s2; a.s3 += b.s3; a.s4 += b.s4; a.s5 += b.s5; a.s6 += b.s6; a.s7 += b.s7;  }
-
-inline __device__ void operator -= (u64x &a, const u64  b) { a.s0 -= b;    a.s1 -= b;    a.s2 -= b;    a.s3 -= b;    a.s4 -= b;    a.s5 -= b;    a.s6 -= b;    a.s7 -= b;     }
-inline __device__ void operator -= (u64x &a, const u64x b) { a.s0 -= b.s0; a.s1 -= b.s1; a.s2 -= b.s2; a.s3 -= b.s3; a.s4 -= b.s4; a.s5 -= b.s5; a.s6 -= b.s6; a.s7 -= b.s7;  }
-
-inline __device__ void operator *= (u64x &a, const u64  b) { a.s0 *= b;    a.s1 *= b;    a.s2 *= b;    a.s3 *= b;    a.s4 *= b;    a.s5 *= b;    a.s6 *= b;    a.s7 *= b;     }
-inline __device__ void operator *= (u64x &a, const u64x b) { a.s0 *= b.s0; a.s1 *= b.s1; a.s2 *= b.s2; a.s3 *= b.s3; a.s4 *= b.s4; a.s5 *= b.s5; a.s6 *= b.s6; a.s7 *= b.s7;  }
-
-inline __device__ void operator >>= (u64x &a, const u64  b) { a.s0 >>= b;    a.s1 >>= b;    a.s2 >>= b;    a.s3 >>= b;    a.s4 >>= b;    a.s5 >>= b;    a.s6 >>= b;    a.s7 >>= b;     }
-inline __device__ void operator >>= (u64x &a, const u64x b) { a.s0 >>= b.s0; a.s1 >>= b.s1; a.s2 >>= b.s2; a.s3 >>= b.s3; a.s4 >>= b.s4; a.s5 >>= b.s5; a.s6 >>= b.s6; a.s7 >>= b.s7;  }
-
-inline __device__ void operator <<= (u64x &a, const u64  b) { a.s0 <<= b;    a.s1 <<= b;    a.s2 <<= b;    a.s3 <<= b;    a.s4 <<= b;    a.s5 <<= b;    a.s6 <<= b;    a.s7 <<= b;     }
-inline __device__ void operator <<= (u64x &a, const u64x b) { a.s0 <<= b.s0; a.s1 <<= b.s1; a.s2 <<= b.s2; a.s3 <<= b.s3; a.s4 <<= b.s4; a.s5 <<= b.s5; a.s6 <<= b.s6; a.s7 <<= b.s7;  }
-
-inline __device__ u64x operator << (const u64x a, const u64  b) { return u64x ((a.s0 << b),    (a.s1 << b)   , (a.s2 << b),    (a.s3 << b)   , (a.s4 << b),    (a.s5 << b)   , (a.s6 << b),    (a.s7 << b)   );  }
-inline __device__ u64x operator << (const u64x a, const u64x b) { return u64x ((a.s0 << b.s0), (a.s1 << b.s1), (a.s2 << b.s2), (a.s3 << b.s3), (a.s4 << b.s4), (a.s5 << b.s5), (a.s6 << b.s6), (a.s7 << b.s7));  }
-
-inline __device__ u64x operator >> (const u64x a, const u64  b) { return u64x ((a.s0 >> b),    (a.s1 >> b)   , (a.s2 >> b),    (a.s3 >> b)   , (a.s4 >> b),    (a.s5 >> b)   , (a.s6 >> b),    (a.s7 >> b)   );  }
-inline __device__ u64x operator >> (const u64x a, const u64x b) { return u64x ((a.s0 >> b.s0), (a.s1 >> b.s1), (a.s2 >> b.s2), (a.s3 >> b.s3), (a.s4 >> b.s4), (a.s5 >> b.s5), (a.s6 >> b.s6), (a.s7 >> b.s7));  }
-
-inline __device__ u64x operator ^  (const u64x a, const u64  b) { return u64x ((a.s0 ^  b),    (a.s1 ^  b)   , (a.s2 ^  b),    (a.s3 ^  b)   , (a.s4 ^  b),    (a.s5 ^  b)   , (a.s6 ^  b),    (a.s7 ^  b)   );  }
-inline __device__ u64x operator ^  (const u64x a, const u64x b) { return u64x ((a.s0 ^  b.s0), (a.s1 ^  b.s1), (a.s2 ^  b.s2), (a.s3 ^  b.s3), (a.s4 ^  b.s4), (a.s5 ^  b.s5), (a.s6 ^  b.s6), (a.s7 ^  b.s7));  }
-
-inline __device__ u64x operator |  (const u64x a, const u64  b) { return u64x ((a.s0 |  b),    (a.s1 |  b)   , (a.s2 |  b),    (a.s3 |  b)   , (a.s4 |  b),    (a.s5 |  b)   , (a.s6 |  b),    (a.s7 |  b)   );  }
-inline __device__ u64x operator |  (const u64x a, const u64x b) { return u64x ((a.s0 |  b.s0), (a.s1 |  b.s1), (a.s2 |  b.s2), (a.s3 |  b.s3), (a.s4 |  b.s4), (a.s5 |  b.s5), (a.s6 |  b.s6), (a.s7 |  b.s7));  }
-
-inline __device__ u64x operator &  (const u64x a, const u64  b) { return u64x ((a.s0 &  b),    (a.s1 &  b)   , (a.s2 &  b),    (a.s3 &  b)   , (a.s4 &  b),    (a.s5 &  b)   , (a.s6 &  b),    (a.s7 &  b)   );  }
-inline __device__ u64x operator &  (const u64x a, const u64x b) { return u64x ((a.s0 &  b.s0), (a.s1 &  b.s1), (a.s2 &  b.s2), (a.s3 &  b.s3), (a.s4 &  b.s4), (a.s5 &  b.s5), (a.s6 &  b.s6), (a.s7 &  b.s7));  }
-
-inline __device__ u64x operator +  (const u64x a, const u64  b) { return u64x ((a.s0 +  b),    (a.s1 +  b)   , (a.s2 +  b),    (a.s3 +  b)   , (a.s4 +  b),    (a.s5 +  b)   , (a.s6 +  b),    (a.s7 +  b)   );  }
-inline __device__ u64x operator +  (const u64x a, const u64x b) { return u64x ((a.s0 +  b.s0), (a.s1 +  b.s1), (a.s2 +  b.s2), (a.s3 +  b.s3), (a.s4 +  b.s4), (a.s5 +  b.s5), (a.s6 +  b.s6), (a.s7 +  b.s7));  }
-
-inline __device__ u64x operator -  (const u64x a, const u64  b) { return u64x ((a.s0 -  b),    (a.s1 -  b)   , (a.s2 -  b),    (a.s3 -  b)   , (a.s4 -  b),    (a.s5 -  b)   , (a.s6 -  b),    (a.s7 -  b)   );  }
-inline __device__ u64x operator -  (const u64x a, const u64x b) { return u64x ((a.s0 -  b.s0), (a.s1 -  b.s1), (a.s2 -  b.s2), (a.s3 -  b.s3), (a.s4 -  b.s4), (a.s5 -  b.s5), (a.s6 -  b.s6), (a.s7 -  b.s7));  }
-
-inline __device__ u64x operator *  (const u64x a, const u64  b) { return u64x ((a.s0 *  b),    (a.s1 *  b)   , (a.s2 *  b),    (a.s3 *  b)   , (a.s4 *  b),    (a.s5 *  b)   , (a.s6 *  b),    (a.s7 *  b)   );  }
-inline __device__ u64x operator *  (const u64x a, const u64x b) { return u64x ((a.s0 *  b.s0), (a.s1 *  b.s1), (a.s2 *  b.s2), (a.s3 *  b.s3), (a.s4 *  b.s4), (a.s5 *  b.s5), (a.s6 *  b.s6), (a.s7 *  b.s7));  }
-
-inline __device__ u64x operator %  (const u64x a, const u64  b) { return u64x ((a.s0 %  b),    (a.s1 %  b)   , (a.s2 %  b),    (a.s3 %  b)   , (a.s4 %  b),    (a.s5 %  b)   , (a.s6 %  b),    (a.s7 %  b)   );  }
-inline __device__ u64x operator %  (const u64x a, const u64x b) { return u64x ((a.s0 %  b.s0), (a.s1 %  b.s1), (a.s2 %  b.s2), (a.s3 %  b.s3), (a.s4 %  b.s4), (a.s5 %  b.s5), (a.s6 %  b.s6), (a.s7 %  b.s7));  }
-
-inline __device__ u64x operator ~  (const u64x a) { return u64x (~a.s0, ~a.s1, ~a.s2, ~a.s3, ~a.s4, ~a.s5, ~a.s6, ~a.s7); }
-
-#endif
-
-#if VECT_SIZE == 16
-
-struct u8x
-{
-  u8 s0;
-  u8 s1;
-  u8 s2;
-  u8 s3;
-  u8 s4;
-  u8 s5;
-  u8 s6;
-  u8 s7;
-  u8 s8;
-  u8 s9;
-  u8 sa;
-  u8 sb;
-  u8 sc;
-  u8 sd;
-  u8 se;
-  u8 sf;
-
-  inline __device__  u8x (const u8 a, const u8 b, const u8 c, const u8 d, const u8 e, const u8 f, const u8 g, const u8 h, const u8 i, const u8 j, const u8 k, const u8 l, const u8 m, const u8 n, const u8 o, const u8 p) : s0(a), s1(b), s2(c), s3(d), s4(e), s5(f), s6(g), s7(h), s8(i), s9(j), sa(k), sb(l), sc(m), sd(n), se(o), sf(p) { }
-  inline __device__  u8x (const u8 a)                                                                                                                                                                                     : s0(a), s1(a), s2(a), s3(a), s4(a), s5(a), s6(a), s7(a), s8(a), s9(a), sa(a), sb(a), sc(a), sd(a), se(a), sf(a) { }
-
-  inline __device__  u8x (void) : s0(0), s1(0), s2(0), s3(0), s4(0), s5(0), s6(0), s7(0), s8(0), s9(0), sa(0), sb(0), sc(0), sd(0), se(0), sf(0) { }
-  inline __device__ ~u8x (void) { }
-};
-
-struct u16x
-{
-  u16 s0;
-  u16 s1;
-  u16 s2;
-  u16 s3;
-  u16 s4;
-  u16 s5;
-  u16 s6;
-  u16 s7;
-  u16 s8;
-  u16 s9;
-  u16 sa;
-  u16 sb;
-  u16 sc;
-  u16 sd;
-  u16 se;
-  u16 sf;
-
-  inline __device__  u16x (const u16 a, const u16 b, const u16 c, const u16 d, const u16 e, const u16 f, const u16 g, const u16 h, const u16 i, const u16 j, const u16 k, const u16 l, const u16 m, const u16 n, const u16 o, const u16 p) : s0(a), s1(b), s2(c), s3(d), s4(e), s5(f), s6(g), s7(h), s8(i), s9(j), sa(k), sb(l), sc(m), sd(n), se(o), sf(p) { }
-  inline __device__  u16x (const u16 a)                                                                                                                                                                                     : s0(a), s1(a), s2(a), s3(a), s4(a), s5(a), s6(a), s7(a), s8(a), s9(a), sa(a), sb(a), sc(a), sd(a), se(a), sf(a) { }
-
-  inline __device__  u16x (void) : s0(0), s1(0), s2(0), s3(0), s4(0), s5(0), s6(0), s7(0), s8(0), s9(0), sa(0), sb(0), sc(0), sd(0), se(0), sf(0){ }
-  inline __device__ ~u16x (void) { }
-};
-
-struct u32x
-{
-  u32 s0;
-  u32 s1;
-  u32 s2;
-  u32 s3;
-  u32 s4;
-  u32 s5;
-  u32 s6;
-  u32 s7;
-  u32 s8;
-  u32 s9;
-  u32 sa;
-  u32 sb;
-  u32 sc;
-  u32 sd;
-  u32 se;
-  u32 sf;
-
-  inline __device__  u32x (const u32 a, const u32 b, const u32 c, const u32 d, const u32 e, const u32 f, const u32 g, const u32 h, const u32 i, const u32 j, const u32 k, const u32 l, const u32 m, const u32 n, const u32 o, const u32 p) : s0(a), s1(b), s2(c), s3(d), s4(e), s5(f), s6(g), s7(h), s8(i), s9(j), sa(k), sb(l), sc(m), sd(n), se(o), sf(p) { }
-  inline __device__  u32x (const u32 a)                                                                                                                                                                                     : s0(a), s1(a), s2(a), s3(a), s4(a), s5(a), s6(a), s7(a), s8(a), s9(a), sa(a), sb(a), sc(a), sd(a), se(a), sf(a) { }
-
-  inline __device__  u32x (void) : s0(0), s1(0), s2(0), s3(0), s4(0), s5(0), s6(0), s7(0), s8(0), s9(0), sa(0), sb(0), sc(0), sd(0), se(0), sf(0){ }
-  inline __device__ ~u32x (void) { }
-};
-
-struct u64x
-{
-  u64 s0;
-  u64 s1;
-  u64 s2;
-  u64 s3;
-  u64 s4;
-  u64 s5;
-  u64 s6;
-  u64 s7;
-  u64 s8;
-  u64 s9;
-  u64 sa;
-  u64 sb;
-  u64 sc;
-  u64 sd;
-  u64 se;
-  u64 sf;
-
-  inline __device__  u64x (const u64 a, const u64 b, const u64 c, const u64 d, const u64 e, const u64 f, const u64 g, const u64 h, const u64 i, const u64 j, const u64 k, const u64 l, const u64 m, const u64 n, const u64 o, const u64 p) : s0(a), s1(b), s2(c), s3(d), s4(e), s5(f), s6(g), s7(h), s8(i), s9(j), sa(k), sb(l), sc(m), sd(n), se(o), sf(p) { }
-  inline __device__  u64x (const u64 a)                                                                                                                                                                                     : s0(a), s1(a), s2(a), s3(a), s4(a), s5(a), s6(a), s7(a), s8(a), s9(a), sa(a), sb(a), sc(a), sd(a), se(a), sf(a) { }
-
-  inline __device__  u64x (void) : s0(0), s1(0), s2(0), s3(0), s4(0), s5(0), s6(0), s7(0), s8(0), s9(0), sa(0), sb(0), sc(0), sd(0), se(0), sf(0) { }
-  inline __device__ ~u64x (void) { }
-};
-
-inline __device__ bool operator != (const u32x a, const u32  b) { return ((a.s0 != b)    && (a.s1 != b)    && (a.s2 != b)    && (a.s3 != b)    && (a.s4 != b)    && (a.s5 != b)    && (a.s6 != b)    && (a.s7 != b)    && (a.s8 != b)    && (a.s9 != b)    && (a.sa != b)    && (a.sb != b)    && (a.sc != b)    && (a.sd != b)    && (a.se != b)    && (a.sf != b)   ); }
-inline __device__ bool operator != (const u32x a, const u32x b) { return ((a.s0 != b.s0) && (a.s1 != b.s1) && (a.s2 != b.s2) && (a.s3 != b.s3) && (a.s4 != b.s4) && (a.s5 != b.s5) && (a.s6 != b.s6) && (a.s7 != b.s7) && (a.s8 != b.s8) && (a.s9 != b.s9) && (a.sa != b.sa) && (a.sb != b.sb) && (a.sc != b.sc) && (a.sd != b.sd) && (a.se != b.se) && (a.sf != b.sf)); }
-
-inline __device__ void operator ^= (u32x &a, const u32  b) { a.s0 ^= b;    a.s1 ^= b;    a.s2 ^= b;    a.s3 ^= b;    a.s4 ^= b;    a.s5 ^= b;    a.s6 ^= b;    a.s7 ^= b;    a.s8 ^= b;    a.s9 ^= b;    a.sa ^= b;    a.sb ^= b;    a.sc ^= b;    a.sd ^= b;    a.se ^= b;    a.sf ^= b;    }
-inline __device__ void operator ^= (u32x &a, const u32x b) { a.s0 ^= b.s0; a.s1 ^= b.s1; a.s2 ^= b.s2; a.s3 ^= b.s3; a.s4 ^= b.s4; a.s5 ^= b.s5; a.s6 ^= b.s6; a.s7 ^= b.s7; a.s8 ^= b.s8; a.s9 ^= b.s9; a.sa ^= b.sa; a.sb ^= b.sb; a.sc ^= b.sc; a.sd ^= b.sd; a.se ^= b.se; a.sf ^= b.sf; }
-
-inline __device__ void operator |= (u32x &a, const u32  b) { a.s0 |= b;    a.s1 |= b;    a.s2 |= b;    a.s3 |= b;    a.s4 |= b;    a.s5 |= b;    a.s6 |= b;    a.s7 |= b;    a.s8 |= b;    a.s9 |= b;    a.sa |= b;    a.sb |= b;    a.sc |= b;    a.sd |= b;    a.se |= b;    a.sf |= b;    }
-inline __device__ void operator |= (u32x &a, const u32x b) { a.s0 |= b.s0; a.s1 |= b.s1; a.s2 |= b.s2; a.s3 |= b.s3; a.s4 |= b.s4; a.s5 |= b.s5; a.s6 |= b.s6; a.s7 |= b.s7; a.s8 |= b.s8; a.s9 |= b.s9; a.sa |= b.sa; a.sb |= b.sb; a.sc |= b.sc; a.sd |= b.sd; a.se |= b.se; a.sf |= b.sf; }
-
-inline __device__ void operator &= (u32x &a, const u32  b) { a.s0 &= b;    a.s1 &= b;    a.s2 &= b;    a.s3 &= b;    a.s4 &= b;    a.s5 &= b;    a.s6 &= b;    a.s7 &= b;    a.s8 &= b;    a.s9 &= b;    a.sa &= b;    a.sb &= b;    a.sc &= b;    a.sd &= b;    a.se &= b;    a.sf &= b;    }
-inline __device__ void operator &= (u32x &a, const u32x b) { a.s0 &= b.s0; a.s1 &= b.s1; a.s2 &= b.s2; a.s3 &= b.s3; a.s4 &= b.s4; a.s5 &= b.s5; a.s6 &= b.s6; a.s7 &= b.s7; a.s8 &= b.s8; a.s9 &= b.s9; a.sa &= b.sa; a.sb &= b.sb; a.sc &= b.sc; a.sd &= b.sd; a.se &= b.se; a.sf &= b.sf; }
-
-inline __device__ void operator += (u32x &a, const u32  b) { a.s0 += b;    a.s1 += b;    a.s2 += b;    a.s3 += b;    a.s4 += b;    a.s5 += b;    a.s6 += b;    a.s7 += b;    a.s8 += b;    a.s9 += b;    a.sa += b;    a.sb += b;    a.sc += b;    a.sd += b;    a.se += b;    a.sf += b;    }
-inline __device__ void operator += (u32x &a, const u32x b) { a.s0 += b.s0; a.s1 += b.s1; a.s2 += b.s2; a.s3 += b.s3; a.s4 += b.s4; a.s5 += b.s5; a.s6 += b.s6; a.s7 += b.s7; a.s8 += b.s8; a.s9 += b.s9; a.sa += b.sa; a.sb += b.sb; a.sc += b.sc; a.sd += b.sd; a.se += b.se; a.sf += b.sf; }
-
-inline __device__ void operator -= (u32x &a, const u32  b) { a.s0 -= b;    a.s1 -= b;    a.s2 -= b;    a.s3 -= b;    a.s4 -= b;    a.s5 -= b;    a.s6 -= b;    a.s7 -= b;    a.s8 -= b;    a.s9 -= b;    a.sa -= b;    a.sb -= b;    a.sc -= b;    a.sd -= b;    a.se -= b;    a.sf -= b;    }
-inline __device__ void operator -= (u32x &a, const u32x b) { a.s0 -= b.s0; a.s1 -= b.s1; a.s2 -= b.s2; a.s3 -= b.s3; a.s4 -= b.s4; a.s5 -= b.s5; a.s6 -= b.s6; a.s7 -= b.s7; a.s8 -= b.s8; a.s9 -= b.s9; a.sa -= b.sa; a.sb -= b.sb; a.sc -= b.sc; a.sd -= b.sd; a.se -= b.se; a.sf -= b.sf; }
-
-inline __device__ void operator *= (u32x &a, const u32  b) { a.s0 *= b;    a.s1 *= b;    a.s2 *= b;    a.s3 *= b;    a.s4 *= b;    a.s5 *= b;    a.s6 *= b;    a.s7 *= b;    a.s8 *= b;    a.s9 *= b;    a.sa *= b;    a.sb *= b;    a.sc *= b;    a.sd *= b;    a.se *= b;    a.sf *= b;    }
-inline __device__ void operator *= (u32x &a, const u32x b) { a.s0 *= b.s0; a.s1 *= b.s1; a.s2 *= b.s2; a.s3 *= b.s3; a.s4 *= b.s4; a.s5 *= b.s5; a.s6 *= b.s6; a.s7 *= b.s7; a.s8 *= b.s8; a.s9 *= b.s9; a.sa *= b.sa; a.sb *= b.sb; a.sc *= b.sc; a.sd *= b.sd; a.se *= b.se; a.sf *= b.sf; }
-
-inline __device__ void operator >>= (u32x &a, const u32  b) { a.s0 >>= b;    a.s1 >>= b;    a.s2 >>= b;    a.s3 >>= b;    a.s4 >>= b;    a.s5 >>= b;    a.s6 >>= b;    a.s7 >>= b;    a.s8 >>= b;    a.s9 >>= b;    a.sa >>= b;    a.sb >>= b;    a.sc >>= b;    a.sd >>= b;    a.se >>= b;    a.sf >>= b;    }
-inline __device__ void operator >>= (u32x &a, const u32x b) { a.s0 >>= b.s0; a.s1 >>= b.s1; a.s2 >>= b.s2; a.s3 >>= b.s3; a.s4 >>= b.s4; a.s5 >>= b.s5; a.s6 >>= b.s6; a.s7 >>= b.s7; a.s8 >>= b.s8; a.s9 >>= b.s9; a.sa >>= b.sa; a.sb >>= b.sb; a.sc >>= b.sc; a.sd >>= b.sd; a.se >>= b.se; a.sf >>= b.sf; }
-
-inline __device__ void operator <<= (u32x &a, const u32  b) { a.s0 <<= b;    a.s1 <<= b;    a.s2 <<= b;    a.s3 <<= b;    a.s4 <<= b;    a.s5 <<= b;    a.s6 <<= b;    a.s7 <<= b;    a.s8 <<= b;    a.s9 <<= b;    a.sa <<= b;    a.sb <<= b;    a.sc <<= b;    a.sd <<= b;    a.se <<= b;    a.sf <<= b;    }
-inline __device__ void operator <<= (u32x &a, const u32x b) { a.s0 <<= b.s0; a.s1 <<= b.s1; a.s2 <<= b.s2; a.s3 <<= b.s3; a.s4 <<= b.s4; a.s5 <<= b.s5; a.s6 <<= b.s6; a.s7 <<= b.s7; a.s8 <<= b.s8; a.s9 <<= b.s9; a.sa <<= b.sa; a.sb <<= b.sb; a.sc <<= b.sc; a.sd <<= b.sd; a.se <<= b.se; a.sf <<= b.sf; }
-
-inline __device__ u32x operator << (const u32x a, const u32  b) { return u32x ((a.s0 << b),    (a.s1 << b)   , (a.s2 << b),    (a.s3 << b)   , (a.s4 << b),    (a.s5 << b)   , (a.s6 << b),    (a.s7 << b),    (a.s8 << b),    (a.s9 << b)   , (a.sa << b),    (a.sb << b)   , (a.sc << b),    (a.sd << b)   , (a.se << b),    (a.sf << b)   );  }
-inline __device__ u32x operator << (const u32x a, const u32x b) { return u32x ((a.s0 << b.s0), (a.s1 << b.s1), (a.s2 << b.s2), (a.s3 << b.s3), (a.s4 << b.s4), (a.s5 << b.s5), (a.s6 << b.s6), (a.s7 << b.s7), (a.s8 << b.s8), (a.s9 << b.s9), (a.sa << b.sa), (a.sb << b.sb), (a.sc << b.sc), (a.sd << b.sd), (a.se << b.se), (a.sf << b.sf));  }
-
-inline __device__ u32x operator >> (const u32x a, const u32  b) { return u32x ((a.s0 >> b),    (a.s1 >> b)   , (a.s2 >> b),    (a.s3 >> b)   , (a.s4 >> b),    (a.s5 >> b)   , (a.s6 >> b),    (a.s7 >> b),    (a.s8 >> b),    (a.s9 >> b)   , (a.sa >> b),    (a.sb >> b)   , (a.sc >> b),    (a.sd >> b)   , (a.se >> b),    (a.sf >> b)   );  }
-inline __device__ u32x operator >> (const u32x a, const u32x b) { return u32x ((a.s0 >> b.s0), (a.s1 >> b.s1), (a.s2 >> b.s2), (a.s3 >> b.s3), (a.s4 >> b.s4), (a.s5 >> b.s5), (a.s6 >> b.s6), (a.s7 >> b.s7), (a.s8 >> b.s8), (a.s9 >> b.s9), (a.sa >> b.sa), (a.sb >> b.sb), (a.sc >> b.sc), (a.sd >> b.sd), (a.se >> b.se), (a.sf >> b.sf));  }
-
-inline __device__ u32x operator ^  (const u32x a, const u32  b) { return u32x ((a.s0 ^  b),    (a.s1 ^  b)   , (a.s2 ^  b),    (a.s3 ^  b)   , (a.s4 ^  b),    (a.s5 ^  b)   , (a.s6 ^  b),    (a.s7 ^  b),    (a.s8 ^  b),    (a.s9 ^  b)   , (a.sa ^  b),    (a.sb ^  b)   , (a.sc ^  b),    (a.sd ^  b)   , (a.se ^  b),    (a.sf ^  b)   );  }
-inline __device__ u32x operator ^  (const u32x a, const u32x b) { return u32x ((a.s0 ^  b.s0), (a.s1 ^  b.s1), (a.s2 ^  b.s2), (a.s3 ^  b.s3), (a.s4 ^  b.s4), (a.s5 ^  b.s5), (a.s6 ^  b.s6), (a.s7 ^  b.s7), (a.s8 ^  b.s8), (a.s9 ^  b.s9), (a.sa ^  b.sa), (a.sb ^  b.sb), (a.sc ^  b.sc), (a.sd ^  b.sd), (a.se ^  b.se), (a.sf ^  b.sf));  }
-
-inline __device__ u32x operator |  (const u32x a, const u32  b) { return u32x ((a.s0 |  b),    (a.s1 |  b)   , (a.s2 |  b),    (a.s3 |  b)   , (a.s4 |  b),    (a.s5 |  b)   , (a.s6 |  b),    (a.s7 |  b),    (a.s8 |  b),    (a.s9 |  b)   , (a.sa |  b),    (a.sb |  b)   , (a.sc |  b),    (a.sd |  b)   , (a.se |  b),    (a.sf |  b)   );  }
-inline __device__ u32x operator |  (const u32x a, const u32x b) { return u32x ((a.s0 |  b.s0), (a.s1 |  b.s1), (a.s2 |  b.s2), (a.s3 |  b.s3), (a.s4 |  b.s4), (a.s5 |  b.s5), (a.s6 |  b.s6), (a.s7 |  b.s7), (a.s8 |  b.s8), (a.s9 |  b.s9), (a.sa |  b.sa), (a.sb |  b.sb), (a.sc |  b.sc), (a.sd |  b.sd), (a.se |  b.se), (a.sf |  b.sf));  }
-
-inline __device__ u32x operator &  (const u32x a, const u32  b) { return u32x ((a.s0 &  b),    (a.s1 &  b)   , (a.s2 &  b),    (a.s3 &  b)   , (a.s4 &  b),    (a.s5 &  b)   , (a.s6 &  b),    (a.s7 &  b),    (a.s8 &  b),    (a.s9 &  b)   , (a.sa &  b),    (a.sb &  b)   , (a.sc &  b),    (a.sd &  b)   , (a.se &  b),    (a.sf &  b)   );  }
-inline __device__ u32x operator &  (const u32x a, const u32x b) { return u32x ((a.s0 &  b.s0), (a.s1 &  b.s1), (a.s2 &  b.s2), (a.s3 &  b.s3), (a.s4 &  b.s4), (a.s5 &  b.s5), (a.s6 &  b.s6), (a.s7 &  b.s7), (a.s8 &  b.s8), (a.s9 &  b.s9), (a.sa &  b.sa), (a.sb &  b.sb), (a.sc &  b.sc), (a.sd &  b.sd), (a.se &  b.se), (a.sf &  b.sf));  }
-
-inline __device__ u32x operator +  (const u32x a, const u32  b) { return u32x ((a.s0 +  b),    (a.s1 +  b)   , (a.s2 +  b),    (a.s3 +  b)   , (a.s4 +  b),    (a.s5 +  b)   , (a.s6 +  b),    (a.s7 +  b),    (a.s8 +  b),    (a.s9 +  b)   , (a.sa +  b),    (a.sb +  b)   , (a.sc +  b),    (a.sd +  b)   , (a.se +  b),    (a.sf +  b)   );  }
-inline __device__ u32x operator +  (const u32x a, const u32x b) { return u32x ((a.s0 +  b.s0), (a.s1 +  b.s1), (a.s2 +  b.s2), (a.s3 +  b.s3), (a.s4 +  b.s4), (a.s5 +  b.s5), (a.s6 +  b.s6), (a.s7 +  b.s7), (a.s8 +  b.s8), (a.s9 +  b.s9), (a.sa +  b.sa), (a.sb +  b.sb), (a.sc +  b.sc), (a.sd +  b.sd), (a.se +  b.se), (a.sf +  b.sf));  }
-
-inline __device__ u32x operator -  (const u32x a, const u32  b) { return u32x ((a.s0 -  b),    (a.s1 -  b)   , (a.s2 -  b),    (a.s3 -  b)   , (a.s4 -  b),    (a.s5 -  b)   , (a.s6 -  b),    (a.s7 -  b),    (a.s8 -  b),    (a.s9 -  b)   , (a.sa -  b),    (a.sb -  b)   , (a.sc -  b),    (a.sd -  b)   , (a.se -  b),    (a.sf -  b)   );  }
-inline __device__ u32x operator -  (const u32x a, const u32x b) { return u32x ((a.s0 -  b.s0), (a.s1 -  b.s1), (a.s2 -  b.s2), (a.s3 -  b.s3), (a.s4 -  b.s4), (a.s5 -  b.s5), (a.s6 -  b.s6), (a.s7 -  b.s7), (a.s8 -  b.s8), (a.s9 -  b.s9), (a.sa -  b.sa), (a.sb -  b.sb), (a.sc -  b.sc), (a.sd -  b.sd), (a.se -  b.se), (a.sf -  b.sf));  }
-
-inline __device__ u32x operator *  (const u32x a, const u32  b) { return u32x ((a.s0 *  b),    (a.s1 *  b)   , (a.s2 *  b),    (a.s3 *  b)   , (a.s4 *  b),    (a.s5 *  b)   , (a.s6 *  b),    (a.s7 *  b),    (a.s8 *  b),    (a.s9 *  b)   , (a.sa *  b),    (a.sb *  b)   , (a.sc *  b),    (a.sd *  b)   , (a.se *  b),    (a.sf *  b)   );  }
-inline __device__ u32x operator *  (const u32x a, const u32x b) { return u32x ((a.s0 *  b.s0), (a.s1 *  b.s1), (a.s2 *  b.s2), (a.s3 *  b.s3), (a.s4 *  b.s4), (a.s5 *  b.s5), (a.s6 *  b.s6), (a.s7 *  b.s7), (a.s8 *  b.s8), (a.s9 *  b.s9), (a.sa *  b.sa), (a.sb *  b.sb), (a.sc *  b.sc), (a.sd *  b.sd), (a.se *  b.se), (a.sf *  b.sf));  }
-
-inline __device__ u32x operator %  (const u32x a, const u32  b) { return u32x ((a.s0 %  b),    (a.s1 %  b)   , (a.s2 %  b),    (a.s3 %  b)   , (a.s4 %  b),    (a.s5 %  b)   , (a.s6 %  b),    (a.s7 %  b),    (a.s8 %  b),    (a.s9 %  b)   , (a.sa %  b),    (a.sb %  b)   , (a.sc %  b),    (a.sd %  b)   , (a.se %  b),    (a.sf %  b)   );  }
-inline __device__ u32x operator %  (const u32x a, const u32x b) { return u32x ((a.s0 %  b.s0), (a.s1 %  b.s1), (a.s2 %  b.s2), (a.s3 %  b.s3), (a.s4 %  b.s4), (a.s5 %  b.s5), (a.s6 %  b.s6), (a.s7 %  b.s7), (a.s8 %  b.s8), (a.s9 %  b.s9), (a.sa %  b.sa), (a.sb %  b.sb), (a.sc %  b.sc), (a.sd %  b.sd), (a.se %  b.se), (a.sf %  b.sf));  }
-
-inline __device__ u32x operator ~  (const u32x a) { return u32x (~a.s0, ~a.s1, ~a.s2, ~a.s3, ~a.s4, ~a.s5, ~a.s6, ~a.s7, ~a.s8, ~a.s9, ~a.sa, ~a.sb, ~a.sc, ~a.sd, ~a.se, ~a.sf); }
-
-inline __device__ bool operator != (const u64x a, const u64  b) { return ((a.s0 != b)    && (a.s1 != b)    && (a.s2 != b)    && (a.s3 != b)    && (a.s4 != b)    && (a.s5 != b)    && (a.s6 != b)    && (a.s7 != b)    && (a.s8 != b)    && (a.s9 != b)    && (a.sa != b)    && (a.sb != b)    && (a.sc != b)    && (a.sd != b)    && (a.se != b)    && (a.sf != b)   ); }
-inline __device__ bool operator != (const u64x a, const u64x b) { return ((a.s0 != b.s0) && (a.s1 != b.s1) && (a.s2 != b.s2) && (a.s3 != b.s3) && (a.s4 != b.s4) && (a.s5 != b.s5) && (a.s6 != b.s6) && (a.s7 != b.s7) && (a.s8 != b.s8) && (a.s9 != b.s9) && (a.sa != b.sa) && (a.sb != b.sb) && (a.sc != b.sc) && (a.sd != b.sd) && (a.se != b.se) && (a.sf != b.sf)); }
-
-inline __device__ void operator ^= (u64x &a, const u64  b) { a.s0 ^= b;    a.s1 ^= b;    a.s2 ^= b;    a.s3 ^= b;    a.s4 ^= b;    a.s5 ^= b;    a.s6 ^= b;    a.s7 ^= b;    a.s8 ^= b;    a.s9 ^= b;    a.sa ^= b;    a.sb ^= b;    a.sc ^= b;    a.sd ^= b;    a.se ^= b;    a.sf ^= b;    }
-inline __device__ void operator ^= (u64x &a, const u64x b) { a.s0 ^= b.s0; a.s1 ^= b.s1; a.s2 ^= b.s2; a.s3 ^= b.s3; a.s4 ^= b.s4; a.s5 ^= b.s5; a.s6 ^= b.s6; a.s7 ^= b.s7; a.s8 ^= b.s8; a.s9 ^= b.s9; a.sa ^= b.sa; a.sb ^= b.sb; a.sc ^= b.sc; a.sd ^= b.sd; a.se ^= b.se; a.sf ^= b.sf; }
-
-inline __device__ void operator |= (u64x &a, const u64  b) { a.s0 |= b;    a.s1 |= b;    a.s2 |= b;    a.s3 |= b;    a.s4 |= b;    a.s5 |= b;    a.s6 |= b;    a.s7 |= b;    a.s8 |= b;    a.s9 |= b;    a.sa |= b;    a.sb |= b;    a.sc |= b;    a.sd |= b;    a.se |= b;    a.sf |= b;    }
-inline __device__ void operator |= (u64x &a, const u64x b) { a.s0 |= b.s0; a.s1 |= b.s1; a.s2 |= b.s2; a.s3 |= b.s3; a.s4 |= b.s4; a.s5 |= b.s5; a.s6 |= b.s6; a.s7 |= b.s7; a.s8 |= b.s8; a.s9 |= b.s9; a.sa |= b.sa; a.sb |= b.sb; a.sc |= b.sc; a.sd |= b.sd; a.se |= b.se; a.sf |= b.sf; }
-
-inline __device__ void operator &= (u64x &a, const u64  b) { a.s0 &= b;    a.s1 &= b;    a.s2 &= b;    a.s3 &= b;    a.s4 &= b;    a.s5 &= b;    a.s6 &= b;    a.s7 &= b;    a.s8 &= b;    a.s9 &= b;    a.sa &= b;    a.sb &= b;    a.sc &= b;    a.sd &= b;    a.se &= b;    a.sf &= b;    }
-inline __device__ void operator &= (u64x &a, const u64x b) { a.s0 &= b.s0; a.s1 &= b.s1; a.s2 &= b.s2; a.s3 &= b.s3; a.s4 &= b.s4; a.s5 &= b.s5; a.s6 &= b.s6; a.s7 &= b.s7; a.s8 &= b.s8; a.s9 &= b.s9; a.sa &= b.sa; a.sb &= b.sb; a.sc &= b.sc; a.sd &= b.sd; a.se &= b.se; a.sf &= b.sf; }
-
-inline __device__ void operator += (u64x &a, const u64  b) { a.s0 += b;    a.s1 += b;    a.s2 += b;    a.s3 += b;    a.s4 += b;    a.s5 += b;    a.s6 += b;    a.s7 += b;    a.s8 += b;    a.s9 += b;    a.sa += b;    a.sb += b;    a.sc += b;    a.sd += b;    a.se += b;    a.sf += b;    }
-inline __device__ void operator += (u64x &a, const u64x b) { a.s0 += b.s0; a.s1 += b.s1; a.s2 += b.s2; a.s3 += b.s3; a.s4 += b.s4; a.s5 += b.s5; a.s6 += b.s6; a.s7 += b.s7; a.s8 += b.s8; a.s9 += b.s9; a.sa += b.sa; a.sb += b.sb; a.sc += b.sc; a.sd += b.sd; a.se += b.se; a.sf += b.sf; }
-
-inline __device__ void operator -= (u64x &a, const u64  b) { a.s0 -= b;    a.s1 -= b;    a.s2 -= b;    a.s3 -= b;    a.s4 -= b;    a.s5 -= b;    a.s6 -= b;    a.s7 -= b;    a.s8 -= b;    a.s9 -= b;    a.sa -= b;    a.sb -= b;    a.sc -= b;    a.sd -= b;    a.se -= b;    a.sf -= b;    }
-inline __device__ void operator -= (u64x &a, const u64x b) { a.s0 -= b.s0; a.s1 -= b.s1; a.s2 -= b.s2; a.s3 -= b.s3; a.s4 -= b.s4; a.s5 -= b.s5; a.s6 -= b.s6; a.s7 -= b.s7; a.s8 -= b.s8; a.s9 -= b.s9; a.sa -= b.sa; a.sb -= b.sb; a.sc -= b.sc; a.sd -= b.sd; a.se -= b.se; a.sf -= b.sf; }
-
-inline __device__ void operator *= (u64x &a, const u64  b) { a.s0 *= b;    a.s1 *= b;    a.s2 *= b;    a.s3 *= b;    a.s4 *= b;    a.s5 *= b;    a.s6 *= b;    a.s7 *= b;    a.s8 *= b;    a.s9 *= b;    a.sa *= b;    a.sb *= b;    a.sc *= b;    a.sd *= b;    a.se *= b;    a.sf *= b;    }
-inline __device__ void operator *= (u64x &a, const u64x b) { a.s0 *= b.s0; a.s1 *= b.s1; a.s2 *= b.s2; a.s3 *= b.s3; a.s4 *= b.s4; a.s5 *= b.s5; a.s6 *= b.s6; a.s7 *= b.s7; a.s8 *= b.s8; a.s9 *= b.s9; a.sa *= b.sa; a.sb *= b.sb; a.sc *= b.sc; a.sd *= b.sd; a.se *= b.se; a.sf *= b.sf; }
-
-inline __device__ void operator >>= (u64x &a, const u64  b) { a.s0 >>= b;    a.s1 >>= b;    a.s2 >>= b;    a.s3 >>= b;    a.s4 >>= b;    a.s5 >>= b;    a.s6 >>= b;    a.s7 >>= b;    a.s8 >>= b;    a.s9 >>= b;    a.sa >>= b;    a.sb >>= b;    a.sc >>= b;    a.sd >>= b;    a.se >>= b;    a.sf >>= b;    }
-inline __device__ void operator >>= (u64x &a, const u64x b) { a.s0 >>= b.s0; a.s1 >>= b.s1; a.s2 >>= b.s2; a.s3 >>= b.s3; a.s4 >>= b.s4; a.s5 >>= b.s5; a.s6 >>= b.s6; a.s7 >>= b.s7; a.s8 >>= b.s8; a.s9 >>= b.s9; a.sa >>= b.sa; a.sb >>= b.sb; a.sc >>= b.sc; a.sd >>= b.sd; a.se >>= b.se; a.sf >>= b.sf; }
-
-inline __device__ void operator <<= (u64x &a, const u64  b) { a.s0 <<= b;    a.s1 <<= b;    a.s2 <<= b;    a.s3 <<= b;    a.s4 <<= b;    a.s5 <<= b;    a.s6 <<= b;    a.s7 <<= b;    a.s8 <<= b;    a.s9 <<= b;    a.sa <<= b;    a.sb <<= b;    a.sc <<= b;    a.sd <<= b;    a.se <<= b;    a.sf <<= b;    }
-inline __device__ void operator <<= (u64x &a, const u64x b) { a.s0 <<= b.s0; a.s1 <<= b.s1; a.s2 <<= b.s2; a.s3 <<= b.s3; a.s4 <<= b.s4; a.s5 <<= b.s5; a.s6 <<= b.s6; a.s7 <<= b.s7; a.s8 <<= b.s8; a.s9 <<= b.s9; a.sa <<= b.sa; a.sb <<= b.sb; a.sc <<= b.sc; a.sd <<= b.sd; a.se <<= b.se; a.sf <<= b.sf; }
-
-inline __device__ u64x operator << (const u64x a, const u64  b) { return u64x ((a.s0 << b),    (a.s1 << b)   , (a.s2 << b),    (a.s3 << b)   , (a.s4 << b),    (a.s5 << b)   , (a.s6 << b),    (a.s7 << b),    (a.s8 << b),    (a.s9 << b)   , (a.sa << b),    (a.sb << b)   , (a.sc << b),    (a.sd << b)   , (a.se << b),    (a.sf << b)   );  }
-inline __device__ u64x operator << (const u64x a, const u64x b) { return u64x ((a.s0 << b.s0), (a.s1 << b.s1), (a.s2 << b.s2), (a.s3 << b.s3), (a.s4 << b.s4), (a.s5 << b.s5), (a.s6 << b.s6), (a.s7 << b.s7), (a.s8 << b.s8), (a.s9 << b.s9), (a.sa << b.sa), (a.sb << b.sb), (a.sc << b.sc), (a.sd << b.sd), (a.se << b.se), (a.sf << b.sf));  }
-
-inline __device__ u64x operator >> (const u64x a, const u64  b) { return u64x ((a.s0 >> b),    (a.s1 >> b)   , (a.s2 >> b),    (a.s3 >> b)   , (a.s4 >> b),    (a.s5 >> b)   , (a.s6 >> b),    (a.s7 >> b),    (a.s8 >> b),    (a.s9 >> b)   , (a.sa >> b),    (a.sb >> b)   , (a.sc >> b),    (a.sd >> b)   , (a.se >> b),    (a.sf >> b)   );  }
-inline __device__ u64x operator >> (const u64x a, const u64x b) { return u64x ((a.s0 >> b.s0), (a.s1 >> b.s1), (a.s2 >> b.s2), (a.s3 >> b.s3), (a.s4 >> b.s4), (a.s5 >> b.s5), (a.s6 >> b.s6), (a.s7 >> b.s7), (a.s8 >> b.s8), (a.s9 >> b.s9), (a.sa >> b.sa), (a.sb >> b.sb), (a.sc >> b.sc), (a.sd >> b.sd), (a.se >> b.se), (a.sf >> b.sf));  }
-
-inline __device__ u64x operator ^  (const u64x a, const u64  b) { return u64x ((a.s0 ^  b),    (a.s1 ^  b)   , (a.s2 ^  b),    (a.s3 ^  b)   , (a.s4 ^  b),    (a.s5 ^  b)   , (a.s6 ^  b),    (a.s7 ^  b),    (a.s8 ^  b),    (a.s9 ^  b)   , (a.sa ^  b),    (a.sb ^  b)   , (a.sc ^  b),    (a.sd ^  b)   , (a.se ^  b),    (a.sf ^  b)   );  }
-inline __device__ u64x operator ^  (const u64x a, const u64x b) { return u64x ((a.s0 ^  b.s0), (a.s1 ^  b.s1), (a.s2 ^  b.s2), (a.s3 ^  b.s3), (a.s4 ^  b.s4), (a.s5 ^  b.s5), (a.s6 ^  b.s6), (a.s7 ^  b.s7), (a.s8 ^  b.s8), (a.s9 ^  b.s9), (a.sa ^  b.sa), (a.sb ^  b.sb), (a.sc ^  b.sc), (a.sd ^  b.sd), (a.se ^  b.se), (a.sf ^  b.sf));  }
-
-inline __device__ u64x operator |  (const u64x a, const u64  b) { return u64x ((a.s0 |  b),    (a.s1 |  b)   , (a.s2 |  b),    (a.s3 |  b)   , (a.s4 |  b),    (a.s5 |  b)   , (a.s6 |  b),    (a.s7 |  b),    (a.s8 |  b),    (a.s9 |  b)   , (a.sa |  b),    (a.sb |  b)   , (a.sc |  b),    (a.sd |  b)   , (a.se |  b),    (a.sf |  b)   );  }
-inline __device__ u64x operator |  (const u64x a, const u64x b) { return u64x ((a.s0 |  b.s0), (a.s1 |  b.s1), (a.s2 |  b.s2), (a.s3 |  b.s3), (a.s4 |  b.s4), (a.s5 |  b.s5), (a.s6 |  b.s6), (a.s7 |  b.s7), (a.s8 |  b.s8), (a.s9 |  b.s9), (a.sa |  b.sa), (a.sb |  b.sb), (a.sc |  b.sc), (a.sd |  b.sd), (a.se |  b.se), (a.sf |  b.sf));  }
-
-inline __device__ u64x operator &  (const u64x a, const u64  b) { return u64x ((a.s0 &  b),    (a.s1 &  b)   , (a.s2 &  b),    (a.s3 &  b)   , (a.s4 &  b),    (a.s5 &  b)   , (a.s6 &  b),    (a.s7 &  b),    (a.s8 &  b),    (a.s9 &  b)   , (a.sa &  b),    (a.sb &  b)   , (a.sc &  b),    (a.sd &  b)   , (a.se &  b),    (a.sf &  b)   );  }
-inline __device__ u64x operator &  (const u64x a, const u64x b) { return u64x ((a.s0 &  b.s0), (a.s1 &  b.s1), (a.s2 &  b.s2), (a.s3 &  b.s3), (a.s4 &  b.s4), (a.s5 &  b.s5), (a.s6 &  b.s6), (a.s7 &  b.s7), (a.s8 &  b.s8), (a.s9 &  b.s9), (a.sa &  b.sa), (a.sb &  b.sb), (a.sc &  b.sc), (a.sd &  b.sd), (a.se &  b.se), (a.sf &  b.sf));  }
-
-inline __device__ u64x operator +  (const u64x a, const u64  b) { return u64x ((a.s0 +  b),    (a.s1 +  b)   , (a.s2 +  b),    (a.s3 +  b)   , (a.s4 +  b),    (a.s5 +  b)   , (a.s6 +  b),    (a.s7 +  b),    (a.s8 +  b),    (a.s9 +  b)   , (a.sa +  b),    (a.sb +  b)   , (a.sc +  b),    (a.sd +  b)   , (a.se +  b),    (a.sf +  b)   );  }
-inline __device__ u64x operator +  (const u64x a, const u64x b) { return u64x ((a.s0 +  b.s0), (a.s1 +  b.s1), (a.s2 +  b.s2), (a.s3 +  b.s3), (a.s4 +  b.s4), (a.s5 +  b.s5), (a.s6 +  b.s6), (a.s7 +  b.s7), (a.s8 +  b.s8), (a.s9 +  b.s9), (a.sa +  b.sa), (a.sb +  b.sb), (a.sc +  b.sc), (a.sd +  b.sd), (a.se +  b.se), (a.sf +  b.sf));  }
-
-inline __device__ u64x operator -  (const u64x a, const u64  b) { return u64x ((a.s0 -  b),    (a.s1 -  b)   , (a.s2 -  b),    (a.s3 -  b)   , (a.s4 -  b),    (a.s5 -  b)   , (a.s6 -  b),    (a.s7 -  b),    (a.s8 -  b),    (a.s9 -  b)   , (a.sa -  b),    (a.sb -  b)   , (a.sc -  b),    (a.sd -  b)   , (a.se -  b),    (a.sf -  b)   );  }
-inline __device__ u64x operator -  (const u64x a, const u64x b) { return u64x ((a.s0 -  b.s0), (a.s1 -  b.s1), (a.s2 -  b.s2), (a.s3 -  b.s3), (a.s4 -  b.s4), (a.s5 -  b.s5), (a.s6 -  b.s6), (a.s7 -  b.s7), (a.s8 -  b.s8), (a.s9 -  b.s9), (a.sa -  b.sa), (a.sb -  b.sb), (a.sc -  b.sc), (a.sd -  b.sd), (a.se -  b.se), (a.sf -  b.sf));  }
-
-inline __device__ u64x operator *  (const u64x a, const u64  b) { return u64x ((a.s0 *  b),    (a.s1 *  b)   , (a.s2 *  b),    (a.s3 *  b)   , (a.s4 *  b),    (a.s5 *  b)   , (a.s6 *  b),    (a.s7 *  b),    (a.s8 *  b),    (a.s9 *  b)   , (a.sa *  b),    (a.sb *  b)   , (a.sc *  b),    (a.sd *  b)   , (a.se *  b),    (a.sf *  b)   );  }
-inline __device__ u64x operator *  (const u64x a, const u64x b) { return u64x ((a.s0 *  b.s0), (a.s1 *  b.s1), (a.s2 *  b.s2), (a.s3 *  b.s3), (a.s4 *  b.s4), (a.s5 *  b.s5), (a.s6 *  b.s6), (a.s7 *  b.s7), (a.s8 *  b.s8), (a.s9 *  b.s9), (a.sa *  b.sa), (a.sb *  b.sb), (a.sc *  b.sc), (a.sd *  b.sd), (a.se *  b.se), (a.sf *  b.sf));  }
-
-inline __device__ u64x operator %  (const u64x a, const u64  b) { return u64x ((a.s0 %  b),    (a.s1 %  b)   , (a.s2 %  b),    (a.s3 %  b)   , (a.s4 %  b),    (a.s5 %  b)   , (a.s6 %  b),    (a.s7 %  b),    (a.s8 %  b),    (a.s9 %  b)   , (a.sa %  b),    (a.sb %  b)   , (a.sc %  b),    (a.sd %  b)   , (a.se %  b),    (a.sf %  b)   );  }
-inline __device__ u64x operator %  (const u64x a, const u64x b) { return u64x ((a.s0 %  b.s0), (a.s1 %  b.s1), (a.s2 %  b.s2), (a.s3 %  b.s3), (a.s4 %  b.s4), (a.s5 %  b.s5), (a.s6 %  b.s6), (a.s7 %  b.s7), (a.s8 %  b.s8), (a.s9 %  b.s9), (a.sa %  b.sa), (a.sb %  b.sb), (a.sc %  b.sc), (a.sd %  b.sd), (a.se %  b.se), (a.sf %  b.sf));  }
-
-inline __device__ u64x operator ~  (const u64x a) { return u64x (~a.s0, ~a.s1, ~a.s2, ~a.s3, ~a.s4, ~a.s5, ~a.s6, ~a.s7, ~a.s8, ~a.s9, ~a.sa, ~a.sb, ~a.sc, ~a.sd, ~a.se, ~a.sf); }
-
-#endif
-
-typedef struct u8x  u8x;
-typedef struct u16x u16x;
-typedef struct u32x u32x;
-typedef struct u64x u64x;
-
-#define make_u8x  u8x
-#define make_u16x u16x
-#define make_u32x u32x
-#define make_u64x u64x
-*/
-
 #else
-typedef VTYPE(uchar,  VECT_SIZE)  u8x;
+typedef VTYPE(uchar,  VECT_SIZE) u8x;
 typedef VTYPE(ushort, VECT_SIZE) u16x;
 typedef VTYPE(uint,   VECT_SIZE) u32x;
 typedef VTYPE(ulong,  VECT_SIZE) u64x;
