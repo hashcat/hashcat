@@ -1038,8 +1038,11 @@ typedef HIPresult (HIP_API_CALL *HIP_HIPLAUNCHKERNEL)           (HIPfunction, un
 typedef HIPresult (HIP_API_CALL *HIP_HIPMEMALLOC)               (HIPdeviceptr *, size_t);
 typedef HIPresult (HIP_API_CALL *HIP_HIPMEMALLOCHOST)           (void **, size_t);
 typedef HIPresult (HIP_API_CALL *HIP_HIPMEMCPYDTOD)             (HIPdeviceptr, HIPdeviceptr, size_t);
+typedef HIPresult (HIP_API_CALL *HIP_HIPMEMCPYDTODASYNC)        (HIPdeviceptr, HIPdeviceptr, size_t, HIPstream);
 typedef HIPresult (HIP_API_CALL *HIP_HIPMEMCPYDTOH)             (void *, HIPdeviceptr, size_t);
+typedef HIPresult (HIP_API_CALL *HIP_HIPMEMCPYDTOHASYNC)        (void *, HIPdeviceptr, size_t, HIPstream);
 typedef HIPresult (HIP_API_CALL *HIP_HIPMEMCPYHTOD)             (HIPdeviceptr, const void *, size_t);
+typedef HIPresult (HIP_API_CALL *HIP_HIPMEMCPYHTODASYNC)        (HIPdeviceptr, const void *, size_t, HIPstream);
 typedef HIPresult (HIP_API_CALL *HIP_HIPMEMFREE)                (HIPdeviceptr);
 typedef HIPresult (HIP_API_CALL *HIP_HIPMEMFREEHOST)            (void *);
 typedef HIPresult (HIP_API_CALL *HIP_HIPMEMGETINFO)             (size_t *, size_t *);
@@ -1100,8 +1103,11 @@ typedef struct hc_hip_lib
   HIP_HIPMEMALLOC               hipMemAlloc;
   HIP_HIPMEMALLOCHOST           hipMemAllocHost;
   HIP_HIPMEMCPYDTOD             hipMemcpyDtoD;
+  HIP_HIPMEMCPYDTODASYNC        hipMemcpyDtoDAsync;
   HIP_HIPMEMCPYDTOH             hipMemcpyDtoH;
+  HIP_HIPMEMCPYDTOHASYNC        hipMemcpyDtoHAsync;
   HIP_HIPMEMCPYHTOD             hipMemcpyHtoD;
+  HIP_HIPMEMCPYHTODASYNC        hipMemcpyHtoDAsync;
   HIP_HIPMEMFREE                hipMemFree;
   HIP_HIPMEMFREEHOST            hipMemFreeHost;
   HIP_HIPMEMGETINFO             hipMemGetInfo;
