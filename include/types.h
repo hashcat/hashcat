@@ -1163,6 +1163,7 @@ typedef struct hc_device_param
   u32     kernel_preferred_wgs_multiple_amp;
   u32     kernel_preferred_wgs_multiple_tm;
   u32     kernel_preferred_wgs_multiple_memset;
+  u32     kernel_preferred_wgs_multiple_bzero;
   u32     kernel_preferred_wgs_multiple_atinit;
   u32     kernel_preferred_wgs_multiple_utf8toutf16le;
   u32     kernel_preferred_wgs_multiple_decompress;
@@ -1188,6 +1189,7 @@ typedef struct hc_device_param
   u64     kernel_local_mem_size_amp;
   u64     kernel_local_mem_size_tm;
   u64     kernel_local_mem_size_memset;
+  u64     kernel_local_mem_size_bzero;
   u64     kernel_local_mem_size_atinit;
   u64     kernel_local_mem_size_utf8toutf16le;
   u64     kernel_local_mem_size_decompress;
@@ -1213,6 +1215,7 @@ typedef struct hc_device_param
   u64     kernel_dynamic_local_mem_size_amp;
   u64     kernel_dynamic_local_mem_size_tm;
   u64     kernel_dynamic_local_mem_size_memset;
+  u64     kernel_dynamic_local_mem_size_bzero;
   u64     kernel_dynamic_local_mem_size_atinit;
   u64     kernel_dynamic_local_mem_size_utf8toutf16le;
   u64     kernel_dynamic_local_mem_size_decompress;
@@ -1397,6 +1400,7 @@ typedef struct hc_device_param
   u32     kernel_params_memset_buf32[PARAMCNT];
   u64     kernel_params_memset_buf64[PARAMCNT];
 
+  u32     kernel_params_bzero_buf32[PARAMCNT];
   u64     kernel_params_bzero_buf64[PARAMCNT];
 
   u32     kernel_params_atinit_buf32[PARAMCNT];

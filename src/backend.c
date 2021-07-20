@@ -11762,6 +11762,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (get_cuda_kernel_wgs (hashcat_ctx, device_param->cuda_function_bzero, &device_param->kernel_wgs_bzero) == -1) return -1;
 
+        if (get_cuda_kernel_local_mem_size (hashcat_ctx, device_param->cuda_function_bzero, &device_param->kernel_local_mem_size_bzero) == -1) return -1;
+
+        if (get_cuda_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->cuda_function_bzero, &device_param->kernel_dynamic_local_mem_size_bzero) == -1) return -1;
+
+        device_param->kernel_preferred_wgs_multiple_bzero = device_param->cuda_warp_size;
+
         // GPU autotune init
 
         if (hc_cuModuleGetFunction (hashcat_ctx, &device_param->cuda_function_atinit, device_param->cuda_module_shared, "gpu_atinit") == -1) return -1;
@@ -11822,6 +11828,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (get_hip_kernel_wgs (hashcat_ctx, device_param->hip_function_bzero, &device_param->kernel_wgs_bzero) == -1) return -1;
 
+        if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_bzero, &device_param->kernel_local_mem_size_bzero) == -1) return -1;
+
+        //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function_bzero, &device_param->kernel_dynamic_local_mem_size_bzero) == -1) return -1;
+
+        device_param->kernel_preferred_wgs_multiple_bzero = device_param->hip_warp_size;
+
         // GPU autotune init
 
         if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function_atinit, device_param->hip_module_shared, "gpu_atinit") == -1) return -1;
@@ -11881,6 +11893,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         if (hc_clCreateKernel (hashcat_ctx, device_param->opencl_program_shared, "gpu_bzero", &device_param->opencl_kernel_bzero) == -1) return -1;
 
         if (get_opencl_kernel_wgs (hashcat_ctx, device_param, device_param->opencl_kernel_bzero, &device_param->kernel_wgs_bzero) == -1) return -1;
+
+        if (get_opencl_kernel_local_mem_size (hashcat_ctx, device_param, device_param->opencl_kernel_bzero, &device_param->kernel_local_mem_size_bzero) == -1) return -1;
+
+        if (get_opencl_kernel_dynamic_local_mem_size (hashcat_ctx, device_param, device_param->opencl_kernel_bzero, &device_param->kernel_dynamic_local_mem_size_bzero) == -1) return -1;
+
+        if (get_opencl_kernel_preferred_wgs_multiple (hashcat_ctx, device_param, device_param->opencl_kernel_bzero, &device_param->kernel_preferred_wgs_multiple_bzero) == -1) return -1;
 
         // GPU autotune init
 
