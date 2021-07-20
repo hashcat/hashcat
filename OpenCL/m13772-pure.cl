@@ -588,7 +588,9 @@ KERNEL_FQ void m13772_loop (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, vc_t))
         unpack64v (tmps, pim_key, gid, i + 6, out[6]);
         unpack64v (tmps, pim_key, gid, i + 7, out[7]);
 
-        unpack (tmps, pim_check, gid, make_u32x (pim));
+        const u32x pimx = make_u32x (pim);
+
+        unpack (tmps, pim_check, gid, pimx);
       }
     }
 
