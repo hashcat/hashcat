@@ -18,6 +18,8 @@
 #include <unistd.h>
 #include <math.h>
 
+#define AUTO __auto_type
+
 // workaround to get the rid of "redefinition of typedef 'Byte'" build warning
 #if !defined (__APPLE__)
 #include "zlib.h"
@@ -1074,7 +1076,7 @@ typedef struct hc_fp
   bool        is_zip;
   int         bom_size;
 
-  char       *mode;
+  const char *mode;
   const char *path;
 
 } HCFILE;

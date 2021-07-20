@@ -19,8 +19,8 @@
 
 static const size_t TERMINAL_LINE_LENGTH = 79;
 
-static const char *PROMPT_ACTIVE = "[s]tatus [p]ause [b]ypass [c]heckpoint [f]inish [q]uit => ";
-static const char *PROMPT_PAUSED = "[s]tatus [r]esume [b]ypass [c]heckpoint [f]inish [q]uit => ";
+static const AUTO PROMPT_ACTIVE = "[s]tatus [p]ause [b]ypass [c]heckpoint [f]inish [q]uit => ";
+static const AUTO PROMPT_PAUSED = "[s]tatus [r]esume [b]ypass [c]heckpoint [f]inish [q]uit => ";
 
 void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
 {
@@ -640,7 +640,7 @@ void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_t *user_options)
     if (hashconfig->is_salted == true)
     {
       u32 t = hashconfig->salt_type;
-      char *t_desc = (t == SALT_TYPE_EMBEDDED) ? "Embedded\0" : (t == SALT_TYPE_GENERIC) ? "Generic\0" : "Virtual\0";
+      const char *t_desc = (t == SALT_TYPE_EMBEDDED) ? "Embedded\0" : (t == SALT_TYPE_GENERIC) ? "Generic\0" : "Virtual\0";
       event_log_info (hashcat_ctx, "  Salt.Type...........: %s", t_desc);
       event_log_info (hashcat_ctx, "  Salt.Len.Min........: %d", hashconfig->salt_min);
       event_log_info (hashcat_ctx, "  Salt.Len.Max........: %d", hashconfig->salt_max);

@@ -20,9 +20,9 @@
 #endif
 
 #ifdef WITH_BRAIN
-static const char *short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:iIbw:OSz";
+static const AUTO short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:iIbw:OSz";
 #else
-static const char *short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:iIbw:OS";
+static const AUTO short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:iIbw:OS";
 #endif
 
 static const struct option long_options[] =
@@ -144,15 +144,15 @@ static const struct option long_options[] =
   {NULL,                        0,                 NULL, 0 }
 };
 
-static const char *ENCODING_FROM = "utf-8";
-static const char *ENCODING_TO   = "utf-8";
+static const AUTO ENCODING_FROM = "utf-8";
+static const AUTO ENCODING_TO   = "utf-8";
 
-static const char *RULE_BUF_R = ":";
-static const char *RULE_BUF_L = ":";
+static const AUTO RULE_BUF_R = ":";
+static const AUTO RULE_BUF_L = ":";
 
-static const char *DEF_MASK_CS_1 = "?l?d?u";
-static const char *DEF_MASK_CS_2 = "?l?d";
-static const char *DEF_MASK_CS_3 = "?l?d*!$@_";
+static const AUTO DEF_MASK_CS_1 = "?l?d?u";
+static const AUTO DEF_MASK_CS_2 = "?l?d";
+static const AUTO DEF_MASK_CS_3 = "?l?d*!$@_";
 
 int user_options_init (hashcat_ctx_t *hashcat_ctx)
 {
