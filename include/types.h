@@ -651,6 +651,7 @@ typedef enum user_options_defaults
   BACKEND_INFO             = false,
   BACKEND_VECTOR_WIDTH     = 0,
   OPTIMIZED_KERNEL_ENABLE  = false,
+  MULTIPLY_ACCEL_DISABLE   = false,
   OUTFILE_AUTOHEX          = true,
   OUTFILE_CHECK_TIMER      = 5,
   OUTFILE_FORMAT           = 3,
@@ -760,6 +761,7 @@ typedef enum user_options_map
   IDX_NONCE_ERROR_CORRECTIONS   = 0xff2d,
   IDX_OPENCL_DEVICE_TYPES       = 'D',
   IDX_OPTIMIZED_KERNEL_ENABLE   = 'O',
+  IDX_MULTIPLY_ACCEL_DISABLE    = 'M',
   IDX_OUTFILE_AUTOHEX_DISABLE   = 0xff2e,
   IDX_OUTFILE_CHECK_DIR         = 0xff2f,
   IDX_OUTFILE_CHECK_TIMER       = 0xff30,
@@ -2130,6 +2132,7 @@ typedef struct user_options
   bool         backend_ignore_opencl;
   bool         backend_info;
   bool         optimized_kernel_enable;
+  bool         multiply_accel_disable;
   bool         outfile_autohex;
   bool         potfile_disable;
   bool         progress_only;

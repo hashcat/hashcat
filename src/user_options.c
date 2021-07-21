@@ -20,9 +20,9 @@
 #endif
 
 #ifdef WITH_BRAIN
-static const char *short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:iIbw:OSz";
+static const char *short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:iIbw:OMSz";
 #else
-static const char *short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:iIbw:OS";
+static const char *short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:iIbw:OMS";
 #endif
 
 static const struct option long_options[] =
@@ -88,6 +88,7 @@ static const struct option long_options[] =
   {"nonce-error-corrections",   required_argument, NULL, IDX_NONCE_ERROR_CORRECTIONS},
   {"opencl-device-types",       required_argument, NULL, IDX_OPENCL_DEVICE_TYPES},
   {"optimized-kernel-enable",   no_argument,       NULL, IDX_OPTIMIZED_KERNEL_ENABLE},
+  {"multiply-accel-disable",    no_argument,       NULL, IDX_MULTIPLY_ACCEL_DISABLE},
   {"outfile-autohex-disable",   no_argument,       NULL, IDX_OUTFILE_AUTOHEX_DISABLE},
   {"outfile-check-dir",         required_argument, NULL, IDX_OUTFILE_CHECK_DIR},
   {"outfile-check-timer",       required_argument, NULL, IDX_OUTFILE_CHECK_TIMER},
@@ -224,6 +225,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->nonce_error_corrections   = NONCE_ERROR_CORRECTIONS;
   user_options->opencl_device_types       = NULL;
   user_options->optimized_kernel_enable   = OPTIMIZED_KERNEL_ENABLE;
+  user_options->multiply_accel_disable    = MULTIPLY_ACCEL_DISABLE;
   user_options->outfile_autohex           = OUTFILE_AUTOHEX;
   user_options->outfile_check_dir         = NULL;
   user_options->outfile_check_timer       = OUTFILE_CHECK_TIMER;
@@ -451,6 +453,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
                                           user_options->backend_vector_width_chgd = true;                            break;
       case IDX_OPENCL_DEVICE_TYPES:       user_options->opencl_device_types       = optarg;                          break;
       case IDX_OPTIMIZED_KERNEL_ENABLE:   user_options->optimized_kernel_enable   = true;                            break;
+      case IDX_MULTIPLY_ACCEL_DISABLE:    user_options->multiply_accel_disable    = true;                            break;
       case IDX_WORKLOAD_PROFILE:          user_options->workload_profile          = hc_strtoul (optarg, NULL, 10);
                                           user_options->workload_profile_chgd     = true;                            break;
       case IDX_KERNEL_ACCEL:              user_options->kernel_accel              = hc_strtoul (optarg, NULL, 10);
@@ -1986,6 +1989,11 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
       event_log_info (hashcat_ctx, "* --optimized-kernel-enable");
     }
 
+    if (user_options->multiply_accel_disable == true)
+    {
+      event_log_info (hashcat_ctx, "* --multiply-accel-disable");
+    }
+
     if (user_options->backend_vector_width_chgd == true)
     {
       event_log_info (hashcat_ctx, "* --backend-vector-width=%u", user_options->backend_vector_width);
@@ -2038,6 +2046,11 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
     if (user_options->optimized_kernel_enable == true)
     {
       event_log_info (hashcat_ctx, "# option: --optimized-kernel-enable");
+    }
+
+    if (user_options->multiply_accel_disable == true)
+    {
+      event_log_info (hashcat_ctx, "# option: --multiply-accel-disable");
     }
 
     if (user_options->backend_vector_width_chgd == true)
@@ -3078,6 +3091,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->markov_disable);
   logfile_top_uint   (user_options->markov_inverse);
   logfile_top_uint   (user_options->markov_threshold);
+  logfile_top_uint   (user_options->multiply_accel_disable);
   logfile_top_uint   (user_options->backend_info);
   logfile_top_uint   (user_options->backend_vector_width);
   logfile_top_uint   (user_options->optimized_kernel_enable);

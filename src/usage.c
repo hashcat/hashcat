@@ -97,6 +97,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   " -d, --backend-devices          | Str  | Backend devices to use, separated with commas        | -d 1",
   " -D, --opencl-device-types      | Str  | OpenCL device-types to use, separated with commas    | -D 1",
   " -O, --optimized-kernel-enable  |      | Enable optimized kernels (limits password length)    |",
+  " -M, --multiply-accel-disable   |      | Disable multiply kernel-accel with processor count   |",
   " -w, --workload-profile         | Num  | Enable a specific workload profile, see pool below   | -w 3",
   " -n, --kernel-accel             | Num  | Manual workload tuning, set outerloop step size to X | -n 64",
   " -u, --kernel-loops             | Num  | Manual workload tuning, set innerloop step size to X | -u 256",

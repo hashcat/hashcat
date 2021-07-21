@@ -14845,7 +14845,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
      * 4 (gpus) * 260 (sizeof pw_t) * 3 (pws, pws_comp, pw_pre) * 20 (MCU) * 1024 (threads) * 1024 (accel) = 65,431,142,400 bytes RAM!!
      */
 
-    const u32 accel_limit = CEILDIV ((64 * 1024), kernel_threads); // this should result in less than 4GB per GPU, but allow higher accel in case user reduces the threads manually using -T
+    const int max_gb = (hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE) ? 1024 : 64;
+
+    const u32 accel_limit = CEILDIV ((max_gb * 1024), kernel_threads); // this should result in less than 4GB per GPU, but allow higher accel in case user reduces the threads manually using -T
 
     kernel_accel_max = MIN (kernel_accel_max, accel_limit);
 
