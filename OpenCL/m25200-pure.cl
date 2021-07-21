@@ -174,7 +174,6 @@ KERNEL_FQ void m25200_comp (KERN_ATTR_TMPS_ESALT (hmac_sha1_tmp_t, snmpv3_t))
   sha1_init (&ctx);
 
   sha1_update_swap (&ctx, tmp_buf, i);
-  //sha1_update_swap (&ctx, (u32 *)buf, i);
 
   sha1_final (&ctx);
 
@@ -186,22 +185,11 @@ KERNEL_FQ void m25200_comp (KERN_ATTR_TMPS_ESALT (hmac_sha1_tmp_t, snmpv3_t))
   key[3] = ctx.h[3];
   key[4] = ctx.h[4];
 
-  u32 s[SNMPV3_SALT_MAX] = { 0 };
-
-  const u32 salt_len = esalt_bufs[DIGESTS_OFFSET].salt_len;
-
-  u32 idx;
-
-  for (i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
-  {
-    s[idx] = esalt_bufs[DIGESTS_OFFSET].salt_buf[idx];
-  }
-
   sha1_hmac_ctx_t hmac_ctx;
 
   sha1_hmac_init (&hmac_ctx, key, 20);
 
-  sha1_hmac_update (&hmac_ctx, s, salt_len);
+  sha1_hmac_update_global (&hmac_ctx, esalt_bufs[DIGESTS_OFFSET].salt_buf, esalt_bufs[DIGESTS_OFFSET].salt_len);
 
   sha1_hmac_final (&hmac_ctx);
 
