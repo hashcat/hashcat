@@ -172,6 +172,14 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
 
   XXH64_update (state, &hex_salt, sizeof (hex_salt));
 
+  const u32 opti_type = hashconfig->opti_type;
+
+  XXH64_update (state, &opti_type, sizeof (opti_type));
+
+  const u64 opts_type = hashconfig->opts_type;
+
+  XXH64_update (state, &opts_type, sizeof (opts_type));
+
   const int hccapx_message_pair = user_options->hccapx_message_pair;
 
   XXH64_update (state, &hccapx_message_pair, sizeof (hccapx_message_pair));

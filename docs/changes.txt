@@ -19,6 +19,7 @@
 ##
 
 - Blake Kernels: Optimize BLAKE2B_ROUND() 64 bit rotates giving a 5% performance increase
+- Brain Session: Adds hashconfig specific opti_type and opts_type parameters to hashcat session computation to cover features like -O and -M
 - Shared Memory: Calculate kernel dynamic memory size based on CU_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_BLOCK_OPTIN
 - Slow Kernels: Set some of the slowest kernels to OPTS_TYPE_MP_MULTI_DISABLE
 
