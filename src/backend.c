@@ -10244,44 +10244,6 @@ static int get_hip_kernel_local_mem_size (hashcat_ctx_t *hashcat_ctx, HIPfunctio
   return 0;
 }
 
-/*
-not supported because there's no cuFuncSetAttribute equivalent
-
-static int get_hip_kernel_dynamic_local_mem_size (hashcat_ctx_t *hashcat_ctx, HIPfunction function, u64 *result)
-{
-  // AFAIK there's no way to query the maximum value for dynamic shared memory available (because it depends on kernel code).
-  // let's brute force it, therefore workaround the hashcat wrapper of cuFuncSetAttribute()
-
-  #define MAX_ASSUMED_SHARED (1024 * 1024)
-
-  u64 dynamic_shared_size_bytes = 0;
-
-  for (int i = 1; i <= MAX_ASSUMED_SHARED; i++)
-  {
-    backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-    HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
-
-    const HIPresult HIP_err = hip->hipFuncSetAttribute (function, HIP_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES, i);
-
-    if (HIP_err == HIP_SUCCESS)
-    {
-      dynamic_shared_size_bytes = i;
-
-      continue;
-    }
-
-    break;
-  }
-
-  *result = dynamic_shared_size_bytes;
-
-  if (hc_hipFuncSetAttribute (hashcat_ctx, function, HIP_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES, 0) == -1) return -1;
-
-  return 0;
-}
-*/
-
 static int get_opencl_kernel_wgs (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_kernel kernel, u32 *result)
 {
   size_t work_group_size = 0;
@@ -11947,7 +11909,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_memset, &device_param->kernel_local_mem_size_memset) == -1) return -1;
 
-        //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function_memset, &device_param->kernel_dynamic_local_mem_size_memset) == -1) return -1;
+        device_param->kernel_dynamic_local_mem_size_memset = device_param->device_local_mem_size - device_param->kernel_local_mem_size_memset;
 
         device_param->kernel_preferred_wgs_multiple_memset = device_param->hip_warp_size;
 
@@ -11959,7 +11921,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_bzero, &device_param->kernel_local_mem_size_bzero) == -1) return -1;
 
-        //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function_bzero, &device_param->kernel_dynamic_local_mem_size_bzero) == -1) return -1;
+        device_param->kernel_dynamic_local_mem_size_bzero = device_param->device_local_mem_size - device_param->kernel_local_mem_size_bzero;
 
         device_param->kernel_preferred_wgs_multiple_bzero = device_param->hip_warp_size;
 
@@ -11971,7 +11933,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_atinit, &device_param->kernel_local_mem_size_atinit) == -1) return -1;
 
-        //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function_atinit, &device_param->kernel_dynamic_local_mem_size_atinit) == -1) return -1;
+        device_param->kernel_dynamic_local_mem_size_atinit = device_param->device_local_mem_size - device_param->kernel_local_mem_size_atinit;
 
         device_param->kernel_preferred_wgs_multiple_atinit = device_param->hip_warp_size;
 
@@ -11986,7 +11948,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_decompress, &device_param->kernel_local_mem_size_decompress) == -1) return -1;
 
-        //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function_decompress, &device_param->kernel_dynamic_local_mem_size_decompress) == -1) return -1;
+        device_param->kernel_dynamic_local_mem_size_decompress = device_param->device_local_mem_size - device_param->kernel_local_mem_size_decompress;
 
         device_param->kernel_preferred_wgs_multiple_decompress = device_param->hip_warp_size;
 
@@ -11998,7 +11960,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_utf8toutf16le, &device_param->kernel_local_mem_size_utf8toutf16le) == -1) return -1;
 
-        //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function_utf8toutf16le, &device_param->kernel_dynamic_local_mem_size_utf8toutf16le) == -1) return -1;
+        device_param->kernel_dynamic_local_mem_size_utf8toutf16le = device_param->device_local_mem_size - device_param->kernel_local_mem_size_utf8toutf16le;
 
         device_param->kernel_preferred_wgs_multiple_utf8toutf16le = device_param->hip_warp_size;
       }
@@ -13641,7 +13603,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
             if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function1, &device_param->kernel_local_mem_size1) == -1) return -1;
 
-            //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function1, &device_param->kernel_dynamic_local_mem_size1) == -1) return -1;
+            device_param->kernel_dynamic_local_mem_size1 = device_param->device_local_mem_size - device_param->kernel_local_mem_size1;
 
             device_param->kernel_preferred_wgs_multiple1 = device_param->hip_warp_size;
 
@@ -13655,7 +13617,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
             if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function2, &device_param->kernel_local_mem_size2) == -1) return -1;
 
-            //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function2, &device_param->kernel_dynamic_local_mem_size2) == -1) return -1;
+            device_param->kernel_dynamic_local_mem_size2 = device_param->device_local_mem_size - device_param->kernel_local_mem_size2;
 
             device_param->kernel_preferred_wgs_multiple2 = device_param->hip_warp_size;
 
@@ -13669,7 +13631,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
             if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function3, &device_param->kernel_local_mem_size3) == -1) return -1;
 
-            //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function3, &device_param->kernel_dynamic_local_mem_size3) == -1) return -1;
+            device_param->kernel_dynamic_local_mem_size3 = device_param->device_local_mem_size - device_param->kernel_local_mem_size3;
 
             device_param->kernel_preferred_wgs_multiple3 = device_param->hip_warp_size;
           }
@@ -13683,7 +13645,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
             if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function4, &device_param->kernel_local_mem_size4) == -1) return -1;
 
-            //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function4, &device_param->kernel_dynamic_local_mem_size4) == -1) return -1;
+            device_param->kernel_dynamic_local_mem_size4 = device_param->device_local_mem_size - device_param->kernel_local_mem_size4;
 
             device_param->kernel_preferred_wgs_multiple4 = device_param->hip_warp_size;
           }
@@ -13702,7 +13664,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
             if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function1, &device_param->kernel_local_mem_size1) == -1) return -1;
 
-            //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function1, &device_param->kernel_dynamic_local_mem_size1) == -1) return -1;
+            device_param->kernel_dynamic_local_mem_size1 = device_param->device_local_mem_size - device_param->kernel_local_mem_size1;
 
             device_param->kernel_preferred_wgs_multiple1 = device_param->hip_warp_size;
 
@@ -13716,7 +13678,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
             if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function2, &device_param->kernel_local_mem_size2) == -1) return -1;
 
-            //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function2, &device_param->kernel_dynamic_local_mem_size2) == -1) return -1;
+            device_param->kernel_dynamic_local_mem_size2 = device_param->device_local_mem_size - device_param->kernel_local_mem_size2;
 
             device_param->kernel_preferred_wgs_multiple2 = device_param->hip_warp_size;
 
@@ -13730,7 +13692,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
             if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function3, &device_param->kernel_local_mem_size3) == -1) return -1;
 
-            //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function3, &device_param->kernel_dynamic_local_mem_size3) == -1) return -1;
+            device_param->kernel_dynamic_local_mem_size3 = device_param->device_local_mem_size - device_param->kernel_local_mem_size3;
 
             device_param->kernel_preferred_wgs_multiple3 = device_param->hip_warp_size;
           }
@@ -13744,7 +13706,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
             if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function4, &device_param->kernel_local_mem_size4) == -1) return -1;
 
-            //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function4, &device_param->kernel_dynamic_local_mem_size4) == -1) return -1;
+            device_param->kernel_dynamic_local_mem_size4 = device_param->device_local_mem_size - device_param->kernel_local_mem_size4;
 
             device_param->kernel_preferred_wgs_multiple4 = device_param->hip_warp_size;
           }
@@ -13767,7 +13729,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
               if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_tm, &device_param->kernel_local_mem_size_tm) == -1) return -1;
 
-              //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function_tm, &device_param->kernel_dynamic_local_mem_size_tm) == -1) return -1;
+              device_param->kernel_dynamic_local_mem_size_tm = device_param->device_local_mem_size - device_param->kernel_local_mem_size_tm;
 
               device_param->kernel_preferred_wgs_multiple_tm = device_param->hip_warp_size;
             }
@@ -13786,7 +13748,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function1, &device_param->kernel_local_mem_size1) == -1) return -1;
 
-        //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function1, &device_param->kernel_dynamic_local_mem_size1) == -1) return -1;
+        device_param->kernel_dynamic_local_mem_size1 = device_param->device_local_mem_size - device_param->kernel_local_mem_size1;
 
         device_param->kernel_preferred_wgs_multiple1 = device_param->hip_warp_size;
 
@@ -13800,7 +13762,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function2, &device_param->kernel_local_mem_size2) == -1) return -1;
 
-        //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function2, &device_param->kernel_dynamic_local_mem_size2) == -1) return -1;
+        device_param->kernel_dynamic_local_mem_size2 = device_param->device_local_mem_size - device_param->kernel_local_mem_size2;
 
         device_param->kernel_preferred_wgs_multiple2 = device_param->hip_warp_size;
 
@@ -13814,7 +13776,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function3, &device_param->kernel_local_mem_size3) == -1) return -1;
 
-        //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function3, &device_param->kernel_dynamic_local_mem_size3) == -1) return -1;
+        device_param->kernel_dynamic_local_mem_size3 = device_param->device_local_mem_size - device_param->kernel_local_mem_size3;
 
         device_param->kernel_preferred_wgs_multiple3 = device_param->hip_warp_size;
 
@@ -13830,7 +13792,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function2p, &device_param->kernel_local_mem_size2p) == -1) return -1;
 
-          //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function2p, &device_param->kernel_dynamic_local_mem_size2p) == -1) return -1;
+          device_param->kernel_dynamic_local_mem_size2p = device_param->device_local_mem_size - device_param->kernel_local_mem_size2p;
 
           device_param->kernel_preferred_wgs_multiple2p = device_param->hip_warp_size;
         }
@@ -13847,7 +13809,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function2e, &device_param->kernel_local_mem_size2e) == -1) return -1;
 
-          //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function2e, &device_param->kernel_dynamic_local_mem_size2e) == -1) return -1;
+          device_param->kernel_dynamic_local_mem_size2e = device_param->device_local_mem_size - device_param->kernel_local_mem_size2e;
 
           device_param->kernel_preferred_wgs_multiple2e = device_param->hip_warp_size;
         }
@@ -13864,7 +13826,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function12, &device_param->kernel_local_mem_size12) == -1) return -1;
 
-          //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function12, &device_param->kernel_dynamic_local_mem_size12) == -1) return -1;
+          device_param->kernel_dynamic_local_mem_size12 = device_param->device_local_mem_size - device_param->kernel_local_mem_size12;
 
           device_param->kernel_preferred_wgs_multiple12 = device_param->hip_warp_size;
         }
@@ -13881,7 +13843,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function23, &device_param->kernel_local_mem_size23) == -1) return -1;
 
-          //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function23, &device_param->kernel_dynamic_local_mem_size23) == -1) return -1;
+          device_param->kernel_dynamic_local_mem_size23 = device_param->device_local_mem_size - device_param->kernel_local_mem_size23;
 
           device_param->kernel_preferred_wgs_multiple23 = device_param->hip_warp_size;
         }
@@ -13898,7 +13860,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_init2, &device_param->kernel_local_mem_size_init2) == -1) return -1;
 
-          //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function_init2, &device_param->kernel_dynamic_local_mem_size_init2) == -1) return -1;
+          device_param->kernel_dynamic_local_mem_size_init2 = device_param->device_local_mem_size - device_param->kernel_local_mem_size_init2;
 
           device_param->kernel_preferred_wgs_multiple_init2 = device_param->hip_warp_size;
         }
@@ -13915,7 +13877,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_loop2p, &device_param->kernel_local_mem_size_loop2p) == -1) return -1;
 
-          //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function_loop2p, &device_param->kernel_dynamic_local_mem_size_loop2p) == -1) return -1;
+          device_param->kernel_dynamic_local_mem_size_loop2p = device_param->device_local_mem_size - device_param->kernel_local_mem_size_loop2p;
 
           device_param->kernel_preferred_wgs_multiple_loop2p = device_param->hip_warp_size;
         }
@@ -13932,7 +13894,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_loop2, &device_param->kernel_local_mem_size_loop2) == -1) return -1;
 
-          //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function_loop2, &device_param->kernel_dynamic_local_mem_size_loop2) == -1) return -1;
+          device_param->kernel_dynamic_local_mem_size_loop2 = device_param->device_local_mem_size - device_param->kernel_local_mem_size_loop2;
 
           device_param->kernel_preferred_wgs_multiple_loop2 = device_param->hip_warp_size;
         }
@@ -13949,7 +13911,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_aux1, &device_param->kernel_local_mem_size_aux1) == -1) return -1;
 
-          //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function_aux1, &device_param->kernel_dynamic_local_mem_size_aux1) == -1) return -1;
+          device_param->kernel_dynamic_local_mem_size_aux1 = device_param->device_local_mem_size - device_param->kernel_local_mem_size_aux1;
 
           device_param->kernel_preferred_wgs_multiple_aux1 = device_param->hip_warp_size;
         }
@@ -13966,7 +13928,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_aux2, &device_param->kernel_local_mem_size_aux2) == -1) return -1;
 
-          //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function_aux2, &device_param->kernel_dynamic_local_mem_size_aux2) == -1) return -1;
+          device_param->kernel_dynamic_local_mem_size_aux2 = device_param->device_local_mem_size - device_param->kernel_local_mem_size_aux2;
 
           device_param->kernel_preferred_wgs_multiple_aux2 = device_param->hip_warp_size;
         }
@@ -13983,7 +13945,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_aux3, &device_param->kernel_local_mem_size_aux3) == -1) return -1;
 
-          //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function_aux3, &device_param->kernel_dynamic_local_mem_size_aux3) == -1) return -1;
+          device_param->kernel_dynamic_local_mem_size_aux3 = device_param->device_local_mem_size - device_param->kernel_local_mem_size_aux3;
 
           device_param->kernel_preferred_wgs_multiple_aux3 = device_param->hip_warp_size;
         }
@@ -14000,7 +13962,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_aux4, &device_param->kernel_local_mem_size_aux4) == -1) return -1;
 
-          //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function_aux4, &device_param->kernel_dynamic_local_mem_size_aux4) == -1) return -1;
+          device_param->kernel_dynamic_local_mem_size_aux4 = device_param->device_local_mem_size - device_param->kernel_local_mem_size_aux4;
 
           device_param->kernel_preferred_wgs_multiple_aux4 = device_param->hip_warp_size;
         }
@@ -14028,7 +13990,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_mp_l, &device_param->kernel_local_mem_size_mp_l) == -1) return -1;
 
-          //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function_mp_l, &device_param->kernel_dynamic_local_mem_size_mp_l) == -1) return -1;
+          device_param->kernel_dynamic_local_mem_size_mp_l = device_param->device_local_mem_size - device_param->kernel_local_mem_size_mp_l;
 
           device_param->kernel_preferred_wgs_multiple_mp_l = device_param->hip_warp_size;
 
@@ -14040,7 +14002,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_mp_r, &device_param->kernel_local_mem_size_mp_r) == -1) return -1;
 
-          //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function_mp_r, &device_param->kernel_dynamic_local_mem_size_mp_r) == -1) return -1;
+          device_param->kernel_dynamic_local_mem_size_mp_r = device_param->device_local_mem_size - device_param->kernel_local_mem_size_mp_r;
 
           device_param->kernel_preferred_wgs_multiple_mp_r = device_param->hip_warp_size;
 
@@ -14061,7 +14023,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_mp, &device_param->kernel_local_mem_size_mp) == -1) return -1;
 
-          //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function_mp, &device_param->kernel_dynamic_local_mem_size_mp) == -1) return -1;
+          device_param->kernel_dynamic_local_mem_size_mp = device_param->device_local_mem_size - device_param->kernel_local_mem_size_mp;
 
           device_param->kernel_preferred_wgs_multiple_mp = device_param->hip_warp_size;
         }
@@ -14073,7 +14035,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_mp, &device_param->kernel_local_mem_size_mp) == -1) return -1;
 
-          //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function_mp, &device_param->kernel_dynamic_local_mem_size_mp) == -1) return -1;
+          device_param->kernel_dynamic_local_mem_size_mp = device_param->device_local_mem_size - device_param->kernel_local_mem_size_mp;
 
           device_param->kernel_preferred_wgs_multiple_mp = device_param->hip_warp_size;
         }
@@ -14096,7 +14058,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_amp, &device_param->kernel_local_mem_size_amp) == -1) return -1;
 
-          //if (get_hip_kernel_dynamic_local_mem_size (hashcat_ctx, device_param->hip_function_amp, &device_param->kernel_dynamic_local_mem_size_amp) == -1) return -1;
+          device_param->kernel_dynamic_local_mem_size_amp = device_param->device_local_mem_size - device_param->kernel_local_mem_size_amp;
 
           device_param->kernel_preferred_wgs_multiple_amp = device_param->hip_warp_size;
         }
