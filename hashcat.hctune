@@ -504,6 +504,18 @@ GeForce_RTX_2080_Ti                             *       9300    1     532       
 GeForce_RTX_2080_Ti                             *       15700   1      68       A
 GeForce_RTX_2080_Ti                             *       22700   1      68       A
 
+## 8GB
+GeForce_RTX_3060_Ti                             *       8900    1      51       A
+GeForce_RTX_3060_Ti                             *       9300    1     256       A
+GeForce_RTX_3060_Ti                             *       15700   1      11       A
+GeForce_RTX_3060_Ti                             *       22700   1      43       A
+
+## 8GB
+GeForce_RTX_3070                                *       8900    1      46       A
+GeForce_RTX_3070                                *       9300    1     368       A
+GeForce_RTX_3070                                *       15700   1      22       A
+GeForce_RTX_3070                                *       22700   1      46       A
+
 ## 4GB
 AMD_Radeon_(TM)_RX_480_Graphics                 *       8900    1      14       A
 AMD_Radeon_(TM)_RX_480_Graphics                 *       9300    1     126       A
