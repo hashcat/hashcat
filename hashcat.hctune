@@ -529,14 +529,14 @@ Vega_10_XL/XT_[Radeon_RX_Vega_56/64]            *       9300    1     442       
 Vega_10_XL/XT_[Radeon_RX_Vega_56/64]            *       15700   1      28       A
 Vega_10_XL/XT_[Radeon_RX_Vega_56/64]            *       22700   1      28       A
 
-## 32GB
+## 32GB, WF64
 ALIAS_AMD_MI100                                 *       8900    1      76       A
-ALIAS_AMD_MI100                                 *       9300    1      63       A
+ALIAS_AMD_MI100                                 *       9300    1     288       A
 ALIAS_AMD_MI100                                 *       15700   1      76       A
 ALIAS_AMD_MI100                                 *       22700   1      76       A
 
-## 16GB, 32WF
-ALIAS_AMD_RX6900XT                              *       8900    1      34       A
-ALIAS_AMD_RX6900XT                              *       9300    1      34       A
-ALIAS_AMD_RX6900XT                              *       15700   1      34       A
-ALIAS_AMD_RX6900XT                              *       22700   1      34       A
+## 16GB, WF32
+ALIAS_AMD_RX6900XT                              *       8900    1      62       A
+ALIAS_AMD_RX6900XT                              *       9300    1     704       A
+ALIAS_AMD_RX6900XT                              *       15700   1      62       A
+ALIAS_AMD_RX6900XT                              *       22700   1      62       A
