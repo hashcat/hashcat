@@ -5377,7 +5377,7 @@ int run_opencl_kernel_atinit (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *dev
 
   if (hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL) == -1) return -1;
 
-  if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
+  /*if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;*/
 
   if (hc_clFinish (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
 
@@ -5405,7 +5405,7 @@ int run_opencl_kernel_utf8toutf16le (hashcat_ctx_t *hashcat_ctx, hc_device_param
 
   if (hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL) == -1) return -1;
 
-  if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
+  /*if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;*/
 
   if (hc_clFinish (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
 
@@ -5446,6 +5446,8 @@ int run_opencl_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *dev
     if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, buf, CL_FALSE, num16d * 16, num16m, tmp, 0, NULL, NULL) == -1) return -1;
   }
 
+  /*if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;*/
+
   if (hc_clFinish (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
 
   return 0;
@@ -5483,6 +5485,8 @@ int run_opencl_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
 
     if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, buf, CL_FALSE, num16d * 16, num16m, tmp, 0, NULL, NULL) == -1) return -1;
   }
+
+  /*if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;*/
 
   if (hc_clFinish (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
 
@@ -5857,7 +5861,7 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
     if (hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, opencl_kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, &opencl_event) == -1) return -1;
 
-    if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
+    /*if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;*/
 
     // spin damper section
 
@@ -6082,7 +6086,7 @@ int run_kernel_mp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
     if (hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, opencl_kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL) == -1) return -1;
 
-    if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue)  == -1) return -1;
+    /*if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue)  == -1) return -1;*/
 
     if (hc_clFinish (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
   }
@@ -6123,7 +6127,7 @@ int run_kernel_tm (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
     if (hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, cuda_kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL) == -1) return -1;
 
-    if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
+    /*if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;*/
 
     if (hc_clFinish (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
   }
@@ -6174,7 +6178,7 @@ int run_kernel_amp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
     if (hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, opencl_kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL) == -1) return -1;
 
-    if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue)  == -1) return -1;
+    /*if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue)  == -1) return -1;*/
 
     if (hc_clFinish (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
   }
@@ -6225,7 +6229,7 @@ int run_kernel_decompress (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
 
     if (hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, opencl_kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL) == -1) return -1;
 
-    if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
+    /*if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;*/
 
     if (hc_clFinish (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
   }
