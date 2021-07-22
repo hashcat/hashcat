@@ -1118,6 +1118,8 @@ typedef struct hc_device_param
   int     sm_minor;
   u32     kernel_exec_timeout;
 
+  u32     kernel_preferred_wgs_multiple;
+
   st_status_t st_status;
 
   int     vector_width;

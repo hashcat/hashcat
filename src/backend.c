@@ -2516,14 +2516,14 @@ int hip_init (hashcat_ctx_t *hashcat_ctx)
 
   HC_LOAD_FUNC_HIP (hip, hipCtxCreate,              hipCtxCreate,               HIP_HIPCTXCREATE,               HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipCtxDestroy,             hipCtxDestroy,              HIP_HIPCTXDESTROY,              HIP, 1);
-  HC_LOAD_FUNC_HIP (hip, hipCtxGetCacheConfig,      hipCtxGetCacheConfig,       HIP_HIPCTXGETCACHECONFIG,       HIP, 1);
-  HC_LOAD_FUNC_HIP (hip, hipCtxGetCurrent,          hipCtxGetCurrent,           HIP_HIPCTXGETCURRENT,           HIP, 1);
-  HC_LOAD_FUNC_HIP (hip, hipCtxGetSharedMemConfig,  hipCtxGetSharedMemConfig,   HIP_HIPCTXGETSHAREDMEMCONFIG,   HIP, 1);
+  //HC_LOAD_FUNC_HIP (hip, hipCtxGetCacheConfig,      hipCtxGetCacheConfig,       HIP_HIPCTXGETCACHECONFIG,       HIP, 1);
+  //HC_LOAD_FUNC_HIP (hip, hipCtxGetCurrent,          hipCtxGetCurrent,           HIP_HIPCTXGETCURRENT,           HIP, 1);
+  //HC_LOAD_FUNC_HIP (hip, hipCtxGetSharedMemConfig,  hipCtxGetSharedMemConfig,   HIP_HIPCTXGETSHAREDMEMCONFIG,   HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipCtxPopCurrent,          hipCtxPopCurrent,           HIP_HIPCTXPOPCURRENT,           HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipCtxPushCurrent,         hipCtxPushCurrent,          HIP_HIPCTXPUSHCURRENT,          HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipCtxSetCacheConfig,      hipCtxSetCacheConfig,       HIP_HIPCTXSETCACHECONFIG,       HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipCtxSetCurrent,          hipCtxSetCurrent,           HIP_HIPCTXSETCURRENT,           HIP, 1);
-  HC_LOAD_FUNC_HIP (hip, hipCtxSetSharedMemConfig,  hipCtxSetSharedMemConfig,   HIP_HIPCTXSETSHAREDMEMCONFIG,   HIP, 1);
+  //HC_LOAD_FUNC_HIP (hip, hipCtxSetSharedMemConfig,  hipCtxSetSharedMemConfig,   HIP_HIPCTXSETSHAREDMEMCONFIG,   HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipCtxSynchronize,         hipCtxSynchronize,          HIP_HIPCTXSYNCHRONIZE,          HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipDeviceGetAttribute,     hipDeviceGetAttribute,      HIP_HIPDEVICEGETATTRIBUTE,      HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipDeviceGetCount,         hipGetDeviceCount,          HIP_HIPDEVICEGETCOUNT,          HIP, 1);
@@ -2539,9 +2539,9 @@ int hip_init (hashcat_ctx_t *hashcat_ctx)
   HC_LOAD_FUNC_HIP (hip, hipEventSynchronize,       hipEventSynchronize,        HIP_HIPEVENTSYNCHRONIZE,        HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipFuncGetAttribute,       hipFuncGetAttribute,        HIP_HIPFUNCGETATTRIBUTE,        HIP, 1);
   //HC_LOAD_FUNC_HIP (hip, hipFuncSetAttribute,       hipFuncSetAttribute,        HIP_HIPFUNCSETATTRIBUTE,        HIP, 1);
-  HC_LOAD_FUNC_HIP (hip, hipFuncSetCacheConfig,     hipFuncSetCacheConfig,      HIP_HIPFUNCSETCACHECONFIG,      HIP, 1);
-  HC_LOAD_FUNC_HIP (hip, hipFuncSetSharedMemConfig, hipFuncSetSharedMemConfig,  HIP_HIPFUNCSETSHAREDMEMCONFIG,  HIP, 1);
-  HC_LOAD_FUNC_HIP (hip, hipGetErrorName,           hipGetErrorName,            HIP_HIPGETERRORNAME,            HIP, 1);
+  //HC_LOAD_FUNC_HIP (hip, hipFuncSetCacheConfig,     hipFuncSetCacheConfig,      HIP_HIPFUNCSETCACHECONFIG,      HIP, 1);
+  //HC_LOAD_FUNC_HIP (hip, hipFuncSetSharedMemConfig, hipFuncSetSharedMemConfig,  HIP_HIPFUNCSETSHAREDMEMCONFIG,  HIP, 1);
+  //HC_LOAD_FUNC_HIP (hip, hipGetErrorName,           hipGetErrorName,            HIP_HIPGETERRORNAME,            HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipGetErrorString,         hipGetErrorString,          HIP_HIPGETERRORSTRING,          HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipInit,                   hipInit,                    HIP_HIPINIT,                    HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipLaunchKernel,           hipModuleLaunchKernel,      HIP_HIPLAUNCHKERNEL,            HIP, 1);
@@ -2556,20 +2556,21 @@ int hip_init (hashcat_ctx_t *hashcat_ctx)
   HC_LOAD_FUNC_HIP (hip, hipMemFree,                hipFree,                    HIP_HIPMEMFREE,                 HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipMemFreeHost,            hipFreeHost,                HIP_HIPMEMFREEHOST,             HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipMemGetInfo,             hipMemGetInfo,              HIP_HIPMEMGETINFO,              HIP, 1);
-  HC_LOAD_FUNC_HIP (hip, hipMemsetD32,              hipMemsetD32,               HIP_HIPMEMSETD32,               HIP, 1);
-  HC_LOAD_FUNC_HIP (hip, hipMemsetD8,               hipMemsetD8,                HIP_HIPMEMSETD8,                HIP, 1);
+  //HC_LOAD_FUNC_HIP (hip, hipMemsetD32,              hipMemsetD32,               HIP_HIPMEMSETD32,               HIP, 1);
+  //HC_LOAD_FUNC_HIP (hip, hipMemsetD8,               hipMemsetD8,                HIP_HIPMEMSETD8,                HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipModuleGetFunction,      hipModuleGetFunction,       HIP_HIPMODULEGETFUNCTION,       HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipModuleGetGlobal,        hipModuleGetGlobal,         HIP_HIPMODULEGETGLOBAL,         HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipModuleLoad,             hipModuleLoad,              HIP_HIPMODULELOAD,              HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipModuleLoadData,         hipModuleLoadData,          HIP_HIPMODULELOADDATA,          HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipModuleLoadDataEx,       hipModuleLoadDataEx,        HIP_HIPMODULELOADDATAEX,        HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipModuleUnload,           hipModuleUnload,            HIP_HIPMODULEUNLOAD,            HIP, 1);
-  HC_LOAD_FUNC_HIP (hip, hipProfilerStart,          hipProfilerStart,           HIP_HIPPROFILERSTART,           HIP, 1);
-  HC_LOAD_FUNC_HIP (hip, hipProfilerStop,           hipProfilerStop,            HIP_HIPPROFILERSTOP,            HIP, 1);
+  //HC_LOAD_FUNC_HIP (hip, hipProfilerStart,          hipProfilerStart,           HIP_HIPPROFILERSTART,           HIP, 1);
+  //HC_LOAD_FUNC_HIP (hip, hipProfilerStop,           hipProfilerStop,            HIP_HIPPROFILERSTOP,            HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipStreamCreate,           hipStreamCreate,            HIP_HIPSTREAMCREATE,            HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipStreamDestroy,          hipStreamDestroy,           HIP_HIPSTREAMDESTROY,           HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipStreamSynchronize,      hipStreamSynchronize,       HIP_HIPSTREAMSYNCHRONIZE,       HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipStreamWaitEvent,        hipStreamWaitEvent,         HIP_HIPSTREAMWAITEVENT,         HIP, 1);
+  //TODO HIP?
   #if defined (WITH_CUBINX)
   HC_LOAD_FUNC_HIP (hip, hipLinkCreate,             hipLinkCreate,              HIP_HIPLINKCREATE,              HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipLinkAddData,            hipLinkAddData,             HIP_HIPLINKADDDATA,             HIP, 1);
@@ -8070,6 +8071,18 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       device_param->kernel_exec_timeout = kernel_exec_timeout;
 
+      // warp size
+
+      int warp_size = 0;
+
+      if (hc_cuDeviceGetAttribute (hashcat_ctx, &warp_size, CU_DEVICE_ATTRIBUTE_WARP_SIZE, cuda_device) == -1)
+      {
+        device_param->skipped = true;
+        continue;
+      }
+
+      device_param->kernel_preferred_wgs_multiple = warp_size;
+
       // max_shared_memory_per_block
 
       int max_shared_memory_per_block = 0;
@@ -8436,11 +8449,23 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       device_param->kernel_exec_timeout = kernel_exec_timeout;
 
+      // warp size
+
+      int warp_size = 0;
+
+      if (hc_hipDeviceGetAttribute (hashcat_ctx, &warp_size, HIP_DEVICE_ATTRIBUTE_WARP_SIZE, hip_device) == -1)
+      {
+        device_param->skipped = true;
+        continue;
+      }
+
+      device_param->kernel_preferred_wgs_multiple = warp_size;
+
       // max_shared_memory_per_block
 
       int max_shared_memory_per_block = 0;
 
-      if (hc_hipDeviceGetAttribute (hashcat_ctx, &max_shared_memory_per_block, HIP_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_BLOCK, hip_device) == -1)
+      if (hc_hipDeviceGetAttribute (hashcat_ctx, &max_shared_memory_per_block, HIP_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_BLOCK_OPTIN, hip_device) == -1)
       {
         device_param->skipped = true;
         continue;
@@ -9053,6 +9078,13 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         hcfree (device_extensions);
 
+        // kernel_preferred_wgs_multiple
+
+        // There is global query for this attribute on OpenCL that is not linked to a specific kernel, so we set it to a fixed value
+        // Later in the code, we add vendor specific extensions to query it
+
+        device_param->kernel_preferred_wgs_multiple = 8;
+
         // device_local_mem_type
 
         cl_device_local_mem_type device_local_mem_type;
@@ -9332,6 +9364,19 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         {
           if ((device_param->opencl_platform_vendor_id == VENDOR_ID_AMD) && (device_param->opencl_device_vendor_id == VENDOR_ID_AMD))
           {
+            cl_uint device_wavefront_width_amd;
+
+            // from https://www.khronos.org/registry/OpenCL/extensions/amd/cl_amd_device_attribute_query.txt
+            #define CL_DEVICE_WAVEFRONT_WIDTH_AMD                   0x4043
+
+            if (hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_WAVEFRONT_WIDTH_AMD, sizeof (device_wavefront_width_amd), &device_wavefront_width_amd, NULL) == -1)
+            {
+              device_param->skipped = true;
+              continue;
+            }
+
+            device_param->kernel_preferred_wgs_multiple = device_wavefront_width_amd;
+
             cl_device_topology_amd amdtopo;
 
             if (hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_TOPOLOGY_AMD, sizeof (amdtopo), &amdtopo, NULL) == -1)
@@ -9348,6 +9393,19 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
           if ((device_param->opencl_platform_vendor_id == VENDOR_ID_NV) && (device_param->opencl_device_vendor_id == VENDOR_ID_NV))
           {
+            cl_uint device_warp_size_nv;
+
+            // from deps/OpenCL-Headers/CL/cl_ext.h
+            #define CL_DEVICE_WARP_SIZE_NV                      0x4003
+
+            if (hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_WARP_SIZE_NV, sizeof (device_warp_size_nv), &device_warp_size_nv, NULL) == -1)
+            {
+              device_param->skipped = true;
+              continue;
+            }
+
+            device_param->kernel_preferred_wgs_multiple = device_warp_size_nv;
+
             cl_uint pci_bus_id_nv;  // is cl_uint the right type for them??
             cl_uint pci_slot_id_nv;
 
@@ -10324,9 +10382,7 @@ static u32 get_kernel_threads (const hc_device_param_t *device_param)
   {
     // for all CPU we just do 1 ...
 
-    const u32 cpu_prefered_thread_count = 1;
-
-    kernel_threads_max = MIN (kernel_threads_max, cpu_prefered_thread_count);
+    kernel_threads_max = MIN (kernel_threads_max, 1);
   }
   else if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
   {
@@ -10334,28 +10390,15 @@ static u32 get_kernel_threads (const hc_device_param_t *device_param)
 
     if (device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK)
     {
-      const u32 gpu_prefered_thread_count = 8;
-
-      kernel_threads_max = MIN (kernel_threads_max, gpu_prefered_thread_count);
+      kernel_threads_max = MIN (kernel_threads_max, 8);
     }
     else if (device_param->opencl_device_vendor_id == VENDOR_ID_AMD)
     {
-      u32 gpu_prefered_thread_count = 64;
-
-      if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
-      {
-        // based on clinfo output: Preferred work group size multiple (kernel)
-
-        gpu_prefered_thread_count = 32;
-      }
-
-      kernel_threads_max = MIN (kernel_threads_max, gpu_prefered_thread_count);
+      kernel_threads_max = MIN (kernel_threads_max, device_param->kernel_preferred_wgs_multiple);
     }
     else if (device_param->opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP)
     {
-      u32 gpu_prefered_thread_count = 64;
-
-      kernel_threads_max = MIN (kernel_threads_max, gpu_prefered_thread_count);
+      kernel_threads_max = MIN (kernel_threads_max, device_param->kernel_preferred_wgs_multiple);
     }
   }
 
@@ -10371,6 +10414,7 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 {
   const hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
   const folder_config_t *folder_config = hashcat_ctx->folder_config;
+  const user_options_t  *user_options  = hashcat_ctx->user_options;
 
   bool cached = true;
 
@@ -10658,9 +10702,9 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
       //hiprtc_options[1] = "--device-as-default-execution-space";
       //hiprtc_options[2] = "--gpu-architecture";
 
-      //hc_asprintf (&hiprtc_options[3], "compute_%d%d", device_param->sm_major, device_param->sm_minor);
+      hc_asprintf (&hiprtc_options[0], "--gpu-max-threads-per-block=%d", (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : device_param->kernel_preferred_wgs_multiple);
 
-      hiprtc_options[0] = "--gpu-max-threads-per-block=64";
+      //hiprtc_options[0] = "--gpu-max-threads-per-block=64";
       hiprtc_options[1] = "-nocudainc";
       hiprtc_options[2] = "-nocudalib";
       hiprtc_options[3] = "";
@@ -11408,24 +11452,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
       else if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
       {
-        // for GPU we need to distinguish by vendor
-
-        if (device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK)
-        {
-          native_threads = 8;
-        }
-        else if (device_param->opencl_device_vendor_id == VENDOR_ID_AMD)
-        {
-          native_threads = 64;
-        }
-        else if (device_param->opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP)
-        {
-          native_threads = 64;
-        }
-        else
-        {
-          native_threads = 32;
-        }
+        native_threads = device_param->kernel_preferred_wgs_multiple;
       }
       else
       {
@@ -11751,7 +11778,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     char device_name_chksum_amp_mp[HCBUFSIZ_TINY] = { 0 };
 
-    const size_t dnclen_amp_mp = snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%d-%d-%d-%d-%u-%s-%s-%s",
+    const size_t dnclen_amp_mp = snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%d-%d-%d-%d-%u-%s-%s-%s-%u",
       backend_ctx->comptime,
       backend_ctx->cuda_driver_version,
       backend_ctx->hip_driver_version,
@@ -11759,7 +11786,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       device_param->opencl_platform_vendor_id,
       device_param->device_name,
       device_param->opencl_device_version,
-      device_param->opencl_driver_version);
+      device_param->opencl_driver_version,
+      (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : device_param->kernel_preferred_wgs_multiple);
 
     md5_ctx_t md5_ctx;
 
@@ -12078,7 +12106,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       const u32 extra_value = (user_options->attack_mode == ATTACK_MODE_ASSOCIATION) ? ATTACK_MODE_ASSOCIATION : ATTACK_MODE_NONE;
 
-      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY, "%d-%d-%d-%d-%u-%s-%s-%s-%d-%u-%u-%s",
+      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY, "%d-%d-%d-%d-%u-%s-%s-%s-%d-%u-%u-%u-%s",
         backend_ctx->comptime,
         backend_ctx->cuda_driver_version,
         backend_ctx->hip_driver_version,
@@ -12090,6 +12118,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         device_param->vector_width,
         hashconfig->kern_type,
         extra_value,
+        (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : device_param->kernel_preferred_wgs_multiple,
         build_options_module_buf);
 
       md5_ctx_t md5_ctx;
@@ -14808,14 +14837,6 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
           device_param->kernel_threads_max = MIN (device_param->kernel_threads_max, 64);
         }
       }
-    }
-
-    // we
-
-    if (device_param->opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP)
-    {
-      device_param->kernel_threads_min = MIN (device_param->kernel_threads_min, 64);
-      device_param->kernel_threads_max = MIN (device_param->kernel_threads_max, 64);
     }
 
     /**
