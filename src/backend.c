@@ -38,6 +38,9 @@ static const u32 full80 = 0x80808080;
 
 static double TARGET_MSEC_PROFILE[4] = { 2, 12, 96, 480 };
 
+HC_ALIGN(16)
+static const u32 bzeros[4] = { 0, 0, 0, 0 };
+
 static bool is_same_device (const hc_device_param_t *src, const hc_device_param_t *dst)
 {
   // First check by PCI address
@@ -5214,7 +5217,6 @@ int run_cuda_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
 {
   const u64 num16d = size / 16;
   const u64 num16m = size % 16;
-  u32 tmp[4];
 
   if (num16d)
   {
@@ -5232,12 +5234,7 @@ int run_cuda_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
 
   if (num16m)
   {
-    tmp[0] = 0;
-    tmp[1] = 0;
-    tmp[2] = 0;
-    tmp[3] = 0;
-
-    if (hc_cuMemcpyHtoDAsync (hashcat_ctx, buf + (num16d * 16), tmp, num16m, device_param->cuda_stream) == -1) return -1;
+    if (hc_cuMemcpyHtoDAsync (hashcat_ctx, buf + (num16d * 16), bzeros, num16m, device_param->cuda_stream) == -1) return -1;
   }
 
   if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
@@ -5325,7 +5322,6 @@ int run_hip_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
 {
   const u64 num16d = size / 16;
   const u64 num16m = size % 16;
-  u32 tmp[4];
 
   if (num16d)
   {
@@ -5343,12 +5339,7 @@ int run_hip_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
 
   if (num16m)
   {
-    tmp[0] = 0;
-    tmp[1] = 0;
-    tmp[2] = 0;
-    tmp[3] = 0;
-
-    if (hc_hipMemcpyHtoDAsync (hashcat_ctx, buf + (num16d * 16), tmp, num16m, device_param->hip_stream) == -1) return -1;
+    if (hc_hipMemcpyHtoDAsync (hashcat_ctx, buf + (num16d * 16), bzeros, num16m, device_param->hip_stream) == -1) return -1;
   }
 
   if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
@@ -5457,7 +5448,6 @@ int run_opencl_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
 {
   const u64 num16d = size / 16;
   const u64 num16m = size % 16;
-  u32 tmp[4];
 
   if (num16d)
   {
@@ -5478,12 +5468,7 @@ int run_opencl_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
 
   if (num16m)
   {
-    tmp[0] = 0;
-    tmp[1] = 0;
-    tmp[2] = 0;
-    tmp[3] = 0;
-
-    if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, buf, CL_FALSE, num16d * 16, num16m, tmp, 0, NULL, NULL) == -1) return -1;
+    if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, buf, CL_FALSE, num16d * 16, num16m, bzeros, 0, NULL, NULL) == -1) return -1;
   }
 
   /*if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;*/
