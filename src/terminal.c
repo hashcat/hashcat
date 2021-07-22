@@ -623,7 +623,7 @@ void compress_terminal_line_length (char *out_buf, const size_t keep_from_beginn
   *ptr1 = 0;
 }
 
-void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_t *user_options)
+void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_options_extra)
 {
   if (hashconfig_init (hashcat_ctx) == 0)
   {
@@ -676,7 +676,7 @@ void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_t *user_options)
         event_log_info (hashcat_ctx, "  Example.Hash........: %s", hashconfig->st_hash);
       }
 
-      if (need_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), user_options->separator, false))
+      if (need_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), user_options_extra->separator, false))
       {
         char *tmp_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
@@ -728,8 +728,9 @@ void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_t *user_options)
 
 void hash_info (hashcat_ctx_t *hashcat_ctx)
 {
-  folder_config_t *folder_config = hashcat_ctx->folder_config;
-  user_options_t  *user_options  = hashcat_ctx->user_options;
+  folder_config_t      *folder_config      = hashcat_ctx->folder_config;
+  user_options_t       *user_options       = hashcat_ctx->user_options;
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   event_log_info (hashcat_ctx, "Hash Info:");
   event_log_info (hashcat_ctx, "==========");
@@ -737,7 +738,7 @@ void hash_info (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->hash_mode_chgd == true)
   {
-    hash_info_single (hashcat_ctx, user_options);
+    hash_info_single (hashcat_ctx, user_options_extra);
   }
   else
   {
@@ -751,7 +752,7 @@ void hash_info (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_exist (modulefile) == false) continue;
 
-      hash_info_single (hashcat_ctx, user_options);
+      hash_info_single (hashcat_ctx, user_options_extra);
     }
 
     hcfree (modulefile);
