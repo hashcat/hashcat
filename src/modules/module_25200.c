@@ -207,10 +207,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *salt_buf_ptr = (u8 *) salt_buf_32;
 
-  for (i = 0; i < snmpv3->salt_len; i++)
-  {
-    line_len += snprintf (line_buf+line_len, 3, "%02x", salt_buf_ptr[i]);
-  }
+  line_len += hex_encode (salt_buf_ptr, snmpv3->salt_len, (u8 *) line_buf+line_len);
 
   line_len += snprintf (line_buf+line_len, 2, "$");
 
