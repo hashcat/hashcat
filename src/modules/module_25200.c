@@ -21,8 +21,7 @@ static const u32   DGST_SIZE      = DGST_SIZE_4_4; // 4_3
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_NETWORK_PROTOCOL;
 static const char *HASH_NAME      = "SNMPv3 HMAC-SHA1-96";
 static const u64   KERN_TYPE      = 25200;
-static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
-                                  | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
+static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
@@ -103,8 +102,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.len_min[1] = 1;
   token.len_max[1] = 8;
   token.sep[1]     = '$';
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
-
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
   // salt
   token.len_min[2] = 12 * 2;
   token.len_max[2] = SNMPV3_SALT_MAX * 2;
@@ -130,6 +129,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
   // packet number
+
   const u8 *packet_number_pos = token.buf[1];
   const int packet_number_len = token.len[1];
 
@@ -144,20 +144,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 *salt_ptr = (u8 *) snmpv3->salt_buf;
 
-  int i;
-  int j;
+  snmpv3->salt_len = hex_decode (salt_pos, salt_len, salt_ptr);
 
-  for (i = 0, j = 0; i < salt_len; i += 2, j += 1)
-  {
-    salt_ptr[j] = hex_to_u8 (salt_pos + i);
-  }
-
-  for (i = 0; i < salt_len / 4; i++)
+  for (int i = 0; i < salt_len / 4; i++)
   {
     snmpv3->salt_buf[i] = byte_swap_32 (snmpv3->salt_buf[i]);
   }
-
-  snmpv3->salt_len = salt_len / 2;
 
   salt->salt_iter = 16384 - 1;
 
@@ -180,12 +172,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 *engineID_ptr = (u8 *) snmpv3->engineID_buf;
 
-  for (i = 0, j = 0; i < engineID_len; i += 2, j += 1)
-  {
-    engineID_ptr[j] = hex_to_u8 (engineID_pos + i);
-  }
-
-  snmpv3->engineID_len = engineID_len / 2;
+  snmpv3->engineID_len = hex_decode (engineID_pos, engineID_len, engineID_ptr);
 
   // digest
 
@@ -227,10 +214,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   line_len += snprintf (line_buf+line_len, 2, "$");
 
-  for (i = 0; i < snmpv3->engineID_len; i++)
-  {
-    line_len += snprintf (line_buf+line_len, 3, "%02x", snmpv3->engineID_buf[i]);
-  }
+  line_len += hex_encode (snmpv3->engineID_buf, snmpv3->engineID_len, (u8 *) line_buf+line_len);
 
   line_len += snprintf (line_buf+line_len, 2, "$");
 

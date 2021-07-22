@@ -53,7 +53,7 @@ KERNEL_FQ void m25200_init (KERN_ATTR_TMPS_ESALT (hmac_sha1_tmp_t, snmpv3_t))
    * base
    */
 
-  const global u8 *pw_buf = (global u8 *) pws[gid].i;
+  const GLOBAL_AS u8 *pw_buf = (GLOBAL_AS u8 *) pws[gid].i;
 
   const u32 pw_len = pws[gid].pw_len;
 
@@ -63,7 +63,7 @@ KERNEL_FQ void m25200_init (KERN_ATTR_TMPS_ESALT (hmac_sha1_tmp_t, snmpv3_t))
 
   u32 idx = 0;
 
-  u32 buf[32] = { 0 };
+  u32 buf[16] = { 0 };
 
   u8 *tmp_buf = (u8 *) buf;
 
@@ -94,13 +94,13 @@ KERNEL_FQ void m25200_loop (KERN_ATTR_TMPS_ESALT (hmac_sha1_tmp_t, snmpv3_t))
 
   if (gid >= gid_max) return;
 
-  const global u8 *pw_buf = (global u8 *) pws[gid].i;
+  const GLOBAL_AS u8 *pw_buf = (GLOBAL_AS u8 *) pws[gid].i;
 
   const u32 pw_len = pws[gid].pw_len;
 
   u32 idx = tmps[gid].idx;
 
-  u32 buf[32] = { 0 };
+  u32 buf[16] = { 0 };
 
   u8 *tmp_buf = (u8 *) buf;
 
@@ -132,7 +132,7 @@ KERNEL_FQ void m25200_comp (KERN_ATTR_TMPS_ESALT (hmac_sha1_tmp_t, snmpv3_t))
 
   if (gid >= gid_max) return;
 
-  const global u8 *engineID_buf = esalt_bufs[DIGESTS_OFFSET].engineID_buf;
+  const GLOBAL_AS u8 *engineID_buf = esalt_bufs[DIGESTS_OFFSET].engineID_buf;
 
   u32 engineID_len = esalt_bufs[DIGESTS_OFFSET].engineID_len;
 
