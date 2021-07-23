@@ -5,6 +5,7 @@
 ##
 
 - Added option --multiply-accel-disable (short: -M) to disable multiply the kernel-accel with the multiprocessor count automatism
+- HIP Backend: Added support to support HIP 4.4 and later, but added check to rule out older versions because they are incompatible
 
 ##
 ## Bugs

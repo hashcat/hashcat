@@ -193,32 +193,20 @@ DECLSPEC u32 hc_atomic_dec (GLOBAL_AS u32 *p)
 {
   volatile const u32 val = 1;
 
-  return __atomic_fetch_sub (p, val, __ATOMIC_RELAXED);
+  return atomicSub (p, val);
 }
 
 DECLSPEC u32 hc_atomic_inc (GLOBAL_AS u32 *p)
 {
   volatile const u32 val = 1;
 
-  return __atomic_fetch_add (p, val, __ATOMIC_RELAXED);
+  return atomicAdd (p, val);
 }
 
 DECLSPEC u32 hc_atomic_or (GLOBAL_AS u32 *p, volatile const u32 val)
 {
-  return __atomic_fetch_or (p, val, __ATOMIC_RELAXED);
+  return atomicOr (p, val);
 }
-
-extern "C" __device__ __attribute__((pure)) double __ocml_log2_f64(double);
-
-DECLSPEC double log2 (double x)
-{
-  return __ocml_log2_f64 (x);
-}
-
-extern "C" __device__ __attribute__((const)) size_t __ockl_get_local_id(uint);
-extern "C" __device__ __attribute__((const)) size_t __ockl_get_group_id(uint);
-extern "C" __device__ __attribute__((const)) size_t __ockl_get_local_size(uint);
-extern "C" __device__ __attribute__((const)) size_t __ockl_get_num_groups(uint);
 
 DECLSPEC size_t get_global_id  (const u32 dimindx)
 {
@@ -308,11 +296,8 @@ DECLSPEC u64 rotr64_S (const u64 a, const int n)
   return out.v64;
 }
 
-extern "C" __device__ int printf(const char *fmt, ...);
-//int printf(__constant const char* st, ...) __attribute__((format(printf, 1, 2)));
-
-#define FIXED_THREAD_COUNT(n) __attribute__((amdgpu_flat_work_group_size (1, (n))))
-#define SYNC_THREADS() __builtin_amdgcn_s_barrier ()
+#define FIXED_THREAD_COUNT(n) __launch_bounds__((n), 0)
+#define SYNC_THREADS() __syncthreads ()
 #endif
 
 #ifdef IS_OPENCL
