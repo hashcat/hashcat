@@ -73,18 +73,16 @@ enum{
     MZ_VERSION_ERROR = -6,
     MZ_PARAM_ERROR = -10000
 };
-typedef unsigned long mz_ulong;
+typedef ullong mz_ulong;
 
 #ifndef MINIZ_NO_ZLIB_COMPATIBLE_NAMES
 typedef unsigned char Byte;
 typedef unsigned int uInt;
-typedef mz_ulong uLong;
 typedef Byte Bytef;
 typedef uInt uIntf;
 typedef char charf;
 typedef int intf;
 typedef void *voidpf;
-typedef uLong uLongf;
 typedef void *voidp;
 typedef void *const voidpc;
 #define Z_NULL 0

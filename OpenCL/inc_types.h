@@ -833,7 +833,7 @@ typedef __device_builtin__ struct u64x u64x;
 typedef VTYPE(uchar,  VECT_SIZE) u8x;
 typedef VTYPE(ushort, VECT_SIZE) u16x;
 typedef VTYPE(uint,   VECT_SIZE) u32x;
-typedef VTYPE(ulong,  VECT_SIZE) u64x;
+typedef VTYPE(ullong, VECT_SIZE) u64x;
 
 #define make_u8x  (u8x)
 #define make_u16x (u16x)
