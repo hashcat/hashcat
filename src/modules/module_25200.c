@@ -146,7 +146,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   snmpv3->salt_len = hex_decode (salt_pos, salt_len, salt_ptr);
 
-  for (int i = 0; i < salt_len / 4; i++)
+  for (uint i = 0; i < snmpv3->salt_len / 2; i++)
   {
     snmpv3->salt_buf[i] = byte_swap_32 (snmpv3->salt_buf[i]);
   }
@@ -163,7 +163,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // store sha1(snmpv3->salt_buf) in salt_buf
 
-  memcpy (salt->salt_buf, sha1_ctx.h, 20);
+  salt->salt_len = 20;
+
+  memcpy (salt->salt_buf, sha1_ctx.h, salt->salt_len);
 
   // engineid
 
@@ -209,15 +211,19 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   line_len += hex_encode (salt_buf_ptr, snmpv3->salt_len, (u8 *) line_buf+line_len);
 
-  line_len += snprintf (line_buf+line_len, 2, "$");
+  line_buf[line_len] = '$';
+
+  line_len++;
 
   line_len += hex_encode (snmpv3->engineID_buf, snmpv3->engineID_len, (u8 *) line_buf+line_len);
 
-  line_len += snprintf (line_buf+line_len, 2, "$");
+  line_buf[line_len] = '$';
 
-  line_len += snprintf (line_buf+line_len, 9, "%08x", digest[0]);
-  line_len += snprintf (line_buf+line_len, 9, "%08x", digest[1]);
-  line_len += snprintf (line_buf+line_len, 9, "%08x", digest[2]);
+  line_len++;
+
+  u32_to_hex (byte_swap_32 (digest[0]), (u8 *) line_buf+line_len); line_len += 8;
+  u32_to_hex (byte_swap_32 (digest[1]), (u8 *) line_buf+line_len); line_len += 8;
+  u32_to_hex (byte_swap_32 (digest[2]), (u8 *) line_buf+line_len); line_len += 8;
 
   return line_len;
 }
