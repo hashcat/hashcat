@@ -17,25 +17,35 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
-#define SNMPV3_ENGINEID_MAX 32
-#define SNMPV3_SALT_MAX 752
+#define SNMPV3_SALT_MAX             1500
+#define SNMPV3_ENGINEID_MAX         32
+#define SNMPV3_MSG_AUTH_PARAMS_MAX  12
+#define SNMPV3_ROUNDS               1048576
+#define SNMPV3_MAX_PW_LENGTH        64
+
+#define SNMPV3_TMP_ELEMS  4096 // 4096 = (256 (max pw length) * 64) / sizeof (u32)
+#define SNMPV3_HASH_ELEMS 8    // 8 = aligned 5
 
 typedef struct hmac_sha1_tmp
 {
-  u32 idx;
-  sha1_ctx_t ctx;
+  u32 tmp[SNMPV3_TMP_ELEMS];
+  u32 h[SNMPV3_HASH_ELEMS];
 
 } hmac_sha1_tmp_t;
 
+#define SNMPV3_MAX_SALT_ELEMS    512 // 512 * 4 = 2048 > 1500, also has to be multiple of 64
+#define SNMPV3_MAX_ENGINE_ELEMS  16  // 16 * 4 = 64 > 32, also has to be multiple of 64
+#define SNMPV3_MAX_PNUM_ELEMS    4   // 4 * 4 = 16 > 9
+
 typedef struct snmpv3
 {
-  u32 salt_buf[SNMPV3_SALT_MAX];
+  u32 salt_buf[SNMPV3_MAX_SALT_ELEMS];
   u32 salt_len;
 
-  u8  engineID_buf[SNMPV3_ENGINEID_MAX];
+  u32 engineID_buf[SNMPV3_MAX_ENGINE_ELEMS];
   u32 engineID_len;
 
-  u8 packet_number[8+1];
+  u32 packet_number[SNMPV3_MAX_PNUM_ELEMS];
 
 } snmpv3_t;
 
@@ -53,35 +63,68 @@ KERNEL_FQ void m25200_init (KERN_ATTR_TMPS_ESALT (hmac_sha1_tmp_t, snmpv3_t))
    * base
    */
 
-  const GLOBAL_AS u8 *pw_buf = (GLOBAL_AS u8 *) pws[gid].i;
-
   const u32 pw_len = pws[gid].pw_len;
 
-  /**
-   * authkey
-   */
+  u32 w[64] = { 0 };
 
-  u32 idx = 0;
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  {
+    w[idx] = pws[gid].i[idx];
+  }
 
-  u32 buf[16] = { 0 };
+  u8 *src_ptr = (u8 *) w;
 
-  u8 *tmp_buf = (u8 *) buf;
+  // password 64 times, also swapped
 
-  sha1_ctx_t ctx;
+  u32 dst_buf[16];
 
-  sha1_init (&ctx);
+  u8 *dst_ptr = (u8 *) dst_buf;
+
+  int tmp_idx = 0;
 
   for (int i = 0; i < 64; i++)
   {
-    tmp_buf[i] = pw_buf[idx++];
+    for (int j = 0; j < pw_len; j++)
+    {
+      const int dst_idx = tmp_idx & 63;
 
-    if (idx >= pw_len) idx = 0;
+      dst_ptr[dst_idx] = src_ptr[j];
+
+      // write to global memory every time 64 byte are written into cache
+
+      if (dst_idx == 63)
+      {
+        const int tmp_idx4 = (tmp_idx - 63) / 4;
+
+        tmps[gid].tmp[tmp_idx4 +  0] = hc_swap32_S (dst_buf[ 0]);
+        tmps[gid].tmp[tmp_idx4 +  1] = hc_swap32_S (dst_buf[ 1]);
+        tmps[gid].tmp[tmp_idx4 +  2] = hc_swap32_S (dst_buf[ 2]);
+        tmps[gid].tmp[tmp_idx4 +  3] = hc_swap32_S (dst_buf[ 3]);
+        tmps[gid].tmp[tmp_idx4 +  4] = hc_swap32_S (dst_buf[ 4]);
+        tmps[gid].tmp[tmp_idx4 +  5] = hc_swap32_S (dst_buf[ 5]);
+        tmps[gid].tmp[tmp_idx4 +  6] = hc_swap32_S (dst_buf[ 6]);
+        tmps[gid].tmp[tmp_idx4 +  7] = hc_swap32_S (dst_buf[ 7]);
+        tmps[gid].tmp[tmp_idx4 +  8] = hc_swap32_S (dst_buf[ 8]);
+        tmps[gid].tmp[tmp_idx4 +  9] = hc_swap32_S (dst_buf[ 9]);
+        tmps[gid].tmp[tmp_idx4 + 10] = hc_swap32_S (dst_buf[10]);
+        tmps[gid].tmp[tmp_idx4 + 11] = hc_swap32_S (dst_buf[11]);
+        tmps[gid].tmp[tmp_idx4 + 12] = hc_swap32_S (dst_buf[12]);
+        tmps[gid].tmp[tmp_idx4 + 13] = hc_swap32_S (dst_buf[13]);
+        tmps[gid].tmp[tmp_idx4 + 14] = hc_swap32_S (dst_buf[14]);
+        tmps[gid].tmp[tmp_idx4 + 15] = hc_swap32_S (dst_buf[15]);
+      }
+
+      tmp_idx++;
+    }
   }
 
-  sha1_update_swap (&ctx, buf, 64);
+  // hash
 
-  tmps[gid].idx = idx;
-  tmps[gid].ctx = ctx;
+  tmps[gid].h[0] = SHA1M_A;
+  tmps[gid].h[1] = SHA1M_B;
+  tmps[gid].h[2] = SHA1M_C;
+  tmps[gid].h[3] = SHA1M_D;
+  tmps[gid].h[4] = SHA1M_E;
 }
 
 KERNEL_FQ void m25200_loop (KERN_ATTR_TMPS_ESALT (hmac_sha1_tmp_t, snmpv3_t))
@@ -94,32 +137,96 @@ KERNEL_FQ void m25200_loop (KERN_ATTR_TMPS_ESALT (hmac_sha1_tmp_t, snmpv3_t))
 
   if (gid >= gid_max) return;
 
-  const GLOBAL_AS u8 *pw_buf = (GLOBAL_AS u8 *) pws[gid].i;
+  u32 h[5];
+
+  h[0] = tmps[gid].h[0];
+  h[1] = tmps[gid].h[1];
+  h[2] = tmps[gid].h[2];
+  h[3] = tmps[gid].h[3];
+  h[4] = tmps[gid].h[4];
 
   const u32 pw_len = pws[gid].pw_len;
 
-  u32 idx = tmps[gid].idx;
+  const int pw_len64 = pw_len * 64;
 
-  u32 buf[16] = { 0 };
+  #define SNMPV3_TMP_ELEMS_OPT 1024 // 1024 = (64 max pw length * 64) / sizeof (u32)
+                                    // for pw length > 64 we use global memory reads
 
-  u8 *tmp_buf = (u8 *) buf;
+  u32 tmp[SNMPV3_TMP_ELEMS_OPT];
 
-  sha1_ctx_t ctx = tmps[gid].ctx;
-
-  for (u32 j = 0; j < loop_cnt; j++)
+  if (pw_len < 64)
   {
-    for (int i = 0; i < 64; i++)
+    for (int i = 0; i < pw_len64 / 4; i++)
     {
-      tmp_buf[i] = pw_buf[idx++];
-
-      if (idx >= pw_len) idx = 0;
+      tmp[i] = tmps[gid].tmp[i];
     }
 
-    sha1_update_swap (&ctx, buf, 64);
+    for (int i = 0, j = loop_pos; i < loop_cnt; i += 64, j += 64)
+    {
+      const int idx = (j % pw_len64) / 4; // the optimization trick is to be able to do this
+
+      u32 w0[4];
+      u32 w1[4];
+      u32 w2[4];
+      u32 w3[4];
+
+      w0[0] = tmp[idx +  0];
+      w0[1] = tmp[idx +  1];
+      w0[2] = tmp[idx +  2];
+      w0[3] = tmp[idx +  3];
+      w1[0] = tmp[idx +  4];
+      w1[1] = tmp[idx +  5];
+      w1[2] = tmp[idx +  6];
+      w1[3] = tmp[idx +  7];
+      w2[0] = tmp[idx +  8];
+      w2[1] = tmp[idx +  9];
+      w2[2] = tmp[idx + 10];
+      w2[3] = tmp[idx + 11];
+      w3[0] = tmp[idx + 12];
+      w3[1] = tmp[idx + 13];
+      w3[2] = tmp[idx + 14];
+      w3[3] = tmp[idx + 15];
+
+      sha1_transform (w0, w1, w2, w3, h);
+    }
+  }
+  else
+  {
+    for (int i = 0, j = loop_pos; i < loop_cnt; i += 64, j += 64)
+    {
+      const int idx = (j % pw_len64) / 4; // the optimization trick is to be able to do this
+
+      u32 w0[4];
+      u32 w1[4];
+      u32 w2[4];
+      u32 w3[4];
+
+      w0[0] = tmps[gid].tmp[idx +  0];
+      w0[1] = tmps[gid].tmp[idx +  1];
+      w0[2] = tmps[gid].tmp[idx +  2];
+      w0[3] = tmps[gid].tmp[idx +  3];
+      w1[0] = tmps[gid].tmp[idx +  4];
+      w1[1] = tmps[gid].tmp[idx +  5];
+      w1[2] = tmps[gid].tmp[idx +  6];
+      w1[3] = tmps[gid].tmp[idx +  7];
+      w2[0] = tmps[gid].tmp[idx +  8];
+      w2[1] = tmps[gid].tmp[idx +  9];
+      w2[2] = tmps[gid].tmp[idx + 10];
+      w2[3] = tmps[gid].tmp[idx + 11];
+      w3[0] = tmps[gid].tmp[idx + 12];
+      w3[1] = tmps[gid].tmp[idx + 13];
+      w3[2] = tmps[gid].tmp[idx + 14];
+      w3[3] = tmps[gid].tmp[idx + 15];
+
+      sha1_transform (w0, w1, w2, w3, h);
+    }
   }
 
-  tmps[gid].idx = idx;
-  tmps[gid].ctx = ctx;
+  tmps[gid].h[0] = h[0];
+  tmps[gid].h[1] = h[1];
+  tmps[gid].h[2] = h[2];
+  tmps[gid].h[3] = h[3];
+  tmps[gid].h[4] = h[4];
 }
 
 KERNEL_FQ void m25200_comp (KERN_ATTR_TMPS_ESALT (hmac_sha1_tmp_t, snmpv3_t))
@@ -132,64 +239,108 @@ KERNEL_FQ void m25200_comp (KERN_ATTR_TMPS_ESALT (hmac_sha1_tmp_t, snmpv3_t))
 
   if (gid >= gid_max) return;
 
-  const GLOBAL_AS u8 *engineID_buf = esalt_bufs[DIGESTS_OFFSET].engineID_buf;
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
 
-  u32 engineID_len = esalt_bufs[DIGESTS_OFFSET].engineID_len;
+  w0[0] = 0x80000000;
+  w0[1] = 0;
+  w0[2] = 0;
+  w0[3] = 0;
+  w1[0] = 0;
+  w1[1] = 0;
+  w1[2] = 0;
+  w1[3] = 0;
+  w2[0] = 0;
+  w2[1] = 0;
+  w2[2] = 0;
+  w2[3] = 0;
+  w3[0] = 0;
+  w3[1] = 0;
+  w3[2] = 0;
+  w3[3] = 1048576 * 8;
 
-  sha1_ctx_t ctx = tmps[gid].ctx;
+  u32 h[5];
 
-  sha1_final (&ctx);
+  h[0] = tmps[gid].h[0];
+  h[1] = tmps[gid].h[1];
+  h[2] = tmps[gid].h[2];
+  h[3] = tmps[gid].h[3];
+  h[4] = tmps[gid].h[4];
 
-  const u32 h[5] = {
-    hc_swap32_S (ctx.h[0]),
-    hc_swap32_S (ctx.h[1]),
-    hc_swap32_S (ctx.h[2]),
-    hc_swap32_S (ctx.h[3]),
-    hc_swap32_S (ctx.h[4])
-  };
+  sha1_transform (w0, w1, w2, w3, h);
 
-  u32 tmp_buf[32] = { 0 };
-
-  tmp_buf[0] = h[0];
-  tmp_buf[1] = h[1];
-  tmp_buf[2] = h[2];
-  tmp_buf[3] = h[3];
-  tmp_buf[4] = h[4];
-
-  u8 *buf = (u8 *) (tmp_buf);
-
-  u32 i = 20;
-  u32 j;
-
-  for (j = 0; j < engineID_len; j++)
-  {
-    buf[i++] = engineID_buf[j];
-  }
-
-  for (j = 0; j < 20; j++)
-  {
-    buf[i++] = buf[j];
-  }
+  sha1_ctx_t ctx;
 
   sha1_init (&ctx);
 
-  sha1_update_swap (&ctx, tmp_buf, i);
+  u32 w[16];
+
+  w[ 0] = h[0];
+  w[ 1] = h[1];
+  w[ 2] = h[2];
+  w[ 3] = h[3];
+  w[ 4] = h[4];
+  w[ 5] = 0;
+  w[ 6] = 0;
+  w[ 7] = 0;
+  w[ 8] = 0;
+  w[ 9] = 0;
+  w[10] = 0;
+  w[11] = 0;
+  w[12] = 0;
+  w[13] = 0;
+  w[14] = 0;
+  w[15] = 0;
+
+  sha1_update (&ctx, w, 20);
+
+  sha1_update_global_swap (&ctx, esalt_bufs[DIGESTS_OFFSET].engineID_buf, esalt_bufs[DIGESTS_OFFSET].engineID_len);
+
+  w[ 0] = h[0];
+  w[ 1] = h[1];
+  w[ 2] = h[2];
+  w[ 3] = h[3];
+  w[ 4] = h[4];
+  w[ 5] = 0;
+  w[ 6] = 0;
+  w[ 7] = 0;
+  w[ 8] = 0;
+  w[ 9] = 0;
+  w[10] = 0;
+  w[11] = 0;
+  w[12] = 0;
+  w[13] = 0;
+  w[14] = 0;
+  w[15] = 0;
+
+  sha1_update (&ctx, w, 20);
 
   sha1_final (&ctx);
 
-  u32 key[16] = { 0 };
-
-  key[0] = ctx.h[0];
-  key[1] = ctx.h[1];
-  key[2] = ctx.h[2];
-  key[3] = ctx.h[3];
-  key[4] = ctx.h[4];
+  w[ 0] = ctx.h[0];
+  w[ 1] = ctx.h[1];
+  w[ 2] = ctx.h[2];
+  w[ 3] = ctx.h[3];
+  w[ 4] = ctx.h[4];
+  w[ 5] = 0;
+  w[ 6] = 0;
+  w[ 7] = 0;
+  w[ 8] = 0;
+  w[ 9] = 0;
+  w[10] = 0;
+  w[11] = 0;
+  w[12] = 0;
+  w[13] = 0;
+  w[14] = 0;
+  w[15] = 0;
 
   sha1_hmac_ctx_t hmac_ctx;
 
-  sha1_hmac_init (&hmac_ctx, key, 20);
+  sha1_hmac_init (&hmac_ctx, w, 20);
 
-  sha1_hmac_update_global (&hmac_ctx, esalt_bufs[DIGESTS_OFFSET].salt_buf, esalt_bufs[DIGESTS_OFFSET].salt_len);
+  sha1_hmac_update_global_swap (&hmac_ctx, esalt_bufs[DIGESTS_OFFSET].salt_buf, esalt_bufs[DIGESTS_OFFSET].salt_len);
 
   sha1_hmac_final (&hmac_ctx);
 
@@ -204,3 +355,4 @@ KERNEL_FQ void m25200_comp (KERN_ATTR_TMPS_ESALT (hmac_sha1_tmp_t, snmpv3_t))
   #include COMPARE_M
   #endif
 }
+
