@@ -9,22 +9,23 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "memory.h"
+#include "emu_inc_hash_sha1.h"
 
-static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
+static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
 static const u32   DGST_POS1      = 1;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
-static const u32   DGST_SIZE      = DGST_SIZE_4_4;
+static const u32   DGST_SIZE      = DGST_SIZE_4_4; // 4_3
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_NETWORK_PROTOCOL;
-static const char *HASH_NAME      = "Kerberos 5, etype 23, TGS-REP";
-static const u64   KERN_TYPE      = 13100;
-static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
-                                  | OPTI_TYPE_NOT_ITERATED;
+static const char *HASH_NAME      = "SNMPv3 HMAC-SHA1-96";
+static const u64   KERN_TYPE      = 25200;
+static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$krb5tgs$23$*user$realm$test/spn*$b548e10f5694ae018d7ad63c257af7dc$35e8e45658860bc31a859b41a08989265f4ef8afd75652ab4d7a30ef151bf6350d879ae189a8cb769e01fa573c6315232b37e4bcad9105520640a781e5fd85c09615e78267e494f433f067cc6958200a82f70627ce0eebc2ac445729c2a8a0255dc3ede2c4973d2d93ac8c1a56b26444df300cb93045d05ff2326affaa3ae97f5cd866c14b78a459f0933a550e0b6507bf8af27c2391ef69fbdd649dd059a4b9ae2440edd96c82479645ccdb06bae0eead3b7f639178a90cf24d9a";
+static const char *ST_HASH        = "$SNMPv3$2$66763052$13981919518623358902340156831753173612320956749283824166083320737667668557830898783481876963136410266762758410322896320705075044221495960812100760230106803899899467077793703068392752686845035561487927252457444567685389901239388468830507087105054207914325254376053788152029716918450770264047103676562621965276752797029332926039166807829108367446173251908238116020942421323633620301312478670302264165059728208402342845743839533979473825394866704960428648622730299023225638967097578710279784722583947877561544154219162080289188160001741612377820114739093961409809862173307722539556954826052612794054060797358016549602977742745078911393042420821004243620362464971828700104979572910001640083882586179153483503492341163054930853321963503411228241996417991605003371264529827508426941919673592574025732354318435733211018917539824570724324796232199960952117561108106623865308577977944499366806697863259301760429786001824121720055893438673268643594146796410437039466462606490272723136671298529920486664067752007564122205089571790718437001200506203464426405927405102300269665189637001279369690218157456566218400534722049383049029139069701182053729830585217732347396312967325628046845068493719801191260136945971516486442056102815519090214442808707545803919529217103430588641187558031052830941742920355893755319896626873275796534820394248837050567688575113833311009595128372820474678989203565094681918285106102363272728922586582037066265522397748326630668375500179630717875844561081542915676557961288028298248995547031274515608973804660067065502484039882958958452781062725550260382637592283691962996228392332833626159043179186189904614052189303508782635840692436969244901198720814518$79f7b1$57e964c7cb117647004cf132";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -41,218 +42,211 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
-typedef struct krb5tgs
+static const char *SIGNATURE_SNMPV3 = "$SNMPv3$2$";
+
+#define SNMPV3_SALT_MAX             1500
+#define SNMPV3_ENGINEID_MAX         32
+#define SNMPV3_MSG_AUTH_PARAMS_MAX  12
+#define SNMPV3_ROUNDS               1048576
+#define SNMPV3_MAX_PW_LENGTH        64
+
+#define SNMPV3_TMP_ELEMS  4096 // 4096 = (256 (max pw length) * 64) / sizeof (u32)
+#define SNMPV3_HASH_ELEMS 8    // 8 = aligned 5
+
+typedef struct hmac_sha1_tmp
 {
-  u32 account_info[512];
-  u32 checksum[4];
-  u32 edata2[5120];
-  u32 edata2_len;
+  u32 tmp[SNMPV3_TMP_ELEMS];
+  u32 h[SNMPV3_HASH_ELEMS];
 
-} krb5tgs_t;
+} hmac_sha1_tmp_t;
 
-static const char *SIGNATURE_KRB5TGS = "$krb5tgs$23$";
+#define SNMPV3_MAX_SALT_ELEMS    512 // 512 * 4 = 2048 > 1500, also has to be multiple of 64
+#define SNMPV3_MAX_ENGINE_ELEMS  16  // 16 * 4 = 64 > 32, also has to be multiple of 64
+#define SNMPV3_MAX_PNUM_ELEMS    4   // 4 * 4 = 16 > 9
 
-char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
+typedef struct snmpv3
 {
-  char *jit_build_options = NULL;
+  u32 salt_buf[SNMPV3_MAX_SALT_ELEMS];
+  u32 salt_len;
 
-  u32 native_threads = 0;
+  u32 engineID_buf[SNMPV3_MAX_ENGINE_ELEMS];
+  u32 engineID_len;
 
-  if (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU)
-  {
-    native_threads = 1;
-  }
-  else if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
-  {
-    if (device_param->device_local_mem_size < 49152)
-    {
-      native_threads = MIN (device_param->kernel_preferred_wgs_multiple, 32); // We can't just set 32, because Intel GPU need 8
-    }
-    else
-    {
-      native_threads = device_param->kernel_preferred_wgs_multiple;
-    }
-  }
+  u32 packet_number[SNMPV3_MAX_PNUM_ELEMS];
 
-  hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u -D _unroll", native_threads);
-
-  return jit_build_options;
-}
+} snmpv3_t;
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u64 esalt_size = (const u64) sizeof (krb5tgs_t);
+  const u64 esalt_size = (const u64) sizeof (snmpv3_t);
 
   return esalt_size;
 }
 
-bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
+u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  // amdgpu-pro-20.50-1234664-ubuntu-20.04 (legacy)
-  // test_1619967069/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 3 -m 13100 --increment --increment-min 1 --increment-max 8 test_1619967069/13100_multihash_bruteforce.txt ?d?d?d?d?d?d?d?d
-  if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
-  {
-    return true;
-  }
+  const u64 tmp_size = (const u64) sizeof (hmac_sha1_tmp_t);
 
-  return false;
+  return tmp_size;
+}
+
+u32 module_kernel_loops_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  // we need to fix iteration count to guarantee the loop count is a multiple of 64
+  // 2k calls to sha1_transform typically is enough to overtime pcie bottleneck
+
+  const u32 kernel_loops_min = 2048 * 64;
+
+  return kernel_loops_min;
+}
+
+u32 module_kernel_loops_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 kernel_loops_max = 2048 * 64;
+
+  return kernel_loops_max;
 }
 
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
   u32 *digest = (u32 *) digest_buf;
 
-  krb5tgs_t *krb5tgs = (krb5tgs_t *) esalt_buf;
+  snmpv3_t *snmpv3 = (snmpv3_t *) esalt_buf;
 
   token_t token;
 
+  token.token_cnt  = 5;
   token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_KRB5TGS;
+  token.signatures_buf[0] = SIGNATURE_SNMPV3;
 
-  token.len[0]  = 12;
-  token.attr[0] = TOKEN_ATTR_FIXED_LENGTH
-                | TOKEN_ATTR_VERIFY_SIGNATURE;
+  token.len[0]     = 10;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  /**
-   * $krb5tgs$23$checksum$edata2
-   * $krb5tgs$23$*user*realm*spn*$checksum$edata2
-   */
+  // packet number
+  token.len_min[1] = 1;
+  token.len_max[1] = 8;
+  token.sep[1]     = '$';
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
+  // salt
+  token.len_min[2] = 12 * 2;
+  token.len_max[2] = SNMPV3_SALT_MAX * 2;
+  token.sep[2]     = '$';
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  if (line_len < 16) return (PARSER_SALT_LENGTH);
+  // engineid
+  token.len_min[3] = 5;
+  token.len_max[3] = SNMPV3_ENGINEID_MAX;
+  token.sep[3]     = '$';
+  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-  if (line_buf[12] == '*')
-  {
-    char *account_info_start = (char *) line_buf + 12; // we want the * char included
-    char *account_info_stop  = strchr ((const char *) account_info_start + 1, '*');
-
-    if (account_info_stop == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-    account_info_stop++; // we want the * char included
-    account_info_stop++; // we want the $ char included
-
-    const int account_info_len = account_info_stop - account_info_start;
-
-    token.token_cnt  = 4;
-
-    token.len[1]     = account_info_len;
-    token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH;
-
-    token.sep[2]     = '$';
-    token.len_min[2] = 32;
-    token.len_max[2] = 32;
-    token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                     | TOKEN_ATTR_VERIFY_HEX;
-
-    token.sep[3]     = '$';
-    token.len_min[3] = 64;
-    token.len_max[3] = 40960;
-    token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                     | TOKEN_ATTR_VERIFY_HEX;
-  }
-  else
-  {
-    token.token_cnt  = 3;
-
-    token.sep[1]     = '$';
-    token.len_min[1] = 32;
-    token.len_max[1] = 32;
-    token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                     | TOKEN_ATTR_VERIFY_HEX;
-
-    token.sep[2]     = '$';
-    token.len_min[2] = 64;
-    token.len_max[2] = 40960;
-    token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                     | TOKEN_ATTR_VERIFY_HEX;
-  }
+  // digest
+  token.len_min[4] = SNMPV3_MSG_AUTH_PARAMS_MAX * 2;
+  token.len_max[4] = SNMPV3_MSG_AUTH_PARAMS_MAX * 2;
+  token.sep[4]     = '$';
+  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  const u8 *checksum_pos;
-  const u8 *data_pos;
+  // packet number
 
-  int data_len;
+  const u8 *packet_number_pos = token.buf[1];
+  const int packet_number_len = token.len[1];
 
-  if (line_buf[12] == '*')
-  {
-    checksum_pos = token.buf[2];
+  memset (snmpv3->packet_number, 0, sizeof (snmpv3->packet_number));
 
-    data_pos = token.buf[3];
-    data_len = token.len[3];
+  strncpy ((char *) snmpv3->packet_number, (char *) packet_number_pos, packet_number_len);
 
-    memcpy (krb5tgs->account_info, token.buf[1], token.len[1]);
-  }
-  else
-  {
-    checksum_pos = token.buf[1];
+  // salt
 
-    data_pos = token.buf[2];
-    data_len = token.len[2];
+  const u8 *salt_pos = token.buf[2];
+  const int salt_len = token.len[2];
 
-    krb5tgs->account_info[0] = 0;
-  }
+  u8 *salt_ptr = (u8 *) snmpv3->salt_buf;
 
-  krb5tgs->checksum[0] = hex_to_u32 (checksum_pos +  0);
-  krb5tgs->checksum[1] = hex_to_u32 (checksum_pos +  8);
-  krb5tgs->checksum[2] = hex_to_u32 (checksum_pos + 16);
-  krb5tgs->checksum[3] = hex_to_u32 (checksum_pos + 24);
+  snmpv3->salt_len = hex_decode (salt_pos, salt_len, salt_ptr);
 
-  u8 *edata_ptr = (u8 *) krb5tgs->edata2;
+  salt->salt_iter = SNMPV3_ROUNDS;
 
-  for (int i = 0; i < data_len; i += 2)
-  {
-    const u8 p0 = data_pos[i + 0];
-    const u8 p1 = data_pos[i + 1];
+  // handle unique salts detection
 
-    *edata_ptr++ = hex_convert (p1) << 0
-                 | hex_convert (p0) << 4;
-  }
+  sha1_ctx_t sha1_ctx;
 
-  krb5tgs->edata2_len = data_len / 2;
+  sha1_init   (&sha1_ctx);
+  sha1_update (&sha1_ctx, snmpv3->salt_buf, snmpv3->salt_len);
+  sha1_final  (&sha1_ctx);
 
-  /* this is needed for hmac_md5 */
-  *edata_ptr++ = 0x80;
+  // store sha1(snmpv3->salt_buf) in salt_buf
 
-  salt->salt_buf[0] = krb5tgs->checksum[0];
-  salt->salt_buf[1] = krb5tgs->checksum[1];
-  salt->salt_buf[2] = krb5tgs->checksum[2];
-  salt->salt_buf[3] = krb5tgs->checksum[3];
+  memcpy (salt->salt_buf, sha1_ctx.h, 20);
 
-  salt->salt_len = 16;
+  salt->salt_len = 20;
 
-  digest[0] = krb5tgs->checksum[0];
-  digest[1] = krb5tgs->checksum[1];
-  digest[2] = krb5tgs->checksum[2];
-  digest[3] = krb5tgs->checksum[3];
+  // engineid
+
+  const u8 *engineID_pos = token.buf[3];
+  const int engineID_len = token.len[3];
+
+  u8 *engineID_ptr = (u8 *) snmpv3->engineID_buf;
+
+  snmpv3->engineID_len = hex_decode (engineID_pos, engineID_len, engineID_ptr);
+
+  // digest
+
+  const u8 *hash_pos = token.buf[4];
+
+  digest[0] = hex_to_u32 (hash_pos +  0);
+  digest[1] = hex_to_u32 (hash_pos +  8);
+  digest[2] = hex_to_u32 (hash_pos + 16);
+  digest[3] = 0;
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
 
   return (PARSER_OK);
 }
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  const krb5tgs_t *krb5tgs = (const krb5tgs_t *) esalt_buf;
+  const u32 *digest = (const u32 *) digest_buf;
 
-  char data[5120 * 4 * 2] = { 0 };
+  snmpv3_t *snmpv3 = (snmpv3_t *) esalt_buf;
 
-  for (u32 i = 0, j = 0; i < krb5tgs->edata2_len; i += 1, j += 2)
-  {
-    u8 *ptr_edata2 = (u8 *) krb5tgs->edata2;
+  u8 *out_buf = (u8 *) line_buf;
 
-    sprintf (data + j, "%02x", ptr_edata2[i]);
-  }
+  int out_len = snprintf (line_buf, line_size, "%s%s$", SIGNATURE_SNMPV3, (char *) snmpv3->packet_number);
 
-  const int line_len = snprintf (line_buf, line_size, "%s%s%08x%08x%08x%08x$%s",
-    SIGNATURE_KRB5TGS,
-    (char *) krb5tgs->account_info,
-    byte_swap_32 (krb5tgs->checksum[0]),
-    byte_swap_32 (krb5tgs->checksum[1]),
-    byte_swap_32 (krb5tgs->checksum[2]),
-    byte_swap_32 (krb5tgs->checksum[3]),
-    data);
+  out_len += hex_encode ((u8 *) snmpv3->salt_buf, snmpv3->salt_len, out_buf + out_len);
 
-  return line_len;
+  out_buf[out_len] = '$';
+
+  out_len++;
+
+  out_len += hex_encode ((u8 *) snmpv3->engineID_buf, snmpv3->engineID_len, out_buf + out_len);
+
+  out_buf[out_len] = '$';
+
+  out_len++;
+
+  u32 digest_tmp[3];
+
+  digest_tmp[0] = byte_swap_32 (digest[0]);
+  digest_tmp[1] = byte_swap_32 (digest[1]);
+  digest_tmp[2] = byte_swap_32 (digest[2]);
+
+  u32_to_hex (digest_tmp[0], out_buf + out_len); out_len += 8;
+  u32_to_hex (digest_tmp[1], out_buf + out_len); out_len += 8;
+  u32_to_hex (digest_tmp[2], out_buf + out_len); out_len += 8;
+
+  out_buf[out_len] = 0;
+
+  return out_len;
 }
 
 void module_init (module_ctx_t *module_ctx)
@@ -300,12 +294,12 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hook23                   = MODULE_DEFAULT;
   module_ctx->module_hook_salt_size           = MODULE_DEFAULT;
   module_ctx->module_hook_size                = MODULE_DEFAULT;
-  module_ctx->module_jit_build_options        = module_jit_build_options;
+  module_ctx->module_jit_build_options        = MODULE_DEFAULT;
   module_ctx->module_jit_cache_disable        = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_max         = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_min         = MODULE_DEFAULT;
-  module_ctx->module_kernel_loops_max         = MODULE_DEFAULT;
-  module_ctx->module_kernel_loops_min         = MODULE_DEFAULT;
+  module_ctx->module_kernel_loops_max         = module_kernel_loops_max;
+  module_ctx->module_kernel_loops_min         = module_kernel_loops_min;
   module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
   module_ctx->module_kern_type                = module_kern_type;
@@ -326,7 +320,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_separator                = MODULE_DEFAULT;
   module_ctx->module_st_hash                  = module_st_hash;
   module_ctx->module_st_pass                  = module_st_pass;
-  module_ctx->module_tmp_size                 = MODULE_DEFAULT;
-  module_ctx->module_unstable_warning         = module_unstable_warning;
+  module_ctx->module_tmp_size                 = module_tmp_size;
+  module_ctx->module_unstable_warning         = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

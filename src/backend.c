@@ -8575,6 +8575,10 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         {
           opencl_device_vendor_id = VENDOR_ID_INTEL_SDK;
         }
+        else if (strcmp (opencl_device_vendor, CL_VENDOR_APPLE_USE_INTEL2) == 0)
+        {
+          opencl_device_vendor_id = VENDOR_ID_INTEL_SDK;
+        }
         else if (strcmp (opencl_device_vendor, CL_VENDOR_INTEL_BEIGNET) == 0)
         {
           opencl_device_vendor_id = VENDOR_ID_INTEL_BEIGNET;
