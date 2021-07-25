@@ -120,8 +120,11 @@ int hc_hipInit                   (hashcat_ctx_t *hashcat_ctx, unsigned int Flags
 int hc_hipLaunchKernel           (hashcat_ctx_t *hashcat_ctx, HIPfunction f, unsigned int gridDimX, unsigned int gridDimY, unsigned int gridDimZ, unsigned int blockDimX, unsigned int blockDimY, unsigned int blockDimZ, unsigned int sharedMemBytes, HIPstream hStream, void **kernelParams, void **extra);
 int hc_hipMemAlloc               (hashcat_ctx_t *hashcat_ctx, HIPdeviceptr *dptr, size_t bytesize);
 int hc_hipMemcpyDtoD             (hashcat_ctx_t *hashcat_ctx, HIPdeviceptr dstDevice, HIPdeviceptr srcDevice, size_t ByteCount);
+int hc_hipMemcpyDtoDAsync        (hashcat_ctx_t *hashcat_ctx, HIPdeviceptr dstDevice, HIPdeviceptr srcDevice, size_t ByteCount, HIPstream hStream);
 int hc_hipMemcpyDtoH             (hashcat_ctx_t *hashcat_ctx, void *dstHost, HIPdeviceptr srcDevice, size_t ByteCount);
+int hc_hipMemcpyDtoHAsync        (hashcat_ctx_t *hashcat_ctx, void *dstHost, HIPdeviceptr srcDevice, size_t ByteCount, HIPstream hStream);
 int hc_hipMemcpyHtoD             (hashcat_ctx_t *hashcat_ctx, HIPdeviceptr dstDevice, const void *srcHost, size_t ByteCount);
+int hc_hipMemcpyHtoDAsync        (hashcat_ctx_t *hashcat_ctx, HIPdeviceptr dstDevice, const void *srcHost, size_t ByteCount, HIPstream hStream);
 int hc_hipMemFree                (hashcat_ctx_t *hashcat_ctx, HIPdeviceptr dptr);
 int hc_hipModuleGetFunction      (hashcat_ctx_t *hashcat_ctx, HIPfunction *hfunc, HIPmodule hmod, const char *name);
 int hc_hipModuleLoadDataEx       (hashcat_ctx_t *hashcat_ctx, HIPmodule *module, const void *image, unsigned int numOptions, HIPjit_option *options, void **optionValues);
