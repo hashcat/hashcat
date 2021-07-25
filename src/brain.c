@@ -666,7 +666,7 @@ u32 brain_auth_challenge (void)
 
   #else
 
-  static const char *urandom = "/dev/urandom";
+  static const char *const urandom = "/dev/urandom";
 
   HCFILE fp;
 
