@@ -24,8 +24,8 @@ static const u64   KERN_TYPE      = 25100;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
-static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$SNMPv3$1$76$3081b10201033011020430f6f3d5020300ffe304010702010304373035040d80001f888059dc486145a2632202010802020ab90405706970706f040c00000000000000000000000004080000000103d5321a0460826ecf6443956d4c364bfc6f6ffc8ee0df000ffd0955af12d2c0f3c60fadea417d2bb80c0b2c1fa7a46ce44f9f16e15ee830a49881f60ecfa757d2f04000eb39a94058121d88ca20eeef4e6bf06784c67c15f144915d9bc2c6a0461da92a4abe$80001f888059dc486145a26322$c51ba677ad96869c1cb32196";
+static const char *ST_PASS        = "hashcat1";
+static const char *ST_HASH        = "$SNMPv3$1$45889431$30818f0201033011020409242fc0020300ffe304010102010304383036041180001f88808106d566db57fd600000000002011002020118040a6d61747269785f4d4435040c0000000000000000000000000400303d041180001f88808106d566db57fd60000000000400a226020411f319300201000201003018301606082b06010201010200060a2b06010401bf0803020a$80001f88808106d566db57fd6000000000$1b37c3ea872731f922959e90";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -45,8 +45,8 @@ const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 static const char *SIGNATURE_SNMPV3 = "$SNMPv3$1$";
 
 #define SNMPV3_SALT_MAX             1500
-#define SNMPV3_ENGINEID_MAX         32
-#define SNMPV3_MSG_AUTH_PARAMS_MAX  12
+#define SNMPV3_ENGINEID_MAX         34
+#define SNMPV3_MSG_AUTH_PARAMS_LEN  12
 #define SNMPV3_ROUNDS               1048576
 #define SNMPV3_MAX_PW_LENGTH        64
 
@@ -130,23 +130,23 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
   // salt
-  token.len_min[2] = 12 * 2;
+  token.len_min[2] = SNMPV3_MSG_AUTH_PARAMS_LEN * 2;
   token.len_max[2] = SNMPV3_SALT_MAX * 2;
   token.sep[2]     = '$';
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   // engineid
-  token.len_min[3] = 5;
+  token.len_min[3] = 26;
   token.len_max[3] = SNMPV3_ENGINEID_MAX;
   token.sep[3]     = '$';
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH;
+  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
   // digest
-  token.len_min[4] = SNMPV3_MSG_AUTH_PARAMS_MAX * 2;
-  token.len_max[4] = SNMPV3_MSG_AUTH_PARAMS_MAX * 2;
+  token.len[4]     = SNMPV3_MSG_AUTH_PARAMS_LEN * 2;
   token.sep[4]     = '$';
-  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.attr[4]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);

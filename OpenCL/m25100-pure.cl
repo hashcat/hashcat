@@ -18,8 +18,8 @@
 #define COMPARE_M "inc_comp_multi.cl"
 
 #define SNMPV3_SALT_MAX             1500
-#define SNMPV3_ENGINEID_MAX         32
-#define SNMPV3_MSG_AUTH_PARAMS_MAX  12
+#define SNMPV3_ENGINEID_MAX         34
+#define SNMPV3_MSG_AUTH_PARAMS_LEN  12
 #define SNMPV3_ROUNDS               1048576
 #define SNMPV3_MAX_PW_LENGTH        64
 

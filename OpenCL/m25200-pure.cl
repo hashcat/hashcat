@@ -18,13 +18,17 @@
 #define COMPARE_M "inc_comp_multi.cl"
 
 #define SNMPV3_SALT_MAX             1500
-#define SNMPV3_ENGINEID_MAX         32
-#define SNMPV3_MSG_AUTH_PARAMS_MAX  12
+#define SNMPV3_ENGINEID_MAX         34
+#define SNMPV3_MSG_AUTH_PARAMS_LEN  12
 #define SNMPV3_ROUNDS               1048576
 #define SNMPV3_MAX_PW_LENGTH        64
 
-#define SNMPV3_TMP_ELEMS  4096 // 4096 = (256 (max pw length) * 64) / sizeof (u32)
-#define SNMPV3_HASH_ELEMS 8    // 8 = aligned 5
+#define SNMPV3_TMP_ELEMS            4096 // 4096 = (256 (max pw length) * 64) / sizeof (u32)
+#define SNMPV3_HASH_ELEMS           8    // 8 = aligned 5
+
+#define SNMPV3_MAX_SALT_ELEMS       512 // 512 * 4 = 2048 > 1500, also has to be multiple of 64
+#define SNMPV3_MAX_ENGINE_ELEMS     16  // 16 * 4 = 64 > 32, also has to be multiple of 64
+#define SNMPV3_MAX_PNUM_ELEMS       4   // 4 * 4 = 16 > 9
 
 typedef struct hmac_sha1_tmp
 {
@@ -32,10 +36,6 @@ typedef struct hmac_sha1_tmp
   u32 h[SNMPV3_HASH_ELEMS];
 
 } hmac_sha1_tmp_t;
-
-#define SNMPV3_MAX_SALT_ELEMS    512 // 512 * 4 = 2048 > 1500, also has to be multiple of 64
-#define SNMPV3_MAX_ENGINE_ELEMS  16  // 16 * 4 = 64 > 32, also has to be multiple of 64
-#define SNMPV3_MAX_PNUM_ELEMS    4   // 4 * 4 = 16 > 9
 
 typedef struct snmpv3
 {

@@ -11,14 +11,14 @@ use warnings;
 use Digest::MD5 qw (md5 md5_hex);
 use Digest::HMAC qw (hmac hmac_hex);
 
-sub module_constraints { [[1, 256], [24, 3000], [-1, -1], [-1, -1], [-1, -1]] }
+sub module_constraints { [[8, 256], [24, 3000], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub module_generate_hash
 {
   my $word = shift;
   my $salt = shift;
-  my $pkt_num = shift // int(rand(99999999));
-  my $engineID = shift // random_hex_string(6);
+  my $pkt_num = shift // int(rand(100000000));
+  my $engineID = shift // random_hex_string(26, 34);
 
   # make even if needed
 
@@ -71,7 +71,7 @@ sub module_verify_hash
 
   my $word_packed = pack_if_HEX_notation ($word);
 
-  my $new_hash = module_generate_hash ($word_packed, $salt, $pkt_num, $engineID); #, $digest);
+  my $new_hash = module_generate_hash ($word_packed, $salt, $pkt_num, $engineID);
 
   return ($new_hash, $word);
 }
