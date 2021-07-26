@@ -1257,11 +1257,8 @@ int cuda_init (hashcat_ctx_t *hashcat_ctx)
   HC_LOAD_FUNC_CUDA (cuda, cuLaunchKernel,           cuLaunchKernel,            CUDA_CULAUNCHKERNEL,            CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuMemAlloc,               cuMemAlloc_v2,             CUDA_CUMEMALLOC,                CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuMemAllocHost,           cuMemAllocHost_v2,         CUDA_CUMEMALLOCHOST,            CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuMemcpyDtoD,             cuMemcpyDtoD_v2,           CUDA_CUMEMCPYDTOD,              CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuMemcpyDtoDAsync,        cuMemcpyDtoDAsync_v2,      CUDA_CUMEMCPYDTODASYNC,         CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuMemcpyDtoH,             cuMemcpyDtoH_v2,           CUDA_CUMEMCPYDTOH,              CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuMemcpyDtoHAsync,        cuMemcpyDtoHAsync_v2,      CUDA_CUMEMCPYDTOHASYNC,         CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuMemcpyHtoD,             cuMemcpyHtoD_v2,           CUDA_CUMEMCPYHTOD,              CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuMemcpyHtoDAsync,        cuMemcpyHtoDAsync_v2,      CUDA_CUMEMCPYHTODASYNC,         CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuMemFree,                cuMemFree_v2,              CUDA_CUMEMFREE,                 CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuMemFreeHost,            cuMemFreeHost,             CUDA_CUMEMFREEHOST,             CUDA, 1);
@@ -1687,33 +1684,6 @@ int hc_cuMemFree (hashcat_ctx_t *hashcat_ctx, CUdeviceptr dptr)
   return 0;
 }
 
-int hc_cuMemcpyDtoH (hashcat_ctx_t *hashcat_ctx, void *dstHost, CUdeviceptr srcDevice, size_t ByteCount)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuMemcpyDtoH (dstHost, srcDevice, ByteCount);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuMemcpyDtoH(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuMemcpyDtoH(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
 int hc_cuMemcpyDtoHAsync (hashcat_ctx_t *hashcat_ctx, void *dstHost, CUdeviceptr srcDevice, size_t ByteCount, CUstream hStream)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
@@ -1741,33 +1711,6 @@ int hc_cuMemcpyDtoHAsync (hashcat_ctx_t *hashcat_ctx, void *dstHost, CUdeviceptr
   return 0;
 }
 
-int hc_cuMemcpyDtoD (hashcat_ctx_t *hashcat_ctx, CUdeviceptr dstDevice, CUdeviceptr srcDevice, size_t ByteCount)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuMemcpyDtoD (dstDevice, srcDevice, ByteCount);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuMemcpyDtoD(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuMemcpyDtoD(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
 int hc_cuMemcpyDtoDAsync (hashcat_ctx_t *hashcat_ctx, CUdeviceptr dstDevice, CUdeviceptr srcDevice, size_t ByteCount, CUstream hStream)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
@@ -1787,33 +1730,6 @@ int hc_cuMemcpyDtoDAsync (hashcat_ctx_t *hashcat_ctx, CUdeviceptr dstDevice, CUd
     else
     {
       event_log_error (hashcat_ctx, "cuMemcpyDtoDAsync(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuMemcpyHtoD (hashcat_ctx_t *hashcat_ctx, CUdeviceptr dstDevice, const void *srcHost, size_t ByteCount)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuMemcpyHtoD (dstDevice, srcHost, ByteCount);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuMemcpyHtoD(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuMemcpyHtoD(): %d", CU_err);
     }
 
     return -1;
@@ -2550,11 +2466,8 @@ int hip_init (hashcat_ctx_t *hashcat_ctx)
   HC_LOAD_FUNC_HIP (hip, hipLaunchKernel,           hipModuleLaunchKernel,      HIP_HIPLAUNCHKERNEL,            HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipMemAlloc,               hipMalloc,                  HIP_HIPMEMALLOC,                HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipMemAllocHost,           hipMemAllocHost,            HIP_HIPMEMALLOCHOST,            HIP, 1);
-  HC_LOAD_FUNC_HIP (hip, hipMemcpyDtoD,             hipMemcpyDtoD,              HIP_HIPMEMCPYDTOD,              HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipMemcpyDtoDAsync,        hipMemcpyDtoDAsync,         HIP_HIPMEMCPYDTODASYNC,         HIP, 1);
-  HC_LOAD_FUNC_HIP (hip, hipMemcpyDtoH,             hipMemcpyDtoH,              HIP_HIPMEMCPYDTOH,              HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipMemcpyDtoHAsync,        hipMemcpyDtoHAsync,         HIP_HIPMEMCPYDTOHASYNC,         HIP, 1);
-  HC_LOAD_FUNC_HIP (hip, hipMemcpyHtoD,             hipMemcpyHtoD,              HIP_HIPMEMCPYHTOD,              HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipMemcpyHtoDAsync,        hipMemcpyHtoDAsync,         HIP_HIPMEMCPYHTODASYNC,         HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipMemFree,                hipFree,                    HIP_HIPMEMFREE,                 HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipMemFreeHost,            hipFreeHost,                HIP_HIPMEMFREEHOST,             HIP, 1);
@@ -2981,33 +2894,6 @@ int hc_hipMemFree (hashcat_ctx_t *hashcat_ctx, HIPdeviceptr dptr)
   return 0;
 }
 
-int hc_hipMemcpyDtoH (hashcat_ctx_t *hashcat_ctx, void *dstHost, HIPdeviceptr srcDevice, size_t ByteCount)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
-
-  const HIPresult HIP_err = hip->hipMemcpyDtoH (dstHost, srcDevice, ByteCount);
-
-  if (HIP_err != HIP_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "hipMemcpyDtoH(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "hipMemcpyDtoH(): %d", HIP_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
 int hc_hipMemcpyDtoHAsync (hashcat_ctx_t *hashcat_ctx, void *dstHost, HIPdeviceptr srcDevice, size_t ByteCount, HIPstream hStream)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
@@ -3035,33 +2921,6 @@ int hc_hipMemcpyDtoHAsync (hashcat_ctx_t *hashcat_ctx, void *dstHost, HIPdevicep
   return 0;
 }
 
-int hc_hipMemcpyDtoD (hashcat_ctx_t *hashcat_ctx, HIPdeviceptr dstDevice, HIPdeviceptr srcDevice, size_t ByteCount)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
-
-  const HIPresult HIP_err = hip->hipMemcpyDtoD (dstDevice, srcDevice, ByteCount);
-
-  if (HIP_err != HIP_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "hipMemcpyDtoD(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "hipMemcpyDtoD(): %d", HIP_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
 int hc_hipMemcpyDtoDAsync (hashcat_ctx_t *hashcat_ctx, HIPdeviceptr dstDevice, HIPdeviceptr srcDevice, size_t ByteCount, HIPstream hStream)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
@@ -3081,33 +2940,6 @@ int hc_hipMemcpyDtoDAsync (hashcat_ctx_t *hashcat_ctx, HIPdeviceptr dstDevice, H
     else
     {
       event_log_error (hashcat_ctx, "hipMemcpyDtoDAsync(): %d", HIP_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_hipMemcpyHtoD (hashcat_ctx_t *hashcat_ctx, HIPdeviceptr dstDevice, const void *srcHost, size_t ByteCount)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
-
-  const HIPresult HIP_err = hip->hipMemcpyHtoD (dstDevice, srcHost, ByteCount);
-
-  if (HIP_err != HIP_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "hipMemcpyHtoD(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "hipMemcpyHtoD(): %d", HIP_err);
     }
 
     return -1;

@@ -68,11 +68,8 @@ int hc_cuFuncSetAttribute        (hashcat_ctx_t *hashcat_ctx, CUfunction hfunc, 
 int hc_cuInit                    (hashcat_ctx_t *hashcat_ctx, unsigned int Flags);
 int hc_cuLaunchKernel            (hashcat_ctx_t *hashcat_ctx, CUfunction f, unsigned int gridDimX, unsigned int gridDimY, unsigned int gridDimZ, unsigned int blockDimX, unsigned int blockDimY, unsigned int blockDimZ, unsigned int sharedMemBytes, CUstream hStream, void **kernelParams, void **extra);
 int hc_cuMemAlloc                (hashcat_ctx_t *hashcat_ctx, CUdeviceptr *dptr, size_t bytesize);
-int hc_cuMemcpyDtoD              (hashcat_ctx_t *hashcat_ctx, CUdeviceptr dstDevice, CUdeviceptr srcDevice, size_t ByteCount);
 int hc_cuMemcpyDtoDAsync         (hashcat_ctx_t *hashcat_ctx, CUdeviceptr dstDevice, CUdeviceptr srcDevice, size_t ByteCount, CUstream hStream);
-int hc_cuMemcpyDtoH              (hashcat_ctx_t *hashcat_ctx, void *dstHost, CUdeviceptr srcDevice, size_t ByteCount);
 int hc_cuMemcpyDtoHAsync         (hashcat_ctx_t *hashcat_ctx, void *dstHost, CUdeviceptr srcDevice, size_t ByteCount, CUstream hStream);
-int hc_cuMemcpyHtoD              (hashcat_ctx_t *hashcat_ctx, CUdeviceptr dstDevice, const void *srcHost, size_t ByteCount);
 int hc_cuMemcpyHtoDAsync         (hashcat_ctx_t *hashcat_ctx, CUdeviceptr dstDevice, const void *srcHost, size_t ByteCount, CUstream hStream);
 int hc_cuMemFree                 (hashcat_ctx_t *hashcat_ctx, CUdeviceptr dptr);
 int hc_cuModuleGetFunction       (hashcat_ctx_t *hashcat_ctx, CUfunction *hfunc, CUmodule hmod, const char *name);
@@ -119,11 +116,8 @@ int hc_hipFuncGetAttribute       (hashcat_ctx_t *hashcat_ctx, int *pi, HIPfuncti
 int hc_hipInit                   (hashcat_ctx_t *hashcat_ctx, unsigned int Flags);
 int hc_hipLaunchKernel           (hashcat_ctx_t *hashcat_ctx, HIPfunction f, unsigned int gridDimX, unsigned int gridDimY, unsigned int gridDimZ, unsigned int blockDimX, unsigned int blockDimY, unsigned int blockDimZ, unsigned int sharedMemBytes, HIPstream hStream, void **kernelParams, void **extra);
 int hc_hipMemAlloc               (hashcat_ctx_t *hashcat_ctx, HIPdeviceptr *dptr, size_t bytesize);
-int hc_hipMemcpyDtoD             (hashcat_ctx_t *hashcat_ctx, HIPdeviceptr dstDevice, HIPdeviceptr srcDevice, size_t ByteCount);
 int hc_hipMemcpyDtoDAsync        (hashcat_ctx_t *hashcat_ctx, HIPdeviceptr dstDevice, HIPdeviceptr srcDevice, size_t ByteCount, HIPstream hStream);
-int hc_hipMemcpyDtoH             (hashcat_ctx_t *hashcat_ctx, void *dstHost, HIPdeviceptr srcDevice, size_t ByteCount);
 int hc_hipMemcpyDtoHAsync        (hashcat_ctx_t *hashcat_ctx, void *dstHost, HIPdeviceptr srcDevice, size_t ByteCount, HIPstream hStream);
-int hc_hipMemcpyHtoD             (hashcat_ctx_t *hashcat_ctx, HIPdeviceptr dstDevice, const void *srcHost, size_t ByteCount);
 int hc_hipMemcpyHtoDAsync        (hashcat_ctx_t *hashcat_ctx, HIPdeviceptr dstDevice, const void *srcHost, size_t ByteCount, HIPstream hStream);
 int hc_hipMemFree                (hashcat_ctx_t *hashcat_ctx, HIPdeviceptr dptr);
 int hc_hipModuleGetFunction      (hashcat_ctx_t *hashcat_ctx, HIPfunction *hfunc, HIPmodule hmod, const char *name);
