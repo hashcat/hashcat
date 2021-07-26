@@ -232,7 +232,7 @@ DECLSPEC void make_sc (u32 *sc, const u32 *pw, const u32 pw_len, const u32 *bl, 
 
     u32 i;
 
-    #if (defined IS_AMD || defined IS_HIP) || defined IS_GENERIC
+    #if ((defined IS_AMD || defined IS_HIP) && HAS_VPERM == 0) || defined IS_GENERIC
     for (i = 0; i < pd; i++) sc[idx++] = pw[i];
                              sc[idx++] = pw[i]
                                        | hc_bytealign_be (bl[0],         0, pm4);
@@ -242,8 +242,15 @@ DECLSPEC void make_sc (u32 *sc, const u32 *pw, const u32 pw_len, const u32 *bl, 
                              sc[idx++] = hc_bytealign_be (    0, sc[i - 1], pm4);
     #endif
 
-    #ifdef IS_NV
-    int selector = (0x76543210 >> (pm4 * 4)) & 0xffff;
+    #if ((defined IS_AMD || defined IS_HIP) && HAS_VPERM == 1) || defined IS_NV
+
+    #if defined IS_NV
+    const int selector = (0x76543210 >> ((pm4 & 3) * 4)) & 0xffff;
+    #endif
+
+    #if (defined IS_AMD || defined IS_HIP)
+    const int selector = l32_from_64_S (0x0706050403020100UL >> ((pm4 & 3) * 8));
+    #endif
 
     for (i = 0; i < pd; i++) sc[idx++] = pw[i];
                              sc[idx++] = pw[i]
@@ -263,16 +270,22 @@ DECLSPEC void make_pt_with_offset (u32 *pt, const u32 offset, const u32 *sc, con
   const u32 om = m % 4;
   const u32 od = m / 4;
 
-  #if (defined IS_AMD || defined IS_HIP) || defined IS_GENERIC
+  #if ((defined IS_AMD || defined IS_HIP) && HAS_VPERM == 0) || defined IS_GENERIC
   pt[0] = hc_bytealign_be (sc[od + 1], sc[od + 0], om);
   pt[1] = hc_bytealign_be (sc[od + 2], sc[od + 1], om);
   pt[2] = hc_bytealign_be (sc[od + 3], sc[od + 2], om);
   pt[3] = hc_bytealign_be (sc[od + 4], sc[od + 3], om);
   #endif
 
-  #ifdef IS_NV
-  int selector = (0x76543210 >> (om * 4)) & 0xffff;
+  #if ((defined IS_AMD || defined IS_HIP) && HAS_VPERM == 1) || defined IS_NV
 
+  #if defined IS_NV
+  const int selector = (0x76543210 >> ((om & 3) * 4)) & 0xffff;
+  #endif
+
+  #if (defined IS_AMD || defined IS_HIP)
+  const int selector = l32_from_64_S (0x0706050403020100UL >> ((om & 3) * 8));
+  #endif
   pt[0] = hc_byte_perm (sc[od + 0], sc[od + 1], selector);
   pt[1] = hc_byte_perm (sc[od + 1], sc[od + 2], selector);
   pt[2] = hc_byte_perm (sc[od + 2], sc[od + 3], selector);
