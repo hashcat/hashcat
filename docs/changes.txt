@@ -19,6 +19,7 @@
 ## Improvements
 ##
 
+- AMD GPUs: Add inline assembly code for md5crypt/sha256crypt, PDF 1.7, 7-Zip, RAR3, Samsung Android and Windows Phone 8+
 - Blake Kernels: Optimize BLAKE2B_ROUND() 64 bit rotates giving a 5% performance increase
 - Brain Session: Adds hashconfig specific opti_type and opts_type parameters to hashcat session computation to cover features like -O and -M
 - Kernel Threads: Use warp size / wavefront size query instead of hardcoded values as base for kernel threads
@@ -29,6 +30,7 @@
 ## Technical
 ##
 
+- ADL: Updated support for AMD Display Library to 14.0, updated datatypes and added support for OverDrive 7 and 8 based GPUs
 - Commandline: Throw an error if separator character given by the user with -p option is not exactly 1 byte
 - Kernel Cache: Add kernel threads into hash computation which is later used in the kernel cache filename
 - HIP Kernels: Got rid of hip/hip_runtime.h dependancy to enable more easy integration of the HIP backend on Windows

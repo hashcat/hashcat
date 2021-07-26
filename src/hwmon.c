@@ -109,19 +109,7 @@ int hm_get_threshold_slowdown_with_devices_idx (hashcat_ctx_t *hashcat_ctx, cons
           }
           else if (hwmon_ctx->hm_device[backend_device_idx].od_version == 6)
           {
-            int CurrentValue = 0;
-            int DefaultValue = 0;
 
-            if (hm_ADL_Overdrive6_TargetTemperatureData_Get (hashcat_ctx, hwmon_ctx->hm_device[backend_device_idx].adl, &CurrentValue, &DefaultValue) == -1)
-            {
-              hwmon_ctx->hm_device[backend_device_idx].threshold_slowdown_get_supported = false;
-
-              return -1;
-            }
-
-            // the return value has never been tested since hm_ADL_Overdrive6_TargetTemperatureData_Get() never worked on any system. expect problems.
-
-            return DefaultValue;
           }
         }
       }
@@ -346,6 +334,22 @@ int hm_get_temperature_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int b
 
             return Temperature / 1000;
           }
+
+          if (hwmon_ctx->hm_device[backend_device_idx].od_version == 8)
+          {
+            ADLPMLogDataOutput odlpDataOutput;
+
+            memset (&odlpDataOutput, 0, sizeof (ADLPMLogDataOutput));
+
+            if (hm_ADL2_New_QueryPMLogData_Get (hashcat_ctx, hwmon_ctx->hm_device[backend_device_idx].adl, &odlpDataOutput) == -1)
+            {
+              hwmon_ctx->hm_device[backend_device_idx].temperature_get_supported = false;
+
+              return -1;
+            }
+
+            return odlpDataOutput.sensors[PMLOG_TEMPERATURE_EDGE].value;
+          }
         }
 
         if (hwmon_ctx->hm_sysfs_amdgpu)
@@ -431,7 +435,36 @@ int hm_get_fanpolicy_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int bac
 
           if (hwmon_ctx->hm_device[backend_device_idx].od_version == 6)
           {
+            ADLOD6FanSpeedInfo lpFanSpeedInfo;
+
+            memset (&lpFanSpeedInfo, 0, sizeof (lpFanSpeedInfo));
+
+            if (hm_ADL_Overdrive6_FanSpeed_Get (hashcat_ctx, hwmon_ctx->hm_device[backend_device_idx].adl, &lpFanSpeedInfo) == -1)
+            {
+              hwmon_ctx->hm_device[backend_device_idx].fanpolicy_get_supported = false;
+              hwmon_ctx->hm_device[backend_device_idx].fanspeed_get_supported  = false;
+
+              return -1;
+            }
+
             return 1;
+          }
+
+          if (hwmon_ctx->hm_device[backend_device_idx].od_version == 8)
+          {
+            ADLPMLogDataOutput odlpDataOutput;
+
+            memset (&odlpDataOutput, 0, sizeof (ADLPMLogDataOutput));
+
+            if (hm_ADL2_New_QueryPMLogData_Get (hashcat_ctx, hwmon_ctx->hm_device[backend_device_idx].adl, &odlpDataOutput) == -1)
+            {
+              hwmon_ctx->hm_device[backend_device_idx].fanpolicy_get_supported = false;
+              hwmon_ctx->hm_device[backend_device_idx].fanspeed_get_supported  = false;
+
+              return -1;
+            }
+
+            return odlpDataOutput.sensors[PMLOG_FAN_PERCENTAGE].supported;
           }
         }
 
@@ -542,6 +575,22 @@ int hm_get_fanspeed_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int back
 
             return faninfo.iFanSpeedPercent;
           }
+
+          if (hwmon_ctx->hm_device[backend_device_idx].od_version == 8)
+          {
+            ADLPMLogDataOutput odlpDataOutput;
+
+            memset (&odlpDataOutput, 0, sizeof (ADLPMLogDataOutput));
+
+            if (hm_ADL2_New_QueryPMLogData_Get (hashcat_ctx, hwmon_ctx->hm_device[backend_device_idx].adl, &odlpDataOutput) == -1)
+            {
+              hwmon_ctx->hm_device[backend_device_idx].fanspeed_get_supported = false;
+
+              return -1;
+            }
+
+            return odlpDataOutput.sensors[PMLOG_FAN_PERCENTAGE].value;
+          }
         }
 
         if (hwmon_ctx->hm_sysfs_amdgpu)
@@ -617,18 +666,23 @@ int hm_get_buslanes_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int back
       {
         if (hwmon_ctx->hm_adl)
         {
-          ADLPMActivity PMActivity;
-
-          PMActivity.iSize = sizeof (ADLPMActivity);
-
-          if (hm_ADL_Overdrive_CurrentActivity_Get (hashcat_ctx, hwmon_ctx->hm_device[backend_device_idx].adl, &PMActivity) == -1)
+          if (hwmon_ctx->hm_device[backend_device_idx].od_version == 5)
           {
-            hwmon_ctx->hm_device[backend_device_idx].buslanes_get_supported = false;
+            ADLPMActivity PMActivity;
 
-            return -1;
+            PMActivity.iSize = sizeof (ADLPMActivity);
+
+            if (hm_ADL_Overdrive_CurrentActivity_Get (hashcat_ctx, hwmon_ctx->hm_device[backend_device_idx].adl, &PMActivity) == -1)
+            {
+              hwmon_ctx->hm_device[backend_device_idx].buslanes_get_supported = false;
+
+              return -1;
+            }
+
+            return PMActivity.iCurrentBusLanes;
           }
 
-          return PMActivity.iCurrentBusLanes;
+          // NO OD8
         }
 
         if (hwmon_ctx->hm_sysfs_amdgpu)
@@ -704,18 +758,37 @@ int hm_get_utilization_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int b
       {
         if (hwmon_ctx->hm_adl)
         {
-          ADLPMActivity PMActivity;
-
-          PMActivity.iSize = sizeof (ADLPMActivity);
-
-          if (hm_ADL_Overdrive_CurrentActivity_Get (hashcat_ctx, hwmon_ctx->hm_device[backend_device_idx].adl, &PMActivity) == -1)
+          if (hwmon_ctx->hm_device[backend_device_idx].od_version == 5)
           {
-            hwmon_ctx->hm_device[backend_device_idx].utilization_get_supported = false;
+            ADLPMActivity PMActivity;
 
-            return -1;
+            PMActivity.iSize = sizeof (ADLPMActivity);
+
+            if (hm_ADL_Overdrive_CurrentActivity_Get (hashcat_ctx, hwmon_ctx->hm_device[backend_device_idx].adl, &PMActivity) == -1)
+            {
+              hwmon_ctx->hm_device[backend_device_idx].utilization_get_supported = false;
+
+              return -1;
+            }
+
+            return PMActivity.iActivityPercent;
           }
 
-          return PMActivity.iActivityPercent;
+          if (hwmon_ctx->hm_device[backend_device_idx].od_version == 8)
+          {
+            ADLPMLogDataOutput odlpDataOutput;
+
+            memset (&odlpDataOutput, 0, sizeof (ADLPMLogDataOutput));
+
+            if (hm_ADL2_New_QueryPMLogData_Get (hashcat_ctx, hwmon_ctx->hm_device[backend_device_idx].adl, &odlpDataOutput) == -1)
+            {
+              hwmon_ctx->hm_device[backend_device_idx].utilization_get_supported = false;
+
+              return -1;
+            }
+
+            return odlpDataOutput.sensors[PMLOG_INFO_ACTIVITY_GFX].value;
+          }
         }
 
         if (hwmon_ctx->hm_sysfs_amdgpu)
@@ -808,18 +881,37 @@ int hm_get_memoryspeed_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int b
       {
         if (hwmon_ctx->hm_adl)
         {
-          ADLPMActivity PMActivity;
-
-          PMActivity.iSize = sizeof (ADLPMActivity);
-
-          if (hm_ADL_Overdrive_CurrentActivity_Get (hashcat_ctx, hwmon_ctx->hm_device[backend_device_idx].adl, &PMActivity) == -1)
+          if (hwmon_ctx->hm_device[backend_device_idx].od_version == 5)
           {
-            hwmon_ctx->hm_device[backend_device_idx].memoryspeed_get_supported = false;
+            ADLPMActivity PMActivity;
 
-            return -1;
+            PMActivity.iSize = sizeof (ADLPMActivity);
+
+            if (hm_ADL_Overdrive_CurrentActivity_Get (hashcat_ctx, hwmon_ctx->hm_device[backend_device_idx].adl, &PMActivity) == -1)
+            {
+              hwmon_ctx->hm_device[backend_device_idx].memoryspeed_get_supported = false;
+
+              return -1;
+            }
+
+            return PMActivity.iMemoryClock / 100;
           }
 
-          return PMActivity.iMemoryClock / 100;
+          if (hwmon_ctx->hm_device[backend_device_idx].od_version == 8)
+          {
+            ADLPMLogDataOutput odlpDataOutput;
+
+            memset (&odlpDataOutput, 0, sizeof (ADLPMLogDataOutput));
+
+            if (hm_ADL2_New_QueryPMLogData_Get (hashcat_ctx, hwmon_ctx->hm_device[backend_device_idx].adl, &odlpDataOutput) == -1)
+            {
+              hwmon_ctx->hm_device[backend_device_idx].memoryspeed_get_supported = false;
+
+              return -1;
+            }
+
+            return odlpDataOutput.sensors[PMLOG_CLK_MEMCLK].value;
+          }
         }
 
         if (hwmon_ctx->hm_sysfs_amdgpu)
@@ -895,18 +987,37 @@ int hm_get_corespeed_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int bac
       {
         if (hwmon_ctx->hm_adl)
         {
-          ADLPMActivity PMActivity;
-
-          PMActivity.iSize = sizeof (ADLPMActivity);
-
-          if (hm_ADL_Overdrive_CurrentActivity_Get (hashcat_ctx, hwmon_ctx->hm_device[backend_device_idx].adl, &PMActivity) == -1)
+          if (hwmon_ctx->hm_device[backend_device_idx].od_version == 5)
           {
-            hwmon_ctx->hm_device[backend_device_idx].corespeed_get_supported = false;
+            ADLPMActivity PMActivity;
 
-            return -1;
+            PMActivity.iSize = sizeof (ADLPMActivity);
+
+            if (hm_ADL_Overdrive_CurrentActivity_Get (hashcat_ctx, hwmon_ctx->hm_device[backend_device_idx].adl, &PMActivity) == -1)
+            {
+              hwmon_ctx->hm_device[backend_device_idx].corespeed_get_supported = false;
+
+              return -1;
+            }
+
+            return PMActivity.iEngineClock / 100;
           }
 
-          return PMActivity.iEngineClock / 100;
+          if (hwmon_ctx->hm_device[backend_device_idx].od_version == 8)
+          {
+            ADLPMLogDataOutput odlpDataOutput;
+
+            memset (&odlpDataOutput, 0, sizeof (ADLPMLogDataOutput));
+
+            if (hm_ADL2_New_QueryPMLogData_Get (hashcat_ctx, hwmon_ctx->hm_device[backend_device_idx].adl, &odlpDataOutput) == -1)
+            {
+              hwmon_ctx->hm_device[backend_device_idx].corespeed_get_supported = false;
+
+              return -1;
+            }
+
+            return odlpDataOutput.sensors[PMLOG_CLK_GFXCLK].value;
+          }
         }
 
         if (hwmon_ctx->hm_sysfs_amdgpu)
@@ -1400,7 +1511,9 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
               int od_enabled   = 0;
               int od_version   = 0;
 
-              hm_ADL_Overdrive_Caps (hashcat_ctx, lpAdapterInfo[i].iAdapterIndex, &od_supported, &od_enabled, &od_version);
+              hm_ADL2_Overdrive_Caps (hashcat_ctx, lpAdapterInfo[i].iAdapterIndex, &od_supported, &od_enabled, &od_version);
+
+              if (od_version < 8) od_version = 5;
 
               hm_adapters_adl[device_id].od_version = od_version;
 
@@ -1533,12 +1646,6 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
    */
 
   hwmon_ctx->enabled = true;
-
-  /**
-   * save buffer required for later restores
-   */
-
-  hwmon_ctx->od_clock_mem_status = (ADLOD6MemClockState *) hccalloc (backend_ctx->backend_devices_cnt, sizeof (ADLOD6MemClockState));
 
   /**
    * HM devices: copy
@@ -1794,8 +1901,6 @@ void hwmon_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
   #endif
 
   // free memory
-
-  hcfree (hwmon_ctx->od_clock_mem_status);
 
   hcfree (hwmon_ctx->hm_device);
 
