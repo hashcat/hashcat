@@ -19,8 +19,8 @@
 #define COMPARE_M "inc_comp_multi.cl"
 
 #define SNMPV3_SALT_MAX             1500
-#define SNMPV3_ENGINEID_MAX         32
-#define SNMPV3_MSG_AUTH_PARAMS_MAX  12
+#define SNMPV3_ENGINEID_MAX         34
+#define SNMPV3_MSG_AUTH_PARAMS_LEN  12
 #define SNMPV3_ROUNDS               1048576
 #define SNMPV3_MAX_PW_LENGTH        64
 
@@ -192,15 +192,15 @@ KERNEL_FQ void m25000_loop (KERN_ATTR_TMPS_ESALT (hmac_md5_tmp_t, snmpv3_t))
   #define SNMPV3_TMP_ELEMS_OPT 1024 // 1024 = (64 max pw length * 64) / sizeof (u32)
                                     // for pw length > 64 we use global memory reads
 
-  u32 tmp_md5[SNMPV3_TMP_ELEMS_OPT];
-  u32 tmp_sha1[SNMPV3_TMP_ELEMS_OPT];
-
   if (pw_len < 64)
   {
+    u32 tmp_shared[SNMPV3_TMP_ELEMS_OPT];
+
+    // md5
+
     for (int i = 0; i < pw_len64 / 4; i++)
     {
-      tmp_md5[i] = tmps[gid].tmp_md5[i];
-      tmp_sha1[i] = tmps[gid].tmp_sha1[i];
+      tmp_shared[i] = tmps[gid].tmp_md5[i];
     }
 
     for (int i = 0, j = loop_pos; i < loop_cnt; i += 64, j += 64)
@@ -212,45 +212,58 @@ KERNEL_FQ void m25000_loop (KERN_ATTR_TMPS_ESALT (hmac_md5_tmp_t, snmpv3_t))
       u32 w2[4];
       u32 w3[4];
 
-      // md5
-
-      w0[0] = tmp_md5[idx +  0];
-      w0[1] = tmp_md5[idx +  1];
-      w0[2] = tmp_md5[idx +  2];
-      w0[3] = tmp_md5[idx +  3];
-      w1[0] = tmp_md5[idx +  4];
-      w1[1] = tmp_md5[idx +  5];
-      w1[2] = tmp_md5[idx +  6];
-      w1[3] = tmp_md5[idx +  7];
-      w2[0] = tmp_md5[idx +  8];
-      w2[1] = tmp_md5[idx +  9];
-      w2[2] = tmp_md5[idx + 10];
-      w2[3] = tmp_md5[idx + 11];
-      w3[0] = tmp_md5[idx + 12];
-      w3[1] = tmp_md5[idx + 13];
-      w3[2] = tmp_md5[idx + 14];
-      w3[3] = tmp_md5[idx + 15];
+      w0[0] = tmp_shared[idx +  0];
+      w0[1] = tmp_shared[idx +  1];
+      w0[2] = tmp_shared[idx +  2];
+      w0[3] = tmp_shared[idx +  3];
+      w1[0] = tmp_shared[idx +  4];
+      w1[1] = tmp_shared[idx +  5];
+      w1[2] = tmp_shared[idx +  6];
+      w1[3] = tmp_shared[idx +  7];
+      w2[0] = tmp_shared[idx +  8];
+      w2[1] = tmp_shared[idx +  9];
+      w2[2] = tmp_shared[idx + 10];
+      w2[3] = tmp_shared[idx + 11];
+      w3[0] = tmp_shared[idx + 12];
+      w3[1] = tmp_shared[idx + 13];
+      w3[2] = tmp_shared[idx + 14];
+      w3[3] = tmp_shared[idx + 15];
 
       md5_transform (w0, w1, w2, w3, h_md5);
+    }
 
-      // sha1
+    // sha1
 
-      w0[0] = tmp_sha1[idx +  0];
-      w0[1] = tmp_sha1[idx +  1];
-      w0[2] = tmp_sha1[idx +  2];
-      w0[3] = tmp_sha1[idx +  3];
-      w1[0] = tmp_sha1[idx +  4];
-      w1[1] = tmp_sha1[idx +  5];
-      w1[2] = tmp_sha1[idx +  6];
-      w1[3] = tmp_sha1[idx +  7];
-      w2[0] = tmp_sha1[idx +  8];
-      w2[1] = tmp_sha1[idx +  9];
-      w2[2] = tmp_sha1[idx + 10];
-      w2[3] = tmp_sha1[idx + 11];
-      w3[0] = tmp_sha1[idx + 12];
-      w3[1] = tmp_sha1[idx + 13];
-      w3[2] = tmp_sha1[idx + 14];
-      w3[3] = tmp_sha1[idx + 15];
+    for (int i = 0; i < pw_len64 / 4; i++)
+    {
+      tmp_shared[i] = tmps[gid].tmp_sha1[i];
+    }
+
+    for (int i = 0, j = loop_pos; i < loop_cnt; i += 64, j += 64)
+    {
+      const int idx = (j % pw_len64) / 4; // the optimization trick is to be able to do this
+
+      u32 w0[4];
+      u32 w1[4];
+      u32 w2[4];
+      u32 w3[4];
+
+      w0[0] = tmp_shared[idx +  0];
+      w0[1] = tmp_shared[idx +  1];
+      w0[2] = tmp_shared[idx +  2];
+      w0[3] = tmp_shared[idx +  3];
+      w1[0] = tmp_shared[idx +  4];
+      w1[1] = tmp_shared[idx +  5];
+      w1[2] = tmp_shared[idx +  6];
+      w1[3] = tmp_shared[idx +  7];
+      w2[0] = tmp_shared[idx +  8];
+      w2[1] = tmp_shared[idx +  9];
+      w2[2] = tmp_shared[idx + 10];
+      w2[3] = tmp_shared[idx + 11];
+      w3[0] = tmp_shared[idx + 12];
+      w3[1] = tmp_shared[idx + 13];
+      w3[2] = tmp_shared[idx + 14];
+      w3[3] = tmp_shared[idx + 15];
 
       sha1_transform (w0, w1, w2, w3, h_sha1);
     }

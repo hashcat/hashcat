@@ -12,14 +12,14 @@ use Digest::MD5 qw (md5 md5_hex);
 use Digest::SHA qw (sha1 sha1_hex);
 use Digest::HMAC qw (hmac hmac_hex);
 
-sub module_constraints { [[1, 256], [24, 3000], [-1, -1], [-1, -1], [-1, -1]] }
+sub module_constraints { [[8, 256], [24, 3000], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub module_generate_hash
 {
   my $word = shift;
   my $salt = shift;
-  my $pkt_num = shift // int(rand(99999999));
-  my $engineID = shift // random_hex_string(6);
+  my $pkt_num = shift // int(rand(100000000));
+  my $engineID = shift // random_hex_string(26, 34);
   my $mode = shift // int(rand(1)) + 1;
 
   # make even if needed
