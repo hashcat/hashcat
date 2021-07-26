@@ -346,6 +346,7 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
   // plain
 
   u8 plain_buf[HCBUFSIZ_TINY] = { 0 }; // while the password itself can have only length 256, the module could encode it with something like base64 which inflates the requires buffer size
+  u8 postprocess_buf[HCBUFSIZ_TINY] = { 0 };
 
   u8 *plain_ptr = plain_buf;
 
@@ -355,8 +356,6 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   if (module_ctx->module_build_plain_postprocess != MODULE_DEFAULT)
   {
-    u8 temp_buf[HCBUFSIZ_TINY] = { 0 };
-
     if (hashconfig->opts_type & OPTS_TYPE_COPY_TMPS)
     {
       if (device_param->is_cuda == true)
@@ -375,14 +374,9 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
       }
     }
 
-    const int temp_len = module_ctx->module_build_plain_postprocess (hashcat_ctx->hashconfig, hashcat_ctx->hashes, tmps, (u32 *) plain_buf, sizeof (plain_buf), plain_len, (u32 *)temp_buf, sizeof (temp_buf));
+    plain_len = module_ctx->module_build_plain_postprocess (hashcat_ctx->hashconfig, hashcat_ctx->hashes, tmps, (u32 *) plain_buf, sizeof (plain_buf), plain_len, (u32 *) postprocess_buf, sizeof (postprocess_buf));
 
-    if (temp_len < (int) sizeof (plain_buf))
-    {
-      memcpy (plain_buf, temp_buf, temp_len);
-
-      plain_len = temp_len;
-    }
+    plain_ptr = postprocess_buf;
   }
 
   // crackpos
