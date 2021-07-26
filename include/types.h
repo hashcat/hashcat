@@ -1799,8 +1799,6 @@ typedef struct hwmon_ctx
 
   hm_attrs_t *hm_device;
 
-  ADLOD6MemClockState *od_clock_mem_status;
-
 } hwmon_ctx_t;
 
 #if defined (__APPLE__)
