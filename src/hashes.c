@@ -313,6 +313,8 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   void *tmps = NULL;
 
+  cl_event opencl_event;
+
   if (hashconfig->opts_type & OPTS_TYPE_COPY_TMPS)
   {
     tmps = hcmalloc (hashconfig->tmp_size);
@@ -329,7 +331,7 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
     if (device_param->is_opencl == true)
     {
-      hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_tmps, CL_FALSE, plain->gidvid * hashconfig->tmp_size, hashconfig->tmp_size, tmps, 0, NULL, NULL);
+      hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_tmps, CL_FALSE, plain->gidvid * hashconfig->tmp_size, hashconfig->tmp_size, tmps, 0, NULL, &opencl_event);
     }
   }
 
@@ -343,9 +345,7 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   // plain
 
-  u8 plain_buf[0x1000]; // while the password itself can have only length 256, the module could encode it with something like base64 which inflates the requires buffer size
-
-  memset (plain_buf, 0, sizeof (plain_buf));
+  u8 plain_buf[HCBUFSIZ_TINY] = { 0 }; // while the password itself can have only length 256, the module could encode it with something like base64 which inflates the requires buffer size
 
   u8 *plain_ptr = plain_buf;
 
@@ -355,9 +355,25 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   if (module_ctx->module_build_plain_postprocess != MODULE_DEFAULT)
   {
-    u8 temp_buf[0x1000];
+    u8 temp_buf[HCBUFSIZ_TINY] = { 0 };
 
-    memset (temp_buf, 0, sizeof (temp_buf));
+    if (hashconfig->opts_type & OPTS_TYPE_COPY_TMPS)
+    {
+      if (device_param->is_cuda == true)
+      {
+        if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return;
+      }
+
+      if (device_param->is_hip == true)
+      {
+        if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return;
+      }
+
+      if (device_param->is_opencl == true)
+      {
+        if (hc_clWaitForEvents (hashcat_ctx, 1, &opencl_event) == -1) return;
+      }
+    }
 
     const int temp_len = module_ctx->module_build_plain_postprocess (hashcat_ctx->hashconfig, hashcat_ctx->hashes, tmps, (u32 *) plain_buf, sizeof (plain_buf), plain_len, (u32 *)temp_buf, sizeof (temp_buf));
 
@@ -407,6 +423,24 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   if (module_ctx->module_hash_encode_potfile != MODULE_DEFAULT)
   {
+    if (hashconfig->opts_type & OPTS_TYPE_COPY_TMPS)
+    {
+      if (device_param->is_cuda == true)
+      {
+        if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return;
+      }
+
+      if (device_param->is_hip == true)
+      {
+        if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return;
+      }
+
+      if (device_param->is_opencl == true)
+      {
+        if (hc_clWaitForEvents (hashcat_ctx, 1, &opencl_event) == -1) return;
+      }
+    }
+
     salt_t *salts_buf = hashes->salts_buf;
 
     salts_buf += salt_pos;
@@ -470,6 +504,11 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   if (hashconfig->opts_type & OPTS_TYPE_COPY_TMPS)
   {
+    if (device_param->is_opencl == true)
+    {
+      if (hc_clReleaseEvent (hashcat_ctx, opencl_event) == -1) return;
+    }
+
     hcfree (tmps);
   }
 }
@@ -485,172 +524,153 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
   u32 num_cracked = 0;
 
-  int CU_rc;
-  int HIP_rc;
-  int CL_rc;
-
   if (device_param->is_cuda == true)
   {
-    CU_rc = hc_cuMemcpyDtoHAsync (hashcat_ctx, &num_cracked, device_param->cuda_d_result, sizeof (u32), device_param->cuda_stream);
+    if (hc_cuMemcpyDtoHAsync (hashcat_ctx, &num_cracked, device_param->cuda_d_result, sizeof (u32), device_param->cuda_stream) == -1) return -1;
 
-    if (CU_rc == -1) return -1;
+    if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
   }
 
   if (device_param->is_hip == true)
   {
-    HIP_rc = hc_hipMemcpyDtoHAsync (hashcat_ctx, &num_cracked, device_param->hip_d_result, sizeof (u32), device_param->hip_stream);
+    if (hc_hipMemcpyDtoHAsync (hashcat_ctx, &num_cracked, device_param->hip_d_result, sizeof (u32), device_param->hip_stream) == -1) return -1;
 
-    if (HIP_rc == -1) return -1;
+    if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
   }
 
   if (device_param->is_opencl == true)
   {
-    CL_rc = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_result, CL_TRUE, 0, sizeof (u32), &num_cracked, 0, NULL, NULL);
-
-    if (CL_rc == -1) return -1;
+    if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_result, CL_TRUE, 0, sizeof (u32), &num_cracked, 0, NULL, NULL) == -1) return -1;
   }
 
-  if (user_options->speed_only == true)
+  if (num_cracked == 0 || user_options->speed_only == true)
   {
-    // we want the hc_clEnqueueReadBuffer to run in benchmark mode because it has an influence in performance
+    // we want get num_cracked in benchmark mode because it has an influence in performance
     // however if the benchmark cracks the artificial hash used for benchmarks we don't want to see that!
 
     return 0;
   }
 
-  if (num_cracked)
+  plain_t *cracked = (plain_t *) hccalloc (num_cracked, sizeof (plain_t));
+
+  if (device_param->is_cuda == true)
   {
-    plain_t *cracked = (plain_t *) hccalloc (num_cracked, sizeof (plain_t));
+    if (hc_cuMemcpyDtoHAsync (hashcat_ctx, cracked, device_param->cuda_d_plain_bufs, num_cracked * sizeof (plain_t), device_param->cuda_stream) == -1) return -1;
 
-    if (device_param->is_cuda == true)
+    if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
+  }
+
+  if (device_param->is_hip == true)
+  {
+    if (hc_hipMemcpyDtoHAsync (hashcat_ctx, cracked, device_param->hip_d_plain_bufs, num_cracked * sizeof (plain_t), device_param->hip_stream) == -1) return -1;
+
+    if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
+  }
+
+  if (device_param->is_opencl == true)
+  {
+    if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_plain_bufs, CL_TRUE, 0, num_cracked * sizeof (plain_t), cracked, 0, NULL, NULL) == -1) return -1;
+  }
+
+  u32 cpt_cracked = 0;
+
+  hc_thread_mutex_lock (status_ctx->mux_display);
+
+  for (u32 i = 0; i < num_cracked; i++)
+  {
+    const u32 hash_pos = cracked[i].hash_pos;
+
+    if (hashes->digests_shown[hash_pos] == 1) continue;
+
+    const u32 salt_pos = cracked[i].salt_pos;
+    salt_t *salt_buf = &hashes->salts_buf[salt_pos];
+
+    if ((hashconfig->opts_type & OPTS_TYPE_PT_NEVERCRACK) == 0)
     {
-      CU_rc = hc_cuMemcpyDtoHAsync (hashcat_ctx, cracked, device_param->cuda_d_plain_bufs, num_cracked * sizeof (plain_t), device_param->cuda_stream);
+      hashes->digests_shown[hash_pos] = 1;
 
-      if (CU_rc == -1) return -1;
+      hashes->digests_done++;
+
+      cpt_cracked++;
+
+      salt_buf->digests_done++;
+
+      if (salt_buf->digests_done == salt_buf->digests_cnt)
+      {
+        hashes->salts_shown[salt_pos] = 1;
+
+        hashes->salts_done++;
+      }
     }
 
-    if (device_param->is_hip == true)
+    if (hashes->salts_done == hashes->salts_cnt) mycracked (hashcat_ctx);
+
+    check_hash (hashcat_ctx, device_param, &cracked[i]);
+
+    if (hashconfig->opts_type & OPTS_TYPE_PT_NEVERCRACK)
     {
-      HIP_rc = hc_hipMemcpyDtoHAsync (hashcat_ctx, cracked, device_param->hip_d_plain_bufs, num_cracked * sizeof (plain_t), device_param->hip_stream);
+      // we need to reset cracked state on the device
+      // otherwise host thinks again and again the hash was cracked
+      // and returns invalid password each time
 
-      if (HIP_rc == -1) return -1;
+      memset (hashes->digests_shown_tmp, 0, salt_buf->digests_cnt * sizeof (u32));
+
+      if (device_param->is_cuda == true)
+      {
+        if (hc_cuMemcpyHtoDAsync (hashcat_ctx, device_param->cuda_d_digests_shown + (salt_buf->digests_offset * sizeof (u32)), &hashes->digests_shown_tmp[salt_buf->digests_offset], salt_buf->digests_cnt * sizeof (u32), device_param->cuda_stream) == -1) return -1;
+      }
+
+      if (device_param->is_hip == true)
+      {
+        if (hc_hipMemcpyHtoDAsync (hashcat_ctx, device_param->hip_d_digests_shown + (salt_buf->digests_offset * sizeof (u32)), &hashes->digests_shown_tmp[salt_buf->digests_offset], salt_buf->digests_cnt * sizeof (u32), device_param->hip_stream) == -1) return -1;
+      }
+
+      if (device_param->is_opencl == true)
+      {
+        if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_digests_shown, CL_FALSE, salt_buf->digests_offset * sizeof (u32), salt_buf->digests_cnt * sizeof (u32), &hashes->digests_shown_tmp[salt_buf->digests_offset], 0, NULL, NULL) == -1) return -1;
+      }
     }
+  }
 
-    if (device_param->is_opencl == true)
-    {
-      CL_rc = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_plain_bufs, CL_TRUE, 0, num_cracked * sizeof (plain_t), cracked, 0, NULL, NULL);
+  hc_thread_mutex_unlock (status_ctx->mux_display);
 
-      if (CL_rc == -1) return -1;
-    }
+  hcfree (cracked);
 
-    u32 cpt_cracked = 0;
-
+  if (cpt_cracked > 0)
+  {
     hc_thread_mutex_lock (status_ctx->mux_display);
 
-    for (u32 i = 0; i < num_cracked; i++)
-    {
-      const u32 hash_pos = cracked[i].hash_pos;
+    cpt_ctx->cpt_buf[cpt_ctx->cpt_pos].timestamp = time (NULL);
+    cpt_ctx->cpt_buf[cpt_ctx->cpt_pos].cracked   = cpt_cracked;
 
-      if (hashes->digests_shown[hash_pos] == 1) continue;
+    cpt_ctx->cpt_pos++;
 
-      const u32 salt_pos = cracked[i].salt_pos;
-      salt_t *salt_buf = &hashes->salts_buf[salt_pos];
+    cpt_ctx->cpt_total += cpt_cracked;
 
-      if ((hashconfig->opts_type & OPTS_TYPE_PT_NEVERCRACK) == 0)
-      {
-        hashes->digests_shown[hash_pos] = 1;
-
-        hashes->digests_done++;
-
-        cpt_cracked++;
-
-        salt_buf->digests_done++;
-
-        if (salt_buf->digests_done == salt_buf->digests_cnt)
-        {
-          hashes->salts_shown[salt_pos] = 1;
-
-          hashes->salts_done++;
-        }
-      }
-
-      if (hashes->salts_done == hashes->salts_cnt) mycracked (hashcat_ctx);
-
-      check_hash (hashcat_ctx, device_param, &cracked[i]);
-
-      if (hashconfig->opts_type & OPTS_TYPE_PT_NEVERCRACK)
-      {
-        // we need to reset cracked state on the device
-        // otherwise host thinks again and again the hash was cracked
-        // and returns invalid password each time
-
-        memset (hashes->digests_shown_tmp, 0, salt_buf->digests_cnt * sizeof (u32));
-
-        if (device_param->is_cuda == true)
-        {
-          CU_rc = hc_cuMemcpyHtoDAsync (hashcat_ctx, device_param->cuda_d_digests_shown + (salt_buf->digests_offset * sizeof (u32)), &hashes->digests_shown_tmp[salt_buf->digests_offset], salt_buf->digests_cnt * sizeof (u32), device_param->cuda_stream);
-
-          if (CU_rc == -1) return -1;
-        }
-
-        if (device_param->is_hip == true)
-        {
-          HIP_rc = hc_hipMemcpyHtoDAsync (hashcat_ctx, device_param->hip_d_digests_shown + (salt_buf->digests_offset * sizeof (u32)), &hashes->digests_shown_tmp[salt_buf->digests_offset], salt_buf->digests_cnt * sizeof (u32), device_param->hip_stream);
-
-          if (HIP_rc == -1) return -1;
-        }
-
-        if (device_param->is_opencl == true)
-        {
-          CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_digests_shown, CL_FALSE, salt_buf->digests_offset * sizeof (u32), salt_buf->digests_cnt * sizeof (u32), &hashes->digests_shown_tmp[salt_buf->digests_offset], 0, NULL, NULL);
-
-          if (CL_rc == -1) return -1;
-        }
-      }
-    }
+    if (cpt_ctx->cpt_pos == CPT_CACHE) cpt_ctx->cpt_pos = 0;
 
     hc_thread_mutex_unlock (status_ctx->mux_display);
+  }
 
-    hcfree (cracked);
+  num_cracked = 0;
 
-    if (cpt_cracked > 0)
-    {
-      hc_thread_mutex_lock (status_ctx->mux_display);
+  if (device_param->is_cuda == true)
+  {
+    if (hc_cuMemcpyHtoDAsync (hashcat_ctx, device_param->cuda_d_result, &num_cracked, sizeof (u32), device_param->cuda_stream) == -1) return -1;
 
-      cpt_ctx->cpt_buf[cpt_ctx->cpt_pos].timestamp = time (NULL);
-      cpt_ctx->cpt_buf[cpt_ctx->cpt_pos].cracked   = cpt_cracked;
+    if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
+  }
 
-      cpt_ctx->cpt_pos++;
+  if (device_param->is_hip == true)
+  {
+    if (hc_hipMemcpyHtoDAsync (hashcat_ctx, device_param->hip_d_result, &num_cracked, sizeof (u32), device_param->hip_stream) == -1) return -1;
 
-      cpt_ctx->cpt_total += cpt_cracked;
+    if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
+  }
 
-      if (cpt_ctx->cpt_pos == CPT_CACHE) cpt_ctx->cpt_pos = 0;
-
-      hc_thread_mutex_unlock (status_ctx->mux_display);
-    }
-
-    num_cracked = 0;
-
-    if (device_param->is_cuda == true)
-    {
-      CU_rc = hc_cuMemcpyHtoDAsync (hashcat_ctx, device_param->cuda_d_result, &num_cracked, sizeof (u32), device_param->cuda_stream);
-
-      if (CU_rc == -1) return -1;
-    }
-
-    if (device_param->is_hip == true)
-    {
-      HIP_rc = hc_hipMemcpyHtoDAsync (hashcat_ctx, device_param->hip_d_result, &num_cracked, sizeof (u32), device_param->hip_stream);
-
-      if (HIP_rc == -1) return -1;
-    }
-
-    if (device_param->is_opencl == true)
-    {
-      CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_result, CL_FALSE, 0, sizeof (u32), &num_cracked, 0, NULL, NULL);
-
-      if (CL_rc == -1) return -1;
-    }
+  if (device_param->is_opencl == true)
+  {
+    if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_result, CL_TRUE, 0, sizeof (u32), &num_cracked, 0, NULL, NULL) == -1) return -1;
   }
 
   return 0;
