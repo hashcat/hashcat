@@ -18,7 +18,7 @@
 #define COMPARE_M "inc_comp_multi.cl"
 
 #define SNMPV3_SALT_MAX             1500
-#define SNMPV3_ENGINEID_MAX         32
+#define SNMPV3_ENGINEID_MAX         34
 #define SNMPV3_MSG_AUTH_PARAMS_MAX  24
 #define SNMPV3_ROUNDS               1048576
 #define SNMPV3_MAX_PW_LENGTH        64
@@ -158,10 +158,10 @@ KERNEL_FQ void m26800_loop (KERN_ATTR_TMPS_ESALT (hmac_sha256_tmp_t, snmpv3_t))
   #define SNMPV3_TMP_ELEMS_OPT 1024 // 1024 = (64 max pw length * 64) / sizeof (u32)
                                     // for pw length > 64 we use global memory reads
 
-  u32 tmp[SNMPV3_TMP_ELEMS_OPT];
-
   if (pw_len < 64)
   {
+    u32 tmp[SNMPV3_TMP_ELEMS_OPT];
+
     for (int i = 0; i < pw_len64 / 4; i++)
     {
       tmp[i] = tmps[gid].tmp[i];
