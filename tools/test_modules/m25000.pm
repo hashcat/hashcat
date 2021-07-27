@@ -9,6 +9,7 @@ use strict;
 use warnings;
 
 use Digest::MD5 qw (md5 md5_hex);
+use Digest::SHA qw (sha1 sha1_hex);
 use Digest::HMAC qw (hmac hmac_hex);
 
 sub module_constraints { [[8, 256], [24, 3000], [-1, -1], [-1, -1], [-1, -1]] }
@@ -19,6 +20,7 @@ sub module_generate_hash
   my $salt = shift;
   my $pkt_num = shift // int(rand(100000000));
   my $engineID = shift // random_hex_string(26, 34);
+  my $mode = shift // int(rand(1)) + 1;
 
   # make even if needed
 
@@ -31,17 +33,37 @@ sub module_generate_hash
 
   $string1 = substr ($string1, 0, 1048576);
 
-  my $md5_digest1 = md5_hex ($string1);
+  my $digest1 = '';
 
-  my $buf = join '', $md5_digest1, $engineID, $md5_digest1;
+  if ($mode eq 2)
+  {
+    $digest1 = sha1_hex ($string1);
+  }
+  elsif ($mode eq 1)
+  {
+    $digest1 = md5_hex ($string1);
+  }
 
-  my $md5_digest2 = md5(pack("H*", $buf));
+  my $buf = join '', $digest1, $engineID, $digest1;
 
-  my $digest = hmac_hex (pack("H*", $salt), $md5_digest2, \&md5);
+  my $digest = '';
+
+  if ($mode eq 2)
+  {
+    my $digest2 = sha1(pack("H*", $buf));
+
+    $digest = hmac_hex (pack("H*", $salt), $digest2, \&sha1);
+  }
+  elsif ($mode eq 1)
+  {
+    my $digest2 = md5(pack("H*", $buf));
+
+    $digest = hmac_hex (pack("H*", $salt), $digest2, \&md5);
+  }
 
   $digest = substr ($digest, 0, 24);
 
-  my $hash = sprintf ("\$SNMPv3\$1\$%s\$%s\$%s\$%s", $pkt_num, $salt, $engineID, $digest);
+  my $hash = sprintf ("\$SNMPv3\$0\$%s\$%s\$%s\$%s", $pkt_num, $salt, $engineID, $digest);
 
   return $hash;
 }
@@ -58,7 +80,7 @@ sub module_verify_hash
   my $word = substr ($line, $idx + 1);
 
   return unless length ($word) gt 0;
-  return unless substr ($hash, 0, 10) eq '$SNMPv3$1$';
+  return unless substr ($hash, 0, 10) eq '$SNMPv3$0$';
 
   my (undef, $signature, $version, $pkt_num, $salt, $engineID, $digest) = split '\$', $hash;
 
@@ -71,9 +93,24 @@ sub module_verify_hash
 
   my $word_packed = pack_if_HEX_notation ($word);
 
-  my $new_hash = module_generate_hash ($word_packed, $salt, $pkt_num, $engineID);
+  # gen md5 & sha1 hashes
 
-  return ($new_hash, $word);
+  my $new_hash_md5 = module_generate_hash ($word_packed, $salt, $pkt_num, $engineID, 1);
+  my $new_hash_sha1 = module_generate_hash ($word_packed, $salt, $pkt_num, $engineID, 2);
+
+  # parse digests
+
+  my (undef, undef, undef, undef, undef, undef, $digest_md5) = split '\$', $new_hash_md5;
+  my (undef, undef, undef, undef, undef, undef, $digest_sha1) = split '\$', $new_hash_sha1;
+
+  if ($digest eq $digest_md5)
+  {
+    return ($new_hash_md5, $word);
+  }
+  else
+  {
+    return ($new_hash_sha1, $word);
+  }
 }
 
 1;

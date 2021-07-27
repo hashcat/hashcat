@@ -19,13 +19,13 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_4; // 4_3
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_NETWORK_PROTOCOL;
-static const char *HASH_NAME      = "SNMPv3 HMAC-MD5-96";
-static const u64   KERN_TYPE      = 25100;
+static const char *HASH_NAME      = "SNMPv3 HMAC-MD5-96/HMAC-SHA1-96";
+static const u64   KERN_TYPE      = 25000;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat1";
-static const char *ST_HASH        = "$SNMPv3$1$45889431$30818f0201033011020409242fc0020300ffe304010102010304383036041180001f88808106d566db57fd600000000002011002020118040a6d61747269785f4d4435040c0000000000000000000000000400303d041180001f88808106d566db57fd60000000000400a226020411f319300201000201003018301606082b06010201010200060a2b06010401bf0803020a$80001f88808106d566db57fd6000000000$1b37c3ea872731f922959e90";
+static const char *ST_HASH        = "$SNMPv3$0$45889431$30818f0201033011020409242fc0020300ffe304010102010304383036041180001f88808106d566db57fd600000000002011002020118040a6d61747269785f4d4435040c0000000000000000000000000400303d041180001f88808106d566db57fd60000000000400a226020411f319300201000201003018301606082b06010201010200060a2b06010401bf0803020a$80001f88808106d566db57fd6000000000$1b37c3ea872731f922959e90";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -42,7 +42,7 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
-static const char *SIGNATURE_SNMPV3 = "$SNMPv3$1$";
+static const char *SIGNATURE_SNMPV3 = "$SNMPv3$0$";
 
 #define SNMPV3_SALT_MAX             1500
 #define SNMPV3_ENGINEID_MAX         34
@@ -51,7 +51,8 @@ static const char *SIGNATURE_SNMPV3 = "$SNMPv3$1$";
 #define SNMPV3_MAX_PW_LENGTH        64
 
 #define SNMPV3_TMP_ELEMS            4096 // 4096 = (256 (max pw length) * 64) / sizeof (u32)
-#define SNMPV3_HASH_ELEMS           4
+#define SNMPV3_HASH_ELEMS_MD5       4
+#define SNMPV3_HASH_ELEMS_SHA1      8
 
 #define SNMPV3_MAX_SALT_ELEMS       512 // 512 * 4 = 2048 > 1500, also has to be multiple of 64
 #define SNMPV3_MAX_ENGINE_ELEMS     16  // 16 * 4 = 64 > 32, also has to be multiple of 64
@@ -59,8 +60,11 @@ static const char *SIGNATURE_SNMPV3 = "$SNMPv3$1$";
 
 typedef struct hmac_md5_tmp
 {
-  u32 tmp[SNMPV3_TMP_ELEMS];
-  u32 h[SNMPV3_HASH_ELEMS];
+  u32 tmp_md5[SNMPV3_TMP_ELEMS];
+  u32 tmp_sha1[SNMPV3_TMP_ELEMS];
+
+  u32 h_md5[SNMPV3_HASH_ELEMS_MD5];
+  u32 h_sha1[SNMPV3_HASH_ELEMS_SHA1];
 
 } hmac_md5_tmp_t;
 
@@ -100,7 +104,7 @@ u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED c
 u32 module_kernel_loops_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   // we need to fix iteration count to guarantee the loop count is a multiple of 64
-  // 2k calls to md5_transform typically is enough to overtime pcie bottleneck
+  // 2k calls to md5_transform/sha1_transform typically is enough to overtime pcie bottleneck
 
   const u32 kernel_loops_min = 2048 * 64;
 
@@ -210,6 +214,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[0] = hex_to_u32 (hash_pos +  0);
   digest[1] = hex_to_u32 (hash_pos +  8);
   digest[2] = hex_to_u32 (hash_pos + 16);
+
+  // prefer sha1 due to speed
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+
   digest[3] = 0;
 
   return (PARSER_OK);
@@ -237,9 +248,17 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   out_len++;
 
-  u32_to_hex (digest[0], out_buf + out_len); out_len += 8;
-  u32_to_hex (digest[1], out_buf + out_len); out_len += 8;
-  u32_to_hex (digest[2], out_buf + out_len); out_len += 8;
+  // prefer sha1 due to speed
+
+  u32 digest_tmp[3];
+
+  digest_tmp[0] = byte_swap_32 (digest[0]);
+  digest_tmp[1] = byte_swap_32 (digest[1]);
+  digest_tmp[2] = byte_swap_32 (digest[2]);
+
+  u32_to_hex (digest_tmp[0], out_buf + out_len); out_len += 8;
+  u32_to_hex (digest_tmp[1], out_buf + out_len); out_len += 8;
+  u32_to_hex (digest_tmp[2], out_buf + out_len); out_len += 8;
 
   out_buf[out_len] = 0;
 
