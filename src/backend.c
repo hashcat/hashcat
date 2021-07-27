@@ -11360,6 +11360,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         device_param->skipped = true;
         continue;
       }
+
+      if (hc_cuEventCreate (hashcat_ctx, &device_param->cuda_event3, CU_EVENT_DISABLE_TIMING) == -1)
+      {
+        device_param->skipped = true;
+        continue;
+      }      
     }
 
     /**
@@ -11375,6 +11381,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
 
       if (hc_hipEventCreate (hashcat_ctx, &device_param->hip_event2, HIP_EVENT_BLOCKING_SYNC) == -1)
+      {
+        device_param->skipped = true;
+        continue;
+      }
+
+      if (hc_hipEventCreate (hashcat_ctx, &device_param->hip_event3, HIP_EVENT_DISABLE_TIMING) == -1)
       {
         device_param->skipped = true;
         continue;
@@ -15214,6 +15226,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
 
       if (device_param->cuda_event1)           hc_cuEventDestroy (hashcat_ctx, device_param->cuda_event1);
       if (device_param->cuda_event2)           hc_cuEventDestroy (hashcat_ctx, device_param->cuda_event2);
+      if (device_param->cuda_event3)           hc_cuEventDestroy (hashcat_ctx, device_param->cuda_event3);
 
       if (device_param->cuda_stream)           hc_cuStreamDestroy (hashcat_ctx, device_param->cuda_stream);
 
@@ -15289,6 +15302,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
 
       device_param->cuda_event1               = NULL;
       device_param->cuda_event2               = NULL;
+      device_param->cuda_event3               = NULL;
 
       device_param->cuda_stream               = NULL;
 
@@ -15341,6 +15355,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
 
       if (device_param->hip_event1)           hc_hipEventDestroy (hashcat_ctx, device_param->hip_event1);
       if (device_param->hip_event2)           hc_hipEventDestroy (hashcat_ctx, device_param->hip_event2);
+      if (device_param->hip_event3)           hc_hipEventDestroy (hashcat_ctx, device_param->hip_event3);
 
       if (device_param->hip_stream)           hc_hipStreamDestroy (hashcat_ctx, device_param->hip_stream);
 
@@ -15416,6 +15431,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
 
       device_param->hip_event1               = NULL;
       device_param->hip_event2               = NULL;
+      device_param->hip_event3               = NULL;
 
       device_param->hip_stream               = NULL;
 

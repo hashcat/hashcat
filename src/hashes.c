@@ -322,16 +322,22 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
     if (device_param->is_cuda == true)
     {
       hc_cuMemcpyDtoHAsync (hashcat_ctx, tmps, device_param->cuda_d_tmps + (plain->gidvid * hashconfig->tmp_size), hashconfig->tmp_size, device_param->cuda_stream);
+
+      hc_cuEventRecord (hashcat_ctx, device_param->cuda_event3, device_param->cuda_stream);
     }
 
     if (device_param->is_hip == true)
     {
       hc_hipMemcpyDtoHAsync (hashcat_ctx, tmps, device_param->hip_d_tmps + (plain->gidvid * hashconfig->tmp_size), hashconfig->tmp_size, device_param->hip_stream);
+
+      hc_hipEventRecord (hashcat_ctx, device_param->hip_event3, device_param->hip_stream);
     }
 
     if (device_param->is_opencl == true)
     {
       hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_tmps, CL_FALSE, plain->gidvid * hashconfig->tmp_size, hashconfig->tmp_size, tmps, 0, NULL, &opencl_event);
+
+      hc_clFlush (hashcat_ctx, device_param->opencl_command_queue);
     }
   }
 
@@ -360,12 +366,12 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
     {
       if (device_param->is_cuda == true)
       {
-        if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return;
+        if (hc_cuEventSynchronize (hashcat_ctx, device_param->cuda_event3) == -1) return;
       }
 
       if (device_param->is_hip == true)
       {
-        if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return;
+        if (hc_hipEventSynchronize (hashcat_ctx, device_param->hip_event3) == -1) return;
       }
 
       if (device_param->is_opencl == true)
@@ -421,12 +427,12 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
     {
       if (device_param->is_cuda == true)
       {
-        if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return;
+        if (hc_cuEventSynchronize (hashcat_ctx, device_param->cuda_event3) == -1) return;
       }
 
       if (device_param->is_hip == true)
       {
-        if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return;
+        if (hc_hipEventSynchronize (hashcat_ctx, device_param->hip_event3) == -1) return;
       }
 
       if (device_param->is_opencl == true)
@@ -607,21 +613,19 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       // otherwise host thinks again and again the hash was cracked
       // and returns invalid password each time
 
-      memset (hashes->digests_shown_tmp, 0, salt_buf->digests_cnt * sizeof (u32));
-
       if (device_param->is_cuda == true)
       {
-        if (hc_cuMemcpyHtoDAsync (hashcat_ctx, device_param->cuda_d_digests_shown + (salt_buf->digests_offset * sizeof (u32)), &hashes->digests_shown_tmp[salt_buf->digests_offset], salt_buf->digests_cnt * sizeof (u32), device_param->cuda_stream) == -1) return -1;
+        if (hc_cuMemcpyHtoDAsync (hashcat_ctx, device_param->cuda_d_digests_shown + (salt_buf->digests_offset * sizeof (u32)), hashes->digests_shown_tmp, salt_buf->digests_cnt * sizeof (u32), device_param->cuda_stream) == -1) return -1;
       }
 
       if (device_param->is_hip == true)
       {
-        if (hc_hipMemcpyHtoDAsync (hashcat_ctx, device_param->hip_d_digests_shown + (salt_buf->digests_offset * sizeof (u32)), &hashes->digests_shown_tmp[salt_buf->digests_offset], salt_buf->digests_cnt * sizeof (u32), device_param->hip_stream) == -1) return -1;
+        if (hc_hipMemcpyHtoDAsync (hashcat_ctx, device_param->hip_d_digests_shown + (salt_buf->digests_offset * sizeof (u32)), hashes->digests_shown_tmp, salt_buf->digests_cnt * sizeof (u32), device_param->hip_stream) == -1) return -1;
       }
 
       if (device_param->is_opencl == true)
       {
-        if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_digests_shown, CL_FALSE, salt_buf->digests_offset * sizeof (u32), salt_buf->digests_cnt * sizeof (u32), &hashes->digests_shown_tmp[salt_buf->digests_offset], 0, NULL, NULL) == -1) return -1;
+        if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_digests_shown, CL_FALSE, salt_buf->digests_offset * sizeof (u32), salt_buf->digests_cnt * sizeof (u32), hashes->digests_shown_tmp, 0, NULL, NULL) == -1) return -1;
       }
     }
   }
@@ -646,25 +650,21 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
     hc_thread_mutex_unlock (status_ctx->mux_display);
   }
 
-  num_cracked = 0;
-
   if (device_param->is_cuda == true)
   {
-    if (hc_cuMemcpyHtoDAsync (hashcat_ctx, device_param->cuda_d_result, &num_cracked, sizeof (u32), device_param->cuda_stream) == -1) return -1;
-
-    if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
+    if (run_cuda_kernel_bzero (hashcat_ctx, device_param, device_param->cuda_d_result, sizeof (u32)) == -1) return -1;
   }
 
   if (device_param->is_hip == true)
   {
-    if (hc_hipMemcpyHtoDAsync (hashcat_ctx, device_param->hip_d_result, &num_cracked, sizeof (u32), device_param->hip_stream) == -1) return -1;
-
-    if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
+    if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_result, sizeof (u32)) == -1) return -1;
   }
 
   if (device_param->is_opencl == true)
   {
-    if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_result, CL_TRUE, 0, sizeof (u32), &num_cracked, 0, NULL, NULL) == -1) return -1;
+    if (run_opencl_kernel_bzero (hashcat_ctx, device_param, device_param->opencl_d_result, sizeof (u32)) == -1) return -1;
+
+    if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
   }
 
   return 0;

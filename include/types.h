@@ -1428,6 +1428,7 @@ typedef struct hc_device_param
 
   CUevent           cuda_event1;
   CUevent           cuda_event2;
+  CUevent           cuda_event3;
 
   CUmodule          cuda_module;
   CUmodule          cuda_module_shared;
@@ -1509,6 +1510,7 @@ typedef struct hc_device_param
 
   HIPevent          hip_event1;
   HIPevent          hip_event2;
+  HIPevent          hip_event3;
 
   HIPmodule         hip_module;
   HIPmodule         hip_module_shared;
