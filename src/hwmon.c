@@ -682,7 +682,21 @@ int hm_get_buslanes_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int back
             return PMActivity.iCurrentBusLanes;
           }
 
-          // NO OD8
+          if (hwmon_ctx->hm_device[backend_device_idx].od_version == 8)
+          {
+            ADLPMLogDataOutput odlpDataOutput;
+
+            memset (&odlpDataOutput, 0, sizeof (ADLPMLogDataOutput));
+
+            if (hm_ADL2_New_QueryPMLogData_Get (hashcat_ctx, hwmon_ctx->hm_device[backend_device_idx].adl, &odlpDataOutput) == -1)
+            {
+              hwmon_ctx->hm_device[backend_device_idx].buslanes_get_supported = false;
+
+              return -1;
+            }
+
+            return odlpDataOutput.sensors[PMLOG_BUS_LANES].value;
+          }
         }
 
         if (hwmon_ctx->hm_sysfs_amdgpu)
