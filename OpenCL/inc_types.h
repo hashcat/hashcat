@@ -26,7 +26,11 @@ typedef unsigned long long  ullong;
 #endif
 
 #ifdef IS_OPENCL
-typedef ulong               ullong;
+typedef ulong   ullong;
+typedef ulong2  ullong2;
+typedef ulong4  ullong4;
+typedef ulong8  ullong8;
+typedef ulong16 ullong16;
 #endif
 
 #ifdef KERNEL_STATIC
