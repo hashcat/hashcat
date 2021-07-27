@@ -679,10 +679,9 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       // otherwise host thinks again and again the hash was cracked
       // and returns invalid password each time
 
-      /* TODO: this is bad design -- digests_shown_tmp is only used for zeroing */
       if (device_param->is_cuda == true)
       {
-        rc = hc_cuMemcpyHtoDAsync (hashcat_ctx, device_param->cuda_d_digests_shown + (salt_buf->digests_offset * sizeof (u32)), hashes->digests_shown_tmp, salt_buf->digests_cnt * sizeof (u32), device_param->cuda_stream);
+        rc = run_cuda_kernel_bzero (hashcat_ctx, device_param, device_param->cuda_d_digests_shown + (salt_buf->digests_offset * sizeof (u32)), salt_buf->digests_cnt * sizeof (u32));
 
         if (rc == -1)
         {
@@ -692,7 +691,7 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       if (device_param->is_hip == true)
       {
-        rc = hc_hipMemcpyHtoDAsync (hashcat_ctx, device_param->hip_d_digests_shown + (salt_buf->digests_offset * sizeof (u32)), hashes->digests_shown_tmp, salt_buf->digests_cnt * sizeof (u32), device_param->hip_stream);
+        rc = run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_digests_shown + (salt_buf->digests_offset * sizeof (u32)), salt_buf->digests_cnt * sizeof (u32));
 
         if (rc == -1)
         {
@@ -702,7 +701,8 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       if (device_param->is_opencl == true)
       {
-        rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_digests_shown, CL_FALSE, salt_buf->digests_offset * sizeof (u32), salt_buf->digests_cnt * sizeof (u32), hashes->digests_shown_tmp, 0, NULL, NULL);
+        /* NOTE: run_opencl_kernel_bzero() does not handle buffer offset */
+        rc = run_opencl_kernel_memset32 (hashcat_ctx, device_param, device_param->opencl_d_digests_shown, salt_buf->digests_offset, 0, salt_buf->digests_cnt);
 
         if (rc == 0)
         {
@@ -1675,7 +1675,6 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
   u32 digests_done = 0;
 
   u32 *digests_shown     = (u32 *) hccalloc (digests_cnt, sizeof (u32));
-  u32 *digests_shown_tmp = (u32 *) hccalloc (digests_cnt, sizeof (u32));
 
   u32 salts_cnt   = 0;
   u32 salts_done  = 0;
@@ -1812,7 +1811,6 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
   hashes->digests_done      = digests_done;
   hashes->digests_buf       = digests_buf_new;
   hashes->digests_shown     = digests_shown;
-  hashes->digests_shown_tmp = digests_shown_tmp;
 
   hashes->salts_cnt         = salts_cnt;
   hashes->salts_done        = salts_done;
@@ -2299,7 +2297,6 @@ void hashes_destroy (hashcat_ctx_t *hashcat_ctx)
 
   hcfree (hashes->digests_buf);
   hcfree (hashes->digests_shown);
-  hcfree (hashes->digests_shown_tmp);
 
   hcfree (hashes->salts_buf);
   hcfree (hashes->salts_shown);

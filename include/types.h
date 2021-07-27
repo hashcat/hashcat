@@ -927,7 +927,6 @@ typedef struct hashes
 
   void        *digests_buf;
   u32         *digests_shown;
-  u32         *digests_shown_tmp;
 
   u32          salts_cnt;
   u32          salts_done;
