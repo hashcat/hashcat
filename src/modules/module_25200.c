@@ -24,8 +24,8 @@ static const u64   KERN_TYPE      = 25200;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
-static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$SNMPv3$2$66763052$13981919518623358902340156831753173612320956749283824166083320737667668557830898783481876963136410266762758410322896320705075044221495960812100760230106803899899467077793703068392752686845035561487927252457444567685389901239388468830507087105054207914325254376053788152029716918450770264047103676562621965276752797029332926039166807829108367446173251908238116020942421323633620301312478670302264165059728208402342845743839533979473825394866704960428648622730299023225638967097578710279784722583947877561544154219162080289188160001741612377820114739093961409809862173307722539556954826052612794054060797358016549602977742745078911393042420821004243620362464971828700104979572910001640083882586179153483503492341163054930853321963503411228241996417991605003371264529827508426941919673592574025732354318435733211018917539824570724324796232199960952117561108106623865308577977944499366806697863259301760429786001824121720055893438673268643594146796410437039466462606490272723136671298529920486664067752007564122205089571790718437001200506203464426405927405102300269665189637001279369690218157456566218400534722049383049029139069701182053729830585217732347396312967325628046845068493719801191260136945971516486442056102815519090214442808707545803919529217103430588641187558031052830941742920355893755319896626873275796534820394248837050567688575113833311009595128372820474678989203565094681918285106102363272728922586582037066265522397748326630668375500179630717875844561081542915676557961288028298248995547031274515608973804660067065502484039882958958452781062725550260382637592283691962996228392332833626159043179186189904614052189303508782635840692436969244901198720814518$79f7b1$57e964c7cb117647004cf132";
+static const char *ST_PASS        = "hashcat1";
+static const char *ST_HASH        = "$SNMPv3$2$45889431$30818f02010330110204371780f3020300ffe304010102010304383036041180001f88808106d566db57fd600000000002011002020118040a6d61747269785f534841040c0000000000000000000000000400303d041180001f88808106d566db57fd60000000000400a2260204073557d50201000201003018301606082b06010201010200060a2b06010401bf0803020a$80001f88808106d566db57fd6000000000$81f14f1930589f26f6755f6b";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -45,8 +45,8 @@ const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 static const char *SIGNATURE_SNMPV3 = "$SNMPv3$2$";
 
 #define SNMPV3_SALT_MAX             1500
-#define SNMPV3_ENGINEID_MAX         32
-#define SNMPV3_MSG_AUTH_PARAMS_MAX  12
+#define SNMPV3_ENGINEID_MAX         34
+#define SNMPV3_MSG_AUTH_PARAMS_LEN  12
 #define SNMPV3_ROUNDS               1048576
 #define SNMPV3_MAX_PW_LENGTH        64
 
@@ -75,6 +75,13 @@ typedef struct snmpv3
   u32 packet_number[SNMPV3_MAX_PNUM_ELEMS];
 
 } snmpv3_t;
+
+u32 module_pw_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 pw_min = 8;
+
+  return pw_min;
+}
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -130,23 +137,23 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
   // salt
-  token.len_min[2] = 12 * 2;
+  token.len_min[2] = SNMPV3_MSG_AUTH_PARAMS_LEN * 2;
   token.len_max[2] = SNMPV3_SALT_MAX * 2;
   token.sep[2]     = '$';
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   // engineid
-  token.len_min[3] = 5;
+  token.len_min[3] = 26;
   token.len_max[3] = SNMPV3_ENGINEID_MAX;
   token.sep[3]     = '$';
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH;
+  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
   // digest
-  token.len_min[4] = SNMPV3_MSG_AUTH_PARAMS_MAX * 2;
-  token.len_max[4] = SNMPV3_MSG_AUTH_PARAMS_MAX * 2;
+  token.len[4]     = SNMPV3_MSG_AUTH_PARAMS_LEN * 2;
   token.sep[4]     = '$';
-  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.attr[4]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
@@ -183,9 +190,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // store sha1(snmpv3->salt_buf) in salt_buf
 
-  memcpy (salt->salt_buf, sha1_ctx.h, 20);
-
   salt->salt_len = 20;
+
+  memcpy (salt->salt_buf, sha1_ctx.h, salt->salt_len);
 
   // engineid
 
@@ -203,11 +210,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[0] = hex_to_u32 (hash_pos +  0);
   digest[1] = hex_to_u32 (hash_pos +  8);
   digest[2] = hex_to_u32 (hash_pos + 16);
-  digest[3] = 0;
 
   digest[0] = byte_swap_32 (digest[0]);
   digest[1] = byte_swap_32 (digest[1]);
   digest[2] = byte_swap_32 (digest[2]);
+
+  digest[3] = 0;
 
   return (PARSER_OK);
 }
@@ -313,7 +321,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_potfile_keep_all_hashes  = MODULE_DEFAULT;
   module_ctx->module_pwdump_column            = MODULE_DEFAULT;
   module_ctx->module_pw_max                   = MODULE_DEFAULT;
-  module_ctx->module_pw_min                   = MODULE_DEFAULT;
+  module_ctx->module_pw_min                   = module_pw_min;
   module_ctx->module_salt_max                 = MODULE_DEFAULT;
   module_ctx->module_salt_min                 = MODULE_DEFAULT;
   module_ctx->module_salt_type                = module_salt_type;
