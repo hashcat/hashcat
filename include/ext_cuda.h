@@ -1034,8 +1034,8 @@ typedef CUresult (CUDA_API_CALL *CUDA_CUMEMCPYHTODASYNC)        (CUdeviceptr, co
 typedef CUresult (CUDA_API_CALL *CUDA_CUMEMFREE)                (CUdeviceptr);
 typedef CUresult (CUDA_API_CALL *CUDA_CUMEMFREEHOST)            (void *);
 typedef CUresult (CUDA_API_CALL *CUDA_CUMEMGETINFO)             (size_t *, size_t *);
-typedef CUresult (CUDA_API_CALL *CUDA_CUMEMSETD32)              (CUdeviceptr, unsigned int, size_t);
-typedef CUresult (CUDA_API_CALL *CUDA_CUMEMSETD8)               (CUdeviceptr, unsigned char, size_t);
+typedef CUresult (CUDA_API_CALL *CUDA_CUMEMSETD32ASYNC)         (CUdeviceptr, unsigned int, size_t, CUstream);
+typedef CUresult (CUDA_API_CALL *CUDA_CUMEMSETD8ASYNC)          (CUdeviceptr, unsigned char, size_t, CUstream);
 typedef CUresult (CUDA_API_CALL *CUDA_CUMODULEGETFUNCTION)      (CUfunction *, CUmodule, const char *);
 typedef CUresult (CUDA_API_CALL *CUDA_CUMODULEGETGLOBAL)        (CUdeviceptr *, size_t *, CUmodule, const char *);
 typedef CUresult (CUDA_API_CALL *CUDA_CUMODULELOAD)             (CUmodule *, const char *);
@@ -1096,8 +1096,8 @@ typedef struct hc_cuda_lib
   CUDA_CUMEMFREE                cuMemFree;
   CUDA_CUMEMFREEHOST            cuMemFreeHost;
   CUDA_CUMEMGETINFO             cuMemGetInfo;
-  CUDA_CUMEMSETD32              cuMemsetD32;
-  CUDA_CUMEMSETD8               cuMemsetD8;
+  CUDA_CUMEMSETD32ASYNC         cuMemsetD32Async;
+  CUDA_CUMEMSETD8ASYNC          cuMemsetD8Async;
   CUDA_CUMODULEGETFUNCTION      cuModuleGetFunction;
   CUDA_CUMODULEGETGLOBAL        cuModuleGetGlobal;
   CUDA_CUMODULELOAD             cuModuleLoad;

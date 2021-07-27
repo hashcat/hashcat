@@ -1043,8 +1043,8 @@ typedef HIPresult (HIP_API_CALL *HIP_HIPMEMCPYHTODASYNC)        (HIPdeviceptr, c
 typedef HIPresult (HIP_API_CALL *HIP_HIPMEMFREE)                (HIPdeviceptr);
 typedef HIPresult (HIP_API_CALL *HIP_HIPMEMFREEHOST)            (void *);
 typedef HIPresult (HIP_API_CALL *HIP_HIPMEMGETINFO)             (size_t *, size_t *);
-typedef HIPresult (HIP_API_CALL *HIP_HIPMEMSETD32)              (HIPdeviceptr, unsigned int, size_t);
-typedef HIPresult (HIP_API_CALL *HIP_HIPMEMSETD8)               (HIPdeviceptr, unsigned char, size_t);
+typedef HIPresult (HIP_API_CALL *HIP_HIPMEMSETD32ASYNC)         (HIPdeviceptr, unsigned int, size_t, HIPstream);
+typedef HIPresult (HIP_API_CALL *HIP_HIPMEMSETD8ASYNC)          (HIPdeviceptr, unsigned char, size_t, HIPstream);
 typedef HIPresult (HIP_API_CALL *HIP_HIPMODULEGETFUNCTION)      (HIPfunction *, HIPmodule, const char *);
 typedef HIPresult (HIP_API_CALL *HIP_HIPMODULEGETGLOBAL)        (HIPdeviceptr *, size_t *, HIPmodule, const char *);
 typedef HIPresult (HIP_API_CALL *HIP_HIPMODULELOAD)             (HIPmodule *, const char *);
@@ -1105,8 +1105,8 @@ typedef struct hc_hip_lib
   HIP_HIPMEMFREE                hipMemFree;
   HIP_HIPMEMFREEHOST            hipMemFreeHost;
   HIP_HIPMEMGETINFO             hipMemGetInfo;
-  HIP_HIPMEMSETD32              hipMemsetD32;
-  HIP_HIPMEMSETD8               hipMemsetD8;
+  HIP_HIPMEMSETD32ASYNC         hipMemsetD32Async;
+  HIP_HIPMEMSETD8ASYNC          hipMemsetD8Async;
   HIP_HIPMODULEGETFUNCTION      hipModuleGetFunction;
   HIP_HIPMODULEGETGLOBAL        hipModuleGetGlobal;
   HIP_HIPMODULELOAD             hipModuleLoad;

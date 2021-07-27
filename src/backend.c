@@ -1263,8 +1263,8 @@ int cuda_init (hashcat_ctx_t *hashcat_ctx)
   HC_LOAD_FUNC_CUDA (cuda, cuMemFree,                cuMemFree_v2,              CUDA_CUMEMFREE,                 CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuMemFreeHost,            cuMemFreeHost,             CUDA_CUMEMFREEHOST,             CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuMemGetInfo,             cuMemGetInfo_v2,           CUDA_CUMEMGETINFO,              CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuMemsetD32,              cuMemsetD32_v2,            CUDA_CUMEMSETD32,               CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuMemsetD8,               cuMemsetD8_v2,             CUDA_CUMEMSETD8,                CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuMemsetD32Async,         cuMemsetD32Async,          CUDA_CUMEMSETD32ASYNC,          CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuMemsetD8Async,          cuMemsetD8Async,           CUDA_CUMEMSETD8ASYNC,           CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuModuleGetFunction,      cuModuleGetFunction,       CUDA_CUMODULEGETFUNCTION,       CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuModuleGetGlobal,        cuModuleGetGlobal_v2,      CUDA_CUMODULEGETGLOBAL,         CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuModuleLoad,             cuModuleLoad,              CUDA_CUMODULELOAD,              CUDA, 1);
@@ -1757,6 +1757,60 @@ int hc_cuMemcpyHtoDAsync (hashcat_ctx_t *hashcat_ctx, CUdeviceptr dstDevice, con
     else
     {
       event_log_error (hashcat_ctx, "cuMemcpyHtoDAsync(): %d", CU_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_cuMemsetD32Async (hashcat_ctx_t *hashcat_ctx, CUdeviceptr dstDevice, unsigned int ui, size_t N, CUstream hStream)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
+
+  const CUresult CU_err = cuda->cuMemsetD32Async (dstDevice, ui, N, hStream);
+
+  if (CU_err != CUDA_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "cuMemsetD32Async(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "cuMemsetD32Async(): %d", CU_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_cuMemsetD8Async (hashcat_ctx_t *hashcat_ctx, CUdeviceptr dstDevice, unsigned char uc, size_t N, CUstream hStream)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
+
+  const CUresult CU_err = cuda->cuMemsetD8Async (dstDevice, uc, N, hStream);
+
+  if (CU_err != CUDA_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "cuMemsetD8Async(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "cuMemsetD8Async(): %d", CU_err);
     }
 
     return -1;
@@ -2472,8 +2526,8 @@ int hip_init (hashcat_ctx_t *hashcat_ctx)
   HC_LOAD_FUNC_HIP (hip, hipMemFree,                hipFree,                    HIP_HIPMEMFREE,                 HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipMemFreeHost,            hipFreeHost,                HIP_HIPMEMFREEHOST,             HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipMemGetInfo,             hipMemGetInfo,              HIP_HIPMEMGETINFO,              HIP, 1);
-  //HC_LOAD_FUNC_HIP (hip, hipMemsetD32,              hipMemsetD32,               HIP_HIPMEMSETD32,               HIP, 1);
-  //HC_LOAD_FUNC_HIP (hip, hipMemsetD8,               hipMemsetD8,                HIP_HIPMEMSETD8,                HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipMemsetD32Async,         hipMemsetD32Async,          HIP_HIPMEMSETD32ASYNC,          HIP, -1);
+  HC_LOAD_FUNC_HIP (hip, hipMemsetD8Async,          hipMemsetD8Async,           HIP_HIPMEMSETD8ASYNC,           HIP, -1);
   HC_LOAD_FUNC_HIP (hip, hipModuleGetFunction,      hipModuleGetFunction,       HIP_HIPMODULEGETFUNCTION,       HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipModuleGetGlobal,        hipModuleGetGlobal,         HIP_HIPMODULEGETGLOBAL,         HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipModuleLoad,             hipModuleLoad,              HIP_HIPMODULELOAD,              HIP, 1);
@@ -2967,6 +3021,60 @@ int hc_hipMemcpyHtoDAsync (hashcat_ctx_t *hashcat_ctx, HIPdeviceptr dstDevice, c
     else
     {
       event_log_error (hashcat_ctx, "hipMemcpyHtoDAsync(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipMemsetD32Async (hashcat_ctx_t *hashcat_ctx, HIPdeviceptr dstDevice, unsigned int ui, size_t N, HIPstream hStream)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipMemsetD32Async (dstDevice, ui, N, hStream);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipMemsetD32Async(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipMemsetD32Async(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipMemsetD8Async (hashcat_ctx_t *hashcat_ctx, HIPdeviceptr dstDevice, unsigned char uc, size_t N, HIPstream hStream)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const HIPresult HIP_err = hip->hipMemsetD8Async (dstDevice, uc, N, hStream);
+
+  if (HIP_err != HIP_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "hipMemsetD8Async(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipMemsetD8Async(): %d", HIP_err);
     }
 
     return -1;
@@ -3636,6 +3744,7 @@ int ocl_init (hashcat_ctx_t *hashcat_ctx)
   HC_LOAD_FUNC (ocl, clCreateProgramWithBinary, OCL_CLCREATEPROGRAMWITHBINARY,  OpenCL, 1);
   HC_LOAD_FUNC (ocl, clCreateProgramWithSource, OCL_CLCREATEPROGRAMWITHSOURCE,  OpenCL, 1);
   HC_LOAD_FUNC (ocl, clEnqueueCopyBuffer,       OCL_CLENQUEUECOPYBUFFER,        OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clEnqueueFillBuffer,       OCL_CLENQUEUEFILLBUFFER,        OpenCL, -1);
   HC_LOAD_FUNC (ocl, clEnqueueMapBuffer,        OCL_CLENQUEUEMAPBUFFER,         OpenCL, 1);
   HC_LOAD_FUNC (ocl, clEnqueueNDRangeKernel,    OCL_CLENQUEUENDRANGEKERNEL,     OpenCL, 1);
   HC_LOAD_FUNC (ocl, clEnqueueReadBuffer,       OCL_CLENQUEUEREADBUFFER,        OpenCL, 1);
@@ -3804,6 +3913,23 @@ int hc_clEnqueueCopyBuffer (hashcat_ctx_t *hashcat_ctx, cl_command_queue command
   if (CL_err != CL_SUCCESS)
   {
     event_log_error (hashcat_ctx, "clEnqueueCopyBuffer(): %s", val2cstr_cl (CL_err));
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_clEnqueueFillBuffer (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue, cl_mem buffer, const void *pattern, size_t pattern_size, size_t offset, size_t size, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event)
+{
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+  const OCL_PTR       *ocl         = backend_ctx->ocl;
+
+  cl_int CL_err = ocl->clEnqueueFillBuffer (command_queue, buffer, pattern, pattern_size, offset, size, num_events_in_wait_list, event_wait_list, event);
+
+  if (CL_err != CL_SUCCESS)
+  {
+    event_log_error (hashcat_ctx, "clEnqueueFillBuffer(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -5013,40 +5139,14 @@ int run_cuda_kernel_utf8toutf16le (hashcat_ctx_t *hashcat_ctx, hc_device_param_t
   return 0;
 }
 
-int run_cuda_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, CUdeviceptr buf, const u32 value, const u64 size)
+int run_cuda_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, CUdeviceptr buf, const u64 offset, const u8 value, const u64 size)
 {
-  const u64 num16d = size / 16;
-  const u64 num16m = size % 16;
-  u32 tmp[4];
+  return hc_cuMemsetD8Async (hashcat_ctx, buf + offset, value, size, device_param->cuda_stream);
+}
 
-  if (num16d)
-  {
-    device_param->kernel_params_memset[0]       = (void *) &buf;
-    device_param->kernel_params_memset_buf32[1] = value;
-    device_param->kernel_params_memset_buf64[2] = num16d;
-
-    const u64 kernel_threads = device_param->kernel_wgs_memset;
-
-    u64 num_elements = CEILDIV (num16d, kernel_threads);
-
-    CUfunction function = device_param->cuda_function_memset;
-
-    if (hc_cuLaunchKernel (hashcat_ctx, function, num_elements, 1, 1, kernel_threads, 1, 1, 0, device_param->cuda_stream, device_param->kernel_params_memset, NULL) == -1) return -1;
-  }
-
-  if (num16m)
-  {
-    tmp[0] = value;
-    tmp[1] = value;
-    tmp[2] = value;
-    tmp[3] = value;
-
-    if (hc_cuMemcpyHtoDAsync (hashcat_ctx, buf + (num16d * 16), tmp, num16m, device_param->cuda_stream) == -1) return -1;
-  }
-
-  if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
-
-  return 0;
+int run_cuda_kernel_memset32 (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, CUdeviceptr buf, const u64 offset, const u32 value, const u64 size)
+{
+  return hc_cuMemsetD32Async (hashcat_ctx, buf + offset * sizeof (u32), value, size, device_param->cuda_stream);
 }
 
 int run_cuda_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, CUdeviceptr buf, const u64 size)
@@ -5112,40 +5212,14 @@ int run_hip_kernel_utf8toutf16le (hashcat_ctx_t *hashcat_ctx, hc_device_param_t 
   return 0;
 }
 
-int run_hip_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, HIPdeviceptr buf, const u32 value, const u64 size)
+int run_hip_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, HIPdeviceptr buf, const u64 offset, const u8 value, const u64 size)
 {
-  const u64 num16d = size / 16;
-  const u64 num16m = size % 16;
-  u32 tmp[4];
+  return hc_hipMemsetD8Async (hashcat_ctx, buf + offset, value, size, device_param->hip_stream);
+}
 
-  if (num16d)
-  {
-    device_param->kernel_params_memset[0]       = (void *) &buf;
-    device_param->kernel_params_memset_buf32[1] = value;
-    device_param->kernel_params_memset_buf64[2] = num16d;
-
-    const u64 kernel_threads = device_param->kernel_wgs_memset;
-
-    u64 num_elements = CEILDIV (num16d, kernel_threads);
-
-    HIPfunction function = device_param->hip_function_memset;
-
-    if (hc_hipLaunchKernel (hashcat_ctx, function, num_elements, 1, 1, kernel_threads, 1, 1, 0, device_param->hip_stream, device_param->kernel_params_memset, NULL) == -1) return -1;
-  }
-
-  if (num16m)
-  {
-    tmp[0] = value;
-    tmp[1] = value;
-    tmp[2] = value;
-    tmp[3] = value;
-
-    if (hc_hipMemcpyHtoDAsync (hashcat_ctx, buf + (num16d * 16), tmp, num16m, device_param->hip_stream) == -1) return -1;
-  }
-
-  if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
-
-  return 0;
+int run_hip_kernel_memset32 (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, HIPdeviceptr buf, const u64 offset, const u32 value, const u64 size)
+{
+  return hc_hipMemsetD32Async (hashcat_ctx, buf + offset * sizeof (u32), value, size, device_param->hip_stream);
 }
 
 int run_hip_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, HIPdeviceptr buf, const u64 size)
@@ -5227,45 +5301,65 @@ int run_opencl_kernel_utf8toutf16le (hashcat_ctx_t *hashcat_ctx, hc_device_param
   return 0;
 }
 
-int run_opencl_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u32 value, const u64 size)
+int run_opencl_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u64 offset, const u8 value, const u64 size)
 {
-  const u64 num16d = size / 16;
-  const u64 num16m = size % 16;
-  u32 tmp[4];
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+  const OCL_PTR       *ocl         = backend_ctx->ocl;
 
-  if (num16d)
+  int rc;
+
+  /* workaround if missing clEnqueueFillBuffer() */
+  if (ocl->clEnqueueFillBuffer == NULL)
   {
-    const u64 kernel_threads = device_param->kernel_wgs_memset;
+    const u64 len = offset + size;
 
-    u64 num_elements = round_up_multiple_64 (num16d, kernel_threads);
+    char *tmp = hcmalloc (len * sizeof (u8));
 
-    cl_kernel kernel = device_param->opencl_kernel_memset;
+    memset(tmp, value, len);
 
-    if (hc_clSetKernelArg (hashcat_ctx, kernel, 0, sizeof(cl_mem),   (void *) &buf)    == -1) return -1;
-    if (hc_clSetKernelArg (hashcat_ctx, kernel, 1, sizeof(cl_uint),  (void *) &value)  == -1) return -1;
-    if (hc_clSetKernelArg (hashcat_ctx, kernel, 2, sizeof(cl_ulong), (void *) &num16d) == -1) return -1;
+    /* blocking */
+    rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, buf, CL_TRUE, offset, size, tmp, 0, NULL, NULL);
 
-    const size_t global_work_size[3] = { num_elements,   1, 1 };
-    const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
-
-    if (hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL) == -1) return -1;
+    free(tmp);
+  }
+  else
+  {
+    rc = hc_clEnqueueFillBuffer (hashcat_ctx, device_param->opencl_command_queue, buf, &value, sizeof (u8), offset, size, 0, NULL, NULL);
   }
 
-  if (num16m)
-  {
-    tmp[0] = value;
-    tmp[1] = value;
-    tmp[2] = value;
-    tmp[3] = value;
+  return rc;
+}
 
-    if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, buf, CL_FALSE, num16d * 16, num16m, tmp, 0, NULL, NULL) == -1) return -1;
+int run_opencl_kernel_memset32 (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u64 offset, const u32 value, const u64 size)
+{
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+  const OCL_PTR       *ocl         = backend_ctx->ocl;
+
+  int rc;
+
+  /* workaround if missing clEnqueueFillBuffer() */
+  if (ocl->clEnqueueFillBuffer == NULL)
+  {
+    const u64 len = offset + size;
+
+    u32 *tmp = (u32 *) hcmalloc ((offset + size) * sizeof (u32));
+
+    for (u64 i = 0; i < len; i++)
+    {
+      tmp[i] = value;
+    }
+
+    /* blocking */
+    rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, buf, CL_TRUE, offset * sizeof (u32), size * sizeof (u32), tmp, 0, NULL, NULL);
+
+    free(tmp);
+  }
+  else
+  {
+    rc = hc_clEnqueueFillBuffer (hashcat_ctx, device_param->opencl_command_queue, buf, &value, sizeof (u32), offset, size, 0, NULL, NULL);
   }
 
-  /*if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;*/
-
-  if (hc_clFinish (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
-
-  return 0;
+  return rc;
 }
 
 int run_opencl_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u64 size)
