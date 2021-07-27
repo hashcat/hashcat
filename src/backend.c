@@ -9366,6 +9366,19 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
         {
+          if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->opencl_device_vendor_id == VENDOR_ID_AMD))
+          {
+            // from https://www.khronos.org/registry/OpenCL/extensions/amd/cl_amd_device_attribute_query.txt
+            #define CL_DEVICE_WAVEFRONT_WIDTH_AMD                   0x4043
+
+            // crazy, but apple does not support this query!
+            // the best alternative is "Preferred work group size multiple (kernel)", but requires to specify a kernel.
+            // so we will set kernel_preferred_wgs_multiple intentionally to 0 because otherwise it it set to 8 by default.
+            // we then assign the value kernel_preferred_wgs_multiple a small kernel like bzero after test if this was set to 0.
+
+            device_param->kernel_preferred_wgs_multiple = 0;
+          }
+
           if ((device_param->opencl_platform_vendor_id == VENDOR_ID_AMD) && (device_param->opencl_device_vendor_id == VENDOR_ID_AMD))
           {
             cl_uint device_wavefront_width_amd;
@@ -12022,6 +12035,10 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         if (get_opencl_kernel_dynamic_local_mem_size (hashcat_ctx, device_param, device_param->opencl_kernel_bzero, &device_param->kernel_dynamic_local_mem_size_bzero) == -1) return -1;
 
         if (get_opencl_kernel_preferred_wgs_multiple (hashcat_ctx, device_param, device_param->opencl_kernel_bzero, &device_param->kernel_preferred_wgs_multiple_bzero) == -1) return -1;
+
+        // apple hack, but perhaps also an alternative for other vendors
+
+        if (device_param->kernel_preferred_wgs_multiple == 0) device_param->kernel_preferred_wgs_multiple = device_param->kernel_preferred_wgs_multiple_bzero;
 
         // GPU autotune init
 
