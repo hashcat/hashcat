@@ -300,7 +300,7 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain)
+int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain)
 {
   const debugfile_ctx_t *debugfile_ctx = hashcat_ctx->debugfile_ctx;
   const hashes_t        *hashes        = hashcat_ctx->hashes;
@@ -314,6 +314,7 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
   void *tmps = NULL;
 
   cl_event opencl_event;
+  int rc;
 
   if (hashconfig->opts_type & OPTS_TYPE_COPY_TMPS)
   {
@@ -321,23 +322,53 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
     if (device_param->is_cuda == true)
     {
-      hc_cuMemcpyDtoHAsync (hashcat_ctx, tmps, device_param->cuda_d_tmps + (plain->gidvid * hashconfig->tmp_size), hashconfig->tmp_size, device_param->cuda_stream);
+      rc = hc_cuMemcpyDtoHAsync (hashcat_ctx, tmps, device_param->cuda_d_tmps + (plain->gidvid * hashconfig->tmp_size), hashconfig->tmp_size, device_param->cuda_stream);
 
-      hc_cuEventRecord (hashcat_ctx, device_param->cuda_event3, device_param->cuda_stream);
+      if (rc == 0)
+      {
+        rc = hc_cuEventRecord (hashcat_ctx, device_param->cuda_event3, device_param->cuda_stream);
+      }
+
+      if (rc == -1)
+      {
+        free(tmps);
+
+        return -1;
+      }
     }
 
     if (device_param->is_hip == true)
     {
-      hc_hipMemcpyDtoHAsync (hashcat_ctx, tmps, device_param->hip_d_tmps + (plain->gidvid * hashconfig->tmp_size), hashconfig->tmp_size, device_param->hip_stream);
+      rc = hc_hipMemcpyDtoHAsync (hashcat_ctx, tmps, device_param->hip_d_tmps + (plain->gidvid * hashconfig->tmp_size), hashconfig->tmp_size, device_param->hip_stream);
 
-      hc_hipEventRecord (hashcat_ctx, device_param->hip_event3, device_param->hip_stream);
+      if (rc == 0)
+      {
+        rc = hc_hipEventRecord (hashcat_ctx, device_param->hip_event3, device_param->hip_stream);
+      }
+
+      if (rc == -1)
+      {
+        free(tmps);
+
+        return -1;
+      }
     }
 
     if (device_param->is_opencl == true)
     {
-      hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_tmps, CL_FALSE, plain->gidvid * hashconfig->tmp_size, hashconfig->tmp_size, tmps, 0, NULL, &opencl_event);
+      rc = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_tmps, CL_FALSE, plain->gidvid * hashconfig->tmp_size, hashconfig->tmp_size, tmps, 0, NULL, &opencl_event);
 
-      hc_clFlush (hashcat_ctx, device_param->opencl_command_queue);
+      if (rc == 0)
+      {
+        rc = hc_clFlush (hashcat_ctx, device_param->opencl_command_queue);
+      }
+
+      if (rc == -1)
+      {
+        free(tmps);
+
+        return -1;
+      }
     }
   }
 
@@ -345,7 +376,7 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   u8 *out_buf = hashes->out_buf;
 
-  int out_len = hash_encode (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf, HCBUFSIZ_LARGE, salt_pos, digest_pos);
+  int out_len = hash_encode (hashconfig, hashes, module_ctx, (char *) out_buf, HCBUFSIZ_LARGE, salt_pos, digest_pos);
 
   out_buf[out_len] = 0;
 
@@ -366,21 +397,21 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
     {
       if (device_param->is_cuda == true)
       {
-        if (hc_cuEventSynchronize (hashcat_ctx, device_param->cuda_event3) == -1) return;
+        if (hc_cuEventSynchronize (hashcat_ctx, device_param->cuda_event3) == -1) return -1;
       }
 
       if (device_param->is_hip == true)
       {
-        if (hc_hipEventSynchronize (hashcat_ctx, device_param->hip_event3) == -1) return;
+        if (hc_hipEventSynchronize (hashcat_ctx, device_param->hip_event3) == -1) return -1;
       }
 
       if (device_param->is_opencl == true)
       {
-        if (hc_clWaitForEvents (hashcat_ctx, 1, &opencl_event) == -1) return;
+        if (hc_clWaitForEvents (hashcat_ctx, 1, &opencl_event) == -1) return -1;
       }
     }
 
-    plain_len = module_ctx->module_build_plain_postprocess (hashcat_ctx->hashconfig, hashcat_ctx->hashes, tmps, (u32 *) plain_buf, sizeof (plain_buf), plain_len, (u32 *) postprocess_buf, sizeof (postprocess_buf));
+    plain_len = module_ctx->module_build_plain_postprocess (hashconfig, hashes, tmps, (u32 *) plain_buf, sizeof (plain_buf), plain_len, (u32 *) postprocess_buf, sizeof (postprocess_buf));
 
     plain_ptr = postprocess_buf;
   }
@@ -427,17 +458,17 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
     {
       if (device_param->is_cuda == true)
       {
-        if (hc_cuEventSynchronize (hashcat_ctx, device_param->cuda_event3) == -1) return;
+        if (hc_cuEventSynchronize (hashcat_ctx, device_param->cuda_event3) == -1) return -1;
       }
 
       if (device_param->is_hip == true)
       {
-        if (hc_hipEventSynchronize (hashcat_ctx, device_param->hip_event3) == -1) return;
+        if (hc_hipEventSynchronize (hashcat_ctx, device_param->hip_event3) == -1) return -1;
       }
 
       if (device_param->is_opencl == true)
       {
-        if (hc_clWaitForEvents (hashcat_ctx, 1, &opencl_event) == -1) return;
+        if (hc_clWaitForEvents (hashcat_ctx, 1, &opencl_event) == -1) return -1;
       }
     }
 
@@ -504,13 +535,15 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   if (hashconfig->opts_type & OPTS_TYPE_COPY_TMPS)
   {
+    hcfree (tmps);
+
     if (device_param->is_opencl == true)
     {
-      if (hc_clReleaseEvent (hashcat_ctx, opencl_event) == -1) return;
+      if (hc_clReleaseEvent (hashcat_ctx, opencl_event) == -1) return -1;
     }
-
-    hcfree (tmps);
   }
+
+  return 0;
 }
 
 //int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 salt_pos)
@@ -605,6 +638,7 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
     if (hashes->salts_done == hashes->salts_cnt) mycracked (hashcat_ctx);
 
+    /* TODO: handle check_hash return value */
     check_hash (hashcat_ctx, device_param, &cracked[i]);
 
     if (hashconfig->opts_type & OPTS_TYPE_PT_NEVERCRACK)
