@@ -5471,18 +5471,6 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
     dynamic_shared_mem = 0;
   }
 
-  //if (device_param->is_cuda == true)
-  //{
-    //if ((device_param->kernel_dynamic_local_mem_size_memset % device_param->device_local_mem_size) == 0)
-    //{
-      // this is the case Compute Capability 7.5
-      // there is also Compute Capability 7.0 which offers a larger dynamic local size access
-      // however, if it's an exact multiple the driver can optimize this for us more efficient
-
-      //dynamic_shared_mem = 0;
-    //}
-  //}
-
   kernel_threads = MIN (kernel_threads, device_param->kernel_threads);
 
   device_param->kernel_params_buf64[35] = pws_pos;
@@ -11750,18 +11738,6 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (device_param->is_cuda == true)
       {
-        // GPU memset
-
-        if (hc_cuModuleGetFunction (hashcat_ctx, &device_param->cuda_function_memset, device_param->cuda_module_shared, "gpu_memset") == -1) return -1;
-
-        if (get_cuda_kernel_wgs (hashcat_ctx, device_param->cuda_function_memset, &device_param->kernel_wgs_memset) == -1) return -1;
-
-        if (get_cuda_kernel_local_mem_size (hashcat_ctx, device_param->cuda_function_memset, &device_param->kernel_local_mem_size_memset) == -1) return -1;
-
-        device_param->kernel_dynamic_local_mem_size_memset = device_param->device_local_mem_size - device_param->kernel_local_mem_size_memset;
-
-        device_param->kernel_preferred_wgs_multiple_memset = device_param->cuda_warp_size;
-
         // GPU bzero
 
         if (hc_cuModuleGetFunction (hashcat_ctx, &device_param->cuda_function_bzero, device_param->cuda_module_shared, "gpu_bzero") == -1) return -1;
@@ -11816,18 +11792,6 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (device_param->is_hip == true)
       {
-        // GPU memset
-
-        if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function_memset, device_param->hip_module_shared, "gpu_memset") == -1) return -1;
-
-        if (get_hip_kernel_wgs (hashcat_ctx, device_param->hip_function_memset, &device_param->kernel_wgs_memset) == -1) return -1;
-
-        if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_memset, &device_param->kernel_local_mem_size_memset) == -1) return -1;
-
-        device_param->kernel_dynamic_local_mem_size_memset = device_param->device_local_mem_size - device_param->kernel_local_mem_size_memset;
-
-        device_param->kernel_preferred_wgs_multiple_memset = device_param->hip_warp_size;
-
         // GPU bzero
 
         if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function_bzero, device_param->hip_module_shared, "gpu_bzero") == -1) return -1;
@@ -11882,18 +11846,6 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (device_param->is_opencl == true)
       {
-        // GPU memset
-
-        if (hc_clCreateKernel (hashcat_ctx, device_param->opencl_program_shared, "gpu_memset", &device_param->opencl_kernel_memset) == -1) return -1;
-
-        if (get_opencl_kernel_wgs (hashcat_ctx, device_param, device_param->opencl_kernel_memset, &device_param->kernel_wgs_memset) == -1) return -1;
-
-        if (get_opencl_kernel_local_mem_size (hashcat_ctx, device_param, device_param->opencl_kernel_memset, &device_param->kernel_local_mem_size_memset) == -1) return -1;
-
-        if (get_opencl_kernel_dynamic_local_mem_size (hashcat_ctx, device_param, device_param->opencl_kernel_memset, &device_param->kernel_dynamic_local_mem_size_memset) == -1) return -1;
-
-        if (get_opencl_kernel_preferred_wgs_multiple (hashcat_ctx, device_param, device_param->opencl_kernel_memset, &device_param->kernel_preferred_wgs_multiple_memset) == -1) return -1;
-
         // GPU bzero
 
         if (hc_clCreateKernel (hashcat_ctx, device_param->opencl_program_shared, "gpu_bzero", &device_param->opencl_kernel_bzero) == -1) return -1;
@@ -12839,13 +12791,6 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         device_param->kernel_params_tm[1] = &device_param->opencl_d_tm_c;
       }
     }
-
-    device_param->kernel_params_memset_buf32[1] = 0; // value
-    device_param->kernel_params_memset_buf64[2] = 0; // gid_max
-
-    device_param->kernel_params_memset[0] = NULL;
-    device_param->kernel_params_memset[1] = &device_param->kernel_params_memset_buf32[1];
-    device_param->kernel_params_memset[2] = &device_param->kernel_params_memset_buf64[2];
 
     device_param->kernel_params_bzero_buf64[1] = 0; // gid_max
 
@@ -15384,7 +15329,6 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       device_param->cuda_function_mp_r        = NULL;
       device_param->cuda_function_tm          = NULL;
       device_param->cuda_function_amp         = NULL;
-      device_param->cuda_function_memset      = NULL;
       device_param->cuda_function_bzero       = NULL;
       device_param->cuda_function_atinit      = NULL;
       device_param->cuda_function_utf8toutf16le = NULL;
@@ -15513,7 +15457,6 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       device_param->hip_function_mp_r        = NULL;
       device_param->hip_function_tm          = NULL;
       device_param->hip_function_amp         = NULL;
-      device_param->hip_function_memset      = NULL;
       device_param->hip_function_bzero       = NULL;
       device_param->hip_function_atinit      = NULL;
       device_param->hip_function_utf8toutf16le = NULL;
@@ -15592,7 +15535,6 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       if (device_param->opencl_kernel_mp_r)      hc_clReleaseKernel (hashcat_ctx, device_param->opencl_kernel_mp_r);
       if (device_param->opencl_kernel_tm)        hc_clReleaseKernel (hashcat_ctx, device_param->opencl_kernel_tm);
       if (device_param->opencl_kernel_amp)       hc_clReleaseKernel (hashcat_ctx, device_param->opencl_kernel_amp);
-      if (device_param->opencl_kernel_memset)    hc_clReleaseKernel (hashcat_ctx, device_param->opencl_kernel_memset);
       if (device_param->opencl_kernel_bzero)     hc_clReleaseKernel (hashcat_ctx, device_param->opencl_kernel_bzero);
       if (device_param->opencl_kernel_atinit)    hc_clReleaseKernel (hashcat_ctx, device_param->opencl_kernel_atinit);
       if (device_param->opencl_kernel_utf8toutf16le) hc_clReleaseKernel (hashcat_ctx, device_param->opencl_kernel_utf8toutf16le);
@@ -15663,7 +15605,6 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       device_param->opencl_kernel_mp_r         = NULL;
       device_param->opencl_kernel_tm           = NULL;
       device_param->opencl_kernel_amp          = NULL;
-      device_param->opencl_kernel_memset       = NULL;
       device_param->opencl_kernel_bzero        = NULL;
       device_param->opencl_kernel_atinit       = NULL;
       device_param->opencl_kernel_utf8toutf16le = NULL;
