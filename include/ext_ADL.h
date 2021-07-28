@@ -13,22 +13,120 @@
 #include <windows.h>
 #endif // _WIN
 
-// Values taken from display-library-14.0.zip
+// Declarations from:
+// https://github.com/GPUOpen-LibrariesAndSDKs/display-library/blob/209538e1dc7273f7459411a3a5044ffe2437ed95/include/adl_defines.h
+// https://github.com/GPUOpen-LibrariesAndSDKs/display-library/blob/209538e1dc7273f7459411a3a5044ffe2437ed95/include/adl_structures.h
 
-/**
- * Declarations from adl_defines.h
- */
 
+/// Defines ADL_TRUE
+#define ADL_TRUE    1
+/// Defines ADL_FALSE
+#define ADL_FALSE        0
+
+//Define Performance Metrics Log max sensors number
+#define ADL_PMLOG_MAX_SENSORS  256
+
+typedef enum ADLSensorType
+{
+	SENSOR_MAXTYPES = 0,
+	PMLOG_CLK_GFXCLK = 1,
+	PMLOG_CLK_MEMCLK = 2,
+	PMLOG_CLK_SOCCLK = 3,
+	PMLOG_CLK_UVDCLK1 = 4,
+	PMLOG_CLK_UVDCLK2 = 5,
+	PMLOG_CLK_VCECLK = 6,
+	PMLOG_CLK_VCNCLK = 7,
+	PMLOG_TEMPERATURE_EDGE = 8,
+	PMLOG_TEMPERATURE_MEM = 9,
+	PMLOG_TEMPERATURE_VRVDDC = 10,
+	PMLOG_TEMPERATURE_VRMVDD = 11,
+	PMLOG_TEMPERATURE_LIQUID = 12,
+	PMLOG_TEMPERATURE_PLX = 13,
+	PMLOG_FAN_RPM = 14,
+	PMLOG_FAN_PERCENTAGE = 15,
+	PMLOG_SOC_VOLTAGE = 16,
+	PMLOG_SOC_POWER = 17,
+	PMLOG_SOC_CURRENT = 18,
+	PMLOG_INFO_ACTIVITY_GFX = 19,
+	PMLOG_INFO_ACTIVITY_MEM = 20,
+	PMLOG_GFX_VOLTAGE = 21,
+	PMLOG_MEM_VOLTAGE = 22,
+	PMLOG_ASIC_POWER = 23,
+	PMLOG_TEMPERATURE_VRSOC = 24,
+	PMLOG_TEMPERATURE_VRMVDD0 = 25,
+	PMLOG_TEMPERATURE_VRMVDD1 = 26,
+	PMLOG_TEMPERATURE_HOTSPOT = 27,
+        PMLOG_TEMPERATURE_GFX = 28,
+        PMLOG_TEMPERATURE_SOC = 29,
+        PMLOG_GFX_POWER = 30,
+        PMLOG_GFX_CURRENT = 31,
+        PMLOG_TEMPERATURE_CPU = 32,
+        PMLOG_CPU_POWER = 33,
+        PMLOG_CLK_CPUCLK = 34,
+        PMLOG_THROTTLER_STATUS = 35,
+        PMLOG_CLK_VCN1CLK1 = 36,
+        PMLOG_CLK_VCN1CLK2 = 37,
+        PMLOG_SMART_POWERSHIFT_CPU = 38,
+        PMLOG_SMART_POWERSHIFT_DGPU = 39,
+        PMLOG_BUS_SPEED = 40,
+        PMLOG_BUS_LANES = 41,
+	PMLOG_MAX_SENSORS_REAL
+} ADLSensorType;
+
+/// Defines the maximum string length
+#define ADL_MAX_CHAR                                    4096
+/// Defines the maximum string length
+#define ADL_MAX_PATH                                    256
+/// Defines the maximum number of supported adapters
+#define ADL_MAX_ADAPTERS                               250
+/// Defines the maxumum number of supported displays
+#define ADL_MAX_DISPLAYS                                150
+/// Defines the maxumum string length for device name
+#define ADL_MAX_DEVICENAME                                32
+/// Defines for all adapters
+#define ADL_ADAPTER_INDEX_ALL                            -1
+
+/// \defgroup define_adl_results Result Codes
+/// This group of definitions are the various results returned by all ADL functions \n
+/// @{
+/// All OK, but need to wait
+#define ADL_OK_WAIT                4
+/// All OK, but need restart
+#define ADL_OK_RESTART                3
+/// All OK but need mode change
+#define ADL_OK_MODE_CHANGE            2
+/// All OK, but with warning
+#define ADL_OK_WARNING                1
 /// ADL function completed successfully
 #define ADL_OK                    0
 /// Generic Error. Most likely one or more of the Escape calls to the driver failed!
 #define ADL_ERR                    -1
-
+/// ADL not initialized
+#define ADL_ERR_NOT_INIT            -2
+/// One of the parameter passed is invalid
+#define ADL_ERR_INVALID_PARAM            -3
+/// One of the parameter size is invalid
+#define ADL_ERR_INVALID_PARAM_SIZE        -4
+/// Invalid ADL index passed
+#define ADL_ERR_INVALID_ADL_IDX            -5
+/// Invalid controller index passed
+#define ADL_ERR_INVALID_CONTROLLER_IDX        -6
+/// Invalid display index passed
+#define ADL_ERR_INVALID_DIPLAY_IDX        -7
 /// Function  not supported by the driver
 #define ADL_ERR_NOT_SUPPORTED            -8
-
-/// Defines the maximum string length
-#define ADL_MAX_PATH                                    256
+/// Null Pointer error
+#define ADL_ERR_NULL_POINTER            -9
+/// Call can't be made due to disabled adapter
+#define ADL_ERR_DISABLED_ADAPTER        -10
+/// Invalid Callback
+#define ADL_ERR_INVALID_CALLBACK            -11
+/// Display Resource conflict
+#define ADL_ERR_RESOURCE_CONFLICT                -12
+//Failed to update some of the values. Can be returned by set request that include multiple values if not all values were successfully committed.
+#define ADL_ERR_SET_INCOMPLETE                 -20
+/// There's no Linux XDisplay in Linux Console environment
+#define ADL_ERR_NO_XDISPLAY                    -21
 
 //values for ADLFanSpeedValue.iSpeedType
 #define ADL_DL_FANCTRL_SPEED_TYPE_PERCENT    1
@@ -36,9 +134,6 @@
 
 //values for ADLFanSpeedValue.iFlags
 #define ADL_DL_FANCTRL_FLAG_USER_DEFINED_SPEED   1
-
-//Define Performance Metrics Log max sensors number
-#define ADL_PMLOG_MAX_SENSORS  256
 
 /**
  * Declarations from adl_structures.h
@@ -90,6 +185,7 @@ typedef struct AdapterInfo
     char strPNPString[ADL_MAX_PATH];
 /// It is generated from EnumDisplayDevices.
     int iOSDisplayIndex;
+
 #endif /* (_WIN32) || (_WIN64) */
 
 #if defined (LINUX)
@@ -182,90 +278,6 @@ typedef struct ADLFanSpeedValue
 } ADLFanSpeedValue;
 
 /////////////////////////////////////////////////////////////////////////////////////////////
-///\brief Structure containing information about the display device.
-///
-/// This structure is used to store display device information
-/// such as display index, type, name, connection status, mapped adapter and controller indexes,
-/// whether or not multiple VPUs are supported, local display connections or not (through Lasso), etc.
-/// This information can be returned to the user. Alternatively, it can be used to access various driver calls to set
-/// or fetch various display device related settings upon the user's request.
-/// \nosubgrouping
-////////////////////////////////////////////////////////////////////////////////////////////
-typedef struct ADLDisplayID
-{
-/// The logical display index belonging to this adapter.
-    int iDisplayLogicalIndex;
-
-///\brief The physical display index.
-/// For example, display index 2 from adapter 2 can be used by current adapter 1.\n
-/// So current adapter may enumerate this adapter as logical display 7 but the physical display
-/// index is still 2.
-    int iDisplayPhysicalIndex;
-
-/// The persistent logical adapter index for the display.
-    int iDisplayLogicalAdapterIndex;
-
-///\brief The persistent physical adapter index for the display.
-/// It can be the current adapter or a non-local adapter. \n
-/// If this adapter index is different than the current adapter,
-/// the Display Non Local flag is set inside DisplayInfoValue.
-    int iDisplayPhysicalAdapterIndex;
-} ADLDisplayID, *LPADLDisplayID;
-
-/////////////////////////////////////////////////////////////////////////////////////////////
-///\brief Structure containing information about the display device.
-///
-/// This structure is used to store various information about the display device.  This
-/// information can be returned to the user, or used to access various driver calls to set
-/// or fetch various display-device-related settings upon the user's request
-/// \nosubgrouping
-////////////////////////////////////////////////////////////////////////////////////////////
-typedef struct ADLDisplayInfo
-{
-/// The DisplayID structure
-    ADLDisplayID displayID;
-
-///\deprecated The controller index to which the display is mapped.\n Will not be used in the future\n
-    int  iDisplayControllerIndex;
-
-/// The display's EDID name.
-    char strDisplayName[ADL_MAX_PATH];
-
-/// The display's manufacturer name.
-    char strDisplayManufacturerName[ADL_MAX_PATH];
-
-/// The Display type. For example: CRT, TV, CV, DFP.
-    int  iDisplayType;
-
-/// The display output type. For example: HDMI, SVIDEO, COMPONMNET VIDEO.
-    int  iDisplayOutputType;
-
-/// The connector type for the device.
-    int  iDisplayConnector;
-
-///\brief The bit mask identifies the number of bits ADLDisplayInfo is currently using. \n
-/// It will be the sum all the bit definitions in ADL_DISPLAY_DISPLAYINFO_xxx.
-    int  iDisplayInfoMask;
-
-/// The bit mask identifies the display status. \ref define_displayinfomask
-    int  iDisplayInfoValue;
-} ADLDisplayInfo, *LPADLDisplayInfo;
-
-/////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief Structure containing information about the BIOS.
-///
-/// This structure is used to store various information about the Chipset.  This
-/// information can be returned to the user.
-/// \nosubgrouping
-////////////////////////////////////////////////////////////////////////////////////////////
-typedef struct ADLBiosInfo
-{
-    char strPartNumber[ADL_MAX_PATH];    ///< Part number.
-    char strVersion[ADL_MAX_PATH];        ///< Version number.
-    char strDate[ADL_MAX_PATH];        ///< BIOS date in yyyy/mm/dd hh:mm format.
-} ADLBiosInfo, *LPADLBiosInfo;
-
-/////////////////////////////////////////////////////////////////////////////////////////////
 ///\brief Structure containing information about current power management related activity.
 ///
 /// This structure is used to store information about current power management related activity.
@@ -346,7 +358,7 @@ typedef struct ADLODParameters
 /// This structure is used to store information about Overdrive 6 fan speed information
 /// \nosubgrouping
 ////////////////////////////////////////////////////////////////////////////////////////////
-typedef struct _ADLOD6FanSpeedInfo
+typedef struct ADLOD6FanSpeedInfo
 {
     /// Contains a bitmap of the valid fan speed type flags.  Possible values: \ref ADL_OD6_FANSPEED_TYPE_PERCENT, \ref ADL_OD6_FANSPEED_TYPE_RPM, \ref ADL_OD6_FANSPEED_USER_DEFINED
     int     iSpeedType;
@@ -368,7 +380,7 @@ typedef struct _ADLOD6FanSpeedInfo
 /// This structure is used to store information about Overdrive 6 fan speed value
 /// \nosubgrouping
 ////////////////////////////////////////////////////////////////////////////////////////////
-typedef struct _ADLOD6FanSpeedValue
+typedef struct ADLOD6FanSpeedValue
 {
     /// Indicates the units of the fan speed.  Possible values: \ref ADL_OD6_FANSPEED_TYPE_PERCENT, \ref ADL_OD6_FANSPEED_TYPE_RPM
     int     iSpeedType;
@@ -388,7 +400,7 @@ typedef struct _ADLOD6FanSpeedValue
 /// This structure is used to store information about current Overdrive 6 performance status.
 /// \nosubgrouping
 ////////////////////////////////////////////////////////////////////////////////////////////
-typedef struct _ADLOD6CurrentStatus
+typedef struct ADLOD6CurrentStatus
 {
     /// Current engine clock in 10 KHz.
     int     iEngineClock;
@@ -419,7 +431,7 @@ typedef struct _ADLOD6CurrentStatus
 /// This structure is used to store information about Overdrive 6 clock range
 /// \nosubgrouping
 ////////////////////////////////////////////////////////////////////////////////////////////
-typedef struct _ADLOD6ParameterRange
+typedef struct ADLOD6ParameterRange
 {
     /// The starting value of the clock range
     int     iMin;
@@ -436,7 +448,7 @@ typedef struct _ADLOD6ParameterRange
 /// This structure is used to store information about Overdrive 6 capabilities
 /// \nosubgrouping
 ////////////////////////////////////////////////////////////////////////////////////////////
-typedef struct _ADLOD6Capabilities
+typedef struct ADLOD6Capabilities
 {
     /// Contains a bitmap of the OD6 capability flags.  Possible values: \ref ADL_OD6_CAPABILITY_SCLK_CUSTOMIZATION,
     /// \ref ADL_OD6_CAPABILITY_MCLK_CUSTOMIZATION, \ref ADL_OD6_CAPABILITY_GPU_ACTIVITY_MONITOR
@@ -487,7 +499,7 @@ typedef struct ADLODPerformanceLevel
 /// This structure is used to store information about Overdrive 6 clock values.
 /// \nosubgrouping
 ////////////////////////////////////////////////////////////////////////////////////////////
-typedef struct _ADLOD6PerformanceLevel
+typedef struct ADLOD6PerformanceLevel
 {
     /// Engine (core) clock.
     int iEngineClock;
@@ -504,7 +516,7 @@ typedef struct _ADLOD6PerformanceLevel
 /// are contained in the aLevels array.
 /// \nosubgrouping
 ////////////////////////////////////////////////////////////////////////////////////////////
-typedef struct _ADLOD6StateInfo
+typedef struct ADLOD6StateInfo
 {
     /// Number of levels.  OD6 uses clock ranges instead of discrete performance levels.
     /// iNumberOfPerformanceLevels is always 2.  The 1st level indicates the minimum clocks
@@ -544,62 +556,17 @@ typedef struct ADLODPerformanceLevels
 /// This structure is used to store information about Performance Metrics data output
 /// \nosubgrouping
 ////////////////////////////////////////////////////////////////////////////////////////////
-typedef struct _ADLSingleSensorData
+typedef struct ADLSingleSensorData
 {
     int supported;
     int  value;
 } ADLSingleSensorData;
 
-typedef struct _ADLPMLogDataOutput
+typedef struct ADLPMLogDataOutput
 {
     int size;
     ADLSingleSensorData sensors[ADL_PMLOG_MAX_SENSORS];
 }ADLPMLogDataOutput;
-
-typedef enum _ADLSensorType
-{
-	SENSOR_MAXTYPES = 0,
-	PMLOG_CLK_GFXCLK = 1,
-	PMLOG_CLK_MEMCLK = 2,
-	PMLOG_CLK_SOCCLK = 3,
-	PMLOG_CLK_UVDCLK1 = 4,
-	PMLOG_CLK_UVDCLK2 = 5,
-	PMLOG_CLK_VCECLK = 6,
-	PMLOG_CLK_VCNCLK = 7,
-	PMLOG_TEMPERATURE_EDGE = 8,
-	PMLOG_TEMPERATURE_MEM = 9,
-	PMLOG_TEMPERATURE_VRVDDC = 10,
-	PMLOG_TEMPERATURE_VRMVDD = 11,
-	PMLOG_TEMPERATURE_LIQUID = 12,
-	PMLOG_TEMPERATURE_PLX = 13,
-	PMLOG_FAN_RPM = 14,
-	PMLOG_FAN_PERCENTAGE = 15,
-	PMLOG_SOC_VOLTAGE = 16,
-	PMLOG_SOC_POWER = 17,
-	PMLOG_SOC_CURRENT = 18,
-	PMLOG_INFO_ACTIVITY_GFX = 19,
-	PMLOG_INFO_ACTIVITY_MEM = 20,
-	PMLOG_GFX_VOLTAGE = 21,
-	PMLOG_MEM_VOLTAGE = 22,
-	PMLOG_ASIC_POWER = 23,
-	PMLOG_TEMPERATURE_VRSOC = 24,
-	PMLOG_TEMPERATURE_VRMVDD0 = 25,
-	PMLOG_TEMPERATURE_VRMVDD1 = 26,
-	PMLOG_TEMPERATURE_HOTSPOT = 27,
-        PMLOG_TEMPERATURE_GFX = 28,
-        PMLOG_TEMPERATURE_SOC = 29,
-        PMLOG_GFX_POWER = 30,
-        PMLOG_GFX_CURRENT = 31,
-        PMLOG_TEMPERATURE_CPU = 32,
-        PMLOG_CPU_POWER = 33,
-        PMLOG_CLK_CPUCLK = 34,
-        PMLOG_THROTTLER_STATUS = 35,
-        PMLOG_CLK_VCN1CLK1 = 36,
-        PMLOG_CLK_VCN1CLK2 = 37,
-        PMLOG_SMART_POWERSHIFT_CPU = 38,
-        PMLOG_SMART_POWERSHIFT_DGPU = 39,
-	PMLOG_MAX_SENSORS_REAL
-} ADLSensorType;
 
 /// \brief Handle to ADL client context.
 ///
@@ -628,7 +595,6 @@ typedef int HM_ADAPTER_ADL;
 typedef int (ADL_API_CALL *ADL_ADAPTER_ACTIVE_GET ) ( int, int* );
 typedef int (ADL_API_CALL *ADL_ADAPTER_ADAPTERINFO_GET ) ( LPAdapterInfo, int );
 typedef int (ADL_API_CALL *ADL_ADAPTER_NUMBEROFADAPTERS_GET ) ( int* );
-typedef int (ADL_API_CALL *ADL_DISPLAY_DISPLAYINFO_GET ) ( int, int *, ADLDisplayInfo **, int );
 typedef int (ADL_API_CALL *ADL_MAIN_CONTROL_CREATE )(ADL_MAIN_MALLOC_CALLBACK, int );
 typedef int (ADL_API_CALL *ADL_MAIN_CONTROL_DESTROY )();
 typedef int (ADL_API_CALL *ADL_OVERDRIVE5_CURRENTACTIVITY_GET ) (int iAdapterIndex, ADLPMActivity *lpActivity);
@@ -654,7 +620,6 @@ typedef struct hm_adl_lib
   ADL_ADAPTER_ACTIVE_GET ADL_Adapter_Active_Get;
   ADL_ADAPTER_ADAPTERINFO_GET ADL_Adapter_AdapterInfo_Get;
   ADL_ADAPTER_NUMBEROFADAPTERS_GET ADL_Adapter_NumberOfAdapters_Get;
-  ADL_DISPLAY_DISPLAYINFO_GET ADL_Display_DisplayInfo_Get;
   ADL_MAIN_CONTROL_CREATE ADL_Main_Control_Create;
   ADL_MAIN_CONTROL_DESTROY ADL_Main_Control_Destroy;
   ADL_OVERDRIVE5_CURRENTACTIVITY_GET ADL_Overdrive5_CurrentActivity_Get;

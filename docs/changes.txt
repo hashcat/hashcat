@@ -20,6 +20,7 @@
 ##
 
 - AMD GPUs: Add inline assembly code for md5crypt/sha256crypt, PDF 1.7, 7-Zip, RAR3, Samsung Android and Windows Phone 8+
+- AMD GPUs: On Apple OpenCL platform, we ask for the preferred kernel thread size rather than hard-coding 32
 - Blake Kernels: Optimize BLAKE2B_ROUND() 64 bit rotates giving a 5% performance increase
 - Blowfish Kernels: Backport optimizations reducing bank conflicts from bcrypt to Password Safe v2 and Open Document Format (ODF) 1.1
 - Brain Session: Adds hashconfig specific opti_type and opts_type parameters to hashcat session computation to cover features like -O and -M
@@ -31,8 +32,11 @@
 ## Technical
 ##
 
-- ADL: Updated support for AMD Display Library to 14.0, updated datatypes and added support for OverDrive 7 and 8 based GPUs
+- ADL: Updated support for AMD Display Library to 15.0, updated datatypes and added support for OverDrive 7 and 8 based GPUs
+- AMD Driver: Updated requirement for AMD Linux driver to ROCm 4.4 or later because of new HIP Interface
+- AMD Driver: Updated requirement for AMD Windows driver to Adrenalin 21.2.1 or later because of new ADL library
 - Commandline: Throw an error if separator character given by the user with -p option is not exactly 1 byte
+- ECC secp256k1: Removed the inline assembly code for AMD GPUs because the latest JIT compilers optimize it with the same efficiency
 - HIP Kernels: Got rid of hip/hip_runtime.h dependancy to enable more easy integration of the HIP backend on Windows
 - Kernel Cache: Add kernel threads into hash computation which is later used in the kernel cache filename
 - SCRYPT Kernels: Add more optimized values for some new NV/AMD GPUs
