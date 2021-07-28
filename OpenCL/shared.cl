@@ -106,6 +106,33 @@ KERNEL_FQ void gpu_decompress (GLOBAL_AS pw_idx_t *pws_idx, GLOBAL_AS u32 *pws_c
   pws_buf[gid] = pw;
 }
 
+KERNEL_FQ void gpu_memset (GLOBAL_AS uint4 *buf, const u32 value, const u64 gid_max)
+{
+  const u64 gid = get_global_id (0);
+
+  if (gid >= gid_max) return;
+
+  uint4 r;
+
+  #if   defined IS_NATIVE
+  r = value;
+  #elif defined IS_OPENCL
+  r = (uint4) (value);
+  #elif defined IS_CUDA
+  r.x = value;
+  r.y = value;
+  r.z = value;
+  r.w = value;
+  #elif defined IS_HIP
+  r.x = value;
+  r.y = value;
+  r.z = value;
+  r.w = value;
+  #endif
+
+  buf[gid] = r;
+}
+
 KERNEL_FQ void gpu_bzero(GLOBAL_AS uint4* buf, const u64 gid_max)
 {
   const u64 gid = get_global_id(0);
