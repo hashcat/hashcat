@@ -14882,14 +14882,34 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     u32 kernel_accel_min = device_param->kernel_accel_min;
     u32 kernel_accel_max = device_param->kernel_accel_max;
 
-    /**
-     * We need a kernel accel limiter otherwise we will allocate too much memory (Example 4* GTX1080):
-     * 4 (gpus) * 260 (sizeof pw_t) * 3 (pws, pws_comp, pw_pre) * 20 (MCU) * 1024 (threads) * 1024 (accel) = 65,431,142,400 bytes RAM!!
-     */
+    // We need to deal with the situation that the total video RAM > total host RAM.
+    // Especially in multi-GPU setups that is very likely.
+    // The buffers which actually take a lot of memory (except for SCRYPT) are the ones for the password candidates.
+    // They are stored in an aligned order for better performance, but this increases the memory pressure.
+    // The best way to keep these buffers to a reasonable size is by controlling the kernel_accel parameter.
+    //
+    // In theory this check could be disabled if we check if total video RAM < total host RAM,
+    // but at this point of initialization phase we don't have this information available.
 
-    const int max_gb = (hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE) ? 1024 : 64;
+    // We need to hard-code some value, let's assume that (in 2021) the host has at least 8GB ram per active GPU
 
-    const u32 accel_limit = CEILDIV ((max_gb * 1024), kernel_threads); // this should result in less than 4GB per GPU, but allow higher accel in case user reduces the threads manually using -T
+    const u64 SIZE_8GB = 8UL * 1024 * 1024 * 1024;
+
+    u64 accel_limit = SIZE_8GB;
+
+    // this is device_processors * kernel_threads
+
+    accel_limit /= device_param->hardware_power;
+
+    // single password candidate size
+
+    accel_limit /= sizeof (pw_t);
+
+    // pws[], pws_comp[] and pw_pre[] are some large blocks with password candidates
+
+    accel_limit /= 3;
+
+    // I think vector size is not required because vector_size is dividing the pws_cnt in run_kernel()
 
     kernel_accel_max = MIN (kernel_accel_max, accel_limit);
 
@@ -14915,12 +14935,6 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     u64 size_brain_link_in  = 4;
     u64 size_brain_link_out = 4;
     #endif
-
-    // instead of a thread limit we can also use a memory limit.
-    // this value should represent a reasonable amount of memory a host system has per GPU.
-    // note we're allocating 3 blocks of that size.
-
-    const u64 PWS_SPACE = 1024ULL * 1024ULL * 1024ULL;
 
     while (kernel_accel_max >= kernel_accel_min)
     {
@@ -14970,8 +14984,6 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       // if not, decrease amplifier and try again
 
       int memory_limit_hit = 0;
-
-      if (size_pws > PWS_SPACE) memory_limit_hit = 1;
 
       // sometimes device_available_mem and device_maxmem_alloc reported back from the opencl runtime are a bit inaccurate.
       // let's add some extra space just to be sure.
