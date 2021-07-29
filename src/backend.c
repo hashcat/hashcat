@@ -4499,9 +4499,9 @@ int gidd_to_pw_t (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, c
   const u32 cnt = pw_idx.cnt;
   const u32 len = pw_idx.len;
 
-  if (device_param->is_cuda == true)
+  if (cnt > 0)
   {
-    if (cnt > 0)
+    if (device_param->is_cuda == true)
     {
       if (hc_cuCtxPushCurrent (hashcat_ctx, device_param->cuda_context) == -1) return -1;
 
@@ -4511,11 +4511,8 @@ int gidd_to_pw_t (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, c
 
       if (hc_cuCtxPopCurrent (hashcat_ctx, &device_param->cuda_context) == -1) return -1;
     }
-  }
 
-  if (device_param->is_hip == true)
-  {
-    if (cnt > 0)
+    if (device_param->is_hip == true)
     {
       if (hc_hipCtxPushCurrent (hashcat_ctx, device_param->hip_context) == -1) return -1;
 
@@ -4525,11 +4522,8 @@ int gidd_to_pw_t (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, c
 
       if (hc_hipCtxPopCurrent (hashcat_ctx, &device_param->hip_context) == -1) return -1;
     }
-  }
 
-  if (device_param->is_opencl == true)
-  {
-    if (cnt > 0)
+    if (device_param->is_opencl == true)
     {
       /* blocking */
       if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_comp_buf, CL_TRUE, off * sizeof (u32), cnt * sizeof (u32), pw->i, 0, NULL, NULL) == -1) return -1;
