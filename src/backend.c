@@ -5752,8 +5752,6 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
     if (hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, opencl_kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, &opencl_event) == -1) return -1;
 
-    if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
-
     // spin damper section
 
     const u32 iterationm = iteration % EXPECTED_ITERATIONS;
@@ -5763,6 +5761,8 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
       cl_int opencl_event_status;
 
       size_t param_value_size_ret;
+
+      if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
 
       if (hc_clGetEventInfo (hashcat_ctx, opencl_event, CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof (opencl_event_status), &opencl_event_status, &param_value_size_ret) == -1) return -1;
 
@@ -5800,11 +5800,18 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
         spin_total += device_param->spin_damp;
 
-        if (spin_total > 1) break;
+        if (spin_total > 1)
+        {
+          if (hc_clWaitForEvents (hashcat_ctx, 1, &opencl_event) == -1) return -1;
+
+          break;
+        }
       }
     }
-
-    if (hc_clWaitForEvents (hashcat_ctx, 1, &opencl_event) == -1) return -1;
+    else
+    {
+      if (hc_clWaitForEvents (hashcat_ctx, 1, &opencl_event) == -1) return -1;
+    }
 
     cl_ulong time_start;
     cl_ulong time_end;
