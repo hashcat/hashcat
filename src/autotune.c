@@ -60,21 +60,6 @@ static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
     run_kernel (hashcat_ctx, device_param, KERN_RUN_2, 0, kernel_power_try, true, 0);
   }
 
-  if (device_param->is_cuda == true)
-  {
-    if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
-  }
-
-  if (device_param->is_hip == true)
-  {
-    if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
-  }
-
-  if (device_param->is_opencl == true)
-  {
-    if (hc_clFinish (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
-  }
-
   device_param->spin_damp = spin_damp_sav;
 
   const double exec_msec_prev = get_avg_exec_time (device_param, 1);
