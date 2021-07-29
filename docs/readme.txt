@@ -10,8 +10,8 @@
 hashcat v6.2.3
 ==============
 
-AMD GPUs on Linux require "RadeonOpenCompute (ROCm)" Software Platform (3.1 or later)
-AMD GPUs on Windows require "AMD Radeon Adrenalin 2020 Edition" (20.2.2 or later)
+AMD GPUs on Linux require "AMD ROCm" (4.4 or later)
+AMD GPUs on Windows require "AMD Radeon Adrenalin 2020 Edition" (21.2.1 or later)
 Intel CPUs require "OpenCL Runtime for Intel Core and Intel Xeon Processors" (16.1.1 or later)
 NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or later)
 

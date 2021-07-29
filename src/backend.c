@@ -980,11 +980,11 @@ int hiprtc_init (hashcat_ctx_t *hashcat_ctx)
   memset (hiprtc, 0, sizeof (HIPRTC_PTR));
 
   #if   defined (_WIN)
-  hiprtc->lib = hc_dlopen ("fixme.dll");
+  hiprtc->lib = hc_dlopen ("amdhip64.dll");
   #elif defined (__APPLE__)
   hiprtc->lib = hc_dlopen ("fixme.dylib");
   #elif defined (__CYGWIN__)
-  hiprtc->lib = hc_dlopen ("fixme.dll");
+  hiprtc->lib = hc_dlopen ("amdhip64.dll");
   #else
   hiprtc->lib = hc_dlopen ("libamdhip64.so");
 
@@ -998,12 +998,11 @@ int hiprtc_init (hashcat_ctx_t *hashcat_ctx)
   HC_LOAD_FUNC (hiprtc, hiprtcCreateProgram,      HIPRTC_HIPRTCCREATEPROGRAM,     HIPRTC, 1);
   HC_LOAD_FUNC (hiprtc, hiprtcDestroyProgram,     HIPRTC_HIPRTCDESTROYPROGRAM,    HIPRTC, 1);
   HC_LOAD_FUNC (hiprtc, hiprtcGetLoweredName,     HIPRTC_HIPRTCGETLOWEREDNAME,    HIPRTC, 1);
-  HC_LOAD_FUNC (hiprtc, hiprtcGetCode,            HIPRTC_HIPRTCGETPTX,            HIPRTC, 1);
-  HC_LOAD_FUNC (hiprtc, hiprtcGetCodeSize,        HIPRTC_HIPRTCGETPTXSIZE,        HIPRTC, 1);
+  HC_LOAD_FUNC (hiprtc, hiprtcGetCode,            HIPRTC_HIPRTCGETCODE,           HIPRTC, 1);
+  HC_LOAD_FUNC (hiprtc, hiprtcGetCodeSize,        HIPRTC_HIPRTCGETCODESIZE,       HIPRTC, 1);
   HC_LOAD_FUNC (hiprtc, hiprtcGetProgramLog,      HIPRTC_HIPRTCGETPROGRAMLOG,     HIPRTC, 1);
   HC_LOAD_FUNC (hiprtc, hiprtcGetProgramLogSize,  HIPRTC_HIPRTCGETPROGRAMLOGSIZE, HIPRTC, 1);
   HC_LOAD_FUNC (hiprtc, hiprtcGetErrorString,     HIPRTC_HIPRTCGETERRORSTRING,    HIPRTC, 1);
-  HC_LOAD_FUNC (hiprtc, hiprtcVersion,            HIPRTC_HIPRTCVERSION,           HIPRTC, 1);
 
   return 0;
 }
@@ -1069,11 +1068,6 @@ int hc_hiprtcCompileProgram (hashcat_ctx_t *hashcat_ctx, hiprtcProgram prog, int
 
   HIPRTC_PTR *hiprtc = (HIPRTC_PTR *) backend_ctx->hiprtc;
 
-  #if 0
-  for(int i =0; i< numOptions; i++)
-    printf("Option_%d = %s\n", i, options[i]);
-  #endif
-
   const hiprtcResult HIPRTC_err = hiprtc->hiprtcCompileProgram (prog, numOptions, options);
 
   if (HIPRTC_err != HIPRTC_SUCCESS)
@@ -1122,13 +1116,13 @@ int hc_hiprtcGetProgramLog (hashcat_ctx_t *hashcat_ctx, hiprtcProgram prog, char
   return 0;
 }
 
-int hc_hiprtcGetCodeSize (hashcat_ctx_t *hashcat_ctx, hiprtcProgram prog, size_t *ptxSizeRet)
+int hc_hiprtcGetCodeSize (hashcat_ctx_t *hashcat_ctx, hiprtcProgram prog, size_t *codeSizeRet)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   HIPRTC_PTR *hiprtc = (HIPRTC_PTR *) backend_ctx->hiprtc;
 
-  const hiprtcResult HIPRTC_err = hiprtc->hiprtcGetCodeSize (prog, ptxSizeRet);
+  const hiprtcResult HIPRTC_err = hiprtc->hiprtcGetCodeSize (prog, codeSizeRet);
 
   if (HIPRTC_err != HIPRTC_SUCCESS)
   {
@@ -1140,35 +1134,17 @@ int hc_hiprtcGetCodeSize (hashcat_ctx_t *hashcat_ctx, hiprtcProgram prog, size_t
   return 0;
 }
 
-int hc_hiprtcGetCode (hashcat_ctx_t *hashcat_ctx, hiprtcProgram prog, char *ptx)
+int hc_hiprtcGetCode (hashcat_ctx_t *hashcat_ctx, hiprtcProgram prog, char *code)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   HIPRTC_PTR *hiprtc = (HIPRTC_PTR *) backend_ctx->hiprtc;
 
-  const hiprtcResult HIPRTC_err = hiprtc->hiprtcGetCode (prog, ptx);
+  const hiprtcResult HIPRTC_err = hiprtc->hiprtcGetCode (prog, code);
 
   if (HIPRTC_err != HIPRTC_SUCCESS)
   {
     event_log_error (hashcat_ctx, "hiprtcGetCode(): %s", hiprtc->hiprtcGetErrorString (HIPRTC_err));
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_hiprtcVersion (hashcat_ctx_t *hashcat_ctx, int *major, int *minor)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  HIPRTC_PTR *hiprtc = (HIPRTC_PTR *) backend_ctx->hiprtc;
-
-  const hiprtcResult HIPRTC_err = hiprtc->hiprtcVersion (major, minor);
-
-  if (HIPRTC_err != HIPRTC_SUCCESS)
-  {
-    event_log_error (hashcat_ctx, "hiprtcVersion(): %s", hiprtc->hiprtcGetErrorString (HIPRTC_err));
 
     return -1;
   }
@@ -2478,11 +2454,11 @@ int hip_init (hashcat_ctx_t *hashcat_ctx)
   memset (hip, 0, sizeof (HIP_PTR));
 
   #if   defined (_WIN)
-  hip->lib = hc_dlopen ("fixme.dll");
+  hip->lib = hc_dlopen ("amdhip64.dll");
   #elif defined (__APPLE__)
   hip->lib = hc_dlopen ("fixme.dylib");
   #elif defined (__CYGWIN__)
-  hip->lib = hc_dlopen ("fixme.dll");
+  hip->lib = hc_dlopen ("amdhip64.dll");
   #else
   hip->lib = hc_dlopen ("libamdhip64.so");
 
@@ -2516,67 +2492,42 @@ int hip_init (hashcat_ctx_t *hashcat_ctx)
 
   HC_LOAD_FUNC_HIP (hip, hipCtxCreate,              hipCtxCreate,               HIP_HIPCTXCREATE,               HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipCtxDestroy,             hipCtxDestroy,              HIP_HIPCTXDESTROY,              HIP, 1);
-  //HC_LOAD_FUNC_HIP (hip, hipCtxGetCacheConfig,      hipCtxGetCacheConfig,       HIP_HIPCTXGETCACHECONFIG,       HIP, 1);
-  //HC_LOAD_FUNC_HIP (hip, hipCtxGetCurrent,          hipCtxGetCurrent,           HIP_HIPCTXGETCURRENT,           HIP, 1);
-  //HC_LOAD_FUNC_HIP (hip, hipCtxGetSharedMemConfig,  hipCtxGetSharedMemConfig,   HIP_HIPCTXGETSHAREDMEMCONFIG,   HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipCtxPopCurrent,          hipCtxPopCurrent,           HIP_HIPCTXPOPCURRENT,           HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipCtxPushCurrent,         hipCtxPushCurrent,          HIP_HIPCTXPUSHCURRENT,          HIP, 1);
-  HC_LOAD_FUNC_HIP (hip, hipCtxSetCacheConfig,      hipCtxSetCacheConfig,       HIP_HIPCTXSETCACHECONFIG,       HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipCtxSetCurrent,          hipCtxSetCurrent,           HIP_HIPCTXSETCURRENT,           HIP, 1);
-  //HC_LOAD_FUNC_HIP (hip, hipCtxSetSharedMemConfig,  hipCtxSetSharedMemConfig,   HIP_HIPCTXSETSHAREDMEMCONFIG,   HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipCtxSynchronize,         hipCtxSynchronize,          HIP_HIPCTXSYNCHRONIZE,          HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipDeviceGet,              hipDeviceGet,               HIP_HIPDEVICEGET,               HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipDeviceGetAttribute,     hipDeviceGetAttribute,      HIP_HIPDEVICEGETATTRIBUTE,      HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipDeviceGetCount,         hipGetDeviceCount,          HIP_HIPDEVICEGETCOUNT,          HIP, 1);
-  HC_LOAD_FUNC_HIP (hip, hipDeviceGet,              hipDeviceGet,               HIP_HIPDEVICEGET,               HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipDeviceGetName,          hipDeviceGetName,           HIP_HIPDEVICEGETNAME,           HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipDeviceTotalMem,         hipDeviceTotalMem,          HIP_HIPDEVICETOTALMEM,          HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipDriverGetVersion,       hipDriverGetVersion,        HIP_HIPDRIVERGETVERSION,        HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipEventCreate,            hipEventCreateWithFlags,    HIP_HIPEVENTCREATE,             HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipEventDestroy,           hipEventDestroy,            HIP_HIPEVENTDESTROY,            HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipEventElapsedTime,       hipEventElapsedTime,        HIP_HIPEVENTELAPSEDTIME,        HIP, 1);
-  HC_LOAD_FUNC_HIP (hip, hipEventQuery,             hipEventQuery,              HIP_HIPEVENTQUERY,              HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipEventRecord,            hipEventRecord,             HIP_HIPEVENTRECORD,             HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipEventSynchronize,       hipEventSynchronize,        HIP_HIPEVENTSYNCHRONIZE,        HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipFuncGetAttribute,       hipFuncGetAttribute,        HIP_HIPFUNCGETATTRIBUTE,        HIP, 1);
-  //HC_LOAD_FUNC_HIP (hip, hipFuncSetAttribute,       hipFuncSetAttribute,        HIP_HIPFUNCSETATTRIBUTE,        HIP, 1);
-  //HC_LOAD_FUNC_HIP (hip, hipFuncSetCacheConfig,     hipFuncSetCacheConfig,      HIP_HIPFUNCSETCACHECONFIG,      HIP, 1);
-  //HC_LOAD_FUNC_HIP (hip, hipFuncSetSharedMemConfig, hipFuncSetSharedMemConfig,  HIP_HIPFUNCSETSHAREDMEMCONFIG,  HIP, 1);
-  //HC_LOAD_FUNC_HIP (hip, hipGetErrorName,           hipGetErrorName,            HIP_HIPGETERRORNAME,            HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipGetErrorName,           hipGetErrorName,            HIP_HIPGETERRORNAME,            HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipGetErrorString,         hipGetErrorString,          HIP_HIPGETERRORSTRING,          HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipInit,                   hipInit,                    HIP_HIPINIT,                    HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipLaunchKernel,           hipModuleLaunchKernel,      HIP_HIPLAUNCHKERNEL,            HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipMemAlloc,               hipMalloc,                  HIP_HIPMEMALLOC,                HIP, 1);
-  HC_LOAD_FUNC_HIP (hip, hipMemAllocHost,           hipMemAllocHost,            HIP_HIPMEMALLOCHOST,            HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipMemFree,                hipFree,                    HIP_HIPMEMFREE,                 HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipMemGetInfo,             hipMemGetInfo,              HIP_HIPMEMGETINFO,              HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipMemcpyDtoD,             hipMemcpyDtoD,              HIP_HIPMEMCPYDTOD,              HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipMemcpyDtoDAsync,        hipMemcpyDtoDAsync,         HIP_HIPMEMCPYDTODASYNC,         HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipMemcpyDtoH,             hipMemcpyDtoH,              HIP_HIPMEMCPYDTOH,              HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipMemcpyDtoHAsync,        hipMemcpyDtoHAsync,         HIP_HIPMEMCPYDTOHASYNC,         HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipMemcpyHtoD,             hipMemcpyHtoD,              HIP_HIPMEMCPYHTOD,              HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipMemcpyHtoDAsync,        hipMemcpyHtoDAsync,         HIP_HIPMEMCPYHTODASYNC,         HIP, 1);
-  HC_LOAD_FUNC_HIP (hip, hipMemFree,                hipFree,                    HIP_HIPMEMFREE,                 HIP, 1);
-  HC_LOAD_FUNC_HIP (hip, hipMemFreeHost,            hipFreeHost,                HIP_HIPMEMFREEHOST,             HIP, 1);
-  HC_LOAD_FUNC_HIP (hip, hipMemGetInfo,             hipMemGetInfo,              HIP_HIPMEMGETINFO,              HIP, 1);
-  //HC_LOAD_FUNC_HIP (hip, hipMemsetD32,              hipMemsetD32,               HIP_HIPMEMSETD32,               HIP, 1);
-  //HC_LOAD_FUNC_HIP (hip, hipMemsetD8,               hipMemsetD8,                HIP_HIPMEMSETD8,                HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipModuleGetFunction,      hipModuleGetFunction,       HIP_HIPMODULEGETFUNCTION,       HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipModuleGetGlobal,        hipModuleGetGlobal,         HIP_HIPMODULEGETGLOBAL,         HIP, 1);
-  HC_LOAD_FUNC_HIP (hip, hipModuleLoad,             hipModuleLoad,              HIP_HIPMODULELOAD,              HIP, 1);
-  HC_LOAD_FUNC_HIP (hip, hipModuleLoadData,         hipModuleLoadData,          HIP_HIPMODULELOADDATA,          HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipModuleLoadDataEx,       hipModuleLoadDataEx,        HIP_HIPMODULELOADDATAEX,        HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipModuleUnload,           hipModuleUnload,            HIP_HIPMODULEUNLOAD,            HIP, 1);
-  //HC_LOAD_FUNC_HIP (hip, hipProfilerStart,          hipProfilerStart,           HIP_HIPPROFILERSTART,           HIP, 1);
-  //HC_LOAD_FUNC_HIP (hip, hipProfilerStop,           hipProfilerStop,            HIP_HIPPROFILERSTOP,            HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipStreamCreate,           hipStreamCreate,            HIP_HIPSTREAMCREATE,            HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipStreamDestroy,          hipStreamDestroy,           HIP_HIPSTREAMDESTROY,           HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipStreamSynchronize,      hipStreamSynchronize,       HIP_HIPSTREAMSYNCHRONIZE,       HIP, 1);
-  HC_LOAD_FUNC_HIP (hip, hipStreamWaitEvent,        hipStreamWaitEvent,         HIP_HIPSTREAMWAITEVENT,         HIP, 1);
-  //TODO HIP?
-  #if defined (WITH_CUBINX)
-  HC_LOAD_FUNC_HIP (hip, hipLinkCreate,             hipLinkCreate,              HIP_HIPLINKCREATE,              HIP, 1);
-  HC_LOAD_FUNC_HIP (hip, hipLinkAddData,            hipLinkAddData,             HIP_HIPLINKADDDATA,             HIP, 1);
-  HC_LOAD_FUNC_HIP (hip, hipLinkDestroy,            hipLinkDestroy,             HIP_HIPLINKDESTROY,             HIP, 1);
-  HC_LOAD_FUNC_HIP (hip, hipLinkComplete,           hipLinkComplete,            HIP_HIPLINKCOMPLETE,            HIP, 1);
-  #endif
 
   return 0;
 }
@@ -2600,25 +2551,25 @@ void hip_close (hashcat_ctx_t *hashcat_ctx)
   }
 }
 
-int hc_hipInit (hashcat_ctx_t *hashcat_ctx, unsigned int Flags)
+int hc_hipCtxCreate (hashcat_ctx_t *hashcat_ctx, hipCtx_t *pctx, unsigned int flags, hipDevice_t dev)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
 
-  const HIPresult HIP_err = hip->hipInit (Flags);
+  const hipError_t HIP_err = hip->hipCtxCreate (pctx, flags, dev);
 
-  if (HIP_err != HIP_SUCCESS)
+  if (HIP_err != hipSuccess)
   {
     const char *pStr = NULL;
 
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
     {
-      event_log_error (hashcat_ctx, "hipInit(): %s", pStr);
+      event_log_error (hashcat_ctx, "hipCtxCreate(): %s", pStr);
     }
     else
     {
-      event_log_error (hashcat_ctx, "hipInit(): %d", HIP_err);
+      event_log_error (hashcat_ctx, "hipCtxCreate(): %d", HIP_err);
     }
 
     return -1;
@@ -2627,19 +2578,181 @@ int hc_hipInit (hashcat_ctx_t *hashcat_ctx, unsigned int Flags)
   return 0;
 }
 
-int hc_hipDeviceGetAttribute (hashcat_ctx_t *hashcat_ctx, int *pi, HIPdevice_attribute attrib, HIPdevice dev)
+int hc_hipCtxDestroy (hashcat_ctx_t *hashcat_ctx, hipCtx_t ctx)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
 
-  const HIPresult HIP_err = hip->hipDeviceGetAttribute (pi, attrib, dev);
+  const hipError_t HIP_err = hip->hipCtxDestroy (ctx);
 
-  if (HIP_err != HIP_SUCCESS)
+  if (HIP_err != hipSuccess)
   {
     const char *pStr = NULL;
 
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
+    {
+      event_log_error (hashcat_ctx, "hipCtxDestroy(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipCtxDestroy(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipCtxPopCurrent (hashcat_ctx_t *hashcat_ctx, hipCtx_t *pctx)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const hipError_t HIP_err = hip->hipCtxPopCurrent (pctx);
+
+  if (HIP_err != hipSuccess)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
+    {
+      event_log_error (hashcat_ctx, "hipCtxPopCurrent(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipCtxPopCurrent(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipCtxPushCurrent (hashcat_ctx_t *hashcat_ctx, hipCtx_t ctx)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const hipError_t HIP_err = hip->hipCtxPushCurrent (ctx);
+
+  if (HIP_err != hipSuccess)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
+    {
+      event_log_error (hashcat_ctx, "hipCtxPushCurrent(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipCtxPushCurrent(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipCtxSetCurrent (hashcat_ctx_t *hashcat_ctx, hipCtx_t ctx)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const hipError_t HIP_err = hip->hipCtxSetCurrent (ctx);
+
+  if (HIP_err != hipSuccess)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
+    {
+      event_log_error (hashcat_ctx, "hipCtxSetCurrent(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipCtxSetCurrent(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipCtxSynchronize (hashcat_ctx_t *hashcat_ctx)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const hipError_t HIP_err = hip->hipCtxSynchronize ();
+
+  if (HIP_err != hipSuccess)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
+    {
+      event_log_error (hashcat_ctx, "hipCtxSynchronize(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipCtxSynchronize(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipDeviceGet (hashcat_ctx_t *hashcat_ctx, hipDevice_t* device, int ordinal)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const hipError_t HIP_err = hip->hipDeviceGet (device, ordinal);
+
+  if (HIP_err != hipSuccess)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
+    {
+      event_log_error (hashcat_ctx, "hipDeviceGet(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipDeviceGet(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipDeviceGetAttribute (hashcat_ctx_t *hashcat_ctx, int *pi, hipDeviceAttribute_t attrib, hipDevice_t dev)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const hipError_t HIP_err = hip->hipDeviceGetAttribute (pi, attrib, dev);
+
+  if (HIP_err != hipSuccess)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
     {
       event_log_error (hashcat_ctx, "hipDeviceGetAttribute(): %s", pStr);
     }
@@ -2660,13 +2773,13 @@ int hc_hipDeviceGetCount (hashcat_ctx_t *hashcat_ctx, int *count)
 
   HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
 
-  const HIPresult HIP_err = hip->hipDeviceGetCount (count);
+  const hipError_t HIP_err = hip->hipDeviceGetCount (count);
 
-  if (HIP_err != HIP_SUCCESS)
+  if (HIP_err != hipSuccess)
   {
     const char *pStr = NULL;
 
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
     {
       event_log_error (hashcat_ctx, "hipDeviceGetCount(): %s", pStr);
     }
@@ -2681,46 +2794,19 @@ int hc_hipDeviceGetCount (hashcat_ctx_t *hashcat_ctx, int *count)
   return 0;
 }
 
-int hc_hipDeviceGet (hashcat_ctx_t *hashcat_ctx, HIPdevice* device, int ordinal)
+int hc_hipDeviceGetName (hashcat_ctx_t *hashcat_ctx, char *name, int len, hipDevice_t dev)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
 
-  const HIPresult HIP_err = hip->hipDeviceGet (device, ordinal);
+  const hipError_t HIP_err = hip->hipDeviceGetName (name, len, dev);
 
-  if (HIP_err != HIP_SUCCESS)
+  if (HIP_err != hipSuccess)
   {
     const char *pStr = NULL;
 
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "hipDeviceGet(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "hipDeviceGet(): %d", HIP_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_hipDeviceGetName (hashcat_ctx_t *hashcat_ctx, char *name, int len, HIPdevice dev)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
-
-  const HIPresult HIP_err = hip->hipDeviceGetName (name, len, dev);
-
-  if (HIP_err != HIP_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
     {
       event_log_error (hashcat_ctx, "hipDeviceGetName(): %s", pStr);
     }
@@ -2735,19 +2821,19 @@ int hc_hipDeviceGetName (hashcat_ctx_t *hashcat_ctx, char *name, int len, HIPdev
   return 0;
 }
 
-int hc_hipDeviceTotalMem (hashcat_ctx_t *hashcat_ctx, size_t *bytes, HIPdevice dev)
+int hc_hipDeviceTotalMem (hashcat_ctx_t *hashcat_ctx, size_t *bytes, hipDevice_t dev)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
 
-  const HIPresult HIP_err = hip->hipDeviceTotalMem (bytes, dev);
+  const hipError_t HIP_err = hip->hipDeviceTotalMem (bytes, dev);
 
-  if (HIP_err != HIP_SUCCESS)
+  if (HIP_err != hipSuccess)
   {
     const char *pStr = NULL;
 
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
     {
       event_log_error (hashcat_ctx, "hipDeviceTotalMem(): %s", pStr);
     }
@@ -2768,13 +2854,13 @@ int hc_hipDriverGetVersion (hashcat_ctx_t *hashcat_ctx, int *driverVersion)
 
   HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
 
-  const HIPresult HIP_err = hip->hipDriverGetVersion (driverVersion);
+  const hipError_t HIP_err = hip->hipDriverGetVersion (driverVersion);
 
-  if (HIP_err != HIP_SUCCESS)
+  if (HIP_err != hipSuccess)
   {
     const char *pStr = NULL;
 
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
     {
       event_log_error (hashcat_ctx, "hipDriverGetVersion(): %s", pStr);
     }
@@ -2789,645 +2875,19 @@ int hc_hipDriverGetVersion (hashcat_ctx_t *hashcat_ctx, int *driverVersion)
   return 0;
 }
 
-int hc_hipCtxCreate (hashcat_ctx_t *hashcat_ctx, HIPcontext *pctx, unsigned int flags, HIPdevice dev)
+int hc_hipEventCreate (hashcat_ctx_t *hashcat_ctx, hipEvent_t *phEvent, unsigned int Flags)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
 
-  const HIPresult HIP_err = hip->hipCtxCreate (pctx, flags, dev);
+  const hipError_t HIP_err = hip->hipEventCreate (phEvent, Flags);
 
-  if (HIP_err != HIP_SUCCESS)
+  if (HIP_err != hipSuccess)
   {
     const char *pStr = NULL;
 
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "hipCtxCreate(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "hipCtxCreate(): %d", HIP_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_hipCtxDestroy (hashcat_ctx_t *hashcat_ctx, HIPcontext ctx)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
-
-  const HIPresult HIP_err = hip->hipCtxDestroy (ctx);
-
-  if (HIP_err != HIP_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "hipCtxDestroy(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "hipCtxDestroy(): %d", HIP_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_hipModuleLoadDataEx (hashcat_ctx_t *hashcat_ctx, HIPmodule *module, const void *image, unsigned int numOptions, HIPjit_option *options, void **optionValues)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
-
-  const HIPresult HIP_err = hip->hipModuleLoadDataEx (module, image, numOptions, options, optionValues);
-
-  if (HIP_err != HIP_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "hipModuleLoadDataEx(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "hipModuleLoadDataEx(): %d", HIP_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_hipModuleUnload (hashcat_ctx_t *hashcat_ctx, HIPmodule hmod)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
-
-  const HIPresult HIP_err = hip->hipModuleUnload (hmod);
-
-  if (HIP_err != HIP_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "hipModuleUnload(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "hipModuleUnload(): %d", HIP_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_hipCtxSetCurrent (hashcat_ctx_t *hashcat_ctx, HIPcontext ctx)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
-
-  const HIPresult HIP_err = hip->hipCtxSetCurrent (ctx);
-
-  if (HIP_err != HIP_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "hipCtxSetCurrent(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "hipCtxSetCurrent(): %d", HIP_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_hipMemAlloc (hashcat_ctx_t *hashcat_ctx, HIPdeviceptr *dptr, size_t bytesize)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
-
-  const HIPresult HIP_err = hip->hipMemAlloc (dptr, bytesize);
-
-  if (HIP_err != HIP_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "hipMemAlloc(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "hipMemAlloc(): %d", HIP_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_hipMemFree (hashcat_ctx_t *hashcat_ctx, HIPdeviceptr dptr)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
-
-  const HIPresult HIP_err = hip->hipMemFree (dptr);
-
-  if (HIP_err != HIP_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "hipMemFree(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "hipMemFree(): %d", HIP_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_hipMemcpyDtoH (hashcat_ctx_t *hashcat_ctx, void *dstHost, HIPdeviceptr srcDevice, size_t ByteCount)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
-
-  const HIPresult HIP_err = hip->hipMemcpyDtoH (dstHost, srcDevice, ByteCount);
-
-  if (HIP_err != HIP_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "hipMemcpyDtoH(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "hipMemcpyDtoH(): %d", HIP_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_hipMemcpyDtoHAsync (hashcat_ctx_t *hashcat_ctx, void *dstHost, HIPdeviceptr srcDevice, size_t ByteCount, HIPstream hStream)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
-
-  const HIPresult HIP_err = hip->hipMemcpyDtoHAsync (dstHost, srcDevice, ByteCount, hStream);
-
-  if (HIP_err != HIP_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "hipMemcpyDtoHAsync(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "hipMemcpyDtoHAsync(): %d", HIP_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_hipMemcpyDtoD (hashcat_ctx_t *hashcat_ctx, HIPdeviceptr dstDevice, HIPdeviceptr srcDevice, size_t ByteCount)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
-
-  const HIPresult HIP_err = hip->hipMemcpyDtoD (dstDevice, srcDevice, ByteCount);
-
-  if (HIP_err != HIP_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "hipMemcpyDtoD(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "hipMemcpyDtoD(): %d", HIP_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_hipMemcpyDtoDAsync (hashcat_ctx_t *hashcat_ctx, HIPdeviceptr dstDevice, HIPdeviceptr srcDevice, size_t ByteCount, HIPstream hStream)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
-
-  const HIPresult HIP_err = hip->hipMemcpyDtoDAsync (dstDevice, srcDevice, ByteCount, hStream);
-
-  if (HIP_err != HIP_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "hipMemcpyDtoDAsync(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "hipMemcpyDtoDAsync(): %d", HIP_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_hipMemcpyHtoD (hashcat_ctx_t *hashcat_ctx, HIPdeviceptr dstDevice, const void *srcHost, size_t ByteCount)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
-
-  const HIPresult HIP_err = hip->hipMemcpyHtoD (dstDevice, srcHost, ByteCount);
-
-  if (HIP_err != HIP_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "hipMemcpyHtoD(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "hipMemcpyHtoD(): %d", HIP_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_hipMemcpyHtoDAsync (hashcat_ctx_t *hashcat_ctx, HIPdeviceptr dstDevice, const void *srcHost, size_t ByteCount, HIPstream hStream)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
-
-  const HIPresult HIP_err = hip->hipMemcpyHtoDAsync (dstDevice, srcHost, ByteCount, hStream);
-
-  if (HIP_err != HIP_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "hipMemcpyHtoDAsync(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "hipMemcpyHtoDAsync(): %d", HIP_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_hipModuleGetFunction (hashcat_ctx_t *hashcat_ctx, HIPfunction *hfunc, HIPmodule hmod, const char *name)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
-
-  const HIPresult HIP_err = hip->hipModuleGetFunction (hfunc, hmod, name);
-
-  if (HIP_err != HIP_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "hipModuleGetFunction(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "hipModuleGetFunction(): %d", HIP_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_hipModuleGetGlobal (hashcat_ctx_t *hashcat_ctx, HIPdeviceptr *dptr, size_t *bytes, HIPmodule hmod, const char *name)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
-
-  const HIPresult HIP_err = hip->hipModuleGetGlobal (dptr, bytes, hmod, name);
-
-  if (HIP_err != HIP_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "hipModuleGetGlobal(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "hipModuleGetGlobal(): %d", HIP_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_hipMemGetInfo (hashcat_ctx_t *hashcat_ctx, size_t *free, size_t *total)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
-
-  const HIPresult HIP_err = hip->hipMemGetInfo (free, total);
-
-  if (HIP_err != HIP_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "hipMemGetInfo(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "hipMemGetInfo(): %d", HIP_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_hipFuncGetAttribute (hashcat_ctx_t *hashcat_ctx, int *pi, HIPfunction_attribute attrib, HIPfunction hfunc)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
-
-  const HIPresult HIP_err = hip->hipFuncGetAttribute (pi, attrib, hfunc);
-
-  if (HIP_err != HIP_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "hipFuncGetAttribute(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "hipFuncGetAttribute(): %d", HIP_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-/*
-
-// ATTENTION, this one maps to cudaFuncSetAttribute not cuFuncSetAttribute !!!
-
-int hc_hipFuncSetAttribute (hashcat_ctx_t *hashcat_ctx, HIPfunction hfunc, HIPfunction_attribute attrib, int value)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
-
-  const HIPresult HIP_err = hip->hipFuncSetAttribute (hfunc, attrib, value);
-
-  if (HIP_err != HIP_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "hipFuncSetAttribute(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "hipFuncSetAttribute(): %d", HIP_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-*/
-
-int hc_hipStreamCreate (hashcat_ctx_t *hashcat_ctx, HIPstream *phStream, unsigned int Flags)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
-
-  const HIPresult HIP_err = hip->hipStreamCreate (phStream, Flags);
-
-  if (HIP_err != HIP_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "hipStreamCreate(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "hipStreamCreate(): %d", HIP_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_hipStreamDestroy (hashcat_ctx_t *hashcat_ctx, HIPstream hStream)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
-
-  const HIPresult HIP_err = hip->hipStreamDestroy (hStream);
-
-  if (HIP_err != HIP_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "hipStreamDestroy(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "hipStreamDestroy(): %d", HIP_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_hipStreamSynchronize (hashcat_ctx_t *hashcat_ctx, HIPstream hStream)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
-
-  const HIPresult HIP_err = hip->hipStreamSynchronize (hStream);
-
-  if (HIP_err != HIP_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "hipStreamSynchronize(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "hipStreamSynchronize(): %d", HIP_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_hipLaunchKernel (hashcat_ctx_t *hashcat_ctx, HIPfunction f, unsigned int gridDimX, unsigned int gridDimY, unsigned int gridDimZ, unsigned int blockDimX, unsigned int blockDimY, unsigned int blockDimZ, unsigned int sharedMemBytes, HIPstream hStream, void **kernelParams, void **extra)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
-
-  const HIPresult HIP_err = hip->hipLaunchKernel (f, gridDimX, gridDimY, gridDimZ, blockDimX, blockDimY, blockDimZ, sharedMemBytes, hStream, kernelParams, extra);
-
-  if (HIP_err != HIP_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "hipLaunchKernel(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "hipLaunchKernel(): %d", HIP_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_hipCtxSynchronize (hashcat_ctx_t *hashcat_ctx)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
-
-  const HIPresult HIP_err = hip->hipCtxSynchronize ();
-
-  if (HIP_err != HIP_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "hipCtxSynchronize(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "hipCtxSynchronize(): %d", HIP_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_hipEventCreate (hashcat_ctx_t *hashcat_ctx, HIPevent *phEvent, unsigned int Flags)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
-
-  const HIPresult HIP_err = hip->hipEventCreate (phEvent, Flags);
-
-  if (HIP_err != HIP_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
     {
       event_log_error (hashcat_ctx, "hipEventCreate(): %s", pStr);
     }
@@ -3442,19 +2902,19 @@ int hc_hipEventCreate (hashcat_ctx_t *hashcat_ctx, HIPevent *phEvent, unsigned i
   return 0;
 }
 
-int hc_hipEventDestroy (hashcat_ctx_t *hashcat_ctx, HIPevent hEvent)
+int hc_hipEventDestroy (hashcat_ctx_t *hashcat_ctx, hipEvent_t hEvent)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
 
-  const HIPresult HIP_err = hip->hipEventDestroy (hEvent);
+  const hipError_t HIP_err = hip->hipEventDestroy (hEvent);
 
-  if (HIP_err != HIP_SUCCESS)
+  if (HIP_err != hipSuccess)
   {
     const char *pStr = NULL;
 
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
     {
       event_log_error (hashcat_ctx, "hipEventDestroy(): %s", pStr);
     }
@@ -3469,19 +2929,19 @@ int hc_hipEventDestroy (hashcat_ctx_t *hashcat_ctx, HIPevent hEvent)
   return 0;
 }
 
-int hc_hipEventElapsedTime (hashcat_ctx_t *hashcat_ctx, float *pMilliseconds, HIPevent hStart, HIPevent hEnd)
+int hc_hipEventElapsedTime (hashcat_ctx_t *hashcat_ctx, float *pMilliseconds, hipEvent_t hStart, hipEvent_t hEnd)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
 
-  const HIPresult HIP_err = hip->hipEventElapsedTime (pMilliseconds, hStart, hEnd);
+  const hipError_t HIP_err = hip->hipEventElapsedTime (pMilliseconds, hStart, hEnd);
 
-  if (HIP_err != HIP_SUCCESS)
+  if (HIP_err != hipSuccess)
   {
     const char *pStr = NULL;
 
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
     {
       event_log_error (hashcat_ctx, "hipEventElapsedTime(): %s", pStr);
     }
@@ -3496,46 +2956,19 @@ int hc_hipEventElapsedTime (hashcat_ctx_t *hashcat_ctx, float *pMilliseconds, HI
   return 0;
 }
 
-int hc_hipEventQuery (hashcat_ctx_t *hashcat_ctx, HIPevent hEvent)
+int hc_hipEventRecord (hashcat_ctx_t *hashcat_ctx, hipEvent_t hEvent, hipStream_t hStream)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
 
-  const HIPresult HIP_err = hip->hipEventQuery (hEvent);
+  const hipError_t HIP_err = hip->hipEventRecord (hEvent, hStream);
 
-  if (HIP_err != HIP_SUCCESS)
+  if (HIP_err != hipSuccess)
   {
     const char *pStr = NULL;
 
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "hipEventQuery(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "hipEventQuery(): %d", HIP_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_hipEventRecord (hashcat_ctx_t *hashcat_ctx, HIPevent hEvent, HIPstream hStream)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
-
-  const HIPresult HIP_err = hip->hipEventRecord (hEvent, hStream);
-
-  if (HIP_err != HIP_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
     {
       event_log_error (hashcat_ctx, "hipEventRecord(): %s", pStr);
     }
@@ -3550,19 +2983,19 @@ int hc_hipEventRecord (hashcat_ctx_t *hashcat_ctx, HIPevent hEvent, HIPstream hS
   return 0;
 }
 
-int hc_hipEventSynchronize (hashcat_ctx_t *hashcat_ctx, HIPevent hEvent)
+int hc_hipEventSynchronize (hashcat_ctx_t *hashcat_ctx, hipEvent_t hEvent)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
 
-  const HIPresult HIP_err = hip->hipEventSynchronize (hEvent);
+  const hipError_t HIP_err = hip->hipEventSynchronize (hEvent);
 
-  if (HIP_err != HIP_SUCCESS)
+  if (HIP_err != hipSuccess)
   {
     const char *pStr = NULL;
 
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
     {
       event_log_error (hashcat_ctx, "hipEventSynchronize(): %s", pStr);
     }
@@ -3577,25 +3010,25 @@ int hc_hipEventSynchronize (hashcat_ctx_t *hashcat_ctx, HIPevent hEvent)
   return 0;
 }
 
-int hc_hipCtxSetCacheConfig (hashcat_ctx_t *hashcat_ctx, HIPfunc_cache config)
+int hc_hipFuncGetAttribute (hashcat_ctx_t *hashcat_ctx, int *pi, hipFunction_attribute attrib, hipFunction_t hfunc)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
 
-  const HIPresult HIP_err = hip->hipCtxSetCacheConfig (config);
+  const hipError_t HIP_err = hip->hipFuncGetAttribute (pi, attrib, hfunc);
 
-  if (HIP_err != HIP_SUCCESS)
+  if (HIP_err != hipSuccess)
   {
     const char *pStr = NULL;
 
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
     {
-      event_log_error (hashcat_ctx, "hipCtxSetCacheConfig(): %s", pStr);
+      event_log_error (hashcat_ctx, "hipFuncGetAttribute(): %s", pStr);
     }
     else
     {
-      event_log_error (hashcat_ctx, "hipCtxSetCacheConfig(): %d", HIP_err);
+      event_log_error (hashcat_ctx, "hipFuncGetAttribute(): %d", HIP_err);
     }
 
     return -1;
@@ -3604,25 +3037,25 @@ int hc_hipCtxSetCacheConfig (hashcat_ctx_t *hashcat_ctx, HIPfunc_cache config)
   return 0;
 }
 
-int hc_hipCtxPushCurrent (hashcat_ctx_t *hashcat_ctx, HIPcontext ctx)
+int hc_hipLaunchKernel (hashcat_ctx_t *hashcat_ctx, hipFunction_t f, unsigned int gridDimX, unsigned int gridDimY, unsigned int gridDimZ, unsigned int blockDimX, unsigned int blockDimY, unsigned int blockDimZ, unsigned int sharedMemBytes, hipStream_t hStream, void **kernelParams, void **extra)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
 
-  const HIPresult HIP_err = hip->hipCtxPushCurrent (ctx);
+  const hipError_t HIP_err = hip->hipLaunchKernel (f, gridDimX, gridDimY, gridDimZ, blockDimX, blockDimY, blockDimZ, sharedMemBytes, hStream, kernelParams, extra);
 
-  if (HIP_err != HIP_SUCCESS)
+  if (HIP_err != hipSuccess)
   {
     const char *pStr = NULL;
 
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
     {
-      event_log_error (hashcat_ctx, "hipCtxPushCurrent(): %s", pStr);
+      event_log_error (hashcat_ctx, "hipLaunchKernel(): %s", pStr);
     }
     else
     {
-      event_log_error (hashcat_ctx, "hipCtxPushCurrent(): %d", HIP_err);
+      event_log_error (hashcat_ctx, "hipLaunchKernel(): %d", HIP_err);
     }
 
     return -1;
@@ -3631,25 +3064,25 @@ int hc_hipCtxPushCurrent (hashcat_ctx_t *hashcat_ctx, HIPcontext ctx)
   return 0;
 }
 
-int hc_hipCtxPopCurrent (hashcat_ctx_t *hashcat_ctx, HIPcontext *pctx)
+int hc_hipInit (hashcat_ctx_t *hashcat_ctx, unsigned int Flags)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
 
-  const HIPresult HIP_err = hip->hipCtxPopCurrent (pctx);
+  const hipError_t HIP_err = hip->hipInit (Flags);
 
-  if (HIP_err != HIP_SUCCESS)
+  if (HIP_err != hipSuccess)
   {
     const char *pStr = NULL;
 
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
     {
-      event_log_error (hashcat_ctx, "hipCtxPopCurrent(): %s", pStr);
+      event_log_error (hashcat_ctx, "hipInit(): %s", pStr);
     }
     else
     {
-      event_log_error (hashcat_ctx, "hipCtxPopCurrent(): %d", HIP_err);
+      event_log_error (hashcat_ctx, "hipInit(): %d", HIP_err);
     }
 
     return -1;
@@ -3658,25 +3091,25 @@ int hc_hipCtxPopCurrent (hashcat_ctx_t *hashcat_ctx, HIPcontext *pctx)
   return 0;
 }
 
-int hc_hipLinkCreate (hashcat_ctx_t *hashcat_ctx, unsigned int numOptions, HIPjit_option *options, void **optionValues, HIPlinkState *stateOut)
+int hc_hipMemAlloc (hashcat_ctx_t *hashcat_ctx, hipDeviceptr_t *dptr, size_t bytesize)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
 
-  const HIPresult HIP_err = hip->hipLinkCreate (numOptions, options, optionValues, stateOut);
+  const hipError_t HIP_err = hip->hipMemAlloc (dptr, bytesize);
 
-  if (HIP_err != HIP_SUCCESS)
+  if (HIP_err != hipSuccess)
   {
     const char *pStr = NULL;
 
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
     {
-      event_log_error (hashcat_ctx, "hipLinkCreate(): %s", pStr);
+      event_log_error (hashcat_ctx, "hipMemAlloc(): %s", pStr);
     }
     else
     {
-      event_log_error (hashcat_ctx, "hipLinkCreate(): %d", HIP_err);
+      event_log_error (hashcat_ctx, "hipMemAlloc(): %d", HIP_err);
     }
 
     return -1;
@@ -3685,25 +3118,25 @@ int hc_hipLinkCreate (hashcat_ctx_t *hashcat_ctx, unsigned int numOptions, HIPji
   return 0;
 }
 
-int hc_hipLinkAddData (hashcat_ctx_t *hashcat_ctx, HIPlinkState state, HIPjitInputType type, void *data, size_t size, const char *name, unsigned int numOptions, HIPjit_option *options, void **optionValues)
+int hc_hipMemFree (hashcat_ctx_t *hashcat_ctx, hipDeviceptr_t dptr)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
 
-  const HIPresult HIP_err = hip->hipLinkAddData (state, type, data, size, name, numOptions, options, optionValues);
+  const hipError_t HIP_err = hip->hipMemFree (dptr);
 
-  if (HIP_err != HIP_SUCCESS)
+  if (HIP_err != hipSuccess)
   {
     const char *pStr = NULL;
 
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
     {
-      event_log_error (hashcat_ctx, "hipLinkAddData(): %s", pStr);
+      event_log_error (hashcat_ctx, "hipMemFree(): %s", pStr);
     }
     else
     {
-      event_log_error (hashcat_ctx, "hipLinkAddData(): %d", HIP_err);
+      event_log_error (hashcat_ctx, "hipMemFree(): %d", HIP_err);
     }
 
     return -1;
@@ -3712,25 +3145,25 @@ int hc_hipLinkAddData (hashcat_ctx_t *hashcat_ctx, HIPlinkState state, HIPjitInp
   return 0;
 }
 
-int hc_hipLinkDestroy (hashcat_ctx_t *hashcat_ctx, HIPlinkState state)
+int hc_hipMemGetInfo (hashcat_ctx_t *hashcat_ctx, size_t *free, size_t *total)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
 
-  const HIPresult HIP_err = hip->hipLinkDestroy (state);
+  const hipError_t HIP_err = hip->hipMemGetInfo (free, total);
 
-  if (HIP_err != HIP_SUCCESS)
+  if (HIP_err != hipSuccess)
   {
     const char *pStr = NULL;
 
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
     {
-      event_log_error (hashcat_ctx, "hipLinkDestroy(): %s", pStr);
+      event_log_error (hashcat_ctx, "hipMemGetInfo(): %s", pStr);
     }
     else
     {
-      event_log_error (hashcat_ctx, "hipLinkDestroy(): %d", HIP_err);
+      event_log_error (hashcat_ctx, "hipMemGetInfo(): %d", HIP_err);
     }
 
     return -1;
@@ -3739,25 +3172,349 @@ int hc_hipLinkDestroy (hashcat_ctx_t *hashcat_ctx, HIPlinkState state)
   return 0;
 }
 
-int hc_hipLinkComplete (hashcat_ctx_t *hashcat_ctx, HIPlinkState state, void **hipbinOut, size_t *sizeOut)
+int hc_hipMemcpyDtoH (hashcat_ctx_t *hashcat_ctx, void *dstHost, hipDeviceptr_t srcDevice, size_t ByteCount)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
 
-  const HIPresult HIP_err = hip->hipLinkComplete (state, hipbinOut, sizeOut);
+  const hipError_t HIP_err = hip->hipMemcpyDtoH (dstHost, srcDevice, ByteCount);
 
-  if (HIP_err != HIP_SUCCESS)
+  if (HIP_err != hipSuccess)
   {
     const char *pStr = NULL;
 
-    if (hip->hipGetErrorString (HIP_err, &pStr) == HIP_SUCCESS)
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
     {
-      event_log_error (hashcat_ctx, "hipLinkComplete(): %s", pStr);
+      event_log_error (hashcat_ctx, "hipMemcpyDtoH(): %s", pStr);
     }
     else
     {
-      event_log_error (hashcat_ctx, "hipLinkComplete(): %d", HIP_err);
+      event_log_error (hashcat_ctx, "hipMemcpyDtoH(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipMemcpyDtoHAsync (hashcat_ctx_t *hashcat_ctx, void *dstHost, hipDeviceptr_t srcDevice, size_t ByteCount, hipStream_t hStream)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const hipError_t HIP_err = hip->hipMemcpyDtoHAsync (dstHost, srcDevice, ByteCount, hStream);
+
+  if (HIP_err != hipSuccess)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
+    {
+      event_log_error (hashcat_ctx, "hipMemcpyDtoHAsync(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipMemcpyDtoHAsync(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipMemcpyDtoD (hashcat_ctx_t *hashcat_ctx, hipDeviceptr_t dstDevice, hipDeviceptr_t srcDevice, size_t ByteCount)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const hipError_t HIP_err = hip->hipMemcpyDtoD (dstDevice, srcDevice, ByteCount);
+
+  if (HIP_err != hipSuccess)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
+    {
+      event_log_error (hashcat_ctx, "hipMemcpyDtoD(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipMemcpyDtoD(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipMemcpyDtoDAsync (hashcat_ctx_t *hashcat_ctx, hipDeviceptr_t dstDevice, hipDeviceptr_t srcDevice, size_t ByteCount, hipStream_t hStream)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const hipError_t HIP_err = hip->hipMemcpyDtoDAsync (dstDevice, srcDevice, ByteCount, hStream);
+
+  if (HIP_err != hipSuccess)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
+    {
+      event_log_error (hashcat_ctx, "hipMemcpyDtoDAsync(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipMemcpyDtoDAsync(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipMemcpyHtoD (hashcat_ctx_t *hashcat_ctx, hipDeviceptr_t dstDevice, const void *srcHost, size_t ByteCount)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const hipError_t HIP_err = hip->hipMemcpyHtoD (dstDevice, srcHost, ByteCount);
+
+  if (HIP_err != hipSuccess)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
+    {
+      event_log_error (hashcat_ctx, "hipMemcpyHtoD(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipMemcpyHtoD(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipMemcpyHtoDAsync (hashcat_ctx_t *hashcat_ctx, hipDeviceptr_t dstDevice, const void *srcHost, size_t ByteCount, hipStream_t hStream)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const hipError_t HIP_err = hip->hipMemcpyHtoDAsync (dstDevice, srcHost, ByteCount, hStream);
+
+  if (HIP_err != hipSuccess)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
+    {
+      event_log_error (hashcat_ctx, "hipMemcpyHtoDAsync(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipMemcpyHtoDAsync(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipModuleGetFunction (hashcat_ctx_t *hashcat_ctx, hipFunction_t *hfunc, hipModule_t hmod, const char *name)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const hipError_t HIP_err = hip->hipModuleGetFunction (hfunc, hmod, name);
+
+  if (HIP_err != hipSuccess)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
+    {
+      event_log_error (hashcat_ctx, "hipModuleGetFunction(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipModuleGetFunction(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipModuleGetGlobal (hashcat_ctx_t *hashcat_ctx, hipDeviceptr_t *dptr, size_t *bytes, hipModule_t hmod, const char *name)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const hipError_t HIP_err = hip->hipModuleGetGlobal (dptr, bytes, hmod, name);
+
+  if (HIP_err != hipSuccess)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
+    {
+      event_log_error (hashcat_ctx, "hipModuleGetGlobal(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipModuleGetGlobal(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipModuleLoadDataEx (hashcat_ctx_t *hashcat_ctx, hipModule_t *module, const void *image, unsigned int numOptions, hipJitOption *options, void **optionValues)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const hipError_t HIP_err = hip->hipModuleLoadDataEx (module, image, numOptions, options, optionValues);
+
+  if (HIP_err != hipSuccess)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
+    {
+      event_log_error (hashcat_ctx, "hipModuleLoadDataEx(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipModuleLoadDataEx(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipModuleUnload (hashcat_ctx_t *hashcat_ctx, hipModule_t hmod)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const hipError_t HIP_err = hip->hipModuleUnload (hmod);
+
+  if (HIP_err != hipSuccess)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
+    {
+      event_log_error (hashcat_ctx, "hipModuleUnload(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipModuleUnload(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipStreamCreate (hashcat_ctx_t *hashcat_ctx, hipStream_t *phStream, unsigned int Flags)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const hipError_t HIP_err = hip->hipStreamCreate (phStream, Flags);
+
+  if (HIP_err != hipSuccess)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
+    {
+      event_log_error (hashcat_ctx, "hipStreamCreate(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipStreamCreate(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipStreamDestroy (hashcat_ctx_t *hashcat_ctx, hipStream_t hStream)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const hipError_t HIP_err = hip->hipStreamDestroy (hStream);
+
+  if (HIP_err != hipSuccess)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
+    {
+      event_log_error (hashcat_ctx, "hipStreamDestroy(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipStreamDestroy(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipStreamSynchronize (hashcat_ctx_t *hashcat_ctx, hipStream_t hStream)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const hipError_t HIP_err = hip->hipStreamSynchronize (hStream);
+
+  if (HIP_err != hipSuccess)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
+    {
+      event_log_error (hashcat_ctx, "hipStreamSynchronize(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipStreamSynchronize(): %d", HIP_err);
     }
 
     return -1;
@@ -5245,7 +5002,7 @@ int run_cuda_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
   return 0;
 }
 
-int run_hip_kernel_atinit (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, HIPdeviceptr buf, const u64 num)
+int run_hip_kernel_atinit (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, hipDeviceptr_t buf, const u64 num)
 {
   u64 num_elements = num;
 
@@ -5256,7 +5013,7 @@ int run_hip_kernel_atinit (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
 
   num_elements = CEILDIV (num_elements, kernel_threads);
 
-  HIPfunction function = device_param->hip_function_atinit;
+  hipFunction_t function = device_param->hip_function_atinit;
 
   if (hc_hipLaunchKernel (hashcat_ctx, function, num_elements, 1, 1, kernel_threads, 1, 1, 0, device_param->hip_stream, device_param->kernel_params_atinit, NULL) == -1) return -1;
 
@@ -5265,7 +5022,7 @@ int run_hip_kernel_atinit (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
   return 0;
 }
 
-int run_hip_kernel_utf8toutf16le (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, HIPdeviceptr buf, const u64 num)
+int run_hip_kernel_utf8toutf16le (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, hipDeviceptr_t buf, const u64 num)
 {
   u64 num_elements = num;
 
@@ -5276,7 +5033,7 @@ int run_hip_kernel_utf8toutf16le (hashcat_ctx_t *hashcat_ctx, hc_device_param_t 
 
   num_elements = CEILDIV (num_elements, kernel_threads);
 
-  HIPfunction function = device_param->hip_function_utf8toutf16le;
+  hipFunction_t function = device_param->hip_function_utf8toutf16le;
 
   if (hc_hipLaunchKernel (hashcat_ctx, function, num_elements, 1, 1, kernel_threads, 1, 1, 0, device_param->hip_stream, device_param->kernel_params_utf8toutf16le, NULL) == -1) return -1;
 
@@ -5285,7 +5042,7 @@ int run_hip_kernel_utf8toutf16le (hashcat_ctx_t *hashcat_ctx, hc_device_param_t 
   return 0;
 }
 
-int run_hip_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, HIPdeviceptr buf, const u32 value, const u64 size)
+int run_hip_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, hipDeviceptr_t buf, const u32 value, const u64 size)
 {
   const u64 num16d = size / 16;
   const u64 num16m = size % 16;
@@ -5301,7 +5058,7 @@ int run_hip_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
 
     u64 num_elements = CEILDIV (num16d, kernel_threads);
 
-    HIPfunction function = device_param->hip_function_memset;
+    hipFunction_t function = device_param->hip_function_memset;
 
     if (hc_hipLaunchKernel (hashcat_ctx, function, num_elements, 1, 1, kernel_threads, 1, 1, 0, device_param->hip_stream, device_param->kernel_params_memset, NULL) == -1) return -1;
   }
@@ -5321,7 +5078,7 @@ int run_hip_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
   return 0;
 }
 
-int run_hip_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, HIPdeviceptr buf, const u64 size)
+int run_hip_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, hipDeviceptr_t buf, const u64 size)
 {
   const u64 num16d = size / 16;
   const u64 num16m = size % 16;
@@ -5336,7 +5093,7 @@ int run_hip_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
 
     u64 num_elements = CEILDIV(num16d, kernel_threads);
 
-    HIPfunction function = device_param->hip_function_bzero;
+    hipFunction_t function = device_param->hip_function_bzero;
 
     if (hc_hipLaunchKernel (hashcat_ctx, function, num_elements, 1, 1, kernel_threads, 1, 1, 0, device_param->hip_stream, device_param->kernel_params_bzero, NULL) == -1) return -1;
   }
@@ -5686,7 +5443,7 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
   if (device_param->is_hip == true)
   {
-    HIPfunction hip_function = NULL;
+    hipFunction_t hip_function = NULL;
 
     if (device_param->is_hip == true)
     {
@@ -6014,7 +5771,7 @@ int run_kernel_mp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
   if (device_param->is_hip == true)
   {
-    HIPfunction hip_function = NULL;
+    hipFunction_t hip_function = NULL;
 
     void **hip_args = NULL;
 
@@ -6107,7 +5864,7 @@ int run_kernel_tm (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
   if (device_param->is_hip == true)
   {
-    HIPfunction hip_function = device_param->hip_function_tm;
+    hipFunction_t hip_function = device_param->hip_function_tm;
 
     if (hc_hipLaunchKernel (hashcat_ctx, hip_function, num_elements / kernel_threads, 1, 1, kernel_threads, 1, 1, 0, device_param->hip_stream, device_param->kernel_params_tm, NULL) == -1) return -1;
 
@@ -6154,7 +5911,7 @@ int run_kernel_amp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
   {
     num_elements = CEILDIV (num_elements, kernel_threads);
 
-    HIPfunction hip_function = device_param->hip_function_amp;
+    hipFunction_t hip_function = device_param->hip_function_amp;
 
     if (hc_hipLaunchKernel (hashcat_ctx, hip_function, num_elements, 1, 1, kernel_threads, 1, 1, 0, device_param->hip_stream, device_param->kernel_params_amp, NULL) == -1) return -1;
 
@@ -6205,7 +5962,7 @@ int run_kernel_decompress (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
   {
     num_elements = CEILDIV (num_elements, kernel_threads);
 
-    HIPfunction hip_function = device_param->hip_function_decompress;
+    hipFunction_t hip_function = device_param->hip_function_decompress;
 
     if (hc_hipLaunchKernel (hashcat_ctx, hip_function, num_elements, 1, 1, kernel_threads, 1, 1, 0, device_param->hip_stream, device_param->kernel_params_decompress, NULL) == -1) return -1;
 
@@ -7407,38 +7164,17 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if ((rc_hip_init == 0) && (rc_hiprtc_init == 0))
     {
-      // hiprtc version
-
-      int hiprtc_major = 0;
-      int hiprtc_minor = 0;
-
-      if (hc_hiprtcVersion (hashcat_ctx, &hiprtc_major, &hiprtc_minor) == -1) return -1;
-
-      int hiprtc_driver_version = (hiprtc_major * 1000) + (hiprtc_minor * 10);
-
-      backend_ctx->hiprtc_driver_version = hiprtc_driver_version;
-
-      if (hiprtc_driver_version < 9000)
-      {
-        event_log_error (hashcat_ctx, "Outdated AMD HIPRTC driver version '%d' detected!", hiprtc_driver_version);
-
-        event_log_warning (hashcat_ctx, "See hashcat.net for officially supported AMD HIP versions.");
-        event_log_warning (hashcat_ctx, NULL);
-
-        return -1;
-      }
-
       // hip version
 
-      int hip_driver_version = 10000;
+      int hip_driverVersion;
 
-      //if (hc_hipDriverGetVersion (hashcat_ctx, &hip_driver_version) == -1) return -1;
+      if (hc_hipDriverGetVersion (hashcat_ctx, &hip_driverVersion) == -1) return -1;
 
-      backend_ctx->hip_driver_version = hip_driver_version;
+      backend_ctx->hip_driverVersion = hip_driverVersion;
 
-      if (hip_driver_version < 9000)
+      if (hip_driverVersion < 404)
       {
-        event_log_error (hashcat_ctx, "Outdated AMD HIP driver version '%d' detected!", hip_driver_version);
+        event_log_error (hashcat_ctx, "Outdated AMD HIP driver version '%d' detected!", hip_driverVersion);
 
         event_log_warning (hashcat_ctx, "See hashcat.net for officially supported AMD HIP versions.");
         event_log_warning (hashcat_ctx, NULL);
@@ -7488,10 +7224,10 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       #if defined (__linux__)
       event_log_warning (hashcat_ctx, "* AMD GPUs on Linux require this driver:");
-      event_log_warning (hashcat_ctx, "  \"RadeonOpenCompute (ROCm)\" Software Platform (3.1 or later)");
+      event_log_warning (hashcat_ctx, "  \"AMD ROCm\" (4.4 or later)");
       #elif defined (_WIN)
       event_log_warning (hashcat_ctx, "* AMD GPUs on Windows require this driver:");
-      event_log_warning (hashcat_ctx, "  \"AMD Radeon Adrenalin 2020 Edition\" (20.2.2 or later)");
+      event_log_warning (hashcat_ctx, "  \"AMD Radeon Adrenalin 2020 Edition\" (21.2.1 or later)");
       #endif
 
       event_log_warning (hashcat_ctx, "* Intel CPUs require this runtime:");
@@ -7813,10 +7549,10 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     #if defined (__linux__)
     event_log_warning (hashcat_ctx, "* AMD GPUs on Linux require this driver:");
-    event_log_warning (hashcat_ctx, "  \"RadeonOpenCompute (ROCm)\" Software Platform (3.1 or later)");
+    event_log_warning (hashcat_ctx, "  \"AMD ROCm\" (4.4 or later)");
     #elif defined (_WIN)
     event_log_warning (hashcat_ctx, "* AMD GPUs on Windows require this driver:");
-    event_log_warning (hashcat_ctx, "  \"AMD Radeon Adrenalin 2020 Edition\" (20.2.2 or later)");
+    event_log_warning (hashcat_ctx, "  \"AMD Radeon Adrenalin 2020 Edition\" (21.2.1 or later)");
     #endif
 
     event_log_warning (hashcat_ctx, "* Intel CPUs require this runtime:");
@@ -8289,7 +8025,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       backend_ctx->backend_device_from_hip[hip_devices_idx] = backend_devices_idx;
 
-      HIPdevice hip_device;
+      hipDevice_t hip_device;
 
       if (hc_hipDeviceGet (hashcat_ctx, &hip_device, hip_devices_idx) == -1)
       {
@@ -8328,7 +8064,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       int device_processors = 0;
 
-      if (hc_hipDeviceGetAttribute (hashcat_ctx, &device_processors, HIP_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT, hip_device) == -1)
+      if (hc_hipDeviceGetAttribute (hashcat_ctx, &device_processors, hipDeviceAttributeMultiprocessorCount, hip_device) == -1)
       {
         device_param->skipped = true;
         continue;
@@ -8356,7 +8092,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       int hip_warp_size = 0;
 
-      if (hc_hipDeviceGetAttribute (hashcat_ctx, &hip_warp_size, HIP_DEVICE_ATTRIBUTE_WARP_SIZE, hip_device) == -1)
+      if (hc_hipDeviceGetAttribute (hashcat_ctx, &hip_warp_size, hipDeviceAttributeWarpSize, hip_device) == -1)
       {
         device_param->skipped = true;
         continue;
@@ -8369,13 +8105,13 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       int sm_major = 0;
       int sm_minor = 0;
 
-      if (hc_hipDeviceGetAttribute (hashcat_ctx, &sm_major, HIP_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR, hip_device) == -1)
+      if (hc_hipDeviceGetAttribute (hashcat_ctx, &sm_major, hipDeviceAttributeComputeCapabilityMajor, hip_device) == -1)
       {
         device_param->skipped = true;
         continue;
       }
 
-      if (hc_hipDeviceGetAttribute (hashcat_ctx, &sm_minor, HIP_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR, hip_device) == -1)
+      if (hc_hipDeviceGetAttribute (hashcat_ctx, &sm_minor, hipDeviceAttributeComputeCapabilityMinor, hip_device) == -1)
       {
         device_param->skipped = true;
         continue;
@@ -8388,7 +8124,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       int device_maxworkgroup_size = 0;
 
-      if (hc_hipDeviceGetAttribute (hashcat_ctx, &device_maxworkgroup_size, HIP_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK, hip_device) == -1)
+      if (hc_hipDeviceGetAttribute (hashcat_ctx, &device_maxworkgroup_size, hipDeviceAttributeMaxThreadsPerBlock, hip_device) == -1)
       {
         device_param->skipped = true;
         continue;
@@ -8400,7 +8136,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       int device_maxclock_frequency = 0;
 
-      if (hc_hipDeviceGetAttribute (hashcat_ctx, &device_maxclock_frequency, HIP_DEVICE_ATTRIBUTE_CLOCK_RATE, hip_device) == -1)
+      if (hc_hipDeviceGetAttribute (hashcat_ctx, &device_maxclock_frequency, hipDeviceAttributeClockRate, hip_device) == -1)
       {
         device_param->skipped = true;
         continue;
@@ -8414,19 +8150,20 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       int pci_bus_id_nv     = 0;
       int pci_slot_id_nv    = 0;
 
-      if (hc_hipDeviceGetAttribute (hashcat_ctx, &pci_domain_id_nv, HIP_DEVICE_ATTRIBUTE_PCI_DOMAIN_ID, hip_device) == -1)
+      // Not supported by HIP
+      //if (hc_hipDeviceGetAttribute (hashcat_ctx, &pci_domain_id_nv, hipDeviceAttributePciDomainID, hip_device) == -1)
+      //{
+      //  device_param->skipped = true;
+      //  continue;
+      //}
+
+      if (hc_hipDeviceGetAttribute (hashcat_ctx, &pci_bus_id_nv, hipDeviceAttributePciBusId, hip_device) == -1)
       {
         device_param->skipped = true;
         continue;
       }
 
-      if (hc_hipDeviceGetAttribute (hashcat_ctx, &pci_bus_id_nv, HIP_DEVICE_ATTRIBUTE_PCI_BUS_ID, hip_device) == -1)
-      {
-        device_param->skipped = true;
-        continue;
-      }
-
-      if (hc_hipDeviceGetAttribute (hashcat_ctx, &pci_slot_id_nv, HIP_DEVICE_ATTRIBUTE_PCI_DEVICE_ID, hip_device) == -1)
+      if (hc_hipDeviceGetAttribute (hashcat_ctx, &pci_slot_id_nv, hipDeviceAttributePciDeviceId, hip_device) == -1)
       {
         device_param->skipped = true;
         continue;
@@ -8434,6 +8171,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       device_param->pcie_domain   = (u8) (pci_domain_id_nv);
       device_param->pcie_bus      = (u8) (pci_bus_id_nv);
+
       device_param->pcie_device   = (u8) (pci_slot_id_nv >> 3);
       device_param->pcie_function = (u8) (pci_slot_id_nv & 7);
 
@@ -8441,7 +8179,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       int kernel_exec_timeout = 0;
 
-      if (hc_hipDeviceGetAttribute (hashcat_ctx, &kernel_exec_timeout, HIP_DEVICE_ATTRIBUTE_KERNEL_EXEC_TIMEOUT, hip_device) == -1)
+      if (hc_hipDeviceGetAttribute (hashcat_ctx, &kernel_exec_timeout, hipDeviceAttributeKernelExecTimeout, hip_device) == -1)
       {
         device_param->skipped = true;
         continue;
@@ -8453,7 +8191,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       int warp_size = 0;
 
-      if (hc_hipDeviceGetAttribute (hashcat_ctx, &warp_size, HIP_DEVICE_ATTRIBUTE_WARP_SIZE, hip_device) == -1)
+      if (hc_hipDeviceGetAttribute (hashcat_ctx, &warp_size, hipDeviceAttributeWarpSize, hip_device) == -1)
       {
         device_param->skipped = true;
         continue;
@@ -8465,7 +8203,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       int max_shared_memory_per_block = 0;
 
-      if (hc_hipDeviceGetAttribute (hashcat_ctx, &max_shared_memory_per_block, HIP_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_BLOCK_OPTIN, hip_device) == -1)
+      if (hc_hipDeviceGetAttribute (hashcat_ctx, &max_shared_memory_per_block, hipDeviceAttributeMaxSharedMemoryPerBlock, hip_device) == -1)
       {
         device_param->skipped = true;
         continue;
@@ -8484,7 +8222,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       int device_max_constant_buffer_size = 0;
 
-      if (hc_hipDeviceGetAttribute (hashcat_ctx, &device_max_constant_buffer_size, HIP_DEVICE_ATTRIBUTE_TOTAL_CONSTANT_MEMORY, hip_device) == -1)
+      if (hc_hipDeviceGetAttribute (hashcat_ctx, &device_max_constant_buffer_size, hipDeviceAttributeTotalConstantMemory, hip_device) == -1)
       {
         device_param->skipped = true;
         continue;
@@ -8577,13 +8315,6 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       // instruction set
 
-      // bcrypt optimization?
-      //const int rc_cuCtxSetCacheConfig = hc_hipCtxSetCacheConfig (hashcat_ctx, HIP_FUNC_CACHE_PREFER_SHARED);
-      //
-      //if (rc_cuCtxSetCacheConfig == -1) return -1;
-
-      // const int sm = (device_param->sm_major * 10) + device_param->sm_minor;
-
       device_param->has_add   = false;
       device_param->has_addc  = false;
       device_param->has_sub   = false;
@@ -8595,9 +8326,9 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       // device_available_mem
 
-      HIPcontext hip_context;
+      hipCtx_t hip_context;
 
-      if (hc_hipCtxCreate (hashcat_ctx, &hip_context, HIP_CTX_SCHED_BLOCKING_SYNC, device_param->hip_device) == -1)
+      if (hc_hipCtxCreate (hashcat_ctx, &hip_context, hipDeviceScheduleBlockingSync, device_param->hip_device) == -1)
       {
         device_param->skipped = true;
         continue;
@@ -10297,7 +10028,7 @@ static int get_cuda_kernel_local_mem_size (hashcat_ctx_t *hashcat_ctx, CUfunctio
   return 0;
 }
 
-static int get_hip_kernel_wgs (hashcat_ctx_t *hashcat_ctx, HIPfunction function, u32 *result)
+static int get_hip_kernel_wgs (hashcat_ctx_t *hashcat_ctx, hipFunction_t function, u32 *result)
 {
   int max_threads_per_block;
 
@@ -10308,7 +10039,7 @@ static int get_hip_kernel_wgs (hashcat_ctx_t *hashcat_ctx, HIPfunction function,
   return 0;
 }
 
-static int get_hip_kernel_local_mem_size (hashcat_ctx_t *hashcat_ctx, HIPfunction function, u64 *result)
+static int get_hip_kernel_local_mem_size (hashcat_ctx_t *hashcat_ctx, hipFunction_t function, u64 *result)
 {
   int shared_size_bytes;
 
@@ -10437,7 +10168,7 @@ static u32 get_kernel_threads (const hc_device_param_t *device_param)
   return kernel_threads;
 }
 
-static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const char *kernel_name, char *source_file, char *cached_file, const char *build_options_buf, const bool cache_disable, cl_program *opencl_program, CUmodule *cuda_module, HIPmodule *hip_module)
+static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const char *kernel_name, char *source_file, char *cached_file, const char *build_options_buf, const bool cache_disable, cl_program *opencl_program, CUmodule *cuda_module, hipModule_t *hip_module)
 {
   const hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
   const folder_config_t *folder_config = hashcat_ctx->folder_config;
@@ -10731,12 +10462,10 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       hc_asprintf (&hiprtc_options[0], "--gpu-max-threads-per-block=%d", (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : ((device_param->kernel_preferred_wgs_multiple == 64) ? 64 : KERNEL_THREADS_MAX));
 
-      //hiprtc_options[0] = "--gpu-max-threads-per-block=64";
       hiprtc_options[1] = "-nocudainc";
       hiprtc_options[2] = "-nocudalib";
       hiprtc_options[3] = "";
       hiprtc_options[4] = "";
-
       hiprtc_options[5] = "-I";
       hiprtc_options[6] = folder_config->cpath_real;
 
@@ -10799,136 +10528,26 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       int mod_cnt = 6;
 
-      HIPjit_option mod_opts[7];
-      void *mod_vals[7];
+      hipJitOption mod_opts[6];
+      void *mod_vals[6];
 
-      mod_opts[0] = HIP_JIT_TARGET_FROM_HIPCONTEXT;
+      mod_opts[0] = hipJitOptionTargetFromContext;
       mod_vals[0] = (void *) 0;
 
-      mod_opts[1] = HIP_JIT_LOG_VERBOSE;
+      mod_opts[1] = hipJitOptionLogVerbose;
       mod_vals[1] = (void *) 1;
 
-      mod_opts[2] = HIP_JIT_INFO_LOG_BUFFER;
+      mod_opts[2] = hipJitOptionInfoLogBuffer;
       mod_vals[2] = (void *) mod_info_log;
 
-      mod_opts[3] = HIP_JIT_INFO_LOG_BUFFER_SIZE_BYTES;
+      mod_opts[3] = hipJitOptionInfoLogBufferSizeBytes;
       mod_vals[3] = (void *) LOG_SIZE;
 
-      mod_opts[4] = HIP_JIT_ERROR_LOG_BUFFER;
+      mod_opts[4] = hipJitOptionErrorLogBuffer;
       mod_vals[4] = (void *) mod_error_log;
 
-      mod_opts[5] = HIP_JIT_ERROR_LOG_BUFFER_SIZE_BYTES;
+      mod_opts[5] = hipJitOptionErrorLogBufferSizeBytes;
       mod_vals[5] = (void *) LOG_SIZE;
-
-      if (hashconfig->opti_type & OPTI_TYPE_REGISTER_LIMIT)
-      {
-        mod_opts[6] = HIP_JIT_MAX_REGISTERS;
-        mod_vals[6] = (void *) 128;
-
-        mod_cnt++;
-      }
-
-      #if defined (WITH_HIPBIN)
-
-      char *jit_info_log  = (char *) hcmalloc (LOG_SIZE + 1);
-      char *jit_error_log = (char *) hcmalloc (LOG_SIZE + 1);
-
-      int jit_cnt = 6;
-
-      HIPjit_option jit_opts[7];
-      void *jit_vals[7];
-
-      jit_opts[0] = HIP_JIT_TARGET_FROM_HIPCONTEXT;
-      jit_vals[0] = (void *) 0;
-
-      jit_opts[1] = HIP_JIT_LOG_VERBOSE;
-      jit_vals[1] = (void *) 1;
-
-      jit_opts[2] = HIP_JIT_INFO_LOG_BUFFER;
-      jit_vals[2] = (void *) jit_info_log;
-
-      jit_opts[3] = HIP_JIT_INFO_LOG_BUFFER_SIZE_BYTES;
-      jit_vals[3] = (void *) LOG_SIZE;
-
-      jit_opts[4] = HIP_JIT_ERROR_LOG_BUFFER;
-      jit_vals[4] = (void *) jit_error_log;
-
-      jit_opts[5] = HIP_JIT_ERROR_LOG_BUFFER_SIZE_BYTES;
-      jit_vals[5] = (void *) LOG_SIZE;
-
-      if (hashconfig->opti_type & OPTI_TYPE_REGISTER_LIMIT)
-      {
-        jit_opts[6] = HIP_JIT_MAX_REGISTERS;
-        jit_vals[6] = (void *) 128;
-
-        jit_cnt++;
-      }
-
-      HIPlinkState state;
-
-      if (hc_cuLinkCreate (hashcat_ctx, jit_cnt, jit_opts, jit_vals, &state) == -1)
-      {
-        event_log_error (hashcat_ctx, "* Device #%u: Kernel %s link failed. Error Log:", device_param->device_id + 1, source_file);
-        event_log_error (hashcat_ctx, "%s", jit_error_log);
-        event_log_error (hashcat_ctx, NULL);
-
-        return false;
-      }
-
-      if (hc_cuLinkAddData (hashcat_ctx, state, HIP_JIT_INPUT_CODE, binary, binary_size, kernel_name, 0, NULL, NULL) == -1)
-      {
-        event_log_error (hashcat_ctx, "* Device #%u: Kernel %s link failed. Error Log:", device_param->device_id + 1, source_file);
-        event_log_error (hashcat_ctx, "%s", jit_error_log);
-        event_log_error (hashcat_ctx, NULL);
-
-        return false;
-      }
-
-      void *cubin = NULL;
-
-      size_t cubin_size = 0;
-
-      if (hc_cuLinkComplete (hashcat_ctx, state, &cubin, &cubin_size) == -1)
-      {
-        event_log_error (hashcat_ctx, "* Device #%u: Kernel %s link failed. Error Log:", device_param->device_id + 1, source_file);
-        event_log_error (hashcat_ctx, "%s", jit_error_log);
-        event_log_error (hashcat_ctx, NULL);
-
-        return false;
-      }
-
-      #if defined (DEBUG)
-      event_log_info (hashcat_ctx, "* Device #%u: Kernel %s link successful. Info Log:", device_param->device_id + 1, source_file);
-      event_log_info (hashcat_ctx, "%s", jit_info_log);
-      event_log_info (hashcat_ctx, NULL);
-      #endif
-
-      if (hc_cuModuleLoadDataEx (hashcat_ctx, hip_module, cubin, mod_cnt, mod_opts, mod_vals) == -1)
-      {
-        event_log_error (hashcat_ctx, "* Device #%u: Kernel %s load failed. Error Log:", device_param->device_id + 1, source_file);
-        event_log_error (hashcat_ctx, "%s", mod_error_log);
-        event_log_error (hashcat_ctx, NULL);
-
-        return false;
-      }
-
-      #if defined (DEBUG)
-      event_log_info (hashcat_ctx, "* Device #%u: Kernel %s load successful. Info Log:", device_param->device_id + 1, source_file);
-      event_log_info (hashcat_ctx, "%s", mod_info_log);
-      event_log_info (hashcat_ctx, NULL);
-      #endif
-
-      if (cache_disable == false)
-      {
-        if (write_kernel_binary (hashcat_ctx, cached_file, cubin, cubin_size) == false) return false;
-      }
-
-      if (hc_hipLinkDestroy (hashcat_ctx, state) == -1) return false;
-
-      hcfree (jit_info_log);
-      hcfree (jit_error_log);
-
-      #else
 
       if (hc_hipModuleLoadDataEx (hashcat_ctx, hip_module, binary, mod_cnt, mod_opts, mod_vals) == -1)
       {
@@ -10949,8 +10568,6 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
       {
         if (write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size) == false) return false;
       }
-
-      #endif
 
       hcfree (mod_info_log);
       hcfree (mod_error_log);
@@ -11099,34 +10716,26 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       int mod_cnt = 6;
 
-      HIPjit_option mod_opts[7];
-      void *mod_vals[7];
+      hipJitOption mod_opts[6];
+      void *mod_vals[6];
 
-      mod_opts[0] = HIP_JIT_TARGET_FROM_HIPCONTEXT;
+      mod_opts[0] = hipJitOptionTargetFromContext;
       mod_vals[0] = (void *) 0;
 
-      mod_opts[1] = HIP_JIT_LOG_VERBOSE;
+      mod_opts[1] = hipJitOptionLogVerbose;
       mod_vals[1] = (void *) 1;
 
-      mod_opts[2] = HIP_JIT_INFO_LOG_BUFFER;
+      mod_opts[2] = hipJitOptionInfoLogBuffer;
       mod_vals[2] = (void *) mod_info_log;
 
-      mod_opts[3] = HIP_JIT_INFO_LOG_BUFFER_SIZE_BYTES;
+      mod_opts[3] = hipJitOptionInfoLogBufferSizeBytes;
       mod_vals[3] = (void *) LOG_SIZE;
 
-      mod_opts[4] = HIP_JIT_ERROR_LOG_BUFFER;
+      mod_opts[4] = hipJitOptionErrorLogBuffer;
       mod_vals[4] = (void *) mod_error_log;
 
-      mod_opts[5] = HIP_JIT_ERROR_LOG_BUFFER_SIZE_BYTES;
+      mod_opts[5] = hipJitOptionErrorLogBufferSizeBytes;
       mod_vals[5] = (void *) LOG_SIZE;
-
-      if (hashconfig->opti_type & OPTI_TYPE_REGISTER_LIMIT)
-      {
-        mod_opts[6] = HIP_JIT_MAX_REGISTERS;
-        mod_vals[6] = (void *) 128;
-
-        mod_cnt++;
-      }
 
       if (hc_hipModuleLoadDataEx (hashcat_ctx, hip_module, kernel_sources[0], mod_cnt, mod_opts, mod_vals) == -1)
       {
@@ -11518,7 +11127,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->is_hip == true)
     {
-      if (hc_hipCtxCreate (hashcat_ctx, &device_param->hip_context, HIP_CTX_SCHED_BLOCKING_SYNC, device_param->hip_device) == -1)
+      if (hc_hipCtxCreate (hashcat_ctx, &device_param->hip_context, hipDeviceScheduleBlockingSync, device_param->hip_device) == -1)
       {
         device_param->skipped = true;
         continue;
@@ -11582,7 +11191,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->is_hip == true)
     {
-      if (hc_hipStreamCreate (hashcat_ctx, &device_param->hip_stream, HIP_STREAM_DEFAULT) == -1)
+      if (hc_hipStreamCreate (hashcat_ctx, &device_param->hip_stream, hipStreamDefault) == -1)
       {
         device_param->skipped = true;
         continue;
@@ -11614,13 +11223,13 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->is_hip == true)
     {
-      if (hc_hipEventCreate (hashcat_ctx, &device_param->hip_event1, HIP_EVENT_BLOCKING_SYNC) == -1)
+      if (hc_hipEventCreate (hashcat_ctx, &device_param->hip_event1, hipEventBlockingSync) == -1)
       {
         device_param->skipped = true;
         continue;
       }
 
-      if (hc_hipEventCreate (hashcat_ctx, &device_param->hip_event2, HIP_EVENT_BLOCKING_SYNC) == -1)
+      if (hc_hipEventCreate (hashcat_ctx, &device_param->hip_event2, hipEventBlockingSync) == -1)
       {
         device_param->skipped = true;
         continue;
@@ -11808,7 +11417,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     const size_t dnclen_amp_mp = snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%d-%d-%d-%d-%u-%s-%s-%s-%u",
       backend_ctx->comptime,
       backend_ctx->cuda_driver_version,
-      backend_ctx->hip_driver_version,
+      backend_ctx->hip_driverVersion,
       device_param->is_opencl,
       device_param->opencl_platform_vendor_id,
       device_param->device_name,
@@ -12140,7 +11749,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY, "%d-%d-%d-%d-%u-%s-%s-%s-%d-%u-%u-%u-%s",
         backend_ctx->comptime,
         backend_ctx->cuda_driver_version,
-        backend_ctx->hip_driver_version,
+        backend_ctx->hip_driverVersion,
         device_param->is_opencl,
         device_param->opencl_platform_vendor_id,
         device_param->device_name,

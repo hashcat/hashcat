@@ -818,9 +818,9 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
     event_log_info (hashcat_ctx, NULL);
 
     int hip_devices_cnt    = backend_ctx->hip_devices_cnt;
-    int hip_driver_version = backend_ctx->hip_driver_version;
+    int hip_driverVersion  = backend_ctx->hip_driverVersion;
 
-    event_log_info (hashcat_ctx, "HIP.Version.: %d.%d", hip_driver_version / 1000, (hip_driver_version % 100) / 10);
+    event_log_info (hashcat_ctx, "HIP.Version.: %d.%d", hip_driverVersion / 100, hip_driverVersion % 10);
     event_log_info (hashcat_ctx, NULL);
 
     for (int hip_devices_idx = 0; hip_devices_idx < hip_devices_cnt; hip_devices_idx++)
@@ -1014,10 +1014,10 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
 
   if (backend_ctx->hip)
   {
-    int hip_devices_cnt    = backend_ctx->hip_devices_cnt;
-    int hip_driver_version = backend_ctx->hip_driver_version;
+    int hip_devices_cnt   = backend_ctx->hip_devices_cnt;
+    int hip_driverVersion = backend_ctx->hip_driverVersion;
 
-    const size_t len = event_log_info (hashcat_ctx, "HIP API (HIP %d.%d)", hip_driver_version / 1000, (hip_driver_version % 100) / 10);
+    const size_t len = event_log_info (hashcat_ctx, "HIP API (HIP %d.%d)", hip_driverVersion / 100, hip_driverVersion % 10);
 
     char line[HCBUFSIZ_TINY] = { 0 };
 
