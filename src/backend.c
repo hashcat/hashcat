@@ -4602,6 +4602,8 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
           if (device_param->is_opencl == true)
           {
             if (hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_tm_c, device_param->opencl_d_bfs_c, 0, 0, size_tm, 0, NULL, NULL) == -1) return -1;
+
+            if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
           }
         }
       }
@@ -5270,11 +5272,7 @@ int run_opencl_kernel_atinit (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *dev
 
   if (hc_clSetKernelArg (hashcat_ctx, kernel, 1, sizeof (cl_ulong), device_param->kernel_params_atinit[1]) == -1) return -1;
 
-  if (hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL) == -1) return -1;
-
-  /*if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;*/
-
-  return 0;
+  return hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
 }
 
 int run_opencl_kernel_utf8toutf16le (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u64 num)
@@ -5296,11 +5294,7 @@ int run_opencl_kernel_utf8toutf16le (hashcat_ctx_t *hashcat_ctx, hc_device_param
 
   if (hc_clSetKernelArg (hashcat_ctx, kernel, 1, sizeof (cl_ulong), device_param->kernel_params_utf8toutf16le[1]) == -1) return -1;
 
-  if (hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL) == -1) return -1;
-
-  /*if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;*/
-
-  return 0;
+  return hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
 }
 
 int run_opencl_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u64 offset, const u8 value, const u64 size)
@@ -5390,8 +5384,6 @@ int run_opencl_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
   {
     if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, buf, CL_FALSE, num16d * 16, num16m, bzeros, 0, NULL, NULL) == -1) return -1;
   }
-
-  /*if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;*/
 
   return 0;
 }
@@ -5760,7 +5752,7 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
     if (hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, opencl_kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, &opencl_event) == -1) return -1;
 
-    /*if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;*/
+    if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
 
     // spin damper section
 
@@ -5978,8 +5970,6 @@ int run_kernel_mp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
     const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
 
     if (hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, opencl_kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL) == -1) return -1;
-
-    /*if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue)  == -1) return -1;*/
   }
 
   return 0;
@@ -6013,8 +6003,6 @@ int run_kernel_tm (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
     const size_t local_work_size[3]  = { kernel_threads,  1, 1 };
 
     if (hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, cuda_kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL) == -1) return -1;
-
-    /*if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;*/
   }
 
   return 0;
@@ -6103,8 +6091,6 @@ int run_kernel_decompress (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
     if (hc_clSetKernelArg (hashcat_ctx, opencl_kernel, 3, sizeof (cl_ulong), device_param->kernel_params_decompress[3]) == -1) return -1;
 
     if (hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, opencl_kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL) == -1) return -1;
-
-    /*if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;*/
   }
 
   return 0;
@@ -6419,6 +6405,11 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
 
       if (run_kernel_mp (hashcat_ctx, device_param, KERN_RUN_MP_L, pws_cnt) == -1) return -1;
     }
+  }
+
+  if (device_param->is_opencl == true)
+  {
+    if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
   }
 
   return 0;

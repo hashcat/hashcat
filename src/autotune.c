@@ -216,8 +216,6 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
           if (device_param->is_opencl == true)
           {
             if (hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_rules, device_param->opencl_d_rules_c, 0, 0, MIN (kernel_loops_max, KERNEL_RULES) * sizeof (kernel_rule_t), 0, NULL, NULL) == -1) return -1;
-
-			      if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
           }
         }
       }
@@ -422,6 +420,8 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     if (run_opencl_kernel_bzero (hashcat_ctx, device_param, device_param->opencl_d_result, device_param->size_results) == -1) return -1;
 
     if (run_opencl_kernel_bzero (hashcat_ctx, device_param, device_param->opencl_d_tmps, device_param->size_tmps) == -1) return -1;
+
+    if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
   }
 
   // reset timer
