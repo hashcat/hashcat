@@ -10411,11 +10411,21 @@ static u32 get_kernel_threads (const hc_device_param_t *device_param)
     }
     else if (device_param->opencl_device_vendor_id == VENDOR_ID_AMD)
     {
-      kernel_threads_max = MIN (kernel_threads_max, device_param->kernel_preferred_wgs_multiple);
+      if (device_param->kernel_preferred_wgs_multiple == 64)
+      {
+        // only older AMD GPUs with WaveFront size 64 benefit from this
+
+        kernel_threads_max = MIN (kernel_threads_max, device_param->kernel_preferred_wgs_multiple);
+      }
     }
     else if (device_param->opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP)
     {
-      kernel_threads_max = MIN (kernel_threads_max, device_param->kernel_preferred_wgs_multiple);
+      if (device_param->kernel_preferred_wgs_multiple == 64)
+      {
+        // only older AMD GPUs with WaveFront size 64 benefit from this
+
+        kernel_threads_max = MIN (kernel_threads_max, device_param->kernel_preferred_wgs_multiple);
+      }
     }
   }
 
@@ -10719,7 +10729,7 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
       //hiprtc_options[1] = "--device-as-default-execution-space";
       //hiprtc_options[2] = "--gpu-architecture";
 
-      hc_asprintf (&hiprtc_options[0], "--gpu-max-threads-per-block=%d", (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : device_param->kernel_preferred_wgs_multiple);
+      hc_asprintf (&hiprtc_options[0], "--gpu-max-threads-per-block=%d", (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : ((device_param->kernel_preferred_wgs_multiple == 64) ? 64 : KERNEL_THREADS_MAX));
 
       //hiprtc_options[0] = "--gpu-max-threads-per-block=64";
       hiprtc_options[1] = "-nocudainc";
@@ -11804,7 +11814,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       device_param->device_name,
       device_param->opencl_device_version,
       device_param->opencl_driver_version,
-      (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : device_param->kernel_preferred_wgs_multiple);
+      (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : ((device_param->kernel_preferred_wgs_multiple == 64) ? 64 : KERNEL_THREADS_MAX));
 
     md5_ctx_t md5_ctx;
 
@@ -12139,7 +12149,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         device_param->vector_width,
         hashconfig->kern_type,
         extra_value,
-        (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : device_param->kernel_preferred_wgs_multiple,
+        (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : ((device_param->kernel_preferred_wgs_multiple == 64) ? 64 : KERNEL_THREADS_MAX),
         build_options_module_buf);
 
       md5_ctx_t md5_ctx;
@@ -14883,6 +14893,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     u32 kernel_accel_max = device_param->kernel_accel_max;
 
     // We need to deal with the situation that the total video RAM > total host RAM.
+    // For the opposite direction, we do that in the loop section below.
     // Especially in multi-GPU setups that is very likely.
     // The buffers which actually take a lot of memory (except for SCRYPT) are the ones for the password candidates.
     // They are stored in an aligned order for better performance, but this increases the memory pressure.
@@ -14893,7 +14904,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     // We need to hard-code some value, let's assume that (in 2021) the host has at least 8GB ram per active GPU
 
-    const u64 SIZE_8GB = 8UL * 1024 * 1024 * 1024;
+    const u64 SIZE_8GB = 8ULL * 1024 * 1024 * 1024;
 
     u64 accel_limit = SIZE_8GB;
 
@@ -14909,6 +14920,10 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     accel_limit /= 3;
 
+    // Is possible that the GPU simply has too much hardware resources and 8GB per GPU is not enough, but OTOH we can't get lower than 1
+
+    accel_limit = MAX (accel_limit, 1);
+
     // I think vector size is not required because vector_size is dividing the pws_cnt in run_kernel()
 
     kernel_accel_max = MIN (kernel_accel_max, accel_limit);
@@ -14921,7 +14936,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
 
-    // find out if we would request too much memory on memory blocks which are based on kernel_accel
+    // Opposite direction check: find out if we would request too much memory on memory blocks which are based on kernel_accel
 
     u64 size_pws      = 4;
     u64 size_pws_amp  = 4;
