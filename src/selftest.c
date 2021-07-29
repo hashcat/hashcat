@@ -72,6 +72,10 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     tmp.pw_len = (u32) tmp_len;
   }
 
+  pw_t pw;
+  pw_t comb;
+  bf_t bf;
+
   u32 highest_pw_len = 0;
 
   if (user_options->slow_candidates == true)
@@ -80,8 +84,6 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     {
       device_param->kernel_params_buf32[30] = 1;
     }
-
-    pw_t pw;
 
     memset (&pw, 0, sizeof (pw));
 
@@ -115,8 +117,6 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
       if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
       {
         device_param->kernel_params_buf32[30] = 1;
-
-        pw_t pw;
 
         memset (&pw, 0, sizeof (pw));
 
@@ -153,8 +153,6 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
         device_param->kernel_params_buf32[30] = 1;
         device_param->kernel_params_buf32[33] = COMBINATOR_MODE_BASE_LEFT;
 
-        pw_t pw;
-
         memset (&pw, 0, sizeof (pw));
 
         char *pw_ptr = (char *) &pw.i;
@@ -169,8 +167,6 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
         {
           uppercase ((u8 *) pw_ptr, pw.pw_len);
         }
-
-        pw_t comb;
 
         memset (&comb, 0, sizeof (comb));
 
@@ -227,8 +223,6 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
         if (hashconfig->opts_type & OPTS_TYPE_TM_KERNEL)
         {
-          pw_t pw;
-
           memset (&pw, 0, sizeof (pw));
 
           char *pw_ptr = (char *) &pw.i;
@@ -261,8 +255,6 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
         }
         else
         {
-          bf_t bf;
-
           memset (&bf, 0, sizeof (bf));
 
           char *bf_ptr = (char *) &bf.i;
@@ -314,8 +306,6 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
           {
             if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_bfs_c, CL_FALSE, 0, 1 * sizeof (bf_t), &bf, 0, NULL, NULL) == -1) return -1;
           }
-
-          pw_t pw;
 
           memset (&pw, 0, sizeof (pw));
 
@@ -422,8 +412,6 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     }
     else
     {
-      pw_t pw;
-
       memset (&pw, 0, sizeof (pw));
 
       char *pw_ptr = (char *) &pw.i;
@@ -710,6 +698,8 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   if (device_param->is_opencl == true)
   {
     if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_result, CL_FALSE, 0, sizeof (u32), &num_cracked, 0, NULL, &opencl_event) == -1) return -1;
+
+    if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
   }
 
   // finish : cleanup and restore
