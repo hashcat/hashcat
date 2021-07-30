@@ -4480,7 +4480,8 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
         const int hook_threads = (int) user_options->hook_threads;
 
-        hook_thread_param_t *hook_threads_param = (hook_thread_param_t *) hccalloc (hook_threads, sizeof (hook_thread_param_t));
+        hook_thread_param_t *hook_threads_param = (hook_thread_param_t *) hcmalloc (hook_threads * sizeof (hook_thread_param_t));
+        hc_thread_t         *c_threads          = (hc_thread_t *)         hcmalloc (hook_threads * sizeof (hc_thread_t));
 
         for (int i = 0; i < hook_threads; i++)
         {
@@ -4500,13 +4501,6 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
           hook_thread_param->salt_pos = salt_pos;
 
           hook_thread_param->pws_cnt = pws_cnt;
-        }
-
-        hc_thread_t *c_threads = (hc_thread_t *) hccalloc (hook_threads, sizeof (hc_thread_t));
-
-        for (int i = 0; i < hook_threads; i++)
-        {
-          hook_thread_param_t *hook_thread_param = hook_threads_param + i;
 
           hc_thread_create (c_threads[i], hook12_thread, hook_thread_param);
         }
@@ -4514,7 +4508,6 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
         hc_thread_wait (hook_threads, c_threads);
 
         hcfree (c_threads);
-
         hcfree (hook_threads_param);
 
         if (device_param->is_cuda == true)
@@ -4633,7 +4626,8 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
             const int hook_threads = (int) user_options->hook_threads;
 
-            hook_thread_param_t *hook_threads_param = (hook_thread_param_t *) hccalloc (hook_threads, sizeof (hook_thread_param_t));
+            hook_thread_param_t *hook_threads_param = (hook_thread_param_t *) hcmalloc (hook_threads * sizeof (hook_thread_param_t));
+            hc_thread_t         *c_threads          = (hc_thread_t *)         hcmalloc (hook_threads * sizeof (hc_thread_t));
 
             for (int i = 0; i < hook_threads; i++)
             {
@@ -4653,13 +4647,6 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
               hook_thread_param->salt_pos = salt_pos;
 
               hook_thread_param->pws_cnt = pws_cnt;
-            }
-
-            hc_thread_t *c_threads = (hc_thread_t *) hccalloc (hook_threads, sizeof (hc_thread_t));
-
-            for (int i = 0; i < hook_threads; i++)
-            {
-              hook_thread_param_t *hook_thread_param = hook_threads_param + i;
 
               hc_thread_create (c_threads[i], hook23_thread, hook_thread_param);
             }
@@ -4667,7 +4654,6 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
             hc_thread_wait (hook_threads, c_threads);
 
             hcfree (c_threads);
-
             hcfree (hook_threads_param);
 
             if (device_param->is_cuda == true)
@@ -5102,7 +5088,7 @@ int run_opencl_kernel_memset32 (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
   {
     const u64 len = offset + size;
 
-    u32 *tmp = (u32 *) hcmalloc ((offset + size) * sizeof (u32));
+    u32 *tmp = (u32 *) hcmalloc (len * sizeof (u32));
 
     for (u64 i = 0; i < len; i++)
     {

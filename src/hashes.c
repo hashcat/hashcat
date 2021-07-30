@@ -580,13 +580,13 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
   if (num_cracked == 0 || user_options->speed_only == true)
   {
-    // we want get num_cracked in benchmark mode because it has an influence in performance
+    // we want to get the num_cracked in benchmark mode because it has an influence in performance
     // however if the benchmark cracks the artificial hash used for benchmarks we don't want to see that!
 
     return 0;
   }
 
-  plain_t *cracked = (plain_t *) hccalloc (num_cracked, sizeof (plain_t));
+  plain_t *cracked = (plain_t *) hcmalloc (num_cracked * sizeof (plain_t));
 
   if (device_param->is_cuda == true)
   {
