@@ -184,7 +184,11 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
   {
     if ((user_options->attack_mode == ATTACK_MODE_BF) && (hashes->salts_cnt == 1) && (user_options->slow_candidates == false))
     {
-      hc_asprintf (&jit_build_options, "-DDESCRYPT_SALT=%u -D _unroll", hashes->salts_buf[0].salt_buf[0] & 0xfff);
+      hc_asprintf (&jit_build_options, "-DDESCRYPT_SALT=%u -D _unroll -fno-experimental-new-pass-manager", hashes->salts_buf[0].salt_buf[0] & 0xfff);
+    }
+    else
+    {
+      hc_asprintf (&jit_build_options, "-D _unroll -fno-experimental-new-pass-manager");
     }
   }
   else

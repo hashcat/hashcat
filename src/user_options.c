@@ -20,10 +20,12 @@
 #endif
 
 #ifdef WITH_BRAIN
-static const char *short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:iIbw:OMSz";
+static const char *const short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:iIbw:OMSz";
 #else
-static const char *short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:iIbw:OMS";
+static const char *const short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:iIbw:OMS";
 #endif
+
+static char *const SEPARATOR = ":";
 
 static const struct option long_options[] =
 {
@@ -145,15 +147,15 @@ static const struct option long_options[] =
   {NULL,                        0,                 NULL, 0 }
 };
 
-static const char *ENCODING_FROM = "utf-8";
-static const char *ENCODING_TO   = "utf-8";
+static const char *const ENCODING_FROM = "utf-8";
+static const char *const ENCODING_TO   = "utf-8";
 
-static const char *RULE_BUF_R = ":";
-static const char *RULE_BUF_L = ":";
+static const char *const RULE_BUF_R = ":";
+static const char *const RULE_BUF_L = ":";
 
-static const char *DEF_MASK_CS_1 = "?l?d?u";
-static const char *DEF_MASK_CS_2 = "?l?d";
-static const char *DEF_MASK_CS_3 = "?l?d*!$@_";
+static const char *const DEF_MASK_CS_1 = "?l?d?u";
+static const char *const DEF_MASK_CS_2 = "?l?d";
+static const char *const DEF_MASK_CS_3 = "?l?d*!$@_";
 
 int user_options_init (hashcat_ctx_t *hashcat_ctx)
 {
@@ -482,7 +484,8 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
                                           user_options->segment_size_chgd         = true;                            break;
       case IDX_SCRYPT_TMTO:               user_options->scrypt_tmto               = hc_strtoul (optarg, NULL, 10);
                                           user_options->scrypt_tmto_chgd          = true;                            break;
-      case IDX_SEPARATOR:                 user_options->separator                 = optarg[0];                       break;
+      case IDX_SEPARATOR:                 user_options->separator                 = optarg;
+                                          user_options->separator_chgd            = true;                            break;
       case IDX_BITMAP_MIN:                user_options->bitmap_min                = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_BITMAP_MAX:                user_options->bitmap_max                = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_HOOK_THREADS:              user_options->hook_threads              = hc_strtoul (optarg, NULL, 10);   break;
@@ -582,6 +585,16 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     }
   }
   #endif
+
+  if (user_options->separator_chgd == true)
+  {
+    if (strlen (user_options->separator) != 1)
+    {
+      event_log_error (hashcat_ctx, "Separator length has to be exactly 1 byte.");
+
+      return -1;
+    }
+  }
 
   if (user_options->slow_candidates == true)
   {
@@ -2085,18 +2098,25 @@ void user_options_extra_init (hashcat_ctx_t *hashcat_ctx)
   user_options_t       *user_options       = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
+  // separator
+
+  if (user_options->separator)
+  {
+    user_options_extra->separator = user_options->separator[0];
+  }
+
   // attack-kern
 
   user_options_extra->attack_kern = ATTACK_KERN_NONE;
 
   switch (user_options->attack_mode)
   {
-    case ATTACK_MODE_STRAIGHT: user_options_extra->attack_kern = ATTACK_KERN_STRAIGHT; break;
-    case ATTACK_MODE_COMBI:    user_options_extra->attack_kern = ATTACK_KERN_COMBI;    break;
-    case ATTACK_MODE_BF:       user_options_extra->attack_kern = ATTACK_KERN_BF;       break;
-    case ATTACK_MODE_HYBRID1:  user_options_extra->attack_kern = ATTACK_KERN_COMBI;    break;
-    case ATTACK_MODE_HYBRID2:  user_options_extra->attack_kern = ATTACK_KERN_COMBI;    break;
-    case ATTACK_MODE_ASSOCIATION:  user_options_extra->attack_kern = ATTACK_KERN_STRAIGHT; break;
+    case ATTACK_MODE_STRAIGHT:      user_options_extra->attack_kern = ATTACK_KERN_STRAIGHT; break;
+    case ATTACK_MODE_COMBI:         user_options_extra->attack_kern = ATTACK_KERN_COMBI;    break;
+    case ATTACK_MODE_BF:            user_options_extra->attack_kern = ATTACK_KERN_BF;       break;
+    case ATTACK_MODE_HYBRID1:       user_options_extra->attack_kern = ATTACK_KERN_COMBI;    break;
+    case ATTACK_MODE_HYBRID2:       user_options_extra->attack_kern = ATTACK_KERN_COMBI;    break;
+    case ATTACK_MODE_ASSOCIATION:   user_options_extra->attack_kern = ATTACK_KERN_STRAIGHT; break;
   }
 
   // rules
@@ -3027,7 +3047,6 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   user_options_t *user_options = hashcat_ctx->user_options;
   logfile_ctx_t  *logfile_ctx  = hashcat_ctx->logfile_ctx;
 
-  logfile_top_char   (user_options->separator);
   #ifdef WITH_BRAIN
   logfile_top_string (user_options->brain_session_whitelist);
   #endif
@@ -3052,6 +3071,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_string (user_options->rule_buf_l);
   logfile_top_string (user_options->rule_buf_r);
   logfile_top_string (user_options->session);
+  logfile_top_string (user_options->separator);
   logfile_top_string (user_options->truecrypt_keyfiles);
   logfile_top_string (user_options->veracrypt_keyfiles);
   #ifdef WITH_BRAIN

@@ -10,16 +10,16 @@
 #include "hlfmt.h"
 #include "shared.h"
 
-static const char *HLFMT_TEXT_HASHCAT  = "native hashcat";
-static const char *HLFMT_TEXT_PWDUMP   = "pwdump";
-static const char *HLFMT_TEXT_PASSWD   = "passwd";
-static const char *HLFMT_TEXT_SHADOW   = "shadow";
-static const char *HLFMT_TEXT_DCC      = "DCC";
-static const char *HLFMT_TEXT_DCC2     = "DCC 2";
-static const char *HLFMT_TEXT_NETNTLM1 = "NetNTLMv1";
-static const char *HLFMT_TEXT_NETNTLM2 = "NetNTLMv2";
-static const char *HLFMT_TEXT_NSLDAP   = "nsldap";
-static const char *HLFMT_TEXT_NSLDAPS  = "nsldaps";
+static const char *const HLFMT_TEXT_HASHCAT  = "native hashcat";
+static const char *const HLFMT_TEXT_PWDUMP   = "pwdump";
+static const char *const HLFMT_TEXT_PASSWD   = "passwd";
+static const char *const HLFMT_TEXT_SHADOW   = "shadow";
+static const char *const HLFMT_TEXT_DCC      = "DCC";
+static const char *const HLFMT_TEXT_DCC2     = "DCC 2";
+static const char *const HLFMT_TEXT_NETNTLM1 = "NetNTLMv1";
+static const char *const HLFMT_TEXT_NETNTLM2 = "NetNTLMv2";
+static const char *const HLFMT_TEXT_NSLDAP   = "nsldap";
+static const char *const HLFMT_TEXT_NSLDAPS  = "nsldaps";
 
 // hlfmt hashcat
 

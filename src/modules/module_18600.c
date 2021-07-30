@@ -21,7 +21,8 @@ static const char *HASH_NAME      = "Open Document Format (ODF) 1.1 (SHA-1, Blow
 static const u64   KERN_TYPE      = 18600;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
+static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_DYNAMIC_SHARED;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$odf$*0*0*1024*16*bff753835f4ea15644b8a2f8e4b5be3d147b9576*8*ee371da34333b69d*16*a902eff54a4d782a26a899a31f97bef4*0*dae7e41fbc3a500d3ce152edd8876c4f38fb17d673ee2ac44ef1e0e283622cd2ae298a82d8d98f2ea737247881fc353e73a2f535c6e13e0cdc60821c1a61c53a4b0c46ff3a3b355d7b793fad50de15999fc7c1194321d1c54316c3806956c4a3ade7daabb912a2a36398eba883af088b3cb69b43365d9ba9fce3fb0c1524f73947a7e9fc1bf3adb5f85a367035feacb5d97c578b037144c2793f34aa09dcd04bdaa455aee0d4c52fe377248611dd56f2bd4eb294673525db905f5d905a28dec0909348e6bf94bcebf03ddd61a48797cd5728ce6dbb71037b268f526e806401abcf495f6edd0b5d87118671ec690d4627f86a43e51c7f6d42a75a56eec51204d47e115e813ed4425c97b16b195e02ce776c185194b9de43ae89f356e29face016cb393d6fb93af8ea305d921d5592dd184051ac790b9b90266f52b8d53ce1cb1d762942d6d5bbd0e3821be21af9fa6874ba0c60e64f41d3e5b6caca1c53b575afdc5d8f6a3edbf874dbe009c6cb296466fe9637aed4aed8a43a95ea7d26b4090ad33d4ee7a83844b0893e8bc0f04944205fb9576cb5720f019028cd75ca9ac47b3e5fa231354d74135564df43b659cfaea7e195c4a896e0e0e0c85dc9ce3a9ce9ba552bc2a6dbac4901c19558818e1957ed72d78662bb5ba53475ca584371f1825ae0c92322a4404e63c2baad92665aac29b5c6f96e1e6338d48fb0aef4d0b686063974f58b839484f8dcf0a02537cba67a7d2c4de13125d74820cb07ec72782035af1ea6c4db61c77016d1c021b63c8b07adb4e8510f5c41bbc501f60f3dd16462399b52eb146787e38e700147c7aa23ac4d5d22d9d1c93e67a01c92a197d4765cbf8d56a862a1205abb450a182913a69b8d5334a59924f86fb3ccd0dcfe7426053e26ba26b57c05f38d85863fff1f81135b0366e8cd8680663ae8aaf7d005317b849d5e08be882708fa0d8d02d47e89150124b507c34845c922b95e62aa0b3fef218773d7aeb572c67b35ad8787f31ecc6e1846b673b8ba6172223176eabf0020b6aa3aa71405b40b2fc2127bf9741a103f1d8eca21bf27328cdf15153f2f223eff7b831a72ed8ecacf4ea8df4ea44f3a3921e5a88fb2cfa355ece0f05cbc88fdd1ecd368d6e3b2dfabd999e5b708f1bccaeebb296c9d7b76659967742fe966aa6871cbbffe710b0cd838c6e02e6eb608cb5c81d066b60b5b3604396331d97d4a2c4c2317406e48c9f5387a2c72511d1e6899bd450e9ca88d535755bcfddb53a6df118cd9cdc7d8b4b814f7bc17684d8e5975defaa25d06f410ed0724c16b8f69ec3869bc1f05c71483666968d1c04509875dadd72c6182733d564eb1a7d555dc34f6b817c5418626214d0b2c3901c5a46f5b20fddfdf9f71a7dfd75b9928778a3f65e1832dff22be973c2b259744d500a3027c2a2e08972eaaad4c5c4ec871";
@@ -66,16 +67,25 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 {
   char *jit_build_options = NULL;
 
+  // this mode heavily depends on the available shared memory size
+  // note the kernel need to have some special code changes in order to make use to use post-48k memory region
+  // we need to set some macros
+
+  bool use_dynamic = false;
+
+  if (device_param->is_cuda == true)
+  {
+    use_dynamic = true;
+  }
+
   // this uses some nice feedback effect.
   // based on the device_local_mem_size the reqd_work_group_size in the kernel is set to some value
   // which is then is read from the opencl host in the kernel_preferred_wgs_multiple1/2/3 result.
   // therefore we do not need to set module_kernel_threads_min/max except for CPU, where the threads are set to fixed 1.
 
-  u32 fixed_local_size = 0;
-
   if (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU)
   {
-    fixed_local_size = 1;
+    hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE_COMP=%u", 1);
   }
   else
   {
@@ -91,28 +101,57 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
       if (device_param->is_opencl == true)
       {
-        overhead = 4;
+        overhead = 1;
       }
     }
 
     if (user_options->kernel_threads_chgd == true)
     {
-      fixed_local_size = user_options->kernel_threads;
+      u32 fixed_local_size = user_options->kernel_threads;
 
-      // otherwise out-of-bound reads
-
-      if ((fixed_local_size * 4096) > (device_param->device_local_mem_size - overhead))
+      if (use_dynamic == true)
       {
-        fixed_local_size = (device_param->device_local_mem_size - overhead) / 4096;
+        if ((fixed_local_size * 4096) > device_param->kernel_dynamic_local_mem_size_memset)
+        {
+          // otherwise out-of-bound reads
+
+          fixed_local_size = device_param->kernel_dynamic_local_mem_size_memset / 4096;
+        }
+
+        hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE_COMP=%u -D DYNAMIC_LOCAL", fixed_local_size);
+      }
+      else
+      {
+        if ((fixed_local_size * 4096) > (device_param->device_local_mem_size - overhead))
+        {
+          // otherwise out-of-bound reads
+
+          fixed_local_size = (device_param->device_local_mem_size - overhead) / 4096;
+        }
+
+        hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE_COMP=%u", fixed_local_size);
       }
     }
     else
     {
-      fixed_local_size = (device_param->device_local_mem_size - overhead) / 4096;
+      if (use_dynamic == true)
+      {
+        // using kernel_dynamic_local_mem_size_memset is a bit hackish.
+        // we had to brute-force this value out of an already loaded CUDA function.
+        // there's no official way to query for this value.
+
+        const u32 fixed_local_size = device_param->kernel_dynamic_local_mem_size_memset / 4096;
+
+        hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE_COMP=%u -D DYNAMIC_LOCAL", fixed_local_size);
+      }
+      else
+      {
+        const u32 fixed_local_size = (device_param->device_local_mem_size - overhead) / 4096;
+
+        hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE_COMP=%u", fixed_local_size);
+      }
     }
   }
-
-  hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u", fixed_local_size);
 
   return jit_build_options;
 }

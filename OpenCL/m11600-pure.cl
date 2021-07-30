@@ -42,13 +42,20 @@ DECLSPEC void memcat8c_be (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 len, co
   u32 tmp0;
   u32 tmp1;
 
-  #if (defined IS_AMD || defined IS_HIP) || defined IS_GENERIC
+  #if ((defined IS_AMD || defined IS_HIP) && HAS_VPERM == 0) || defined IS_GENERIC
   tmp0 = hc_bytealign_be (0, append, func_len);
   tmp1 = hc_bytealign_be (append, 0, func_len);
   #endif
 
-  #ifdef IS_NV
+  #if ((defined IS_AMD || defined IS_HIP) && HAS_VPERM == 1) || defined IS_NV
+
+  #if defined IS_NV
   const int selector = (0x76543210 >> ((func_len & 3) * 4)) & 0xffff;
+  #endif
+
+  #if (defined IS_AMD || defined IS_HIP)
+  const int selector = l32_from_64_S (0x0706050403020100UL >> ((func_len & 3) * 8));
+  #endif
 
   tmp0 = hc_byte_perm (append, 0, selector);
   tmp1 = hc_byte_perm (0, append, selector);

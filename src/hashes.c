@@ -2078,7 +2078,7 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
 
       memcpy (hashconfig_st, hashconfig, sizeof (hashconfig_t));
 
-      hashconfig_st->separator = SEPARATOR;
+      hashconfig_st->separator = ':';
 
       if (user_options->hex_salt)
       {
