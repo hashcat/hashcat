@@ -9,24 +9,23 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "memory.h"
+#include "emu_inc_hash_md5.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
 static const u32   DGST_POS1      = 1;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
-static const u32   DGST_SIZE      = DGST_SIZE_4_5;
-static const u32   HASH_CATEGORY  = HASH_CATEGORY_PASSWORD_MANAGER;
-static const char *HASH_NAME      = "Password Safe v2";
-static const u64   KERN_TYPE      = 9000;
+static const u32   DGST_SIZE      = DGST_SIZE_4_4; // 4_3
+static const u32   HASH_CATEGORY  = HASH_CATEGORY_NETWORK_PROTOCOL;
+static const char *HASH_NAME      = "SNMPv3 HMAC-MD5-96/HMAC-SHA1-96";
+static const u64   KERN_TYPE      = 25000;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_BINARY_HASHFILE
-                                  | OPTS_TYPE_AUTODETECT_DISABLE
-                                  | OPTS_TYPE_DYNAMIC_SHARED;
+static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
-static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "0a3f352686e5eb5be173e668a4fff5cd5df420927e1da2d5d4052340160637e3e6a5a92841a188ed240e13b919f3d91694bd4c0acba79271e9c08a83ea5ad387cbb74d5884066a1cb5a8caa80d847079168f84823847c631dbe3a834f1bc496acfebac3bff1608bf1c857717f8f428e07b5e2cb12aaeddfa83d7dcb6d840234d08b84f8ca6c6e562af73eea13148f7902bcaf0220d3e36eeeff1d37283dc421483a2791182614ebb";
+static const char *ST_PASS        = "hashcat1";
+static const char *ST_HASH        = "$SNMPv3$0$45889431$30818f0201033011020409242fc0020300ffe304010102010304383036041180001f88808106d566db57fd600000000002011002020118040a6d61747269785f4d4435040c0000000000000000000000000400303d041180001f88808106d566db57fd60000000000400a226020411f319300201000201003018301606082b06010201010200060a2b06010401bf0803020a$80001f88808106d566db57fd6000000000$1b37c3ea872731f922959e90";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -43,175 +42,227 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
-typedef struct struct_psafe2_hdr
+static const char *SIGNATURE_SNMPV3 = "$SNMPv3$0$";
+
+#define SNMPV3_SALT_MAX             1500
+#define SNMPV3_ENGINEID_MAX         34
+#define SNMPV3_MSG_AUTH_PARAMS_LEN  12
+#define SNMPV3_ROUNDS               1048576
+#define SNMPV3_MAX_PW_LENGTH        64
+
+#define SNMPV3_TMP_ELEMS            4096 // 4096 = (256 (max pw length) * 64) / sizeof (u32)
+#define SNMPV3_HASH_ELEMS_MD5       4
+#define SNMPV3_HASH_ELEMS_SHA1      8
+
+#define SNMPV3_MAX_SALT_ELEMS       512 // 512 * 4 = 2048 > 1500, also has to be multiple of 64
+#define SNMPV3_MAX_ENGINE_ELEMS     16  // 16 * 4 = 64 > 32, also has to be multiple of 64
+#define SNMPV3_MAX_PNUM_ELEMS       4   // 4 * 4 = 16 > 9
+
+typedef struct hmac_md5_tmp
 {
-  u32  random[2];
-  u32  hash[5];
-  u32  salt[5];   // unused, but makes better valid check
-  u32  iv[2];     // unused, but makes better valid check
+  u32 tmp_md5[SNMPV3_TMP_ELEMS];
+  u32 tmp_sha1[SNMPV3_TMP_ELEMS];
 
-} psafe2_hdr;
+  u32 h_md5[SNMPV3_HASH_ELEMS_MD5];
+  u32 h_sha1[SNMPV3_HASH_ELEMS_SHA1];
 
-typedef struct pwsafe2_tmp
+} hmac_md5_tmp_t;
+
+typedef struct snmpv3
 {
-  u32 digest[2];
+  u32 salt_buf[SNMPV3_MAX_SALT_ELEMS];
+  u32 salt_len;
 
-  u32 P[18];
+  u32 engineID_buf[SNMPV3_MAX_ENGINE_ELEMS];
+  u32 engineID_len;
 
-  u32 S0[256];
-  u32 S1[256];
-  u32 S2[256];
-  u32 S3[256];
+  u32 packet_number[SNMPV3_MAX_PNUM_ELEMS];
 
-} pwsafe2_tmp_t;
+} snmpv3_t;
+
+u32 module_pw_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 pw_min = 8;
+
+  return pw_min;
+}
+
+u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u64 esalt_size = (const u64) sizeof (snmpv3_t);
+
+  return esalt_size;
+}
 
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u64 tmp_size = (const u64) sizeof (pwsafe2_tmp_t);
+  const u64 tmp_size = (const u64) sizeof (hmac_md5_tmp_t);
 
   return tmp_size;
 }
 
-char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
+u32 module_kernel_loops_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  char *jit_build_options = NULL;
+  // we need to fix iteration count to guarantee the loop count is a multiple of 64
+  // 2k calls to md5_transform/sha1_transform typically is enough to overtime pcie bottleneck
 
-  // this mode heavily depends on the available shared memory size
-  // note the kernel need to have some special code changes in order to make use to use post-48k memory region
-  // we need to set some macros
+  const u32 kernel_loops_min = 2048 * 64;
 
-  bool use_dynamic = false;
-
-  if (device_param->is_cuda == true)
-  {
-    use_dynamic = true;
-  }
-
-  // this uses some nice feedback effect.
-  // based on the device_local_mem_size the reqd_work_group_size in the kernel is set to some value
-  // which is then is read from the opencl host in the kernel_preferred_wgs_multiple1/2/3 result.
-  // therefore we do not need to set module_kernel_threads_min/max except for CPU, where the threads are set to fixed 1.
-
-  if (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU)
-  {
-    hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u", 1);
-  }
-  else
-  {
-    u32 overhead = 0;
-
-    if (device_param->opencl_device_vendor_id == VENDOR_ID_NV)
-    {
-      // note we need to use device_param->device_local_mem_size - 4 because opencl jit returns with:
-      // Entry function '...' uses too much shared data (0xc004 bytes, 0xc000 max)
-      // on my development system. no clue where the 4 bytes are spent.
-      // I did some research on this and it seems to be related with the datatype.
-      // For example, if i used u8 instead, there's only 1 byte wasted.
-
-      if (device_param->is_opencl == true)
-      {
-        overhead = 1;
-      }
-    }
-
-    if (user_options->kernel_threads_chgd == true)
-    {
-      u32 fixed_local_size = user_options->kernel_threads;
-
-      if (use_dynamic == true)
-      {
-        if ((fixed_local_size * 4096) > device_param->kernel_dynamic_local_mem_size_memset)
-        {
-          // otherwise out-of-bound reads
-
-          fixed_local_size = device_param->kernel_dynamic_local_mem_size_memset / 4096;
-        }
-
-        hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u -D DYNAMIC_LOCAL", fixed_local_size);
-      }
-      else
-      {
-        if ((fixed_local_size * 4096) > (device_param->device_local_mem_size - overhead))
-        {
-          // otherwise out-of-bound reads
-
-          fixed_local_size = (device_param->device_local_mem_size - overhead) / 4096;
-        }
-
-        hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u", fixed_local_size);
-      }
-    }
-    else
-    {
-      if (use_dynamic == true)
-      {
-        // using kernel_dynamic_local_mem_size_memset is a bit hackish.
-        // we had to brute-force this value out of an already loaded CUDA function.
-        // there's no official way to query for this value.
-
-        const u32 fixed_local_size = device_param->kernel_dynamic_local_mem_size_memset / 4096;
-
-        hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u -D DYNAMIC_LOCAL", fixed_local_size);
-      }
-      else
-      {
-        const u32 fixed_local_size = (device_param->device_local_mem_size - overhead) / 4096;
-
-        hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u", fixed_local_size);
-      }
-    }
-  }
-
-  return jit_build_options;
+  return kernel_loops_min;
 }
 
-bool module_outfile_check_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+u32 module_kernel_loops_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const bool outfile_check_disable = true;
+  const u32 kernel_loops_max = 2048 * 64;
 
-  return outfile_check_disable;
-}
-
-bool module_potfile_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const bool potfile_disable = true;
-
-  return potfile_disable;
+  return kernel_loops_max;
 }
 
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
   u32 *digest = (u32 *) digest_buf;
 
-  if (line_len == 0) return (PARSER_HASH_LENGTH);
+  snmpv3_t *snmpv3 = (snmpv3_t *) esalt_buf;
 
-  HCFILE fp;
+  token_t token;
 
-  if (hc_fopen (&fp, (const char *) line_buf, "rb") == false) return (PARSER_HASH_FILE);
+  token.token_cnt  = 5;
+  token.signatures_cnt    = 1;
+  token.signatures_buf[0] = SIGNATURE_SNMPV3;
 
-  psafe2_hdr buf;
+  token.len[0]     = 10;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  memset (&buf, 0, sizeof (psafe2_hdr));
+  // packet number
+  token.len_min[1] = 1;
+  token.len_max[1] = 8;
+  token.sep[1]     = '$';
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
+  // salt
+  token.len_min[2] = SNMPV3_MSG_AUTH_PARAMS_LEN * 2;
+  token.len_max[2] = SNMPV3_SALT_MAX * 2;
+  token.sep[2]     = '$';
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  const size_t n = hc_fread (&buf, sizeof (psafe2_hdr), 1, &fp);
+  // engineid
+  token.len_min[3] = 26;
+  token.len_max[3] = SNMPV3_ENGINEID_MAX;
+  token.sep[3]     = '$';
+  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  hc_fclose (&fp);
+  // digest
+  token.len[4]     = SNMPV3_MSG_AUTH_PARAMS_LEN * 2;
+  token.sep[4]     = '$';
+  token.attr[4]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  if (n != 1) return (PARSER_PSAFE2_FILE_SIZE);
+  const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
-  salt->salt_buf[0] = buf.random[0];
-  salt->salt_buf[1] = buf.random[1];
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  salt->salt_len  = 8;
-  salt->salt_iter = 1000;
+  // packet number
 
-  digest[0] = byte_swap_32 (buf.hash[0]);
-  digest[1] = byte_swap_32 (buf.hash[1]);
-  digest[2] = byte_swap_32 (buf.hash[2]);
-  digest[3] = byte_swap_32 (buf.hash[3]);
-  digest[4] = byte_swap_32 (buf.hash[4]);
+  const u8 *packet_number_pos = token.buf[1];
+  const int packet_number_len = token.len[1];
+
+  memset (snmpv3->packet_number, 0, sizeof (snmpv3->packet_number));
+
+  strncpy ((char *) snmpv3->packet_number, (char *) packet_number_pos, packet_number_len);
+
+  // salt
+
+  const u8 *salt_pos = token.buf[2];
+  const int salt_len = token.len[2];
+
+  u8 *salt_ptr = (u8 *) snmpv3->salt_buf;
+
+  snmpv3->salt_len = hex_decode (salt_pos, salt_len, salt_ptr);
+
+  salt->salt_iter = SNMPV3_ROUNDS;
+
+  // handle unique salts detection
+
+  md5_ctx_t md5_ctx;
+
+  md5_init   (&md5_ctx);
+  md5_update (&md5_ctx, snmpv3->salt_buf, snmpv3->salt_len);
+  md5_final  (&md5_ctx);
+
+  // store md5(snmpv3->salt_buf) in salt_buf
+
+  salt->salt_len = 16;
+
+  memcpy (salt->salt_buf, md5_ctx.h, salt->salt_len);
+
+  // engineid
+
+  const u8 *engineID_pos = token.buf[3];
+  const int engineID_len = token.len[3];
+
+  u8 *engineID_ptr = (u8 *) snmpv3->engineID_buf;
+
+  snmpv3->engineID_len = hex_decode (engineID_pos, engineID_len, engineID_ptr);
+
+  // digest
+
+  const u8 *hash_pos = token.buf[4];
+
+  digest[0] = hex_to_u32 (hash_pos +  0);
+  digest[1] = hex_to_u32 (hash_pos +  8);
+  digest[2] = hex_to_u32 (hash_pos + 16);
+
+  // prefer sha1 due to speed
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+
+  digest[3] = 0;
 
   return (PARSER_OK);
+}
+
+int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
+{
+  const u32 *digest = (const u32 *) digest_buf;
+
+  snmpv3_t *snmpv3 = (snmpv3_t *) esalt_buf;
+
+  u8 *out_buf = (u8 *) line_buf;
+
+  int out_len = snprintf (line_buf, line_size, "%s%s$", SIGNATURE_SNMPV3, (char *) snmpv3->packet_number);
+
+  out_len += hex_encode ((u8 *) snmpv3->salt_buf, snmpv3->salt_len, out_buf + out_len);
+
+  out_buf[out_len] = '$';
+
+  out_len++;
+
+  out_len += hex_encode ((u8 *) snmpv3->engineID_buf, snmpv3->engineID_len, out_buf + out_len);
+
+  out_buf[out_len] = '$';
+
+  out_len++;
+
+  // prefer sha1 due to speed
+
+  u32 digest_tmp[3];
+
+  digest_tmp[0] = byte_swap_32 (digest[0]);
+  digest_tmp[1] = byte_swap_32 (digest[1]);
+  digest_tmp[2] = byte_swap_32 (digest[2]);
+
+  u32_to_hex (digest_tmp[0], out_buf + out_len); out_len += 8;
+  u32_to_hex (digest_tmp[1], out_buf + out_len); out_len += 8;
+  u32_to_hex (digest_tmp[2], out_buf + out_len); out_len += 8;
+
+  out_buf[out_len] = 0;
+
+  return out_len;
 }
 
 void module_init (module_ctx_t *module_ctx)
@@ -232,7 +283,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_pos3                = module_dgst_pos3;
   module_ctx->module_dgst_size                = module_dgst_size;
   module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
-  module_ctx->module_esalt_size               = MODULE_DEFAULT;
+  module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
   module_ctx->module_forced_outfile_format    = MODULE_DEFAULT;
@@ -244,7 +295,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_decode              = module_hash_decode;
   module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
   module_ctx->module_hash_encode_potfile      = MODULE_DEFAULT;
-  module_ctx->module_hash_encode              = MODULE_DEFAULT;
+  module_ctx->module_hash_encode              = module_hash_encode;
   module_ctx->module_hash_init_selftest       = MODULE_DEFAULT;
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;
@@ -259,26 +310,26 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hook23                   = MODULE_DEFAULT;
   module_ctx->module_hook_salt_size           = MODULE_DEFAULT;
   module_ctx->module_hook_size                = MODULE_DEFAULT;
-  module_ctx->module_jit_build_options        = module_jit_build_options;
+  module_ctx->module_jit_build_options        = MODULE_DEFAULT;
   module_ctx->module_jit_cache_disable        = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_max         = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_min         = MODULE_DEFAULT;
-  module_ctx->module_kernel_loops_max         = MODULE_DEFAULT;
-  module_ctx->module_kernel_loops_min         = MODULE_DEFAULT;
+  module_ctx->module_kernel_loops_max         = module_kernel_loops_max;
+  module_ctx->module_kernel_loops_min         = module_kernel_loops_min;
   module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
   module_ctx->module_opti_type                = module_opti_type;
   module_ctx->module_opts_type                = module_opts_type;
-  module_ctx->module_outfile_check_disable    = module_outfile_check_disable;
+  module_ctx->module_outfile_check_disable    = MODULE_DEFAULT;
   module_ctx->module_outfile_check_nocomp     = MODULE_DEFAULT;
   module_ctx->module_potfile_custom_check     = MODULE_DEFAULT;
-  module_ctx->module_potfile_disable          = module_potfile_disable;
+  module_ctx->module_potfile_disable          = MODULE_DEFAULT;
   module_ctx->module_potfile_keep_all_hashes  = MODULE_DEFAULT;
   module_ctx->module_pwdump_column            = MODULE_DEFAULT;
   module_ctx->module_pw_max                   = MODULE_DEFAULT;
-  module_ctx->module_pw_min                   = MODULE_DEFAULT;
+  module_ctx->module_pw_min                   = module_pw_min;
   module_ctx->module_salt_max                 = MODULE_DEFAULT;
   module_ctx->module_salt_min                 = MODULE_DEFAULT;
   module_ctx->module_salt_type                = module_salt_type;

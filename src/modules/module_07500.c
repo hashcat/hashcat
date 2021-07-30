@@ -65,35 +65,13 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
   }
   else if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
   {
-    if (device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK)
+    if (device_param->device_local_mem_size < 49152)
     {
-      native_threads = 8;
-    }
-    else if (device_param->opencl_device_vendor_id == VENDOR_ID_AMD)
-    {
-      if (device_param->device_local_mem_size < 49152)
-      {
-        native_threads = 32;
-      }
-      else
-      {
-        native_threads = 64;
-      }
-    }
-    else if (device_param->opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP)
-    {
-      if (device_param->device_local_mem_size < 49152)
-      {
-        native_threads = 32;
-      }
-      else
-      {
-        native_threads = 64;
-      }
+      native_threads = MIN (device_param->kernel_preferred_wgs_multiple, 32); // We can't just set 32, because Intel GPU need 8
     }
     else
     {
-      native_threads = 32;
+      native_threads = device_param->kernel_preferred_wgs_multiple;
     }
   }
 
