@@ -25,8 +25,7 @@ KERNEL_FQ void m00126_mxx (KERN_ATTR_VECTOR ())
 
   if (gid >= gid_max) return;
 
-  u32x dash[64] = { 0 };
-  dash[0] = 0x2d2d0000;
+  const u32x dash[16] = { 0x2d2d0000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
   /**
    * base
@@ -90,9 +89,8 @@ KERNEL_FQ void m00126_sxx (KERN_ATTR_VECTOR ())
 
   if (gid >= gid_max) return;
 
-  u32x dash[64] = { 0 };
-  dash[0] = 0x2d2d0000;
-
+  const u32 dash[16] = { 0x2d2d0000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  
   /**
    * digest
    */
