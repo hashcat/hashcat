@@ -80,7 +80,7 @@ typedef struct seven_zip_hook_salt
 
   u8  data_type;
 
-  u32 data_buf[81882];
+  u32 data_buf[0x200000];
   u32 data_len;
 
   u32 unpack_size;
@@ -130,8 +130,8 @@ bool module_hook_extra_param_init (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 {
   seven_zip_hook_extra_t *seven_zip_hook_extra = (seven_zip_hook_extra_t *) hook_extra_param;
 
-  #define AESSIZE  320 * 1024
-  #define UNPSIZE 9766 * 1024 // or actually maximum is 9999999
+  #define AESSIZE 8 * 1024 * 1024
+  #define UNPSIZE 9999999
 
   seven_zip_hook_extra->aes = hccalloc (backend_ctx->backend_devices_cnt, sizeof (void *));
 
@@ -500,7 +500,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.sep[10]     = '$';
   token.len_min[10] = 2;
-  token.len_max[10] = 655056;
+  token.len_max[10] = 0x200000 * 4 * 2;
   token.attr[10]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
@@ -592,7 +592,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if ((data_len * 2) != data_buf_len) return (PARSER_SALT_VALUE);
 
-  if (data_len > 327528) return (PARSER_SALT_VALUE);
+  if (data_len > 0x200000 * 4) return (PARSER_SALT_VALUE);
 
   if (unpack_size > data_len) return (PARSER_SALT_VALUE);
 

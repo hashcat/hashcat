@@ -41,6 +41,7 @@
 - Kernel Cache: Add kernel threads into hash computation which is later used in the kernel cache filename
 - Memory Management: Refactored the code responsible for limiting kernel accel in order to avoid out of -host- memory situations
 - SCRYPT Kernels: Add more optimized values for some new NV/AMD GPUs
+- 7-Zip Hook: Increase supported data length from 320kb to 8mb
 
 ##
 ## Algorithms
