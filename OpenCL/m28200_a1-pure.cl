@@ -14,7 +14,7 @@
 #include "inc_hash_sha1.cl"
 #endif
 
-KERNEL_FQ void m00126_mxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void m28200_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -60,7 +60,7 @@ KERNEL_FQ void m00126_mxx (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m00126_sxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void m28200_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
