@@ -46,9 +46,10 @@
 ## Algorithms
 ##
 
-- Added hash-mode: SNMPv3 HMAC-SHA1-96
-- Added hash-mode: SNMPv3 HMAC-MD5-96
 - Added hash-mode: SNMPv3 HMAC-MD5-96/HMAC-SHA1-96
+- Added hash-mode: SNMPv3 HMAC-MD5-96
+- Added hash-mode: SNMPv3 HMAC-SHA1-96
+- Added hash-mode: SNMPv3 HMAC-SHA224-128
 
 * changes v6.2.2 -> v6.2.3
 
