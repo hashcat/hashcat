@@ -47,8 +47,6 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
-static const char *dashes = "--";
-
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
   u32 *digest = (u32 *) digest_buf;
@@ -101,17 +99,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
 
-  u8 *psalt_buf = (u8 *) salt->salt_buf;
-
-  // Add dashes before salt
-  memmove(psalt_buf + 2, psalt_buf, salt->salt_len + 1);
-  memcpy(psalt_buf, dashes, 2);
-  salt->salt_len += 2;
-
-  // Add dashes after salt
-  memcpy(psalt_buf + salt->salt_len, dashes, 2);
-  salt->salt_len += 2;
-
   return (PARSER_OK);
 }
 
@@ -159,13 +146,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   out_len += 1;
 
-  // Remove dashes from salt
-  u8 *psalt_buf = (u8 *) salt->salt_buf;
-  const int salt_len = 40;
-  memmove(psalt_buf, psalt_buf + 2, salt->salt_len - 4);
-  psalt_buf[salt->salt_len - 4] = 0;
-
-  out_len += generic_salt_encode (hashconfig, (const u8 *) psalt_buf, salt_len, out_buf + out_len);
+  out_len += generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, salt->salt_len, out_buf + out_len);
   
   return out_len;
 }
