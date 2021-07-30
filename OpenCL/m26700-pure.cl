@@ -11,7 +11,7 @@
 #include "inc_platform.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
-#include "inc_hash_md5.cl"
+#include "inc_hash_sha224.cl"
 #endif
 
 #define COMPARE_S "inc_comp_single.cl"
@@ -19,23 +19,23 @@
 
 #define SNMPV3_SALT_MAX             1500
 #define SNMPV3_ENGINEID_MAX         34
-#define SNMPV3_MSG_AUTH_PARAMS_LEN  12
+#define SNMPV3_MSG_AUTH_PARAMS_MAX  16
 #define SNMPV3_ROUNDS               1048576
 #define SNMPV3_MAX_PW_LENGTH        64
 
 #define SNMPV3_TMP_ELEMS            4096 // 4096 = (256 (max pw length) * 64) / sizeof (u32)
-#define SNMPV3_HASH_ELEMS           4
+#define SNMPV3_HASH_ELEMS           8
 
 #define SNMPV3_MAX_SALT_ELEMS       512 // 512 * 4 = 2048 > 1500, also has to be multiple of 64
 #define SNMPV3_MAX_ENGINE_ELEMS     16  // 16 * 4 = 64 > 32, also has to be multiple of 64
 #define SNMPV3_MAX_PNUM_ELEMS       4   // 4 * 4 = 16 > 9
 
-typedef struct hmac_md5_tmp
+typedef struct hmac_sha224_tmp
 {
   u32 tmp[SNMPV3_TMP_ELEMS];
   u32 h[SNMPV3_HASH_ELEMS];
 
-} hmac_md5_tmp_t;
+} hmac_sha224_tmp_t;
 
 typedef struct snmpv3
 {
@@ -49,7 +49,7 @@ typedef struct snmpv3
 
 } snmpv3_t;
 
-KERNEL_FQ void m25100_init (KERN_ATTR_TMPS_ESALT (hmac_md5_tmp_t, snmpv3_t))
+KERNEL_FQ void m26700_init (KERN_ATTR_TMPS_ESALT (hmac_sha224_tmp_t, snmpv3_t))
 {
   /**
    * modifier
@@ -96,23 +96,23 @@ KERNEL_FQ void m25100_init (KERN_ATTR_TMPS_ESALT (hmac_md5_tmp_t, snmpv3_t))
       {
         const int tmp_idx4 = (tmp_idx - 63) / 4;
 
-        tmps[gid].tmp[tmp_idx4 +  0] = dst_buf[ 0];
-        tmps[gid].tmp[tmp_idx4 +  1] = dst_buf[ 1];
-        tmps[gid].tmp[tmp_idx4 +  2] = dst_buf[ 2];
-        tmps[gid].tmp[tmp_idx4 +  3] = dst_buf[ 3];
-        tmps[gid].tmp[tmp_idx4 +  4] = dst_buf[ 4];
-        tmps[gid].tmp[tmp_idx4 +  5] = dst_buf[ 5];
-        tmps[gid].tmp[tmp_idx4 +  6] = dst_buf[ 6];
-        tmps[gid].tmp[tmp_idx4 +  7] = dst_buf[ 7];
-        tmps[gid].tmp[tmp_idx4 +  8] = dst_buf[ 8];
-        tmps[gid].tmp[tmp_idx4 +  9] = dst_buf[ 9];
-        tmps[gid].tmp[tmp_idx4 + 10] = dst_buf[10];
-        tmps[gid].tmp[tmp_idx4 + 11] = dst_buf[11];
-        tmps[gid].tmp[tmp_idx4 + 12] = dst_buf[12];
-        tmps[gid].tmp[tmp_idx4 + 13] = dst_buf[13];
-        tmps[gid].tmp[tmp_idx4 + 14] = dst_buf[14];
-        tmps[gid].tmp[tmp_idx4 + 15] = dst_buf[15];
-     }
+        tmps[gid].tmp[tmp_idx4 +  0] = hc_swap32_S (dst_buf[ 0]);
+        tmps[gid].tmp[tmp_idx4 +  1] = hc_swap32_S (dst_buf[ 1]);
+        tmps[gid].tmp[tmp_idx4 +  2] = hc_swap32_S (dst_buf[ 2]);
+        tmps[gid].tmp[tmp_idx4 +  3] = hc_swap32_S (dst_buf[ 3]);
+        tmps[gid].tmp[tmp_idx4 +  4] = hc_swap32_S (dst_buf[ 4]);
+        tmps[gid].tmp[tmp_idx4 +  5] = hc_swap32_S (dst_buf[ 5]);
+        tmps[gid].tmp[tmp_idx4 +  6] = hc_swap32_S (dst_buf[ 6]);
+        tmps[gid].tmp[tmp_idx4 +  7] = hc_swap32_S (dst_buf[ 7]);
+        tmps[gid].tmp[tmp_idx4 +  8] = hc_swap32_S (dst_buf[ 8]);
+        tmps[gid].tmp[tmp_idx4 +  9] = hc_swap32_S (dst_buf[ 9]);
+        tmps[gid].tmp[tmp_idx4 + 10] = hc_swap32_S (dst_buf[10]);
+        tmps[gid].tmp[tmp_idx4 + 11] = hc_swap32_S (dst_buf[11]);
+        tmps[gid].tmp[tmp_idx4 + 12] = hc_swap32_S (dst_buf[12]);
+        tmps[gid].tmp[tmp_idx4 + 13] = hc_swap32_S (dst_buf[13]);
+        tmps[gid].tmp[tmp_idx4 + 14] = hc_swap32_S (dst_buf[14]);
+        tmps[gid].tmp[tmp_idx4 + 15] = hc_swap32_S (dst_buf[15]);
+      }
 
       tmp_idx++;
     }
@@ -120,13 +120,17 @@ KERNEL_FQ void m25100_init (KERN_ATTR_TMPS_ESALT (hmac_md5_tmp_t, snmpv3_t))
 
   // hash
 
-  tmps[gid].h[0] = MD5M_A;
-  tmps[gid].h[1] = MD5M_B;
-  tmps[gid].h[2] = MD5M_C;
-  tmps[gid].h[3] = MD5M_D;
+  tmps[gid].h[0] = SHA224M_A;
+  tmps[gid].h[1] = SHA224M_B;
+  tmps[gid].h[2] = SHA224M_C;
+  tmps[gid].h[3] = SHA224M_D;
+  tmps[gid].h[4] = SHA224M_E;
+  tmps[gid].h[5] = SHA224M_F;
+  tmps[gid].h[6] = SHA224M_G;
+  tmps[gid].h[7] = SHA224M_H;
 }
 
-KERNEL_FQ void m25100_loop (KERN_ATTR_TMPS_ESALT (hmac_md5_tmp_t, snmpv3_t))
+KERNEL_FQ void m26700_loop (KERN_ATTR_TMPS_ESALT (hmac_sha224_tmp_t, snmpv3_t))
 {
   /**
    * base
@@ -136,12 +140,16 @@ KERNEL_FQ void m25100_loop (KERN_ATTR_TMPS_ESALT (hmac_md5_tmp_t, snmpv3_t))
 
   if (gid >= gid_max) return;
 
-  u32 h[4];
+  u32 h[8];
 
   h[0] = tmps[gid].h[0];
   h[1] = tmps[gid].h[1];
   h[2] = tmps[gid].h[2];
   h[3] = tmps[gid].h[3];
+  h[4] = tmps[gid].h[4];
+  h[5] = tmps[gid].h[5];
+  h[6] = tmps[gid].h[6];
+  h[7] = tmps[gid].h[7];
 
   const u32 pw_len = pws[gid].pw_len;
 
@@ -150,10 +158,10 @@ KERNEL_FQ void m25100_loop (KERN_ATTR_TMPS_ESALT (hmac_md5_tmp_t, snmpv3_t))
   #define SNMPV3_TMP_ELEMS_OPT 1024 // 1024 = (64 max pw length * 64) / sizeof (u32)
                                     // for pw length > 64 we use global memory reads
 
-  u32 tmp[SNMPV3_TMP_ELEMS_OPT];
-
   if (pw_len < 64)
   {
+    u32 tmp[SNMPV3_TMP_ELEMS_OPT];
+
     for (int i = 0; i < pw_len64 / 4; i++)
     {
       tmp[i] = tmps[gid].tmp[i];
@@ -185,7 +193,7 @@ KERNEL_FQ void m25100_loop (KERN_ATTR_TMPS_ESALT (hmac_md5_tmp_t, snmpv3_t))
       w3[2] = tmp[idx + 14];
       w3[3] = tmp[idx + 15];
 
-      md5_transform (w0, w1, w2, w3, h);
+      sha224_transform (w0, w1, w2, w3, h);
     }
   }
   else
@@ -216,7 +224,7 @@ KERNEL_FQ void m25100_loop (KERN_ATTR_TMPS_ESALT (hmac_md5_tmp_t, snmpv3_t))
       w3[2] = tmps[gid].tmp[idx + 14];
       w3[3] = tmps[gid].tmp[idx + 15];
 
-      md5_transform (w0, w1, w2, w3, h);
+      sha224_transform (w0, w1, w2, w3, h);
     }
   }
 
@@ -224,9 +232,13 @@ KERNEL_FQ void m25100_loop (KERN_ATTR_TMPS_ESALT (hmac_md5_tmp_t, snmpv3_t))
   tmps[gid].h[1] = h[1];
   tmps[gid].h[2] = h[2];
   tmps[gid].h[3] = h[3];
+  tmps[gid].h[4] = h[4];
+  tmps[gid].h[5] = h[5];
+  tmps[gid].h[6] = h[6];
+  tmps[gid].h[7] = h[7];
 }
 
-KERNEL_FQ void m25100_comp (KERN_ATTR_TMPS_ESALT (hmac_md5_tmp_t, snmpv3_t))
+KERNEL_FQ void m26700_comp (KERN_ATTR_TMPS_ESALT (hmac_sha224_tmp_t, snmpv3_t))
 {
   /**
    * modifier
@@ -241,7 +253,7 @@ KERNEL_FQ void m25100_comp (KERN_ATTR_TMPS_ESALT (hmac_md5_tmp_t, snmpv3_t))
   u32 w2[4];
   u32 w3[4];
 
-  w0[0] = 0x00000080;
+  w0[0] = 0x80000000;
   w0[1] = 0;
   w0[2] = 0;
   w0[3] = 0;
@@ -255,21 +267,25 @@ KERNEL_FQ void m25100_comp (KERN_ATTR_TMPS_ESALT (hmac_md5_tmp_t, snmpv3_t))
   w2[3] = 0;
   w3[0] = 0;
   w3[1] = 0;
-  w3[2] = 1048576 * 8;
-  w3[3] = 0;
+  w3[2] = 0;
+  w3[3] = 1048576 * 8;
 
-  u32 h[4];
+  u32 h[8];
 
   h[0] = tmps[gid].h[0];
   h[1] = tmps[gid].h[1];
   h[2] = tmps[gid].h[2];
   h[3] = tmps[gid].h[3];
+  h[4] = tmps[gid].h[4];
+  h[5] = tmps[gid].h[5];
+  h[6] = tmps[gid].h[6];
+  h[7] = tmps[gid].h[7];
 
-  md5_transform (w0, w1, w2, w3, h);
+  sha224_transform (w0, w1, w2, w3, h);
 
-  md5_ctx_t ctx;
+  sha224_ctx_t ctx;
 
-  md5_init (&ctx);
+  sha224_init (&ctx);
 
   u32 w[16];
 
@@ -277,9 +293,9 @@ KERNEL_FQ void m25100_comp (KERN_ATTR_TMPS_ESALT (hmac_md5_tmp_t, snmpv3_t))
   w[ 1] = h[1];
   w[ 2] = h[2];
   w[ 3] = h[3];
-  w[ 4] = 0;
-  w[ 5] = 0;
-  w[ 6] = 0;
+  w[ 4] = h[4];
+  w[ 5] = h[5];
+  w[ 6] = h[6];
   w[ 7] = 0;
   w[ 8] = 0;
   w[ 9] = 0;
@@ -290,17 +306,17 @@ KERNEL_FQ void m25100_comp (KERN_ATTR_TMPS_ESALT (hmac_md5_tmp_t, snmpv3_t))
   w[14] = 0;
   w[15] = 0;
 
-  md5_update (&ctx, w, 16);
+  sha224_update (&ctx, w, 28);
 
-  md5_update_global (&ctx, esalt_bufs[DIGESTS_OFFSET].engineID_buf, esalt_bufs[DIGESTS_OFFSET].engineID_len);
+  sha224_update_global_swap (&ctx, esalt_bufs[DIGESTS_OFFSET].engineID_buf, esalt_bufs[DIGESTS_OFFSET].engineID_len);
 
   w[ 0] = h[0];
   w[ 1] = h[1];
   w[ 2] = h[2];
   w[ 3] = h[3];
-  w[ 4] = 0;
-  w[ 5] = 0;
-  w[ 6] = 0;
+  w[ 4] = h[4];
+  w[ 5] = h[5];
+  w[ 6] = h[6];
   w[ 7] = 0;
   w[ 8] = 0;
   w[ 9] = 0;
@@ -311,17 +327,17 @@ KERNEL_FQ void m25100_comp (KERN_ATTR_TMPS_ESALT (hmac_md5_tmp_t, snmpv3_t))
   w[14] = 0;
   w[15] = 0;
 
-  md5_update (&ctx, w, 16);
+  sha224_update (&ctx, w, 28);
 
-  md5_final (&ctx);
+  sha224_final (&ctx);
 
   w[ 0] = ctx.h[0];
   w[ 1] = ctx.h[1];
   w[ 2] = ctx.h[2];
   w[ 3] = ctx.h[3];
-  w[ 4] = 0;
-  w[ 5] = 0;
-  w[ 6] = 0;
+  w[ 4] = ctx.h[4];
+  w[ 5] = ctx.h[5];
+  w[ 6] = ctx.h[6];
   w[ 7] = 0;
   w[ 8] = 0;
   w[ 9] = 0;
@@ -332,18 +348,18 @@ KERNEL_FQ void m25100_comp (KERN_ATTR_TMPS_ESALT (hmac_md5_tmp_t, snmpv3_t))
   w[14] = 0;
   w[15] = 0;
 
-  md5_hmac_ctx_t hmac_ctx;
+  sha224_hmac_ctx_t hmac_ctx;
 
-  md5_hmac_init (&hmac_ctx, w, 16);
+  sha224_hmac_init (&hmac_ctx, w, 28);
 
-  md5_hmac_update_global (&hmac_ctx, esalt_bufs[DIGESTS_OFFSET].salt_buf, esalt_bufs[DIGESTS_OFFSET].salt_len);
+  sha224_hmac_update_global_swap (&hmac_ctx, esalt_bufs[DIGESTS_OFFSET].salt_buf, esalt_bufs[DIGESTS_OFFSET].salt_len);
 
-  md5_hmac_final (&hmac_ctx);
+  sha224_hmac_final (&hmac_ctx);
 
   const u32 r0 = hmac_ctx.opad.h[DGST_R0];
   const u32 r1 = hmac_ctx.opad.h[DGST_R1];
   const u32 r2 = hmac_ctx.opad.h[DGST_R2];
-  const u32 r3 = 0;
+  const u32 r3 = hmac_ctx.opad.h[DGST_R3];
 
   #define il_pos 0
 

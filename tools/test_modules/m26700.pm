@@ -8,10 +8,10 @@
 use strict;
 use warnings;
 
-use Digest::MD5 qw (md5 md5_hex);
+use Digest::SHA qw (sha224 sha224_hex);
 use Digest::HMAC qw (hmac hmac_hex);
 
-sub module_constraints { [[8, 256], [24, 3000], [-1, -1], [-1, -1], [-1, -1]] }
+sub module_constraints { [[8, 256], [32, 3000], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub module_generate_hash
 {
@@ -31,17 +31,17 @@ sub module_generate_hash
 
   $string1 = substr ($string1, 0, 1048576);
 
-  my $md5_digest1 = md5_hex ($string1);
+  my $sha224_digest1 = sha224_hex ($string1);
 
-  my $buf = join '', $md5_digest1, $engineID, $md5_digest1;
+  my $buf = join '', $sha224_digest1, $engineID, $sha224_digest1;
 
-  my $md5_digest2 = md5(pack("H*", $buf));
+  my $sha224_digest2 = sha224(pack("H*", $buf));
 
-  my $digest = hmac_hex (pack("H*", $salt), $md5_digest2, \&md5);
+  my $digest = hmac_hex (pack("H*", $salt), $sha224_digest2, \&sha224);
 
-  $digest = substr ($digest, 0, 24);
+  $digest = substr ($digest, 0, 32);
 
-  my $hash = sprintf ("\$SNMPv3\$1\$%s\$%s\$%s\$%s", $pkt_num, $salt, $engineID, $digest);
+  my $hash = sprintf ("\$SNMPv3\$3\$%s\$%s\$%s\$%s", $pkt_num, $salt, $engineID, $digest);
 
   return $hash;
 }
@@ -58,7 +58,7 @@ sub module_verify_hash
   my $word = substr ($line, $idx + 1);
 
   return unless length ($word) gt 0;
-  return unless substr ($hash, 0, 10) eq '$SNMPv3$1$';
+  return unless substr ($hash, 0, 10) eq '$SNMPv3$3$';
 
   my (undef, $signature, $version, $pkt_num, $salt, $engineID, $digest) = split '\$', $hash;
 

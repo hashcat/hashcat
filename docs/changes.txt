@@ -5,6 +5,7 @@
 ##
 
 - Added option --multiply-accel-disable (short: -M) to disable multiply the kernel-accel with the multiprocessor count automatism
+- HIP Backend: Added support to support HIP 4.4 and later, but added check to rule out older versions because they are incompatible
 
 ##
 ## Bugs
@@ -18,7 +19,10 @@
 ## Improvements
 ##
 
+- AMD GPUs: Add inline assembly code for md5crypt/sha256crypt, PDF 1.7, 7-Zip, RAR3, Samsung Android and Windows Phone 8+
+- AMD GPUs: On Apple OpenCL platform, we ask for the preferred kernel thread size rather than hard-coding 32
 - Blake Kernels: Optimize BLAKE2B_ROUND() 64 bit rotates giving a 5% performance increase
+- Blowfish Kernels: Backport optimizations reducing bank conflicts from bcrypt to Password Safe v2 and Open Document Format (ODF) 1.1
 - Brain Session: Adds hashconfig specific opti_type and opts_type parameters to hashcat session computation to cover features like -O and -M
 - Kernel Threads: Use warp size / wavefront size query instead of hardcoded values as base for kernel threads
 - Shared Memory: Calculate kernel dynamic memory size based on CU_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_BLOCK_OPTIN
@@ -28,17 +32,24 @@
 ## Technical
 ##
 
+- ADL: Updated support for AMD Display Library to 15.0, updated datatypes and added support for OverDrive 7 and 8 based GPUs
+- AMD Driver: Updated requirement for AMD Linux driver to ROCm 4.4 or later because of new HIP Interface
+- AMD Driver: Updated requirement for AMD Windows driver to Adrenalin 21.2.1 or later because of new ADL library
 - Commandline: Throw an error if separator character given by the user with -p option is not exactly 1 byte
-- Kernel Cache: Add kernel threads into hash computation which is later used in the kernel cache filename
+- ECC secp256k1: Removed the inline assembly code for AMD GPUs because the latest JIT compilers optimize it with the same efficiency
 - HIP Kernels: Got rid of hip/hip_runtime.h dependancy to enable more easy integration of the HIP backend on Windows
+- Kernel Cache: Add kernel threads into hash computation which is later used in the kernel cache filename
+- Memory Management: Refactored the code responsible for limiting kernel accel in order to avoid out of -host- memory situations
 - SCRYPT Kernels: Add more optimized values for some new NV/AMD GPUs
 
 ##
 ## Algorithms
 ##
 
-- Added hash-mode: SNMPv3 HMAC-SHA1-96
+- Added hash-mode: SNMPv3 HMAC-MD5-96/HMAC-SHA1-96
 - Added hash-mode: SNMPv3 HMAC-MD5-96
+- Added hash-mode: SNMPv3 HMAC-SHA1-96
+- Added hash-mode: SNMPv3 HMAC-SHA224-128
 - Added hash-mode: SNMPv3 HMAC-SHA256-192
 
 * changes v6.2.2 -> v6.2.3

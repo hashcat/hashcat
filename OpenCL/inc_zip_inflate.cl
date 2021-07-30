@@ -73,18 +73,16 @@ enum{
     MZ_VERSION_ERROR = -6,
     MZ_PARAM_ERROR = -10000
 };
-typedef unsigned long mz_ulong;
+typedef ullong mz_ulong;
 
 #ifndef MINIZ_NO_ZLIB_COMPATIBLE_NAMES
 typedef unsigned char Byte;
 typedef unsigned int uInt;
-typedef mz_ulong uLong;
 typedef Byte Bytef;
 typedef uInt uIntf;
 typedef char charf;
 typedef int intf;
 typedef void *voidpf;
-typedef uLong uLongf;
 typedef void *voidp;
 typedef void *const voidpc;
 #define Z_NULL 0
@@ -204,10 +202,6 @@ DECLSPEC void *memset(u8 *s, int c, u32 len){
 #define MZ_MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define MZ_DEFAULT_WINDOW_BITS 15
 #define TINFL_LZ_DICT_SIZE 32768
-#define TINFL_MEMCPY(d, s, l) memcpy(d, s, l)
-#define TINFL_MEMCPY_G(d, s, l, p) memcpy_g(d, s, l, p)
-#define TINFL_MEMSET(p, c, l) memset(p, c, (u32)l)
-#define MZ_CLEAR_OBJ(obj) memset(&(obj), 0, sizeof(obj))
 
 // hashcat-patched/hashcat-specific:
 #ifdef CRC32_IN_INFLATE
@@ -583,7 +577,7 @@ DECLSPEC tinfl_status tinfl_decompress(tinfl_decompressor *r, MAYBE_GLOBAL const
                     TINFL_CR_RETURN(38, (decomp_flags & TINFL_FLAG_HAS_MORE_INPUT) ? TINFL_STATUS_NEEDS_MORE_INPUT : TINFL_STATUS_FAILED_CANNOT_MAKE_PROGRESS);
                 }
                 n = MZ_MIN(MZ_MIN((size_t)(pOut_buf_end - pOut_buf_cur), (size_t)(pIn_buf_end - pIn_buf_cur)), counter);
-                TINFL_MEMCPY_G(pOut_buf_cur, pIn_buf_cur, n, pStream);
+                memcpy_g(pOut_buf_cur, pIn_buf_cur, n, pStream);
                 pIn_buf_cur += n;
                 pOut_buf_cur += n;
                 counter -= (mz_uint)n;
@@ -601,7 +595,7 @@ DECLSPEC tinfl_status tinfl_decompress(tinfl_decompressor *r, MAYBE_GLOBAL const
                 mz_uint i;
                 r->m_table_sizes[0] = 288;
                 r->m_table_sizes[1] = 32;
-                TINFL_MEMSET(r->m_tables[1].m_code_size, 5, 32);
+                memset(r->m_tables[1].m_code_size, 5, 32);
                 for (i = 0; i <= 143; ++i)
                     *p++ = 8;
                 for (; i <= 255; ++i)
@@ -618,7 +612,8 @@ DECLSPEC tinfl_status tinfl_decompress(tinfl_decompressor *r, MAYBE_GLOBAL const
                     TINFL_GET_BITS(11, r->m_table_sizes[counter], "\05\05\04"[counter]);
                     r->m_table_sizes[counter] += s_min_table_sizes[counter];
                 }
-                MZ_CLEAR_OBJ(r->m_tables[2].m_code_size);
+                memset(r->m_tables[2].m_code_size, 0, TINFL_MAX_HUFF_SYMBOLS_0);
+
                 for (counter = 0; counter < r->m_table_sizes[2]; counter++)
                 {
                     mz_uint s;
@@ -633,9 +628,11 @@ DECLSPEC tinfl_status tinfl_decompress(tinfl_decompressor *r, MAYBE_GLOBAL const
                 tinfl_huff_table *pTable;
                 mz_uint i, j, used_syms, total, sym_index, next_code[17], total_syms[16];
                 pTable = &r->m_tables[r->m_type];
-                MZ_CLEAR_OBJ(total_syms);
-                MZ_CLEAR_OBJ(pTable->m_look_up);
-                MZ_CLEAR_OBJ(pTable->m_tree);
+
+                memset((u8 *) total_syms, 0, 64);
+                memset((u8 *) pTable->m_look_up, 0, TINFL_FAST_LOOKUP_SIZE * 2);
+                memset((u8 *) pTable->m_tree, 0, TINFL_MAX_HUFF_SYMBOLS_0 * 2 * 2);
+
                 for (i = 0; i < r->m_table_sizes[r->m_type]; ++i)
                     total_syms[pTable->m_code_size[i]]++;
                 used_syms = 0, total = 0;
@@ -707,15 +704,18 @@ DECLSPEC tinfl_status tinfl_decompress(tinfl_decompressor *r, MAYBE_GLOBAL const
                         num_extra = "\02\03\07"[dist - 16];
                         TINFL_GET_BITS(18, s, num_extra);
                         s += "\03\03\013"[dist - 16];
-                        TINFL_MEMSET(r->m_len_codes + counter, (dist == 16) ? r->m_len_codes[counter - 1] : 0, s);
+
+                        memset(r->m_len_codes + counter, (dist == 16) ? r->m_len_codes[counter - 1] : 0, s);
+
+
                         counter += s;
                     }
                     if ((r->m_table_sizes[0] + r->m_table_sizes[1]) != counter)
                     {
                         TINFL_CR_RETURN_FOREVER(21, TINFL_STATUS_FAILED);
                     }
-                    TINFL_MEMCPY(r->m_tables[0].m_code_size, r->m_len_codes, r->m_table_sizes[0]);
-                    TINFL_MEMCPY(r->m_tables[1].m_code_size, r->m_len_codes + r->m_table_sizes[0], r->m_table_sizes[1]);
+                    memcpy(r->m_tables[0].m_code_size, r->m_len_codes, r->m_table_sizes[0]);
+                    memcpy(r->m_tables[1].m_code_size, r->m_len_codes + r->m_table_sizes[0], r->m_table_sizes[1]);
                 }
             }
             for (;;)
