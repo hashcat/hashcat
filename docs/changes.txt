@@ -14,6 +14,7 @@
 - Fixed autotune unitialized tmps variable for slow hashes by calling _init kernel before calling _loop kernel
 - Fixed datatype in function sha384_hmac_init_vector_128() that could come into effect if vector datatype was manually set
 - Fixed false negative in all VeraCrypt hash-modes if both conditions are met: 1. use CPU for cracking and 2. PIM range was used
+- Fixed buffer overflow in Mozilla key4.db module
 
 ##
 ## Improvements

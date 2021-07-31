@@ -95,9 +95,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.token_cnt  = 7;
 
-  token.signatures_cnt    = 2;
+  token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_MOZILLA;
-  token.signatures_buf[1] = SIGNATURE_MOZILLA_AES;
 
   token.sep[0]     = '*';
   token.len_min[0] = 9;
@@ -108,8 +107,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.sep[1]     = '*';
   token.len_min[1] = 3;
   token.len_max[1] = 3;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.sep[2]     = '*';
   token.len_min[2] = 40;
@@ -144,6 +142,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+
+  const char *sig_pos = (char *) token.buf[1];
+
+  if (strcmp (sig_pos, SIGNATURE_MOZILLA_AES) == 0) return PARSER_SIGNATURE_UNMATCHED;
 
   // global salt buffer + entry salt buffer combined
   // we do this because both buffer are accessed before the _loop kernel
