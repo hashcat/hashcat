@@ -45,6 +45,41 @@ static void MANGLE_SWITCH (char *arr, const int l, const int r)
   arr[l] = c;
 }
 
+static int mangle_toggle_at_sep (char arr[RP_PASSWORD_SIZE], int arr_len, char c, int upos)
+{
+  int toggle_next = 0;
+
+  int occurrence = 0;
+
+  int pos;
+
+  for (pos = 0; pos < arr_len; pos++)
+  {
+    if (arr[pos] == c)
+    {
+      if (occurrence == upos)
+      {
+        toggle_next = 1;
+      }
+      else
+      {
+        occurrence++;
+      }
+
+      continue;
+    }
+
+    if (toggle_next == 1)
+    {
+      MANGLE_TOGGLE_AT (arr, pos);
+
+      break;
+    }
+  }
+
+  return (arr_len);
+}
+
 static int mangle_lrest (char arr[RP_PASSWORD_SIZE], int arr_len)
 {
   int pos;
@@ -559,6 +594,13 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
         NEXT_RULEPOS (rule_pos);
         NEXT_RPTOI (rule_new, rule_pos, upos);
         if (upos < out_len) MANGLE_TOGGLE_AT (out, upos);
+        break;
+
+      case RULE_OP_MANGLE_TOGGLE_AT_SEP:
+        NEXT_RULEPOS (rule_pos);
+        NEXT_RPTOI (rule_new, rule_pos, upos);
+        NEXT_RULEPOS (rule_pos);
+        out_len = mangle_toggle_at_sep (out, out_len, rule_new[rule_pos], upos);
         break;
 
       case RULE_OP_MANGLE_REVERSE:
