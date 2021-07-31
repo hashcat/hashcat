@@ -1592,6 +1592,12 @@ function attack_6()
       max=6
     elif [ "${hash_type}" -eq 22000 ]; then
       max=6
+    elif [ "${hash_type}" -eq 26000 ]; then
+      if [ "${TYPE}" == "Gpu" ]; then
+        max=5
+      else
+        max=6
+      fi
     fi
 
     # special case: we need to split the first line
