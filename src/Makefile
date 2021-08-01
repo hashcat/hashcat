@@ -53,7 +53,7 @@ endif
 ## Do not modify
 ##
 
-MODULE_INTERFACE_VERSION := 620
+MODULE_INTERFACE_VERSION := 630
 
 ##
 ## Native compiler paths
@@ -203,12 +203,11 @@ endif
 ## because UNRAR
 ifeq ($(ENABLE_UNRAR),1)
 ifeq ($(USE_SYSTEM_UNRAR),0)
-ifneq ($(UNAME),Darwin)
-CFLAGS_UNRAR            += -Wno-misleading-indentation
+ifneq ($(CC),clang)
 CFLAGS_UNRAR            += -Wno-class-memaccess
-else
-CFLAGS_UNRAR            += -Wno-missing-braces
+CFLAGS_UNRAR            += -Wno-misleading-indentation
 endif
+CFLAGS_UNRAR            += -Wno-missing-braces
 CFLAGS_UNRAR            += -Wno-unused-variable
 CFLAGS_UNRAR            += -Wno-unused-parameter
 CFLAGS_UNRAR            += -Wno-unused-function

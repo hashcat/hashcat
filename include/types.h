@@ -2043,9 +2043,11 @@ typedef struct tuning_db
 
   tuning_db_alias_t *alias_buf;
   int                alias_cnt;
+  int                alias_alloc;
 
   tuning_db_entry_t *entry_buf;
   int                entry_cnt;
+  int                entry_alloc;
 
 } tuning_db_t;
 
@@ -2649,6 +2651,7 @@ typedef struct module_ctx
   u32         (*module_dgst_pos3)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_dgst_size)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_esalt_size)              (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  const char *(*module_extra_tuningdb_block)    (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_forced_outfile_format)   (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_hash_category)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_hash_name)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);

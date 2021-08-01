@@ -10775,6 +10775,48 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
     }
 
+    /**
+     * tuning db
+     */
+
+    if (module_ctx->module_extra_tuningdb_block != MODULE_DEFAULT)
+    {
+      const char *extra_tuningdb_block = module_ctx->module_extra_tuningdb_block (hashconfig, user_options, user_options_extra);
+
+      char *lines_buf = hcstrdup (extra_tuningdb_block);
+
+      char *saveptr = NULL;
+
+      char *next = strtok_r (lines_buf, "\n", &saveptr);
+
+      int line_num = 0;
+
+      do
+      {
+        line_num++;
+
+        const size_t line_len = strlen (next);
+
+        if (line_len == 0) continue;
+
+        if (next[0] == '#') continue;
+
+        tuning_db_process_line (hashcat_ctx, next, line_num);
+
+      } while ((next = strtok_r ((char *) NULL, "\n", &saveptr)) != NULL);
+
+      hcfree (lines_buf);
+
+      // todo: print loaded 'cnt' message
+
+      // sort the database
+
+      tuning_db_t *tuning_db = hashcat_ctx->tuning_db;
+
+      qsort (tuning_db->alias_buf, tuning_db->alias_cnt, sizeof (tuning_db_alias_t), sort_by_tuning_db_alias);
+      qsort (tuning_db->entry_buf, tuning_db->entry_cnt, sizeof (tuning_db_entry_t), sort_by_tuning_db_entry);
+    }
+
     // vector_width
 
     int vector_width = 0;
