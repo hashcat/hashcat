@@ -453,6 +453,10 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   // main : run the kernel
 
+  const u32 kernel_threads_sav = device_param->kernel_threads;
+
+  device_param->kernel_threads = device_param->kernel_threads_min;
+
   const double spin_damp_sav = device_param->spin_damp;
 
   device_param->spin_damp = 0;
@@ -676,6 +680,8 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   }
 
   device_param->spin_damp = spin_damp_sav;
+
+  device_param->kernel_threads = kernel_threads_sav;
 
   // check : check if cracked
 

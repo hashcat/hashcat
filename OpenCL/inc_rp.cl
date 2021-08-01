@@ -269,6 +269,35 @@ DECLSPEC int mangle_toggle_at (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p
   return (len);
 }
 
+DECLSPEC int mangle_toggle_at_sep (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u32 *buf, const int len)
+{
+  if (len >= RP_PASSWORD_SIZE) return (len);
+
+  u8 occurence = 0;
+
+  u32 rem = 0;
+
+  for (int i = 0, idx = 0; i < len; i += 4, idx += 1)
+  {
+    const u32 t = buf[idx];
+
+    buf[idx] = t | generate_cmask (t);
+
+    u32 out = rem;
+
+    rem = 0;
+
+    if (((t >>  0) & 0xff) == p1) { if (occurence == p0) out = 0x0000ff00; occurence++; }
+    if (((t >>  8) & 0xff) == p1) { if (occurence == p0) out = 0x00ff0000; occurence++; }
+    if (((t >> 16) & 0xff) == p1) { if (occurence == p0) out = 0xff000000; occurence++; }
+    if (((t >> 24) & 0xff) == p1) { if (occurence == p0) rem = 0x000000ff; occurence++; }
+
+    buf[idx] = t ^ (generate_cmask (t) & out);
+  }
+
+  return (len);
+}
+
 DECLSPEC int mangle_reverse (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u32 *buf, const int len)
 {
   for (int l = 0; l < len / 2; l++)
@@ -725,6 +754,7 @@ DECLSPEC int apply_rule (const u32 name, MAYBE_UNUSED const u8 p0, MAYBE_UNUSED 
     case RULE_OP_MANGLE_UREST_LFIRST:     out_len = mangle_urest_lfirst     (p0, p1,        buf, out_len); break;
     case RULE_OP_MANGLE_TREST:            out_len = mangle_trest            (p0, p1,        buf, out_len); break;
     case RULE_OP_MANGLE_TOGGLE_AT:        out_len = mangle_toggle_at        (p0, p1,        buf, out_len); break;
+    case RULE_OP_MANGLE_TOGGLE_AT_SEP:    out_len = mangle_toggle_at_sep    (p0, p1,        buf, out_len); break;
     case RULE_OP_MANGLE_REVERSE:          out_len = mangle_reverse          (p0, p1,        buf, out_len); break;
     case RULE_OP_MANGLE_DUPEWORD:         out_len = mangle_dupeword         (p0, p1,        buf, out_len); break;
     case RULE_OP_MANGLE_DUPEWORD_TIMES:   out_len = mangle_dupeword_times   (p0, p1, (u8 *) buf, out_len); break;
