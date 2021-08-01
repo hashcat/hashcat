@@ -21,6 +21,7 @@
 #define RULE_OP_MANGLE_UREST_LFIRST     'C'
 #define RULE_OP_MANGLE_TREST            't'
 #define RULE_OP_MANGLE_TOGGLE_AT        'T'
+#define RULE_OP_MANGLE_TOGGLE_AT_SEP    '3'
 #define RULE_OP_MANGLE_REVERSE          'r'
 #define RULE_OP_MANGLE_DUPEWORD         'd'
 #define RULE_OP_MANGLE_DUPEWORD_TIMES   'p'
@@ -85,6 +86,7 @@ DECLSPEC u32 rule_op_mangle_lrest_ufirst (MAYBE_UNUSED const u32 p0, MAYBE_UNUSE
 DECLSPEC u32 rule_op_mangle_urest_lfirst (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 *buf0, MAYBE_UNUSED u32 *buf1, const u32 in_len);
 DECLSPEC u32 rule_op_mangle_trest (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 *buf0, MAYBE_UNUSED u32 *buf1, const u32 in_len);
 DECLSPEC u32 rule_op_mangle_toggle_at (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 *buf0, MAYBE_UNUSED u32 *buf1, const u32 in_len);
+DECLSPEC u32 rule_op_mangle_toggle_at_sep (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 *buf0, MAYBE_UNUSED u32 *buf1, const u32 in_len);
 DECLSPEC u32 rule_op_mangle_reverse (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 *buf0, MAYBE_UNUSED u32 *buf1, const u32 in_len);
 DECLSPEC u32 rule_op_mangle_dupeword (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 *buf0, MAYBE_UNUSED u32 *buf1, const u32 in_len);
 DECLSPEC u32 rule_op_mangle_dupeword_times (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 *buf0, MAYBE_UNUSED u32 *buf1, const u32 in_len);

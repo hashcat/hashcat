@@ -5328,6 +5328,8 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
     if (hc_cuEventSynchronize (hashcat_ctx, device_param->cuda_event2) == -1) return -1;
 
+    if (hc_cuEventSynchronize (hashcat_ctx, device_param->cuda_event1) == -1) return -1;
+
     float exec_ms;
 
     if (hc_cuEventElapsedTime (hashcat_ctx, &exec_ms, device_param->cuda_event1, device_param->cuda_event2) == -1) return -1;
@@ -8979,6 +8981,13 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           }
         }
 
+        if (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU)
+        {
+          // they like this
+
+          device_param->kernel_preferred_wgs_multiple = 1;
+        }
+
         if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
         {
           if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->opencl_device_vendor_id == VENDOR_ID_AMD))
@@ -9997,61 +10006,6 @@ static int get_opencl_kernel_dynamic_local_mem_size (hashcat_ctx_t *hashcat_ctx,
   return 0;
 }
 
-static u32 get_kernel_threads (const hc_device_param_t *device_param)
-{
-  // this is an upper limit, a good start, since our strategy is to reduce thread counts only.
-
-  u32 kernel_threads_min = device_param->kernel_threads_min;
-  u32 kernel_threads_max = device_param->kernel_threads_max;
-
-  // the changes we do here are just optimizations, since the module always has priority.
-
-  const u32 device_maxworkgroup_size = (const u32) device_param->device_maxworkgroup_size;
-
-  kernel_threads_max = MIN (kernel_threads_max, device_maxworkgroup_size);
-
-  if (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU)
-  {
-    // for all CPU we just do 1 ...
-
-    kernel_threads_max = MIN (kernel_threads_max, 1);
-  }
-  else if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
-  {
-    // for GPU we need to distinguish by vendor
-
-    if (device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK)
-    {
-      kernel_threads_max = MIN (kernel_threads_max, 8);
-    }
-    else if (device_param->opencl_device_vendor_id == VENDOR_ID_AMD)
-    {
-      if (device_param->kernel_preferred_wgs_multiple == 64)
-      {
-        // only older AMD GPUs with WaveFront size 64 benefit from this
-
-        kernel_threads_max = MIN (kernel_threads_max, device_param->kernel_preferred_wgs_multiple);
-      }
-    }
-    else if (device_param->opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP)
-    {
-      if (device_param->kernel_preferred_wgs_multiple == 64)
-      {
-        // only older AMD GPUs with WaveFront size 64 benefit from this
-
-        kernel_threads_max = MIN (kernel_threads_max, device_param->kernel_preferred_wgs_multiple);
-      }
-    }
-  }
-
-  // this is intenionally! at this point, kernel_threads_min can be higher than kernel_threads_max.
-  // in this case we actually want kernel_threads_min selected.
-
-  const u32 kernel_threads = MAX (kernel_threads_min, kernel_threads_max);
-
-  return kernel_threads;
-}
-
 static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const char *kernel_name, char *source_file, char *cached_file, const char *build_options_buf, const bool cache_disable, cl_program *opencl_program, CUmodule *cuda_module, hipModule_t *hip_module)
 {
   const hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
@@ -10090,8 +10044,6 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
   if (cached == false)
   {
     #if defined (DEBUG)
-    const user_options_t *user_options = hashcat_ctx->user_options;
-
     if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s not found in cache. Please be patient...", device_param->device_id + 1, filename_from_filepath (cached_file));
     #endif
 
@@ -10344,7 +10296,7 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
       //hiprtc_options[1] = "--device-as-default-execution-space";
       //hiprtc_options[2] = "--gpu-architecture";
 
-      hc_asprintf (&hiprtc_options[0], "--gpu-max-threads-per-block=%d", (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : ((device_param->kernel_preferred_wgs_multiple == 64) ? 64 : KERNEL_THREADS_MAX));
+      hc_asprintf (&hiprtc_options[0], "--gpu-max-threads-per-block=%d", (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : device_param->kernel_threads_max);
 
       hiprtc_options[1] = "-nocudainc";
       hiprtc_options[2] = "-nocudalib";
@@ -10990,6 +10942,19 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
     }
 
+    // this seems to work always
+
+    if (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU)
+    {
+      u32 native_threads = 1;
+
+      if ((native_threads >= device_param->kernel_threads_min) && (native_threads <= device_param->kernel_threads_max))
+      {
+        device_param->kernel_threads_min = native_threads;
+        device_param->kernel_threads_max = native_threads;
+      }
+    }
+
     /**
      * create context for each device
      */
@@ -11319,7 +11284,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       device_param->device_name,
       device_param->opencl_device_version,
       device_param->opencl_driver_version,
-      (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : ((device_param->kernel_preferred_wgs_multiple == 64) ? 64 : KERNEL_THREADS_MAX));
+      (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : device_param->kernel_threads_max);
 
     md5_ctx_t md5_ctx;
 
@@ -11654,7 +11619,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         device_param->vector_width,
         hashconfig->kern_type,
         extra_value,
-        (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : ((device_param->kernel_preferred_wgs_multiple == 64) ? 64 : KERNEL_THREADS_MAX),
+        (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : device_param->kernel_threads_max,
         build_options_module_buf);
 
       md5_ctx_t md5_ctx;
@@ -14381,7 +14346,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
      * now everything that depends on threads and accel, basically dynamic workload
      */
 
-    u32 kernel_threads = get_kernel_threads (device_param);
+    //    u32 kernel_threads = get_kernel_threads (device_param);
 
     if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
     {
@@ -14389,12 +14354,14 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       // in autotune. in this attack mode kernel_power is limited by salts_cnt so we
       // do not have a lot of options left.
 
-      kernel_threads = MIN (kernel_threads, 64);
+      device_param->kernel_threads_min = MIN (device_param->kernel_threads_min, 64);
+      device_param->kernel_threads_max = MIN (device_param->kernel_threads_max, 64);
     }
 
-    device_param->kernel_threads = kernel_threads;
+    //    device_param->kernel_threads = kernel_threads;
+    device_param->kernel_threads = 0;
 
-    device_param->hardware_power = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE) ? 1 : device_processors) * kernel_threads;
+    device_param->hardware_power = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE) ? 1 : device_processors) * device_param->kernel_threads_max;
 
     u32 kernel_accel_min = device_param->kernel_accel_min;
     u32 kernel_accel_max = device_param->kernel_accel_max;
@@ -14519,6 +14486,47 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       if ((size_pws   + EXTRA_SPACE) > device_param->device_maxmem_alloc) memory_limit_hit = 1;
       if ((size_tmps  + EXTRA_SPACE) > device_param->device_maxmem_alloc) memory_limit_hit = 1;
       if ((size_hooks + EXTRA_SPACE) > device_param->device_maxmem_alloc) memory_limit_hit = 1;
+
+      // work around, for some reason apple opencl can't have buffers larger 2^31
+      // typically runs into trap 6
+      // maybe 32/64 bit problem affecting size_t?
+
+      if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
+      {
+        const size_t undocumented_single_allocation_apple = 0x7fffffff;
+
+        if (bitmap_ctx->bitmap_size > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (bitmap_ctx->bitmap_size > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (bitmap_ctx->bitmap_size > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (bitmap_ctx->bitmap_size > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (bitmap_ctx->bitmap_size > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (bitmap_ctx->bitmap_size > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (bitmap_ctx->bitmap_size > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (bitmap_ctx->bitmap_size > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (size_bfs                > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (size_combs              > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (size_digests            > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (size_esalts             > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (size_hooks              > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (size_markov_css         > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (size_plains             > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (size_pws                > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (size_pws_amp            > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (size_pws_comp           > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (size_pws_idx            > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (size_results            > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (size_root_css           > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (size_rules              > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (size_rules_c            > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (size_salts              > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (size_extra_buffer       > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (size_shown              > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (size_tm                 > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (size_tmps               > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (size_st_digests         > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (size_st_salts           > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (size_st_esalts          > undocumented_single_allocation_apple) memory_limit_hit = 1;
+      }
 
       const u64 size_total
         = bitmap_ctx->bitmap_size
