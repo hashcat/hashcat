@@ -52,9 +52,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.token_cnt  = 1;
 
-  token.len_min[0] = 10;
-  token.len_max[0] = 10;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[0]     = 10;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
@@ -62,9 +61,14 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
   const u8 *hash_pos = token.buf[0];
+  const u32 hash_len = token.len[0];
 
-  digest[0] = hex_to_u32 (hash_pos +  0);
-  digest[1] = hex_to_u32 (hash_pos +  8);
+  u8 digest_tmp[16] = { 0 };
+
+  memcpy (digest_tmp, hash_pos, hash_len);
+
+  digest[0] = hex_to_u32 (digest_tmp +  0);
+  digest[1] = hex_to_u32 (digest_tmp +  8);
 
   if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
   {
