@@ -5059,11 +5059,9 @@ int run_opencl_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *dev
   /* workaround if missing clEnqueueFillBuffer() */
   if (ocl->clEnqueueFillBuffer == NULL)
   {
-    const u64 len = offset + size;
+    char *tmp = hcmalloc (size * sizeof (u8));
 
-    char *tmp = hcmalloc (len * sizeof (u8));
-
-    memset (tmp, value, len);
+    memset (tmp, value, size);
 
     /* blocking */
     rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, buf, CL_TRUE, offset, size, tmp, 0, NULL, NULL);
@@ -5088,11 +5086,9 @@ int run_opencl_kernel_memset32 (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
   /* workaround if missing clEnqueueFillBuffer() */
   if (ocl->clEnqueueFillBuffer == NULL)
   {
-    const u64 len = offset + size;
+    u32 *tmp = (u32 *) hcmalloc (size * sizeof (u32));
 
-    u32 *tmp = (u32 *) hcmalloc (len * sizeof (u32));
-
-    for (u64 i = 0; i < len; i++)
+    for (u64 i = 0; i < size; i++)
     {
       tmp[i] = value;
     }
