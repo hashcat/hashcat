@@ -331,7 +331,7 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
 
       if (rc == -1)
       {
-        free(tmps);
+        hcfree (tmps);
 
         return -1;
       }
@@ -348,7 +348,7 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
 
       if (rc == -1)
       {
-        free(tmps);
+        hcfree (tmps);
 
         return -1;
       }
@@ -365,7 +365,7 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
 
       if (rc == -1)
       {
-        free(tmps);
+        hcfree (tmps);
 
         return -1;
       }

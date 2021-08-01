@@ -5059,12 +5059,12 @@ int run_opencl_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *dev
 
     char *tmp = hcmalloc (len * sizeof (u8));
 
-    memset(tmp, value, len);
+    memset (tmp, value, len);
 
     /* blocking */
     rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, buf, CL_TRUE, offset, size, tmp, 0, NULL, NULL);
 
-    free(tmp);
+    hcfree (tmp);
   }
   else
   {
@@ -5096,7 +5096,7 @@ int run_opencl_kernel_memset32 (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
     /* blocking */
     rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, buf, CL_TRUE, offset * sizeof (u32), size * sizeof (u32), tmp, 0, NULL, NULL);
 
-    free(tmp);
+    hcfree (tmp);
   }
   else
   {
