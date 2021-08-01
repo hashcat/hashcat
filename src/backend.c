@@ -4234,8 +4234,6 @@ int gidd_to_pw_t (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, c
     if (hc_cuMemcpyDtoHAsync (hashcat_ctx, &pw_idx, device_param->cuda_d_pws_idx + (gidd * sizeof (pw_idx_t)), sizeof (pw_idx_t), device_param->cuda_stream) == -1) return -1;
 
     if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
-
-    if (hc_cuCtxPopCurrent (hashcat_ctx, &device_param->cuda_context) == -1) return -1;
   }
 
   if (device_param->is_hip == true)
@@ -4245,8 +4243,6 @@ int gidd_to_pw_t (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, c
     if (hc_hipMemcpyDtoHAsync (hashcat_ctx, &pw_idx, device_param->hip_d_pws_idx + (gidd * sizeof (pw_idx_t)), sizeof (pw_idx_t), device_param->hip_stream) == -1) return -1;
 
     if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
-
-    if (hc_hipCtxPopCurrent (hashcat_ctx, &device_param->hip_context) == -1) return -1;
   }
 
   if (device_param->is_opencl == true)
@@ -4263,24 +4259,16 @@ int gidd_to_pw_t (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, c
   {
     if (device_param->is_cuda == true)
     {
-      if (hc_cuCtxPushCurrent (hashcat_ctx, device_param->cuda_context) == -1) return -1;
-
-      if (hc_cuMemcpyDtoHAsync (hashcat_ctx,pw->i, device_param->cuda_d_pws_comp_buf + (off * sizeof (u32)), cnt * sizeof (u32), device_param->cuda_stream) == -1) return -1;
+      if (hc_cuMemcpyDtoHAsync (hashcat_ctx, pw->i, device_param->cuda_d_pws_comp_buf + (off * sizeof (u32)), cnt * sizeof (u32), device_param->cuda_stream) == -1) return -1;
 
       if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
-
-      if (hc_cuCtxPopCurrent (hashcat_ctx, &device_param->cuda_context) == -1) return -1;
     }
 
     if (device_param->is_hip == true)
     {
-      if (hc_hipCtxPushCurrent (hashcat_ctx, device_param->hip_context) == -1) return -1;
-
-      if (hc_hipMemcpyDtoHAsync (hashcat_ctx,pw->i, device_param->hip_d_pws_comp_buf + (off * sizeof (u32)), cnt * sizeof (u32), device_param->hip_stream) == -1) return -1;
+      if (hc_hipMemcpyDtoHAsync (hashcat_ctx, pw->i, device_param->hip_d_pws_comp_buf + (off * sizeof (u32)), cnt * sizeof (u32), device_param->hip_stream) == -1) return -1;
 
       if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
-
-      if (hc_hipCtxPopCurrent (hashcat_ctx, &device_param->hip_context) == -1) return -1;
     }
 
     if (device_param->is_opencl == true)
@@ -4296,6 +4284,16 @@ int gidd_to_pw_t (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, c
   }
 
   pw->pw_len = len;
+
+  if (device_param->is_cuda == true)
+  {
+    if (hc_cuCtxPopCurrent (hashcat_ctx, &device_param->cuda_context) == -1) return -1;
+  }
+
+  if (device_param->is_hip == true)
+  {
+    if (hc_hipCtxPopCurrent (hashcat_ctx, &device_param->hip_context) == -1) return -1;
+  }
 
   return 0;
 }
