@@ -704,7 +704,7 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       if (device_param->is_opencl == true)
       {
         /* NOTE: run_opencl_kernel_bzero() does not handle buffer offset */
-        rc = run_opencl_kernel_memset32 (hashcat_ctx, device_param, device_param->opencl_d_digests_shown, salt_buf->digests_offset, 0, salt_buf->digests_cnt);
+        rc = run_opencl_kernel_memset32 (hashcat_ctx, device_param, device_param->opencl_d_digests_shown, salt_buf->digests_offset * sizeof (u32), 0, salt_buf->digests_cnt * sizeof (u32));
 
         if (rc == -1)
         {

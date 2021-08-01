@@ -4898,7 +4898,13 @@ int run_cuda_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devic
 
 int run_cuda_kernel_memset32 (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, CUdeviceptr buf, const u64 offset, const u32 value, const u64 size)
 {
-  return hc_cuMemsetD32Async (hashcat_ctx, buf + offset * sizeof (u32), value, size, device_param->cuda_stream);
+  /* check that the size is multiple of element size */
+  if (size % 4 != 0)
+  {
+    return CUDA_ERROR_INVALID_VALUE;
+  }
+
+  return hc_cuMemsetD32Async (hashcat_ctx, buf + offset, value, size / 4, device_param->cuda_stream);
 }
 
 int run_cuda_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, CUdeviceptr buf, const u64 size)
@@ -4971,7 +4977,13 @@ int run_hip_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
 
 int run_hip_kernel_memset32 (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, hipDeviceptr_t buf, const u64 offset, const u32 value, const u64 size)
 {
-  return hc_hipMemsetD32Async (hashcat_ctx, buf + offset * sizeof (u32), value, size, device_param->hip_stream);
+  /* check that the size is multiple of element size */
+  if (size % 4 != 0)
+  {
+    return hipErrorInvalidValue;
+  }
+
+  return hc_hipMemsetD32Async (hashcat_ctx, buf + offset, value, size / 4, device_param->hip_stream);
 }
 
 int run_hip_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, hipDeviceptr_t buf, const u64 size)
@@ -5086,15 +5098,23 @@ int run_opencl_kernel_memset32 (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
   /* workaround if missing clEnqueueFillBuffer() */
   if (ocl->clEnqueueFillBuffer == NULL)
   {
-    u32 *tmp = (u32 *) hcmalloc (size * sizeof (u32));
+    const u64 N = size / 4;
 
-    for (u64 i = 0; i < size; i++)
+    /* check that the size is multiple of element size */
+    if (size % 4 != 0)
+    {
+      return CL_INVALID_VALUE;
+    }
+
+    u32 *tmp = (u32 *) hcmalloc (size);
+
+    for (u64 i = 0; i < N; i++)
     {
       tmp[i] = value;
     }
 
     /* blocking */
-    rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, buf, CL_TRUE, offset * sizeof (u32), size * sizeof (u32), tmp, 0, NULL, NULL);
+    rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, buf, CL_TRUE, offset, size, tmp, 0, NULL, NULL);
 
     hcfree (tmp);
   }
