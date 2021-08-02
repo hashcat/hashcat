@@ -927,7 +927,6 @@ typedef struct hashes
 
   void        *digests_buf;
   u32         *digests_shown;
-  u32         *digests_shown_tmp;
 
   u32          salts_cnt;
   u32          salts_done;
@@ -1428,6 +1427,7 @@ typedef struct hc_device_param
 
   CUevent           cuda_event1;
   CUevent           cuda_event2;
+  CUevent           cuda_event3;
 
   CUmodule          cuda_module;
   CUmodule          cuda_module_shared;
@@ -1509,6 +1509,7 @@ typedef struct hc_device_param
 
   hipEvent_t        hip_event1;
   hipEvent_t        hip_event2;
+  hipEvent_t        hip_event3;
 
   hipModule_t       hip_module;
   hipModule_t       hip_module_shared;
