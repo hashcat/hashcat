@@ -91,7 +91,7 @@ sub get_random_netntlmv1_salt
   return $salt_buf;
 }
 
-sub module_constraints { [[32, 32], [-1, -1], [32, 32], [-1, -1], [-1, -1]] } # room for improvement in pure kernel mode
+sub module_constraints { [[32, 32], [-1, -1], [-1, -1], [-1, -1], [-1, -1]] } # room for improvement in pure kernel mode
 
 sub module_generate_hash
 {
