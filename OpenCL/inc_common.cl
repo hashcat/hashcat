@@ -2300,6 +2300,8 @@ DECLSPEC int hc_enc_next_global (hc_enc_t *hc_enc, GLOBAL_AS const u32 *src_buf,
 
       if ((dst_pos + 2) == dst_sz)
       {
+        // this section seems to break intel opencl runtime but is unknown why
+
         dst_ptr[dst_pos++] = (a >> 0) & 0xff;
         dst_ptr[dst_pos++] = (a >> 8) & 0xff;
 

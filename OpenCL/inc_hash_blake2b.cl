@@ -113,7 +113,7 @@ DECLSPEC u64 blake2b_rot24_S (const u64 a)
 
   #else
 
-  return hc_rotr64_S (a, 16);
+  return hc_rotr64_S (a, 24);
 
   #endif
 }
