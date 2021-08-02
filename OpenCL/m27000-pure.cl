@@ -493,6 +493,23 @@ DECLSPEC void transform_netntlmv1_key (const u32 w0, const u32 w1, u32 *out)
          | ((k[7] & 0xff) << 24);
 }
 
+#ifdef KERNEL_STATIC
+DECLSPEC u8 hex_convert (const u8 c)
+{
+  return (c & 15) + (c >> 6) * 9;
+}
+
+DECLSPEC u8 hex_to_u8 (const u8 *hex)
+{
+  u8 v = 0;
+
+  v |= ((u8) hex_convert (hex[1]) << 0);
+  v |= ((u8) hex_convert (hex[0]) << 4);
+
+  return (v);
+}
+#endif
+
 typedef struct netntlm
 {
   u32 user_len;
@@ -527,22 +544,51 @@ KERNEL_FQ void m27000_init (KERN_ATTR_TMPS_ESALT (netntlm_tmp_t, netntlm_t))
    * salt
    */
 
-  tmps[gid].digest_buf[0] = pws[gid].i[ 0];
-  tmps[gid].digest_buf[1] = pws[gid].i[ 1];
-  tmps[gid].digest_buf[2] = pws[gid].i[ 2];
-  tmps[gid].digest_buf[3] = pws[gid].i[ 3];
+  u32 in[16];
+
+  in[ 0] = pws[gid].i[ 0];
+  in[ 1] = pws[gid].i[ 1];
+  in[ 2] = pws[gid].i[ 2];
+  in[ 3] = pws[gid].i[ 3];
+  in[ 4] = pws[gid].i[ 4];
+  in[ 5] = pws[gid].i[ 5];
+  in[ 6] = pws[gid].i[ 6];
+  in[ 7] = pws[gid].i[ 7];
+
+  u8 *in_ptr = (u8 *) in;
+
+  u32 out[4];
+
+  u8 *out_ptr = (u8 *) out;
+
+  for (int i = 0, j = 0; i < 16; i += 1, j += 2)
+  {
+    out_ptr[i] = hex_to_u8 (in_ptr + j);
+  }
+
+  tmps[gid].digest_buf[0] = out[ 0];
+  tmps[gid].digest_buf[1] = out[ 1];
+  tmps[gid].digest_buf[2] = out[ 2];
+  tmps[gid].digest_buf[3] = out[ 3];
 
 }
 
 KERNEL_FQ void m27000_loop (KERN_ATTR_TMPS_ESALT (netntlm_tmp_t, netntlm_t))
 {
 
-  /**
+}
+
+KERNEL_FQ void m27000_comp (KERN_ATTR_TMPS_ESALT (netntlm_tmp_t, netntlm_t))
+{
+   /**
    * modifier
    */
 
-  const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
+
+  if (gid >= gid_max) return;
+
+  const u64 lid = get_local_id (0);
 
   /**
    * sbox, kbox
@@ -598,77 +644,52 @@ KERNEL_FQ void m27000_loop (KERN_ATTR_TMPS_ESALT (netntlm_tmp_t, netntlm_t))
   const u32 c = tmps[gid].digest_buf[2];
   const u32 d = tmps[gid].digest_buf[3];
 
+  // I believe this matches the last 2 bytes and throws away.
+  // Taken from 5500. 
+  if ((d >> 16) != s2) return;
+
   /**
-   * loop
-   */
+    * DES1
+    */
 
-  for (u32 i = 0; i < loop_cnt; i++)
-  {
+  u32 key[2];
 
-    // if ((d >> 16) != s2) continue;
+  transform_netntlmv1_key (a, b, key);
 
-    /**
-     * DES1
-     */
+  u32 Kc[16];
+  u32 Kd[16];
 
-    u32 key[2];
+  _des_crypt_keysetup (key[0], key[1], Kc, Kd, s_skb);
 
-    transform_netntlmv1_key (a, b, key);
+  u32 data[2];
 
-    u32 Kc[16];
-    u32 Kd[16];
+  data[0] = s0;
+  data[1] = s1;
 
-    _des_crypt_keysetup (key[0], key[1], Kc, Kd, s_skb);
+  u32 out1[2];
 
-    u32 data[2];
+  _des_crypt_encrypt (out1, data, Kc, Kd, s_SPtrans);
 
-    data[0] = s0;
-    data[1] = s1;
+  /**
+    * DES2
+    */
 
-    u32 out1[2];
+  transform_netntlmv1_key (((b >> 24) | (c << 8)), ((c >> 24) | (d << 8)), key);
 
-    _des_crypt_encrypt (out1, data, Kc, Kd, s_SPtrans);
+  _des_crypt_keysetup (key[0], key[1], Kc, Kd, s_skb);
 
-    /**
-     * DES2
-     */
+  u32 out2[2];
 
-    transform_netntlmv1_key (((b >> 24) | (c << 8)), ((c >> 24) | (d << 8)), key);
-
-    _des_crypt_keysetup (key[0], key[1], Kc, Kd, s_skb);
-
-    u32 out2[2];
-
-    _des_crypt_encrypt (out2, data, Kc, Kd, s_SPtrans);
-
-
-    tmps[gid].digest_buf[0] = out1[0];
-    tmps[gid].digest_buf[1] = out1[1];
-    tmps[gid].digest_buf[2] = out2[0];
-    tmps[gid].digest_buf[3] = out2[1];
-  }
-}
-
-KERNEL_FQ void m27000_comp (KERN_ATTR_TMPS_ESALT (netntlm_tmp_t, netntlm_t))
-{
-   /**
-   * modifier
-   */
-
-  const u64 gid = get_global_id (0);
-
-  if (gid >= gid_max) return;
-
-  const u64 lid = get_local_id (0);
+  _des_crypt_encrypt (out2, data, Kc, Kd, s_SPtrans);
 
   /**
    * digest
    */
 
-  const u32 r0 = tmps[gid].digest_buf[0];
-  const u32 r1 = tmps[gid].digest_buf[1];
-  const u32 r2 = tmps[gid].digest_buf[2];
-  const u32 r3 = tmps[gid].digest_buf[3];
+  const u32 r0 = out1[0];
+  const u32 r1 = out1[1];
+  const u32 r2 = out2[0];
+  const u32 r3 = out2[1];
 
   #define il_pos 0
 

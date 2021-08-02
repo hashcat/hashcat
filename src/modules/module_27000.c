@@ -26,10 +26,9 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_PT_ADD80
                                   | OPTS_TYPE_PT_ADDBITS14
                                   | OPTS_TYPE_PT_UTF16LE
-                                  | OPTS_TYPE_ST_HEX
-                                  | OPTS_TYPE_PT_ALWAYS_HEXIFY;
+                                  | OPTS_TYPE_ST_HEX;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
-static const char *ST_PASS        = "\xb4\xb9\xb0\x2e\x6f\x09\xa9\xbd\x76\x0f\x38\x8b\x67\x35\x1e\x2b";
+static const char *ST_PASS        = "b4b9b02e6f09a9bd760f388b67351e2b";
 static const char *ST_HASH        = "::5V4T:ada06359242920a500000000000000000000000000000000:0556d5297b5daa70eaffde82ef99293a3f3bb59b7c9704ea:9c23f6c094853920";
 
 typedef struct netntlm
@@ -334,9 +333,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   salt->salt_buf[0] = rotl32 (salt->salt_buf[0], 3);
   salt->salt_buf[1] = rotl32 (salt->salt_buf[1], 3);
 
-  // Why my _loop wasnt being called and what was causing me such confusion :D
-  salt->salt_iter = 1;
-
   return (PARSER_OK);
 }
 
@@ -420,16 +416,22 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
 u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 pw_max = 16; // Length of a NT hash
+  const u32 pw_max = 32; // Length of a NT hash
 
   return pw_max;
 }
 
 u32 module_pw_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 pw_min = 16; // Length of a NT hash
+  const u32 pw_min = 32; // Length of a NT hash
 
   return pw_min;
+}
+
+const char *module_benchmark_mask (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+ const char *mask = "?a?a?a?a?a?a?a?axxxxxxxxxxxxxxxx";
+ return mask;
 }
 
 void module_init (module_ctx_t *module_ctx)
@@ -440,7 +442,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_attack_exec              = module_attack_exec;
   module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
   module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
-  module_ctx->module_benchmark_mask           = MODULE_DEFAULT;
+  module_ctx->module_benchmark_mask           = module_benchmark_mask;
   module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
   module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
   module_ctx->module_deep_comp_kernel         = MODULE_DEFAULT;
