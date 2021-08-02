@@ -11111,7 +11111,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       {
         device_param->skipped = true;
         continue;
-      }      
+      }
     }
 
     /**
@@ -11628,6 +11628,16 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
           {
             device_param->kernel_threads_min = fixed_local_size;
             device_param->kernel_threads_max = fixed_local_size;
+          }
+          else
+          {
+            // kernels specific minimum needs to be set so that self-test wont fail
+
+            if (sscanf (jit_build_options, "-D FIXED_LOCAL_SIZE_COMP=%u", &fixed_local_size) == 1)
+            {
+              device_param->kernel_threads_min = fixed_local_size;
+              // device_param->kernel_threads_max = fixed_local_size;
+            }
           }
         }
       }
