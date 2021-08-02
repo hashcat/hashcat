@@ -37,7 +37,7 @@ typedef struct zip2
   u32 verify_bytes;
   u32 compress_length;
   u32 data_len;
-  u32 data_buf[0x4000000];
+  u32 data_buf[0x200000];
   u32 auth_len;
   u32 auth_buf[4];
 
