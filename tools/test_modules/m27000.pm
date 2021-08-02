@@ -91,7 +91,7 @@ sub get_random_netntlmv1_salt
   return $salt_buf;
 }
 
-sub module_constraints { [[32, 32], [-1, -1], [0, 27], [-1, -1], [-1, -1]] } # room for improvement in pure kernel mode
+sub module_constraints { [[32, 32], [-1, -1], [32, 32], [-1, -1], [-1, -1]] } # room for improvement in pure kernel mode
 
 sub module_generate_hash
 {
@@ -166,9 +166,9 @@ sub module_verify_hash
 
   my $word = substr ($line, $index2 + 1 + 16 + 1);
 
-  my $word_packed = pack ("H*", $word);
+  # my $word_packed = pack ("H*", $word);
 
-  my $new_hash = module_generate_hash ($word_packed, undef, $salt);
+  my $new_hash = module_generate_hash ($word, undef, $salt);
 
   return ($new_hash, $word);
 }
