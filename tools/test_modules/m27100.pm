@@ -29,8 +29,7 @@ sub module_generate_hash
   my $b_srv_ch = pack ('H*', $srv_ch);
   my $b_cli_ch = pack ('H*', $cli_ch);
 
-  my $nthash = pack_if_HEX_notation ($word);
-  # my $nthash   = pack ("H*", $word);
+  my $nthash = pack ("H*", $word);
   my $identity = encode ('UTF-16LE', uc ($user) . $domain);
   my $digest   = hmac_hex ($b_srv_ch . $b_cli_ch, hmac ($identity, $nthash, \&md5, 64), \&md5, 64);
 
@@ -67,7 +66,7 @@ sub module_verify_hash
   $cli_ch = substr ($line, $index2 + 3 + 16 + 32, $index3 - $index2 - 3 - 16 - 32);
   $word   = substr ($line, $index3 + 1);
 
-  my $word_packed = pack_if_HEX_notation ($word);
+  my $word_packed = pack ("H*", $word);
 
   my $new_hash = module_generate_hash ($word_packed, $user, $domain, $srv_ch, $cli_ch);
 
