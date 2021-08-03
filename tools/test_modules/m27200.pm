@@ -15,7 +15,7 @@ sub module_constraints { [[0, 256], [0, 256], [0, 55], [0, 55], [0, 55]] }
 sub module_generate_hash
 {
   my $word = shift;
-  my $salt = shift || random_numeric_string (40);
+  my $salt = shift || random_hex_string (40);
 
   my $digest = sha1_hex ('--' . $salt . '--' . $word . '--');
 
