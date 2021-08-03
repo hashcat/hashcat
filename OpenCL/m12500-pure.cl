@@ -804,7 +804,7 @@ KERNEL_FQ void m12500_loop (KERN_ATTR_TMPS (rar3_tmp_t))
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len & 255;
+  const u32 pw_len = pws[gid].pw_len;
 
   const u32 salt_len = 8;
 
@@ -970,7 +970,7 @@ KERNEL_FQ void m12500_comp (KERN_ATTR_TMPS (rar3_tmp_t))
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len & 255;
+  const u32 pw_len = pws[gid].pw_len;
 
   const u32 salt_len = 8;
 

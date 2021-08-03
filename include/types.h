@@ -295,6 +295,7 @@ typedef enum rule_functions
   RULE_OP_MANGLE_UREST_LFIRST    = 'C',
   RULE_OP_MANGLE_TREST           = 't',
   RULE_OP_MANGLE_TOGGLE_AT       = 'T',
+  RULE_OP_MANGLE_TOGGLE_AT_SEP   = '3',
   RULE_OP_MANGLE_REVERSE         = 'r',
   RULE_OP_MANGLE_DUPEWORD        = 'd',
   RULE_OP_MANGLE_DUPEWORD_TIMES  = 'p',
@@ -926,7 +927,6 @@ typedef struct hashes
 
   void        *digests_buf;
   u32         *digests_shown;
-  u32         *digests_shown_tmp;
 
   u32          salts_cnt;
   u32          salts_done;
@@ -1427,6 +1427,7 @@ typedef struct hc_device_param
 
   CUevent           cuda_event1;
   CUevent           cuda_event2;
+  CUevent           cuda_event3;
 
   CUmodule          cuda_module;
   CUmodule          cuda_module_shared;
@@ -1508,6 +1509,7 @@ typedef struct hc_device_param
 
   hipEvent_t        hip_event1;
   hipEvent_t        hip_event2;
+  hipEvent_t        hip_event3;
 
   hipModule_t       hip_module;
   hipModule_t       hip_module_shared;
@@ -2042,9 +2044,11 @@ typedef struct tuning_db
 
   tuning_db_alias_t *alias_buf;
   int                alias_cnt;
+  int                alias_alloc;
 
   tuning_db_entry_t *entry_buf;
   int                entry_cnt;
+  int                entry_alloc;
 
 } tuning_db_t;
 
@@ -2648,6 +2652,7 @@ typedef struct module_ctx
   u32         (*module_dgst_pos3)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_dgst_size)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_esalt_size)              (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  const char *(*module_extra_tuningdb_block)    (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_forced_outfile_format)   (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_hash_category)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_hash_name)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);

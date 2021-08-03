@@ -1181,7 +1181,7 @@ int input_tokenizer (const u8 *input_buf, const int input_len, token_t *token)
 
       for (int signature_idx = 0; signature_idx < token->signatures_cnt; signature_idx++)
       {
-        if (memcmp (token->buf[token_idx], token->signatures_buf[signature_idx], token->len[token_idx]) == 0) matched = true;
+        if (strncmp ((char *) token->buf[token_idx], token->signatures_buf[signature_idx], token->len[token_idx]) == 0) matched = true;
       }
 
       if (matched == false) return (PARSER_SIGNATURE_UNMATCHED);
