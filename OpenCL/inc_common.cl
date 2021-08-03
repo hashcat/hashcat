@@ -2066,6 +2066,12 @@ DECLSPEC int hc_enc_next (hc_enc_t *hc_enc, const u32 *src_buf, const int src_le
 
   int src_pos = hc_enc->pos;
 
+  #if VENDOR_ID == 8
+  // Work around segmentation fault in Intel JiT
+  // Tested with 2021.12.6.0.19_160000
+  volatile
+  #endif
+
   int dst_pos = hc_enc->clen;
 
   dst_buf[0] = hc_enc->cbuf;
@@ -2196,6 +2202,12 @@ DECLSPEC int hc_enc_next_global (hc_enc_t *hc_enc, GLOBAL_AS const u32 *src_buf,
                   u8 *dst_ptr = (                u8 *) dst_buf;
 
   int src_pos = hc_enc->pos;
+
+  #if VENDOR_ID == 8
+  // Work around segmentation fault in Intel JiT
+  // Tested with 2021.12.6.0.19_160000
+  volatile
+  #endif
 
   int dst_pos = hc_enc->clen;
 
