@@ -30,6 +30,11 @@
 #define SNMPV3_MAX_ENGINE_ELEMS     32  // 32 * 4 = 128 > 34, also has to be multiple of SNMPV3_MAX_PW_LENGTH
 #define SNMPV3_MAX_PNUM_ELEMS       4   // 4 * 4 = 16 > 9
 
+#define SNMPV3_MAX_PW_LENGTH_OPT    32
+#define SNMPV3_TMP_ELEMS_OPT        ((SNMPV3_MAX_PW_LENGTH_OPT * SNMPV3_MAX_PW_LENGTH) / 4)
+                                    // (32 * 128) / 4 = 1024
+                                    // for pw length > 32 we use global memory reads
+
 typedef struct hmac_sha512_tmp
 {
   u32 tmp[SNMPV3_TMP_ELEMS];
@@ -49,7 +54,7 @@ typedef struct snmpv3
 
 } snmpv3_t;
 
-KERNEL_FQ void m27000_init (KERN_ATTR_TMPS_ESALT (hmac_sha512_tmp_t, snmpv3_t))
+KERNEL_FQ void m27300_init (KERN_ATTR_TMPS_ESALT (hmac_sha512_tmp_t, snmpv3_t))
 {
   /**
    * modifier
@@ -146,7 +151,7 @@ KERNEL_FQ void m27000_init (KERN_ATTR_TMPS_ESALT (hmac_sha512_tmp_t, snmpv3_t))
   tmps[gid].h[7] = SHA512M_H;
 }
 
-KERNEL_FQ void m27000_loop (KERN_ATTR_TMPS_ESALT (hmac_sha512_tmp_t, snmpv3_t))
+KERNEL_FQ void m27300_loop (KERN_ATTR_TMPS_ESALT (hmac_sha512_tmp_t, snmpv3_t))
 {
   /**
    * base
@@ -171,10 +176,7 @@ KERNEL_FQ void m27000_loop (KERN_ATTR_TMPS_ESALT (hmac_sha512_tmp_t, snmpv3_t))
 
   const int pw_len128 = pw_len * 128;
 
-  #define SNMPV3_TMP_ELEMS_OPT 8192 // 8192 = (128 max pw length * 64) / sizeof (u32)
-                                    // for pw length > 128 we use global memory reads
-
-  if (pw_len < 128)
+  if (pw_len <= SNMPV3_MAX_PW_LENGTH_OPT)
   {
     u32 tmp[SNMPV3_TMP_ELEMS_OPT];
 
@@ -294,7 +296,7 @@ KERNEL_FQ void m27000_loop (KERN_ATTR_TMPS_ESALT (hmac_sha512_tmp_t, snmpv3_t))
   tmps[gid].h[7] = h[7];
 }
 
-KERNEL_FQ void m27000_comp (KERN_ATTR_TMPS_ESALT (hmac_sha512_tmp_t, snmpv3_t))
+KERNEL_FQ void m27300_comp (KERN_ATTR_TMPS_ESALT (hmac_sha512_tmp_t, snmpv3_t))
 {
   /**
    * modifier
