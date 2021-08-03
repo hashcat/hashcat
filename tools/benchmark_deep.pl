@@ -409,7 +409,6 @@ for my $hash_type (@hash_types)
     "--wordlist-autohex-disable",
     "--potfile-disable",
     "--logfile-disable",
-    "--hwmon-disable",
     "--status",
     "--status-timer", 1,
     "--runtime", $runtime,

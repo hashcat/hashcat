@@ -13,7 +13,7 @@
 #include <limits.h>
 #include <inttypes.h>
 
-static const int MODULE_INTERFACE_VERSION_MINIMUM = 520;
+static const int MODULE_INTERFACE_VERSION_MINIMUM = 630;
 
 static const int MODULE_HASH_MODES_MAXIMUM = 100000;
 

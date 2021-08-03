@@ -63,6 +63,14 @@
 #define HC_API_CALL
 #endif
 
+#if defined (__GNUC__)
+#define HC_ALIGN(x) __attribute__((aligned(x)))
+#elif defined (_MSC_VER)
+#define HC_ALIGN(x) __declspec(align(x))
+#else
+#define HC_ALIGN(x)
+#endif
+
 #if defined (_WIN)
 #define WIN32_LEAN_AND_MEAN
 #endif

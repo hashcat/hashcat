@@ -8,7 +8,7 @@
 use strict;
 use warnings;
 
-sub module_constraints { [[0, 256], [8, 8], [0, 55], [8, 8], [-1, -1]] }
+sub module_constraints { [[-1, -1], [-1, -1], [0, 55], [8, 8], [-1, -1]] }
 
 sub MurmurHash
 {

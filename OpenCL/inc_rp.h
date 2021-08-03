@@ -21,6 +21,7 @@
 #define RULE_OP_MANGLE_UREST_LFIRST     'C'
 #define RULE_OP_MANGLE_TREST            't'
 #define RULE_OP_MANGLE_TOGGLE_AT        'T'
+#define RULE_OP_MANGLE_TOGGLE_AT_SEP    '3'
 #define RULE_OP_MANGLE_REVERSE          'r'
 #define RULE_OP_MANGLE_DUPEWORD         'd'
 #define RULE_OP_MANGLE_DUPEWORD_TIMES   'p'
@@ -83,6 +84,7 @@ DECLSPEC int mangle_urest (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u
 DECLSPEC int mangle_urest_lfirst (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u32 *buf, const int len);
 DECLSPEC int mangle_trest (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u32 *buf, const int len);
 DECLSPEC int mangle_toggle_at (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u32 *buf, const int len);
+DECLSPEC int mangle_toggle_at_sep (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u32 *buf, const int len);
 DECLSPEC int mangle_reverse (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u32 *buf, const int len);
 DECLSPEC int mangle_dupeword (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u32 *buf, const int len);
 DECLSPEC int mangle_dupeword_times (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len);
