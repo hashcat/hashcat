@@ -16,7 +16,6 @@
 #define IS_OPENCL
 #endif
 
-
 #if defined IS_NATIVE
 #define CONSTANT_VK
 #define CONSTANT_AS
