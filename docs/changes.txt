@@ -15,7 +15,7 @@
 - Fixed autotune unitialized tmps variable for slow hashes by calling _init kernel before calling _loop kernel
 - Fixed datatype in function sha384_hmac_init_vector_128() that could come into effect if vector datatype was manually set
 - Fixed false negative in all VeraCrypt hash-modes if both conditions are met: 1. use CPU for cracking and 2. PIM range was used
-- Fixed multiple buffer overflow in DPAPI masterkey file v2 module
+- Fixed multiple buffer overflow in DPAPI masterkey file v1 and v2 module
 - Fixed out-of-boundary read in input_tokenizer() if the signature in the hash is longer than the length of the plugins' signature constant
 - Fixed out-of-boundary read in Stuffit5 module in hash_decode()
 
