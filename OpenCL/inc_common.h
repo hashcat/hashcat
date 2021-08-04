@@ -290,6 +290,7 @@ DECLSPEC void append_helper_1x4_S (u32 *r, const u32 v, const u32 *m);
 DECLSPEC void append_0x01_2x4_S (u32 *w0, u32 *w1, const u32 offset);
 DECLSPEC void append_0x06_2x4_S (u32 *w0, u32 *w1, const u32 offset);
 DECLSPEC void append_0x01_4x4_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 offset);
+DECLSPEC void append_0x2d_4x4_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 offset);
 DECLSPEC void append_0x80_1x4_S (u32 *w0, const u32 offset);
 DECLSPEC void append_0x80_2x4_S (u32 *w0, u32 *w1, const u32 offset);
 DECLSPEC void append_0x80_3x4_S (u32 *w0, u32 *w1, u32 *w2, const u32 offset);
@@ -316,5 +317,6 @@ DECLSPEC void append_0x01_4x4_VV (u32x *w0, u32x *w1, u32x *w2, u32x *w3, const 
 DECLSPEC void append_0x06_2x4_VV (u32x *w0, u32x *w1, const u32x offset);
 DECLSPEC void append_0x80_2x4_VV (u32x *w0, u32x *w1, const u32x offset);
 DECLSPEC void append_0x80_4x4_VV (u32x *w0, u32x *w1, u32x *w2, u32x *w3, const u32x offset);
+DECLSPEC void append_0x2d_4x4_VV (u32x *w0, u32x *w1, u32x *w2, u32x *w3, const u32x offset);
 
 #endif
