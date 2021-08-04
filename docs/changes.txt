@@ -70,6 +70,8 @@
 - Added hash-mode: SNMPv3 HMAC-SHA1-96
 - Added hash-mode: SNMPv3 HMAC-SHA224-128
 - Added hash-mode: SNMPv3 HMAC-SHA256-192
+- Added hash-mode: SNMPv3 HMAC-SHA384-256
+- Added hash-mode: SNMPv3 HMAC-SHA512-384
 
 * changes v6.2.2 -> v6.2.3
 

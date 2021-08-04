@@ -30,6 +30,11 @@
 #define SNMPV3_MAX_ENGINE_ELEMS     16  // 16 * 4 = 64 > 32, also has to be multiple of 64
 #define SNMPV3_MAX_PNUM_ELEMS       4   // 4 * 4 = 16 > 9
 
+#define SNMPV3_MAX_PW_LENGTH_OPT    64
+#define SNMPV3_TMP_ELEMS_OPT        ((SNMPV3_MAX_PW_LENGTH_OPT * SNMPV3_MAX_PW_LENGTH) / 4)
+                                    // (64 * 64) / 4 = 1024
+                                    // for pw length > 64 we use global memory reads
+
 typedef struct hmac_sha224_tmp
 {
   u32 tmp[SNMPV3_TMP_ELEMS];
@@ -155,10 +160,7 @@ KERNEL_FQ void m26700_loop (KERN_ATTR_TMPS_ESALT (hmac_sha224_tmp_t, snmpv3_t))
 
   const int pw_len64 = pw_len * 64;
 
-  #define SNMPV3_TMP_ELEMS_OPT 1024 // 1024 = (64 max pw length * 64) / sizeof (u32)
-                                    // for pw length > 64 we use global memory reads
-
-  if (pw_len < 64)
+  if (pw_len <= SNMPV3_MAX_PW_LENGTH_OPT)
   {
     u32 tmp[SNMPV3_TMP_ELEMS_OPT];
 
