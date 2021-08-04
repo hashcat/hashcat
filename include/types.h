@@ -1728,6 +1728,7 @@ typedef struct backend_ctx
   int                 rc_hip_init;
   int                 rc_hiprtc_init;
 
+  int                 hip_runtimeVersion;
   int                 hip_driverVersion;
 
   // opencl

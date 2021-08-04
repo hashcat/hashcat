@@ -818,10 +818,22 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
     event_log_info (hashcat_ctx, NULL);
 
     int hip_devices_cnt    = backend_ctx->hip_devices_cnt;
-    int hip_driverVersion  = backend_ctx->hip_driverVersion;
+    int hip_runtimeVersion = backend_ctx->hip_runtimeVersion;
 
-    event_log_info (hashcat_ctx, "HIP.Version.: %d.%d", hip_driverVersion / 100, hip_driverVersion % 10);
-    event_log_info (hashcat_ctx, NULL);
+    if (hip_runtimeVersion > 1000)
+    {
+      int hip_version_major = (hip_runtimeVersion - 0) / 10000000;
+      int hip_version_minor = (hip_runtimeVersion - (hip_version_major * 10000000)) / 100000;
+      int hip_version_patch = (hip_runtimeVersion - (hip_version_major * 10000000) - (hip_version_minor * 100000));
+
+      event_log_info (hashcat_ctx, "HIP.Version.: %d.%d.%d", hip_version_major, hip_version_minor, hip_version_patch);
+      event_log_info (hashcat_ctx, NULL);
+    }
+    else
+    {
+      event_log_info (hashcat_ctx, "HIP.Version.: %d.%d", hip_runtimeVersion / 100, hip_runtimeVersion % 10);
+      event_log_info (hashcat_ctx, NULL);
+    }
 
     for (int hip_devices_idx = 0; hip_devices_idx < hip_devices_cnt; hip_devices_idx++)
     {
@@ -1014,10 +1026,23 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
 
   if (backend_ctx->hip)
   {
-    int hip_devices_cnt   = backend_ctx->hip_devices_cnt;
-    int hip_driverVersion = backend_ctx->hip_driverVersion;
+    int hip_devices_cnt    = backend_ctx->hip_devices_cnt;
+    int hip_runtimeVersion = backend_ctx->hip_runtimeVersion;
 
-    const size_t len = event_log_info (hashcat_ctx, "HIP API (HIP %d.%d)", hip_driverVersion / 100, hip_driverVersion % 10);
+    size_t len;
+
+    if (hip_runtimeVersion > 1000)
+    {
+      int hip_version_major = (hip_runtimeVersion - 0) / 10000000;
+      int hip_version_minor = (hip_runtimeVersion - (hip_version_major * 10000000)) / 100000;
+      int hip_version_patch = (hip_runtimeVersion - (hip_version_major * 10000000) - (hip_version_minor * 100000));
+
+      len = event_log_info (hashcat_ctx, "HIP API (HIP %d.%d.%d)", hip_version_major, hip_version_minor, hip_version_patch);
+    }
+    else
+    {
+      len = event_log_info (hashcat_ctx, "HIP API (HIP %d.%d)", hip_runtimeVersion / 100, hip_runtimeVersion % 10);
+    }
 
     char line[HCBUFSIZ_TINY] = { 0 };
 

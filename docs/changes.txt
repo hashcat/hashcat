@@ -4,48 +4,62 @@
 ## Features
 ##
 
-- Added option --multiply-accel-disable (short: -M) to disable multiply the kernel-accel with the multiprocessor count automatism
-- HIP Backend: Added support to support HIP 4.4 and later, but added check to rule out older versions because they are incompatible
+- Added option --multiply-accel-disable (short: -M) to disable multiplying of the kernel accel with the multiprocessor count
+- Added rule function '3' to change the case of the first letter after the occurrence of N of character X
+- Added support for auto tuning --kernel-threads (-T) at startup
+- Added support for HIP version 4.3 or later and removed support for older HIP versions as they are not compatible
 
 ##
 ## Bugs
 ##
 
-- Fixed buffer overflow in Stargazer Stellar Wallet XLM module in hash_encode() if a hash was cracked
-- Fixed autotune unitialized tmps variable for slow hashes by calling _init kernel before calling _loop kernel
-- Fixed datatype in function sha384_hmac_init_vector_128() that could come into effect if vector datatype was manually set
-- Fixed false negative in all VeraCrypt hash-modes if both conditions are met: 1. use CPU for cracking and 2. PIM range was used
-- Fixed multiple buffer overflow in DPAPI masterkey file v1 and v2 module
-- Fixed out-of-boundary read in input_tokenizer() if the signature in the hash is longer than the length of the plugins' signature constant
-- Fixed out-of-boundary read in Stuffit5 module in hash_decode()
+- Fixed buffer overflow in DPAPI masterkey file v1/v2 module in hash_encode() and hash_decode()
+- Fixed buffer overflow in Stargazer Stellar Wallet XLM module in hash_encode() when a hash was cracked
+- Fixed false negative in all VeraCrypt hash modes if both conditions are met: 1. Use CPU for cracking and 2. PIM area was used
+- Fixed invalid data type in the sha384_hmac_init_vector_128() function that take effect if the vector data type was specified manually
+- Fixed out-of-boundary read in input_tokenizer() if the signature in the hash is longer than the length of the plugin's signature constant
+- Fixed out-of-boundary read in the Stuffit5 module in hash_decode()
+- Fixed random rule generator option --generate-rules-func-min by fixing switch() case to not select a not existing option group type
+- Fixed uninitialized tmps variable in autotune for slow hashes by calling _init and _prepare kernel before calling _loop kernel
 
 ##
-## Improvements
+## Performance
 ##
 
-- AMD GPUs: Add inline assembly code for md5crypt/sha256crypt, PDF 1.7, 7-Zip, RAR3, Samsung Android and Windows Phone 8+
-- AMD GPUs: On Apple OpenCL platform, we ask for the preferred kernel thread size rather than hard-coding 32
-- Blake Kernels: Optimize BLAKE2B_ROUND() 64 bit rotates giving a 5% performance increase
-- Blowfish Kernels: Backport optimizations reducing bank conflicts from bcrypt to Password Safe v2 and Open Document Format (ODF) 1.1
-- Brain Session: Adds hashconfig specific opti_type and opts_type parameters to hashcat session computation to cover features like -O and -M
-- Kernel Threads: Use warp size / wavefront size query instead of hardcoded values as base for kernel threads
-- Shared Memory: Calculate kernel dynamic memory size based on CU_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_BLOCK_OPTIN
-- Slow Kernels: Set some of the slowest kernels to OPTS_TYPE_MP_MULTI_DISABLE
+- AMD GPUs: Add inline assembly code for md5crypt, sha256crypt, PDF 1.7, 7-Zip, RAR3, Samsung Android and Windows Phone 8+
+- AMD GPUs: On the Apple OpenCL platform, we ask for the preferred kernel thread size rather than hard-coding 32
+- Backend Interface: Replace most of the blocking Compute API functions with asynchronous ones to improve GPU utilization
+- Blake Kernels: Optimize 3/4 BLAKE2B_ROUND() 64-bit rotations with inline assembly hc_byte_perm_S() calls
+- Blowfish Kernels: Backport optimizations to reduce bank conflicts from bcrypt to Password Safe v2 and Open Document Format (ODF) 1.1
+- ECC secp256k1: The inline assembly code for AMD GPUs has been removed as the latest JIT compilers optimize it with the same efficiency
+- HIP Kernels: Enable vector data types for HIP kernels for functionality and performance
+- Kernel threads: Use warp size / wavefront size query instead of hard-coded values as the basis for kernel threads
+- SCRYPT Kernels: Improve Hashcat.hctune entries for many NV and AMD GPUs for hash mode 8900, 9300, 15700 and 22700
+- Tuning Database: Add new module function module_extra_tuningdb_block() to extend hashcat.hctune content from a module
 
 ##
 ## Technical
 ##
 
-- ADL: Updated support for AMD Display Library to 15.0, updated datatypes and added support for OverDrive 7 and 8 based GPUs
-- AMD Driver: Updated requirement for AMD Linux driver to ROCm 4.4 or later because of new HIP Interface
-- AMD Driver: Updated requirement for AMD Windows driver to Adrenalin 21.2.1 or later because of new ADL library
-- Commandline: Throw an error if separator character given by the user with -p option is not exactly 1 byte
-- ECC secp256k1: Removed the inline assembly code for AMD GPUs because the latest JIT compilers optimize it with the same efficiency
-- HIP Kernels: Got rid of hip/hip_runtime.h dependancy to enable more easy integration of the HIP backend on Windows
-- Kernel Cache: Add kernel threads into hash computation which is later used in the kernel cache filename
-- Memory Management: Refactored the code responsible for limiting kernel accel in order to avoid out of -host- memory situations
-- SCRYPT Kernels: Add more optimized values for some new NV/AMD GPUs
-- 7-Zip Hook: Increase supported data length from 320kb to 8mb
+- 7-Zip Hook: Increase the supported data length from 320kb to 8mb
+- ADL: Updated support for AMD Display Library to 15.0, updated data types
+- AMD Driver: Updated requirements for AMD Linux drivers to ROCm 4.3 or later due to new HIP interface
+- AMD Driver: Updated requirements for AMD Windows drivers to Adrenalin 21.2.1 or later due to new ADL library
+- Backend Interface: Implement gpu_bzero() as a gpu_memset() replacement, since all gpu_memset() operations used 0 as the value
+- Backend Interface: Improve the query kernel's dynamic memory size based on DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_BLOCK_OPTIN instead of BF
+- Brain Session: Adds hashconfig-specific opti_type and opts_type parameters to the session calculation to enable cover functions like -O
+- Commandline: Throw an error if the separator specified by the user with the -p option is not exactly 1 byte
+- Constants: Make const char * pointers actually const char * const pointers
+- Filehandling: Use const char for fopen mode to fix -Wwrite-strings warnings
+- Hardware Monitor: Added support for OverDrive 7 and 8 based GPUs
+- HIP Kernels: Dependency on hip/hip runtime.h has been removed to enable easier integration of the HIP backend under Windows
+- Kernel cache: Add kernel threads for hash calculation, which will later be used in the file name of the kernel cache
+- Memory Management: Refactored the code responsible for limiting kernel accel with the goal to avoid low host memory situations
+- OpenCL Runtime: Workaround for Intel OpenCL runtime: segmentation fault when compiling hc_enc_next() / hc_enc_next_global()
+- RC4 Kernels: Use improved native thread derivation for RC4-based hash modes 7500, 13100, 18200, 25400
+- Shared Memory: Calculate the dynamic memory size of the kernel based on CU_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_BLOCK_OPTIN
+- Slow kernels: Set some of the slowest kernels to OPTS_TYPE_MP_MULTI_DISABLE to make it easier to handle small word lists
+- Vendor Discovery: Add "Intel" as a valid vendor name for GPUs on macOS
 
 ##
 ## Algorithms

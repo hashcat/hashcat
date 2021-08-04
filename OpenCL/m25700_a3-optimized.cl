@@ -14,7 +14,7 @@
 #include "inc_hash_md5.cl"
 #endif
 
-DECLSPEC u32x MurmurHash_w0 (const u32 seed, const u32x w0, const u32x *w, const int pw_len)
+DECLSPEC u32x MurmurHash_w0 (const u32 seed, const u32x w0, const u32 *w, const int pw_len)
 {
   u32x hash = seed;
 

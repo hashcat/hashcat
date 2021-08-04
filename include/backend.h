@@ -128,6 +128,7 @@ int hc_hipModuleGetFunction      (hashcat_ctx_t *hashcat_ctx, hipFunction_t *hfu
 int hc_hipModuleGetGlobal        (hashcat_ctx_t *hashcat_ctx, hipDeviceptr_t *dptr, size_t *bytes, hipModule_t hmod, const char *name);
 int hc_hipModuleLoadDataEx       (hashcat_ctx_t *hashcat_ctx, hipModule_t *module, const void *image, unsigned int numOptions, hipJitOption *options, void **optionValues);
 int hc_hipModuleUnload           (hashcat_ctx_t *hashcat_ctx, hipModule_t hmod);
+int hc_hipRuntimeGetVersion      (hashcat_ctx_t *hashcat_ctx, int *runtimeVersion);
 int hc_hipStreamCreate           (hashcat_ctx_t *hashcat_ctx, hipStream_t *phStream, unsigned int Flags);
 int hc_hipStreamDestroy          (hashcat_ctx_t *hashcat_ctx, hipStream_t hStream);
 int hc_hipStreamSynchronize      (hashcat_ctx_t *hashcat_ctx, hipStream_t hStream);

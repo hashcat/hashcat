@@ -314,7 +314,8 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
   void *tmps = NULL;
 
   cl_event opencl_event;
-  int rc;
+
+  int rc = -1;
 
   if (hashconfig->opts_type & OPTS_TYPE_COPY_TMPS)
   {
@@ -556,7 +557,8 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   user_options_t *user_options = hashcat_ctx->user_options;
 
   u32 num_cracked = 0;
-  int rc;
+
+  int rc = -1;
 
   if (device_param->is_cuda == true)
   {
