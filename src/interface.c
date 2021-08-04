@@ -150,6 +150,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_DEFINED (module_ctx->module_esalt_size);
   CHECK_DEFINED (module_ctx->module_extra_buffer_size);
   CHECK_DEFINED (module_ctx->module_extra_tmp_size);
+  CHECK_DEFINED (module_ctx->module_extra_tuningdb_block);
   CHECK_DEFINED (module_ctx->module_forced_outfile_format);
   CHECK_DEFINED (module_ctx->module_hash_binary_count);
   CHECK_DEFINED (module_ctx->module_hash_binary_parse);

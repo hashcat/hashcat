@@ -16,7 +16,6 @@
 #define IS_OPENCL
 #endif
 
-
 #if defined IS_NATIVE
 #define CONSTANT_VK
 #define CONSTANT_AS
@@ -32,10 +31,6 @@
 #define LOCAL_AS
 #define KERNEL_FQ   extern "C" __global__
 #elif defined IS_HIP
-#define __device__   __attribute__((device))
-#define __constant__ __attribute__((constant))
-#define __shared__   __attribute__((shared))
-#define __global__   __attribute__((global))
 #define CONSTANT_VK __constant__
 #define CONSTANT_AS
 #define GLOBAL_AS

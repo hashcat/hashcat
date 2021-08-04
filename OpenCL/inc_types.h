@@ -21,96 +21,23 @@
 typedef unsigned char       uchar;
 typedef unsigned short      ushort;
 typedef unsigned int        uint;
-typedef unsigned long long  ulong;
+typedef unsigned long       ulong;
+typedef unsigned long long  ullong;
 #endif
 
-#ifdef IS_HIP
-// https://github.com/llvm-mirror/clang/blob/master/lib/Headers/opencl-c-base.h
-
-// built-in scalar data types:
-
-/**
- * An unsigned 8-bit integer.
- */
-typedef unsigned char uchar;
-
-/**
- * An unsigned 16-bit integer.
- */
-typedef unsigned short ushort;
-
-/**
- * An unsigned 32-bit integer.
- */
-typedef unsigned int uint;
-
-/**
- * An unsigned 64-bit integer.
- */
-typedef unsigned long ulong;
-
-/**
- * The unsigned integer type of the result of the sizeof operator. This
- * is a 32-bit unsigned integer if CL_DEVICE_ADDRESS_BITS
- * defined in table 4.3 is 32-bits and is a 64-bit unsigned integer if
- * CL_DEVICE_ADDRESS_BITS is 64-bits.
- */
-typedef __SIZE_TYPE__ size_t;
-
-// built-in vector data types:
-typedef char char2 __attribute__((ext_vector_type(2)));
-typedef char char3 __attribute__((ext_vector_type(3)));
-typedef char char4 __attribute__((ext_vector_type(4)));
-typedef char char8 __attribute__((ext_vector_type(8)));
-typedef char char16 __attribute__((ext_vector_type(16)));
-typedef uchar uchar2 __attribute__((ext_vector_type(2)));
-typedef uchar uchar3 __attribute__((ext_vector_type(3)));
-typedef uchar uchar4 __attribute__((ext_vector_type(4)));
-typedef uchar uchar8 __attribute__((ext_vector_type(8)));
-typedef uchar uchar16 __attribute__((ext_vector_type(16)));
-typedef short short2 __attribute__((ext_vector_type(2)));
-typedef short short3 __attribute__((ext_vector_type(3)));
-typedef short short4 __attribute__((ext_vector_type(4)));
-typedef short short8 __attribute__((ext_vector_type(8)));
-typedef short short16 __attribute__((ext_vector_type(16)));
-typedef ushort ushort2 __attribute__((ext_vector_type(2)));
-typedef ushort ushort3 __attribute__((ext_vector_type(3)));
-typedef ushort ushort4 __attribute__((ext_vector_type(4)));
-typedef ushort ushort8 __attribute__((ext_vector_type(8)));
-typedef ushort ushort16 __attribute__((ext_vector_type(16)));
-typedef int int2 __attribute__((ext_vector_type(2)));
-typedef int int3 __attribute__((ext_vector_type(3)));
-typedef int int4 __attribute__((ext_vector_type(4)));
-typedef int int8 __attribute__((ext_vector_type(8)));
-typedef int int16 __attribute__((ext_vector_type(16)));
-typedef uint uint2 __attribute__((ext_vector_type(2)));
-typedef uint uint3 __attribute__((ext_vector_type(3)));
-typedef uint uint4 __attribute__((ext_vector_type(4)));
-typedef uint uint8 __attribute__((ext_vector_type(8)));
-typedef uint uint16 __attribute__((ext_vector_type(16)));
-typedef long long2 __attribute__((ext_vector_type(2)));
-typedef long long3 __attribute__((ext_vector_type(3)));
-typedef long long4 __attribute__((ext_vector_type(4)));
-typedef long long8 __attribute__((ext_vector_type(8)));
-typedef long long16 __attribute__((ext_vector_type(16)));
-typedef ulong ulong2 __attribute__((ext_vector_type(2)));
-typedef ulong ulong3 __attribute__((ext_vector_type(3)));
-typedef ulong ulong4 __attribute__((ext_vector_type(4)));
-typedef ulong ulong8 __attribute__((ext_vector_type(8)));
-typedef ulong ulong16 __attribute__((ext_vector_type(16)));
-typedef float float2 __attribute__((ext_vector_type(2)));
-typedef float float3 __attribute__((ext_vector_type(3)));
-typedef float float4 __attribute__((ext_vector_type(4)));
-typedef float float8 __attribute__((ext_vector_type(8)));
-typedef float float16 __attribute__((ext_vector_type(16)));
-
+#ifdef IS_OPENCL
+typedef ulong   ullong;
+typedef ulong2  ullong2;
+typedef ulong4  ullong4;
+typedef ulong8  ullong8;
+typedef ulong16 ullong16;
 #endif
 
 #ifdef KERNEL_STATIC
 typedef uchar  u8;
 typedef ushort u16;
 typedef uint   u32;
-typedef ulong  u64;
+typedef ullong u64;
 #else
 typedef uint8_t  u8;
 typedef uint16_t u16;
@@ -150,7 +77,7 @@ typedef u64  u64x;
 #define make_u64x (u64)
 
 #else
-#if defined IS_CUDA
+#if defined IS_CUDA || defined IS_HIP
 
 #if VECT_SIZE == 2
 
@@ -910,7 +837,7 @@ typedef __device_builtin__ struct u64x u64x;
 typedef VTYPE(uchar,  VECT_SIZE) u8x;
 typedef VTYPE(ushort, VECT_SIZE) u16x;
 typedef VTYPE(uint,   VECT_SIZE) u32x;
-typedef VTYPE(ulong,  VECT_SIZE) u64x;
+typedef VTYPE(ullong, VECT_SIZE) u64x;
 
 #define make_u8x  (u8x)
 #define make_u16x (u16x)

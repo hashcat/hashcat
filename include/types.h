@@ -295,6 +295,7 @@ typedef enum rule_functions
   RULE_OP_MANGLE_UREST_LFIRST    = 'C',
   RULE_OP_MANGLE_TREST           = 't',
   RULE_OP_MANGLE_TOGGLE_AT       = 'T',
+  RULE_OP_MANGLE_TOGGLE_AT_SEP   = '3',
   RULE_OP_MANGLE_REVERSE         = 'r',
   RULE_OP_MANGLE_DUPEWORD        = 'd',
   RULE_OP_MANGLE_DUPEWORD_TIMES  = 'p',
@@ -463,6 +464,7 @@ typedef enum dgst_size
   DGST_SIZE_4_32 = (32 * sizeof (u32)), // 128 !!!
   DGST_SIZE_4_64 = (64 * sizeof (u32)), // 256
   DGST_SIZE_8_2  = (2  * sizeof (u64)), // 16 !!!
+  DGST_SIZE_8_4  = (4  * sizeof (u64)), // 32 !!!
   DGST_SIZE_8_6  = (6  * sizeof (u64)), // 48 !!!
   DGST_SIZE_8_8  = (8  * sizeof (u64)), // 64 !!!
   DGST_SIZE_8_16 = (16 * sizeof (u64)), // 128 !!!
@@ -927,7 +929,6 @@ typedef struct hashes
 
   void        *digests_buf;
   u32         *digests_shown;
-  u32         *digests_shown_tmp;
 
   u32          salts_cnt;
   u32          salts_done;
@@ -1428,6 +1429,7 @@ typedef struct hc_device_param
 
   CUevent           cuda_event1;
   CUevent           cuda_event2;
+  CUevent           cuda_event3;
 
   CUmodule          cuda_module;
   CUmodule          cuda_module_shared;
@@ -1503,80 +1505,81 @@ typedef struct hc_device_param
 
   int               hip_warp_size;
 
-  HIPdevice         hip_device;
-  HIPcontext        hip_context;
-  HIPstream         hip_stream;
+  hipDevice_t       hip_device;
+  hipCtx_t          hip_context;
+  hipStream_t       hip_stream;
 
-  HIPevent          hip_event1;
-  HIPevent          hip_event2;
+  hipEvent_t        hip_event1;
+  hipEvent_t        hip_event2;
+  hipEvent_t        hip_event3;
 
-  HIPmodule         hip_module;
-  HIPmodule         hip_module_shared;
-  HIPmodule         hip_module_mp;
-  HIPmodule         hip_module_amp;
+  hipModule_t       hip_module;
+  hipModule_t       hip_module_shared;
+  hipModule_t       hip_module_mp;
+  hipModule_t       hip_module_amp;
 
-  HIPfunction       hip_function1;
-  HIPfunction       hip_function12;
-  HIPfunction       hip_function2p;
-  HIPfunction       hip_function2;
-  HIPfunction       hip_function2e;
-  HIPfunction       hip_function23;
-  HIPfunction       hip_function3;
-  HIPfunction       hip_function4;
-  HIPfunction       hip_function_init2;
-  HIPfunction       hip_function_loop2p;
-  HIPfunction       hip_function_loop2;
-  HIPfunction       hip_function_mp;
-  HIPfunction       hip_function_mp_l;
-  HIPfunction       hip_function_mp_r;
-  HIPfunction       hip_function_amp;
-  HIPfunction       hip_function_tm;
-  HIPfunction       hip_function_memset;
-  HIPfunction       hip_function_bzero;
-  HIPfunction       hip_function_atinit;
-  HIPfunction       hip_function_utf8toutf16le;
-  HIPfunction       hip_function_decompress;
-  HIPfunction       hip_function_aux1;
-  HIPfunction       hip_function_aux2;
-  HIPfunction       hip_function_aux3;
-  HIPfunction       hip_function_aux4;
+  hipFunction_t     hip_function1;
+  hipFunction_t     hip_function12;
+  hipFunction_t     hip_function2p;
+  hipFunction_t     hip_function2;
+  hipFunction_t     hip_function2e;
+  hipFunction_t     hip_function23;
+  hipFunction_t     hip_function3;
+  hipFunction_t     hip_function4;
+  hipFunction_t     hip_function_init2;
+  hipFunction_t     hip_function_loop2p;
+  hipFunction_t     hip_function_loop2;
+  hipFunction_t     hip_function_mp;
+  hipFunction_t     hip_function_mp_l;
+  hipFunction_t     hip_function_mp_r;
+  hipFunction_t     hip_function_amp;
+  hipFunction_t     hip_function_tm;
+  hipFunction_t     hip_function_memset;
+  hipFunction_t     hip_function_bzero;
+  hipFunction_t     hip_function_atinit;
+  hipFunction_t     hip_function_utf8toutf16le;
+  hipFunction_t     hip_function_decompress;
+  hipFunction_t     hip_function_aux1;
+  hipFunction_t     hip_function_aux2;
+  hipFunction_t     hip_function_aux3;
+  hipFunction_t     hip_function_aux4;
 
-  HIPdeviceptr      hip_d_pws_buf;
-  HIPdeviceptr      hip_d_pws_amp_buf;
-  HIPdeviceptr      hip_d_pws_comp_buf;
-  HIPdeviceptr      hip_d_pws_idx;
-  HIPdeviceptr      hip_d_rules;
-  HIPdeviceptr      hip_d_rules_c;
-  HIPdeviceptr      hip_d_combs;
-  HIPdeviceptr      hip_d_combs_c;
-  HIPdeviceptr      hip_d_bfs;
-  HIPdeviceptr      hip_d_bfs_c;
-  HIPdeviceptr      hip_d_tm_c;
-  HIPdeviceptr      hip_d_bitmap_s1_a;
-  HIPdeviceptr      hip_d_bitmap_s1_b;
-  HIPdeviceptr      hip_d_bitmap_s1_c;
-  HIPdeviceptr      hip_d_bitmap_s1_d;
-  HIPdeviceptr      hip_d_bitmap_s2_a;
-  HIPdeviceptr      hip_d_bitmap_s2_b;
-  HIPdeviceptr      hip_d_bitmap_s2_c;
-  HIPdeviceptr      hip_d_bitmap_s2_d;
-  HIPdeviceptr      hip_d_plain_bufs;
-  HIPdeviceptr      hip_d_digests_buf;
-  HIPdeviceptr      hip_d_digests_shown;
-  HIPdeviceptr      hip_d_salt_bufs;
-  HIPdeviceptr      hip_d_esalt_bufs;
-  HIPdeviceptr      hip_d_tmps;
-  HIPdeviceptr      hip_d_hooks;
-  HIPdeviceptr      hip_d_result;
-  HIPdeviceptr      hip_d_extra0_buf;
-  HIPdeviceptr      hip_d_extra1_buf;
-  HIPdeviceptr      hip_d_extra2_buf;
-  HIPdeviceptr      hip_d_extra3_buf;
-  HIPdeviceptr      hip_d_root_css_buf;
-  HIPdeviceptr      hip_d_markov_css_buf;
-  HIPdeviceptr      hip_d_st_digests_buf;
-  HIPdeviceptr      hip_d_st_salts_buf;
-  HIPdeviceptr      hip_d_st_esalts_buf;
+  hipDeviceptr_t    hip_d_pws_buf;
+  hipDeviceptr_t    hip_d_pws_amp_buf;
+  hipDeviceptr_t    hip_d_pws_comp_buf;
+  hipDeviceptr_t    hip_d_pws_idx;
+  hipDeviceptr_t    hip_d_rules;
+  hipDeviceptr_t    hip_d_rules_c;
+  hipDeviceptr_t    hip_d_combs;
+  hipDeviceptr_t    hip_d_combs_c;
+  hipDeviceptr_t    hip_d_bfs;
+  hipDeviceptr_t    hip_d_bfs_c;
+  hipDeviceptr_t    hip_d_tm_c;
+  hipDeviceptr_t    hip_d_bitmap_s1_a;
+  hipDeviceptr_t    hip_d_bitmap_s1_b;
+  hipDeviceptr_t    hip_d_bitmap_s1_c;
+  hipDeviceptr_t    hip_d_bitmap_s1_d;
+  hipDeviceptr_t    hip_d_bitmap_s2_a;
+  hipDeviceptr_t    hip_d_bitmap_s2_b;
+  hipDeviceptr_t    hip_d_bitmap_s2_c;
+  hipDeviceptr_t    hip_d_bitmap_s2_d;
+  hipDeviceptr_t    hip_d_plain_bufs;
+  hipDeviceptr_t    hip_d_digests_buf;
+  hipDeviceptr_t    hip_d_digests_shown;
+  hipDeviceptr_t    hip_d_salt_bufs;
+  hipDeviceptr_t    hip_d_esalt_bufs;
+  hipDeviceptr_t    hip_d_tmps;
+  hipDeviceptr_t    hip_d_hooks;
+  hipDeviceptr_t    hip_d_result;
+  hipDeviceptr_t    hip_d_extra0_buf;
+  hipDeviceptr_t    hip_d_extra1_buf;
+  hipDeviceptr_t    hip_d_extra2_buf;
+  hipDeviceptr_t    hip_d_extra3_buf;
+  hipDeviceptr_t    hip_d_root_css_buf;
+  hipDeviceptr_t    hip_d_markov_css_buf;
+  hipDeviceptr_t    hip_d_st_digests_buf;
+  hipDeviceptr_t    hip_d_st_salts_buf;
+  hipDeviceptr_t    hip_d_st_esalts_buf;
 
   // API: opencl
 
@@ -1727,8 +1730,8 @@ typedef struct backend_ctx
   int                 rc_hip_init;
   int                 rc_hiprtc_init;
 
-  int                 hiprtc_driver_version;
-  int                 hip_driver_version;
+  int                 hip_runtimeVersion;
+  int                 hip_driverVersion;
 
   // opencl
 
@@ -2044,9 +2047,11 @@ typedef struct tuning_db
 
   tuning_db_alias_t *alias_buf;
   int                alias_cnt;
+  int                alias_alloc;
 
   tuning_db_entry_t *entry_buf;
   int                entry_cnt;
+  int                entry_alloc;
 
 } tuning_db_t;
 
@@ -2650,6 +2655,7 @@ typedef struct module_ctx
   u32         (*module_dgst_pos3)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_dgst_size)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_esalt_size)              (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  const char *(*module_extra_tuningdb_block)    (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_forced_outfile_format)   (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_hash_category)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_hash_name)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
