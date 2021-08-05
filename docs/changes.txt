@@ -13,6 +13,7 @@
 ## Bugs
 ##
 
+- Fixed broken support for --generate-rules-func-min which was ignored under certain conditions
 - Fixed buffer overflow in DPAPI masterkey file v1/v2 module in hash_encode() and hash_decode()
 - Fixed buffer overflow in Stargazer Stellar Wallet XLM module in hash_encode() when a hash was cracked
 - Fixed false negative in all VeraCrypt hash modes if both conditions are met: 1. Use CPU for cracking and 2. PIM area was used
@@ -20,6 +21,7 @@
 - Fixed out-of-boundary read in input_tokenizer() if the signature in the hash is longer than the length of the plugin's signature constant
 - Fixed out-of-boundary read in the Stuffit5 module in hash_decode()
 - Fixed random rule generator option --generate-rules-func-min by fixing switch() case to not select a not existing option group type
+- Fixed syntax check of HAS_VPERM macro in several kernel includes causing invalid error message for AMD GPUs on Windows
 - Fixed uninitialized tmps variable in autotune for slow hashes by calling _init and _prepare kernel before calling _loop kernel
 
 ##
