@@ -1059,10 +1059,30 @@ static void main_selftest_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
   event_log_info_nn (hashcat_ctx, "Finished self-test");
 }
 
+static void main_autotune_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  event_log_info_nn (hashcat_ctx, "Starting autotune. Please be patient...");
+}
+
+static void main_autotune_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  event_log_info_nn (hashcat_ctx, "Finished autotune");
+}
+
 static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
 {
   switch (id)
   {
+    case EVENT_AUTOTUNE_FINISHED:         main_autotune_finished         (hashcat_ctx, buf, len); break;
+    case EVENT_AUTOTUNE_STARTING:         main_autotune_starting         (hashcat_ctx, buf, len); break;
     case EVENT_SELFTEST_FINISHED:         main_selftest_finished         (hashcat_ctx, buf, len); break;
     case EVENT_SELFTEST_STARTING:         main_selftest_starting         (hashcat_ctx, buf, len); break;
     case EVENT_AUTODETECT_FINISHED:       main_autodetect_finished       (hashcat_ctx, buf, len); break;
