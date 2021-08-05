@@ -7093,7 +7093,7 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
       {
         if (hip_runtimeVersion < 404)
         {
-          event_log_warning (hashcat_ctx, "Unsupported AMD HIP runtime version '%d' detected! Falling back to OpenCL...", hip_runtimeVersion);
+          event_log_warning (hashcat_ctx, "Unsupported AMD HIP runtime version '%d.%d' detected! Falling back to OpenCL...", hip_runtimeVersion / 100, hip_runtimeVersion % 10);
           event_log_warning (hashcat_ctx, NULL);
 
           rc_hip_init    = -1;
@@ -7116,7 +7116,11 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
         // we need to wait for 4.4 to be released to continue here
         // ignore this backend
 
-        event_log_warning (hashcat_ctx, "Unsupported AMD HIP runtime version '%d' detected! Falling back to OpenCL...", hip_runtimeVersion);
+        int hip_version_major = (hip_runtimeVersion - 0) / 10000000;
+        int hip_version_minor = (hip_runtimeVersion - (hip_version_major * 10000000)) / 100000;
+        int hip_version_patch = (hip_runtimeVersion - (hip_version_major * 10000000) - (hip_version_minor * 100000));
+
+        event_log_warning (hashcat_ctx, "Unsupported AMD HIP runtime version '%d.%d.%d' detected! Falling back to OpenCL...", hip_version_major, hip_version_minor, hip_version_patch);
         event_log_warning (hashcat_ctx, NULL);
 
         rc_hip_init    = -1;
