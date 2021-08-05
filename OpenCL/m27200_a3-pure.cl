@@ -44,9 +44,9 @@ KERNEL_FQ void m27200_mxx (KERN_ATTR_VECTOR ())
 
   sha1_init (&ctx0);
 
-  sha1_update_global (&ctx0, dash, 2);
+  sha1_update (&ctx0, dash, 2);
   sha1_update_global_swap (&ctx0, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
-  sha1_update_global (&ctx0, dash, 2);
+  sha1_update (&ctx0, dash, 2);
 
   /**
    * loop
@@ -122,9 +122,9 @@ KERNEL_FQ void m27200_sxx (KERN_ATTR_VECTOR ())
 
   sha1_init (&ctx0);
 
-  sha1_update_global (&ctx0, dash, 2);
+  sha1_update (&ctx0, dash, 2);
   sha1_update_global_swap (&ctx0, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
-  sha1_update_global (&ctx0, dash, 2);
+  sha1_update (&ctx0, dash, 2);
 
   /**
    * loop
