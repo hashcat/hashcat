@@ -1483,7 +1483,7 @@ DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const int c)
   return r;
 }
 
-#if HAS_VPERM
+#if HAS_VPERM == 1
 DECLSPEC u32x hc_byte_perm (const u32x a, const u32x b, const int c)
 {
   u32x r = 0;
@@ -1533,7 +1533,7 @@ DECLSPEC u32 hc_byte_perm_S (const u32 a, const u32 b, const int c)
 }
 #endif
 
-#if HAS_VADD3
+#if HAS_VADD3 == 1
 DECLSPEC u32x hc_add3 (const u32x a, const u32x b, const u32x c)
 {
   /*
@@ -2781,7 +2781,7 @@ DECLSPEC void make_utf16be (const u32x *in, u32x *out1, u32x *out2)
   out1[1] = hc_byte_perm (in[0], 0, 0x3727);
   out1[0] = hc_byte_perm (in[0], 0, 0x1707);
 
-  #elif (defined IS_AMD || defined IS_HIP) && defined HAS_VPERM
+  #elif (defined IS_AMD || defined IS_HIP) && defined HAS_VPERM == 1
 
   out2[3] = hc_byte_perm (in[3], 0, 0x03070207);
   out2[2] = hc_byte_perm (in[3], 0, 0x01070007);
@@ -2819,7 +2819,7 @@ DECLSPEC void make_utf16beN (const u32x *in, u32x *out1, u32x *out2)
   out1[1] = hc_byte_perm (in[0], 0, 0x1707);
   out1[0] = hc_byte_perm (in[0], 0, 0x3727);
 
-  #elif (defined IS_AMD || defined IS_HIP) && defined HAS_VPERM
+  #elif (defined IS_AMD || defined IS_HIP) && defined HAS_VPERM == 1
 
   out2[3] = hc_byte_perm (in[3], 0, 0x01070007);
   out2[2] = hc_byte_perm (in[3], 0, 0x03070207);
@@ -2857,7 +2857,7 @@ DECLSPEC void make_utf16le (const u32x *in, u32x *out1, u32x *out2)
   out1[1] = hc_byte_perm (in[0], 0, 0x7372);
   out1[0] = hc_byte_perm (in[0], 0, 0x7170);
 
-  #elif (defined IS_AMD || defined IS_HIP) && defined HAS_VPERM
+  #elif (defined IS_AMD || defined IS_HIP) && defined HAS_VPERM == 1
 
   out2[3] = hc_byte_perm (in[3], 0, 0x07030702);
   out2[2] = hc_byte_perm (in[3], 0, 0x07010700);
@@ -2895,7 +2895,7 @@ DECLSPEC void make_utf16leN (const u32x *in, u32x *out1, u32x *out2)
   out1[1] = hc_byte_perm (in[0], 0, 0x7170);
   out1[0] = hc_byte_perm (in[0], 0, 0x7372);
 
-  #elif (defined IS_AMD || defined IS_HIP) && defined HAS_VPERM
+  #elif (defined IS_AMD || defined IS_HIP) && defined HAS_VPERM == 1
 
   out2[3] = hc_byte_perm (in[3], 0, 0x07010700);
   out2[2] = hc_byte_perm (in[3], 0, 0x07030702);
@@ -2929,7 +2929,7 @@ DECLSPEC void undo_utf16be (const u32x *in1, const u32x *in2, u32x *out)
   out[2] = hc_byte_perm (in2[0], in2[1], 0x4602);
   out[3] = hc_byte_perm (in2[2], in2[3], 0x4602);
 
-  #elif (defined IS_AMD || defined IS_HIP) && defined HAS_VPERM
+  #elif (defined IS_AMD || defined IS_HIP) && defined HAS_VPERM == 1
 
   out[0] = hc_byte_perm (in1[0], in1[1], 0x04060002);
   out[1] = hc_byte_perm (in1[2], in1[3], 0x04060002);
@@ -2959,7 +2959,7 @@ DECLSPEC void undo_utf16le (const u32x *in1, const u32x *in2, u32x *out)
   out[2] = hc_byte_perm (in2[0], in2[1], 0x6420);
   out[3] = hc_byte_perm (in2[2], in2[3], 0x6420);
 
-  #elif (defined IS_AMD || defined IS_HIP) && defined HAS_VPERM
+  #elif (defined IS_AMD || defined IS_HIP) && defined HAS_VPERM == 1
 
   out[0] = hc_byte_perm (in1[0], in1[1], 0x06040200);
   out[1] = hc_byte_perm (in1[2], in1[3], 0x06040200);
@@ -36561,7 +36561,7 @@ DECLSPEC void make_utf16be_S (const u32 *in, u32 *out1, u32 *out2)
   out1[1] = hc_byte_perm_S (in[0], 0, 0x3727);
   out1[0] = hc_byte_perm_S (in[0], 0, 0x1707);
 
-  #elif (defined IS_AMD || defined IS_HIP) && HAS_VPERM
+  #elif (defined IS_AMD || defined IS_HIP) && HAS_VPERM == 1
 
   out2[3] = hc_byte_perm_S (in[3], 0, 0x03070207);
   out2[2] = hc_byte_perm_S (in[3], 0, 0x01070007);
@@ -36599,7 +36599,7 @@ DECLSPEC void make_utf16le_S (const u32 *in, u32 *out1, u32 *out2)
   out1[1] = hc_byte_perm_S (in[0], 0, 0x7372);
   out1[0] = hc_byte_perm_S (in[0], 0, 0x7170);
 
-  #elif (defined IS_AMD || defined IS_HIP) && HAS_VPERM
+  #elif (defined IS_AMD || defined IS_HIP) && HAS_VPERM == 1
 
   out2[3] = hc_byte_perm_S (in[3], 0, 0x07030702);
   out2[2] = hc_byte_perm_S (in[3], 0, 0x07010700);
@@ -36633,7 +36633,7 @@ DECLSPEC void undo_utf16be_S (const u32 *in1, const u32 *in2, u32 *out)
   out[2] = hc_byte_perm_S (in2[0], in2[1], 0x4602);
   out[3] = hc_byte_perm_S (in2[2], in2[3], 0x4602);
 
-  #elif (defined IS_AMD || defined IS_HIP) && HAS_VPERM
+  #elif (defined IS_AMD || defined IS_HIP) && HAS_VPERM == 1
 
   out[0] = hc_byte_perm_S (in1[0], in1[1], 0x04060002);
   out[1] = hc_byte_perm_S (in1[2], in1[3], 0x04060002);
@@ -36663,7 +36663,7 @@ DECLSPEC void undo_utf16le_S (const u32 *in1, const u32 *in2, u32 *out)
   out[2] = hc_byte_perm_S (in2[0], in2[1], 0x6420);
   out[3] = hc_byte_perm_S (in2[2], in2[3], 0x6420);
 
-  #elif (defined IS_AMD || defined IS_HIP) && HAS_VPERM
+  #elif (defined IS_AMD || defined IS_HIP) && HAS_VPERM == 1
 
   out[0] = hc_byte_perm_S (in1[0], in1[1], 0x06040200);
   out[1] = hc_byte_perm_S (in1[2], in1[3], 0x06040200);

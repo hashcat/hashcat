@@ -129,7 +129,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   #define CHECK_DEFINED(func)                                                     \
     if ((func) == NULL)                                                           \
     {                                                                             \
-      event_log_error (hashcat_ctx, "Missing symbol definitions. Old template?"); \
+      event_log_error (hashcat_ctx, "Missing symbol definitions module for in hash-mode '%d'. Old template?", user_options->hash_mode); \
                                                                                   \
       return -1;                                                                  \
     }

@@ -141,7 +141,7 @@ int generate_random_rule (char rule_buf[RP_RULE_SIZE], const u32 rp_gen_func_min
     u32 p1 = 0;
     u32 p2 = 0;
 
-    switch ((char) get_random_num (0, 9))
+    switch ((char) get_random_num (0, 8))
     {
       case 0:
         r = get_random_num (0, sizeof (grp_op_nop));

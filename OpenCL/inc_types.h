@@ -77,7 +77,7 @@ typedef u64  u64x;
 #define make_u64x (u64)
 
 #else
-#if defined IS_CUDA
+#if defined IS_CUDA || defined IS_HIP
 
 #if VECT_SIZE == 2
 

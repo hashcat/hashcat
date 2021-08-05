@@ -344,7 +344,6 @@ typedef enum hipJitOption {
 
 // stop: hip_runtime_api.h
 
-
 #ifdef _WIN32
 #define HIPAPI __stdcall
 #else
@@ -387,6 +386,7 @@ typedef hipError_t (HIP_API_CALL *HIP_HIPMODULEGETFUNCTION)      (hipFunction_t 
 typedef hipError_t (HIP_API_CALL *HIP_HIPMODULEGETGLOBAL)        (hipDeviceptr_t *, size_t *, hipModule_t, const char *);
 typedef hipError_t (HIP_API_CALL *HIP_HIPMODULELOADDATAEX)       (hipModule_t *, const void *, unsigned int, hipJitOption *, void **);
 typedef hipError_t (HIP_API_CALL *HIP_HIPMODULEUNLOAD)           (hipModule_t);
+typedef hipError_t (HIP_API_CALL *HIP_HIPRUNTIMEGETVERSION)      (int *);
 typedef hipError_t (HIP_API_CALL *HIP_HIPSTREAMCREATE)           (hipStream_t *, unsigned int);
 typedef hipError_t (HIP_API_CALL *HIP_HIPSTREAMDESTROY)          (hipStream_t);
 typedef hipError_t (HIP_API_CALL *HIP_HIPSTREAMSYNCHRONIZE)      (hipStream_t);
@@ -429,6 +429,7 @@ typedef struct hc_hip_lib
   HIP_HIPMODULEGETGLOBAL        hipModuleGetGlobal;
   HIP_HIPMODULELOADDATAEX       hipModuleLoadDataEx;
   HIP_HIPMODULEUNLOAD           hipModuleUnload;
+  HIP_HIPRUNTIMEGETVERSION      hipRuntimeGetVersion;
   HIP_HIPSTREAMCREATE           hipStreamCreate;
   HIP_HIPSTREAMDESTROY          hipStreamDestroy;
   HIP_HIPSTREAMSYNCHRONIZE      hipStreamSynchronize;

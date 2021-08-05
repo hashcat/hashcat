@@ -2434,9 +2434,6 @@ int hip_init (hashcat_ctx_t *hashcat_ctx)
   hip->lib = hc_dlopen ("amdhip64.dll");
   #else
   hip->lib = hc_dlopen ("libamdhip64.so");
-
-  //TODO: grab the 4 from the major RT version
-  if (hip->lib == NULL) hip->lib = hc_dlopen ("libamdhip64.so.4.2.40200");
   #endif
 
   if (hip->lib == NULL) return -1;
@@ -2498,6 +2495,7 @@ int hip_init (hashcat_ctx_t *hashcat_ctx)
   HC_LOAD_FUNC_HIP (hip, hipModuleGetGlobal,        hipModuleGetGlobal,         HIP_HIPMODULEGETGLOBAL,         HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipModuleLoadDataEx,       hipModuleLoadDataEx,        HIP_HIPMODULELOADDATAEX,        HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipModuleUnload,           hipModuleUnload,            HIP_HIPMODULEUNLOAD,            HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipRuntimeGetVersion,      hipRuntimeGetVersion,       HIP_HIPRUNTIMEGETVERSION,       HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipStreamCreate,           hipStreamCreate,            HIP_HIPSTREAMCREATE,            HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipStreamDestroy,          hipStreamDestroy,           HIP_HIPSTREAMDESTROY,           HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipStreamSynchronize,      hipStreamSynchronize,       HIP_HIPSTREAMSYNCHRONIZE,       HIP, 1);
@@ -3380,6 +3378,33 @@ int hc_hipModuleUnload (hashcat_ctx_t *hashcat_ctx, hipModule_t hmod)
     else
     {
       event_log_error (hashcat_ctx, "hipModuleUnload(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipRuntimeGetVersion (hashcat_ctx_t *hashcat_ctx, int *runtimeVersion)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const hipError_t HIP_err = hip->hipRuntimeGetVersion (runtimeVersion);
+
+  if (HIP_err != hipSuccess)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
+    {
+      event_log_error (hashcat_ctx, "hipRuntimeGetVersion(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipRuntimeGetVersion(): %d", HIP_err);
     }
 
     return -1;
@@ -7058,23 +7083,70 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       backend_ctx->hip_driverVersion = hip_driverVersion;
 
-      if (hip_driverVersion < 404)
-      {
-        event_log_error (hashcat_ctx, "Outdated AMD HIP driver version '%d' detected!", hip_driverVersion);
+      int hip_runtimeVersion;
 
-        event_log_warning (hashcat_ctx, "See hashcat.net for officially supported AMD HIP versions.");
+      if (hc_hipRuntimeGetVersion (hashcat_ctx, &hip_runtimeVersion) == -1) return -1;
+
+      backend_ctx->hip_runtimeVersion = hip_runtimeVersion;
+
+      if (hip_runtimeVersion < 1000)
+      {
+        if (hip_runtimeVersion < 404)
+        {
+          event_log_warning (hashcat_ctx, "Unsupported AMD HIP runtime version '%d' detected! Falling back to OpenCL...", hip_runtimeVersion);
+          event_log_warning (hashcat_ctx, NULL);
+
+          rc_hip_init    = -1;
+          rc_hiprtc_init = -1;
+
+          backend_ctx->rc_hip_init    = rc_hip_init;
+          backend_ctx->rc_hiprtc_init = rc_hiprtc_init;
+
+          backend_ctx->hip    = NULL;
+          backend_ctx->hiprtc = NULL;
+
+          // if we call this, opencl stops working?! so we just zero the pointer
+          // this causes a memleak and an open filehandle but what can we do?
+          // hip_close    (hashcat_ctx);
+          // hiprtc_close (hashcat_ctx);
+        }
+      }
+      else
+      {
+        // we need to wait for 4.4 to be released to continue here
+        // ignore this backend
+
+        event_log_warning (hashcat_ctx, "Unsupported AMD HIP runtime version '%d' detected! Falling back to OpenCL...", hip_runtimeVersion);
         event_log_warning (hashcat_ctx, NULL);
 
-        return -1;
+        rc_hip_init    = -1;
+        rc_hiprtc_init = -1;
+
+        backend_ctx->rc_hip_init    = rc_hip_init;
+        backend_ctx->rc_hiprtc_init = rc_hiprtc_init;
+
+        backend_ctx->hip = NULL;
+
+        // if we call this, opencl stops working?! so we just zero the pointer
+        // this causes a memleak and an open filehandle but what can we do?
+        // hip_close    (hashcat_ctx);
+        // hiprtc_close (hashcat_ctx);
       }
     }
     else
     {
-      rc_hip_init  = -1;
+      rc_hip_init    = -1;
       rc_hiprtc_init = -1;
 
-      hip_close  (hashcat_ctx);
-      hiprtc_close (hashcat_ctx);
+      backend_ctx->rc_hip_init    = rc_hip_init;
+      backend_ctx->rc_hiprtc_init = rc_hiprtc_init;
+
+      backend_ctx->hip = NULL;
+
+      // if we call this, opencl stops working?! so we just zero the pointer
+      // this causes a memleak and an open filehandle but what can we do?
+      // hip_close    (hashcat_ctx);
+      // hiprtc_close (hashcat_ctx);
     }
   }
 
@@ -7110,7 +7182,7 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       #if defined (__linux__)
       event_log_warning (hashcat_ctx, "* AMD GPUs on Linux require this driver:");
-      event_log_warning (hashcat_ctx, "  \"AMD ROCm\" (4.4 or later)");
+      event_log_warning (hashcat_ctx, "  \"AMD ROCm\" (4.3 or later)");
       #elif defined (_WIN)
       event_log_warning (hashcat_ctx, "* AMD GPUs on Windows require this driver:");
       event_log_warning (hashcat_ctx, "  \"AMD Radeon Adrenalin 2020 Edition\" (21.2.1 or later)");
@@ -7435,7 +7507,7 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     #if defined (__linux__)
     event_log_warning (hashcat_ctx, "* AMD GPUs on Linux require this driver:");
-    event_log_warning (hashcat_ctx, "  \"AMD ROCm\" (4.4 or later)");
+    event_log_warning (hashcat_ctx, "  \"AMD ROCm\" (4.3 or later)");
     #elif defined (_WIN)
     event_log_warning (hashcat_ctx, "* AMD GPUs on Windows require this driver:");
     event_log_warning (hashcat_ctx, "  \"AMD Radeon Adrenalin 2020 Edition\" (21.2.1 or later)");
@@ -8178,14 +8250,14 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       {
         if ((user_options->force == false) && (user_options->backend_info == false))
         {
-          // HIPDA does not support query nvidia driver version, therefore no driver checks here
+          // CUDA does not support query nvidia driver version, therefore no driver checks here
           // IF needed, could be retrieved using nvmlSystemGetDriverVersion()
 
           if (device_param->sm_major < 5)
           {
-            if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: This hardware has outdated HIPDA compute capability (%u.%u).", device_id + 1, device_param->sm_major, device_param->sm_minor);
+            if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: This hardware has outdated CUDA compute capability (%u.%u).", device_id + 1, device_param->sm_major, device_param->sm_minor);
             if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             For modern OpenCL performance, upgrade to hardware that supports");
-            if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             HIPDA compute capability version 5.0 (Maxwell) or higher.");
+            if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             CUDA compute capability version 5.0 (Maxwell) or higher.");
           }
 
           if (device_param->kernel_exec_timeout != 0)
@@ -10298,6 +10370,14 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       hc_asprintf (&hiprtc_options[0], "--gpu-max-threads-per-block=%d", (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : device_param->kernel_threads_max);
 
+      /* 4.3 linux
+      hiprtc_options[1] = "-I";
+      hiprtc_options[2] = "/opt/rocm/hip/bin/include";
+      hiprtc_options[3] = "-I";
+      hiprtc_options[4] = "/opt/rocm/include";
+      hiprtc_options[5] = "-I";
+      */
+
       hiprtc_options[1] = "-nocudainc";
       hiprtc_options[2] = "-nocudalib";
       hiprtc_options[3] = "";
@@ -11320,7 +11400,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     const size_t dnclen_amp_mp = snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%d-%d-%d-%d-%u-%s-%s-%s-%u",
       backend_ctx->comptime,
       backend_ctx->cuda_driver_version,
-      backend_ctx->hip_driverVersion,
+      backend_ctx->hip_runtimeVersion,
       device_param->is_opencl,
       device_param->opencl_platform_vendor_id,
       device_param->device_name,
@@ -11662,7 +11742,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY, "%d-%d-%d-%d-%u-%s-%s-%s-%d-%u-%u-%u-%s",
         backend_ctx->comptime,
         backend_ctx->cuda_driver_version,
-        backend_ctx->hip_driverVersion,
+        backend_ctx->hip_runtimeVersion,
         device_param->is_opencl,
         device_param->opencl_platform_vendor_id,
         device_param->device_name,
