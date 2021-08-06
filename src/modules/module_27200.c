@@ -53,7 +53,7 @@ u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
 
   if (optimized_kernel == true)
   {
-    pw_max = 29;
+    pw_max = 9;
   }
 
   return pw_max;

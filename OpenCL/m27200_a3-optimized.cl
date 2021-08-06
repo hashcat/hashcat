@@ -338,7 +338,7 @@ DECLSPEC void m27200s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
    * salt
    */
 
-  u32 salt_buf0[4] = { 0x2d2d, 0, 0, 0 };
+  u32 salt_buf0[4] = { 0x2d2d0000, 0, 0, 0 };
   u32 salt_buf1[4];
   u32 salt_buf2[4];
   u32 salt_buf3[4] = { 0 };
@@ -354,7 +354,7 @@ DECLSPEC void m27200s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
   salt_buf2[0] = hc_swap32_S (salt_bufs[SALT_POS].salt_buf[ 7] >> 16 | salt_bufs[SALT_POS].salt_buf[ 8] << 16);
   salt_buf2[1] = hc_swap32_S (salt_bufs[SALT_POS].salt_buf[ 8] >> 16 | salt_bufs[SALT_POS].salt_buf[ 9] << 16);
   salt_buf2[2] = hc_swap32_S (salt_bufs[SALT_POS].salt_buf[ 9] >> 16 | 0x2d2d0000);
-  salt_buf2[3] = hc_swap32_S (salt_bufs[SALT_POS].salt_buf[10]);
+  salt_buf2[3] = 0;
 
   const u32 salt_len = 44;
 

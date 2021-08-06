@@ -25,7 +25,8 @@ KERNEL_FQ void m27200_mxx (KERN_ATTR_VECTOR ())
 
   if (gid >= gid_max) return;
 
-  const u32x dash[16] = { 0x2d2d0000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  const u32x dash_vector[16] = { 0x2d2d0000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  const u32 dash_scalar[16] = { 0x2d2d0000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
   /**
    * base
@@ -44,9 +45,13 @@ KERNEL_FQ void m27200_mxx (KERN_ATTR_VECTOR ())
 
   sha1_init (&ctx0);
 
-  sha1_update (&ctx0, dash, 2);
+  ctx0.w0[0] = dash_scalar[0];
+  ctx0.w0[1] = dash_scalar[1];
+
+  ctx0.len = 2;
+
   sha1_update_global_swap (&ctx0, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
-  sha1_update (&ctx0, dash, 2);
+  sha1_update (&ctx0, dash_scalar, 2);
 
   /**
    * loop
@@ -67,7 +72,7 @@ KERNEL_FQ void m27200_mxx (KERN_ATTR_VECTOR ())
     sha1_init_vector_from_scalar (&ctx, &ctx0);
 
     sha1_update_vector (&ctx, w, pw_len);
-    sha1_update_vector (&ctx, dash, 2);
+    sha1_update_vector (&ctx, dash_vector, 2);
 
     sha1_final_vector (&ctx);
 
@@ -91,7 +96,8 @@ KERNEL_FQ void m27200_sxx (KERN_ATTR_VECTOR ())
 
   if (gid >= gid_max) return;
 
-  const u32x dash[16] = { 0x2d2d0000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  const u32x dash_vector[16] = { 0x2d2d0000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  const u32 dash_scalar[16] = { 0x2d2d0000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
   
   /**
    * digest
@@ -122,9 +128,13 @@ KERNEL_FQ void m27200_sxx (KERN_ATTR_VECTOR ())
 
   sha1_init (&ctx0);
 
-  sha1_update (&ctx0, dash, 2);
+  ctx0.w0[0] = dash_scalar[0];
+  ctx0.w0[1] = dash_scalar[1];
+
+  ctx0.len = 2;
+  
   sha1_update_global_swap (&ctx0, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
-  sha1_update (&ctx0, dash, 2);
+  sha1_update (&ctx0, dash_scalar, 2);
 
   /**
    * loop
@@ -145,7 +155,7 @@ KERNEL_FQ void m27200_sxx (KERN_ATTR_VECTOR ())
     sha1_init_vector_from_scalar (&ctx, &ctx0);
 
     sha1_update_vector (&ctx, w, pw_len);
-    sha1_update_vector (&ctx, dash, 2);
+    sha1_update_vector (&ctx, dash_vector, 2);
 
     sha1_final_vector (&ctx);
 
