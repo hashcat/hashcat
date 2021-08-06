@@ -313,6 +313,8 @@ bool hc_path_is_file (const char *path)
 {
   struct stat s;
 
+  memset (&s, 0, sizeof (s));
+
   if (stat (path, &s) == -1) return false;
 
   if (S_ISREG (s.st_mode)) return true;
@@ -324,6 +326,8 @@ bool hc_path_is_directory (const char *path)
 {
   struct stat s;
 
+  memset (&s, 0, sizeof (s));
+
   if (stat (path, &s) == -1) return false;
 
   if (S_ISDIR (s.st_mode)) return true;
@@ -334,6 +338,8 @@ bool hc_path_is_directory (const char *path)
 bool hc_path_is_empty (const char *path)
 {
   struct stat s;
+
+  memset (&s, 0, sizeof (s));
 
   if (stat (path, &s) == -1) return false;
 
@@ -677,6 +683,9 @@ bool hc_same_files (char *file1, char *file2)
   {
     struct stat tmpstat_file1;
     struct stat tmpstat_file2;
+
+    memset (&tmpstat_file1, 0, sizeof (tmpstat_file1));
+    memset (&tmpstat_file2, 0, sizeof (tmpstat_file2));
 
     int do_check = 0;
 
