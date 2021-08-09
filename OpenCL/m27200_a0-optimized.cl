@@ -66,7 +66,7 @@ KERNEL_FQ void m27200_m04 (KERN_ATTR_RULES ())
   salt_buf2[0] = salt_bufs[SALT_POS].salt_buf[ 7] >> 16 | salt_bufs[SALT_POS].salt_buf[ 8] << 16;
   salt_buf2[1] = salt_bufs[SALT_POS].salt_buf[ 8] >> 16 | salt_bufs[SALT_POS].salt_buf[ 9] << 16;
   salt_buf2[2] = salt_bufs[SALT_POS].salt_buf[ 9] >> 16 | 0x2d2d0000;
-  salt_buf2[3] = salt_bufs[SALT_POS].salt_buf[10];
+  salt_buf2[3] = 0;
 
   const u32 salt_len = 44; //salt_bufs[SALT_POS].salt_len;
 
@@ -309,7 +309,7 @@ KERNEL_FQ void m27200_s04 (KERN_ATTR_RULES ())
   salt_buf2[0] = salt_bufs[SALT_POS].salt_buf[ 7] >> 16 | salt_bufs[SALT_POS].salt_buf[ 8] << 16;
   salt_buf2[1] = salt_bufs[SALT_POS].salt_buf[ 8] >> 16 | salt_bufs[SALT_POS].salt_buf[ 9] << 16;
   salt_buf2[2] = salt_bufs[SALT_POS].salt_buf[ 9] >> 16 | 0x2d2d0000;
-  salt_buf2[3] = salt_bufs[SALT_POS].salt_buf[10];
+  salt_buf2[3] = 0;
 
   const u32 salt_len = 44;
 
