@@ -1173,6 +1173,8 @@ int main (int argc, char **argv)
 
   if (user_options_init (hashcat_ctx) == -1)
   {
+    hashcat_destroy (hashcat_ctx);
+
     hcfree (hashcat_ctx);
 
     return -1;
@@ -1182,6 +1184,10 @@ int main (int argc, char **argv)
 
   if (user_options_getopt (hashcat_ctx, argc, argv) == -1)
   {
+    user_options_destroy (hashcat_ctx);
+
+    hashcat_destroy (hashcat_ctx);
+
     hcfree (hashcat_ctx);
 
     return -1;
@@ -1189,6 +1195,10 @@ int main (int argc, char **argv)
 
   if (user_options_sanity (hashcat_ctx) == -1)
   {
+    user_options_destroy (hashcat_ctx);
+
+    hashcat_destroy (hashcat_ctx);
+
     hcfree (hashcat_ctx);
 
     return -1;
@@ -1212,6 +1222,10 @@ int main (int argc, char **argv)
   if (user_options->version == true)
   {
     printf ("%s\n", VERSION_TAG);
+
+    user_options_destroy (hashcat_ctx);
+
+    hashcat_destroy (hashcat_ctx);
 
     hcfree (hashcat_ctx);
 
