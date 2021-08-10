@@ -57,20 +57,19 @@ sub module_generate_hash
 
   my $hash = "";
 
+  my $data = 'type=key:cipher=';
+
+  my $encrypted = unpack ("H*", $cipher->encrypt ($data));
+
   if (defined $ct_str)
   {
     my $ct_bin = pack ("H*", $ct_str);
     my $iv_bin = substr ($ct_bin, 0, 16);
-    my $encrypted = substr ($ct_bin, 16);
 
-    $hash = sprintf ("\$vmx\$0\$%s\$%s\$%s%s", $iterations, unpack ("H*", $salt), unpack ("H*", $iv_bin), unpack ("H*", $encrypted));
+    $hash = sprintf ("\$vmx\$0\$%s\$%s\$%s%s", $iterations, unpack ("H*", $salt), unpack ("H*", $iv_bin), substr ($encrypted, 0, 32));
   }
   else
   {
-    my $data = 'type=key:cipher=';
-
-    my $encrypted = unpack ("H*", $cipher->encrypt ($data));
-
     $hash = sprintf ("\$vmx\$0\$%s\$%s\$%s%s", $iterations, unpack ("H*", $salt), unpack ("H*", $iv), substr ($encrypted, 0, 32));
   }
 
