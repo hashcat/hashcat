@@ -239,6 +239,10 @@ static const char *const USAGE_BIG_POST_HASHMODES[] =
   "",
   "* https://hashcat.net/wiki/#howtos_videos_papers_articles_etc_in_the_wild",
   "* https://hashcat.net/faq/",
+  "",
+  "If you think you need help by a real human come to the hashcat Discord:",
+  "",
+  "* https://discord.gg/HFS523HGBT",
   NULL
 };
 
