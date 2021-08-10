@@ -141,6 +141,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_DEFINED (module_ctx->module_benchmark_salt);
   CHECK_DEFINED (module_ctx->module_build_plain_postprocess);
   CHECK_DEFINED (module_ctx->module_deep_comp_kernel);
+  CHECK_DEFINED (module_ctx->module_deprecated_notice);
   CHECK_DEFINED (module_ctx->module_dgst_pos0);
   CHECK_DEFINED (module_ctx->module_dgst_pos1);
   CHECK_DEFINED (module_ctx->module_dgst_pos2);

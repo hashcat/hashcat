@@ -4,6 +4,7 @@
 ## Features
 ##
 
+- Added option --deprecated-check-disable to enable deprecated plugins
 - Added option --multiply-accel-disable (short: -M) to disable multiplying of the kernel accel with the multiprocessor count
 - Added rule function '3' to change the case of the first letter after the occurrence of N of character X
 - Added support for auto tuning --kernel-threads (-T) at startup
@@ -52,6 +53,7 @@
 - Brain Session: Adds hashconfig-specific opti_type and opts_type parameters to the session calculation to enable cover functions like -O
 - Commandline: Throw an error if the separator specified by the user with the -p option is not exactly 1 byte
 - Constants: Make const char * pointers actually const char * const pointers
+- Deprecated Plugins: Add new module function module_deprecated_notice() to mark a plugin as deprecated and to return a free text user notice
 - Filehandling: Use const char for fopen mode to fix -Wwrite-strings warnings
 - Hardware Monitor: Added support for OverDrive 7 and 8 based GPUs
 - HIP Kernels: Dependency on hip/hip runtime.h has been removed to enable easier integration of the HIP backend under Windows
