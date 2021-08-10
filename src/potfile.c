@@ -128,9 +128,8 @@ int potfile_init (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->potfile_path == NULL)
   {
-    potfile_ctx->fp.pfp   = NULL;
-
     hc_asprintf (&potfile_ctx->filename, "%s/hashcat.potfile", folder_config->profile_dir);
+    potfile_ctx->fp.pfp   = NULL;
   }
   else
   {
@@ -173,15 +172,13 @@ int potfile_init (hashcat_ctx_t *hashcat_ctx)
 
 void potfile_destroy (hashcat_ctx_t *hashcat_ctx)
 {
-  hashconfig_t  *hashconfig  = hashcat_ctx->hashconfig;
   potfile_ctx_t *potfile_ctx = hashcat_ctx->potfile_ctx;
 
   if (potfile_ctx->enabled == false) return;
 
-  if (hashconfig->potfile_disable == true) return;
-
-  hcfree (potfile_ctx->out_buf);
   hcfree (potfile_ctx->tmp_buf);
+  hcfree (potfile_ctx->out_buf);
+  hcfree (potfile_ctx->filename);
 
   memset (potfile_ctx, 0, sizeof (potfile_ctx_t));
 }
