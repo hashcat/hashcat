@@ -185,9 +185,12 @@ void potfile_destroy (hashcat_ctx_t *hashcat_ctx)
 
 int potfile_read_open (hashcat_ctx_t *hashcat_ctx)
 {
-  potfile_ctx_t *potfile_ctx = hashcat_ctx->potfile_ctx;
+  const hashconfig_t  *hashconfig  = hashcat_ctx->hashconfig;
+  potfile_ctx_t       *potfile_ctx = hashcat_ctx->potfile_ctx;
 
   if (potfile_ctx->enabled == false) return 0;
+
+  if (hashconfig->potfile_disable == true) return 0;
 
   if (hc_fopen (&potfile_ctx->fp, potfile_ctx->filename, "rb") == false)
   {
@@ -201,8 +204,8 @@ int potfile_read_open (hashcat_ctx_t *hashcat_ctx)
 
 void potfile_read_close (hashcat_ctx_t *hashcat_ctx)
 {
-  hashconfig_t  *hashconfig  = hashcat_ctx->hashconfig;
-  potfile_ctx_t *potfile_ctx = hashcat_ctx->potfile_ctx;
+  const hashconfig_t  *hashconfig  = hashcat_ctx->hashconfig;
+  potfile_ctx_t       *potfile_ctx = hashcat_ctx->potfile_ctx;
 
   if (potfile_ctx->enabled == false) return;
 
@@ -215,9 +218,12 @@ void potfile_read_close (hashcat_ctx_t *hashcat_ctx)
 
 int potfile_write_open (hashcat_ctx_t *hashcat_ctx)
 {
-  potfile_ctx_t *potfile_ctx = hashcat_ctx->potfile_ctx;
+  const hashconfig_t  *hashconfig  = hashcat_ctx->hashconfig;
+  potfile_ctx_t       *potfile_ctx = hashcat_ctx->potfile_ctx;
 
   if (potfile_ctx->enabled == false) return 0;
+
+  if (hashconfig->potfile_disable == true) return 0;
 
   if (hc_fopen (&potfile_ctx->fp, potfile_ctx->filename, "ab") == false)
   {
@@ -231,8 +237,8 @@ int potfile_write_open (hashcat_ctx_t *hashcat_ctx)
 
 void potfile_write_close (hashcat_ctx_t *hashcat_ctx)
 {
-  hashconfig_t  *hashconfig  = hashcat_ctx->hashconfig;
-  potfile_ctx_t *potfile_ctx = hashcat_ctx->potfile_ctx;
+  const hashconfig_t  *hashconfig  = hashcat_ctx->hashconfig;
+  potfile_ctx_t       *potfile_ctx = hashcat_ctx->potfile_ctx;
 
   if (potfile_ctx->enabled == false) return;
 
