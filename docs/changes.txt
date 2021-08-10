@@ -54,6 +54,7 @@
 - Commandline: Throw an error if the separator specified by the user with the -p option is not exactly 1 byte
 - Constants: Make const char * pointers actually const char * const pointers
 - Deprecated Plugins: Add new module function module_deprecated_notice() to mark a plugin as deprecated and to return a free text user notice
+- Deprecated Plugins: Marked plugins 2500/2501 and 16800/16801 as deprecated
 - Filehandling: Use const char for fopen mode to fix -Wwrite-strings warnings
 - Hardware Monitor: Added support for OverDrive 7 and 8 based GPUs
 - HIP Kernels: Dependency on hip/hip runtime.h has been removed to enable easier integration of the HIP backend under Windows
