@@ -72,6 +72,8 @@ typedef struct gpg_tmp
 
 } gpg_tmp_t;
 
+static const char *SIGNATURE_GPG = "$gpg$";
+
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   const u64 esalt_size = (const u64) sizeof (gpg_t);
@@ -81,7 +83,7 @@ u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED
 
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u64 tmp_size = (const u64) sizeof (gpg_tmp_t); 
+  const u64 tmp_size = (const u64) sizeof (gpg_tmp_t);
 
   return tmp_size;
 }
@@ -129,148 +131,167 @@ u32 module_deep_comp_kernel (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED c
 
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
-  
   u32 *digest = (u32 *) digest_buf;
 
   gpg_t *gpg = (gpg_t *) esalt_buf;
 
   token_t token;
- 
+
   token.token_cnt = 13;
-  
+
   // signature $gpg$
   token.signatures_cnt = 1;
-  token.signatures_buf[0] = "$gpg$";
-  
+  token.signatures_buf[0] = SIGNATURE_GPG;
+
   // signature $gpg$
-  token.len_min[0] = 5;
-  token.len_max[0] = 5;
-  token.sep[0]     = '*';
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                    |TOKEN_ATTR_VERIFY_SIGNATURE;
- 
+  token.len_min[0]  = 5;
+  token.len_max[0]  = 5;
+  token.sep[0]      = '*';
+  token.attr[0]     = TOKEN_ATTR_VERIFY_LENGTH
+                    | TOKEN_ATTR_VERIFY_SIGNATURE;
+
   // "1" -- unknown option
-  token.len_min[1] = 1;
-  token.len_max[1] = 1;
-  token.sep[1]     = '*';
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                    |TOKEN_ATTR_VERIFY_DIGIT;
+  token.len_min[1]  = 1;
+  token.len_max[1]  = 1;
+  token.sep[1]      = '*';
+  token.attr[1]     = TOKEN_ATTR_VERIFY_LENGTH
+                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   // size of the encrypted data in bytes
-  token.len_min[2] = 3;
-  token.len_max[2] = 4;
-  token.sep[2]     = '*';
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                    |TOKEN_ATTR_VERIFY_DIGIT;
+  token.len_min[2]  = 3;
+  token.len_max[2]  = 4;
+  token.sep[2]      = '*';
+  token.attr[2]     = TOKEN_ATTR_VERIFY_LENGTH
+                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   // size of the key: 1024, 2048, 4096, etc.
-  token.len_min[3] = 3;
-  token.len_max[3] = 4;
-  token.sep[3]     = '*';
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                    |TOKEN_ATTR_VERIFY_DIGIT;
+  token.len_min[3]  = 3;
+  token.len_max[3]  = 4;
+  token.sep[3]      = '*';
+  token.attr[3]     = TOKEN_ATTR_VERIFY_LENGTH
+                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   // encrypted key -- twice the amount of byte because its interpreted as characters
-  token.len_min[4] = 256;
-  token.len_max[4] = 3072;
-  token.sep[4]     = '*';
-  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH 
-                    |TOKEN_ATTR_VERIFY_HEX;
+  token.len_min[4]  = 256;
+  token.len_max[4]  = 3072;
+  token.sep[4]      = '*';
+  token.attr[4]     = TOKEN_ATTR_VERIFY_LENGTH
+                    | TOKEN_ATTR_VERIFY_HEX;
 
   // "3" - String2Key parameter
-  token.len_min[5] = 1;
-  token.len_max[5] = 1;
-  token.sep[5]     = '*';
-  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH 
-                    |TOKEN_ATTR_VERIFY_DIGIT;
+  token.len_min[5]  = 1;
+  token.len_max[5]  = 1;
+  token.sep[5]      = '*';
+  token.attr[5]     = TOKEN_ATTR_VERIFY_LENGTH
+                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   // "254" - String2Key parameters
-  token.len_min[6] = 3;
-  token.len_max[6] = 3;
-  token.sep[6]     = '*';
-  token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH 
-                    |TOKEN_ATTR_VERIFY_DIGIT;
+  token.len_min[6]  = 3;
+  token.len_max[6]  = 3;
+  token.sep[6]      = '*';
+  token.attr[6]     = TOKEN_ATTR_VERIFY_LENGTH
+                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   // "2" - String2Key parameters
-  token.len_min[7] = 1;
-  token.len_max[7] = 1;
-  token.sep[7]     = '*';
-  token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH 
-                    |TOKEN_ATTR_VERIFY_DIGIT;
+  token.len_min[7]  = 1;
+  token.len_max[7]  = 1;
+  token.sep[7]      = '*';
+  token.attr[7]     = TOKEN_ATTR_VERIFY_LENGTH
+                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   // cipher mode: 7 or 9
-  token.len_min[8] = 1;
-  token.len_max[8] = 1;
-  token.sep[8]     = '*';
-  token.attr[8]    = TOKEN_ATTR_VERIFY_LENGTH 
-                    |TOKEN_ATTR_VERIFY_DIGIT;
+  token.len_min[8]  = 1;
+  token.len_max[8]  = 1;
+  token.sep[8]      = '*';
+  token.attr[8]     = TOKEN_ATTR_VERIFY_LENGTH
+                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   // size of initial vector in bytes: 16
-  token.len_min[9]= 2;
-  token.len_max[9]= 2;
-  token.sep[9]    = '*';
-  token.attr[9]   = TOKEN_ATTR_VERIFY_LENGTH 
-                    |TOKEN_ATTR_VERIFY_DIGIT;
+  token.len_min[9]  = 2;
+  token.len_max[9]  = 2;
+  token.sep[9]      = '*';
+  token.attr[9]     = TOKEN_ATTR_VERIFY_LENGTH
+                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   // initial vector - twice the amount of bytes because its interpreted as characters
-  token.len_min[10]= 32;
-  token.len_max[10]= 32;
-  token.sep[10]    = '*';
-  token.attr[10]   = TOKEN_ATTR_VERIFY_LENGTH 
-                    |TOKEN_ATTR_VERIFY_HEX;
+  token.len_min[10] = 32;
+  token.len_max[10] = 32;
+  token.sep[10]     = '*';
+  token.attr[10]    = TOKEN_ATTR_VERIFY_LENGTH
+                    | TOKEN_ATTR_VERIFY_HEX;
 
   // iteration count
-  token.len_min[11]= 1;
-  token.len_max[11]= 8;
-  token.sep[11]    = '*';
-  token.attr[11]   = TOKEN_ATTR_VERIFY_LENGTH 
-                    |TOKEN_ATTR_VERIFY_DIGIT;
+  token.len_min[11] = 1;
+  token.len_max[11] = 8;
+  token.sep[11]     = '*';
+  token.attr[11]    = TOKEN_ATTR_VERIFY_LENGTH
+                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   // salt - 8 bytes / 16 characters
-  token.len_min[12]= 16;
-  token.len_max[12]= 16;
-  token.attr[12]   = TOKEN_ATTR_VERIFY_LENGTH 
-                    |TOKEN_ATTR_VERIFY_HEX;
+  token.len_min[12] = 16;
+  token.len_max[12] = 16;
+  token.attr[12]    = TOKEN_ATTR_VERIFY_LENGTH
+                    | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
   // Modulus size
-  int enc_data_size = hc_strtoul ((const char *) token.buf[2], NULL, 10);
-  gpg->modulus_size = hc_strtoul ((const char *) token.buf[3], NULL, 10);
 
-  if ((gpg->modulus_size < 256) || (gpg->modulus_size > 16384)) return (PARSER_UNKNOWN_ERROR);
+  const int modulus_size = hc_strtoul ((const char *) token.buf[3], NULL, 10);
+
+  if ((modulus_size < 256) || (modulus_size > 16384)) return (PARSER_SALT_LENGTH);
+
+  gpg->modulus_size = modulus_size;
 
   // Encrypted data
-  gpg->encrypted_data_size = exec_unhexify ((u8 *) (token.buf[4] - 5), token.len[4] + 6, (u8 *) gpg->encrypted_data, sizeof(gpg->encrypted_data));
 
-  if (gpg->encrypted_data_size != enc_data_size) return (PARSER_UNKNOWN_ERROR);
+  const int enc_data_size = hc_strtoul ((const char *) token.buf[2], NULL, 10);
+
+  const int encrypted_data_size = hex_decode ((const u8 *) token.buf[4], token.len[4], (u8 *) gpg->encrypted_data);
+
+  if (enc_data_size != encrypted_data_size) return (PARSER_CT_LENGTH);
+
+  gpg->encrypted_data_size = encrypted_data_size;
 
   // Check String2Key parameters
-  if (hc_strtoul ((const char *) token.buf[5], NULL, 10) != 3) return (PARSER_UNKNOWN_ERROR);
-  if (hc_strtoul ((const char *) token.buf[6], NULL, 10) != 254) return (PARSER_UNKNOWN_ERROR);
-  if (hc_strtoul ((const char *) token.buf[7], NULL, 10) != 2) return (PARSER_UNKNOWN_ERROR);
+
+  if (hc_strtoul ((const char *) token.buf[5], NULL, 10) !=   3) return (PARSER_HASH_VALUE);
+  if (hc_strtoul ((const char *) token.buf[6], NULL, 10) != 254) return (PARSER_HASH_VALUE);
+  if (hc_strtoul ((const char *) token.buf[7], NULL, 10) !=   2) return (PARSER_HASH_VALUE);
 
   // Cipher algo
-  gpg->cipher_algo = hc_strtoul (token.buf[8], NULL, 10);
 
-  if ((gpg->cipher_algo != 7) && (gpg->cipher_algo != 9)) return (PARSER_UNKNOWN_ERROR);
+  const int cipher_algo = hc_strtoul ((const char *) token.buf[8], NULL, 10);
+
+  if ((cipher_algo != 7) && (cipher_algo != 9)) return (PARSER_CIPHER);
+
+  gpg->cipher_algo = cipher_algo;
 
   // IV (size)
-  if (hc_strtoul ((const char *) token.buf[9], NULL, 10) != sizeof(gpg->iv)) return (PARSER_IV_LENGTH);
 
-  size_t iv_size = exec_unhexify (token.buf[10] - 5, token.len[10] + 6, (u8 *) gpg->iv, sizeof(gpg->iv));
-  if (iv_size != sizeof(gpg->iv)) return (PARSER_IV_LENGTH); 
+  if (hc_strtoul ((const char *) token.buf[9], NULL, 10) != sizeof (gpg->iv)) return (PARSER_IV_LENGTH);
+
+  const int iv_size = hex_decode ((const u8 *) token.buf[10], token.len[10], (u8 *) gpg->iv);
+
+  if (iv_size != sizeof (gpg->iv)) return (PARSER_IV_LENGTH);
+
+  // Salt Iter
 
   const u32 salt_iter = hc_strtoul ((const char *) token.buf[11], NULL, 10);
-  if (salt_iter < 8 || salt_iter > 1000000) return (PARSER_SALT_ITERATION); 
+
+  if (salt_iter < 8 || salt_iter > 1000000) return (PARSER_SALT_ITERATION);
 
   salt->salt_iter = salt_iter;
-  salt->salt_repeats = gpg->cipher_algo == 7 ? 0 : 1; // "minus one", see also the scrypt module!
-  salt->salt_len = exec_unhexify (token.buf[12] - 5, token.len[12] + 6, (u8 *) salt->salt_buf, sizeof(salt->salt_buf));
 
-  if (salt->salt_len != 8) return (PARSER_UNKNOWN_ERROR);
+  // Salt Value
+
+  salt->salt_repeats = gpg->cipher_algo == 7 ? 0 : 1; // "minus one"
+
+  salt->salt_len = hex_decode ((const u8 *) token.buf[12], token.len[12], (u8 *) salt->salt_buf);
+
+  if (salt->salt_len != 8) return (PARSER_SALT_LENGTH);
 
   // hash fake
   digest[0] = gpg->iv[0];
@@ -283,37 +304,31 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  const u32 *digest = (const u32 *) digest_buf;
+  const gpg_t *gpg = (const gpg_t *) esalt_buf;
 
-  const gpg_t *gpg = (const gpg_t *) esalt_buf; 
+  u8 encrypted_data[(384 * 8) + 1];
 
-  u8 hex_encrypted[(384 * 8) + 1] = { 0 }; 
-  u8 *encrypted_data = (u8 *) gpg->encrypted_data; 
+  hex_encode ((const u8 *) gpg->encrypted_data, gpg->encrypted_data_size, (u8 *) encrypted_data);
 
-  for (u32 i = 0, j = 0; i < gpg->encrypted_data_size; i++, j += 2) 
-  { 
-    u8_to_hex (encrypted_data[i], hex_encrypted + j); 
-  } 
+  const int line_len = snprintf (line_buf, line_size, "%s*%d*%d*%d*%s*%d*%d*%d*%d*%d*%08x%08x%08x%08x*%d*%08x%08x",
+    SIGNATURE_GPG,
+    1, /* unknown field */
+    gpg->encrypted_data_size,
+    gpg->modulus_size,
+    encrypted_data,
+    3, /* version (major?) */
+    254, /* version (minor?) */
+    2, /* key cipher (sha-1) */
+    gpg->cipher_algo,
+    16, /*iv_size*/
+    byte_swap_32 (gpg->iv[0]),
+    byte_swap_32 (gpg->iv[1]),
+    byte_swap_32 (gpg->iv[2]),
+    byte_swap_32 (gpg->iv[3]),
+    salt->salt_iter,
+    byte_swap_32 (salt->salt_buf[0]),
+    byte_swap_32 (salt->salt_buf[1]));
 
-  const int line_len = snprintf (line_buf, line_size, "%s*%d*%d*%d*%s*%d*%d*%d*%d*%d*%08x%08x%08x%08x*%d*%08x%08x", 
-   "$gpg$", 
-   1, /* unknown field */ 
-   gpg->encrypted_data_size, 
-   gpg->modulus_size, 
-   hex_encrypted, 
-   3, /* version (major?) */ 
-   254, /* version (minor?) */ 
-   2, /* key cipher (sha-1) */ 
-   gpg->cipher_algo, 
-   16, /*iv_size*/ 
-   byte_swap_32 (gpg->iv[0]),
-   byte_swap_32 (gpg->iv[1]),
-   byte_swap_32 (gpg->iv[2]),
-   byte_swap_32 (gpg->iv[3]),
-   salt->salt_iter,
-   byte_swap_32 (salt->salt_buf[0]),
-   byte_swap_32 (salt->salt_buf[1]));
-  
   return line_len;
 }
 
@@ -329,6 +344,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
   module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
   module_ctx->module_deep_comp_kernel         = module_deep_comp_kernel;
+  module_ctx->module_deprecated_notice        = MODULE_DEFAULT;
   module_ctx->module_dgst_pos0                = module_dgst_pos0;
   module_ctx->module_dgst_pos1                = module_dgst_pos1;
   module_ctx->module_dgst_pos2                = module_dgst_pos2;
@@ -338,6 +354,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
+  module_ctx->module_extra_tuningdb_block     = MODULE_DEFAULT;
   module_ctx->module_forced_outfile_format    = MODULE_DEFAULT;
   module_ctx->module_hash_binary_count        = MODULE_DEFAULT;
   module_ctx->module_hash_binary_parse        = MODULE_DEFAULT;
