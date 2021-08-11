@@ -1711,6 +1711,15 @@ DECLSPEC u32 hc_bfe_S (const u32 a, const u32 b, const u32 c)
   return r;
 }
 
+DECLSPEC u32 hc_bytealign_be_S (const u32 a, const u32 b, const int c)
+{
+  const int c_mod_4 = c & 3;
+
+  const u32 r = hc_byte_perm_S (b, a, (0x76543210 >> (c_mod_4 * 4)) & 0xffff);
+
+  return r;
+}
+
 DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const int c)
 {
   const int c_mod_4 = c & 3;
@@ -2056,6 +2065,152 @@ DECLSPEC int hc_enc_has_next (hc_enc_t *hc_enc, const int sz)
   return 0;
 }
 
+DECLSPEC int hc_enc_validate_utf8 (const u32 *src_buf, const int src_pos, const int extraBytesToRead)
+{
+  const u8 *src_ptr = (const u8 *) src_buf;
+
+  if (extraBytesToRead == 0)
+  {
+    const u8 c0 = src_ptr[src_pos + 0]; if (c0 >= 0x80) return 0;
+  }
+  else if (extraBytesToRead == 1)
+  {
+    const u8 c0 = src_ptr[src_pos + 0]; if ((c0 < 0xc2) || (c0 > 0xdf)) return 0;
+    const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
+  }
+  else if (extraBytesToRead == 2)
+  {
+    const u8 c0 = src_ptr[src_pos + 0];
+
+    if ((c0 >= 0xe0) && (c0 <= 0xe0))
+    {
+      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0xa0) || (c1 > 0xbf)) return 0;
+      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
+    }
+    else if ((c0 >= 0xe1) && (c0 <= 0xec))
+    {
+      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
+      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
+    }
+    else if ((c0 >= 0xed) && (c0 <= 0xed))
+    {
+      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x80) || (c1 > 0x9f)) return 0;
+      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
+    }
+    else if ((c0 >= 0xee) && (c0 <= 0xef))
+    {
+      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
+      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
+    }
+    else
+    {
+      return 0;
+    }
+  }
+  else if (extraBytesToRead == 3)
+  {
+    const u8 c0 = src_ptr[src_pos + 0];
+
+    if ((c0 >= 0xf0) && (c0 <= 0xf0))
+    {
+      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x90) || (c1 > 0xbf)) return 0;
+      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
+      const u8 c3 = src_ptr[src_pos + 3]; if ((c3 < 0x80) || (c3 > 0xbf)) return 0;
+    }
+    else if ((c0 >= 0xf1) && (c0 <= 0xf3))
+    {
+      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
+      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
+      const u8 c3 = src_ptr[src_pos + 3]; if ((c3 < 0x80) || (c3 > 0xbf)) return 0;
+    }
+    else if ((c0 >= 0xf4) && (c0 <= 0xf4))
+    {
+      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
+      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
+      const u8 c3 = src_ptr[src_pos + 3]; if ((c3 < 0x80) || (c3 > 0xbf)) return 0;
+    }
+    else
+    {
+      return 0;
+    }
+  }
+
+  return 1;
+}
+
+DECLSPEC int hc_enc_validate_utf8_global (GLOBAL_AS const u32 *src_buf, const int src_pos, const int extraBytesToRead)
+{
+  GLOBAL_AS const u8 *src_ptr = (GLOBAL_AS const u8 *) src_buf;
+
+  if (extraBytesToRead == 0)
+  {
+    const u8 c0 = src_ptr[src_pos + 0]; if (c0 >= 0x80) return 0;
+  }
+  else if (extraBytesToRead == 1)
+  {
+    const u8 c0 = src_ptr[src_pos + 0]; if ((c0 < 0xc2) || (c0 > 0xdf)) return 0;
+    const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
+  }
+  else if (extraBytesToRead == 2)
+  {
+    const u8 c0 = src_ptr[src_pos + 0];
+
+    if ((c0 >= 0xe0) && (c0 <= 0xe0))
+    {
+      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0xa0) || (c1 > 0xbf)) return 0;
+      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
+    }
+    else if ((c0 >= 0xe1) && (c0 <= 0xec))
+    {
+      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
+      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
+    }
+    else if ((c0 >= 0xed) && (c0 <= 0xed))
+    {
+      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x80) || (c1 > 0x9f)) return 0;
+      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
+    }
+    else if ((c0 >= 0xee) && (c0 <= 0xef))
+    {
+      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
+      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
+    }
+    else
+    {
+      return 0;
+    }
+  }
+  else if (extraBytesToRead == 3)
+  {
+    const u8 c0 = src_ptr[src_pos + 0];
+
+    if ((c0 >= 0xf0) && (c0 <= 0xf0))
+    {
+      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x90) || (c1 > 0xbf)) return 0;
+      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
+      const u8 c3 = src_ptr[src_pos + 3]; if ((c3 < 0x80) || (c3 > 0xbf)) return 0;
+    }
+    else if ((c0 >= 0xf1) && (c0 <= 0xf3))
+    {
+      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
+      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
+      const u8 c3 = src_ptr[src_pos + 3]; if ((c3 < 0x80) || (c3 > 0xbf)) return 0;
+    }
+    else if ((c0 >= 0xf4) && (c0 <= 0xf4))
+    {
+      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
+      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
+      const u8 c3 = src_ptr[src_pos + 3]; if ((c3 < 0x80) || (c3 > 0xbf)) return 0;
+    }
+    else
+    {
+      return 0;
+    }
+  }
+
+  return 1;
+}
+
 // Input buffer and Output buffer size has to be multiple of 4 and at least of size 4.
 // The output buffer is not zero padded, so entire buffer has to be set all zero before entering this function or truncated afterwards.
 
@@ -2107,6 +2262,15 @@ DECLSPEC int hc_enc_next (hc_enc_t *hc_enc, const u32 *src_buf, const int src_le
     }
 
     if ((src_pos + extraBytesToRead) >= src_sz)
+    {
+      // broken input
+
+      hc_enc->pos = src_len;
+
+      return dst_pos;
+    }
+
+    if (hc_enc_validate_utf8 (src_buf, src_pos, extraBytesToRead) == 0)
     {
       // broken input
 
@@ -2244,6 +2408,15 @@ DECLSPEC int hc_enc_next_global (hc_enc_t *hc_enc, GLOBAL_AS const u32 *src_buf,
     }
 
     if ((src_pos + extraBytesToRead) >= src_sz)
+    {
+      // broken input
+
+      hc_enc->pos = src_len;
+
+      return dst_pos;
+    }
+
+    if (hc_enc_validate_utf8_global (src_buf, src_pos, extraBytesToRead) == 0)
     {
       // broken input
 
