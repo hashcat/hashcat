@@ -211,8 +211,6 @@ void potfile_read_close (hashcat_ctx_t *hashcat_ctx)
 
   if (hashconfig->potfile_disable == true) return;
 
-  if (potfile_ctx->fp.pfp == NULL) return;
-
   hc_fclose (&potfile_ctx->fp);
 }
 

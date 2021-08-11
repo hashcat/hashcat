@@ -596,7 +596,7 @@ void hc_fclose (HCFILE *fp)
 
     unzClose (fp->ufp);
   }
-  else
+  else if (fp->pfp)
   {
     fclose (fp->pfp);
   }
