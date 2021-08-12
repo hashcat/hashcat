@@ -92,7 +92,7 @@ DECLSPEC void xts_mul2 (u32 *in, u32 *out)
   out[0] ^= c * 0x87;
 }
 
-KERNEL_FQ void m26900_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
+KERNEL_FQ void m27600_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
 {
   /**
    * base
@@ -176,7 +176,7 @@ KERNEL_FQ void m26900_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
   }
 }
 
-KERNEL_FQ void m26900_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
+KERNEL_FQ void m27600_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -282,7 +282,7 @@ KERNEL_FQ void m26900_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
   }
 }
 
-KERNEL_FQ void m26900_init2 (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
+KERNEL_FQ void m27600_init2 (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -616,7 +616,7 @@ KERNEL_FQ void m26900_init2 (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
   }
 }
 
-KERNEL_FQ void m26900_loop2 (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
+KERNEL_FQ void m27600_loop2 (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -722,7 +722,7 @@ KERNEL_FQ void m26900_loop2 (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
   }
 }
 
-KERNEL_FQ void m26900_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
+KERNEL_FQ void m27600_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
 {
   const u64 gid = get_global_id (0);
 
