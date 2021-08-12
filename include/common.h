@@ -144,3 +144,4 @@ but this is nededed for VS compiler which doesn't have inline keyword but has __
 #endif
 
 #endif // _COMMON_H
+
