@@ -272,6 +272,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Huawei sha1(md5($pass).$salt)
 - AuthMe sha256
 - AES Crypt (SHA256)
+- VMware VMX (PBKDF2-HMAC-SHA1 + AES-256-CBC)
 - LUKS
 - VeraCrypt
 - BestCrypt v3 Volume Encryption
