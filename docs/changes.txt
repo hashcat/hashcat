@@ -1,9 +1,83 @@
 * changes v6.2.3 -> v6.2.x
 
 ##
+## Features
+##
+
+- Added option --deprecated-check-disable to enable deprecated plugins
+- Added option --multiply-accel-disable (short: -M) to disable multiplying of the kernel accel with the multiprocessor count
+- Added rule function '3' to change the case of the first letter after the occurrence of N of character X
+- Added support for auto tuning --kernel-threads (-T) at startup
+- Added support for HIP version 4.3 or later and removed support for older HIP versions as they are not compatible
+
+##
+## Bugs
+##
+
+- Fixed broken support for --generate-rules-func-min which was ignored under certain conditions
+- Fixed buffer overflow in DPAPI masterkey file v1/v2 module in hash_encode() and hash_decode()
+- Fixed buffer overflow in Stargazer Stellar Wallet XLM module in hash_encode() when a hash was cracked
+- Fixed false negative in all VeraCrypt hash modes if both conditions are met: 1. Use CPU for cracking and 2. PIM area was used
+- Fixed invalid data type in the sha384_hmac_init_vector_128() function that take effect if the vector data type was specified manually
+- Fixed out-of-boundary read in input_tokenizer() if the signature in the hash is longer than the length of the plugin's signature constant
+- Fixed out-of-boundary read in the Stuffit5 module in hash_decode()
+- Fixed random rule generator option --generate-rules-func-min by fixing switch() case to not select a not existing option group type
+- Fixed syntax check of HAS_VPERM macro in several kernel includes causing invalid error message for AMD GPUs on Windows
+- Fixed uninitialized tmps variable in autotune for slow hashes by calling _init and _prepare kernel before calling _loop kernel
+
+##
+## Performance
+##
+
+- AMD GPUs: Add inline assembly code for md5crypt, sha256crypt, PDF 1.7, 7-Zip, RAR3, Samsung Android and Windows Phone 8+
+- AMD GPUs: On the Apple OpenCL platform, we ask for the preferred kernel thread size rather than hard-coding 32
+- Backend Interface: Replace most of the blocking Compute API functions with asynchronous ones to improve GPU utilization
+- Blake Kernels: Optimize 3/4 BLAKE2B_ROUND() 64-bit rotations with inline assembly hc_byte_perm_S() calls
+- Blowfish Kernels: Backport optimizations to reduce bank conflicts from bcrypt to Password Safe v2 and Open Document Format (ODF) 1.1
+- ECC secp256k1: The inline assembly code for AMD GPUs has been removed as the latest JIT compilers optimize it with the same efficiency
+- HIP Kernels: Enable vector data types for HIP kernels for functionality and performance
+- Kernel threads: Use warp size / wavefront size query instead of hard-coded values as the basis for kernel threads
+- SCRYPT Kernels: Improve Hashcat.hctune entries for many NV and AMD GPUs for hash mode 8900, 9300, 15700 and 22700
+- Tuning Database: Add new module function module_extra_tuningdb_block() to extend hashcat.hctune content from a module
+
+##
+## Technical
+##
+
+- 7-Zip Hook: Increase the supported data length from 320kb to 8mb
+- ADL: Updated support for AMD Display Library to 15.0, updated data types
+- AMD Driver: Updated requirements for AMD Linux drivers to ROCm 4.3 or later due to new HIP interface
+- AMD Driver: Updated requirements for AMD Windows drivers to Adrenalin 21.2.1 or later due to new ADL library
+- Backend Interface: Implement gpu_bzero() as a gpu_memset() replacement, since all gpu_memset() operations used 0 as the value
+- Backend Interface: Improve the query kernel's dynamic memory size based on DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_BLOCK_OPTIN instead of BF
+- Brain Session: Adds hashconfig-specific opti_type and opts_type parameters to the session calculation to enable cover functions like -O
+- Commandline: Throw an error if the separator specified by the user with the -p option is not exactly 1 byte
+- Constants: Make const char * pointers actually const char * const pointers
+- Deprecated Plugins: Add new module function module_deprecated_notice() to mark a plugin as deprecated and to return a free text user notice
+- Deprecated Plugins: Marked plugins 2500/2501 and 16800/16801 as deprecated
+- Encoding: Truncate password candidates in UTF8 -> UTF16 conversion if it contains an invalid UTF8 byte sequence
+- Filehandling: Use const char for fopen mode to fix -Wwrite-strings warnings
+- Hardware Monitor: Added support for OverDrive 7 and 8 based GPUs
+- HIP Kernels: Dependency on hip/hip runtime.h has been removed to enable easier integration of the HIP backend under Windows
+- Kernel cache: Add kernel threads for hash calculation, which will later be used in the file name of the kernel cache
+- Memory Management: Refactored the code responsible for limiting kernel accel with the goal to avoid low host memory situations
+- OpenCL Runtime: Workaround for Intel OpenCL runtime: segmentation fault when compiling hc_enc_next() / hc_enc_next_global()
+- RC4 Kernels: Use improved native thread derivation for RC4-based hash modes 7500, 13100, 18200, 25400
+- Shared Memory: Calculate the dynamic memory size of the kernel based on CU_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_BLOCK_OPTIN
+- Slow kernels: Set some of the slowest kernels to OPTS_TYPE_MP_MULTI_DISABLE to make it easier to handle small word lists
+- Vendor Discovery: Add "Intel" as a valid vendor name for GPUs on macOS
+
+##
 ## Algorithms
 ##
 
+- Added hash-mode: SNMPv3 HMAC-MD5-96/HMAC-SHA1-96
+- Added hash-mode: SNMPv3 HMAC-MD5-96
+- Added hash-mode: SNMPv3 HMAC-SHA1-96
+- Added hash-mode: SNMPv3 HMAC-SHA224-128
+- Added hash-mode: SNMPv3 HMAC-SHA256-192
+- Added hash-mode: SNMPv3 HMAC-SHA384-256
+- Added hash-mode: SNMPv3 HMAC-SHA512-384
 - Added hash-mode: VirtualBox (PBKDF2-HMAC-SHA256 & AES-128-XTS)
 - Added hash-mode: VirtualBox (PBKDF2-HMAC-SHA256 & AES-256-XTS)
 

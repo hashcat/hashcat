@@ -1,2 +1,3 @@
 web: https://hashcat.net
-irc: freenode #hashcat
+discord: https://discord.gg/HFS523HGBT
+irc: Libera Chat #hashcat

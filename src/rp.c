@@ -71,7 +71,8 @@ static const char grp_op_chr_chr[] =
 static const char grp_op_pos_chr[] =
 {
   RULE_OP_MANGLE_INSERT,
-  RULE_OP_MANGLE_OVERSTRIKE
+  RULE_OP_MANGLE_OVERSTRIKE,
+  RULE_OP_MANGLE_TOGGLE_AT_SEP
 };
 
 static const char grp_op_pos_pos0[] =
@@ -140,7 +141,7 @@ int generate_random_rule (char rule_buf[RP_RULE_SIZE], const u32 rp_gen_func_min
     u32 p1 = 0;
     u32 p2 = 0;
 
-    switch ((char) get_random_num (0, 9))
+    switch ((char) get_random_num (0, 8))
     {
       case 0:
         r = get_random_num (0, sizeof (grp_op_nop));
@@ -444,12 +445,18 @@ int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule)
         break;
 
       case RULE_OP_MANGLE_TITLE:
-        SET_NAME (rule, rule_buf[rule_pos]);
+        SET_NAME    (rule, rule_buf[rule_pos]);
         break;
 
       case RULE_OP_MANGLE_TITLE_SEP:
-        SET_NAME (rule, rule_buf[rule_pos]);
-        SET_P0   (rule, rule_buf[rule_pos]);
+        SET_NAME    (rule, rule_buf[rule_pos]);
+        SET_P0      (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_TOGGLE_AT_SEP:
+        SET_NAME    (rule, rule_buf[rule_pos]);
+        SET_P0_CONV (rule, rule_buf[rule_pos]);
+        SET_P1      (rule, rule_buf[rule_pos]);
         break;
 
       default:
@@ -673,6 +680,12 @@ int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule)
       case RULE_OP_MANGLE_TITLE_SEP:
         rule_buf[rule_pos] = rule_cmd;
         GET_P0 (rule);
+        break;
+
+      case RULE_OP_MANGLE_TOGGLE_AT_SEP:
+        rule_buf[rule_pos] = rule_cmd;
+        GET_P0_CONV (rule);
+        GET_P1      (rule);
         break;
 
       case 0:

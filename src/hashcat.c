@@ -430,15 +430,17 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
 
 static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 {
-  hashconfig_t   *hashconfig    = hashcat_ctx->hashconfig;
-  hashes_t       *hashes        = hashcat_ctx->hashes;
-  mask_ctx_t     *mask_ctx      = hashcat_ctx->mask_ctx;
-  backend_ctx_t  *backend_ctx   = hashcat_ctx->backend_ctx;
-  outcheck_ctx_t *outcheck_ctx  = hashcat_ctx->outcheck_ctx;
-  restore_ctx_t  *restore_ctx   = hashcat_ctx->restore_ctx;
-  status_ctx_t   *status_ctx    = hashcat_ctx->status_ctx;
-  straight_ctx_t *straight_ctx  = hashcat_ctx->straight_ctx;
-  user_options_t *user_options  = hashcat_ctx->user_options;
+  hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
+  hashes_t             *hashes              = hashcat_ctx->hashes;
+  mask_ctx_t           *mask_ctx            = hashcat_ctx->mask_ctx;
+  module_ctx_t         *module_ctx          = hashcat_ctx->module_ctx;
+  backend_ctx_t        *backend_ctx         = hashcat_ctx->backend_ctx;
+  outcheck_ctx_t       *outcheck_ctx        = hashcat_ctx->outcheck_ctx;
+  restore_ctx_t        *restore_ctx         = hashcat_ctx->restore_ctx;
+  status_ctx_t         *status_ctx          = hashcat_ctx->status_ctx;
+  straight_ctx_t       *straight_ctx        = hashcat_ctx->straight_ctx;
+  user_options_t       *user_options        = hashcat_ctx->user_options;
+  user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
 
   status_ctx->devices_status = STATUS_INIT;
 
@@ -462,6 +464,46 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   }
 
   EVENT (EVENT_HASHCONFIG_POST);
+
+  /**
+   * deprecated notice
+   */
+
+  if (module_ctx->module_deprecated_notice != MODULE_DEFAULT)
+  {
+    if (user_options->deprecated_check_disable == false)
+    {
+      if ((user_options->show == true) || (user_options->left == true))
+      {
+        const char *module_deprecated_notice = module_ctx->module_deprecated_notice (hashconfig, user_options, user_options_extra);
+
+        event_log_warning (hashcat_ctx, "%s", module_deprecated_notice);
+        event_log_warning (hashcat_ctx, NULL);
+      }
+      else if (user_options->benchmark == true)
+      {
+        if (user_options->hash_mode_chgd == true)
+        {
+          const char *module_deprecated_notice = module_ctx->module_deprecated_notice (hashconfig, user_options, user_options_extra);
+
+          event_log_warning (hashcat_ctx, "%s", module_deprecated_notice);
+          event_log_warning (hashcat_ctx, NULL);
+        }
+        else
+        {
+          return 0;
+        }
+      }
+      else
+      {
+        const char *module_deprecated_notice = module_ctx->module_deprecated_notice (hashconfig, user_options, user_options_extra);
+
+        event_log_error (hashcat_ctx, "%s", module_deprecated_notice);
+
+        return 0;
+      }
+    }
+  }
 
   /**
    * generate hashlist filename for later use

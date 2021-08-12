@@ -387,6 +387,47 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   return line_len;
 }
 
+/*
+
+Find the right -n value for your GPU:
+=====================================
+
+1. For example, to find the value for 8900, first create a valid hash for 8900 as follows:
+
+$ ./hashcat --example-hashes -m 8900 | grep Example.Hash | grep -v Format | cut -b 25- > tmp.hash.8900
+
+2. Now let it iterate through all -n values to a certain point. In this case, I'm using 200, but in general it's a value that is at least twice that of the multiprocessor. If you don't mind you can just leave it as it is, it just runs a little longer.
+
+$ export i=1; while [ $i -ne 201 ]; do echo $i; ./hashcat --quiet tmp.hash.8900 --keep-guessing --self-test-disable --markov-disable --restore-disable --outfile-autohex-disable --wordlist-autohex-disable --potfile-disable --logfile-disable --hwmon-disable --status --status-timer 1 --runtime 28 --machine-readable --optimized-kernel-enable --workload-profile 3 --hash-type 8900 --attack-mode 3 ?b?b?b?b?b?b?b --backend-devices 1 --force -n $i; i=$(($i+1)); done | tee x
+
+3. Determine the highest measured H/s speed. But don't just use the highest value. Instead, use the number that seems most stable, usually at the beginning.
+
+$ grep "$(printf 'STATUS\t3')" x | cut -f4 -d$'\t' | sort -n | tail
+
+4. To match the speed you have chosen to the correct value in the 'x' file, simply search for it in it. Then go up a little on the block where you found him. The value -n is the single value that begins before the block start. If you have multiple blocks at the same speed, choose the lowest value for -n
+
+*/
+
+const char *module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const char *extra_tuningdb_block =
+    "DEVICE_TYPE_CPU                                 *       8900    1       N       A\n"
+    "DEVICE_TYPE_GPU                                 *       8900    1       N       A\n"
+    "GeForce_GTX_980                                 *       8900    1      29       A\n"
+    "GeForce_GTX_1080                                *       8900    1      15       A\n"
+    "GeForce_RTX_2080_Ti                             *       8900    1      68       A\n"
+    "GeForce_RTX_3060_Ti                             *       8900    1      51       A\n"
+    "GeForce_RTX_3070                                *       8900    1      46       A\n"
+    "GeForce_RTX_3090                                *       8900    1      82       A\n"
+    "ALIAS_AMD_RX480                                 *       8900    1      15       A\n"
+    "ALIAS_AMD_Vega64                                *       8900    1      31       A\n"
+    "ALIAS_AMD_MI100                                 *       8900    1      79       A\n"
+    "ALIAS_AMD_RX6900XT                              *       8900    1      59       A\n"
+  ;
+
+  return extra_tuningdb_block;
+}
+
 void module_init (module_ctx_t *module_ctx)
 {
   module_ctx->module_context_size             = MODULE_CONTEXT_SIZE_CURRENT;
@@ -399,6 +440,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
   module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
   module_ctx->module_deep_comp_kernel         = MODULE_DEFAULT;
+  module_ctx->module_deprecated_notice        = MODULE_DEFAULT;
   module_ctx->module_dgst_pos0                = module_dgst_pos0;
   module_ctx->module_dgst_pos1                = module_dgst_pos1;
   module_ctx->module_dgst_pos2                = module_dgst_pos2;
@@ -408,6 +450,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_esalt_size               = MODULE_DEFAULT;
   module_ctx->module_extra_buffer_size        = module_extra_buffer_size;
   module_ctx->module_extra_tmp_size           = module_extra_tmp_size;
+  module_ctx->module_extra_tuningdb_block     = module_extra_tuningdb_block;
   module_ctx->module_forced_outfile_format    = MODULE_DEFAULT;
   module_ctx->module_hash_binary_count        = MODULE_DEFAULT;
   module_ctx->module_hash_binary_parse        = MODULE_DEFAULT;

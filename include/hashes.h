@@ -15,7 +15,7 @@ int hash_encode (const hashconfig_t *hashconfig, const hashes_t *hashes, const m
 
 int save_hash (hashcat_ctx_t *hashcat_ctx);
 
-void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain);
+int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain);
 
 //int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 salt_pos);
 int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param);

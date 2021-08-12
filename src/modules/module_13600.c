@@ -9,6 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "memory.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -61,7 +62,7 @@ typedef struct zip2
   u32 verify_bytes;
   u32 compress_length;
   u32 data_len;
-  u32 data_buf[0x4000000];
+  u32 data_buf[0x200000];
   u32 auth_len;
   u32 auth_buf[4];
 
@@ -166,7 +167,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.len_min[7] = 0;
-  token.len_max[7] = 0x4000000 * 4 * 2;
+  token.len_max[7] = 0x200000 * 4 * 2;
   token.sep[7]     = '*';
   token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
@@ -365,7 +366,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u32 data_len = zip2->data_len;
 
-  char data_tmp[16384 + 1] = { 0 };
+  char *data_tmp = (char *) hccalloc (1, (data_len * 2) + 1);
 
   for (u32 i = 0, j = 0; i < data_len; i += 1, j += 2)
   {
@@ -397,6 +398,8 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     auth_tmp,
     SIGNATURE_ZIP2_STOP);
 
+  hcfree (data_tmp);
+
   return line_len;
 }
 
@@ -412,6 +415,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
   module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
   module_ctx->module_deep_comp_kernel         = MODULE_DEFAULT;
+  module_ctx->module_deprecated_notice        = MODULE_DEFAULT;
   module_ctx->module_dgst_pos0                = module_dgst_pos0;
   module_ctx->module_dgst_pos1                = module_dgst_pos1;
   module_ctx->module_dgst_pos2                = module_dgst_pos2;
@@ -421,6 +425,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
+  module_ctx->module_extra_tuningdb_block     = MODULE_DEFAULT;
   module_ctx->module_forced_outfile_format    = MODULE_DEFAULT;
   module_ctx->module_hash_binary_count        = MODULE_DEFAULT;
   module_ctx->module_hash_binary_parse        = MODULE_DEFAULT;

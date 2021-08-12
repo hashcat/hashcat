@@ -48,9 +48,9 @@ DECLSPEC u32 hc_atomic_dec (volatile GLOBAL_AS u32 *p);
 DECLSPEC u32 hc_atomic_inc (volatile GLOBAL_AS u32 *p);
 DECLSPEC u32 hc_atomic_or  (volatile GLOBAL_AS u32 *p, volatile const u32 val);
 
-DECLSPEC size_t get_global_id   (const u32 dimindx __attribute__((unused)));
-DECLSPEC size_t get_local_id    (const u32 dimindx __attribute__((unused)));
-DECLSPEC size_t get_local_size  (const u32 dimindx __attribute__((unused)));
+DECLSPEC size_t get_global_id   (const u32 dimindx);
+DECLSPEC size_t get_local_id    (const u32 dimindx);
+DECLSPEC size_t get_local_size  (const u32 dimindx);
 
 DECLSPEC u32x rotl32   (const u32x a, const int n);
 DECLSPEC u32x rotr32   (const u32x a, const int n);

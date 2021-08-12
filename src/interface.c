@@ -129,7 +129,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   #define CHECK_DEFINED(func)                                                     \
     if ((func) == NULL)                                                           \
     {                                                                             \
-      event_log_error (hashcat_ctx, "Missing symbol definitions. Old template?"); \
+      event_log_error (hashcat_ctx, "Missing symbol definitions module for in hash-mode '%d'. Old template?", user_options->hash_mode); \
                                                                                   \
       return -1;                                                                  \
     }
@@ -141,6 +141,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_DEFINED (module_ctx->module_benchmark_salt);
   CHECK_DEFINED (module_ctx->module_build_plain_postprocess);
   CHECK_DEFINED (module_ctx->module_deep_comp_kernel);
+  CHECK_DEFINED (module_ctx->module_deprecated_notice);
   CHECK_DEFINED (module_ctx->module_dgst_pos0);
   CHECK_DEFINED (module_ctx->module_dgst_pos1);
   CHECK_DEFINED (module_ctx->module_dgst_pos2);
@@ -150,6 +151,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_DEFINED (module_ctx->module_esalt_size);
   CHECK_DEFINED (module_ctx->module_extra_buffer_size);
   CHECK_DEFINED (module_ctx->module_extra_tmp_size);
+  CHECK_DEFINED (module_ctx->module_extra_tuningdb_block);
   CHECK_DEFINED (module_ctx->module_forced_outfile_format);
   CHECK_DEFINED (module_ctx->module_hash_binary_count);
   CHECK_DEFINED (module_ctx->module_hash_binary_parse);
@@ -263,6 +265,11 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
       return -1;
     }
+  }
+
+  if (user_options->multiply_accel_disable == true)
+  {
+    hashconfig->opts_type |= OPTS_TYPE_MP_MULTI_DISABLE;
   }
 
   if (user_options->self_test_disable == true)
@@ -616,7 +623,7 @@ u64 default_hook_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED
 
 char default_separator (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  return user_options->separator;
+  return user_options_extra->separator;
 }
 
 bool default_dictstat_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)

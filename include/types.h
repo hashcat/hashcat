@@ -295,6 +295,7 @@ typedef enum rule_functions
   RULE_OP_MANGLE_UREST_LFIRST    = 'C',
   RULE_OP_MANGLE_TREST           = 't',
   RULE_OP_MANGLE_TOGGLE_AT       = 'T',
+  RULE_OP_MANGLE_TOGGLE_AT_SEP   = '3',
   RULE_OP_MANGLE_REVERSE         = 'r',
   RULE_OP_MANGLE_DUPEWORD        = 'd',
   RULE_OP_MANGLE_DUPEWORD_TIMES  = 'p',
@@ -463,6 +464,8 @@ typedef enum dgst_size
   DGST_SIZE_4_32 = (32 * sizeof (u32)), // 128 !!!
   DGST_SIZE_4_64 = (64 * sizeof (u32)), // 256
   DGST_SIZE_8_2  = (2  * sizeof (u64)), // 16 !!!
+  DGST_SIZE_8_4  = (4  * sizeof (u64)), // 32 !!!
+  DGST_SIZE_8_6  = (6  * sizeof (u64)), // 48 !!!
   DGST_SIZE_8_8  = (8  * sizeof (u64)), // 64 !!!
   DGST_SIZE_8_16 = (16 * sizeof (u64)), // 128 !!!
   DGST_SIZE_8_25 = (25 * sizeof (u64))  // 200
@@ -612,6 +615,7 @@ typedef enum user_options_defaults
   BRAIN_SESSION            = 0,
   #endif
   DEBUG_MODE               = 0,
+  DEPRECATED_CHECK_DISABLE = false,
   FORCE                    = false,
   HWMON_DISABLE            = false,
   #if defined (__APPLE__)
@@ -651,6 +655,7 @@ typedef enum user_options_defaults
   BACKEND_INFO             = false,
   BACKEND_VECTOR_WIDTH     = 0,
   OPTIMIZED_KERNEL_ENABLE  = false,
+  MULTIPLY_ACCEL_DISABLE   = false,
   OUTFILE_AUTOHEX          = true,
   OUTFILE_CHECK_TIMER      = 5,
   OUTFILE_FORMAT           = 3,
@@ -670,7 +675,6 @@ typedef enum user_options_defaults
   SCRYPT_TMTO              = 0,
   SEGMENT_SIZE             = 33554432,
   SELF_TEST_DISABLE        = false,
-  SEPARATOR                = ':',
   SHOW                     = false,
   SKIP                     = 0,
   SLOW_CANDIDATES          = false,
@@ -723,88 +727,90 @@ typedef enum user_options_map
   IDX_CUSTOM_CHARSET_4          = '4',
   IDX_DEBUG_FILE                = 0xff11,
   IDX_DEBUG_MODE                = 0xff12,
-  IDX_ENCODING_FROM             = 0xff13,
-  IDX_ENCODING_TO               = 0xff14,
-  IDX_HASH_INFO                 = 0xff15,
-  IDX_FORCE                     = 0xff16,
-  IDX_HWMON_DISABLE             = 0xff17,
-  IDX_HWMON_TEMP_ABORT          = 0xff18,
+  IDX_DEPRECATED_CHECK_DISABLE  = 0xff13,
+  IDX_ENCODING_FROM             = 0xff14,
+  IDX_ENCODING_TO               = 0xff15,
+  IDX_HASH_INFO                 = 0xff16,
+  IDX_FORCE                     = 0xff17,
+  IDX_HWMON_DISABLE             = 0xff18,
+  IDX_HWMON_TEMP_ABORT          = 0xff19,
   IDX_HASH_MODE                 = 'm',
-  IDX_HCCAPX_MESSAGE_PAIR       = 0xff19,
+  IDX_HCCAPX_MESSAGE_PAIR       = 0xff1a,
   IDX_HELP                      = 'h',
-  IDX_HEX_CHARSET               = 0xff1a,
-  IDX_HEX_SALT                  = 0xff1b,
-  IDX_HEX_WORDLIST              = 0xff1c,
-  IDX_HOOK_THREADS              = 0xff1d,
-  IDX_IDENTIFY                  = 0xff1e,
+  IDX_HEX_CHARSET               = 0xff1b,
+  IDX_HEX_SALT                  = 0xff1c,
+  IDX_HEX_WORDLIST              = 0xff1d,
+  IDX_HOOK_THREADS              = 0xff1e,
+  IDX_IDENTIFY                  = 0xff1f,
   IDX_INCREMENT                 = 'i',
-  IDX_INCREMENT_MAX             = 0xff1f,
-  IDX_INCREMENT_MIN             = 0xff20,
-  IDX_INDUCTION_DIR             = 0xff21,
-  IDX_KEEP_GUESSING             = 0xff22,
+  IDX_INCREMENT_MAX             = 0xff20,
+  IDX_INCREMENT_MIN             = 0xff21,
+  IDX_INDUCTION_DIR             = 0xff22,
+  IDX_KEEP_GUESSING             = 0xff23,
   IDX_KERNEL_ACCEL              = 'n',
   IDX_KERNEL_LOOPS              = 'u',
   IDX_KERNEL_THREADS            = 'T',
-  IDX_KEYBOARD_LAYOUT_MAPPING   = 0xff23,
-  IDX_KEYSPACE                  = 0xff24,
-  IDX_LEFT                      = 0xff25,
+  IDX_KEYBOARD_LAYOUT_MAPPING   = 0xff24,
+  IDX_KEYSPACE                  = 0xff25,
+  IDX_LEFT                      = 0xff26,
   IDX_LIMIT                     = 'l',
-  IDX_LOGFILE_DISABLE           = 0xff26,
-  IDX_LOOPBACK                  = 0xff27,
-  IDX_MACHINE_READABLE          = 0xff28,
-  IDX_MARKOV_CLASSIC            = 0xff29,
-  IDX_MARKOV_DISABLE            = 0xff2a,
-  IDX_MARKOV_HCSTAT2            = 0xff2b,
-  IDX_MARKOV_INVERSE            = 0xff2c,
+  IDX_LOGFILE_DISABLE           = 0xff27,
+  IDX_LOOPBACK                  = 0xff28,
+  IDX_MACHINE_READABLE          = 0xff29,
+  IDX_MARKOV_CLASSIC            = 0xff2a,
+  IDX_MARKOV_DISABLE            = 0xff2b,
+  IDX_MARKOV_HCSTAT2            = 0xff2c,
+  IDX_MARKOV_INVERSE            = 0xff2d,
   IDX_MARKOV_THRESHOLD          = 't',
-  IDX_NONCE_ERROR_CORRECTIONS   = 0xff2d,
+  IDX_NONCE_ERROR_CORRECTIONS   = 0xff2e,
   IDX_OPENCL_DEVICE_TYPES       = 'D',
   IDX_OPTIMIZED_KERNEL_ENABLE   = 'O',
-  IDX_OUTFILE_AUTOHEX_DISABLE   = 0xff2e,
-  IDX_OUTFILE_CHECK_DIR         = 0xff2f,
-  IDX_OUTFILE_CHECK_TIMER       = 0xff30,
-  IDX_OUTFILE_FORMAT            = 0xff31,
+  IDX_MULTIPLY_ACCEL_DISABLE    = 'M',
+  IDX_OUTFILE_AUTOHEX_DISABLE   = 0xff2f,
+  IDX_OUTFILE_CHECK_DIR         = 0xff30,
+  IDX_OUTFILE_CHECK_TIMER       = 0xff31,
+  IDX_OUTFILE_FORMAT            = 0xff32,
   IDX_OUTFILE                   = 'o',
-  IDX_POTFILE_DISABLE           = 0xff32,
-  IDX_POTFILE_PATH              = 0xff33,
-  IDX_PROGRESS_ONLY             = 0xff34,
-  IDX_QUIET                     = 0xff35,
-  IDX_REMOVE                    = 0xff36,
-  IDX_REMOVE_TIMER              = 0xff37,
-  IDX_RESTORE                   = 0xff38,
-  IDX_RESTORE_DISABLE           = 0xff39,
-  IDX_RESTORE_FILE_PATH         = 0xff3a,
+  IDX_POTFILE_DISABLE           = 0xff33,
+  IDX_POTFILE_PATH              = 0xff34,
+  IDX_PROGRESS_ONLY             = 0xff35,
+  IDX_QUIET                     = 0xff36,
+  IDX_REMOVE                    = 0xff37,
+  IDX_REMOVE_TIMER              = 0xff38,
+  IDX_RESTORE                   = 0xff39,
+  IDX_RESTORE_DISABLE           = 0xff3a,
+  IDX_RESTORE_FILE_PATH         = 0xff3b,
   IDX_RP_FILE                   = 'r',
-  IDX_RP_GEN_FUNC_MAX           = 0xff3b,
-  IDX_RP_GEN_FUNC_MIN           = 0xff3c,
+  IDX_RP_GEN_FUNC_MAX           = 0xff3c,
+  IDX_RP_GEN_FUNC_MIN           = 0xff3d,
   IDX_RP_GEN                    = 'g',
-  IDX_RP_GEN_SEED               = 0xff3d,
+  IDX_RP_GEN_SEED               = 0xff3e,
   IDX_RULE_BUF_L                = 'j',
   IDX_RULE_BUF_R                = 'k',
-  IDX_RUNTIME                   = 0xff3e,
-  IDX_SCRYPT_TMTO               = 0xff3f,
+  IDX_RUNTIME                   = 0xff3f,
+  IDX_SCRYPT_TMTO               = 0xff40,
   IDX_SEGMENT_SIZE              = 'c',
-  IDX_SELF_TEST_DISABLE         = 0xff40,
+  IDX_SELF_TEST_DISABLE         = 0xff41,
   IDX_SEPARATOR                 = 'p',
-  IDX_SESSION                   = 0xff41,
-  IDX_SHOW                      = 0xff42,
+  IDX_SESSION                   = 0xff42,
+  IDX_SHOW                      = 0xff43,
   IDX_SKIP                      = 's',
   IDX_SLOW_CANDIDATES           = 'S',
-  IDX_SPEED_ONLY                = 0xff43,
-  IDX_SPIN_DAMP                 = 0xff44,
-  IDX_STATUS                    = 0xff45,
-  IDX_STATUS_JSON               = 0xff46,
-  IDX_STATUS_TIMER              = 0xff47,
-  IDX_STDOUT_FLAG               = 0xff48,
-  IDX_STDIN_TIMEOUT_ABORT       = 0xff49,
-  IDX_TRUECRYPT_KEYFILES        = 0xff4a,
-  IDX_USERNAME                  = 0xff4b,
-  IDX_VERACRYPT_KEYFILES        = 0xff4c,
-  IDX_VERACRYPT_PIM_START       = 0xff4d,
-  IDX_VERACRYPT_PIM_STOP        = 0xff4e,
+  IDX_SPEED_ONLY                = 0xff44,
+  IDX_SPIN_DAMP                 = 0xff45,
+  IDX_STATUS                    = 0xff46,
+  IDX_STATUS_JSON               = 0xff47,
+  IDX_STATUS_TIMER              = 0xff48,
+  IDX_STDOUT_FLAG               = 0xff49,
+  IDX_STDIN_TIMEOUT_ABORT       = 0xff4a,
+  IDX_TRUECRYPT_KEYFILES        = 0xff4b,
+  IDX_USERNAME                  = 0xff4c,
+  IDX_VERACRYPT_KEYFILES        = 0xff4d,
+  IDX_VERACRYPT_PIM_START       = 0xff4e,
+  IDX_VERACRYPT_PIM_STOP        = 0xff4f,
   IDX_VERSION_LOWER             = 'v',
   IDX_VERSION                   = 'V',
-  IDX_WORDLIST_AUTOHEX_DISABLE  = 0xff4f,
+  IDX_WORDLIST_AUTOHEX_DISABLE  = 0xff50,
   IDX_WORKLOAD_PROFILE          = 'w',
 
 } user_options_map_t;
@@ -925,7 +931,6 @@ typedef struct hashes
 
   void        *digests_buf;
   u32         *digests_shown;
-  u32         *digests_shown_tmp;
 
   u32          salts_cnt;
   u32          salts_done;
@@ -1074,7 +1079,7 @@ typedef struct hc_fp
   bool        is_zip;
   int         bom_size;
 
-  char       *mode;
+  const char *mode;
   const char *path;
 
 } HCFILE;
@@ -1116,6 +1121,8 @@ typedef struct hc_device_param
   int     sm_minor;
   u32     kernel_exec_timeout;
 
+  u32     kernel_preferred_wgs_multiple;
+
   st_status_t st_status;
 
   int     vector_width;
@@ -1137,6 +1144,7 @@ typedef struct hc_device_param
   u32     kernel_wgs_amp;
   u32     kernel_wgs_tm;
   u32     kernel_wgs_memset;
+  u32     kernel_wgs_bzero;
   u32     kernel_wgs_atinit;
   u32     kernel_wgs_utf8toutf16le;
   u32     kernel_wgs_decompress;
@@ -1162,6 +1170,7 @@ typedef struct hc_device_param
   u32     kernel_preferred_wgs_multiple_amp;
   u32     kernel_preferred_wgs_multiple_tm;
   u32     kernel_preferred_wgs_multiple_memset;
+  u32     kernel_preferred_wgs_multiple_bzero;
   u32     kernel_preferred_wgs_multiple_atinit;
   u32     kernel_preferred_wgs_multiple_utf8toutf16le;
   u32     kernel_preferred_wgs_multiple_decompress;
@@ -1187,6 +1196,7 @@ typedef struct hc_device_param
   u64     kernel_local_mem_size_amp;
   u64     kernel_local_mem_size_tm;
   u64     kernel_local_mem_size_memset;
+  u64     kernel_local_mem_size_bzero;
   u64     kernel_local_mem_size_atinit;
   u64     kernel_local_mem_size_utf8toutf16le;
   u64     kernel_local_mem_size_decompress;
@@ -1212,6 +1222,7 @@ typedef struct hc_device_param
   u64     kernel_dynamic_local_mem_size_amp;
   u64     kernel_dynamic_local_mem_size_tm;
   u64     kernel_dynamic_local_mem_size_memset;
+  u64     kernel_dynamic_local_mem_size_bzero;
   u64     kernel_dynamic_local_mem_size_atinit;
   u64     kernel_dynamic_local_mem_size_utf8toutf16le;
   u64     kernel_dynamic_local_mem_size_decompress;
@@ -1373,6 +1384,7 @@ typedef struct hc_device_param
   void   *kernel_params_amp[PARAMCNT];
   void   *kernel_params_tm[PARAMCNT];
   void   *kernel_params_memset[PARAMCNT];
+  void   *kernel_params_bzero[PARAMCNT];
   void   *kernel_params_atinit[PARAMCNT];
   void   *kernel_params_utf8toutf16le[PARAMCNT];
   void   *kernel_params_decompress[PARAMCNT];
@@ -1395,6 +1407,9 @@ typedef struct hc_device_param
   u32     kernel_params_memset_buf32[PARAMCNT];
   u64     kernel_params_memset_buf64[PARAMCNT];
 
+  u32     kernel_params_bzero_buf32[PARAMCNT];
+  u64     kernel_params_bzero_buf64[PARAMCNT];
+
   u32     kernel_params_atinit_buf32[PARAMCNT];
   u64     kernel_params_atinit_buf64[PARAMCNT];
 
@@ -1416,6 +1431,7 @@ typedef struct hc_device_param
 
   CUevent           cuda_event1;
   CUevent           cuda_event2;
+  CUevent           cuda_event3;
 
   CUmodule          cuda_module;
   CUmodule          cuda_module_shared;
@@ -1439,6 +1455,7 @@ typedef struct hc_device_param
   CUfunction        cuda_function_amp;
   CUfunction        cuda_function_tm;
   CUfunction        cuda_function_memset;
+  CUfunction        cuda_function_bzero;
   CUfunction        cuda_function_atinit;
   CUfunction        cuda_function_utf8toutf16le;
   CUfunction        cuda_function_decompress;
@@ -1490,79 +1507,81 @@ typedef struct hc_device_param
 
   int               hip_warp_size;
 
-  HIPdevice         hip_device;
-  HIPcontext        hip_context;
-  HIPstream         hip_stream;
+  hipDevice_t       hip_device;
+  hipCtx_t          hip_context;
+  hipStream_t       hip_stream;
 
-  HIPevent          hip_event1;
-  HIPevent          hip_event2;
+  hipEvent_t        hip_event1;
+  hipEvent_t        hip_event2;
+  hipEvent_t        hip_event3;
 
-  HIPmodule         hip_module;
-  HIPmodule         hip_module_shared;
-  HIPmodule         hip_module_mp;
-  HIPmodule         hip_module_amp;
+  hipModule_t       hip_module;
+  hipModule_t       hip_module_shared;
+  hipModule_t       hip_module_mp;
+  hipModule_t       hip_module_amp;
 
-  HIPfunction       hip_function1;
-  HIPfunction       hip_function12;
-  HIPfunction       hip_function2p;
-  HIPfunction       hip_function2;
-  HIPfunction       hip_function2e;
-  HIPfunction       hip_function23;
-  HIPfunction       hip_function3;
-  HIPfunction       hip_function4;
-  HIPfunction       hip_function_init2;
-  HIPfunction       hip_function_loop2p;
-  HIPfunction       hip_function_loop2;
-  HIPfunction       hip_function_mp;
-  HIPfunction       hip_function_mp_l;
-  HIPfunction       hip_function_mp_r;
-  HIPfunction       hip_function_amp;
-  HIPfunction       hip_function_tm;
-  HIPfunction       hip_function_memset;
-  HIPfunction       hip_function_atinit;
-  HIPfunction       hip_function_utf8toutf16le;
-  HIPfunction       hip_function_decompress;
-  HIPfunction       hip_function_aux1;
-  HIPfunction       hip_function_aux2;
-  HIPfunction       hip_function_aux3;
-  HIPfunction       hip_function_aux4;
+  hipFunction_t     hip_function1;
+  hipFunction_t     hip_function12;
+  hipFunction_t     hip_function2p;
+  hipFunction_t     hip_function2;
+  hipFunction_t     hip_function2e;
+  hipFunction_t     hip_function23;
+  hipFunction_t     hip_function3;
+  hipFunction_t     hip_function4;
+  hipFunction_t     hip_function_init2;
+  hipFunction_t     hip_function_loop2p;
+  hipFunction_t     hip_function_loop2;
+  hipFunction_t     hip_function_mp;
+  hipFunction_t     hip_function_mp_l;
+  hipFunction_t     hip_function_mp_r;
+  hipFunction_t     hip_function_amp;
+  hipFunction_t     hip_function_tm;
+  hipFunction_t     hip_function_memset;
+  hipFunction_t     hip_function_bzero;
+  hipFunction_t     hip_function_atinit;
+  hipFunction_t     hip_function_utf8toutf16le;
+  hipFunction_t     hip_function_decompress;
+  hipFunction_t     hip_function_aux1;
+  hipFunction_t     hip_function_aux2;
+  hipFunction_t     hip_function_aux3;
+  hipFunction_t     hip_function_aux4;
 
-  HIPdeviceptr      hip_d_pws_buf;
-  HIPdeviceptr      hip_d_pws_amp_buf;
-  HIPdeviceptr      hip_d_pws_comp_buf;
-  HIPdeviceptr      hip_d_pws_idx;
-  HIPdeviceptr      hip_d_rules;
-  HIPdeviceptr      hip_d_rules_c;
-  HIPdeviceptr      hip_d_combs;
-  HIPdeviceptr      hip_d_combs_c;
-  HIPdeviceptr      hip_d_bfs;
-  HIPdeviceptr      hip_d_bfs_c;
-  HIPdeviceptr      hip_d_tm_c;
-  HIPdeviceptr      hip_d_bitmap_s1_a;
-  HIPdeviceptr      hip_d_bitmap_s1_b;
-  HIPdeviceptr      hip_d_bitmap_s1_c;
-  HIPdeviceptr      hip_d_bitmap_s1_d;
-  HIPdeviceptr      hip_d_bitmap_s2_a;
-  HIPdeviceptr      hip_d_bitmap_s2_b;
-  HIPdeviceptr      hip_d_bitmap_s2_c;
-  HIPdeviceptr      hip_d_bitmap_s2_d;
-  HIPdeviceptr      hip_d_plain_bufs;
-  HIPdeviceptr      hip_d_digests_buf;
-  HIPdeviceptr      hip_d_digests_shown;
-  HIPdeviceptr      hip_d_salt_bufs;
-  HIPdeviceptr      hip_d_esalt_bufs;
-  HIPdeviceptr      hip_d_tmps;
-  HIPdeviceptr      hip_d_hooks;
-  HIPdeviceptr      hip_d_result;
-  HIPdeviceptr      hip_d_extra0_buf;
-  HIPdeviceptr      hip_d_extra1_buf;
-  HIPdeviceptr      hip_d_extra2_buf;
-  HIPdeviceptr      hip_d_extra3_buf;
-  HIPdeviceptr      hip_d_root_css_buf;
-  HIPdeviceptr      hip_d_markov_css_buf;
-  HIPdeviceptr      hip_d_st_digests_buf;
-  HIPdeviceptr      hip_d_st_salts_buf;
-  HIPdeviceptr      hip_d_st_esalts_buf;
+  hipDeviceptr_t    hip_d_pws_buf;
+  hipDeviceptr_t    hip_d_pws_amp_buf;
+  hipDeviceptr_t    hip_d_pws_comp_buf;
+  hipDeviceptr_t    hip_d_pws_idx;
+  hipDeviceptr_t    hip_d_rules;
+  hipDeviceptr_t    hip_d_rules_c;
+  hipDeviceptr_t    hip_d_combs;
+  hipDeviceptr_t    hip_d_combs_c;
+  hipDeviceptr_t    hip_d_bfs;
+  hipDeviceptr_t    hip_d_bfs_c;
+  hipDeviceptr_t    hip_d_tm_c;
+  hipDeviceptr_t    hip_d_bitmap_s1_a;
+  hipDeviceptr_t    hip_d_bitmap_s1_b;
+  hipDeviceptr_t    hip_d_bitmap_s1_c;
+  hipDeviceptr_t    hip_d_bitmap_s1_d;
+  hipDeviceptr_t    hip_d_bitmap_s2_a;
+  hipDeviceptr_t    hip_d_bitmap_s2_b;
+  hipDeviceptr_t    hip_d_bitmap_s2_c;
+  hipDeviceptr_t    hip_d_bitmap_s2_d;
+  hipDeviceptr_t    hip_d_plain_bufs;
+  hipDeviceptr_t    hip_d_digests_buf;
+  hipDeviceptr_t    hip_d_digests_shown;
+  hipDeviceptr_t    hip_d_salt_bufs;
+  hipDeviceptr_t    hip_d_esalt_bufs;
+  hipDeviceptr_t    hip_d_tmps;
+  hipDeviceptr_t    hip_d_hooks;
+  hipDeviceptr_t    hip_d_result;
+  hipDeviceptr_t    hip_d_extra0_buf;
+  hipDeviceptr_t    hip_d_extra1_buf;
+  hipDeviceptr_t    hip_d_extra2_buf;
+  hipDeviceptr_t    hip_d_extra3_buf;
+  hipDeviceptr_t    hip_d_root_css_buf;
+  hipDeviceptr_t    hip_d_markov_css_buf;
+  hipDeviceptr_t    hip_d_st_digests_buf;
+  hipDeviceptr_t    hip_d_st_salts_buf;
+  hipDeviceptr_t    hip_d_st_esalts_buf;
 
   // API: opencl
 
@@ -1604,6 +1623,7 @@ typedef struct hc_device_param
   cl_kernel         opencl_kernel_amp;
   cl_kernel         opencl_kernel_tm;
   cl_kernel         opencl_kernel_memset;
+  cl_kernel         opencl_kernel_bzero;
   cl_kernel         opencl_kernel_atinit;
   cl_kernel         opencl_kernel_utf8toutf16le;
   cl_kernel         opencl_kernel_decompress;
@@ -1712,8 +1732,8 @@ typedef struct backend_ctx
   int                 rc_hip_init;
   int                 rc_hiprtc_init;
 
-  int                 hiprtc_driver_version;
-  int                 hip_driver_version;
+  int                 hip_runtimeVersion;
+  int                 hip_driverVersion;
 
   // opencl
 
@@ -1784,8 +1804,6 @@ typedef struct hwmon_ctx
   void *hm_iokit;
 
   hm_attrs_t *hm_device;
-
-  ADLOD6MemClockState *od_clock_mem_status;
 
 } hwmon_ctx_t;
 
@@ -2031,9 +2049,11 @@ typedef struct tuning_db
 
   tuning_db_alias_t *alias_buf;
   int                alias_cnt;
+  int                alias_alloc;
 
   tuning_db_entry_t *entry_buf;
   int                entry_cnt;
+  int                entry_alloc;
 
 } tuning_db_t;
 
@@ -2090,6 +2110,7 @@ typedef struct user_options
   bool         skip_chgd;
   bool         limit_chgd;
   bool         scrypt_tmto_chgd;
+  bool         separator_chgd;
 
   bool         advice_disable;
   bool         benchmark;
@@ -2099,6 +2120,7 @@ typedef struct user_options
   bool         brain_server;
   #endif
   bool         force;
+  bool         deprecated_check_disable;
   bool         hwmon_disable;
   bool         hash_info;
   bool         hex_charset;
@@ -2119,6 +2141,7 @@ typedef struct user_options
   bool         backend_ignore_opencl;
   bool         backend_info;
   bool         optimized_kernel_enable;
+  bool         multiply_accel_disable;
   bool         outfile_autohex;
   bool         potfile_disable;
   bool         progress_only;
@@ -2158,7 +2181,7 @@ typedef struct user_options
   char        *potfile_path;
   char        *restore_file_path;
   char       **rp_files;
-  char         separator;
+  char        *separator;
   char        *truecrypt_keyfiles;
   char        *veracrypt_keyfiles;
   const char  *custom_charset_1;
@@ -2223,6 +2246,8 @@ typedef struct user_options_extra
   u32 rule_len_l;
 
   u32 wordlist_mode;
+
+  char   separator;
 
   char  *hc_hash;   // can be filename or string
 
@@ -2626,13 +2651,15 @@ typedef struct module_ctx
   void       *(*module_benchmark_hook_salt)     (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_benchmark_mask)          (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   salt_t     *(*module_benchmark_salt)          (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  bool        (*module_dictstat_disable)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  const char *(*module_deprecated_notice)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_dgst_pos0)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_dgst_pos1)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_dgst_pos2)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_dgst_pos3)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_dgst_size)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  bool        (*module_dictstat_disable)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_esalt_size)              (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  const char *(*module_extra_tuningdb_block)    (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_forced_outfile_format)   (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_hash_category)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_hash_name)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);

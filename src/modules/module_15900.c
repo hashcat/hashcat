@@ -212,9 +212,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   dpapimk->context = hc_strtoul ((const char *) context_pos, NULL, 10);
 
-  // division by 4 should be fine because contents_len is either 208 or 288
-
-  for (u32 i = 0; i < dpapimk->contents_len / 4; i++)
+  for (u32 i = 0; i < dpapimk->contents_len / 8; i++)
   {
     dpapimk->contents[i] = hex_to_u32 ((const u8 *) &contents_pos[i * 8]);
 
@@ -303,7 +301,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   SID_tmp = (u8 *) hcmalloc ((SID_len + 1) * sizeof (u8));
 
-  for (u32 i = 0; i < (SID_len / 4) + 1; i++)
+  for (u32 i = 0; i < (SID_len / 4); i++)
   {
     u8 hex[8] = { 0 };
 
@@ -381,6 +379,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
   module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
   module_ctx->module_deep_comp_kernel         = MODULE_DEFAULT;
+  module_ctx->module_deprecated_notice        = MODULE_DEFAULT;
   module_ctx->module_dgst_pos0                = module_dgst_pos0;
   module_ctx->module_dgst_pos1                = module_dgst_pos1;
   module_ctx->module_dgst_pos2                = module_dgst_pos2;
@@ -390,6 +389,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
+  module_ctx->module_extra_tuningdb_block     = MODULE_DEFAULT;
   module_ctx->module_forced_outfile_format    = MODULE_DEFAULT;
   module_ctx->module_hash_binary_count        = MODULE_DEFAULT;
   module_ctx->module_hash_binary_parse        = MODULE_DEFAULT;

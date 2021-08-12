@@ -16,10 +16,6 @@
 #define IS_OPENCL
 #endif
 
-#ifdef IS_HIP
-#include <hip/hip_runtime.h>
-#endif
-
 #if defined IS_NATIVE
 #define CONSTANT_VK
 #define CONSTANT_AS

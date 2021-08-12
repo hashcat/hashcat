@@ -10,8 +10,8 @@
 hashcat v6.2.3
 ==============
 
-AMD GPUs on Linux require "RadeonOpenCompute (ROCm)" Software Platform (3.1 or later)
-AMD GPUs on Windows require "AMD Radeon Adrenalin 2020 Edition" (20.2.2 or later)
+AMD GPUs on Linux require "AMD ROCm" (4.3 or later)
+AMD GPUs on Windows require "AMD Radeon Adrenalin 2020 Edition" (21.2.1 or later)
 Intel CPUs require "OpenCL Runtime for Intel Core and Intel Xeon Processors" (16.1.1 or later)
 NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or later)
 
@@ -155,6 +155,13 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - SIP digest authentication (MD5)
 - IKE-PSK MD5
 - IKE-PSK SHA1
+- SNMPv3 HMAC-MD5-96/HMAC-SHA1-96
+- SNMPv3 HMAC-MD5-96
+- SNMPv3 HMAC-SHA1-96
+- SNMPv3 HMAC-SHA224-128
+- SNMPv3 HMAC-SHA256-192
+- SNMPv3 HMAC-SHA384-256
+- SNMPv3 HMAC-SHA512-384
 - WPA-EAPOL-PBKDF2
 - WPA-EAPOL-PMK
 - WPA-PBKDF2-PMKID+EAPOL
@@ -265,6 +272,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Huawei sha1(md5($pass).$salt)
 - AuthMe sha256
 - AES Crypt (SHA256)
+- VMware VMX (PBKDF2-HMAC-SHA1 + AES-256-CBC)
 - LUKS
 - VeraCrypt
 - BestCrypt v3 Volume Encryption
