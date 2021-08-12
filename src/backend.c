@@ -12077,7 +12077,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_digests_buf,    size_digests)            == -1) return -1;
       if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_digests_shown,  size_shown)              == -1) return -1;
       if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_salt_bufs,      size_salts)              == -1) return -1;
-      if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_result,         size_results)            == -1) return -1;
+      if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_results,        size_results)            == -1) return -1;
       if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_extra0_buf,     size_extra_buffer / 4)   == -1) return -1;
       if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_extra1_buf,     size_extra_buffer / 4)   == -1) return -1;
       if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_extra2_buf,     size_extra_buffer / 4)   == -1) return -1;
@@ -12187,7 +12187,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_digests_buf,    size_digests)            == -1) return -1;
       if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_digests_shown,  size_shown)              == -1) return -1;
       if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_salt_bufs,      size_salts)              == -1) return -1;
-      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_result,         size_results)            == -1) return -1;
+      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_results,        size_results)            == -1) return -1;
       if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_extra0_buf,     size_extra_buffer / 4)   == -1) return -1;
       if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_extra1_buf,     size_extra_buffer / 4)   == -1) return -1;
       if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_extra2_buf,     size_extra_buffer / 4)   == -1) return -1;
@@ -12297,7 +12297,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   size_digests,            NULL, &device_param->opencl_d_digests_buf)    == -1) return -1;
       if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_WRITE,  size_shown,              NULL, &device_param->opencl_d_digests_shown)  == -1) return -1;
       if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   size_salts,              NULL, &device_param->opencl_d_salt_bufs)      == -1) return -1;
-      if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_WRITE,  size_results,            NULL, &device_param->opencl_d_result)         == -1) return -1;
+      if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_WRITE,  size_results,            NULL, &device_param->opencl_d_results)        == -1) return -1;
       if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_WRITE,  size_extra_buffer / 4,   NULL, &device_param->opencl_d_extra0_buf)     == -1) return -1;
       if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_WRITE,  size_extra_buffer / 4,   NULL, &device_param->opencl_d_extra1_buf)     == -1) return -1;
       if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_WRITE,  size_extra_buffer / 4,   NULL, &device_param->opencl_d_extra2_buf)     == -1) return -1;
@@ -12412,7 +12412,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       device_param->kernel_params[16] = &device_param->cuda_d_digests_shown;
       device_param->kernel_params[17] = &device_param->cuda_d_salt_bufs;
       device_param->kernel_params[18] = &device_param->cuda_d_esalt_bufs;
-      device_param->kernel_params[19] = &device_param->cuda_d_result;
+      device_param->kernel_params[19] = &device_param->cuda_d_results;
       device_param->kernel_params[20] = &device_param->cuda_d_extra0_buf;
       device_param->kernel_params[21] = &device_param->cuda_d_extra1_buf;
       device_param->kernel_params[22] = &device_param->cuda_d_extra2_buf;
@@ -12440,7 +12440,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       device_param->kernel_params[16] = &device_param->hip_d_digests_shown;
       device_param->kernel_params[17] = &device_param->hip_d_salt_bufs;
       device_param->kernel_params[18] = &device_param->hip_d_esalt_bufs;
-      device_param->kernel_params[19] = &device_param->hip_d_result;
+      device_param->kernel_params[19] = &device_param->hip_d_results;
       device_param->kernel_params[20] = &device_param->hip_d_extra0_buf;
       device_param->kernel_params[21] = &device_param->hip_d_extra1_buf;
       device_param->kernel_params[22] = &device_param->hip_d_extra2_buf;
@@ -12468,7 +12468,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       device_param->kernel_params[16] = &device_param->opencl_d_digests_shown;
       device_param->kernel_params[17] = &device_param->opencl_d_salt_bufs;
       device_param->kernel_params[18] = &device_param->opencl_d_esalt_bufs;
-      device_param->kernel_params[19] = &device_param->opencl_d_result;
+      device_param->kernel_params[19] = &device_param->opencl_d_results;
       device_param->kernel_params[20] = &device_param->opencl_d_extra0_buf;
       device_param->kernel_params[21] = &device_param->opencl_d_extra1_buf;
       device_param->kernel_params[22] = &device_param->opencl_d_extra2_buf;
@@ -13267,7 +13267,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (run_cuda_kernel_bzero (hashcat_ctx, device_param, device_param->cuda_d_plain_bufs,    device_param->size_plains)  == -1) return -1;
       if (run_cuda_kernel_bzero (hashcat_ctx, device_param, device_param->cuda_d_digests_shown, device_param->size_shown)   == -1) return -1;
-      if (run_cuda_kernel_bzero (hashcat_ctx, device_param, device_param->cuda_d_result,        device_param->size_results) == -1) return -1;
+      if (run_cuda_kernel_bzero (hashcat_ctx, device_param, device_param->cuda_d_results,       device_param->size_results) == -1) return -1;
 
       /**
        * special buffers
@@ -13869,7 +13869,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_plain_bufs,    device_param->size_plains)  == -1) return -1;
       if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_digests_shown, device_param->size_shown)   == -1) return -1;
-      if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_result,        device_param->size_results) == -1) return -1;
+      if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_results,       device_param->size_results) == -1) return -1;
 
       /**
        * special buffers
@@ -14473,7 +14473,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (run_opencl_kernel_bzero (hashcat_ctx, device_param, device_param->opencl_d_plain_bufs,    device_param->size_plains)   == -1) return -1;
       if (run_opencl_kernel_bzero (hashcat_ctx, device_param, device_param->opencl_d_digests_shown, device_param->size_shown)    == -1) return -1;
-      if (run_opencl_kernel_bzero (hashcat_ctx, device_param, device_param->opencl_d_result,        device_param->size_results)  == -1) return -1;
+      if (run_opencl_kernel_bzero (hashcat_ctx, device_param, device_param->opencl_d_results,       device_param->size_results)  == -1) return -1;
 
       /**
        * special buffers
@@ -15221,7 +15221,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       if (device_param->cuda_d_esalt_bufs)     hc_cuMemFree (hashcat_ctx, device_param->cuda_d_esalt_bufs);
       if (device_param->cuda_d_tmps)           hc_cuMemFree (hashcat_ctx, device_param->cuda_d_tmps);
       if (device_param->cuda_d_hooks)          hc_cuMemFree (hashcat_ctx, device_param->cuda_d_hooks);
-      if (device_param->cuda_d_result)         hc_cuMemFree (hashcat_ctx, device_param->cuda_d_result);
+      if (device_param->cuda_d_results)        hc_cuMemFree (hashcat_ctx, device_param->cuda_d_results);
       if (device_param->cuda_d_extra0_buf)     hc_cuMemFree (hashcat_ctx, device_param->cuda_d_extra0_buf);
       if (device_param->cuda_d_extra1_buf)     hc_cuMemFree (hashcat_ctx, device_param->cuda_d_extra1_buf);
       if (device_param->cuda_d_extra2_buf)     hc_cuMemFree (hashcat_ctx, device_param->cuda_d_extra2_buf);
@@ -15271,7 +15271,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       device_param->cuda_d_esalt_bufs         = 0;
       device_param->cuda_d_tmps               = 0;
       device_param->cuda_d_hooks              = 0;
-      device_param->cuda_d_result             = 0;
+      device_param->cuda_d_results            = 0;
       device_param->cuda_d_extra0_buf         = 0;
       device_param->cuda_d_extra1_buf         = 0;
       device_param->cuda_d_extra2_buf         = 0;
@@ -15350,7 +15350,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       if (device_param->hip_d_esalt_bufs)     hc_hipMemFree (hashcat_ctx, device_param->hip_d_esalt_bufs);
       if (device_param->hip_d_tmps)           hc_hipMemFree (hashcat_ctx, device_param->hip_d_tmps);
       if (device_param->hip_d_hooks)          hc_hipMemFree (hashcat_ctx, device_param->hip_d_hooks);
-      if (device_param->hip_d_result)         hc_hipMemFree (hashcat_ctx, device_param->hip_d_result);
+      if (device_param->hip_d_results)        hc_hipMemFree (hashcat_ctx, device_param->hip_d_results);
       if (device_param->hip_d_extra0_buf)     hc_hipMemFree (hashcat_ctx, device_param->hip_d_extra0_buf);
       if (device_param->hip_d_extra1_buf)     hc_hipMemFree (hashcat_ctx, device_param->hip_d_extra1_buf);
       if (device_param->hip_d_extra2_buf)     hc_hipMemFree (hashcat_ctx, device_param->hip_d_extra2_buf);
@@ -15400,7 +15400,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       device_param->hip_d_esalt_bufs         = 0;
       device_param->hip_d_tmps               = 0;
       device_param->hip_d_hooks              = 0;
-      device_param->hip_d_result             = 0;
+      device_param->hip_d_results            = 0;
       device_param->hip_d_extra0_buf         = 0;
       device_param->hip_d_extra1_buf         = 0;
       device_param->hip_d_extra2_buf         = 0;
@@ -15479,7 +15479,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       if (device_param->opencl_d_esalt_bufs)     hc_clReleaseMemObject (hashcat_ctx, device_param->opencl_d_esalt_bufs);
       if (device_param->opencl_d_tmps)           hc_clReleaseMemObject (hashcat_ctx, device_param->opencl_d_tmps);
       if (device_param->opencl_d_hooks)          hc_clReleaseMemObject (hashcat_ctx, device_param->opencl_d_hooks);
-      if (device_param->opencl_d_result)         hc_clReleaseMemObject (hashcat_ctx, device_param->opencl_d_result);
+      if (device_param->opencl_d_results)        hc_clReleaseMemObject (hashcat_ctx, device_param->opencl_d_results);
       if (device_param->opencl_d_extra0_buf)     hc_clReleaseMemObject (hashcat_ctx, device_param->opencl_d_extra0_buf);
       if (device_param->opencl_d_extra1_buf)     hc_clReleaseMemObject (hashcat_ctx, device_param->opencl_d_extra1_buf);
       if (device_param->opencl_d_extra2_buf)     hc_clReleaseMemObject (hashcat_ctx, device_param->opencl_d_extra2_buf);
@@ -15551,7 +15551,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       device_param->opencl_d_esalt_bufs        = NULL;
       device_param->opencl_d_tmps              = NULL;
       device_param->opencl_d_hooks             = NULL;
-      device_param->opencl_d_result            = NULL;
+      device_param->opencl_d_results           = NULL;
       device_param->opencl_d_extra0_buf        = NULL;
       device_param->opencl_d_extra1_buf        = NULL;
       device_param->opencl_d_extra2_buf        = NULL;
