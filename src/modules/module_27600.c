@@ -10,6 +10,7 @@
 #include "convert.h"
 #include "shared.h"
 #include "memory.h"
+#include "emu_inc_hash_md5.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -195,6 +196,20 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   salt1_buf_ptr[7] = hex_to_u32 ((const u8 *) &salt1_pos[56]);
 
   vbox->salt1_len = salt1_len / 2;
+
+  // handle unique salts detection
+
+  md5_ctx_t md5_ctx;
+
+  md5_init   (&md5_ctx);
+  md5_update (&md5_ctx, vbox->salt1_buf, vbox->salt1_len);
+  md5_final  (&md5_ctx);
+
+  // store md5(vbox->salt1_buf) in salt_buf
+
+  salt->salt_len = 16;
+
+  memcpy (salt->salt_buf, md5_ctx.h, salt->salt_len);
 
   // aes xts key len (128 or 256)
 
