@@ -309,6 +309,15 @@ typedef enum hipDeviceAttribute_t {
                 /// no-op on CUDA platforms.
 
 
+//! Flags that can be used with hipHostMalloc:
+#define hipHostMallocDefault        0x0
+#define hipHostMallocPortable       0x1
+#define hipHostMallocMapped         0x2
+#define hipHostMallocWriteCombined  0x4
+#define hipHostMallocCoherent       0x40000000
+#define hipHostMallocNonCoherent    0x80000000
+
+
 #define hipDeviceScheduleAuto 0x0  ///< Automatically select between Spin and Yield
 #define hipDeviceScheduleSpin                                                                      \
     0x1  ///< Dedicate a CPU core to spin-wait.  Provides lowest latency, but burns a CPU core and
@@ -372,6 +381,8 @@ typedef hipError_t (HIP_API_CALL *HIP_HIPEVENTSYNCHRONIZE)       (hipEvent_t);
 typedef hipError_t (HIP_API_CALL *HIP_HIPFUNCGETATTRIBUTE)       (int *, hipFunction_attribute, hipFunction_t);
 typedef hipError_t (HIP_API_CALL *HIP_HIPGETERRORNAME)           (hipError_t, const char **);
 typedef hipError_t (HIP_API_CALL *HIP_HIPGETERRORSTRING)         (hipError_t, const char **);
+typedef hipError_t (HIP_API_CALL *HIP_HIPHOSTMALLOC)             (void **, size_t, unsigned int);
+typedef hipError_t (HIP_API_CALL *HIP_HIPHOSTFREE)               (void *);
 typedef hipError_t (HIP_API_CALL *HIP_HIPINIT)                   (unsigned int);
 typedef hipError_t (HIP_API_CALL *HIP_HIPLAUNCHKERNEL)           (hipFunction_t, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, hipStream_t, void **, void **);
 typedef hipError_t (HIP_API_CALL *HIP_HIPMEMALLOC)               (hipDeviceptr_t *, size_t);
@@ -415,6 +426,8 @@ typedef struct hc_hip_lib
   HIP_HIPFUNCGETATTRIBUTE       hipFuncGetAttribute;
   HIP_HIPGETERRORNAME           hipGetErrorName;
   HIP_HIPGETERRORSTRING         hipGetErrorString;
+  HIP_HIPHOSTFREE               hipHostFree;
+  HIP_HIPHOSTMALLOC             hipHostMalloc;
   HIP_HIPINIT                   hipInit;
   HIP_HIPLAUNCHKERNEL           hipLaunchKernel;
   HIP_HIPMEMALLOC               hipMemAlloc;

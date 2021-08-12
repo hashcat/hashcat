@@ -1232,13 +1232,13 @@ int cuda_init (hashcat_ctx_t *hashcat_ctx)
   HC_LOAD_FUNC_CUDA (cuda, cuInit,                   cuInit,                    CUDA_CUINIT,                    CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuLaunchKernel,           cuLaunchKernel,            CUDA_CULAUNCHKERNEL,            CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuMemAlloc,               cuMemAlloc_v2,             CUDA_CUMEMALLOC,                CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuMemAllocHost,           cuMemAllocHost_v2,         CUDA_CUMEMALLOCHOST,            CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuMemcpyDtoDAsync,        cuMemcpyDtoDAsync_v2,      CUDA_CUMEMCPYDTODASYNC,         CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuMemcpyDtoHAsync,        cuMemcpyDtoHAsync_v2,      CUDA_CUMEMCPYDTOHASYNC,         CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuMemcpyHtoDAsync,        cuMemcpyHtoDAsync_v2,      CUDA_CUMEMCPYHTODASYNC,         CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuMemFree,                cuMemFree_v2,              CUDA_CUMEMFREE,                 CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuMemFreeHost,            cuMemFreeHost,             CUDA_CUMEMFREEHOST,             CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuMemGetInfo,             cuMemGetInfo_v2,           CUDA_CUMEMGETINFO,              CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuMemHostAlloc,           cuMemHostAlloc,            CUDA_CUMEMHOSTALLOC,            CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuMemsetD32Async,         cuMemsetD32Async,          CUDA_CUMEMSETD32ASYNC,          CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuMemsetD8Async,          cuMemsetD8Async,           CUDA_CUMEMSETD8ASYNC,           CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuModuleGetFunction,      cuModuleGetFunction,       CUDA_CUMODULEGETFUNCTION,       CUDA, 1);
@@ -1659,6 +1659,60 @@ int hc_cuMemFree (hashcat_ctx_t *hashcat_ctx, CUdeviceptr dptr)
 
   return 0;
 }
+
+int hc_cuMemFreeHost (hashcat_ctx_t *hashcat_ctx, void *p)
+{
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+  const CUDA_PTR      *cuda        = backend_ctx->cuda;
+
+  const CUresult CU_err = cuda->cuMemFreeHost (p);
+
+  if (CU_err != CUDA_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "cuMemFreeHost(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "cuMemFreeHost(): %d", CU_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+
+int hc_cuMemHostAlloc (hashcat_ctx_t *hashcat_ctx, void **pp, size_t bytesize, unsigned int Flags)
+{
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+  const CUDA_PTR      *cuda        = backend_ctx->cuda;
+
+  const CUresult CU_err = cuda->cuMemHostAlloc (pp, bytesize, Flags);
+
+  if (CU_err != CUDA_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "cuMemHostAlloc(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "cuMemHostAlloc(): %d", CU_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
 
 int hc_cuMemcpyDtoHAsync (hashcat_ctx_t *hashcat_ctx, void *dstHost, CUdeviceptr srcDevice, size_t ByteCount, CUstream hStream)
 {
@@ -2456,10 +2510,6 @@ int hip_init (hashcat_ctx_t *hashcat_ctx)
       } \
     } while (0)
 
-  // finding the right symbol is a PITA, because of the _v2 suffix
-  // a good reference is cuda.h itself
-  // this needs to be verified for each new cuda release
-
   HC_LOAD_FUNC_HIP (hip, hipCtxCreate,              hipCtxCreate,               HIP_HIPCTXCREATE,               HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipCtxDestroy,             hipCtxDestroy,              HIP_HIPCTXDESTROY,              HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipCtxPopCurrent,          hipCtxPopCurrent,           HIP_HIPCTXPOPCURRENT,           HIP, 1);
@@ -2480,6 +2530,8 @@ int hip_init (hashcat_ctx_t *hashcat_ctx)
   HC_LOAD_FUNC_HIP (hip, hipFuncGetAttribute,       hipFuncGetAttribute,        HIP_HIPFUNCGETATTRIBUTE,        HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipGetErrorName,           hipGetErrorName,            HIP_HIPGETERRORNAME,            HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipGetErrorString,         hipGetErrorString,          HIP_HIPGETERRORSTRING,          HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipHostMalloc,             hipHostMalloc,              HIP_HIPHOSTMALLOC,              HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipHostFree,               hipHostFree,                HIP_HIPHOSTFREE,                HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipInit,                   hipInit,                    HIP_HIPINIT,                    HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipLaunchKernel,           hipModuleLaunchKernel,      HIP_HIPLAUNCHKERNEL,            HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipMemAlloc,               hipMalloc,                  HIP_HIPMEMALLOC,                HIP, 1);
@@ -3027,6 +3079,57 @@ int hc_hipLaunchKernel (hashcat_ctx_t *hashcat_ctx, hipFunction_t f, unsigned in
     else
     {
       event_log_error (hashcat_ctx, "hipLaunchKernel(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+int hc_hipHostMalloc (hashcat_ctx_t *hashcat_ctx, void **pp, size_t bytesize, unsigned int flags)
+{
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+  const HIP_PTR       *hip         = backend_ctx->hip;
+
+  const hipError_t HIP_err = hip->hipHostMalloc (pp, bytesize, flags);
+
+  if (HIP_err != hipSuccess)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
+    {
+      event_log_error (hashcat_ctx, "hipHostMalloc(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipHostMalloc(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipHostFree (hashcat_ctx_t *hashcat_ctx, void *p)
+{
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+  const HIP_PTR       *hip         = backend_ctx->hip;
+
+  const hipError_t HIP_err = hip->hipHostFree (p);
+
+  if (HIP_err != hipSuccess)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
+    {
+      event_log_error (hashcat_ctx, "hipHostFree(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipHostFree(): %d", HIP_err);
     }
 
     return -1;

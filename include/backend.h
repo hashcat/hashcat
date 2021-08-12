@@ -73,6 +73,8 @@ int hc_cuMemcpyDtoDAsync         (hashcat_ctx_t *hashcat_ctx, CUdeviceptr dstDev
 int hc_cuMemcpyDtoHAsync         (hashcat_ctx_t *hashcat_ctx, void *dstHost, CUdeviceptr srcDevice, size_t ByteCount, CUstream hStream);
 int hc_cuMemcpyHtoDAsync         (hashcat_ctx_t *hashcat_ctx, CUdeviceptr dstDevice, const void *srcHost, size_t ByteCount, CUstream hStream);
 int hc_cuMemFree                 (hashcat_ctx_t *hashcat_ctx, CUdeviceptr dptr);
+int hc_cuMemFreeHost             (hashcat_ctx_t *hashcat_ctx, void *p);
+int hc_cuMemHostAlloc            (hashcat_ctx_t *hashcat_ctx, void **pp, size_t bytesize, unsigned int Flags);
 int hc_cuMemsetD32Async          (hashcat_ctx_t *hashcat_ctx, CUdeviceptr dstDevice, unsigned int ui, size_t N, CUstream hStream);
 int hc_cuMemsetD8Async           (hashcat_ctx_t *hashcat_ctx, CUdeviceptr dstDevice, unsigned char uc, size_t N, CUstream hStream);
 int hc_cuModuleGetFunction       (hashcat_ctx_t *hashcat_ctx, CUfunction *hfunc, CUmodule hmod, const char *name);
@@ -115,6 +117,8 @@ int hc_hipEventQuery             (hashcat_ctx_t *hashcat_ctx, hipEvent_t hEvent)
 int hc_hipEventRecord            (hashcat_ctx_t *hashcat_ctx, hipEvent_t hEvent, hipStream_t hStream);
 int hc_hipEventSynchronize       (hashcat_ctx_t *hashcat_ctx, hipEvent_t hEvent);
 int hc_hipFuncGetAttribute       (hashcat_ctx_t *hashcat_ctx, int *pi, hipFunction_attribute attrib, hipFunction_t hfunc);
+int hc_hipHostFree               (hashcat_ctx_t *hashcat_ctx, void *p);
+int hc_hipHostMalloc             (hashcat_ctx_t *hashcat_ctx, void **pp, size_t bytesize, unsigned int flags);
 int hc_hipInit                   (hashcat_ctx_t *hashcat_ctx, unsigned int Flags);
 int hc_hipLaunchKernel           (hashcat_ctx_t *hashcat_ctx, hipFunction_t f, unsigned int gridDimX, unsigned int gridDimY, unsigned int gridDimZ, unsigned int blockDimX, unsigned int blockDimY, unsigned int blockDimZ, unsigned int sharedMemBytes, hipStream_t hStream, void **kernelParams, void **extra);
 int hc_hipMemAlloc               (hashcat_ctx_t *hashcat_ctx, hipDeviceptr_t *dptr, size_t bytesize);
