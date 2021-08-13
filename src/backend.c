@@ -14581,7 +14581,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       // size_tmps
 
-      size_tmps = kernel_power_max * (hashconfig->tmp_size + hashconfig->extra_tmp_size);
+      size_tmps = kernel_power_max * hashconfig->tmp_size;
 
       // size_hooks
 
