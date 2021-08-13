@@ -1669,8 +1669,10 @@ typedef struct hc_device_param
   cl_mem            opencl_d_st_esalts_buf;
 
   cl_mem            opencl_h_results;
+  cl_mem            opencl_h_tmps;
 
   u32              *h_results;
+  void             *h_tmps;
 
 } hc_device_param_t;
 

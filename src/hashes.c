@@ -311,67 +311,31 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
   const u32 salt_pos    = plain->salt_pos;
   const u32 digest_pos  = plain->digest_pos;  // relative
 
-  void *tmps = NULL;
-
   cl_event opencl_event;
-
-  int rc = -1;
 
   if (hashconfig->opts_type & OPTS_TYPE_COPY_TMPS)
   {
-    tmps = hcmalloc (hashconfig->tmp_size);
-
     if (device_param->is_cuda == true)
     {
-      rc = hc_cuMemcpyDtoHAsync (hashcat_ctx, tmps, device_param->cuda_d_tmps + (plain->gidvid * hashconfig->tmp_size), hashconfig->tmp_size, device_param->cuda_stream);
+      if (hc_cuMemcpyDtoHAsync (hashcat_ctx, device_param->h_tmps, device_param->cuda_d_tmps + (plain->gidvid * hashconfig->tmp_size), hashconfig->tmp_size, device_param->cuda_stream) == -1) return -1;
 
-      if (rc == 0)
-      {
-        rc = hc_cuEventRecord (hashcat_ctx, device_param->cuda_event3, device_param->cuda_stream);
-      }
-
-      if (rc == -1)
-      {
-        hcfree (tmps);
-
-        return -1;
-      }
+      if (hc_cuEventRecord (hashcat_ctx, device_param->cuda_event3, device_param->cuda_stream) == -1) return -1;
     }
-
-    if (device_param->is_hip == true)
+    else if (device_param->is_hip == true)
     {
-      rc = hc_hipMemcpyDtoHAsync (hashcat_ctx, tmps, device_param->hip_d_tmps + (plain->gidvid * hashconfig->tmp_size), hashconfig->tmp_size, device_param->hip_stream);
+      if (hc_hipMemcpyDtoHAsync (hashcat_ctx, device_param->h_tmps, device_param->hip_d_tmps + (plain->gidvid * hashconfig->tmp_size), hashconfig->tmp_size, device_param->hip_stream) == -1) return -1;
 
-      if (rc == 0)
-      {
-        rc = hc_hipEventRecord (hashcat_ctx, device_param->hip_event3, device_param->hip_stream);
-      }
-
-      if (rc == -1)
-      {
-        hcfree (tmps);
-
-        return -1;
-      }
+      if (hc_hipEventRecord (hashcat_ctx, device_param->hip_event3, device_param->hip_stream) == -1) return -1;
     }
-
-    if (device_param->is_opencl == true)
+    else /* if (device_param->is_opencl == true) */
     {
-      rc = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_tmps, CL_FALSE, plain->gidvid * hashconfig->tmp_size, hashconfig->tmp_size, tmps, 0, NULL, &opencl_event);
+      if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_tmps, CL_FALSE, plain->gidvid * hashconfig->tmp_size, hashconfig->tmp_size, device_param->h_tmps, 0, NULL, &opencl_event) == -1) return -1;
 
-      if (rc == 0)
-      {
-        rc = hc_clFlush (hashcat_ctx, device_param->opencl_command_queue);
-      }
-
-      if (rc == -1)
-      {
-        hcfree (tmps);
-
-        return -1;
-      }
+      if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
     }
   }
+
+  void *tmps = device_param->h_tmps;
 
   // hash
 
@@ -400,13 +364,11 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
       {
         if (hc_cuEventSynchronize (hashcat_ctx, device_param->cuda_event3) == -1) return -1;
       }
-
-      if (device_param->is_hip == true)
+      else if (device_param->is_hip == true)
       {
         if (hc_hipEventSynchronize (hashcat_ctx, device_param->hip_event3) == -1) return -1;
       }
-
-      if (device_param->is_opencl == true)
+      else /* if (device_param->is_opencl == true) */
       {
         if (hc_clWaitForEvents (hashcat_ctx, 1, &opencl_event) == -1) return -1;
       }
@@ -461,13 +423,11 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
       {
         if (hc_cuEventSynchronize (hashcat_ctx, device_param->cuda_event3) == -1) return -1;
       }
-
-      if (device_param->is_hip == true)
+      else if (device_param->is_hip == true)
       {
         if (hc_hipEventSynchronize (hashcat_ctx, device_param->hip_event3) == -1) return -1;
       }
-
-      if (device_param->is_opencl == true)
+      else /* if (device_param->is_opencl == true) */
       {
         if (hc_clWaitForEvents (hashcat_ctx, 1, &opencl_event) == -1) return -1;
       }
@@ -528,7 +488,7 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
     // - (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
     // - debug_mode > 0
 
-    if ((debug_plain_len > 0) || (debug_rule_len > 0))
+    if (debug_plain_len > 0 || debug_rule_len > 0)
     {
       debugfile_write_append (hashcat_ctx, debug_rule_buf, debug_rule_len, plain_ptr, plain_len, debug_plain_ptr, debug_plain_len);
     }
@@ -536,8 +496,6 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
 
   if (hashconfig->opts_type & OPTS_TYPE_COPY_TMPS)
   {
-    hcfree (tmps);
-
     if (device_param->is_opencl == true)
     {
       if (hc_clReleaseEvent (hashcat_ctx, opencl_event) == -1) return -1;

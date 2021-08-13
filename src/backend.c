@@ -14887,6 +14887,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_tmps,         size_tmps)     == -1) return -1;
       if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_hooks,        size_hooks)    == -1) return -1;
 
+      if (hc_cuMemHostAlloc (hashcat_ctx, &device_param->h_tmps, hashconfig->tmp_size, CU_MEMHOSTALLOC_PORTABLE) == -1) return -1;
+
       if (run_cuda_kernel_bzero (hashcat_ctx, device_param, device_param->cuda_d_pws_buf,       device_param->size_pws)      == -1) return -1;
       if (run_cuda_kernel_bzero (hashcat_ctx, device_param, device_param->cuda_d_pws_amp_buf,   device_param->size_pws_amp)  == -1) return -1;
       if (run_cuda_kernel_bzero (hashcat_ctx, device_param, device_param->cuda_d_pws_comp_buf,  device_param->size_pws_comp) == -1) return -1;
@@ -14904,6 +14906,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_tmps,         size_tmps)     == -1) return -1;
       if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_hooks,        size_hooks)    == -1) return -1;
 
+      if (hc_hipHostMalloc (hashcat_ctx, &device_param->h_tmps, hashconfig->tmp_size, hipHostMallocPortable) == -1) return -1;
+
       if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_pws_buf,       device_param->size_pws)      == -1) return -1;
       if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_pws_amp_buf,   device_param->size_pws_amp)  == -1) return -1;
       if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_pws_comp_buf,  device_param->size_pws_comp) == -1) return -1;
@@ -14920,6 +14924,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   size_pws_idx,  NULL, &device_param->opencl_d_pws_idx)      == -1) return -1;
       if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_WRITE,  size_tmps,     NULL, &device_param->opencl_d_tmps)         == -1) return -1;
       if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_WRITE,  size_hooks,    NULL, &device_param->opencl_d_hooks)        == -1) return -1;
+
+      if (hc_clCreateBuffer     (hashcat_ctx, device_param->opencl_context, CL_MEM_ALLOC_HOST_PTR | CL_MEM_HOST_READ_ONLY | CL_MEM_WRITE_ONLY, hashconfig->tmp_size, NULL, &device_param->opencl_h_tmps) == -1) return -1;
+      if (hc_clEnqueueMapBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_h_tmps, CL_FALSE, CL_MAP_READ, 0, hashconfig->tmp_size, 0, NULL, NULL, &device_param->h_tmps    ) == -1) return -1;
 
       if (run_opencl_kernel_bzero (hashcat_ctx, device_param, device_param->opencl_d_pws_buf,       device_param->size_pws)      == -1) return -1;
       if (run_opencl_kernel_bzero (hashcat_ctx, device_param, device_param->opencl_d_pws_amp_buf,   device_param->size_pws_amp)  == -1) return -1;
@@ -15244,6 +15251,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       if (device_param->cuda_d_st_esalts_buf)  hc_cuMemFree (hashcat_ctx, device_param->cuda_d_st_esalts_buf);
 
       if (device_param->h_results)             hc_cuMemFreeHost (hashcat_ctx, device_param->h_results);
+      if (device_param->h_tmps)                hc_cuMemFreeHost (hashcat_ctx, device_param->h_tmps);
 
       if (device_param->cuda_event1)           hc_cuEventDestroy (hashcat_ctx, device_param->cuda_event1);
       if (device_param->cuda_event2)           hc_cuEventDestroy (hashcat_ctx, device_param->cuda_event2);
@@ -15375,6 +15383,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       if (device_param->hip_d_st_esalts_buf)  hc_hipMemFree (hashcat_ctx, device_param->hip_d_st_esalts_buf);
 
       if (device_param->h_results)            hc_hipHostFree (hashcat_ctx, device_param->h_results);
+      if (device_param->h_tmps)               hc_hipHostFree (hashcat_ctx, device_param->h_tmps);
 
       if (device_param->hip_event1)           hc_hipEventDestroy (hashcat_ctx, device_param->hip_event1);
       if (device_param->hip_event2)           hc_hipEventDestroy (hashcat_ctx, device_param->hip_event2);
@@ -15506,7 +15515,10 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       if (device_param->opencl_d_st_esalts_buf)  hc_clReleaseMemObject (hashcat_ctx, device_param->opencl_d_st_esalts_buf);
 
       if (device_param->h_results)               hc_clEnqueueUnmapMemObject (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_h_results, device_param->h_results, 0, NULL, NULL);
-      if (device_param->opencl_h_results)        hc_clReleaseMemObject      (hashcat_ctx,                                     device_param->opencl_h_results);
+      if (device_param->h_tmps)                  hc_clEnqueueUnmapMemObject (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_h_tmps,    device_param->h_tmps,    0, NULL, NULL);
+
+      if (device_param->opencl_h_results)        hc_clReleaseMemObject (hashcat_ctx, device_param->opencl_h_results);
+      if (device_param->opencl_h_tmps)           hc_clReleaseMemObject (hashcat_ctx, device_param->opencl_h_tmps);
 
       if (device_param->opencl_kernel1)          hc_clReleaseKernel (hashcat_ctx, device_param->opencl_kernel1);
       if (device_param->opencl_kernel12)         hc_clReleaseKernel (hashcat_ctx, device_param->opencl_kernel12);
@@ -15580,6 +15592,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       device_param->opencl_d_st_salts_buf      = NULL;
       device_param->opencl_d_st_esalts_buf     = NULL;
       device_param->opencl_h_results           = NULL;
+      device_param->opencl_h_tmps              = NULL;
       device_param->opencl_kernel1             = NULL;
       device_param->opencl_kernel12            = NULL;
       device_param->opencl_kernel2p            = NULL;
@@ -15614,6 +15627,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
     }
 
     device_param->h_results           = NULL;
+    device_param->h_tmps              = NULL;
 
     device_param->pws_comp            = NULL;
     device_param->pws_idx             = NULL;
