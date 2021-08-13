@@ -94,8 +94,6 @@ sub module_generate_hash
 
   my $hash = sprintf ("\$vbox\$0\$%s\$%s\$16\$%s\$%s\$%s\$%s", $iter1, $salt1, $enc_pass, $iter2, $salt2, unpack ("H*", $hash_buf));
 
-#  print "out: ", $hash, "\n";
-
   return $hash;
 }
 
@@ -124,7 +122,10 @@ sub module_verify_hash
   return unless defined $salt2;
 
   return unless ($version eq "0");
+  return unless (length $salt1 eq 64);
   return unless ($klen eq "16");
+  return unless (length $enc_pass eq 128);
+  return unless (length $salt2 eq 64);
 
   my $word_packed = pack_if_HEX_notation ($word);
 

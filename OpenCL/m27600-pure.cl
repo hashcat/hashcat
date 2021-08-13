@@ -404,7 +404,7 @@ KERNEL_FQ void m27600_init2 (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
   out[2] = in[2];
   out[3] = in[3];
 
-  u32 S[4] = { 0 }; // tweek, 16 x 0x00
+  u32 S[4] = { 0 }; // tweak, 16 x 0x00
   u32 T[4] = { 0 };
 
   aes256_set_encrypt_key (ks, ukey2, s_te0, s_te1, s_te2, s_te3);

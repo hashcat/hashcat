@@ -122,7 +122,10 @@ sub module_verify_hash
   return unless defined $salt2;
 
   return unless ($version eq "0");
+  return unless (length $salt1 eq 64);
   return unless ($klen eq "8");
+  return unless (length $enc_pass eq 64);
+  return unless (length $salt2 eq 64);
 
   my $word_packed = pack_if_HEX_notation ($word);
 
