@@ -1119,6 +1119,49 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
         int parser_status = PARSER_OK;
 
+        if (user_options->username == true)
+        {
+          char *user_buf = NULL;
+          int   user_len = 0;
+
+          hlfmt_user (hashcat_ctx, hashlist_format, input_buf, input_len, &user_buf, &user_len);
+
+          // special case:
+          // both hash_t need to have the username info if the pwdump format is used (i.e. we have 2 hashes for 3000, both with same user)
+
+          u32 hashes_per_user = 1;
+
+          if (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT)
+          {
+            // the following conditions should be true if (hashlist_format == HLFMT_PWDUMP)
+
+            if (hash_len == 32)
+            {
+              hashes_per_user = 2;
+            }
+          }
+
+          for (u32 i = 0; i < hashes_per_user; i++)
+          {
+            user_t **user = &hashes_buf[hashes_cnt + i].hash_info->user;
+
+            *user = (user_t *) hcmalloc (sizeof (user_t));
+
+            user_t *user_ptr = *user;
+
+            if (user_buf != NULL)
+            {
+              user_ptr->user_name = hcstrdup (user_buf);
+            }
+            else
+            {
+              user_ptr->user_name = hcstrdup ("");
+            }
+
+            user_ptr->user_len = (u32) user_len;
+          }
+        }
+
         if (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT)
         {
           if (hash_len == 32)
