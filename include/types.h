@@ -1669,6 +1669,10 @@ typedef struct hc_device_param
   cl_mem            opencl_d_st_salts_buf;
   cl_mem            opencl_d_st_esalts_buf;
 
+  cl_mem            opencl_h_results;
+
+  u32              *h_results;
+
 } hc_device_param_t;
 
 typedef struct backend_ctx
