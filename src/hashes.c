@@ -1954,7 +1954,7 @@ int hashes_init_stage4 (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
 
-    hashconfig->extra_tmp_size = extra_tmp_size;
+    hashconfig->tmp_size = extra_tmp_size;
   }
 
   // at this point we no longer need hash_t* structure
