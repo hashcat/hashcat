@@ -5175,7 +5175,23 @@ int run_opencl_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
 
   if (num16m)
   {
-    if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, buf, CL_FALSE, num16d * 16, num16m, bzeros, 0, NULL, NULL) == -1) return -1;
+    // with apple GPU clEnqueueWriteBuffer() return CL_INVALID_VALUE
+    // following a workaround
+
+    if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE && \
+       (device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK || device_param->opencl_device_vendor_id == VENDOR_ID_APPLE) && \
+       device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
+    {
+      u8 *bzeros_apple = (u8 *) hccalloc (num16m, sizeof (u8));
+
+      if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, buf, CL_TRUE, num16d * 16, num16m, bzeros_apple, 0, NULL, NULL) == -1) return -1;
+
+      hcfree (bzeros_apple);
+    }
+    else
+    {
+      if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, buf, CL_FALSE, num16d * 16, num16m, bzeros, 0, NULL, NULL) == -1) return -1;
+    }
   }
 
   return 0;
