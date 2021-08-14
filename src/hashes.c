@@ -546,53 +546,26 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
     return 0;
   }
 
-  plain_t *cracked = (plain_t *) hcmalloc (num_cracked * sizeof (plain_t));
+  plain_t *cracked = (plain_t *) device_param->h_plain_bufs;
 
   if (device_param->is_cuda == true)
   {
-    rc = hc_cuMemcpyDtoHAsync (hashcat_ctx, cracked, device_param->cuda_d_plain_bufs, num_cracked * sizeof (plain_t), device_param->cuda_stream);
+    if (hc_cuMemcpyDtoHAsync (hashcat_ctx, cracked, device_param->cuda_d_plain_bufs, num_cracked * sizeof (plain_t), device_param->cuda_stream) == -1) return -1;
 
-    if (rc == 0)
-    {
-      rc = hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream);
-    }
-
-    if (rc == -1)
-    {
-      hcfree (cracked);
-
-      return -1;
-    }
+    if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
   }
 
   if (device_param->is_hip == true)
   {
-    rc = hc_hipMemcpyDtoHAsync (hashcat_ctx, cracked, device_param->hip_d_plain_bufs, num_cracked * sizeof (plain_t), device_param->hip_stream);
+    if (hc_hipMemcpyDtoHAsync (hashcat_ctx, cracked, device_param->hip_d_plain_bufs, num_cracked * sizeof (plain_t), device_param->hip_stream) == -1) return -1;
 
-    if (rc == 0)
-    {
-      rc = hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream);
-    }
-
-    if (rc == -1)
-    {
-      hcfree (cracked);
-
-      return -1;
-    }
+    if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
   }
 
   if (device_param->is_opencl == true)
   {
     /* blocking */
-    rc = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_plain_bufs, CL_TRUE, 0, num_cracked * sizeof (plain_t), cracked, 0, NULL, NULL);
-
-    if (rc == -1)
-    {
-      hcfree (cracked);
-
-      return -1;
-    }
+    if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_plain_bufs, CL_TRUE, 0, num_cracked * sizeof (plain_t), cracked, 0, NULL, NULL) == -1) return -1;
   }
 
   u32 cpt_cracked = 0;
@@ -675,8 +648,6 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   }
 
   hc_thread_mutex_unlock (status_ctx->mux_display);
-
-  hcfree (cracked);
 
   if (rc == -1)
   {

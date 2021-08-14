@@ -12085,6 +12085,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_st_digests_buf, size_st_digests)         == -1) return -1;
       if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_st_salts_buf,   size_st_salts)           == -1) return -1;
 
+      if (hc_cuMemHostAlloc (hashcat_ctx, &device_param->h_plain_bufs, size_plains, CU_MEMHOSTALLOC_PORTABLE) == -1) return -1;
       /* assert size_results == sizeof(u32) */
       if (hc_cuMemHostAlloc (hashcat_ctx, (void **) &device_param->h_results, size_results, CU_MEMHOSTALLOC_PORTABLE) == -1) return -1;
 
@@ -12198,6 +12199,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_st_digests_buf, size_st_digests)         == -1) return -1;
       if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_st_salts_buf,   size_st_salts)           == -1) return -1;
 
+      if (hc_hipHostMalloc (hashcat_ctx, &device_param->h_plain_bufs, size_plains, hipHostMallocPortable) == -1) return -1;
       /* assert size_results == sizeof(u32) */
       if (hc_hipHostMalloc (hashcat_ctx, (void **) &device_param->h_results, size_results, hipHostMallocPortable) == -1) return -1;
 
@@ -12311,9 +12313,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   size_st_digests,         NULL, &device_param->opencl_d_st_digests_buf) == -1) return -1;
       if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   size_st_salts,           NULL, &device_param->opencl_d_st_salts_buf)   == -1) return -1;
 
+      if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_ALLOC_HOST_PTR | CL_MEM_HOST_READ_ONLY | CL_MEM_WRITE_ONLY, size_plains,  NULL, &device_param->opencl_h_plain_bufs) == -1) return -1;
       /* assert size_results == sizeof(u32) */
-      if (hc_clCreateBuffer     (hashcat_ctx, device_param->opencl_context, CL_MEM_ALLOC_HOST_PTR | CL_MEM_HOST_READ_ONLY | CL_MEM_WRITE_ONLY, size_results, NULL, &device_param->opencl_h_results         ) == -1) return -1;
-      if (hc_clEnqueueMapBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_h_results, CL_FALSE, CL_MAP_READ, 0, size_results, 0, NULL, NULL, (void **) &device_param->h_results) == -1) return -1;
+      if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_ALLOC_HOST_PTR | CL_MEM_HOST_READ_ONLY | CL_MEM_WRITE_ONLY, size_results, NULL, &device_param->opencl_h_results   ) == -1) return -1;
+
+      if (hc_clEnqueueMapBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_h_plain_bufs, CL_FALSE, CL_MAP_READ, 0, size_plains,  0, NULL, NULL, &device_param->h_plain_bufs)        == -1) return -1;
+      if (hc_clEnqueueMapBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_h_results,    CL_FALSE, CL_MAP_READ, 0, size_results, 0, NULL, NULL, (void **) &device_param->h_results) == -1) return -1;
 
       if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_bitmap_s1_a, CL_FALSE, 0, bitmap_ctx->bitmap_size, bitmap_ctx->bitmap_s1_a, 0, NULL, NULL) == -1) return -1;
       if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_bitmap_s1_b, CL_FALSE, 0, bitmap_ctx->bitmap_size, bitmap_ctx->bitmap_s1_b, 0, NULL, NULL) == -1) return -1;
@@ -15250,6 +15255,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       if (device_param->cuda_d_st_salts_buf)   hc_cuMemFree (hashcat_ctx, device_param->cuda_d_st_salts_buf);
       if (device_param->cuda_d_st_esalts_buf)  hc_cuMemFree (hashcat_ctx, device_param->cuda_d_st_esalts_buf);
 
+      if (device_param->h_plain_bufs)          hc_cuMemFreeHost (hashcat_ctx, device_param->h_plain_bufs);
       if (device_param->h_results)             hc_cuMemFreeHost (hashcat_ctx, device_param->h_results);
       if (device_param->h_tmps)                hc_cuMemFreeHost (hashcat_ctx, device_param->h_tmps);
 
@@ -15382,6 +15388,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       if (device_param->hip_d_st_salts_buf)   hc_hipMemFree (hashcat_ctx, device_param->hip_d_st_salts_buf);
       if (device_param->hip_d_st_esalts_buf)  hc_hipMemFree (hashcat_ctx, device_param->hip_d_st_esalts_buf);
 
+      if (device_param->h_plain_bufs)         hc_hipHostFree (hashcat_ctx, device_param->h_plain_bufs);
       if (device_param->h_results)            hc_hipHostFree (hashcat_ctx, device_param->h_results);
       if (device_param->h_tmps)               hc_hipHostFree (hashcat_ctx, device_param->h_tmps);
 
@@ -15514,9 +15521,11 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       if (device_param->opencl_d_st_salts_buf)   hc_clReleaseMemObject (hashcat_ctx, device_param->opencl_d_st_salts_buf);
       if (device_param->opencl_d_st_esalts_buf)  hc_clReleaseMemObject (hashcat_ctx, device_param->opencl_d_st_esalts_buf);
 
-      if (device_param->h_results)               hc_clEnqueueUnmapMemObject (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_h_results, device_param->h_results, 0, NULL, NULL);
-      if (device_param->h_tmps)                  hc_clEnqueueUnmapMemObject (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_h_tmps,    device_param->h_tmps,    0, NULL, NULL);
+      if (device_param->h_plain_bufs)            hc_clEnqueueUnmapMemObject (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_h_plain_bufs, device_param->h_plain_bufs, 0, NULL, NULL);
+      if (device_param->h_results)               hc_clEnqueueUnmapMemObject (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_h_results,    device_param->h_results,    0, NULL, NULL);
+      if (device_param->h_tmps)                  hc_clEnqueueUnmapMemObject (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_h_tmps,       device_param->h_tmps,       0, NULL, NULL);
 
+      if (device_param->opencl_h_plain_bufs)     hc_clReleaseMemObject (hashcat_ctx, device_param->opencl_h_plain_bufs);
       if (device_param->opencl_h_results)        hc_clReleaseMemObject (hashcat_ctx, device_param->opencl_h_results);
       if (device_param->opencl_h_tmps)           hc_clReleaseMemObject (hashcat_ctx, device_param->opencl_h_tmps);
 
@@ -15591,6 +15600,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       device_param->opencl_d_st_digests_buf    = NULL;
       device_param->opencl_d_st_salts_buf      = NULL;
       device_param->opencl_d_st_esalts_buf     = NULL;
+      device_param->opencl_h_plain_bufs        = NULL;
       device_param->opencl_h_results           = NULL;
       device_param->opencl_h_tmps              = NULL;
       device_param->opencl_kernel1             = NULL;
@@ -15626,6 +15636,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       device_param->opencl_context             = NULL;
     }
 
+    device_param->h_plain_bufs        = NULL;
     device_param->h_results           = NULL;
     device_param->h_tmps              = NULL;
 
