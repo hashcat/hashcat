@@ -79,6 +79,8 @@
 - Added hash-mode: SNMPv3 HMAC-SHA256-192
 - Added hash-mode: SNMPv3 HMAC-SHA384-256
 - Added hash-mode: SNMPv3 HMAC-SHA512-384
+- Added hash-mode: VirtualBox (PBKDF2-HMAC-SHA256 & AES-128-XTS)
+- Added hash-mode: VirtualBox (PBKDF2-HMAC-SHA256 & AES-256-XTS)
 
 * changes v6.2.2 -> v6.2.3
 
