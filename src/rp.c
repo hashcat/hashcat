@@ -925,7 +925,7 @@ int kernel_rules_generate (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, 
     }
     else
     {
-      if (index (rp_gen_func_selection, grp_op_nop[i]) == NULL) continue;
+      if (strchr (rp_gen_func_selection, grp_op_nop[i]) == NULL) continue;
 
       rp_gen_ops.grp_op_nop_selection[rp_gen_ops.grp_op_nop_cnt] = grp_op_nop[i];
 
@@ -943,7 +943,7 @@ int kernel_rules_generate (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, 
     }
     else
     {
-      if (index (rp_gen_func_selection, grp_op_pos_p0[i]) == NULL) continue;
+      if (strchr (rp_gen_func_selection, grp_op_pos_p0[i]) == NULL) continue;
 
       rp_gen_ops.grp_op_pos_p0_selection[rp_gen_ops.grp_op_pos_p0_cnt] = grp_op_pos_p0[i];
 
@@ -961,7 +961,7 @@ int kernel_rules_generate (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, 
     }
     else
     {
-      if (index (rp_gen_func_selection, grp_op_pos_p1[i]) == NULL) continue;
+      if (strchr (rp_gen_func_selection, grp_op_pos_p1[i]) == NULL) continue;
 
       rp_gen_ops.grp_op_pos_p1_selection[rp_gen_ops.grp_op_pos_p1_cnt] = grp_op_pos_p1[i];
 
@@ -979,7 +979,7 @@ int kernel_rules_generate (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, 
     }
     else
     {
-      if (index (rp_gen_func_selection, grp_op_chr[i]) == NULL) continue;
+      if (strchr (rp_gen_func_selection, grp_op_chr[i]) == NULL) continue;
 
       rp_gen_ops.grp_op_chr_selection[rp_gen_ops.grp_op_chr_cnt] = grp_op_chr[i];
 
@@ -997,7 +997,7 @@ int kernel_rules_generate (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, 
     }
     else
     {
-      if (index (rp_gen_func_selection, grp_op_chr_chr[i]) == NULL) continue;
+      if (strchr (rp_gen_func_selection, grp_op_chr_chr[i]) == NULL) continue;
 
       rp_gen_ops.grp_op_chr_chr_selection[rp_gen_ops.grp_op_chr_chr_cnt] = grp_op_chr_chr[i];
 
@@ -1015,7 +1015,7 @@ int kernel_rules_generate (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, 
     }
     else
     {
-      if (index (rp_gen_func_selection, grp_op_pos_chr[i]) == NULL) continue;
+      if (strchr (rp_gen_func_selection, grp_op_pos_chr[i]) == NULL) continue;
 
       rp_gen_ops.grp_op_pos_chr_selection[rp_gen_ops.grp_op_pos_chr_cnt] = grp_op_pos_chr[i];
 
@@ -1033,7 +1033,7 @@ int kernel_rules_generate (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, 
     }
     else
     {
-      if (index (rp_gen_func_selection, grp_op_pos_pos0[i]) == NULL) continue;
+      if (strchr (rp_gen_func_selection, grp_op_pos_pos0[i]) == NULL) continue;
 
       rp_gen_ops.grp_op_pos_pos0_selection[rp_gen_ops.grp_op_pos_pos0_cnt] = grp_op_pos_pos0[i];
 
@@ -1051,7 +1051,7 @@ int kernel_rules_generate (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, 
     }
     else
     {
-      if (index (rp_gen_func_selection, grp_op_pos_pos1[i]) == NULL) continue;
+      if (strchr (rp_gen_func_selection, grp_op_pos_pos1[i]) == NULL) continue;
 
       rp_gen_ops.grp_op_pos_pos1_selection[rp_gen_ops.grp_op_pos_pos1_cnt] = grp_op_pos_pos1[i];
 
