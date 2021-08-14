@@ -117,6 +117,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   " -g, --generate-rules           | Num  | Generate X random rules                              | -g 10000",
   "     --generate-rules-func-min  | Num  | Force min X functions per rule                       |",
   "     --generate-rules-func-max  | Num  | Force max X functions per rule                       |",
+  "     --generate-rules-func-sel  | Str  | Pool of rule operators valid for random rule engine  | --generate-rules-func-sel=ioTlc",
   "     --generate-rules-seed      | Num  | Force RNG seed set to X                              |",
   " -1, --custom-charset1          | CS   | User-defined charset ?1                              | -1 ?l?d?u",
   " -2, --custom-charset2          | CS   | User-defined charset ?2                              | -2 ?l?d?s",

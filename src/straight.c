@@ -293,7 +293,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
     }
     else if (user_options->rp_gen)
     {
-      if (kernel_rules_generate (hashcat_ctx, &straight_ctx->kernel_rules_buf, &straight_ctx->kernel_rules_cnt) == -1) return -1;
+      if (kernel_rules_generate (hashcat_ctx, &straight_ctx->kernel_rules_buf, &straight_ctx->kernel_rules_cnt, user_options->rp_gen_func_sel) == -1) return -1;
     }
   }
 

@@ -6,6 +6,7 @@
 
 - Added option --deprecated-check-disable to enable deprecated plugins
 - Added option --multiply-accel-disable (short: -M) to disable multiplying of the kernel accel with the multiprocessor count
+- Added option --generate-rules-func-sel to specify a pool of operators that the random rule generator is allowed to pick from
 - Added rule function '3' to change the case of the first letter after the occurrence of N of character X
 - Added support for auto tuning --kernel-threads (-T) at startup
 - Added support for HIP version 4.3 or later and removed support for older HIP versions as they are not compatible

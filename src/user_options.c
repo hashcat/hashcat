@@ -55,6 +55,7 @@ static const struct option long_options[] =
   {"force",                     no_argument,       NULL, IDX_FORCE},
   {"generate-rules-func-max",   required_argument, NULL, IDX_RP_GEN_FUNC_MAX},
   {"generate-rules-func-min",   required_argument, NULL, IDX_RP_GEN_FUNC_MIN},
+  {"generate-rules-func-sel",   required_argument, NULL, IDX_RP_GEN_FUNC_SEL},
   {"generate-rules",            required_argument, NULL, IDX_RP_GEN},
   {"generate-rules-seed",       required_argument, NULL, IDX_RP_GEN_SEED},
   {"hwmon-disable",             no_argument,       NULL, IDX_HWMON_DISABLE},
@@ -167,7 +168,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->autodetect                = AUTODETECT;
   user_options->backend_devices           = NULL;
   user_options->backend_ignore_cuda       = BACKEND_IGNORE_CUDA;
-  user_options->backend_ignore_hip       = BACKEND_IGNORE_HIP;
+  user_options->backend_ignore_hip        = BACKEND_IGNORE_HIP;
   user_options->backend_ignore_opencl     = BACKEND_IGNORE_OPENCL;
   user_options->backend_info              = BACKEND_INFO;
   user_options->backend_vector_width      = BACKEND_VECTOR_WIDTH;
@@ -247,6 +248,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->restore_timer             = RESTORE_TIMER;
   user_options->rp_gen_func_max           = RP_GEN_FUNC_MAX;
   user_options->rp_gen_func_min           = RP_GEN_FUNC_MIN;
+  user_options->rp_gen_func_sel           = NULL;
   user_options->rp_gen                    = RP_GEN;
   user_options->rp_gen_seed               = RP_GEN_SEED;
   user_options->rule_buf_l                = RULE_BUF_L;
@@ -430,6 +432,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_RP_GEN:                    user_options->rp_gen                    = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_RP_GEN_FUNC_MIN:           user_options->rp_gen_func_min           = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_RP_GEN_FUNC_MAX:           user_options->rp_gen_func_max           = hc_strtoul (optarg, NULL, 10);   break;
+      case IDX_RP_GEN_FUNC_SEL:           user_options->rp_gen_func_sel           = optarg;                          break;
       case IDX_RP_GEN_SEED:               user_options->rp_gen_seed               = hc_strtoul (optarg, NULL, 10);
                                           user_options->rp_gen_seed_chgd          = true;                            break;
       case IDX_RULE_BUF_L:                user_options->rule_buf_l                = optarg;                          break;
@@ -3071,6 +3074,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_string (user_options->potfile_path);
   logfile_top_string (user_options->restore_file_path);
   logfile_top_string (user_options->rp_files[0]);
+  logfile_top_string (user_options->rp_gen_func_sel);
   logfile_top_string (user_options->rule_buf_l);
   logfile_top_string (user_options->rule_buf_r);
   logfile_top_string (user_options->session);

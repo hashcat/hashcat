@@ -127,51 +127,55 @@ int conv_itoc (const u8 c)
   return -1;
 }
 
-int generate_random_rule (char rule_buf[RP_RULE_SIZE], const u32 rp_gen_func_min, const u32 rp_gen_func_max)
+int generate_random_rule (char rule_buf[RP_RULE_SIZE], const u32 rp_gen_func_min, const u32 rp_gen_func_max, const rp_gen_ops_t *rp_gen_ops)
 {
-  u32 rp_gen_num = get_random_num (rp_gen_func_min, rp_gen_func_max);
+  // generate them
 
-  u32 j;
+  const u32 rp_gen_num = get_random_num (rp_gen_func_min, rp_gen_func_max);
 
   u32 rule_pos = 0;
 
-  for (j = 0; j < rp_gen_num; j++)
+  for (u32 j = 0; j < rp_gen_num; j++)
   {
     u32 r  = 0;
     u32 p1 = 0;
     u32 p2 = 0;
 
-    switch ((char) get_random_num (0, 8))
+    const int group_num = get_random_num (0, rp_gen_ops->grp_op_alias_cnt);
+
+    const int group_num_alias = rp_gen_ops->grp_op_alias_buf[group_num];
+
+    switch (group_num_alias)
     {
       case 0:
-        r = get_random_num (0, sizeof (grp_op_nop));
-        rule_buf[rule_pos++] = grp_op_nop[r];
+        r = get_random_num (0, rp_gen_ops->grp_op_nop_cnt);
+        rule_buf[rule_pos++] = rp_gen_ops->grp_op_nop_selection[r];
         break;
 
       case 1:
-        r = get_random_num (0, sizeof (grp_op_pos_p0));
-        rule_buf[rule_pos++] = grp_op_pos_p0[r];
+        r = get_random_num (0, rp_gen_ops->grp_op_pos_p0_cnt);
+        rule_buf[rule_pos++] = rp_gen_ops->grp_op_pos_p0_selection[r];
         p1 = get_random_num (0, sizeof (grp_pos));
         rule_buf[rule_pos++] = grp_pos[p1];
         break;
 
       case 2:
-        r = get_random_num (0, sizeof (grp_op_pos_p1));
-        rule_buf[rule_pos++] = grp_op_pos_p1[r];
+        r = get_random_num (0, rp_gen_ops->grp_op_pos_p1_cnt);
+        rule_buf[rule_pos++] = rp_gen_ops->grp_op_pos_p1_selection[r];
         p1 = get_random_num (1, 6);
         rule_buf[rule_pos++] = grp_pos[p1];
         break;
 
       case 3:
-        r = get_random_num (0, sizeof (grp_op_chr));
-        rule_buf[rule_pos++] = grp_op_chr[r];
+        r = get_random_num (0, rp_gen_ops->grp_op_chr_cnt);
+        rule_buf[rule_pos++] = rp_gen_ops->grp_op_chr_selection[r];
         p1 = get_random_num (0x20, 0x7e);
         rule_buf[rule_pos++] = (char) p1;
         break;
 
       case 4:
-        r = get_random_num (0, sizeof (grp_op_chr_chr));
-        rule_buf[rule_pos++] = grp_op_chr_chr[r];
+        r = get_random_num (0, rp_gen_ops->grp_op_chr_chr_cnt);
+        rule_buf[rule_pos++] = rp_gen_ops->grp_op_chr_chr_selection[r];
         p1 = get_random_num (0x20, 0x7e);
         rule_buf[rule_pos++] = (char) p1;
         p2 = get_random_num (0x20, 0x7e);
@@ -181,8 +185,8 @@ int generate_random_rule (char rule_buf[RP_RULE_SIZE], const u32 rp_gen_func_min
         break;
 
       case 5:
-        r = get_random_num (0, sizeof (grp_op_pos_chr));
-        rule_buf[rule_pos++] = grp_op_pos_chr[r];
+        r = get_random_num (0, rp_gen_ops->grp_op_pos_chr_cnt);
+        rule_buf[rule_pos++] = rp_gen_ops->grp_op_pos_chr_selection[r];
         p1 = get_random_num (0, sizeof (grp_pos));
         rule_buf[rule_pos++] = grp_pos[p1];
         p2 = get_random_num (0x20, 0x7e);
@@ -190,8 +194,8 @@ int generate_random_rule (char rule_buf[RP_RULE_SIZE], const u32 rp_gen_func_min
         break;
 
       case 6:
-        r = get_random_num (0, sizeof (grp_op_pos_pos0));
-        rule_buf[rule_pos++] = grp_op_pos_pos0[r];
+        r = get_random_num (0, rp_gen_ops->grp_op_pos_pos0_cnt);
+        rule_buf[rule_pos++] = rp_gen_ops->grp_op_pos_pos0_selection[r];
         p1 = get_random_num (0, sizeof (grp_pos));
         rule_buf[rule_pos++] = grp_pos[p1];
         p2 = get_random_num (0, sizeof (grp_pos));
@@ -201,8 +205,8 @@ int generate_random_rule (char rule_buf[RP_RULE_SIZE], const u32 rp_gen_func_min
         break;
 
       case 7:
-        r = get_random_num (0, sizeof (grp_op_pos_pos1));
-        rule_buf[rule_pos++] = grp_op_pos_pos1[r];
+        r = get_random_num (0, rp_gen_ops->grp_op_pos_pos1_cnt);
+        rule_buf[rule_pos++] = rp_gen_ops->grp_op_pos_pos1_selection[r];
         p1 = get_random_num (0, sizeof (grp_pos));
         rule_buf[rule_pos++] = grp_pos[p1];
         p2 = get_random_num (1, sizeof (grp_pos));
@@ -880,12 +884,189 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
   return 0;
 }
 
-int kernel_rules_generate (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 *out_cnt)
+int kernel_rules_generate (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 *out_cnt, const char *rp_gen_func_selection)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   u32            kernel_rules_cnt = 0;
   kernel_rule_t *kernel_rules_buf = (kernel_rule_t *) hccalloc (user_options->rp_gen, sizeof (kernel_rule_t));
+
+  // operator selection
+
+  rp_gen_ops_t rp_gen_ops;
+
+  rp_gen_ops.grp_op_nop_selection      = hcmalloc (sizeof (grp_op_nop));
+  rp_gen_ops.grp_op_pos_p0_selection   = hcmalloc (sizeof (grp_op_pos_p0));
+  rp_gen_ops.grp_op_pos_p1_selection   = hcmalloc (sizeof (grp_op_pos_p1));
+  rp_gen_ops.grp_op_chr_selection      = hcmalloc (sizeof (grp_op_chr));
+  rp_gen_ops.grp_op_chr_chr_selection  = hcmalloc (sizeof (grp_op_chr_chr));
+  rp_gen_ops.grp_op_pos_chr_selection  = hcmalloc (sizeof (grp_op_pos_chr));
+  rp_gen_ops.grp_op_pos_pos0_selection = hcmalloc (sizeof (grp_op_pos_pos0));
+  rp_gen_ops.grp_op_pos_pos1_selection = hcmalloc (sizeof (grp_op_pos_pos1));
+
+  rp_gen_ops.grp_op_nop_cnt      = 0;
+  rp_gen_ops.grp_op_pos_p0_cnt   = 0;
+  rp_gen_ops.grp_op_pos_p1_cnt   = 0;
+  rp_gen_ops.grp_op_chr_cnt      = 0;
+  rp_gen_ops.grp_op_chr_chr_cnt  = 0;
+  rp_gen_ops.grp_op_pos_chr_cnt  = 0;
+  rp_gen_ops.grp_op_pos_pos0_cnt = 0;
+  rp_gen_ops.grp_op_pos_pos1_cnt = 0;
+
+  rp_gen_ops.grp_op_alias_cnt = 0;
+
+  for (size_t i = 0; i < sizeof (grp_op_nop); i++)
+  {
+    if (rp_gen_func_selection == NULL)
+    {
+      rp_gen_ops.grp_op_nop_selection[rp_gen_ops.grp_op_nop_cnt] = grp_op_nop[i];
+
+      rp_gen_ops.grp_op_nop_cnt++;
+    }
+    else
+    {
+      if (index (rp_gen_func_selection, grp_op_nop[i]) == NULL) continue;
+
+      rp_gen_ops.grp_op_nop_selection[rp_gen_ops.grp_op_nop_cnt] = grp_op_nop[i];
+
+      rp_gen_ops.grp_op_nop_cnt++;
+    }
+  }
+
+  for (size_t i = 0; i < sizeof (grp_op_pos_p0); i++)
+  {
+    if (rp_gen_func_selection == NULL)
+    {
+      rp_gen_ops.grp_op_pos_p0_selection[rp_gen_ops.grp_op_pos_p0_cnt] = grp_op_nop[i];
+
+      rp_gen_ops.grp_op_pos_p0_cnt++;
+    }
+    else
+    {
+      if (index (rp_gen_func_selection, grp_op_pos_p0[i]) == NULL) continue;
+
+      rp_gen_ops.grp_op_pos_p0_selection[rp_gen_ops.grp_op_pos_p0_cnt] = grp_op_pos_p0[i];
+
+      rp_gen_ops.grp_op_pos_p0_cnt++;
+    }
+  }
+
+  for (size_t i = 0; i < sizeof (grp_op_pos_p1); i++)
+  {
+    if (rp_gen_func_selection == NULL)
+    {
+      rp_gen_ops.grp_op_pos_p1_selection[rp_gen_ops.grp_op_pos_p1_cnt] = grp_op_pos_p1[i];
+
+      rp_gen_ops.grp_op_pos_p1_cnt++;
+    }
+    else
+    {
+      if (index (rp_gen_func_selection, grp_op_pos_p1[i]) == NULL) continue;
+
+      rp_gen_ops.grp_op_pos_p1_selection[rp_gen_ops.grp_op_pos_p1_cnt] = grp_op_pos_p1[i];
+
+      rp_gen_ops.grp_op_pos_p1_cnt++;
+    }
+  }
+
+  for (size_t i = 0; i < sizeof (grp_op_chr); i++)
+  {
+    if (rp_gen_func_selection == NULL)
+    {
+      rp_gen_ops.grp_op_chr_selection[rp_gen_ops.grp_op_chr_cnt] = grp_op_chr[i];
+
+      rp_gen_ops.grp_op_chr_cnt++;
+    }
+    else
+    {
+      if (index (rp_gen_func_selection, grp_op_chr[i]) == NULL) continue;
+
+      rp_gen_ops.grp_op_chr_selection[rp_gen_ops.grp_op_chr_cnt] = grp_op_chr[i];
+
+      rp_gen_ops.grp_op_chr_cnt++;
+    }
+  }
+
+  for (size_t i = 0; i < sizeof (grp_op_chr_chr); i++)
+  {
+    if (rp_gen_func_selection == NULL)
+    {
+      rp_gen_ops.grp_op_chr_chr_selection[rp_gen_ops.grp_op_chr_chr_cnt] = grp_op_chr_chr[i];
+
+      rp_gen_ops.grp_op_chr_chr_cnt++;
+    }
+    else
+    {
+      if (index (rp_gen_func_selection, grp_op_chr_chr[i]) == NULL) continue;
+
+      rp_gen_ops.grp_op_chr_chr_selection[rp_gen_ops.grp_op_chr_chr_cnt] = grp_op_chr_chr[i];
+
+      rp_gen_ops.grp_op_chr_chr_cnt++;
+    }
+  }
+
+  for (size_t i = 0; i < sizeof (grp_op_pos_chr); i++)
+  {
+    if (rp_gen_func_selection == NULL)
+    {
+      rp_gen_ops.grp_op_pos_chr_selection[rp_gen_ops.grp_op_pos_chr_cnt] = grp_op_pos_chr[i];
+
+      rp_gen_ops.grp_op_pos_chr_cnt++;
+    }
+    else
+    {
+      if (index (rp_gen_func_selection, grp_op_pos_chr[i]) == NULL) continue;
+
+      rp_gen_ops.grp_op_pos_chr_selection[rp_gen_ops.grp_op_pos_chr_cnt] = grp_op_pos_chr[i];
+
+      rp_gen_ops.grp_op_pos_chr_cnt++;
+    }
+  }
+
+  for (size_t i = 0; i < sizeof (grp_op_pos_pos0); i++)
+  {
+    if (rp_gen_func_selection == NULL)
+    {
+      rp_gen_ops.grp_op_pos_pos0_selection[rp_gen_ops.grp_op_pos_pos0_cnt] = grp_op_pos_pos0[i];
+
+      rp_gen_ops.grp_op_pos_pos0_cnt++;
+    }
+    else
+    {
+      if (index (rp_gen_func_selection, grp_op_pos_pos0[i]) == NULL) continue;
+
+      rp_gen_ops.grp_op_pos_pos0_selection[rp_gen_ops.grp_op_pos_pos0_cnt] = grp_op_pos_pos0[i];
+
+      rp_gen_ops.grp_op_pos_pos0_cnt++;
+    }
+  }
+
+  for (size_t i = 0; i < sizeof (grp_op_pos_pos1); i++)
+  {
+    if (rp_gen_func_selection == NULL)
+    {
+      rp_gen_ops.grp_op_pos_pos1_selection[rp_gen_ops.grp_op_pos_pos1_cnt] = grp_op_pos_pos1[i];
+
+      rp_gen_ops.grp_op_pos_pos1_cnt++;
+    }
+    else
+    {
+      if (index (rp_gen_func_selection, grp_op_pos_pos1[i]) == NULL) continue;
+
+      rp_gen_ops.grp_op_pos_pos1_selection[rp_gen_ops.grp_op_pos_pos1_cnt] = grp_op_pos_pos1[i];
+
+      rp_gen_ops.grp_op_pos_pos1_cnt++;
+    }
+  }
+
+  if (rp_gen_ops.grp_op_nop_cnt)      { rp_gen_ops.grp_op_alias_buf[rp_gen_ops.grp_op_alias_cnt++] = 0; };
+  if (rp_gen_ops.grp_op_pos_p0_cnt)   { rp_gen_ops.grp_op_alias_buf[rp_gen_ops.grp_op_alias_cnt++] = 1; };
+  if (rp_gen_ops.grp_op_pos_p1_cnt)   { rp_gen_ops.grp_op_alias_buf[rp_gen_ops.grp_op_alias_cnt++] = 2; };
+  if (rp_gen_ops.grp_op_chr_cnt)      { rp_gen_ops.grp_op_alias_buf[rp_gen_ops.grp_op_alias_cnt++] = 3; };
+  if (rp_gen_ops.grp_op_chr_chr_cnt)  { rp_gen_ops.grp_op_alias_buf[rp_gen_ops.grp_op_alias_cnt++] = 4; };
+  if (rp_gen_ops.grp_op_pos_chr_cnt)  { rp_gen_ops.grp_op_alias_buf[rp_gen_ops.grp_op_alias_cnt++] = 5; };
+  if (rp_gen_ops.grp_op_pos_pos0_cnt) { rp_gen_ops.grp_op_alias_buf[rp_gen_ops.grp_op_alias_cnt++] = 6; };
+  if (rp_gen_ops.grp_op_pos_pos1_cnt) { rp_gen_ops.grp_op_alias_buf[rp_gen_ops.grp_op_alias_cnt++] = 7; };
 
   char *rule_buf = (char *) hcmalloc (RP_RULE_SIZE);
 
@@ -893,12 +1074,21 @@ int kernel_rules_generate (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, 
   {
     memset (rule_buf, 0, RP_RULE_SIZE);
 
-    int rule_len = generate_random_rule (rule_buf, user_options->rp_gen_func_min, user_options->rp_gen_func_max);
+    const int rule_len = generate_random_rule (rule_buf, user_options->rp_gen_func_min, user_options->rp_gen_func_max, &rp_gen_ops);
 
     if (cpu_rule_to_kernel_rule (rule_buf, rule_len, &kernel_rules_buf[kernel_rules_cnt]) == -1) continue;
   }
 
   hcfree (rule_buf);
+
+  hcfree (rp_gen_ops.grp_op_nop_selection);
+  hcfree (rp_gen_ops.grp_op_pos_p0_selection);
+  hcfree (rp_gen_ops.grp_op_pos_p1_selection);
+  hcfree (rp_gen_ops.grp_op_chr_selection);
+  hcfree (rp_gen_ops.grp_op_chr_chr_selection);
+  hcfree (rp_gen_ops.grp_op_pos_chr_selection);
+  hcfree (rp_gen_ops.grp_op_pos_pos0_selection);
+  hcfree (rp_gen_ops.grp_op_pos_pos1_selection);
 
   *out_cnt = kernel_rules_cnt;
   *out_buf = kernel_rules_buf;
