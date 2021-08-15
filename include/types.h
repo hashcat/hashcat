@@ -1668,10 +1668,12 @@ typedef struct hc_device_param
   cl_mem            opencl_d_st_salts_buf;
   cl_mem            opencl_d_st_esalts_buf;
 
+  cl_mem            opencl_h_hooks;
   cl_mem            opencl_h_plain_bufs;
   cl_mem            opencl_h_results;
   cl_mem            opencl_h_tmps;
 
+  /* TODO: possible relocate and rename these?? */
   void             *h_plain_bufs;
   void             *h_results;
   void             *h_tmps;
