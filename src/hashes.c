@@ -522,15 +522,13 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
     if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
   }
-
-  if (device_param->is_hip == true)
+  else if (device_param->is_hip == true)
   {
     if (hc_hipMemcpyDtoHAsync (hashcat_ctx, device_param->h_results, device_param->hip_d_results, sizeof (u32), device_param->hip_stream) == -1) return -1;
 
     if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
   }
-
-  if (device_param->is_opencl == true)
+  else /* if (device_param->is_opencl == true) */
   {
     /* blocking */
     if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_results, CL_TRUE, 0, sizeof (u32), device_param->h_results, 0, NULL, NULL) == -1) return -1;
@@ -554,15 +552,13 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
     if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
   }
-
-  if (device_param->is_hip == true)
+  else if (device_param->is_hip == true)
   {
     if (hc_hipMemcpyDtoHAsync (hashcat_ctx, cracked, device_param->hip_d_plain_bufs, num_cracked * sizeof (plain_t), device_param->hip_stream) == -1) return -1;
 
     if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
   }
-
-  if (device_param->is_opencl == true)
+  else /* if (device_param->is_opencl == true) */
   {
     /* blocking */
     if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_plain_bufs, CL_TRUE, 0, num_cracked * sizeof (plain_t), cracked, 0, NULL, NULL) == -1) return -1;
@@ -623,8 +619,7 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
           break;
         }
       }
-
-      if (device_param->is_hip == true)
+      else if (device_param->is_hip == true)
       {
         rc = run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_digests_shown + (salt_buf->digests_offset * sizeof (u32)), salt_buf->digests_cnt * sizeof (u32));
 
@@ -633,8 +628,7 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
           break;
         }
       }
-
-      if (device_param->is_opencl == true)
+      else /* if (device_param->is_opencl == true) */
       {
         /* NOTE: run_opencl_kernel_bzero() does not handle buffer offset */
         rc = run_opencl_kernel_memset32 (hashcat_ctx, device_param, device_param->opencl_d_digests_shown, salt_buf->digests_offset * sizeof (u32), 0, salt_buf->digests_cnt * sizeof (u32));
@@ -674,13 +668,11 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   {
     if (run_cuda_kernel_bzero (hashcat_ctx, device_param, device_param->cuda_d_results, sizeof (u32)) == -1) return -1;
   }
-
-  if (device_param->is_hip == true)
+  else if (device_param->is_hip == true)
   {
     if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_results, sizeof (u32)) == -1) return -1;
   }
-
-  if (device_param->is_opencl == true)
+  else /* if (device_param->is_opencl == true) */
   {
     if (run_opencl_kernel_bzero (hashcat_ctx, device_param, device_param->opencl_d_results, sizeof (u32)) == -1) return -1;
 
