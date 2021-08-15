@@ -536,7 +536,7 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
     if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_results, CL_TRUE, 0, sizeof (u32), device_param->h_results, 0, NULL, NULL) == -1) return -1;
   }
 
-  const u32 num_cracked = *device_param->h_results;
+  const u32 num_cracked = *(const u32 *) device_param->h_results;
 
   if (num_cracked == 0 || user_options->speed_only == true)
   {

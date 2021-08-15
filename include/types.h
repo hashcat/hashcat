@@ -1673,7 +1673,7 @@ typedef struct hc_device_param
   cl_mem            opencl_h_tmps;
 
   void             *h_plain_bufs;
-  u32              *h_results;
+  void             *h_results;
   void             *h_tmps;
 
 } hc_device_param_t;
