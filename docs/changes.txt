@@ -40,6 +40,7 @@
 - HIP Kernels: Enable vector data types for HIP kernels for functionality and performance
 - Kernel threads: Use warp size / wavefront size query instead of hard-coded values as the basis for kernel threads
 - SCRYPT Kernels: Improve Hashcat.hctune entries for many NV and AMD GPUs for hash mode 8900, 9300, 15700 and 22700
+- STDIN Interface: Disable the --stdin-timeout-abort check after 1000 successful reads from stdin
 - Tuning Database: Add new module function module_extra_tuningdb_block() to extend hashcat.hctune content from a module
 
 ##
