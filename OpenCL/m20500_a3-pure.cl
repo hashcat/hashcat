@@ -296,7 +296,7 @@ KERNEL_FQ void m20500_sxx (KERN_ATTR_VECTOR ())
   u32 prep1 = digests_buf[DIGESTS_OFFSET].digest_buf[1];
   u32 prep2 = digests_buf[DIGESTS_OFFSET].digest_buf[2];
 
-  for (u32 pos = pw_len - 1; pos >= 4; pos--)
+  for (int pos = pw_len - 1; pos >= 4; pos--)
   {
     const u32 t = hc_bfe_S (pws[gid].i[pos / 4], (pos & 3) * 8, 8);
 

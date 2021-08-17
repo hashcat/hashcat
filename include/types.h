@@ -1242,6 +1242,7 @@ typedef struct hc_device_param
   u32     kernel_loops_min_sav; // the _sav are required because each -i iteration
   u32     kernel_loops_max_sav; // needs to recalculate the kernel_loops_min/max based on the current amplifier count
   u32     kernel_threads;
+  u32     kernel_threads_prev;
   u32     kernel_threads_min;
   u32     kernel_threads_max;
 

@@ -196,7 +196,9 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     // from here it's clear we are allowed to autotune
     // so let's init some fake words
 
-    const u32 kernel_power_max = device_param->hardware_power * kernel_accel_max;
+    const u32 hardware_power_max = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE) ? 1 : device_param->device_processors) * kernel_threads_max;
+
+    const u32 kernel_power_max = hardware_power_max * kernel_accel_max;
 
     if (device_param->is_cuda == true)
     {

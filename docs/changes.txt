@@ -22,6 +22,7 @@
 - Fixed invalid data type in the sha384_hmac_init_vector_128() function that take effect if the vector data type was specified manually
 - Fixed out-of-boundary read in input_tokenizer() if the signature in the hash is longer than the length of the plugin's signature constant
 - Fixed out-of-boundary read in the Stuffit5 module in hash_decode()
+- Fixed out-of-boundary read in PKZIP masterkey kernel if the password candidate has length zero
 - Fixed random rule generator option --generate-rules-func-min by fixing switch() case to not select a not existing option group type
 - Fixed segfault when a combination of the flags --user and --show is given and a hash was specified directly on the command line
 - Fixed syntax check of HAS_VPERM macro in several kernel includes causing invalid error message for AMD GPUs on Windows

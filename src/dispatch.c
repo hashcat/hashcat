@@ -321,11 +321,13 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
     if (device_param->speed_only_finish == true) break;
   }
 
-  device_param->kernel_accel_prev = device_param->kernel_accel;
-  device_param->kernel_loops_prev = device_param->kernel_loops;
+  device_param->kernel_accel_prev   = device_param->kernel_accel;
+  device_param->kernel_loops_prev   = device_param->kernel_loops;
+  device_param->kernel_threads_prev = device_param->kernel_threads;
 
-  device_param->kernel_accel = 0;
-  device_param->kernel_loops = 0;
+  device_param->kernel_accel   = 0;
+  device_param->kernel_loops   = 0;
+  device_param->kernel_threads = 0;
 
   if (iconv_enabled == true)
   {
@@ -1579,11 +1581,13 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
     }
   }
 
-  device_param->kernel_accel_prev = device_param->kernel_accel;
-  device_param->kernel_loops_prev = device_param->kernel_loops;
+  device_param->kernel_accel_prev   = device_param->kernel_accel;
+  device_param->kernel_loops_prev   = device_param->kernel_loops;
+  device_param->kernel_threads_prev = device_param->kernel_threads;
 
-  device_param->kernel_accel = 0;
-  device_param->kernel_loops = 0;
+  device_param->kernel_accel   = 0;
+  device_param->kernel_loops   = 0;
+  device_param->kernel_threads = 0;
 
   return 0;
 }

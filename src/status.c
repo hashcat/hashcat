@@ -2194,6 +2194,8 @@ int status_get_kernel_threads_dev (const hashcat_ctx_t *hashcat_ctx, const int b
 
   if (device_param->skipped_warning == true) return 0;
 
+  if (device_param->kernel_threads_prev) return device_param->kernel_threads_prev;
+
   return device_param->kernel_threads;
 }
 
