@@ -23,7 +23,16 @@ int _wopen (const char *path, int oflag, ...)
 
 bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
 {
-  if (path == NULL || mode == NULL) return false;
+  if (fp == NULL || path == NULL || mode == NULL) return false;
+
+  /* cleanup */
+  fp->fd       = -1;
+  fp->pfp      = NULL;
+  fp->gfp      = NULL;
+  fp->ufp      = NULL;
+  fp->bom_size = 0;
+  fp->path     = NULL;
+  fp->mode     = NULL;
 
   int oflag = -1;
 
@@ -60,12 +69,10 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
     return false;
   }
 
-  fp->pfp       = NULL;
-  fp->is_gzip   = false;
-  fp->is_zip    = false;
-  fp->bom_size  = 0;
-
   unsigned char check[8] = { 0 };
+
+  bool is_gzip = false;
+  bool is_zip  = false;
 
   int fd_tmp = open (path, O_RDONLY);
 
@@ -75,12 +82,12 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
 
     if (read (fd_tmp, check, sizeof (check)) > 0)
     {
-      if (check[0] == 0x1f && check[1] == 0x8b && check[2] == 0x08)                     fp->is_gzip = true;
-      if (check[0] == 0x50 && check[1] == 0x4b && check[2] == 0x03 && check[3] == 0x04) fp->is_zip  = true;
+      if (check[0] == 0x1f && check[1] == 0x8b && check[2] == 0x08)                     is_gzip = true;
+      if (check[0] == 0x50 && check[1] == 0x4b && check[2] == 0x03 && check[3] == 0x04) is_zip  = true;
 
       // compressed files with BOM will be undetected!
 
-      if (fp->is_gzip == false && fp->is_zip == false)
+      if (is_gzip == false && is_zip == false)
       {
         fp->bom_size = hc_string_bom_size (check);
       }
@@ -89,39 +96,42 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
     close (fd_tmp);
   }
 
-  if (fmode == -1)
+  if (is_zip == false)
   {
-    fp->fd = open (path, oflag);
+    if (fmode == -1)
+    {
+      fp->fd = open (path, oflag);
+    }
+    else
+    {
+      fp->fd = open (path, oflag, fmode);
+    }
+
+    if (fp->fd == -1) return false;
+
+    if (is_gzip)
+    {
+      if ((fp->gfp = gzdopen (fp->fd, mode)) == NULL) return false;
+    }
+    else
+    {
+      if ((fp->pfp = fdopen (fp->fd, mode)) == NULL) return false;
+
+      if (fp->bom_size)
+      {
+        // atm just skip bom
+
+        const int nread = fread (check, sizeof (char), fp->bom_size, fp->pfp);
+
+        if (nread != fp->bom_size) return false;
+      }
+    }
   }
   else
-  {
-    fp->fd = open (path, oflag, fmode);
-  }
-
-  if (fp->fd == -1 && fp->is_zip == false) return false;
-
-  if (fp->is_gzip)
-  {
-    if ((fp->gfp = gzdopen (fp->fd, mode)) == NULL) return false;
-  }
-  else if (fp->is_zip)
   {
     if ((fp->ufp = unzOpen64 (path)) == NULL) return false;
 
     if (unzOpenCurrentFile (fp->ufp) != UNZ_OK) return false;
-  }
-  else
-  {
-    if ((fp->pfp = fdopen (fp->fd, mode)) == NULL) return false;
-
-    if (fp->bom_size)
-    {
-      // atm just skip bom
-
-      const int nread = fread (check, sizeof (char), fp->bom_size, fp->pfp);
-
-      if (nread != fp->bom_size) return false;
-    }
   }
 
   fp->path = path;
@@ -132,7 +142,16 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
 
 bool hc_fopen_raw (HCFILE *fp, const char *path, const char *mode)
 {
-  if (path == NULL || mode == NULL) return false;
+  if (fp == NULL || path == NULL || mode == NULL) return false;
+
+  /* cleanup */
+  fp->fd       = -1;
+  fp->pfp      = NULL;
+  fp->gfp      = NULL;
+  fp->ufp      = NULL;
+  fp->bom_size = 0;
+  fp->path     = NULL;
+  fp->mode     = NULL;
 
   int oflag = -1;
 
@@ -169,11 +188,6 @@ bool hc_fopen_raw (HCFILE *fp, const char *path, const char *mode)
     return false;
   }
 
-  fp->pfp       = NULL;
-  fp->is_gzip   = false;
-  fp->is_zip    = false;
-  fp->bom_size  = 0;
-
   if (fmode == -1)
   {
     fp->fd = open (path, oflag);
@@ -183,9 +197,9 @@ bool hc_fopen_raw (HCFILE *fp, const char *path, const char *mode)
     fp->fd = open (path, oflag, fmode);
   }
 
-  if (fp->fd == -1 && fp->is_zip == false) return false;
+  if (fp->fd == -1) return false;
 
-  if ((fp->pfp = fdopen (fp->fd, mode)) == NULL)  return false;
+  if ((fp->pfp = fdopen (fp->fd, mode)) == NULL) return false;
 
   fp->path = path;
   fp->mode = mode;
@@ -597,8 +611,8 @@ void hc_fclose (HCFILE *fp)
 
   fp->fd = -1;
   fp->pfp = NULL;
-  fp->is_gzip = false;
-  fp->is_zip = false;
+  fp->gfp = NULL;
+  fp->ufp = NULL;
 
   fp->path = NULL;
   fp->mode = NULL;
