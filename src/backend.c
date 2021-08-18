@@ -41,6 +41,9 @@ static double TARGET_MSEC_PROFILE[4] = { 2, 12, 96, 480 };
 HC_ALIGN(16)
 static const u32 bzeros[4] = { 0, 0, 0, 0 };
 
+/* forward declarations */
+static void rebuild_pws_compressed_append (hc_device_param_t *device_param, const u64 pws_cnt, const u8 chr);
+
 static bool is_same_device (const hc_device_param_t *src, const hc_device_param_t *dst)
 {
   // First check by PCI address
@@ -4827,7 +4830,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
   return 0;
 }
 
-void rebuild_pws_compressed_append (hc_device_param_t *device_param, const u64 pws_cnt, const u8 chr)
+static void rebuild_pws_compressed_append (hc_device_param_t *device_param, const u64 pws_cnt, const u8 chr)
 {
   // this function is used if we have to modify the compressed pws buffer in order to
   // append some data to each password candidate
@@ -4871,11 +4874,11 @@ void rebuild_pws_compressed_append (hc_device_param_t *device_param, const u64 p
     pw_idx_dst_next->off = pw_idx_dst->off + pw_idx_dst->cnt;
   }
 
-  memcpy (device_param->pws_comp, tmp_pws_comp, device_param->size_pws_comp);
-  memcpy (device_param->pws_idx,  tmp_pws_idx,  device_param->size_pws_idx);
+  hcfree (device_param->pws_comp);
+  hcfree (device_param->pws_idx);
 
-  hcfree (tmp_pws_comp);
-  hcfree (tmp_pws_idx);
+  device_param->pws_comp = tmp_pws_comp;
+  device_param->pws_idx  = tmp_pws_idx;
 }
 
 int run_cuda_kernel_atinit (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, CUdeviceptr buf, const u64 num)
