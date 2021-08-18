@@ -8618,6 +8618,18 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         device_param->device_processors = device_processors;
 
+        // device_host_unified_memory
+
+        cl_bool device_host_unified_memory = false;
+
+        if (hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_HOST_UNIFIED_MEMORY, sizeof (device_host_unified_memory), &device_host_unified_memory, NULL) == -1)
+        {
+          device_param->skipped = true;
+          continue;
+        }
+
+        device_param->device_host_unified_memory = (device_host_unified_memory == CL_TRUE) ? 1 : 0;
+
         // device_global_mem
 
         cl_ulong device_global_mem = 0;
@@ -8643,6 +8655,13 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         }
 
         device_param->device_maxmem_alloc = device_maxmem_alloc;
+
+        if (device_param->device_host_unified_memory == 1)
+        {
+          // so, we actually have only half the memory because we need the same buffers on host side
+
+          device_param->device_maxmem_alloc /= 2;
+        }
 
         // note we'll limit to 2gb, otherwise this causes all kinds of weird errors because of possible integer overflows in opencl runtimes
         // testwise disabling that
@@ -8914,14 +8933,11 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         lowercase ((u8 *) opencl_device_version_lower, strlen (opencl_device_version_lower));
 
-        if ((strstr (opencl_device_version_lower, "neo "))
-         || (strstr (opencl_device_version_lower, " neo"))
-         || (strstr (opencl_device_version_lower, "beignet "))
+        if ((strstr (opencl_device_version_lower, "beignet "))
          || (strstr (opencl_device_version_lower, " beignet"))
          || (strstr (opencl_device_version_lower, "mesa "))
          || (strstr (opencl_device_version_lower, " mesa")))
         {
-          // NEO:     https://github.com/hashcat/hashcat/issues/2342
           // BEIGNET: https://github.com/hashcat/hashcat/issues/2243
           // MESA:    https://github.com/hashcat/hashcat/issues/2269
 
@@ -9694,11 +9710,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       device_param->device_available_mem = device_param->device_global_mem - MAX_ALLOC_CHECKS_SIZE;
 
-      #if defined (_WIN)
-      if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) && (device_param->opencl_platform_vendor_id == VENDOR_ID_NV))
-      #else
-      if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) && ((device_param->opencl_platform_vendor_id == VENDOR_ID_NV) || (device_param->opencl_platform_vendor_id == VENDOR_ID_AMD)))
-      #endif
+      if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
       {
         // OK, so the problem here is the following:
         // There's just CL_DEVICE_GLOBAL_MEM_SIZE to ask OpenCL about the total memory on the device,
@@ -9771,6 +9783,13 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       hc_clReleaseCommandQueue (hashcat_ctx, command_queue);
 
       hc_clReleaseContext (hashcat_ctx, context);
+
+      if (device_param->device_host_unified_memory == 1)
+      {
+        // so, we actually have only half the memory because we need the same buffers on host side
+
+        device_param->device_available_mem /= 2;
+      }
     }
   }
 
@@ -14614,7 +14633,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       u64 EXTRA_SPACE = (1024ULL * 1024ULL) * kernel_accel_max;
 
-      EXTRA_SPACE = MAX (EXTRA_SPACE, (  64ULL * 1024ULL * 1024ULL));
+      EXTRA_SPACE = MAX (EXTRA_SPACE, ( 256ULL * 1024ULL * 1024ULL));
       EXTRA_SPACE = MIN (EXTRA_SPACE, (1024ULL * 1024ULL * 1024ULL));
 
       if ((size_pws   + EXTRA_SPACE) > device_param->device_maxmem_alloc) memory_limit_hit = 1;
