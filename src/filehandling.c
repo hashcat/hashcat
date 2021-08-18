@@ -199,11 +199,11 @@ size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
 
   if (fp == NULL) return n;
 
-  if (fp->is_gzip)
+  if (fp->gfp)
   {
     n = gzfread (ptr, size, nmemb, fp->gfp);
   }
-  else if (fp->is_zip)
+  else if (fp->ufp)
   {
     unsigned s = size * nmemb;
 
@@ -263,11 +263,11 @@ size_t hc_fwrite (const void *ptr, size_t size, size_t nmemb, HCFILE *fp)
 
   if (fp == NULL) return n;
 
-  if (fp->is_gzip)
+  if (fp->gfp)
   {
     n = gzfwrite (ptr, size, nmemb, fp->gfp);
   }
-  else if (fp->is_zip)
+  else if (fp->ufp)
   {
   }
   else if (fp->pfp)
@@ -324,11 +324,11 @@ int hc_fseek (HCFILE *fp, off_t offset, int whence)
 
   if (fp == NULL) return r;
 
-  if (fp->is_gzip)
+  if (fp->gfp)
   {
     r = gzseek (fp->gfp, offset, whence);
   }
-  else if (fp->is_zip)
+  else if (fp->ufp)
   {
     /*
     // untested and not used in wordlist engine
@@ -361,11 +361,11 @@ void hc_rewind (HCFILE *fp)
 {
   if (fp == NULL) return;
 
-  if (fp->is_gzip)
+  if (fp->gfp)
   {
     gzrewind (fp->gfp);
   }
-  else if (fp->is_zip)
+  else if (fp->ufp)
   {
     unzGoToFirstFile (fp->ufp);
   }
@@ -381,11 +381,11 @@ off_t hc_ftell (HCFILE *fp)
 
   if (fp == NULL) return -1;
 
-  if (fp->is_gzip)
+  if (fp->gfp)
   {
     n = (off_t) gztell (fp->gfp);
   }
-  else if (fp->is_zip)
+  else if (fp->ufp)
   {
     n = unztell (fp->ufp);
   }
@@ -403,11 +403,11 @@ int hc_fputc (int c, HCFILE *fp)
 
   if (fp == NULL) return r;
 
-  if (fp->is_gzip)
+  if (fp->gfp)
   {
     r = gzputc (fp->gfp, c);
   }
-  else if (fp->is_zip)
+  else if (fp->ufp)
   {
   }
   else if (fp->pfp)
@@ -424,11 +424,11 @@ int hc_fgetc (HCFILE *fp)
 
   if (fp == NULL) return r;
 
-  if (fp->is_gzip)
+  if (fp->gfp)
   {
     r = gzgetc (fp->gfp);
   }
-  else if (fp->is_zip)
+  else if (fp->ufp)
   {
     unsigned char c = 0;
 
@@ -448,11 +448,11 @@ char *hc_fgets (char *buf, int len, HCFILE *fp)
 
   if (fp == NULL) return r;
 
-  if (fp->is_gzip)
+  if (fp->gfp)
   {
     r = gzgets (fp->gfp, buf, len);
   }
-  else if (fp->is_zip)
+  else if (fp->ufp)
   {
     if (unzReadCurrentFile (fp->ufp, buf, len) > 0) r = buf;
   }
@@ -470,11 +470,11 @@ int hc_vfprintf (HCFILE *fp, const char *format, va_list ap)
 
   if (fp == NULL) return r;
 
-  if (fp->is_gzip)
+  if (fp->gfp)
   {
     r = gzvprintf (fp->gfp, format, ap);
   }
-  else if (fp->is_zip)
+  else if (fp->ufp)
   {
   }
   else if (fp->pfp)
@@ -495,11 +495,11 @@ int hc_fprintf (HCFILE *fp, const char *format, ...)
 
   va_start (ap, format);
 
-  if (fp->is_gzip)
+  if (fp->gfp)
   {
     r = gzvprintf (fp->gfp, format, ap);
   }
-  else if (fp->is_zip)
+  else if (fp->ufp)
   {
   }
   else if (fp->pfp)
@@ -543,11 +543,11 @@ int hc_feof (HCFILE *fp)
 
   if (fp == NULL) return r;
 
-  if (fp->is_gzip)
+  if (fp->gfp)
   {
     r = gzeof (fp->gfp);
   }
-  else if (fp->is_zip)
+  else if (fp->ufp)
   {
     r = unzeof (fp->ufp);
   }
@@ -563,11 +563,11 @@ void hc_fflush (HCFILE *fp)
 {
   if (fp == NULL) return;
 
-  if (fp->is_gzip)
+  if (fp->gfp)
   {
     gzflush (fp->gfp, Z_SYNC_FLUSH);
   }
-  else if (fp->is_zip)
+  else if (fp->ufp)
   {
   }
   else if (fp->pfp)
@@ -580,11 +580,11 @@ void hc_fclose (HCFILE *fp)
 {
   if (fp == NULL) return;
 
-  if (fp->is_gzip)
+  if (fp->gfp)
   {
     gzclose (fp->gfp);
   }
-  else if (fp->is_zip)
+  else if (fp->ufp)
   {
     unzCloseCurrentFile (fp->ufp);
 
