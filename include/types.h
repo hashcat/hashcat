@@ -1075,8 +1075,6 @@ typedef struct hc_fp
   gzFile      gfp; //  gzip fp
   unzFile     ufp; //   zip fp
 
-  bool        is_gzip;
-  bool        is_zip;
   int         bom_size;
 
   const char *mode;

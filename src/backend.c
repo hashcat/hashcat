@@ -41,6 +41,9 @@ static double TARGET_MSEC_PROFILE[4] = { 2, 12, 96, 480 };
 HC_ALIGN(16)
 static const u32 bzeros[4] = { 0, 0, 0, 0 };
 
+/* forward declarations */
+static void rebuild_pws_compressed_append (hc_device_param_t *device_param, const u64 pws_cnt, const u8 chr);
+
 static bool is_same_device (const hc_device_param_t *src, const hc_device_param_t *dst)
 {
   // First check by PCI address
@@ -161,8 +164,6 @@ static int backend_ctx_find_alias_devices (hashcat_ctx_t *hashcat_ctx)
 
 static bool is_same_device_type (const hc_device_param_t *src, const hc_device_param_t *dst)
 {
-  if (strcmp (src->device_name, dst->device_name) != 0) return false;
-
   if (src->is_cuda   != dst->is_cuda)   return false;
   if (src->is_hip    != dst->is_hip)    return false;
   if (src->is_opencl != dst->is_opencl) return false;
@@ -4829,7 +4830,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
   return 0;
 }
 
-void rebuild_pws_compressed_append (hc_device_param_t *device_param, const u64 pws_cnt, const u8 chr)
+static void rebuild_pws_compressed_append (hc_device_param_t *device_param, const u64 pws_cnt, const u8 chr)
 {
   // this function is used if we have to modify the compressed pws buffer in order to
   // append some data to each password candidate
@@ -4873,11 +4874,11 @@ void rebuild_pws_compressed_append (hc_device_param_t *device_param, const u64 p
     pw_idx_dst_next->off = pw_idx_dst->off + pw_idx_dst->cnt;
   }
 
-  memcpy (device_param->pws_comp, tmp_pws_comp, device_param->size_pws_comp);
-  memcpy (device_param->pws_idx,  tmp_pws_idx,  device_param->size_pws_idx);
+  hcfree (device_param->pws_comp);
+  hcfree (device_param->pws_idx);
 
-  hcfree (tmp_pws_comp);
-  hcfree (tmp_pws_idx);
+  device_param->pws_comp = tmp_pws_comp;
+  device_param->pws_idx  = tmp_pws_idx;
 }
 
 int run_cuda_kernel_atinit (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, CUdeviceptr buf, const u64 num)
@@ -5281,29 +5282,26 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
   {
     CUfunction cuda_function = NULL;
 
-    if (device_param->is_cuda == true)
+    switch (kern_run)
     {
-      switch (kern_run)
-      {
-        case KERN_RUN_1:      cuda_function = device_param->cuda_function1;       break;
-        case KERN_RUN_12:     cuda_function = device_param->cuda_function12;      break;
-        case KERN_RUN_2P:     cuda_function = device_param->cuda_function2p;      break;
-        case KERN_RUN_2:      cuda_function = device_param->cuda_function2;       break;
-        case KERN_RUN_2E:     cuda_function = device_param->cuda_function2e;      break;
-        case KERN_RUN_23:     cuda_function = device_param->cuda_function23;      break;
-        case KERN_RUN_3:      cuda_function = device_param->cuda_function3;       break;
-        case KERN_RUN_4:      cuda_function = device_param->cuda_function4;       break;
-        case KERN_RUN_INIT2:  cuda_function = device_param->cuda_function_init2;  break;
-        case KERN_RUN_LOOP2P: cuda_function = device_param->cuda_function_loop2p; break;
-        case KERN_RUN_LOOP2:  cuda_function = device_param->cuda_function_loop2;  break;
-        case KERN_RUN_AUX1:   cuda_function = device_param->cuda_function_aux1;   break;
-        case KERN_RUN_AUX2:   cuda_function = device_param->cuda_function_aux2;   break;
-        case KERN_RUN_AUX3:   cuda_function = device_param->cuda_function_aux3;   break;
-        case KERN_RUN_AUX4:   cuda_function = device_param->cuda_function_aux4;   break;
-      }
-
-      if (hc_cuFuncSetAttribute (hashcat_ctx, cuda_function, CU_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES, dynamic_shared_mem) == -1) return -1;
+      case KERN_RUN_1:      cuda_function = device_param->cuda_function1;       break;
+      case KERN_RUN_12:     cuda_function = device_param->cuda_function12;      break;
+      case KERN_RUN_2P:     cuda_function = device_param->cuda_function2p;      break;
+      case KERN_RUN_2:      cuda_function = device_param->cuda_function2;       break;
+      case KERN_RUN_2E:     cuda_function = device_param->cuda_function2e;      break;
+      case KERN_RUN_23:     cuda_function = device_param->cuda_function23;      break;
+      case KERN_RUN_3:      cuda_function = device_param->cuda_function3;       break;
+      case KERN_RUN_4:      cuda_function = device_param->cuda_function4;       break;
+      case KERN_RUN_INIT2:  cuda_function = device_param->cuda_function_init2;  break;
+      case KERN_RUN_LOOP2P: cuda_function = device_param->cuda_function_loop2p; break;
+      case KERN_RUN_LOOP2:  cuda_function = device_param->cuda_function_loop2;  break;
+      case KERN_RUN_AUX1:   cuda_function = device_param->cuda_function_aux1;   break;
+      case KERN_RUN_AUX2:   cuda_function = device_param->cuda_function_aux2;   break;
+      case KERN_RUN_AUX3:   cuda_function = device_param->cuda_function_aux3;   break;
+      case KERN_RUN_AUX4:   cuda_function = device_param->cuda_function_aux4;   break;
     }
+
+    if (hc_cuFuncSetAttribute (hashcat_ctx, cuda_function, CU_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES, dynamic_shared_mem) == -1) return -1;
 
     if (kernel_threads == 0) kernel_threads = 1;
 
@@ -5353,8 +5351,6 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
     if (hc_cuEventSynchronize (hashcat_ctx, device_param->cuda_event2) == -1) return -1;
 
-    if (hc_cuEventSynchronize (hashcat_ctx, device_param->cuda_event1) == -1) return -1;
-
     float exec_ms;
 
     if (hc_cuEventElapsedTime (hashcat_ctx, &exec_ms, device_param->cuda_event1, device_param->cuda_event2) == -1) return -1;
@@ -5380,29 +5376,26 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
   {
     hipFunction_t hip_function = NULL;
 
-    if (device_param->is_hip == true)
+    switch (kern_run)
     {
-      switch (kern_run)
-      {
-        case KERN_RUN_1:      hip_function = device_param->hip_function1;       break;
-        case KERN_RUN_12:     hip_function = device_param->hip_function12;      break;
-        case KERN_RUN_2P:     hip_function = device_param->hip_function2p;      break;
-        case KERN_RUN_2:      hip_function = device_param->hip_function2;       break;
-        case KERN_RUN_2E:     hip_function = device_param->hip_function2e;      break;
-        case KERN_RUN_23:     hip_function = device_param->hip_function23;      break;
-        case KERN_RUN_3:      hip_function = device_param->hip_function3;       break;
-        case KERN_RUN_4:      hip_function = device_param->hip_function4;       break;
-        case KERN_RUN_INIT2:  hip_function = device_param->hip_function_init2;  break;
-        case KERN_RUN_LOOP2P: hip_function = device_param->hip_function_loop2p; break;
-        case KERN_RUN_LOOP2:  hip_function = device_param->hip_function_loop2;  break;
-        case KERN_RUN_AUX1:   hip_function = device_param->hip_function_aux1;   break;
-        case KERN_RUN_AUX2:   hip_function = device_param->hip_function_aux2;   break;
-        case KERN_RUN_AUX3:   hip_function = device_param->hip_function_aux3;   break;
-        case KERN_RUN_AUX4:   hip_function = device_param->hip_function_aux4;   break;
-      }
-
-      //if (hc_hipFuncSetAttribute (hashcat_ctx, hip_function, HIP_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES, dynamic_shared_mem) == -1) return -1;
+      case KERN_RUN_1:      hip_function = device_param->hip_function1;       break;
+      case KERN_RUN_12:     hip_function = device_param->hip_function12;      break;
+      case KERN_RUN_2P:     hip_function = device_param->hip_function2p;      break;
+      case KERN_RUN_2:      hip_function = device_param->hip_function2;       break;
+      case KERN_RUN_2E:     hip_function = device_param->hip_function2e;      break;
+      case KERN_RUN_23:     hip_function = device_param->hip_function23;      break;
+      case KERN_RUN_3:      hip_function = device_param->hip_function3;       break;
+      case KERN_RUN_4:      hip_function = device_param->hip_function4;       break;
+      case KERN_RUN_INIT2:  hip_function = device_param->hip_function_init2;  break;
+      case KERN_RUN_LOOP2P: hip_function = device_param->hip_function_loop2p; break;
+      case KERN_RUN_LOOP2:  hip_function = device_param->hip_function_loop2;  break;
+      case KERN_RUN_AUX1:   hip_function = device_param->hip_function_aux1;   break;
+      case KERN_RUN_AUX2:   hip_function = device_param->hip_function_aux2;   break;
+      case KERN_RUN_AUX3:   hip_function = device_param->hip_function_aux3;   break;
+      case KERN_RUN_AUX4:   hip_function = device_param->hip_function_aux4;   break;
     }
+
+    //if (hc_hipFuncSetAttribute (hashcat_ctx, hip_function, HIP_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES, dynamic_shared_mem) == -1) return -1;
 
     if (kernel_threads == 0) kernel_threads = 1;
 
@@ -5477,26 +5470,23 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
   {
     cl_kernel opencl_kernel = NULL;
 
-    if (device_param->is_opencl == true)
+    switch (kern_run)
     {
-      switch (kern_run)
-      {
-        case KERN_RUN_1:      opencl_kernel = device_param->opencl_kernel1;       break;
-        case KERN_RUN_12:     opencl_kernel = device_param->opencl_kernel12;      break;
-        case KERN_RUN_2P:     opencl_kernel = device_param->opencl_kernel2p;      break;
-        case KERN_RUN_2:      opencl_kernel = device_param->opencl_kernel2;       break;
-        case KERN_RUN_2E:     opencl_kernel = device_param->opencl_kernel2e;      break;
-        case KERN_RUN_23:     opencl_kernel = device_param->opencl_kernel23;      break;
-        case KERN_RUN_3:      opencl_kernel = device_param->opencl_kernel3;       break;
-        case KERN_RUN_4:      opencl_kernel = device_param->opencl_kernel4;       break;
-        case KERN_RUN_INIT2:  opencl_kernel = device_param->opencl_kernel_init2;  break;
-        case KERN_RUN_LOOP2P: opencl_kernel = device_param->opencl_kernel_loop2p; break;
-        case KERN_RUN_LOOP2:  opencl_kernel = device_param->opencl_kernel_loop2;  break;
-        case KERN_RUN_AUX1:   opencl_kernel = device_param->opencl_kernel_aux1;   break;
-        case KERN_RUN_AUX2:   opencl_kernel = device_param->opencl_kernel_aux2;   break;
-        case KERN_RUN_AUX3:   opencl_kernel = device_param->opencl_kernel_aux3;   break;
-        case KERN_RUN_AUX4:   opencl_kernel = device_param->opencl_kernel_aux4;   break;
-      }
+      case KERN_RUN_1:      opencl_kernel = device_param->opencl_kernel1;       break;
+      case KERN_RUN_12:     opencl_kernel = device_param->opencl_kernel12;      break;
+      case KERN_RUN_2P:     opencl_kernel = device_param->opencl_kernel2p;      break;
+      case KERN_RUN_2:      opencl_kernel = device_param->opencl_kernel2;       break;
+      case KERN_RUN_2E:     opencl_kernel = device_param->opencl_kernel2e;      break;
+      case KERN_RUN_23:     opencl_kernel = device_param->opencl_kernel23;      break;
+      case KERN_RUN_3:      opencl_kernel = device_param->opencl_kernel3;       break;
+      case KERN_RUN_4:      opencl_kernel = device_param->opencl_kernel4;       break;
+      case KERN_RUN_INIT2:  opencl_kernel = device_param->opencl_kernel_init2;  break;
+      case KERN_RUN_LOOP2P: opencl_kernel = device_param->opencl_kernel_loop2p; break;
+      case KERN_RUN_LOOP2:  opencl_kernel = device_param->opencl_kernel_loop2;  break;
+      case KERN_RUN_AUX1:   opencl_kernel = device_param->opencl_kernel_aux1;   break;
+      case KERN_RUN_AUX2:   opencl_kernel = device_param->opencl_kernel_aux2;   break;
+      case KERN_RUN_AUX3:   opencl_kernel = device_param->opencl_kernel_aux3;   break;
+      case KERN_RUN_AUX4:   opencl_kernel = device_param->opencl_kernel_aux4;   break;
     }
 
     for (u32 i = 0; i <= 23; i++)
@@ -6529,7 +6519,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
               if (device_param->is_opencl == true)
               {
-                if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_combs_c, CL_TRUE, 0, innerloop_left * sizeof (pw_t), device_param->combs_buf, 0, NULL, NULL) == -1) return -1;
+                if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_combs_c, CL_FALSE, 0, innerloop_left * sizeof (pw_t), device_param->combs_buf, 0, NULL, NULL) == -1) return -1;
               }
             }
             else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
@@ -15674,6 +15664,8 @@ int backend_session_update_mp (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_root_css_buf,   CL_FALSE, 0, device_param->size_root_css,   mask_ctx->root_css_buf,   0, NULL, NULL) == -1) return -1;
       if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_markov_css_buf, CL_FALSE, 0, device_param->size_markov_css, mask_ctx->markov_css_buf, 0, NULL, NULL) == -1) return -1;
+
+      if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
     }
   }
 
@@ -15745,6 +15737,8 @@ int backend_session_update_mp_rl (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_
 
       if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_root_css_buf,   CL_FALSE, 0, device_param->size_root_css,   mask_ctx->root_css_buf,   0, NULL, NULL) == -1) return -1;
       if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_markov_css_buf, CL_FALSE, 0, device_param->size_markov_css, mask_ctx->markov_css_buf, 0, NULL, NULL) == -1) return -1;
+
+      if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
     }
   }
 

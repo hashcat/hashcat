@@ -133,9 +133,15 @@ int debugfile_init (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
-    debugfile_ctx->fp.is_gzip = false;
-    debugfile_ctx->fp.pfp = stdout;
-    debugfile_ctx->fp.fd = fileno (stdout);
+    HCFILE *fp = &debugfile_ctx->fp;
+
+    fp->fd       = fileno (stdout);
+    fp->pfp      = stdout;
+    fp->gfp      = NULL;
+    fp->ufp      = NULL;
+    fp->bom_size = 0;
+    fp->path     = NULL;
+    fp->mode     = NULL;
   }
 
   return 0;
