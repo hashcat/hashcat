@@ -734,6 +734,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
+    // if the tokenizer reports PARSER_OK, then modify the input line artificially to match the new input line format
     if (rc_tokenizer == PARSER_OK)
     {
       tmp_len = snprintf (tmp_buf, sizeof (tmp_buf), "WPA*01*%s***", line_buf);
