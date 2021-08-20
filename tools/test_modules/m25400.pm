@@ -155,6 +155,11 @@ sub module_generate_hash
     $enc = ($R == 3) ? 1 : random_number (0, 1);
   }
 
+  if (!defined $u_pass)
+  {
+    $u_pass="";
+  }
+
   my $padding;
 
   for (my $i = 0; $i < 32; $i++)
