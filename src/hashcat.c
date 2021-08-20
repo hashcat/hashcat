@@ -1624,6 +1624,8 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->benchmark == true)
   {
+    const bool quiet_sav = user_options->quiet;
+
     user_options->quiet = true;
 
     if (user_options->hash_mode_chgd == true)
@@ -1648,17 +1650,19 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
       }
     }
 
-    user_options->quiet = false;
+    user_options->quiet = quiet_sav;
   }
   else
   {
+    const bool quiet_sav = user_options->quiet;
+
     if (user_options->speed_only == true) user_options->quiet = true;
 
     rc_final = outer_loop (hashcat_ctx);
 
     if (rc_final == -1) myabort (hashcat_ctx);
 
-    if (user_options->speed_only == true) user_options->quiet = false;
+    if (user_options->speed_only == true) user_options->quiet = quiet_sav;
   }
 
   EVENT (EVENT_OUTERLOOP_FINISHED);

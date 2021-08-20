@@ -27,6 +27,7 @@
 - Fixed segfault when a combination of the flags --user and --show is given and a hash was specified directly on the command line
 - Fixed syntax check of HAS_VPERM macro in several kernel includes causing invalid error message for AMD GPUs on Windows
 - Fixed uninitialized tmps variable in autotune for slow hashes by calling _init and _prepare kernel before calling _loop kernel
+- Fixed unintentional overwriting of the --quiet option in benchmark and speed-only mode
 
 ##
 ## Performance
