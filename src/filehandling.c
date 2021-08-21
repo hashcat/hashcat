@@ -96,19 +96,19 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
     close (fd_tmp);
   }
 
+  if (fmode == -1)
+  {
+    fp->fd = open (path, oflag);
+  }
+  else
+  {
+    fp->fd = open (path, oflag, fmode);
+  }
+
+  if (fp->fd == -1) return false;
+
   if (is_zip == false)
   {
-    if (fmode == -1)
-    {
-      fp->fd = open (path, oflag);
-    }
-    else
-    {
-      fp->fd = open (path, oflag, fmode);
-    }
-
-    if (fp->fd == -1) return false;
-
     if (is_gzip)
     {
       if ((fp->gfp = gzdopen (fp->fd, mode)) == NULL) return false;
@@ -389,6 +389,13 @@ void hc_rewind (HCFILE *fp)
   }
 }
 
+int hc_fstat (HCFILE *fp, struct stat *buf)
+{
+  if (fp == NULL || buf == NULL || fp->fd == -1) return -1;
+
+  return fstat (fp->fd, buf);
+}
+
 off_t hc_ftell (HCFILE *fp)
 {
   off_t n = 0;
@@ -544,13 +551,6 @@ int hc_fscanf (HCFILE *fp, const char *format, void *ptr)
   return 1;
 }
 
-int hc_fileno (HCFILE *fp)
-{
-  if (fp == NULL) return 1;
-
-  return fp->fd;
-}
-
 int hc_feof (HCFILE *fp)
 {
   int r = -1;
@@ -590,6 +590,22 @@ void hc_fflush (HCFILE *fp)
   }
 }
 
+void hc_fsync (HCFILE *fp)
+{
+  if (fp == NULL) return;
+
+  if (fp->pfp)
+  {
+#if defined (_WIN)
+    HANDLE h = (HANDLE) _get_osfhandle (fp->fd);
+
+    FlushFileBuffers (h);
+#else
+    fsync (fp->fd);
+#endif
+  }
+}
+
 void hc_fclose (HCFILE *fp)
 {
   if (fp == NULL) return;
@@ -603,6 +619,8 @@ void hc_fclose (HCFILE *fp)
     unzCloseCurrentFile (fp->ufp);
 
     unzClose (fp->ufp);
+
+    close (fp->fd);
   }
   else if (fp->pfp)
   {

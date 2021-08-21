@@ -13,15 +13,6 @@
 #include "folder.h"
 #include "restore.h"
 
-#if defined (_WIN)
-static void fsync (int fd)
-{
-  HANDLE h = (HANDLE) _get_osfhandle (fd);
-
-  FlushFileBuffers (h);
-}
-#endif
-
 static int init_restore (hashcat_ctx_t *hashcat_ctx)
 {
   restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
@@ -232,7 +223,7 @@ static int write_restore (hashcat_ctx_t *hashcat_ctx)
 
   hc_fflush (&fp);
 
-  fsync (hc_fileno (&fp));
+  hc_fsync (&fp);
 
   hc_fclose (&fp);
 
