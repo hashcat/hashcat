@@ -5157,6 +5157,15 @@ int run_opencl_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
   const u64 num16d = size / 16;
   const u64 num16m = size % 16;
 
+  // with apple GPU clEnqueueWriteBuffer() return CL_INVALID_VALUE, workaround
+
+  if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE && \
+     (device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK || device_param->opencl_device_vendor_id == VENDOR_ID_APPLE) && \
+     device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
+  {
+    return run_opencl_kernel_memset (hashcat_ctx, device_param, buf, 0, 0, size);
+  }
+
   if (num16d)
   {
     const u64 kernel_threads = device_param->kernel_wgs_bzero;
