@@ -693,7 +693,7 @@ bool hc_same_files (char *file1, char *file2)
 
     if (hc_fopen (&fp, file1, "r") == true)
     {
-      if (fstat (hc_fileno (&fp), &tmpstat_file1))
+      if (hc_fstat (&fp, &tmpstat_file1))
       {
         hc_fclose (&fp);
 
@@ -707,7 +707,7 @@ bool hc_same_files (char *file1, char *file2)
 
     if (hc_fopen (&fp, file2, "r") == true)
     {
-      if (fstat (hc_fileno (&fp), &tmpstat_file2))
+      if (hc_fstat (&fp, &tmpstat_file2))
       {
         hc_fclose (&fp);
 

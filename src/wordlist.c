@@ -343,7 +343,7 @@ int count_words (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, const char *dictfile, u
 
   memset (&d, 0, sizeof (d));
 
-  if (fstat (hc_fileno (fp), &d.stat))
+  if (hc_fstat (fp, &d.stat))
   {
     *result = 0;
 

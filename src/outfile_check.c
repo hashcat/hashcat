@@ -163,7 +163,7 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
       struct stat outfile_stat;
 
-      if (fstat (hc_fileno (&fp), &outfile_stat))
+      if (hc_fstat (&fp, &outfile_stat))
       {
         hc_fclose (&fp);
 
