@@ -3556,7 +3556,7 @@ int ocl_init (hashcat_ctx_t *hashcat_ctx)
   HC_LOAD_FUNC (ocl, clWaitForEvents,           OCL_CLWAITFOREVENTS,            OpenCL, 1);
   HC_LOAD_FUNC (ocl, clGetEventProfilingInfo,   OCL_CLGETEVENTPROFILINGINFO,    OpenCL, 1);
   HC_LOAD_FUNC (ocl, clReleaseEvent,            OCL_CLRELEASEEVENT,             OpenCL, 1);
-  HC_LOAD_FUNC (ocl, clUnloadPlatformCompiler,  OCL_CLUNLOADPLATFORMCOMPILER,   OpenCL, 1);
+  //HC_LOAD_FUNC (ocl, clUnloadPlatformCompiler,  OCL_CLUNLOADPLATFORMCOMPILER,   OpenCL, 1);
 
   return 0;
 }
@@ -4225,6 +4225,7 @@ int hc_clReleaseEvent (hashcat_ctx_t *hashcat_ctx, cl_event event)
   return 0;
 }
 
+/*
 int hc_clUnloadPlatformCompiler (hashcat_ctx_t *hashcat_ctx, cl_platform_id platform)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
@@ -4242,6 +4243,7 @@ int hc_clUnloadPlatformCompiler (hashcat_ctx_t *hashcat_ctx, cl_platform_id plat
 
   return 0;
 }
+*/
 
 // Backend
 
@@ -11922,13 +11924,15 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
      * from opencl specs:
      * Calls to clBuildProgram, clCompileProgram or clLinkProgram after clUnloadPlatformCompiler will reload the compiler, if necessary, to build the appropriate program executable.
      */
-
+    // Disabled after user reporting weird errors like CL_OUT_OF_HOST_MEMORY after calling
+    /*
     if (device_param->is_opencl == true)
     {
       cl_platform_id platform_id = backend_ctx->opencl_platforms[device_param->opencl_platform_id];
 
       if (hc_clUnloadPlatformCompiler (hashcat_ctx, platform_id) == -1) return -1;
     }
+    */
 
     // some algorithm collide too fast, make that impossible
 

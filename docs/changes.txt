@@ -69,6 +69,7 @@
 - Memory Management: Check in OpenCL that CL_DEVICE_HOST_UNIFIED_MEMORY is true and if so, then half of the available memory
 - NEO driver: Activate the NEO driver (Intel GPU) after it passed several tests in hashcat using the latest NEO driver version
 - OpenCL Runtime: Workaround for Intel OpenCL runtime: segmentation fault when compiling hc_enc_next() / hc_enc_next_global()
+- OpenCL Runtime: The use of clUnloadPlatformCompiler () was disabled after some users received unexpected return codes
 - RC4 Kernels: Use improved native thread derivation for RC4-based hash modes 7500, 13100, 18200, 25400
 - Shared Memory: Calculate the dynamic memory size of the kernel based on CU_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_BLOCK_OPTIN
 - Slow kernels: Set some of the slowest kernels to OPTS_TYPE_MP_MULTI_DISABLE to make it easier to handle small word lists
