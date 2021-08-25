@@ -1067,6 +1067,8 @@ typedef struct link_speed
 
 // file handling
 
+typedef struct xzfile xzfile_t;
+
 typedef struct hc_fp
 {
   int         fd;
@@ -1074,6 +1076,7 @@ typedef struct hc_fp
   FILE       *pfp; // plain fp
   gzFile      gfp; //  gzip fp
   unzFile     ufp; //   zip fp
+  xzfile_t   *xfp; //    xz fp
 
   int         bom_size;
 
