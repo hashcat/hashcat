@@ -1423,7 +1423,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     hashcat_status->status_string);
 
   event_log_info (hashcat_ctx,
-    "Hash.Name........: %i - %s",
+    "Hash.Mode........: %d (%s)",
     hashconfig->hash_mode,
     hashcat_status->hash_name);
 
