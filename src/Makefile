@@ -192,6 +192,10 @@ CFLAGS                  += -Wno-enum-conversion
 CFLAGS                  += -Wno-typedef-redefinition
 endif
 
+ifeq ($(USE_SYSTEM_LZMA),0)
+CFLAGS_LZMA             += -D_7ZIP_ST
+endif
+
 ## because ZLIB
 ifeq ($(USE_SYSTEM_ZLIB),0)
 CFLAGS_ZLIB             += -Wno-implicit-fallthrough
@@ -370,7 +374,7 @@ LINUX_OBJS              := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).LINUX.o)
 WIN_OBJS                := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).WIN.o)
 
 ifeq ($(USE_SYSTEM_LZMA),0)
-OBJS_LZMA               := 7zCrc 7zCrcOpt 7zFile 7zStream Alloc Bra Bra86 BraIA64 CpuArch Delta Lzma2Dec LzmaDec MtDec Sha256 Sha256Opt Threads Xz XzCrc64 XzCrc64Opt XzDec
+OBJS_LZMA               := 7zCrc 7zCrcOpt 7zFile 7zStream Alloc Bra Bra86 BraIA64 CpuArch Delta LzmaDec Lzma2Dec Sha256 Sha256Opt Xz XzCrc64 XzCrc64Opt XzDec
 
 NATIVE_OBJS             += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).LZMA.NATIVE.o)
 LINUX_OBJS              += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).LZMA.LINUX.o)
@@ -563,7 +567,7 @@ obj/%.NATIVE.o: src/%.c
 
 ifeq ($(USE_SYSTEM_LZMA),0)
 obj/%.LZMA.NATIVE.o: $(DEPS_LZMA_PATH)/%.c
-	$(CC) -c $(CCFLAGS) $(CFLAGS_NATIVE) $< -o $@ -fpic
+	$(CC) -c $(CCFLAGS) $(CFLAGS_NATIVE) $(CFLAGS_LZMA) $< -o $@ -fpic
 endif
 
 ifeq ($(USE_SYSTEM_ZLIB),0)
@@ -736,10 +740,10 @@ obj/%.WIN.o:   src/%.c
 
 ifeq ($(USE_SYSTEM_LZMA),0)
 obj/%.LZMA.LINUX.o: $(DEPS_LZMA_PATH)/%.c
-	$(CC_LINUX) $(CCFLAGS) $(CFLAGS_CROSS_LINUX) -c -o $@ $<
+	$(CC_LINUX) $(CCFLAGS) $(CFLAGS_CROSS_LINUX) $(CFLAGS_LZMA) -c -o $@ $<
 
 obj/%.LZMA.WIN.o:   $(DEPS_LZMA_PATH)/%.c
-	$(CC_WIN)   $(CCFLAGS) $(CFLAGS_CROSS_WIN)   -c -o $@ $<
+	$(CC_WIN)   $(CCFLAGS) $(CFLAGS_CROSS_WIN)   $(CFLAGS_LZMA) -c -o $@ $<
 endif
 
 ifeq ($(USE_SYSTEM_ZLIB),0)
