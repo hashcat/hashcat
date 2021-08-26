@@ -157,6 +157,7 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
     if (xz_initialized == false)
     {
       CrcGenerateTable ();
+      Sha256Prepare ();
       xz_initialized = true;
     }
 
@@ -399,7 +400,7 @@ size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
       SizeT outLeft = outLen - outPos;
       res = XzUnpacker_Code (&xfp->state, outBuf + outPos, &outLeft, xfp->inBuf + xfp->inPos, &inLeft, inLeft == 0, CODER_FINISH_ANY, &status);
       xfp->inPos += inLeft;
-      xfp->inProcessed  += inLeft;
+      xfp->inProcessed += inLeft;
       if (res != SZ_OK) return -1;
       if (inLeft == 0 && outLeft == 0) break;
       outPos += outLeft;
@@ -659,7 +660,7 @@ int hc_fgetc (HCFILE *fp)
     res = XzUnpacker_Code (&xfp->state, &out, &outLeft, xfp->inBuf + xfp->inPos, &inLeft, inLeft == 0, CODER_FINISH_ANY, &status);
     if (inLeft == 0 && outLeft == 0) return r;
     xfp->inPos += inLeft;
-    xfp->inProcessed  += inLeft;
+    xfp->inProcessed += inLeft;
     if (res != SZ_OK) return r;
     xfp->outProcessed++;
     r = (int) out;
@@ -672,7 +673,7 @@ char *hc_fgets (char *buf, int len, HCFILE *fp)
 {
   char *r = NULL;
 
-  if (fp == NULL || len <= 0) return r;
+  if (fp == NULL || buf == NULL || len <= 0) return r;
 
   if (fp->pfp)
   {
@@ -711,7 +712,7 @@ char *hc_fgets (char *buf, int len, HCFILE *fp)
       res = XzUnpacker_Code (&xfp->state, outBuf, &outLeft, xfp->inBuf + xfp->inPos, &inLeft, inLeft == 0, CODER_FINISH_ANY, &status);
       if (inLeft == 0 && outLeft == 0) break;
       xfp->inPos += inLeft;
-      xfp->inProcessed  += inLeft;
+      xfp->inProcessed += inLeft;
       if (res != SZ_OK) break;
       xfp->outProcessed++;
       if (*outBuf++ == '\n')
