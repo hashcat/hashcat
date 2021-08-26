@@ -31,14 +31,17 @@ static const ISzAlloc xz_alloc = { hc_lzma_alloc, hc_lzma_free };
 struct xzfile
 {  
   CAlignOffsetAlloc  alloc;
+  UInt64             inBlocks;
   Byte              *inBuf;
   bool               inEof;
   SizeT              inLen;
   SizeT              inPos;
   Int64              inProcessed;
-  CFileSeqInStream   inStream;
+  CFileInStream      inStream;
   Int64              outProcessed;
+  UInt64             outSize;
   CXzUnpacker        state;
+  CXzs               streams;
 };
 
 #if defined (__CYGWIN__)
@@ -177,9 +180,9 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
       return false;
     }
 
-    /* open file */
-    CFileSeqInStream *inStream = &xfp->inStream;
-    FileSeqInStream_CreateVTable (inStream);
+    /* open the file */
+    CFileInStream *inStream = &xfp->inStream;
+    FileInStream_CreateVTable (inStream);
     CSzFile *file = &inStream->file;
     File_Construct (file);
     WRes wres = InFile_Open (file, path);
@@ -191,11 +194,39 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
       return false;
     }
 
-    /* fill buffer */
+    /* scan the file */
+    CLookToRead2 lookStream;
+    LookToRead2_CreateVTable (&lookStream, false);
+    lookStream.buf = xfp->inBuf;
+    lookStream.bufSize = XZFILE_BUFFER_SIZE;
+    lookStream.realStream = &inStream->vt;
+    LookToRead2_Init (&lookStream);
+    Xzs_Construct (&xfp->streams);
+    Int64 offset = 0;
+    SRes res = Xzs_ReadBackward (&xfp->streams, &lookStream.vt, &offset, NULL, alloc);
+    if (res != SZ_OK || offset != 0)
+    {
+      Xzs_Free (&xfp->streams, alloc);
+      File_Close (file);
+      ISzAlloc_Free (alloc, xfp->inBuf);
+      hcfree (xfp);
+      close (fp->fd);
+      return false;
+    }
+
+    xfp->inBlocks = Xzs_GetNumBlocks (&xfp->streams);
+    xfp->outSize = Xzs_GetUnpackSize (&xfp->streams);
+
+    /* seek to start of the file and fill the buffer */
     SizeT inLen = XZFILE_BUFFER_SIZE;
-    SRes res = ISeqInStream_Read (&inStream->vt, xfp->inBuf, &inLen);
+    res = ISeekInStream_Seek (&inStream->vt, &offset, SZ_SEEK_SET);
+    if (res == SZ_OK)
+    {
+      res = ISeekInStream_Read (&inStream->vt, xfp->inBuf, &inLen);
+    }
     if (res != SZ_OK || inLen == 0)
     {
+      Xzs_Free (&xfp->streams, alloc);
       File_Close (file);
       ISzAlloc_Free (alloc, xfp->inBuf);
       hcfree (xfp);
@@ -214,6 +245,7 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
     if (res != SZ_OK)
     {
       XzUnpacker_Free (state);
+      Xzs_Free (&xfp->streams, alloc);
       File_Close (file);
       ISzAlloc_Free (alloc, xfp->inBuf);
       hcfree (xfp);
@@ -390,7 +422,7 @@ size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
       {
         xfp->inPos = 0;
         xfp->inLen = XZFILE_BUFFER_SIZE;
-        res = ISeqInStream_Read (&xfp->inStream.vt, xfp->inBuf, &xfp->inLen);
+        res = ISeekInStream_Read (&xfp->inStream.vt, xfp->inBuf, &xfp->inLen);
         if (res != SZ_OK || xfp->inLen == 0) xfp->inEof = true;
       }
 
@@ -542,15 +574,16 @@ void hc_rewind (HCFILE *fp)
     xfp->outProcessed = 0;
 
     /* reset */
-    Int64 begin = 0;
-    CFileSeqInStream *inStream = &xfp->inStream;
-    File_Seek (&inStream->file, &begin, SZ_SEEK_SET);
+    Int64 offset = 0;
+    CFileInStream *inStream = &xfp->inStream;
+    SRes res = ISeekInStream_Seek (&inStream->vt, &offset, SZ_SEEK_SET);
+    if (res != SZ_OK) return;
     CXzUnpacker *state = &xfp->state;
     XzUnpacker_Init (&xfp->state);
 
-    /* fill buffer */
+    /* fill the buffer */
     SizeT inLen = XZFILE_BUFFER_SIZE;
-    SRes res = ISeqInStream_Read (&inStream->vt, xfp->inBuf, &inLen);
+    res = ISeekInStream_Read (&inStream->vt, xfp->inBuf, &inLen);
     if (res != SZ_OK || inLen == 0) return;
 
     xfp->inLen = inLen;
@@ -566,10 +599,29 @@ void hc_rewind (HCFILE *fp)
 
 int hc_fstat (HCFILE *fp, struct stat *buf)
 {
-  if (fp == NULL || buf == NULL || fp->fd == -1) return -1;
+  int r = -1;
 
-  /* TODO: For compressed files hc_ftell() reports uncompressed bytes, but hc_fstat() reports compressed bytes */
-  return fstat (fp->fd, buf);
+  if (fp == NULL || buf == NULL || fp->fd == -1) return r;
+
+  r = fstat (fp->fd, buf);
+  if (r != 0) return r;
+
+  if (fp->gfp)
+  {
+    /* TODO: For compressed files hc_ftell() reports uncompressed bytes, but hc_fstat() reports compressed bytes */
+  }
+  else if (fp->ufp)
+  {
+    /* TODO: For compressed files hc_ftell() reports uncompressed bytes, but hc_fstat() reports compressed bytes */
+  }
+  else if (fp->xfp)
+  {
+    /* uncompressed bytes */
+    const xzfile_t *xfp = fp->xfp;
+    buf->st_size = (off_t) xfp->outSize;
+  }
+
+  return r;
 }
 
 off_t hc_ftell (HCFILE *fp)
@@ -649,7 +701,7 @@ int hc_fgetc (HCFILE *fp)
     {
       xfp->inPos = 0;
       xfp->inLen = XZFILE_BUFFER_SIZE;
-      res = ISeqInStream_Read (&xfp->inStream.vt, xfp->inBuf, &xfp->inLen);
+      res = ISeekInStream_Read (&xfp->inStream.vt, xfp->inBuf, &xfp->inLen);
       if (res != SZ_OK || xfp->inLen == 0) xfp->inEof = true;
     }
 
@@ -701,7 +753,7 @@ char *hc_fgets (char *buf, int len, HCFILE *fp)
       {
         xfp->inPos = 0;
         xfp->inLen = XZFILE_BUFFER_SIZE;
-        res = ISeqInStream_Read (&xfp->inStream.vt, xfp->inBuf, &xfp->inLen);
+        res = ISeekInStream_Read (&xfp->inStream.vt, xfp->inBuf, &xfp->inLen);
         if (res != SZ_OK || xfp->inLen == 0) xfp->inEof = true;
       }
 
@@ -872,9 +924,11 @@ void hc_fclose (HCFILE *fp)
   else if (fp->xfp)
   {
     xzfile_t *xfp = fp->xfp;
+    ISzAllocPtr alloc = &xfp->alloc.vt;
     XzUnpacker_Free (&xfp->state);
+    Xzs_Free (&xfp->streams, alloc);
     File_Close (&xfp->inStream.file);
-    ISzAlloc_Free (&xfp->alloc.vt, xfp->inBuf);
+    ISzAlloc_Free (alloc, xfp->inBuf);
     hcfree (xfp);
     close (fp->fd);
   }
