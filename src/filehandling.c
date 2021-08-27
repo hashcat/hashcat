@@ -10,7 +10,7 @@
 #include "filehandling.h"
 
 #include <Alloc.h>
-#include <7ZCrc.h>
+#include <7zCrc.h>
 #include <7zFile.h>
 #include <xz.h>
 
