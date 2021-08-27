@@ -452,11 +452,11 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
     {
       if ((hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL) && (hashconfig->is_salted == true))
       {
-        event_log_info (hashcat_ctx, "Hash.Mode........: %d (%s) (Iterations: %d)", hashconfig->hash_mode, hashconfig->hash_name, hashes[0].salts_buf[0].salt_iter);
+        event_log_info (hashcat_ctx, "Hash.Mode: %d (%s) [Iterations: %d]", hashconfig->hash_mode, hashconfig->hash_name, hashes[0].salts_buf[0].salt_iter);
       }
       else
       {
-        event_log_info (hashcat_ctx, "Hash.Mode........: %d (%s)", hashconfig->hash_mode, hashconfig->hash_name);
+        event_log_info (hashcat_ctx, "Hash.Mode: %d (%s)", hashconfig->hash_mode, hashconfig->hash_name);
       }
     }
   }
