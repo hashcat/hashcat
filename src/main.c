@@ -450,14 +450,29 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
   {
     if (user_options->machine_readable == false)
     {
+      char buf[HCBUFSIZ_TINY] = { 0 };
+
+      size_t len = 0;
+
       if ((hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL) && (hashconfig->is_salted == true))
       {
-        event_log_info (hashcat_ctx, "Hash.Mode: %d (%s) [Iterations: %d]", hashconfig->hash_mode, hashconfig->hash_name, hashes[0].salts_buf[0].salt_iter);
+        len = snprintf (buf, sizeof (buf), "* Hash-Mode %d (%s) [Iterations: %d]", hashconfig->hash_mode, hashconfig->hash_name, hashes[0].salts_buf[0].salt_iter);
       }
       else
       {
-        event_log_info (hashcat_ctx, "Hash.Mode: %d (%s)", hashconfig->hash_mode, hashconfig->hash_name);
+        len = snprintf (buf, sizeof (buf), "* Hash-Mode %d (%s)", hashconfig->hash_mode, hashconfig->hash_name);
       }
+
+      char line[HCBUFSIZ_TINY] = { 0 };
+
+      memset (line, '-', len);
+
+      line[len] = 0;
+
+      event_log_info (hashcat_ctx, "%s", line);
+      event_log_info (hashcat_ctx, "%s", buf);
+      event_log_info (hashcat_ctx, "%s", line);
+      event_log_info (hashcat_ctx, NULL);
     }
   }
 
