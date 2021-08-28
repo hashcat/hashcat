@@ -13,6 +13,7 @@
 #include <7zCrc.h>
 #include <7zFile.h>
 #include <Xz.h>
+#include <XzCrc64.h>
 
 /* Maybe _LZMA_NO_SYSTEM_SIZE_T defined? */
 #if defined (__clang__) || defined (__GNUC__)
@@ -157,9 +158,11 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
   }
   else if (is_xz)
   {
+    /* thread safe on little endian */
     if (xz_initialized == false)
     {
       CrcGenerateTable ();
+      Crc64GenerateTable ();
       Sha256Prepare ();
       xz_initialized = true;
     }
