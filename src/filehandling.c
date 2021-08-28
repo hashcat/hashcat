@@ -12,7 +12,7 @@
 #include <Alloc.h>
 #include <7zCrc.h>
 #include <7zFile.h>
-#include <xz.h>
+#include <Xz.h>
 
 /* Maybe _LZMA_NO_SYSTEM_SIZE_T defined? */
 #if defined (__clang__) || defined (__GNUC__)
