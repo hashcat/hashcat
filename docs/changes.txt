@@ -1,4 +1,4 @@
-* changes v6.2.3 -> v6.2.x
+* changes v6.2.3 -> v6.2.4
 
 ##
 ## Algorithms

@@ -7,7 +7,7 @@
            |_____|     /___________/     |_____|  /_____/        /_______|
                  :                             :                         :
 
-hashcat v6.2.3
+hashcat v6.2.4
 ==============
 
 AMD GPUs on Linux require "AMD ROCm" (4.3 or later)
@@ -137,14 +137,14 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - CRC32
 - Java Object hashCode()
 - MurmurHash
-- 3DES
-- DES
-- AES-128-ECB NOKDF
-- AES-192-ECB NOKDF
-- AES-256-ECB NOKDF
+- 3DES (PT = $salt, key = $pass)
+- DES (PT = $salt, key = $pass)
+- AES-128-ECB NOKDF (PT = $salt, key = $pass)
+- AES-192-ECB NOKDF (PT = $salt, key = $pass)
+- AES-256-ECB NOKDF (PT = $salt, key = $pass)
 - ChaCha20
 - Linux Kernel Crypto API (2.4)
-- Skip32
+- Skip32 (PT = $salt, key = $pass)
 - PBKDF2-HMAC-MD5
 - PBKDF2-HMAC-SHA1
 - PBKDF2-HMAC-SHA256
@@ -155,8 +155,8 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - SIP digest authentication (MD5)
 - IKE-PSK MD5
 - IKE-PSK SHA1
-- SNMPv3 HMAC-MD5-96/HMAC-SHA1-96
 - SNMPv3 HMAC-MD5-96
+- SNMPv3 HMAC-MD5-96/HMAC-SHA1-96
 - SNMPv3 HMAC-SHA1-96
 - SNMPv3 HMAC-SHA224-128
 - SNMPv3 HMAC-SHA256-192
@@ -179,7 +179,9 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Kerberos 5, etype 23, TGS-REP
 - Kerberos 5, etype 23, AS-REP
 - NetNTLMv1 / NetNTLMv1+ESS
+- NetNTLMv1 / NetNTLMv1+ESS (NT)
 - NetNTLMv2
+- NetNTLMv2 (NT)
 - iSCSI CHAP authentication, MD5(CHAP)
 - RACF
 - AIX {smd5}
@@ -215,7 +217,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Juniper NetScreen/SSG (ScreenOS)
 - Juniper/NetBSD sha1crypt
 - iPhone passcode (UID key + System Keybag)
-- macOS v10.4, macOS v10.5, MacOS v10.6
+- macOS v10.4, macOS v10.5, macOS v10.6
 - macOS v10.7
 - macOS v10.8+ (PBKDF2-SHA512)
 - bcrypt $2*$, Blowfish (Unix)
@@ -361,13 +363,12 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - bcrypt(sha1($pass)) / bcryptsha1
 - osCommerce, xt:Commerce
 - TOTP (HMAC-SHA1)
-- STDOUT
-- Plaintext
 - Web2py pbkdf2-sha512
 - Django (PBKDF2-SHA256)
 - Django (SHA-1)
 - Atlassian (PBKDF2-HMAC-SHA1)
 - Ruby on Rails Restful-Authentication
+- Ruby on Rails Restful Auth (one round, no sitekey)
 - Python passlib pbkdf2-sha512
 - Python passlib pbkdf2-sha256
 - Python passlib pbkdf2-sha1
@@ -384,6 +385,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Telegram Desktop >= v2.1.14 (PBKDF2-HMAC-SHA512)
 - Telegram Mobile App Passcode (SHA256)
 - Skype
+- MetaMask Wallet
 - BitShares v0.x - sha512(sha512_bin(pass))
 - Bitcoin/Litecoin wallet.dat
 - Electrum Wallet (Salt-Type 1-3)
@@ -396,7 +398,6 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Ethereum Pre-Sale Wallet, PBKDF2-HMAC-SHA256
 - Ethereum Wallet, PBKDF2-HMAC-SHA256
 - Ethereum Wallet, SCRYPT
-- MetaMask Wallet
 - MultiBit Classic .key (MD5)
 - MultiBit HD (scrypt)
 
