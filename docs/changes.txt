@@ -1,12 +1,26 @@
 * changes v6.2.3 -> v6.2.x
 
 ##
+## Algorithms
+##
+
+- Added hash-mode: SNMPv3 HMAC-MD5-96/HMAC-SHA1-96
+- Added hash-mode: SNMPv3 HMAC-MD5-96
+- Added hash-mode: SNMPv3 HMAC-SHA1-96
+- Added hash-mode: SNMPv3 HMAC-SHA224-128
+- Added hash-mode: SNMPv3 HMAC-SHA256-192
+- Added hash-mode: SNMPv3 HMAC-SHA384-256
+- Added hash-mode: SNMPv3 HMAC-SHA512-384
+- Added hash-mode: VirtualBox (PBKDF2-HMAC-SHA256 & AES-128-XTS)
+- Added hash-mode: VirtualBox (PBKDF2-HMAC-SHA256 & AES-256-XTS)
+
+##
 ## Features
 ##
 
 - Added option --deprecated-check-disable to enable deprecated plugins
-- Added option --multiply-accel-disable (short: -M) to disable multiplying of the kernel accel with the multiprocessor count
 - Added option --generate-rules-func-sel to specify a pool of operators that the random rule generator is allowed to pick from
+- Added option --multiply-accel-disable (short: -M) to disable multiplying of the kernel accel with the multiprocessor count
 - Added rule function '3' to change the case of the first letter after the occurrence of N of character X
 - Added support for auto tuning --kernel-threads (-T) at startup
 - Added support for HIP version 4.3 or later and removed support for older HIP versions as they are not compatible
@@ -21,8 +35,8 @@
 - Fixed false negative in all VeraCrypt hash modes if both conditions are met: 1. Use CPU for cracking and 2. PIM area was used
 - Fixed invalid data type in the sha384_hmac_init_vector_128() function that take effect if the vector data type was specified manually
 - Fixed out-of-boundary read in input_tokenizer() if the signature in the hash is longer than the length of the plugin's signature constant
-- Fixed out-of-boundary read in the Stuffit5 module in hash_decode()
 - Fixed out-of-boundary read in PKZIP masterkey kernel if the password candidate has length zero
+- Fixed out-of-boundary read in the Stuffit5 module in hash_decode()
 - Fixed random rule generator option --generate-rules-func-min by fixing switch() case to not select a not existing option group type
 - Fixed segfault when a combination of the flags --user and --show is given and a hash was specified directly on the command line
 - Fixed syntax check of HAS_VPERM macro in several kernel includes causing invalid error message for AMD GPUs on Windows
@@ -42,7 +56,7 @@
 - HIP Kernels: Enable vector data types for HIP kernels for functionality and performance
 - Kernel threads: Use warp size / wavefront size query instead of hard-coded values as the basis for kernel threads
 - SCRYPT Kernels: Improve Hashcat.hctune entries for many NV and AMD GPUs for hash mode 8900, 9300, 15700 and 22700
-- STDIN Interface: Disable the --stdin-timeout-abort check after 1000 successful reads from stdin
+- STDIN: Reduce the performance gap between stdin and wordlist by disabling the --stdin-timeout-abort check after 1000 successful reads
 - Tuning Database: Add new module function module_extra_tuningdb_block() to extend hashcat.hctune content from a module
 
 ##
@@ -53,41 +67,34 @@
 - ADL: Updated support for AMD Display Library to 15.0, updated data types
 - AMD Driver: Updated requirements for AMD Linux drivers to ROCm 4.3 or later due to new HIP interface
 - AMD Driver: Updated requirements for AMD Windows drivers to Adrenalin 21.2.1 or later due to new ADL library
+- Autotune: Add autotune event to inform the user about autotune is starting/stopping on startup
 - Backend Interface: Implement gpu_bzero() as a gpu_memset() replacement, since all gpu_memset() operations used 0 as the value
 - Backend Interface: Improve the query kernel's dynamic memory size based on DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_BLOCK_OPTIN instead of BF
 - Brain Session: Adds hashconfig-specific opti_type and opts_type parameters to the session calculation to enable cover functions like -O
+- Commandline: Fix some memory leaks in case hashcat aborts due to command line parameter settings
 - Commandline: Throw an error if the separator specified by the user with the -p option is not exactly 1 byte
+- Community: Add link to new hashcat discord to docs/contact.txt
 - Constants: Make const char * pointers actually const char * const pointers
 - Deprecated Plugins: Add new module function module_deprecated_notice() to mark a plugin as deprecated and to return a free text user notice
 - Deprecated Plugins: Marked plugins 2500/2501 and 16800/16801 as deprecated
 - Encoding: Truncate password candidates in UTF8 -> UTF16 conversion if it contains an invalid UTF8 byte sequence
+- Filehandling: Avoid direct access to some file handles and use internal structures instead
 - Filehandling: Use const char for fopen mode to fix -Wwrite-strings warnings
 - Hardware Monitor: Added support for OverDrive 7 and 8 based GPUs
 - HIP Kernels: Dependency on hip/hip runtime.h has been removed to enable easier integration of the HIP backend under Windows
 - Kernel cache: Add kernel threads for hash calculation, which will later be used in the file name of the kernel cache
-- Memory Management: Refactored the code responsible for limiting kernel accel with the goal to avoid low host memory situations
 - Memory Management: Check in OpenCL that CL_DEVICE_HOST_UNIFIED_MEMORY is true and if so, then half of the available memory
+- Memory Management: Refactored the code responsible for limiting kernel accel with the goal to avoid low host memory situations
+- MetaMask: Added special extraction tool for MetaMask wallets
 - NEO driver: Activate the NEO driver (Intel GPU) after it passed several tests in hashcat using the latest NEO driver version
-- OpenCL Runtime: Workaround for Intel OpenCL runtime: segmentation fault when compiling hc_enc_next() / hc_enc_next_global()
 - OpenCL Runtime: The use of clUnloadPlatformCompiler () was disabled after some users received unexpected return codes
+- OpenCL Runtime: Workaround for Intel OpenCL runtime: segmentation fault when compiling hc_enc_next() / hc_enc_next_global()
+- Potfile: Fixed some leaks in potfile_*_open(), potfile_*_close(), potfile_destroy() and don't assume plain file
 - RC4 Kernels: Use improved native thread derivation for RC4-based hash modes 7500, 13100, 18200, 25400
 - Shared Memory: Calculate the dynamic memory size of the kernel based on CU_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_BLOCK_OPTIN
 - Slow kernels: Set some of the slowest kernels to OPTS_TYPE_MP_MULTI_DISABLE to make it easier to handle small word lists
+- Status view: Add hash-mode (-m number) in addition to hash-name
 - Vendor Discovery: Add "Intel" as a valid vendor name for GPUs on macOS
-
-##
-## Algorithms
-##
-
-- Added hash-mode: SNMPv3 HMAC-MD5-96/HMAC-SHA1-96
-- Added hash-mode: SNMPv3 HMAC-MD5-96
-- Added hash-mode: SNMPv3 HMAC-SHA1-96
-- Added hash-mode: SNMPv3 HMAC-SHA224-128
-- Added hash-mode: SNMPv3 HMAC-SHA256-192
-- Added hash-mode: SNMPv3 HMAC-SHA384-256
-- Added hash-mode: SNMPv3 HMAC-SHA512-384
-- Added hash-mode: VirtualBox (PBKDF2-HMAC-SHA256 & AES-128-XTS)
-- Added hash-mode: VirtualBox (PBKDF2-HMAC-SHA256 & AES-256-XTS)
 
 * changes v6.2.2 -> v6.2.3
 
