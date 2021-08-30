@@ -438,8 +438,16 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   hashconfig->kernel_threads_min  = default_kernel_threads_min  (hashconfig, user_options, user_options_extra);
   hashconfig->kernel_threads_max  = default_kernel_threads_max  (hashconfig, user_options, user_options_extra);
 
-  if (module_ctx->module_pw_max             != MODULE_DEFAULT) hashconfig->pw_max             = module_ctx->module_pw_max             (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_pw_min             != MODULE_DEFAULT) hashconfig->pw_min             = module_ctx->module_pw_min             (hashconfig, user_options, user_options_extra);
+  if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+  {
+    // we can't reject password candidates based on plugin specific password length boundaries, because they are not checked inside count_words()
+  }
+  else
+  {
+    if (module_ctx->module_pw_max != MODULE_DEFAULT) hashconfig->pw_max = module_ctx->module_pw_max (hashconfig, user_options, user_options_extra);
+    if (module_ctx->module_pw_min != MODULE_DEFAULT) hashconfig->pw_min = module_ctx->module_pw_min (hashconfig, user_options, user_options_extra);
+  }
+
   if (module_ctx->module_salt_max           != MODULE_DEFAULT) hashconfig->salt_max           = module_ctx->module_salt_max           (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_salt_min           != MODULE_DEFAULT) hashconfig->salt_min           = module_ctx->module_salt_min           (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_kernel_accel_min   != MODULE_DEFAULT) hashconfig->kernel_accel_min   = module_ctx->module_kernel_accel_min   (hashconfig, user_options, user_options_extra);

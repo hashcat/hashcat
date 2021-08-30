@@ -4,8 +4,13 @@
 ## Bugs
 ##
 
-- Fixed out-of-boundary reads in attack mode 9 that were caused by a missing work item limit in the refactored autotune engine
+- Fixed out-of-boundary reads in attack-mode 9 that were caused by a missing work item limit in the refactored autotune engine
 
+##
+## Technical
+##
+
+- Disabled checking of the minimum and maximum length of the password candidate in attack-mode 9 because they are incompatible
 
 * changes v6.2.3 -> v6.2.4
 
