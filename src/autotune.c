@@ -198,7 +198,19 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     const u32 hardware_power_max = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE) ? 1 : device_param->device_processors) * kernel_threads_max;
 
-    const u32 kernel_power_max = hardware_power_max * kernel_accel_max;
+    u32 kernel_power_max = hardware_power_max * kernel_accel_max;
+
+    if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+    {
+      hashes_t *hashes = hashcat_ctx->hashes;
+
+      const u32 salts_cnt = hashes->salts_cnt;
+
+      if (kernel_power_max > salts_cnt)
+      {
+        kernel_power_max = salts_cnt;
+      }
+    }
 
     if (device_param->is_cuda == true)
     {

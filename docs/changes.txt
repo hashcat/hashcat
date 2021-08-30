@@ -1,5 +1,12 @@
 * changes v6.2.4 -> v6.2.x
 
+##
+## Bugs
+##
+
+- Fixed out-of-boundary reads in attack mode 9 that were caused by a missing work item limit in the refactored autotune engine
+
+
 * changes v6.2.3 -> v6.2.4
 
 ##
