@@ -18,7 +18,7 @@
 /* Maybe _LZMA_NO_SYSTEM_SIZE_T defined? */
 #if defined (__clang__) || defined (__GNUC__)
 #include <assert.h>
-_Static_assert(sizeof(size_t) == sizeof(SizeT), "Check why sizeof(size_t) != sizeof(SizeT)");
+_Static_assert(sizeof (size_t) == sizeof (SizeT), "Check why sizeof(size_t) != sizeof(SizeT)");
 #endif
 
 #ifndef XZFILE_BUFFER_SIZE
@@ -167,7 +167,7 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
       xz_initialized = true;
     }
 
-    xzfile_t *xfp = (xzfile_t *) hccalloc (1, sizeof(*xfp));
+    xzfile_t *xfp = (xzfile_t *) hccalloc (1, sizeof (*xfp));
     if (xfp == NULL) return false;
 
     /* prepare cache line aligned memory allocator */
@@ -619,9 +619,12 @@ int hc_fstat (HCFILE *fp, struct stat *buf)
   }
   else if (fp->xfp)
   {
-    /* uncompressed bytes */
+    /* check that the uncompressed size is known */
     const xzfile_t *xfp = fp->xfp;
-    buf->st_size = (off_t) xfp->outSize;
+    if (xfp->outSize != (UInt64)((Int64)-1))
+    {
+      buf->st_size = (off_t) xfp->outSize;
+    }
   }
 
   return r;
