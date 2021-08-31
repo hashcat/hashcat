@@ -24,8 +24,8 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
-static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$metamask$AARgM5AgABE2eWgJcWAwQIAFmSYoASZVZBlAR4B0h2M=$8HrVMqsjfFTusMbegh+KWg==$7FPq7LjWe3t/TjDBtUwrJBpiG/Rdt+uf71dLCyUZd0pdtymBK6mSMZDyRfp/CzpjEPA1dU1BLDshcwM/1k6KdO//+mPWrgY4j49XTXIMnHNhJPfPv8s9rXiq8jLqetsStqtWmTZaD7fTtbzOYWR4gwQc98MxCnn/IrSnfCHungw1rLV5Xm0/hF7WfzFeEgcHknhJJP1xSeJCL9qI5DJ+lz7ksc0UVvHoiNJx8uvPBNkHpGQRNujwlnk=";
+static const char *ST_PASS        = "hashcat1";
+static const char *ST_HASH        = "$metamask$AFgHUzJ5IxdiMViSYBRxlWZWUCCGgWZwkGIUEpVnZFE=$xm1Fo3VPVa1cvVRWGYISMw==$S3LzDyngoccMwdXjVd/CDlUQtZIioE0riGa4+CmV0Te90hjPuwe8ahGsSHQsuVZM2rRmf1RZhsEUOxBAeGOQiPX369oLZSivUYl49TPajwvYFaN1St2eFF24i2nkmbTyA+DsblLlRgc++G/A3Jm+JIbSJ34ImF6syXVhHncztET7J0QvQionFjYldBOViU6u/Vr80o5imwULF3w86DPTEBmnl8NtRgr0GbR/rlaINggbvt0IvGRH4bZQMBBtTpfaHd0cQLeBJi9//JU+HJU1HciBbycm+Q6KOVpI9X9wz3b5OGaXq3wZMlGK0FB8aCaQ2BGHz93g1zvYUII1Va/Sen53LOX7VbBNWJiwOy3cIK0A/Vt+1IlQdnF2odnYsva4YyGQPn5vYSNZ+Zx5mXqz9U1MDB6NxAYWUzkEWg3c7pa4MdQQ6G0l3lWJeexqqVWR/+cJbA+cs603zDiRdWFsNY6ZrEfnrX4sHqAoDD9SyudmqKhvUM2E69Ye8ZK/tudXMcbU5DcW3KJpKDvdHErVVqVOkddenp5o0mzwGLRE+j7HJqEvv/gt10svxF0irLeDqaA4mupWwJgHdGnG+EaeypbFWSkeZw5ytwFSxqcBygqPL9FC2KmBTMQD9iEv4bVkKKkFKMS2P2AAyIOhLa4Ii2xBZGc+6833sS5rcXk+8q8QDV6TXZo9GdTJuZLNQ1aFAtIbNq06oKg4qyiSyutphyd9DFWiYerDt6JsPLvoYhW1IV60MepoMZsMdUgYPYopaewrJjFYaDLJK5Ei99hJqLScZWPcyjqxA6bA6YsE0eMh+Ox/fDVKFemXgToLPg==";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -57,7 +57,7 @@ typedef struct pbkdf2_sha256_aes_gcm
   u32 salt_buf[64];
   u32 iv_buf[4];
   u32 iv_len;
-  u32 ct_buf[196];
+  u32 ct_buf[388];
   u32 ct_len;
 
 } pbkdf2_sha256_aes_gcm_t;
@@ -103,6 +103,13 @@ u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED c
   return tmp_size;
 }
 
+u32 module_pw_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 pw_min = 8;
+
+  return pw_min;
+}
+
 u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   // this overrides the reductions of PW_MAX in case optimized kernel is selected
@@ -119,7 +126,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   pbkdf2_sha256_aes_gcm_t *metamask = (pbkdf2_sha256_aes_gcm_t *) esalt_buf;
 
-  #define CT_MAX_LEN_BASE64 (((768+16) * 8) / 6) + 3
+  #define CT_MAX_LEN_BASE64 (((1536+16) * 8) / 6) + 3
 
   token_t token;
 
@@ -219,7 +226,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   tmp_len -= 16;
 
-  if (tmp_len < 30 || tmp_len > 768) return (PARSER_CT_LENGTH);
+  if (tmp_len < 30 || tmp_len > 1536) return (PARSER_CT_LENGTH);
 
   memcpy ((u8 *) metamask->ct_buf, tmp_buf, tmp_len);
 
@@ -253,9 +260,9 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // salt
 
-  #define SALT_LEN_BASE64   ((32  * 8) / 6) + 3
-  #define IV_LEN_BASE64     ((16  * 8) / 6) + 3
-  #define CT_MAX_LEN_BASE64 (((768+16) * 8) / 6) + 3
+  #define SALT_LEN_BASE64   ((32 * 8) / 6) + 3
+  #define IV_LEN_BASE64     ((16 * 8) / 6) + 3
+  #define CT_MAX_LEN_BASE64 (((1536+16) * 8) / 6) + 3
 
   u8 salt_buf[SALT_LEN_BASE64] = { 0 };
 
@@ -282,7 +289,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if ((ct_len % 4) > 0) j++;
 
-  u32 tmp_buf[196] = { 0 };
+  u32 tmp_buf[388] = { 0 };
 
   for (u32 i = 0; i < j; i++) tmp_buf[i] = byte_swap_32 (metamask->ct_buf[i]);
 
@@ -379,7 +386,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_potfile_keep_all_hashes  = MODULE_DEFAULT;
   module_ctx->module_pwdump_column            = MODULE_DEFAULT;
   module_ctx->module_pw_max                   = module_pw_max;
-  module_ctx->module_pw_min                   = MODULE_DEFAULT;
+  module_ctx->module_pw_min                   = module_pw_min;
   module_ctx->module_salt_max                 = MODULE_DEFAULT;
   module_ctx->module_salt_min                 = MODULE_DEFAULT;
   module_ctx->module_salt_type                = module_salt_type;

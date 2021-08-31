@@ -34,7 +34,7 @@ typedef struct pbkdf2_sha256_aes_gcm
   u32 salt_buf[64];
   u32 iv_buf[4];
   u32 iv_len;
-  u32 ct_buf[196];
+  u32 ct_buf[388];
   u32 ct_len;
 
 } pbkdf2_sha256_aes_gcm_t;
