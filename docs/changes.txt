@@ -10,7 +10,8 @@
 ## Technical
 ##
 
-- Disabled checking of the minimum and maximum length of the password candidate in attack-mode 9 because they are incompatible
+- Makefile: Added wildcard include src/modules/module_*.mk directive so that plugin developers can add 3rd party libraries for their plugins
+- Rejects: Disabled checking of the minimum and maximum length of the password candidate in attack-mode 9 because they are incompatible
 
 * changes v6.2.3 -> v6.2.4
 
