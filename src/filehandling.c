@@ -9,6 +9,10 @@
 #include "shared.h"
 #include "filehandling.h"
 
+#ifndef HCFILE_BUFFER_SIZE
+#define HCFILE_BUFFER_SIZE 256 * 1024
+#endif
+
 #if defined (__CYGWIN__)
 // workaround for zlib with cygwin build
 int _wopen (const char *path, int oflag, ...)
@@ -112,6 +116,8 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
     if (is_gzip)
     {
       if ((fp->gfp = gzdopen (fp->fd, mode)) == NULL) return false;
+
+      gzbuffer (fp->gfp, HCFILE_BUFFER_SIZE);
     }
     else
     {
