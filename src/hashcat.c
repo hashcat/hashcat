@@ -148,11 +148,23 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  const u64 progress_restored = status_ctx->words_off * amplifier_cnt;
-
-  for (u32 i = 0; i < hashes->salts_cnt; i++)
+  if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
   {
-    status_ctx->words_progress_restored[i] = progress_restored;
+    const u64 progress_restored = 1 * amplifier_cnt;
+
+    for (u32 i = 0; i < status_ctx->words_off; i++)
+    {
+      status_ctx->words_progress_restored[i] = progress_restored;
+    }
+  }
+  else
+  {
+    const u64 progress_restored = status_ctx->words_off * amplifier_cnt;
+
+    for (u32 i = 0; i < hashes->salts_cnt; i++)
+    {
+      status_ctx->words_progress_restored[i] = progress_restored;
+    }
   }
 
   #ifdef WITH_BRAIN

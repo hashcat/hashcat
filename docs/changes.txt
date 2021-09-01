@@ -4,6 +4,7 @@
 ## Bugs
 ##
 
+- Fixed invalid progress counter initialization in attack-mode 9 when using --skip or --restore
 - Fixed out-of-boundary reads in attack-mode 9 that were caused by a missing work item limit in the refactored autotune engine
 
 ##
