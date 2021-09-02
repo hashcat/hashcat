@@ -25,6 +25,10 @@ _Static_assert(sizeof (size_t) == sizeof (SizeT), "Check why sizeof(size_t) != s
 #define HCFILE_BUFFER_SIZE 256 * 1024
 #endif
 
+#ifndef HCFILE_CHUNK_SIZE
+#define HCFILE_CHUNK_SIZE 4 * 1024 * 1024
+#endif
+
 static bool xz_initialized = false;
 
 static const ISzAlloc xz_alloc = { hc_lzma_alloc, hc_lzma_free };
@@ -354,49 +358,48 @@ size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
 {
   size_t n = -1;
 
-  if (fp == NULL) return n;
+  if (ptr == NULL || fp == NULL) return n;
 
-  if (ptr == NULL || size == 0 || nmemb == 0) return 0;
+  if (size == 0 || nmemb == 0) return 0;
 
   if (fp->pfp)
   {
-    #if defined (_WIN)
+    #ifdef _WIN
+    u64 len = (u64) size * nmemb;
 
-    // 4 GB fread () limit for windows systems ?
-    // see: https://social.msdn.microsoft.com/Forums/vstudio/en-US/7c913001-227e-439b-bf07-54369ba07994/fwrite-issues-with-large-data-write
+    #ifndef _WIN64
+    /* check 2 GB limit with 32 bit build */
+    if (len >= INT32_MAX)
+    {
+      return n;
+    }
+    #endif
 
-    #define GIGABYTE (1024u * 1024u * 1024u)
-
-    if (((size * nmemb) / GIGABYTE) < 4)
+    if (len <= HCFILE_CHUNK_SIZE)
     {
       n = fread (ptr, size, nmemb, fp->pfp);
     }
     else
     {
-      if ((size / GIGABYTE) > 3) return -1;
+      size_t left = (size_t) len;
+      size_t pos = 0;
 
-      size_t elements_max  = (3u * GIGABYTE) / size;
-      size_t elements_left = nmemb;
+      /* assume success */
+      n = nmemb;
 
-      size_t off = 0;
-
-      n = 0;
-
-      while (elements_left > 0)
+      do
       {
-        size_t elements_cur = elements_max;
-
-        if (elements_left < elements_max) elements_cur = elements_left;
-
-        size_t ret = fread (ptr + off, size, elements_cur, fp->pfp);
-
-        if (ret != elements_cur) return -1;
-
-        n   += ret;
-        off += ret * size;
-
-        elements_left -= ret;
-      }
+        size_t chunk = (left > HCFILE_CHUNK_SIZE) ? HCFILE_CHUNK_SIZE : left;
+        size_t bytes = fread ((unsigned char *) ptr + pos, 1, chunk, fp->pfp);
+        pos += bytes;
+        left -= bytes;
+        if (chunk != bytes)
+        {
+          /* partial read */
+          n = pos / size;
+          break;
+        }
+      } while (left);
     }
     #else
     n = fread (ptr, size, nmemb, fp->pfp);
@@ -408,9 +411,11 @@ size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
   }
   else if (fp->ufp)
   {
-    unsigned s = size * nmemb;
-
-    n = unzReadCurrentFile (fp->ufp, ptr, s);
+    u64 len = (u64) size * nmemb;
+    if (len == (unsigned) len)
+    {
+      n = unzReadCurrentFile (fp->ufp, ptr, (unsigned) len);
+    }    
   }
   else if (fp->xfp)
   {
@@ -454,47 +459,43 @@ size_t hc_fwrite (const void *ptr, size_t size, size_t nmemb, HCFILE *fp)
 {
   size_t n = -1;
 
-  if (fp == NULL) return n;
+  if (ptr == NULL || fp == NULL) return n;
+
+  if (size == 0 || nmemb == 0) return 0;
 
   if (fp->pfp)
   {
-    #if defined (_WIN)
+    #ifdef _WIN
+    u64 len = (u64) size * nmemb;
 
-    // 4 GB fwrite () limit for windows systems ?
-    // see: https://social.msdn.microsoft.com/Forums/vstudio/en-US/7c913001-227e-439b-bf07-54369ba07994/fwrite-issues-with-large-data-write
+    #ifndef _WIN64
+    /* check 2 GB limit with 32 bit build */
+    if (len >= INT32_MAX)
+    {
+      return n;
+    }
+    #endif
 
-    #define GIGABYTE (1024u * 1024u * 1024u)
-
-    if (((size * nmemb) / GIGABYTE) < 4)
+    if (len <= HCFILE_CHUNK_SIZE)
     {
       n = fwrite (ptr, size, nmemb, fp->pfp);
     }
     else
     {
-      if ((size / GIGABYTE) > 3) return -1;
+      size_t left = (size_t) len;
+      size_t pos = 0;
 
-      size_t elements_max  = (3u * GIGABYTE) / size;
-      size_t elements_left = nmemb;
+      /* assume success */
+      n = nmemb;
 
-      size_t off = 0;
-
-      n = 0;
-
-      while (elements_left > 0)
+      do
       {
-        size_t elements_cur = elements_max;
-
-        if (elements_left < elements_max) elements_cur = elements_left;
-
-        size_t ret = fwrite (ptr + off, size, elements_cur, fp->pfp);
-
-        if (ret != elements_cur) return -1;
-
-        n   += ret;
-        off += ret * size;
-
-        elements_left -= ret;
-      }
+        size_t chunk = (left > HCFILE_CHUNK_SIZE) ? HCFILE_CHUNK_SIZE : left;
+        size_t bytes = fwrite ((unsigned char *) ptr + pos, 1, chunk, fp->pfp);
+        pos += bytes;
+        left -= bytes;
+        if (chunk != bytes) return -1;
+      } while (left);
     }
     #else
     n = fwrite (ptr, size, nmemb, fp->pfp);
@@ -623,7 +624,7 @@ int hc_fstat (HCFILE *fp, struct stat *buf)
   {
     /* check that the uncompressed size is known */
     const xzfile_t *xfp = fp->xfp;
-    if (xfp->outSize != (UInt64)((Int64)-1))
+    if (xfp->outSize != (UInt64) ((Int64) -1))
     {
       buf->st_size = (off_t) xfp->outSize;
     }
