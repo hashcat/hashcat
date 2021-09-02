@@ -421,7 +421,7 @@ size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
 
     do
     {
-      unsigned chunk = (len > HCFILE_CHUNK_SIZE) ? HCFILE_CHUNK_SIZE : (unsigned) len;
+      unsigned chunk = (len > INT_MAX) ? INT_MAX : (unsigned) len;
       int result = unzReadCurrentFile (fp->ufp, (unsigned char *) ptr + pos, chunk);
       if (result < 0) return (size_t) -1;
       pos += (u64) result;
