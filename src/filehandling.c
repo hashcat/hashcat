@@ -369,10 +369,7 @@ size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
 
     #ifndef _WIN64
     /* check 2 GB limit with 32 bit build */
-    if (len >= INT32_MAX)
-    {
-      return n;
-    }
+    if (len >= INT32_MAX) return n;
     #endif
 
     if (len <= HCFILE_CHUNK_SIZE)
@@ -414,6 +411,11 @@ size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
     u64 len = (u64) size * nmemb;
     u64 pos = 0;
 
+    #if defined(_WIN) && !defined(_WIN64)
+    /* check 2 GB limit with 32 bit build */
+    if (len >= INT32_MAX) return n;
+    #endif
+
     /* assume success */
     n = nmemb;
 
@@ -439,6 +441,11 @@ size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
     SizeT outPos = 0;
     SRes res = SZ_OK;
     xzfile_t *xfp = fp->xfp;
+
+    #if defined(_WIN) && !defined(_WIN64)
+    /* check 2 GB limit with 32 bit build */
+    if (outLen >= INT32_MAX) return n;
+    #endif
 
     /* assume success */
     n = nmemb;
