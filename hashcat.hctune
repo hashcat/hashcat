@@ -271,6 +271,7 @@ GeForce_RTX_2080_Ti                             ALIAS_nv_sm50_or_higher
 GeForce_RTX_3060                                ALIAS_nv_sm50_or_higher
 GeForce_RTX_3060_Ti                             ALIAS_nv_sm50_or_higher
 GeForce_RTX_3070                                ALIAS_nv_sm50_or_higher
+GeForce_RTX_3070_Ti                             ALIAS_nv_sm50_or_higher
 GeForce_RTX_3080                                ALIAS_nv_sm50_or_higher
 GeForce_RTX_3090                                ALIAS_nv_sm50_or_higher
 
