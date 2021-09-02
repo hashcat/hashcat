@@ -21,8 +21,8 @@
 _Static_assert(sizeof (size_t) == sizeof (SizeT), "Check why sizeof(size_t) != sizeof(SizeT)");
 #endif
 
-#ifndef XZFILE_BUFFER_SIZE
-#define XZFILE_BUFFER_SIZE 1024 * 1024
+#ifndef HCFILE_BUFFER_SIZE
+#define HCFILE_BUFFER_SIZE 256 * 1024
 #endif
 
 static bool xz_initialized = false;
@@ -44,10 +44,6 @@ struct xzfile
   CXzUnpacker        state;
   CXzs               streams;
 };
-
-#ifndef HCFILE_BUFFER_SIZE
-#define HCFILE_BUFFER_SIZE 256 * 1024
-#endif
 
 #if defined (__CYGWIN__)
 // workaround for zlib with cygwin build
@@ -181,7 +177,7 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
     xfp->alloc.numAlignBits = 7;
     xfp->alloc.baseAlloc = &xz_alloc;
     ISzAllocPtr alloc = &xfp->alloc.vt;
-    xfp->inBuf = (Byte *) ISzAlloc_Alloc (alloc, XZFILE_BUFFER_SIZE);
+    xfp->inBuf = (Byte *) ISzAlloc_Alloc (alloc, HCFILE_BUFFER_SIZE);
     if (xfp->inBuf == NULL)
     {
       hcfree (xfp);
@@ -207,7 +203,7 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
     CLookToRead2 lookStream;
     LookToRead2_CreateVTable (&lookStream, false);
     lookStream.buf = xfp->inBuf;
-    lookStream.bufSize = XZFILE_BUFFER_SIZE;
+    lookStream.bufSize = HCFILE_BUFFER_SIZE;
     lookStream.realStream = &inStream->vt;
     LookToRead2_Init (&lookStream);
     Xzs_Construct (&xfp->streams);
@@ -227,7 +223,7 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
     xfp->outSize = Xzs_GetUnpackSize (&xfp->streams);
 
     /* seek to start of the file and fill the buffer */
-    SizeT inLen = XZFILE_BUFFER_SIZE;
+    SizeT inLen = HCFILE_BUFFER_SIZE;
     res = ISeekInStream_Seek (&inStream->vt, &offset, SZ_SEEK_SET);
     if (res == SZ_OK)
     {
@@ -430,7 +426,7 @@ size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
       if (xfp->inLen == xfp->inPos && !xfp->inEof)
       {
         xfp->inPos = 0;
-        xfp->inLen = XZFILE_BUFFER_SIZE;
+        xfp->inLen = HCFILE_BUFFER_SIZE;
         res = ISeekInStream_Read (&xfp->inStream.vt, xfp->inBuf, &xfp->inLen);
         if (res != SZ_OK || xfp->inLen == 0) xfp->inEof = true;
       }
@@ -591,7 +587,7 @@ void hc_rewind (HCFILE *fp)
     XzUnpacker_Init (&xfp->state);
 
     /* fill the buffer */
-    SizeT inLen = XZFILE_BUFFER_SIZE;
+    SizeT inLen = HCFILE_BUFFER_SIZE;
     res = ISeekInStream_Read (&inStream->vt, xfp->inBuf, &inLen);
     if (res != SZ_OK || inLen == 0) return;
 
@@ -712,7 +708,7 @@ int hc_fgetc (HCFILE *fp)
     if (xfp->inLen == xfp->inPos && !xfp->inEof)
     {
       xfp->inPos = 0;
-      xfp->inLen = XZFILE_BUFFER_SIZE;
+      xfp->inLen = HCFILE_BUFFER_SIZE;
       res = ISeekInStream_Read (&xfp->inStream.vt, xfp->inBuf, &xfp->inLen);
       if (res != SZ_OK || xfp->inLen == 0) xfp->inEof = true;
     }
@@ -764,7 +760,7 @@ char *hc_fgets (char *buf, int len, HCFILE *fp)
       if (xfp->inLen == xfp->inPos && !xfp->inEof)
       {
         xfp->inPos = 0;
-        xfp->inLen = XZFILE_BUFFER_SIZE;
+        xfp->inLen = HCFILE_BUFFER_SIZE;
         res = ISeekInStream_Read (&xfp->inStream.vt, xfp->inBuf, &xfp->inLen);
         if (res != SZ_OK || xfp->inLen == 0) xfp->inEof = true;
       }
