@@ -149,6 +149,8 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
   if (is_gzip)
   {
     if ((fp->gfp = gzdopen (fp->fd, mode)) == NULL) return false;
+
+    gzbuffer (fp->gfp, HCFILE_BUFFER_SIZE);
   }
   else if (is_zip)
   {
@@ -165,8 +167,6 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
       Crc64GenerateTable ();
       Sha256Prepare ();
       xz_initialized = true;
-
-      gzbuffer (fp->gfp, HCFILE_BUFFER_SIZE);
     }
 
     xzfile_t *xfp = (xzfile_t *) hccalloc (1, sizeof (*xfp));
