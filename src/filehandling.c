@@ -9,6 +9,42 @@
 #include "shared.h"
 #include "filehandling.h"
 
+#include <Alloc.h>
+#include <7zCrc.h>
+#include <7zFile.h>
+#include <Xz.h>
+#include <XzCrc64.h>
+
+/* Maybe _LZMA_NO_SYSTEM_SIZE_T defined? */
+#if defined (__clang__) || defined (__GNUC__)
+#include <assert.h>
+_Static_assert(sizeof (size_t) == sizeof (SizeT), "Check why sizeof(size_t) != sizeof(SizeT)");
+#endif
+
+#ifndef XZFILE_BUFFER_SIZE
+#define XZFILE_BUFFER_SIZE 1024 * 1024
+#endif
+
+static bool xz_initialized = false;
+
+static const ISzAlloc xz_alloc = { hc_lzma_alloc, hc_lzma_free };
+
+struct xzfile
+{  
+  CAlignOffsetAlloc  alloc;
+  UInt64             inBlocks;
+  Byte              *inBuf;
+  bool               inEof;
+  SizeT              inLen;
+  SizeT              inPos;
+  Int64              inProcessed;
+  CFileInStream      inStream;
+  Int64              outProcessed;
+  UInt64             outSize;
+  CXzUnpacker        state;
+  CXzs               streams;
+};
+
 #if defined (__CYGWIN__)
 // workaround for zlib with cygwin build
 int _wopen (const char *path, int oflag, ...)
@@ -30,6 +66,7 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
   fp->pfp      = NULL;
   fp->gfp      = NULL;
   fp->ufp      = NULL;
+  fp->xfp      = NULL;
   fp->bom_size = 0;
   fp->path     = NULL;
   fp->mode     = NULL;
@@ -73,6 +110,7 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
 
   bool is_gzip = false;
   bool is_zip  = false;
+  bool is_xz   = false;
 
   int fd_tmp = open (path, O_RDONLY);
 
@@ -84,10 +122,11 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
     {
       if (check[0] == 0x1f && check[1] == 0x8b && check[2] == 0x08)                     is_gzip = true;
       if (check[0] == 0x50 && check[1] == 0x4b && check[2] == 0x03 && check[3] == 0x04) is_zip  = true;
+      if (memcmp(check, XZ_SIG, XZ_SIG_SIZE) == 0)                                      is_xz   = true;
 
       // compressed files with BOM will be undetected!
 
-      if (is_gzip == false && is_zip == false)
+      if (is_gzip == false && is_zip == false && is_xz == false)
       {
         fp->bom_size = hc_string_bom_size (check);
       }
@@ -107,31 +146,132 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
 
   if (fp->fd == -1) return false;
 
-  if (is_zip == false)
+  if (is_gzip)
   {
-    if (is_gzip)
-    {
-      if ((fp->gfp = gzdopen (fp->fd, mode)) == NULL) return false;
-    }
-    else
-    {
-      if ((fp->pfp = fdopen (fp->fd, mode)) == NULL) return false;
-
-      if (fp->bom_size)
-      {
-        // atm just skip bom
-
-        const int nread = fread (check, sizeof (char), fp->bom_size, fp->pfp);
-
-        if (nread != fp->bom_size) return false;
-      }
-    }
+    if ((fp->gfp = gzdopen (fp->fd, mode)) == NULL) return false;
   }
-  else
+  else if (is_zip)
   {
     if ((fp->ufp = unzOpen64 (path)) == NULL) return false;
 
     if (unzOpenCurrentFile (fp->ufp) != UNZ_OK) return false;
+  }
+  else if (is_xz)
+  {
+    /* thread safe on little endian */
+    if (xz_initialized == false)
+    {
+      CrcGenerateTable ();
+      Crc64GenerateTable ();
+      Sha256Prepare ();
+      xz_initialized = true;
+    }
+
+    xzfile_t *xfp = (xzfile_t *) hccalloc (1, sizeof (*xfp));
+    if (xfp == NULL) return false;
+
+    /* prepare cache line aligned memory allocator */
+    AlignOffsetAlloc_CreateVTable (&xfp->alloc);
+    xfp->alloc.numAlignBits = 7;
+    xfp->alloc.baseAlloc = &xz_alloc;
+    ISzAllocPtr alloc = &xfp->alloc.vt;
+    xfp->inBuf = (Byte *) ISzAlloc_Alloc (alloc, XZFILE_BUFFER_SIZE);
+    if (xfp->inBuf == NULL)
+    {
+      hcfree (xfp);
+      close (fp->fd);
+      return false;
+    }
+
+    /* open the file */
+    CFileInStream *inStream = &xfp->inStream;
+    FileInStream_CreateVTable (inStream);
+    CSzFile *file = &inStream->file;
+    File_Construct (file);
+    WRes wres = InFile_Open (file, path);
+    if (wres != SZ_OK)
+    {
+      ISzAlloc_Free (alloc, xfp->inBuf);
+      hcfree (xfp);
+      close (fp->fd);
+      return false;
+    }
+
+    /* scan the file */
+    CLookToRead2 lookStream;
+    LookToRead2_CreateVTable (&lookStream, false);
+    lookStream.buf = xfp->inBuf;
+    lookStream.bufSize = XZFILE_BUFFER_SIZE;
+    lookStream.realStream = &inStream->vt;
+    LookToRead2_Init (&lookStream);
+    Xzs_Construct (&xfp->streams);
+    Int64 offset = 0;
+    SRes res = Xzs_ReadBackward (&xfp->streams, &lookStream.vt, &offset, NULL, alloc);
+    if (res != SZ_OK || offset != 0)
+    {
+      Xzs_Free (&xfp->streams, alloc);
+      File_Close (file);
+      ISzAlloc_Free (alloc, xfp->inBuf);
+      hcfree (xfp);
+      close (fp->fd);
+      return false;
+    }
+
+    xfp->inBlocks = Xzs_GetNumBlocks (&xfp->streams);
+    xfp->outSize = Xzs_GetUnpackSize (&xfp->streams);
+
+    /* seek to start of the file and fill the buffer */
+    SizeT inLen = XZFILE_BUFFER_SIZE;
+    res = ISeekInStream_Seek (&inStream->vt, &offset, SZ_SEEK_SET);
+    if (res == SZ_OK)
+    {
+      res = ISeekInStream_Read (&inStream->vt, xfp->inBuf, &inLen);
+    }
+    if (res != SZ_OK || inLen == 0)
+    {
+      Xzs_Free (&xfp->streams, alloc);
+      File_Close (file);
+      ISzAlloc_Free (alloc, xfp->inBuf);
+      hcfree (xfp);
+      close (fp->fd);
+      return false;
+    }
+
+    xfp->inLen = inLen;
+
+    /* read headers */
+    SizeT outLen = 0;
+    ECoderStatus status;
+    CXzUnpacker *state = &xfp->state;
+    XzUnpacker_Construct (state, alloc);
+    res = XzUnpacker_Code (state, NULL, &outLen, xfp->inBuf, &inLen, false, CODER_FINISH_ANY, &status);
+    if (res != SZ_OK)
+    {
+      XzUnpacker_Free (state);
+      Xzs_Free (&xfp->streams, alloc);
+      File_Close (file);
+      ISzAlloc_Free (alloc, xfp->inBuf);
+      hcfree (xfp);
+      close (fp->fd);
+      return false;
+    }
+
+    xfp->inPos = inLen;
+    xfp->inProcessed = inLen;
+    fp->xfp = xfp;
+  }
+  else
+  {
+    if ((fp->pfp = fdopen (fp->fd, mode)) == NULL) return false;
+
+    if (fp->bom_size)
+    {
+      // atm just skip bom
+
+      const int nread = fread (check, sizeof (char), fp->bom_size, fp->pfp);
+
+      if (nread != fp->bom_size) return false;
+    }
   }
 
   fp->path = path;
@@ -149,6 +289,7 @@ bool hc_fopen_raw (HCFILE *fp, const char *path, const char *mode)
   fp->pfp      = NULL;
   fp->gfp      = NULL;
   fp->ufp      = NULL;
+  fp->xfp      = NULL;
   fp->bom_size = 0;
   fp->path     = NULL;
   fp->mode     = NULL;
@@ -213,17 +354,9 @@ size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
 
   if (fp == NULL) return n;
 
-  if (fp->gfp)
-  {
-    n = gzfread (ptr, size, nmemb, fp->gfp);
-  }
-  else if (fp->ufp)
-  {
-    unsigned s = size * nmemb;
+  if (ptr == NULL || size == 0 || nmemb == 0) return 0;
 
-    n = unzReadCurrentFile (fp->ufp, ptr, s);
-  }
-  else if (fp->pfp)
+  if (fp->pfp)
   {
     #if defined (_WIN)
 
@@ -267,6 +400,50 @@ size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
     n = fread (ptr, size, nmemb, fp->pfp);
     #endif
   }
+  else if (fp->gfp)
+  {
+    n = gzfread (ptr, size, nmemb, fp->gfp);
+  }
+  else if (fp->ufp)
+  {
+    unsigned s = size * nmemb;
+
+    n = unzReadCurrentFile (fp->ufp, ptr, s);
+  }
+  else if (fp->xfp)
+  {
+    Byte *outBuf = (Byte *) ptr;
+    SizeT outLen = (SizeT) size * nmemb;
+    SizeT outPos = 0;
+    SRes res = SZ_OK;
+    xzfile_t *xfp = fp->xfp;
+
+    do
+    {
+      /* fill buffer if needed */
+      if (xfp->inLen == xfp->inPos && !xfp->inEof)
+      {
+        xfp->inPos = 0;
+        xfp->inLen = XZFILE_BUFFER_SIZE;
+        res = ISeekInStream_Read (&xfp->inStream.vt, xfp->inBuf, &xfp->inLen);
+        if (res != SZ_OK || xfp->inLen == 0) xfp->inEof = true;
+      }
+
+      /* decode */
+      ECoderStatus status;
+      SizeT inLeft  = xfp->inLen - xfp->inPos;
+      SizeT outLeft = outLen - outPos;
+      res = XzUnpacker_Code (&xfp->state, outBuf + outPos, &outLeft, xfp->inBuf + xfp->inPos, &inLeft, inLeft == 0, CODER_FINISH_ANY, &status);
+      xfp->inPos += inLeft;
+      xfp->inProcessed += inLeft;
+      if (res != SZ_OK) return -1;
+      if (inLeft == 0 && outLeft == 0) break;
+      outPos += outLeft;
+      xfp->outProcessed += outLeft;
+    } while (outPos < outLen);
+
+    n = outPos;
+  }
 
   return n;
 }
@@ -277,14 +454,7 @@ size_t hc_fwrite (const void *ptr, size_t size, size_t nmemb, HCFILE *fp)
 
   if (fp == NULL) return n;
 
-  if (fp->gfp)
-  {
-    n = gzfwrite (ptr, size, nmemb, fp->gfp);
-  }
-  else if (fp->ufp)
-  {
-  }
-  else if (fp->pfp)
+  if (fp->pfp)
   {
     #if defined (_WIN)
 
@@ -328,6 +498,10 @@ size_t hc_fwrite (const void *ptr, size_t size, size_t nmemb, HCFILE *fp)
     n = fwrite (ptr, size, nmemb, fp->pfp);
     #endif
   }
+  else if (fp->gfp)
+  {
+    n = gzfwrite (ptr, size, nmemb, fp->gfp);
+  }  
 
   return n;
 }
@@ -338,7 +512,11 @@ int hc_fseek (HCFILE *fp, off_t offset, int whence)
 
   if (fp == NULL) return r;
 
-  if (fp->gfp)
+  if (fp->pfp)
+  {
+    r = fseeko (fp->pfp, offset, whence);
+  }
+  else if (fp->gfp)
   {
     r = gzseek (fp->gfp, offset, whence);
   }
@@ -363,9 +541,9 @@ int hc_fseek (HCFILE *fp, off_t offset, int whence)
     // r = unzSetOffset (fp->ufp, offset);
     */
   }
-  else if (fp->pfp)
+  else if (fp->xfp)
   {
-    r = fseeko (fp->pfp, offset, whence);
+    /* TODO */
   }
 
   return r;
@@ -375,7 +553,11 @@ void hc_rewind (HCFILE *fp)
 {
   if (fp == NULL) return;
 
-  if (fp->gfp)
+  if (fp->pfp)
+  {
+    rewind (fp->pfp);
+  }
+  else if (fp->gfp)
   {
     gzrewind (fp->gfp);
   }
@@ -383,17 +565,69 @@ void hc_rewind (HCFILE *fp)
   {
     unzGoToFirstFile (fp->ufp);
   }
-  else if (fp->pfp)
+  else if (fp->xfp)
   {
-    rewind (fp->pfp);
+    xzfile_t *xfp = fp->xfp;
+
+    /* cleanup */
+    xfp->inEof = false;
+    xfp->inLen = 0;
+    xfp->inPos = 0;
+    xfp->inProcessed  = 0;
+    xfp->outProcessed = 0;
+
+    /* reset */
+    Int64 offset = 0;
+    CFileInStream *inStream = &xfp->inStream;
+    SRes res = ISeekInStream_Seek (&inStream->vt, &offset, SZ_SEEK_SET);
+    if (res != SZ_OK) return;
+    CXzUnpacker *state = &xfp->state;
+    XzUnpacker_Init (&xfp->state);
+
+    /* fill the buffer */
+    SizeT inLen = XZFILE_BUFFER_SIZE;
+    res = ISeekInStream_Read (&inStream->vt, xfp->inBuf, &inLen);
+    if (res != SZ_OK || inLen == 0) return;
+
+    xfp->inLen = inLen;
+
+    /* read headers */
+    SizeT outLen = 0;
+    ECoderStatus status;
+    XzUnpacker_Code (state, NULL, &outLen, xfp->inBuf, &inLen, false, CODER_FINISH_ANY, &status);
+    xfp->inPos = inLen;
+    xfp->inProcessed = inLen;
   }
 }
 
 int hc_fstat (HCFILE *fp, struct stat *buf)
 {
-  if (fp == NULL || buf == NULL || fp->fd == -1) return -1;
+  int r = -1;
 
-  return fstat (fp->fd, buf);
+  if (fp == NULL || buf == NULL || fp->fd == -1) return r;
+
+  r = fstat (fp->fd, buf);
+  if (r != 0) return r;
+
+  if (fp->gfp)
+  {
+    /* TODO: For compressed files hc_ftell() reports uncompressed bytes, but hc_fstat() reports compressed bytes */
+  }
+  else if (fp->ufp)
+  {
+    /* TODO: For compressed files hc_ftell() reports uncompressed bytes, but hc_fstat() reports compressed bytes */
+  }
+  else if (fp->xfp)
+  {
+    /* check that the uncompressed size is known */
+    const xzfile_t *xfp = fp->xfp;
+    if (xfp->outSize != (UInt64)((Int64)-1))
+    {
+      buf->st_size = (off_t) xfp->outSize;
+    }
+  }
+
+  return r;
 }
 
 off_t hc_ftell (HCFILE *fp)
@@ -402,7 +636,11 @@ off_t hc_ftell (HCFILE *fp)
 
   if (fp == NULL) return -1;
 
-  if (fp->gfp)
+  if (fp->pfp)
+  {
+    n = ftello (fp->pfp);
+  }
+  else if (fp->gfp)
   {
     n = (off_t) gztell (fp->gfp);
   }
@@ -410,9 +648,11 @@ off_t hc_ftell (HCFILE *fp)
   {
     n = unztell (fp->ufp);
   }
-  else if (fp->pfp)
+  else if (fp->xfp)
   {
-    n = ftello (fp->pfp);
+    /* uncompressed bytes */
+    const xzfile_t *xfp = fp->xfp;
+    n = (off_t) xfp->outProcessed;
   }
 
   return n;
@@ -424,16 +664,13 @@ int hc_fputc (int c, HCFILE *fp)
 
   if (fp == NULL) return r;
 
-  if (fp->gfp)
-  {
-    r = gzputc (fp->gfp, c);
-  }
-  else if (fp->ufp)
-  {
-  }
-  else if (fp->pfp)
+  if (fp->pfp)
   {
     r = fputc (c, fp->pfp);
+  }
+  else if (fp->gfp)
+  {
+    r = gzputc (fp->gfp, c);
   }
 
   return r;
@@ -441,11 +678,15 @@ int hc_fputc (int c, HCFILE *fp)
 
 int hc_fgetc (HCFILE *fp)
 {
-  int r = -1;
+  int r = EOF;
 
   if (fp == NULL) return r;
 
-  if (fp->gfp)
+  if (fp->pfp)
+  {
+    r = fgetc (fp->pfp);
+  }
+  else if (fp->gfp)
   {
     r = gzgetc (fp->gfp);
   }
@@ -455,9 +696,32 @@ int hc_fgetc (HCFILE *fp)
 
     if (unzReadCurrentFile (fp->ufp, &c, 1) == 1) r = (int) c;
   }
-  else if (fp->pfp)
+  else if (fp->xfp)
   {
-    r = fgetc (fp->pfp);
+    Byte out;
+    SRes res = SZ_OK;
+    xzfile_t *xfp = fp->xfp;
+
+    /* fill buffer if needed */
+    if (xfp->inLen == xfp->inPos && !xfp->inEof)
+    {
+      xfp->inPos = 0;
+      xfp->inLen = XZFILE_BUFFER_SIZE;
+      res = ISeekInStream_Read (&xfp->inStream.vt, xfp->inBuf, &xfp->inLen);
+      if (res != SZ_OK || xfp->inLen == 0) xfp->inEof = true;
+    }
+
+    /* decode single byte */
+    ECoderStatus status;
+    SizeT inLeft = xfp->inLen - xfp->inPos;
+    SizeT outLeft = 1;
+    res = XzUnpacker_Code (&xfp->state, &out, &outLeft, xfp->inBuf + xfp->inPos, &inLeft, inLeft == 0, CODER_FINISH_ANY, &status);
+    if (inLeft == 0 && outLeft == 0) return r;
+    xfp->inPos += inLeft;
+    xfp->inProcessed += inLeft;
+    if (res != SZ_OK) return r;
+    xfp->outProcessed++;
+    r = (int) out;
   }
 
   return r;
@@ -467,9 +731,13 @@ char *hc_fgets (char *buf, int len, HCFILE *fp)
 {
   char *r = NULL;
 
-  if (fp == NULL) return r;
+  if (fp == NULL || buf == NULL || len <= 0) return r;
 
-  if (fp->gfp)
+  if (fp->pfp)
+  {
+    r = fgets (buf, len, fp->pfp);
+  }
+  else if (fp->gfp)
   {
     r = gzgets (fp->gfp, buf, len);
   }
@@ -477,9 +745,46 @@ char *hc_fgets (char *buf, int len, HCFILE *fp)
   {
     if (unzReadCurrentFile (fp->ufp, buf, len) > 0) r = buf;
   }
-  else if (fp->pfp)
+  else if (fp->xfp)
   {
-    r = fgets (buf, len, fp->pfp);
+    Byte *outBuf = (Byte *) buf;
+    SizeT outLen = (SizeT) len - 1;
+    SRes res = SZ_OK;
+    xzfile_t *xfp = fp->xfp;
+
+    while (outLen > 0)
+    {
+      /* fill buffer if needed */
+      if (xfp->inLen == xfp->inPos && !xfp->inEof)
+      {
+        xfp->inPos = 0;
+        xfp->inLen = XZFILE_BUFFER_SIZE;
+        res = ISeekInStream_Read (&xfp->inStream.vt, xfp->inBuf, &xfp->inLen);
+        if (res != SZ_OK || xfp->inLen == 0) xfp->inEof = true;
+      }
+
+      /* decode single byte */
+      ECoderStatus status;
+      SizeT inLeft = xfp->inLen - xfp->inPos;
+      SizeT outLeft = 1;
+      res = XzUnpacker_Code (&xfp->state, outBuf, &outLeft, xfp->inBuf + xfp->inPos, &inLeft, inLeft == 0, CODER_FINISH_ANY, &status);
+      if (inLeft == 0 && outLeft == 0) break;
+      xfp->inPos += inLeft;
+      xfp->inProcessed += inLeft;
+      if (res != SZ_OK) break;
+      xfp->outProcessed++;
+      if (*outBuf++ == '\n')
+      {
+        /* success */
+        r = buf;
+        break;
+      }
+
+      outLen--;
+    }
+
+    /* always NULL terminate */
+    *outBuf = 0;
   }
 
   return r;
@@ -491,16 +796,13 @@ int hc_vfprintf (HCFILE *fp, const char *format, va_list ap)
 
   if (fp == NULL) return r;
 
-  if (fp->gfp)
-  {
-    r = gzvprintf (fp->gfp, format, ap);
-  }
-  else if (fp->ufp)
-  {
-  }
-  else if (fp->pfp)
+  if (fp->pfp)
   {
     r = vfprintf (fp->pfp, format, ap);
+  }
+  else if (fp->gfp)
+  {
+    r = gzvprintf (fp->gfp, format, ap);
   }
 
   return r;
@@ -516,16 +818,13 @@ int hc_fprintf (HCFILE *fp, const char *format, ...)
 
   va_start (ap, format);
 
-  if (fp->gfp)
-  {
-    r = gzvprintf (fp->gfp, format, ap);
-  }
-  else if (fp->ufp)
-  {
-  }
-  else if (fp->pfp)
+  if (fp->pfp)
   {
     r = vfprintf (fp->pfp, format, ap);
+  }
+  else if (fp->gfp)
+  {
+    r = gzvprintf (fp->gfp, format, ap);
   }
 
   va_end (ap);
@@ -557,7 +856,11 @@ int hc_feof (HCFILE *fp)
 
   if (fp == NULL) return r;
 
-  if (fp->gfp)
+  if (fp->pfp)
+  {
+    r = feof (fp->pfp);
+  }
+  else if (fp->gfp)
   {
     r = gzeof (fp->gfp);
   }
@@ -565,9 +868,10 @@ int hc_feof (HCFILE *fp)
   {
     r = unzeof (fp->ufp);
   }
-  else if (fp->pfp)
+  else if (fp->xfp)
   {
-    r = feof (fp->pfp);
+    const xzfile_t *xfp = fp->xfp;
+    r = (xfp->inEof && xfp->inPos == xfp->inLen);
   }
 
   return r;
@@ -577,16 +881,13 @@ void hc_fflush (HCFILE *fp)
 {
   if (fp == NULL) return;
 
-  if (fp->gfp)
-  {
-    gzflush (fp->gfp, Z_SYNC_FLUSH);
-  }
-  else if (fp->ufp)
-  {
-  }
-  else if (fp->pfp)
+  if (fp->pfp)
   {
     fflush (fp->pfp);
+  }
+  else if (fp->gfp)
+  {
+    gzflush (fp->gfp, Z_SYNC_FLUSH);
   }
 }
 
@@ -610,7 +911,11 @@ void hc_fclose (HCFILE *fp)
 {
   if (fp == NULL) return;
 
-  if (fp->gfp)
+  if (fp->pfp)
+  {
+    fclose (fp->pfp);
+  }
+  else if (fp->gfp)
   {
     gzclose (fp->gfp);
   }
@@ -622,15 +927,23 @@ void hc_fclose (HCFILE *fp)
 
     close (fp->fd);
   }
-  else if (fp->pfp)
+  else if (fp->xfp)
   {
-    fclose (fp->pfp);
+    xzfile_t *xfp = fp->xfp;
+    ISzAllocPtr alloc = &xfp->alloc.vt;
+    XzUnpacker_Free (&xfp->state);
+    Xzs_Free (&xfp->streams, alloc);
+    File_Close (&xfp->inStream.file);
+    ISzAlloc_Free (alloc, xfp->inBuf);
+    hcfree (xfp);
+    close (fp->fd);
   }
 
   fp->fd = -1;
   fp->pfp = NULL;
   fp->gfp = NULL;
   fp->ufp = NULL;
+  fp->xfp = NULL;
 
   fp->path = NULL;
   fp->mode = NULL;
