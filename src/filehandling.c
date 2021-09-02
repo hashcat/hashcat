@@ -356,7 +356,7 @@ bool hc_fopen_raw (HCFILE *fp, const char *path, const char *mode)
 
 size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
 {
-  size_t n = -1;
+  size_t n = (size_t) -1;
 
   if (ptr == NULL || fp == NULL) return n;
 
@@ -421,7 +421,7 @@ size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
     {
       unsigned chunk = (len > HCFILE_CHUNK_SIZE) ? HCFILE_CHUNK_SIZE : (unsigned) len;
       int result = unzReadCurrentFile (fp->ufp, (unsigned char *) ptr + pos, chunk);
-      if (result < 0) return -1;
+      if (result < 0) return (size_t) -1;
       pos += (u64) result;
       len -= (u64) result;
       if (chunk != (unsigned) result)
@@ -439,6 +439,9 @@ size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
     SizeT outPos = 0;
     SRes res = SZ_OK;
     xzfile_t *xfp = fp->xfp;
+
+    /* assume success */
+    n = nmemb;
 
     do
     {
@@ -458,13 +461,16 @@ size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
       res = XzUnpacker_Code (&xfp->state, outBuf + outPos, &outLeft, xfp->inBuf + xfp->inPos, &inLeft, inLeft == 0, CODER_FINISH_ANY, &status);
       xfp->inPos += inLeft;
       xfp->inProcessed += inLeft;
-      if (res != SZ_OK) return -1;
-      if (inLeft == 0 && outLeft == 0) break;
+      if (res != SZ_OK) return (size_t) -1;
+      if (inLeft == 0 && outLeft == 0)
+      {
+        /* partial read */
+        n = (size_t) (outPos / size);
+        break;
+      }
       outPos += outLeft;
       xfp->outProcessed += outLeft;
     } while (outPos < outLen);
-
-    n = outPos;
   }
 
   return n;
