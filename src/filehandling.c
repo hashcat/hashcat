@@ -412,10 +412,25 @@ size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
   else if (fp->ufp)
   {
     u64 len = (u64) size * nmemb;
-    if (len == (unsigned) len)
+    u64 pos = 0;
+
+    /* assume success */
+    n = nmemb;
+
+    do
     {
-      n = unzReadCurrentFile (fp->ufp, ptr, (unsigned) len);
-    }    
+      unsigned chunk = (len > HCFILE_CHUNK_SIZE) ? HCFILE_CHUNK_SIZE : (unsigned) len;
+      int result = unzReadCurrentFile (fp->ufp, (unsigned char *) ptr + pos, chunk);
+      if (result < 0) return -1;
+      pos += (u64) result;
+      len -= (u64) result;
+      if (chunk != (unsigned) result)
+      {
+        /* partial read */
+        n = pos / size;
+        break;
+      }
+    } while (len);
   }
   else if (fp->xfp)
   {
