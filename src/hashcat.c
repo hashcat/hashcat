@@ -922,7 +922,10 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   // clean up
 
+  #ifdef WITH_BRAIN
   brain_ctx_destroy       (hashcat_ctx);
+  #endif
+
   bitmap_ctx_destroy      (hashcat_ctx);
   combinator_ctx_destroy  (hashcat_ctx);
   cpt_ctx_destroy         (hashcat_ctx);
@@ -1090,13 +1093,13 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
     }
   }
   #endif
-  #endif
 
   /**
    * brain
    */
 
   if (brain_ctx_init (hashcat_ctx) == -1) return -1;
+  #endif
 
   /**
    * logfile
