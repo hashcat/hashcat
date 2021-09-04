@@ -203,6 +203,7 @@ CFLAGS_ZLIB             += -Wno-implicit-fallthrough
 CFLAGS_ZLIB             += -Wno-implicit-function-declaration
 CFLAGS_ZLIB             += -Wno-unused-parameter
 CFLAGS_ZLIB             += -DIOAPI_NO_64
+CFLAGS_ZLIB             += -DUNZ_BUFSIZE=262144
 endif
 
 ## because UNRAR
