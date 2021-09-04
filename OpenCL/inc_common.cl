@@ -1711,6 +1711,15 @@ DECLSPEC u32 hc_bfe_S (const u32 a, const u32 b, const u32 c)
   return r;
 }
 
+DECLSPEC u32 hc_bytealign_be_S (const u32 a, const u32 b, const int c)
+{
+  const int c_mod_4 = c & 3;
+
+  const u32 r = hc_byte_perm_S (b, a, (0x76543210 >> (c_mod_4 * 4)) & 0xffff);
+
+  return r;
+}
+
 DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const int c)
 {
   const int c_mod_4 = c & 3;
