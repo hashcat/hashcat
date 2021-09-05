@@ -11365,7 +11365,19 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D KERNEL_STATIC -I OpenCL -I \"%s\" ", folder_config->cpath_real);
+      if (device_param->opencl_platform_vendor_id == VENDOR_ID_POCL)
+      {
+        // POCL doesn't like quotes in the include path, see:
+        //   https://github.com/hashcat/hashcat/issues/2950
+        // Maybe related:
+        //   https://github.com/pocl/pocl/issues/962
+
+        build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D KERNEL_STATIC -I OpenCL -I %s ", folder_config->cpath_real);
+      }
+      else
+      {
+        build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D KERNEL_STATIC -I OpenCL -I \"%s\" ", folder_config->cpath_real);
+      }
     }
 
     /* currently disabled, hangs NEO drivers since 20.09.
