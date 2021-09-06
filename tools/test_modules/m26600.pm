@@ -22,7 +22,7 @@ sub module_generate_hash
   my $ct   = shift;
 
   my $ct_min_len = 30;
-  my $ct_max_len = 1536;
+  my $ct_max_len = 3136;
 
   my $kdf = Crypt::PBKDF2->new
   (
@@ -106,7 +106,7 @@ sub module_verify_hash
 
   my $ct_len = length ($ct_bin);
   my $ct_min_len = 30;
-  my $ct_max_len = 1536;
+  my $ct_max_len = 3136;
 
   return unless ($ct_len >= $ct_min_len && $ct_len <= $ct_max_len);
 
