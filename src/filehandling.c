@@ -990,7 +990,7 @@ size_t fgetl (HCFILE *fp, char *line_buf, const size_t line_sz)
 
   while ((c = hc_fgetc (fp)) != EOF)
   {
-    if (c == '\n') break;
+    if (c == 0 || c == '\n') break;
 
     if (line_len == line_sz)
     {
