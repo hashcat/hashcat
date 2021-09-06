@@ -24,6 +24,8 @@ sub module_generate_hash
 
   my $pad_len = 34 - length ($engineID);
 
+  my $engineID_orig = $engineID;
+
   $engineID = join '', $engineID, "0" x $pad_len;
 
   # make salt even if needed
@@ -47,7 +49,7 @@ sub module_generate_hash
 
   $digest = substr ($digest, 0, 64);
 
-  my $hash = "\$SNMPv3\$5\$" . $pkt_num . "\$" . $salt . "\$" . $engineID . "\$" . $digest;
+  my $hash = "\$SNMPv3\$5\$" . $pkt_num . "\$" . $salt . "\$" . $engineID_orig . "\$" . $digest;
 
   return $hash;
 }
