@@ -21,6 +21,7 @@
 ## Algorithms
 ##
 
+- Added hash-mode: MultiBit Classic .wallet (scrypt)
 - Added hash-mode: SNMPv3 HMAC-MD5-96/HMAC-SHA1-96
 - Added hash-mode: SNMPv3 HMAC-MD5-96
 - Added hash-mode: SNMPv3 HMAC-SHA1-96

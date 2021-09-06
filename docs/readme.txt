@@ -399,6 +399,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Ethereum Wallet, PBKDF2-HMAC-SHA256
 - Ethereum Wallet, SCRYPT
 - MultiBit Classic .key (MD5)
+- MultiBit Classic .wallet (scrypt)
 - MultiBit HD (scrypt)
 
 ##
