@@ -771,7 +771,7 @@ KERNEL_FQ void m17200_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       ret = hc_inflate (&infstream);
     }
 
-    if (ret != MZ_STREAM_END) continue; // failed to inflate
+    if (ret != MZ_STREAM_END || infstream.total_out != esalt_bufs[DIGESTS_OFFSET].hash.uncompressed_length) continue;
 
     const u32 r0 = ~infstream.crc32;
     const u32 r1 = 0;
@@ -1013,7 +1013,7 @@ KERNEL_FQ void m17200_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       ret = hc_inflate (&infstream);
     }
 
-    if (ret != MZ_STREAM_END) continue; // failed to inflate
+    if (ret != MZ_STREAM_END || infstream.total_out != esalt_bufs[DIGESTS_OFFSET].hash.uncompressed_length) continue;
 
     const u32 r0 = ~infstream.crc32;
     const u32 r1 = 0;
