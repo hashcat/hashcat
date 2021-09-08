@@ -10725,6 +10725,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
   u64 size_total_host_all = 0;
 
+  u32 hardware_power_all = 0;
+
   for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
   {
     /**
@@ -15082,8 +15084,17 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
     }
 
+    hardware_power_all += hardware_power_max;
+
     EVENT_DATA (EVENT_BACKEND_DEVICE_INIT_POST, &backend_devices_idx, sizeof (int));
   }
+
+  if (user_options->benchmark == false)
+  {
+    if (hardware_power_all == 0) return -1;
+  }
+
+  backend_ctx->hardware_power_all = hardware_power_all;
 
   EVENT_DATA (EVENT_BACKEND_SESSION_HOSTMEM, &size_total_host_all, sizeof (u64));
 
@@ -15578,7 +15589,6 @@ void backend_session_reset (hashcat_ctx_t *hashcat_ctx)
     device_param->hardware_power = 0;
   }
 
-  backend_ctx->hardware_power_all = 0;
   backend_ctx->kernel_power_all   = 0;
   backend_ctx->kernel_power_final = 0;
 }
