@@ -766,7 +766,7 @@ KERNEL_FQ void m17225_sxx (KERN_ATTR_RULES_ESALT (pkzip_t))
           ret = hc_inflate (&infstream);
         }
 
-        if (ret != MZ_STREAM_END) break; // failed to inflate
+        if (ret != MZ_STREAM_END || infstream.total_out != esalt_bufs[DIGESTS_OFFSET].hashes[idx].uncompressed_length) break;
 
         crc = ~infstream.crc32;
       }
@@ -1094,7 +1094,7 @@ KERNEL_FQ void m17225_mxx (KERN_ATTR_RULES_ESALT (pkzip_t))
           ret = hc_inflate (&infstream);
         }
 
-        if (ret != MZ_STREAM_END) break; // failed to inflate
+        if (ret != MZ_STREAM_END || infstream.total_out != esalt_bufs[DIGESTS_OFFSET].hashes[idx].uncompressed_length) break;
 
         crc = ~infstream.crc32;
       }
