@@ -1,6 +1,12 @@
 * changes v6.2.4 -> v6.2.x
 
 ##
+## Algorithms
+##
+
+- Added hash-mode: MultiBit Classic .wallet (scrypt)
+
+##
 ## Bugs
 ##
 
