@@ -3,8 +3,7 @@
  * License.....: MIT
  */
 
-// TODO use user password as input for md5 of o_digest if no owner password is set
-// TODO dynamically add user password including padding to the RC4 input for the computation of the pdf o-value
+// https://www.adobe.com/content/dam/acom/en/devnet/pdf/pdfs/pdf_reference_archives/PDFReference.pdf
 
 #include "common.h"
 #include "types.h"
@@ -21,11 +20,11 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_4;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_DOCUMENTS;
-static const char *HASH_NAME      = "PDF 1.4 - 1.6 (Acrobat 5 - 8) - edit password";
+static const char *HASH_NAME      = "PDF 1.4 - 1.6 (Acrobat 5 - 8) - user and owner password (o-value)";
 static const u64   KERN_TYPE      = 25400;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_NOT_ITERATED;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
+static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE | OPTS_TYPE_COPY_TMPS | OPTS_TYPE_PT_ALWAYS_ASCII;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$pdf$2*3*128*-3904*1*16*631ed33746e50fba5caf56bcc39e09c6*32*5f9d0e4f0b39835dace0d306c40cd6b700000000000000000000000000000000*32*842103b0a0dc886db9223b94afe2d7cd63389079b61986a4fcf70095ad630c24";
@@ -47,22 +46,24 @@ const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 
 typedef struct pdf
 {
-  int  V;
-  int  R;
-  int  P;
+  int V;
+  int R;
+  int P;
 
-  int  enc_md;
+  int enc_md;
 
-  u32  id_buf[8];
-  u32  u_buf[32];
-  u32  o_buf[32];
+  u32 id_buf[8];
+  u32 u_buf[32];
+  u32 o_buf[32];
+  u32 u_pass_buf[8];
 
-  int  id_len;
-  int  o_len;
-  int  u_len;
+  int id_len;
+  int o_len;
+  int u_len;
+  int u_pass_len;
 
-  u32  rc4key[2];
-  u32  rc4data[2];
+  u32 rc4key[2];
+  u32 rc4data[2];
 
 } pdf_t;
 
@@ -134,13 +135,16 @@ u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED c
 
 u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 pw_max = 32; // https://www.pdflib.com/knowledge-base/pdf-password-security/encryption/
-
+  const u32 pw_max = 32; // "truncate the password string to exactly 32 bytes." see "Algorithm 3.2 computing an encryption key"
   return pw_max;
 }
 
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
+  char *input_buf = (char *) line_buf;
+  int   input_len = line_len;
+
+  // based on m22000 module_hash_decode() we detect both the hashformat with and without user-password
   u32 *digest = (u32 *) digest_buf;
 
   pdf_t *pdf = (pdf_t *) esalt_buf;
@@ -221,8 +225,102 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[11]    = TOKEN_ATTR_VERIFY_LENGTH
                     | TOKEN_ATTR_VERIFY_HEX;
 
-  const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
+  int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token); // was a const, now no longer, as we need it again for the new hashformat
 
+  //check if hashformat without user-password is detected
+  if (rc_tokenizer == PARSER_OK)
+  {
+    char tmp_buf[1024];
+    int  tmp_len;
+
+    tmp_len = snprintf (tmp_buf, sizeof (tmp_buf), "%s*", line_buf); // simply add an extra asterisk to denote a empty user-password
+
+    input_buf = tmp_buf;
+    input_len = tmp_len;
+  }
+
+  token.token_cnt  = 13;
+
+  token.signatures_cnt    = 1;
+  token.signatures_buf[0] = SIGNATURE_PDF;
+
+  token.len[0]     = 5;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_SIGNATURE;
+
+  token.len_min[1] = 1;
+  token.len_max[1] = 1;
+  token.sep[1]     = '*';
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
+
+  token.len_min[2] = 1;
+  token.len_max[2] = 1;
+  token.sep[2]     = '*';
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
+
+  token.len_min[3] = 3;
+  token.len_max[3] = 3;
+  token.sep[3]     = '*';
+  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
+
+  token.len_min[4] = 1;
+  token.len_max[4] = 6;
+  token.sep[4]     = '*';
+  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+  token.len_min[5] = 1;
+  token.len_max[5] = 1;
+  token.sep[5]     = '*';
+  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
+
+  token.len_min[6] = 2;
+  token.len_max[6] = 2;
+  token.sep[6]     = '*';
+  token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
+
+  token.len_min[7] = 32;
+  token.len_max[7] = 64;
+  token.sep[7]     = '*';
+  token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
+
+  token.len_min[8] = 2;
+  token.len_max[8] = 2;
+  token.sep[8]     = '*';
+  token.attr[8]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
+
+  token.len_min[9] = 64;
+  token.len_max[9] = 64;
+  token.sep[9]     = '*';
+  token.attr[9]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
+
+  token.len_min[10] = 2;
+  token.len_max[10] = 2;
+  token.sep[10]     = '*';
+  token.attr[10]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
+
+  token.len_min[11] = 64;
+  token.len_max[11] = 64;
+  token.sep[11]     = '*';
+  token.attr[11]    = TOKEN_ATTR_VERIFY_LENGTH
+                    | TOKEN_ATTR_VERIFY_HEX;
+
+  token.len_min[12] = 0;
+  token.len_max[12] = 32; // "truncate the password string to exactly 32 bytes." see "Algorithm 3.2 computing an encryption key"
+  token.sep[12]     = '*';
+  token.attr[12]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+  rc_tokenizer = input_tokenizer ((const u8 *) input_buf, input_len, &token);
+
+  // detect hashformat including the user-password
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
   const u8 *V_pos      = token.buf[1];
@@ -236,6 +334,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u8 *u_buf_pos  = token.buf[9];  // user hash
   const u8 *o_len_pos  = token.buf[10];
   const u8 *o_buf_pos  = token.buf[11]; // owner hash
+  const u8 *u_pass_buf_pos  = token.buf[12]; // user password (optional)
+  // we don't use the user-password in the attack now (as we don't need it),
+  //  however we could use it in the comparison of the decrypted o-value,
+  //  yet it may make this attack a bit more fragile, as now we just check for ASCII
+
 
   // validate data
 
@@ -271,10 +374,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   }
 
   // copy data to esalt
-
   pdf->V = V;
   pdf->R = R;
   pdf->P = P;
+
+  memcpy ( pdf->u_pass_buf, u_pass_buf_pos, 32);
+  pdf->u_pass_len = strlen((char *) pdf->u_pass_buf);
 
   pdf->enc_md = enc_md;
 
@@ -314,7 +419,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   pdf->o_len     = o_len;
 
   // precompute rc4 data for later use
-
   u32 padding[8] =
   {
     0x5e4ebf28,
@@ -328,7 +432,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   };
 
   // md5
-
   u32 salt_pc_block[32] = { 0 };
 
   u8 *salt_pc_ptr = (u8 *) salt_pc_block;
@@ -344,7 +447,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   pdf->rc4data[1] = salt_pc_digest[1];
 
   // we use ID for salt, maybe needs to change, we will see...
-
   salt->salt_buf[0] = pdf->id_buf[0];
   salt->salt_buf[1] = pdf->id_buf[1];
   salt->salt_buf[2] = pdf->id_buf[2];
@@ -365,15 +467,81 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   return (PARSER_OK);
 }
 
+int module_build_plain_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const void *tmps, const u32 *src_buf, MAYBE_UNUSED const size_t src_sz, MAYBE_UNUSED const int src_len, u32 *dst_buf, MAYBE_UNUSED const size_t dst_sz)
+{
+  const u32 padding[8] =
+  {
+    0x5e4ebf28,
+    0x418a754e,
+    0x564e0064,
+    0x0801faff,
+    0xb6002e2e,
+    0x803e68d0,
+    0xfea90c2f,
+    0x7a695364
+  };
+
+  pdf14_tmp_t *pdf_tmp = (pdf14_tmp_t *) tmps;
+  pdf_t *pdf = (pdf_t *) hashes->esalts_buf;
+
+  // if the password in tmp->out is equal to the padding, then we recovered just the owner-password
+  if(pdf_tmp->out[0]==padding[0] && pdf_tmp->out[1]==padding[1] && pdf_tmp->out[2]==padding[2] && pdf_tmp->out[3]==padding[3])
+  {
+    return snprintf ((char *) dst_buf, dst_sz, "%s    (user password not set)", (char *) src_buf);
+  }
+
+  // cast out buffer to byte such that we can do a byte per byte comparison
+  u32 *u32OutBufPtr = pdf_tmp->out;
+  u8 *u8OutBufPtr;
+  u8OutBufPtr = (u8*) u32OutBufPtr;
+
+  // cast padding buffer to byte such that we can do a byte per byte comparison
+  const u32 *u32OutPadPtr = padding;
+  const u8 *u8OutPadPtr;
+  u8OutPadPtr = (u8*) u32OutPadPtr;
+
+  bool remove_padding=false;
+  int i_padding=0;
+  for(int i=0;i<16;i++)
+  {
+    if(u8OutBufPtr[i]==u8OutPadPtr[i_padding] || remove_padding)
+    {
+    u8OutBufPtr[i]=0x0;
+    remove_padding=true;
+    }
+  }
+
+  // if the password in tmp->out is equal to the password tried, then we recovered just the owner-password or just the user-password
+  //   we check whether we already have a user-password in the hash
+  //   TODO would be better to actually also verify the u-value whether we've retrieved the correct user-password,
+  //     however, we'd need to include a lot of code/complexity here to do so (or call into 10500 kernel).
+  //     this seems relevant: run_kernel (hashcat_ctx, device_param, KERN_RUN_3, 0, 1, false, 0)
+  if(pdf_tmp->out[0]==src_buf[0] && pdf_tmp->out[1]==src_buf[1] && pdf_tmp->out[2]==src_buf[2] && pdf_tmp->out[3]==src_buf[3])
+  {
+    if(pdf->u_pass_len==0)
+    {
+      // we seem to only have recovered the user-password as we don't have one yet
+      return snprintf ((char *) dst_buf, dst_sz, "(user password=%s)", (char *) src_buf);
+    }
+  }
+  // we recovered both the user-password and the owner-password
+  return snprintf ((char *) dst_buf, dst_sz, "%s    (user password=%s)", (char *) src_buf, (char *) pdf_tmp->out);
+}
+
+
+// TODO how to add the recovered user-password to the hash?
+// module_hash_encode() is called before module_build_plain_postprocess() is
+//  module_hash_encode() doesn't know the recovered password src_buf or the decrypted o-value pdf_tmp->out
+//    it seems a bit excessive to add these both to module_hash_encode()'s parameters
+//  module_build_plain_postprocess() cannot alter the hash nor hash access to the pdf/esalt object
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  const pdf_t *pdf = (const pdf_t *) esalt_buf;
-
   int line_len = 0;
 
+  pdf_t *pdf = (pdf_t *) esalt_buf;
   if (pdf->id_len == 32)
   {
-    line_len = snprintf (line_buf, line_size, "$pdf$%d*%d*%d*%d*%d*%d*%08x%08x%08x%08x%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x",
+    line_len = snprintf (line_buf, line_size, "$pdf$%d*%d*%d*%d*%d*%d*%08x%08x%08x%08x%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x*%s",
       pdf->V,
       pdf->R,
       128,
@@ -405,12 +573,13 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
       byte_swap_32 (pdf->o_buf[4]),
       byte_swap_32 (pdf->o_buf[5]),
       byte_swap_32 (pdf->o_buf[6]),
-      byte_swap_32 (pdf->o_buf[7])
+      byte_swap_32 (pdf->o_buf[7]),
+      (char *) pdf->u_pass_buf // TODO just prints the old hash now, we don't edit the hash to add a recovered user-password to it (yet)
     );
   }
   else
   {
-    line_len = snprintf (line_buf, line_size, "$pdf$%d*%d*%d*%d*%d*%d*%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x",
+    line_len = snprintf (line_buf, line_size, "$pdf$%d*%d*%d*%d*%d*%d*%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x*%s",
       pdf->V,
       pdf->R,
       128,
@@ -438,7 +607,8 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
       byte_swap_32 (pdf->o_buf[4]),
       byte_swap_32 (pdf->o_buf[5]),
       byte_swap_32 (pdf->o_buf[6]),
-      byte_swap_32 (pdf->o_buf[7])
+      byte_swap_32 (pdf->o_buf[7]),
+      (char *) pdf->u_pass_buf // TODO just prints the old hash now, we don't edit the hash to add a recovered user-password to it (yet)
     );
   }
 
@@ -455,7 +625,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
   module_ctx->module_benchmark_mask           = MODULE_DEFAULT;
   module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
-  module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
+  module_ctx->module_build_plain_postprocess  = module_build_plain_postprocess;
   module_ctx->module_deep_comp_kernel         = MODULE_DEFAULT;
   module_ctx->module_deprecated_notice        = MODULE_DEFAULT;
   module_ctx->module_dgst_pos0                = module_dgst_pos0;
