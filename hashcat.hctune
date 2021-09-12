@@ -385,6 +385,8 @@ GeForce_GTX_TITAN                               3       9900    2       A       
 ##
 
 DEVICE_TYPE_CPU                                 *       3200    1       N       A
+DEVICE_TYPE_CPU                                 *      25600    1       N       A
+DEVICE_TYPE_CPU                                 *      25800    1       N       A
 
 ##
 ## SCRYPT: Tunings for SCRYPT based hash-modes can be found inside the plugin source
