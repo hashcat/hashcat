@@ -982,54 +982,38 @@ void hc_fclose (HCFILE *fp)
 
 size_t fgetl (HCFILE *fp, char *line_buf, const size_t line_sz)
 {
-  size_t line_truncated = 0;
+  int c;
 
   size_t line_len = 0;
 
-  while (!hc_feof (fp))
-  {
-    const int c = hc_fgetc (fp);
+  size_t line_truncated = 0;
 
-    if (c == EOF) break;
+  while ((c = hc_fgetc (fp)) != EOF)
+  {
+    if (c == '\n') break;
 
     if (line_len == line_sz)
     {
       line_truncated++;
-
-      continue;
     }
+    else
+    {
+      line_buf[line_len] = (char) c;
 
-    line_buf[line_len] = (char) c;
-
-    line_len++;
-
-    if (c == '\n') break;
+      line_len++;
+    }
   }
 
   if (line_truncated > 0)
   {
     fprintf (stderr, "\nOversized line detected! Truncated %" PRIu64 " bytes\n", (u64) line_truncated);
   }
-
-  if (line_len == 0) return 0;
-
-  while (line_len)
+  else
   {
-    if (line_buf[line_len - 1] == '\n')
+    while (line_len > 0 && line_buf[line_len - 1] == '\r')
     {
       line_len--;
-
-      continue;
     }
-
-    if (line_buf[line_len - 1] == '\r')
-    {
-      line_len--;
-
-      continue;
-    }
-
-    break;
   }
 
   line_buf[line_len] = 0;
