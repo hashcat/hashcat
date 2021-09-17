@@ -243,7 +243,7 @@ static const char *const USAGE_BIG_POST_HASHMODES[] =
   "",
   "If you think you need help by a real human come to the hashcat Discord:",
   "",
-  "* https://discord.gg/HFS523HGBT",
+  "* https://hashcat.net/discord",
   NULL
 };
 
