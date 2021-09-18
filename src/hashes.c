@@ -2263,51 +2263,56 @@ int hashes_init_zerohash (hashcat_ctx_t *hashcat_ctx)
 
   module_ctx->module_hash_decode_zero_hash (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, hash_buf.hook_salt, hash_buf.hash_info);
 
-  hash_t *found = (hash_t *) hc_bsearch_r (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_no_salt, (void *) hashconfig);
-
-  if (found != NULL)
+  for (u32 i = 0; i < hashes_cnt; i++)
   {
-    found->pw_buf = (char *) hcmalloc (1);
-    found->pw_len = 0;
+    hash_t *next = &hashes_buf[i];
 
-    found->cracked = 1;
+    int rc = sort_by_hash_no_salt (&hash_buf, next, (void *) hashconfig);
 
-    // should we show the cracked zero hash to the user?
-
-    if (false)
+    if (rc == 0)
     {
-      // digest pos
+      next->pw_buf = (char *) hcmalloc (1);
+      next->pw_len = 0;
 
-      const u32 digest_pos = found - hashes_buf;
+      next->cracked = 1;
 
-      // show the crack
+      // should we show the cracked zero hash to the user?
 
-      u8 *out_buf = (u8 *) hcmalloc (HCBUFSIZ_LARGE);
+      if (false)
+      {
+        // digest pos
 
-      int out_len = hash_encode (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf, HCBUFSIZ_LARGE, 0, digest_pos);
+        const u32 digest_pos = next - hashes_buf;
 
-      out_buf[out_len] = 0;
+        // show the crack
 
-      // outfile, can be either to file or stdout
-      // if an error occurs opening the file, send to stdout as fallback
-      // the fp gets opened for each cracked hash so that the user can modify (move) the outfile while hashcat runs
+        u8 *out_buf = (u8 *) hcmalloc (HCBUFSIZ_LARGE);
 
-      outfile_write_open (hashcat_ctx);
+        int out_len = hash_encode (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf, HCBUFSIZ_LARGE, 0, digest_pos);
 
-      const u8 *plain = (const u8 *) "";
+        out_buf[out_len] = 0;
 
-      u8 *tmp_buf = (u8 *) hcmalloc (HCBUFSIZ_LARGE);
+        // outfile, can be either to file or stdout
+        // if an error occurs opening the file, send to stdout as fallback
+        // the fp gets opened for each cracked hash so that the user can modify (move) the outfile while hashcat runs
 
-      tmp_buf[0] = 0;
+        outfile_write_open (hashcat_ctx);
 
-      const int tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, out_len, plain, 0, 0, NULL, 0, true, (char *) tmp_buf);
+        const u8 *plain = (const u8 *) "";
 
-      EVENT_DATA (EVENT_CRACKER_HASH_CRACKED, tmp_buf, tmp_len);
+        u8 *tmp_buf = (u8 *) hcmalloc (HCBUFSIZ_LARGE);
 
-      outfile_write_close (hashcat_ctx);
+        tmp_buf[0] = 0;
 
-      hcfree (tmp_buf);
-      hcfree (out_buf);
+        const int tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, out_len, plain, 0, 0, NULL, 0, true, (char *) tmp_buf);
+
+        EVENT_DATA (EVENT_CRACKER_HASH_CRACKED, tmp_buf, tmp_len);
+
+        outfile_write_close (hashcat_ctx);
+
+        hcfree (tmp_buf);
+        hcfree (out_buf);
+      }
     }
   }
 
