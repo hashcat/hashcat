@@ -121,6 +121,7 @@
 - Slow kernels: Set some of the slowest kernels to OPTS_TYPE_MP_MULTI_DISABLE to make it easier to handle small word lists
 - Status view: Add hash-mode (-m number) in addition to hash-name
 - Vendor Discovery: Add "Intel" as a valid vendor name for GPUs on macOS
+- MetaMask: Increase the supported data len from 784b to 3136b and set pw-min to 8
 
 * changes v6.2.2 -> v6.2.3
 

@@ -12,7 +12,7 @@ use Crypt::PBKDF2;
 use Crypt::AuthEnc::GCM;
 use MIME::Base64 qw (decode_base64 encode_base64);
 
-sub module_constraints { [[0, 256], [64, 64], [-1, -1], [-1, -1], [-1, -1]] }
+sub module_constraints { [[8, 256], [64, 64], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub module_generate_hash
 {
@@ -22,7 +22,7 @@ sub module_generate_hash
   my $ct   = shift;
 
   my $ct_min_len = 30;
-  my $ct_max_len = 768;
+  my $ct_max_len = 3136;
 
   my $kdf = Crypt::PBKDF2->new
   (
@@ -106,7 +106,7 @@ sub module_verify_hash
 
   my $ct_len = length ($ct_bin);
   my $ct_min_len = 30;
-  my $ct_max_len = 768;
+  my $ct_max_len = 3136;
 
   return unless ($ct_len >= $ct_min_len && $ct_len <= $ct_max_len);
 
