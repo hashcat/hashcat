@@ -14546,11 +14546,11 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     // In theory this check could be disabled if we check if total video RAM < total host RAM,
     // but at this point of initialization phase we don't have this information available.
 
-    // We need to hard-code some value, let's assume that (in 2021) the host has at least 8GB ram per active GPU
+    // We need to hard-code some value, let's assume that (in 2021) the host has at least 4GB ram per active GPU
 
-    const u64 SIZE_8GB = 8ULL * 1024 * 1024 * 1024;
+    const u64 SIZE_4GB = 4ULL * 1024 * 1024 * 1024;
 
-    u64 accel_limit = SIZE_8GB;
+    u64 accel_limit = SIZE_4GB;
 
     // this is device_processors * kernel_threads
 
