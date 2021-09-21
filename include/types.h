@@ -1080,8 +1080,8 @@ typedef struct hc_fp
 
   int         bom_size;
 
-  const char *mode;
-  const char *path;
+  char       *mode;
+  char       *path;
 
 } HCFILE;
 

@@ -183,7 +183,7 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
       // large portion of the following code is the same as in potfile_remove_parse
       // maybe subject of a future optimization
 
-      while (!hc_feof (&fp))
+      do
       {
         size_t line_len = fgetl (&fp, line_buf, HCBUFSIZ_LARGE);
 
@@ -288,7 +288,7 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
           if (status_ctx->shutdown_inner == true) break;
         }
-      }
+      } while (!hc_feof (&fp));
 
       hcfree (line_buf);
 

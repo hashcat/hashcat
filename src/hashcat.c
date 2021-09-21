@@ -1343,7 +1343,7 @@ bool autodetect_hashmode_test (hashcat_ctx_t *hashcat_ctx)
 
     char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
-    while (!hc_feof (&fp))
+    do
     {
       const size_t line_len = fgetl (&fp, line_buf, HCBUFSIZ_LARGE);
 
@@ -1380,7 +1380,7 @@ bool autodetect_hashmode_test (hashcat_ctx_t *hashcat_ctx)
       {
         error_count++;
       }
-    }
+    } while (!hc_feof (&fp));
 
     hcfree (line_buf);
 

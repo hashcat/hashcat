@@ -6,7 +6,6 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
-#include "locking.h"
 #include "thread.h"
 #include "timer.h"
 #include "tuningdb.h"
@@ -7640,10 +7639,9 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       }
 
       device_param->device_name = device_name;
-
-      hc_string_trim_leading (device_name);
-
-      hc_string_trim_trailing (device_name);
+      size_t device_name_len = strlen (device_name);
+      device_name_len = hc_string_trim_trailing (device_name, device_name_len);
+      device_name_len = hc_string_trim_leading (device_name, device_name_len);
 
       // device_processors
 
@@ -8018,10 +8016,9 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       }
 
       device_param->device_name = device_name;
-
-      hc_string_trim_leading (device_name);
-
-      hc_string_trim_trailing (device_name);
+      size_t device_name_len = strlen (device_name);
+      device_name_len = hc_string_trim_trailing (device_name, device_name_len);
+      device_name_len = hc_string_trim_leading (device_name, device_name_len);
 
       // device_processors
 
@@ -8485,9 +8482,9 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           device_param->device_name = device_name;
         }
 
-        hc_string_trim_leading (device_param->device_name);
-
-        hc_string_trim_trailing (device_param->device_name);
+        size_t device_name_len = strlen (device_param->device_name);
+        device_name_len = hc_string_trim_trailing (device_param->device_name, device_name_len);
+        device_name_len = hc_string_trim_leading (device_param->device_name, device_name_len);
 
         // device_vendor
 

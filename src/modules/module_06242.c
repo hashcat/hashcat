@@ -166,7 +166,7 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
   #define TC_HEADER_SIZE 512
 
-  char *in = (char *) hcmalloc (TC_HEADER_SIZE);
+  char in[TC_HEADER_SIZE];
 
   const size_t n = hc_fread (in, 1, TC_HEADER_SIZE, &fp);
 
@@ -181,8 +181,6 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
   const int parser_status = module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, in, TC_HEADER_SIZE);
 
   if (parser_status != PARSER_OK) return 0;
-
-  hcfree (in);
 
   // keyfiles
 

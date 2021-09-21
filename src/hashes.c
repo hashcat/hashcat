@@ -20,7 +20,6 @@
 #include "rp.h"
 #include "shared.h"
 #include "thread.h"
-#include "locking.h"
 #include "hashes.h"
 
 #ifdef WITH_BRAIN
@@ -1254,7 +1253,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       time_t prev = 0;
       time_t now  = 0;
 
-      while (!hc_feof (&fp))
+      do
       {
         line_num++;
 
@@ -1500,7 +1499,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         hashlist_parse.hashes_avail = hashes_avail;
 
         EVENT_DATA (EVENT_HASHLIST_PARSE_HASH, &hashlist_parse, sizeof (hashlist_parse_t));
-      }
+      } while (!hc_feof (&fp));
 
       hashlist_parse_t hashlist_parse;
 

@@ -15,18 +15,19 @@
 #include <Xz.h>
 #include <XzCrc64.h>
 
+/*
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+#include <fcntl.h>
+*/
+
 /* Maybe _LZMA_NO_SYSTEM_SIZE_T defined? */
 #if defined (__clang__) || defined (__GNUC__)
 #include <assert.h>
 _Static_assert(sizeof (size_t) == sizeof (SizeT), "Check why sizeof(size_t) != sizeof(SizeT)");
-#endif
-
-#ifndef HCFILE_BUFFER_SIZE
-#define HCFILE_BUFFER_SIZE 256 * 1024
-#endif
-
-#ifndef HCFILE_CHUNK_SIZE
-#define HCFILE_CHUNK_SIZE 4 * 1024 * 1024
 #endif
 
 static bool xz_initialized = false;
@@ -280,8 +281,8 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
     }
   }
 
-  fp->path = path;
-  fp->mode = mode;
+  fp->path = hcstrdup (path);
+  fp->mode = hcstrdup (mode);
 
   return true;
 }
@@ -348,8 +349,25 @@ bool hc_fopen_raw (HCFILE *fp, const char *path, const char *mode)
 
   if ((fp->pfp = fdopen (fp->fd, mode)) == NULL) return false;
 
-  fp->path = path;
-  fp->mode = mode;
+  fp->path = hcstrdup (path);
+  fp->mode = hcstrdup (mode);
+
+  return true;
+}
+
+bool hc_fopen_stdout (HCFILE *fp)
+{
+  if (fp == NULL) return false;
+
+  /* assign */
+  fp->fd       = fileno (stdout);
+  fp->pfp      = stdout;
+  fp->gfp      = NULL;
+  fp->ufp      = NULL;
+  fp->xfp      = NULL;
+  fp->bom_size = 0;
+  fp->path     = NULL;
+  fp->mode     = NULL;
 
   return true;
 }
@@ -863,22 +881,26 @@ int hc_fprintf (HCFILE *fp, const char *format, ...)
   return r;
 }
 
-int hc_fscanf (HCFILE *fp, const char *format, void *ptr)
+int hc_fscanf (HCFILE *fp, const char *format, ...)
 {
-  if (fp == NULL) return -1;
+  int r = -1;
+
+  if (fp == NULL || format == NULL) return r;
 
   char buf[HCBUFSIZ_TINY];
 
-  char *b = hc_fgets (buf, HCBUFSIZ_TINY - 1, fp);
-
-  if (b == NULL)
+  if (hc_fgets (buf, HCBUFSIZ_TINY, fp))
   {
-    return -1;
-  }
+    va_list ap;
 
-  sscanf (b, format, ptr);
+    va_start (ap, format);
 
-  return 1;
+    r = vsscanf (buf, format, ap);
+
+    va_end (ap);
+  }  
+
+  return r;
 }
 
 int hc_feof (HCFILE *fp)
@@ -944,7 +966,7 @@ void hc_fclose (HCFILE *fp)
 
   if (fp->pfp)
   {
-    fclose (fp->pfp);
+    if (fp->pfp != stdout) fclose (fp->pfp);
   }
   else if (fp->gfp)
   {
@@ -976,9 +998,72 @@ void hc_fclose (HCFILE *fp)
   fp->ufp = NULL;
   fp->xfp = NULL;
 
-  fp->path = NULL;
-  fp->mode = NULL;
+  if (fp->path)
+  {
+    hcfree (fp->path);
+    fp->path = NULL;
+  }
+
+  if (fp->mode)
+  {
+    hcfree (fp->mode);
+    fp->mode = NULL;
+  }
 }
+
+#if defined (F_SETLKW)
+
+int hc_lockfile (HCFILE *fp)
+{
+  if (fp == NULL) return -1;
+
+  struct flock lock;
+
+  memset (&lock, 0, sizeof (struct flock));
+
+  lock.l_type = F_WRLCK;
+
+  /* Needs this loop because a signal may interrupt a wait for lock */
+  while (fcntl (fp->fd, F_SETLKW, &lock))
+  {
+    if (errno != EINTR) return -1;
+  }
+
+  return 0;
+}
+
+int hc_unlockfile (HCFILE *fp)
+{
+  if (fp == NULL) return -1;
+
+  struct flock lock;
+
+  memset (&lock, 0, sizeof (struct flock));
+
+  lock.l_type = F_UNLCK;
+
+  if (fcntl (fp->fd, F_SETLK, &lock)) return -1;
+
+  return 0;
+}
+
+#else
+
+int hc_lockfile (MAYBE_UNUSED HCFILE *fp)
+{
+  // we should put windows specific code here
+
+  return 0;
+}
+
+int hc_unlockfile (MAYBE_UNUSED HCFILE *fp)
+{
+  // we should put windows specific code here
+
+  return 0;
+}
+
+#endif // F_SETLKW
 
 size_t fgetl (HCFILE *fp, char *line_buf, const size_t line_sz)
 {
@@ -1025,85 +1110,19 @@ u64 count_lines (HCFILE *fp)
 {
   u64 cnt = 0;
 
-  char *buf = (char *) hcmalloc (HCBUFSIZ_LARGE + 1);
+  size_t nread;
 
-  char prev = '\n';
+  char *buf = (char *) hcmalloc (HCFILE_CHUNK_SIZE);
 
-  while (!hc_feof (fp))
+  while ((nread = hc_fread (buf, sizeof (char), HCFILE_CHUNK_SIZE, fp)) > 0)
   {
-    size_t nread = hc_fread (buf, sizeof (char), HCBUFSIZ_LARGE, fp);
-
-    if (nread < 1) continue;
-
     for (size_t i = 0; i < nread; i++)
     {
-      if (prev == '\n') cnt++;
-
-      prev = buf[i];
+      if (buf[i] == '\n') cnt++;
     }
   }
 
   hcfree (buf);
 
   return cnt;
-}
-
-size_t in_superchop (char *buf)
-{
-  size_t len = strlen (buf);
-
-  while (len)
-  {
-    if (buf[len - 1] == '\n')
-    {
-      len--;
-
-      buf[len] = 0;
-
-      continue;
-    }
-
-    if (buf[len - 1] == '\r')
-    {
-      len--;
-
-      buf[len] = 0;
-
-      continue;
-    }
-
-    break;
-  }
-
-  return len;
-}
-
-size_t superchop_with_length (char *buf, const size_t len)
-{
-  size_t new_len = len;
-
-  while (new_len)
-  {
-    if (buf[new_len - 1] == '\n')
-    {
-      new_len--;
-
-      buf[new_len] = 0;
-
-      continue;
-    }
-
-    if (buf[new_len - 1] == '\r')
-    {
-      new_len--;
-
-      buf[new_len] = 0;
-
-      continue;
-    }
-
-    break;
-  }
-
-  return new_len;
 }

@@ -65,8 +65,9 @@ bool hc_path_has_bom (const char *path);
 bool hc_string_is_digit (const char *s);
 int  hc_string_bom_size (const u8 *s);
 
-void hc_string_trim_trailing (char *s);
-void hc_string_trim_leading (char *s);
+size_t hc_string_trim_trailing (char *s, size_t len);
+size_t hc_string_trim_leading (char *s, size_t len);
+size_t hc_string_trim_newline (char *buf, size_t len);
 
 int hc_get_processor_count ();
 

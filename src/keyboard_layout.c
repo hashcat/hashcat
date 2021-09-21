@@ -28,7 +28,7 @@ bool initialize_keyboard_layout_mapping (const char *filename, keyboard_layout_m
 
   int maps_cnt = 0;
 
-  while (!hc_feof (&fp))
+  do
   {
     const size_t line_len = fgetl (&fp, line_buf, HCBUFSIZ_LARGE);
 
@@ -73,7 +73,7 @@ bool initialize_keyboard_layout_mapping (const char *filename, keyboard_layout_m
     }
 
     maps_cnt++;
-  }
+  } while (!hc_feof (&fp));
 
   *keyboard_layout_mapping_cnt = maps_cnt;
 

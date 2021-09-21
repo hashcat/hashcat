@@ -590,20 +590,16 @@ u64 brain_compute_attack_wordlist (const char *filename)
 
   XXH64_reset (state, 0);
 
-  #define FBUFSZ 8192
-
-  char buf[FBUFSZ];
+  char buf[HCBUFSIZ_TINY];
 
   HCFILE fp;
 
   hc_fopen (&fp, filename, "rb");
 
-  while (!hc_feof (&fp))
+  size_t nread;
+
+  while ((nread = hc_fread (buf, 1, HCBUFSIZ_TINY, &fp)) > 0)
   {
-    memset (buf, 0, sizeof (buf));
-
-    const size_t nread = hc_fread (buf, 1, FBUFSZ, &fp);
-
     XXH64_update (state, buf, nread);
   }
 

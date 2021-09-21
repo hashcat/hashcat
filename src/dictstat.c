@@ -8,7 +8,6 @@
 #include "memory.h"
 #include "bitops.h"
 #include "event.h"
-#include "locking.h"
 #include "shared.h"
 #include "dictstat.h"
 
@@ -156,14 +155,10 @@ void dictstat_read (hashcat_ctx_t *hashcat_ctx)
 
   // parse data
 
-  while (!hc_feof (&fp))
+  dictstat_t d;
+
+  while (hc_fread (&d, sizeof (dictstat_t), 1, &fp) == 1)
   {
-    dictstat_t d;
-
-    const size_t nread = hc_fread (&d, sizeof (dictstat_t), 1, &fp);
-
-    if (nread == 0) continue;
-
     lsearch (&d, dictstat_ctx->base, &dictstat_ctx->cnt, sizeof (dictstat_t), sort_by_dictstat);
 
     if (dictstat_ctx->cnt == MAX_DICTSTAT)

@@ -224,7 +224,7 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
       if (line_buf == NULL) break;
 
-      size_t line_len = in_superchop (line_buf);
+      size_t line_len = hc_string_trim_newline (line_buf, strlen (line_buf));
 
       line_len = convert_from_hex (hashcat_ctx, line_buf, (u32) line_len);
 
