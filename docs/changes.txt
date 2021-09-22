@@ -19,7 +19,7 @@
 ## Technical
 ##
 
-- Backend Devices: Reduce maximum workitems limited derived from available host memory down from to 8GB to 4GB per backend device
+- Back-end devices: In -S mode, limit the number of workitems so that no more than 2GB of host memory is required per backend device
 - Makefile: Added wildcard include src/modules/module_*.mk directive so that plugin developers can add 3rd party libraries for their plugins
 - Rejects: Disabled checking of the minimum and maximum length of the password candidate in attack-mode 9 because they are incompatible
 - POCL: Added a workaround for an issue in POCL that uses a quote character as part of the path itself given to a path for the -I option
