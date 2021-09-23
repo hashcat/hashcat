@@ -209,10 +209,10 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
   {
     char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
-    do
-    {
-      const size_t line_len = fgetl (&fp, line_buf, HCBUFSIZ_LARGE);
+    int line_len;
 
+    while ((line_len = fgetl (&fp, line_buf, HCBUFSIZ_LARGE)) >= 0)
+    {
       if (line_len == 0) continue;
 
       memset (hashes_buf[hashes_cnt].salt, 0, sizeof (salt_t));
@@ -234,7 +234,7 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
       if (parser_status != PARSER_OK) continue;
 
       hashes_cnt++;
-    } while (!hc_feof (&fp));
+    }
 
     hcfree (line_buf);
   }

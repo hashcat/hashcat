@@ -1253,11 +1253,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       time_t prev = 0;
       time_t now  = 0;
 
-      do
+      int line_len;
+
+      while ((line_len = fgetl (&fp, line_buf, HCBUFSIZ_LARGE)) >= 0)
       {
         line_num++;
-
-        const size_t line_len = fgetl (&fp, line_buf, HCBUFSIZ_LARGE);
 
         if (line_len == 0) continue;
 
@@ -1499,7 +1499,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         hashlist_parse.hashes_avail = hashes_avail;
 
         EVENT_DATA (EVENT_HASHLIST_PARSE_HASH, &hashlist_parse, sizeof (hashlist_parse_t));
-      } while (!hc_feof (&fp));
+      }
 
       hashlist_parse_t hashlist_parse;
 

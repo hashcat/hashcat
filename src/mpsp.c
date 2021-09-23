@@ -1473,15 +1473,15 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
               char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
-              do
-              {
-                const size_t line_len = fgetl (&mask_fp, line_buf, HCBUFSIZ_LARGE);
+              int line_len;
 
+              while ((line_len = fgetl (&mask_fp, line_buf, HCBUFSIZ_LARGE)) >= 0)
+              {
                 if (line_len == 0) continue;
 
                 if (line_buf[0] == '#') continue;
 
-                char *mask_buf = mask_ctx_parse_maskfile_find_mask (line_buf, line_len);
+                char *mask_buf = mask_ctx_parse_maskfile_find_mask (line_buf, (const size_t) line_len);
 
                 char *prepend_buf = NULL;
 
@@ -1500,7 +1500,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
                   return -1;
                 }
-              } while (!hc_feof (&mask_fp));
+              }
 
               hcfree (line_buf);
 
@@ -1558,15 +1558,15 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
-        do
-        {
-          const size_t line_len = fgetl (&mask_fp, line_buf, HCBUFSIZ_LARGE);
+        int line_len;
 
+        while ((line_len = fgetl (&mask_fp, line_buf, HCBUFSIZ_LARGE)) >= 0)
+        {
           if (line_len == 0) continue;
 
           if (line_buf[0] == '#') continue;
 
-          char *mask_buf = mask_ctx_parse_maskfile_find_mask (line_buf, line_len);
+          char *mask_buf = mask_ctx_parse_maskfile_find_mask (line_buf, (const size_t) line_len);
 
           char *prepend_buf = NULL;
 
@@ -1585,7 +1585,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
             return -1;
           }
-        } while (!hc_feof (&mask_fp));
+        }
 
         hcfree (line_buf);
 
@@ -1628,15 +1628,15 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
-        do
-        {
-          const size_t line_len = fgetl (&mask_fp, line_buf, HCBUFSIZ_LARGE);
+        int line_len;
 
+        while ((line_len = fgetl (&mask_fp, line_buf, HCBUFSIZ_LARGE)) >= 0)
+        {
           if (line_len == 0) continue;
 
           if (line_buf[0] == '#') continue;
 
-          char *mask_buf = mask_ctx_parse_maskfile_find_mask (line_buf, line_len);
+          char *mask_buf = mask_ctx_parse_maskfile_find_mask (line_buf, (const size_t) line_len);
 
           char *prepend_buf = NULL;
 
@@ -1655,7 +1655,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
             return -1;
           }
-        } while (!hc_feof (&mask_fp));
+        }
 
         hcfree (line_buf);
 

@@ -6419,11 +6419,13 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
               while (i < innerloop_left)
               {
-                if (hc_feof (combs_fp)) break;
+                int ret = fgetl (combs_fp, line_buf, HCBUFSIZ_LARGE);
 
-                size_t line_len = fgetl (combs_fp, line_buf, HCBUFSIZ_LARGE);
+                if (ret < 0) break;
 
-                line_len = convert_from_hex (hashcat_ctx, line_buf, line_len);
+                /* TODO: if (ret == 0) continue; */
+
+                size_t line_len = convert_from_hex (hashcat_ctx, line_buf, (const size_t) ret);
 
                 if (line_len > PW_MAX) continue;
 
@@ -6589,11 +6591,13 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
               while (i < innerloop_left)
               {
-                if (hc_feof (combs_fp)) break;
+                int ret = fgetl (combs_fp, line_buf, HCBUFSIZ_LARGE);
 
-                size_t line_len = fgetl (combs_fp, line_buf, HCBUFSIZ_LARGE);
+                if (ret < 0) break;
 
-                line_len = convert_from_hex (hashcat_ctx, line_buf, line_len);
+                /* TODO: if (ret == 0) continue; */
+
+                size_t line_len = convert_from_hex (hashcat_ctx, line_buf, (const size_t) line_len);
 
                 if (line_len > PW_MAX) continue;
 

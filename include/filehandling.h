@@ -48,8 +48,7 @@ size_t hc_fread        (void *ptr, size_t size, size_t nmemb, HCFILE *fp);
 int    hc_lockfile     (HCFILE *fp);
 int    hc_unlockfile   (HCFILE *fp);
 
-size_t fgetl           (HCFILE *fp, char *line_buf, const size_t line_sz);
+int    fgetl           (HCFILE *fp, char *line_buf, int line_sz);
 u64    count_lines     (HCFILE *fp);
-
 
 #endif // _FILEHANDLING_H

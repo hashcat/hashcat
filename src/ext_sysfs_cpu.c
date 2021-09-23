@@ -63,16 +63,17 @@ char *hm_SYSFS_CPU_get_syspath_hwmon ()
 
     if (hc_fopen_raw (&fp, path, "rb") == false) continue;
 
-    char buf[32] = { 0 };
+    char buf[32];
 
-    const size_t line_len = fgetl (&fp, buf, sizeof (buf));
+    int line_len = fgetl (&fp, buf, sizeof (buf));
 
-    if (line_len)
+    /* TODO: ignore shorter than shortest */
+    if (line_len > 0)
     {
       if (strcmp (buf, SENSOR_CORETEMP) == 0) hc_asprintf (&found[0], "%s/hwmon%d", SYSFS_HWMON, i);
-      if (strcmp (buf, SENSOR_K10TEMP)  == 0) hc_asprintf (&found[1], "%s/hwmon%d", SYSFS_HWMON, i);
-      if (strcmp (buf, SENSOR_K8TEMP)   == 0) hc_asprintf (&found[2], "%s/hwmon%d", SYSFS_HWMON, i);
-      if (strcmp (buf, SENSOR_ACPITZ)   == 0) hc_asprintf (&found[3], "%s/hwmon%d", SYSFS_HWMON, i);
+      else if (strcmp (buf, SENSOR_K10TEMP)  == 0) hc_asprintf (&found[1], "%s/hwmon%d", SYSFS_HWMON, i);
+      else if (strcmp (buf, SENSOR_K8TEMP)   == 0) hc_asprintf (&found[2], "%s/hwmon%d", SYSFS_HWMON, i);
+      else if (strcmp (buf, SENSOR_ACPITZ)   == 0) hc_asprintf (&found[3], "%s/hwmon%d", SYSFS_HWMON, i);
     }
 
     hc_fclose (&fp);

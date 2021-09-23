@@ -512,10 +512,10 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
   char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
-  do
-  {
-    size_t line_len = fgetl (&potfile_ctx->fp, line_buf, HCBUFSIZ_LARGE);
+  int line_len;
 
+  while ((line_len = fgetl (&potfile_ctx->fp, line_buf, HCBUFSIZ_LARGE)) >= 0)
+  {
     if (line_len == 0) continue;
 
     char *last_separator = strrchr (line_buf, hashconfig->separator);
@@ -591,7 +591,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
       potfile_update_hash (hashcat_ctx, found, line_pw_buf, (u32) line_pw_len);
     }
-  } while (!hc_feof (&potfile_ctx->fp));
+  }
 
   hcfree (line_buf);
 

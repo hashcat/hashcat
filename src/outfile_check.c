@@ -180,13 +180,13 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
       char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
+      int line_len;
+
       // large portion of the following code is the same as in potfile_remove_parse
       // maybe subject of a future optimization
 
-      do
+      while ((line_len = fgetl (&fp, line_buf, HCBUFSIZ_LARGE)) >= 0)
       {
-        size_t line_len = fgetl (&fp, line_buf, HCBUFSIZ_LARGE);
-
         if (line_len == 0) continue;
 
         // this fake separator is used to enable loading outfiles without password
@@ -288,7 +288,7 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
           if (status_ctx->shutdown_inner == true) break;
         }
-      } while (!hc_feof (&fp));
+      }
 
       hcfree (line_buf);
 
