@@ -14557,7 +14557,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (user_options->slow_candidates == true)
     {
-      accel_limit /= 4;
+      // Tested with NTLM, almost no difference in performance
+
+      accel_limit /= 8;
     }
 
     // this is device_processors * kernel_threads
