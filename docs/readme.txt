@@ -137,6 +137,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - CRC32
 - Java Object hashCode()
 - MurmurHash
+- MurmurHash3
 - 3DES (PT = $salt, key = $pass)
 - DES (PT = $salt, key = $pass)
 - AES-128-ECB NOKDF (PT = $salt, key = $pass)
