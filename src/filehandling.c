@@ -775,7 +775,33 @@ char *hc_fgets (char * restrict buf, int len, HCFILE * restrict fp)
   }
   else if (fp->ufp)
   {
-    if (unzReadCurrentFile (fp->ufp, buf, len) > 0) r = buf;
+    char *p = buf;
+
+    /* leave space for NULL */
+    while (--len != 0)
+    {
+      int ret = unzReadCurrentFile (fp->ufp, p, 1);
+
+      if (ret != 1)
+      {
+        /* check if error or EOF is seen before any characters */
+        if (ret < 0 || p == buf) return r;
+
+        /* success */
+        r = buf;
+        break;
+      }
+
+      if (*p++ == '\n')
+      {
+        /* success */
+        r = buf;
+        break;
+      }
+    }
+
+    /* always NULL terminate */
+    *p = 0;
   }
   else if (fp->xfp)
   {
