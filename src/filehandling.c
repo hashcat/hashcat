@@ -62,7 +62,7 @@ int _wopen (const char *path, int oflag, ...)
 }
 #endif
 
-bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
+bool hc_fopen (HCFILE * restrict fp, const char * restrict path, const char * restrict mode)
 {
   if (fp == NULL || path == NULL || mode == NULL) return false;
 
@@ -287,7 +287,7 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
   return true;
 }
 
-bool hc_fopen_raw (HCFILE *fp, const char *path, const char *mode)
+bool hc_fopen_raw (HCFILE * restrict fp, const char * restrict path, const char * restrict mode)
 {
   if (fp == NULL || path == NULL || mode == NULL) return false;
 
@@ -355,7 +355,7 @@ bool hc_fopen_raw (HCFILE *fp, const char *path, const char *mode)
   return true;
 }
 
-bool hc_fopen_stdout (HCFILE *fp)
+bool hc_fopen_stdout (HCFILE * restrict fp)
 {
   if (fp == NULL) return false;
 
@@ -372,7 +372,7 @@ bool hc_fopen_stdout (HCFILE *fp)
   return true;
 }
 
-size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
+size_t hc_fread (void * restrict ptr, size_t size, size_t nmemb, HCFILE * restrict fp)
 {
   size_t n = 0;
 
@@ -505,7 +505,7 @@ size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
   return n;
 }
 
-size_t hc_fwrite (const void *ptr, size_t size, size_t nmemb, HCFILE *fp)
+size_t hc_fwrite (const void * restrict ptr, size_t size, size_t nmemb, HCFILE * restrict fp)
 {
   size_t n = 0;
 
@@ -653,7 +653,7 @@ void hc_rewind (HCFILE *fp)
   }
 }
 
-int hc_fstat (HCFILE *fp, struct stat *buf)
+int hc_fstat (HCFILE * restrict fp, struct stat * restrict buf)
 {
   int r = -1;
 
@@ -780,7 +780,7 @@ int hc_fgetc (HCFILE *fp)
   return r;
 }
 
-char *hc_fgets (char *buf, int len, HCFILE *fp)
+char *hc_fgets (char * restrict buf, int len, HCFILE * restrict fp)
 {
   char *r = NULL;
 
@@ -843,7 +843,7 @@ char *hc_fgets (char *buf, int len, HCFILE *fp)
   return r;
 }
 
-int hc_vfprintf (HCFILE *fp, const char *format, va_list ap)
+int hc_vfprintf (HCFILE * restrict fp, const char * restrict format, va_list ap)
 {
   int r = -1;
 
@@ -861,7 +861,7 @@ int hc_vfprintf (HCFILE *fp, const char *format, va_list ap)
   return r;
 }
 
-int hc_fprintf (HCFILE *fp, const char *format, ...)
+int hc_fprintf (HCFILE * restrict fp, const char * restrict format, ...)
 {
   int r = -1;
 
@@ -885,7 +885,7 @@ int hc_fprintf (HCFILE *fp, const char *format, ...)
   return r;
 }
 
-int hc_fscanf (HCFILE *fp, const char *format, ...)
+int hc_fscanf (HCFILE * restrict fp, const char * restrict format, ...)
 {
   int r = -1;
 
@@ -1069,7 +1069,7 @@ int hc_unlockfile (MAYBE_UNUSED HCFILE *fp)
 
 #endif // F_SETLKW
 
-int fgetl (HCFILE *fp, char *line_buf, int line_sz)
+int fgetl (HCFILE * restrict fp, char * restrict line_buf, int line_sz)
 {
   int c;
 
