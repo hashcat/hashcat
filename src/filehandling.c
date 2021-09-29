@@ -80,36 +80,25 @@ bool hc_fopen (HCFILE * restrict fp, const char * restrict path, const char * re
 
   int fmode = S_IRUSR|S_IWUSR;
 
-  if (strncmp (mode, "a", 1) == 0 || strncmp (mode, "ab", 2) == 0)
+  switch (mode[0])
   {
+  case 'a':
     oflag = O_WRONLY | O_CREAT | O_APPEND;
-
-    #if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__)
-    if (strncmp (mode, "ab", 2) == 0) oflag |= O_BINARY;
-    #endif
-  }
-  else if (strncmp (mode, "r", 1) == 0 || strncmp (mode, "rb", 2) == 0)
-  {
+    break;
+  case 'r':
     oflag = O_RDONLY;
     fmode = -1;
-
-    #if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__)
-    if (strncmp (mode, "rb", 2) == 0) oflag |= O_BINARY;
-    #endif
-  }
-  else if (strncmp (mode, "w", 1) == 0 || strncmp (mode, "wb", 2) == 0)
-  {
+    break;
+  case 'w':
     oflag = O_WRONLY | O_CREAT | O_TRUNC;
-
-    #if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__)
-    if (strncmp (mode, "wb", 2) == 0) oflag |= O_BINARY;
-    #endif
-  }
-  else
-  {
-    // ADD more strncmp to handle more "mode"
+    break;
+  default:
     return false;
   }
+
+#if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__)
+  if (mode[1] == 'b') oflag |= O_BINARY;
+#endif
 
   unsigned char check[8] = { 0 };
 
@@ -305,36 +294,26 @@ bool hc_fopen_raw (HCFILE * restrict fp, const char * restrict path, const char 
 
   int fmode = S_IRUSR|S_IWUSR;
 
-  if (strncmp (mode, "a", 1) == 0 || strncmp (mode, "ab", 2) == 0)
-  {
-    oflag = O_WRONLY | O_CREAT | O_APPEND;
 
-    #if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__)
-    if (strncmp (mode, "ab", 2) == 0) oflag |= O_BINARY;
-    #endif
-  }
-  else if (strncmp (mode, "r", 1) == 0 || strncmp (mode, "rb", 2) == 0)
+  switch (mode[0])
   {
+  case 'a':
+    oflag = O_WRONLY | O_CREAT | O_APPEND;
+    break;
+  case 'r':
     oflag = O_RDONLY;
     fmode = -1;
-
-    #if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__)
-    if (strncmp (mode, "rb", 2) == 0) oflag |= O_BINARY;
-    #endif
-  }
-  else if (strncmp (mode, "w", 1) == 0 || strncmp (mode, "wb", 2) == 0)
-  {
+    break;
+  case 'w':
     oflag = O_WRONLY | O_CREAT | O_TRUNC;
-
-    #if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__)
-    if (strncmp (mode, "wb", 2) == 0) oflag |= O_BINARY;
-    #endif
-  }
-  else
-  {
-    // ADD more strncmp to handle more "mode"
+    break;
+  default:
     return false;
   }
+
+#if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__)
+  if (mode[1] == 'b') oflag |= O_BINARY;
+#endif
 
   if (fmode == -1)
   {
