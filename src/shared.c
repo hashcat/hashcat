@@ -620,7 +620,7 @@ size_t hc_string_trim_leading (char *s, size_t len)
 
     do
     {
-      if (isspace (s[skip]) == 0) break;
+      if (isspace ((int) s[skip]) == 0) break;
     } while (++skip < len);
 
     if (skip > 0)
@@ -640,7 +640,7 @@ size_t hc_string_trim_trailing (char *s, size_t len)
 {
   if (!s) return 0;
 
-  while (len > 0 && isspace (s[len - 1]))
+  while (len > 0 && isspace ((int) s[len - 1]))
   {
     len--;
   }
