@@ -1087,65 +1087,89 @@ int hc_unlockfile (MAYBE_UNUSED HCFILE *fp)
 
 #endif // F_SETLKW
 
-int fgetl (HCFILE * restrict fp, char * restrict line_buf, int line_sz)
+int fgetl (HCFILE * restrict fp, char * restrict buf, int len)
 {
-  int c;
+  char *end;
 
-  if (fp == NULL || line_buf == NULL || line_sz <= 0) return -1;
-
-  int line_len = 0;
-
-  if (--line_sz > 0)
+  if (hc_fgets (buf, len, fp) == NULL)
   {
-    size_t line_truncated = 0;
-
-    while ((c = hc_fgetc(fp)) != EOF)
+    /* check for errors */
+    if (!hc_feof (fp))
     {
-      if (c == '\n') break;
+      fprintf (stderr, "\nError reading file %s\n", fp->path);
+    }
 
-      if (line_len == line_sz)
+    return -1;
+  }
+
+  /* check for empty case */
+  if (len == 1)
+  {
+    return 0;
+  }
+
+  /* check for EOF */
+  if (hc_feof (fp))
+  {
+    /* last line */
+    end = buf + strlen (buf);
+  }
+  else
+  {
+    /* find newline */
+    end = memchr (buf, '\n', len);
+    if (end == NULL)
+    {
+      /* buffer full */
+      end = buf + len - 1;
+
+      /* read until newline */
+      u64 line_truncated = 1;
+      int c = hc_fgetc (fp);
+      if (c == '\n')
       {
-        line_truncated++;
+        /* trim carriage returns */
+        while (end > buf && *(end - 1) == '\r')
+        {
+          end--;
+        }
+
+        /* always NULL terminate */
+        *end = 0;
       }
       else
       {
-        line_buf[line_len] = (char) c;
+        while (c != EOF)
+        {
+          c = hc_fgetc (fp);
+          line_truncated++;
+          if (c == '\n') break;
+        }
 
-        line_len++;
+        /* check for errors */
+        if (!hc_feof (fp))
+        {
+          fprintf (stderr, "\nError reading file %s\n", fp->path);
+          return -1;
+        }
       }
-    }
 
-    /* check for EOF and errors */
-    if (c == EOF)
-    {
-      if (!hc_feof(fp))
-      {
-        fprintf(stderr, "\nError reading file %s\n", fp->path);
-      }
-
-      /* always NULL terminate */
-      line_buf[line_len] = 0;
-
-      return -1;
-    }
-
-    if (line_truncated > 0)
-    {
-      fprintf(stderr, "\nOversized line detected! Truncated %" PRIu64 " bytes\n", (u64)line_truncated);
+      fprintf(stderr, "\nOversized line detected! Truncated %" PRIu64 " bytes\n", line_truncated);
     }
     else
     {
-      while (line_len > 0 && line_buf[line_len - 1] == '\r')
+      /* trim carriage returns */
+      while (end > buf && *(end - 1) == '\r')
       {
-        line_len--;
+        end--;
       }
+
+      /* always NULL terminate */
+      *end = 0;
     }
   }
 
-  /* always NULL terminate */
-  line_buf[line_len] = 0;
-
-  return line_len;
+  return end - buf;
 }
 
 u64 count_lines (HCFILE *fp)
