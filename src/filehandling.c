@@ -826,10 +826,23 @@ char *hc_fgets (char * restrict buf, int len, HCFILE * restrict fp)
       SizeT inLeft = xfp->inLen - xfp->inPos;
       SizeT outLeft = 1;
       res = XzUnpacker_Code (&xfp->state, outBuf, &outLeft, xfp->inBuf + xfp->inPos, &inLeft, inLeft == 0, CODER_FINISH_ANY, &status);
-      if (inLeft == 0 && outLeft == 0) break;
       xfp->inPos += inLeft;
       xfp->inProcessed += inLeft;
-      if (res != SZ_OK) break;
+
+      /* check for errors */
+      if (res != SZ_OK) return r;
+
+      /* check for EOF */
+      if (inLeft == 0 && outLeft == 0)
+      {
+        /* check if EOF is seen before any characters */
+        if (outBuf == (Byte *) buf) return r;
+
+        /* success */
+        r = buf;
+        break;
+      }
+
       xfp->outProcessed++;
       if (*outBuf++ == '\n')
       {
