@@ -17,12 +17,12 @@ sub module_generate_hash
   my $word = shift;
   my $salt = shift;
 
-  $salt  = "00000000";
+  my $iv = hex ($salt);
 
   my $ctx = Digest::CRC->new
   (
     width   => 32,
-    init    => hex ($salt),
+    init    => $iv,
     xorout  => 0xffffffff,
     refout  => 1,
     poly    => 0x04c11db7,
@@ -32,7 +32,7 @@ sub module_generate_hash
 
   $ctx->add ($word);
 
-  my $hash = sprintf ("%s:%s",  $ctx->hexdigest (), $salt);
+  my $hash = sprintf ("%s:%s", $ctx->hexdigest (), $salt);
 
   return $hash;
 }
