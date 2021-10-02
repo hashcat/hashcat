@@ -4,6 +4,7 @@
 ## Algorithms
 ##
 
+- Added hash-mode: CRC32C
 - Added hash-mode: MultiBit Classic .wallet (scrypt)
 - Added hash-mode: MurmurHash3
 

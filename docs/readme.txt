@@ -135,6 +135,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - HMAC-Streebog-512 (key = $pass), big-endian
 - HMAC-Streebog-512 (key = $salt), big-endian
 - CRC32
+- CRC32C
 - Java Object hashCode()
 - MurmurHash
 - MurmurHash3
