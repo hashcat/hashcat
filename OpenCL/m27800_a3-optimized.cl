@@ -13,7 +13,7 @@
 #include "inc_simd.cl"
 #endif
 
-inline u32x Murmur32_Scramble(u32x k) 
+inline u32x Murmur32_Scramble(u32x k)
 {
   k = (k * 0x16A88000) | ((k * 0xCC9E2D51) >> 17);
   return (k * 0x1B873593);
@@ -22,7 +22,7 @@ inline u32x Murmur32_Scramble(u32x k)
 DECLSPEC u32x MurmurHash3(const u32 seed, const u32x w0, const u32* data, const u32 size) {
   u32x checksum = seed;
 
-  if (size >= 4) 
+  if (size >= 4)
   {
     checksum ^= Murmur32_Scramble(w0);
     checksum = (checksum >> 19) | (checksum << 13); //rotateRight(checksum, 19)
@@ -30,52 +30,52 @@ DECLSPEC u32x MurmurHash3(const u32 seed, const u32x w0, const u32* data, const 
 
     const u32 nBlocks = (size / 4);
     if (size >= 4) //Hash blocks, sizes of 4
-    { 
-      for (u32 i = 1; i < nBlocks; i++) 
+    {
+      for (u32 i = 1; i < nBlocks; i++)
       {
         checksum ^= Murmur32_Scramble(data[i]);
         checksum = (checksum >> 19) | (checksum << 13); //rotateRight(checksum, 19)
         checksum = (checksum * 5) + 0xE6546B64;
       }
     }
-      
-    if (size % 4) 
+
+    if (size % 4)
     {
       const u8* remainder = (u8*)(data + nBlocks);
       u32x val = 0;
 
       switch(size & 3) //Hash remaining bytes as size isn't always aligned by 4
       {
-        case 3: 
-          val ^= (remainder[2] << 16);
-        case 2: 
-          val ^= (remainder[1] << 8);
-        case 1: 
-          val ^= remainder[0];
-          checksum ^= Murmur32_Scramble(val);
-        default: 
-          break;
-      };
-    }
-  }
-
-  else 
-  {
-    if (size % 4) 
-    {
-      const u8* remainder = (u8*)(&w0);
-      u32x val = 0;
-
-      switch(size & 3) 
-      {
-        case 3: 
+        case 3:
           val ^= (remainder[2] << 16);
         case 2:
           val ^= (remainder[1] << 8);
         case 1:
           val ^= remainder[0];
           checksum ^= Murmur32_Scramble(val);
-        default: 
+        default:
+          break;
+      };
+    }
+  }
+
+  else
+  {
+    if (size % 4)
+    {
+      const u8* remainder = (u8*)(&w0);
+      u32x val = 0;
+
+      switch(size & 3)
+      {
+        case 3:
+          val ^= (remainder[2] << 16);
+        case 2:
+          val ^= (remainder[1] << 8);
+        case 1:
+          val ^= remainder[0];
+          checksum ^= Murmur32_Scramble(val);
+        default:
           break;
       };
     }
@@ -165,7 +165,7 @@ DECLSPEC void m27800s (const u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
     const u32x w0 = w0l | w0r;
-    
+
     const u32x hash = MurmurHash3 (seed, w0, w, pw_len);
 
     const u32x r0 = hash;

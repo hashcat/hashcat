@@ -98,7 +98,7 @@ KERNEL_FQ void m27200_sxx (KERN_ATTR_VECTOR ())
 
   const u32x dash_vector[16] = { 0x2d2d0000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
   const u32 dash_scalar[16] = { 0x2d2d0000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-  
+
   /**
    * digest
    */
@@ -132,7 +132,7 @@ KERNEL_FQ void m27200_sxx (KERN_ATTR_VECTOR ())
   ctx0.w0[1] = dash_scalar[1];
 
   ctx0.len = 2;
-  
+
   sha1_update_global_swap (&ctx0, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
   sha1_update (&ctx0, dash_scalar, 2);
 

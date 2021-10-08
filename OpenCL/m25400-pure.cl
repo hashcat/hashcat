@@ -346,9 +346,12 @@ KERNEL_FQ void m25400_comp (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
   // the best comparison I can think of is checking each byte
   //  whether it's a padding byte or ASCII, if so we're good,
   //  if not, decryption was not successful
+
   bool correct = true;
+
   int i_padding=0;
-  for(int i=0;i<16;i++)
+
+  for (int i = 0; i < 16; i++)
   {
     // cast out buffer to byte such that we can do a byte per byte comparison
     const u32 *u32OutBufPtr = out;
@@ -363,15 +366,18 @@ KERNEL_FQ void m25400_comp (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
     // we don't use the user-password in the attack now (as we don't need it),
     //  however we could use it in the comparison of the decrypted o-value,
     //  yet it may make this attack a bit more fragile, as now we just check for ASCII
-    if((u8OutBufPtr[i] >=20 && u8OutBufPtr[i] <= 0x7e) || u8OutBufPtr[i]==u8OutPadPtr[i_padding])
+    if ((u8OutBufPtr[i] >= 20 && u8OutBufPtr[i] <= 0x7e) ||
+        (u8OutBufPtr[i] == u8OutPadPtr[i_padding]))
     {
-      if(u8OutBufPtr[i]==u8OutPadPtr[i_padding]) {
+      if (u8OutBufPtr[i] == u8OutPadPtr[i_padding])
+      {
         //printf("correct padding byte[%d]=0x%02x\n", i, u8OutBufPtr[i]);
-        i_padding=i_padding+1;
+        i_padding = i_padding + 1;
       }
       else
       {
-        if(u8OutBufPtr[i] >=20 && u8OutBufPtr[i] <= 0x7e) {
+        if (u8OutBufPtr[i] >= 20 && u8OutBufPtr[i] <= 0x7e)
+        {
           //printf("correct ASCII byte[%d]=0x%02x\n", i, u8OutBufPtr[i]);
         }
       }
@@ -400,6 +406,7 @@ KERNEL_FQ void m25400_comp (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
   if (correct)
   {
     int digest_pos = find_hash (digest, digests_cnt, &digests_buf[DIGESTS_OFFSET]);
+
     if (digest_pos != -1)
     {
       const u32 final_hash_pos = DIGESTS_OFFSET + digest_pos;

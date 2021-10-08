@@ -2113,7 +2113,8 @@ DECLSPEC u32 parse_public (secp256k1_t *r, const u32 *k)
  * Set precomputed values of the basepoint g to a secp256k1 structure.
  * @param r out: x and y coordinates. pre-computed points: (x1,y1,-y1),(x3,y3,-y3),(x5,y5,-y5),(x7,y7,-y7)
  */
-DECLSPEC void set_precomputed_basepoint_g (secp256k1_t *r) {
+DECLSPEC void set_precomputed_basepoint_g (secp256k1_t *r)
+{
     // x1
     r->xy[ 0] = SECP256K1_G_PRE_COMPUTED_00;
     r->xy[ 1] = SECP256K1_G_PRE_COMPUTED_01;
