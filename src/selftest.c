@@ -943,7 +943,7 @@ HC_API_CALL void *thread_selftest (void *p)
 
     if (hc_hipCtxPopCurrent (hashcat_ctx, &device_param->hip_context) == -1) return NULL;
   }
-  
+
   if (device_param->is_opencl == true)
   {
     if (hc_clFinish (hashcat_ctx, device_param->opencl_command_queue) == -1) return NULL;

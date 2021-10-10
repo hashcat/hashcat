@@ -158,7 +158,7 @@ DECLSPEC void m27200m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
     t3[1] = w3[1];
     t3[2] = w3[2];
     t3[3] = w3[3];
-    
+
     switch_buffer_by_offset_be (t0, t1, t2, t3, salt_len);
 
     t0[0] |= salt_buf0[0];

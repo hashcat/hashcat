@@ -643,7 +643,7 @@ KERNEL_FQ void m27000_comp (KERN_ATTR_TMPS_ESALT (netntlm_tmp_t, netntlm_t))
   const u32 d = tmps[gid].digest_buf[3];
 
   // I believe this matches the last 2 bytes and throws away.
-  // Taken from 5500. 
+  // Taken from 5500.
   if ((d >> 16) != s2) return;
 
   /**

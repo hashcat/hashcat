@@ -34,7 +34,7 @@ static bool xz_initialized = false;
 static const ISzAlloc xz_alloc = { hc_lzma_alloc, hc_lzma_free };
 
 struct xzfile
-{  
+{
   CAlignOffsetAlloc  alloc;
   UInt64             inBlocks;
   Byte              *inBuf;
@@ -532,7 +532,7 @@ size_t hc_fwrite (const void *ptr, size_t size, size_t nmemb, HCFILE *fp)
   else if (fp->gfp)
   {
     n = gzfwrite (ptr, size, nmemb, fp->gfp);
-  }  
+  }
 
   return n;
 }

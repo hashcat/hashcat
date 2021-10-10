@@ -78,7 +78,7 @@ KERNEL_FQ void m27200_sxx (KERN_ATTR_BASIC ())
   if (gid >= gid_max) return;
 
   const u32 dash[16] = { 0x2d2d0000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-  
+
   /**
    * digest
    */
@@ -103,7 +103,7 @@ KERNEL_FQ void m27200_sxx (KERN_ATTR_BASIC ())
   ctx0.w0[1] = dash[1];
 
   ctx0.len = 2;
-  
+
   sha1_update_global_swap (&ctx0, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
   sha1_update (&ctx0, dash, 2);
 
