@@ -7113,28 +7113,28 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        // we need to wait for 4.4 to be released to continue here
-        // ignore this backend
+        if (hip_runtimeVersion < 40400000)
+        {
+          int hip_version_major = (hip_runtimeVersion - 0) / 10000000;
+          int hip_version_minor = (hip_runtimeVersion - (hip_version_major * 10000000)) / 100000;
+          int hip_version_patch = (hip_runtimeVersion - (hip_version_major * 10000000) - (hip_version_minor * 100000));
 
-        int hip_version_major = (hip_runtimeVersion - 0) / 10000000;
-        int hip_version_minor = (hip_runtimeVersion - (hip_version_major * 10000000)) / 100000;
-        int hip_version_patch = (hip_runtimeVersion - (hip_version_major * 10000000) - (hip_version_minor * 100000));
+          event_log_warning (hashcat_ctx, "Unsupported AMD HIP runtime version '%d.%d.%d' detected! Falling back to OpenCL...", hip_version_major, hip_version_minor, hip_version_patch);
+          event_log_warning (hashcat_ctx, NULL);
 
-        event_log_warning (hashcat_ctx, "Unsupported AMD HIP runtime version '%d.%d.%d' detected! Falling back to OpenCL...", hip_version_major, hip_version_minor, hip_version_patch);
-        event_log_warning (hashcat_ctx, NULL);
+          rc_hip_init    = -1;
+          rc_hiprtc_init = -1;
 
-        rc_hip_init    = -1;
-        rc_hiprtc_init = -1;
+          backend_ctx->rc_hip_init    = rc_hip_init;
+          backend_ctx->rc_hiprtc_init = rc_hiprtc_init;
 
-        backend_ctx->rc_hip_init    = rc_hip_init;
-        backend_ctx->rc_hiprtc_init = rc_hiprtc_init;
+          backend_ctx->hip = NULL;
 
-        backend_ctx->hip = NULL;
-
-        // if we call this, opencl stops working?! so we just zero the pointer
-        // this causes a memleak and an open filehandle but what can we do?
-        // hip_close    (hashcat_ctx);
-        // hiprtc_close (hashcat_ctx);
+          // if we call this, opencl stops working?! so we just zero the pointer
+          // this causes a memleak and an open filehandle but what can we do?
+          // hip_close    (hashcat_ctx);
+          // hiprtc_close (hashcat_ctx);
+        }
       }
     }
     else
