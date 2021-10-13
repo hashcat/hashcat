@@ -7105,6 +7105,8 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
           backend_ctx->hip    = NULL;
           backend_ctx->hiprtc = NULL;
 
+          backend_ctx->hip = NULL;
+
           // if we call this, opencl stops working?! so we just zero the pointer
           // this causes a memleak and an open filehandle but what can we do?
           // hip_close    (hashcat_ctx);
