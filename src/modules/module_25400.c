@@ -20,7 +20,7 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_4;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_DOCUMENTS;
-static const char *HASH_NAME      = "PDF 1.4 - 1.6 (Acrobat 5 - 8) - user and owner password (o-value)";
+static const char *HASH_NAME      = "PDF 1.4 - 1.6 (Acrobat 5 - 8) - user and owner pass";
 static const u64   KERN_TYPE      = 25400;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_NOT_ITERATED;

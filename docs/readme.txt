@@ -295,7 +295,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - PDF 1.1 - 1.3 (Acrobat 2 - 4), collider #1
 - PDF 1.1 - 1.3 (Acrobat 2 - 4), collider #2
 - PDF 1.4 - 1.6 (Acrobat 5 - 8)
-- PDF 1.4 - 1.6 (Acrobat 5 - 8) - edit password
+- PDF 1.4 - 1.6 (Acrobat 5 - 8) - user and owner pass
 - PDF 1.7 Level 3 (Acrobat 9)
 - PDF 1.7 Level 8 (Acrobat 10 - 11)
 - MS Office 2007
