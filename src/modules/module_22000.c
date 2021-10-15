@@ -1072,6 +1072,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
         if (wpa->message_pair & (1 << 7))
         {
           // replaycount not checked, nc needed
+          wpa->nonce_error_corrections = NONCE_ERROR_CORRECTIONS; // temporary until architectural change done (module_hash_decode_postprocess?)
+
         }
         else
         {
@@ -1099,6 +1101,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
       wpa->detected_le = 0;
       wpa->detected_be = 1;
     }
+
+    wpa->detected_le = 1; // temporary see https://github.com/hashcat/hashcat/issues/2987
+    wpa->detected_be = 1; // temporary see https://github.com/hashcat/hashcat/issues/2987
+
 
     // mic
 
