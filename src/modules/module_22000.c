@@ -1102,10 +1102,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
       wpa->detected_be = 1;
     }
 
-    wpa->detected_le = 1; // temporary see https://github.com/hashcat/hashcat/issues/2987
-    wpa->detected_be = 1; // temporary see https://github.com/hashcat/hashcat/issues/2987
-
-
     // mic
 
     const u8 *mic_pos = token.buf[2];
