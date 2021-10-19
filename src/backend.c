@@ -7091,7 +7091,7 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       if (hip_runtimeVersion < 1000)
       {
-        if (hip_runtimeVersion < 404)
+        if (hip_runtimeVersion < 405)
         {
           event_log_warning (hashcat_ctx, "Unsupported AMD HIP runtime version '%d.%d' detected! Falling back to OpenCL...", hip_runtimeVersion / 100, hip_runtimeVersion % 10);
           event_log_warning (hashcat_ctx, NULL);
@@ -7115,7 +7115,7 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        if (hip_runtimeVersion < 40400000)
+        if (hip_runtimeVersion < 40500000)
         {
           int hip_version_major = (hip_runtimeVersion - 0) / 10000000;
           int hip_version_minor = (hip_runtimeVersion - (hip_version_major * 10000000)) / 100000;
