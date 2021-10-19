@@ -1072,6 +1072,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
         if (wpa->message_pair & (1 << 7))
         {
           // replaycount not checked, nc needed
+          wpa->nonce_error_corrections = NONCE_ERROR_CORRECTIONS; // temporary until architectural change done (module_hash_decode_postprocess?)
         }
         else
         {
