@@ -124,7 +124,9 @@ DECLSPEC u32 sub (u32 *r, const u32 *a, const u32 *b)
     :  "r"(a[0]),  "r"(a[1]),  "r"(a[2]),  "r"(a[3]),  "r"(a[4]),  "r"(a[5]),  "r"(a[6]),  "r"(a[7]),
        "r"(b[0]),  "r"(b[1]),  "r"(b[2]),  "r"(b[3]),  "r"(b[4]),  "r"(b[5]),  "r"(b[6]),  "r"(b[7])
   );
-  #elif defined IS_AMD && HAS_VSUB == 1 && HAS_VSUBB == 1
+  // HIP doesnt support these so we stick to OpenCL (aka IS_AMD) - is also faster without asm
+  //#elif (defined IS_AMD || defined IS_HIP) && HAS_VSUB == 1 && HAS_VSUBB == 1
+  #elif 0
   __asm__ __volatile__
   (
     "V_SUB_U32   %0,  %9, %17;"
@@ -176,7 +178,9 @@ DECLSPEC u32 add (u32 *r, const u32 *a, const u32 *b)
     :  "r"(a[0]),  "r"(a[1]),  "r"(a[2]),  "r"(a[3]),  "r"(a[4]),  "r"(a[5]),  "r"(a[6]),  "r"(a[7]),
        "r"(b[0]),  "r"(b[1]),  "r"(b[2]),  "r"(b[3]),  "r"(b[4]),  "r"(b[5]),  "r"(b[6]),  "r"(b[7])
   );
-  #elif defined IS_AMD && HAS_VADD == 1 && HAS_VADDC == 1
+  // HIP doesnt support these so we stick to OpenCL (aka IS_AMD) - is also faster without asm
+  //#elif (defined IS_AMD || defined IS_HIP) && HAS_VSUB == 1 && HAS_VSUBB == 1
+  #elif 0
   __asm__ __volatile__
   (
     "V_ADD_U32   %0,  %9, %17;"
@@ -1847,7 +1851,7 @@ DECLSPEC void point_mul_xy (u32 *x1, u32 *y1, const u32 *k, GLOBAL_AS const secp
 {
   u32 naf[SECP256K1_NAF_SIZE] = { 0 };
   int loop_start = convert_to_window_naf(naf, k);
-  
+
   // first set:
 
   const u32 multiplier = (naf[loop_start >> 3] >> ((loop_start & 7) << 2)) & 0x0f; // or use u8 ?
@@ -1973,7 +1977,7 @@ DECLSPEC void point_mul_xy (u32 *x1, u32 *y1, const u32 *k, GLOBAL_AS const secp
 
   mul_mod (z1, z2, z1); // z1^3
   mul_mod (y1, y1, z1); // y1_affine
-  
+
   // return values are already in x1 and y1
 }
 
@@ -2109,7 +2113,8 @@ DECLSPEC u32 parse_public (secp256k1_t *r, const u32 *k)
  * Set precomputed values of the basepoint g to a secp256k1 structure.
  * @param r out: x and y coordinates. pre-computed points: (x1,y1,-y1),(x3,y3,-y3),(x5,y5,-y5),(x7,y7,-y7)
  */
-DECLSPEC void set_precomputed_basepoint_g (secp256k1_t *r) {
+DECLSPEC void set_precomputed_basepoint_g (secp256k1_t *r)
+{
     // x1
     r->xy[ 0] = SECP256K1_G_PRE_COMPUTED_00;
     r->xy[ 1] = SECP256K1_G_PRE_COMPUTED_01;

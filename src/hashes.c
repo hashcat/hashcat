@@ -300,7 +300,7 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain)
+int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain)
 {
   const debugfile_ctx_t *debugfile_ctx = hashcat_ctx->debugfile_ctx;
   const hashes_t        *hashes        = hashcat_ctx->hashes;
@@ -313,18 +313,63 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   void *tmps = NULL;
 
+  cl_event opencl_event;
+
+  int rc = -1;
+
   if (hashconfig->opts_type & OPTS_TYPE_COPY_TMPS)
   {
     tmps = hcmalloc (hashconfig->tmp_size);
 
     if (device_param->is_cuda == true)
     {
-      hc_cuMemcpyDtoH (hashcat_ctx, tmps, device_param->cuda_d_tmps + (plain->gidvid * hashconfig->tmp_size), hashconfig->tmp_size);
+      rc = hc_cuMemcpyDtoHAsync (hashcat_ctx, tmps, device_param->cuda_d_tmps + (plain->gidvid * hashconfig->tmp_size), hashconfig->tmp_size, device_param->cuda_stream);
+
+      if (rc == 0)
+      {
+        rc = hc_cuEventRecord (hashcat_ctx, device_param->cuda_event3, device_param->cuda_stream);
+      }
+
+      if (rc == -1)
+      {
+        hcfree (tmps);
+
+        return -1;
+      }
+    }
+
+    if (device_param->is_hip == true)
+    {
+      rc = hc_hipMemcpyDtoHAsync (hashcat_ctx, tmps, device_param->hip_d_tmps + (plain->gidvid * hashconfig->tmp_size), hashconfig->tmp_size, device_param->hip_stream);
+
+      if (rc == 0)
+      {
+        rc = hc_hipEventRecord (hashcat_ctx, device_param->hip_event3, device_param->hip_stream);
+      }
+
+      if (rc == -1)
+      {
+        hcfree (tmps);
+
+        return -1;
+      }
     }
 
     if (device_param->is_opencl == true)
     {
-      hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_tmps, CL_TRUE, plain->gidvid * hashconfig->tmp_size, hashconfig->tmp_size, tmps, 0, NULL, NULL);
+      rc = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_tmps, CL_FALSE, plain->gidvid * hashconfig->tmp_size, hashconfig->tmp_size, tmps, 0, NULL, &opencl_event);
+
+      if (rc == 0)
+      {
+        rc = hc_clFlush (hashcat_ctx, device_param->opencl_command_queue);
+      }
+
+      if (rc == -1)
+      {
+        hcfree (tmps);
+
+        return -1;
+      }
     }
   }
 
@@ -332,15 +377,14 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   u8 *out_buf = hashes->out_buf;
 
-  int out_len = hash_encode (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf, HCBUFSIZ_LARGE, salt_pos, digest_pos);
+  int out_len = hash_encode (hashconfig, hashes, module_ctx, (char *) out_buf, HCBUFSIZ_LARGE, salt_pos, digest_pos);
 
   out_buf[out_len] = 0;
 
   // plain
 
-  u8 plain_buf[0x1000]; // while the password itself can have only length 256, the module could encode it with something like base64 which inflates the requires buffer size
-
-  memset (plain_buf, 0, sizeof (plain_buf));
+  u8 plain_buf[HCBUFSIZ_TINY] = { 0 }; // while the password itself can have only length 256, the module could encode it with something like base64 which inflates the requires buffer size
+  u8 postprocess_buf[HCBUFSIZ_TINY] = { 0 };
 
   u8 *plain_ptr = plain_buf;
 
@@ -350,18 +394,27 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   if (module_ctx->module_build_plain_postprocess != MODULE_DEFAULT)
   {
-    u8 temp_buf[0x1000];
-
-    memset (temp_buf, 0, sizeof (temp_buf));
-
-    const int temp_len = module_ctx->module_build_plain_postprocess (hashcat_ctx->hashconfig, hashcat_ctx->hashes, tmps, (u32 *) plain_buf, sizeof (plain_buf), plain_len, (u32 *)temp_buf, sizeof (temp_buf));
-
-    if (temp_len < (int) sizeof (plain_buf))
+    if (hashconfig->opts_type & OPTS_TYPE_COPY_TMPS)
     {
-      memcpy (plain_buf, temp_buf, temp_len);
+      if (device_param->is_cuda == true)
+      {
+        if (hc_cuEventSynchronize (hashcat_ctx, device_param->cuda_event3) == -1) return -1;
+      }
 
-      plain_len = temp_len;
+      if (device_param->is_hip == true)
+      {
+        if (hc_hipEventSynchronize (hashcat_ctx, device_param->hip_event3) == -1) return -1;
+      }
+
+      if (device_param->is_opencl == true)
+      {
+        if (hc_clWaitForEvents (hashcat_ctx, 1, &opencl_event) == -1) return -1;
+      }
     }
+
+    plain_len = module_ctx->module_build_plain_postprocess (hashconfig, hashes, tmps, (u32 *) plain_buf, sizeof (plain_buf), plain_len, (u32 *) postprocess_buf, sizeof (postprocess_buf));
+
+    plain_ptr = postprocess_buf;
   }
 
   // crackpos
@@ -402,6 +455,24 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   if (module_ctx->module_hash_encode_potfile != MODULE_DEFAULT)
   {
+    if (hashconfig->opts_type & OPTS_TYPE_COPY_TMPS)
+    {
+      if (device_param->is_cuda == true)
+      {
+        if (hc_cuEventSynchronize (hashcat_ctx, device_param->cuda_event3) == -1) return -1;
+      }
+
+      if (device_param->is_hip == true)
+      {
+        if (hc_hipEventSynchronize (hashcat_ctx, device_param->hip_event3) == -1) return -1;
+      }
+
+      if (device_param->is_opencl == true)
+      {
+        if (hc_clWaitForEvents (hashcat_ctx, 1, &opencl_event) == -1) return -1;
+      }
+    }
+
     salt_t *salts_buf = hashes->salts_buf;
 
     salts_buf += salt_pos;
@@ -466,7 +537,14 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
   if (hashconfig->opts_type & OPTS_TYPE_COPY_TMPS)
   {
     hcfree (tmps);
+
+    if (device_param->is_opencl == true)
+    {
+      if (hc_clReleaseEvent (hashcat_ctx, opencl_event) == -1) return -1;
+    }
   }
+
+  return 0;
 }
 
 //int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 salt_pos)
@@ -480,143 +558,204 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
   u32 num_cracked = 0;
 
-  int CU_rc;
-  int CL_rc;
+  int rc = -1;
 
   if (device_param->is_cuda == true)
   {
-    CU_rc = hc_cuMemcpyDtoH (hashcat_ctx, &num_cracked, device_param->cuda_d_result, sizeof (u32));
+    if (hc_cuMemcpyDtoHAsync (hashcat_ctx, &num_cracked, device_param->cuda_d_result, sizeof (u32), device_param->cuda_stream) == -1) return -1;
 
-    if (CU_rc == -1) return -1;
+    if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
+  }
+
+  if (device_param->is_hip == true)
+  {
+    if (hc_hipMemcpyDtoHAsync (hashcat_ctx, &num_cracked, device_param->hip_d_result, sizeof (u32), device_param->hip_stream) == -1) return -1;
+
+    if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
   }
 
   if (device_param->is_opencl == true)
   {
-    CL_rc = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_result, CL_TRUE, 0, sizeof (u32), &num_cracked, 0, NULL, NULL);
-
-    if (CL_rc == -1) return -1;
+    /* blocking */
+    if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_result, CL_TRUE, 0, sizeof (u32), &num_cracked, 0, NULL, NULL) == -1) return -1;
   }
 
-  if (user_options->speed_only == true)
+  if (num_cracked == 0 || user_options->speed_only == true)
   {
-    // we want the hc_clEnqueueReadBuffer to run in benchmark mode because it has an influence in performance
+    // we want to get the num_cracked in benchmark mode because it has an influence in performance
     // however if the benchmark cracks the artificial hash used for benchmarks we don't want to see that!
 
     return 0;
   }
 
-  if (num_cracked)
+  plain_t *cracked = (plain_t *) hcmalloc (num_cracked * sizeof (plain_t));
+
+  if (device_param->is_cuda == true)
   {
-    plain_t *cracked = (plain_t *) hccalloc (num_cracked, sizeof (plain_t));
+    rc = hc_cuMemcpyDtoHAsync (hashcat_ctx, cracked, device_param->cuda_d_plain_bufs, num_cracked * sizeof (plain_t), device_param->cuda_stream);
 
-    if (device_param->is_cuda == true)
+    if (rc == 0)
     {
-      CU_rc = hc_cuMemcpyDtoH (hashcat_ctx, cracked, device_param->cuda_d_plain_bufs, num_cracked * sizeof (plain_t));
-
-      if (CU_rc == -1) return -1;
+      rc = hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream);
     }
 
-    if (device_param->is_opencl == true)
+    if (rc == -1)
     {
-      CL_rc = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_plain_bufs, CL_TRUE, 0, num_cracked * sizeof (plain_t), cracked, 0, NULL, NULL);
+      hcfree (cracked);
 
-      if (CL_rc == -1) return -1;
+      return -1;
+    }
+  }
+
+  if (device_param->is_hip == true)
+  {
+    rc = hc_hipMemcpyDtoHAsync (hashcat_ctx, cracked, device_param->hip_d_plain_bufs, num_cracked * sizeof (plain_t), device_param->hip_stream);
+
+    if (rc == 0)
+    {
+      rc = hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream);
     }
 
-    u32 cpt_cracked = 0;
+    if (rc == -1)
+    {
+      hcfree (cracked);
 
+      return -1;
+    }
+  }
+
+  if (device_param->is_opencl == true)
+  {
+    /* blocking */
+    rc = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_plain_bufs, CL_TRUE, 0, num_cracked * sizeof (plain_t), cracked, 0, NULL, NULL);
+
+    if (rc == -1)
+    {
+      hcfree (cracked);
+
+      return -1;
+    }
+  }
+
+  u32 cpt_cracked = 0;
+
+  hc_thread_mutex_lock (status_ctx->mux_display);
+
+  for (u32 i = 0; i < num_cracked; i++)
+  {
+    const u32 hash_pos = cracked[i].hash_pos;
+
+    if (hashes->digests_shown[hash_pos] == 1) continue;
+
+    const u32 salt_pos = cracked[i].salt_pos;
+    salt_t *salt_buf = &hashes->salts_buf[salt_pos];
+
+    if ((hashconfig->opts_type & OPTS_TYPE_PT_NEVERCRACK) == 0)
+    {
+      hashes->digests_shown[hash_pos] = 1;
+
+      hashes->digests_done++;
+
+      cpt_cracked++;
+
+      salt_buf->digests_done++;
+
+      if (salt_buf->digests_done == salt_buf->digests_cnt)
+      {
+        hashes->salts_shown[salt_pos] = 1;
+
+        hashes->salts_done++;
+      }
+    }
+
+    if (hashes->salts_done == hashes->salts_cnt) mycracked (hashcat_ctx);
+
+    rc = check_hash (hashcat_ctx, device_param, &cracked[i]);
+
+    if (rc == -1)
+    {
+      break;
+    }
+
+    if (hashconfig->opts_type & OPTS_TYPE_PT_NEVERCRACK)
+    {
+      // we need to reset cracked state on the device
+      // otherwise host thinks again and again the hash was cracked
+      // and returns invalid password each time
+
+      if (device_param->is_cuda == true)
+      {
+        rc = run_cuda_kernel_bzero (hashcat_ctx, device_param, device_param->cuda_d_digests_shown + (salt_buf->digests_offset * sizeof (u32)), salt_buf->digests_cnt * sizeof (u32));
+
+        if (rc == -1)
+        {
+          break;
+        }
+      }
+
+      if (device_param->is_hip == true)
+      {
+        rc = run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_digests_shown + (salt_buf->digests_offset * sizeof (u32)), salt_buf->digests_cnt * sizeof (u32));
+
+        if (rc == -1)
+        {
+          break;
+        }
+      }
+
+      if (device_param->is_opencl == true)
+      {
+        /* NOTE: run_opencl_kernel_bzero() does not handle buffer offset */
+        rc = run_opencl_kernel_memset32 (hashcat_ctx, device_param, device_param->opencl_d_digests_shown, salt_buf->digests_offset * sizeof (u32), 0, salt_buf->digests_cnt * sizeof (u32));
+
+        if (rc == -1)
+        {
+          break;
+        }
+      }
+    }
+  }
+
+  hc_thread_mutex_unlock (status_ctx->mux_display);
+
+  hcfree (cracked);
+
+  if (rc == -1)
+  {
+    return -1;
+  }
+
+  if (cpt_cracked > 0)
+  {
     hc_thread_mutex_lock (status_ctx->mux_display);
 
-    for (u32 i = 0; i < num_cracked; i++)
-    {
-      const u32 hash_pos = cracked[i].hash_pos;
+    cpt_ctx->cpt_buf[cpt_ctx->cpt_pos].timestamp = time (NULL);
+    cpt_ctx->cpt_buf[cpt_ctx->cpt_pos].cracked   = cpt_cracked;
 
-      if (hashes->digests_shown[hash_pos] == 1) continue;
+    cpt_ctx->cpt_pos++;
 
-      const u32 salt_pos = cracked[i].salt_pos;
-      salt_t *salt_buf = &hashes->salts_buf[salt_pos];
+    cpt_ctx->cpt_total += cpt_cracked;
 
-      if ((hashconfig->opts_type & OPTS_TYPE_PT_NEVERCRACK) == 0)
-      {
-        hashes->digests_shown[hash_pos] = 1;
-
-        hashes->digests_done++;
-
-        cpt_cracked++;
-
-        salt_buf->digests_done++;
-
-        if (salt_buf->digests_done == salt_buf->digests_cnt)
-        {
-          hashes->salts_shown[salt_pos] = 1;
-
-          hashes->salts_done++;
-        }
-      }
-
-      if (hashes->salts_done == hashes->salts_cnt) mycracked (hashcat_ctx);
-
-      check_hash (hashcat_ctx, device_param, &cracked[i]);
-
-      if (hashconfig->opts_type & OPTS_TYPE_PT_NEVERCRACK)
-      {
-        // we need to reset cracked state on the device
-        // otherwise host thinks again and again the hash was cracked
-        // and returns invalid password each time
-
-        memset (hashes->digests_shown_tmp, 0, salt_buf->digests_cnt * sizeof (u32));
-
-        if (device_param->is_cuda == true)
-        {
-          CU_rc = hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_digests_shown + (salt_buf->digests_offset * sizeof (u32)), &hashes->digests_shown_tmp[salt_buf->digests_offset], salt_buf->digests_cnt * sizeof (u32));
-
-          if (CU_rc == -1) return -1;
-        }
-
-        if (device_param->is_opencl == true)
-        {
-          CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_digests_shown, CL_TRUE, salt_buf->digests_offset * sizeof (u32), salt_buf->digests_cnt * sizeof (u32), &hashes->digests_shown_tmp[salt_buf->digests_offset], 0, NULL, NULL);
-
-          if (CL_rc == -1) return -1;
-        }
-      }
-    }
+    if (cpt_ctx->cpt_pos == CPT_CACHE) cpt_ctx->cpt_pos = 0;
 
     hc_thread_mutex_unlock (status_ctx->mux_display);
+  }
 
-    hcfree (cracked);
+  if (device_param->is_cuda == true)
+  {
+    if (run_cuda_kernel_bzero (hashcat_ctx, device_param, device_param->cuda_d_result, sizeof (u32)) == -1) return -1;
+  }
 
-    if (cpt_cracked > 0)
-    {
-      hc_thread_mutex_lock (status_ctx->mux_display);
+  if (device_param->is_hip == true)
+  {
+    if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_result, sizeof (u32)) == -1) return -1;
+  }
 
-      cpt_ctx->cpt_buf[cpt_ctx->cpt_pos].timestamp = time (NULL);
-      cpt_ctx->cpt_buf[cpt_ctx->cpt_pos].cracked   = cpt_cracked;
+  if (device_param->is_opencl == true)
+  {
+    if (run_opencl_kernel_bzero (hashcat_ctx, device_param, device_param->opencl_d_result, sizeof (u32)) == -1) return -1;
 
-      cpt_ctx->cpt_pos++;
-
-      cpt_ctx->cpt_total += cpt_cracked;
-
-      if (cpt_ctx->cpt_pos == CPT_CACHE) cpt_ctx->cpt_pos = 0;
-
-      hc_thread_mutex_unlock (status_ctx->mux_display);
-    }
-
-    num_cracked = 0;
-
-    if (device_param->is_cuda == true)
-    {
-      CU_rc = hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_result, &num_cracked, sizeof (u32));
-
-      if (CU_rc == -1) return -1;
-    }
-
-    if (device_param->is_opencl == true)
-    {
-      CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_result, CL_TRUE, 0, sizeof (u32), &num_cracked, 0, NULL, NULL);
-
-      if (CL_rc == -1) return -1;
-    }
+    if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
   }
 
   return 0;
@@ -628,6 +767,8 @@ int hashes_init_filename (hashcat_ctx_t *hashcat_ctx)
   hashes_t             *hashes             = hashcat_ctx->hashes;
   user_options_t       *user_options       = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if (user_options->benchmark == true) return 0;
 
   /**
    * load hashes, part I: find input mode, count hashes
@@ -977,6 +1118,49 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         }
 
         int parser_status = PARSER_OK;
+
+        if (user_options->username == true)
+        {
+          char *user_buf = NULL;
+          int   user_len = 0;
+
+          hlfmt_user (hashcat_ctx, hashlist_format, input_buf, input_len, &user_buf, &user_len);
+
+          // special case:
+          // both hash_t need to have the username info if the pwdump format is used (i.e. we have 2 hashes for 3000, both with same user)
+
+          u32 hashes_per_user = 1;
+
+          if (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT)
+          {
+            // the following conditions should be true if (hashlist_format == HLFMT_PWDUMP)
+
+            if (hash_len == 32)
+            {
+              hashes_per_user = 2;
+            }
+          }
+
+          for (u32 i = 0; i < hashes_per_user; i++)
+          {
+            user_t **user = &hashes_buf[hashes_cnt + i].hash_info->user;
+
+            *user = (user_t *) hcmalloc (sizeof (user_t));
+
+            user_t *user_ptr = *user;
+
+            if (user_buf != NULL)
+            {
+              user_ptr->user_name = hcstrdup (user_buf);
+            }
+            else
+            {
+              user_ptr->user_name = hcstrdup ("");
+            }
+
+            user_ptr->user_len = (u32) user_len;
+          }
+        }
 
         if (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT)
         {
@@ -1533,7 +1717,6 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
   u32 digests_done = 0;
 
   u32 *digests_shown     = (u32 *) hccalloc (digests_cnt, sizeof (u32));
-  u32 *digests_shown_tmp = (u32 *) hccalloc (digests_cnt, sizeof (u32));
 
   u32 salts_cnt   = 0;
   u32 salts_done  = 0;
@@ -1670,7 +1853,6 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
   hashes->digests_done      = digests_done;
   hashes->digests_buf       = digests_buf_new;
   hashes->digests_shown     = digests_shown;
-  hashes->digests_shown_tmp = digests_shown_tmp;
 
   hashes->salts_cnt         = salts_cnt;
   hashes->salts_done        = salts_done;
@@ -1815,7 +1997,7 @@ int hashes_init_stage4 (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
 
-    hashconfig->extra_tmp_size = extra_tmp_size;
+    hashconfig->tmp_size = extra_tmp_size;
   }
 
   // at this point we no longer need hash_t* structure
@@ -1941,7 +2123,7 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
 
       memcpy (hashconfig_st, hashconfig, sizeof (hashconfig_t));
 
-      hashconfig_st->separator = SEPARATOR;
+      hashconfig_st->separator = ':';
 
       if (user_options->hex_salt)
       {
@@ -2081,51 +2263,56 @@ int hashes_init_zerohash (hashcat_ctx_t *hashcat_ctx)
 
   module_ctx->module_hash_decode_zero_hash (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, hash_buf.hook_salt, hash_buf.hash_info);
 
-  hash_t *found = (hash_t *) hc_bsearch_r (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_no_salt, (void *) hashconfig);
-
-  if (found != NULL)
+  for (u32 i = 0; i < hashes_cnt; i++)
   {
-    found->pw_buf = (char *) hcmalloc (1);
-    found->pw_len = 0;
+    hash_t *next = &hashes_buf[i];
 
-    found->cracked = 1;
+    int rc = sort_by_hash_no_salt (&hash_buf, next, (void *) hashconfig);
 
-    // should we show the cracked zero hash to the user?
-
-    if (false)
+    if (rc == 0)
     {
-      // digest pos
+      next->pw_buf = (char *) hcmalloc (1);
+      next->pw_len = 0;
 
-      const u32 digest_pos = found - hashes_buf;
+      next->cracked = 1;
 
-      // show the crack
+      // should we show the cracked zero hash to the user?
 
-      u8 *out_buf = (u8 *) hcmalloc (HCBUFSIZ_LARGE);
+      if (false)
+      {
+        // digest pos
 
-      int out_len = hash_encode (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf, HCBUFSIZ_LARGE, 0, digest_pos);
+        const u32 digest_pos = next - hashes_buf;
 
-      out_buf[out_len] = 0;
+        // show the crack
 
-      // outfile, can be either to file or stdout
-      // if an error occurs opening the file, send to stdout as fallback
-      // the fp gets opened for each cracked hash so that the user can modify (move) the outfile while hashcat runs
+        u8 *out_buf = (u8 *) hcmalloc (HCBUFSIZ_LARGE);
 
-      outfile_write_open (hashcat_ctx);
+        int out_len = hash_encode (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf, HCBUFSIZ_LARGE, 0, digest_pos);
 
-      const u8 *plain = (const u8 *) "";
+        out_buf[out_len] = 0;
 
-      u8 *tmp_buf = (u8 *) hcmalloc (HCBUFSIZ_LARGE);
+        // outfile, can be either to file or stdout
+        // if an error occurs opening the file, send to stdout as fallback
+        // the fp gets opened for each cracked hash so that the user can modify (move) the outfile while hashcat runs
 
-      tmp_buf[0] = 0;
+        outfile_write_open (hashcat_ctx);
 
-      const int tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, out_len, plain, 0, 0, NULL, 0, true, (char *) tmp_buf);
+        const u8 *plain = (const u8 *) "";
 
-      EVENT_DATA (EVENT_CRACKER_HASH_CRACKED, tmp_buf, tmp_len);
+        u8 *tmp_buf = (u8 *) hcmalloc (HCBUFSIZ_LARGE);
 
-      outfile_write_close (hashcat_ctx);
+        tmp_buf[0] = 0;
 
-      hcfree (tmp_buf);
-      hcfree (out_buf);
+        const int tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, out_len, plain, 0, 0, NULL, 0, true, (char *) tmp_buf);
+
+        EVENT_DATA (EVENT_CRACKER_HASH_CRACKED, tmp_buf, tmp_len);
+
+        outfile_write_close (hashcat_ctx);
+
+        hcfree (tmp_buf);
+        hcfree (out_buf);
+      }
     }
   }
 
@@ -2157,7 +2344,6 @@ void hashes_destroy (hashcat_ctx_t *hashcat_ctx)
 
   hcfree (hashes->digests_buf);
   hcfree (hashes->digests_shown);
-  hcfree (hashes->digests_shown_tmp);
 
   hcfree (hashes->salts_buf);
   hcfree (hashes->salts_shown);

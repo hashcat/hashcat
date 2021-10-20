@@ -196,15 +196,13 @@ DECLSPEC void AES_GCM_Prepare_J0 (const u32 *iv, int iv_len, const u32 *subkey, 
   }
   else
   {
-    AES_GCM_gf_mult (iv, subkey, J0);
+    AES_GCM_ghash (subkey, iv, iv_len, J0);
 
     u32 len_buf[4] = { 0 };
 
     len_buf[3] = iv_len * 8;
 
-    AES_GCM_xor_block (len_buf, J0);
-
-    AES_GCM_gf_mult (len_buf, subkey, J0);
+    AES_GCM_ghash (subkey, len_buf, 16, J0);
   }
 }
 
@@ -221,7 +219,7 @@ DECLSPEC void AES_GCM_gctr (const u32 *key, const u32 *iv, const u32 *in, int in
   iv_buf[2] = iv[2];
   iv_buf[3] = iv[3];
 
-  const int n = in_len / 16;
+  const u32 n = in_len / 16;
 
   for (u32 i = 0; i < n; i++)
   {

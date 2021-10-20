@@ -130,6 +130,20 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
           myabort (hashcat_ctx);
         }
+        #if defined (__APPLE__)
+        // experimental feature, check the "Sensor Graphic Hot" sensor through IOKIT/SMC to catch a GPU overtemp alarm
+        else if (temperature > (int) (user_options->hwmon_temp_abort - 10))
+        {
+          if (hm_IOKIT_SMCGetSensorGraphicHot (hashcat_ctx) == 1)
+          {
+            event_log_error (hashcat_ctx, "hm_IOKIT_SMCGetSensorGraphicHot(): Sensor Graphics HoT, GPU Overtemp");
+
+            EVENT_DATA (EVENT_MONITOR_TEMP_ABORT, &backend_devices_idx, sizeof (int));
+
+            myabort (hashcat_ctx);
+          }
+        }
+        #endif
       }
 
       for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
@@ -167,9 +181,14 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
       if (restore_left == 0)
       {
-        const int rc = cycle_restore (hashcat_ctx);
+        // Can't return from monitor for that reasons, see:
+        // https://github.com/hashcat/hashcat/issues/2704
+        //
+        //const int rc = cycle_restore (hashcat_ctx);
+        //
+        //if (rc == -1) return -1;
 
-        if (rc == -1) return -1;
+        cycle_restore (hashcat_ctx);
 
         restore_left = user_options->restore_timer;
       }
@@ -197,9 +216,14 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
         {
           hashes->digests_saved = hashes->digests_done;
 
-          const int rc = save_hash (hashcat_ctx);
+          // Can't return from monitor for that reasons, see:
+          // https://github.com/hashcat/hashcat/issues/2704
+          //
+          // const int rc = save_hash (hashcat_ctx);
+          //
+          // if (rc == -1) return -1;
 
-          if (rc == -1) return -1;
+          save_hash (hashcat_ctx);
         }
 
         remove_left = user_options->remove_timer;
@@ -313,9 +337,14 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
   {
     if (hashes->digests_saved != hashes->digests_done)
     {
-      const int rc = save_hash (hashcat_ctx);
+      // Can't return from monitor for that reasons, see:
+      // https://github.com/hashcat/hashcat/issues/2704
+      //
+      // const int rc = save_hash (hashcat_ctx);
+      //
+      // if (rc == -1) return -1;
 
-      if (rc == -1) return -1;
+      save_hash (hashcat_ctx);
     }
   }
 
@@ -323,9 +352,14 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
   if (restore_check == true)
   {
-    const int rc = cycle_restore (hashcat_ctx);
+    // Can't return from monitor for that reasons, see:
+    // https://github.com/hashcat/hashcat/issues/2704
+    //
+    // const int rc = cycle_restore (hashcat_ctx);
+    //
+    // if (rc == -1) return -1;
 
-    if (rc == -1) return -1;
+    cycle_restore (hashcat_ctx);
   }
 
   return 0;

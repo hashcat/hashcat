@@ -8,17 +8,31 @@
 use strict;
 use warnings;
 
-use Digest::CRC qw (crc32);
+use Digest::CRC;
 
 sub module_constraints { [[-1, -1], [-1, -1], [0, 31], [8, 8], [-1, -1]] }
 
 sub module_generate_hash
 {
   my $word = shift;
+  my $salt = shift;
 
-  my $digest = crc32 ($word);
+  my $iv = hex ($salt);
 
-  my $hash = sprintf ("%08x:00000000", $digest);
+  my $ctx = Digest::CRC->new
+  (
+    width   => 32,
+    init    => $iv,
+    xorout  => 0xffffffff,
+    refout  => 1,
+    poly    => 0x04c11db7,
+    refin   => 1,
+    cont    => 1
+  );
+
+  $ctx->add ($word);
+
+  my $hash = sprintf ("%s:%s", $ctx->hexdigest (), $salt);
 
   return $hash;
 }

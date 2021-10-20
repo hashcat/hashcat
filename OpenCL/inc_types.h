@@ -17,18 +17,27 @@
 #endif
 
 #ifdef IS_CUDA
-//https://docs.nvidia.com/cuda/nvrtc/index.html#integer-size
-typedef unsigned char      uchar;
-typedef unsigned short     ushort;
-typedef unsigned int       uint;
-typedef unsigned long long ulong;
+// https://docs.nvidia.com/cuda/nvrtc/index.html#integer-size
+typedef unsigned char       uchar;
+typedef unsigned short      ushort;
+typedef unsigned int        uint;
+typedef unsigned long       ulong;
+typedef unsigned long long  ullong;
+#endif
+
+#ifdef IS_OPENCL
+typedef ulong   ullong;
+typedef ulong2  ullong2;
+typedef ulong4  ullong4;
+typedef ulong8  ullong8;
+typedef ulong16 ullong16;
 #endif
 
 #ifdef KERNEL_STATIC
 typedef uchar  u8;
 typedef ushort u16;
 typedef uint   u32;
-typedef ulong  u64;
+typedef ullong u64;
 #else
 typedef uint8_t  u8;
 typedef uint16_t u16;
@@ -68,7 +77,7 @@ typedef u64  u64x;
 #define make_u64x (u64)
 
 #else
-#ifdef IS_CUDA
+#if defined IS_CUDA || defined IS_HIP
 
 #if VECT_SIZE == 2
 
@@ -825,10 +834,10 @@ typedef __device_builtin__ struct u64x u64x;
 #define make_u64x u64x
 
 #else
-typedef VTYPE(uchar,  VECT_SIZE)  u8x;
+typedef VTYPE(uchar,  VECT_SIZE) u8x;
 typedef VTYPE(ushort, VECT_SIZE) u16x;
 typedef VTYPE(uint,   VECT_SIZE) u32x;
-typedef VTYPE(ulong,  VECT_SIZE) u64x;
+typedef VTYPE(ullong, VECT_SIZE) u64x;
 
 #define make_u8x  (u8x)
 #define make_u16x (u16x)
@@ -1725,5 +1734,14 @@ typedef struct keyboard_layout_mapping
   int dst_len;
 
 } keyboard_layout_mapping_t;
+
+typedef struct hc_enc
+{
+  int  pos;   // source offset
+
+  u32  cbuf;  // carry buffer
+  int  clen;  // carry length
+
+} hc_enc_t;
 
 #endif

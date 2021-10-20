@@ -269,6 +269,35 @@ DECLSPEC int mangle_toggle_at (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p
   return (len);
 }
 
+DECLSPEC int mangle_toggle_at_sep (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u32 *buf, const int len)
+{
+  if (len >= RP_PASSWORD_SIZE) return (len);
+
+  u8 occurence = 0;
+
+  u32 rem = 0;
+
+  for (int i = 0, idx = 0; i < len; i += 4, idx += 1)
+  {
+    const u32 t = buf[idx];
+
+    buf[idx] = t | generate_cmask (t);
+
+    u32 out = rem;
+
+    rem = 0;
+
+    if (((t >>  0) & 0xff) == p1) { if (occurence == p0) out = 0x0000ff00; occurence++; }
+    if (((t >>  8) & 0xff) == p1) { if (occurence == p0) out = 0x00ff0000; occurence++; }
+    if (((t >> 16) & 0xff) == p1) { if (occurence == p0) out = 0xff000000; occurence++; }
+    if (((t >> 24) & 0xff) == p1) { if (occurence == p0) rem = 0x000000ff; occurence++; }
+
+    buf[idx] = t ^ (generate_cmask (t) & out);
+  }
+
+  return (len);
+}
+
 DECLSPEC int mangle_reverse (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u32 *buf, const int len)
 {
   for (int l = 0; l < len / 2; l++)
@@ -688,7 +717,9 @@ DECLSPEC int mangle_dupeblock_last (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const
 
 DECLSPEC int mangle_title_sep (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u32 *buf, const int len)
 {
-  if ((len + 4) >= RP_PASSWORD_SIZE) return (len); // cheap way to not need to check for overflow of i + 1
+  if (len >= RP_PASSWORD_SIZE) return (len);
+
+  u32 rem = 0xff;
 
   for (int i = 0, idx = 0; i < len; i += 4, idx += 1)
   {
@@ -696,21 +727,17 @@ DECLSPEC int mangle_title_sep (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p
 
     buf[idx] = t | generate_cmask (t);
 
-    u32 out0 = 0;
-    u32 out1 = 0;
+    u32 out = rem;
 
-    if (((t >>  0) & 0xff) == p0) out0 |= 0x0000ff00;
-    if (((t >>  8) & 0xff) == p0) out0 |= 0x00ff0000;
-    if (((t >> 16) & 0xff) == p0) out0 |= 0xff000000;
-    if (((t >> 24) & 0xff) == p0) out1 |= 0x000000ff;
+    rem = 0;
 
-    buf[idx + 0] &= ~(generate_cmask (buf[idx + 0]) & out0);
-    buf[idx + 1] &= ~(generate_cmask (buf[idx + 1]) & out1);
+    if (((t >>  0) & 0xff) == p0) out |= 0x0000ff00;
+    if (((t >>  8) & 0xff) == p0) out |= 0x00ff0000;
+    if (((t >> 16) & 0xff) == p0) out |= 0xff000000;
+    if (((t >> 24) & 0xff) == p0) rem |= 0x000000ff;
+
+    buf[idx] &= ~(generate_cmask (buf[idx]) & out);
   }
-
-  const u32 t = buf[0];
-
-  buf[0] = t & ~(0x00000020 & generate_cmask (t));
 
   return (len);
 }
@@ -727,6 +754,7 @@ DECLSPEC int apply_rule (const u32 name, MAYBE_UNUSED const u8 p0, MAYBE_UNUSED 
     case RULE_OP_MANGLE_UREST_LFIRST:     out_len = mangle_urest_lfirst     (p0, p1,        buf, out_len); break;
     case RULE_OP_MANGLE_TREST:            out_len = mangle_trest            (p0, p1,        buf, out_len); break;
     case RULE_OP_MANGLE_TOGGLE_AT:        out_len = mangle_toggle_at        (p0, p1,        buf, out_len); break;
+    case RULE_OP_MANGLE_TOGGLE_AT_SEP:    out_len = mangle_toggle_at_sep    (p0, p1,        buf, out_len); break;
     case RULE_OP_MANGLE_REVERSE:          out_len = mangle_reverse          (p0, p1,        buf, out_len); break;
     case RULE_OP_MANGLE_DUPEWORD:         out_len = mangle_dupeword         (p0, p1,        buf, out_len); break;
     case RULE_OP_MANGLE_DUPEWORD_TIMES:   out_len = mangle_dupeword_times   (p0, p1, (u8 *) buf, out_len); break;

@@ -33,6 +33,13 @@ static void debugfile_format_plain (hashcat_ctx_t *hashcat_ctx, const u8 *plain_
 
       break;
     }
+
+    if (plain_ptr[i] == ':')
+    {
+      needs_hexify = 1;
+
+      break;
+    }
   }
 
   if (needs_hexify == 1)
@@ -86,18 +93,19 @@ int debugfile_init (hashcat_ctx_t *hashcat_ctx)
 
   debugfile_ctx->enabled = false;
 
-  if (user_options->benchmark      == true) return 0;
-  if (user_options->hash_info      == true) return 0;
-  if (user_options->keyspace       == true) return 0;
-  if (user_options->left           == true) return 0;
-  if (user_options->backend_info   == true) return 0;
-  if (user_options->show           == true) return 0;
-  if (user_options->stdout_flag    == true) return 0;
-  if (user_options->speed_only     == true) return 0;
-  if (user_options->progress_only  == true) return 0;
-  if (user_options->usage          == true) return 0;
-  if (user_options->version        == true) return 0;
-  if (user_options->debug_mode     == 0)    return 0;
+  if (user_options->benchmark     == true) return 0;
+  if (user_options->hash_info     == true) return 0;
+  if (user_options->keyspace      == true) return 0;
+  if (user_options->left          == true) return 0;
+  if (user_options->backend_info  == true) return 0;
+  if (user_options->show          == true) return 0;
+  if (user_options->stdout_flag   == true) return 0;
+  if (user_options->speed_only    == true) return 0;
+  if (user_options->progress_only == true) return 0;
+  if (user_options->usage         == true) return 0;
+  if (user_options->version       == true) return 0;
+  if (user_options->identify      == true) return 0;
+  if (user_options->debug_mode    == 0)    return 0;
 
   debugfile_ctx->enabled = true;
 
@@ -125,9 +133,15 @@ int debugfile_init (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
-    debugfile_ctx->fp.is_gzip = false;
-    debugfile_ctx->fp.pfp = stdout;
-    debugfile_ctx->fp.fd = fileno (stdout);
+    HCFILE *fp = &debugfile_ctx->fp;
+
+    fp->fd       = fileno (stdout);
+    fp->pfp      = stdout;
+    fp->gfp      = NULL;
+    fp->ufp      = NULL;
+    fp->bom_size = 0;
+    fp->path     = NULL;
+    fp->mode     = NULL;
   }
 
   return 0;

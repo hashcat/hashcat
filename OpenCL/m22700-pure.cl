@@ -72,7 +72,7 @@ DECLSPEC int is_valid_bitcoinj (const u32 *w)
   return 1;
 }
 
-#ifdef IS_CUDA
+#if defined IS_CUDA || defined IS_HIP
 
 inline __device__ uint4 operator &  (const uint4  a, const u32   b) { return make_uint4 ((a.x &  b  ), (a.y &  b  ), (a.z &  b  ), (a.w &  b  ));  }
 inline __device__ uint4 operator << (const uint4  a, const u32   b) { return make_uint4 ((a.x << b  ), (a.y << b  ), (a.z << b  ), (a.w << b  ));  }
@@ -105,7 +105,7 @@ DECLSPEC uint4 hc_swap32_4 (uint4 v)
 
 #define ADD_ROTATE_XOR(r,i1,i2,s) (r) ^= rotate ((i1) + (i2), (s));
 
-#ifdef IS_CUDA
+#if defined IS_CUDA || defined IS_HIP
 
 #define SALSA20_2R()                        \
 {                                           \
@@ -304,41 +304,24 @@ KERNEL_FQ void m22700_init (KERN_ATTR_TMPS (scrypt_tmp_t))
 
   if (gid >= gid_max) return;
 
-  // convert password to utf16be:
-
-  const u32 pw_len = pws[gid].pw_len;
-
-  const u32 pw_len_utf16be = pw_len * 2;
-
   u32 w[128] = { 0 };
 
-  for (u32 i = 0, j = 0; i < 64; i += 4, j += 8)
+  hc_enc_t hc_enc;
+
+  hc_enc_init (&hc_enc);
+
+  const u32 w_len = hc_enc_next_global (&hc_enc, pws[gid].i, pws[gid].pw_len, 256, w, sizeof (w));
+
+  // utf16le to utf16be
+  for (int i = 0, j = 0; i < w_len; i += 4, j += 1)
   {
-    u32 in[4];
-
-    in[0] = pws[gid].i[i + 0];
-    in[1] = pws[gid].i[i + 1];
-    in[2] = pws[gid].i[i + 2];
-    in[3] = pws[gid].i[i + 3];
-
-    u32 out0[4];
-    u32 out1[4];
-
-    make_utf16be_S (in, out0, out1);
-
-    w[j + 0] = out0[0];
-    w[j + 1] = out0[1];
-    w[j + 2] = out0[2];
-    w[j + 3] = out0[3];
-    w[j + 4] = out1[0];
-    w[j + 5] = out1[1];
-    w[j + 6] = out1[2];
-    w[j + 7] = out1[3];
+    w[j] = ((w[j] >> 8) & 0x00ff00ff)
+         | ((w[j] << 8) & 0xff00ff00);
   }
 
   sha256_hmac_ctx_t sha256_hmac_ctx;
 
-  sha256_hmac_init_swap (&sha256_hmac_ctx, w, pw_len_utf16be);
+  sha256_hmac_init_swap (&sha256_hmac_ctx, w, w_len);
 
   u32 s0[4] = { 0 };
   u32 s1[4] = { 0 };
@@ -391,7 +374,7 @@ KERNEL_FQ void m22700_init (KERN_ATTR_TMPS (scrypt_tmp_t))
     digest[6] = sha256_hmac_ctx2.opad.h[6];
     digest[7] = sha256_hmac_ctx2.opad.h[7];
 
-    #ifdef IS_CUDA
+    #if defined IS_CUDA
     const uint4 tmp0 = make_uint4 (digest[0], digest[1], digest[2], digest[3]);
     const uint4 tmp1 = make_uint4 (digest[4], digest[5], digest[6], digest[7]);
     #else
@@ -419,7 +402,7 @@ KERNEL_FQ void m22700_init (KERN_ATTR_TMPS (scrypt_tmp_t))
 
     uint4 X[4];
 
-    #ifdef IS_CUDA
+    #if defined IS_CUDA
     X[0] = make_uint4 (T[0].x, T[1].y, T[2].z, T[3].w);
     X[1] = make_uint4 (T[1].x, T[2].y, T[3].z, T[0].w);
     X[2] = make_uint4 (T[2].x, T[3].y, T[0].z, T[1].w);
@@ -557,41 +540,24 @@ KERNEL_FQ void m22700_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
    * 2nd pbkdf2, creates B
    */
 
-  // convert password to utf16be:
-
-  const u32 pw_len = pws[gid].pw_len;
-
-  const u32 pw_len_utf16be = pw_len * 2;
-
   u32 w[128] = { 0 };
 
-  for (u32 i = 0, j = 0; i < 64; i += 4, j += 8)
+  hc_enc_t hc_enc;
+
+  hc_enc_init (&hc_enc);
+
+  const u32 w_len = hc_enc_next_global (&hc_enc, pws[gid].i, pws[gid].pw_len, 256, w, sizeof (w));
+
+  // utf16le to utf16be
+  for (int i = 0, j = 0; i < w_len; i += 4, j += 1)
   {
-    u32 in[4];
-
-    in[0] = pws[gid].i[i + 0];
-    in[1] = pws[gid].i[i + 1];
-    in[2] = pws[gid].i[i + 2];
-    in[3] = pws[gid].i[i + 3];
-
-    u32 out0[4];
-    u32 out1[4];
-
-    make_utf16be_S (in, out0, out1);
-
-    w[j + 0] = out0[0];
-    w[j + 1] = out0[1];
-    w[j + 2] = out0[2];
-    w[j + 3] = out0[3];
-    w[j + 4] = out1[0];
-    w[j + 5] = out1[1];
-    w[j + 6] = out1[2];
-    w[j + 7] = out1[3];
+    w[j] = ((w[j] >> 8) & 0x00ff00ff)
+         | ((w[j] << 8) & 0xff00ff00);
   }
 
   sha256_hmac_ctx_t ctx;
 
-  sha256_hmac_init_swap (&ctx, w, pw_len_utf16be);
+  sha256_hmac_init_swap (&ctx, w, w_len);
 
   u32 w0[4];
   u32 w1[4];
@@ -609,7 +575,7 @@ KERNEL_FQ void m22700_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
 
     uint4 T[4];
 
-    #ifdef IS_CUDA
+    #if defined IS_CUDA
     T[0] = make_uint4 (X[0].x, X[3].y, X[2].z, X[1].w);
     T[1] = make_uint4 (X[1].x, X[0].y, X[3].z, X[2].w);
     T[2] = make_uint4 (X[2].x, X[1].y, X[0].z, X[3].w);

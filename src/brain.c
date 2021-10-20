@@ -172,6 +172,14 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
 
   XXH64_update (state, &hex_salt, sizeof (hex_salt));
 
+  const u32 opti_type = hashconfig->opti_type;
+
+  XXH64_update (state, &opti_type, sizeof (opti_type));
+
+  const u64 opts_type = hashconfig->opts_type;
+
+  XXH64_update (state, &opts_type, sizeof (opts_type));
+
   const int hccapx_message_pair = user_options->hccapx_message_pair;
 
   XXH64_update (state, &hccapx_message_pair, sizeof (hccapx_message_pair));
@@ -295,10 +303,12 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
 
     const int markov_classic   = user_options->markov_classic;
     const int markov_disable   = user_options->markov_disable;
+    const int markov_inverse   = user_options->markov_inverse;
     const int markov_threshold = user_options->markov_threshold;
 
     XXH64_update (state, &markov_classic,   sizeof (markov_classic));
     XXH64_update (state, &markov_disable,   sizeof (markov_disable));
+    XXH64_update (state, &markov_inverse,   sizeof (markov_inverse));
     XXH64_update (state, &markov_threshold, sizeof (markov_threshold));
 
     if (user_options->markov_hcstat2)
@@ -352,10 +362,12 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
 
     const int markov_classic   = user_options->markov_classic;
     const int markov_disable   = user_options->markov_disable;
+    const int markov_inverse   = user_options->markov_inverse;
     const int markov_threshold = user_options->markov_threshold;
 
     XXH64_update (state, &markov_classic,   sizeof (markov_classic));
     XXH64_update (state, &markov_disable,   sizeof (markov_disable));
+    XXH64_update (state, &markov_inverse,   sizeof (markov_inverse));
     XXH64_update (state, &markov_threshold, sizeof (markov_threshold));
 
     if (user_options->markov_hcstat2)
@@ -445,10 +457,12 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
 
     const int markov_classic   = user_options->markov_classic;
     const int markov_disable   = user_options->markov_disable;
+    const int markov_inverse   = user_options->markov_inverse;
     const int markov_threshold = user_options->markov_threshold;
 
     XXH64_update (state, &markov_classic,   sizeof (markov_classic));
     XXH64_update (state, &markov_disable,   sizeof (markov_disable));
+    XXH64_update (state, &markov_inverse,   sizeof (markov_inverse));
     XXH64_update (state, &markov_threshold, sizeof (markov_threshold));
 
     if (user_options->markov_hcstat2)
@@ -652,7 +666,7 @@ u32 brain_auth_challenge (void)
 
   #else
 
-  static const char *urandom = "/dev/urandom";
+  static const char *const urandom = "/dev/urandom";
 
   HCFILE fp;
 
@@ -2245,6 +2259,8 @@ void *brain_server_handle_client (void *p)
 
       brain_server_dbs->client_slots[client_idx] = 0;
 
+      hc_thread_mutex_unlock (brain_server_dbs->mux_dbs);
+
       close (client_fd);
 
       return NULL;
@@ -2278,6 +2294,8 @@ void *brain_server_handle_client (void *p)
       brain_logging (stderr, 0, "too many attacks\n");
 
       brain_server_dbs->client_slots[client_idx] = 0;
+
+      hc_thread_mutex_unlock (brain_server_dbs->mux_dbs);
 
       close (client_fd);
 
@@ -2317,6 +2335,10 @@ void *brain_server_handle_client (void *p)
   if (recv_buf == NULL)
   {
     brain_logging (stderr, 0, "%s\n", MSG_ENOMEM);
+
+    brain_server_dbs->client_slots[client_idx] = 0;
+
+    close (client_fd);
 
     return NULL;
   }
@@ -3351,4 +3373,39 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
   #endif
 
   return 0;
+}
+
+int brain_ctx_init (hashcat_ctx_t *hashcat_ctx)
+{
+  brain_ctx_t    *brain_ctx    = hashcat_ctx->brain_ctx;
+  user_options_t *user_options = hashcat_ctx->user_options;
+
+  #ifdef WITH_BRAIN
+  brain_ctx->support = true;
+  #else
+  brain_ctx->support = false;
+  #endif
+
+  if (brain_ctx->support == false) return 0;
+
+  if (user_options->brain_client == true)
+  {
+    brain_ctx->enabled = true;
+  }
+
+  if (user_options->brain_server == true)
+  {
+    brain_ctx->enabled = true;
+  }
+
+  return 0;
+}
+
+void brain_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
+{
+  brain_ctx_t *brain_ctx = hashcat_ctx->brain_ctx;
+
+  if (brain_ctx->support == false) return;
+
+  memset (brain_ctx, 0, sizeof (brain_ctx_t));
 }

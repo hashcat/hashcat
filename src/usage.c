@@ -26,7 +26,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "",
   " Options Short / Long           | Type | Description                                          | Example",
   "================================+======+======================================================+=======================",
-  " -m, --hash-type                | Num  | Hash-type, see references below                      | -m 1000",
+  " -m, --hash-type                | Num  | Hash-type, references below (otherwise autodetect)   | -m 1000",
   " -a, --attack-mode              | Num  | Attack-mode, see references below                    | -a 3",
   " -V, --version                  |      | Print version                                        |",
   " -h, --help                     |      | Print help                                           |",
@@ -35,6 +35,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "     --hex-salt                 |      | Assume salt is given in hex                          |",
   "     --hex-wordlist             |      | Assume words in wordlist are given in hex            |",
   "     --force                    |      | Ignore warnings                                      |",
+  "     --deprecated-check-disable |      | Enable deprecated plugins                            |",
   "     --status                   |      | Enable automatic update of the status screen         |",
   "     --status-json              |      | Enable JSON format for status output                 |",
   "     --status-timer             | Num  | Sets seconds between status screen updates to X      | --status-timer=1",
@@ -97,6 +98,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   " -d, --backend-devices          | Str  | Backend devices to use, separated with commas        | -d 1",
   " -D, --opencl-device-types      | Str  | OpenCL device-types to use, separated with commas    | -D 1",
   " -O, --optimized-kernel-enable  |      | Enable optimized kernels (limits password length)    |",
+  " -M, --multiply-accel-disable   |      | Disable multiply kernel-accel with processor count   |",
   " -w, --workload-profile         | Num  | Enable a specific workload profile, see pool below   | -w 3",
   " -n, --kernel-accel             | Num  | Manual workload tuning, set outerloop step size to X | -n 64",
   " -u, --kernel-loops             | Num  | Manual workload tuning, set innerloop step size to X | -u 256",
@@ -115,11 +117,13 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   " -g, --generate-rules           | Num  | Generate X random rules                              | -g 10000",
   "     --generate-rules-func-min  | Num  | Force min X functions per rule                       |",
   "     --generate-rules-func-max  | Num  | Force max X functions per rule                       |",
+  "     --generate-rules-func-sel  | Str  | Pool of rule operators valid for random rule engine  | --generate-rules-func-sel=ioTlc",
   "     --generate-rules-seed      | Num  | Force RNG seed set to X                              |",
   " -1, --custom-charset1          | CS   | User-defined charset ?1                              | -1 ?l?d?u",
   " -2, --custom-charset2          | CS   | User-defined charset ?2                              | -2 ?l?d?s",
   " -3, --custom-charset3          | CS   | User-defined charset ?3                              |",
   " -4, --custom-charset4          | CS   | User-defined charset ?4                              |",
+  "     --identify                 |      | Shows all supported algorithms for input hashes      | --identify my.hash",
   " -i, --increment                |      | Enable mask increment mode                           |",
   "     --increment-min            | Num  | Start mask incrementing at X                         | --increment-min=4",
   "     --increment-max            | Num  | Stop mask incrementing at X                          | --increment-max=8",
@@ -138,8 +142,8 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "",
   "- [ Hash modes ] -",
   "",
-  "      # | Name                                             | Category",
-  "  ======+==================================================+======================================",
+  "      # | Name                                                | Category",
+  "  ======+=====================================================+======================================",
   NULL
 };
 
@@ -190,11 +194,11 @@ static const char *const USAGE_BIG_POST_HASHMODES[] =
   "",
   "  ? | Charset",
   " ===+=========",
-  "  l | abcdefghijklmnopqrstuvwxyz",
-  "  u | ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-  "  d | 0123456789",
-  "  h | 0123456789abcdef",
-  "  H | 0123456789ABCDEF",
+  "  l | abcdefghijklmnopqrstuvwxyz [a-z]",
+  "  u | ABCDEFGHIJKLMNOPQRSTUVWXYZ [A-Z]",
+  "  d | 0123456789                 [0-9]",
+  "  h | 0123456789abcdef           [0-9a-f]",
+  "  H | 0123456789ABCDEF           [0-9A-F]",
   "  s |  !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~",
   "  a | ?l?u?d?s",
   "  b | 0x00 - 0xff",
@@ -236,18 +240,14 @@ static const char *const USAGE_BIG_POST_HASHMODES[] =
   "",
   "* https://hashcat.net/wiki/#howtos_videos_papers_articles_etc_in_the_wild",
   "* https://hashcat.net/faq/",
+  "",
+  "If you think you need help by a real human come to the hashcat Discord:",
+  "",
+  "* https://hashcat.net/discord",
   NULL
 };
 
-typedef struct usage_sort
-{
-  u32   hash_mode;
-  char *hash_name;
-  u32   hash_category;
-
-} usage_sort_t;
-
-static int sort_by_usage (const void *p1, const void *p2)
+int sort_by_usage (const void *p1, const void *p2)
 {
   const usage_sort_t *u1 = (const usage_sort_t *) p1;
   const usage_sort_t *u2 = (const usage_sort_t *) p2;
@@ -255,7 +255,16 @@ static int sort_by_usage (const void *p1, const void *p2)
   if (u1->hash_category > u2->hash_category) return  1;
   if (u1->hash_category < u2->hash_category) return -1;
 
-  const int rc_name = strncmp (u1->hash_name + 1, u2->hash_name + 1, 15); // yes, strange...
+  const bool first1_is_lc = ((u1->hash_name[0] >= 'a') && (u1->hash_name[0] <= 'z')) ? true :  false;
+  const bool first2_is_lc = ((u2->hash_name[0] >= 'a') && (u2->hash_name[0] <= 'z')) ? true :  false;
+
+  if (first1_is_lc != first2_is_lc)
+  {
+    if (first1_is_lc) return  1;
+    else              return -1;
+  }
+
+  const int rc_name = strncmp (u1->hash_name + 1, u2->hash_name + 1, 20); // yes, strange...
 
   if (rc_name > 0) return  1;
   if (rc_name < 0) return -1;
@@ -325,7 +334,7 @@ void usage_big_print (hashcat_ctx_t *hashcat_ctx)
 
   for (int i = 0; i < usage_sort_cnt; i++)
   {
-    printf ("%7u | %-48s | %s", usage_sort_buf[i].hash_mode, usage_sort_buf[i].hash_name, strhashcategory (usage_sort_buf[i].hash_category));
+    printf ("%7u | %-51s | %s", usage_sort_buf[i].hash_mode, usage_sort_buf[i].hash_name, strhashcategory (usage_sort_buf[i].hash_category));
 
     fwrite (EOL, strlen (EOL), 1, stdout);
   }

@@ -109,7 +109,7 @@ DECLSPEC u32x round_crc32 (u32x a, const u32x v)
 
 DECLSPEC u32x crc32 (const u32x *w, const u32 pw_len, const u32 iv)
 {
-  u32x a = iv ^ ~0;
+  u32x a = ~iv;
 
   if (pw_len >=  1) a = round_crc32 (a, w[0] >>  0);
   if (pw_len >=  2) a = round_crc32 (a, w[0] >>  8);

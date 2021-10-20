@@ -63,6 +63,14 @@
 #define HC_API_CALL
 #endif
 
+#if defined (__GNUC__)
+#define HC_ALIGN(x) __attribute__((aligned(x)))
+#elif defined (_MSC_VER)
+#define HC_ALIGN(x) __declspec(align(x))
+#else
+#define HC_ALIGN(x)
+#endif
+
 #if defined (_WIN)
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -119,7 +127,7 @@ but this is nededed for VS compiler which doesn't have inline keyword but has __
 
 #define HCBUFSIZ_TINY       0x1000
 #define HCBUFSIZ_SMALL      0x2000
-#define HCBUFSIZ_LARGE      0xb0000
+#define HCBUFSIZ_LARGE      0x1000000
 
 #define CPT_CACHE           0x20000
 #define PARAMCNT            64
@@ -136,3 +144,4 @@ but this is nededed for VS compiler which doesn't have inline keyword but has __
 #endif
 
 #endif // _COMMON_H
+

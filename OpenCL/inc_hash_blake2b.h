@@ -9,14 +9,23 @@
 #define BLAKE2B_UPDATE  0
 #define BLAKE2B_FINAL  -1
 
+DECLSPEC u64  blake2b_rot16_S (const u64  a);
+DECLSPEC u64x blake2b_rot16   (const u64x a);
+
+DECLSPEC u64  blake2b_rot24_S (const u64  a);
+DECLSPEC u64x blake2b_rot24   (const u64x a);
+
+DECLSPEC u64  blake2b_rot32_S (const u64  a);
+DECLSPEC u64x blake2b_rot32   (const u64x a);
+
 #define BLAKE2B_G(k0,k1,a,b,c,d) \
 {                                \
   a = a + b + m[k0];             \
-  d = hc_rotr64_S (d ^ a, 32);   \
+  d = blake2b_rot32_S (d ^ a);   \
   c = c + d;                     \
-  b = hc_rotr64_S (b ^ c, 24);   \
+  b = blake2b_rot24_S (b ^ c);   \
   a = a + b + m[k1];             \
-  d = hc_rotr64_S (d ^ a, 16);   \
+  d = blake2b_rot16_S (d ^ a);   \
   c = c + d;                     \
   b = hc_rotr64_S (b ^ c, 63);   \
 }
@@ -36,11 +45,11 @@
 #define BLAKE2B_G_VECTOR(k0,k1,a,b,c,d) \
 {                                       \
   a = a + b + m[k0];                    \
-  d = hc_rotr64 (d ^ a, 32);            \
+  d = blake2b_rot32 (d ^ a);            \
   c = c + d;                            \
-  b = hc_rotr64 (b ^ c, 24);            \
+  b = blake2b_rot24 (b ^ c);            \
   a = a + b + m[k1];                    \
-  d = hc_rotr64 (d ^ a, 16);            \
+  d = blake2b_rot16 (d ^ a);            \
   c = c + d;                            \
   b = hc_rotr64 (b ^ c, 63);            \
 }
@@ -62,7 +71,7 @@ typedef struct blake2b_ctx
   u64 m[16]; // buffer
   u64 h[ 8]; // digest
 
-  u32 len;
+  int len;
 
 } blake2b_ctx_t;
 
@@ -71,19 +80,19 @@ typedef struct blake2b_ctx_vector
   u64x m[16]; // buffer
   u64x h[ 8]; // digest
 
-  u32 len;
+  int len;
 
 } blake2b_ctx_vector_t;
 
-DECLSPEC void blake2b_transform (u64 *h, const u64 *m, const u32 len, const u64 f0);
+DECLSPEC void blake2b_transform (u64 *h, const u64 *m, const int len, const u64 f0);
 DECLSPEC void blake2b_init (blake2b_ctx_t *ctx);
-DECLSPEC void blake2b_update (blake2b_ctx_t *ctx, const u32 *w, const u32 len);
-DECLSPEC void blake2b_update_global (blake2b_ctx_t *ctx, GLOBAL_AS const u32 *w, const u32 len);
+DECLSPEC void blake2b_update (blake2b_ctx_t *ctx, const u32 *w, const int len);
+DECLSPEC void blake2b_update_global (blake2b_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
 DECLSPEC void blake2b_final (blake2b_ctx_t *ctx);
 
 DECLSPEC void blake2b_transform_vector (u64x *h, const u64x *m, const u32x len, const u64 f0);
 DECLSPEC void blake2b_init_vector (blake2b_ctx_vector_t *ctx);
-DECLSPEC void blake2b_update_vector (blake2b_ctx_vector_t *ctx, const u32x *w, const u32 len);
+DECLSPEC void blake2b_update_vector (blake2b_ctx_vector_t *ctx, const u32x *w, const int len);
 DECLSPEC void blake2b_final_vector (blake2b_ctx_vector_t *ctx);
 
 #endif // _INC_HASH_BLAKE2B_H

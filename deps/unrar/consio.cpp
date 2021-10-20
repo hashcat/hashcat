@@ -164,7 +164,7 @@ static void GetPasswordText(wchar *Str,uint MaxLength)
     SetConsoleMode(hConIn,ConInMode);
     SetConsoleMode(hConOut,ConOutMode);
 #else
-    char StrA[MAXPASSWORD];
+    char StrA[MAXPASSWORD*4]; // "*4" for multibyte UTF-8 characters.
 #if defined(_EMX) || defined (__VMS)
     fgets(StrA,ASIZE(StrA)-1,stdin);
 #elif defined(__sun)
@@ -248,6 +248,12 @@ bool getwstr(wchar *str,size_t n)
       ErrHandler.Exit(RARX_USERBREAK);
     }
     StrA[ReadSize]=0;
+
+    // We expect ANSI encoding here, but "echo text|rar ..." to pipe to RAR,
+    // such as send passwords, we get OEM encoding by default, unless we
+    // use "chcp" in console. But we avoid OEM to ANSI conversion,
+    // because we also want to handle ANSI files redirection correctly,
+    // like "rar ... < ansifile.txt".
     CharToWide(&StrA[0],str,n);
     cleandata(&StrA[0],StrA.Size()); // We can use this function to enter passwords.
   }
@@ -305,7 +311,7 @@ int Ask(const wchar *AskStr)
 
   for (int I=0;I<NumItems;I++)
   {
-    eprintf(I==0 ? (NumItems>4 ? L"\n":L" "):L", ");
+    eprintf(I==0 ? (NumItems>3 ? L"\n":L" "):L", ");
     int KeyPos=ItemKeyPos[I];
     for (int J=0;J<KeyPos;J++)
       eprintf(L"%c",Item[I][J]);

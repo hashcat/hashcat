@@ -15,94 +15,97 @@
 #include <sys/cygwin.h>
 #endif
 
-static const char *PA_000 = "OK";
-static const char *PA_001 = "Ignored due to comment";
-static const char *PA_002 = "Ignored due to zero length";
-static const char *PA_003 = "Line-length exception";
-static const char *PA_004 = "Hash-length exception";
-static const char *PA_005 = "Hash-value exception";
-static const char *PA_006 = "Salt-length exception";
-static const char *PA_007 = "Salt-value exception";
-static const char *PA_008 = "Salt-iteration count exception";
-static const char *PA_009 = "Separator unmatched";
-static const char *PA_010 = "Signature unmatched";
-static const char *PA_011 = "Invalid hccapx file size";
-static const char *PA_012 = "Invalid hccapx eapol size";
-static const char *PA_013 = "Invalid psafe2 filesize";
-static const char *PA_014 = "Invalid psafe3 filesize";
-static const char *PA_015 = "Invalid truecrypt filesize";
-static const char *PA_016 = "Invalid veracrypt filesize";
-static const char *PA_017 = "Invalid SIP directive, only MD5 is supported";
-static const char *PA_018 = "Hash-file exception";
-static const char *PA_019 = "Hash-encoding exception";
-static const char *PA_020 = "Salt-encoding exception";
-static const char *PA_021 = "Invalid LUKS filesize";
-static const char *PA_022 = "Invalid LUKS identifier";
-static const char *PA_023 = "Invalid LUKS version";
-static const char *PA_024 = "Invalid or unsupported LUKS cipher type";
-static const char *PA_025 = "Invalid or unsupported LUKS cipher mode";
-static const char *PA_026 = "Invalid or unsupported LUKS hash type";
-static const char *PA_027 = "Invalid LUKS key size";
-static const char *PA_028 = "Disabled LUKS key detected";
-static const char *PA_029 = "Invalid LUKS key AF stripes count";
-static const char *PA_030 = "Invalid combination of LUKS hash type and cipher type";
-static const char *PA_031 = "Invalid hccapx signature";
-static const char *PA_032 = "Invalid hccapx version";
-static const char *PA_033 = "Invalid hccapx message pair";
-static const char *PA_034 = "Token encoding exception";
-static const char *PA_035 = "Token length exception";
-static const char *PA_036 = "Insufficient entropy exception";
-static const char *PA_037 = "Hash contains unsupported compression type for current mode";
-static const char *PA_038 = "Invalid key size";
-static const char *PA_039 = "Invalid block size";
-static const char *PA_040 = "Invalid or unsupported cipher";
-static const char *PA_041 = "Invalid filesize";
-static const char *PA_042 = "IV length exception";
-static const char *PA_043 = "CT length exception";
-static const char *PA_255 = "Unknown error";
+static const char *const PA_000 = "OK";
+static const char *const PA_001 = "Ignored due to comment";
+static const char *const PA_002 = "Ignored due to zero length";
+static const char *const PA_003 = "Line-length exception";
+static const char *const PA_004 = "Hash-length exception";
+static const char *const PA_005 = "Hash-value exception";
+static const char *const PA_006 = "Salt-length exception";
+static const char *const PA_007 = "Salt-value exception";
+static const char *const PA_008 = "Salt-iteration count exception";
+static const char *const PA_009 = "Separator unmatched";
+static const char *const PA_010 = "Signature unmatched";
+static const char *const PA_011 = "Invalid hccapx file size";
+static const char *const PA_012 = "Invalid hccapx eapol size";
+static const char *const PA_013 = "Invalid psafe2 filesize";
+static const char *const PA_014 = "Invalid psafe3 filesize";
+static const char *const PA_015 = "Invalid truecrypt filesize";
+static const char *const PA_016 = "Invalid veracrypt filesize";
+static const char *const PA_017 = "Invalid SIP directive, only MD5 is supported";
+static const char *const PA_018 = "Hash-file exception";
+static const char *const PA_019 = "Hash-encoding exception";
+static const char *const PA_020 = "Salt-encoding exception";
+static const char *const PA_021 = "Invalid LUKS filesize";
+static const char *const PA_022 = "Invalid LUKS identifier";
+static const char *const PA_023 = "Invalid LUKS version";
+static const char *const PA_024 = "Invalid or unsupported LUKS cipher type";
+static const char *const PA_025 = "Invalid or unsupported LUKS cipher mode";
+static const char *const PA_026 = "Invalid or unsupported LUKS hash type";
+static const char *const PA_027 = "Invalid LUKS key size";
+static const char *const PA_028 = "Disabled LUKS key detected";
+static const char *const PA_029 = "Invalid LUKS key AF stripes count";
+static const char *const PA_030 = "Invalid combination of LUKS hash type and cipher type";
+static const char *const PA_031 = "Invalid hccapx signature";
+static const char *const PA_032 = "Invalid hccapx version";
+static const char *const PA_033 = "Invalid hccapx message pair";
+static const char *const PA_034 = "Token encoding exception";
+static const char *const PA_035 = "Token length exception";
+static const char *const PA_036 = "Insufficient entropy exception";
+static const char *const PA_037 = "Hash contains unsupported compression type for current mode";
+static const char *const PA_038 = "Invalid key size";
+static const char *const PA_039 = "Invalid block size";
+static const char *const PA_040 = "Invalid or unsupported cipher";
+static const char *const PA_041 = "Invalid filesize";
+static const char *const PA_042 = "IV length exception";
+static const char *const PA_043 = "CT length exception";
+static const char *const PA_255 = "Unknown error";
 
-static const char *OPTI_STR_OPTIMIZED_KERNEL     = "Optimized-Kernel";
-static const char *OPTI_STR_ZERO_BYTE            = "Zero-Byte";
-static const char *OPTI_STR_PRECOMPUTE_INIT      = "Precompute-Init";
-static const char *OPTI_STR_MEET_IN_MIDDLE       = "Meet-In-The-Middle";
-static const char *OPTI_STR_EARLY_SKIP           = "Early-Skip";
-static const char *OPTI_STR_NOT_SALTED           = "Not-Salted";
-static const char *OPTI_STR_NOT_ITERATED         = "Not-Iterated";
-static const char *OPTI_STR_PREPENDED_SALT       = "Prepended-Salt";
-static const char *OPTI_STR_APPENDED_SALT        = "Appended-Salt";
-static const char *OPTI_STR_SINGLE_HASH          = "Single-Hash";
-static const char *OPTI_STR_SINGLE_SALT          = "Single-Salt";
-static const char *OPTI_STR_BRUTE_FORCE          = "Brute-Force";
-static const char *OPTI_STR_RAW_HASH             = "Raw-Hash";
-static const char *OPTI_STR_SLOW_HASH_SIMD_INIT  = "Slow-Hash-SIMD-INIT";
-static const char *OPTI_STR_SLOW_HASH_SIMD_LOOP  = "Slow-Hash-SIMD-LOOP";
-static const char *OPTI_STR_SLOW_HASH_SIMD_COMP  = "Slow-Hash-SIMD-COMP";
-static const char *OPTI_STR_USES_BITS_8          = "Uses-8-Bit";
-static const char *OPTI_STR_USES_BITS_16         = "Uses-16-Bit";
-static const char *OPTI_STR_USES_BITS_32         = "Uses-32-Bit";
-static const char *OPTI_STR_USES_BITS_64         = "Uses-64-Bit";
+static const char *const OPTI_STR_OPTIMIZED_KERNEL     = "Optimized-Kernel";
+static const char *const OPTI_STR_ZERO_BYTE            = "Zero-Byte";
+static const char *const OPTI_STR_PRECOMPUTE_INIT      = "Precompute-Init";
+static const char *const OPTI_STR_MEET_IN_MIDDLE       = "Meet-In-The-Middle";
+static const char *const OPTI_STR_EARLY_SKIP           = "Early-Skip";
+static const char *const OPTI_STR_NOT_SALTED           = "Not-Salted";
+static const char *const OPTI_STR_NOT_ITERATED         = "Not-Iterated";
+static const char *const OPTI_STR_PREPENDED_SALT       = "Prepended-Salt";
+static const char *const OPTI_STR_APPENDED_SALT        = "Appended-Salt";
+static const char *const OPTI_STR_SINGLE_HASH          = "Single-Hash";
+static const char *const OPTI_STR_SINGLE_SALT          = "Single-Salt";
+static const char *const OPTI_STR_BRUTE_FORCE          = "Brute-Force";
+static const char *const OPTI_STR_RAW_HASH             = "Raw-Hash";
+static const char *const OPTI_STR_SLOW_HASH_SIMD_INIT  = "Slow-Hash-SIMD-INIT";
+static const char *const OPTI_STR_SLOW_HASH_SIMD_LOOP  = "Slow-Hash-SIMD-LOOP";
+static const char *const OPTI_STR_SLOW_HASH_SIMD_COMP  = "Slow-Hash-SIMD-COMP";
+static const char *const OPTI_STR_USES_BITS_8          = "Uses-8-Bit";
+static const char *const OPTI_STR_USES_BITS_16         = "Uses-16-Bit";
+static const char *const OPTI_STR_USES_BITS_32         = "Uses-32-Bit";
+static const char *const OPTI_STR_USES_BITS_64         = "Uses-64-Bit";
 
-static const char *HASH_CATEGORY_UNDEFINED_STR              = "Undefined";
-static const char *HASH_CATEGORY_RAW_HASH_STR               = "Raw Hash";
-static const char *HASH_CATEGORY_RAW_HASH_SALTED_STR        = "Raw Hash, Salted and/or Iterated";
-static const char *HASH_CATEGORY_RAW_HASH_AUTHENTICATED_STR = "Raw Hash, Authenticated";
-static const char *HASH_CATEGORY_RAW_CIPHER_KPA_STR         = "Raw Cipher, Known-Plaintext attack";
-static const char *HASH_CATEGORY_GENERIC_KDF_STR            = "Generic KDF";
-static const char *HASH_CATEGORY_NETWORK_PROTOCOL_STR       = "Network Protocols";
-static const char *HASH_CATEGORY_FORUM_SOFTWARE_STR         = "Forums, CMS, E-Commerce";
-static const char *HASH_CATEGORY_DATABASE_SERVER_STR        = "Database Server";
-static const char *HASH_CATEGORY_NETWORK_SERVER_STR         = "FTP, HTTP, SMTP, LDAP Server";
-static const char *HASH_CATEGORY_RAW_CHECKSUM_STR           = "Raw Checksum";
-static const char *HASH_CATEGORY_OS_STR                     = "Operating System";
-static const char *HASH_CATEGORY_EAS_STR                    = "Enterprise Application Software (EAS)";
-static const char *HASH_CATEGORY_ARCHIVE_STR                = "Archives";
-static const char *HASH_CATEGORY_FDE_STR                    = "Full-Disk Encryption (FDE)";
-static const char *HASH_CATEGORY_DOCUMENTS_STR              = "Documents";
-static const char *HASH_CATEGORY_PASSWORD_MANAGER_STR       = "Password Managers";
-static const char *HASH_CATEGORY_OTP_STR                    = "One-Time Passwords";
-static const char *HASH_CATEGORY_PLAIN_STR                  = "Plaintext";
-static const char *HASH_CATEGORY_FRAMEWORK_STR              = "Framework";
-static const char *HASH_CATEGORY_PRIVATE_KEY_STR            = "Private Key";
+static const char *const HASH_CATEGORY_UNDEFINED_STR              = "Undefined";
+static const char *const HASH_CATEGORY_RAW_HASH_STR               = "Raw Hash";
+static const char *const HASH_CATEGORY_RAW_HASH_SALTED_STR        = "Raw Hash salted and/or iterated";
+static const char *const HASH_CATEGORY_RAW_HASH_AUTHENTICATED_STR = "Raw Hash authenticated";
+static const char *const HASH_CATEGORY_RAW_CIPHER_KPA_STR         = "Raw Cipher, Known-plaintext attack";
+static const char *const HASH_CATEGORY_GENERIC_KDF_STR            = "Generic KDF";
+static const char *const HASH_CATEGORY_NETWORK_PROTOCOL_STR       = "Network Protocol";
+static const char *const HASH_CATEGORY_FORUM_SOFTWARE_STR         = "Forums, CMS, E-Commerce";
+static const char *const HASH_CATEGORY_DATABASE_SERVER_STR        = "Database Server";
+static const char *const HASH_CATEGORY_NETWORK_SERVER_STR         = "FTP, HTTP, SMTP, LDAP Server";
+static const char *const HASH_CATEGORY_RAW_CHECKSUM_STR           = "Raw Checksum";
+static const char *const HASH_CATEGORY_OS_STR                     = "Operating System";
+static const char *const HASH_CATEGORY_EAS_STR                    = "Enterprise Application Software (EAS)";
+static const char *const HASH_CATEGORY_ARCHIVE_STR                = "Archive";
+static const char *const HASH_CATEGORY_FDE_STR                    = "Full-Disk Encryption (FDE)";
+static const char *const HASH_CATEGORY_FBE_STR                    = "File-Based Encryption (FBE)";
+static const char *const HASH_CATEGORY_DOCUMENTS_STR              = "Document";
+static const char *const HASH_CATEGORY_PASSWORD_MANAGER_STR       = "Password Manager";
+static const char *const HASH_CATEGORY_OTP_STR                    = "One-Time Password";
+static const char *const HASH_CATEGORY_PLAIN_STR                  = "Plaintext";
+static const char *const HASH_CATEGORY_FRAMEWORK_STR              = "Framework";
+static const char *const HASH_CATEGORY_PRIVATE_KEY_STR            = "Private Key";
+static const char *const HASH_CATEGORY_IMS_STR                    = "Instant Messaging Service";
+static const char *const HASH_CATEGORY_CRYPTOCURRENCY_WALLET_STR  = "Cryptocurrency Wallet";
 
 int sort_by_string_sized (const void *p1, const void *p2)
 {
@@ -310,6 +313,8 @@ bool hc_path_is_file (const char *path)
 {
   struct stat s;
 
+  memset (&s, 0, sizeof (s));
+
   if (stat (path, &s) == -1) return false;
 
   if (S_ISREG (s.st_mode)) return true;
@@ -321,6 +326,8 @@ bool hc_path_is_directory (const char *path)
 {
   struct stat s;
 
+  memset (&s, 0, sizeof (s));
+
   if (stat (path, &s) == -1) return false;
 
   if (S_ISDIR (s.st_mode)) return true;
@@ -331,6 +338,8 @@ bool hc_path_is_directory (const char *path)
 bool hc_path_is_empty (const char *path)
 {
   struct stat s;
+
+  memset (&s, 0, sizeof (s));
 
   if (stat (path, &s) == -1) return false;
 
@@ -385,7 +394,7 @@ bool hc_path_has_bom (const char *path)
 
   HCFILE fp;
 
-  if (hc_fopen (&fp, path, "rb") == false) return false;
+  if (hc_fopen_raw (&fp, path, "rb") == false) return false;
 
   const size_t nread = hc_fread (buf, 1, sizeof (buf), &fp);
 
@@ -393,95 +402,104 @@ bool hc_path_has_bom (const char *path)
 
   if (nread < 1) return false;
 
+  const int bom_size = hc_string_bom_size (buf);
+
+  const bool has_bom = bom_size > 0;
+
+  return has_bom;
+}
+
+int hc_string_bom_size (const u8 *s)
+{
   /* signatures from https://en.wikipedia.org/wiki/Byte_order_mark#Byte_order_marks_by_encoding */
 
   // utf-8
 
-  if ((buf[0] == 0xef)
-   && (buf[1] == 0xbb)
-   && (buf[2] == 0xbf)) return true;
+  if ((s[0] == 0xef)
+   && (s[1] == 0xbb)
+   && (s[2] == 0xbf)) return 3;
 
   // utf-16
 
-  if ((buf[0] == 0xfe)
-   && (buf[1] == 0xff)) return true;
+  if ((s[0] == 0xfe)
+   && (s[1] == 0xff)) return 2;
 
-  if ((buf[0] == 0xff)
-   && (buf[1] == 0xfe)) return true;
+  if ((s[0] == 0xff)
+   && (s[1] == 0xfe)) return 2;
 
   // utf-32
 
-  if ((buf[0] == 0x00)
-   && (buf[1] == 0x00)
-   && (buf[2] == 0xfe)
-   && (buf[3] == 0xff)) return true;
+  if ((s[0] == 0x00)
+   && (s[1] == 0x00)
+   && (s[2] == 0xfe)
+   && (s[3] == 0xff)) return 4;
 
-  if ((buf[0] == 0xff)
-   && (buf[1] == 0xfe)
-   && (buf[2] == 0x00)
-   && (buf[3] == 0x00)) return true;
+  if ((s[0] == 0xff)
+   && (s[1] == 0xfe)
+   && (s[2] == 0x00)
+   && (s[3] == 0x00)) return 4;
 
   // utf-7
 
-  if ((buf[0] == 0x2b)
-   && (buf[1] == 0x2f)
-   && (buf[2] == 0x76)
-   && (buf[3] == 0x38)) return true;
+  if ((s[0] == 0x2b)
+   && (s[1] == 0x2f)
+   && (s[2] == 0x76)
+   && (s[3] == 0x38)) return 4;
 
-  if ((buf[0] == 0x2b)
-   && (buf[1] == 0x2f)
-   && (buf[2] == 0x76)
-   && (buf[3] == 0x39)) return true;
+  if ((s[0] == 0x2b)
+   && (s[1] == 0x2f)
+   && (s[2] == 0x76)
+   && (s[3] == 0x39)) return 4;
 
-  if ((buf[0] == 0x2b)
-   && (buf[1] == 0x2f)
-   && (buf[2] == 0x76)
-   && (buf[3] == 0x2b)) return true;
+  if ((s[0] == 0x2b)
+   && (s[1] == 0x2f)
+   && (s[2] == 0x76)
+   && (s[3] == 0x2b)) return 4;
 
-  if ((buf[0] == 0x2b)
-   && (buf[1] == 0x2f)
-   && (buf[2] == 0x76)
-   && (buf[3] == 0x2f)) return true;
+  if ((s[0] == 0x2b)
+   && (s[1] == 0x2f)
+   && (s[2] == 0x76)
+   && (s[3] == 0x2f)) return 4;
 
-  if ((buf[0] == 0x2b)
-   && (buf[1] == 0x2f)
-   && (buf[2] == 0x76)
-   && (buf[3] == 0x38)
-   && (buf[4] == 0x2d)) return true;
+  if ((s[0] == 0x2b)
+   && (s[1] == 0x2f)
+   && (s[2] == 0x76)
+   && (s[3] == 0x38)
+   && (s[4] == 0x2d)) return 5;
 
   // utf-1
 
-  if ((buf[0] == 0xf7)
-   && (buf[1] == 0x64)
-   && (buf[2] == 0x4c)) return true;
+  if ((s[0] == 0xf7)
+   && (s[1] == 0x64)
+   && (s[2] == 0x4c)) return 3;
 
   // utf-ebcdic
 
-  if ((buf[0] == 0xdd)
-   && (buf[1] == 0x73)
-   && (buf[2] == 0x66)
-   && (buf[3] == 0x73)) return true;
+  if ((s[0] == 0xdd)
+   && (s[1] == 0x73)
+   && (s[2] == 0x66)
+   && (s[3] == 0x73)) return 4;
 
   // scsu
 
-  if ((buf[0] == 0x0e)
-   && (buf[1] == 0xfe)
-   && (buf[2] == 0xff)) return true;
+  if ((s[0] == 0x0e)
+   && (s[1] == 0xfe)
+   && (s[2] == 0xff)) return 3;
 
   // bocu-1
 
-  if ((buf[0] == 0xfb)
-   && (buf[1] == 0xee)
-   && (buf[2] == 0x28)) return true;
+  if ((s[0] == 0xfb)
+   && (s[1] == 0xee)
+   && (s[2] == 0x28)) return 3;
 
   // gb-18030
 
-  if ((buf[0] == 0x84)
-   && (buf[1] == 0x31)
-   && (buf[2] == 0x95)
-   && (buf[3] == 0x33)) return true;
+  if ((s[0] == 0x84)
+   && (s[1] == 0x31)
+   && (s[2] == 0x95)
+   && (s[3] == 0x33)) return 4;
 
-  return false;
+  return 0;
 }
 
 bool hc_string_is_digit (const char *s)
@@ -666,13 +684,16 @@ bool hc_same_files (char *file1, char *file2)
     struct stat tmpstat_file1;
     struct stat tmpstat_file2;
 
+    memset (&tmpstat_file1, 0, sizeof (tmpstat_file1));
+    memset (&tmpstat_file2, 0, sizeof (tmpstat_file2));
+
     int do_check = 0;
 
     HCFILE fp;
 
     if (hc_fopen (&fp, file1, "r") == true)
     {
-      if (fstat (hc_fileno (&fp), &tmpstat_file1))
+      if (hc_fstat (&fp, &tmpstat_file1))
       {
         hc_fclose (&fp);
 
@@ -686,7 +707,7 @@ bool hc_same_files (char *file1, char *file2)
 
     if (hc_fopen (&fp, file2, "r") == true)
     {
-      if (fstat (hc_fileno (&fp), &tmpstat_file2))
+      if (hc_fstat (&fp, &tmpstat_file2))
       {
         hc_fclose (&fp);
 
@@ -950,12 +971,15 @@ const char *strhashcategory (const u32 hash_category)
     case HASH_CATEGORY_EAS:                     return HASH_CATEGORY_EAS_STR;
     case HASH_CATEGORY_ARCHIVE:                 return HASH_CATEGORY_ARCHIVE_STR;
     case HASH_CATEGORY_FDE:                     return HASH_CATEGORY_FDE_STR;
+    case HASH_CATEGORY_FBE:                     return HASH_CATEGORY_FBE_STR;
     case HASH_CATEGORY_DOCUMENTS:               return HASH_CATEGORY_DOCUMENTS_STR;
     case HASH_CATEGORY_PASSWORD_MANAGER:        return HASH_CATEGORY_PASSWORD_MANAGER_STR;
     case HASH_CATEGORY_OTP:                     return HASH_CATEGORY_OTP_STR;
     case HASH_CATEGORY_PLAIN:                   return HASH_CATEGORY_PLAIN_STR;
     case HASH_CATEGORY_FRAMEWORK:               return HASH_CATEGORY_FRAMEWORK_STR;
     case HASH_CATEGORY_PRIVATE_KEY:             return HASH_CATEGORY_PRIVATE_KEY_STR;
+    case HASH_CATEGORY_IMS:                     return HASH_CATEGORY_IMS_STR;
+    case HASH_CATEGORY_CRYPTOCURRENCY_WALLET:   return HASH_CATEGORY_CRYPTOCURRENCY_WALLET_STR;
   }
 
   return NULL;
@@ -1047,7 +1071,7 @@ static int rounds_count_length (const char *input_buf, const int input_len)
 {
   if (input_len >= 9) // 9 is minimum because of "rounds=X$"
   {
-    static const char *rounds = "rounds=";
+    static const char *const rounds = "rounds=";
 
     if (memcmp (input_buf, rounds, 7) == 0)
     {
@@ -1166,7 +1190,7 @@ int input_tokenizer (const u8 *input_buf, const int input_len, token_t *token)
 
       for (int signature_idx = 0; signature_idx < token->signatures_cnt; signature_idx++)
       {
-        if (memcmp (token->buf[token_idx], token->signatures_buf[signature_idx], token->len[token_idx]) == 0) matched = true;
+        if (strncmp ((char *) token->buf[token_idx], token->signatures_buf[signature_idx], token->len[token_idx]) == 0) matched = true;
       }
 
       if (matched == false) return (PARSER_SIGNATURE_UNMATCHED);

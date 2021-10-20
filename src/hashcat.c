@@ -28,6 +28,7 @@
 #include "event.h"
 #include "hashes.h"
 #include "hwmon.h"
+#include "hlfmt.h"
 #include "induct.h"
 #include "interface.h"
 #include "logfile.h"
@@ -47,6 +48,7 @@
 #include "user_options.h"
 #include "wordlist.h"
 #include "hashcat.h"
+#include "usage.h"
 
 #ifdef WITH_BRAIN
 #include "brain.h"
@@ -146,11 +148,23 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  const u64 progress_restored = status_ctx->words_off * amplifier_cnt;
-
-  for (u32 i = 0; i < hashes->salts_cnt; i++)
+  if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
   {
-    status_ctx->words_progress_restored[i] = progress_restored;
+    const u64 progress_restored = 1 * amplifier_cnt;
+
+    for (u32 i = 0; i < status_ctx->words_off; i++)
+    {
+      status_ctx->words_progress_restored[i] = progress_restored;
+    }
+  }
+  else
+  {
+    const u64 progress_restored = status_ctx->words_off * amplifier_cnt;
+
+    for (u32 i = 0; i < hashes->salts_cnt; i++)
+    {
+      status_ctx->words_progress_restored[i] = progress_restored;
+    }
   }
 
   #ifdef WITH_BRAIN
@@ -270,10 +284,16 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     myabort_checkpoint (hashcat_ctx);
   }
 
+  if ((status_ctx->devices_status == STATUS_RUNNING) && (status_ctx->finish_shutdown == true))
+  {
+    myabort_finish (hashcat_ctx);
+  }
+
   if ((status_ctx->devices_status != STATUS_CRACKED)
    && (status_ctx->devices_status != STATUS_ERROR)
    && (status_ctx->devices_status != STATUS_ABORTED)
    && (status_ctx->devices_status != STATUS_ABORTED_CHECKPOINT)
+   && (status_ctx->devices_status != STATUS_ABORTED_FINISH)
    && (status_ctx->devices_status != STATUS_ABORTED_RUNTIME)
    && (status_ctx->devices_status != STATUS_QUIT)
    && (status_ctx->devices_status != STATUS_BYPASS))
@@ -422,15 +442,17 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
 
 static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 {
-  hashconfig_t   *hashconfig    = hashcat_ctx->hashconfig;
-  hashes_t       *hashes        = hashcat_ctx->hashes;
-  mask_ctx_t     *mask_ctx      = hashcat_ctx->mask_ctx;
-  backend_ctx_t  *backend_ctx   = hashcat_ctx->backend_ctx;
-  outcheck_ctx_t *outcheck_ctx  = hashcat_ctx->outcheck_ctx;
-  restore_ctx_t  *restore_ctx   = hashcat_ctx->restore_ctx;
-  status_ctx_t   *status_ctx    = hashcat_ctx->status_ctx;
-  straight_ctx_t *straight_ctx  = hashcat_ctx->straight_ctx;
-  user_options_t *user_options  = hashcat_ctx->user_options;
+  hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
+  hashes_t             *hashes              = hashcat_ctx->hashes;
+  mask_ctx_t           *mask_ctx            = hashcat_ctx->mask_ctx;
+  module_ctx_t         *module_ctx          = hashcat_ctx->module_ctx;
+  backend_ctx_t        *backend_ctx         = hashcat_ctx->backend_ctx;
+  outcheck_ctx_t       *outcheck_ctx        = hashcat_ctx->outcheck_ctx;
+  restore_ctx_t        *restore_ctx         = hashcat_ctx->restore_ctx;
+  status_ctx_t         *status_ctx          = hashcat_ctx->status_ctx;
+  straight_ctx_t       *straight_ctx        = hashcat_ctx->straight_ctx;
+  user_options_t       *user_options        = hashcat_ctx->user_options;
+  user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
 
   status_ctx->devices_status = STATUS_INIT;
 
@@ -454,6 +476,46 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   }
 
   EVENT (EVENT_HASHCONFIG_POST);
+
+  /**
+   * deprecated notice
+   */
+
+  if (module_ctx->module_deprecated_notice != MODULE_DEFAULT)
+  {
+    if (user_options->deprecated_check_disable == false)
+    {
+      if ((user_options->show == true) || (user_options->left == true))
+      {
+        const char *module_deprecated_notice = module_ctx->module_deprecated_notice (hashconfig, user_options, user_options_extra);
+
+        event_log_warning (hashcat_ctx, "%s", module_deprecated_notice);
+        event_log_warning (hashcat_ctx, NULL);
+      }
+      else if (user_options->benchmark == true)
+      {
+        if (user_options->hash_mode_chgd == true)
+        {
+          const char *module_deprecated_notice = module_ctx->module_deprecated_notice (hashconfig, user_options, user_options_extra);
+
+          event_log_warning (hashcat_ctx, "%s", module_deprecated_notice);
+          event_log_warning (hashcat_ctx, NULL);
+        }
+        else
+        {
+          return 0;
+        }
+      }
+      else
+      {
+        const char *module_deprecated_notice = module_ctx->module_deprecated_notice (hashconfig, user_options, user_options_extra);
+
+        event_log_error (hashcat_ctx, "%s", module_deprecated_notice);
+
+        return 0;
+      }
+    }
+  }
 
   /**
    * generate hashlist filename for later use
@@ -753,7 +815,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "Aborting session due to kernel self-test failure.");
 
-        event_log_warning (hashcat_ctx, "You can use --self-test-disable to override this, but do not report related errors.");
+        event_log_warning (hashcat_ctx, "You can use --self-test-disable to override, but do not report related errors.");
         event_log_warning (hashcat_ctx, NULL);
 
         return -1;
@@ -860,6 +922,10 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   // clean up
 
+  #ifdef WITH_BRAIN
+  brain_ctx_destroy       (hashcat_ctx);
+  #endif
+
   bitmap_ctx_destroy      (hashcat_ctx);
   combinator_ctx_destroy  (hashcat_ctx);
   cpt_ctx_destroy         (hashcat_ctx);
@@ -889,6 +955,7 @@ int hashcat_init (hashcat_ctx_t *hashcat_ctx, void (*event) (const u32, struct h
     hashcat_ctx->event = event;
   }
 
+  hashcat_ctx->brain_ctx          = (brain_ctx_t *)           hcmalloc (sizeof (brain_ctx_t));
   hashcat_ctx->bitmap_ctx         = (bitmap_ctx_t *)          hcmalloc (sizeof (bitmap_ctx_t));
   hashcat_ctx->combinator_ctx     = (combinator_ctx_t *)      hcmalloc (sizeof (combinator_ctx_t));
   hashcat_ctx->cpt_ctx            = (cpt_ctx_t *)             hcmalloc (sizeof (cpt_ctx_t));
@@ -923,6 +990,7 @@ int hashcat_init (hashcat_ctx_t *hashcat_ctx, void (*event) (const u32, struct h
 
 void hashcat_destroy (hashcat_ctx_t *hashcat_ctx)
 {
+  hcfree (hashcat_ctx->brain_ctx);
   hcfree (hashcat_ctx->bitmap_ctx);
   hcfree (hashcat_ctx->combinator_ctx);
   hcfree (hashcat_ctx->cpt_ctx);
@@ -1025,6 +1093,12 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
     }
   }
   #endif
+
+  /**
+   * brain
+   */
+
+  if (brain_ctx_init (hashcat_ctx) == -1) return -1;
   #endif
 
   /**
@@ -1132,6 +1206,294 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
   return 0;
 }
 
+bool autodetect_hashmode_test (hashcat_ctx_t *hashcat_ctx)
+{
+  hashconfig_t          *hashconfig         = hashcat_ctx->hashconfig;
+  hashes_t              *hashes             = hashcat_ctx->hashes;
+  module_ctx_t          *module_ctx         = hashcat_ctx->module_ctx;
+  user_options_t        *user_options       = hashcat_ctx->user_options;
+  user_options_extra_t  *user_options_extra = hashcat_ctx->user_options_extra;
+
+  // check for file or hash on command line
+  // if file, find out if binary file
+
+  if (hashconfig->opts_type & OPTS_TYPE_AUTODETECT_DISABLE) return false;
+
+  if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
+  {
+    if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE_OPTIONAL)
+    {
+      hashes->hashlist_mode = (hc_path_exist (user_options_extra->hc_hash) == true) ? HL_MODE_FILE_PLAIN : HL_MODE_ARG;
+
+      if (hashes->hashlist_mode == HL_MODE_FILE_PLAIN)
+      {
+        hashes->hashfile = user_options_extra->hc_hash;
+      }
+    }
+    else
+    {
+      hashes->hashlist_mode = HL_MODE_FILE_BINARY;
+
+      if (hc_path_read (user_options_extra->hc_hash) == false) return false;
+
+      hashes->hashfile = user_options_extra->hc_hash;
+    }
+  }
+  else
+  {
+    hashes->hashlist_mode = (hc_path_exist (user_options_extra->hc_hash) == true) ? HL_MODE_FILE_PLAIN : HL_MODE_ARG;
+
+    if (hashes->hashlist_mode == HL_MODE_FILE_PLAIN)
+    {
+      hashes->hashfile = user_options_extra->hc_hash;
+    }
+  }
+
+  /**
+   * load hashes, part I: find input mode
+   */
+
+  const char *hashfile      = hashes->hashfile;
+  const u32   hashlist_mode = hashes->hashlist_mode;
+
+  u32 hashlist_format = HLFMT_HASHCAT;
+
+  if (hashlist_mode == HL_MODE_FILE_PLAIN)
+  {
+    HCFILE fp;
+
+    if (hc_fopen (&fp, hashfile, "rb") == false) return false;
+
+    hashlist_format = hlfmt_detect (hashcat_ctx, &fp, 100);
+
+    hc_fclose (&fp);
+  }
+
+  hashes->hashlist_format = hashlist_format;
+
+  /**
+   * load hashes, part II: allocate required memory, set pointers
+   */
+
+  void   *digest    =            hccalloc (1, hashconfig->dgst_size);
+  salt_t *salt      = (salt_t *) hccalloc (1, sizeof (salt_t));
+  void   *esalt     = NULL;
+  void   *hook_salt = NULL;
+
+  if (hashconfig->esalt_size > 0)
+  {
+    esalt = hccalloc (1, hashconfig->esalt_size);
+  }
+
+  if (hashconfig->hook_salt_size > 0)
+  {
+    hook_salt = hccalloc (1, hashconfig->hook_salt_size);
+  }
+
+  hashinfo_t *hash_info = (hashinfo_t *) hcmalloc (sizeof (hashinfo_t));
+
+  hash_info->user = (user_t *) hcmalloc (sizeof (user_t));
+  hash_info->orighash = (char *) hcmalloc (256);
+  hash_info->split = (split_t *) hcmalloc (sizeof (split_t));
+
+  hash_t *hashes_buf = (hash_t *) hcmalloc (sizeof (hash_t));
+
+  hashes_buf->digest    = digest;
+  hashes_buf->salt      = salt;
+  hashes_buf->esalt     = esalt;
+  hashes_buf->hook_salt = hook_salt;
+
+  hashes->hashes_buf     = hashes_buf;
+  hashes->digests_buf    = digest;
+  hashes->salts_buf      = salt;
+  hashes->esalts_buf     = esalt;
+  hashes->hook_salts_buf = hook_salt;
+
+  bool success = false;
+
+  if (hashlist_mode == HL_MODE_ARG)
+  {
+    char *input_buf = user_options_extra->hc_hash;
+
+    size_t input_len = strlen (input_buf);
+
+    char  *hash_buf = NULL;
+    int    hash_len = 0;
+
+    hlfmt_hash (hashcat_ctx, hashlist_format, input_buf, input_len, &hash_buf, &hash_len);
+
+    bool hash_fmt_error = false;
+
+    if (hash_len < 1)     hash_fmt_error = true;
+    if (hash_buf == NULL) hash_fmt_error = true;
+
+    if (hash_fmt_error) return false;
+
+    const int parser_status = module_ctx->module_hash_decode (hashconfig, digest, salt, esalt, hook_salt, hash_info, hash_buf, hash_len);
+
+    if (parser_status == PARSER_OK) success = true;
+  }
+  else if (hashlist_mode == HL_MODE_FILE_PLAIN)
+  {
+    HCFILE fp;
+
+    int error_count = 0;
+
+    if (hc_fopen (&fp, hashfile, "rb") == false) return false;
+
+    char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
+
+    while (!hc_feof (&fp))
+    {
+      const size_t line_len = fgetl (&fp, line_buf, HCBUFSIZ_LARGE);
+
+      if (line_len == 0) continue;
+
+      char *hash_buf = NULL;
+      int   hash_len = 0;
+
+      hlfmt_hash (hashcat_ctx, hashlist_format, line_buf, line_len, &hash_buf, &hash_len);
+
+      bool hash_fmt_error = false;
+
+      if (hash_len < 1)     hash_fmt_error = true;
+      if (hash_buf == NULL) hash_fmt_error = true;
+
+      if (hash_fmt_error) continue;
+
+      int parser_status = module_ctx->module_hash_decode (hashconfig, digest, salt, esalt, hook_salt, hash_info, hash_buf, hash_len);
+
+      if (parser_status == PARSER_OK)
+      {
+        success = true;
+
+        break;
+      }
+
+      // abort this list after 100 errors
+
+      if (error_count == 100)
+      {
+        break;
+      }
+      else
+      {
+        error_count++;
+      }
+    }
+
+    hcfree (line_buf);
+
+    hc_fclose (&fp);
+  }
+  else if (hashlist_mode == HL_MODE_FILE_BINARY)
+  {
+    char *input_buf = user_options_extra->hc_hash;
+
+    size_t input_len = strlen (input_buf);
+
+    if (module_ctx->module_hash_binary_parse != MODULE_DEFAULT)
+    {
+      const int hashes_parsed = module_ctx->module_hash_binary_parse (hashconfig, user_options, user_options_extra, hashes);
+
+      if (hashes_parsed > 0) success = true;
+    }
+    else
+    {
+      const int parser_status = module_ctx->module_hash_decode (hashconfig, digest, salt, esalt, hook_salt, hash_info, input_buf, input_len);
+
+      if (parser_status == PARSER_OK) success = true;
+    }
+  }
+
+  hcfree (digest);
+  hcfree (salt);
+  hcfree (hash_info);
+  hcfree (hashes_buf);
+
+  if (hashconfig->esalt_size > 0)
+  {
+    hcfree (esalt);
+  }
+
+  if (hashconfig->hook_salt_size > 0)
+  {
+    hcfree (hook_salt);
+  }
+
+  hashes->digests_buf    = NULL;
+  hashes->salts_buf      = NULL;
+  hashes->esalts_buf     = NULL;
+  hashes->hook_salts_buf = NULL;
+
+  return success;
+}
+
+int autodetect_hashmodes (hashcat_ctx_t *hashcat_ctx, usage_sort_t *usage_sort_buf)
+{
+  folder_config_t *folder_config = hashcat_ctx->folder_config;
+  user_options_t  *user_options  = hashcat_ctx->user_options;
+
+  int usage_sort_cnt = 0;
+
+  // save quiet state so we can restore later
+
+  EVENT (EVENT_AUTODETECT_STARTING);
+
+  const bool quiet_sav = user_options->quiet;
+
+  user_options->quiet = true;
+
+  char *modulefile = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+  if (modulefile == NULL) return -1;
+
+  // brute force all the modes
+
+  for (int i = 0; i < MODULE_HASH_MODES_MAXIMUM; i++)
+  {
+    user_options->hash_mode = i;
+
+    // this is just to find out of that hash-mode exists or not
+
+    module_filename (folder_config, i, modulefile, HCBUFSIZ_TINY);
+
+    if (hc_path_exist (modulefile) == false) continue;
+
+    // we know it exists, so load the plugin
+
+    const int hashconfig_init_rc = hashconfig_init (hashcat_ctx);
+
+    if (hashconfig_init_rc == 0)
+    {
+      const bool test_rc = autodetect_hashmode_test (hashcat_ctx);
+
+      if (test_rc == true)
+      {
+        usage_sort_buf[usage_sort_cnt].hash_mode     = hashcat_ctx->hashconfig->hash_mode;
+        usage_sort_buf[usage_sort_cnt].hash_name     = hcstrdup (hashcat_ctx->hashconfig->hash_name);
+        usage_sort_buf[usage_sort_cnt].hash_category = hashcat_ctx->hashconfig->hash_category;
+
+        usage_sort_cnt++;
+      }
+    }
+
+    // clean up
+
+    hashconfig_destroy (hashcat_ctx);
+  }
+
+  hcfree (modulefile);
+
+  qsort (usage_sort_buf, usage_sort_cnt, sizeof (usage_sort_t), sort_by_usage);
+
+  user_options->quiet = quiet_sav;
+
+  EVENT (EVENT_AUTODETECT_FINISHED);
+
+  return usage_sort_cnt;
+}
+
 int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 {
   folder_config_t *folder_config = hashcat_ctx->folder_config;
@@ -1164,6 +1526,109 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
   dictstat_read (hashcat_ctx);
 
+  // autodetect
+
+  if (user_options->autodetect == true)
+  {
+    status_ctx->devices_status = STATUS_AUTODETECT;
+
+    usage_sort_t *usage_sort_buf = (usage_sort_t *) hccalloc (MODULE_HASH_MODES_MAXIMUM, sizeof (usage_sort_t));
+
+    if (usage_sort_buf == NULL) return -1;
+
+    const int modes_cnt = autodetect_hashmodes (hashcat_ctx, usage_sort_buf);
+
+    if (modes_cnt <= 0)
+    {
+      if (user_options->show == false) event_log_error (hashcat_ctx, "No hash-mode matches the structure of the input hash.");
+
+      return -1;
+    }
+
+    if (modes_cnt > 1)
+    {
+      if (user_options->machine_readable == false)
+      {
+        event_log_info (hashcat_ctx, "The following %d hash-modes match the structure of your input hash:", modes_cnt);
+        event_log_info (hashcat_ctx, NULL);
+        event_log_info (hashcat_ctx, "      # | Name                                                | Category");
+        event_log_info (hashcat_ctx, "  ======+=====================================================+======================================");
+      }
+
+      for (int i = 0; i < modes_cnt; i++)
+      {
+        if (user_options->machine_readable == false)
+        {
+          event_log_info (hashcat_ctx, "%7u | %-51s | %s", usage_sort_buf[i].hash_mode, usage_sort_buf[i].hash_name, strhashcategory (usage_sort_buf[i].hash_category));
+        }
+        else
+        {
+          event_log_info (hashcat_ctx, "%u", usage_sort_buf[i].hash_mode);
+        }
+
+        hcfree (usage_sort_buf[i].hash_name);
+      }
+
+      hcfree (usage_sort_buf);
+
+      if (user_options->machine_readable == false) event_log_info (hashcat_ctx, NULL);
+
+      if (user_options->identify == false)
+      {
+        event_log_error (hashcat_ctx, "Please specify the hash-mode with -m [hash-mode].");
+
+        return -1;
+      }
+
+      return 0;
+    }
+
+    // modes_cnt == 1
+
+    if (user_options->identify == false)
+    {
+      event_log_warning (hashcat_ctx, "Hash-mode was not specified with -m. Attempting to auto-detect hash mode.");
+      event_log_warning (hashcat_ctx, "The following mode was auto-detected as the only one matching your input hash:");
+    }
+
+    if (user_options->identify == true)
+    {
+      if (user_options->machine_readable == true)
+      {
+        event_log_info (hashcat_ctx, "%u", usage_sort_buf[0].hash_mode);
+      }
+      else
+      {
+        event_log_info (hashcat_ctx, "The following hash-mode match the structure of your input hash:");
+        event_log_info (hashcat_ctx, NULL);
+        event_log_info (hashcat_ctx, "      # | Name                                                | Category");
+        event_log_info (hashcat_ctx, "  ======+=====================================================+======================================");
+        event_log_info (hashcat_ctx, "%7u | %-51s | %s", usage_sort_buf[0].hash_mode, usage_sort_buf[0].hash_name, strhashcategory (usage_sort_buf[0].hash_category));
+        event_log_info (hashcat_ctx, NULL);
+      }
+    }
+    else
+    {
+      event_log_info (hashcat_ctx, "\n%u | %s | %s\n", usage_sort_buf[0].hash_mode, usage_sort_buf[0].hash_name, strhashcategory (usage_sort_buf[0].hash_category));
+    }
+
+    if (user_options->identify == false)
+    {
+      event_log_warning (hashcat_ctx, "NOTE: Auto-detect is best effort. The correct hash-mode is NOT guaranteed!");
+      event_log_warning (hashcat_ctx, "Do NOT report auto-detect issues unless you are certain of the hash type.");
+      event_log_warning (hashcat_ctx, NULL);
+    }
+
+    user_options->hash_mode = usage_sort_buf[0].hash_mode;
+
+    hcfree (usage_sort_buf[0].hash_name);
+    hcfree (usage_sort_buf);
+
+    if (user_options->identify == true) return 0;
+
+    user_options->autodetect = false;
+  }
+
   /**
    * outer loop
    */
@@ -1174,6 +1639,8 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->benchmark == true)
   {
+    const bool quiet_sav = user_options->quiet;
+
     user_options->quiet = true;
 
     if (user_options->hash_mode_chgd == true)
@@ -1198,17 +1665,19 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
       }
     }
 
-    user_options->quiet = false;
+    user_options->quiet = quiet_sav;
   }
   else
   {
+    const bool quiet_sav = user_options->quiet;
+
     if (user_options->speed_only == true) user_options->quiet = true;
 
     rc_final = outer_loop (hashcat_ctx);
 
     if (rc_final == -1) myabort (hashcat_ctx);
 
-    if (user_options->speed_only == true) user_options->quiet = false;
+    if (user_options->speed_only == true) user_options->quiet = quiet_sav;
   }
 
   EVENT (EVENT_OUTERLOOP_FINISHED);
@@ -1234,6 +1703,7 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
   if (rc_final == 0)
   {
+    if (status_ctx->devices_status == STATUS_ABORTED_FINISH)      rc_final =  5;
     if (status_ctx->devices_status == STATUS_ABORTED_RUNTIME)     rc_final =  4;
     if (status_ctx->devices_status == STATUS_ABORTED_CHECKPOINT)  rc_final =  3;
     if (status_ctx->devices_status == STATUS_ABORTED)             rc_final =  2;
@@ -1276,6 +1746,11 @@ int hashcat_session_bypass (hashcat_ctx_t *hashcat_ctx)
 int hashcat_session_checkpoint (hashcat_ctx_t *hashcat_ctx)
 {
   return stop_at_checkpoint (hashcat_ctx);
+}
+
+int hashcat_session_finish (hashcat_ctx_t *hashcat_ctx)
+{
+  return finish_after_attack (hashcat_ctx);
 }
 
 int hashcat_session_quit (hashcat_ctx_t *hashcat_ctx)
@@ -1387,6 +1862,8 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
   #ifdef WITH_BRAIN
   hashcat_status->brain_session               = status_get_brain_session              (hashcat_ctx);
   hashcat_status->brain_attack                = status_get_brain_attack               (hashcat_ctx);
+  hashcat_status->brain_rx_all                = status_get_brain_rx_all               (hashcat_ctx);
+  hashcat_status->brain_tx_all                = status_get_brain_tx_all               (hashcat_ctx);
   #endif
   hashcat_status->status_string               = status_get_status_string              (hashcat_ctx);
   hashcat_status->status_number               = status_get_status_number              (hashcat_ctx);
@@ -1418,6 +1895,9 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
     device_info->exec_msec_dev                  = status_get_exec_msec_dev                  (hashcat_ctx, device_id);
     device_info->speed_sec_dev                  = status_get_speed_sec_dev                  (hashcat_ctx, device_id);
     device_info->guess_candidates_dev           = status_get_guess_candidates_dev           (hashcat_ctx, device_id);
+    #if defined(__APPLE__)
+    device_info->hwmon_fan_dev                  = status_get_hwmon_fan_dev                  (hashcat_ctx);
+    #endif
     device_info->hwmon_dev                      = status_get_hwmon_dev                      (hashcat_ctx, device_id);
     device_info->corespeed_dev                  = status_get_corespeed_dev                  (hashcat_ctx, device_id);
     device_info->memoryspeed_dev                = status_get_memoryspeed_dev                (hashcat_ctx, device_id);
@@ -1439,8 +1919,6 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
     device_info->brain_link_send_bytes_dev      = status_get_brain_link_send_bytes_dev      (hashcat_ctx, device_id);
     device_info->brain_link_recv_bytes_sec_dev  = status_get_brain_link_recv_bytes_sec_dev  (hashcat_ctx, device_id);
     device_info->brain_link_send_bytes_sec_dev  = status_get_brain_link_send_bytes_sec_dev  (hashcat_ctx, device_id);
-    hashcat_status->brain_rx_all   = status_get_brain_rx_all   (hashcat_ctx);
-    hashcat_status->brain_tx_all   = status_get_brain_tx_all   (hashcat_ctx);
     #endif
   }
 

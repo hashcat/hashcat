@@ -150,7 +150,7 @@ typedef struct pkzip pkzip_t;
 
 #pragma pack(pop)
 
-CONSTANT_AS u32a crc32tab[256] =
+CONSTANT_VK u32a crc32tab[256] =
 {
   0x00000000, 0x77073096, 0xee0e612c, 0x990951ba,
   0x076dc419, 0x706af48f, 0xe963a535, 0x9e6495a3,
@@ -766,7 +766,7 @@ KERNEL_FQ void m17225_sxx (KERN_ATTR_ESALT (pkzip_t))
           ret = hc_inflate (&infstream);
         }
 
-        if (ret != MZ_STREAM_END) break; // failed to inflate
+        if (ret != MZ_STREAM_END || infstream.total_out != esalt_bufs[DIGESTS_OFFSET].hashes[idx].uncompressed_length) break;
 
         crc = ~infstream.crc32;
       }
@@ -1095,7 +1095,7 @@ KERNEL_FQ void m17225_mxx (KERN_ATTR_ESALT (pkzip_t))
           ret = hc_inflate (&infstream);
         }
 
-        if (ret != MZ_STREAM_END) break; // failed to inflate
+        if (ret != MZ_STREAM_END || infstream.total_out != esalt_bufs[DIGESTS_OFFSET].hashes[idx].uncompressed_length) break;
 
         crc = ~infstream.crc32;
       }

@@ -21,7 +21,9 @@ static const char *HASH_NAME      = "Password Safe v2";
 static const u64   KERN_TYPE      = 9000;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_BINARY_HASHFILE;
+                                  | OPTS_TYPE_BINARY_HASHFILE
+                                  | OPTS_TYPE_AUTODETECT_DISABLE
+                                  | OPTS_TYPE_DYNAMIC_SHARED;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "0a3f352686e5eb5be173e668a4fff5cd5df420927e1da2d5d4052340160637e3e6a5a92841a188ed240e13b919f3d91694bd4c0acba79271e9c08a83ea5ad387cbb74d5884066a1cb5a8caa80d847079168f84823847c631dbe3a834f1bc496acfebac3bff1608bf1c857717f8f428e07b5e2cb12aaeddfa83d7dcb6d840234d08b84f8ca6c6e562af73eea13148f7902bcaf0220d3e36eeeff1d37283dc421483a2791182614ebb";
@@ -74,16 +76,25 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 {
   char *jit_build_options = NULL;
 
+  // this mode heavily depends on the available shared memory size
+  // note the kernel need to have some special code changes in order to make use to use post-48k memory region
+  // we need to set some macros
+
+  bool use_dynamic = false;
+
+  if (device_param->is_cuda == true)
+  {
+    use_dynamic = true;
+  }
+
   // this uses some nice feedback effect.
   // based on the device_local_mem_size the reqd_work_group_size in the kernel is set to some value
   // which is then is read from the opencl host in the kernel_preferred_wgs_multiple1/2/3 result.
   // therefore we do not need to set module_kernel_threads_min/max except for CPU, where the threads are set to fixed 1.
 
-  u32 fixed_local_size = 0;
-
   if (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU)
   {
-    fixed_local_size = 1;
+    hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u", 1);
   }
   else
   {
@@ -99,28 +110,57 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
       if (device_param->is_opencl == true)
       {
-        overhead = 4;
+        overhead = 1;
       }
     }
 
     if (user_options->kernel_threads_chgd == true)
     {
-      fixed_local_size = user_options->kernel_threads;
+      u32 fixed_local_size = user_options->kernel_threads;
 
-      // otherwise out-of-bound reads
-
-      if ((fixed_local_size * 4096) > (device_param->device_local_mem_size - overhead))
+      if (use_dynamic == true)
       {
-        fixed_local_size = (device_param->device_local_mem_size - overhead) / 4096;
+        if ((fixed_local_size * 4096) > device_param->kernel_dynamic_local_mem_size_memset)
+        {
+          // otherwise out-of-bound reads
+
+          fixed_local_size = device_param->kernel_dynamic_local_mem_size_memset / 4096;
+        }
+
+        hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u -D DYNAMIC_LOCAL", fixed_local_size);
+      }
+      else
+      {
+        if ((fixed_local_size * 4096) > (device_param->device_local_mem_size - overhead))
+        {
+          // otherwise out-of-bound reads
+
+          fixed_local_size = (device_param->device_local_mem_size - overhead) / 4096;
+        }
+
+        hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u", fixed_local_size);
       }
     }
     else
     {
-      fixed_local_size = (device_param->device_local_mem_size - overhead) / 4096;
+      if (use_dynamic == true)
+      {
+        // using kernel_dynamic_local_mem_size_memset is a bit hackish.
+        // we had to brute-force this value out of an already loaded CUDA function.
+        // there's no official way to query for this value.
+
+        const u32 fixed_local_size = device_param->kernel_dynamic_local_mem_size_memset / 4096;
+
+        hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u -D DYNAMIC_LOCAL", fixed_local_size);
+      }
+      else
+      {
+        const u32 fixed_local_size = (device_param->device_local_mem_size - overhead) / 4096;
+
+        hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u", fixed_local_size);
+      }
     }
   }
-
-  hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u", fixed_local_size);
 
   return jit_build_options;
 }
@@ -186,6 +226,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
   module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
   module_ctx->module_deep_comp_kernel         = MODULE_DEFAULT;
+  module_ctx->module_deprecated_notice        = MODULE_DEFAULT;
   module_ctx->module_dgst_pos0                = module_dgst_pos0;
   module_ctx->module_dgst_pos1                = module_dgst_pos1;
   module_ctx->module_dgst_pos2                = module_dgst_pos2;
@@ -195,6 +236,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_esalt_size               = MODULE_DEFAULT;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
+  module_ctx->module_extra_tuningdb_block     = MODULE_DEFAULT;
   module_ctx->module_forced_outfile_format    = MODULE_DEFAULT;
   module_ctx->module_hash_binary_count        = MODULE_DEFAULT;
   module_ctx->module_hash_binary_parse        = MODULE_DEFAULT;

@@ -117,15 +117,44 @@ KERNEL_FQ void gpu_memset (GLOBAL_AS uint4 *buf, const u32 value, const u64 gid_
   #if   defined IS_NATIVE
   r = value;
   #elif defined IS_OPENCL
-  r.s0 = value;
-  r.s1 = value;
-  r.s2 = value;
-  r.s3 = value;
+  r = (uint4) (value);
   #elif defined IS_CUDA
   r.x = value;
   r.y = value;
   r.z = value;
   r.w = value;
+  #elif defined IS_HIP
+  r.x = value;
+  r.y = value;
+  r.z = value;
+  r.w = value;
+  #endif
+
+  buf[gid] = r;
+}
+
+KERNEL_FQ void gpu_bzero(GLOBAL_AS uint4* buf, const u64 gid_max)
+{
+  const u64 gid = get_global_id(0);
+
+  if (gid >= gid_max) return;
+
+  uint4 r;
+
+  #if   defined IS_NATIVE
+  r = 0;
+  #elif defined IS_OPENCL
+  r = (uint4) (0);
+  #elif defined IS_CUDA
+  r.x = 0;
+  r.y = 0;
+  r.z = 0;
+  r.w = 0;
+  #elif defined IS_HIP
+  r.x = 0;
+  r.y = 0;
+  r.z = 0;
+  r.w = 0;
   #endif
 
   buf[gid] = r;
@@ -211,4 +240,25 @@ KERNEL_FQ void gpu_atinit (GLOBAL_AS pw_t *buf, const u64 gid_max)
   pw.pw_len = 7; // some algorithms are very sensible on this (example: 12500)
 
   buf[gid] = pw;
+}
+
+KERNEL_FQ void gpu_utf8_to_utf16 (GLOBAL_AS pw_t *pws_buf, const u64 gid_max)
+{
+  const u64 gid = get_global_id (0);
+
+  if (gid >= gid_max) return;
+
+  pw_t pw_in = pws_buf[gid];
+
+  pw_t pw_out;
+
+  for (int i = 0; i < 64; i++) pw_out.i[i] = 0;
+
+  hc_enc_t hc_enc;
+
+  hc_enc_init (&hc_enc);
+
+  pw_out.pw_len = hc_enc_next (&hc_enc, pw_in.i, pw_in.pw_len, 256, pw_out.i, 256);
+
+  pws_buf[gid] = pw_out;
 }

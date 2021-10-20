@@ -88,13 +88,13 @@ u32 cpu_crc32_buffer (const u8 *buf, const size_t length)
   return crc ^ 0xffffffff;
 }
 
-int cpu_crc32 (const char *filename, u8 keytab[64])
+int cpu_crc32 (const char *filename, u8 *keytab, const size_t keytabsz)
 {
   u32 crc = ~0U;
 
   HCFILE fp;
 
-  hc_fopen (&fp, filename, "rb");
+  hc_fopen_raw (&fp, filename, "rb");
 
   #define MAX_KEY_SIZE (1024 * 1024)
 
@@ -110,10 +110,10 @@ int cpu_crc32 (const char *filename, u8 keytab[64])
   {
     crc = crc32tab[(crc ^ buf[fpos]) & 0xff] ^ (crc >> 8);
 
-    keytab[kpos++] += (crc >> 24) & 0xff; if (kpos >= 64) kpos = 0;
-    keytab[kpos++] += (crc >> 16) & 0xff; if (kpos >= 64) kpos = 0;
-    keytab[kpos++] += (crc >>  8) & 0xff; if (kpos >= 64) kpos = 0;
-    keytab[kpos++] += (crc >>  0) & 0xff; if (kpos >= 64) kpos = 0;
+    keytab[kpos++] += (crc >> 24) & 0xff; if (kpos >= keytabsz) kpos = 0;
+    keytab[kpos++] += (crc >> 16) & 0xff; if (kpos >= keytabsz) kpos = 0;
+    keytab[kpos++] += (crc >>  8) & 0xff; if (kpos >= keytabsz) kpos = 0;
+    keytab[kpos++] += (crc >>  0) & 0xff; if (kpos >= keytabsz) kpos = 0;
   }
 
   hcfree (buf);

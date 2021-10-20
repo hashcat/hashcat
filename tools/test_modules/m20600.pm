@@ -45,7 +45,7 @@ sub module_verify_hash
   return unless defined $iter;
   return unless defined $salt;
   return unless defined $word;
- 
+
   my $new_hash = module_generate_hash ($word, $salt, $iter);
 
   return ($new_hash, $word);

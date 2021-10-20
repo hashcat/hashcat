@@ -781,7 +781,7 @@ DECLSPEC void append_block8_optimized (const u32 offset, u32 *buf0, u32 *buf1, c
 
   const int offset_switch = offset / 4;
 
-  #if (defined IS_AMD && HAS_VPERM == 0) || defined IS_GENERIC
+  #if ((defined IS_AMD || defined IS_HIP) && HAS_VPERM == 0) || defined IS_GENERIC
   const u32 src_r00 = src_r0[0];
   const u32 src_r01 = src_r0[1];
   const u32 src_r02 = src_r0[2];
@@ -884,7 +884,7 @@ DECLSPEC void append_block8_optimized (const u32 offset, u32 *buf0, u32 *buf1, c
   }
   #endif
 
-  #if (defined IS_AMD && HAS_VPERM == 1) || defined IS_NV
+  #if ((defined IS_AMD || defined IS_HIP) && HAS_VPERM == 1) || defined IS_NV
 
   const int offset_mod_4 = offset & 3;
 
@@ -894,7 +894,7 @@ DECLSPEC void append_block8_optimized (const u32 offset, u32 *buf0, u32 *buf1, c
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
   #endif
 
-  #if defined IS_AMD
+  #if (defined IS_AMD || defined IS_HIP)
   const int selector = l32_from_64_S (0x0706050403020100UL >> (offset_minus_4 * 8));
   #endif
 
@@ -1163,6 +1163,82 @@ DECLSPEC u32 rule_op_mangle_toggle_at (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED c
   return (in_len);
 }
 
+DECLSPEC u32 rule_op_mangle_toggle_at_sep (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 *buf0, MAYBE_UNUSED u32 *buf1, const u32 in_len)
+{
+  if (in_len == 0) return in_len;
+
+  u32 r0 = search_on_register (buf0[0], p1);
+  u32 r1 = search_on_register (buf0[1], p1);
+  u32 r2 = search_on_register (buf0[2], p1);
+  u32 r3 = search_on_register (buf0[3], p1);
+  u32 r4 = search_on_register (buf1[0], p1);
+  u32 r5 = search_on_register (buf1[1], p1);
+  u32 r6 = search_on_register (buf1[2], p1);
+  u32 r7 = search_on_register (buf1[3], p1);
+
+  const u32 rn = (r0 <<  0)
+               | (r1 <<  4)
+               | (r2 <<  8)
+               | (r3 << 12)
+               | (r4 << 16)
+               | (r5 << 20)
+               | (r6 << 24)
+               | (r7 << 28);
+
+  if (rn == 0) return in_len;
+
+  u32 occurence = 0;
+
+  u32 ro = 0;
+
+  #ifdef _unroll
+  #pragma unroll
+  #endif
+  for (int i = 0; i < 32; i++)
+  {
+    if ((rn >> i) & 1)
+    {
+      if (occurence == p0)
+      {
+        ro = 1 << i;
+
+        break;
+      }
+
+      occurence++;
+    }
+  }
+
+  r0 = (ro >>  0) & 15;
+  r1 = (ro >>  4) & 15;
+  r2 = (ro >>  8) & 15;
+  r3 = (ro >> 12) & 15;
+  r4 = (ro >> 16) & 15;
+  r5 = (ro >> 20) & 15;
+  r6 = (ro >> 24) & 15;
+  r7 = (ro >> 28) & 15;
+
+  r0 <<= 1;
+  r1 <<= 1; r1 |= r0 >> 4;
+  r2 <<= 1; r2 |= r1 >> 4;
+  r3 <<= 1; r3 |= r2 >> 4;
+  r4 <<= 1; r4 |= r3 >> 4;
+  r5 <<= 1; r5 |= r4 >> 4;
+  r6 <<= 1; r6 |= r5 >> 4;
+  r7 <<= 1; r7 |= r6 >> 4;
+
+  buf0[0] = toggle_on_register (buf0[0], r0);
+  buf0[1] = toggle_on_register (buf0[1], r1);
+  buf0[2] = toggle_on_register (buf0[2], r2);
+  buf0[3] = toggle_on_register (buf0[3], r3);
+  buf1[0] = toggle_on_register (buf1[0], r4);
+  buf1[1] = toggle_on_register (buf1[1], r5);
+  buf1[2] = toggle_on_register (buf1[2], r6);
+  buf1[3] = toggle_on_register (buf1[3], r7);
+
+  return in_len;
+}
+
 DECLSPEC u32 rule_op_mangle_reverse (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 *buf0, MAYBE_UNUSED u32 *buf1, const u32 in_len)
 {
   reverse_block_optimized (buf0, buf1, buf0, buf1, in_len);
@@ -1359,11 +1435,7 @@ DECLSPEC u32 rule_op_mangle_delete_at (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED c
   const u32 ml = (1 << ((p0 & 3) * 8)) - 1;
   const u32 mr = ~ml;
 
-  #ifdef IS_AMD
   const int p0_switch = p0 / 4;
-  #else
-  const int p0_switch = p0 / 4;
-  #endif
 
   switch (p0_switch)
   {
@@ -1466,11 +1538,7 @@ DECLSPEC u32 rule_op_mangle_omit (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const 
   const u32 ml = (1 << ((p0 & 3) * 8)) - 1;
   const u32 mr = ~ml;
 
-  #ifdef IS_AMD
   const int p0_switch = p0 / 4;
-  #else
-  const int p0_switch = p0 / 4;
-  #endif
 
   switch (p0_switch)
   {
@@ -1552,11 +1620,7 @@ DECLSPEC u32 rule_op_mangle_insert (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED cons
 
   const u32 mr = 0xffffff00 << ((p0 & 3) * 8);
 
-  #ifdef IS_AMD
   const int p0_switch = p0 / 4;
-  #else
-  const int p0_switch = p0 / 4;
-  #endif
 
   switch (p0_switch)
   {
@@ -2297,6 +2361,7 @@ DECLSPEC u32 apply_rule_optimized (const u32 name, const u32 p0, const u32 p1, u
     case RULE_OP_MANGLE_UREST_LFIRST:     out_len = rule_op_mangle_urest_lfirst     (p0, p1, buf0, buf1, out_len); break;
     case RULE_OP_MANGLE_TREST:            out_len = rule_op_mangle_trest            (p0, p1, buf0, buf1, out_len); break;
     case RULE_OP_MANGLE_TOGGLE_AT:        out_len = rule_op_mangle_toggle_at        (p0, p1, buf0, buf1, out_len); break;
+    case RULE_OP_MANGLE_TOGGLE_AT_SEP:    out_len = rule_op_mangle_toggle_at_sep    (p0, p1, buf0, buf1, out_len); break;
     case RULE_OP_MANGLE_REVERSE:          out_len = rule_op_mangle_reverse          (p0, p1, buf0, buf1, out_len); break;
     case RULE_OP_MANGLE_DUPEWORD:         out_len = rule_op_mangle_dupeword         (p0, p1, buf0, buf1, out_len); break;
     case RULE_OP_MANGLE_DUPEWORD_TIMES:   out_len = rule_op_mangle_dupeword_times   (p0, p1, buf0, buf1, out_len); break;

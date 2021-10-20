@@ -26,7 +26,7 @@
  *   - P19: Type of the esalt_bufs structure with additional data, or void.
  */
 
-#ifdef IS_CUDA
+#if defined IS_CUDA || defined IS_HIP
 #define KERN_ATTR(p2,p4,p5,p6,p19)                                  \
   MAYBE_UNUSED GLOBAL_AS       pw_t          *pws,                  \
   MAYBE_UNUSED p2        const kernel_rule_t *g_rules_buf,          \
@@ -113,7 +113,7 @@
  * do not use rules or tmps, etc.
  */
 
-#ifdef IS_CUDA
+#if defined IS_CUDA || defined IS_HIP
 #define KERN_ATTR_BASIC()                 KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, void)
 #define KERN_ATTR_BITSLICE()              KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bs_word_t *g_words_buf_s, void, void, void)
 #define KERN_ATTR_ESALT(e)                KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, e)
@@ -236,8 +236,13 @@ DECLSPEC int hash_comp (const u32 *d1, GLOBAL_AS const u32 *d2);
 DECLSPEC int find_hash (const u32 *digest, const u32 digests_cnt, GLOBAL_AS const digest_t *digests_buf);
 #endif
 
-DECLSPEC int utf8_to_utf16le (const u32 *src_buf, int src_len, int src_size, u32 *dst_buf, int dst_size);
-DECLSPEC int utf8_to_utf16le_global (GLOBAL_AS const u32 *src_buf, int src_len, int src_size, u32 *dst_buf, int dst_size);
+DECLSPEC int hc_enc_scan (const u32 *buf, const int len);
+DECLSPEC int hc_enc_scan_global (GLOBAL_AS const u32 *buf, const int len);
+DECLSPEC void hc_enc_init (hc_enc_t *hc_enc);
+DECLSPEC int hc_enc_has_next (hc_enc_t *hc_enc, const int sz);
+DECLSPEC int hc_enc_next (hc_enc_t *hc_enc, const u32 *src_buf, const int src_len, const int src_sz, u32 *dst_buf, const int dst_sz);
+DECLSPEC int hc_enc_next_global (hc_enc_t *hc_enc, GLOBAL_AS const u32 *src_buf, const int src_len, const int src_sz, u32 *dst_buf, const int dst_sz);
+
 DECLSPEC int pkcs_padding_bs8 (const u32 *data_buf, const int data_len);
 DECLSPEC int pkcs_padding_bs16 (const u32 *data_buf, const int data_len);
 DECLSPEC int asn1_detect (const u32 *buf, const int len);
@@ -251,7 +256,7 @@ DECLSPEC int is_valid_hex_32 (const u32 v);
 DECLSPEC int is_valid_base58_8 (const u8 v);
 DECLSPEC int is_valid_base58_32 (const u32 v);
 DECLSPEC int hc_find_keyboard_layout_map (const u32 search, const int search_len, LOCAL_AS keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt);
-DECLSPEC int hc_execute_keyboard_layout_mapping (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int pw_len, LOCAL_AS keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt);
+DECLSPEC int hc_execute_keyboard_layout_mapping (u32 *w, const int pw_len, LOCAL_AS keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt);
 DECLSPEC void make_utf16be (const u32x *in, u32x *out1, u32x *out2);
 DECLSPEC void make_utf16beN (const u32x *in, u32x *out1, u32x *out2);
 DECLSPEC void make_utf16le (const u32x *in, u32x *out1, u32x *out2);
@@ -285,6 +290,7 @@ DECLSPEC void append_helper_1x4_S (u32 *r, const u32 v, const u32 *m);
 DECLSPEC void append_0x01_2x4_S (u32 *w0, u32 *w1, const u32 offset);
 DECLSPEC void append_0x06_2x4_S (u32 *w0, u32 *w1, const u32 offset);
 DECLSPEC void append_0x01_4x4_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 offset);
+DECLSPEC void append_0x2d_4x4_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 offset);
 DECLSPEC void append_0x80_1x4_S (u32 *w0, const u32 offset);
 DECLSPEC void append_0x80_2x4_S (u32 *w0, u32 *w1, const u32 offset);
 DECLSPEC void append_0x80_3x4_S (u32 *w0, u32 *w1, u32 *w2, const u32 offset);
@@ -311,5 +317,6 @@ DECLSPEC void append_0x01_4x4_VV (u32x *w0, u32x *w1, u32x *w2, u32x *w3, const 
 DECLSPEC void append_0x06_2x4_VV (u32x *w0, u32x *w1, const u32x offset);
 DECLSPEC void append_0x80_2x4_VV (u32x *w0, u32x *w1, const u32x offset);
 DECLSPEC void append_0x80_4x4_VV (u32x *w0, u32x *w1, u32x *w2, u32x *w3, const u32x offset);
+DECLSPEC void append_0x2d_4x4_VV (u32x *w0, u32x *w1, u32x *w2, u32x *w3, const u32x offset);
 
 #endif

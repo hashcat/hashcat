@@ -24,7 +24,7 @@ typedef struct
 
 } scrypt_tmp_t;
 
-#ifdef IS_CUDA
+#if defined IS_CUDA || defined IS_HIP
 
 inline __device__ uint4 operator &  (const uint4  a, const u32   b) { return make_uint4 ((a.x &  b  ), (a.y &  b  ), (a.z &  b  ), (a.w &  b  ));  }
 inline __device__ uint4 operator << (const uint4  a, const u32   b) { return make_uint4 ((a.x << b  ), (a.y << b  ), (a.z << b  ), (a.w << b  ));  }
@@ -57,7 +57,7 @@ DECLSPEC uint4 hc_swap32_4 (uint4 v)
 
 #define ADD_ROTATE_XOR(r,i1,i2,s) (r) ^= rotate ((i1) + (i2), (s));
 
-#ifdef IS_CUDA
+#if defined IS_CUDA || defined IS_HIP
 
 #define SALSA20_2R()                        \
 {                                           \
@@ -303,7 +303,7 @@ KERNEL_FQ void m08900_init (KERN_ATTR_TMPS (scrypt_tmp_t))
     digest[6] = sha256_hmac_ctx2.opad.h[6];
     digest[7] = sha256_hmac_ctx2.opad.h[7];
 
-    #ifdef IS_CUDA
+    #if defined IS_CUDA
     const uint4 tmp0 = make_uint4 (digest[0], digest[1], digest[2], digest[3]);
     const uint4 tmp1 = make_uint4 (digest[4], digest[5], digest[6], digest[7]);
     #else
@@ -331,7 +331,7 @@ KERNEL_FQ void m08900_init (KERN_ATTR_TMPS (scrypt_tmp_t))
 
     uint4 X[4];
 
-    #ifdef IS_CUDA
+    #if defined IS_CUDA
     X[0] = make_uint4 (T[0].x, T[1].y, T[2].z, T[3].w);
     X[1] = make_uint4 (T[1].x, T[2].y, T[3].z, T[0].w);
     X[2] = make_uint4 (T[2].x, T[3].y, T[0].z, T[1].w);
@@ -441,7 +441,7 @@ KERNEL_FQ void m08900_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
 
     uint4 T[4];
 
-    #ifdef IS_CUDA
+    #if defined IS_CUDA
     T[0] = make_uint4 (X[0].x, X[3].y, X[2].z, X[1].w);
     T[1] = make_uint4 (X[1].x, X[0].y, X[3].z, X[2].w);
     T[2] = make_uint4 (X[2].x, X[1].y, X[0].z, X[3].w);

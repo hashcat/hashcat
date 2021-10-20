@@ -64,7 +64,7 @@ inline void Copy128(byte *dest,const byte *src)
 
 Rijndael::Rijndael()
 {
-  if (S[0]==0)
+  //if (S[0]==0)
     GenerateTables();
   CBCMode = true; // Always true for RAR.
 }

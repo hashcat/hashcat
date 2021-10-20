@@ -35,7 +35,7 @@ KERNEL_FQ void m24800_mxx (KERN_ATTR_BASIC ())
 
   for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
-    w[idx] = hc_swap32_S (pws[gid].i[idx]);
+    w[idx] = pws[gid].i[idx];
   }
 
   /**
@@ -53,10 +53,10 @@ KERNEL_FQ void m24800_mxx (KERN_ATTR_BASIC ())
     #endif
     for (int idx = 0; idx < 64; idx++)
     {
-      c[idx] = hc_swap32_S (combs_buf[il_pos].i[idx]);
+      c[idx] = combs_buf[il_pos].i[idx];
     }
 
-    switch_buffer_by_offset_1x64_be_S (c, pw_len);
+    switch_buffer_by_offset_1x64_le_S (c, pw_len);
 
     #ifdef _unroll
     #pragma unroll
@@ -68,17 +68,19 @@ KERNEL_FQ void m24800_mxx (KERN_ATTR_BASIC ())
 
     u32 t[128] = { 0 };
 
-    // make it unicode.
-    for (u32 i = 0, idx = 0; i < pw_len + comb_len; i += 16, idx += 4)
-    {
-      make_utf16beN (&c[idx], &t[(idx * 2) + 0], &t[(idx * 2) + 4]);
-    }
+    hc_enc_t hc_enc;
+
+    hc_enc_init (&hc_enc);
+
+    const u32 t_len = hc_enc_next (&hc_enc, c, pw_len + comb_len, 256, t, sizeof (t));
+
+    // hash time
 
     sha1_hmac_ctx_t ctx;
 
-    sha1_hmac_init (&ctx, t, (pw_len + comb_len) * 2);
+    sha1_hmac_init_swap (&ctx, t, t_len);
 
-    sha1_hmac_update (&ctx, t, (pw_len + comb_len) * 2);
+    sha1_hmac_update_swap (&ctx, t, t_len);
 
     sha1_hmac_final (&ctx);
 
@@ -124,7 +126,7 @@ KERNEL_FQ void m24800_sxx (KERN_ATTR_BASIC ())
 
   for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
-    w[idx] = hc_swap32_S (pws[gid].i[idx]);
+    w[idx] = pws[gid].i[idx];
   }
 
   /**
@@ -142,10 +144,10 @@ KERNEL_FQ void m24800_sxx (KERN_ATTR_BASIC ())
     #endif
     for (int idx = 0; idx < 64; idx++)
     {
-      c[idx] = hc_swap32_S (combs_buf[il_pos].i[idx]);
+      c[idx] = combs_buf[il_pos].i[idx];
     }
 
-    switch_buffer_by_offset_1x64_be_S (c, pw_len);
+    switch_buffer_by_offset_1x64_le_S (c, pw_len);
 
     #ifdef _unroll
     #pragma unroll
@@ -157,17 +159,19 @@ KERNEL_FQ void m24800_sxx (KERN_ATTR_BASIC ())
 
     u32 t[128] = { 0 };
 
-    // make it unicode.
-    for (u32 i = 0, idx = 0; i < pw_len + comb_len; i += 16, idx += 4)
-    {
-      make_utf16beN (&c[idx], &t[(idx * 2) + 0], &t[(idx * 2) + 4]);
-    }
+    hc_enc_t hc_enc;
+
+    hc_enc_init (&hc_enc);
+
+    const u32 t_len = hc_enc_next (&hc_enc, c, pw_len + comb_len, 256, t, sizeof (t));
+
+    // hash time
 
     sha1_hmac_ctx_t ctx;
 
-    sha1_hmac_init (&ctx, t, (pw_len + comb_len) * 2);
+    sha1_hmac_init_swap (&ctx, t, t_len);
 
-    sha1_hmac_update (&ctx, t, (pw_len + comb_len) * 2);
+    sha1_hmac_update_swap (&ctx, t, t_len);
 
     sha1_hmac_final (&ctx);
 

@@ -4,7 +4,7 @@
 enum MKDIR_CODE {MKDIR_SUCCESS,MKDIR_ERROR,MKDIR_BADPATH};
 
 MKDIR_CODE MakeDir(const wchar *Name,bool SetAttr,uint Attr);
-bool CreatePath(const wchar *Path,bool SkipLastName);
+bool CreatePath(const wchar *Path,bool SkipLastName,bool Silent);
 void SetDirTime(const wchar *Name,RarTime *ftm,RarTime *ftc,RarTime *fta);
 bool IsRemovable(const wchar *Name);
 

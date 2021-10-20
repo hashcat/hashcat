@@ -58,7 +58,7 @@ sub module_generate_hash
   );
 
   my $b_seed = $pbkdf2->PBKDF2 ($mysalt, $word);
-  
+
   # we can precompute this
   my $b_kerberos_nfolded = hex2byte ('6b65726265726f737b9b5b2b93132b93');
 
@@ -68,14 +68,14 @@ sub module_generate_hash
   # and 'ke' (AES key to decrypt/encrypt the ticket)
   my $cbc         = Crypt::Mode::CBC->new ('AES', 0);
   my $b_key_bytes = $cbc->encrypt ($b_kerberos_nfolded, $b_seed, $b_iv);
-  
+
   # precomputed stuff
   # nfold 0x0000000155 to 16 bytes
   my $b_nfolded1 = hex2byte ('5b582c160a5aa80556ab55aad5402ab5');
-  
+
   # nfold 0x00000001aa to 16 bytes
   my $b_nfolded2 = hex2byte ('ae2c160b04ad5006ab55aad56a80355a');
-  
+
   my $b_ki = $cbc->encrypt ($b_nfolded1, $b_key_bytes, $b_iv);
 
 
@@ -98,36 +98,36 @@ sub module_generate_hash
 
     # Pad the last block with last bytes from the decrypted n-1
     my $b_padded_enc_ticket = hex2byte ($enc_timestamp) . (substr $b_n_1_decrypted, -(16 - $len_last_block / 2));
-    
+
     # Swap the last two blocks
     my $b_cbc_enc_ticket = (substr $b_padded_enc_ticket, 0, -32) . (substr $b_padded_enc_ticket, -16, 16).
     (substr $b_padded_enc_ticket, -32, 16);
-    
+
     # Decrypt and truncate
     my $b_dec_ticket_padded = $cbc->decrypt ($b_cbc_enc_ticket, $b_ke, $b_iv);
-    
+
     my $b_cleartext_ticket = substr $b_dec_ticket_padded, 0, length ($enc_timestamp) / 2;
 
     $cleartext_ticket = byte2hex ($b_cleartext_ticket);
-    
-    my $check_correct  = ((substr ($b_cleartext_ticket, 22, 2) eq "20") && 
+
+    my $check_correct  = ((substr ($b_cleartext_ticket, 22, 2) eq "20") &&
                           (substr ($b_cleartext_ticket, 36, 1) eq "Z"));
 
     if ($check_correct == 1 && defined $checksum)
     {
       my $b_checksum = hmac_sha1 (hex2byte ($cleartext_ticket), $b_ki);
-      
+
       $check_correct = ($checksum eq byte2hex (substr $b_checksum, 0, 12));
     }
   }
-  
+
   if ($check_correct != 1)
   {
     # fake/wrong ticket (otherwise if we just decrypt/encrypt we end
     #up with false positives all the time)
     $cleartext_ticket = '68c8459f3f10c851b8827118bb459c6e301aa011180f323031'.
 '32313131363134323835355aa10502030c28a2';
-  
+
     # we have what is required to compute checksum
     $checksum = hmac_sha1 (hex2byte ($cleartext_ticket), $b_ki);
 
@@ -191,7 +191,7 @@ sub module_verify_hash
   return unless ($algorithm eq "17");
   return unless (length ($edata) >= 88);
   return unless (length ($edata) <= 112);
-  
+
   my $checksum  = substr $edata, -24;
   my $enc_timestamp    = substr $edata, 0, -24;
 

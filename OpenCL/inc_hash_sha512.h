@@ -120,13 +120,16 @@ DECLSPEC void sha512_hmac_init (sha512_hmac_ctx_t *ctx, const u32 *w, const int 
 DECLSPEC void sha512_hmac_init_swap (sha512_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void sha512_hmac_init_global (sha512_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
 DECLSPEC void sha512_hmac_init_global_swap (sha512_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
-DECLSPEC void sha512_hmac_init_global_ut16le (sha512_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
 DECLSPEC void sha512_hmac_init_global_utf16le_swap (sha512_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
 DECLSPEC void sha512_hmac_update_128 (sha512_hmac_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const int len);
 DECLSPEC void sha512_hmac_update (sha512_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void sha512_hmac_update_swap (sha512_hmac_ctx_t *ctx, const u32 *w, const int len);
+DECLSPEC void sha512_hmac_update_utf16le (sha512_hmac_ctx_t *ctx, const u32 *w, const int len);
+DECLSPEC void sha512_hmac_update_utf16le_swap (sha512_hmac_ctx_t *ctx, const u32 *w, const int len);
 DECLSPEC void sha512_hmac_update_global (sha512_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
 DECLSPEC void sha512_hmac_update_global_swap (sha512_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
+DECLSPEC void sha512_hmac_update_global_utf16le (sha512_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
+DECLSPEC void sha512_hmac_update_global_utf16le_swap (sha512_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
 DECLSPEC void sha512_hmac_final (sha512_hmac_ctx_t *ctx);
 DECLSPEC void sha512_transform_vector (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, const u32x *w4, const u32x *w5, const u32x *w6, const u32x *w7, u64x *digest);
 DECLSPEC void sha512_init_vector (sha512_ctx_vector_t *ctx);

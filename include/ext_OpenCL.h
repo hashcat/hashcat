@@ -28,6 +28,7 @@
 // AMD extras
 
 #define CL_DEVICE_TOPOLOGY_AMD                      0x4037
+#define CL_DEVICE_BOARD_NAME_AMD                    0x4038
 
 typedef union
 {
@@ -45,6 +46,7 @@ typedef cl_context       (CL_API_CALL *OCL_CLCREATECONTEXT)           (const cl_
 typedef cl_kernel        (CL_API_CALL *OCL_CLCREATEKERNEL)            (cl_program, const char *, cl_int *);
 typedef cl_program       (CL_API_CALL *OCL_CLCREATEPROGRAMWITHBINARY) (cl_context, cl_uint, const cl_device_id *, const size_t *, const unsigned char **, cl_int *, cl_int *);
 typedef cl_program       (CL_API_CALL *OCL_CLCREATEPROGRAMWITHSOURCE) (cl_context, cl_uint, const char **, const size_t *, cl_int *);
+typedef cl_int           (CL_API_CALL *OCL_CLENQUEUEFILLBUFFER)       (cl_command_queue, cl_mem, const void *, size_t, size_t, size_t, cl_uint, const cl_event *, cl_event *);
 typedef cl_int           (CL_API_CALL *OCL_CLENQUEUECOPYBUFFER)       (cl_command_queue, cl_mem, cl_mem, size_t, size_t, size_t, cl_uint, const cl_event *, cl_event *);
 typedef void *           (CL_API_CALL *OCL_CLENQUEUEMAPBUFFER)        (cl_command_queue, cl_mem, cl_bool, cl_map_flags, size_t, size_t, cl_uint, const cl_event *, cl_event *, cl_int *);
 typedef cl_int           (CL_API_CALL *OCL_CLENQUEUENDRANGEKERNEL)    (cl_command_queue, cl_kernel, cl_uint, const size_t *, const size_t *, const size_t *, cl_uint, const cl_event *, cl_event *);
@@ -70,6 +72,7 @@ typedef cl_int           (CL_API_CALL *OCL_CLRELEASEKERNEL)           (cl_kernel
 typedef cl_int           (CL_API_CALL *OCL_CLRELEASEMEMOBJECT)        (cl_mem);
 typedef cl_int           (CL_API_CALL *OCL_CLRELEASEPROGRAM)          (cl_program);
 typedef cl_int           (CL_API_CALL *OCL_CLSETKERNELARG)            (cl_kernel, cl_uint, size_t, const void *);
+typedef cl_int           (CL_API_CALL *OCL_CLUNLOADPLATFORMCOMPILER)  (cl_platform_id);
 typedef cl_int           (CL_API_CALL *OCL_CLWAITFOREVENTS)           (cl_uint, const cl_event *);
 
 typedef struct hc_opencl_lib
@@ -85,6 +88,7 @@ typedef struct hc_opencl_lib
   OCL_CLCREATEPROGRAMWITHBINARY clCreateProgramWithBinary;
   OCL_CLCREATEPROGRAMWITHSOURCE clCreateProgramWithSource;
   OCL_CLENQUEUECOPYBUFFER       clEnqueueCopyBuffer;
+  OCL_CLENQUEUEFILLBUFFER       clEnqueueFillBuffer;
   OCL_CLENQUEUEMAPBUFFER        clEnqueueMapBuffer;
   OCL_CLENQUEUENDRANGEKERNEL    clEnqueueNDRangeKernel;
   OCL_CLENQUEUEREADBUFFER       clEnqueueReadBuffer;
@@ -109,6 +113,7 @@ typedef struct hc_opencl_lib
   OCL_CLRELEASEMEMOBJECT        clReleaseMemObject;
   OCL_CLRELEASEPROGRAM          clReleaseProgram;
   OCL_CLSETKERNELARG            clSetKernelArg;
+  OCL_CLUNLOADPLATFORMCOMPILER  clUnloadPlatformCompiler;
   OCL_CLWAITFOREVENTS           clWaitForEvents;
 
 } hc_opencl_lib_t;

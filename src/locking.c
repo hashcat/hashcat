@@ -21,7 +21,7 @@ int hc_lockfile (HCFILE *fp)
   lock.l_type = F_WRLCK;
 
   /* Needs this loop because a signal may interrupt a wait for lock */
-  while (fcntl (hc_fileno (fp), F_SETLKW, &lock))
+  while (fcntl (fp->fd, F_SETLKW, &lock))
   {
     if (errno != EINTR) return -1;
   }
@@ -39,7 +39,7 @@ int hc_unlockfile (HCFILE *fp)
 
   lock.l_type = F_UNLCK;
 
-  if (fcntl (hc_fileno (fp), F_SETLK, &lock)) return -1;
+  if (fcntl (fp->fd, F_SETLK, &lock)) return -1;
 
   return 0;
 }

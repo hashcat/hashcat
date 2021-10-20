@@ -18,26 +18,29 @@
 #include "shared.h"
 #include "status.h"
 
-static const char *ST_0000 = "Initializing";
-static const char *ST_0001 = "Autotuning";
-static const char *ST_0002 = "Selftest";
-static const char *ST_0003 = "Running";
-static const char *ST_0004 = "Paused";
-static const char *ST_0005 = "Exhausted";
-static const char *ST_0006 = "Cracked";
-static const char *ST_0007 = "Aborted";
-static const char *ST_0008 = "Quit";
-static const char *ST_0009 = "Bypass";
-static const char *ST_0010 = "Aborted (Checkpoint)";
-static const char *ST_0011 = "Aborted (Runtime)";
-static const char *ST_0012 = "Running (Checkpoint Quit requested)";
-static const char *ST_0013 = "Error";
-static const char *ST_9999 = "Unknown! Bug!";
+static const char *const  ST_0000 = "Initializing";
+static const char *const  ST_0001 = "Autotuning";
+static const char *const  ST_0002 = "Selftest";
+static const char *const  ST_0003 = "Running";
+static const char *const  ST_0004 = "Paused";
+static const char *const  ST_0005 = "Exhausted";
+static const char *const  ST_0006 = "Cracked";
+static const char *const  ST_0007 = "Aborted";
+static const char *const  ST_0008 = "Quit";
+static const char *const  ST_0009 = "Bypass";
+static const char *const  ST_0010 = "Aborted (Checkpoint)";
+static const char *const  ST_0011 = "Aborted (Runtime)";
+static const char *const  ST_0012 = "Running (Checkpoint Quit requested)";
+static const char *const  ST_0013 = "Error";
+static const char *const  ST_0014 = "Aborted (Finish)";
+static const char *const  ST_0015 = "Running (Quit after attack requested)";
+static const char *const  ST_0016 = "Autodetect";
+static const char *const  ST_9999 = "Unknown! Bug!";
 
 static const char UNITS[7] = { ' ', 'k', 'M', 'G', 'T', 'P', 'E' };
 
-static const char *ETA_ABSOLUTE_MAX_EXCEEDED = "Next Big Bang"; // in honor of ighashgpu
-static const char *ETA_RELATIVE_MAX_EXCEEDED = "> 10 years";
+static const char *const  ETA_ABSOLUTE_MAX_EXCEEDED = "Next Big Bang"; // in honor of ighashgpu
+static const char *const  ETA_RELATIVE_MAX_EXCEEDED = "> 10 years";
 
 static char *status_get_rules_file (const hashcat_ctx_t *hashcat_ctx)
 {
@@ -267,6 +270,11 @@ const char *status_get_status_string (const hashcat_ctx_t *hashcat_ctx)
     {
       return ST_0012;
     }
+
+    if (status_ctx->finish_shutdown == true)
+    {
+      return ST_0015;
+    }
   }
 
   switch (devices_status)
@@ -284,6 +292,8 @@ const char *status_get_status_string (const hashcat_ctx_t *hashcat_ctx)
     case STATUS_ABORTED_CHECKPOINT: return ST_0010;
     case STATUS_ABORTED_RUNTIME:    return ST_0011;
     case STATUS_ERROR:              return ST_0013;
+    case STATUS_ABORTED_FINISH:     return ST_0014;
+    case STATUS_AUTODETECT:         return ST_0016;
   }
 
   return ST_9999;
@@ -1251,9 +1261,10 @@ u64 status_get_progress_cur (const hashcat_ctx_t *hashcat_ctx)
 
 u64 status_get_progress_ignore (const hashcat_ctx_t *hashcat_ctx)
 {
-  const hashes_t       *hashes        = hashcat_ctx->hashes;
-  const status_ctx_t   *status_ctx    = hashcat_ctx->status_ctx;
-  const user_options_t *user_options  = hashcat_ctx->user_options;
+  const hashes_t             *hashes             = hashcat_ctx->hashes;
+  const status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
   {
@@ -1263,6 +1274,27 @@ u64 status_get_progress_ignore (const hashcat_ctx_t *hashcat_ctx)
     return 0;
   }
 
+  u64 words_cnt = status_ctx->words_cnt;
+
+  if (user_options->limit)
+  {
+    const combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
+    const mask_ctx_t       *mask_ctx       = hashcat_ctx->mask_ctx;
+    const straight_ctx_t   *straight_ctx   = hashcat_ctx->straight_ctx;
+
+    words_cnt = MIN (user_options->limit, status_ctx->words_base);
+
+    if (user_options->slow_candidates == true)
+    {
+      // nothing to do
+    }
+    else
+    {
+      if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) words_cnt  *= straight_ctx->kernel_rules_cnt;
+      else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)    words_cnt  *= combinator_ctx->combs_cnt;
+      else if (user_options_extra->attack_kern == ATTACK_KERN_BF)       words_cnt  *= mask_ctx->bfs_cnt;
+    }
+  }
   // Important for ETA only
 
   u64 progress_ignore = 0;
@@ -1275,7 +1307,7 @@ u64 status_get_progress_ignore (const hashcat_ctx_t *hashcat_ctx)
                     + status_ctx->words_progress_rejected[salt_pos]
                     + status_ctx->words_progress_restored[salt_pos];
 
-      const u64 left = status_ctx->words_cnt - all;
+      const u64 left = words_cnt - all;
 
       progress_ignore += left;
     }
@@ -1546,7 +1578,7 @@ int status_get_cpt_cur_min (const hashcat_ctx_t *hashcat_ctx)
 
   for (int i = 0; i < CPT_CACHE; i++)
   {
-    const u32       cracked   = cpt_ctx->cpt_buf[i].cracked;
+    const u32    cracked   = cpt_ctx->cpt_buf[i].cracked;
     const time_t timestamp = cpt_ctx->cpt_buf[i].timestamp;
 
     if ((timestamp + 60) > now)
@@ -1571,7 +1603,7 @@ int status_get_cpt_cur_hour (const hashcat_ctx_t *hashcat_ctx)
 
   for (int i = 0; i < CPT_CACHE; i++)
   {
-    const u32       cracked   = cpt_ctx->cpt_buf[i].cracked;
+    const u32    cracked   = cpt_ctx->cpt_buf[i].cracked;
     const time_t timestamp = cpt_ctx->cpt_buf[i].timestamp;
 
     if ((timestamp + 3600) > now)
@@ -1596,7 +1628,7 @@ int status_get_cpt_cur_day (const hashcat_ctx_t *hashcat_ctx)
 
   for (int i = 0; i < CPT_CACHE; i++)
   {
-    const u32       cracked   = cpt_ctx->cpt_buf[i].cracked;
+    const u32    cracked   = cpt_ctx->cpt_buf[i].cracked;
     const time_t timestamp = cpt_ctx->cpt_buf[i].timestamp;
 
     if ((timestamp + 86400) > now)
@@ -1608,37 +1640,58 @@ int status_get_cpt_cur_day (const hashcat_ctx_t *hashcat_ctx)
   return cpt_cur_day;
 }
 
-int status_get_cpt_avg_min (const hashcat_ctx_t *hashcat_ctx)
+double status_get_cpt_avg_min (const hashcat_ctx_t *hashcat_ctx)
 {
   const cpt_ctx_t *cpt_ctx = hashcat_ctx->cpt_ctx;
 
   const double msec_real = status_get_msec_real (hashcat_ctx);
 
-  const double cpt_avg_min = (double) cpt_ctx->cpt_total / ((msec_real / 1000) / 60);
+  const double min_real = (msec_real / 1000) / 60;
 
-  return (int) cpt_avg_min;
+  double cpt_avg_min = 0;
+
+  if (min_real > 1)
+  {
+    cpt_avg_min = (double) cpt_ctx->cpt_total / min_real;
+  }
+
+  return cpt_avg_min;
 }
 
-int status_get_cpt_avg_hour (const hashcat_ctx_t *hashcat_ctx)
+double status_get_cpt_avg_hour (const hashcat_ctx_t *hashcat_ctx)
 {
   const cpt_ctx_t *cpt_ctx = hashcat_ctx->cpt_ctx;
 
   const double msec_real = status_get_msec_real (hashcat_ctx);
 
-  const double cpt_avg_hour = (double) cpt_ctx->cpt_total / ((msec_real / 1000) / 3600);
+  const double hour_real = (msec_real / 1000) / (60 * 60);
 
-  return (int) cpt_avg_hour;
+  double cpt_avg_hour = 0;
+
+  if (hour_real > 1)
+  {
+    cpt_avg_hour = (double) cpt_ctx->cpt_total / hour_real;
+  }
+
+  return cpt_avg_hour;
 }
 
-int status_get_cpt_avg_day (const hashcat_ctx_t *hashcat_ctx)
+double status_get_cpt_avg_day (const hashcat_ctx_t *hashcat_ctx)
 {
   const cpt_ctx_t *cpt_ctx = hashcat_ctx->cpt_ctx;
 
   const double msec_real = status_get_msec_real (hashcat_ctx);
 
-  const double cpt_avg_day = (double) cpt_ctx->cpt_total / ((msec_real / 1000) / 86400);
+  const double day_real = (msec_real / 1000) / (60 * 60 * 24);
 
-  return (int) cpt_avg_day;
+  double cpt_avg_day = 0;
+
+  if (day_real > 1)
+  {
+    cpt_avg_day = (double) cpt_ctx->cpt_total / day_real;
+  }
+
+  return cpt_avg_day;
 }
 
 char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
@@ -1653,13 +1706,13 @@ char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
   const int cpt_cur_hour = status_get_cpt_cur_hour (hashcat_ctx);
   const int cpt_cur_day  = status_get_cpt_cur_day  (hashcat_ctx);
 
-  const int cpt_avg_min  = status_get_cpt_avg_min  (hashcat_ctx);
-  const int cpt_avg_hour = status_get_cpt_avg_hour (hashcat_ctx);
-  const int cpt_avg_day  = status_get_cpt_avg_day  (hashcat_ctx);
+  const double cpt_avg_min  = status_get_cpt_avg_min  (hashcat_ctx);
+  const double cpt_avg_hour = status_get_cpt_avg_hour (hashcat_ctx);
+  const double cpt_avg_day  = status_get_cpt_avg_day  (hashcat_ctx);
 
-  if ((cpt_ctx->cpt_start + 86400) < now)
+  if ((cpt_ctx->cpt_start + (60 * 60 * 24)) < now)
   {
-    hc_asprintf (&cpt, "CUR:%d,%d,%d AVG:%d,%d,%d (Min,Hour,Day)",
+    hc_asprintf (&cpt, "CUR:%d,%d,%d AVG:%.2f,%.2f,%.2f (Min,Hour,Day)",
       cpt_cur_min,
       cpt_cur_hour,
       cpt_cur_day,
@@ -1667,29 +1720,23 @@ char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
       cpt_avg_hour,
       cpt_avg_day);
   }
-  else if ((cpt_ctx->cpt_start + 3600) < now)
+  else if ((cpt_ctx->cpt_start + (60 * 60)) < now)
   {
-    hc_asprintf (&cpt, "CUR:%d,%d,N/A AVG:%d,%d,%d (Min,Hour,Day)",
+    hc_asprintf (&cpt, "CUR:%d,%d,N/A AVG:%.2f,%.2f,N/a (Min,Hour,Day)",
       cpt_cur_min,
       cpt_cur_hour,
       cpt_avg_min,
-      cpt_avg_hour,
-      cpt_avg_day);
+      cpt_avg_hour);
   }
   else if ((cpt_ctx->cpt_start + 60) < now)
   {
-    hc_asprintf (&cpt, "CUR:%d,N/A,N/A AVG:%d,%d,%d (Min,Hour,Day)",
+    hc_asprintf (&cpt, "CUR:%d,N/A,N/A AVG:%.2f,N/A,N/A (Min,Hour,Day)",
       cpt_cur_min,
-      cpt_avg_min,
-      cpt_avg_hour,
-      cpt_avg_day);
+      cpt_avg_min);
   }
   else
   {
-    hc_asprintf (&cpt, "CUR:N/A,N/A,N/A AVG:%d,%d,%d (Min,Hour,Day)",
-      cpt_avg_min,
-      cpt_avg_hour,
-      cpt_avg_day);
+    hc_asprintf (&cpt, "CUR:N/A,N/A,N/A AVG:N/A,N/A,N/A (Min,Hour,Day)");
   }
 
   return cpt;
@@ -1949,6 +1996,23 @@ char *status_get_brain_link_send_bytes_sec_dev (const hashcat_ctx_t *hashcat_ctx
 }
 #endif
 
+#if defined(__APPLE__)
+char *status_get_hwmon_fan_dev (const hashcat_ctx_t *hashcat_ctx)
+{
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  char *fanspeed_str = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+  hc_thread_mutex_lock (status_ctx->mux_hwmon);
+
+  hm_get_fanspeed_apple ((hashcat_ctx_t *) hashcat_ctx, fanspeed_str);
+
+  hc_thread_mutex_unlock (status_ctx->mux_hwmon);
+
+  return fanspeed_str;
+}
+#endif
+
 char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx)
 {
   const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
@@ -2130,6 +2194,8 @@ int status_get_kernel_threads_dev (const hashcat_ctx_t *hashcat_ctx, const int b
 
   if (device_param->skipped_warning == true) return 0;
 
+  if (device_param->kernel_threads_prev) return device_param->kernel_threads_prev;
+
   return device_param->kernel_threads;
 }
 
@@ -2197,6 +2263,7 @@ int status_ctx_init (hashcat_ctx_t *hashcat_ctx)
   status_ctx->shutdown_outer      = false;
 
   status_ctx->checkpoint_shutdown = false;
+  status_ctx->finish_shutdown     = false;
 
   status_ctx->hashcat_status_final = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
 
@@ -2242,6 +2309,10 @@ void status_status_destroy (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashca
   hcfree (hashcat_status->guess_mod);
   hcfree (hashcat_status->guess_charset);
   hcfree (hashcat_status->cpt);
+  #ifdef WITH_BRAIN
+  hcfree (hashcat_status->brain_rx_all);
+  hcfree (hashcat_status->brain_tx_all);
+  #endif
 
   hashcat_status->hash_target             = NULL;
   hashcat_status->hash_name               = NULL;
@@ -2255,6 +2326,10 @@ void status_status_destroy (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashca
   hashcat_status->guess_mod               = NULL;
   hashcat_status->guess_charset           = NULL;
   hashcat_status->cpt                     = NULL;
+  #ifdef WITH_BRAIN
+  hashcat_status->brain_rx_all            = NULL;
+  hashcat_status->brain_tx_all            = NULL;
+  #endif
 
   for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
   {

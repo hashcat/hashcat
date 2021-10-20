@@ -610,11 +610,7 @@ KERNEL_FQ void m22001_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_t))
     s_te4[i] = te4[i];
   }
 
-  #ifdef IS_CUDA
-  __syncthreads();
-  #else
   SYNC_THREADS ();
-  #endif
 
   #else
 

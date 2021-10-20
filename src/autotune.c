@@ -10,7 +10,7 @@
 #include "status.h"
 #include "autotune.h"
 
-static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kernel_accel, const u32 kernel_loops)
+static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kernel_accel, const u32 kernel_loops, const u32 kernel_threads)
 {
   hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   user_options_t *user_options = hashcat_ctx->user_options;
@@ -19,7 +19,9 @@ static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
   device_param->kernel_params_buf32[29] = kernel_loops; // not a bug, both need to be set
   device_param->kernel_params_buf32[30] = kernel_loops; // because there's two variables for inner iters for slow and fast hashes
 
-  u32 kernel_power_try = device_param->hardware_power * kernel_accel;
+  const u32 hardware_power = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE) ? 1 : device_param->device_processors) * kernel_threads;
+
+  u32 kernel_power_try = hardware_power * kernel_accel;
 
   if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
   {
@@ -33,6 +35,10 @@ static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
     }
   }
 
+  const u32 kernel_threads_sav = device_param->kernel_threads;
+
+  device_param->kernel_threads = kernel_threads;
+
   const double spin_damp_sav = device_param->spin_damp;
 
   device_param->spin_damp = 0;
@@ -54,60 +60,47 @@ static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
   }
 
   device_param->spin_damp = spin_damp_sav;
-
-  const double exec_msec_prev = get_avg_exec_time (device_param, 1);
-
-  return exec_msec_prev;
-}
-
-/*
-static double try_run_preferred (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kernel_accel, const u32 kernel_loops)
-{
-  hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
-
-  device_param->kernel_params_buf32[28] = 0;
-  device_param->kernel_params_buf32[29] = kernel_loops; // not a bug, both need to be set
-  device_param->kernel_params_buf32[30] = kernel_loops; // because there's two variables for inner iters for slow and fast hashes
-
-  const u32 kernel_power_try = device_param->hardware_power * kernel_accel;
-
-  const u32 kernel_threads_sav = device_param->kernel_threads;
-
-  const double spin_damp_sav = device_param->spin_damp;
-
-  device_param->spin_damp = 0;
-
-  if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
-  {
-    if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
-    {
-      device_param->kernel_threads = device_param->kernel_preferred_wgs_multiple1;
-
-      run_kernel (hashcat_ctx, device_param, KERN_RUN_1, 0, kernel_power_try, true, 0);
-    }
-    else
-    {
-      device_param->kernel_threads = device_param->kernel_preferred_wgs_multiple4;
-
-      run_kernel (hashcat_ctx, device_param, KERN_RUN_4, 0, kernel_power_try, true, 0);
-    }
-  }
-  else
-  {
-    device_param->kernel_threads = device_param->kernel_preferred_wgs_multiple2;
-
-    run_kernel (hashcat_ctx, device_param, KERN_RUN_2, 0, kernel_power_try, true, 0);
-  }
 
   device_param->kernel_threads = kernel_threads_sav;
 
-  device_param->spin_damp = spin_damp_sav;
-
   const double exec_msec_prev = get_avg_exec_time (device_param, 1);
 
   return exec_msec_prev;
 }
-*/
+
+static double try_run_times (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kernel_accel, const u32 kernel_loops, const u32 kernel_threads, const int times)
+{
+  double exec_msec_best = try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops, kernel_threads);
+
+  for (int i = 1; i < times; i++)
+  {
+    double exec_msec = try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops, kernel_threads);
+
+    if (exec_msec > exec_msec_best) continue;
+
+    exec_msec_best = exec_msec;
+  }
+
+  return exec_msec_best;
+}
+
+static u32 previous_power_of_two (const u32 x)
+{
+  // https://stackoverflow.com/questions/2679815/previous-power-of-2
+  // really cool!
+
+  if (x == 0) return 0;
+
+  u32 r = x;
+
+  r |= (r >>  1);
+  r |= (r >>  2);
+  r |= (r >>  4);
+  r |= (r >>  8);
+  r |= (r >> 16);
+
+  return r - (r >> 1);
+}
 
 static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 {
@@ -124,8 +117,56 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   const u32 kernel_loops_min = device_param->kernel_loops_min;
   const u32 kernel_loops_max = device_param->kernel_loops_max;
 
+  const u32 kernel_threads_min = device_param->kernel_threads_min;
+  const u32 kernel_threads_max = device_param->kernel_threads_max;
+
   u32 kernel_accel = kernel_accel_min;
   u32 kernel_loops = kernel_loops_min;
+
+  // for the threads we take as initial value what we receive from the runtime
+  // but is only to start with something, we will fine tune this value as soon as we have our workload specified
+  // this thread limiting is also performed insinde run_kernel() so we need to redo it here, too
+
+  u32 kernel_wgs = 0;
+  u32 kernel_wgs_multiple = 0;
+
+  if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+  {
+    if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+    {
+      kernel_wgs = device_param->kernel_wgs1;
+
+      kernel_wgs_multiple = device_param->kernel_preferred_wgs_multiple1;
+    }
+    else
+    {
+      kernel_wgs = device_param->kernel_wgs4;
+
+      kernel_wgs_multiple = device_param->kernel_preferred_wgs_multiple4;
+    }
+  }
+  else
+  {
+    kernel_wgs = device_param->kernel_wgs2;
+
+    kernel_wgs_multiple = device_param->kernel_preferred_wgs_multiple2;
+  }
+
+  u32 kernel_threads = kernel_threads_max;
+
+  if ((kernel_wgs >= kernel_threads_min) && (kernel_wgs <= kernel_threads_max))
+  {
+    kernel_threads = kernel_wgs;
+  }
+
+  // having a value power of 2 makes it easier to divide
+
+  const u32 kernel_threads_p2 = previous_power_of_two (kernel_threads);
+
+  if ((kernel_threads_p2 >= kernel_threads_min) && (kernel_threads_p2 <= kernel_threads_max))
+  {
+    kernel_threads = kernel_threads_p2;
+  }
 
   // in this case the user specified a fixed -n and -u on the commandline
   // no way to tune anything
@@ -142,10 +183,10 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     if (hashconfig->warmup_disable == false)
     {
-      try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops);
-      try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops);
-      try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops);
-      try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops);
+      try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops, kernel_threads);
+      try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops, kernel_threads);
+      try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops, kernel_threads);
+      try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops, kernel_threads);
     }
 
     #endif
@@ -155,23 +196,35 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     // from here it's clear we are allowed to autotune
     // so let's init some fake words
 
-    const u32 kernel_power_max = device_param->hardware_power * kernel_accel_max;
+    const u32 hardware_power_max = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE) ? 1 : device_param->device_processors) * kernel_threads_max;
 
-    int CL_rc;
-    int CU_rc;
+    u32 kernel_power_max = hardware_power_max * kernel_accel_max;
+
+    if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+    {
+      hashes_t *hashes = hashcat_ctx->hashes;
+
+      const u32 salts_cnt = hashes->salts_cnt;
+
+      if (kernel_power_max > salts_cnt)
+      {
+        kernel_power_max = salts_cnt;
+      }
+    }
 
     if (device_param->is_cuda == true)
     {
-      CU_rc = run_cuda_kernel_atinit (hashcat_ctx, device_param, device_param->cuda_d_pws_buf, kernel_power_max);
+      if (run_cuda_kernel_atinit (hashcat_ctx, device_param, device_param->cuda_d_pws_buf, kernel_power_max) == -1) return -1;
+    }
 
-      if (CU_rc == -1) return -1;
+    if (device_param->is_hip == true)
+    {
+      if (run_hip_kernel_atinit (hashcat_ctx, device_param, device_param->hip_d_pws_buf, kernel_power_max) == -1) return -1;
     }
 
     if (device_param->is_opencl == true)
     {
-      CL_rc = run_opencl_kernel_atinit (hashcat_ctx, device_param, device_param->opencl_d_pws_buf, kernel_power_max);
-
-      if (CL_rc == -1) return -1;
+      if (run_opencl_kernel_atinit (hashcat_ctx, device_param, device_param->opencl_d_pws_buf, kernel_power_max) == -1) return -1;
     }
 
     if (user_options->slow_candidates == true)
@@ -185,19 +238,44 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
         {
           if (device_param->is_cuda == true)
           {
-            CU_rc = hc_cuMemcpyDtoD (hashcat_ctx, device_param->cuda_d_rules_c, device_param->cuda_d_rules, MIN (kernel_loops_max, KERNEL_RULES) * sizeof (kernel_rule_t));
+            if (hc_cuMemcpyDtoDAsync (hashcat_ctx, device_param->cuda_d_rules_c, device_param->cuda_d_rules, MIN (kernel_loops_max, KERNEL_RULES) * sizeof (kernel_rule_t), device_param->cuda_stream) == -1) return -1;
+          }
 
-            if (CU_rc == -1) return -1;
+          if (device_param->is_hip == true)
+          {
+            if (hc_hipMemcpyDtoDAsync (hashcat_ctx, device_param->hip_d_rules_c, device_param->hip_d_rules, MIN (kernel_loops_max, KERNEL_RULES) * sizeof (kernel_rule_t), device_param->hip_stream) == -1) return -1;
           }
 
           if (device_param->is_opencl == true)
           {
-            CL_rc = hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_rules, device_param->opencl_d_rules_c, 0, 0, MIN (kernel_loops_max, KERNEL_RULES) * sizeof (kernel_rule_t), 0, NULL, NULL);
-
-            if (CL_rc == -1) return -1;
+            if (hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_rules, device_param->opencl_d_rules_c, 0, 0, MIN (kernel_loops_max, KERNEL_RULES) * sizeof (kernel_rule_t), 0, NULL, NULL) == -1) return -1;
           }
         }
       }
+    }
+
+    // we also need to initialize some values using kernels
+
+    if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+    {
+      // nothing to do
+    }
+    else
+    {
+      const u32 kernel_threads_sav = device_param->kernel_threads;
+
+      device_param->kernel_threads = device_param->kernel_wgs1;
+
+      run_kernel (hashcat_ctx, device_param, KERN_RUN_1, 0, kernel_power_max, false, 0);
+
+      if (hashconfig->opts_type & OPTS_TYPE_LOOP_PREPARE)
+      {
+        device_param->kernel_threads = device_param->kernel_wgs2p;
+
+        run_kernel (hashcat_ctx, device_param, KERN_RUN_2P, 0, kernel_power_max, false, 0);
+      }
+
+      device_param->kernel_threads = kernel_threads_sav;
     }
 
     // Do a pre-autotune test run to find out if kernel runtime is above some TDR limit
@@ -206,7 +284,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     if (true)
     {
-      double exec_msec = try_run (hashcat_ctx, device_param, kernel_accel_min, kernel_loops_min);
+      double exec_msec = try_run (hashcat_ctx, device_param, kernel_accel_min, kernel_loops_min, kernel_threads);
 
       if (exec_msec > 2000)
       {
@@ -215,7 +293,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
         return -1;
       }
 
-      exec_msec = try_run (hashcat_ctx, device_param, kernel_accel_min, kernel_loops_min);
+      exec_msec = try_run (hashcat_ctx, device_param, kernel_accel_min, kernel_loops_min, kernel_threads);
 
       const u32 mm = kernel_loops_max / kernel_loops_min;
 
@@ -235,15 +313,15 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
       {
         if (kernel_loops > kernel_loops_max_reduced) continue;
 
-        double exec_msec = try_run (hashcat_ctx, device_param, kernel_accel_min, kernel_loops);
+        double exec_msec = try_run_times (hashcat_ctx, device_param, kernel_accel_min, kernel_loops, kernel_threads, 1);
 
         if (exec_msec < target_msec) break;
       }
     }
 
-    // now the same for kernel-accel but with the new kernel-loops from previous loop set
-
     #define STEPS_CNT 16
+
+    // now the same for kernel-accel but with the new kernel-loops from previous loop set
 
     if (kernel_accel_min < kernel_accel_max)
     {
@@ -254,7 +332,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
         if (kernel_accel_try < kernel_accel_min) continue;
         if (kernel_accel_try > kernel_accel_max) break;
 
-        double exec_msec = try_run (hashcat_ctx, device_param, kernel_accel_try, kernel_loops);
+        double exec_msec = try_run_times (hashcat_ctx, device_param, kernel_accel_try, kernel_loops, kernel_threads, 1);
 
         if (exec_msec > target_msec) break;
 
@@ -270,7 +348,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
       const u32 kernel_accel_orig = kernel_accel;
       const u32 kernel_loops_orig = kernel_loops;
 
-      double exec_msec_prev = try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops);
+      double exec_msec_prev = try_run_times (hashcat_ctx, device_param, kernel_accel, kernel_loops, kernel_threads, 1);
 
       for (int i = 1; i < STEPS_CNT; i++)
       {
@@ -285,7 +363,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
         // do a real test
 
-        const double exec_msec = try_run (hashcat_ctx, device_param, kernel_accel_try, kernel_loops_try);
+        const double exec_msec = try_run_times (hashcat_ctx, device_param, kernel_accel_try, kernel_loops_try, kernel_threads, 1);
 
         if (exec_msec_prev < exec_msec) break;
 
@@ -302,7 +380,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
       }
     }
 
-    double exec_msec_pre_final = try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops);
+    double exec_msec_pre_final = try_run_times (hashcat_ctx, device_param, kernel_accel, kernel_loops, kernel_threads, 1);
 
     const u32 exec_left = (const u32) (target_msec / exec_msec_pre_final);
 
@@ -317,46 +395,43 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
       kernel_accel *= exec_accel_min;
     }
 
-    // start finding best thread count is easier.
-    // it's either the preferred or the maximum thread count
+    // v6.2.4 new section: find thread count
+    // This is not as effective as it could be because of inaccurate kernel return timers
+    // But is better than fixed values
+    // Timers in this section are critical, so we rerun meassurements 3 times
 
-    /*
-    const u32 kernel_threads_min = device_param->kernel_threads_min;
-    const u32 kernel_threads_max = device_param->kernel_threads_max;
-
-    if (kernel_threads_min < kernel_threads_max)
+    if (kernel_threads_max > kernel_threads_min)
     {
-      const double exec_msec_max = try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops);
+      const u32 kernel_accel_orig   = kernel_accel;
+      const u32 kernel_threads_orig = kernel_threads;
 
-      u32 preferred_threads = 0;
+      double exec_msec_prev = try_run_times (hashcat_ctx, device_param, kernel_accel, kernel_loops, kernel_threads, 3);
 
-      if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+      for (int i = 1; i < STEPS_CNT; i++)
       {
-        if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
-        {
-          preferred_threads = device_param->kernel_preferred_wgs_multiple1;
-        }
-        else
-        {
-          preferred_threads = device_param->kernel_preferred_wgs_multiple4;
-        }
-      }
-      else
-      {
-        preferred_threads = device_param->kernel_preferred_wgs_multiple2;
-      }
+        const u32 kernel_accel_try   = kernel_accel_orig   * (1U << i);
+        const u32 kernel_threads_try = kernel_threads_orig / (1U << i);
 
-      if ((preferred_threads >= kernel_threads_min) && (preferred_threads <= kernel_threads_max))
-      {
-        const double exec_msec_preferred = try_run_preferred (hashcat_ctx, device_param, kernel_accel, kernel_loops);
+        // since we do not modify total amount of workitems, we can (and need) to do increase kernel_accel_max
 
-        if (exec_msec_preferred < exec_msec_max)
-        {
-          device_param->kernel_threads = preferred_threads;
-        }
+        const u32 kernel_accel_max_try = kernel_accel_max * (1U << i);
+
+        if (kernel_accel_try > kernel_accel_max_try) break;
+
+        if (kernel_threads_try < kernel_threads_min) break;
+
+        if (kernel_threads_try % kernel_wgs_multiple) break; // this would just be waste of time
+
+        double exec_msec = try_run_times (hashcat_ctx, device_param, kernel_accel_try, kernel_loops, kernel_threads_try, 3);
+
+        if (exec_msec > exec_msec_prev) continue;
+
+        exec_msec_prev = exec_msec;
+
+        kernel_accel   = kernel_accel_try;
+        kernel_threads = kernel_threads_try;
       }
     }
-    */
   }
 
   // reset them fake words
@@ -364,44 +439,43 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   if (device_param->is_cuda == true)
   {
-    int CU_rc;
+    if (run_cuda_kernel_bzero (hashcat_ctx, device_param, device_param->cuda_d_pws_buf, device_param->size_pws) == -1) return -1;
 
-    CU_rc = run_cuda_kernel_memset (hashcat_ctx, device_param, device_param->cuda_d_pws_buf, 0, device_param->size_pws);
+    if (run_cuda_kernel_bzero (hashcat_ctx, device_param, device_param->cuda_d_plain_bufs, device_param->size_plains) == -1) return -1;
 
-    if (CU_rc == -1) return -1;
+    if (run_cuda_kernel_bzero (hashcat_ctx, device_param, device_param->cuda_d_digests_shown, device_param->size_shown) == -1) return -1;
 
-    CU_rc = run_cuda_kernel_memset (hashcat_ctx, device_param, device_param->cuda_d_plain_bufs, 0, device_param->size_plains);
+    if (run_cuda_kernel_bzero (hashcat_ctx, device_param, device_param->cuda_d_result, device_param->size_results) == -1) return -1;
 
-    if (CU_rc == -1) return -1;
+    if (run_cuda_kernel_bzero (hashcat_ctx, device_param, device_param->cuda_d_tmps, device_param->size_tmps) == -1) return -1;
+  }
 
-    CU_rc = run_cuda_kernel_memset (hashcat_ctx, device_param, device_param->cuda_d_digests_shown, 0, device_param->size_shown);
+  if (device_param->is_hip == true)
+  {
+    if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_pws_buf, device_param->size_pws) == -1) return -1;
 
-    if (CU_rc == -1) return -1;
+    if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_plain_bufs, device_param->size_plains) == -1) return -1;
 
-    CU_rc = run_cuda_kernel_memset (hashcat_ctx, device_param, device_param->cuda_d_result, 0, device_param->size_results);
+    if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_digests_shown, device_param->size_shown) == -1) return -1;
 
-    if (CU_rc == -1) return -1;
+    if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_result, device_param->size_results) == -1) return -1;
+
+    if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_tmps, device_param->size_tmps) == -1) return -1;
   }
 
   if (device_param->is_opencl == true)
   {
-    int CL_rc;
+    if (run_opencl_kernel_bzero (hashcat_ctx, device_param, device_param->opencl_d_pws_buf, device_param->size_pws) == -1) return -1;
 
-    CL_rc = run_opencl_kernel_memset (hashcat_ctx, device_param, device_param->opencl_d_pws_buf, 0, device_param->size_pws);
+    if (run_opencl_kernel_bzero (hashcat_ctx, device_param, device_param->opencl_d_plain_bufs, device_param->size_plains) == -1) return -1;
 
-    if (CL_rc == -1) return -1;
+    if (run_opencl_kernel_bzero (hashcat_ctx, device_param, device_param->opencl_d_digests_shown, device_param->size_shown) == -1) return -1;
 
-    CL_rc = run_opencl_kernel_memset (hashcat_ctx, device_param, device_param->opencl_d_plain_bufs, 0, device_param->size_plains);
+    if (run_opencl_kernel_bzero (hashcat_ctx, device_param, device_param->opencl_d_result, device_param->size_results) == -1) return -1;
 
-    if (CL_rc == -1) return -1;
+    if (run_opencl_kernel_bzero (hashcat_ctx, device_param, device_param->opencl_d_tmps, device_param->size_tmps) == -1) return -1;
 
-    CL_rc = run_opencl_kernel_memset (hashcat_ctx, device_param, device_param->opencl_d_digests_shown, 0, device_param->size_shown);
-
-    if (CL_rc == -1) return -1;
-
-    CL_rc = run_opencl_kernel_memset (hashcat_ctx, device_param, device_param->opencl_d_result, 0, device_param->size_results);
-
-    if (CL_rc == -1) return -1;
+    if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
   }
 
   // reset timer
@@ -423,8 +497,13 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   // store
 
-  device_param->kernel_accel = kernel_accel;
-  device_param->kernel_loops = kernel_loops;
+  device_param->kernel_accel   = kernel_accel;
+  device_param->kernel_loops   = kernel_loops;
+  device_param->kernel_threads = kernel_threads;
+
+  const u32 hardware_power = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE) ? 1 : device_param->device_processors) * device_param->kernel_threads;
+
+  device_param->hardware_power = hardware_power;
 
   const u32 kernel_power = device_param->hardware_power * device_param->kernel_accel;
 
@@ -451,9 +530,12 @@ HC_API_CALL void *thread_autotune (void *p)
 
   if (device_param->is_cuda == true)
   {
-    const int rc_cuCtxSetCurrent = hc_cuCtxSetCurrent (hashcat_ctx, device_param->cuda_context);
+    if (hc_cuCtxPushCurrent (hashcat_ctx, device_param->cuda_context) == -1) return NULL;
+  }
 
-    if (rc_cuCtxSetCurrent == -1) return NULL;
+  if (device_param->is_hip == true)
+  {
+    if (hc_hipCtxPushCurrent (hashcat_ctx, device_param->hip_context) == -1) return NULL;
   }
 
   const int rc_autotune = autotune (hashcat_ctx, device_param);
@@ -461,6 +543,16 @@ HC_API_CALL void *thread_autotune (void *p)
   if (rc_autotune == -1)
   {
     // we should do something here, tell hashcat main that autotune failed to abort
+  }
+
+  if (device_param->is_cuda == true)
+  {
+    if (hc_cuCtxPopCurrent (hashcat_ctx, &device_param->cuda_context) == -1) return NULL;
+  }
+
+  if (device_param->is_hip == true)
+  {
+    if (hc_hipCtxPopCurrent (hashcat_ctx, &device_param->hip_context) == -1) return NULL;
   }
 
   return NULL;

@@ -11,7 +11,7 @@
 #include "shared.h"
 #include "tuningdb.h"
 
-static int sort_by_tuning_db_alias (const void *v1, const void *v2)
+int sort_by_tuning_db_alias (const void *v1, const void *v2)
 {
   const tuning_db_alias_t *t1 = (const tuning_db_alias_t *) v1;
   const tuning_db_alias_t *t2 = (const tuning_db_alias_t *) v2;
@@ -23,7 +23,7 @@ static int sort_by_tuning_db_alias (const void *v1, const void *v2)
   return 0;
 }
 
-static int sort_by_tuning_db_entry (const void *v1, const void *v2)
+int sort_by_tuning_db_entry (const void *v1, const void *v2)
 {
   const tuning_db_entry_t *t1 = (const tuning_db_entry_t *) v1;
   const tuning_db_entry_t *t2 = (const tuning_db_entry_t *) v2;
@@ -47,20 +47,20 @@ static int sort_by_tuning_db_entry (const void *v1, const void *v2)
 
 int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 {
-  folder_config_t       *folder_config      = hashcat_ctx->folder_config;
-  tuning_db_t           *tuning_db          = hashcat_ctx->tuning_db;
-  user_options_t        *user_options       = hashcat_ctx->user_options;
-  user_options_extra_t  *user_options_extra = hashcat_ctx->user_options_extra;
+  folder_config_t *folder_config  = hashcat_ctx->folder_config;
+  tuning_db_t     *tuning_db      = hashcat_ctx->tuning_db;
+  user_options_t  *user_options   = hashcat_ctx->user_options;
 
   tuning_db->enabled = false;
 
-  if (user_options->hash_info      == true) return 0;
-  if (user_options->keyspace       == true) return 0;
-  if (user_options->left           == true) return 0;
-  if (user_options->backend_info   == true) return 0;
-  if (user_options->show           == true) return 0;
-  if (user_options->usage          == true) return 0;
-  if (user_options->version        == true) return 0;
+  if (user_options->hash_info     == true) return 0;
+  if (user_options->keyspace      == true) return 0;
+  if (user_options->left          == true) return 0;
+  if (user_options->backend_info  == true) return 0;
+  if (user_options->show          == true) return 0;
+  if (user_options->usage         == true) return 0;
+  if (user_options->version       == true) return 0;
+  if (user_options->identify      == true) return 0;
 
   tuning_db->enabled = true;
 
@@ -78,18 +78,6 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
   }
 
   hcfree (tuning_db_file);
-
-  const size_t num_lines = count_lines (&fp);
-
-  // a bit over-allocated
-
-  tuning_db->alias_buf = (tuning_db_alias_t *) hccalloc (num_lines + 1, sizeof (tuning_db_alias_t));
-  tuning_db->alias_cnt = 0;
-
-  tuning_db->entry_buf = (tuning_db_entry_t *) hccalloc (num_lines + 1, sizeof (tuning_db_entry_t));
-  tuning_db->entry_cnt = 0;
-
-  hc_rewind (&fp);
 
   int line_num = 0;
 
@@ -109,168 +97,7 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 
     if (line_buf[0] == '#') continue;
 
-    // start processing
-
-    char *token_ptr[7] = { NULL };
-
-    int token_cnt = 0;
-
-    char *saveptr = NULL;
-
-    char *next = strtok_r (line_buf, "\t ", &saveptr);
-
-    token_ptr[token_cnt] = next;
-
-    token_cnt++;
-
-    while ((next = strtok_r ((char *) NULL, "\t ", &saveptr)) != NULL)
-    {
-      token_ptr[token_cnt] = next;
-
-      token_cnt++;
-    }
-
-    if (token_cnt == 2)
-    {
-      char *device_name = token_ptr[0];
-      char *alias_name  = token_ptr[1];
-
-      tuning_db_alias_t *alias = &tuning_db->alias_buf[tuning_db->alias_cnt];
-
-      alias->device_name = hcstrdup (device_name);
-      alias->alias_name  = hcstrdup (alias_name);
-
-      tuning_db->alias_cnt++;
-    }
-    else if (token_cnt == 6)
-    {
-      if ((token_ptr[1][0] != '0') &&
-          (token_ptr[1][0] != '1') &&
-          (token_ptr[1][0] != '3') &&
-          (token_ptr[1][0] != '9') &&
-          (token_ptr[1][0] != '*'))
-      {
-        event_log_warning (hashcat_ctx, "Tuning-db: Invalid attack_mode '%c' in Line '%d'", token_ptr[1][0], line_num);
-
-        continue;
-      }
-
-      if ((token_ptr[3][0] != '1') &&
-          (token_ptr[3][0] != '2') &&
-          (token_ptr[3][0] != '4') &&
-          (token_ptr[3][0] != '8') &&
-          (token_ptr[3][0] != 'N'))
-      {
-        event_log_warning (hashcat_ctx, "Tuning-db: Invalid vector_width '%c' in Line '%d'", token_ptr[3][0], line_num);
-
-        continue;
-      }
-
-      char *device_name = token_ptr[0];
-
-      int attack_mode      = -1;
-      int hash_mode        = -1;
-      int vector_width     = -1;
-      int kernel_accel     = -1;
-      int kernel_loops     = -1;
-
-      if (token_ptr[1][0] != '*') attack_mode   = (int) strtol (token_ptr[1], NULL, 10);
-      if (token_ptr[2][0] != '*') hash_mode     = (int) strtol (token_ptr[2], NULL, 10);
-      if (token_ptr[3][0] != 'N') vector_width  = (int) strtol (token_ptr[3], NULL, 10);
-
-      if (token_ptr[4][0] == 'A')
-      {
-        kernel_accel = 0;
-      }
-      else if (token_ptr[4][0] == 'M')
-      {
-        kernel_accel = 1024;
-      }
-      else if (token_ptr[4][0] == 'N')
-      {
-        kernel_accel = -1;
-      }
-      else
-      {
-        kernel_accel = (int) strtol (token_ptr[4], NULL, 10);
-
-        if ((kernel_accel < 1) || (kernel_accel > 1024))
-        {
-          event_log_warning (hashcat_ctx, "Tuning-db: Invalid kernel_accel '%d' in Line '%d'", kernel_accel, line_num);
-
-          continue;
-        }
-      }
-
-      if (token_ptr[5][0] == 'A')
-      {
-        kernel_loops = 0;
-      }
-      else if (token_ptr[5][0] == 'M')
-      {
-        if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
-        {
-          kernel_loops = KERNEL_RULES;
-        }
-        else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
-        {
-          kernel_loops = KERNEL_COMBS;
-        }
-        else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
-        {
-          kernel_loops = KERNEL_BFS;
-        }
-      }
-      else
-      {
-        kernel_loops = (int) strtol (token_ptr[5], NULL, 10);
-
-        if (kernel_loops < 1)
-        {
-          event_log_warning (hashcat_ctx, "Tuning-db: Invalid kernel_loops '%d' in Line '%d'", kernel_loops, line_num);
-
-          continue;
-        }
-
-        if ((user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) && (kernel_loops > KERNEL_RULES))
-        {
-          event_log_warning (hashcat_ctx, "Tuning-db: Invalid kernel_loops '%d' in Line '%d'", kernel_loops, line_num);
-
-          continue;
-        }
-
-        if ((user_options_extra->attack_kern == ATTACK_KERN_COMBI) && (kernel_loops > KERNEL_COMBS))
-        {
-          event_log_warning (hashcat_ctx, "Tuning-db: Invalid kernel_loops '%d' in Line '%d'", kernel_loops, line_num);
-
-          continue;
-        }
-
-        if ((user_options_extra->attack_kern == ATTACK_KERN_BF) && (kernel_loops > KERNEL_BFS))
-        {
-          event_log_warning (hashcat_ctx, "Tuning-db: Invalid kernel_loops '%d' in Line '%d'", kernel_loops, line_num);
-
-          continue;
-        }
-      }
-
-      tuning_db_entry_t *entry = &tuning_db->entry_buf[tuning_db->entry_cnt];
-
-      entry->device_name  = hcstrdup (device_name);
-      entry->attack_mode  = attack_mode;
-      entry->hash_mode    = hash_mode;
-      entry->vector_width = vector_width;
-      entry->kernel_accel = kernel_accel;
-      entry->kernel_loops = kernel_loops;
-
-      tuning_db->entry_cnt++;
-    }
-    else
-    {
-      event_log_warning (hashcat_ctx, "Tuning-db: Invalid number of token in Line '%d'", line_num);
-
-      continue;
-    }
+    tuning_db_process_line (hashcat_ctx, line_buf, line_num);
   }
 
   hcfree (buf);
@@ -314,6 +141,209 @@ void tuning_db_destroy (hashcat_ctx_t *hashcat_ctx)
   hcfree (tuning_db->entry_buf);
 
   memset (tuning_db, 0, sizeof (tuning_db_t));
+}
+
+bool tuning_db_process_line (hashcat_ctx_t *hashcat_ctx, const char *line_buf, const int line_num)
+{
+  tuning_db_t           *tuning_db          = hashcat_ctx->tuning_db;
+  user_options_extra_t  *user_options_extra = hashcat_ctx->user_options_extra;
+
+  #define ADD_DB_ENTRIES 1
+
+  if (tuning_db->alias_cnt == tuning_db->alias_alloc)
+  {
+    tuning_db->alias_buf    = (tuning_db_alias_t *) hcrealloc (tuning_db->alias_buf, tuning_db->alias_alloc * sizeof (tuning_db_alias_t), ADD_DB_ENTRIES * sizeof (tuning_db_alias_t));
+    tuning_db->alias_alloc += ADD_DB_ENTRIES;
+  }
+
+  if (tuning_db->entry_cnt == tuning_db->entry_alloc)
+  {
+    tuning_db->entry_buf    = (tuning_db_entry_t *) hcrealloc (tuning_db->entry_buf, tuning_db->entry_alloc * sizeof (tuning_db_entry_t), ADD_DB_ENTRIES * sizeof (tuning_db_entry_t));
+    tuning_db->entry_alloc += ADD_DB_ENTRIES;
+  }
+
+  char *buf = hcstrdup (line_buf);
+
+  char *token_ptr[7] = { NULL };
+
+  int token_cnt = 0;
+
+  char *saveptr = NULL;
+
+  char *next = strtok_r (buf, "\t ", &saveptr);
+
+  token_ptr[token_cnt] = next;
+
+  token_cnt++;
+
+  while ((next = strtok_r ((char *) NULL, "\t ", &saveptr)) != NULL)
+  {
+    token_ptr[token_cnt] = next;
+
+    token_cnt++;
+  }
+
+  if (token_cnt == 2)
+  {
+    char *device_name = token_ptr[0];
+    char *alias_name  = token_ptr[1];
+
+    tuning_db_alias_t *alias = &tuning_db->alias_buf[tuning_db->alias_cnt];
+
+    alias->device_name = hcstrdup (device_name);
+    alias->alias_name  = hcstrdup (alias_name);
+
+    tuning_db->alias_cnt++;
+  }
+  else if (token_cnt == 6)
+  {
+    if ((token_ptr[1][0] != '0') &&
+        (token_ptr[1][0] != '1') &&
+        (token_ptr[1][0] != '3') &&
+        (token_ptr[1][0] != '9') &&
+        (token_ptr[1][0] != '*'))
+    {
+      event_log_warning (hashcat_ctx, "Tuning-db: Invalid attack_mode '%c' in Line '%d'", token_ptr[1][0], line_num);
+
+      hcfree (buf);
+
+      return false;
+    }
+
+    if ((token_ptr[3][0] != '1') &&
+        (token_ptr[3][0] != '2') &&
+        (token_ptr[3][0] != '4') &&
+        (token_ptr[3][0] != '8') &&
+        (token_ptr[3][0] != 'N'))
+    {
+      event_log_warning (hashcat_ctx, "Tuning-db: Invalid vector_width '%c' in Line '%d'", token_ptr[3][0], line_num);
+
+      hcfree (buf);
+
+      return false;
+    }
+
+    char *device_name = token_ptr[0];
+
+    int attack_mode      = -1;
+    int hash_mode        = -1;
+    int vector_width     = -1;
+    int kernel_accel     = -1;
+    int kernel_loops     = -1;
+
+    if (token_ptr[1][0] != '*') attack_mode   = (int) strtol (token_ptr[1], NULL, 10);
+    if (token_ptr[2][0] != '*') hash_mode     = (int) strtol (token_ptr[2], NULL, 10);
+    if (token_ptr[3][0] != 'N') vector_width  = (int) strtol (token_ptr[3], NULL, 10);
+
+    if (token_ptr[4][0] == 'A')
+    {
+      kernel_accel = 0;
+    }
+    else if (token_ptr[4][0] == 'M')
+    {
+      kernel_accel = 1024;
+    }
+    else if (token_ptr[4][0] == 'N')
+    {
+      kernel_accel = -1;
+    }
+    else
+    {
+      kernel_accel = (int) strtol (token_ptr[4], NULL, 10);
+
+      if ((kernel_accel < 1) || (kernel_accel > 1024))
+      {
+        event_log_warning (hashcat_ctx, "Tuning-db: Invalid kernel_accel '%d' in Line '%d'", kernel_accel, line_num);
+
+        hcfree (buf);
+
+        return false;
+      }
+    }
+
+    if (token_ptr[5][0] == 'A')
+    {
+      kernel_loops = 0;
+    }
+    else if (token_ptr[5][0] == 'M')
+    {
+      if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
+      {
+        kernel_loops = KERNEL_RULES;
+      }
+      else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
+      {
+        kernel_loops = KERNEL_COMBS;
+      }
+      else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
+      {
+        kernel_loops = KERNEL_BFS;
+      }
+    }
+    else
+    {
+      kernel_loops = (int) strtol (token_ptr[5], NULL, 10);
+
+      if (kernel_loops < 1)
+      {
+        event_log_warning (hashcat_ctx, "Tuning-db: Invalid kernel_loops '%d' in Line '%d'", kernel_loops, line_num);
+
+        hcfree (buf);
+
+        return false;
+      }
+
+      if ((user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) && (kernel_loops > KERNEL_RULES))
+      {
+        event_log_warning (hashcat_ctx, "Tuning-db: Invalid kernel_loops '%d' in Line '%d'", kernel_loops, line_num);
+
+        hcfree (buf);
+
+        return false;
+      }
+
+      if ((user_options_extra->attack_kern == ATTACK_KERN_COMBI) && (kernel_loops > KERNEL_COMBS))
+      {
+        event_log_warning (hashcat_ctx, "Tuning-db: Invalid kernel_loops '%d' in Line '%d'", kernel_loops, line_num);
+
+        hcfree (buf);
+
+        return false;
+      }
+
+      if ((user_options_extra->attack_kern == ATTACK_KERN_BF) && (kernel_loops > KERNEL_BFS))
+      {
+        event_log_warning (hashcat_ctx, "Tuning-db: Invalid kernel_loops '%d' in Line '%d'", kernel_loops, line_num);
+
+        hcfree (buf);
+
+        return false;
+      }
+    }
+
+    tuning_db_entry_t *entry = &tuning_db->entry_buf[tuning_db->entry_cnt];
+
+    entry->device_name  = hcstrdup (device_name);
+    entry->attack_mode  = attack_mode;
+    entry->hash_mode    = hash_mode;
+    entry->vector_width = vector_width;
+    entry->kernel_accel = kernel_accel;
+    entry->kernel_loops = kernel_loops;
+
+    tuning_db->entry_cnt++;
+  }
+  else
+  {
+    event_log_warning (hashcat_ctx, "Tuning-db: Invalid number of token in Line '%d'", line_num);
+
+    hcfree (buf);
+
+    return false;
+  }
+
+  hcfree (buf);
+
+  return true;
 }
 
 tuning_db_entry_t *tuning_db_search_real (hashcat_ctx_t *hashcat_ctx, const char *device_name, const cl_device_type device_type, int attack_mode, const int hash_mode)
@@ -434,9 +464,18 @@ tuning_db_entry_t *tuning_db_search (hashcat_ctx_t *hashcat_ctx, const char *dev
 
   const char *NV_prefix = (const char *) "NVIDIA ";
 
-  if (memcmp (device_name, NV_prefix, strlen (NV_prefix)) == 0)
+  if (strncmp (device_name, NV_prefix, strlen (NV_prefix)) == 0)
   {
     entry = tuning_db_search_real (hashcat_ctx, device_name + strlen (NV_prefix), device_type, attack_mode, hash_mode);
+
+    if (entry) return entry;
+  }
+
+  const char *AMD_prefix = (const char *) "AMD ";
+
+  if (strncmp (device_name, AMD_prefix, strlen (AMD_prefix)) == 0)
+  {
+    entry = tuning_db_search_real (hashcat_ctx, device_name + strlen (AMD_prefix), device_type, attack_mode, hash_mode);
 
     if (entry) return entry;
   }

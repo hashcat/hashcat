@@ -31,7 +31,7 @@ DECLSPEC void memcat16 (u32 *block0, u32 *block1, u32 *block2, u32 *block3, cons
   u32 tmp3;
   u32 tmp4;
 
-  #if defined IS_AMD || defined IS_GENERIC
+  #if ((defined IS_AMD || defined IS_HIP) && HAS_VPERM == 0) || defined IS_GENERIC
   u32 in0 = append[0];
   u32 in1 = append[1];
   u32 in2 = append[2];
@@ -44,12 +44,18 @@ DECLSPEC void memcat16 (u32 *block0, u32 *block1, u32 *block2, u32 *block3, cons
   tmp4 = hc_bytealign (in3,   0, offset);
   #endif
 
-  #ifdef IS_NV
+  #if ((defined IS_AMD || defined IS_HIP) && HAS_VPERM == 1) || defined IS_NV
   const int offset_mod_4 = offset & 3;
 
   const int offset_minus_4 = 4 - offset_mod_4;
 
+  #if defined IS_NV
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
+  #endif
+
+  #if (defined IS_AMD || defined IS_HIP)
+  const int selector = l32_from_64_S (0x0706050403020100UL >> (offset_minus_4 * 8));
+  #endif
 
   u32 in0 = append[0];
   u32 in1 = append[1];
@@ -138,7 +144,7 @@ DECLSPEC void memcat16_x80 (u32 *block0, u32 *block1, u32 *block2, u32 *block3, 
   u32 tmp3;
   u32 tmp4;
 
-  #if defined IS_AMD || defined IS_GENERIC
+  #if ((defined IS_AMD || defined IS_HIP) && HAS_VPERM == 0) || defined IS_GENERIC
   u32 in0 = append[0];
   u32 in1 = append[1];
   u32 in2 = append[2];
@@ -152,12 +158,18 @@ DECLSPEC void memcat16_x80 (u32 *block0, u32 *block1, u32 *block2, u32 *block3, 
   tmp4 = hc_bytealign (in3, in4, offset);
   #endif
 
-  #ifdef IS_NV
+  #if ((defined IS_AMD || defined IS_HIP) && HAS_VPERM == 1) || defined IS_NV
   const int offset_mod_4 = offset & 3;
 
   const int offset_minus_4 = 4 - offset_mod_4;
 
+  #if defined IS_NV
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
+  #endif
+
+  #if (defined IS_AMD || defined IS_HIP)
+  const int selector = l32_from_64_S (0x0706050403020100UL >> (offset_minus_4 * 8));
+  #endif
 
   u32 in0 = append[0];
   u32 in1 = append[1];
@@ -245,7 +257,7 @@ DECLSPEC void memcat8 (u32 *block0, u32 *block1, u32 *block2, u32 *block3, const
   u32 tmp1;
   u32 tmp2;
 
-  #if defined IS_AMD || defined IS_GENERIC
+  #if ((defined IS_AMD || defined IS_HIP) && HAS_VPERM == 0) || defined IS_GENERIC
   u32 in0 = append[0];
   u32 in1 = append[1];
 
@@ -254,12 +266,18 @@ DECLSPEC void memcat8 (u32 *block0, u32 *block1, u32 *block2, u32 *block3, const
   tmp2 = hc_bytealign (in1,   0, offset);
   #endif
 
-  #ifdef IS_NV
+  #if ((defined IS_AMD || defined IS_HIP) && HAS_VPERM == 1) || defined IS_NV
   const int offset_mod_4 = offset & 3;
 
   const int offset_minus_4 = 4 - offset_mod_4;
 
+  #if defined IS_NV
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
+  #endif
+
+  #if (defined IS_AMD || defined IS_HIP)
+  const int selector = l32_from_64_S (0x0706050403020100UL >> (offset_minus_4 * 8));
+  #endif
 
   u32 in0 = append[0];
   u32 in1 = append[1];

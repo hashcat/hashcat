@@ -19,7 +19,7 @@
 #define KXX_DECL
 #endif
 
-#ifdef IS_AMD
+#if (defined IS_AMD || defined IS_HIP)
 #define KXX_DECL
 #endif
 
@@ -896,7 +896,7 @@ DECLSPEC void s8 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const 
 #endif
 #endif
 
-#if defined IS_AMD || defined IS_GENERIC
+#if (defined IS_AMD || defined IS_HIP) || defined IS_GENERIC
 
 /*
  * Bitslice DES S-boxes for x86 with MMX/SSE2/AVX and for typical RISC
@@ -1664,18 +1664,18 @@ DECLSPEC void DESCrypt (const u32 SALT, const u32 K00, const u32 K01, const u32 
 
 DECLSPEC void DESCrypt (const u32 SALT, const u32 K00, const u32 K01, const u32 K02, const u32 K03, const u32 K04, const u32 K05, const u32 K06, const u32 K07, const u32 K08, const u32 K09, const u32 K10, const u32 K11, const u32 K12, const u32 K13, const u32 K14, const u32 K15, const u32 K16, const u32 K17, const u32 K18, const u32 K19, const u32 K20, const u32 K21, const u32 K22, const u32 K23, const u32 K24, const u32 K25, const u32 K26, const u32 K27, const u32 K28, const u32 K29, const u32 K30, const u32 K31, const u32 K32, const u32 K33, const u32 K34, const u32 K35, const u32 K36, const u32 K37, const u32 K38, const u32 K39, const u32 K40, const u32 K41, const u32 K42, const u32 K43, const u32 K44, const u32 K45, const u32 K46, const u32 K47, const u32 K48, const u32 K49, const u32 K50, const u32 K51, const u32 K52, const u32 K53, const u32 K54, const u32 K55, u32 *D00, u32 *D01, u32 *D02, u32 *D03, u32 *D04, u32 *D05, u32 *D06, u32 *D07, u32 *D08, u32 *D09, u32 *D10, u32 *D11, u32 *D12, u32 *D13, u32 *D14, u32 *D15, u32 *D16, u32 *D17, u32 *D18, u32 *D19, u32 *D20, u32 *D21, u32 *D22, u32 *D23, u32 *D24, u32 *D25, u32 *D26, u32 *D27, u32 *D28, u32 *D29, u32 *D30, u32 *D31, u32 *D32, u32 *D33, u32 *D34, u32 *D35, u32 *D36, u32 *D37, u32 *D38, u32 *D39, u32 *D40, u32 *D41, u32 *D42, u32 *D43, u32 *D44, u32 *D45, u32 *D46, u32 *D47, u32 *D48, u32 *D49, u32 *D50, u32 *D51, u32 *D52, u32 *D53, u32 *D54, u32 *D55, u32 *D56, u32 *D57, u32 *D58, u32 *D59, u32 *D60, u32 *D61, u32 *D62, u32 *D63)
 {
-  const u32 s001 = (0x001 & SALT) ? 0xffffffff : 0;
-  const u32 s002 = (0x002 & SALT) ? 0xffffffff : 0;
-  const u32 s004 = (0x004 & SALT) ? 0xffffffff : 0;
-  const u32 s008 = (0x008 & SALT) ? 0xffffffff : 0;
-  const u32 s010 = (0x010 & SALT) ? 0xffffffff : 0;
-  const u32 s020 = (0x020 & SALT) ? 0xffffffff : 0;
-  const u32 s040 = (0x040 & SALT) ? 0xffffffff : 0;
-  const u32 s080 = (0x080 & SALT) ? 0xffffffff : 0;
-  const u32 s100 = (0x100 & SALT) ? 0xffffffff : 0;
-  const u32 s200 = (0x200 & SALT) ? 0xffffffff : 0;
-  const u32 s400 = (0x400 & SALT) ? 0xffffffff : 0;
-  const u32 s800 = (0x800 & SALT) ? 0xffffffff : 0;
+  const u32 s001 = (0x001 & SALT) ? 1 : 0;
+  const u32 s002 = (0x002 & SALT) ? 1 : 0;
+  const u32 s004 = (0x004 & SALT) ? 1 : 0;
+  const u32 s008 = (0x008 & SALT) ? 1 : 0;
+  const u32 s010 = (0x010 & SALT) ? 1 : 0;
+  const u32 s020 = (0x020 & SALT) ? 1 : 0;
+  const u32 s040 = (0x040 & SALT) ? 1 : 0;
+  const u32 s080 = (0x080 & SALT) ? 1 : 0;
+  const u32 s100 = (0x100 & SALT) ? 1 : 0;
+  const u32 s200 = (0x200 & SALT) ? 1 : 0;
+  const u32 s400 = (0x400 & SALT) ? 1 : 0;
+  const u32 s800 = (0x800 & SALT) ? 1 : 0;
 
   KXX_DECL u32 k00, k01, k02, k03, k04, k05;
   KXX_DECL u32 k06, k07, k08, k09, k10, k11;
@@ -2229,9 +2229,7 @@ KERNEL_FQ void m01500_mxx (KERN_ATTR_BITSLICE ())
 
         u32 tmpResult = 0;
 
-        #ifdef _unroll
         #pragma unroll
-        #endif
         for (int i = 0; i < 32; i++)
         {
           const u32 b0 = -((search[0] >> i) & 1);
@@ -2247,12 +2245,12 @@ KERNEL_FQ void m01500_mxx (KERN_ATTR_BITSLICE ())
 
         const u32 r0 = search[0];
         const u32 r1 = search[1];
+        #ifdef KERNEL_STATIC
         const u32 r2 = 0;
         const u32 r3 = 0;
-
-        #ifdef KERNEL_STATIC
-        #include COMPARE_M
         #endif
+
+        #include COMPARE_M
       }
     }
     else
@@ -2260,9 +2258,7 @@ KERNEL_FQ void m01500_mxx (KERN_ATTR_BITSLICE ())
       u32 out0[32];
       u32 out1[32];
 
-      #ifdef _unroll
       #pragma unroll
-      #endif
       for (int i = 0; i < 32; i++)
       {
         out0[i] = out[ 0 + 31 - i];
@@ -2272,15 +2268,13 @@ KERNEL_FQ void m01500_mxx (KERN_ATTR_BITSLICE ())
       transpose32c (out0);
       transpose32c (out1);
 
-      #ifdef _unroll
       #pragma unroll
-      #endif
       for (int slice = 0; slice < 32; slice++)
       {
         const u32 r0 = out0[31 - slice];
         const u32 r1 = out1[31 - slice];
-        const u32 r2 = 0;
         #ifdef KERNEL_STATIC
+        const u32 r2 = 0;
         const u32 r3 = 0;
         #endif
 

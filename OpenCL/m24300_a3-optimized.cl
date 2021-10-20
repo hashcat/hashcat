@@ -140,7 +140,7 @@ DECLSPEC void m24300m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
     u32x wd_t = w3[1];
     u32x we_t = w3[2];
     u32x wf_t = pw_salt_len * 8;
-    
+
 
     u32x a = SHA1M_A;
     u32x b = SHA1M_B;
@@ -717,7 +717,7 @@ DECLSPEC void m24300s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
     u32x wd_t = w3[1];
     u32x we_t = w3[2];
     u32x wf_t = pw_salt_len * 8;
-    
+
 
     u32x a = SHA1M_A;
     u32x b = SHA1M_B;
@@ -906,7 +906,7 @@ DECLSPEC void m24300s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
       wc_t = hc_swap32 (t3[0]);
       wd_t = hc_swap32 (t3[1]);
       we_t = hc_swap32 (t3[2]);
-      wf_t = hc_swap32 (t3[3]);     
+      wf_t = hc_swap32 (t3[3]);
 
       #undef K
       #define K SHA1C00

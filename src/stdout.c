@@ -83,9 +83,15 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
   }
   else
   {
-    out.fp.is_gzip = false;
-    out.fp.pfp = stdout;
-    out.fp.fd = fileno (stdout);
+    HCFILE *fp = &out.fp;
+
+    fp->fd       = fileno (stdout);
+    fp->pfp      = stdout;
+    fp->gfp      = NULL;
+    fp->ufp      = NULL;
+    fp->bom_size = 0;
+    fp->path     = NULL;
+    fp->mode     = NULL;
   }
 
   out.len = 0;

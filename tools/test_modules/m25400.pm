@@ -6,12 +6,9 @@
 ##
 
 # based off m10500 but added the owner password part ($o) to be able to test the edit password
-# two TODOs still (now only works if no user password is set):
-# 1. TODO use user password as input for md5 of o_digest if no owner password is set
-# 2. TODO dynamically add user password including padding to the RC4 input for the computation of the pdf o-value
 
 # easy test shortcut for debugging
-# a=$(echo 1 | tools/test.pl passthrough 10500 | tail -n1); echo $a; echo 1 | ./hashcat --potfile-disable --runtime 400 --hwmon-disable -O -D 2 --backend-vector-width 4 -a 0 -m 10500 $a
+# a=$(echo 1 | tools/test.pl passthrough 25400 | tail -n1); echo $a; echo 1 | ./hashcat --potfile-disable --runtime 400 --hwmon-disable -O -D 2 --backend-vector-width 4 -a 0 -m 25400 $a
 
 use strict;
 use warnings;
@@ -86,7 +83,6 @@ sub pdf_compute_encryption_key_owner
   my $R         = shift;
   my $enc       = shift;
 
-  # TODO use user password as input for md5 of o_digest if no owner password is set
   my $data;
   $data .= $word;
   $data .= substr ($padding, 0, 32 - length $word);
@@ -100,9 +96,6 @@ sub pdf_compute_encryption_key_owner
     }
   }
 
-  #printf("\$o_digest = %s\n", unpack ("H*", $o_digest));
-
-
   my $o_key;
   if ($R == 2)
   {
@@ -110,9 +103,8 @@ sub pdf_compute_encryption_key_owner
   }
   else
   {
-	$o_key = substr($o_digest, 0, 16); #length is always 128 bits or 16 bytes
+    $o_key = substr($o_digest, 0, 16); #length is always 128 bits or 16 bytes
   }
-  #printf("\$o_key = %s\n", unpack ("H*", $o_key));
 
   return $o_key;
 }
@@ -127,6 +119,7 @@ sub module_generate_hash
   my $V    = shift;
   my $R    = shift;
   my $enc  = shift;
+  my $u_pass  = shift;
 
   if (defined $u == 0)
   {
@@ -162,6 +155,11 @@ sub module_generate_hash
     $enc = ($R == 3) ? 1 : random_number (0, 1);
   }
 
+  if (!defined $u_pass)
+  {
+    $u_pass="";
+  }
+
   my $padding;
 
   for (my $i = 0; $i < 32; $i++)
@@ -171,18 +169,33 @@ sub module_generate_hash
 
 
   ################ USER PASSWORD #################
-  my $res = pdf_compute_encryption_key_user($word, $padding, $id, $u, $o, $P, $V, $R, $enc);
+  # do not change $u if it exists, keep this the same, as we don't know the user password,
+  #  we cannot calculate this part of the hash again
 
-  my $digest = md5 ($padding . pack ("H*", $id));
-
-  my $m = Crypt::RC4->new ($res);
-  $u = $m->RC4 ($digest);
-
-  my @ress = split "", $res;
-
-  #do xor of rc4 19 times
-  for (my $x = 1; $x <= 19; $x++)
+  if ($u eq "0000000000000000000000000000000000000000000000000000000000000000")
   {
+    my $res;
+    if($u_pass eq "")
+    {
+      # we don't know the user-password so calculate $u based on the owner-password
+    $res = pdf_compute_encryption_key_user($word, $padding, $id, $u, $o, $P, $V, $R, $enc);
+    }
+    else
+    {
+    #we do know the user-password, so we can generate $u
+    $res = pdf_compute_encryption_key_user($u_pass, $padding, $id, $u, $o, $P, $V, $R, $enc);
+    }
+
+    my $digest = md5 ($padding . pack ("H*", $id));
+
+    my $m = Crypt::RC4->new ($res);
+    $u = $m->RC4 ($digest);
+
+    my @ress = split "", $res;
+
+    #do xor of rc4 19 times
+    for (my $x = 1; $x <= 19; $x++)
+    {
     my @xor;
 
     for (my $i = 0; $i < 16; $i++)
@@ -195,15 +208,27 @@ sub module_generate_hash
     my $m2 = Crypt::RC4->new ($s);
 
     $u = $m2->RC4 ($u);
+    }
+    $u .= substr (pack ("H*", $u_save), 16, 16);
   }
-
+  else
+  {
+    $u = pack("H*", $u)
+  }
 
   ################ OWNER PASSWORD #################
   my $o_key = pdf_compute_encryption_key_owner($word, $padding, $id, $u, $o, $P, $V, $R, $enc);
-  my $n = Crypt::RC4->new ($o_key);
-  $o = $n->RC4(substr ($padding, 0, 32 - length "")); # TODO dynamically add user password including padding to the RC4 input for the computation of the pdf o-value
 
-  #printf("padding_empty_str = %s\n", unpack ("H*", substr ($padding, 0, 32 - length "")));
+  my $n = Crypt::RC4->new ($o_key);
+  if($u_pass eq "")
+  {
+     $o = $n->RC4(substr ($padding, 0, 32 - length ""));
+  }
+  else
+  {
+    #dynamically add user password including padding to the RC4 input for the computation of the pdf o-value
+    $o = $n->RC4($u_pass.substr ($padding, 0, 32 - length $u_pass));
+  }
 
   my @ress2 = split "", $o_key;
 
@@ -220,22 +245,21 @@ sub module_generate_hash
       }
 
       my $s = join ("", @xor);
-
-      my $n2 = Crypt::RC4->new ($s);
+    my $n2 = Crypt::RC4->new ($s);
 
       $o = $n2->RC4 ($o);
     }
   }
 
-  #printf("\$u = %s\n", unpack ("H*", $u));
-
-  $u .= substr (pack ("H*", $u_save), 16, 16);
-
-  #printf("\$o = %s\n", unpack ("H*", $o));
-  #printf("\$u = %s\n", unpack ("H*", $u));
-
-  my $hash = sprintf ('$pdf$%d*%d*128*%d*%d*16*%s*32*%s*32*%s', $V, $R, $P, $enc, $id, unpack ("H*", $u), unpack ("H*", $o));
-
+  my $hash;
+  if($u_pass eq "")
+  {
+    $hash = sprintf ('$pdf$%d*%d*128*%d*%d*16*%s*32*%s*32*%s', $V, $R, $P, $enc, $id, unpack ("H*", $u), unpack ("H*", $o));
+  }
+  else
+  {
+    $hash = sprintf ('$pdf$%d*%d*128*%d*%d*16*%s*32*%s*32*%s*%s', $V, $R, $P, $enc, $id, unpack ("H*", $u), unpack ("H*", $o), $u_pass);
+  }
   return $hash;
 }
 
@@ -250,7 +274,8 @@ sub module_verify_hash
 
   my @data = split /\*/, $hash_in;
 
-  return unless scalar @data == 11;
+  my $i_data = scalar @data;
+  return unless ($i_data == 11) || ($i_data == 12); #or 12 if user-password is included
 
   my $V        = shift @data; $V = substr ($V, 5, 1);
   my $R        = shift @data;
@@ -264,12 +289,17 @@ sub module_verify_hash
   return unless (shift @data eq '32');
   my $o        = shift @data;
 
+  my $u_pass = "";
+  if($i_data == 12) {
+    $u_pass = shift @data;
+  }
+
   return unless defined $id;
   return unless defined $word;
 
   $word = pack_if_HEX_notation ($word);
 
-  my $new_hash = module_generate_hash ($word, $id, $u, $o, $P, $V, $R, $enc);
+  my $new_hash = module_generate_hash ($word, $id, $u, $o, $P, $V, $R, $enc, $u_pass);
 
   return ($new_hash, $word);
 }

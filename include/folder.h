@@ -37,5 +37,6 @@ int  folder_config_init    (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char 
 void folder_config_destroy (hashcat_ctx_t *hashcat_ctx);
 
 int hc_mkdir (const char *name, MAYBE_UNUSED const int mode);
+int hc_mkdir_rec (const char *path, MAYBE_UNUSED const int mode);
 
 #endif // _FOLDER_H

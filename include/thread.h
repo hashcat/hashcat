@@ -22,17 +22,17 @@
 #define hc_thread_exit(t)           ExitThread (t)
 #define hc_thread_detach(t)         CloseHandle (t)
 
-/*
+#define hc_thread_mutex_init(m)     InitializeCriticalSection (&m)
 #define hc_thread_mutex_lock(m)     EnterCriticalSection      (&m)
 #define hc_thread_mutex_unlock(m)   LeaveCriticalSection      (&m)
-#define hc_thread_mutex_init(m)     InitializeCriticalSection (&m)
 #define hc_thread_mutex_delete(m)   DeleteCriticalSection     (&m)
-*/
 
+/*
 #define hc_thread_mutex_init(m)     m = CreateMutex     (NULL, FALSE, NULL)
 #define hc_thread_mutex_lock(m)     WaitForSingleObject (m, INFINITE)
 #define hc_thread_mutex_unlock(m)   ReleaseMutex        (m)
 #define hc_thread_mutex_delete(m)   CloseHandle         (m)
+*/
 
 #define hc_thread_sem_init(s)       s = CreateSemaphore (NULL, 0, INT_MAX, NULL)
 #define hc_thread_sem_post(s)       ReleaseSemaphore    (s, 1, NULL)
@@ -77,11 +77,13 @@ void hc_signal (void (callback) (int));
 int mycracked (hashcat_ctx_t *hashcat_ctx);
 int myabort_runtime (hashcat_ctx_t *hashcat_ctx);
 int myabort_checkpoint (hashcat_ctx_t *hashcat_ctx);
+int myabort_finish (hashcat_ctx_t *hashcat_ctx);
 int myabort (hashcat_ctx_t *hashcat_ctx);
 int myquit (hashcat_ctx_t *hashcat_ctx);
 int bypass (hashcat_ctx_t *hashcat_ctx);
 int SuspendThreads (hashcat_ctx_t *hashcat_ctx);
 int ResumeThreads (hashcat_ctx_t *hashcat_ctx);
 int stop_at_checkpoint (hashcat_ctx_t *hashcat_ctx);
+int finish_after_attack (hashcat_ctx_t *hashcat_ctx);
 
 #endif // _THREAD_H
