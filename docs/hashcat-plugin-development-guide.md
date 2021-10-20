@@ -518,7 +518,7 @@ It is unclear to hashcat if this buffer will be handled in a thread-safe fashion
 
 The module developer does not have to care about managing the multiple instances but has to provide the size of the buffer to be allocated. For this, they have to use the module_hook_extra_param_size() function. The buffer in *hook_extra_param is zeroed and ready to be written when module_hook_extra_param_init() is called. On startup, hashcat will call module_hook_extra_param_init() that many times as there are hook threads each time providing the module function with a new buffer. The same logic applies to module_hook_extra_param_term() on shutdown. Hashcat will also free the memory on shutdown.
 
-A good example for this is: `src/modules/module_xxxxx.c`
+A good example for this is: `src/modules/module_11600.c` and `src/modules/module_23800.c`
 
 ## Kernel ##
 
