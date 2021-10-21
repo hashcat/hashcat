@@ -23,6 +23,7 @@
 ## Technical
 ##
 
+- AMD Driver: Updated requirements for AMD Linux drivers to ROCm 4.5 or later due to new HIP interface
 - Backend devices: In -S mode, limit the number of workitems so that no more than 2GB of host memory is required per backend device
 - Backend devices: In non -S mode, limit the number of workitems so that no more than 4GB of host memory is required per backend device
 - Makefile: Added wildcard include src/modules/module_*.mk directive so that plugin developers can add 3rd party libraries for their plugins
