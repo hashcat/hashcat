@@ -17,6 +17,7 @@
 - Fixed invalid handling of initialization value for -m 11500
 - Fixed invalid progress counter initialization in attack-mode 9 when using --skip or --restore
 - Fixed out-of-boundary reads in attack-mode 9 that were caused by a missing work item limit in the refactored autotune engine
+- Fixed out-of-boundary reads in hash-mode 22400 (AES Crypt) kernel
 - Fixed strategy for eliminating hashes with zero length in LM when multiple hashes contain a zero hash
 
 ##

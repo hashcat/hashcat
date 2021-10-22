@@ -73,9 +73,9 @@ KERNEL_FQ void m22400_init (KERN_ATTR_TMPS_ESALT (aescrypt_tmp_t, aescrypt_t))
   #ifdef _unroll
   #pragma unroll
   #endif
-  for (int i = 127; i >= 0; i--) // create some space for the first digest without extra buffer
+  for (int i = 80 - 1; i >= 8; i--) // create some space for the first digest without extra buffer
   {
-    w[8 + i] = w[i];
+    w[i] = w[i - 8];
   }
 
   w[0] = ctx.h[0];
