@@ -178,25 +178,33 @@ typedef int mz_bool;
 
 typedef mz_uint64 tinfl_bit_buf_t;
 
-DECLSPEC void memcpy(void *dest, const void *src, u32 n){
-  char *csrc = (char *)src;
-  char *cdest = (char *)dest;
-  for (int i=0; i<n; i++){
+DECLSPEC void memcpy (void *dest, const void *src, u32 n)
+{
+  char *csrc  = (char *) src;
+  char *cdest = (char *) dest;
+
+  for (int i = 0; i < n; i++)
+  {
     cdest[i] = csrc[i];
   }
 }
 
+DECLSPEC void *memset (u8 *s, const int c, u32 len)
+{
+  const u8 c8 = (const u8) c;
 
-DECLSPEC void *memset(u8 *s, int c, u32 len){
   u8 *dst = s;
-  while (len > 0) {
-      *dst = (u8) c;
-      dst++;
-      len--;
+
+  while (len > 0)
+  {
+    *dst = c8;
+
+    dst++;
+    len--;
   }
+
   return s;
 }
-
 
 #define MZ_MAX(a, b) (((a) > (b)) ? (a) : (b))
 #define MZ_MIN(a, b) (((a) < (b)) ? (a) : (b))
