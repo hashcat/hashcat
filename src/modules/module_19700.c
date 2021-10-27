@@ -123,6 +123,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const char *usr_start  = line_buf + strlen(SIGNATURE_KRB5TGS);
   char *usr_end = strchr ((const char *) usr_start, '$');
 
+  if (usr_end == NULL)
+  {
+    return (PARSER_SEPARATOR_UNMATCHED);
+  }
+
   if (*(usr_end+1) == '$'){
     is_machine_account = 1;
     usr_end++;
