@@ -152,42 +152,42 @@ CONSTANT_VK u64a crc64jonestab[0x100] =
   0x536fa08fdfd90e51, 0x29b7d047efec8728,
 };
 
-DECLSPEC u64 round_crc64jones (u64 a, const u64 v)
+DECLSPEC u64 round_crc64jones (u64 a, const u64 v, SHM_TYPE u64 *s_crc64jonestab)
 {
   const u64 k = (a ^ v) & 0xff;
 
   const u64 s = a >> 8;
 
-  a = crc64jonestab[k];
+  a = s_crc64jonestab[k];
 
   a ^= s;
 
   return a;
 }
 
-DECLSPEC u64 crc64jones (const u32 *w, const u32 pw_len, const u64 iv)
+DECLSPEC u64 crc64jones (const u32 *w, const u32 pw_len, const u64 iv, SHM_TYPE u64 *s_crc64jonestab)
 {
   u64 a = iv;
 
-  if (pw_len >=  1) a = round_crc64jones (a, w[0] >>  0);
-  if (pw_len >=  2) a = round_crc64jones (a, w[0] >>  8);
-  if (pw_len >=  3) a = round_crc64jones (a, w[0] >> 16);
-  if (pw_len >=  4) a = round_crc64jones (a, w[0] >> 24);
-  if (pw_len >=  5) a = round_crc64jones (a, w[1] >>  0);
-  if (pw_len >=  6) a = round_crc64jones (a, w[1] >>  8);
-  if (pw_len >=  7) a = round_crc64jones (a, w[1] >> 16);
-  if (pw_len >=  8) a = round_crc64jones (a, w[1] >> 24);
-  if (pw_len >=  9) a = round_crc64jones (a, w[2] >>  0);
-  if (pw_len >= 10) a = round_crc64jones (a, w[2] >>  8);
-  if (pw_len >= 11) a = round_crc64jones (a, w[2] >> 16);
-  if (pw_len >= 12) a = round_crc64jones (a, w[2] >> 24);
+  if (pw_len >=  1) a = round_crc64jones (a, w[0] >>  0, s_crc64jonestab);
+  if (pw_len >=  2) a = round_crc64jones (a, w[0] >>  8, s_crc64jonestab);
+  if (pw_len >=  3) a = round_crc64jones (a, w[0] >> 16, s_crc64jonestab);
+  if (pw_len >=  4) a = round_crc64jones (a, w[0] >> 24, s_crc64jonestab);
+  if (pw_len >=  5) a = round_crc64jones (a, w[1] >>  0, s_crc64jonestab);
+  if (pw_len >=  6) a = round_crc64jones (a, w[1] >>  8, s_crc64jonestab);
+  if (pw_len >=  7) a = round_crc64jones (a, w[1] >> 16, s_crc64jonestab);
+  if (pw_len >=  8) a = round_crc64jones (a, w[1] >> 24, s_crc64jonestab);
+  if (pw_len >=  9) a = round_crc64jones (a, w[2] >>  0, s_crc64jonestab);
+  if (pw_len >= 10) a = round_crc64jones (a, w[2] >>  8, s_crc64jonestab);
+  if (pw_len >= 11) a = round_crc64jones (a, w[2] >> 16, s_crc64jonestab);
+  if (pw_len >= 12) a = round_crc64jones (a, w[2] >> 24, s_crc64jonestab);
 
   for (u32 i = 12, j = 3; i < pw_len; i += 4, j += 1)
   {
-    if (pw_len >= (i + 1)) a = round_crc64jones (a, w[j] >>  0);
-    if (pw_len >= (i + 2)) a = round_crc64jones (a, w[j] >>  8);
-    if (pw_len >= (i + 3)) a = round_crc64jones (a, w[j] >> 16);
-    if (pw_len >= (i + 4)) a = round_crc64jones (a, w[j] >> 24);
+    if (pw_len >= (i + 1)) a = round_crc64jones (a, w[j] >>  0, s_crc64jonestab);
+    if (pw_len >= (i + 2)) a = round_crc64jones (a, w[j] >>  8, s_crc64jonestab);
+    if (pw_len >= (i + 3)) a = round_crc64jones (a, w[j] >> 16, s_crc64jonestab);
+    if (pw_len >= (i + 4)) a = round_crc64jones (a, w[j] >> 24, s_crc64jonestab);
   }
 
   return a;
@@ -199,15 +199,36 @@ KERNEL_FQ void m28000_m04 (KERN_ATTR_ESALT (crc64_t))
    * modifier
    */
 
+  const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
 
   /**
-   * base
+   * CRC64Jones shared
    */
 
-  const u64 gid = get_global_id (0);
+  #ifdef REAL_SHM
+
+  LOCAL_VK u64 s_crc64jonestab[256];
+
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    s_crc64jonestab[i] = crc64jonestab[i];
+  }
+
+  SYNC_THREADS ();
+
+  #else
+
+  CONSTANT_AS u64a *s_crc64jonestab = crc64jonestab;
+
+  #endif
 
   if (gid >= gid_max) return;
+
+  /**
+   * Base
+   */
 
   u32 pw_buf0[4];
   u32 pw_buf1[4];
@@ -325,7 +346,7 @@ KERNEL_FQ void m28000_m04 (KERN_ATTR_ESALT (crc64_t))
     w[14] = w3[2];
     w[15] = w3[3];
 
-    u64 a = crc64jones (w, pw_len, iv);
+    u64 a = crc64jones (w, pw_len, iv, s_crc64jonestab);
 
     const u32 r0 = l32_from_64 (a);
     const u32 r1 = h32_from_64 (a);
@@ -350,15 +371,36 @@ KERNEL_FQ void m28000_s04 (KERN_ATTR_ESALT (crc64_t))
    * modifier
    */
 
+  const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
 
   /**
-   * base
+   * CRC64Jones shared
    */
 
-  const u64 gid = get_global_id (0);
+  #ifdef REAL_SHM
+
+  LOCAL_VK u64 s_crc64jonestab[256];
+
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    s_crc64jonestab[i] = crc64jonestab[i];
+  }
+
+  SYNC_THREADS ();
+
+  #else
+
+  CONSTANT_AS u64a *s_crc64jonestab = crc64jonestab;
+
+  #endif
 
   if (gid >= gid_max) return;
+
+  /**
+   * Base
+   */
 
   u32 pw_buf0[4];
   u32 pw_buf1[4];
@@ -488,7 +530,7 @@ KERNEL_FQ void m28000_s04 (KERN_ATTR_ESALT (crc64_t))
     w[14] = w3[2];
     w[15] = w3[3];
 
-    u64 a = crc64jones (w, pw_len, iv);
+    u64 a = crc64jones (w, pw_len, iv, s_crc64jonestab);
 
     const u32 r0 = l32_from_64 (a);
     const u32 r1 = h32_from_64 (a);

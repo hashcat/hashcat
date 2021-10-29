@@ -152,48 +152,48 @@ CONSTANT_VK u64a crc64jonestab[0x100] =
   0x536fa08fdfd90e51, 0x29b7d047efec8728,
 };
 
-DECLSPEC u64 round_crc64jones (u64 a, const u64 v)
+DECLSPEC u64 round_crc64jones (u64 a, const u64 v, SHM_TYPE u64 *s_crc64jonestab)
 {
   const u64 k = (a ^ v) & 0xff;
 
   const u64 s = a >> 8;
 
-  a = crc64jonestab[k];
+  a = s_crc64jonestab[k];
 
   a ^= s;
 
   return a;
 }
 
-DECLSPEC u64 crc64jones (const u32 *w, const u32 pw_len, const u64 iv)
+DECLSPEC u64 crc64jones (const u32 *w, const u32 pw_len, const u64 iv, SHM_TYPE u64 *s_crc64jonestab)
 {
   u64 a = iv;
 
-  if (pw_len >=  1) a = round_crc64jones (a, w[0] >>  0);
-  if (pw_len >=  2) a = round_crc64jones (a, w[0] >>  8);
-  if (pw_len >=  3) a = round_crc64jones (a, w[0] >> 16);
-  if (pw_len >=  4) a = round_crc64jones (a, w[0] >> 24);
-  if (pw_len >=  5) a = round_crc64jones (a, w[1] >>  0);
-  if (pw_len >=  6) a = round_crc64jones (a, w[1] >>  8);
-  if (pw_len >=  7) a = round_crc64jones (a, w[1] >> 16);
-  if (pw_len >=  8) a = round_crc64jones (a, w[1] >> 24);
-  if (pw_len >=  9) a = round_crc64jones (a, w[2] >>  0);
-  if (pw_len >= 10) a = round_crc64jones (a, w[2] >>  8);
-  if (pw_len >= 11) a = round_crc64jones (a, w[2] >> 16);
-  if (pw_len >= 12) a = round_crc64jones (a, w[2] >> 24);
+  if (pw_len >=  1) a = round_crc64jones (a, w[0] >>  0, s_crc64jonestab);
+  if (pw_len >=  2) a = round_crc64jones (a, w[0] >>  8, s_crc64jonestab);
+  if (pw_len >=  3) a = round_crc64jones (a, w[0] >> 16, s_crc64jonestab);
+  if (pw_len >=  4) a = round_crc64jones (a, w[0] >> 24, s_crc64jonestab);
+  if (pw_len >=  5) a = round_crc64jones (a, w[1] >>  0, s_crc64jonestab);
+  if (pw_len >=  6) a = round_crc64jones (a, w[1] >>  8, s_crc64jonestab);
+  if (pw_len >=  7) a = round_crc64jones (a, w[1] >> 16, s_crc64jonestab);
+  if (pw_len >=  8) a = round_crc64jones (a, w[1] >> 24, s_crc64jonestab);
+  if (pw_len >=  9) a = round_crc64jones (a, w[2] >>  0, s_crc64jonestab);
+  if (pw_len >= 10) a = round_crc64jones (a, w[2] >>  8, s_crc64jonestab);
+  if (pw_len >= 11) a = round_crc64jones (a, w[2] >> 16, s_crc64jonestab);
+  if (pw_len >= 12) a = round_crc64jones (a, w[2] >> 24, s_crc64jonestab);
 
   for (u32 i = 12, j = 3; i < pw_len; i += 4, j += 1)
   {
-    if (pw_len >= (i + 1)) a = round_crc64jones (a, w[j] >>  0);
-    if (pw_len >= (i + 2)) a = round_crc64jones (a, w[j] >>  8);
-    if (pw_len >= (i + 3)) a = round_crc64jones (a, w[j] >> 16);
-    if (pw_len >= (i + 4)) a = round_crc64jones (a, w[j] >> 24);
+    if (pw_len >= (i + 1)) a = round_crc64jones (a, w[j] >>  0, s_crc64jonestab);
+    if (pw_len >= (i + 2)) a = round_crc64jones (a, w[j] >>  8, s_crc64jonestab);
+    if (pw_len >= (i + 3)) a = round_crc64jones (a, w[j] >> 16, s_crc64jonestab);
+    if (pw_len >= (i + 4)) a = round_crc64jones (a, w[j] >> 24, s_crc64jonestab);
   }
 
   return a;
 }
 
-DECLSPEC void m28000m (u32 *w, const u32 pw_len, KERN_ATTR_ESALT (crc64_t))
+DECLSPEC void m28000m (SHM_TYPE u64 *s_crc64jonestab, u32 *w, const u32 pw_len, KERN_ATTR_ESALT (crc64_t))
 {
   /**
    * modifier
@@ -243,7 +243,7 @@ DECLSPEC void m28000m (u32 *w, const u32 pw_len, KERN_ATTR_ESALT (crc64_t))
     w_t[14] = w[14];
     w_t[15] = w[15];
 
-    u64 a = crc64jones (w_t, pw_len, iv);
+    u64 a = crc64jones (w_t, pw_len, iv, s_crc64jonestab);
 
     const u32 r0 = l32_from_64 (a);
     const u32 r1 = h32_from_64 (a);
@@ -254,7 +254,7 @@ DECLSPEC void m28000m (u32 *w, const u32 pw_len, KERN_ATTR_ESALT (crc64_t))
   }
 }
 
-DECLSPEC void m28000s (u32 *w, const u32 pw_len, KERN_ATTR_ESALT (crc64_t))
+DECLSPEC void m28000s (SHM_TYPE u64 *s_crc64jonestab, u32 *w, const u32 pw_len, KERN_ATTR_ESALT (crc64_t))
 {
   /**
    * modifier
@@ -316,7 +316,7 @@ DECLSPEC void m28000s (u32 *w, const u32 pw_len, KERN_ATTR_ESALT (crc64_t))
     w_t[14] = w[14];
     w_t[15] = w[15];
 
-    u64 a = crc64jones (w_t, pw_len, iv);
+    u64 a = crc64jones (w_t, pw_len, iv, s_crc64jonestab);
 
     const u32 r0 = l32_from_64 (a);
     const u32 r1 = h32_from_64 (a);
@@ -330,12 +330,39 @@ DECLSPEC void m28000s (u32 *w, const u32 pw_len, KERN_ATTR_ESALT (crc64_t))
 KERNEL_FQ void m28000_m04 (KERN_ATTR_ESALT (crc64_t))
 {
   /**
-   * base
+   * modifier
    */
 
   const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
+
+  /**
+   * CRC64Jones shared
+   */
+
+  #ifdef REAL_SHM
+
+  LOCAL_VK u64 s_crc64jonestab[256];
+
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    s_crc64jonestab[i] = crc64jonestab[i];
+  }
+
+  SYNC_THREADS ();
+
+  #else
+
+  CONSTANT_AS u64a *s_crc64jonestab = crc64jonestab;
+
+  #endif
 
   if (gid >= gid_max) return;
+
+  /**
+   * Base
+   */
 
   u32 w[16];
 
@@ -362,18 +389,45 @@ KERNEL_FQ void m28000_m04 (KERN_ATTR_ESALT (crc64_t))
    * main
    */
 
-  m28000m (w, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max);
+  m28000m (s_crc64jonestab, w, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max);
 }
 
 KERNEL_FQ void m28000_m08 (KERN_ATTR_ESALT (crc64_t))
 {
   /**
-   * base
+   * modifier
    */
 
   const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
+
+  /**
+   * CRC64Jones shared
+   */
+
+  #ifdef REAL_SHM
+
+  LOCAL_VK u64 s_crc64jonestab[256];
+
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    s_crc64jonestab[i] = crc64jonestab[i];
+  }
+
+  SYNC_THREADS ();
+
+  #else
+
+  CONSTANT_AS u64a *s_crc64jonestab = crc64jonestab;
+
+  #endif
 
   if (gid >= gid_max) return;
+
+  /**
+   * Base
+   */
 
   u32 w[16];
 
@@ -400,18 +454,45 @@ KERNEL_FQ void m28000_m08 (KERN_ATTR_ESALT (crc64_t))
    * main
    */
 
-  m28000m (w, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max);
+  m28000m (s_crc64jonestab, w, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max);
 }
 
 KERNEL_FQ void m28000_m16 (KERN_ATTR_ESALT (crc64_t))
 {
   /**
-   * base
+   * modifier
    */
 
   const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
+
+  /**
+   * CRC64Jones shared
+   */
+
+  #ifdef REAL_SHM
+
+  LOCAL_VK u64 s_crc64jonestab[256];
+
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    s_crc64jonestab[i] = crc64jonestab[i];
+  }
+
+  SYNC_THREADS ();
+
+  #else
+
+  CONSTANT_AS u64a *s_crc64jonestab = crc64jonestab;
+
+  #endif
 
   if (gid >= gid_max) return;
+
+  /**
+   * Base
+   */
 
   u32 w[16];
 
@@ -438,18 +519,45 @@ KERNEL_FQ void m28000_m16 (KERN_ATTR_ESALT (crc64_t))
    * main
    */
 
-  m28000m (w, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max);
+  m28000m (s_crc64jonestab, w, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max);
 }
 
 KERNEL_FQ void m28000_s04 (KERN_ATTR_ESALT (crc64_t))
 {
   /**
-   * base
+   * modifier
    */
 
   const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
+
+  /**
+   * CRC64Jones shared
+   */
+
+  #ifdef REAL_SHM
+
+  LOCAL_VK u64 s_crc64jonestab[256];
+
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    s_crc64jonestab[i] = crc64jonestab[i];
+  }
+
+  SYNC_THREADS ();
+
+  #else
+
+  CONSTANT_AS u64a *s_crc64jonestab = crc64jonestab;
+
+  #endif
 
   if (gid >= gid_max) return;
+
+  /**
+   * Base
+   */
 
   u32 w[16];
 
@@ -476,18 +584,45 @@ KERNEL_FQ void m28000_s04 (KERN_ATTR_ESALT (crc64_t))
    * main
    */
 
-  m28000s (w, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max);
+  m28000s (s_crc64jonestab, w, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max);
 }
 
 KERNEL_FQ void m28000_s08 (KERN_ATTR_ESALT (crc64_t))
 {
   /**
-   * base
+   * modifier
    */
 
   const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
+
+  /**
+   * CRC64Jones shared
+   */
+
+  #ifdef REAL_SHM
+
+  LOCAL_VK u64 s_crc64jonestab[256];
+
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    s_crc64jonestab[i] = crc64jonestab[i];
+  }
+
+  SYNC_THREADS ();
+
+  #else
+
+  CONSTANT_AS u64a *s_crc64jonestab = crc64jonestab;
+
+  #endif
 
   if (gid >= gid_max) return;
+
+  /**
+   * Base
+   */
 
   u32 w[16];
 
@@ -514,18 +649,45 @@ KERNEL_FQ void m28000_s08 (KERN_ATTR_ESALT (crc64_t))
    * main
    */
 
-  m28000s (w, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max);
+  m28000s (s_crc64jonestab, w, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max);
 }
 
 KERNEL_FQ void m28000_s16 (KERN_ATTR_ESALT (crc64_t))
 {
   /**
-   * base
+   * modifier
    */
 
   const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
+
+  /**
+   * CRC64Jones shared
+   */
+
+  #ifdef REAL_SHM
+
+  LOCAL_VK u64 s_crc64jonestab[256];
+
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    s_crc64jonestab[i] = crc64jonestab[i];
+  }
+
+  SYNC_THREADS ();
+
+  #else
+
+  CONSTANT_AS u64a *s_crc64jonestab = crc64jonestab;
+
+  #endif
 
   if (gid >= gid_max) return;
+
+  /**
+   * Base
+   */
 
   u32 w[16];
 
@@ -552,5 +714,5 @@ KERNEL_FQ void m28000_s16 (KERN_ATTR_ESALT (crc64_t))
    * main
    */
 
-  m28000s (w, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max);
+  m28000s (s_crc64jonestab, w, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max);
 }
