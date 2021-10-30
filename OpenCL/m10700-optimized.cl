@@ -211,7 +211,7 @@ DECLSPEC void orig_sha512_transform (const u64 *w0, const u64 *w1, const u64 *w2
 #define WORDMAXSZ4  (WORDMAXSZ  / 4)
 #define AESSZ4      (AESSZ      / 4)
 
-DECLSPEC void make_sc (u32 *sc, const u32 *pw, const u32 pw_len, const u32 *bl, const u32 bl_len)
+DECLSPEC void make_sc (LOCAL_AS u32 *sc, const u32 *pw, const u32 pw_len, const u32 *bl, const u32 bl_len)
 {
   const u32 bd = bl_len / 4;
 
@@ -263,7 +263,7 @@ DECLSPEC void make_sc (u32 *sc, const u32 *pw, const u32 pw_len, const u32 *bl, 
   }
 }
 
-DECLSPEC void make_pt_with_offset (u32 *pt, const u32 offset, const u32 *sc, const u32 pwbl_len)
+DECLSPEC void make_pt_with_offset (u32 *pt, const u32 offset, LOCAL_AS const u32 *sc, const u32 pwbl_len)
 {
   const u32 m = offset % pwbl_len;
 
@@ -293,7 +293,7 @@ DECLSPEC void make_pt_with_offset (u32 *pt, const u32 offset, const u32 *sc, con
   #endif
 }
 
-DECLSPEC void make_w_with_offset (ctx_t *ctx, const u32 W_len, const u32 offset, const u32 *sc, const u32 pwbl_len, u32 *iv, const u32 *ks, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void make_w_with_offset (ctx_t *ctx, const u32 W_len, const u32 offset, LOCAL_AS const u32 *sc, const u32 pwbl_len, u32 *iv, const u32 *ks, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   for (u32 k = 0, wk = 0; k < W_len; k += AESSZ, wk += AESSZ4)
   {
@@ -315,11 +315,9 @@ DECLSPEC void make_w_with_offset (ctx_t *ctx, const u32 W_len, const u32 offset,
   }
 }
 
-DECLSPEC u32 do_round (const u32 *pw, const u32 pw_len, ctx_t *ctx, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC u32 do_round (LOCAL_AS u32 *sc, const u32 *pw, const u32 pw_len, ctx_t *ctx, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   // make scratch buffer
-
-  u32 sc[PWMAXSZ4 + BLMAXSZ4 + AESSZ4];
 
   make_sc (sc, pw, pw_len, ctx->dgst32, ctx->dgst_len);
 
@@ -668,18 +666,20 @@ KERNEL_FQ void m10700_loop (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
   ctx.dgst_len  = tmps[gid].dgst_len;
   ctx.W_len     = tmps[gid].W_len;
 
+  LOCAL_VK u32 s_sc[256][PWMAXSZ4 + BLMAXSZ4 + AESSZ4];
+
   u32 ex = 0;
 
   for (u32 i = 0, j = loop_pos; i < loop_cnt; i++, j++)
   {
-    ex = do_round (w0, pw_len, &ctx, s_te0, s_te1, s_te2, s_te3, s_te4);
+    ex = do_round (s_sc[lid], w0, pw_len, &ctx, s_te0, s_te1, s_te2, s_te3, s_te4);
   }
 
   if ((loop_pos + loop_cnt) == 64)
   {
     for (u32 i = 64; i < (ex & 0xff) + 32; i++)
     {
-      ex = do_round (w0, pw_len, &ctx, s_te0, s_te1, s_te2, s_te3, s_te4);
+      ex = do_round (s_sc[lid], w0, pw_len, &ctx, s_te0, s_te1, s_te2, s_te3, s_te4);
     }
   }
 

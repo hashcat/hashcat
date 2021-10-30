@@ -10,6 +10,12 @@
 - Added hash-mode: MurmurHash3
 
 ##
+## Performance
+##
+
+- PDF Kernel (10700): Improved performance on AMD GPU by using shared memory for the scratch buffer
+
+##
 ## Bugs
 ##
 
