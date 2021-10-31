@@ -130,6 +130,17 @@
 #define DECLSPEC
 #endif
 
+#define INLINE0 __attribute__ ((noinline))
+#define INLINE1 __attribute__ ((inline))
+
+#if defined IS_AMD && defined IS_GPU
+#define INLINE INLINE0
+#elif defined IS_HIP
+#define INLINE INLINE0
+#else
+#define INLINE
+#endif
+
 /**
  * AMD specific
  */

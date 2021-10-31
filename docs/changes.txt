@@ -13,7 +13,7 @@
 ## Performance
 ##
 
-- PDF Kernel (10700): Improved performance on AMD GPU by using shared memory for the scratch buffer
+- PDF Kernel (10700): Improved performance on AMD GPU by using shared memory for the scratch buffer and disable inlining to save spilling
 
 ##
 ## Bugs
