@@ -279,15 +279,21 @@ GeForce_RTX_3090                                ALIAS_nv_sm50_or_higher
 ## Unmapped GPU
 ##
 
-Device_738c                                     ALIAS_AMD_MI100
+Radeon_(TM)_RX_480_Graphics                     ALIAS_AMD_RX480
 
-AMD_Radeon_(TM)_RX_480_Graphics                 ALIAS_AMD_RX480
-
+gfx900                                          ALIAS_AMD_Vega64
+gfx900:xnack-                                   ALIAS_AMD_Vega64
 Vega_10_XL/XT_[Radeon_RX_Vega_56/64]            ALIAS_AMD_Vega64
-AMD_Radeon_Vega_64                              ALIAS_AMD_Vega64
+Radeon_Vega_64                                  ALIAS_AMD_Vega64
+Radeon_RX_Vega                                  ALIAS_AMD_Vega64
+
+Device_738c                                     ALIAS_AMD_MI100
+gfx908                                          ALIAS_AMD_MI100
+gfx908:sramecc+:xnack-                          ALIAS_AMD_MI100
 
 Device_73bf                                     ALIAS_AMD_RX6900XT
-AMD_Radeon_RX_6900_XT                           ALIAS_AMD_RX6900XT
+gfx1030                                         ALIAS_AMD_RX6900XT
+Radeon_RX_6900_XT                               ALIAS_AMD_RX6900XT
 
 #############
 ## ENTRIES ##
