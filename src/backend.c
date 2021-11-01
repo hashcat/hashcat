@@ -339,15 +339,24 @@ static bool setup_opencl_device_types_filter (hashcat_ctx_t *hashcat_ctx, const 
   }
   else
   {
+    #if defined (__APPLE__)
+
+    // For apple use CPU only, because GPU drivers are not reliable
+    // The user can explicitly enable GPU by setting -D2
+
+    //opencl_device_types_filter = CL_DEVICE_TYPE_ALL & ~CL_DEVICE_TYPE_GPU;
+    opencl_device_types_filter = CL_DEVICE_TYPE_CPU;
+
+    #else
+
     // Do not use CPU by default, this often reduces GPU performance because
     // the CPU is too busy to handle GPU synchronization
-    // Except for apple, because GPU drivers are not reliable
-    // The user can explicitly enable it by setting -D
+    // Do not use FPGA/other by default, this is a rare case and we expect the users to enable this manually.
+    // this is needed since Intel One API started to add FPGA emulated OpenCL device by default and it's just annoying.
 
-    #if defined (__APPLE__)
-    opencl_device_types_filter = CL_DEVICE_TYPE_ALL & ~CL_DEVICE_TYPE_GPU;
-    #else
-    opencl_device_types_filter = CL_DEVICE_TYPE_ALL & ~CL_DEVICE_TYPE_CPU;
+    //opencl_device_types_filter = CL_DEVICE_TYPE_ALL & ~CL_DEVICE_TYPE_CPU;
+    opencl_device_types_filter = CL_DEVICE_TYPE_GPU;
+
     #endif
   }
 
