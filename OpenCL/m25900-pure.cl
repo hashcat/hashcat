@@ -100,7 +100,7 @@ DECLSPEC void aes128_encrypt_cbc (const u32 *aes_ks, u32 *aes_iv, const u32 *in,
   aes_iv[3] = out[3];
 }
 
-KERNEL_FQ void m25900_init(KERN_ATTR_TMPS(pbkdf2_sha256_tmp_t))
+KERNEL_FQ void m25900_init (KERN_ATTR_TMPS (pbkdf2_sha256_tmp_t))
 {
   /**
    * base
@@ -184,7 +184,7 @@ KERNEL_FQ void m25900_init(KERN_ATTR_TMPS(pbkdf2_sha256_tmp_t))
   }
 }
 
-KERNEL_FQ void m25900_loop(KERN_ATTR_TMPS(pbkdf2_sha256_tmp_t))
+KERNEL_FQ void m25900_loop (KERN_ATTR_TMPS (pbkdf2_sha256_tmp_t))
 {
   const u64 gid = get_global_id(0);
 
@@ -290,7 +290,7 @@ KERNEL_FQ void m25900_loop(KERN_ATTR_TMPS(pbkdf2_sha256_tmp_t))
   }
 }
 
-KERNEL_FQ void m25900_comp(KERN_ATTR_TMPS_ESALT(pbkdf2_sha256_tmp_t, blocks_t))
+KERNEL_FQ void m25900_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, blocks_t))
 {
   /**
    * base
@@ -415,9 +415,9 @@ KERNEL_FQ void m25900_comp(KERN_ATTR_TMPS_ESALT(pbkdf2_sha256_tmp_t, blocks_t))
   const u32 r2 = yn[2] ^ s0[2];
   const u32 r3 = yn[3] ^ s0[3];
 
-#define il_pos 0
+  #define il_pos 0
 
-#ifdef KERNEL_STATIC
-#include COMPARE_M
-#endif
+  #ifdef KERNEL_STATIC
+  #include COMPARE_M
+  #endif
 }

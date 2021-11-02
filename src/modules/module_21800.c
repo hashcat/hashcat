@@ -97,11 +97,6 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
     }
   }
 
-  if (device_param->opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP)
-  {
-    return true;
-  }
-
   // amdgpu-pro-20.50-1234664-ubuntu-20.04 (rocr)
   // test_1620713931/test_report.log:! unhandled return code 255, cmdline : cat test_1620713931/21800_passwords.txt | ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -O -D 2 --backend-vector-width 4 -a 0 -m 21800 test_1620713931/21800_hashes.txt
   // test_1620719578/test_report.log:! unhandled return code 255, cmdline : cat test_1620719578/21800_passwords.txt | ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 0 -m 21800 test_1620719578/21800_hashes.txt
