@@ -17,6 +17,14 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+#if defined IS_AMD && defined IS_GPU
+#define INLINE
+#elif defined IS_HIP
+#define INLINE INLINE0
+#else
+#define INLINE
+#endif
+
 typedef struct pdf
 {
   int  V;
