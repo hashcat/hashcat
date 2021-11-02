@@ -13,7 +13,7 @@
 #include "inc_simd.cl"
 #endif
 
-inline u32x Murmur32_Scramble(u32x k)
+DECLSPEC u32x Murmur32_Scramble(u32x k)
 {
   k = (k * 0x16A88000) | ((k * 0xCC9E2D51) >> 17);
   return (k * 0x1B873593);
