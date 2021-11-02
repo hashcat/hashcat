@@ -61,6 +61,8 @@ typedef struct pbkdf2_sha512_tmp
 
 static const char *SIGNATURE_SHA512MACOS = "$ml$";
 
+static const char *SIGNATURE_SHA512MACOS_JOHN = "$pbkdf2-hmac-sha512$";
+
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   const u64 tmp_size = (const u64) sizeof (pbkdf2_sha512_tmp_t);
@@ -97,89 +99,199 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   pbkdf2_sha512_t *pbkdf2_sha512 = (pbkdf2_sha512_t *) esalt_buf;
 
-  token_t token;
+  char sigchk[21];
+  sigchk[20] = '\0';
+  memcpy (sigchk, line_buf, 20);
 
-  token.token_cnt  = 4;
+  if (strncmp (sigchk, SIGNATURE_SHA512MACOS, 4) == 0)
+  {
+    token_t token;
 
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_SHA512MACOS;
+    token.token_cnt  = 4;
 
-  token.len[0]     = 4;
-  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
+    token.signatures_cnt    = 1;
+    token.signatures_buf[0] = SIGNATURE_SHA512MACOS;
 
-  token.len_min[1] = 1;
-  token.len_max[1] = 6;
-  token.sep[1]     = '$';
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
+    token.len[0]     = 4;
+    token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
+                     | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  token.len_min[2] = 64;
-  token.len_max[2] = 64;
-  token.sep[2]     = '$';
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
+    token.len_min[1] = 1;
+    token.len_max[1] = 6;
+    token.sep[1]     = '$';
+    token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_DIGIT;
 
-  token.len_min[3] = 128;
-  token.len_max[3] = 256;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
+    token.len_min[2] = 64;
+    token.len_max[2] = 64;
+    token.sep[2]     = '$';
+    token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
 
-  const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
+    token.len_min[3] = 128;
+    token.len_max[3] = 256;
+    token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
 
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+    const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
-  const int hash_len = token.len[3];
+    if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  if ((hash_len != 128) && (hash_len != 256)) return (PARSER_HASH_LENGTH);
+    const int hash_len = token.len[3];
 
-  const u8 *hash_pos = token.buf[3];
+    if ((hash_len != 128) && (hash_len != 256)) return (PARSER_HASH_LENGTH);
 
-  digest[0] = hex_to_u64 (hash_pos +   0);
-  digest[1] = hex_to_u64 (hash_pos +  16);
-  digest[2] = hex_to_u64 (hash_pos +  32);
-  digest[3] = hex_to_u64 (hash_pos +  48);
-  digest[4] = hex_to_u64 (hash_pos +  64);
-  digest[5] = hex_to_u64 (hash_pos +  80);
-  digest[6] = hex_to_u64 (hash_pos +  96);
-  digest[7] = hex_to_u64 (hash_pos + 112);
+    const u8 *hash_pos = token.buf[3];
 
-  digest[0] = byte_swap_64 (digest[0]);
-  digest[1] = byte_swap_64 (digest[1]);
-  digest[2] = byte_swap_64 (digest[2]);
-  digest[3] = byte_swap_64 (digest[3]);
-  digest[4] = byte_swap_64 (digest[4]);
-  digest[5] = byte_swap_64 (digest[5]);
-  digest[6] = byte_swap_64 (digest[6]);
-  digest[7] = byte_swap_64 (digest[7]);
+    digest[0] = hex_to_u64 (hash_pos +   0);
+    digest[1] = hex_to_u64 (hash_pos +  16);
+    digest[2] = hex_to_u64 (hash_pos +  32);
+    digest[3] = hex_to_u64 (hash_pos +  48);
+    digest[4] = hex_to_u64 (hash_pos +  64);
+    digest[5] = hex_to_u64 (hash_pos +  80);
+    digest[6] = hex_to_u64 (hash_pos +  96);
+    digest[7] = hex_to_u64 (hash_pos + 112);
 
-  const u8 *salt_pos = token.buf[2];
-  const int salt_len = token.len[2] / 2;
+    digest[0] = byte_swap_64 (digest[0]);
+    digest[1] = byte_swap_64 (digest[1]);
+    digest[2] = byte_swap_64 (digest[2]);
+    digest[3] = byte_swap_64 (digest[3]);
+    digest[4] = byte_swap_64 (digest[4]);
+    digest[5] = byte_swap_64 (digest[5]);
+    digest[6] = byte_swap_64 (digest[6]);
+    digest[7] = byte_swap_64 (digest[7]);
 
-  pbkdf2_sha512->salt_buf[0] = hex_to_u32 (salt_pos +  0);
-  pbkdf2_sha512->salt_buf[1] = hex_to_u32 (salt_pos +  8);
-  pbkdf2_sha512->salt_buf[2] = hex_to_u32 (salt_pos + 16);
-  pbkdf2_sha512->salt_buf[3] = hex_to_u32 (salt_pos + 24);
-  pbkdf2_sha512->salt_buf[4] = hex_to_u32 (salt_pos + 32);
-  pbkdf2_sha512->salt_buf[5] = hex_to_u32 (salt_pos + 40);
-  pbkdf2_sha512->salt_buf[6] = hex_to_u32 (salt_pos + 48);
-  pbkdf2_sha512->salt_buf[7] = hex_to_u32 (salt_pos + 56);
+    const u8 *salt_pos = token.buf[2];
+    const int salt_len = token.len[2] / 2;
 
-  salt->salt_buf[0] = pbkdf2_sha512->salt_buf[0];
-  salt->salt_buf[1] = pbkdf2_sha512->salt_buf[1];
-  salt->salt_buf[2] = pbkdf2_sha512->salt_buf[2];
-  salt->salt_buf[3] = pbkdf2_sha512->salt_buf[3];
-  salt->salt_buf[4] = pbkdf2_sha512->salt_buf[4];
-  salt->salt_buf[5] = pbkdf2_sha512->salt_buf[5];
-  salt->salt_buf[6] = pbkdf2_sha512->salt_buf[6];
-  salt->salt_buf[7] = pbkdf2_sha512->salt_buf[7];
-  salt->salt_len    = salt_len;
+    pbkdf2_sha512->salt_buf[0] = hex_to_u32 (salt_pos +  0);
+    pbkdf2_sha512->salt_buf[1] = hex_to_u32 (salt_pos +  8);
+    pbkdf2_sha512->salt_buf[2] = hex_to_u32 (salt_pos + 16);
+    pbkdf2_sha512->salt_buf[3] = hex_to_u32 (salt_pos + 24);
+    pbkdf2_sha512->salt_buf[4] = hex_to_u32 (salt_pos + 32);
+    pbkdf2_sha512->salt_buf[5] = hex_to_u32 (salt_pos + 40);
+    pbkdf2_sha512->salt_buf[6] = hex_to_u32 (salt_pos + 48);
+    pbkdf2_sha512->salt_buf[7] = hex_to_u32 (salt_pos + 56);
 
-  const u8 *iter_pos = token.buf[1];
+    salt->salt_buf[0] = pbkdf2_sha512->salt_buf[0];
+    salt->salt_buf[1] = pbkdf2_sha512->salt_buf[1];
+    salt->salt_buf[2] = pbkdf2_sha512->salt_buf[2];
+    salt->salt_buf[3] = pbkdf2_sha512->salt_buf[3];
+    salt->salt_buf[4] = pbkdf2_sha512->salt_buf[4];
+    salt->salt_buf[5] = pbkdf2_sha512->salt_buf[5];
+    salt->salt_buf[6] = pbkdf2_sha512->salt_buf[6];
+    salt->salt_buf[7] = pbkdf2_sha512->salt_buf[7];
+    salt->salt_len    = salt_len;
 
-  salt->salt_iter = hc_strtoul ((const char *) iter_pos, NULL, 10) - 1;
+    const u8 *iter_pos = token.buf[1];
 
-  return (PARSER_OK);
+    salt->salt_iter = hc_strtoul ((const char *) iter_pos, NULL, 10) - 1;
+
+    return (PARSER_OK);
+  } 
+
+  if (strncmp (sigchk, SIGNATURE_SHA512MACOS_JOHN, 20) == 0)
+  {
+    token_t token;
+
+    token.token_cnt  = 7;
+
+    token.signatures_cnt    = 1;
+    token.signatures_buf[0] = SIGNATURE_SHA512MACOS_JOHN;
+
+    token.len[0]     = 20;
+    token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
+                     | TOKEN_ATTR_VERIFY_SIGNATURE;
+
+    token.len_min[1] = 1;
+    token.len_max[1] = 6;
+    token.sep[1]     = '.';
+    token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_DIGIT;
+
+    token.len_min[2] = 64;
+    token.len_max[2] = 64;
+    token.sep[2]     = '.';
+    token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    token.len_min[3] = 128;
+    token.len_max[3] = 256;
+    token.sep[3]     = ':';
+    token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    token.len_min[4] = 0;
+    token.len_max[4] = 16;
+    token.sep[4]     = ':';
+    token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+    token.len_min[5] = 0;
+    token.len_max[5] = 16;
+    token.sep[5]     = ':';
+    token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+    token.len_min[6] = 0;
+    token.len_max[6] = 32;
+    token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+    const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
+
+    if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+
+    const int hash_len = token.len[3];
+
+    if ((hash_len != 128) && (hash_len != 256)) return (PARSER_HASH_LENGTH);
+
+    const u8 *hash_pos = token.buf[3];
+
+    digest[0] = hex_to_u64 (hash_pos +   0);
+    digest[1] = hex_to_u64 (hash_pos +  16);
+    digest[2] = hex_to_u64 (hash_pos +  32);
+    digest[3] = hex_to_u64 (hash_pos +  48);
+    digest[4] = hex_to_u64 (hash_pos +  64);
+    digest[5] = hex_to_u64 (hash_pos +  80);
+    digest[6] = hex_to_u64 (hash_pos +  96);
+    digest[7] = hex_to_u64 (hash_pos + 112);
+
+    digest[0] = byte_swap_64 (digest[0]);
+    digest[1] = byte_swap_64 (digest[1]);
+    digest[2] = byte_swap_64 (digest[2]);
+    digest[3] = byte_swap_64 (digest[3]);
+    digest[4] = byte_swap_64 (digest[4]);
+    digest[5] = byte_swap_64 (digest[5]);
+    digest[6] = byte_swap_64 (digest[6]);
+    digest[7] = byte_swap_64 (digest[7]);
+
+    const u8 *salt_pos = token.buf[2];
+    const int salt_len = token.len[2] / 2;
+
+    pbkdf2_sha512->salt_buf[0] = hex_to_u32 (salt_pos +  0);
+    pbkdf2_sha512->salt_buf[1] = hex_to_u32 (salt_pos +  8);
+    pbkdf2_sha512->salt_buf[2] = hex_to_u32 (salt_pos + 16);
+    pbkdf2_sha512->salt_buf[3] = hex_to_u32 (salt_pos + 24);
+    pbkdf2_sha512->salt_buf[4] = hex_to_u32 (salt_pos + 32);
+    pbkdf2_sha512->salt_buf[5] = hex_to_u32 (salt_pos + 40);
+    pbkdf2_sha512->salt_buf[6] = hex_to_u32 (salt_pos + 48);
+    pbkdf2_sha512->salt_buf[7] = hex_to_u32 (salt_pos + 56);
+
+    salt->salt_buf[0] = pbkdf2_sha512->salt_buf[0];
+    salt->salt_buf[1] = pbkdf2_sha512->salt_buf[1];
+    salt->salt_buf[2] = pbkdf2_sha512->salt_buf[2];
+    salt->salt_buf[3] = pbkdf2_sha512->salt_buf[3];
+    salt->salt_buf[4] = pbkdf2_sha512->salt_buf[4];
+    salt->salt_buf[5] = pbkdf2_sha512->salt_buf[5];
+    salt->salt_buf[6] = pbkdf2_sha512->salt_buf[6];
+    salt->salt_buf[7] = pbkdf2_sha512->salt_buf[7];
+    salt->salt_len    = salt_len;
+
+    const u8 *iter_pos = token.buf[1];
+
+    salt->salt_iter = hc_strtoul ((const char *) iter_pos, NULL, 10) - 1;
+
+    return (PARSER_OK);
+  }
+  return (PARSER_SIGNATURE_UNMATCHED);
 }
 
 /* replaced with OPTS_TYPE_HASH_COPY version
