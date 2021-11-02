@@ -137,6 +137,7 @@
 - Status view: Add hash-mode (-m number) in addition to hash-name
 - Vendor Discovery: Add "Intel" as a valid vendor name for GPUs on macOS
 - MetaMask: Increase the supported data len from 784b to 3136b and set pw-min to 8
+- MacOS v10.8+ (PBKDF2-SHA512): Added support for parsing mac2john hash format
 
 * changes v6.2.2 -> v6.2.3
 
