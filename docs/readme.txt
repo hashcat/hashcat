@@ -23,20 +23,20 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - World's first and only in-kernel rule engine
 - Free
 - Open-Source (MIT License)
-- Multi-OS (Linux, Windows and macOS)
+- Multi-OS (Linux, Windows, and macOS)
 - Multi-Platform (CPU, GPU, APU, etc., everything that comes with an OpenCL runtime)
 - Multi-Hash (Cracking multiple hashes at the same time)
-- Multi-Devices (Utilizing multiple devices in same system)
-- Multi-Device-Types (Utilizing mixed device types in same system)
+- Multi-Devices (Utilizing multiple devices in the same system)
+- Multi-Device-Types (Utilizing mixed device types in the same system)
 - Supports password candidate brain functionality
 - Supports distributed cracking networks (using overlay)
-- Supports interactive pause / resume
+- Supports interactive pause/resume
 - Supports sessions
 - Supports restore
 - Supports reading password candidates from file and stdin
 - Supports hex-salt and hex-charset
 - Supports automatic performance tuning
-- Supports automatic keyspace ordering markov-chains
+- Supports automatic keyspace ordering Markov-chains
 - Built-in benchmarking system
 - Integrated thermal watchdog
 - 300+ Hash-types implemented with performance in mind
