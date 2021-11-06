@@ -22,9 +22,12 @@ c T7
 l $1
 l $2
 l $1$2$3
-l $2$0$0$7
-l $2$0$0$8
-l $2$0$0$9
+l $2$0$1$7
+l $2$0$1$6
+l $2$0$1$8
+l $2$0$1$9
+l $2$0$2$0
+l $2$0$2$1
 
 ## rule: hyphen variety
 ## limits: insert at char positions 3 to 7
