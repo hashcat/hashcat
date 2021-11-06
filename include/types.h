@@ -1760,7 +1760,7 @@ typedef enum kernel_workload
   KERNEL_LOOPS_MIN   = 1,
   KERNEL_LOOPS_MAX   = 1024,
   KERNEL_THREADS_MIN = 1,
-  KERNEL_THREADS_MAX = 64,
+  KERNEL_THREADS_MAX = 1024,
 
 } kernel_workload_t;
 
