@@ -280,7 +280,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u32 salt_iter = hc_strtoul ((const char *) token.buf[11], NULL, 10);
 
-  if (salt_iter < 8 || salt_iter > 1000000) return (PARSER_SALT_ITERATION);
+  if (salt_iter < 8 || salt_iter > 65011712) return (PARSER_SALT_ITERATION);
 
   salt->salt_iter = salt_iter;
 
