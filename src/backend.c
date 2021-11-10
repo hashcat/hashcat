@@ -10533,11 +10533,24 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       cl_program p1 = NULL;
 
-      if (hc_clCreateProgramWithSource (hashcat_ctx, device_param->opencl_context, 1, (const char **) kernel_sources, NULL, &p1) == -1) return false;
+      // workaround opencl issue with Apple Silicon
 
-      CL_rc = hc_clCompileProgram (hashcat_ctx, p1, 1, &device_param->opencl_device, build_options_buf, 0, NULL, NULL, NULL, NULL);
+      if (strcmp (device_param->device_name, "Apple M") != 0)
+      {
+        if (hc_clCreateProgramWithSource (hashcat_ctx, device_param->opencl_context, 1, (const char **) kernel_sources, NULL, opencl_program) == -1) return false;
 
-      hc_clGetProgramBuildInfo (hashcat_ctx, p1, device_param->opencl_device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
+        CL_rc = hc_clBuildProgram (hashcat_ctx, *opencl_program, 1, &device_param->opencl_device, build_options_buf, NULL, NULL);
+
+        hc_clGetProgramBuildInfo (hashcat_ctx, *opencl_program, device_param->opencl_device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
+      }
+      else
+      {
+        if (hc_clCreateProgramWithSource (hashcat_ctx, device_param->opencl_context, 1, (const char **) kernel_sources, NULL, &p1) == -1) return false;
+
+        CL_rc = hc_clCompileProgram (hashcat_ctx, p1, 1, &device_param->opencl_device, build_options_buf, 0, NULL, NULL, NULL, NULL);
+
+        hc_clGetProgramBuildInfo (hashcat_ctx, p1, device_param->opencl_device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
+      }
 
       #if defined (DEBUG)
       if ((build_log_size > 1) || (CL_rc == -1))
@@ -10547,7 +10560,16 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
       {
         char *build_log = (char *) hcmalloc (build_log_size + 1);
 
-        const int rc_clGetProgramBuildInfo = hc_clGetProgramBuildInfo (hashcat_ctx, p1, device_param->opencl_device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
+        int rc_clGetProgramBuildInfo;
+
+        if (strcmp (device_param->device_name, "Apple M") != 0)
+        {
+          rc_clGetProgramBuildInfo = hc_clGetProgramBuildInfo (hashcat_ctx, *opencl_program, device_param->opencl_device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
+        }
+        else
+        {
+          rc_clGetProgramBuildInfo = hc_clGetProgramBuildInfo (hashcat_ctx, p1, device_param->opencl_device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
+        }
 
         if (rc_clGetProgramBuildInfo == -1)
         {
@@ -10565,20 +10587,28 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       if (CL_rc == -1) return false;
 
-      cl_program t2[1];
+      // workaround opencl issue with Apple Silicon
 
-      t2[0] = p1;
+      if (strcmp (device_param->device_name, "Apple M") != 0)
+      {
+      }
+      else
+      {
+        cl_program t2[1];
 
-      cl_program fin;
+        t2[0] = p1;
 
-      if (hc_clLinkProgram (hashcat_ctx, device_param->opencl_context, 1, &device_param->opencl_device, NULL, 1, t2, NULL, NULL, &fin) == -1) return false;
+        cl_program fin;
 
-      // it seems errors caused by clLinkProgram() do not go into CL_PROGRAM_BUILD
-      // I couldn't find any information on the web explaining how else to retrieve the error messages from the linker
+        if (hc_clLinkProgram (hashcat_ctx, device_param->opencl_context, 1, &device_param->opencl_device, NULL, 1, t2, NULL, NULL, &fin) == -1) return false;
 
-      *opencl_program = fin;
+        // it seems errors caused by clLinkProgram() do not go into CL_PROGRAM_BUILD
+        // I couldn't find any information on the web explaining how else to retrieve the error messages from the linker
 
-      hc_clReleaseProgram (hashcat_ctx, p1);
+        *opencl_program = fin;
+
+        hc_clReleaseProgram (hashcat_ctx, p1);
+      }
 
       if (cache_disable == false)
       {
