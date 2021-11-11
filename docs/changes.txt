@@ -40,6 +40,7 @@
 - POCL: Added a workaround for an issue in POCL that uses a quote character as part of the path itself given to a path for the -I option
 - Device Threads: The default maximum device thread number has been reduced from 1024 to 256, users can still overwrite with the -T option
 - Tuning-DB: Add missing entries for -m 25600 and -m 25800 for CPU cracking
+- OpenCL Backend: added workaround to support Apple Silicon
 
 * changes v6.2.3 -> v6.2.4
 
