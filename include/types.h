@@ -447,8 +447,10 @@ typedef enum opts_type
   OPTS_TYPE_SELF_TEST_DISABLE = (1ULL << 51), // some algos use JiT in combinations with a salt or create too much startup time
   OPTS_TYPE_MP_MULTI_DISABLE  = (1ULL << 52), // do not multiply the kernel-accel with the multiprocessor count per device to allow more fine-tuned workload settings
   OPTS_TYPE_NATIVE_THREADS    = (1ULL << 53), // forces "native" thread count: CPU=1, GPU-Intel=8, GPU-AMD=64 (wavefront), GPU-NV=32 (warps)
-  OPTS_TYPE_POST_AMP_UTF16LE  = (1ULL << 54), // run the utf8 to utf16le conversion kernel after they have been processed from amplifiers
-  OPTS_TYPE_AUTODETECT_DISABLE = (1ULL << 55), // skip autodetect engine
+  OPTS_TYPE_MAXIMUM_THREADS   = (1ULL << 54), // disable else branch in pre-compilation thread count optimization setting
+  OPTS_TYPE_POST_AMP_UTF16LE  = (1ULL << 55), // run the utf8 to utf16le conversion kernel after they have been processed from amplifiers
+  OPTS_TYPE_AUTODETECT_DISABLE
+                              = (1ULL << 56), // skip autodetect engine
 
 } opts_type_t;
 

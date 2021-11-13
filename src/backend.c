@@ -11100,22 +11100,13 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
      * device threads
      */
 
-    if (device_param->is_hip == true)
+    if (hashconfig->opts_type & OPTS_TYPE_MAXIMUM_THREADS)
     {
-      const u32 native_threads = device_param->kernel_preferred_wgs_multiple;
-
-      if ((native_threads >= device_param->kernel_threads_min) && (native_threads <= device_param->kernel_threads_max))
-      {
-        device_param->kernel_threads_min = native_threads;
-        device_param->kernel_threads_max = native_threads;
-      }
-      else
-      {
-        // abort?
-      }
+      // default for all, because the else branch is doing the same (nothing), but is actually used as a way to
+      // disable the default native thread configuration for HIP
+      // this can have negative performance if not tested on multiple different gpu architectures
     }
-
-    if (hashconfig->opts_type & OPTS_TYPE_NATIVE_THREADS)
+    else if (hashconfig->opts_type & OPTS_TYPE_NATIVE_THREADS)
     {
       u32 native_threads = 0;
 
@@ -11140,6 +11131,23 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       else
       {
         // abort?
+      }
+    }
+    else
+    {
+      if (device_param->is_hip == true)
+      {
+        const u32 native_threads = device_param->kernel_preferred_wgs_multiple;
+
+        if ((native_threads >= device_param->kernel_threads_min) && (native_threads <= device_param->kernel_threads_max))
+        {
+          device_param->kernel_threads_min = native_threads;
+          device_param->kernel_threads_max = native_threads;
+        }
+        else
+        {
+          // abort?
+        }
       }
     }
 

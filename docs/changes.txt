@@ -35,6 +35,7 @@
 - Backend devices: In non -S mode, limit the number of workitems so that no more than 4GB of host memory is required per backend device
 - Backend types: The default filter for the device types is now set so that only the GPU is used, except for APPLE, where we set CPU
 - Benchmark: Update benchmark_deep.pl with new hash modes added (also new hash modes which were added with v6.2.3)
+- Module Optimizaters: Added OPTS_TYPE_MAXIMUM_THREADS to deactivate the else branch route in the section to find -T before compilation
 - Makefile: Added wildcard include src/modules/module_*.mk directive so that plugin developers can add 3rd party libraries for their plugins
 - Rejects: Disabled checking of the minimum and maximum length of the password candidate in attack-mode 9 because they are incompatible
 - POCL: Added a workaround for an issue in POCL that uses a quote character as part of the path itself given to a path for the -I option
