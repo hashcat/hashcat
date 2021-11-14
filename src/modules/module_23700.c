@@ -22,7 +22,8 @@ static const char *HASH_NAME      = "RAR3-p (Uncompressed)";
 static const u64   KERN_TYPE      = 23700;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_POST_AMP_UTF16LE;
+                                  | OPTS_TYPE_POST_AMP_UTF16LE
+                                  | OPTS_TYPE_MAXIMUM_THREADS;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$RAR3$*1*e54a73729887cb53*49b0a846*16*14*1*34620bcca8176642a210b1051901921e*30";

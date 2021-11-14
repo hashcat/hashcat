@@ -78,7 +78,8 @@ static const u32   HASH_CATEGORY  = HASH_CATEGORY_ARCHIVE;
 static const char *HASH_NAME      = "PKZIP Master Key (6 byte optimization)";
 static const u64   KERN_TYPE      = 20510;
 static const u32   OPTI_TYPE      = 0;
-static const u64   OPTS_TYPE      = OPTS_TYPE_COPY_TMPS;
+static const u64   OPTS_TYPE      = OPTS_TYPE_COPY_TMPS
+                                  | OPTS_TYPE_MAXIMUM_THREADS;
 static const u32   SALT_TYPE      = SALT_TYPE_NONE;
 static const char *ST_PASS        = "t"; // actually "hashcat"
 static const char *ST_HASH        = "f1eff5c0368d10311dcfc419";

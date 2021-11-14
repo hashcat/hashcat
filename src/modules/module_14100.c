@@ -22,7 +22,8 @@ static const char *HASH_NAME      = "3DES (PT = $salt, key = $pass)";
 static const u64   KERN_TYPE      = 14100;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_ST_HEX;
+                                  | OPTS_TYPE_ST_HEX
+                                  | OPTS_TYPE_MAXIMUM_THREADS;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat1hashcat1hashcat1";
 static const char *ST_HASH        = "4c29eea59d8db1e7:7428288455525516";

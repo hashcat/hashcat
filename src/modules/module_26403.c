@@ -22,8 +22,7 @@ static const char *HASH_NAME      = "AES-256-ECB NOKDF (PT = $salt, key = $pass)
 static const u64   KERN_TYPE      = 26403;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_ST_HEX
-                                  | OPTS_TYPE_MAXIMUM_THREADS;
+                                  | OPTS_TYPE_ST_HEX;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "264a4248c9522cb74d33fe26cb596895:61270210011294880287232432636227";
