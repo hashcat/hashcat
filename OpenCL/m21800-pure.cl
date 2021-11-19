@@ -607,16 +607,25 @@ KERNEL_FQ void m21800_comp (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
 
   if (tmp[0] == '{')
   {
-    int qcnt = 0;
-    int ccnt = 0;
+    int qcnt1 = 0;
+    int ccnt1 = 0;
+
+    for (int i = 1; i < 16; i++)
+    {
+      if (tmp[i] == '"') qcnt1++;
+      if (tmp[i] == ':') ccnt1++;
+    }
+
+    int qcnt2 = 0;
+    int ccnt2 = 0;
 
     for (int i = 1; i < 1024; i++)
     {
-      if (tmp[i] == '"') qcnt++;
-      if (tmp[i] == ':') ccnt++;
+      if (tmp[i] == '"') qcnt2++;
+      if (tmp[i] == ':') ccnt2++;
     }
 
-    if ((qcnt >= 3) && (ccnt >= 3))
+    if ((qcnt1 >= 1) && (ccnt1 >= 1) && (qcnt2 >= 3) && (ccnt2 >= 3))
     {
       const float entropy = hc_get_entropy ((const u32 *) tmp, 256);
 
