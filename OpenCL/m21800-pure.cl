@@ -625,7 +625,7 @@ KERNEL_FQ void m21800_comp (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
       if (tmp[i] == ':') ccnt2++;
     }
 
-    if ((qcnt1 >= 1) && (ccnt1 >= 1) && (qcnt2 >= 3) && (ccnt2 >= 3))
+    if ((qcnt1 >= 1) && (ccnt1 >= 1) && (qcnt2 >= 4) && (ccnt2 >= 3))
     {
       const float entropy = hc_get_entropy ((const u32 *) tmp, 256);
 
