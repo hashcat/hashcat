@@ -178,7 +178,7 @@ typedef int mz_bool;
 
 typedef mz_uint64 tinfl_bit_buf_t;
 
-DECLSPEC void memcpy (void *dest, const void *src, u32 n)
+DECLSPEC void zlib_memcpy (void *dest, const void *src, u32 n)
 {
   char *csrc  = (char *) src;
   char *cdest = (char *) dest;
@@ -189,21 +189,17 @@ DECLSPEC void memcpy (void *dest, const void *src, u32 n)
   }
 }
 
-DECLSPEC void *memset (u8 *s, const int c, u32 len)
+DECLSPEC void zlib_memset (u8 *s, const u8 c, u32 len)
 {
-  const u8 c8 = (const u8) c;
-
   u8 *dst = s;
 
   while (len > 0)
   {
-    *dst = c8;
+    *dst = c;
 
     dst++;
     len--;
   }
-
-  return s;
 }
 
 #define MZ_MAX(a, b) (((a) > (b)) ? (a) : (b))
@@ -471,7 +467,7 @@ DECLSPEC int mz_inflateEnd(mz_streamp pStream);
 DECLSPEC int mz_inflateInit2(mz_streamp pStream, int window_bits, inflate_state*);
 
 // hashcat-patched/hashcat-specific:
-DECLSPEC const mz_uint8 pIn_xor_byte (const mz_uint8 c, mz_streamp pStream)
+DECLSPEC mz_uint8 pIn_xor_byte (const mz_uint8 c, mz_streamp pStream)
 {
   #ifdef CRC32_IN_INFLATE
   mz_uint8 r = c;
@@ -489,7 +485,7 @@ DECLSPEC const mz_uint8 pIn_xor_byte (const mz_uint8 c, mz_streamp pStream)
 }
 
 
-DECLSPEC void memcpy_g(void *dest, MAYBE_GLOBAL const void *src, size_t n, mz_streamp pStream){
+DECLSPEC void zlib_memcpy_g(void *dest, MAYBE_GLOBAL const void *src, size_t n, mz_streamp pStream){
   MAYBE_GLOBAL char *csrc = (MAYBE_GLOBAL char *)src;
   char *cdest = (char *)dest;
   for (int i=0; i<n; i++){
@@ -585,7 +581,7 @@ DECLSPEC tinfl_status tinfl_decompress(tinfl_decompressor *r, MAYBE_GLOBAL const
                     TINFL_CR_RETURN(38, (decomp_flags & TINFL_FLAG_HAS_MORE_INPUT) ? TINFL_STATUS_NEEDS_MORE_INPUT : TINFL_STATUS_FAILED_CANNOT_MAKE_PROGRESS);
                 }
                 n = MZ_MIN(MZ_MIN((size_t)(pOut_buf_end - pOut_buf_cur), (size_t)(pIn_buf_end - pIn_buf_cur)), counter);
-                memcpy_g(pOut_buf_cur, pIn_buf_cur, n, pStream);
+                zlib_memcpy_g(pOut_buf_cur, pIn_buf_cur, n, pStream);
                 pIn_buf_cur += n;
                 pOut_buf_cur += n;
                 counter -= (mz_uint)n;
@@ -603,7 +599,7 @@ DECLSPEC tinfl_status tinfl_decompress(tinfl_decompressor *r, MAYBE_GLOBAL const
                 mz_uint i;
                 r->m_table_sizes[0] = 288;
                 r->m_table_sizes[1] = 32;
-                memset(r->m_tables[1].m_code_size, 5, 32);
+                zlib_memset(r->m_tables[1].m_code_size, 5, 32);
                 for (i = 0; i <= 143; ++i)
                     *p++ = 8;
                 for (; i <= 255; ++i)
@@ -620,7 +616,7 @@ DECLSPEC tinfl_status tinfl_decompress(tinfl_decompressor *r, MAYBE_GLOBAL const
                     TINFL_GET_BITS(11, r->m_table_sizes[counter], "\05\05\04"[counter]);
                     r->m_table_sizes[counter] += s_min_table_sizes[counter];
                 }
-                memset(r->m_tables[2].m_code_size, 0, TINFL_MAX_HUFF_SYMBOLS_0);
+                zlib_memset(r->m_tables[2].m_code_size, 0, TINFL_MAX_HUFF_SYMBOLS_0);
 
                 for (counter = 0; counter < r->m_table_sizes[2]; counter++)
                 {
@@ -637,9 +633,9 @@ DECLSPEC tinfl_status tinfl_decompress(tinfl_decompressor *r, MAYBE_GLOBAL const
                 mz_uint i, j, used_syms, total, sym_index, next_code[17], total_syms[16];
                 pTable = &r->m_tables[r->m_type];
 
-                memset((u8 *) total_syms, 0, 64);
-                memset((u8 *) pTable->m_look_up, 0, TINFL_FAST_LOOKUP_SIZE * 2);
-                memset((u8 *) pTable->m_tree, 0, TINFL_MAX_HUFF_SYMBOLS_0 * 2 * 2);
+                zlib_memset((u8 *) total_syms, 0, 64);
+                zlib_memset((u8 *) pTable->m_look_up, 0, TINFL_FAST_LOOKUP_SIZE * 2);
+                zlib_memset((u8 *) pTable->m_tree, 0, TINFL_MAX_HUFF_SYMBOLS_0 * 2 * 2);
 
                 for (i = 0; i < r->m_table_sizes[r->m_type]; ++i)
                     total_syms[pTable->m_code_size[i]]++;
@@ -713,7 +709,7 @@ DECLSPEC tinfl_status tinfl_decompress(tinfl_decompressor *r, MAYBE_GLOBAL const
                         TINFL_GET_BITS(18, s, num_extra);
                         s += "\03\03\013"[dist - 16];
 
-                        memset(r->m_len_codes + counter, (dist == 16) ? r->m_len_codes[counter - 1] : 0, s);
+                        zlib_memset(r->m_len_codes + counter, (dist == 16) ? r->m_len_codes[counter - 1] : 0, s);
 
 
                         counter += s;
@@ -722,8 +718,8 @@ DECLSPEC tinfl_status tinfl_decompress(tinfl_decompressor *r, MAYBE_GLOBAL const
                     {
                         TINFL_CR_RETURN_FOREVER(21, TINFL_STATUS_FAILED);
                     }
-                    memcpy(r->m_tables[0].m_code_size, r->m_len_codes, r->m_table_sizes[0]);
-                    memcpy(r->m_tables[1].m_code_size, r->m_len_codes + r->m_table_sizes[0], r->m_table_sizes[1]);
+                    zlib_memcpy(r->m_tables[0].m_code_size, r->m_len_codes, r->m_table_sizes[0]);
+                    zlib_memcpy(r->m_tables[1].m_code_size, r->m_len_codes + r->m_table_sizes[0], r->m_table_sizes[1]);
                 }
             }
             for (;;)
@@ -1063,7 +1059,7 @@ DECLSPEC int mz_inflate(mz_streamp pStream, int flush)
     if (pState->m_dict_avail)
     {
         n = MZ_MIN(pState->m_dict_avail, pStream->avail_out);
-        memcpy(pStream->next_out, pState->m_dict + pState->m_dict_ofs, n);
+        zlib_memcpy(pStream->next_out, pState->m_dict + pState->m_dict_ofs, n);
 
         #ifdef CRC32_IN_INFLATE
         for (int i = 0; i < n; i++)
@@ -1097,7 +1093,7 @@ DECLSPEC int mz_inflate(mz_streamp pStream, int flush)
         pState->m_dict_avail = (mz_uint)out_bytes;
 
         n = MZ_MIN(pState->m_dict_avail, pStream->avail_out);
-        memcpy(pStream->next_out, pState->m_dict + pState->m_dict_ofs, n);
+        zlib_memcpy(pStream->next_out, pState->m_dict + pState->m_dict_ofs, n);
 
         #ifdef CRC32_IN_INFLATE
         for (int i = 0; i < n; i++)
@@ -1146,7 +1142,7 @@ DECLSPEC u32 GETSHIFTEDINT (u32 *a, const int n)
   return l32_from_64_S (tmp);
 }
 
-// hashcat-patched: faster memcpy for our large (TINFL_LZ_DICT_SIZE) move of bytes from the old output to the window/lookup table
+// hashcat-patched: faster zlib_memcpy for our large (TINFL_LZ_DICT_SIZE) move of bytes from the old output to the window/lookup table
 
 DECLSPEC void hc_shift_inflate_dict (u8 *buf, const u32 offset, const u32 len)
 {
@@ -1207,7 +1203,7 @@ DECLSPEC int hc_inflate (mz_streamp pStream)
 
     // move the last TINFL_LZ_DICT_SIZE bytes to the start of the output buffer
 
-    // memcpy (pStream->next_out, pStream->next_out + pStream->total_out - TINFL_LZ_DICT_SIZE, TINFL_LZ_DICT_SIZE);
+    // zlib_memcpy (pStream->next_out, pStream->next_out + pStream->total_out - TINFL_LZ_DICT_SIZE, TINFL_LZ_DICT_SIZE);
     hc_shift_inflate_dict (pStream->next_out, pStream->total_out - TINFL_LZ_DICT_SIZE, TINFL_LZ_DICT_SIZE);
 
     pStream->avail_out = TINFL_LZ_DICT_SIZE;
