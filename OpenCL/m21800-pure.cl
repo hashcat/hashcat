@@ -580,7 +580,7 @@ KERNEL_FQ void m21800_comp (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
 
   #define OUT_SIZE 1024
 
-  u8 tmp[OUT_SIZE] = { 0 };
+  u8 tmp[OUT_SIZE];
 
   infstream.avail_out = OUT_SIZE;
   infstream.next_out  = tmp;
@@ -597,6 +597,25 @@ KERNEL_FQ void m21800_comp (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
   if ((zlib_ret != MZ_OK) && (zlib_ret != MZ_STREAM_END))
   {
     return;
+  }
+
+  for (int i = 1; i < infstream.total_out; i++)
+  {
+    if (tmp[i] == '\t') continue;
+    if (tmp[i] == '\r') continue;
+    if (tmp[i] == '\n') continue;
+
+    if (tmp[i] < 0x20)
+    {
+      // https://datatracker.ietf.org/doc/html/rfc7159
+      // 7.  Strings
+      // All Unicode characters may be placed within the
+      // quotation marks, except for the characters that must be escaped:
+      // quotation mark, reverse solidus, and the control characters (U+0000
+      // through U+001F).
+
+      if (tmp[i - 1] != '\\') return;
+    }
   }
 
   /*
@@ -619,7 +638,7 @@ KERNEL_FQ void m21800_comp (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
     int qcnt2 = 0;
     int ccnt2 = 0;
 
-    for (int i = 1; i < 1024; i++)
+    for (int i = 1; i < infstream.total_out; i++)
     {
       if (tmp[i] == '"') qcnt2++;
       if (tmp[i] == ':') ccnt2++;
@@ -627,7 +646,7 @@ KERNEL_FQ void m21800_comp (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
 
     if ((qcnt1 >= 1) && (ccnt1 >= 1) && (qcnt2 >= 4) && (ccnt2 >= 3))
     {
-      const float entropy = hc_get_entropy ((const u32 *) tmp, 256);
+      const float entropy = hc_get_entropy ((const u32 *) tmp, infstream.total_out / 4);
 
       if ((entropy >= MIN_ENTROPY) && (entropy <= MAX_ENTROPY))
       {
