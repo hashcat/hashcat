@@ -9,6 +9,11 @@
 #include <stdio.h>
 #include <string.h>
 
+#if defined (_WIN)
+// for getch()
+#include <conio.h>
+#endif
+
 typedef struct usage_sort
 {
   u32   hash_mode;

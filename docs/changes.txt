@@ -1,5 +1,11 @@
 * changes v6.2.5 -> v6.2.x
 
+##
+## Technical
+##
+
+- Usage Screen: On windows console, wait for any keypress if usage_mini_print() is used
+
 * changes v6.2.4 -> v6.2.5
 
 ##

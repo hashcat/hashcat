@@ -283,6 +283,13 @@ void usage_mini_print (const char *progname)
 
     fwrite (EOL, strlen (EOL), 1, stdout);
   }
+
+  #if defined (_WIN)
+  printf ("\n");
+  printf ("Press any key to exit\n");
+
+  getch();
+  #endif
 }
 
 void usage_big_print (hashcat_ctx_t *hashcat_ctx)
