@@ -4,6 +4,7 @@
 ## Technical
 ##
 
+- Association Attack: Enable module specific pw_min and pw_max settings to avoid false positives in -a 9 attack-mode
 - Usage Screen: On windows console, wait for any keypress if usage_mini_print() is used
 
 * changes v6.2.4 -> v6.2.5
