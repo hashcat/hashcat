@@ -158,6 +158,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_DEFINED (module_ctx->module_hash_binary_save);
   CHECK_DEFINED (module_ctx->module_hash_category);
   CHECK_DEFINED (module_ctx->module_hash_decode);
+  CHECK_DEFINED (module_ctx->module_hash_decode_postprocess);
   CHECK_DEFINED (module_ctx->module_hash_decode_potfile);
   CHECK_DEFINED (module_ctx->module_hash_decode_zero_hash);
   CHECK_DEFINED (module_ctx->module_hash_encode);

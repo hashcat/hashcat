@@ -2704,6 +2704,7 @@ typedef struct module_ctx
   int         (*module_hash_binary_parse)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, hashes_t *);
   int         (*module_hash_binary_save)        (const hashes_t *, const u32, const u32, char **);
 
+  int         (*module_hash_decode_postprocess) (const hashconfig_t *,       void *,       salt_t *,       void *,       void *,       hashinfo_t *, const user_options_t *, const user_options_extra_t *);
   int         (*module_hash_decode_potfile)     (const hashconfig_t *,       void *,       salt_t *,       void *,       void *,       hashinfo_t *, const char *, const int, void *);
   int         (*module_hash_decode_zero_hash)   (const hashconfig_t *,       void *,       salt_t *,       void *,       void *,       hashinfo_t *);
   int         (*module_hash_decode)             (const hashconfig_t *,       void *,       salt_t *,       void *,       void *,       hashinfo_t *, const char *, const int);
