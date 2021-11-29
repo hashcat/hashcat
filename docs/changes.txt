@@ -1,6 +1,12 @@
 * changes v6.2.5 -> v6.2.x
 
 ##
+## Bugs
+##
+
+- Fixed functional error when nonce-error-corrections that were set on the command line in hash-mode 22000/22001 were not accepted
+
+##
 ## Technical
 ##
 
