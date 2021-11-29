@@ -188,7 +188,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     salt->salt_iter = hc_strtoul ((const char *) iter_pos, NULL, 10) - 1;
 
     return (PARSER_OK);
-  } 
+  }
 
   if (strncmp (sigchk, SIGNATURE_SHA512MACOS_JOHN, 20) == 0)
   {
