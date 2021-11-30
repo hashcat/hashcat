@@ -1305,23 +1305,23 @@ int module_hash_decode_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig,
   else
   {
     wpa->nonce_error_corrections = NONCE_ERROR_CORRECTIONS;
-  }
 
-  if (wpa->message_pair & (1 << 4))
-  {
-    // ap-less attack detected, nc not needed
-
-    wpa->nonce_error_corrections = 0;
-  }
-  else
-  {
-    if (wpa->message_pair & (1 << 7))
+    if (wpa->message_pair & (1 << 4))
     {
-      // replaycount not checked, nc needed
+      // ap-less attack detected, nc not needed
+
+      wpa->nonce_error_corrections = 0;
     }
     else
     {
-      wpa->nonce_error_corrections = 0;
+      if (wpa->message_pair & (1 << 7))
+      {
+        // replaycount not checked, nc needed
+      }
+      else
+      {
+        wpa->nonce_error_corrections = 0;
+      }
     }
   }
 
