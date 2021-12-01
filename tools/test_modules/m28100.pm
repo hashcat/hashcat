@@ -8,9 +8,7 @@
 use strict;
 use warnings;
 
-use Digest::MD4 qw (md4 md4_hex);
-use Digest::SHA qw (sha1 sha1_hex);
-use Digest::SHA qw (sha512 sha512_hex);
+use Digest::SHA qw (sha1 sha512);
 use Crypt::PBKDF2;
 use Encode;
 
