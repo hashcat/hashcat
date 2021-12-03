@@ -302,7 +302,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.len_min[2] = 3;
-  token.len_max[2] = 3;
+  token.len_max[2] = 4;
   token.sep[2]     = '*';
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
