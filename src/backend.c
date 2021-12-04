@@ -10994,6 +10994,21 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (_kernel_accel == (u32) -1) // native, makes sense if OPTS_TYPE_MP_MULTI_DISABLE is used
         {
+          if (module_ctx->module_extra_tuningdb_block != MODULE_DEFAULT)
+          {
+            event_log_warning (hashcat_ctx, "ATTENTION! This hash-mode requires manual tuning to achieve full performance.");
+            event_log_warning (hashcat_ctx, "The loss of performance can be greater than 100%% without manual tuning.");
+            event_log_warning (hashcat_ctx, NULL);
+            event_log_warning (hashcat_ctx, "This warning message disappears after a definition for the installed");
+            event_log_warning (hashcat_ctx, "compute-device in this computer has been added to either list:");
+            event_log_warning (hashcat_ctx, "- src/modules/module_%05d.c", hashconfig->hash_mode);
+            event_log_warning (hashcat_ctx, "- hashcat.hctune");
+            event_log_warning (hashcat_ctx, NULL);
+            event_log_warning (hashcat_ctx, "For instructions on tuning, see src/modules/module_%05d.c", hashconfig->hash_mode);
+            event_log_warning (hashcat_ctx, "Also, consider sending a PR to Hashcat Master so that other users can benefit from your work.");
+            event_log_warning (hashcat_ctx, NULL);
+          }
+
           device_param->kernel_accel_min = device_param->device_processors;
           device_param->kernel_accel_max = device_param->device_processors;
         }

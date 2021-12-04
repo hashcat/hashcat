@@ -11,6 +11,7 @@
 ##
 
 - Association Attack: Enable module specific pw_min and pw_max settings to avoid false positives in -a 9 attack-mode
+- Tuning Database: Added a warning if a module implements module_extra_tuningdb_block but the installed computing device is not found
 - Usage Screen: On windows console, wait for any keypress if usage_mini_print() is used
 - User Options: Add new module function module_hash_decode_postprocess() to override hash specific configurations from command line
 
