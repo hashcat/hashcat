@@ -47,7 +47,9 @@ DECLSPEC u32 hc_bytealign_le_S (const u32 a, const u32 b, const int c)
 {
   const int c_mod_4 = c & 3;
 
+  #if defined IS_NV
   const u32 r = hc_byte_perm_S (b, a, (0x76543210 >> (c_mod_4 * 4)) & 0xffff);
+  #endif
 
   return r;
 }
