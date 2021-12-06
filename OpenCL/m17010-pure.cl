@@ -47,8 +47,17 @@ DECLSPEC u32 hc_bytealign_le_S (const u32 a, const u32 b, const int c)
 {
   const int c_mod_4 = c & 3;
 
+  #if ((defined IS_AMD || defined IS_HIP) && HAS_VPERM == 1) || defined IS_NV
+
   #if defined IS_NV
-  const u32 r = hc_byte_perm_S (b, a, (0x76543210 >> (c_mod_4 * 4)) & 0xffff);
+  const int selector = (0x76543210 >> (c_mod_4 * 4)) & 0xffff;
+  #endif
+
+  #if (defined IS_AMD || defined IS_HIP)
+  const int selector = l32_from_64_S (0x0706050403020100UL >> (c_mod_4 * 8));
+  #endif
+
+  const u32 r = hc_byte_perm (b, a, selector);
   #endif
 
   return r;
