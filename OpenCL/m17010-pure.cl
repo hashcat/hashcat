@@ -47,6 +47,10 @@ DECLSPEC u32 hc_bytealign_le_S (const u32 a, const u32 b, const int c)
 {
   const int c_mod_4 = c & 3;
 
+  #if ((defined IS_AMD || defined IS_HIP) && HAS_VPERM == 0) || defined IS_GENERIC
+  const u32 r = l32_from_64_S ((v64_from_v32ab_S (b, a) >> (c_mod_4 * 8)));
+  #endif
+
   #if ((defined IS_AMD || defined IS_HIP) && HAS_VPERM == 1) || defined IS_NV
 
   #if defined IS_NV
