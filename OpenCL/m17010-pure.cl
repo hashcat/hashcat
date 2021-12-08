@@ -87,7 +87,8 @@ DECLSPEC void memzero_le_S (u32 *block, const u32 start_offset, const u32 end_of
   const u32 start_idx = start_offset / 4;
 
   // zero out bytes in the first u32 starting from 'start_offset'
-  block[start_idx] &= 0xffffffff >> ((4 - (start_offset & 3)) * 8);
+  // math is a bit complex to avoid shifting by 32 bits, which is not possible on some architectures
+  block[start_idx] &= ~(0xffffffff << ((start_offset & 3) * 8));
 
   const u32 end_idx = (end_offset + 3) / 4;
 
@@ -103,7 +104,8 @@ DECLSPEC void memzero_be_S (u32 *block, const u32 start_offset, const u32 end_of
   const u32 start_idx = start_offset / 4;
 
   // zero out bytes in the first u32 starting from 'start_offset'
-  block[start_idx] &= 0xffffffff << ((4 - (start_offset & 3)) * 8);
+  // math is a bit complex to avoid shifting by 32 bits, which is not possible on some architectures
+  block[start_idx] &= ~(0xffffffff >> ((start_offset & 3) * 8));
 
   const u32 end_idx = (end_offset + 3) / 4;
 
