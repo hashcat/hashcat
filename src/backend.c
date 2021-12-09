@@ -9623,7 +9623,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) && (device_param->opencl_platform_vendor_id == VENDOR_ID_AMD))
       {
-        #define RUN_INSTRUCTION_CHECKS()
+        #define RUN_INSTRUCTION_CHECKS() \
           device_param->has_vadd     = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_ADD_U32     %0, vcc, 0, 0;\"      : \"=v\"(r1)); }"); \
           device_param->has_vaddc    = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_ADDC_U32    %0, vcc, 0, 0, vcc;\" : \"=v\"(r1)); }"); \
           device_param->has_vadd_co  = opencl_test_instruction (hashcat_ctx, context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_ADD_CO_U32  %0, vcc, 0, 0;\"      : \"=v\"(r1)); }"); \
