@@ -433,6 +433,10 @@ The final hash should go to line_buf[] array and the length of the data in this 
 
 Note: the general rule is that the kernel code should not do any unnecessary repetition of data manipulation (e.g byte swaps etc) because it should run as fast as possible. Instead, the encoder and decoder are host functions that are normally only executed very rarely - and therefore it is not a problem if they need to change the data a little bit to pre-compute, or adapt the data to make it look nice in the output.
 
+### module_hash_decode_postprocess() ###
+
+This module can be used when you have certain configuration items of a hash that you want to override with a command line parameter. A good example is the --hccapx-message-pair, where the user can add additional filter criteria so that Hashcat doesn't load a specific set of hashes from the hash list.
+
 ### module_opts_type() ###
 
 This configuration item is a bitmask field and is very similar to the module_opti_type() function. The main difference is that here you configure general options of the workflow and not optimization specific settings. As always, the list of flags can be found here: `include/types.h`. The following list contains the flags currently supported:
