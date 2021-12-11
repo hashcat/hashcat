@@ -134,7 +134,7 @@ void get_next_word_lm_hex (char *buf, u64 sz, u64 *len, u64 *off)
   get_next_word_lm_gen(buf, sz, len, off, 14);
 }
 
-void get_next_word_lm_text (char *buf, u64 sz, u64 *len, u64 *off)
+void get_next_word_lm_hex_or_text (char *buf, u64 sz, u64 *len, u64 *off)
 {
   // check if not $HEX[..] format
   bool hex = true;
@@ -166,6 +166,11 @@ void get_next_word_lm_text (char *buf, u64 sz, u64 *len, u64 *off)
     // threat it as normal string
     get_next_word_lm_gen(buf, sz, len, off, 7);
   }
+}
+
+void get_next_word_lm_text (char *buf, u64 sz, u64 *len, u64 *off)
+{
+    get_next_word_lm_gen(buf, sz, len, off, 7);
 }
 
 void get_next_word_uc (char *buf, u64 sz, u64 *len, u64 *off)
@@ -656,11 +661,16 @@ int wl_data_init (hashcat_ctx_t *hashcat_ctx)
   if (hashconfig->opts_type & OPTS_TYPE_PT_LM)
   {
     if (hashconfig->opts_type & OPTS_TYPE_PT_HEX){
-      wl_data->func = get_next_word_lm_hex;
+      wl_data->func = get_next_word_lm_hex;           // all hex in file
     }
     else
     {
-      wl_data->func = get_next_word_lm_text;
+      if (user_options->wordlist_autohex_disable == false)
+      {
+        wl_data->func = get_next_word_lm_hex_or_text; // might be $HEX[] notation
+      }else{
+        wl_data->func = get_next_word_lm_text;        // treat as nromal text
+      }
     }
   }
 
