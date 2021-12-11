@@ -26,6 +26,7 @@ static const char *HASH_NAME      = "7-Zip";
 static const u64   KERN_TYPE      = 11600;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_SUGGEST_KG
                                   | OPTS_TYPE_HOOK23;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
