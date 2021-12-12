@@ -119,7 +119,7 @@ void get_next_word_lm_gen (char *buf, u64 sz, u64 *len, u64 *off, u64 cutlen)
     if ((i > 0) && (buf[i - 1] == '\r')) i--;
 
     if (i < cutlen + 1) *len = i;
-
+ 
     return;
   }
 
@@ -145,14 +145,33 @@ void get_next_word_lm_hex_or_text (char *buf, u64 sz, u64 *len, u64 *off)
   if (hex && (buf[3]       != 'X')) hex = false;
   if (hex && (buf[4]       != '[')) hex = false;
   if (hex){
-    char *ptr = buf;
-    for (u64 i = 0; i < sz; i++, ptr++)
+    char *ptr = buf+5;
+    for (u64 i = 5; i < sz; i++, ptr++)
     {
       if (*ptr == ']')
       {
         if ((i & 1) == 0) hex=false;  // not even number of characters
-        else
+        break;
+      }
+      else
+      {
+        if (is_valid_hex_char(*ptr) == false)
+        {
+          hex = false;
           break;
+        }
+        // upcase character if it is as letter
+        if ((i & 1) == 1) // if first hex-char
+        { 
+          if (is_valid_hex_char(buf[i+1])){
+            if (buf[i] == '6')
+              if (buf[i+1] > '0')
+                buf[i] = '4';
+            if (buf[i] == '7')
+              if (buf[i+1] < 'B')
+                buf[i] = '5';
+          }
+        }
       }
     }
   }
