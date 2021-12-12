@@ -1,6 +1,12 @@
 * changes v6.2.5 -> v6.2.x
 
 ##
+## Features
+##
+
+- Added support to use --debug-mode in attack-mode 9 (Association Attack)
+
+##
 ## Bugs
 ##
 
