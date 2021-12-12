@@ -131,6 +131,25 @@ void get_next_word_lm_hex (char *buf, u64 sz, u64 *len, u64 *off)
 {
   // this one is called if --hex-wordlist is uesed
   // we need 14 hex-digits to get 7 characters
+  // but first convert 7 chars to upper case if thay are a-z
+  for (u64 i = 5; i < sz; i++)
+  {
+    if ((i & 1) == 0)
+    {
+      if (is_valid_hex_char(buf[i]))
+        if (is_valid_hex_char(buf[i+1]))
+          {
+            if (buf[i] == '6')
+              if (buf[i+1] > '0')
+                buf[i] = '4';
+            if (buf[i] == '7')
+              if (buf[i+1] < 'B')
+                buf[i] = '5';
+          }
+    }
+    if (i == 12) break;  // stop when 7 chars are converted
+  }
+  // call generic next_word
   get_next_word_lm_gen(buf, sz, len, off, 14);
 }
 
@@ -163,7 +182,8 @@ void get_next_word_lm_hex_or_text (char *buf, u64 sz, u64 *len, u64 *off)
         // upcase character if it is a letter 'a-z'
         if ((i & 1) == 1) // if first hex-char
         { 
-          if (is_valid_hex_char(buf[i+1])){
+          if (is_valid_hex_char(buf[i+1]))
+          {
             if (buf[i] == '6')
               if (buf[i+1] > '0')
                 buf[i] = '4';
