@@ -97,7 +97,7 @@ int load_segment (hashcat_ctx_t *hashcat_ctx, HCFILE *fp)
   return 0;
 }
 
-void get_next_word_lm (char *buf, u64 sz, u64 *len, u64 *off)
+void get_next_word_lm_gen (char *buf, u64 sz, u64 *len, u64 *off, u64 cutlen)
 {
   char *ptr = buf;
 
@@ -105,12 +105,11 @@ void get_next_word_lm (char *buf, u64 sz, u64 *len, u64 *off)
   {
     if (*ptr >= 'a' && *ptr <= 'z') *ptr -= 0x20;
 
-    if (i == 7)
+    if (i == cutlen)
     {
-      *off = i;
+      if (cutlen == 20) buf[i-1]=']'; // add ] in $HEX[] format
       *len = i;
-
-      return;
+      // but continue a loop to skip rest of the line
     }
 
     if (*ptr != '\n') continue;
@@ -119,13 +118,98 @@ void get_next_word_lm (char *buf, u64 sz, u64 *len, u64 *off)
 
     if ((i > 0) && (buf[i - 1] == '\r')) i--;
 
-    *len = i;
+    if (i < cutlen + 1) *len = i;
 
     return;
   }
 
   *off = sz;
-  *len = sz;
+  if (sz<cutlen) *len = sz;
+}
+
+void get_next_word_lm_hex (char *buf, u64 sz, u64 *len, u64 *off)
+{
+  // this one is called if --hex-wordlist is uesed
+  // we need 14 hex-digits to get 7 characters
+  // but first convert 7 chars to upper case if thay are a-z
+  for (u64 i = 5; i < sz; i++)
+  {
+    if ((i & 1) == 0)
+    {
+      if (is_valid_hex_char(buf[i]))
+        if (is_valid_hex_char(buf[i+1]))
+          {
+            if (buf[i] == '6')
+              if (buf[i+1] > '0')
+                buf[i] = '4';
+            if (buf[i] == '7')
+              if (buf[i+1] < 'B')
+                buf[i] = '5';
+          }
+    }
+    if (i == 12) break;  // stop when 7 chars are converted
+  }
+  // call generic next_word
+  get_next_word_lm_gen(buf, sz, len, off, 14);
+}
+
+void get_next_word_lm_hex_or_text (char *buf, u64 sz, u64 *len, u64 *off)
+{
+  // check if not $HEX[..] format
+  bool hex = true;
+  if (sz<8) hex=false;
+  if (hex && (buf[0]       != '$')) hex = false;
+  if (hex && (buf[1]       != 'H')) hex = false;
+  if (hex && (buf[2]       != 'E')) hex = false;
+  if (hex && (buf[3]       != 'X')) hex = false;
+  if (hex && (buf[4]       != '[')) hex = false;
+  if (hex){
+    char *ptr = buf+5;     // starting after '['
+    for (u64 i = 5; i < sz; i++, ptr++)
+    {
+      if (*ptr == ']')
+      {
+        if ((i & 1) == 0) hex=false;  // not even number of characters
+        break;
+      }
+      else
+      {
+        if (is_valid_hex_char(*ptr) == false)
+        {
+          hex = false;
+          break;
+        }
+        // upcase character if it is a letter 'a-z'
+        if ((i & 1) == 1) // if first hex-char
+        { 
+          if (is_valid_hex_char(buf[i+1]))
+          {
+            if (buf[i] == '6')
+              if (buf[i+1] > '0')
+                buf[i] = '4';
+            if (buf[i] == '7')
+              if (buf[i+1] < 'B')
+                buf[i] = '5';
+          }
+        }
+      }
+    }
+  }
+  if (hex)
+  {
+    //$HEX[] format so we need max 14 hex-digits + 6 chars '$HEX[]'
+    get_next_word_lm_gen(buf, sz, len, off, 20); 
+  }
+  else
+  {
+    // threat it as normal string
+    get_next_word_lm_gen(buf, sz, len, off, 7);
+  }
+}
+
+void get_next_word_lm_text (char *buf, u64 sz, u64 *len, u64 *off)
+{
+    get_next_word_lm_gen(buf, sz, len, off, 7);
 }
 
 void get_next_word_uc (char *buf, u64 sz, u64 *len, u64 *off)
@@ -615,7 +699,18 @@ int wl_data_init (hashcat_ctx_t *hashcat_ctx)
 
   if (hashconfig->opts_type & OPTS_TYPE_PT_LM)
   {
-    wl_data->func = get_next_word_lm;
+    if (hashconfig->opts_type & OPTS_TYPE_PT_HEX){
+      wl_data->func = get_next_word_lm_hex;           // all hex in file
+    }
+    else
+    {
+      if (user_options->wordlist_autohex_disable == false)
+      {
+        wl_data->func = get_next_word_lm_hex_or_text; // might be $HEX[] notation
+      }else{
+        wl_data->func = get_next_word_lm_text;        // treat as nromal text
+      }
+    }
   }
 
   /**
