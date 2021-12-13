@@ -341,11 +341,27 @@ static bool setup_opencl_device_types_filter (hashcat_ctx_t *hashcat_ctx, const 
   {
     #if defined (__APPLE__)
 
-    // For apple use CPU only, because GPU drivers are not reliable
-    // The user can explicitly enable GPU by setting -D2
+    #include <sys/sysctl.h>
 
-    //opencl_device_types_filter = CL_DEVICE_TYPE_ALL & ~CL_DEVICE_TYPE_GPU;
-    opencl_device_types_filter = CL_DEVICE_TYPE_CPU;
+    size_t size;
+    cpu_type_t cpu_type = 0;
+    size = sizeof (cpu_type);
+    sysctlbyname ("hw.cputype", &cpu_type, &size, NULL, 0);
+
+    if (cpu_type == 0x100000c)
+    {
+      // For apple M1* use GPU only, because CPU device it is not recognized by OpenCL
+
+      opencl_device_types_filter = CL_DEVICE_TYPE_GPU;
+    }
+    else
+    {
+      // For apple use CPU only, because GPU drivers are not reliable
+      // The user can explicitly enable GPU by setting -D2
+
+      //opencl_device_types_filter = CL_DEVICE_TYPE_ALL & ~CL_DEVICE_TYPE_GPU;
+      opencl_device_types_filter = CL_DEVICE_TYPE_CPU;
+    }
 
     #else
 
