@@ -1,6 +1,12 @@
 * changes v6.2.5 -> v6.2.x
 
 ##
+## Algorithms
+##
+
+- Added hash-mode: Exodus Desktop Wallet (scrypt)
+
+##
 ## Features
 ##
 
