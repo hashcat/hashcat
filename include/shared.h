@@ -103,4 +103,8 @@ int  generic_salt_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, const u8 
 
 int input_tokenizer (const u8 *input_buf, const int input_len, token_t *token);
 
+#if defined (__APPLE__)
+bool is_apple_silicon (void);
+#endif
+
 #endif // _SHARED_H
