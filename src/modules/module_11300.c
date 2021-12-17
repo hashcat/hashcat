@@ -132,7 +132,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   bitcoin_wallet_t *bitcoin_wallet = (bitcoin_wallet_t *) esalt_buf;
 
-  token_t token;
+  hc_token_t token;
 
   token.token_cnt  = 10;
 

@@ -104,7 +104,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   krb5asrep_t *krb5asrep = (krb5asrep_t *) esalt_buf;
 
-  token_t token;
+  hc_token_t token;
 
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_KRB5ASREP;

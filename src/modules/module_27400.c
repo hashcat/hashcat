@@ -92,7 +92,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   vmware_vmx_t *vmware_vmx = (vmware_vmx_t *) esalt_buf;
 
-  token_t token;
+  hc_token_t token;
 
   token.token_cnt  = 4;
 

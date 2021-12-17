@@ -101,6 +101,6 @@ const char *stroptitype (const u32 opti_type);
 bool generic_salt_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, const u8 *in_buf, const int in_len, u8 *out_buf, int *out_len);
 int  generic_salt_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, const u8 *in_buf, const int in_len, u8 *out_buf);
 
-int input_tokenizer (const u8 *input_buf, const int input_len, token_t *token);
+int input_tokenizer (const u8 *input_buf, const int input_len, hc_token_t *token);
 
 #endif // _SHARED_H

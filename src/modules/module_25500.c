@@ -119,7 +119,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   pbkdf2_sha256_aes_gcm_t *stellar = (pbkdf2_sha256_aes_gcm_t *) esalt_buf;
 
-  token_t token;
+  hc_token_t token;
 
   token.token_cnt  = 4;
 

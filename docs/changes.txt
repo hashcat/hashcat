@@ -30,6 +30,7 @@
 - User Options: Add new module function module_hash_decode_postprocess() to override hash specific configurations from command line
 - OpenCL Runtime: Added support to use Apple Silicon compute devices
 - OpenCL Runtime: Set default device-type to GPU with Apple Silicon compute devices
+- Renamed struct token_t to hc_token_t, due to typedef redefinition with different types on Apple
 
 * changes v6.2.4 -> v6.2.5
 

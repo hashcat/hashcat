@@ -1108,7 +1108,7 @@ const u8 *hc_strchr_last (const u8 *input_buf, const int input_len, const u8 sep
   return NULL;
 }
 
-int input_tokenizer (const u8 *input_buf, const int input_len, token_t *token)
+int input_tokenizer (const u8 *input_buf, const int input_len, hc_token_t *token)
 {
   int len_left = input_len;
 

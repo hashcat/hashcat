@@ -105,7 +105,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (strncmp (sigchk, SIGNATURE_SHA512MACOS, 4) == 0)
   {
-    token_t token;
+    hc_token_t token;
 
     token.token_cnt  = 4;
 
@@ -192,7 +192,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (strncmp (sigchk, SIGNATURE_SHA512MACOS_JOHN, 20) == 0)
   {
-    token_t token;
+    hc_token_t token;
 
     token.token_cnt  = 7;
 
