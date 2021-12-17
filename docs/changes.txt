@@ -19,6 +19,7 @@
 - Fixed functional error when nonce-error-corrections that were set on the command line in hash-mode 22000/22001 were not accepted
 - Fixed missing option flag OPTS_TYPE_SUGGEST_KG for hash-mode 11600 to inform the user about possible false positives in this mode
 - Fixed undefined function call to hc_byte_perm_S() in hash-mode 17010 on non-CUDA compute devices
+- Hash-Mode 10500: set native_threads to 32 with Apple GPU's
 
 ##
 ## Technical
