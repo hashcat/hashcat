@@ -30,6 +30,7 @@
 - User Options: Add new module function module_hash_decode_postprocess() to override hash specific configurations from command line
 - OpenCL Runtime: Added support to use Apple Silicon compute devices
 - OpenCL Runtime: Set default device-type to GPU with Apple Silicon compute devices
+- Unit tests: Updated test.sh to set default device-type to CPU with Apple Intel, force pure kernel with Apple Silicon and add -f (--force) option
 
 * changes v6.2.4 -> v6.2.5
 
