@@ -1314,19 +1314,19 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
     printf (" \"guess_base\": \"%s\",", hashcat_status->guess_base);
   else
     printf (" \"guess_base\": null,");
-  printf (" \"guess_base_count\": \"%d\",", hashcat_status->guess_base_count);
-  printf (" \"guess_base_offset\": \"%d\",", hashcat_status->guess_base_offset);
-  printf (" \"guess_base_percent\": \"%.02f%%\",", hashcat_status->guess_base_percent);
-  printf (" \"guess_mask_length\": \"%d\",", hashcat_status->guess_mask_length);
+  printf (" \"guess_base_count\": %d,", hashcat_status->guess_base_count);
+  printf (" \"guess_base_offset\": %d,", hashcat_status->guess_base_offset);
+  printf (" \"guess_base_percent\": %.02f,", hashcat_status->guess_base_percent);
+  printf (" \"guess_mask_length\": %d,", hashcat_status->guess_mask_length);
   if (hashcat_status->guess_mod)
     printf (" \"guess_mod\": \"%s\",", hashcat_status->guess_mod);
   else
     printf (" \"guess_mod\": null,");
-  printf (" \"guess_mod_count\": \"%d\",", hashcat_status->guess_mod_count);
-  printf (" \"guess_mod_offset\": \"%d\",", hashcat_status->guess_mod_offset);
-  printf (" \"guess_mod_percent\": \"%.02f%%\",", hashcat_status->guess_mod_percent);
-  printf (" \"guess_mode\": \"%d\"", hashcat_status->guess_mode);
-  printf (" }");
+  printf (" \"guess_mod_count\": %d,", hashcat_status->guess_mod_count);
+  printf (" \"guess_mod_offset\": %d,", hashcat_status->guess_mod_offset);
+  printf (" \"guess_mod_percent\": %.02f,", hashcat_status->guess_mod_percent);
+  printf (" \"guess_mode\": %d", hashcat_status->guess_mode);
+  printf (" },");
   printf (" \"status\": %d,", hashcat_status->status_number);
   printf (" \"target\": \"%s\",", target_json_encoded);
   printf (" \"progress\": [%" PRIu64 ", %" PRIu64 "],", hashcat_status->progress_cur_relative_skip, hashcat_status->progress_end_relative_skip);
