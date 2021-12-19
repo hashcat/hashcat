@@ -2993,6 +2993,8 @@ OPTIONS:
 
   -c    Disables markov-chains
 
+  -f    Use --force to ignore hashcat warnings (default : disabled)
+
   -p    Package the tests into a .7z file
 
   -F    Use this folder as test folder instead of the default one
