@@ -2800,7 +2800,7 @@ typedef struct hook_thread_param
 #define MAX_TOKENS     128
 #define MAX_SIGNATURES 16
 
-typedef struct token
+typedef struct hc_token
 {
   int token_cnt;
 
@@ -2820,7 +2820,7 @@ typedef struct token
   const u8 *opt_buf;
   int opt_len;
 
-} token_t;
+} hc_token_t;
 
 /**
  * hash category is relevant in usage.c (--help screen)
