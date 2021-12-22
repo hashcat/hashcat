@@ -22,6 +22,7 @@
 - Fixed missing option flag OPTS_TYPE_SUGGEST_KG for hash-mode 11600 to inform the user about possible false positives in this mode
 - Fixed undefined function call to hc_byte_perm_S() in hash-mode 17010 on non-CUDA compute devices
 - Fixed HEX wordlist handling in -m 3000 
+- Fixed Platform position moved to start of line in the list of devices for having clear output
 
 ##
 ## Technical
