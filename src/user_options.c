@@ -1780,6 +1780,29 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
+  #if defined (__APPLE__)
+
+  if (is_apple_silicon() == true && user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+  {
+    if (user_options->optimized_kernel_enable == true)
+    {
+      // With Apple's M1* only pure kernel works
+      // For now we need fallback to pure to prevent infinite wait on clCreateKernel()
+
+      if (user_options->quiet == false)
+      {
+        event_log_advice (hashcat_ctx, "ATTENTION! Apple's M1 OpenCL drivers (GPU) are known not to work with attack-mode 0 and optimized kernel.");
+        event_log_advice (hashcat_ctx, "Fallback to pure (unoptimized) kernel.");
+      }
+
+      user_options->optimized_kernel_enable = false;
+
+      if (user_options->quiet == false) event_log_advice (hashcat_ctx, NULL);
+    }
+  }
+
+  #endif // __APPLE__
+
   if (user_options->hash_info == true)
   {
     user_options->quiet = true;

@@ -34,6 +34,7 @@
 - OpenCL Runtime: Added support to use Apple Silicon compute devices
 - OpenCL Runtime: Set default device-type to GPU with Apple Silicon compute devices
 - Backend Info: Added local memory size to output
+- Apple Silicon: clCreateKernel() never ends with optimized kernel and attack-mode 0, fallback to pure
 
 * changes v6.2.4 -> v6.2.5
 

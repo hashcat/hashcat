@@ -506,11 +506,18 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
   {
     if (hashconfig->has_optimized_kernel == true)
     {
-      event_log_advice (hashcat_ctx, "ATTENTION! Pure (unoptimized) backend kernels selected.");
-      event_log_advice (hashcat_ctx, "Pure kernels can crack longer passwords, but drastically reduce performance.");
-      event_log_advice (hashcat_ctx, "If you want to switch to optimized kernels, append -O to your commandline.");
-      event_log_advice (hashcat_ctx, "See the above message to find out about the exact limits.");
-      event_log_advice (hashcat_ctx, NULL);
+      #if defined (__APPLE__)
+      // With Apple's M1* only pure kernel works for now, then the message will not be shown
+
+      if ((is_apple_silicon() == true && user_options->attack_mode == ATTACK_MODE_STRAIGHT) == false)
+      #endif
+      {
+        event_log_advice (hashcat_ctx, "ATTENTION! Pure (unoptimized) backend kernels selected.");
+        event_log_advice (hashcat_ctx, "Pure kernels can crack longer passwords, but drastically reduce performance.");
+        event_log_advice (hashcat_ctx, "If you want to switch to optimized kernels, append -O to your commandline.");
+        event_log_advice (hashcat_ctx, "See the above message to find out about the exact limits.");
+        event_log_advice (hashcat_ctx, NULL);
+      }
     }
   }
 
