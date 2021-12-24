@@ -15,6 +15,10 @@
 #include <sys/cygwin.h>
 #endif
 
+#if defined (__APPLE__)
+#include <sys/sysctl.h>
+#endif
+
 static const char *const PA_000 = "OK";
 static const char *const PA_001 = "Ignored due to comment";
 static const char *const PA_002 = "Ignored due to zero length";
@@ -1369,3 +1373,17 @@ int generic_salt_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, const u8 *
 
   return tmp_len;
 }
+
+#if defined (__APPLE__)
+
+bool is_apple_silicon (void)
+{
+  size_t size;
+  cpu_type_t cpu_type = 0;
+  size = sizeof (cpu_type);
+  sysctlbyname ("hw.cputype", &cpu_type, &size, NULL, 0);
+
+  return (cpu_type == 0x100000c);
+}
+
+#endif // __APPLE__
