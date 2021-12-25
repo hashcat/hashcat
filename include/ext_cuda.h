@@ -987,6 +987,28 @@ typedef enum CUjitInputType_enum
     CU_JIT_NUM_INPUT_TYPES
 } CUjitInputType;
 
+
+/**
+ * If set, host memory is portable between CUDA contexts.
+ * Flag for ::cuMemHostAlloc()
+ */
+#define CU_MEMHOSTALLOC_PORTABLE        0x01
+
+/**
+ * If set, host memory is mapped into CUDA address space and
+ * ::cuMemHostGetDevicePointer() may be called on the host pointer.
+ * Flag for ::cuMemHostAlloc()
+ */
+#define CU_MEMHOSTALLOC_DEVICEMAP       0x02
+
+/**
+ * If set, host memory is allocated as write-combined - fast to write,
+ * faster to DMA, slow to read except via SSE4 streaming load instruction
+ * (MOVNTDQA).
+ * Flag for ::cuMemHostAlloc()
+ */
+#define CU_MEMHOSTALLOC_WRITECOMBINED   0x04
+
 #ifdef _WIN32
 #define CUDAAPI __stdcall
 #else
@@ -1027,13 +1049,13 @@ typedef CUresult (CUDA_API_CALL *CUDA_CUGETERRORSTRING)         (CUresult, const
 typedef CUresult (CUDA_API_CALL *CUDA_CUINIT)                   (unsigned int);
 typedef CUresult (CUDA_API_CALL *CUDA_CULAUNCHKERNEL)           (CUfunction, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, CUstream, void **, void **);
 typedef CUresult (CUDA_API_CALL *CUDA_CUMEMALLOC)               (CUdeviceptr *, size_t);
-typedef CUresult (CUDA_API_CALL *CUDA_CUMEMALLOCHOST)           (void **, size_t);
 typedef CUresult (CUDA_API_CALL *CUDA_CUMEMCPYDTODASYNC)        (CUdeviceptr, CUdeviceptr, size_t, CUstream);
 typedef CUresult (CUDA_API_CALL *CUDA_CUMEMCPYDTOHASYNC)        (void *, CUdeviceptr, size_t, CUstream);
 typedef CUresult (CUDA_API_CALL *CUDA_CUMEMCPYHTODASYNC)        (CUdeviceptr, const void *, size_t, CUstream);
 typedef CUresult (CUDA_API_CALL *CUDA_CUMEMFREE)                (CUdeviceptr);
 typedef CUresult (CUDA_API_CALL *CUDA_CUMEMFREEHOST)            (void *);
 typedef CUresult (CUDA_API_CALL *CUDA_CUMEMGETINFO)             (size_t *, size_t *);
+typedef CUresult (CUDA_API_CALL *CUDA_CUMEMHOSTALLOC)           (void **, size_t, unsigned int);
 typedef CUresult (CUDA_API_CALL *CUDA_CUMEMSETD32ASYNC)         (CUdeviceptr, unsigned int, size_t, CUstream);
 typedef CUresult (CUDA_API_CALL *CUDA_CUMEMSETD8ASYNC)          (CUdeviceptr, unsigned char, size_t, CUstream);
 typedef CUresult (CUDA_API_CALL *CUDA_CUMODULEGETFUNCTION)      (CUfunction *, CUmodule, const char *);
@@ -1089,13 +1111,13 @@ typedef struct hc_cuda_lib
   CUDA_CUINIT                   cuInit;
   CUDA_CULAUNCHKERNEL           cuLaunchKernel;
   CUDA_CUMEMALLOC               cuMemAlloc;
-  CUDA_CUMEMALLOCHOST           cuMemAllocHost;
   CUDA_CUMEMCPYDTODASYNC        cuMemcpyDtoDAsync;
   CUDA_CUMEMCPYDTOHASYNC        cuMemcpyDtoHAsync;
   CUDA_CUMEMCPYHTODASYNC        cuMemcpyHtoDAsync;
   CUDA_CUMEMFREE                cuMemFree;
   CUDA_CUMEMFREEHOST            cuMemFreeHost;
   CUDA_CUMEMGETINFO             cuMemGetInfo;
+  CUDA_CUMEMHOSTALLOC           cuMemHostAlloc;
   CUDA_CUMEMSETD32ASYNC         cuMemsetD32Async;
   CUDA_CUMEMSETD8ASYNC          cuMemsetD8Async;
   CUDA_CUMODULEGETFUNCTION      cuModuleGetFunction;

@@ -1495,7 +1495,7 @@ typedef struct hc_device_param
   CUdeviceptr       cuda_d_esalt_bufs;
   CUdeviceptr       cuda_d_tmps;
   CUdeviceptr       cuda_d_hooks;
-  CUdeviceptr       cuda_d_result;
+  CUdeviceptr       cuda_d_results;
   CUdeviceptr       cuda_d_extra0_buf;
   CUdeviceptr       cuda_d_extra1_buf;
   CUdeviceptr       cuda_d_extra2_buf;
@@ -1577,7 +1577,7 @@ typedef struct hc_device_param
   hipDeviceptr_t    hip_d_esalt_bufs;
   hipDeviceptr_t    hip_d_tmps;
   hipDeviceptr_t    hip_d_hooks;
-  hipDeviceptr_t    hip_d_result;
+  hipDeviceptr_t    hip_d_results;
   hipDeviceptr_t    hip_d_extra0_buf;
   hipDeviceptr_t    hip_d_extra1_buf;
   hipDeviceptr_t    hip_d_extra2_buf;
@@ -1663,7 +1663,7 @@ typedef struct hc_device_param
   cl_mem            opencl_d_esalt_bufs;
   cl_mem            opencl_d_tmps;
   cl_mem            opencl_d_hooks;
-  cl_mem            opencl_d_result;
+  cl_mem            opencl_d_results;
   cl_mem            opencl_d_extra0_buf;
   cl_mem            opencl_d_extra1_buf;
   cl_mem            opencl_d_extra2_buf;
@@ -1673,6 +1673,17 @@ typedef struct hc_device_param
   cl_mem            opencl_d_st_digests_buf;
   cl_mem            opencl_d_st_salts_buf;
   cl_mem            opencl_d_st_esalts_buf;
+
+  cl_mem            opencl_h_hooks;
+  cl_mem            opencl_h_pws_idx;
+  cl_mem            opencl_h_plain_bufs;
+  cl_mem            opencl_h_results;
+  cl_mem            opencl_h_tmps;
+
+  /* TODO: possible relocate and rename these?? */
+  void             *h_plain_bufs;
+  u32              *h_results;
+  void             *h_tmps;
 
 } hc_device_param_t;
 
