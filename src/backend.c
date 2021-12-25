@@ -341,22 +341,15 @@ static bool setup_opencl_device_types_filter (hashcat_ctx_t *hashcat_ctx, const 
   {
     #if defined (__APPLE__)
 
-    #include <sys/sysctl.h>
-
-    size_t size;
-    cpu_type_t cpu_type = 0;
-    size = sizeof (cpu_type);
-    sysctlbyname ("hw.cputype", &cpu_type, &size, NULL, 0);
-
-    if (cpu_type == 0x100000c)
+    if (is_apple_silicon() == true)
     {
-      // For apple M1* use GPU only, because CPU device it is not recognized by OpenCL
+      // With Apple's M1* use GPU only, because CPU device it is not recognized by OpenCL
 
       opencl_device_types_filter = CL_DEVICE_TYPE_GPU;
     }
     else
     {
-      // For apple use CPU only, because GPU drivers are not reliable
+      // With Apple Intel use CPU only, because GPU drivers are not reliable
       // The user can explicitly enable GPU by setting -D2
 
       //opencl_device_types_filter = CL_DEVICE_TYPE_ALL & ~CL_DEVICE_TYPE_GPU;
@@ -469,7 +462,6 @@ static bool opencl_test_instruction (hashcat_ctx_t *hashcat_ctx, cl_context cont
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
-
 
   #ifndef DEBUG
   const int fd_stderr = fileno (stderr);
@@ -11480,6 +11472,13 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       {
         build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D KERNEL_STATIC -I OpenCL -I \"%s\" ", folder_config->cpath_real);
       }
+
+      #if defined (__APPLE__)
+      if (is_apple_silicon() == true)
+      {
+        build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D IS_APPLE_SILICON ");
+      }
+      #endif
     }
 
     /* currently disabled, hangs NEO drivers since 20.09.
