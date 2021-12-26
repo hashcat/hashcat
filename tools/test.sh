@@ -7,6 +7,8 @@
 
 OPTS="--quiet --potfile-disable --runtime 400 --hwmon-disable"
 
+FORCE=0
+
 TDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # List of TrueCrypt modes which have test containers
@@ -2991,6 +2993,8 @@ OPTIONS:
 
   -c    Disables markov-chains
 
+  -f    Use --force to ignore hashcat warnings (default : disabled)
+
   -p    Package the tests into a .7z file
 
   -F    Use this folder as test folder instead of the default one
@@ -3017,7 +3021,7 @@ HT=0
 PACKAGE=0
 OPTIMIZED=1
 
-while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:" opt; do
+while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:f" opt; do
 
   case ${opt} in
     "V")
@@ -3116,11 +3120,11 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:" opt; do
       ;;
 
     "O")
-        # optimized is already default, ignore it
+      # optimized is already default, ignore it
       ;;
 
     "d")
-        OPTS="${OPTS} -d ${OPTARG}"
+      OPTS="${OPTS} -d ${OPTARG}"
       ;;
 
     "D")
@@ -3137,12 +3141,16 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:" opt; do
       ;;
 
     "F")
-        OUTD=$( echo "${OPTARG}" | sed 's!/$!!g' )
+      OUTD=$( echo "${OPTARG}" | sed 's!/$!!g' )
       ;;
 
     "P")
-        OPTIMIZED=0
-        KERNEL_TYPE="Pure"
+      OPTIMIZED=0
+      KERNEL_TYPE="Pure"
+      ;;
+
+    "f")
+      FORCE=1
       ;;
 
     \?)
@@ -3156,6 +3164,24 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:" opt; do
 
 done
 
+IS_APPLE_SILICON=0
+
+# handle Apple M1 bugs with optimized kernels
+
+if [ ${OPTIMIZED} -eq 1 ]; then
+  BIN_sysctl=$(which sysctl)
+  if [ $? -eq 0 ]; then
+    CPU_TYPE=$(sysctl hw.cputype | awk '{print $2}')
+
+    # with Apple's M1, disable optimized kernel
+    if [ ${CPU_TYPE} -eq 16777228 ]; then
+      OPTIMIZED=0
+      KERNEL_TYPE="Pure"
+      IS_APPLE_SILICON=1
+    fi
+  fi
+fi
+
 export IS_OPTIMIZED=${OPTIMIZED}
 
 if [ "${OPTIMIZED}" -eq 1 ]; then
@@ -3163,8 +3189,17 @@ if [ "${OPTIMIZED}" -eq 1 ]; then
 fi
 
 if [ "${TYPE}" = "null" ]; then
-  OPTS="${OPTS} -D 2"
-  TYPE="Gpu"
+  if [ $(uname) == "Darwin" ] && [ ${IS_APPLE_SILICON} -eq 0 ]; then
+    OPTS="${OPTS} -D 1"
+    TYPE="Cpu"
+  else
+    OPTS="${OPTS} -D 2"
+    TYPE="Gpu"
+  fi
+fi
+
+if [ ${FORCE} -eq 1 ]; then
+  OPTS="${OPTS} --force"
 fi
 
 if [ -n "${ARCHITECTURE}" ]; then

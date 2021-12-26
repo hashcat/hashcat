@@ -28,13 +28,14 @@
 ##
 
 - Association Attack: Enable module specific pw_min and pw_max settings to avoid false positives in -a 9 attack-mode
+- Backend Info: Added local memory size to output
 - Tuning Database: Added a warning if a module implements module_extra_tuningdb_block but the installed computing device is not found
 - Usage Screen: On windows console, wait for any keypress if usage_mini_print() is used
 - User Options: Add new module function module_hash_decode_postprocess() to override hash specific configurations from command line
+- OpenCL Backend: added workaround to make optimized kernels work on Apple Silicon
 - OpenCL Runtime: Added support to use Apple Silicon compute devices
 - OpenCL Runtime: Set default device-type to GPU with Apple Silicon compute devices
-- Backend Info: Added local memory size to output
-- OpenCL Backend: added workaround to make optimized kernels work on Apple Silicon
+- Unit tests: Updated test.sh to set default device-type to CPU with Apple Intel, force pure kernel with Apple Silicon and add -f (--force) option
 
 * changes v6.2.4 -> v6.2.5
 
