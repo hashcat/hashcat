@@ -110,7 +110,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
    && (line_buf[line_len - (64 + 1 + 2 + 1 + 1)] == '1')
    && (line_buf[line_len - (64 + 1 + 2 + 1 + 0)] == '*')) is_keyfile_present = true;
 
-  token_t token;
+  hc_token_t token;
 
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_KEEPASS;

@@ -797,7 +797,7 @@ One very unique feature is that the tokenizer allows you to have both dynamic le
 The first step after declaring the tokenizer context buffer is to create its configuration. There is just one mandatory parameter and a maximum of 128 optional configuration items (columns). The mandatory configuration item needs to be set to the number of columns/fields which the hash line includes. Note that this is a fixed value. For more complex hash lines with a dynamic column count you need to create multiple tokenizer instances (e.g. use a second configuration, if the first one failed), but in most of the times this is not required.
 
 ```
-token_t token;
+hc_token_t token;
 
 token.token_cnt = 1;
 ```

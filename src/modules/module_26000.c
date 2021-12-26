@@ -74,7 +74,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   mozilla_3des_t *mozilla_3des = (mozilla_3des_t *) esalt_buf;
 
-  token_t token;
+  hc_token_t token;
 
   token.token_cnt  = 5;
 

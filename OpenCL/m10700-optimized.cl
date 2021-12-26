@@ -18,11 +18,11 @@
 #define COMPARE_M "inc_comp_multi.cl"
 
 #if defined IS_AMD && defined IS_GPU
-#define INLINE
+#define HC_INLINE
 #elif defined IS_HIP
-#define INLINE INLINE0
+#define HC_INLINE HC_INLINE0
 #else
-#define INLINE
+#define HC_INLINE
 #endif
 
 typedef struct pdf
@@ -323,7 +323,7 @@ DECLSPEC void make_w_with_offset (ctx_t *ctx, const u32 W_len, const u32 offset,
   }
 }
 
-DECLSPEC INLINE u32 do_round (LOCAL_AS u32 *sc, const u32 *pw, const u32 pw_len, ctx_t *ctx, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC HC_INLINE u32 do_round (LOCAL_AS u32 *sc, const u32 *pw, const u32 pw_len, ctx_t *ctx, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   // make scratch buffer
 

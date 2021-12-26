@@ -111,7 +111,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   netntlm_t *netntlm = (netntlm_t *) esalt_buf;
 
-  token_t token;
+  hc_token_t token;
 
   token.token_cnt  = 6;
 

@@ -386,6 +386,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - RSA/DSA/EC/OpenSSH Private Keys ($4$)
 - RSA/DSA/EC/OpenSSH Private Keys ($5$)
 - XMPP SCRAM PBKDF2-SHA1
+- Teamspeak 3 (channel hash)
 - Telegram Desktop < v2.1.14 (PBKDF2-HMAC-SHA1)
 - Telegram Desktop >= v2.1.14 (PBKDF2-HMAC-SHA512)
 - Telegram Mobile App Passcode (SHA256)
