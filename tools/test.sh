@@ -3168,16 +3168,18 @@ IS_APPLE_SILICON=0
 
 # handle Apple M1 bugs with optimized kernels
 
-if [ ${OPTIMIZED} -eq 1 ]; then
-  BIN_sysctl=$(which sysctl)
-  if [ $? -eq 0 ]; then
-    CPU_TYPE=$(sysctl hw.cputype | awk '{print $2}')
+if [ $(uname) == "Darwin" ]; then
+  if [ ${OPTIMIZED} -eq 1 ]; then
+    BIN_sysctl=$(which sysctl)
+    if [ $? -eq 0 ]; then
+      CPU_TYPE=$(sysctl hw.cputype | awk '{print $2}')
 
-    # with Apple's M1, disable optimized kernel
-    if [ ${CPU_TYPE} -eq 16777228 ]; then
-      OPTIMIZED=0
-      KERNEL_TYPE="Pure"
-      IS_APPLE_SILICON=1
+      # with Apple's M1, disable optimized kernel
+      if [ ${CPU_TYPE} -eq 16777228 ]; then
+        OPTIMIZED=0
+        KERNEL_TYPE="Pure"
+        IS_APPLE_SILICON=1
+      fi
     fi
   fi
 fi
