@@ -76,6 +76,9 @@ AR                      := /usr/bin/ar
 SED                     := /usr/bin/sed
 SED_IN_PLACE            := -i ""
 DARWIN_VERSION          := $(shell uname -r | cut -d. -f1)
+CLANG_VERSION           := $(shell $(CC) --version | grep version | grep -o -m 1 "[0-9]\+\.[0-9]\+\.*[0-9]*" | head -n 1)
+CLANG_VERSION_NUMBER    := $(shell echo $(CLANG_VERSION) | sed -e 's/\.\([0-9][0-9]\)/\1/g' -e 's/\.\([0-9]\)/0\1/g' -e 's/^[0-9]\{3,4\}$$/&00/')
+CLANG_VERSION_GT_10     := $(shell expr $(CLANG_VERSION_NUMBER) \> 100000)
 endif
 
 ifeq ($(UNAME),FreeBSD)
@@ -194,7 +197,11 @@ endif
 
 ifeq ($(USE_SYSTEM_LZMA),0)
 CFLAGS_LZMA             += -D_7ZIP_ST
+ifneq ($(CC),clang)
 CFLAGS_LZMA             += -Wno-misleading-indentation
+else ifeq ($(CLANG_VERSION_GT_10),1)
+CFLAGS_LZMA             += -Wno-misleading-indentation
+endif
 endif
 
 ## because ZLIB
@@ -211,6 +218,8 @@ ifeq ($(ENABLE_UNRAR),1)
 ifeq ($(USE_SYSTEM_UNRAR),0)
 ifneq ($(CC),clang)
 CFLAGS_UNRAR            += -Wno-class-memaccess
+CFLAGS_UNRAR            += -Wno-misleading-indentation
+else ifeq ($(CLANG_VERSION_GT_10),1)
 CFLAGS_UNRAR            += -Wno-misleading-indentation
 endif
 CFLAGS_UNRAR            += -Wno-missing-braces
