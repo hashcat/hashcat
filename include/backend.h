@@ -29,9 +29,6 @@ void cuda_close   (hashcat_ctx_t *hashcat_ctx);
 int  hip_init     (hashcat_ctx_t *hashcat_ctx);
 void hip_close    (hashcat_ctx_t *hashcat_ctx);
 
-int  ocl_init     (hashcat_ctx_t *hashcat_ctx);
-void ocl_close    (hashcat_ctx_t *hashcat_ctx);
-
 int  nvrtc_init   (hashcat_ctx_t *hashcat_ctx);
 void nvrtc_close  (hashcat_ctx_t *hashcat_ctx);
 
@@ -132,43 +129,6 @@ int hc_hipRuntimeGetVersion      (hashcat_ctx_t *hashcat_ctx, int *runtimeVersio
 int hc_hipStreamCreate           (hashcat_ctx_t *hashcat_ctx, hipStream_t *phStream, unsigned int Flags);
 int hc_hipStreamDestroy          (hashcat_ctx_t *hashcat_ctx, hipStream_t hStream);
 int hc_hipStreamSynchronize      (hashcat_ctx_t *hashcat_ctx, hipStream_t hStream);
-
-int hc_clBuildProgram            (hashcat_ctx_t *hashcat_ctx, cl_program program, cl_uint num_devices, const cl_device_id *device_list, const char *options, void (CL_CALLBACK *pfn_notify) (cl_program program, void *user_data), void *user_data);
-int hc_clCompileProgram          (hashcat_ctx_t *hashcat_ctx, cl_program program, cl_uint num_devices, const cl_device_id *device_list, const char *options, cl_uint num_input_headers, const cl_program *input_headers, const char **header_include_names, void (CL_CALLBACK *pfn_notify) (cl_program program, void *user_data), void *user_data);
-int hc_clCreateBuffer            (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_mem_flags flags, size_t size, void *host_ptr, cl_mem *mem);
-int hc_clCreateCommandQueue      (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_device_id device, cl_command_queue_properties properties, cl_command_queue *command_queue);
-int hc_clCreateContext           (hashcat_ctx_t *hashcat_ctx, const cl_context_properties *properties, cl_uint num_devices, const cl_device_id *devices, void (CL_CALLBACK *pfn_notify) (const char *errinfo, const void *private_info, size_t cb, void *user_data), void *user_data, cl_context *context);
-int hc_clCreateKernel            (hashcat_ctx_t *hashcat_ctx, cl_program program, const char *kernel_name, cl_kernel *kernel);
-int hc_clCreateProgramWithBinary (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_uint num_devices, const cl_device_id *device_list, const size_t *lengths, const unsigned char **binaries, cl_int *binary_status, cl_program *program);
-int hc_clCreateProgramWithSource (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_uint count, const char **strings, const size_t *lengths, cl_program *program);
-int hc_clEnqueueCopyBuffer       (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue, cl_mem src_buffer, cl_mem dst_buffer, size_t src_offset, size_t dst_offset, size_t size, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event);
-int hc_clEnqueueFillBuffer       (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue, cl_mem buffer, const void *pattern, size_t pattern_size, size_t offset, size_t size, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event);
-int hc_clEnqueueMapBuffer        (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue, cl_mem buffer, cl_bool blocking_map, cl_map_flags map_flags, size_t offset, size_t size, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event, void **buf);
-int hc_clEnqueueNDRangeKernel    (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue, cl_kernel kernel, cl_uint work_dim, const size_t *global_work_offset, const size_t *global_work_size, const size_t *local_work_size, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event);
-int hc_clEnqueueReadBuffer       (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue, cl_mem buffer, cl_bool blocking_read, size_t offset, size_t size, void *ptr, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event);
-int hc_clEnqueueUnmapMemObject   (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue, cl_mem memobj, void *mapped_ptr, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event);
-int hc_clEnqueueWriteBuffer      (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue, cl_mem buffer, cl_bool blocking_write, size_t offset, size_t size, const void *ptr, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event);
-int hc_clFinish                  (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue);
-int hc_clFlush                   (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue);
-int hc_clGetDeviceIDs            (hashcat_ctx_t *hashcat_ctx, cl_platform_id platform, cl_device_type device_type, cl_uint num_entries, cl_device_id *devices, cl_uint *num_devices);
-int hc_clGetDeviceInfo           (hashcat_ctx_t *hashcat_ctx, cl_device_id device, cl_device_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret);
-int hc_clGetEventInfo            (hashcat_ctx_t *hashcat_ctx, cl_event event, cl_event_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret);
-int hc_clGetEventProfilingInfo   (hashcat_ctx_t *hashcat_ctx, cl_event event, cl_profiling_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret);
-int hc_clGetKernelWorkGroupInfo  (hashcat_ctx_t *hashcat_ctx, cl_kernel kernel, cl_device_id device, cl_kernel_work_group_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret);
-int hc_clGetPlatformIDs          (hashcat_ctx_t *hashcat_ctx, cl_uint num_entries, cl_platform_id *platforms, cl_uint *num_platforms);
-int hc_clGetPlatformInfo         (hashcat_ctx_t *hashcat_ctx, cl_platform_id platform, cl_platform_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret);
-int hc_clGetProgramBuildInfo     (hashcat_ctx_t *hashcat_ctx, cl_program program, cl_device_id device, cl_program_build_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret);
-int hc_clGetProgramInfo          (hashcat_ctx_t *hashcat_ctx, cl_program program, cl_program_info param_name, size_t param_value_size, void *param_value, size_t * param_value_size_ret);
-int hc_clLinkProgram             (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_uint num_devices, const cl_device_id *device_list, const char *options, cl_uint num_input_programs, const cl_program *input_programs, void (CL_CALLBACK *pfn_notify) (cl_program program, void *user_data), void *user_data, cl_program *program);
-int hc_clReleaseCommandQueue     (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue);
-int hc_clReleaseContext          (hashcat_ctx_t *hashcat_ctx, cl_context context);
-int hc_clReleaseEvent            (hashcat_ctx_t *hashcat_ctx, cl_event event);
-int hc_clReleaseKernel           (hashcat_ctx_t *hashcat_ctx, cl_kernel kernel);
-int hc_clReleaseMemObject        (hashcat_ctx_t *hashcat_ctx, cl_mem mem);
-int hc_clReleaseProgram          (hashcat_ctx_t *hashcat_ctx, cl_program program);
-int hc_clSetKernelArg            (hashcat_ctx_t *hashcat_ctx, cl_kernel kernel, cl_uint arg_index, size_t arg_size, const void *arg_value);
-int hc_clWaitForEvents           (hashcat_ctx_t *hashcat_ctx, cl_uint num_events, const cl_event *event_list);
-int hc_clUnloadPlatformCompiler  (hashcat_ctx_t *hashcat_ctx, cl_platform_id platform);
 
 int gidd_to_pw_t (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 gidd, pw_t *pw);
 
