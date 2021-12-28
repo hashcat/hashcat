@@ -36,6 +36,7 @@
 - OpenCL Runtime: Added support to use Apple Silicon compute devices
 - OpenCL Runtime: Set default device-type to GPU with Apple Silicon compute devices
 - Unit tests: Updated test.sh to set default device-type to CPU with Apple Intel and added -f (--force) option
+- Created environment variable to inform OpenCL/Metal runtime to not create its own kernel cache on Apple Silicon
 
 * changes v6.2.4 -> v6.2.5
 

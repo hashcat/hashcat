@@ -553,7 +553,16 @@ void setup_environment_variables (const folder_config_t *folder_config)
 
   if (getenv ("POCL_KERNEL_CACHE") == NULL)
     putenv ((char *) "POCL_KERNEL_CACHE=0");
-  #endif
+  #endif // DEBUG
+
+  #if defined (__APPLE__)
+  if (is_apple_silicon() == true)
+  {
+    // disable caching with OpenCL/Metal runtime on Apple Silicon
+    if (getenv ("MTL_SHADER_CACHE_SIZE") == NULL)
+      putenv ((char *) "MTL_SHADER_CACHE_SIZE=0");
+  }
+  #endif // __APPLE__
 
   if (getenv ("TMPDIR") == NULL)
   {
