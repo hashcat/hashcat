@@ -424,7 +424,7 @@ function status()
         ;;
       *)
         echo "! unhandled return code ${RET}, cmdline : ${CMD}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
-        echo "! unhandled return code, see ${OUTD}/logfull.txt for details."
+        echo "! unhandled return code, see ${OUTD}/logfull.txt or ${OUTD}/test_report.log for details."
         e_nf=$((e_nf + 1))
         ;;
     esac
@@ -449,7 +449,7 @@ function attack_0()
     e_nm=0
     cnt=0
 
-    echo "> Testing hash type $hash_type with attack mode 0, markov ${MARKOV}, single hash, Device-Type ${TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+    echo "> Testing hash type $hash_type with attack mode 0, markov ${MARKOV}, single hash, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
     max=32
 
@@ -546,7 +546,7 @@ function attack_0()
 
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 0, Mode single, Device-Type ${TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 0, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
 
   fi
 
@@ -558,7 +558,7 @@ function attack_0()
     e_nm=0
     cnt=0
 
-    echo "> Testing hash type $hash_type with attack mode 0, markov ${MARKOV}, multi hash, Device-Type ${TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+    echo "> Testing hash type $hash_type with attack mode 0, markov ${MARKOV}, multi hash, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
     hash_file=${OUTD}/${hash_type}_hashes.txt
 
@@ -635,7 +635,7 @@ function attack_0()
 
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 0, Mode multi,  Device-Type ${TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 0, Mode multi,  Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
 
   fi
 }
@@ -675,7 +675,7 @@ function attack_1()
       max=5
     fi
 
-    echo "> Testing hash type $hash_type with attack mode 1, markov ${MARKOV}, single hash, Device-Type ${TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+    echo "> Testing hash type $hash_type with attack mode 1, markov ${MARKOV}, single hash, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
     i=1
     while read -r -u 9 hash; do
 
@@ -807,7 +807,7 @@ function attack_1()
 
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 1, Mode single, Device-Type ${TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 1, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
 
   fi
 
@@ -866,7 +866,7 @@ function attack_1()
 
     CMD="./${BIN} ${OPTS} -a 1 -m ${hash_type} ${hash_file} ${OUTD}/${hash_type}_dict1 ${OUTD}/${hash_type}_dict2"
 
-    echo "> Testing hash type $hash_type with attack mode 1, markov ${MARKOV}, multi hash, Device-Type ${TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+    echo "> Testing hash type $hash_type with attack mode 1, markov ${MARKOV}, multi hash, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
     output=$(./${BIN} ${OPTS} -a 1 -m ${hash_type} ${hash_file} ${OUTD}/${hash_type}_dict1 ${OUTD}/${hash_type}_dict2 2>&1)
 
@@ -925,7 +925,7 @@ function attack_1()
 
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 1, Mode multi,  Device-Type ${TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 1, Mode multi,  Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
 
   fi
 }
@@ -948,7 +948,7 @@ function attack_3()
     e_nm=0
     cnt=0
 
-    echo "> Testing hash type $hash_type with attack mode 3, markov ${MARKOV}, single hash, Device-Type ${TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+    echo "> Testing hash type $hash_type with attack mode 3, markov ${MARKOV}, single hash, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
     max=8
 
@@ -1099,7 +1099,7 @@ function attack_3()
 
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 3, Mode single, Device-Type ${TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 3, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
 
   fi
 
@@ -1490,7 +1490,7 @@ function attack_3()
 
     CMD="./${BIN} ${OPTS} -a 3 -m ${hash_type} ${increment_charset_opts} ${hash_file} ${mask} "
 
-    echo "> Testing hash type $hash_type with attack mode 3, markov ${MARKOV}, multi hash, Device-Type ${TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}." >> "${OUTD}/logfull.txt"  2>> "${OUTD}/logfull.txt"
+    echo "> Testing hash type $hash_type with attack mode 3, markov ${MARKOV}, multi hash, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}." >> "${OUTD}/logfull.txt"  2>> "${OUTD}/logfull.txt"
 
     output=$(./${BIN} ${OPTS} -a 3 -m ${hash_type} ${increment_charset_opts} ${hash_file} ${mask} 2>&1)
 
@@ -1543,7 +1543,7 @@ function attack_3()
 
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 3, Mode multi,  Device-Type ${TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 3, Mode multi,  Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
 
   fi
 }
@@ -1566,7 +1566,7 @@ function attack_6()
     e_nm=0
     cnt=0
 
-    echo "> Testing hash type $hash_type with attack mode 6, markov ${MARKOV}, single hash, Device-Type ${TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+    echo "> Testing hash type $hash_type with attack mode 6, markov ${MARKOV}, single hash, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
     min=1
     max=8
@@ -1779,7 +1779,7 @@ function attack_6()
 
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 6, Mode single, Device-Type ${TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 6, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
 
     rm -f "${OUTD}/${hash_type}_dict1_custom"
     rm -f "${OUTD}/${hash_type}_dict2_custom"
@@ -1920,7 +1920,7 @@ function attack_6()
 
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 6, Mode multi,  Device-Type ${TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 6, Mode multi,  Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
 
   fi
 }
@@ -1943,7 +1943,7 @@ function attack_7()
     e_nm=0
     cnt=0
 
-    echo "> Testing hash type $hash_type with attack mode 7, markov ${MARKOV}, single hash, Device-Type ${TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+    echo "> Testing hash type $hash_type with attack mode 7, markov ${MARKOV}, single hash, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
     min=1
     max=8
@@ -2198,7 +2198,7 @@ function attack_7()
 
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 7, Mode single, Device-Type ${TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 7, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
 
     rm -f "${OUTD}/${hash_type}_dict1_custom"
     rm -f "${OUTD}/${hash_type}_dict2_custom"
@@ -2374,7 +2374,7 @@ function attack_7()
 
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 7, Mode multi,  Device-Type ${TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 7, Mode multi,  Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
 
   fi
 }
@@ -2527,7 +2527,7 @@ function cryptoloop_test()
   esac
 
   if [ ${#CMD} -gt 5 ]; then
-    echo "> Testing hash type $hashType with attack mode 3, markov ${MARKOV}, single hash, Device-Type ${TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, Key-Size ${keySize}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+    echo "> Testing hash type $hashType with attack mode 3, markov ${MARKOV}, single hash, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, Key-Size ${keySize}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
     output=$(${CMD} 2>&1)
 
@@ -2544,7 +2544,7 @@ function cryptoloop_test()
       msg="Error"
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 3, Mode single, Device-Type ${TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, Key-Size ${keySize} ] > $msg : ${e_nf}/${cnt} not found"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 3, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, Key-Size ${keySize} ] > $msg : ${e_nf}/${cnt} not found"
 
     status ${ret}
   fi
@@ -2710,7 +2710,7 @@ function truecrypt_test()
   esac
 
   if [ ${#CMD} -gt 5 ]; then
-    echo "> Testing hash type $hashType with attack mode 3, markov ${MARKOV}, single hash, Device-Type ${TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, tcMode ${tcMode}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+    echo "> Testing hash type $hashType with attack mode 3, markov ${MARKOV}, single hash, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, tcMode ${tcMode}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
     output=$(${CMD} 2>&1)
 
@@ -2727,7 +2727,7 @@ function truecrypt_test()
       msg="Error"
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 3, Mode single, Device-Type ${TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, tcMode ${tcMode} ] > $msg : ${e_nf}/${cnt} not found"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 3, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, tcMode ${tcMode} ] > $msg : ${e_nf}/${cnt} not found"
 
     status ${ret}
   fi
@@ -2787,7 +2787,7 @@ function veracrypt_test()
 
   CMD="./${BIN} ${OPTS} -a 3 -m ${hash_type} ${filename} hashc?lt"
 
-  echo "> Testing hash type ${hash_type} with attack mode 0, markov ${MARKOV}, single hash, Device-Type ${TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, Cipher ${cipher_cascade}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+  echo "> Testing hash type ${hash_type} with attack mode 0, markov ${MARKOV}, single hash, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, Cipher ${cipher_cascade}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
   output=$(${CMD} 2>&1)
 
@@ -2804,7 +2804,7 @@ function veracrypt_test()
     msg="Error"
   fi
 
-  echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 0, Mode single, Device-Type ${TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, Cipher ${cipher_cascade} ] > $msg : ${e_nf}/${cnt} not found"
+  echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 0, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, Cipher ${cipher_cascade} ] > $msg : ${e_nf}/${cnt} not found"
 
   status ${ret}
 }
@@ -2913,7 +2913,7 @@ function luks_test()
           esac
 
           if [ -n "${CMD}" ]; then
-            echo "> Testing hash type ${hashType} with attack mode ${attackType}, markov ${MARKOV}, single hash, Device-Type ${TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, luksMode ${luks_mode}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+            echo "> Testing hash type ${hashType} with attack mode ${attackType}, markov ${MARKOV}, single hash, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, luksMode ${luks_mode}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
             output=$(${CMD} 2>&1)
             ret=${?}
@@ -2929,7 +2929,7 @@ function luks_test()
               msg="Error"
             fi
 
-            echo "[ ${OUTD} ] [ Type ${hash_type}, Attack ${attackType}, Mode single, Device-Type ${TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, luksMode ${luks_mode} ] > $msg : ${e_nf}/${cnt} not found"
+            echo "[ ${OUTD} ] [ Type ${hash_type}, Attack ${attackType}, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, luksMode ${luks_mode} ] > $msg : ${e_nf}/${cnt} not found"
 
             status ${ret}
           fi
@@ -3014,7 +3014,7 @@ BIN="hashcat"
 MARKOV="enabled"
 ATTACK=0
 MODE=0
-TYPE="null"
+DEVICE_TYPE="null"
 KERNEL_TYPE="Optimized"
 VECTOR="default"
 HT=0
@@ -3130,13 +3130,13 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:f" opt; do
     "D")
       if [ "${OPTARG}" = "1" ]; then
         OPTS="${OPTS} -D 1"
-        TYPE="Cpu"
+        DEVICE_TYPE="Cpu"
       elif [ "${OPTARG}" = "2" ]; then
         OPTS="${OPTS} -D 2"
-        TYPE="Gpu"
+        DEVICE_TYPE="Gpu"
       else
         OPTS="${OPTS} -D ${OPTARG}"
-        TYPE="Cpu + Gpu"
+        DEVICE_TYPE="Cpu + Gpu"
       fi
       ;;
 
@@ -3164,22 +3164,17 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:f" opt; do
 
 done
 
+# handle Apple Silicon
+
 IS_APPLE_SILICON=0
 
-# handle Apple M1 bugs with optimized kernels
-
 if [ $(uname) == "Darwin" ]; then
-  if [ ${OPTIMIZED} -eq 1 ]; then
-    BIN_sysctl=$(which sysctl)
-    if [ $? -eq 0 ]; then
-      CPU_TYPE=$(sysctl hw.cputype | awk '{print $2}')
+  BIN_sysctl=$(which sysctl)
+  if [ $? -eq 0 ]; then
+    CPU_TYPE=$(sysctl hw.cputype | awk '{print $2}')
 
-      # with Apple's M1, disable optimized kernel
-      if [ ${CPU_TYPE} -eq 16777228 ]; then
-        OPTIMIZED=0
-        KERNEL_TYPE="Pure"
-        IS_APPLE_SILICON=1
-      fi
+    if [ ${CPU_TYPE} -eq 16777228 ]; then
+      IS_APPLE_SILICON=1
     fi
   fi
 fi
@@ -3190,13 +3185,15 @@ if [ "${OPTIMIZED}" -eq 1 ]; then
   OPTS="${OPTS} -O"
 fi
 
-if [ "${TYPE}" = "null" ]; then
+# set default device-type to CPU with Apple Intel, else GPU
+
+if [ "${DEVICE_TYPE}" = "null" ]; then
   if [ $(uname) == "Darwin" ] && [ ${IS_APPLE_SILICON} -eq 0 ]; then
     OPTS="${OPTS} -D 1"
-    TYPE="Cpu"
+    DEVICE_TYPE="Cpu"
   else
     OPTS="${OPTS} -D 2"
-    TYPE="Gpu"
+    DEVICE_TYPE="Gpu"
   fi
 fi
 
