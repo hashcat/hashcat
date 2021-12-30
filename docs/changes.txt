@@ -6,6 +6,7 @@
 
 - Added hash-mode: Exodus Desktop Wallet (scrypt)
 - Added hash-mode: Teamspeak 3 (channel hash)
+- Added hash-mode: sha256($salt.sha256_bin($pass))
 
 ##
 ## Features
