@@ -194,7 +194,9 @@ endif
 
 ifeq ($(USE_SYSTEM_LZMA),0)
 CFLAGS_LZMA             += -D_7ZIP_ST
+ifneq ($(CC),clang)
 CFLAGS_LZMA             += -Wno-misleading-indentation
+endif
 endif
 
 ## because ZLIB
