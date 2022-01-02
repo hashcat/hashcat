@@ -26,14 +26,8 @@ static const char CL_VENDOR_POCL[]              = "The pocl project";
 int  cuda_init    (hashcat_ctx_t *hashcat_ctx);
 void cuda_close   (hashcat_ctx_t *hashcat_ctx);
 
-int  hip_init     (hashcat_ctx_t *hashcat_ctx);
-void hip_close    (hashcat_ctx_t *hashcat_ctx);
-
 int  nvrtc_init   (hashcat_ctx_t *hashcat_ctx);
 void nvrtc_close  (hashcat_ctx_t *hashcat_ctx);
-
-int  hiprtc_init  (hashcat_ctx_t *hashcat_ctx);
-void hiprtc_close (hashcat_ctx_t *hashcat_ctx);
 
 int hc_nvrtcCreateProgram        (hashcat_ctx_t *hashcat_ctx, nvrtcProgram *prog, const char *src, const char *name, int numHeaders, const char * const *headers, const char * const *includeNames);
 int hc_nvrtcDestroyProgram       (hashcat_ctx_t *hashcat_ctx, nvrtcProgram *prog);
@@ -84,51 +78,6 @@ int hc_cuLinkCreate              (hashcat_ctx_t *hashcat_ctx, unsigned int numOp
 int hc_cuLinkAddData             (hashcat_ctx_t *hashcat_ctx, CUlinkState state, CUjitInputType type, void *data, size_t size, const char *name, unsigned int numOptions, CUjit_option *options, void **optionValues);
 int hc_cuLinkDestroy             (hashcat_ctx_t *hashcat_ctx, CUlinkState state);
 int hc_cuLinkComplete            (hashcat_ctx_t *hashcat_ctx, CUlinkState state, void **cubinOut, size_t *sizeOut);
-
-int hc_hipCreateProgram          (hashcat_ctx_t *hashcat_ctx, hiprtcProgram *prog, const char *src, const char *name, int numHeaders, const char * const *headers, const char * const *includeNames);
-int hc_hipDestroyProgram         (hashcat_ctx_t *hashcat_ctx, hiprtcProgram *prog);
-int hc_hipCompileProgram         (hashcat_ctx_t *hashcat_ctx, hiprtcProgram prog, int numOptions, const char * const *options);
-int hc_hipGetProgramLogSize      (hashcat_ctx_t *hashcat_ctx, hiprtcProgram prog, size_t *logSizeRet);
-int hc_hipGetProgramLog          (hashcat_ctx_t *hashcat_ctx, hiprtcProgram prog, char *log);
-int hc_hipGetCodeSize            (hashcat_ctx_t *hashcat_ctx, hiprtcProgram prog, size_t *codeSizeRet);
-int hc_hipGetCode                (hashcat_ctx_t *hashcat_ctx, hiprtcProgram prog, char *code);
-
-int hc_hipCtxCreate              (hashcat_ctx_t *hashcat_ctx, hipCtx_t *pctx, unsigned int flags, hipDevice_t dev);
-int hc_hipCtxDestroy             (hashcat_ctx_t *hashcat_ctx, hipCtx_t ctx);
-int hc_hipCtxPopCurrent          (hashcat_ctx_t *hashcat_ctx, hipCtx_t *pctx);
-int hc_hipCtxPushCurrent         (hashcat_ctx_t *hashcat_ctx, hipCtx_t ctx);
-int hc_hipCtxSetCurrent          (hashcat_ctx_t *hashcat_ctx, hipCtx_t ctx);
-int hc_hipCtxSynchronize         (hashcat_ctx_t *hashcat_ctx);
-int hc_hipDeviceGet              (hashcat_ctx_t *hashcat_ctx, hipDevice_t *device, int ordinal);
-int hc_hipDeviceGetAttribute     (hashcat_ctx_t *hashcat_ctx, int *pi, hipDeviceAttribute_t attrib, hipDevice_t dev);
-int hc_hipDeviceGetCount         (hashcat_ctx_t *hashcat_ctx, int *count);
-int hc_hipDeviceGetName          (hashcat_ctx_t *hashcat_ctx, char *name, int len, hipDevice_t dev);
-int hc_hipDeviceTotalMem         (hashcat_ctx_t *hashcat_ctx, size_t *bytes, hipDevice_t dev);
-int hc_hipDriverGetVersion       (hashcat_ctx_t *hashcat_ctx, int *driverVersion);
-int hc_hipEventCreate            (hashcat_ctx_t *hashcat_ctx, hipEvent_t *phEvent, unsigned int Flags);
-int hc_hipEventDestroy           (hashcat_ctx_t *hashcat_ctx, hipEvent_t hEvent);
-int hc_hipEventElapsedTime       (hashcat_ctx_t *hashcat_ctx, float *pMilliseconds, hipEvent_t hStart, hipEvent_t hEnd);
-int hc_hipEventQuery             (hashcat_ctx_t *hashcat_ctx, hipEvent_t hEvent);
-int hc_hipEventRecord            (hashcat_ctx_t *hashcat_ctx, hipEvent_t hEvent, hipStream_t hStream);
-int hc_hipEventSynchronize       (hashcat_ctx_t *hashcat_ctx, hipEvent_t hEvent);
-int hc_hipFuncGetAttribute       (hashcat_ctx_t *hashcat_ctx, int *pi, hipFunction_attribute attrib, hipFunction_t hfunc);
-int hc_hipInit                   (hashcat_ctx_t *hashcat_ctx, unsigned int Flags);
-int hc_hipLaunchKernel           (hashcat_ctx_t *hashcat_ctx, hipFunction_t f, unsigned int gridDimX, unsigned int gridDimY, unsigned int gridDimZ, unsigned int blockDimX, unsigned int blockDimY, unsigned int blockDimZ, unsigned int sharedMemBytes, hipStream_t hStream, void **kernelParams, void **extra);
-int hc_hipMemAlloc               (hashcat_ctx_t *hashcat_ctx, hipDeviceptr_t *dptr, size_t bytesize);
-int hc_hipMemFree                (hashcat_ctx_t *hashcat_ctx, hipDeviceptr_t dptr);
-int hc_hipMemcpyDtoDAsync        (hashcat_ctx_t *hashcat_ctx, hipDeviceptr_t dstDevice, hipDeviceptr_t srcDevice, size_t ByteCount, hipStream_t hStream);
-int hc_hipMemcpyDtoHAsync        (hashcat_ctx_t *hashcat_ctx, void *dstHost, hipDeviceptr_t srcDevice, size_t ByteCount, hipStream_t hStream);
-int hc_hipMemcpyHtoDAsync        (hashcat_ctx_t *hashcat_ctx, hipDeviceptr_t dstDevice, const void *srcHost, size_t ByteCount, hipStream_t hStream);
-int hc_hipMemsetD32Async         (hashcat_ctx_t *hashcat_ctx, hipDeviceptr_t dstDevice, unsigned int ui, size_t N, hipStream_t hStream);
-int hc_hipMemsetD8Async          (hashcat_ctx_t *hashcat_ctx, hipDeviceptr_t dstDevice, unsigned char uc, size_t N, hipStream_t hStream);
-int hc_hipModuleGetFunction      (hashcat_ctx_t *hashcat_ctx, hipFunction_t *hfunc, hipModule_t hmod, const char *name);
-int hc_hipModuleGetGlobal        (hashcat_ctx_t *hashcat_ctx, hipDeviceptr_t *dptr, size_t *bytes, hipModule_t hmod, const char *name);
-int hc_hipModuleLoadDataEx       (hashcat_ctx_t *hashcat_ctx, hipModule_t *module, const void *image, unsigned int numOptions, hipJitOption *options, void **optionValues);
-int hc_hipModuleUnload           (hashcat_ctx_t *hashcat_ctx, hipModule_t hmod);
-int hc_hipRuntimeGetVersion      (hashcat_ctx_t *hashcat_ctx, int *runtimeVersion);
-int hc_hipStreamCreate           (hashcat_ctx_t *hashcat_ctx, hipStream_t *phStream, unsigned int Flags);
-int hc_hipStreamDestroy          (hashcat_ctx_t *hashcat_ctx, hipStream_t hStream);
-int hc_hipStreamSynchronize      (hashcat_ctx_t *hashcat_ctx, hipStream_t hStream);
 
 int gidd_to_pw_t (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 gidd, pw_t *pw);
 
