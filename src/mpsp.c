@@ -1219,7 +1219,6 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
   user_options_t       *user_options       = hashcat_ctx->user_options;
 
-
   if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
   {
     if (user_options->attack_mode == ATTACK_MODE_COMBI)
