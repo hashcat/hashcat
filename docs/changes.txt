@@ -38,6 +38,7 @@
 - OpenCL Runtime: Set default device-type to GPU with Apple Silicon compute devices
 - Unit tests: Updated test.sh to set default device-type to CPU with Apple Intel and added -f (--force) option
 - OpenCL Backend: moved functions to ext_OpenCL.c and includes to ext_OpenCL.h
+- HIP Backend: moved functions to ext_hip.c/ext_hiprtc.c and includes to ext_hip.h/ext_hiprtc.h
 
 * changes v6.2.4 -> v6.2.5
 
