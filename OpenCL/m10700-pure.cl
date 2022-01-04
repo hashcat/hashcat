@@ -1173,7 +1173,7 @@ KERNEL_FQ void m10700_init (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   sha256_ctx_t ctx;
 
@@ -1181,7 +1181,7 @@ KERNEL_FQ void m10700_init (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
 
   sha256_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
-  sha256_update_global_swap (&ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
+  sha256_update_global_swap (&ctx, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
   sha256_final (&ctx);
 
@@ -1248,7 +1248,7 @@ KERNEL_FQ void m10700_loop (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * base
@@ -1273,12 +1273,12 @@ KERNEL_FQ void m10700_loop (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
 
   u32 ex = 0;
 
-  for (u32 i = 0, j = loop_pos; i < loop_cnt; i++, j++)
+  for (u32 i = 0, j = LOOP_POS; i < LOOP_CNT; i++, j++)
   {
     ex = do_round (w, pw_len, &tmp, s_te0, s_te1, s_te2, s_te3, s_te4);
   }
 
-  if ((loop_pos + loop_cnt) == 64)
+  if ((LOOP_POS + LOOP_CNT) == 64)
   {
     for (u32 i = 64; i < (ex & 0xff) + 32; i++)
     {
@@ -1297,7 +1297,7 @@ KERNEL_FQ void m10700_comp (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   const u64 lid = get_local_id (0);
 

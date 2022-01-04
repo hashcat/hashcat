@@ -96,7 +96,7 @@ KERNEL_FQ void m28100_init (KERN_ATTR_TMPS_ESALT (winhello_tmp_t, winhello_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * base
@@ -151,7 +151,7 @@ KERNEL_FQ void m28100_init (KERN_ATTR_TMPS_ESALT (winhello_tmp_t, winhello_t))
   tmps[gid].opad[6] = sha256_hmac_ctx.opad.h[6];
   tmps[gid].opad[7] = sha256_hmac_ctx.opad.h[7];
 
-  sha256_hmac_update_global (&sha256_hmac_ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
+  sha256_hmac_update_global (&sha256_hmac_ctx, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
   for (u32 i = 0, j = 1; i < 8; i += 8, j += 1)
   {
@@ -207,7 +207,7 @@ KERNEL_FQ void m28100_loop (KERN_ATTR_TMPS_ESALT (winhello_tmp_t, winhello_t))
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= gid_max) return;
+  if ((gid * VECT_SIZE) >= GID_MAX) return;
 
   u32x ipad[8];
   u32x opad[8];
@@ -253,7 +253,7 @@ KERNEL_FQ void m28100_loop (KERN_ATTR_TMPS_ESALT (winhello_tmp_t, winhello_t))
     out[6] = packv (tmps, out, gid, i + 6);
     out[7] = packv (tmps, out, gid, i + 7);
 
-    for (u32 j = 0; j < loop_cnt; j++)
+    for (u32 j = 0; j < LOOP_CNT; j++)
     {
       u32x w0[4];
       u32x w1[4];
@@ -317,7 +317,7 @@ KERNEL_FQ void m28100_comp (KERN_ATTR_TMPS_ESALT (winhello_tmp_t, winhello_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   const u64 lid = get_local_id (0);
 
@@ -383,11 +383,11 @@ KERNEL_FQ void m28100_comp (KERN_ATTR_TMPS_ESALT (winhello_tmp_t, winhello_t))
 
   for (int i = 0; i < 32; i++) sub_digest_seed[i] = 0x36363636;
 
-  sub_digest_seed[0] ^= esalt_bufs[DIGESTS_OFFSET].mk_buf_pc[0];
-  sub_digest_seed[1] ^= esalt_bufs[DIGESTS_OFFSET].mk_buf_pc[1];
-  sub_digest_seed[2] ^= esalt_bufs[DIGESTS_OFFSET].mk_buf_pc[2];
-  sub_digest_seed[3] ^= esalt_bufs[DIGESTS_OFFSET].mk_buf_pc[3];
-  sub_digest_seed[4] ^= esalt_bufs[DIGESTS_OFFSET].mk_buf_pc[4];
+  sub_digest_seed[0] ^= esalt_bufs[DIGESTS_OFFSET_HOST].mk_buf_pc[0];
+  sub_digest_seed[1] ^= esalt_bufs[DIGESTS_OFFSET_HOST].mk_buf_pc[1];
+  sub_digest_seed[2] ^= esalt_bufs[DIGESTS_OFFSET_HOST].mk_buf_pc[2];
+  sub_digest_seed[3] ^= esalt_bufs[DIGESTS_OFFSET_HOST].mk_buf_pc[3];
+  sub_digest_seed[4] ^= esalt_bufs[DIGESTS_OFFSET_HOST].mk_buf_pc[4];
 
   // sub_digest
 
@@ -396,13 +396,13 @@ KERNEL_FQ void m28100_comp (KERN_ATTR_TMPS_ESALT (winhello_tmp_t, winhello_t))
   sha512_init (&ctx2);
 
   sha512_update        (&ctx2, sub_digest_seed, 128);
-  sha512_update_global (&ctx2, esalt_bufs[DIGESTS_OFFSET].hmac_buf,
-                               esalt_bufs[DIGESTS_OFFSET].hmac_len);
-  sha512_update_global (&ctx2, esalt_bufs[DIGESTS_OFFSET].magicv_buf,
-                               esalt_bufs[DIGESTS_OFFSET].magicv_len);
+  sha512_update_global (&ctx2, esalt_bufs[DIGESTS_OFFSET_HOST].hmac_buf,
+                               esalt_bufs[DIGESTS_OFFSET_HOST].hmac_len);
+  sha512_update_global (&ctx2, esalt_bufs[DIGESTS_OFFSET_HOST].magicv_buf,
+                               esalt_bufs[DIGESTS_OFFSET_HOST].magicv_len);
   sha512_update        (&ctx2, stage4_sha512, 64);
-  sha512_update_global (&ctx2, esalt_bufs[DIGESTS_OFFSET].blob_buf,
-                               esalt_bufs[DIGESTS_OFFSET].blob_len);
+  sha512_update_global (&ctx2, esalt_bufs[DIGESTS_OFFSET_HOST].blob_buf,
+                               esalt_bufs[DIGESTS_OFFSET_HOST].blob_len);
 
   sha512_final (&ctx2);
 
@@ -431,11 +431,11 @@ KERNEL_FQ void m28100_comp (KERN_ATTR_TMPS_ESALT (winhello_tmp_t, winhello_t))
 
   for (int i = 0; i < 32; i++) main_digest_seed[i] = 0x5c5c5c5c;
 
-  main_digest_seed[0] ^= esalt_bufs[DIGESTS_OFFSET].mk_buf_pc[0];
-  main_digest_seed[1] ^= esalt_bufs[DIGESTS_OFFSET].mk_buf_pc[1];
-  main_digest_seed[2] ^= esalt_bufs[DIGESTS_OFFSET].mk_buf_pc[2];
-  main_digest_seed[3] ^= esalt_bufs[DIGESTS_OFFSET].mk_buf_pc[3];
-  main_digest_seed[4] ^= esalt_bufs[DIGESTS_OFFSET].mk_buf_pc[4];
+  main_digest_seed[0] ^= esalt_bufs[DIGESTS_OFFSET_HOST].mk_buf_pc[0];
+  main_digest_seed[1] ^= esalt_bufs[DIGESTS_OFFSET_HOST].mk_buf_pc[1];
+  main_digest_seed[2] ^= esalt_bufs[DIGESTS_OFFSET_HOST].mk_buf_pc[2];
+  main_digest_seed[3] ^= esalt_bufs[DIGESTS_OFFSET_HOST].mk_buf_pc[3];
+  main_digest_seed[4] ^= esalt_bufs[DIGESTS_OFFSET_HOST].mk_buf_pc[4];
 
   // main_digest
 

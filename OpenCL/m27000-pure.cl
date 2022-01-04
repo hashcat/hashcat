@@ -538,7 +538,7 @@ KERNEL_FQ void m27000_init (KERN_ATTR_TMPS_ESALT (netntlm_tmp_t, netntlm_t))
   const u64 lid = get_local_id (0);
   const u64 lsz = get_local_size (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * salt
@@ -627,15 +627,15 @@ KERNEL_FQ void m27000_comp (KERN_ATTR_TMPS_ESALT (netntlm_tmp_t, netntlm_t))
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * base
    */
 
-  const u32 s0 = salt_bufs[SALT_POS].salt_buf[0];
-  const u32 s1 = salt_bufs[SALT_POS].salt_buf[1];
-  const u32 s2 = salt_bufs[SALT_POS].salt_buf[2];
+  const u32 s0 = salt_bufs[SALT_POS_HOST].salt_buf[0];
+  const u32 s1 = salt_bufs[SALT_POS_HOST].salt_buf[1];
+  const u32 s2 = salt_bufs[SALT_POS_HOST].salt_buf[2];
 
   const u32 a = tmps[gid].digest_buf[0];
   const u32 b = tmps[gid].digest_buf[1];

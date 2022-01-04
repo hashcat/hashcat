@@ -94,7 +94,7 @@ KERNEL_FQ void m15300_init (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * main
@@ -102,7 +102,7 @@ KERNEL_FQ void m15300_init (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
 
   u32 digest_context[5];
 
-  if (esalt_bufs[DIGESTS_OFFSET].context == 1)
+  if (esalt_bufs[DIGESTS_OFFSET_HOST].context == 1)
   {
     /* local credentials */
 
@@ -120,7 +120,7 @@ KERNEL_FQ void m15300_init (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
     digest_context[3] = ctx.h[3];
     digest_context[4] = ctx.h[4];
   }
-  else if (esalt_bufs[DIGESTS_OFFSET].context == 2)
+  else if (esalt_bufs[DIGESTS_OFFSET_HOST].context == 2)
   {
     /* domain credentials */
 
@@ -172,7 +172,7 @@ KERNEL_FQ void m15300_init (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
 
   sha1_hmac_init_64 (&ctx, w0, w1, w2, w3);
 
-  sha1_hmac_update_global (&ctx, esalt_bufs[DIGESTS_OFFSET].SID, esalt_bufs[DIGESTS_OFFSET].SID_len);
+  sha1_hmac_update_global (&ctx, esalt_bufs[DIGESTS_OFFSET_HOST].SID, esalt_bufs[DIGESTS_OFFSET_HOST].SID_len);
 
   sha1_hmac_final (&ctx);
 
@@ -225,10 +225,10 @@ KERNEL_FQ void m15300_init (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
   tmps[gid].opad[3] = sha1_hmac_ctx.opad.h[3];
   tmps[gid].opad[4] = sha1_hmac_ctx.opad.h[4];
 
-  w0[0] = esalt_bufs[DIGESTS_OFFSET].iv[0];
-  w0[1] = esalt_bufs[DIGESTS_OFFSET].iv[1];
-  w0[2] = esalt_bufs[DIGESTS_OFFSET].iv[2];
-  w0[3] = esalt_bufs[DIGESTS_OFFSET].iv[3];
+  w0[0] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[0];
+  w0[1] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[1];
+  w0[2] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[2];
+  w0[3] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[3];
   w1[0] = 0;
   w1[1] = 0;
   w1[2] = 0;
@@ -291,7 +291,7 @@ KERNEL_FQ void m15300_loop (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
 
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= gid_max) return;
+  if ((gid * VECT_SIZE) >= GID_MAX) return;
 
   u32x ipad[5];
   u32x opad[5];
@@ -325,7 +325,7 @@ KERNEL_FQ void m15300_loop (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
     out[3] = packv (tmps, out, gid, i + 3);
     out[4] = packv (tmps, out, gid, i + 4);
 
-    for (u32 j = 0; j < loop_cnt; j++)
+    for (u32 j = 0; j < LOOP_CNT; j++)
     {
       u32x w0[4];
       u32x w1[4];
@@ -417,7 +417,7 @@ KERNEL_FQ void m15300_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * main
@@ -474,41 +474,41 @@ KERNEL_FQ void m15300_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
 
   u32 hmac_data[4];
 
-  hmac_data[0] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].contents[0]);
-  hmac_data[1] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].contents[1]);
-  hmac_data[2] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].contents[2]);
-  hmac_data[3] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].contents[3]);
+  hmac_data[0] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].contents[0]);
+  hmac_data[1] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].contents[1]);
+  hmac_data[2] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].contents[2]);
+  hmac_data[3] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].contents[3]);
 
   u32 expected_key[4];
 
-  expected_key[0] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].contents[4]);
-  expected_key[1] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].contents[5]);
-  expected_key[2] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].contents[6]);
-  expected_key[3] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].contents[7]);
+  expected_key[0] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].contents[4]);
+  expected_key[1] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].contents[5]);
+  expected_key[2] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].contents[6]);
+  expected_key[3] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].contents[7]);
 
   u32 last_iv[2];
 
-  last_iv[0] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].contents[8]);
-  last_iv[1] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].contents[9]);
+  last_iv[0] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].contents[8]);
+  last_iv[1] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].contents[9]);
 
   u32 last_key[16];
 
-  last_key[ 0] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].contents[10]);
-  last_key[ 1] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].contents[11]);
-  last_key[ 2] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].contents[12]);
-  last_key[ 3] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].contents[13]);
-  last_key[ 4] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].contents[14]);
-  last_key[ 5] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].contents[15]);
-  last_key[ 6] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].contents[16]);
-  last_key[ 7] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].contents[17]);
-  last_key[ 8] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].contents[18]);
-  last_key[ 9] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].contents[19]);
-  last_key[10] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].contents[20]);
-  last_key[11] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].contents[21]);
-  last_key[12] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].contents[22]);
-  last_key[13] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].contents[23]);
-  last_key[14] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].contents[24]);
-  last_key[15] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].contents[25]);
+  last_key[ 0] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].contents[10]);
+  last_key[ 1] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].contents[11]);
+  last_key[ 2] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].contents[12]);
+  last_key[ 3] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].contents[13]);
+  last_key[ 4] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].contents[14]);
+  last_key[ 5] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].contents[15]);
+  last_key[ 6] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].contents[16]);
+  last_key[ 7] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].contents[17]);
+  last_key[ 8] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].contents[18]);
+  last_key[ 9] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].contents[19]);
+  last_key[10] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].contents[20]);
+  last_key[11] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].contents[21]);
+  last_key[12] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].contents[22]);
+  last_key[13] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].contents[23]);
+  last_key[14] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].contents[24]);
+  last_key[15] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].contents[25]);
 
   // hmac_data
 
@@ -676,9 +676,9 @@ KERNEL_FQ void m15300_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dpapimk_t))
    && (expected_key[2] == hc_swap32_S (ctx.opad.h[2]))
    && (expected_key[3] == hc_swap32_S (ctx.opad.h[3])))
   {
-    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, il_pos, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
     }
   }
 }

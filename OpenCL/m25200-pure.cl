@@ -62,7 +62,7 @@ KERNEL_FQ void m25200_init (KERN_ATTR_TMPS_ESALT (hmac_sha1_tmp_t, snmpv3_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * base
@@ -140,7 +140,7 @@ KERNEL_FQ void m25200_loop (KERN_ATTR_TMPS_ESALT (hmac_sha1_tmp_t, snmpv3_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   u32 h[5];
 
@@ -163,7 +163,7 @@ KERNEL_FQ void m25200_loop (KERN_ATTR_TMPS_ESALT (hmac_sha1_tmp_t, snmpv3_t))
       tmp[i] = tmps[gid].tmp[i];
     }
 
-    for (int i = 0, j = loop_pos; i < loop_cnt; i += 64, j += 64)
+    for (int i = 0, j = LOOP_POS; i < LOOP_CNT; i += 64, j += 64)
     {
       const int idx = (j % pw_len64) / 4; // the optimization trick is to be able to do this
 
@@ -194,7 +194,7 @@ KERNEL_FQ void m25200_loop (KERN_ATTR_TMPS_ESALT (hmac_sha1_tmp_t, snmpv3_t))
   }
   else
   {
-    for (int i = 0, j = loop_pos; i < loop_cnt; i += 64, j += 64)
+    for (int i = 0, j = LOOP_POS; i < LOOP_CNT; i += 64, j += 64)
     {
       const int idx = (j % pw_len64) / 4; // the optimization trick is to be able to do this
 
@@ -239,7 +239,7 @@ KERNEL_FQ void m25200_comp (KERN_ATTR_TMPS_ESALT (hmac_sha1_tmp_t, snmpv3_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   u32 w0[4];
   u32 w1[4];
@@ -298,7 +298,7 @@ KERNEL_FQ void m25200_comp (KERN_ATTR_TMPS_ESALT (hmac_sha1_tmp_t, snmpv3_t))
 
   sha1_update (&ctx, w, 20);
 
-  sha1_update_global_swap (&ctx, esalt_bufs[DIGESTS_OFFSET].engineID_buf, esalt_bufs[DIGESTS_OFFSET].engineID_len);
+  sha1_update_global_swap (&ctx, esalt_bufs[DIGESTS_OFFSET_HOST].engineID_buf, esalt_bufs[DIGESTS_OFFSET_HOST].engineID_len);
 
   w[ 0] = h[0];
   w[ 1] = h[1];
@@ -342,7 +342,7 @@ KERNEL_FQ void m25200_comp (KERN_ATTR_TMPS_ESALT (hmac_sha1_tmp_t, snmpv3_t))
 
   sha1_hmac_init (&hmac_ctx, w, 20);
 
-  sha1_hmac_update_global_swap (&hmac_ctx, esalt_bufs[DIGESTS_OFFSET].salt_buf, esalt_bufs[DIGESTS_OFFSET].salt_len);
+  sha1_hmac_update_global_swap (&hmac_ctx, esalt_bufs[DIGESTS_OFFSET_HOST].salt_buf, esalt_bufs[DIGESTS_OFFSET_HOST].salt_len);
 
   sha1_hmac_final (&hmac_ctx);
 

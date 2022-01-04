@@ -88,7 +88,7 @@ KERNEL_FQ void m22500_mxx (KERN_ATTR_VECTOR ())
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * base
@@ -109,19 +109,19 @@ KERNEL_FQ void m22500_mxx (KERN_ATTR_VECTOR ())
 
   u32 s[64] = { 0 };
 
-  s[0] = salt_bufs[SALT_POS].salt_buf[0];
-  s[1] = salt_bufs[SALT_POS].salt_buf[1];
+  s[0] = salt_bufs[SALT_POS_HOST].salt_buf[0];
+  s[1] = salt_bufs[SALT_POS_HOST].salt_buf[1];
 
   u32 data[8];
 
-  data[0] = salt_bufs[SALT_POS].salt_buf[2];
-  data[1] = salt_bufs[SALT_POS].salt_buf[3];
-  data[2] = salt_bufs[SALT_POS].salt_buf[4];
-  data[3] = salt_bufs[SALT_POS].salt_buf[5];
-  data[4] = salt_bufs[SALT_POS].salt_buf[6];
-  data[5] = salt_bufs[SALT_POS].salt_buf[7];
-  data[6] = salt_bufs[SALT_POS].salt_buf[8];
-  data[7] = salt_bufs[SALT_POS].salt_buf[9];
+  data[0] = salt_bufs[SALT_POS_HOST].salt_buf[2];
+  data[1] = salt_bufs[SALT_POS_HOST].salt_buf[3];
+  data[2] = salt_bufs[SALT_POS_HOST].salt_buf[4];
+  data[3] = salt_bufs[SALT_POS_HOST].salt_buf[5];
+  data[4] = salt_bufs[SALT_POS_HOST].salt_buf[6];
+  data[5] = salt_bufs[SALT_POS_HOST].salt_buf[7];
+  data[6] = salt_bufs[SALT_POS_HOST].salt_buf[8];
+  data[7] = salt_bufs[SALT_POS_HOST].salt_buf[9];
 
   /**
    * loop
@@ -129,7 +129,7 @@ KERNEL_FQ void m22500_mxx (KERN_ATTR_VECTOR ())
 
   u32x w0l = w[0];
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
@@ -331,9 +331,9 @@ KERNEL_FQ void m22500_mxx (KERN_ATTR_VECTOR ())
       if (out[3] != 0x41202145) continue; // "A !E"
     }
 
-    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, il_pos, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
     }
   }
 }
@@ -399,7 +399,7 @@ KERNEL_FQ void m22500_sxx (KERN_ATTR_VECTOR ())
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * base
@@ -420,19 +420,19 @@ KERNEL_FQ void m22500_sxx (KERN_ATTR_VECTOR ())
 
   u32 s[64] = { 0 };
 
-  s[0] = salt_bufs[SALT_POS].salt_buf[0];
-  s[1] = salt_bufs[SALT_POS].salt_buf[1];
+  s[0] = salt_bufs[SALT_POS_HOST].salt_buf[0];
+  s[1] = salt_bufs[SALT_POS_HOST].salt_buf[1];
 
   u32 data[8];
 
-  data[0] = salt_bufs[SALT_POS].salt_buf[2];
-  data[1] = salt_bufs[SALT_POS].salt_buf[3];
-  data[2] = salt_bufs[SALT_POS].salt_buf[4];
-  data[3] = salt_bufs[SALT_POS].salt_buf[5];
-  data[4] = salt_bufs[SALT_POS].salt_buf[6];
-  data[5] = salt_bufs[SALT_POS].salt_buf[7];
-  data[6] = salt_bufs[SALT_POS].salt_buf[8];
-  data[7] = salt_bufs[SALT_POS].salt_buf[9];
+  data[0] = salt_bufs[SALT_POS_HOST].salt_buf[2];
+  data[1] = salt_bufs[SALT_POS_HOST].salt_buf[3];
+  data[2] = salt_bufs[SALT_POS_HOST].salt_buf[4];
+  data[3] = salt_bufs[SALT_POS_HOST].salt_buf[5];
+  data[4] = salt_bufs[SALT_POS_HOST].salt_buf[6];
+  data[5] = salt_bufs[SALT_POS_HOST].salt_buf[7];
+  data[6] = salt_bufs[SALT_POS_HOST].salt_buf[8];
+  data[7] = salt_bufs[SALT_POS_HOST].salt_buf[9];
 
   /**
    * loop
@@ -440,7 +440,7 @@ KERNEL_FQ void m22500_sxx (KERN_ATTR_VECTOR ())
 
   u32x w0l = w[0];
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
@@ -642,9 +642,9 @@ KERNEL_FQ void m22500_sxx (KERN_ATTR_VECTOR ())
       if (out[3] != 0x41202145) continue; // "A !E"
     }
 
-    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, il_pos, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
     }
   }
 }

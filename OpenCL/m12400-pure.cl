@@ -537,7 +537,7 @@ KERNEL_FQ void m12400_init (KERN_ATTR_TMPS (bsdicrypt_tmp_t))
 
   SYNC_THREADS ();
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * word
@@ -673,7 +673,7 @@ KERNEL_FQ void m12400_loop (KERN_ATTR_TMPS (bsdicrypt_tmp_t))
 
   SYNC_THREADS ();
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * main
@@ -722,9 +722,9 @@ KERNEL_FQ void m12400_loop (KERN_ATTR_TMPS (bsdicrypt_tmp_t))
   iv[0] = tmps[gid].iv[0];
   iv[1] = tmps[gid].iv[1];
 
-  const u32 mask = salt_bufs[SALT_POS].salt_buf[0];
+  const u32 mask = salt_bufs[SALT_POS_HOST].salt_buf[0];
 
-  _des_crypt_encrypt (iv, mask, loop_cnt, Kc, Kd, s_SPtrans);
+  _des_crypt_encrypt (iv, mask, LOOP_CNT, Kc, Kd, s_SPtrans);
 
   tmps[gid].iv[0] = iv[0];
   tmps[gid].iv[1] = iv[1];
@@ -738,7 +738,7 @@ KERNEL_FQ void m12400_comp (KERN_ATTR_TMPS (bsdicrypt_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   const u64 lid = get_local_id (0);
 

@@ -100,7 +100,7 @@ KERNEL_FQ void m27600_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   sha256_hmac_ctx_t sha256_hmac_ctx;
 
@@ -124,7 +124,7 @@ KERNEL_FQ void m27600_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
   tmps[gid].opad[6] = sha256_hmac_ctx.opad.h[6];
   tmps[gid].opad[7] = sha256_hmac_ctx.opad.h[7];
 
-  sha256_hmac_update_global_swap (&sha256_hmac_ctx, esalt_bufs[DIGESTS_OFFSET].salt1_buf, esalt_bufs[DIGESTS_OFFSET].salt1_len);
+  sha256_hmac_update_global_swap (&sha256_hmac_ctx, esalt_bufs[DIGESTS_OFFSET_HOST].salt1_buf, esalt_bufs[DIGESTS_OFFSET_HOST].salt1_len);
 
   for (u32 i = 0, j = 1; i < 16; i += 8, j += 1)
   {
@@ -180,7 +180,7 @@ KERNEL_FQ void m27600_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= gid_max) return;
+  if ((gid * VECT_SIZE) >= GID_MAX) return;
 
   u32x ipad[8];
   u32x opad[8];
@@ -226,7 +226,7 @@ KERNEL_FQ void m27600_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
     out[6] = packv (tmps, out, gid, i + 6);
     out[7] = packv (tmps, out, gid, i + 7);
 
-    for (u32 j = 0; j < loop_cnt; j++)
+    for (u32 j = 0; j < LOOP_CNT; j++)
     {
       u32x w0[4];
       u32x w1[4];
@@ -339,7 +339,7 @@ KERNEL_FQ void m27600_init2 (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * aes
@@ -392,10 +392,10 @@ KERNEL_FQ void m27600_init2 (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
 
   u32 in[4];
 
-  in[0] = esalt_bufs[DIGESTS_OFFSET].enc_pass_buf[0];
-  in[1] = esalt_bufs[DIGESTS_OFFSET].enc_pass_buf[1];
-  in[2] = esalt_bufs[DIGESTS_OFFSET].enc_pass_buf[2];
-  in[3] = esalt_bufs[DIGESTS_OFFSET].enc_pass_buf[3];
+  in[0] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_pass_buf[0];
+  in[1] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_pass_buf[1];
+  in[2] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_pass_buf[2];
+  in[3] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_pass_buf[3];
 
   u32 out[4];
 
@@ -430,10 +430,10 @@ KERNEL_FQ void m27600_init2 (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
 
   // next
 
-  in[0] = esalt_bufs[DIGESTS_OFFSET].enc_pass_buf[4];
-  in[1] = esalt_bufs[DIGESTS_OFFSET].enc_pass_buf[5];
-  in[2] = esalt_bufs[DIGESTS_OFFSET].enc_pass_buf[6];
-  in[3] = esalt_bufs[DIGESTS_OFFSET].enc_pass_buf[7];
+  in[0] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_pass_buf[4];
+  in[1] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_pass_buf[5];
+  in[2] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_pass_buf[6];
+  in[3] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_pass_buf[7];
 
   out[0] = in[0];
   out[1] = in[1];
@@ -461,10 +461,10 @@ KERNEL_FQ void m27600_init2 (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
 
   // next
 
-  in[0] = esalt_bufs[DIGESTS_OFFSET].enc_pass_buf[8];
-  in[1] = esalt_bufs[DIGESTS_OFFSET].enc_pass_buf[9];
-  in[2] = esalt_bufs[DIGESTS_OFFSET].enc_pass_buf[10];
-  in[3] = esalt_bufs[DIGESTS_OFFSET].enc_pass_buf[11];
+  in[0] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_pass_buf[8];
+  in[1] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_pass_buf[9];
+  in[2] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_pass_buf[10];
+  in[3] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_pass_buf[11];
 
   out[0] = in[0];
   out[1] = in[1];
@@ -492,10 +492,10 @@ KERNEL_FQ void m27600_init2 (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
 
   // next
 
-  in[0] = esalt_bufs[DIGESTS_OFFSET].enc_pass_buf[12];
-  in[1] = esalt_bufs[DIGESTS_OFFSET].enc_pass_buf[13];
-  in[2] = esalt_bufs[DIGESTS_OFFSET].enc_pass_buf[14];
-  in[3] = esalt_bufs[DIGESTS_OFFSET].enc_pass_buf[15];
+  in[0] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_pass_buf[12];
+  in[1] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_pass_buf[13];
+  in[2] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_pass_buf[14];
+  in[3] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_pass_buf[15];
 
   out[0] = in[0];
   out[1] = in[1];
@@ -569,7 +569,7 @@ KERNEL_FQ void m27600_init2 (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
   tmps[gid].opad[6] = sha256_hmac_ctx.opad.h[6];
   tmps[gid].opad[7] = sha256_hmac_ctx.opad.h[7];
 
-  sha256_hmac_update_global_swap (&sha256_hmac_ctx, esalt_bufs[DIGESTS_OFFSET].salt2_buf, esalt_bufs[DIGESTS_OFFSET].salt2_len);
+  sha256_hmac_update_global_swap (&sha256_hmac_ctx, esalt_bufs[DIGESTS_OFFSET_HOST].salt2_buf, esalt_bufs[DIGESTS_OFFSET_HOST].salt2_len);
 
   for (u32 i = 0, j = 1; i < 8; i += 8, j += 1)
   {
@@ -620,7 +620,7 @@ KERNEL_FQ void m27600_loop2 (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= gid_max) return;
+  if ((gid * VECT_SIZE) >= GID_MAX) return;
 
   u32x ipad[8];
   u32x opad[8];
@@ -666,7 +666,7 @@ KERNEL_FQ void m27600_loop2 (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
     out[6] = packv (tmps, out, gid, i + 6);
     out[7] = packv (tmps, out, gid, i + 7);
 
-    for (u32 j = 0; j < loop_cnt; j++)
+    for (u32 j = 0; j < LOOP_CNT; j++)
     {
       u32x w0[4];
       u32x w1[4];
@@ -726,7 +726,7 @@ KERNEL_FQ void m27600_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
 {
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   const u32 r0 = tmps[gid].out[0];
   const u32 r1 = tmps[gid].out[1];

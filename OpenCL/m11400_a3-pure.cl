@@ -63,7 +63,7 @@ KERNEL_FQ void m11400_mxx (KERN_ATTR_VECTOR_ESALT (sip_t))
 
   SYNC_THREADS ();
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * base
@@ -78,20 +78,20 @@ KERNEL_FQ void m11400_mxx (KERN_ATTR_VECTOR_ESALT (sip_t))
     w[idx] = pws[gid].i[idx];
   }
 
-  const u32 esalt_len = esalt_bufs[DIGESTS_OFFSET].esalt_len;
+  const u32 esalt_len = esalt_bufs[DIGESTS_OFFSET_HOST].esalt_len;
 
   u32x esalt_buf[256] = { 0 };
 
   for (u32 i = 0, idx = 0; i < esalt_len; i += 4, idx += 1)
   {
-    esalt_buf[idx] = esalt_bufs[DIGESTS_OFFSET].esalt_buf[idx];
+    esalt_buf[idx] = esalt_bufs[DIGESTS_OFFSET_HOST].esalt_buf[idx];
   }
 
   md5_ctx_t ctx0;
 
   md5_init (&ctx0);
 
-  md5_update_global (&ctx0, esalt_bufs[DIGESTS_OFFSET].salt_buf, esalt_bufs[DIGESTS_OFFSET].salt_len);
+  md5_update_global (&ctx0, esalt_bufs[DIGESTS_OFFSET_HOST].salt_buf, esalt_bufs[DIGESTS_OFFSET_HOST].salt_len);
 
   /**
    * loop
@@ -99,7 +99,7 @@ KERNEL_FQ void m11400_mxx (KERN_ATTR_VECTOR_ESALT (sip_t))
 
   u32x w0l = w[0];
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
@@ -183,7 +183,7 @@ KERNEL_FQ void m11400_sxx (KERN_ATTR_VECTOR_ESALT (sip_t))
 
   SYNC_THREADS ();
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * digest
@@ -191,10 +191,10 @@ KERNEL_FQ void m11400_sxx (KERN_ATTR_VECTOR_ESALT (sip_t))
 
   const u32 search[4] =
   {
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R3]
   };
 
   /**
@@ -210,20 +210,20 @@ KERNEL_FQ void m11400_sxx (KERN_ATTR_VECTOR_ESALT (sip_t))
     w[idx] = pws[gid].i[idx];
   }
 
-  const u32 esalt_len = esalt_bufs[DIGESTS_OFFSET].esalt_len;
+  const u32 esalt_len = esalt_bufs[DIGESTS_OFFSET_HOST].esalt_len;
 
   u32x esalt_buf[256] = { 0 };
 
   for (u32 i = 0, idx = 0; i < esalt_len; i += 4, idx += 1)
   {
-    esalt_buf[idx] = esalt_bufs[DIGESTS_OFFSET].esalt_buf[idx];
+    esalt_buf[idx] = esalt_bufs[DIGESTS_OFFSET_HOST].esalt_buf[idx];
   }
 
   md5_ctx_t ctx0;
 
   md5_init (&ctx0);
 
-  md5_update_global (&ctx0, esalt_bufs[DIGESTS_OFFSET].salt_buf, esalt_bufs[DIGESTS_OFFSET].salt_len);
+  md5_update_global (&ctx0, esalt_bufs[DIGESTS_OFFSET_HOST].salt_buf, esalt_bufs[DIGESTS_OFFSET_HOST].salt_len);
 
   /**
    * loop
@@ -231,7 +231,7 @@ KERNEL_FQ void m11400_sxx (KERN_ATTR_VECTOR_ESALT (sip_t))
 
   u32x w0l = w[0];
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 

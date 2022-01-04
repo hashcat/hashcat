@@ -215,16 +215,16 @@ KERNEL_FQ void m17010_init (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 {
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   const u32 pw_len = pws[gid].pw_len;
-  const u32 salted_pw_len = (salt_bufs[SALT_POS].salt_len + pw_len);
+  const u32 salted_pw_len = (salt_bufs[SALT_POS_HOST].salt_len + pw_len);
 
   u32 salted_pw_block[80];
 
   // concatenate salt and password -- the salt is always 8 bytes
-  salted_pw_block[0] = salt_bufs[SALT_POS].salt_buf[0];
-  salted_pw_block[1] = salt_bufs[SALT_POS].salt_buf[1];
+  salted_pw_block[0] = salt_bufs[SALT_POS_HOST].salt_buf[0];
+  salted_pw_block[1] = salt_bufs[SALT_POS_HOST].salt_buf[1];
 
   for (u32 idx = 0; idx < 64; idx++) salted_pw_block[idx + 2] = pws[gid].i[idx];
 
@@ -264,7 +264,7 @@ KERNEL_FQ void m17010_loop_prepare (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 {
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   tmps[gid].w0[0] = 0;
   tmps[gid].w0[1] = 0;
@@ -283,14 +283,14 @@ KERNEL_FQ void m17010_loop_prepare (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
   tmps[gid].w3[2] = 0;
   tmps[gid].w3[3] = 0;
 
-  tmps[gid].len = salt_repeat;
+  tmps[gid].len = SALT_REPEAT;
 }
 
 KERNEL_FQ void m17010_loop (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 {
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   // get the prepared buffer from the gpg_tmp_t struct into a local buffer
   u32 salted_pw_block[80];
@@ -308,7 +308,7 @@ KERNEL_FQ void m17010_loop (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 
   sha1_ctx_t ctx;
 
-  const u32 sha_offset = salt_repeat * 5;
+  const u32 sha_offset = SALT_REPEAT * 5;
 
   for (int i = 0; i < 5; i++) ctx.h[i] = tmps[gid].h[sha_offset + i];
 
@@ -320,17 +320,17 @@ KERNEL_FQ void m17010_loop (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
   ctx.len = tmps[gid].len;
 
   // sha-1 of salt and password, up to 'salt_iter' bytes
-  const u32 salt_iter = salt_bufs[SALT_POS].salt_iter;
+  const u32 salt_iter = salt_bufs[SALT_POS_HOST].salt_iter;
 
-  const u32 salted_pw_block_pos = loop_pos % salted_pw_block_len;
-  const u32 rounds = (loop_cnt + salted_pw_block_pos) / salted_pw_block_len;
+  const u32 salted_pw_block_pos = LOOP_POS % salted_pw_block_len;
+  const u32 rounds = (LOOP_CNT + salted_pw_block_pos) / salted_pw_block_len;
 
   for (u32 i = 0; i < rounds; i++)
   {
     sha1_update (&ctx, salted_pw_block, salted_pw_block_len);
   }
 
-  if ((loop_pos + loop_cnt) == salt_iter)
+  if ((LOOP_POS + LOOP_CNT) == salt_iter)
   {
     const u32 remaining_bytes = salt_iter % salted_pw_block_len;
 
@@ -406,7 +406,7 @@ KERNEL_FQ void m17010_aux1 (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   // retrieve and use the SHA-1 as the key for AES
 
@@ -416,19 +416,19 @@ KERNEL_FQ void m17010_aux1 (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 
   u32 iv[4] = {0};
 
-  for (int idx = 0; idx < 4; idx++) iv[idx] = esalt_bufs[DIGESTS_OFFSET].iv[idx];
+  for (int idx = 0; idx < 4; idx++) iv[idx] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[idx];
 
   u32 decoded_data[384];
 
-  const u32 enc_data_size = esalt_bufs[DIGESTS_OFFSET].encrypted_data_size;
+  const u32 enc_data_size = esalt_bufs[DIGESTS_OFFSET_HOST].encrypted_data_size;
 
-  aes128_decrypt_cfb (esalt_bufs[DIGESTS_OFFSET].encrypted_data, enc_data_size, iv, aes_key, decoded_data, s_te0, s_te1, s_te2, s_te3, s_te4);
+  aes128_decrypt_cfb (esalt_bufs[DIGESTS_OFFSET_HOST].encrypted_data, enc_data_size, iv, aes_key, decoded_data, s_te0, s_te1, s_te2, s_te3, s_te4);
 
   if (check_decoded_data (decoded_data, enc_data_size))
   {
-    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
     }
   }
 }
@@ -476,7 +476,7 @@ KERNEL_FQ void m17010_aux2 (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   // retrieve and use the SHA-1 as the key for AES
 
@@ -486,19 +486,19 @@ KERNEL_FQ void m17010_aux2 (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 
   u32 iv[4] = {0};
 
-  for (int idx = 0; idx < 4; idx++) iv[idx] = esalt_bufs[DIGESTS_OFFSET].iv[idx];
+  for (int idx = 0; idx < 4; idx++) iv[idx] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[idx];
 
   u32 decoded_data[384];
 
-  const u32 enc_data_size = esalt_bufs[DIGESTS_OFFSET].encrypted_data_size;
+  const u32 enc_data_size = esalt_bufs[DIGESTS_OFFSET_HOST].encrypted_data_size;
 
-  aes256_decrypt_cfb (esalt_bufs[DIGESTS_OFFSET].encrypted_data, enc_data_size, iv, aes_key, decoded_data, s_te0, s_te1, s_te2, s_te3, s_te4);
+  aes256_decrypt_cfb (esalt_bufs[DIGESTS_OFFSET_HOST].encrypted_data, enc_data_size, iv, aes_key, decoded_data, s_te0, s_te1, s_te2, s_te3, s_te4);
 
   if (check_decoded_data (decoded_data, enc_data_size))
   {
-    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
     }
   }
 }

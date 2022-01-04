@@ -34,7 +34,7 @@ KERNEL_FQ void m16513_mxx (KERN_ATTR_RULES_ESALT (jwt_t))
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * base
@@ -46,7 +46,7 @@ KERNEL_FQ void m16513_mxx (KERN_ATTR_RULES_ESALT (jwt_t))
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
     pw_t tmp = PASTE_PW;
 
@@ -56,7 +56,7 @@ KERNEL_FQ void m16513_mxx (KERN_ATTR_RULES_ESALT (jwt_t))
 
     sha512_hmac_init_swap (&ctx, tmp.i, tmp.pw_len);
 
-    sha512_hmac_update_global_swap (&ctx, esalt_bufs[DIGESTS_OFFSET].salt_buf, esalt_bufs[DIGESTS_OFFSET].salt_len);
+    sha512_hmac_update_global_swap (&ctx, esalt_bufs[DIGESTS_OFFSET_HOST].salt_buf, esalt_bufs[DIGESTS_OFFSET_HOST].salt_len);
 
     sha512_hmac_final (&ctx);
 
@@ -78,7 +78,7 @@ KERNEL_FQ void m16513_sxx (KERN_ATTR_RULES_ESALT (jwt_t))
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * digest
@@ -86,10 +86,10 @@ KERNEL_FQ void m16513_sxx (KERN_ATTR_RULES_ESALT (jwt_t))
 
   const u32 search[4] =
   {
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R3]
   };
 
   /**
@@ -102,7 +102,7 @@ KERNEL_FQ void m16513_sxx (KERN_ATTR_RULES_ESALT (jwt_t))
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
     pw_t tmp = PASTE_PW;
 
@@ -112,7 +112,7 @@ KERNEL_FQ void m16513_sxx (KERN_ATTR_RULES_ESALT (jwt_t))
 
     sha512_hmac_init_swap (&ctx, tmp.i, tmp.pw_len);
 
-    sha512_hmac_update_global_swap (&ctx, esalt_bufs[DIGESTS_OFFSET].salt_buf, esalt_bufs[DIGESTS_OFFSET].salt_len);
+    sha512_hmac_update_global_swap (&ctx, esalt_bufs[DIGESTS_OFFSET_HOST].salt_buf, esalt_bufs[DIGESTS_OFFSET_HOST].salt_len);
 
     sha512_hmac_final (&ctx);
 

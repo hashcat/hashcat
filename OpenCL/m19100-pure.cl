@@ -31,7 +31,7 @@ KERNEL_FQ void m19100_init (KERN_ATTR_TMPS (qnx_sha256_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * init
@@ -41,7 +41,7 @@ KERNEL_FQ void m19100_init (KERN_ATTR_TMPS (qnx_sha256_tmp_t))
 
   sha256_init (&sha256_ctx);
 
-  sha256_update_global_swap (&sha256_ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
+  sha256_update_global_swap (&sha256_ctx, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
   sha256_update_global_swap (&sha256_ctx, pws[gid].i, pws[gid].pw_len);
 
@@ -56,11 +56,11 @@ KERNEL_FQ void m19100_loop (KERN_ATTR_TMPS (qnx_sha256_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   sha256_ctx_t sha256_ctx = tmps[gid].sha256_ctx;
 
-  for (u32 i = 0; i < loop_cnt; i++)
+  for (u32 i = 0; i < LOOP_CNT; i++)
   {
     sha256_update_global_swap (&sha256_ctx, pws[gid].i, pws[gid].pw_len);
   }
@@ -77,7 +77,7 @@ KERNEL_FQ void m19100_comp (KERN_ATTR_TMPS (qnx_sha256_tmp_t))
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   sha256_ctx_t sha256_ctx = tmps[gid].sha256_ctx;
 

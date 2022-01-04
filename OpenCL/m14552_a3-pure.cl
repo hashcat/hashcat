@@ -75,13 +75,13 @@ KERNEL_FQ void m14552_mxx (KERN_ATTR_VECTOR_ESALT (cryptoapi_t))
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * base
    */
 
-  u32 serpent_key_len = esalt_bufs[DIGESTS_OFFSET].key_size;
+  u32 serpent_key_len = esalt_bufs[DIGESTS_OFFSET_HOST].key_size;
 
   const u32 pw_len = pws[gid].pw_len;
 
@@ -98,7 +98,7 @@ KERNEL_FQ void m14552_mxx (KERN_ATTR_VECTOR_ESALT (cryptoapi_t))
 
   u32x w0l = w[0];
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
@@ -157,10 +157,10 @@ KERNEL_FQ void m14552_mxx (KERN_ATTR_VECTOR_ESALT (cryptoapi_t))
     // IV
 
     const u32 iv[4] = {
-      salt_bufs[SALT_POS].salt_buf[0],
-      salt_bufs[SALT_POS].salt_buf[1],
-      salt_bufs[SALT_POS].salt_buf[2],
-      salt_bufs[SALT_POS].salt_buf[3]
+      salt_bufs[SALT_POS_HOST].salt_buf[0],
+      salt_bufs[SALT_POS_HOST].salt_buf[1],
+      salt_bufs[SALT_POS_HOST].salt_buf[2],
+      salt_bufs[SALT_POS_HOST].salt_buf[3]
     };
 
     // CT
@@ -252,7 +252,7 @@ KERNEL_FQ void m14552_sxx (KERN_ATTR_VECTOR_ESALT (cryptoapi_t))
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * digest
@@ -260,17 +260,17 @@ KERNEL_FQ void m14552_sxx (KERN_ATTR_VECTOR_ESALT (cryptoapi_t))
 
   const u32 search[4] =
   {
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R3]
   };
 
   /**
    * base
    */
 
-  u32 serpent_key_len = esalt_bufs[DIGESTS_OFFSET].key_size;
+  u32 serpent_key_len = esalt_bufs[DIGESTS_OFFSET_HOST].key_size;
 
   const u32 pw_len = pws[gid].pw_len;
 
@@ -287,7 +287,7 @@ KERNEL_FQ void m14552_sxx (KERN_ATTR_VECTOR_ESALT (cryptoapi_t))
 
   u32x w0l = w[0];
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
@@ -346,10 +346,10 @@ KERNEL_FQ void m14552_sxx (KERN_ATTR_VECTOR_ESALT (cryptoapi_t))
     // IV
 
     const u32 iv[4] = {
-      salt_bufs[SALT_POS].salt_buf[0],
-      salt_bufs[SALT_POS].salt_buf[1],
-      salt_bufs[SALT_POS].salt_buf[2],
-      salt_bufs[SALT_POS].salt_buf[3]
+      salt_bufs[SALT_POS_HOST].salt_buf[0],
+      salt_bufs[SALT_POS_HOST].salt_buf[1],
+      salt_bufs[SALT_POS_HOST].salt_buf[2],
+      salt_bufs[SALT_POS_HOST].salt_buf[3]
     };
 
     // CT

@@ -83,7 +83,7 @@ KERNEL_FQ void m12900_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   sha256_hmac_ctx_t sha256_hmac_ctx;
 
@@ -112,10 +112,10 @@ KERNEL_FQ void m12900_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
   u32 w2[4];
   u32 w3[4];
 
-  w0[0] = salt_bufs[SALT_POS].salt_buf[0];
-  w0[1] = salt_bufs[SALT_POS].salt_buf[1];
-  w0[2] = salt_bufs[SALT_POS].salt_buf[2];
-  w0[3] = salt_bufs[SALT_POS].salt_buf[3];
+  w0[0] = salt_bufs[SALT_POS_HOST].salt_buf[0];
+  w0[1] = salt_bufs[SALT_POS_HOST].salt_buf[1];
+  w0[2] = salt_bufs[SALT_POS_HOST].salt_buf[2];
+  w0[3] = salt_bufs[SALT_POS_HOST].salt_buf[3];
   w1[0] = 0;
   w1[1] = 0;
   w1[2] = 0;
@@ -180,7 +180,7 @@ KERNEL_FQ void m12900_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= gid_max) return;
+  if ((gid * VECT_SIZE) >= GID_MAX) return;
 
   u32x ipad[8];
   u32x opad[8];
@@ -226,7 +226,7 @@ KERNEL_FQ void m12900_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
     out[6] = packv (tmps, out, gid, i + 6);
     out[7] = packv (tmps, out, gid, i + 7);
 
-    for (u32 j = 0; j < loop_cnt; j++)
+    for (u32 j = 0; j < LOOP_CNT; j++)
     {
       u32x w0[4];
       u32x w1[4];
@@ -290,7 +290,7 @@ KERNEL_FQ void m12900_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   const u64 lid = get_local_id (0);
 
@@ -320,14 +320,14 @@ KERNEL_FQ void m12900_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
 
   sha256_hmac_init_64 (&ctx, w0, w1, w2, w3);
 
-  w0[0] = salt_bufs[SALT_POS].salt_buf[ 4];
-  w0[1] = salt_bufs[SALT_POS].salt_buf[ 5];
-  w0[2] = salt_bufs[SALT_POS].salt_buf[ 6];
-  w0[3] = salt_bufs[SALT_POS].salt_buf[ 7];
-  w1[0] = salt_bufs[SALT_POS].salt_buf[ 8];
-  w1[1] = salt_bufs[SALT_POS].salt_buf[ 9];
-  w1[2] = salt_bufs[SALT_POS].salt_buf[10];
-  w1[3] = salt_bufs[SALT_POS].salt_buf[11];
+  w0[0] = salt_bufs[SALT_POS_HOST].salt_buf[ 4];
+  w0[1] = salt_bufs[SALT_POS_HOST].salt_buf[ 5];
+  w0[2] = salt_bufs[SALT_POS_HOST].salt_buf[ 6];
+  w0[3] = salt_bufs[SALT_POS_HOST].salt_buf[ 7];
+  w1[0] = salt_bufs[SALT_POS_HOST].salt_buf[ 8];
+  w1[1] = salt_bufs[SALT_POS_HOST].salt_buf[ 9];
+  w1[2] = salt_bufs[SALT_POS_HOST].salt_buf[10];
+  w1[3] = salt_bufs[SALT_POS_HOST].salt_buf[11];
   w2[0] = 0;
   w2[1] = 0;
   w2[2] = 0;

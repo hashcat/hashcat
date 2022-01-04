@@ -84,7 +84,7 @@ KERNEL_FQ void m16600_mxx (KERN_ATTR_VECTOR_ESALT (electrum_wallet_t))
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * base
@@ -103,21 +103,21 @@ KERNEL_FQ void m16600_mxx (KERN_ATTR_VECTOR_ESALT (electrum_wallet_t))
    * data
    */
 
-  const u32 salt_type = esalt_bufs[DIGESTS_OFFSET].salt_type;
+  const u32 salt_type = esalt_bufs[DIGESTS_OFFSET_HOST].salt_type;
 
   u32 encrypted[4];
 
-  encrypted[0] = esalt_bufs[DIGESTS_OFFSET].encrypted[0];
-  encrypted[1] = esalt_bufs[DIGESTS_OFFSET].encrypted[1];
-  encrypted[2] = esalt_bufs[DIGESTS_OFFSET].encrypted[2];
-  encrypted[3] = esalt_bufs[DIGESTS_OFFSET].encrypted[3];
+  encrypted[0] = esalt_bufs[DIGESTS_OFFSET_HOST].encrypted[0];
+  encrypted[1] = esalt_bufs[DIGESTS_OFFSET_HOST].encrypted[1];
+  encrypted[2] = esalt_bufs[DIGESTS_OFFSET_HOST].encrypted[2];
+  encrypted[3] = esalt_bufs[DIGESTS_OFFSET_HOST].encrypted[3];
 
   u32 iv[4];
 
-  iv[0] = esalt_bufs[DIGESTS_OFFSET].iv[0];
-  iv[1] = esalt_bufs[DIGESTS_OFFSET].iv[1];
-  iv[2] = esalt_bufs[DIGESTS_OFFSET].iv[2];
-  iv[3] = esalt_bufs[DIGESTS_OFFSET].iv[3];
+  iv[0] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[0];
+  iv[1] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[1];
+  iv[2] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[2];
+  iv[3] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[3];
 
   /**
    * loop
@@ -125,7 +125,7 @@ KERNEL_FQ void m16600_mxx (KERN_ATTR_VECTOR_ESALT (electrum_wallet_t))
 
   u32x w0l = w[0];
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
@@ -207,9 +207,9 @@ KERNEL_FQ void m16600_mxx (KERN_ATTR_VECTOR_ESALT (electrum_wallet_t))
       if (is_valid_hex_32 (out[2]) == 0) continue;
       if (is_valid_hex_32 (out[3]) == 0) continue;
 
-      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
       {
-        mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, il_pos, 0, 0);
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
       }
     }
 
@@ -223,9 +223,9 @@ KERNEL_FQ void m16600_mxx (KERN_ATTR_VECTOR_ESALT (electrum_wallet_t))
       if (is_valid_base58_32 (out[2]) == 0) continue;
       if (is_valid_base58_32 (out[3]) == 0) continue;
 
-      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
       {
-        mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, il_pos, 0, 0);
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
       }
     }
 
@@ -235,17 +235,17 @@ KERNEL_FQ void m16600_mxx (KERN_ATTR_VECTOR_ESALT (electrum_wallet_t))
 
       if ((out[1] == 0x0c0c0c0c) && (out[2] == 0x0c0c0c0c) && (out[3] == 0x0c0c0c0c))
       {
-        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
         {
-          mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, il_pos, 0, 0);
+          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
         }
       }
 
       if ((out[1] == 0x0d0d0d0d) && (out[2] == 0x0d0d0d0d) && (out[3] == 0x0d0d0d0d))
       {
-        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
         {
-          mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, il_pos, 0, 0);
+          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
         }
       }
     }
@@ -313,7 +313,7 @@ KERNEL_FQ void m16600_sxx (KERN_ATTR_VECTOR_ESALT (electrum_wallet_t))
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * base
@@ -332,21 +332,21 @@ KERNEL_FQ void m16600_sxx (KERN_ATTR_VECTOR_ESALT (electrum_wallet_t))
    * data
    */
 
-  const u32 salt_type = esalt_bufs[DIGESTS_OFFSET].salt_type;
+  const u32 salt_type = esalt_bufs[DIGESTS_OFFSET_HOST].salt_type;
 
   u32 encrypted[4];
 
-  encrypted[0] = esalt_bufs[DIGESTS_OFFSET].encrypted[0];
-  encrypted[1] = esalt_bufs[DIGESTS_OFFSET].encrypted[1];
-  encrypted[2] = esalt_bufs[DIGESTS_OFFSET].encrypted[2];
-  encrypted[3] = esalt_bufs[DIGESTS_OFFSET].encrypted[3];
+  encrypted[0] = esalt_bufs[DIGESTS_OFFSET_HOST].encrypted[0];
+  encrypted[1] = esalt_bufs[DIGESTS_OFFSET_HOST].encrypted[1];
+  encrypted[2] = esalt_bufs[DIGESTS_OFFSET_HOST].encrypted[2];
+  encrypted[3] = esalt_bufs[DIGESTS_OFFSET_HOST].encrypted[3];
 
   u32 iv[4];
 
-  iv[0] = esalt_bufs[DIGESTS_OFFSET].iv[0];
-  iv[1] = esalt_bufs[DIGESTS_OFFSET].iv[1];
-  iv[2] = esalt_bufs[DIGESTS_OFFSET].iv[2];
-  iv[3] = esalt_bufs[DIGESTS_OFFSET].iv[3];
+  iv[0] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[0];
+  iv[1] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[1];
+  iv[2] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[2];
+  iv[3] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[3];
 
   /**
    * loop
@@ -354,7 +354,7 @@ KERNEL_FQ void m16600_sxx (KERN_ATTR_VECTOR_ESALT (electrum_wallet_t))
 
   u32x w0l = w[0];
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
@@ -436,9 +436,9 @@ KERNEL_FQ void m16600_sxx (KERN_ATTR_VECTOR_ESALT (electrum_wallet_t))
       if (is_valid_hex_32 (out[2]) == 0) continue;
       if (is_valid_hex_32 (out[3]) == 0) continue;
 
-      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
       {
-        mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, il_pos, 0, 0);
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
       }
     }
 
@@ -452,9 +452,9 @@ KERNEL_FQ void m16600_sxx (KERN_ATTR_VECTOR_ESALT (electrum_wallet_t))
       if (is_valid_base58_32 (out[2]) == 0) continue;
       if (is_valid_base58_32 (out[3]) == 0) continue;
 
-      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
       {
-        mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, il_pos, 0, 0);
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
       }
     }
 
@@ -464,17 +464,17 @@ KERNEL_FQ void m16600_sxx (KERN_ATTR_VECTOR_ESALT (electrum_wallet_t))
 
       if ((out[1] == 0x0c0c0c0c) && (out[2] == 0x0c0c0c0c) && (out[3] == 0x0c0c0c0c))
       {
-        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
         {
-          mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, il_pos, 0, 0);
+          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
         }
       }
 
       if ((out[1] == 0x0d0d0d0d) && (out[2] == 0x0d0d0d0d) && (out[3] == 0x0d0d0d0d))
       {
-        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
         {
-          mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, il_pos, 0, 0);
+          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
         }
       }
     }

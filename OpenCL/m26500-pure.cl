@@ -81,13 +81,13 @@ KERNEL_FQ void m26500_init (KERN_ATTR_TMPS_ESALT (iphone_passcode_tmp_t, iphone_
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   sha1_hmac_ctx_t sha1_hmac_ctx0;
 
   sha1_hmac_init_global_swap (&sha1_hmac_ctx0, pws[gid].i, pws[gid].pw_len);
 
-  sha1_hmac_update_global (&sha1_hmac_ctx0, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
+  sha1_hmac_update_global (&sha1_hmac_ctx0, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
   // we can reuse context intermediate buffer values for pbkdf2
 
@@ -206,7 +206,7 @@ KERNEL_FQ void m26500_loop (KERN_ATTR_TMPS_ESALT (iphone_passcode_tmp_t, iphone_
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   // load stuff
 
@@ -243,10 +243,10 @@ KERNEL_FQ void m26500_loop (KERN_ATTR_TMPS_ESALT (iphone_passcode_tmp_t, iphone_
 
   u32 ukey[4];
 
-  ukey[0] = esalt_bufs[DIGESTS_OFFSET].uidkey[0];
-  ukey[1] = esalt_bufs[DIGESTS_OFFSET].uidkey[1];
-  ukey[2] = esalt_bufs[DIGESTS_OFFSET].uidkey[2];
-  ukey[3] = esalt_bufs[DIGESTS_OFFSET].uidkey[3];
+  ukey[0] = esalt_bufs[DIGESTS_OFFSET_HOST].uidkey[0];
+  ukey[1] = esalt_bufs[DIGESTS_OFFSET_HOST].uidkey[1];
+  ukey[2] = esalt_bufs[DIGESTS_OFFSET_HOST].uidkey[2];
+  ukey[3] = esalt_bufs[DIGESTS_OFFSET_HOST].uidkey[3];
 
   u32 ks[44];
 
@@ -254,7 +254,7 @@ KERNEL_FQ void m26500_loop (KERN_ATTR_TMPS_ESALT (iphone_passcode_tmp_t, iphone_
 
   // here's what counts
 
-  for (u32 i = 0, xorkey = loop_pos + 1; i < loop_cnt; i++, xorkey++)
+  for (u32 i = 0, xorkey = LOOP_POS + 1; i < LOOP_CNT; i++, xorkey++)
   {
     u32 in[4];
 
@@ -355,7 +355,7 @@ KERNEL_FQ void m26500_comp (KERN_ATTR_TMPS_ESALT (iphone_passcode_tmp_t, iphone_
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * aes
@@ -378,21 +378,21 @@ KERNEL_FQ void m26500_comp (KERN_ATTR_TMPS_ESALT (iphone_passcode_tmp_t, iphone_
 
   u32 cipher[4];
 
-  cipher[0] = esalt_bufs[DIGESTS_OFFSET].classkey1[0];
-  cipher[1] = esalt_bufs[DIGESTS_OFFSET].classkey1[1];
+  cipher[0] = esalt_bufs[DIGESTS_OFFSET_HOST].classkey1[0];
+  cipher[1] = esalt_bufs[DIGESTS_OFFSET_HOST].classkey1[1];
   cipher[2] = 0;
   cipher[3] = 0;
 
   u32 lsb[8];
 
-  lsb[0] = esalt_bufs[DIGESTS_OFFSET].classkey1[8];
-  lsb[1] = esalt_bufs[DIGESTS_OFFSET].classkey1[9];
-  lsb[2] = esalt_bufs[DIGESTS_OFFSET].classkey1[6];
-  lsb[3] = esalt_bufs[DIGESTS_OFFSET].classkey1[7];
-  lsb[4] = esalt_bufs[DIGESTS_OFFSET].classkey1[4];
-  lsb[5] = esalt_bufs[DIGESTS_OFFSET].classkey1[5];
-  lsb[6] = esalt_bufs[DIGESTS_OFFSET].classkey1[2];
-  lsb[7] = esalt_bufs[DIGESTS_OFFSET].classkey1[3];
+  lsb[0] = esalt_bufs[DIGESTS_OFFSET_HOST].classkey1[8];
+  lsb[1] = esalt_bufs[DIGESTS_OFFSET_HOST].classkey1[9];
+  lsb[2] = esalt_bufs[DIGESTS_OFFSET_HOST].classkey1[6];
+  lsb[3] = esalt_bufs[DIGESTS_OFFSET_HOST].classkey1[7];
+  lsb[4] = esalt_bufs[DIGESTS_OFFSET_HOST].classkey1[4];
+  lsb[5] = esalt_bufs[DIGESTS_OFFSET_HOST].classkey1[5];
+  lsb[6] = esalt_bufs[DIGESTS_OFFSET_HOST].classkey1[2];
+  lsb[7] = esalt_bufs[DIGESTS_OFFSET_HOST].classkey1[3];
 
   for (int j = 5; j >= 0; j--)
   {
@@ -447,9 +447,9 @@ KERNEL_FQ void m26500_comp (KERN_ATTR_TMPS_ESALT (iphone_passcode_tmp_t, iphone_
 
   if ((cipher[0] == 0xa6a6a6a6) && (cipher[1] == 0xa6a6a6a6))
   {
-    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
     }
 
     return;

@@ -97,7 +97,7 @@ KERNEL_FQ void m11300_init (KERN_ATTR_TMPS_ESALT (bitcoin_wallet_tmp_t, bitcoin_
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   sha512_ctx_t ctx;
 
@@ -105,7 +105,7 @@ KERNEL_FQ void m11300_init (KERN_ATTR_TMPS_ESALT (bitcoin_wallet_tmp_t, bitcoin_
 
   sha512_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
-  sha512_update_global_swap (&ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
+  sha512_update_global_swap (&ctx, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
   sha512_final (&ctx);
 
@@ -123,7 +123,7 @@ KERNEL_FQ void m11300_loop (KERN_ATTR_TMPS_ESALT (bitcoin_wallet_tmp_t, bitcoin_
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= gid_max) return;
+  if ((gid * VECT_SIZE) >= GID_MAX) return;
 
   u64x t0 = pack64v (tmps, dgst, gid, 0);
   u64x t1 = pack64v (tmps, dgst, gid, 1);
@@ -134,7 +134,7 @@ KERNEL_FQ void m11300_loop (KERN_ATTR_TMPS_ESALT (bitcoin_wallet_tmp_t, bitcoin_
   u64x t6 = pack64v (tmps, dgst, gid, 6);
   u64x t7 = pack64v (tmps, dgst, gid, 7);
 
-  for (u32 i = 0, j = loop_pos; i < loop_cnt; i++, j++)
+  for (u32 i = 0, j = LOOP_POS; i < LOOP_CNT; i++, j++)
   {
     u32x w0[4];
     u32x w1[4];
@@ -268,7 +268,7 @@ KERNEL_FQ void m11300_comp (KERN_ATTR_TMPS_ESALT (bitcoin_wallet_tmp_t, bitcoin_
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * real code
@@ -296,9 +296,9 @@ KERNEL_FQ void m11300_comp (KERN_ATTR_TMPS_ESALT (bitcoin_wallet_tmp_t, bitcoin_
   key[6] = h32_from_64_S (dgst[3]);
   key[7] = l32_from_64_S (dgst[3]);
 
-  const u32 digest_pos = loop_pos;
+  const u32 digest_pos = LOOP_POS;
 
-  const u32 digest_cur = DIGESTS_OFFSET + digest_pos;
+  const u32 digest_cur = DIGESTS_OFFSET_HOST + digest_pos;
 
   #define KEYLEN 60
 
@@ -353,7 +353,7 @@ KERNEL_FQ void m11300_comp (KERN_ATTR_TMPS_ESALT (bitcoin_wallet_tmp_t, bitcoin_
   {
     if (hc_atomic_inc (&hashes_shown[digest_cur]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, digest_cur, gid, 0, 0, 0);
     }
   }
 }

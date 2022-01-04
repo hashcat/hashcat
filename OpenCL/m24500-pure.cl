@@ -139,17 +139,17 @@ KERNEL_FQ void m24500_init (KERN_ATTR_TMPS_ESALT (telegram_tmp_t, telegram_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
-  const u32 salt_len = salt_bufs[SALT_POS].salt_len; // 32
+  const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len; // 32
 
   sha512_ctx_t sha512_ctx;
 
   sha512_init (&sha512_ctx);
 
-  sha512_update_global      (&sha512_ctx, salt_bufs[SALT_POS].salt_buf, salt_len);
+  sha512_update_global      (&sha512_ctx, salt_bufs[SALT_POS_HOST].salt_buf, salt_len);
   sha512_update_global_swap (&sha512_ctx, pws[gid].i, pws[gid].pw_len);
-  sha512_update_global      (&sha512_ctx, salt_bufs[SALT_POS].salt_buf, salt_len);
+  sha512_update_global      (&sha512_ctx, salt_bufs[SALT_POS_HOST].salt_buf, salt_len);
 
   sha512_final (&sha512_ctx);
 
@@ -194,7 +194,7 @@ KERNEL_FQ void m24500_init (KERN_ATTR_TMPS_ESALT (telegram_tmp_t, telegram_t))
   tmps[gid].opad[6] = sha512_hmac_ctx.opad.h[6];
   tmps[gid].opad[7] = sha512_hmac_ctx.opad.h[7];
 
-  sha512_hmac_update_global (&sha512_hmac_ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
+  sha512_hmac_update_global (&sha512_hmac_ctx, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
   for (u32 i = 0, j = 1; i < 24; i += 8, j += 1)
   {
@@ -270,7 +270,7 @@ KERNEL_FQ void m24500_loop (KERN_ATTR_TMPS_ESALT (telegram_tmp_t, telegram_t))
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= gid_max) return;
+  if ((gid * VECT_SIZE) >= GID_MAX) return;
 
   u64x ipad[8];
   u64x opad[8];
@@ -316,7 +316,7 @@ KERNEL_FQ void m24500_loop (KERN_ATTR_TMPS_ESALT (telegram_tmp_t, telegram_t))
     out[6] = pack64v (tmps, out, gid, i + 6);
     out[7] = pack64v (tmps, out, gid, i + 7);
 
-    for (u32 j = 0; j < loop_cnt; j++)
+    for (u32 j = 0; j < LOOP_CNT; j++)
     {
       u32x w0[4];
       u32x w1[4];
@@ -453,14 +453,14 @@ KERNEL_FQ void m24500_comp (KERN_ATTR_TMPS_ESALT (telegram_tmp_t, telegram_t))
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   u32 data_key[4];
 
-  data_key[0] = esalt_bufs[DIGESTS_OFFSET].data[0];
-  data_key[1] = esalt_bufs[DIGESTS_OFFSET].data[1];
-  data_key[2] = esalt_bufs[DIGESTS_OFFSET].data[2];
-  data_key[3] = esalt_bufs[DIGESTS_OFFSET].data[3];
+  data_key[0] = esalt_bufs[DIGESTS_OFFSET_HOST].data[0];
+  data_key[1] = esalt_bufs[DIGESTS_OFFSET_HOST].data[1];
+  data_key[2] = esalt_bufs[DIGESTS_OFFSET_HOST].data[2];
+  data_key[3] = esalt_bufs[DIGESTS_OFFSET_HOST].data[3];
 
   u32 data_a[12];
   u32 data_b[12];
@@ -594,10 +594,10 @@ KERNEL_FQ void m24500_comp (KERN_ATTR_TMPS_ESALT (telegram_tmp_t, telegram_t))
   {
     u32 x[4];
 
-    x[0] = esalt_bufs[DIGESTS_OFFSET].data[4 + i];
-    x[1] = esalt_bufs[DIGESTS_OFFSET].data[5 + i];
-    x[2] = esalt_bufs[DIGESTS_OFFSET].data[6 + i];
-    x[3] = esalt_bufs[DIGESTS_OFFSET].data[7 + i];
+    x[0] = esalt_bufs[DIGESTS_OFFSET_HOST].data[4 + i];
+    x[1] = esalt_bufs[DIGESTS_OFFSET_HOST].data[5 + i];
+    x[2] = esalt_bufs[DIGESTS_OFFSET_HOST].data[6 + i];
+    x[3] = esalt_bufs[DIGESTS_OFFSET_HOST].data[7 + i];
 
     u32 y[4];
 
@@ -646,9 +646,9 @@ KERNEL_FQ void m24500_comp (KERN_ATTR_TMPS_ESALT (telegram_tmp_t, telegram_t))
       r2 == data_key[2] &&
       r3 == data_key[3])
   {
-    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
     }
   }
 }

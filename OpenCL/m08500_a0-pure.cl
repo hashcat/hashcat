@@ -562,7 +562,7 @@ KERNEL_FQ void m08500_mxx (KERN_ATTR_RULES ())
 
   SYNC_THREADS ();
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * base
@@ -576,14 +576,14 @@ KERNEL_FQ void m08500_mxx (KERN_ATTR_RULES ())
 
   u32 salt_buf0[2];
 
-  salt_buf0[0] = salt_bufs[SALT_POS].salt_buf_pc[0];
-  salt_buf0[1] = salt_bufs[SALT_POS].salt_buf_pc[1];
+  salt_buf0[0] = salt_bufs[SALT_POS_HOST].salt_buf_pc[0];
+  salt_buf0[1] = salt_bufs[SALT_POS_HOST].salt_buf_pc[1];
 
   /**
    * main
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     pw_t tmp = PASTE_PW;
 
@@ -660,7 +660,7 @@ KERNEL_FQ void m08500_sxx (KERN_ATTR_RULES ())
 
   SYNC_THREADS ();
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * base
@@ -674,8 +674,8 @@ KERNEL_FQ void m08500_sxx (KERN_ATTR_RULES ())
 
   u32 salt_buf0[2];
 
-  salt_buf0[0] = salt_bufs[SALT_POS].salt_buf_pc[0];
-  salt_buf0[1] = salt_bufs[SALT_POS].salt_buf_pc[1];
+  salt_buf0[0] = salt_bufs[SALT_POS_HOST].salt_buf_pc[0];
+  salt_buf0[1] = salt_bufs[SALT_POS_HOST].salt_buf_pc[1];
 
   /**
    * digest
@@ -683,8 +683,8 @@ KERNEL_FQ void m08500_sxx (KERN_ATTR_RULES ())
 
   const u32 search[4] =
   {
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R1],
     0,
     0
   };
@@ -693,7 +693,7 @@ KERNEL_FQ void m08500_sxx (KERN_ATTR_RULES ())
    * main
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     pw_t tmp = PASTE_PW;
 

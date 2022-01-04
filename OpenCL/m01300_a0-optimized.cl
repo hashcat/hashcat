@@ -43,7 +43,7 @@ KERNEL_FQ void m01300_m04 (KERN_ATTR_RULES ())
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   u32 pw_buf0[4];
   u32 pw_buf1[4];
@@ -63,7 +63,7 @@ KERNEL_FQ void m01300_m04 (KERN_ATTR_RULES ())
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     u32x w0[4] = { 0 };
     u32x w1[4] = { 0 };
@@ -198,7 +198,7 @@ KERNEL_FQ void m01300_s04 (KERN_ATTR_RULES ())
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   u32 pw_buf0[4];
   u32 pw_buf1[4];
@@ -220,23 +220,23 @@ KERNEL_FQ void m01300_s04 (KERN_ATTR_RULES ())
 
   const u32 search[4] =
   {
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R3]
   };
 
   /**
    * reverse
    */
 
-  u32 a_rev = digests_buf[DIGESTS_OFFSET].digest_buf[0];
-  u32 b_rev = digests_buf[DIGESTS_OFFSET].digest_buf[1];
-  u32 c_rev = digests_buf[DIGESTS_OFFSET].digest_buf[2];
-  u32 d_rev = digests_buf[DIGESTS_OFFSET].digest_buf[3];
-  u32 e_rev = digests_buf[DIGESTS_OFFSET].digest_buf[4];
-  u32 f_rev = digests_buf[DIGESTS_OFFSET].digest_buf[5];
-  u32 g_rev = digests_buf[DIGESTS_OFFSET].digest_buf[6];
+  u32 a_rev = digests_buf[DIGESTS_OFFSET_HOST].digest_buf[0];
+  u32 b_rev = digests_buf[DIGESTS_OFFSET_HOST].digest_buf[1];
+  u32 c_rev = digests_buf[DIGESTS_OFFSET_HOST].digest_buf[2];
+  u32 d_rev = digests_buf[DIGESTS_OFFSET_HOST].digest_buf[3];
+  u32 e_rev = digests_buf[DIGESTS_OFFSET_HOST].digest_buf[4];
+  u32 f_rev = digests_buf[DIGESTS_OFFSET_HOST].digest_buf[5];
+  u32 g_rev = digests_buf[DIGESTS_OFFSET_HOST].digest_buf[6];
 
   SHA224_STEP_REV (a_rev, b_rev, c_rev, d_rev, e_rev, f_rev, g_rev);
   SHA224_STEP_REV (a_rev, b_rev, c_rev, d_rev, e_rev, f_rev, g_rev);
@@ -246,7 +246,7 @@ KERNEL_FQ void m01300_s04 (KERN_ATTR_RULES ())
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     u32x w0[4] = { 0 };
     u32x w1[4] = { 0 };

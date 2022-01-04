@@ -215,7 +215,7 @@ KERNEL_FQ void m16300_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, ethereum_
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   sha256_hmac_ctx_t sha256_hmac_ctx;
 
@@ -295,7 +295,7 @@ KERNEL_FQ void m16300_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, ethereum_
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= gid_max) return;
+  if ((gid * VECT_SIZE) >= GID_MAX) return;
 
   u32x ipad[8];
   u32x opad[8];
@@ -341,7 +341,7 @@ KERNEL_FQ void m16300_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, ethereum_
     out[6] = packv (tmps, out, gid, i + 6);
     out[7] = packv (tmps, out, gid, i + 7);
 
-    for (u32 j = 0; j < loop_cnt; j++)
+    for (u32 j = 0; j < LOOP_CNT; j++)
     {
       u32x w0[4];
       u32x w1[4];
@@ -458,7 +458,7 @@ KERNEL_FQ void m16300_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, ethereum_
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /*
    * AES-CBC-128 decrypt
@@ -487,17 +487,17 @@ KERNEL_FQ void m16300_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, ethereum_
 
   u32 iv[4];
 
-  iv[0] = esalt_bufs[DIGESTS_OFFSET].iv[0];
-  iv[1] = esalt_bufs[DIGESTS_OFFSET].iv[1];
-  iv[2] = esalt_bufs[DIGESTS_OFFSET].iv[2];
-  iv[3] = esalt_bufs[DIGESTS_OFFSET].iv[3];
+  iv[0] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[0];
+  iv[1] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[1];
+  iv[2] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[2];
+  iv[3] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[3];
 
   u32 a = iv[0];
   u32 b = iv[1];
   u32 c = iv[2];
   u32 d = iv[3];
 
-  u32 enc_seed_len = esalt_bufs[DIGESTS_OFFSET].enc_seed_len;
+  u32 enc_seed_len = esalt_bufs[DIGESTS_OFFSET_HOST].enc_seed_len;
 
   u64 seed[76 + 1]; // we need the + 1 to add the final \x02
 
@@ -508,10 +508,10 @@ KERNEL_FQ void m16300_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, ethereum_
   {
     u32 data[4];
 
-    data[0] = esalt_bufs[DIGESTS_OFFSET].enc_seed[loop_idx + 0];
-    data[1] = esalt_bufs[DIGESTS_OFFSET].enc_seed[loop_idx + 1];
-    data[2] = esalt_bufs[DIGESTS_OFFSET].enc_seed[loop_idx + 2];
-    data[3] = esalt_bufs[DIGESTS_OFFSET].enc_seed[loop_idx + 3];
+    data[0] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_seed[loop_idx + 0];
+    data[1] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_seed[loop_idx + 1];
+    data[2] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_seed[loop_idx + 2];
+    data[3] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_seed[loop_idx + 3];
 
     u32 out[4];
 

@@ -67,7 +67,7 @@ KERNEL_FQ void m22911_mxx (KERN_ATTR_RULES_ESALT (pem_t))
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * digest
@@ -75,10 +75,10 @@ KERNEL_FQ void m22911_mxx (KERN_ATTR_RULES_ESALT (pem_t))
 
   const u32 search[4] =
   {
-    digests_buf[DIGESTS_OFFSET].digest_buf[0],
-    digests_buf[DIGESTS_OFFSET].digest_buf[1],
-    digests_buf[DIGESTS_OFFSET].digest_buf[2],
-    digests_buf[DIGESTS_OFFSET].digest_buf[3]
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[0],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[1],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[2],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[3]
   };
 
   /**
@@ -89,15 +89,15 @@ KERNEL_FQ void m22911_mxx (KERN_ATTR_RULES_ESALT (pem_t))
 
   u32 s[2];
 
-  s[0] = salt_bufs[SALT_POS].salt_buf[0];
-  s[1] = salt_bufs[SALT_POS].salt_buf[1];
+  s[0] = salt_bufs[SALT_POS_HOST].salt_buf[0];
+  s[1] = salt_bufs[SALT_POS_HOST].salt_buf[1];
 
   u32 first_data[2];
 
-  first_data[0] = esalt_bufs[DIGESTS_OFFSET].data_buf[0];
-  first_data[1] = esalt_bufs[DIGESTS_OFFSET].data_buf[1];
+  first_data[0] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[0];
+  first_data[1] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[1];
 
-  const int data_len = esalt_bufs[DIGESTS_OFFSET].data_len;
+  const int data_len = esalt_bufs[DIGESTS_OFFSET_HOST].data_len;
 
   const int last_pad_pos = data_len - 1;
 
@@ -105,19 +105,19 @@ KERNEL_FQ void m22911_mxx (KERN_ATTR_RULES_ESALT (pem_t))
 
   u32 iv[2];
 
-  iv[0] = esalt_bufs[DIGESTS_OFFSET].data_buf[last_pad_elem - 3];
-  iv[1] = esalt_bufs[DIGESTS_OFFSET].data_buf[last_pad_elem - 2];
+  iv[0] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[last_pad_elem - 3];
+  iv[1] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[last_pad_elem - 2];
 
   u32 enc[2];
 
-  enc[0] = esalt_bufs[DIGESTS_OFFSET].data_buf[last_pad_elem - 1];
-  enc[1] = esalt_bufs[DIGESTS_OFFSET].data_buf[last_pad_elem - 0];
+  enc[0] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[last_pad_elem - 1];
+  enc[1] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[last_pad_elem - 0];
 
   /**
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
     pw_t tmp = PASTE_PW;
 
@@ -273,7 +273,7 @@ KERNEL_FQ void m22911_sxx (KERN_ATTR_RULES_ESALT (pem_t))
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * digest
@@ -281,10 +281,10 @@ KERNEL_FQ void m22911_sxx (KERN_ATTR_RULES_ESALT (pem_t))
 
   const u32 search[4] =
   {
-    digests_buf[DIGESTS_OFFSET].digest_buf[0],
-    digests_buf[DIGESTS_OFFSET].digest_buf[1],
-    digests_buf[DIGESTS_OFFSET].digest_buf[2],
-    digests_buf[DIGESTS_OFFSET].digest_buf[3]
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[0],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[1],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[2],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[3]
   };
 
   /**
@@ -295,15 +295,15 @@ KERNEL_FQ void m22911_sxx (KERN_ATTR_RULES_ESALT (pem_t))
 
   u32 s[2];
 
-  s[0] = salt_bufs[SALT_POS].salt_buf[0];
-  s[1] = salt_bufs[SALT_POS].salt_buf[1];
+  s[0] = salt_bufs[SALT_POS_HOST].salt_buf[0];
+  s[1] = salt_bufs[SALT_POS_HOST].salt_buf[1];
 
   u32 first_data[2];
 
-  first_data[0] = esalt_bufs[DIGESTS_OFFSET].data_buf[0];
-  first_data[1] = esalt_bufs[DIGESTS_OFFSET].data_buf[1];
+  first_data[0] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[0];
+  first_data[1] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[1];
 
-  const int data_len = esalt_bufs[DIGESTS_OFFSET].data_len;
+  const int data_len = esalt_bufs[DIGESTS_OFFSET_HOST].data_len;
 
   const int last_pad_pos = data_len - 1;
 
@@ -311,19 +311,19 @@ KERNEL_FQ void m22911_sxx (KERN_ATTR_RULES_ESALT (pem_t))
 
   u32 iv[2];
 
-  iv[0] = esalt_bufs[DIGESTS_OFFSET].data_buf[last_pad_elem - 3];
-  iv[1] = esalt_bufs[DIGESTS_OFFSET].data_buf[last_pad_elem - 2];
+  iv[0] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[last_pad_elem - 3];
+  iv[1] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[last_pad_elem - 2];
 
   u32 enc[2];
 
-  enc[0] = esalt_bufs[DIGESTS_OFFSET].data_buf[last_pad_elem - 1];
-  enc[1] = esalt_bufs[DIGESTS_OFFSET].data_buf[last_pad_elem - 0];
+  enc[0] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[last_pad_elem - 1];
+  enc[1] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[last_pad_elem - 0];
 
   /**
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
     pw_t tmp = PASTE_PW;
 

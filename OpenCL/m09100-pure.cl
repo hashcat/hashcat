@@ -464,7 +464,7 @@ KERNEL_FQ void m09100_init (KERN_ATTR_TMPS (lotus8_tmp_t))
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * base
@@ -518,10 +518,10 @@ KERNEL_FQ void m09100_init (KERN_ATTR_TMPS (lotus8_tmp_t))
 
   u32 salt_buf0[4];
 
-  salt_buf0[0] = salt_bufs[SALT_POS].salt_buf[ 0];
-  salt_buf0[1] = salt_bufs[SALT_POS].salt_buf[ 1];
-  salt_buf0[2] = salt_bufs[SALT_POS].salt_buf[ 2];
-  salt_buf0[3] = salt_bufs[SALT_POS].salt_buf[ 3];
+  salt_buf0[0] = salt_bufs[SALT_POS_HOST].salt_buf[ 0];
+  salt_buf0[1] = salt_bufs[SALT_POS_HOST].salt_buf[ 1];
+  salt_buf0[2] = salt_bufs[SALT_POS_HOST].salt_buf[ 2];
+  salt_buf0[3] = salt_bufs[SALT_POS_HOST].salt_buf[ 3];
 
   const u32 salt0 = salt_buf0[0];
   const u32 salt1 = (salt_buf0[1] & 0xff) | ('(' << 8);
@@ -655,7 +655,7 @@ KERNEL_FQ void m09100_init (KERN_ATTR_TMPS (lotus8_tmp_t))
   tmps[gid].opad[3] = sha1_hmac_ctx.opad.h[3];
   tmps[gid].opad[4] = sha1_hmac_ctx.opad.h[4];
 
-  sha1_hmac_update_global_swap (&sha1_hmac_ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
+  sha1_hmac_update_global_swap (&sha1_hmac_ctx, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
   for (u32 i = 0, j = 1; i < 2; i += 5, j += 1)
   {
@@ -700,7 +700,7 @@ KERNEL_FQ void m09100_loop (KERN_ATTR_TMPS (lotus8_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= gid_max) return;
+  if ((gid * VECT_SIZE) >= GID_MAX) return;
 
   u32x ipad[5];
   u32x opad[5];
@@ -734,7 +734,7 @@ KERNEL_FQ void m09100_loop (KERN_ATTR_TMPS (lotus8_tmp_t))
     out[3] = packv (tmps, out, gid, i + 3);
     out[4] = packv (tmps, out, gid, i + 4);
 
-    for (u32 j = 0; j < loop_cnt; j++)
+    for (u32 j = 0; j < LOOP_CNT; j++)
     {
       u32x w0[4];
       u32x w1[4];
@@ -789,7 +789,7 @@ KERNEL_FQ void m09100_comp (KERN_ATTR_TMPS (lotus8_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   const u64 lid = get_local_id (0);
 

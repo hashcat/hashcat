@@ -23,7 +23,7 @@ KERNEL_FQ void m04800_mxx (KERN_ATTR_VECTOR ())
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * base
@@ -38,20 +38,20 @@ KERNEL_FQ void m04800_mxx (KERN_ATTR_VECTOR ())
     w[idx] = pws[gid].i[idx];
   }
 
-  const u32 salt_len = salt_bufs[SALT_POS].salt_len - 1;
+  const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len - 1;
 
   u32x s[16] = { 0 };
 
-  s[0] = salt_bufs[SALT_POS].salt_buf[0];
-  s[1] = salt_bufs[SALT_POS].salt_buf[1];
-  s[2] = salt_bufs[SALT_POS].salt_buf[2];
-  s[3] = salt_bufs[SALT_POS].salt_buf[3];
+  s[0] = salt_bufs[SALT_POS_HOST].salt_buf[0];
+  s[1] = salt_bufs[SALT_POS_HOST].salt_buf[1];
+  s[2] = salt_bufs[SALT_POS_HOST].salt_buf[2];
+  s[3] = salt_bufs[SALT_POS_HOST].salt_buf[3];
 
   md5_ctx_t ctx0;
 
   md5_init (&ctx0);
 
-  ctx0.w0[0] = salt_bufs[SALT_POS].salt_buf[4];
+  ctx0.w0[0] = salt_bufs[SALT_POS_HOST].salt_buf[4];
 
   ctx0.len = 1;
 
@@ -61,7 +61,7 @@ KERNEL_FQ void m04800_mxx (KERN_ATTR_VECTOR ())
 
   u32x w0l = w[0];
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
@@ -97,7 +97,7 @@ KERNEL_FQ void m04800_sxx (KERN_ATTR_VECTOR ())
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * digest
@@ -105,10 +105,10 @@ KERNEL_FQ void m04800_sxx (KERN_ATTR_VECTOR ())
 
   const u32 search[4] =
   {
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R3]
   };
 
   /**
@@ -124,20 +124,20 @@ KERNEL_FQ void m04800_sxx (KERN_ATTR_VECTOR ())
     w[idx] = pws[gid].i[idx];
   }
 
-  const u32 salt_len = salt_bufs[SALT_POS].salt_len - 1;
+  const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len - 1;
 
   u32x s[16] = { 0 };
 
-  s[0] = salt_bufs[SALT_POS].salt_buf[0];
-  s[1] = salt_bufs[SALT_POS].salt_buf[1];
-  s[2] = salt_bufs[SALT_POS].salt_buf[2];
-  s[3] = salt_bufs[SALT_POS].salt_buf[3];
+  s[0] = salt_bufs[SALT_POS_HOST].salt_buf[0];
+  s[1] = salt_bufs[SALT_POS_HOST].salt_buf[1];
+  s[2] = salt_bufs[SALT_POS_HOST].salt_buf[2];
+  s[3] = salt_bufs[SALT_POS_HOST].salt_buf[3];
 
   md5_ctx_t ctx0;
 
   md5_init (&ctx0);
 
-  ctx0.w0[0] = salt_bufs[SALT_POS].salt_buf[4];
+  ctx0.w0[0] = salt_bufs[SALT_POS_HOST].salt_buf[4];
 
   ctx0.len = 1;
 
@@ -147,7 +147,7 @@ KERNEL_FQ void m04800_sxx (KERN_ATTR_VECTOR ())
 
   u32x w0l = w[0];
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 

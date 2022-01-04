@@ -39,16 +39,16 @@ KERNEL_FQ void m22400_init (KERN_ATTR_TMPS_ESALT (aescrypt_tmp_t, aescrypt_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   // salt:
 
   u32 s[16] = { 0 }; // 64-byte aligned
 
-  s[0] = salt_bufs[SALT_POS].salt_buf[0];
-  s[1] = salt_bufs[SALT_POS].salt_buf[1];
-  s[2] = salt_bufs[SALT_POS].salt_buf[2];
-  s[3] = salt_bufs[SALT_POS].salt_buf[3];
+  s[0] = salt_bufs[SALT_POS_HOST].salt_buf[0];
+  s[1] = salt_bufs[SALT_POS_HOST].salt_buf[1];
+  s[2] = salt_bufs[SALT_POS_HOST].salt_buf[2];
+  s[3] = salt_bufs[SALT_POS_HOST].salt_buf[3];
 
   const u32 pw_len = pws[gid].pw_len;
 
@@ -112,7 +112,7 @@ KERNEL_FQ void m22400_loop (KERN_ATTR_TMPS_ESALT (aescrypt_tmp_t, aescrypt_t))
 {
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   // init
 
@@ -130,7 +130,7 @@ KERNEL_FQ void m22400_loop (KERN_ATTR_TMPS_ESALT (aescrypt_tmp_t, aescrypt_t))
 
   // main loop
 
-  for (u32 i = 0; i < loop_cnt; i++)
+  for (u32 i = 0; i < LOOP_CNT; i++)
   {
     u32 h[8];
 
@@ -216,7 +216,7 @@ KERNEL_FQ void m22400_comp (KERN_ATTR_TMPS_ESALT (aescrypt_tmp_t, aescrypt_t))
 {
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   // digest
 
@@ -235,21 +235,21 @@ KERNEL_FQ void m22400_comp (KERN_ATTR_TMPS_ESALT (aescrypt_tmp_t, aescrypt_t))
 
   u32 data[16] = { 0 };
 
-  data[ 0] = esalt_bufs[DIGESTS_OFFSET].iv[0];
-  data[ 1] = esalt_bufs[DIGESTS_OFFSET].iv[1];
-  data[ 2] = esalt_bufs[DIGESTS_OFFSET].iv[2];
-  data[ 3] = esalt_bufs[DIGESTS_OFFSET].iv[3];
+  data[ 0] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[0];
+  data[ 1] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[1];
+  data[ 2] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[2];
+  data[ 3] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[3];
 
   // key
 
-  data[ 4] = esalt_bufs[DIGESTS_OFFSET].key[0];
-  data[ 5] = esalt_bufs[DIGESTS_OFFSET].key[1];
-  data[ 6] = esalt_bufs[DIGESTS_OFFSET].key[2];
-  data[ 7] = esalt_bufs[DIGESTS_OFFSET].key[3];
-  data[ 8] = esalt_bufs[DIGESTS_OFFSET].key[4];
-  data[ 9] = esalt_bufs[DIGESTS_OFFSET].key[5];
-  data[10] = esalt_bufs[DIGESTS_OFFSET].key[6];
-  data[11] = esalt_bufs[DIGESTS_OFFSET].key[7];
+  data[ 4] = esalt_bufs[DIGESTS_OFFSET_HOST].key[0];
+  data[ 5] = esalt_bufs[DIGESTS_OFFSET_HOST].key[1];
+  data[ 6] = esalt_bufs[DIGESTS_OFFSET_HOST].key[2];
+  data[ 7] = esalt_bufs[DIGESTS_OFFSET_HOST].key[3];
+  data[ 8] = esalt_bufs[DIGESTS_OFFSET_HOST].key[4];
+  data[ 9] = esalt_bufs[DIGESTS_OFFSET_HOST].key[5];
+  data[10] = esalt_bufs[DIGESTS_OFFSET_HOST].key[6];
+  data[11] = esalt_bufs[DIGESTS_OFFSET_HOST].key[7];
 
   /*
    * HMAC-SHA256:

@@ -44,7 +44,7 @@ KERNEL_FQ void m01440_m04 (KERN_ATTR_RULES ())
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   u32 pw_buf0[4];
   u32 pw_buf1[4];
@@ -69,30 +69,30 @@ KERNEL_FQ void m01440_m04 (KERN_ATTR_RULES ())
   u32 salt_buf2[4];
   u32 salt_buf3[4];
 
-  salt_buf0[0] = salt_bufs[SALT_POS].salt_buf[ 0];
-  salt_buf0[1] = salt_bufs[SALT_POS].salt_buf[ 1];
-  salt_buf0[2] = salt_bufs[SALT_POS].salt_buf[ 2];
-  salt_buf0[3] = salt_bufs[SALT_POS].salt_buf[ 3];
-  salt_buf1[0] = salt_bufs[SALT_POS].salt_buf[ 4];
-  salt_buf1[1] = salt_bufs[SALT_POS].salt_buf[ 5];
-  salt_buf1[2] = salt_bufs[SALT_POS].salt_buf[ 6];
-  salt_buf1[3] = salt_bufs[SALT_POS].salt_buf[ 7];
-  salt_buf2[0] = salt_bufs[SALT_POS].salt_buf[ 8];
-  salt_buf2[1] = salt_bufs[SALT_POS].salt_buf[ 9];
-  salt_buf2[2] = salt_bufs[SALT_POS].salt_buf[10];
-  salt_buf2[3] = salt_bufs[SALT_POS].salt_buf[11];
-  salt_buf3[0] = salt_bufs[SALT_POS].salt_buf[12];
-  salt_buf3[1] = salt_bufs[SALT_POS].salt_buf[13];
-  salt_buf3[2] = salt_bufs[SALT_POS].salt_buf[14];
-  salt_buf3[3] = salt_bufs[SALT_POS].salt_buf[15];
+  salt_buf0[0] = salt_bufs[SALT_POS_HOST].salt_buf[ 0];
+  salt_buf0[1] = salt_bufs[SALT_POS_HOST].salt_buf[ 1];
+  salt_buf0[2] = salt_bufs[SALT_POS_HOST].salt_buf[ 2];
+  salt_buf0[3] = salt_bufs[SALT_POS_HOST].salt_buf[ 3];
+  salt_buf1[0] = salt_bufs[SALT_POS_HOST].salt_buf[ 4];
+  salt_buf1[1] = salt_bufs[SALT_POS_HOST].salt_buf[ 5];
+  salt_buf1[2] = salt_bufs[SALT_POS_HOST].salt_buf[ 6];
+  salt_buf1[3] = salt_bufs[SALT_POS_HOST].salt_buf[ 7];
+  salt_buf2[0] = salt_bufs[SALT_POS_HOST].salt_buf[ 8];
+  salt_buf2[1] = salt_bufs[SALT_POS_HOST].salt_buf[ 9];
+  salt_buf2[2] = salt_bufs[SALT_POS_HOST].salt_buf[10];
+  salt_buf2[3] = salt_bufs[SALT_POS_HOST].salt_buf[11];
+  salt_buf3[0] = salt_bufs[SALT_POS_HOST].salt_buf[12];
+  salt_buf3[1] = salt_bufs[SALT_POS_HOST].salt_buf[13];
+  salt_buf3[2] = salt_bufs[SALT_POS_HOST].salt_buf[14];
+  salt_buf3[3] = salt_bufs[SALT_POS_HOST].salt_buf[15];
 
-  const u32 salt_len = salt_bufs[SALT_POS].salt_len;
+  const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len;
 
   /**
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     u32x w0[4] = { 0 };
     u32x w1[4] = { 0 };
@@ -257,7 +257,7 @@ KERNEL_FQ void m01440_s04 (KERN_ATTR_RULES ())
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   u32 pw_buf0[4];
   u32 pw_buf1[4];
@@ -282,24 +282,24 @@ KERNEL_FQ void m01440_s04 (KERN_ATTR_RULES ())
   u32 salt_buf2[4];
   u32 salt_buf3[4];
 
-  salt_buf0[0] = salt_bufs[SALT_POS].salt_buf[ 0];
-  salt_buf0[1] = salt_bufs[SALT_POS].salt_buf[ 1];
-  salt_buf0[2] = salt_bufs[SALT_POS].salt_buf[ 2];
-  salt_buf0[3] = salt_bufs[SALT_POS].salt_buf[ 3];
-  salt_buf1[0] = salt_bufs[SALT_POS].salt_buf[ 4];
-  salt_buf1[1] = salt_bufs[SALT_POS].salt_buf[ 5];
-  salt_buf1[2] = salt_bufs[SALT_POS].salt_buf[ 6];
-  salt_buf1[3] = salt_bufs[SALT_POS].salt_buf[ 7];
-  salt_buf2[0] = salt_bufs[SALT_POS].salt_buf[ 8];
-  salt_buf2[1] = salt_bufs[SALT_POS].salt_buf[ 9];
-  salt_buf2[2] = salt_bufs[SALT_POS].salt_buf[10];
-  salt_buf2[3] = salt_bufs[SALT_POS].salt_buf[11];
-  salt_buf3[0] = salt_bufs[SALT_POS].salt_buf[12];
-  salt_buf3[1] = salt_bufs[SALT_POS].salt_buf[13];
-  salt_buf3[2] = salt_bufs[SALT_POS].salt_buf[14];
-  salt_buf3[3] = salt_bufs[SALT_POS].salt_buf[15];
+  salt_buf0[0] = salt_bufs[SALT_POS_HOST].salt_buf[ 0];
+  salt_buf0[1] = salt_bufs[SALT_POS_HOST].salt_buf[ 1];
+  salt_buf0[2] = salt_bufs[SALT_POS_HOST].salt_buf[ 2];
+  salt_buf0[3] = salt_bufs[SALT_POS_HOST].salt_buf[ 3];
+  salt_buf1[0] = salt_bufs[SALT_POS_HOST].salt_buf[ 4];
+  salt_buf1[1] = salt_bufs[SALT_POS_HOST].salt_buf[ 5];
+  salt_buf1[2] = salt_bufs[SALT_POS_HOST].salt_buf[ 6];
+  salt_buf1[3] = salt_bufs[SALT_POS_HOST].salt_buf[ 7];
+  salt_buf2[0] = salt_bufs[SALT_POS_HOST].salt_buf[ 8];
+  salt_buf2[1] = salt_bufs[SALT_POS_HOST].salt_buf[ 9];
+  salt_buf2[2] = salt_bufs[SALT_POS_HOST].salt_buf[10];
+  salt_buf2[3] = salt_bufs[SALT_POS_HOST].salt_buf[11];
+  salt_buf3[0] = salt_bufs[SALT_POS_HOST].salt_buf[12];
+  salt_buf3[1] = salt_bufs[SALT_POS_HOST].salt_buf[13];
+  salt_buf3[2] = salt_bufs[SALT_POS_HOST].salt_buf[14];
+  salt_buf3[3] = salt_bufs[SALT_POS_HOST].salt_buf[15];
 
-  const u32 salt_len = salt_bufs[SALT_POS].salt_len;
+  const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len;
 
   /**
    * digest
@@ -307,24 +307,24 @@ KERNEL_FQ void m01440_s04 (KERN_ATTR_RULES ())
 
   const u32 search[4] =
   {
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R3]
   };
 
   /**
    * reverse
    */
 
-  u32 a_rev = digests_buf[DIGESTS_OFFSET].digest_buf[0];
-  u32 b_rev = digests_buf[DIGESTS_OFFSET].digest_buf[1];
-  u32 c_rev = digests_buf[DIGESTS_OFFSET].digest_buf[2];
-  u32 d_rev = digests_buf[DIGESTS_OFFSET].digest_buf[3];
-  u32 e_rev = digests_buf[DIGESTS_OFFSET].digest_buf[4];
-  u32 f_rev = digests_buf[DIGESTS_OFFSET].digest_buf[5];
-  u32 g_rev = digests_buf[DIGESTS_OFFSET].digest_buf[6];
-  u32 h_rev = digests_buf[DIGESTS_OFFSET].digest_buf[7];
+  u32 a_rev = digests_buf[DIGESTS_OFFSET_HOST].digest_buf[0];
+  u32 b_rev = digests_buf[DIGESTS_OFFSET_HOST].digest_buf[1];
+  u32 c_rev = digests_buf[DIGESTS_OFFSET_HOST].digest_buf[2];
+  u32 d_rev = digests_buf[DIGESTS_OFFSET_HOST].digest_buf[3];
+  u32 e_rev = digests_buf[DIGESTS_OFFSET_HOST].digest_buf[4];
+  u32 f_rev = digests_buf[DIGESTS_OFFSET_HOST].digest_buf[5];
+  u32 g_rev = digests_buf[DIGESTS_OFFSET_HOST].digest_buf[6];
+  u32 h_rev = digests_buf[DIGESTS_OFFSET_HOST].digest_buf[7];
 
   SHA256_STEP_REV (a_rev, b_rev, c_rev, d_rev, e_rev, f_rev, g_rev, h_rev);
   SHA256_STEP_REV (a_rev, b_rev, c_rev, d_rev, e_rev, f_rev, g_rev, h_rev);
@@ -335,7 +335,7 @@ KERNEL_FQ void m01440_s04 (KERN_ATTR_RULES ())
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     u32x w0[4] = { 0 };
     u32x w1[4] = { 0 };

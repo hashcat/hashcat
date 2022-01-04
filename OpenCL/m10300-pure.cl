@@ -28,7 +28,7 @@ KERNEL_FQ void m10300_init (KERN_ATTR_TMPS (saph_sha1_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   sha1_ctx_t ctx;
 
@@ -36,7 +36,7 @@ KERNEL_FQ void m10300_init (KERN_ATTR_TMPS (saph_sha1_tmp_t))
 
   sha1_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
-  sha1_update_global_swap (&ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
+  sha1_update_global_swap (&ctx, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
   sha1_final (&ctx);
 
@@ -55,7 +55,7 @@ KERNEL_FQ void m10300_loop (KERN_ATTR_TMPS (saph_sha1_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * init
@@ -83,7 +83,7 @@ KERNEL_FQ void m10300_loop (KERN_ATTR_TMPS (saph_sha1_tmp_t))
    * loop
    */
 
-  for (u32 i = 0; i < loop_cnt; i++)
+  for (u32 i = 0; i < LOOP_CNT; i++)
   {
     u32 w0[4];
     u32 w1[4];
@@ -135,7 +135,7 @@ KERNEL_FQ void m10300_comp (KERN_ATTR_TMPS (saph_sha1_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   const u64 lid = get_local_id (0);
 

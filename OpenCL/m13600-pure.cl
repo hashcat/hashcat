@@ -87,7 +87,7 @@ KERNEL_FQ void m13600_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, zip2_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   sha1_hmac_ctx_t sha1_hmac_ctx;
 
@@ -110,10 +110,10 @@ KERNEL_FQ void m13600_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, zip2_t))
   u32 w2[4];
   u32 w3[4];
 
-  w0[0] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt_buf[0]);
-  w0[1] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt_buf[1]);
-  w0[2] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt_buf[2]);
-  w0[3] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].salt_buf[3]);
+  w0[0] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].salt_buf[0]);
+  w0[1] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].salt_buf[1]);
+  w0[2] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].salt_buf[2]);
+  w0[3] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].salt_buf[3]);
   w1[0] = 0;
   w1[1] = 0;
   w1[2] = 0;
@@ -127,9 +127,9 @@ KERNEL_FQ void m13600_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, zip2_t))
   w3[2] = 0;
   w3[3] = 0;
 
-  sha1_hmac_update_64 (&sha1_hmac_ctx, w0, w1, w2, w3, esalt_bufs[DIGESTS_OFFSET].salt_len);
+  sha1_hmac_update_64 (&sha1_hmac_ctx, w0, w1, w2, w3, esalt_bufs[DIGESTS_OFFSET_HOST].salt_len);
 
-  const u32 mode = esalt_bufs[DIGESTS_OFFSET].mode;
+  const u32 mode = esalt_bufs[DIGESTS_OFFSET_HOST].mode;
 
   int iter_start;
   int iter_stop;
@@ -192,7 +192,7 @@ KERNEL_FQ void m13600_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, zip2_t))
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= gid_max) return;
+  if ((gid * VECT_SIZE) >= GID_MAX) return;
 
   u32x ipad[5];
   u32x opad[5];
@@ -209,9 +209,9 @@ KERNEL_FQ void m13600_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, zip2_t))
   opad[3] = packv (tmps, opad, gid, 3);
   opad[4] = packv (tmps, opad, gid, 4);
 
-  const u32 verify_bytes = esalt_bufs[DIGESTS_OFFSET].verify_bytes;
+  const u32 verify_bytes = esalt_bufs[DIGESTS_OFFSET_HOST].verify_bytes;
 
-  const u32 mode = esalt_bufs[DIGESTS_OFFSET].mode;
+  const u32 mode = esalt_bufs[DIGESTS_OFFSET_HOST].mode;
 
   int iter_start;
   int iter_stop;
@@ -248,7 +248,7 @@ KERNEL_FQ void m13600_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, zip2_t))
     out[3] = packv (tmps, out, gid, i5 + 3);
     out[4] = packv (tmps, out, gid, i5 + 4);
 
-    for (u32 j = 0; j < loop_cnt; j++)
+    for (u32 j = 0; j < LOOP_CNT; j++)
     {
       u32x w0[4];
       u32x w1[4];
@@ -310,11 +310,11 @@ KERNEL_FQ void m13600_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, zip2_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   const u64 lid = get_local_id (0);
 
-  const u32 mode = esalt_bufs[DIGESTS_OFFSET].mode;
+  const u32 mode = esalt_bufs[DIGESTS_OFFSET_HOST].mode;
 
   u32 iter_start;
   u32 iter_stop;
@@ -365,7 +365,7 @@ KERNEL_FQ void m13600_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, zip2_t))
 
   sha1_hmac_init_64 (&ctx, w0, w1, w2, w3);
 
-  sha1_hmac_update_global_swap (&ctx, esalt_bufs[DIGESTS_OFFSET].data_buf, esalt_bufs[DIGESTS_OFFSET].data_len);
+  sha1_hmac_update_global_swap (&ctx, esalt_bufs[DIGESTS_OFFSET_HOST].data_buf, esalt_bufs[DIGESTS_OFFSET_HOST].data_len);
 
   sha1_hmac_final (&ctx);
 

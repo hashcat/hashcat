@@ -119,7 +119,7 @@ KERNEL_FQ void m14800_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, itunes_ba
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   sha256_hmac_ctx_t sha256_hmac_ctx;
 
@@ -148,11 +148,11 @@ KERNEL_FQ void m14800_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, itunes_ba
   u32 w2[4];
   u32 w3[4];
 
-  w0[0] = esalt_bufs[DIGESTS_OFFSET].dpsl[0];
-  w0[1] = esalt_bufs[DIGESTS_OFFSET].dpsl[1];
-  w0[2] = esalt_bufs[DIGESTS_OFFSET].dpsl[2];
-  w0[3] = esalt_bufs[DIGESTS_OFFSET].dpsl[3];
-  w1[0] = esalt_bufs[DIGESTS_OFFSET].dpsl[4];
+  w0[0] = esalt_bufs[DIGESTS_OFFSET_HOST].dpsl[0];
+  w0[1] = esalt_bufs[DIGESTS_OFFSET_HOST].dpsl[1];
+  w0[2] = esalt_bufs[DIGESTS_OFFSET_HOST].dpsl[2];
+  w0[3] = esalt_bufs[DIGESTS_OFFSET_HOST].dpsl[3];
+  w1[0] = esalt_bufs[DIGESTS_OFFSET_HOST].dpsl[4];
   w1[1] = 0;
   w1[2] = 0;
   w1[3] = 0;
@@ -216,7 +216,7 @@ KERNEL_FQ void m14800_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, itunes_ba
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= gid_max) return;
+  if ((gid * VECT_SIZE) >= GID_MAX) return;
 
   u32x ipad[8];
   u32x opad[8];
@@ -262,7 +262,7 @@ KERNEL_FQ void m14800_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, itunes_ba
     out[6] = packv (tmps, out, gid, i + 6);
     out[7] = packv (tmps, out, gid, i + 7);
 
-    for (u32 j = 0; j < loop_cnt; j++)
+    for (u32 j = 0; j < LOOP_CNT; j++)
     {
       u32x w0[4];
       u32x w1[4];
@@ -326,7 +326,7 @@ KERNEL_FQ void m14800_init2 (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, itunes_b
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   u32 w0[4];
   u32 w1[4];
@@ -366,7 +366,7 @@ KERNEL_FQ void m14800_init2 (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, itunes_b
   tmps[gid].opad[3] = sha1_hmac_ctx.opad.h[3];
   tmps[gid].opad[4] = sha1_hmac_ctx.opad.h[4];
 
-  sha1_hmac_update_global (&sha1_hmac_ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
+  sha1_hmac_update_global (&sha1_hmac_ctx, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
   for (u32 i = 0, j = 1; i < 8; i += 5, j += 1)
   {
@@ -411,7 +411,7 @@ KERNEL_FQ void m14800_loop2 (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, itunes_b
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= gid_max) return;
+  if ((gid * VECT_SIZE) >= GID_MAX) return;
 
   u32x ipad[5];
   u32x opad[5];
@@ -445,7 +445,7 @@ KERNEL_FQ void m14800_loop2 (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, itunes_b
     out[3] = packv (tmps, out, gid, i + 3);
     out[4] = packv (tmps, out, gid, i + 4);
 
-    for (u32 j = 0; j < loop_cnt; j++)
+    for (u32 j = 0; j < LOOP_CNT; j++)
     {
       u32x w0[4];
       u32x w1[4];
@@ -549,7 +549,7 @@ KERNEL_FQ void m14800_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, itunes_ba
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * aes
@@ -574,21 +574,21 @@ KERNEL_FQ void m14800_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, itunes_ba
 
   u32 cipher[4];
 
-  cipher[0] = esalt_bufs[DIGESTS_OFFSET].wpky[0];
-  cipher[1] = esalt_bufs[DIGESTS_OFFSET].wpky[1];
+  cipher[0] = esalt_bufs[DIGESTS_OFFSET_HOST].wpky[0];
+  cipher[1] = esalt_bufs[DIGESTS_OFFSET_HOST].wpky[1];
   cipher[2] = 0;
   cipher[3] = 0;
 
   u32 lsb[8];
 
-  lsb[0] = esalt_bufs[DIGESTS_OFFSET].wpky[8];
-  lsb[1] = esalt_bufs[DIGESTS_OFFSET].wpky[9];
-  lsb[2] = esalt_bufs[DIGESTS_OFFSET].wpky[6];
-  lsb[3] = esalt_bufs[DIGESTS_OFFSET].wpky[7];
-  lsb[4] = esalt_bufs[DIGESTS_OFFSET].wpky[4];
-  lsb[5] = esalt_bufs[DIGESTS_OFFSET].wpky[5];
-  lsb[6] = esalt_bufs[DIGESTS_OFFSET].wpky[2];
-  lsb[7] = esalt_bufs[DIGESTS_OFFSET].wpky[3];
+  lsb[0] = esalt_bufs[DIGESTS_OFFSET_HOST].wpky[8];
+  lsb[1] = esalt_bufs[DIGESTS_OFFSET_HOST].wpky[9];
+  lsb[2] = esalt_bufs[DIGESTS_OFFSET_HOST].wpky[6];
+  lsb[3] = esalt_bufs[DIGESTS_OFFSET_HOST].wpky[7];
+  lsb[4] = esalt_bufs[DIGESTS_OFFSET_HOST].wpky[4];
+  lsb[5] = esalt_bufs[DIGESTS_OFFSET_HOST].wpky[5];
+  lsb[6] = esalt_bufs[DIGESTS_OFFSET_HOST].wpky[2];
+  lsb[7] = esalt_bufs[DIGESTS_OFFSET_HOST].wpky[3];
 
   for (int j = 5; j >= 0; j--)
   {
@@ -643,9 +643,9 @@ KERNEL_FQ void m14800_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, itunes_ba
 
   if ((cipher[0] == 0xa6a6a6a6) && (cipher[1] == 0xa6a6a6a6))
   {
-    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
     }
 
     return;

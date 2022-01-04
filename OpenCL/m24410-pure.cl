@@ -84,7 +84,7 @@ KERNEL_FQ void m24410_init (KERN_ATTR_TMPS_ESALT (pkcs_sha1_tmp_t, pkcs_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   sha1_hmac_ctx_t sha1_hmac_ctx;
 
@@ -102,14 +102,14 @@ KERNEL_FQ void m24410_init (KERN_ATTR_TMPS_ESALT (pkcs_sha1_tmp_t, pkcs_t))
   tmps[gid].opad[3] = sha1_hmac_ctx.opad.h[3];
   tmps[gid].opad[4] = sha1_hmac_ctx.opad.h[4];
 
-  sha1_hmac_update_global_swap (&sha1_hmac_ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
+  sha1_hmac_update_global_swap (&sha1_hmac_ctx, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
   u32 key_elem = 0;
 
-       if (esalt_bufs[DIGESTS_OFFSET].cipher == 1) { key_elem = (192 / 8) / 4; }
-  else if (esalt_bufs[DIGESTS_OFFSET].cipher == 2) { key_elem = (128 / 8) / 4; }
-  else if (esalt_bufs[DIGESTS_OFFSET].cipher == 3) { key_elem = (192 / 8) / 4; }
-  else if (esalt_bufs[DIGESTS_OFFSET].cipher == 4) { key_elem = (256 / 8) / 4; }
+       if (esalt_bufs[DIGESTS_OFFSET_HOST].cipher == 1) { key_elem = (192 / 8) / 4; }
+  else if (esalt_bufs[DIGESTS_OFFSET_HOST].cipher == 2) { key_elem = (128 / 8) / 4; }
+  else if (esalt_bufs[DIGESTS_OFFSET_HOST].cipher == 3) { key_elem = (192 / 8) / 4; }
+  else if (esalt_bufs[DIGESTS_OFFSET_HOST].cipher == 4) { key_elem = (256 / 8) / 4; }
 
   for (u32 i = 0, j = 1; i < key_elem; i += 5, j += 1)
   {
@@ -159,7 +159,7 @@ KERNEL_FQ void m24410_loop (KERN_ATTR_TMPS_ESALT (pkcs_sha1_tmp_t, pkcs_t))
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= gid_max) return;
+  if ((gid * VECT_SIZE) >= GID_MAX) return;
 
   u32x ipad[5];
   u32x opad[5];
@@ -178,10 +178,10 @@ KERNEL_FQ void m24410_loop (KERN_ATTR_TMPS_ESALT (pkcs_sha1_tmp_t, pkcs_t))
 
   u32 key_elem = 0;
 
-       if (esalt_bufs[DIGESTS_OFFSET].cipher == 1) { key_elem = (192 / 8) / 4; }
-  else if (esalt_bufs[DIGESTS_OFFSET].cipher == 2) { key_elem = (128 / 8) / 4; }
-  else if (esalt_bufs[DIGESTS_OFFSET].cipher == 3) { key_elem = (192 / 8) / 4; }
-  else if (esalt_bufs[DIGESTS_OFFSET].cipher == 4) { key_elem = (256 / 8) / 4; }
+       if (esalt_bufs[DIGESTS_OFFSET_HOST].cipher == 1) { key_elem = (192 / 8) / 4; }
+  else if (esalt_bufs[DIGESTS_OFFSET_HOST].cipher == 2) { key_elem = (128 / 8) / 4; }
+  else if (esalt_bufs[DIGESTS_OFFSET_HOST].cipher == 3) { key_elem = (192 / 8) / 4; }
+  else if (esalt_bufs[DIGESTS_OFFSET_HOST].cipher == 4) { key_elem = (256 / 8) / 4; }
 
   for (u32 i = 0; i < key_elem; i += 5)
   {
@@ -200,7 +200,7 @@ KERNEL_FQ void m24410_loop (KERN_ATTR_TMPS_ESALT (pkcs_sha1_tmp_t, pkcs_t))
     out[3] = packv (tmps, out, gid, i + 3);
     out[4] = packv (tmps, out, gid, i + 4);
 
-    for (u32 j = 0; j < loop_cnt; j++)
+    for (u32 j = 0; j < LOOP_CNT; j++)
     {
       u32x w0[4];
       u32x w1[4];
@@ -331,7 +331,7 @@ KERNEL_FQ void m24410_comp (KERN_ATTR_TMPS_ESALT (pkcs_sha1_tmp_t, pkcs_t))
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   u32 ukey[8];
 
@@ -344,13 +344,13 @@ KERNEL_FQ void m24410_comp (KERN_ATTR_TMPS_ESALT (pkcs_sha1_tmp_t, pkcs_t))
   ukey[6] = tmps[gid].out[6];
   ukey[7] = tmps[gid].out[7];
 
-  const int data_len = esalt_bufs[DIGESTS_OFFSET].data_len;
+  const int data_len = esalt_bufs[DIGESTS_OFFSET_HOST].data_len;
 
   const int last_pad_pos = data_len - 1;
 
   const int last_pad_elem = last_pad_pos / 4;
 
-  const int cipher = esalt_bufs[DIGESTS_OFFSET].cipher;
+  const int cipher = esalt_bufs[DIGESTS_OFFSET_HOST].cipher;
 
   u32 iv[4];
 
@@ -379,11 +379,11 @@ KERNEL_FQ void m24410_comp (KERN_ATTR_TMPS_ESALT (pkcs_sha1_tmp_t, pkcs_t))
 
     // first check the padding
 
-    iv[0] = esalt_bufs[DIGESTS_OFFSET].data_buf[last_pad_elem - 3];
-    iv[1] = esalt_bufs[DIGESTS_OFFSET].data_buf[last_pad_elem - 2];
+    iv[0] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[last_pad_elem - 3];
+    iv[1] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[last_pad_elem - 2];
 
-    enc[0] = esalt_bufs[DIGESTS_OFFSET].data_buf[last_pad_elem - 1];
-    enc[1] = esalt_bufs[DIGESTS_OFFSET].data_buf[last_pad_elem - 0];
+    enc[0] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[last_pad_elem - 1];
+    enc[1] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[last_pad_elem - 0];
 
     u32 p1[2];
     u32 p2[2];
@@ -401,11 +401,11 @@ KERNEL_FQ void m24410_comp (KERN_ATTR_TMPS_ESALT (pkcs_sha1_tmp_t, pkcs_t))
 
     // second check (naive code) ASN.1 structure
 
-    iv[0] = esalt_bufs[DIGESTS_OFFSET].iv_buf[0];
-    iv[1] = esalt_bufs[DIGESTS_OFFSET].iv_buf[1];
+    iv[0] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[0];
+    iv[1] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[1];
 
-    enc[0] = esalt_bufs[DIGESTS_OFFSET].data_buf[0];
-    enc[1] = esalt_bufs[DIGESTS_OFFSET].data_buf[1];
+    enc[0] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[0];
+    enc[1] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[1];
 
     _des_crypt_decrypt (p1,  enc, K4, K5, s_SPtrans);
     _des_crypt_encrypt (p2,  p1,  K2, K3, s_SPtrans);
@@ -428,15 +428,15 @@ KERNEL_FQ void m24410_comp (KERN_ATTR_TMPS_ESALT (pkcs_sha1_tmp_t, pkcs_t))
 
     // first check the padding
 
-    iv[0] = esalt_bufs[DIGESTS_OFFSET].data_buf[last_pad_elem - 7];
-    iv[1] = esalt_bufs[DIGESTS_OFFSET].data_buf[last_pad_elem - 6];
-    iv[2] = esalt_bufs[DIGESTS_OFFSET].data_buf[last_pad_elem - 5];
-    iv[3] = esalt_bufs[DIGESTS_OFFSET].data_buf[last_pad_elem - 4];
+    iv[0] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[last_pad_elem - 7];
+    iv[1] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[last_pad_elem - 6];
+    iv[2] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[last_pad_elem - 5];
+    iv[3] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[last_pad_elem - 4];
 
-    enc[0] = esalt_bufs[DIGESTS_OFFSET].data_buf[last_pad_elem - 3];
-    enc[1] = esalt_bufs[DIGESTS_OFFSET].data_buf[last_pad_elem - 2];
-    enc[2] = esalt_bufs[DIGESTS_OFFSET].data_buf[last_pad_elem - 1];
-    enc[3] = esalt_bufs[DIGESTS_OFFSET].data_buf[last_pad_elem - 0];
+    enc[0] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[last_pad_elem - 3];
+    enc[1] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[last_pad_elem - 2];
+    enc[2] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[last_pad_elem - 1];
+    enc[3] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[last_pad_elem - 0];
 
     aes128_decrypt (ks, enc, dec, s_td0, s_td1, s_td2, s_td3, s_td4);
 
@@ -451,15 +451,15 @@ KERNEL_FQ void m24410_comp (KERN_ATTR_TMPS_ESALT (pkcs_sha1_tmp_t, pkcs_t))
 
     // second check (naive code) ASN.1 structure
 
-    iv[0] = esalt_bufs[DIGESTS_OFFSET].iv_buf[0];
-    iv[1] = esalt_bufs[DIGESTS_OFFSET].iv_buf[1];
-    iv[2] = esalt_bufs[DIGESTS_OFFSET].iv_buf[2];
-    iv[3] = esalt_bufs[DIGESTS_OFFSET].iv_buf[3];
+    iv[0] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[0];
+    iv[1] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[1];
+    iv[2] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[2];
+    iv[3] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[3];
 
-    enc[0] = esalt_bufs[DIGESTS_OFFSET].data_buf[0];
-    enc[1] = esalt_bufs[DIGESTS_OFFSET].data_buf[1];
-    enc[2] = esalt_bufs[DIGESTS_OFFSET].data_buf[2];
-    enc[3] = esalt_bufs[DIGESTS_OFFSET].data_buf[3];
+    enc[0] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[0];
+    enc[1] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[1];
+    enc[2] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[2];
+    enc[3] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[3];
 
     aes128_decrypt (ks, enc, dec, s_td0, s_td1, s_td2, s_td3, s_td4);
 
@@ -482,15 +482,15 @@ KERNEL_FQ void m24410_comp (KERN_ATTR_TMPS_ESALT (pkcs_sha1_tmp_t, pkcs_t))
 
     // first check the padding
 
-    iv[0] = esalt_bufs[DIGESTS_OFFSET].data_buf[last_pad_elem - 7];
-    iv[1] = esalt_bufs[DIGESTS_OFFSET].data_buf[last_pad_elem - 6];
-    iv[2] = esalt_bufs[DIGESTS_OFFSET].data_buf[last_pad_elem - 5];
-    iv[3] = esalt_bufs[DIGESTS_OFFSET].data_buf[last_pad_elem - 4];
+    iv[0] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[last_pad_elem - 7];
+    iv[1] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[last_pad_elem - 6];
+    iv[2] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[last_pad_elem - 5];
+    iv[3] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[last_pad_elem - 4];
 
-    enc[0] = esalt_bufs[DIGESTS_OFFSET].data_buf[last_pad_elem - 3];
-    enc[1] = esalt_bufs[DIGESTS_OFFSET].data_buf[last_pad_elem - 2];
-    enc[2] = esalt_bufs[DIGESTS_OFFSET].data_buf[last_pad_elem - 1];
-    enc[3] = esalt_bufs[DIGESTS_OFFSET].data_buf[last_pad_elem - 0];
+    enc[0] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[last_pad_elem - 3];
+    enc[1] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[last_pad_elem - 2];
+    enc[2] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[last_pad_elem - 1];
+    enc[3] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[last_pad_elem - 0];
 
     aes192_decrypt (ks, enc, dec, s_td0, s_td1, s_td2, s_td3, s_td4);
 
@@ -505,15 +505,15 @@ KERNEL_FQ void m24410_comp (KERN_ATTR_TMPS_ESALT (pkcs_sha1_tmp_t, pkcs_t))
 
     // second check (naive code) ASN.1 structure
 
-    iv[0] = esalt_bufs[DIGESTS_OFFSET].iv_buf[0];
-    iv[1] = esalt_bufs[DIGESTS_OFFSET].iv_buf[1];
-    iv[2] = esalt_bufs[DIGESTS_OFFSET].iv_buf[2];
-    iv[3] = esalt_bufs[DIGESTS_OFFSET].iv_buf[3];
+    iv[0] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[0];
+    iv[1] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[1];
+    iv[2] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[2];
+    iv[3] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[3];
 
-    enc[0] = esalt_bufs[DIGESTS_OFFSET].data_buf[0];
-    enc[1] = esalt_bufs[DIGESTS_OFFSET].data_buf[1];
-    enc[2] = esalt_bufs[DIGESTS_OFFSET].data_buf[2];
-    enc[3] = esalt_bufs[DIGESTS_OFFSET].data_buf[3];
+    enc[0] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[0];
+    enc[1] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[1];
+    enc[2] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[2];
+    enc[3] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[3];
 
     aes192_decrypt (ks, enc, dec, s_td0, s_td1, s_td2, s_td3, s_td4);
 
@@ -536,15 +536,15 @@ KERNEL_FQ void m24410_comp (KERN_ATTR_TMPS_ESALT (pkcs_sha1_tmp_t, pkcs_t))
 
     // first check the padding
 
-    iv[0] = esalt_bufs[DIGESTS_OFFSET].data_buf[last_pad_elem - 7];
-    iv[1] = esalt_bufs[DIGESTS_OFFSET].data_buf[last_pad_elem - 6];
-    iv[2] = esalt_bufs[DIGESTS_OFFSET].data_buf[last_pad_elem - 5];
-    iv[3] = esalt_bufs[DIGESTS_OFFSET].data_buf[last_pad_elem - 4];
+    iv[0] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[last_pad_elem - 7];
+    iv[1] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[last_pad_elem - 6];
+    iv[2] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[last_pad_elem - 5];
+    iv[3] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[last_pad_elem - 4];
 
-    enc[0] = esalt_bufs[DIGESTS_OFFSET].data_buf[last_pad_elem - 3];
-    enc[1] = esalt_bufs[DIGESTS_OFFSET].data_buf[last_pad_elem - 2];
-    enc[2] = esalt_bufs[DIGESTS_OFFSET].data_buf[last_pad_elem - 1];
-    enc[3] = esalt_bufs[DIGESTS_OFFSET].data_buf[last_pad_elem - 0];
+    enc[0] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[last_pad_elem - 3];
+    enc[1] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[last_pad_elem - 2];
+    enc[2] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[last_pad_elem - 1];
+    enc[3] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[last_pad_elem - 0];
 
     aes256_decrypt (ks, enc, dec, s_td0, s_td1, s_td2, s_td3, s_td4);
 
@@ -559,15 +559,15 @@ KERNEL_FQ void m24410_comp (KERN_ATTR_TMPS_ESALT (pkcs_sha1_tmp_t, pkcs_t))
 
     // second check (naive code) ASN.1 structure
 
-    iv[0] = esalt_bufs[DIGESTS_OFFSET].iv_buf[0];
-    iv[1] = esalt_bufs[DIGESTS_OFFSET].iv_buf[1];
-    iv[2] = esalt_bufs[DIGESTS_OFFSET].iv_buf[2];
-    iv[3] = esalt_bufs[DIGESTS_OFFSET].iv_buf[3];
+    iv[0] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[0];
+    iv[1] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[1];
+    iv[2] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[2];
+    iv[3] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[3];
 
-    enc[0] = esalt_bufs[DIGESTS_OFFSET].data_buf[0];
-    enc[1] = esalt_bufs[DIGESTS_OFFSET].data_buf[1];
-    enc[2] = esalt_bufs[DIGESTS_OFFSET].data_buf[2];
-    enc[3] = esalt_bufs[DIGESTS_OFFSET].data_buf[3];
+    enc[0] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[0];
+    enc[1] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[1];
+    enc[2] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[2];
+    enc[3] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[3];
 
     aes256_decrypt (ks, enc, dec, s_td0, s_td1, s_td2, s_td3, s_td4);
 
@@ -587,10 +587,10 @@ KERNEL_FQ void m24410_comp (KERN_ATTR_TMPS_ESALT (pkcs_sha1_tmp_t, pkcs_t))
     return;
   }
 
-  const u32 r0 = esalt_bufs[DIGESTS_OFFSET].data_buf[0];
-  const u32 r1 = esalt_bufs[DIGESTS_OFFSET].data_buf[1];
-  const u32 r2 = esalt_bufs[DIGESTS_OFFSET].data_buf[2];
-  const u32 r3 = esalt_bufs[DIGESTS_OFFSET].data_buf[3];
+  const u32 r0 = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[0];
+  const u32 r1 = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[1];
+  const u32 r2 = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[2];
+  const u32 r3 = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[3];
 
   #define il_pos 0
 

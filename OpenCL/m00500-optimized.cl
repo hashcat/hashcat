@@ -667,7 +667,7 @@ KERNEL_FQ void m00500_init (KERN_ATTR_TMPS (md5crypt_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   u32 w0[4];
 
@@ -684,10 +684,10 @@ KERNEL_FQ void m00500_init (KERN_ATTR_TMPS (md5crypt_tmp_t))
 
   u32 salt_buf[2];
 
-  salt_buf[0] = salt_bufs[SALT_POS].salt_buf[0];
-  salt_buf[1] = salt_bufs[SALT_POS].salt_buf[1];
+  salt_buf[0] = salt_bufs[SALT_POS_HOST].salt_buf[0];
+  salt_buf[1] = salt_bufs[SALT_POS_HOST].salt_buf[1];
 
-  const u32 salt_len = salt_bufs[SALT_POS].salt_len;
+  const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len;
 
   /**
    * init
@@ -830,7 +830,7 @@ KERNEL_FQ void m00500_loop (KERN_ATTR_TMPS (md5crypt_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   u32 w0[4];
 
@@ -856,10 +856,10 @@ KERNEL_FQ void m00500_loop (KERN_ATTR_TMPS (md5crypt_tmp_t))
 
   u32 salt_buf[2];
 
-  salt_buf[0] = salt_bufs[SALT_POS].salt_buf[0];
-  salt_buf[1] = salt_bufs[SALT_POS].salt_buf[1];
+  salt_buf[0] = salt_bufs[SALT_POS_HOST].salt_buf[0];
+  salt_buf[1] = salt_bufs[SALT_POS_HOST].salt_buf[1];
 
-  const u32 salt_len = salt_bufs[SALT_POS].salt_len;
+  const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len;
 
   /**
    * digest
@@ -908,7 +908,7 @@ KERNEL_FQ void m00500_loop (KERN_ATTR_TMPS (md5crypt_tmp_t))
   block3[2] = 0;
   block3[3] = 0;
 
-  for (u32 i = 0, j = loop_pos; i < loop_cnt; i++, j++)
+  for (u32 i = 0, j = LOOP_POS; i < LOOP_CNT; i++, j++)
   {
     block1[0] = 0;
     block1[1] = 0;
@@ -1018,7 +1018,7 @@ KERNEL_FQ void m00500_comp (KERN_ATTR_TMPS (md5crypt_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   const u64 lid = get_local_id (0);
 

@@ -2080,7 +2080,7 @@ KERNEL_FQ void m05800_init (KERN_ATTR_TMPS (androidpin_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   sha1_ctx_t ctx;
 
@@ -2095,7 +2095,7 @@ KERNEL_FQ void m05800_init (KERN_ATTR_TMPS (androidpin_tmp_t))
 
   sha1_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
-  sha1_update_global_swap (&ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
+  sha1_update_global_swap (&ctx, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
   sha1_final (&ctx);
 
@@ -2131,7 +2131,7 @@ KERNEL_FQ void m05800_loop (KERN_ATTR_TMPS (androidpin_tmp_t))
 
   SYNC_THREADS ();
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * init
@@ -2146,13 +2146,13 @@ KERNEL_FQ void m05800_loop (KERN_ATTR_TMPS (androidpin_tmp_t))
     w[idx] = hc_swap32_S (pws[gid].i[idx]);
   }
 
-  const u32 salt_len = salt_bufs[SALT_POS].salt_len;
+  const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len;
 
   u32 s[64] = { 0 };
 
   for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = hc_swap32_S (salt_bufs[SALT_POS].salt_buf[idx]);
+    s[idx] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[idx]);
   }
 
   u32 digest[5];
@@ -2167,7 +2167,7 @@ KERNEL_FQ void m05800_loop (KERN_ATTR_TMPS (androidpin_tmp_t))
    * loop
    */
 
-  for (u32 i = 0, j = loop_pos + 1; i < loop_cnt; i++, j++)
+  for (u32 i = 0, j = LOOP_POS + 1; i < LOOP_CNT; i++, j++)
   {
     const u32 pc_dec = s_pc_dec[j];
     const u32 pc_len = s_pc_len[j];
@@ -2213,7 +2213,7 @@ KERNEL_FQ void m05800_comp (KERN_ATTR_TMPS (androidpin_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   const u64 lid = get_local_id (0);
 

@@ -31,7 +31,7 @@ KERNEL_FQ void m05200_init (KERN_ATTR_TMPS (pwsafe3_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   sha256_ctx_t ctx;
 
@@ -39,7 +39,7 @@ KERNEL_FQ void m05200_init (KERN_ATTR_TMPS (pwsafe3_tmp_t))
 
   sha256_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
-  sha256_update_global_swap (&ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
+  sha256_update_global_swap (&ctx, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
   sha256_final (&ctx);
 
@@ -57,7 +57,7 @@ KERNEL_FQ void m05200_loop (KERN_ATTR_TMPS (pwsafe3_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= gid_max) return;
+  if ((gid * VECT_SIZE) >= GID_MAX) return;
 
   u32x digest[8];
 
@@ -74,7 +74,7 @@ KERNEL_FQ void m05200_loop (KERN_ATTR_TMPS (pwsafe3_tmp_t))
    * init
    */
 
-  for (u32 i = 0; i < loop_cnt; i++)
+  for (u32 i = 0; i < LOOP_CNT; i++)
   {
     u32x w0[4];
     u32x w1[4];
@@ -128,7 +128,7 @@ KERNEL_FQ void m05200_comp (KERN_ATTR_TMPS (pwsafe3_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   const u64 lid = get_local_id (0);
 

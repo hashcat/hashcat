@@ -56,7 +56,7 @@ KERNEL_FQ void m25400_init (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
   const u64 gid = get_global_id (0);
   //const u64 lid = get_local_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   u32 w0[4];
 
@@ -90,19 +90,19 @@ KERNEL_FQ void m25400_init (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
    * shared
    */
 
-  u32 P = esalt_bufs[DIGESTS_OFFSET].P; // TODO this is never used, but should be according according to "Algorithm 3.2 Computing an encryption key" line 4.
+  u32 P = esalt_bufs[DIGESTS_OFFSET_HOST].P; // TODO this is never used, but should be according according to "Algorithm 3.2 Computing an encryption key" line 4.
 
   u32 id_buf[12]; // TODO this is never used, but should be according according to "Algorithm 3.2 Computing an encryption key" line 5.
 
-  id_buf[ 0] = esalt_bufs[DIGESTS_OFFSET].id_buf[0];
-  id_buf[ 1] = esalt_bufs[DIGESTS_OFFSET].id_buf[1];
-  id_buf[ 2] = esalt_bufs[DIGESTS_OFFSET].id_buf[2];
-  id_buf[ 3] = esalt_bufs[DIGESTS_OFFSET].id_buf[3];
+  id_buf[ 0] = esalt_bufs[DIGESTS_OFFSET_HOST].id_buf[0];
+  id_buf[ 1] = esalt_bufs[DIGESTS_OFFSET_HOST].id_buf[1];
+  id_buf[ 2] = esalt_bufs[DIGESTS_OFFSET_HOST].id_buf[2];
+  id_buf[ 3] = esalt_bufs[DIGESTS_OFFSET_HOST].id_buf[3];
 
-  id_buf[ 4] = esalt_bufs[DIGESTS_OFFSET].id_buf[4];
-  id_buf[ 5] = esalt_bufs[DIGESTS_OFFSET].id_buf[5];
-  id_buf[ 6] = esalt_bufs[DIGESTS_OFFSET].id_buf[6];
-  id_buf[ 7] = esalt_bufs[DIGESTS_OFFSET].id_buf[7];
+  id_buf[ 4] = esalt_bufs[DIGESTS_OFFSET_HOST].id_buf[4];
+  id_buf[ 5] = esalt_bufs[DIGESTS_OFFSET_HOST].id_buf[5];
+  id_buf[ 6] = esalt_bufs[DIGESTS_OFFSET_HOST].id_buf[6];
+  id_buf[ 7] = esalt_bufs[DIGESTS_OFFSET_HOST].id_buf[7];
 
   id_buf[ 8] = 0;
   id_buf[ 9] = 0;
@@ -194,7 +194,7 @@ KERNEL_FQ void m25400_loop (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * shared
@@ -218,7 +218,7 @@ KERNEL_FQ void m25400_loop (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
   out[2] = tmps[gid].out[2];
   out[3] = tmps[gid].out[3];
 
-  for (u32 i = 0, j = loop_pos; i < loop_cnt; i++, j++)
+  for (u32 i = 0, j = LOOP_POS; i < LOOP_CNT; i++, j++)
   {
     if (j < 50)
     {
@@ -255,10 +255,10 @@ KERNEL_FQ void m25400_loop (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
     }
   }
 
-  out[0] = esalt_bufs[DIGESTS_OFFSET].o_buf[0]; // store original o-value in out (scratchpad)
-  out[1] = esalt_bufs[DIGESTS_OFFSET].o_buf[1];
-  out[2] = esalt_bufs[DIGESTS_OFFSET].o_buf[2];
-  out[3] = esalt_bufs[DIGESTS_OFFSET].o_buf[3];
+  out[0] = esalt_bufs[DIGESTS_OFFSET_HOST].o_buf[0]; // store original o-value in out (scratchpad)
+  out[1] = esalt_bufs[DIGESTS_OFFSET_HOST].o_buf[1];
+  out[2] = esalt_bufs[DIGESTS_OFFSET_HOST].o_buf[2];
+  out[3] = esalt_bufs[DIGESTS_OFFSET_HOST].o_buf[3];
   u32 o_rc4_decryption_key[4];
   o_rc4_decryption_key[0] = digest[0]; // store the owner-key
   o_rc4_decryption_key[1] = digest[1];
@@ -303,8 +303,8 @@ KERNEL_FQ void m25400_comp (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
 {
   const u32 digest[4] =
   {
-    esalt_bufs[DIGESTS_OFFSET].o_buf[0],
-    esalt_bufs[DIGESTS_OFFSET].o_buf[1],
+    esalt_bufs[DIGESTS_OFFSET_HOST].o_buf[0],
+    esalt_bufs[DIGESTS_OFFSET_HOST].o_buf[1],
     0x0,// apparently only the first 16 bytes of the digest are used to look it up?
     0x0 // apparently only the first 16 bytes of the digest are used to look it up?
   };
@@ -326,7 +326,7 @@ KERNEL_FQ void m25400_comp (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
    */
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   const u64 lid = get_local_id (0);
 
@@ -405,15 +405,15 @@ KERNEL_FQ void m25400_comp (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
 
   if (correct)
   {
-    int digest_pos = find_hash (digest, digests_cnt, &digests_buf[DIGESTS_OFFSET]);
+    int digest_pos = find_hash (digest, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);
 
     if (digest_pos != -1)
     {
-      const u32 final_hash_pos = DIGESTS_OFFSET + digest_pos;
+      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;
 
       if (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0)
       {
-        mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, digest_pos, final_hash_pos, gid, il_pos, 0, 0);
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos, 0, 0);
       }
     }
   }

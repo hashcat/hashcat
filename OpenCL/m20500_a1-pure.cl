@@ -172,7 +172,7 @@ KERNEL_FQ void m20500_sxx (KERN_ATTR_BASIC ())
 
   SYNC_THREADS ();
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * digest
@@ -180,9 +180,9 @@ KERNEL_FQ void m20500_sxx (KERN_ATTR_BASIC ())
 
   const u32 search[4] =
   {
-    digests_buf[DIGESTS_OFFSET].digest_buf[0],
-    digests_buf[DIGESTS_OFFSET].digest_buf[1],
-    digests_buf[DIGESTS_OFFSET].digest_buf[2],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[0],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[1],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[2],
     0
   };
 
@@ -202,7 +202,7 @@ KERNEL_FQ void m20500_sxx (KERN_ATTR_BASIC ())
     if (pws[gid].pw_len >= (i + 4)) update_key012 (key0init, key1init, key2init, unpack_v8d_from_v32_S (pws[gid].i[j]), l_crc32tab);
   }
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     u32x key0 = key0init;
     u32x key1 = key1init;
@@ -248,7 +248,7 @@ KERNEL_FQ void m20500_mxx (KERN_ATTR_BASIC ())
 
   SYNC_THREADS ();
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * digest
@@ -256,9 +256,9 @@ KERNEL_FQ void m20500_mxx (KERN_ATTR_BASIC ())
 
   const u32 search[4] =
   {
-    digests_buf[DIGESTS_OFFSET].digest_buf[0],
-    digests_buf[DIGESTS_OFFSET].digest_buf[1],
-    digests_buf[DIGESTS_OFFSET].digest_buf[2],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[0],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[1],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[2],
     0
   };
 
@@ -278,7 +278,7 @@ KERNEL_FQ void m20500_mxx (KERN_ATTR_BASIC ())
     if (pws[gid].pw_len >= (i + 4)) update_key012 (key0init, key1init, key2init, unpack_v8d_from_v32_S (pws[gid].i[j]), l_crc32tab);
   }
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     u32x key0 = key0init;
     u32x key1 = key1init;

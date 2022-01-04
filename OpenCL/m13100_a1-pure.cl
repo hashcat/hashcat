@@ -272,7 +272,7 @@ KERNEL_FQ void m13100_mxx (KERN_ATTR_ESALT (krb5tgs_t))
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * base
@@ -282,10 +282,10 @@ KERNEL_FQ void m13100_mxx (KERN_ATTR_ESALT (krb5tgs_t))
 
   u32 checksum[4];
 
-  checksum[0] = esalt_bufs[DIGESTS_OFFSET].checksum[0];
-  checksum[1] = esalt_bufs[DIGESTS_OFFSET].checksum[1];
-  checksum[2] = esalt_bufs[DIGESTS_OFFSET].checksum[2];
-  checksum[3] = esalt_bufs[DIGESTS_OFFSET].checksum[3];
+  checksum[0] = esalt_bufs[DIGESTS_OFFSET_HOST].checksum[0];
+  checksum[1] = esalt_bufs[DIGESTS_OFFSET_HOST].checksum[1];
+  checksum[2] = esalt_bufs[DIGESTS_OFFSET_HOST].checksum[2];
+  checksum[3] = esalt_bufs[DIGESTS_OFFSET_HOST].checksum[3];
 
   md4_ctx_t ctx0;
 
@@ -297,7 +297,7 @@ KERNEL_FQ void m13100_mxx (KERN_ATTR_ESALT (krb5tgs_t))
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
     md4_ctx_t ctx = ctx0;
 
@@ -311,11 +311,11 @@ KERNEL_FQ void m13100_mxx (KERN_ATTR_ESALT (krb5tgs_t))
 
     kerb_prepare (ctx.h, checksum, digest, K2);
 
-    if (decrypt_and_check (S, digest, esalt_bufs[DIGESTS_OFFSET].edata2, esalt_bufs[DIGESTS_OFFSET].edata2_len, K2, checksum) == 1)
+    if (decrypt_and_check (S, digest, esalt_bufs[DIGESTS_OFFSET_HOST].edata2, esalt_bufs[DIGESTS_OFFSET_HOST].edata2_len, K2, checksum) == 1)
     {
-      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
       {
-        mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, il_pos, 0, 0);
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
       }
     }
   }
@@ -330,7 +330,7 @@ KERNEL_FQ void m13100_sxx (KERN_ATTR_ESALT (krb5tgs_t))
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * base
@@ -340,10 +340,10 @@ KERNEL_FQ void m13100_sxx (KERN_ATTR_ESALT (krb5tgs_t))
 
   u32 checksum[4];
 
-  checksum[0] = esalt_bufs[DIGESTS_OFFSET].checksum[0];
-  checksum[1] = esalt_bufs[DIGESTS_OFFSET].checksum[1];
-  checksum[2] = esalt_bufs[DIGESTS_OFFSET].checksum[2];
-  checksum[3] = esalt_bufs[DIGESTS_OFFSET].checksum[3];
+  checksum[0] = esalt_bufs[DIGESTS_OFFSET_HOST].checksum[0];
+  checksum[1] = esalt_bufs[DIGESTS_OFFSET_HOST].checksum[1];
+  checksum[2] = esalt_bufs[DIGESTS_OFFSET_HOST].checksum[2];
+  checksum[3] = esalt_bufs[DIGESTS_OFFSET_HOST].checksum[3];
 
   md4_ctx_t ctx0;
 
@@ -355,7 +355,7 @@ KERNEL_FQ void m13100_sxx (KERN_ATTR_ESALT (krb5tgs_t))
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
     md4_ctx_t ctx = ctx0;
 
@@ -369,11 +369,11 @@ KERNEL_FQ void m13100_sxx (KERN_ATTR_ESALT (krb5tgs_t))
 
     kerb_prepare (ctx.h, checksum, digest, K2);
 
-    if (decrypt_and_check (S, digest, esalt_bufs[DIGESTS_OFFSET].edata2, esalt_bufs[DIGESTS_OFFSET].edata2_len, K2, checksum) == 1)
+    if (decrypt_and_check (S, digest, esalt_bufs[DIGESTS_OFFSET_HOST].edata2, esalt_bufs[DIGESTS_OFFSET_HOST].edata2_len, K2, checksum) == 1)
     {
-      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
       {
-        mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, il_pos, 0, 0);
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
       }
     }
   }

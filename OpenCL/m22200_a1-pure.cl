@@ -23,7 +23,7 @@ KERNEL_FQ void m22200_mxx (KERN_ATTR_BASIC ())
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * base
@@ -35,7 +35,7 @@ KERNEL_FQ void m22200_mxx (KERN_ATTR_BASIC ())
 
   sha512_init (&ctx0);
 
-  sha512_update_global (&ctx0, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
+  sha512_update_global (&ctx0, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
   sha512_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
 
@@ -43,7 +43,7 @@ KERNEL_FQ void m22200_mxx (KERN_ATTR_BASIC ())
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
     sha512_ctx_t ctx = ctx0;
 
@@ -72,7 +72,7 @@ KERNEL_FQ void m22200_sxx (KERN_ATTR_BASIC ())
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * digest
@@ -80,10 +80,10 @@ KERNEL_FQ void m22200_sxx (KERN_ATTR_BASIC ())
 
   const u32 search[4] =
   {
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R3]
   };
 
   /**
@@ -96,7 +96,7 @@ KERNEL_FQ void m22200_sxx (KERN_ATTR_BASIC ())
 
   sha512_init (&ctx0);
 
-  sha512_update_global (&ctx0, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
+  sha512_update_global (&ctx0, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
   sha512_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
 
@@ -104,7 +104,7 @@ KERNEL_FQ void m22200_sxx (KERN_ATTR_BASIC ())
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
     sha512_ctx_t ctx = ctx0;
 

@@ -101,7 +101,7 @@ KERNEL_FQ void m23500_init (KERN_ATTR_TMPS_ESALT (axcrypt2_tmp_t, axcrypt2_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   sha512_hmac_ctx_t sha512_hmac_ctx;
 
@@ -125,7 +125,7 @@ KERNEL_FQ void m23500_init (KERN_ATTR_TMPS_ESALT (axcrypt2_tmp_t, axcrypt2_t))
   tmps[gid].opad[6] = sha512_hmac_ctx.opad.h[6];
   tmps[gid].opad[7] = sha512_hmac_ctx.opad.h[7];
 
-  sha512_hmac_update_global (&sha512_hmac_ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
+  sha512_hmac_update_global (&sha512_hmac_ctx, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
   for (u32 i = 0, j = 1; i < 8; i += 8, j += 1)
   {
@@ -201,7 +201,7 @@ KERNEL_FQ void m23500_loop (KERN_ATTR_TMPS_ESALT (axcrypt2_tmp_t, axcrypt2_t))
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= gid_max) return;
+  if ((gid * VECT_SIZE) >= GID_MAX) return;
 
   u64x ipad[8];
   u64x opad[8];
@@ -247,7 +247,7 @@ KERNEL_FQ void m23500_loop (KERN_ATTR_TMPS_ESALT (axcrypt2_tmp_t, axcrypt2_t))
     out[6] = pack64v (tmps, out, gid, i + 6);
     out[7] = pack64v (tmps, out, gid, i + 7);
 
-    for (u32 j = 0; j < loop_cnt; j++)
+    for (u32 j = 0; j < LOOP_CNT; j++)
     {
       u32x w0[4];
       u32x w1[4];
@@ -331,7 +331,7 @@ KERNEL_FQ void m23500_init2 (KERN_ATTR_TMPS_ESALT (axcrypt2_tmp_t, axcrypt2_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   u32 out[16];
 
@@ -361,10 +361,10 @@ KERNEL_FQ void m23500_init2 (KERN_ATTR_TMPS_ESALT (axcrypt2_tmp_t, axcrypt2_t))
 
   u32 salt[4];
 
-  salt[0] = esalt_bufs[DIGESTS_OFFSET].salt[0];
-  salt[1] = esalt_bufs[DIGESTS_OFFSET].salt[1];
-  salt[2] = esalt_bufs[DIGESTS_OFFSET].salt[2];
-  salt[3] = esalt_bufs[DIGESTS_OFFSET].salt[3];
+  salt[0] = esalt_bufs[DIGESTS_OFFSET_HOST].salt[0];
+  salt[1] = esalt_bufs[DIGESTS_OFFSET_HOST].salt[1];
+  salt[2] = esalt_bufs[DIGESTS_OFFSET_HOST].salt[2];
+  salt[3] = esalt_bufs[DIGESTS_OFFSET_HOST].salt[3];
 
   tmps[gid].KEK[0] = KEK[0] ^ salt[0];
   tmps[gid].KEK[1] = KEK[1] ^ salt[1];
@@ -373,7 +373,7 @@ KERNEL_FQ void m23500_init2 (KERN_ATTR_TMPS_ESALT (axcrypt2_tmp_t, axcrypt2_t))
 
   for (int i = 0; i < 10; i++)
   {
-    tmps[gid].data[i] = esalt_bufs[DIGESTS_OFFSET].data[i];
+    tmps[gid].data[i] = esalt_bufs[DIGESTS_OFFSET_HOST].data[i];
   }
 }
 
@@ -438,7 +438,7 @@ KERNEL_FQ void m23500_loop2 (KERN_ATTR_TMPS_ESALT (axcrypt2_tmp_t, axcrypt2_t))
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   u32 ukey[4];
 
@@ -468,11 +468,11 @@ KERNEL_FQ void m23500_loop2 (KERN_ATTR_TMPS_ESALT (axcrypt2_tmp_t, axcrypt2_t))
 
   AES128_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
-  const int wrapping_rounds = (int) salt_bufs[SALT_POS].salt_iter2;
+  const int wrapping_rounds = (int) salt_bufs[SALT_POS_HOST].salt_iter2;
 
   // custom AES un-wrapping loop
 
-  for (int i = loop_cnt, j = wrapping_rounds - loop_pos; i > 0; i--, j--)
+  for (int i = LOOP_CNT, j = wrapping_rounds - LOOP_POS; i > 0; i--, j--)
   {
     for (int k = 8, l = 4 * j; k >= 1; k -= 2, l -= 1)
     {
@@ -506,14 +506,14 @@ KERNEL_FQ void m23500_comp (KERN_ATTR_TMPS_ESALT (axcrypt2_tmp_t, axcrypt2_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   if ((tmps[gid].data[0] == 0xa6a6a6a6) &&
       (tmps[gid].data[1] == 0xa6a6a6a6))
   {
-    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
     }
 
     return;

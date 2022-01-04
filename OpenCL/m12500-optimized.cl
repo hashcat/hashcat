@@ -39,7 +39,7 @@ KERNEL_FQ void m12500_init (KERN_ATTR_TMPS (rar3_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   tmps[gid].dgst[0][0] = SHA1M_A;
   tmps[gid].dgst[0][1] = SHA1M_B;
@@ -52,7 +52,7 @@ KERNEL_FQ void m12500_loop (KERN_ATTR_TMPS (rar3_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   u32 pw_buf[10];
 
@@ -71,8 +71,8 @@ KERNEL_FQ void m12500_loop (KERN_ATTR_TMPS (rar3_tmp_t))
 
   u32 salt_buf[2];
 
-  salt_buf[0] = salt_bufs[SALT_POS].salt_buf[0];
-  salt_buf[1] = salt_bufs[SALT_POS].salt_buf[1];
+  salt_buf[0] = salt_bufs[SALT_POS_HOST].salt_buf[0];
+  salt_buf[1] = salt_bufs[SALT_POS_HOST].salt_buf[1];
 
   const u32 salt_len = 8;
 
@@ -96,7 +96,7 @@ KERNEL_FQ void m12500_loop (KERN_ATTR_TMPS (rar3_tmp_t))
       PUTCHAR_BE (largeblock, p, GETCHAR (salt_buf, j));
     }
 
-    PUTCHAR_BE (largeblock, p + 2, (loop_pos >> 16) & 0xff);
+    PUTCHAR_BE (largeblock, p + 2, (LOOP_POS >> 16) & 0xff);
 
     p += 3;
   }
@@ -105,7 +105,7 @@ KERNEL_FQ void m12500_loop (KERN_ATTR_TMPS (rar3_tmp_t))
 
   const u32 p3 = pw_len + salt_len + 3;
 
-  const u32 init_pos = loop_pos / (ROUNDS / 16);
+  const u32 init_pos = LOOP_POS / (ROUNDS / 16);
 
   u32 dgst[5];
 
@@ -115,7 +115,7 @@ KERNEL_FQ void m12500_loop (KERN_ATTR_TMPS (rar3_tmp_t))
   dgst[3] = tmps[gid].dgst[init_pos][3];
   dgst[4] = tmps[gid].dgst[init_pos][4];
 
-  u32 iter = loop_pos;
+  u32 iter = LOOP_POS;
 
   for (u32 i = 0; i < 256; i++)
   {
@@ -294,7 +294,7 @@ KERNEL_FQ void m12500_comp (KERN_ATTR_TMPS (rar3_tmp_t))
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * base
@@ -351,10 +351,10 @@ KERNEL_FQ void m12500_comp (KERN_ATTR_TMPS (rar3_tmp_t))
 
   u32 data[4];
 
-  data[0] = salt_bufs[SALT_POS].salt_buf[2];
-  data[1] = salt_bufs[SALT_POS].salt_buf[3];
-  data[2] = salt_bufs[SALT_POS].salt_buf[4];
-  data[3] = salt_bufs[SALT_POS].salt_buf[5];
+  data[0] = salt_bufs[SALT_POS_HOST].salt_buf[2];
+  data[1] = salt_bufs[SALT_POS_HOST].salt_buf[3];
+  data[2] = salt_bufs[SALT_POS_HOST].salt_buf[4];
+  data[3] = salt_bufs[SALT_POS_HOST].salt_buf[5];
 
   u32 out[4];
 
@@ -386,8 +386,8 @@ KERNEL_FQ void m12500_comp (KERN_ATTR_TMPS (rar3_tmp_t))
 
     u32 salt_buf[2];
 
-    salt_buf[0] = salt_bufs[SALT_POS].salt_buf[0];
-    salt_buf[1] = salt_bufs[SALT_POS].salt_buf[1];
+    salt_buf[0] = salt_bufs[SALT_POS_HOST].salt_buf[0];
+    salt_buf[1] = salt_bufs[SALT_POS_HOST].salt_buf[1];
 
     //const u32 salt_len = 8;
 

@@ -1761,7 +1761,7 @@ KERNEL_FQ void m03000_mxx (KERN_ATTR_BITSLICE ())
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * base
@@ -1831,7 +1831,7 @@ KERNEL_FQ void m03000_mxx (KERN_ATTR_BITSLICE ())
    * inner loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += 32)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += 32)
   {
     u32 k00 = K00;
     u32 k01 = K01;
@@ -2055,11 +2055,11 @@ KERNEL_FQ void m03000_mxx (KERN_ATTR_BITSLICE ())
     out[62] = D62;
     out[63] = D63;
 
-    if (digests_cnt < 16)
+    if (DIGESTS_CNT < 16)
     {
-      for (u32 d = 0; d < digests_cnt; d++)
+      for (u32 d = 0; d < DIGESTS_CNT; d++)
       {
-        const u32 final_hash_pos = DIGESTS_OFFSET + d;
+        const u32 final_hash_pos = DIGESTS_OFFSET_HOST + d;
 
         if (hashes_shown[final_hash_pos]) continue;
 
@@ -2134,7 +2134,7 @@ KERNEL_FQ void m03000_sxx (KERN_ATTR_BITSLICE ())
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * digest
@@ -2276,7 +2276,7 @@ KERNEL_FQ void m03000_sxx (KERN_ATTR_BITSLICE ())
    * inner loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += 32)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += 32)
   {
     u32 k00 = K00;
     u32 k01 = K01;

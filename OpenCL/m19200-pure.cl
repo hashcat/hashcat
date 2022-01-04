@@ -372,7 +372,7 @@ KERNEL_FQ void m19200_init (KERN_ATTR_TMPS (qnx_sha512_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * init
@@ -382,7 +382,7 @@ KERNEL_FQ void m19200_init (KERN_ATTR_TMPS (qnx_sha512_tmp_t))
 
   sha512_init (&sha512_ctx);
 
-  sha512_update_global_swap (&sha512_ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
+  sha512_update_global_swap (&sha512_ctx, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
   sha512_update_global_swap (&sha512_ctx, pws[gid].i, pws[gid].pw_len);
 
@@ -398,12 +398,12 @@ KERNEL_FQ void m19200_loop (KERN_ATTR_TMPS (qnx_sha512_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   sha512_ctx_t sha512_ctx = tmps[gid].sha512_ctx;
   u32 sav = tmps[gid].sav;
 
-  for (u32 i = 0; i < loop_cnt; i++)
+  for (u32 i = 0; i < LOOP_CNT; i++)
   {
     sav = sha512_update_global_swap_qnxbug (&sha512_ctx, pws[gid].i, pws[gid].pw_len, sav);
   }
@@ -421,7 +421,7 @@ KERNEL_FQ void m19200_comp (KERN_ATTR_TMPS (qnx_sha512_tmp_t))
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   sha512_ctx_t sha512_ctx = tmps[gid].sha512_ctx;
 

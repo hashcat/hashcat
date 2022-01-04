@@ -24,7 +24,7 @@ KERNEL_FQ void m21420_mxx (KERN_ATTR_BASIC ())
   const u64 gid = get_global_id (0);
   const u64 lsz = get_local_size (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * base
@@ -37,11 +37,11 @@ KERNEL_FQ void m21420_mxx (KERN_ATTR_BASIC ())
 
   u32 s[64] = { 0 };
 
-  const u32 salt_len = salt_bufs[SALT_POS].salt_len;
+  const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len;
 
   for (int i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = hc_swap32_S (salt_bufs[SALT_POS].salt_buf[idx]);
+    s[idx] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[idx]);
   }
 
   sha256_ctx_t ctx1;
@@ -54,7 +54,7 @@ KERNEL_FQ void m21420_mxx (KERN_ATTR_BASIC ())
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
     sha256_ctx_t ctx0 = ctx1;
 
@@ -117,7 +117,7 @@ KERNEL_FQ void m21420_sxx (KERN_ATTR_BASIC ())
   const u64 gid = get_global_id (0);
   const u64 lsz = get_local_size (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * digest
@@ -125,10 +125,10 @@ KERNEL_FQ void m21420_sxx (KERN_ATTR_BASIC ())
 
   const u32 search[4] =
   {
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R3]
   };
 
   /**
@@ -140,13 +140,13 @@ KERNEL_FQ void m21420_sxx (KERN_ATTR_BASIC ())
   u32 w2[4];
   u32 w3[4];
 
-  const u32 salt_len = salt_bufs[SALT_POS].salt_len;
+  const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len;
 
   u32 s[64] = { 0 };
 
   for (int i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = hc_swap32_S (salt_bufs[SALT_POS].salt_buf[idx]);
+    s[idx] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[idx]);
   }
 
   sha256_ctx_t ctx1;
@@ -159,7 +159,7 @@ KERNEL_FQ void m21420_sxx (KERN_ATTR_BASIC ())
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
     sha256_ctx_t ctx0 = ctx1;
 

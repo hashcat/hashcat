@@ -251,18 +251,18 @@ KERNEL_FQ void m13713_init (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
    * keyboard layout shared
    */
 
-  const int keyboard_layout_mapping_cnt = esalt_bufs[DIGESTS_OFFSET].keyboard_layout_mapping_cnt;
+  const int keyboard_layout_mapping_cnt = esalt_bufs[DIGESTS_OFFSET_HOST].keyboard_layout_mapping_cnt;
 
   LOCAL_VK keyboard_layout_mapping_t s_keyboard_layout_mapping_buf[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
-    s_keyboard_layout_mapping_buf[i] = esalt_bufs[DIGESTS_OFFSET].keyboard_layout_mapping_buf[i];
+    s_keyboard_layout_mapping_buf[i] = esalt_bufs[DIGESTS_OFFSET_HOST].keyboard_layout_mapping_buf[i];
   }
 
   SYNC_THREADS ();
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * base
@@ -307,7 +307,7 @@ KERNEL_FQ void m13713_init (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 
   hc_execute_keyboard_layout_mapping (w, pw_len, s_keyboard_layout_mapping_buf, keyboard_layout_mapping_cnt);
 
-  pw_len = hc_apply_keyfile_vc (w, pw_len, &esalt_bufs[DIGESTS_OFFSET]);
+  pw_len = hc_apply_keyfile_vc (w, pw_len, &esalt_bufs[DIGESTS_OFFSET_HOST]);
 
   ripemd160_hmac_ctx_t ripemd160_hmac_ctx;
 
@@ -325,7 +325,7 @@ KERNEL_FQ void m13713_init (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
   tmps[gid].opad[3] = ripemd160_hmac_ctx.opad.h[3];
   tmps[gid].opad[4] = ripemd160_hmac_ctx.opad.h[4];
 
-  ripemd160_hmac_update_global (&ripemd160_hmac_ctx, esalt_bufs[DIGESTS_OFFSET].salt_buf, 64);
+  ripemd160_hmac_update_global (&ripemd160_hmac_ctx, esalt_bufs[DIGESTS_OFFSET_HOST].salt_buf, 64);
 
   for (u32 i = 0, j = 1; i < 48; i += 5, j += 1)
   {
@@ -375,23 +375,23 @@ KERNEL_FQ void m13713_loop (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= gid_max) return;
+  if ((gid * VECT_SIZE) >= GID_MAX) return;
 
   // this is the pim range check
   // it is guaranteed that only 0 or 1 innerloops will match a "pim" mark (each 1000 iterations)
   // therefore the module limits the inner loop iteration count to 1000
   // if the key_pim is set, we know that we have to save and check the key for this pim
 
-  const int pim_multi = esalt_bufs[DIGESTS_OFFSET].pim_multi;
-  const int pim_start = esalt_bufs[DIGESTS_OFFSET].pim_start;
-  const int pim_stop  = esalt_bufs[DIGESTS_OFFSET].pim_stop;
+  const int pim_multi = esalt_bufs[DIGESTS_OFFSET_HOST].pim_multi;
+  const int pim_start = esalt_bufs[DIGESTS_OFFSET_HOST].pim_start;
+  const int pim_stop  = esalt_bufs[DIGESTS_OFFSET_HOST].pim_stop;
 
   int pim    = 0;
   int pim_at = 0;
 
-  for (u32 j = 0; j < loop_cnt; j++)
+  for (u32 j = 0; j < LOOP_CNT; j++)
   {
-    const int iter_abs = 1 + loop_pos + j;
+    const int iter_abs = 1 + LOOP_POS + j;
 
     if ((iter_abs % pim_multi) == pim_multi - 1)
     {
@@ -440,7 +440,7 @@ KERNEL_FQ void m13713_loop (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
     out[3] = packv (tmps, out, gid, i + 3);
     out[4] = packv (tmps, out, gid, i + 4);
 
-    for (u32 j = 0; j < loop_cnt; j++)
+    for (u32 j = 0; j < LOOP_CNT; j++)
     {
       u32x w0[4];
       u32x w1[4];
@@ -559,7 +559,7 @@ KERNEL_FQ void m13713_loop_extended (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   const u32 pim_check = tmps[gid].pim_check;
 
@@ -641,13 +641,13 @@ KERNEL_FQ void m13713_comp (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   if (tmps[gid].pim)
   {
     if (hc_atomic_inc (&hashes_shown[0]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, 0, gid, 0, 0, 0);
     }
   }
   else
@@ -656,7 +656,7 @@ KERNEL_FQ void m13713_comp (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
     {
       if (hc_atomic_inc (&hashes_shown[0]) == 0)
       {
-        mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, 0, gid, 0, 0, 0);
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, 0, gid, 0, 0, 0);
       }
     }
 
@@ -664,7 +664,7 @@ KERNEL_FQ void m13713_comp (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
     {
       if (hc_atomic_inc (&hashes_shown[0]) == 0)
       {
-        mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, 0, gid, 0, 0, 0);
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, 0, gid, 0, 0, 0);
       }
     }
 
@@ -672,7 +672,7 @@ KERNEL_FQ void m13713_comp (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
     {
       if (hc_atomic_inc (&hashes_shown[0]) == 0)
       {
-        mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, 0, gid, 0, 0, 0);
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, 0, gid, 0, 0, 0);
       }
     }
   }

@@ -53,7 +53,7 @@ KERNEL_FQ void m11100_mxx (KERN_ATTR_BASIC ())
 
   SYNC_THREADS ();
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * salt
@@ -61,21 +61,21 @@ KERNEL_FQ void m11100_mxx (KERN_ATTR_BASIC ())
 
   u32 challenge;
 
-  challenge = salt_bufs[SALT_POS].salt_buf[0];
+  challenge = salt_bufs[SALT_POS_HOST].salt_buf[0];
 
   u32 salt_buf0[4];
   u32 salt_buf1[4];
 
-  salt_buf0[0] = salt_bufs[SALT_POS].salt_buf[1]; // not a bug, see challenge
-  salt_buf0[1] = salt_bufs[SALT_POS].salt_buf[2];
-  salt_buf0[2] = salt_bufs[SALT_POS].salt_buf[3];
-  salt_buf0[3] = salt_bufs[SALT_POS].salt_buf[4];
-  salt_buf1[0] = salt_bufs[SALT_POS].salt_buf[5];
-  salt_buf1[1] = salt_bufs[SALT_POS].salt_buf[6];
-  salt_buf1[2] = salt_bufs[SALT_POS].salt_buf[7];
-  salt_buf1[3] = salt_bufs[SALT_POS].salt_buf[8];
+  salt_buf0[0] = salt_bufs[SALT_POS_HOST].salt_buf[1]; // not a bug, see challenge
+  salt_buf0[1] = salt_bufs[SALT_POS_HOST].salt_buf[2];
+  salt_buf0[2] = salt_bufs[SALT_POS_HOST].salt_buf[3];
+  salt_buf0[3] = salt_bufs[SALT_POS_HOST].salt_buf[4];
+  salt_buf1[0] = salt_bufs[SALT_POS_HOST].salt_buf[5];
+  salt_buf1[1] = salt_bufs[SALT_POS_HOST].salt_buf[6];
+  salt_buf1[2] = salt_bufs[SALT_POS_HOST].salt_buf[7];
+  salt_buf1[3] = salt_bufs[SALT_POS_HOST].salt_buf[8];
 
-  const u32 salt_len = salt_bufs[SALT_POS].salt_len - 4;
+  const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len - 4;
 
   /**
    * base
@@ -91,7 +91,7 @@ KERNEL_FQ void m11100_mxx (KERN_ATTR_BASIC ())
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
     md5_ctx_t ctx1 = ctx0t;
 
@@ -197,7 +197,7 @@ KERNEL_FQ void m11100_sxx (KERN_ATTR_BASIC ())
 
   SYNC_THREADS ();
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * digest
@@ -205,10 +205,10 @@ KERNEL_FQ void m11100_sxx (KERN_ATTR_BASIC ())
 
   const u32 search[4] =
   {
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R3]
   };
 
   /**
@@ -217,21 +217,21 @@ KERNEL_FQ void m11100_sxx (KERN_ATTR_BASIC ())
 
   u32 challenge;
 
-  challenge = salt_bufs[SALT_POS].salt_buf[0];
+  challenge = salt_bufs[SALT_POS_HOST].salt_buf[0];
 
   u32 salt_buf0[4];
   u32 salt_buf1[4];
 
-  salt_buf0[0] = salt_bufs[SALT_POS].salt_buf[1]; // not a bug, see challenge
-  salt_buf0[1] = salt_bufs[SALT_POS].salt_buf[2];
-  salt_buf0[2] = salt_bufs[SALT_POS].salt_buf[3];
-  salt_buf0[3] = salt_bufs[SALT_POS].salt_buf[4];
-  salt_buf1[0] = salt_bufs[SALT_POS].salt_buf[5];
-  salt_buf1[1] = salt_bufs[SALT_POS].salt_buf[6];
-  salt_buf1[2] = salt_bufs[SALT_POS].salt_buf[7];
-  salt_buf1[3] = salt_bufs[SALT_POS].salt_buf[8];
+  salt_buf0[0] = salt_bufs[SALT_POS_HOST].salt_buf[1]; // not a bug, see challenge
+  salt_buf0[1] = salt_bufs[SALT_POS_HOST].salt_buf[2];
+  salt_buf0[2] = salt_bufs[SALT_POS_HOST].salt_buf[3];
+  salt_buf0[3] = salt_bufs[SALT_POS_HOST].salt_buf[4];
+  salt_buf1[0] = salt_bufs[SALT_POS_HOST].salt_buf[5];
+  salt_buf1[1] = salt_bufs[SALT_POS_HOST].salt_buf[6];
+  salt_buf1[2] = salt_bufs[SALT_POS_HOST].salt_buf[7];
+  salt_buf1[3] = salt_bufs[SALT_POS_HOST].salt_buf[8];
 
-  const u32 salt_len = salt_bufs[SALT_POS].salt_len - 4;
+  const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len - 4;
 
   /**
    * base
@@ -247,7 +247,7 @@ KERNEL_FQ void m11100_sxx (KERN_ATTR_BASIC ())
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
     md5_ctx_t ctx1 = ctx0t;
 

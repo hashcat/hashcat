@@ -133,19 +133,19 @@ KERNEL_FQ void m05400_m04 (KERN_ATTR_RULES_ESALT (ikepsk_t))
 
   for (u32 i = lid; i < 16; i += lsz)
   {
-    s_nr_buf[i] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].nr_buf[i]);
+    s_nr_buf[i] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].nr_buf[i]);
   }
 
   LOCAL_VK u32 s_msg_buf[128];
 
   for (u32 i = lid; i < 128; i += lsz)
   {
-    s_msg_buf[i] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].msg_buf[i]);
+    s_msg_buf[i] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].msg_buf[i]);
   }
 
   SYNC_THREADS ();
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * base
@@ -169,14 +169,14 @@ KERNEL_FQ void m05400_m04 (KERN_ATTR_RULES_ESALT (ikepsk_t))
    * salt
    */
 
-  const u32 nr_len  = esalt_bufs[DIGESTS_OFFSET].nr_len;
-  const u32 msg_len = esalt_bufs[DIGESTS_OFFSET].msg_len[5];
+  const u32 nr_len  = esalt_bufs[DIGESTS_OFFSET_HOST].nr_len;
+  const u32 msg_len = esalt_bufs[DIGESTS_OFFSET_HOST].msg_len[5];
 
   /**
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     u32x w0[4] = { 0 };
     u32x w1[4] = { 0 };
@@ -317,19 +317,19 @@ KERNEL_FQ void m05400_s04 (KERN_ATTR_RULES_ESALT (ikepsk_t))
 
   for (u32 i = lid; i < 16; i += lsz)
   {
-    s_nr_buf[i] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].nr_buf[i]);
+    s_nr_buf[i] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].nr_buf[i]);
   }
 
   LOCAL_VK u32 s_msg_buf[128];
 
   for (u32 i = lid; i < 128; i += lsz)
   {
-    s_msg_buf[i] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].msg_buf[i]);
+    s_msg_buf[i] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].msg_buf[i]);
   }
 
   SYNC_THREADS ();
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * base
@@ -353,8 +353,8 @@ KERNEL_FQ void m05400_s04 (KERN_ATTR_RULES_ESALT (ikepsk_t))
    * salt
    */
 
-  const u32 nr_len  = esalt_bufs[DIGESTS_OFFSET].nr_len;
-  const u32 msg_len = esalt_bufs[DIGESTS_OFFSET].msg_len[5];
+  const u32 nr_len  = esalt_bufs[DIGESTS_OFFSET_HOST].nr_len;
+  const u32 msg_len = esalt_bufs[DIGESTS_OFFSET_HOST].msg_len[5];
 
   /**
    * digest
@@ -362,17 +362,17 @@ KERNEL_FQ void m05400_s04 (KERN_ATTR_RULES_ESALT (ikepsk_t))
 
   const u32 search[4] =
   {
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R3]
   };
 
   /**
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     u32x w0[4] = { 0 };
     u32x w1[4] = { 0 };

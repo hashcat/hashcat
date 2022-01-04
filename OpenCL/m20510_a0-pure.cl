@@ -511,7 +511,7 @@ KERNEL_FQ void m20510_sxx (KERN_ATTR_RULES ())
 
   SYNC_THREADS ();
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * digest
@@ -535,15 +535,15 @@ KERNEL_FQ void m20510_sxx (KERN_ATTR_RULES ())
    * reverse
    */
 
-  u32 prep0 = hc_swap32_S (digests_buf[DIGESTS_OFFSET].digest_buf[0]);
-  u32 prep1 = hc_swap32_S (digests_buf[DIGESTS_OFFSET].digest_buf[1]);
-  u32 prep2 = hc_swap32_S (digests_buf[DIGESTS_OFFSET].digest_buf[2]);
+  u32 prep0 = hc_swap32_S (digests_buf[DIGESTS_OFFSET_HOST].digest_buf[0]);
+  u32 prep1 = hc_swap32_S (digests_buf[DIGESTS_OFFSET_HOST].digest_buf[1]);
+  u32 prep2 = hc_swap32_S (digests_buf[DIGESTS_OFFSET_HOST].digest_buf[2]);
 
   /**
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     pw_t t = PASTE_PW;
 

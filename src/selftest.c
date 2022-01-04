@@ -46,8 +46,8 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     device_param->kernel_params[18] = &device_param->opencl_d_st_esalts_buf;
   }
 
-  device_param->kernel_params_buf32[31] = 1;
-  device_param->kernel_params_buf32[32] = 0;
+  device_param->kernel_param.digests_cnt = 1;
+  device_param->kernel_param.digests_offset_host = 0;
 
   // password : move the known password into a fake buffer
 
@@ -82,7 +82,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   {
     if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
     {
-      device_param->kernel_params_buf32[30] = 1;
+      device_param->kernel_param.il_cnt = 1;
     }
 
     memset (&pw, 0, sizeof (pw));
@@ -116,7 +116,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     {
       if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
       {
-        device_param->kernel_params_buf32[30] = 1;
+        device_param->kernel_param.il_cnt = 1;
 
         memset (&pw, 0, sizeof (pw));
 
@@ -150,8 +150,8 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
       }
       else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
       {
-        device_param->kernel_params_buf32[30] = 1;
-        device_param->kernel_params_buf32[33] = COMBINATOR_MODE_BASE_LEFT;
+        device_param->kernel_param.il_cnt = 1;
+        device_param->kernel_param.combs_mode = COMBINATOR_MODE_BASE_LEFT;
 
         memset (&pw, 0, sizeof (pw));
 
@@ -219,7 +219,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
       }
       else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
       {
-        device_param->kernel_params_buf32[30] = 1;
+        device_param->kernel_param.il_cnt = 1;
 
         if (hashconfig->opts_type & OPTS_TYPE_TM_KERNEL)
         {
@@ -547,7 +547,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     for (u32 salt_repeat = 0; salt_repeat <= salt_repeats; salt_repeat++)
     {
-      device_param->kernel_params_buf32[34] = salt_repeat;
+      device_param->kernel_param.salt_repeat = salt_repeat;
 
       if (hashconfig->opts_type & OPTS_TYPE_LOOP_PREPARE)
       {
@@ -562,8 +562,8 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
         loop_left = MIN (loop_left, loop_step);
 
-        device_param->kernel_params_buf32[28] = loop_pos;
-        device_param->kernel_params_buf32[29] = loop_left;
+        device_param->kernel_param.loop_pos = loop_pos;
+        device_param->kernel_param.loop_cnt = loop_left;
 
         if (run_kernel (hashcat_ctx, device_param, KERN_RUN_2, 0, 1, false, 0) == -1) return -1;
 
@@ -623,7 +623,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     for (u32 salt_repeat = 0; salt_repeat <= salt_repeats; salt_repeat++)
     {
-      device_param->kernel_params_buf32[34] = salt_repeat;
+      device_param->kernel_param.salt_repeat = salt_repeat;
 
       if (hashconfig->opts_type & OPTS_TYPE_LOOP2_PREPARE)
       {
@@ -640,8 +640,8 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
           loop_left = MIN (loop_left, loop_step);
 
-          device_param->kernel_params_buf32[28] = loop_pos;
-          device_param->kernel_params_buf32[29] = loop_left;
+          device_param->kernel_param.loop_pos = loop_pos;
+          device_param->kernel_param.loop_cnt = loop_left;
 
           if (run_kernel (hashcat_ctx, device_param, KERN_RUN_LOOP2, 0, 1, false, 0) == -1) return -1;
         }
@@ -650,8 +650,8 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     if (hashconfig->opts_type & OPTS_TYPE_DEEP_COMP_KERNEL)
     {
-      device_param->kernel_params_buf32[28] = 0;
-      device_param->kernel_params_buf32[29] = 1;
+      device_param->kernel_param.loop_pos = 0;
+      device_param->kernel_param.loop_cnt = 1;
 
       if (hashconfig->opts_type & OPTS_TYPE_AUX1)
       {
@@ -710,13 +710,14 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   // finish : cleanup and restore
 
-  device_param->kernel_params_buf32[28] = 0;
-  device_param->kernel_params_buf32[29] = 0;
-  device_param->kernel_params_buf32[30] = 0;
-  device_param->kernel_params_buf32[31] = 0;
-  device_param->kernel_params_buf32[32] = 0;
-  device_param->kernel_params_buf32[33] = 0;
-  device_param->kernel_params_buf32[34] = 0;
+  // ??? bug because not set ??? device_param->kernel_param.salt_pos_host        = 0;
+  device_param->kernel_param.loop_pos             = 0;
+  device_param->kernel_param.loop_cnt             = 0;
+  device_param->kernel_param.il_cnt               = 0;
+  device_param->kernel_param.digests_cnt          = 0;
+  device_param->kernel_param.digests_offset_host  = 0;
+  device_param->kernel_param.combs_mode           = 0;
+  device_param->kernel_param.salt_repeat          = 0;
 
   if (device_param->is_cuda == true)
   {

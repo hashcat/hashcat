@@ -41,13 +41,13 @@ KERNEL_FQ void m09400_init (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   sha1_ctx_t ctx;
 
   sha1_init (&ctx);
 
-  sha1_update_global (&ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
+  sha1_update_global (&ctx, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
   sha1_update_global_utf16le_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
@@ -64,7 +64,7 @@ KERNEL_FQ void m09400_loop (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= gid_max) return;
+  if ((gid * VECT_SIZE) >= GID_MAX) return;
 
   u32x t0 = packv (tmps, out, gid, 0);
   u32x t1 = packv (tmps, out, gid, 1);
@@ -94,7 +94,7 @@ KERNEL_FQ void m09400_loop (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t
   w3[2] = 0;
   w3[3] = (4 + 20) * 8;
 
-  for (u32 i = 0, j = loop_pos; i < loop_cnt; i++, j++)
+  for (u32 i = 0, j = LOOP_POS; i < LOOP_CNT; i++, j++)
   {
     w0[0] = hc_swap32 (j);
     w0[1] = t0;
@@ -184,7 +184,7 @@ KERNEL_FQ void m09400_comp (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * base
@@ -274,10 +274,10 @@ KERNEL_FQ void m09400_comp (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t
 
   u32 verifier[4];
 
-  verifier[0] = esalt_bufs[DIGESTS_OFFSET].encryptedVerifier[0];
-  verifier[1] = esalt_bufs[DIGESTS_OFFSET].encryptedVerifier[1];
-  verifier[2] = esalt_bufs[DIGESTS_OFFSET].encryptedVerifier[2];
-  verifier[3] = esalt_bufs[DIGESTS_OFFSET].encryptedVerifier[3];
+  verifier[0] = esalt_bufs[DIGESTS_OFFSET_HOST].encryptedVerifier[0];
+  verifier[1] = esalt_bufs[DIGESTS_OFFSET_HOST].encryptedVerifier[1];
+  verifier[2] = esalt_bufs[DIGESTS_OFFSET_HOST].encryptedVerifier[2];
+  verifier[3] = esalt_bufs[DIGESTS_OFFSET_HOST].encryptedVerifier[3];
 
   u32 data[4];
 

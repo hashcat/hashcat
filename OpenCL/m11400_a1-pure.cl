@@ -63,7 +63,7 @@ KERNEL_FQ void m11400_mxx (KERN_ATTR_ESALT (sip_t))
 
   SYNC_THREADS ();
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * base
@@ -73,7 +73,7 @@ KERNEL_FQ void m11400_mxx (KERN_ATTR_ESALT (sip_t))
 
   md5_init (&ctx0);
 
-  md5_update_global (&ctx0, esalt_bufs[DIGESTS_OFFSET].salt_buf, esalt_bufs[DIGESTS_OFFSET].salt_len);
+  md5_update_global (&ctx0, esalt_bufs[DIGESTS_OFFSET_HOST].salt_buf, esalt_bufs[DIGESTS_OFFSET_HOST].salt_len);
 
   md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
 
@@ -81,7 +81,7 @@ KERNEL_FQ void m11400_mxx (KERN_ATTR_ESALT (sip_t))
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
     md5_ctx_t ctx1 = ctx0;
 
@@ -117,7 +117,7 @@ KERNEL_FQ void m11400_mxx (KERN_ATTR_ESALT (sip_t))
 
     ctx.len = 32;
 
-    md5_update_global (&ctx, esalt_bufs[DIGESTS_OFFSET].esalt_buf, esalt_bufs[DIGESTS_OFFSET].esalt_len);
+    md5_update_global (&ctx, esalt_bufs[DIGESTS_OFFSET_HOST].esalt_buf, esalt_bufs[DIGESTS_OFFSET_HOST].esalt_len);
 
     md5_final (&ctx);
 
@@ -157,7 +157,7 @@ KERNEL_FQ void m11400_sxx (KERN_ATTR_ESALT (sip_t))
 
   SYNC_THREADS ();
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_MAX) return;
 
   /**
    * digest
@@ -165,10 +165,10 @@ KERNEL_FQ void m11400_sxx (KERN_ATTR_ESALT (sip_t))
 
   const u32 search[4] =
   {
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R3]
   };
 
   /**
@@ -179,7 +179,7 @@ KERNEL_FQ void m11400_sxx (KERN_ATTR_ESALT (sip_t))
 
   md5_init (&ctx0);
 
-  md5_update_global (&ctx0, esalt_bufs[DIGESTS_OFFSET].salt_buf, esalt_bufs[DIGESTS_OFFSET].salt_len);
+  md5_update_global (&ctx0, esalt_bufs[DIGESTS_OFFSET_HOST].salt_buf, esalt_bufs[DIGESTS_OFFSET_HOST].salt_len);
 
   md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
 
@@ -187,7 +187,7 @@ KERNEL_FQ void m11400_sxx (KERN_ATTR_ESALT (sip_t))
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
     md5_ctx_t ctx1 = ctx0;
 
@@ -223,7 +223,7 @@ KERNEL_FQ void m11400_sxx (KERN_ATTR_ESALT (sip_t))
 
     ctx.len = 32;
 
-    md5_update_global (&ctx, esalt_bufs[DIGESTS_OFFSET].esalt_buf, esalt_bufs[DIGESTS_OFFSET].esalt_len);
+    md5_update_global (&ctx, esalt_bufs[DIGESTS_OFFSET_HOST].esalt_buf, esalt_bufs[DIGESTS_OFFSET_HOST].esalt_len);
 
     md5_final (&ctx);
 
