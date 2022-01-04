@@ -302,7 +302,7 @@ KERNEL_FQ void m22700_init (KERN_ATTR_TMPS (scrypt_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 w[128] = { 0 };
 
@@ -430,7 +430,7 @@ KERNEL_FQ void m22700_loop_prepare (KERN_ATTR_TMPS (scrypt_tmp_t))
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   // SCRYPT part, init V
 
@@ -457,7 +457,7 @@ KERNEL_FQ void m22700_loop (KERN_ATTR_TMPS (scrypt_tmp_t))
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   GLOBAL_AS uint4 *d_scrypt0_buf = (GLOBAL_AS uint4 *) d_extra0_buf;
   GLOBAL_AS uint4 *d_scrypt1_buf = (GLOBAL_AS uint4 *) d_extra1_buf;
@@ -534,7 +534,7 @@ KERNEL_FQ void m22700_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * 2nd pbkdf2, creates B

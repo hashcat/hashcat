@@ -123,7 +123,7 @@ KERNEL_FQ void m19900_init (KERN_ATTR_TMPS_ESALT (krb5pa_18_tmp_t, krb5pa_18_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * main
@@ -201,7 +201,7 @@ KERNEL_FQ void m19900_loop (KERN_ATTR_TMPS_ESALT (krb5pa_18_tmp_t, krb5pa_18_t))
 
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= GID_MAX) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u32x ipad[5];
   u32x opad[5];
@@ -343,7 +343,7 @@ KERNEL_FQ void m19900_comp (KERN_ATTR_TMPS_ESALT (krb5pa_18_tmp_t, krb5pa_18_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /*
     at this point, the output ('seed') will be used to generate AES keys:

@@ -376,7 +376,7 @@ KERNEL_FQ void m01720_m04 (KERN_ATTR_BASIC ())
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 w0[4];
 
@@ -423,7 +423,7 @@ KERNEL_FQ void m01720_m08 (KERN_ATTR_BASIC ())
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 w0[4];
 
@@ -470,7 +470,7 @@ KERNEL_FQ void m01720_m16 (KERN_ATTR_BASIC ())
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 w0[4];
 
@@ -517,7 +517,7 @@ KERNEL_FQ void m01720_s04 (KERN_ATTR_BASIC ())
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 w0[4];
 
@@ -564,7 +564,7 @@ KERNEL_FQ void m01720_s08 (KERN_ATTR_BASIC ())
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 w0[4];
 
@@ -611,7 +611,7 @@ KERNEL_FQ void m01720_s16 (KERN_ATTR_BASIC ())
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 w0[4];
 

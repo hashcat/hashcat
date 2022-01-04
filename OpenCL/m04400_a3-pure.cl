@@ -54,7 +54,7 @@ KERNEL_FQ void m04400_mxx (KERN_ATTR_VECTOR ())
 
   SYNC_THREADS ();
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -162,7 +162,7 @@ KERNEL_FQ void m04400_sxx (KERN_ATTR_VECTOR ())
 
   SYNC_THREADS ();
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * digest

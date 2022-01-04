@@ -76,7 +76,7 @@ KERNEL_FQ void m23100_init (KERN_ATTR_TMPS_ESALT (keychain_tmp_t, keychain_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   sha1_hmac_ctx_t sha1_hmac_ctx;
 
@@ -144,7 +144,7 @@ KERNEL_FQ void m23100_loop (KERN_ATTR_TMPS_ESALT (keychain_tmp_t, keychain_t))
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= GID_MAX) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u32x ipad[5];
   u32x opad[5];
@@ -274,7 +274,7 @@ KERNEL_FQ void m23100_comp (KERN_ATTR_TMPS_ESALT (keychain_tmp_t, keychain_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 key[6];
 

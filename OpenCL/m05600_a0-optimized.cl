@@ -144,7 +144,7 @@ KERNEL_FQ void m05600_m04 (KERN_ATTR_RULES_ESALT (netntlm_t))
 
   SYNC_THREADS ();
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   const u32 userdomain_len = esalt_bufs[DIGESTS_OFFSET_HOST].user_len
                            + esalt_bufs[DIGESTS_OFFSET_HOST].domain_len;
@@ -383,7 +383,7 @@ KERNEL_FQ void m05600_s04 (KERN_ATTR_RULES_ESALT (netntlm_t))
 
   SYNC_THREADS ();
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   const u32 userdomain_len = esalt_bufs[DIGESTS_OFFSET_HOST].user_len
                            + esalt_bufs[DIGESTS_OFFSET_HOST].domain_len;

@@ -106,7 +106,7 @@ KERNEL_FQ void m02501_init (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
 {
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 in[16];
 
@@ -152,7 +152,7 @@ KERNEL_FQ void m02501_loop (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
 {
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 }
 
 KERNEL_FQ void m02501_comp (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
@@ -164,7 +164,7 @@ KERNEL_FQ void m02501_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
 {
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 out0[4];
   u32 out1[4];
@@ -349,7 +349,7 @@ KERNEL_FQ void m02501_aux2 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
 {
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 out0[4];
   u32 out1[4];
@@ -565,7 +565,7 @@ KERNEL_FQ void m02501_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 out0[4];
   u32 out1[4];

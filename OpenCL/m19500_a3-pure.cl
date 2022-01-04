@@ -63,7 +63,7 @@ KERNEL_FQ void m19500_mxx (KERN_ATTR_VECTOR_ESALT (devise_hash_t))
 
   SYNC_THREADS ();
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -209,7 +209,7 @@ KERNEL_FQ void m19500_sxx (KERN_ATTR_VECTOR_ESALT (devise_hash_t))
 
   SYNC_THREADS ();
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * digest

@@ -103,7 +103,7 @@ KERNEL_FQ void m24630_init (KERN_ATTR_TMPS_ESALT (sqlcipher_sha512_tmp_t, sqlcip
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   sha512_hmac_ctx_t sha512_hmac_ctx;
 
@@ -203,7 +203,7 @@ KERNEL_FQ void m24630_loop (KERN_ATTR_TMPS_ESALT (sqlcipher_sha512_tmp_t, sqlcip
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= GID_MAX) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u64x ipad[8];
   u64x opad[8];
@@ -382,7 +382,7 @@ KERNEL_FQ void m24630_comp (KERN_ATTR_TMPS_ESALT (sqlcipher_sha512_tmp_t, sqlcip
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 ukey[8];
 

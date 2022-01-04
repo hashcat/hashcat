@@ -54,7 +54,7 @@ KERNEL_FQ void m04510_m04 (KERN_ATTR_RULES ())
 
   SYNC_THREADS ();
 
-  if (gid >= GID_MAX)
+  if (gid >= GID_CNT)
     return;
 
   /**
@@ -1053,7 +1053,7 @@ KERNEL_FQ void m04510_s04 (KERN_ATTR_RULES ())
 
   SYNC_THREADS ();
 
-  if (gid >= GID_MAX)
+  if (gid >= GID_CNT)
     return;
 
   /**

@@ -84,7 +84,7 @@ KERNEL_FQ void m16600_m04 (KERN_ATTR_ESALT (electrum_wallet_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -554,7 +554,7 @@ KERNEL_FQ void m16600_s04 (KERN_ATTR_ESALT (electrum_wallet_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base

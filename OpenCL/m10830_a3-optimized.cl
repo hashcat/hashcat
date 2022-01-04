@@ -321,7 +321,7 @@ KERNEL_FQ void m10830_m04 (KERN_ATTR_VECTOR ())
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 w[16];
 
@@ -359,7 +359,7 @@ KERNEL_FQ void m10830_m08 (KERN_ATTR_VECTOR ())
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 w[16];
 
@@ -397,7 +397,7 @@ KERNEL_FQ void m10830_m16 (KERN_ATTR_VECTOR ())
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 w[16];
 
@@ -435,7 +435,7 @@ KERNEL_FQ void m10830_s04 (KERN_ATTR_VECTOR ())
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 w[16];
 
@@ -473,7 +473,7 @@ KERNEL_FQ void m10830_s08 (KERN_ATTR_VECTOR ())
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 w[16];
 
@@ -511,7 +511,7 @@ KERNEL_FQ void m10830_s16 (KERN_ATTR_VECTOR ())
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 w[16];
 

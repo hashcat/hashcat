@@ -97,7 +97,7 @@ KERNEL_FQ void m11300_init (KERN_ATTR_TMPS_ESALT (bitcoin_wallet_tmp_t, bitcoin_
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   sha512_ctx_t ctx;
 
@@ -123,7 +123,7 @@ KERNEL_FQ void m11300_loop (KERN_ATTR_TMPS_ESALT (bitcoin_wallet_tmp_t, bitcoin_
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= GID_MAX) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u64x t0 = pack64v (tmps, dgst, gid, 0);
   u64x t1 = pack64v (tmps, dgst, gid, 1);
@@ -268,7 +268,7 @@ KERNEL_FQ void m11300_comp (KERN_ATTR_TMPS_ESALT (bitcoin_wallet_tmp_t, bitcoin_
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * real code

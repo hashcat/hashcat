@@ -83,7 +83,7 @@ KERNEL_FQ void m10900_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   sha256_hmac_ctx_t sha256_hmac_ctx;
 
@@ -163,7 +163,7 @@ KERNEL_FQ void m10900_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= GID_MAX) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u32x ipad[8];
   u32x opad[8];
@@ -273,7 +273,7 @@ KERNEL_FQ void m10900_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   const u64 lid = get_local_id (0);
 

@@ -101,7 +101,7 @@ KERNEL_FQ void m23500_init (KERN_ATTR_TMPS_ESALT (axcrypt2_tmp_t, axcrypt2_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   sha512_hmac_ctx_t sha512_hmac_ctx;
 
@@ -201,7 +201,7 @@ KERNEL_FQ void m23500_loop (KERN_ATTR_TMPS_ESALT (axcrypt2_tmp_t, axcrypt2_t))
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= GID_MAX) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u64x ipad[8];
   u64x opad[8];
@@ -331,7 +331,7 @@ KERNEL_FQ void m23500_init2 (KERN_ATTR_TMPS_ESALT (axcrypt2_tmp_t, axcrypt2_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 out[16];
 
@@ -438,7 +438,7 @@ KERNEL_FQ void m23500_loop2 (KERN_ATTR_TMPS_ESALT (axcrypt2_tmp_t, axcrypt2_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 ukey[4];
 
@@ -506,7 +506,7 @@ KERNEL_FQ void m23500_comp (KERN_ATTR_TMPS_ESALT (axcrypt2_tmp_t, axcrypt2_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   if ((tmps[gid].data[0] == 0xa6a6a6a6) &&
       (tmps[gid].data[1] == 0xa6a6a6a6))

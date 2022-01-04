@@ -538,7 +538,7 @@ KERNEL_FQ void m27000_init (KERN_ATTR_TMPS_ESALT (netntlm_tmp_t, netntlm_t))
   const u64 lid = get_local_id (0);
   const u64 lsz = get_local_size (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * salt
@@ -627,7 +627,7 @@ KERNEL_FQ void m27000_comp (KERN_ATTR_TMPS_ESALT (netntlm_tmp_t, netntlm_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base

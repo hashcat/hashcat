@@ -39,7 +39,7 @@ KERNEL_FQ void m09600_init (KERN_ATTR_TMPS_ESALT (office2013_tmp_t, office2013_t
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   sha512_ctx_t ctx;
 
@@ -65,7 +65,7 @@ KERNEL_FQ void m09600_loop (KERN_ATTR_TMPS_ESALT (office2013_tmp_t, office2013_t
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= GID_MAX) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u64x t0 = pack64v (tmps, out, gid, 0);
   u64x t1 = pack64v (tmps, out, gid, 1);
@@ -228,7 +228,7 @@ KERNEL_FQ void m09600_comp (KERN_ATTR_TMPS_ESALT (office2013_tmp_t, office2013_t
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base

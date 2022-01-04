@@ -84,7 +84,7 @@ KERNEL_FQ void m18900_init (KERN_ATTR_TMPS_ESALT (android_backup_tmp_t, android_
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   sha1_hmac_ctx_t sha1_hmac_ctx;
 
@@ -152,7 +152,7 @@ KERNEL_FQ void m18900_loop (KERN_ATTR_TMPS_ESALT (android_backup_tmp_t, android_
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= GID_MAX) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u32x ipad[5];
   u32x opad[5];
@@ -290,7 +290,7 @@ KERNEL_FQ void m18900_comp (KERN_ATTR_TMPS_ESALT (android_backup_tmp_t, android_
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * aes

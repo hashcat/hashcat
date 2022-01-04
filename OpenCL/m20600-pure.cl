@@ -33,7 +33,7 @@ KERNEL_FQ void m20600_init (KERN_ATTR_TMPS (omt_sha256_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * init
@@ -67,7 +67,7 @@ KERNEL_FQ void m20600_loop (KERN_ATTR_TMPS (omt_sha256_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= GID_MAX) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   /**
    * init
@@ -144,7 +144,7 @@ KERNEL_FQ void m20600_comp (KERN_ATTR_TMPS (omt_sha256_tmp_t))
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * digest

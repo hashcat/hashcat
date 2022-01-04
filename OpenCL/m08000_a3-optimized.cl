@@ -274,7 +274,7 @@ DECLSPEC void m08000m (LOCAL_AS u32 *w_s1, LOCAL_AS u32 *w_s2, u32 *w, const u32
 
   SYNC_THREADS ();
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * modifier
@@ -396,7 +396,7 @@ DECLSPEC void m08000s (LOCAL_AS u32 *w_s1, LOCAL_AS u32 *w_s2, u32 *w, const u32
 
   SYNC_THREADS ();
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * modifier

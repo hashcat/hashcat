@@ -119,7 +119,7 @@ KERNEL_FQ void m00150_m04 (KERN_ATTR_RULES ())
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 pw_buf0[4];
   u32 pw_buf1[4];
@@ -241,7 +241,7 @@ KERNEL_FQ void m00150_s04 (KERN_ATTR_RULES ())
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 pw_buf0[4];
   u32 pw_buf1[4];

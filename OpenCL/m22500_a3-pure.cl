@@ -88,7 +88,7 @@ KERNEL_FQ void m22500_mxx (KERN_ATTR_VECTOR ())
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -399,7 +399,7 @@ KERNEL_FQ void m22500_sxx (KERN_ATTR_VECTOR ())
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base

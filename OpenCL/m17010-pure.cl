@@ -215,7 +215,7 @@ KERNEL_FQ void m17010_init (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 {
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   const u32 pw_len = pws[gid].pw_len;
   const u32 salted_pw_len = (salt_bufs[SALT_POS_HOST].salt_len + pw_len);
@@ -264,7 +264,7 @@ KERNEL_FQ void m17010_loop_prepare (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 {
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   tmps[gid].w0[0] = 0;
   tmps[gid].w0[1] = 0;
@@ -290,7 +290,7 @@ KERNEL_FQ void m17010_loop (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 {
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   // get the prepared buffer from the gpg_tmp_t struct into a local buffer
   u32 salted_pw_block[80];
@@ -406,7 +406,7 @@ KERNEL_FQ void m17010_aux1 (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   // retrieve and use the SHA-1 as the key for AES
 
@@ -476,7 +476,7 @@ KERNEL_FQ void m17010_aux2 (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   // retrieve and use the SHA-1 as the key for AES
 

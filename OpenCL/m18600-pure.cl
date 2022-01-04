@@ -459,7 +459,7 @@ KERNEL_FQ void m18600_init (KERN_ATTR_TMPS_ESALT (odf11_tmp_t, odf11_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   sha1_ctx_t sha1_ctx;
 
@@ -557,7 +557,7 @@ KERNEL_FQ void m18600_loop (KERN_ATTR_TMPS_ESALT (odf11_tmp_t, odf11_t))
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= GID_MAX) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u32x ipad[5];
   u32x opad[5];
@@ -641,7 +641,7 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE_COMP) m18600_comp (KERN_ATTR_
   const u64 lid = get_local_id (0);
   const u64 lsz = get_local_size (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base

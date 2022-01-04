@@ -203,7 +203,7 @@ KERNEL_FQ void m26402_m04 (KERN_ATTR_VECTOR ())
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -294,7 +294,7 @@ KERNEL_FQ void m26402_m08 (KERN_ATTR_VECTOR ())
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -389,7 +389,7 @@ KERNEL_FQ void m26402_s04 (KERN_ATTR_VECTOR ())
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -480,7 +480,7 @@ KERNEL_FQ void m26402_s08 (KERN_ATTR_VECTOR ())
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base

@@ -25,7 +25,7 @@ KERNEL_FQ void m27200_mxx (KERN_ATTR_RULES ())
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   const u32 dash[16] = { 0x2d2d0000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
@@ -81,7 +81,7 @@ KERNEL_FQ void m27200_sxx (KERN_ATTR_RULES ())
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   const u32 dash[16] = { 0x2d2d0000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 

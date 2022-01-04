@@ -96,7 +96,7 @@ KERNEL_FQ void m28100_init (KERN_ATTR_TMPS_ESALT (winhello_tmp_t, winhello_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -207,7 +207,7 @@ KERNEL_FQ void m28100_loop (KERN_ATTR_TMPS_ESALT (winhello_tmp_t, winhello_t))
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= GID_MAX) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u32x ipad[8];
   u32x opad[8];
@@ -317,7 +317,7 @@ KERNEL_FQ void m28100_comp (KERN_ATTR_TMPS_ESALT (winhello_tmp_t, winhello_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   const u64 lid = get_local_id (0);
 

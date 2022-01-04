@@ -55,7 +55,7 @@ KERNEL_FQ void m11100_mxx (KERN_ATTR_RULES ())
 
   SYNC_THREADS ();
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * salt
@@ -201,7 +201,7 @@ KERNEL_FQ void m11100_sxx (KERN_ATTR_RULES ())
 
   SYNC_THREADS ();
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * digest

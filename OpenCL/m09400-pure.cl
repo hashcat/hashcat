@@ -41,7 +41,7 @@ KERNEL_FQ void m09400_init (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   sha1_ctx_t ctx;
 
@@ -64,7 +64,7 @@ KERNEL_FQ void m09400_loop (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= GID_MAX) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u32x t0 = packv (tmps, out, gid, 0);
   u32x t1 = packv (tmps, out, gid, 1);
@@ -184,7 +184,7 @@ KERNEL_FQ void m09400_comp (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base

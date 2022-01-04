@@ -62,7 +62,7 @@ KERNEL_FQ void m25100_init (KERN_ATTR_TMPS_ESALT (hmac_md5_tmp_t, snmpv3_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -139,7 +139,7 @@ KERNEL_FQ void m25100_loop (KERN_ATTR_TMPS_ESALT (hmac_md5_tmp_t, snmpv3_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 h[4];
 
@@ -236,7 +236,7 @@ KERNEL_FQ void m25100_comp (KERN_ATTR_TMPS_ESALT (hmac_md5_tmp_t, snmpv3_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 w0[4];
   u32 w1[4];

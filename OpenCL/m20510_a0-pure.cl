@@ -511,7 +511,7 @@ KERNEL_FQ void m20510_sxx (KERN_ATTR_RULES ())
 
   SYNC_THREADS ();
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * digest

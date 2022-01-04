@@ -100,7 +100,7 @@ KERNEL_FQ void m20013_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcrypt
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   sha512_hmac_ctx_t sha512_hmac_ctx;
 
@@ -200,7 +200,7 @@ KERNEL_FQ void m20013_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcrypt
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= GID_MAX) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u64x ipad[8];
   u64x opad[8];
@@ -379,7 +379,7 @@ KERNEL_FQ void m20013_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, diskcrypt
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   #define il_pos 0
 

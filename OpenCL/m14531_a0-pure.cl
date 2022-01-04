@@ -68,7 +68,7 @@ KERNEL_FQ void m14531_mxx (KERN_ATTR_RULES_ESALT (cryptoapi_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -225,7 +225,7 @@ KERNEL_FQ void m14531_sxx (KERN_ATTR_RULES_ESALT (cryptoapi_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base

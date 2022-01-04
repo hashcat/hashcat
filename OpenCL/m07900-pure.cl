@@ -28,7 +28,7 @@ KERNEL_FQ void m07900_init (KERN_ATTR_TMPS (drupal7_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   sha512_ctx_t ctx;
 
@@ -58,7 +58,7 @@ KERNEL_FQ void m07900_loop (KERN_ATTR_TMPS (drupal7_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * init
@@ -212,7 +212,7 @@ KERNEL_FQ void m07900_comp (KERN_ATTR_TMPS (drupal7_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   const u64 lid = get_local_id (0);
 

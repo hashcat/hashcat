@@ -32,7 +32,7 @@ KERNEL_FQ void m14542_mxx (KERN_ATTR_RULES_ESALT (cryptoapi_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -172,7 +172,7 @@ KERNEL_FQ void m14542_sxx (KERN_ATTR_RULES_ESALT (cryptoapi_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base

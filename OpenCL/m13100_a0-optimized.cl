@@ -462,7 +462,7 @@ KERNEL_FQ void m13100_m04 (KERN_ATTR_RULES_ESALT (krb5tgs_t))
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -558,7 +558,7 @@ KERNEL_FQ void m13100_s04 (KERN_ATTR_RULES_ESALT (krb5tgs_t))
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base

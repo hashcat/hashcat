@@ -899,7 +899,7 @@ KERNEL_FQ void m23002_m04 (KERN_ATTR_VECTOR_ESALT (securezip_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 w[16];
 
@@ -990,7 +990,7 @@ KERNEL_FQ void m23002_m08 (KERN_ATTR_VECTOR_ESALT (securezip_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 w[16];
 
@@ -1081,7 +1081,7 @@ KERNEL_FQ void m23002_m16 (KERN_ATTR_VECTOR_ESALT (securezip_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 w[16];
 
@@ -1172,7 +1172,7 @@ KERNEL_FQ void m23002_s04 (KERN_ATTR_VECTOR_ESALT (securezip_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 w[16];
 
@@ -1263,7 +1263,7 @@ KERNEL_FQ void m23002_s08 (KERN_ATTR_VECTOR_ESALT (securezip_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 w[16];
 
@@ -1354,7 +1354,7 @@ KERNEL_FQ void m23002_s16 (KERN_ATTR_VECTOR_ESALT (securezip_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 w[16];
 

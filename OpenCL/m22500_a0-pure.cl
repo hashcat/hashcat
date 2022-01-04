@@ -90,7 +90,7 @@ KERNEL_FQ void m22500_mxx (KERN_ATTR_RULES ())
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   COPY_PW (pws[gid]);
 
@@ -386,7 +386,7 @@ KERNEL_FQ void m22500_sxx (KERN_ATTR_RULES ())
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   COPY_PW (pws[gid]);
 

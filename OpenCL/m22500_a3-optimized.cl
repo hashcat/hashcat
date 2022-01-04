@@ -665,7 +665,7 @@ KERNEL_FQ void m22500_m04 (KERN_ATTR_VECTOR ())
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -760,7 +760,7 @@ KERNEL_FQ void m22500_m08 (KERN_ATTR_VECTOR ())
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -855,7 +855,7 @@ KERNEL_FQ void m22500_m16 (KERN_ATTR_VECTOR ())
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -950,7 +950,7 @@ KERNEL_FQ void m22500_s04 (KERN_ATTR_VECTOR ())
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -1045,7 +1045,7 @@ KERNEL_FQ void m22500_s08 (KERN_ATTR_VECTOR ())
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -1140,7 +1140,7 @@ KERNEL_FQ void m22500_s16 (KERN_ATTR_VECTOR ())
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base

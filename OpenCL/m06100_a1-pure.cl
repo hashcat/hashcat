@@ -66,7 +66,7 @@ KERNEL_FQ void m06100_mxx (KERN_ATTR_BASIC ())
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -151,7 +151,7 @@ KERNEL_FQ void m06100_sxx (KERN_ATTR_BASIC ())
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * digest

@@ -19,7 +19,7 @@
 #define COMBS_MODE          kernel_param->combs_mode
 #define SALT_REPEAT         kernel_param->salt_repeat
 #define PWS_POS             kernel_param->pws_pos
-#define GID_MAX             kernel_param->gid_max
+#define GID_CNT             kernel_param->gid_max
 #else
 #define BITMAP_MASK         kernel_param->bitmap_mask
 #define BITMAP_SHIFT1       kernel_param->bitmap_shift1
@@ -33,7 +33,7 @@
 #define COMBS_MODE          kernel_param->combs_mode
 #define SALT_REPEAT         kernel_param->salt_repeat
 #define PWS_POS             kernel_param->pws_pos
-#define GID_MAX             kernel_param->gid_max
+#define GID_CNT             kernel_param->gid_max
 #endif
 
 #ifdef IS_CUDA

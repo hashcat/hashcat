@@ -33,7 +33,7 @@ KERNEL_FQ void m23900_init (KERN_ATTR_TMPS_ESALT (bestcrypt_tmp_t, bestcrypt_t))
 {
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   const int salt_pw_len = 8 + MIN (pws[gid].pw_len, 56);
 
@@ -107,7 +107,7 @@ KERNEL_FQ void m23900_loop (KERN_ATTR_TMPS_ESALT (bestcrypt_tmp_t, bestcrypt_t))
 {
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   const int salt_pw_len = 8 + MIN (pws[gid].pw_len, 56);
 
@@ -308,7 +308,7 @@ KERNEL_FQ void m23900_comp (KERN_ATTR_TMPS_ESALT (bestcrypt_tmp_t, bestcrypt_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   // final transform of sha256:
 

@@ -25,7 +25,7 @@ KERNEL_FQ void m13300_mxx (KERN_ATTR_RULES ())
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -71,7 +71,7 @@ KERNEL_FQ void m13300_sxx (KERN_ATTR_RULES ())
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * digest

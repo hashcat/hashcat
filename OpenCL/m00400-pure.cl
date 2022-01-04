@@ -31,7 +31,7 @@ KERNEL_FQ void m00400_init (KERN_ATTR_TMPS (phpass_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * init
@@ -68,7 +68,7 @@ KERNEL_FQ void m00400_loop (KERN_ATTR_TMPS (phpass_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * init
@@ -170,7 +170,7 @@ KERNEL_FQ void m00400_comp (KERN_ATTR_TMPS (phpass_tmp_t))
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * digest

@@ -65,7 +65,7 @@ KERNEL_FQ void m27100_init (KERN_ATTR_TMPS_ESALT (netntlm_tmp_t, netntlm_t))
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -115,7 +115,7 @@ KERNEL_FQ void m27100_comp (KERN_ATTR_TMPS_ESALT (netntlm_tmp_t, netntlm_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   const u64 lid = get_local_id (0);
 

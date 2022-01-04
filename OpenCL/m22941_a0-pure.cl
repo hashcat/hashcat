@@ -83,7 +83,7 @@ KERNEL_FQ void m22941_mxx (KERN_ATTR_RULES_ESALT (pem_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * digest
@@ -310,7 +310,7 @@ KERNEL_FQ void m22941_sxx (KERN_ATTR_RULES_ESALT (pem_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * digest
