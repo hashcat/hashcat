@@ -104,7 +104,7 @@ KERNEL_FQ void m06213_init (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
 
   SYNC_THREADS ();
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -217,7 +217,7 @@ KERNEL_FQ void m06213_loop (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= GID_MAX) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u32x ipad[5];
   u32x opad[5];
@@ -355,7 +355,7 @@ KERNEL_FQ void m06213_comp (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 ukey1[8];
 

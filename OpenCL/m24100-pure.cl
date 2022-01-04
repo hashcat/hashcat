@@ -100,7 +100,7 @@ KERNEL_FQ void m24100_init (KERN_ATTR_TMPS_ESALT (mongodb_sha1_tmp_t, mongodb_sh
 
   SYNC_THREADS ();
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   md5_ctx_t md5_ctx;
 
@@ -203,7 +203,7 @@ KERNEL_FQ void m24100_loop (KERN_ATTR_TMPS_ESALT (mongodb_sha1_tmp_t, mongodb_sh
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= GID_MAX) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u32x ipad[5];
   u32x opad[5];
@@ -292,7 +292,7 @@ KERNEL_FQ void m24100_comp (KERN_ATTR_TMPS_ESALT (mongodb_sha1_tmp_t, mongodb_sh
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   const u64 lid = get_local_id (0);
 

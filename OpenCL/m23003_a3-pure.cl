@@ -81,7 +81,7 @@ KERNEL_FQ void m23003_mxx (KERN_ATTR_VECTOR_ESALT (securezip_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -339,7 +339,7 @@ KERNEL_FQ void m23003_sxx (KERN_ATTR_VECTOR_ESALT (securezip_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base

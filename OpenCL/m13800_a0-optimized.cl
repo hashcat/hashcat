@@ -451,7 +451,7 @@ KERNEL_FQ void m13800_m04 (KERN_ATTR_RULES_ESALT (win8phone_t))
 
   SYNC_THREADS ();
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * loop
@@ -647,7 +647,7 @@ KERNEL_FQ void m13800_s04 (KERN_ATTR_RULES_ESALT (win8phone_t))
 
   SYNC_THREADS ();
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * digest

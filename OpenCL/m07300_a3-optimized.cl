@@ -365,7 +365,7 @@ KERNEL_FQ void m07300_m04 (KERN_ATTR_ESALT (rakp_t))
 
   SYNC_THREADS ();
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -431,7 +431,7 @@ KERNEL_FQ void m07300_m08 (KERN_ATTR_ESALT (rakp_t))
 
   SYNC_THREADS ();
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -497,7 +497,7 @@ KERNEL_FQ void m07300_m16 (KERN_ATTR_ESALT (rakp_t))
 
   SYNC_THREADS ();
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -563,7 +563,7 @@ KERNEL_FQ void m07300_s04 (KERN_ATTR_ESALT (rakp_t))
 
   SYNC_THREADS ();
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -629,7 +629,7 @@ KERNEL_FQ void m07300_s08 (KERN_ATTR_ESALT (rakp_t))
 
   SYNC_THREADS ();
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -695,7 +695,7 @@ KERNEL_FQ void m07300_s16 (KERN_ATTR_ESALT (rakp_t))
 
   SYNC_THREADS ();
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base

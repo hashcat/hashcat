@@ -78,7 +78,7 @@ KERNEL_FQ void m06800_init (KERN_ATTR_TMPS (lastpass_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   sha256_hmac_ctx_t sha256_hmac_ctx;
 
@@ -158,7 +158,7 @@ KERNEL_FQ void m06800_loop (KERN_ATTR_TMPS (lastpass_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= GID_MAX) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u32x ipad[8];
   u32x opad[8];
@@ -317,7 +317,7 @@ KERNEL_FQ void m06800_comp (KERN_ATTR_TMPS (lastpass_tmp_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 ukey[8];
 

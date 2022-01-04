@@ -168,7 +168,7 @@ KERNEL_FQ void m13721_init (KERN_ATTR_TMPS_ESALT (vc64_tmp_t, vc_t))
 
   SYNC_THREADS ();
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -313,7 +313,7 @@ KERNEL_FQ void m13721_loop (KERN_ATTR_TMPS_ESALT (vc64_tmp_t, vc_t))
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= GID_MAX) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   // this is the pim range check
   // it is guaranteed that only 0 or 1 innerloops will match a "pim" mark (each 1000 iterations)
@@ -541,7 +541,7 @@ KERNEL_FQ void m13721_loop_extended (KERN_ATTR_TMPS_ESALT (vc64_tmp_t, vc_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   const u32 pim_check = tmps[gid].pim_check;
 
@@ -613,7 +613,7 @@ KERNEL_FQ void m13721_comp (KERN_ATTR_TMPS_ESALT (vc64_tmp_t, vc_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   if (tmps[gid].pim)
   {

@@ -39,7 +39,7 @@ KERNEL_FQ void m12500_init (KERN_ATTR_TMPS (rar3_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   tmps[gid].dgst[0][0] = SHA1M_A;
   tmps[gid].dgst[0][1] = SHA1M_B;
@@ -52,7 +52,7 @@ KERNEL_FQ void m12500_loop (KERN_ATTR_TMPS (rar3_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 pw_buf[10];
 
@@ -294,7 +294,7 @@ KERNEL_FQ void m12500_comp (KERN_ATTR_TMPS (rar3_tmp_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base

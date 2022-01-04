@@ -678,7 +678,7 @@ KERNEL_FQ void m11100_m04 (KERN_ATTR_BASIC ())
 
   SYNC_THREADS ();
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * modifier
@@ -748,7 +748,7 @@ KERNEL_FQ void m11100_m08 (KERN_ATTR_BASIC ())
 
   SYNC_THREADS ();
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * modifier
@@ -818,7 +818,7 @@ KERNEL_FQ void m11100_m16 (KERN_ATTR_BASIC ())
 
   SYNC_THREADS ();
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * modifier
@@ -888,7 +888,7 @@ KERNEL_FQ void m11100_s04 (KERN_ATTR_BASIC ())
 
   SYNC_THREADS ();
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * modifier
@@ -958,7 +958,7 @@ KERNEL_FQ void m11100_s08 (KERN_ATTR_BASIC ())
 
   SYNC_THREADS ();
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * modifier
@@ -1028,7 +1028,7 @@ KERNEL_FQ void m11100_s16 (KERN_ATTR_BASIC ())
 
   SYNC_THREADS ();
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * modifier

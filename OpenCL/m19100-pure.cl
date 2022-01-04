@@ -31,7 +31,7 @@ KERNEL_FQ void m19100_init (KERN_ATTR_TMPS (qnx_sha256_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * init
@@ -56,7 +56,7 @@ KERNEL_FQ void m19100_loop (KERN_ATTR_TMPS (qnx_sha256_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   sha256_ctx_t sha256_ctx = tmps[gid].sha256_ctx;
 
@@ -77,7 +77,7 @@ KERNEL_FQ void m19100_comp (KERN_ATTR_TMPS (qnx_sha256_tmp_t))
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   sha256_ctx_t sha256_ctx = tmps[gid].sha256_ctx;
 

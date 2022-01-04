@@ -557,7 +557,7 @@ KERNEL_FQ void m17225_sxx (KERN_ATTR_ESALT (pkzip_t))
 
   SYNC_THREADS ();
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * prefetch from global memory
@@ -886,7 +886,7 @@ KERNEL_FQ void m17225_mxx (KERN_ATTR_ESALT (pkzip_t))
 
   SYNC_THREADS ();
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * prefetch from global memory

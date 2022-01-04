@@ -34,7 +34,7 @@ KERNEL_FQ void m16513_mxx (KERN_ATTR_RULES_ESALT (jwt_t))
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -78,7 +78,7 @@ KERNEL_FQ void m16513_sxx (KERN_ATTR_RULES_ESALT (jwt_t))
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * digest

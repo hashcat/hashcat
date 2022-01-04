@@ -53,7 +53,7 @@ KERNEL_FQ void m13400_init (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   sha256_ctx_t ctx;
 
@@ -203,7 +203,7 @@ KERNEL_FQ void m13400_loop (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /* Construct AES key */
 
@@ -309,7 +309,7 @@ KERNEL_FQ void m13400_comp (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /* hash output... */
 

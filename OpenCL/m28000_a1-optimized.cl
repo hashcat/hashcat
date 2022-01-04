@@ -224,7 +224,7 @@ KERNEL_FQ void m28000_m04 (KERN_ATTR_ESALT (crc64_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * Base
@@ -396,7 +396,7 @@ KERNEL_FQ void m28000_s04 (KERN_ATTR_ESALT (crc64_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * Base

@@ -73,7 +73,7 @@ KERNEL_FQ void m26403_m04 (KERN_ATTR_RULES ())
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * modifier
@@ -211,7 +211,7 @@ KERNEL_FQ void m26403_s04 (KERN_ATTR_RULES ())
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * modifier

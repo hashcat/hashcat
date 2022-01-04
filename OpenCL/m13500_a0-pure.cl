@@ -35,7 +35,7 @@ KERNEL_FQ void m13500_mxx (KERN_ATTR_RULES_ESALT (pstoken_t))
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * salt
@@ -110,7 +110,7 @@ KERNEL_FQ void m13500_sxx (KERN_ATTR_RULES_ESALT (pstoken_t))
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * digest

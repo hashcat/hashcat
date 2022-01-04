@@ -519,7 +519,7 @@ KERNEL_FQ void m24700_m04 (KERN_ATTR_BASIC ())
 
   const u32 pw_len = pws[gid].pw_len & 63;
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * main
@@ -570,7 +570,7 @@ KERNEL_FQ void m24700_m08 (KERN_ATTR_BASIC ())
 
   const u32 pw_len = pws[gid].pw_len & 63;
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * main
@@ -621,7 +621,7 @@ KERNEL_FQ void m24700_m16 (KERN_ATTR_BASIC ())
 
   const u32 pw_len = pws[gid].pw_len & 63;
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * main
@@ -672,7 +672,7 @@ KERNEL_FQ void m24700_s04 (KERN_ATTR_BASIC ())
 
   const u32 pw_len = pws[gid].pw_len & 63;
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * main
@@ -723,7 +723,7 @@ KERNEL_FQ void m24700_s08 (KERN_ATTR_BASIC ())
 
   const u32 pw_len = pws[gid].pw_len & 63;
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * main
@@ -774,7 +774,7 @@ KERNEL_FQ void m24700_s16 (KERN_ATTR_BASIC ())
 
   const u32 pw_len = pws[gid].pw_len & 63;
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * main

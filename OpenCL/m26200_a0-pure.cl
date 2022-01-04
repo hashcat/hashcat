@@ -44,7 +44,7 @@ KERNEL_FQ void m26200_mxx (KERN_ATTR_RULES ())
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -137,7 +137,7 @@ KERNEL_FQ void m26200_sxx (KERN_ATTR_RULES ())
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * digest

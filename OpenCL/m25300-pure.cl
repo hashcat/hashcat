@@ -31,7 +31,7 @@ KERNEL_FQ void m25300_init (KERN_ATTR_TMPS (office2016_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   sha512_ctx_t ctx;
 
@@ -57,7 +57,7 @@ KERNEL_FQ void m25300_loop (KERN_ATTR_TMPS (office2016_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= GID_MAX) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u64x t0 = pack64v (tmps, out, gid, 0);
   u64x t1 = pack64v (tmps, out, gid, 1);
@@ -167,7 +167,7 @@ KERNEL_FQ void m25300_comp (KERN_ATTR_TMPS (office2016_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   const u32 r0 = l32_from_64_S (tmps[gid].out[7]);
   const u32 r1 = h32_from_64_S (tmps[gid].out[7]);

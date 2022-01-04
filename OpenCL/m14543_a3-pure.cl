@@ -30,7 +30,7 @@ KERNEL_FQ void m14543_mxx (KERN_ATTR_VECTOR_ESALT (cryptoapi_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -176,7 +176,7 @@ KERNEL_FQ void m14543_sxx (KERN_ATTR_VECTOR_ESALT (cryptoapi_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * digest

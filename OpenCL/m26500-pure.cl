@@ -81,7 +81,7 @@ KERNEL_FQ void m26500_init (KERN_ATTR_TMPS_ESALT (iphone_passcode_tmp_t, iphone_
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   sha1_hmac_ctx_t sha1_hmac_ctx0;
 
@@ -206,7 +206,7 @@ KERNEL_FQ void m26500_loop (KERN_ATTR_TMPS_ESALT (iphone_passcode_tmp_t, iphone_
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   // load stuff
 
@@ -355,7 +355,7 @@ KERNEL_FQ void m26500_comp (KERN_ATTR_TMPS_ESALT (iphone_passcode_tmp_t, iphone_
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * aes

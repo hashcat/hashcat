@@ -52,7 +52,7 @@ KERNEL_FQ void m01100_m04 (KERN_ATTR_BASIC ())
 
   SYNC_THREADS ();
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   #define salt_buf00 s_salt_buf[0].salt_buf[ 0]
   #define salt_buf01 s_salt_buf[0].salt_buf[ 1]
@@ -333,7 +333,7 @@ KERNEL_FQ void m01100_s04 (KERN_ATTR_BASIC ())
 
   SYNC_THREADS ();
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   #define salt_buf00 s_salt_buf[0].salt_buf[ 0]
   #define salt_buf01 s_salt_buf[0].salt_buf[ 1]

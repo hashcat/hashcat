@@ -62,7 +62,7 @@ KERNEL_FQ void m26900_init (KERN_ATTR_TMPS_ESALT (hmac_sha384_tmp_t, snmpv3_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -159,7 +159,7 @@ KERNEL_FQ void m26900_loop (KERN_ATTR_TMPS_ESALT (hmac_sha384_tmp_t, snmpv3_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u64 h[8];
 
@@ -304,7 +304,7 @@ KERNEL_FQ void m26900_comp (KERN_ATTR_TMPS_ESALT (hmac_sha384_tmp_t, snmpv3_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 w0[4];
   u32 w1[4];

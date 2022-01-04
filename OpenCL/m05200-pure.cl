@@ -31,7 +31,7 @@ KERNEL_FQ void m05200_init (KERN_ATTR_TMPS (pwsafe3_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   sha256_ctx_t ctx;
 
@@ -57,7 +57,7 @@ KERNEL_FQ void m05200_loop (KERN_ATTR_TMPS (pwsafe3_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= GID_MAX) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u32x digest[8];
 
@@ -128,7 +128,7 @@ KERNEL_FQ void m05200_comp (KERN_ATTR_TMPS (pwsafe3_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   const u64 lid = get_local_id (0);
 

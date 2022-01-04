@@ -52,7 +52,7 @@ KERNEL_FQ void m11860_mxx (KERN_ATTR_BASIC ())
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -161,7 +161,7 @@ KERNEL_FQ void m11860_sxx (KERN_ATTR_BASIC ())
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * digest

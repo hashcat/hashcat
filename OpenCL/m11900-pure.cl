@@ -75,7 +75,7 @@ KERNEL_FQ void m11900_init (KERN_ATTR_TMPS_ESALT (pbkdf2_md5_tmp_t, pbkdf2_md5_t
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   md5_hmac_ctx_t md5_hmac_ctx;
 
@@ -139,7 +139,7 @@ KERNEL_FQ void m11900_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_md5_tmp_t, pbkdf2_md5_t
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= GID_MAX) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u32x ipad[4];
   u32x opad[4];
@@ -221,7 +221,7 @@ KERNEL_FQ void m11900_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_md5_tmp_t, pbkdf2_md5_t
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   const u64 lid = get_local_id (0);
 

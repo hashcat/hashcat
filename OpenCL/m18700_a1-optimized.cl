@@ -67,7 +67,7 @@ KERNEL_FQ void m18700_m04 (KERN_ATTR_BASIC ())
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * loop
@@ -119,7 +119,7 @@ KERNEL_FQ void m18700_s04 (KERN_ATTR_BASIC ())
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * digest

@@ -549,7 +549,7 @@ KERNEL_FQ void m05500_mxx (KERN_ATTR_VECTOR ())
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * salt
@@ -693,7 +693,7 @@ KERNEL_FQ void m05500_sxx (KERN_ATTR_VECTOR ())
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * digest

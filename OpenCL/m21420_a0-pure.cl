@@ -26,7 +26,7 @@ KERNEL_FQ void m21420_mxx (KERN_ATTR_RULES ())
   const u64 lid = get_local_id (0);
   const u64 lsz = get_local_size (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -121,7 +121,7 @@ KERNEL_FQ void m21420_sxx (KERN_ATTR_RULES ())
   const u64 lid = get_local_id (0);
   const u64 lsz = get_local_size (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * digest

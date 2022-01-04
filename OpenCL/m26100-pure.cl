@@ -86,7 +86,7 @@ KERNEL_FQ void m26100_init (KERN_ATTR_TMPS_ESALT (mozilla_aes_tmp_t, mozilla_aes
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   sha1_ctx_t ctx;
 
@@ -207,7 +207,7 @@ KERNEL_FQ void m26100_loop (KERN_ATTR_TMPS_ESALT (mozilla_aes_tmp_t, mozilla_aes
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= GID_MAX) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u32x ipad[8];
   u32x opad[8];
@@ -366,7 +366,7 @@ KERNEL_FQ void m26100_comp (KERN_ATTR_TMPS_ESALT (mozilla_aes_tmp_t, mozilla_aes
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 ukey[8];
 

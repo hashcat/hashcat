@@ -133,7 +133,7 @@ KERNEL_FQ void m07300_m04 (KERN_ATTR_ESALT (rakp_t))
 
   SYNC_THREADS ();
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 pw_buf0[4];
   u32 pw_buf1[4];
@@ -337,7 +337,7 @@ KERNEL_FQ void m07300_s04 (KERN_ATTR_ESALT (rakp_t))
 
   SYNC_THREADS ();
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 pw_buf0[4];
   u32 pw_buf1[4];

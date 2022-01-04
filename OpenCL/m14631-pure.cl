@@ -161,7 +161,7 @@ KERNEL_FQ void m14631_init (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   sha512_hmac_ctx_t sha512_hmac_ctx;
 
@@ -263,7 +263,7 @@ KERNEL_FQ void m14631_loop (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= GID_MAX) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u64x ipad[8];
   u64x opad[8];
@@ -444,7 +444,7 @@ KERNEL_FQ void m14631_comp (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   // decrypt AF with first pbkdf2 result
   // merge AF to masterkey

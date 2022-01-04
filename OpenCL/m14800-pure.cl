@@ -119,7 +119,7 @@ KERNEL_FQ void m14800_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, itunes_ba
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   sha256_hmac_ctx_t sha256_hmac_ctx;
 
@@ -216,7 +216,7 @@ KERNEL_FQ void m14800_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, itunes_ba
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= GID_MAX) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u32x ipad[8];
   u32x opad[8];
@@ -326,7 +326,7 @@ KERNEL_FQ void m14800_init2 (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, itunes_b
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 w0[4];
   u32 w1[4];
@@ -411,7 +411,7 @@ KERNEL_FQ void m14800_loop2 (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, itunes_b
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= GID_MAX) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u32x ipad[5];
   u32x opad[5];
@@ -549,7 +549,7 @@ KERNEL_FQ void m14800_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, itunes_ba
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * aes

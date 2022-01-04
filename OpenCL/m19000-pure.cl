@@ -31,7 +31,7 @@ KERNEL_FQ void m19000_init (KERN_ATTR_TMPS (qnx_md5_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * init
@@ -56,7 +56,7 @@ KERNEL_FQ void m19000_loop (KERN_ATTR_TMPS (qnx_md5_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   md5_ctx_t md5_ctx = tmps[gid].md5_ctx;
 
@@ -77,7 +77,7 @@ KERNEL_FQ void m19000_comp (KERN_ATTR_TMPS (qnx_md5_tmp_t))
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   md5_ctx_t md5_ctx = tmps[gid].md5_ctx;
 

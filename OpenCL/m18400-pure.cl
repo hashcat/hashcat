@@ -82,7 +82,7 @@ KERNEL_FQ void m18400_init (KERN_ATTR_TMPS_ESALT (odf12_tmp_t, odf12_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   sha256_ctx_t sha256_ctx;
 
@@ -183,7 +183,7 @@ KERNEL_FQ void m18400_loop (KERN_ATTR_TMPS_ESALT (odf12_tmp_t, odf12_t))
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= GID_MAX) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u32x ipad[5];
   u32x opad[5];
@@ -322,7 +322,7 @@ KERNEL_FQ void m18400_comp (KERN_ATTR_TMPS_ESALT (odf12_tmp_t, odf12_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base

@@ -430,7 +430,7 @@ KERNEL_FQ void m09820_m04 (KERN_ATTR_ESALT (oldoffice34_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 w0[4];
 
@@ -479,7 +479,7 @@ KERNEL_FQ void m09820_m08 (KERN_ATTR_ESALT (oldoffice34_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 w0[4];
 
@@ -528,7 +528,7 @@ KERNEL_FQ void m09820_m16 (KERN_ATTR_ESALT (oldoffice34_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 w0[4];
 
@@ -577,7 +577,7 @@ KERNEL_FQ void m09820_s04 (KERN_ATTR_ESALT (oldoffice34_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 w0[4];
 
@@ -626,7 +626,7 @@ KERNEL_FQ void m09820_s08 (KERN_ATTR_ESALT (oldoffice34_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 w0[4];
 
@@ -675,7 +675,7 @@ KERNEL_FQ void m09820_s16 (KERN_ATTR_ESALT (oldoffice34_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   u32 w0[4];
 

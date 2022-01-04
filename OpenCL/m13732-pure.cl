@@ -299,7 +299,7 @@ KERNEL_FQ void m13732_init (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -500,7 +500,7 @@ KERNEL_FQ void m13732_loop (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   // this is the pim range check
   // it is guaranteed that only 0 or 1 innerloops will match a "pim" mark (each 1000 iterations)
@@ -772,7 +772,7 @@ KERNEL_FQ void m13732_loop_extended (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   const u32 pim_check = tmps[gid].pim_check;
 
@@ -849,7 +849,7 @@ KERNEL_FQ void m13732_comp (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 
   #endif
 
-  if (gid >= GID_MAX) return;
+  if (gid >= GID_CNT) return;
 
   if (tmps[gid].pim)
   {
