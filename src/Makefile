@@ -315,7 +315,7 @@ endif
 endif # FreeBSD
 
 ifeq ($(UNAME),Darwin)
-export MACOSX_DEPLOYMENT_TARGET=10.9
+export MACOSX_DEPLOYMENT_TARGET=10.15
 CFLAGS_NATIVE           := $(CFLAGS)
 CFLAGS_NATIVE           += -DWITH_HWMON
 
@@ -324,7 +324,6 @@ CFLAGS_NATIVE           += -DMISSING_CLOCK_GETTIME
 endif
 
 LFLAGS_NATIVE           := $(LFLAGS)
-LFLAGS_NATIVE           += -framework OpenCL
 LFLAGS_NATIVE           += -framework IOKit
 LFLAGS_NATIVE           += -lpthread
 LFLAGS_NATIVE           += -liconv
