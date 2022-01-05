@@ -20,10 +20,11 @@
 ##
 
 - Fixed functional error when nonce-error-corrections that were set on the command line in hash-mode 22000/22001 were not accepted
-- Fixed method how OPTS_TYPE_AUX* kernels are called in association mode, for instance WPA/WPA2 kernels
+- Fixed handling of password candidates that are shorter than the minimum password length in Association Attack
+- Fixed method of how OPTS_TYPE_AUX* kernels are called in an association attack, for example in WPA/WPA2 kernel
 - Fixed missing option flag OPTS_TYPE_SUGGEST_KG for hash-mode 11600 to inform the user about possible false positives in this mode
 - Fixed undefined function call to hc_byte_perm_S() in hash-mode 17010 on non-CUDA compute devices
-- Fixed HEX wordlist handling in -m 3000 
+- Fixed wordlist handling in -m 3000 when candidate passwords use the $HEX[...] syntax
 
 ##
 ## Technical
