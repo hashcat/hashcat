@@ -31,7 +31,7 @@ UNAME                   := $(patsubst MSYS_NT-%,MSYS2,$(UNAME))
 UNAME                   := $(patsubst MINGW32_NT-%,MSYS2,$(UNAME))
 UNAME                   := $(patsubst MINGW64_NT-%,MSYS2,$(UNAME))
 
-ifeq (,$(filter $(UNAME),Linux FreeBSD Darwin CYGWIN MSYS2))
+ifeq (,$(filter $(UNAME),Linux FreeBSD NetBSD Darwin CYGWIN MSYS2))
 $(error "! Your Operating System ($(UNAME)) is not supported by this Makefile")
 endif
 
@@ -59,8 +59,6 @@ MODULE_INTERFACE_VERSION := 630
 ## Native compiler paths
 ##
 
-CC                      := gcc
-CXX                     := g++
 AR                      := ar
 FIND                    := find
 INSTALL                 := install
@@ -69,20 +67,9 @@ SED                     := sed
 SED_IN_PLACE            := -i
 
 ifeq ($(UNAME),Darwin)
-CC                      := clang
-CXX                     := clang++
-# the sed -i option of macOS requires a parameter for the backup file (we just use "")
-AR                      := /usr/bin/ar
-SED                     := /usr/bin/sed
-SED_IN_PLACE            := -i ""
 DARWIN_VERSION          := $(shell uname -r | cut -d. -f1)
 endif
 
-ifeq ($(UNAME),FreeBSD)
-CC                      := cc
-CXX                     := c++
-SED                     := gsed
-endif
 
 ##
 ## Version
@@ -230,7 +217,6 @@ endif
 endif
 
 ifeq ($(DEBUG),0)
-CFLAGS                  += -O2
 ifneq ($(UNAME),Darwin)
 LFLAGS                  += -s
 endif
@@ -313,6 +299,13 @@ LFLAGS_NATIVE           += -lm
 LFLAGS_NATIVE           += -liconv
 endif
 endif # FreeBSD
+
+ifeq ($(UNAME),NetBSD)
+CFLAGS_NATIVE           := $(CFLAGS)
+CFLAGS_NATIVE           += -I$(OPENCL_HEADERS_KHRONOS)/
+LFLAGS_NATIVE           := $(LFLAGS)
+LFLAGS_NATIVE           += -lpthread
+endif # NetBSD
 
 ifeq ($(UNAME),Darwin)
 export MACOSX_DEPLOYMENT_TARGET=10.9
@@ -458,10 +451,10 @@ distclean: clean
 # allow (whitelist) "make install" only on unix-based systems (also disallow cygwin/msys)
 
 ifneq ($(findstring install,$(MAKECMDGOALS)),)
-  ifeq (,$(filter $(UNAME),Linux FreeBSD Darwin))
+  ifeq (,$(filter $(UNAME),Linux FreeBSD Darwin NetBSD))
     define ERROR_INSTALL_DISALLOWED
 ! The 'install' target is not allowed on this operating system ($(UNAME)). \
-Only Linux, FreeBSD and Darwin can use the 'install' target
+Only Linux, FreeBSD, NetBSD and Darwin can use the 'install' target
     endef
 
     $(error $(ERROR_INSTALL_DISALLOWED))
@@ -639,8 +632,13 @@ endif
 $(MODULES_DISABLE): ;
 
 ifeq ($(SHARED),1)
+  ifeq ($(UNAME),Darwin)
+modules/module_%.$(MODULE_SUFFIX): src/modules/module_%.c $(HASHCAT_LIBRARY)
+	$(CC)    $(CCFLAGS) $(CFLAGS_NATIVE) $^ -o $@ $(LFLAGS_NATIVE) -install_name $(SHARED_FOLDER)/$@ -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
+  else
 modules/module_%.$(MODULE_SUFFIX): src/modules/module_%.c $(HASHCAT_LIBRARY)
 	$(CC)    $(CCFLAGS) $(CFLAGS_NATIVE) $^ -o $@ $(LFLAGS_NATIVE) -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
+  endif
 else
 modules/module_%.$(MODULE_SUFFIX): src/modules/module_%.c obj/combined.NATIVE.a
 	$(CC)    $(CCFLAGS) $(CFLAGS_NATIVE) $^ -o $@ $(LFLAGS_NATIVE) -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
