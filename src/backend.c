@@ -2776,18 +2776,62 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
     {
       if (hashconfig->opts_type & OPTS_TYPE_DEEP_COMP_KERNEL)
       {
-        const u32 loops_cnt = hashes->salts_buf[salt_pos].digests_cnt;
+        // module_ctx->module_deep_comp_kernel () would apply only on the first salt so we can't use it in -a 9 mode
+        // Instead we have to call all the registered AUX kernels
 
-        for (u32 loops_pos = 0; loops_pos < loops_cnt; loops_pos++)
+        if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
         {
-          device_param->kernel_param.loop_pos = loops_pos;
-          device_param->kernel_param.loop_cnt = loops_cnt;
+          const u32 loops_cnt = hashes->salts_buf[salt_pos].digests_cnt;
 
-          const u32 deep_comp_kernel = module_ctx->module_deep_comp_kernel (hashes, salt_pos, loops_pos);
+          for (u32 loops_pos = 0; loops_pos < loops_cnt; loops_pos++)
+          {
+            device_param->kernel_param.loop_pos = loops_pos;
+            device_param->kernel_param.loop_cnt = loops_cnt;
 
-          if (run_kernel (hashcat_ctx, device_param, deep_comp_kernel, pws_pos, pws_cnt, false, 0) == -1) return -1;
+            if (hashconfig->opts_type & OPTS_TYPE_AUX1)
+            {
+              if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX1, pws_pos, pws_cnt, false, 0) == -1) return -1;
 
-          if (status_ctx->run_thread_level2 == false) break;
+              if (status_ctx->run_thread_level2 == false) break;
+            }
+
+            if (hashconfig->opts_type & OPTS_TYPE_AUX2)
+            {
+              if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX2, pws_pos, pws_cnt, false, 0) == -1) return -1;
+
+              if (status_ctx->run_thread_level2 == false) break;
+            }
+
+            if (hashconfig->opts_type & OPTS_TYPE_AUX3)
+            {
+              if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX3, pws_pos, pws_cnt, false, 0) == -1) return -1;
+
+              if (status_ctx->run_thread_level2 == false) break;
+            }
+
+            if (hashconfig->opts_type & OPTS_TYPE_AUX4)
+            {
+              if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX4, pws_pos, pws_cnt, false, 0) == -1) return -1;
+
+              if (status_ctx->run_thread_level2 == false) break;
+            }
+          }
+        }
+        else
+        {
+          const u32 loops_cnt = hashes->salts_buf[salt_pos].digests_cnt;
+
+          for (u32 loops_pos = 0; loops_pos < loops_cnt; loops_pos++)
+          {
+            device_param->kernel_param.loop_pos = loops_pos;
+            device_param->kernel_param.loop_cnt = loops_cnt;
+
+            const u32 deep_comp_kernel = module_ctx->module_deep_comp_kernel (hashes, salt_pos, loops_pos);
+
+            if (run_kernel (hashcat_ctx, device_param, deep_comp_kernel, pws_pos, pws_cnt, false, 0) == -1) return -1;
+
+            if (status_ctx->run_thread_level2 == false) break;
+          }
         }
       }
       else

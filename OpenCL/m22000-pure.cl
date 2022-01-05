@@ -425,6 +425,9 @@ KERNEL_FQ void m22000_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_t))
 
   GLOBAL_AS const wpa_t *wpa = &esalt_bufs[digest_cur];
 
+  // this can occur on -a 9 because we are ignoring module_deep_comp_kernel()
+  if ((wpa->type != 2) && (wpa->keyver != 1)) return;
+
   u32 pke[32];
 
   pke[ 0] = wpa->pke[ 0];
@@ -614,6 +617,9 @@ KERNEL_FQ void m22000_aux2 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_t))
   const u32 digest_cur = DIGESTS_OFFSET_HOST + digest_pos;
 
   GLOBAL_AS const wpa_t *wpa = &esalt_bufs[digest_cur];
+
+  // this can occur on -a 9 because we are ignoring module_deep_comp_kernel()
+  if ((wpa->type != 2) && (wpa->keyver != 2)) return;
 
   u32 pke[32];
 
@@ -830,6 +836,9 @@ KERNEL_FQ void m22000_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_t))
   const u32 digest_cur = DIGESTS_OFFSET_HOST + digest_pos;
 
   GLOBAL_AS const wpa_t *wpa = &esalt_bufs[digest_cur];
+
+  // this can occur on -a 9 because we are ignoring module_deep_comp_kernel()
+  if ((wpa->type != 2) && (wpa->keyver != 3)) return;
 
   u32 pke[32];
 
@@ -1092,6 +1101,9 @@ KERNEL_FQ void m22000_aux4 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_t))
   const u32 digest_cur = DIGESTS_OFFSET_HOST + digest_pos;
 
   GLOBAL_AS const wpa_t *wpa = &esalt_bufs[digest_cur];
+
+  // this can occur on -a 9 because we are ignoring module_deep_comp_kernel()
+  if (wpa->type != 1) return;
 
   sha1_hmac_ctx_t sha1_hmac_ctx;
 
