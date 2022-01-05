@@ -10,12 +10,12 @@
 #define BITMAP_MASK         kernel_param->bitmap_mask
 #define BITMAP_SHIFT1       kernel_param->bitmap_shift1
 #define BITMAP_SHIFT2       kernel_param->bitmap_shift2
-#define SALT_POS_HOST       (pws_pos + gid)
+#define SALT_POS_HOST       (kernel_param->pws_pos + gid)
 #define LOOP_POS            kernel_param->loop_pos
 #define LOOP_CNT            kernel_param->loop_cnt
 #define IL_CNT              kernel_param->il_cnt
 #define DIGESTS_CNT         1
-#define DIGESTS_OFFSET_HOST (pws_pos + gid)
+#define DIGESTS_OFFSET_HOST (kernel_param->pws_pos + gid)
 #define COMBS_MODE          kernel_param->combs_mode
 #define SALT_REPEAT         kernel_param->salt_repeat
 #define PWS_POS             kernel_param->pws_pos
