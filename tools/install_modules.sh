@@ -55,7 +55,6 @@ cpan install Authen::Passphrase::LANManager \
              Digest::SipHash                \
              Encode                         \
              JSON                           \
-             MIME::Base32                   \
              MIME::Base64                   \
              Net::DNS::RR::NSEC3            \
              Net::DNS::SEC                  \
