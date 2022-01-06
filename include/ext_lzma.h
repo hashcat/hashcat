@@ -9,7 +9,6 @@
 #include <LzmaDec.h>
 #include <Lzma2Dec.h>
 
-#include "minizip/ioapi.h"
 #include "minizip/unzip.h"
 
 int hc_lzma1_decompress (const unsigned char *in, SizeT *in_len, unsigned char *out, SizeT *out_len, const char *props);
