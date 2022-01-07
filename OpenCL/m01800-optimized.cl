@@ -179,7 +179,7 @@ KERNEL_FQ void m01800_init (KERN_ATTR_TMPS (sha512crypt_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   u32 w0[4];
 
@@ -196,12 +196,12 @@ KERNEL_FQ void m01800_init (KERN_ATTR_TMPS (sha512crypt_tmp_t))
 
   u32 salt_buf[4];
 
-  salt_buf[0] = salt_bufs[SALT_POS].salt_buf[0];
-  salt_buf[1] = salt_bufs[SALT_POS].salt_buf[1];
-  salt_buf[2] = salt_bufs[SALT_POS].salt_buf[2];
-  salt_buf[3] = salt_bufs[SALT_POS].salt_buf[3];
+  salt_buf[0] = salt_bufs[SALT_POS_HOST].salt_buf[0];
+  salt_buf[1] = salt_bufs[SALT_POS_HOST].salt_buf[1];
+  salt_buf[2] = salt_bufs[SALT_POS_HOST].salt_buf[2];
+  salt_buf[3] = salt_bufs[SALT_POS_HOST].salt_buf[3];
 
-  u32 salt_len = salt_bufs[SALT_POS].salt_len;
+  u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len;
 
   /**
    * buffers
@@ -308,7 +308,7 @@ KERNEL_FQ void m01800_loop (KERN_ATTR_TMPS (sha512crypt_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   u64 l_p_bytes0[2];
 
@@ -322,7 +322,7 @@ KERNEL_FQ void m01800_loop (KERN_ATTR_TMPS (sha512crypt_tmp_t))
   l_s_bytes0[0] = tmps[gid].l_s_bytes[0];
   l_s_bytes0[1] = tmps[gid].l_s_bytes[1];
 
-  const u32 salt_len = salt_bufs[SALT_POS].salt_len;
+  const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len;
 
   u32 wpc_len[8];
 
@@ -404,7 +404,7 @@ KERNEL_FQ void m01800_loop (KERN_ATTR_TMPS (sha512crypt_tmp_t))
   /* Repeatedly run the collected hash value through SHA512 to burn
      CPU cycles.  */
 
-  for (u32 i = 0, j = loop_pos; i < loop_cnt; i++, j++)
+  for (u32 i = 0, j = LOOP_POS; i < LOOP_CNT; i++, j++)
   {
     const u32 j1 = (j & 1) ? 1 : 0;
     const u32 j3 = (j % 3) ? 2 : 0;
@@ -485,7 +485,7 @@ KERNEL_FQ void m01800_comp (KERN_ATTR_TMPS (sha512crypt_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   const u64 lid = get_local_id (0);
 

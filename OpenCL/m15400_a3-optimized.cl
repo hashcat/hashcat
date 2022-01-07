@@ -273,20 +273,20 @@ KERNEL_FQ void m15400_m16 (KERN_ATTR_VECTOR_ESALT (chacha20_t))
 
   u32 iv[2];
 
-  iv[0] = esalt_bufs[DIGESTS_OFFSET].iv[0];
-  iv[1] = esalt_bufs[DIGESTS_OFFSET].iv[1];
+  iv[0] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[0];
+  iv[1] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[1];
 
   u32 plain[2];
 
-  plain[0] = esalt_bufs[DIGESTS_OFFSET].plain[0];
-  plain[1] = esalt_bufs[DIGESTS_OFFSET].plain[1];
+  plain[0] = esalt_bufs[DIGESTS_OFFSET_HOST].plain[0];
+  plain[1] = esalt_bufs[DIGESTS_OFFSET_HOST].plain[1];
 
   u32 position[2];
 
-  position[0] = esalt_bufs[DIGESTS_OFFSET].position[0];
-  position[1] = esalt_bufs[DIGESTS_OFFSET].position[1];
+  position[0] = esalt_bufs[DIGESTS_OFFSET_HOST].position[0];
+  position[1] = esalt_bufs[DIGESTS_OFFSET_HOST].position[1];
 
-  u32 offset = esalt_bufs[DIGESTS_OFFSET].offset;
+  u32 offset = esalt_bufs[DIGESTS_OFFSET_HOST].offset;
 
   /**
    * loop
@@ -294,7 +294,7 @@ KERNEL_FQ void m15400_m16 (KERN_ATTR_VECTOR_ESALT (chacha20_t))
 
   u32 w0l = pws[gid].i[0];
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
     const u32x w0x = w0l | w0r;
@@ -361,20 +361,20 @@ KERNEL_FQ void m15400_s16 (KERN_ATTR_VECTOR_ESALT (chacha20_t))
 
   u32 iv[2];
 
-  iv[0] = esalt_bufs[DIGESTS_OFFSET].iv[0];
-  iv[1] = esalt_bufs[DIGESTS_OFFSET].iv[1];
+  iv[0] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[0];
+  iv[1] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[1];
 
   u32 plain[2];
 
-  plain[0] = esalt_bufs[DIGESTS_OFFSET].plain[0];
-  plain[1] = esalt_bufs[DIGESTS_OFFSET].plain[1];
+  plain[0] = esalt_bufs[DIGESTS_OFFSET_HOST].plain[0];
+  plain[1] = esalt_bufs[DIGESTS_OFFSET_HOST].plain[1];
 
   u32 position[2];
 
-  position[0] = esalt_bufs[DIGESTS_OFFSET].position[0];
-  position[1] = esalt_bufs[DIGESTS_OFFSET].position[1];
+  position[0] = esalt_bufs[DIGESTS_OFFSET_HOST].position[0];
+  position[1] = esalt_bufs[DIGESTS_OFFSET_HOST].position[1];
 
-  u32 offset = esalt_bufs[DIGESTS_OFFSET].offset;
+  u32 offset = esalt_bufs[DIGESTS_OFFSET_HOST].offset;
 
   /**
    * digest
@@ -382,10 +382,10 @@ KERNEL_FQ void m15400_s16 (KERN_ATTR_VECTOR_ESALT (chacha20_t))
 
   const u32 search[4] =
   {
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R3]
   };
 
   /**
@@ -394,7 +394,7 @@ KERNEL_FQ void m15400_s16 (KERN_ATTR_VECTOR_ESALT (chacha20_t))
 
   u32 w0l = pws[gid].i[0];
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
     const u32x w0x = w0l | w0r;

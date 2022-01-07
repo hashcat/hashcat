@@ -130,8 +130,8 @@
 #define DECLSPEC
 #endif
 
-#define INLINE0 __attribute__ ((noinline))
-#define INLINE1 __attribute__ ((inline))
+#define HC_INLINE0 __attribute__ ((noinline))
+#define HC_INLINE1 __attribute__ ((inline))
 
 /**
  * AMD specific

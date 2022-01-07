@@ -128,7 +128,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   #define CT_MAX_LEN_BASE64 (((3136+16) * 8) / 6) + 3
 
-  token_t token;
+  hc_token_t token;
 
   token.token_cnt  = 4;
 

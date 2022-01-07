@@ -755,7 +755,7 @@ KERNEL_FQ void m23800_init (KERN_ATTR_TMPS_HOOKS_ESALT (rar3_tmp_t, rar3_hook_t,
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   tmps[gid].dgst[0] = SHA1M_A;
   tmps[gid].dgst[1] = SHA1M_B;
@@ -781,8 +781,8 @@ KERNEL_FQ void m23800_init (KERN_ATTR_TMPS_HOOKS_ESALT (rar3_tmp_t, rar3_hook_t,
 
   u32 salt_buf[3];
 
-  salt_buf[0] = hc_swap32_S (salt_bufs[SALT_POS].salt_buf[0]); // swap needed due to -O kernel
-  salt_buf[1] = hc_swap32_S (salt_bufs[SALT_POS].salt_buf[1]);
+  salt_buf[0] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[0]); // swap needed due to -O kernel
+  salt_buf[1] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[1]);
   salt_buf[2] = 0;
 
   // switch buffer by offset (can only be 0 or 2 because of utf16):
@@ -817,7 +817,7 @@ KERNEL_FQ void m23800_loop (KERN_ATTR_TMPS_HOOKS_ESALT (rar3_tmp_t, rar3_hook_t,
 {
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -840,7 +840,7 @@ KERNEL_FQ void m23800_loop (KERN_ATTR_TMPS_HOOKS_ESALT (rar3_tmp_t, rar3_hook_t,
 
   // update IV:
 
-  const u32 init_pos = loop_pos / (ROUNDS / 16);
+  const u32 init_pos = LOOP_POS / (ROUNDS / 16);
 
   sha1_ctx_t ctx_iv;
 
@@ -852,11 +852,11 @@ KERNEL_FQ void m23800_loop (KERN_ATTR_TMPS_HOOKS_ESALT (rar3_tmp_t, rar3_hook_t,
   ctx_iv.h[3] = tmps[gid].dgst[3];
   ctx_iv.h[4] = tmps[gid].dgst[4];
 
-  ctx_iv.len = loop_pos * p3;
+  ctx_iv.len = LOOP_POS * p3;
 
   sha1_update_rar29 (&ctx_iv, w, pw_salt_len);
 
-  memcat8c_be (ctx_iv.w0, ctx_iv.w1, ctx_iv.w2, ctx_iv.w3, ctx_iv.len, hc_swap32_S (loop_pos), ctx_iv.h);
+  memcat8c_be (ctx_iv.w0, ctx_iv.w1, ctx_iv.w2, ctx_iv.w3, ctx_iv.len, hc_swap32_S (LOOP_POS), ctx_iv.h);
 
   ctx_iv.len += 3;
 
@@ -904,7 +904,7 @@ KERNEL_FQ void m23800_loop (KERN_ATTR_TMPS_HOOKS_ESALT (rar3_tmp_t, rar3_hook_t,
 
   // main loop:
 
-  for (u32 i = 0, j = (loop_pos + 1); i < 16383; i++, j++)
+  for (u32 i = 0, j = (LOOP_POS + 1); i < 16383; i++, j++)
   {
     sha1_update_rar29 (&ctx, w, pw_salt_len);
 
@@ -984,7 +984,7 @@ KERNEL_FQ void m23800_hook23 (KERN_ATTR_TMPS_HOOKS_ESALT (rar3_tmp_t, rar3_hook_
 
   SYNC_THREADS ();
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -1060,10 +1060,10 @@ KERNEL_FQ void m23800_hook23 (KERN_ATTR_TMPS_HOOKS_ESALT (rar3_tmp_t, rar3_hook_
 
   u32 data[4];
 
-  data[0] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].first_block_encrypted[0]);
-  data[1] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].first_block_encrypted[1]);
-  data[2] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].first_block_encrypted[2]);
-  data[3] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].first_block_encrypted[3]);
+  data[0] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].first_block_encrypted[0]);
+  data[1] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].first_block_encrypted[1]);
+  data[2] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].first_block_encrypted[2]);
+  data[3] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].first_block_encrypted[3]);
 
   u32 out[4];
 
@@ -1088,7 +1088,7 @@ KERNEL_FQ void m23800_comp (KERN_ATTR_TMPS_HOOKS_ESALT (rar3_tmp_t, rar3_hook_t,
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   u32 crc32 = hooks[gid].crc32;
 

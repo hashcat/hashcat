@@ -89,7 +89,7 @@ KERNEL_FQ void m26600_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   sha256_hmac_ctx_t sha256_hmac_ctx;
 
@@ -113,7 +113,7 @@ KERNEL_FQ void m26600_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
   tmps[gid].opad[6] = sha256_hmac_ctx.opad.h[6];
   tmps[gid].opad[7] = sha256_hmac_ctx.opad.h[7];
 
-  sha256_hmac_update_global_swap (&sha256_hmac_ctx, esalt_bufs[DIGESTS_OFFSET].salt_buf, salt_bufs[SALT_POS].salt_len);
+  sha256_hmac_update_global_swap (&sha256_hmac_ctx, esalt_bufs[DIGESTS_OFFSET_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
   for (u32 i = 0, j = 1; i < 8; i += 8, j += 1)
   {
@@ -169,7 +169,7 @@ KERNEL_FQ void m26600_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= gid_max) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u32x ipad[8];
   u32x opad[8];
@@ -215,7 +215,7 @@ KERNEL_FQ void m26600_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
     out[6] = packv (tmps, out, gid, i + 6);
     out[7] = packv (tmps, out, gid, i + 7);
 
-    for (u32 j = 0; j < loop_cnt; j++)
+    for (u32 j = 0; j < LOOP_CNT; j++)
     {
       u32x w0[4];
       u32x w1[4];
@@ -310,7 +310,7 @@ KERNEL_FQ void m26600_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   // keys
 
@@ -335,13 +335,13 @@ KERNEL_FQ void m26600_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
   // iv
 
   const u32 iv[4] = {
-    esalt_bufs[DIGESTS_OFFSET].iv_buf[0],
-    esalt_bufs[DIGESTS_OFFSET].iv_buf[1],
-    esalt_bufs[DIGESTS_OFFSET].iv_buf[2],
-    esalt_bufs[DIGESTS_OFFSET].iv_buf[3]
+    esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[0],
+    esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[1],
+    esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[2],
+    esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[3]
   };
 
-  const u32 iv_len = esalt_bufs[DIGESTS_OFFSET].iv_len;
+  const u32 iv_len = esalt_bufs[DIGESTS_OFFSET_HOST].iv_len;
 
   u32 J0[4] = { 0 };
 
@@ -356,7 +356,7 @@ KERNEL_FQ void m26600_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
   u32 aad_buf[4] = { 0 };
   u32 aad_len = 0;
 
-  AES_GCM_GHASH_GLOBAL (subKey, aad_buf, aad_len, esalt_bufs[DIGESTS_OFFSET].ct_buf, esalt_bufs[DIGESTS_OFFSET].ct_len, S);
+  AES_GCM_GHASH_GLOBAL (subKey, aad_buf, aad_len, esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf, esalt_bufs[DIGESTS_OFFSET_HOST].ct_len, S);
 
   AES_GCM_GCTR (key, J0, S, S_len, T, s_te0, s_te1, s_te2, s_te3, s_te4);
 

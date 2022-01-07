@@ -66,7 +66,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   sha1_double_salt_t *sha1_double_salt = (sha1_double_salt_t *) esalt_buf;
 
-  token_t token;
+  hc_token_t token;
 
   token.token_cnt  = 3;
 

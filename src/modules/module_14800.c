@@ -108,7 +108,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   itunes_backup_t *itunes_backup = (itunes_backup_t *) esalt_buf;
 
-  token_t token;
+  hc_token_t token;
 
   token.token_cnt = 7;
 

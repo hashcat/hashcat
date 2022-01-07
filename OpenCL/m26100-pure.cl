@@ -86,7 +86,7 @@ KERNEL_FQ void m26100_init (KERN_ATTR_TMPS_ESALT (mozilla_aes_tmp_t, mozilla_aes
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   sha1_ctx_t ctx;
 
@@ -96,11 +96,11 @@ KERNEL_FQ void m26100_init (KERN_ATTR_TMPS_ESALT (mozilla_aes_tmp_t, mozilla_aes
 
   u32 gs[16] = { 0 };
 
-  gs[0] = salt_bufs[DIGESTS_OFFSET].salt_buf[0];
-  gs[1] = salt_bufs[DIGESTS_OFFSET].salt_buf[1];
-  gs[2] = salt_bufs[DIGESTS_OFFSET].salt_buf[2];
-  gs[3] = salt_bufs[DIGESTS_OFFSET].salt_buf[3];
-  gs[4] = salt_bufs[DIGESTS_OFFSET].salt_buf[4];
+  gs[0] = salt_bufs[DIGESTS_OFFSET_HOST].salt_buf[0];
+  gs[1] = salt_bufs[DIGESTS_OFFSET_HOST].salt_buf[1];
+  gs[2] = salt_bufs[DIGESTS_OFFSET_HOST].salt_buf[2];
+  gs[3] = salt_bufs[DIGESTS_OFFSET_HOST].salt_buf[3];
+  gs[4] = salt_bufs[DIGESTS_OFFSET_HOST].salt_buf[4];
 
   sha1_update_swap (&ctx, gs, 20);
   sha1_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
@@ -142,14 +142,14 @@ KERNEL_FQ void m26100_init (KERN_ATTR_TMPS_ESALT (mozilla_aes_tmp_t, mozilla_aes
 
   u32 es[16] = { 0 };
 
-  es[0] = salt_bufs[DIGESTS_OFFSET].salt_buf[ 8];
-  es[1] = salt_bufs[DIGESTS_OFFSET].salt_buf[ 9];
-  es[2] = salt_bufs[DIGESTS_OFFSET].salt_buf[10];
-  es[3] = salt_bufs[DIGESTS_OFFSET].salt_buf[11];
-  es[4] = salt_bufs[DIGESTS_OFFSET].salt_buf[12];
-  es[5] = salt_bufs[DIGESTS_OFFSET].salt_buf[13];
-  es[6] = salt_bufs[DIGESTS_OFFSET].salt_buf[14];
-  es[7] = salt_bufs[DIGESTS_OFFSET].salt_buf[15];
+  es[0] = salt_bufs[DIGESTS_OFFSET_HOST].salt_buf[ 8];
+  es[1] = salt_bufs[DIGESTS_OFFSET_HOST].salt_buf[ 9];
+  es[2] = salt_bufs[DIGESTS_OFFSET_HOST].salt_buf[10];
+  es[3] = salt_bufs[DIGESTS_OFFSET_HOST].salt_buf[11];
+  es[4] = salt_bufs[DIGESTS_OFFSET_HOST].salt_buf[12];
+  es[5] = salt_bufs[DIGESTS_OFFSET_HOST].salt_buf[13];
+  es[6] = salt_bufs[DIGESTS_OFFSET_HOST].salt_buf[14];
+  es[7] = salt_bufs[DIGESTS_OFFSET_HOST].salt_buf[15];
 
   sha256_hmac_update_swap (&sha256_hmac_ctx, es, 32);
 
@@ -207,7 +207,7 @@ KERNEL_FQ void m26100_loop (KERN_ATTR_TMPS_ESALT (mozilla_aes_tmp_t, mozilla_aes
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= gid_max) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u32x ipad[8];
   u32x opad[8];
@@ -253,7 +253,7 @@ KERNEL_FQ void m26100_loop (KERN_ATTR_TMPS_ESALT (mozilla_aes_tmp_t, mozilla_aes
     out[6] = packv (tmps, out, gid, i + 6);
     out[7] = packv (tmps, out, gid, i + 7);
 
-    for (u32 j = 0; j < loop_cnt; j++)
+    for (u32 j = 0; j < LOOP_CNT; j++)
     {
       u32x w0[4];
       u32x w1[4];
@@ -366,7 +366,7 @@ KERNEL_FQ void m26100_comp (KERN_ATTR_TMPS_ESALT (mozilla_aes_tmp_t, mozilla_aes
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   u32 ukey[8];
 
@@ -387,17 +387,17 @@ KERNEL_FQ void m26100_comp (KERN_ATTR_TMPS_ESALT (mozilla_aes_tmp_t, mozilla_aes
 
   u32 iv_buf[4];
 
-  iv_buf[0] = esalt_bufs[DIGESTS_OFFSET].iv_buf[0];
-  iv_buf[1] = esalt_bufs[DIGESTS_OFFSET].iv_buf[1];
-  iv_buf[2] = esalt_bufs[DIGESTS_OFFSET].iv_buf[2];
-  iv_buf[3] = esalt_bufs[DIGESTS_OFFSET].iv_buf[3];
+  iv_buf[0] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[0];
+  iv_buf[1] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[1];
+  iv_buf[2] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[2];
+  iv_buf[3] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[3];
 
   u32 ct_buf[4];
 
-  ct_buf[0] = esalt_bufs[DIGESTS_OFFSET].ct_buf[0];
-  ct_buf[1] = esalt_bufs[DIGESTS_OFFSET].ct_buf[1];
-  ct_buf[2] = esalt_bufs[DIGESTS_OFFSET].ct_buf[2];
-  ct_buf[3] = esalt_bufs[DIGESTS_OFFSET].ct_buf[3];
+  ct_buf[0] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[0];
+  ct_buf[1] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[1];
+  ct_buf[2] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[2];
+  ct_buf[3] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[3];
 
   u32 pt_buf[4];
 

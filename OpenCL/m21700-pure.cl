@@ -103,7 +103,7 @@ KERNEL_FQ void m21700_init (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   sha512_hmac_ctx_t sha512_hmac_ctx;
 
@@ -196,7 +196,7 @@ KERNEL_FQ void m21700_loop (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= gid_max) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u64x ipad[8];
   u64x opad[8];
@@ -240,7 +240,7 @@ KERNEL_FQ void m21700_loop (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
   out[6] = pack64v (tmps, out, gid, 6);
   out[7] = pack64v (tmps, out, gid, 7);
 
-  for (u32 j = 0; j < loop_cnt; j++)
+  for (u32 j = 0; j < LOOP_CNT; j++)
   {
     u32x w0[4];
     u32x w1[4];
@@ -323,7 +323,7 @@ KERNEL_FQ void m21700_comp (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   u64 out[8];
 
@@ -379,7 +379,7 @@ KERNEL_FQ void m21700_comp (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
    * the main secp256k1 point multiplication by a scalar/tweak:
    */
 
-  GLOBAL_AS secp256k1_t *coords = (GLOBAL_AS secp256k1_t *) &esalt_bufs[DIGESTS_OFFSET].coords;
+  GLOBAL_AS secp256k1_t *coords = (GLOBAL_AS secp256k1_t *) &esalt_bufs[DIGESTS_OFFSET_HOST].coords;
 
   u32 pubkey[64] = { 0 }; // for point_mul () we need: 1 + 32 bytes (for sha512 () we need more)
 
@@ -401,9 +401,9 @@ KERNEL_FQ void m21700_comp (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
    * sha256-hmac () of the data_buf
    */
 
-  GLOBAL_AS u32 *data_buf = (GLOBAL_AS u32 *) esalt_bufs[DIGESTS_OFFSET].data_buf;
+  GLOBAL_AS u32 *data_buf = (GLOBAL_AS u32 *) esalt_bufs[DIGESTS_OFFSET_HOST].data_buf;
 
-  u32 data_len = esalt_bufs[DIGESTS_OFFSET].data_len;
+  u32 data_len = esalt_bufs[DIGESTS_OFFSET_HOST].data_len;
 
   u32 key[16] = { 0 };
 

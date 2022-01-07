@@ -785,6 +785,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       char *device_name               = device_param->device_name;
       u32   device_processors         = device_param->device_processors;
       u32   device_maxclock_frequency = device_param->device_maxclock_frequency;
+      u64   device_local_mem_size     = device_param->device_local_mem_size;
       u64   device_available_mem      = device_param->device_available_mem;
       u64   device_global_mem         = device_param->device_global_mem;
       u8    pcie_domain               = device_param->pcie_domain;
@@ -806,6 +807,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       event_log_info (hashcat_ctx, "  Clock..........: %u", device_maxclock_frequency);
       event_log_info (hashcat_ctx, "  Memory.Total...: %" PRIu64 " MB", device_global_mem / 1024 / 1024);
       event_log_info (hashcat_ctx, "  Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
+      event_log_info (hashcat_ctx, "  Local.Memory...: %" PRIu64 " KB", device_local_mem_size / 1024);
       event_log_info (hashcat_ctx, "  PCI.Addr.BDFe..: %04x:%02x:%02x.%d", (u16) pcie_domain, pcie_bus, pcie_device, pcie_function);
       event_log_info (hashcat_ctx, NULL);
     }
@@ -845,6 +847,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       char *device_name               = device_param->device_name;
       u32   device_processors         = device_param->device_processors;
       u32   device_maxclock_frequency = device_param->device_maxclock_frequency;
+      u64   device_local_mem_size     = device_param->device_local_mem_size;
       u64   device_available_mem      = device_param->device_available_mem;
       u64   device_global_mem         = device_param->device_global_mem;
       u8    pcie_domain               = device_param->pcie_domain;
@@ -866,6 +869,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       event_log_info (hashcat_ctx, "  Clock..........: %u", device_maxclock_frequency);
       event_log_info (hashcat_ctx, "  Memory.Total...: %" PRIu64 " MB", device_global_mem / 1024 / 1024);
       event_log_info (hashcat_ctx, "  Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
+      event_log_info (hashcat_ctx, "  Local.Memory...: %" PRIu64 " KB", device_local_mem_size / 1024);
       event_log_info (hashcat_ctx, "  PCI.Addr.BDFe..: %04x:%02x:%02x.%d", (u16) pcie_domain, pcie_bus, pcie_device, pcie_function);
       event_log_info (hashcat_ctx, NULL);
     }
@@ -907,6 +911,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         u32            device_processors          = device_param->device_processors;
         u32            device_maxclock_frequency  = device_param->device_maxclock_frequency;
         u64            device_maxmem_alloc        = device_param->device_maxmem_alloc;
+        u64            device_local_mem_size      = device_param->device_local_mem_size;
         u64            device_available_mem       = device_param->device_available_mem;
         u64            device_global_mem          = device_param->device_global_mem;
         cl_device_type opencl_device_type         = device_param->opencl_device_type;
@@ -934,6 +939,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         event_log_info (hashcat_ctx, "    Clock..........: %u", device_maxclock_frequency);
         event_log_info (hashcat_ctx, "    Memory.Total...: %" PRIu64 " MB (limited to %" PRIu64 " MB allocatable in one block)", device_global_mem / 1024 / 1024, device_maxmem_alloc / 1024 / 1024);
         event_log_info (hashcat_ctx, "    Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
+        event_log_info (hashcat_ctx, "    Local.Memory...: %" PRIu64 " KB", device_local_mem_size / 1024);
         event_log_info (hashcat_ctx, "    OpenCL.Version.: %s", opencl_device_c_version);
         event_log_info (hashcat_ctx, "    Driver.Version.: %s", opencl_driver_version);
 
@@ -1309,6 +1315,24 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
   target_json_encoded[j] = 0;
 
   printf ("{ \"session\": \"%s\",", hashcat_status->session);
+  printf (" \"guess\": {");
+  if (hashcat_status->guess_base)
+    printf (" \"guess_base\": \"%s\",", hashcat_status->guess_base);
+  else
+    printf (" \"guess_base\": null,");
+  printf (" \"guess_base_count\": %d,", hashcat_status->guess_base_count);
+  printf (" \"guess_base_offset\": %d,", hashcat_status->guess_base_offset);
+  printf (" \"guess_base_percent\": %.02f,", hashcat_status->guess_base_percent);
+  printf (" \"guess_mask_length\": %d,", hashcat_status->guess_mask_length);
+  if (hashcat_status->guess_mod)
+    printf (" \"guess_mod\": \"%s\",", hashcat_status->guess_mod);
+  else
+    printf (" \"guess_mod\": null,");
+  printf (" \"guess_mod_count\": %d,", hashcat_status->guess_mod_count);
+  printf (" \"guess_mod_offset\": %d,", hashcat_status->guess_mod_offset);
+  printf (" \"guess_mod_percent\": %.02f,", hashcat_status->guess_mod_percent);
+  printf (" \"guess_mode\": %d", hashcat_status->guess_mode);
+  printf (" },");
   printf (" \"status\": %d,", hashcat_status->status_number);
   printf (" \"target\": \"%s\",", target_json_encoded);
   printf (" \"progress\": [%" PRIu64 ", %" PRIu64 "],", hashcat_status->progress_cur_relative_skip, hashcat_status->progress_end_relative_skip);

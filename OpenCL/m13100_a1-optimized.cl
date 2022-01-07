@@ -465,7 +465,7 @@ KERNEL_FQ void m13100_m04 (KERN_ATTR_ESALT (krb5tgs_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   u32 pw_buf0[4];
   u32 pw_buf1[4];
@@ -493,16 +493,16 @@ KERNEL_FQ void m13100_m04 (KERN_ATTR_ESALT (krb5tgs_t))
 
   u32 checksum[4];
 
-  checksum[0] = esalt_bufs[DIGESTS_OFFSET].checksum[0];
-  checksum[1] = esalt_bufs[DIGESTS_OFFSET].checksum[1];
-  checksum[2] = esalt_bufs[DIGESTS_OFFSET].checksum[2];
-  checksum[3] = esalt_bufs[DIGESTS_OFFSET].checksum[3];
+  checksum[0] = esalt_bufs[DIGESTS_OFFSET_HOST].checksum[0];
+  checksum[1] = esalt_bufs[DIGESTS_OFFSET_HOST].checksum[1];
+  checksum[2] = esalt_bufs[DIGESTS_OFFSET_HOST].checksum[2];
+  checksum[3] = esalt_bufs[DIGESTS_OFFSET_HOST].checksum[3];
 
   /**
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos) & 63;
 
@@ -540,7 +540,7 @@ KERNEL_FQ void m13100_m04 (KERN_ATTR_ESALT (krb5tgs_t))
     wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
     wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
 
-    if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
     {
       switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
     }
@@ -578,11 +578,11 @@ KERNEL_FQ void m13100_m04 (KERN_ATTR_ESALT (krb5tgs_t))
     tmp[2] = digest[2];
     tmp[3] = digest[3];
 
-    if (decrypt_and_check (S, tmp, esalt_bufs[DIGESTS_OFFSET].edata2, esalt_bufs[DIGESTS_OFFSET].edata2_len, K2, checksum) == 1)
+    if (decrypt_and_check (S, tmp, esalt_bufs[DIGESTS_OFFSET_HOST].edata2, esalt_bufs[DIGESTS_OFFSET_HOST].edata2_len, K2, checksum) == 1)
     {
-      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
       {
-        mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, il_pos, 0, 0);
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
       }
     }
   }
@@ -610,7 +610,7 @@ KERNEL_FQ void m13100_s04 (KERN_ATTR_ESALT (krb5tgs_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   u32 pw_buf0[4];
   u32 pw_buf1[4];
@@ -638,16 +638,16 @@ KERNEL_FQ void m13100_s04 (KERN_ATTR_ESALT (krb5tgs_t))
 
   u32 checksum[4];
 
-  checksum[0] = esalt_bufs[DIGESTS_OFFSET].checksum[0];
-  checksum[1] = esalt_bufs[DIGESTS_OFFSET].checksum[1];
-  checksum[2] = esalt_bufs[DIGESTS_OFFSET].checksum[2];
-  checksum[3] = esalt_bufs[DIGESTS_OFFSET].checksum[3];
+  checksum[0] = esalt_bufs[DIGESTS_OFFSET_HOST].checksum[0];
+  checksum[1] = esalt_bufs[DIGESTS_OFFSET_HOST].checksum[1];
+  checksum[2] = esalt_bufs[DIGESTS_OFFSET_HOST].checksum[2];
+  checksum[3] = esalt_bufs[DIGESTS_OFFSET_HOST].checksum[3];
 
   /**
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos) & 63;
 
@@ -685,7 +685,7 @@ KERNEL_FQ void m13100_s04 (KERN_ATTR_ESALT (krb5tgs_t))
     wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
     wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
 
-    if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
     {
       switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
     }
@@ -723,11 +723,11 @@ KERNEL_FQ void m13100_s04 (KERN_ATTR_ESALT (krb5tgs_t))
     tmp[2] = digest[2];
     tmp[3] = digest[3];
 
-    if (decrypt_and_check (S, tmp, esalt_bufs[DIGESTS_OFFSET].edata2, esalt_bufs[DIGESTS_OFFSET].edata2_len, K2, checksum) == 1)
+    if (decrypt_and_check (S, tmp, esalt_bufs[DIGESTS_OFFSET_HOST].edata2, esalt_bufs[DIGESTS_OFFSET_HOST].edata2_len, K2, checksum) == 1)
     {
-      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
       {
-        mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, il_pos, 0, 0);
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
       }
     }
   }

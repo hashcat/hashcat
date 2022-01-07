@@ -63,15 +63,15 @@ KERNEL_FQ void m19500_mxx (KERN_ATTR_ESALT (devise_hash_t))
 
   SYNC_THREADS ();
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
    */
 
-  const int salt_len = esalt_bufs[DIGESTS_OFFSET].salt_len;
+  const int salt_len = esalt_bufs[DIGESTS_OFFSET_HOST].salt_len;
 
-  const int site_key_len = esalt_bufs[DIGESTS_OFFSET].site_key_len;
+  const int site_key_len = esalt_bufs[DIGESTS_OFFSET_HOST].site_key_len;
 
   u32 s[64] = { 0 };
   u32 k[64] = { 0 };
@@ -80,12 +80,12 @@ KERNEL_FQ void m19500_mxx (KERN_ATTR_ESALT (devise_hash_t))
 
   for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = hc_swap32_S (esalt_bufs[SALT_POS].salt_buf[idx]);
+    s[idx] = hc_swap32_S (esalt_bufs[SALT_POS_HOST].salt_buf[idx]);
   }
 
   for (int i = 0, idx = 0; i < site_key_len; i += 4, idx += 1)
   {
-    k[idx] = hc_swap32_S (esalt_bufs[SALT_POS].site_key_buf[idx]);
+    k[idx] = hc_swap32_S (esalt_bufs[SALT_POS_HOST].site_key_buf[idx]);
   }
 
   // precompute some stuff
@@ -104,7 +104,7 @@ KERNEL_FQ void m19500_mxx (KERN_ATTR_ESALT (devise_hash_t))
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
     sha1_ctx_t ctx = ctx0;
 
@@ -194,7 +194,7 @@ KERNEL_FQ void m19500_sxx (KERN_ATTR_ESALT (devise_hash_t))
 
   SYNC_THREADS ();
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * digest
@@ -202,19 +202,19 @@ KERNEL_FQ void m19500_sxx (KERN_ATTR_ESALT (devise_hash_t))
 
   const u32 search[4] =
   {
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R3]
   };
 
   /**
    * base
    */
 
-  const int salt_len = esalt_bufs[DIGESTS_OFFSET].salt_len;
+  const int salt_len = esalt_bufs[DIGESTS_OFFSET_HOST].salt_len;
 
-  const int site_key_len = esalt_bufs[DIGESTS_OFFSET].site_key_len;
+  const int site_key_len = esalt_bufs[DIGESTS_OFFSET_HOST].site_key_len;
 
   u32 s[64] = { 0 };
   u32 k[64] = { 0 };
@@ -223,12 +223,12 @@ KERNEL_FQ void m19500_sxx (KERN_ATTR_ESALT (devise_hash_t))
 
   for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = hc_swap32_S (esalt_bufs[SALT_POS].salt_buf[idx]);
+    s[idx] = hc_swap32_S (esalt_bufs[SALT_POS_HOST].salt_buf[idx]);
   }
 
   for (int i = 0, idx = 0; i < site_key_len; i += 4, idx += 1)
   {
-    k[idx] = hc_swap32_S (esalt_bufs[SALT_POS].site_key_buf[idx]);
+    k[idx] = hc_swap32_S (esalt_bufs[SALT_POS_HOST].site_key_buf[idx]);
   }
 
   // precompute some stuff
@@ -247,7 +247,7 @@ KERNEL_FQ void m19500_sxx (KERN_ATTR_ESALT (devise_hash_t))
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
     sha1_ctx_t ctx = ctx0;
 

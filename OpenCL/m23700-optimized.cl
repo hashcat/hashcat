@@ -145,7 +145,7 @@ KERNEL_FQ void m23700_init (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   tmps[gid].dgst[0][0] = SHA1M_A;
   tmps[gid].dgst[0][1] = SHA1M_B;
@@ -159,7 +159,7 @@ KERNEL_FQ void m23700_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
 {
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   u32 pw_buf[10];
 
@@ -178,8 +178,8 @@ KERNEL_FQ void m23700_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
 
   u32 salt_buf[2];
 
-  salt_buf[0] = salt_bufs[SALT_POS].salt_buf[0];
-  salt_buf[1] = salt_bufs[SALT_POS].salt_buf[1];
+  salt_buf[0] = salt_bufs[SALT_POS_HOST].salt_buf[0];
+  salt_buf[1] = salt_bufs[SALT_POS_HOST].salt_buf[1];
 
   const u32 salt_len = 8;
 
@@ -202,7 +202,7 @@ KERNEL_FQ void m23700_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
   const u32 p2 = pw_len + salt_len;
   const u32 p3 = pw_len + salt_len + 3;
 
-  const u32 init_pos = loop_pos / (ROUNDS / 16);
+  const u32 init_pos = LOOP_POS / (ROUNDS / 16);
 
   u32 dgst[5];
 
@@ -221,7 +221,7 @@ KERNEL_FQ void m23700_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
   u32 w6[4] = { 0 };
   u32 w7[4] = { 0 };
 
-  u32 iter = loop_pos;
+  u32 iter = LOOP_POS;
 
   for (u32 i = 0; i < 256; i++)
   {
@@ -494,7 +494,7 @@ KERNEL_FQ void m23700_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
 {
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   u32 pw_buf[10];
 
@@ -513,8 +513,8 @@ KERNEL_FQ void m23700_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
 
   u32 salt_buf[2];
 
-  salt_buf[0] = salt_bufs[SALT_POS].salt_buf[0];
-  salt_buf[1] = salt_bufs[SALT_POS].salt_buf[1];
+  salt_buf[0] = salt_bufs[SALT_POS_HOST].salt_buf[0];
+  salt_buf[1] = salt_bufs[SALT_POS_HOST].salt_buf[1];
 
   const u32 salt_len = 8;
 
@@ -538,7 +538,7 @@ KERNEL_FQ void m23700_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
       PUTCHAR_BE (largeblock, p, GETCHAR (salt_buf, j));
     }
 
-    PUTCHAR_BE (largeblock, p + 2, (loop_pos >> 16) & 0xff);
+    PUTCHAR_BE (largeblock, p + 2, (LOOP_POS >> 16) & 0xff);
 
     p += 3;
   }
@@ -547,7 +547,7 @@ KERNEL_FQ void m23700_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
 
   const u32 p3 = pw_len + salt_len + 3;
 
-  const u32 init_pos = loop_pos / (ROUNDS / 16);
+  const u32 init_pos = LOOP_POS / (ROUNDS / 16);
 
   u32 dgst[5];
 
@@ -557,7 +557,7 @@ KERNEL_FQ void m23700_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
   dgst[3] = tmps[gid].dgst[init_pos][3];
   dgst[4] = tmps[gid].dgst[init_pos][4];
 
-  u32 iter = loop_pos;
+  u32 iter = LOOP_POS;
 
   for (u32 i = 0; i < 256; i++)
   {
@@ -743,7 +743,7 @@ KERNEL_FQ void m23700_comp (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
 
   SYNC_THREADS ();
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -824,8 +824,8 @@ KERNEL_FQ void m23700_comp (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
 
     u32 salt_buf[2];
 
-    salt_buf[0] = salt_bufs[SALT_POS].salt_buf[0];
-    salt_buf[1] = salt_bufs[SALT_POS].salt_buf[1];
+    salt_buf[0] = salt_bufs[SALT_POS_HOST].salt_buf[0];
+    salt_buf[1] = salt_bufs[SALT_POS_HOST].salt_buf[1];
 
     //const u32 salt_len = 8;
 
@@ -890,8 +890,8 @@ KERNEL_FQ void m23700_comp (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
   iv[2] = hc_swap32_S (iv[2]);
   iv[3] = hc_swap32_S (iv[3]);
 
-  const u32 pack_size   = esalt_bufs[DIGESTS_OFFSET].pack_size;
-  const u32 unpack_size = esalt_bufs[DIGESTS_OFFSET].unpack_size;
+  const u32 pack_size   = esalt_bufs[DIGESTS_OFFSET_HOST].pack_size;
+  const u32 unpack_size = esalt_bufs[DIGESTS_OFFSET_HOST].unpack_size;
 
   if (pack_size > unpack_size) // could be aligned
   {
@@ -901,10 +901,10 @@ KERNEL_FQ void m23700_comp (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
 
       u32 last_block_encrypted[4];
 
-      last_block_encrypted[0] = esalt_bufs[DIGESTS_OFFSET].data[pack_size_elements - 4 + 0];
-      last_block_encrypted[1] = esalt_bufs[DIGESTS_OFFSET].data[pack_size_elements - 4 + 1];
-      last_block_encrypted[2] = esalt_bufs[DIGESTS_OFFSET].data[pack_size_elements - 4 + 2];
-      last_block_encrypted[3] = esalt_bufs[DIGESTS_OFFSET].data[pack_size_elements - 4 + 3];
+      last_block_encrypted[0] = esalt_bufs[DIGESTS_OFFSET_HOST].data[pack_size_elements - 4 + 0];
+      last_block_encrypted[1] = esalt_bufs[DIGESTS_OFFSET_HOST].data[pack_size_elements - 4 + 1];
+      last_block_encrypted[2] = esalt_bufs[DIGESTS_OFFSET_HOST].data[pack_size_elements - 4 + 2];
+      last_block_encrypted[3] = esalt_bufs[DIGESTS_OFFSET_HOST].data[pack_size_elements - 4 + 3];
 
       u32 last_block_decrypted[4];
 
@@ -912,10 +912,10 @@ KERNEL_FQ void m23700_comp (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
 
       u32 last_block_iv[4];
 
-      last_block_iv[0] = esalt_bufs[DIGESTS_OFFSET].data[pack_size_elements - 8 + 0];
-      last_block_iv[1] = esalt_bufs[DIGESTS_OFFSET].data[pack_size_elements - 8 + 1];
-      last_block_iv[2] = esalt_bufs[DIGESTS_OFFSET].data[pack_size_elements - 8 + 2];
-      last_block_iv[3] = esalt_bufs[DIGESTS_OFFSET].data[pack_size_elements - 8 + 3];
+      last_block_iv[0] = esalt_bufs[DIGESTS_OFFSET_HOST].data[pack_size_elements - 8 + 0];
+      last_block_iv[1] = esalt_bufs[DIGESTS_OFFSET_HOST].data[pack_size_elements - 8 + 1];
+      last_block_iv[2] = esalt_bufs[DIGESTS_OFFSET_HOST].data[pack_size_elements - 8 + 2];
+      last_block_iv[3] = esalt_bufs[DIGESTS_OFFSET_HOST].data[pack_size_elements - 8 + 3];
 
       last_block_decrypted[0] ^= last_block_iv[0];
       last_block_decrypted[1] ^= last_block_iv[1];
@@ -934,10 +934,10 @@ KERNEL_FQ void m23700_comp (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
   {
     u32 data[4];
 
-    data[0] = esalt_bufs[DIGESTS_OFFSET].data[j + 0];
-    data[1] = esalt_bufs[DIGESTS_OFFSET].data[j + 1];
-    data[2] = esalt_bufs[DIGESTS_OFFSET].data[j + 2];
-    data[3] = esalt_bufs[DIGESTS_OFFSET].data[j + 3];
+    data[0] = esalt_bufs[DIGESTS_OFFSET_HOST].data[j + 0];
+    data[1] = esalt_bufs[DIGESTS_OFFSET_HOST].data[j + 1];
+    data[2] = esalt_bufs[DIGESTS_OFFSET_HOST].data[j + 2];
+    data[3] = esalt_bufs[DIGESTS_OFFSET_HOST].data[j + 3];
 
     u32 out[4];
 

@@ -31,13 +31,13 @@ KERNEL_FQ void m12200_init (KERN_ATTR_TMPS (ecryptfs_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   sha512_ctx_t ctx;
 
   sha512_init (&ctx);
 
-  sha512_update_global (&ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
+  sha512_update_global (&ctx, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
   sha512_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
@@ -57,7 +57,7 @@ KERNEL_FQ void m12200_loop (KERN_ATTR_TMPS (ecryptfs_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= gid_max) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u64x t0 = pack64v (tmps, out, gid, 0);
   u64x t1 = pack64v (tmps, out, gid, 1);
@@ -110,7 +110,7 @@ KERNEL_FQ void m12200_loop (KERN_ATTR_TMPS (ecryptfs_tmp_t))
   w7[2] = 0;
   w7[3] = 64 * 8;
 
-  for (u32 i = 0, j = loop_pos; i < loop_cnt; i++, j++)
+  for (u32 i = 0, j = LOOP_POS; i < LOOP_CNT; i++, j++)
   {
     w0[0] = h32_from_64 (t0);
     w0[1] = l32_from_64 (t0);
@@ -170,7 +170,7 @@ KERNEL_FQ void m12200_comp (KERN_ATTR_TMPS (ecryptfs_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   const u64 lid = get_local_id (0);
 

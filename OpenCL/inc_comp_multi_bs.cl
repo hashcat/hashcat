@@ -14,21 +14,21 @@ if (check (digest_tp,
              bitmaps_buf_s2_b,
              bitmaps_buf_s2_c,
              bitmaps_buf_s2_d,
-             bitmap_mask,
-             bitmap_shift1,
-             bitmap_shift2))
+             BITMAP_MASK,
+             BITMAP_SHIFT1,
+             BITMAP_SHIFT2))
 {
-  int digest_pos = find_hash (digest_tp, digests_cnt, &digests_buf[DIGESTS_OFFSET]);
+  int digest_pos = find_hash (digest_tp, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);
 
   if (digest_pos != -1)
   {
-    if ((il_pos + slice) < il_cnt)
+    if ((il_pos + slice) < IL_CNT)
     {
-      const u32 final_hash_pos = DIGESTS_OFFSET + digest_pos;
+      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;
 
       if (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0)
       {
-        mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, digest_pos, final_hash_pos, gid, il_pos + slice, 0, 0);
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + slice, 0, 0);
       }
     }
   }

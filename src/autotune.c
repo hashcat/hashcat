@@ -15,9 +15,9 @@ static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
   hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   user_options_t *user_options = hashcat_ctx->user_options;
 
-  device_param->kernel_params_buf32[28] = 0;
-  device_param->kernel_params_buf32[29] = kernel_loops; // not a bug, both need to be set
-  device_param->kernel_params_buf32[30] = kernel_loops; // because there's two variables for inner iters for slow and fast hashes
+  device_param->kernel_param.loop_pos = 0;
+  device_param->kernel_param.loop_cnt = kernel_loops; // not a bug, both need to be set
+  device_param->kernel_param.il_cnt   = kernel_loops; // because there's two variables for inner iters for slow and fast hashes
 
   const u32 hardware_power = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE) ? 1 : device_param->device_processors) * kernel_threads;
 
