@@ -31,7 +31,7 @@ KERNEL_FQ void m00400_init (KERN_ATTR_TMPS (phpass_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * init
@@ -41,7 +41,7 @@ KERNEL_FQ void m00400_init (KERN_ATTR_TMPS (phpass_tmp_t))
 
   md5_init (&md5_ctx);
 
-  md5_update_global (&md5_ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
+  md5_update_global (&md5_ctx, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
   md5_update_global (&md5_ctx, pws[gid].i, pws[gid].pw_len);
 
@@ -68,7 +68,7 @@ KERNEL_FQ void m00400_loop (KERN_ATTR_TMPS (phpass_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * init
@@ -116,7 +116,7 @@ KERNEL_FQ void m00400_loop (KERN_ATTR_TMPS (phpass_tmp_t))
 
   if ((16 + pw_len + 1) >= 56)
   {
-    for (u32 i = 1; i < loop_cnt; i++)
+    for (u32 i = 1; i < LOOP_CNT; i++)
     {
       md5_init (&md5_ctx);
 
@@ -139,7 +139,7 @@ KERNEL_FQ void m00400_loop (KERN_ATTR_TMPS (phpass_tmp_t))
   }
   else
   {
-    for (u32 i = 1; i < loop_cnt; i++)
+    for (u32 i = 1; i < LOOP_CNT; i++)
     {
       md5_ctx.w0[0] = digest[0];
       md5_ctx.w0[1] = digest[1];
@@ -170,7 +170,7 @@ KERNEL_FQ void m00400_comp (KERN_ATTR_TMPS (phpass_tmp_t))
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * digest

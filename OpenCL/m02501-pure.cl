@@ -106,7 +106,7 @@ KERNEL_FQ void m02501_init (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
 {
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   u32 in[16];
 
@@ -152,7 +152,7 @@ KERNEL_FQ void m02501_loop (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
 {
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 }
 
 KERNEL_FQ void m02501_comp (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
@@ -164,7 +164,7 @@ KERNEL_FQ void m02501_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
 {
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   u32 out0[4];
   u32 out1[4];
@@ -178,11 +178,14 @@ KERNEL_FQ void m02501_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
   out1[2] = tmps[gid].out[6];
   out1[3] = tmps[gid].out[7];
 
-  const u32 digest_pos = loop_pos;
+  const u32 digest_pos = LOOP_POS;
 
-  const u32 digest_cur = DIGESTS_OFFSET + digest_pos;
+  const u32 digest_cur = DIGESTS_OFFSET_HOST + digest_pos;
 
   GLOBAL_AS const wpa_eapol_t *wpa_eapol = &esalt_bufs[digest_cur];
+
+  // this can occur on -a 9 because we are ignoring module_deep_comp_kernel()
+  if (wpa_eapol->keyver != 1) return;
 
   u32 pke[32];
 
@@ -338,7 +341,7 @@ KERNEL_FQ void m02501_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
       {
         if (hc_atomic_inc (&hashes_shown[digest_cur]) == 0)
         {
-          mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
+          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, digest_cur, gid, 0, 0, 0);
         }
       }
     }
@@ -349,7 +352,7 @@ KERNEL_FQ void m02501_aux2 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
 {
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   u32 out0[4];
   u32 out1[4];
@@ -363,11 +366,14 @@ KERNEL_FQ void m02501_aux2 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
   out1[2] = tmps[gid].out[6];
   out1[3] = tmps[gid].out[7];
 
-  const u32 digest_pos = loop_pos;
+  const u32 digest_pos = LOOP_POS;
 
-  const u32 digest_cur = DIGESTS_OFFSET + digest_pos;
+  const u32 digest_cur = DIGESTS_OFFSET_HOST + digest_pos;
 
   GLOBAL_AS const wpa_eapol_t *wpa_eapol = &esalt_bufs[digest_cur];
+
+  // this can occur on -a 9 because we are ignoring module_deep_comp_kernel()
+  if (wpa_eapol->keyver != 2) return;
 
   u32 pke[32];
 
@@ -518,7 +524,7 @@ KERNEL_FQ void m02501_aux2 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
       {
         if (hc_atomic_inc (&hashes_shown[digest_cur]) == 0)
         {
-          mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
+          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, digest_cur, gid, 0, 0, 0);
         }
       }
     }
@@ -565,7 +571,7 @@ KERNEL_FQ void m02501_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   u32 out0[4];
   u32 out1[4];
@@ -579,11 +585,14 @@ KERNEL_FQ void m02501_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
   out1[2] = tmps[gid].out[6];
   out1[3] = tmps[gid].out[7];
 
-  const u32 digest_pos = loop_pos;
+  const u32 digest_pos = LOOP_POS;
 
-  const u32 digest_cur = DIGESTS_OFFSET + digest_pos;
+  const u32 digest_cur = DIGESTS_OFFSET_HOST + digest_pos;
 
   GLOBAL_AS const wpa_eapol_t *wpa_eapol = &esalt_bufs[digest_cur];
+
+  // this can occur on -a 9 because we are ignoring module_deep_comp_kernel()
+  if (wpa_eapol->keyver != 3) return;
 
   u32 pke[32];
 
@@ -804,7 +813,7 @@ KERNEL_FQ void m02501_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_eapol_t))
       {
         if (hc_atomic_inc (&hashes_shown[digest_cur]) == 0)
         {
-          mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
+          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, digest_cur, gid, 0, 0, 0);
         }
       }
     }

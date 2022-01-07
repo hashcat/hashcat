@@ -31,13 +31,13 @@ KERNEL_FQ void m18800_init (KERN_ATTR_TMPS (bsp_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   sha256_ctx_t ctx;
 
   sha256_init (&ctx);
 
-  sha256_update_global_swap (&ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
+  sha256_update_global_swap (&ctx, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
   sha256_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
@@ -57,7 +57,7 @@ KERNEL_FQ void m18800_loop (KERN_ATTR_TMPS (bsp_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= gid_max) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u32x digest[8];
 
@@ -70,7 +70,7 @@ KERNEL_FQ void m18800_loop (KERN_ATTR_TMPS (bsp_tmp_t))
   digest[6] = packv (tmps, hash, gid, 6);
   digest[7] = packv (tmps, hash, gid, 7);
 
-  for (u32 j = 0; j < loop_cnt; j++)
+  for (u32 j = 0; j < LOOP_CNT; j++)
   {
     u32x w0[4];
     u32x w1[4];
@@ -124,7 +124,7 @@ KERNEL_FQ void m18800_comp (KERN_ATTR_TMPS (bsp_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   const u64 lid = get_local_id (0);
 

@@ -77,7 +77,7 @@ KERNEL_FQ void m27800_m04 (KERN_ATTR_RULES ())
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   u32 pw_buf0[4];
   u32 pw_buf1[4];
@@ -97,13 +97,13 @@ KERNEL_FQ void m27800_m04 (KERN_ATTR_RULES ())
    * seed
    */
 
-  const u32 seed = salt_bufs[SALT_POS].salt_buf[0];
+  const u32 seed = salt_bufs[SALT_POS_HOST].salt_buf[0];
 
   /**
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     u32x w[16] = { 0 };
 
@@ -142,7 +142,7 @@ KERNEL_FQ void m27800_s04 (KERN_ATTR_RULES ())
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   u32 pw_buf0[4];
   u32 pw_buf1[4];
@@ -164,7 +164,7 @@ KERNEL_FQ void m27800_s04 (KERN_ATTR_RULES ())
 
   const u32 search[4] =
   {
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R0],
     0,
     0,
     0
@@ -174,13 +174,13 @@ KERNEL_FQ void m27800_s04 (KERN_ATTR_RULES ())
    * seed
    */
 
-  const u32 seed = salt_bufs[SALT_POS].salt_buf[0];
+  const u32 seed = salt_bufs[SALT_POS_HOST].salt_buf[0];
 
   /**
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     u32x w[16] = { 0 };
 

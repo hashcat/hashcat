@@ -166,7 +166,7 @@ KERNEL_FQ void m07500_mxx (KERN_ATTR_RULES_ESALT (krb5pa_t))
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -178,27 +178,27 @@ KERNEL_FQ void m07500_mxx (KERN_ATTR_RULES_ESALT (krb5pa_t))
 
   u32 checksum[4];
 
-  checksum[0] = esalt_bufs[DIGESTS_OFFSET].checksum[0];
-  checksum[1] = esalt_bufs[DIGESTS_OFFSET].checksum[1];
-  checksum[2] = esalt_bufs[DIGESTS_OFFSET].checksum[2];
-  checksum[3] = esalt_bufs[DIGESTS_OFFSET].checksum[3];
+  checksum[0] = esalt_bufs[DIGESTS_OFFSET_HOST].checksum[0];
+  checksum[1] = esalt_bufs[DIGESTS_OFFSET_HOST].checksum[1];
+  checksum[2] = esalt_bufs[DIGESTS_OFFSET_HOST].checksum[2];
+  checksum[3] = esalt_bufs[DIGESTS_OFFSET_HOST].checksum[3];
 
   u32 timestamp_ct[8];
 
-  timestamp_ct[0] = esalt_bufs[DIGESTS_OFFSET].timestamp[0];
-  timestamp_ct[1] = esalt_bufs[DIGESTS_OFFSET].timestamp[1];
-  timestamp_ct[2] = esalt_bufs[DIGESTS_OFFSET].timestamp[2];
-  timestamp_ct[3] = esalt_bufs[DIGESTS_OFFSET].timestamp[3];
-  timestamp_ct[4] = esalt_bufs[DIGESTS_OFFSET].timestamp[4];
-  timestamp_ct[5] = esalt_bufs[DIGESTS_OFFSET].timestamp[5];
-  timestamp_ct[6] = esalt_bufs[DIGESTS_OFFSET].timestamp[6];
-  timestamp_ct[7] = esalt_bufs[DIGESTS_OFFSET].timestamp[7];
+  timestamp_ct[0] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[0];
+  timestamp_ct[1] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[1];
+  timestamp_ct[2] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[2];
+  timestamp_ct[3] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[3];
+  timestamp_ct[4] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[4];
+  timestamp_ct[5] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[5];
+  timestamp_ct[6] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[6];
+  timestamp_ct[7] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[7];
 
   /**
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
     pw_t tmp = PASTE_PW;
 
@@ -218,9 +218,9 @@ KERNEL_FQ void m07500_mxx (KERN_ATTR_RULES_ESALT (krb5pa_t))
 
     if (decrypt_and_check (S, digest, timestamp_ct) == 1)
     {
-      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
       {
-        mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, il_pos, 0, 0);
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
       }
     }
   }
@@ -235,7 +235,7 @@ KERNEL_FQ void m07500_sxx (KERN_ATTR_RULES_ESALT (krb5pa_t))
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -247,27 +247,27 @@ KERNEL_FQ void m07500_sxx (KERN_ATTR_RULES_ESALT (krb5pa_t))
 
   u32 checksum[4];
 
-  checksum[0] = esalt_bufs[DIGESTS_OFFSET].checksum[0];
-  checksum[1] = esalt_bufs[DIGESTS_OFFSET].checksum[1];
-  checksum[2] = esalt_bufs[DIGESTS_OFFSET].checksum[2];
-  checksum[3] = esalt_bufs[DIGESTS_OFFSET].checksum[3];
+  checksum[0] = esalt_bufs[DIGESTS_OFFSET_HOST].checksum[0];
+  checksum[1] = esalt_bufs[DIGESTS_OFFSET_HOST].checksum[1];
+  checksum[2] = esalt_bufs[DIGESTS_OFFSET_HOST].checksum[2];
+  checksum[3] = esalt_bufs[DIGESTS_OFFSET_HOST].checksum[3];
 
   u32 timestamp_ct[8];
 
-  timestamp_ct[0] = esalt_bufs[DIGESTS_OFFSET].timestamp[0];
-  timestamp_ct[1] = esalt_bufs[DIGESTS_OFFSET].timestamp[1];
-  timestamp_ct[2] = esalt_bufs[DIGESTS_OFFSET].timestamp[2];
-  timestamp_ct[3] = esalt_bufs[DIGESTS_OFFSET].timestamp[3];
-  timestamp_ct[4] = esalt_bufs[DIGESTS_OFFSET].timestamp[4];
-  timestamp_ct[5] = esalt_bufs[DIGESTS_OFFSET].timestamp[5];
-  timestamp_ct[6] = esalt_bufs[DIGESTS_OFFSET].timestamp[6];
-  timestamp_ct[7] = esalt_bufs[DIGESTS_OFFSET].timestamp[7];
+  timestamp_ct[0] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[0];
+  timestamp_ct[1] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[1];
+  timestamp_ct[2] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[2];
+  timestamp_ct[3] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[3];
+  timestamp_ct[4] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[4];
+  timestamp_ct[5] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[5];
+  timestamp_ct[6] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[6];
+  timestamp_ct[7] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[7];
 
   /**
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
     pw_t tmp = PASTE_PW;
 
@@ -287,9 +287,9 @@ KERNEL_FQ void m07500_sxx (KERN_ATTR_RULES_ESALT (krb5pa_t))
 
     if (decrypt_and_check (S, digest, timestamp_ct) == 1)
     {
-      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
       {
-        mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, il_pos, 0, 0);
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
       }
     }
   }

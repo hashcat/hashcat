@@ -549,15 +549,15 @@ KERNEL_FQ void m05500_mxx (KERN_ATTR_BASIC ())
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * salt
    */
 
-  const u32 s0 = salt_bufs[SALT_POS].salt_buf[0];
-  const u32 s1 = salt_bufs[SALT_POS].salt_buf[1];
-  const u32 s2 = salt_bufs[SALT_POS].salt_buf[2];
+  const u32 s0 = salt_bufs[SALT_POS_HOST].salt_buf[0];
+  const u32 s1 = salt_bufs[SALT_POS_HOST].salt_buf[1];
+  const u32 s2 = salt_bufs[SALT_POS_HOST].salt_buf[2];
 
   /**
    * base
@@ -573,7 +573,7 @@ KERNEL_FQ void m05500_mxx (KERN_ATTR_BASIC ())
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
     md4_ctx_t ctx = ctx0;
 
@@ -680,7 +680,7 @@ KERNEL_FQ void m05500_sxx (KERN_ATTR_BASIC ())
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * digest
@@ -688,19 +688,19 @@ KERNEL_FQ void m05500_sxx (KERN_ATTR_BASIC ())
 
   const u32 search[4] =
   {
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R3]
   };
 
   /**
    * salt
    */
 
-  const u32 s0 = salt_bufs[SALT_POS].salt_buf[0];
-  const u32 s1 = salt_bufs[SALT_POS].salt_buf[1];
-  const u32 s2 = salt_bufs[SALT_POS].salt_buf[2];
+  const u32 s0 = salt_bufs[SALT_POS_HOST].salt_buf[0];
+  const u32 s1 = salt_bufs[SALT_POS_HOST].salt_buf[1];
+  const u32 s2 = salt_bufs[SALT_POS_HOST].salt_buf[2];
 
   /**
    * base
@@ -716,7 +716,7 @@ KERNEL_FQ void m05500_sxx (KERN_ATTR_BASIC ())
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
     md4_ctx_t ctx = ctx0;
 

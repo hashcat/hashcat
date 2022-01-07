@@ -7,13 +7,33 @@
 #define _INC_TYPES_H
 
 #if ATTACK_MODE == 9
-#define SALT_POS       (pws_pos + gid)
-#define DIGESTS_CNT    1
-#define DIGESTS_OFFSET (pws_pos + gid)
+#define BITMAP_MASK         kernel_param->bitmap_mask
+#define BITMAP_SHIFT1       kernel_param->bitmap_shift1
+#define BITMAP_SHIFT2       kernel_param->bitmap_shift2
+#define SALT_POS_HOST       (kernel_param->pws_pos + gid)
+#define LOOP_POS            kernel_param->loop_pos
+#define LOOP_CNT            kernel_param->loop_cnt
+#define IL_CNT              kernel_param->il_cnt
+#define DIGESTS_CNT         1
+#define DIGESTS_OFFSET_HOST (kernel_param->pws_pos + gid)
+#define COMBS_MODE          kernel_param->combs_mode
+#define SALT_REPEAT         kernel_param->salt_repeat
+#define PWS_POS             kernel_param->pws_pos
+#define GID_CNT             kernel_param->gid_max
 #else
-#define SALT_POS       salt_pos_host
-#define DIGESTS_CNT    digests_cnt_host
-#define DIGESTS_OFFSET digests_offset_host
+#define BITMAP_MASK         kernel_param->bitmap_mask
+#define BITMAP_SHIFT1       kernel_param->bitmap_shift1
+#define BITMAP_SHIFT2       kernel_param->bitmap_shift2
+#define SALT_POS_HOST       kernel_param->salt_pos_host
+#define LOOP_POS            kernel_param->loop_pos
+#define LOOP_CNT            kernel_param->loop_cnt
+#define IL_CNT              kernel_param->il_cnt
+#define DIGESTS_CNT         kernel_param->digests_cnt
+#define DIGESTS_OFFSET_HOST kernel_param->digests_offset_host
+#define COMBS_MODE          kernel_param->combs_mode
+#define SALT_REPEAT         kernel_param->salt_repeat
+#define PWS_POS             kernel_param->pws_pos
+#define GID_CNT             kernel_param->gid_max
 #endif
 
 #ifdef IS_CUDA
@@ -1640,6 +1660,26 @@ typedef struct digest
 
 } digest_t;
 #endif
+
+typedef struct kernel_param
+{
+  // We can only move attributes into this struct which do not use special declarations like __global
+
+  u32 bitmap_mask;          // 24
+  u32 bitmap_shift1;        // 25
+  u32 bitmap_shift2;        // 26
+  u32 salt_pos_host;        // 27
+  u32 loop_pos;             // 28
+  u32 loop_cnt;             // 29
+  u32 il_cnt;               // 30
+  u32 digests_cnt;          // 31
+  u32 digests_offset_host;  // 32
+  u32 combs_mode;           // 33
+  u32 salt_repeat;          // 34
+  u64 pws_pos;              // 35
+  u64 gid_max;              // 36
+
+} kernel_param_t;
 
 typedef struct salt
 {

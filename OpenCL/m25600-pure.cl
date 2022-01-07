@@ -456,7 +456,7 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m25600_init (KERN_ATTR_TMPS 
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   md5_ctx_t ctx0;
 
@@ -532,10 +532,10 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m25600_init (KERN_ATTR_TMPS 
 
   u32 salt_buf[4];
 
-  salt_buf[0] = salt_bufs[SALT_POS].salt_buf[0];
-  salt_buf[1] = salt_bufs[SALT_POS].salt_buf[1];
-  salt_buf[2] = salt_bufs[SALT_POS].salt_buf[2];
-  salt_buf[3] = salt_bufs[SALT_POS].salt_buf[3];
+  salt_buf[0] = salt_bufs[SALT_POS_HOST].salt_buf[0];
+  salt_buf[1] = salt_bufs[SALT_POS_HOST].salt_buf[1];
+  salt_buf[2] = salt_bufs[SALT_POS_HOST].salt_buf[2];
+  salt_buf[3] = salt_bufs[SALT_POS_HOST].salt_buf[3];
 
   u32 P[18];
 
@@ -695,7 +695,7 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m25600_loop (KERN_ATTR_TMPS 
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   // load
 
@@ -748,10 +748,10 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m25600_loop (KERN_ATTR_TMPS 
 
   u32 salt_buf[4];
 
-  salt_buf[0] = salt_bufs[SALT_POS].salt_buf[0];
-  salt_buf[1] = salt_bufs[SALT_POS].salt_buf[1];
-  salt_buf[2] = salt_bufs[SALT_POS].salt_buf[2];
-  salt_buf[3] = salt_bufs[SALT_POS].salt_buf[3];
+  salt_buf[0] = salt_bufs[SALT_POS_HOST].salt_buf[0];
+  salt_buf[1] = salt_bufs[SALT_POS_HOST].salt_buf[1];
+  salt_buf[2] = salt_bufs[SALT_POS_HOST].salt_buf[2];
+  salt_buf[3] = salt_bufs[SALT_POS_HOST].salt_buf[3];
 
   /**
    * main loop
@@ -760,7 +760,7 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m25600_loop (KERN_ATTR_TMPS 
   u32 L0;
   u32 R0;
 
-  for (u32 i = 0; i < loop_cnt; i++)
+  for (u32 i = 0; i < LOOP_CNT; i++)
   {
     for (u32 i = 0; i < 18; i++)
     {
@@ -898,7 +898,7 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m25600_comp (KERN_ATTR_TMPS 
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   // load
 
