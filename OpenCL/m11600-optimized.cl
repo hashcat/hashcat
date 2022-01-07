@@ -48,7 +48,7 @@ KERNEL_FQ void m11600_init (KERN_ATTR_TMPS_HOOKS (seven_zip_tmp_t, seven_zip_hoo
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   tmps[gid].h[0] = SHA256M_A;
   tmps[gid].h[1] = SHA256M_B;
@@ -66,7 +66,7 @@ KERNEL_FQ void m11600_loop (KERN_ATTR_TMPS_HOOKS (seven_zip_tmp_t, seven_zip_hoo
 {
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   u32 pw_buf[5];
 
@@ -88,7 +88,7 @@ KERNEL_FQ void m11600_loop (KERN_ATTR_TMPS_HOOKS (seven_zip_tmp_t, seven_zip_hoo
 
   for (u32 i = 0; i < LARGEBLOCK_ELEMS; i++) largeblock[i] = 0;
 
-  u32 loop_pos_pos = loop_pos;
+  u32 loop_pos_pos = LOOP_POS;
 
   for (u32 i = 0, p = 0; i < 64; i++)
   {
@@ -121,9 +121,9 @@ KERNEL_FQ void m11600_loop (KERN_ATTR_TMPS_HOOKS (seven_zip_tmp_t, seven_zip_hoo
 
   const int iter64 = (pw_len * 2) + 8;
 
-  loop_pos_pos = loop_pos;
+  loop_pos_pos = LOOP_POS;
 
-  for (u32 i = 0; i < loop_cnt; i += 64)
+  for (u32 i = 0; i < LOOP_CNT; i += 64)
   {
     // iteration set
     for (u32 i = 0, p = pw_len * 2; i < 64; i++, p += iter64)
@@ -166,7 +166,7 @@ KERNEL_FQ void m11600_loop (KERN_ATTR_TMPS_HOOKS (seven_zip_tmp_t, seven_zip_hoo
     }
   }
 
-  tmps[gid].len += loop_cnt * iter64;
+  tmps[gid].len += LOOP_CNT * iter64;
 
   tmps[gid].h[0] = h[0];
   tmps[gid].h[1] = h[1];
@@ -182,7 +182,7 @@ KERNEL_FQ void m11600_hook23 (KERN_ATTR_TMPS_HOOKS (seven_zip_tmp_t, seven_zip_h
 {
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * context load
@@ -241,13 +241,13 @@ KERNEL_FQ void m11600_comp (KERN_ATTR_TMPS_HOOKS (seven_zip_tmp_t, seven_zip_hoo
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   if (hooks[gid].hook_success == 1)
   {
-    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
     }
 
     return;

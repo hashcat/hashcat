@@ -415,7 +415,7 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m09000_init (KERN_ATTR_TMPS 
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   u32 w0[4];
 
@@ -453,12 +453,12 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m09000_init (KERN_ATTR_TMPS 
    * salt
    */
 
-  const u32 salt_len = salt_bufs[SALT_POS].salt_len;
+  const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len;
 
   u32 salt_buf[2];
 
-  salt_buf[0] = salt_bufs[SALT_POS].salt_buf[0];
-  salt_buf[1] = salt_bufs[SALT_POS].salt_buf[1];
+  salt_buf[0] = salt_bufs[SALT_POS_HOST].salt_buf[0];
+  salt_buf[1] = salt_bufs[SALT_POS_HOST].salt_buf[1];
 
   /**
    * initial sha1
@@ -644,7 +644,7 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m09000_loop (KERN_ATTR_TMPS 
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   const u64 lid = get_local_id (0);
 
@@ -696,7 +696,7 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m09000_loop (KERN_ATTR_TMPS 
   u32 L0 = digest[0];
   u32 R0 = digest[1];
 
-  for (u32 i = 0; i < loop_cnt; i++)
+  for (u32 i = 0; i < LOOP_CNT; i++)
   {
     BF_ENCRYPT (L0, R0);
   }
@@ -713,7 +713,7 @@ KERNEL_FQ void m09000_comp (KERN_ATTR_TMPS (pwsafe2_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   const u64 lid = get_local_id (0);
 

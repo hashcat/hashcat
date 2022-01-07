@@ -446,18 +446,18 @@ KERNEL_FQ void m13800_m04 (KERN_ATTR_RULES_ESALT (win8phone_t))
 
   for (u32 i = lid; i < 32; i += lsz)
   {
-    s_esalt[i] = esalt_bufs[DIGESTS_OFFSET].salt_buf[i];
+    s_esalt[i] = esalt_bufs[DIGESTS_OFFSET_HOST].salt_buf[i];
   }
 
   SYNC_THREADS ();
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     u32x w0[4] = { 0 };
     u32x w1[4] = { 0 };
@@ -642,12 +642,12 @@ KERNEL_FQ void m13800_s04 (KERN_ATTR_RULES_ESALT (win8phone_t))
 
   for (u32 i = lid; i < 32; i += lsz)
   {
-    s_esalt[i] = esalt_bufs[DIGESTS_OFFSET].salt_buf[i];
+    s_esalt[i] = esalt_bufs[DIGESTS_OFFSET_HOST].salt_buf[i];
   }
 
   SYNC_THREADS ();
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * digest
@@ -655,17 +655,17 @@ KERNEL_FQ void m13800_s04 (KERN_ATTR_RULES_ESALT (win8phone_t))
 
   const u32 search[4] =
   {
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R3]
   };
 
   /**
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     u32x w0[4] = { 0 };
     u32x w1[4] = { 0 };

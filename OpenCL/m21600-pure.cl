@@ -93,7 +93,7 @@ KERNEL_FQ void m21600_init (KERN_ATTR_TMPS (web2py_sha512_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   sha512_hmac_ctx_t sha512_hmac_ctx;
 
@@ -117,7 +117,7 @@ KERNEL_FQ void m21600_init (KERN_ATTR_TMPS (web2py_sha512_tmp_t))
   tmps[gid].opad[6] = sha512_hmac_ctx.opad.h[6];
   tmps[gid].opad[7] = sha512_hmac_ctx.opad.h[7];
 
-  sha512_hmac_update_global_swap (&sha512_hmac_ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
+  sha512_hmac_update_global_swap (&sha512_hmac_ctx, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
   for (u32 i = 0, j = 1; i < 8; i += 8, j += 1)
   {
@@ -193,7 +193,7 @@ KERNEL_FQ void m21600_loop (KERN_ATTR_TMPS (web2py_sha512_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= gid_max) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u64x ipad[8];
   u64x opad[8];
@@ -239,7 +239,7 @@ KERNEL_FQ void m21600_loop (KERN_ATTR_TMPS (web2py_sha512_tmp_t))
     out[6] = pack64v (tmps, out, gid, i + 6);
     out[7] = pack64v (tmps, out, gid, i + 7);
 
-    for (u32 j = 0; j < loop_cnt; j++)
+    for (u32 j = 0; j < LOOP_CNT; j++)
     {
       u32x w0[4];
       u32x w1[4];
@@ -323,7 +323,7 @@ KERNEL_FQ void m21600_comp (KERN_ATTR_TMPS (web2py_sha512_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   const u64 lid = get_local_id (0);
 

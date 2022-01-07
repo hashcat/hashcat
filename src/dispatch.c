@@ -1437,6 +1437,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
               // we can't reject password base on length in -a 9 because it will bring the schedule out of sync
               // therefore we render it defective so the other candidates survive
 
+              line_len = MAX (line_len, hashconfig->pw_min);
               line_len = MIN (line_len, hashconfig->pw_max);
             }
 

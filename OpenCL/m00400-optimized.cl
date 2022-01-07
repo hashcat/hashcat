@@ -31,7 +31,7 @@ KERNEL_FQ void m00400_init (KERN_ATTR_TMPS (phpass_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   u32 w0[4];
 
@@ -62,8 +62,8 @@ KERNEL_FQ void m00400_init (KERN_ATTR_TMPS (phpass_tmp_t))
 
   u32 salt_buf[2];
 
-  salt_buf[0] = salt_bufs[SALT_POS].salt_buf[0];
-  salt_buf[1] = salt_bufs[SALT_POS].salt_buf[1];
+  salt_buf[0] = salt_bufs[SALT_POS_HOST].salt_buf[0];
+  salt_buf[1] = salt_bufs[SALT_POS_HOST].salt_buf[1];
 
   /**
    * init
@@ -128,7 +128,7 @@ KERNEL_FQ void m00400_loop (KERN_ATTR_TMPS (phpass_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= gid_max) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u32x w0[4];
   u32x w1[4];
@@ -190,7 +190,7 @@ KERNEL_FQ void m00400_loop (KERN_ATTR_TMPS (phpass_tmp_t))
    * init
    */
 
-  for (u32 i = 0; i < loop_cnt; i++)
+  for (u32 i = 0; i < LOOP_CNT; i++)
   {
     block0[0] = digest[0];
     block0[1] = digest[1];
@@ -220,7 +220,7 @@ KERNEL_FQ void m00400_comp (KERN_ATTR_TMPS (phpass_tmp_t))
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * digest

@@ -72,7 +72,7 @@ KERNEL_FQ void m02100_init (KERN_ATTR_TMPS (dcc2_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   // dcc1
 
@@ -95,7 +95,7 @@ KERNEL_FQ void m02100_init (KERN_ATTR_TMPS (dcc2_tmp_t))
 
   md4_ctx2.len = 16;
 
-  md4_update_global_utf16le (&md4_ctx2, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
+  md4_update_global_utf16le (&md4_ctx2, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
   md4_final (&md4_ctx2);
 
@@ -144,7 +144,7 @@ KERNEL_FQ void m02100_init (KERN_ATTR_TMPS (dcc2_tmp_t))
   tmps[gid].opad[3] = sha1_hmac_ctx.opad.h[3];
   tmps[gid].opad[4] = sha1_hmac_ctx.opad.h[4];
 
-  sha1_hmac_update_global_utf16le_swap (&sha1_hmac_ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
+  sha1_hmac_update_global_utf16le_swap (&sha1_hmac_ctx, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
   w0[0] = 1;
   w0[1] = 0;
@@ -187,7 +187,7 @@ KERNEL_FQ void m02100_loop (KERN_ATTR_TMPS (dcc2_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= gid_max) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u32x ipad[5];
   u32x opad[5];
@@ -222,7 +222,7 @@ KERNEL_FQ void m02100_loop (KERN_ATTR_TMPS (dcc2_tmp_t))
   out[2] = packv (tmps, out, gid, 2);
   out[3] = packv (tmps, out, gid, 3);
 
-  for (u32 i = 0; i < loop_cnt; i++)
+  for (u32 i = 0; i < LOOP_CNT; i++)
   {
     u32x w0[4];
     u32x w1[4];
@@ -274,7 +274,7 @@ KERNEL_FQ void m02100_comp (KERN_ATTR_TMPS (dcc2_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   const u64 lid = get_local_id (0);
 

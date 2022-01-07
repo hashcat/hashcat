@@ -435,7 +435,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   seven_zip_hook_salt_t *seven_zip = (seven_zip_hook_salt_t *) hook_salt_buf;
 
-  token_t token;
+  hc_token_t token;
 
   token.token_cnt  = 11;
 

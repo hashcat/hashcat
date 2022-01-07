@@ -1752,7 +1752,7 @@ int status_get_salt_pos_dev (const hashcat_ctx_t *hashcat_ctx, const int backend
 
   if ((device_param->skipped == false) && (device_param->skipped_warning == false))
   {
-    salt_pos = (int) device_param->kernel_params_buf32[27];
+    salt_pos = (int) device_param->kernel_param.salt_pos_host;
   }
 
   return salt_pos;
@@ -1800,7 +1800,7 @@ int status_get_iteration_pos_dev (const hashcat_ctx_t *hashcat_ctx, const int ba
 
   if ((device_param->skipped == false) && (device_param->skipped_warning == false))
   {
-    iteration_pos = (int) device_param->kernel_params_buf32[28];
+    iteration_pos = (int) device_param->kernel_param.loop_pos;
   }
 
   return iteration_pos;
@@ -1816,7 +1816,7 @@ int status_get_iteration_left_dev (const hashcat_ctx_t *hashcat_ctx, const int b
 
   if ((device_param->skipped == false) && (device_param->skipped_warning == false))
   {
-    iteration_left = (int) device_param->kernel_params_buf32[29];
+    iteration_left = (int) device_param->kernel_param.loop_cnt;
   }
 
   return iteration_left;
