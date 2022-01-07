@@ -29,6 +29,7 @@
 - Hash-Mode 9710: set native_threads to 32 with Apple GPU's
 - Hash-Mode 9720: set native_threads to 32 with Apple GPU's
 - Hash-Mode 9800: set native_threads to 32 with Apple GPU's
+- Hash-Mode 9810: set native_threads to 32 with Apple GPU's
 
 ##
 ## Technical
