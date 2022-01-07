@@ -20,9 +20,11 @@
 ##
 
 - Fixed functional error when nonce-error-corrections that were set on the command line in hash-mode 22000/22001 were not accepted
+- Fixed handling of password candidates that are shorter than the minimum password length in Association Attack
+- Fixed method of how OPTS_TYPE_AUX* kernels are called in an association attack, for example in WPA/WPA2 kernel
 - Fixed missing option flag OPTS_TYPE_SUGGEST_KG for hash-mode 11600 to inform the user about possible false positives in this mode
 - Fixed undefined function call to hc_byte_perm_S() in hash-mode 17010 on non-CUDA compute devices
-- Fixed HEX wordlist handling in -m 3000 
+- Fixed wordlist handling in -m 3000 when candidate passwords use the $HEX[...] syntax
 
 ##
 ## Technical
@@ -30,6 +32,7 @@
 
 - Association Attack: Enable module specific pw_min and pw_max settings to avoid false positives in -a 9 attack-mode
 - Backend Info: Added local memory size to output
+- Kernels: Refactored standard kernel declaration to use a structure holding u32/u64 attributes to reduce the number of attributes
 - Tuning Database: Added a warning if a module implements module_extra_tuningdb_block but the installed computing device is not found
 - Usage Screen: On windows console, wait for any keypress if usage_mini_print() is used
 - User Options: Add new module function module_hash_decode_postprocess() to override hash specific configurations from command line
@@ -39,6 +42,7 @@
 - Unit tests: Updated test.sh to set default device-type to CPU with Apple Intel and added -f (--force) option
 - OpenCL Backend: moved functions to ext_OpenCL.c and includes to ext_OpenCL.h
 - HIP Backend: moved functions to ext_hip.c/ext_hiprtc.c and includes to ext_hip.h/ext_hiprtc.h
+- CUDA Backend: moved functions to ext_cuda.c/ext_nvrtc.c and includes to ext_cuda.h/ext_nvrtc.h
 - Autotune: Added error handling. By default skipping device on error, with --force using accel/loops/threads min values instead
 
 * changes v6.2.4 -> v6.2.5

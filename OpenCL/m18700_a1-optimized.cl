@@ -67,17 +67,17 @@ KERNEL_FQ void m18700_m04 (KERN_ATTR_BASIC ())
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     u32 hash = 0;
 
-    if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
     {
       hash = hashCode_g (hash, pws[gid].i,          pws[gid].pw_len);
       hash = hashCode_g (hash, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
@@ -119,7 +119,7 @@ KERNEL_FQ void m18700_s04 (KERN_ATTR_BASIC ())
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * digest
@@ -127,7 +127,7 @@ KERNEL_FQ void m18700_s04 (KERN_ATTR_BASIC ())
 
   const u32 search[4] =
   {
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R0],
     0,
     0,
     0
@@ -137,11 +137,11 @@ KERNEL_FQ void m18700_s04 (KERN_ATTR_BASIC ())
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     u32 hash = 0;
 
-    if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
     {
       hash = hashCode_g (hash, pws[gid].i,          pws[gid].pw_len);
       hash = hashCode_g (hash, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);

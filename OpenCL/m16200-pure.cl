@@ -87,7 +87,7 @@ KERNEL_FQ void m16200_init (KERN_ATTR_TMPS_ESALT (apple_secure_notes_tmp_t, appl
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   sha256_hmac_ctx_t sha256_hmac_ctx;
 
@@ -111,7 +111,7 @@ KERNEL_FQ void m16200_init (KERN_ATTR_TMPS_ESALT (apple_secure_notes_tmp_t, appl
   tmps[gid].opad[6] = sha256_hmac_ctx.opad.h[6];
   tmps[gid].opad[7] = sha256_hmac_ctx.opad.h[7];
 
-  sha256_hmac_update_global_swap (&sha256_hmac_ctx, esalt_bufs[DIGESTS_OFFSET].ZCRYPTOSALT, 16);
+  sha256_hmac_update_global_swap (&sha256_hmac_ctx, esalt_bufs[DIGESTS_OFFSET_HOST].ZCRYPTOSALT, 16);
 
   for (u32 i = 0, j = 1; i < 8; i += 8, j += 1)
   {
@@ -167,7 +167,7 @@ KERNEL_FQ void m16200_loop (KERN_ATTR_TMPS_ESALT (apple_secure_notes_tmp_t, appl
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= gid_max) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u32x ipad[8];
   u32x opad[8];
@@ -213,7 +213,7 @@ KERNEL_FQ void m16200_loop (KERN_ATTR_TMPS_ESALT (apple_secure_notes_tmp_t, appl
     out[6] = packv (tmps, out, gid, i + 6);
     out[7] = packv (tmps, out, gid, i + 7);
 
-    for (u32 j = 0; j < loop_cnt; j++)
+    for (u32 j = 0; j < LOOP_CNT; j++)
     {
       u32x w0[4];
       u32x w1[4];
@@ -326,7 +326,7 @@ KERNEL_FQ void m16200_comp (KERN_ATTR_TMPS_ESALT (apple_secure_notes_tmp_t, appl
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   u32 ukey[4];
 
@@ -347,12 +347,12 @@ KERNEL_FQ void m16200_comp (KERN_ATTR_TMPS_ESALT (apple_secure_notes_tmp_t, appl
   u32 P1[2];
   u32 P2[2];
 
-  A[0]  = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].ZCRYPTOWRAPPEDKEY[0]);
-  A[1]  = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].ZCRYPTOWRAPPEDKEY[1]);
-  P1[0] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].ZCRYPTOWRAPPEDKEY[2]);
-  P1[1] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].ZCRYPTOWRAPPEDKEY[3]);
-  P2[0] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].ZCRYPTOWRAPPEDKEY[4]);
-  P2[1] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET].ZCRYPTOWRAPPEDKEY[5]);
+  A[0]  = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].ZCRYPTOWRAPPEDKEY[0]);
+  A[1]  = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].ZCRYPTOWRAPPEDKEY[1]);
+  P1[0] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].ZCRYPTOWRAPPEDKEY[2]);
+  P1[1] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].ZCRYPTOWRAPPEDKEY[3]);
+  P2[0] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].ZCRYPTOWRAPPEDKEY[4]);
+  P2[1] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].ZCRYPTOWRAPPEDKEY[5]);
 
   for (int j = 5; j >= 0; j--)
   {
@@ -394,9 +394,9 @@ KERNEL_FQ void m16200_comp (KERN_ATTR_TMPS_ESALT (apple_secure_notes_tmp_t, appl
   if ((A[0] == 0xa6a6a6a6)
    && (A[1] == 0xa6a6a6a6))
   {
-    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
     }
   }
 }

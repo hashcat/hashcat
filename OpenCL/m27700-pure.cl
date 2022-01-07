@@ -252,7 +252,7 @@ KERNEL_FQ void m27700_init (KERN_ATTR_TMPS (scrypt_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   u32 w[128] = { 0 };
 
@@ -279,8 +279,8 @@ KERNEL_FQ void m27700_init (KERN_ATTR_TMPS (scrypt_tmp_t))
   u32 s2[4] = { 0 };
   u32 s3[4] = { 0 };
 
-  s0[0] = salt_bufs[SALT_POS].salt_buf[0];
-  s0[1] = salt_bufs[SALT_POS].salt_buf[1];
+  s0[0] = salt_bufs[SALT_POS_HOST].salt_buf[0];
+  s0[1] = salt_bufs[SALT_POS_HOST].salt_buf[1];
 
   sha256_hmac_update_64 (&sha256_hmac_ctx, s0, s1, s2, s3, 8);
 
@@ -381,7 +381,7 @@ KERNEL_FQ void m27700_loop_prepare (KERN_ATTR_TMPS (scrypt_tmp_t))
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   // SCRYPT part, init V
 
@@ -392,7 +392,7 @@ KERNEL_FQ void m27700_loop_prepare (KERN_ATTR_TMPS (scrypt_tmp_t))
 
   uint4 X[STATE_CNT4];
 
-  const u32 P_offset = salt_repeat * STATE_CNT4;
+  const u32 P_offset = SALT_REPEAT * STATE_CNT4;
 
   GLOBAL_AS uint4 *P = tmps[gid].P + P_offset;
 
@@ -408,7 +408,7 @@ KERNEL_FQ void m27700_loop (KERN_ATTR_TMPS (scrypt_tmp_t))
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   GLOBAL_AS uint4 *d_scrypt0_buf = (GLOBAL_AS uint4 *) d_extra0_buf;
   GLOBAL_AS uint4 *d_scrypt1_buf = (GLOBAL_AS uint4 *) d_extra1_buf;
@@ -417,7 +417,7 @@ KERNEL_FQ void m27700_loop (KERN_ATTR_TMPS (scrypt_tmp_t))
 
   uint4 X[STATE_CNT4];
 
-  const u32 P_offset = salt_repeat * STATE_CNT4;
+  const u32 P_offset = SALT_REPEAT * STATE_CNT4;
 
   GLOBAL_AS uint4 *P = tmps[gid].P + P_offset;
 
@@ -485,7 +485,7 @@ KERNEL_FQ void m27700_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * 2nd pbkdf2, creates B
@@ -606,17 +606,17 @@ KERNEL_FQ void m27700_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
 
   u32 iv[4];
 
-  iv[0] = salt_bufs[SALT_POS].salt_buf[2];
-  iv[1] = salt_bufs[SALT_POS].salt_buf[3];
-  iv[2] = salt_bufs[SALT_POS].salt_buf[4];
-  iv[3] = salt_bufs[SALT_POS].salt_buf[5];
+  iv[0] = salt_bufs[SALT_POS_HOST].salt_buf[2];
+  iv[1] = salt_bufs[SALT_POS_HOST].salt_buf[3];
+  iv[2] = salt_bufs[SALT_POS_HOST].salt_buf[4];
+  iv[3] = salt_bufs[SALT_POS_HOST].salt_buf[5];
 
   u32 enc[4];
 
-  enc[0] = salt_bufs[SALT_POS].salt_buf[6];
-  enc[1] = salt_bufs[SALT_POS].salt_buf[7];
-  enc[2] = salt_bufs[SALT_POS].salt_buf[8];
-  enc[3] = salt_bufs[SALT_POS].salt_buf[9];
+  enc[0] = salt_bufs[SALT_POS_HOST].salt_buf[6];
+  enc[1] = salt_bufs[SALT_POS_HOST].salt_buf[7];
+  enc[2] = salt_bufs[SALT_POS_HOST].salt_buf[8];
+  enc[3] = salt_bufs[SALT_POS_HOST].salt_buf[9];
 
   u32 dec[4];
 
@@ -632,9 +632,9 @@ KERNEL_FQ void m27700_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
       (dec[2] == 0x10101010) &&
       (dec[3] == 0x10101010))
   {
-    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
     }
 
     return;

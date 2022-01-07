@@ -245,12 +245,12 @@ KERNEL_FQ void m17210_sxx (KERN_ATTR_ESALT (pkzip_t))
 
   for (u64 i = lid; i < MAX_LOCAL; i += lsz)
   {
-    l_data[i] = esalt_bufs[DIGESTS_OFFSET].hash.data[i];
+    l_data[i] = esalt_bufs[DIGESTS_OFFSET_HOST].hash.data[i];
   }
 
   SYNC_THREADS ();
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * digest
@@ -258,7 +258,7 @@ KERNEL_FQ void m17210_sxx (KERN_ATTR_ESALT (pkzip_t))
 
   const u32 search[4] =
   {
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R0],
     0,
     0,
     0
@@ -268,11 +268,11 @@ KERNEL_FQ void m17210_sxx (KERN_ATTR_ESALT (pkzip_t))
    * prefetch from global memory
    */
 
-  const u32 checksum_size           = esalt_bufs[DIGESTS_OFFSET].checksum_size;
-  const u32 checksum_from_crc       = esalt_bufs[DIGESTS_OFFSET].hash.checksum_from_crc;
-  const u32 checksum_from_timestamp = esalt_bufs[DIGESTS_OFFSET].hash.checksum_from_timestamp;
-  const u32 crc32_final             = esalt_bufs[DIGESTS_OFFSET].hash.crc32;
-  const u32 data_length             = esalt_bufs[DIGESTS_OFFSET].hash.data_length;
+  const u32 checksum_size           = esalt_bufs[DIGESTS_OFFSET_HOST].checksum_size;
+  const u32 checksum_from_crc       = esalt_bufs[DIGESTS_OFFSET_HOST].hash.checksum_from_crc;
+  const u32 checksum_from_timestamp = esalt_bufs[DIGESTS_OFFSET_HOST].hash.checksum_from_timestamp;
+  const u32 crc32_final             = esalt_bufs[DIGESTS_OFFSET_HOST].hash.crc32;
+  const u32 data_length             = esalt_bufs[DIGESTS_OFFSET_HOST].hash.data_length;
 
   /**
    * loop
@@ -290,7 +290,7 @@ KERNEL_FQ void m17210_sxx (KERN_ATTR_ESALT (pkzip_t))
     if (pws[gid].pw_len >= (i + 4)) update_key012 (key0init, key1init, key2init, unpack_v8d_from_v32_S (pws[gid].i[j]), l_crc32tab);
   }
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
     u32x key0 = key0init;
     u32x key1 = key1init;
@@ -411,7 +411,7 @@ KERNEL_FQ void m17210_sxx (KERN_ATTR_ESALT (pkzip_t))
 
     for (u32 j = MAX_LOCAL, i = MAX_LOCAL * 4; i < data_length; j++, i += 4)
     {
-      next = esalt_bufs[DIGESTS_OFFSET].hash.data[j];
+      next = esalt_bufs[DIGESTS_OFFSET_HOST].hash.data[j];
 
       if (data_length >= (i + 1))
       {
@@ -486,22 +486,22 @@ KERNEL_FQ void m17210_mxx (KERN_ATTR_ESALT (pkzip_t))
 
   for (u64 i = lid; i < MAX_LOCAL; i += lsz)
   {
-    l_data[i] = esalt_bufs[DIGESTS_OFFSET].hash.data[i];
+    l_data[i] = esalt_bufs[DIGESTS_OFFSET_HOST].hash.data[i];
   }
 
   SYNC_THREADS ();
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * prefetch from global memory
    */
 
-  const u32 checksum_size           = esalt_bufs[DIGESTS_OFFSET].checksum_size;
-  const u32 checksum_from_crc       = esalt_bufs[DIGESTS_OFFSET].hash.checksum_from_crc;
-  const u32 checksum_from_timestamp = esalt_bufs[DIGESTS_OFFSET].hash.checksum_from_timestamp;
-  const u32 crc32_final             = esalt_bufs[DIGESTS_OFFSET].hash.crc32;
-  const u32 data_length             = esalt_bufs[DIGESTS_OFFSET].hash.data_length;
+  const u32 checksum_size           = esalt_bufs[DIGESTS_OFFSET_HOST].checksum_size;
+  const u32 checksum_from_crc       = esalt_bufs[DIGESTS_OFFSET_HOST].hash.checksum_from_crc;
+  const u32 checksum_from_timestamp = esalt_bufs[DIGESTS_OFFSET_HOST].hash.checksum_from_timestamp;
+  const u32 crc32_final             = esalt_bufs[DIGESTS_OFFSET_HOST].hash.crc32;
+  const u32 data_length             = esalt_bufs[DIGESTS_OFFSET_HOST].hash.data_length;
 
   /**
    * loop
@@ -519,7 +519,7 @@ KERNEL_FQ void m17210_mxx (KERN_ATTR_ESALT (pkzip_t))
     if (pws[gid].pw_len >= (i + 4)) update_key012 (key0init, key1init, key2init, unpack_v8d_from_v32_S (pws[gid].i[j]), l_crc32tab);
   }
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
     u32x key0 = key0init;
     u32x key1 = key1init;
@@ -640,7 +640,7 @@ KERNEL_FQ void m17210_mxx (KERN_ATTR_ESALT (pkzip_t))
 
     for (u32 j = MAX_LOCAL, i = MAX_LOCAL * 4; i < data_length; j++, i += 4)
     {
-      next = esalt_bufs[DIGESTS_OFFSET].hash.data[j];
+      next = esalt_bufs[DIGESTS_OFFSET_HOST].hash.data[j];
 
       if (data_length >= (i + 1))
       {

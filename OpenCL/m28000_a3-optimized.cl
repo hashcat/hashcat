@@ -206,7 +206,7 @@ DECLSPEC void m28000m (SHM_TYPE u64 *s_crc64jonestab, u32 *w, const u32 pw_len, 
    * salt
    */
 
-  const u64 iv = esalt_bufs[DIGESTS_OFFSET].iv;
+  const u64 iv = esalt_bufs[DIGESTS_OFFSET_HOST].iv;
 
   /**
    * loop
@@ -214,7 +214,7 @@ DECLSPEC void m28000m (SHM_TYPE u64 *s_crc64jonestab, u32 *w, const u32 pw_len, 
 
   u32 w0l = w[0];
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     const u32 w0r = ix_create_bft (bfs_buf, il_pos);
 
@@ -267,7 +267,7 @@ DECLSPEC void m28000s (SHM_TYPE u64 *s_crc64jonestab, u32 *w, const u32 pw_len, 
    * salt
    */
 
-  const u64 iv = esalt_bufs[DIGESTS_OFFSET].iv;
+  const u64 iv = esalt_bufs[DIGESTS_OFFSET_HOST].iv;
 
   /**
    * digest
@@ -275,8 +275,8 @@ DECLSPEC void m28000s (SHM_TYPE u64 *s_crc64jonestab, u32 *w, const u32 pw_len, 
 
   const u32 search[4] =
   {
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R1],
     0,
     0
   };
@@ -287,7 +287,7 @@ DECLSPEC void m28000s (SHM_TYPE u64 *s_crc64jonestab, u32 *w, const u32 pw_len, 
 
   u32 w0l = w[0];
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     const u32 w0r = ix_create_bft (bfs_buf, il_pos);
 
@@ -358,7 +358,7 @@ KERNEL_FQ void m28000_m04 (KERN_ATTR_ESALT (crc64_t))
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * Base
@@ -389,7 +389,7 @@ KERNEL_FQ void m28000_m04 (KERN_ATTR_ESALT (crc64_t))
    * main
    */
 
-  m28000m (s_crc64jonestab, w, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max);
+  m28000m (s_crc64jonestab, w, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param);
 }
 
 KERNEL_FQ void m28000_m08 (KERN_ATTR_ESALT (crc64_t))
@@ -423,7 +423,7 @@ KERNEL_FQ void m28000_m08 (KERN_ATTR_ESALT (crc64_t))
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * Base
@@ -454,7 +454,7 @@ KERNEL_FQ void m28000_m08 (KERN_ATTR_ESALT (crc64_t))
    * main
    */
 
-  m28000m (s_crc64jonestab, w, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max);
+  m28000m (s_crc64jonestab, w, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param);
 }
 
 KERNEL_FQ void m28000_m16 (KERN_ATTR_ESALT (crc64_t))
@@ -488,7 +488,7 @@ KERNEL_FQ void m28000_m16 (KERN_ATTR_ESALT (crc64_t))
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * Base
@@ -519,7 +519,7 @@ KERNEL_FQ void m28000_m16 (KERN_ATTR_ESALT (crc64_t))
    * main
    */
 
-  m28000m (s_crc64jonestab, w, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max);
+  m28000m (s_crc64jonestab, w, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param);
 }
 
 KERNEL_FQ void m28000_s04 (KERN_ATTR_ESALT (crc64_t))
@@ -553,7 +553,7 @@ KERNEL_FQ void m28000_s04 (KERN_ATTR_ESALT (crc64_t))
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * Base
@@ -584,7 +584,7 @@ KERNEL_FQ void m28000_s04 (KERN_ATTR_ESALT (crc64_t))
    * main
    */
 
-  m28000s (s_crc64jonestab, w, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max);
+  m28000s (s_crc64jonestab, w, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param);
 }
 
 KERNEL_FQ void m28000_s08 (KERN_ATTR_ESALT (crc64_t))
@@ -618,7 +618,7 @@ KERNEL_FQ void m28000_s08 (KERN_ATTR_ESALT (crc64_t))
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * Base
@@ -649,7 +649,7 @@ KERNEL_FQ void m28000_s08 (KERN_ATTR_ESALT (crc64_t))
    * main
    */
 
-  m28000s (s_crc64jonestab, w, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max);
+  m28000s (s_crc64jonestab, w, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param);
 }
 
 KERNEL_FQ void m28000_s16 (KERN_ATTR_ESALT (crc64_t))
@@ -683,7 +683,7 @@ KERNEL_FQ void m28000_s16 (KERN_ATTR_ESALT (crc64_t))
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * Base
@@ -714,5 +714,5 @@ KERNEL_FQ void m28000_s16 (KERN_ATTR_ESALT (crc64_t))
    * main
    */
 
-  m28000s (s_crc64jonestab, w, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, SALT_POS, loop_pos, loop_cnt, il_cnt, digests_cnt, DIGESTS_OFFSET, combs_mode, salt_repeat, pws_pos, gid_max);
+  m28000s (s_crc64jonestab, w, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param);
 }

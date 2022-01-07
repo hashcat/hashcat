@@ -32,7 +32,7 @@ KERNEL_FQ void m07400_init (KERN_ATTR_TMPS (sha256crypt_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * init
@@ -52,13 +52,13 @@ KERNEL_FQ void m07400_init (KERN_ATTR_TMPS (sha256crypt_tmp_t))
     w[idx] = hc_swap32_S (w[idx]);
   }
 
-  const u32 salt_len = salt_bufs[SALT_POS].salt_len;
+  const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len;
 
   u32 s[64] = { 0 };
 
   for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = salt_bufs[SALT_POS].salt_buf[idx];
+    s[idx] = salt_bufs[SALT_POS_HOST].salt_buf[idx];
   }
 
   for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
@@ -269,11 +269,11 @@ KERNEL_FQ void m07400_loop (KERN_ATTR_TMPS (sha256crypt_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   const u32 pw_len = pws[gid].pw_len;
 
-  const u32 salt_len = salt_bufs[SALT_POS].salt_len;
+  const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len;
 
   u32 alt_result[16] = { 0 };
 
@@ -289,7 +289,7 @@ KERNEL_FQ void m07400_loop (KERN_ATTR_TMPS (sha256crypt_tmp_t))
   /* Repeatedly run the collected hash value through sha256 to burn
      CPU cycles.  */
 
-  for (u32 i = 0, j = loop_pos; i < loop_cnt; i++, j++)
+  for (u32 i = 0, j = LOOP_POS; i < LOOP_CNT; i++, j++)
   {
     sha256_ctx_t ctx;
 
@@ -353,7 +353,7 @@ KERNEL_FQ void m07400_comp (KERN_ATTR_TMPS (sha256crypt_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   const u64 lid = get_local_id (0);
 

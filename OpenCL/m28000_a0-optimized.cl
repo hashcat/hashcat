@@ -226,7 +226,7 @@ KERNEL_FQ void m28000_m04 (KERN_ATTR_RULES_ESALT (crc64_t))
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * Base
@@ -250,13 +250,13 @@ KERNEL_FQ void m28000_m04 (KERN_ATTR_RULES_ESALT (crc64_t))
    * salt
    */
 
-  const u64 iv = esalt_bufs[DIGESTS_OFFSET].iv;
+  const u64 iv = esalt_bufs[DIGESTS_OFFSET_HOST].iv;
 
   /**
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     u32 w0[4] = { 0 };
     u32 w1[4] = { 0 };
@@ -338,7 +338,7 @@ KERNEL_FQ void m28000_s04 (KERN_ATTR_RULES_ESALT (crc64_t))
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * Base
@@ -362,7 +362,7 @@ KERNEL_FQ void m28000_s04 (KERN_ATTR_RULES_ESALT (crc64_t))
    * salt
    */
 
-  const u64 iv = esalt_bufs[DIGESTS_OFFSET].iv;
+  const u64 iv = esalt_bufs[DIGESTS_OFFSET_HOST].iv;
 
   /**
    * digest
@@ -370,8 +370,8 @@ KERNEL_FQ void m28000_s04 (KERN_ATTR_RULES_ESALT (crc64_t))
 
   const u32 search[4] =
   {
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R1],
     0,
     0
   };
@@ -380,7 +380,7 @@ KERNEL_FQ void m28000_s04 (KERN_ATTR_RULES_ESALT (crc64_t))
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     u32 w0[4] = { 0 };
     u32 w1[4] = { 0 };

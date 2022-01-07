@@ -1288,6 +1288,7 @@ typedef struct hc_device_param
   u64  size_st_salts;
   u64  size_st_esalts;
   u64  size_tm;
+  u64  size_kernel_params;
 
   u64  extra_buffer_size;
 
@@ -1405,9 +1406,6 @@ typedef struct hc_device_param
   void   *kernel_params_utf8toutf16le[PARAMCNT];
   void   *kernel_params_decompress[PARAMCNT];
 
-  u32     kernel_params_buf32[PARAMCNT];
-  u64     kernel_params_buf64[PARAMCNT];
-
   u32     kernel_params_mp_buf32[PARAMCNT];
   u64     kernel_params_mp_buf64[PARAMCNT];
 
@@ -1434,6 +1432,8 @@ typedef struct hc_device_param
 
   u32     kernel_params_decompress_buf32[PARAMCNT];
   u64     kernel_params_decompress_buf64[PARAMCNT];
+
+  kernel_param_t kernel_param;
 
   // API: cuda
 
@@ -1516,6 +1516,7 @@ typedef struct hc_device_param
   CUdeviceptr       cuda_d_st_digests_buf;
   CUdeviceptr       cuda_d_st_salts_buf;
   CUdeviceptr       cuda_d_st_esalts_buf;
+  CUdeviceptr       cuda_d_kernel_param;
 
   // API: hip
 
@@ -1598,6 +1599,7 @@ typedef struct hc_device_param
   hipDeviceptr_t    hip_d_st_digests_buf;
   hipDeviceptr_t    hip_d_st_salts_buf;
   hipDeviceptr_t    hip_d_st_esalts_buf;
+  hipDeviceptr_t    hip_d_kernel_param;
 
   // API: opencl
 
@@ -1684,6 +1686,7 @@ typedef struct hc_device_param
   cl_mem            opencl_d_st_digests_buf;
   cl_mem            opencl_d_st_salts_buf;
   cl_mem            opencl_d_st_esalts_buf;
+  cl_mem            opencl_d_kernel_param;
 
 } hc_device_param_t;
 

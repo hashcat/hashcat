@@ -755,1504 +755,6 @@ void generate_cached_kernel_amp_filename (const u32 attack_kern, char *cache_dir
   snprintf (cached_file, 255, "%s/kernels/amp_a%u.%s.kernel", cache_dir, attack_kern, device_name_chksum_amp_mp);
 }
 
-// NVRTC
-
-int nvrtc_init (hashcat_ctx_t *hashcat_ctx)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  NVRTC_PTR *nvrtc = (NVRTC_PTR *) backend_ctx->nvrtc;
-
-  memset (nvrtc, 0, sizeof (NVRTC_PTR));
-
-  #if   defined (_WIN)
-  nvrtc->lib = hc_dlopen ("nvrtc.dll");
-
-  if (nvrtc->lib == NULL)
-  {
-    // super annoying: nvidia is using the CUDA version in nvrtc???.dll filename!
-    // however, the cuda version string comes from nvcuda.dll which is from nvidia driver, but
-    // the driver version and the installed CUDA toolkit version can be different, so it cannot be used as a reference.
-    // brute force to the rescue
-
-    char dllname[100];
-
-    for (int major = 20; major >= 9; major--) // older than 3.x do not ship _v2 functions anyway
-                                              // older than 7.x does not support sm 5.x
-                                              // older than 8.x does not have documentation archive online, no way to check if nvrtc support whatever we need
-                                              // older than 9.x is just a theoretical limit since we define 9.0 as the minimum required version
-    {
-      for (int minor = 20; minor >= 0; minor--)
-      {
-        snprintf (dllname, sizeof (dllname), "nvrtc64_%d%d.dll", major, minor);
-
-        nvrtc->lib = hc_dlopen (dllname);
-
-        if (nvrtc->lib) break;
-
-        snprintf (dllname, sizeof (dllname), "nvrtc64_%d%d_0.dll", major, minor);
-
-        nvrtc->lib = hc_dlopen (dllname);
-
-        if (nvrtc->lib) break;
-      }
-
-      if (nvrtc->lib) break;
-    }
-  }
-  #elif defined (__APPLE__)
-  nvrtc->lib = hc_dlopen ("nvrtc.dylib");
-  #elif defined (__CYGWIN__)
-  nvrtc->lib = hc_dlopen ("nvrtc.dll");
-  #else
-  nvrtc->lib = hc_dlopen ("libnvrtc.so");
-
-  if (nvrtc->lib == NULL) nvrtc->lib = hc_dlopen ("libnvrtc.so.1");
-  #endif
-
-  if (nvrtc->lib == NULL) return -1;
-
-  HC_LOAD_FUNC (nvrtc, nvrtcAddNameExpression,  NVRTC_NVRTCADDNAMEEXPRESSION, NVRTC, 1);
-  HC_LOAD_FUNC (nvrtc, nvrtcCompileProgram,     NVRTC_NVRTCCOMPILEPROGRAM,    NVRTC, 1);
-  HC_LOAD_FUNC (nvrtc, nvrtcCreateProgram,      NVRTC_NVRTCCREATEPROGRAM,     NVRTC, 1);
-  HC_LOAD_FUNC (nvrtc, nvrtcDestroyProgram,     NVRTC_NVRTCDESTROYPROGRAM,    NVRTC, 1);
-  HC_LOAD_FUNC (nvrtc, nvrtcGetLoweredName,     NVRTC_NVRTCGETLOWEREDNAME,    NVRTC, 1);
-  HC_LOAD_FUNC (nvrtc, nvrtcGetPTX,             NVRTC_NVRTCGETPTX,            NVRTC, 1);
-  HC_LOAD_FUNC (nvrtc, nvrtcGetPTXSize,         NVRTC_NVRTCGETPTXSIZE,        NVRTC, 1);
-  HC_LOAD_FUNC (nvrtc, nvrtcGetProgramLog,      NVRTC_NVRTCGETPROGRAMLOG,     NVRTC, 1);
-  HC_LOAD_FUNC (nvrtc, nvrtcGetProgramLogSize,  NVRTC_NVRTCGETPROGRAMLOGSIZE, NVRTC, 1);
-  HC_LOAD_FUNC (nvrtc, nvrtcGetErrorString,     NVRTC_NVRTCGETERRORSTRING,    NVRTC, 1);
-  HC_LOAD_FUNC (nvrtc, nvrtcVersion,            NVRTC_NVRTCVERSION,           NVRTC, 1);
-
-  return 0;
-}
-
-void nvrtc_close (hashcat_ctx_t *hashcat_ctx)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  NVRTC_PTR *nvrtc = (NVRTC_PTR *) backend_ctx->nvrtc;
-
-  if (nvrtc)
-  {
-    if (nvrtc->lib)
-    {
-      hc_dlclose (nvrtc->lib);
-    }
-
-    hcfree (backend_ctx->nvrtc);
-
-    backend_ctx->nvrtc = NULL;
-  }
-}
-
-int hc_nvrtcCreateProgram (hashcat_ctx_t *hashcat_ctx, nvrtcProgram *prog, const char *src, const char *name, int numHeaders, const char * const *headers, const char * const *includeNames)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  NVRTC_PTR *nvrtc = (NVRTC_PTR *) backend_ctx->nvrtc;
-
-  const nvrtcResult NVRTC_err = nvrtc->nvrtcCreateProgram (prog, src, name, numHeaders, headers, includeNames);
-
-  if (NVRTC_err != NVRTC_SUCCESS)
-  {
-    event_log_error (hashcat_ctx, "nvrtcCreateProgram(): %s", nvrtc->nvrtcGetErrorString (NVRTC_err));
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_nvrtcDestroyProgram (hashcat_ctx_t *hashcat_ctx, nvrtcProgram *prog)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  NVRTC_PTR *nvrtc = (NVRTC_PTR *) backend_ctx->nvrtc;
-
-  const nvrtcResult NVRTC_err = nvrtc->nvrtcDestroyProgram (prog);
-
-  if (NVRTC_err != NVRTC_SUCCESS)
-  {
-    event_log_error (hashcat_ctx, "nvrtcDestroyProgram(): %s", nvrtc->nvrtcGetErrorString (NVRTC_err));
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_nvrtcCompileProgram (hashcat_ctx_t *hashcat_ctx, nvrtcProgram prog, int numOptions, const char * const *options)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  NVRTC_PTR *nvrtc = (NVRTC_PTR *) backend_ctx->nvrtc;
-
-  const nvrtcResult NVRTC_err = nvrtc->nvrtcCompileProgram (prog, numOptions, options);
-
-  if (NVRTC_err != NVRTC_SUCCESS)
-  {
-    event_log_error (hashcat_ctx, "nvrtcCompileProgram(): %s", nvrtc->nvrtcGetErrorString (NVRTC_err));
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_nvrtcGetProgramLogSize (hashcat_ctx_t *hashcat_ctx, nvrtcProgram prog, size_t *logSizeRet)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  NVRTC_PTR *nvrtc = (NVRTC_PTR *) backend_ctx->nvrtc;
-
-  const nvrtcResult NVRTC_err = nvrtc->nvrtcGetProgramLogSize (prog, logSizeRet);
-
-  if (NVRTC_err != NVRTC_SUCCESS)
-  {
-    event_log_error (hashcat_ctx, "nvrtcGetProgramLogSize(): %s", nvrtc->nvrtcGetErrorString (NVRTC_err));
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_nvrtcGetProgramLog (hashcat_ctx_t *hashcat_ctx, nvrtcProgram prog, char *log)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  NVRTC_PTR *nvrtc = (NVRTC_PTR *) backend_ctx->nvrtc;
-
-  const nvrtcResult NVRTC_err = nvrtc->nvrtcGetProgramLog (prog, log);
-
-  if (NVRTC_err != NVRTC_SUCCESS)
-  {
-    event_log_error (hashcat_ctx, "nvrtcGetProgramLog(): %s", nvrtc->nvrtcGetErrorString (NVRTC_err));
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_nvrtcGetPTXSize (hashcat_ctx_t *hashcat_ctx, nvrtcProgram prog, size_t *ptxSizeRet)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  NVRTC_PTR *nvrtc = (NVRTC_PTR *) backend_ctx->nvrtc;
-
-  const nvrtcResult NVRTC_err = nvrtc->nvrtcGetPTXSize (prog, ptxSizeRet);
-
-  if (NVRTC_err != NVRTC_SUCCESS)
-  {
-    event_log_error (hashcat_ctx, "nvrtcGetPTXSize(): %s", nvrtc->nvrtcGetErrorString (NVRTC_err));
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_nvrtcGetPTX (hashcat_ctx_t *hashcat_ctx, nvrtcProgram prog, char *ptx)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  NVRTC_PTR *nvrtc = (NVRTC_PTR *) backend_ctx->nvrtc;
-
-  const nvrtcResult NVRTC_err = nvrtc->nvrtcGetPTX (prog, ptx);
-
-  if (NVRTC_err != NVRTC_SUCCESS)
-  {
-    event_log_error (hashcat_ctx, "nvrtcGetPTX(): %s", nvrtc->nvrtcGetErrorString (NVRTC_err));
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_nvrtcVersion (hashcat_ctx_t *hashcat_ctx, int *major, int *minor)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  NVRTC_PTR *nvrtc = (NVRTC_PTR *) backend_ctx->nvrtc;
-
-  const nvrtcResult NVRTC_err = nvrtc->nvrtcVersion (major, minor);
-
-  if (NVRTC_err != NVRTC_SUCCESS)
-  {
-    event_log_error (hashcat_ctx, "nvrtcVersion(): %s", nvrtc->nvrtcGetErrorString (NVRTC_err));
-
-    return -1;
-  }
-
-  return 0;
-}
-
-// CUDA
-
-int cuda_init (hashcat_ctx_t *hashcat_ctx)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  memset (cuda, 0, sizeof (CUDA_PTR));
-
-  #if   defined (_WIN)
-  cuda->lib = hc_dlopen ("nvcuda.dll");
-  #elif defined (__APPLE__)
-  cuda->lib = hc_dlopen ("nvcuda.dylib");
-  #elif defined (__CYGWIN__)
-  cuda->lib = hc_dlopen ("nvcuda.dll");
-  #else
-  cuda->lib = hc_dlopen ("libcuda.so");
-
-  if (cuda->lib == NULL) cuda->lib = hc_dlopen ("libcuda.so.1");
-  #endif
-
-  if (cuda->lib == NULL) return -1;
-
-  #define HC_LOAD_FUNC_CUDA(ptr,name,cudaname,type,libname,noerr) \
-    do { \
-      ptr->name = (type) hc_dlsym ((ptr)->lib, #cudaname); \
-      if ((noerr) != -1) { \
-        if (!(ptr)->name) { \
-          if ((noerr) == 1) { \
-            event_log_error (hashcat_ctx, "%s is missing from %s shared library.", #name, #libname); \
-            return -1; \
-          } \
-          if ((noerr) != 1) { \
-            event_log_warning (hashcat_ctx, "%s is missing from %s shared library.", #name, #libname); \
-            return 0; \
-          } \
-        } \
-      } \
-    } while (0)
-
-  // finding the right symbol is a PITA, because of the _v2 suffix
-  // a good reference is cuda.h itself
-  // this needs to be verified for each new cuda release
-
-  HC_LOAD_FUNC_CUDA (cuda, cuCtxCreate,              cuCtxCreate_v2,            CUDA_CUCTXCREATE,               CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuCtxDestroy,             cuCtxDestroy_v2,           CUDA_CUCTXDESTROY,              CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuCtxGetCacheConfig,      cuCtxGetCacheConfig,       CUDA_CUCTXGETCACHECONFIG,       CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuCtxGetCurrent,          cuCtxGetCurrent,           CUDA_CUCTXGETCURRENT,           CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuCtxGetSharedMemConfig,  cuCtxGetSharedMemConfig,   CUDA_CUCTXGETSHAREDMEMCONFIG,   CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuCtxPopCurrent,          cuCtxPopCurrent_v2,        CUDA_CUCTXPOPCURRENT,           CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuCtxPushCurrent,         cuCtxPushCurrent_v2,       CUDA_CUCTXPUSHCURRENT,          CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuCtxSetCacheConfig,      cuCtxSetCacheConfig,       CUDA_CUCTXSETCACHECONFIG,       CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuCtxSetCurrent,          cuCtxSetCurrent,           CUDA_CUCTXSETCURRENT,           CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuCtxSetSharedMemConfig,  cuCtxSetSharedMemConfig,   CUDA_CUCTXSETSHAREDMEMCONFIG,   CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuCtxSynchronize,         cuCtxSynchronize,          CUDA_CUCTXSYNCHRONIZE,          CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuDeviceGetAttribute,     cuDeviceGetAttribute,      CUDA_CUDEVICEGETATTRIBUTE,      CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuDeviceGetCount,         cuDeviceGetCount,          CUDA_CUDEVICEGETCOUNT,          CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuDeviceGet,              cuDeviceGet,               CUDA_CUDEVICEGET,               CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuDeviceGetName,          cuDeviceGetName,           CUDA_CUDEVICEGETNAME,           CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuDeviceTotalMem,         cuDeviceTotalMem_v2,       CUDA_CUDEVICETOTALMEM,          CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuDriverGetVersion,       cuDriverGetVersion,        CUDA_CUDRIVERGETVERSION,        CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuEventCreate,            cuEventCreate,             CUDA_CUEVENTCREATE,             CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuEventDestroy,           cuEventDestroy_v2,         CUDA_CUEVENTDESTROY,            CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuEventElapsedTime,       cuEventElapsedTime,        CUDA_CUEVENTELAPSEDTIME,        CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuEventQuery,             cuEventQuery,              CUDA_CUEVENTQUERY,              CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuEventRecord,            cuEventRecord,             CUDA_CUEVENTRECORD,             CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuEventSynchronize,       cuEventSynchronize,        CUDA_CUEVENTSYNCHRONIZE,        CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuFuncGetAttribute,       cuFuncGetAttribute,        CUDA_CUFUNCGETATTRIBUTE,        CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuFuncSetAttribute,       cuFuncSetAttribute,        CUDA_CUFUNCSETATTRIBUTE,        CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuFuncSetCacheConfig,     cuFuncSetCacheConfig,      CUDA_CUFUNCSETCACHECONFIG,      CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuFuncSetSharedMemConfig, cuFuncSetSharedMemConfig,  CUDA_CUFUNCSETSHAREDMEMCONFIG,  CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuGetErrorName,           cuGetErrorName,            CUDA_CUGETERRORNAME,            CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuGetErrorString,         cuGetErrorString,          CUDA_CUGETERRORSTRING,          CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuInit,                   cuInit,                    CUDA_CUINIT,                    CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuLaunchKernel,           cuLaunchKernel,            CUDA_CULAUNCHKERNEL,            CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuMemAlloc,               cuMemAlloc_v2,             CUDA_CUMEMALLOC,                CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuMemAllocHost,           cuMemAllocHost_v2,         CUDA_CUMEMALLOCHOST,            CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuMemcpyDtoDAsync,        cuMemcpyDtoDAsync_v2,      CUDA_CUMEMCPYDTODASYNC,         CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuMemcpyDtoHAsync,        cuMemcpyDtoHAsync_v2,      CUDA_CUMEMCPYDTOHASYNC,         CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuMemcpyHtoDAsync,        cuMemcpyHtoDAsync_v2,      CUDA_CUMEMCPYHTODASYNC,         CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuMemFree,                cuMemFree_v2,              CUDA_CUMEMFREE,                 CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuMemFreeHost,            cuMemFreeHost,             CUDA_CUMEMFREEHOST,             CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuMemGetInfo,             cuMemGetInfo_v2,           CUDA_CUMEMGETINFO,              CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuMemsetD32Async,         cuMemsetD32Async,          CUDA_CUMEMSETD32ASYNC,          CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuMemsetD8Async,          cuMemsetD8Async,           CUDA_CUMEMSETD8ASYNC,           CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuModuleGetFunction,      cuModuleGetFunction,       CUDA_CUMODULEGETFUNCTION,       CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuModuleGetGlobal,        cuModuleGetGlobal_v2,      CUDA_CUMODULEGETGLOBAL,         CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuModuleLoad,             cuModuleLoad,              CUDA_CUMODULELOAD,              CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuModuleLoadData,         cuModuleLoadData,          CUDA_CUMODULELOADDATA,          CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuModuleLoadDataEx,       cuModuleLoadDataEx,        CUDA_CUMODULELOADDATAEX,        CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuModuleUnload,           cuModuleUnload,            CUDA_CUMODULEUNLOAD,            CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuProfilerStart,          cuProfilerStart,           CUDA_CUPROFILERSTART,           CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuProfilerStop,           cuProfilerStop,            CUDA_CUPROFILERSTOP,            CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuStreamCreate,           cuStreamCreate,            CUDA_CUSTREAMCREATE,            CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuStreamDestroy,          cuStreamDestroy_v2,        CUDA_CUSTREAMDESTROY,           CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuStreamSynchronize,      cuStreamSynchronize,       CUDA_CUSTREAMSYNCHRONIZE,       CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuStreamWaitEvent,        cuStreamWaitEvent,         CUDA_CUSTREAMWAITEVENT,         CUDA, 1);
-  #if defined (WITH_CUBIN)
-  HC_LOAD_FUNC_CUDA (cuda, cuLinkCreate,             cuLinkCreate_v2,           CUDA_CULINKCREATE,              CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuLinkAddData,            cuLinkAddData_v2,          CUDA_CULINKADDDATA,             CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuLinkDestroy,            cuLinkDestroy,             CUDA_CULINKDESTROY,             CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuLinkComplete,           cuLinkComplete,            CUDA_CULINKCOMPLETE,            CUDA, 1);
-  #endif
-
-  return 0;
-}
-
-void cuda_close (hashcat_ctx_t *hashcat_ctx)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  if (cuda)
-  {
-    if (cuda->lib)
-    {
-      hc_dlclose (cuda->lib);
-    }
-
-    hcfree (backend_ctx->cuda);
-
-    backend_ctx->cuda = NULL;
-  }
-}
-
-int hc_cuInit (hashcat_ctx_t *hashcat_ctx, unsigned int Flags)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuInit (Flags);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuInit(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuInit(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuDeviceGetAttribute (hashcat_ctx_t *hashcat_ctx, int *pi, CUdevice_attribute attrib, CUdevice dev)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuDeviceGetAttribute (pi, attrib, dev);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuDeviceGetAttribute(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuDeviceGetAttribute(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuDeviceGetCount (hashcat_ctx_t *hashcat_ctx, int *count)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuDeviceGetCount (count);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuDeviceGetCount(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuDeviceGetCount(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuDeviceGet (hashcat_ctx_t *hashcat_ctx, CUdevice* device, int ordinal)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuDeviceGet (device, ordinal);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuDeviceGet(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuDeviceGet(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuDeviceGetName (hashcat_ctx_t *hashcat_ctx, char *name, int len, CUdevice dev)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuDeviceGetName (name, len, dev);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuDeviceGetName(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuDeviceGetName(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuDeviceTotalMem (hashcat_ctx_t *hashcat_ctx, size_t *bytes, CUdevice dev)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuDeviceTotalMem (bytes, dev);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuDeviceTotalMem(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuDeviceTotalMem(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuDriverGetVersion (hashcat_ctx_t *hashcat_ctx, int *driverVersion)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuDriverGetVersion (driverVersion);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuDriverGetVersion(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuDriverGetVersion(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuCtxCreate (hashcat_ctx_t *hashcat_ctx, CUcontext *pctx, unsigned int flags, CUdevice dev)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuCtxCreate (pctx, flags, dev);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuCtxCreate(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuCtxCreate(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuCtxDestroy (hashcat_ctx_t *hashcat_ctx, CUcontext ctx)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuCtxDestroy (ctx);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuCtxDestroy(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuCtxDestroy(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuModuleLoadDataEx (hashcat_ctx_t *hashcat_ctx, CUmodule *module, const void *image, unsigned int numOptions, CUjit_option *options, void **optionValues)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuModuleLoadDataEx (module, image, numOptions, options, optionValues);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuModuleLoadDataEx(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuModuleLoadDataEx(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuModuleUnload (hashcat_ctx_t *hashcat_ctx, CUmodule hmod)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuModuleUnload (hmod);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuModuleUnload(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuModuleUnload(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuCtxSetCurrent (hashcat_ctx_t *hashcat_ctx, CUcontext ctx)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuCtxSetCurrent (ctx);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuCtxSetCurrent(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuCtxSetCurrent(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuMemAlloc (hashcat_ctx_t *hashcat_ctx, CUdeviceptr *dptr, size_t bytesize)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuMemAlloc (dptr, bytesize);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuMemAlloc(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuMemAlloc(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuMemFree (hashcat_ctx_t *hashcat_ctx, CUdeviceptr dptr)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuMemFree (dptr);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuMemFree(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuMemFree(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuMemcpyDtoHAsync (hashcat_ctx_t *hashcat_ctx, void *dstHost, CUdeviceptr srcDevice, size_t ByteCount, CUstream hStream)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuMemcpyDtoHAsync (dstHost, srcDevice, ByteCount, hStream);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuMemcpyDtoHAsync(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuMemcpyDtoHAsync(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuMemcpyDtoDAsync (hashcat_ctx_t *hashcat_ctx, CUdeviceptr dstDevice, CUdeviceptr srcDevice, size_t ByteCount, CUstream hStream)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuMemcpyDtoDAsync (dstDevice, srcDevice, ByteCount, hStream);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuMemcpyDtoDAsync(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuMemcpyDtoDAsync(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuMemcpyHtoDAsync (hashcat_ctx_t *hashcat_ctx, CUdeviceptr dstDevice, const void *srcHost, size_t ByteCount, CUstream hStream)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuMemcpyHtoDAsync (dstDevice, srcHost, ByteCount, hStream);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuMemcpyHtoDAsync(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuMemcpyHtoDAsync(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuMemsetD32Async (hashcat_ctx_t *hashcat_ctx, CUdeviceptr dstDevice, unsigned int ui, size_t N, CUstream hStream)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuMemsetD32Async (dstDevice, ui, N, hStream);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuMemsetD32Async(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuMemsetD32Async(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuMemsetD8Async (hashcat_ctx_t *hashcat_ctx, CUdeviceptr dstDevice, unsigned char uc, size_t N, CUstream hStream)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuMemsetD8Async (dstDevice, uc, N, hStream);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuMemsetD8Async(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuMemsetD8Async(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuModuleGetFunction (hashcat_ctx_t *hashcat_ctx, CUfunction *hfunc, CUmodule hmod, const char *name)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuModuleGetFunction (hfunc, hmod, name);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuModuleGetFunction(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuModuleGetFunction(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuModuleGetGlobal (hashcat_ctx_t *hashcat_ctx, CUdeviceptr *dptr, size_t *bytes, CUmodule hmod, const char *name)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuModuleGetGlobal (dptr, bytes, hmod, name);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuModuleGetGlobal(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuModuleGetGlobal(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuMemGetInfo (hashcat_ctx_t *hashcat_ctx, size_t *free, size_t *total)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuMemGetInfo (free, total);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuMemGetInfo(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuMemGetInfo(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuFuncGetAttribute (hashcat_ctx_t *hashcat_ctx, int *pi, CUfunction_attribute attrib, CUfunction hfunc)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuFuncGetAttribute (pi, attrib, hfunc);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuFuncGetAttribute(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuFuncGetAttribute(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuFuncSetAttribute (hashcat_ctx_t *hashcat_ctx, CUfunction hfunc, CUfunction_attribute attrib, int value)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuFuncSetAttribute (hfunc, attrib, value);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuFuncSetAttribute(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuFuncSetAttribute(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuStreamCreate (hashcat_ctx_t *hashcat_ctx, CUstream *phStream, unsigned int Flags)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuStreamCreate (phStream, Flags);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuStreamCreate(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuStreamCreate(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuStreamDestroy (hashcat_ctx_t *hashcat_ctx, CUstream hStream)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuStreamDestroy (hStream);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuStreamDestroy(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuStreamDestroy(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuStreamSynchronize (hashcat_ctx_t *hashcat_ctx, CUstream hStream)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuStreamSynchronize (hStream);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuStreamSynchronize(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuStreamSynchronize(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuLaunchKernel (hashcat_ctx_t *hashcat_ctx, CUfunction f, unsigned int gridDimX, unsigned int gridDimY, unsigned int gridDimZ, unsigned int blockDimX, unsigned int blockDimY, unsigned int blockDimZ, unsigned int sharedMemBytes, CUstream hStream, void **kernelParams, void **extra)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuLaunchKernel (f, gridDimX, gridDimY, gridDimZ, blockDimX, blockDimY, blockDimZ, sharedMemBytes, hStream, kernelParams, extra);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuLaunchKernel(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuLaunchKernel(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuCtxSynchronize (hashcat_ctx_t *hashcat_ctx)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuCtxSynchronize ();
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuCtxSynchronize(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuCtxSynchronize(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuEventCreate (hashcat_ctx_t *hashcat_ctx, CUevent *phEvent, unsigned int Flags)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuEventCreate (phEvent, Flags);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuEventCreate(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuEventCreate(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuEventDestroy (hashcat_ctx_t *hashcat_ctx, CUevent hEvent)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuEventDestroy (hEvent);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuEventDestroy(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuEventDestroy(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuEventElapsedTime (hashcat_ctx_t *hashcat_ctx, float *pMilliseconds, CUevent hStart, CUevent hEnd)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuEventElapsedTime (pMilliseconds, hStart, hEnd);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuEventElapsedTime(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuEventElapsedTime(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuEventQuery (hashcat_ctx_t *hashcat_ctx, CUevent hEvent)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuEventQuery (hEvent);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuEventQuery(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuEventQuery(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuEventRecord (hashcat_ctx_t *hashcat_ctx, CUevent hEvent, CUstream hStream)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuEventRecord (hEvent, hStream);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuEventRecord(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuEventRecord(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuEventSynchronize (hashcat_ctx_t *hashcat_ctx, CUevent hEvent)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuEventSynchronize (hEvent);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuEventSynchronize(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuEventSynchronize(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuCtxSetCacheConfig (hashcat_ctx_t *hashcat_ctx, CUfunc_cache config)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuCtxSetCacheConfig (config);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuCtxSetCacheConfig(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuCtxSetCacheConfig(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuCtxPushCurrent (hashcat_ctx_t *hashcat_ctx, CUcontext ctx)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuCtxPushCurrent (ctx);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuCtxPushCurrent(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuCtxPushCurrent(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuCtxPopCurrent (hashcat_ctx_t *hashcat_ctx, CUcontext *pctx)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuCtxPopCurrent (pctx);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuCtxPopCurrent(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuCtxPopCurrent(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuLinkCreate (hashcat_ctx_t *hashcat_ctx, unsigned int numOptions, CUjit_option *options, void **optionValues, CUlinkState *stateOut)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuLinkCreate (numOptions, options, optionValues, stateOut);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuLinkCreate(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuLinkCreate(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuLinkAddData (hashcat_ctx_t *hashcat_ctx, CUlinkState state, CUjitInputType type, void *data, size_t size, const char *name, unsigned int numOptions, CUjit_option *options, void **optionValues)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuLinkAddData (state, type, data, size, name, numOptions, options, optionValues);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuLinkAddData(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuLinkAddData(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuLinkDestroy (hashcat_ctx_t *hashcat_ctx, CUlinkState state)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuLinkDestroy (state);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuLinkDestroy(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuLinkDestroy(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int hc_cuLinkComplete (hashcat_ctx_t *hashcat_ctx, CUlinkState state, void **cubinOut, size_t *sizeOut)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-
-  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
-
-  const CUresult CU_err = cuda->cuLinkComplete (state, cubinOut, sizeOut);
-
-  if (CU_err != CUDA_SUCCESS)
-  {
-    const char *pStr = NULL;
-
-    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
-    {
-      event_log_error (hashcat_ctx, "cuLinkComplete(): %s", pStr);
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "cuLinkComplete(): %d", CU_err);
-    }
-
-    return -1;
-  }
-
-  return 0;
-}
-
-// Backend
-
 int gidd_to_pw_t (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 gidd, pw_t *pw)
 {
   pw_idx_t pw_idx;
@@ -2565,7 +1067,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
       for (u32 salt_repeat = 0; salt_repeat <= salt_repeats; salt_repeat++)
       {
-        device_param->kernel_params_buf32[34] = salt_repeat;
+        device_param->kernel_param.salt_repeat = salt_repeat;
 
         if (hashconfig->opts_type & OPTS_TYPE_LOOP_PREPARE)
         {
@@ -2584,8 +1086,8 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
             loop_left = MIN (loop_left, loop_step);
 
-            device_param->kernel_params_buf32[28] = loop_pos;
-            device_param->kernel_params_buf32[29] = loop_left;
+            device_param->kernel_param.loop_pos = loop_pos;
+            device_param->kernel_param.loop_cnt = loop_left;
 
             if (run_kernel (hashcat_ctx, device_param, KERN_RUN_2, pws_pos, pws_cnt, true, slow_iteration) == -1) return -1;
 
@@ -2721,7 +1223,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
       for (u32 salt_repeat = 0; salt_repeat <= salt_repeats; salt_repeat++)
       {
-        device_param->kernel_params_buf32[34] = salt_repeat;
+        device_param->kernel_param.salt_repeat = salt_repeat;
 
         if (hashconfig->opts_type & OPTS_TYPE_LOOP2_PREPARE)
         {
@@ -2740,8 +1242,8 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
             loop_left = MIN (loop_left, loop_step);
 
-            device_param->kernel_params_buf32[28] = loop_pos;
-            device_param->kernel_params_buf32[29] = loop_left;
+            device_param->kernel_param.loop_pos = loop_pos;
+            device_param->kernel_param.loop_cnt = loop_left;
 
             if (run_kernel (hashcat_ctx, device_param, KERN_RUN_LOOP2, pws_pos, pws_cnt, true, slow_iteration) == -1) return -1;
 
@@ -2776,18 +1278,62 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
     {
       if (hashconfig->opts_type & OPTS_TYPE_DEEP_COMP_KERNEL)
       {
-        const u32 loops_cnt = hashes->salts_buf[salt_pos].digests_cnt;
+        // module_ctx->module_deep_comp_kernel () would apply only on the first salt so we can't use it in -a 9 mode
+        // Instead we have to call all the registered AUX kernels
 
-        for (u32 loops_pos = 0; loops_pos < loops_cnt; loops_pos++)
+        if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
         {
-          device_param->kernel_params_buf32[28] = loops_pos;
-          device_param->kernel_params_buf32[29] = loops_cnt;
+          const u32 loops_cnt = hashes->salts_buf[salt_pos].digests_cnt;
 
-          const u32 deep_comp_kernel = module_ctx->module_deep_comp_kernel (hashes, salt_pos, loops_pos);
+          for (u32 loops_pos = 0; loops_pos < loops_cnt; loops_pos++)
+          {
+            device_param->kernel_param.loop_pos = loops_pos;
+            device_param->kernel_param.loop_cnt = loops_cnt;
 
-          if (run_kernel (hashcat_ctx, device_param, deep_comp_kernel, pws_pos, pws_cnt, false, 0) == -1) return -1;
+            if (hashconfig->opts_type & OPTS_TYPE_AUX1)
+            {
+              if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX1, pws_pos, pws_cnt, false, 0) == -1) return -1;
 
-          if (status_ctx->run_thread_level2 == false) break;
+              if (status_ctx->run_thread_level2 == false) break;
+            }
+
+            if (hashconfig->opts_type & OPTS_TYPE_AUX2)
+            {
+              if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX2, pws_pos, pws_cnt, false, 0) == -1) return -1;
+
+              if (status_ctx->run_thread_level2 == false) break;
+            }
+
+            if (hashconfig->opts_type & OPTS_TYPE_AUX3)
+            {
+              if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX3, pws_pos, pws_cnt, false, 0) == -1) return -1;
+
+              if (status_ctx->run_thread_level2 == false) break;
+            }
+
+            if (hashconfig->opts_type & OPTS_TYPE_AUX4)
+            {
+              if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX4, pws_pos, pws_cnt, false, 0) == -1) return -1;
+
+              if (status_ctx->run_thread_level2 == false) break;
+            }
+          }
+        }
+        else
+        {
+          const u32 loops_cnt = hashes->salts_buf[salt_pos].digests_cnt;
+
+          for (u32 loops_pos = 0; loops_pos < loops_cnt; loops_pos++)
+          {
+            device_param->kernel_param.loop_pos = loops_pos;
+            device_param->kernel_param.loop_cnt = loops_cnt;
+
+            const u32 deep_comp_kernel = module_ctx->module_deep_comp_kernel (hashes, salt_pos, loops_pos);
+
+            if (run_kernel (hashcat_ctx, device_param, deep_comp_kernel, pws_pos, pws_cnt, false, 0) == -1) return -1;
+
+            if (status_ctx->run_thread_level2 == false) break;
+          }
         }
       }
       else
@@ -3175,8 +1721,8 @@ int run_opencl_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
 
     cl_kernel kernel = device_param->opencl_kernel_bzero;
 
-    if (hc_clSetKernelArg (hashcat_ctx, kernel, 0, sizeof(cl_mem),   (void *) &buf)    == -1) return -1;
-    if (hc_clSetKernelArg (hashcat_ctx, kernel, 1, sizeof(cl_ulong), (void *) &num16d) == -1) return -1;
+    if (hc_clSetKernelArg (hashcat_ctx, kernel, 0, sizeof (cl_mem),   (void *) &buf)    == -1) return -1;
+    if (hc_clSetKernelArg (hashcat_ctx, kernel, 1, sizeof (cl_ulong), (void *) &num16d) == -1) return -1;
 
     const size_t global_work_size[3] = { num_elements,   1, 1 };
     const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
@@ -3296,8 +1842,8 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
   kernel_threads = MIN (kernel_threads, device_param->kernel_threads);
 
-  device_param->kernel_params_buf64[35] = pws_pos;
-  device_param->kernel_params_buf64[36] = num;
+  device_param->kernel_param.pws_pos = pws_pos;
+  device_param->kernel_param.gid_max = num;
 
   u64 num_elements = num;
 
@@ -3323,6 +1869,8 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
       case KERN_RUN_AUX3:   cuda_function = device_param->cuda_function_aux3;   break;
       case KERN_RUN_AUX4:   cuda_function = device_param->cuda_function_aux4;   break;
     }
+
+    if (hc_cuMemcpyHtoDAsync (hashcat_ctx, device_param->cuda_d_kernel_param, &device_param->kernel_param, device_param->size_kernel_params, device_param->cuda_stream) == -1) return -1;
 
     if (hc_cuFuncSetAttribute (hashcat_ctx, cuda_function, CU_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES, dynamic_shared_mem) == -1) return -1;
 
@@ -3418,6 +1966,8 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
       case KERN_RUN_AUX4:   hip_function = device_param->hip_function_aux4;   break;
     }
 
+    if (hc_hipMemcpyHtoDAsync (hashcat_ctx, device_param->hip_d_kernel_param, &device_param->kernel_param, device_param->size_kernel_params, device_param->hip_stream) == -1) return -1;
+
     //if (hc_hipFuncSetAttribute (hashcat_ctx, hip_function, HIP_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES, dynamic_shared_mem) == -1) return -1;
 
     if (kernel_threads == 0) kernel_threads = 1;
@@ -3512,11 +2062,14 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
       case KERN_RUN_AUX4:   opencl_kernel = device_param->opencl_kernel_aux4;   break;
     }
 
-    for (u32 i = 0; i <= 23; i++)
+    for (u32 i = 0; i <= 24; i++)
     {
       if (hc_clSetKernelArg (hashcat_ctx, opencl_kernel, i, sizeof (cl_mem), device_param->kernel_params[i]) == -1) return -1;
     }
 
+    if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_kernel_param, CL_FALSE, 0, device_param->size_kernel_params, &device_param->kernel_param, 0, NULL, NULL) == -1) return -1;
+
+    /*
     for (u32 i = 24; i <= 34; i++)
     {
       if (hc_clSetKernelArg (hashcat_ctx, opencl_kernel, i, sizeof (cl_uint), device_param->kernel_params[i]) == -1) return -1;
@@ -3526,6 +2079,7 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
     {
       if (hc_clSetKernelArg (hashcat_ctx, opencl_kernel, i, sizeof (cl_ulong), device_param->kernel_params[i]) == -1) return -1;
     }
+    */
 
     num_elements = round_up_multiple_64 (num_elements, kernel_threads);
 
@@ -4317,9 +2871,9 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
     salt_t *salt_buf = &hashes->salts_buf[salt_pos];
 
-    device_param->kernel_params_buf32[27] = salt_pos;
-    device_param->kernel_params_buf32[31] = salt_buf->digests_cnt;
-    device_param->kernel_params_buf32[32] = salt_buf->digests_offset;
+    device_param->kernel_param.salt_pos_host       = salt_pos;
+    device_param->kernel_param.digests_cnt         = salt_buf->digests_cnt;
+    device_param->kernel_param.digests_offset_host = salt_buf->digests_offset;
 
     HCFILE *combs_fp = &device_param->combs_fp;
 
@@ -4376,7 +2930,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
       device_param->innerloop_pos  = innerloop_pos;
       device_param->innerloop_left = innerloop_left;
 
-      device_param->kernel_params_buf32[30] = innerloop_left;
+      device_param->kernel_param.il_cnt = innerloop_left;
 
       device_param->outerloop_multi = (double) innerloop_cnt / (double) (innerloop_pos + innerloop_left);
 
@@ -9356,13 +7910,15 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->size_salts    = size_salts;
     device_param->size_esalts   = size_esalts;
 
-    u64 size_combs = KERNEL_COMBS * sizeof (pw_t);
-    u64 size_bfs   = KERNEL_BFS   * sizeof (bf_t);
-    u64 size_tm    = 32           * sizeof (bs_word_t);
+    u64 size_combs          = KERNEL_COMBS * sizeof (pw_t);
+    u64 size_bfs            = KERNEL_BFS   * sizeof (bf_t);
+    u64 size_tm             = 32           * sizeof (bs_word_t);
+    u64 size_kernel_params  = 1            * sizeof (kernel_param_t);
 
-    device_param->size_bfs      = size_bfs;
-    device_param->size_combs    = size_combs;
-    device_param->size_tm       = size_tm;
+    device_param->size_bfs           = size_bfs;
+    device_param->size_combs         = size_combs;
+    device_param->size_tm            = size_tm;
+    device_param->size_kernel_params = size_kernel_params;
 
     u64 size_st_digests = 1 * hashconfig->dgst_size;
     u64 size_st_salts   = 1 * sizeof (salt_t);
@@ -10073,7 +8629,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       + size_root_css
       + size_rules
       + size_rules_c
-      + size_tm;
+      + size_tm
+      + size_kernel_params;
 
     if (size_total_fixed > device_param->device_available_mem)
     {
@@ -10103,6 +8660,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_extra3_buf,     size_extra_buffer / 4)   == -1) return -1;
       if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_st_digests_buf, size_st_digests)         == -1) return -1;
       if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_st_salts_buf,   size_st_salts)           == -1) return -1;
+      if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_kernel_param,   size_kernel_params)      == -1) return -1;
 
       if (hc_cuMemcpyHtoDAsync (hashcat_ctx, device_param->cuda_d_bitmap_s1_a, bitmap_ctx->bitmap_s1_a, bitmap_ctx->bitmap_size, device_param->cuda_stream) == -1) return -1;
       if (hc_cuMemcpyHtoDAsync (hashcat_ctx, device_param->cuda_d_bitmap_s1_b, bitmap_ctx->bitmap_s1_b, bitmap_ctx->bitmap_size, device_param->cuda_stream) == -1) return -1;
@@ -10213,6 +8771,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_extra3_buf,     size_extra_buffer / 4)   == -1) return -1;
       if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_st_digests_buf, size_st_digests)         == -1) return -1;
       if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_st_salts_buf,   size_st_salts)           == -1) return -1;
+      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_kernel_param,   size_kernel_params)      == -1) return -1;
 
       if (hc_hipMemcpyHtoDAsync (hashcat_ctx, device_param->hip_d_bitmap_s1_a, bitmap_ctx->bitmap_s1_a, bitmap_ctx->bitmap_size, device_param->hip_stream) == -1) return -1;
       if (hc_hipMemcpyHtoDAsync (hashcat_ctx, device_param->hip_d_bitmap_s1_b, bitmap_ctx->bitmap_s1_b, bitmap_ctx->bitmap_size, device_param->hip_stream) == -1) return -1;
@@ -10323,6 +8882,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_WRITE,  size_extra_buffer / 4,   NULL, &device_param->opencl_d_extra3_buf)     == -1) return -1;
       if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   size_st_digests,         NULL, &device_param->opencl_d_st_digests_buf) == -1) return -1;
       if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   size_st_salts,           NULL, &device_param->opencl_d_st_salts_buf)   == -1) return -1;
+      if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   size_kernel_params,      NULL, &device_param->opencl_d_kernel_param)   == -1) return -1;
 
       if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_bitmap_s1_a, CL_FALSE, 0, bitmap_ctx->bitmap_size, bitmap_ctx->bitmap_s1_a, 0, NULL, NULL) == -1) return -1;
       if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_bitmap_s1_b, CL_FALSE, 0, bitmap_ctx->bitmap_size, bitmap_ctx->bitmap_s1_b, 0, NULL, NULL) == -1) return -1;
@@ -10396,19 +8956,21 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
      * kernel args
      */
 
-    device_param->kernel_params_buf32[24] = bitmap_ctx->bitmap_mask;
-    device_param->kernel_params_buf32[25] = bitmap_ctx->bitmap_shift1;
-    device_param->kernel_params_buf32[26] = bitmap_ctx->bitmap_shift2;
-    device_param->kernel_params_buf32[27] = 0; // salt_pos
-    device_param->kernel_params_buf32[28] = 0; // loop_pos
-    device_param->kernel_params_buf32[29] = 0; // loop_cnt
-    device_param->kernel_params_buf32[30] = 0; // kernel_rules_cnt
-    device_param->kernel_params_buf32[31] = 0; // digests_cnt
-    device_param->kernel_params_buf32[32] = 0; // digests_offset
-    device_param->kernel_params_buf32[33] = 0; // combs_mode
-    device_param->kernel_params_buf32[34] = 0; // salt_repeat
-    device_param->kernel_params_buf64[35] = 0; // pws_pos
-    device_param->kernel_params_buf64[36] = 0; // gid_max
+    device_param->kernel_param.bitmap_mask         = bitmap_ctx->bitmap_mask;
+    device_param->kernel_param.bitmap_shift1       = bitmap_ctx->bitmap_shift1;
+    device_param->kernel_param.bitmap_shift2       = bitmap_ctx->bitmap_shift2;
+    device_param->kernel_param.salt_pos_host       = 0;
+    device_param->kernel_param.loop_pos            = 0;
+    device_param->kernel_param.loop_cnt            = 0;
+    device_param->kernel_param.il_cnt              = 0;
+    device_param->kernel_param.digests_cnt         = 0;
+    device_param->kernel_param.digests_offset_host = 0;
+    device_param->kernel_param.combs_mode          = 0;
+    device_param->kernel_param.salt_repeat         = 0;
+    device_param->kernel_param.combs_mode          = 0;
+    device_param->kernel_param.salt_repeat         = 0;
+    device_param->kernel_param.pws_pos             = 0;
+    device_param->kernel_param.gid_max             = 0;
 
     if (device_param->is_cuda == true)
     {
@@ -10436,6 +8998,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       device_param->kernel_params[21] = &device_param->cuda_d_extra1_buf;
       device_param->kernel_params[22] = &device_param->cuda_d_extra2_buf;
       device_param->kernel_params[23] = &device_param->cuda_d_extra3_buf;
+      device_param->kernel_params[24] = &device_param->cuda_d_kernel_param;
     }
 
     if (device_param->is_hip == true)
@@ -10464,6 +9027,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       device_param->kernel_params[21] = &device_param->hip_d_extra1_buf;
       device_param->kernel_params[22] = &device_param->hip_d_extra2_buf;
       device_param->kernel_params[23] = &device_param->hip_d_extra3_buf;
+      device_param->kernel_params[24] = &device_param->hip_d_kernel_param;
     }
 
     if (device_param->is_opencl == true)
@@ -10492,21 +9056,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       device_param->kernel_params[21] = &device_param->opencl_d_extra1_buf;
       device_param->kernel_params[22] = &device_param->opencl_d_extra2_buf;
       device_param->kernel_params[23] = &device_param->opencl_d_extra3_buf;
+      device_param->kernel_params[24] = &device_param->opencl_d_kernel_param;
     }
-
-    device_param->kernel_params[24] = &device_param->kernel_params_buf32[24];
-    device_param->kernel_params[25] = &device_param->kernel_params_buf32[25];
-    device_param->kernel_params[26] = &device_param->kernel_params_buf32[26];
-    device_param->kernel_params[27] = &device_param->kernel_params_buf32[27];
-    device_param->kernel_params[28] = &device_param->kernel_params_buf32[28];
-    device_param->kernel_params[29] = &device_param->kernel_params_buf32[29];
-    device_param->kernel_params[30] = &device_param->kernel_params_buf32[30];
-    device_param->kernel_params[31] = &device_param->kernel_params_buf32[31];
-    device_param->kernel_params[32] = &device_param->kernel_params_buf32[32];
-    device_param->kernel_params[33] = &device_param->kernel_params_buf32[33];
-    device_param->kernel_params[34] = &device_param->kernel_params_buf32[34];
-    device_param->kernel_params[35] = &device_param->kernel_params_buf64[35];
-    device_param->kernel_params[36] = &device_param->kernel_params_buf64[36];
 
     if (user_options->slow_candidates == true)
     {
@@ -12794,6 +11345,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         if (size_st_digests         > undocumented_single_allocation_apple) memory_limit_hit = 1;
         if (size_st_salts           > undocumented_single_allocation_apple) memory_limit_hit = 1;
         if (size_st_esalts          > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (size_kernel_params      > undocumented_single_allocation_apple) memory_limit_hit = 1;
       }
 
       const u64 size_total
@@ -12827,7 +11379,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         + size_tmps
         + size_st_digests
         + size_st_salts
-        + size_st_esalts;
+        + size_st_esalts
+        + size_kernel_params;
 
       if ((size_total + EXTRA_SPACE) > device_param->device_available_mem) memory_limit_hit = 1;
 
@@ -13261,6 +11814,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       if (device_param->cuda_d_st_digests_buf) hc_cuMemFree (hashcat_ctx, device_param->cuda_d_st_digests_buf);
       if (device_param->cuda_d_st_salts_buf)   hc_cuMemFree (hashcat_ctx, device_param->cuda_d_st_salts_buf);
       if (device_param->cuda_d_st_esalts_buf)  hc_cuMemFree (hashcat_ctx, device_param->cuda_d_st_esalts_buf);
+      if (device_param->cuda_d_kernel_param)   hc_cuMemFree (hashcat_ctx, device_param->cuda_d_kernel_param);
 
       if (device_param->cuda_event1)           hc_cuEventDestroy (hashcat_ctx, device_param->cuda_event1);
       if (device_param->cuda_event2)           hc_cuEventDestroy (hashcat_ctx, device_param->cuda_event2);
@@ -13311,6 +11865,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       device_param->cuda_d_st_digests_buf     = 0;
       device_param->cuda_d_st_salts_buf       = 0;
       device_param->cuda_d_st_esalts_buf      = 0;
+      device_param->cuda_d_kernel_param       = 0;
 
       device_param->cuda_function1            = NULL;
       device_param->cuda_function12           = NULL;
@@ -13390,6 +11945,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       if (device_param->hip_d_st_digests_buf) hc_hipMemFree (hashcat_ctx, device_param->hip_d_st_digests_buf);
       if (device_param->hip_d_st_salts_buf)   hc_hipMemFree (hashcat_ctx, device_param->hip_d_st_salts_buf);
       if (device_param->hip_d_st_esalts_buf)  hc_hipMemFree (hashcat_ctx, device_param->hip_d_st_esalts_buf);
+      if (device_param->hip_d_kernel_param)   hc_hipMemFree (hashcat_ctx, device_param->hip_d_kernel_param);
 
       if (device_param->hip_event1)           hc_hipEventDestroy (hashcat_ctx, device_param->hip_event1);
       if (device_param->hip_event2)           hc_hipEventDestroy (hashcat_ctx, device_param->hip_event2);
@@ -13440,6 +11996,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       device_param->hip_d_st_digests_buf     = 0;
       device_param->hip_d_st_salts_buf       = 0;
       device_param->hip_d_st_esalts_buf      = 0;
+      device_param->hip_d_kernel_param       = 0;
 
       device_param->hip_function1            = NULL;
       device_param->hip_function12           = NULL;
@@ -13519,6 +12076,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       if (device_param->opencl_d_st_digests_buf) hc_clReleaseMemObject (hashcat_ctx, device_param->opencl_d_st_digests_buf);
       if (device_param->opencl_d_st_salts_buf)   hc_clReleaseMemObject (hashcat_ctx, device_param->opencl_d_st_salts_buf);
       if (device_param->opencl_d_st_esalts_buf)  hc_clReleaseMemObject (hashcat_ctx, device_param->opencl_d_st_esalts_buf);
+      if (device_param->opencl_d_kernel_param)   hc_clReleaseMemObject (hashcat_ctx, device_param->opencl_d_kernel_param);
 
       if (device_param->opencl_kernel1)          hc_clReleaseKernel (hashcat_ctx, device_param->opencl_kernel1);
       if (device_param->opencl_kernel12)         hc_clReleaseKernel (hashcat_ctx, device_param->opencl_kernel12);
@@ -13591,6 +12149,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       device_param->opencl_d_st_digests_buf    = NULL;
       device_param->opencl_d_st_salts_buf      = NULL;
       device_param->opencl_d_st_esalts_buf     = NULL;
+      device_param->opencl_d_kernel_param      = NULL;
       device_param->opencl_kernel1             = NULL;
       device_param->opencl_kernel12            = NULL;
       device_param->opencl_kernel2p            = NULL;
@@ -13710,22 +12269,7 @@ int backend_session_update_combinator (hashcat_ctx_t *hashcat_ctx)
 
     // kernel_params
 
-    device_param->kernel_params_buf32[33] = combinator_ctx->combs_mode;
-
-    /*
-    if (device_param->is_opencl == true)
-    {
-      CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel1, 33, sizeof (cl_uint), device_param->kernel_params[33]); if (CL_rc == -1) return -1;
-      CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel2, 33, sizeof (cl_uint), device_param->kernel_params[33]); if (CL_rc == -1) return -1;
-      CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel3, 33, sizeof (cl_uint), device_param->kernel_params[33]); if (CL_rc == -1) return -1;
-      CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel4, 33, sizeof (cl_uint), device_param->kernel_params[33]); if (CL_rc == -1) return -1;
-
-      if (hashconfig->opts_type & OPTS_TYPE_HOOK12) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel12,     33, sizeof (cl_uint), device_param->kernel_params[33]); if (CL_rc == -1) return -1; }
-      if (hashconfig->opts_type & OPTS_TYPE_HOOK23) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel23,     33, sizeof (cl_uint), device_param->kernel_params[33]); if (CL_rc == -1) return -1; }
-      if (hashconfig->opts_type & OPTS_TYPE_INIT2)  { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_init2, 33, sizeof (cl_uint), device_param->kernel_params[33]); if (CL_rc == -1) return -1; }
-      if (hashconfig->opts_type & OPTS_TYPE_LOOP2)  { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_loop2, 33, sizeof (cl_uint), device_param->kernel_params[33]); if (CL_rc == -1) return -1; }
-    }
-    */
+    device_param->kernel_param.combs_mode = combinator_ctx->combs_mode;
 
     // kernel_params_amp
 
