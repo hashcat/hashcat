@@ -26,6 +26,7 @@
 - Fixed undefined function call to hc_byte_perm_S() in hash-mode 17010 on non-CUDA compute devices
 - Fixed wordlist handling in -m 3000 when candidate passwords use the $HEX[...] syntax
 - Hash-Mode 9700: set native_threads to 32 with Apple GPU's
+- Hash-Mode 9710: set native_threads to 32 with Apple GPU's
 
 ##
 ## Technical
