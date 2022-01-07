@@ -1767,8 +1767,8 @@ KERNEL_FQ void m14000_mxx (KERN_ATTR_BITSLICE ())
    * salt
    */
 
-  const u32 salt0 = salt_bufs[SALT_POS].salt_buf_pc[0];
-  const u32 salt1 = salt_bufs[SALT_POS].salt_buf_pc[1];
+  const u32 salt0 = salt_bufs[SALT_POS_HOST].salt_buf_pc[0];
+  const u32 salt1 = salt_bufs[SALT_POS_HOST].salt_buf_pc[1];
 
   // salt1 first, because this is a 64 bit value actually
 
@@ -1906,7 +1906,7 @@ KERNEL_FQ void m14000_mxx (KERN_ATTR_BITSLICE ())
    * inner loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += 32)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += 32)
   {
     u32 k00 = K00;
     u32 k01 = K01;
@@ -2120,11 +2120,11 @@ KERNEL_FQ void m14000_mxx (KERN_ATTR_BITSLICE ())
     out[62] = D62;
     out[63] = D63;
 
-    if (digests_cnt < 16)
+    if (DIGESTS_CNT < 16)
     {
-      for (u32 d = 0; d < digests_cnt; d++)
+      for (u32 d = 0; d < DIGESTS_CNT; d++)
       {
-        const u32 final_hash_pos = DIGESTS_OFFSET + d;
+        const u32 final_hash_pos = DIGESTS_OFFSET_HOST + d;
 
         if (hashes_shown[final_hash_pos]) continue;
 
@@ -2209,8 +2209,8 @@ KERNEL_FQ void m14000_sxx (KERN_ATTR_BITSLICE ())
    * salt
    */
 
-  const u32 salt0 = salt_bufs[SALT_POS].salt_buf_pc[0];
-  const u32 salt1 = salt_bufs[SALT_POS].salt_buf_pc[1];
+  const u32 salt0 = salt_bufs[SALT_POS_HOST].salt_buf_pc[0];
+  const u32 salt1 = salt_bufs[SALT_POS_HOST].salt_buf_pc[1];
 
   // salt1 first, because this is a 64 bit value actually
 
@@ -2419,7 +2419,7 @@ KERNEL_FQ void m14000_sxx (KERN_ATTR_BITSLICE ())
    * inner loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += 32)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += 32)
   {
     u32 k00 = K00;
     u32 k01 = K01;

@@ -113,7 +113,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   apple_secure_notes_t *apple_secure_notes = (apple_secure_notes_t *) esalt_buf;
 
-  token_t token;
+  hc_token_t token;
 
   token.token_cnt  = 6;
 

@@ -161,7 +161,7 @@ KERNEL_FQ void m14632_init (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   sha512_hmac_ctx_t sha512_hmac_ctx;
 
@@ -185,9 +185,9 @@ KERNEL_FQ void m14632_init (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
   tmps[gid].opad64[6] = sha512_hmac_ctx.opad.h[6];
   tmps[gid].opad64[7] = sha512_hmac_ctx.opad.h[7];
 
-  sha512_hmac_update_global_swap (&sha512_hmac_ctx, salt_bufs[DIGESTS_OFFSET].salt_buf, salt_bufs[SALT_POS].salt_len);
+  sha512_hmac_update_global_swap (&sha512_hmac_ctx, salt_bufs[DIGESTS_OFFSET_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
-  const u32 key_size = esalt_bufs[DIGESTS_OFFSET].key_size;
+  const u32 key_size = esalt_bufs[DIGESTS_OFFSET_HOST].key_size;
 
   for (u32 i = 0, j = 1; i < ((key_size / 8) / 4); i += 16, j += 1)
   {
@@ -263,7 +263,7 @@ KERNEL_FQ void m14632_loop (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= gid_max) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u64x ipad[8];
   u64x opad[8];
@@ -286,7 +286,7 @@ KERNEL_FQ void m14632_loop (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
   opad[6] = pack64v (tmps, opad64, gid, 6);
   opad[7] = pack64v (tmps, opad64, gid, 7);
 
-  u32 key_size = esalt_bufs[DIGESTS_OFFSET].key_size;
+  u32 key_size = esalt_bufs[DIGESTS_OFFSET_HOST].key_size;
 
   for (u32 i = 0; i < ((key_size / 8) / 4); i += 16)
   {
@@ -311,7 +311,7 @@ KERNEL_FQ void m14632_loop (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
     out[6] = pack64v (tmps, out64, gid, i + 6);
     out[7] = pack64v (tmps, out64, gid, i + 7);
 
-    for (u32 j = 0; j < loop_cnt; j++)
+    for (u32 j = 0; j < LOOP_CNT; j++)
     {
       u32x w0[4];
       u32x w1[4];
@@ -391,7 +391,7 @@ KERNEL_FQ void m14632_comp (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
 {
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   // decrypt AF with first pbkdf2 result
   // merge AF to masterkey
@@ -399,7 +399,7 @@ KERNEL_FQ void m14632_comp (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
 
   u32 pt_buf[128];
 
-  luks_af_sha512_then_serpent_decrypt (&esalt_bufs[DIGESTS_OFFSET], &tmps[gid], pt_buf);
+  luks_af_sha512_then_serpent_decrypt (&esalt_bufs[DIGESTS_OFFSET_HOST], &tmps[gid], pt_buf);
 
   // check entropy
 
@@ -407,9 +407,9 @@ KERNEL_FQ void m14632_comp (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
 
   if (entropy < MAX_ENTROPY)
   {
-    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, 0, gid, 0, 0, 0);
     }
   }
 }

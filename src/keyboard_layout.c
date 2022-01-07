@@ -34,7 +34,7 @@ bool initialize_keyboard_layout_mapping (const char *filename, keyboard_layout_m
 
     if (line_len == 0) continue;
 
-    token_t token;
+    hc_token_t token;
 
     token.token_cnt  = 2;
 

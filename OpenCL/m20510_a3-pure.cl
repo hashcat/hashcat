@@ -509,7 +509,7 @@ KERNEL_FQ void m20510_sxx (KERN_ATTR_VECTOR ())
 
   SYNC_THREADS ();
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * digest
@@ -533,9 +533,9 @@ KERNEL_FQ void m20510_sxx (KERN_ATTR_VECTOR ())
    * reverse
    */
 
-  u32 prep0 = hc_swap32_S (digests_buf[DIGESTS_OFFSET].digest_buf[0]);
-  u32 prep1 = hc_swap32_S (digests_buf[DIGESTS_OFFSET].digest_buf[1]);
-  u32 prep2 = hc_swap32_S (digests_buf[DIGESTS_OFFSET].digest_buf[2]);
+  u32 prep0 = hc_swap32_S (digests_buf[DIGESTS_OFFSET_HOST].digest_buf[0]);
+  u32 prep1 = hc_swap32_S (digests_buf[DIGESTS_OFFSET_HOST].digest_buf[1]);
+  u32 prep2 = hc_swap32_S (digests_buf[DIGESTS_OFFSET_HOST].digest_buf[2]);
 
   for (int pos = pw_len - 1; pos >= 4; pos--)
   {
@@ -550,7 +550,7 @@ KERNEL_FQ void m20510_sxx (KERN_ATTR_VECTOR ())
 
   u32 w0l = pws[gid].i[0];
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 

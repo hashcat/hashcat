@@ -52,7 +52,7 @@ KERNEL_FQ void m04510_mxx (KERN_ATTR_VECTOR ())
 
   SYNC_THREADS ();
 
-  if (gid >= gid_max)
+  if (gid >= GID_CNT)
     return;
 
   /**
@@ -68,13 +68,13 @@ KERNEL_FQ void m04510_mxx (KERN_ATTR_VECTOR ())
     w[idx] = pws[gid].i[idx];
   }
 
-  const u32 salt_len = salt_bufs[SALT_POS].salt_len;
+  const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len;
 
   u32x s[64] = { 0 };
 
   for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = hc_swap32_S (salt_bufs[SALT_POS].salt_buf[idx]);
+    s[idx] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[idx]);
   }
 
   /**
@@ -83,7 +83,7 @@ KERNEL_FQ void m04510_mxx (KERN_ATTR_VECTOR ())
 
   u32x w0l = w[0];
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
@@ -161,7 +161,7 @@ KERNEL_FQ void m04510_sxx (KERN_ATTR_VECTOR ())
 
   SYNC_THREADS ();
 
-  if (gid >= gid_max)
+  if (gid >= GID_CNT)
     return;
 
   /**
@@ -169,10 +169,10 @@ KERNEL_FQ void m04510_sxx (KERN_ATTR_VECTOR ())
    */
 
   const u32 search[4] = {
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R3]
   };
 
   /**
@@ -188,13 +188,13 @@ KERNEL_FQ void m04510_sxx (KERN_ATTR_VECTOR ())
     w[idx] = pws[gid].i[idx];
   }
 
-  const u32 salt_len = salt_bufs[SALT_POS].salt_len;
+  const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len;
 
   u32x s[64] = { 0 };
 
   for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = hc_swap32_S (salt_bufs[SALT_POS].salt_buf[idx]);
+    s[idx] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[idx]);
   }
 
   /**
@@ -208,7 +208,7 @@ KERNEL_FQ void m04510_sxx (KERN_ATTR_VECTOR ())
 
   u32x w0l = w[0];
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 

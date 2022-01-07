@@ -97,7 +97,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   krb5pa_17_t *krb5pa = (krb5pa_17_t *) esalt_buf;
 
-  token_t token;
+  hc_token_t token;
 
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_KRB5PA;
@@ -130,7 +130,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.len_min[3] = 104;
   token.len_max[3] = 112;
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                     | TOKEN_ATTR_VERIFY_HEX;
+                   | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 

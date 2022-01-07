@@ -77,7 +77,7 @@ KERNEL_FQ void m23300_init (KERN_ATTR_TMPS_ESALT (iwork_tmp_t, iwork_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   sha1_hmac_ctx_t sha1_hmac_ctx;
 
@@ -100,10 +100,10 @@ KERNEL_FQ void m23300_init (KERN_ATTR_TMPS_ESALT (iwork_tmp_t, iwork_t))
   u32 w2[4];
   u32 w3[4];
 
-  w0[0] = salt_bufs[SALT_POS].salt_buf[0];
-  w0[1] = salt_bufs[SALT_POS].salt_buf[1];
-  w0[2] = salt_bufs[SALT_POS].salt_buf[2];
-  w0[3] = salt_bufs[SALT_POS].salt_buf[3];
+  w0[0] = salt_bufs[SALT_POS_HOST].salt_buf[0];
+  w0[1] = salt_bufs[SALT_POS_HOST].salt_buf[1];
+  w0[2] = salt_bufs[SALT_POS_HOST].salt_buf[2];
+  w0[3] = salt_bufs[SALT_POS_HOST].salt_buf[3];
   w1[0] = 0;
   w1[1] = 0;
   w1[2] = 0;
@@ -117,7 +117,7 @@ KERNEL_FQ void m23300_init (KERN_ATTR_TMPS_ESALT (iwork_tmp_t, iwork_t))
   w3[2] = 0;
   w3[3] = 0;
 
-  sha1_hmac_update_64 (&sha1_hmac_ctx, w0, w1, w2, w3, salt_bufs[SALT_POS].salt_len);
+  sha1_hmac_update_64 (&sha1_hmac_ctx, w0, w1, w2, w3, salt_bufs[SALT_POS_HOST].salt_len);
 
   for (u32 i = 0, j = 1; i < 4; i += 5, j += 1)
   {
@@ -162,7 +162,7 @@ KERNEL_FQ void m23300_loop (KERN_ATTR_TMPS_ESALT (iwork_tmp_t, iwork_t))
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= gid_max) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u32x ipad[5];
   u32x opad[5];
@@ -196,7 +196,7 @@ KERNEL_FQ void m23300_loop (KERN_ATTR_TMPS_ESALT (iwork_tmp_t, iwork_t))
     out[3] = packv (tmps, out, gid, i + 3);
     out[4] = packv (tmps, out, gid, i + 4);
 
-    for (u32 j = 0; j < loop_cnt; j++)
+    for (u32 j = 0; j < LOOP_CNT; j++)
     {
       u32x w0[4];
       u32x w1[4];
@@ -300,7 +300,7 @@ KERNEL_FQ void m23300_comp (KERN_ATTR_TMPS_ESALT (iwork_tmp_t, iwork_t))
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * AES part
@@ -321,10 +321,10 @@ KERNEL_FQ void m23300_comp (KERN_ATTR_TMPS_ESALT (iwork_tmp_t, iwork_t))
 
   u32 iv[4];
 
-  iv[0] = esalt_bufs[DIGESTS_OFFSET].iv[0];
-  iv[1] = esalt_bufs[DIGESTS_OFFSET].iv[1];
-  iv[2] = esalt_bufs[DIGESTS_OFFSET].iv[2];
-  iv[3] = esalt_bufs[DIGESTS_OFFSET].iv[3];
+  iv[0] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[0];
+  iv[1] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[1];
+  iv[2] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[2];
+  iv[3] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[3];
 
   u32 res[12]; // actually res[16], but we don't need the full 64 bytes output
 
@@ -332,10 +332,10 @@ KERNEL_FQ void m23300_comp (KERN_ATTR_TMPS_ESALT (iwork_tmp_t, iwork_t))
   {
     u32 data[4];
 
-    data[0] = esalt_bufs[DIGESTS_OFFSET].data[i + 0];
-    data[1] = esalt_bufs[DIGESTS_OFFSET].data[i + 1];
-    data[2] = esalt_bufs[DIGESTS_OFFSET].data[i + 2];
-    data[3] = esalt_bufs[DIGESTS_OFFSET].data[i + 3];
+    data[0] = esalt_bufs[DIGESTS_OFFSET_HOST].data[i + 0];
+    data[1] = esalt_bufs[DIGESTS_OFFSET_HOST].data[i + 1];
+    data[2] = esalt_bufs[DIGESTS_OFFSET_HOST].data[i + 2];
+    data[3] = esalt_bufs[DIGESTS_OFFSET_HOST].data[i + 3];
 
     u32 out[4];
 
@@ -400,9 +400,9 @@ KERNEL_FQ void m23300_comp (KERN_ATTR_TMPS_ESALT (iwork_tmp_t, iwork_t))
       (res[10] == checksum[2]) &&
       (res[11] == checksum[3]))
   {
-    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, 0, DIGESTS_OFFSET + 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
     }
 
     return;

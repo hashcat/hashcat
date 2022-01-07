@@ -459,7 +459,7 @@ KERNEL_FQ void m18600_init (KERN_ATTR_TMPS_ESALT (odf11_tmp_t, odf11_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   sha1_ctx_t sha1_ctx;
 
@@ -498,10 +498,10 @@ KERNEL_FQ void m18600_init (KERN_ATTR_TMPS_ESALT (odf11_tmp_t, odf11_t))
   u32 m2[4];
   u32 m3[4];
 
-  m0[0] = salt_bufs[DIGESTS_OFFSET].salt_buf[0];
-  m0[1] = salt_bufs[DIGESTS_OFFSET].salt_buf[1];
-  m0[2] = salt_bufs[DIGESTS_OFFSET].salt_buf[2];
-  m0[3] = salt_bufs[DIGESTS_OFFSET].salt_buf[3];
+  m0[0] = salt_bufs[DIGESTS_OFFSET_HOST].salt_buf[0];
+  m0[1] = salt_bufs[DIGESTS_OFFSET_HOST].salt_buf[1];
+  m0[2] = salt_bufs[DIGESTS_OFFSET_HOST].salt_buf[2];
+  m0[3] = salt_bufs[DIGESTS_OFFSET_HOST].salt_buf[3];
   m1[0] = 0;
   m1[1] = 0;
   m1[2] = 0;
@@ -557,7 +557,7 @@ KERNEL_FQ void m18600_loop (KERN_ATTR_TMPS_ESALT (odf11_tmp_t, odf11_t))
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= gid_max) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u32x ipad[5];
   u32x opad[5];
@@ -589,7 +589,7 @@ KERNEL_FQ void m18600_loop (KERN_ATTR_TMPS_ESALT (odf11_tmp_t, odf11_t))
   out[3] = packv (tmps, out, gid, 3);
   out[4] = packv (tmps, out, gid, 4);
 
-  for (u32 j = 0; j < loop_cnt; j++)
+  for (u32 j = 0; j < LOOP_CNT; j++)
   {
     u32x w0[4];
     u32x w1[4];
@@ -641,7 +641,7 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE_COMP) m18600_comp (KERN_ATTR_
   const u64 lid = get_local_id (0);
   const u64 lsz = get_local_size (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -757,7 +757,7 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE_COMP) m18600_comp (KERN_ATTR_
     SET_KEY32 (S3, i + 3, R0);
   }
 
-  GLOBAL_AS const odf11_t *es = &esalt_bufs[DIGESTS_OFFSET];
+  GLOBAL_AS const odf11_t *es = &esalt_bufs[DIGESTS_OFFSET_HOST];
 
   u32 ct[2];
 

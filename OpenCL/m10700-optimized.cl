@@ -18,11 +18,11 @@
 #define COMPARE_M "inc_comp_multi.cl"
 
 #if defined IS_AMD && defined IS_GPU
-#define INLINE
+#define HC_INLINE
 #elif defined IS_HIP
-#define INLINE INLINE0
+#define HC_INLINE HC_INLINE0
 #else
-#define INLINE
+#define HC_INLINE
 #endif
 
 typedef struct pdf
@@ -323,7 +323,7 @@ DECLSPEC void make_w_with_offset (ctx_t *ctx, const u32 W_len, const u32 offset,
   }
 }
 
-DECLSPEC INLINE u32 do_round (LOCAL_AS u32 *sc, const u32 *pw, const u32 pw_len, ctx_t *ctx, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC HC_INLINE u32 do_round (LOCAL_AS u32 *sc, const u32 *pw, const u32 pw_len, ctx_t *ctx, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   // make scratch buffer
 
@@ -577,7 +577,7 @@ KERNEL_FQ void m10700_init (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   sha256_ctx_t ctx;
 
@@ -585,7 +585,7 @@ KERNEL_FQ void m10700_init (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
 
   sha256_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
-  sha256_update_global_swap (&ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
+  sha256_update_global_swap (&ctx, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
   sha256_final (&ctx);
 
@@ -640,7 +640,7 @@ KERNEL_FQ void m10700_loop (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -678,12 +678,12 @@ KERNEL_FQ void m10700_loop (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
 
   u32 ex = 0;
 
-  for (u32 i = 0, j = loop_pos; i < loop_cnt; i++, j++)
+  for (u32 i = 0, j = LOOP_POS; i < LOOP_CNT; i++, j++)
   {
     ex = do_round (s_sc[lid], w0, pw_len, &ctx, s_te0, s_te1, s_te2, s_te3, s_te4);
   }
 
-  if ((loop_pos + loop_cnt) == 64)
+  if ((LOOP_POS + LOOP_CNT) == 64)
   {
     for (u32 i = 64; i < (ex & 0xff) + 32; i++)
     {
@@ -711,7 +711,7 @@ KERNEL_FQ void m10700_comp (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   const u64 lid = get_local_id (0);
 

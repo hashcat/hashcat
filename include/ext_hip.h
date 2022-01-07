@@ -389,4 +389,45 @@ typedef struct hc_hip_lib
 
 typedef hc_hip_lib_t HIP_PTR;
 
+int  hip_init                  (void *hashcat_ctx);
+void hip_close                 (void *hashcat_ctx);
+
+int hc_hipCtxCreate            (void *hashcat_ctx, hipCtx_t *pctx, unsigned int flags, hipDevice_t dev);
+int hc_hipCtxDestroy           (void *hashcat_ctx, hipCtx_t ctx);
+int hc_hipCtxPopCurrent        (void *hashcat_ctx, hipCtx_t *pctx);
+int hc_hipCtxPushCurrent       (void *hashcat_ctx, hipCtx_t ctx);
+int hc_hipCtxSetCurrent        (void *hashcat_ctx, hipCtx_t ctx);
+int hc_hipCtxSynchronize       (void *hashcat_ctx);
+int hc_hipDeviceGet            (void *hashcat_ctx, hipDevice_t *device, int ordinal);
+int hc_hipDeviceGetAttribute   (void *hashcat_ctx, int *pi, hipDeviceAttribute_t attrib, hipDevice_t dev);
+int hc_hipDeviceGetCount       (void *hashcat_ctx, int *count);
+int hc_hipDeviceGetName        (void *hashcat_ctx, char *name, int len, hipDevice_t dev);
+int hc_hipDeviceTotalMem       (void *hashcat_ctx, size_t *bytes, hipDevice_t dev);
+int hc_hipDriverGetVersion     (void *hashcat_ctx, int *driverVersion);
+int hc_hipEventCreate          (void *hashcat_ctx, hipEvent_t *phEvent, unsigned int Flags);
+int hc_hipEventDestroy         (void *hashcat_ctx, hipEvent_t hEvent);
+int hc_hipEventElapsedTime     (void *hashcat_ctx, float *pMilliseconds, hipEvent_t hStart, hipEvent_t hEnd);
+int hc_hipEventQuery           (void *hashcat_ctx, hipEvent_t hEvent);
+int hc_hipEventRecord          (void *hashcat_ctx, hipEvent_t hEvent, hipStream_t hStream);
+int hc_hipEventSynchronize     (void *hashcat_ctx, hipEvent_t hEvent);
+int hc_hipFuncGetAttribute     (void *hashcat_ctx, int *pi, hipFunction_attribute attrib, hipFunction_t hfunc);
+int hc_hipInit                 (void *hashcat_ctx, unsigned int Flags);
+int hc_hipLaunchKernel         (void *hashcat_ctx, hipFunction_t f, unsigned int gridDimX, unsigned int gridDimY, unsigned int gridDimZ, unsigned int blockDimX, unsigned int blockDimY, unsigned int blockDimZ, unsigned int sharedMemBytes, hipStream_t hStream, void **kernelParams, void **extra);
+int hc_hipMemAlloc             (void *hashcat_ctx, hipDeviceptr_t *dptr, size_t bytesize);
+int hc_hipMemFree              (void *hashcat_ctx, hipDeviceptr_t dptr);
+int hc_hipMemGetInfo           (void *hashcat_ctx, size_t *free, size_t *total);
+int hc_hipMemcpyDtoDAsync      (void *hashcat_ctx, hipDeviceptr_t dstDevice, hipDeviceptr_t srcDevice, size_t ByteCount, hipStream_t hStream);
+int hc_hipMemcpyDtoHAsync      (void *hashcat_ctx, void *dstHost, hipDeviceptr_t srcDevice, size_t ByteCount, hipStream_t hStream);
+int hc_hipMemcpyHtoDAsync      (void *hashcat_ctx, hipDeviceptr_t dstDevice, const void *srcHost, size_t ByteCount, hipStream_t hStream);
+int hc_hipMemsetD32Async       (void *hashcat_ctx, hipDeviceptr_t dstDevice, unsigned int ui, size_t N, hipStream_t hStream);
+int hc_hipMemsetD8Async        (void *hashcat_ctx, hipDeviceptr_t dstDevice, unsigned char uc, size_t N, hipStream_t hStream);
+int hc_hipModuleGetFunction    (void *hashcat_ctx, hipFunction_t *hfunc, hipModule_t hmod, const char *name);
+int hc_hipModuleGetGlobal      (void *hashcat_ctx, hipDeviceptr_t *dptr, size_t *bytes, hipModule_t hmod, const char *name);
+int hc_hipModuleLoadDataEx     (void *hashcat_ctx, hipModule_t *module, const void *image, unsigned int numOptions, hipJitOption *options, void **optionValues);
+int hc_hipModuleUnload         (void *hashcat_ctx, hipModule_t hmod);
+int hc_hipRuntimeGetVersion    (void *hashcat_ctx, int *runtimeVersion);
+int hc_hipStreamCreate         (void *hashcat_ctx, hipStream_t *phStream, unsigned int Flags);
+int hc_hipStreamDestroy        (void *hashcat_ctx, hipStream_t hStream);
+int hc_hipStreamSynchronize    (void *hashcat_ctx, hipStream_t hStream);
+
 #endif // _EXT_HIP_H

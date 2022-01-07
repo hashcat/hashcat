@@ -87,7 +87,7 @@ KERNEL_FQ void m24620_init (KERN_ATTR_TMPS_ESALT (sqlcipher_sha256_tmp_t, sqlcip
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   sha256_hmac_ctx_t sha256_hmac_ctx;
 
@@ -111,7 +111,7 @@ KERNEL_FQ void m24620_init (KERN_ATTR_TMPS_ESALT (sqlcipher_sha256_tmp_t, sqlcip
   tmps[gid].opad[6] = sha256_hmac_ctx.opad.h[6];
   tmps[gid].opad[7] = sha256_hmac_ctx.opad.h[7];
 
-  sha256_hmac_update_global_swap (&sha256_hmac_ctx, salt_bufs[DIGESTS_OFFSET].salt_buf, salt_bufs[SALT_POS].salt_len);
+  sha256_hmac_update_global_swap (&sha256_hmac_ctx, salt_bufs[DIGESTS_OFFSET_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
   for (u32 i = 0, j = 1; i < 8; i += 8, j += 1)
   {
@@ -167,7 +167,7 @@ KERNEL_FQ void m24620_loop (KERN_ATTR_TMPS_ESALT (sqlcipher_sha256_tmp_t, sqlcip
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= gid_max) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u32x ipad[8];
   u32x opad[8];
@@ -213,7 +213,7 @@ KERNEL_FQ void m24620_loop (KERN_ATTR_TMPS_ESALT (sqlcipher_sha256_tmp_t, sqlcip
     out[6] = packv (tmps, out, gid, i + 6);
     out[7] = packv (tmps, out, gid, i + 7);
 
-    for (u32 j = 0; j < loop_cnt; j++)
+    for (u32 j = 0; j < LOOP_CNT; j++)
     {
       u32x w0[4];
       u32x w1[4];
@@ -326,7 +326,7 @@ KERNEL_FQ void m24620_comp (KERN_ATTR_TMPS_ESALT (sqlcipher_sha256_tmp_t, sqlcip
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   u32 ukey[8];
 
@@ -347,17 +347,17 @@ KERNEL_FQ void m24620_comp (KERN_ATTR_TMPS_ESALT (sqlcipher_sha256_tmp_t, sqlcip
 
   u32 iv_buf[4];
 
-  iv_buf[0] = esalt_bufs[DIGESTS_OFFSET].iv_buf[0];
-  iv_buf[1] = esalt_bufs[DIGESTS_OFFSET].iv_buf[1];
-  iv_buf[2] = esalt_bufs[DIGESTS_OFFSET].iv_buf[2];
-  iv_buf[3] = esalt_bufs[DIGESTS_OFFSET].iv_buf[3];
+  iv_buf[0] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[0];
+  iv_buf[1] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[1];
+  iv_buf[2] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[2];
+  iv_buf[3] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[3];
 
   u32 enc[4];
 
-  enc[0] = esalt_bufs[DIGESTS_OFFSET].data_buf[0];
-  enc[1] = esalt_bufs[DIGESTS_OFFSET].data_buf[1];
-  enc[2] = esalt_bufs[DIGESTS_OFFSET].data_buf[2];
-  enc[3] = esalt_bufs[DIGESTS_OFFSET].data_buf[3];
+  enc[0] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[0];
+  enc[1] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[1];
+  enc[2] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[2];
+  enc[3] = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[3];
 
   u32 dec[4];
 
@@ -372,10 +372,10 @@ KERNEL_FQ void m24620_comp (KERN_ATTR_TMPS_ESALT (sqlcipher_sha256_tmp_t, sqlcip
   if (dec[1] != 0) return;
   if (dec[2] != 0) return;
 
-  const u32 r0 = esalt_bufs[DIGESTS_OFFSET].data_buf[0];
-  const u32 r1 = esalt_bufs[DIGESTS_OFFSET].data_buf[1];
-  const u32 r2 = esalt_bufs[DIGESTS_OFFSET].data_buf[2];
-  const u32 r3 = esalt_bufs[DIGESTS_OFFSET].data_buf[3];
+  const u32 r0 = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[0];
+  const u32 r1 = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[1];
+  const u32 r2 = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[2];
+  const u32 r3 = esalt_bufs[DIGESTS_OFFSET_HOST].data_buf[3];
 
   #define il_pos 0
 
