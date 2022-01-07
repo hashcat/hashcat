@@ -34,6 +34,7 @@
 - Hash-Mode 10400: set native_threads to 32 with Apple GPU's
 - Hash-Mode 10410: set native_threads to 32 with Apple GPU's
 - Hash-Mode 10420: set native_threads to 32 with Apple GPU's
+- Hash-Mode 18200: set native_threads to 32 with Apple GPU's
 
 ##
 ## Technical
