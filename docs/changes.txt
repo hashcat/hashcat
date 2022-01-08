@@ -44,6 +44,7 @@
 - HIP Backend: moved functions to ext_hip.c/ext_hiprtc.c and includes to ext_hip.h/ext_hiprtc.h
 - CUDA Backend: moved functions to ext_cuda.c/ext_nvrtc.c and includes to ext_cuda.h/ext_nvrtc.h
 - Autotune: Added error handling. By default skipping device on error, with --force using accel/loops/threads min values instead
+- Makefile: updated MACOSX_DEPLOYMENT_TARGET to 10.15 and removed OpenCL framework from LFLAGS_NATIVE on MacOS
 
 * changes v6.2.4 -> v6.2.5
 
