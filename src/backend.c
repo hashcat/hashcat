@@ -12318,27 +12318,18 @@ int backend_session_update_mp (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->is_cuda == true)
     {
-      //for (u32 i = 3; i < 4; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_mp, i, sizeof (cl_ulong), device_param->kernel_params_mp[i]); if (CL_rc == -1) return -1; }
-      //for (u32 i = 4; i < 8; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_mp, i, sizeof (cl_uint),  device_param->kernel_params_mp[i]); if (CL_rc == -1) return -1; }
-
       if (hc_cuMemcpyHtoDAsync (hashcat_ctx, device_param->cuda_d_root_css_buf,   mask_ctx->root_css_buf,   device_param->size_root_css,   device_param->cuda_stream)   == -1) return -1;
       if (hc_cuMemcpyHtoDAsync (hashcat_ctx, device_param->cuda_d_markov_css_buf, mask_ctx->markov_css_buf, device_param->size_markov_css, device_param->cuda_stream) == -1) return -1;
     }
 
     if (device_param->is_hip == true)
     {
-      //for (u32 i = 3; i < 4; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_mp, i, sizeof (cl_ulong), device_param->kernel_params_mp[i]); if (CL_rc == -1) return -1; }
-      //for (u32 i = 4; i < 8; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_mp, i, sizeof (cl_uint),  device_param->kernel_params_mp[i]); if (CL_rc == -1) return -1; }
-
       if (hc_hipMemcpyHtoDAsync (hashcat_ctx, device_param->hip_d_root_css_buf,   mask_ctx->root_css_buf,   device_param->size_root_css,   device_param->hip_stream)   == -1) return -1;
       if (hc_hipMemcpyHtoDAsync (hashcat_ctx, device_param->hip_d_markov_css_buf, mask_ctx->markov_css_buf, device_param->size_markov_css, device_param->hip_stream) == -1) return -1;
     }
 
     if (device_param->is_opencl == true)
     {
-      for (u32 i = 3; i < 4; i++) { if (hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_mp, i, sizeof (cl_ulong), device_param->kernel_params_mp[i]) == -1) return -1; }
-      for (u32 i = 4; i < 8; i++) { if (hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_mp, i, sizeof (cl_uint),  device_param->kernel_params_mp[i]) == -1) return -1; }
-
       if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_root_css_buf,   CL_FALSE, 0, device_param->size_root_css,   mask_ctx->root_css_buf,   0, NULL, NULL) == -1) return -1;
       if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_markov_css_buf, CL_FALSE, 0, device_param->size_markov_css, mask_ctx->markov_css_buf, 0, NULL, NULL) == -1) return -1;
 
