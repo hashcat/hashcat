@@ -214,6 +214,7 @@ typedef enum status_rc
   STATUS_ERROR              = 13,
   STATUS_ABORTED_FINISH     = 14,
   STATUS_AUTODETECT         = 16,
+  STATUS_RUNTIME_SKIP       = 17,
 
 } status_rc_t;
 

@@ -5,9 +5,10 @@
 ## License.....: MIT
 ##
 
-OPTS="--quiet --potfile-disable --runtime 400 --hwmon-disable"
+OPTS="--quiet --potfile-disable --hwmon-disable"
 
 FORCE=0
+RUNTIME=400
 
 TDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -211,8 +212,9 @@ function init()
       echo ""
 
       # download:
+      wget -q "${luks_tests_url}"
 
-      if ! wget -q "${luks_tests_url}" >/dev/null 2>/dev/null; then
+      if [ $? -ne 0 ] || [ ! -f "${luks_tests}" ]; then
         cd - >/dev/null
         echo "ERROR: Could not fetch the luks test files from this url: ${luks_tests_url}"
         exit 1
@@ -395,6 +397,11 @@ function status()
 
   if [ "${RET}" -ne 0 ]; then
     case ${RET} in
+     254)
+        echo "skipped by runtime, cmdline : ${CMD}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+        e_rs=$((e_rs + 1))
+
+        ;;
       1)
         if ! is_in_array "${hash_type}" ${NEVER_CRACK_ALGOS}; then
 
@@ -444,6 +451,7 @@ function attack_0()
   # single hash
   if [ "${MODE}" -ne 1 ]; then
 
+    e_rs=0
     e_to=0
     e_nf=0
     e_nm=0
@@ -536,7 +544,11 @@ function attack_0()
 
     msg="OK"
 
-    if [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ]; then
+    if [ "${e_rs}" -ne 0 ]; then
+
+      msg="Skip"
+
+    elif [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ]; then
 
       msg="Error"
 
@@ -546,13 +558,14 @@ function attack_0()
 
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 0, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 0, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout, ${e_rs}/${cnt} skipped"
 
   fi
 
   # multihash
   if [ "${MODE}" -ne 0 ]; then
 
+    e_rs=0
     e_to=0
     e_nf=0
     e_nm=0
@@ -625,7 +638,11 @@ function attack_0()
 
     msg="OK"
 
-    if [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ]; then
+    if [ "${e_rs}" -ne 0 ]; then
+
+      msg="Skip"
+
+    elif [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ]; then
 
       msg="Error"
 
@@ -635,7 +652,7 @@ function attack_0()
 
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 0, Mode multi,  Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 0, Mode multi,  Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout, ${e_rs}/${cnt} skipped"
 
   fi
 }
@@ -653,6 +670,7 @@ function attack_1()
   # single hash
   if [ "${MODE}" -ne 1 ]; then
 
+    e_rs=0
     e_to=0
     e_nf=0
     e_nm=0
@@ -797,7 +815,11 @@ function attack_1()
 
     msg="OK"
 
-    if [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ]; then
+    if [ "${e_rs}" -ne 0 ]; then
+
+      msg="Skip"
+
+    elif [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ]; then
 
       msg="Error"
 
@@ -807,7 +829,7 @@ function attack_1()
 
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 1, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 1, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout, ${e_rs}/${cnt} skipped"
 
   fi
 
@@ -826,6 +848,7 @@ function attack_1()
       return
     fi
 
+    e_rs=0
     e_to=0
     e_nf=0
     e_nm=0
@@ -915,7 +938,11 @@ function attack_1()
 
     msg="OK"
 
-    if [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ]; then
+    if [ "${e_rs}" -ne 0 ]; then
+
+      msg="Skip"
+
+    elif [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ]; then
 
       msg="Error"
 
@@ -925,7 +952,7 @@ function attack_1()
 
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 1, Mode multi,  Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 1, Mode multi,  Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout, ${e_rs}/${cnt} skipped"
 
   fi
 }
@@ -943,6 +970,7 @@ function attack_3()
   # single hash
   if [ "${MODE}" -ne 1 ]; then
 
+    e_rs=0
     e_to=0
     e_nf=0
     e_nm=0
@@ -1089,7 +1117,11 @@ function attack_3()
 
     msg="OK"
 
-    if [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ]; then
+    if [ "${e_rs}" -ne 0 ]; then
+
+      msg="Skip"
+
+    elif [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ]; then
 
       msg="Error"
 
@@ -1099,7 +1131,7 @@ function attack_3()
 
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 3, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 3, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout, ${e_rs}/${cnt} skipped"
 
   fi
 
@@ -1118,6 +1150,7 @@ function attack_3()
       return
     fi
 
+    e_rs=0
     e_to=0
     e_nf=0
     e_nm=0
@@ -1533,7 +1566,11 @@ function attack_3()
 
     msg="OK"
 
-    if [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ]; then
+    if [ "${e_rs}" -ne 0 ]; then
+
+      msg="Skip"
+
+    elif [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ]; then
 
       msg="Error"
 
@@ -1543,7 +1580,7 @@ function attack_3()
 
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 3, Mode multi,  Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 3, Mode multi,  Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout, ${e_rs}/${cnt} skipped"
 
   fi
 }
@@ -1561,6 +1598,7 @@ function attack_6()
   # single hash
   if [ "${MODE}" -ne 1 ]; then
 
+    e_rs=0
     e_to=0
     e_nf=0
     e_nm=0
@@ -1769,7 +1807,11 @@ function attack_6()
 
     msg="OK"
 
-    if [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ]; then
+    if [ "${e_rs}" -ne 0 ]; then
+
+      msg="Skip"
+
+    elif [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ]; then
 
       msg="Error"
 
@@ -1779,7 +1821,7 @@ function attack_6()
 
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 6, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 6, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout, ${e_rs}/${cnt} skipped"
 
     rm -f "${OUTD}/${hash_type}_dict1_custom"
     rm -f "${OUTD}/${hash_type}_dict2_custom"
@@ -1801,6 +1843,7 @@ function attack_6()
       return
     fi
 
+    e_rs=0
     e_to=0
     e_nf=0
     e_nm=0
@@ -1910,7 +1953,11 @@ function attack_6()
 
     msg="OK"
 
-    if [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ]; then
+    if [ "${e_rs}" -ne 0 ]; then
+
+      msg="Skip"
+
+    elif [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ]; then
 
       msg="Error"
 
@@ -1920,7 +1967,7 @@ function attack_6()
 
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 6, Mode multi,  Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 6, Mode multi,  Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout, ${e_rs}/${cnt} skipped"
 
   fi
 }
@@ -1938,6 +1985,7 @@ function attack_7()
   # single hash
   if [ "${MODE}" -ne 1 ]; then
 
+    e_rs=0
     e_to=0
     e_nf=0
     e_nm=0
@@ -2188,7 +2236,11 @@ function attack_7()
 
     msg="OK"
 
-    if [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ]; then
+    if [ "${e_rs}" -ne 0 ]; then
+
+      msg="Skip"
+
+    elif [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ]; then
 
       msg="Error"
 
@@ -2198,7 +2250,7 @@ function attack_7()
 
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 7, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 7, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout, ${e_rs}/${cnt} skipped"
 
     rm -f "${OUTD}/${hash_type}_dict1_custom"
     rm -f "${OUTD}/${hash_type}_dict2_custom"
@@ -2220,6 +2272,7 @@ function attack_7()
       return
     fi
 
+    e_rs=0
     e_to=0
     e_nf=0
     e_nm=0
@@ -2364,7 +2417,11 @@ function attack_7()
 
     msg="OK"
 
-    if [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ]; then
+    if [ "${e_rs}" -ne 0 ]; then
+
+      msg="Skip"
+
+    elif [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ]; then
 
       msg="Error"
 
@@ -2374,7 +2431,7 @@ function attack_7()
 
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 7, Mode multi,  Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 7, Mode multi,  Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout, ${e_rs}/${cnt} skipped"
 
   fi
 }
@@ -2535,18 +2592,34 @@ function cryptoloop_test()
 
     echo "${output}" >> "${OUTD}/logfull.txt"
 
-    cnt=1
+    e_rs=0
+    e_to=0
     e_nf=0
-    msg="OK"
-
-    if [ ${ret} -ne 0 ]; then
-      e_nf=1
-      msg="Error"
-    fi
-
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 3, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, Key-Size ${keySize} ] > $msg : ${e_nf}/${cnt} not found"
+    e_nm=0
+    cnt=0
 
     status ${ret}
+
+    cnt=1
+
+    msg="OK"
+
+    if [ "${e_rs}" -ne 0 ]; then
+
+      msg="Skip"
+
+    elif [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ]; then
+
+      msg="Error"
+
+    elif [ "${e_to}" -ne 0 ]; then
+
+      msg="Warning"
+
+    fi
+
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 3, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, Key-Size ${keySize} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout, ${e_rs}/${cnt} skipped"
+
   fi
 }
 
@@ -2718,18 +2791,34 @@ function truecrypt_test()
 
     echo "${output}" >> "${OUTD}/logfull.txt"
 
-    cnt=1
+    e_rs=0
+    e_to=0
     e_nf=0
-    msg="OK"
-
-    if [ ${ret} -ne 0 ]; then
-      e_nf=1
-      msg="Error"
-    fi
-
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 3, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, tcMode ${tcMode} ] > $msg : ${e_nf}/${cnt} not found"
+    e_nm=0
+    cnt=0
 
     status ${ret}
+
+    cnt=1
+
+    msg="OK"
+
+    if [ "${e_rs}" -ne 0 ]; then
+
+      msg="Skip"
+
+    elif [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ]; then
+
+      msg="Error"
+
+    elif [ "${e_to}" -ne 0 ]; then
+
+      msg="Warning"
+
+    fi
+
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 3, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, tcMode ${tcMode} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout, ${e_rs}/${cnt} skipped"
+
   fi
 }
 
@@ -2795,18 +2884,33 @@ function veracrypt_test()
 
   echo "${output}" >> "${OUTD}/logfull.txt"
 
-  cnt=1
+  e_rs=0
+  e_to=0
   e_nf=0
-  msg="OK"
-
-  if [ ${ret} -ne 0 ]; then
-    e_nf=1
-    msg="Error"
-  fi
-
-  echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 0, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, Cipher ${cipher_cascade} ] > $msg : ${e_nf}/${cnt} not found"
+  e_nm=0
+  cnt=0
 
   status ${ret}
+
+  cnt=1
+
+  msg="OK"
+
+  if [ "${e_rs}" -ne 0 ]; then
+
+    msg="Skip"
+
+  elif [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ]; then
+
+    msg="Error"
+
+  elif [ "${e_to}" -ne 0 ]; then
+
+    msg="Warning"
+
+  fi
+
+  echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 0, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, Cipher ${cipher_cascade} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout, ${e_rs}/${cnt} skipped"
 }
 
 function luks_test()
@@ -2920,16 +3024,33 @@ function luks_test()
 
             echo "${output}" >> "${OUTD}/logfull.txt"
 
-            cnt=1
+            e_rs=0
+            e_to=0
             e_nf=0
+            e_nm=0
+            cnt=0
+
+            status ${ret}
+
+            cnt=1
+
             msg="OK"
 
-            if [ ${ret} -ne 0 ]; then
-              e_nf=1
+            if [ "${e_rs}" -ne 0 ]; then
+
+              msg="Skip"
+
+            elif [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ]; then
+
               msg="Error"
+
+            elif [ "${e_to}" -ne 0 ]; then
+
+              msg="Warning"
+
             fi
 
-            echo "[ ${OUTD} ] [ Type ${hash_type}, Attack ${attackType}, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, luksMode ${luks_mode} ] > $msg : ${e_nf}/${cnt} not found"
+            echo "[ ${OUTD} ] [ Type ${hash_type}, Attack ${attackType}, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, luksMode ${luks_mode} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout, ${e_rs}/${cnt} skipped"
 
             status ${ret}
           fi
@@ -3021,7 +3142,7 @@ HT=0
 PACKAGE=0
 OPTIMIZED=1
 
-while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:f" opt; do
+while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:fr:" opt; do
 
   case ${opt} in
     "V")
@@ -3153,6 +3274,10 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:f" opt; do
       FORCE=1
       ;;
 
+    "r")
+      RUNTIME=${OPTARG}
+      ;;
+
     \?)
       usage
       ;;
@@ -3184,6 +3309,10 @@ export IS_OPTIMIZED=${OPTIMIZED}
 if [ "${OPTIMIZED}" -eq 1 ]; then
   OPTS="${OPTS} -O"
 fi
+
+# set max-runtime
+
+OPTS="${OPTS} --runtime ${RUNTIME}"
 
 # set default device-type to CPU with Apple Intel, else GPU
 
@@ -3344,6 +3473,40 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
           fi
         fi
 
+        continue
+      fi
+    fi
+
+    # skip deprecated hash-types
+    if [ "${hash_type}" -eq 2500 ] || [ "${hash_type}" -eq 2501 ] || [ "${hash_type}" -eq 16800 ] || [ "${hash_type}" -eq 16801 ] ; then
+      continue
+    fi
+
+    # test.pl produce wrong hashes with Apple
+    # would be necessary to investigate to understand why
+    if [ "${hash_type}" -eq 1800 ]; then
+      if [[ "$OSTYPE" == "darwin"* ]]; then
+        continue
+      fi
+    fi
+
+    # Digest::BLAKE2 is broken on Apple Silicon
+    if [ "${hash_type}" -eq 600 ]; then
+      if [ "${IS_APPLE_SILICON}" -eq 1 ]; then
+        continue
+      fi
+    fi
+
+    # Digest::GOST is broken on Apple Silicon
+    if [ "${hash_type}" -eq 6900 ]; then
+      if [ "${IS_APPLE_SILICON}" -eq 1 ]; then
+        continue
+      fi
+    fi
+
+    # Crypt::GCrypt is broken on Apple and Linux
+    if [ "${hash_type}" -eq 18600 ]; then
+      if [[ "$OSTYPE" == "linux-gnu"* ]] || [[ "$OSTYPE" == "darwin"* ]]; then
         continue
       fi
     fi

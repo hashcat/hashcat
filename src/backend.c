@@ -7314,6 +7314,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
   const straight_ctx_t       *straight_ctx        = hashcat_ctx->straight_ctx;
   const user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
   const user_options_t       *user_options        = hashcat_ctx->user_options;
+        status_ctx_t         *status_ctx          = hashcat_ctx->status_ctx;
 
   if (backend_ctx->enabled == false) return 0;
 
@@ -7352,6 +7353,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         event_log_warning (hashcat_ctx, "             You can use --force to override, but do not report related errors.");
 
         device_param->skipped_warning = true;
+
+        status_ctx->devices_status = STATUS_RUNTIME_SKIP;
 
         continue;
       }

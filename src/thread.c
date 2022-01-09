@@ -182,7 +182,10 @@ int myabort (hashcat_ctx_t *hashcat_ctx)
   // not sure if this is still valid, but abort is also called by gpu temp monitor
   //if (status_ctx->devices_status != STATUS_RUNNING) return;
 
-  status_ctx->devices_status = STATUS_ABORTED;
+  if (status_ctx->devices_status != STATUS_RUNTIME_SKIP)
+  {
+    status_ctx->devices_status = STATUS_ABORTED;
+  }
 
   status_ctx->run_main_level1   = false;
   status_ctx->run_main_level2   = false;

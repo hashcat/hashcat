@@ -291,6 +291,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   if ((status_ctx->devices_status != STATUS_CRACKED)
    && (status_ctx->devices_status != STATUS_ERROR)
+   && (status_ctx->devices_status != STATUS_RUNTIME_SKIP)
    && (status_ctx->devices_status != STATUS_ABORTED)
    && (status_ctx->devices_status != STATUS_ABORTED_CHECKPOINT)
    && (status_ctx->devices_status != STATUS_ABORTED_FINISH)
@@ -1711,6 +1712,10 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
     if (status_ctx->devices_status == STATUS_EXHAUSTED)           rc_final =  1;
     if (status_ctx->devices_status == STATUS_CRACKED)             rc_final =  0;
     if (status_ctx->devices_status == STATUS_ERROR)               rc_final = -1;
+  }
+  else if (rc_final == -1)
+  {
+    if (status_ctx->devices_status == STATUS_RUNTIME_SKIP)        rc_final = -2;
   }
 
   // special case for --stdout
