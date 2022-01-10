@@ -519,7 +519,7 @@ function attack_0()
         fi
 
         if [ ${hash_type} -eq 25400 ]; then
-          tmp=$(echo $output | sed -e 's/    (user password[^)].*//g')
+          tmp=$(echo $output | sed -e 's/    (user password.*//g')
           output="${tmp}"
         fi
 
