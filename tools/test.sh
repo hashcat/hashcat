@@ -518,6 +518,11 @@ function attack_0()
           search="${hash}:${pass}"
         fi
 
+        if [ ${hash_type} -eq 25400 ]; then
+          tmp=$(echo $output | sed -e 's/    (user password.*//g')
+          output="${tmp}"
+        fi
+
         echo "${output}" | grep -F "${search}" >/dev/null 2>/dev/null
 
         if [ "${?}" -ne 0 ]; then
