@@ -26,6 +26,7 @@
 - Fixed undefined function call to hc_byte_perm_S() in hash-mode 17010 on non-CUDA compute devices
 - Fixed wordlist handling in -m 3000 when candidate passwords use the $HEX[...] syntax
 - Fixed false negative on Unit Test with hash-type 25400
+- Fixed bug on benchmark engine, from now it will not stop at the first error detected
 
 ##
 ## Technical
@@ -45,6 +46,7 @@
 - HIP Backend: moved functions to ext_hip.c/ext_hiprtc.c and includes to ext_hip.h/ext_hiprtc.h
 - CUDA Backend: moved functions to ext_cuda.c/ext_nvrtc.c and includes to ext_cuda.h/ext_nvrtc.h
 - Makefile: updated MACOSX_DEPLOYMENT_TARGET to 10.15 and removed OpenCL framework from LFLAGS_NATIVE on MacOS
+- Status code: updated negative status code, usefull in Unit tests engine (test.sh)
 
 * changes v6.2.4 -> v6.2.5
 
