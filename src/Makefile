@@ -78,7 +78,7 @@ SED_IN_PLACE            := -i ""
 DARWIN_VERSION          := $(shell uname -r | cut -d. -f1)
 endif
 
-ifeq (,$(filter $(UNAME),FreeBSD NetBSD))
+ifneq (,$(filter $(UNAME),FreeBSD NetBSD))
 CC                      := cc
 CXX                     := c++
 SED                     := gsed
