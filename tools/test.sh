@@ -3523,9 +3523,9 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
       fi
     fi
 
-    # Crypt::GCrypt is broken on Apple and Linux
+    # Crypt::GCrypt is broken on Apple
     if [ "${hash_type}" -eq 18600 ]; then
-      if [[ "$OSTYPE" == "linux-gnu"* ]] || [[ "$OSTYPE" == "darwin"* ]]; then
+      if [[ "$OSTYPE" == "darwin"* ]]; then
         continue
       fi
     fi
