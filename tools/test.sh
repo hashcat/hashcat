@@ -183,6 +183,11 @@ function init()
   fi
 
   if [ "${hash_type}" -eq ${LUKS_MODE} ]; then
+    which 7z &>/dev/null
+    if [ $? -eq 1 ]; then
+      echo "ATTENTION: 7z is missing. Skipping download and extract luks test files."
+      return 0
+    fi
 
     luks_tests_folder="${TDIR}/luks_tests/"
 
@@ -219,12 +224,12 @@ function init()
       if [ $? -ne 0 ] || [ ! -f "${luks_tests}" ]; then
         cd - >/dev/null
         echo "ERROR: Could not fetch the luks test files from this url: ${luks_tests_url}"
-        exit 1
+        return 0
       fi
 
       # extract:
 
-      ${EXTRACT_CMD} "${luks_tests}" >/dev/null 2>/dev/null
+      ${EXTRACT_CMD} "${luks_tests}" &>/dev/null
 
       # cleanup:
 
@@ -235,7 +240,7 @@ function init()
 
       if [ ! -f "${luks_first_test_file}" ]; then
         echo "ERROR: downloading and extracting ${luks_tests} into ${luks_tests_folder} did not complete successfully"
-        exit 1
+        return 0
       fi
     fi
 
@@ -469,6 +474,12 @@ function status()
         e_nm=$((e_nm + 1))
         ;;
 
+      30)
+        echo "luks test files are missing, cmdline : ${CMD}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+
+        e_rs=$((e_rs + 1))
+        ;;
+
       *)
         echo "! unhandled return code ${RET}, cmdline : ${CMD}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
         echo "! unhandled return code, see ${OUTD}/logfull.txt or ${OUTD}/test_report.log for details."
@@ -561,7 +572,7 @@ function attack_0()
           search="${hash}:${pass}"
         fi
 
-        echo "${output}" | grep -F "${search}" >/dev/null 2>/dev/null
+        echo "${output}" | grep -F "${search}" &>/dev/null
 
         newRet=$?
 
@@ -670,7 +681,7 @@ function attack_0()
           search="${hash}:${pass}"
         fi
 
-        echo "${output}" | grep -F "${search}" >/dev/null 2>/dev/null
+        echo "${output}" | grep -F "${search}" &>/dev/null
 
         newRet=$?
 
@@ -844,7 +855,7 @@ function attack_1()
             search="${hash}:${line_dict1}${line_dict2}"
           fi
 
-          echo "${output}" | grep -F "${search}" >/dev/null 2>/dev/null
+          echo "${output}" | grep -F "${search}" &>/dev/null
 
           newRet=$?
 
@@ -986,7 +997,7 @@ function attack_1()
           search="${hash}:${line_dict1}${line_dict2}"
         fi
 
-        echo "${output}" | grep -F "${search}" >/dev/null 2>/dev/null
+        echo "${output}" | grep -F "${search}" &>/dev/null
 
         newRet=$?
 
@@ -1150,7 +1161,7 @@ function attack_3()
           search="${hash}:${line_dict}"
         fi
 
-        echo "${output}" | grep -F "${search}" >/dev/null 2>/dev/null
+        echo "${output}" | grep -F "${search}" &>/dev/null
 
         newRet=$?
 
@@ -1590,7 +1601,7 @@ function attack_3()
           search="${hash}:${pass}"
         fi
 
-        echo "${output}" | grep -F "${search}" >/dev/null 2>/dev/null
+        echo "${output}" | grep -F "${search}" &>/dev/null
 
         newRet=$?
 
@@ -1813,7 +1824,7 @@ function attack_6()
             search="${hash}:${line_dict1}${line_dict2}"
           fi
 
-          echo "${output}" | grep -F "${search}" >/dev/null 2>/dev/null
+          echo "${output}" | grep -F "${search}" &>/dev/null
 
           newRet=$?
 
@@ -1968,7 +1979,7 @@ function attack_6()
             search="${hash}:${line_dict1}${line_dict2}"
           fi
 
-          echo "${output}" | grep -F "${search}" >/dev/null 2>/dev/null
+          echo "${output}" | grep -F "${search}" &>/dev/null
 
           newRet=$?
 
@@ -2243,7 +2254,7 @@ function attack_7()
             search="${hash}:${line_dict1}${line_dict2}"
           fi
 
-          echo "${output}" | grep -F "${search}" >/dev/null 2>/dev/null
+          echo "${output}" | grep -F "${search}" &>/dev/null
 
           newRet=$?
 
@@ -2435,7 +2446,7 @@ function attack_7()
             search="${hash}:${line_dict1}${line_dict2}"
           fi
 
-          echo "${output}" | grep -F "${search}" >/dev/null 2>/dev/null
+          echo "${output}" | grep -F "${search}" &>/dev/null
 
           newRet=$?
 
@@ -2959,7 +2970,7 @@ function luks_test()
   LUKS_MODES="cbc-essiv cbc-plain64 xts-plain64"
   LUKS_KEYSIZES="128 256 512"
 
-  LUKS_PASSWORD=$(cat "${TDIR}/luks_tests/pw")
+  LUKS_PASSWORD=$(cat "${TDIR}/luks_tests/pw" 2>/dev/null)
 
   for luks_h in ${LUKS_HASHES}; do
     for luks_c in ${LUKS_CIPHERS}; do
@@ -3017,15 +3028,15 @@ function luks_test()
               luks_pass_part1_len=$((${#LUKS_PASSWORD} / 2))
               luks_pass_part2_start=$((luks_pass_part1_len + 1))
 
-              echo "${LUKS_PASSWORD}" | cut -c-${luks_pass_part1_len} > "${luks_pass_part_file1}"
-              echo "${LUKS_PASSWORD}" | cut -c${luks_pass_part2_start}- > "${luks_pass_part_file2}"
+              echo "${LUKS_PASSWORD}" | cut -c-${luks_pass_part1_len} > "${luks_pass_part_file1}" 2>/dev/null
+              echo "${LUKS_PASSWORD}" | cut -c${luks_pass_part2_start}- > "${luks_pass_part_file2}" 2>/dev/null
 
               CMD="./${BIN} ${OPTS} -a 6 -m ${hashType} ${luks_file} ${luks_pass_part_file1} ${luks_pass_part_file2}"
               ;;
             3)
               luks_mask_fixed_len=$((${#LUKS_PASSWORD} - 1))
 
-              luks_mask="$(echo "${LUKS_PASSWORD}" | cut -c-${luks_mask_fixed_len})"
+              luks_mask="$(echo "${LUKS_PASSWORD}" | cut -c-${luks_mask_fixed_len} 2>/dev/null)"
               luks_mask="${luks_mask}${luks_main_mask}"
 
               CMD="./${BIN} ${OPTS} -a 3 -m ${hashType} ${luks_file} ${luks_mask}"
@@ -3033,12 +3044,12 @@ function luks_test()
             6)
               luks_pass_part1_len=$((${#LUKS_PASSWORD} - 1))
 
-              echo "${LUKS_PASSWORD}" | cut -c-${luks_pass_part1_len} > "${luks_pass_part_file1}"
+              echo "${LUKS_PASSWORD}" | cut -c-${luks_pass_part1_len} > "${luks_pass_part_file1}" 2>/dev/null
 
               CMD="./${BIN} ${OPTS} -a 6 -m ${hashType} ${luks_file} ${luks_pass_part_file1} ${luks_mask}"
               ;;
             7)
-              echo "${LUKS_PASSWORD}" | cut -c2- > "${luks_pass_part_file1}"
+              echo "${LUKS_PASSWORD}" | cut -c2- > "${luks_pass_part_file1}" 2>/dev/null
 
               CMD="./${BIN} ${OPTS} -a 7 -m ${hashType} ${luks_file} ${luks_mask} ${luks_pass_part_file1}"
               ;;
@@ -3047,10 +3058,14 @@ function luks_test()
           if [ -n "${CMD}" ]; then
             echo "> Testing hash type ${hashType} with attack mode ${attackType}, markov ${MARKOV}, single hash, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, luksMode ${luks_mode}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
-            output=$(${CMD} 2>&1)
-            ret=${?}
+            if [ -f "${luks_first_test_file}" ]; then
+              output=$(${CMD} 2>&1)
+              ret=${?}
 
-            echo "${output}" >> "${OUTD}/logfull.txt"
+              echo "${output}" >> "${OUTD}/logfull.txt"
+            else
+              ret=30
+            fi
 
             e_ce=0
             e_rs=0
@@ -3701,7 +3716,7 @@ if [ "${PACKAGE}" -eq 1 ]; then
 
     MODE=2
 
-    ls "${PACKAGE_FOLDER}"/*multi* >/dev/null 2>/dev/null
+    ls "${PACKAGE_FOLDER}"/*multi* &>/dev/null
 
     if [ "${?}" -ne 0 ]; then
       MODE=0
@@ -3752,5 +3767,5 @@ if [ "${PACKAGE}" -eq 1 ]; then
     -e "s/^\(ATTACK\)=0/\1=${ATTACK}/" \
     "${OUTD}/test.sh"
 
-  ${PACKAGE_CMD} "${OUTD}/${OUTD}.7z" "${OUTD}/" >/dev/null 2>/dev/null
+  ${PACKAGE_CMD} "${OUTD}/${OUTD}.7z" "${OUTD}/" &>/dev/null
 fi

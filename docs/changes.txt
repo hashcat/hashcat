@@ -27,6 +27,7 @@
 - Fixed wordlist handling in -m 3000 when candidate passwords use the $HEX[...] syntax
 - Fixed false negative on Unit Test with hash-type 25400
 - Fixed false negative on Unit Test in case of out-of-memory with grep in single mode
+- Fixed Unit Test early exit on luks test file download/extract failure
 
 ##
 ## Technical
