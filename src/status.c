@@ -1885,6 +1885,7 @@ char *status_get_brain_rx_all (const hashcat_ctx_t *hashcat_ctx)
   for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
   {
     hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+
     if ((device_param->skipped == false) && (device_param->skipped_warning == false))
     {
       brain_rx_all += device_param->brain_link_recv_bytes;
@@ -1927,6 +1928,7 @@ char *status_get_brain_tx_all (const hashcat_ctx_t *hashcat_ctx)
   for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
   {
     hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+
     if ((device_param->skipped == false) && (device_param->skipped_warning == false))
     {
       brain_tx_all += device_param->brain_link_send_bytes;
@@ -2024,7 +2026,6 @@ char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_
   snprintf (output_buf, HCBUFSIZ_TINY, "N/A");
 
   if (device_param->skipped == true) return output_buf;
-
   if (device_param->skipped_warning == true) return output_buf;
 
   status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
@@ -2093,7 +2094,6 @@ int status_get_corespeed_dev (const hashcat_ctx_t *hashcat_ctx, const int backen
   hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
 
   if (device_param->skipped == true) return -1;
-
   if (device_param->skipped_warning == true) return -1;
 
   status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
@@ -2114,7 +2114,6 @@ int status_get_memoryspeed_dev (const hashcat_ctx_t *hashcat_ctx, const int back
   hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
 
   if (device_param->skipped == true) return -1;
-
   if (device_param->skipped_warning == true) return -1;
 
   status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
@@ -2135,7 +2134,6 @@ u64 status_get_progress_dev (const hashcat_ctx_t *hashcat_ctx, const int backend
   hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
 
   if (device_param->skipped == true) return 0;
-
   if (device_param->skipped_warning == true) return 0;
 
   return device_param->outerloop_left;
@@ -2148,7 +2146,6 @@ double status_get_runtime_msec_dev (const hashcat_ctx_t *hashcat_ctx, const int 
   hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
 
   if (device_param->skipped == true) return 0;
-
   if (device_param->skipped_warning == true) return 0;
 
   return device_param->outerloop_msec;
@@ -2161,7 +2158,6 @@ int status_get_kernel_accel_dev (const hashcat_ctx_t *hashcat_ctx, const int bac
   hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
 
   if (device_param->skipped == true) return 0;
-
   if (device_param->skipped_warning == true) return 0;
 
   if (device_param->kernel_accel_prev) return device_param->kernel_accel_prev;
@@ -2176,7 +2172,6 @@ int status_get_kernel_loops_dev (const hashcat_ctx_t *hashcat_ctx, const int bac
   hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
 
   if (device_param->skipped == true) return 0;
-
   if (device_param->skipped_warning == true) return 0;
 
   if (device_param->kernel_loops_prev) return device_param->kernel_loops_prev;
@@ -2191,7 +2186,6 @@ int status_get_kernel_threads_dev (const hashcat_ctx_t *hashcat_ctx, const int b
   hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
 
   if (device_param->skipped == true) return 0;
-
   if (device_param->skipped_warning == true) return 0;
 
   if (device_param->kernel_threads_prev) return device_param->kernel_threads_prev;
@@ -2206,7 +2200,6 @@ int status_get_vector_width_dev (const hashcat_ctx_t *hashcat_ctx, const int bac
   hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
 
   if (device_param->skipped == true) return 0;
-
   if (device_param->skipped_warning == true) return 0;
 
   return device_param->vector_width;
