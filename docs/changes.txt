@@ -29,6 +29,7 @@
 - Fixed bug on benchmark engine, from now it will not stop at the first error detected
 - Fixed false negative on Unit Test in case of out-of-memory with grep in single mode
 - Fixed Unit Test early exit on luks test file download/extract failure
+- Fixed Unit Test false negative if there are spaces in the filesystem path to hashcat
 
 ##
 ## Technical
