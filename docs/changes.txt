@@ -52,6 +52,7 @@
 - Status code: updated negative status code, usefull in Unit tests engine (test.sh)
 - Unit tests: added -r (--runtime) option
 - Unit tests: handle negative status code, skip deprecated hash-types, skip hash-types with known perl modules issues, updated output
+- Hash Info: show more information (Updated Hash-Format. Added Autodetect, Self-Test, Potfile and Plaintext encoding)
 
 * changes v6.2.4 -> v6.2.5
 
