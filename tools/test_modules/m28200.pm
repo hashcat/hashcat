@@ -8,11 +8,9 @@
 use strict;
 use warnings;
 
-use Crypt::ScryptKDF qw (scrypt_hash scrypt_raw);
-use Crypt::CBC;
-use MIME::Base64 qw (decode_base64 encode_base64);
-use Digest::SHA qw (sha512);
 use Crypt::AuthEnc::GCM;
+use Crypt::ScryptKDF qw (scrypt_raw);
+use MIME::Base64     qw (decode_base64 encode_base64);
 
 sub module_constraints { [[0, 256], [64, 64], [-1, -1], [-1, -1], [-1, -1]] }
 
