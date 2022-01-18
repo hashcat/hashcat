@@ -5,13 +5,16 @@
 
 #define NEW_SIMD_CODE
 
+#define XSTR(x) #x
+#define STR(x) XSTR(x)
+
 #ifdef KERNEL_STATIC
-#include "inc_vendor.h"
-#include "inc_types.h"
-#include "inc_platform.cl"
-#include "inc_common.cl"
-#include "inc_simd.cl"
-#include "inc_hash_sha384.cl"
+#include STR(INCLUDE_PATH/inc_vendor.h)
+#include STR(INCLUDE_PATH/inc_types.h)
+#include STR(INCLUDE_PATH/inc_platform.cl)
+#include STR(INCLUDE_PATH/inc_common.cl)
+#include STR(INCLUDE_PATH/inc_simd.cl)
+#include STR(INCLUDE_PATH/inc_hash_sha384.cl)
 #endif
 
 KERNEL_FQ void m10870_mxx (KERN_ATTR_VECTOR ())

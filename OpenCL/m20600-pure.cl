@@ -5,19 +5,22 @@
 
 #define NEW_SIMD_CODE
 
+#define XSTR(x) #x
+#define STR(x) XSTR(x)
+
 #ifdef KERNEL_STATIC
-#include "inc_vendor.h"
-#include "inc_types.h"
-#include "inc_platform.cl"
-#include "inc_common.cl"
-#include "inc_rp.h"
-#include "inc_rp.cl"
-#include "inc_simd.cl"
-#include "inc_hash_sha256.cl"
+#include STR(INCLUDE_PATH/inc_vendor.h)
+#include STR(INCLUDE_PATH/inc_types.h)
+#include STR(INCLUDE_PATH/inc_platform.cl)
+#include STR(INCLUDE_PATH/inc_common.cl)
+#include STR(INCLUDE_PATH/inc_rp.h)
+#include STR(INCLUDE_PATH/inc_rp.cl)
+#include STR(INCLUDE_PATH/inc_simd.cl)
+#include STR(INCLUDE_PATH/inc_hash_sha256.cl)
 #endif
 
-#define COMPARE_S "inc_comp_single.cl"
-#define COMPARE_M "inc_comp_multi.cl"
+#define COMPARE_S STR(INCLUDE_PATH/inc_comp_single.cl)
+#define COMPARE_M STR(INCLUDE_PATH/inc_comp_multi.cl)
 
 typedef struct omt_sha256_tmp
 {

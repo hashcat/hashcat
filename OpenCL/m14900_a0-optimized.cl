@@ -6,14 +6,17 @@
 //too much register pressure
 //#define NEW_SIMD_CODE
 
+#define XSTR(x) #x
+#define STR(x) XSTR(x)
+
 #ifdef KERNEL_STATIC
-#include "inc_vendor.h"
-#include "inc_types.h"
-#include "inc_platform.cl"
-#include "inc_common.cl"
-#include "inc_rp_optimized.h"
-#include "inc_rp_optimized.cl"
-#include "inc_simd.cl"
+#include STR(INCLUDE_PATH/inc_vendor.h)
+#include STR(INCLUDE_PATH/inc_types.h)
+#include STR(INCLUDE_PATH/inc_platform.cl)
+#include STR(INCLUDE_PATH/inc_common.cl)
+#include STR(INCLUDE_PATH/inc_rp_optimized.h)
+#include STR(INCLUDE_PATH/inc_rp_optimized.cl)
+#include STR(INCLUDE_PATH/inc_simd.cl)
 #endif
 
 CONSTANT_VK u8a c_ftable[256] =

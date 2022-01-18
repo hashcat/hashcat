@@ -3,10 +3,13 @@
  * License.....: MIT
  */
 
+#define XSTR(x) #x
+#define STR(x) XSTR(x)
+
 #ifdef KERNEL_STATIC
-#include "inc_vendor.h"
-#include "inc_types.h"
-#include "inc_platform.cl"
+#include STR(INCLUDE_PATH/inc_vendor.h)
+#include STR(INCLUDE_PATH/inc_types.h)
+#include STR(INCLUDE_PATH/inc_platform.cl)
 #endif
 
 #define CHARSIZ 256

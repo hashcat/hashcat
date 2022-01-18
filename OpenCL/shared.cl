@@ -3,11 +3,14 @@
  * License.....: MIT
  */
 
+#define XSTR(x) #x
+#define STR(x) XSTR(x)
+
 #ifdef KERNEL_STATIC
-#include "inc_vendor.h"
-#include "inc_types.h"
-#include "inc_platform.cl"
-#include "inc_common.cl"
+#include STR(INCLUDE_PATH/inc_vendor.h)
+#include STR(INCLUDE_PATH/inc_types.h)
+#include STR(INCLUDE_PATH/inc_platform.cl)
+#include STR(INCLUDE_PATH/inc_common.cl)
 #endif
 
 DECLSPEC void gpu_decompress_entry (GLOBAL_AS pw_idx_t *pws_idx, GLOBAL_AS u32 *pws_comp, pw_t *buf, const u64 gid)

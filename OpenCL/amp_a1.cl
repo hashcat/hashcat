@@ -3,11 +3,14 @@
  * License.....: MIT
  */
 
+#define XSTR(x) #x
+#define STR(x) XSTR(x)
+
 #ifdef KERNEL_STATIC
-#include "inc_vendor.h"
-#include "inc_types.h"
-#include "inc_platform.cl"
-#include "inc_common.cl"
+#include STR(INCLUDE_PATH/inc_vendor.h)
+#include STR(INCLUDE_PATH/inc_types.h)
+#include STR(INCLUDE_PATH/inc_platform.cl)
+#include STR(INCLUDE_PATH/inc_common.cl)
 #endif
 
 KERNEL_FQ void amp (GLOBAL_AS pw_t *pws, GLOBAL_AS pw_t *pws_amp, GLOBAL_AS const kernel_rule_t *rules_buf, GLOBAL_AS const pw_t *combs_buf, GLOBAL_AS const bf_t *bfs_buf, const u32 combs_mode, const u64 gid_max)

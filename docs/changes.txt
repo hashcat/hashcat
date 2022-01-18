@@ -54,6 +54,10 @@
 - Unit tests: added -r (--runtime) option
 - Unit tests: handle negative status code, skip deprecated hash-types, skip hash-types with known perl modules issues, updated output
 - Hash Info: show more information (Updated Hash-Format. Added Autodetect, Self-Test, Potfile and Plaintext encoding)
+- Status code: updated negative status code, move -8 to -9 and set -8 as POCL warnings
+- Unit tests: updated negative status code
+- Backend: with kernel build options, switch from -I to -D INCLUDE_PATH, in order to support Apple Metal runtime
+- Kernels: Refactored standard kernel includes in order to support Apple Metal runtime
 
 * changes v6.2.4 -> v6.2.5
 

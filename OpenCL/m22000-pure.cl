@@ -5,16 +5,19 @@
 
 #define NEW_SIMD_CODE
 
+#define XSTR(x) #x
+#define STR(x) XSTR(x)
+
 #ifdef KERNEL_STATIC
-#include "inc_vendor.h"
-#include "inc_types.h"
-#include "inc_platform.cl"
-#include "inc_common.cl"
-#include "inc_simd.cl"
-#include "inc_hash_md5.cl"
-#include "inc_hash_sha1.cl"
-#include "inc_hash_sha256.cl"
-#include "inc_cipher_aes.cl"
+#include STR(INCLUDE_PATH/inc_vendor.h)
+#include STR(INCLUDE_PATH/inc_types.h)
+#include STR(INCLUDE_PATH/inc_platform.cl)
+#include STR(INCLUDE_PATH/inc_common.cl)
+#include STR(INCLUDE_PATH/inc_simd.cl)
+#include STR(INCLUDE_PATH/inc_hash_md5.cl)
+#include STR(INCLUDE_PATH/inc_hash_sha1.cl)
+#include STR(INCLUDE_PATH/inc_hash_sha256.cl)
+#include STR(INCLUDE_PATH/inc_cipher_aes.cl)
 #else
 #include "inc_vendor.h"
 #include "inc_types.h"
@@ -27,8 +30,8 @@
 #include "inc_cipher_aes.h"
 #endif
 
-#define COMPARE_S "inc_comp_single.cl"
-#define COMPARE_M "inc_comp_multi.cl"
+#define COMPARE_S STR(INCLUDE_PATH/inc_comp_single.cl)
+#define COMPARE_M STR(INCLUDE_PATH/inc_comp_multi.cl)
 
 typedef struct wpa_pbkdf2_tmp
 {

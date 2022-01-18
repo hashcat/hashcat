@@ -85,11 +85,14 @@ Related publication: https://scitepress.org/PublicationsDetail.aspx?ID=KLPzPqStp
 
 */
 
-#include "inc_vendor.h"
-#include "inc_types.h"
-#include "inc_platform.cl"
-#include "inc_common.cl"
-#include "inc_simd.cl"
+#define XSTR(x) #x
+#define STR(x) XSTR(x)
+
+#include STR(INCLUDE_PATH/inc_vendor.h)
+#include STR(INCLUDE_PATH/inc_types.h)
+#include STR(INCLUDE_PATH/inc_platform.cl)
+#include STR(INCLUDE_PATH/inc_common.cl)
+#include STR(INCLUDE_PATH/inc_simd.cl)
 
 #define MAX_LOCAL 512 // too much leaves no room for compiler optimizations, simply benchmark to find a good trade-off - make it as big as possible
 #define TMPSIZ    (2 * TINFL_LZ_DICT_SIZE)
@@ -220,7 +223,7 @@ CONSTANT_VK u32a crc32tab[256] =
 
 #define CRC32_IN_INFLATE
 
-#include "inc_zip_inflate.cl"
+#include STR(INCLUDE_PATH/inc_zip_inflate.cl)
 
 typedef struct
 {

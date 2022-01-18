@@ -61,11 +61,14 @@ Related publication: https://scitepress.org/PublicationsDetail.aspx?ID=KLPzPqStp
 
 */
 
-#include "inc_vendor.h"
-#include "inc_types.h"
-#include "inc_platform.cl"
-#include "inc_common.cl"
-#include "inc_simd.cl"
+#define XSTR(x) #x
+#define STR(x) XSTR(x)
+
+#include STR(INCLUDE_PATH/inc_vendor.h)
+#include STR(INCLUDE_PATH/inc_types.h)
+#include STR(INCLUDE_PATH/inc_platform.cl)
+#include STR(INCLUDE_PATH/inc_common.cl)
+#include STR(INCLUDE_PATH/inc_simd.cl)
 
 typedef struct pkzip_extra
 {

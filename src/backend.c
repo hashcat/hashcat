@@ -6712,7 +6712,7 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       if (hc_nvrtcCreateProgram (hashcat_ctx, &program, kernel_sources[0], kernel_name, 0, NULL, NULL) == -1) return false;
 
-      char **nvrtc_options = (char **) hccalloc (6 + strlen (build_options_buf) + 1, sizeof (char *)); // ...
+      char **nvrtc_options = (char **) hccalloc (5 + strlen (build_options_buf) + 1, sizeof (char *)); // ...
 
       nvrtc_options[0] = "--restrict";
       nvrtc_options[1] = "--device-as-default-execution-space";
@@ -6720,12 +6720,17 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       hc_asprintf (&nvrtc_options[3], "compute_%d%d", device_param->sm_major, device_param->sm_minor);
 
-      nvrtc_options[4] = "-I";
-      nvrtc_options[5] = folder_config->cpath_real;
+      // untested on windows, but it should work
+      hc_asprintf (&nvrtc_options[4], "-D INCLUDE_PATH=%s",
+      #if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)
+        "OpenCL");
+      #else
+        folder_config->cpath_real);
+      #endif
 
       char *nvrtc_options_string = hcstrdup (build_options_buf);
 
-      const int num_options = 6 + nvrtc_make_options_array_from_string (nvrtc_options_string, nvrtc_options + 6);
+      const int num_options = 5 + nvrtc_make_options_array_from_string (nvrtc_options_string, nvrtc_options + 5);
 
       const int rc_nvrtcCompileProgram = hc_nvrtcCompileProgram (hashcat_ctx, program, num_options, (const char * const *) nvrtc_options);
 
@@ -6947,7 +6952,7 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       if (hc_hiprtcCreateProgram (hashcat_ctx, &program, kernel_sources[0], kernel_name, 0, NULL, NULL) == -1) return false;
 
-      char **hiprtc_options = (char **) hccalloc (7 + strlen (build_options_buf) + 1, sizeof (char *)); // ...
+      char **hiprtc_options = (char **) hccalloc (6 + strlen (build_options_buf) + 1, sizeof (char *)); // ...
 
       //hiprtc_options[0] = "--restrict";
       //hiprtc_options[1] = "--device-as-default-execution-space";
@@ -6967,12 +6972,18 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
       hiprtc_options[2] = "-nocudalib";
       hiprtc_options[3] = "";
       hiprtc_options[4] = "";
-      hiprtc_options[5] = "-I";
-      hiprtc_options[6] = folder_config->cpath_real;
+
+      // untested but it should work
+      hc_asprintf (&hiprtc_options[5], "-D INCLUDE_PATH=%s",
+      #if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)
+        "OpenCL");
+      #else
+        folder_config->cpath_real);
+      #endif
 
       char *hiprtc_options_string = hcstrdup (build_options_buf);
 
-      const int num_options = 7 + hiprtc_make_options_array_from_string (hiprtc_options_string, hiprtc_options + 7);
+      const int num_options = 6 + hiprtc_make_options_array_from_string (hiprtc_options_string, hiprtc_options + 6);
 
       const int rc_hiprtcCompileProgram = hc_hiprtcCompileProgram (hashcat_ctx, program, num_options, (const char * const *) hiprtc_options);
 
@@ -7320,12 +7331,14 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
   int backend_kernel_build_warnings = 0;
   int backend_kernel_accel_warnings = 0;
   int backend_extra_size_warning = 0;
+  int backend_pocl_warning = 0;
 
   backend_ctx->memory_hit_warning = false;
   backend_ctx->runtime_skip_warning = false;
   backend_ctx->kernel_build_warning = false;
   backend_ctx->kernel_accel_warnings = false;
   backend_ctx->extra_size_warning = false;
+  backend_ctx->pocl_warning = false;
   backend_ctx->mixed_warnings = false;
 
   for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
@@ -8010,7 +8023,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       // using a path with a space will break nvrtc_make_options_array_from_string()
       // we add it to options array in a clean way later
 
-      build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D KERNEL_STATIC -I OpenCL ");
+      build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D KERNEL_STATIC ");
     }
     else
     {
@@ -8021,11 +8034,38 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         // Maybe related:
         //   https://github.com/pocl/pocl/issues/962
 
-        build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D KERNEL_STATIC -I OpenCL -I %s ", folder_config->cpath_real);
+        if (strchr (folder_config->cpath_real, ' ') == NULL)
+        {
+          // untested only on windows
+          build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D KERNEL_STATIC -D INCLUDE_PATH=%s ",
+          #if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)
+            "OpenCL");
+          #else
+            folder_config->cpath_real);
+          #endif
+        }
+        else
+        {
+          event_log_warning (hashcat_ctx, "Filesystem path to Hashcat contains space characters, skipping device due to POCL known bug");
+          event_log_warning (hashcat_ctx, "Consider moving hashcat to a path with no spaces if you want to use POCL");
+          event_log_warning (hashcat_ctx, NULL);
+
+          backend_pocl_warning++;
+
+          device_param->skipped_warning = true;
+          continue;
+        }
       }
       else
       {
-        build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D KERNEL_STATIC -I OpenCL -I \"%s\" ", folder_config->cpath_real);
+        // tested on windows, linux, apple intel, apple silicon
+        // when is builded with cygwin and msys, cpath_real doesn't work
+        build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D KERNEL_STATIC -D INCLUDE_PATH=\"%s\" ",
+        #if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)
+          "OpenCL");
+        #else
+          folder_config->cpath_real);
+        #endif
       }
 
       #if defined (__APPLE__)
@@ -11764,26 +11804,28 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
   int rc = 0;
 
-  backend_ctx->memory_hit_warning = (backend_memory_hit_warnings == backend_ctx->backend_devices_active);
-  backend_ctx->runtime_skip_warning = (backend_runtime_skip_warnings == backend_ctx->backend_devices_active);
-  backend_ctx->kernel_build_warning = (backend_kernel_build_warnings == backend_ctx->backend_devices_active);
+  backend_ctx->memory_hit_warning    = (backend_memory_hit_warnings == backend_ctx->backend_devices_active);
+  backend_ctx->runtime_skip_warning  = (backend_runtime_skip_warnings == backend_ctx->backend_devices_active);
+  backend_ctx->kernel_build_warning  = (backend_kernel_build_warnings == backend_ctx->backend_devices_active);
   backend_ctx->kernel_accel_warnings = (backend_kernel_accel_warnings == backend_ctx->backend_devices_active);
-  backend_ctx->extra_size_warning = (backend_extra_size_warning == backend_ctx->backend_devices_active);
+  backend_ctx->extra_size_warning    = (backend_extra_size_warning == backend_ctx->backend_devices_active);
+  backend_ctx->pocl_warning          = (backend_extra_size_warning == backend_ctx->backend_devices_active);
 
   // if all active devices failed, set rc to -1
   // later we prevent hashcat exit if is started in benchmark mode
-  if ((backend_ctx->memory_hit_warning == true) ||
-      (backend_ctx->runtime_skip_warning == true) ||
-      (backend_ctx->kernel_build_warning == true) ||
+  if ((backend_ctx->memory_hit_warning    == true) ||
+      (backend_ctx->runtime_skip_warning  == true) ||
+      (backend_ctx->kernel_build_warning  == true) ||
       (backend_ctx->kernel_accel_warnings == true) ||
-      (backend_ctx->extra_size_warning == true))
+      (backend_ctx->extra_size_warning    == true) ||
+      (backend_ctx->pocl_warning          == true))
   {
     rc = -1;
   }
   else
   {
     // handle mix of, in case of multiple devices with different warnings
-    backend_ctx->mixed_warnings = ((backend_memory_hit_warnings + backend_runtime_skip_warnings + backend_kernel_build_warnings + backend_kernel_accel_warnings + backend_extra_size_warning) == backend_ctx->backend_devices_active);
+    backend_ctx->mixed_warnings = ((backend_memory_hit_warnings + backend_runtime_skip_warnings + backend_kernel_build_warnings + backend_kernel_accel_warnings + backend_extra_size_warning + backend_pocl_warning) == backend_ctx->backend_devices_active);
 
     if (backend_ctx->mixed_warnings) rc = -1;
   }
