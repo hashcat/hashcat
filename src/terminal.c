@@ -667,7 +667,14 @@ void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_op
     {
       if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
       {
-        event_log_info (hashcat_ctx, "  Example.Hash.Format.: hex-encoded");
+        if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE_OPTIONAL)
+        {
+          event_log_info (hashcat_ctx, "  Example.Hash.Format.: hex-encoded");
+        }
+        else
+        {
+          event_log_info (hashcat_ctx, "  Example.Hash.Format.: hex-encoded (binary file only)");
+        }
         event_log_info (hashcat_ctx, "  Example.Hash........: %s", hashconfig->st_hash);
       }
       else
@@ -699,6 +706,20 @@ void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_op
 
         hcfree (tmp_buf);
       }
+      else if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER)
+      {
+        size_t st_pass_len = strlen (hashconfig->st_pass);
+
+        char *tmp_buf = (char *) hcmalloc (st_pass_len + 1);
+
+        strncpy (tmp_buf, hashconfig->st_pass, st_pass_len);
+
+        uppercase ((u8 *) tmp_buf, st_pass_len);
+
+        event_log_info (hashcat_ctx, "  Example.Pass........: %s", tmp_buf);
+
+        hcfree (tmp_buf);
+      }
       else
       {
         event_log_info (hashcat_ctx, "  Example.Pass........: %s", hashconfig->st_pass);
@@ -718,6 +739,23 @@ void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_op
     else
     {
       event_log_info (hashcat_ctx, "  Benchmark.Mask......: N/A");
+    }
+
+    event_log_info (hashcat_ctx, "  Autodetect.Enabled..: %s", (hashconfig->opts_type & OPTS_TYPE_AUTODETECT_DISABLE) ? "No" : "Yes");
+    event_log_info (hashcat_ctx, "  Self.Test.Enabled...: %s", (hashconfig->opts_type & OPTS_TYPE_SELF_TEST_DISABLE) ? "No" : "Yes");
+    event_log_info (hashcat_ctx, "  Potfile.Enabled.....: %s", (hashconfig->opts_type & OPTS_TYPE_POTFILE_NOPASS) ? "No" : "Yes");
+
+    if (hashconfig->opts_type & OPTS_TYPE_PT_ALWAYS_ASCII)
+    {
+      event_log_info (hashcat_ctx, "  Plaintext.Encoding..: ASCII only");
+    }
+    else if (hashconfig->opts_type & OPTS_TYPE_PT_ALWAYS_HEXIFY)
+    {
+      event_log_info (hashcat_ctx, "  Plaintext.Encoding..: HEX only");
+    }
+    else
+    {
+      event_log_info (hashcat_ctx, "  Plaintext.Encoding..: ASCII, HEX");
     }
 
     event_log_info (hashcat_ctx, NULL);
