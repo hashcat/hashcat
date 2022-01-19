@@ -30,6 +30,8 @@
 - Fixed false negative on Unit Test in case of out-of-memory with grep in single mode
 - Fixed Unit Test early exit on luks test file download/extract failure
 - Fixed Unit Test salt-max in case of optimized kernel, with hash-type 22 and 23
+- Fixed Unit Test false negative if there are spaces in the filesystem path to hashcat
+- Fixed --hash-info example password output: force uppercase if OPTS_TYPE_PT_UPPER is set
 
 ##
 ## Technical
@@ -52,6 +54,7 @@
 - Status code: updated negative status code, usefull in Unit tests engine (test.sh)
 - Unit tests: added -r (--runtime) option
 - Unit tests: handle negative status code, skip deprecated hash-types, skip hash-types with known perl modules issues, updated output
+- Hash Info: show more information (Updated Hash-Format. Added Autodetect, Self-Test, Potfile and Plaintext encoding)
 
 * changes v6.2.4 -> v6.2.5
 
