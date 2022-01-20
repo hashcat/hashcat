@@ -19,7 +19,7 @@ static const u32 DGST_POS3 = 3;
 static const u32 DGST_SIZE = DGST_SIZE_4_8;
 static const u32 HASH_CATEGORY = HASH_CATEGORY_DATABASE_SERVER;
 static const char *HASH_NAME = "PostgreSQL SCRAM-SHA-256";
-static const u64 KERN_TYPE = 94200;
+static const u64 KERN_TYPE = 28600;
 static const u32 OPTI_TYPE =
     OPTI_TYPE_ZERO_BYTE | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
 static const u64 OPTS_TYPE = OPTS_TYPE_PT_GENERATE_LE | OPTS_TYPE_ST_BASE64;
