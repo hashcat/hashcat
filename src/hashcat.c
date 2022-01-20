@@ -767,7 +767,38 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   EVENT (EVENT_BACKEND_SESSION_PRE);
 
-  if (backend_session_begin (hashcat_ctx) == -1) return -1;
+  if (backend_session_begin (hashcat_ctx) == -1)
+  {
+    if (user_options->benchmark == true)
+    {
+      if (user_options->hash_mode_chgd == false)
+      {
+        // finalize backend session
+
+        backend_session_destroy (hashcat_ctx);
+
+        // clean up
+
+        #ifdef WITH_BRAIN
+        brain_ctx_destroy       (hashcat_ctx);
+        #endif
+
+        bitmap_ctx_destroy      (hashcat_ctx);
+        combinator_ctx_destroy  (hashcat_ctx);
+        cpt_ctx_destroy         (hashcat_ctx);
+        hashconfig_destroy      (hashcat_ctx);
+        hashes_destroy          (hashcat_ctx);
+        mask_ctx_destroy        (hashcat_ctx);
+        status_progress_destroy (hashcat_ctx);
+        straight_ctx_destroy    (hashcat_ctx);
+        wl_data_destroy         (hashcat_ctx);
+
+        return 0;
+      }
+    }
+
+    return -1;
+  }
 
   EVENT (EVENT_BACKEND_SESSION_POST);
 
@@ -1500,6 +1531,7 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
   logfile_ctx_t   *logfile_ctx   = hashcat_ctx->logfile_ctx;
   status_ctx_t    *status_ctx    = hashcat_ctx->status_ctx;
   user_options_t  *user_options  = hashcat_ctx->user_options;
+  backend_ctx_t   *backend_ctx   = hashcat_ctx->backend_ctx;
 
   // start logfile entry
 
@@ -1711,6 +1743,17 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
     if (status_ctx->devices_status == STATUS_EXHAUSTED)           rc_final =  1;
     if (status_ctx->devices_status == STATUS_CRACKED)             rc_final =  0;
     if (status_ctx->devices_status == STATUS_ERROR)               rc_final = -1;
+  }
+  else if (rc_final == -1)
+  {
+    // setup the new negative status code, usefull in test.sh
+    // -2 is marked as used in status_codes.txt
+    if (backend_ctx->runtime_skip_warning  == true)               rc_final = -3;
+    if (backend_ctx->memory_hit_warning    == true)               rc_final = -4;
+    if (backend_ctx->kernel_build_warning  == true)               rc_final = -5;
+    if (backend_ctx->kernel_accel_warnings == true)               rc_final = -6;
+    if (backend_ctx->extra_size_warning    == true)               rc_final = -7;
+    if (backend_ctx->mixed_warnings        == true)               rc_final = -8;
   }
 
   // special case for --stdout

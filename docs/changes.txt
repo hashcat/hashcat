@@ -14,6 +14,7 @@
 
 - Added support to use --debug-mode in attack-mode 9 (Association Attack)
 - Added guess data to --status-json output
+- Added hex format for --separator option
 
 ##
 ## Bugs
@@ -25,6 +26,13 @@
 - Fixed missing option flag OPTS_TYPE_SUGGEST_KG for hash-mode 11600 to inform the user about possible false positives in this mode
 - Fixed undefined function call to hc_byte_perm_S() in hash-mode 17010 on non-CUDA compute devices
 - Fixed wordlist handling in -m 3000 when candidate passwords use the $HEX[...] syntax
+- Fixed false negative on Unit Test with hash-type 25400
+- Fixed bug on benchmark engine, from now it will not stop at the first error detected
+- Fixed false negative on Unit Test in case of out-of-memory with grep in single mode
+- Fixed Unit Test early exit on luks test file download/extract failure
+- Fixed Unit Test salt-max in case of optimized kernel, with hash-type 22 and 23
+- Fixed Unit Test false negative if there are spaces in the filesystem path to hashcat
+- Fixed --hash-info example password output: force uppercase if OPTS_TYPE_PT_UPPER is set
 - Hash-Mode 13100: set native_threads to 32 with Apple GPU's
 
 ##
@@ -44,6 +52,11 @@
 - OpenCL Backend: moved functions to ext_OpenCL.c and includes to ext_OpenCL.h
 - HIP Backend: moved functions to ext_hip.c/ext_hiprtc.c and includes to ext_hip.h/ext_hiprtc.h
 - CUDA Backend: moved functions to ext_cuda.c/ext_nvrtc.c and includes to ext_cuda.h/ext_nvrtc.h
+- Makefile: updated MACOSX_DEPLOYMENT_TARGET to 10.15 and removed OpenCL framework from LFLAGS_NATIVE on MacOS
+- Status code: updated negative status code, usefull in Unit tests engine (test.sh)
+- Unit tests: added -r (--runtime) option
+- Unit tests: handle negative status code, skip deprecated hash-types, skip hash-types with known perl modules issues, updated output
+- Hash Info: show more information (Updated Hash-Format. Added Autodetect, Self-Test, Potfile and Plaintext encoding)
 
 * changes v6.2.4 -> v6.2.5
 
