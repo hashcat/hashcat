@@ -151,7 +151,6 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
         hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
 
         if (device_param->skipped == true) continue;
-
         if (device_param->skipped_warning == true) continue;
 
         const int rc_throttle = hm_get_throttle_with_devices_idx (hashcat_ctx, backend_devices_idx);
@@ -261,7 +260,6 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
         hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
 
         if (device_param->skipped == true) continue;
-
         if (device_param->skipped_warning == true) continue;
 
         exec_cnt++;
