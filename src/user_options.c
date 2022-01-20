@@ -7,6 +7,7 @@
 #include "types.h"
 #include "memory.h"
 #include "event.h"
+#include "convert.h"
 #include "logfile.h"
 #include "interface.h"
 #include "shared.h"
@@ -594,9 +595,31 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->separator_chgd == true)
   {
-    if (strlen (user_options->separator) != 1)
+    bool error = false;
+    if ((strlen (user_options->separator) != 1) && (strlen (user_options->separator) != 4))
     {
-      event_log_error (hashcat_ctx, "Separator length has to be exactly 1 byte.");
+        error = true;
+    }
+    if (strlen (user_options->separator) == 4)
+    {
+      if ((user_options->separator[0] == '0') && (user_options->separator[1] == 'x'))
+      {
+        if (is_valid_hex_string((u8 * )(&(user_options->separator[2])),2)){
+          u8 sep = hex_to_u8((u8 * )(&(user_options->separator[2])));
+          user_options->separator[0] = sep;
+          user_options->separator[1] = 0;
+        }
+        else
+        {
+          error = true;
+        }
+      }
+      else{
+        error = true;
+      }
+    }
+    if (error){
+      event_log_error (hashcat_ctx, "Separator length has to be exactly 1 byte (single char or hex format e.g. 0x09 for TAB)");
 
       return -1;
     }

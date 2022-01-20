@@ -1,6 +1,12 @@
 status codes on exit:
 =====================
 
+-8 = mixed backend errors (combo of -3, -4, -5, -6, -7 errors type)
+-7 = backend error: Invalid module_extra_buffer_size
+-6 = backend error: Too many compute units to keep minimum kernel accel limit
+-5 = backend error: main kernel build error
+-4 = backend error: memory hit
+-3 = backend error: skipping hash-type due to module_unstable_warning settings
 -2 = gpu-watchdog alarm
 -1 = error
  0 = OK/cracked
