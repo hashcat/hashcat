@@ -25,7 +25,7 @@ Slightly modified to work with hashcat to no falsly detect _SORT_R_LINUX with mi
 */
 
 #if (defined __APPLE__ || defined __MACH__ || defined __DARWIN__ || \
-     defined __FreeBSD__ || defined __DragonFly__)
+     defined __FreeBSD__ || defined __DragonFly__ || defined __NetBSD__)
 #  define _SORT_R_BSD
 #  define _SORT_R_INLINE inline
 #elif (defined __linux__) || defined (__CYGWIN__)
@@ -202,7 +202,12 @@ static _SORT_R_INLINE void sort_r_simple(void *base, size_t nel, size_t w,
       struct sort_r_data tmp;
       tmp.arg = arg;
       tmp.compar = compar;
-      qsort_r(base, nel, width, &tmp, sort_r_arg_swap);
+
+      #if defined __NetBSD__
+        sort_r_simple(base, nel, width, compar, arg);
+      #else
+        qsort_r(base, nel, width, &tmp, sort_r_arg_swap);
+      #endif
 
     #elif defined _SORT_R_WINDOWS
 

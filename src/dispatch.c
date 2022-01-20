@@ -32,7 +32,6 @@ static u64 get_highest_words_done (const hashcat_ctx_t *hashcat_ctx)
     hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
 
     if (device_param->skipped == true) continue;
-
     if (device_param->skipped_warning == true) continue;
 
     const u64 words_done = device_param->words_done;
@@ -54,7 +53,6 @@ static u64 get_lowest_words_done (const hashcat_ctx_t *hashcat_ctx)
     hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
 
     if (device_param->skipped == true) continue;
-
     if (device_param->skipped_warning == true) continue;
 
     const u64 words_done = device_param->words_done;
@@ -353,7 +351,6 @@ HC_API_CALL void *thread_calc_stdin (void *p)
   hc_device_param_t *device_param = backend_ctx->devices_param + thread_param->tid;
 
   if (device_param->skipped) return NULL;
-
   if (device_param->skipped_warning == true) return NULL;
 
   if (device_param->is_cuda == true)
@@ -1605,7 +1602,6 @@ HC_API_CALL void *thread_calc (void *p)
   hc_device_param_t *device_param = backend_ctx->devices_param + thread_param->tid;
 
   if (device_param->skipped) return NULL;
-
   if (device_param->skipped_warning == true) return NULL;
 
   if (device_param->is_cuda == true)

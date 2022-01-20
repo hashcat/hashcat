@@ -10,7 +10,7 @@ use warnings;
 
 use Digest::MD5 qw (md5_hex);
 
-sub module_constraints { [[0, 247], [0, 247], [0, 47], [0, 47], [0, 47]] }
+sub module_constraints { [[0, 247], [0, 247], [0, 47], [0, 43], [0, 47]] }
 
 sub module_generate_hash
 {
