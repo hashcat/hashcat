@@ -535,7 +535,6 @@ HC_API_CALL void *thread_autotune (void *p)
   hc_device_param_t *device_param = backend_ctx->devices_param + thread_param->tid;
 
   if (device_param->skipped == true) return NULL;
-
   if (device_param->skipped_warning == true) return NULL;
 
   // init autotunes status and rc
