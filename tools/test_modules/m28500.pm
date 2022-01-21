@@ -140,4 +140,27 @@ sub module_verify_hash
   return ($new_hash, $word);
 }
 
+sub module_get_random_password
+{
+  # new function added to generate valid password for an algorithm
+  # from a given seed as a parameter
+  my $seed = shift;
+
+  my $master_key  = btc_extprv->from_seed ($seed); # expecting random seed from test.pl
+  my $derived_key = $master_key->derive_key ("m/0'");
+
+  my $priv = $derived_key->get_basic_key ();
+
+  my $is_compressed = 0;
+
+  # randomize compression 
+  if (int (rand (2)) == 0) 
+  {
+    $is_compressed = 1;
+  }
+
+  $priv->set_compressed ($is_compressed);
+  # return WIF format
+  return $priv->to_wif();
+}
 1;

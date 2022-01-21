@@ -21,14 +21,16 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_5;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_CRYPTOCURRENCY_WALLET;
-static const char *HASH_NAME      = "Bitcoin private key recovery (P2PKH)";
-static const u64   KERN_TYPE      = 98700;
+static const char *HASH_NAME      = "Bitcoin WIF private key recovery (P2PKH)";
+static const u64   KERN_TYPE      = 28500;
 static const u32   OPTI_TYPE      = OPTI_TYPE_NOT_SALTED;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_NONE;
 static const char *ST_PASS        = "5KbeS8qxKHMYtYfb1iPUQwHJ7kjY2AVFvMNVRAStftqrP72H3ma";
 static const char *ST_HASH        = "1LhFXCGReUCuARYpqdj6x8kf1Pe1n2Ns18";
 static const u32   PUBKEY_MAXLE   = 64;
+static const u32   PW_MIN_WIF     = 51;
+static const u32   PW_MAX_WIF     = 52;
 
 typedef struct btcprv_tmp
 {
@@ -62,11 +64,12 @@ u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED c
 
 u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL);
+  return PW_MAX_WIF;
+}
 
-  const u32 pw_max = (optimized_kernel == true) ? 15 : PW_MAX;
-
-  return pw_max;
+u32 module_pw_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  return PW_MIN_WIF;
 }
 
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
@@ -75,11 +78,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   u8 * pubkey = hccalloc(PUBKEY_MAXLE,1);
   size_t pubkey_len=PUBKEY_MAXLE;
   bool res = b58tobin(pubkey,&pubkey_len,line_buf,line_len);
-
+  
   if (res){
     // for now we support only P2PKH Addresses 
     size_t i=PUBKEY_MAXLE - pubkey_len;
-    if (pubkey[i] > 0 ) return (PARSER_HASH_VALUE); // wrong Bitcoin address type
+    if (pubkey[i] > 0 ) return (PARSER_HASH_VALUE);   // wrong Bitcoin address type
     if (pubkey_len > 25) return (PARSER_HASH_LENGTH); // most likely wrong Bitcoin address type
     if (pubkey_len < 25) return (PARSER_HASH_LENGTH); // most likely wrong Bitcoin address type
 
@@ -220,7 +223,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_potfile_keep_all_hashes  = MODULE_DEFAULT;
   module_ctx->module_pwdump_column            = MODULE_DEFAULT;
   module_ctx->module_pw_max                   = module_pw_max;
-  module_ctx->module_pw_min                   = MODULE_DEFAULT;
+  module_ctx->module_pw_min                   = module_pw_min;
   module_ctx->module_salt_max                 = MODULE_DEFAULT;
   module_ctx->module_salt_min                 = MODULE_DEFAULT;
   module_ctx->module_salt_type                = module_salt_type;

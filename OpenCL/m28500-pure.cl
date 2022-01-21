@@ -27,7 +27,7 @@ typedef struct btcprv_tmp
 
 #define md5crypt_magic 0x00243124u
 
-KERNEL_FQ void m98700_init (KERN_ATTR_TMPS (btcprv_tmp_t))
+KERNEL_FQ void m28500_init (KERN_ATTR_TMPS (btcprv_tmp_t))
 {
   /**
    * base
@@ -84,7 +84,7 @@ KERNEL_FQ void m98700_init (KERN_ATTR_TMPS (btcprv_tmp_t))
   }
 }
 
-KERNEL_FQ void m98700_loop (KERN_ATTR_TMPS (btcprv_tmp_t))
+KERNEL_FQ void m28500_loop (KERN_ATTR_TMPS (btcprv_tmp_t))
 {
   /**
    * base
@@ -134,7 +134,7 @@ KERNEL_FQ void m98700_loop (KERN_ATTR_TMPS (btcprv_tmp_t))
 
 }
 
-KERNEL_FQ void m98700_comp (KERN_ATTR_TMPS (btcprv_tmp_t))
+KERNEL_FQ void m28500_comp (KERN_ATTR_TMPS (btcprv_tmp_t))
 {
   /**
    * modifier
@@ -204,12 +204,12 @@ KERNEL_FQ void m98700_comp (KERN_ATTR_TMPS (btcprv_tmp_t))
 
   sha256_final (&ctx);
 
+  // memcpy((char*)shash,(char*)ctx.h,32);
   u32 shash[16]={0};
   for (i=0;i<8;i++)
   {
     shash[i]=ctx.h[i];
   }
-  // memcpy((char*)shash,(char*)ctx.h,32);
 
   // now let's do RIPEMD-160 on the sha246sum
 
