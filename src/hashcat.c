@@ -266,7 +266,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
         event_log_warning (hashcat_ctx, "You can use --force to override this, but do not report related errors.");
         event_log_warning (hashcat_ctx, NULL);
 
-        return -1;
+        return -10;
       }
     }
   }
