@@ -14,20 +14,21 @@
 #include "emu_inc_hash_sha256.h"
 #include "emu_inc_hash_base58.h"
 
-static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
+static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;                                                         
 static const u32   DGST_POS0      = 0;
 static const u32   DGST_POS1      = 1;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_5;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_CRYPTOCURRENCY_WALLET;
-static const char *HASH_NAME      = "Bitcoin WIF private key recovery (P2PKH)";
+static const char *HASH_NAME      = "Bitcoin WIF private key (P2PKH)";
 static const u64   KERN_TYPE      = 28500;
 static const u32   OPTI_TYPE      = OPTI_TYPE_NOT_SALTED;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_NONE;
 static const char *ST_PASS        = "5KbeS8qxKHMYtYfb1iPUQwHJ7kjY2AVFvMNVRAStftqrP72H3ma";
-static const char *ST_HASH        = "1LhFXCGReUCuARYpqdj6x8kf1Pe1n2Ns18";
+static const char *ST_HASH        = "1Mvx9t5JJEJTuYBNtfKfragqQ79f59RaLG";
+static const char *BENCHMARK_MASK = "5Kb?lS8qxK?uMYtY?lb1iP?uQwHJ7k?lY2AV?uvMNVRAStftqrP?d2H3ma";
 static const u32   PUBKEY_MAXLE   = 64;
 static const u32   PW_MIN_WIF     = 51;
 static const u32   PW_MAX_WIF     = 52;
@@ -54,6 +55,9 @@ u64         module_opts_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return SALT_TYPE;       }
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
+const char *module_benchmark_mask (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return BENCHMARK_MASK;  }
+u32         module_pw_max         (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return PW_MAX_WIF;      }
+u32         module_pw_min         (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return PW_MIN_WIF;      }
 
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -62,20 +66,12 @@ u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED c
   return tmp_size;
 }
 
-u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  return PW_MAX_WIF;
-}
-
-u32 module_pw_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  return PW_MIN_WIF;
-}
 
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
   u8 * digest = (u8 *) digest_buf;
   u8 * pubkey = hccalloc(PUBKEY_MAXLE,1);
+  u8 * npubkey;
   size_t pubkey_len=PUBKEY_MAXLE;
   bool res = b58tobin(pubkey,&pubkey_len,line_buf,line_len);
   
@@ -90,6 +86,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     for (i=0; i<DGST_SIZE;i++){
       digest[i]=pubkey[PUBKEY_MAXLE - pubkey_len + i+1];
+    }
+    // check if pubkey has correct sha256 sum included
+    npubkey=&(pubkey[PUBKEY_MAXLE - pubkey_len]);
+    if (b58check(npubkey,pubkey_len)){
+      return PARSER_HASH_ENCODING;
     }
   }
   else
@@ -164,7 +165,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_attack_exec              = module_attack_exec;
   module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
   module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
-  module_ctx->module_benchmark_mask           = MODULE_DEFAULT;
+  module_ctx->module_benchmark_mask           = module_benchmark_mask;
   module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
   module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
   module_ctx->module_deep_comp_kernel         = MODULE_DEFAULT;

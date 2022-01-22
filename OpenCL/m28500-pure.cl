@@ -25,8 +25,6 @@ typedef struct btcprv_tmp
   u32 prv_key_len;
 } btcprv_tmp_t;
 
-#define md5crypt_magic 0x00243124u
-
 KERNEL_FQ void m28500_init (KERN_ATTR_TMPS (btcprv_tmp_t))
 {
   /**
@@ -34,8 +32,6 @@ KERNEL_FQ void m28500_init (KERN_ATTR_TMPS (btcprv_tmp_t))
    */
 
   const u64 gid = get_global_id (0);
-
-  if (gid >= gid_max) return;
 
   const u64 lid = get_local_id (0);
 
@@ -91,8 +87,6 @@ KERNEL_FQ void m28500_loop (KERN_ATTR_TMPS (btcprv_tmp_t))
    */
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
-
   // status should 1 to go further, otherwise skip this key
   if (tmps[gid].status != 1) return;
   /**
@@ -142,8 +136,6 @@ KERNEL_FQ void m28500_comp (KERN_ATTR_TMPS (btcprv_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
-
   if (tmps[gid].status != 2) return; // only when it is 2 we have correct prv key
 
   const u64 lid = get_local_id (0);
@@ -167,17 +159,19 @@ KERNEL_FQ void m28500_comp (KERN_ATTR_TMPS (btcprv_tmp_t))
     point_mul_xy(x,y,prv_key,&precomputed_G);
   #endif
 
-  // merge to uncompressed public key
+  // merge to public key
   u32 pub_key[33] = {0}; // 8 + 8 + 1 for type but used only 65 octets
-
-  pub_key[16] = ((y[0] << 24));
-  pub_key[15] = ((y[0] >> 8) | (y[1] << 24));
-  pub_key[14] = ((y[1] >> 8) | (y[2] << 24));
-  pub_key[13] = ((y[2] >> 8) | (y[3] << 24));
-  pub_key[12] = ((y[3] >> 8) | (y[4] << 24));
-  pub_key[11] = ((y[4] >> 8) | (y[5] << 24));
-  pub_key[10] = ((y[5] >> 8) | (y[6] << 24));
-  pub_key[9] = ((y[6] >> 8) | (y[7] << 24));
+  u32 pub_key_len = 65;
+  if (tmps[gid].prv_key_len==37){  // uncompressed key
+    pub_key[16] = ((y[0] << 24));
+    pub_key[15] = ((y[0] >> 8) | (y[1] << 24));
+    pub_key[14] = ((y[1] >> 8) | (y[2] << 24));
+    pub_key[13] = ((y[2] >> 8) | (y[3] << 24));
+    pub_key[12] = ((y[3] >> 8) | (y[4] << 24));
+    pub_key[11] = ((y[4] >> 8) | (y[5] << 24));
+    pub_key[10] = ((y[5] >> 8) | (y[6] << 24));
+    pub_key[9] = ((y[6] >> 8) | (y[7] << 24));
+  }
   pub_key[8] = ((y[7] >> 8) | (x[0] << 24));
   pub_key[7] = ((x[0] >> 8) | (x[1] << 24));
   pub_key[6] = ((x[1] >> 8) | (x[2] << 24));
@@ -187,20 +181,19 @@ KERNEL_FQ void m28500_comp (KERN_ATTR_TMPS (btcprv_tmp_t))
   pub_key[2] = ((x[5] >> 8) | (x[6] << 24));
   pub_key[1] = ((x[6] >> 8) | (x[7] << 24));
   pub_key[0] = (0x04000000  | (x[7] >> 8));
-
-
-  // uncompressed public address hash first
- 
+  if (tmps[gid].prv_key_len==38){  // compressed key - modify pub_key
+    const u32 type = 0x02 | (y[0] & 1); // (note: 0b10 | 0b01 = 0x03)
+    pub_key[0] = ((type << 24)  | (x[7] >> 8));
+    pub_key[8] = (x[0] << 24);
+    pub_key_len = 33;
+  }
+  // calculate HASH160 for pub key
   sha256_ctx_t ctx;
-  ripemd160_ctx_t rctx[2];  // 0 index - uncompressed
-                            // 1 index - compressed format
+  ripemd160_ctx_t rctx;
 
   sha256_init (&ctx);
 
-  // sha256_update_swap (&ctx, pub_key, 65);
-  sha256_update (&ctx, pub_key, 65);
-
-  // sha256_update (&ctx, s, salt_len);
+  sha256_update (&ctx, pub_key, pub_key_len);
 
   sha256_final (&ctx);
 
@@ -213,41 +206,13 @@ KERNEL_FQ void m28500_comp (KERN_ATTR_TMPS (btcprv_tmp_t))
 
   // now let's do RIPEMD-160 on the sha246sum
 
-  ripemd160_init (&rctx[0]);
+  ripemd160_init (&rctx);
 
-  ripemd160_update_swap (&rctx[0], shash, 32);
+  ripemd160_update_swap (&rctx, shash, 32);
 
-  ripemd160_final (&rctx[0]);
+  ripemd160_final (&rctx);
 
-  // now uncompressed address hash160 calculation
-  // modify pub_key
-  const u32 type = 0x02 | (y[0] & 1); // (note: 0b10 | 0b01 = 0x03)
-  pub_key[0] = ((type << 24)  | (x[7] >> 8));
-  pub_key[8] = (x[0] << 24);
-  for (i=9;i<33;i++)
-  {
-    pub_key[i]=0;
-  }
-
-  sha256_init (&ctx);
-
-  sha256_update (&ctx, pub_key, 33);
-
-  sha256_final (&ctx);
-
-  for (i=0;i<8;i++)
-  {
-    shash[i]=ctx.h[i];
-  }
-
-  // now let's do RIPEMD-160 on the sha246sum
-
-  ripemd160_init (&rctx[1]);
-
-  ripemd160_update_swap (&rctx[1], shash, 32);
-
-  ripemd160_final (&rctx[1]);
-  // now both hash160 of compressed and uncompressed public key are here
+  // now hash160 of public key is stored
 
   /**
    * digest
@@ -256,11 +221,10 @@ KERNEL_FQ void m28500_comp (KERN_ATTR_TMPS (btcprv_tmp_t))
   // it makes no sense to put long list of public addresses
   // to one private key patern
   bool found;
-  for (i=0; i<digests_cnt; i++)
+  for (i=0; i<DIGESTS_CNT; i++)
   {
     u8 * dig = (u8 *) digests_buf[i].digest_buf;
-    // check uncompressed hash160 first
-    u8 * ph = (u8*) rctx[0].h;
+    u8 * ph = (u8*) rctx.h;
     found = true;
     for (j=0; found && j<20; j++)
     {
@@ -268,18 +232,7 @@ KERNEL_FQ void m28500_comp (KERN_ATTR_TMPS (btcprv_tmp_t))
     }
     if (found)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, i, i, gid, 0, 0, 0);
-    }
-    // check compressed hash160 now
-    ph = (u8*) rctx[1].h;
-    found = true;
-    for (j=0; found && j<20; j++)
-    {
-      if (dig[j]!=ph[j]) found=false;
-    }
-    if (found)
-    {
-      mark_hash (plains_buf, d_return_buf, SALT_POS, digests_cnt, i, i, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, i, i, gid, 0, 0, 0);
     }
   }
 }

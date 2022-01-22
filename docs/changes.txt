@@ -8,6 +8,7 @@
 - Added hash-mode: Teamspeak 3 (channel hash)
 - Added hash-mode: sha256($salt.sha256_bin($pass))
 - Added hash-mode: PostgreSQL SCRAM-SHA-256
+- Added hash-mode: Bitcoin WIF private key (P2PKH)
 
 ##
 ## Features
