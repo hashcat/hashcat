@@ -4130,8 +4130,9 @@ void backend_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
 int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 {
-  backend_ctx_t  *backend_ctx  = hashcat_ctx->backend_ctx;
-  user_options_t *user_options = hashcat_ctx->user_options;
+  const folder_config_t *folder_config = hashcat_ctx->folder_config;
+        backend_ctx_t   *backend_ctx   = hashcat_ctx->backend_ctx;
+        user_options_t  *user_options  = hashcat_ctx->user_options;
 
   if (backend_ctx->enabled == false) return 0;
 
@@ -5436,9 +5437,16 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         device_param->device_local_mem_size = device_local_mem_size;
 
-        // older POCL version and older LLVM versions are known to fail compiling kernels
-        // we need to inform the user to update
+        // handling known bugs on POCL
+
+        // POCL < 1.9 doesn't like quotes in the include path, see:
+        // https://github.com/hashcat/hashcat/issues/2950
+        // https://github.com/pocl/pocl/issues/962
+
+        // POCL < 1.5 and older LLVM versions are known to fail compiling kernels
         // https://github.com/hashcat/hashcat/issues/2344
+
+        // we need to inform the user to update
 
         if (opencl_platform_vendor_id == VENDOR_ID_POCL)
         {
@@ -5452,15 +5460,28 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
             int pocl_maj = 0;
             int pocl_min = 0;
 
+            int pocl_bug_whitespace_on_path = 0;
+            int pocl_bug_kernel_compiling_failure = 0;
+
             const int res1 = sscanf (pocl_version_ptr, "pocl %d.%d", &pocl_maj, &pocl_min);
 
             if (res1 == 2)
             {
               const int pocl_version = (pocl_maj * 100) + pocl_min;
 
-              if (pocl_version < 105)
+              if (pocl_version < 109)
               {
-                pocl_skip = true;
+                if (strchr (folder_config->cpath_real, ' ') != NULL)
+                {
+                  pocl_skip = true;
+                  pocl_bug_whitespace_on_path = 1;
+                }
+
+                if (pocl_version < 105)
+                {
+                  pocl_skip = true;
+                  pocl_bug_kernel_compiling_failure = 1;
+                }
               }
             }
 
@@ -5485,9 +5506,22 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
               {
                 event_log_error (hashcat_ctx, "* Device #%u: Outdated POCL OpenCL driver detected!", device_id + 1);
 
-                if (user_options->quiet == false) event_log_warning (hashcat_ctx, "This OpenCL driver may fail kernel compilation or produce false negatives.");
-                if (user_options->quiet == false) event_log_warning (hashcat_ctx, "You can use --force to override, but do not report related errors.");
-                if (user_options->quiet == false) event_log_warning (hashcat_ctx, NULL);
+                if (user_options->quiet == false)
+                {
+                  if (pocl_bug_kernel_compiling_failure == 1)
+                  {
+                    event_log_warning (hashcat_ctx, "This OpenCL driver may fail kernel compilation or produce false negatives.");
+                  }
+
+                  if (pocl_bug_whitespace_on_path == 1)
+                  {
+                    event_log_warning (hashcat_ctx, "Consider moving hashcat to a path with no spaces if you want to use this POCL version.");
+                  }
+
+                  event_log_warning (hashcat_ctx, "We recommend using a version of POCL >= 1.9");
+                  event_log_warning (hashcat_ctx, "You can use --force to override, but do not report related errors.");
+                  event_log_warning (hashcat_ctx, NULL);
+                }
 
                 device_param->skipped = true;
               }
@@ -7331,14 +7365,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
   int backend_kernel_build_warnings = 0;
   int backend_kernel_accel_warnings = 0;
   int backend_extra_size_warning = 0;
-  int backend_pocl_warning = 0;
 
   backend_ctx->memory_hit_warning = false;
   backend_ctx->runtime_skip_warning = false;
   backend_ctx->kernel_build_warning = false;
   backend_ctx->kernel_accel_warnings = false;
   backend_ctx->extra_size_warning = false;
-  backend_ctx->pocl_warning = false;
   backend_ctx->mixed_warnings = false;
 
   for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
@@ -8027,46 +8059,14 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      if (device_param->opencl_platform_vendor_id == VENDOR_ID_POCL)
-      {
-        // POCL doesn't like quotes in the include path, see:
-        //   https://github.com/hashcat/hashcat/issues/2950
-        // Maybe related:
-        //   https://github.com/pocl/pocl/issues/962
-
-        if (strchr (folder_config->cpath_real, ' ') == NULL)
-        {
-          // untested only on windows
-          build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D KERNEL_STATIC -D INCLUDE_PATH=%s ",
-          #if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)
-            "OpenCL");
-          #else
-            folder_config->cpath_real);
-          #endif
-        }
-        else
-        {
-          event_log_warning (hashcat_ctx, "Filesystem path to Hashcat contains space characters, skipping device due to POCL known bug");
-          event_log_warning (hashcat_ctx, "Consider moving hashcat to a path with no spaces if you want to use POCL");
-          event_log_warning (hashcat_ctx, NULL);
-
-          backend_pocl_warning++;
-
-          device_param->skipped_warning = true;
-          continue;
-        }
-      }
-      else
-      {
-        // tested on windows, linux, apple intel, apple silicon
-        // when is builded with cygwin and msys, cpath_real doesn't work
-        build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D KERNEL_STATIC -D INCLUDE_PATH=\"%s\" ",
-        #if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)
-          "OpenCL");
-        #else
-          folder_config->cpath_real);
-        #endif
-      }
+      // tested on windows, linux, apple intel, apple silicon
+      // when is builded with cygwin and msys, cpath_real doesn't work
+      build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D KERNEL_STATIC -D INCLUDE_PATH=\"%s\" ",
+      #if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)
+        "OpenCL");
+      #else
+        folder_config->cpath_real);
+      #endif
 
       #if defined (__APPLE__)
       if (is_apple_silicon() == true)
@@ -11804,28 +11804,26 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
   int rc = 0;
 
-  backend_ctx->memory_hit_warning    = (backend_memory_hit_warnings == backend_ctx->backend_devices_active);
-  backend_ctx->runtime_skip_warning  = (backend_runtime_skip_warnings == backend_ctx->backend_devices_active);
-  backend_ctx->kernel_build_warning  = (backend_kernel_build_warnings == backend_ctx->backend_devices_active);
+  backend_ctx->memory_hit_warning = (backend_memory_hit_warnings == backend_ctx->backend_devices_active);
+  backend_ctx->runtime_skip_warning = (backend_runtime_skip_warnings == backend_ctx->backend_devices_active);
+  backend_ctx->kernel_build_warning = (backend_kernel_build_warnings == backend_ctx->backend_devices_active);
   backend_ctx->kernel_accel_warnings = (backend_kernel_accel_warnings == backend_ctx->backend_devices_active);
-  backend_ctx->extra_size_warning    = (backend_extra_size_warning == backend_ctx->backend_devices_active);
-  backend_ctx->pocl_warning          = (backend_extra_size_warning == backend_ctx->backend_devices_active);
+  backend_ctx->extra_size_warning = (backend_extra_size_warning == backend_ctx->backend_devices_active);
 
   // if all active devices failed, set rc to -1
   // later we prevent hashcat exit if is started in benchmark mode
-  if ((backend_ctx->memory_hit_warning    == true) ||
-      (backend_ctx->runtime_skip_warning  == true) ||
-      (backend_ctx->kernel_build_warning  == true) ||
+  if ((backend_ctx->memory_hit_warning == true) ||
+      (backend_ctx->runtime_skip_warning == true) ||
+      (backend_ctx->kernel_build_warning == true) ||
       (backend_ctx->kernel_accel_warnings == true) ||
-      (backend_ctx->extra_size_warning    == true) ||
-      (backend_ctx->pocl_warning          == true))
+      (backend_ctx->extra_size_warning == true))
   {
     rc = -1;
   }
   else
   {
     // handle mix of, in case of multiple devices with different warnings
-    backend_ctx->mixed_warnings = ((backend_memory_hit_warnings + backend_runtime_skip_warnings + backend_kernel_build_warnings + backend_kernel_accel_warnings + backend_extra_size_warning + backend_pocl_warning) == backend_ctx->backend_devices_active);
+    backend_ctx->mixed_warnings = ((backend_memory_hit_warnings + backend_runtime_skip_warnings + backend_kernel_build_warnings + backend_kernel_accel_warnings + backend_extra_size_warning) == backend_ctx->backend_devices_active);
 
     if (backend_ctx->mixed_warnings) rc = -1;
   }

@@ -403,14 +403,8 @@ function status()
 
   if [ "${RET}" -ne 0 ]; then
     case ${RET} in
-      247)
-        echo "skipped by runtime (mixed backend errors detected), cmdline : ${CMD}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
-
-        e_rs=$((e_rs + 1))
-        ;;
-
       248)
-        echo "skipped by runtime (POCL warnings), cmdline : ${CMD}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+        echo "skipped by runtime (mixed backend errors detected), cmdline : ${CMD}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
         e_rs=$((e_rs + 1))
         ;;
