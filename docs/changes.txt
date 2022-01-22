@@ -7,6 +7,7 @@
 - Added hash-mode: Exodus Desktop Wallet (scrypt)
 - Added hash-mode: Teamspeak 3 (channel hash)
 - Added hash-mode: sha256($salt.sha256_bin($pass))
+- Added hash-mode: PostgreSQL SCRAM-SHA-256
 
 ##
 ## Features
@@ -14,6 +15,7 @@
 
 - Added support to use --debug-mode in attack-mode 9 (Association Attack)
 - Added guess data to --status-json output
+- Added hex format for --separator option
 
 ##
 ## Bugs
@@ -29,8 +31,23 @@
 - Fixed bug on benchmark engine, from now it will not stop at the first error detected
 - Fixed false negative on Unit Test in case of out-of-memory with grep in single mode
 - Fixed Unit Test early exit on luks test file download/extract failure
+- Fixed Unit Test salt-max in case of optimized kernel, with hash-type 22 and 23
 - Fixed Unit Test false negative if there are spaces in the filesystem path to hashcat
 - Fixed --hash-info example password output: force uppercase if OPTS_TYPE_PT_UPPER is set
+- Hash-Mode 9700: set native_threads to 32 with Apple GPU's
+- Hash-Mode 9710: set native_threads to 32 with Apple GPU's
+- Hash-Mode 9720: set native_threads to 32 with Apple GPU's
+- Hash-Mode 9800: set native_threads to 32 with Apple GPU's
+- Hash-Mode 9810: set native_threads to 32 with Apple GPU's
+- Hash-Mode 9820: set native_threads to 32 with Apple GPU's
+- Hash-Mode 10400: set native_threads to 32 with Apple GPU's
+- Hash-Mode 10410: set native_threads to 32 with Apple GPU's
+- Hash-Mode 10420: set native_threads to 32 with Apple GPU's
+- Hash-Mode 18200: set native_threads to 32 with Apple GPU's
+- Hash-Mode 25400: set native_threads to 32 with Apple GPU's
+- Hash-Mode 7500: set native_threads to 32 with Apple GPU's
+- Hash-Mode 10500: set native_threads to 32 with Apple GPU's
+- Hash-Mode 13100: set native_threads to 32 with Apple GPU's
 
 ##
 ## Technical
