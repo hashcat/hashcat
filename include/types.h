@@ -1688,6 +1688,7 @@ typedef struct backend_ctx
   bool                memory_hit_warning;
   bool                runtime_skip_warning;
   bool                kernel_build_warning;
+  bool                kernel_create_warning;
   bool                kernel_accel_warnings;
   bool                extra_size_warning;
   bool                mixed_warnings;
