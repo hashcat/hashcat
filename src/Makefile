@@ -36,7 +36,7 @@ $(error "! Your Operating System ($(UNAME)) is not supported by this Makefile")
 endif
 
 ifeq ($(DEBUG),1)
-$(warning "## Detected Operating System : $(UNAME)")
+$(info "## Detected Operating System : $(UNAME)")
 endif
 
 ##
@@ -76,6 +76,7 @@ AR                      := /usr/bin/ar
 SED                     := /usr/bin/sed
 SED_IN_PLACE            := -i ""
 DARWIN_VERSION          := $(shell uname -r | cut -d. -f1)
+IS_APPLE_SILICON        := $(shell lipo /bin/zsh -verify_arch arm64e && echo 1 || echo 0)
 endif
 
 ifneq (,$(filter $(UNAME),FreeBSD NetBSD))
@@ -333,6 +334,16 @@ LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -framework IOKit
 LFLAGS_NATIVE           += -lpthread
 LFLAGS_NATIVE           += -liconv
+
+ifeq ($(IS_APPLE_SILICON),1)
+CFLAGS_NATIVE           += -arch arm64
+CFLAGS_NATIVE           += -arch x86_64
+ifeq ($(SHARED),1)
+LFLAGS_NATIVE           += -arch arm64
+LFLAGS_NATIVE           += -arch x86_64
+endif
+endif
+
 endif # Darwin
 
 ifeq ($(UNAME),CYGWIN)
