@@ -32,13 +32,13 @@ KERNEL_FQ void m14522_mxx (KERN_ATTR_RULES_ESALT (cryptoapi_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
    */
 
-  u32 serpent_key_len = esalt_bufs[DIGESTS_OFFSET].key_size;
+  u32 serpent_key_len = esalt_bufs[DIGESTS_OFFSET_HOST].key_size;
 
   COPY_PW (pws[gid]);
 
@@ -46,7 +46,7 @@ KERNEL_FQ void m14522_mxx (KERN_ATTR_RULES_ESALT (cryptoapi_t))
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
     pw_t tmp = PASTE_PW;
 
@@ -103,10 +103,10 @@ KERNEL_FQ void m14522_mxx (KERN_ATTR_RULES_ESALT (cryptoapi_t))
     // IV
 
     const u32 iv[4] = {
-      salt_bufs[SALT_POS].salt_buf[0],
-      salt_bufs[SALT_POS].salt_buf[1],
-      salt_bufs[SALT_POS].salt_buf[2],
-      salt_bufs[SALT_POS].salt_buf[3]
+      salt_bufs[SALT_POS_HOST].salt_buf[0],
+      salt_bufs[SALT_POS_HOST].salt_buf[1],
+      salt_bufs[SALT_POS_HOST].salt_buf[2],
+      salt_bufs[SALT_POS_HOST].salt_buf[3]
     };
 
     // CT
@@ -153,13 +153,13 @@ KERNEL_FQ void m14522_sxx (KERN_ATTR_RULES_ESALT (cryptoapi_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
    */
 
-  u32 serpent_key_len = esalt_bufs[DIGESTS_OFFSET].key_size;
+  u32 serpent_key_len = esalt_bufs[DIGESTS_OFFSET_HOST].key_size;
 
   /**
    * digest
@@ -167,10 +167,10 @@ KERNEL_FQ void m14522_sxx (KERN_ATTR_RULES_ESALT (cryptoapi_t))
 
   const u32 search[4] =
   {
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R3]
   };
 
   /**
@@ -183,7 +183,7 @@ KERNEL_FQ void m14522_sxx (KERN_ATTR_RULES_ESALT (cryptoapi_t))
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
     pw_t tmp = PASTE_PW;
 
@@ -240,10 +240,10 @@ KERNEL_FQ void m14522_sxx (KERN_ATTR_RULES_ESALT (cryptoapi_t))
     // IV
 
     const u32 iv[4] = {
-      salt_bufs[SALT_POS].salt_buf[0],
-      salt_bufs[SALT_POS].salt_buf[1],
-      salt_bufs[SALT_POS].salt_buf[2],
-      salt_bufs[SALT_POS].salt_buf[3]
+      salt_bufs[SALT_POS_HOST].salt_buf[0],
+      salt_bufs[SALT_POS_HOST].salt_buf[1],
+      salt_bufs[SALT_POS_HOST].salt_buf[2],
+      salt_bufs[SALT_POS_HOST].salt_buf[3]
     };
 
     // CT

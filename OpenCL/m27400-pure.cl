@@ -80,7 +80,7 @@ KERNEL_FQ void m27400_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, vmware_vmx_
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   sha1_hmac_ctx_t sha1_hmac_ctx;
 
@@ -98,7 +98,7 @@ KERNEL_FQ void m27400_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, vmware_vmx_
   tmps[gid].opad[3] = sha1_hmac_ctx.opad.h[3];
   tmps[gid].opad[4] = sha1_hmac_ctx.opad.h[4];
 
-  sha1_hmac_update_global_swap (&sha1_hmac_ctx, esalt_bufs[DIGESTS_OFFSET].salt_buf, salt_bufs[SALT_POS].salt_len);
+  sha1_hmac_update_global_swap (&sha1_hmac_ctx, esalt_bufs[DIGESTS_OFFSET_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
   for (u32 i = 0, j = 1; i < 8; i += 5, j += 1)
   {
@@ -148,7 +148,7 @@ KERNEL_FQ void m27400_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, vmware_vmx_
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= gid_max) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u32x ipad[5];
   u32x opad[5];
@@ -182,7 +182,7 @@ KERNEL_FQ void m27400_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, vmware_vmx_
     out[3] = packv (tmps, out, gid, i + 3);
     out[4] = packv (tmps, out, gid, i + 4);
 
-    for (u32 j = 0; j < loop_cnt; j++)
+    for (u32 j = 0; j < LOOP_CNT; j++)
     {
       u32x w0[4];
       u32x w1[4];
@@ -290,7 +290,7 @@ KERNEL_FQ void m27400_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, vmware_vmx_
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   u32 ukey[8];
 
@@ -311,19 +311,19 @@ KERNEL_FQ void m27400_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, vmware_vmx_
 
   u32 iv_buf[4];
 
-  iv_buf[0] = esalt_bufs[DIGESTS_OFFSET].iv_buf[0];
-  iv_buf[1] = esalt_bufs[DIGESTS_OFFSET].iv_buf[1];
-  iv_buf[2] = esalt_bufs[DIGESTS_OFFSET].iv_buf[2];
-  iv_buf[3] = esalt_bufs[DIGESTS_OFFSET].iv_buf[3];
+  iv_buf[0] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[0];
+  iv_buf[1] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[1];
+  iv_buf[2] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[2];
+  iv_buf[3] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[3];
 
   // ct
 
   u32 ct_buf[4];
 
-  ct_buf[0] = esalt_bufs[DIGESTS_OFFSET].ct_buf[0];
-  ct_buf[1] = esalt_bufs[DIGESTS_OFFSET].ct_buf[1];
-  ct_buf[2] = esalt_bufs[DIGESTS_OFFSET].ct_buf[2];
-  ct_buf[3] = esalt_bufs[DIGESTS_OFFSET].ct_buf[3];
+  ct_buf[0] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[0];
+  ct_buf[1] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[1];
+  ct_buf[2] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[2];
+  ct_buf[3] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[3];
 
   // decrypt first block
 

@@ -77,7 +77,7 @@ KERNEL_FQ void m23400_init (KERN_ATTR_TMPS (bitwarden_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   sha256_hmac_ctx_t sha256_hmac_ctx;
 
@@ -101,7 +101,7 @@ KERNEL_FQ void m23400_init (KERN_ATTR_TMPS (bitwarden_tmp_t))
   tmps[gid].opad[6] = sha256_hmac_ctx.opad.h[6];
   tmps[gid].opad[7] = sha256_hmac_ctx.opad.h[7];
 
-  sha256_hmac_update_global_swap (&sha256_hmac_ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
+  sha256_hmac_update_global_swap (&sha256_hmac_ctx, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
   sha256_hmac_ctx_t sha256_hmac_ctx2 = sha256_hmac_ctx;
 
@@ -154,7 +154,7 @@ KERNEL_FQ void m23400_loop (KERN_ATTR_TMPS (bitwarden_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= gid_max) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u32x ipad[8];
   u32x opad[8];
@@ -198,7 +198,7 @@ KERNEL_FQ void m23400_loop (KERN_ATTR_TMPS (bitwarden_tmp_t))
   out[6] = packv (tmps, out, gid, 6);
   out[7] = packv (tmps, out, gid, 7);
 
-  for (u32 j = 0; j < loop_cnt; j++)
+  for (u32 j = 0; j < LOOP_CNT; j++)
   {
     u32x w0[4];
     u32x w1[4];
@@ -261,7 +261,7 @@ KERNEL_FQ void m23400_comp (KERN_ATTR_TMPS (bitwarden_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   u32 out[16] = { 0 };
 

@@ -82,7 +82,7 @@ KERNEL_FQ void m18400_init (KERN_ATTR_TMPS_ESALT (odf12_tmp_t, odf12_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   sha256_ctx_t sha256_ctx;
 
@@ -121,10 +121,10 @@ KERNEL_FQ void m18400_init (KERN_ATTR_TMPS_ESALT (odf12_tmp_t, odf12_t))
   u32 m2[4];
   u32 m3[4];
 
-  m0[0] = hc_swap32_S (salt_bufs[DIGESTS_OFFSET].salt_buf[0]);
-  m0[1] = hc_swap32_S (salt_bufs[DIGESTS_OFFSET].salt_buf[1]);
-  m0[2] = hc_swap32_S (salt_bufs[DIGESTS_OFFSET].salt_buf[2]);
-  m0[3] = hc_swap32_S (salt_bufs[DIGESTS_OFFSET].salt_buf[3]);
+  m0[0] = hc_swap32_S (salt_bufs[DIGESTS_OFFSET_HOST].salt_buf[0]);
+  m0[1] = hc_swap32_S (salt_bufs[DIGESTS_OFFSET_HOST].salt_buf[1]);
+  m0[2] = hc_swap32_S (salt_bufs[DIGESTS_OFFSET_HOST].salt_buf[2]);
+  m0[3] = hc_swap32_S (salt_bufs[DIGESTS_OFFSET_HOST].salt_buf[3]);
   m1[0] = 0;
   m1[1] = 0;
   m1[2] = 0;
@@ -183,7 +183,7 @@ KERNEL_FQ void m18400_loop (KERN_ATTR_TMPS_ESALT (odf12_tmp_t, odf12_t))
 {
   const u64 gid = get_global_id (0);
 
-  if ((gid * VECT_SIZE) >= gid_max) return;
+  if ((gid * VECT_SIZE) >= GID_CNT) return;
 
   u32x ipad[5];
   u32x opad[5];
@@ -218,7 +218,7 @@ KERNEL_FQ void m18400_loop (KERN_ATTR_TMPS_ESALT (odf12_tmp_t, odf12_t))
     out[3] = packv (tmps, out, gid, i + 3);
     out[4] = packv (tmps, out, gid, i + 4);
 
-    for (u32 j = 0; j < loop_cnt; j++)
+    for (u32 j = 0; j < LOOP_CNT; j++)
     {
       u32x w0[4];
       u32x w1[4];
@@ -322,7 +322,7 @@ KERNEL_FQ void m18400_comp (KERN_ATTR_TMPS_ESALT (odf12_tmp_t, odf12_t))
 
   #endif
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -343,7 +343,7 @@ KERNEL_FQ void m18400_comp (KERN_ATTR_TMPS_ESALT (odf12_tmp_t, odf12_t))
 
   aes256_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
-  GLOBAL_AS const odf12_t *es = &esalt_bufs[DIGESTS_OFFSET];
+  GLOBAL_AS const odf12_t *es = &esalt_bufs[DIGESTS_OFFSET_HOST];
 
   u32 iv[4];
 

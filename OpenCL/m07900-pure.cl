@@ -28,13 +28,13 @@ KERNEL_FQ void m07900_init (KERN_ATTR_TMPS (drupal7_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   sha512_ctx_t ctx;
 
   sha512_init (&ctx);
 
-  sha512_update_global_swap (&ctx, salt_bufs[SALT_POS].salt_buf, salt_bufs[SALT_POS].salt_len);
+  sha512_update_global_swap (&ctx, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
   sha512_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
@@ -58,7 +58,7 @@ KERNEL_FQ void m07900_loop (KERN_ATTR_TMPS (drupal7_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * init
@@ -123,7 +123,7 @@ KERNEL_FQ void m07900_loop (KERN_ATTR_TMPS (drupal7_tmp_t))
 
   if ((64 + pw_len + 1) >= 112)
   {
-    for (u32 i = 1; i < loop_cnt; i++)
+    for (u32 i = 1; i < LOOP_CNT; i++)
     {
       sha512_init (&sha512_ctx);
 
@@ -162,7 +162,7 @@ KERNEL_FQ void m07900_loop (KERN_ATTR_TMPS (drupal7_tmp_t))
   }
   else
   {
-    for (u32 i = 1; i < loop_cnt; i++)
+    for (u32 i = 1; i < LOOP_CNT; i++)
     {
       sha512_ctx.w0[0] = h32_from_64_S (digest[0]);
       sha512_ctx.w0[1] = l32_from_64_S (digest[0]);
@@ -212,7 +212,7 @@ KERNEL_FQ void m07900_comp (KERN_ATTR_TMPS (drupal7_tmp_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   const u64 lid = get_local_id (0);
 

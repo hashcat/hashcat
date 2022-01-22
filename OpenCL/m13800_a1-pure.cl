@@ -29,7 +29,7 @@ KERNEL_FQ void m13800_mxx (KERN_ATTR_ESALT (win8phone_t))
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * base
@@ -45,13 +45,13 @@ KERNEL_FQ void m13800_mxx (KERN_ATTR_ESALT (win8phone_t))
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
     sha256_ctx_t ctx = ctx0;
 
     sha256_update_global_utf16le_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
-    sha256_update_global (&ctx, esalt_bufs[DIGESTS_OFFSET].salt_buf, 128);
+    sha256_update_global (&ctx, esalt_bufs[DIGESTS_OFFSET_HOST].salt_buf, 128);
 
     sha256_final (&ctx);
 
@@ -73,7 +73,7 @@ KERNEL_FQ void m13800_sxx (KERN_ATTR_ESALT (win8phone_t))
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * digest
@@ -81,10 +81,10 @@ KERNEL_FQ void m13800_sxx (KERN_ATTR_ESALT (win8phone_t))
 
   const u32 search[4] =
   {
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R3]
   };
 
   /**
@@ -101,13 +101,13 @@ KERNEL_FQ void m13800_sxx (KERN_ATTR_ESALT (win8phone_t))
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
     sha256_ctx_t ctx = ctx0;
 
     sha256_update_global_utf16le_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
-    sha256_update_global (&ctx, esalt_bufs[DIGESTS_OFFSET].salt_buf, 128);
+    sha256_update_global (&ctx, esalt_bufs[DIGESTS_OFFSET_HOST].salt_buf, 128);
 
     sha256_final (&ctx);
 

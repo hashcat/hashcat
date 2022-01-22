@@ -52,7 +52,7 @@ KERNEL_FQ void m10500_init (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
   const u64 gid = get_global_id (0);
   //const u64 lid = get_local_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   u32 w0[4];
 
@@ -76,48 +76,48 @@ KERNEL_FQ void m10500_init (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
 
   u32 o_buf[8];
 
-  o_buf[0] = esalt_bufs[DIGESTS_OFFSET].o_buf[0];
-  o_buf[1] = esalt_bufs[DIGESTS_OFFSET].o_buf[1];
-  o_buf[2] = esalt_bufs[DIGESTS_OFFSET].o_buf[2];
-  o_buf[3] = esalt_bufs[DIGESTS_OFFSET].o_buf[3];
-  o_buf[4] = esalt_bufs[DIGESTS_OFFSET].o_buf[4];
-  o_buf[5] = esalt_bufs[DIGESTS_OFFSET].o_buf[5];
-  o_buf[6] = esalt_bufs[DIGESTS_OFFSET].o_buf[6];
-  o_buf[7] = esalt_bufs[DIGESTS_OFFSET].o_buf[7];
+  o_buf[0] = esalt_bufs[DIGESTS_OFFSET_HOST].o_buf[0];
+  o_buf[1] = esalt_bufs[DIGESTS_OFFSET_HOST].o_buf[1];
+  o_buf[2] = esalt_bufs[DIGESTS_OFFSET_HOST].o_buf[2];
+  o_buf[3] = esalt_bufs[DIGESTS_OFFSET_HOST].o_buf[3];
+  o_buf[4] = esalt_bufs[DIGESTS_OFFSET_HOST].o_buf[4];
+  o_buf[5] = esalt_bufs[DIGESTS_OFFSET_HOST].o_buf[5];
+  o_buf[6] = esalt_bufs[DIGESTS_OFFSET_HOST].o_buf[6];
+  o_buf[7] = esalt_bufs[DIGESTS_OFFSET_HOST].o_buf[7];
 
-  u32 P = esalt_bufs[DIGESTS_OFFSET].P;
+  u32 P = esalt_bufs[DIGESTS_OFFSET_HOST].P;
 
   u32 id_buf[12];
 
-  id_buf[ 0] = esalt_bufs[DIGESTS_OFFSET].id_buf[0];
-  id_buf[ 1] = esalt_bufs[DIGESTS_OFFSET].id_buf[1];
-  id_buf[ 2] = esalt_bufs[DIGESTS_OFFSET].id_buf[2];
-  id_buf[ 3] = esalt_bufs[DIGESTS_OFFSET].id_buf[3];
+  id_buf[ 0] = esalt_bufs[DIGESTS_OFFSET_HOST].id_buf[0];
+  id_buf[ 1] = esalt_bufs[DIGESTS_OFFSET_HOST].id_buf[1];
+  id_buf[ 2] = esalt_bufs[DIGESTS_OFFSET_HOST].id_buf[2];
+  id_buf[ 3] = esalt_bufs[DIGESTS_OFFSET_HOST].id_buf[3];
 
-  id_buf[ 4] = esalt_bufs[DIGESTS_OFFSET].id_buf[4];
-  id_buf[ 5] = esalt_bufs[DIGESTS_OFFSET].id_buf[5];
-  id_buf[ 6] = esalt_bufs[DIGESTS_OFFSET].id_buf[6];
-  id_buf[ 7] = esalt_bufs[DIGESTS_OFFSET].id_buf[7];
+  id_buf[ 4] = esalt_bufs[DIGESTS_OFFSET_HOST].id_buf[4];
+  id_buf[ 5] = esalt_bufs[DIGESTS_OFFSET_HOST].id_buf[5];
+  id_buf[ 6] = esalt_bufs[DIGESTS_OFFSET_HOST].id_buf[6];
+  id_buf[ 7] = esalt_bufs[DIGESTS_OFFSET_HOST].id_buf[7];
 
   id_buf[ 8] = 0;
   id_buf[ 9] = 0;
   id_buf[10] = 0;
   id_buf[11] = 0;
 
-  u32 id_len  = esalt_bufs[DIGESTS_OFFSET].id_len;
+  u32 id_len  = esalt_bufs[DIGESTS_OFFSET_HOST].id_len;
   u32 id_len4 = id_len / 4;
 
   u32 rc4data[2];
 
-  rc4data[0] = esalt_bufs[DIGESTS_OFFSET].rc4data[0];
-  rc4data[1] = esalt_bufs[DIGESTS_OFFSET].rc4data[1];
+  rc4data[0] = esalt_bufs[DIGESTS_OFFSET_HOST].rc4data[0];
+  rc4data[1] = esalt_bufs[DIGESTS_OFFSET_HOST].rc4data[1];
 
   u32 final_length = 68 + id_len;
 
   u32 w11 = 0x80;
   u32 w12 = 0;
 
-  if (esalt_bufs[DIGESTS_OFFSET].enc_md != 1)
+  if (esalt_bufs[DIGESTS_OFFSET_HOST].enc_md != 1)
   {
     w11 = 0xffffffff;
     w12 = 0x80;
@@ -239,7 +239,7 @@ KERNEL_FQ void m10500_loop (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * shared
@@ -265,7 +265,7 @@ KERNEL_FQ void m10500_loop (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
   out[2] = tmps[gid].out[2];
   out[3] = tmps[gid].out[3];
 
-  for (u32 i = 0, j = loop_pos; i < loop_cnt; i++, j++)
+  for (u32 i = 0, j = LOOP_POS; i < LOOP_CNT; i++, j++)
   {
     if (j < 50)
     {
@@ -339,7 +339,7 @@ KERNEL_FQ void m10500_comp (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
 
   const u64 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   const u64 lid = get_local_id (0);
 

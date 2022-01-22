@@ -555,12 +555,12 @@ KERNEL_FQ void m17200_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
 
   for (u64 i = lid; i < MAX_LOCAL; i += lsz)
   {
-    l_data[i] = esalt_bufs[DIGESTS_OFFSET].hash.data[i];
+    l_data[i] = esalt_bufs[DIGESTS_OFFSET_HOST].hash.data[i];
   }
 
   SYNC_THREADS ();
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * digest
@@ -568,7 +568,7 @@ KERNEL_FQ void m17200_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
 
   const u32 search[4] =
   {
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R0],
     0,
     0,
     0
@@ -578,11 +578,11 @@ KERNEL_FQ void m17200_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
    * prefetch from global memory
    */
 
-  const u32 checksum_size           = esalt_bufs[DIGESTS_OFFSET].checksum_size;
-  const u32 checksum_from_crc       = esalt_bufs[DIGESTS_OFFSET].hash.checksum_from_crc;
-  const u32 checksum_from_timestamp = esalt_bufs[DIGESTS_OFFSET].hash.checksum_from_timestamp;
-  const u32 crc32_final             = esalt_bufs[DIGESTS_OFFSET].hash.crc32;
-  const u32 data_length             = esalt_bufs[DIGESTS_OFFSET].hash.data_length;
+  const u32 checksum_size           = esalt_bufs[DIGESTS_OFFSET_HOST].checksum_size;
+  const u32 checksum_from_crc       = esalt_bufs[DIGESTS_OFFSET_HOST].hash.checksum_from_crc;
+  const u32 checksum_from_timestamp = esalt_bufs[DIGESTS_OFFSET_HOST].hash.checksum_from_timestamp;
+  const u32 crc32_final             = esalt_bufs[DIGESTS_OFFSET_HOST].hash.crc32;
+  const u32 data_length             = esalt_bufs[DIGESTS_OFFSET_HOST].hash.data_length;
 
   /**
    * base
@@ -603,7 +603,7 @@ KERNEL_FQ void m17200_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
 
   u32 w0l = w[0];
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
@@ -740,16 +740,16 @@ KERNEL_FQ void m17200_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       update_key012 (key0, key1, key2, plain, l_crc32tab);
     }
 
-    if (esalt_bufs[DIGESTS_OFFSET].hash.data_length >= 36 && ((tmp[0]) & 6) == 2 && !check_inflate_code1 (tmp, 24)) continue;
-    if (esalt_bufs[DIGESTS_OFFSET].hash.data_length >= 36 && ((tmp[0]) & 6) == 4 && !check_inflate_code2 (tmp))     continue;
+    if (esalt_bufs[DIGESTS_OFFSET_HOST].hash.data_length >= 36 && ((tmp[0]) & 6) == 2 && !check_inflate_code1 (tmp, 24)) continue;
+    if (esalt_bufs[DIGESTS_OFFSET_HOST].hash.data_length >= 36 && ((tmp[0]) & 6) == 4 && !check_inflate_code2 (tmp))     continue;
 
     mz_stream infstream;
 
     inflate_state pStream;
 
     infstream.opaque    = Z_NULL;
-    infstream.avail_in  = esalt_bufs[DIGESTS_OFFSET].hash.data_length           - 12; // size of input
-    infstream.next_in   = (GLOBAL_AS u8 *) esalt_bufs[DIGESTS_OFFSET].hash.data + 12; // input char array
+    infstream.avail_in  = esalt_bufs[DIGESTS_OFFSET_HOST].hash.data_length           - 12; // size of input
+    infstream.next_in   = (GLOBAL_AS u8 *) esalt_bufs[DIGESTS_OFFSET_HOST].hash.data + 12; // input char array
     infstream.avail_out = TMPSIZ; // size of output
     infstream.next_out  = tmp; // output char array
 
@@ -771,7 +771,7 @@ KERNEL_FQ void m17200_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       ret = hc_inflate (&infstream);
     }
 
-    if (ret != MZ_STREAM_END || infstream.total_out != esalt_bufs[DIGESTS_OFFSET].hash.uncompressed_length) continue;
+    if (ret != MZ_STREAM_END || infstream.total_out != esalt_bufs[DIGESTS_OFFSET_HOST].hash.uncompressed_length) continue;
 
     const u32 r0 = ~infstream.crc32;
     const u32 r1 = 0;
@@ -809,22 +809,22 @@ KERNEL_FQ void m17200_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
 
   for (u64 i = lid; i < MAX_LOCAL; i += lsz)
   {
-    l_data[i] = esalt_bufs[DIGESTS_OFFSET].hash.data[i];
+    l_data[i] = esalt_bufs[DIGESTS_OFFSET_HOST].hash.data[i];
   }
 
   SYNC_THREADS ();
 
-  if (gid >= gid_max) return;
+  if (gid >= GID_CNT) return;
 
   /**
    * prefetch from global memory
    */
 
-  const u32 checksum_size           = esalt_bufs[DIGESTS_OFFSET].checksum_size;
-  const u32 checksum_from_crc       = esalt_bufs[DIGESTS_OFFSET].hash.checksum_from_crc;
-  const u32 checksum_from_timestamp = esalt_bufs[DIGESTS_OFFSET].hash.checksum_from_timestamp;
-  const u32 crc32_final             = esalt_bufs[DIGESTS_OFFSET].hash.crc32;
-  const u32 data_length             = esalt_bufs[DIGESTS_OFFSET].hash.data_length;
+  const u32 checksum_size           = esalt_bufs[DIGESTS_OFFSET_HOST].checksum_size;
+  const u32 checksum_from_crc       = esalt_bufs[DIGESTS_OFFSET_HOST].hash.checksum_from_crc;
+  const u32 checksum_from_timestamp = esalt_bufs[DIGESTS_OFFSET_HOST].hash.checksum_from_timestamp;
+  const u32 crc32_final             = esalt_bufs[DIGESTS_OFFSET_HOST].hash.crc32;
+  const u32 data_length             = esalt_bufs[DIGESTS_OFFSET_HOST].hash.data_length;
 
   /**
    * base
@@ -845,7 +845,7 @@ KERNEL_FQ void m17200_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
 
   u32 w0l = w[0];
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
@@ -982,16 +982,16 @@ KERNEL_FQ void m17200_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       update_key012 (key0, key1, key2, plain, l_crc32tab);
     }
 
-    if (esalt_bufs[DIGESTS_OFFSET].hash.data_length >= 36 && ((tmp[0]) & 6) == 2 && !check_inflate_code1 (tmp, 24)) continue;
-    if (esalt_bufs[DIGESTS_OFFSET].hash.data_length >= 36 && ((tmp[0]) & 6) == 4 && !check_inflate_code2 (tmp))     continue;
+    if (esalt_bufs[DIGESTS_OFFSET_HOST].hash.data_length >= 36 && ((tmp[0]) & 6) == 2 && !check_inflate_code1 (tmp, 24)) continue;
+    if (esalt_bufs[DIGESTS_OFFSET_HOST].hash.data_length >= 36 && ((tmp[0]) & 6) == 4 && !check_inflate_code2 (tmp))     continue;
 
     mz_stream infstream;
 
     inflate_state pStream;
 
     infstream.opaque    = Z_NULL;
-    infstream.avail_in  = esalt_bufs[DIGESTS_OFFSET].hash.data_length           - 12; // size of input
-    infstream.next_in   = (GLOBAL_AS u8 *) esalt_bufs[DIGESTS_OFFSET].hash.data + 12; // input char array
+    infstream.avail_in  = esalt_bufs[DIGESTS_OFFSET_HOST].hash.data_length           - 12; // size of input
+    infstream.next_in   = (GLOBAL_AS u8 *) esalt_bufs[DIGESTS_OFFSET_HOST].hash.data + 12; // input char array
     infstream.avail_out = TMPSIZ; // size of output
     infstream.next_out  = tmp; // output char array
 
@@ -1013,7 +1013,7 @@ KERNEL_FQ void m17200_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
       ret = hc_inflate (&infstream);
     }
 
-    if (ret != MZ_STREAM_END || infstream.total_out != esalt_bufs[DIGESTS_OFFSET].hash.uncompressed_length) continue;
+    if (ret != MZ_STREAM_END || infstream.total_out != esalt_bufs[DIGESTS_OFFSET_HOST].hash.uncompressed_length) continue;
 
     const u32 r0 = ~infstream.crc32;
     const u32 r1 = 0;

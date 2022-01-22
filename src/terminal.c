@@ -439,7 +439,7 @@ void SetConsoleWindowSize (const int x)
 }
 #endif
 
-#if defined (__linux__) || defined (__CYGWIN__)
+#if defined (__FreeBSD__) || defined (__NetBSD__) || defined (__linux__) || defined (__CYGWIN__)
 static struct termios savemodes;
 static int havemodes = 0;
 
@@ -667,7 +667,14 @@ void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_op
     {
       if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
       {
-        event_log_info (hashcat_ctx, "  Example.Hash.Format.: hex-encoded");
+        if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE_OPTIONAL)
+        {
+          event_log_info (hashcat_ctx, "  Example.Hash.Format.: hex-encoded");
+        }
+        else
+        {
+          event_log_info (hashcat_ctx, "  Example.Hash.Format.: hex-encoded (binary file only)");
+        }
         event_log_info (hashcat_ctx, "  Example.Hash........: %s", hashconfig->st_hash);
       }
       else
@@ -699,6 +706,20 @@ void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_op
 
         hcfree (tmp_buf);
       }
+      else if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER)
+      {
+        size_t st_pass_len = strlen (hashconfig->st_pass);
+
+        char *tmp_buf = (char *) hcmalloc (st_pass_len + 1);
+
+        strncpy (tmp_buf, hashconfig->st_pass, st_pass_len);
+
+        uppercase ((u8 *) tmp_buf, st_pass_len);
+
+        event_log_info (hashcat_ctx, "  Example.Pass........: %s", tmp_buf);
+
+        hcfree (tmp_buf);
+      }
       else
       {
         event_log_info (hashcat_ctx, "  Example.Pass........: %s", hashconfig->st_pass);
@@ -718,6 +739,23 @@ void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_op
     else
     {
       event_log_info (hashcat_ctx, "  Benchmark.Mask......: N/A");
+    }
+
+    event_log_info (hashcat_ctx, "  Autodetect.Enabled..: %s", (hashconfig->opts_type & OPTS_TYPE_AUTODETECT_DISABLE) ? "No" : "Yes");
+    event_log_info (hashcat_ctx, "  Self.Test.Enabled...: %s", (hashconfig->opts_type & OPTS_TYPE_SELF_TEST_DISABLE) ? "No" : "Yes");
+    event_log_info (hashcat_ctx, "  Potfile.Enabled.....: %s", (hashconfig->opts_type & OPTS_TYPE_POTFILE_NOPASS) ? "No" : "Yes");
+
+    if (hashconfig->opts_type & OPTS_TYPE_PT_ALWAYS_ASCII)
+    {
+      event_log_info (hashcat_ctx, "  Plaintext.Encoding..: ASCII only");
+    }
+    else if (hashconfig->opts_type & OPTS_TYPE_PT_ALWAYS_HEXIFY)
+    {
+      event_log_info (hashcat_ctx, "  Plaintext.Encoding..: HEX only");
+    }
+    else
+    {
+      event_log_info (hashcat_ctx, "  Plaintext.Encoding..: ASCII, HEX");
     }
 
     event_log_info (hashcat_ctx, NULL);
@@ -1175,7 +1213,6 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
     const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
     if (device_info->skipped_dev == true) continue;
-
     if (device_info->skipped_warning_dev == true) continue;
 
     printf ("%" PRIu64 "\t", (u64) (device_info->hashes_msec_dev * 1000));
@@ -1191,7 +1228,6 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
     const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
     if (device_info->skipped_dev == true) continue;
-
     if (device_info->skipped_warning_dev == true) continue;
 
     printf ("%f\t", device_info->exec_msec_dev);
@@ -1214,7 +1250,6 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
       const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
       if (device_info->skipped_dev == true) continue;
-
       if (device_info->skipped_warning_dev == true) continue;
 
       const int temp = hm_get_temperature_with_devices_idx (hashcat_ctx, device_id);
@@ -1232,7 +1267,6 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
     const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
     if (device_info->skipped_dev == true) continue;
-
     if (device_info->skipped_warning_dev == true) continue;
 
     // ok, little cheat here again...
@@ -1351,7 +1385,6 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
     const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
     if (device_info->skipped_dev == true) continue;
-
     if (device_info->skipped_warning_dev == true) continue;
 
     if (device_num != 0)
@@ -1784,7 +1817,6 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
     if (device_info->skipped_dev == true) continue;
-
     if (device_info->skipped_warning_dev == true) continue;
 
     event_log_info (hashcat_ctx,
@@ -1901,7 +1933,6 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
       if (device_info->skipped_dev == true) continue;
-
       if (device_info->skipped_warning_dev == true) continue;
 
       if (device_info->brain_link_status_dev == BRAIN_LINK_STATUS_CONNECTED)
@@ -1978,7 +2009,6 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
     if (device_info->skipped_dev == true) continue;
-
     if (device_info->skipped_warning_dev == true) continue;
 
     event_log_info (hashcat_ctx,
@@ -2005,7 +2035,6 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
     if (device_info->skipped_dev == true) continue;
-
     if (device_info->skipped_warning_dev == true) continue;
 
     if (device_info->guess_candidates_dev == NULL) continue;
@@ -2026,7 +2055,6 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
       if (device_info->skipped_dev == true) continue;
-
       if (device_info->skipped_warning_dev == true) continue;
 
       if (device_info->hwmon_dev == NULL) continue;
@@ -2070,7 +2098,6 @@ void status_benchmark_machine_readable (hashcat_ctx_t *hashcat_ctx)
     const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
     if (device_info->skipped_dev == true) continue;
-
     if (device_info->skipped_warning_dev == true) continue;
 
     event_log_info (hashcat_ctx, "%d:%u:%d:%d:%.2f:%" PRIu64, device_id + 1, hash_mode, device_info->corespeed_dev, device_info->memoryspeed_dev, device_info->exec_msec_dev, (u64) (device_info->hashes_msec_dev_benchmark * 1000));
@@ -2106,7 +2133,6 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
     const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
     if (device_info->skipped_dev == true) continue;
-
     if (device_info->skipped_warning_dev == true) continue;
 
     event_log_info (hashcat_ctx,
@@ -2147,7 +2173,6 @@ void status_speed_machine_readable (hashcat_ctx_t *hashcat_ctx)
     const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
     if (device_info->skipped_dev == true) continue;
-
     if (device_info->skipped_warning_dev == true) continue;
 
     event_log_info (hashcat_ctx, "%d:%" PRIu64, device_id + 1, (u64) (device_info->hashes_msec_dev_benchmark * 1000));
@@ -2178,7 +2203,6 @@ void status_speed_json (hashcat_ctx_t *hashcat_ctx)
     const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
     if (device_info->skipped_dev == true) continue;
-
     if (device_info->skipped_warning_dev == true) continue;
 
     if (device_num != 0)
@@ -2230,7 +2254,6 @@ void status_speed (hashcat_ctx_t *hashcat_ctx)
     const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
     if (device_info->skipped_dev == true) continue;
-
     if (device_info->skipped_warning_dev == true) continue;
 
     event_log_info (hashcat_ctx,
@@ -2267,7 +2290,6 @@ void status_progress_machine_readable (hashcat_ctx_t *hashcat_ctx)
     const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
     if (device_info->skipped_dev == true) continue;
-
     if (device_info->skipped_warning_dev == true) continue;
 
     event_log_info (hashcat_ctx, "%d:%" PRIu64 ":%0.2f", device_id + 1, device_info->progress_dev, device_info->runtime_msec_dev);
@@ -2298,7 +2320,6 @@ void status_progress_json (hashcat_ctx_t *hashcat_ctx)
     const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
     if (device_info->skipped_dev == true) continue;
-
     if (device_info->skipped_warning_dev == true) continue;
 
     if (device_num != 0)
@@ -2351,7 +2372,6 @@ void status_progress (hashcat_ctx_t *hashcat_ctx)
     const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
     if (device_info->skipped_dev == true) continue;
-
     if (device_info->skipped_warning_dev == true) continue;
 
     event_log_info (hashcat_ctx,
@@ -2364,7 +2384,6 @@ void status_progress (hashcat_ctx_t *hashcat_ctx)
     const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
     if (device_info->skipped_dev == true) continue;
-
     if (device_info->skipped_warning_dev == true) continue;
 
     event_log_info (hashcat_ctx,

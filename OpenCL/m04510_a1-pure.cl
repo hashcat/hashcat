@@ -52,20 +52,20 @@ KERNEL_FQ void m04510_mxx (KERN_ATTR_BASIC ())
 
   SYNC_THREADS ();
 
-  if (gid >= gid_max)
+  if (gid >= GID_CNT)
     return;
 
   /**
    * base
    */
 
-  const u32 salt_len = salt_bufs[SALT_POS].salt_len;
+  const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len;
 
   u32 s[64] = { 0 };
 
   for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = hc_swap32_S (salt_bufs[SALT_POS].salt_buf[idx]);
+    s[idx] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[idx]);
   }
 
   sha1_ctx_t ctx0;
@@ -83,7 +83,7 @@ KERNEL_FQ void m04510_mxx (KERN_ATTR_BASIC ())
   u32 w2[4];
   u32 w3[4];
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
     sha1_ctx_t ctx1 = ctx0;
 
@@ -153,7 +153,7 @@ KERNEL_FQ void m04510_sxx (KERN_ATTR_BASIC ())
 
   SYNC_THREADS ();
 
-  if (gid >= gid_max)
+  if (gid >= GID_CNT)
     return;
 
   /**
@@ -161,23 +161,23 @@ KERNEL_FQ void m04510_sxx (KERN_ATTR_BASIC ())
    */
 
   const u32 search[4] = {
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R0],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R1],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R2],
-    digests_buf[DIGESTS_OFFSET].digest_buf[DGST_R3]
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R0],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R1],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R3]
   };
 
   /**
    * base
    */
 
-  const u32 salt_len = salt_bufs[SALT_POS].salt_len;
+  const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len;
 
   u32 s[64] = { 0 };
 
   for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = hc_swap32_S (salt_bufs[SALT_POS].salt_buf[idx]);
+    s[idx] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[idx]);
   }
 
   sha1_ctx_t ctx0;
@@ -195,7 +195,7 @@ KERNEL_FQ void m04510_sxx (KERN_ATTR_BASIC ())
   u32 w2[4];
   u32 w3[4];
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
     sha1_ctx_t ctx1 = ctx0;
 
