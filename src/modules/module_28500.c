@@ -72,6 +72,20 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   u8 * digest = (u8 *) digest_buf;
   u8 * pubkey = hccalloc(PUBKEY_MAXLE,1);
   u8 * npubkey;
+
+  hc_token_t token;
+
+  token.token_cnt = 1;
+
+  token.len_min[0] = 26;
+  token.len_max[0] = 34;
+  token.attr[0] = TOKEN_ATTR_VERIFY_LENGTH | TOKEN_ATTR_VERIFY_BASE58;
+
+  const int rc_tokenizer = input_tokenizer((const u8 *)line_buf, line_len, &token);
+
+  if (rc_tokenizer != PARSER_OK)
+    return (rc_tokenizer);
+
   size_t pubkey_len=PUBKEY_MAXLE;
   bool res = b58tobin(pubkey,&pubkey_len,line_buf,line_len);
   
