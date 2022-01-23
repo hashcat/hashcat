@@ -211,6 +211,66 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   hc_thread_wait (backend_ctx->backend_devices_cnt, c_threads);
 
+  // check for any autotune failures
+  // by default, skipping device on error
+  // using --force, accel/loops/threads min values are used instead of skipping
+
+  int at_err = 0;
+
+  for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+  {
+    if (backend_ctx->enabled == false) continue;
+
+    hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
+
+    if (device_param->skipped == true) continue;
+
+    if (device_param->skipped_warning == true) continue;
+
+    if (device_param->at_status == AT_STATUS_FAILED)
+    {
+      at_err++;
+
+      if (user_options->force == false)
+      {
+        event_log_warning (hashcat_ctx, "* Device #%u: skipped, due to kernel autotune failure (%d).", device_param->device_id + 1, device_param->at_rc);
+
+        device_param->skipped = true;
+
+        // update counters
+
+        if (device_param->is_hip == true)    backend_ctx->hip_devices_active--;
+        if (device_param->is_cuda == true)   backend_ctx->cuda_devices_active--;
+        if (device_param->is_opencl == true) backend_ctx->opencl_devices_active--;
+
+        backend_ctx->backend_devices_active--;
+      }
+      else
+      {
+        event_log_warning (hashcat_ctx, "* Device #%u: detected kernel autotune failure (%d), min values will be used", device_param->device_id + 1, device_param->at_rc);
+      }
+    }
+  }
+
+  if (at_err > 0)
+  {
+    event_log_warning (hashcat_ctx, NULL);
+
+    if (user_options->force == false)
+    {
+      // if all enabled devices fail, abort session
+      if (backend_ctx->backend_devices_active <= 0)
+      {
+        event_log_error (hashcat_ctx, "Aborting session due to kernel autotune failures, for all active devices.");
+
+        event_log_warning (hashcat_ctx, "You can use --force to override this, but do not report related errors.");
+        event_log_warning (hashcat_ctx, NULL);
+
+        return -10;
+      }
+    }
+  }
+
   EVENT (EVENT_AUTOTUNE_FINISHED);
 
   /**
