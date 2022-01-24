@@ -197,6 +197,13 @@ typedef enum st_status_rc
 
 } st_status_t;
 
+typedef enum at_status_rc
+{
+  AT_STATUS_PASSED        = 0,
+  AT_STATUS_FAILED        = 1,
+
+} at_status_t;
+
 typedef enum status_rc
 {
   STATUS_INIT               = 0,
@@ -1127,7 +1134,11 @@ typedef struct hc_device_param
 
   u32     kernel_preferred_wgs_multiple;
 
-  st_status_t st_status;
+  st_status_t st_status;        // selftest status
+
+  at_status_t at_status;        // autotune status
+
+  int     at_rc;                // autotune rc
 
   int     vector_width;
 
