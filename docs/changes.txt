@@ -48,6 +48,7 @@
 - Hash-Mode 7500: set native_threads to 32 with Apple GPU's
 - Hash-Mode 10500: set native_threads to 32 with Apple GPU's
 - Hash-Mode 13100: set native_threads to 32 with Apple GPU's
+- Fixed bug on benchmark engine, avoid skipping all devices in case of "kernel create error" in one of them
 
 ##
 ## Technical
@@ -72,6 +73,13 @@
 - Unit tests: added -r (--runtime) option
 - Unit tests: handle negative status code, skip deprecated hash-types, skip hash-types with known perl modules issues, updated output
 - Hash Info: show more information (Updated Hash-Format. Added Autodetect, Self-Test, Potfile and Plaintext encoding)
+- Status code: updated negative status code (added kernel create failure and resync)
+
+##
+## Improvements
+##
+
+- OpenCL Runtime: Add some unstable warnings detected on macOS
 
 * changes v6.2.4 -> v6.2.5
 
