@@ -260,6 +260,13 @@ GeForce_MX110                                   ALIAS_nv_sm50_or_higher
 GeForce_MX130                                   ALIAS_nv_sm50_or_higher
 GeForce_MX150                                   ALIAS_nv_sm50_or_higher
 
+GeForce_GTX_1650                                ALIAS_nv_sm50_or_higher
+GeForce_GTX_1650_SUPER                          ALIAS_nv_sm50_or_higher
+GeForce_GTX_1650_Ti                             ALIAS_nv_sm50_or_higher
+GeForce_GTX_1660                                ALIAS_nv_sm50_or_higher
+GeForce_GTX_1660_SUPER                          ALIAS_nv_sm50_or_higher
+GeForce_GTX_1660_Ti                             ALIAS_nv_sm50_or_higher
+
 GeForce_RTX_2060                                ALIAS_nv_sm50_or_higher
 GeForce_RTX_2060_SUPER                          ALIAS_nv_sm50_or_higher
 GeForce_RTX_2070                                ALIAS_nv_sm50_or_higher
@@ -268,12 +275,16 @@ GeForce_RTX_2080                                ALIAS_nv_sm50_or_higher
 GeForce_RTX_2080_SUPER                          ALIAS_nv_sm50_or_higher
 GeForce_RTX_2080_Ti                             ALIAS_nv_sm50_or_higher
 
+GeForce_RTX_3050                                ALIAS_nv_sm50_or_higher
+GeForce_RTX_3050_Ti                             ALIAS_nv_sm50_or_higher
 GeForce_RTX_3060                                ALIAS_nv_sm50_or_higher
 GeForce_RTX_3060_Ti                             ALIAS_nv_sm50_or_higher
 GeForce_RTX_3070                                ALIAS_nv_sm50_or_higher
 GeForce_RTX_3070_Ti                             ALIAS_nv_sm50_or_higher
 GeForce_RTX_3080                                ALIAS_nv_sm50_or_higher
+GeForce_RTX_3080_Ti                             ALIAS_nv_sm50_or_higher
 GeForce_RTX_3090                                ALIAS_nv_sm50_or_higher
+GeForce_RTX_3090_Ti                             ALIAS_nv_sm50_or_higher
 
 ##
 ## Unmapped GPU
