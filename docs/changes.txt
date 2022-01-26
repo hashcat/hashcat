@@ -34,20 +34,6 @@
 - Fixed Unit Test salt-max in case of optimized kernel, with hash-type 22 and 23
 - Fixed Unit Test false negative if there are spaces in the filesystem path to hashcat
 - Fixed --hash-info example password output: force uppercase if OPTS_TYPE_PT_UPPER is set
-- Hash-Mode 9700: set native_threads to 32 with Apple GPU's
-- Hash-Mode 9710: set native_threads to 32 with Apple GPU's
-- Hash-Mode 9720: set native_threads to 32 with Apple GPU's
-- Hash-Mode 9800: set native_threads to 32 with Apple GPU's
-- Hash-Mode 9810: set native_threads to 32 with Apple GPU's
-- Hash-Mode 9820: set native_threads to 32 with Apple GPU's
-- Hash-Mode 10400: set native_threads to 32 with Apple GPU's
-- Hash-Mode 10410: set native_threads to 32 with Apple GPU's
-- Hash-Mode 10420: set native_threads to 32 with Apple GPU's
-- Hash-Mode 18200: set native_threads to 32 with Apple GPU's
-- Hash-Mode 25400: set native_threads to 32 with Apple GPU's
-- Hash-Mode 7500: set native_threads to 32 with Apple GPU's
-- Hash-Mode 10500: set native_threads to 32 with Apple GPU's
-- Hash-Mode 13100: set native_threads to 32 with Apple GPU's
 - Fixed bug on benchmark engine, avoid skipping all devices in case of "kernel create error" in one of them
 
 ##
@@ -63,6 +49,7 @@
 - OpenCL Backend: added workaround to make optimized kernels work on Apple Silicon
 - OpenCL Runtime: Added support to use Apple Silicon compute devices
 - OpenCL Runtime: Set default device-type to GPU with Apple Silicon compute devices
+- OpenCL Kernel: Set native_threads to 32 on Apple GPU's for various hash-modes
 - Unit tests: Updated test.sh to set default device-type to CPU with Apple Intel and added -f (--force) option
 - OpenCL Backend: moved functions to ext_OpenCL.c and includes to ext_OpenCL.h
 - HIP Backend: moved functions to ext_hip.c/ext_hiprtc.c and includes to ext_hip.h/ext_hiprtc.h
