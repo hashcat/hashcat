@@ -1811,9 +1811,10 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
     if (backend_ctx->runtime_skip_warning  == true)               rc_final = -3;
     if (backend_ctx->memory_hit_warning    == true)               rc_final = -4;
     if (backend_ctx->kernel_build_warning  == true)               rc_final = -5;
-    if (backend_ctx->kernel_accel_warnings == true)               rc_final = -6;
-    if (backend_ctx->extra_size_warning    == true)               rc_final = -7;
-    if (backend_ctx->mixed_warnings        == true)               rc_final = -8;
+    if (backend_ctx->kernel_create_warning == true)               rc_final = -6;
+    if (backend_ctx->kernel_accel_warnings == true)               rc_final = -7;
+    if (backend_ctx->extra_size_warning    == true)               rc_final = -8;
+    if (backend_ctx->mixed_warnings        == true)               rc_final = -9;
   }
 
   // special case for --stdout
