@@ -16,6 +16,7 @@
 - Added support to use --debug-mode in attack-mode 9 (Association Attack)
 - Added guess data to --status-json output
 - Added hex format for --separator option
+- Added support to building Universal macOS binary on Apple Silicon
 
 ##
 ## Bugs
