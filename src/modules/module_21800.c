@@ -95,6 +95,12 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
     {
       return true;
     }
+
+    // AppleM1, OpenCL, MTLCompilerService never-end (pure/optimized kernel)
+    if ((device_param->opencl_device_vendor_id == VENDOR_ID_APPLE) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
+    {
+      return true;
+    }
   }
 
   // amdgpu-pro-20.50-1234664-ubuntu-20.04 (legacy)
